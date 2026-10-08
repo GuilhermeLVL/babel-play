@@ -17,7 +17,8 @@ import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
 /* No Quest a mesa (4 × 3, cartas grandes, ícone de certo e errado) vem de `styles/questJogar.css`; daqui
    só muda a fala, que não toca quando o aparelho não tem voz para o idioma da palavra. */
-import { falarNoJogo as falar } from './noQuest';
+import MemoriaDoPrototipo from './MemoriaDoPrototipo';
+import { falarNoJogo as falar, useQuestNovo } from './noQuest';
 
 interface MemoryGameProps {
   items: MinigameItem[];
@@ -37,7 +38,12 @@ interface Carta {
   lang: string;
 }
 
-export default function MemoryGame({ items, ageProfile: _ageProfile, onFinish, estadoDoCartao }: MemoryGameProps) {
+/** No desenho novo a Memória é o tabuleiro do protótipo (`MemoriaDoPrototipo.tsx`); fora dele, a de sempre. */
+export default function MemoryGame(props: MemoryGameProps) {
+  return useQuestNovo() ? <MemoriaDoPrototipo {...props} /> : <MemoriaDeSempre {...props} />;
+}
+
+function MemoriaDeSempre({ items, ageProfile: _ageProfile, onFinish, estadoDoCartao }: MemoryGameProps) {
   /* A PELE DE CARTÃO (spec 5.2.4): lida uma vez por rodada. Só a carta VIRADA de uma palavra do
      baralho a veste; de costas é o verso do jogo, e par fechado/errado mantêm a cor do retorno. */
   const pele = useMemo(() => lerPeleDeCartao(), []);

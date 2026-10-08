@@ -1,0 +1,131 @@
+{
+  "nome": "jogo-karuta-certa",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/?ui=pt",
+    "guardar": {
+      "babel_tour_karuta": "1"
+    },
+    "passos": [
+      {
+        "js": "(() => { const f = window.fetch; window.fetch = async (...a) => { const r = await f(...a); const u = typeof a[0] === 'string' ? a[0] : a[0].url; const m = (a[1] && a[1].method) || (a[0] && a[0].method) || 'GET'; if (!String(u).includes('/api/settings') || m !== 'GET') return r; const c = await r.clone().json().catch(() => null); if (!c || typeof c.ui !== 'string') return r; const ui = { ...JSON.parse(c.ui), captureSourceLang: 'pt-BR' }; return new Response(JSON.stringify({ ...c, targetLanguage: 'en', ui: JSON.stringify(ui) }), { status: 200, headers: { 'Content-Type': 'application/json' } }); }; })()"
+      },
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": "button:has-text('Trilha')"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "clicar": "button:has-text('Usar estas palavras')"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".q-tile[data-jogo='karuta']"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "clicar": "[data-ajuda='resposta']"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "js": "(() => { const b = [...document.querySelectorAll('.pj-carta')].find((b) => b.dataset.op === document.querySelector('.pj-resp b').textContent.trim()); if (!b) throw new Error('sem botão'); b.click(); })()"
+      }
+    ],
+    "depois": 300
+  },
+  "proto": {
+    "busca": "?jogo=karuta",
+    "passos": [
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "clicar": "[data-ajuda='resposta']"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "js": "(() => { const b = [...document.querySelectorAll('.pj-carta')].find((b) => b.dataset.op === document.querySelector('.pj-resp b').textContent.trim()); if (!b) throw new Error('sem botão'); b.click(); })()"
+      }
+    ],
+    "depois": 300
+  },
+  "seletores": [
+    ".palco-jogo",
+    ".hud",
+    "[data-pj='pontos']",
+    "[data-pj='rotulo']",
+    "[data-pj='relogio']",
+    ".pj-progresso",
+    ".hud-tempo",
+    ".hud-ajudas",
+    ".hud-ajudas .ajuda-jogo",
+    "[data-ajuda='tempo']",
+    "[data-ajuda='resposta']",
+    ".combo",
+    ".pj-instr",
+    ".pj-miolo",
+    "[data-pista]",
+    ".pj-pista",
+    ".pj-pista svg",
+    ".pj-eq",
+    ".pj-eq i",
+    ".pj-pista > span:last-child",
+    ".pj-mesa",
+    ".pj-carta",
+    ".pj-carta.certa",
+    ".pj-carta.errada",
+    ".pj-carta.pega",
+    ".pj-carta:disabled",
+    "[data-ajuda='ouvir']",
+    ".ganho.erro",
+    ".ganho.good",
+    ".fx-vinheta",
+    ".pj-resp"
+  ]
+}

@@ -13,6 +13,7 @@ import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 import { falarNoJogo as falar, useQuestNovo } from '../noQuest';
+import KofferDoPrototipo from './KofferDoPrototipo';
 
 /**
  * A MALA CUMULATIVA — "Ich packe meinen Koffer" jogado com as palavras do baralho.
@@ -52,7 +53,12 @@ function embaralhar<T>(xs: T[]): T[] {
   return a;
 }
 
-export default function KofferGame({ items, ageProfile, onFinish, onExit }: KofferGameProps) {
+/** No desenho novo a Mala é a cena do protótipo (`KofferDoPrototipo.tsx`); fora dele, a de sempre. */
+export default function KofferGame(props: KofferGameProps) {
+  return useQuestNovo() ? <KofferDoPrototipo {...props} /> : <MalaDeSempre {...props} />;
+}
+
+function MalaDeSempre({ items, ageProfile, onFinish, onExit }: KofferGameProps) {
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
   const { ativo } = useRodada();
   /* A CENA DA MALA (desenho novo): a rota dos níveis, a alça e a tampa que levanta quando a mala abre. */

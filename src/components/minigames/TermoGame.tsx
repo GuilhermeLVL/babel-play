@@ -27,6 +27,7 @@ import { toast } from '../Toast';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
 import { falarNoJogo as falar, useNoHeadset, useQuestNovo, useVozNoJogo } from './noQuest';
+import TermoDoPrototipo from './TermoDoPrototipo';
 
 /**
  * SOLETRAR — o jogo de escrever a palavra a partir do significado, em degraus.
@@ -88,7 +89,12 @@ const GEOMETRIA_NO_QUEST_EMPILHADO: typeof GEOMETRIA_DO_PROTOTIPO = {
   maximo: 60,
 };
 
-export default function TermoGame({ rodadas, ageProfile, onFinish }: TermoGameProps) {
+/** No desenho novo o Soletrar é o tabuleiro do protótipo (`TermoDoPrototipo.tsx`); fora dele, o de sempre. */
+export default function TermoGame(props: TermoGameProps) {
+  return useQuestNovo() ? <TermoDoPrototipo {...props} /> : <TermoDeSempre {...props} />;
+}
+
+function TermoDeSempre({ rodadas, ageProfile, onFinish }: TermoGameProps) {
   /** A casca diz quando a rodada anda: na contagem e na pausa o teclado não escreve. */
   const { ativo } = useRodada();
   /** Tabuleiros fechados na rodada inteira (a pausa mostra "N acertos"). */

@@ -140,3 +140,12 @@ export const unidadeDoPlacar = (jogo: MinigameId): string => UNIDADE[jogo] ?? 'p
 export function unidadeNoDesenho(jogo: MinigameId, reserva: string): string {
   return /^Rodada · \d+ (.+)$/.exec(TEXTOS[jogo]?.rodada ?? '')?.[1] ?? reserva;
 }
+
+/**
+ * A sobrancelha da partida como o protótipo a escreve: "Rodada · 8 bolas", "Escada · 3 palavras",
+ * "Rodada · pares de palavra e tradução" (sem número). O número é o da rodada de verdade (`quantos`).
+ */
+export function sobrancelhaNoDesenho(jogo: MinigameId, quantos: number, reserva: string): string {
+  const molde = TEXTOS[jogo]?.rodada;
+  return molde ? molde.replace(/d+/, String(quantos)) : reserva;
+}

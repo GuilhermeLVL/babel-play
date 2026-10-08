@@ -11,6 +11,7 @@ import type { AgeProfileType } from '../../lib/profile';
 import { botaoDaAlternativa, useAtalhosDasAlternativas } from './casca/atalhos';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada from './casca/HudDaRodada';
+import EscutaDoPrototipo from './EscutaDoPrototipo';
 import { SemVozNoQuest, useQuestNovo, useVozNoJogo, VereditoNoQuest } from './noQuest';
 
 /**
@@ -25,7 +26,12 @@ interface EscutaGameProps {
   onExit: () => void;
 }
 
-export default function EscutaGame({ rodadas, audioUrl, ageProfile: _ageProfile, onFinish }: EscutaGameProps) {
+/** No desenho novo a Escuta é a cena do protótipo (`EscutaDoPrototipo.tsx`); fora dele, a de sempre. */
+export default function EscutaGame(props: EscutaGameProps) {
+  return useQuestNovo() ? <EscutaDoPrototipo {...props} /> : <EscutaDeSempre {...props} />;
+}
+
+function EscutaDeSempre({ rodadas, audioUrl, ageProfile: _ageProfile, onFinish }: EscutaGameProps) {
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa). */
   const { ativo } = useRodada();
   const [acertos, setAcertos] = useState(0);

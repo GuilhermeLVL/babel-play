@@ -11,6 +11,7 @@ import type { AgeProfileType } from '../../../lib/profile';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { usePlacarDaRodada } from '../casca/HudDaRodada';
 import { falarNoJogo as falar, useQuestNovo, useSemTecladoFisico, useVozNoJogo } from '../noQuest';
+import CadavreDoPrototipo from './CadavreDoPrototipo';
 
 /**
  * CADAVRE EXQUIS — quatro palavras da leva, UMA frase sua que use as quatro.
@@ -34,7 +35,12 @@ interface CadavreExquisGameProps {
 /** A rodada é exatamente quatro: é o que `MINIGAMES.cadavre` declara nos dois extremos. */
 const PALAVRAS = MINIGAMES.cadavre.maxItems;
 
-export default function CadavreExquisGame({ items, ageProfile, onFinish, onExit }: CadavreExquisGameProps) {
+/** No desenho novo o Cadavre é a cena do protótipo (`CadavreDoPrototipo.tsx`); fora dele, o de sempre. */
+export default function CadavreExquisGame(props: CadavreExquisGameProps) {
+  return useQuestNovo() ? <CadavreDoPrototipo {...props} /> : <CadavreDeSempre {...props} />;
+}
+
+function CadavreDeSempre({ items, ageProfile, onFinish, onExit }: CadavreExquisGameProps) {
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
   const { ativo } = useRodada();
   const [placar, recontar] = usePlacarDaRodada('cadavre');

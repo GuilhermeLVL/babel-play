@@ -31,7 +31,8 @@ import { play } from '../../lib/soundFx';
 import { botaoDaAlternativa, useAtalhosDasAlternativas } from './casca/atalhos';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
-import { falarNoJogo as falar } from './noQuest';
+import DueloDoPrototipo from './DueloDoPrototipo';
+import { falarNoJogo as falar, useQuestNovo } from './noQuest';
 
 /**
  * DUELO RELÂMPAGO — a revisão cronometrada, agora em "ARCADE DE BRINQUEDO" (v2, 2026-08-27).
@@ -64,7 +65,12 @@ interface BlitzGameProps {
 /** Segundos finais em que o relógio marca cada segundo com um toque. */
 const CONTAGEM_FINAL_S = 10;
 
-export default function BlitzGame({ items, ageProfile, onFinish }: BlitzGameProps) {
+/** No desenho novo o Duelo é o tabuleiro do protótipo (`DueloDoPrototipo.tsx`); fora dele, o de sempre. */
+export default function BlitzGame(props: BlitzGameProps) {
+  return useQuestNovo() ? <DueloDoPrototipo {...props} /> : <DueloDeSempre {...props} />;
+}
+
+function DueloDeSempre({ items, ageProfile, onFinish }: BlitzGameProps) {
   const nivel = useNivelDoJogo('blitz');
   const duracao = segundosDoJogo('blitz', ageProfile, nivel) ?? 60;
   /** A casca diz se a rodada anda: durante a contagem 3-2-1 e na pausa, o relógio para. */

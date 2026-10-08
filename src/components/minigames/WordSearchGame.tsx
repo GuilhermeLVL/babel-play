@@ -9,6 +9,7 @@ import { t, tp } from '../../lib/i18n';
 import { useNivelDoJogo } from '../../lib/jogos/nivelDoJogo';
 import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
+import CacaPalavrasDoPrototipo from './CacaPalavrasDoPrototipo';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
 import { falarNoJogo as falar, useNoHeadset, useQuestNovo } from './noQuest';
@@ -26,7 +27,12 @@ interface WordSearchGameProps {
 
 type Celula = { linha: number; coluna: number };
 
-export default function WordSearchGame({ items, ageProfile, onFinish }: WordSearchGameProps) {
+/** No desenho novo o Caça-palavras é o tabuleiro do protótipo (`CacaPalavrasDoPrototipo.tsx`); fora dele, o de sempre. */
+export default function WordSearchGame(props: WordSearchGameProps) {
+  return useQuestNovo() ? <CacaPalavrasDoPrototipo {...props} /> : <CacaPalavrasDeSempre {...props} />;
+}
+
+function CacaPalavrasDeSempre({ items, ageProfile, onFinish }: WordSearchGameProps) {
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa). */
   const { ativo } = useRodada();
   const grade = useMemo(() => buildGrid(items, { seed: Math.floor(Math.random() * 100000) }), [items]);

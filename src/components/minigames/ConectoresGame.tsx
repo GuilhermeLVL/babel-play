@@ -9,6 +9,7 @@ import { multiplicador, pontosDoElemento } from '../../lib/juice';
 import type { AgeProfileType } from '../../lib/profile';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada from './casca/HudDaRodada';
+import ConectoresDoPrototipo from './ConectoresDoPrototipo';
 import { useQuestNovo, VereditoNoQuest } from './noQuest';
 
 /**
@@ -22,7 +23,12 @@ interface ConectoresGameProps {
   onExit: () => void;
 }
 
-export default function ConectoresGame({ rodadas, ageProfile, onFinish }: ConectoresGameProps) {
+/** No desenho novo o Caça-conectores é a cena do protótipo (`ConectoresDoPrototipo.tsx`); fora dele, o de sempre. */
+export default function ConectoresGame(props: ConectoresGameProps) {
+  return useQuestNovo() ? <ConectoresDoPrototipo {...props} /> : <ConectoresDeSempre {...props} />;
+}
+
+function ConectoresDeSempre({ rodadas, ageProfile, onFinish }: ConectoresGameProps) {
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa). */
   const { ativo } = useRodada();
   const [acertos, setAcertos] = useState(0);

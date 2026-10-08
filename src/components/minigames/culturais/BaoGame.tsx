@@ -12,7 +12,8 @@ import type { AgeProfileType } from '../../../lib/profile';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
-import { falarNoJogo as falar } from '../noQuest';
+import { falarNoJogo as falar, useQuestNovo } from '../noQuest';
+import BaoDoPrototipo from './BaoDoPrototipo';
 
 /**
  * BAO — semear os pedaços da palavra nas covas, na ordem certa.
@@ -77,7 +78,12 @@ function embaralharPecas(pecas: string[]): string[] {
 /** Quanto tempo a cova errada fica marcada antes de voltar ao normal. */
 const MARCA_DO_ERRO_MS = 700;
 
-export default function BaoGame({ items, ageProfile, onFinish, onExit }: BaoGameProps) {
+/** No desenho novo o Bao é a cena do protótipo (`BaoDoPrototipo.tsx`); fora dele, o de sempre. */
+export default function BaoGame(props: BaoGameProps) {
+  return useQuestNovo() ? <BaoDoPrototipo {...props} /> : <BaoDeSempre {...props} />;
+}
+
+function BaoDeSempre({ items, ageProfile, onFinish, onExit }: BaoGameProps) {
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
   const { ativo } = useRodada();
   const nivel = useNivelDoJogo('bao');

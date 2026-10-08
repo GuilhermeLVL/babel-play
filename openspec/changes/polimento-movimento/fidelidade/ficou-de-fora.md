@@ -50,3 +50,21 @@ protótipo **não é portado**; fica anotado aqui, para ele decidir depois o que
 | Capturar | Folha da palavra: Devagar/Normal, definição, frase de exemplo, "Sempre traduzir assim" | `FolhaDaPalavra` | Velocidade da voz, verbete, glossário pessoal |
 | Capturar | Flutuantes dentro da página: aparência, travar, recolher, ritmo, histórico, cartão da palavra | `LegendasFlutuantes` | Continuam na janela por cima de tudo do Chrome e do Edge |
 | Capturar | Arrastar a pega para fechar a folha | `FolhaDeBaixo` | Fecha por toque fora e Esc |
+| Memória | Pele de cartão na carta virada, marca de erro, "Quase!", fala ao virar, 3 colunas adaptáveis | `MemoryGame.tsx` | Agora a palavra só é falada ao fechar o par |
+| Caça-palavras | Ajudas por pista (raspar, dica de direção, revelar), "destacar letras", setas e Enter na grade | `WordSearchGame.tsx` | O traço por dois toques continua, sem nada na tela |
+| Duelo | Anel, selo grande de combo, ondas, cartaz de marco ("N seguidas!"), "rápido +N", contador sob a pergunta | `BlitzGame.tsx` | Enfeites e marcos da sequência |
+| Soletrar | Escada de 4 tabuleiros (agora 1 e depois 2; só as 3 primeiras palavras), sinônimo e "quase", cursor por casa, "letras certas", frase de contexto, teclado lado a lado do Quest | `TermoGame.tsx` | Modo mais longo e tolerâncias |
+| Frase embaralhada | "Limpar a linha" (virou "Recomeçar"), veredito escrito do Quest, fala de cada palavra ao tocar | `ScrambleGame.tsx` |  |
+| Choseong | Aviso "O tempo acabou. Era:", veredito escrito do Quest, tempos por perfil de idade | `ChoseongGame.tsx` | Agora as vogais aparecem em amarelo; tempo só por nível |
+| Tabu | Rótulo "Frase", aviso "Não era essa. Era: X", pausa de 1800 ms no erro, segundos por perfil de idade | `TabooGame.tsx` |  |
+| Escuta | Rótulo "tocando…", veredito escrito, linha de apoio sob o botão | `EscutaGame.tsx` |  |
+| Ditado | "Conferir" desabilitado com campo vazio, aviso "N de T palavras no lugar", veredito escrito, dica sem limite, texto inteiro no campo na segunda chance | `DitadoGame.tsx` | A dica agora é 4/3/2 por nível |
+| Caça-conectores | Veredito escrito, frase de instrução própria com ícone | `ConectoresGame.tsx` |  |
+| Karaokê | Botão "Parar", "(ouvimos x)" por palavra, tartaruga no "devagar", rótulos por perfil, "· gravando" no placar | `KaraokeGame.tsx` | Clicar "Falar agora" durante a gravação a encerra |
+| Jogos (todos) | Rótulo do placar "Fala 2 de 5" | `HudDaRodada.tsx` | Agora "1 de 5 falas", como no protótipo |
+| Mala | Selo "Mala aberta / fechada", aviso "Acabaram as vidas. Nesta posição estava: X", paleta reembaralhada a cada nível, vidas e tempo por perfil de idade | `KofferGame.tsx` | Sem vidas a rodada acaba em 900 ms sem dizer a palavra |
+| Karuta | Pista escondida com "Ler a pista" como dica paga, mesa nova a cada carta, aviso "O tempo acabou. Era: X", segundos por perfil | `KarutaGame.tsx` | A pista agora está sempre escrita; joga só as cartas da mesa |
+| Bao | Palavra inteira mostrada e falada ao perder, alvo maior para criança e sênior | `BaoGame.tsx` | Agora só o aviso "A palavra era X." |
+| Vitendawili | Narração em duas falas com silêncio na lacuna | `VitendawiliGame.tsx` | Agora uma fala só; no acerto fala a frase inteira |
+| Shiritori | Botão "Ouvir a palavra" na ponta, aviso "O tempo acabou. O elo era: X" | `ShiritoriGame.tsx` |  |
+| Cadavre | "Trocar" a palavra por uma de reserva, ouvir cada palavra, painel "A sua frase", ícones de usada e não usada | `CadavreExquisGame.tsx` |  |

@@ -12,7 +12,7 @@ import {
   useState,
 } from 'react';
 
-import { jogoTemNiveis, type NivelDoJogo } from '../../../core/minigames/regras';
+import { jogoTemNiveis, type NivelDoJogo, regrasDoJogo } from '../../../core/minigames/regras';
 import { definirJogoEmCurso } from '../../../lib/comemoracao';
 import { perfilDoDispositivo } from '../../../lib/dispositivo/perfil';
 import { recursosDoAparelho } from '../../../lib/dispositivo/recursos';
@@ -27,7 +27,7 @@ import { InterruptorDoQuest } from '../../views/play/quest/pecasDoQuest';
 import ComoSeJoga from '../ComoSeJoga';
 import { jaFezTour, marcarTourFeito } from '../passosDosJogos';
 import ExplicacaoDoJogo from '../polimento/ExplicacaoDoJogo';
-import { jogoTemNiveisNoDesenho, unidadeNoDesenho } from '../polimento/textos';
+import { jogoTemNiveisNoDesenho, sobrancelhaNoDesenho } from '../polimento/textos';
 import { ICONE_DO_JOGO } from './iconesDosJogos';
 import SeletorDeNivel, { nomeDoNivel } from './SeletorDeNivel';
 
@@ -106,6 +106,21 @@ type Passo = null | 'menu' | 'sair';
 /** Alvos em que P é letra, não atalho. */
 const digitando = (el: EventTarget | null) =>
   el instanceof HTMLElement && (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.isContentEditable);
+
+/**
+ * O número da sobrancelha é o que a rodada de fato joga: os segundos do Duelo, os três degraus do
+ * Soletrar, os níveis da Mala; nos outros, os itens da rodada.
+ */
+function quantosNaSobrancelha(jogo: MinigameId, nivel: NivelDoJogo, total: number): number {
+  if (jogo === 'blitz') return regrasDoJogo('blitz', nivel).segundos;
+  if (jogo === 'termo') return Math.min(3, total);
+  /* A Mala joga até oito níveis; o Karuta, só as cartas da mesa; no Shiritori a primeira palavra abre a
+     corrente e não é perguntada. */
+  if (jogo === 'koffer') return Math.min(8, total);
+  if (jogo === 'karuta') return Math.min(regrasDoJogo('karuta', nivel).cartas, total);
+  if (jogo === 'shiritori') return Math.max(0, total - 1);
+  return total;
+}
 
 export default function CascaDaRodada({
   jogo,
@@ -222,7 +237,11 @@ export default function CascaDaRodada({
       <Tela largura="larga">
         <CabecalhoDeTela
           voltar={{ rotulo: 'Jogar', aoClicar: () => (acabou ? onSair() : setPasso('sair')) }}
-          sobrancelha={`Rodada · ${total} ${questNovo ? unidadeNoDesenho(jogo, unidade) : unidade}${!questNovo && nivel !== 'medio' && jogoTemNiveis(jogo) ? ` · ${nomeDoNivel(nivel)}` : ''}`}
+          sobrancelha={
+            questNovo
+              ? sobrancelhaNoDesenho(jogo, quantosNaSobrancelha(jogo, nivel, total), `Rodada · ${total} ${unidade}`)
+              : `Rodada · ${total} ${unidade}${nivel !== 'medio' && jogoTemNiveis(jogo) ? ` · ${nomeDoNivel(nivel)}` : ''}`
+          }
           /* No desenho novo a sobrancelha traz o ícone do próprio jogo (`jogos.js:128`). */
           icone={questNovo ? ICONE_DO_JOGO[jogo] : Gamepad2}
           titulo={titulo}

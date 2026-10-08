@@ -15,6 +15,8 @@ import { useAtalhosDasAlternativas } from '../casca/atalhos';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
+import { useQuestNovo } from '../noQuest';
+import TabuDoPrototipo from './TabuDoPrototipo';
 
 /**
  * TABU — a definição chega SEM os termos que entregariam a resposta.
@@ -70,7 +72,12 @@ function montarCartas(items: MinigameItem[]): CartaTabu[] {
   });
 }
 
-export default function TabooGame({ items, ageProfile, onFinish, onExit }: TabooGameProps) {
+/** No desenho novo o Tabu é a cena do protótipo (`TabuDoPrototipo.tsx`); fora dele, o de sempre. */
+export default function TabooGame(props: TabooGameProps) {
+  return useQuestNovo() ? <TabuDoPrototipo {...props} /> : <TabuDeSempre {...props} />;
+}
+
+function TabuDeSempre({ items, ageProfile, onFinish, onExit }: TabooGameProps) {
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
   const { ativo } = useRodada();
   const [placar, recontar] = usePlacarDaRodada('taboo');

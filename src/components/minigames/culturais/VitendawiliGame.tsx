@@ -10,6 +10,7 @@ import { botaoDaAlternativa, useAtalhosDasAlternativas } from '../casca/atalhos'
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 import { falarNoJogo as falar, useQuestNovo, useVozNoJogo } from '../noQuest';
+import VitendawiliDoPrototipo from './VitendawiliDoPrototipo';
 
 /**
  * VITENDAWILI — o enigma é a SUA PRÓPRIA FRASE com a palavra apagada.
@@ -66,7 +67,12 @@ function embaralhar<T>(xs: T[]): T[] {
   return a;
 }
 
-export default function VitendawiliGame({ items, ageProfile, onFinish, onExit }: VitendawiliGameProps) {
+/** No desenho novo o Vitendawili é a cena do protótipo (`VitendawiliDoPrototipo.tsx`); fora dele, o de sempre. */
+export default function VitendawiliGame(props: VitendawiliGameProps) {
+  return useQuestNovo() ? <VitendawiliDoPrototipo {...props} /> : <VitendawiliDeSempre {...props} />;
+}
+
+function VitendawiliDeSempre({ items, ageProfile, onFinish, onExit }: VitendawiliGameProps) {
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
   const { ativo } = useRodada();
   const [placar, recontar] = usePlacarDaRodada('vitendawili');

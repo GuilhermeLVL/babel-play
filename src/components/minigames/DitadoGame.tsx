@@ -12,6 +12,7 @@ import type { AgeProfileType } from '../../lib/profile';
 import AvisoDaJogada from './casca/AvisoDaJogada';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
+import DitadoDoPrototipo from './DitadoDoPrototipo';
 import { SemVozNoQuest, useQuestNovo, useSemTecladoFisico, useVozNoJogo, VereditoNoQuest } from './noQuest';
 
 /**
@@ -37,7 +38,12 @@ interface DitadoGameProps {
   onExit: () => void;
 }
 
-export default function DitadoGame({ rodadas, audioUrl, ageProfile, onFinish }: DitadoGameProps) {
+/** No desenho novo o Ditado é a cena do protótipo (`DitadoDoPrototipo.tsx`); fora dele, o de sempre. */
+export default function DitadoGame(props: DitadoGameProps) {
+  return useQuestNovo() ? <DitadoDoPrototipo {...props} /> : <DitadoDeSempre {...props} />;
+}
+
+function DitadoDeSempre({ rodadas, audioUrl, ageProfile, onFinish }: DitadoGameProps) {
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa). */
   const { ativo } = useRodada();
   const [acertos, setAcertos] = useState(0);

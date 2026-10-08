@@ -1,0 +1,94 @@
+{
+  "nome": "jogo-taboo-errada",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/?ui=pt",
+    "guardar": {
+      "babel_tour_taboo": "1"
+    },
+    "passos": [
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "(async()=>{const arq=\"/src/components/minigames/culturais/TabuDoPrototipo.tsx\";const src=await (await fetch(arq)).text();const url=(re)=>src.match(re)[1];const reactUrl=url(/from \"([^\"]*deps\\/react\\.js[^\"]*)\"/);const React=(await import(reactUrl)).default;const dom=await import(reactUrl.replace('react.js','react-dom_client.js'));const casca=await import(url(/from \"([^\"]*casca\\/CascaDaRodada\\.tsx[^\"]*)\"/));const jogo=await import(arq);const pai=document.querySelector('.px-tela');[...pai.children].forEach((x)=>(x.style.display='none'));const host=document.createElement('div');host.style.display='contents';pai.append(host);const nada=()=>{};(dom.createRoot?dom:dom.default).createRoot(host).render(React.createElement(casca.default,{jogo:\"taboo\",titulo:\"Tabu: a definição sem os termos óbvios\",total:5,unidade:\"cartas\",ageProfile:'pro',onRecomecar:nada,onSair:nada},React.createElement(jogo.default,Object.assign({items:[[\"Um móvel plano, preso à parede, onde se guardam livros e objetos.\",\"shelf\"],[\"Chuva forte, com vento, raios e trovões.\",\"storm\"],[\"Pano felpudo que se usa para secar o corpo depois do banho.\",\"towel\"],[\"Faixa de terra que fica à beira do mar.\",\"coast\"],[\"Construção que liga as duas margens de um rio.\",\"bridge\"]].map(([prompt,answer],k)=>({cardId:'c'+k,prompt,answer,lang:'pt'}))},{onFinish:nada,onExit:nada}))))})()"
+      },
+      {
+        "esperar": 1800
+      },
+      {
+        "js": "(async()=>{const d=(ms)=>new Promise((r)=>setTimeout(r,ms));document.querySelector(\"[data-ajuda='resposta']\").click();await d(300);const certa=document.querySelector(\".pj-resp b\").textContent;[...document.querySelectorAll('.opcoes-blitz button')].find((b)=>b.dataset.op!==certa).click();})()"
+      }
+    ],
+    "depois": 250
+  },
+  "proto": {
+    "busca": "?jogo=taboo",
+    "passos": [
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 1800
+      },
+      {
+        "js": "(async()=>{const d=(ms)=>new Promise((r)=>setTimeout(r,ms));document.querySelector(\"[data-ajuda='resposta']\").click();await d(300);const certa=document.querySelector(\".pj-resp b\").textContent;[...document.querySelectorAll('.opcoes-blitz button')].find((b)=>b.dataset.op!==certa).click();})()"
+      }
+    ],
+    "depois": 250
+  },
+  "seletores": [
+    "[data-pj='pontos']",
+    "[data-pj='rotulo']",
+    ".pj-progresso span",
+    ".combo",
+    ".pj-resp",
+    ".fx-vinheta",
+    ".opcoes-blitz button.certa",
+    ".opcoes-blitz button.errada",
+    ".opcoes-blitz button:disabled:not(.certa):not(.errada)",
+    ".pj-treme"
+  ],
+  "props": [
+    "textDecorationLine",
+    "borderTopStyle",
+    "animationDelay"
+  ]
+}

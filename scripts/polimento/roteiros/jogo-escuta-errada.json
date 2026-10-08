@@ -1,0 +1,102 @@
+{
+  "nome": "jogo-escuta-errada",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/?ui=pt",
+    "guardar": {
+      "babel_tour_escuta": "1"
+    },
+    "passos": [
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": "button:has-text('Trilha')"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "clicar": "button:has-text('Usar estas palavras')"
+      },
+      {
+        "esperar": 2000
+      },
+      {
+        "clicar": ".q-tile[data-jogo='escuta']"
+      },
+      {
+        "esperar": 1800
+      },
+      {
+        "js": "(async()=>{const d=(ms)=>new Promise((r)=>setTimeout(r,ms));document.querySelector(\"[data-ajuda='resposta']\").click();await d(300);const certa=document.querySelector(\".pj-resp b\").textContent;[...document.querySelectorAll('.pj-lista button')].find((b)=>b.textContent!==certa).click();})()"
+      }
+    ],
+    "depois": 250
+  },
+  "proto": {
+    "busca": "?jogo=escuta",
+    "passos": [
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 1800
+      },
+      {
+        "js": "(async()=>{const d=(ms)=>new Promise((r)=>setTimeout(r,ms));document.querySelector(\"[data-ajuda='resposta']\").click();await d(300);const certa=document.querySelector(\".pj-resp b\").textContent;[...document.querySelectorAll('.pj-lista button')].find((b)=>b.textContent!==certa).click();})()"
+      }
+    ],
+    "depois": 250
+  },
+  "seletores": [
+    "[data-pj='pontos']",
+    "[data-pj='rotulo']",
+    ".pj-progresso span",
+    ".combo",
+    ".pj-resp",
+    ".ganho",
+    ".fx-vinheta",
+    ".pj-lista button.certa",
+    ".pj-lista button.errada",
+    ".pj-lista button:disabled:not(.certa):not(.errada)",
+    ".pj-aviso",
+    ".pj-treme"
+  ],
+  "props": [
+    "textDecorationLine",
+    "borderTopStyle",
+    "animationDelay"
+  ]
+}

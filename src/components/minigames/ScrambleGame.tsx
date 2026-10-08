@@ -11,6 +11,7 @@ import type { AgeProfileType } from '../../lib/profile';
 import { play } from '../../lib/soundFx';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda } from './casca/HudDaRodada';
+import FraseDoPrototipo from './FraseDoPrototipo';
 import { falarNoJogo as falar, useQuestNovo, useVozNoJogo, VereditoNoQuest } from './noQuest';
 
 /**
@@ -31,7 +32,12 @@ function comecoCerto(montada: number[], rodada: { embaralhada: string[]; correta
   return n;
 }
 
-export default function ScrambleGame({ rodadas, ageProfile, onFinish }: ScrambleGameProps) {
+/** No desenho novo a Frase embaralhada é o tabuleiro do protótipo (`FraseDoPrototipo.tsx`); fora dele, a de sempre. */
+export default function ScrambleGame(props: ScrambleGameProps) {
+  return useQuestNovo() ? <FraseDoPrototipo {...props} /> : <FraseDeSempre {...props} />;
+}
+
+function FraseDeSempre({ rodadas, ageProfile, onFinish }: ScrambleGameProps) {
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa). */
   const { ativo } = useRodada();
   const [acertos, setAcertos] = useState(0);

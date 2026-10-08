@@ -16,6 +16,7 @@ import type { AgeProfileType } from '../../lib/profile';
 import { toast } from '../Toast';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada from './casca/HudDaRodada';
+import KaraokeDoPrototipo from './KaraokeDoPrototipo';
 import { SemVozNoQuest, useQuestNovo, useVozNoJogo } from './noQuest';
 
 /**
@@ -42,7 +43,12 @@ interface KaraokeGameProps {
 
 type Fase = 'parado' | 'ouvindo' | 'gravando' | 'avaliado';
 
-export default function KaraokeGame({ falas, audioUrl, ageProfile, onFinish }: KaraokeGameProps) {
+/** No desenho novo o Karaokê é a cena do protótipo (`KaraokeDoPrototipo.tsx`); fora dele, o de sempre. */
+export default function KaraokeGame(props: KaraokeGameProps) {
+  return useQuestNovo() ? <KaraokeDoPrototipo {...props} /> : <KaraokeDeSempre {...props} />;
+}
+
+function KaraokeDeSempre({ falas, audioUrl, ageProfile, onFinish }: KaraokeGameProps) {
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa). */
   const { ativo } = useRodada();
   /** O placar que o HUD mostra: a MESMA conta do fim da rodada (`pontuarRodada`), refeita a cada fala. */

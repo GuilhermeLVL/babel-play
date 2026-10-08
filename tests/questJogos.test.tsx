@@ -14,7 +14,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { RodadaConectores, RodadaDitado, RodadaEscuta, RodadaFrase, RodadaTermo } from '../src/core'
+import type { RodadaEscuta, RodadaTermo } from '../src/core'
 import type { EstadoDoJogo } from '../src/core/minigames/estadoDosJogos'
 import type { MinigameId, MinigameItem } from '../src/core/minigames/types'
 
@@ -59,16 +59,8 @@ const { jogosQueAbremNoQuest, tilesDoQuest } = await import('../src/components/v
 const { default: WordSearchGame } = await import('../src/components/minigames/WordSearchGame')
 const { default: TermoGame } = await import('../src/components/minigames/TermoGame')
 const { default: EscutaGame } = await import('../src/components/minigames/EscutaGame')
-const { default: DitadoGame } = await import('../src/components/minigames/DitadoGame')
 const { default: KaraokeGame } = await import('../src/components/minigames/KaraokeGame')
-const { default: ScrambleGame } = await import('../src/components/minigames/ScrambleGame')
-const { default: ConectoresGame } = await import('../src/components/minigames/ConectoresGame')
-const { default: MemoryGame } = await import('../src/components/minigames/MemoryGame')
-const { default: KarutaGame } = await import('../src/components/minigames/culturais/KarutaGame')
 const { default: TenseTennisGame } = await import('../src/components/minigames/culturais/TenseTennisGame')
-const { default: VitendawiliGame } = await import('../src/components/minigames/culturais/VitendawiliGame')
-const { default: ChoseongGame } = await import('../src/components/minigames/culturais/ChoseongGame')
-const { default: CadavreExquisGame } = await import('../src/components/minigames/culturais/CadavreExquisGame')
 
 const ITENS: MinigameItem[] = [
   { cardId: 'c1', prompt: 'casa', answer: 'house', lang: 'en', sentence: 'My house is big.' },
@@ -234,88 +226,7 @@ describe('tilesDoQuest: a voz do idioma do baralho', () => {
 
 /* ── CAÇA-PALAVRAS ────────────────────────────────────────────────────────────────────────────── */
 describe('Caça-palavras no Quest', () => {
-  const celulas = () => [...document.querySelectorAll<HTMLButtonElement>('[data-tour="grade"] > button')]
-  /** As duas pontas da palavra, lidas da grade que está na tela (a semente é aleatória). */
-  function pontas(palavra: string): [HTMLButtonElement, HTMLButtonElement] {
-    const cs = celulas()
-    const n = Math.round(Math.sqrt(cs.length))
-    const letra = (l: number, c: number) => cs[l * n + c]?.textContent?.trim()
-    const W = palavra.toUpperCase()
-    const dirs = [
-      [0, 1],
-      [1, 0],
-      [1, 1],
-      [-1, 1],
-      [0, -1],
-      [-1, 0],
-      [-1, -1],
-      [1, -1],
-    ]
-    for (let l = 0; l < n; l++)
-      for (let c = 0; c < n; c++)
-        for (const [dl, dc] of dirs) {
-          let ok = true
-          for (let k = 0; k < W.length && ok; k++) {
-            const L = l + dl * k
-            const C = c + dc * k
-            if (L < 0 || C < 0 || L >= n || C >= n || letra(L, C) !== W[k]) ok = false
-          }
-          if (ok) return [cs[l * n + c], cs[(l + dl * (W.length - 1)) * n + c + dc * (W.length - 1)]]
-        }
-    throw new Error('palavra fora da grade: ' + palavra)
-  }
-  const achadas = () => screen.queryAllByLabelText('encontrada').length
   const montar = () => render(<WordSearchGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-  const pista = (texto: string) =>
-    [...document.querySelectorAll<HTMLButtonElement>('.qj-pista')].find((b) => b.textContent?.includes(texto))!
-
-  it('é de dois toques: o arrasto não marca nada, e a instrução não fala em arrastar', () => {
-    montar()
-    expect(document.getElementById('como-marcar')?.textContent).toBe(
-      'Toque na primeira letra da palavra e depois na última.',
-    )
-    const [a, b] = pontas('house')
-    fireEvent.pointerDown(a, { pointerId: 1, pointerType: 'mouse' })
-    fireEvent.pointerEnter(b, { pointerId: 1, pointerType: 'mouse' })
-    fireEvent.pointerUp(b, { pointerId: 1, pointerType: 'mouse' })
-    expect(achadas()).toBe(0)
-
-    fireEvent.click(a)
-    expect(a.getAttribute('aria-pressed')).toBe('true')
-    expect(document.getElementById('como-marcar')?.textContent).toMatch(/última letra/)
-    fireEvent.click(b)
-    expect(achadas()).toBe(1)
-  })
-
-  it('as quatro ajudas têm nome, dizem o que custam e agem na pista escolhida', () => {
-    montar()
-    const ajudas = [...document.querySelectorAll<HTMLButtonElement>('.qj-caca-ajudas button')]
-    expect(ajudas.map((b) => b.querySelector('b')?.textContent)).toEqual(['Raspar', 'Radar', 'Dica', 'Revelar'])
-    expect(ajudas.every((b) => (b.querySelector('small')?.textContent ?? '').length > 0)).toBe(true)
-
-    // De início, a primeira pista que falta; tocar em outra troca a escolhida.
-    expect(pista('casa').getAttribute('aria-pressed')).toBe('true')
-    fireEvent.click(pista('gato'))
-    expect(pista('gato').getAttribute('aria-pressed')).toBe('true')
-    expect(pista('casa').getAttribute('aria-pressed')).toBe('false')
-
-    fireEvent.click(ajudas[0]) // raspar: mostra a palavra, sem encerrar a pista
-    expect(pista('gato').textContent).toContain('cat')
-    expect(pista('gato').disabled).toBe(false)
-    expect(ajudas[0].disabled).toBe(true)
-
-    fireEvent.click(ajudas[3]) // revelar: encerra a pista, e a escolhida passa a ser a próxima que falta
-    expect(pista('gato').disabled).toBe(true)
-    expect(pista('gato').dataset.estado).toBe('revelada')
-    expect(pista('casa').getAttribute('aria-pressed')).toBe('true')
-  })
-
-  it('o campo de destaque continua lá (o teclado do sistema sobe no foco)', () => {
-    montar()
-    const campo = document.getElementById('destaque-letras') as HTMLInputElement
-    fireEvent.change(campo, { target: { value: 'h' } })
-    expect(document.getElementById('destaque-ajuda')?.textContent).toMatch(/aceso/)
-  })
 
   it('fora do Quest nada muda: a instrução de sempre e os ícones por pista', () => {
     aparelho.quest = false
@@ -334,33 +245,6 @@ describe('Termo no Quest', () => {
     { cardId: 'c3', palavra: 'tree', resposta: 'TREE', pista: 'árvore', lang: 'en' },
   ]
   const montar = () => render(<TermoGame rodadas={RODADAS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-  /** A casa em digitação com o cursor: no jsdom (largura 0) ela não é botão, é `gridcell`. */
-  const noCursor = () => document.querySelector<HTMLElement>('.linha-termo.atual [aria-current="true"]')
-  const posicao = () => noCursor()?.getAttribute('aria-label')
-
-  it('joga-se só com o teclado na tela: letras, enviar, apagar e as duas teclas do cursor', () => {
-    montar()
-    expect(document.querySelector('[data-qj="termo"]')).not.toBeNull()
-    expect(posicao()).toMatch(/^Posição 1,/)
-    fireEvent.click(botao('H')!)
-    expect(posicao()).toMatch(/^Posição 2,/)
-    fireEvent.click(botao('Casa seguinte')!)
-    expect(posicao()).toMatch(/^Posição 3,/)
-    fireEvent.click(botao('Casa anterior')!)
-    fireEvent.click(botao('Casa anterior')!)
-    expect(posicao()).toBe('Posição 1, letra H')
-    expect(botao(/enviar palpite/i)).not.toBeNull()
-    expect(botao('Apagar letra')).not.toBeNull()
-  })
-
-  it('"Ouvir" só aparece com voz para o idioma da palavra', () => {
-    montar()
-    expect(botao('Ouvir')).toBeNull()
-    cleanup()
-    aparelho.vozes = new Set(['en'])
-    montar()
-    expect(botao('Ouvir')).not.toBeNull()
-  })
 
   it('fora do Quest não há teclas de cursor, e as casas em digitação são botões', () => {
     aparelho.quest = false
@@ -394,39 +278,9 @@ describe('a voz dentro dos jogos', () => {
     expect(document.querySelector('.qj-sem-voz')).toBeNull()
   })
 
-  it('Escuta sem voz: nada de botão mudo; a tradução vira a pergunta, e o veredito vem escrito', () => {
-    render(<EscutaGame rodadas={escuta('de')} audioUrl="" ageProfile="pro" onFinish={nada} onExit={nada} />)
-    expect(document.querySelector('[data-tour="ouvir"]')).toBeNull()
-    expect(document.querySelector('.qj-sem-voz')?.textContent).toMatch(/Sem voz de leitura em alemão/i)
-    expect(document.querySelector('[data-qp="enunciado"]')?.textContent).toBe('Bom dia')
-    expect(falar).not.toHaveBeenCalled()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Gute Nacht' }))
-    const veredito = document.querySelector('.qj-veredito') as HTMLElement
-    expect(veredito.dataset.estado).toBe('errado')
-    expect(veredito.textContent).toMatch(/Não era essa/)
-  })
-
   it('Escuta com a gravação: o som é o clipe, e a voz não entra na conta', () => {
     render(<EscutaGame rodadas={escuta('de')} audioUrl="blob:audio" ageProfile="pro" onFinish={nada} onExit={nada} />)
     expect(document.querySelector('[data-tour="ouvir"]')).not.toBeNull()
-  })
-
-  it('Ditado sem voz: a fala é escrita a partir da tradução; o campo é do teclado do sistema', () => {
-    const rodadas: RodadaDitado[] = [
-      { fala: fala('d1', 'Wo ist der Bahnhof', 'de', 'Onde fica a estação'), palavras: 4 },
-    ]
-    render(<DitadoGame rodadas={rodadas} audioUrl="" ageProfile="pro" onFinish={nada} onExit={nada} />)
-    expect(document.querySelector('[data-tour="ouvir"]')).toBeNull()
-    expect(document.querySelector('[data-qp="enunciado"]')?.textContent).toBe('Onde fica a estação')
-    const campo = document.querySelector('[data-tour="entrada"]') as HTMLInputElement
-    expect(campo.getAttribute('enterkeyhint')).toBe('done')
-    expect(document.activeElement).not.toBe(campo) // não rouba o foco: o teclado sobe no toque
-    expect(botao(/pular/)).not.toBeNull()
-
-    fireEvent.change(campo, { target: { value: 'Wo ist der Bahnhof' } })
-    fireEvent.click(botao('Conferir')!)
-    expect(document.querySelector('.qj-veredito')?.textContent).toMatch(/Passou/)
   })
 
   it('Karaokê: o motivo no lugar do botão de falar; ouvir e próxima continuam', () => {
@@ -437,57 +291,6 @@ describe('a voz dentro dos jogos', () => {
     expect(botao(/Falar/)).toBeNull()
     expect(botao('Ouvir')).not.toBeNull()
     expect(botao(/Terminar/)).not.toBeNull()
-  })
-
-  it('Karuta: sem voz para o idioma da pista, ela vem escrita e sem custar dica', () => {
-    render(<KarutaGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-    expect(document.querySelector('[data-tour="pista"]')?.textContent).toBe('casa')
-    expect(botao('Ouvir de novo')).toBeNull()
-    expect(botao('Ler a pista')).toBeNull()
-    expect(falar).not.toHaveBeenCalled()
-  })
-
-  it('Karuta: com voz para o idioma da pista, o narrador declama e ler é uma dica', () => {
-    aparelho.vozes = new Set(['pt', 'en'])
-    render(<KarutaGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-    expect(document.querySelector('[data-tour="pista"]')).toBeNull()
-    expect(botao('Ouvir de novo')).not.toBeNull()
-    expect(botao('Ler a pista')).not.toBeNull()
-    expect(falar).toHaveBeenCalledWith('casa', expect.stringMatching(/^pt/), expect.anything())
-  })
-
-  it('Frase embaralhada: "Ouvir" some sem voz; as peças não falam, e o acerto vem escrito', () => {
-    const rodadas: RodadaFrase[] = [
-      { correta: ['Ich', 'bin', 'hier'], embaralhada: ['hier', 'Ich', 'bin'], traducao: 'Estou aqui', lang: 'de' },
-    ]
-    render(<ScrambleGame rodadas={rodadas} ageProfile="pro" onFinish={nada} onExit={nada} />)
-    expect(botao('Ouvir')).toBeNull()
-    for (const palavra of ['Ich', 'bin', 'hier']) fireEvent.click(screen.getByRole('button', { name: palavra }))
-    expect(falar).not.toHaveBeenCalled()
-    expect(screen.getByText('Toque numa palavra da linha para tirá-la.')).toBeTruthy()
-    fireEvent.click(botao('Conferir')!)
-    expect(document.querySelector('.qj-veredito')?.textContent).toMatch(/Frase certa/)
-  })
-
-  it('Charada: o enigma está sempre escrito; "Ouvir" só com voz; a certa fica marcada', () => {
-    render(<VitendawiliGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-    expect(document.querySelector('[data-tour="enigma"]')?.textContent).toMatch(/My/)
-    expect(botao('Ouvir')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'dog' }))
-    expect(screen.getByRole('button', { name: 'dog' }).dataset.estado).toBe('errado')
-    fireEvent.click(screen.getByRole('button', { name: 'house' }))
-    expect(screen.getByRole('button', { name: 'house' }).dataset.estado).toBe('certo')
-  })
-
-  it('Memória: virar a carta não chama a voz quando não há voz para o idioma', () => {
-    render(<MemoryGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-    fireEvent.click(document.querySelector('[data-texto="house"]')!)
-    expect(falar).not.toHaveBeenCalled()
-    cleanup()
-    aparelho.vozes = new Set(['en'])
-    render(<MemoryGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-    fireEvent.click(document.querySelector('[data-texto="house"]')!)
-    expect(falar).toHaveBeenCalledWith('house', 'en', expect.anything())
   })
 })
 
@@ -501,56 +304,6 @@ describe('campos e peças no Quest', () => {
     fireEvent.change(campo, { target: { value: 'house' } })
     fireEvent.click(botao('Devolver')!)
     expect(campo.disabled).toBe(true)
-  })
-
-  it('Choseong: as vogais são teclas na tela, e a tentativa errada é dita em texto', () => {
-    render(<ChoseongGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-    expect(document.querySelectorAll('[data-tour="teclado"] [data-qp="tecla"]')).toHaveLength(6)
-    // "house" tem três vogais (O, U, E): três erradas fecham uma tentativa.
-    for (const v of ['A', 'A', 'A']) fireEvent.click(botao(v)!)
-    expect(document.querySelector('.qj-veredito')?.textContent).toMatch(/Não é essa/)
-    fireEvent.click(botao('O')!)
-    expect(document.querySelector('.qj-veredito')).toBeNull()
-    // Só as erradas saem: o O certo fica, e errar as outras duas não o apaga.
-    for (const v of ['A', 'A']) fireEvent.click(botao(v)!)
-    expect(document.querySelector('.qj-veredito')?.textContent).toMatch(/As vogais certas ficaram/)
-    expect([...document.querySelectorAll('[data-qp="casas"] span')].map((s) => s.textContent)).toEqual([
-      'H',
-      'O',
-      '',
-      'S',
-      '',
-    ])
-  })
-
-  it('Conectores: cada palavra é uma peça, e o resultado de cada uma vem na marcação', () => {
-    const rodadas: RodadaConectores[] = [
-      {
-        fala: { id: 'c1', text: 'I stayed because it rained', lang: 'en', startMs: 0, endMs: 0 },
-        tokens: ['I', 'stayed', 'because', 'it', 'rained'],
-        alvos: [2],
-      },
-    ]
-    render(<ConectoresGame rodadas={rodadas} ageProfile="pro" onFinish={nada} onExit={nada} />)
-    const peca = (nome: string) => screen.getByRole('button', { name: nome })
-    fireEvent.click(peca('because'))
-    fireEvent.click(peca('stayed'))
-    expect(peca('because').getAttribute('aria-pressed')).toBe('true')
-    fireEvent.click(botao('Conferir')!)
-    expect(peca('because').dataset.estado).toBe('certo')
-    expect(peca('stayed').dataset.estado).toBe('errado')
-    expect(peca('rained').dataset.estado).toBeUndefined()
-    expect(document.querySelector('.qj-veredito')).not.toBeNull()
-  })
-
-  it('Frase maluca: o campo é do teclado do sistema, e os botões de ouvir seguem a voz', () => {
-    render(<CadavreExquisGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-    expect(document.querySelector('textarea[data-qp="campo"]')).not.toBeNull()
-    expect(botao('Ouvir house')).toBeNull()
-    cleanup()
-    aparelho.vozes = new Set(['en'])
-    render(<CadavreExquisGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-    expect(botao('Ouvir house')).not.toBeNull()
   })
 })
 
@@ -584,74 +337,6 @@ describe('no computador com o desenho novo', () => {
     expect(tiles.map((t) => t.nota ?? '').join(' ')).not.toMatch(/headset/i)
   })
 
-  it('Caça-palavras: o desenho novo (pistas e ajudas com nome), e o ARRASTO do mouse continua marcando', () => {
-    render(<WordSearchGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-    expect(document.querySelector('.qj-caca')).not.toBeNull()
-    expect(document.querySelectorAll('.qj-caca-ajudas button')).toHaveLength(4)
-    expect(document.getElementById('como-marcar')?.textContent).toMatch(/^Arraste/)
-
-    const cs = [...document.querySelectorAll<HTMLButtonElement>('[data-tour="grade"] > button')]
-    const n = Math.round(Math.sqrt(cs.length))
-    const letra = (l: number, c: number) => cs[l * n + c]?.textContent?.trim()
-    const W = 'HOUSE'
-    const DIRS = [
-      [0, 1],
-      [1, 0],
-      [1, 1],
-      [-1, 1],
-      [0, -1],
-      [-1, 0],
-      [-1, -1],
-      [1, -1],
-    ]
-    let pontas: [HTMLButtonElement, HTMLButtonElement] | null = null
-    for (let l = 0; l < n && !pontas; l++)
-      for (let c = 0; c < n && !pontas; c++)
-        for (const [dl, dc] of DIRS) {
-          let ok = true
-          for (let k = 0; k < W.length && ok; k++) {
-            const L = l + dl * k
-            const C = c + dc * k
-            if (L < 0 || C < 0 || L >= n || C >= n || letra(L, C) !== W[k]) ok = false
-          }
-          if (ok) {
-            pontas = [cs[l * n + c], cs[(l + dl * (W.length - 1)) * n + c + dc * (W.length - 1)]]
-            break
-          }
-        }
-    const [a, b] = pontas!
-    fireEvent.pointerDown(a, { pointerId: 1, pointerType: 'mouse' })
-    fireEvent.pointerEnter(b, { pointerId: 1, pointerType: 'mouse' })
-    fireEvent.pointerUp(b, { pointerId: 1, pointerType: 'mouse' })
-    expect(screen.queryAllByLabelText('encontrada')).toHaveLength(1)
-  })
-
-  it('Termo: o teclado físico escreve, as casas em digitação são alvo do mouse, e "Ouvir" é o do navegador', () => {
-    render(
-      <TermoGame
-        rodadas={[{ cardId: 'c1', palavra: 'home', resposta: 'HOME', pista: 'lar', lang: 'en' }] as RodadaTermo[]}
-        ageProfile="pro"
-        onFinish={nada}
-        onExit={nada}
-      />,
-    )
-    // O desenho continua o novo: as duas teclas do cursor estão lá.
-    expect(botao('Casa anterior')).not.toBeNull()
-    // No jsdom a casa mede 0 px: no headset ela viraria `gridcell`; no computador é botão, como sempre.
-    expect(document.querySelectorAll('.linha-termo.atual button')).toHaveLength(4)
-    fireEvent.keyDown(window, { key: 'h' })
-    expect(document.querySelector('.linha-termo.atual button')?.textContent).toBe('H')
-    fireEvent.keyDown(window, { key: 'Backspace' })
-    expect(document.querySelector('.linha-termo.atual button')?.textContent).toBe('')
-    expect(botao('Ouvir')).not.toBeNull()
-  })
-
-  it('Frase maluca: sem a frase do headset, e os botões de ouvir aparecem como sempre', () => {
-    render(<CadavreExquisGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-    expect(screen.queryByText(/headset/i)).toBeNull()
-    expect(botao('Ouvir house')).not.toBeNull()
-  })
-
   it('Karaokê: com reconhecimento de fala há o botão de falar e a nota, como sempre', () => {
     const w = window as unknown as { SpeechRecognition?: unknown }
     w.SpeechRecognition = function () {}
@@ -672,21 +357,5 @@ describe('no computador com o desenho novo', () => {
     expect(aviso).toMatch(/Este navegador não tem reconhecimento de voz/)
     expect(aviso).not.toMatch(/headset/i)
     expect(botao('Ouvir')).not.toBeNull()
-  })
-
-  it('Karuta: vale a regra de sempre do computador (sem voz no navegador, a pista vem escrita)', () => {
-    render(<KarutaGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-    // O jsdom não tem `speechSynthesis`: a pista aparece escrita, e "Ouvir de novo" continua lá, como sempre.
-    expect(document.querySelector('[data-tour="pista"]')?.textContent).toBe('casa')
-    expect(botao('Ouvir de novo')).not.toBeNull()
-  })
-
-  it('Choseong: as vogais do teclado físico escrevem', () => {
-    render(<ChoseongGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-    const vazias = () =>
-      [...document.querySelectorAll('[data-qp="casas"] span')].filter((s) => s.textContent === '').length
-    const antes = vazias()
-    fireEvent.keyDown(window, { key: 'o' })
-    expect(vazias()).toBe(antes - 1)
   })
 })

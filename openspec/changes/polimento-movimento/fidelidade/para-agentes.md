@@ -37,7 +37,7 @@ A especificação extraída dele está em `fidelidade/casca-e-telas.md` e `fidel
    projeto todo. Pode rodar: o teste do seu arquivo (`rtk proxy npx vitest run tests/<seu>.test.tsx`),
    `rtk proxy npx eslint --max-warnings 0 <seus arquivos>`, `rtk proxy npx prettier --write <seus arquivos>`
    e o comparador abaixo. Um de cada vez.
-10. Armadilhas: crase dentro de `node -e "..."` some no bash (use um arquivo `_x.cjs` e apague depois);
+10. Armadilhas: crase dentro de `node -e "..."` some no bash (use um arquivo temporário COM O SEU PREFIXO, por exemplo `_planos_1.cjs`, nunca `_x.cjs`: outro agente usa a mesma pasta; apague depois);
     prettier com `semi: true` em `src/` e `semi: false` em `tests/`.
 
 ## Prova lado a lado (obrigatória)

@@ -125,20 +125,22 @@ async function lado(browser, qual) {
   }
   if (qual === 'app') {
     /* A CONTA LOCAL é uma só, dividida com o dono e com os outros agentes: a prova não pode depender do
-       que ficou gravado nela nem gravar nela. As configurações chegam sempre iguais (português para
-       inglês, tema do roteiro) e nenhuma escrita de configuração sai daqui. */
+       que ficou gravado nela nem gravar nela. As configurações chegam sempre iguais (quem fala português
+       e estuda inglês, tema do roteiro) e nenhuma escrita de configuração sai daqui. */
     await contexto.route('**/api/settings', async (rota) => {
       if (rota.request().method() !== 'GET')
         return rota.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
       const resposta = await rota.fetch()
       const corpo = await resposta.json().catch(() => null)
       if (!corpo || typeof corpo.ui !== 'string') return rota.fulfill({ response: resposta })
-      const ui = { ...JSON.parse(corpo.ui), darkMode: !!roteiro.escuro, captureSourceLang: 'en-US' }
-      await rota.fulfill({ response: resposta, json: { ...corpo, targetLanguage: 'pt', ui: JSON.stringify(ui) } })
+      const ui = { ...JSON.parse(corpo.ui), darkMode: !!roteiro.escuro, captureSourceLang: 'pt-BR' }
+      await rota.fulfill({ response: resposta, json: { ...corpo, targetLanguage: 'en', ui: JSON.stringify(ui) } })
     })
   }
   const page = await contexto.newPage()
-  await page.goto(qual === 'app' ? comPortugues(APP + (r.caminho || '/')) : PROTO + (r.busca || ''), { waitUntil: 'load' })
+  await page.goto(qual === 'app' ? comPortugues(APP + (r.caminho || '/')) : PROTO + (r.busca || ''), {
+    waitUntil: 'load',
+  })
   await page.bringToFront()
   await page.waitForTimeout(r.assentar ?? 2500)
   /* A conta local pode ter um aviso na fila ("Conquista feita"): ele engoliria o primeiro clique. */

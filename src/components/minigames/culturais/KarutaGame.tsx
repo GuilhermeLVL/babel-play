@@ -16,7 +16,8 @@ import { botaoDaAlternativa, useAtalhosDasAlternativas } from '../casca/atalhos'
 import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
-import { falarNoJogo as falar, useNoHeadset, useVozNoJogo } from '../noQuest';
+import { falarNoJogo as falar, useNoHeadset, useQuestNovo, useVozNoJogo } from '../noQuest';
+import KarutaDoPrototipo from './KarutaDoPrototipo';
 
 /**
  * KARUTA — o narrador declama a PISTA e as cartas na mesa trazem as palavras candidatas.
@@ -45,7 +46,12 @@ function embaralhar<T>(xs: T[]): T[] {
   return a;
 }
 
-export default function KarutaGame({ items, ageProfile, onFinish, onExit }: KarutaGameProps) {
+/** No desenho novo o Karuta é a cena do protótipo (`KarutaDoPrototipo.tsx`); fora dele, o de sempre. */
+export default function KarutaGame(props: KarutaGameProps) {
+  return useQuestNovo() ? <KarutaDoPrototipo {...props} /> : <KarutaDeSempre {...props} />;
+}
+
+function KarutaDeSempre({ items, ageProfile, onFinish, onExit }: KarutaGameProps) {
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
   const { ativo } = useRodada();
   const [placar, recontar] = usePlacarDaRodada('karuta');

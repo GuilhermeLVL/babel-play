@@ -1,0 +1,91 @@
+{
+  "nome": "jogo-conectores",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/?ui=pt",
+    "guardar": {
+      "babel_tour_conectores": "1"
+    },
+    "passos": [
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "(async()=>{const arq=\"/src/components/minigames/ConectoresDoPrototipo.tsx\";const src=await (await fetch(arq)).text();const url=(re)=>src.match(re)[1];const reactUrl=url(/from \"([^\"]*deps\\/react\\.js[^\"]*)\"/);const React=(await import(reactUrl)).default;const dom=await import(reactUrl.replace('react.js','react-dom_client.js'));const casca=await import(url(/from \"([^\"]*casca\\/CascaDaRodada\\.tsx[^\"]*)\"/));const jogo=await import(arq);const pai=document.querySelector('.px-tela');[...pai.children].forEach((x)=>(x.style.display='none'));const host=document.createElement('div');host.style.display='contents';pai.append(host);const nada=()=>{};(dom.createRoot?dom:dom.default).createRoot(host).render(React.createElement(casca.default,{jogo:\"conectores\",titulo:\"Caça-conectores\",total:4,unidade:\"frases\",ageProfile:'pro',onRecomecar:nada,onSair:nada},React.createElement(jogo.default,Object.assign({rodadas:[[\"We wanted to ship today but the tests failed\",[\"but\"],\"Queríamos enviar hoje, mas os testes falharam\"],[\"I stayed home because it was raining so I read a book\",[\"because\",\"so\"],\"Fiquei em casa porque estava chovendo, então li um livro\"],[\"Although she was tired she kept working until midnight\",[\"although\",\"until\"],\"Embora estivesse cansada, ela continuou trabalhando até a meia-noite\"],[\"You can call me or send a message if you need help\",[\"or\",\"if\"],\"Você pode me ligar ou mandar uma mensagem se precisar de ajuda\"]].map(([text,a,translation],k)=>{const tokens=text.split(' ');return{fala:{id:'f'+k,text,translation,lang:'en',startMs:0,endMs:0},tokens,alvos:tokens.map((w,i)=>a.includes(w.toLowerCase())?i:-1).filter((i)=>i>=0)}})},{onFinish:nada,onExit:nada}))))})()"
+      }
+    ],
+    "depois": 1800
+  },
+  "proto": {
+    "busca": "?jogo=conectores",
+    "passos": [
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      }
+    ],
+    "depois": 1800
+  },
+  "seletores": [
+    ".cab .sobrancelha",
+    ".cab h1",
+    ".cab-acoes",
+    ".cab-acoes .pj-nivel",
+    ".cab-acoes [data-pj='como']",
+    ".palco-jogo",
+    ".hud",
+    ".hud-bloco",
+    "[data-pj='pontos']",
+    "[data-pj='rotulo']",
+    ".pj-progresso",
+    ".hud-ajudas",
+    ".hud-ajudas .ajuda-jogo",
+    "[data-ajuda='resposta']",
+    ".ajuda-jogo .n",
+    ".combo",
+    ".pj-instr",
+    ".pj-miolo",
+    ".pj-conect",
+    ".pj-conect button",
+    ".pj-miolo > p.mut",
+    ".pj-acoes",
+    "[data-pj='conferir']",
+    ".pj-nota"
+  ]
+}

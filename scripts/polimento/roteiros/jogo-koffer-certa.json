@@ -1,0 +1,148 @@
+{
+  "nome": "jogo-koffer-certa",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/?ui=pt",
+    "guardar": {
+      "babel_tour_koffer": "1"
+    },
+    "passos": [
+      {
+        "js": "(() => { const f = window.fetch; window.fetch = async (...a) => { const r = await f(...a); const u = typeof a[0] === 'string' ? a[0] : a[0].url; const m = (a[1] && a[1].method) || (a[0] && a[0].method) || 'GET'; if (!String(u).includes('/api/settings') || m !== 'GET') return r; const c = await r.clone().json().catch(() => null); if (!c || typeof c.ui !== 'string') return r; const ui = { ...JSON.parse(c.ui), captureSourceLang: 'pt-BR' }; return new Response(JSON.stringify({ ...c, targetLanguage: 'en', ui: JSON.stringify(ui) }), { status: 200, headers: { 'Content-Type': 'application/json' } }); }; })()"
+      },
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": "button:has-text('Trilha')"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "clicar": "button:has-text('Usar estas palavras')"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".q-tile[data-jogo='koffer']"
+      },
+      {
+        "esperar": 4600
+      },
+      {
+        "js": "(() => { const b = [...document.querySelectorAll('.ml-paleta .pj-opcao')].find((b) => b.dataset.op === document.querySelectorAll('.ml-slot b')[document.querySelectorAll('.ml-tag.ok').length]?.textContent); if (!b) throw new Error('sem botão'); b.click(); })()"
+      }
+    ],
+    "depois": 350
+  },
+  "proto": {
+    "busca": "?jogo=koffer",
+    "passos": [
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 4600
+      },
+      {
+        "js": "(() => { const b = [...document.querySelectorAll('.ml-paleta .pj-opcao')].find((b) => b.dataset.op === document.querySelectorAll('.ml-slot b')[document.querySelectorAll('.ml-tag.ok').length]?.textContent); if (!b) throw new Error('sem botão'); b.click(); })()"
+      }
+    ],
+    "depois": 350
+  },
+  "seletores": [
+    ".palco-jogo",
+    ".hud",
+    "[data-pj='pontos']",
+    "[data-pj='rotulo']",
+    "[data-pj='relogio']",
+    ".pj-progresso",
+    ".hud-tempo",
+    ".hud-ajudas",
+    ".hud-ajudas .ajuda-jogo",
+    "[data-ajuda='tempo']",
+    "[data-ajuda='resposta']",
+    ".combo",
+    ".pj-instr",
+    ".pj-miolo",
+    ".ml-cena",
+    ".ml-rota",
+    ".ml-rota li",
+    ".ml-rota li.atual",
+    ".ml-rota li.feito",
+    ".ml-aviao",
+    ".ml-aviao svg",
+    ".ml-palco",
+    ".ml-mala",
+    ".ml-mala.aberta",
+    ".ml-mala.fechada",
+    ".ml-alca",
+    ".ml-corpo",
+    ".ml-slots",
+    ".ml-slot",
+    ".ml-slot.cheio",
+    ".ml-slot.nova",
+    ".ml-slot i",
+    ".ml-slot b",
+    ".ml-slot small",
+    ".ml-tampa",
+    ".ml-conta",
+    ".ml-tags",
+    ".ml-tag",
+    ".ml-tag.agora",
+    ".ml-tag.ok",
+    ".ml-tag i",
+    ".ml-fecho.e",
+    ".ml-fecho.d",
+    ".ml-adesivos",
+    ".ml-adesivo",
+    ".ml-rodape",
+    ".ml-fala",
+    ".ml-fala.erro",
+    ".vidas",
+    ".vidas span",
+    ".vidas .perdida",
+    ".vidas svg",
+    ".pj-paleta.ml-paleta",
+    ".pj-opcao",
+    ".pj-opcao:disabled",
+    ".pj-opcao small",
+    "[data-ajuda='espiar']",
+    ".ganho.erro",
+    ".ganho.good",
+    ".fx-vinheta"
+  ]
+}

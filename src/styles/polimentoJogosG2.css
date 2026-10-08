@@ -1,0 +1,21 @@
+/*
+ * Tabuleiros do protótipo: Mala, Karuta, Bao, Vitendawili, Shiritori e Cadavre.
+ *
+ * O desenho é o de `styles/polimento/jogos.css` e `jogos3.css` (copiados do protótipo, não editar).
+ * Aqui só entra o que o protótipo NÃO tinha de resolver porque usava dado de exemplo.
+ */
+
+/* A Mala do protótipo tem sempre 5 níveis, e só 5 lugares de adesivo (`jogos3.css:104-108`). A rodada do
+   app pode ter até 8: os três a mais ganham lugar nas bordas que sobram. */
+html[data-px='on'] .ml-adesivo:nth-child(6) {
+  right: 44%;
+  top: 6%;
+}
+html[data-px='on'] .ml-adesivo:nth-child(7) {
+  left: 26%;
+  bottom: 6%;
+}
+html[data-px='on'] .ml-adesivo:nth-child(8) {
+  right: 26%;
+  top: 8%;
+}

@@ -15,6 +15,7 @@ import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 import { falarNoJogo as falar, useQuestNovo, VereditoNoQuest } from '../noQuest';
+import ChoseongDoPrototipo from './ChoseongDoPrototipo';
 
 /**
  * CHOSEONG — as consoantes ficam à vista, as vogais somem, e a pessoa escreve a palavra a partir
@@ -38,7 +39,12 @@ interface Enigma {
   ocultas: Set<number>;
 }
 
-export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: ChoseongGameProps) {
+/** No desenho novo o Choseong é o tabuleiro do protótipo (`ChoseongDoPrototipo.tsx`); fora dele, o de sempre. */
+export default function ChoseongGame(props: ChoseongGameProps) {
+  return useQuestNovo() ? <ChoseongDoPrototipo {...props} /> : <ChoseongDeSempre {...props} />;
+}
+
+function ChoseongDeSempre({ items, ageProfile, onFinish, onExit }: ChoseongGameProps) {
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
   const { ativo } = useRodada();
   const [placar, recontar] = usePlacarDaRodada('choseong');

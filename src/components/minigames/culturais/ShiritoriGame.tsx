@@ -15,7 +15,8 @@ import { botaoDaAlternativa, useAtalhosDasAlternativas } from '../casca/atalhos'
 import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
-import { falarNoJogo as falar, useVozNoJogo } from '../noQuest';
+import { falarNoJogo as falar, useQuestNovo, useVozNoJogo } from '../noQuest';
+import ShiritoriDoPrototipo from './ShiritoriDoPrototipo';
 
 /**
  * SHIRITORI — a corrente encadeia pela última letra, e a corrente é O SEU BARALHO.
@@ -32,7 +33,12 @@ interface ShiritoriGameProps {
   onExit: () => void;
 }
 
-export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: ShiritoriGameProps) {
+/** No desenho novo o Shiritori é a cena do protótipo (`ShiritoriDoPrototipo.tsx`); fora dele, o de sempre. */
+export default function ShiritoriGame(props: ShiritoriGameProps) {
+  return useQuestNovo() ? <ShiritoriDoPrototipo {...props} /> : <ShiritoriDeSempre {...props} />;
+}
+
+function ShiritoriDeSempre({ items, ageProfile, onFinish, onExit }: ShiritoriGameProps) {
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
   const { ativo } = useRodada();
   const [placar, recontar] = usePlacarDaRodada('shiritori');

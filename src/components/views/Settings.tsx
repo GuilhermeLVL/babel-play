@@ -17,6 +17,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { fetchSettings, saveSettings } from '../../data/api';
 import { DEFAULT_PROFILE_ID } from '../../gateway/profiles';
 import type { ThemeType } from '../../lib/appearance';
+import { aparelhoVibra, guardarTato, useTato } from '../../lib/dispositivo/tato';
 import { definirDesenhoNovoNoComputador, noComputador, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { getEntitlements, onPlanChange } from '../../lib/entitlements';
 import { idiomasAbaixoDoPiso, t } from '../../lib/i18n';
@@ -146,6 +147,7 @@ export default function Settings({
   const questNovo = useQuestNovo();
   // O aparelho não muda com a página aberta: só o computador escolhe entre os dois desenhos.
   const [computador] = useState(noComputador);
+  const vibracao = useTato();
   const [langCfg, setLangCfg] = useState<LangConfig>(DEFAULT_LANG_CONFIG);
   const [activeProfileId, setActiveProfileId] = useState<string>(
     () => localStorage.getItem(PROFILE_STORAGE_KEY) ?? DEFAULT_PROFILE_ID,
@@ -415,6 +417,14 @@ export default function Settings({
                 <input type="checkbox" checked={soundEnabled} onChange={toggleSound} /> {t('Ligados')}
               </label>
             </Linha>
+            {/* Só onde o aparelho vibra pela página (celular com motor; o iPhone não tem). */}
+            {aparelhoVibra() && (
+              <Linha titulo={t('Vibração')} desc={t('Uma vibração curta no toque, no acerto e no erro.')}>
+                <label className="check">
+                  <input type="checkbox" checked={vibracao} onChange={() => guardarTato(!vibracao)} /> {t('Ligada')}
+                </label>
+              </Linha>
+            )}
             <Linha
               titulo={t('Modo desempenho')}
               desc={t(

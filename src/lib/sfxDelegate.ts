@@ -1,3 +1,4 @@
+import { type Tato, tato } from './dispositivo/tato';
 import { play, playGeneric, type SoundEvent } from './soundFx';
 
 /**
@@ -30,11 +31,39 @@ const DEDUZIDOS = new Set<SoundEvent>(['click', 'nav', 'select']);
 
 /** Nome de evento válido? (protege contra um `data-sfx` escrito errado.) */
 const EVENTOS = new Set<string>([
-  'click', 'nav', 'open', 'close',
-  'toggleOn', 'toggleOff', 'select',
-  'add', 'remove', 'speak',
-  'success', 'error', 'recordStart', 'recordStop', 'levelUp'
+  'click',
+  'nav',
+  'open',
+  'close',
+  'toggleOn',
+  'toggleOff',
+  'select',
+  'add',
+  'remove',
+  'speak',
+  'success',
+  'error',
+  'recordStart',
+  'recordStop',
+  'levelUp',
 ]);
+
+/**
+ * O TATO QUE ACOMPANHA CADA SOM, no celular (`dispositivo/tato.ts`). A dedução é a mesma: o que o
+ * elemento declara para a acessibilidade diz qual som toca e qual vibração sai, no mesmo instante.
+ * Os sons de ação (`add`, `success`, `error`…) ficam de fora: quem os dispara é o código da ação, e
+ * é ele quem decide se vibra.
+ */
+const TATO_DO_SOM: Partial<Record<SoundEvent, Tato>> = {
+  click: 'toque',
+  select: 'toque',
+  nav: 'navegar',
+  open: 'abrir',
+  close: 'fechar',
+  toggleOn: 'ligar',
+  toggleOff: 'desligar',
+};
+export const tatoDoSom = (evento: SoundEvent): Tato | null => TATO_DO_SOM[evento] ?? null;
 
 /** O que a app trata como ACIONÁVEL (o som do clique e a resposta ao apontar leem daqui). */
 export const SELETOR_DO_ACIONAVEL =
@@ -122,6 +151,9 @@ export function installSfxDelegate(): () => void {
     const declarado = !!el.closest<HTMLElement>('[data-sfx]');
     if (declarado || !DEDUZIDOS.has(evento)) play(evento);
     else playGeneric(evento);
+    /* A vibração tem a sua própria chave (Ajustes → Vibração) e só existe em aparelho de toque. */
+    const vibracao = tatoDoSom(evento);
+    if (vibracao) tato(vibracao);
   };
 
   /** `<select>` não emite clique útil: o `change` é o momento em que a escolha existe. */

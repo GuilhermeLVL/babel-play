@@ -1762,6 +1762,7 @@
   "Levar para o Anki": "[Lévár párá ö Áñkí ·······]",
   "Lido do navegador ao abrir a página. Nada muda na sua captura.": "[Lídö dö ñávégádör áö ábrír á págíñá. Ñádá müdá ñá šüá çáptürá. ·························]",
   "Liga e desliga os sons do app inteiro.": "[Lígá é déšlígá öš šöñš dö ápp íñtéírö. ···············]",
+  "Ligada": "[Lígádá ··]",
   "Ligado": "[Lígádö ··]",
   "Ligados": "[Lígádöš ···]",
   "Ligam e desligam recursos sem publicar uma versão nova. O interruptor muda só o \"ligada\"; as regras de quem recebe ficam como estão.": "[Lígám é déšlígám réçüršöš šém püblíçár ümá véršãö ñövá. Ö íñtérrüptör müdá šó ö \"lígádá\"; áš régráš dé qüém réçébé fíçám çömö éštãö. ·····················································]",
@@ -3531,6 +3532,7 @@
     "other": "[Ümá révíšãö öü rödádá höjé máñtém á öféñšívá dé {n} díáš. ·······················]"
   },
   "Uma vez só: depois eles ficam guardados neste aparelho.": "[Ümá véž šó: dépöíš éléš fíçám güárdádöš ñéšté ápárélhö. ······················]",
+  "Uma vibração curta no toque, no acerto e no erro.": "[Ümá víbráçãö çürtá ñö töqüé, ñö áçértö é ñö érrö. ····················]",
   "Usa o reconhecimento de voz do navegador. O áudio da sua voz vai para os servidores do Google (Chrome, Android), da Microsoft (Edge) ou da Apple (Safari).": "[Üšá ö réçöñhéçíméñtö dé vöž dö ñávégádör. Ö áüdíö dá šüá vöž váí párá öš šérvídöréš dö Ĝööglé (Çhrömé, Áñdröíd), dá Míçröšöft (Édgé) öü dá Ápplé (Šáfárí). ······························································]",
   "Usa o reconhecimento do próprio navegador, sem enviar o áudio. O pacote de idioma baixa agora, uma vez só.": "[Üšá ö réçöñhéçíméñtö dö própríö ñávégádör, šém éñvíár ö áüdíö. Ö páçöté dé ídíömá báíxá ágörá, ümá véž šó. ··········································]",
   "usados": "[üšádöš ··]",
@@ -3622,6 +3624,7 @@
   "versão {v} ou mais nova": "[véršãö {v} öü máíš ñövá ·········]",
   "Versão {versao}": "[Véršãö {versao} ······]",
   "Vezes": "[Véžéš ··]",
+  "Vibração": "[Víbráçãö ···]",
   "Vibração ao apontar": "[Víbráçãö áö ápöñtár ········]",
   "Vibração ao apontar: desligada": "[Víbráçãö áö ápöñtár: déšlígádá ············]",
   "Vibração ao apontar: forte": "[Víbráçãö áö ápöñtár: förté ··········]",

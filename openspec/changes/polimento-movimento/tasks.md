@@ -30,7 +30,10 @@ Fonte de cada item: o painel "Auditoria" de `docs/prototipos/polimento-movimento
 - [x] 1.7 Tema claro/escuro: a cor nova se abre em círculo a partir do toque
       (`src/lib/movimento/revelar.ts`, usado em `useAparencia.ts`). Trocar de TEMA (equipar) ainda troca
       na hora: `setTheme` é chamado de lugares onde `flushSync` não pode
-- [ ] 1.8 Som e tato nos toques da casca; interruptor de vibração em Ajustes e no painel "Mais"
+- [x] 1.8 Tato nos toques: o som delegado (`src/lib/sfxDelegate.ts`) também vibra, pela mesma dedução;
+      interruptor "Vibração" em Ajustes → Aparência, só onde o aparelho vibra; a chave cala também a
+      vibração dos efeitos de jogo (`juice.ts`). O som dos toques já existia. No desenho novo o
+      interruptor entra com a fase 7 (hoje ele não roda em aparelho que vibra pela página)
 - [ ] 1.9 Busca por teclado abre sem animação
 - [ ] 1.10 Testes de `questCasca` e os e2e de fumaça atualizados
 

@@ -1,3 +1,4 @@
+import { tatoLigado } from './dispositivo/tato';
 import { type BurstKind, emitBurst } from './effects';
 import { type EfeitoComposto, eventosCondicionais, marcarEventoVisto, sortearEventoRaro } from './eventosDeJogo';
 import { movimentoReduzido } from './movimento/reduzido';
@@ -190,7 +191,8 @@ export function flashDeTela(): void {
 
 /** Vibra so em aparelho de toque, e so se as animacoes estao ligadas. */
 export function vibrar(padrao: number[]): void {
-  if (movimentoReduzido()) return;
+  /* A chave de Ajustes → Vibração cala também a vibração dos efeitos de jogo. */
+  if (movimentoReduzido() || !tatoLigado()) return;
   if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
   if (!window.matchMedia?.('(pointer: coarse)').matches) return;
   try {

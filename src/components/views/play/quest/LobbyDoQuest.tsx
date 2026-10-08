@@ -29,7 +29,7 @@ import { noHeadset } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { numero, t, tp } from '../../../../lib/i18n';
 import type { AgeProfileType } from '../../../../lib/profile';
 import { aoMudarIdiomasDaVozDoQuest } from '../../../../lib/voz/vozDoQuest';
-import { FAMILIAS, tomDoJogo } from '../../../minigames/ArteDosJogos';
+import ArteDoJogo, { FAMILIAS, tomDoJogo } from '../../../minigames/ArteDosJogos';
 import { descricaoDoJogo, type JogoUI, tituloDoJogo } from '../jogos';
 import { type JogoParaOQuest, type TileDoQuest, tilesDoQuest, type VozParaOQuest } from './jogosNoQuest';
 import { fecharPainelDe, InterruptorDoQuest, OpcoesDoQuest, PainelDoQuest } from './pecasDoQuest';
@@ -262,6 +262,11 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
           disabled={apagado}
           onClick={() => aoJogar(jogo)}
         >
+          {/* A CENA DO JOGO: a mecânica desenhada, para o cartão ser reconhecido antes de ser lido.
+              Enfeite para o leitor de tela (o nome vem logo abaixo). */}
+          <span className="qj-cena" aria-hidden>
+            <ArteDoJogo jogo={jogo.id} />
+          </span>
           <span className="qj-jogo-topo">
             <i className="qj-ponto" style={{ background: tomDoJogo(jogo.id) }} aria-hidden />
             <span className={`q-tag${apagado || grupo === 'teclado' ? ' off' : ''}`}>{tag}</span>

@@ -80,8 +80,13 @@ Fonte de cada item: o painel "Auditoria" de `docs/prototipos/polimento-movimento
 
 ## 3. Miniaturas
 
-- [ ] 3.1 Cena por jogo no cartão do lobby novo (`LobbyDoQuest.tsx`), parada e viva ao apontar
-- [ ] 3.2 Cena própria para os nove jogos culturais (hoje reaproveitam a de outros)
+- [x] 3.1 Cena por jogo no cartão do lobby novo (`LobbyDoQuest.tsx`, faixa `.qj-cena`), parada; com
+      movimento rico e ponteiro de verdade ela se aproxima 6% ao apontar. Decisão: nada se mexe sozinho
+      numa grade de dezoito cartões (o protótipo animava a cena inteira). Custo: cada cartão ficou
+      uns 100 px mais alto, então o lobby rola mais. Conferido no app, tema escuro
+- [x] 3.2 Cena própria para os nove jogos culturais em `ArteDosJogos.tsx` (Karuta, Choseong, Rali,
+      Mala, Bao, Charada, Shiritori, Cadavre, Tabu); `tests/arteDosJogos.test.tsx` trava que nenhuma
+      se repete e que não há cor literal
 
 ## 4. Rali e Mala
 

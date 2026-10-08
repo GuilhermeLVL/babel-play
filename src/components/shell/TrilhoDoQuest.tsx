@@ -47,10 +47,10 @@ import { useFlag } from '../../lib/flags';
 import { t } from '../../lib/i18n';
 import { aoMudarIdentidade, estaAnonimo } from '../../lib/identidade';
 import { instalarMarcaDeMovimento } from '../../lib/movimento/animar';
-import { instalarNascerDoToque } from '../../lib/movimento/nascerDoToque';
 import { instalarOrigemDoToque } from '../../lib/movimento/revelar';
 import { marcarLida, marcarTodasLidas, naoLidas, quando } from '../../lib/notificacoes';
 import { instalarPolimento } from '../../lib/polimento/base';
+import { instalarDialogos } from '../../lib/polimento/dialogos';
 import { instalarFolhas } from '../../lib/polimento/folha';
 import { instalarPonteiro } from '../../lib/polimento/ponteiro';
 import { instalarTelas } from '../../lib/polimento/telas';
@@ -175,7 +175,7 @@ export default function TrilhoDoQuest({
   /* A cascata da primeira visita de cada tela, e o ponto de onde a troca de tema se abre. */
   useEffect(() => instalarOrigemDoToque(), []);
   /* Os painéis (o "Mais", os diálogos) crescem a partir do botão que os abriu. */
-  useEffect(() => instalarNascerDoToque(), []);
+  useEffect(() => instalarDialogos(), []);
   const noTrilho = semConta ? NO_TRILHO_SEM_CONTA : NO_TRILHO;
   const principais = noTrilho.map((id) => NAV_ITEMS.find((i) => i.id === id)).filter((i) => !!i);
   const outros = [...NAV_ITEMS.filter((i) => !noTrilho.includes(i.id)), ...(ehAdmin(perfil) ? [ITEM_ADMIN] : [])];

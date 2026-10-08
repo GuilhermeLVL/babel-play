@@ -32,6 +32,11 @@ let ultimoGatilho: { el: Element; quando: number } | null = null;
 
 const principal = () => document.querySelector('main');
 
+/** O botão tocado há pouco: é dele que o painel ou o diálogo nasce. */
+export function gatilhoRecente(): Element | null {
+  return ultimoGatilho && performance.now() - ultimoGatilho.quando < 700 ? ultimoGatilho.el : null;
+}
+
 /** O painel cresce a partir do centro do botão que o abriu (`prototipo.js:454-459`). */
 function origem(painel: HTMLElement, gatilho: Element | null): void {
   const r = painel.getBoundingClientRect();

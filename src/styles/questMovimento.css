@@ -88,20 +88,6 @@ html[data-quest-novo='true'] {
 /* A pílula das abas, a volta do toque e a entrada das telas saíram daqui em 08/10/2026: eram versões
    aproximadas. Valem as do protótipo, trazidas sem reescrita (`src/styles/polimento/`, `src/lib/polimento/`). */
 
-/* ---- O painel nasce do toque (`src/lib/movimento/nascerDoToque.ts`) ------------------------
-   Só o painel marcado anima: quem abre pelo teclado não ganha a marca e aparece na hora.
-   `scale` e não `transform`: há diálogo centrado por `transform`, e ele não pode sair do lugar. */
-html[data-quest-novo='true'][data-movimento='rico']
-  :is(.q-mais, dialog, [role='dialog'], [role='alertdialog'])[data-nasce] {
-  animation: q-nasce var(--q-dur-painel) var(--q-mola-suave) backwards;
-}
-@keyframes q-nasce {
-  from {
-    opacity: 0;
-    scale: 0.86;
-  }
-}
-
 /* ---- A revelação em círculo (`src/lib/movimento/revelar.ts`) -------------------------------
    Sem o esmaecer padrão do navegador: a tela de antes fica parada e a de depois abre por cima. */
 html[data-quest-novo='true'].q-vt::view-transition-old(root),

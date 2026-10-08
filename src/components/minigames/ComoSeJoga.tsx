@@ -73,7 +73,7 @@ export const COMO_SE_JOGA: Record<MinigameId, ConteudoComoSeJoga> = {
     passos: [
       'Vire uma carta e depois outra.',
       'Se as duas forem a mesma palavra e a tradução dela, o par fecha.',
-      'Errou? As cartas voltam, e a repetição é justamente o que fixa.',
+      'Não combinou? As cartas voltam. Só conta como erro quando o par já tinha aparecido: conhecer a mesa não custa nada.',
     ],
     avaliacao:
       'Fechar o par de primeira vale "bom"; com duas ou três tentativas, "difícil". Nunca vale "fácil": aqui você tem tempo para pensar, e tempo não prova fluência.',

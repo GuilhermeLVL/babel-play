@@ -66,6 +66,15 @@ export default function MemoryGame({ items, ageProfile: _ageProfile, onFinish, e
   const [viradas, setViradas] = useState<string[]>([]);
   const [fechados, setFechados] = useState<Set<number>>(new Set());
   const [travado, setTravado] = useState(false);
+  /**
+   * EXPLORAR NÃO É ERRAR. Só dá para errar o que já se viu: virar duas cartas que não combinam quando o
+   * par da primeira nunca apareceu é conhecer a mesa, não esquecer. Antes isso contava tentativa nos dois
+   * itens, zerava a sequência e baixava a nota de revisão de palavras que a pessoa nem tinha tido a
+   * chance de lembrar. Aqui ficam as cartas que já estiveram abertas.
+   */
+  const vistasRef = useRef<Set<string>>(new Set());
+  /** O par aberto agora não combina, mas foi exploração: desvira sem a marca de erro. */
+  const [explorando, setExplorando] = useState(false);
   /** Pares fechados em seguida, sem nenhum erro no meio — é o que alimenta o multiplicador. */
   const [sequencia, setSequencia] = useState(0);
   const [pontos, setPontos] = useState(0);
@@ -118,16 +127,18 @@ export default function MemoryGame({ items, ageProfile: _ageProfile, onFinish, e
 
     const novas = [...viradas, carta.id];
     setViradas(novas);
+    const jaTinhaVisto = vistasRef.current.has(carta.id);
+    vistasRef.current.add(carta.id);
     if (novas.length < 2) return;
 
     const [a, b] = novas.map((id) => cartas.find((c) => c.id === id)!);
     const par = a.itemIndex === b.itemIndex && a.lado !== b.lado;
-    // Conta a tentativa nos DOIS itens envolvidos
-    for (const idx of new Set([a.itemIndex, b.itemIndex])) {
-      tentativasRef.current.set(idx, (tentativasRef.current.get(idx) ?? 0) + 1);
-    }
+    const contar = (idx: number) => tentativasRef.current.set(idx, (tentativasRef.current.get(idx) ?? 0) + 1);
+    /* O par da primeira carta já tinha aparecido? Então dava para saber onde ele estava. */
+    const podiaSaber = vistasRef.current.has(`${a.lado === 'palavra' ? 't' : 'p'}${a.itemIndex}`);
 
     if (par) {
+      contar(a.itemIndex);
       const nova = sequencia + 1;
       const mult = multiplicador(nova);
       const ganho = 10 * mult;
@@ -138,7 +149,21 @@ export default function MemoryGame({ items, ageProfile: _ageProfile, onFinish, e
       setViradas([]);
       return;
     }
-    // Erro: feedback sensorial com tremor e buzzer
+    if (!podiaSaber) {
+      // Exploração: as cartas voltam, sem tremor, sem tentativa e sem mexer na sequência.
+      setExplorando(true);
+      setTravado(true);
+      setTimeout(() => {
+        setViradas([]);
+        setTravado(false);
+        setExplorando(false);
+      }, 850);
+      return;
+    }
+    // Erro de memória: conta na primeira carta, e na segunda se ela também já tinha sido vista.
+    contar(a.itemIndex);
+    if (jaTinhaVisto && b.itemIndex !== a.itemIndex) contar(b.itemIndex);
+    // Feedback sensorial com tremor e buzzer
     setSequencia(0);
     celebrar({ tipo: 'erro', el: el ?? mesaRef.current });
     pontosDoElemento('Quase!', el, 'ruim');
@@ -156,6 +181,7 @@ export default function MemoryGame({ items, ageProfile: _ageProfile, onFinish, e
     comDicaRef.current = true;
     setSequencia(0); // a sequência é mérito; com ajuda ela recomeça
     setEspiando(true);
+    for (const c of cartas) vistasRef.current.add(c.id); // espiou: viu a mesa inteira
     play('select');
     pontosDoElemento(`${ESPIADAS - espiadasRef.current} espiadas`, el, 'neutro');
     setTimeout(() => setEspiando(false), 1200);
@@ -223,7 +249,7 @@ export default function MemoryGame({ items, ageProfile: _ageProfile, onFinish, e
           const espiada = espiando && !virada && !fechada;
           const aberta = virada || fechada || espiada;
           // O par errado fica aberto por 850ms com a marca de erro antes de desvirar.
-          const errou = travado && virada;
+          const errou = travado && virada && !explorando;
           const classes = [
             'carta',
             aberta && !fechada ? 'virada' : '',

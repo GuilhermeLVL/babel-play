@@ -554,6 +554,16 @@ describe('campos e peças no Quest', () => {
     expect(document.querySelector('.qj-veredito')?.textContent).toMatch(/Não é essa/)
     fireEvent.click(botao('O')!)
     expect(document.querySelector('.qj-veredito')).toBeNull()
+    // Só as erradas saem: o O certo fica, e errar as outras duas não o apaga.
+    for (const v of ['A', 'A']) fireEvent.click(botao(v)!)
+    expect(document.querySelector('.qj-veredito')?.textContent).toMatch(/As vogais certas ficaram/)
+    expect([...document.querySelectorAll('[data-qp="casas"] span')].map((s) => s.textContent)).toEqual([
+      'H',
+      'O',
+      '',
+      'S',
+      '',
+    ])
   })
 
   it('Conectores: cada palavra é uma peça, e o resultado de cada uma vem na marcação', () => {

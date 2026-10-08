@@ -120,6 +120,30 @@ describe('ChoseongGame — a rodada sai do baralho e volta identificada', () => 
     expect(slots).toEqual(['H', '', '', 'S', ''])
   })
 
+  it('errou: só a vogal errada sai, as certas ficam, e a tentativa conta', () => {
+    const items = itens()
+    let relatorio: RoundReport | null = null
+    render(
+      <ChoseongGame
+        items={items}
+        ageProfile="pro"
+        onFinish={(r) => {
+          relatorio = r
+        }}
+        onExit={() => {}}
+      />,
+    )
+    const casas = () => [...document.querySelectorAll('[data-qp="casas"] span')].map((s) => s.textContent)
+    // HOUSE pede O, U, E. O certo, depois duas erradas: o O fica.
+    for (const v of ['O', 'A', 'A']) fireEvent.click(screen.getByRole('button', { name: v }))
+    expect(casas()).toEqual(['H', 'O', '', 'S', ''])
+    for (const v of ['U', 'E']) fireEvent.click(screen.getByRole('button', { name: v }))
+    avancar(700)
+    for (const it of items.slice(1)) completar(it.answer)
+    avancar(1100)
+    expect(relatorio!.items[0]).toMatchObject({ correct: true, attempts: 2 })
+  })
+
   it('abrir uma vogal marca o outcome como "com dica"', () => {
     const items = itens()
     let relatorio: RoundReport | null = null

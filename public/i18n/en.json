@@ -2498,7 +2498,6 @@
   "Leia em voz alta e siga para a próxima.": "Read it out loud and move on to the next one.",
   "Frase certa!": "Sentence correct!",
   "Toque numa palavra da linha para tirá-la.": "Tap a word in the line to remove it.",
-  "Não é essa. As vogais voltaram: tente de novo.": "Not that one. The vowels are back: try again.",
   "ficou de fora da frase": "left out of the sentence",
   "Toque na primeira letra da palavra e depois na última.": "Tap the first letter of the word, then the last.",
   "encontrada": "found",
@@ -3744,5 +3743,6 @@
   "Pronto: a próxima rodada deste jogo vem no {nivel}.": "Done: the next round of this game will be on {nivel}.",
   "Foi puxado desta vez. No {nivel} o jogo aperta menos.": "That was a tough one. On {nivel} the game eases up.",
   "Rodada sem erro. No {nivel} o jogo aperta mais.": "No mistakes this round. On {nivel} the game pushes harder.",
-  "Jogar no {nivel}": "Play on {nivel}"
+  "Jogar no {nivel}": "Play on {nivel}",
+  "Não é essa. As vogais certas ficaram: troque as outras.": "Not that one. The right vowels stayed: change the others."
 }

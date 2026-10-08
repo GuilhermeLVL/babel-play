@@ -177,7 +177,9 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
       tentativasRef.current += 1;
       celebrar({ tipo: 'erro', el: palcoRef.current });
       setErrouAgora(true);
-      setLetras(enigma.alvo.split('').map((c, i) => (enigma.ocultas.has(i) ? '' : c)));
+      /* SÓ A VOGAL ERRADA SAI. Antes a palavra inteira esvaziava e a pessoa redigitava as que já tinha
+         acertado: trabalho de dedo, não de memória. A tentativa continua contando (a nota cai igual). */
+      setLetras(montada.map((l, i) => (enigma.ocultas.has(i) && l !== enigma.alvo[i] ? '' : l)));
     },
     [enigma, registrar, avancar],
   );
@@ -325,7 +327,9 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
         </div>
 
         {questNovo && errouAgora && !revelada && (
-          <VereditoNoQuest certo={false}>{t('Não é essa. As vogais voltaram: tente de novo.')}</VereditoNoQuest>
+          <VereditoNoQuest certo={false}>
+            {t('Não é essa. As vogais certas ficaram: troque as outras.')}
+          </VereditoNoQuest>
         )}
 
         {revelada && enigma && (

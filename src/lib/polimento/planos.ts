@@ -7,7 +7,6 @@
  *
  * Itens da lista `fidelidade/casca-e-telas.md`: D54–D59.
  */
-import type { Plan } from '../entitlements';
 import { anima, EG, MOLA, MOLA_SUAVE, polido, reduz } from './base';
 
 const comMovimento = () => polido() && !reduz();

@@ -208,3 +208,20 @@ html[data-quest-novo='true'].q-vt::view-transition-old(root) {
 html[data-quest-novo='true'].q-vt::view-transition-new(root) {
   z-index: 1;
 }
+
+/* ---- Dois erros seguidos: as ajudas se anunciam (`casca/HudDaRodada.tsx`, `data-socorro`) ----
+   Só as que ainda dá para usar. No movimento contido o contorno acende e fica parado; no rico ele
+   respira três vezes e para, para não virar ruído de fundo. */
+html[data-quest-novo='true'] .hud-ajudas[data-socorro] .ajuda-jogo:not(:disabled) {
+  border-color: var(--q-acento);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--q-acento) 22%, transparent);
+}
+html[data-quest-novo='true'][data-movimento='rico'] .hud-ajudas[data-socorro] .ajuda-jogo:not(:disabled) {
+  animation: q-socorro 1.1s var(--q-vai-e-vem) 3;
+}
+@keyframes q-socorro {
+  50% {
+    box-shadow: 0 0 0 9px color-mix(in srgb, var(--q-acento) 0%, transparent);
+    scale: 1.04;
+  }
+}

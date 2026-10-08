@@ -10,6 +10,7 @@ import { t } from '../../../lib/i18n';
 import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
+import AjudasGerais from '../casca/AjudasGerais';
 import { useAtalhosDasAlternativas } from '../casca/atalhos';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
@@ -87,6 +88,9 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
    */
   const [revelando, setRevelando] = useState<{ escolhida: string | null; certo: boolean } | null>(null);
 
+  /** A pessoa pediu para ver a resposta: o aviso não fala em tempo esgotado. */
+  const [desistiu, setDesistiu] = useState(false);
+
   const outcomesRef = useRef<ItemOutcome[]>([]);
   const inicioRodadaRef = useRef(Date.now());
   const inicioCartaRef = useRef(Date.now());
@@ -123,6 +127,7 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
     setIdx(idx + 1);
     setLiberadas([]);
     setRevelando(null);
+    setDesistiu(false);
     setRestante(segundos);
     inicioCartaRef.current = Date.now();
   };
@@ -207,12 +212,23 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
         progresso={restante / segundos}
         pouco={restante <= 5}
         ajudas={
-          <BotaoDeAjuda
-            icone={Lightbulb}
-            rotulo="Liberar 1"
-            disabled={riscadas.length <= 1 || !!revelando}
-            onClick={() => riscadas.length > 1 && setLiberadas((xs) => [...xs, riscadas[0]])}
-          />
+          <>
+            <BotaoDeAjuda
+              icone={Lightbulb}
+              rotulo="Liberar 1"
+              disabled={riscadas.length <= 1 || !!revelando}
+              onClick={() => riscadas.length > 1 && setLiberadas((xs) => [...xs, riscadas[0]])}
+            />
+            <AjudasGerais
+              jogo="taboo"
+              parado={!ativo || !!revelando || !!resultado}
+              aoGanharTempo={(s) => setRestante((r) => r + s)}
+              aoVerResposta={() => {
+                setDesistiu(true);
+                setRestante(0);
+              }}
+            />
+          </>
         }
       />
 
@@ -277,7 +293,13 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
         {revelando && !revelando.certo && (
           <AvisoDaJogada
             tom="erro"
-            rotulo={revelando.escolhida ? t('Não era essa. Era:') : t('O tempo acabou. Era:')}
+            rotulo={
+              revelando.escolhida
+                ? t('Não era essa. Era:')
+                : desistiu
+                  ? t('A resposta era:')
+                  : t('O tempo acabou. Era:')
+            }
             resposta={carta.item.answer}
             lang={carta.item.lang}
           />

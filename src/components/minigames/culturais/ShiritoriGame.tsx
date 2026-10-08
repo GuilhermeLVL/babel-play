@@ -10,6 +10,7 @@ import { t } from '../../../lib/i18n';
 import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
+import AjudasGerais from '../casca/AjudasGerais';
 import { botaoDaAlternativa, useAtalhosDasAlternativas } from '../casca/atalhos';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
@@ -49,6 +50,8 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
   const [resultado, setResultado] = useState<RoundReport | null>(null);
   /** O tempo deste elo acabou: o elo certo aparece antes do próximo (QA dos jogos, 2026-09-26). */
   const [revelado, setRevelado] = useState<string | null>(null);
+  /** A pessoa pediu para ver a resposta: o aviso não fala em tempo esgotado. */
+  const [desistiu, setDesistiu] = useState(false);
 
   const outcomesRef = useRef<ItemOutcome[]>([]);
   const inicioRodadaRef = useRef(Date.now());
@@ -89,6 +92,7 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
     setTentativas(1);
     setLetraVisivel(false);
     setRevelado(null);
+    setDesistiu(false);
     setRestante(segundos);
     inicioPassoRef.current = Date.now();
     return placarNovo;
@@ -145,12 +149,23 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
         progresso={restante / segundos}
         pouco={restante <= 5}
         ajudas={
-          <BotaoDeAjuda
-            icone={Lightbulb}
-            rotulo="Ver a letra"
-            disabled={letraVisivel}
-            onClick={() => setLetraVisivel(true)}
-          />
+          <>
+            <BotaoDeAjuda
+              icone={Lightbulb}
+              rotulo="Ver a letra"
+              disabled={letraVisivel}
+              onClick={() => setLetraVisivel(true)}
+            />
+            <AjudasGerais
+              jogo="shiritori"
+              parado={!ativo || !!revelado || !!resultado}
+              aoGanharTempo={(s) => setRestante((r) => r + s)}
+              aoVerResposta={() => {
+                setDesistiu(true);
+                setRestante(0);
+              }}
+            />
+          </>
         }
       />
 
@@ -256,7 +271,7 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
         {revelado && (
           <AvisoDaJogada
             tom="erro"
-            rotulo={t('O tempo acabou. O elo era:')}
+            rotulo={desistiu ? t('O elo era:') : t('O tempo acabou. O elo era:')}
             resposta={revelado}
             lang={passo.item.lang}
           />

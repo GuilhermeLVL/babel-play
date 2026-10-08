@@ -10,6 +10,7 @@ import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
+import AjudasGerais from '../casca/AjudasGerais';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
@@ -66,6 +67,8 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
   const [acabou, setAcabou] = useState(false);
   /** O tempo acabou nesta palavra: ela fica à vista antes da próxima (QA dos jogos, 2026-09-26). */
   const [revelada, setRevelada] = useState(false);
+  /** A pessoa pediu para ver a resposta: o aviso não fala em tempo esgotado. */
+  const [desistiu, setDesistiu] = useState(false);
   /* No Quest a tentativa errada também é dita em texto (fora dele, o tremor e o som bastam). As vogais
      são teclas na tela: não há campo, e o teclado do sistema não precisa subir. */
   const questNovo = useQuestNovo();
@@ -130,6 +133,7 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
     comDicaRef.current = false;
     respondidoRef.current = false;
     setRevelada(false);
+    setDesistiu(false);
     setErrouAgora(false);
     setLetras(enigma.alvo.split('').map((c, i) => (enigma.ocultas.has(i) ? '' : c)));
     setRelogio({ palavra: indice, segundos });
@@ -252,7 +256,20 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
         tempo={tempo}
         progresso={tempo / segundos}
         pouco={tempo <= 3}
-        ajudas={<BotaoDeAjuda icone={Lightbulb} rotulo="Abrir uma vogal" resta={dicasRestantes} onClick={usarDica} />}
+        ajudas={
+          <>
+            <BotaoDeAjuda icone={Lightbulb} rotulo="Abrir uma vogal" resta={dicasRestantes} onClick={usarDica} />
+            <AjudasGerais
+              jogo="choseong"
+              parado={!ativo || acabou || revelada}
+              aoGanharTempo={(s) => setRelogio((r) => (r.palavra === indice ? { ...r, segundos: r.segundos + s } : r))}
+              aoVerResposta={() => {
+                setDesistiu(true);
+                setRelogio((r) => (r.palavra === indice ? { ...r, segundos: 0 } : r));
+              }}
+            />
+          </>
+        }
       />
 
       <div data-qj="choseong" className="flex flex-col items-center justify-center gap-6 w-full max-w-2xl mx-auto">
@@ -314,7 +331,7 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
         {revelada && enigma && (
           <AvisoDaJogada
             tom="erro"
-            rotulo={t('O tempo acabou. Era:')}
+            rotulo={desistiu ? t('A resposta era:') : t('O tempo acabou. Era:')}
             resposta={enigma.item.answer}
             lang={enigma.item.lang}
           />

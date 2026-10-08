@@ -13,6 +13,9 @@
  *   - Fácil: metade a mais de tempo, uma vida a mais, uma ajuda a mais de cada tipo.
  *   - Difícil: um quarto a menos de tempo, uma vida a menos, uma ajuda a menos (nunca zero).
  *
+ * A AJUDA `tempo` ("+10 s") vale nos jogos em que o relógio é POR JOGADA. O Duelo fica fora: o relógio
+ * dele é da rodada inteira e já devolve segundos a quem responde rápido.
+ *
  * O nível NÃO entra na nota de revisão: errar a palavra no Difícil e errar no Fácil dizem a mesma
  * coisa sobre a memória. Ele só muda quanto o jogo aperta.
  *
@@ -44,14 +47,17 @@ const BASE: Partial<Record<MinigameId, RegrasDeBase>> = {
   memory: { ajudas: { espiar: 2 } },
   wordsearch: { ajudas: { radar: 3 } },
   blitz: { segundos: { kids: 60, pro: 60, senior: 90 }, ajudas: { cortar: 2 } },
-  karuta: { segundos: { kids: 12, pro: 8, senior: 14 } },
-  choseong: { segundos: { kids: 18, pro: 15, senior: 22 }, ajudas: { vogal: 2 } },
-  tenis: { segundos: { kids: 8, pro: 6, senior: 9 }, ajudas: { letra: 2 } },
-  shiritori: { segundos: { kids: 20, pro: 15, senior: 25 } },
-  taboo: { segundos: { kids: 35, pro: 30, senior: 45 } },
+  karuta: { segundos: { kids: 12, pro: 8, senior: 14 }, ajudas: { tempo: 2 } },
+  choseong: { segundos: { kids: 18, pro: 15, senior: 22 }, ajudas: { vogal: 2, tempo: 2 } },
+  tenis: { segundos: { kids: 8, pro: 6, senior: 9 }, ajudas: { letra: 2, tempo: 2 } },
+  shiritori: { segundos: { kids: 20, pro: 15, senior: 25 }, ajudas: { tempo: 2 } },
+  taboo: { segundos: { kids: 35, pro: 30, senior: 45 }, ajudas: { tempo: 2 } },
   koffer: { vidas: { kids: 4, pro: 3, senior: 4 }, aVistaMs: { kids: 2600, pro: 2000, senior: 3000 } },
   bao: { vidas: { kids: 4, pro: 3, senior: 4 } },
 };
+
+/** Quanto a ajuda "+10 s" devolve ao relógio da jogada (a ajuda `tempo` dos jogos com relógio por item). */
+export const SEGUNDOS_A_MAIS = 10;
 
 const FATOR_DO_TEMPO: Record<NivelDoJogo, number> = { facil: 1.5, medio: 1, dificil: 0.75 };
 const PASSO_DA_CONTAGEM: Record<NivelDoJogo, number> = { facil: 1, medio: 0, dificil: -1 };

@@ -48,9 +48,18 @@ Fonte de cada item: o painel "Auditoria" de `docs/prototipos/polimento-movimento
       (`casca/SeletorDeNivel.tsx`), e trocar recomeça a rodada; o cabeçalho diz o nível quando não é o
       Médio. Conferido no app rodando (Karuta: 8 s no Médio, 12 s no Fácil).
       Falta: o que muda além dos números (primeira letra dada, menos alternativas), jogo a jogo
-- [ ] 2.3 Ajudas gerais: "+10 s" (jogos com relógio) e "Ver resposta" (`hinted`)
-- [ ] 2.4 Depois de dois erros seguidos, a ajuda disponível pulsa
-- [ ] 2.5 Explicação em três telas na primeira partida e pelo botão "Como se joga"; a rodada pausa
+- [x] 2.3 Ajudas gerais (`casca/AjudasGerais.tsx`) nos cinco jogos com relógio POR JOGADA (Karuta,
+      Choseong, Rali, Shiritori, Tabu): "+10 s" (de graça; 3, 2 ou 1 por rodada conforme o nível) e
+      "Ver resposta". Decisões: "Ver resposta" conta como `revealed` ("não lembrei"), igual ao tempo
+      esgotado, e não como `hinted`: ver a palavra não é lembrar com ajuda. O Duelo fica fora (o relógio
+      é da rodada e já devolve segundos). Conferido no app (Rali: 6 s viram 15 s; "A resposta era: rock")
+- [x] 2.4 Depois de dois erros seguidos as ajudas que ainda dá para usar acendem (`data-socorro` no
+      placar; o pulso em `questMovimento.css`, só no movimento rico). Quem conta é o motor de
+      comemoração (`EVENTO_DA_JOGADA`), então vale em todos os jogos sem mexer em cada um
+- [x] 2.5 O app já tinha o passo a passo na primeira partida (`TourGuiado`, chave `babel_tour_<jogo>`)
+      e a ficha "Como se joga" na antessala e na pausa: as três telas do protótipo seriam uma terceira
+      explicação. Entrou o que faltava: o botão "Como se joga" no alto do jogo, a um toque, que para o
+      relógio. Falta (se o dono quiser): rever o passo a passo guiado a partir da ficha
 - [ ] 2.6 Tela de fim: sugere descer ou subir o nível
 - [ ] 2.7 Menos atrito, um jogo por commit: Termo (linha pré-preenchida), Frase embaralhada (as
       erradas voltam), Choseong (só a vogal errada sai), Rali (a letra errada some), Ditado

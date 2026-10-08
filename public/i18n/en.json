@@ -3733,5 +3733,12 @@
   "Vibração": "Vibration",
   "Uma vibração curta no toque, no acerto e no erro.": "A short vibration on tap, on a right answer and on a mistake.",
   "Ligada": "On",
-  "Trocar o nível recomeça a rodada.": "Changing the level restarts the round."
+  "Trocar o nível recomeça a rodada.": "Changing the level restarts the round.",
+  "+10 s": "+10 s",
+  "Dez segundos a mais nesta jogada. Não custa nota.": "Ten more seconds for this turn. It does not lower your grade.",
+  "Ver resposta": "Show answer",
+  "Mostra a resposta e passa para a próxima.": "Shows the answer and moves on to the next one.",
+  "conta como não lembrei": "counts as not remembered",
+  "A resposta era:": "The answer was:",
+  "O elo era:": "The link was:"
 }

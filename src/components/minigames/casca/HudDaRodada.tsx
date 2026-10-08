@@ -6,6 +6,8 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useI
 import { SEQUENCIA_FEVER } from '../../../core/minigames/blitzRegras';
 import { multiplicador } from '../../../core/minigames/grade';
 import { celebrar } from '../../../lib/comemoracao';
+/* Direto do arquivo, e não do índice: a constante não tem DOM nem áudio. */
+import { EVENTO_DA_JOGADA } from '../../../lib/comemoracao/intensidade';
 import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../lib/i18n';
 import { contarAte, tremor } from '../../../lib/juice';
@@ -25,6 +27,9 @@ import { useRodada } from './CascaDaRodada';
  * mecânica (o Duelo, onde a partir da sequência 10 o multiplicador dobra): nos outros o nome dizia
  * um modo que não existe, e a sequência longa continua "em chamas".
  */
+/** Depois de quantos erros seguidos as ajudas se anunciam. */
+export const ERROS_ATE_O_SOCORRO = 2;
+
 function rotuloDaSequencia(seq: number, comFever: boolean): string {
   return comFever && seq >= SEQUENCIA_FEVER
     ? 'FEVER'
@@ -129,6 +134,25 @@ export default function HudDaRodada({
   }, []);
   const ajudasComNota = Object.entries(notasDasAjudas);
 
+  /* DOIS ERROS SEGUIDOS: as ajudas que ainda dá para usar se anunciam (`data-socorro`, o pulso mora em
+     `styles/questMovimento.css`). Elas ficam no canto e quem está errando é justamente quem não olhou
+     para lá. O acerto ou o uso de uma ajuda apaga o aviso. Quem conta é o motor de comemoração, que
+     todo jogo já chama a cada acerto e a cada erro. */
+  const errosSeguidos = useRef(0);
+  const [socorro, setSocorro] = useState(false);
+  useEffect(() => {
+    const aoJogar = (e: Event) => {
+      errosSeguidos.current = (e as CustomEvent<string>).detail === 'erro' ? errosSeguidos.current + 1 : 0;
+      setSocorro(errosSeguidos.current >= ERROS_ATE_O_SOCORRO);
+    };
+    window.addEventListener(EVENTO_DA_JOGADA, aoJogar);
+    return () => window.removeEventListener(EVENTO_DA_JOGADA, aoJogar);
+  }, []);
+  const socorroAtendido = () => {
+    errosSeguidos.current = 0;
+    setSocorro(false);
+  };
+
   const pct = Math.round(Math.max(0, Math.min(1, progresso)) * 100);
   const comTempo = tempo !== undefined;
   const linhaDoPlacar = (
@@ -158,7 +182,7 @@ export default function HudDaRodada({
           <span style={{ width: `${pct}%` }} />
         </div>
       </div>
-      <div className="hud-ajudas">
+      <div className="hud-ajudas" data-socorro={socorro || undefined} onClickCapture={socorroAtendido}>
         <AjudasDoPlacar.Provider value={questNovo ? registrarAjuda : null}>{ajudas}</AjudasDoPlacar.Provider>
         {questNovo && ajudasComNota.length > 0 && (
           <button
@@ -248,6 +272,7 @@ export function BotaoDeAjuda({
   /** O preço da ajuda ("limita a nota"), quando o `title` não o diz. Só o headset o escreve. */
   custo?: string;
   'data-tour'?: string;
+  'data-ajuda'?: string;
 }) {
   /* No headset o efeito e o preço vão para a lista do "?" do placar (não há hover para o `title`). */
   const registrar = useContext(AjudasDoPlacar);

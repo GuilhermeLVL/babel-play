@@ -172,6 +172,18 @@ export default function CascaDaRodada({
           titulo={titulo}
           acoes={
             <>
+              {/* A EXPLICAÇÃO A UM TOQUE, sem passar pela pausa: quem não entendeu a regra no meio da
+                  rodada não sabe que ela mora atrás de "Pausar". Abrir para o relógio, como a pausa. */}
+              <button
+                type="button"
+                className="btn btn-outline peq"
+                data-acao="como"
+                aria-label={t('Como se joga')}
+                title={t('Como se joga')}
+                onClick={() => setExplicando(true)}
+              >
+                <CircleHelp aria-hidden />
+              </button>
               <button type="button" className="btn btn-outline peq" aria-keyshortcuts="Escape" onClick={pausar}>
                 <Pause aria-hidden /> Pausar
               </button>

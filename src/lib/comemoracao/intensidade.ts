@@ -19,6 +19,12 @@ export type EventoDeComemoracao =
   | { tipo: 'bau'; raridade: 'comum' | 'raro' }
   | { tipo: 'nivel' };
 
+/**
+ * O aviso de que uma jogada deu certo ou errado (`detail`: 'acerto' | 'erro'). O placar da rodada ouve
+ * para saber de dois erros seguidos, sem cada jogo ter de contar (`casca/HudDaRodada.tsx`).
+ */
+export const EVENTO_DA_JOGADA = 'babel:jogada';
+
 export type Intensidade = 'discreta' | 'media' | 'forte' | 'maxima';
 
 export function intensidadeDe(ev: EventoDeComemoracao): Intensidade {

@@ -21,7 +21,7 @@ import {
 } from '../juice';
 import { play, somMudo, type SoundEvent } from '../soundFx';
 import { RECEITAS } from './efeitos';
-import type { EventoDeComemoracao } from './intensidade';
+import { EVENTO_DA_JOGADA, type EventoDeComemoracao } from './intensidade';
 import {
   ACERTOS,
   COMBOS,
@@ -52,7 +52,7 @@ import {
 
 export { definirJogoEmCurso, equiparEfeito } from './efeitos';
 export type { EventoDeComemoracao, Intensidade } from './intensidade';
-export { intensidadeDe } from './intensidade';
+export { EVENTO_DA_JOGADA, intensidadeDe } from './intensidade';
 export { ACERTOS, COMBOS, EFEITOS_PADRAO, type EfeitosEquipados, efeitosEquipados, FINALIZACOES } from './pacotes';
 
 /** Uma rajada do plano. Além de `kind`/`forma`, a receita equipada pode trazer origem, cor (token),
@@ -292,6 +292,9 @@ function executar(ev: EventoDeComemoracao, plano: PlanoDeComemoracao): void {
  */
 export function celebrar(ev: EventoDeComemoracao): void {
   if (typeof window === 'undefined') return;
+  if (ev.tipo === 'acerto' || ev.tipo === 'erro') {
+    window.dispatchEvent(new CustomEvent(EVENTO_DA_JOGADA, { detail: ev.tipo }));
+  }
   try {
     const plano = planoDeComemoracao(ev, {
       leve: reduzirEfeitos() || movimentoReduzido(),
@@ -333,7 +336,8 @@ export function tocarPreviaDoEfeito(tipo: TipoDeEfeito, id: string, el: Element 
   try {
     const r = RECEITAS[tipo]?.[id];
     if (!r) return;
-    if (!somMudo()) play(r.som ?? (tipo === 'efeito-combo' ? 'combo' : tipo === 'finalizacao' ? 'fanfarra' : 'success'));
+    if (!somMudo())
+      play(r.som ?? (tipo === 'efeito-combo' ? 'combo' : tipo === 'finalizacao' ? 'fanfarra' : 'success'));
     if (reduzirEfeitos() || movimentoReduzido()) return;
     const s: Partial<BurstSpec> = {};
     if (r.forma) s.forma = r.forma;

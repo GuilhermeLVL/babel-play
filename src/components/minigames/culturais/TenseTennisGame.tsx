@@ -11,6 +11,7 @@ import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
+import AjudasGerais from '../casca/AjudasGerais';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
@@ -72,6 +73,8 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
   const inicioRodadaRef = useRef(Date.now());
   const inicioJogadaRef = useRef(Date.now());
   const comDicaRef = useRef(false);
+  /** A pessoa pediu para ver a resposta: o aviso não fala em bola caída. */
+  const desistiuRef = useRef(false);
   const respondidoRef = useRef(false);
   const jaFinalizouRef = useRef(false);
   const quadraRef = useRef<HTMLDivElement | null>(null);
@@ -124,6 +127,7 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
     if (!item || jaFinalizouRef.current) return;
     inicioJogadaRef.current = Date.now();
     comDicaRef.current = false;
+    desistiuRef.current = false;
     respondidoRef.current = false;
     setEscrito('');
     setAviso(null);
@@ -141,7 +145,11 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
       respondidoRef.current = true;
       registrar(false, true);
       setRali(0);
-      setAviso({ tom: 'erro', rotulo: t('A bola caiu na quadra. Era:'), resposta: item.answer });
+      setAviso({
+        tom: 'erro',
+        rotulo: desistiuRef.current ? t('A resposta era:') : t('A bola caiu na quadra. Era:'),
+        resposta: item.answer,
+      });
       falar(item.answer, item.lang);
       celebrar({ tipo: 'erro', el: quadraRef.current });
       setTimeout(avancar, 1200);
@@ -209,7 +217,23 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
         progresso={tempo / Math.max(1, segundosDaJogada(base, rali))}
         pouco={tempo <= 2}
         tourDoTempo="relogio"
-        ajudas={<BotaoDeAjuda icone={Lightbulb} rotulo="Primeira letra" resta={dicasRestantes} onClick={usarDica} />}
+        ajudas={
+          <>
+            <BotaoDeAjuda icone={Lightbulb} rotulo="Primeira letra" resta={dicasRestantes} onClick={usarDica} />
+            <AjudasGerais
+              jogo="tenis"
+              parado={!ativo || acabou || !!aviso}
+              aoGanharTempo={(s) => {
+                setRelogio((r) => (r.bola === indice ? { ...r, segundos: r.segundos + s } : r));
+                entradaRef.current?.focus();
+              }}
+              aoVerResposta={() => {
+                desistiuRef.current = true;
+                setRelogio((r) => (r.bola === indice ? { ...r, segundos: 0 } : r));
+              }}
+            />
+          </>
+        }
       />
 
       <div

@@ -40,6 +40,7 @@ describe('as regras por nível', () => {
     expect(ajudasDoJogo('blitz', 'cortar', 'medio')).toBe(2)
     expect(ajudasDoJogo('choseong', 'vogal', 'medio')).toBe(2)
     expect(ajudasDoJogo('tenis', 'letra', 'medio')).toBe(2)
+    expect(ajudasDoJogo('taboo', 'tempo', 'medio')).toBe(2)
   })
 
   it('o Fácil nunca aperta mais que o Médio, e o Difícil nunca menos, em todo jogo e perfil', () => {

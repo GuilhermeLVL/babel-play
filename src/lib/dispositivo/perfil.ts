@@ -245,8 +245,20 @@ export async function reduzirEfeitosMedido(): Promise<boolean | null> {
   return temEscolhaManualDeEfeitos() ? null : reduzirEfeitos(p.sinais);
 }
 
+/**
+ * QUEM DISPENSA O MODO LEVE AUTOMÁTICO. O desenho novo (decisão do dono, 08/10/2026: "tudo, inclusive o
+ * Quest") mostra os efeitos em todo aparelho e não segue o "reduzir movimento" do sistema; só a escolha
+ * manual em Ajustes os desliga. Registrado por `telaNovaDoQuest.ts` (que importa este módulo, e não o
+ * contrário).
+ */
+let dispensaOAutomatico: (() => boolean) | null = null;
+export function registrarQuemDispensaOModoLeve(pergunta: () => boolean): void {
+  dispensaOAutomatico = pergunta;
+}
+
 /** O modo leve ligaria SOZINHO neste aparelho (sem a escolha manual)? */
 export function reduzirEfeitosAutomatico(sinais?: SinaisDoDispositivo): boolean {
+  if (dispensaOAutomatico?.()) return false;
   const s = sinais ?? lerSinaisDoDispositivo(webGpuProvavel());
   return classificarDispositivo(s).leve || s.movimentoReduzido;
 }

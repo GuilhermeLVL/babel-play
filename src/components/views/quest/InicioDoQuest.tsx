@@ -1,11 +1,9 @@
 import type { EstadoDasMissoes } from '@core';
 import {
-  BookOpen,
   ChartColumn,
   CheckCircle2,
   ChevronRight,
   FileText,
-  Flame,
   Gamepad2,
   Headphones,
   Languages,
@@ -128,12 +126,6 @@ export default function InicioDoQuest({
                 : t('O que vamos fazer?')}
           </h1>
         </div>
-        {progress.available && progress.streakDays > 0 && (
-          <span className="q-chip">
-            <Flame aria-hidden />
-            {tp(progress.streakDays, '{n} dia seguido', '{n} dias seguidos')}
-          </span>
-        )}
         {/* O SELO DO PLANO (`telas2.js:136-139`): quem quer ver os planos não depende de uma oferta
             aparecer. No site sem servidor não há plano a assinar, e o selo não aparece. */}
         {!edicaoEstatica() && (
@@ -156,15 +148,9 @@ export default function InicioDoQuest({
           <b>{t('Legendar agora')}</b>
           <span className="q-d">{t('Vídeo, jogo, aula ou conversa, com tradução ao vivo.')}</span>
         </button>
-        {semConta ? (
-          <button type="button" className="q-tile" onClick={() => onChangeView('interprete')}>
-            <span className="q-ic">
-              <Languages aria-hidden />
-            </span>
-            <b>{t('Conversar')}</b>
-            <span className="q-d">{t('Intérprete frente a frente: cada pessoa fala no seu idioma.')}</span>
-          </button>
-        ) : vencidas > 0 ? (
+        {/* O SEGUNDO CAMINHO é o do protótipo, "Conversar" (`prototipo.js:1174-1177`). Só cede o lugar quando
+            há palavras vencendo hoje: revisar é o que não pode esperar. */}
+        {!semConta && vencidas > 0 ? (
           <button type="button" className="q-tile" onClick={() => onChangeView('study')}>
             <span className="q-ic">
               <Layers aria-hidden />
@@ -177,20 +163,12 @@ export default function InicioDoQuest({
             </span>
           </button>
         ) : (
-          <button type="button" className="q-tile" onClick={() => onChangeView('metrics')}>
+          <button type="button" className="q-tile" onClick={() => onChangeView('interprete')}>
             <span className="q-ic">
-              <BookOpen aria-hidden />
+              <Languages aria-hidden />
             </span>
-            <b>{t('Vocabulário')}</b>
-            <span className="q-d">
-              {progress.palavrasNovas > 0
-                ? tp(
-                    progress.palavrasNovas,
-                    '{n} palavra nova esperando a primeira revisão.',
-                    '{n} palavras novas esperando a primeira revisão.',
-                  )
-                : t('Nada para revisar agora. Veja as palavras que você guardou.')}
-            </span>
+            <b>{t('Conversar')}</b>
+            <span className="q-d">{t('Intérprete frente a frente: cada pessoa fala no seu idioma.')}</span>
           </button>
         )}
         <button type="button" className="q-tile" onClick={() => onChangeView('play')}>

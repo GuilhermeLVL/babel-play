@@ -1604,6 +1604,12 @@ html[data-quest-novo='true'][data-dispositivo^='desktop'] .q-palco {
     --q-cresce-max: min(46vh, 480px);
   }
 }
+/* A PRIMEIRA DOBRA DO INÍCIO É A DO PROTÓTIPO: cabeçalho, os três caminhos, o progresso e as missões. Os
+   caminhos ocupam o que sobra da janela depois dessas peças (473 px, medido no protótipo), até o teto de
+   cima; o que o app tem a mais (sessões recentes) fica abaixo, na rolagem, em vez de achatar os cartões. */
+html[data-quest-novo='true'][data-dispositivo^='desktop'] [data-testid='inicio-do-quest'] > .q-cresce > * {
+  min-height: clamp(0px, calc(100dvh - 473px), var(--q-cresce-max, 380px));
+}
 
 @media (prefers-reduced-motion: reduce) {
   .q-palco,

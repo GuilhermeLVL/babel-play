@@ -1788,13 +1788,8 @@
   "Legendar agora": "Caption now",
   "Vídeo, jogo, aula ou conversa, com tradução ao vivo.": "Video, game, class or conversation, with live translation.",
   "As que estão para sair da memória hoje.": "The ones about to slip from memory today.",
-  "Nada para revisar agora. Veja as palavras que você guardou.": "Nothing to review right now. See the words you saved.",
   "Jogos com as palavras das suas sessões.": "Games with the words from your sessions.",
   "Continuar: {titulo}": "Continue: {titulo}",
-  "{n} dias seguidos": {
-    "one": "{n} day in a row",
-    "other": "{n} days in a row"
-  },
   "Revisar {n} palavras": {
     "one": "Review {n} word",
     "other": "Review {n} words"
@@ -2055,10 +2050,6 @@
   "Nível {nivel}": "Level {nivel}",
   "{atual} de {alvo} XP para o próximo nível": "{atual} of {alvo} XP to the next level",
   "Estatísticas": "Statistics",
-  "{n} palavras novas esperando a primeira revisão.": {
-    "one": "{n} new word waiting for its first review.",
-    "other": "{n} new words waiting for their first review."
-  },
   "\"Repetir\" joga a fase de novo com exatamente as mesmas palavras.": "\"Repeat\" plays the stage again with exactly the same words.",
   "(você)": "(you)",
   "Tela do headset": "Headset screen",

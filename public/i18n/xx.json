@@ -85,10 +85,6 @@
   "{n} de 3 estrelas": "[{n} dé 3 éštréláš ·······]",
   "{n} de 3 estrelas ({pct}% de acerto)": "[{n} dé 3 éštréláš ({pct}% dé áçértö) ··············]",
   "{n} dias": "[{n} díáš ···]",
-  "{n} dias seguidos": {
-    "one": "[{n} díáš šégüídöš ·······]",
-    "other": "[{n} díáš šégüídöš ·······]"
-  },
   "{n} em aprendizado": "[{n} ém ápréñdížádö ·······]",
   "{n} em outro idioma": "[{n} ém öütrö ídíömá ········]",
   "{n} em outros idiomas ficaram fora.": {
@@ -185,10 +181,6 @@
   "{n} palavras novas esperando": {
     "one": "[{n} pálávráš ñöváš éšpéráñdö ···········]",
     "other": "[{n} pálávráš ñöváš éšpéráñdö ···········]"
-  },
-  "{n} palavras novas esperando a primeira revisão.": {
-    "one": "[{n} pálávráš ñöváš éšpéráñdö á príméírá révíšãö. ···················]",
-    "other": "[{n} pálávráš ñöváš éšpéráñdö á príméírá révíšãö. ···················]"
   },
   "{n} palavras para repetir": "[{n} pálávráš párá répétír ··········]",
   "{n} palavras para repetir hoje": "[{n} pálávráš párá répétír höjé ············]",
@@ -1962,7 +1954,6 @@
   "Nada para mostrar ainda.": "[Ñádá párá möštrár áíñdá. ··········]",
   "Nada para repetir hoje": "[Ñádá párá répétír höjé ·········]",
   "Nada para revisar": "[Ñádá párá révíšár ·······]",
-  "Nada para revisar agora. Veja as palavras que você guardou.": "[Ñádá párá révíšár ágörá. Véjá áš pálávráš qüé vöçê güárdöü. ························]",
   "Nada por aqui": "[Ñádá pör áqüí ·····]",
   "Nada quebrou hoje nem ontem.": "[Ñádá qüébröü höjé ñém öñtém. ···········]",
   "Nada rodando: cada medida começa no próprio botão.": "[Ñádá rödáñdö: çádá médídá çöméçá ñö própríö bötãö. ····················]",

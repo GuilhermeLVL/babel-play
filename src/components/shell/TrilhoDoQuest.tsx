@@ -66,19 +66,11 @@ import { type AgeProfileType, ITEM_ADMIN, NAV_ITEMS, navLabel } from './navItems
 import { MarcaBabel } from './ShellBits';
 
 /**
- * OS DESTINOS DO TRILHO. A maquete de 01/10/2026 tinha cinco; o dono pediu mais (02/10): o que se usa
- * toda semana fica a um toque, sem passar pelo painel "Mais". São sete, que é o que cabe na altura
- * padrão da janela (670 px) com alvos de 64 px: os quatro de fazer (Início, Capturar, Intérprete,
- * Jogar), os dois de guardar (Biblioteca, Vocabulário) e o de acompanhar (Estatísticas).
+ * OS DESTINOS DO TRILHO: os seis do protótipo (`ROTAS`, `prototipo.js:87`), os mesmos para todo mundo
+ * (passada de fidelidade, 08/10/2026: o protótipo manda na tela). Antes, quem tinha conta via sete, com
+ * Biblioteca e Vocabulário (pedido de 02/10); os dois ficam agora no painel "Mais".
  */
-const NO_TRILHO: ViewType[] = ['hub', 'capture', 'interprete', 'play', 'library', 'metrics', 'estatisticas'];
-/**
- * SEM CONTA (e no site sem servidor), Biblioteca e Vocabulário abrem só o cartão "isto precisa de
- * conta": no trilho seriam destinos de primeira linha que não funcionam. Continuam no menu, em "Mais"
- * (a regra da casa é mostrar e explicar, nunca esconder), e o lugar deles fica com o que roda inteiro
- * no aparelho: Estatísticas e Personalizar.
- */
-const NO_TRILHO_SEM_CONTA: ViewType[] = ['hub', 'capture', 'interprete', 'play', 'estatisticas', 'loja'];
+const NO_TRILHO: ViewType[] = ['hub', 'capture', 'interprete', 'play', 'estatisticas', 'loja'];
 
 interface TrilhoDoQuestProps {
   activeView: ViewType;
@@ -188,7 +180,7 @@ export default function TrilhoDoQuest({
   useEffect(() => instalarOrigemDoToque(), []);
   /* Os painéis (o "Mais", os diálogos) crescem a partir do botão que os abriu. */
   useEffect(() => instalarDialogos(), []);
-  const noTrilho = semConta ? NO_TRILHO_SEM_CONTA : NO_TRILHO;
+  const noTrilho = NO_TRILHO;
   const principais = noTrilho.map((id) => NAV_ITEMS.find((i) => i.id === id)).filter((i) => !!i);
   const outros = [...NAV_ITEMS.filter((i) => !noTrilho.includes(i.id)), ...(ehAdmin(perfil) ? [ITEM_ADMIN] : [])];
   const foraDoTrilho = !noTrilho.includes(activeView);

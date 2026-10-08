@@ -65,7 +65,7 @@ describe('TrilhoDoQuest', () => {
     return { ir, ...r }
   }
 
-  it('sete destinos e "Mais", com o destino atual marcado', () => {
+  it('os seis destinos do protótipo e "Mais", com o destino atual marcado', () => {
     const { container } = montar('play')
     const itens = [...container.querySelectorAll('.q-trilho .q-item')]
     expect(itens.map((i) => i.textContent)).toEqual([
@@ -73,9 +73,8 @@ describe('TrilhoDoQuest', () => {
       'Capturar',
       'Intérprete',
       'Jogar',
-      'Biblioteca',
-      'Vocabulário',
       'Estatísticas',
+      'Personalizar',
       'Mais',
     ])
     expect(container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Jogar')
@@ -87,7 +86,8 @@ describe('TrilhoDoQuest', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
     const painel = screen.getByRole('dialog')
     expect(painel.textContent).toContain('Ajustes')
-    expect(painel.textContent).toContain('Personalizar')
+    expect(painel.textContent).toContain('Biblioteca')
+    expect(painel.textContent).toContain('Vocabulário')
     expect(painel.textContent).toContain('Diagnóstico do aparelho')
     fireEvent.click(screen.getByRole('button', { name: 'Ajustes' }))
     expect(ir).toHaveBeenCalledWith('settings')
@@ -141,11 +141,11 @@ describe('InicioDoQuest', () => {
     expect(ir).toHaveBeenLastCalledWith('analysis', { id: 'a' })
   })
 
-  it('sem nada para revisar, o caminho vira o Vocabulário; sem sessão, não há "Continuar"', () => {
+  it('sem nada para revisar, o segundo caminho é o do protótipo, Conversar; sem sessão, não há "Continuar"', () => {
     const ir = vi.fn()
     render(<InicioDoQuest onChangeView={ir} recordings={[]} progress={EMPTY_PROGRESS} metrics={metricas(0)} />)
-    fireEvent.click(screen.getByRole('button', { name: /Vocabulário/ }))
-    expect(ir).toHaveBeenLastCalledWith('metrics')
+    fireEvent.click(screen.getByRole('button', { name: /Conversar/ }))
+    expect(ir).toHaveBeenLastCalledWith('interprete')
     expect(screen.queryByRole('button', { name: /Continuar/ })).toBeNull()
   })
 })
@@ -469,7 +469,7 @@ describe('a casca no computador com o desenho novo', () => {
     return { ir, aoBuscar, ...r }
   }
 
-  it('os mesmos sete destinos, e a busca no próprio trilho com o atalho à vista', () => {
+  it('os mesmos seis destinos, e a busca no próprio trilho com o atalho à vista', () => {
     const { container, aoBuscar } = montar()
     const itens = [...container.querySelectorAll('.q-trilho .q-item')]
     expect(itens.map((i) => i.querySelector('span')?.textContent)).toEqual([
@@ -477,9 +477,8 @@ describe('a casca no computador com o desenho novo', () => {
       'Capturar',
       'Intérprete',
       'Jogar',
-      'Biblioteca',
-      'Vocabulário',
       'Estatísticas',
+      'Personalizar',
       'Buscar',
       'Mais',
     ])
@@ -500,7 +499,7 @@ describe('a casca no computador com o desenho novo', () => {
     expect(screen.queryByTestId('vibracao-do-quest')).toBeNull()
     expect(painel.textContent).not.toContain('Vibração')
     expect(painel.textContent).not.toContain('Diagnóstico do aparelho')
-    for (const destino of ['Personalizar', 'Sobre', 'Ajustes', 'Seu perfil', 'Ajuda e suporte'])
+    for (const destino of ['Biblioteca', 'Vocabulário', 'Sobre', 'Ajustes', 'Seu perfil', 'Ajuda e suporte'])
       expect(painel.textContent).toContain(destino)
     expect(painel.textContent).toMatch(/Tema (claro|escuro)/)
     expect(painel.textContent).toContain('Som dos toques: ligado')

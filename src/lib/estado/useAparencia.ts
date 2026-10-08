@@ -8,6 +8,7 @@ import { CREDENTIAL_KEY, MODE_KEY, PROFILE_KEY } from '../../gateway/activeProfi
 import type { FonteType, ThemeType } from '../appearance';
 import { ativarLiberacaoTotal, liberadoTudo } from '../desbloqueios';
 import { definirReduzirEfeitos, reduzirEfeitos, reduzirEfeitosMedido } from '../dispositivo/perfil';
+import { questNovo } from '../dispositivo/telaNovaDoQuest';
 import { estaAnonimo } from '../identidade';
 import { revelarEmCirculo } from '../movimento/revelar';
 import { isAgeProfile, readAgeProfile, readStoredEnum, readStoredValue } from '../profile';
@@ -89,6 +90,9 @@ export function useAparencia(): EstadoDaAparencia {
     const guardado = readStoredValue('babel.animations_enabled');
     if (guardado === 'true') return true;
     if (guardado === 'false') return false;
+    /* O desenho novo nasce com o movimento ligado em todo aparelho (decisão do dono, 08/10/2026):
+       quem quer menos desliga aqui, em Ajustes. O desenho de sempre continua seguindo o sistema. */
+    if (questNovo()) return true;
     return !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   });
   /**
@@ -291,14 +295,15 @@ export function useAparencia(): EstadoDaAparencia {
     /* No desenho novo, com o movimento rico, a cor nova se abre em círculo a partir do toque
        (`revelarEmCirculo`); fora disso ele só roda a troca. O `flushSync` é o que deixa o navegador
        fotografar o antes e o depois: a troca precisa chegar ao DOM dentro desta chamada. */
-    revelarEmCirculo(() =>
-      flushSync(() =>
-        setDarkMode((prev) => {
-          const next = !prev;
-          persistTheme({ darkMode: next });
-          return next;
-        }),
-      ),
+    revelarEmCirculo(
+      () =>
+        flushSync(() =>
+          setDarkMode((prev) => {
+            const next = !prev;
+            persistTheme({ darkMode: next });
+            return next;
+          }),
+        ),
       /* 850 ms: a troca de claro e escuro do protótipo (`prototipo.js:770`). */
       850,
     );

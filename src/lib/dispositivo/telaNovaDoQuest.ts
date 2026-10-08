@@ -7,7 +7,7 @@
  */
 import { useSyncExternalStore } from 'react';
 
-import { perfilDoDispositivo } from './perfil';
+import { perfilDoDispositivo, registrarQuemDispensaOModoLeve } from './perfil';
 
 export const CHAVE_DA_TELA_NOVA_DO_QUEST = 'babel.quest.telaNova';
 const EVENTO = 'babel:quest-tela-nova';
@@ -102,6 +102,9 @@ export function questNovo(): boolean {
   if (tipo === 'quest') return telaNovaDoQuest();
   return tipo.startsWith('desktop') && desenhoNovoNoComputador();
 }
+
+/* Com o desenho novo, o modo leve só liga pela escolha de quem usa (ver `perfil.ts`). */
+registrarQuemDispensaOModoLeve(questNovo);
 
 /** `<html data-quest-novo>`: é o que o CSS de `styles/quest.css` lê. Chamado no boot e a cada troca da chave. */
 export function marcarQuestNovoNoDocumento(): void {

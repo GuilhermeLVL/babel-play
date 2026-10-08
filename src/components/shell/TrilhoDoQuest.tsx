@@ -3,6 +3,8 @@
 import '../../styles/quest.css';
 /* E as medidas do headset sobre as peças de sempre (`.tela`, `.btn`, `<dialog>`, `.toast`…). */
 import '../../styles/questBase.css';
+/* E o movimento rico (molas, curvas), que só se aplica com `<html data-movimento="rico">`. */
+import '../../styles/questMovimento.css';
 
 import {
   Activity,
@@ -44,6 +46,7 @@ import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { useFlag } from '../../lib/flags';
 import { t } from '../../lib/i18n';
 import { aoMudarIdentidade, estaAnonimo } from '../../lib/identidade';
+import { instalarMarcaDeMovimento } from '../../lib/movimento/animar';
 import { marcarLida, marcarTodasLidas, naoLidas, quando } from '../../lib/notificacoes';
 import { authRequired } from '../../lib/supabase';
 import { usePerfil } from '../../lib/usePerfil';
@@ -155,6 +158,9 @@ export default function TrilhoDoQuest({
   /* A resposta ao apontar (pulso no controle, brilho que segue o ponteiro) vive enquanto o trilho
      vive: só no Quest com as telas novas, e sai junto se a chave for desligada em `/diagnostico`. */
   useEffect(() => instalarRespostaAoApontar(), []);
+  /* A marca `data-movimento` (rico no computador e no celular, contido no headset e no modo leve)
+     também vive enquanto o trilho vive. */
+  useEffect(() => instalarMarcaDeMovimento(), []);
   const noTrilho = semConta ? NO_TRILHO_SEM_CONTA : NO_TRILHO;
   const principais = noTrilho.map((id) => NAV_ITEMS.find((i) => i.id === id)).filter((i) => !!i);
   const outros = [...NAV_ITEMS.filter((i) => !noTrilho.includes(i.id)), ...(ehAdmin(perfil) ? [ITEM_ADMIN] : [])];

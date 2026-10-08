@@ -17,14 +17,19 @@ Fonte de cada item: o painel "Auditoria" de `docs/prototipos/polimento-movimento
 
 ## 1. A casca se mexe
 
-- [ ] 1.1 Toque: o botão afunda e volta com mola (`.q-tile`, `.q-ctl`, `.q-botao`, `.q-item`, `.q-aba`)
+- [x] 1.1 Toque: o botão afunda e volta com mola (`.q-tile`, `.q-ctl`, `.q-botao`, `.q-item`); o afundar
+      continua o de `quest.css`, só a volta ganha a mola (`questMovimento.css`)
 - [x] 1.2 Abas: a pílula desliza de uma aba para a outra (`.q-abas`): `src/lib/movimento/pilulaDasAbas.ts`,
       instalada com o trilho; conferida no app rodando (Jogar, desenho novo no computador)
-- [ ] 1.3 Troca de tela: a que sai some rápido, a que entra sobe em cascata na primeira visita
+- [x] 1.3 Troca de tela: a que entra sobe em cascata na primeira visita
+      (`src/lib/movimento/entradaDasTelas.ts`). A SAÍDA da tela anterior fica de fora: as telas trocam
+      por desmontar e montar, e segurar a desmontagem pede mexer em `useNavegacao`; avaliar depois
 - [ ] 1.4 Painel "Mais": nasce do botão, segue o dedo, fecha por arremesso
 - [ ] 1.5 Diálogos e folhas: mesma entrada e saída; no celular, folha de baixo
 - [ ] 1.6 Aviso (toast): arrasta para fora; o tempo pausa com o dedo em cima
-- [ ] 1.7 Tema claro/escuro: a cor nova se abre em círculo a partir do botão (View Transitions)
+- [x] 1.7 Tema claro/escuro: a cor nova se abre em círculo a partir do toque
+      (`src/lib/movimento/revelar.ts`, usado em `useAparencia.ts`). Trocar de TEMA (equipar) ainda troca
+      na hora: `setTheme` é chamado de lugares onde `flushSync` não pode
 - [ ] 1.8 Som e tato nos toques da casca; interruptor de vibração em Ajustes e no painel "Mais"
 - [ ] 1.9 Busca por teclado abre sem animação
 - [ ] 1.10 Testes de `questCasca` e os e2e de fumaça atualizados

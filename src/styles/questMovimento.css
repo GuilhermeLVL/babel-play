@@ -70,3 +70,75 @@ html[data-quest-novo='true'][data-movimento='rico'] .q-pilula[data-pousando] {
 html[data-quest-novo='true']:not([data-movimento='rico']) .q-pilula {
   display: none;
 }
+
+/* ---- O toque: afunda na hora e VOLTA com mola ---------------------------------------------
+   O afundar continua o de `quest.css` (120 ms). Solto, o botão volta passando um fio do ponto.
+   Cada lista repete as propriedades da peça, trocando só a curva do `transform`. */
+html[data-quest-novo='true'][data-movimento='rico'] .q-tile:not(:active) {
+  transition:
+    transform calc(380ms * var(--q-ritmo)) var(--q-mola-suave),
+    background-color var(--q-cor),
+    border-color var(--q-cor),
+    box-shadow var(--q-cor);
+}
+html[data-quest-novo='true'][data-movimento='rico'] .q-item:not(:active) {
+  transition:
+    transform calc(380ms * var(--q-ritmo)) var(--q-mola-suave),
+    background-color var(--q-cor),
+    border-color var(--q-cor);
+}
+html[data-quest-novo='true'][data-movimento='rico'] .q-ctl:not(:active) {
+  transition:
+    transform calc(380ms * var(--q-ritmo)) var(--q-mola-suave),
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+html[data-quest-novo='true'][data-movimento='rico'] .q-botao:not(:active) {
+  transition:
+    transform calc(420ms * var(--q-ritmo)) var(--q-mola),
+    box-shadow var(--q-cor);
+}
+
+/* ---- A entrada das telas (`src/lib/movimento/entradaDasTelas.ts`) -------------------------
+   Na primeira visita os blocos sobem em cascata; depois, a tela só surge (`q-surgir`, de sempre). */
+html[data-quest-novo='true'][data-movimento='rico'] .q-palco[data-entrada='cascata'] {
+  animation: none;
+}
+html[data-quest-novo='true'][data-movimento='rico'] .q-palco[data-entrada='cascata'] > * {
+  animation: q-entra var(--q-dur-tela) var(--q-saida) backwards;
+}
+html[data-quest-novo='true'][data-movimento='rico'] .q-palco[data-entrada='cascata'] > :nth-child(2) {
+  animation-delay: calc(50ms * var(--q-ritmo));
+}
+html[data-quest-novo='true'][data-movimento='rico'] .q-palco[data-entrada='cascata'] > :nth-child(3) {
+  animation-delay: calc(100ms * var(--q-ritmo));
+}
+html[data-quest-novo='true'][data-movimento='rico'] .q-palco[data-entrada='cascata'] > :nth-child(4) {
+  animation-delay: calc(150ms * var(--q-ritmo));
+}
+html[data-quest-novo='true'][data-movimento='rico'] .q-palco[data-entrada='cascata'] > :nth-child(5) {
+  animation-delay: calc(200ms * var(--q-ritmo));
+}
+html[data-quest-novo='true'][data-movimento='rico'] .q-palco[data-entrada='cascata'] > :nth-child(n + 6) {
+  animation-delay: calc(250ms * var(--q-ritmo));
+}
+@keyframes q-entra {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+}
+
+/* ---- A revelação em círculo (`src/lib/movimento/revelar.ts`) -------------------------------
+   Sem o esmaecer padrão do navegador: a tela de antes fica parada e a de depois abre por cima. */
+html[data-quest-novo='true'].q-vt::view-transition-old(root),
+html[data-quest-novo='true'].q-vt::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+html[data-quest-novo='true'].q-vt::view-transition-old(root) {
+  z-index: 0;
+}
+html[data-quest-novo='true'].q-vt::view-transition-new(root) {
+  z-index: 1;
+}

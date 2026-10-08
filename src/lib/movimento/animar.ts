@@ -15,8 +15,8 @@
  */
 import { EVENTO_REDUZIR_EFEITOS, reduzirEfeitos } from '../dispositivo/perfil';
 import { noHeadset } from '../dispositivo/telaNovaDoQuest';
-import { movimentoReduzido } from '../juice';
 import { SAIDA } from './mola';
+import { movimentoReduzido } from './reduzido';
 
 export function movimentoRico(): boolean {
   if (typeof document === 'undefined') return false;

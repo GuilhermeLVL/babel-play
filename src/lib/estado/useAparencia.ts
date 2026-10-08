@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { flushSync } from 'react-dom';
 
 import { useCommandPalette } from '../../components/CommandPalette';
 import type { AgeProfileType, FontScale, MenuPositionType } from '../../components/StudioHeader';
@@ -8,6 +9,7 @@ import type { FonteType, ThemeType } from '../appearance';
 import { ativarLiberacaoTotal, liberadoTudo } from '../desbloqueios';
 import { definirReduzirEfeitos, reduzirEfeitos, reduzirEfeitosMedido } from '../dispositivo/perfil';
 import { estaAnonimo } from '../identidade';
+import { revelarEmCirculo } from '../movimento/revelar';
 import { isAgeProfile, readAgeProfile, readStoredEnum, readStoredValue } from '../profile';
 import { instalarRastroDoMouse } from '../rastroDoMouse';
 import { installSfxDelegate } from '../sfxDelegate';
@@ -279,11 +281,18 @@ export function useAparencia(): EstadoDaAparencia {
     persistTheme({ fonte: next });
   };
   const toggleDarkMode = () => {
-    setDarkMode((prev) => {
-      const next = !prev;
-      persistTheme({ darkMode: next });
-      return next;
-    });
+    /* No desenho novo, com o movimento rico, a cor nova se abre em círculo a partir do toque
+       (`revelarEmCirculo`); fora disso ele só roda a troca. O `flushSync` é o que deixa o navegador
+       fotografar o antes e o depois: a troca precisa chegar ao DOM dentro desta chamada. */
+    revelarEmCirculo(() =>
+      flushSync(() =>
+        setDarkMode((prev) => {
+          const next = !prev;
+          persistTheme({ darkMode: next });
+          return next;
+        }),
+      ),
+    );
   };
 
   return {

@@ -1,5 +1,6 @@
 import { type BurstKind, emitBurst } from './effects';
 import { type EfeitoComposto, eventosCondicionais, marcarEventoVisto, sortearEventoRaro } from './eventosDeJogo';
+import { movimentoReduzido } from './movimento/reduzido';
 import { play } from './soundFx';
 
 /**
@@ -23,14 +24,9 @@ import { play } from './soundFx';
  *      que mexe em `transform` e escaparia daqueles filtros.
  */
 
-/** O usuário desligou movimento? (o tremor mexe em transform e escapa dos filtros globais) */
-export function movimentoReduzido(): boolean {
-  if (typeof window === 'undefined') return true;
-  const body = document.body;
-  if (body.classList.contains('performance-mode') || body.classList.contains('animations-off')) return true;
-  if (body.classList.contains('animations-on')) return false;
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-}
+/* O usuário desligou movimento? A pergunta mora em `movimento/reduzido.ts`; continua saindo por aqui
+   para quem já a importava (o tremor mexe em transform e escapa dos filtros globais). */
+export { movimentoReduzido };
 
 /** Centro de um elemento em coordenadas de viewport (onde a rajada deve nascer). */
 function centro(el: Element | null): { x: number; y: number } {

@@ -4,7 +4,7 @@
  * depois de dois erros seguidos (`casca/HudDaRodada.tsx`).
  *
  * O que não pode quebrar: "+10 s" devolve dez segundos e gasta uma das ajudas do nível; "Ver resposta"
- * mostra a palavra e conta como "não lembrei" (`revealed`), igual ao tempo esgotado; o aviso de
+ * é a do protótipo (`jogos4.js:166-177`): mostra a resposta por 3,6 s e a jogada continua; o aviso de
  * socorro acende no segundo erro seguido e apaga no acerto ou quando a pessoa usa uma ajuda.
  */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
@@ -85,28 +85,32 @@ describe('as ajudas gerais no Tabu', () => {
     expect(maisTempo.disabled).toBe(true)
   })
 
-  it('"Ver resposta" mostra a palavra, conta como não lembrei e a rodada segue', () => {
+  it('"Ver resposta" mostra a resposta por um instante, a carta continua, e o acerto conta como com dica', () => {
     const items = definicoes()
     let relatorio: RoundReport | null = null
-    render(<TabooGame items={items} ageProfile="pro" onFinish={(r) => (relatorio = r)} onExit={() => undefined} />)
-    fireEvent.click(document.querySelector('[data-ajuda="resposta"]') as HTMLButtonElement)
-    const aviso = document.querySelector('[data-aviso-da-jogada="erro"]') as HTMLElement
-    expect(aviso.textContent).toContain('A resposta era:')
-    expect(aviso.textContent).not.toContain('O tempo acabou')
-    // A carta respondida fica 1,8 s à vista; as outras três são respondidas de verdade.
-    avancar(1800)
-    for (let i = 1; i < items.length; i++) {
-      const certa = (relatorio as RoundReport | null) ? null : document.querySelector('[data-tour="alternativas"]')
-      expect(certa).toBeTruthy()
-      const botoes = [...document.querySelectorAll<HTMLButtonElement>('[data-tour="alternativas"] button')]
-      const daVez = botoes.find((b) => items.some((it) => it.answer === b.textContent))
-      fireEvent.click(daVez as HTMLButtonElement)
-      avancar(1800)
+    render(
+      <section className="palco-jogo">
+        <TabooGame items={items} ageProfile="pro" onFinish={(r) => (relatorio = r)} onExit={() => undefined} />
+      </section>,
+    )
+    const ver = document.querySelector('[data-ajuda="resposta"]') as HTMLButtonElement
+    // Uma vez por rodada no Médio (`jogos4.js:76`).
+    expect(ver.textContent).toContain('1')
+    fireEvent.click(ver)
+    expect(document.querySelector('.palco-jogo > .pj-resp')?.textContent).toBe('Resposta: hospital')
+    expect(ver.disabled).toBe(true)
+    // A carta não foi dada por perdida: ainda dá para responder.
+    expect(document.querySelector('[data-aviso-da-jogada]')).toBeNull()
+    avancar(3600)
+    expect(document.querySelector('.pj-resp')).toBeNull()
+    for (const it of items) {
+      fireEvent.click(screen.getByRole('button', { name: it.answer }))
+      avancar(700)
     }
     avancar(900)
     const final = relatorio as RoundReport | null
-    expect(final).not.toBeNull()
-    expect(final?.items[0]).toMatchObject({ correct: false, revealed: true })
+    expect(final?.items[0]).toMatchObject({ correct: true, hinted: true })
+    expect(final?.items[1].hinted).toBeFalsy()
   })
 })
 

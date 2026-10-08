@@ -88,8 +88,8 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
    */
   const [revelando, setRevelando] = useState<{ escolhida: string | null; certo: boolean } | null>(null);
 
-  /** A pessoa pediu para ver a resposta: o aviso não fala em tempo esgotado. */
-  const [desistiu, setDesistiu] = useState(false);
+  /** A pessoa viu a resposta desta carta: o acerto que vier conta como "com dica". */
+  const comDicaRef = useRef(false);
 
   const outcomesRef = useRef<ItemOutcome[]>([]);
   const inicioRodadaRef = useRef(Date.now());
@@ -127,7 +127,7 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
     setIdx(idx + 1);
     setLiberadas([]);
     setRevelando(null);
-    setDesistiu(false);
+    comDicaRef.current = false;
     setRestante(segundos);
     inicioCartaRef.current = Date.now();
   };
@@ -182,7 +182,7 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
       correct: certo,
       attempts: 1,
       ms: Date.now() - inicioCartaRef.current,
-      hinted: liberadas.length > 0,
+      hinted: liberadas.length > 0 || comDicaRef.current,
     };
     if (certo) {
       /* O acerto comemora NA HORA, com o que a carta vale — a mesma conta que o placar vai fazer
@@ -223,9 +223,9 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
               jogo="taboo"
               parado={!ativo || !!revelando || !!resultado}
               aoGanharTempo={(s) => setRestante((r) => r + s)}
+              resposta={() => carta.item.answer}
               aoVerResposta={() => {
-                setDesistiu(true);
-                setRestante(0);
+                comDicaRef.current = true;
               }}
             />
           </>
@@ -293,13 +293,7 @@ export default function TabooGame({ items, ageProfile, onFinish, onExit }: Taboo
         {revelando && !revelando.certo && (
           <AvisoDaJogada
             tom="erro"
-            rotulo={
-              revelando.escolhida
-                ? t('Não era essa. Era:')
-                : desistiu
-                  ? t('A resposta era:')
-                  : t('O tempo acabou. Era:')
-            }
+            rotulo={revelando.escolhida ? t('Não era essa. Era:') : t('O tempo acabou. Era:')}
             resposta={carta.item.answer}
             lang={carta.item.lang}
           />

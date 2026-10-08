@@ -10,7 +10,7 @@
  *  · o certo e o errado vêm escritos, não só pintados;
  *  · fora do Quest os mesmos jogos continuam como eram.
  */
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -77,10 +77,6 @@ const ITENS: MinigameItem[] = [
   { cardId: 'c4', prompt: 'água', answer: 'water', lang: 'en', sentence: 'I drink water daily.' },
 ]
 const nada = () => {}
-const avancar = (ms: number) =>
-  act(() => {
-    vi.advanceTimersByTime(ms)
-  })
 const botao = (nome: string | RegExp) => screen.queryByRole('button', { name: nome }) as HTMLButtonElement | null
 
 beforeEach(() => {
@@ -497,45 +493,6 @@ describe('a voz dentro dos jogos', () => {
 
 /* ── CAMPOS E PEÇAS ───────────────────────────────────────────────────────────────────────────── */
 describe('campos e peças no Quest', () => {
-  it('Tênis: o campo não desliga entre as bolas (o teclado do sistema fica aberto)', () => {
-    render(<TenseTennisGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-    const campo = screen.getByLabelText('Sua devolução') as HTMLInputElement
-    expect(campo.getAttribute('enterkeyhint')).toBe('send')
-    fireEvent.change(campo, { target: { value: 'house' } })
-    fireEvent.click(botao('Devolver')!)
-    expect(campo.disabled).toBe(false)
-    avancar(600)
-    expect(document.querySelector('[data-tour="bola"] p')?.textContent).toBe('cachorro')
-  })
-
-  it('Tênis: o saque dura três vezes mais no headset (digita-se apontando no teclado do sistema)', () => {
-    render(<TenseTennisGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-    expect(document.querySelector('[data-tour="relogio"]')?.textContent).toBe('18 s')
-    cleanup()
-    aparelho.quest = false
-    render(<TenseTennisGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-    expect(document.querySelector('[data-tour="relogio"]')?.textContent).toBe('6 s')
-  })
-
-  it('as ajudas do placar dizem o que fazem e o que custam num "?" (no headset não há dica ao parar o ponteiro)', () => {
-    const rodadas: RodadaDitado[] = [
-      {
-        fala: { id: 'd1', text: 'Wo ist der Bahnhof', lang: 'de', translation: 'Onde fica a estação' } as never,
-        palavras: 4,
-      },
-    ]
-    render(<DitadoGame rodadas={rodadas} audioUrl="" ageProfile="pro" onFinish={nada} onExit={nada} />)
-    expect(document.querySelector('.qj-ajudas-notas')).toBeNull()
-    fireEvent.click(botao('O que cada ajuda faz')!)
-    expect(document.querySelector('.qj-ajudas-notas')?.textContent).toMatch(
-      /Revelar a próxima palavra \(conta como dica\)/,
-    )
-    cleanup()
-    aparelho.quest = false
-    render(<DitadoGame rodadas={rodadas} audioUrl="" ageProfile="pro" onFinish={nada} onExit={nada} />)
-    expect(botao('O que cada ajuda faz')).toBeNull()
-  })
-
   it('Tênis fora do Quest: o campo desliga enquanto a devolução é conferida, como sempre', () => {
     aparelho.quest = false
     render(<TenseTennisGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
@@ -584,14 +541,6 @@ describe('campos e peças no Quest', () => {
     expect(peca('stayed').dataset.estado).toBe('errado')
     expect(peca('rained').dataset.estado).toBeUndefined()
     expect(document.querySelector('.qj-veredito')).not.toBeNull()
-  })
-
-  it('os campos de digitar dizem onde tocar para o teclado do headset subir', () => {
-    render(<TenseTennisGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-    expect(screen.getByText('Toque no campo para abrir o teclado do headset.')).toBeTruthy()
-    cleanup()
-    render(<CadavreExquisGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-    expect(screen.getByText('Toque no campo para abrir o teclado do headset.')).toBeTruthy()
   })
 
   it('Frase maluca: o campo é do teclado do sistema, e os botões de ouvir seguem a voz', () => {
@@ -695,32 +644,6 @@ describe('no computador com o desenho novo', () => {
     fireEvent.keyDown(window, { key: 'Backspace' })
     expect(document.querySelector('.linha-termo.atual button')?.textContent).toBe('')
     expect(botao('Ouvir')).not.toBeNull()
-  })
-
-  it('Tênis: o saque é o de sempre (6 s), e a tela não fala em teclado do headset', () => {
-    render(<TenseTennisGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-    expect(document.querySelector('[data-tour="relogio"]')?.textContent).toBe('6 s')
-    expect(screen.queryByText(/headset/i)).toBeNull()
-    expect(document.activeElement).toBe(screen.getByLabelText('Sua devolução'))
-  })
-
-  it('Ditado: o campo pega o foco (há teclado), sem a frase do headset; o veredito escrito e o "?" ficam', () => {
-    const rodadas: RodadaDitado[] = [
-      {
-        fala: { id: 'd1', text: 'Good morning', lang: 'en', startMs: 0, endMs: 0, translation: 'Bom dia' } as never,
-        palavras: 2,
-      },
-    ]
-    render(<DitadoGame rodadas={rodadas} audioUrl="" ageProfile="pro" onFinish={nada} onExit={nada} />)
-    const campo = document.querySelector('[data-tour="entrada"]') as HTMLInputElement
-    expect(document.activeElement).toBe(campo)
-    expect(screen.queryByText(/headset/i)).toBeNull()
-    // Fora do headset o botão de ouvir aparece como sempre (a voz é a do navegador).
-    expect(document.querySelector('[data-tour="ouvir"]')).not.toBeNull()
-    expect(botao('O que cada ajuda faz')).not.toBeNull()
-    fireEvent.change(campo, { target: { value: 'Good morning' } })
-    fireEvent.keyDown(campo, { key: 'Enter' })
-    expect(document.querySelector('.qj-veredito')?.textContent).toMatch(/Passou/)
   })
 
   it('Frase maluca: sem a frase do headset, e os botões de ouvir aparecem como sempre', () => {

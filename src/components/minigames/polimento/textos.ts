@@ -56,3 +56,8 @@ export function vezesDaAjuda(ajuda: AjudaNoTexto, nivel: NivelDoJogo): number | 
   if (ajuda.nome === 'Ver resposta') return { facil: 2, medio: 1, dificil: 1 }[nivel];
   return Math.max(1, Number(noMedio[1]) + { facil: 1, medio: 0, dificil: -1 }[nivel]);
 }
+
+/** A unidade da rodada como o protótipo a chama ("Rodada · 8 bolas"): bolas, cartas, pares, elos… */
+export function unidadeNoDesenho(jogo: MinigameId, reserva: string): string {
+  return /^Rodada · \d+ (.+)$/.exec(TEXTOS[jogo]?.rodada ?? '')?.[1] ?? reserva;
+}

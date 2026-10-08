@@ -26,7 +26,7 @@ import { InterruptorDoQuest } from '../../views/play/quest/pecasDoQuest';
 import ComoSeJoga from '../ComoSeJoga';
 import { jaFezTour, marcarTourFeito } from '../passosDosJogos';
 import ExplicacaoDoJogo from '../polimento/ExplicacaoDoJogo';
-import { jogoTemNiveisNoDesenho } from '../polimento/textos';
+import { jogoTemNiveisNoDesenho, unidadeNoDesenho } from '../polimento/textos';
 import SeletorDeNivel, { nomeDoNivel } from './SeletorDeNivel';
 
 /**
@@ -202,7 +202,7 @@ export default function CascaDaRodada({
       <Tela largura="larga">
         <CabecalhoDeTela
           voltar={{ rotulo: 'Jogar', aoClicar: () => setPasso('sair') }}
-          sobrancelha={`Rodada · ${total} ${unidade}${!questNovo && nivel !== 'medio' && jogoTemNiveis(jogo) ? ` · ${nomeDoNivel(nivel)}` : ''}`}
+          sobrancelha={`Rodada · ${total} ${questNovo ? unidadeNoDesenho(jogo, unidade) : unidade}${!questNovo && nivel !== 'medio' && jogoTemNiveis(jogo) ? ` · ${nomeDoNivel(nivel)}` : ''}`}
           icone={Gamepad2}
           titulo={titulo}
           acoes={
@@ -264,7 +264,9 @@ export default function CascaDaRodada({
         />
         <section
           ref={palcoRef}
-          className="palco-jogo"
+          /* No desenho novo o palco é o do protótipo (`section.palco-jogo.px-partida[data-qj]`, `jogos.js:130`). */
+          className={questNovo ? 'palco-jogo px-partida' : 'palco-jogo'}
+          data-qj={questNovo ? jogo : undefined}
           id="palco"
           aria-busy={!pronto}
           style={pronto ? undefined : { pointerEvents: 'none' }}

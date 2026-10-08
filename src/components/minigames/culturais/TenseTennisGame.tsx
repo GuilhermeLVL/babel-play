@@ -11,11 +11,11 @@ import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { direcaoDoTexto } from '../../../lib/languages';
 import type { AgeProfileType } from '../../../lib/profile';
 import { play } from '../../../lib/soundFx';
-import AjudasGerais from '../casca/AjudasGerais';
 import AvisoDaJogada from '../casca/AvisoDaJogada';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 import { falarNoJogo as falar, useQuestNovo, useSemTecladoFisico } from '../noQuest';
+import RaliDoPrototipo from './RaliDoPrototipo';
 
 /**
  * TÊNIS — o rali cronometrado. A bola traz a PISTA, você devolve escrevendo a palavra, e cada
@@ -40,7 +40,12 @@ function segundosDaJogada(base: number, rali: number): number {
   return Math.max(Math.ceil(base / 2), base - rali);
 }
 
-export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }: TenseTennisGameProps) {
+/** No desenho novo o Rali é a cena do protótipo (`RaliDoPrototipo.tsx`); fora dele, o de sempre. */
+export default function TenseTennisGame(props: TenseTennisGameProps) {
+  return useQuestNovo() ? <RaliDoPrototipo {...props} /> : <RaliDeSempre {...props} />;
+}
+
+function RaliDeSempre({ items, ageProfile, onFinish, onExit }: TenseTennisGameProps) {
   /** A casca diz quando a rodada anda (fora da contagem 3-2-1 e da pausa); o placar do HUD sai dos resultados. */
   const { ativo } = useRodada();
   const [placar, recontar] = usePlacarDaRodada('tenis');
@@ -73,8 +78,6 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
   const inicioRodadaRef = useRef(Date.now());
   const inicioJogadaRef = useRef(Date.now());
   const comDicaRef = useRef(false);
-  /** A pessoa pediu para ver a resposta: o aviso não fala em bola caída. */
-  const desistiuRef = useRef(false);
   const respondidoRef = useRef(false);
   const jaFinalizouRef = useRef(false);
   const quadraRef = useRef<HTMLDivElement | null>(null);
@@ -127,7 +130,6 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
     if (!item || jaFinalizouRef.current) return;
     inicioJogadaRef.current = Date.now();
     comDicaRef.current = false;
-    desistiuRef.current = false;
     respondidoRef.current = false;
     setEscrito('');
     setAviso(null);
@@ -145,11 +147,7 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
       respondidoRef.current = true;
       registrar(false, true);
       setRali(0);
-      setAviso({
-        tom: 'erro',
-        rotulo: desistiuRef.current ? t('A resposta era:') : t('A bola caiu na quadra. Era:'),
-        resposta: item.answer,
-      });
+      setAviso({ tom: 'erro', rotulo: t('A bola caiu na quadra. Era:'), resposta: item.answer });
       falar(item.answer, item.lang);
       celebrar({ tipo: 'erro', el: quadraRef.current });
       setTimeout(avancar, 1200);
@@ -217,23 +215,7 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
         progresso={tempo / Math.max(1, segundosDaJogada(base, rali))}
         pouco={tempo <= 2}
         tourDoTempo="relogio"
-        ajudas={
-          <>
-            <BotaoDeAjuda icone={Lightbulb} rotulo="Primeira letra" resta={dicasRestantes} onClick={usarDica} />
-            <AjudasGerais
-              jogo="tenis"
-              parado={!ativo || acabou || !!aviso}
-              aoGanharTempo={(s) => {
-                setRelogio((r) => (r.bola === indice ? { ...r, segundos: r.segundos + s } : r));
-                entradaRef.current?.focus();
-              }}
-              aoVerResposta={() => {
-                desistiuRef.current = true;
-                setRelogio((r) => (r.bola === indice ? { ...r, segundos: 0 } : r));
-              }}
-            />
-          </>
-        }
+        ajudas={<BotaoDeAjuda icone={Lightbulb} rotulo="Primeira letra" resta={dicasRestantes} onClick={usarDica} />}
       />
 
       <div
@@ -241,46 +223,14 @@ export default function TenseTennisGame({ items, ageProfile, onFinish, onExit }:
         data-qj="tenis"
         className="flex flex-col items-center justify-center gap-6 w-full max-w-2xl mx-auto"
       >
-        {/* A CENA DO RALI (desenho novo): o placar da partida e a quadra. A BOLA É O RELÓGIO: sai do lado
-            do Babel, passa a rede na metade do tempo e cai do seu lado quando ele acaba. É enfeite para o
-            leitor de tela, que já tem o tempo no placar comum. Sem caixas por letra, de propósito: o app
-            aceita sinônimo de outro tamanho, e as caixas diriam um tamanho só. */}
-        {questNovo && (
-          <div className="qr-placar" role="group" aria-label={t('Placar do rali')}>
-            <span>
-              <small>{t('Você')}</small>
-              <b className="tn">{placar.acertos}</b>
-            </span>
-            <i aria-hidden>×</i>
-            <span>
-              <small>Babel</small>
-              <b className="tn">{Math.max(0, indice - placar.acertos)}</b>
-            </span>
-          </div>
-        )}
         <div
           data-tour="bola"
-          data-quadra={questNovo || undefined}
           className="w-full rounded-3xl border-2 border-border-subtle bg-surface shadow-card px-6 py-8 text-center"
         >
           <span className="text-xs font-mono uppercase tracking-widest text-ink-muted">Bola em jogo</span>
           <p data-qp="enunciado" className="mt-3 font-display font-black text-2xl sm:text-3xl text-ink">
             {item?.prompt}
           </p>
-          {questNovo && (
-            <div className="qr-pista" aria-hidden data-pouco={tempo <= 2 || undefined}>
-              <i className="qr-rede" />
-              <i
-                key={indice}
-                className="qr-bola"
-                style={
-                  {
-                    '--t': Math.max(0, Math.min(1, tempo / Math.max(1, segundosDaJogada(base, rali)))),
-                  } as React.CSSProperties
-                }
-              />
-            </div>
-          )}
         </div>
 
         <div className="w-full flex flex-col sm:flex-row gap-3" data-qp="linha-de-campo">

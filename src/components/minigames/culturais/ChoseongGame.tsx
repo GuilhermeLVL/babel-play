@@ -67,8 +67,6 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
   const [acabou, setAcabou] = useState(false);
   /** O tempo acabou nesta palavra: ela fica à vista antes da próxima (QA dos jogos, 2026-09-26). */
   const [revelada, setRevelada] = useState(false);
-  /** A pessoa pediu para ver a resposta: o aviso não fala em tempo esgotado. */
-  const [desistiu, setDesistiu] = useState(false);
   /* No Quest a tentativa errada também é dita em texto (fora dele, o tremor e o som bastam). As vogais
      são teclas na tela: não há campo, e o teclado do sistema não precisa subir. */
   const questNovo = useQuestNovo();
@@ -133,7 +131,6 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
     comDicaRef.current = false;
     respondidoRef.current = false;
     setRevelada(false);
-    setDesistiu(false);
     setErrouAgora(false);
     setLetras(enigma.alvo.split('').map((c, i) => (enigma.ocultas.has(i) ? '' : c)));
     setRelogio({ palavra: indice, segundos });
@@ -265,9 +262,9 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
               jogo="choseong"
               parado={!ativo || acabou || revelada}
               aoGanharTempo={(s) => setRelogio((r) => (r.palavra === indice ? { ...r, segundos: r.segundos + s } : r))}
+              resposta={() => enigma?.item.answer ?? null}
               aoVerResposta={() => {
-                setDesistiu(true);
-                setRelogio((r) => (r.palavra === indice ? { ...r, segundos: 0 } : r));
+                comDicaRef.current = true;
               }}
             />
           </>
@@ -335,7 +332,7 @@ export default function ChoseongGame({ items, ageProfile, onFinish, onExit }: Ch
         {revelada && enigma && (
           <AvisoDaJogada
             tom="erro"
-            rotulo={desistiu ? t('A resposta era:') : t('O tempo acabou. Era:')}
+            rotulo={t('O tempo acabou. Era:')}
             resposta={enigma.item.answer}
             lang={enigma.item.lang}
           />

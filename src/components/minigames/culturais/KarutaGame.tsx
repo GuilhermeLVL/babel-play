@@ -71,8 +71,6 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
   const [revelada, setRevelada] = useState<string | null>(null);
   /** A pessoa pediu para LER a pista (vale como dica). */
   const [pistaAberta, setPistaAberta] = useState(false);
-  /** A pessoa pediu para ver a resposta: o aviso não fala em tempo esgotado. */
-  const [desistiu, setDesistiu] = useState(false);
   const pistaLidaRef = useRef(false);
 
   const outcomesRef = useRef<ItemOutcome[]>([]);
@@ -170,7 +168,6 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
     setErrada(null);
     setRevelada(null);
     setPistaAberta(false);
-    setDesistiu(false);
     setRelogio({ carta: indice, segundos });
     narrar();
   }, [indice, item, segundos, narrar]);
@@ -262,9 +259,9 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
               jogo="karuta"
               parado={!ativo || acabou || !!revelada || !!acertada}
               aoGanharTempo={(s) => setRelogio((r) => (r.carta === indice ? { ...r, segundos: r.segundos + s } : r))}
+              resposta={() => item?.answer ?? null}
               aoVerResposta={() => {
-                setDesistiu(true);
-                setRelogio((r) => (r.carta === indice ? { ...r, segundos: 0 } : r));
+                pistaLidaRef.current = true;
               }}
             />
           </>
@@ -317,12 +314,7 @@ export default function KarutaGame({ items, ageProfile, onFinish, onExit }: Karu
       </div>
       {revelada && (
         <div className="max-w-4xl mx-auto w-full mt-4">
-          <AvisoDaJogada
-            tom="erro"
-            rotulo={desistiu ? t('A resposta era:') : t('O tempo acabou. Era:')}
-            resposta={revelada}
-            lang={item?.lang}
-          />
+          <AvisoDaJogada tom="erro" rotulo={t('O tempo acabou. Era:')} resposta={revelada} lang={item?.lang} />
         </div>
       )}
     </>

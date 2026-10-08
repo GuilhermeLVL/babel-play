@@ -63,6 +63,11 @@ interface HudDaRodadaProps {
   progresso: number;
   /** Segundos que restam, nos jogos com relógio. */
   tempo?: number;
+  /**
+   * Quanto da rodada já foi (0 a 1), nos jogos com relógio. No desenho novo o placar tem as DUAS barras
+   * do protótipo (`jogos.js:132-136`): a da rodada em cima e a do tempo embaixo.
+   */
+  feito?: number;
   /** O tempo está acabando (barra vermelha). */
   pouco?: boolean;
   /** Os botões de ajuda do jogo (`BotaoDeAjuda`). */
@@ -84,6 +89,7 @@ export default function HudDaRodada({
   rotulo,
   progresso,
   tempo,
+  feito,
   pouco,
   ajudas,
   mult: multDoJogo,
@@ -155,6 +161,61 @@ export default function HudDaRodada({
 
   const pct = Math.round(Math.max(0, Math.min(1, progresso)) * 100);
   const comTempo = tempo !== undefined;
+  /* O PLACAR DO PROTÓTIPO (desenho novo), `cascaDaPartida` em `jogos.js:131-138`: rótulo e relógio numa
+     linha, a barra da rodada e, nos jogos com relógio, a barra do tempo logo abaixo. */
+  if (questNovo) {
+    const daRodada = Math.round(Math.max(0, Math.min(1, comTempo ? (feito ?? 0) : progresso)) * 100);
+    return (
+      <div className="hud" role="group" aria-label="Placar da rodada" data-tour={tour}>
+        <div className="hud-bloco">
+          <small>Pontos</small>
+          <b ref={ptsRef} className="tn" data-pj="pontos">
+            {pontos}
+          </b>
+        </div>
+        <div>
+          <div className="entre" style={{ fontSize: 12, marginBottom: 5 }}>
+            <span className="mut" data-pj="rotulo">
+              {rotulo}
+            </span>
+            {comTempo && (
+              <span data-pj="relogio" data-tour={tourDoTempo}>
+                {Math.ceil(tempo)}s
+              </span>
+            )}
+          </div>
+          <div
+            className="hud-progresso pj-progresso"
+            role="progressbar"
+            aria-label="Progresso da rodada"
+            aria-valuenow={daRodada}
+            aria-valuemax={100}
+          >
+            <span style={{ width: `${daRodada}%` }} />
+          </div>
+          {comTempo && (
+            <div className={`hud-progresso hud-tempo${pouco ? ' pouco' : ''}`}>
+              <span style={{ width: `${pct}%` }} />
+            </div>
+          )}
+        </div>
+        <div className="hud-ajudas" data-socorro={socorro || undefined} onClickCapture={socorroAtendido}>
+          {ajudas}
+        </div>
+        <span
+          ref={comboRef}
+          className={`combo ${mult > 1 ? 'quente' : ''}`}
+          aria-label={`Multiplicador ${mult}, ${sequencia} seguidas`}
+        >
+          {mult > 1 && <Flame className="combo-chama" aria-hidden />}
+          <small>×</small>
+          {mult}
+          {sequencia > 1 && <em>{sequencia} seguidas</em>}
+        </span>
+      </div>
+    );
+  }
+
   const linhaDoPlacar = (
     <div className="hud" role="group" aria-label="Placar da rodada" data-tour={tour}>
       <div className="hud-bloco">

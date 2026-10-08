@@ -50,8 +50,8 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
   const [resultado, setResultado] = useState<RoundReport | null>(null);
   /** O tempo deste elo acabou: o elo certo aparece antes do próximo (QA dos jogos, 2026-09-26). */
   const [revelado, setRevelado] = useState<string | null>(null);
-  /** A pessoa pediu para ver a resposta: o aviso não fala em tempo esgotado. */
-  const [desistiu, setDesistiu] = useState(false);
+  /** A pessoa viu a resposta deste elo: o acerto que vier conta como "com dica". */
+  const comDicaRef = useRef(false);
 
   const outcomesRef = useRef<ItemOutcome[]>([]);
   const inicioRodadaRef = useRef(Date.now());
@@ -92,7 +92,7 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
     setTentativas(1);
     setLetraVisivel(false);
     setRevelado(null);
-    setDesistiu(false);
+    comDicaRef.current = false;
     setRestante(segundos);
     inicioPassoRef.current = Date.now();
     return placarNovo;
@@ -160,9 +160,9 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
               jogo="shiritori"
               parado={!ativo || !!revelado || !!resultado}
               aoGanharTempo={(s) => setRestante((r) => r + s)}
+              resposta={() => passo.item.answer}
               aoVerResposta={() => {
-                setDesistiu(true);
-                setRestante(0);
+                comDicaRef.current = true;
               }}
             />
           </>
@@ -243,6 +243,7 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
                       correct: true,
                       attempts: tentativas,
                       ms: Date.now() - inicioPassoRef.current,
+                      ...(comDicaRef.current ? { hinted: true } : {}),
                     });
                     celebrar({ tipo: 'acerto', combo: p.sequencia, el, pontos: p.ganho });
                   } else {
@@ -271,7 +272,7 @@ export default function ShiritoriGame({ items, ageProfile, onFinish, onExit }: S
         {revelado && (
           <AvisoDaJogada
             tom="erro"
-            rotulo={desistiu ? t('O elo era:') : t('O tempo acabou. O elo era:')}
+            rotulo={t('O tempo acabou. O elo era:')}
             resposta={revelado}
             lang={passo.item.lang}
           />

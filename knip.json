@@ -21,7 +21,6 @@
   ],
   "ignoreDependencies": [
     "axe-core",
-    "depcheck",
     "jscpd",
     "lighthouse",
     "tailwindcss",

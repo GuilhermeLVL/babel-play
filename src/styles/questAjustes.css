@@ -23,6 +23,26 @@
   outline-offset: 6px;
   border-radius: 12px;
 }
+/* A ESPERA DE UM PEDAÇO da tela (a seção da Nuance, a lista do glossário): a forma de `.q-esqueleto`
+   (`quest.css`) com outro nome. `.q-esqueleto` diz à camada de movimento que a TELA INTEIRA ainda está
+   carregando, e com ela aqui a entrada dos Ajustes (título, abas, painel) ficava sem acontecer. */
+.q-aju-espera {
+  min-height: 72px;
+  border-radius: 18px;
+  background: linear-gradient(
+    90deg,
+    var(--surface) 0%,
+    var(--surface-hover, var(--surface-sunken)) 50%,
+    var(--surface) 100%
+  );
+  background-size: 200% 100%;
+  animation: q-espera 1.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .q-aju-espera {
+    animation: none;
+  }
+}
 /* Seis abas: quando não cabem numa linha, quebram. Rolar para o lado com o raio é ruim. */
 @media (max-width: 1180px) {
   .q-aju > .q-abas {

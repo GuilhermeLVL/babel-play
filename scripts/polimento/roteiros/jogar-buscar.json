@@ -1,0 +1,118 @@
+{
+  "nome": "jogar-buscar",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/?ui=pt",
+    "passos": [
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".qj-sala button:has-text('Trilha')"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "clicar": "button:has-text('Usar estas palavras')"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".qj-ferramentas > .q-chip >> text=Buscar e filtrar"
+      },
+      {
+        "esperar": 1200
+      }
+    ],
+    "depois": 1200
+  },
+  "proto": {
+    "passos": [
+      {
+        "esperar": 800
+      },
+      {
+        "js": "document.querySelector('.px-barra')?.style.setProperty('display', 'none')"
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 1800
+      },
+      {
+        "clicar": ".qj-ferramentas > .q-chip >> text=Buscar e filtrar"
+      },
+      {
+        "esperar": 1200
+      }
+    ],
+    "depois": 1200
+  },
+  "seletores": [
+    "dialog.qj-painel",
+    ".dlg-cab",
+    ".dlg-cab .q-ic",
+    ".dlg-cab .q-ic svg",
+    ".dlg-cab > div",
+    ".dlg-cab h2",
+    ".dlg-cab .qj-nota",
+    ".dlg-cab .x",
+    ".dlg-cab .x svg",
+    ".dlg-corpo",
+    ".q-campo",
+    ".q-campo span",
+    ".q-campo input",
+    ".dlg-corpo .q-secao",
+    ".dlg-corpo .q-rotulo",
+    ".dlg-corpo .qj-escolha",
+    ".dlg-corpo .qj-opcoes",
+    ".dlg-corpo .qj-opcoes .px-pilula",
+    ".dlg-corpo .q-aba",
+    ".dlg-corpo .q-aba[aria-checked='true']",
+    ".dlg-corpo .q-aba[aria-checked='false']",
+    ".dlg-pe",
+    ".dlg-pe .q-ctl",
+    ".dlg-pe .q-ctl.pri"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "clicar": "dialog[open] .dlg-cab .x"
+      }
+    ],
+    "proto": [
+      {
+        "clicar": "dialog[open] .dlg-cab .x"
+      }
+    ],
+    "espera": 900
+  }
+}

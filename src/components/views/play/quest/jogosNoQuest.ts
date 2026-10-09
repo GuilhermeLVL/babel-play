@@ -14,6 +14,7 @@ import type { RecursosDoAparelho } from '../../../../lib/dispositivo/recursos';
 import { noHeadset } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../../lib/i18n';
 import { langLabelNaUI } from '../../../../lib/languages';
+import { anima, polido, reduz } from '../../../../lib/polimento/base';
 import { haVozPara } from '../../../../lib/voz/haVoz';
 import { vozDoQuestAtiva } from '../../../../lib/voz/vozDoQuest';
 
@@ -271,4 +272,42 @@ export function rodadaParaOQuest(montada: RodadaMontada): RodadaMontada {
   const itens = material.itens.slice(0, PARES_DA_MEMORIA_NO_QUEST);
   const ficam = new Set(itens.map((i) => i.answer));
   return { ...montada, previa: montada.previa.filter((p) => ficam.has(p.ref)), material: { ...material, itens } };
+}
+
+/* ---- Estados que se abrem na própria tela (`alternarEstado()` de `telas2.js:527-543`) ------------- */
+
+/** A conta do protótipo para saber o que já estava na tela: o tamanho do texto e a etiqueta. */
+const chaveDaFolha = (x: Element) => (x.textContent ?? '').length + x.tagName;
+
+/**
+ * A tela ANTES de um estado abrir no lugar ("Por que este?", a linha da trilha): o que
+ * `entrarOQueAbriu` precisa para animar só o que é novo. `null` onde não há o que animar
+ * (`telas2.js:532, 538`).
+ */
+export function fotoDaTela(): Set<string> | null {
+  if (typeof document === 'undefined' || !polido() || reduz()) return null;
+  const tela = document.querySelector('.px-tela');
+  return tela ? new Set([...tela.querySelectorAll('*')].map(chaveDaFolha)) : null;
+}
+
+/**
+ * Só o que é novo entra animado, o resto da tela não se mexe (`telas2.js:539-541`): as folhas novas,
+ * até 24, descem 10 px saindo do desfoque, 420 ms, 22 ms uma da outra. Fechar não anima.
+ */
+export function entrarOQueAbriu(antes: Set<string> | null): void {
+  const tela = typeof document === 'undefined' ? null : document.querySelector('.px-tela');
+  if (!antes || !tela) return;
+  [...tela.querySelectorAll('.q-palco *, .tela *')]
+    .filter((x) => !antes.has(chaveDaFolha(x)) && !x.children.length)
+    .slice(0, 24)
+    .forEach((x, i) =>
+      anima(
+        x,
+        [
+          { opacity: 0, transform: 'translateY(-10px)', filter: 'blur(4px)' },
+          { opacity: 1, transform: 'translateY(0)', filter: 'blur(0)' },
+        ],
+        { d: 420, atraso: i * 22 },
+      ),
+    );
 }

@@ -1,0 +1,40 @@
+{
+  "nome": "perfil-entrada",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector('.q-trilho .q-mais-botao'); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 1200
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector('.q-trilho .q-mais-botao'); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 1200
+      }
+    ]
+  },
+  "seletores": [".q-mais"],
+  "gravar": {
+    "app": [
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-mais .q-tile')].find((b) => b.textContent.includes('Seu perfil')); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      }
+    ],
+    "proto": [
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-mais .q-tile')].find((b) => b.textContent.includes('Ajustes')); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      }
+    ],
+    "espera": 2500
+  }
+}

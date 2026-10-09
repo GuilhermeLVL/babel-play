@@ -1,0 +1,132 @@
+{
+  "nome": "jogar-trilha-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/?ui=pt",
+    "passos": [
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".qj-sala button:has-text('Trilha')"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "clicar": "button:has-text('Usar estas palavras')"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".qj-trilha > .q-linha"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "clicar": ".q-cab h1"
+      },
+      {
+        "esperar": 700
+      }
+    ],
+    "depois": 1200
+  },
+  "proto": {
+    "passos": [
+      {
+        "esperar": 800
+      },
+      {
+        "js": "document.querySelector('.px-barra')?.style.setProperty('display', 'none')"
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 1800
+      },
+      {
+        "clicar": ".qj-trilha > .q-linha"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "clicar": ".q-cab h1"
+      },
+      {
+        "esperar": 700
+      }
+    ],
+    "depois": 1200
+  },
+  "seletores": [
+    ".qj-trilha",
+    ".qj-trilha > .q-linha[aria-expanded='true']",
+    ".qj-trilha > .q-linha .q-fim svg",
+    ".qj-trilha > .q-cartao",
+    ".qj-trilha > .q-cartao > .qj-nota",
+    ".qj-niveis",
+    ".qj-nivel",
+    ".qj-nivel[aria-checked='true']",
+    ".qj-nivel[aria-checked='false']",
+    ".qj-nivel-topo",
+    ".qj-nivel-topo b",
+    ".qj-nivel .q-tag",
+    ".qj-nivel .q-barra",
+    ".qj-nivel .q-barra > span",
+    ".qj-nivel .q-d",
+    ".qj-trilha .q-texto",
+    ".qj-etapas",
+    ".qj-etapas .q-rotulo",
+    ".qj-etapas .q-rotulo span",
+    ".qj-etapas ol",
+    ".qj-etapas ol li",
+    ".qj-etapas ol li[aria-current='step']",
+    ".qj-etapas .q-acoes",
+    ".qj-etapas .q-chip",
+    ".qj-etapas .q-chip svg",
+    ".qj-sugestao"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "clicar": ".qj-trilha > .q-linha"
+      }
+    ],
+    "proto": [
+      {
+        "clicar": ".qj-trilha > .q-linha"
+      }
+    ],
+    "espera": 900
+  }
+}

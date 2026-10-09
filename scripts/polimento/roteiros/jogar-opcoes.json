@@ -1,0 +1,116 @@
+{
+  "nome": "jogar-opcoes",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/?ui=pt",
+    "passos": [
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".qj-sala button:has-text('Trilha')"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "clicar": "button:has-text('Usar estas palavras')"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".qj-ferramentas > .q-chip >> text=Opções"
+      },
+      {
+        "esperar": 1200
+      }
+    ],
+    "depois": 1200
+  },
+  "proto": {
+    "passos": [
+      {
+        "esperar": 800
+      },
+      {
+        "js": "document.querySelector('.px-barra')?.style.setProperty('display', 'none')"
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 1800
+      },
+      {
+        "clicar": ".qj-ferramentas > .q-chip >> text=Opções"
+      },
+      {
+        "esperar": 1200
+      }
+    ],
+    "depois": 1200
+  },
+  "seletores": [
+    "dialog.qj-painel",
+    ".dlg-cab",
+    ".dlg-cab .q-ic",
+    ".dlg-cab .q-ic svg",
+    ".dlg-cab > div",
+    ".dlg-cab h2",
+    ".dlg-cab .qj-nota",
+    ".dlg-cab .x",
+    ".dlg-cab .x svg",
+    ".dlg-corpo",
+    ".dlg-corpo .q-ajuste",
+    ".dlg-corpo .q-ajuste > div",
+    ".dlg-corpo .q-ajuste b",
+    ".dlg-corpo .q-ajuste small",
+    ".dlg-corpo .q-interruptor",
+    ".dlg-corpo .q-lista",
+    ".dlg-corpo .q-linha",
+    ".dlg-corpo .q-linha .q-ic",
+    ".dlg-corpo .q-linha .q-ic svg",
+    ".dlg-corpo .q-linha b",
+    ".dlg-corpo .q-linha small",
+    ".dlg-corpo .q-linha .q-fim"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "tecla": "Escape"
+      }
+    ],
+    "proto": [
+      {
+        "tecla": "Escape"
+      }
+    ],
+    "espera": 900
+  }
+}

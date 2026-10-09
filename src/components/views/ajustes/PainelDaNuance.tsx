@@ -180,7 +180,7 @@ export default function PainelDaNuance({ aoConhecer }: { aoConhecer?: () => void
           <h3>{t('Glossário pessoal')}</h3>
           {lista.estado === 'carregando' && (
             <div role="status" aria-label={t('Carregando o glossário…')}>
-              <div className="q-esqueleto" />
+              <div className="q-aju-espera" />
             </div>
           )}
           {lista.estado === 'erro' && (

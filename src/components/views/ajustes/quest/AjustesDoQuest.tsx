@@ -1,7 +1,7 @@
 import '../../../../styles/questAjustes.css';
 
 import { AlertTriangle, Moon, Sun, Vibrate } from 'lucide-react';
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 
 import {
   guardarVibracaoDoQuest,
@@ -15,11 +15,14 @@ import {
   noHeadset,
   useQuestNovo,
 } from '../../../../lib/dispositivo/telaNovaDoQuest';
+import { edicaoEstatica } from '../../../../lib/edicaoEstatica';
+import { onPlanChange } from '../../../../lib/entitlements';
 import { idiomasAbaixoDoPiso, t } from '../../../../lib/i18n';
 import { irPara } from '../../../../lib/irPara';
 import { idiomasDaInterfaceOferecidos, type LangConfig } from '../../../../lib/langConfig';
 import { baseLang, langLabelNaUI } from '../../../../lib/languages';
 import { lazyComRecarga } from '../../../../lib/lazyComRecarga';
+import { fraseDoPlanoNaConta, tituloDoPlanoNaConta, useAbasAVista } from '../../../../lib/polimento/ajustes';
 import { perfilProtegido } from '../../../../lib/protecaoDoMenor';
 import AiEnginePanel from '../../../AiEnginePanel';
 import LangPicker from '../../../LangPicker';
@@ -110,9 +113,14 @@ export default function AjustesDoQuest({
   const [computador] = useState(noComputador);
   const desenhoNovo = useQuestNovo();
   const emAndamento = idiomasAbaixoDoPiso();
+  const palco = useRef<HTMLDivElement>(null);
+  useAbasAVista(palco, aba);
+  /* O plano muda com a página aberta (teste ativado, assinatura): o cartão da Conta acompanha. */
+  const [, repintarPlano] = useState(0);
+  useEffect(() => onPlanChange(() => repintarPlano((n) => n + 1)), []);
 
   return (
-    <div className="q-palco q-aju" data-testid="ajustes-do-quest">
+    <div ref={palco} className="q-palco q-aju" data-testid="ajustes-do-quest">
       <header className="q-cab">
         <div>
           <p className="q-sobre">{sobrancelha}</p>
@@ -121,6 +129,21 @@ export default function AjustesDoQuest({
       </header>
 
       <AbasDoQuest itens={abas} ativo={aba} aoTrocar={aoTrocarAba} rotuloDoGrupo={t('Seções dos ajustes')} />
+
+      {/* O CARTÃO DO PLANO (`telas2.js:140-143`): só na aba Conta, logo depois das abas. No site sem
+          servidor não há plano a assinar, e o cartão não aparece (a regra do selo do Início). */}
+      {aba === 'conta' && !edicaoEstatica() && (
+        <div className="q-aviso px-plano-na-conta" data-testid="plano-na-conta">
+          <span>
+            <b>{tituloDoPlanoNaConta()}</b>
+            <br />
+            {fraseDoPlanoNaConta()}
+          </span>
+          <button type="button" className="q-ctl" onClick={() => irPara({ view: 'planos' })}>
+            {t('Ver planos')}
+          </button>
+        </div>
+      )}
 
       {erro && (
         <div className="q-aviso q-aju-alerta" role="status">
@@ -205,7 +228,9 @@ export default function AjustesDoQuest({
         </section>
 
         {/* O convite ao Premium é promocional: o perfil protegido não o recebe. */}
-        <Suspense fallback={<div className="q-esqueleto" aria-hidden />}>
+        {/* A espera é `.q-aju-espera`, não `.q-esqueleto`: esta diz à camada de movimento que a TELA ainda
+            está carregando, e a entrada dos Ajustes nunca acontecia (`lib/polimento/telas.ts`, `chegou`). */}
+        <Suspense fallback={<div className="q-aju-espera" aria-hidden />}>
           <PainelDaNuance aoConhecer={perfilProtegido() ? undefined : () => irPara({ view: 'planos' })} />
         </Suspense>
 

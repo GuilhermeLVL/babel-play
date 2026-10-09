@@ -274,14 +274,36 @@ export function trocarDeTela(proxima: string, atual: string, trocar: () => void)
   }).finished.then(fim, fim);
 }
 
+/**
+ * A tela chegou só com o esqueleto de carregamento. Quando o conteúdo de verdade entra NO MESMO palco
+ * (sem montar tela nova), ninguém avisava, e telas como o Vocabulário nunca entravam animadas: o
+ * olheiro abaixo roda a entrada assim que o último esqueleto some.
+ */
+let aEspera: MutationObserver | null = null;
+function esperarOConteudo(tela: HTMLElement): void {
+  aEspera?.disconnect();
+  const olho = new MutationObserver(() => {
+    if (!tela.isConnected) return void olho.disconnect();
+    if ($('.q-esqueleto', tela)) return;
+    olho.disconnect();
+    if (aEspera === olho) aEspera = null;
+    chegou(tela);
+  });
+  olho.observe(tela, { childList: true, subtree: true });
+  aEspera = olho;
+}
+
 /** Uma tela nova montou dentro de `.px-tela`. */
 function chegou(tela: HTMLElement): void {
   /* O app carrega dados e o protótipo não: enquanto a tela é só o esqueleto de carregamento, ela aparece
      sem cerimônia, e a entrada fica guardada para o conteúdo de verdade. */
   if ($('.q-esqueleto', tela)) {
     limpar(tela);
+    esperarOConteudo(tela);
     return;
   }
+  aEspera?.disconnect();
+  aEspera = null;
   const de = chegando;
   if (de) clearTimeout(de.solta);
   chegando = null;
@@ -305,7 +327,9 @@ export function anunciarChegada(dir: number): void {
 /* ---- Aba primária: o painel entra pelo lado (`prototipo.js:362-380`) ----------------------------- */
 
 /* As três do protótipo (`prototipo.js:88-92`); `.q-aju` é o palco dos Ajustes no app. */
-const PRIMARIA = '.qe-abas, .qp-abas, .q-aju .q-abas:not(.q-seg)';
+/* O Vocabulário (`.qv-abas`) e as telas de conta (`.qc > .q-abas`: Perfil, Planos) não existem no
+   protótipo com abas primárias próprias; entram aqui para o painel não trocar a seco só nelas. */
+const PRIMARIA = '.qe-abas, .qp-abas, .qv-abas, .qc > .q-abas:not(.q-seg), .q-aju .q-abas:not(.q-seg)';
 const indiceDaAba = new WeakMap<Element, number>();
 
 function entrarAba(g: HTMLElement): void {
@@ -335,8 +359,12 @@ function entrarAba(g: HTMLElement): void {
 /* ---- Instalação --------------------------------------------------------------------------------- */
 
 const ehDaPilula = (n: Node) => n instanceof Element && n.classList.contains('px-pilula');
+/* Diálogo e painel não são tela: abrir os Recordes por cima do lobby não refaz a entrada do lobby. */
 const ehTelaNova = (n: Node): n is HTMLElement =>
-  n instanceof HTMLElement && !n.classList.contains('carregando-da-tela') && !n.closest('.px-pal');
+  n instanceof HTMLElement &&
+  !n.matches('dialog, .q-mais-fundo') &&
+  !n.classList.contains('carregando-da-tela') &&
+  !n.closest('.px-pal');
 
 /**
  * Liga a pílula, a troca e a entrada enquanto a casca do desenho novo estiver montada. Devolve como

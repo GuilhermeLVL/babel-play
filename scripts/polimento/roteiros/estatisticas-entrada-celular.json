@@ -1,0 +1,37 @@
+{
+  "nome": "estatisticas-entrada-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "js": "(() => { const f = window.fetch; window.fetch = (u, o) => { const s = String(u && u.url ? u.url : u); const m = String((o && o.method) || (u && u.method) || 'GET').toUpperCase(); if (m === 'GET' && (s.includes('/api/exercises/results') || s.includes('/api/vocab'))) return Promise.resolve(new Response('[]', { status: 200, headers: { 'Content-Type': 'application/json' } })); return f(u, o); }; })()"
+      },
+      {
+        "esperar": 2500
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "esperar": 2500
+      }
+    ]
+  },
+  "seletores": [".q-trilho", ".q-trilho .q-item"],
+  "gravar": {
+    "app": [
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-trilho .q-item')].find((b) => b.textContent.includes('Estatísticas')); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      }
+    ],
+    "proto": [
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-trilho .q-item')].find((b) => b.textContent.includes('Estatísticas')); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      }
+    ],
+    "espera": 3000
+  }
+}

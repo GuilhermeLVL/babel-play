@@ -1,0 +1,102 @@
+{
+  "nome": "vocabulario-aba2-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/?ui=pt",
+    "passos": [
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "clicar": ".q-trilho .q-mais-botao"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "clicar": ".q-mais .q-tile >> text=Vocabulário"
+      },
+      {
+        "esperar": 4000
+      },
+      {
+        "clicar": ".qv-abas .q-aba >> nth=1"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "clicar": ".q-cab .q-sobre"
+      },
+      {
+        "esperar": 700
+      }
+    ],
+    "depois": 1200
+  },
+  "proto": {
+    "passos": [
+      {
+        "esperar": 300
+      }
+    ]
+  },
+  "seletores": [
+    ".q-palco.qv",
+    ".qv > .q-cab",
+    ".qv .q-cab .q-sobre",
+    ".qv .q-cab h1",
+    ".qv .q-cab > .q-ctl",
+    ".qv .q-cab > .q-ctl svg",
+    ".qv-sub",
+    ".qv-abas",
+    ".qv-abas .px-pilula",
+    ".qv-abas .q-aba",
+    ".qv-abas .q-aba[aria-selected='true']",
+    ".qv-abas .q-aba[aria-selected='false']",
+    ".qv-painel",
+    ".qv-convite",
+    ".qv-convite .q-ctl.pri",
+    "[data-testid='tudo-revisado']",
+    "[data-testid='fases-do-baralho']",
+    ".q-num",
+    ".q-num b",
+    ".qv-catalogo",
+    ".qv-catalogo .q-chip",
+    ".qv-catalogo .q-ctl",
+    ".qv-catalogo .q-campo",
+    ".q-tabela-caixa",
+    ".qv-tabela",
+    ".qv-tabela tbody tr",
+    ".q-vazio",
+    ".q-cartao",
+    ".qv-barras",
+    ".qv-col",
+    ".q-grade.g3"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "clicar": ".qv-abas .q-aba >> nth=2"
+      }
+    ],
+    "proto": [],
+    "espera": 1500
+  }
+}

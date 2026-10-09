@@ -295,7 +295,10 @@ export default function AbaVoce() {
             {idiomas.map((l) => {
               const r = nomeDoIdioma(l);
               return (
-                <div key={l} className="q-ajuste">
+                /* `minWidth: 0`: no celular a camada de polimento põe as escolhas numa faixa que rola
+                   (`celular.css:229`), e sem isto a linha crescia até caber os seis níveis e vazava
+                   34 px para fora da tela (a coluna da grade tem mínimo automático). */
+                <div key={l} className="q-ajuste" style={{ minWidth: 0 }}>
                   <div>
                     <b style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <LangFlag code={l} className="w-6 h-4" />

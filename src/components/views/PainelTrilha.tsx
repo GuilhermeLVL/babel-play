@@ -12,7 +12,7 @@ import {
   progressoDaTrilha,
 } from '@core';
 import { Check, ChevronDown, ChevronUp, GraduationCap } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { rotuloDaEtapa } from '../../core/learning/trilha';
 import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
@@ -20,6 +20,7 @@ import { numero, t, tp } from '../../lib/i18n';
 import { langLabelNaUI } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
 import type { VocabCard } from '../../types';
+import { entrarOQueAbriu, fotoDaTela } from './play/quest/jogosNoQuest';
 
 /**
  * A TRILHA — trazer vocabulário curado para o baralho, por nível.
@@ -110,12 +111,26 @@ export default function PainelTrilha({
      barra de cada um, o caminho dentro do nível e a procedência. Os números são os calculados acima. */
   const questNovo = useQuestNovo();
   const [aberto, setAberto] = useState(false);
+  /* A trilha abre na própria tela: só o que é novo entra animado (`telas2.js:527-543, 614`). */
+  const antesDeAbrir = useRef<Set<string> | null>(null);
+  useLayoutEffect(() => {
+    if (aberto) entrarOQueAbriu(antesDeAbrir.current);
+    antesDeAbrir.current = null;
+  }, [aberto]);
   const [etapasAbertas, setEtapasAbertas] = useState(false);
   if (questNovo) {
     const doRecorte = (n: CefrLevel) => (porFrequencia ? t('da faixa {n}', { n: rotulo(n) }) : t('do {n}', { n }));
     return (
       <section className="qj-trilha" data-testid="trilha-do-quest">
-        <button type="button" className="q-linha" aria-expanded={aberto} onClick={() => setAberto((v) => !v)}>
+        <button
+          type="button"
+          className="q-linha"
+          aria-expanded={aberto}
+          onClick={() => {
+            antesDeAbrir.current = aberto ? null : fotoDaTela();
+            setAberto((v) => !v);
+          }}
+        >
           <span className="q-ic" aria-hidden>
             <GraduationCap />
           </span>

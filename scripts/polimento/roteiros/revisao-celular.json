@@ -1,0 +1,62 @@
+{
+  "nome": "revisao-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/revisar?ui=pt",
+    "passos": [
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "esperar": 2500
+      }
+    ],
+    "depois": 1200
+  },
+  "proto": {
+    "passos": [
+      {
+        "esperar": 300
+      }
+    ]
+  },
+  "seletores": [
+    ".q-palco.q-revisao",
+    ".q-revisao > .q-cab",
+    ".q-revisao .q-voltar",
+    ".q-revisao .q-cab h1",
+    ".q-revisao .q-sobre",
+    ".qr-progresso",
+    ".q-revisao .q-barra",
+    ".q-revisao .q-barra > span",
+    ".qr-conta",
+    ".qr-dica",
+    ".qr-cartao",
+    ".qr-cartao .termo",
+    ".qr-cartao .exemplo",
+    ".qr-principal",
+    ".q-revisao .q-faixa",
+    ".q-revisao .q-faixa .q-ctl",
+    ".q-revisao .q-vazio",
+    ".qr-contagem",
+    ".q-revisao .q-vazio .q-ctl.pri",
+    ".qr-fecho",
+    ".qr-numeros"
+  ]
+}

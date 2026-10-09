@@ -1,4 +1,5 @@
 import '../../../../styles/questJogar.css';
+import '../../../../styles/questJogarFiel.css';
 
 import {
   ArrowDown,
@@ -21,7 +22,7 @@ import {
   Trophy,
   Zap,
 } from 'lucide-react';
-import React, { type ReactNode, useEffect, useMemo, useState } from 'react';
+import React, { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { perfilDoDispositivo } from '../../../../lib/dispositivo/perfil';
 import { type RecursosDoAparelho, recursosDoAparelho } from '../../../../lib/dispositivo/recursos';
@@ -32,7 +33,14 @@ import { aoMudarIdiomasDaVozDoQuest } from '../../../../lib/voz/vozDoQuest';
 import { FAMILIAS, tomDoJogo } from '../../../minigames/ArteDosJogos';
 import MiniDoJogo from '../../../minigames/polimento/MiniDoJogo';
 import { descricaoDoJogo, type JogoUI, tituloDoJogo } from '../jogos';
-import { type JogoParaOQuest, type TileDoQuest, tilesDoQuest, type VozParaOQuest } from './jogosNoQuest';
+import {
+  entrarOQueAbriu,
+  fotoDaTela,
+  type JogoParaOQuest,
+  type TileDoQuest,
+  tilesDoQuest,
+  type VozParaOQuest,
+} from './jogosNoQuest';
 import { fecharPainelDe, InterruptorDoQuest, OpcoesDoQuest, PainelDoQuest } from './pecasDoQuest';
 
 /** O jogo como `Play.tsx` já o tem: a apresentação (`JOGOS`) mais o estado real dele neste recorte. */
@@ -227,6 +235,12 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
   };
   const [painel, setPainel] = useState<null | 'filtros' | 'opcoes' | 'ordem'>(null);
   const [porQueAberto, setPorQueAberto] = useState(false);
+  /* O porquê abre na própria tela: só as linhas novas entram animadas (`telas2.js:527-543, 613`). */
+  const antesDoPorQue = useRef<Set<string> | null>(null);
+  useLayoutEffect(() => {
+    if (porQueAberto) entrarOQueAbriu(antesDoPorQue.current);
+    antesDoPorQue.current = null;
+  }, [porQueAberto]);
 
   /* A lista de idiomas da voz do site chega depois (um GET): os cartões que dependem dela se refazem. */
   const [, refazer] = useState(0);
@@ -434,7 +448,10 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
                 type="button"
                 className="q-ctl"
                 aria-expanded={porQueAberto}
-                onClick={() => setPorQueAberto((v) => !v)}
+                onClick={() => {
+                  antesDoPorQue.current = porQueAberto ? null : fotoDaTela();
+                  setPorQueAberto((v) => !v);
+                }}
               >
                 <CircleHelp aria-hidden />
                 {porQueAberto ? t('Esconder o porquê') : t('Por que este?')}
@@ -657,9 +674,12 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
                   key={titulo}
                   type="button"
                   className="q-linha"
-                  onClick={() => {
-                    /* Sai do painel antes de abrir o destino: ao voltar, a pessoa cai no lobby. */
-                    setPainel(null);
+                  onClick={(e) => {
+                    /* Sai do painel antes de abrir o destino: ao voltar, a pessoa cai no lobby. O painel
+                       FECHA pelo `close` nativo, que avisa o `aoFechar`, como no "x": tirado da tela
+                       ainda aberto, a camada de polimento o segurava para a saída e ele ficava preso,
+                       aberto e sem toque, por cima do destino. */
+                    fecharPainelDe(e.currentTarget);
                     agir();
                   }}
                 >

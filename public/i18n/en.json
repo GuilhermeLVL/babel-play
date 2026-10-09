@@ -3951,5 +3951,9 @@
   "Esta sessão não registrou de onde veio a transcrição.": "This session did not record where the transcript came from.",
   "Esta palavra já está no seu caderno.": "This word is already in your notebook.",
   "Falantes": "Speakers",
-  "{n} ppm": "{n} wpm"
+  "{n} ppm": "{n} wpm",
+  "Seu plano: Grátis": "Your plan: Free",
+  "Seu plano: Premium, em teste": "Your plan: Premium, on trial",
+  "Seu plano: Premium": "Your plan: Premium",
+  "Veja o que cada plano inclui, o seu consumo e a sua assinatura.": "See what each plan includes, your usage and your subscription."
 }

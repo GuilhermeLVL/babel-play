@@ -1,6 +1,7 @@
 import type { CefrLevel, EscolhaDaPratica, EscopoDeGravacoes, OrigemDaPratica } from '@core';
 import { Check as IconeCheck, FileAudio, Flame, Globe, GraduationCap, Layers, Mic, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { type EscalaDaTrilha, nomeDaEscala, rotuloDaEtapa } from '../../core/learning/trilha';
 import { idiomaInicialDaSala } from '../../core/minigames/source';
@@ -39,6 +40,25 @@ import CoberturaDosIdiomas, { TabelaDaCobertura } from './CoberturaDosIdiomas';
  * do tour (95) e dos avisos (100). Ela nunca coexiste com uma partida — ver o orçamento de camadas
  * documentado em `Play.tsx`.
  */
+
+/**
+ * ONDE O PAINEL MORA NO DESENHO NOVO: em `main`, ao lado da tela e não dentro dela (`abrirFolha('fonte')`,
+ * `prototipo.js:466-470`). A tela de trás recua e desfoca enquanto ele está aberto (`main.px-recuado
+ * .px-tela`), e um painel dentro dela recuava e desfocava junto: a primeira coisa que a pessoa via no
+ * Jogar era um painel borrado. O lugar fica ANTES da tela, como a sala sempre veio antes do lobby, e
+ * não some: a saída do painel (`lib/polimento/folha.ts`) ainda precisa dele por um instante.
+ */
+function lugarDaSala(): HTMLElement {
+  const main = document.querySelector('main') ?? document.body;
+  let lugar = main.querySelector<HTMLElement>(':scope > .qj-sala-lugar');
+  if (!lugar) {
+    lugar = document.createElement('div');
+    lugar.className = 'qj-sala-lugar';
+    lugar.style.display = 'contents';
+    main.prepend(lugar);
+  }
+  return lugar;
+}
 
 export interface IdiomaOferecido {
   lang: string;
@@ -202,7 +222,7 @@ export default function SalaDeEscolha({
      único botão principal fica à vista enquanto o miolo rola. Estado, foco e Esc são os de sempre. */
   if (questNovo) {
     const tituloDaEscala = t('{escala} da trilha', { escala: t(nomeDaEscala(escala)) });
-    return (
+    return createPortal(
       <div
         className="q-mais-fundo"
         onMouseDown={(e) => {
@@ -461,7 +481,8 @@ export default function SalaDeEscolha({
             </button>
           </div>
         </div>
-      </div>
+      </div>,
+      lugarDaSala(),
     );
   }
 

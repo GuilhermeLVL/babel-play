@@ -1,0 +1,15 @@
+/*
+ * JOGAR — o que o protótipo tem e o lobby sozinho não tinha.
+ *
+ * O protótipo (`docs/prototipos/polimento-movimento.html`) foi capturado com TODAS as folhas de estilo
+ * de produção na página. Duas regras de `questSessao.css` valem para qualquer diálogo e por isso
+ * vestem também os painéis do Jogar no protótipo; no app elas só chegavam depois de a pessoa abrir
+ * uma sessão. Aqui elas passam a valer sempre, só para os painéis do Jogar.
+ */
+html[data-quest-novo='true'] dialog.qj-painel .q-linha small {
+  white-space: normal;
+}
+html[data-quest-novo='true'] dialog.qj-painel .q-fim svg {
+  width: 20px;
+  height: 20px;
+}

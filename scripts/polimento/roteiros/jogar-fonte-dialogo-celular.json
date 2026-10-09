@@ -1,0 +1,88 @@
+{
+  "nome": "jogar-fonte-dialogo-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/?ui=pt",
+    "passos": [
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".qj-sala button:has-text('Trilha')"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "clicar": "button:has-text('Usar estas palavras')"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".q-cab > .q-chip[aria-haspopup='dialog']"
+      },
+      {
+        "esperar": 1600
+      }
+    ],
+    "depois": 1200
+  },
+  "proto": {
+    "passos": [
+      {
+        "esperar": 300
+      }
+    ]
+  },
+  "seletores": [
+    "dialog[open]",
+    "dialog[open] .dlg-cab",
+    "dialog[open] .dlg-cab h2",
+    "dialog[open] .dlg-cab .x",
+    "dialog[open] .dlg-corpo",
+    "dialog[open] .dlg-corpo > *",
+    "dialog[open] .dlg-pe",
+    "dialog[open] .dlg-pe > *",
+    "dialog[open] .q-abas",
+    "dialog[open] .q-abas .px-pilula",
+    "dialog[open] .q-ctl",
+    "dialog[open] .btn",
+    "dialog[open] .q-secao",
+    "dialog[open] .qj-opcoes",
+    "dialog[open] .qj-opcoes .q-aba",
+    "dialog[open] .q-cartao",
+    "dialog[open] .qj-total"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "clicar": "dialog[open] .dlg-pe .q-ctl.pri"
+      }
+    ],
+    "proto": [],
+    "espera": 900
+  }
+}

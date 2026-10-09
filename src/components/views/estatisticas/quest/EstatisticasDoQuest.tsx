@@ -16,6 +16,7 @@ import { type ReactNode, useLayoutEffect, useRef, useState } from 'react';
 
 import { noHeadset } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../../lib/i18n';
+import { useAbasAVista } from '../../../../lib/polimento/ajustes';
 import { Dialogo, fecharDialogoDe } from '../../../ui';
 
 /**
@@ -133,9 +134,11 @@ export default function EstatisticasDoQuest({
   const [comoTabela, setComoTabela] = useState<Record<string, boolean>>({});
   const [exportando, setExportando] = useState(false);
   const ativo: PainelDoQuest | undefined = paineis.find((p) => p.id === aba) ?? paineis[0];
+  const palco = useRef<HTMLDivElement>(null);
+  useAbasAVista(palco, ativo?.id);
 
   return (
-    <div className="q-palco qe" data-testid="estatisticas-no-quest">
+    <div ref={palco} className="q-palco qe" data-testid="estatisticas-no-quest">
       <header className="q-cab">
         <div>
           <p className="q-sobre">{intervalo ? `${t('Seu progresso')} · ${intervalo}` : t('Seu progresso')}</p>

@@ -1,10 +1,11 @@
 import '../../styles/questConta.css';
 
 import { ShieldCheck, TrendingUp, User, UserRound } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../lib/i18n';
+import { useAbasAVista } from '../../lib/polimento/ajustes';
 import type { AgeProfileType } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
 import MolduraETitulo from '../perfil/MolduraETitulo';
@@ -35,12 +36,15 @@ interface PerfilProps {
 export default function Perfil({ progress, ageProfile }: PerfilProps) {
   const [aba, setAba] = useState('voce');
   const questNovo = useQuestNovo();
+  /* O Perfil não existe no protótipo: recebe a camada comum, como os Ajustes (a aba escolhida à vista). */
+  const palco = useRef<HTMLDivElement>(null);
+  useAbasAVista(palco, aba);
 
   /* QUEST: as mesmas três abas, na mesma ordem, no desenho do headset. Cada aba (`perfil/*`) tem o
      próprio ramo do Quest, com o mesmo estado: aqui só mudam o cabeçalho e as abas. */
   if (questNovo)
     return (
-      <div className="q-palco qc" data-testid="perfil-do-quest">
+      <div ref={palco} className="q-palco qc" data-testid="perfil-do-quest">
         <header className="q-cab">
           <div>
             <p className="q-sobre">{t('Sua conta')}</p>

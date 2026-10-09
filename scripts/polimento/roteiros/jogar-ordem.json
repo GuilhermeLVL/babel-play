@@ -1,0 +1,115 @@
+{
+  "nome": "jogar-ordem",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/?ui=pt",
+    "passos": [
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".qj-sala button:has-text('Trilha')"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "clicar": "button:has-text('Usar estas palavras')"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".qj-ferramentas > .q-chip >> text=Favoritos e ordem"
+      },
+      {
+        "esperar": 1200
+      }
+    ],
+    "depois": 1200
+  },
+  "proto": {
+    "passos": [
+      {
+        "esperar": 800
+      },
+      {
+        "js": "document.querySelector('.px-barra')?.style.setProperty('display', 'none')"
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 1800
+      },
+      {
+        "clicar": ".qj-ferramentas > .q-chip >> text=Favoritos e ordem"
+      },
+      {
+        "esperar": 1200
+      }
+    ],
+    "depois": 1200
+  },
+  "seletores": [
+    "dialog.qj-painel",
+    ".dlg-cab",
+    ".dlg-cab .q-ic",
+    ".dlg-cab .q-ic svg",
+    ".dlg-cab > div",
+    ".dlg-cab h2",
+    ".dlg-cab .qj-nota",
+    ".dlg-cab .x",
+    ".dlg-cab .x svg",
+    ".dlg-corpo",
+    ".qj-ordem",
+    ".qj-ordem > li",
+    ".qj-ordem > li > div",
+    ".qj-ordem > li b",
+    ".qj-ordem .q-acoes",
+    ".qj-ordem .q-ctl",
+    ".qj-ordem .q-ctl:disabled",
+    ".qj-ordem .q-ctl svg",
+    ".qj-ordem .qj-estrela",
+    ".dlg-pe",
+    ".dlg-pe .q-ctl.pri"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "clicar": "dialog[open] .dlg-pe .q-ctl.pri"
+      }
+    ],
+    "proto": [
+      {
+        "clicar": "dialog[open] .dlg-pe .q-ctl.pri"
+      }
+    ],
+    "espera": 900
+  }
+}

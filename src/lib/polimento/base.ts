@@ -157,6 +157,10 @@ export function aplicarAcess(): void {
   }
 }
 
+/** Os `<style>` e `<link>` que trouxeram a camada, na ordem em que chegaram. */
+const nosDaCamada: Element[] = [];
+const nosDeEstilo = (): Element[] => [...document.head.querySelectorAll('style, link[rel="stylesheet"]')];
+
 /** Avisa que o CSS da camada entrou: as medidas tiradas antes dele não valem mais. */
 export const EVENTO_DOS_ESTILOS = 'px:estilos';
 
@@ -172,7 +176,11 @@ export function instalarPolimento(): () => void {
   raiz.style.setProperty('--px-mola-suave', MOLA_SUAVE);
   marcar();
   /* O CSS chega um instante depois: as regras de preferência são acertadas quando ele entra. */
+  const antes = new Set(nosDeEstilo());
   void import('./estilos')
+    .then(() => {
+      for (const no of nosDeEstilo()) if (!antes.has(no) && !nosDaCamada.includes(no)) nosDaCamada.push(no);
+    })
     .then(() =>
       requestAnimationFrame(() => {
         aplicarAcess();
@@ -184,9 +192,24 @@ export function instalarPolimento(): () => void {
     .catch(() => undefined);
   const observador = new MutationObserver(marcar);
   observador.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-  /* Cada tela traz a sua folha de estilo quando abre: as regras novas são acertadas quando chegam. */
+  /* Cada tela traz a sua folha de estilo quando abre: as regras novas são acertadas quando chegam, e a
+     folha que chega vai para ANTES da camada. No protótipo a camada vem depois de todo o CSS de produção
+     (`montar.mjs`); no app, a folha de uma tela aberta depois ganhava os empates de peso (as abas do
+     celular quebravam linha em vez de rolar, os números perdiam o alinhamento). Quem muda de lugar é a
+     folha nova, que ainda nem foi aplicada: mexer na da camada faria a tela piscar. */
   let pedido = 0;
-  const folhas = new MutationObserver(() => {
+  const folhas = new MutationObserver((mudancas) => {
+    const primeira = nosDaCamada.find((n) => n.isConnected);
+    if (primeira)
+      for (const m of mudancas)
+        for (const n of m.addedNodes)
+          if (
+            n instanceof Element &&
+            n.matches('style, link[rel="stylesheet"]') &&
+            !nosDaCamada.includes(n) &&
+            primeira.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING
+          )
+            primeira.before(n);
     cancelAnimationFrame(pedido);
     pedido = requestAnimationFrame(aplicarAcess);
   });

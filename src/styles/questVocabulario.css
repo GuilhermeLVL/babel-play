@@ -14,6 +14,17 @@
 html[data-quest-novo='true'] .qv-tablist {
   display: contents;
 }
+/* A PÍLULA DAS ABAS (camada de polimento, `polimento.css`, seção 3). A regra da camada vale para a aba
+   que é filha direta de `.q-abas`; aqui as abas moram um nível abaixo, dentro de `.qv-tablist` (o
+   "Mais" não é uma aba), e sem isto a pílula passava POR CIMA da aba escolhida e escondia o nome dela. */
+html[data-quest-novo='true'][data-px='on'] .qv-abas.px-com-pilula .q-aba {
+  position: relative;
+  z-index: 1;
+}
+html[data-quest-novo='true'][data-px='on'] .qv-abas.px-com-pilula .q-aba[aria-selected='true'] {
+  background: transparent;
+  border-color: transparent;
+}
 html[data-quest-novo='true'] .qv-painel {
   display: flex;
   flex-direction: column;

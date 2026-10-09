@@ -185,7 +185,26 @@ html[data-quest-novo='true'] .qe-medida p {
   }
 }
 
-/* ── UM POR VEZ NA TELA, TODOS NA IMPRESSÃO ───────────────────────────────────────────────────────
+/* ── ONDE A CAMADA DE POLIMENTO EMPATA COM ESTA FOLHA ────────────────────────────────────────────
+   No protótipo o CSS da camada vem DEPOIS desta folha, e três regras dela têm o mesmo peso das daqui:
+   lá vale a da camada. No app esta folha é o pedaço da rota e chega por último, então ganhava o empate
+   (os números do rótulo sem largura fixa; no celular, os cinco números em grade e as abas quebrando
+   linha, em vez da faixa que rola). Só as declarações em disputa são repetidas, com um seletor mais
+   forte, para o resultado não depender de qual pedaço de CSS chega primeiro. */
+html[data-px='on'][data-quest-novo='true'] .qe-kpi .q-rotulo {
+  font-variant-numeric: tabular-nums; /* polimento.css:29-31 */
+}
+@media (max-width: 720px) {
+  html[data-px='on'][data-quest-novo='true'] .qe-kpis {
+    display: flex; /* celular.css:117-127 */
+  }
+  html[data-px='on'][data-quest-novo='true'] .qe-abas {
+    flex-wrap: nowrap; /* celular.css:229 */
+    overflow-x: auto;
+  }
+}
+
+/* ── UM POR VEZ NA TELA, TODOS NA IMPRESSÃO───────────────────────────────────────────────────────
    Os sete painéis ficam montados; na tela só o da aba aparece (`hidden`). `.q-cartao` é uma grade, e por
    isso o `hidden` precisa ser dito aqui. */
 @media not print {

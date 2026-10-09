@@ -1,0 +1,72 @@
+{
+  "nome": "jogar-fonte-dialogo-abrir-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/?ui=pt",
+    "passos": [
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".qj-sala button:has-text('Trilha')"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "clicar": "button:has-text('Usar estas palavras')"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".q-cab h1"
+      },
+      {
+        "esperar": 600
+      }
+    ],
+    "depois": 1200
+  },
+  "proto": {
+    "passos": [
+      {
+        "esperar": 300
+      }
+    ]
+  },
+  "seletores": [
+    ".q-cab > .q-chip"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "clicar": ".q-cab > .q-chip[aria-haspopup='dialog']"
+      }
+    ],
+    "proto": [],
+    "espera": 1600
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "nome": "vocabulario-exportar-abrir-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/?ui=pt",
+    "passos": [
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "clicar": ".q-trilho .q-mais-botao"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "clicar": ".q-mais .q-tile >> text=Vocabulário"
+      },
+      {
+        "esperar": 4000
+      },
+      {
+        "clicar": ".q-cab .q-sobre"
+      },
+      {
+        "esperar": 700
+      }
+    ],
+    "depois": 1200
+  },
+  "proto": {
+    "passos": [
+      {
+        "esperar": 300
+      }
+    ]
+  },
+  "seletores": [
+    ".qv"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "clicar": ".qv .q-cab > .q-ctl >> text=Exportar"
+      }
+    ],
+    "proto": [],
+    "espera": 1500
+  }
+}

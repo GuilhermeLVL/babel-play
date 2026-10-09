@@ -1,0 +1,51 @@
+{
+  "nome": "revisao-resposta",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/revisar?ui=pt",
+    "passos": [
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "esperar": 2500
+      }
+    ],
+    "depois": 1200
+  },
+  "proto": {
+    "passos": [
+      {
+        "esperar": 300
+      }
+    ]
+  },
+  "seletores": [
+    ".qr-cartao"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "clicar": ".qr-principal"
+      }
+    ],
+    "proto": [],
+    "espera": 1200
+  }
+}

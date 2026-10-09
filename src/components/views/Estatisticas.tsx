@@ -620,7 +620,12 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
   if (!dias) {
     if (questNovo)
       return (
+        /* A CHAVE muda quando os dados chegam: o React monta um palco novo, e é isso que avisa a camada
+           de movimento de que o conteúdo de verdade chegou (`lib/polimento/telas.ts`, `chegou`). Com o
+           mesmo palco, a entrada da tela (título, números, abas, gráfico) nunca acontecia quando a
+           espera aparecia antes dos dados. */
         <EstatisticasDoQuest
+          key="espera"
           carregando
           periodo={periodo}
           aoTrocarPeriodo={setPeriodo}
@@ -834,6 +839,7 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
     ];
     return (
       <EstatisticasDoQuest
+        key="pronto"
         carregando={false}
         periodo={periodo}
         aoTrocarPeriodo={setPeriodo}

@@ -186,6 +186,8 @@ function sair(d: HTMLDialogElement): void {
 }
 
 const fantasmas = new WeakSet<HTMLDialogElement>();
+/** Os fantasmas cuja animação de saída já está no ar (voltar ao documento não a repete). */
+const saidaAnimando = new WeakSet<HTMLDialogElement>();
 /** O fechamento que encerra a saída: não é um pedido novo para sair. */
 const fechandoDeVez = new WeakSet<HTMLDialogElement>();
 
@@ -207,16 +209,21 @@ function segurar(d: HTMLDialogElement, pai: Node, antesDe: Node | null): void {
   fantasmas.add(d);
   pai.insertBefore(d, antesDe?.parentNode === pai ? antesDe : null);
   if (!reabrir(d)) return void d.remove();
-  /* Sair do documento cancela a animação: ela recomeça do ponto em que estava. */
-  if (!d.getAnimations().length) {
-    const foco = s.foco;
-    const fim = () => {
-      if (!saindo.has(d)) return;
-      saindo.delete(d);
-      d.remove();
-      devolverFoco(foco);
-    };
-    window.setTimeout(fim, s.ms - corrido + 200);
+  /* Sair do documento cancela a animação: ela recomeça do ponto em que estava. O relógio que tira o
+     diálogo é armado SEMPRE: antes ele dependia de não haver animação nenhuma no elemento, e um diálogo
+     desmontado no meio da própria entrada ficava preso na tela, aberto e sem toque (visto no Jogar:
+     Opções → Recordes). */
+  const foco = s.foco;
+  const fim = () => {
+    if (!saindo.has(d)) return;
+    saindo.delete(d);
+    saidaAnimando.delete(d);
+    d.remove();
+    devolverFoco(foco);
+  };
+  window.setTimeout(fim, s.ms - corrido + 200);
+  if (!saidaAnimando.has(d)) {
+    saidaAnimando.add(d);
     animarSaida(d, corrido).finished.then(fim, fim);
   }
 }

@@ -1,0 +1,136 @@
+{
+  "nome": "ajustes-notificacoes-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.px.planoDeProva": "free"
+    },
+    "passos": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector('.q-trilho .q-mais-botao'); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-mais .q-tile')].find((b) => b.textContent.includes('Ajustes')); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "js": "new Promise((ok) => { const i = setInterval(() => { if (document.querySelector(\".q-aju .q-aju-painel\")) { clearInterval(i); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 30000); })"
+      },
+      {
+        "esperar": 3500
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelectorAll('.q-aju > .q-abas > .q-aba')[2]; const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 2500
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector('.q-trilho .q-mais-botao'); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-mais .q-tile')].find((b) => b.textContent.includes('Ajustes')); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "js": "new Promise((ok) => { const i = setInterval(() => { if (document.querySelector(\".q-aju .q-aju-painel\")) { clearInterval(i); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 30000); })"
+      },
+      {
+        "esperar": 3500
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelectorAll('.q-aju > .q-abas > .q-aba')[2]; const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 2500
+      }
+    ]
+  },
+  "seletores": [
+    ".q-palco.q-aju",
+    ".q-aju > .q-cab",
+    ".q-aju > .q-cab h1",
+    ".q-aju > .q-cab .q-sobre",
+    ".q-aju > .q-abas",
+    ".q-aju > .q-abas > .q-aba",
+    ".q-aju > .q-abas > .q-aba[aria-selected='true']",
+    ".q-aju > .q-abas > .q-aba[aria-selected='false']",
+    ".q-aju > .q-abas > .q-aba svg",
+    ".q-aju > .q-abas > .px-pilula",
+    ".q-aju .q-aju-painel",
+    ".q-aju .q-aju-painel > .q-secao",
+    ".q-aju .q-secao > header",
+    ".q-aju .q-secao > header > div",
+    ".q-aju .q-secao > header h2",
+    ".q-aju .q-secao > header p",
+    ".q-aju .q-ajustes",
+    ".q-aju .q-ajuste",
+    ".q-aju .q-ajuste > div:first-child",
+    ".q-aju .q-ajuste b",
+    ".q-aju .q-ajuste small",
+    ".q-aju .q-ajuste > .q-ctl",
+    ".q-aju .q-ajuste > .q-ctl svg",
+    ".q-aju .q-ajuste > .q-abas.q-seg",
+    ".q-aju .q-seg .q-aba",
+    ".q-aju .q-seg .q-aba[aria-pressed='true']",
+    ".q-aju .q-seg .q-aba[aria-pressed='false']",
+    ".q-aju .q-seg .px-pilula",
+    ".q-aju .q-interruptor",
+    ".q-aju .q-interruptor[aria-checked='true']",
+    ".q-aju .q-interruptor[aria-checked='false']",
+    ".q-aju .q-aju-nota",
+    ".q-aju span.q-aju-nota",
+    ".q-aju .q-tabela-caixa",
+    ".q-aju .q-tabela.q-aju-matriz",
+    ".q-aju .q-aju-matriz thead th",
+    ".q-aju .q-aju-matriz tbody th",
+    ".q-aju .q-aju-matriz tbody th svg",
+    ".q-aju .q-aju-matriz td",
+    ".q-aju .q-aju-matriz td .q-interruptor",
+    ".q-aju select.q-campo.q-aju-hora",
+    ".q-aju .q-acoes"
+  ],
+  "props": [
+    "borderTopStyle",
+    "alignItems",
+    "alignSelf",
+    "justifyContent",
+    "flexDirection",
+    "flexWrap",
+    "flexGrow",
+    "gridTemplateColumns",
+    "marginTop",
+    "marginBottom",
+    "maxWidth",
+    "minHeight",
+    "textTransform",
+    "textAlign",
+    "whiteSpace",
+    "overflowX",
+    "fontVariantNumeric",
+    "scrollSnapAlign"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelectorAll('.q-aju > .q-abas > .q-aba')[3]; const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      }
+    ],
+    "proto": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelectorAll('.q-aju > .q-abas > .q-aba')[3]; const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      }
+    ],
+    "espera": 1500
+  }
+}

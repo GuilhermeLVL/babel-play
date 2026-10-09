@@ -1,0 +1,51 @@
+{
+  "nome": "revisao-opcoes-abrir-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/revisar?ui=pt",
+    "passos": [
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "esperar": 2500
+      }
+    ],
+    "depois": 1200
+  },
+  "proto": {
+    "passos": [
+      {
+        "esperar": 300
+      }
+    ]
+  },
+  "seletores": [
+    ".q-revisao"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "clicar": "[aria-label='Opções da revisão']"
+      }
+    ],
+    "proto": [],
+    "espera": 1500
+  }
+}

@@ -10,7 +10,12 @@
  * Pura (o perfil e o escopo entram por parâmetro) e sem importar nada do app: `perfil.ts` a usa para
  * marcar o `<html>` antes do primeiro render.
  */
-import type { PerfilDoDispositivo } from './perfil';
+/* O que este módulo lê do perfil. Declarado aqui, e não importado de `perfil.ts`, porque `perfil.ts`
+   importa este arquivo: o import de volta fechava um ciclo que a verificação de ciclos acusa. */
+interface PerfilLido {
+  tipo: string;
+  capturaDoSistema: boolean;
+}
 
 export interface RecursosDoAparelho {
   /**
@@ -54,10 +59,7 @@ function temVozQueToca(g: Escopo, quest: boolean): boolean {
   }
 }
 
-export function recursosDoAparelho(
-  perfil: Pick<PerfilDoDispositivo, 'tipo' | 'capturaDoSistema'>,
-  escopo: unknown = globalThis,
-): RecursosDoAparelho {
+export function recursosDoAparelho(perfil: PerfilLido, escopo: unknown = globalThis): RecursosDoAparelho {
   const g = (escopo ?? {}) as Escopo & Record<string, unknown>;
   const quest = perfil.tipo === 'quest';
   const celular = perfil.tipo.startsWith('celular');

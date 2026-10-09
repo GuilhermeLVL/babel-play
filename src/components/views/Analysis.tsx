@@ -39,6 +39,7 @@ import { getActiveProfile } from '../../gateway/activeProfile';
 import { useMetricasDaSessao } from '../../lib/analise/metricasDaSessao';
 import { criarPalavraDaAnalise } from '../../lib/analise/palavraDaAnalise';
 import { formatSeconds, usePlayerDaSessao } from '../../lib/analise/playerDaSessao';
+import type { FalaDaAnalise } from '../../lib/analise/tiposDaAnalise';
 import { useAudioDaSessao } from '../../lib/audioDaSessao';
 import { useFuncaoEstavel } from '../../lib/captura/conversaEstavel';
 import { usePalavrasConhecidas } from '../../lib/captura/usePalavrasConhecidas';
@@ -723,7 +724,7 @@ export default function Analysis({
        áudio gravado toca a partir dela ou, na sessão sem áudio, a narração continua dela em diante.
        Documento (sem player) e áudio gravado que não veio leem só aquela fala, pela voz do idioma
        dela; sem voz para o idioma, o "Ouvir" não aparece e as opções da fala dizem o motivo. */
-  type Fala = (typeof parsedSentences)[number];
+  type Fala = FalaDaAnalise;
   const audioGravado = hasRealAudio && !audioDaSessao.erro;
   const ouvirSegue = audioGravado || (!documento && !hasRealAudio);
   const haVozParaAFala = (f: Fala) => haVozPara(f.lang || ttsLang);

@@ -27,7 +27,7 @@ const CULTURAIS = [
   /Karuta/,
   /Complete as vogais|Choseong/,
   /Tênis de palavras|Rali cronometrado/,
-  /mala/,
+  /Mala cumulativa|mala/i,
   /Bao/,
   /Charada|Vitendawili/,
   /Corrente de palavras|Shiritori/,

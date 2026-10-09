@@ -1,26 +1,37 @@
-import { expect, type Page, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
-import { mapaDoBaralho, semearCartoes } from './_fixtures'
-import { clicarRobusto, fecharSobreposicoes, irParaPraticar } from './_helpers'
+import { mapaDoBaralho, perfil, semearCartoes } from './_fixtures'
+import { clicarRobusto, lobby } from './_helpers'
+import {
+  abrirLobbyDoCaderno,
+  cartasDaMemoria,
+  chegarAoFim,
+  entrarNoJogo,
+  palco,
+  semExplicacao,
+  terminou,
+  voltarAoLobby,
+} from './_jogos'
 
 /**
- * UMA SESSAO DE JOGO INTEIRA, do lobby ao fim da rodada — tres jogos, tres mecanicas.
+ * UMA SESSÃO DE JOGO INTEIRA, do lobby ao fim da rodada — três jogos, três mecânicas.
  *
- * O que nenhuma suite cobria: o clique na carta do lobby chegar a um jogo montado com o baralho
- * de verdade, o jogo produzir um `RoundReport` e a tela de fim de rodada (`ResultadoDaRodada`, com o
- * "N de N <unidade>" e "Voltar aos jogos") aparecer. Os testes unitarios provam cada peca; este prova a
- * costura, e nos tres viewports — a mesa da Memoria vira 3 colunas no celular e o Termo troca o
- * teclado fisico pelo de tela.
+ * O que nenhuma outra suíte cobre: o toque no cartão do lobby chegar a um jogo montado com o CADERNO
+ * de verdade (as palavras que o servidor guarda), o jogo produzir um `RoundReport`, o servidor gravar
+ * a rodada e a tela de fim de rodada (`casca/FimDaRodada`: estrelas, "Acertos N de N", "Voltar aos
+ * jogos") aparecer. Os testes unitários provam cada peça; este prova a costura, e nos três viewports.
  *
- * DETERMINISMO. A Memoria embaralha, mas cada carta carrega o texto em `data-texto` (mesmo virada
- * para baixo), e o teste conhece o baralho que semeou — entao ele le a mesa e fecha os pares sem errar.
- * No Termo a pista de cada tabuleiro e a traducao, e o teste digita a palavra que corresponde. O
- * tour guiado de cada jogo e marcado como feito ANTES de abrir a tela (`babel_tour_<jogo>`) e a
- * antessala fica no padrao (pular), senao cada jogo abriria com um overlay de explicacao.
+ * DETERMINISMO. A Memória embaralha, mas cada carta carrega o texto em `data-texto` (mesmo virada
+ * para baixo), e o teste conhece o caderno — então ele lê a mesa e fecha os pares sem errar. No Termo
+ * a pista de cada tabuleiro é a tradução, e o teste digita a palavra que corresponde. A explicação da
+ * primeira partida de cada jogo é marcada como vista ANTES de abrir a tela (`babel_tour_<jogo>`).
+ *
+ * SAÍRAM COM O DESENHO DE ANTES: o botão "Pausar" (a pausa é a tecla Esc), a raspadinha do fim de
+ * rodada ("Revelar sem raspar") e os tabuleiros `data-tour="mesa"`/`data-tour="tabuleiro"`.
  */
 
-/* Lidos do SERVIDOR, nao da fixture: o banco nasce com tres cartoes de demonstracao que entram
-   nas rodadas junto com os semeados (ver `mapaDoBaralho`). */
+/* Lidos do SERVIDOR, não da fixture: o caderno pode ter mais do que os cartões semeados (outras
+   suítes ficham palavras no mesmo banco), e todos entram nas rodadas (ver `mapaDoBaralho`). */
 let MAPA = new Map<string, string>()
 let POR_TRADUCAO = new Map<string, string>()
 
@@ -30,171 +41,146 @@ test.beforeAll(async () => {
 })
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
-    for (const jogo of ['memory', 'termo', 'bao']) {
-      try {
-        localStorage.setItem(`babel_tour_${jogo}`, '1')
-      } catch {
-        /* storage bloqueado */
-      }
-    }
-    try {
-      localStorage.removeItem('babel.pular_antessala')
-    } catch {
-      /* idem */
-    }
-  })
+  await semExplicacao(page, ['memory', 'termo', 'bao'])
 })
 
-/** A carta do lobby: o botao com o titulo EXATO do jogo (o de "Como se joga" tem prefixo). */
-/**
- * O TITULO DA CARTA MUDA POR PERFIL, entao o seletor aceita as redacoes possiveis.
- *
- * Estes tres testes pediam a carta pelo rotulo exato do perfil senior ('Jogo da memoria',
- * 'Escrever a palavra', 'Bao: monte a palavra') e passavam porque o perfil PADRAO da primeira
- * visita era senior — coisa que nenhum deles declarava. Quando o padrao virou `pro` (12/09, spec
- * `leitura-padrao`), o `pro` reescreve os tres ('Memoria: palavra e traducao', 'Soletrar
- * (Termo)', 'Bao: semeie os pedacos') e as tres asserções cairam sem que a grade tivesse mudado.
- */
-async function abrirJogo(page: Page, titulo: RegExp) {
-  const carta = page.locator('#grade-de-jogos').getByRole('button', { name: titulo }).first()
-  await expect(carta, `a carta ${titulo} deveria estar na grade`).toBeVisible({ timeout: 15_000 })
-  await expect(carta, `a carta ${titulo} deveria estar liberada com 12 palavras no baralho`).toBeEnabled()
-  await clicarRobusto(page, carta)
-}
-
-/** A tela de fim de rodada — `ResultadoDaRodada` (estrelas, raspadinha e o resumo na mesma tela). */
-function fimDaRodada(page: Page) {
-  return page.getByText(/Fim da rodada|Rodada concluída/).first()
-}
-
-async function voltarAoLobby(page: Page) {
-  /* A raspadinha so mostra as saidas DEPOIS de revelada. O link "Revelar sem raspar" e a saida
-     por teclado, e a unica deterministica — raspar exige mover o ponteiro ate 45% do canvas
-     ficar transparente. */
-  const revelar = page.getByRole('button', { name: 'Revelar sem raspar' })
-  if (await revelar.isVisible().catch(() => false)) await clicarRobusto(page, revelar)
-  await clicarRobusto(page, page.getByRole('button', { name: /Voltar aos jogos/ }))
-  await fecharSobreposicoes(page)
-  await expect(page.getByRole('button', { name: 'Fonte' })).toBeVisible({ timeout: 15_000 })
-}
-
-test.describe('Sessao de jogo', () => {
-  test('Memoria: abre com o baralho, fecha todos os pares e chega ao fim da rodada', async ({ page }) => {
+test.describe('Sessão de jogo', () => {
+  test('Memória: abre com o caderno, fecha todos os pares, o servidor grava e chega ao fim da rodada', async ({
+    page,
+  }) => {
     test.slow()
-    await irParaPraticar(page)
-    await abrirJogo(page, /^(Jogo da memória|Memória: palavra e tradução)$/)
+    const antes = await perfil()
+    await abrirLobbyDoCaderno(page)
+    await entrarNoJogo(page, 'memory')
 
-    /* A casca comum (casca/CascaDaRodada): o topo e o de toda rodada, e o placar comum diz os pares. */
-    await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible({ timeout: 10_000 })
-    const placar = page.getByRole('group', { name: 'Placar da rodada' }).getByText(/^0 de \d+ pares$/)
-    await expect(placar, 'o placar deveria nascer em 0 de N pares').toBeVisible()
+    /* A casca comum (`casca/CascaDaRodada`): o placar é o de toda rodada. */
+    await expect(page.getByRole('group', { name: 'Placar da rodada' })).toBeVisible({ timeout: 10_000 })
 
-    const cartas = page.locator('[data-tour="mesa"] > button')
+    const cartas = cartasDaMemoria(page)
+    await expect(cartas.first()).toBeVisible()
     const total = await cartas.count()
-    expect(total % 2, 'a mesa tem de ter um numero par de cartas').toBe(0)
+    expect(total % 2, 'a mesa tem de ter um número par de cartas').toBe(0)
     expect(total).toBeGreaterThanOrEqual(8)
 
-    /* LER A MESA: cada carta guarda o próprio texto em `data-texto`, mesmo virada para baixo (a
-       carta do protótipo só desenha o texto quando vira). */
-    const titulos: string[] = []
-    for (let i = 0; i < total; i++) {
-      titulos.push(((await cartas.nth(i).getAttribute('data-texto')) ?? '').trim())
-    }
+    /* LER A MESA: cada carta guarda o próprio texto em `data-texto`, mesmo virada para baixo. */
+    const titulos = await cartas.evaluateAll((els) => els.map((el) => (el.getAttribute('data-texto') ?? '').trim()))
     const palavrasNaMesa = titulos.filter((t) => MAPA.has(t))
     expect(
       palavrasNaMesa.length,
-      `a mesa deveria ser feita das palavras semeadas; titulos: ${titulos.join(' | ')}`,
+      `a mesa deveria ser feita das palavras do caderno; títulos: ${titulos.join(' | ')}`,
     ).toBe(total / 2)
 
     for (const palavra of palavrasNaMesa) {
       const idxPalavra = titulos.indexOf(palavra)
       const traducao = MAPA.get(palavra)!
-      const idxTraducao = titulos.findIndex((t) => t.toLowerCase() === traducao.toLowerCase())
-      expect(idxTraducao, `nao achei a carta da traducao "${traducao}" de "${palavra}" na mesa`).toBeGreaterThanOrEqual(
+      const idxTraducao = titulos.findIndex((t, i) => i !== idxPalavra && t.toLowerCase() === traducao.toLowerCase())
+      expect(idxTraducao, `não achei a carta da tradução "${traducao}" de "${palavra}" na mesa`).toBeGreaterThanOrEqual(
         0,
       )
       await cartas.nth(idxPalavra).click()
       await cartas.nth(idxTraducao).click()
-      await page.waitForTimeout(150)
+      // A mesa não aceita outra carta enquanto compara: espera o par fechar.
+      await expect(cartas.nth(idxTraducao), `o par ${palavra}/${traducao} fecha`).toHaveClass(/(^| )par( |$)/, {
+        timeout: 5000,
+      })
     }
 
-    await expect(page.getByText(new RegExp(`^${total / 2} de ${total / 2} pares$`)).first()).toBeVisible({
-      timeout: 5000,
-    })
-    await expect(fimDaRodada(page), 'a tela de fim de rodada deveria aparecer').toBeVisible({ timeout: 15_000 })
-    await expect(page.getByRole('heading', { name: new RegExp(`^${total / 2} de ${total / 2} pares$`) })).toBeVisible()
+    const fim = await chegarAoFim(page, 'memory')
+    const pares = total / 2
+    await expect(fim.locator('.fim-numeros').getByText(`${pares} de ${pares}`)).toBeVisible()
+    await expect(fim.locator('[data-rodada-nao-creditada]'), 'a rodada tem de ter sido salva').toHaveCount(0)
+    /* O SERVIDOR É A FONTE: a rodada jogada na tela entra no perfil — como revisão (o par que gravou
+       nota no agendador) ou como item de jogo. A soma, porque um item nunca conta nas duas colunas. */
+    const gravados = (p: { reviews: number; drillItems: number }) => p.reviews + p.drillItems
+    await expect
+      .poll(async () => gravados(await perfil()), { timeout: 10_000, message: 'o servidor deveria gravar a rodada' })
+      .toBeGreaterThan(gravados(antes))
     await voltarAoLobby(page)
+    await expect(lobby(page)).toBeVisible()
   })
 
   test('Termo: abre com a escada, aceita a palavra digitada e chega ao fim da rodada', async ({ page }) => {
     test.slow()
-    await irParaPraticar(page)
-    await abrirJogo(page, /^(Escrever a palavra|Escreva a palavra|Soletrar \(Termo\))$/)
+    await abrirLobbyDoCaderno(page)
+    await entrarNoJogo(page, 'termo')
 
-    await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible({ timeout: 10_000 })
-    const tabuleiro = page.locator('[data-tour="tabuleiro"]')
-    await expect(tabuleiro).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Enviar palpite' })).toBeVisible()
+    await expect(page.getByRole('group', { name: 'Placar da rodada' })).toBeVisible({ timeout: 10_000 })
+    const abertos = palco(page).locator('.tab-termo:not(.resolvido):not(.falhou)')
+    await expect(abertos.first()).toBeVisible()
 
-    /* Cada tabuleiro (`.tab-termo`) mostra a pista (traducao) no cabecalho; fechado, ganha
-       `.resolvido` (ou `.falhou`). O laco digita a palavra do primeiro tabuleiro aberto e repete
-       ate a rodada acabar. Doze voltas cobrem a escada mais longa (1 + 2 + 4) com folga. */
-    const pistas = page.locator('[data-tour="tabuleiro"] .tab-termo:not(.resolvido):not(.falhou) .pista')
+    /* Cada tabuleiro (`.tab-termo`) mostra a pista (a tradução); fechado, ganha `.resolvido` (ou
+       `.falhou`). O laço digita a palavra do primeiro tabuleiro aberto e repete até a rodada acabar.
+       Com as letras já sabidas escritas na fileira, só se digita o que falta. Vinte voltas cobrem a
+       escada mais longa (1 + 2 + 4) com folga. */
     let digitadas = 0
-    for (let volta = 0; volta < 12; volta++) {
-      if (
-        await fimDaRodada(page)
-          .isVisible()
-          .catch(() => false)
-      )
-        break
-      await pistas
-        .first()
-        .waitFor({ state: 'visible', timeout: 5000 })
-        .catch(() => {})
-      const textos = (await pistas.allTextContents()).map((t) => t.trim())
-      const aberta = textos.find((t) => !MAPA.has(t.toLowerCase()) && POR_TRADUCAO.has(t.toLowerCase()))
-      if (!aberta) {
-        // Pode ser a transicao entre degraus ("Subiu!"): espera e tenta de novo.
+    for (let volta = 0; volta < 20 && !(await terminou(page)); volta++) {
+      const aberto = abertos.first()
+      if (!(await aberto.isVisible().catch(() => false))) {
+        // Pode ser a transição entre degraus: espera e tenta de novo.
         await page.waitForTimeout(900)
         continue
       }
-      const palavra = POR_TRADUCAO.get(aberta.toLowerCase())!
-      await page.keyboard.type(palavra, { delay: 30 })
+      const pista = (
+        await aberto
+          .locator('.pista')
+          .innerText()
+          .catch(() => '')
+      )
+        .trim()
+        .toLowerCase()
+      const palavra = POR_TRADUCAO.get(pista)
+      const fileira = (
+        await aberto
+          .locator('.linha-termo.atual .letra')
+          .allInnerTexts()
+          .catch(() => [] as string[])
+      ).map((c) => c.trim().toLowerCase())
+      if (!palavra || fileira.length !== palavra.length) {
+        await page.waitForTimeout(900)
+        continue
+      }
+      await page.keyboard.type([...palavra.toLowerCase()].filter((_, i) => !fileira[i]).join(''), { delay: 30 })
       await page.keyboard.press('Enter')
       digitadas++
       await page.waitForTimeout(900)
     }
     expect(digitadas, 'esperava digitar pelo menos uma palavra no Termo').toBeGreaterThan(0)
-    await expect(fimDaRodada(page), 'a escada deveria terminar na tela de fim de rodada').toBeVisible({
-      timeout: 15_000,
-    })
-    await expect(page.getByRole('heading', { name: /^\d+ de \d+ palavras$/ })).toBeVisible()
+    const fim = await chegarAoFim(page, 'termo')
+    await expect(fim.locator('.fim-numeros').getByText(/^\d+ de \d+$/)).toBeVisible()
     await voltarAoLobby(page)
   })
 
-  test('Bao (cultural): abre com o baralho, mostra as covas e "Sair" devolve ao lobby', async ({ page }) => {
+  test('Bao (cultural): abre com o caderno, mostra as covas, Esc pausa e sair no meio pergunta antes', async ({
+    page,
+  }) => {
     test.slow()
-    await irParaPraticar(page)
-    await abrirJogo(page, /^Bao: (monte a palavra|semeie os pedaços)$/)
+    await abrirLobbyDoCaderno(page)
+    await entrarNoJogo(page, 'bao')
 
-    /* O Bao veste a CASCA COMUM (casca/CascaDaRodada): o topo e o de toda rodada — "← Jogar",
-       Pausar, Recomecar — e o tabuleiro mora no palco (#palco), abaixo do placar comum. */
-    await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible({ timeout: 10_000 })
-    await expect(page.getByRole('group', { name: 'Placar da rodada' })).toBeVisible()
-    /* Ha covas para semear: os pedacos sao botoes do palco (fora as ajudas do placar). Antes a
-       conta incluia o X e a Dica do topo antigo (> 3 = pelo menos duas covas); a regra e a mesma. */
-    const covas = page.locator('#palco button:not(.ajuda-jogo)')
+    /* O Bao veste a CASCA COMUM: o cabeçalho é o de toda rodada ("Jogar", Como se joga, Recomeçar) e o
+       tabuleiro mora no palco (`#palco`), abaixo do placar comum. */
+    await expect(page.getByRole('group', { name: 'Placar da rodada' })).toBeVisible({ timeout: 10_000 })
+    const covas = palco(page).locator('.pj-covas .pj-cova')
     await expect(covas.first()).toBeVisible()
-    expect(await covas.count(), 'a tela do Bao deveria ter as covas como botoes').toBeGreaterThanOrEqual(2)
+    expect(await covas.count(), 'a tela do Bao deveria ter as covas').toBeGreaterThanOrEqual(2)
 
-    /* Sair no meio PERGUNTA antes: a rodada nao conta, e isso e dito. */
-    await clicarRobusto(page, page.locator('button.voltar'))
-    await expect(page.getByRole('heading', { name: 'Sair sem terminar?' })).toBeVisible()
-    await clicarRobusto(page, page.getByRole('dialog').getByRole('button', { name: 'Sair da rodada' }))
-    await fecharSobreposicoes(page)
-    await expect(page.getByRole('button', { name: 'Fonte' })).toBeVisible({ timeout: 15_000 })
-    await expect(page.locator('#grade-de-jogos')).toBeVisible()
+    /* A PAUSA É A TECLA Esc (o botão "Pausar" saiu): o diálogo diz que o relógio parou, e "Continuar"
+       devolve à rodada. */
+    await page.keyboard.press('Escape')
+    const pausa = page.getByRole('dialog').filter({ hasText: 'Rodada em pausa' })
+    await expect(pausa).toBeVisible()
+    await expect(pausa).toContainText('o relógio parou')
+    await clicarRobusto(page, pausa.getByRole('button', { name: 'Continuar', exact: true }))
+    await expect(pausa).toBeHidden()
+    await expect(covas.first()).toBeVisible()
+
+    /* Sair no meio PERGUNTA antes: a rodada não conta, e isso é dito. */
+    await clicarRobusto(page, page.getByRole('main').getByRole('button', { name: 'Jogar', exact: true }))
+    const sair = page.getByRole('dialog').filter({ hasText: 'Sair sem terminar?' })
+    await expect(sair.getByRole('heading', { name: 'Sair sem terminar?' })).toBeVisible()
+    await expect(sair).toContainText('não conta para a revisão nem para os recordes')
+    await clicarRobusto(page, sair.getByRole('button', { name: 'Sair da rodada' }))
+    await expect(page.locator('#grade-de-jogos')).toBeVisible({ timeout: 15_000 })
+    await expect(lobby(page)).toBeVisible()
   })
 })

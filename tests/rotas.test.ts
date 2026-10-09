@@ -56,12 +56,13 @@ describe('estadoParaUrl', () => {
   /* Loja e Passe deixaram de ser abas em 2026-09-12 (viraram seções de Desafios). Um link
      gravado com o nome antigo tem de abrir a página onde o conteúdo ESTÁ — cair na aba padrão
      mandaria a pessoa para "Meu visual" quando ela pediu a prateleira. */
-  it('os nomes das abas extintas resolvem para Desafios, onde o conteúdo ficou', () => {
+  it('os nomes das abas extintas resolvem para a aba onde o conteúdo ficou', () => {
     for (const antigo of ['loja', 'itens', 'passe', 'progressao', 'recompensas']) {
       expect(normalizarAbaDaLoja(antigo), antigo).toBe('conquistas')
     }
-    expect(urlParaEstado('/loja/itens').lojaTab).toBe('conquistas')
-    expect(urlParaEstado('/loja/passe').lojaTab).toBe('conquistas')
+    // Na URL vale a tela de hoje (cinco abas): a prateleira é a Loja e o Passe, a Temporada.
+    expect(urlParaEstado('/loja/itens').lojaTab).toBe('loja')
+    expect(urlParaEstado('/loja/passe').lojaTab).toBe('temporada')
   })
 })
 
@@ -187,9 +188,9 @@ describe('a query do /jogar', () => {
  */
 describe('abas da loja na URL', () => {
   it('apelido antigo vira a aba canônica, não `undefined`', () => {
-    /* 'progressao' apontava para o Passe, que virou seção de Desafios: o apelido segue válido e
-       agora resolve para a aba onde aquele conteúdo está. */
-    expect(estadoParaUrl({ view: 'loja', lojaTab: 'progressao' as never })).toBe('/loja/desafios')
+    /* 'progressao' é o "Ver progressão" do fim de rodada: na tela de cinco abas ele abre a
+       Maestria. O apelido segue válido e resolve para a aba onde aquele conteúdo está. */
+    expect(estadoParaUrl({ view: 'loja', lojaTab: 'progressao' as never })).toBe('/loja/maestria')
     expect(normalizarAbaDaLoja('progressao')).toBe('conquistas')
   })
 

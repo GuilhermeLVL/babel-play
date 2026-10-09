@@ -19,6 +19,7 @@ import {
 import React, { useState } from 'react';
 
 import type { AppMetrics } from '../../../data/api';
+import { noCelular } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../../lib/edicaoEstatica';
 import { getEntitlements } from '../../../lib/entitlements';
 import { proximaRecompensa } from '../../../lib/galeria/progressao';
@@ -250,7 +251,8 @@ export default function InicioDoQuest({
               {feitas}/{listaDeMissoes.length}
             </span>
           </header>
-          <div className="q-grade g3">
+          {/* No celular a grade rola de lado: quem usa teclado precisa conseguir parar nela para rolar. */}
+          <div className="q-grade g3" tabIndex={noCelular() ? 0 : undefined}>
             {listaDeMissoes.map((m) => {
               const feita = m.atual >= m.alvo;
               const atual = Math.min(m.atual, m.alvo);

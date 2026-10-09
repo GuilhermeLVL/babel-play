@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test'
 
-import { clicarRobusto, fecharSobreposicoes } from './_helpers'
+import { iniciarCaptura } from './_captura'
+import { abrirTela, clicarRobusto, fecharSobreposicoes, trilho } from './_helpers'
 
 /**
  * O FIM DA CAPTURA COM O SERVIDOR DE VERDADE (relato do dono, 2026-09-28: "quando tento ENCERRAR
@@ -14,6 +15,10 @@ import { clicarRobusto, fecharSobreposicoes } from './_helpers'
  *
  * As falas entram por `window.__simFalas` (a bancada da tela, sem STT nem MT); a captura começa de
  * verdade, com a mídia falsa do Chromium. A sessão criada é apagada no fim.
+ *
+ * NO DESENHO NOVO (09/10/2026) a captura abre pronta, com "Iniciar captura" na faixa de baixo
+ * (`iniciar-captura`); gravando, o botão vira "Encerrar" (`encerrar-captura`). O botão "Abrir a
+ * sessão salva" era do desenho de antes: quem diz que salvou é o servidor, e é a ele que se pergunta.
  */
 test.use({
   permissions: ['microphone'],
@@ -37,49 +42,48 @@ async function idsDasSessoes(page: Page): Promise<string[]> {
   return ((await r.json()) as Array<{ id: string }>).map((s) => s.id)
 }
 
-const doMenu = (page: Page, nome: RegExp) => page.getByRole('button', { name: nome }).locator('visible=true').first()
-
-test('600 falas: Parar → "Salvar e ficar aqui" → sair — em lotes, sem trava e sem duplicar', async ({ page }) => {
+test('600 falas: Encerrar → "Salvar e ficar aqui" → sair — em lotes, sem trava e sem duplicar', async ({ page }) => {
   test.slow()
   const antes = await idsDasSessoes(page)
-  await page.goto('/capturar')
-  await expect(page.getByRole('main')).toBeVisible()
-  await fecharSobreposicoes(page)
-
-  // As comemorações de um banco novo entram animadas, uma por vez: o clique robusto as fecha.
-  await clicarRobusto(page, page.getByRole('button', { name: /Iniciar captura|Iniciar a gravação de áudio|Começar a gravar/ }).first())
-  const baixar = page.getByRole('button', { name: /Baixar e iniciar/ })
-  if (await baixar.waitFor({ state: 'visible', timeout: 2500 }).then(() => true, () => false)) await baixar.click()
-  await expect(page.getByRole('button', { name: /Parar/ }).first()).toBeVisible({ timeout: 15_000 })
+  await abrirTela(page, '/capturar')
+  await iniciarCaptura(page)
   await page.evaluate(() =>
     (window as unknown as { __simFalas: (t: string[]) => number }).__simFalas(
       Array.from({ length: 600 }, (_, i) => `sentence number ${i} about the weather today`),
     ),
   )
 
-  await clicarRobusto(page, page.getByRole('button', { name: /Parar/ }).first())
+  await clicarRobusto(page, page.getByTestId('encerrar-captura'))
   const encerrar = page.getByRole('dialog', { name: /Encerrar a sessão/ })
   await expect(encerrar).toBeVisible()
   await encerrar.getByRole('button', { name: 'Salvar e ficar aqui' }).click()
+  // O diálogo sai e a captura para NA HORA — antes do áudio, da rede e do vocabulário.
   await expect(encerrar).toBeHidden({ timeout: 1500 })
-  await expect(page.getByRole('button', { name: /Abrir a sessão salva/ })).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByTestId('iniciar-captura')).toBeVisible({ timeout: 5000 })
 
-  const depois = await idsDasSessoes(page)
-  const novas = depois.filter((id) => !antes.includes(id))
-  expect(novas).toHaveLength(1)
+  // O salvamento termina em segundo plano, com a tela já solta: UMA sessão nova no servidor.
+  const novasAgora = async () => (await idsDasSessoes(page)).filter((id) => !antes.includes(id))
+  await expect.poll(async () => (await novasAgora()).length, { timeout: 30_000 }).toBe(1)
+  const novas = await novasAgora()
   try {
-    const r = await page.request.get(`/api/sessions/${novas[0]}`)
-    const corpo = (await r.json()) as { utterances: unknown[] }
-    expect(corpo.utterances, 'as 600 falas chegaram, em lotes').toHaveLength(600)
+    await expect
+      .poll(
+        async () => {
+          const r = await page.request.get(`/api/sessions/${novas[0]}`)
+          return ((await r.json()) as { utterances?: unknown[] }).utterances?.length ?? 0
+        },
+        { timeout: 30_000, message: 'as 600 falas chegam, em lotes' },
+      )
+      .toBe(600)
 
     // Sair: nenhuma trava, e nada é salvo de novo.
     await fecharSobreposicoes(page)
-    await clicarRobusto(page, doMenu(page, /^Jogar$/))
+    await clicarRobusto(page, trilho(page).locator('.q-item[data-px-rota="play"]'))
     await expect(page).toHaveURL(/\/jogar/, { timeout: 10_000 })
     await expect(page.getByText(/não foram salvas|Você tem falas não salvas/)).toHaveCount(0)
     await page.waitForTimeout(1500)
-    expect((await idsDasSessoes(page)).filter((id) => !antes.includes(id))).toHaveLength(1)
+    expect(await novasAgora()).toHaveLength(1)
   } finally {
-    for (const id of novas) await page.request.delete(`/api/sessions/${id}`)
+    for (const id of await novasAgora()) await page.request.delete(`/api/sessions/${id}`)
   }
 })

@@ -1,6 +1,6 @@
 import { devices, expect, type Page, test } from '@playwright/test'
 
-import { clicarRobusto, fecharSobreposicoes, semCapturaDeTela } from './_helpers'
+import { assentar, clicarRobusto, fecharSobreposicoes, semCapturaDeTela, verSemSobreposicao } from './_helpers'
 
 /**
  * A CAPTURA NO CELULAR, COMO O CELULAR É (relato do dono, 2026-09-28: "no celular não consegui
@@ -11,14 +11,14 @@ import { clicarRobusto, fecharSobreposicoes, semCapturaDeTela } from './_helpers
  * do Chromium (`--use-fake-device-for-media-stream`, permissão já dada). O que se prova:
  *   · UMA folha antes da sessão, com o download do que a escolha baixa (Privado: o nosso modelo;
  *     Rápido: o tradutor, que ele também usa) — e não mais duas janelas empilhadas com o relógio andando;
- *   · Privado: o microfone abre (getUserMedia + VAD) e só ENTÃO a sessão começa (botão Parar);
+ *   · Privado: o microfone abre (getUserMedia + VAD) e só ENTÃO a sessão começa (botão Encerrar);
  *   · Rápido: a Web Speech (falsa aqui) abre o áudio, a legenda chega, e nenhum segundo
  *     `getUserMedia` é aberto para o medidor;
  *   · Rápido com erro: a ajuda aparece (em vez de "Ouvindo…" calado) e "Trocar para Privado" abre o
  *     microfone num toque;
  *   · Rápido como o Chrome do Android (relato do dono, 2026-09-29: "a legenda duplica" e "a tradução
  *     não funciona"): finais que crescem em índices novos, sem parcial, e o reenvio do último depois
- *     do religar viram UM balão; e, com o tradutor baixando, a fala espera a tradução (sem o
+ *     do religar viram UMA fala; e, com o tradutor baixando, a fala espera a tradução (sem o
  *     original entre parênteses nem a faixa de falha) e a recebe quando ele fica pronto. O tradutor
  *     é o do navegador, falso (`tradutorFalso`): o opus-mt não baixa aqui (Hugging Face cortado).
  * Os modelos NÃO baixam: os pedidos ao Hugging Face são cortados (a captura abre sem eles; a legenda
@@ -187,6 +187,11 @@ async function tradutorFalso(page: Page) {
   })
 }
 
+/**
+ * A tela da captura no celular, pronta. NO DESENHO NOVO (09/10/2026) é a mesma tela de todo aparelho
+ * (`captura-do-prototipo`); sem captura de tela, o miolo diz de onde vem o som ("deixe o celular perto
+ * do som") no lugar da faixa "No celular…" de antes (`aviso-sem-audio-do-sistema`, que saiu).
+ */
 async function abrirCaptura(page: Page) {
   await semCapturaDeTela(page)
   await semEscolhaGuardada(page)
@@ -197,20 +202,28 @@ async function abrirCaptura(page: Page) {
   await page.route(/\/modelos\/bergamot\/|bergamot-translator-worker/, (r) => r.abort())
   await page.goto('/capturar')
   await expect(page.getByRole('main')).toBeVisible()
-  await fecharSobreposicoes(page)
-  await expect(page.getByTestId('aviso-sem-audio-do-sistema')).toContainText('No celular')
+  await assentar(page)
+  await expect(iniciar(page)).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByTestId('captura-do-prototipo')).toContainText('deixe o celular perto do som')
 }
 
-const iniciar = (page: Page) =>
-  page.getByRole('button', { name: /Iniciar a gravação de áudio|Iniciar captura|Começar a gravar/ })
-const parar = (page: Page) => page.getByRole('button', { name: /Parar captura|Parar gravação|Parar e salvar/ })
+const iniciar = (page: Page) => page.getByTestId('iniciar-captura')
+/** Gravando, o botão principal vira "Encerrar" (o "Parar captura" de antes). */
+const parar = (page: Page) => page.getByTestId('encerrar-captura')
+/** As falas da legenda ao vivo (`HistoricoDoPrototipo`): uma linha por fala. */
+const falas = (page: Page) => page.getByTestId('captura-do-prototipo').locator('.q-linha-da-fala')
 
 async function escolherNaFolha(page: Page, opcao: 'Rápido' | 'Privado', download: RegExp, confirmar: RegExp) {
   await clicarRobusto(page, iniciar(page))
   const folha = page.getByRole('dialog', { name: 'Como transcrever a sua voz?' })
   await expect(folha).toBeVisible()
-  // UMA janela, antes da sessão: nada de relógio andando nem de "Parar" por baixo dela.
-  await expect(page.locator('dialog[open]')).toHaveCount(1)
+  /* UMA janela, antes da sessão: nada de relógio andando nem de "Encerrar" por baixo dela. (As
+     comemorações de conquista não são da captura: entram por cima a qualquer momento, e são fechadas
+     antes de contar.) */
+  await expect(async () => {
+    await fecharSobreposicoes(page)
+    expect(await page.locator('dialog[open]').count()).toBe(1)
+  }).toPass({ timeout: 10_000 })
   await expect(parar(page)).toHaveCount(0)
   // As comemorações de um banco usado entram por cima a qualquer momento: o clique robusto as fecha.
   await clicarRobusto(page, folha.getByRole('button', { name: new RegExp(opcao) }).first())
@@ -228,7 +241,11 @@ test.describe('Captura no celular (Pixel 7, sem getDisplayMedia)', () => {
     await expect(parar(page)).toBeVisible({ timeout: 30_000 })
     await expect(page.getByRole('dialog', { name: 'Como transcrever a sua voz?' })).toHaveCount(0)
     await expect(page.getByTestId('ajuda-do-microfone')).toHaveCount(0)
-    await expect(page.locator('.cel-aovivo').first()).not.toHaveText('00:00', { timeout: 5_000 })
+    // O relógio da faixa anda.
+    await expect(page.getByRole('toolbar', { name: 'Controles da captura' }).locator('.q-tempo .tn')).not.toHaveText(
+      '00:00',
+      { timeout: 5_000 },
+    )
   })
 
   test('Rápido: a folha diz o tamanho do tradutor, a legenda chega, e nenhum segundo getUserMedia', async ({
@@ -240,7 +257,7 @@ test.describe('Captura no celular (Pixel 7, sem getDisplayMedia)', () => {
     // O celular não tem o tradutor do navegador: o nosso baixa, e a folha diz isso (o Rápido também traduz).
     await escolherNaFolha(page, 'Rápido', /baixa o tradutor, de cerca de \d+ MB/, /Baixar e iniciar/)
     await expect(parar(page)).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByText('bom dia a todos').first()).toBeVisible({ timeout: 10_000 })
+    await expect(falas(page).filter({ hasText: 'bom dia a todos' }).first()).toBeVisible({ timeout: 10_000 })
     expect(await page.evaluate(() => (window as unknown as { __getUserMedia: number }).__getUserMedia)).toBe(0)
   })
 
@@ -257,7 +274,7 @@ test.describe('Captura no celular (Pixel 7, sem getDisplayMedia)', () => {
     await expect(parar(page)).toBeVisible({ timeout: 30_000 })
   })
 
-  test('Rápido como o Chrome do Android: UM balão por fala, e a tradução chega quando o tradutor fica pronto', async ({
+  test('Rápido como o Chrome do Android: UMA fala por frase, e a tradução chega quando o tradutor fica pronto', async ({
     page,
   }) => {
     test.slow()
@@ -267,15 +284,16 @@ test.describe('Captura no celular (Pixel 7, sem getDisplayMedia)', () => {
     // O tradutor do navegador ainda vai baixar ('downloadable'): o nosso conta na folha.
     await escolherNaFolha(page, 'Rápido', /baixa o tradutor/, /Baixar e iniciar/)
     await expect(parar(page)).toBeVisible({ timeout: 15_000 })
-    const baloes = page.locator('.fala').filter({ hasText: 'gosto' })
-    await expect(baloes.filter({ hasText: FRASE_ANDROID })).toHaveCount(1, { timeout: 10_000 })
-    // Enquanto o pacote baixa, a fala ESPERA a tradução: nada de "(original)" nem da faixa de falha.
-    await expect(page.getByTestId('traducao-pendente').first()).toBeVisible({ timeout: 5_000 })
+    const daFrase = falas(page).filter({ hasText: 'gosto' })
+    await expect(daFrase.filter({ hasText: FRASE_ANDROID })).toHaveCount(1, { timeout: 10_000 })
+    /* Enquanto o pacote baixa, a fala ESPERA a tradução: a linha mostra só o que foi dito — nada de
+       "(original)" entre parênteses nem da faixa de falha. */
+    await expect(daFrase.getByText(`[trad] ${FRASE_ANDROID}`)).toHaveCount(0)
     await expect(page.getByText(`(${FRASE_ANDROID})`)).toHaveCount(0)
-    // Pronto o tradutor, a tradução chega ao MESMO balão.
-    await expect(baloes.getByText(`[trad] ${FRASE_ANDROID}`)).toBeVisible({ timeout: 15_000 })
-    // O reenvio depois do religar não abriu outro balão.
-    await expect(baloes).toHaveCount(1)
+    // Pronto o tradutor, a tradução chega à MESMA fala.
+    await expect(daFrase.getByText(`[trad] ${FRASE_ANDROID}`)).toBeVisible({ timeout: 15_000 })
+    // O reenvio depois do religar não abriu outra fala.
+    await expect(daFrase).toHaveCount(1)
     await expect(page.getByText(/Tradução indisponível agora/)).toHaveCount(0)
   })
 })
@@ -287,52 +305,60 @@ async function foto(page: Page, nome: string) {
 }
 
 /**
- * A TELA DO CELULAR (maquete aprovada pelo dono, 2026-09-29): o microfone grande embaixo, as opções
- * numa folha, e gravando a conversa ocupa a tela (a barra de abas some); tocar num balão abre a
- * folha da frase, a palavra abre a folha dela, e a fala tocada mostra os atalhos.
+ * A TELA DO CELULAR: pronta, com o Iniciar ao alcance do polegar; gravando, a conversa ocupa a tela;
+ * tocar numa fala abre a folha dela, a palavra abre a folha da palavra.
+ *
+ * SAÍRAM COM O DESENHO DE ANTES: a tela própria do celular (`captura-no-celular`), a folha "Opções da
+ * captura" com "Manter a tela acesa" (hoje só do headset) e os atalhos "Devagar" na fala tocada.
  */
 test.describe('Captura no celular: a tela para uma mão só', () => {
-  test('pronto: microfone grande, par num controle só e as opções numa folha', async ({ page }) => {
+  test('pronto: Iniciar, o par de idiomas num controle só, o microfone e os ajustes', async ({ page }) => {
     test.slow()
     await abrirCaptura(page)
-    await expect(page.getByTestId('captura-no-celular')).toBeVisible()
-    await expect(iniciar(page)).toBeVisible()
-    await expect(
-      page.getByRole('button', { name: 'Trocar os idiomas' }).or(page.locator('span.cel-troca')),
-    ).toBeVisible()
+    const tela = page.getByTestId('captura-do-prototipo')
+    await expect(iniciar(page)).toBeEnabled()
+    // O alvo do gesto principal: pelo menos 48 px no celular.
+    expect((await iniciar(page).boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(48)
+    // O par de idiomas é UM controle (abre "Idiomas da sessão"), e o microfone nasce ligado.
+    await expect(tela.getByRole('button', { name: /→/ }).first()).toBeVisible()
+    await expect(tela.getByRole('switch', { name: 'Microfone ativo' })).toBeChecked()
     await fecharSobreposicoes(page)
     await foto(page, '1-pronto')
-    await clicarRobusto(page, page.getByRole('button', { name: 'Opções da captura' }))
-    const opcoes = page.getByRole('dialog', { name: 'Opções da captura' })
-    await expect(opcoes).toBeVisible()
-    await expect(opcoes.getByRole('button', { name: /Idiomas/ })).toBeVisible()
-    await expect(opcoes.getByRole('switch', { name: 'Manter a tela acesa' })).toBeVisible()
-    await foto(page, '5-opcoes')
-    await page.keyboard.press('Escape')
-    await expect(opcoes).toBeHidden()
+
+    // Os ajustes dizem que este aparelho só usa o microfone, e não oferecem rota de áudio do sistema.
+    await clicarRobusto(page, tela.getByRole('button', { name: 'Ajustes da captura' }))
+    const ajustes = page.getByRole('dialog', { name: 'Dispositivos e modelos de IA' })
+    await verSemSobreposicao(page, ajustes)
+    await expect(ajustes.getByRole('radiogroup', { name: 'Como capturar o áudio do sistema' })).toHaveCount(0)
+    await expect(ajustes.getByText(/A captura usa só o microfone/)).toBeVisible()
+    await foto(page, '5-ajustes')
+    /* Pelo botão do próprio diálogo, e não por Esc: uma comemoração que abra por cima engoliria a tecla. */
+    await clicarRobusto(page, ajustes.getByRole('button', { name: 'Pronto' }))
+    await expect(ajustes).toBeHidden()
+    // Nada rola de lado na tela pronta.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
   })
 
-  test('gravando: a conversa é a tela, e o balão abre a frase e a palavra', async ({ page }) => {
+  test('gravando: a conversa é a tela, e a fala abre a frase e a palavra', async ({ page }) => {
     test.slow()
     await webSpeechFalsa(page, 'ok')
     await abrirCaptura(page)
     await escolherNaFolha(page, 'Rápido', /baixa o tradutor/, /Baixar e iniciar/)
     await expect(parar(page)).toBeVisible({ timeout: 15_000 })
-    // A barra de abas do app some enquanto grava; o aviso do bipe (Android) diz de onde vem o som.
-    await expect(page.locator('.dock')).toBeHidden()
+    // O aviso do bipe (Android) diz de onde vem o som.
     await expect(page.getByTestId('aviso-do-bipe')).toBeVisible()
     const frase = 'The weather is supposed to be great this weekend.'
     await page.evaluate(
       (t) => (window as unknown as { __simFalas: (t: string[]) => number }).__simFalas(t),
       ['So what are you planning for the weekend?', frase],
     )
-    const balao = page.locator('.fala[data-tocavel]').filter({ hasText: 'supposed' })
-    await expect(balao).toBeVisible({ timeout: 10_000 })
+    const fala = falas(page).filter({ hasText: 'supposed' })
+    await expect(fala).toBeVisible({ timeout: 10_000 })
     await foto(page, '2-gravando')
 
-    // No rótulo de quem fala: o meio do balão pode ser uma palavra (botão da folha DA PALAVRA).
-    await balao.locator('.quem').click()
-    const folha = page.getByRole('dialog', { name: 'Ações da frase' })
+    // Tocar na fala abre a folha dela, com as ações de ouvir e de praticar.
+    await fala.locator('.q-fala').click()
+    const folha = page.getByRole('dialog', { name: 'Ações', exact: true })
     await expect(folha).toBeVisible()
     for (const nome of ['Ouvir', 'Ouvir devagar', 'Repetir eu', 'Copiar'])
       await expect(folha.getByRole('button', { name: nome, exact: true })).toBeVisible()
@@ -344,11 +370,13 @@ test.describe('Captura no celular: a tela para uma mão só', () => {
     await expect(palavra.getByRole('button', { name: 'Guardar' })).toBeVisible()
     await foto(page, '4-palavra')
     await palavra.getByRole('button', { name: 'Voltar à frase' }).click()
-    await expect(page.getByRole('dialog', { name: 'Ações da frase' })).toBeVisible()
+    await expect(page.getByRole('dialog', { name: 'Ações', exact: true })).toBeVisible()
     await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog', { name: 'Ações', exact: true })).toBeHidden()
 
-    // A fala tocada fica em foco, com os atalhos de ouvir.
-    await expect(balao.getByRole('button', { name: 'Devagar' })).toBeVisible()
+    // A fala tem os dois atalhos à mão: ouvir de novo e as opções.
+    await expect(fala.getByRole('button', { name: 'Ouvir de novo' })).toBeVisible()
+    await expect(fala.getByRole('button', { name: 'Opções da fala' })).toBeVisible()
     await clicarRobusto(page, parar(page))
     await expect(page.getByRole('dialog', { name: /Encerrar a sessão/ })).toBeVisible()
   })

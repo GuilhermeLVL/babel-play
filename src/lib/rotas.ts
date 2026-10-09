@@ -225,7 +225,8 @@ export function estadoParaUrl(e: EstadoDeRota): string {
   if (e.view === 'loja' && e.lojaTab) {
     /* Aba desconhecida vira `/loja`, e nunca `/loja/undefined`: uma URL quebrada na barra de
        endereço é pior que uma URL menos específica — ela não recarrega e não se compartilha. */
-    const canonica = e.lojaTab in ABA_DA_LOJA ? e.lojaTab : normalizarAbaDaLoja(e.lojaTab);
+    const canonica =
+      e.lojaTab in ABA_DA_LOJA ? e.lojaTab : (normalizarAbaDaLojaV2(e.lojaTab) ?? normalizarAbaDaLoja(e.lojaTab));
     return canonica ? `/loja/${ABA_DA_LOJA[canonica]}` : '/loja';
   }
   if (e.view === 'play' && e.jogarQuery) return `/jogar?${e.jogarQuery}`;
@@ -269,7 +270,10 @@ export function urlParaEstado(caminho: string): EstadoDeRota {
     /* Segmento canônico primeiro; depois o APELIDO, que é o que salva os endereços gravados das
        abas extintas — `/loja/itens` e `/loja/passe` foram URLs de verdade até 2026-09-12, e sem
        este recuo elas caíam na aba padrão em vez da página onde o conteúdo ficou. */
-    const aba = ABA_DA_LOJA_DE_SEGMENTO[partes[1]] ?? normalizarAbaDaLoja(partes[1]);
+    /* O apelido é o da tela de hoje (cinco abas): a prateleira virou a Loja e o Passe, a Temporada.
+       A tabela clássica mandava os dois para Conquistas, a seção que não existe mais. */
+    const aba =
+      ABA_DA_LOJA_DE_SEGMENTO[partes[1]] ?? normalizarAbaDaLojaV2(partes[1]) ?? normalizarAbaDaLoja(partes[1]);
     // Sub-aba desconhecida degrada para a tela, nunca para o Hub: o usuário pediu Personalizar.
     return aba ? { view: 'loja', lojaTab: aba } : { view: 'loja' };
   }

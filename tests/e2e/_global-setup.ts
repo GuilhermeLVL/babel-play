@@ -1,4 +1,4 @@
-import type { FullConfig } from '@playwright/test';
+import type { FullConfig } from '@playwright/test'
 
 /**
  * ESTADO INICIAL DA SUITE E2E: um servidor que acabou de nascer.
@@ -17,13 +17,14 @@ import type { FullConfig } from '@playwright/test';
  * Roda DEPOIS de o `webServer` subir (ordem do Playwright), contra o mesmo `baseURL`.
  */
 export default async function globalSetup(config: FullConfig) {
-  const base = (config.projects[0]?.use?.baseURL as string | undefined) ?? process.env.BASE_URL ?? 'http://localhost:3100';
+  const base =
+    (config.projects[0]?.use?.baseURL as string | undefined) ?? process.env.BASE_URL ?? 'http://localhost:3100'
   const res = await fetch(`${base}/api/settings`, {
     method: 'PUT',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ ui: { onboarded: true, providerMode: 'local', credentialId: null } }),
-  });
+  })
   if (!res.ok) {
-    throw new Error(`globalSetup: PUT /api/settings devolveu ${res.status} — a suite abriria no Onboarding`);
+    throw new Error(`globalSetup: PUT /api/settings devolveu ${res.status} — a suite abriria no Onboarding`)
   }
 }

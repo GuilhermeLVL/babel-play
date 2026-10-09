@@ -1,45 +1,62 @@
 import { expect, type Locator, type Page } from '@playwright/test'
 
 /**
- * Helpers compartilhados entre as suítes de `/jogar` (`baralhos.e2e.ts`, `facetas.e2e.ts`).
- * Extraídos de `baralhos.e2e.ts` sem mudar comportamento — só um lugar único para não divergir.
+ * O QUE AS SUÍTES DIVIDEM, no desenho que virou o único (09/10/2026).
+ *
+ * A casca é o trilho de ícones (`nav.q-trilho`): Início, Capturar, Intérprete, Jogar, Estatísticas,
+ * Personalizar, Buscar e "Mais". Abaixo de 720 px ele vira uma barra de cinco destinos (Início, Jogar,
+ * Capturar, Intérprete, Mais), e Estatísticas e Personalizar passam a morar no painel "Mais"
+ * (`.q-mais`, o diálogo "Mais destinos"), que também traz Biblioteca, Vocabulário, Sobre, Planos,
+ * Ajustes, o perfil e a ajuda — e, no pé, o tema claro/escuro, o som dos toques e o Modo desempenho.
+ *
+ * O Jogar abre no lobby (`data-testid="lobby-do-quest"`); a fonte das palavras troca-se pelo chip
+ * "Trocar: …" do cabeçalho, que abre o painel "O que você vai praticar" (`dialog.qj-fonte`). Na
+ * primeira visita de um navegador, uma SALA com o mesmo título (`.qj-sala`) abre antes do lobby.
  */
+
+/** O trilho (ou a barra de cinco, no celular): é a mesma `nav`. */
+export const trilho = (page: Page) => page.locator('nav.q-trilho')
+
+/** O lobby do Jogar. */
+export const lobby = (page: Page) => page.getByTestId('lobby-do-quest')
+
+/** A sala da primeira visita ("Antes de jogar · O que você vai praticar"). */
+export const salaDeEscolha = (page: Page) => page.locator('.qj-sala')
+
+/** O painel da fonte, aberto pelo chip "Trocar: …". */
+export const painelDaFonte = (page: Page) => page.locator('dialog.qj-fonte')
+
+/** O chip do cabeçalho do lobby que abre o painel da fonte. */
+export const chipDaFonte = (page: Page) => lobby(page).getByRole('button', { name: /^Trocar: / })
 
 /**
- * Fecha diálogos que podem aparecer sobrepostos: o de recompensa/conquista (`RecompensaDesbloqueada`,
- * `<dialog>` com `.recompensa`, botão "Resgatar e continuar") entra ANIMADO, então
- * pode não estar visível ainda no instante do `goto` — por isso isso é chamado mais de uma vez, não
- * só logo após a navegação.
+ * Fecha o que pode estar por cima da tela: as recompensas (conquista, baú, nível — um diálogo por vez,
+ * cada um animando com atraso, botão "Resgatar e continuar" ou "Continuar") e a sala da primeira
+ * visita ao Jogar ("Fechar sem mudar nada"). Chamado mais de uma vez de propósito: a fila de
+ * recompensas chega depois do primeiro `<main>` visível.
  */
 export async function fecharSobreposicoes(page: Page) {
-  const dialogoRecompensa = page.locator('dialog[open]:has(.recompensa)')
-  const fecharRecompensa = dialogoRecompensa.getByRole('button', { name: 'Resgatar e continuar' })
+  const recompensa = page
+    .getByRole('dialog')
+    .getByRole('button', { name: /^(Resgatar e continuar|Continuar)$/ })
+    .first()
   for (let i = 0; i < 40; i++) {
-    if (await fecharRecompensa.isVisible().catch(() => false)) {
-      await fecharRecompensa.click({ timeout: 2000 }).catch(() => {})
-      await page.waitForTimeout(100)
-    } else {
-      break
-    }
+    if (!(await recompensa.isVisible().catch(() => false))) break
+    await recompensa.click({ force: true, timeout: 2000 }).catch(() => {})
+    await page.waitForTimeout(250)
   }
-
-  // O modal "O que você vai praticar" pode ou não abrir (só abre quando há mais de uma fonte e
-  // nenhuma preferência salva ainda) — trata os dois casos sem falhar.
-  /* O CLIQUE PRECISA DE TIMEOUT, e a falta dele custou 90 segundos de teste travado: o diálogo de
-     recompensa pode estar POR CIMA deste botão, e um `click()` sem prazo fica esperando a
-     interceptação sumir até o teste inteiro estourar — sem dizer que o problema era o overlay.
-     Com prazo curto e falha engolida, quem chama tenta de novo depois de fechar as sobreposições,
-     que é exatamente o laço de `irParaPraticar`. */
-  const fecharSemMudar = page.getByRole('button', { name: 'Fechar sem mudar nada' })
-  if (await fecharSemMudar.isVisible().catch(() => false)) {
-    await fecharSemMudar.click({ timeout: 2000 }).catch(() => {})
+  /* O CLIQUE PRECISA DE PRAZO: uma recompensa pode estar POR CIMA deste botão, e um `click()` sem
+     prazo espera a interceptação sumir até o teste inteiro estourar. Com prazo curto e a falha
+     engolida, quem chama tenta de novo (o laço de `irParaPraticar`). */
+  const fecharSala = salaDeEscolha(page).getByRole('button', { name: 'Fechar sem mudar nada' })
+  if (await fecharSala.isVisible().catch(() => false)) {
+    await fecharSala.click({ timeout: 2000 }).catch(() => {})
   }
 }
 
 /**
- * Clica robusto a diálogos de recompensa que continuam surgindo (fila de conquistas, uma por
- * vez, cada uma animando com atraso) — tenta clicar, e se um overlay interceptar o clique, fecha
- * overlays e tenta de novo, em vez de deixar o Playwright martelar o mesmo clique por 30s.
+ * Clica robusto às recompensas que continuam surgindo: tenta clicar e, se um diálogo interceptar,
+ * fecha as sobreposições e tenta de novo, em vez de martelar o mesmo clique por 30 s.
  */
 export async function clicarRobusto(page: Page, locator: Locator) {
   for (let i = 0; i < 10; i++) {
@@ -54,32 +71,74 @@ export async function clicarRobusto(page: Page, locator: Locator) {
   await locator.click()
 }
 
-export async function irParaPraticar(page: Page) {
-  await page.goto('/jogar')
-  await expect(page.getByRole('main')).toBeVisible()
+/**
+ * AS RECOMPENSAS CHEGAM DEPOIS DO `<main>`. Navegador novo = posse local vazia: as conquistas que o
+ * banco já cumpre são reavaliadas, creditadas e entram na fila — métricas, créditos e o pedaço do
+ * diálogo, tudo assíncrono. Fechar logo após o `<main>` corria contra isso: a recompensa abria no meio
+ * do teste, por cima do que ele ia tocar (e um diálogo modal por cima deixa o de baixo inerte: nem o
+ * `getByRole` o enxerga). A rede quieta marca o fim dessa cadeia; aí fecha-se o que ela enfileirou.
+ * O prazo é curto e a falha é engolida: uma tela que nunca aquieta a rede não pode travar o teste.
+ */
+export async function assentar(page: Page) {
+  await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {})
+  await fecharSobreposicoes(page)
+}
 
-  // Tanto a recompensa quanto "O que você vai praticar" podem animar/entrar em momentos
-  // diferentes do primeiro `main` visível — repete até a faixa do lobby (botão "Anki") aparecer
-  // ou esgotar as tentativas.
-  //
-  // 20 tentativas · 400ms (8s de orçamento) — não 6·300ms (1.8s) — porque sob a suíte inteira
-  // rodando em paralelo (vários workers batendo no mesmo `dev:local`) o primeiro carregamento da
-  // tela pode legitimamente demorar mais que isso; um orçamento curto aqui produzia falso-negativo
-  // ("Anki" não apareceu) que não era sobre o app, era sobre o teste não ter esperado o bastante.
-  /* O MARCO DE "LOBBY PRONTO" MUDOU: o botão do Anki desceu para dentro da gaveta do seletor
-     (redesenho de 02/09), então esperar por ele aqui esperaria por algo que não está mais na
-     tela de partida. O «Trocar» do seletor é o que sempre existe no lobby, e é o novo marco. */
-  const botaoAnki = page.getByRole('button', { name: 'Fonte' })
-  for (let i = 0; i < 20; i++) {
-    await fecharSobreposicoes(page)
-    if (await botaoAnki.isVisible().catch(() => false)) break
-    await page.waitForTimeout(400)
-  }
+/** Abre uma rota, espera o `<main>` e fecha as recompensas da chegada. */
+export async function abrirTela(page: Page, caminho: string) {
+  await page.goto(caminho)
+  await expect(page.getByRole('main')).toBeVisible({ timeout: 20_000 })
+  await assentar(page)
 }
 
 /**
- * O BOTÃO APARECE DEPOIS DO DADO CHEGAR, e é isso que separa um pulo honesto de um teste decorativo.
- * Ver docblock original em `baralhos.e2e.ts` (git history) para o raciocínio completo.
+ * Espera `alvo` ficar à vista fechando as recompensas que abrirem por cima no caminho. Para o que o
+ * teste acabou de abrir (uma folha, um diálogo): uma recompensa que chega depois o cobre e o torna
+ * inerte, e a espera simples falharia por um motivo que não é da tela testada.
+ */
+export async function verSemSobreposicao(page: Page, alvo: Locator, ms = 15_000) {
+  await expect(async () => {
+    await fecharSobreposicoes(page)
+    await expect(alvo).toBeVisible({ timeout: 1500 })
+  }).toPass({ timeout: ms })
+}
+
+/**
+ * Abre o Jogar até o lobby estar livre: a sala da primeira visita e as recompensas entram em momentos
+ * diferentes do primeiro `<main>` visível, então repete até a grade aparecer sem nada por cima.
+ */
+export async function irParaPraticar(page: Page, rota = '/jogar') {
+  await page.goto(rota)
+  await expect(page.getByRole('main')).toBeVisible({ timeout: 20_000 })
+  await assentar(page)
+  const grade = page.locator('#grade-de-jogos')
+  for (let i = 0; i < 30; i++) {
+    await fecharSobreposicoes(page)
+    const livre =
+      (await grade.isVisible().catch(() => false)) &&
+      !(await salaDeEscolha(page)
+        .isVisible()
+        .catch(() => false))
+    if (livre) break
+    await page.waitForTimeout(400)
+  }
+  /* Se o lobby não veio, a mensagem diz o que a tela mostrava: "não apareceu" sozinho não distingue
+     uma tela de erro de um carregamento que não terminou. */
+  const mostrava = (
+    await page
+      .getByRole('main')
+      .innerText()
+      .catch(() => '')
+  )
+    .replace(/\s+/g, ' ')
+    .slice(0, 200)
+  await expect(lobby(page), `o lobby do Jogar não apareceu; a tela mostrava: "${mostrava}"`).toBeVisible()
+  await expect(salaDeEscolha(page)).toBeHidden()
+}
+
+/**
+ * O BOTÃO APARECE DEPOIS DO DADO CHEGAR, e é isso que separa um pulo honesto de um teste decorativo:
+ * espera de verdade antes de dizer que não há.
  */
 export async function apareceEmAte(alvo: Locator, ms = 5000): Promise<boolean> {
   return alvo
@@ -89,8 +148,8 @@ export async function apareceEmAte(alvo: Locator, ms = 5000): Promise<boolean> {
 }
 
 /**
- * QUEM DECIDE SE HÁ BARALHO É O SERVIDOR, não a ausência de um botão na tela — ver docblock
- * original em `baralhos.e2e.ts` (git history).
+ * QUEM DECIDE SE HÁ BARALHO É O SERVIDOR, não a ausência de um botão na tela: um pulo que diz "não há
+ * baralho" quando a chamada falhou esconde um defeito atrás de uma justificativa tranquilizadora.
  */
 export async function baralhosNoServidor(page: Page): Promise<{ quantos: number; porque: string }> {
   const r = await page.request.get('/api/anki/decks').catch((e) => ({ erro: String(e) }) as never)
@@ -108,25 +167,39 @@ export async function baralhosNoServidor(page: Page): Promise<{ quantos: number;
 }
 
 /**
- * ABRE A GAVETA DO SELETOR e devolve. As ações de material (Anki, baralhos, gravações) vivem no
- * rodapé dela desde o redesenho: elas pertencem à decisão "de onde vem o que eu jogo", e ficavam
- * soltas acima da tela parecendo navegação.
+ * ABRE O PAINEL DA FONTE ("O que você vai praticar") pelo chip "Trocar: …" e o devolve. As facetas
+ * (idioma, de onde vêm, recorte, baralhos) e as ações de material (Trazer do Anki, Gerenciar
+ * baralhos) moram nele.
  */
-export async function abrirSeletor(page: Page): Promise<void> {
-  const trocar = page.getByRole('button', { name: 'Fonte' })
-  await trocar.waitFor({ state: 'visible', timeout: 15_000 })
-  if ((await trocar.getAttribute('aria-expanded')) !== 'true') {
-    await clicarRobusto(page, trocar)
+export async function abrirSeletor(page: Page): Promise<Locator> {
+  const painel = painelDaFonte(page)
+  if (!(await painel.isVisible().catch(() => false))) {
+    const chip = chipDaFonte(page)
+    await chip.waitFor({ state: 'visible', timeout: 15_000 })
+    await clicarRobusto(page, chip)
   }
-  await trocar.evaluate((el) => el.getAttribute('aria-expanded'))
+  await expect(painel).toBeVisible()
+  return painel
 }
 
 /**
- * O CELULAR DE VERDADE NÃO TEM `getDisplayMedia`. O `devices['Pixel 7']` do Playwright muda a tela,
- * o toque e o user agent, mas o Chromium por baixo continua com a captura de tela do desktop — e a
- * captura então se comportava como no computador (oferecia o áudio do sistema, sem o aviso do
- * celular), escondendo do e2e justamente o caminho que falhou no aparelho do dono (2026-09-28).
- * Chamar ANTES do `goto`: o script roda em cada documento, antes do app.
+ * ABRE O PAINEL "MAIS" (o diálogo "Mais destinos") pelo último botão do trilho — ou da barra de cinco,
+ * no celular — e o devolve.
+ */
+export async function abrirMais(page: Page): Promise<Locator> {
+  const mais = page.getByRole('dialog', { name: 'Mais destinos' })
+  if (!(await mais.isVisible().catch(() => false))) {
+    await clicarRobusto(page, trilho(page).locator('.q-mais-botao'))
+  }
+  await expect(mais).toBeVisible()
+  return mais
+}
+
+/**
+ * O CELULAR DE VERDADE NÃO TEM `getDisplayMedia`. O `devices['Pixel 7']` do Playwright muda a tela, o
+ * toque e o user agent, mas o Chromium por baixo continua com a captura de tela do desktop — e a
+ * captura então se comportava como no computador, escondendo do e2e justamente o caminho que falhou
+ * no aparelho do dono (2026-09-28). Chamar ANTES do `goto`: o script roda em cada documento.
  */
 export async function semCapturaDeTela(page: Page): Promise<void> {
   await page.addInitScript(() => {

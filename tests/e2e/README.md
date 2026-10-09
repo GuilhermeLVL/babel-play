@@ -15,10 +15,11 @@ terminal, o Playwright reaproveita esse servidor (`reuseExistingServer`, fora de
 subir um segundo — não precisa parar o seu.
 
 **Três viewports, um motor.** Os projetos são `mobile-375` (375×812, com toque), `tablet-768`
-(768×1024) e `desktop-1280` (1280×800). O app tem duas molduras de navegação — dock inferior
-abaixo de `md`, barra/rail acima — e um projeto só, de desktop, nunca tocava na dock. Os testes
-falam por papel e nome acessível (`getByRole`), então o mesmo teste vale nos três: quando a matriz
-de 2026-09-09 rodou pela primeira vez, nenhum seletor precisou de correção por largura.
+(768×1024) e `desktop-1280` (1280×800). A navegação é uma só, o trilho de ícones
+(`nav.q-trilho`), mas ela muda com a largura: abaixo de 720 px vira a barra de cinco destinos, e
+Estatísticas e Personalizar passam ao painel "Mais". Um projeto só, de desktop, nunca tocaria na
+barra. Os testes falam por papel e nome acessível (`getByRole`) e por `data-testid`, então o mesmo
+teste vale nos três; onde a tela muda de verdade com a largura, o teste diz o que espera em cada uma.
 
 **Banco.** O servidor usa o `DATABASE_URL` do ambiente e, sem ele, o padrão `file:./data/babel.db`
 — o SEU banco. Os testes gravam de verdade (filtro, recorte, rodadas, compras de Seeds). Rode
@@ -35,34 +36,45 @@ tem `<main>`, e 20 de 26 testes falhavam antes do primeiro passo. Era por isso q
 na máquina de quem a escreveu e nunca na CI.
 
 **Fixtures por API, não pela tela** (`_fixtures.ts`): as suítes que precisam de baralho, rodada ou
-saldo semeiam por `POST /api/vocab/bulk-add` e `POST /api/exercises/rodada` no `beforeAll`. Criar
-o mesmo estado pela interface amarraria cada suíte ao formulário de outra tela.
+saldo semeiam por `POST /api/vocab/bulk-add` e `POST /api/exercises/rodada` no `beforeAll`, e as
+que precisam de um baralho do Anki importam o `.apkg` de exemplo (`tests/fixtures/`) por
+`POST /api/import/anki`. Criar o mesmo estado pela interface amarraria cada suíte ao formulário de
+outra tela.
 
-**Rótulos.** Os seletores seguem os rótulos acessíveis atuais: a gaveta de fonte abre pelo botão
-**"Fonte"** (`SeletorDeConteudo.tsx`; era "Trocar" até o redesenho de 2026-09-03), a importação
-pelo botão **"Trazer do Anki"** e a tela de baralhos por **"Gerenciar baralhos"**. Quando um rótulo
-muda na tela, o teste falha no mesmo commit e é atualizado junto — nunca desligado.
+**Rótulos.** Os seletores seguem os rótulos acessíveis atuais (desenho de 09/10/2026, o único): o
+painel da fonte ("O que você vai praticar") abre pelo chip **"Trocar: …"** do cabeçalho do lobby, a
+importação pelo botão **"Trazer do Anki"** e a tela de baralhos por **"Gerenciar baralhos"**, os
+dois dentro do painel. Os caminhos que as suítes dividem estão em `_helpers.ts` (casca, lobby,
+painel "Mais"), `_jogos.ts` (do cartão ao fim da rodada) e `_captura.ts` (iniciar e encerrar).
+Quando um rótulo muda na tela, o teste falha no mesmo commit e é atualizado junto — nunca desligado.
 
 ## O que a suíte cobre
 
-| Arquivo | Fluxo |
-|---|---|
-| `fumaca.e2e.ts` | a casca carrega e a navegação principal leva a `/jogar` |
-| `grade-so-com-jogos-do-sistema.e2e.ts` | a grade só anuncia jogo que registra progresso |
-| `sessao-de-jogo.e2e.ts` | Memória, Termo e Bao (cultural) do início ao fim da rodada |
-| `fsrs-revisao.e2e.ts` | avaliar um cartão move o `due` no servidor |
-| `seeds.e2e.ts` | o saldo da tela é o do servidor; o item mais barato diz o preço ou o que falta |
-| `dois-dispositivos.e2e.ts` | a mesma conta em dois navegadores; compra simultânea não fura o saldo |
-| `estatisticas.e2e.ts` | os contadores batem com `GET /api/vocab` |
-| `tema.e2e.ts` | o tema escuro sobrevive ao F5 e a um navegador limpo |
-| `transcricao.e2e.ts` | a tela de captura e o painel de motor renderizam |
-| `baralhos.e2e.ts` | importação Anki e a tela de baralhos |
-| `facetas.e2e.ts` | a fileira RECORTE do lobby, e o recorte que persiste no F5 |
-| `trilha-carregamento.e2e.ts` | a contagem do curso nunca passa por zero |
-| `idioma-da-interface.e2e.ts` | o seletor só oferece idioma com tradução pronta |
-| `pseudo-localizacao.e2e.ts` | nada corta com texto 40% mais longo |
-| `quatro-superficies-alcancaveis.e2e.ts` | as quatro áreas de Personalizar |
-| `rota-de-aquisicao.e2e.ts` | a peça trancada diz como se consegue |
+| Arquivo                                | Fluxo                                                                          |
+| -------------------------------------- | ------------------------------------------------------------------------------ |
+| `fumaca.e2e.ts`                        | a casca carrega e a navegação principal leva a `/jogar`                        |
+| `grade-so-com-jogos-do-sistema.e2e.ts` | a grade só anuncia jogo que registra progresso                                 |
+| `sessao-de-jogo.e2e.ts`                | Memória, Termo e Bao (cultural) do início ao fim da rodada                     |
+| `fsrs-revisao.e2e.ts`                  | avaliar um cartão move o `due` no servidor                                     |
+| `seeds.e2e.ts`                         | o saldo da tela é o do servidor; o item mais barato diz o preço ou o que falta |
+| `dois-dispositivos.e2e.ts`             | a mesma conta em dois navegadores; compra simultânea não fura o saldo          |
+| `estatisticas.e2e.ts`                  | os contadores batem com `GET /api/vocab`                                       |
+| `tema.e2e.ts`                          | o tema escuro sobrevive ao F5 e a um navegador limpo                           |
+| `transcricao.e2e.ts`                   | a tela de captura e o painel de motor renderizam                               |
+| `baralhos.e2e.ts`                      | importação Anki e a tela de baralhos                                           |
+| `facetas.e2e.ts`                       | o recorte no painel da fonte, e o recorte por baralho que persiste no F5       |
+| `trilha-carregamento.e2e.ts`           | a contagem do curso nunca passa por zero                                       |
+| `idioma-da-interface.e2e.ts`           | o seletor só oferece idioma com tradução pronta                                |
+| `pseudo-localizacao.e2e.ts`            | nada corta com texto 40% mais longo                                            |
+| `duas-superficies-alcancaveis.e2e.ts`  | as cinco abas de Personalizar, e os endereços de antes                         |
+| `fundacao.e2e.ts`                      | acessibilidade (axe) de Início e Ajustes, o trilho e o "Mais", o iChat fixo    |
+| `planos-pagamento.e2e.ts`              | Planos, checkout e confirmação no self-host: nada a cobrar                     |
+| `fim-da-captura.e2e.ts`                | 600 falas salvas em lotes; sair não trava nem duplica                          |
+| `legendas-flutuantes.e2e.ts`           | a janela flutuante dentro do app: espelho, pausar, fechar                      |
+| `captura-no-celular.e2e.ts`            | a captura num Pixel 7 sem captura de tela: Rápido e Privado                    |
+| `modo-interprete.e2e.ts`               | a conversa frente a frente: por toque, com voz natural, automático             |
+| `sessao-direta.e2e.ts`                 | `/sessao/<id>` aberta direto, com a lista atrasada                             |
+| `rota-de-aquisicao.e2e.ts`             | a peça trancada diz como se consegue                                           |
 
 ## O que ela NÃO cobre, e por quê
 
@@ -79,8 +91,8 @@ silenciosamente ausente:
 - **Verificação visual/exploratória**: continua por inspeção com o MCP chrome-devtools. Esta suíte
   prova que os caminhos funcionam, não que estão bonitos.
 
-Dois testes antigos (`baralhos`, `facetas`) são **condicionais a já existir baralho importado** e
-pulam com a razão quando o ambiente não tem acervo — que é o caso de um banco novo.
+Os testes de `baralhos` e `facetas` que dependem de haver baralho importado **não pulam mais**: a
+fixture `semearBaralhoAnki` importa o baralho de exemplo quando o servidor não tem nenhum.
 
 ## Quando o processo do Playwright morre
 

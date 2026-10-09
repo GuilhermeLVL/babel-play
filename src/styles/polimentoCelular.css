@@ -78,3 +78,23 @@ html[data-quest-novo='true'][data-dispositivo^='celular'] .q-palco {
     bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   }
 }
+
+@media (max-width: 720px) {
+  /* CONTRASTE DE LEITURA (a exceção de aparência): o rótulo do destino aberto ia no laranja do acento
+     sobre a pílula clara, 2,81:1. O rótulo passa à tinta; o ícone segue no acento. */
+  html[data-quest-novo='true']
+    .q-trilho
+    > .q-item:is([aria-current='page'], [aria-expanded='true'])
+    > span:not(.q-tecla) {
+    color: var(--ink);
+  }
+  /* Rótulo comprido (outro idioma) quebra em duas linhas em vez de sair cortado. Curto, nada muda. */
+  html[data-quest-novo='true'] :is(.quest-jogar > .q-cab, .qj-sala-pe) > .q-ctl.pri {
+    min-width: 0;
+    max-width: 100%;
+    padding-block: 8px;
+    white-space: normal;
+    line-height: 1.15;
+    text-align: center;
+  }
+}

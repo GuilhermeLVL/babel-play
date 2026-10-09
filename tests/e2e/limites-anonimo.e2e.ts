@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test } from '@playwright/test'
 
 /**
  * OS TETOS DO MODO SEM CONTA (`src/core/tetoAnonimo.ts`: 5 gravacoes, 80 palavras).
@@ -14,4 +14,4 @@ import { test } from '@playwright/test';
  */
 test.skip('o modo sem conta recusa a 6a gravacao e a 81a palavra com a mensagem do teto', () => {
   // exige build com VITE_AUTH_REQUIRED=1 e projeto Supabase; dev:local roda sempre como selfhost
-});
+})

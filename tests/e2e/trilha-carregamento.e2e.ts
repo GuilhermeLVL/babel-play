@@ -1,85 +1,107 @@
-import { expect, test } from '@playwright/test'
+import { expect, type Locator, type Page, test } from '@playwright/test'
 
-import { abrirSeletor, clicarRobusto, irParaPraticar } from './_helpers'
+import { semearCartoes } from './_fixtures'
+import { abrirSeletor, clicarRobusto, irParaPraticar, lobby } from './_helpers'
 
 /**
- * A trilha passa a carregar sob demanda. O modo de falha dessa mudança é SILENCIOSO: a contagem
- * pisca zero, ou um jogo anuncia "sem material" durante o carregamento — mensagem falsa, não só
- * feia. Este teste existe para que isso não passe despercebido.
+ * A trilha carrega sob demanda. O modo de falha dessa mudança é SILENCIOSO: a contagem pisca zero,
+ * ou um jogo anuncia "sem material" durante o carregamento — mensagem falsa, não só feia. Este teste
+ * existe para que isso não passe despercebido.
+ *
+ * NO DESENHO NOVO (09/10/2026) a fonte troca-se no painel "O que você vai praticar" (chip "Trocar: …"):
+ * a faceta "De onde vêm" traz a pílula "Trilha" com a contagem, o pé do painel diz "N no recorte" e o
+ * cabeçalho do lobby diz "N palavras prontas" (ou "Nenhuma palavra pronta").
+ *
+ * As palavras da fixture garantem que há MAIS de uma fonte (as do caderno e a trilha): com uma só, o
+ * chip da fonte nem é oferecido.
  */
+
+test.beforeAll(async () => {
+  await semearCartoes()
+})
+
 /**
  * O app é self-host de usuário único: o idioma praticado é preferência de PERFIL, gravada no
- * servidor, então a sessão anterior — outro teste, ou alguém usando a tela — decide onde este
- * teste começa. Num idioma sem trilha o curso nem é oferecido, e o teste falharia dizendo que a
- * trilha quebrou. Ele garante o próprio ponto de partida.
+ * servidor, então a sessão anterior decide onde este teste começa. Num idioma sem trilha o curso nem
+ * é oferecido, e o teste falharia dizendo que a trilha quebrou. Ele garante o próprio ponto de partida.
  */
-async function garantirIdiomaComTrilha(page: import('@playwright/test').Page): Promise<void> {
-  // A faceta é exclusiva, então o Segmentado a expõe como `radiogroup`, não `group`.
-  const ingles = page.getByRole('radiogroup', { name: 'idioma' }).getByRole('radio', { name: /inglês/ })
+async function garantirIdiomaComTrilha(page: Page, painel: Locator): Promise<void> {
+  // A faceta é exclusiva, então é um `radiogroup`, não um `group`.
+  const ingles = painel.getByRole('radiogroup', { name: 'Idioma' }).getByRole('radio', { name: /inglês/ })
   if ((await ingles.count()) && (await ingles.first().getAttribute('aria-checked')) !== 'true') {
     await clicarRobusto(page, ingles.first())
     await page.waitForTimeout(600)
   }
 }
 
-/* O ROTULO DA FONTE MUDA POR PERFIL: `Play.tsx` chama a trilha de "Curso de palavras" no senior
-   e de "Trilha" em kids/pro. Este arquivo fixava a redacao do senior e passava porque era ele o
-   perfil PADRAO — quando o padrao virou `pro` (12/09, spec `leitura-padrao`), os dois testes
-   esperaram 90s por um botao que existia com outro nome. */
+/** A pílula da trilha na faceta "De onde vêm" ("Curso de palavras" no perfil sênior). */
+const pilulaDaTrilha = (painel: Locator) =>
+  painel.getByRole('group', { name: 'De onde vêm' }).getByRole('button', { name: /Curso de palavras|Trilha/ })
+
 test.describe('Trilha carregada sob demanda', () => {
   test('a contagem do curso nunca passa por zero ao escolher a fonte', async ({ page }) => {
     test.slow()
     await irParaPraticar(page)
-    await abrirSeletor(page)
-    await garantirIdiomaComTrilha(page)
+    const painel = await abrirSeletor(page)
+    await garantirIdiomaComTrilha(page, painel)
 
-    const curso = page
-      .getByRole('group', { name: 'de onde vêm' })
-      .getByRole('button', { name: /Curso de palavras|Trilha/ })
+    const curso = pilulaDaTrilha(painel)
     await expect(curso).toBeVisible({ timeout: 15_000 })
 
     // A contagem já tem de estar certa ANTES de clicar: ela vem do índice, não do dado.
     const antes = ((await curso.textContent()) ?? '').replace(/\D/g, '')
     expect(Number(antes), 'o curso deve anunciar o tamanho antes de a trilha carregar').toBeGreaterThan(0)
 
-    /* Amostra a linha de resumo enquanto a fonte troca. Se em algum quadro ela disser 0, o
-       carregamento está vazando para a tela. */
+    /* Amostra as duas contagens enquanto a fonte troca: o "N no recorte" do pé do painel e o
+       "N palavras prontas" do lobby. Se em algum quadro uma disser zero, o carregamento está vazando
+       para a tela. */
     const zerou: string[] = []
     const amostrar = setInterval(async () => {
-      const t = await page
-        .locator('body')
+      const recorte = await painel
+        .locator('.qj-total b')
         .innerText()
         .catch(() => '')
-      const m = t.match(/jogando com\s+([\d.]+)/i)
-      if (m && Number(m[1].replace(/\./g, '')) === 0) zerou.push(m[1])
+      if (recorte && Number(recorte.replace(/\D/g, '')) === 0) zerou.push(`${recorte} no recorte`)
+      const prontas = await lobby(page)
+        .locator('.q-cab .q-sobre')
+        .innerText()
+        .catch(() => '')
+      if (/^(0|Nenhuma) /i.test(prontas.trim())) zerou.push(prontas.trim())
     }, 120)
 
-    await clicarRobusto(page, curso)
+    if ((await curso.getAttribute('aria-pressed')) !== 'true') await clicarRobusto(page, curso)
+    await expect(curso).toHaveAttribute('aria-pressed', 'true')
     await page.waitForTimeout(2500)
     clearInterval(amostrar)
 
     expect(zerou, 'a contagem passou por zero durante o carregamento').toHaveLength(0)
+    // E, carregada, a contagem do recorte é pelo menos a da trilha.
+    const depois = Number((await painel.locator('.qj-total b').innerText()).replace(/\D/g, ''))
+    expect(depois).toBeGreaterThanOrEqual(Number(antes))
   })
 
   test('nenhum jogo anuncia "sem material" enquanto a trilha carrega', async ({ page }) => {
     test.slow()
     await irParaPraticar(page)
-    await abrirSeletor(page)
-    await garantirIdiomaComTrilha(page)
+    const painel = await abrirSeletor(page)
+    await garantirIdiomaComTrilha(page, painel)
 
-    const curso = page
-      .getByRole('group', { name: 'de onde vêm' })
-      .getByRole('button', { name: /Curso de palavras|Trilha/ })
-    await clicarRobusto(page, curso)
+    const curso = pilulaDaTrilha(painel)
+    if ((await curso.getAttribute('aria-pressed')) !== 'true') await clicarRobusto(page, curso)
+    await expect(curso).toHaveAttribute('aria-pressed', 'true')
 
     // Logo depois do clique é a janela em que o dado ainda não chegou.
     await page.waitForTimeout(200)
     const durante = await page.locator('body').innerText()
     expect(durante).not.toContain('nenhuma palavra deste recorte serve')
+    expect(durante).not.toContain('Nenhum jogo abre só com este material ainda')
+    expect(durante).not.toContain('Nenhuma palavra pronta')
 
     await page.waitForTimeout(2500)
+    await clicarRobusto(page, painel.getByRole('button', { name: 'Pronto' }))
     const grade = page.locator('#grade-de-jogos')
     await expect(grade).toBeVisible()
-    expect(((await grade.textContent()) ?? '').length).toBeGreaterThan(0)
+    await expect(grade.locator('.q-tile[data-jogo="memory"]')).toBeEnabled()
+    await expect(lobby(page).locator('.q-cab .q-sobre')).toHaveText(/^[\d.]+ palavras prontas$/)
   })
 })

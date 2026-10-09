@@ -3,7 +3,7 @@ import { createRequire } from 'node:module'
 
 import { expect, type Page, test } from '@playwright/test'
 
-import { clicarRobusto, fecharSobreposicoes } from './_helpers'
+import { abrirMais, clicarRobusto, fecharSobreposicoes, trilho } from './_helpers'
 
 /**
  * FUNDAÇÃO (23/09/2026) — o que o shell novo promete e o que as duas telas-molde garantem.
@@ -11,7 +11,8 @@ import { clicarRobusto, fecharSobreposicoes } from './_helpers'
  * - Início e Ajustes sem violação WCAG 2.2 AA séria ou crítica (axe injetado direto: `axe-core`
  *   já é dependência, e o wrapper do Playwright seria um pacote a mais para a mesma coisa).
  * - Nenhuma tela rola de lado, em nenhum dos três tamanhos.
- * - Menu lateral: recolhe por botão e por Ctrl+B, e lembra ao recarregar.
+ * - O trilho de ícones leva a todo destino: no computador e no tablet, seis no trilho e o resto no
+ *   'Mais'; abaixo de 720 px, a barra de cinco, com Estatísticas e Personalizar também no 'Mais'.
  * - iChat fixo: divide a linha com o conteúdo, a largura muda pela alça e volta a flutuar sozinho
  *   quando a janela fica estreita demais.
  */
@@ -91,43 +92,86 @@ for (const [nome, caminho] of [
   })
 }
 
+/**
+ * O TRILHO (`nav.q-trilho`, `TrilhoDoQuest`) é a única navegação do app. No lugar do menu lateral que
+ * recolhia (por botão e por Ctrl+B, `babel.rail_collapsed`) — que saiu com o desenho de antes —, o que
+ * a casca promete agora é: todo destino tem porta, em qualquer largura, e a porta leva à tela.
+ */
+test('o trilho leva a todo destino: os do trilho direto, o resto pelo "Mais"', async ({ page }) => {
+  test.slow()
+  await abrir(page)
+  const estreito = (page.viewportSize()?.width ?? 0) < 720
+  const nav = trilho(page)
+  await expect(nav).toBeVisible()
+
+  /* Abaixo de 720 px o trilho é a barra de cinco (Início, Jogar, Capturar, Intérprete, Mais): Estatísticas
+     e Personalizar saem dela e passam ao "Mais". Acima, os seis ficam no trilho. */
+  const noTrilho: Array<[RegExp, RegExp]> = [
+    [/^(Início|Página Inicial)$/, /\/$/],
+    // O Jogar antes dos outros: a sala da primeira visita abre por cima, e sair da tela a leva junto.
+    [/^(Jogar|Praticar)$/, /\/jogar/],
+    [/^(Capturar|Gravar|Gravar Áudio)$/, /\/capturar/],
+  ]
+  const doisQueMudam: Array<[RegExp, RegExp]> = [
+    [/^(Estatísticas|Meu progresso)/, /\/estatisticas/],
+    [/^(Personalizar|Meu visual)/, /\/loja/],
+  ]
+  const soNoMais: Array<[RegExp, RegExp]> = [
+    [/^(Biblioteca|Minhas Mídias)/, /\/biblioteca/],
+    [/^(Vocabulário|Palavras|Minhas Palavras)/, /\/vocabulario/],
+    [/^Sobre/, /\/sobre/],
+    [/^Planos/, /\/plano/],
+    [/^(Ajustes|Configurações)/, /\/ajustes/],
+  ]
+
+  for (const [nome, url] of [...noTrilho, ...(estreito ? [] : doisQueMudam)]) {
+    const item = nav.getByRole('button', { name: nome })
+    await expect(item, `${nome} deveria estar no trilho`).toBeVisible()
+    await clicarRobusto(page, item)
+    await expect(page).toHaveURL(url)
+    await expect(page.getByRole('main')).toBeVisible()
+    await expect(item).toHaveAttribute('aria-current', 'page')
+  }
+  if (estreito) {
+    for (const [nome] of doisQueMudam) await expect(nav.getByRole('button', { name: nome })).toBeHidden()
+    await expect(nav.locator('.q-item:visible')).toHaveCount(5)
+  }
+
+  for (const [nome, url] of [...(estreito ? doisQueMudam : []), ...soNoMais]) {
+    const mais = await abrirMais(page)
+    const porta = mais.getByRole('tabpanel', { name: 'Destinos' }).getByRole('button', { name: nome })
+    await expect(porta, `${nome} deveria estar no "Mais"`).toBeVisible()
+    await porta.click()
+    await expect(mais, 'escolher um destino fecha o painel').toBeHidden()
+    await expect(page).toHaveURL(url)
+    await expect(page.getByRole('main')).toBeVisible()
+    // Fora do trilho, quem fica marcado é o "Mais".
+    await expect(nav.locator('.q-mais-botao')).toHaveAttribute('aria-current', 'page')
+  }
+
+  // O pé do "Mais" guarda os três ajustes rápidos, e Esc fecha o painel.
+  const mais = await abrirMais(page)
+  await expect(mais.getByRole('button', { name: /^Tema (claro|escuro)$/ })).toBeVisible()
+  await expect(mais.getByRole('button', { name: /^Som dos toques: (ligado|desligado)$/ })).toBeVisible()
+  await expect(mais.getByTestId('modo-desempenho-no-mais')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(mais).toBeHidden()
+  expect(await semRolagemLateral(page)).toBe(true)
+
+  /* O INTÉRPRETE, por último: ele abre direto na conversa frente a frente, que ocupa a tela INTEIRA —
+     o trilho sai de cena, e a saída é o "Sair do modo intérprete" da própria tela, que devolve o menu. */
+  await clicarRobusto(page, nav.getByRole('button', { name: /^Intérprete/ }))
+  await expect(page).toHaveURL(/\/interprete/)
+  await expect(page.getByTestId('conversa-pronta')).toBeVisible({ timeout: 15_000 })
+  await clicarRobusto(page, page.getByRole('button', { name: 'Sair do modo intérprete' }))
+  await expect(page.getByTestId('conversa-pronta')).toHaveCount(0)
+  await expect(nav).toBeVisible()
+  await expect(nav.getByRole('button', { name: /^(Início|Página Inicial)$/ })).toBeVisible()
+})
+
 test.describe('shell de tela grande', () => {
   test.beforeEach(({ page }) => {
-    test.skip((page.viewportSize()?.width ?? 0) < 768, 'o menu lateral e o iChat fixo são de tela grande')
-  })
-
-  test('menu lateral recolhe por botão e por Ctrl+B, e lembra ao recarregar', async ({ page }) => {
-    await page.addInitScript(() => {
-      if (!sessionStorage.getItem('fundacao-e2e')) {
-        localStorage.removeItem('babel.rail_collapsed')
-        localStorage.setItem('babel.menu_position', 'left')
-        sessionStorage.setItem('fundacao-e2e', '1')
-      }
-    })
-    await abrir(page)
-    const rail = page.locator('[data-shell="rail"]')
-    await expect(rail).toBeVisible()
-    const larguraAberta = (await rail.boundingBox())!.width
-
-    await clicarRobusto(page, page.getByRole('button', { name: /^Recolher o menu lateral/ }))
-    await expect.poll(async () => (await rail.boundingBox())!.width).toBeLessThan(larguraAberta)
-
-    // Recolhido, o item mostra o nome numa dica visível ao passar o mouse (CSS do protótipo,
-    // `[data-rot]::after`).
-    const item = rail.getByRole('button', { name: /^(Início|Página Inicial)$/ })
-    await item.hover()
-    await expect.poll(() => item.evaluate((el) => getComputedStyle(el, '::after').opacity)).toBe('1')
-    expect(await item.getAttribute('data-rot')).toMatch(/Início|Página Inicial/)
-
-    await page.reload()
-    await expect(page.getByRole('button', { name: /^Expandir o menu lateral/ })).toBeVisible()
-
-    await page
-      .locator('body')
-      .click({ position: { x: 5, y: 5 } })
-      .catch(() => {})
-    await page.keyboard.press('Control+b')
-    await expect(page.getByRole('button', { name: /^Recolher o menu lateral/ })).toBeVisible()
+    test.skip((page.viewportSize()?.width ?? 0) < 768, 'o iChat fixo é de tela grande')
   })
 
   test('iChat fixo divide a linha, muda de largura e volta a flutuar em janela estreita', async ({ page }) => {

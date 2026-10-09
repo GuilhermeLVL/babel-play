@@ -2,9 +2,10 @@ import '../../../../styles/legendas.css';
 import '../../../../styles/legendasFlutuantes.css';
 
 import { Grip, Pause, Play, X } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { avancar, type EstadoDoRitmo, RITMO_VAZIO, saltarParaOFim } from '../../../../lib/captura/ritmoDaLegenda';
 import { t } from '../../../../lib/i18n';
 import { anima } from '../../../../lib/polimento/base';
 import {
@@ -68,6 +69,10 @@ function Fala({
  * Onde o navegador tem a janela sempre-no-topo (Document Picture-in-Picture), quem flutua é ela, por
  * cima de qualquer programa; esta é a das telas sem essa janela.
  *
+ * O RITMO é o de `lib/captura/ritmoDaLegenda`, o mesmo da janela sempre-no-topo: cada fala fica pelo
+ * menos o tempo de ler, e a seguinte espera a vez. O protótipo não tem fala de verdade para ditar
+ * ritmo; a aparência é a dele, o tempo é o da leitura.
+ *
  * Fica montada enquanto o desenho novo estiver na tela; `aberta` diz se aparece. Ao fechar, sai
  * encolhendo (`fecharFlutuante()` de `telas.js:281-290`) antes de sumir.
  */
@@ -99,6 +104,7 @@ export default function LegendaFlutuanteDoPrototipo({
       setDesde(ultimas.current[ultimas.current.length - 1]?.id ?? null);
       setPausada(false);
       setCongeladas(null);
+      setRitmo(RITMO_VAZIO);
       setMontada(true);
       return;
     }
@@ -131,12 +137,32 @@ export default function LegendaFlutuanteDoPrototipo({
 
   const [ajustar] = useState(() => () => flut.current?.ajustar());
 
+  /* As falas desta janela: as com texto, da que havia ao abrir em diante. */
+  const daJanela = useMemo(() => {
+    const comTexto = falas.filter((f) => f.original.trim());
+    const i = desde ? comTexto.findIndex((f) => f.id === desde) : -1;
+    return i >= 0 ? comTexto.slice(i) : comTexto;
+  }, [falas, desde]);
+  const doRitmo = useMemo(
+    () => daJanela.map((f) => ({ id: f.id, caracteres: f.original.length + (f.traducao?.length ?? 0) })),
+    [daJanela],
+  );
+  const [ritmo, setRitmo] = useState<EstadoDoRitmo>(RITMO_VAZIO);
+  const [tique, setTique] = useState(0);
+  useEffect(() => {
+    if (!montada || pausada) return;
+    const { estado, proximaEmMs } = avancar(ritmo, doRitmo, Date.now(), 'normal');
+    if (estado !== ritmo) setRitmo(estado);
+    if (proximaEmMs === null) return;
+    const id = window.setTimeout(() => setTique((n) => n + 1), proximaEmMs + 16);
+    return () => window.clearTimeout(id);
+  }, [ritmo, doRitmo, montada, pausada, tique]);
+
   if (!montada) return null;
 
-  const comTexto = falas.filter((f) => f.original.trim());
-  const i = desde ? comTexto.findIndex((f) => f.id === desde) : -1;
+  const reveladas = new Set(ritmo.reveladas);
   /* Só as duas últimas ficam (`telas.js:267-268`); pausada, a janela para onde estava. */
-  const aVista = (congeladas ?? (i >= 0 ? comTexto.slice(i) : comTexto)).slice(-2);
+  const aVista = (congeladas ?? daJanela.filter((f) => reveladas.has(f.id))).slice(-2);
 
   return createPortal(
     <div
@@ -159,6 +185,8 @@ export default function LegendaFlutuanteDoPrototipo({
           title={pausada ? t('Continuar') : t('Pausar (Espaço)')}
           onClick={() => {
             setCongeladas(pausada ? null : aVista);
+            // Continuar volta ao fim: o que chegou na pausa entra de uma vez, sem fila do passado.
+            if (pausada) setRitmo((r) => saltarParaOFim(r, doRitmo, Date.now()));
             setPausada(!pausada);
           }}
         >

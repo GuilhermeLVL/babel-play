@@ -538,6 +538,7 @@ describe('as legendas flutuantes (telas.js:257-380)', () => {
   })
 
   it('nasce com a última fala, guarda só as duas últimas e fecha pelo botão', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
     const aoFechar = vi.fn()
     const montar = (falas: LegendaAoVivo[], aberta = true) => (
       <LegendaFlutuanteDoPrototipo aberta={aberta} falas={falas} idiomaDaTraducao={() => 'pt-BR'} aoFechar={aoFechar} />
@@ -561,6 +562,11 @@ describe('as legendas flutuantes (telas.js:257-380)', () => {
       { opacity: 1, scale: '1', filter: 'blur(0)' },
     ])
     rerender(montar([...falas, leg('c', 'Three.'), leg('d', 'Four.')]))
+    /* O ritmo de leitura (`lib/captura/ritmoDaLegenda`): a fala nova espera a atual cumprir o tempo dela. */
+    expect([...el.querySelectorAll('.leg-fala')].map((f) => f.getAttribute('data-fala'))).toEqual(['b'])
+    act(() => void vi.advanceTimersByTime(1600))
+    expect([...el.querySelectorAll('.leg-fala')].map((f) => f.getAttribute('data-fala'))).toEqual(['b', 'c'])
+    act(() => void vi.advanceTimersByTime(1600))
     expect([...el.querySelectorAll('.leg-fala')].map((f) => f.className)).toEqual([
       'leg-fala anterior',
       'leg-fala atual',
@@ -575,6 +581,7 @@ describe('as legendas flutuantes (telas.js:257-380)', () => {
     ])
     fireEvent.click(el.querySelector('[data-px="fechar"]') as HTMLElement)
     expect(aoFechar).toHaveBeenCalled()
+    vi.useRealTimers()
   })
 
   it('sem falas, espera a primeira', () => {

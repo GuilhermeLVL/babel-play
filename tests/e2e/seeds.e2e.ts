@@ -1,78 +1,84 @@
 import { expect, test } from '@playwright/test'
 
 import { perfil, saldoEsperado, semearCartoes } from './_fixtures'
-import { clicarRobusto, fecharSobreposicoes } from './_helpers'
+import { abrirTela, fecharSobreposicoes } from './_helpers'
 
 /**
- * AS SEEDS NA LOJA: o saldo que a tela mostra e o que o servidor calcula, e a compra respeita o
+ * AS SEEDS NA LOJA: o saldo que a tela mostra é o que o servidor calcula, e a compra respeita o
  * saldo.
  *
- * O saldo nao vem pronto de nenhuma rota — `deriveProgress` faz ganhas − gastas a partir de
- * `GET /api/metrics/profile` (ver `saldoEsperado` em `_fixtures.ts`). E exatamente por isso que
- * vale um e2e: um peso trocado no core, ou um campo que a rota parou de mandar, muda o numero da
- * tela sem que nenhum teste unitario de tela ou de rota perceba.
+ * O saldo não vem pronto de nenhuma rota — `deriveProgress` faz ganhas − gastas a partir de
+ * `GET /api/metrics/profile` (ver `saldoEsperado` em `_fixtures.ts`). É exatamente por isso que
+ * vale um e2e: um peso trocado no core, ou um campo que a rota parou de mandar, muda o número da
+ * tela sem que nenhum teste unitário de tela ou de rota perceba.
  *
- * A compra e CONDICIONAL ao saldo, e o teste diz qual ramo exercitou: numa conta recem-nascida as
- * Seeds vem so dos cartoes criados (1 por cartao) e nao pagam o item mais barato (40) — entao o
- * que se prova e a mensagem "Faltam N Seeds" com o N certo. Com saldo, prova-se a compra.
+ * A compra é CONDICIONAL ao saldo, e o teste diz qual ramo exercitou: numa conta recém-nascida as
+ * Seeds vêm só dos cartões criados (1 por cartão) e não pagam o item mais barato — então o que se
+ * prova é a mensagem "Faltam N Seeds" com o N certo. Com saldo, prova-se a compra.
+ *
+ * NO DESENHO NOVO (09/10/2026) a prateleira é a aba Loja de Personalizar (`/loja/loja`,
+ * `LojaDoPrototipo`): a carteira (`carteira-de-seeds`) repete o saldo do cabeçalho
+ * (`saldo-de-seeds`), cada peça traz o preço (`[data-preco-seeds]`) e compra-se SEGURANDO o botão
+ * ("Segure para comprar"), não com um clique.
  */
 
 test.beforeAll(async () => {
   await semearCartoes()
 })
 
+const numeroDe = (t: string | null) => Number((t ?? '').replace(/\D/g, ''))
+
 test.describe('Seeds na Loja', () => {
-  test('o saldo da tela e o do servidor, e o item mais barato diz o que falta ou se compra', async ({ page }) => {
+  test('o saldo da tela é o do servidor, e o item mais barato diz o que falta ou se compra', async ({ page }) => {
     test.slow()
-    await page.goto('/loja/itens')
-    await expect(page.getByRole('main')).toBeVisible()
-    await fecharSobreposicoes(page)
+    await abrirTela(page, '/loja/loja')
 
-    /* O cartao "Seeds" das duas moedas, com o saldo em <b> ao lado do nome. */
-    /* Ancorado na secao da Loja pelo mesmo motivo de `dois-dispositivos`: desde 12/09 ela vive
-       dentro de Desafios, depois da lista de conquistas, que tambem diz "Seeds". */
-    const cartaoSeeds = page
-      .locator('#secao-loja .cartao')
-      .filter({ has: page.getByText('Seeds', { exact: true }) })
-      .first()
-    await expect(cartaoSeeds).toBeVisible({ timeout: 15_000 })
-    const lerSaldo = async () =>
-      Number(((await cartaoSeeds.locator('b').first().textContent()) ?? '').replace(/\D/g, ''))
+    const carteira = page.getByTestId('carteira-de-seeds')
+    await expect(carteira).toBeVisible({ timeout: 15_000 })
+    const lerSaldo = async () => numeroDe(await carteira.locator('.px-saldo').textContent())
 
-    /* O PERFIL E LIDO DEPOIS DE A TELA ABRIR, e com espera: abrir o app avalia conquistas e a meta
-       do dia (o dialogo de recompensa que `fecharSobreposicoes` fecha), e cada
-       credito muda o saldo. Ler antes comparava dois instantes diferentes da mesma conta. */
+    /* O PERFIL É LIDO DEPOIS DE A TELA ABRIR, e com espera: abrir o app avalia conquistas e a meta
+       do dia (a recompensa que `fecharSobreposicoes` fecha), e cada crédito muda o saldo. Ler antes
+       comparava dois instantes diferentes da mesma conta. */
     let esperado = -1
     await expect
       .poll(
         async () => {
+          await fecharSobreposicoes(page)
           esperado = saldoEsperado(await perfil())
           return (await lerSaldo()) === esperado ? 'igual' : `tela ${await lerSaldo()} vs servidor ${esperado}`
         },
-        { timeout: 10_000, message: 'o saldo da tela deveria ser o que o perfil do servidor deriva' },
+        { timeout: 15_000, message: 'o saldo da tela deveria ser o que o perfil do servidor deriva' },
       )
       .toBe('igual')
     expect(esperado).toBeGreaterThanOrEqual(0)
+    // O cabeçalho e a carteira dizem o mesmo número.
+    expect(numeroDe(await page.getByTestId('saldo-de-seeds').textContent())).toBe(esperado)
 
-    /* O ITEM MAIS BARATO da prateleira de Seeds: o menor numero ao lado do broto. */
-    const precos = await page.locator('#secao-loja [data-preco-seeds]').allTextContents()
-    const valores = precos.map((t) => Number(t.replace(/\D/g, ''))).filter((n) => Number.isFinite(n) && n > 0)
-    expect(valores.length, 'a Loja deveria listar itens com preco em Seeds').toBeGreaterThan(0)
+    /* O ITEM MAIS BARATO da prateleira de Seeds: o menor número ao lado do broto. */
+    const prateleira = page.getByTestId('prateleira-de-seeds')
+    const precos = await prateleira.locator('[data-preco-seeds]').allTextContents()
+    const valores = precos.map(numeroDe).filter((n) => Number.isFinite(n) && n > 0)
+    expect(valores.length, 'a Loja deveria listar itens com preço em Seeds').toBeGreaterThan(0)
     const maisBarato = Math.min(...valores)
 
     if (esperado >= maisBarato) {
-      const comprar = page.getByRole('button', { name: 'Comprar com Seeds' }).first()
+      const comprar = prateleira.getByRole('button', { name: 'Segure para comprar' }).first()
       await expect(comprar).toBeVisible()
-      await clicarRobusto(page, comprar)
-      await expect.poll(async () => saldoEsperado(await perfil()), { timeout: 10_000 }).toBeLessThan(esperado)
+      await comprar.scrollIntoViewIfNeeded()
+      // Segurar até o fim é a compra; soltar antes desiste.
+      await comprar.hover()
+      await page.mouse.down()
+      await expect.poll(async () => saldoEsperado(await perfil()), { timeout: 15_000 }).toBeLessThan(esperado)
+      await page.mouse.up()
       test.info().annotations.push({ type: 'ramo', description: `comprou: saldo ${esperado} >= item de ${maisBarato}` })
     } else {
       const falta = maisBarato - esperado
       await expect(
-        page.getByText(`Faltam ${falta} Seeds`, { exact: true }).first(),
+        prateleira.getByText(`Faltam ${falta} Seeds`, { exact: true }).first(),
         `com ${esperado} Seeds e item de ${maisBarato}, deveria dizer "Faltam ${falta} Seeds"`,
       ).toBeVisible()
-      await expect(page.getByRole('button', { name: 'Comprar com Seeds' })).toHaveCount(0)
+      await expect(prateleira.getByRole('button', { name: 'Segure para comprar' })).toHaveCount(0)
       test
         .info()
         .annotations.push({ type: 'ramo', description: `sem saldo: ${esperado} < ${maisBarato}, faltam ${falta}` })

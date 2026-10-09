@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { clicarRobusto, fecharSobreposicoes } from './_helpers'
+import { abrirTela, clicarRobusto } from './_helpers'
 
 /**
  * A SUPERFICIE DE CAPTURA EXISTE NOS TRES VIEWPORTS.
@@ -15,35 +15,24 @@ import { clicarRobusto, fecharSobreposicoes } from './_helpers'
 test.describe('Transcricao (captura)', () => {
   test('a tela de captura mostra o botao de iniciar e o painel de motor', async ({ page }) => {
     test.slow()
-    await page.goto('/capturar')
-    await expect(page.getByRole('main')).toBeVisible()
-    await fecharSobreposicoes(page)
+    await abrirTela(page, '/capturar')
 
-    const iniciar = page.getByRole('button', { name: /Iniciar a gravação de áudio|Iniciar captura|Começar a gravar/ })
+    /* A tela é UMA SÓ nos três tamanhos (`captura-do-prototipo`, desenho novo de 09/10/2026): abre
+       pronta, com "Iniciar captura" na faixa de baixo e "Ajustes da captura" no topo. */
+    const tela = page.getByTestId('captura-do-prototipo')
+    const iniciar = page.getByTestId('iniciar-captura')
     await expect(iniciar, 'o gesto principal da captura deveria estar na tela').toBeVisible({ timeout: 15_000 })
     await expect(iniciar, 'o botao nasce habilitado: o microfone e a fonte padrao').toBeEnabled()
+    await expect(iniciar).toHaveText(/Iniciar captura/)
 
-    /* O rotulo do botao muda por perfil — e no perfil Produtividade ele NAO TEM texto desde o
-       redesign v4: virou um icone de 36px, como os botoes utilitarios do cabecalho no design, e o
-       nome acessivel passou a vir do `aria-label` ("Configurações de dispositivos e modelos de
-       IA", o mesmo do dialogo). Kids e senior seguem com a palavra escrita. Procurar pelo
-       `aria-label` cobre os tres perfis de uma vez, e e o nome que o leitor de tela anuncia. */
-    /* No celular (o projeto de 375 px emula toque) a tela é a da captura no celular: os ajustes
-       ficam na folha de Opções, na linha "Texto e tradução". */
-    const noCelular = await page.getByTestId('captura-no-celular').isVisible()
-    if (noCelular) {
-      await clicarRobusto(page, page.getByRole('button', { name: 'Opções da captura' }))
-      await clicarRobusto(page, page.getByRole('dialog', { name: 'Opções da captura' }).getByRole('button', { name: /Texto e tradução/ }))
-    } else {
-      const abrirPainel = page.getByRole('button', {
-        name: /Ajustes da captura|Configurações de dispositivos e modelos de IA|Configurações Simples|Ajustes de Áudio/,
-      })
-      await expect(abrirPainel).toBeVisible()
-      await clicarRobusto(page, abrirPainel)
-    }
+    /* O botao dos ajustes e um icone: o nome acessivel vem do `aria-label`, que e o que o leitor de
+       tela anuncia. */
+    const abrirPainel = tela.getByRole('button', { name: 'Ajustes da captura' })
+    await expect(abrirPainel).toBeVisible()
+    await clicarRobusto(page, abrirPainel)
 
-    /* O painel é o diálogo "Dispositivos e modelos de IA" do protótipo (C1); Kids e Sênior têm o
-       título na linguagem do perfil. */
+    /* O painel é o diálogo "Dispositivos e modelos de IA"; Kids e Sênior têm o título na linguagem
+       do perfil. */
     const painel = page.getByRole('dialog', {
       name: /Dispositivos e modelos de IA|Ajustes de áudio|Configurações do som/,
     })

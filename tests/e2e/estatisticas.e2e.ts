@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 import { listarCartoes, perfil, semearCartoes } from './_fixtures'
-import { fecharSobreposicoes } from './_helpers'
+import { abrirTela } from './_helpers'
 
 /**
  * OS CONTADORES DE VOCABULARIO BATEM COM O ACERVO.
@@ -24,15 +24,13 @@ test.describe('Estatisticas do vocabulario', () => {
     const p = await perfil()
     expect(p.deckSize, 'deckSize do perfil deveria ser o total de cartoes no baralho').toBe(noBaralho)
 
-    await page.goto('/vocabulario')
-    await expect(page.getByRole('main')).toBeVisible()
-    await fecharSobreposicoes(page)
+    await abrirTela(page, '/vocabulario')
 
-    /* O LADRILHO "Guardadas" (protótipo aprovado, aba Minhas palavras) conta o baralho que
-       `GET /api/vocab` devolve. O antigo KPI "volume lexical" da Visão geral saiu com o protótipo:
-       a Visão geral agora é o gráfico de revisões por dia, o acerto, os minutos e a ofensiva. */
-    const guardadas = page.locator('.ladrilho', { hasText: 'Guardadas' }).locator('.v')
-    await expect(guardadas).toHaveText(new RegExp(`^${cartoes.length}$`), { timeout: 15_000 })
+    /* O NÚMERO "Guardadas" (aba Minhas palavras, a primeira das quatro fases do baralho —
+       `data-testid="fases-do-baralho"`, `VocabularioDoQuest`) conta o baralho que `GET /api/vocab`
+       devolve. Enquanto o baralho chega a tela mostra "—", nunca um zero falso: daí a espera. */
+    const guardadas = page.getByTestId('fases-do-baralho').locator('.q-num', { hasText: 'Guardadas' }).locator('b')
+    await expect(guardadas).toHaveText(/^[\d.]+$/, { timeout: 15_000 })
     const texto = (await guardadas.textContent()) ?? ''
     const numeroGrande = Number(texto.replace(/\./g, '').replace(/\D/g, ''))
     expect(numeroGrande, `"Guardadas" diz "${texto.trim()}" e o servidor tem ${cartoes.length} cartoes`).toBe(
@@ -45,9 +43,9 @@ test.describe('Estatisticas do vocabulario', () => {
        ponto do arquivo; o que mudou foi so em qual aba cada uma aparece. */
     /* "N de M no caderno", ao lado do titulo "Todas as palavras" (prototipo). Sem filtro, N e o
        total que o servidor achou para a pagina — e e ele que tem de bater com o acervo. */
-    const linha = page.getByText(/^\d+ de \d+ no caderno$/)
+    const linha = page.getByText(/^[\d.]+ de [\d.]+ no caderno$/)
     await expect(linha).toBeVisible({ timeout: 15_000 })
-    const total = Number(((await linha.textContent()) ?? '').match(/^(\d+) de/)?.[1])
+    const total = Number(((await linha.textContent()) ?? '').match(/^([\d.]+) de/)?.[1].replace(/\./g, ''))
     expect(total, 'o total do catalogo deveria ser o do acervo').toBe(cartoes.length)
   })
 })

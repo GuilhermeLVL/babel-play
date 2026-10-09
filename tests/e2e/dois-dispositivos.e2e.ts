@@ -67,19 +67,16 @@ test.beforeAll(async () => {
 async function saldoNaLoja(browser: Browser, viewport: { width: number; height: number } | null) {
   const ctx = await browser.newContext({ viewport: viewport ?? undefined })
   const page = await ctx.newPage()
-  await page.goto('/loja/itens')
+  /* A ABA LOJA DE PERSONALIZAR (`/loja/loja`, desenho novo de 09/10/2026): a carteira
+     (`carteira-de-seeds`, `LojaDoPrototipo`) traz o saldo em `.px-saldo`. ANCORADO NELA, e nao num
+     "Seeds" qualquer da pagina: o cabecalho e as pecas da prateleira tambem dizem "Seeds". O numero
+     CONTA ate o valor novo depois de uma mudanca; quem le espera por `poll`. */
+  await page.goto('/loja/loja')
   await expect(page.getByRole('main')).toBeVisible()
   await fecharSobreposicoes(page)
-  /* ANCORADO NA SECAO DA LOJA. `/loja/itens` era uma aba propria e hoje e uma SECAO dentro de
-     Desafios (12/09): a lista de conquistas renderiza antes do cartao das moedas no mesmo painel,
-     e varias linhas dela tambem contem o texto exato "Seeds" ("+15 Seeds"). Um `.first()` no
-     documento inteiro passou a casar uma delas, e o teste lia como saldo um numero que nao era. */
-  const cartaoSeeds = page
-    .locator('#secao-loja .cartao')
-    .filter({ has: page.getByText('Seeds', { exact: true }) })
-    .first()
+  const cartaoSeeds = page.getByTestId('carteira-de-seeds')
   await expect(cartaoSeeds).toBeVisible({ timeout: 15_000 })
-  const ler = async () => Number(((await cartaoSeeds.locator('b').first().textContent()) ?? '').replace(/\D/g, ''))
+  const ler = async () => Number(((await cartaoSeeds.locator('.px-saldo').textContent()) ?? '').replace(/\D/g, ''))
   return { ctx, page, cartaoSeeds, ler }
 }
 
@@ -104,13 +101,11 @@ test.describe('Dois dispositivos, uma conta', () => {
     // Contexto B abre a Loja ANTES de A ganhar: e o "outro aparelho" que precisa ver a mudanca.
     const B = await saldoNaLoja(browser, viewport)
     /* A PRIMEIRA LEITURA E UMA LINHA DE BASE, e nao uma afirmacao de que tela e servidor batem
-       NAQUELE instante — porque nesta tela eles nao batem, e isso e uma propriedade do app.
-       Desde 12/09 a Loja e uma secao dentro de Desafios, entao abrir `/loja/itens` monta tambem a
-       lista de conquistas; montar essa lista AVALIA as conquistas e credita as que fecharam. O
-       saldo do servidor sobe depois de a tela ja ter pintado, e a tela so relê ao recarregar
-       (visto aqui: tela 46, servidor 106, sem convergir em 10s).
-       ISSO E UM DEFEITO DO APP, nao do teste — a pagina credita e mostra o numero de antes —, mas
-       e um defeito de ATUALIZACAO de saldo, nao do que este arquivo prova. O que ele prova e que
+       NAQUELE instante — porque eles podem nao bater, e isso e uma propriedade do app. Abrir o app
+       num navegador limpo AVALIA as conquistas e credita as que fecharam: o saldo do servidor pode
+       subir depois de a tela ja ter pintado (medido com a Loja de antes: tela 46, servidor 106, sem
+       convergir em 10s; nao foi medido de novo na aba Loja do desenho de 09/10/2026).
+       Isso e uma questao de ATUALIZACAO de saldo, nao do que este arquivo prova. O que ele prova e que
        o ganho de um aparelho chega ao outro, e isso continua sendo afirmado logo abaixo, depois
        do reload. Aqui basta guardar o que B via, e exigir que o servidor nunca esteja ATRAS
        disso: se estivesse, a tela teria inventado Seeds. */

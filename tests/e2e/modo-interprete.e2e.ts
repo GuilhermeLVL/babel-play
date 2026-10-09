@@ -1,6 +1,6 @@
-import { devices, expect, type Page, test } from '@playwright/test'
+import { devices, expect, type Locator, type Page, test } from '@playwright/test'
 
-import { clicarRobusto, fecharSobreposicoes, semCapturaDeTela } from './_helpers'
+import { assentar, clicarRobusto, semCapturaDeTela, trilho } from './_helpers'
 
 /**
  * O MODO INTÉRPRETE (E6 da Fase E), a maquete aprovada pelo dono (2026-09-30), de ponta a ponta.
@@ -15,8 +15,16 @@ import { clicarRobusto, fecharSobreposicoes, semCapturaDeTela } from './_helpers
  *   · CELULAR (Grátis, voz do aparelho): a entrada abre a tela frente a frente, com a metade do outro
  *     virada; cada lado fala no seu idioma, a tradução aparece na metade do OUTRO e é lida no idioma
  *     dele; sair abre o Encerrar de sempre;
- *   · COMPUTADOR (Premium, voz natural): duas colunas, os atalhos de teclado, a voz da nuvem lendo a
- *     tradução, e a meta do plano — do fim da fala à voz em ≤ 2,5 s no p50 (`window.__ttsInicio()`).
+ *   · COMPUTADOR (Premium, voz natural): os atalhos de teclado, a voz da nuvem lendo a tradução, e a
+ *     meta do plano — do fim da fala à voz em ≤ 2,5 s no p50 (`window.__ttsInicio()`).
+ *
+ * NO DESENHO NOVO (09/10/2026) a porta é UMA, a do menu: o Intérprete abre direto na conversa frente a
+ * frente PRONTA (`conversa-pronta`, dentro de `pagina-do-interprete`), em tela inteira, e o primeiro
+ * toque num lado começa a conversa (`modo-interprete`, com a fase em `data-fase`) já com o microfone
+ * daquele lado. O modo é o botão `modo-automatico` (`aria-pressed`), e a voz em uso vem no `title` de
+ * `voz-em-uso`. SAÍRAM: o botão "entrar no intérprete" da tela da captura (`entrar-no-interprete`), a
+ * tela de entrada com "Começar conversa" (`comecar-conversa`) e os atributos `data-modo` e
+ * `data-layout` da conversa.
  */
 
 /* O áudio da voz natural toca sem esperar um gesto a mais (o toque que a destrava é o do atalho). */
@@ -155,25 +163,60 @@ async function semEscolhaGuardada(page: Page) {
   })
 }
 
-async function abrirCaptura(page: Page) {
+/** Corta os modelos (a tradução é a do navegador falso) e zera a escolha do microfone nesta página. */
+async function semModelos(page: Page) {
   await semEscolhaGuardada(page)
   await page.route(/huggingface\.co|\.hf\.co/, (r) => r.abort())
   await page.route(/\/modelos\/bergamot\/|bergamot-translator-worker/, (r) => r.abort())
-  await page.goto('/capturar')
-  await expect(page.getByRole('main')).toBeVisible()
-  await fecharSobreposicoes(page)
 }
 
-/** Entra no intérprete; a folha "Rápido ou Privado?" vem antes, como no Iniciar. */
-async function entrar(page: Page, botao = 'entrar-no-interprete') {
-  await clicarRobusto(page, page.getByTestId(botao))
+/** A conversa PRONTA (`/interprete`, antes de alguém falar) e a conversa EM CURSO (o diálogo). */
+const pronta = (page: Page) => page.getByTestId('conversa-pronta')
+const fase = (page: Page) => page.getByTestId('modo-interprete')
+
+/**
+ * Abre o Intérprete PELO MENU (o trilho, ou a barra de cinco no celular): a porta é a do menu desde
+ * 30/09, e no desenho novo ela abre direto na conversa frente a frente, pronta para o primeiro toque.
+ */
+async function abrirPeloMenu(page: Page) {
+  await semModelos(page)
+  await page.goto('/')
+  await expect(page.getByRole('main')).toBeVisible()
+  await assentar(page)
+  await clicarRobusto(page, trilho(page).getByRole('button', { name: /^Intérprete/ }))
+  await expect(page).toHaveURL(/\/interprete$/)
+  await expect(page.getByTestId('pagina-do-interprete')).toBeAttached()
+  await expect(pronta(page)).toBeVisible({ timeout: 15_000 })
+}
+
+/**
+ * O PRIMEIRO TOQUE num lado começa a conversa e já abre o microfone daquele lado; a folha "Como
+ * transcrever a sua voz?" vem antes, como no Iniciar da captura, para quem nunca escolheu.
+ */
+async function comecarFalando(page: Page, lado: RegExp) {
+  await clicarRobusto(page, pronta(page).getByRole('button', { name: lado }))
   const folha = page.getByRole('dialog', { name: 'Como transcrever a sua voz?' })
   if (await folha.isVisible({ timeout: 3_000 }).catch(() => false)) {
     await clicarRobusto(page, folha.getByRole('button', { name: /Rápido/ }).first())
     await clicarRobusto(page, folha.getByRole('button', { name: /Baixar e iniciar|^Iniciar$|Continuar/ }))
     await expect(folha).toBeHidden()
   }
-  await expect(page.getByTestId('modo-interprete')).toBeVisible({ timeout: 10_000 })
+  await expect(fase(page)).toBeVisible({ timeout: 10_000 })
+}
+
+/** A metade está de cabeça para baixo (virada para quem senta do outro lado)? */
+async function deCabecaParaBaixo(metade: Locator) {
+  /* A metade ENTRA animada (a entrada mexe no `transform`): mede-se com ela parada. */
+  await metade.page().waitForTimeout(600)
+  return metade.evaluate(async (el) => {
+    await Promise.all(
+      el
+        .getAnimations()
+        .filter((a) => a.effect?.getTiming().iterations !== Infinity)
+        .map((a) => a.finished.catch(() => undefined)),
+    )
+    return new DOMMatrixReadOnly(getComputedStyle(el).transform).a < 0
+  })
 }
 
 const lidas = (page: Page) => page.evaluate(() => (window as unknown as { __lidas: Lida[] }).__lidas)
@@ -188,7 +231,13 @@ async function foto(page: Page, nome: string) {
   const dir = process.env.FOTOS_DIR
   if (dir) await page.screenshot({ path: `${dir}/interprete-${nome}.png` })
 }
-const fase = (page: Page) => page.getByTestId('modo-interprete')
+
+/** Sair abre o Encerrar de sempre; descartar não deixa nada no banco. */
+async function descartar(page: Page) {
+  const encerrar = page.getByRole('dialog').filter({ hasText: /Descartar/ })
+  await expect(encerrar).toBeVisible({ timeout: 5_000 })
+  await clicarRobusto(page, encerrar.getByRole('button', { name: /Descartar/ }).first())
+}
 
 test.describe('Modo intérprete no celular (Pixel 7, voz do aparelho)', () => {
   const { defaultBrowserType: _navegador, ...pixel7 } = devices['Pixel 7']
@@ -202,17 +251,18 @@ test.describe('Modo intérprete no celular (Pixel 7, voz do aparelho)', () => {
     await semCapturaDeTela(page)
     await falsos(page)
     await porToque(page)
-    await abrirCaptura(page)
-    await entrar(page)
+    await abrirPeloMenu(page)
 
     // A metade do outro fica virada para ele; a voz é a do aparelho (Grátis).
-    await expect(page.getByTestId('interprete-outro')).toHaveAttribute('data-virada', 'true')
-    await expect(page.getByTestId('voz-em-uso')).toHaveText(/Voz do aparelho/)
+    await expect(pronta(page).getByTestId('interprete-outro')).toHaveAttribute('data-virada', '')
+    expect(await deCabecaParaBaixo(pronta(page).getByTestId('interprete-outro'))).toBe(true)
+    expect(await deCabecaParaBaixo(pronta(page).getByTestId('interprete-meu'))).toBe(false)
+    await expect(pronta(page).getByTestId('voz-em-uso')).toHaveAttribute('title', /Voz do aparelho/)
     await foto(page, 'celular-1-pronto')
 
     // Eu falo português: a tradução aparece do outro lado e é lida em inglês.
-    await clicarRobusto(page, page.getByRole('button', { name: /Falar em Português/ }))
-    const doOutro = page.getByTestId('interprete-outro')
+    await comecarFalando(page, /Falar em Português/)
+    const doOutro = fase(page).getByTestId('interprete-outro')
     await expect(doOutro.getByText('[trad] bom dia a todos')).toBeVisible({ timeout: 10_000 })
     await expect(doOutro.getByText('bom dia a todos', { exact: true })).toBeVisible()
     await expect
@@ -222,8 +272,8 @@ test.describe('Modo intérprete no celular (Pixel 7, voz do aparelho)', () => {
     await foto(page, 'celular-2-falou')
 
     // O outro fala inglês: a tradução aparece do meu lado, lida em português.
-    await clicarRobusto(page, page.getByRole('button', { name: /Falar em English/ }))
-    await expect(page.getByTestId('interprete-meu').getByText('[trad] good morning everyone')).toBeVisible({
+    await clicarRobusto(page, fase(page).getByRole('button', { name: /Falar em English/ }))
+    await expect(fase(page).getByTestId('interprete-meu').getByText('[trad] good morning everyone')).toBeVisible({
       timeout: 10_000,
     })
     await expect
@@ -239,54 +289,41 @@ test.describe('Modo intérprete no celular (Pixel 7, voz do aparelho)', () => {
       })
 
     // Sair abre o Encerrar de sempre; descartar não deixa nada no banco.
-    await clicarRobusto(page, page.getByRole('button', { name: 'Sair do modo intérprete' }))
+    await clicarRobusto(page, fase(page).getByRole('button', { name: 'Sair do modo intérprete' }))
     await expect(fase(page)).toHaveCount(0)
-    const encerrar = page.getByRole('dialog').filter({ hasText: /Descartar/ })
-    await expect(encerrar).toBeVisible({ timeout: 5_000 })
-    await clicarRobusto(page, encerrar.getByRole('button', { name: /Descartar/ }).first())
+    await descartar(page)
   })
 
   /* O RELATO DO DONO (30/09): "em português traduziu; tocando o outro lado e falando em inglês, não
-     aconteceu nada". Aqui a conversa começa pelo OUTRO lado e alterna duas vezes — e a porta é a do
-     menu, a tela própria do Intérprete (na barra de baixo, no lugar da Biblioteca). */
+     aconteceu nada". Aqui a conversa começa pelo OUTRO lado e alterna duas vezes. */
   test('pelo menu: o outro lado fala primeiro, e os dois lados se alternam', async ({ page }) => {
     test.slow()
     await semCapturaDeTela(page)
     await falsos(page)
     await porToque(page)
-    await semEscolhaGuardada(page)
-    await page.route(/huggingface\.co|\.hf\.co/, (r) => r.abort())
-    await page.route(/\/modelos\/bergamot\/|bergamot-translator-worker/, (r) => r.abort())
-    await page.goto('/')
-    await expect(page.getByRole('main')).toBeVisible()
-    await fecharSobreposicoes(page)
-
-    await clicarRobusto(page, page.locator('[data-shell="dock"]').getByRole('button', { name: 'Intérprete' }))
-    await expect(page).toHaveURL(/\/interprete$/)
-    await expect(page.getByTestId('pagina-do-interprete')).toBeVisible()
-    await entrar(page, 'comecar-conversa')
+    await abrirPeloMenu(page)
 
     const ingles = { texto: '[trad] good morning everyone', lang: 'pt-BR' }
     const portugues = { texto: '[trad] bom dia a todos', lang: 'en-US' }
     for (let volta = 0; volta < 2; volta++) {
-      await clicarRobusto(page, page.getByRole('button', { name: /Falar em English/ }))
-      await expect(page.getByTestId('interprete-meu').getByText(ingles.texto)).toBeVisible({ timeout: 10_000 })
+      if (volta === 0) await comecarFalando(page, /Falar em English/)
+      else await clicarRobusto(page, fase(page).getByRole('button', { name: /Falar em English/ }))
+      await expect(fase(page).getByTestId('interprete-meu').getByText(ingles.texto)).toBeVisible({ timeout: 10_000 })
       await expect.poll(() => lidas(page), { timeout: 5_000 }).toHaveLength(volta * 2 + 1)
       expect((await lidas(page)).at(-1)).toEqual(ingles)
       await expect(fase(page)).toHaveAttribute('data-fase', 'parado', { timeout: 5_000 })
 
-      await clicarRobusto(page, page.getByRole('button', { name: /Falar em Português/ }))
+      await clicarRobusto(page, fase(page).getByRole('button', { name: /Falar em Português/ }))
       await expect.poll(() => lidas(page), { timeout: 10_000 }).toHaveLength(volta * 2 + 2)
       expect((await lidas(page)).at(-1)).toEqual(portugues)
       await expect(fase(page)).toHaveAttribute('data-fase', 'parado', { timeout: 5_000 })
     }
 
-    // Sair e descartar volta à tela de começar a conversa, e não à Captura.
-    await clicarRobusto(page, page.getByRole('button', { name: 'Sair do modo intérprete' }))
-    const encerrar = page.getByRole('dialog').filter({ hasText: /Descartar/ })
-    await expect(encerrar).toBeVisible({ timeout: 5_000 })
-    await clicarRobusto(page, encerrar.getByRole('button', { name: /Descartar/ }).first())
-    await expect(page.getByTestId('pagina-do-interprete')).toBeVisible()
+    // Sair e descartar volta à conversa pronta do Intérprete, e não à Captura.
+    await clicarRobusto(page, fase(page).getByRole('button', { name: 'Sair do modo intérprete' }))
+    await descartar(page)
+    await expect(page).toHaveURL(/\/interprete$/)
+    await expect(pronta(page)).toBeVisible()
   })
 })
 
@@ -317,7 +354,7 @@ test.describe('Modo intérprete no computador (Premium, voz natural)', () => {
     test.skip(test.info().project.name !== 'desktop-1280', 'o computador roda uma vez, no projeto de desktop')
   })
 
-  test('duas colunas, atalhos, a voz natural lê a tradução e a meta do tempo até a voz', async ({ page }) => {
+  test('os atalhos, a voz natural lê a tradução e a meta do tempo até a voz', async ({ page }) => {
     test.slow()
     await falsos(page)
     // Os atalhos 1 e 2 são do modo por toque (no automático, o 1 liga a escuta e o 2 não faz nada).
@@ -342,44 +379,50 @@ test.describe('Modo intérprete no computador (Premium, voz natural)', () => {
       pedidosDeVoz.push(r.request().postDataJSON() as { texto: string; idioma: string })
       return r.fulfill({ status: 200, contentType: 'audio/wav', body: wavDeSilencio() })
     })
-    await abrirCaptura(page)
+    await abrirPeloMenu(page)
     // Os entitlements e as flags do Premium precisam estar no cache antes de entrar.
     await page.evaluate(async () => {
       for (let i = 0; i < 20 && !localStorage.getItem('babel.flags')?.includes('voz_natural'); i++)
         await new Promise((r) => setTimeout(r, 100))
     })
-    await entrar(page)
 
-    // Duas colunas, nenhuma virada; a voz em uso é a natural.
-    await expect(page.getByTestId('modo-interprete')).toHaveAttribute('data-layout', 'computador')
-    await expect(page.getByTestId('interprete-outro')).not.toHaveAttribute('data-virada', 'true')
-    await expect(page.getByTestId('voz-em-uso')).toHaveText(/Voz natural · Premium/)
+    /* A tela é a do protótipo aprovado: frente a frente em todo aparelho, a metade do outro virada
+       (`producao-interprete.css` previa duas colunas no computador, mas a maquete não usa). Se o dono
+       pedir as duas colunas no monitor, é aqui que a asserção muda. */
+    expect(await deCabecaParaBaixo(pronta(page).getByTestId('interprete-outro'))).toBe(true)
     await foto(page, 'computador-1-pronto')
 
-    // "1" fala do meu lado; a voz natural lê a tradução em inglês.
-    await page.keyboard.press('1')
-    await expect(page.getByTestId('interprete-outro').getByText('[trad] bom dia a todos')).toBeVisible({
+    // O primeiro toque começa a conversa pelo meu lado; a voz natural lê a tradução em inglês.
+    await comecarFalando(page, /Falar em Português/)
+    await expect(fase(page).getByTestId('interprete-outro').getByText('[trad] bom dia a todos')).toBeVisible({
       timeout: 10_000,
     })
     await expect.poll(() => pedidosDeVoz.length, { timeout: 5_000 }).toBe(1)
     expect(pedidosDeVoz[0]).toMatchObject({ texto: '[trad] bom dia a todos', idioma: 'en-US' })
     await expect(fase(page)).toHaveAttribute('data-fase', 'parado', { timeout: 5_000 })
+    await expect(fase(page).getByTestId('voz-em-uso')).toHaveAttribute('title', /Voz natural · Premium/)
 
     // "2" fala do outro lado.
     await page.keyboard.press('2')
-    await expect(page.getByTestId('interprete-meu').getByText('[trad] good morning everyone')).toBeVisible({
+    await expect(fase(page).getByTestId('interprete-meu').getByText('[trad] good morning everyone')).toBeVisible({
       timeout: 10_000,
     })
     await expect.poll(() => pedidosDeVoz.length, { timeout: 5_000 }).toBe(2)
     expect(pedidosDeVoz[1]).toMatchObject({ idioma: 'pt-BR' })
-    // A voz da nuvem leu as duas (a do aparelho não foi chamada).
+    await expect(fase(page)).toHaveAttribute('data-fase', 'parado', { timeout: 5_000 })
+
+    // "1" fala do meu lado de novo.
+    await page.keyboard.press('1')
+    await expect.poll(() => pedidosDeVoz.length, { timeout: 10_000 }).toBe(3)
+    expect(pedidosDeVoz[2]).toMatchObject({ texto: '[trad] bom dia a todos', idioma: 'en-US' })
+    // A voz da nuvem leu as três (a do aparelho não foi chamada).
     expect(await lidas(page)).toEqual([])
 
     // A meta do plano: do fim da fala à voz em ≤ 2,5 s no p50, pela voz natural.
     await expect
       .poll(() => tempoAteAVoz(page), { timeout: 5_000 })
       .toMatchObject({
-        amostras: 2,
+        amostras: 3,
         motores: ['voz-da-nuvem'],
       })
     const p50 = (await tempoAteAVoz(page))!.p50
@@ -388,11 +431,10 @@ test.describe('Modo intérprete no computador (Premium, voz natural)', () => {
     await foto(page, 'computador-2-falou')
 
     // Esc sai; o Encerrar abre, e descartar não deixa nada no banco.
+    await expect(fase(page)).toHaveAttribute('data-fase', 'parado', { timeout: 5_000 })
     await page.keyboard.press('Escape')
     await expect(fase(page)).toHaveCount(0)
-    const encerrar = page.getByRole('dialog').filter({ hasText: /Descartar/ })
-    await expect(encerrar).toBeVisible({ timeout: 5_000 })
-    await clicarRobusto(page, encerrar.getByRole('button', { name: /Descartar/ }).first())
+    await descartar(page)
   })
 })
 
@@ -407,21 +449,26 @@ test.describe('Modo intérprete: automático', () => {
 
   test('com o automático no plano, a conversa abre nele; o botão do modo volta ao toque', async ({ page }) => {
     await falsos(page)
-    await abrirCaptura(page)
-    await entrar(page)
+    await abrirPeloMenu(page)
 
-    await expect(fase(page)).toHaveAttribute('data-modo', 'automatico')
-    await expect(page.getByRole('button', { name: 'Ouvir a conversa' })).toBeVisible()
-    await expect(page.getByRole('button', { name: /Falar em/ })).toHaveCount(0)
+    const modo = pronta(page).getByTestId('modo-automatico')
+    await expect(modo).toHaveAttribute('aria-pressed', 'true')
+    await expect(pronta(page).getByRole('button', { name: 'Ouvir a conversa' }).first()).toBeVisible()
+    await expect(pronta(page).getByRole('button', { name: /Falar em/ })).toHaveCount(0)
+    await expect(pronta(page).getByTestId('aviso-do-interprete')).toContainText('Automático ligado')
     await foto(page, 'automatico-1-pronto')
 
-    await clicarRobusto(page, page.getByTestId('modo-automatico'))
-    await expect(fase(page)).toHaveAttribute('data-modo', 'toque')
-    await expect(page.getByRole('button', { name: /Falar em English/ })).toBeVisible()
-    await expect(page.getByRole('button', { name: /Falar em Português/ })).toBeVisible()
+    await clicarRobusto(page, modo)
+    await expect(modo).toHaveAttribute('aria-pressed', 'false')
+    await expect(pronta(page).getByRole('button', { name: /Falar em English/ })).toBeVisible()
+    await expect(pronta(page).getByRole('button', { name: /Falar em Português/ })).toBeVisible()
+    // A escolha fica guardada: é a última da pessoa.
+    expect(await page.evaluate(() => localStorage.getItem('babel.interprete.modo'))).toBe('toque')
 
-    await page.keyboard.press('Escape')
-    await expect(fase(page)).toHaveCount(0)
+    // O X da conversa pronta devolve o menu.
+    await clicarRobusto(page, pronta(page).getByRole('button', { name: 'Sair do modo intérprete' }))
+    await expect(pronta(page)).toHaveCount(0)
+    await expect(trilho(page)).toBeVisible()
   })
   /* O Grátis (o botão com cadeado, que diz de que plano é) não tem como ser simulado aqui: no servidor
      do e2e o plano é o do self-host, decidido no cliente sem ir à rota. Está em `modoInterprete.test.tsx`. */

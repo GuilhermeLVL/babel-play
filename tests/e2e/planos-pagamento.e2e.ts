@@ -1,34 +1,40 @@
-import { expect, type Page, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
-import { clicarRobusto, fecharSobreposicoes } from './_helpers'
+import { abrirTela, clicarRobusto } from './_helpers'
 
 /**
- * AS TELAS DE PAGAMENTO DE PLANOS (protótipo aprovado: `T.planos`, `T.checkout`, `T.assinado`).
+ * AS TELAS DE PAGAMENTO DE PLANOS (`Planos`, `planos/Checkout`, `planos/Assinado`).
  *
  * A suíte roda no modo local (self-host, sem cobrança), e é exatamente aí que as travas de
  * dinheiro precisam segurar:
  * - o checkout existe e leva ao passo de pagamento, mas NÃO oferece pagar (nada a cobrar);
  * - a confirmação `/plano/assinado` não acredita na URL: aberta direto, sem pagamento confirmado
  *   pelo servidor, ela não comemora — e o endereço sobrevive ao recarregamento.
+ *
+ * NO DESENHO NOVO (09/10/2026) a tela tem TRÊS abas (Planos, Sua assinatura, Consumo do mês) em todo
+ * modo, e o título é a frase do produto; o plano vigente vem escrito no alto ("Seu plano: Self-host").
+ * A garantia de antes ("sem aba de assinatura") virou: a aba existe e, no self-host, diz o que é e não
+ * oferece cobrança nem cancelamento.
  */
 
-async function abrir(page: Page, caminho: string) {
-  await page.goto(caminho)
-  await expect(page.getByRole('main')).toBeVisible()
-  await fecharSobreposicoes(page)
-}
-
-test('Planos no self-host: sem aba de assinatura, sem seletor anual, sem cobrança', async ({ page }) => {
-  await abrir(page, '/plano')
-  await expect(page.getByRole('heading', { level: 1, name: 'Planos' })).toBeVisible()
-  await expect(page.getByRole('region', { name: 'Seu plano agora' })).toContainText('Self-host')
-  await expect(page.getByRole('tab', { name: 'Sua assinatura' })).toHaveCount(0)
+test('Planos no self-host: a assinatura diz Self-host, sem seletor anual e sem cobrança', async ({ page }) => {
+  await abrirTela(page, '/plano')
+  const tela = page.getByTestId('planos-do-quest')
+  await expect(tela.getByRole('heading', { level: 1 })).toHaveCount(1)
+  await expect(tela.getByText('Seu plano: Self-host')).toBeVisible()
+  const abas = page.getByRole('tablist', { name: 'Planos' }).getByRole('tab')
+  await expect(abas).toHaveText([/^Planos/, /^Sua assinatura/, /^Consumo do mês/])
   await expect(page.getByRole('radio', { name: /Anual/ })).toHaveCount(0)
-  await expect(page.getByText('Pagamento seguro · 7 dias para desistir com reembolso')).toBeVisible()
+  await expect(page.getByText(/Pagamento seguro · 7 dias para desistir com reembolso/)).toBeVisible()
+
+  await clicarRobusto(page, page.getByRole('tab', { name: 'Sua assinatura' }))
+  await expect(tela.getByRole('heading', { level: 2, name: 'Self-host' })).toBeVisible()
+  await expect(tela.getByText(/tudo fica liberado e não há cota/)).toBeVisible()
+  await expect(page.getByRole('button', { name: /Assinar e pagar|Cancelar (a )?assinatura/ })).toHaveCount(0)
 })
 
 test('checkout: dois passos, e no self-host o passo de pagamento diz que não há o que pagar', async ({ page }) => {
-  await abrir(page, '/plano')
+  await abrirTela(page, '/plano')
   /* `clicarRobusto`: a recompensa de uma conquista (fila assíncrona) pode abrir DEPOIS do
      `fecharSobreposicoes` e cobrir o botão — medido: 1 em 15 no celular com o banco compartilhado. */
   await clicarRobusto(page, page.getByRole('button', { name: 'Assinar Premium' }))
@@ -40,16 +46,16 @@ test('checkout: dois passos, e no self-host o passo de pagamento diz que não h�
   await expect(page.getByRole('heading', { name: 'Nada a pagar no self-host' })).toBeVisible()
   await expect(page.getByRole('button', { name: /Assinar e pagar/ })).toHaveCount(0)
 
-  // O "voltar" do cabeçalho (no desktop o "Planos" do menu faz o mesmo: volta à tela principal).
-  await clicarRobusto(page, page.locator('.cab .voltar'))
+  // O "voltar" do cabeçalho devolve à tela de Planos.
+  await clicarRobusto(page, page.getByRole('button', { name: 'Voltar para Planos' }))
   await expect(page).toHaveURL(/\/plano$/)
-  await expect(page.getByRole('heading', { level: 1, name: 'Planos' })).toBeVisible()
+  await expect(page.getByTestId('planos-do-quest')).toBeVisible()
 })
 
 test('/plano/assinado aberto direto não comemora sem o servidor confirmar, e sobrevive ao recarregar', async ({
   page,
 }) => {
-  await abrir(page, '/plano/assinado')
+  await abrirTela(page, '/plano/assinado')
   await expect(
     page.getByRole('heading', { name: /Ainda não recebemos a confirmação|Conferindo o pagamento/ }),
   ).toBeVisible()

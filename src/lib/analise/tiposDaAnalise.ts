@@ -26,6 +26,12 @@ export interface FalaDaAnalise {
   words: string[];
   /** Início da fala em SEGUNDOS (não em ms). */
   startTime: number;
+  /**
+   * O começo e o fim GRAVADOS da fala, em segundos e sem arredondar. Só existem quando a gravação
+   * guardou o tempo; a marcação palavra por palavra do player os usa para acompanhar o áudio.
+   */
+  inicioExato?: number;
+  fimExato?: number;
   index: number;
 }
 

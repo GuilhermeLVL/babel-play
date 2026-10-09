@@ -83,6 +83,7 @@ vi.mock('../src/lib/audioDaSessao', async (orig) => ({
     url: tem && !palco.erroDoAudio ? 'blob:audio' : null,
     carregando: false,
     erro: tem ? palco.erroDoAudio : null,
+    refazer: () => false,
   }),
 }))
 /* O lobby dos jogos é de outra frente (e pesa 200 kB): aqui só importa que a aba o monte. */

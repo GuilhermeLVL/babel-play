@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { apiFetch } from '../data/api';
 
@@ -80,10 +80,17 @@ export function urlDeAudio(sessionId: string): Promise<string> {
   return url;
 }
 
-/** Devolve uma referência. Na última, revoga a URL e esquece a sessão. */
-export function liberar(sessionId: string): void {
+/**
+ * Devolve uma referência. Na última, revoga a URL e esquece a sessão.
+ *
+ * `pedido` é a promessa que `urlDeAudio` devolveu a quem está soltando. Se a entrada do cache já não
+ * é a dele (foi descartada e baixada de novo), a referência dele morreu com a entrada antiga: soltar
+ * agora tiraria uma referência de quem está usando a nova, e a URL boa seria revogada.
+ */
+export function liberar(sessionId: string, pedido?: Promise<string>): void {
   const entrada = cache.get(sessionId);
   if (!entrada) return;
+  if (pedido && entrada.url !== pedido) return;
 
   entrada.refs -= 1;
   if (entrada.refs > 0) return;
@@ -93,12 +100,36 @@ export function liberar(sessionId: string): void {
   entrada.url.then(URL.revokeObjectURL).catch(() => { /* nunca chegou a existir */ });
 }
 
+/**
+ * Joga fora a entrada da sessão, tenha quantas referências tiver: a URL dela não toca mais (o
+ * `<audio>` deu erro com ela). O próximo `urlDeAudio` baixa de novo.
+ */
+export function descartar(sessionId: string): void {
+  const entrada = cache.get(sessionId);
+  if (!entrada) return;
+  cache.delete(sessionId);
+  entrada.url.then(URL.revokeObjectURL).catch(() => { /* nunca chegou a existir */ });
+}
+
+/**
+ * Quanto a tela segura a referência depois de soltá-la. Um efeito do React solta e pega de novo no
+ * mesmo instante (StrictMode, a recarga de módulos em desenvolvimento, uma dependência que mudou):
+ * sem a carência, a contagem zerava nesse intervalo e a URL que o `<audio>` ainda tinha no `src`
+ * era revogada. O player ficava morto ("Não consegui reproduzir este áudio") até recarregar a página.
+ */
+export const CARENCIA_MS = 2000;
+
 export interface AudioDaSessao {
   /** `null` enquanto carrega, ou quando a sessão não tem áudio. Vai direto no `<audio src>`. */
   url: string | null;
   carregando: boolean;
   /** Mensagem legível, quando falhou. A tela decide se mostra. */
   erro: string | null;
+  /**
+   * O `<audio>` deu erro com esta URL (blob revogado): descarta e baixa de novo. Devolve `true` se
+   * começou a refazer. Vale UMA vez por sessão aberta; na segunda devolve `false`, e aí a tela avisa.
+   */
+  refazer: () => boolean;
 }
 
 /**
@@ -114,22 +145,40 @@ export function useAudioDaSessao(sessionId: string | null | undefined, temAudio:
   const [url, setUrl] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [tentativa, setTentativa] = useState(0);
+  /** De que sessão é a URL que está no estado: a de outra sessão nunca fica no `<audio>`. */
+  const donoDaUrl = useRef<string | null>(null);
+  /** A sessão para a qual o download já foi refeito. */
+  const refeita = useRef<string | null>(null);
 
   useEffect(() => {
     if (!sessionId || !temAudio) { setUrl(null); setCarregando(false); setErro(null); return; }
 
     let vivo = true;
+    if (donoDaUrl.current !== sessionId) setUrl(null);
     setCarregando(true);
     setErro(null);
 
-    urlDeAudio(sessionId)
-      .then(u => { if (vivo) { setUrl(u); setCarregando(false); } })
-      .catch(e => { if (vivo) { setErro(String(e?.message ?? e)); setCarregando(false); } });
+    const pedido = urlDeAudio(sessionId);
+    pedido
+      .then(u => { if (vivo) { donoDaUrl.current = sessionId; setUrl(u); setCarregando(false); } })
+      .catch(e => { if (vivo) { setUrl(null); setErro(String(e?.message ?? e)); setCarregando(false); } });
 
     /* A limpeza devolve a referência SEMPRE, inclusive quando o efeito foi cancelado antes de
-       resolver, a referência foi tomada em `urlDeAudio`, não em `then`. */
-    return () => { vivo = false; liberar(sessionId); };
+       resolver, a referência foi tomada em `urlDeAudio`, não em `then`. Devolve depois da carência:
+       se o efeito rodar de novo nesse meio-tempo, ele encontra a mesma entrada e a mesma URL. */
+    return () => { vivo = false; setTimeout(() => liberar(sessionId, pedido), CARENCIA_MS); };
+  }, [sessionId, temAudio, tentativa]);
+
+  const refazer = useCallback(() => {
+    if (!sessionId || !temAudio || refeita.current === sessionId) return false;
+    refeita.current = sessionId;
+    descartar(sessionId);
+    setUrl(null);
+    setCarregando(true);
+    setTentativa(n => n + 1);
+    return true;
   }, [sessionId, temAudio]);
 
-  return { url, carregando, erro };
+  return { url, carregando, erro, refazer };
 }

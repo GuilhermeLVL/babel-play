@@ -285,6 +285,9 @@ export default function Analysis({
         time: temTempo ? formatSeconds(startTime) : '',
         words: [] as string[],
         startTime,
+        // O tempo gravado sem arredondar: a marcação palavra por palavra acompanha o áudio por ele.
+        inicioExato: temTempo ? s.startMs / 1000 : undefined,
+        fimExato: temTempo && s.endMs > s.startMs ? s.endMs / 1000 : undefined,
         index: s.index,
       };
     });
@@ -329,8 +332,12 @@ export default function Analysis({
     () => (!aparelhoTemVoz() ? { falar: ttsSpeak, calar: cancelSpeech, podeFalar: haVozPara } : null),
     [],
   );
-  const { seekTo, playFrom } = usePlayerDaSessao({
+  /* A palavra que a voz do navegador está dizendo (sessão sem áudio gravado): o player avisa, a
+     Transcrição marca. Um ref, e não estado: um aviso por palavra não pode repintar a tela inteira. */
+  const palavraFalada = useRef<((posicao: number, charIndex: number) => void) | null>(null);
+  const { seekTo, playFrom, lembrarPosicao } = usePlayerDaSessao({
     narrador: narradorDoQuest,
+    aoFalarPalavra: (posicao, charIndex) => palavraFalada.current?.(posicao, charIndex),
     parsedSentences,
     hasRealAudio,
     audioSrc,
@@ -354,6 +361,21 @@ export default function Analysis({
     setPeaks,
     setShadowingSentenceIndex,
   });
+
+  /* O ÁUDIO QUE SE RECUPERA SOZINHO. O `<audio>` deu erro com a URL de blob no `src` (revogada com o
+     player montado): o download é refeito uma vez, da posição em que estava, e quem tinha pedido
+     para ouvir ouve quando ele chegar (`isPlaying` continua de pé; ver `usePlayerDaSessao`). */
+  const refazerOAudio = audioDaSessao.refazer;
+  const aoFalharOAudio = React.useCallback(() => {
+    if (!refazerOAudio()) return false;
+    lembrarPosicao();
+    return true;
+  }, [refazerOAudio, lembrarPosicao]);
+  /* O áudio não veio de jeito nenhum: um pedido de tocar feito durante a espera não fica pendurado. */
+  const erroDoAudio = audioDaSessao.erro;
+  useEffect(() => {
+    if (hasRealAudio && erroDoAudio) setIsPlaying(false);
+  }, [hasRealAudio, erroDoAudio]);
 
   // Text Interactive Settings & Hover Popover State
   const [tsSettings, setTsSettings] = useState<TranscriptSettings>({
@@ -647,6 +669,7 @@ export default function Analysis({
     loopMode,
     activeSentenceIndex,
     seekTo,
+    aoFalharOAudio,
   };
   const dialogoDeExportar = showExportModal && (
     <ExportarSessao
@@ -815,6 +838,11 @@ export default function Analysis({
               />
             )
           }
+          /* A marcação palavra por palavra segue o som: o tempo do áudio gravado ou, sem ele, a voz. */
+          audio={hasRealAudio ? audioRef : undefined}
+          velocidade={playbackSpeed}
+          palavraFalada={palavraFalada}
+          vozAvisaPalavra={!narradorDoQuest}
           palavras={palavrasDaSessao}
           podeOuvir={podeOuvirFala}
           aoOuvir={ouvirFala}

@@ -46,7 +46,7 @@ import {
   TIPOS_DE_NOTA,
 } from '../../lib/leitura/anotacaoDaFrase';
 import { micErrorMessage } from '../../lib/mediaErrors';
-import { criarMarcador } from '../../lib/polimento/sessao';
+import { criarMarcador, type GuiaDaFala, seguirFala } from '../../lib/polimento/sessao';
 import { usePopoverDePalavra } from '../../lib/popoverDePalavra';
 import type { ExerciseId, PracticeSeed } from '../../lib/sentences';
 import { seedFromSelection, telaDoExercicio } from '../../lib/sentences';
@@ -126,6 +126,11 @@ interface WordPreview {
   note: string | null; // POR QUE não há tradução (par sem motor, falha do MT). null = há tradução.
   context: string; // frase de contexto em que a palavra aparece
 }
+
+/** Em quanto tempo `speechSynthesis.pause()`/`resume()` precisa ter surtido efeito. */
+const ESPERA_DA_PAUSA_MS = 250;
+/** O Chrome não retoma uma fala pausada por muito tempo (cerca de 15 s): antes disso ela é calada. */
+const PAUSA_LONGA_MS = 10_000;
 
 /** As anotações da Leitura (por frase; e as antigas, por palavra): `lib/leitura/anotacaoDaFrase`. */
 type Annotation = Anotacao;
@@ -704,9 +709,38 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
    */
   const runIdRef = useRef(0);
 
+  /* O NARRADOR MARCA PALAVRA POR PALAVRA (`tocar()` e `pararPlayer()`, `telas3.js:16-62`, item D51), no
+     mesmo marcador da Transcrição (`lib/polimento/sessao.ts`), aqui sobre as `.ql-frase`. Quem manda
+     na marcação é a FALA: a frase entra quando a narração chega nela, a palavra é a que a voz avisa
+     (`boundary`) e, na voz que não avisa, uma cadência pela velocidade da narração. Pausar a fala
+     pausa a marcação. Antes ela andava num relógio fixo que ninguém pausava. */
+  const frasesDoQuest = useRef<HTMLDivElement>(null);
+  const marcador = useMemo(() => criarMarcador(() => frasesDoQuest.current, '.ql-frase'), []);
+  const fraseDeAntes = useRef(-1);
+  /** A pausa em que a fala foi CANCELADA (o navegador não pausou de fato): retomar relê a frase. */
+  const pausaPorCancelamento = useRef(false);
+  const confereAPausa = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  /**
+   * Quem acompanha um trecho da frase `indice`. As palavras da tela são as do ORIGINAL: quando o
+   * trecho é a tradução dita depois dele (bilíngue), a frase já está toda marcada e fica assim.
+   */
+  const guiaDoTrecho = (indice: number, step: SpeechStep, steps: SpeechStep[]): GuiaDaFala | null => {
+    const original = studyTexts[indice]?.original ?? '';
+    const palavras = tokenizarTexto(original).map((p) => p.original);
+    if (step.text !== original && steps.some((s) => s.text === original)) {
+      marcador.ate(indice, palavras.length);
+      return null;
+    }
+    return seguirFala(marcador, { linha: indice, texto: step.text, palavras, velocidade: narrationRate });
+  };
+
   const speakFrom = async (startIndex: number) => {
     if (!narraPeloMotor && !('speechSynthesis' in window)) return;
     const runId = ++runIdRef.current;
+    clearTimeout(confereAPausa.current);
+    pausaPorCancelamento.current = false;
+    narrationPausedRef.current = false;
     if (narraPeloMotor) cancelSpeech();
     else window.speechSynthesis.cancel();
 
@@ -715,8 +749,19 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
       setIsNarrationPaused(false);
       setActiveNarratingSentenceIndex(null);
       setCurrentSpeakingLang(null);
+      marcador.parar();
+      fraseDeAntes.current = -1;
       return;
     }
+
+    /* Um salto (anterior, próxima, "narrar a partir desta") recomeça limpo, como `tocar(i)`; o avanço
+       natural deixa marcadas as frases que já passaram; reler a MESMA frase (retomar uma pausa que
+       calou a voz, trocar a velocidade) recomeça só a marcação dela, junto com a fala. */
+    const antes = fraseDeAntes.current;
+    if (antes !== -1 && startIndex !== antes + 1 && startIndex !== antes) marcador.parar();
+    marcador.retomar();
+    marcador.ate(startIndex, 0);
+    fraseDeAntes.current = startIndex;
 
     setIsNarrating(true);
     setIsNarrationPaused(false);
@@ -745,10 +790,15 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
           speakStep(stepIndex + 1);
           return;
         }
+        const guia = guiaDoTrecho(startIndex, step, steps);
         ttsSpeak(step.text, {
           lang: toBcp47(step.lang),
           rate: narrationRate,
           pitch: narrationPitch,
+          /* A voz do site não avisa a palavra: a cadência estimada começa quando o som começa. */
+          onStart: () => {
+            if (runId === runIdRef.current && !narrationPausedRef.current) guia?.comecou(0);
+          },
           onEnd: () => {
             if (runId !== runIdRef.current || narrationPausedRef.current) return;
             speakStep(stepIndex + 1);
@@ -774,6 +824,18 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
       utterance.pitch = narrationPitch;
 
       setCurrentSpeakingLang(baseLang(step.lang));
+
+      /* A MARCAÇÃO SEGUE A VOZ: a palavra avisada (`boundary`) é a marcada. Muitas vozes não avisam:
+         sem aviso logo depois do começo, vale a cadência pela velocidade da narração. */
+      const guia = guiaDoTrecho(startIndex, step, steps);
+      utterance.onstart = () => {
+        if (runId === runIdRef.current && !narrationPausedRef.current) guia?.comecou();
+      };
+      utterance.onboundary = (ev) => {
+        if (runId !== runIdRef.current || narrationPausedRef.current) return;
+        if (ev.name && ev.name !== 'word') return; // o aviso de frase não diz a palavra
+        guia?.palavra(ev.charIndex);
+      };
 
       utterance.onend = () => {
         if (runId !== runIdRef.current) return; // fala cancelada/substituída, não encadeia
@@ -812,6 +874,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
       narrationPausedRef.current = true;
       runIdRef.current++;
       cancelSpeech();
+      marcador.pausar(); // as palavras já lidas ficam; retomar relê a frase e a marcação dela
       setIsNarrationPaused(true);
       return;
     }
@@ -820,15 +883,46 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
       void speakFrom(activeNarratingSentenceIndex ?? 0); // retoma de onde parou, não do começo
       return;
     }
+    const synth = window.speechSynthesis;
+    const frase = activeNarratingSentenceIndex ?? 0;
+    clearTimeout(confereAPausa.current);
     if (isNarrationPaused) {
-      narrationPausedRef.current = false;
-      window.speechSynthesis.resume();
       setIsNarrationPaused(false);
-    } else {
-      narrationPausedRef.current = true;
-      window.speechSynthesis.pause();
-      setIsNarrationPaused(true);
+      if (pausaPorCancelamento.current) {
+        void speakFrom(frase); // a voz foi calada na pausa: a frase é relida desde o começo
+        return;
+      }
+      narrationPausedRef.current = false;
+      synth.resume();
+      marcador.retomar();
+      /* No Chrome, `resume()` depois de uma pausa longa pode não voltar: a fala fica muda. Sem som
+         de volta, a frase é relida. */
+      const runId = runIdRef.current;
+      confereAPausa.current = setTimeout(() => {
+        if (runId !== runIdRef.current || narrationPausedRef.current) return;
+        if (synth.paused || !synth.speaking) void speakFrom(frase);
+      }, ESPERA_DA_PAUSA_MS);
+      return;
     }
+    narrationPausedRef.current = true;
+    synth.pause();
+    marcador.pausar();
+    setIsNarrationPaused(true);
+    /* PAUSA POR CANCELAMENTO. No Chrome, `pause()` não pausa de fato algumas vozes (as online), e
+       uma fala pausada por muito tempo não volta mais com `resume()`. Nos dois casos a fala é
+       cancelada guardando a frase, e retomar a relê, como já faz o caminho da voz do site. */
+    const runId = runIdRef.current;
+    const calar = () => {
+      if (runId !== runIdRef.current || !narrationPausedRef.current) return;
+      pausaPorCancelamento.current = true;
+      runIdRef.current++;
+      synth.cancel();
+    };
+    confereAPausa.current = setTimeout(() => {
+      if (runId !== runIdRef.current || !narrationPausedRef.current) return;
+      if (!synth.paused) calar();
+      else confereAPausa.current = setTimeout(calar, PAUSA_LONGA_MS);
+    }, ESPERA_DA_PAUSA_MS);
   };
 
   /** Pula frases (−1 / +1) mantendo a narração viva. */
@@ -904,26 +998,21 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     [voiceEditLang, voices],
   );
 
-  /* O NARRADOR MARCA PALAVRA POR PALAVRA (`tocar()` e `pararPlayer()`, `telas3.js:16-62`,
-     item D51). A frase vem da narração de verdade; a cadência das palavras é a do protótipo, no mesmo
-     marcador da Transcrição (`lib/polimento/sessao.ts`), aqui sobre as `.ql-frase`. */
-  const frasesDoQuest = useRef<HTMLDivElement>(null);
-  const marcador = useMemo(() => criarMarcador(() => frasesDoQuest.current, '.ql-frase'), []);
-  const fraseDeAntes = useRef(-1);
+  /* A narração parou de vez (acabou, deu erro, a tela saiu): a marcação sai junto. Pausar não passa
+     por aqui: a frase continua sendo a narrada e as palavras marcadas ficam. */
   const fraseNarrada = isNarrating && activeNarratingSentenceIndex !== null ? activeNarratingSentenceIndex : -1;
   useEffect(() => {
-    if (fraseNarrada < 0) {
-      marcador.parar();
-      fraseDeAntes.current = -1;
-      return;
-    }
-    /* Um salto (anterior, próxima, "narrar a partir desta") recomeça limpo, como `tocar(i)`; o avanço
-       natural deixa marcadas as frases que já passaram. */
-    if (fraseDeAntes.current !== -1 && fraseNarrada !== fraseDeAntes.current + 1) marcador.parar();
-    marcador.linha(fraseNarrada);
-    fraseDeAntes.current = fraseNarrada;
+    if (fraseNarrada >= 0) return;
+    marcador.parar();
+    fraseDeAntes.current = -1;
   }, [fraseNarrada, marcador]);
-  useEffect(() => () => marcador.parar(), [marcador]);
+  useEffect(
+    () => () => {
+      clearTimeout(confereAPausa.current);
+      marcador.parar();
+    },
+    [marcador],
+  );
 
   // Encerra a fala ao sair da tela (senão o narrador continua tocando em outra view).
   const narraPeloMotorRef = useRef(narraPeloMotor);

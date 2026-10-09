@@ -8,7 +8,7 @@
  * (`scripts/polimento/roteiros/sessao*.json`). Aqui fica o que ele não mede: a cadência das palavras
  * (o navegador de teste não toca som), o que cada botão faz e o que vem do dado real.
  */
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, renderHook, screen } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -16,24 +16,37 @@ vi.mock('../src/lib/dispositivo/telaNovaDoQuest', async (original) => {
   const real = await original<typeof import('../src/lib/dispositivo/telaNovaDoQuest')>()
   return { ...real, useQuestNovo: () => true }
 })
-const avisos = vi.hoisted(() => ({ info: vi.fn() }))
+const avisos = vi.hoisted(() => ({ info: vi.fn(), error: vi.fn() }))
 vi.mock('../src/components/Toast', async (original) => {
   const real = await original<typeof import('../src/components/Toast')>()
-  return { ...real, toast: { ...real.toast, info: avisos.info } }
+  return { ...real, toast: { ...real.toast, info: avisos.info, error: avisos.error } }
 })
+/* O download do áudio da sessão (`lib/audioDaSessao`): cada pedido devolve um blob novo. */
+const rede = vi.hoisted(() => ({ pedidos: 0 }))
+vi.mock('../src/data/api', async (original) => ({
+  ...(await original<typeof import('../src/data/api')>()),
+  apiFetch: async () => {
+    rede.pedidos++
+    return { ok: true, status: 200, blob: async () => new Blob(['audio']) }
+  },
+}))
 
 import PlayerInterativo, { type PropsDoPlayerInterativo } from '../src/components/views/analise/PlayerInterativo'
 import SessaoDoQuest from '../src/components/views/analise/quest/SessaoDoQuest'
 import TranscricaoDoQuest from '../src/components/views/analise/quest/TranscricaoDoQuest'
 import VisaoGeralDoQuest from '../src/components/views/analise/quest/VisaoGeralDoQuest'
 import type { FalaDaAnalise } from '../src/lib/analise/tiposDaAnalise'
+import { useAudioDaSessao } from '../src/lib/audioDaSessao'
 import { MOLA_SUAVE } from '../src/lib/polimento/base'
 import {
   criarMarcador,
   ENTRE_LINHAS_MS,
+  ESPERA_DO_AVISO_MS,
+  MS_POR_CARACTERE,
   PASSO_DA_PALAVRA_MS,
   pedacosDaFrase,
   repintarSessao,
+  seguirFala,
 } from '../src/lib/polimento/sessao'
 import type { Recording } from '../src/types'
 
@@ -84,6 +97,7 @@ afterEach(() => {
   cleanup()
   document.body.innerHTML = ''
   avisos.info.mockClear()
+  avisos.error.mockClear()
   vi.useRealTimers()
   delete document.documentElement.dataset.px
   document.body.classList.remove('animations-on')
@@ -187,6 +201,167 @@ describe('criarMarcador: tocar() e pararPlayer() de telas3.js:16-62', () => {
     vi.advanceTimersByTime(630)
     expect(ditas()).toHaveLength(4)
     vi.unstubAllGlobals()
+  })
+
+  /* O defeito relatado pelo dono: "pauso e o sublinhado continua, e marca tudo como se tivesse sido
+     lido". O relógio do marcador não tinha pausa. */
+  it('pausar para o relógio e MANTÉM as palavras já marcadas; nenhuma outra é marcada', () => {
+    vi.useFakeTimers()
+    const m = montar()
+    m.linha(0)
+    vi.advanceTimersByTime(210)
+    expect(ditas()).toEqual(['So,', 'are'])
+    m.pausar()
+    vi.advanceTimersByTime(10_000)
+    expect(ditas()).toEqual(['So,', 'are'])
+  })
+
+  it('retomar continua da palavra em que parou', () => {
+    vi.useFakeTimers()
+    const m = montar()
+    m.linha(0)
+    vi.advanceTimersByTime(210)
+    m.pausar()
+    vi.advanceTimersByTime(5000)
+    m.retomar()
+    expect(ditas()).toEqual(['So,', 'are'])
+    vi.advanceTimersByTime(210)
+    expect(ditas()).toEqual(['So,', 'are', 'we'])
+    vi.advanceTimersByTime(210)
+    expect(ditas()).toEqual(['So,', 'are', 'we', 'shipping?'])
+    // Retomar sem pausa, ou duas vezes, não dobra o relógio.
+    m.retomar()
+    m.retomar()
+    vi.advanceTimersByTime(2000)
+    expect(ditas()).toHaveLength(4)
+  })
+
+  it('ate(i, k) deixa exatamente as k primeiras palavras da linha marcadas e desliga o relógio dela', () => {
+    vi.useFakeTimers()
+    const m = montar()
+    m.linha(0)
+    m.ate(0, 3)
+    expect(ditas()).toEqual(['So,', 'are', 'we'])
+    // Quem chama é que manda: o relógio de 210 ms não anda mais.
+    vi.advanceTimersByTime(5000)
+    expect(ditas()).toEqual(['So,', 'are', 'we'])
+    // Para trás também (o áudio voltou dentro da fala).
+    m.ate(0, 1)
+    expect(ditas()).toEqual(['So,'])
+    m.ate(0, 0)
+    expect(ditas()).toEqual([])
+    m.ate(0, 99)
+    expect(ditas()).toHaveLength(4)
+  })
+
+  it('ate numa linha nova entra nela como `linha`: rola, encolhe e volta, e a anterior termina marcada', () => {
+    vi.useFakeTimers()
+    const m = montar()
+    m.ate(0, 2)
+    expect(animacoes).toHaveLength(1)
+    m.ate(0, 3) // a mesma linha não se mexe de novo
+    expect(animacoes).toHaveLength(1)
+    m.ate(1, 1)
+    expect(animacoes).toHaveLength(2)
+    expect(animacoes[1].quem).toBe(document.querySelectorAll('.qs-fala')[1])
+    expect(ditas()).toEqual(['So,', 'are', 'we', 'shipping?', 'We'])
+  })
+
+  it('cadencia: cada palavra leva o tempo dela, e a cadência pausa e retoma', () => {
+    vi.useFakeTimers()
+    const m = montar()
+    m.cadencia(0, [100, 300, 100, 100])
+    expect(ditas()).toEqual(['So,'])
+    vi.advanceTimersByTime(100)
+    expect(ditas()).toEqual(['So,', 'are'])
+    vi.advanceTimersByTime(299)
+    expect(ditas()).toEqual(['So,', 'are'])
+    m.pausar()
+    vi.advanceTimersByTime(3000)
+    expect(ditas()).toEqual(['So,', 'are'])
+    m.retomar()
+    vi.advanceTimersByTime(300)
+    expect(ditas()).toEqual(['So,', 'are', 'we'])
+  })
+
+  it('cadencia com espera: a primeira palavra já, e o relógio só depois do prazo do aviso', () => {
+    vi.useFakeTimers()
+    const m = montar()
+    m.cadencia(0, [300, 300, 300, 300], 400)
+    expect(ditas()).toEqual(['So,'])
+    vi.advanceTimersByTime(399)
+    expect(ditas()).toEqual(['So,'])
+    // Aos 400 ms a fala já está na segunda palavra (a primeira leva 300): a cadência entra ali.
+    vi.advanceTimersByTime(1)
+    expect(ditas()).toEqual(['So,', 'are'])
+    vi.advanceTimersByTime(300)
+    expect(ditas()).toEqual(['So,', 'are', 'we'])
+  })
+})
+
+describe('seguirFala: a marcação presa à voz', () => {
+  const montar = () => {
+    document.body.innerHTML = FALAS.map(
+      (f) =>
+        `<div class="qs-fala">${pedacosDaFrase(f.original)
+          .map((p) => `<span class="w">${p}</span>`)
+          .join(' ')}</div>`,
+    ).join('')
+    return criarMarcador(() => document.body)
+  }
+  const texto = FALAS[0].original // 'So, are we shipping?'
+  const palavras = pedacosDaFrase(texto)
+
+  it('o aviso de palavra (boundary) marca até a palavra que a voz está dizendo', () => {
+    vi.useFakeTimers()
+    const m = montar()
+    const guia = seguirFala(m, { linha: 0, texto, palavras })
+    guia.comecou()
+    guia.palavra(texto.indexOf('are'))
+    expect(ditas()).toEqual(['So,', 'are'])
+    guia.palavra(texto.indexOf('shipping?'))
+    expect(ditas()).toEqual(['So,', 'are', 'we', 'shipping?'])
+    // O caractere no meio de uma palavra é dela; o aviso manda, e a cadência não anda por conta.
+    guia.palavra(texto.indexOf('we') + 1)
+    expect(ditas()).toEqual(['So,', 'are', 'we'])
+    vi.advanceTimersByTime(5000)
+    expect(ditas()).toEqual(['So,', 'are', 'we'])
+  })
+
+  it('a voz que não avisa cai na cadência, pelo tamanho de cada palavra e pela velocidade', () => {
+    vi.useFakeTimers()
+    const m = montar()
+    seguirFala(m, { linha: 0, texto, palavras, velocidade: 2 }).comecou()
+    expect(ditas()).toEqual(['So,'])
+    vi.advanceTimersByTime(ESPERA_DO_AVISO_MS - 1)
+    expect(ditas()).toEqual(['So,'])
+    // 'So,' leva (3 + 1) x 62 / 2 = 124 ms; 'are', mais 124; 'we', 93: aos 400 ms a voz diz 'shipping?'.
+    expect(MS_POR_CARACTERE).toBe(62)
+    vi.advanceTimersByTime(1)
+    expect(ditas()).toEqual(['So,', 'are', 'we', 'shipping?'])
+  })
+
+  it('na velocidade normal a cadência é a de uma voz de leitura, não os 210 ms fixos', () => {
+    vi.useFakeTimers()
+    const m = montar()
+    seguirFala(m, { linha: 0, texto, palavras }).comecou(0)
+    expect(ditas()).toEqual(['So,'])
+    vi.advanceTimersByTime(247) // (3 + 1) x 62 = 248
+    expect(ditas()).toEqual(['So,'])
+    vi.advanceTimersByTime(1)
+    expect(ditas()).toEqual(['So,', 'are'])
+  })
+
+  it('a voz lê outro texto (a tradução): a marcação do original anda na mesma proporção', () => {
+    const m = montar()
+    const traducao = 'Entao, vamos publicar hoje mesmo?' // 33 caracteres para 4 palavras na tela
+    const guia = seguirFala(m, { linha: 0, texto: traducao, palavras })
+    guia.palavra(0)
+    expect(ditas()).toHaveLength(1)
+    guia.palavra(17)
+    expect(ditas()).toHaveLength(3)
+    guia.palavra(32)
+    expect(ditas()).toHaveLength(4)
   })
 })
 
@@ -353,31 +528,129 @@ describe('TranscricaoDoQuest: o primeiro painel de telas3.js:64-70', () => {
     expect(ditas()).toEqual([])
   })
 
-  it('tocando, a fala do áudio acende e as palavras dela são marcadas uma a uma', () => {
+  /* ---- Sem áudio gravado: o player narra por voz ---- */
+
+  it('narrando por voz, a fala acende e as palavras seguem a cadência da voz', () => {
     vi.useFakeTimers()
     const { refazer } = montar({ indiceAtivo: 0, tocando: true })
     expect(document.querySelector('.qs-fala.ativa')?.getAttribute('data-fala')).toBe('0')
     expect(ditas()).toEqual(['So,'])
-    act(() => void vi.advanceTimersByTime(PASSO_DA_PALAVRA_MS * 3))
+    act(() => void vi.advanceTimersByTime(3000))
     expect(ditas()).toEqual(['So,', 'are', 'we', 'shipping?'])
 
-    // O áudio chegou à fala seguinte: a anterior continua marcada.
+    // A voz chegou à fala seguinte: a anterior continua marcada.
     refazer({ indiceAtivo: 1, tocando: true })
     expect(document.querySelector('.qs-fala.ativa')?.getAttribute('data-fala')).toBe('1')
     expect(ditas()).toEqual(['So,', 'are', 'we', 'shipping?', 'We'])
+  })
 
-    // Pausar apaga a marcação, como `pararPlayer()`.
-    refazer({ indiceAtivo: 1, tocando: false })
+  it('pausar MANTÉM o que já foi marcado e não marca mais nada; retomar relê a fala desde o começo', () => {
+    vi.useFakeTimers()
+    const { refazer } = montar({ indiceAtivo: 0, tocando: true, vozAvisaPalavra: false })
+    act(() => void vi.advanceTimersByTime(300))
+    expect(ditas()).toEqual(['So,', 'are'])
+    refazer({ indiceAtivo: 0, tocando: false, vozAvisaPalavra: false })
     expect(document.querySelector('.qs-fala.ativa')).toBeNull()
-    expect(ditas()).toEqual([])
+    act(() => void vi.advanceTimersByTime(10_000))
+    expect(ditas()).toEqual(['So,', 'are'])
+    // A voz não pausa no meio: ao retomar ela relê a fala, e a marcação recomeça com ela.
+    refazer({ indiceAtivo: 0, tocando: true, vozAvisaPalavra: false })
+    expect(ditas()).toEqual(['So,'])
   })
 
   it('um salto (anterior, "Ouvir este trecho") recomeça limpo daquela fala', () => {
     vi.useFakeTimers()
     const { refazer } = montar({ indiceAtivo: 1, tocando: true })
-    act(() => void vi.advanceTimersByTime(PASSO_DA_PALAVRA_MS * 4))
+    act(() => void vi.advanceTimersByTime(3000))
     refazer({ indiceAtivo: 0, tocando: true })
     expect(ditas()).toEqual(['So,'])
+  })
+
+  it('o aviso de palavra da voz (boundary) marca a palavra que ela está dizendo', () => {
+    vi.useFakeTimers()
+    const palavraFalada = { current: null as ((posicao: number, charIndex: number) => void) | null }
+    montar({ indiceAtivo: 1, tocando: true, palavraFalada })
+    expect(ditas()).toEqual(['We'])
+    act(() => palavraFalada.current?.(1, 'We ship it today.'.indexOf('it')))
+    expect(ditas()).toEqual(['We', 'ship', 'it'])
+    // Com aviso, a cadência estimada não anda por cima.
+    act(() => void vi.advanceTimersByTime(5000))
+    expect(ditas()).toEqual(['We', 'ship', 'it'])
+    // O aviso de outra fala (uma que já foi cancelada) não mexe nesta.
+    act(() => palavraFalada.current?.(0, 0))
+    expect(ditas()).toEqual(['We', 'ship', 'it'])
+  })
+
+  /* ---- Com áudio gravado: a marcação segue o tempo do <audio> ---- */
+
+  const comAudio = (duracao = 12) => {
+    const el = document.createElement('audio')
+    let agora = 0
+    Object.defineProperty(el, 'currentTime', { get: () => agora, set: (v: number) => void (agora = v) })
+    Object.defineProperty(el, 'duration', { get: () => duracao })
+    const ir = (t: number) =>
+      act(() => {
+        agora = t
+        el.dispatchEvent(new Event('timeupdate'))
+      })
+    return { audio: { current: el }, ir }
+  }
+
+  it('com áudio gravado, as palavras marcadas acompanham o tempo do áudio, e não um relógio', () => {
+    vi.useFakeTimers()
+    const { audio, ir } = comAudio()
+    montar({ indiceAtivo: 0, tocando: true, audio })
+    // A fala 0 vai de 0 s a 4 s (o começo da seguinte) e tem 4 palavras: uma por segundo.
+    expect(ditas()).toEqual(['So,'])
+    act(() => void vi.advanceTimersByTime(5000)) // o tempo do áudio não andou: nada mais é marcado
+    expect(ditas()).toEqual(['So,'])
+    ir(1.2)
+    expect(ditas()).toEqual(['So,', 'are'])
+    ir(3.5)
+    expect(ditas()).toEqual(['So,', 'are', 'we', 'shipping?'])
+    // O áudio chegou à fala seguinte: a anterior fica marcada e a nova começa.
+    ir(4.1)
+    expect(ditas()).toEqual(['So,', 'are', 'we', 'shipping?', 'We'])
+    // E voltou dentro da mesma fala: a marcação volta junto.
+    ir(6.5)
+    expect(ditas()).toHaveLength(7)
+    ir(5.1)
+    expect(ditas()).toHaveLength(6)
+  })
+
+  it('com o tempo gravado da fala, a marcação vai do começo ao fim DELA (o silêncio depois não conta)', () => {
+    vi.useFakeTimers()
+    const { audio, ir } = comAudio()
+    const falas = [fala(0, 'So, are we shipping?', { inicioExato: 0.4, fimExato: 2.4 }), FALAS[1], FALAS[2]]
+    montar({ falas, indiceAtivo: 0, tocando: true, audio })
+    expect(ditas()).toEqual([]) // o áudio ainda não chegou à fala
+    ir(0.5)
+    expect(ditas()).toEqual(['So,'])
+    ir(1.5)
+    expect(ditas()).toEqual(['So,', 'are', 'we'])
+    ir(2.4)
+    expect(ditas()).toHaveLength(4)
+  })
+
+  it('pausar o áudio mantém o que está marcado; retomar continua; um salto recomeça limpo', () => {
+    vi.useFakeTimers()
+    const { audio, ir } = comAudio()
+    const { refazer } = montar({ indiceAtivo: 0, tocando: true, audio })
+    ir(2.2)
+    expect(ditas()).toEqual(['So,', 'are', 'we'])
+    refazer({ indiceAtivo: 0, tocando: false, audio })
+    act(() => void vi.advanceTimersByTime(10_000))
+    expect(ditas()).toEqual(['So,', 'are', 'we'])
+    refazer({ indiceAtivo: 0, tocando: true, audio })
+    expect(ditas()).toEqual(['So,', 'are', 'we'])
+    ir(3.2)
+    expect(ditas()).toHaveLength(4)
+    // "Ouvir este trecho" na terceira fala (8 s), saltando a segunda: recomeça limpo dali.
+    ir(8)
+    expect(ditas()).toEqual(['Fair'])
+    // E "Fala anterior": idem.
+    ir(4)
+    expect(ditas()).toEqual(['We'])
   })
 
   it('"Procedência" diz de onde veio a transcrição', () => {
@@ -461,6 +734,130 @@ describe('PlayerInterativo no desenho novo: a faixa de telas3.js:69-70', () => {
     montar({ hasRealAudio: true, audioSrc: null, carregandoAudio: true })
     expect(principal().disabled).toBe(true)
     expect(texto('.px-onde')).toBe('Carregando o áudio…')
+  })
+
+  it('erro do <audio> com a URL de blob: pede o download de novo e NÃO avisa; sem conserto, avisa', () => {
+    const aoFalharOAudio = vi.fn(() => true)
+    const { acoes } = montar({ hasRealAudio: true, audioSrc: 'blob:morta', isPlaying: true, aoFalharOAudio })
+    fireEvent.error(document.querySelector('audio') as HTMLAudioElement)
+    expect(aoFalharOAudio).toHaveBeenCalledTimes(1)
+    expect(avisos.error).not.toHaveBeenCalled()
+    // Quem pediu para ouvir continua querendo ouvir: toca quando o áudio novo chegar.
+    expect(acoes.setIsPlaying).not.toHaveBeenCalled()
+
+    aoFalharOAudio.mockReturnValue(false)
+    fireEvent.error(document.querySelector('audio') as HTMLAudioElement)
+    expect(avisos.error).toHaveBeenCalledTimes(1)
+    expect(acoes.setIsPlaying).toHaveBeenLastCalledWith(false)
+  })
+
+  it('sem `src` (o áudio ainda carregando), o erro do <audio> não avisa nem pede nada', () => {
+    const aoFalharOAudio = vi.fn(() => true)
+    montar({ hasRealAudio: true, audioSrc: null, carregandoAudio: true, aoFalharOAudio })
+    fireEvent.error(document.querySelector('audio') as HTMLAudioElement)
+    expect(aoFalharOAudio).not.toHaveBeenCalled()
+    expect(avisos.error).not.toHaveBeenCalled()
+  })
+})
+
+/* ---- O áudio que se recupera sozinho ----------------------------------------------------------- */
+
+describe('useAudioDaSessao: a URL de blob revogada com o player montado', () => {
+  let criadas = 0
+  let revogadas: string[] = []
+  let sessao = 0
+  beforeEach(() => {
+    criadas = 0
+    revogadas = []
+    rede.pedidos = 0
+    globalThis.URL.createObjectURL = vi.fn(() => `blob:audio-${++criadas}`)
+    globalThis.URL.revokeObjectURL = vi.fn((u: string) => void revogadas.push(u))
+  })
+  const nova = () => `sessao-do-player-${++sessao}`
+
+  /** O player de verdade ligado ao hook de verdade, como a `Analysis` os liga. */
+  function PlayerComAudio({ id }: { id: string }) {
+    const audio = useAudioDaSessao(id, true)
+    const [tocando, setTocando] = React.useState(false)
+    return (
+      <PlayerInterativo
+        recording={gravacao}
+        parsedSentences={FALAS}
+        hasRealAudio
+        audioSrc={audio.url}
+        audioRef={{ current: null }}
+        audioDuration={0}
+        setAudioDuration={() => undefined}
+        isPlaying={tocando}
+        setIsPlaying={setTocando}
+        setCurrentTime={() => undefined}
+        loopMode={false}
+        activeSentenceIndex={-1}
+        seekTo={() => undefined}
+        carregandoAudio={audio.carregando}
+        erroDoAudio={audio.erro}
+        aoFalharOAudio={audio.refazer}
+      />
+    )
+  }
+  const som = () => document.querySelector('audio') as HTMLAudioElement
+
+  it('o erro refaz o download UMA vez, sem avisar; só o segundo erro mostra o aviso', async () => {
+    render(<PlayerComAudio id={nova()} />)
+    await act(async () => {})
+    expect(som().getAttribute('src')).toBe('blob:audio-1')
+    expect(rede.pedidos).toBe(1)
+
+    // A URL morreu (revogada) e a pessoa clica em Ouvir: o <audio> dá erro.
+    fireEvent.click(document.querySelector('[data-px="tocar"]') as HTMLButtonElement)
+    fireEvent.error(som())
+    expect(avisos.error).not.toHaveBeenCalled()
+    expect(texto('.px-onde')).toBe('Carregando o áudio…')
+    await act(async () => {})
+    expect(rede.pedidos).toBe(2)
+    expect(som().getAttribute('src')).toBe('blob:audio-2')
+    expect(revogadas).toEqual(['blob:audio-1'])
+    // O pedido de ouvir continua de pé: o botão não voltou a "Ouvir".
+    expect(document.querySelector('[data-px="tocar"]')?.textContent?.trim()).toBe('Pausar')
+    expect(texto('.px-onde')).toBe('Fala 1 de 3')
+
+    // Falhou de novo: aí sim o aviso, e nenhum terceiro download.
+    fireEvent.error(som())
+    await act(async () => {})
+    expect(avisos.error).toHaveBeenCalledTimes(1)
+    expect(avisos.error.mock.calls[0][0]).toMatch(/áudio/)
+    expect(rede.pedidos).toBe(2)
+    expect(document.querySelector('[data-px="tocar"]')?.textContent?.trim()).toBe('Ouvir')
+  })
+
+  it('refazer vale uma vez por sessão aberta', async () => {
+    const id = nova()
+    const { result } = renderHook(() => useAudioDaSessao(id, true))
+    await act(async () => {})
+    let refez = false
+    act(() => void (refez = result.current.refazer()))
+    expect(refez).toBe(true)
+    await act(async () => {})
+    expect(result.current.url).toBe('blob:audio-2')
+    act(() => void (refez = result.current.refazer()))
+    expect(refez).toBe(false)
+    expect(rede.pedidos).toBe(2)
+  })
+
+  it('o efeito que solta e pega de novo (StrictMode) não revoga a URL nem baixa duas vezes', async () => {
+    vi.useFakeTimers()
+    const id = nova()
+    const { result, unmount } = renderHook(() => useAudioDaSessao(id, true), { wrapper: React.StrictMode })
+    await act(async () => {})
+    expect(result.current.url).toBe('blob:audio-1')
+    expect(rede.pedidos).toBe(1)
+    // Passada a carência, a referência que o efeito soltou não zerou a contagem: a URL segue viva.
+    await act(async () => void vi.advanceTimersByTime(10_000))
+    expect(revogadas).toEqual([])
+    // Ao sair da tela, aí sim: revogada depois da carência.
+    unmount()
+    await act(async () => void vi.advanceTimersByTime(10_000))
+    expect(revogadas).toEqual(['blob:audio-1'])
   })
 })
 

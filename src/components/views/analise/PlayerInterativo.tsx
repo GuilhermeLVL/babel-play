@@ -41,6 +41,11 @@ export interface PropsDoPlayerInterativo {
    * do site, ou num idioma que ela não lê) troca a faixa pelo motivo.
    */
   haVozParaNarrar?: boolean;
+  /**
+   * O `<audio>` deu erro com a URL de blob no `src` (ela foi revogada): a tela descarta e baixa de
+   * novo. `true` = está refazendo, e o player espera em vez de avisar. `false` = já tentou.
+   */
+  aoFalharOAudio?: () => boolean;
 }
 
 export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
@@ -61,6 +66,7 @@ export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
     carregandoAudio = false,
     erroDoAudio = null,
     haVozParaNarrar = true,
+    aoFalharOAudio,
   } = props;
 
   if (recording.type === 'document') return null;
@@ -76,6 +82,10 @@ export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
              revogado (StrictMode desmonta/remonta): sem src, não há o que reportar. */
         const el = e.currentTarget;
         if (!el.currentSrc && !el.src) return;
+        /* A URL de blob morreu com o player ainda apontando para ela: o áudio é baixado de novo, uma
+             vez, e quem tinha pedido para ouvir ouve quando ele chegar. Só a segunda falha avisa. */
+        if ((el.currentSrc || el.src).startsWith('blob:') && aoFalharOAudio?.()) return;
+        setIsPlaying(false);
         toast.error(mediaErrorMessage(el));
       }}
       onLoadedMetadata={(e) => {

@@ -78,6 +78,11 @@ export interface DepsDoPlayerDaSessao {
   setShadowingSentenceIndex: Dispatch<SetStateAction<number | null>>;
   /** Presente = a narração sem áudio gravado vai por este motor, e não pela `speechSynthesis`. */
   narrador?: NarradorDoPlayer | null;
+  /**
+   * A voz do navegador avisou (`boundary`) que está no caractere `charIndex` da fala de posição
+   * `posicao`. É o que a Transcrição usa para marcar a palavra que está sendo dita.
+   */
+  aoFalarPalavra?: (posicao: number, charIndex: number) => void;
 }
 
 export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
@@ -104,7 +109,10 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
     setPeaks,
     setShadowingSentenceIndex,
     narrador = null,
+    aoFalarPalavra,
   } = deps;
+  const aoFalarPalavraRef = React.useRef(aoFalarPalavra);
+  aoFalarPalavraRef.current = aoFalarPalavra;
   /* O Smart Slow-Mo NÃO SOBRESCREVE a velocidade que a pessoa escolheu (0,75× / 1× / 1,25×): ele
      desacelera por cima dela, só nas falas com palavra difícil. Antes ele gravava 0,8 ou 1,0 direto em
      `playbackSpeed`, e com o Slow-Mo ligado o seletor de velocidade parecia quebrado: cada clique era
@@ -128,11 +136,23 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
     activeSentenceIndexRef.current = activeSentenceIndex;
   }, [activeSentenceIndex, activeSentenceIndexRef]);
 
+  /* A posição pedida com o áudio ainda sem carregar (o download não chegou, ou está sendo refeito):
+     ela é aplicada quando o `<audio>` souber a duração. Sem isto, "ouvir a partir desta fala" durante
+     a espera tocava do começo, e o áudio refeito depois de um erro voltava ao zero. */
+  const posicaoPendente = React.useRef<number | null>(null);
+  /* Onde o áudio estava enquanto ainda tinha o que tocar. Uma carga que falha zera o `currentTime`
+     ANTES de avisar o erro: o tempo que vale é o último de um `<audio>` carregado. */
+  const tempoAtual = React.useRef(currentTime);
+  React.useEffect(() => {
+    if ((audioRef.current?.readyState ?? 0) >= 1) tempoAtual.current = currentTime;
+  }, [currentTime, audioRef]);
+
   // Helpers de reprodução (usados pelos controles/hotspots).
   const seekTo = React.useCallback(
     (t: number) => {
       setCurrentTime(t);
       if (hasRealAudio && audioRef.current) {
+        if (audioRef.current.readyState < 1) posicaoPendente.current = t;
         try {
           audioRef.current.currentTime = t;
         } catch {
@@ -166,6 +186,33 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
     [seekTo, setIsPlaying],
   );
 
+  /** O áudio vai ser baixado de novo: guarda onde estava, para o novo continuar dali. */
+  const lembrarPosicao = React.useCallback(() => {
+    const t = audioRef.current?.currentTime || tempoAtual.current;
+    if (t > 0) posicaoPendente.current = t;
+  }, [audioRef]);
+
+  React.useEffect(() => {
+    const a = audioRef.current;
+    if (!hasRealAudio || !a || !audioSrc) return;
+    const aplica = () => {
+      const t = posicaoPendente.current;
+      posicaoPendente.current = null;
+      if (t === null || t <= 0) return;
+      try {
+        a.currentTime = t;
+      } catch {
+        /* fora da duração */
+      }
+    };
+    if (a.readyState >= 1) {
+      aplica();
+      return;
+    }
+    a.addEventListener('loadedmetadata', aplica, { once: true });
+    return () => a.removeEventListener('loadedmetadata', aplica);
+  }, [hasRealAudio, audioSrc, audioRef]);
+
   // Sync activeSentenceIndex with currentTime
   React.useEffect(() => {
     if (parsedSentences.length === 0) return;
@@ -188,8 +235,22 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
       const a = audioRef.current;
       if (!a) return;
       a.playbackRate = playbackSpeed;
-      if (isPlaying) a.play().catch(() => setIsPlaying(false));
-      else a.pause();
+      if (!isPlaying) {
+        a.pause();
+        return;
+      }
+      /* O áudio ainda está sendo baixado (ou refeito): o pedido de tocar fica de pé, e este efeito
+         roda de novo quando o `src` chegar. Antes, `play()` num `<audio>` sem fonte era abortado
+         pela carga seguinte e o botão voltava a "Ouvir" sem ter tocado nada. */
+      if (!audioSrc) return;
+      a.play().catch((e: unknown) => {
+        /* `AbortError`: uma carga nova (ou uma pausa) interrompeu este pedido; quem pediu de novo
+           decide. `NotSupportedError`: a fonte não carregou, e quem decide é o `onError` do
+           `<audio>`, que primeiro tenta baixar de novo. */
+        const nome = (e as { name?: string } | null)?.name;
+        if (nome === 'AbortError' || nome === 'NotSupportedError') return;
+        setIsPlaying(false);
+      });
       return;
     }
 
@@ -282,6 +343,7 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
       };
       u.onboundary = (ev: SpeechSynthesisEvent) => {
         if (cancelled) return;
+        if (!ev.name || ev.name === 'word') aoFalarPalavraRef.current?.(i, ev.charIndex || 0);
         const frac = Math.min(1, (ev.charIndex || 0) / Math.max(1, text.length));
         setCurrentTime(s.startTime + (nextStart - s.startTime) * frac);
       };
@@ -300,6 +362,7 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
   }, [
     isPlaying,
     hasRealAudio,
+    audioSrc,
     narraPeloMotor,
     playbackSpeed,
     loopMode,
@@ -374,5 +437,5 @@ export function usePlayerDaSessao(deps: DepsDoPlayerDaSessao) {
     };
   }, [hasRealAudio, audioSrc, setPeaks]);
 
-  return { seekTo, playFrom };
+  return { seekTo, playFrom, lembrarPosicao };
 }

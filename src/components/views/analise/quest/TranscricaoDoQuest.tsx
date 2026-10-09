@@ -8,11 +8,17 @@ import {
   SlidersHorizontal,
   Volume2,
 } from 'lucide-react';
-import { Fragment, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { FalaDaAnalise } from '../../../../lib/analise/tiposDaAnalise';
 import { t } from '../../../../lib/i18n';
-import { criarMarcador, pedacosDaFrase } from '../../../../lib/polimento/sessao';
+import {
+  criarMarcador,
+  ESPERA_DO_AVISO_MS,
+  type GuiaDaFala,
+  pedacosDaFrase,
+  seguirFala,
+} from '../../../../lib/polimento/sessao';
 import { toast } from '../../../Toast';
 import { Dialogo, fecharDialogoDe } from '../../../ui';
 
@@ -41,7 +47,8 @@ interface PalavraDaSessao {
  *     (`telas3.js:175-177`, item D53); quem a monta é a `Analysis`;
  *   · "Ouvir este trecho" faz o player recomeçar daquela fala (`telas3.js:174`);
  *   · enquanto toca, a fala ativa acende e as palavras dela vão sendo marcadas (`tocar()`,
- *     `telas3.js:28-62`, item D51), em `lib/polimento/sessao.ts`.
+ *     `telas3.js:28-62`, item D51), em `lib/polimento/sessao.ts`, no tempo do som de verdade: pausar
+ *     mantém o que já foi marcado, retomar continua, e um salto recomeça limpo.
  *
  * Só apresentação: nenhuma regra mora aqui. A `Analysis` entrega as falas, o estado e as ações.
  */
@@ -65,6 +72,10 @@ export default function TranscricaoDoQuest({
   aoAbrirFala,
   aoAbrirPalavra,
   ajustes,
+  audio,
+  velocidade = 1,
+  palavraFalada,
+  vozAvisaPalavra = true,
 }: {
   falas: readonly FalaDaAnalise[];
   /** A transcrição ainda está vindo, chegou, ou o pedido falhou. */
@@ -97,28 +108,108 @@ export default function TranscricaoDoQuest({
   aoAbrirFala: (fala: FalaDaAnalise) => void;
   aoAbrirPalavra: (palavra: string, frase: string) => void;
   ajustes: readonly AjusteDeExibicao[];
+  /** O `<audio>` do áudio gravado. Com ele, a marcação das palavras segue o tempo do áudio. */
+  audio?: RefObject<HTMLAudioElement | null>;
+  /** Sem áudio gravado, a velocidade da voz que narra (a cadência da marcação a acompanha). */
+  velocidade?: number;
+  /**
+   * Sem áudio gravado: a tela põe aqui quem recebe o aviso de palavra da voz (`boundary`), e o player
+   * o chama com a posição da fala e o caractere que está sendo dito.
+   */
+  palavraFalada?: { current: ((posicao: number, charIndex: number) => void) | null };
+  /** A voz que narra avisa a palavra? A voz do site (o headset) não avisa: vale só a cadência. */
+  vozAvisaPalavra?: boolean;
 }) {
   const [verPalavras, setVerPalavras] = useState(false);
   const [ajustando, setAjustando] = useState(false);
 
-  /* O PLAYER MARCA PALAVRA POR PALAVRA (`tocar()` e `pararPlayer()`, `telas3.js:16-62`). A linha vem do
-     áudio de verdade; a cadência das palavras é a do protótipo. */
+  /* O PLAYER MARCA PALAVRA POR PALAVRA (`tocar()` e `pararPlayer()`, `telas3.js:16-62`), e quem manda é
+     o SOM. Com áudio gravado, a fala e a palavra saem do tempo do `<audio>`; sem ele, da voz que
+     narra. Pausar mantém o que já foi marcado; um salto (anterior, próxima, "Ouvir este trecho")
+     recomeça limpo, como `tocar(i)` no protótipo. */
   const raiz = useRef<HTMLDivElement>(null);
   const marcador = useMemo(() => criarMarcador(() => raiz.current), []);
   const linhaDeAntes = useRef(-1);
   const posicao = tocando && !documento ? falas.findIndex((f) => f.index === indiceAtivo) : -1;
+  const falasDeAgora = useRef(falas);
+  falasDeAgora.current = falas;
+
+  /* ÁUDIO GRAVADO: a cada quadro (e a cada `timeupdate`, para a aba em segundo plano), a fala em que o
+     áudio está e a fração dela que já tocou dizem quantas palavras marcar. As gravações não guardam o
+     tempo de cada palavra: dentro da fala a marcação é proporcional, do começo ao fim gravados dela. */
   useEffect(() => {
+    if (!audio || !tocando || documento) return;
+    let quadro = 0;
+    let feito = '';
+    const acerta = () => {
+      const a = audio.current;
+      const todas = falasDeAgora.current;
+      if (!a) return;
+      const t = a.currentTime;
+      let i = -1;
+      for (let n = 0; n < todas.length; n++) if (todas[n].startTime <= t) i = n;
+      if (i < 0) return;
+      const fala = todas[i];
+      const inicio = fala.inicioExato ?? fala.startTime;
+      const fim =
+        fala.fimExato && fala.fimExato > inicio
+          ? fala.fimExato
+          : (todas[i + 1]?.startTime ?? (Number.isFinite(a.duration) && a.duration > inicio ? a.duration : inicio + 6));
+      const n = pedacosDaFrase(fala.original).length;
+      const fracao = Math.min(1, Math.max(0, (t - inicio) / Math.max(0.05, fim - inicio)));
+      const k = t < inicio ? 0 : Math.min(n, Math.floor(fracao * n) + 1);
+      if (feito === `${i}:${k}`) return;
+      feito = `${i}:${k}`;
+      const antes = linhaDeAntes.current;
+      if (antes !== -1 && i !== antes && i !== antes + 1) marcador.parar();
+      marcador.ate(i, k);
+      linhaDeAntes.current = i;
+    };
+    const laco = () => {
+      acerta();
+      quadro = requestAnimationFrame(laco);
+    };
+    laco();
+    const a = audio.current;
+    a?.addEventListener('timeupdate', acerta);
+    return () => {
+      cancelAnimationFrame(quadro);
+      a?.removeEventListener('timeupdate', acerta);
+    };
+  }, [audio, tocando, documento, marcador]);
+
+  /* SEM ÁUDIO GRAVADO: o player narra por voz, fala a fala. A palavra é a que a voz avisa; a voz que
+     não avisa segue a cadência estimada pela velocidade. Pausar cala a voz e retomar relê a fala: a
+     marcação dela recomeça junto. */
+  const guia = useRef<GuiaDaFala | null>(null);
+  useEffect(() => {
+    if (audio) return;
     if (posicao < 0) {
-      marcador.parar();
-      linhaDeAntes.current = -1;
+      marcador.pausar();
+      guia.current = null;
       return;
     }
-    /* Um salto (anterior, próxima, "Ouvir este trecho") recomeça limpo, como `tocar(i)` no protótipo;
-       o avanço natural deixa marcadas as falas que já passaram. */
-    if (linhaDeAntes.current !== -1 && posicao !== linhaDeAntes.current + 1) marcador.parar();
-    marcador.linha(posicao);
+    const antes = linhaDeAntes.current;
+    if (antes !== -1 && posicao !== antes && posicao !== antes + 1) marcador.parar();
     linhaDeAntes.current = posicao;
-  }, [posicao, marcador]);
+    const fala = falasDeAgora.current[posicao];
+    guia.current = seguirFala(marcador, {
+      linha: posicao,
+      texto: fala.original || fala.translation || '',
+      palavras: pedacosDaFrase(fala.original),
+      velocidade,
+    });
+    guia.current.comecou(vozAvisaPalavra ? ESPERA_DO_AVISO_MS : 0);
+  }, [audio, posicao, marcador, velocidade, vozAvisaPalavra]);
+  useEffect(() => {
+    if (!palavraFalada) return;
+    palavraFalada.current = (p, charIndex) => {
+      if (p === linhaDeAntes.current) guia.current?.palavra(charIndex);
+    };
+    return () => {
+      palavraFalada.current = null;
+    };
+  }, [palavraFalada]);
   useEffect(() => () => marcador.parar(), [marcador]);
 
   const barra = (

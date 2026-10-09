@@ -13,7 +13,7 @@ import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
 
 prepararDialogoNoJsdom()
 
-type Fala = (texto: string, opcoes: { lang: string; rate?: number; onEnd?: () => void }) => void
+type Fala = (texto: string, opcoes: { lang: string; rate?: number; onStart?: () => void; onEnd?: () => void }) => void
 
 const palco = vi.hoisted(() => ({
   falas: [] as unknown[],
@@ -26,8 +26,11 @@ const palco = vi.hoisted(() => ({
   fichar: null as unknown as ReturnType<(typeof import('vitest'))['vi']['fn']>,
 }))
 
-/** O aparelho do teste: o headset (o padrão desta suíte) ou o computador com o desenho novo ligado. */
-const aparelho = vi.hoisted(() => ({ quest: true }))
+/**
+ * O aparelho do teste: o headset (o padrão desta suíte) ou o computador com o desenho novo ligado.
+ * `voz` = o aparelho tem voz de leitura própria (a `speechSynthesis` do navegador narra).
+ */
+const aparelho = vi.hoisted(() => ({ quest: true, voz: false }))
 
 vi.mock('../src/lib/dispositivo/telaNovaDoQuest', async (orig) => ({
   ...(await orig<typeof import('../src/lib/dispositivo/telaNovaDoQuest')>()),
@@ -69,7 +72,7 @@ vi.mock('../src/lib/langDetect', () => ({
 }))
 vi.mock('../src/lib/voz/haVoz', () => ({
   haVozPara: (idioma: string) => palco.vozes.includes(idioma.toLowerCase().split('-')[0]),
-  aparelhoTemVoz: () => false,
+  aparelhoTemVoz: () => aparelho.voz,
 }))
 vi.mock('../src/lib/tts', async (orig) => {
   palco.falar = vi.fn()
@@ -142,6 +145,7 @@ const ultimaFala = () => (palco.falar.mock.calls.at(-1) ?? []) as Parameters<Fal
 beforeEach(() => {
   localStorage.clear()
   aparelho.quest = true
+  aparelho.voz = false
   palco.falas = FALAS
   palco.cartoes = []
   palco.pendente = false
@@ -154,7 +158,14 @@ beforeEach(() => {
   HTMLCanvasElement.prototype.toDataURL = () => ''
   Element.prototype.scrollIntoView = vi.fn()
 })
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
+})
+
+/** As palavras que a narração já marcou no texto. */
+const ditas = (raiz: ParentNode) => [...raiz.querySelectorAll('.ql-frase .w.dita')].map((w) => w.textContent)
 
 describe('A leitura no Quest: o texto', () => {
   it('enquanto o texto não chega, mostra a forma do que vem; sem falas, diz que não há texto', async () => {
@@ -307,6 +318,44 @@ describe('A leitura no Quest: narração', () => {
     // A faixa é a do protótipo (`telas3.js:73`): anterior, o principal, próxima e a voz. Sem "Parar".
     expect(narrador().queryByRole('button', { name: 'Parar e voltar ao início' })).toBeNull()
     expect(narrador().getAllByRole('button')).toHaveLength(4)
+  })
+
+  /* O defeito relatado pelo dono: "pauso e o sublinhado continua, e marca tudo como se tivesse sido
+     lido". A marcação andava num relógio próprio que a pausa não parava. */
+  it('a marcação segue a fala: pausar não marca mais palavras; retomar relê a frase e a marcação dela', async () => {
+    const { narrador, container } = await montar()
+    vi.useFakeTimers()
+    fireEvent.click(narrador().getByRole('button', { name: /Narrar/ }))
+    await act(async () => {})
+    // A voz do site ainda não começou a soar: nada marcado.
+    expect(ditas(container)).toEqual([])
+    act(() => ultimaFala()[1].onStart?.())
+    expect(ditas(container)).toEqual(['We'])
+    // A 1,25x, "We" leva (2 + 1) x 62 / 1,25 = 149 ms.
+    act(() => void vi.advanceTimersByTime(200))
+    expect(ditas(container)).toEqual(['We', 'need'])
+
+    fireEvent.click(narrador().getByRole('button', { name: /Pausar/ }))
+    act(() => void vi.advanceTimersByTime(10_000))
+    expect(ditas(container)).toEqual(['We', 'need'])
+
+    // A voz do site não pausa no meio: retomar relê a frase, e a marcação recomeça COM a fala.
+    fireEvent.click(narrador().getByRole('button', { name: /Retomar/ }))
+    await act(async () => {})
+    expect(ultimaFala()[0]).toBe(FALAS[0].sourceText)
+    expect(ditas(container)).toEqual([])
+    act(() => ultimaFala()[1].onStart?.())
+    expect(ditas(container)).toEqual(['We'])
+    act(() => void vi.advanceTimersByTime(10_000))
+    expect(ditas(container)).toEqual(['We', 'need', 'to', 'improve', 'retention.'])
+
+    // A frase seguinte entra com a anterior marcada; "Frase anterior" (um salto) recomeça limpo.
+    await act(async () => ultimaFala()[1].onEnd?.())
+    act(() => ultimaFala()[1].onStart?.())
+    expect(ditas(container)).toHaveLength(6)
+    fireEvent.click(narrador().getByRole('button', { name: 'Frase anterior' }))
+    await act(async () => {})
+    expect(ditas(container)).toEqual([])
   })
 
   it('sem voz para o idioma, a narração não oferece um botão que não toca: diz o motivo', async () => {
@@ -509,6 +558,193 @@ describe('A leitura no computador com o desenho novo', () => {
     const aviso = screen.getByTestId('voz-ausente').textContent ?? ''
     expect(aviso).toMatch(/Seu sistema não tem voz instalada para .*Portugu/i)
     expect(aviso).not.toContain('voz do site')
+  })
+})
+
+/* A VOZ DO NAVEGADOR (`speechSynthesis`): a marcação segue o aviso de palavra da própria fala, e a
+   pausa do botão é a pausa da voz E da marcação. */
+describe('A leitura com a voz do navegador: a marcação segue a fala', () => {
+  class FalaFalsa {
+    lang = ''
+    voice: unknown = null
+    rate = 1
+    pitch = 1
+    onstart: (() => void) | null = null
+    onboundary: ((ev: { name?: string; charIndex: number }) => void) | null = null
+    onend: (() => void) | null = null
+    onerror: (() => void) | null = null
+    constructor(public text: string) {}
+  }
+  const voz = {
+    faladas: [] as FalaFalsa[],
+    paused: false,
+    speaking: false,
+    /** `false` = o `pause()` deste navegador não pausa de fato (as vozes online do Chrome). */
+    obedece: true,
+    cancelamentos: 0,
+    speak(u: FalaFalsa) {
+      this.faladas.push(u)
+      this.speaking = true
+      this.paused = false
+    },
+    cancel() {
+      this.cancelamentos++
+      this.speaking = false
+      this.paused = false
+    },
+    pause() {
+      if (this.obedece) this.paused = true
+    },
+    resume() {
+      this.paused = false
+    },
+    getVoices: () => [],
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+  }
+  const ultima = () => voz.faladas[voz.faladas.length - 1]
+
+  beforeEach(() => {
+    aparelho.quest = false
+    aparelho.voz = true
+    Object.assign(voz, { faladas: [], paused: false, speaking: false, obedece: true, cancelamentos: 0 })
+    vi.stubGlobal('speechSynthesis', voz)
+    vi.stubGlobal('SpeechSynthesisUtterance', FalaFalsa)
+  })
+
+  const narrar = async () => {
+    const tela = await montar()
+    vi.useFakeTimers()
+    fireEvent.click(tela.narrador().getByRole('button', { name: /Narrar/ }))
+    await act(async () => {})
+    const principal = () => tela.container.querySelector('.ql-narrador .q-ctl.pri') as HTMLButtonElement
+    return { ...tela, principal }
+  }
+
+  it('o aviso de palavra (boundary) marca a palavra que a voz está dizendo, e não um relógio', async () => {
+    const { container, frases } = await narrar()
+    const texto = FALAS[0].sourceText
+    expect(ultima().text).toBe(texto)
+    expect(ditas(container)).toEqual([])
+    act(() => ultima().onstart?.())
+    expect(ditas(container)).toEqual(['We'])
+    act(() => ultima().onboundary?.({ name: 'word', charIndex: texto.indexOf('improve') }))
+    expect(ditas(container)).toEqual(['We', 'need', 'to', 'improve'])
+    // Quem manda é a voz: o tempo passa e nada mais é marcado até ela avisar.
+    act(() => void vi.advanceTimersByTime(10_000))
+    expect(ditas(container)).toEqual(['We', 'need', 'to', 'improve'])
+    // O aviso de FRASE não diz palavra nenhuma.
+    act(() => ultima().onboundary?.({ name: 'sentence', charIndex: 0 }))
+    expect(ditas(container)).toHaveLength(4)
+    act(() => ultima().onboundary?.({ name: 'word', charIndex: texto.indexOf('retention') }))
+    expect(ditas(container)).toHaveLength(5)
+
+    // A frase seguinte: a anterior fica marcada e a nova começa na primeira palavra.
+    await act(async () => ultima().onend?.())
+    expect(ultima().text).toBe(FALAS[1].sourceText)
+    expect(frases()[1].classList.contains('narrando')).toBe(true)
+    act(() => ultima().onstart?.())
+    expect(ditas(container)).toEqual(['We', 'need', 'to', 'improve', 'retention.', 'The'])
+  })
+
+  it('a voz que não avisa cai na cadência pela velocidade; pausar não marca mais e retomar continua', async () => {
+    const { container, principal } = await narrar()
+    act(() => ultima().onstart?.())
+    expect(ditas(container)).toEqual(['We'])
+    // Sem aviso em 400 ms: a cadência estimada (a 1,25x) entra na palavra em que a voz deve estar.
+    act(() => void vi.advanceTimersByTime(400))
+    expect(ditas(container)).toEqual(['We', 'need', 'to'])
+
+    fireEvent.click(principal())
+    expect(principal().textContent?.trim()).toBe('Retomar')
+    expect(voz.paused).toBe(true)
+    act(() => void vi.advanceTimersByTime(3000))
+    expect(ditas(container)).toEqual(['We', 'need', 'to'])
+    expect(voz.cancelamentos, 'a voz pausou de verdade: a fala não é cancelada').toBe(1) // só o do início
+
+    fireEvent.click(principal())
+    expect(principal().textContent?.trim()).toBe('Pausar')
+    expect(voz.paused).toBe(false)
+    expect(ditas(container)).toEqual(['We', 'need', 'to'])
+    act(() => void vi.advanceTimersByTime(3000))
+    expect(ditas(container)).toEqual(['We', 'need', 'to', 'improve', 'retention.'])
+    expect(voz.faladas, 'retomou a mesma fala, sem reler').toHaveLength(1)
+  })
+
+  it('o aviso que chega durante a pausa não marca nada', async () => {
+    const { container, principal } = await narrar()
+    act(() => ultima().onstart?.())
+    fireEvent.click(principal())
+    act(() => ultima().onboundary?.({ name: 'word', charIndex: FALAS[0].sourceText.indexOf('retention') }))
+    expect(ditas(container)).toEqual(['We'])
+  })
+
+  it('o navegador que não pausa de fato: a fala é calada, e retomar relê a frase desde o começo', async () => {
+    voz.obedece = false
+    const { container, principal, frases } = await narrar()
+    act(() => ultima().onstart?.())
+    act(() => ultima().onboundary?.({ name: 'word', charIndex: 3 }))
+    expect(ditas(container)).toEqual(['We', 'need'])
+
+    fireEvent.click(principal())
+    // O botão responde no mesmo clique, antes de se saber se a voz obedeceu.
+    expect(principal().textContent?.trim()).toBe('Retomar')
+    expect(voz.cancelamentos).toBe(1)
+    act(() => void vi.advanceTimersByTime(250))
+    expect(voz.cancelamentos, 'a voz seguia falando: a fala é cancelada').toBe(2)
+    // O cancelamento dispara `onend`/`onerror` na fala velha: a narração não avança nem para.
+    await act(async () => {
+      ultima().onerror?.()
+      ultima().onend?.()
+    })
+    expect(voz.faladas).toHaveLength(1)
+    expect(principal().textContent?.trim()).toBe('Retomar')
+    expect(frases()[0].classList.contains('narrando')).toBe(true)
+    act(() => void vi.advanceTimersByTime(5000))
+    expect(ditas(container)).toEqual(['We', 'need'])
+
+    fireEvent.click(principal())
+    await act(async () => {})
+    expect(principal().textContent?.trim()).toBe('Pausar')
+    expect(voz.faladas).toHaveLength(2)
+    expect(ultima().text).toBe(FALAS[0].sourceText)
+    expect(ditas(container)).toEqual([])
+    act(() => ultima().onstart?.())
+    expect(ditas(container)).toEqual(['We'])
+  })
+
+  it('a pausa longa (que o Chrome não retoma) também vira pausa por cancelamento', async () => {
+    const { principal } = await narrar()
+    act(() => ultima().onstart?.())
+    fireEvent.click(principal())
+    act(() => void vi.advanceTimersByTime(9000))
+    expect(voz.cancelamentos).toBe(1)
+    act(() => void vi.advanceTimersByTime(2000))
+    expect(voz.cancelamentos).toBe(2)
+    fireEvent.click(principal())
+    await act(async () => {})
+    expect(voz.faladas).toHaveLength(2)
+  })
+
+  it('dois cliques seguidos (pausar e retomar) não deixam o botão nem a fala trocados', async () => {
+    const { container, principal } = await narrar()
+    act(() => ultima().onstart?.())
+    fireEvent.click(principal())
+    fireEvent.click(principal())
+    expect(principal().textContent?.trim()).toBe('Pausar')
+    expect(voz.paused).toBe(false)
+    // A conferência da pausa (250 ms) foi desarmada pelo segundo clique: nada é cancelado nem relido.
+    act(() => void vi.advanceTimersByTime(1000))
+    expect(voz.cancelamentos).toBe(1)
+    expect(voz.faladas).toHaveLength(1)
+    expect(ditas(container).length).toBeGreaterThan(1)
+
+    // E três: fica pausado, com o rótulo certo.
+    fireEvent.click(principal())
+    fireEvent.click(principal())
+    fireEvent.click(principal())
+    expect(principal().textContent?.trim()).toBe('Retomar')
+    expect(voz.paused).toBe(true)
   })
 })
 

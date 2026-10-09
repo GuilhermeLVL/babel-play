@@ -59,6 +59,7 @@ import {
   type Sigilo,
 } from '../lib/ichat/pedido';
 import { construirContextoDaTela } from '../lib/ichatContext';
+import { movimentoReduzido } from '../lib/movimento/reduzido';
 import { sinalizarRecusaLida } from '../lib/ofertas/eventos';
 import { type AgeProfileType } from '../lib/profile';
 import { seedFromSelection } from '../lib/sentences';
@@ -171,8 +172,7 @@ const SUGESTOES = [
   'Crie uma frase com as minhas palavras',
 ];
 
-const semMovimento = () =>
-  typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const semMovimento = () => movimentoReduzido();
 
 function lerJson<T>(chave: string, padrao: T): T {
   try {

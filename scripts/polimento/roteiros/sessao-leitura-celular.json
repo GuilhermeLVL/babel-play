@@ -1,0 +1,94 @@
+{
+  "nome": "sessao-leitura-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector(\".q-trilho .q-mais-botao\"); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-mais button, .q-mais a')].find((b) => /Biblioteca/.test(b.textContent)); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 3000
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector(\".q-bib-det .q-ctl.pri\"); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 3500
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector(\".px-abas-sessao .q-aba:nth-of-type(2)\"); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 3500
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector(\".q-trilho .q-mais-botao\"); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-mais button, .q-mais a')].find((b) => /Biblioteca/.test(b.textContent)); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 3000
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector(\".q-bib-det .q-ctl.pri\"); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 3500
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector(\".px-abas-sessao .q-aba:nth-of-type(2)\"); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 3500
+      }
+    ]
+  },
+  "seletores": [
+    ".q-palco.px-sessao",
+    ".px-sessao .q-cab",
+    ".px-sessao .q-voltar",
+    ".px-sessao .q-voltar svg",
+    ".px-sessao .qs-titulo",
+    ".px-sessao .q-sobre",
+    ".px-sessao .q-cab h1",
+    ".px-sessao .qs-sub",
+    ".px-sessao .q-cab > .q-chip",
+    ".px-sessao .q-cab > .q-ctl:last-child",
+    ".px-abas-sessao",
+    ".px-abas-sessao .q-aba",
+    ".px-abas-sessao .q-aba[aria-selected='true']",
+    ".px-abas-sessao .q-aba .n",
+    ".px-abas-sessao .px-pilula",
+    ".px-sessao .qs-painel",
+    ".px-sessao .ql",
+    ".ql-barra",
+    ".ql-barra .q-abas",
+    ".ql-barra .q-chip",
+    ".ql-texto",
+    ".ql-frases",
+    ".ql-frase",
+    ".ql-o",
+    ".ql-o .w",
+    ".ql-t",
+    ".ql-narrador",
+    ".ql-narrador > .q-ctl",
+    ".ql-narrador .q-ctl.pri",
+    ".ql-onde"
+  ]
+}

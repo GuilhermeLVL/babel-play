@@ -10618,10 +10618,32 @@ html[data-px='on'][data-theme='agua'] :is(.q-barra, .hud-progresso) > span { bac
   const reduz = () => html.dataset.pxAcess === 'on' && mqReduz.matches;
   function aplicarAcess() {
     const segue = html.dataset.pxAcess === 'on';
-    for (const r of document.getElementById('polimento').sheet.cssRules) {
-      if (!(r instanceof CSSMediaRule)) continue;
-      r._px ??= r.media.mediaText;
-      if (/prefers-(reduced|contrast)/.test(r._px)) r.media.mediaText = segue ? r._px : 'not all';
+    /* 08/10: antes só a folha da camada era acertada. Com "reduzir movimento" ligado no Windows, o CSS
+       de produção continuava tirando as transições dos ícones, do menu e dos cartões, e os laços (anéis
+       do microfone, brilho das barras) nem começavam: o dono via as animações "sumirem" de um dia para
+       o outro. Agora as regras de MOVIMENTO valem para todas as folhas, descendo em @layer e afins. */
+    const daCamada = document.getElementById('polimento').sheet;
+    const visitar = (regras, folha) => {
+      for (const r of regras) {
+        if (!(r instanceof CSSMediaRule)) {
+          if (r.cssRules?.length) visitar(r.cssRules, folha);
+          continue;
+        }
+        r._px ??= r.media.mediaText;
+        if (/prefers-reduced-motion/.test(r._px)) {
+          r.media.mediaText = segue ? r._px : /no-preference/.test(r._px) ? 'all' : 'not all';
+          visitar(r.cssRules, folha);
+        } else if (/prefers-(reduced|contrast)/.test(r._px) && folha === daCamada) {
+          r.media.mediaText = segue ? r._px : 'not all';
+        } else visitar(r.cssRules, folha);
+      }
+    };
+    for (const folha of document.styleSheets) {
+      try {
+        visitar(folha.cssRules, folha);
+      } catch {
+        /* folha de outra origem (as fontes): não é nossa */
+      }
     }
   }
 
@@ -12758,6 +12780,24 @@ html[data-px='on'][data-theme='agua'] :is(.q-barra, .hud-progresso) > span { bac
   aoAbrirFolha.push((tipo, painel) => {
     if (tipo !== 'mais' || !polido() || $('.px-entrada-premium', painel)) return;
     $('.q-faixa-do-mais', painel)?.insertAdjacentHTML('beforebegin', entradaPremium());
+  });
+  /* MODO DESEMPENHO (08/10): os efeitos valem para todo mundo; quem tem aparelho fraco, ou prefere a
+     tela parada, desliga tudo aqui, junto do tema e do som. Aparece também com a camada desligada,
+     senão não haveria como religar. */
+  aoAbrirFolha.push((tipo, painel) => {
+    const faixa = tipo === 'mais' && $('.q-faixa-do-mais', painel);
+    if (!faixa || $('[data-px-desempenho]', faixa)) return;
+    const ligado = !polido();
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'q-ctl';
+    b.dataset.pxDesempenho = '';
+    b.setAttribute('aria-pressed', String(ligado));
+    b.title = 'Desliga animações, partículas, desfoque e sombras. Bom para aparelho fraco.';
+    b.innerHTML = ic('gauge') + ' Modo desempenho: ' + (ligado ? 'ligado' : 'desligado');
+    b.addEventListener('click', () => modo(polido() ? 'off' : 'on'));
+    const vibra = $('.q-ctl', faixa).find((x) => /Vibra/.test(x.textContent));
+    faixa.insertBefore(b, vibra || null);
   });
   aoAbrirBusca.push((d) => {
     if (!polido()) return;

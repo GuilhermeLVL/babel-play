@@ -84,3 +84,13 @@ protótipo **não é portado**; fica anotado aqui, para ele decidir depois o que
 | Loja | Carteira e prateleira de Créditos na tela | `VitrineV2.tsx`, `ComprarCreditos.tsx` | **Continua funcionando**: abre numa folha ao tocar no selo de Seeds do cabeçalho |
 | Loja | "Em destaque", prateleiras "Dá para levar agora / Ainda não", "Ver todas as regras", rodapé sobre as Seeds | `Loja.tsx` (clássica) |  |
 | Conquistas | Partes "Como ganhar" e "Como subir" dos Desafios | `Loja.tsx` (clássica) |  |
+| Biblioteca | Chip "Tela completa" | `BibliotecaDoQuest.tsx` | Abria a Biblioteca de sempre, com capas, filtros finos e a fila de importação; hoje só "Importar" abre essa tela |
+| Biblioteca | Ícones por tipo, alfinete na linha fixada, ícones nos botões, lupa no "Nenhum resultado" | `BibliotecaDoQuest.tsx` |  |
+| Sessão | Diálogo "Trocar de sessão" | `SessaoDoQuest.tsx` | O chip agora volta à Biblioteca |
+| Sessão | Aviso "IA de nuvem não autorizada" acima das abas | `AvisoDeNuvemSemConsentimento` | Era a entrada para autorizar a nuvem nesta tela; continua em Ajustes |
+| Sessão | Painel "Polir a tradução da sessão" | `PolirSessao.tsx` | A fala que já tem tradução polida passa a mostrá-la sempre, com o selo "Polida" |
+| Sessão | **"Editar a fala"** (corrigir o que foi transcrito), "Ouvir a partir daqui", "Praticar a pronúncia" | `TranscricaoDoQuest.tsx` (diálogo "Opções da fala") | **Atenção:** não há mais como corrigir uma fala no desenho novo |
+| Sessão | Palavra clicável direto no texto; folha da palavra com imagem, velocidades e "Praticar" | `VocabularyPanel` | Agora é pela folha da frase e pela folha da palavra do protótipo |
+| Sessão | **Player: barra de posição arrastável, relógio, velocidades 0,75× / 1× / 1,25×, Smart Slow-Mo, Loop, Reiniciar** | `PlayerInterativo.tsx` | **Atenção:** o player do protótipo só tem ouvir, fala anterior e próxima fala |
+| Sessão | Faixa "Revisar as palavras desta sessão" | `Analysis.tsx` (aba Jogos) |  |
+| Sessão | Visão geral: ladrilhos de leitura, densidade, palavras únicas, ppm, riqueza; ocorrências que tocavam o trecho | `VisaoGeralDoQuest.tsx` | Vícios e pausas continuam em Fluência |

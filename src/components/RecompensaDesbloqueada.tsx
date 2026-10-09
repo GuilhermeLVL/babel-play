@@ -34,6 +34,7 @@ import { TEXTOS } from '../lib/galeria/textos';
 import { t } from '../lib/i18n';
 import { pontosDoElemento } from '../lib/juice';
 import { type ItemDaLoja, type Raridade } from '../lib/loja';
+import { movimentoReduzido } from '../lib/movimento/reduzido';
 import { play } from '../lib/soundFx';
 import { iconeDaConquista } from './iconesDaConquista';
 import MiniaturaDoItem from './MiniaturaDoItem';
@@ -70,9 +71,7 @@ function Confete() {
       animationDelay: `${Math.random() * 0.25}s`,
     })),
   );
-  const [vivo, setVivo] = useState(
-    () => typeof matchMedia === 'undefined' || !matchMedia('(prefers-reduced-motion: reduce)').matches,
-  );
+  const [vivo, setVivo] = useState(() => !movimentoReduzido());
   useEffect(() => {
     const t = setTimeout(() => setVivo(false), 1900);
     return () => clearTimeout(t);

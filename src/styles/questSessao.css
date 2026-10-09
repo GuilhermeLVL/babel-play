@@ -885,3 +885,39 @@ html[data-quest-novo='true'] .qs-falante .q-barra {
     transform: none;
   }
 }
+
+/* ── O DESENHO DO PROTÓTIPO (`docs/prototipos/polimento-movimento.html`, camada de polimento) ───────
+   O que o protótipo mostra diferente do CSS de produção acima, medido lado a lado
+   (`scripts/polimento/roteiros/sessao*.json`). */
+/* Quem fala sai na tinta do texto: no protótipo a lista de falas não leva a classe do tema. */
+html[data-px='on'] .px-sessao .qs-quem {
+  color: var(--t-ink);
+}
+/* "Fala 1 de 6": no protótipo o texto da faixa herda a fonte do corpo (14 px, peso 400). */
+html[data-px='on'] .px-player .q-tempo {
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+/* A ORDEM DO PROTÓTIPO. Lá a camada do celular (`polimento/celular.css`) vem DEPOIS do CSS da sessão
+   e ganha dele; aqui este arquivo chega depois da camada. Estas regras devolvem a vez à camada:
+   as quatro abas numa linha só, que rola de lado (`celular.css:229`), e o título em 28 px
+   (`celular.css:101`). Os segmentos da Visão geral continuam quebrando de linha, como lá. */
+@media (max-width: 720px) {
+  html[data-px='on'] .px-sessao .qs-abas {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  html[data-px='on'] .px-sessao .qs-titulo h1 {
+    font-size: 28px;
+  }
+}
+/* A nuvem de palavras (`telas3.js:87`): o tamanho de cada palavra chega pela variável. */
+html[data-quest-novo='true'] .px-nuvem span {
+  font-size: var(--px-tam, 14px);
+}
+/* Os números da Visão geral: no protótipo saem na fonte do corpo, peso 700, com a linha de 1,5. */
+html[data-px='on'] .px-sessao .qs-visao .q-num b {
+  font-family: var(--font-body, inherit);
+  font-weight: 700;
+  line-height: 1.5;
+}

@@ -258,3 +258,11 @@ html[data-quest-novo='true'] .q-bib-vazia .q-acoes {
     justify-content: space-between;
   }
 }
+
+/* ── O DESENHO DO PROTÓTIPO (`docs/prototipos/polimento-movimento.html`, camada de polimento) ───────
+   "1 / 2": no protótipo o texto da faixa herda a fonte do corpo (14 px, peso 400). Medido lado a lado
+   (`scripts/polimento/roteiros/biblioteca*.json`). */
+html[data-px='on'] .q-bib-paginas .q-tempo {
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}

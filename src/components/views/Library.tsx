@@ -133,7 +133,7 @@ interface LibraryProps {
 }
 
 export default function Library({ onChangeView, recordings, onRecordingsChange, ageProfile = 'pro' }: LibraryProps) {
-  // No Quest (telas novas ligadas) a lista é paginada; "Tela completa" devolve esta tela, nesta visita.
+  // No desenho novo a lista é paginada. A tela de sempre só volta para o formulário de "Importar".
   const questNovo = useQuestNovo();
   const [telaCompleta, setTelaCompleta] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -394,21 +394,22 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
     if (f) setImportArquivo(f);
   };
 
-  /* QUEST (maquete de 01/10/2026, tela 9): páginas de linhas grandes de um lado e, do outro, a
-     gravação selecionada com as ações dela (abrir, jogar, revisar, fixar, renomear, excluir). O
-     formulário de importar, os filtros finos e a exportação continuam abaixo, em "Tela completa". */
+  /* O DESENHO NOVO (a Biblioteca do protótipo, `telas.js:382-454`): páginas de linhas grandes de um
+     lado e, do outro, a gravação selecionada com as ações dela. O formulário de importar continua
+     abaixo, na tela de sempre, que "Importar" abre. */
   if (questNovo && !telaCompleta) {
     return (
       <>
         <BibliotecaDoQuest
           gravacoes={sortedRecordings}
+          /* A sobrancelha e as contagens das abas são da biblioteca inteira, não do que a busca achou. */
+          total={items}
           ordem={ordem}
           aoTrocarOrdem={setOrdem}
           aoAbrir={(rec) => onChangeView('analysis', { id: rec.id })}
           aoJogar={(rec) => onChangeView('play', { id: rec.id })}
           aoRevisar={(rec) => onChangeView('study', { id: rec.id })}
           aoCapturar={() => onChangeView('capture')}
-          aoTelaCompleta={() => setTelaCompleta(true)}
           aoImportar={() => {
             importarDoQuest.current = true;
             setTelaCompleta(true);

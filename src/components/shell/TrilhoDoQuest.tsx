@@ -12,6 +12,7 @@ import {
   BellOff,
   ChevronRight,
   Ellipsis,
+  Gauge,
   HardDrive,
   LifeBuoy,
   Lock,
@@ -86,6 +87,9 @@ interface TrilhoDoQuestProps {
   toggleDarkMode: () => void;
   soundEnabled: boolean;
   toggleSound: () => void;
+  /** O Modo desempenho (sem animações, partículas, desfoque e sombras). Ausente = sem o botão. */
+  performanceMode?: boolean;
+  togglePerformanceMode?: () => void;
 }
 
 /**
@@ -136,6 +140,8 @@ export default function TrilhoDoQuest({
   toggleDarkMode,
   soundEnabled,
   toggleSound,
+  performanceMode = false,
+  togglePerformanceMode,
 }: TrilhoDoQuestProps) {
   const [maisAberto, setMaisAberto] = useState(false);
   const [aba, setAba] = useState<'destinos' | 'avisos'>('destinos');
@@ -447,6 +453,21 @@ export default function TrilhoDoQuest({
                 {soundEnabled ? <Volume2 aria-hidden /> : <VolumeX aria-hidden />}
                 {soundEnabled ? t('Som dos toques: ligado') : t('Som dos toques: desligado')}
               </button>
+              {/* MODO DESEMPENHO (pedido do dono, 08/10/2026): os efeitos valem para todo mundo, e quem tem
+                  aparelho fraco, ou prefere a tela parada, desliga tudo aqui, num toque. */}
+              {togglePerformanceMode && (
+                <button
+                  type="button"
+                  className="q-ctl"
+                  onClick={togglePerformanceMode}
+                  aria-pressed={performanceMode}
+                  data-testid="modo-desempenho-no-mais"
+                  title={t('Desliga animações, partículas, desfoque e sombras. Bom para aparelho fraco.')}
+                >
+                  <Gauge aria-hidden />
+                  {performanceMode ? t('Modo desempenho: ligado') : t('Modo desempenho: desligado')}
+                </button>
+              )}
               {/* A vibração é do controle do headset: com mouse não há o que vibrar. */}
               {headset && (
                 <button type="button" className="q-ctl" onClick={proximaVibracao} data-testid="vibracao-do-quest">

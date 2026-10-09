@@ -1,0 +1,60 @@
+{
+  "nome": "biblioteca-sem-resultado",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector(\".q-trilho .q-mais-botao\"); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-mais button, .q-mais a')].find((b) => /Biblioteca/.test(b.textContent)); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 3000
+      },
+      {
+        "js": "(() => { const i = document.querySelector('.q-bib-busca input'); i.focus(); const por = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; por.call(i, 'zzzz'); i.dispatchEvent(new Event('input', { bubbles: true })); })()"
+      },
+      {
+        "esperar": 1200
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector(\".q-trilho .q-mais-botao\"); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-mais button, .q-mais a')].find((b) => /Biblioteca/.test(b.textContent)); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 3000
+      },
+      {
+        "js": "(() => { const i = document.querySelector('.q-bib-busca input'); i.focus(); const por = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; por.call(i, 'zzzz'); i.dispatchEvent(new Event('input', { bubbles: true })); })()"
+      },
+      {
+        "esperar": 1200
+      }
+    ]
+  },
+  "seletores": [
+    ".q-palco.q-bib",
+    ".q-bib-busca",
+    ".q-bib-busca input",
+    ".q-bib > .q-abas",
+    ".q-bib .q-vazio",
+    ".q-bib .q-vazio h2",
+    ".q-bib .q-vazio p",
+    ".q-bib .q-vazio .q-ctl"
+  ]
+}

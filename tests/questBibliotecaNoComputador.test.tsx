@@ -72,32 +72,6 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('Biblioteca do desenho novo, por aparelho', () => {
-  it('no headset: a tela é a de duas colunas, sem busca, exportar, retomar nem duplo clique', async () => {
-    const { container, linhas, ir } = await montar()
-    expect(container.querySelector('.q-palco.q-bib')).toBeTruthy()
-    expect(container.querySelector('.q-bib-busca')).toBeNull()
-    expect(screen.queryByRole('button', { name: /Exportar transcrição/ })).toBeNull()
-    expect(screen.queryByRole('button', { name: /Retomar captura/ })).toBeNull()
-    fireEvent.doubleClick(linhas()[1])
-    expect(ir).not.toHaveBeenCalled()
-    // E o caminho de sempre para elas continua: "Tela completa".
-    expect(screen.getByRole('button', { name: /Tela completa/ })).toBeTruthy()
-  })
-
-  it('no computador: a busca por título filtra a lista dentro do desenho novo', async () => {
-    aparelho.quest = false
-    const { container, linhas } = await montar()
-    expect(container.querySelector('.q-palco.q-bib')).toBeTruthy()
-    const campo = screen.getByRole('searchbox', { name: 'Buscar na biblioteca' })
-    fireEvent.change(campo, { target: { value: 'podcast' } })
-    expect(linhas().map((l) => l.querySelector('b')?.textContent)).toEqual(['Podcast de história'])
-
-    fireEvent.change(campo, { target: { value: 'nada disso' } })
-    expect(screen.getByTestId('busca-sem-resultado')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: /Limpar a busca/ }))
-    expect(linhas()).toHaveLength(3)
-  })
-
   it('no computador: "Exportar transcrição" abre o diálogo de sempre sem sair do desenho novo', async () => {
     aparelho.quest = false
     const { container, botao } = await montar()
@@ -105,19 +79,5 @@ describe('Biblioteca do desenho novo, por aparelho', () => {
     await act(async () => {})
     expect(screen.getByRole('dialog')).toBeTruthy()
     expect(container.querySelector('.q-palco.q-bib')).toBeTruthy()
-  })
-
-  it('no computador: "Retomar captura" leva à captura da sessão de áudio, e o duplo clique abre a gravação', async () => {
-    aparelho.quest = false
-    const { linhas, botao, ir } = await montar()
-    fireEvent.click(botao(/Retomar captura/))
-    expect(ir).toHaveBeenLastCalledWith('capture', { resumeId: 'a' })
-
-    fireEvent.doubleClick(linhas()[1])
-    expect(ir).toHaveBeenLastCalledWith('analysis', { id: 'b' })
-
-    // Documento não tem captura para retomar.
-    fireEvent.click(linhas()[2])
-    expect(screen.queryByRole('button', { name: /Retomar captura/ })).toBeNull()
   })
 })

@@ -3934,5 +3934,22 @@
   "Efeitos de jogo": "Game effects",
   "Partículas e rastros": "Particles and trails",
   "Do tema": "From the theme",
-  "Padrão (Inter)": "Default (Inter)"
+  "Padrão (Inter)": "Default (Inter)",
+  "Modo desempenho: ligado": "Performance mode: on",
+  "Modo desempenho: desligado": "Performance mode: off",
+  "Desliga animações, partículas, desfoque e sombras. Bom para aparelho fraco.": "Turns off animations, particles, blur and shadows. Good for low-end devices.",
+  "Sessão de áudio · {quanto}": "Audio session · {quanto}",
+  "Sessão de vídeo · {quanto}": "Video session · {quanto}",
+  "Sessão de texto · {quanto}": "Text session · {quanto}",
+  "texto": "text",
+  "Voltar à Biblioteca": "Back to Library",
+  "Visão": "View",
+  "Fala anterior": "Previous line",
+  "Próxima fala": "Next line",
+  "Fala {n} de {total}": "Line {n} of {total}",
+  "Procedência: {origem}": "Source: {origem}",
+  "Esta sessão não registrou de onde veio a transcrição.": "This session did not record where the transcript came from.",
+  "Esta palavra já está no seu caderno.": "This word is already in your notebook.",
+  "Falantes": "Speakers",
+  "{n} ppm": "{n} wpm"
 }

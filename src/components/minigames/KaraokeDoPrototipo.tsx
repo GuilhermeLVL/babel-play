@@ -239,7 +239,7 @@ export default function KaraokeDoPrototipo({ falas, audioUrl, onFinish }: Props)
     };
     /* Microfone negado e rede caída davam o mesmo silêncio: o motivo é dito. */
     r.onerror = (e) => {
-      const msg = speechErrorMessage(e?.error);
+      const msg = speechErrorMessage(e?.error ?? '');
       if (msg) toast.warn(msg);
       soltar();
     };

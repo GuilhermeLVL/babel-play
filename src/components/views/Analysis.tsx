@@ -39,7 +39,7 @@ import type { PracticeSeed, Sentence } from '../../lib/sentences';
 import { toSentences } from '../../lib/sentences';
 import { cancelSpeech, speak as ttsSpeak } from '../../lib/tts';
 import type { WordOrigin } from '../../lib/vocabWord';
-import { tokenizarTexto } from '../../lib/vocabWord';
+import { buildVocabWord, tokenizarTexto } from '../../lib/vocabWord';
 import type { VocabWord } from '../../types';
 import { Recording } from '../../types';
 import PopoverFlutuante from '../PopoverFlutuante';
@@ -72,12 +72,13 @@ import { useMetricasDaSessao } from '../../lib/analise/metricasDaSessao';
 import { criarPalavraDaAnalise, useCacheDeHover } from '../../lib/analise/palavraDaAnalise';
 import { formatSeconds, usePlayerDaSessao } from '../../lib/analise/playerDaSessao';
 import { useAudioDaSessao } from '../../lib/audioDaSessao';
+import { useFuncaoEstavel } from '../../lib/captura/conversaEstavel';
+import { usePalavrasConhecidas } from '../../lib/captura/usePalavrasConhecidas';
 import { consentiuNuvem } from '../../lib/consentimentoDeNuvem';
-import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
-import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
 import { noHeadset, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { getEntitlements } from '../../lib/entitlements';
 import { numero, t } from '../../lib/i18n';
+import { planoDeProva } from '../../lib/polimento/planos';
 import type { DerivedProgress } from '../../lib/progress';
 import { perfilProtegido } from '../../lib/protecaoDoMenor';
 import { TranscriptSettings } from '../../lib/transcriptUtils';
@@ -86,15 +87,16 @@ import AvisoDeNuvemSemConsentimento from '../AvisoDeNuvemSemConsentimento';
 import EditablePanel from '../EditablePanel';
 import { toast } from '../Toast';
 import { Abas, CabecalhoDeTela, TituloDeSecao } from '../ui';
-import VocabularyPanel from '../VocabularyPanel';
 import AnalistaDaSessao from './analise/AnalistaDaSessao';
 import ExportarSessao from './analise/ExportarSessao';
 import PlayerInterativo from './analise/PlayerInterativo';
 import type { VersaoDaTraducao } from './analise/PolirSessao';
 import SessaoDoQuest from './analise/quest/SessaoDoQuest';
 import TranscricaoDoQuest, { type AjusteDeExibicao } from './analise/quest/TranscricaoDoQuest';
-import VisaoGeralDoQuest, { type LadrilhoDaSessao } from './analise/quest/VisaoGeralDoQuest';
+import VisaoGeralDoQuest from './analise/quest/VisaoGeralDoQuest';
 import SombraDaFala from './analise/SombraDaFala';
+import type { FalaTocada } from './captura/celular/FolhaDaFrase';
+import FolhasDoPrototipo, { type PalavraNaFolha } from './captura/celular/FolhasDoPrototipo';
 
 /** Selo de PROCEDÊNCIA da transcrição (honestidade): de onde vieram as falas desta sessão. */
 function provenanceLabel(engine?: string | null): string | null {
@@ -192,6 +194,10 @@ export default function Analysis({
 
   const [overviewSubTab, setOverviewSubTab] = useState<'dashboard' | 'lexical' | 'fluency'>('dashboard');
 
+  /* A FOLHA DA FRASE do desenho novo (`telas3.js:175-177`): a fala tocada e, por cima, a palavra. */
+  const [falaNaFolha, setFalaNaFolha] = useState<FalaTocada | null>(null);
+  const [palavraNaFolha, setPalavraNaFolha] = useState<PalavraNaFolha | null>(null);
+
   // Player REAL: áudio gravado (<audio>) quando existe; senão, narração TTS sincronizada.
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [audioDuration, setAudioDuration] = useState<number>(0);
@@ -278,6 +284,9 @@ export default function Analysis({
   // chave INVERTIDA: o mesmo cartão saía com o idioma trocado dependendo da tela. Aqui só existem
   // `mine` (o que você fala) e `studying` (o que você estuda) — não há como inverter.
   const langConfig = useLangConfig();
+  /* As palavras que a pessoa já conhece no idioma estudado: na folha da frase, as outras saem marcadas
+     como novas (`telas.js:211`). Só o desenho novo usa. */
+  const conhecidas = usePalavrasConhecidas(langConfig.studying, questNovo);
 
   // FRASES CANÔNICAS (`Sentence[]`) — fonte única, normalizada em `lib/sentences.ts`. É o que
   // viaja para o Study/exercícios. Sem transcrição real → lista vazia (nada é fabricado).
@@ -471,6 +480,13 @@ export default function Analysis({
     [parsedSentences, langConfig],
   );
 
+  /* A tradução da palavra aberta na folha: o mesmo produtor do Analista (`buildVocabWord`). A função
+     não muda de identidade, para a folha não consultar de novo a cada pintura. */
+  const consultarNaFolha = useFuncaoEstavel(async (palavra: string, frase: string) => {
+    const { vocab } = await buildVocabWord(originOfWord(palavra, frase), gateway.mt);
+    return { traducao: vocab.translation };
+  });
+
   /**
    * AS MÉTRICAS DESTA SESSÃO — WPM, pausas longas, sobreposição, detalhe lexical, vícios de
    * linguagem, silêncio, maior monólogo e palavras-chave.
@@ -545,23 +561,22 @@ export default function Analysis({
    * registra, item a item, por que NÃO compartilha código com `lib/captura/palavraDaFala.ts`, que
    * é o equivalente do outro lado (as quatro funções homônimas divergem no comportamento).
    */
-  const { examineWord, handleAddWordToDeck, isWordAdded, handlePracticeWord, speakWord, playWordTTS } =
-    criarPalavraDaAnalise({
-      gateway,
-      originOfWord,
-      vocabCards,
-      setVocabCards,
-      addedWords,
-      setAddedWords,
-      setSelectedExamWord,
-      setExamMtNote,
-      selectedExamWordLang: selectedExamWord?.lang,
-      ttsSpeed,
-      ttsLang,
-      recordingId: recording.id,
-      recordingTitle: recording.title,
-      onChangeView,
-    });
+  const { examineWord, handleAddWordToDeck, handlePracticeWord, speakWord, playWordTTS } = criarPalavraDaAnalise({
+    gateway,
+    originOfWord,
+    vocabCards,
+    setVocabCards,
+    addedWords,
+    setAddedWords,
+    setSelectedExamWord,
+    setExamMtNote,
+    selectedExamWordLang: selectedExamWord?.lang,
+    ttsSpeed,
+    ttsLang,
+    recordingId: recording.id,
+    recordingTitle: recording.title,
+    onChangeView,
+  });
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLSpanElement>, cleanWord: string) => {
     popover.cancelarFechamento();
@@ -925,36 +940,83 @@ export default function Analysis({
       if (ouvirSegue) playFrom(f.startTime);
       else ttsSpeak(f.original, { lang: f.lang || ttsLang, rate: 0.9 });
     };
-    /* A PALAVRA: `popover.setPalavra` liga a busca da imagem e do contexto (o mesmo cache do cartão de
-       hover), e `examineWord` monta a tradução. As duas coisas aparecem juntas, na folha. */
+    /* A FOLHA DA FRASE (`abrirFrase()`, `telas3.js:175-177`, item D53): a mesma folha da captura, com a
+       fala de verdade. A palavra tocada nela abre a folha da palavra por cima. */
+    const falaParaAFolha = (f: Fala): FalaTocada => {
+      const polida = f.id ? polidaDaFala.get(f.id) : undefined;
+      return {
+        id: f.id ?? String(f.index),
+        texto: f.original,
+        traducao: polida ?? f.translation,
+        lang: f.lang || ttsLang,
+        langDaTraducao: sentences.find((s) => s.index === f.index)?.translationLang || undefined,
+      };
+    };
+    const abrirFala = (f: Fala) => {
+      setPalavraNaFolha(null);
+      setFalaNaFolha(falaParaAFolha(f));
+    };
+    /* Uma palavra fora de uma fala (a lista "Palavras desta sessão") abre direto a folha dela. */
     const abrirPalavra = (palavra: string, frase: string) => {
-      popover.setPalavra(palavra);
-      void examineWord(palavra, frase);
+      setFalaNaFolha(null);
+      setPalavraNaFolha({ palavra, frase, lang: originOfWord(palavra, frase).declaredLang || ttsLang });
     };
-    const fecharPalavra = () => {
-      setSelectedExamWord(null);
-      setExamMtNote(null);
-      popover.setPalavra(null);
+    const fecharFolhas = () => {
+      setFalaNaFolha(null);
+      setPalavraNaFolha(null);
     };
-    const doCartao = hoverData && selectedExamWord && hoverData.word === selectedExamWord.word ? hoverData : null;
-    const idiomaDaPalavra = selectedExamWord
-      ? selectedExamWord.lang ||
-        doCartao?.lang ||
-        originOfWord(selectedExamWord.word, selectedExamWord.example).declaredLang ||
-        ttsLang
-      : '';
+    const palavraNoCaderno = (palavra: string) => {
+      const p = palavra.toLowerCase();
+      return (
+        addedWords.some((w) => w.toLowerCase() === p) || vocabCards.some((c) => c.word.toLowerCase() === p && c.inDeck)
+      );
+    };
+    /* A voz da folha lê a fala; o player da sessão para, para os dois não falarem juntos. */
+    const ouvirNaFolha = (texto: string, lang: string, lenta: boolean) => {
+      setIsPlaying(false);
+      ttsSpeak(texto, { lang: lang || ttsLang, rate: lenta ? ttsSpeed * 0.7 : ttsSpeed });
+    };
+    /* "Guardar": o mesmo fichamento do Analista. A folha só comemora o que ENTROU no caderno. */
+    const salvarNaFolha = async (item: { palavra: string; frase?: string; lang?: string; traducao?: string }) => {
+      if (palavraNoCaderno(item.palavra)) return t('Esta palavra já está no seu caderno.');
+      await handleAddWordToDeck({
+        word: item.palavra,
+        translation: item.traducao ?? '',
+        example: item.frase,
+        lang: item.lang,
+      });
+      const deck = await fetchDeck().catch(() => null);
+      if (!deck) return t('Não deu para salvar agora.');
+      setVocabCards(deck);
+      return deck.some((c: { word: string }) => c.word.toLowerCase() === item.palavra.toLowerCase())
+        ? 'adicionado ao seu deck'
+        : t('Não deu para salvar agora.');
+    };
+    const posDaFalaNaFolha = falaNaFolha
+      ? parsedSentences.findIndex((f) => (f.id ?? String(f.index)) === falaNaFolha.id)
+      : -1;
+
+    /* VISÃO GERAL (`telas3.js:83-93`): os quatro números do Painel, a nuvem e os microdados. */
+    const falantes = new Set(parsedSentences.map((f) => f.speaker).filter((n) => n && n !== '-')).size;
+    const vezesNaSessao = (palavra: string) => {
+      const alvo = palavra.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(`(^|[^\\p{L}])${alvo}(?=$|[^\\p{L}])`, 'giu');
+      return parsedSentences.reduce((n, f) => n + (f.original.match(re)?.length ?? 0), 0);
+    };
 
     return (
       <SessaoDoQuest
         gravacao={recording}
-        gravacoes={allRecordings}
         abas={abasDaSessao}
         abaAtiva={currentTab}
-        aoTrocarAba={(id) => onSubTabChange(id)}
+        aoTrocarAba={(id) => {
+          /* `telas3.js:167`: trocar de aba para o player. */
+          setIsPlaying(false);
+          onSubTabChange(id);
+        }}
         aoVoltar={() => onChangeView('library')}
-        aoTrocarSessao={trocarDeSessao}
         aoExportar={() => setShowExportModal(true)}
-        aviso={<AvisoDeNuvemSemConsentimento />}
+        repintar={['dashboard', 'lexical', 'fluency'].indexOf(overviewSubTab)}
       >
         {currentTab === 'transcript' && (
           <TranscricaoDoQuest
@@ -963,15 +1025,17 @@ export default function Analysis({
             aoTentarDeNovo={() => setTentativaDaTranscricao((n) => n + 1)}
             documento={documento}
             indiceAtivo={activeSentenceIndex}
+            tocando={isPlaying}
             classes={classesDoTranscrito}
             traducaoPrimeiro={tsSettings.displayOrder === 'translated-first'}
             ocultarOriginal={tsSettings.hideOriginal}
+            /* A fala que já foi polida mostra a tradução polida, com o selo (`telas3.js:66`). */
             traducaoDe={(f) => {
-              const polida = versaoDaTraducao === 'polida' && f.id ? polidaDaFala.get(f.id) : undefined;
+              const polida = f.id ? polidaDaFala.get(f.id) : undefined;
               return { texto: polida ?? f.translation, polida: !!polida };
             }}
+            idiomaDaTraducao={sentences[0]?.translationLang || undefined}
             procedencia={procedencia}
-            polir={polirASessao}
             player={
               documento ? null : (
                 <PlayerInterativo
@@ -983,61 +1047,24 @@ export default function Analysis({
               )
             }
             palavras={palavrasDaSessao}
-            estaNoDeck={(clean) => vocabCards.some((c) => c.word.toLowerCase() === clean && c.inDeck)}
             podeOuvir={podeOuvirFala}
             aoOuvir={ouvirFala}
-            ouvirSegue={ouvirSegue}
+            aoAbrirFala={abrirFala}
             aoAbrirPalavra={abrirPalavra}
-            edicao={{
-              id: editingUttId,
-              origem: editSource,
-              destino: editTarget,
-              aoMudarOrigem: setEditSource,
-              aoMudarDestino: setEditTarget,
-              salvando: editSaving,
-              erro: editError,
-              iniciar: startEditUtt,
-              cancelar: cancelEditUtt,
-              salvar: (id) => void saveEditUtt(id),
-            }}
-            sombraDe={shadowingSentenceIndex}
-            aoAlternarSombra={setShadowingSentenceIndex}
-            idiomaDe={langOfSentence}
             ajustes={ajustesDeExibicao}
-            /* DO APARELHO, não do desenho: com o mouse a palavra abre direto do texto (o raio do
-               controle não acerta uma palavra solta), e com teclado físico Ctrl+Enter salva a correção. */
-            palavrasNoTexto={!noHeadset()}
-            atalhosDeTeclado={recursosDoAparelho(perfilDoDispositivo()).tecladoFisico}
           />
         )}
 
         {currentTab === 'reading' && <Reading recording={recording} onChangeView={onChangeView} />}
 
         {currentTab === 'practice' && (
+          /* O protótipo tem aqui quatro ladrilhos (`telas3.js:74-82`); o app monta o lobby de verdade, que
+             já traz o título "Jogos com esta sessão". O desenho dos ladrilhos é do `Play`. */
           <div className="qs-jogos">
-            {/* "Revisar as palavras desta sessão": só quando esta gravação já pôs palavras no caderno. */}
-            {palavrasDaSessao.length > 0 && (
-              <section className="q-aviso qs-revisar" aria-label={t('Revisar as palavras desta sessão')}>
-                <span>
-                  <b>
-                    {t('Revisar as palavras desta sessão')} <span className="qs-n">{palavrasDaSessao.length}</span>
-                  </b>
-                  <small>
-                    {palavrasDaSessao
-                      .slice(0, 6)
-                      .map((c) => c.word)
-                      .join(', ')}
-                    {palavrasDaSessao.length > 6 ? '…' : ''} · {t('rodada curta')}
-                  </small>
-                </span>
-                <button type="button" className="q-ctl" onClick={() => onSubTabChange('study')}>
-                  <Target aria-hidden /> {t('Revisar agora')}
-                </button>
-              </section>
-            )}
             <Suspense
               fallback={
-                <div className="q-grade g3" aria-busy="true" aria-label={t('Carregando os jogos')}>
+                <div className="q-grade g4" aria-busy="true" aria-label={t('Carregando os jogos')}>
+                  <div className="q-esqueleto qs-esqueleto" />
                   <div className="q-esqueleto qs-esqueleto" />
                   <div className="q-esqueleto qs-esqueleto" />
                   <div className="q-esqueleto qs-esqueleto" />
@@ -1054,37 +1081,22 @@ export default function Analysis({
             documento={documento}
             secao={overviewSubTab}
             aoTrocarSecao={setOverviewSubTab}
-            ladrilhos={ladrilhosDoPainel.map(
-              ([id, rotulo, valor, dica, tom]): LadrilhoDaSessao => ({ id, rotulo, valor, dica, tom }),
-            )}
+            painel={[
+              [t('Palavras'), stats.wordCount > 0 ? numero(stats.wordCount) : '—'],
+              [
+                t('Duração'),
+                documento ? '—' : t('{n} min', { n: numero(Math.max(1, Math.round(totalDurationSeconds / 60))) }),
+              ],
+              [t('Palavras novas'), numero(palavrasDaSessao.length)],
+              [t('Falantes'), falantes ? numero(falantes) : '—'],
+            ]}
             palavrasChave={topKeywords}
-            aoEscolherPalavraChave={(kw) => {
-              setMicroPalavra(kw.toLowerCase());
-              setOverviewSubTab('lexical');
-            }}
-            topologia={{
-              unicas: stats.wordCount > 0 ? numero(stats.uniqueWords) : '—',
-              noCaderno: numero(palavrasDaSessao.length),
-              frase:
-                stats.wordCount > 0
-                  ? t(
-                      '{n} das {total} palavras únicas já estão no seu vocabulário. Toque numa palavra do texto para guardar outras.',
-                      { n: numero(palavrasDaSessao.length), total: numero(stats.uniqueWords) },
-                    )
-                  : t('Sem transcrição ainda: as contas aparecem quando houver texto.'),
-            }}
-            micro={{
-              palavras: palavrasDoMicro,
-              atual: microAtual,
-              aoEscolher: setMicroPalavra,
-              ocorrencias: ocorrenciasDoMicro,
-              podeOuvir: podeOuvirFala,
-              aoOuvir: (f) => {
-                // Onde há player, o trecho toca na aba da transcrição (é lá que ele está).
-                if (ouvirSegue) onSubTabChange('transcript');
-                ouvirFala(f);
-              },
-            }}
+            nuvem={[...new Set([...topKeywords.map((k) => k.toLowerCase()), ...palavrasDoMicro])]}
+            micro={palavrasDoMicro.slice(0, 4).map((palavra) => ({
+              palavra,
+              glosa: vocabCards.find((c) => c.word.toLowerCase() === palavra)?.translation || '',
+              vezes: vezesNaSessao(palavra),
+            }))}
             fluencia={{
               silencio: realSilencio != null ? `${Math.round(realSilencio.ms / 1000)} s` : '—',
               vicios: realVicios.palavras > 0 ? numero(realVicios.total) : '—',
@@ -1094,26 +1106,48 @@ export default function Analysis({
           />
         )}
 
-        {selectedExamWord && (
-          <VocabularyPanel
-            emFolha
-            viewKey="analysis"
-            word={selectedExamWord}
-            mtNote={examMtNote}
-            onClose={fecharPalavra}
-            onSpeak={(w) => speakWord(w, idiomaDaPalavra || undefined)}
-            onAddToDeck={(w) => void handleAddWordToDeck(w)}
-            isAdded={isWordAdded(selectedExamWord)}
-            ttsSpeed={ttsSpeed}
-            setTtsSpeed={setTtsSpeed}
-            velocidades={[0.5, 1]}
-            onPractice={(w, exercicio) => void handlePracticeWord(w, exercicio)}
-            imagem={{
-              url: doCartao?.image ? doCartao.image.url || doCartao.image.thumbnail || null : null,
-              carregando: !doCartao || doCartao.loading,
-            }}
-            podeOuvir={!!idiomaDaPalavra && haVozPara(idiomaDaPalavra)}
-            nivel={vocabCards.find((c) => c.word.toLowerCase() === selectedExamWord.word.toLowerCase())?.cefrLevel}
+        {(falaNaFolha || palavraNaFolha) && (
+          <FolhasDoPrototipo
+            fala={falaNaFolha}
+            palavra={palavraNaFolha}
+            aoOuvir={ouvirNaFolha}
+            semPratica={noHeadset()}
+            ehNova={
+              falaNaFolha && conhecidas && baseLang(falaNaFolha.lang) === baseLang(conhecidas.idioma)
+                ? (palavra) => !conhecidas.conhece(palavra)
+                : undefined
+            }
+            guardada={palavraNoCaderno}
+            aoTocarPalavra={(palavra) =>
+              falaNaFolha && setPalavraNaFolha({ palavra, frase: falaNaFolha.texto, lang: falaNaFolha.lang })
+            }
+            aoVoltar={falaNaFolha && palavraNaFolha ? () => setPalavraNaFolha(null) : undefined}
+            aoConsultar={consultarNaFolha}
+            aoSalvar={salvarNaFolha}
+            aoFechar={fecharFolhas}
+            nuance={
+              falaNaFolha
+                ? {
+                    /* Na bancada o comparador vê a folha como o Grátis a vê (`planoDeProva`). */
+                    disponivel: planoDeProva() === 'free' ? false : getEntitlements().traducaoNuance,
+                    destino: falaNaFolha.langDaTraducao || sessionLangs?.tgt || langConfig.studying,
+                    contexto: parsedSentences
+                      .slice(Math.max(0, posDaFalaNaFolha - 3), Math.max(0, posDaFalaNaFolha))
+                      .map((f) => f.original),
+                    aoConhecer: perfilProtegido()
+                      ? undefined
+                      : () => {
+                          fecharFolhas();
+                          onChangeView('planos');
+                        },
+                    /* A forma escolhida vira a tradução polida desta fala, nesta visita. */
+                    aoEscolher: (traducao) => {
+                      aplicarPolidas([{ id: falaNaFolha.id, traducaoPolida: traducao }]);
+                      setFalaNaFolha({ ...falaNaFolha, traducao });
+                    },
+                  }
+                : undefined
+            }
           />
         )}
         {dialogoDeExportar}

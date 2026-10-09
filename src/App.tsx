@@ -540,6 +540,8 @@ export default function App() {
               toggleDarkMode={toggleDarkMode}
               soundEnabled={soundEnabled}
               toggleSound={toggleSound}
+              performanceMode={performanceMode}
+              togglePerformanceMode={togglePerformanceMode}
             />
           </Suspense>
         ) : (

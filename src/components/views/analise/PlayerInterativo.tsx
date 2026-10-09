@@ -9,18 +9,8 @@
  * aqui por props, explícito. A máquina de reprodução (seek, motor de áudio/TTS, waveform) está em
  * `lib/analise/playerDaSessao.ts`.
  */
-import {
-  AlertTriangle,
-  CircleHelp,
-  Loader2,
-  Pause,
-  Play,
-  Repeat,
-  RotateCcw,
-  SlidersHorizontal,
-  Snail,
-} from 'lucide-react';
-import { type Dispatch, type ReactNode, type RefObject, type SetStateAction, useState } from 'react';
+import { Pause, Play, Repeat, RotateCcw, SkipBack, SkipForward, SlidersHorizontal, Snail } from 'lucide-react';
+import { type Dispatch, type ReactNode, type RefObject, type SetStateAction } from 'react';
 
 import { formatSeconds } from '../../../lib/analise/playerDaSessao';
 import type { FalaDaAnalise } from '../../../lib/analise/tiposDaAnalise';
@@ -101,9 +91,6 @@ export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
     haVozParaNarrar = true,
   } = props;
   const questNovo = useQuestNovo();
-  /* Só no Quest: "O que fazem Slow-Mo e Loop". Na tela de sempre isso é a dica do ponteiro (`title`),
-     que no headset não existe. */
-  const [ajudaAberta, setAjudaAberta] = useState(false);
 
   if (recording.type === 'document') return null;
 
@@ -155,10 +142,8 @@ export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
     />
   );
 
-  /* META QUEST (as telas novas): a faixa de controles do pé da tela, a mesma peça da legenda ao vivo e
-     da Biblioteca. Um único botão principal (tocar), a posição com o tempo e quem fala, e as três
-     velocidades, o Slow-Mo, o loop e o reiniciar como alvos de 60 px. "Ajustar exibição" fica na
-     barra acima das falas (vale também para documento, que não tem player). */
+  /* O DESENHO NOVO: a faixa do protótipo (`telas3.js:69-70`), presa ao pé da tela. "Ajustar
+     exibição" fica na barra acima das falas (vale também para documento, que não tem player). */
   if (questNovo) {
     /* Sem áudio gravado o player NARRA o texto (no Quest, pela voz do site). Sem voz para nenhuma
        fala, em vez de um botão que não toca a faixa diz o motivo. */
@@ -180,132 +165,71 @@ export default function PlayerInterativo(props: PropsDoPlayerInterativo) {
     }
     const esperando = hasRealAudio && (carregandoAudio || (!audioSrc && !erroDoAudio));
     const falhou = hasRealAudio && !!erroDoAudio;
+    /* O PLAYER DO PROTÓTIPO (`telas3.js:69-70`, itens D51 e D52): anterior, o botão principal, próxima,
+       o trilho e "Fala n de N", numa faixa de vidro presa embaixo (`telas3.css:13-21, 54-55`). O áudio
+       é o de verdade: "Ouvir" toca de onde parou e os vizinhos recomeçam da fala ao lado
+       (`telas3.js:172-173`). */
+    const total = parsedSentences.length;
+    const naFala = Math.max(0, Math.min(total - 1, activeSentenceIndex));
+    const irPara = (i: number) => {
+      const alvo = parsedSentences[Math.max(0, Math.min(total - 1, i))];
+      if (!alvo) return;
+      seekTo(alvo.startTime);
+      setIsPlaying(true);
+    };
+    /* `telas3.js:48`: a barra anda uma fala por vez; parada no começo, fica vazia. */
+    const largura = total > 0 && (isPlaying || activeSentenceIndex > 0) ? ((naFala + 1) / total) * 100 : 0;
     return (
-      <section className="qs-player" aria-label={t('Player')}>
+      <div className="q-faixa px-player" role="group" aria-label={t('Player')}>
         {audio}
-        {ajudaAberta && (
-          <dl className="qs-ajuda-do-player" id="ajuda-do-player">
-            <div>
-              <dt>
-                <Snail aria-hidden /> {t('Smart Slow-Mo')}
-              </dt>
-              <dd>{t('Diminui a velocidade nos trechos com vocabulário difícil.')}</dd>
-            </div>
-            <div>
-              <dt>
-                <Repeat aria-hidden /> {t('Modo loop')}
-              </dt>
-              <dd>{t('Repete o trecho ativo, bom para fixar pronúncia.')}</dd>
-            </div>
-            {!hasRealAudio && (
-              <div>
-                <dt>
-                  <Play aria-hidden /> {t('Sem áudio gravado')}
-                </dt>
-                <dd>{t('O player narra o texto com a voz de leitura, uma fala por vez.')}</dd>
-              </div>
-            )}
-          </dl>
-        )}
-        <div className="q-faixa qs-faixa-do-player">
-          <button
-            type="button"
-            className="q-ctl pri"
-            onClick={() => setIsPlaying(!isPlaying)}
-            disabled={esperando || falhou}
-            aria-label={isPlaying ? t('Pausar') : t('Tocar')}
-          >
-            {esperando ? (
-              <Loader2 className="animate-spin" aria-hidden />
-            ) : isPlaying ? (
-              <Pause aria-hidden />
-            ) : (
-              <Play aria-hidden />
-            )}
-          </button>
-          <div className="qs-trilho">
-            <input
-              id="analysis-seekbar"
-              name="analysis-seekbar"
-              type="range"
-              className="qs-posicao"
-              min={0}
-              max={totalDurationSeconds}
-              step={0.5}
-              value={currentTime}
-              disabled={esperando || falhou}
-              onChange={(e) => seekTo(Number(e.target.value))}
-              aria-label={t('Posição na gravação')}
-              aria-valuetext={t('{atual} de {total}', {
-                atual: formatSeconds(currentTime),
-                total: formatSeconds(totalDurationSeconds),
-              })}
-              style={{ ['--p' as string]: `${pct}%` }}
-            />
-            <div className="qs-relogio">
-              <span>{formatSeconds(currentTime)}</span>
-              <span className="qs-falando" role="status">
-                {falhou ? (
-                  <>
-                    <AlertTriangle aria-hidden /> {t('Não deu para carregar o áudio desta sessão.')}
-                  </>
-                ) : esperando ? (
-                  t('Carregando o áudio…')
-                ) : activeSentence ? (
-                  t('{quem} falando', { quem: activeSentence.speaker })
-                ) : (
-                  ''
-                )}
-              </span>
-              <span>{recording.durationStr}</span>
-            </div>
-          </div>
-          <div className="q-abas q-seg" role="group" aria-label={t('Velocidade')}>
-            {[0.75, 1, 1.25].map((sp) => (
-              <button
-                key={sp}
-                type="button"
-                className="q-aba"
-                aria-pressed={playbackSpeed === sp}
-                onClick={() => setPlaybackSpeed(sp)}
-              >
-                {String(sp).replace('.', ',')}×
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            className="q-ctl"
-            aria-pressed={autoSlowEnabled}
-            aria-label={t('Smart Slow-Mo: diminui a velocidade nos trechos com vocabulário difícil')}
-            onClick={() => setAutoSlowEnabled(!autoSlowEnabled)}
-          >
-            <Snail aria-hidden /> <span className="qs-rotulo-do-ctl">{t('Slow-Mo')}</span>
-          </button>
-          <button
-            type="button"
-            className="q-ctl"
-            aria-pressed={loopMode}
-            aria-label={t('Modo loop: repete o trecho ativo')}
-            onClick={() => setLoopMode(!loopMode)}
-          >
-            <Repeat aria-hidden /> <span className="qs-rotulo-do-ctl">{t('Loop')}</span>
-          </button>
-          <button type="button" className="q-ctl" aria-label={t('Reiniciar')} onClick={() => seekTo(0)}>
-            <RotateCcw aria-hidden />
-          </button>
-          <button
-            type="button"
-            className="q-ctl"
-            aria-label={t('O que fazem Slow-Mo e Loop')}
-            aria-expanded={ajudaAberta}
-            aria-controls="ajuda-do-player"
-            onClick={() => setAjudaAberta((v) => !v)}
-          >
-            <CircleHelp aria-hidden />
-          </button>
-        </div>
-      </section>
+        <button
+          type="button"
+          className="q-ctl"
+          aria-label={t('Fala anterior')}
+          data-px="antes"
+          disabled={esperando || falhou || total === 0}
+          onClick={() => irPara(naFala - 1)}
+        >
+          <SkipBack aria-hidden />
+        </button>
+        <button
+          type="button"
+          className="q-ctl pri"
+          data-px="tocar"
+          disabled={esperando || falhou || total === 0}
+          onClick={() => setIsPlaying(!isPlaying)}
+        >
+          {isPlaying ? (
+            <>
+              <Pause key="pausa" aria-hidden /> {t('Pausar')}
+            </>
+          ) : (
+            <>
+              <Play key="toca" aria-hidden /> {t('Ouvir')}
+            </>
+          )}
+        </button>
+        <button
+          type="button"
+          className="q-ctl"
+          aria-label={t('Próxima fala')}
+          data-px="depois"
+          disabled={esperando || falhou || total === 0}
+          onClick={() => irPara(naFala + 1)}
+        >
+          <SkipForward aria-hidden />
+        </button>
+        <span className="qs-trilho px-trilho-do-player">
+          <span className="qs-posicao" style={{ width: `${largura}%` }} />
+        </span>
+        <span className="q-tempo px-onde" role="status">
+          {falhou
+            ? t('Não deu para carregar o áudio desta sessão.')
+            : esperando
+              ? t('Carregando o áudio…')
+              : t('Fala {n} de {total}', { n: naFala + 1, total: Math.max(1, total) })}
+        </span>
+      </div>
     );
   }
 

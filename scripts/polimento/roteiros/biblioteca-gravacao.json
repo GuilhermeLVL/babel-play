@@ -1,0 +1,102 @@
+{
+  "nome": "biblioteca-gravacao",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector(\".q-trilho .q-mais-botao\"); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-mais button, .q-mais a')].find((b) => /Biblioteca/.test(b.textContent)); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 3000
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector(\".q-trilho .q-mais-botao\"); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-mais button, .q-mais a')].find((b) => /Biblioteca/.test(b.textContent)); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 3000
+      }
+    ]
+  },
+  "seletores": [
+    ".q-palco.q-bib",
+    ".q-bib .q-cab",
+    ".q-bib .q-cab h1",
+    ".q-bib .q-cab .q-sobre",
+    ".q-bib .q-cab .q-chip",
+    ".q-bib .q-cab .q-chip svg",
+    ".q-bib-busca",
+    ".q-bib-busca svg",
+    ".q-bib-busca input",
+    ".q-bib > .q-abas",
+    ".q-bib > .q-abas .q-aba",
+    ".q-bib > .q-abas .q-aba[aria-checked='true']",
+    ".q-bib > .q-abas .q-aba .n",
+    ".q-bib > .q-abas .px-pilula",
+    ".q-bib-corpo",
+    ".q-bib-col",
+    ".q-bib .q-lista",
+    ".q-bib .q-lista .q-linha[aria-pressed='true']",
+    ".q-bib .q-lista .q-linha .q-ic",
+    ".q-bib .q-lista .q-linha .q-ic svg",
+    ".q-bib .q-lista .q-linha b",
+    ".q-bib .q-lista .q-linha small",
+    ".q-bib .q-lista .q-linha .q-fim",
+    ".q-bib-nova",
+    ".q-bib-nova-dentro",
+    ".q-bib-nova .q-ic",
+    ".q-bib-nova b",
+    ".q-bib-nova small",
+    ".q-bib-paginas",
+    ".q-bib-paginas .q-ctl",
+    ".q-bib-paginas .q-tempo",
+    ".q-bib-det",
+    ".q-bib-topo",
+    ".q-bib-topo .q-ic",
+    ".q-bib-tags",
+    ".q-bib-tags .q-tag",
+    ".q-bib-det h2",
+    ".q-bib-fatos",
+    ".q-bib-fatos > div",
+    ".q-bib-fatos dt",
+    ".q-bib-fatos dd",
+    ".q-bib-acoes",
+    ".q-bib-acoes > .q-ctl.pri",
+    ".q-bib-acoes > .q-ctl.pri svg",
+    ".q-bib-acoes > .q-acoes",
+    ".q-bib-acoes .q-acoes .q-ctl",
+    ".q-bib-cuidar",
+    ".q-bib-levar",
+    ".q-bib-acoes .q-ctl.perigo"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector(\".q-bib .q-lista .q-linha\"); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      }
+    ],
+    "proto": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector(\".q-bib .q-lista .q-linha\"); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      }
+    ],
+    "espera": 1500
+  }
+}

@@ -1,3 +1,7 @@
+/* A folha traz o próprio CSS: ela abre também na Sessão, sem passar por Capturar. */
+import '../../../../styles/capturaNoCelular.css';
+import '../../../../styles/polimentoCaptura.css';
+
 import { ArrowLeft, Check, Copy, Gauge, Languages, Lock, Mic, Plus, Sparkles, Volume2 } from 'lucide-react';
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 

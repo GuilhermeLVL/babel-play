@@ -527,6 +527,42 @@ describe('a casca no computador com o desenho novo', () => {
     expect(ir).toHaveBeenLastCalledWith('planos')
   })
 
+  it('painel Mais: o Modo desempenho fica junto do tema e do som, e só existe com quem o alterne', () => {
+    const alternar = vi.fn()
+    const { rerender } = render(
+      <TrilhoDoQuest
+        activeView="hub"
+        onChangeView={() => {}}
+        ageProfile="pro"
+        darkMode={false}
+        toggleDarkMode={() => {}}
+        soundEnabled
+        toggleSound={() => {}}
+        performanceMode={false}
+        togglePerformanceMode={alternar}
+      />,
+    )
+    fireEvent.click(screen.getAllByRole('button', { name: 'Mais' })[0])
+    const botao = screen.getByTestId('modo-desempenho-no-mais')
+    expect(botao.closest('.q-faixa-do-mais')).not.toBeNull()
+    expect(botao.textContent).toBe('Modo desempenho: desligado')
+    expect(botao.getAttribute('aria-pressed')).toBe('false')
+    fireEvent.click(botao)
+    expect(alternar).toHaveBeenCalledTimes(1)
+    rerender(
+      <TrilhoDoQuest
+        activeView="hub"
+        onChangeView={() => {}}
+        ageProfile="pro"
+        darkMode={false}
+        toggleDarkMode={() => {}}
+        soundEnabled
+        toggleSound={() => {}}
+      />,
+    )
+    expect(screen.queryByTestId('modo-desempenho-no-mais')).toBeNull()
+  })
+
   it('sem quem abra a busca, o trilho não inventa o botão', () => {
     montar({ aoBuscar: undefined })
     expect(screen.queryByTestId('busca-no-trilho')).toBeNull()

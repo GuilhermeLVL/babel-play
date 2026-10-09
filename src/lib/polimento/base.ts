@@ -45,6 +45,7 @@ export function polido(): boolean {
 /** `reduz()` de `prototipo.js:25`: a pessoa pediu menos movimento ao sistema (e não religou no app). */
 export function reduz(): boolean {
   if (typeof window === 'undefined') return true;
+  if (document.body.classList.contains('performance-mode')) return true;
   if (document.body.classList.contains('animations-on')) return false;
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 }
@@ -120,11 +121,31 @@ export function aplicarAcess(): void {
   const segue = !document.body.classList.contains('animations-on');
   const visitar = (regras: CSSRuleList) => {
     for (const r of regras) {
-      if (!(r instanceof CSSMediaRule)) continue;
+      /* As folhas do app vêm dentro de `@layer` e de outras regras de grupo: desce nelas. */
+      if (!(r instanceof CSSMediaRule)) {
+        const dentro = (r as CSSGroupingRule).cssRules;
+        if (dentro?.length) visitar(dentro);
+        continue;
+      }
       const texto = originais.get(r) ?? r.media.mediaText;
-      if (!/prefers-(reduced|contrast)/.test(texto) || !r.cssText.includes('data-px')) continue;
-      originais.set(r, texto);
-      r.media.mediaText = segue ? texto : 'not all';
+      /* MOVIMENTO: vale para o app inteiro, não só para a camada. Com "reduzir movimento" no sistema, as
+         folhas de sempre (`quest.css`, `questBase.css`, `prototipo.css`…) tiravam as transições dos
+         ícones, do menu e dos cartões, e os laços (anéis, brilho das barras) nem começavam: era o que o
+         dono via "sumir" (08/10/2026). Quem ligou as animações no app vê todas; quem quer menos usa o
+         Modo desempenho. A regra `reduce` deixa de valer e a `no-preference` passa a valer sempre. */
+      if (/prefers-reduced-motion/.test(texto)) {
+        originais.set(r, texto);
+        r.media.mediaText = segue ? texto : /no-preference/.test(texto) ? 'all' : 'not all';
+        visitar(r.cssRules);
+        continue;
+      }
+      /* TRANSPARÊNCIA E CONTRASTE: só as regras da camada (as outras são leitura, e leitura não se mexe). */
+      if (/prefers-(reduced|contrast)/.test(texto) && r.cssText.includes('data-px')) {
+        originais.set(r, texto);
+        r.media.mediaText = segue ? texto : 'not all';
+        continue;
+      }
+      visitar(r.cssRules);
     }
   };
   for (const folha of document.styleSheets) {
@@ -142,7 +163,9 @@ export const EVENTO_DOS_ESTILOS = 'px:estilos';
 export function instalarPolimento(): () => void {
   const raiz = html();
   const marcar = () => {
-    raiz.dataset.px = document.body.classList.contains('animations-off') ? 'off' : 'on';
+    /* O Modo desempenho desliga a camada inteira, como o interruptor das animações. */
+    const corpo = document.body.classList;
+    raiz.dataset.px = corpo.contains('animations-off') || corpo.contains('performance-mode') ? 'off' : 'on';
     aplicarAcess();
   };
   raiz.style.setProperty('--px-mola', MOLA);
@@ -161,8 +184,17 @@ export function instalarPolimento(): () => void {
     .catch(() => undefined);
   const observador = new MutationObserver(marcar);
   observador.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  /* Cada tela traz a sua folha de estilo quando abre: as regras novas são acertadas quando chegam. */
+  let pedido = 0;
+  const folhas = new MutationObserver(() => {
+    cancelAnimationFrame(pedido);
+    pedido = requestAnimationFrame(aplicarAcess);
+  });
+  folhas.observe(document.head, { childList: true, subtree: true, characterData: true });
   return () => {
     observador.disconnect();
+    folhas.disconnect();
+    cancelAnimationFrame(pedido);
     delete raiz.dataset.px;
   };
 }

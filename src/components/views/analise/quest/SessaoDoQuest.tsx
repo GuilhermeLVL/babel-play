@@ -1,95 +1,113 @@
 import '../../../../styles/questSessao.css';
+/* A folha da frase (`FolhasDoPrototipo`) é desenhada por estes dois arquivos, que hoje só a tela de
+   Capturar importa: sem eles, quem abre a sessão sem ter passado pela captura vê a folha sem estilo. */
+import '../../../../styles/capturaNoCelular.css';
+import '../../../../styles/polimentoCaptura.css';
 
-import { ArrowLeft, ArrowLeftRight, Check, Download, FileAudio, FileText, Youtube } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { ArrowLeft, ArrowLeftRight, Download } from 'lucide-react';
+import { type ReactNode, useLayoutEffect, useRef } from 'react';
 
-import { t, tp } from '../../../../lib/i18n';
+import { numero, t } from '../../../../lib/i18n';
+import { repintarSessao } from '../../../../lib/polimento/sessao';
 import type { Recording } from '../../../../types';
-import { Dialogo, fecharDialogoDe } from '../../../ui';
 
-/** Uma aba da sessão, como a tela de sempre já as monta (`abasDaSessao` em `Analysis.tsx`). */
+/** Uma aba da sessão, como a `Analysis` já as monta (`abasDaSessao`). O ícone não aparece aqui. */
 interface AbaDaSessao {
   id: string;
   rotulo: string;
-  icone: ReactNode;
+  icone?: ReactNode;
   contagem?: number;
 }
 
-const iconeDoTipo = (tipo: Recording['type']) =>
-  tipo === 'video' ? Youtube : tipo === 'document' ? FileText : FileAudio;
+/** Os minutos do `durationStr` ("m:ss" ou "h:mm:ss"), no mínimo 1; sem duração, 0. */
+function minutosDa(gravacao: Recording): number {
+  const partes = gravacao.durationStr.split(':').map(Number);
+  if (partes.length < 2 || partes.some((n) => !Number.isFinite(n))) return 0;
+  const segundos = partes.reduce((soma, n) => soma * 60 + n, 0);
+  return segundos ? Math.max(1, Math.round(segundos / 60)) : 0;
+}
 
-/** "Sessão de áudio · 38:10": o tipo da mídia e a duração (documento não tem duração). */
+/** `telas3.js:99`: "Sessão de áudio · 38 min"; sem duração, "· texto". */
 function sobrancelhaDa(gravacao: Recording): string {
-  if (gravacao.type === 'document') return t('Sessão de documento · texto');
+  const min = gravacao.type === 'document' ? 0 : minutosDa(gravacao);
+  const quanto = min ? t('{n} min', { n: numero(min) }) : t('texto');
+  if (gravacao.type === 'document') return t('Sessão de texto · {quanto}', { quanto });
   return gravacao.type === 'video'
-    ? t('Sessão de vídeo · {duracao}', { duracao: gravacao.durationStr })
-    : t('Sessão de áudio · {duracao}', { duracao: gravacao.durationStr });
+    ? t('Sessão de vídeo · {quanto}', { quanto })
+    : t('Sessão de áudio · {quanto}', { quanto });
 }
 
 /**
- * A SESSÃO GRAVADA NO META QUEST — a casca: cabeçalho, abas e o painel da aba aberta.
+ * A SESSÃO ABERTA NO DESENHO NOVO — a casca: cabeçalho, as quatro abas e o painel da aba aberta.
  *
- * O desenho é o das telas aprovadas (Início, Biblioteca): voltar antes do título, as ações à direita
- * como pílulas, as abas numa fileira e o conteúdo embaixo. "Alternar de sessão" deixa de ser uma
- * caixa de seleção pequena e vira uma lista no centro, uma gravação por linha de 72 px.
+ * A marcação é a de `htmlDaSessao()` do protótipo (`telas3.js:95-104`, item D50 de
+ * `fidelidade/casca-e-telas.md`). A troca de aba entra pelo lado da aba escolhida (`repintar()`,
+ * `telas3.js:164-170`), em `lib/polimento/sessao.ts`.
  *
  * Só apresentação: a `Analysis` continua dona do estado e entrega aqui o que já calcula.
  */
 export default function SessaoDoQuest({
   gravacao,
-  gravacoes,
   abas,
   abaAtiva,
   aoTrocarAba,
   aoVoltar,
-  aoTrocarSessao,
   aoExportar,
-  aviso,
+  repintar = 0,
   children,
 }: {
   gravacao: Recording;
-  /** Todas as gravações, para "Trocar de sessão". */
-  gravacoes: readonly Recording[];
   abas: readonly AbaDaSessao[];
   abaAtiva: string;
   aoTrocarAba: (id: string) => void;
-  /** Volta para a Biblioteca. */
+  /** Volta para a Biblioteca: o "voltar" e o "Trocar de sessão" (`telas3.js:163`). */
   aoVoltar: () => void;
-  aoTrocarSessao: (id: string) => void;
   aoExportar: () => void;
-  /** O aviso de nuvem sem consentimento (some sozinho quando não se aplica). */
-  aviso?: ReactNode;
+  /**
+   * Muda quando o painel trocou por dentro (as seções da Visão geral): o miolo entra de novo, pela
+   * direita (`telas3.js:171`).
+   */
+  repintar?: number;
   children: ReactNode;
 }) {
-  const [trocando, setTrocando] = useState(false);
-  const Icone = iconeDoTipo(gravacao.type);
+  const palco = useRef<HTMLDivElement>(null);
+  const antes = useRef({ aba: abaAtiva, repintar });
+  /* `telas3.js:164-171`: depois de o React pintar o painel novo, ele entra pelo lado da aba. */
+  useLayoutEffect(() => {
+    const de = antes.current;
+    antes.current = { aba: abaAtiva, repintar };
+    if (de.aba === abaAtiva && de.repintar === repintar) return;
+    const i = abas.findIndex((a) => a.id === abaAtiva);
+    const iDeAntes = abas.findIndex((a) => a.id === de.aba);
+    repintarSessao(palco.current, de.aba !== abaAtiva && i < iDeAntes ? -1 : 1);
+  }, [abaAtiva, repintar, abas]);
 
   return (
-    <div className="q-palco qs" data-testid="sessao-do-quest">
+    <div className="q-palco qs px-sessao" data-testid="sessao-do-quest" ref={palco}>
       <header className="q-cab">
-        <button type="button" className="q-ctl q-voltar" aria-label={t('Voltar para a Biblioteca')} onClick={aoVoltar}>
+        <button
+          type="button"
+          className="q-ctl q-voltar"
+          aria-label={t('Voltar à Biblioteca')}
+          data-px="voltar-bib"
+          onClick={aoVoltar}
+        >
           <ArrowLeft aria-hidden />
         </button>
         <div className="qs-titulo">
-          <p className="q-sobre">
-            <Icone aria-hidden /> {sobrancelhaDa(gravacao)}
-          </p>
+          <p className="q-sobre">{sobrancelhaDa(gravacao)}</p>
           <h1>{gravacao.title}</h1>
           <p className="qs-sub">{t('Análise do texto, prática ativa e exercícios criados a partir desta mídia.')}</p>
         </div>
-        {gravacoes.length > 1 && (
-          <button type="button" className="q-chip" aria-haspopup="dialog" onClick={() => setTrocando(true)}>
-            <ArrowLeftRight aria-hidden /> {t('Trocar de sessão')}
-          </button>
-        )}
+        <button type="button" className="q-chip" data-px="voltar-bib" onClick={aoVoltar}>
+          <ArrowLeftRight aria-hidden /> {t('Trocar de sessão')}
+        </button>
         <button type="button" className="q-ctl" aria-haspopup="dialog" onClick={aoExportar}>
           <Download aria-hidden /> {t('Exportar')}
         </button>
       </header>
 
-      {aviso}
-
-      <div className="q-abas qs-abas" role="tablist" aria-label={t('O que fazer com esta sessão')}>
+      <div className="q-abas qs-abas px-abas-sessao" role="tablist" aria-label={t('Sessão')}>
         {abas.map((aba) => (
           <button
             key={aba.id}
@@ -99,11 +117,16 @@ export default function SessaoDoQuest({
             className="q-aba"
             aria-selected={aba.id === abaAtiva}
             aria-controls={`painel-${aba.id}`}
+            data-px-sessao-aba={aba.id}
             onClick={() => aoTrocarAba(aba.id)}
           >
-            {aba.icone}
             {aba.rotulo}
-            {aba.contagem != null && <span className="n">{aba.contagem}</span>}
+            {aba.contagem != null && (
+              <>
+                {' '}
+                <span className="n">{aba.contagem}</span>
+              </>
+            )}
           </button>
         ))}
       </div>
@@ -111,51 +134,6 @@ export default function SessaoDoQuest({
       <div className="qs-painel" role="tabpanel" id={`painel-${abaAtiva}`} aria-labelledby={`aba-${abaAtiva}`}>
         {children}
       </div>
-
-      {trocando && (
-        <Dialogo
-          icone={ArrowLeftRight}
-          titulo={t('Trocar de sessão')}
-          sub={tp(gravacoes.length, '{n} gravação', '{n} gravações')}
-          aoFechar={() => setTrocando(false)}
-        >
-          <div className="dlg-corpo qs-miolo q-lista" role="group" aria-label={t('Gravações')}>
-            {gravacoes.map((g) => {
-              const IconeDaLinha = iconeDoTipo(g.type);
-              const aberta = g.id === gravacao.id;
-              return (
-                <button
-                  key={g.id}
-                  type="button"
-                  className="q-linha"
-                  aria-pressed={aberta}
-                  onClick={(e) => {
-                    fecharDialogoDe(e.currentTarget);
-                    if (!aberta) aoTrocarSessao(g.id);
-                  }}
-                >
-                  <span className="q-ic">
-                    <IconeDaLinha aria-hidden />
-                  </span>
-                  <span>
-                    <b>{g.title}</b>
-                    <small>{[g.date, g.type === 'document' ? '' : g.durationStr].filter(Boolean).join(' · ')}</small>
-                  </span>
-                  <span className="q-fim">
-                    {aberta ? (
-                      <>
-                        <Check aria-hidden /> {t('Aberta')}
-                      </>
-                    ) : (
-                      t('Abrir')
-                    )}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </Dialogo>
-      )}
     </div>
   );
 }

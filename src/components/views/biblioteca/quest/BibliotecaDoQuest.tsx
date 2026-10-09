@@ -6,25 +6,17 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
-  FileAudio,
-  FileText,
   Gamepad2,
-  LayoutGrid,
   Library,
   Mic,
-  Pencil,
-  Pin,
-  PinOff,
+  Monitor,
   Plus,
   Search,
-  Target,
-  Trash2,
-  X,
-  Youtube,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 
 import { idiomaDaInterface, numero, t, tp } from '../../../../lib/i18n';
+import { type ComoRedesenhar, redesenharBib } from '../../../../lib/polimento/biblioteca';
 import type { Recording } from '../../../../types';
 
 /**
@@ -37,8 +29,11 @@ import type { Recording } from '../../../../types';
  * de ícone pequeno dentro da linha.
  *
  * Só apresentação: recebe a lista já ordenada pela `Library` e devolve a gravação escolhida a cada
- * ação. O formulário de importar, a capa, os filtros finos e a exportação continuam na tela de sempre,
- * que "Tela completa" abre nesta visita.
+ * ação.
+ *
+ * A MARCAÇÃO É A DO PROTÓTIPO (`htmlDaBib()` e `detalheDaBib()` de `telas.js:396-434`, itens D48 e
+ * D49 de `fidelidade/casca-e-telas.md`): os mesmos elementos, classes e textos, com as gravações de
+ * verdade. O movimento (`redesenharBib()`, `telas.js:436-454`) está em `lib/polimento/biblioteca.ts`.
  */
 
 export type OrdemDaBiblioteca = 'recentes' | 'palavras' | 'az';
@@ -52,7 +47,8 @@ const rotuloDaOrdem = (ordem: OrdemDaBiblioteca) =>
   ordem === 'palavras' ? t('Mais palavras') : ordem === 'az' ? t('A–Z') : t('Mais recentes');
 
 const TIPOS: Tipo[] = ['audio', 'video', 'document'];
-const ICONE_DO_TIPO = { audio: FileAudio, video: Youtube, document: FileText } as const;
+/* Os ícones do protótipo (`telas.js:386-391`): microfone, monitor e livro. */
+const ICONE_DO_TIPO = { audio: Mic, video: Monitor, document: BookOpen } as const;
 const rotuloDoTipo = (tipo: Tipo) => (tipo === 'video' ? t('Vídeo') : tipo === 'document' ? t('Texto') : t('Áudio'));
 
 /** Os segundos do `durationStr` ("m:ss" ou "h:mm:ss"); documento ('-') não tem duração. */
@@ -72,7 +68,9 @@ function nomeDoIdioma(codigo?: string): string {
   const base = (codigo ?? '').split('-')[0].toLowerCase();
   if (!base) return '';
   try {
-    return new Intl.DisplayNames([idiomaDaInterface()], { type: 'language' }).of(base) ?? base;
+    const nome = new Intl.DisplayNames([idiomaDaInterface()], { type: 'language' }).of(base) ?? base;
+    /* "Inglês", com a inicial maiúscula, como no protótipo (`telas.js:386`). */
+    return nome.charAt(0).toLocaleUpperCase() + nome.slice(1);
   } catch {
     return base;
   }
@@ -87,13 +85,13 @@ const palavrasDe = (g: Recording) =>
 
 export default function BibliotecaDoQuest({
   gravacoes,
+  total = gravacoes,
   ordem,
   aoTrocarOrdem,
   aoAbrir,
   aoJogar,
   aoRevisar,
   aoCapturar,
-  aoTelaCompleta,
   aoImportar,
   aoFixar,
   aoRenomear,
@@ -105,16 +103,19 @@ export default function BibliotecaDoQuest({
   duploCliqueAbre = false,
   porPagina = GRAVACOES_POR_PAGINA,
 }: {
-  /** Já na ordem em que aparecem (fixadas primeiro, como na tela de sempre). */
+  /** Já na ordem em que aparecem (fixadas primeiro) e já filtradas pela busca. */
   gravacoes: readonly Recording[];
+  /**
+   * A biblioteca INTEIRA, sem a busca: é dela que saem a sobrancelha e as contagens das abas, que no
+   * protótipo não mudam enquanto se digita (`telas.js:417, 420`). Ausente = `gravacoes`.
+   */
+  total?: readonly Recording[];
   ordem: OrdemDaBiblioteca;
   aoTrocarOrdem: (ordem: OrdemDaBiblioteca) => void;
   aoAbrir: (gravacao: Recording) => void;
   aoJogar: (gravacao: Recording) => void;
   aoRevisar: (gravacao: Recording) => void;
   aoCapturar: () => void;
-  /** Mostra a Biblioteca de sempre (capa, filtros finos, exportar) nesta visita. */
-  aoTelaCompleta: () => void;
   /** Abre o formulário de importar (YouTube, documento, link, áudio, texto colado). */
   aoImportar?: () => void;
   aoFixar?: (gravacao: Recording) => void;
@@ -122,8 +123,8 @@ export default function BibliotecaDoQuest({
   /** Quem recebe oferece o "Desfazer": aqui o toque já tira a gravação da lista. */
   aoExcluir?: (gravacao: Recording) => void;
   /*
-   * O QUE O COMPUTADOR TRAZ PARA DENTRO DESTA TELA (02/10/2026). No headset estas quatro props não vêm,
-   * e as funções continuam em "Tela completa", como antes; quem decide é a `Library`, pelo aparelho.
+   * O QUE O COMPUTADOR TRAZ PARA DENTRO DESTA TELA (02/10/2026). No headset estas quatro props não vêm;
+   * quem decide é a `Library`, pelo aparelho.
    */
   /** "Exportar transcrição" da gravação selecionada (o diálogo de sempre). */
   aoExportar?: (gravacao: Recording) => void;
@@ -138,35 +139,49 @@ export default function BibliotecaDoQuest({
 }) {
   const [pagina, setPagina] = useState(0);
   const [escolhida, setEscolhida] = useState<string | null>(null);
-  const [tipoPedido, setTipoPedido] = useState<Tipo | 'todas'>('todas');
+  const [tipo, setTipo] = useState<Tipo | 'todas'>('todas');
 
-  const quantas = (tipo: Tipo) => gravacoes.filter((g) => g.type === tipo).length;
-  const tiposPresentes = TIPOS.filter((tipo) => quantas(tipo) > 0);
-  // O tipo filtrado pode esvaziar (a última gravação dele foi excluída): a lista volta a mostrar todas.
-  const tipo = tipoPedido !== 'todas' && quantas(tipoPedido) > 0 ? tipoPedido : 'todas';
+  /* `redesenharBib()` roda depois de o React pintar o que o toque pediu (`telas.js:436-454`). */
+  const palco = useRef<HTMLDivElement>(null);
+  const movimento = useRef<{ como: ComoRedesenhar; dir: number } | null>(null);
+  const redesenhar = (como: ComoRedesenhar, dir = 1) => {
+    movimento.current = { como, dir };
+  };
+  useLayoutEffect(() => {
+    const m = movimento.current;
+    if (!m) return;
+    movimento.current = null;
+    redesenharBib(palco.current, m.como, m.dir);
+  });
+
+  const quantas = (qual: Tipo) => total.filter((g) => g.type === qual).length;
   const filtradas = tipo === 'todas' ? gravacoes : gravacoes.filter((g) => g.type === tipo);
 
   const paginas = Math.max(1, Math.ceil(filtradas.length / porPagina));
   // A lista pode encolher (uma exclusão, uma troca de ordem ou de tipo): a página nunca passa do fim.
   const atual = Math.min(pagina, paginas - 1);
   const visiveis = filtradas.slice(atual * porPagina, (atual + 1) * porPagina);
-  // Sempre há UMA selecionada: a escolhida, se está nesta página; senão, a primeira da página.
-  const selecionada = visiveis.find((g) => g.id === escolhida) ?? visiveis[0];
+  /* Sempre há UMA selecionada, e ela continua selecionada ao mudar de página (`telas.js:414`). */
+  const selecionada = filtradas.find((g) => g.id === escolhida) ?? filtradas[0];
 
-  const irPara = (destino: number) => {
-    setPagina(destino);
+  /* `telas.js:541, 550-556`: filtro e busca voltam para a primeira gravação da primeira página. */
+  const recomecar = () => {
+    setPagina(0);
     setEscolhida(null);
+    redesenhar('lista');
   };
 
-  const minutos = Math.round(gravacoes.reduce((soma, g) => soma + segundosDe(g.durationStr), 0) / 60);
-  const palavras = gravacoes.reduce((soma, g) => soma + (g.wordCount || 0), 0);
+  const segundos = total.reduce((soma, g) => soma + segundosDe(g.durationStr), 0);
+  const palavras = total.reduce((soma, g) => soma + (g.wordCount || 0), 0);
+  /* `telas.js:417`: "{n} gravações · {min} min · {palavras} palavras". */
   const resumo = [
-    gravacoes.length ? tp(gravacoes.length, '{n} gravação', '{n} gravações') : t('Nenhuma gravação'),
-    minutos > 0 && t('{n} min', { n: numero(minutos) }),
-    palavras > 0 && tp(palavras, '{n} palavra', '{n} palavras', { n: numero(palavras) }),
-  ]
-    .filter(Boolean)
-    .join(' · ');
+    tp(total.length, '{n} gravação', '{n} gravações'),
+    t('{n} min', { n: numero(Math.round(segundos / 60)) }),
+    tp(palavras, '{n} palavra', '{n} palavras', { n: numero(palavras) }),
+  ].join(' · ');
+
+  const buscando = !!busca?.trim();
+  const semNada = total.length === 0 && !buscando;
 
   const cabecalho = (
     <header className="q-cab">
@@ -174,73 +189,73 @@ export default function BibliotecaDoQuest({
         <p className="q-sobre">{resumo}</p>
         <h1>{t('Biblioteca')}</h1>
       </div>
-      {gravacoes.length > 1 && (
-        <button
-          type="button"
-          className="q-chip"
-          aria-label={t('Ordem: {ordem}. Trocar a ordem', { ordem: rotuloDaOrdem(ordem) })}
-          onClick={() => {
-            aoTrocarOrdem(ORDENS[(ORDENS.indexOf(ordem) + 1) % ORDENS.length]);
-            irPara(0);
-          }}
-        >
-          <ArrowUpDown aria-hidden /> {rotuloDaOrdem(ordem)}
-        </button>
-      )}
-      {aoImportar && gravacoes.length > 0 && (
+      <button
+        type="button"
+        className="q-chip"
+        aria-label={t('Ordem: {ordem}. Trocar a ordem', { ordem: rotuloDaOrdem(ordem) })}
+        onClick={() => {
+          aoTrocarOrdem(ORDENS[(ORDENS.indexOf(ordem) + 1) % ORDENS.length]);
+          setPagina(0);
+        }}
+      >
+        <ArrowUpDown aria-hidden /> {rotuloDaOrdem(ordem)}
+      </button>
+      {aoImportar && (
         <button type="button" className="q-chip" onClick={aoImportar}>
           <Plus aria-hidden /> {t('Importar')}
         </button>
       )}
-      <button type="button" className="q-chip" onClick={aoTelaCompleta}>
-        <LayoutGrid aria-hidden /> {t('Tela completa')}
-      </button>
     </header>
   );
 
-  const buscando = !!busca?.trim();
-  const campoDeBusca = aoBuscar && (gravacoes.length > 0 || buscando) && (
+  const campoDeBusca = aoBuscar && !semNada && (
     <label className="q-campo q-bib-busca">
-      <span className="sr">{t('Buscar na biblioteca')}</span>
       <Search aria-hidden />
       <input
         type="search"
         autoComplete="off"
         placeholder={t('Buscar por título')}
+        aria-label={t('Buscar por título')}
         value={busca ?? ''}
         onChange={(e) => {
           aoBuscar(e.target.value);
-          irPara(0);
+          recomecar();
         }}
       />
     </label>
   );
 
-  // A busca não achou nada: a biblioteca NÃO está vazia, e a tela diz isso com a saída à mão.
-  if (!selecionada && buscando && aoBuscar) {
-    return (
-      <div className="q-palco q-bib">
-        {cabecalho}
-        {campoDeBusca}
-        <div className="q-vazio q-bib-vazia" data-testid="busca-sem-resultado">
-          <span className="q-ic" aria-hidden>
-            <Search />
-          </span>
-          <h2>{t('Nenhum resultado')}</h2>
-          <p>{t('Nenhuma gravação tem “{busca}” no título.', { busca: busca?.trim() ?? '' })}</p>
-          <div className="q-acoes">
-            <button type="button" className="q-ctl pri" onClick={() => aoBuscar('')}>
-              <X aria-hidden /> {t('Limpar a busca')}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  /* `telas.js:420`: as quatro abas, sempre, com a contagem da biblioteca inteira. */
+  const abas = !semNada && (
+    <div className="q-abas" role="group" aria-label={t('Tipo de gravação')}>
+      {(['todas', ...TIPOS] as const).map((cada) => {
+        const n = cada === 'todas' ? total.length : quantas(cada);
+        return (
+          <button
+            key={cada}
+            type="button"
+            role="radio"
+            className="q-aba"
+            data-px-tipo={cada}
+            aria-checked={tipo === cada}
+            /* Um tipo sem nenhuma gravação não tem o que mostrar (no protótipo todos têm). */
+            disabled={n === 0 && tipo !== cada}
+            onClick={() => {
+              setTipo(cada);
+              recomecar();
+            }}
+          >
+            {cada === 'todas' ? t('Todas') : rotuloDoTipo(cada)} <span className="n">{n}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
 
-  if (!selecionada) {
+  /* A biblioteca vazia de verdade (o protótipo nasce com seis gravações e não tem este estado). */
+  if (semNada) {
     return (
-      <div className="q-palco q-bib">
+      <div className="q-palco q-bib" ref={palco}>
         {cabecalho}
         <div className="q-vazio q-bib-vazia">
           <span className="q-ic" aria-hidden>
@@ -263,72 +278,68 @@ export default function BibliotecaDoQuest({
     );
   }
 
+  /* `telas.js:431`: nada com este título (ou deste tipo, com a busca ligada). */
+  if (!selecionada) {
+    return (
+      <div className="q-palco q-bib" ref={palco}>
+        {cabecalho}
+        {campoDeBusca}
+        {abas}
+        <div className="q-vazio" data-testid="busca-sem-resultado">
+          <h2>{t('Nenhum resultado')}</h2>
+          <p>{t('Nenhuma gravação tem “{busca}” no título.', { busca: busca?.trim() ?? '' })}</p>
+          <button
+            type="button"
+            className="q-ctl"
+            data-px="limpar"
+            onClick={() => {
+              aoBuscar?.('');
+              setTipo('todas');
+              recomecar();
+            }}
+          >
+            {t('Limpar a busca')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Sessão que ficou no meio (sem texto, ou ainda processando) abre, mas não tem o que jogar nem revisar.
   const semTexto = selecionada.pronta === false;
-  const IconeDaSelecionada = ICONE_DO_TIPO[selecionada.type] ?? FileAudio;
+  const IconeDaSelecionada = ICONE_DO_TIPO[selecionada.type] ?? Mic;
   const fatos: [string, string][] = [
     [t('Palavras'), selecionada.wordCount ? numero(selecionada.wordCount) : '—'],
     [t('Duração'), minutosDe(selecionada.durationStr) || '—'],
     [t('Idioma'), nomeDoIdioma(selecionada.idioma) || '—'],
     [t('Data'), selecionada.date || '—'],
   ];
-  // Na última página sobra lugar: o convite de capturar outra ocupa o que ficou vazio na coluna.
-  const sobraLinha = atual === paginas - 1 && visiveis.length < porPagina;
-  // Retomar captura: só sessões de áudio (documento e vídeo importado não têm captura), como no menu de sempre.
-  const retomar = selecionada.type === 'audio' ? aoRetomar : undefined;
-  const fileirasAMais = aoExportar || retomar ? ' q-bib-det-mais' : '';
+  // Retomar captura: só sessões de áudio têm captura (documento e vídeo importado não).
+  const podeRetomar = !!aoRetomar && selecionada.type === 'audio';
 
   return (
-    <div className="q-palco q-bib">
+    <div className="q-palco q-bib" ref={palco}>
       {cabecalho}
       {campoDeBusca}
-
-      {tiposPresentes.length > 1 && (
-        <div className="q-abas" role="group" aria-label={t('Tipo de gravação')}>
-          <button
-            type="button"
-            className="q-aba"
-            aria-pressed={tipo === 'todas'}
-            onClick={() => {
-              setTipoPedido('todas');
-              irPara(0);
-            }}
-          >
-            {t('Todas')} <span className="n">{gravacoes.length}</span>
-          </button>
-          {tiposPresentes.map((cada) => {
-            const Icone = ICONE_DO_TIPO[cada];
-            return (
-              <button
-                key={cada}
-                type="button"
-                className="q-aba"
-                aria-pressed={tipo === cada}
-                onClick={() => {
-                  setTipoPedido(cada);
-                  irPara(0);
-                }}
-              >
-                <Icone aria-hidden /> {rotuloDoTipo(cada)} <span className="n">{quantas(cada)}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {abas}
 
       <div className="q-bib-corpo">
         <div className="q-bib-col">
           <div className="q-lista" role="group" aria-label={t('Gravações')}>
             {visiveis.map((g) => {
-              const Icone = ICONE_DO_TIPO[g.type] ?? FileAudio;
+              const Icone = ICONE_DO_TIPO[g.type] ?? Mic;
               const detalhes = [g.date, minutosDe(g.durationStr), nomeDoIdioma(g.idioma)].filter(Boolean).join(' · ');
               return (
                 <button
                   key={g.id}
                   type="button"
                   className="q-linha"
+                  data-px-grav={g.id}
                   aria-pressed={g.id === selecionada.id}
-                  onClick={() => setEscolhida(g.id)}
+                  onClick={() => {
+                    setEscolhida(g.id);
+                    redesenhar('detalhe');
+                  }}
                   onDoubleClick={duploCliqueAbre ? () => aoAbrir(g) : undefined}
                 >
                   <span className="q-ic" aria-hidden>
@@ -336,49 +347,61 @@ export default function BibliotecaDoQuest({
                   </span>
                   <span>
                     <b>{g.title}</b>
-                    {detalhes && <small>{detalhes}</small>}
+                    <small>{detalhes}</small>
                   </span>
-                  <span className="q-fim">
-                    {g.pinned && <Pin aria-label={t('Fixada')} />}
-                    {palavrasDe(g)}
-                  </span>
+                  <span className="q-fim">{palavrasDe(g)}</span>
                 </button>
               );
             })}
           </div>
 
-          {sobraLinha && (
-            <button type="button" className="q-linha q-bib-nova" onClick={aoCapturar}>
-              <span className="q-bib-nova-dentro">
-                <span className="q-ic" aria-hidden>
-                  <Mic />
-                </span>
-                <span>
-                  <b>{t('Capturar outra sessão')}</b>
-                  <small>{t('O que você ouvir vira texto, palavras e jogos.')}</small>
-                </span>
+          <button type="button" className="q-linha q-bib-nova" data-px="capturar" onClick={aoCapturar}>
+            <span className="q-bib-nova-dentro">
+              <span className="q-ic" aria-hidden>
+                <Mic />
               </span>
-            </button>
-          )}
+              <span>
+                <b>{t('Capturar outra sessão')}</b>
+                <small>{t('O que você ouvir vira texto, palavras e jogos.')}</small>
+              </span>
+            </span>
+          </button>
 
-          {paginas > 1 && (
-            <div className="q-faixa q-bib-paginas" role="group" aria-label={t('Páginas da biblioteca')}>
-              <button type="button" className="q-ctl" disabled={atual === 0} onClick={() => irPara(atual - 1)}>
-                <ChevronLeft aria-hidden /> {t('Anterior')}
-              </button>
-              <span className="q-espaco" />
-              <span className="q-tempo" aria-label={t('Página {n} de {total}', { n: atual + 1, total: paginas })}>
-                {atual + 1} / {paginas}
-              </span>
-              <span className="q-espaco" />
-              <button type="button" className="q-ctl" disabled={atual >= paginas - 1} onClick={() => irPara(atual + 1)}>
-                {t('Próxima')} <ChevronRight aria-hidden />
-              </button>
-            </div>
-          )}
+          <div className="q-faixa q-bib-paginas">
+            <button
+              type="button"
+              className="q-ctl"
+              data-px-pag="-1"
+              disabled={atual === 0}
+              onClick={() => {
+                setPagina(atual - 1);
+                redesenhar('lista', -1);
+              }}
+            >
+              <ChevronLeft aria-hidden /> {t('Anterior')}
+            </button>
+            <span className="q-espaco" />
+            <span className="q-tempo" aria-label={t('Página {n} de {total}', { n: atual + 1, total: paginas })}>
+              {atual + 1} / {paginas}
+            </span>
+            <span className="q-espaco" />
+            <button
+              type="button"
+              className="q-ctl"
+              data-px-pag="1"
+              disabled={atual >= paginas - 1}
+              onClick={() => {
+                setPagina(atual + 1);
+                redesenhar('lista', 1);
+              }}
+            >
+              {/* No protótipo esta seta sai menor que a de "Anterior" (16 px, `telas.js:428`). */}
+              {t('Próxima')} <ChevronRight aria-hidden style={{ width: 16, height: 16, verticalAlign: -3 }} />
+            </button>
+          </div>
         </div>
 
-        <section className={`q-cartao q-bib-det${fileirasAMais}`} aria-label={t('Gravação selecionada')}>
+        <section className="q-cartao q-bib-det" aria-label={t('Gravação selecionada')}>
           <div className="q-bib-topo">
             <span className="q-ic" aria-hidden>
               <IconeDaSelecionada />
@@ -389,7 +412,7 @@ export default function BibliotecaDoQuest({
                 {selecionada.pinned && <span className="q-tag">{t('Fixada')}</span>}
                 {semTexto && <span className="q-tag off">{palavrasDe(selecionada)}</span>}
               </p>
-              <h2 title={selecionada.title}>{selecionada.title}</h2>
+              <h2>{selecionada.title}</h2>
             </div>
           </div>
 
@@ -397,7 +420,7 @@ export default function BibliotecaDoQuest({
             {fatos.map(([rotulo, valor]) => (
               <div key={rotulo}>
                 <dt>{rotulo}</dt>
-                <dd title={valor}>{valor}</dd>
+                <dd>{valor}</dd>
               </div>
             ))}
           </dl>
@@ -407,14 +430,20 @@ export default function BibliotecaDoQuest({
               <BookOpen aria-hidden /> {t('Abrir')}
             </button>
             <div className="q-acoes">
-              <button type="button" className="q-ctl" disabled={semTexto} onClick={() => aoJogar(selecionada)}>
+              <button
+                type="button"
+                className="q-ctl"
+                data-px="jogar"
+                disabled={semTexto}
+                onClick={() => aoJogar(selecionada)}
+              >
                 <Gamepad2 aria-hidden /> {t('Jogar com esta')}
               </button>
               <button type="button" className="q-ctl" disabled={semTexto} onClick={() => aoRevisar(selecionada)}>
-                <Target aria-hidden /> {t('Revisar palavras')}
+                {t('Revisar palavras')}
               </button>
             </div>
-            {(aoExportar || retomar) && (
+            {(aoExportar || aoRetomar) && (
               <div className="q-acoes q-bib-cuidar q-bib-levar">
                 {aoExportar && (
                   <button
@@ -426,9 +455,14 @@ export default function BibliotecaDoQuest({
                     <Download aria-hidden /> {t('Exportar transcrição')}
                   </button>
                 )}
-                {retomar && (
-                  <button type="button" className="q-ctl" onClick={() => retomar(selecionada)}>
-                    <Mic aria-hidden /> {t('Retomar captura')}
+                {aoRetomar && (
+                  <button
+                    type="button"
+                    className="q-ctl"
+                    disabled={!podeRetomar}
+                    onClick={() => aoRetomar(selecionada)}
+                  >
+                    {t('Retomar captura')}
                   </button>
                 )}
               </div>
@@ -437,18 +471,17 @@ export default function BibliotecaDoQuest({
               <div className="q-acoes q-bib-cuidar">
                 {aoFixar && (
                   <button type="button" className="q-ctl" onClick={() => aoFixar(selecionada)}>
-                    {selecionada.pinned ? <PinOff aria-hidden /> : <Pin aria-hidden />}
                     {selecionada.pinned ? t('Desafixar') : t('Fixar no topo')}
                   </button>
                 )}
                 {aoRenomear && (
                   <button type="button" className="q-ctl" onClick={() => aoRenomear(selecionada)}>
-                    <Pencil aria-hidden /> {t('Renomear')}
+                    {t('Renomear')}
                   </button>
                 )}
                 {aoExcluir && (
                   <button type="button" className="q-ctl perigo" onClick={() => aoExcluir(selecionada)}>
-                    <Trash2 aria-hidden /> {t('Excluir')}
+                    {t('Excluir')}
                   </button>
                 )}
               </div>

@@ -29,7 +29,13 @@ export default function FolhaDeEdicao({
     else aoCancelar();
   };
   return (
-    <div className="int-folha" role="dialog" aria-modal="true" aria-label={t('Corrigir a fala')} data-testid="int-edicao">
+    <div
+      className="int-folha"
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('Corrigir a fala')}
+      data-testid="int-edicao"
+    >
       <div className="int-folha-corpo">
         <label className="int-folha-rotulo" htmlFor="int-edicao-texto">
           {t('O que foi dito')}

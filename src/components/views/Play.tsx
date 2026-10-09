@@ -45,7 +45,6 @@ import {
   niveisEmJogo,
   type OrigemDaPratica,
   pistasDaTriagem,
-  pontosDeMaestria,
   pontuarRodada,
   previaSegura,
   progressoDasEtapas,
@@ -138,7 +137,6 @@ import {
   fetchSessions,
   fetchSessionTranscript,
   fetchSettings,
-  gastarSeedsEx,
   type HistoricoDeItem,
   reviewCard,
   salvarRodada,
@@ -148,8 +146,9 @@ import { carregarTrilha, indiceDaTrilha, precarregarNiveis, trilhaEmCache } from
 import { useAudioDaSessao } from '../../lib/audioDaSessao';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
-import { noHeadset, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
+import { eventosCondicionais } from '../../lib/eventosDeJogo';
 import { type DetalheDoDrop, EVENTO_DROP_GANHO } from '../../lib/filaDeRecompensas';
 import { filtroDaQuery, gravarFiltro, lerFiltroGuardado, queryDoFiltro } from '../../lib/filtroDaPratica';
 import { temFonteGuardada } from '../../lib/fonteDaPratica';
@@ -163,6 +162,7 @@ import {
   pularAntessala,
   verDetalhesDoBaralho,
 } from '../../lib/jogos/estadoDaPratica';
+import { executarEfeito } from '../../lib/juice';
 import { langConfigFrom, saveLangConfig } from '../../lib/langConfig';
 import { baseLang, langLabelNaUI } from '../../lib/languages';
 import { lazyComRecarga } from '../../lib/lazyComRecarga';
@@ -199,10 +199,8 @@ import { LangFlag } from '../LangFlag';
 import { familiaDoJogo, FAMILIAS, tomDoJogo } from '../minigames/ArteDosJogos';
 import { unidadeDaRodada } from '../minigames/casca/regras';
 import { TabelaDaCobertura } from '../minigames/CoberturaDosIdiomas';
-import type { FalaKaraoke } from '../minigames/KaraokeGame';
-import { jaFezTour, marcarTourFeito, PASSOS_DOS_JOGOS } from '../minigames/passosDosJogos';
+import type { FalaKaraoke } from '../minigames/KaraokeDoPrototipo';
 import { jogosSeguintes } from '../minigames/polimento/textos';
-import type { ItemDaRodada } from '../minigames/ResultadoDaRodada';
 import SalaDeEscolha from '../minigames/SalaDeEscolha';
 import SeletorDeConteudo from '../minigames/SeletorDeConteudo';
 import { toast } from '../Toast';
@@ -230,12 +228,11 @@ import {
   ConectoresGame,
   DitadoGame,
   EscutaGame,
+  FimDaRodada,
   KaraokeGame,
   precarregarJogo,
-  ResultadoDaRodada,
   ScrambleGame,
   TermoGame,
-  TourGuiado,
 } from './play/jogosSobDemanda';
 import {
   type JogoParaOQuest,
@@ -463,12 +460,10 @@ export default function Play({
   /* A gaveta do seletor nasce FECHADA: quem chega quer jogar, não configurar. Ela é a resposta
      ao «Trocar», e o resumo acima dela já diz o que está valendo sem precisar abrir nada. */
   const [seletorAberto, setSeletorAberto] = useState(false);
-  /* META QUEST com as telas novas ligadas: o lobby vira a grade de `play/quest/LobbyDoQuest` e a
-     Memória joga com menos pares. "Tela de sempre" devolve o lobby do computador só nesta visita. */
-  const questNovo = useQuestNovo();
-  /* O DESENHO também liga no computador (02/10/2026). O que é LIMITE DO APARELHO (a Memória com menos
-     pares, o jogo de ouvir que abre pela tradução por falta de voz) pergunta por aqui. */
-  const noHeadsetNovo = questNovo && noHeadset();
+  /* O lobby é a grade de `play/quest/LobbyDoQuest`. "Tela de sempre" (em Opções) devolve o lobby
+     completo só nesta visita. O que é LIMITE DO APARELHO (a Memória com menos pares, o jogo de ouvir
+     que abre pela tradução por falta de voz) pergunta por `noHeadset()`. */
+  const noHeadsetNovo = noHeadset();
   const [lobbyCompletoNoQuest, setLobbyCompletoNoQuest] = useState(false);
   /** "O que cada idioma tem", dentro da gaveta: a tabela abre e fecha no próprio botão. */
   const [verCobertura, setVerCobertura] = useState(false);
@@ -669,7 +664,7 @@ export default function Play({
    * Embutido na Análise o jogo abre por cima, num portal: lá não há tela a sair.
    */
   const trocarTela = (de: TelaDoJogar, para: TelaDoJogar, trocar: () => void) =>
-    questNovo && !embutido ? sairDaTelaDoJogar(de, para, trocar) : trocar();
+    !embutido ? sairDaTelaDoJogar(de, para, trocar) : trocar();
   /* v3 — RODADA EM CURSO marca o body (`data-jogo-ativo`): o modal de recompensa (App) espera
      `babel:rodada-fechou` em vez de cobrir a partida. Fechar a rodada dispara o evento. */
   const emRodada =
@@ -707,15 +702,6 @@ export default function Play({
   const [estrategia, setEstrategia] = useState<EstrategiaDaUI>('auto');
   const [composicao, setComposicao] = useState<Composicao | null>(null);
 
-  /**
-   * TOUR em curso: o jogo já está na tela e o tour aponta os elementos DELE, um por vez.
-   *
-   * A primeira versão disto era um diálogo com cinco blocos de texto antes da partida. Estava
-   * correta e era inútil — ninguém lê parede de texto para começar a jogar, pula, e segue sem
-   * saber que existe um radar ou um "ouvir devagar". Informação que não chega é o mesmo que
-   * informação que não existe.
-   */
-  const [tourDe, setTourDe] = useState<MinigameId | null>(null);
   /** Ficha de referência (o "?"), que continua existindo para quem QUER ler os detalhes. */
   const [explicando, setExplicando] = useState<MinigameId | null>(null);
   /** A rodada montada esperando decisão. `null` = ninguém pediu para jogar. */
@@ -761,8 +747,6 @@ export default function Play({
     setUltimaCorrente(resumir(sequencia));
     setSequencia(null);
   };
-  /** Acabou o material elegível para emendar: a raspadinha esconde o "mais uma" em vez de mentir. */
-  const [semMaterial, setSemMaterial] = useState(false);
   /**
    * O melhor placar já feito em cada jogo NESTA fonte. Chave = `exerciseKind`.
    *
@@ -778,7 +762,6 @@ export default function Play({
    * ela somou. `sincronizarMaestria` também pede os créditos `maestria:` que faltam.
    */
   const [maestria, setMaestria] = useState<ReadonlyMap<MinigameId, number> | null>(null);
-  const [maestriaDaRodada, setMaestriaDaRodada] = useState<{ pontosAntes: number; ganho: number } | null>(null);
   /** A gravação da rodada que acabou de fechar: com `falhou`, o fim diz que nada foi creditado. */
   const [gravacaoDaRodada, setGravacaoDaRodada] = useState<'pendente' | 'ok' | 'falhou'>('pendente');
   useEffect(() => {
@@ -790,14 +773,6 @@ export default function Play({
       vivo = false;
     };
   }, []);
-  /**
-   * Seeds gastas NESTA visita, ainda não refletidas em `progress` (que vem do App e só muda
-   * quando as métricas são recarregadas). O servidor continua sendo a autoridade — isto só evita
-   * que o saldo na tela minta entre o clique e a próxima leitura.
-   */
-  const [gastasLocais, setGastasLocais] = useState(0);
-  const [gastando, setGastando] = useState(false);
-  const saldoSeeds = Math.max(0, progress.seeds - gastasLocais);
   /** Como cada item foi das outras vezes. Chave = `item_ref`. */
   const [historico, setHistorico] = useState<Map<string, HistoricoDeItem>>(new Map());
   /** Os itens da última rodada de cada jogo nesta fonte — é o que "repetir" remonta. */
@@ -954,11 +929,8 @@ export default function Play({
   };
 
   const comecar = (pronta: RodadaPronta) => {
-    /* No desenho novo a primeira partida abre a explicação em três telas, na casca da rodada. */
-    if (!questNovo && !jaFezTour(pronta.jogo)) setTourDe(pronta.jogo);
     setResultado(null);
     setAntessala(null);
-    setSemMaterial(false);
     setUltimaCorrente(null); // começou outra: a pílula da anterior sai da tela
     /* Rodada nova, casca nova: no desenho novo a casca da rodada anterior continua montada na tela de
        fim, e sem a chave nova a contagem e a explicação não recomeçariam. */
@@ -966,44 +938,12 @@ export default function Play({
     pronta.aplicar();
   };
 
-  /* ───────────── A CORRENTE: as três saídas do fim de rodada ─────────────
-     Nenhuma delas é código novo de verdade, são as MESMAS chamadas que a antessala já fazia
-     ("trocar por outras" e "repetir a última"), agora alcançáveis do outro lado da partida. */
-
-  /**
-   * MAIS UMA, com palavras novas. Evita tudo o que já caiu na corrente inteira — e é por isso que
-   * `vistosNaSequencia` não tem teto: com o teto de 60 da memória curta, uma corrente longa
-   * voltaria a sortear a mesma palavra e o agendador a revisaria de novo, mexendo na estabilidade
-   * de um cartão que não foi realmente revisto.
-   */
-  const continuarSequencia = () => {
-    if (!resultado) return;
-    const evitar = new Set<string>(sequencia?.vistosNaSequencia ?? []);
-    const pronta = montarRodada(resultado.gameId, null, undefined, evitar);
-    if (!pronta) {
-      setSemMaterial(true);
-      return;
-    }
-    comecar(pronta);
-  };
-
-  /**
-   * ESTAS MESMAS de novo. Remonta pelos `item_ref` do relatório que acabou de chegar — e NÃO por
-   * `ultimaRodada`, que só é recarregada por um efeito assíncrono e pode estar uma rodada
-   * atrasada no instante em que a raspadinha aparece. É a mesma correção de corrida que a
-   * antessala não tem.
-   */
+  /* Os `item_ref` do relatório que acabou de chegar: é com eles que "Jogar de novo" remonta a rodada
+     quando não há palavras novas. */
   const refsDoResultado = resultado ? resultado.items.map((o) => o.itemRef).filter((r): r is string => !!r) : [];
-  const repetirSequencia = () => {
-    if (!resultado || !refsDoResultado.length) return;
-    const pronta = montarRodada(resultado.gameId, null, new Set(refsDoResultado));
-    if (pronta) comecar(pronta);
-  };
-
   const sairDaSequencia = () => {
     setResultado(null);
     encerrarCorrente();
-    setSemMaterial(false);
   };
 
   /**
@@ -1021,60 +961,6 @@ export default function Play({
   };
 
   /**
-   * O SINK DAS SEEDS — "trocar mantendo o combo".
-   *
-   * A mecânica: `continuarSequencia` já dá palavras novas, mas o combo só sobrevive se a rodada
-   * anterior tiver terminado em acerto. Aqui a pessoa PAGA para atravessar um lote que não quer
-   * (difícil demais, ou repetido) sem perder o ×N que levou várias rodadas para construir. É a
-   * decisão que dá tensão à moeda — guardar ou gastar — em vez de um cosmético.
-   *
-   * A COBRANÇA VEM ANTES DA ENTREGA, e o `spendId` é gerado UMA vez por clique: o botão vive numa
-   * tela onde se clica rápido, e sem idempotência o duplo-clique cobraria duas vezes. Se o débito
-   * falhar (rede, saldo), nada é entregue — degradar em silêncio aqui seria dar o item de graça.
-   */
-  const CUSTO_PULAR = 40; // economia v2: subiu com a Loja (≈ metade de um dia ativo)
-  const pularVez = async () => {
-    if (!resultado || !sequencia || saldoSeeds < CUSTO_PULAR || gastando) return;
-    setGastando(true);
-    try {
-      const spendId = `pular-${resultado.gameId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const { resultado: r, erro } = await gastarSeedsEx({
-        spendId,
-        amount: CUSTO_PULAR,
-        reason: 'pular-rodada',
-        ref: resultado.gameId,
-      });
-      if (!r) {
-        /* O MOTIVO, quando o servidor manda um (achado A30). "Não consegui gastar as seeds agora"
-           era a mesma frase para rede fora, saldo insuficiente e preço divergente — e no caso do
-           saldo o servidor diz exatamente quantas faltam. */
-        const falta = erro?.code === 'saldo_insuficiente' ? Number(erro.detalhes?.falta ?? 0) : 0;
-        toast.error(
-          falta > 0
-            ? t('Faltam {n} seeds para pular esta rodada. Nada foi cobrado.', { n: numero(falta) })
-            : t('Não consegui gastar as seeds agora, nada foi cobrado.'),
-        );
-        return;
-      }
-      /* O servidor é a autoridade sobre o saldo, mas `progress` só se atualiza quando as métricas
-         forem recarregadas pelo App. Este desconto local existe para o número na tela não mentir
-         no instante seguinte ao clique, e para não deixar gastar duas vezes o que já não há. */
-      setGastasLocais((g) => g + CUSTO_PULAR);
-    } finally {
-      setGastando(false);
-    }
-    const evitar = new Set<string>(sequencia.vistosNaSequencia);
-    const pronta = montarRodada(resultado.gameId, null, undefined, evitar);
-    if (!pronta) {
-      setSemMaterial(true);
-      return;
-    }
-    /* O COMBO SOBREVIVE: `comecar` não mexe em `sequencia`, e `sequenciaAtual` é o que a próxima
-       rodada herda como `sequenciaInicial`. Era exatamente isto que foi comprado. */
-    comecar(pronta);
-  };
-
-  /**
    * FIM DA RODADA — onde o jogo vira memória de verdade.
    *
    * A REGRA ANTI-DUPLA-CONTAGEM: cada item gera **ou** uma revisão no agendador **ou** um
@@ -1085,6 +971,12 @@ export default function Play({
    */
   const aoTerminar = async (report: RoundReport) => {
     setResultado(report);
+    /* RECORDE BATIDO solta os fogos (e marca o evento na coleção: a conquista "Colecionador" conta todos).
+       A tela de fim do desenho novo não mostra recorde, mas o evento continua tendo de poder acontecer. */
+    const recordeDeAntes = recordeDoJogo(report.gameId);
+    const bateuRecorde = recordeDeAntes !== null && report.score > recordeDeAntes;
+    if (bateuRecorde)
+      for (const ev of eventosCondicionais({ combo: 0, fever: false, recorde: bateuRecorde })) executarEfeito(ev);
     setTotalDoFim(
       rodada?.itens.length ??
         rodadaTermo?.length ??
@@ -1153,21 +1045,6 @@ export default function Play({
     const pontos = pontuarRodada(report.gameId, report.items, { sequenciaInicial: herdado });
     const corrente = acumular(sequencia, report, pontos, origem, xpFromRound(report));
     setSequencia(corrente);
-    /* O GANHO DE MAESTRIA desta rodada, com a MESMA conta que o servidor refaz sobre as linhas que
-       vão ser gravadas logo abaixo: acertos (`correct: 1`), itens e o combo gravado como
-       `melhorSequencia`. Antes do primeiro `await`, para chegar junto com o resultado na tela. */
-    setMaestriaDaRodada(
-      maestria
-        ? {
-            pontosAntes: maestria.get(report.gameId) ?? 0,
-            ganho: pontosDeMaestria({
-              acertos: report.items.filter((o) => o.correct).length,
-              total: report.items.length,
-              comboMaximo: pontos.melhorSequencia,
-            }),
-          }
-        : null,
-    );
     /* O RESUMO NÃO É LIGADO AQUI — e era esse o defeito.
        `resultado` e `verResumo` viravam verdadeiros no MESMO render, e a cascata testa
        `resultado && verResumo` ANTES de `resultado`: o resumo assumia a posição da raspadinha, e
@@ -2463,14 +2340,12 @@ export default function Play({
    */
   const abremNoHeadset = useMemo(
     () =>
-      questNovo
-        ? jogosQueAbremNoQuest(listaDeJogos, recursosDoAparelho(perfilDoDispositivo()), {
-            idioma: fonte.lang || undefined,
-          })
-        : null,
+      jogosQueAbremNoQuest(listaDeJogos, recursosDoAparelho(perfilDoDispositivo()), {
+        idioma: fonte.lang || undefined,
+      }),
     /* `temVoz` muda quando a lista de vozes chega: é o sinal para refazer a pergunta. */
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [questNovo, listaDeJogos, fonte.lang, temVoz],
+    [listaDeJogos, fonte.lang, temVoz],
   );
 
   const partidaRapida = useCallback(() => {
@@ -2479,7 +2354,7 @@ export default function Play({
     /* SORTEIO SO ENTRE JOGOS QUE REGISTRAM. Os nove culturais entravam aqui, entao metade das
        partidas rapidas caia numa rodada que nao gravava nada — e a pessoa que apertou "Partida
        Rapida" duas vezes seguidas podia jogar dez minutos sem um item no historico. */
-    const liberados = listaDeJogos.filter((j) => j.estado.ok && (!abremNoHeadset || abremNoHeadset.has(j.id)));
+    const liberados = listaDeJogos.filter((j) => j.estado.ok && abremNoHeadset.has(j.id));
     if (liberados.length === 0) {
       toast.warn(t('Nenhum jogo disponível no momento'));
       return;
@@ -2508,8 +2383,8 @@ export default function Play({
         return r ? t(r) : '';
       })();
   const sugestao = useMemo(() => {
-    const prontosPorRendimento = agruparJogos(listaDeJogos.map((j) => j.estado)).prontos.filter(
-      (p) => !abremNoHeadset || abremNoHeadset.has(p.id),
+    const prontosPorRendimento = agruparJogos(listaDeJogos.map((j) => j.estado)).prontos.filter((p) =>
+      abremNoHeadset.has(p.id),
     );
     if (!prontosPorRendimento.length) return null;
     const alvo = prontosPorRendimento[indiceDaSugestao % prontosPorRendimento.length];
@@ -2595,28 +2470,14 @@ export default function Play({
         onRecomecar={fim ? fim.jogarDeNovo : () => setChaveDaRodada((k) => k + 1)}
         onSair={sair}
         acabou={!!fim}
-        /* No Rali do desenho novo a letra vale mesmo com o campo sem foco: lá o P também é letra. */
-        pausaComP={jogo !== 'termo' && !(questNovo && jogo === 'tenis')}
+        /* No Termo e no Rali a letra vale mesmo com o campo sem foco: lá o P é letra, e só o Esc pausa. */
+        pausaComP={jogo !== 'termo' && jogo !== 'tenis'}
         som={soundEnabled !== undefined && toggleSound ? { ligado: soundEnabled, alternar: toggleSound } : undefined}
       >
         {tela}
       </CascaDaRodada>
     );
   };
-  const comTour = (tela: React.ReactNode, jogo: MinigameId) =>
-    telaCheia(
-      tela,
-      tourDe === jogo ? (
-        <TourGuiado
-          passos={PASSOS_DOS_JOGOS[jogo]}
-          titulo={((j) => (j ? tituloDoJogo(j, ageProfile) : ''))(JOGOS.find((j) => j.id === jogo))}
-          onFim={() => {
-            marcarTourFeito(jogo);
-            setTourDe(null);
-          }}
-        />
-      ) : null,
-    );
 
   /**
    * A PARTIDA SAI DA ABA quando esta tela está embutida.
@@ -2642,8 +2503,7 @@ export default function Play({
    * `z-[35]` é medido: o mais alto da navegação é a barra do celular (`shell/MobileNav.tsx:25`,
    * `z-30`), renderizada DEPOIS do `<main>`, então empatar em 30 a deixaria por cima. O teto vem
    * das camadas que devem continuar pintando SOBRE a partida — `ParticleCanvas` (`z-[38]`, o
-   * confete), `FloatingScoreLayer` (`z-40`, o "+10"), `ComoSeJoga` (`z-[90]`) e `TourGuiado`
-   * (`z-[95]`).
+   * confete), `FloatingScoreLayer` (`z-40`, o "+10"), e `ComoSeJoga` (`z-[90]`).
    */
   const telaCheia = (n: React.ReactNode, aoLado: React.ReactNode = null) => {
     if (!embutido)
@@ -2780,7 +2640,7 @@ export default function Play({
           </button>
           {/* META QUEST: a sala "O que você vai praticar" continua a um toque, para quem quer um
               idioma que o baralho ainda não tem (na tela de sempre ela só abre na primeira visita). */}
-          {questNovo && fontesOferecidas.length > 1 && (
+          {fontesOferecidas.length > 1 && (
             <button
               type="button"
               className="btn btn-outline peq"
@@ -3203,44 +3063,31 @@ export default function Play({
 
   // Rodada em curso ou recompensa a revelar ocupam a tela inteira — jogo não divide atenção.
   if (rodadaTermo) {
-    return comTour(
+    return telaCheia(
       naCasca(
-        <TermoGame
-          rodadas={rodadaTermo}
-          ageProfile={ageProfile}
-          onFinish={aoTerminar}
-          onExit={sairDaRodada(() => setRodadaTermo(null))}
-        />,
+        <TermoGame rodadas={rodadaTermo} onFinish={aoTerminar} onExit={sairDaRodada(() => setRodadaTermo(null))} />,
         'termo',
         rodadaTermo.length,
         sairDaRodada(() => setRodadaTermo(null)),
       ),
-      'termo',
     );
   }
   if (rodadaFrase) {
-    return comTour(
+    return telaCheia(
       naCasca(
-        <ScrambleGame
-          rodadas={rodadaFrase}
-          ageProfile={ageProfile}
-          onFinish={aoTerminar}
-          onExit={sairDaRodada(() => setRodadaFrase(null))}
-        />,
+        <ScrambleGame rodadas={rodadaFrase} onFinish={aoTerminar} onExit={sairDaRodada(() => setRodadaFrase(null))} />,
         'scramble',
         rodadaFrase.length,
         sairDaRodada(() => setRodadaFrase(null)),
       ),
-      'scramble',
     );
   }
   if (rodadaEscuta) {
-    return comTour(
+    return telaCheia(
       naCasca(
         <EscutaGame
           rodadas={rodadaEscuta}
           audioUrl={audioParaJogos}
-          ageProfile={ageProfile}
           onFinish={aoTerminar}
           onExit={sairDaRodada(() => setRodadaEscuta(null))}
         />,
@@ -3248,16 +3095,14 @@ export default function Play({
         rodadaEscuta.length,
         sairDaRodada(() => setRodadaEscuta(null)),
       ),
-      'escuta',
     );
   }
   if (rodadaDitado) {
-    return comTour(
+    return telaCheia(
       naCasca(
         <DitadoGame
           rodadas={rodadaDitado}
           audioUrl={audioParaJogos}
-          ageProfile={ageProfile}
           onFinish={aoTerminar}
           onExit={sairDaRodada(() => setRodadaDitado(null))}
         />,
@@ -3265,15 +3110,13 @@ export default function Play({
         rodadaDitado.length,
         sairDaRodada(() => setRodadaDitado(null)),
       ),
-      'ditado',
     );
   }
   if (rodadaConectores) {
-    return comTour(
+    return telaCheia(
       naCasca(
         <ConectoresGame
           rodadas={rodadaConectores}
-          ageProfile={ageProfile}
           onFinish={aoTerminar}
           onExit={sairDaRodada(() => setRodadaConectores(null))}
         />,
@@ -3281,16 +3124,14 @@ export default function Play({
         rodadaConectores.length,
         sairDaRodada(() => setRodadaConectores(null)),
       ),
-      'conectores',
     );
   }
   if (rodadaKaraoke) {
-    return comTour(
+    return telaCheia(
       naCasca(
         <KaraokeGame
           falas={rodadaKaraoke}
           audioUrl={audioParaJogos}
-          ageProfile={ageProfile}
           onFinish={aoTerminar}
           onExit={sairDaRodada(() => setRodadaKaraoke(null))}
         />,
@@ -3298,7 +3139,6 @@ export default function Play({
         rodadaKaraoke.length,
         sairDaRodada(() => setRodadaKaraoke(null)),
       ),
-      'karaoke',
     );
   }
   if (rodada) {
@@ -3315,88 +3155,40 @@ export default function Play({
       },
     };
     const Tela = TELA_DO_JOGO[rodada.jogo];
-    if (Tela)
-      return comTour(naCasca(<Tela {...comuns} />, rodada.jogo, rodada.itens.length, comuns.onExit), rodada.jogo);
+    if (Tela) return telaCheia(naCasca(<Tela {...comuns} />, rodada.jogo, rodada.itens.length, comuns.onExit));
   }
-  /* O FIM DA RODADA (`T.resultado` do protótipo): estrelas, raspadinha e o que escapou num cartão
-     só. Era a raspadinha e, atrás de um botão, o resumo dos erros noutra tela; o resumo agora abre
-     logo abaixo, na mesma. Quais palavras você errou era gravado (uma linha por item em
-     `exercise_results`) e nunca mostrado — continua aqui, com tradução e nível do baralho. */
+  /* O FIM DA RODADA (`pjFim` do protótipo, `jogos.js:296-328`): mora DENTRO do palco, com o cabeçalho e o
+     placar da rodada ainda na tela. A casca é a MESMA da rodada (mesma chave, mesmo lugar na árvore): ela
+     não remonta, e por isso a tela não "entra" de novo. Gravar a rodada e a nota de revisão não dependem
+     desta tela: acontecem em `aoTerminar`, quando o jogo entrega o relatório. */
   if (resultado) {
-    const porRef = new Map((deck ?? []).map((c) => [String(c.word).toLowerCase(), c]));
     /* "Próximo jogo" (`jogos.js:308`): o seguinte na ordem do protótipo que dá para abrir agora. */
     const proximoJogo =
       jogosSeguintes(resultado.gameId).find((id) => {
         const j = listaDeJogos.find((x) => x.id === id);
-        return !!j?.estado.ok && (!abremNoHeadset || abremNoHeadset.has(id));
+        return !!j?.estado.ok && abremNoHeadset.has(id);
       }) ?? null;
-    const itensResumo: ItemDaRodada[] = resultado.items.map((o) => {
-      const c = porRef.get(String(o.itemRef).toLowerCase());
-      return {
-        itemRef: o.itemRef,
-        cardId: o.cardId ?? null,
-        correct: !!o.correct,
-        attempts: o.attempts ?? 1,
-        hinted: !!o.hinted,
-        back: (c as { translation?: string | null } | undefined)?.translation ?? null,
-        cefrLevel: (c as { cefrLevel?: string | null } | undefined)?.cefrLevel ?? null,
-        cefrSource: c?.cefrSource ?? null,
-        occurrences: (c as { occurrences?: number | null } | undefined)?.occurrences ?? null,
-      };
-    });
-    const telaDoFim = (
-      <ResultadoDaRodada
-        report={resultado}
-        jogo={((j) => (j ? tituloDoJogo(j, ageProfile) : resultado.gameId))(
-          JOGOS.find((j) => j.id === resultado.gameId),
-        )}
-        ageProfile={ageProfile}
-        sequencia={resumir(sequencia)}
-        recorde={recordeDoJogo(resultado.gameId)}
-        itens={itensResumo}
-        progress={progress}
-        onContinuar={continuarSequencia}
-        /* Sem `item_ref` gravado não há como remontar — e botão inerte ensina que a tela quebrou. */
-        onRepetir={refsDoResultado.length ? repetirSequencia : null}
-        onRefazerErradas={(erradas) => {
-          /* Mesmo recorte de `refsDoResultado` lá em cima: item sem `itemRef` não identifica nada
-             e, dentro de `montarRodada`, só seria comparado com `has(<string>)` — nunca casaria. */
-          const refs = new Set(erradas.map((e) => e.itemRef).filter((r): r is string => !!r));
-          /* "Refazer só as erradas" prioriza os refs que falharam; o construtor completa com o
-             mesmo recorte quando não houver itens suficientes (o jogo tem mínimo). */
-          const nova = montarRodada(resultado.gameId, null, undefined, refs);
-          if (nova) setAntessala(nova);
-          else continuarSequencia();
-        }}
-        onDone={questNovo ? () => trocarTela('partida', 'jogar', sairDaSequencia) : sairDaSequencia}
-        semMaterial={semMaterial}
-        onPularVez={saldoSeeds >= CUSTO_PULAR && !gastando ? pularVez : null}
-        custoPular={CUSTO_PULAR}
-        saldoSeeds={saldoSeeds}
-        onVerProgressao={() => onChangeView('loja', { aba: 'progressao' })}
-        maestria={maestriaDaRodada}
-        gravacao={gravacaoDaRodada}
-        total={totalDoFim}
-        proximo={proximoJogo}
-        onProximo={(id) => pedirParaJogar({ id }, false, 'partida')}
-        onJogarDeNovo={jogarDeNovo}
-      />
-    );
-    /* DESENHO NOVO: a tela de fim mora DENTRO do palco, com o cabeçalho e o placar da rodada ainda na
-       tela, como o `pjFim` do protótipo (`jogos.js:296-328`). A casca é a MESMA da rodada (mesma chave,
-       mesmo lugar na árvore): ela não remonta, e por isso a tela não "entra" de novo. */
-    if (questNovo)
-      return comTour(
-        naCasca(
-          <Suspense fallback={null}>{telaDoFim}</Suspense>,
-          resultado.gameId,
-          totalDoFim,
-          () => trocarTela('partida', 'jogar', sairDaSequencia),
-          { jogarDeNovo },
-        ),
+    const voltarAosJogos = () => trocarTela('partida', 'jogar', sairDaSequencia);
+    return telaCheia(
+      naCasca(
+        <Suspense fallback={null}>
+          <FimDaRodada
+            report={resultado}
+            total={totalDoFim}
+            progress={progress}
+            gravacao={gravacaoDaRodada}
+            proximo={proximoJogo}
+            aoProximo={(id) => pedirParaJogar({ id }, false, 'partida')}
+            aoJogarDeNovo={jogarDeNovo}
+            aoVoltar={voltarAosJogos}
+          />
+        </Suspense>,
         resultado.gameId,
-      );
-    return telaCheia(telaDoFim);
+        totalDoFim,
+        voltarAosJogos,
+        { jogarDeNovo },
+      ),
+    );
   }
   /* "Como se joga" (o "?" da carta) abre POR CIMA do lobby, como o `dialogoComo()` do protótipo:
      é um `<dialog>` modal, que vive na camada do topo e não precisa de portal nem de tela própria. */
@@ -3580,7 +3372,7 @@ export default function Play({
   if (deck === null && !erro) {
     if (embutido && ladrilhos) return <>{ladrilhos(null, () => {})}</>;
     /* META QUEST: a espera tem a forma do que vai chegar (o cabeçalho, as abas e a grade de cartões). */
-    if (questNovo && !embutido && !lobbyCompletoNoQuest) {
+    if (!embutido && !lobbyCompletoNoQuest) {
       return (
         <>
           {sala}
@@ -3816,7 +3608,7 @@ export default function Play({
         )}
       </>
     );
-  if (questNovo && !embutido && !lobbyCompletoNoQuest) {
+  if (!embutido && !lobbyCompletoNoQuest) {
     const semAcervo = tamanhoDoBaralho < menorMinimo && fonte.id !== 'trilha';
     return (
       <>
@@ -4017,7 +3809,7 @@ export default function Play({
             acoes={
               <>
                 {/* META QUEST: quem pediu a "Tela de sempre" em Opções volta à tela do headset por aqui. */}
-                {questNovo && lobbyCompletoNoQuest && (
+                {lobbyCompletoNoQuest && (
                   <button type="button" className="btn btn-outline" onClick={() => setLobbyCompletoNoQuest(false)}>
                     <ChevronLeft aria-hidden /> {noHeadset() ? t('Tela do headset') : t('Tela nova')}
                   </button>

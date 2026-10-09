@@ -113,7 +113,10 @@ describe('resolver o estilo', () => {
     equiparEstiloDeLegenda('cinema')
     expect(lerEstiloDeLegenda()).toBe('cinema')
     // Sem ajustes salvos antes, grava os padrões junto: a captura não pode abrir com metade dos campos.
-    expect(JSON.parse(localStorage.getItem('transcriptSettings')!)).toEqual({ ...DEFAULT_TRANSCRIPT_SETTINGS, estilo: 'cinema' })
+    expect(JSON.parse(localStorage.getItem('transcriptSettings')!)).toEqual({
+      ...DEFAULT_TRANSCRIPT_SETTINGS,
+      estilo: 'cinema',
+    })
     expect(ouvinte).toHaveBeenCalled()
     window.removeEventListener('transcriptSettingsChanged', ouvinte)
   })
@@ -124,7 +127,6 @@ describe('a palavra já aprendida é marcada na legenda', () => {
     const { container } = render(
       <LegendasFlutuantes
         falas={[{ id: '1', quem: 'Outros', original: 'The roadmap is ready.', traducao: '', lado: 'eles' }]}
-        emJanela={false}
         aoFechar={vi.fn()}
         aprendidas={new Set(['roadmap'])}
       />,
@@ -137,7 +139,7 @@ describe('a palavra já aprendida é marcada na legenda', () => {
   it('legenda flutuante veste o estilo equipado', () => {
     marcarPosse(CATALOGO_DA_LOJA.find((i) => i.tipo === 'legenda' && i.alvo === 'cinema')!.id)
     equiparEstiloDeLegenda('cinema')
-    const { container } = render(<LegendasFlutuantes falas={[]} emJanela={false} aoFechar={vi.fn()} />)
+    const { container } = render(<LegendasFlutuantes falas={[]} aoFechar={vi.fn()} />)
     expect(container.querySelector('.leg-flut')!.className).toContain('leg-caixa-solida')
   })
 

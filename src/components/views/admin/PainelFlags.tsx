@@ -2,10 +2,8 @@ import { Flag as IconeDeFlag } from 'lucide-react';
 import { useState } from 'react';
 
 import { alterarFlag, type Flag, listarFlags } from '../../../lib/admin';
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../lib/i18n';
 import { toast } from '../../Toast';
-import { Interruptor } from '../ajustes/Linha';
 import { agir } from './agir';
 import { dataHora } from './formatar';
 import { Estado, Etiqueta, Secao } from './pecas';
@@ -38,7 +36,6 @@ function regrasEmFrases(f: Flag): string[] {
 
 /** Flags: liga e desliga cada recurso remoto. Só o interruptor `habilitada` muda; as regras ficam como estão. */
 export default function PainelFlags({ aoPedirCodigo }: { aoPedirCodigo: () => void }) {
-  const questNovo = useQuestNovo();
   const flags = useCarga(listarFlags, aoPedirCodigo);
   const [ocupada, setOcupada] = useState<string | null>(null);
 
@@ -98,7 +95,7 @@ export default function PainelFlags({ aoPedirCodigo }: { aoPedirCodigo: () => vo
             <ul className="ad-flags">
               {lista.map((f) => {
                 const regras = regrasEmFrases(f);
-                const interruptor = questNovo ? (
+                const interruptor = (
                   <button
                     type="button"
                     role="switch"
@@ -108,16 +105,9 @@ export default function PainelFlags({ aoPedirCodigo }: { aoPedirCodigo: () => vo
                     disabled={ocupada !== null}
                     onClick={() => void trocar(f, !f.habilitada)}
                   />
-                ) : (
-                  <Interruptor
-                    ligado={f.habilitada}
-                    rotulo={f.chave}
-                    desabilitado={ocupada !== null}
-                    aoTrocar={(ligar) => void trocar(f, ligar)}
-                  />
                 );
                 return (
-                  <li key={f.chave} className={questNovo ? 'q-ajuste ad-flag' : 'ad-flag'}>
+                  <li key={f.chave} className="q-ajuste ad-flag">
                     <div>
                       <b>
                         <code>{f.chave}</code>{' '}

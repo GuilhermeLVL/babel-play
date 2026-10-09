@@ -2,7 +2,6 @@ import { Gauge, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { type AvisoDoDia, marcarAvisoDoDia, verificarUsoDoDia } from '../../../lib/avisoDoUsoDoDia';
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../lib/i18n';
 import { navegarPara } from '../../../lib/rotas';
 import { duracaoLegivel } from '../../../lib/uso';
@@ -38,8 +37,7 @@ function fraseDoAviso(a: AvisoDoDia): string {
 export default function AvisoDoUsoDoDia() {
   const [aviso, setAviso] = useState<AvisoDoDia | null>(null);
   const [dispensado, setDispensado] = useState(false);
-  const questNovo = useQuestNovo();
-  const doQuest = usePedacoDoQuest(carregarFaixaDoQuest, questNovo && !!aviso);
+  const doQuest = usePedacoDoQuest(carregarFaixaDoQuest, !!aviso);
 
   useEffect(() => {
     let vivo = true;
@@ -57,7 +55,7 @@ export default function AvisoDoUsoDoDia() {
   const texto = fraseDoAviso(aviso);
   const verConsumo = () => navegarPara({ view: 'planos' });
 
-  if (questNovo && doQuest.Componente) {
+  if (doQuest.Componente) {
     const FaixaDeAvisoDoQuest = doQuest.Componente;
     return (
       <FaixaDeAvisoDoQuest
@@ -70,9 +68,10 @@ export default function AvisoDoUsoDoDia() {
       />
     );
   }
-  /* Enquanto o desenho do headset não chega, o aviso só espera: nunca recarrega a página. */
-  if (questNovo && !doQuest.falhou) return null;
+  /* Enquanto a faixa não chega, o aviso só espera: nunca recarrega a página. */
+  if (!doQuest.falhou) return null;
 
+  /* A faixa não carregou (rede): o recado sai assim mesmo, na peça que já está na página. */
   return (
     <section className="aviso-info" role="status" data-testid="aviso-do-uso-do-dia" style={{ margin: '12px 0 0' }}>
       <Gauge aria-hidden />

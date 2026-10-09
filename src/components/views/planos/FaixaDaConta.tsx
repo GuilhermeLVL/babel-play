@@ -22,12 +22,10 @@ import {
   precoMensal,
   rotuloDaForma,
 } from '../../../lib/assinatura';
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../lib/i18n';
 import { faseDoFimDoTeste } from '../../../lib/ofertas/fimDoTeste';
 import { navegarPara } from '../../../lib/rotas';
 import { T } from '../../../lib/T';
-import { IconeEmBloco, type TomDoIcone } from '../../ui';
 import { PLANO_ICO, PLANO_NOME } from './dados';
 
 /**
@@ -67,15 +65,13 @@ export default function FaixaDaConta({
   const comCiclo = `${p} · ${rotuloDaForma(forma)}`;
   const ate = dataCurta(conta.valeAte);
   const IconePago = PLANO_ICO[plano];
-  const questNovo = useQuestNovo();
   /* QUEST: os mesmos selos e os mesmos botoes, com as pecas do headset (so a classe muda). */
   const classeDoSelo = (tom: 'ok' | 'warn' | 'neu') =>
-    questNovo ? `q-tag ${tom === 'ok' ? 'qc-bom' : tom === 'warn' ? 'qc-atencao' : 'off'}` : `badge ${tom}`;
-  const botaoDeContorno = questNovo ? 'q-ctl' : 'btn btn-outline';
-  const botaoSolido = questNovo ? 'q-ctl pri' : 'btn btn-solid';
+    `q-tag ${tom === 'ok' ? 'qc-bom' : tom === 'warn' ? 'qc-atencao' : 'off'}`;
+  const botaoDeContorno = 'q-ctl';
+  const botaoSolido = 'q-ctl pri';
 
   let icone = Cpu;
-  let tom: TomDoIcone = 'accent';
   let titulo: ReactNode = rotuloGratis;
   let selo: ReactNode = <span className={classeDoSelo('neu')}>{t('Plano atual')}</span>;
   let texto: ReactNode = t('Tudo roda no seu aparelho. Assine para usar a IA de nuvem e estudar em qualquer lugar.');
@@ -103,7 +99,6 @@ export default function FaixaDaConta({
 
   if (estado === 'selfhost') {
     icone = Server;
-    tom = 'good';
     titulo = 'Self-host';
     selo = (
       <span className={classeDoSelo('ok')}>
@@ -156,7 +151,6 @@ export default function FaixaDaConta({
     );
   } else if (estado === 'falhou') {
     icone = TriangleAlert;
-    tom = 'warn';
     titulo = comCiclo;
     selo = (
       <span className={classeDoSelo('warn')}>
@@ -209,37 +203,21 @@ export default function FaixaDaConta({
     );
   }
 
-  if (questNovo) {
-    const Icone = icone;
-    return (
-      <section
-        className={`q-cartao qc-agora${estado === 'falhou' ? ' qc-alerta' : ''}`}
-        aria-label={t('Seu plano agora')}
-      >
-        <span className="q-ic">
-          <Icone aria-hidden />
-        </span>
-        <div>
-          <span className="q-rotulo">{t('Seu plano agora')}</span>
-          <h2>
-            {titulo} {selo}
-          </h2>
-          <p>{texto}</p>
-        </div>
-        {acao}
-      </section>
-    );
-  }
-
+  const Icone = icone;
   return (
-    <section className={`cartao agora ${estado === 'falhou' ? 'alerta' : ''}`} aria-label={t('Seu plano agora')}>
-      <IconeEmBloco icone={icone} tom={tom} />
-      <div style={{ flex: 1, minWidth: 220 }}>
-        <span className="label-mono">{t('Seu plano agora')}</span>
+    <section
+      className={`q-cartao qc-agora${estado === 'falhou' ? ' qc-alerta' : ''}`}
+      aria-label={t('Seu plano agora')}
+    >
+      <span className="q-ic">
+        <Icone aria-hidden />
+      </span>
+      <div>
+        <span className="q-rotulo">{t('Seu plano agora')}</span>
         <h2>
           {titulo} {selo}
         </h2>
-        <p className="mut">{texto}</p>
+        <p>{texto}</p>
       </div>
       {acao}
     </section>

@@ -77,9 +77,10 @@ describe('antessala redesenhada', () => {
     const onJogarFase = vi.fn()
     montar({ fases: FASES, onJogarFase })
     expect(screen.getByText('Suas fases neste jogo')).toBeTruthy()
-    const cartoes = screen.getAllByTitle(/Jogar esta fase de novo/)
-    expect(cartoes).toHaveLength(2)
-    fireEvent.click(cartoes[0])
+    expect(screen.getAllByRole('img', { name: /de 3 estrelas/ })).toHaveLength(2)
+    const repetir = screen.getAllByRole('button', { name: /^Repetir a fase/ })
+    expect(repetir).toHaveLength(2)
+    fireEvent.click(repetir[0])
     expect(onJogarFase).toHaveBeenCalledWith(['a', 'b'])
   })
 
@@ -101,33 +102,6 @@ describe('antessala redesenhada', () => {
     expect(screen.queryByRole('group', { name: /Dificuldade das palavras/ })).toBeNull()
     fireEvent.click(trocar)
     expect(screen.getByRole('group', { name: /Dificuldade das palavras/ })).toBeTruthy()
-  })
-
-  /** O resumo "Nível: X · foco: Y" — o texto inteiro do span, que tem negritos no meio. */
-  const resumo = () =>
-    screen.getByText((_, el) => el?.tagName === 'SPAN' && /^Nível:/.test(el.textContent ?? '')).textContent ?? ''
-
-  /**
-   * O CONTROLE PRECISA DIZER O QUE ESTÁ VALENDO.
-   *
-   * Recolhido ele estava certo; MUDO ele não estava. O resumo dizia só "Ajustar a rodada (nível e
-   * foco)" em texto apagado, e o nível vigente ("Difícil mantido") era reportado quatro faixas
-   * abaixo, dentro de "Por que estas?". Quem queria trocar a dificuldade não achava o controle, e
-   * quem achava não sabia de onde estava saindo.
-   */
-  it('o resumo anuncia o nível vigente sem precisar abrir', () => {
-    montar({ filtroDificuldade: filtro, auto: { faixa: 'dificil', motivo: 'Difícil mantido: 100% nas últimas 3.' } })
-    expect(resumo()).toMatch(/Nível: difícil \(automático\)/i)
-    expect(resumo()).toMatch(/foco: equilibrado/i)
-  })
-
-  it('com escolha manual, o resumo mostra as faixas escolhidas em vez do automático', () => {
-    montar({
-      filtroDificuldade: { ...filtro, faixas: ['facil'] },
-      auto: { faixa: 'dificil', motivo: 'Difícil mantido.' },
-    })
-    expect(resumo()).toMatch(/Nível: fácil/i)
-    expect(resumo()).not.toMatch(/\(automático\)/i)
   })
 })
 
@@ -172,13 +146,13 @@ describe('a tabela de fases', () => {
     const fases = Array.from({ length: 8 }, (_, i) => fase(i + 1))
     montar({ fases, onJogarFase: () => {} })
     expect(screen.getByLabelText('Páginas das fases')).toBeTruthy()
-    expect(screen.getByText('1/2')).toBeTruthy()
+    expect(screen.getByText('1 / 2')).toBeTruthy()
     // A primeira página numera de cima para baixo a partir do total.
     expect(screen.getByLabelText('Repetir a fase 8')).toBeTruthy()
     expect(screen.queryByLabelText('Repetir a fase 2')).toBeNull()
 
     fireEvent.click(screen.getByLabelText('Próxima página'))
-    expect(screen.getByText('2/2')).toBeTruthy()
+    expect(screen.getByText('2 / 2')).toBeTruthy()
     expect(screen.getByLabelText('Repetir a fase 2')).toBeTruthy()
     expect(screen.getByLabelText('Repetir a fase 1')).toBeTruthy()
     expect(screen.queryByLabelText('Repetir a fase 8')).toBeNull()

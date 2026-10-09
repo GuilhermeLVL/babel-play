@@ -10,11 +10,10 @@ import {
   Smartphone,
   Volume2,
 } from 'lucide-react';
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { abrirContextoDoClique } from '../../../../lib/captura/contextoDoClique';
 import type { LadoDoInterprete } from '../../../../lib/captura/tiposDaFala';
-import { useQuestNovo } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../../lib/i18n';
 import { langLabel } from '../../../../lib/languages';
 import {
@@ -48,14 +47,10 @@ interface PropsDaPagina {
   aviso: string | null;
   /** O modo automático nesta conta: o padrão de quem o tem; com cadeado para quem não tem. */
   automatico?: AutomaticoNoPlano;
-  /** A tela do Meta Quest (maquete de 01/10/2026): alvos de 60 px e um único botão principal. */
-  noQuest?: boolean;
   /** O aparelho não tem voz de leitura: a tradução é só em texto, e a tela não promete voz. */
   semVoz?: boolean;
   /** A voz do site está ligada: no aparelho sem voz, ela lê a tradução nos idiomas que tem. */
   vozDoSite?: boolean;
-  /** O cartão da nuvem do aparelho leve (`NuvemDoQuest`): no headset, é ela que faz a conversa andar. */
-  avisos?: ReactNode;
   /** Abre os Planos (ausente no perfil protegido: nada de oferta). */
   aoConhecerOPremium?: (() => void) | undefined;
   aoComecar: () => void;
@@ -67,19 +62,18 @@ interface PropsDaPagina {
   aoComecarVirtual?: (opcoes: { comMicrofone: boolean }) => void;
   aoEscolherIdiomas: () => void;
   aoInverter: () => void;
-  /** DESENHO NOVO: o X da conversa volta para a tela de onde a pessoa veio (`direto.js:94`). */
+  /** O X da conversa volta para a tela de onde a pessoa veio (`direto.js:94`). */
   aoVoltar?: (() => void) | undefined;
-  /** DESENHO NOVO: esta tela é só o preparo da conversa virtual (`direto.js:89-93`), já aberto. */
+  /** Esta tela é só o preparo da conversa virtual (`direto.js:89-93`), já aberto. */
   preparoVirtual?: boolean;
 }
 
 /**
- * NO DESENHO NOVO o Intérprete abre DIRETO NA CONVERSA (`direto.js:8-14`), em todo aparelho: a tela de
- * começar deixa de ser um toque a mais e só continua existindo como preparo da conversa virtual.
+ * O Intérprete abre DIRETO NA CONVERSA (`direto.js:8-14`), em todo aparelho: a tela de começar só
+ * continua existindo como preparo da conversa virtual.
  */
 export default function PaginaDoInterprete(props: PropsDaPagina) {
-  const novo = useQuestNovo();
-  return novo ? <ConversaPronta {...props} /> : <PaginaDeEntrada {...props} />;
+  return <ConversaPronta {...props} />;
 }
 
 /** O tempo de a captura encerrar uma sessão vazia antes de a tela seguir para a origem ou os Planos. */
@@ -260,10 +254,6 @@ function PaginaDeEntrada({
   abrindo,
   aviso,
   automatico = 'oculto',
-  noQuest = false,
-  semVoz = false,
-  vozDoSite = false,
-  avisos,
   aoConhecerOPremium,
   aoComecar,
   aoComecarVirtual,
@@ -271,9 +261,8 @@ function PaginaDeEntrada({
   aoInverter,
   preparoVirtual = false,
 }: PropsDaPagina) {
-  const comVozDoSite = semVoz && vozDoSite;
   const [virtualAberta, setVirtualAberta] = useState(preparoVirtual);
-  /* INVERTER EM ARCO (`prototipo.js:1096-1130`, só no desenho novo): a distância é medida antes de os
+  /* INVERTER EM ARCO (`prototipo.js:1096-1130`): a distância é medida antes de os
      textos trocarem; com eles já trocados, cada um atravessa até o lugar novo. */
   const raiz = useRef<HTMLDivElement>(null);
   const arco = useRef<{ botao: HTMLElement; dx: number } | null>(null);
@@ -284,16 +273,6 @@ function PaginaDeEntrada({
   }, [idiomas.meu, idiomas.outro]);
   const [aceitou, setAceitou] = useState(false);
   const [deFone, setDeFone] = useState(false);
-  useSyncExternalStore(
-    aoMudarIdiomasDaVozDoQuest,
-    () => idiomasDaVozDoQuest().join(),
-    () => '',
-  );
-  useEffect(() => {
-    if (comVozDoSite) void atualizarIdiomasDaVozDoQuest();
-  }, [comVozDoSite]);
-  /** Os idiomas da conversa que NÃO são lidos em voz alta neste aparelho. */
-  const emTexto = semVoz ? [idiomas.meu, idiomas.outro].filter((i) => !(comVozDoSite && vozDoQuestFala(i))) : [];
   const campo = (rotulo: string, codigo: string) => (
     <button type="button" className="campo-idioma" onClick={aoEscolherIdiomas}>
       <span className="label-mono">{rotulo}</span>
@@ -313,118 +292,6 @@ function PaginaDeEntrada({
         }
       : { icone: Volume2, texto: t('Cada um toca a sua metade e fala: a tradução é lida em voz alta para o outro') },
   ];
-
-  /* NO QUEST: os dois idiomas como alvos grandes, os passos à esquerda e UM botão principal de 120 px.
-     O que é do plano pago vem dito antes do toque, ao lado do modo por toque, que funciona no grátis. */
-  if (noQuest) {
-    const lado = (rotulo: string, codigo: string) => (
-      <button type="button" className="q-tile em-linha" onClick={aoEscolherIdiomas}>
-        <span className="q-ic">
-          <LangFlag code={codigo} className="inline-block w-6 h-4" />
-        </span>
-        <span>
-          <span className="q-rotulo">{rotulo}</span>
-          <b style={{ display: 'block', marginTop: 6 }}>{langLabel(codigo)}</b>
-        </span>
-      </button>
-    );
-    return (
-      <div className="q-palco" data-testid="pagina-do-interprete">
-        <div className="q-cab">
-          <div>
-            <p className="q-sobre">{t('Conversa frente a frente')}</p>
-            <h1>{t('Intérprete')}</h1>
-          </div>
-          {emTexto.length === 2 && <span className="q-chip">{t('Tradução em texto neste aparelho')}</span>}
-          {emTexto.length === 1 && (
-            <span className="q-chip">
-              {t('Voz só em {idioma}', { idioma: langLabel(emTexto[0] === idiomas.meu ? idiomas.outro : idiomas.meu) })}
-            </span>
-          )}
-        </div>
-        <div className="q-par">
-          {lado(t('Você fala'), idiomas.meu)}
-          <button type="button" className="q-ctl" aria-label={t('Inverter os idiomas')} onClick={aoInverter}>
-            <ArrowLeftRight aria-hidden />
-          </button>
-          {lado(t('A outra pessoa fala'), idiomas.outro)}
-        </div>
-        {avisos}
-        <div className="q-meio">
-          <ol className="q-passos" aria-label={t('Como funciona')}>
-            <li>
-              <span aria-hidden>1</span>
-              {t('Escolha o seu idioma e o da outra pessoa.')}
-            </li>
-            <li>
-              <span aria-hidden>2</span>
-              {t('Toque em Começar: a tela se divide em dois lados.')}
-            </li>
-            <li>
-              <span aria-hidden>3</span>
-              {emTexto.length === 2
-                ? t('Cada pessoa toca o seu lado e fala. A tradução aparece em texto do outro lado.')
-                : emTexto.length === 1
-                  ? t(
-                      'Cada pessoa toca o seu lado e fala. A tradução é lida em voz alta em {comVoz}; em {semVoz}, aparece em texto.',
-                      {
-                        comVoz: langLabel(emTexto[0] === idiomas.meu ? idiomas.outro : idiomas.meu),
-                        semVoz: langLabel(emTexto[0]),
-                      },
-                    )
-                  : t('Cada pessoa toca o seu lado e fala. A tradução é lida em voz alta para a outra.')}
-            </li>
-            <li className="q-nota" role="status">
-              <span aria-hidden>
-                <Languages />
-              </span>
-              <span>
-                {!possivel
-                  ? t('Escolha dois idiomas diferentes: um para você, outro para a outra pessoa.')
-                  : (aviso ?? t('A tradução dos dois lados fica pronta no aparelho antes da primeira frase.'))}
-              </span>
-            </li>
-          </ol>
-          <div className="q-grande">
-            <button
-              type="button"
-              className="q-botao"
-              onClick={aoComecar}
-              disabled={!possivel || abrindo}
-              aria-label={t('Começar conversa')}
-              data-testid="comecar-conversa"
-            >
-              {abrindo ? <Loader2 aria-hidden className="animate-spin" /> : <Mic aria-hidden />}
-            </button>
-            <b aria-hidden>{abrindo ? t('Abrindo o microfone…') : t('Começar conversa')}</b>
-          </div>
-        </div>
-        {automatico === 'premium' && (
-          <div className="q-aviso" data-testid="modo-da-pagina">
-            <span>
-              {t(
-                'No Premium, o modo automático reconhece sozinho quem fala qual idioma. Aqui, cada um toca o seu lado.',
-              )}
-            </span>
-            {aoConhecerOPremium && (
-              <button type="button" className="q-ctl" onClick={aoConhecerOPremium}>
-                {t('Conhecer o Premium')}
-              </button>
-            )}
-          </div>
-        )}
-        {automatico === 'disponivel' && (
-          <div className="q-aviso" data-testid="modo-da-pagina">
-            <span>
-              {t(
-                'Modo automático: o app reconhece sozinho quem fala qual idioma. Dá para trocar para o toque na conversa.',
-              )}
-            </span>
-          </div>
-        )}
-      </div>
-    );
-  }
 
   return (
     <div className="tela larga entra" data-testid="pagina-do-interprete" ref={raiz}>

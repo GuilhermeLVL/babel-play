@@ -1,11 +1,9 @@
-import { AlertTriangle, Download, Loader2, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, Download, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { exportarConta, type ResultadoDaExclusao } from '../../../data/api';
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../lib/i18n';
 import { authRequired } from '../../../lib/supabase';
-import { TituloDeSecao } from '../../ui';
 
 /**
  * SEUS DADOS — portabilidade (LGPD art. 18, V), na forma do protótipo aprovado: onde ficam e
@@ -83,7 +81,6 @@ export async function prepararCopia(formato: 'json' | 'csv'): Promise<{ blob: Bl
 export default function AbaDados() {
   const [exportando, setExportando] = useState(false);
   const [erroExport, setErroExport] = useState('');
-  const questNovo = useQuestNovo();
 
   async function baixar() {
     setExportando(true);
@@ -94,77 +91,42 @@ export default function AbaDados() {
   }
 
   /* QUEST: as mesmas duas linhas (onde ficam, baixar uma cópia) e o mesmo erro, nas peças do headset. */
-  if (questNovo)
-    return (
-      <section className="q-secao">
-        <header>
-          <div>
-            <h2>{t('Seus dados')}</h2>
-            <p>{t('O que o app guarda sobre você, e como levar uma cópia.')}</p>
-          </div>
-        </header>
-        <div className="qc-pilha">
-          {!authRequired && (
-            <div className="q-ajuste">
-              <div>
-                <b>{t('Onde ficam')}</b>
-                <small>
-                  {t(
-                    'Este app está rodando no seu computador, sem login. Não há senha nem sessão para gerenciar: seus dados ficam neste dispositivo.',
-                  )}
-                </small>
-              </div>
-            </div>
-          )}
+  return (
+    <section className="q-secao">
+      <header>
+        <div>
+          <h2>{t('Seus dados')}</h2>
+          <p>{t('O que o app guarda sobre você, e como levar uma cópia.')}</p>
+        </div>
+      </header>
+      <div className="qc-pilha">
+        {!authRequired && (
           <div className="q-ajuste">
             <div>
-              <b>{t('Baixar uma cópia')}</b>
-              <small>{t('Tudo o que o app guarda sobre você.')}</small>
+              <b>{t('Onde ficam')}</b>
+              <small>
+                {t(
+                  'Este app está rodando no seu computador, sem login. Não há senha nem sessão para gerenciar: seus dados ficam neste dispositivo.',
+                )}
+              </small>
             </div>
-            <button type="button" className="q-ctl" onClick={() => void baixar()} disabled={exportando}>
-              {exportando ? <Loader2 className="qc-gira" aria-hidden /> : <Download aria-hidden />}{' '}
-              {exportando ? t('Preparando…') : t('Baixar')}
-            </button>
-          </div>
-        </div>
-        {erroExport && (
-          <p className="qc-erro" role="alert">
-            <AlertTriangle aria-hidden />
-            <span>{erroExport}</span>
-          </p>
-        )}
-      </section>
-    );
-
-  return (
-    <section>
-      <TituloDeSecao icone={ShieldCheck} titulo={t('Seus dados')} />
-      <div className="cartao">
-        {/* Sem login, é isto que responde "e a minha conta?": não há senha nem sessão. */}
-        {!authRequired && (
-          <div className="ajuste">
-            <h3>{t('Onde ficam')}</h3>
-            <p className="mut" style={{ margin: 0 }}>
-              {t(
-                'Este app está rodando no seu computador, sem login. Não há senha nem sessão para gerenciar: seus dados ficam neste dispositivo.',
-              )}
-            </p>
           </div>
         )}
-        <div className="ajuste ajuste-l">
+        <div className="q-ajuste">
           <div>
-            <h3>{t('Baixar uma cópia')}</h3>
-            <p className="mut">{t('Tudo o que o app guarda sobre você.')}</p>
+            <b>{t('Baixar uma cópia')}</b>
+            <small>{t('Tudo o que o app guarda sobre você.')}</small>
           </div>
-          <button type="button" onClick={() => void baixar()} disabled={exportando} className="btn btn-outline">
-            {exportando ? <Loader2 className="gira" aria-hidden /> : <Download aria-hidden />}{' '}
+          <button type="button" className="q-ctl" onClick={() => void baixar()} disabled={exportando}>
+            {exportando ? <Loader2 className="qc-gira" aria-hidden /> : <Download aria-hidden />}{' '}
             {exportando ? t('Preparando…') : t('Baixar')}
           </button>
         </div>
       </div>
       {erroExport && (
-        <p role="alert" style={{ marginTop: 8, fontSize: 12.5, color: 'var(--error-ink)' }}>
-          {erroExport}
+        <p className="qc-erro" role="alert">
+          <AlertTriangle aria-hidden />
+          <span>{erroExport}</span>
         </p>
       )}
     </section>

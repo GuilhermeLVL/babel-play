@@ -36,7 +36,7 @@ const D = f('d', 'Fourth goes on.')
 const E = f('e', 'Fifth and last.')
 
 type Props = React.ComponentProps<typeof LegendasFlutuantes>
-const base = (extra: Partial<Props> = {}): Props => ({ falas: [A], emJanela: false, aoFechar: vi.fn(), ...extra })
+const base = (extra: Partial<Props> = {}): Props => ({ falas: [A], aoFechar: vi.fn(), ...extra })
 
 /** O texto inteiro de cada fala à vista, na ordem. */
 const aVista = () => [...document.querySelectorAll('.leg-o')].map((e) => e.textContent)
@@ -179,7 +179,7 @@ describe('o teclado', () => {
   })
 
   it('na janela sempre-no-topo as teclas valem com o foco em qualquer lugar do documento dela', () => {
-    render(<LegendasFlutuantes {...base({ falas: [A, B, C], emJanela: true })} />)
+    render(<LegendasFlutuantes {...base({ falas: [A, B, C] })} />)
     fireEvent.keyDown(document.body, { key: ' ' })
     expect(screen.getByRole('button', { name: 'Continuar as legendas' })).toBeTruthy()
   })
@@ -207,7 +207,12 @@ describe('tocar uma palavra e as ações da fala', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ouvir' }))
     expect(aoOuvir).toHaveBeenCalledWith('there', 'en', false)
     fireEvent.click(screen.getByRole('button', { name: 'Salvar no vocabulário' }))
-    expect(aoSalvarPalavra).toHaveBeenCalledWith({ palavra: 'there', frase: A.original, lang: 'en', traducao: 'aí, lá' })
+    expect(aoSalvarPalavra).toHaveBeenCalledWith({
+      palavra: 'there',
+      frase: A.original,
+      lang: 'en',
+      traducao: 'aí, lá',
+    })
     await waitFor(() => expect(screen.getByRole('status').textContent).toContain('adicionado'))
 
     fireEvent.keyDown(cartao, { key: 'Escape' })
@@ -215,9 +220,13 @@ describe('tocar uma palavra e as ações da fala', () => {
   })
 
   it('com o cartão aberto a fila espera (a fala não sai debaixo dele)', () => {
-    const { rerender } = render(<LegendasFlutuantes {...base({ aoConsultarPalavra: vi.fn(async () => ({ traducao: '' })) })} />)
+    const { rerender } = render(
+      <LegendasFlutuantes {...base({ aoConsultarPalavra: vi.fn(async () => ({ traducao: '' })) })} />,
+    )
     fireEvent.click(document.querySelector('[data-palavra="friend"]')!)
-    rerender(<LegendasFlutuantes {...base({ falas: [A, B], aoConsultarPalavra: vi.fn(async () => ({ traducao: '' })) })} />)
+    rerender(
+      <LegendasFlutuantes {...base({ falas: [A, B], aoConsultarPalavra: vi.fn(async () => ({ traducao: '' })) })} />,
+    )
     act(() => void vi.advanceTimersByTime(10_000))
     expect(aVista()).toEqual([A.original])
   })

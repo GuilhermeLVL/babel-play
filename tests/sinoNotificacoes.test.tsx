@@ -1,13 +1,14 @@
 // @vitest-environment jsdom
 /**
  * O SINO respeita as preferências de aviso (Ajustes → Notificações): o tipo desligado "no app"
- * some da lista e da contagem. A sessão salva não tem chave lá e aparece sempre.
+ * some da lista e da contagem. A sessão salva não tem chave lá e aparece sempre. A lista é a de
+ * `useListaDeNotificacoes`, que o painel "Mais" do trilho desenha (`questCasca.test.tsx`).
  */
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import CentralDeNotificacoes from '../src/components/shell/CentralDeNotificacoes'
-import { _zerarNotificacoes, notificar } from '../src/lib/notificacoes'
+import { useListaDeNotificacoes } from '../src/components/shell/CentralDeNotificacoes'
+import { _zerarNotificacoes, marcarLida, naoLidas, notificar } from '../src/lib/notificacoes'
 
 const avisos = {
   revisao: { app: false, email: false, push: false },
@@ -47,22 +48,18 @@ describe('sino de notificações', () => {
   })
   afterEach(cleanup)
 
-  it('esconde o tipo desligado e conta só o que mostra; o item leva ao destino e fica lido', () => {
-    const ir = vi.fn()
-    render(<CentralDeNotificacoes onIr={ir} />)
-    expect(screen.getByLabelText('2 não lidas')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Notificações' }))
-    expect(screen.queryByText('3 palavras esperando revisão')).toBeNull()
-    fireEvent.click(screen.getByText('Conquista: Primeira captura'))
-    expect(ir).toHaveBeenCalledWith('loja', undefined)
-    expect(screen.getByLabelText('1 não lidas')).toBeTruthy()
+  it('esconde o tipo desligado e conta só o que mostra; a sessão salva aparece sempre', () => {
+    const { result } = renderHook(() => useListaDeNotificacoes())
+    const titulos = () => result.current.map((n) => n.titulo)
+    expect(titulos()).not.toContain('3 palavras esperando revisão')
+    expect(titulos()).toEqual(expect.arrayContaining(['Conquista: Primeira captura', 'Sessão salva: Aula']))
+    expect(naoLidas(result.current)).toBe(2)
   })
 
-  it('a engrenagem leva às preferências de notificação', () => {
-    const ir = vi.fn()
-    render(<CentralDeNotificacoes onIr={ir} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Notificações' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Preferências de notificação' }))
-    expect(ir).toHaveBeenCalledWith('settings', { aba: 'notificacoes' })
+  it('marcar como lida tira da contagem, e a lista acompanha na hora', () => {
+    const { result } = renderHook(() => useListaDeNotificacoes())
+    const conquista = result.current.find((n) => n.titulo === 'Conquista: Primeira captura')!
+    act(() => marcarLida(conquista.id))
+    expect(naoLidas(result.current)).toBe(1)
   })
 })

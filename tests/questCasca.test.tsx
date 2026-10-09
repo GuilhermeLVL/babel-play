@@ -27,11 +27,6 @@ import EncerrarNoQuest from '../src/components/views/captura/quest/EncerrarNoQue
 import ResumoDaSessaoNoQuest from '../src/components/views/captura/quest/ResumoDaSessaoNoQuest'
 import InicioDoQuest from '../src/components/views/quest/InicioDoQuest'
 import type { AppMetrics } from '../src/data/api'
-import {
-  definirDesenhoNovoNoComputador,
-  definirTelaNovaDoQuest,
-  questNovo,
-} from '../src/lib/dispositivo/telaNovaDoQuest'
 import { EMPTY_PROGRESS } from '../src/lib/progress'
 import type { Recording } from '../src/types'
 
@@ -592,29 +587,5 @@ describe('no headset, a casca não ganha nada do computador', () => {
     expect(screen.queryByTestId('busca-no-trilho')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
     expect(screen.getByRole('button', { name: 'Buscar' }).hasAttribute('aria-keyshortcuts')).toBe(false)
-  })
-})
-
-describe('onde o desenho novo vale', () => {
-  it('no celular, `questNovo()` nasce verdadeiro (08/10/2026) e a chave do desenho o desliga; a do Quest não manda', () => {
-    aparelho.tipo = 'celular-bom'
-    definirTelaNovaDoQuest(false)
-    expect(questNovo()).toBe(true)
-    expect(document.documentElement.dataset.questNovo).toBe('true')
-    definirDesenhoNovoNoComputador(false)
-    expect(questNovo()).toBe(false)
-    expect(document.documentElement.dataset.questNovo).toBe('false')
-  })
-
-  it('no computador, desligado de fábrica; liga e desliga com a escolha de Ajustes', () => {
-    aparelho.tipo = 'desktop-sem-gpu'
-    definirTelaNovaDoQuest(true)
-    expect(questNovo()).toBe(false)
-    definirDesenhoNovoNoComputador(true)
-    expect(questNovo()).toBe(true)
-    expect(document.documentElement.dataset.questNovo).toBe('true')
-    definirDesenhoNovoNoComputador(false)
-    expect(questNovo()).toBe(false)
-    expect(document.documentElement.dataset.questNovo).toBe('false')
   })
 })

@@ -32,10 +32,7 @@
 .ad-secao-cab h2 {
   margin: 0;
 }
-.ad-h2 {
-  font: 800 16px/1.2 var(--font-display, inherit);
-  color: var(--ink);
-}
+
 .ad-secao-cab p {
   margin: 4px 0 0;
   font-size: 13px;
@@ -117,31 +114,13 @@
   border-color: color-mix(in srgb, var(--error, currentColor) 45%, var(--border-subtle));
 }
 
-/* Botões do desenho de sempre (o `.q-ctl` do novo já vem pronto) */
-.ad-btn {
-  min-height: 36px;
-  padding: 0 14px;
-  white-space: nowrap;
-}
-.ad-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-.ad-btn.ad-perigo {
-  color: var(--error, inherit);
-}
-
 /* Busca */
 .ad-busca {
   display: grid;
   gap: 6px;
   max-width: 560px;
 }
-.ad-rotulo {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--ink-muted);
-}
+
 .ad-busca-caixa {
   display: flex;
   align-items: center;
@@ -158,33 +137,6 @@
   min-width: 0;
 }
 
-/* Tabela do desenho de sempre */
-.ad-caixa {
-  overflow-x: auto;
-  border: 1px solid var(--border-subtle);
-  border-radius: 14px;
-  background: var(--surface);
-}
-.ad-tabela {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-  color: var(--ink);
-}
-.ad-tabela th {
-  padding: 10px 14px;
-  text-align: left;
-  font: 700 11px/1 var(--font-mono, monospace);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
-  white-space: nowrap;
-}
-.ad-tabela td {
-  padding: 12px 14px;
-  border-top: 1px solid var(--border-subtle);
-  vertical-align: top;
-}
 .ad-tabela-lista td b {
   display: block;
 }

@@ -8,7 +8,8 @@
  * cada saída vira o evento certo de conversão.
  */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
+import { Sparkles } from 'lucide-react'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
 
 import type { ConfigDeOfertas, GatilhoDeOferta } from '../src/core/ofertas'
 import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
@@ -67,6 +68,30 @@ function montar() {
 
 const disparar = (m: Parameters<typeof dispararOferta>[0]) => act(() => dispararOferta(m))
 
+/* O cartão da oferta chega num pedaço à parte (`usePedacoDoQuest`): depois da primeira vez ele monta na
+   hora, e é assim que os testes abaixo o encontram (e que "não aparece" quer dizer alguma coisa). */
+beforeAll(async () => {
+  const { default: CartaoDeOferta } = await import('../src/components/ofertas/CartaoDeOferta')
+  const nada = () => {}
+  render(
+    <CartaoDeOferta
+      tom="acento"
+      icone={Sparkles}
+      titulo=""
+      texto=""
+      cta=""
+      aoAgir={nada}
+      aoDispensar={nada}
+      aoNaoMostrar={nada}
+    />,
+  )
+  await act(async () => {
+    await import('../src/components/ofertas/quest/CartaoDeOfertaDoQuest')
+    await new Promise((r) => setTimeout(r, 0))
+  })
+  cleanup()
+})
+
 beforeEach(() => {
   prepararDialogoNoJsdom()
   localStorage.clear()
@@ -101,7 +126,8 @@ describe('flag desligada', () => {
     montar()
     disparar('fim_de_cota')
     const aviso = screen.getByTestId('cartao-de-oferta')
-    expect(aviso.getAttribute('role')).toBe('status')
+    /* Uma região ao lado do conteúdo, com nome: não interrompe nem prende o foco. */
+    expect(aviso.getAttribute('role')).toBe('complementary')
     expect(aviso.textContent).toContain('A IA de nuvem do seu plano acabou neste mês')
     expect(screen.queryByRole('dialog')).toBeNull() // não é modal
     expect(estado.eventos).toEqual([
@@ -244,7 +270,7 @@ describe('banner e convidado', () => {
     montar()
     disparar('cota_proxima')
     const banner = screen.getByTestId('cartao-de-oferta')
-    expect(screen.getByRole('button', { name: 'Dispensar aviso' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Fechar' })).toBeTruthy()
     fireEvent.keyDown(banner, { key: 'Escape' })
     expect(screen.queryByTestId('cartao-de-oferta')).toBeNull()
     expect(estado.eventos.at(-1)).toMatchObject({ evento: 'oferta_dispensada', gatilho: 'funcional_cota_proxima' })

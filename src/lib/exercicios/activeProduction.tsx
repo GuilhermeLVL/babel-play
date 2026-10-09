@@ -8,7 +8,6 @@ import { VocabCard } from '../../types';
 import { consentiuNuvem } from '../consentimentoDeNuvem';
 import { perfilDoDispositivo } from '../dispositivo/perfil';
 import { recursosDoAparelho } from '../dispositivo/recursos';
-import { useQuestNovo } from '../dispositivo/telaNovaDoQuest';
 import { t } from '../i18n';
 import { haVozPara } from '../voz/haVoz';
 import { buildCorretorUser, CORRETOR_SYSTEM, respostaEhPlausivel } from './corretorPrompt';
@@ -86,8 +85,6 @@ export function ActiveProductionExercise({
   playTTS,
   temVoz,
 }: ActiveProductionProps) {
-  /** Quest com as telas novas: o mesmo exercício, no desenho do headset (ver o ramo antes do `return`). */
-  const questNovo = useQuestNovo();
   const podeOuvir = temVoz ?? haVozPara(card.srcLang ?? '');
   const [attempt, setAttempt] = useState('');
   const [isVerified, setIsVerified] = useState(false);
@@ -205,435 +202,173 @@ export function ActiveProductionExercise({
     }
   };
 
-  // Replace word with blank in the sentence
-  const renderSentenceWithBlank = () => {
-    if (!card.sentence) return <span className="ap-blank">___</span>;
-
-    const regex = new RegExp(`(${escapeRegExp(card.word)})`, 'gi');
-    const parts = card.sentence.split(regex);
-
-    return (
-      <div className="ap-prompt text-lg md:text-xl font-medium text-ink leading-relaxed text-center">
-        {parts.map((part, index) => {
-          if (part.toLowerCase() === card.word.toLowerCase()) {
-            return (
-              <span
-                key={index}
-                className="ap-blank px-3 py-1 mx-1 bg-accent-soft text-accent-ink font-bold border-b-2 border-dashed border-accent font-mono"
-              >
-                ___
-              </span>
-            );
-          }
-          return <span key={index}>{part}</span>;
-        })}
-      </div>
-    );
-  };
-
-  // Render highlighted differences for partial score
-  const renderDiff = () => {
-    const parts = diffWords(card.word, attempt);
-    return (
-      <div className="flex flex-wrap gap-0.5 justify-center font-mono text-lg font-bold my-2">
-        {parts.map((part, idx) => {
-          if (part.type === 'match') {
-            return (
-              <span key={idx} className="text-good">
-                {part.value}
-              </span>
-            );
-          } else if (part.type === 'added') {
-            return (
-              <span key={idx} className="text-error line-through bg-error-soft/30 px-0.5 rounded">
-                {part.value}
-              </span>
-            );
-          } else {
-            return (
-              <span
-                key={idx}
-                className="text-warn underline decoration-dotted bg-warn-soft/30 px-0.5 rounded"
-                title="Caractere esperado"
-              >
-                {part.value}
-              </span>
-            );
-          }
-        })}
-      </div>
-    );
-  };
-
   /* NO META QUEST: o mesmo exercício dentro do cartão da revisão (`RevisaoDoQuest.tsx`), sem um cartão
      dentro do outro. O campo não pega o foco sozinho: o teclado do sistema sobe quando a pessoa toca nele. */
-  if (questNovo) {
-    const comTeclado = recursosDoAparelho(perfilDoDispositivo()).tecladoFisico;
-    const pedacos = card.sentence ? card.sentence.split(new RegExp(`(${escapeRegExp(card.word)})`, 'gi')) : [];
-    const ehAlvo = (pedaco: string) => pedaco.toLowerCase() === card.word.toLowerCase();
-    return (
-      <div className="qr-producao" data-testid="producao-no-quest">
-        {card.sourceSessionTitle && <span className="q-tag off">{card.sourceSessionTitle}</span>}
-        <span className="q-rotulo">{t('Escreva a palavra que completa a frase')}</span>
-        <p className="qr-frase ap-prompt">
-          {card.sentence ? (
-            pedacos.map((pedaco, i) =>
-              ehAlvo(pedaco) ? (
-                <span key={i} className="qr-vao ap-blank">
-                  ___
-                </span>
-              ) : (
-                <span key={i}>{pedaco}</span>
-              ),
-            )
-          ) : (
-            <span className="qr-vao ap-blank">___</span>
-          )}
-        </p>
-        <p className="q-texto">
-          {t('Definição')}: <b>{card.translation}</b>
-          {card.explanation ? `, ${card.explanation}` : ''}
-        </p>
-
-        {!isVerified ? (
-          <>
-            <label className="q-campo">
-              <span>{t('Sua resposta')}</span>
-              <input
-                type="text"
-                className="ap-input"
-                autoComplete="off"
-                autoCapitalize="off"
-                /* Com teclado físico (o computador com o desenho novo) o campo pega o foco, como na
-                   tela de sempre; no headset não, para o teclado do sistema não subir sozinho. */
-                autoFocus={comTeclado}
-                value={attempt}
-                placeholder={comTeclado ? t('Digite a resposta aqui...') : t('Toque para escrever')}
-                onChange={(e) => setAttempt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleVerifyLocal();
-                }}
-              />
-            </label>
-            <div className="q-acoes">
-              <button
-                type="button"
-                className="q-ctl pri qr-principal"
-                disabled={!attempt.trim()}
-                onClick={handleVerifyLocal}
-              >
-                <Check aria-hidden /> {t('Verificar resposta')}
-              </button>
-              {llmValidationEnabled && (
-                <button
-                  type="button"
-                  className="q-ctl"
-                  disabled={!attempt.trim() || isLoadingLlm}
-                  onClick={() => void handleVerifyLlm()}
-                >
-                  <Sparkles aria-hidden /> {isLoadingLlm ? t('Consultando o modelo…') : t('Verificar com IA')}
-                </button>
-              )}
-            </div>
-            {llmError && (
-              <div className="q-aviso" role="alert">
-                <span>{llmError}</span>
-              </div>
-            )}
-          </>
-        ) : (
-          <>
-            <p
-              className={`qr-veredito ${correct ? (partial ? 'parcial ap-result-partial' : 'certo ap-result-correct') : 'errado ap-result-error'}`}
-              role="status"
-            >
-              {correct ? (
-                partial ? (
-                  <AlertTriangle aria-hidden />
-                ) : (
-                  <CheckCircle2 aria-hidden />
-                )
-              ) : (
-                <XCircle aria-hidden />
-              )}
-              <span>
-                {correct
-                  ? partial
-                    ? t('Acerto parcial ({n}% de similaridade)', { n: (similarity * 100).toFixed(0) })
-                    : t('Resposta correta!')
-                  : t('Resposta incorreta')}
-              </span>
-            </p>
-            {correct && partial && (
-              <div className="qr-diff" aria-label={t('Diferenças entre a sua resposta e a palavra')}>
-                {diffWords(card.word, attempt).map((parte, i) => (
-                  <span
-                    key={i}
-                    className={parte.type === 'match' ? 'igual' : parte.type === 'added' ? 'sobra' : 'falta'}
-                  >
-                    {parte.value}
-                  </span>
-                ))}
-              </div>
-            )}
-            {correct && partial && (
-              <p className="q-texto">{t('Riscado: sobrou na sua resposta. Sublinhado: faltou.')}</p>
-            )}
-            <p className="q-texto">
-              {correct ? (
-                partial ? (
-                  <>
-                    {t('Forma correta')}: <b>{card.word}</b>
-                  </>
-                ) : (
-                  <>
-                    {t('Sua resposta bateu com')} <b>{card.word}</b>
-                  </>
-                )
-              ) : (
-                <>
-                  {t('Você escreveu')}: <b>{attempt}</b>. {t('A resposta correta era')}: <b>{card.word}</b>
-                </>
-              )}
-            </p>
-            {/* A procedência do veredito, só depois de existir um. */}
-            <span className="qr-proveniencia ap-validation-label">
-              {validationSource === 'deterministic' ? (
-                <>
-                  <Check aria-hidden /> {t('Verificado localmente')}
-                </>
-              ) : (
-                <>
-                  <Sparkles aria-hidden /> {t('Verificado pela IA (pode errar)')}
-                </>
-              )}
-            </span>
-            {validationSource === 'probabilistic' && (
-              <div className="q-cartao fundo">
-                <span className="q-rotulo">{t('Por que a IA decidiu assim')}</span>
-                <p>{llmReason || t('O modelo não explicou o veredito.')}</p>
-                <AiBadge />
-                <p>{t('Conteúdo gerado por um modelo de linguagem. Pode conter erros, confira antes de decorar.')}</p>
-              </div>
-            )}
-            <div className="q-cartao fundo">
-              <span className="q-rotulo">{t('Frase completa')}</span>
-              <p>
-                {card.sentence ? (
-                  pedacos.map((pedaco, i) =>
-                    ehAlvo(pedaco) ? (
-                      <strong key={i} className="qr-alvo">
-                        {pedaco}
-                      </strong>
-                    ) : (
-                      <span key={i}>{pedaco}</span>
-                    ),
-                  )
-                ) : (
-                  <strong className="qr-alvo">{card.word}</strong>
-                )}
-              </p>
-            </div>
-            <div className="q-acoes">
-              {playTTS && podeOuvir && (
-                <button type="button" className="q-ctl" onClick={() => playTTS(card.sentence || card.word)}>
-                  <Volume2 aria-hidden /> {t('Ouvir a frase completa')}
-                </button>
-              )}
-              <button type="button" className="q-ctl pri qr-principal" onClick={onNext}>
-                {t('Próximo exercício')} <ArrowRight aria-hidden />
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    );
-  }
-
+  const comTeclado = recursosDoAparelho(perfilDoDispositivo()).tecladoFisico;
+  const pedacos = card.sentence ? card.sentence.split(new RegExp(`(${escapeRegExp(card.word)})`, 'gi')) : [];
+  const ehAlvo = (pedaco: string) => pedaco.toLowerCase() === card.word.toLowerCase();
   return (
-    <div className="space-y-6 w-full animate-in fade-in duration-300">
-      <div className="card-panel p-8 md:p-12 text-center bg-surface border-2 border-border-subtle min-h-[260px] flex flex-col justify-center items-center relative overflow-hidden shadow-md rounded-2xl">
-        {/* Origin Badge */}
-        {card.sourceSessionTitle && (
-          <div className="absolute top-4 left-4 flex items-center gap-1.5 text-xs font-bold text-rare bg-rare-soft/20 px-2.5 py-1 rounded-full">
-            <span>{card.sourceSessionTitle}</span>
-          </div>
+    <div className="qr-producao" data-testid="producao-no-quest">
+      {card.sourceSessionTitle && <span className="q-tag off">{card.sourceSessionTitle}</span>}
+      <span className="q-rotulo">{t('Escreva a palavra que completa a frase')}</span>
+      <p className="qr-frase ap-prompt">
+        {card.sentence ? (
+          pedacos.map((pedaco, i) =>
+            ehAlvo(pedaco) ? (
+              <span key={i} className="qr-vao ap-blank">
+                ___
+              </span>
+            ) : (
+              <span key={i}>{pedaco}</span>
+            ),
+          )
+        ) : (
+          <span className="qr-vao ap-blank">___</span>
         )}
+      </p>
+      <p className="q-texto">
+        {t('Definição')}: <b>{card.translation}</b>
+        {card.explanation ? `, ${card.explanation}` : ''}
+      </p>
 
-        {/* Procedência do veredito. Só aparece DEPOIS de existir um veredito — antes, a tela exibia
-            "Verificado localmente" com o campo ainda vazio, anunciando uma verificação que não houve. */}
-        {isVerified && (
-          <div className="absolute top-4 right-4 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-ink-muted">
-            <span className="ap-validation-label flex items-center gap-1">
-              {validationSource === 'deterministic' ? (
-                <>🟢 Verificado localmente</>
-              ) : (
-                <span className="text-rare flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-rare" /> Verificado pela IA (pode errar)
-                </span>
-              )}
-            </span>
-          </div>
-        )}
-
-        {/* Prompt */}
-        <div className="my-6 w-full px-4">
-          <span className="text-[11px] font-mono text-ink-muted uppercase tracking-widest block mb-4">
-            Escreva a palavra que completa a frase:
-          </span>
-          {renderSentenceWithBlank()}
-        </div>
-
-        {/* Translation and Pronunciation Hint (Not targeting the word) */}
-        <div className="text-sm text-ink-muted max-w-md mx-auto italic mt-1 mb-4">
-          Definição: <span className="font-bold text-ink">{card.translation}</span>, {card.explanation}
-        </div>
-
-        {/* Input Form */}
-        {!isVerified ? (
-          <div className="w-full max-w-md mx-auto space-y-4">
+      {!isVerified ? (
+        <>
+          <label className="q-campo">
+            <span>{t('Sua resposta')}</span>
             <input
               type="text"
+              className="ap-input"
+              autoComplete="off"
+              autoCapitalize="off"
+              /* Com teclado físico (o computador com o desenho novo) o campo pega o foco, como na
+                   tela de sempre; no headset não, para o teclado do sistema não subir sozinho. */
+              autoFocus={comTeclado}
               value={attempt}
+              placeholder={comTeclado ? t('Digite a resposta aqui...') : t('Toque para escrever')}
               onChange={(e) => setAttempt(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleVerifyLocal();
               }}
-              placeholder="Digite a resposta aqui..."
-              className="ap-input w-full p-3 text-center text-lg border-2 border-border-subtle rounded-xl bg-canvas focus:border-accent outline-none font-medium transition-all"
-              autoFocus
             />
-
-            <div className="flex gap-2.5 justify-center">
+          </label>
+          <div className="q-acoes">
+            <button
+              type="button"
+              className="q-ctl pri qr-principal"
+              disabled={!attempt.trim()}
+              onClick={handleVerifyLocal}
+            >
+              <Check aria-hidden /> {t('Verificar resposta')}
+            </button>
+            {llmValidationEnabled && (
               <button
-                onClick={handleVerifyLocal}
-                disabled={!attempt.trim()}
-                className="btn-solid bg-accent text-white hover:bg-accent-ink py-2.5 px-6 font-bold text-sm shadow-md disabled:opacity-50 cursor-pointer"
+                type="button"
+                className="q-ctl"
+                disabled={!attempt.trim() || isLoadingLlm}
+                onClick={() => void handleVerifyLlm()}
               >
-                Verificar Resposta
+                <Sparkles aria-hidden /> {isLoadingLlm ? t('Consultando o modelo…') : t('Verificar com IA')}
               </button>
-
-              {llmValidationEnabled && (
-                <button
-                  onClick={handleVerifyLlm}
-                  disabled={!attempt.trim() || isLoadingLlm}
-                  className="btn-outline flex items-center gap-1.5 py-2.5 px-4 font-bold text-sm text-rare border-rare/30 hover:bg-rare-soft/10 cursor-pointer"
-                >
-                  {isLoadingLlm ? (
-                    <span>Consultando o modelo…</span>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 text-rare" /> Verificar com IA
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
-
-            {/* A IA falhou. Antes isto era invisível: a tela caía na heurística local e mentia o selo. */}
-            {llmError && (
-              <p className="text-[11.5px] text-warn-ink bg-warn-soft border border-warn/20 rounded-xl p-3 leading-relaxed text-start">
-                {llmError}
-              </p>
             )}
           </div>
-        ) : (
-          /* Feedback Card */
-          <div className="w-full max-w-lg mx-auto space-y-6 animate-in zoom-in-95 duration-200">
+          {llmError && (
+            <div className="q-aviso" role="alert">
+              <span>{llmError}</span>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <p
+            className={`qr-veredito ${correct ? (partial ? 'parcial ap-result-partial' : 'certo ap-result-correct') : 'errado ap-result-error'}`}
+            role="status"
+          >
+            {correct ? partial ? <AlertTriangle aria-hidden /> : <CheckCircle2 aria-hidden /> : <XCircle aria-hidden />}
+            <span>
+              {correct
+                ? partial
+                  ? t('Acerto parcial ({n}% de similaridade)', { n: (similarity * 100).toFixed(0) })
+                  : t('Resposta correta!')
+                : t('Resposta incorreta')}
+            </span>
+          </p>
+          {correct && partial && (
+            <div className="qr-diff" aria-label={t('Diferenças entre a sua resposta e a palavra')}>
+              {diffWords(card.word, attempt).map((parte, i) => (
+                <span key={i} className={parte.type === 'match' ? 'igual' : parte.type === 'added' ? 'sobra' : 'falta'}>
+                  {parte.value}
+                </span>
+              ))}
+            </div>
+          )}
+          {correct && partial && <p className="q-texto">{t('Riscado: sobrou na sua resposta. Sublinhado: faltou.')}</p>}
+          <p className="q-texto">
             {correct ? (
               partial ? (
-                /* PARTIAL CORRECT FEEDBACK */
-                <div className="ap-result-partial bg-warn-soft/15 border border-warn/30 p-5 rounded-2xl text-center space-y-3">
-                  <div className="flex items-center justify-center gap-2 text-warn font-black text-[15px]">
-                    <AlertTriangle className="w-5 h-5" />
-                    <span>Acerto Parcial! ({(similarity * 100).toFixed(0)}% de similaridade)</span>
-                  </div>
-                  <p className="text-[13px] text-ink-muted">
-                    Sua resposta teve pequenas divergências em relação à palavra-alvo:
-                  </p>
-                  {renderDiff()}
-                  <div className="text-sm">
-                    Forma correta: <strong className="text-accent text-base">{card.word}</strong>
-                  </div>
-                </div>
+                <>
+                  {t('Forma correta')}: <b>{card.word}</b>
+                </>
               ) : (
-                /* PERFECT CORRECT FEEDBACK */
-                <div className="ap-result-correct bg-good-soft/15 border border-good/30 p-5 rounded-2xl text-center space-y-2">
-                  <div className="flex items-center justify-center gap-2 text-good font-black text-[16px]">
-                    <CheckCircle2 className="w-5 h-5" />
-                    <span>Resposta Correta!</span>
-                  </div>
-                  <p className="text-sm">
-                    Sua resposta bateu perfeitamente com <strong className="text-good">{card.word}</strong>
-                  </p>
-                </div>
+                <>
+                  {t('Sua resposta bateu com')} <b>{card.word}</b>
+                </>
               )
             ) : (
-              /* INCORRECT FEEDBACK */
-              <div className="ap-result-error bg-error-soft/15 border border-error/30 p-5 rounded-2xl text-center space-y-3">
-                <div className="flex items-center justify-center gap-2 text-error font-black text-[16px]">
-                  <XCircle className="w-5 h-5" />
-                  <span>Ops! Resposta Incorreta</span>
-                </div>
-                <div className="text-sm">
-                  Você escreveu: <span className="font-mono font-bold text-error line-through">{attempt}</span>
-                </div>
-                <div className="text-sm">
-                  A resposta correta era: <strong className="text-good text-base font-bold">{card.word}</strong>
-                </div>
-              </div>
+              <>
+                {t('Você escreveu')}: <b>{attempt}</b>. {t('A resposta correta era')}: <b>{card.word}</b>
+              </>
             )}
-
-            {/* O veredito foi de um MODELO: mostramos o motivo DELE e marcamos como conteúdo de IA. */}
-            {validationSource === 'probabilistic' && (
-              <div className="bg-canvas border border-border-subtle p-4 rounded-xl text-start space-y-2">
-                <span className="text-[10px] uppercase font-mono text-ink-muted block">Por que a IA decidiu assim</span>
-                <p className="text-[12.5px] text-ink-muted leading-relaxed">
-                  {llmReason || 'O modelo não explicou o veredito.'}
-                </p>
-                <AiBadge />
-              </div>
+          </p>
+          {/* A procedência do veredito, só depois de existir um. */}
+          <span className="qr-proveniencia ap-validation-label">
+            {validationSource === 'deterministic' ? (
+              <>
+                <Check aria-hidden /> {t('Verificado localmente')}
+              </>
+            ) : (
+              <>
+                <Sparkles aria-hidden /> {t('Verificado pela IA (pode errar)')}
+              </>
             )}
-
-            {/* Complete sentence revealed */}
-            <div className="bg-canvas border border-border-subtle p-4 rounded-xl text-start">
-              <span className="text-[10px] uppercase font-mono text-ink-muted block mb-1">Frase Completa Revelada</span>
-              <p className="text-[14.5px] text-ink italic leading-relaxed">
-                {card.sentence ? (
-                  card.sentence.split(new RegExp(`(${escapeRegExp(card.word)})`, 'gi')).map((chunk, index) => {
-                    if (chunk.toLowerCase() === card.word.toLowerCase()) {
-                      return (
-                        <strong key={index} className="text-accent underline font-extrabold">
-                          {chunk}
-                        </strong>
-                      );
-                    }
-                    return <span key={index}>{chunk}</span>;
-                  })
-                ) : (
-                  <strong className="text-accent">{card.word}</strong>
-                )}
-              </p>
+          </span>
+          {validationSource === 'probabilistic' && (
+            <div className="q-cartao fundo">
+              <span className="q-rotulo">{t('Por que a IA decidiu assim')}</span>
+              <p>{llmReason || t('O modelo não explicou o veredito.')}</p>
+              <AiBadge />
+              <p>{t('Conteúdo gerado por um modelo de linguagem. Pode conter erros, confira antes de decorar.')}</p>
             </div>
-
-            <div className="flex gap-3 justify-center">
-              {playTTS && (
-                <button
-                  data-precisa={podeOuvir ? undefined : 'voz'}
-                  onClick={() => playTTS(card.sentence || card.word)}
-                  className="btn-outline flex items-center gap-1.5 py-2 px-4 rounded-xl text-xs font-bold cursor-pointer"
-                >
-                  <Volume2 className="w-4 h-4 text-accent" /> Ouvir Frase Completa
-                </button>
+          )}
+          <div className="q-cartao fundo">
+            <span className="q-rotulo">{t('Frase completa')}</span>
+            <p>
+              {card.sentence ? (
+                pedacos.map((pedaco, i) =>
+                  ehAlvo(pedaco) ? (
+                    <strong key={i} className="qr-alvo">
+                      {pedaco}
+                    </strong>
+                  ) : (
+                    <span key={i}>{pedaco}</span>
+                  ),
+                )
+              ) : (
+                <strong className="qr-alvo">{card.word}</strong>
               )}
-
-              <button onClick={onNext} className="btn-ink py-2 px-6 rounded-xl text-xs font-bold cursor-pointer">
-                Próximo Exercício
-              </button>
-            </div>
+            </p>
           </div>
-        )}
-      </div>
+          <div className="q-acoes">
+            {playTTS && podeOuvir && (
+              <button type="button" className="q-ctl" onClick={() => playTTS(card.sentence || card.word)}>
+                <Volume2 aria-hidden /> {t('Ouvir a frase completa')}
+              </button>
+            )}
+            <button type="button" className="q-ctl pri qr-principal" onClick={onNext}>
+              {t('Próximo exercício')} <ArrowRight aria-hidden />
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

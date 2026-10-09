@@ -1,31 +1,8 @@
 import '../../styles/questVocabulario.css';
 
 import { computeTextStats, detectarVozPassiva, estimativaDeMinutos, FILTRO_PADRAO, rotuloDeDuracao } from '@core';
-import {
-  Activity,
-  AudioLines,
-  BarChart2,
-  BookOpen,
-  Brain,
-  ChartColumn,
-  Clock,
-  Download,
-  Eye,
-  Gamepad2,
-  Languages,
-  LayoutGrid,
-  MessageSquareWarning,
-  Mic,
-  MoreHorizontal,
-  PartyPopper,
-  PieChart as PieChartIcon,
-  Plus,
-  Sprout,
-  Target,
-  Upload,
-} from 'lucide-react';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { BookOpen, Brain, Eye, Languages, LayoutGrid, Mic, Sprout } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   type AppMetrics,
@@ -37,7 +14,6 @@ import {
   type UtteranceRow,
 } from '../../data/api';
 import { ficharPalavraDoAnalista } from '../../lib/adicionarAoDeck';
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { gravarFiltro } from '../../lib/filtroDaPratica';
 import { numero, t, tp } from '../../lib/i18n';
 import { baseLang, langLabelNaUI } from '../../lib/languages';
@@ -46,9 +22,7 @@ import type { ExerciseId, PracticeSeed } from '../../lib/sentences';
 import { seedFromSelection, telaDoExercicio } from '../../lib/sentences';
 import { useExameDePalavra } from '../../lib/useExameDePalavra';
 import { Recording, VocabCard, VocabWord } from '../../types';
-import { Confianca, SemDado } from '../Honestidade';
 import { toast } from '../Toast';
-import { Abas, CabecalhoDeTela, IconeEmBloco, PainelDeAba, Tela, TituloDeSecao } from '../ui';
 import BaralhoAnki from './BaralhoAnki';
 import AdicionarPalavra from './vocab/AdicionarPalavra';
 import CatalogoDePalavras, { type FiltroDoCatalogo } from './vocab/CatalogoDePalavras';
@@ -117,14 +91,6 @@ function useChartTheme(): ChartTheme {
   return theme;
 }
 
-// Formata milissegundos em mm:ss.
-function formatMs(ms: number): string {
-  const totalSec = Math.max(0, Math.round(ms / 1000));
-  const m = Math.floor(totalSec / 60);
-  const s = totalSec % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
-}
-
 // F3 — `ConfTag` e `AiPlaceholder` viviam aqui, e outras três telas tinham as suas próprias
 // versões, com limiares e redações diferentes. Agora vêm de `components/Honestidade`.
 
@@ -155,9 +121,6 @@ export default function Metrics({
      painel de analytics — retenção, WPM, CEFR, complexidade — e o acervo, que é o que o nome
      promete, ficava enterrado lá embaixo. A análise inteira continua existindo, uma aba ao lado. */
   const [mainTab, setMainTab] = useState<'palavras' | 'dashboard' | 'lexical' | 'fluency'>('palavras');
-  /* No Meta Quest com as telas novas, a mesma tela em outro arranjo (`vocab/quest/VocabularioDoQuest`):
-     o baralho, as métricas, o catálogo, a gaveta da palavra e os diálogos são os daqui. */
-  const questNovo = useQuestNovo();
   // Revela as abas densas em Kids/Sênior. Uma vez aberto, fica: quem procurou já sabe onde está.
   const [showAllTabs, setShowAllTabs] = useState<boolean>(false);
 
@@ -191,7 +154,6 @@ export default function Metrics({
      o `useMemo` do `topLevel` logo abaixo recalculava a cada render por causa da identidade. */
   const levelDist = useMemo(() => metrics?.levelDistribution ?? [], [metrics]);
   const levelTotal = levelDist.reduce((sum, l) => sum + l.count, 0);
-  const pieData = levelDist.map((l) => ({ name: l.level, value: l.count }));
 
   /* C1 — quando o nível não tem base, ele não ocupa posição de herói (ver a faixa abaixo dos KPIs).
 
@@ -378,7 +340,6 @@ export default function Metrics({
       return { rotulo: k === 6 ? 'hoje' : nomes[ini.getDay()], n };
     });
   }, [metrics]);
-  const alturaPorRevisao = Math.min(28, 140 / Math.max(1, ...revisoesPorDia.map((d) => d.n)));
   /** O tempo MEDIDO nas respostas de hoje (jogos e revisão), como em Estatísticas. */
   const minutosHoje = useMemo(() => {
     const hoje = new Date();
@@ -506,31 +467,6 @@ export default function Metrics({
      palavras. "Mais" NÃO é uma aba: não tem painel, revela as outras — por isso fica fora de
      `Abas` (senão se anunciaria como aba selecionável e as setas parariam nele à toa). */
   const mostrarMais = coreOnly(ageProfile) && !showAllTabs && mainTab === 'palavras';
-  const abas = (
-    <Abas
-      rotuloDoGrupo="Seções do vocabulário"
-      ativo={mainTab}
-      aoTrocar={(id) => setMainTab(id as typeof mainTab)}
-      itens={[
-        {
-          id: 'palavras',
-          rotulo: ageProfile === 'kids' ? 'Minhas cartas' : 'Minhas palavras',
-          icone: <BookOpen aria-hidden />,
-        },
-        ...(!mostrarMais
-          ? [
-              {
-                id: 'dashboard',
-                rotulo: copyDoPerfil('metricsTab.dashboard', ageProfile),
-                icone: <LayoutGrid aria-hidden />,
-              },
-              { id: 'lexical', rotulo: copyDoPerfil('metricsTab.lexical', ageProfile), icone: <Brain aria-hidden /> },
-              { id: 'fluency', rotulo: copyDoPerfil('metricsTab.fluency', ageProfile), icone: <Mic aria-hidden /> },
-            ]
-          : []),
-      ]}
-    />
-  );
 
   const dialogos = (
     <>
@@ -589,621 +525,78 @@ export default function Metrics({
   const rotuloDeExportar =
     ageProfile === 'kids' ? 'Baixar Palavras' : ageProfile === 'senior' ? 'Exportar Meu Caderno' : 'Exportar';
 
-  if (questNovo) {
-    const abasDeAnalise: AbaDoQuest[] = [
-      { id: 'dashboard', rotulo: copyDoPerfil('metricsTab.dashboard', ageProfile), Icone: LayoutGrid },
-      { id: 'lexical', rotulo: copyDoPerfil('metricsTab.lexical', ageProfile), Icone: Brain },
-      { id: 'fluency', rotulo: copyDoPerfil('metricsTab.fluency', ageProfile), Icone: Mic },
-    ];
-    const abasDoQuest: AbaDoQuest[] = [
-      { id: 'palavras', rotulo: ageProfile === 'kids' ? 'Minhas cartas' : 'Minhas palavras', Icone: BookOpen },
-      ...(mostrarMais ? [] : abasDeAnalise),
-    ];
-    return (
-      <VocabularioDoQuest
-        titulo={titulo}
-        sub={sub}
-        infantil={ageProfile === 'kids'}
-        abas={abasDoQuest}
-        aba={mainTab}
-        aoTrocarAba={setMainTab}
-        aoMostrarMais={mostrarMais ? () => setShowAllTabs(true) : undefined}
-        rotuloDeExportar={rotuloDeExportar}
-        aoAdicionar={() => setAdicionando(true)}
-        aoAnki={() => setNoAnki(true)}
-        aoExportar={() => setExportando(true)}
-        metrics={metrics}
-        duracaoDaRevisao={metrics ? rotuloDeDuracao(estimativaDeMinutos(metrics.dueToday, temposMedidos)) : ''}
-        proximaRodada={proximaRodada}
-        fases={fasesDoBaralho}
-        deckCarregado={deckCarregado}
-        catalogo={
-          <CatalogoDePalavras
-            key={versaoDoCatalogo}
-            cartoes={vocabCards}
-            aoMudarFiltro={setFiltroDoCatalogo}
-            aoAbrirPalavra={abrirPalavra}
-            rodape={
-              semVerso > 0 && (
-                <div className="q-aviso qv-sem-verso" role="note">
-                  <span>
-                    <b>
-                      {tp(semVerso, '{n} palavra está sem tradução.', '{n} palavras estão sem tradução.', {
-                        n: numero(semVerso),
-                      })}
-                    </b>{' '}
-                    {t(
-                      'Isso acontece quando o idioma que você aprende e o seu idioma são o mesmo: não há o que traduzir, e o cartão fica sem verso.',
-                    )}
-                  </span>
-                  <button type="button" className="q-ctl" onClick={() => onChangeView?.('settings')}>
-                    <Languages aria-hidden /> {t('Conferir os dois idiomas')}
-                  </button>
-                </div>
-              )
-            }
-          />
-        }
-        aoRevisar={() => onChangeView?.('study')}
-        aoJogar={() => onChangeView?.('play')}
-        aoCapturar={() => onChangeView?.('capture')}
-        revisoesPorDia={revisoesPorDia}
-        minutosHoje={minutosHoje}
-        totalDePalavras={vocabCards.length}
-        niveis={levelDist}
-        totalDeNiveis={levelTotal}
-        temNivelReal={temNivelReal}
-        coresDosNiveis={levelColors}
-        capturas={recordings.length}
-        nomeDoIdioma={nomeDoIdiomaEstudado}
-        corpus={corpusDoAlvo}
-        textStats={textStats}
-        vozPassiva={vozPassiva}
-      >
-        {dialogos}
-        {gaveta}
-      </VocabularioDoQuest>
-    );
-  }
-
+  const abasDeAnalise: AbaDoQuest[] = [
+    { id: 'dashboard', rotulo: copyDoPerfil('metricsTab.dashboard', ageProfile), Icone: LayoutGrid },
+    { id: 'lexical', rotulo: copyDoPerfil('metricsTab.lexical', ageProfile), Icone: Brain },
+    { id: 'fluency', rotulo: copyDoPerfil('metricsTab.fluency', ageProfile), Icone: Mic },
+  ];
+  const abasDoQuest: AbaDoQuest[] = [
+    { id: 'palavras', rotulo: ageProfile === 'kids' ? 'Minhas cartas' : 'Minhas palavras', Icone: BookOpen },
+    ...(mostrarMais ? [] : abasDeAnalise),
+  ];
   return (
-    <div className="flex-1 flex flex-col lg:flex-row h-full min-h-0">
-      <div className="flex-1 min-w-0 flex flex-col h-full min-h-0 relative">
-        {dialogos}
-
-        <Tela largura="larga">
-          <CabecalhoDeTela
-            sobrancelha="Seu caderno"
-            icone={BookOpen}
-            titulo={titulo}
-            sub={sub}
-            acoes={
-              <>
-                <button type="button" className="btn btn-outline" onClick={() => setAdicionando(true)}>
-                  <Plus aria-hidden /> Palavra
-                </button>
-                <button type="button" className="btn btn-outline" onClick={() => setNoAnki(true)}>
-                  <Upload aria-hidden /> Trazer do Anki
-                </button>
-                {/* O antigo "Exportar relatório" (o .txt de progresso) é um dos formatos do diálogo. */}
-                <button type="button" className="btn btn-solid" onClick={() => setExportando(true)}>
-                  <Download aria-hidden /> {rotuloDeExportar}
-                </button>
-              </>
-            }
-            abas={
-              mostrarMais ? (
-                <div className="linha" style={{ gap: 0, alignItems: 'stretch' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>{abas}</div>
-                  <button type="button" className="aba" onClick={() => setShowAllTabs(true)}>
-                    <MoreHorizontal aria-hidden /> Mais
-                  </button>
-                </div>
-              ) : (
-                abas
-              )
-            }
-          />
-
-          {/* --- MINHAS PALAVRAS (aba de entrada) ---
-              O ACERVO, na tela que leva o nome dele: o que revisar, quantas em cada fase, e a
-              lista inteira. A análise é o que fica atrás de uma aba, não o contrário. */}
-          <PainelDeAba id="palavras" ativo={mainTab}>
-            {/* O CONVITE DA REVISÃO — só com o que revisar. Sem vencidas, o estado vazio do
-                protótipo diz que está tudo em dia, em vez de um "0 prontas". */}
-            {metrics && metrics.dueToday > 0 ? (
-              <section
-                className="cartao faixa-rev"
-                style={{
-                  borderColor: 'color-mix(in srgb,var(--accent) 45%,var(--border-subtle))',
-                  borderTopWidth: 'var(--bw-card)',
-                }}
-              >
-                <span className="contador">{metrics.dueToday}</span>
-                <div style={{ flex: 1, minWidth: 180 }}>
-                  <h2 style={{ fontSize: 17, fontWeight: 800 }}>
-                    {ageProfile === 'kids' ? 'Cartas prontas para regar' : 'Prontas para revisar'}
-                  </h2>
-                  <p className="mut" style={{ fontSize: 13 }}>
-                    {rotuloDeDuracao(estimativaDeMinutos(metrics.dueToday, temposMedidos))}
-                    {' · '}
-                    {numero(metrics.newCards)} {metrics.newCards === 1 ? 'nova' : 'novas'}
-                    {' · '}
-                    {numero(metrics.deckSize)} no total
-                  </p>
-                </div>
-                <button type="button" className="btn btn-solid" onClick={() => onChangeView?.('study')}>
-                  <Target aria-hidden /> {ageProfile === 'kids' ? 'Regar agora' : 'Revisar agora'}
-                </button>
-              </section>
-            ) : metrics && metrics.deckSize > 0 ? (
-              <section className="cartao">
-                <div className="vazio">
-                  <IconeEmBloco icone={PartyPopper} />
-                  <h3>Tudo revisado por hoje</h3>
-                  <p>
-                    {proximaRodada ? `A próxima rodada abre ${proximaRodada}.` : 'Nada vence agora.'} Que tal um jogo
-                    com as mesmas palavras?
-                  </p>
-                  <button type="button" className="btn btn-outline" onClick={() => onChangeView?.('play')}>
-                    Abrir Jogar
-                  </button>
-                </div>
-              </section>
-            ) : null}
-
-            {/* AS QUATRO FASES, do `fsrsState` real de cada cartão (ver `fasesDoBaralho`). */}
-            <div className="ladrilhos" style={{ marginTop: 20 }}>
-              {[
-                { rotulo: 'Guardadas', valor: fasesDoBaralho.total, tom: '' },
-                { rotulo: 'Novas', valor: fasesDoBaralho.novas, tom: 'acc' },
-                { rotulo: 'Aprendendo', valor: fasesDoBaralho.aprendendo, tom: 'warn' },
-                { rotulo: 'Em revisão', valor: fasesDoBaralho.revisao, tom: 'good' },
-              ].map((f) => (
-                <div key={f.rotulo} className="cartao ladrilho">
-                  <span className="label-mono">{f.rotulo}</span>
-                  {/* Sem zero enquanto o baralho chega: "0" seria um número falso. */}
-                  <span className={`v ${f.tom}`}>{deckCarregado ? numero(f.valor) : '—'}</span>
-                </div>
-              ))}
-            </div>
-
-            <CatalogoDePalavras
-              key={versaoDoCatalogo}
-              cartoes={vocabCards}
-              aoMudarFiltro={setFiltroDoCatalogo}
-              aoAbrirPalavra={abrirPalavra}
-              rodape={
-                semVerso > 0 && (
-                  <p className="mut" style={{ fontSize: 12.5, marginTop: 12, color: 'var(--warn-ink)' }}>
-                    <b>
-                      {numero(semVerso)} {semVerso === 1 ? 'palavra está' : 'palavras estão'} sem tradução.
-                    </b>{' '}
-                    Isso acontece quando o idioma que você aprende e o seu idioma são o mesmo — não há o que traduzir, e
-                    o cartão fica sem verso.{' '}
-                    <button type="button" className="link" onClick={() => onChangeView?.('settings')}>
-                      Conferir os dois idiomas
-                    </button>
-                  </p>
-                )
-              }
-            />
-          </PainelDeAba>
-
-          {/* --- VISÃO GERAL --- a do protótipo aprovado: as revisões dos últimos 7 dias (de
-              `review_logs`, agrupadas no dia de quem olha) e três números — acerto, minutos de
-              hoje (o tempo medido nas respostas de hoje) e a ofensiva. */}
-          <PainelDeAba id="dashboard" ativo={mainTab}>
-            <section className="cartao p5">
-              <TituloDeSecao
-                icone={ChartColumn}
-                titulo="Palavras revisadas por dia"
-                direita={
-                  <span className="mut" style={{ fontSize: 12.5 }}>
-                    últimos 7 dias
-                  </span>
-                }
-              />
-              <div
-                className="grafico"
-                role="img"
-                aria-label={`Revisões por dia: ${revisoesPorDia.map((d) => `${d.rotulo} ${d.n}`).join(', ')}`}
-              >
-                {revisoesPorDia.map((d, i) => (
-                  <div key={d.rotulo} className="col" style={{ '--i': i } as React.CSSProperties}>
-                    <span className="tn" style={{ font: '700 12px var(--font-mono)' }}>
-                      {d.n}
-                    </span>
-                    <div
-                      className={`b ${d.rotulo === 'hoje' ? 'hoje' : ''}`}
-                      style={
-                        { '--i': i, height: Math.max(Math.round(d.n * alturaPorRevisao), 4) } as React.CSSProperties
-                      }
-                    />
-                    <small>{d.rotulo}</small>
-                  </div>
-                ))}
-              </div>
-            </section>
-            <div className="ladrilhos" style={{ marginTop: 20 }}>
-              <div className="cartao ladrilho">
-                <span className="label-mono">Acerto</span>
-                <span className="v">
-                  {metrics && (metrics.accuracyConfidence ?? 0) > 0 ? `${Math.round(metrics.accuracy * 100)}%` : '—'}
+    <VocabularioDoQuest
+      titulo={titulo}
+      sub={sub}
+      infantil={ageProfile === 'kids'}
+      abas={abasDoQuest}
+      aba={mainTab}
+      aoTrocarAba={setMainTab}
+      aoMostrarMais={mostrarMais ? () => setShowAllTabs(true) : undefined}
+      rotuloDeExportar={rotuloDeExportar}
+      aoAdicionar={() => setAdicionando(true)}
+      aoAnki={() => setNoAnki(true)}
+      aoExportar={() => setExportando(true)}
+      metrics={metrics}
+      duracaoDaRevisao={metrics ? rotuloDeDuracao(estimativaDeMinutos(metrics.dueToday, temposMedidos)) : ''}
+      proximaRodada={proximaRodada}
+      fases={fasesDoBaralho}
+      deckCarregado={deckCarregado}
+      catalogo={
+        <CatalogoDePalavras
+          key={versaoDoCatalogo}
+          cartoes={vocabCards}
+          aoMudarFiltro={setFiltroDoCatalogo}
+          aoAbrirPalavra={abrirPalavra}
+          rodape={
+            semVerso > 0 && (
+              <div className="q-aviso qv-sem-verso" role="note">
+                <span>
+                  <b>
+                    {tp(semVerso, '{n} palavra está sem tradução.', '{n} palavras estão sem tradução.', {
+                      n: numero(semVerso),
+                    })}
+                  </b>{' '}
+                  {t(
+                    'Isso acontece quando o idioma que você aprende e o seu idioma são o mesmo: não há o que traduzir, e o cartão fica sem verso.',
+                  )}
                 </span>
+                <button type="button" className="q-ctl" onClick={() => onChangeView?.('settings')}>
+                  <Languages aria-hidden /> {t('Conferir os dois idiomas')}
+                </button>
               </div>
-              <div className="cartao ladrilho">
-                <span className="label-mono">Minutos hoje</span>
-                <span className="v">{numero(minutosHoje)}</span>
-              </div>
-              <div className="cartao ladrilho">
-                <span className="label-mono">Ofensiva</span>
-                <span className="v warn">
-                  {numero(metrics?.streakDays ?? 0)} {(metrics?.streakDays ?? 0) === 1 ? 'dia' : 'dias'}
-                </span>
-              </div>
-            </div>
-          </PainelDeAba>
-
-          {/* --- LEXICAL INTELLIGENCE TAB --- */}
-          <PainelDeAba id="lexical" ativo={mainTab} className="space-y-6">
-            {vocabCards.length < 20 ? (
-              <section className="cartao">
-                <div className="vazio">
-                  <IconeEmBloco icone={Brain} />
-                  <h3>A inteligência lexical abre com 20 palavras</h3>
-                  <p>
-                    Ela compara as palavras que você conhece com as mais usadas no idioma e mostra o que falta. Você tem{' '}
-                    {numero(vocabCards.length)}.
-                  </p>
-                  <button type="button" className="btn btn-solid" onClick={() => onChangeView?.('capture')}>
-                    <Mic aria-hidden /> Capturar mais
-                  </button>
-                </div>
-              </section>
-            ) : (
-              <>
-                {/* Resumo lexical real */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="cartao p5">
-                    <div className="text-[11px] font-bold uppercase tracking-wider font-mono text-ink-muted mb-2">
-                      Palavras Distintas
-                    </div>
-                    <div className="font-display font-black text-3xl text-ink">{numero(metrics?.uniqueWords ?? 0)}</div>
-                  </div>
-                  <div className="cartao p5">
-                    <div className="text-[11px] font-bold uppercase tracking-wider font-mono text-ink-muted mb-2">
-                      Cartões no Deck
-                    </div>
-                    <div className="font-display font-black text-3xl text-ink">{numero(metrics?.deckSize ?? 0)}</div>
-                  </div>
-                  <div className="cartao p5">
-                    <div className="text-[11px] font-bold uppercase tracking-wider font-mono text-ink-muted mb-2">
-                      Palavras Capturadas
-                    </div>
-                    <div className="font-display font-black text-3xl text-ink">
-                      {numero(metrics?.wordsCaptured ?? 0)}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Level Distribution — ESTIMATIVA */}
-                  <div className="cartao p5">
-                    <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
-                      <h3 className="font-display font-extrabold text-[16px] text-ink flex items-center gap-2">
-                        <PieChartIcon className="w-5 h-5 text-rare" /> Distribuição por Nível (CEFR)
-                      </h3>
-                      {levelDist.length > 0 && <Confianca valor={metrics?.levelConfidence ?? 0} estimativa />}
-                    </div>
-                    <p className="text-[12px] text-ink-muted mb-6">
-                      Estimativa aproximada de nível, não represente como classificação exata.
-                    </p>
-
-                    {/* "N/D" NÃO É UMA DISTRIBUIÇÃO. Com todo o acervo fora da wordlist, o donut
-                    desenhava uma fatia única de 100% "N/D" — um gráfico que não informa nada,
-                    ao lado de um Resumo que já declara "não há base". `temNivelReal` faz o
-                    componente cair no estado vazio, que explica em vez de desenhar. */}
-                    {temNivelReal ? (
-                      <>
-                        <div className="w-full" style={{ height: 240 }}>
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie
-                                data={pieData}
-                                dataKey="value"
-                                nameKey="name"
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={55}
-                                outerRadius={90}
-                                paddingAngle={2}
-                              >
-                                {pieData.map((_, i) => (
-                                  <Cell key={i} fill={levelColors[i % levelColors.length]} />
-                                ))}
-                              </Pie>
-                              <Tooltip
-                                contentStyle={{
-                                  backgroundColor: chartTheme.surface,
-                                  border: `1px solid ${chartTheme.borderSubtle}`,
-                                  borderRadius: '8px',
-                                  color: chartTheme.ink,
-                                }}
-                              />
-                            </PieChart>
-                          </ResponsiveContainer>
-                        </div>
-                        <div className="mt-4 space-y-2">
-                          {levelDist.map((l, i) => (
-                            <div key={l.level} className="flex items-center justify-between text-[12px]">
-                              <span className="flex items-center gap-2 text-ink font-medium">
-                                <span
-                                  className="w-2.5 h-2.5 rounded-full"
-                                  style={{ backgroundColor: levelColors[i % levelColors.length] }}
-                                ></span>
-                                {l.level}
-                              </span>
-                              <span className="text-ink-muted font-bold">
-                                {l.count} {levelTotal > 0 ? `• ${Math.round((l.count / levelTotal) * 100)}%` : ''}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    ) : (
-                      <SemDado compacto motivo={`Sem dados suficientes para estimar a distribuição de níveis.`} />
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-          </PainelDeAba>
-
-          {/* --- FLUENCY TAB --- sem fala sua gravada, o estado do protótipo. */}
-          <PainelDeAba id="fluency" ativo={mainTab} className="space-y-6">
-            {!((metrics?.speakingMs ?? 0) > 0) ? (
-              <section className="cartao">
-                <div className="vazio">
-                  <IconeEmBloco icone={AudioLines} />
-                  <h3>Desempenho e fluência precisam de fala sua</h3>
-                  <p>Grave um shadowing ou um karaokê: a nota de pronúncia e o ritmo aparecem aqui.</p>
-                  <button type="button" className="btn btn-solid" onClick={() => onChangeView?.('play')}>
-                    <Gamepad2 aria-hidden /> Ir para Jogar
-                  </button>
-                </div>
-              </section>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Acoustic competences radar — requer IA */}
-                  <div className="cartao p5 flex flex-col h-[400px]">
-                    <h3 className="font-display font-extrabold text-[16px] text-ink mb-2">
-                      Radar de Competências Acústicas
-                    </h3>
-                    <p className="text-[12px] text-ink-muted mb-4">Avaliação multidimensional da fala espontânea.</p>
-                    <div className="flex-1 min-h-0 flex items-center justify-center">
-                      {/* Sem "em breve": não há nada a caminho. Um radar por dimensão exigiria uma
-                      avaliação por modelo de linguagem A CADA abertura de tela, custo por token e
-                      envio do seu texto para fora, que o perfil Privado/Local proíbe. É uma feature
-                      com preço e consentimento a decidir, não uma data. */}
-                      <SemDado
-                        compacto
-                        motivo={`Avaliar fluência, gramática e pronúncia por dimensão exigiria um modelo de linguagem, que este painel não chama.`}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-6">
-                    {/* Speech Pace (WPM) — dado real */}
-                    <div className="cartao p5">
-                      <h3 className="font-display font-extrabold text-[16px] text-ink flex items-center gap-2 mb-4">
-                        <Activity className="w-5 h-5 text-accent" /> Ritmo de Fala (WPM)
-                      </h3>
-                      {metrics && metrics.wpm > 0 ? (
-                        <>
-                          <div className="flex items-end gap-4 mb-3 flex-wrap">
-                            <div className="text-5xl font-black font-display text-ink">{Math.round(metrics.wpm)}</div>
-                            <div className="text-[13px] text-ink-muted font-medium mb-1">Palavras por Minuto</div>
-                            <div className="mb-2">
-                              <Confianca valor={metrics.wpmConfidence} />
-                            </div>
-                          </div>
-                          <div className="relative h-2 bg-surface rounded-full border border-border-subtle overflow-hidden mb-2">
-                            {/* Zonas: Lento (0-110), Bom (110-150), Acelerado (150+) */}
-                            <div className="absolute top-0 left-0 h-full w-[30%] bg-rare/20"></div>
-                            <div className="absolute top-0 left-[30%] h-full w-[40%] bg-good/20"></div>
-                            <div className="absolute top-0 left-[70%] h-full w-[30%] bg-warn/20"></div>
-                            {/* Indicador atual: mapeia 0..200 WPM em 0..100% (limitado). */}
-                            <div
-                              /* O brilho era `rgba(255,255,255,0.5)` fixo — branco sobre fundo claro
-                             é invisível, então o marcador não brilhava em nenhum tema claro.
-                             `color-mix` sobre o token acompanha os dois modos. */
-                              className="absolute top-0 h-full w-2 bg-ink shadow-[0_0_8px_color-mix(in_srgb,var(--ink)_50%,transparent)] rounded-full z-10 transition-all duration-1000"
-                              style={{ left: `${Math.min(100, Math.max(0, (metrics.wpm / 200) * 100))}%` }}
-                            ></div>
-                          </div>
-                          <div className="flex justify-between text-[10px] font-bold text-ink-muted uppercase tracking-wider">
-                            <span>Lento</span>
-                            <span className="text-good-ink">Nativo / Fluído</span>
-                            <span>Acelerado</span>
-                          </div>
-                        </>
-                      ) : (
-                        <SemDado
-                          compacto
-                          motivo={`Sem dados suficientes. Grave algumas sessões de fala para calcular seu ritmo.`}
-                        />
-                      )}
-                    </div>
-
-                    {/* Speaking Time — dado real */}
-                    <div className="cartao p5">
-                      <h3 className="font-display font-extrabold text-[16px] text-ink flex items-center gap-2 mb-4">
-                        <Clock className="w-5 h-5 text-rare" /> Tempo Total de Fala
-                      </h3>
-                      {metrics && metrics.speakingMs > 0 ? (
-                        <div className="flex items-end gap-4 flex-wrap">
-                          <div className="text-5xl font-black font-display text-ink">
-                            {formatMs(metrics.speakingMs)}
-                          </div>
-                          <div className="text-[13px] text-ink-muted font-medium mb-1">
-                            min : seg • {recordings.length} capturas
-                          </div>
-                        </div>
-                      ) : (
-                        <SemDado compacto motivo={`Sem dados suficientes de fala capturada ainda.`} />
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/*
-              Complexidade Estrutural & Tom. Complexidade gramatical (`computeTextStats`) e voz
-              passiva (`detectarVozPassiva`) sao deterministicas, sem IA. O corpus segue o IDIOMA
-              QUE A PESSOA ESTUDA, e cada regua declara o que sabe medir naquele idioma: silabas e
-              Flesch so valem em ingles, a densidade lexical precisa de lista de stopwords, a voz
-              passiva precisa do padrao "be + participio". O que nao se aplica aparece como "sem
-              regua para <idioma>" — e nao como zero, que era o que a tela mostrava antes.
-            */}
-                <div className="cartao p5 space-y-6">
-                  <div>
-                    <h3 className="font-display font-extrabold text-[16px] text-ink flex items-center gap-2 mb-1">
-                      <BarChart2 className="w-5 h-5 text-accent" /> Complexidade Gramatical
-                    </h3>
-                    <p className="text-[11.5px] text-ink-muted mb-4">
-                      Estatísticas determinísticas do texto (sem IA), calculadas sobre as falas em{' '}
-                      <b>{nomeDoIdiomaEstudado}</b>, o idioma que você estuda.
-                      {corpusDoAlvo.totalFalas > 0 && (
-                        <>
-                          {' '}
-                          {corpusDoAlvo.noAlvo} de {corpusDoAlvo.totalFalas} falas capturadas estão nele
-                          {corpusDoAlvo.emOutrosIdiomas > 0 &&
-                            ` (${corpusDoAlvo.emOutrosIdiomas} em outros idiomas ficaram fora)`}
-                          .
-                        </>
-                      )}
-                    </p>
-                    {textStats.wordCount > 0 ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <div className="bg-surface border border-border-subtle rounded-xl p-3">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-1">
-                            Palavras/Frase
-                          </div>
-                          <div className="font-display font-black text-xl text-ink">{textStats.avgSentenceLength}</div>
-                        </div>
-                        <div className="bg-surface border border-border-subtle rounded-xl p-3">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-1">
-                            Flesch Reading Ease
-                          </div>
-                          <div className="font-display font-black text-xl text-ink">
-                            {textStats.readingEase != null ? textStats.readingEase : '-'}
-                          </div>
-                          {textStats.readingEase == null && (
-                            <div className="text-[10px] text-ink-muted mt-0.5">
-                              {textStats.syllableCount == null
-                                ? `sem régua para ${nomeDoIdiomaEstudado}`
-                                : 'precisa de 10+ palavras'}
-                            </div>
-                          )}
-                        </div>
-                        <div className="bg-surface border border-border-subtle rounded-xl p-3">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-1">
-                            Densidade Lexical
-                          </div>
-                          <div className="font-display font-black text-xl text-ink">
-                            {textStats.lexicalDensityPct != null ? `${textStats.lexicalDensityPct}%` : '-'}
-                          </div>
-                          {textStats.lexicalDensityPct == null && (
-                            <div className="text-[10px] text-ink-muted mt-0.5">
-                              sem lista de stopwords para {nomeDoIdiomaEstudado}
-                            </div>
-                          )}
-                        </div>
-                        <div className="bg-surface border border-border-subtle rounded-xl p-3">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-1">
-                            Riqueza Lexical (TTR)
-                          </div>
-                          <div className="font-display font-black text-xl text-ink">
-                            {Math.round(textStats.typeTokenRatio * 100)}/100
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      // Era uma template string com o ternario DENTRO das crases — o usuario lia
-                      // codigo-fonte na tela (visto em 31/08).
-                      <SemDado
-                        compacto
-                        motivo={
-                          corpusDoAlvo.totalFalas === 0
-                            ? 'Nenhuma fala capturada ainda, grave ou importe uma sessão para medir complexidade.'
-                            : `Nenhuma das falas capturadas está em ${nomeDoIdiomaEstudado}, que é o idioma que você estuda.`
-                        }
-                      />
-                    )}
-                  </div>
-
-                  <div className="pt-6 border-t border-border-subtle">
-                    <h3 className="font-display font-extrabold text-[16px] text-ink flex items-center gap-2 mb-1">
-                      <MessageSquareWarning className="w-5 h-5 text-warn" /> Uso de Voz Passiva
-                    </h3>
-                    <p className="text-[11.5px] text-ink-muted mb-4">
-                      Detecção por padrão "be + particípio", sem IA. É HEURÍSTICA, não um parser gramatical: perde
-                      particípios irregulares fora da lista curada e pode confundir um punhado de adjetivos em "-ed" com
-                      voz passiva, os números são um indício, não um veredito.
-                    </p>
-                    {vozPassiva == null ? (
-                      /* AUSENCIA DECLARADA. O padrao "be + participio" e do ingles; para os outros
-                     idiomas nao existe regua aqui, e zero ocorrencias seria uma afirmacao falsa
-                     sobre a fala da pessoa. */
-                      <SemDado
-                        compacto
-                        motivo={`Não há régua de voz passiva para ${nomeDoIdiomaEstudado}. O padrão "be + particípio" é do inglês, e aplicá-lo a outro idioma devolveria zero como se fosse medida.`}
-                      />
-                    ) : textStats.wordCount > 0 ? (
-                      <>
-                        <div className="flex items-end gap-4 flex-wrap mb-3">
-                          <div className="font-display font-black text-3xl text-ink">{vozPassiva.ocorrencias}</div>
-                          <div className="text-[12px] text-ink-muted font-medium mb-1">
-                            ocorrências • {vozPassiva.por100Palavras} a cada 100 palavras
-                          </div>
-                        </div>
-                        {vozPassiva.exemplos.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5">
-                            {vozPassiva.exemplos.map((ex, i) => (
-                              <span
-                                key={i}
-                                className="text-[11px] font-mono px-2 py-1 rounded bg-warn-soft text-warn-ink"
-                              >
-                                {ex}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <p className="text-[12px] text-ink-muted">
-                        Sem texto suficiente em {nomeDoIdiomaEstudado} para detectar.
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="pt-6 border-t border-border-subtle">
-                    <h3 className="font-display font-extrabold text-[16px] text-ink mb-2">Tom da Fala</h3>
-                    <SemDado
-                      compacto
-                      motivo={`Classificar tom (confiante/analítico/hesitante) exige análise acústica e prosódica do
-                  áudio, o app transcreve, mas não mede pitch nem entonação. Nada foi estimado.`}
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-          </PainelDeAba>
-        </Tela>
-      </div>
-
+            )
+          }
+        />
+      }
+      aoRevisar={() => onChangeView?.('study')}
+      aoJogar={() => onChangeView?.('play')}
+      aoCapturar={() => onChangeView?.('capture')}
+      revisoesPorDia={revisoesPorDia}
+      minutosHoje={minutosHoje}
+      totalDePalavras={vocabCards.length}
+      niveis={levelDist}
+      totalDeNiveis={levelTotal}
+      temNivelReal={temNivelReal}
+      coresDosNiveis={levelColors}
+      capturas={recordings.length}
+      nomeDoIdioma={nomeDoIdiomaEstudado}
+      corpus={corpusDoAlvo}
+      textStats={textStats}
+      vozPassiva={vozPassiva}
+    >
+      {dialogos}
       {gaveta}
-    </div>
+    </VocabularioDoQuest>
   );
 }

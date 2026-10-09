@@ -17,12 +17,10 @@ import {
   rotuloDaForma,
   type StatusDeBilling,
 } from '../../../lib/assinatura';
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { carregarEntitlements } from '../../../lib/entitlements';
 import { t } from '../../../lib/i18n';
 import { registrarAssinaturaConcluida } from '../../../lib/ofertas/instrumentacao';
 import { navegarPara } from '../../../lib/rotas';
-import { IconeEmBloco, Tela } from '../../ui';
 import { irSub, itemCompleto, PLANO_NOME, planoPorId } from './dados';
 
 /**
@@ -39,7 +37,6 @@ import { irSub, itemCompleto, PLANO_NOME, planoPorId } from './dados';
 export default function Assinado() {
   const [status, setStatus] = useState<StatusDeBilling | null | 'carregando'>('carregando');
   const [faturas, setFaturas] = useState<Fatura[] | null>(null);
-  const questNovo = useQuestNovo();
 
   useEffect(() => {
     let vivo = true;
@@ -73,7 +70,7 @@ export default function Assinado() {
   const confirmada = !!a && a.status === 'active' && planoPagoDe(a.plano) !== null;
 
   /* QUEST, à espera da confirmação: o mesmo estado (conferindo, ainda não chegou) e a mesma saída. */
-  if (!confirmada && questNovo) {
+  if (!confirmada) {
     const conferindo = status === 'carregando';
     const IconeDaEspera = conferindo ? LoaderCircle : Clock;
     return (
@@ -99,28 +96,6 @@ export default function Assinado() {
       </div>
     );
   }
-  if (!confirmada) {
-    return (
-      <Tela largura="estreita">
-        <section className="cartao p6 sucesso entra">
-          <div className="vazio">
-            <IconeEmBloco icone={status === 'carregando' ? LoaderCircle : Clock} />
-            <h3>{status === 'carregando' ? 'Conferindo o pagamento…' : 'Ainda não recebemos a confirmação'}</h3>
-            <p>
-              {status === 'carregando'
-                ? 'Perguntando ao servidor se o pagamento já entrou.'
-                : 'O plano libera quando o processador confirmar o pagamento. Pix e cartão costumam levar alguns minutos; boleto, até 2 dias úteis. Esta tela continua conferindo sozinha.'}
-            </p>
-          </div>
-          <div className="linha" style={{ gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginTop: 20 }}>
-            <button type="button" className="btn btn-outline" onClick={() => irSub(null)}>
-              Ver planos
-            </button>
-          </div>
-        </section>
-      </Tela>
-    );
-  }
 
   const plano = planoPagoDe(a.plano) ?? 'premium';
   const P = PLANO_NOME[plano];
@@ -131,73 +106,19 @@ export default function Assinado() {
   const hoje = new Date().toISOString().slice(0, 10);
 
   /* QUEST, confirmada: o que ficou liberado, o que foi pago e os dois caminhos de saída. */
-  if (questNovo)
-    return (
-      <div className="q-palco qc" data-testid="assinado-do-quest">
-        <section className="q-cartao qc-sucesso">
-          <span className="qc-selo" aria-hidden>
-            <Check />
-          </span>
-          <p className="q-sobre" style={{ margin: 0 }}>
-            <PartyPopper aria-hidden style={{ width: 18, height: 18, verticalAlign: -3, marginRight: 6 }} />
-            {t('Assinatura confirmada')}
-          </p>
-          <h1>{t('Bem-vindo ao {plano}!', { plano: P })}</h1>
-          <p>{t('Já está tudo liberado. O recibo fica em Planos → Sua assinatura.')}</p>
-          <ul className="qc-lista">
-            {planoPorId(plano).itens.map((item) => (
-              <li key={item.texto}>
-                <Check aria-hidden />
-                {itemCompleto(item)}
-              </li>
-            ))}
-          </ul>
-          <dl className="qc-dados">
-            <div>
-              <dt>{t('Plano')}</dt>
-              <dd>{`${P} · ${rotuloDaForma(forma)}`}</dd>
-            </div>
-            <div>
-              <dt>
-                {ultima && ultima.data !== hoje
-                  ? t('Pago em {data}', { data: dataCurta(ultima.data) })
-                  : t('Pago hoje')}
-              </dt>
-              <dd>{brl(ultima?.valor ?? valorDaForma)}</dd>
-            </div>
-            <div>
-              <dt>{status !== 'carregando' && status?.proximaCobranca ? t('Próxima cobrança em') : t('Acesso até')}</dt>
-              <dd>
-                {dataCurta(status !== 'carregando' && status?.proximaCobranca ? status.proximaCobranca : a.valeAte)}
-              </dd>
-            </div>
-          </dl>
-          <div className="q-acoes">
-            <button type="button" className="q-ctl pri" onClick={() => navegarPara({ view: 'capture' })}>
-              <Mic aria-hidden /> {t('Começar a usar')}
-            </button>
-            <button type="button" className="q-ctl" onClick={() => irSub('assinatura')}>
-              <Receipt aria-hidden /> {t('Ver minha assinatura')}
-            </button>
-          </div>
-        </section>
-      </div>
-    );
-
   return (
-    <Tela largura="estreita">
-      <section className="cartao p6 sucesso entra">
-        <div className="selo-ok" aria-hidden>
+    <div className="q-palco qc" data-testid="assinado-do-quest">
+      <section className="q-cartao qc-sucesso">
+        <span className="qc-selo" aria-hidden>
           <Check />
-        </div>
-        <span className="sobrancelha" style={{ justifyContent: 'center' }}>
-          <PartyPopper aria-hidden /> Assinatura confirmada
         </span>
-        <h1 style={{ fontSize: 30, fontWeight: 900, margin: '6px 0 8px' }}>Bem-vindo ao {P}!</h1>
-        <p className="mut" style={{ maxWidth: '52ch', margin: '0 auto' }}>
-          Já está tudo liberado. O recibo fica em Planos → Sua assinatura.
+        <p className="q-sobre" style={{ margin: 0 }}>
+          <PartyPopper aria-hidden style={{ width: 18, height: 18, verticalAlign: -3, marginRight: 6 }} />
+          {t('Assinatura confirmada')}
         </p>
-        <ul className="lista-check liberado">
+        <h1>{t('Bem-vindo ao {plano}!', { plano: P })}</h1>
+        <p>{t('Já está tudo liberado. O recibo fica em Planos → Sua assinatura.')}</p>
+        <ul className="qc-lista">
           {planoPorId(plano).itens.map((item) => (
             <li key={item.texto}>
               <Check aria-hidden />
@@ -205,33 +126,33 @@ export default function Assinado() {
             </li>
           ))}
         </ul>
-        <dl className="dados centro">
+        <dl className="qc-dados">
           <div>
-            <dt>Plano</dt>
+            <dt>{t('Plano')}</dt>
             <dd>{`${P} · ${rotuloDaForma(forma)}`}</dd>
           </div>
           <div>
-            <dt>{ultima && ultima.data !== hoje ? `Pago em ${dataCurta(ultima.data)}` : 'Pago hoje'}</dt>
-            <dd className="tn">{brl(ultima?.valor ?? valorDaForma)}</dd>
+            <dt>
+              {ultima && ultima.data !== hoje ? t('Pago em {data}', { data: dataCurta(ultima.data) }) : t('Pago hoje')}
+            </dt>
+            <dd>{brl(ultima?.valor ?? valorDaForma)}</dd>
           </div>
-          {/* A PRÓXIMA COBRANÇA vem do Asaas (`proximaCobranca`). `valeAte` é outra coisa — o vencimento
-              mais a graça de atraso — e aparece como "acesso até" quando o Asaas não respondeu. */}
           <div>
             <dt>{status !== 'carregando' && status?.proximaCobranca ? t('Próxima cobrança em') : t('Acesso até')}</dt>
-            <dd className="tn">
+            <dd>
               {dataCurta(status !== 'carregando' && status?.proximaCobranca ? status.proximaCobranca : a.valeAte)}
             </dd>
           </div>
         </dl>
-        <div className="linha" style={{ gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginTop: 20 }}>
-          <button type="button" className="btn btn-solid grande" onClick={() => navegarPara({ view: 'capture' })}>
-            <Mic aria-hidden /> Começar a usar
+        <div className="q-acoes">
+          <button type="button" className="q-ctl pri" onClick={() => navegarPara({ view: 'capture' })}>
+            <Mic aria-hidden /> {t('Começar a usar')}
           </button>
-          <button type="button" className="btn btn-outline" onClick={() => irSub('assinatura')}>
-            <Receipt aria-hidden /> Ver minha assinatura
+          <button type="button" className="q-ctl" onClick={() => irSub('assinatura')}>
+            <Receipt aria-hidden /> {t('Ver minha assinatura')}
           </button>
         </div>
       </section>
-    </Tela>
+    </div>
   );
 }

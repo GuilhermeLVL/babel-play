@@ -3,7 +3,7 @@
  * A GRADE DE CONQUISTAS v2: agrupada pelos quatro pilares, cada um com a contagem real "feitas/N",
  * e a secreta escondida (só a dica) até ser feita.
  */
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import Conquistas from '../src/components/views/Conquistas'
@@ -19,20 +19,21 @@ function renderizar() {
 describe('grade de conquistas por pilar', () => {
   beforeEach(() => localStorage.clear())
 
-  it('um grupo por pilar, com feitas/total de verdade', () => {
+  it('um botão por pilar, com feitas/total de verdade, e o pilar escolhido filtra a grade', () => {
     localStorage.setItem('babel.conquistas', JSON.stringify(['caderno-cheio', 'revisor', 'sem-erro']))
     const { container } = renderizar()
-    for (const p of PILARES_DE_CONQUISTA) expect(screen.getByText(p.nome)).toBeTruthy()
+    const pilares = within(screen.getByRole('group', { name: 'Pilares das conquistas' }))
     const total = (pilar: string) => CONQUISTAS.filter((c) => c.pilar === pilar).length
-    const contagens = [...container.querySelectorAll('.entre .tn')]
-      .map((e) => e.textContent)
-      .filter((t) => /^\d+\/\d+$/.test(t ?? ''))
-    expect(contagens).toEqual([
-      `2/${total('vocabulario')}`,
-      `0/${total('escuta')}`,
-      `1/${total('jogos')}`,
-      `0/${total('constancia')}`,
-    ])
+    const contagem = (nome: string) =>
+      pilares.getByRole('button', { name: new RegExp(`^${nome}`) }).querySelector('.n')?.textContent
+    expect(contagem('Todos')).toBe(`3/${CONQUISTAS.length}`)
+    const feitas: Record<string, number> = { vocabulario: 2, escuta: 0, jogos: 1, constancia: 0 }
+    for (const p of PILARES_DE_CONQUISTA) expect(contagem(p.nome), p.id).toBe(`${feitas[p.id]}/${total(p.id)}`)
+
+    expect(container.querySelectorAll('.conq')).toHaveLength(CONQUISTAS.length)
+    const jogos = PILARES_DE_CONQUISTA.find((p) => p.id === 'jogos')!
+    fireEvent.click(pilares.getByRole('button', { name: new RegExp(`^${jogos.nome}`) }))
+    expect(container.querySelectorAll('.conq')).toHaveLength(total('jogos'))
   })
 
   it('a secreta mostra só a dica até ser feita; feita, aparece com nome', () => {
@@ -47,13 +48,19 @@ describe('grade de conquistas por pilar', () => {
   })
 
   it('"Como ganhar" não mostra ficha de +0: a regra sem XP (ou sem Seeds) só mostra o que rende', () => {
-    const { container } = renderizar()
-    const fichas = [...container.querySelectorAll('.badge')].map((b) => (b.textContent ?? '').trim())
-    expect(fichas.length).toBeGreaterThan(0)
-    expect(fichas.filter((f) => /^\+0\b/.test(f))).toEqual([])
+    renderizar()
+    fireEvent.click(
+      within(screen.getByRole('group', { name: 'Partes dos desafios' })).getByRole('button', { name: /Como ganhar/ }),
+    )
+    const secao = screen.getByText('Como ganhar Seeds e XP').closest('section')!
+    /* Nenhum ganho de zero em lugar nenhum da parte. */
+    expect(secao.textContent).not.toMatch(/\+0(?![\d.,])/)
     // Salvar palavra: Seeds sim, XP não.
-    const salvar = screen.getByText('Salvar uma palavra nova da captura').closest('.cartao')!
-    expect(salvar.textContent).not.toMatch(/XP/)
+    const frase = within(secao).getByText('Salvar uma palavra nova da captura')
+    let salvar: HTMLElement = frase
+    while (salvar.parentElement && salvar.parentElement !== secao && !/\+\d/.test(salvar.textContent ?? ''))
+      salvar = salvar.parentElement
     expect(salvar.textContent).toMatch(/\+\d+/)
+    expect(salvar.textContent).not.toMatch(/XP/)
   })
 })

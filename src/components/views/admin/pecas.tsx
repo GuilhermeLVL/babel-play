@@ -1,10 +1,7 @@
 import { CircleAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../lib/i18n';
-import Ladrilho from '../../ui/Ladrilho';
-import Vazio from '../../ui/Vazio';
 import type { Carga } from './useCarga';
 
 /**
@@ -33,10 +30,7 @@ export function Botao({
   tom?: 'principal' | 'perigo';
   titulo?: string;
 }) {
-  const questNovo = useQuestNovo();
-  const classe = questNovo
-    ? `q-ctl ${tom === 'principal' ? 'pri' : tom === 'perigo' ? 'perigo' : ''}`
-    : `ad-btn ${tom === 'principal' ? 'btn-solid' : 'btn-outline'} ${tom === 'perigo' ? 'ad-perigo' : ''}`;
+  const classe = `q-ctl ${tom === 'principal' ? 'pri' : tom === 'perigo' ? 'perigo' : ''}`;
   return (
     <button type="button" className={classe} onClick={aoClicar} disabled={desabilitado} title={titulo}>
       {children}
@@ -56,8 +50,6 @@ export function Kpi({
   nota?: string;
   tom?: 'ink' | 'good' | 'warn' | 'error';
 }) {
-  const questNovo = useQuestNovo();
-  if (!questNovo) return <Ladrilho rotulo={rotulo} valor={valor} nota={nota} tom={tom} />;
   return (
     <div className="q-num ad-kpi" data-tom={tom}>
       <b>{valor ?? '…'}</b>
@@ -78,12 +70,11 @@ export function Secao({
   acoes?: ReactNode;
   children: ReactNode;
 }) {
-  const questNovo = useQuestNovo();
   return (
-    <section className={questNovo ? 'q-secao ad-secao' : 'ad-secao'}>
+    <section className="q-secao ad-secao">
       <header className="ad-secao-cab">
         <div>
-          {questNovo ? <h2>{titulo}</h2> : <h2 className="ad-h2">{titulo}</h2>}
+          <h2>{titulo}</h2>
           {sub && <p>{sub}</p>}
         </div>
         {acoes && <div className="ad-secao-acoes">{acoes}</div>}
@@ -95,15 +86,9 @@ export function Secao({
 
 /** A tabela que, estreita, vira lista: cada `td` leva `data-rotulo` e o CSS o mostra antes do valor. */
 export function Tabela({ rotulo, colunas, children }: { rotulo: string; colunas: string[]; children: ReactNode }) {
-  const questNovo = useQuestNovo();
   return (
-    <div
-      className={`${questNovo ? 'q-tabela-caixa' : 'ad-caixa'} ad-caixa-lista`}
-      role="region"
-      aria-label={rotulo}
-      tabIndex={0}
-    >
-      <table className={`${questNovo ? 'q-tabela' : 'ad-tabela'} ad-tabela-lista`}>
+    <div className="q-tabela-caixa ad-caixa-lista" role="region" aria-label={rotulo} tabIndex={0}>
+      <table className="q-tabela ad-tabela-lista">
         <thead>
           <tr>
             {colunas.map((c) => (
@@ -131,9 +116,6 @@ export function Aviso({
   explicacao?: string;
   acao?: { rotulo: string; aoClicar: () => void };
 }) {
-  const questNovo = useQuestNovo();
-  if (!questNovo)
-    return <Vazio icone={icone} titulo={titulo} explicacao={explicacao} acao={acao} className="ad-vazio" />;
   return (
     <div className="q-vazio ad-vazio" role="status">
       <span className="q-ic" aria-hidden>
@@ -165,10 +147,9 @@ export function Estado<T>({
   estaVazio?: (dados: T) => boolean;
   children: (dados: T) => ReactNode;
 }) {
-  const questNovo = useQuestNovo();
   if (carga.estado === 'carregando')
     return (
-      <div className={questNovo ? 'q-carregando ad-carregando' : 'carregando-da-tela ad-carregando'} role="status">
+      <div className="q-carregando ad-carregando" role="status">
         {t('Carregando…')}
       </div>
     );

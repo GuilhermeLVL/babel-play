@@ -1,9 +1,8 @@
-import { CreditCard, X } from 'lucide-react';
+import { CreditCard } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { PLAN_MATRIX } from '../../core/planos';
 import { carregarStatusDeBilling, estadoDaConta, type StatusDeBilling } from '../../lib/assinatura';
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { getEntitlements, onPlanChange } from '../../lib/entitlements';
 import { t } from '../../lib/i18n';
@@ -40,7 +39,6 @@ function dispensadoNestaSessao(): boolean {
 export default function AvisoDePagamentoAtrasado() {
   const [status, setStatus] = useState<StatusDeBilling | null>(null);
   const [dispensado, setDispensado] = useState(dispensadoNestaSessao);
-  const questNovo = useQuestNovo();
 
   useEffect(() => {
     if (edicaoEstatica()) return;
@@ -78,56 +76,24 @@ export default function AvisoDePagamentoAtrasado() {
   };
 
   /* QUEST: a mesma frase e as mesmas duas saídas (ver a assinatura, dispensar), acima do palco. */
-  if (questNovo)
-    return (
-      <FaixaDeAvisoDoQuest
-        icone={CreditCard}
-        tom="alerta"
-        noTopo
-        testId="aviso-de-pagamento-atrasado"
-        texto={t(
-          'Não conseguimos confirmar o pagamento da sua assinatura. Pague a fatura para continuar com o {plano}.',
-          { plano: PLAN_MATRIX[conta.plano].rotulo },
-        )}
-        acoes={[
-          {
-            rotulo: t('Ver minha assinatura'),
-            aoClicar: () => navegarPara({ view: 'planos', planosTela: 'assinatura' }),
-          },
-        ]}
-        aoDispensar={dispensar}
-        rotuloDeDispensar={t('Dispensar aviso')}
-      />
-    );
-
   return (
-    <div
-      className="aviso-info warn"
-      role="status"
-      style={{ margin: '12px 16px 0' }}
-      data-testid="aviso-de-pagamento-atrasado"
-    >
-      <CreditCard aria-hidden />
-      <span style={{ flex: 1 }}>
-        {t('Não conseguimos confirmar o pagamento da sua assinatura. Pague a fatura para continuar com o {plano}.', {
-          plano: PLAN_MATRIX[conta.plano].rotulo,
-        })}
-      </span>
-      <button
-        type="button"
-        className="btn btn-outline peq"
-        onClick={() => navegarPara({ view: 'planos', planosTela: 'assinatura' })}
-      >
-        {t('Ver minha assinatura')}
-      </button>
-      <button
-        type="button"
-        className="shrink-0 text-ink-faint hover:text-ink cursor-pointer"
-        aria-label={t('Dispensar aviso')}
-        onClick={dispensar}
-      >
-        <X className="w-4 h-4" aria-hidden />
-      </button>
-    </div>
+    <FaixaDeAvisoDoQuest
+      icone={CreditCard}
+      tom="alerta"
+      noTopo
+      testId="aviso-de-pagamento-atrasado"
+      texto={t(
+        'Não conseguimos confirmar o pagamento da sua assinatura. Pague a fatura para continuar com o {plano}.',
+        { plano: PLAN_MATRIX[conta.plano].rotulo },
+      )}
+      acoes={[
+        {
+          rotulo: t('Ver minha assinatura'),
+          aoClicar: () => navegarPara({ view: 'planos', planosTela: 'assinatura' }),
+        },
+      ]}
+      aoDispensar={dispensar}
+      rotuloDeDispensar={t('Dispensar aviso')}
+    />
   );
 }

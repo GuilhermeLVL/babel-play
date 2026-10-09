@@ -12,7 +12,6 @@ import { Loader2, Plus } from 'lucide-react';
 import React, { useId, useState } from 'react';
 
 import { ficharPalavraDoAnalista } from '../../../lib/adicionarAoDeck';
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import type { LangConfig } from '../../../lib/langConfig';
 import { baseLang } from '../../../lib/languages';
 import type { VocabCard } from '../../../types';
@@ -39,9 +38,7 @@ export default function AdicionarPalavra({
   const [erro, setErro] = useState('');
   const [enviando, setEnviando] = useState(false);
   const id = useId();
-  /* No Meta Quest o diálogo é o mesmo (no centro, com as medidas de `questBase.css`); `qv-dlg` liga o
-     acabamento dos rótulos (`questVocabulario.css`). */
-  const questNovo = useQuestNovo();
+  /* `qv-dlg` liga o acabamento dos rótulos (`questVocabulario.css`). */
 
   const enviar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,7 +82,7 @@ export default function AdicionarPalavra({
       sub="Entra no caderno como “Manual” e na próxima revisão."
       aoFechar={aoFechar}
     >
-      <form className={`dlg-corpo pilha${questNovo ? ' qv-dlg' : ''}`} noValidate onSubmit={(e) => void enviar(e)}>
+      <form className="dlg-corpo pilha qv-dlg" noValidate onSubmit={(e) => void enviar(e)}>
         <div>
           <label className="rot" htmlFor={`${id}-w`}>
             Palavra ou expressão

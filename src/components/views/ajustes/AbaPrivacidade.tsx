@@ -1,15 +1,12 @@
-import { Check, Database, Download, FileArchive, FileText, Hand, Loader2, Mail } from 'lucide-react';
+import { Check, Download, FileText, Loader2, Mail } from 'lucide-react';
 import { useState } from 'react';
 
 import { CRIADOR } from '../../../lib/criador';
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../lib/i18n';
 import { type Consentimento, mudarConsentimento, salvarPreferencias, usePreferencias } from '../../../lib/preferencias';
 import { toast } from '../../Toast';
-import { IconeEmBloco, TituloDeSecao } from '../../ui';
 import { baixarArquivo, prepararCopia } from '../perfil/AbaDados';
 import DialogoLegal from '../sobre/DialogoLegal';
-import { Interruptor, Linha } from './Linha';
 
 /**
  * AJUSTES → PRIVACIDADE (override de `T.ajustes`, 4029-4041): o que você autoriza, baixar os seus
@@ -68,7 +65,6 @@ export default function AbaPrivacidade() {
   const p = usePreferencias();
   const [copia, setCopia] = useState<'parado' | 'preparando' | { blob: Blob; nome: string }>('parado');
   const [legal, setLegal] = useState(false);
-  const questNovo = useQuestNovo();
 
   const autorizar = async (k: Consentimento, on: boolean) => {
     const ok = await mudarConsentimento(k, on);
@@ -89,215 +85,102 @@ export default function AbaPrivacidade() {
 
   /* QUEST: um consentimento por linha com interruptor; a cópia dos dados com os três estados
      (escolher, preparando, pronta) no mesmo cartão. */
-  if (questNovo)
-    return (
-      <>
-        <section className="q-secao">
-          <header>
-            <div>
-              <h2>{t('O que você autoriza')}</h2>
-              <p>{t('Você pode mudar a qualquer momento. Desligar não afeta o que o app faz por você.')}</p>
-            </div>
-          </header>
-          <div className="q-ajustes">
-            {CONSENTIMENTOS.map(([k, titulo, desc, rotulo]) => (
-              <div key={k} className="q-ajuste">
-                <div>
-                  <b>{titulo}</b>
-                  <small>{desc}</small>
-                </div>
-                <button
-                  type="button"
-                  className="q-interruptor"
-                  role="switch"
-                  aria-checked={p.consentimentos[k]}
-                  aria-label={rotulo}
-                  onClick={() => void autorizar(k, !p.consentimentos[k])}
-                />
-              </div>
-            ))}
-          </div>
-          <p className="q-aju-nota">{t('Cada mudança fica registrada com data, para você e para nós.')}</p>
-        </section>
-
-        <section className="q-secao">
-          <header>
-            <div>
-              <h2>{t('Baixar os seus dados')}</h2>
-              <p>{t('Uma cópia de tudo o que o app guarda sobre você: sessões, palavras, progresso, preferências.')}</p>
-            </div>
-          </header>
-          {typeof copia === 'object' ? (
-            <div className="q-ajuste" data-testid="copia-pronta">
-              <div>
-                <b>{t('Seu arquivo está pronto')}</b>
-                <small>
-                  {copia.nome} · {tamanho(copia.blob.size)} · {t('gerado agora')}
-                </small>
-              </div>
-              <button
-                type="button"
-                className="q-ctl pri"
-                onClick={() => {
-                  baixarArquivo(copia.blob, copia.nome);
-                  toast.ok(t('Download iniciado'));
-                }}
-              >
-                <Download aria-hidden /> {t('Baixar')}
-              </button>
-            </div>
-          ) : copia === 'preparando' ? (
-            <div className="q-aju-espera" role="status">
-              <Loader2 className="gira" aria-hidden />
-              <span>{t('Preparando o arquivo…')}</span>
-            </div>
-          ) : (
-            <div className="q-ajuste">
-              <div>
-                <b>{t('Formato do arquivo')}</b>
-                <small>{t('JSON guarda tudo; CSV abre em planilha.')}</small>
-              </div>
-              <div className="q-abas q-seg" role="group" aria-label={t('Formato')}>
-                {(['json', 'csv'] as const).map((f) => (
-                  <button
-                    key={f}
-                    type="button"
-                    className="q-aba"
-                    aria-pressed={p.formatoDaCopia === f}
-                    onClick={() => void salvarPreferencias((x) => ({ ...x, formatoDaCopia: f }))}
-                  >
-                    {f.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-              <button type="button" className="q-ctl" onClick={() => void pedirCopia()}>
-                <Download aria-hidden /> {t('Pedir uma cópia')}
-              </button>
-            </div>
-          )}
-        </section>
-
-        <section className="q-secao">
-          <header>
-            <div>
-              <h2>{t('Onde ficam')}</h2>
-              <p>{t('No self-host, tudo fica neste computador. Na nuvem, em servidores no Brasil, cifrado.')}</p>
-            </div>
-          </header>
-          <div className="q-cartao">
-            <ul className="q-aju-lista">
-              {[
-                t('Gravações e transcrições: neste aparelho'),
-                t('Palavras e progresso: neste aparelho'),
-                t('Chave de IA (se usar): cifrada no servidor, nunca volta ao navegador'),
-              ].map((x) => (
-                <li key={x}>
-                  <Check aria-hidden />
-                  {x}
-                </li>
-              ))}
-            </ul>
-            <div className="q-acoes">
-              <button type="button" className="q-ctl" onClick={() => setLegal(true)}>
-                <FileText aria-hidden /> {t('Política de privacidade')}
-              </button>
-              <a
-                className="q-ctl"
-                href={`mailto:${CRIADOR.contatoDePrivacidade}?subject=${encodeURIComponent('Encarregado de dados · Babel Play')}`}
-              >
-                <Mail aria-hidden /> {t('Falar com o encarregado de dados')}
-              </a>
-            </div>
-          </div>
-        </section>
-
-        {legal && <DialogoLegal doc="privacidade" aoFechar={() => setLegal(false)} />}
-      </>
-    );
-
   return (
     <>
-      <section>
-        <TituloDeSecao
-          icone={Hand}
-          titulo={t('O que você autoriza')}
-          desc={t('Você pode mudar a qualquer momento. Desligar não afeta o que o app faz por você.')}
-        />
-        <div className="cartao">
-          {CONSENTIMENTOS.map(([k, t, d, rot]) => (
-            <Linha key={k} titulo={t} desc={d}>
-              <Interruptor ligado={p.consentimentos[k]} rotulo={rot} aoTrocar={(on) => void autorizar(k, on)} />
-            </Linha>
-          ))}
-        </div>
-        <p className="mut" style={{ fontSize: 12.5, marginTop: 8 }}>
-          {t('Cada mudança fica registrada com data, para você e para nós.')}
-        </p>
-      </section>
-
-      <section className="secao">
-        <TituloDeSecao
-          icone={Download}
-          titulo={t('Baixar os seus dados')}
-          desc={t('Uma cópia de tudo o que o app guarda sobre você: sessões, palavras, progresso, preferências.')}
-        />
-        <div className="cartao p5">
-          {typeof copia === 'object' ? (
-            <div className="linha" style={{ gap: 12, flexWrap: 'wrap' }}>
-              <IconeEmBloco icone={FileArchive} tom="good" />
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <b>{t('Seu arquivo está pronto')}</b>
-                <p className="mut" style={{ fontSize: 13 }}>
-                  {copia.nome} · {tamanho(copia.blob.size)} · gerado agora
-                </p>
+      <section className="q-secao">
+        <header>
+          <div>
+            <h2>{t('O que você autoriza')}</h2>
+            <p>{t('Você pode mudar a qualquer momento. Desligar não afeta o que o app faz por você.')}</p>
+          </div>
+        </header>
+        <div className="q-ajustes">
+          {CONSENTIMENTOS.map(([k, titulo, desc, rotulo]) => (
+            <div key={k} className="q-ajuste">
+              <div>
+                <b>{titulo}</b>
+                <small>{desc}</small>
               </div>
               <button
                 type="button"
-                className="btn btn-solid"
-                onClick={() => {
-                  baixarArquivo(copia.blob, copia.nome);
-                  toast.ok('Download iniciado');
-                }}
-              >
-                <Download aria-hidden /> {t('Baixar')}
-              </button>
+                className="q-interruptor"
+                role="switch"
+                aria-checked={p.consentimentos[k]}
+                aria-label={rotulo}
+                onClick={() => void autorizar(k, !p.consentimentos[k])}
+              />
             </div>
-          ) : copia === 'preparando' ? (
-            <div className="linha" style={{ gap: 12 }} role="status">
-              <Loader2 className="gira" aria-hidden />
-              <span>{t('Preparando o arquivo…')}</span>
-            </div>
-          ) : (
-            <div className="linha" style={{ gap: 10, flexWrap: 'wrap' }}>
-              <div className="seg" role="radiogroup" aria-label={t('Formato')}>
-                {(['json', 'csv'] as const).map((f) => (
-                  <button
-                    key={f}
-                    type="button"
-                    role="radio"
-                    aria-checked={p.formatoDaCopia === f}
-                    onClick={() => void salvarPreferencias((x) => ({ ...x, formatoDaCopia: f }))}
-                  >
-                    {f.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-              <button type="button" className="btn btn-outline" onClick={() => void pedirCopia()}>
-                <Download aria-hidden /> {t('Pedir uma cópia')}
-              </button>
-            </div>
-          )}
+          ))}
         </div>
+        <p className="q-aju-nota">{t('Cada mudança fica registrada com data, para você e para nós.')}</p>
       </section>
 
-      <section className="secao">
-        <TituloDeSecao
-          icone={Database}
-          titulo={t('Onde ficam')}
-          desc={t('No self-host, tudo fica neste computador. Na nuvem, em servidores no Brasil, cifrado.')}
-        />
-        <div className="cartao p5">
-          <ul className="lista-check">
+      <section className="q-secao">
+        <header>
+          <div>
+            <h2>{t('Baixar os seus dados')}</h2>
+            <p>{t('Uma cópia de tudo o que o app guarda sobre você: sessões, palavras, progresso, preferências.')}</p>
+          </div>
+        </header>
+        {typeof copia === 'object' ? (
+          <div className="q-ajuste" data-testid="copia-pronta">
+            <div>
+              <b>{t('Seu arquivo está pronto')}</b>
+              <small>
+                {copia.nome} · {tamanho(copia.blob.size)} · {t('gerado agora')}
+              </small>
+            </div>
+            <button
+              type="button"
+              className="q-ctl pri"
+              onClick={() => {
+                baixarArquivo(copia.blob, copia.nome);
+                toast.ok(t('Download iniciado'));
+              }}
+            >
+              <Download aria-hidden /> {t('Baixar')}
+            </button>
+          </div>
+        ) : copia === 'preparando' ? (
+          <div className="q-aju-espera" role="status">
+            <Loader2 className="gira" aria-hidden />
+            <span>{t('Preparando o arquivo…')}</span>
+          </div>
+        ) : (
+          <div className="q-ajuste">
+            <div>
+              <b>{t('Formato do arquivo')}</b>
+              <small>{t('JSON guarda tudo; CSV abre em planilha.')}</small>
+            </div>
+            <div className="q-abas q-seg" role="group" aria-label={t('Formato')}>
+              {(['json', 'csv'] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  className="q-aba"
+                  aria-pressed={p.formatoDaCopia === f}
+                  onClick={() => void salvarPreferencias((x) => ({ ...x, formatoDaCopia: f }))}
+                >
+                  {f.toUpperCase()}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="q-ctl" onClick={() => void pedirCopia()}>
+              <Download aria-hidden /> {t('Pedir uma cópia')}
+            </button>
+          </div>
+        )}
+      </section>
+
+      <section className="q-secao">
+        <header>
+          <div>
+            <h2>{t('Onde ficam')}</h2>
+            <p>{t('No self-host, tudo fica neste computador. Na nuvem, em servidores no Brasil, cifrado.')}</p>
+          </div>
+        </header>
+        <div className="q-cartao">
+          <ul className="q-aju-lista">
             {[
               t('Gravações e transcrições: neste aparelho'),
               t('Palavras e progresso: neste aparelho'),
@@ -309,15 +192,15 @@ export default function AbaPrivacidade() {
               </li>
             ))}
           </ul>
-          <div className="linha" style={{ gap: 14, marginTop: 12 }}>
-            <button type="button" className="link" onClick={() => setLegal(true)}>
-              {t('Política de privacidade')}
+          <div className="q-acoes">
+            <button type="button" className="q-ctl" onClick={() => setLegal(true)}>
+              <FileText aria-hidden /> {t('Política de privacidade')}
             </button>
             <a
-              className="link"
+              className="q-ctl"
               href={`mailto:${CRIADOR.contatoDePrivacidade}?subject=${encodeURIComponent('Encarregado de dados · Babel Play')}`}
             >
-              {t('Falar com o encarregado de dados')}
+              <Mail aria-hidden /> {t('Falar com o encarregado de dados')}
             </a>
           </div>
         </div>

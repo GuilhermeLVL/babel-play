@@ -8,6 +8,7 @@
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { ContextoDaRodada } from '../src/components/minigames/casca/CascaDaRodada'
 import type { MinigameItem, RoundReport } from '../src/core'
 
 vi.mock('../src/lib/juice', () => ({
@@ -205,6 +206,52 @@ describe('os níveis da Mala', () => {
     esperar(350 + 2700)
     expect(um('.ml-mala.aberta')).not.toBeNull()
     esperar(900)
+    expect(um('.ml-mala.fechada')).not.toBeNull()
+  })
+})
+
+/* Garantias que vieram de `tests/kofferGame.test.tsx` (o tabuleiro de antes): o relógio é da rodada. */
+describe('a mala e o relógio da rodada', () => {
+  const comRodada = (ativo: boolean) => (
+    <ContextoDaRodada.Provider value={{ ativo, pausado: !ativo, placar: { current: { pontos: 0, acertos: 0 } } }}>
+      <KofferDoPrototipo items={itens} onFinish={(r) => (relatorio = r)} onExit={() => undefined} />
+    </ContextoDaRodada.Provider>
+  )
+
+  it('a mala só abre depois de a rodada começar a valer (contagem, explicação)', () => {
+    const { rerender } = render(comRodada(false))
+    esperar(5000)
+    expect(um('.ml-mala.aberta')).toBeNull()
+    rerender(comRodada(true))
+    esperar(350)
+    expect(um('.ml-mala.aberta')).not.toBeNull()
+  })
+
+  /* Era um defeito do tabuleiro novo (08/10/2026): a mala fechava com a rodada parada. Consertado em 09/10. */
+  it('a pausa congela o tempo de mala aberta', () => {
+    const { rerender } = render(comRodada(true))
+    esperar(350 + 1500)
+    rerender(comRodada(false))
+    esperar(6000)
+    expect(um('.ml-mala.aberta')).not.toBeNull()
+    expect(um('.ml-mala.fechada')).toBeNull()
+    rerender(comRodada(true))
+    esperar(1300)
+    expect(um('.ml-mala.fechada')).not.toBeNull()
+  })
+
+  it('a pausa congela também a espiada', () => {
+    const { rerender } = render(comRodada(true))
+    ateFechar()
+    fireEvent.click(um('[data-ajuda="espiar"]') as HTMLElement)
+    esperar(1000)
+    rerender(comRodada(false))
+    esperar(6000)
+    expect(um('.ml-mala.aberta')).not.toBeNull()
+    rerender(comRodada(true))
+    esperar(400)
+    expect(um('.ml-mala.aberta')).not.toBeNull()
+    esperar(100)
     expect(um('.ml-mala.fechada')).not.toBeNull()
   })
 })

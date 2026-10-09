@@ -397,31 +397,10 @@
     -webkit-text-fill-color: transparent; color: transparent;
     text-shadow: 0 0 24px rgba(45,212,191,0.18);
   }
-  /* Hero: brilho radial + partículas ambient (baixa densidade, movimento lento). */
-  [data-theme="premium"].dark .auth-hero {
-    background:
-      radial-gradient(700px 400px at 20% 15%, rgba(45,212,191,0.16), transparent 60%),
-      radial-gradient(600px 380px at 90% 90%, rgba(96,165,250,0.14), transparent 60%),
-      linear-gradient(155deg, #06111A 0%, #081A22 60%, #0A2028 100%);
-  }
-  [data-theme="premium"].dark .auth-hero::after {
-    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
-    background-image:
-      radial-gradient(1.5px 1.5px at 18% 28%, rgba(255,255,255,0.55), transparent 60%),
-      radial-gradient(1px 1px at 68% 62%, rgba(94,234,212,0.6), transparent 60%),
-      radial-gradient(1.5px 1.5px at 42% 82%, rgba(255,255,255,0.4), transparent 60%),
-      radial-gradient(1px 1px at 84% 24%, rgba(96,165,250,0.5), transparent 60%),
-      radial-gradient(1px 1px at 54% 12%, rgba(255,255,255,0.35), transparent 60%),
-      radial-gradient(1.5px 1.5px at 30% 55%, rgba(94,234,212,0.4), transparent 60%);
-    opacity: 0.7;
-    animation: premium-drift 26s ease-in-out infinite alternate;
-  }
+
   @keyframes premium-drift {
     from { transform: translate3d(0, 0, 0); }
     to   { transform: translate3d(-14px, -20px, 0); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    [data-theme="premium"].dark .auth-hero::after { animation: none; }
   }
 
   /* Theme: Linear (Indigo) — LIGHT mode */
@@ -960,11 +939,7 @@
   .ap-input {
     @apply w-full p-4 border-2 border-border-subtle rounded-xl text-center text-lg font-semibold bg-canvas outline-none focus:border-accent focus:ring-2 focus:ring-accent-soft/20 transition-all shadow-sm;
   }
-  /* Campo de FORMULÁRIO (auth/config) — distinto do .ap-input de jogo (que é text-center/text-lg/p-4).
-     Alinhado à esquerda, tamanho normal e padding vertical SIMÉTRICO → caret centralizado, baseline ok. */
-  .field-input {
-    @apply w-full rounded-xl border border-border-subtle bg-canvas px-3.5 py-2.5 text-sm text-ink leading-normal outline-none transition-colors placeholder:text-ink-faint focus:border-accent focus:ring-2 focus:ring-accent-soft/25;
-  }
+
   .ap-result-correct {
     @apply bg-good-soft/20 border border-good/30 p-5 rounded-2xl text-center shadow-sm;
   }
@@ -1031,19 +1006,11 @@
 
 /* Distâncias na escala do Tailwind (1 = 0.25rem). A variante sem número usa 0.5rem. */
 .slide-in-from-top    { --enter-y: -0.5rem; }
-.slide-in-from-top-1  { --enter-y: -0.25rem; }
-.slide-in-from-top-2  { --enter-y: -0.5rem; }
-.slide-in-from-top-4  { --enter-y: -1rem; }
-/* `-5` estava em uso (`IChat.tsx:676`) e nunca declarado: a classe nao produzia CSS nenhum. */
-.slide-in-from-top-5  { --enter-y: -1.25rem; }
-.slide-in-from-bottom   { --enter-y: 0.5rem; }
+
 .slide-in-from-bottom-1 { --enter-y: 0.25rem; }
 .slide-in-from-bottom-2 { --enter-y: 0.5rem; }
-.slide-in-from-left    { --enter-x: -0.5rem; }
-.slide-in-from-left-2  { --enter-x: -0.5rem; }
+
 .slide-in-from-right   { --enter-x: 0.5rem; }
-.slide-in-from-right-2 { --enter-x: 0.5rem; }
-.slide-in-from-right-4 { --enter-x: 1rem; }
 
 /* O número que sobe e some ("+10", "×3"). Sobe pouco (28px) e sai rápido: um número que voa
    longe demais tira o olho de onde a ação está acontecendo. As guardas globais de movimento
@@ -1097,42 +1064,6 @@
 .babel-pulso {
   animation: babel-pulso 620ms ease-in-out infinite;
 }
-
-/* ─────────────── VIRADA 3D DA CARTA ───────────────
-   Feita com TRANSIÇÃO (não com @keyframes) de propósito: as guardas de Modo Desempenho e de
-   movimento reduzido, mais abaixo, zeram `transition-duration` junto com `animation-duration` —
-   então o efeito desliga sozinho para quem pediu, sem uma segunda regra para manter.
-
-   `backface-visibility: hidden` é o que faz a carta parecer sólida: sem ele, o verso continua
-   visível espelhado durante o giro e o efeito lê como um papel transparente girando.
-
-   O `perspective` mora no PAI. No próprio elemento que gira, cada carta ganharia um ponto de
-   fuga próprio e a grade inteira pareceria estufada no centro. */
-.carta3d {
-  perspective: 900px;
-  /* A altura vem do `min-h` da carta; o giro é posicionado por `inset`, não por altura relativa —
-     `height: 100%` contra um pai que só tem `min-height` não resolve de forma confiável. */
-  position: relative;
-}
-.carta3d-giro {
-  position: absolute;
-  inset: 0;
-  transform-style: preserve-3d;
-  transition: transform 420ms cubic-bezier(0.2, 0.8, 0.25, 1);
-}
-.carta3d.aberta .carta3d-giro { transform: rotateY(180deg); }
-.carta3d-frente,
-.carta3d-verso {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: inherit;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-.carta3d-verso { transform: rotateY(180deg); }
 
 /* ─────────────── CORREÇÃO GLOBAL DE CONTRASTE ───────────────
    Duas famílias de preenchimento, dois tokens de texto DIFERENTES. Antes havia
@@ -1395,15 +1326,6 @@ select optgroup {
   --premium-soft: rgba(139, 92, 246, 0.14);
   --premium-ink: color-mix(in srgb, var(--premium) 55%, var(--ink));
 }
-/* Abaixo de `md` a dock inferior existe sempre, qualquer que seja a posição escolhida. */
-@media (max-width: 767.98px) {
-  :root { --shell-inset-bottom: 60px; }
-}
-@media (min-width: 768px) {
-  body.shell-rail-right { --shell-inset-right: 232px; }
-  body.shell-rail-right.shell-rail-collapsed { --shell-inset-right: 68px; }
-  body.shell-bar-bottom { --shell-inset-bottom: 60px; }
-}
 
 /* ───────────────────────────────────────────────────────────────────────────
    RESERVA PARA O BOTÃO FLUTUANTE DO iCHAT.
@@ -1513,12 +1435,10 @@ body.animations-off .hover\:-translate-y-1:hover {
   }
 }
 
-
 /* ─────────────── DUELO RELÂMPAGO — os efeitos do jogo contra o tempo ───────────────
    Tudo aqui é retorno visual de 200–600 ms; nada muda layout (só transform/opacity/box-shadow),
    então a barra e as alternativas ficam no lugar. As guardas globais de movimento reduzido
    (.animations-off / .performance-mode) desligam estas animações como as demais. */
-
 
 @keyframes blitz-erro {
   0%   { box-shadow: inset 0 0 0 0 color-mix(in srgb, var(--error) 0%, transparent); }
@@ -1531,7 +1451,6 @@ body.animations-off .hover\:-translate-y-1:hover {
   0%, 100% { box-shadow: 0 0 24px 2px color-mix(in srgb, var(--warn) 35%, transparent), inset 0 0 40px 0 color-mix(in srgb, var(--warn) 8%, transparent); }
   50%      { box-shadow: 0 0 48px 8px color-mix(in srgb, var(--warn) 60%, transparent),  inset 0 0 60px 0 color-mix(in srgb, var(--warn) 16%, transparent); }
 }
-.blitz-fever { animation: blitz-fever-glow 0.9s ease-in-out infinite; border-radius: 1.25rem; }
 
 @keyframes blitz-marco {
   0%   { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
@@ -1539,25 +1458,9 @@ body.animations-off .hover\:-translate-y-1:hover {
   70%  { transform: translate(-50%, -50%) scale(1); opacity: 1; }
   100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
 }
-.blitz-marco { animation: blitz-marco 1s var(--ease) forwards; }
 
 .animations-off .blitz-pop, .animations-off .blitz-refill, .animations-off .blitz-erro,
 .animations-off .blitz-fever, .performance-mode .blitz-fever { animation: none; }
-
-/* ─────────────── DUELO RELÂMPAGO v2 — "arcade de brinquedo" ───────────────
-   Botões gordos com sombra dura que AFUNDAM ao apertar; acerto dá squash & stretch; combo é um
-   selo grande; marcos soltam uma onda de choque. Só transform/opacity/box-shadow — nada muda
-   layout. As guardas globais (.animations-off/.performance-mode) desligam tudo no fim. */
-.blitz-btn {
-  border-width: 2px;
-  border-radius: 1rem;
-  box-shadow: 0 5px 0 0 var(--border-subtle);
-  transition: transform 0.09s ease, box-shadow 0.09s ease, background-color 0.15s, border-color 0.15s;
-}
-.blitz-btn:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 7px 0 0 var(--border-subtle); }
-.blitz-btn:not(:disabled):active { transform: translateY(4px); box-shadow: 0 1px 0 0 var(--border-subtle); }
-.blitz-btn-certa { box-shadow: 0 5px 0 0 color-mix(in srgb, var(--good) 60%, transparent) !important; }
-.blitz-btn-errada { box-shadow: 0 5px 0 0 color-mix(in srgb, var(--error) 60%, transparent) !important; }
 
 @keyframes blitz-squash {
   0%   { transform: scale(1, 1); }
@@ -1565,7 +1468,6 @@ body.animations-off .hover\:-translate-y-1:hover {
   60%  { transform: scale(0.94, 1.1) translateY(-6px); }
   100% { transform: scale(1, 1); }
 }
-.blitz-squash { animation: blitz-squash 0.45s var(--ease-mola); }
 
 @keyframes blitz-balanca {
   0%, 100% { transform: translateX(0); }
@@ -1573,7 +1475,6 @@ body.animations-off .hover\:-translate-y-1:hover {
   45% { transform: translateX(6px) rotate(1deg); }
   70% { transform: translateX(-4px); }
 }
-.blitz-balanca { animation: blitz-balanca 0.4s ease-out; }
 
 /* O selo do combo: número gigante semitransparente acima da pergunta. */
 @keyframes blitz-selo-pop {
@@ -1581,22 +1482,12 @@ body.animations-off .hover\:-translate-y-1:hover {
   40%  { transform: scale(1.18); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
 }
-.blitz-selo { animation: blitz-selo-pop 0.28s var(--ease-mola); }
 
 /* Onda de choque dos marcos: um anel que nasce no centro e expande. */
 @keyframes blitz-onda {
   0%   { transform: translate(-50%, -50%) scale(0.2); opacity: 0.9; border-width: 6px; }
   100% { transform: translate(-50%, -50%) scale(3.2); opacity: 0; border-width: 1px; }
 }
-.blitz-onda {
-  position: absolute; left: 50%; top: 50%; width: 180px; height: 180px;
-  border: 4px solid var(--warn); border-radius: 9999px; pointer-events: none;
-  animation: blitz-onda 0.7s ease-out forwards;
-}
-
-.animations-off .blitz-squash, .animations-off .blitz-balanca, .animations-off .blitz-selo,
-.animations-off .blitz-onda,
-.performance-mode .blitz-onda { animation: none; }
 
 /* ─────────────── MARCA — "Babel Play" ───────────────
    A identidade do app: Baloo 2 (redonda, gordinha, amigável — a mesma família visual do
@@ -1614,23 +1505,8 @@ body.animations-off .hover\:-translate-y-1:hover {
   33%      { transform: translate(24px, -18px) scale(1.08); }
   66%      { transform: translate(-16px, 14px) scale(0.95); }
 }
-.sobre-blob { animation: sobre-flutua 18s ease-in-out infinite; }
-.sobre-blob-2 { animation-duration: 24s; animation-delay: -8s; }
-.sobre-blob-3 { animation-duration: 26s; animation-delay: -14s; }
 
 @keyframes sobre-gira { to { transform: rotate(360deg); } }
-.sobre-anel::before {
-  content: '';
-  position: absolute; inset: -4px; border-radius: 9999px;
-  background: conic-gradient(from 0deg, var(--accent), var(--warn), var(--good), var(--accent));
-  animation: sobre-gira 8s linear infinite;
-  filter: blur(1px);
-}
-.sobre-anel { isolation: isolate; }
-.sobre-anel img { position: relative; z-index: 1; }
-
-.animations-off .sobre-blob, .animations-off .sobre-anel::before,
-.performance-mode .sobre-blob, .performance-mode .sobre-anel::before { animation: none; }
 
 /* ─────────────── FONTE "ARCADE (PIXEL)" ───────────────
    `data-fonte` no <html> (lib/theme.ts). DECISAO 2026-08-27 (2a rodada de legibilidade): a fonte
@@ -1720,24 +1596,8 @@ body.animations-off .hover\:-translate-y-1:hover {
   33%      { transform: translate(24px, -18px) scale(1.08); }
   66%      { transform: translate(-16px, 14px) scale(0.95); }
 }
-.sobre-blob { animation: sobre-flutua 18s ease-in-out infinite; }
-.sobre-blob-2 { animation-duration: 24s; animation-delay: -8s; }
-.sobre-blob-3 { animation-duration: 26s; animation-delay: -14s; }
 
 @keyframes sobre-gira { to { transform: rotate(360deg); } }
-.sobre-anel::before {
-  content: '';
-  position: absolute; inset: -4px; border-radius: 9999px;
-  background: conic-gradient(from 0deg, var(--accent), var(--warn), var(--good), var(--accent));
-  animation: sobre-gira 8s linear infinite;
-  filter: blur(1px);
-}
-.sobre-anel { isolation: isolate; }
-.sobre-anel img { position: relative; z-index: 1; }
-
-.animations-off .sobre-blob, .animations-off .sobre-anel::before,
-.performance-mode .sobre-blob, .performance-mode .sobre-anel::before { animation: none; }
-
 
 /* ─────────────── EFEITOS DE TELA (juice: momentos raros) ─────────────── */
 @keyframes babel-zoom-pulso-kf {
@@ -1821,8 +1681,6 @@ svg.lucide { flex-shrink: 0; }
   0%, 100% { transform: scaleY(0.35); }
   50% { transform: scaleY(1); }
 }
-.eq-bar { transform-origin: bottom; animation: eq-bar-kf 0.9s ease-in-out infinite; }
-.animations-off .eq-bar, .performance-mode .eq-bar { animation: none; transform: scaleY(0.7); }
 
 /*
  * ALTURA DA JANELA, CORRIGIDA PELO ZOOM DO A±.
@@ -1874,10 +1732,6 @@ svg.lucide { flex-shrink: 0; }
   .q-trilho-reserva { width: 100%; min-height: 74px; border-right: 0; border-top: 1.5px solid var(--border-subtle); }
 }
 
-/* RESERVA DAS MISSÕES DO DIA (Hub e Início do Quest): o cartão chega depois das métricas e empurrava
-   tudo o que vem abaixo (CLS 0,04 e 0,07). Alturas medidas do cartão: 262 (Hub) e 209 (Quest) no
-   desktop, 304 no celular. */
-.missoes-reserva { min-height: 262px; }
 .q-missoes-reserva { min-height: 209px; }
 @media (max-width: 720px) {
   .missoes-reserva, .q-missoes-reserva { min-height: 304px; }

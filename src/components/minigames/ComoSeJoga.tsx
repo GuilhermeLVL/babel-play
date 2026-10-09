@@ -1,14 +1,11 @@
 import type { MinigameId } from '@core';
-import { LifeBuoy, Play, TriangleAlert, X } from 'lucide-react';
-import { useId, useRef } from 'react';
+import { LifeBuoy, Play, TriangleAlert } from 'lucide-react';
 
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
-import { noHeadset, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../lib/i18n';
 import type { AgeProfileType } from '../../lib/profile';
-import { DialogoBase } from '../ui/Dialogo';
-import { IconePixel } from '../views/play/IconesPixel';
 import { fecharPainelDe, PainelDoQuest } from '../views/play/quest/pecasDoQuest';
 
 /**
@@ -343,141 +340,71 @@ interface ComoSeJogaProps {
  */
 export default function ComoSeJoga({ jogo, titulo, ageProfile, onJogar, onFechar }: ComoSeJogaProps) {
   const conteudo = COMO_SE_JOGA[jogo];
-  const idTitulo = useId();
-  const ref = useRef<HTMLDialogElement>(null);
-  const questNovo = useQuestNovo();
   if (!conteudo) return null;
 
   /* META QUEST: a mesma ficha, no painel do headset. Os passos numerados em linhas grandes, cada
      ajuda com o preço dela numa etiqueta, e o que o jogo não mede numa faixa de aviso. */
-  if (questNovo) {
-    /* OS PASSOS SÃO DO APARELHO, não do desenho: os do headset (sem arrasto, sem nota de voz) só valem
+  /* OS PASSOS SÃO DO APARELHO, não do desenho: os do headset (sem arrasto, sem nota de voz) só valem
        nele. No computador com o desenho novo valem os de sempre, salvo onde o navegador não reconhece
        fala: aí o Karaokê também não dá nota, e os passos dizem isso sem falar em headset. */
-    const passos = noHeadset()
-      ? (conteudo.passosNoQuest ?? conteudo.passos)
-      : conteudo.passosSemNotaDeVoz && !recursosDoAparelho(perfilDoDispositivo()).reconhecimentoDoNavegador
-        ? conteudo.passosSemNotaDeVoz
-        : conteudo.passos;
-    return (
-      <PainelDoQuest
-        sobre={t('Como se joga')}
-        titulo={titulo}
-        aoFechar={onFechar}
-        classe="qj-como"
-        pe={
-          <>
-            <button type="button" className="q-ctl" onClick={(e) => fecharPainelDe(e.currentTarget)}>
-              {t('Agora não')}
-            </button>
-            <button type="button" className="q-ctl pri" data-autofocus onClick={onJogar}>
-              <Play aria-hidden /> {ageProfile === 'kids' ? t('Bora jogar!') : t('Começar')}
-            </button>
-          </>
-        }
-      >
-        <section className="q-secao">
-          <p className="q-rotulo">{t('O que treina')}</p>
-          <p className="q-texto">{t(conteudo.treina)}</p>
-        </section>
-        <section className="q-secao">
-          <p className="q-rotulo">{t('Como jogar')}</p>
-          <ol className="q-passos">
-            {passos.map((p, i) => (
-              <li key={i}>
-                <span aria-hidden>{i + 1}</span>
-                <span>{t(p)}</span>
-              </li>
-            ))}
-          </ol>
-        </section>
-        <section className="q-secao">
-          <p className="q-rotulo">{t('O que você tem aí')}</p>
-          <ul className="qj-ajudas">
-            {conteudo.ajudas.map((a, i) => (
-              <li key={i}>
-                <LifeBuoy aria-hidden />
-                <span>{t(a.o_que)}</span>
-                <span className={`q-tag${a.custo ? '' : ' off'}`}>{a.custo ? t(a.custo) : t('de graça')}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-        <section className="q-secao">
-          <p className="q-rotulo">{t('Como conta na sua memória')}</p>
-          <p className="q-texto">{t(conteudo.avaliacao)}</p>
-        </section>
-        <div className="q-aviso qj-alerta">
-          <span>
-            <TriangleAlert aria-hidden /> <b>{t('O que este jogo não mede.')}</b> {t(conteudo.limites)}
-          </span>
-        </div>
-      </PainelDoQuest>
-    );
-  }
-
+  const passos = noHeadset()
+    ? (conteudo.passosNoQuest ?? conteudo.passos)
+    : conteudo.passosSemNotaDeVoz && !recursosDoAparelho(perfilDoDispositivo()).reconhecimentoDoNavegador
+      ? conteudo.passosSemNotaDeVoz
+      : conteudo.passos;
   return (
-    <DialogoBase classe="medio" rotuloId={idTitulo} aoFechar={onFechar} refDialogo={ref}>
-      <div className="dlg-cab">
-        <span className="ib" style={{ background: 'var(--surface-hover)' }} aria-hidden>
-          <IconePixel id={jogo} className="w-7 h-7" />
+    <PainelDoQuest
+      sobre={t('Como se joga')}
+      titulo={titulo}
+      aoFechar={onFechar}
+      classe="qj-como"
+      pe={
+        <>
+          <button type="button" className="q-ctl" onClick={(e) => fecharPainelDe(e.currentTarget)}>
+            {t('Agora não')}
+          </button>
+          <button type="button" className="q-ctl pri" data-autofocus onClick={onJogar}>
+            <Play aria-hidden /> {ageProfile === 'kids' ? t('Bora jogar!') : t('Começar')}
+          </button>
+        </>
+      }
+    >
+      <section className="q-secao">
+        <p className="q-rotulo">{t('O que treina')}</p>
+        <p className="q-texto">{t(conteudo.treina)}</p>
+      </section>
+      <section className="q-secao">
+        <p className="q-rotulo">{t('Como jogar')}</p>
+        <ol className="q-passos">
+          {passos.map((p, i) => (
+            <li key={i}>
+              <span aria-hidden>{i + 1}</span>
+              <span>{t(p)}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
+      <section className="q-secao">
+        <p className="q-rotulo">{t('O que você tem aí')}</p>
+        <ul className="qj-ajudas">
+          {conteudo.ajudas.map((a, i) => (
+            <li key={i}>
+              <LifeBuoy aria-hidden />
+              <span>{t(a.o_que)}</span>
+              <span className={`q-tag${a.custo ? '' : ' off'}`}>{a.custo ? t(a.custo) : t('de graça')}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+      <section className="q-secao">
+        <p className="q-rotulo">{t('Como conta na sua memória')}</p>
+        <p className="q-texto">{t(conteudo.avaliacao)}</p>
+      </section>
+      <div className="q-aviso qj-alerta">
+        <span>
+          <TriangleAlert aria-hidden /> <b>{t('O que este jogo não mede.')}</b> {t(conteudo.limites)}
         </span>
-        <div style={{ minWidth: 0 }}>
-          <span className="label-mono">Como se joga</span>
-          <h2 id={idTitulo}>{titulo}</h2>
-        </div>
-        <button type="button" className="x" aria-label="Fechar" onClick={() => ref.current?.close()}>
-          <X aria-hidden />
-        </button>
       </div>
-      <div className="dlg-corpo pilha como">
-        <div>
-          <span className="label-mono">O que treina</span>
-          <p>{conteudo.treina}</p>
-        </div>
-        <div>
-          <span className="label-mono">Como jogar</span>
-          {/* `decimal` explícito: o reset do Tailwind tira a numeração que o protótipo tem. */}
-          <ol style={{ listStyle: 'decimal' }}>
-            {conteudo.passos.map((p, i) => (
-              <li key={i}>{p}</li>
-            ))}
-          </ol>
-        </div>
-        {/* O CAMPO QUE SÓ EXISTE AQUI: as ajudas, com o preço de cada uma. Sem ele, a pessoa
-            joga na dificuldade máxima sem saber que havia socorro no canto da tela. */}
-        <div>
-          <span className="label-mono">O que você tem aí</span>
-          <ul className="ajudas">
-            {conteudo.ajudas.map((a, i) => (
-              <li key={i}>
-                <LifeBuoy aria-hidden />
-                <span>{a.o_que}</span>
-                <small className="mut">{a.custo ?? 'de graça'}</small>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <span className="label-mono">Como conta na sua memória</span>
-          <p>{conteudo.avaliacao}</p>
-        </div>
-        {/* Destacado de propósito: é a informação que evita a conclusão errada de uma nota baixa. */}
-        <div className="aviso-info warn">
-          <TriangleAlert aria-hidden />
-          <span>
-            <b style={{ color: 'var(--ink)' }}>O que este jogo não mede.</b> {conteudo.limites}
-          </span>
-        </div>
-      </div>
-      <div className="dlg-pe">
-        <button type="button" className="btn btn-outline" onClick={() => ref.current?.close()}>
-          Agora não
-        </button>
-        <button type="button" className="btn btn-solid" data-autofocus onClick={onJogar}>
-          <Play aria-hidden /> {ageProfile === 'kids' ? 'Bora jogar!' : 'Começar'}
-        </button>
-      </div>
-    </DialogoBase>
+    </PainelDoQuest>
   );
 }

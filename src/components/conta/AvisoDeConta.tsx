@@ -2,7 +2,6 @@ import type { AppMetrics } from '@core';
 import { CloudOff, X } from 'lucide-react';
 import { useState } from 'react';
 
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica, urlDoAppCompleto } from '../../lib/edicaoEstatica';
 import { t } from '../../lib/i18n';
 import { estaAnonimo } from '../../lib/identidade';
@@ -28,9 +27,8 @@ const carregarFaixaDoQuest = () => import('./quest/FaixaDeAvisoDoQuest');
  */
 export default function AvisoDeConta({ metrics, onEntrar }: { metrics: AppMetrics | null; onEntrar: () => void }) {
   const [dispensado, setDispensado] = useState(false);
-  const questNovo = useQuestNovo();
   /* Se o desenho do headset não chegar, vale o cartão de sempre (um aviso nunca recarrega a página). */
-  const doQuest = usePedacoDoQuest(carregarFaixaDoQuest, questNovo);
+  const doQuest = usePedacoDoQuest(carregarFaixaDoQuest, true);
 
   const aviso = avisoPendente({
     sessoes: metrics?.sessions ?? 0,
@@ -47,7 +45,7 @@ export default function AvisoDeConta({ metrics, onEntrar }: { metrics: AppMetric
   };
 
   /* QUEST: o mesmo aviso e as mesmas saídas, numa faixa do headset (`FaixaDeAvisoDoQuest`). */
-  if (questNovo && doQuest.Componente) {
+  if (doQuest.Componente) {
     const FaixaDeAvisoDoQuest = doQuest.Componente;
     return (
       <FaixaDeAvisoDoQuest
@@ -74,7 +72,7 @@ export default function AvisoDeConta({ metrics, onEntrar }: { metrics: AppMetric
     );
   }
   /* O aviso não bloqueia nada: enquanto o desenho do headset não chega, ele só espera. */
-  if (questNovo && !doQuest.falhou) return null;
+  if (!doQuest.falhou) return null;
 
   return (
     <section

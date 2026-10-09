@@ -177,7 +177,10 @@ describe('atribuição do Tatoeba (CC BY 2.0 FR exige)', () => {
   it('a tela Sobre mostra o crédito e o catálogo em inglês o traduz', () => {
     expect(ATRIBUICAO_TATOEBA).toMatch(/Tatoeba/)
     expect(ATRIBUICAO_TATOEBA).toMatch(/CC BY 2\.0 FR/)
-    const sobre = readFileSync(path.resolve(__dirname, '..', 'src', 'components', 'views', 'Sobre.tsx'), 'utf8')
+    const sobre = readFileSync(
+      path.resolve(__dirname, '..', 'src', 'components', 'views', 'sobre', 'quest', 'SobreDoQuest.tsx'),
+      'utf8',
+    )
     expect(sobre).toMatch(/t\(ATRIBUICAO_TATOEBA\)/)
     const en = JSON.parse(readFileSync(path.resolve(__dirname, '..', 'public', 'i18n', 'en.json'), 'utf8'))
     expect(en[ATRIBUICAO_TATOEBA]).toMatch(/Tatoeba.*CC BY 2\.0 FR/)

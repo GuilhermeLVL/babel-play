@@ -5,9 +5,14 @@ import { applyCustomColors, type ThemeType } from '../../../lib/appearance';
 import { celebrarEscolha } from '../../../lib/comemoracao';
 import { acessoAoEstilo } from '../../../lib/galeria/acesso';
 import {
-  buscarPaletas,   type EstiloDePaleta, ESTILOS, gravarPaletaAtiva,
-lerPaletaAtiva, type Paleta,
-todasAsPaletas, } from '../../../lib/galeria/paletas';
+  buscarPaletas,
+  type EstiloDePaleta,
+  ESTILOS,
+  gravarPaletaAtiva,
+  lerPaletaAtiva,
+  type Paleta,
+  todasAsPaletas,
+} from '../../../lib/galeria/paletas';
 import { toast } from '../../Toast';
 
 /**
@@ -24,7 +29,11 @@ import { toast } from '../../Toast';
  * (perfil salvo, atalho, bug de UI) esbarra.
  */
 export default function SeletorDePaletas({
-  nivel, saldo, setTheme, aoAplicar, onIrParaLoja,
+  nivel,
+  saldo,
+  setTheme,
+  aoAplicar,
+  onIrParaLoja,
 }: {
   nivel: number;
   saldo: number;
@@ -40,7 +49,10 @@ export default function SeletorDePaletas({
 
   const aplicar = (p: Paleta, el?: HTMLElement | null) => {
     const acesso = acessoAoEstilo(p.estilo, nivel, saldo);
-    if (!acesso.liberado) { toast.warn(`Estilo ainda trancado — ${acesso.motivo}.`); return; }
+    if (!acesso.liberado) {
+      toast.warn(`Estilo ainda trancado — ${acesso.motivo}.`);
+      return;
+    }
     applyCustomColors({ canvas: p.canvas, surface: p.surface, ink: p.ink, accent: p.accent });
     setTheme('custom');
     gravarPaletaAtiva(p.id);
@@ -73,10 +85,13 @@ export default function SeletorDePaletas({
                 aria-pressed={estilo === e.id}
                 title={!a || a.liberado ? e.nome : a.motivo}
                 className={`px-3 py-1.5 rounded-lg text-[12px] font-bold border cursor-pointer inline-flex items-center gap-1 ${
-                  estilo === e.id ? 'bg-accent text-accent-contrast border-accent' : 'bg-canvas border-border-subtle text-ink-muted hover:text-ink'
+                  estilo === e.id
+                    ? 'bg-accent text-accent-contrast border-accent'
+                    : 'bg-canvas border-border-subtle text-ink-muted hover:text-ink'
                 }`}
               >
-                {a && !a.liberado && <Lock className="w-3 h-3" aria-hidden />}{e.nome}
+                {a && !a.liberado && <Lock className="w-3 h-3" aria-hidden />}
+                {e.nome}
               </button>
             );
           })}
@@ -89,7 +104,10 @@ export default function SeletorDePaletas({
           <span className="inline-flex items-center gap-1.5 text-[11.5px]">
             <Lock className="w-3 h-3" aria-hidden /> {estiloTrancado.motivo}
             {estiloTrancado.item && onIrParaLoja && (
-              <button onClick={onIrParaLoja} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-border-subtle hover:border-accent text-ink font-bold text-[11px] cursor-pointer">
+              <button
+                onClick={onIrParaLoja}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-border-subtle hover:border-accent text-ink font-bold text-[11px] cursor-pointer"
+              >
                 <ShoppingBag className="w-3 h-3" aria-hidden /> ver na Loja
               </button>
             )}
@@ -112,7 +130,10 @@ export default function SeletorDePaletas({
               }`}
             >
               <span className="block p-2" style={{ backgroundColor: p.canvas }}>
-                <span className="block h-1.5 w-2/3 rounded-full mb-1" style={{ backgroundColor: p.ink, opacity: 0.85 }} />
+                <span
+                  className="block h-1.5 w-2/3 rounded-full mb-1"
+                  style={{ backgroundColor: p.ink, opacity: 0.85 }}
+                />
                 <span className="block rounded-md p-1 mb-1" style={{ backgroundColor: p.surface }}>
                   <span className="block h-1 w-3/4 rounded-full" style={{ backgroundColor: p.ink, opacity: 0.45 }} />
                 </span>
@@ -127,8 +148,8 @@ export default function SeletorDePaletas({
         })}
       </div>
       <p className="text-[11.5px] text-ink-muted mt-2">
-        {todasAsPaletas().length} paletas em {ESTILOS.length} estilos. A paleta troca as quatro
-        cores da tela; o croma acima troca só o acento do tema.
+        {todasAsPaletas().length} paletas em {ESTILOS.length} estilos. A paleta troca as quatro cores da tela; o croma
+        acima troca só o acento do tema.
       </p>
     </div>
   );

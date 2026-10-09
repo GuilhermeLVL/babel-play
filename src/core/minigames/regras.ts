@@ -377,92 +377,24 @@ export function nivelSugerido(
   return null;
 }
 
-/* ═════════════════════════════════════════════════════════════════════════════════════════════════════
-   O DESENHO ANTIGO — sai quando os 17 tabuleiros forem refeitos.
+/**
+ * OS JOGOS EM QUE A PAUSA OFERECE A TROCA DE NÍVEL (`casca/SeletorDeNivel`). É a lista dos dez jogos que
+ * tinham relógio, vidas ou ajuda contada antes da tabela acima; o seletor da pausa continua perguntando
+ * por ela. O selo do cabeçalho e a explicação perguntam por `temNivel`.
+ */
+const COM_NIVEL_NA_PAUSA: ReadonlySet<MinigameId> = new Set([
+  'memory',
+  'wordsearch',
+  'blitz',
+  'karuta',
+  'choseong',
+  'tenis',
+  'shiritori',
+  'taboo',
+  'koffer',
+  'bao',
+]);
 
-   Antes da tabela acima o nível aplicava UM FATOR IGUAL a dez jogos, por perfil de idade (metade a mais
-   de tempo e uma vida a mais no Fácil; um quarto a menos e uma vida a menos no Difícil). Os tabuleiros
-   de antes ainda leem por aqui, e o desenho antigo fica como está até cada um ser refeito. Tabuleiro
-   novo NÃO usa nada daqui para baixo.
-   ═════════════════════════════════════════════════════════════════════════════════════════════════════ */
-
-/** O perfil de idade da conta (o mesmo `AgeProfileType` das telas, repetido aqui para não puxar DOM). */
-export type PerfilDeIdade = 'kids' | 'pro' | 'senior';
-type PorPerfil = Readonly<Record<PerfilDeIdade, number>>;
-
-interface RegrasDeBase {
-  /** Segundos do relógio (por item, ou da rodada inteira no Duelo). */
-  segundos?: PorPerfil;
-  /** Vidas ou erros tolerados antes de perder o item ou a rodada. */
-  vidas?: PorPerfil;
-  /** Quanto tempo a peça fica à vista para ser decorada, em ms. */
-  aVistaMs?: PorPerfil;
-}
-
-/** Os números de base: exatamente os que cada componente trazia antes dos níveis. */
-const BASE: Partial<Record<MinigameId, RegrasDeBase>> = {
-  memory: {},
-  wordsearch: {},
-  blitz: { segundos: { kids: 60, pro: 60, senior: 90 } },
-  karuta: { segundos: { kids: 12, pro: 8, senior: 14 } },
-  choseong: { segundos: { kids: 18, pro: 15, senior: 22 } },
-  tenis: { segundos: { kids: 8, pro: 6, senior: 9 } },
-  shiritori: { segundos: { kids: 20, pro: 15, senior: 25 } },
-  taboo: { segundos: { kids: 35, pro: 30, senior: 45 } },
-  koffer: { vidas: { kids: 4, pro: 3, senior: 4 }, aVistaMs: { kids: 2600, pro: 2000, senior: 3000 } },
-  bao: { vidas: { kids: 4, pro: 3, senior: 4 } },
-};
-
-const FATOR_DO_TEMPO: Record<NivelDoJogo, number> = { facil: 1.5, medio: 1, dificil: 0.75 };
-const PASSO_DA_CONTAGEM: Record<NivelDoJogo, number> = { facil: 1, medio: 0, dificil: -1 };
-
-/** DESENHO ANTIGO: o jogo tinha alguma regra que o fator mudava? (No desenho novo: `temNivel`.) */
 export function jogoTemNiveis(jogo: MinigameId): boolean {
-  return jogo in BASE;
+  return COM_NIVEL_NA_PAUSA.has(jogo);
 }
-
-/** DESENHO ANTIGO: segundos do relógio do jogo, por perfil. `null` se o jogo não tem relógio. */
-export function segundosDoJogo(jogo: MinigameId, perfil: PerfilDeIdade, nivel: NivelDoJogo): number | null {
-  const base = BASE[jogo]?.segundos;
-  return base ? Math.round(base[perfil] * FATOR_DO_TEMPO[nivel]) : null;
-}
-
-/** DESENHO ANTIGO: vidas (ou erros tolerados), nunca menos que uma. `null` se o jogo não conta vidas. */
-export function vidasDoJogo(jogo: MinigameId, perfil: PerfilDeIdade, nivel: NivelDoJogo): number | null {
-  const base = BASE[jogo]?.vidas;
-  return base ? Math.max(1, base[perfil] + PASSO_DA_CONTAGEM[nivel]) : null;
-}
-
-/** DESENHO ANTIGO: quanto tempo a peça fica à vista, em ms. `null` se o jogo não tem essa fase. */
-export function tempoAVistaDoJogo(jogo: MinigameId, perfil: PerfilDeIdade, nivel: NivelDoJogo): number | null {
-  const base = BASE[jogo]?.aVistaMs;
-  return base ? Math.round(base[perfil] * FATOR_DO_TEMPO[nivel]) : null;
-}
-
-/** DESENHO ANTIGO: o que mudava no jogo, em números. */
-export interface ResumoDasRegras {
-  segundos: number | null;
-  vidas: number | null;
-  ajudas: Readonly<Record<string, number>>;
-}
-
-export function resumoDasRegras(jogo: MinigameId, perfil: PerfilDeIdade, nivel: NivelDoJogo): ResumoDasRegras {
-  const ajudas: Record<string, number> = {};
-  for (const a of ajudasDoNivel(jogo, nivel)) if (Number.isFinite(a.vezes)) ajudas[a.chave] = a.vezes;
-  return { segundos: segundosDoJogo(jogo, perfil, nivel), vidas: vidasDoJogo(jogo, perfil, nivel), ajudas };
-}
-
-/** DESENHO ANTIGO: abaixo desta precisão (em %) a rodada foi puxada demais para o nível. */
-export const PRECISAO_PARA_DESCER = 50;
-
-/** DESENHO ANTIGO: a oferta do fim da rodada pela precisão. No desenho novo: `nivelSugerido`. */
-export function sugestaoDeNivel(jogo: MinigameId, nivel: NivelDoJogo, precisao: number): NivelDoJogo | null {
-  if (!jogoTemNiveis(jogo)) return null;
-  const i = NIVEIS_DO_JOGO.indexOf(nivel);
-  if (precisao < PRECISAO_PARA_DESCER) return NIVEIS_DO_JOGO[i - 1] ?? null;
-  if (precisao >= 100) return NIVEIS_DO_JOGO[i + 1] ?? null;
-  return null;
-}
-
-/** Só para o teste que trava "o Médio do desenho antigo é a regra de sempre". */
-export const REGRAS_DE_BASE: Readonly<Partial<Record<MinigameId, RegrasDeBase>>> = BASE;

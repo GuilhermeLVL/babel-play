@@ -120,6 +120,72 @@ describe('traçar', () => {
     expect($('.pistas li.feita b')?.textContent).toBe('CLOUD')
   })
 
+  /* O teclado: o tabuleiro de antes tinha setas e Enter, e o do protótipo nasceu só com ponteiro. */
+  const tecla = (key: string) => fireEvent.keyDown(document.activeElement as Element, { key })
+  /** Leva o foco até a célula `para` só com as setas. */
+  const andarAte = (para: number) => {
+    const onde = () => Number((document.activeElement as HTMLElement).dataset.c)
+    while (Math.floor(onde() / 8) !== Math.floor(para / 8)) tecla(onde() < para ? 'ArrowDown' : 'ArrowUp')
+    while (onde() !== para) tecla(onde() < para ? 'ArrowRight' : 'ArrowLeft')
+  }
+
+  it('só uma célula entra na ordem do Tab, e as setas levam o foco sem sair da grade', () => {
+    expect($$('.grade-caca [tabindex="0"]').map((c) => c.dataset.c)).toEqual(['0'])
+    expect($$('.grade-caca [tabindex="-1"]')).toHaveLength(63)
+    cel(0).focus()
+    tecla('ArrowUp')
+    tecla('ArrowLeft')
+    expect(document.activeElement).toBe(cel(0))
+    tecla('ArrowRight')
+    tecla('ArrowDown')
+    expect(document.activeElement).toBe(cel(9))
+    expect($$('.grade-caca [tabindex="0"]').map((c) => c.dataset.c)).toEqual(['9'])
+    tecla('End')
+    expect(document.activeElement).toBe(cel(15))
+    tecla('ArrowRight')
+    expect(document.activeElement).toBe(cel(15))
+  })
+
+  it('acha uma palavra só com o teclado: setas, Enter na primeira letra, setas, Enter na última', () => {
+    const cs = acharNaGrade('STORM')
+    cel(0).focus()
+    andarAte(cs[0])
+    tecla('Enter')
+    expect(cel(cs[0]).className).toBe('sel')
+    andarAte(cs[4])
+    /* Com a ponta marcada, o traço acompanha o foco. */
+    expect(cs.every((c) => cel(c).className === 'sel')).toBe(true)
+    tecla(' ')
+    expect(cs.every((c) => cel(c).className === 'achada')).toBe(true)
+    expect($('.pistas li.feita')?.textContent).toBe('tempestadeSTORM')
+    expect(rotulo()).toBe('1 de 3 palavras')
+    expect(document.activeElement).toBe(cel(cs[4]))
+  })
+
+  it('Esc desfaz a primeira ponta, e a pausa não abre por isso', () => {
+    const naJanela = vi.fn()
+    window.addEventListener('keydown', naJanela)
+    const cs = acharNaGrade('CLOUD')
+    cel(0).focus()
+    andarAte(cs[0])
+    tecla('Enter')
+    naJanela.mockClear()
+    tecla('Escape')
+    expect(naJanela).not.toHaveBeenCalled()
+    expect($$('.grade-caca .sel')).toHaveLength(0)
+    /* Sem ponta, o Enter na última letra só marca a primeira ponta de um traço novo. */
+    andarAte(cs[4])
+    tecla('Enter')
+    expect($('.pistas li.feita')).toBeNull()
+    expect(cel(cs[4]).className).toBe('sel')
+    /* E sem ponta a desfazer o Esc segue para a casca. */
+    tecla('Escape')
+    naJanela.mockClear()
+    tecla('Escape')
+    expect(naJanela).toHaveBeenCalledTimes(1)
+    window.removeEventListener('keydown', naJanela)
+  })
+
   it('o traço errado diz "Tente de novo" e não marca nada', () => {
     const cs = acharNaGrade('STORM')
     arrastar(cs[0], cs[1])
@@ -145,5 +211,8 @@ describe('traçar', () => {
     expect(relatorio).toBeNull()
     esperar(900)
     expect((relatorio as RoundReport | null)?.items.map((o) => o.correct)).toEqual([true, true, true])
+    /* O que agenda a revisão: o jogo certo e o cartão DE CADA ITEM, sem repetir nenhum. */
+    expect((relatorio as RoundReport | null)?.gameId).toBe('wordsearch')
+    expect((relatorio as RoundReport | null)?.items.map((o) => o.cardId).sort()).toEqual(['c1', 'c2', 'c3'])
   })
 })

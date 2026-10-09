@@ -20,14 +20,12 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { cleanup, fireEvent,render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
-import { afterEach,describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import Abas, { PainelDeAba } from '../src/components/ui/Abas'
 import Barra from '../src/components/ui/Barra'
-import Ladrilho from '../src/components/ui/Ladrilho'
-import Segmentado from '../src/components/ui/Segmentado'
 import Vazio from '../src/components/ui/Vazio'
 
 const DIR = join(__dirname, '..', 'src', 'components', 'ui')
@@ -42,7 +40,10 @@ const PROIBIDOS: Array<{ re: RegExp; porque: string }> = [
   { re: /\btext-black\b/, porque: 'ilegível no modo escuro; use text-ink' },
   { re: /\bbg-white\b/, porque: 'não acompanha o tema; use bg-surface ou bg-canvas' },
   { re: /\bbg-black\b/, porque: 'não acompanha o tema; use bg-canvas' },
-  { re: /\b(?:text|bg|border)-(?:slate|gray|zinc|neutral|stone|red|blue|green|yellow|amber|emerald|indigo|violet|purple|pink)-\d{2,3}\b/, porque: 'tom fixo do Tailwind ignora os 7 temas; use os tokens semânticos' },
+  {
+    re: /\b(?:text|bg|border)-(?:slate|gray|zinc|neutral|stone|red|blue|green|yellow|amber|emerald|indigo|violet|purple|pink)-\d{2,3}\b/,
+    porque: 'tom fixo do Tailwind ignora os 7 temas; use os tokens semânticos',
+  },
   { re: /#[0-9a-fA-F]{3,8}\b/, porque: 'hex literal; a cor tem de vir de um token' },
   { re: /\brgba?\(/, porque: 'cor literal; a cor tem de vir de um token' },
 ]
@@ -137,91 +138,17 @@ describe('Abas — o contrato de acessibilidade que as versões à mão não tin
   it('o painel só renderiza o conteúdo da aba ativa', () => {
     render(
       <>
-        <PainelDeAba id="a" ativo="b">conteúdo A</PainelDeAba>
-        <PainelDeAba id="b" ativo="b">conteúdo B</PainelDeAba>
+        <PainelDeAba id="a" ativo="b">
+          conteúdo A
+        </PainelDeAba>
+        <PainelDeAba id="b" ativo="b">
+          conteúdo B
+        </PainelDeAba>
       </>,
     )
 
     expect(screen.queryByText('conteúdo A')).toBeNull()
     expect(screen.getByRole('tabpanel').textContent).toBe('conteúdo B')
-  })
-})
-
-describe('Segmentado — opção sem itens não fica clicável, e diz por quê', () => {
-  afterEach(cleanup)
-
-  it('bloqueia a opção com motivo e a expõe no title', () => {
-    render(
-      <Segmentado
-        rotuloDoGrupo="Nível"
-        opcoes={[
-          { id: 'facil', rotulo: 'Fácil', contagem: 12 },
-          { id: 'dificil', rotulo: 'Difícil', contagem: 2, motivoBloqueio: 'só 2; este jogo precisa de 4' },
-        ]}
-        valor={['facil']}
-        aoTrocar={() => {}}
-        multiplo
-      />,
-    )
-
-    const bloqueada = screen.getByRole('button', { name: /Difícil/ })
-    expect(bloqueada.hasAttribute('disabled')).toBe(true)
-    expect(bloqueada.getAttribute('title')).toBe('só 2; este jogo precisa de 4')
-  })
-
-  it('clique numa opção bloqueada não dispara nada', () => {
-    let chamou = 0
-    render(
-      <Segmentado
-        rotuloDoGrupo="Nível"
-        opcoes={[{ id: 'x', rotulo: 'Vazia', contagem: 0, motivoBloqueio: 'nenhuma palavra aqui' }]}
-        valor={[]}
-        aoTrocar={() => { chamou++ }}
-        multiplo
-      />,
-    )
-
-    fireEvent.click(screen.getByRole('button', { name: /Vazia/ }))
-    expect(chamou).toBe(0)
-  })
-
-  it('a contagem 0 aparece — é justamente a informação que trava a opção', () => {
-    render(
-      <Segmentado
-        rotuloDoGrupo="Nível"
-        opcoes={[{ id: 'x', rotulo: 'Difícil', contagem: 0, motivoBloqueio: 'nenhuma' }]}
-        valor={[]}
-        aoTrocar={() => {}}
-        multiplo
-      />,
-    )
-
-    expect(screen.getByRole('button', { name: /Difícil/ }).textContent).toContain('0')
-  })
-
-  it('exclusivo usa radiogroup; múltiplo usa aria-pressed', () => {
-    const { unmount } = render(
-      <Segmentado
-        rotuloDoGrupo="Fonte"
-        opcoes={[{ id: 'a', rotulo: 'A' }, { id: 'b', rotulo: 'B' }]}
-        valor={['a']}
-        aoTrocar={() => {}}
-      />,
-    )
-    expect(screen.getByRole('radiogroup', { name: 'Fonte' })).toBeTruthy()
-    expect(screen.getAllByRole('radio')).toHaveLength(2)
-    unmount()
-
-    render(
-      <Segmentado
-        rotuloDoGrupo="Nível"
-        opcoes={[{ id: 'a', rotulo: 'A' }]}
-        valor={['a']}
-        aoTrocar={() => {}}
-        multiplo
-      />,
-    )
-    expect(screen.getByRole('button', { name: 'A' }).getAttribute('aria-pressed')).toBe('true')
   })
 })
 
@@ -253,27 +180,6 @@ describe('Barra — o percentual é saneado, não propagado', () => {
   })
 })
 
-describe('Ladrilho — não inventa zero', () => {
-  afterEach(cleanup)
-
-  it('dado ausente vira esqueleto, nunca 0', () => {
-    const { container } = render(<Ladrilho valor={null} rotulo="palavras" />)
-    expect(container.textContent).not.toContain('0')
-    expect(container.querySelector('.animate-pulse')).toBeTruthy()
-  })
-
-  it('zero de verdade é exibido', () => {
-    const { container } = render(<Ladrilho valor={0} rotulo="palavras" />)
-    expect(container.textContent).toContain('0')
-    expect(container.querySelector('.animate-pulse')).toBeNull()
-  })
-
-  it('a nota de base acompanha o número', () => {
-    render(<Ladrilho valor={58} rotulo="de cada 100" nota="sobre as 149 que você já revisou" />)
-    expect(screen.getByText(/149 que você já revisou/)).toBeTruthy()
-  })
-})
-
 describe('Vazio — diz a causa e oferece a saída', () => {
   afterEach(cleanup)
 
@@ -283,7 +189,12 @@ describe('Vazio — diz a causa e oferece a saída', () => {
       <Vazio
         titulo="Falta 1 palavra para abrir"
         explicacao="precisa de 4 · você tem 3 do inglês"
-        acao={{ rotulo: 'Gravar agora', aoClicar: () => { clicou = true } }}
+        acao={{
+          rotulo: 'Gravar agora',
+          aoClicar: () => {
+            clicou = true
+          },
+        }}
       />,
     )
 

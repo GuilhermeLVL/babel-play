@@ -10,13 +10,11 @@ import React, { Suspense, useEffect, useState } from 'react';
 import { lerAbertura } from '../data/rotas/idade';
 import * as auth from '../lib/auth';
 import * as porta from '../lib/authPorta';
-import { useQuestNovo } from '../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../lib/i18n';
 import { lazyComRecarga } from '../lib/lazyComRecarga';
 import { supabase } from '../lib/supabase';
 import { T } from '../lib/T';
 import { chaveDoTurnstile } from '../lib/turnstile';
-import AuthShell from './auth/AuthShell';
 import PasswordField from './auth/PasswordField';
 import { ConfiraSeuEmail, LembrarEmail, Mensagem, RequisitosDaSenha, Saida } from './auth/PecasDaPorta';
 import CascaDeEntradaDoQuest from './auth/quest/CascaDeEntradaDoQuest';
@@ -77,7 +75,6 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
   /* SIGNUP_ENABLED=0 no servidor (Fase 3 — chave de emergência): a porta de "Criar conta" some e a
      tela explica. Quem já tem conta continua entrando; o servidor recusa conta nova de qualquer jeito. */
   const [cadastroAberto, setCadastroAberto] = useState(true);
-  const questNovo = useQuestNovo();
   useEffect(() => {
     let vivo = true;
     void lerAbertura().then((a) => {
@@ -222,15 +219,10 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
     }
   }
 
-  /* O mesmo widget nos três modos e nos dois desenhos; o espaço fica reservado enquanto ele chega. */
+  /* O mesmo widget nos três modos; o espaço fica reservado enquanto ele chega. */
   const widgetDoCaptcha = chaveDoCaptcha ? (
     <Suspense fallback={<div className="min-h-[65px]" />}>
-      <CaptchaDaPorta
-        sitekey={chaveDoCaptcha}
-        rodada={rodadaDoCaptcha}
-        onToken={setRespostaDoCaptcha}
-        quest={questNovo}
-      />
+      <CaptchaDaPorta sitekey={chaveDoCaptcha} rodada={rodadaDoCaptcha} onToken={setRespostaDoCaptcha} />
     </Suspense>
   ) : null;
 
@@ -280,235 +272,68 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
   /* QUEST: os mesmos três modos, provedores, erros e saídas, nas medidas do headset. UM botão
      principal (o do formulário); Google e "sem conta" vêm depois, como alternativas. A lógica acima é a
      mesma: aqui só muda a marcação (`questEntrada.css`). */
-  if (questNovo) {
-    const trocarDeModo =
-      modo === 'login' && cadastroAberto ? (
-        <p className="qen-rodape">
-          {t('Não tem conta?')}
-          <button type="button" className="qen-link" onClick={() => trocaModo('signup')}>
-            {t('Criar uma conta')}
-          </button>
-        </p>
-      ) : modo === 'login' ? (
-        <p className="qen-aviso" role="note">
-          <Info aria-hidden />
-          <span>
-            {t(
-              'O cadastro de contas novas está pausado temporariamente. Você pode usar o app sem conta, no seu aparelho.',
-            )}
-          </span>
-        </p>
-      ) : modo === 'signup' ? (
-        <p className="qen-rodape">
-          {t('Já tem conta?')}
-          <button type="button" className="qen-link" onClick={() => trocaModo('login')}>
-            {t('Entrar')}
-          </button>
-        </p>
-      ) : (
-        <p className="qen-rodape">
-          {/* A seta fica DENTRO da frase, como na tela de sempre (em árabe e hebraico ela vira). */}
-          <button type="button" className="qen-link" onClick={() => trocaModo('login')}>
-            {t('← Voltar ao login')}
-          </button>
-        </p>
-      );
-
-    return (
-      <CascaDeEntradaDoQuest hero={modo === 'forgot' ? heroRecuperar : undefined} testId="login-do-quest">
-        {pendente ? (
-          painelDoEmail(true)
-        ) : (
-          <>
-            <header className="qen-cab">
-              <div>
-                <p className="qen-sobre">{t('Sua conta')}</p>
-                <h1>{t(TITULO[modo])}</h1>
-                <p>{t(SUB[modo])}</p>
-              </div>
-            </header>
-
-            {!configurado && (
-              <p className="qen-aviso alerta" role="alert">
-                <TriangleAlert aria-hidden />
-                <span>
-                  <T
-                    txt="Login não configurado neste ambiente, defina as variáveis <code>{variaveis}</code> no <code>{arquivo}</code>."
-                    val={{ variaveis: 'VITE_SUPABASE_*', arquivo: '.env' }}
-                  />
-                </span>
-              </p>
-            )}
-
-            <form onSubmit={submit} className="qen-form">
-              <div className="qen-campo">
-                <label htmlFor="auth-email">{t('E-mail')}</label>
-                <input
-                  id="auth-email"
-                  name="email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={t('voce@exemplo.com')}
-                />
-              </div>
-
-              {modo !== 'forgot' && (
-                <div className="qen-campo">
-                  <div className="qen-rotulo">
-                    <label htmlFor="auth-senha">{t('Senha')}</label>
-                    {modo === 'login' && (
-                      <button type="button" className="qen-link" onClick={() => trocaModo('forgot')}>
-                        {t('Esqueci')}
-                      </button>
-                    )}
-                  </div>
-                  <PasswordField
-                    id="auth-senha"
-                    name="senha"
-                    required
-                    minLength={modo === 'signup' ? auth.SENHA_MINIMA : undefined}
-                    autoComplete={modo === 'login' ? 'current-password' : 'new-password'}
-                    value={senha}
-                    onChange={(e) => setSenha(e.target.value)}
-                    placeholder={t('mínimo {n} caracteres', { n: auth.SENHA_MINIMA })}
-                  />
-                </div>
-              )}
-
-              {modo === 'signup' && (
-                <>
-                  <RequisitosDaSenha senha={senha} minimo={auth.SENHA_MINIMA} quest />
-                  <div className="qen-campo">
-                    <label htmlFor="auth-confirma">{t('Confirmar senha')}</label>
-                    <PasswordField
-                      id="auth-confirma"
-                      name="confirmar-senha"
-                      required
-                      autoComplete="new-password"
-                      value={confirma}
-                      onChange={(e) => setConfirma(e.target.value)}
-                      placeholder={t('repita a senha')}
-                    />
-                  </div>
-                </>
-              )}
-
-              {modo === 'login' && <LembrarEmail marcado={lembrar} onChange={setLembrar} quest />}
-
-              {widgetDoCaptcha}
-
-              {erro && (
-                <Mensagem tipo="erro" quest acoes={saidasDoErro(true)}>
-                  {erro}
-                </Mensagem>
-              )}
-              {aviso && (
-                <Mensagem tipo="ok" quest>
-                  {aviso}
-                </Mensagem>
-              )}
-
-              <button type="submit" disabled={carregando || !configurado} className="qen-botao pri">
-                {carregando && <LoaderCircle className="qen-gira" aria-hidden />}
-                {carregando
-                  ? t('Aguarde…')
-                  : modo === 'login'
-                    ? t('Entrar')
-                    : modo === 'signup'
-                      ? t('Criar conta')
-                      : t('Enviar link')}
-              </button>
-            </form>
-
-            {modo !== 'forgot' && (configurado || onContinuarSemConta) && (
-              <>
-                <p className="qen-divisor">{t('ou')}</p>
-                <div className="qen-acoes par">
-                  {configurado && auth.googleLigado() && (
-                    <button type="button" onClick={() => social('google')} disabled={carregando} className="qen-botao">
-                      {t('Continuar com Google')}
-                    </button>
-                  )}
-                  {onContinuarSemConta && (
-                    <button type="button" onClick={onContinuarSemConta} className="qen-botao">
-                      {t('Continuar sem conta')}
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
-
-            {trocarDeModo}
-          </>
-        )}
-
-        {onContinuarSemConta && modo !== 'forgot' && !pendente && (
-          <>
-            <p className="qen-nota">
-              <T
-                txt="Ao criar uma conta você concorda com os <termos>termos de uso</termos> e a <privacidade>política de privacidade</privacidade>."
-                tags={{
-                  termos: <a href="/termos.html" target="_blank" rel="noopener" />,
-                  privacidade: <a href="/privacidade.html" target="_blank" rel="noopener" />,
-                }}
-              />
-            </p>
-            <p className="qen-nota">
-              {t('Transcreva, traduza e jogue com a sessão atual. Nada sai deste navegador até você criar uma conta.')}
-            </p>
-          </>
-        )}
-      </CascaDeEntradaDoQuest>
+  const trocarDeModo =
+    modo === 'login' && cadastroAberto ? (
+      <p className="qen-rodape">
+        {t('Não tem conta?')}
+        <button type="button" className="qen-link" onClick={() => trocaModo('signup')}>
+          {t('Criar uma conta')}
+        </button>
+      </p>
+    ) : modo === 'login' ? (
+      <p className="qen-aviso" role="note">
+        <Info aria-hidden />
+        <span>
+          {t(
+            'O cadastro de contas novas está pausado temporariamente. Você pode usar o app sem conta, no seu aparelho.',
+          )}
+        </span>
+      </p>
+    ) : modo === 'signup' ? (
+      <p className="qen-rodape">
+        {t('Já tem conta?')}
+        <button type="button" className="qen-link" onClick={() => trocaModo('login')}>
+          {t('Entrar')}
+        </button>
+      </p>
+    ) : (
+      <p className="qen-rodape">
+        {/* A seta fica DENTRO da frase, como na tela de sempre (em árabe e hebraico ela vira). */}
+        <button type="button" className="qen-link" onClick={() => trocaModo('login')}>
+          {t('← Voltar ao login')}
+        </button>
+      </p>
     );
-  }
 
   return (
-    <AuthShell hero={modo === 'forgot' ? heroRecuperar : undefined}>
+    <CascaDeEntradaDoQuest hero={modo === 'forgot' ? heroRecuperar : undefined} testId="login-do-quest">
       {pendente ? (
-        painelDoEmail(false)
+        painelDoEmail(true)
       ) : (
         <>
-          <h1 className="font-display text-2xl font-bold text-ink">{t(TITULO[modo])}</h1>
-          <p className="mt-1 mb-6 text-sm text-ink-muted">{t(SUB[modo])}</p>
+          <header className="qen-cab">
+            <div>
+              <p className="qen-sobre">{t('Sua conta')}</p>
+              <h1>{t(TITULO[modo])}</h1>
+              <p>{t(SUB[modo])}</p>
+            </div>
+          </header>
 
           {!configurado && (
-            <p className="mb-4 rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn-ink" role="alert">
-              {/* Os nomes entram como VALOR, fora da frase: o tradutor não os vê, então não os traduz. */}
-              <T
-                txt="Login não configurado neste ambiente, defina as variáveis <code>{variaveis}</code> no <code>{arquivo}</code>."
-                val={{ variaveis: 'VITE_SUPABASE_*', arquivo: '.env' }}
-              />
+            <p className="qen-aviso alerta" role="alert">
+              <TriangleAlert aria-hidden />
+              <span>
+                <T
+                  txt="Login não configurado neste ambiente, defina as variáveis <code>{variaveis}</code> no <code>{arquivo}</code>."
+                  val={{ variaveis: 'VITE_SUPABASE_*', arquivo: '.env' }}
+                />
+              </span>
             </p>
           )}
 
-          {configurado && auth.googleLigado() && modo !== 'forgot' && (
-            <>
-              <div className="grid gap-2">
-                <button
-                  type="button"
-                  onClick={() => social('google')}
-                  disabled={carregando}
-                  className="btn-outline w-full justify-center disabled:opacity-50"
-                >
-                  {t('Continuar com Google')}
-                </button>
-              </div>
-              <div className="my-5 flex items-center gap-3 text-xs text-ink-faint">
-                <span className="h-px flex-1 bg-border-subtle" />
-                {t('ou')}
-                <span className="h-px flex-1 bg-border-subtle" />
-              </div>
-            </>
-          )}
-
-          <form onSubmit={submit} className="grid gap-4">
-            <div>
-              <label htmlFor="auth-email" className="mb-1 block text-xs font-medium text-ink-muted">
-                {t('E-mail')}
-              </label>
+          <form onSubmit={submit} className="qen-form">
+            <div className="qen-campo">
+              <label htmlFor="auth-email">{t('E-mail')}</label>
               <input
                 id="auth-email"
                 name="email"
@@ -518,22 +343,15 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t('voce@exemplo.com')}
-                className="field-input"
               />
             </div>
 
             {modo !== 'forgot' && (
-              <div>
-                <div className="mb-1 flex items-center justify-between">
-                  <label htmlFor="auth-senha" className="block text-xs font-medium text-ink-muted">
-                    {t('Senha')}
-                  </label>
+              <div className="qen-campo">
+                <div className="qen-rotulo">
+                  <label htmlFor="auth-senha">{t('Senha')}</label>
                   {modo === 'login' && (
-                    <button
-                      type="button"
-                      onClick={() => trocaModo('forgot')}
-                      className="text-xs text-accent-ink underline"
-                    >
+                    <button type="button" className="qen-link" onClick={() => trocaModo('forgot')}>
                       {t('Esqueci')}
                     </button>
                   )}
@@ -542,8 +360,6 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
                   id="auth-senha"
                   name="senha"
                   required
-                  /* Só ao CRIAR: quem entra com uma senha antiga, anterior ao mínimo de 8, não é barrado
-                 na porta — a regra vale para senha nova. */
                   minLength={modo === 'signup' ? auth.SENHA_MINIMA : undefined}
                   autoComplete={modo === 'login' ? 'current-password' : 'new-password'}
                   value={senha}
@@ -555,11 +371,9 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
 
             {modo === 'signup' && (
               <>
-                <RequisitosDaSenha senha={senha} minimo={auth.SENHA_MINIMA} quest={false} />
-                <div>
-                  <label htmlFor="auth-confirma" className="mb-1 block text-xs font-medium text-ink-muted">
-                    {t('Confirmar senha')}
-                  </label>
+                <RequisitosDaSenha senha={senha} minimo={auth.SENHA_MINIMA} quest />
+                <div className="qen-campo">
+                  <label htmlFor="auth-confirma">{t('Confirmar senha')}</label>
                   <PasswordField
                     id="auth-confirma"
                     name="confirmar-senha"
@@ -573,26 +387,23 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
               </>
             )}
 
-            {modo === 'login' && <LembrarEmail marcado={lembrar} onChange={setLembrar} quest={false} />}
+            {modo === 'login' && <LembrarEmail marcado={lembrar} onChange={setLembrar} quest />}
 
             {widgetDoCaptcha}
 
             {erro && (
-              <Mensagem tipo="erro" quest={false} acoes={saidasDoErro(false)}>
+              <Mensagem tipo="erro" quest acoes={saidasDoErro(true)}>
                 {erro}
               </Mensagem>
             )}
             {aviso && (
-              <Mensagem tipo="ok" quest={false}>
+              <Mensagem tipo="ok" quest>
                 {aviso}
               </Mensagem>
             )}
 
-            <button
-              type="submit"
-              disabled={carregando || !configurado}
-              className="btn-ink w-full justify-center disabled:opacity-60"
-            >
+            <button type="submit" disabled={carregando || !configurado} className="qen-botao pri">
+              {carregando && <LoaderCircle className="qen-gira" aria-hidden />}
               {carregando
                 ? t('Aguarde…')
                 : modo === 'login'
@@ -603,74 +414,44 @@ export default function Login({ onContinuarSemConta }: LoginProps = {}) {
             </button>
           </form>
 
-          <div className="mt-6 border-t border-border-subtle pt-5 text-center text-xs text-ink-muted">
-            {modo === 'login' && cadastroAberto && (
-              <>
-                {t('Não tem conta?')}{' '}
-                <button
-                  type="button"
-                  onClick={() => trocaModo('signup')}
-                  className="font-medium text-accent-ink underline underline-offset-2"
-                >
-                  {t('Criar uma conta')}
-                </button>
-              </>
-            )}
-            {modo === 'login' && !cadastroAberto && (
-              <>
-                {t(
-                  'O cadastro de contas novas está pausado temporariamente. Você pode usar o app sem conta, no seu aparelho.',
+          {modo !== 'forgot' && (configurado || onContinuarSemConta) && (
+            <>
+              <p className="qen-divisor">{t('ou')}</p>
+              <div className="qen-acoes par">
+                {configurado && auth.googleLigado() && (
+                  <button type="button" onClick={() => social('google')} disabled={carregando} className="qen-botao">
+                    {t('Continuar com Google')}
+                  </button>
                 )}
-              </>
-            )}
-            {modo === 'signup' && (
-              <>
-                {t('Já tem conta?')}{' '}
-                <button
-                  type="button"
-                  onClick={() => trocaModo('login')}
-                  className="font-medium text-accent-ink underline underline-offset-2"
-                >
-                  {t('Entrar')}
-                </button>
-              </>
-            )}
-            {modo === 'forgot' && (
-              <button
-                type="button"
-                onClick={() => trocaModo('login')}
-                className="font-medium text-accent-ink underline underline-offset-2"
-              >
-                {/* A seta fica DENTRO da frase: em árabe e hebraico "voltar" aponta para o outro lado. */}
-                {t('← Voltar ao login')}
-              </button>
-            )}
-          </div>
+                {onContinuarSemConta && (
+                  <button type="button" onClick={onContinuarSemConta} className="qen-botao">
+                    {t('Continuar sem conta')}
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+
+          {trocarDeModo}
         </>
       )}
 
       {onContinuarSemConta && modo !== 'forgot' && !pendente && (
-        <div className="mt-4 text-center">
-          <button type="button" onClick={onContinuarSemConta} className="btn-outline w-full justify-center">
-            {t('Continuar sem conta')}
-          </button>
-          {/* E5 — quem cria conta precisa conseguir LER o que está aceitando, antes de aceitar.
-              UMA frase com os dois links dentro: cada idioma põe "termos" e "privacidade" na ordem
-              dele. O `href` fica no código (`tags`), nunca no catálogo baixado. */}
-          <p className="text-[11px] text-ink-faint text-center mt-3">
+        <>
+          <p className="qen-nota">
             <T
               txt="Ao criar uma conta você concorda com os <termos>termos de uso</termos> e a <privacidade>política de privacidade</privacidade>."
               tags={{
-                termos: <a href="/termos.html" target="_blank" rel="noopener" className="underline" />,
-                privacidade: <a href="/privacidade.html" target="_blank" rel="noopener" className="underline" />,
+                termos: <a href="/termos.html" target="_blank" rel="noopener" />,
+                privacidade: <a href="/privacidade.html" target="_blank" rel="noopener" />,
               }}
             />
           </p>
-          <p className="mt-2 text-[11px] text-ink-faint">
+          <p className="qen-nota">
             {t('Transcreva, traduza e jogue com a sessão atual. Nada sai deste navegador até você criar uma conta.')}
           </p>
-        </div>
+        </>
       )}
-    </AuthShell>
+    </CascaDeEntradaDoQuest>
   );
 }

@@ -85,7 +85,7 @@ describe('Planos → Consumo do mês: o medidor "Hoje"', () => {
     fireEvent.click(await screen.findByRole('tab', { name: 'Consumo do mês' }))
   }
 
-  it('mostra a nuvem de hoje contra o teto de 2 h, ao lado dos do mês, com a nota do uso justo', async () => {
+  it('mostra a nuvem de hoje contra o teto de 2 h, ao lado dos do mês', async () => {
     usoDoServidor.valor = uso(hojeCom(5400))
     await abrirConsumo()
     const medidor = await screen.findByRole('progressbar', { name: 'Nuvem hoje' })
@@ -94,10 +94,20 @@ describe('Planos → Consumo do mês: o medidor "Hoje"', () => {
     // os do mês continuam lá
     expect(screen.getByRole('progressbar', { name: 'Áudio transcrito na nuvem' })).toBeTruthy()
     expect(screen.getByRole('progressbar', { name: 'IA hoje (tradução e tutor)' })).toBeTruthy()
-    const nota = screen.getByTestId('uso-justo-do-dia').textContent ?? ''
-    expect(nota).toContain('até 2 h de nuvem por dia e 40 h por mês; passando disso, a legenda segue no aparelho')
     // sem "%" e sem "qualidade" no texto da tela
     expect(document.body.textContent).not.toMatch(/%|qualidade/i)
+  })
+
+  /* CDC: o teto do dia não aparece sem a nota do uso justo ao lado. A tela nova (08/10/2026) mostra o
+     medidor "Nuvem hoje" SEM a nota: este teste fica vermelho de propósito até a nota voltar para a aba
+     Consumo do mês (`notaDoUsoJusto()` em `planos/dados.ts` está pronta e sem uso). Não apagar. */
+  it('CDC: a nota do uso justo acompanha o medidor do dia', async () => {
+    usoDoServidor.valor = uso(hojeCom(5400))
+    await abrirConsumo()
+    await screen.findByRole('progressbar', { name: 'Nuvem hoje' })
+    expect(document.body.textContent).toContain(
+      'até 2 h de nuvem por dia e 40 h por mês; passando disso, a legenda segue no aparelho',
+    )
   })
 
   it('sem `hoje` (plano sem teto no dia), nenhum medidor do dia e nenhuma nota', async () => {
@@ -105,7 +115,6 @@ describe('Planos → Consumo do mês: o medidor "Hoje"', () => {
     await abrirConsumo()
     await screen.findByRole('progressbar', { name: 'Áudio transcrito na nuvem' })
     expect(screen.queryByRole('progressbar', { name: 'Nuvem hoje' })).toBeNull()
-    expect(screen.queryByTestId('uso-justo-do-dia')).toBeNull()
   })
 })
 

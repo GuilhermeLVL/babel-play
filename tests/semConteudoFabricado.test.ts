@@ -53,17 +53,26 @@ describe('nenhuma palavra de demonstração sobrevive no código de tela', () =>
 
 describe('a alternativa honesta continua disponível', () => {
   it('Analysis diz que o dado falta em vez de preencher o vazio', () => {
-    /* A Visão geral seguiu o protótipo aprovado (ladrilhos e "Ritmo por falante"): sem o tempo das
-       falas, o ladrilho mostra "—" e o cartão diz o motivo, em vez de um número. */
+    /* A Visão geral seguiu o protótipo aprovado (cartões de número e "Ritmo por falante"): sem o tempo
+       das falas, o número mostra "—" (quem monta é a Análise) e o cartão do ritmo diz o motivo (quem
+       desenha é `VisaoGeralDoQuest`), em vez de um número. */
     const vivo = semComentarios(readFileSync(path.join(process.cwd(), 'src/components/views/Analysis.tsx'), 'utf8'))
-    expect(vivo).toMatch(/Requer o tempo de cada fala/)
-    expect(vivo).toMatch(/: '—'/)
+    const visao = semComentarios(
+      readFileSync(path.join(process.cwd(), 'src/components/views/analise/quest/VisaoGeralDoQuest.tsx'), 'utf8'),
+    )
+    expect(visao).toMatch(/fluencia\.ritmo\.length \?/)
+    expect(visao).toMatch(/Requer o tempo de cada fala/)
+    expect(vivo).toMatch(/realSilencio != null \? .* : '—'/)
+    expect(vivo).toMatch(/realLongPauses != null \? .* : '—'/)
+    expect(vivo).toMatch(/realVicios\.palavras > 0 \? .* : '—'/)
   })
 
   it('a topologia lexical continua sobre dado REAL do deck e da transcrição', () => {
-    // "No seu caderno" conta os cartões da sessão; os microdados são as falas em que a palavra aparece.
+    // "Palavras novas" conta os cartões da sessão; os microdados contam as vezes em que a palavra
+    // aparece nas falas de verdade (`parsedSentences`).
     const vivo = semComentarios(readFileSync(path.join(process.cwd(), 'src/components/views/Analysis.tsx'), 'utf8'))
     expect(vivo).toMatch(/palavrasDaSessao\.length/)
-    expect(vivo).toMatch(/ocorrenciasDoMicro/)
+    expect(vivo).toMatch(/vezes: vezesNaSessao\(palavra\)/)
+    expect(vivo).toMatch(/const vezesNaSessao = [\s\S]{0,400}parsedSentences\.reduce/)
   })
 })

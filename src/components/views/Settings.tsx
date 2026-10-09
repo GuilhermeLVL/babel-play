@@ -1,53 +1,21 @@
-import {
-  AlertTriangle,
-  Bell,
-  Eye,
-  Gamepad2,
-  Languages,
-  Moon,
-  Palette,
-  Server,
-  ShieldCheck,
-  Sun,
-  User,
-  Zap,
-} from 'lucide-react';
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Bell, Languages, Palette, Server, ShieldCheck, User } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 import { fetchSettings, saveSettings } from '../../data/api';
 import { DEFAULT_PROFILE_ID } from '../../gateway/profiles';
 import type { ThemeType } from '../../lib/appearance';
-import { aparelhoVibra, guardarTato, useTato } from '../../lib/dispositivo/tato';
-import { definirDesenhoNovoNoComputador, noComputador, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { getEntitlements, onPlanChange } from '../../lib/entitlements';
-import { idiomasAbaixoDoPiso, t } from '../../lib/i18n';
-import { irPara } from '../../lib/irPara';
+import { t } from '../../lib/i18n';
 import {
   DEFAULT_LANG_CONFIG,
   fetchLangConfig,
-  idiomasDaInterfaceOferecidos,
   type LangConfig,
   langConfigFrom,
   saveLangConfig,
 } from '../../lib/langConfig';
-import { baseLang, langLabelNaUI } from '../../lib/languages';
-import { lazyComRecarga } from '../../lib/lazyComRecarga';
-import { perfilProtegido } from '../../lib/protecaoDoMenor';
-import AiEnginePanel from '../AiEnginePanel';
-import LangPicker from '../LangPicker';
-import type { FontScale } from '../shell/ControlCluster';
-import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
+import type { AgeProfileType, FontScale, MenuPositionType } from '../shell/navItems';
 import { toast } from '../Toast';
-import { Abas, CabecalhoDeTela, IconeEmBloco, PainelDeAba, Tela, TituloDeSecao } from '../ui';
-import AbaConta from './ajustes/AbaConta';
-import AbaNotificacoes from './ajustes/AbaNotificacoes';
-import AbaPrivacidade from './ajustes/AbaPrivacidade';
-import { Linha } from './ajustes/Linha';
 import AjustesDoQuest from './ajustes/quest/AjustesDoQuest';
-import LangAudit from './LangAudit';
-
-/* O painel da Tradução Nuance (D6 da Fase D): registro padrão, variantes e glossário, por `import()`. */
-const PainelDaNuance = lazyComRecarga(() => import('./ajustes/PainelDaNuance'));
 
 /**
  * AJUSTES — idêntico ao protótipo aprovado (`T.ajustes` + override em
@@ -142,12 +110,7 @@ export default function Settings({
   performanceMode,
   togglePerformanceMode,
 }: SettingsProps) {
-  // No Quest (telas novas ligadas) e no computador com o "Desenho novo" ligado, a apresentação é
-  // `AjustesDoQuest`; o estado e a gravação são estes.
-  const questNovo = useQuestNovo();
-  // O aparelho não muda com a página aberta: só o computador escolhe entre os dois desenhos.
-  const [computador] = useState(noComputador);
-  const vibracao = useTato();
+  // A apresentação é `AjustesDoQuest`; o estado e a gravação são estes.
   const [langCfg, setLangCfg] = useState<LangConfig>(DEFAULT_LANG_CONFIG);
   const [activeProfileId, setActiveProfileId] = useState<string>(
     () => localStorage.getItem(PROFILE_STORAGE_KEY) ?? DEFAULT_PROFILE_ID,
@@ -235,252 +198,31 @@ export default function Settings({
     ageProfile === 'kids' ? t('Ajustes do jogo') : ageProfile === 'senior' ? t('Ajustes do aplicativo') : t('Ajustes');
 
   /* QUEST: as mesmas seis abas e os mesmos ajustes, no desenho do headset (`AjustesDoQuest`). */
-  if (questNovo)
-    return (
-      <AjustesDoQuest
-        sobrancelha={sobrancelha}
-        titulo={titulo}
-        abas={ABAS.map((a) => ({ ...a, rotulo: t(a.rotulo) }))}
-        aba={aba}
-        aoTrocarAba={setAba}
-        erro={saveError}
-        idiomas={langCfg}
-        aoMudarIdioma={(mudanca) => void changeLang(mudanca)}
-        escuro={darkMode}
-        aoEscolherEscuro={(escuro) => definirEscuro(escuro, darkMode, setDarkMode)}
-        tamanhos={TAMANHOS}
-        fontScale={fontScale}
-        setFontScale={setFontScale}
-        animationsEnabled={animationsEnabled}
-        toggleAnimations={toggleAnimations}
-        soundEnabled={soundEnabled}
-        toggleSound={toggleSound}
-        performanceMode={performanceMode}
-        togglePerformanceMode={togglePerformanceMode}
-        perfilDeIa={activeProfileId}
-        aoMudarPerfilDeIa={(id) => void changeProfile(id)}
-        perfisBloqueados={entitlements.managedCloudStt ? [] : ['cloud-quality']}
-        onReplayTour={onReplayTour}
-      />
-    );
-
   return (
-    <Tela largura="estreita">
-      <CabecalhoDeTela
-        icone={ageProfile === 'kids' ? Gamepad2 : ageProfile === 'senior' ? Eye : Zap}
-        sobrancelha={sobrancelha}
-        titulo={titulo}
-        sub={
-          ageProfile === 'kids'
-            ? t('Escolha os idiomas que você quer praticar e personalize o visual do seu jogo.')
-            : ageProfile === 'senior'
-              ? t('Configure o idioma que você deseja aprender e altere opções de leitura de forma simples.')
-              : 'Idiomas, aparência, avisos, privacidade e a sua conta.'
-        }
-        abas={
-          <Abas
-            itens={ABAS.map((a) => ({ ...a, rotulo: t(a.rotulo) }))}
-            ativo={aba}
-            aoTrocar={setAba}
-            rotuloDoGrupo={t('Seções dos ajustes')}
-          />
-        }
-      />
-
-      {saveError && (
-        <div role="status" className="cartao p5 linha" style={{ gap: 12, marginBottom: 24 }}>
-          <IconeEmBloco icone={AlertTriangle} tom="warn" />
-          <span style={{ fontSize: 13 }}>{saveError}</span>
-        </div>
-      )}
-
-      {/* ═════════════ IDIOMAS ═════════════ */}
-      <PainelDeAba id="idiomas" ativo={aba}>
-        <section>
-          <TituloDeSecao icone={Languages} titulo={t('Os dois idiomas')} />
-          <div className="cartao">
-            <div className="ajuste">
-              <h3>{t('Idioma que estou aprendendo')}</h3>
-              <p className="mut">
-                {t('O idioma do áudio ou texto estrangeiro. É o idioma das palavras que vão para o seu deck.')}
-              </p>
-              <LangPicker
-                id="settings-studying-lang"
-                ariaLabel={t('Idioma que estou aprendendo')}
-                block
-                value={langCfg.studying}
-                onPick={({ code }) => {
-                  if (code) void changeLang({ studying: code });
-                }}
-              />
-            </div>
-            <div className="ajuste">
-              <h3>{t('Meu idioma')}</h3>
-              <p className="mut">{t('O que você já fala: o do seu microfone e o das traduções que você lê.')}</p>
-              <LangPicker
-                id="settings-mine-lang"
-                ariaLabel={t('Meu idioma')}
-                block
-                value={langCfg.mine}
-                onPick={({ code }) => {
-                  if (code) void changeLang({ mine: code });
-                }}
-              />
-              {baseLang(langCfg.mine) === baseLang(langCfg.studying) && (
-                <p className="mut" style={{ color: 'var(--warn-ink)', marginTop: 8, marginBottom: 0 }}>
-                  {t('Os dois idiomas são o mesmo, não há tradução a fazer, e os cartões ficarão sem verso.')}
-                </p>
-              )}
-            </div>
-            <div className="ajuste">
-              <h3>{t('Idioma da interface')}</h3>
-              <p className="mut">{t('O idioma dos textos do app. Não muda o microfone nem a direção da tradução.')}</p>
-              <LangPicker
-                id="settings-ui-lang"
-                ariaLabel={t('Idioma da interface')}
-                block
-                somente={idiomasDaInterfaceOferecidos()}
-                value={langCfg.daInterface}
-                onPick={({ code }) => {
-                  if (code) void changeLang({ daInterface: code });
-                }}
-              />
-              {idiomasAbaixoDoPiso().length > 0 && (
-                <p className="mut" style={{ fontSize: 12, marginTop: 8, marginBottom: 0 }}>
-                  {t('Traduções em andamento, ainda fora da lista: {langs}.', {
-                    langs: idiomasAbaixoDoPiso()
-                      .map((i) => `${langLabelNaUI(i.lang)} (${Math.round(i.cobertura * 100)}%)`)
-                      .join(', '),
-                  })}
-                </p>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* O convite ao Premium é promocional: o perfil protegido não o recebe. */}
-        <Suspense fallback={null}>
-          <PainelDaNuance aoConhecer={perfilProtegido() ? undefined : () => irPara({ view: 'planos' })} />
-        </Suspense>
-
-        <LangAudit />
-      </PainelDeAba>
-
-      {/* ═════════════ APARÊNCIA ═════════════ */}
-      <PainelDeAba id="aparencia" ativo={aba}>
-        <section>
-          <TituloDeSecao icone={Palette} titulo={t('Como o app se parece')} />
-          <div className="cartao">
-            <Linha titulo={t('Tema')} desc={t('Claro ou escuro. O tema de cores você troca em Personalizar.')}>
-              <div className="seg" role="group" aria-label={t('Tema')}>
-                <button
-                  type="button"
-                  aria-pressed={!darkMode}
-                  onClick={() => definirEscuro(false, darkMode, setDarkMode)}
-                >
-                  <Sun aria-hidden style={{ width: 14, height: 14 }} /> {t('Claro')}
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={darkMode}
-                  onClick={() => definirEscuro(true, darkMode, setDarkMode)}
-                >
-                  <Moon aria-hidden style={{ width: 14, height: 14 }} /> {t('Escuro')}
-                </button>
-              </div>
-            </Linha>
-            <Linha titulo={t('Tamanho do texto')} desc={t('Vale para o app inteiro.')}>
-              <div className="seg" role="group" aria-label={t('Tamanho do texto')}>
-                {TAMANHOS.map(([id, rotulo, nome]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    aria-pressed={fontScale === id}
-                    aria-label={t(nome)}
-                    onClick={() => setFontScale(id)}
-                  >
-                    {rotulo}
-                  </button>
-                ))}
-              </div>
-            </Linha>
-            <Linha titulo={t('Reduzir movimento')} desc={t('Desliga partículas e animações.')}>
-              <label className="check">
-                <input type="checkbox" checked={!animationsEnabled} onChange={toggleAnimations} /> {t('Reduzir')}
-              </label>
-            </Linha>
-            {/* Fora do protótipo, de propósito: sem estas duas linhas o som do app só se ligaria pela
-                pausa de um jogo, e o modo desempenho (partículas e efeitos pesados desligados) ficaria
-                sem controle nenhum — o antigo popover "Som, animações e desempenho" saiu do rodapé. */}
-            <Linha titulo={t('Sons')} desc={t('Efeitos sonoros dos jogos e das conquistas.')}>
-              <label className="check">
-                <input type="checkbox" checked={soundEnabled} onChange={toggleSound} /> {t('Ligados')}
-              </label>
-            </Linha>
-            {/* Só onde o aparelho vibra pela página (celular com motor; o iPhone não tem). */}
-            {aparelhoVibra() && (
-              <Linha titulo={t('Vibração')} desc={t('Uma vibração curta no toque, no acerto e no erro.')}>
-                <label className="check">
-                  <input type="checkbox" checked={vibracao} onChange={() => guardarTato(!vibracao)} /> {t('Ligada')}
-                </label>
-              </Linha>
-            )}
-            <Linha
-              titulo={t('Modo desempenho')}
-              desc={t(
-                'Menos efeitos visuais. Liga sozinho no Meta Quest, em celulares mais simples e com "reduzir movimento" do sistema; a sua escolha aqui vale mais.',
-              )}
-            >
-              <label className="check">
-                <input type="checkbox" checked={performanceMode} onChange={togglePerformanceMode} /> {t('Ligado')}
-              </label>
-            </Linha>
-            {/* O DESENHO NOVO (pedido do dono, 02/10/2026): a interface do headset, no computador. Só
-                o computador escolhe; ligar troca o app inteiro na hora, e a aba Aparência do desenho
-                novo traz o mesmo interruptor para voltar. */}
-            {computador && (
-              <Linha
-                titulo={t('Desenho novo')}
-                desc={t('A interface limpa que nasceu no headset, agora no computador. Dá para voltar quando quiser.')}
-              >
-                <label className="check">
-                  <input
-                    type="checkbox"
-                    aria-label={t('Desenho novo')}
-                    checked={questNovo}
-                    onChange={(e) => definirDesenhoNovoNoComputador(e.target.checked)}
-                  />{' '}
-                  {t('Ligado')}
-                </label>
-              </Linha>
-            )}
-          </div>
-        </section>
-      </PainelDeAba>
-
-      {/* ═════════════ NOTIFICAÇÕES ═════════════ */}
-      <PainelDeAba id="notificacoes" ativo={aba}>
-        <AbaNotificacoes />
-      </PainelDeAba>
-
-      {/* ═════════════ PROCESSAMENTO ═════════════ */}
-      <PainelDeAba id="contas" ativo={aba}>
-        <AiEnginePanel
-          activeId={activeProfileId}
-          onSelect={(id) => void changeProfile(id)}
-          bloqueados={entitlements.managedCloudStt ? [] : ['cloud-quality']}
-        />
-      </PainelDeAba>
-
-      {/* ═════════════ PRIVACIDADE ═════════════ */}
-      <PainelDeAba id="privacidade" ativo={aba}>
-        <AbaPrivacidade />
-      </PainelDeAba>
-
-      {/* ═════════════ CONTA ═════════════ */}
-      <PainelDeAba id="conta" ativo={aba}>
-        <AbaConta onReplayTour={onReplayTour} aoIrParaPrivacidade={() => setAba('privacidade')} />
-      </PainelDeAba>
-    </Tela>
+    <AjustesDoQuest
+      sobrancelha={sobrancelha}
+      titulo={titulo}
+      abas={ABAS.map((a) => ({ ...a, rotulo: t(a.rotulo) }))}
+      aba={aba}
+      aoTrocarAba={setAba}
+      erro={saveError}
+      idiomas={langCfg}
+      aoMudarIdioma={(mudanca) => void changeLang(mudanca)}
+      escuro={darkMode}
+      aoEscolherEscuro={(escuro) => definirEscuro(escuro, darkMode, setDarkMode)}
+      tamanhos={TAMANHOS}
+      fontScale={fontScale}
+      setFontScale={setFontScale}
+      animationsEnabled={animationsEnabled}
+      toggleAnimations={toggleAnimations}
+      soundEnabled={soundEnabled}
+      toggleSound={toggleSound}
+      performanceMode={performanceMode}
+      togglePerformanceMode={togglePerformanceMode}
+      perfilDeIa={activeProfileId}
+      aoMudarPerfilDeIa={(id) => void changeProfile(id)}
+      perfisBloqueados={entitlements.managedCloudStt ? [] : ['cloud-quality']}
+      onReplayTour={onReplayTour}
+    />
   );
 }

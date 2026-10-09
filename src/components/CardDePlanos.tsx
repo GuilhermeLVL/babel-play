@@ -2,7 +2,6 @@ import { Sparkles, X } from 'lucide-react';
 import { useState } from 'react';
 
 import { menorPrecoDeAssinatura } from '../core/planos';
-import { useQuestNovo } from '../lib/dispositivo/telaNovaDoQuest';
 import { getEntitlements } from '../lib/entitlements';
 import { t } from '../lib/i18n';
 import { readStoredValue } from '../lib/profile';
@@ -52,9 +51,8 @@ export default function CardDePlanos({ onVerPlanos }: { onVerPlanos: () => void 
   const [dispensado, setDispensado] = useState(() => readStoredValue(CHAVE_DISPENSA) === '1');
   const [cotaDispensadaEm, setCotaDispensadaEm] = useState(() => lerNumero(CHAVE_DISPENSADO_EM));
   const [cotaNunca, setCotaNunca] = useState(() => readStoredValue(CHAVE_NUNCA_DA_COTA) === '1');
-  const questNovo = useQuestNovo();
   /* Se o desenho do headset não chegar, vale o card de sempre (um convite nunca recarrega a página). */
-  const doQuest = usePedacoDoQuest(carregarFaixaDoQuest, questNovo);
+  const doQuest = usePedacoDoQuest(carregarFaixaDoQuest, true);
   const preco = menorPrecoDeAssinatura();
   /* Quota de armazenamento estourando (>90%) é o momento em que o upgrade deixa de ser anúncio e
      vira solução — o card fala do problema real mesmo para quem dispensou o anúncio comum. Mas a
@@ -88,7 +86,7 @@ export default function CardDePlanos({ onVerPlanos }: { onVerPlanos: () => void 
 
   /* QUEST: o mesmo convite, com as mesmas saídas (ver planos, não mostrar de novo, dispensar), numa
      faixa do headset. O preço continua vindo da matriz. */
-  if (questNovo && doQuest.Componente) {
+  if (doQuest.Componente) {
     const FaixaDeAvisoDoQuest = doQuest.Componente;
     return (
       <FaixaDeAvisoDoQuest
@@ -128,7 +126,7 @@ export default function CardDePlanos({ onVerPlanos }: { onVerPlanos: () => void 
     );
   }
   /* O convite não bloqueia nada: enquanto o desenho do headset não chega, ele só espera. */
-  if (questNovo && !doQuest.falhou) return null;
+  if (!doQuest.falhou) return null;
 
   return (
     <div

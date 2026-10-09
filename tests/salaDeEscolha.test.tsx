@@ -46,6 +46,9 @@ const IDIOMAS_COM_PORTUGUES = [
   { lang: 'pt', total: 993, jogaveis: 40 },
 ]
 
+/** Os motivos escritos das opções travadas (`.qj-motivos`, de `OpcoesDoQuest`). */
+const motivos = () => [...document.querySelectorAll('.qj-motivos')].map((m) => m.textContent).join(' | ')
+
 function montar(
   escolha: Partial<EscolhaDaPratica> = {},
   ageProfile: AgeProfileType = 'pro',
@@ -123,15 +126,19 @@ describe('fechar sem escolher não muda nada', () => {
 describe('a trilha aparece sempre — com o motivo quando não dá', () => {
   it('em inglês, clicável e com o tamanho', () => {
     montar({ lang: 'en' })
-    expect((screen.getByRole('radio', { name: /trilha/i }) as HTMLButtonElement).disabled).toBe(false)
-    expect(screen.getByText('2784')).toBeTruthy()
+    const trilha = screen.getByRole('radio', { name: /trilha/i }) as HTMLButtonElement
+    expect(trilha.disabled).toBe(false)
+    /* O tamanho aparece ao escolher a trilha (no desenho novo os números vêm escritos, com separador). */
+    fireEvent.click(trilha)
+    expect(document.body.textContent).toMatch(/2[.\s\u00a0]?784/)
   })
 
   it('em português, desabilitada — mas VISÍVEL e dizendo por quê', () => {
     montar({ lang: 'pt' }, 'pro', IDIOMAS_COM_PORTUGUES)
     const trilha = screen.getByRole('radio', { name: /trilha/i })
     expect((trilha as HTMLButtonElement).disabled).toBe(true)
-    expect(trilha.getAttribute('title')).toMatch(/ainda não existe trilha em português/i)
+    /* O motivo vem ESCRITO ao lado das opções (não há dica de ponteiro no headset nem no celular). */
+    expect(motivos()).toMatch(/ainda não existe trilha em português/i)
   })
 
   it('trocar o idioma NA SALA reavalia a trilha do idioma SELECIONADO', () => {
@@ -151,7 +158,7 @@ describe('os números são de material JOGÁVEL', () => {
     montar({ lang: 'en' })
     const pt = screen.getByRole('radio', { name: /português/i })
     expect((pt as HTMLButtonElement).disabled).toBe(true)
-    expect(pt.getAttribute('title')).toMatch(/nenhuma com tradução/i)
+    expect(motivos()).toMatch(/nenhuma com tradução/i)
   })
 
   it('"uma gravação" fica bloqueada com o motivo quando não há gravação nenhuma', () => {
@@ -170,7 +177,7 @@ describe('os números são de material JOGÁVEL', () => {
     )
     const uma = screen.getByRole('radio', { name: /uma gravação/i })
     expect((uma as HTMLButtonElement).disabled).toBe(true)
-    expect(uma.getAttribute('title')).toMatch(/ainda não tem gravações/i)
+    expect(motivos()).toMatch(/ainda não tem gravações/i)
   })
 })
 
@@ -250,11 +257,23 @@ describe('o rótulo da etapa segue a escala da trilha', () => {
 describe('a tabela de cobertura por idioma', () => {
   it('vem recolhida e diz o que cada idioma tem', () => {
     montar()
-    const resumo = screen.getByText('O que cada idioma tem hoje')
-    expect(resumo.closest('details')?.open).toBe(false)
+    const resumo = screen.getByRole('button', { name: /O que cada idioma tem/ })
+    expect(resumo.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByRole('region', { name: 'Cobertura dos idiomas' })).toBeNull()
     fireEvent.click(resumo)
-    expect(screen.getByText('Trilha por nível')).toBeTruthy()
-    expect(screen.getAllByText('Só o seu conteúdo').length).toBeGreaterThan(0)
+    expect(resumo.getAttribute('aria-expanded')).toBe('true')
+    const tabela = screen.getByRole('region', { name: 'Cobertura dos idiomas' })
+    /* Uma linha por idioma, dizendo se há trilha, quantas palavras ela tem, se há voz e quantas são suas. */
+    expect([...tabela.querySelectorAll('thead th')].map((th) => th.textContent)).toEqual([
+      'Idioma',
+      'Trilha',
+      'Palavras',
+      'Voz',
+      'Suas',
+    ])
+    const celulas = [...tabela.querySelectorAll<HTMLElement>('tbody td[title]')].map((td) => td.title)
+    expect(celulas).toContain('Trilha por nível')
+    expect(celulas).toContain('Só o seu conteúdo')
   })
 })
 

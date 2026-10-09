@@ -25,10 +25,13 @@ import type { AgeProfileType } from '../../lib/profile';
 
 export type MenuPositionType = 'top' | 'bottom' | 'left' | 'right';
 
+/** A escala do texto (Ajustes → Aparência). */
+export type FontScale = 'sm' | 'md' | 'lg' | 'xl';
+
 /**
  * FONTE ÚNICA da navegação principal.
  *
- * Antes existiam DUAS listas — uma no Sidebar (que nem era renderizado) e outra no StudioHeader —
+ * Antes existiam DUAS listas — uma no Sidebar (que nem era renderizado) e outra no cabeçalho —
  * e elas divergiam: a mesma view aparecia como "Conteúdo da Sessão" num lugar e "Sessão" no outro.
  * Rótulo de navegação é contrato com a memória do usuário; duas verdades para o mesmo destino é
  * exatamente o atrito cognitivo que este redesign existe para remover.
@@ -41,13 +44,6 @@ export interface NavItemDef {
   icon: LucideIcon;
   short: string;
   labels: Record<AgeProfileType, string>;
-  /** Fora do top-5 do celular: cabe no rail e na barra, não na dock inferior. */
-  secondary?: boolean;
-  /**
-   * No grupo PRINCIPAL do menu lateral, mas fora da barra de baixo do celular (vai para a folha
-   * "Mais"): a barra tem cinco lugares e o destino cedeu o seu a outro mais usado na rua.
-   */
-  foraDaDock?: boolean;
 }
 
 const TODOS_OS_ITENS: NavItemDef[] = [
@@ -84,8 +80,6 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     icon: Library,
     short: 'Biblioteca',
     labels: { kids: 'Biblioteca', pro: 'Biblioteca', senior: 'Minhas Mídias' },
-    // Cedeu o lugar da barra do celular ao Intérprete (decisão do dono, 30/09); no menu lateral fica.
-    foraDaDock: true,
   },
   /* 'analysis' SAIU do menu de topo (decisão do dono, 31/08): uma aula/sessão sempre vive
      DENTRO de uma mídia capturada — o caminho é Biblioteca → mídia → aula. A rota continua
@@ -102,7 +96,6 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     icon: ChartColumn,
     short: 'Estatísticas',
     labels: { kids: 'Meu progresso', pro: 'Estatísticas', senior: 'Estatísticas' },
-    secondary: true,
   },
   {
     // A vitrine da progressão: desbloqueios por nível e compras com Seeds.
@@ -113,7 +106,6 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     short: 'Personalizar',
     /* A tela ÚNICA de personalização (2026-08-28): visual, loja e conquistas num lugar só. */
     labels: { kids: 'Meu visual', pro: 'Personalizar', senior: 'Personalizar' },
-    secondary: true,
   },
   {
     // Quem fez o app, contato e apoio — identidade de projeto independente à vista.
@@ -121,7 +113,6 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     icon: Heart,
     short: 'Sobre',
     labels: { kids: 'Sobre', pro: 'Sobre', senior: 'Sobre o App' },
-    secondary: true,
   },
   {
     /* PLANOS ENTRA NA NAVEGAÇÃO (mudança vender-onde-se-ve). Existia só por três atalhos —
@@ -133,7 +124,6 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     icon: CreditCard,
     short: 'Planos',
     labels: { kids: 'Planos', pro: 'Planos', senior: 'Planos e preços' },
-    secondary: true,
   },
   {
     // POR ÚLTIMO de propósito (pedido do dono, 2026-08-28): configuração é o que menos se abre;
@@ -142,7 +132,6 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     icon: SettingsIcon,
     short: 'Ajustes',
     labels: { kids: 'Ajustes', pro: 'Ajustes', senior: 'Configurações' },
-    secondary: true,
   },
 ];
 
@@ -158,7 +147,6 @@ export const ITEM_ADMIN: NavItemDef = {
   icon: ShieldCheck,
   short: 'Administração',
   labels: { kids: 'Administração', pro: 'Administração', senior: 'Administração' },
-  secondary: true,
 };
 
 /**
@@ -190,9 +178,3 @@ export const NAV_ITEMS: NavItemDef[] = edicaoEstatica()
        ali seria um destino sem saída. Some do menu; o resto é o mesmo. */
     TODOS_OS_ITENS.filter((i) => i.id !== 'planos')
   : TODOS_OS_ITENS;
-
-/** A barra de baixo do celular: os destinos principais que não cederam o lugar (`foraDaDock`). */
-export const itensDaDock = (): NavItemDef[] => NAV_ITEMS.filter((i) => !i.secondary && !i.foraDaDock);
-
-/** A folha "Mais" do celular: quem cedeu o lugar na barra, e depois os secundários, na ordem do menu. */
-export const itensDaFolhaMais = (): NavItemDef[] => NAV_ITEMS.filter((i) => i.secondary || i.foraDaDock);

@@ -2,21 +2,18 @@
 /**
  * OS JOGOS POR DENTRO, NO META QUEST (02/10/2026): o que cada tabuleiro muda no headset.
  *
- * O que fica travado aqui:
- *  · nada depende de arrasto, de teclado físico nem de hover (o Caça-palavras é de dois toques, o Termo
- *    tem as teclas do cursor, as ajudas do Caça-palavras têm nome e agem na pista escolhida);
- *  · botão de ouvir só aparece quando há voz para o idioma do texto; sem voz o jogo mostra o texto;
- *  · o Karaokê diz por que não dá nota, em vez de oferecer um botão que não faz nada;
- *  · o certo e o errado vêm escritos, não só pintados;
- *  · fora do Quest os mesmos jogos continuam como eram.
+ * O que fica travado aqui (os tabuleiros são os do protótipo; o que é do APARELHO continua valendo):
+ *  · o lobby abre o jogo que depende de voz quando há voz para o idioma do baralho, e diz o motivo quando não;
+ *  · botão de ouvir só aparece quando há voz para o idioma do texto; sem voz a tela diz que não há;
+ *  · o Karaokê diz por que não dá nota, em vez de oferecer um botão que não faz nada.
  */
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, render } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { RodadaEscuta, RodadaTermo } from '../src/core'
+import type { RodadaEscuta } from '../src/core'
 import type { EstadoDoJogo } from '../src/core/minigames/estadoDosJogos'
-import type { MinigameId, MinigameItem } from '../src/core/minigames/types'
+import type { MinigameId } from '../src/core/minigames/types'
 
 /** O aparelho do teste: Quest ou computador, e os idiomas que a voz lê agora. */
 const aparelho = vi.hoisted(() => ({ quest: true, vozes: new Set<string>() }))
@@ -56,20 +53,11 @@ vi.mock('../src/lib/tts', async (original) => ({
 }))
 
 const { jogosQueAbremNoQuest, tilesDoQuest } = await import('../src/components/views/play/quest/jogosNoQuest')
-const { default: WordSearchGame } = await import('../src/components/minigames/WordSearchGame')
-const { default: TermoGame } = await import('../src/components/minigames/TermoGame')
-const { default: EscutaGame } = await import('../src/components/minigames/EscutaGame')
-const { default: KaraokeGame } = await import('../src/components/minigames/KaraokeGame')
-const { default: TenseTennisGame } = await import('../src/components/minigames/culturais/TenseTennisGame')
+const { default: EscutaGame } = await import('../src/components/minigames/EscutaDoPrototipo')
+const { default: KaraokeGame } = await import('../src/components/minigames/KaraokeDoPrototipo')
 
-const ITENS: MinigameItem[] = [
-  { cardId: 'c1', prompt: 'casa', answer: 'house', lang: 'en', sentence: 'My house is big.' },
-  { cardId: 'c2', prompt: 'cachorro', answer: 'dog', lang: 'en', sentence: 'The dog runs fast.' },
-  { cardId: 'c3', prompt: 'gato', answer: 'cat', lang: 'en', sentence: 'A cat sleeps here.' },
-  { cardId: 'c4', prompt: 'água', answer: 'water', lang: 'en', sentence: 'I drink water daily.' },
-]
 const nada = () => {}
-const botao = (nome: string | RegExp) => screen.queryByRole('button', { name: nome }) as HTMLButtonElement | null
+const um = (s: string) => document.querySelector<HTMLElement>(s)
 
 beforeEach(() => {
   aparelho.quest = true
@@ -224,38 +212,6 @@ describe('tilesDoQuest: a voz do idioma do baralho', () => {
   })
 })
 
-/* ── CAÇA-PALAVRAS ────────────────────────────────────────────────────────────────────────────── */
-describe('Caça-palavras no Quest', () => {
-  const montar = () => render(<WordSearchGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-
-  it('fora do Quest nada muda: a instrução de sempre e os ícones por pista', () => {
-    aparelho.quest = false
-    montar()
-    expect(document.getElementById('como-marcar')?.textContent).toMatch(/^Arraste/)
-    expect(document.querySelector('.qj-caca')).toBeNull()
-    expect(screen.getAllByLabelText('Raspar para ver a palavra')).toHaveLength(4)
-  })
-})
-
-/* ── TERMO ────────────────────────────────────────────────────────────────────────────────────── */
-describe('Termo no Quest', () => {
-  const RODADAS: RodadaTermo[] = [
-    { cardId: 'c1', palavra: 'home', resposta: 'HOME', pista: 'lar', lang: 'en' },
-    { cardId: 'c2', palavra: 'door', resposta: 'DOOR', pista: 'porta', lang: 'en' },
-    { cardId: 'c3', palavra: 'tree', resposta: 'TREE', pista: 'árvore', lang: 'en' },
-  ]
-  const montar = () => render(<TermoGame rodadas={RODADAS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-
-  it('fora do Quest não há teclas de cursor, e as casas em digitação são botões', () => {
-    aparelho.quest = false
-    montar()
-    expect(botao('Casa anterior')).toBeNull()
-    expect(document.querySelector('[data-lado]')).toBeNull()
-    expect(document.querySelectorAll('.linha-termo.atual button')).toHaveLength(4)
-    expect(botao('Ouvir')).not.toBeNull()
-  })
-})
-
 /* ── A VOZ: escuta, ditado, karaokê, karuta, frase embaralhada, charada ───────────────────────── */
 describe('a voz dentro dos jogos', () => {
   const fala = (id: string, text: string, lang: string, translation?: string) => ({
@@ -273,37 +229,29 @@ describe('a voz dentro dos jogos', () => {
 
   it('Escuta com voz para o idioma: o botão de ouvir está lá, e a fala toca pela voz', () => {
     aparelho.vozes = new Set(['en'])
-    render(<EscutaGame rodadas={escuta('en')} audioUrl="" ageProfile="pro" onFinish={nada} onExit={nada} />)
+    render(<EscutaGame rodadas={escuta('en')} audioUrl="" onFinish={nada} onExit={nada} />)
     expect(document.querySelector('[data-tour="ouvir"]')).not.toBeNull()
     expect(document.querySelector('.qj-sem-voz')).toBeNull()
   })
 
+  it('Escuta sem voz para o idioma e sem gravação: a tela diz que não há voz, em vez de um botão mudo', () => {
+    render(<EscutaGame rodadas={escuta('de')} audioUrl="" onFinish={nada} onExit={nada} />)
+    expect(document.querySelector('.qj-sem-voz')?.textContent).toMatch(/Sem voz de leitura/)
+  })
+
   it('Escuta com a gravação: o som é o clipe, e a voz não entra na conta', () => {
-    render(<EscutaGame rodadas={escuta('de')} audioUrl="blob:audio" ageProfile="pro" onFinish={nada} onExit={nada} />)
+    render(<EscutaGame rodadas={escuta('de')} audioUrl="blob:audio" onFinish={nada} onExit={nada} />)
     expect(document.querySelector('[data-tour="ouvir"]')).not.toBeNull()
   })
 
   it('Karaokê: o motivo no lugar do botão de falar; ouvir e próxima continuam', () => {
     aparelho.vozes = new Set(['en'])
     const falas = [{ id: 'k1', texto: 'Good morning', lang: 'en', startMs: 0, endMs: 0 }]
-    render(<KaraokeGame falas={falas} audioUrl="" ageProfile="pro" onFinish={nada} onExit={nada} />)
-    expect(screen.getByTestId('karaoke-sem-nota').textContent).toMatch(/O headset não avalia a pronúncia/)
-    expect(botao(/Falar/)).toBeNull()
-    expect(botao('Ouvir')).not.toBeNull()
-    expect(botao(/Terminar/)).not.toBeNull()
-  })
-})
-
-/* ── CAMPOS E PEÇAS ───────────────────────────────────────────────────────────────────────────── */
-describe('campos e peças no Quest', () => {
-  it('Tênis fora do Quest: o campo desliga enquanto a devolução é conferida, como sempre', () => {
-    aparelho.quest = false
-    render(<TenseTennisGame items={ITENS} ageProfile="pro" onFinish={nada} onExit={nada} />)
-    const campo = screen.getByLabelText('Sua devolução') as HTMLInputElement
-    expect(campo.getAttribute('enterkeyhint')).toBeNull()
-    fireEvent.change(campo, { target: { value: 'house' } })
-    fireEvent.click(botao('Devolver')!)
-    expect(campo.disabled).toBe(true)
+    render(<KaraokeGame falas={falas} audioUrl="" onFinish={nada} onExit={nada} />)
+    expect(um('.pj-nota')?.textContent).toMatch(/O headset não avalia a pronúncia/)
+    expect(um('[data-pj="falar"]')).toBeNull()
+    expect(um('[data-pj="ouvir"]')).not.toBeNull()
+    expect(um('[data-pj="pular"]')?.textContent).toMatch(/Terminar/)
   })
 })
 
@@ -342,9 +290,9 @@ describe('no computador com o desenho novo', () => {
     w.SpeechRecognition = function () {}
     try {
       const falas = [{ id: 'k1', texto: 'Good morning', lang: 'en', startMs: 0, endMs: 0 }]
-      render(<KaraokeGame falas={falas} audioUrl="" ageProfile="pro" onFinish={nada} onExit={nada} />)
-      expect(botao(/Falar agora/)).not.toBeNull()
-      expect(screen.queryByTestId('karaoke-sem-nota')).toBeNull()
+      render(<KaraokeGame falas={falas} audioUrl="" onFinish={nada} onExit={nada} />)
+      expect(um('[data-pj="falar"]')?.textContent).toMatch(/Falar agora/)
+      expect(um('.pj-nota')?.textContent ?? '').not.toMatch(/não avalia a pronúncia/)
     } finally {
       delete w.SpeechRecognition
     }
@@ -352,10 +300,11 @@ describe('no computador com o desenho novo', () => {
 
   it('Karaokê num navegador sem reconhecimento de fala: o motivo é do navegador, não do headset', () => {
     const falas = [{ id: 'k1', texto: 'Good morning', lang: 'en', startMs: 0, endMs: 0 }]
-    render(<KaraokeGame falas={falas} audioUrl="" ageProfile="pro" onFinish={nada} onExit={nada} />)
-    const aviso = screen.getByTestId('karaoke-sem-nota').textContent ?? ''
+    render(<KaraokeGame falas={falas} audioUrl="" onFinish={nada} onExit={nada} />)
+    const aviso = um('.pj-nota')?.textContent ?? ''
     expect(aviso).toMatch(/Este navegador não tem reconhecimento de voz/)
     expect(aviso).not.toMatch(/headset/i)
-    expect(botao('Ouvir')).not.toBeNull()
+    expect(um('[data-pj="falar"]')).toBeNull()
+    expect(um('[data-pj="ouvir"]')).not.toBeNull()
   })
 })

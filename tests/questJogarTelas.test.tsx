@@ -55,14 +55,14 @@ vi.mock('../src/lib/ranking', async (orig) => ({
 const { default: AntessalaDaRodada } = await import('../src/components/minigames/AntessalaDaRodada')
 const { default: CascaDaRodada } = await import('../src/components/minigames/casca/CascaDaRodada')
 const { default: ComoSeJoga } = await import('../src/components/minigames/ComoSeJoga')
-const { default: ResultadoDaRodada } = await import('../src/components/minigames/ResultadoDaRodada')
+const { default: FimDaRodada } = await import('../src/components/minigames/casca/FimDaRodada')
 const { default: SalaDeEscolha } = await import('../src/components/minigames/SalaDeEscolha')
 const { default: SeletorDeConteudo } = await import('../src/components/minigames/SeletorDeConteudo')
-const { default: TourGuiado } = await import('../src/components/minigames/TourGuiado')
 const { default: CuradoriaBaralho } = await import('../src/components/views/CuradoriaBaralho')
 const { default: MapaDoConteudo } = await import('../src/components/views/MapaDoConteudo')
 const { default: PainelTrilha } = await import('../src/components/views/PainelTrilha')
 const { default: Recordes } = await import('../src/components/views/play/Recordes')
+const { lerNivelDoJogo } = await import('../src/lib/jogos/nivelDoJogo')
 
 beforeAll(() => prepararDialogoNoJsdom())
 beforeEach(() => {
@@ -392,30 +392,20 @@ describe('o fim da rodada no desenho novo', () => {
     score: 150,
     durationMs: 42_000,
   }
-  const itens = report.items.map((o) => ({ ...o, back: `trad-${o.itemRef}` }))
-  const montar = (extra: Partial<React.ComponentProps<typeof ResultadoDaRodada>> = {}) => {
+  const montar = (extra: Partial<React.ComponentProps<typeof FimDaRodada>> = {}) => {
     const acoes = {
-      onContinuar: vi.fn(),
-      onRepetir: vi.fn(),
-      onRefazerErradas: vi.fn(),
       onDone: vi.fn(),
       onProximo: vi.fn(),
       onJogarDeNovo: vi.fn(),
     }
     const tela = render(
-      <ResultadoDaRodada
+      <FimDaRodada
         report={report as never}
-        jogo="Memória: palavra e tradução"
-        ageProfile="pro"
-        sequencia={null}
-        recorde={400}
-        itens={itens}
-        onPularVez={null}
-        custoPular={40}
-        saldoSeeds={0}
         total={4}
         proximo="wordsearch"
-        {...acoes}
+        aoProximo={acoes.onProximo}
+        aoJogarDeNovo={acoes.onJogarDeNovo}
+        aoVoltar={acoes.onDone}
         {...extra}
       />,
     )
@@ -475,6 +465,32 @@ describe('o fim da rodada no desenho novo', () => {
     expect(screen.getByRole('status').textContent).toContain('Não foi possível salvar — nada foi creditado')
     expect(t.container.textContent).not.toContain('+10 XP')
   })
+
+  /* A oferta de nível (era `casca/SugestaoDeNivel` na tela de fim de antes): é só uma oferta, e aceitar
+     guarda o nível DESTE jogo e joga de novo. A regra de quando oferecer está em `polimentoJogos.test`. */
+  it('rodada puxada: oferece o Fácil; aceitar guarda o nível do jogo e joga de novo', async () => {
+    const puxada = { ...report, items: report.items.map((o, i) => ({ ...o, correct: i === 0 })) }
+    const t = montar({ report: puxada as never })
+    expect(lerNivelDoJogo('memory')).toBe('medio')
+    const oferta = await waitFor(() => {
+      const b = t.container.querySelector<HTMLButtonElement>('[data-pj="trocar-nivel"]')
+      if (!b) throw new Error('a oferta ainda não entrou')
+      return b
+    })
+    expect(oferta.dataset.n).toBe('facil')
+    expect(oferta.textContent).toContain('Ficou puxado? Jogar no Fácil')
+    expect(t.onJogarDeNovo).not.toHaveBeenCalled()
+    fireEvent.click(oferta)
+    expect(lerNivelDoJogo('memory')).toBe('facil')
+    expect(t.onJogarDeNovo).toHaveBeenCalledTimes(1)
+  })
+
+  it('rodada mediana: não oferece troca de nível, e nada muda sem o toque', async () => {
+    const t = montar()
+    await new Promise((r) => setTimeout(r, 120))
+    expect(t.container.querySelector('[data-pj="trocar-nivel"]')).toBeNull()
+    expect(lerNivelDoJogo('memory')).toBe('medio')
+  })
 })
 
 describe('"Como se joga" no Quest', () => {
@@ -502,86 +518,6 @@ describe('o que muda de jeito no headset é dito do jeito do headset', () => {
     const passos = screen.getByRole('dialog').querySelector('.q-passos')?.textContent ?? ''
     expect(passos).toContain('toque na primeira letra dela no quadro, depois na última')
     expect(passos).not.toMatch(/arraste/i)
-  })
-
-  it('o tour usa a frase do headset quando o passo tem uma', () => {
-    const medida = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
-      top: 100,
-      left: 100,
-      width: 200,
-      height: 60,
-      right: 300,
-      bottom: 160,
-      x: 100,
-      y: 100,
-      toJSON: () => ({}),
-    })
-    try {
-      render(
-        <>
-          <div data-tour="grade">grade</div>
-          <TourGuiado
-            titulo="Caça-palavras"
-            onFim={() => {}}
-            passos={[
-              {
-                alvo: '[data-tour="grade"]',
-                texto: 'Arraste sobre as letras para marcar.',
-                textoNoQuest: 'Toque na primeira letra da palavra e depois na última.',
-                gesto: 'arraste',
-              },
-            ]}
-          />
-        </>,
-      )
-      expect(screen.getByText('Toque na primeira letra da palavra e depois na última.')).toBeTruthy()
-      expect(screen.queryByText(/Arraste/)).toBeNull()
-    } finally {
-      medida.mockRestore()
-    }
-  })
-})
-
-describe('o tour guiado no Quest', () => {
-  it('avança por botão (não há teclado) e pode ser pulado', () => {
-    const medida = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
-      top: 100,
-      left: 100,
-      width: 200,
-      height: 60,
-      right: 300,
-      bottom: 160,
-      x: 100,
-      y: 100,
-      toJSON: () => ({}),
-    })
-    try {
-      const onFim = vi.fn()
-      render(
-        <>
-          <div data-tour="a">alvo a</div>
-          <div data-tour="b">alvo b</div>
-          <TourGuiado
-            titulo="Memória"
-            onFim={onFim}
-            passos={[
-              { alvo: '[data-tour="a"]', texto: 'Vire uma carta.' },
-              { alvo: '[data-tour="b"]', texto: 'Feche o par.' },
-            ]}
-          />
-        </>,
-      )
-      expect(screen.getByText('Passo 1 de 2')).toBeTruthy()
-      expect(principais()).toEqual(['Próximo'])
-      fireEvent.click(botao(/Próximo/))
-      expect(screen.getByText('Feche o par.')).toBeTruthy()
-      fireEvent.click(botao('Jogar'))
-      expect(onFim).toHaveBeenCalledTimes(1)
-      fireEvent.click(botao('Pular a explicação'))
-      expect(onFim).toHaveBeenCalledTimes(2)
-    } finally {
-      medida.mockRestore()
-    }
   })
 })
 
@@ -877,19 +813,6 @@ describe('no computador com o desenho novo', () => {
   beforeEach(() => {
     aparelho.tipo = 'desktop-com-gpu'
   })
-  const caixa = () =>
-    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
-      top: 100,
-      left: 100,
-      width: 200,
-      height: 60,
-      right: 300,
-      bottom: 160,
-      x: 100,
-      y: 100,
-      toJSON: () => ({}),
-    })
-
   it('"Como se joga" do Caça-palavras fala em arrastar: lá o mouse arrasta, como sempre', () => {
     render(
       <ComoSeJoga jogo="wordsearch" titulo="Caça-palavras" ageProfile="pro" onJogar={() => {}} onFechar={() => {}} />,
@@ -913,60 +836,6 @@ describe('no computador com o desenho novo', () => {
     const passos = screen.getByRole('dialog').querySelector('.q-passos')?.textContent ?? ''
     expect(passos).toContain('Este navegador não dá nota de pronúncia')
     expect(passos).not.toMatch(/headset/i)
-  })
-
-  it('o tour usa a frase de sempre (arrastar), no cartão do desenho novo', () => {
-    const medida = caixa()
-    try {
-      render(
-        <>
-          <div data-tour="grade">grade</div>
-          <TourGuiado
-            titulo="Caça-palavras"
-            onFim={() => {}}
-            passos={[
-              {
-                alvo: '[data-tour="grade"]',
-                texto: 'Arraste sobre as letras para marcar.',
-                textoNoQuest: 'Toque na primeira letra da palavra e depois na última.',
-                gesto: 'arraste',
-              },
-            ]}
-          />
-        </>,
-      )
-      expect(screen.getByText('Arraste sobre as letras para marcar.')).toBeTruthy()
-      expect(document.querySelector('.qj-tour')).not.toBeNull()
-    } finally {
-      medida.mockRestore()
-    }
-  })
-
-  it('o tour: o passo da nota de voz vale onde o navegador não reconhece fala', () => {
-    const medida = caixa()
-    try {
-      render(
-        <>
-          <div data-tour="falar">aviso</div>
-          <TourGuiado
-            titulo="Karaokê"
-            onFim={() => {}}
-            passos={[
-              {
-                alvo: '[data-tour="falar"]',
-                texto: 'Toque aqui e repita a frase em voz alta.',
-                textoNoQuest: 'Aqui não há nota de voz: ouça, repita em voz alta e siga para a próxima.',
-                tambemSemReconhecimento: true,
-                gesto: 'clique',
-              },
-            ]}
-          />
-        </>,
-      )
-      expect(screen.getByText(/Aqui não há nota de voz/)).toBeTruthy()
-    } finally {
-      medida.mockRestore()
-    }
   })
 
   it('a pausa diz o atalho de teclado (Esc ou P), que continua valendo', () => {

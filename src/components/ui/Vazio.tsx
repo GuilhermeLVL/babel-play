@@ -21,7 +21,10 @@ import type { ReactNode } from 'react';
  * Com `href` no lugar de `aoClicar`, a ação é um LINK EXTERNO (nova aba, sem `opener`): é a saída
  * da edição estática para a versão completa (`VITE_URL_APP_COMPLETO`).
  */
-type AcaoDeVazio = { rotulo: ReactNode } & ({ aoClicar: () => void; href?: never } | { href: string; aoClicar?: never });
+type AcaoDeVazio = { rotulo: ReactNode } & (
+  | { aoClicar: () => void; href?: never }
+  | { href: string; aoClicar?: never }
+);
 
 function BotaoDeVazio({ acao, classe }: { acao: AcaoDeVazio; classe: string }) {
   if (acao.href)

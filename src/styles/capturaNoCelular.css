@@ -33,294 +33,14 @@
   width: 20px;
   height: 20px;
 }
-
-/* ---------- pronto ---------- */
-.cel-topo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 16px 10px;
-}
-.cel-sobrancelha {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font: 700 10.5px var(--font-mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent-ink);
-}
-.cel-sobrancelha svg {
-  width: 13px;
-  height: 13px;
-}
-.cel-titulo {
-  font: 900 24px var(--font-display);
-  letter-spacing: -0.01em;
-}
-.cel-ib {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  border: 1px solid var(--border-subtle);
-  background: var(--surface);
-  color: var(--ink);
-  display: grid;
-  place-items: center;
-  box-shadow: var(--shadow-card);
-}
-/* O alvo mínimo do aparelho (`--alvo-min`, 48 px no celular — `dispositivo.css`); 44 fora dele. */
-.cel-ib.peq {
-  width: var(--alvo-min, 44px);
-  height: var(--alvo-min, 44px);
-  border-radius: 12px;
-}
-.cel-ib[data-ligado] {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent-ink);
-}
-.cel-ib:disabled {
-  opacity: 0.6;
-}
-
-.cel-par {
-  margin: 0 16px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px;
-  border-radius: 16px;
-  background: var(--surface);
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-card);
-}
-.cel-lado {
-  flex: 1;
-  min-width: 0;
-  min-height: 52px;
-  border: 0;
-  border-radius: 11px;
-  background: none;
-  color: inherit;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 0 10px;
-  text-align: left;
-}
-.cel-lado.fim {
-  align-items: flex-end;
-  text-align: right;
-}
-.cel-lado small {
-  font: 700 10px var(--font-mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
-}
-.cel-lado b {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 15px;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.cel-troca {
-  flex: none;
-  width: var(--alvo-min, 44px);
-  height: var(--alvo-min, 44px);
-  border-radius: 50%;
-  border: 0;
-  display: grid;
-  place-items: center;
-  background: var(--canvas);
-  color: var(--ink);
-}
-span.cel-troca {
-  opacity: 0.35;
-}
-
-.cel > .aviso-info,
-.cel > .aviso-simples {
+.cel > .aviso-info {
   margin: 10px 16px 0;
-}
-
-.cel-meio {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px 16px 0;
-}
-.cel-vazio,
-.cel-conversa.cartao-escuro {
-  flex: 1;
-  min-height: 0;
-  border-radius: 22px;
-  background: radial-gradient(
-    120% 90% at 0% 0%,
-    color-mix(in srgb, var(--accent) 9%, var(--cel-escuro)) 0%,
-    var(--cel-escuro) 55%
-  );
-  color: var(--cel-tinta);
-}
-.cel-vazio {
-  padding: 22px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  overflow-y: auto;
-}
-.cel-vazio h2 {
-  font: 800 18px var(--font-display);
-}
-.cel-passo {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  font-size: 14px;
-  line-height: 1.45;
-  color: var(--cel-mut);
-}
-.cel-passo b {
-  color: var(--cel-tinta);
-}
-.cel-passo > span {
-  flex: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  display: grid;
-  place-items: center;
-  background: color-mix(in srgb, var(--accent) 22%, var(--cel-escuro));
-  color: var(--cel-acento);
-}
-.cel-passo > span svg {
-  width: 18px;
-  height: 18px;
-}
-.cel-aviso {
-  margin-top: auto;
-  font-size: 12.5px;
-  line-height: 1.45;
-  color: var(--cel-mut);
-}
-.cel-modo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px;
-  border-radius: 14px;
-  background: var(--cel-escuro-2);
-  border: 1px solid var(--cel-linha);
-  font-size: 12.5px;
-  color: var(--cel-mut);
-}
-.cel-modo b {
-  display: block;
-  font-size: 13.5px;
-  color: var(--cel-tinta);
-}
-.cel-modo svg.ok {
-  color: var(--good);
-}
-.cel-modo button {
-  margin-left: auto;
-  min-height: 44px;
-  padding: 0 8px;
-  border: 0;
-  background: none;
-  color: var(--cel-acento);
-  font: 700 13px var(--font-body);
-}
-
-.cel-doca {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-around;
-  padding: 14px 12px 12px;
-}
-.cel-lat {
-  width: 76px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--ink-muted);
-}
-.cel-centro {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-.cel-mic {
-  width: 84px;
-  height: 84px;
-  border-radius: 50%;
-  border: 0;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(
-    color-mix(in srgb, var(--accent) 88%, #fff) 0%,
-    var(--accent) 55%,
-    color-mix(in srgb, var(--accent) 88%, #000)
-  );
-  color: var(--accent-contrast, var(--ink));
-  box-shadow:
-    0 10px 24px -8px color-mix(in srgb, var(--accent) 70%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
-}
-.cel-mic svg {
-  width: 34px;
-  height: 34px;
-}
-.cel-mic:disabled {
-  opacity: 0.6;
-}
-.cel-rotulo-mic {
-  font: 800 13px var(--font-display);
 }
 
 /* ---------- gravando ---------- */
 .cel-gravando {
   background: var(--cel-escuro);
   color: var(--cel-tinta);
-}
-.cel-gravando .cel-lat {
-  color: var(--cel-mut);
-}
-.cel-gravando .cel-ib {
-  background: var(--cel-escuro-2);
-  border-color: var(--cel-linha);
-  color: var(--cel-tinta);
-  box-shadow: none;
-}
-.cel-gravando .cel-ib[data-ligado] {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 28%, var(--cel-escuro));
-  color: var(--cel-tinta);
-}
-.cel-barra {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--cel-linha);
-}
-.cel-aovivo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font: 600 16px var(--font-mono);
 }
 .cel-ponto {
   width: 10px;
@@ -335,35 +55,6 @@ span.cel-troca {
     box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 10%, transparent);
   }
 }
-.cel-ondas {
-  display: flex;
-  gap: 3px;
-  align-items: center;
-  height: 20px;
-}
-.cel-ondas i {
-  width: 3px;
-  border-radius: 2px;
-  background: var(--cel-acento);
-  transition: height 0.12s;
-}
-.cel-chip {
-  margin-left: auto;
-  min-height: 40px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid var(--cel-linha);
-  background: var(--cel-escuro-2);
-  color: var(--cel-tinta);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font: 700 13px var(--font-body);
-}
-.cel-chip svg {
-  width: 15px;
-  height: 15px;
-}
 .cel-gravando > .aviso-info {
   margin: 10px 12px 0;
   color: var(--cel-tinta);
@@ -373,28 +64,6 @@ span.cel-troca {
   flex: 1;
   min-height: 0;
 }
-.cel-doca.escura {
-  align-items: center;
-  border-top: 1px solid var(--cel-linha);
-  background: color-mix(in srgb, #000 18%, var(--cel-escuro));
-  padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
-}
-.cel-parar {
-  width: 76px;
-  height: 76px;
-  border-radius: 50%;
-  border: 0;
-  display: grid;
-  place-items: center;
-  background: var(--cel-tinta);
-  box-shadow: 0 0 0 6px color-mix(in srgb, var(--cel-tinta) 14%, transparent);
-}
-.cel-parar i {
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  background: var(--accent);
-}
 
 /* ---------- a conversa em balões ---------- */
 .cel-conversa {
@@ -402,97 +71,6 @@ span.cel-troca {
   flex-direction: column;
   position: relative;
   overflow: hidden;
-}
-.cel-conversa > .cel-rolagem {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 12px;
-}
-.cel .fala {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  max-width: 94%;
-  margin-bottom: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--cel-linha);
-  border-radius: 16px 16px 16px 6px;
-  background: var(--cel-escuro-2);
-  color: var(--cel-tinta);
-}
-.cel .fala > * {
-  grid-column: auto !important;
-}
-.cel .fala[data-tocavel] {
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-.cel .fala[data-tocavel]:active {
-  background: color-mix(in srgb, var(--accent) 12%, var(--cel-escuro-2));
-}
-.cel .fala.em-foco {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-.cel .fala .quem {
-  padding-top: 0;
-  font-size: 10.5px;
-}
-.cel .fala .orig {
-  font-size: 16.5px;
-  line-height: 1.4;
-}
-.cel .fala .trad {
-  font-size: 14.5px;
-  line-height: 1.4;
-  color: var(--cel-mut);
-}
-.cel-acoes-da-fala {
-  display: flex;
-  gap: 6px;
-  margin-top: 6px;
-}
-.cel-acoes-da-fala button {
-  min-height: 36px;
-  min-width: 36px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--cel-tinta) 10%, transparent);
-  color: var(--cel-tinta);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font: 600 12.5px var(--font-body);
-}
-.cel-acoes-da-fala svg {
-  width: 16px;
-  height: 16px;
-}
-.cel-novas {
-  position: absolute;
-  left: 50%;
-  bottom: 10px;
-  transform: translateX(-50%);
-  z-index: 2;
-  min-height: 40px;
-  padding: 0 16px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--accent);
-  color: var(--accent-contrast, var(--ink));
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font: 700 13px var(--font-body);
-  box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.5);
-}
-.cel-novas svg {
-  width: 16px;
-  height: 16px;
 }
 
 /* ---------- as folhas que sobem de baixo ---------- */
@@ -653,11 +231,6 @@ dialog.folha-de-baixo::backdrop {
   gap: 6px;
   font: 600 13.5px var(--font-body);
 }
-.folha-pal-topo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
 .folha-pal {
   font: 900 30px var(--font-display);
   line-height: 1.1;
@@ -667,18 +240,6 @@ dialog.folha-de-baixo::backdrop {
   margin-top: 4px;
   font: 500 13px var(--font-mono);
   color: var(--ink-muted);
-}
-.folha-ouvir {
-  margin-left: auto;
-  flex: none;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  border: 0;
-  display: grid;
-  place-items: center;
-  background: var(--accent);
-  color: var(--accent-contrast, var(--ink));
 }
 .folha-vel {
   display: flex;
@@ -706,13 +267,6 @@ dialog.folha-de-baixo::backdrop {
   font-size: 14px;
   line-height: 1.45;
   color: var(--ink-muted);
-}
-.folha-ex {
-  font-size: 14px;
-  line-height: 1.45;
-  color: var(--ink-muted);
-  border-left: 3px solid var(--accent-soft);
-  padding-left: 10px;
 }
 .folha-status {
   font-size: 13.5px;
@@ -802,36 +356,6 @@ body.captura-ao-vivo .folha:not(.on) {
    tela de uma mão só): aqui ele sai; nas outras abas continua. */
 body:has(.cel) .fab {
   display: none;
-}
-
-/* A FONTE DO SOM no Quest: som do headset OU microfone (o sistema emudece o microfone durante o
-   compartilhamento, então é um de cada vez). O mesmo cartão do par de idiomas. */
-.cel-fonte {
-  margin: 10px 16px 0;
-  display: flex;
-  gap: 6px;
-  padding: 6px;
-  border-radius: 16px;
-  background: var(--surface);
-  border: 1px solid var(--border-subtle);
-}
-.cel-fonte button {
-  flex: 1;
-  min-height: var(--alvo-min, 52px);
-  border: 0;
-  border-radius: 11px;
-  background: none;
-  color: var(--ink-muted);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-weight: 700;
-  font-size: 15px;
-}
-.cel-fonte button[aria-pressed='true'] {
-  background: var(--accent-soft, color-mix(in srgb, var(--accent) 14%, var(--surface)));
-  color: var(--ink);
 }
 
 /* ── QUEST AO VIVO (maquete de 01/10/2026, revista pelo dono no mesmo dia) ─────────────────────
@@ -981,14 +505,6 @@ body:has(.cel) .fab {
   }
 }
 /* O som entrando, ao lado do relógio. */
-.q-tempo .cel-ondas {
-  height: 22px;
-  margin-left: 6px;
-}
-.q-tempo .cel-ondas i {
-  width: 4px;
-  background: var(--q-acento, var(--accent));
-}
 .q-o {
   font: 600 calc(18px * var(--q-escala, 1)) / 1.3 var(--font-body, inherit);
   color: var(--ink-muted);

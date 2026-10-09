@@ -20,13 +20,12 @@ import { apiFetch, exportarApkg } from '../../../data/api';
 import type { useMetricasDaSessao } from '../../../lib/analise/metricasDaSessao';
 import { caminhoDoAudio } from '../../../lib/audioDaSessao';
 import type { DesenhoDaSessao } from '../../../lib/desenho/desenhosDaSessao';
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import type { EntradaDoRelatorio, ModeloDoRelatorio, SecaoId } from '../../../lib/exportacao/modeloDoRelatorio';
 import { data, numero, t, tp } from '../../../lib/i18n';
 import type { Anotacao } from '../../../lib/leitura/anotacaoDaFrase';
 import type { Recording } from '../../../types';
 import { toast } from '../../Toast';
-import { Dialogo, fecharDialogoDe, IconeEmBloco } from '../../ui';
+import { Dialogo, fecharDialogoDe } from '../../ui';
 
 /**
  * EXPORTAR DADOS DA SESSÃO — `dialogoExportarSessao()` do protótipo aprovado, agora com o RELATÓRIO.
@@ -88,47 +87,24 @@ function Opcao({
   /** O aviso do protótipo ao clicar numa opção bloqueada. */
   aoTravado?: () => void;
 }) {
-  const questNovo = useQuestNovo();
-  /* META QUEST: a mesma opção como uma linha de lista (alvo de 72 px). A bloqueada continua na
-     lista, tracejada e com cadeado, e o toque diz o motivo. */
-  if (questNovo) {
-    const Icone = icone;
-    return (
-      <button
-        type="button"
-        className={`q-linha ${trava ? 'qs-travada' : ''}`}
-        aria-disabled={trava || undefined}
-        onClick={(e) => (trava ? aoTravado?.() : aoEscolher?.(e.currentTarget))}
-      >
-        <span className="q-ic">
-          <Icone aria-hidden />
-        </span>
-        <span>
-          <b>{titulo}</b>
-          <small>{desc}</small>
-        </span>
-        <span className="q-fim">{trava ? <Lock aria-hidden /> : <Download aria-hidden />}</span>
-      </button>
-    );
-  }
+  /* A opção como uma linha de lista (alvo de 72 px). A bloqueada continua na lista, tracejada e com
+     cadeado, e o toque diz o motivo. */
+  const Icone = icone;
   return (
     <button
       type="button"
-      className={`cartao ${trava ? 'tracejado' : 'clicavel'} fonte`}
+      className={`q-linha ${trava ? 'qs-travada' : ''}`}
       aria-disabled={trava || undefined}
       onClick={(e) => (trava ? aoTravado?.() : aoEscolher?.(e.currentTarget))}
     >
-      <IconeEmBloco icone={icone} />
-      <span style={{ flex: 1 }}>
-        <h3>
-          {titulo}{' '}
-          {trava && (
-            <Lock aria-hidden style={{ width: 14, height: 14, color: 'var(--ink-muted)', display: 'inline' }} />
-          )}
-        </h3>
-        <p>{desc}</p>
+      <span className="q-ic">
+        <Icone aria-hidden />
       </span>
-      <Download aria-hidden style={{ width: 16, height: 16, color: 'var(--ink-muted)', alignSelf: 'center' }} />
+      <span>
+        <b>{titulo}</b>
+        <small>{desc}</small>
+      </span>
+      <span className="q-fim">{trava ? <Lock aria-hidden /> : <Download aria-hidden />}</span>
     </button>
   );
 }
@@ -150,16 +126,11 @@ function LinhaComFormatos({
   formatos: Array<{ rotulo: string; aoEscolher: () => void }>;
   ocupado: boolean;
 }) {
-  const questNovo = useQuestNovo();
   return (
     <div className={`exp-linha ${vazio ? 'vazia' : ''}`}>
-      {questNovo ? (
-        <span className="q-ic">
-          <Icone aria-hidden />
-        </span>
-      ) : (
-        <IconeEmBloco icone={Icone} />
-      )}
+      <span className="q-ic">
+        <Icone aria-hidden />
+      </span>
       <span className="exp-txt">
         <b>{titulo}</b>
         <small>{vazio ?? desc}</small>
@@ -169,7 +140,7 @@ function LinhaComFormatos({
           <button
             key={f.rotulo}
             type="button"
-            className={questNovo ? 'q-ctl' : 'btn btn-outline peq'}
+            className="q-ctl"
             disabled={!!vazio || ocupado}
             aria-label={`${titulo}: ${f.rotulo}`}
             onClick={f.aoEscolher}
@@ -211,7 +182,6 @@ export default function ExportarSessao({
   dados?: DadosDoRelatorio;
   aoFechar: () => void;
 }) {
-  const questNovo = useQuestNovo();
   const [modelo, setModelo] = useState<Modulo | null>(null);
   const [desenhos, setDesenhos] = useState<DesenhoDaSessao[]>([]);
   const [anotacoes, setAnotacoes] = useState<Anotacao[]>([]);
@@ -424,7 +394,7 @@ export default function ExportarSessao({
       largura="medio"
       aoFechar={aoFechar}
     >
-      <div className={questNovo ? 'dlg-corpo qs-miolo q-lista exp-corpo' : 'dlg-corpo pilha'}>
+      <div className="dlg-corpo qs-miolo q-lista exp-corpo">
         {dados && (
           <section className="exp-bloco" aria-labelledby="exp-rel">
             <h3 id="exp-rel">{t('Relatório da sessão')}</h3>
@@ -456,7 +426,7 @@ export default function ExportarSessao({
             <div className="exp-acoes">
               <button
                 type="button"
-                className={questNovo ? 'q-ctl pri' : 'btn btn-solid'}
+                className="q-ctl pri"
                 disabled={!pronto || !algumaLigada || !!gerando}
                 onClick={() => void gerar('pdf')}
               >
@@ -464,7 +434,7 @@ export default function ExportarSessao({
               </button>
               <button
                 type="button"
-                className={questNovo ? 'q-ctl' : 'btn btn-outline'}
+                className="q-ctl"
                 disabled={!pronto || !algumaLigada || !!gerando}
                 onClick={() => void gerar('md')}
               >

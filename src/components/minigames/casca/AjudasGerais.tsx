@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { jogoTemVerResposta, SEGUNDOS_A_MAIS as SEGUNDOS, vezesDaAjuda } from '../../../core/minigames/regras';
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { flutuar } from '../../../lib/polimento/jogos';
 import { sentir } from '../../../lib/polimento/sentidos';
@@ -46,7 +45,6 @@ export default function AjudasGerais({
   aoVerResposta: () => void;
 }) {
   const nivel = useNivelDoJogo(jogo);
-  const questNovo = useQuestNovo();
   /* A contagem é a do nível em que a rodada começou: trocar o nível recomeça a rodada. */
   const [tempo, setTempo] = useState(
     () => vezesDaAjuda(jogo, 'tempo', nivel) || { facil: 3, medio: 2, dificil: 1 }[nivel],
@@ -79,7 +77,7 @@ export default function AjudasGerais({
             if (aoGanharTempo(SEGUNDOS_A_MAIS) === false) return;
             setTempo((n) => n - 1);
             sentir('moeda', 'timeBonus'); /* `jogos4.js:165` */
-            if (questNovo) flutuar(e.currentTarget, '+10s', 'good');
+            flutuar(e.currentTarget, '+10s', 'good');
           }}
         />
       )}

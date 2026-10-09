@@ -149,4 +149,31 @@ describe('preencher as vogais', () => {
     esperar(900)
     expect((relatorio as RoundReport | null)?.items.map((o) => o.correct)).toEqual([true, true, true, true])
   })
+
+  /* Garantias que vieram de `tests/choseongGame.test.tsx` (o tabuleiro de antes): o que é gravado. */
+  it('abrir uma vogal marca só aquela palavra como "com dica"; o erro conta tentativa', () => {
+    fireEvent.click($('[data-ajuda="vogal"]') as HTMLElement) // prende o I de "window"
+    esperar(0)
+    tecla('O')
+    esperar(1100)
+    tecla('A') // "bridge": errou a primeira vogal
+    tecla('E')
+    esperar(520)
+    tecla('I')
+    esperar(1100)
+    for (const vogais of ['OU', 'EA']) {
+      for (const v of vogais) tecla(v)
+      esperar(1100)
+    }
+    esperar(900)
+    const r = relatorio as RoundReport | null
+    expect(r?.gameId).toBe('choseong')
+    expect(r?.items.map((o) => [o.cardId, o.correct, !!o.hinted])).toEqual([
+      ['c1', true, true],
+      ['c2', true, false],
+      ['c3', true, false],
+      ['c4', true, false],
+    ])
+    expect(r?.items[1].attempts).toBeGreaterThan(1)
+  })
 })

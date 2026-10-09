@@ -7,12 +7,10 @@ import {
   Cloud,
   Cpu,
   Gauge,
-  KeyRound,
   LayoutPanelTop,
   Loader2,
   Mic,
   MonitorUp,
-  Stethoscope,
   Timer,
   TriangleAlert,
   Vibrate,
@@ -38,15 +36,12 @@ import {
 } from '../../lib/dispositivo/diagnostico';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import { type ProvaDetalhadaDeVibracao, provarVibracaoEmDetalhe } from '../../lib/dispositivo/respostaAoApontar';
-import { definirTelaNovaDoQuest, telaNovaDoQuest, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../lib/i18n';
 import { irPara } from '../../lib/irPara';
 import { cabecalhoDoDono, CHAVE_DO_DONO_NO_APARELHO, ENDPOINT_DA_NUVEM_DO_QUEST } from '../../lib/nuvemDoQuest';
 import { descreverEtapas, lerUltimoDoInterprete } from '../../lib/voz/tempoAteAVoz';
-import { CabecalhoDeTela, Tela, TituloDeSecao } from '../ui';
 import AbasDoQuest from './ajustes/quest/AbasDoQuest';
 import { type NivelDaProva, textoDaProva, tocarSomDoApontar } from './ajustes/quest/vibracao';
-import TestesDoInterprete from './captura/interprete/TestesDoInterprete';
 
 /**
  * DIAGNÓSTICO DO APARELHO (`/diagnostico`) — o que ESTE aparelho entrega, medido nele mesmo.
@@ -355,21 +350,11 @@ function Dado({ rotulo, valor, id }: { rotulo: string; valor: React.ReactNode; i
   );
 }
 
-function Linha({ rotulo, valor, id }: { rotulo: string; valor: React.ReactNode; id?: string }) {
-  return (
-    <div className="entre atalho" data-testid={id}>
-      <span>{rotulo}</span>
-      <b>{valor}</b>
-    </div>
-  );
-}
-
 const nivelEmTexto = (n: { rmsDb: number; picoDb: number } | null) =>
   n ? t('volume médio {rms} dB, pico {pico} dB', { rms: n.rmsDb, pico: n.picoDb }) : t('não mediu');
 
 export default function Diagnostico() {
   // No Quest com as telas novas, o desenho é o do headset (abas); desligada a chave, a tela de sempre.
-  const questNovo = useQuestNovo();
   const [aba, setAba] = useState('aparelho');
   const [noQuest] = useState(() => perfilDoDispositivo().tipo === 'quest');
   const [sinais, setSinais] = useState<SinaisDoDiagnostico | null>(null);
@@ -386,7 +371,6 @@ export default function Diagnostico() {
     ultimoInterprete?.custoUsd !== undefined
       ? t('cerca de US$ {usd}, só a transcrição na nuvem', { usd: ultimoInterprete.custoUsd.toFixed(4) })
       : null;
-  const [telaNova, setTelaNova] = useState(telaNovaDoQuest);
   const [vibracao, setVibracao] = useState<ResultadoDaVibracao | null>(null);
   const [chaveDeDono, setChaveDeDono] = useState(() => {
     try {
@@ -413,13 +397,8 @@ export default function Diagnostico() {
   }, []);
 
   const relatorio = useMemo(
-    () =>
-      JSON.stringify(
-        { sinais, microfone, compartilhamento, benchmark, modelos, nuvem, ultima, vibracao, telaNova },
-        null,
-        1,
-      ),
-    [sinais, microfone, compartilhamento, benchmark, modelos, nuvem, ultima, vibracao, telaNova],
+    () => JSON.stringify({ sinais, microfone, compartilhamento, benchmark, modelos, nuvem, ultima, vibracao }, null, 1),
+    [sinais, microfone, compartilhamento, benchmark, modelos, nuvem, ultima, vibracao],
   );
 
   const rodar = async (qual: NonNullable<typeof ocupado>, tarefa: () => Promise<void>) => {
@@ -464,14 +443,9 @@ export default function Diagnostico() {
       /* QUEST: o texto mora na aba Resultado, e texto num painel escondido não se seleciona nem se
          copia. Abre a aba, seleciona (no efeito abaixo, depois de o painel aparecer) e diz a verdade:
          nada de "Copiado". */
-      if (questNovo) {
-        setAba('resultado');
-        setCopiaFalhou(true);
-        return;
-      }
-      // Sem a API da área de transferência: seleciona o texto para a pessoa copiar à mão.
-      caixaRef.current?.select();
-      document.execCommand?.('copy');
+      setAba('resultado');
+      setCopiaFalhou(true);
+      return;
     }
     setCopiado(true);
     setTimeout(() => setCopiado(false), 2500);
@@ -503,10 +477,6 @@ export default function Diagnostico() {
         setErroDosModelos(erroEmTexto(e));
       }
     });
-  const alternarTelaNova = () => {
-    definirTelaNovaDoQuest(!telaNova);
-    setTelaNova(!telaNova);
-  };
   const mudarChaveDeDono = (v: string) => {
     setChaveDeDono(v);
     try {
@@ -533,698 +503,299 @@ export default function Diagnostico() {
      As mesmas medidas, uma aba por assunto: nada de página comprida para rolar com o raio. O que está
      rodando e o "Copiar o resultado" ficam na faixa do pé, à vista em qualquer aba. Os painéis ficam
      todos montados (só escondidos): trocar de aba não perde um resultado nem o JSON. */
-  if (questNovo) {
-    const abas = [
-      { id: 'aparelho', rotulo: t('Aparelho'), icone: <Cpu aria-hidden /> },
-      { id: 'som', rotulo: t('Som'), icone: <Mic aria-hidden /> },
-      { id: 'velocidade', rotulo: t('Velocidade'), icone: <Gauge aria-hidden /> },
-      { id: 'captura', rotulo: t('Última captura'), icone: <Timer aria-hidden /> },
-      /* A aba do HEADSET (a chave das telas novas, a vibração do controle) só existe no headset. No
-         computador o desenho novo liga e desliga em Ajustes → Aparência, e não há controle para vibrar. */
-      ...(noQuest ? [{ id: 'headset', rotulo: t('Headset'), icone: <LayoutPanelTop aria-hidden /> }] : []),
-      { id: 'resultado', rotulo: t('Resultado'), icone: <ClipboardCopy aria-hidden /> },
-    ];
-    /* A CHAVE DE DONO vale em qualquer aparelho (é ela que tira a medida "na nuvem" da cota diária):
-       no headset mora na aba Headset, como sempre; no computador, junto da medida que ela afeta. */
-    const chaveDeDonoNoDesenhoNovo = (
-      <section className="q-secao">
-        <header>
-          <div>
-            <h2>{t('Chave de dono')}</h2>
-            <p>{t('Só para quem mantém o site: com a chave certa, este aparelho não cai na cota diária da nuvem.')}</p>
-          </div>
-        </header>
-        <label className="q-campo">
-          <span>{t('Chave de dono')}</span>
-          <input
-            type="password"
-            autoComplete="off"
-            aria-label={t('Chave de dono')}
-            value={chaveDeDono}
-            onChange={(e) => mudarChaveDeDono(e.target.value)}
-          />
-          <small>
-            {chaveDeDono.trim()
-              ? t('Guardada só neste aparelho. Apague o campo para removê-la.')
-              : t('Nenhuma chave guardada neste aparelho.')}
-          </small>
-        </label>
-      </section>
-    );
-    const painel = (id: string) => ({
-      role: 'tabpanel',
-      id: `painel-${id}`,
-      'aria-labelledby': `aba-${id}`,
-      className: 'q-inst-painel',
-      hidden: aba !== id,
-    });
-    const girando = <Loader2 className="gira" aria-hidden />;
-    return (
-      <div className="q-palco q-inst q-diag" data-testid="diagnostico-do-quest">
-        <header className="q-cab">
-          <div>
-            <p className="q-sobre">{t('Suporte')}</p>
-            <h1>{t('Diagnóstico do aparelho')}</h1>
-          </div>
-          {s?.navegador.modelo && <span className="q-chip">{s.navegador.modelo}</span>}
-        </header>
-
-        <AbasDoQuest itens={abas} ativo={aba} aoTrocar={setAba} rotuloDoGrupo={t('Partes do diagnóstico')} />
-
-        {/* ── APARELHO ── */}
-        <div {...painel('aparelho')}>
-          <section className="q-secao" data-testid="diagnostico-sinais">
-            <header>
-              <div>
-                <h2>{t('Este aparelho')}</h2>
-                <p>{t('Lido do navegador ao abrir a página. Nada muda na sua captura.')}</p>
-              </div>
-            </header>
-            {!s ? (
-              <div className="q-grade g2" role="status" aria-label={t('Lendo…')}>
-                {[0, 1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="q-esqueleto" />
-                ))}
-              </div>
-            ) : (
-              <dl className="q-medidas duas">
-                <Dado rotulo={t('Navegador')} valor={navegadorEmTexto} />
-                <Dado rotulo={t('Como o app classificou')} valor={s.perfilDoApp.tipo ?? '—'} id="diagnostico-perfil" />
-                <Dado rotulo={t('Núcleos que o navegador vê')} valor={s.nucleos ?? '—'} />
-                <Dado rotulo={t('Memória do aparelho (GB)')} valor={s.memoriaGb ?? '—'} />
-                <Dado rotulo={t('Memória da página (MB)')} valor={s.heapLimiteMb ?? '—'} />
-                <Dado rotulo={t('Espaço para modelos (MB)')} valor={s.cotaMb ?? '—'} />
-                <Dado rotulo={t('Várias threads (isolamento de origem)')} valor={simNao(s.isolado)} />
-                <Dado rotulo={t('Placa de vídeo no navegador')} valor={placaEmTexto} />
-                <Dado rotulo={t('Reconhecimento de voz do navegador')} valor={simNao(s.webSpeech)} />
-                <Dado rotulo={t('Tradutor do navegador')} valor={simNao(s.tradutorNativo)} />
-                <Dado rotulo={t('Compartilhar tela')} valor={simNao(s.compartilharTela)} />
-                <Dado rotulo={t('Vozes de leitura')} valor={s.vozesDeLeitura ?? '—'} />
-              </dl>
-            )}
-          </section>
+  const abas = [
+    { id: 'aparelho', rotulo: t('Aparelho'), icone: <Cpu aria-hidden /> },
+    { id: 'som', rotulo: t('Som'), icone: <Mic aria-hidden /> },
+    { id: 'velocidade', rotulo: t('Velocidade'), icone: <Gauge aria-hidden /> },
+    { id: 'captura', rotulo: t('Última captura'), icone: <Timer aria-hidden /> },
+    /* A aba do HEADSET (a vibração do controle) só existe no headset: no computador não há controle para vibrar. */
+    ...(noQuest ? [{ id: 'headset', rotulo: t('Headset'), icone: <LayoutPanelTop aria-hidden /> }] : []),
+    { id: 'resultado', rotulo: t('Resultado'), icone: <ClipboardCopy aria-hidden /> },
+  ];
+  /* A CHAVE DE DONO vale em qualquer aparelho (é ela que tira a medida "na nuvem" da cota diária):
+     no headset mora na aba Headset, como sempre; no computador, junto da medida que ela afeta. */
+  const chaveDeDonoNoDesenhoNovo = (
+    <section className="q-secao">
+      <header>
+        <div>
+          <h2>{t('Chave de dono')}</h2>
+          <p>{t('Só para quem mantém o site: com a chave certa, este aparelho não cai na cota diária da nuvem.')}</p>
         </div>
-
-        {/* ── SOM: microfone e compartilhamento de tela ── */}
-        <div {...painel('som')}>
-          <div className="q-grade g2">
-            <section className="q-cartao">
-              <h2>
-                <Mic aria-hidden /> {t('Microfone')}
-              </h2>
-              <p className="q-inst-nota">
-                {t(
-                  'Deixe um vídeo tocando no alto-falante do aparelho (em outra janela) e toque em Testar. São 10 segundos: 5 com o tratamento de voz ligado, 5 sem.',
-                )}
-              </p>
-              <button type="button" className="q-ctl" disabled={!!ocupado || !s?.microfone} onClick={testarMicrofone}>
-                {ocupado === 'microfone' ? girando : <Mic aria-hidden />}
-                {ocupado === 'microfone' ? t('Ouvindo…') : t('Testar o microfone')}
-              </button>
-              {s && !s.microfone && (
-                <p className="q-inst-nota">{t('Este navegador não entrega o microfone à página.')}</p>
-              )}
-              {microfone && (
-                <div className="q-diag-resultado" data-testid="diagnostico-microfone">
-                  {microfone.erro && (
-                    <p className="q-aviso q-inst-alerta" role="alert">
-                      <span>
-                        <TriangleAlert aria-hidden /> {microfone.erro}
-                      </span>
-                    </p>
-                  )}
-                  <dl className="q-medidas">
-                    <Dado rotulo={t('Com tratamento de voz')} valor={nivelEmTexto(microfone.comProcessamento)} />
-                    <Dado rotulo={t('Sem tratamento de voz')} valor={nivelEmTexto(microfone.semProcessamento)} />
-                  </dl>
-                  <p className="q-inst-nota">
-                    {t(
-                      'Se o volume cai muito com o tratamento ligado, o cancelamento de eco está apagando o som do alto-falante: para legendar um vídeo pelo microfone, o certo é desligá-lo.',
-                    )}
-                  </p>
-                </div>
-              )}
-            </section>
-
-            <section className="q-cartao">
-              <h2>
-                <MonitorUp aria-hidden /> {t('Som do aparelho pelo compartilhamento')}
-              </h2>
-              <p className="q-inst-nota">
-                {t(
-                  'Com um vídeo tocando, toque em Testar e aceite compartilhar. Mede se o som vem junto, se ele continua sem a imagem e quanto a tela trava. Leva uns 12 segundos.',
-                )}
-              </p>
-              <button
-                type="button"
-                className="q-ctl"
-                disabled={!!ocupado || !s?.compartilharTela}
-                onClick={testarCompartilhamento}
-              >
-                {ocupado === 'tela' ? girando : <MonitorUp aria-hidden />}
-                {ocupado === 'tela' ? t('Medindo…') : t('Testar o compartilhamento')}
-              </button>
-              {s && !s.compartilharTela && (
-                <p className="q-inst-nota">{t('Este navegador não oferece compartilhamento de tela.')}</p>
-              )}
-              {compartilhamento && (
-                <div className="q-diag-resultado" data-testid="diagnostico-compartilhamento">
-                  {compartilhamento.erro && (
-                    <p className="q-aviso q-inst-alerta" role="alert">
-                      <span>
-                        <TriangleAlert aria-hidden /> {compartilhamento.erro}
-                      </span>
-                    </p>
-                  )}
-                  <dl className="q-medidas">
-                    <Dado rotulo={t('O que foi compartilhado')} valor={compartilhamento.superficie ?? '—'} />
-                    <Dado rotulo={t('Veio som junto')} valor={simNao(compartilhamento.temAudio)} />
-                    <Dado rotulo={t('Nível do som')} valor={nivelEmTexto(compartilhamento.nivelComVideo)} />
-                    <Dado
-                      rotulo={t('O som continua sem a imagem')}
-                      valor={
-                        compartilhamento.audioSemVideo
-                          ? `${simNao(compartilhamento.audioSemVideo.vivo)} · ${nivelEmTexto(compartilhamento.audioSemVideo)}`
-                          : '—'
-                      }
-                    />
-                    <Dado
-                      rotulo={t('Travadas da tela (antes → durante)')}
-                      valor={`${compartilhamento.quadrosAntes?.longos ?? '—'} → ${compartilhamento.quadrosDurante?.longos ?? '—'} (${t('pior')} ${compartilhamento.quadrosDurante?.piorMs ?? '—'} ms)`}
-                    />
-                  </dl>
-                </div>
-              )}
-            </section>
-          </div>
+      </header>
+      <label className="q-campo">
+        <span>{t('Chave de dono')}</span>
+        <input
+          type="password"
+          autoComplete="off"
+          aria-label={t('Chave de dono')}
+          value={chaveDeDono}
+          onChange={(e) => mudarChaveDeDono(e.target.value)}
+        />
+        <small>
+          {chaveDeDono.trim()
+            ? t('Guardada só neste aparelho. Apague o campo para removê-la.')
+            : t('Nenhuma chave guardada neste aparelho.')}
+        </small>
+      </label>
+    </section>
+  );
+  const painel = (id: string) => ({
+    role: 'tabpanel',
+    id: `painel-${id}`,
+    'aria-labelledby': `aba-${id}`,
+    className: 'q-inst-painel',
+    hidden: aba !== id,
+  });
+  const girando = <Loader2 className="gira" aria-hidden />;
+  return (
+    <div className="q-palco q-inst q-diag" data-testid="diagnostico-do-quest">
+      <header className="q-cab">
+        <div>
+          <p className="q-sobre">{t('Suporte')}</p>
+          <h1>{t('Diagnóstico do aparelho')}</h1>
         </div>
+        {s?.navegador.modelo && <span className="q-chip">{s.navegador.modelo}</span>}
+      </header>
 
-        {/* ── VELOCIDADE DA TRANSCRIÇÃO ── */}
-        <div {...painel('velocidade')}>
-          <section className="q-secao">
-            <header>
-              <div>
-                <h2>{t('Velocidade da transcrição')}</h2>
-                <p>
-                  {t(
-                    'Transcreve 11 segundos de fala com cada modelo e conta as travadas da tela. Fator abaixo de 1 acompanha a fala; quanto menor, melhor.',
-                  )}
-                </p>
-              </div>
-            </header>
-            <div className="q-acoes">
-              <button type="button" className="q-ctl" disabled={!!ocupado} onClick={medirNoProcessador}>
-                {ocupado === 'modelos' ? girando : <Activity aria-hidden />}
-                {ocupado === 'modelos' ? t('Medindo…') : t('Medir no processador')}
-              </button>
-              <button type="button" className="q-ctl" disabled={!!ocupado || !s?.webGpu} onClick={medirNaPlacaDeVideo}>
-                {ocupado === 'gpu' ? girando : <Cpu aria-hidden />}
-                {ocupado === 'gpu' ? t('Medindo…') : t('Medir na placa de vídeo')}
-              </button>
-              <button type="button" className="q-ctl" disabled={!!ocupado} onClick={medirNaNuvem}>
-                {ocupado === 'nuvem' ? girando : <Cloud aria-hidden />}
-                {ocupado === 'nuvem' ? t('Medindo…') : t('Medir na nuvem')}
-              </button>
+      <AbasDoQuest itens={abas} ativo={aba} aoTrocar={setAba} rotuloDoGrupo={t('Partes do diagnóstico')} />
+
+      {/* ── APARELHO ── */}
+      <div {...painel('aparelho')}>
+        <section className="q-secao" data-testid="diagnostico-sinais">
+          <header>
+            <div>
+              <h2>{t('Este aparelho')}</h2>
+              <p>{t('Lido do navegador ao abrir a página. Nada muda na sua captura.')}</p>
             </div>
+          </header>
+          {!s ? (
+            <div className="q-grade g2" role="status" aria-label={t('Lendo…')}>
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="q-esqueleto" />
+              ))}
+            </div>
+          ) : (
+            <dl className="q-medidas duas">
+              <Dado rotulo={t('Navegador')} valor={navegadorEmTexto} />
+              <Dado rotulo={t('Como o app classificou')} valor={s.perfilDoApp.tipo ?? '—'} id="diagnostico-perfil" />
+              <Dado rotulo={t('Núcleos que o navegador vê')} valor={s.nucleos ?? '—'} />
+              <Dado rotulo={t('Memória do aparelho (GB)')} valor={s.memoriaGb ?? '—'} />
+              <Dado rotulo={t('Memória da página (MB)')} valor={s.heapLimiteMb ?? '—'} />
+              <Dado rotulo={t('Espaço para modelos (MB)')} valor={s.cotaMb ?? '—'} />
+              <Dado rotulo={t('Várias threads (isolamento de origem)')} valor={simNao(s.isolado)} />
+              <Dado rotulo={t('Placa de vídeo no navegador')} valor={placaEmTexto} />
+              <Dado rotulo={t('Reconhecimento de voz do navegador')} valor={simNao(s.webSpeech)} />
+              <Dado rotulo={t('Tradutor do navegador')} valor={simNao(s.tradutorNativo)} />
+              <Dado rotulo={t('Compartilhar tela')} valor={simNao(s.compartilharTela)} />
+              <Dado rotulo={t('Vozes de leitura')} valor={s.vozesDeLeitura ?? '—'} />
+            </dl>
+          )}
+        </section>
+      </div>
+
+      {/* ── SOM: microfone e compartilhamento de tela ── */}
+      <div {...painel('som')}>
+        <div className="q-grade g2">
+          <section className="q-cartao">
+            <h2>
+              <Mic aria-hidden /> {t('Microfone')}
+            </h2>
             <p className="q-inst-nota">
               {t(
-                'No processador: baixa cerca de {mb} MB na primeira vez e leva de 1 a 3 minutos. Na placa de vídeo: mais {gpu} MB, e num aparelho fraco a página pode fechar sozinha; faça por último.',
-                { mb: mbDaCpu, gpu: MODELO_DA_GPU.mb },
+                'Deixe um vídeo tocando no alto-falante do aparelho (em outra janela) e toque em Testar. São 10 segundos: 5 com o tratamento de voz ligado, 5 sem.',
               )}
-              {s && !s.webGpu && ` ${t('Este navegador não entrega a placa de vídeo: essa medida fica desligada.')}`}
             </p>
-            {erroDosModelos && (
-              <p className="q-aviso q-inst-alerta" role="alert">
-                <span>
-                  <TriangleAlert aria-hidden /> {erroDosModelos}
-                </span>
-              </p>
-            )}
-            {(benchmark || nuvem) && (
-              <dl className="q-medidas">
-                {benchmark && (
-                  <Dado
-                    rotulo={t('Conta bruta: processador × placa de vídeo')}
-                    valor={`${benchmark.pontuacaoWasm ?? '—'} × ${benchmark.pontuacaoWebgpu ?? '—'}`}
-                  />
-                )}
-                {nuvem && (
-                  <Dado
-                    id="diagnostico-nuvem"
-                    rotulo={t('Nuvem: 11 s de fala')}
-                    valor={
-                      nuvem.erro
-                        ? t('falhou: {erro}', { erro: nuvem.erro })
-                        : t('{total} ms no total, {servidor} ms na transcrição', {
-                            total: nuvem.totalMs ?? '—',
-                            servidor: nuvem.servidorMs ?? '—',
-                          })
-                    }
-                  />
-                )}
-              </dl>
-            )}
-            {modelos.length > 0 && (
-              <ul className="q-diag-modelos" data-testid="diagnostico-modelos">
-                {modelos.map((m) => {
-                  const veredicto = veredictoDoModelo(m.rtf);
-                  return (
-                    <li key={m.id} data-veredicto={veredicto}>
-                      <span>{resumirModelo(m)}</span>
-                      <span className="q-tag">{t(ROTULO_DO_VEREDICTO[veredicto])}</span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
-          {!noQuest && chaveDeDonoNoDesenhoNovo}
-        </div>
-
-        {/* ── ÚLTIMA CAPTURA ── */}
-        <div {...painel('captura')}>
-          <section className="q-secao" data-testid="diagnostico-ultima-captura">
-            <header>
-              <div>
-                <h2>{t('Última captura')}</h2>
-                <p>{t('Onde o tempo foi gasto na última gravação deste aparelho, e quanto ela usou da nuvem.')}</p>
-              </div>
-            </header>
-            {!ultima ? (
-              <div className="q-vazio q-inst-vazio">
-                <span className="q-ic">
-                  <Timer aria-hidden />
-                </span>
-                <h3>{t('Nenhuma captura medida ainda')}</h3>
-                <p>{t('Grave algo em Capturar e volte aqui: os tempos da gravação aparecem nesta aba.')}</p>
-                <button type="button" className="q-ctl" onClick={() => irPara({ view: 'capture' })}>
-                  <Mic aria-hidden /> {t('Ir para Capturar')}
-                </button>
-              </div>
-            ) : (
-              <dl className="q-medidas">
-                <Dado
-                  rotulo={t('Quando e quanto durou')}
-                  valor={`${new Date(ultima.quando).toLocaleString()} · ${Math.round(ultima.duracaoS / 60)} min · ${ultima.count} ${t('falas')}`}
-                />
-                <Dado
-                  rotulo={t('Do fim da fala ao texto')}
-                  valor={t('{p50} ms na metade das falas, {p95} ms nas piores', {
-                    p50: ultima.finalLatencyMs.p50,
-                    p95: ultima.finalLatencyMs.p95,
-                  })}
-                />
-                {Object.entries(ultima.porMotor).map(([motor, m]) => (
-                  <Dado
-                    key={motor}
-                    rotulo={t('Transcrição: {motor}', { motor: nomeDoMotor(motor) })}
-                    valor={t('{falas} falas, {min} min de fala, {p50} ms', {
-                      falas: m.falas,
-                      min: m.minutosDeFala,
-                      p50: m.finalMs.p50,
-                    })}
-                  />
-                ))}
-                <Dado
-                  rotulo={t('Tradução')}
-                  valor={
-                    ultima.mtLatencyMs
-                      ? t('{p50} ms na metade, {p95} ms nas piores', {
-                          p50: ultima.mtLatencyMs.p50,
-                          p95: ultima.mtLatencyMs.p95,
-                        })
-                      : '—'
-                  }
-                />
-                <Dado rotulo={t('Maior fila de falas esperando')} valor={ultima.maxQueueDepth} />
-                {ultimoInterprete && (
-                  <Dado
-                    rotulo={t('Intérprete: do fim da fala à voz')}
-                    valor={t('{p50} ms na metade das falas, {p95} ms nas piores, em {n} falas', {
-                      p50: ultimoInterprete.p50,
-                      p95: ultimoInterprete.p95,
-                      n: ultimoInterprete.amostras,
-                    })}
-                  />
-                )}
-                {etapasDoInterprete && <Dado rotulo={t('Intérprete: tempo de cada etapa')} valor={etapasDoInterprete} />}
-                {custoDoInterprete && <Dado rotulo={t('Intérprete: custo estimado')} valor={custoDoInterprete} />}
-                <Dado
-                  rotulo={t('Nuvem usada')}
-                  valor={t('{min} min de fala, cerca de US$ {usd}', {
-                    min: ultima.nuvem.minutos,
-                    usd: ultima.nuvem.custoUsd.toFixed(4),
-                  })}
-                />
-              </dl>
-            )}
-          </section>
-        </div>
-
-        {/* ── HEADSET: a chave das telas novas, a vibração e a chave de dono. Só no headset. ── */}
-        {noQuest && (
-          <div {...painel('headset')}>
-            <section className="q-secao" data-testid="diagnostico-tela-nova">
-              <header>
-                <div>
-                  <h2>{t('Telas novas do headset')}</h2>
-                  <p>
-                    {t(
-                      'As telas redesenhadas para o Meta Quest. Se alguma sair errada, desligue aqui e a de antes volta.',
-                    )}
-                  </p>
-                </div>
-              </header>
-              <div className="q-ajustes">
-                <div className="q-ajuste">
-                  <div>
-                    <b>{t('Telas novas')}</b>
-                    <small>
-                      {t('Desligar troca o app inteiro na hora, inclusive esta página. Para religar, volte aqui.')}
-                    </small>
-                  </div>
-                  <button type="button" className="q-ctl" aria-pressed={telaNova} onClick={alternarTelaNova}>
-                    {telaNova && <Check aria-hidden />}
-                    {telaNova ? t('Telas novas: ligadas') : t('Telas novas: desligadas')}
-                  </button>
-                </div>
-
-                <div className="q-ajuste">
-                  <div>
-                    <b>{t('Vibração do controle')}</b>
-                    <small>
-                      {t(
-                        'Um pulso de prova em cada intensidade, e o som que o app toca quando o navegador não entrega o motor do controle.',
-                      )}
-                    </small>
-                  </div>
-                  <div className="q-acoes" role="group" aria-label={t('Testar a vibração do controle')}>
-                    <button type="button" className="q-ctl" onClick={() => provar('suave')}>
-                      <Vibrate aria-hidden /> {t('Suave')}
-                    </button>
-                    <button type="button" className="q-ctl" onClick={() => provar('forte')}>
-                      <Vibrate aria-hidden /> {t('Forte')}
-                    </button>
-                    <button type="button" className="q-ctl" onClick={() => provar('som')}>
-                      <Volume2 aria-hidden /> {t('Som no lugar')}
-                    </button>
-                  </div>
-                </div>
-                {vibracao && (
-                  <div className="q-cartao fundo" data-testid="diagnostico-vibracao">
-                    <dl className="q-medidas">
-                      <Dado rotulo={t('Resultado')} valor={resultadoDaVibracaoEmTexto(vibracao)} />
-                      {vibracao.teste !== 'som' && (
-                        <Dado rotulo={t('Vibração pelo navegador')} valor={vibrateEmTexto(vibracao)} />
-                      )}
-                      <Dado rotulo={t('Controles que a página enxerga')} valor={controlesEmTexto(vibracao)} />
-                    </dl>
-                    <p className="q-inst-nota">
-                      {t(
-                        'Você sentiu o controle vibrar? Me diga junto com o resultado: o navegador pode aceitar o pedido sem o controle se mexer.',
-                      )}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </section>
-
-            {chaveDeDonoNoDesenhoNovo}
-          </div>
-        )}
-
-        {/* ── RESULTADO: o JSON que o botão da faixa copia ── */}
-        <div {...painel('resultado')}>
-          <section className="q-secao">
-            <header>
-              <div>
-                <h2>{t('Resultado')}</h2>
-                <p>{t('Copie e cole onde pediram, ou tire um print desta página.')}</p>
-              </div>
-            </header>
-            {copiaFalhou && (
-              <p className="q-aviso q-inst-alerta" role="alert" data-testid="copia-a-mao">
-                <span>
-                  <TriangleAlert aria-hidden />{' '}
-                  {t('Não deu para copiar sozinho: o texto está selecionado, copie pelo menu do navegador.')}
-                </span>
-              </p>
-            )}
-            <textarea
-              ref={caixaRef}
-              className="q-campo q-diag-json"
-              readOnly
-              aria-label={t('Resultado do diagnóstico')}
-              data-testid="diagnostico-json"
-              value={relatorio}
-              rows={9}
-            />
-          </section>
-        </div>
-
-        <div className="q-faixa" role="toolbar" aria-label={t('Ações do diagnóstico')}>
-          <span className="q-diag-estado" role="status" aria-live="polite" data-testid="diagnostico-andamento">
-            {ocupado && girando}
-            {andamento || (ocupado ? t('Medindo…') : t('Nada rodando: cada medida começa no próprio botão.'))}
-          </span>
-          <span className="q-espaco" />
-          <button type="button" className="q-ctl pri" onClick={copiar}>
-            {copiado ? <Check aria-hidden /> : <ClipboardCopy aria-hidden />}
-            {copiado ? t('Copiado') : t('Copiar o resultado')}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <Tela largura="estreita">
-      <CabecalhoDeTela
-        sobrancelha="Suporte"
-        icone={Stethoscope}
-        titulo="Diagnóstico do aparelho"
-        sub="O que este aparelho e este navegador entregam, medido aqui mesmo. Nada muda na sua captura."
-      />
-
-      {/* NO QUEST COM AS TELAS NOVAS DESLIGADAS: é por esta página que elas voltam, e o botão fica lá
-          embaixo. Um aviso no topo, com o caminho de volta, e só nesse caso. */}
-      {noQuest && !telaNova && (
-        <div
-          className="aviso-info religar-telas-novas"
-          role="status"
-          data-testid="religar-telas-novas"
-          style={{ marginBottom: 20 }}
-        >
-          <LayoutPanelTop aria-hidden />
-          <span style={{ flex: 1 }}>
-            {t('As telas novas do headset estão desligadas: você está vendo as de antes.')}
-          </span>
-          <button type="button" className="btn btn-solid" onClick={alternarTelaNova}>
-            {t('Ligar de novo')}
-          </button>
-        </div>
-      )}
-
-      <section className="secao" data-testid="diagnostico-sinais">
-        <TituloDeSecao icone={Cpu} titulo="Este aparelho" desc="Lido do navegador ao abrir a página." />
-        <div className="cartao p5">
-          {!s ? (
-            <p className="mut">Lendo…</p>
-          ) : (
-            <>
-              <Linha rotulo={t('Navegador')} valor={navegadorEmTexto} />
-              <Linha rotulo={t('Como o app classificou')} valor={s.perfilDoApp.tipo ?? '—'} id="diagnostico-perfil" />
-              <Linha rotulo={t('Núcleos que o navegador vê')} valor={s.nucleos ?? '—'} />
-              <Linha rotulo={t('Memória do aparelho (GB)')} valor={s.memoriaGb ?? '—'} />
-              <Linha rotulo={t('Memória da página (MB)')} valor={s.heapLimiteMb ?? '—'} />
-              <Linha rotulo={t('Espaço para modelos (MB)')} valor={s.cotaMb ?? '—'} />
-              <Linha rotulo={t('Várias threads (isolamento de origem)')} valor={simNao(s.isolado)} />
-              <Linha rotulo={t('Placa de vídeo no navegador')} valor={placaEmTexto} />
-              <Linha rotulo={t('Reconhecimento de voz do navegador')} valor={simNao(s.webSpeech)} />
-              <Linha rotulo={t('Tradutor do navegador')} valor={simNao(s.tradutorNativo)} />
-              <Linha rotulo={t('Compartilhar tela')} valor={simNao(s.compartilharTela)} />
-              <Linha rotulo={t('Vozes de leitura')} valor={s.vozesDeLeitura ?? '—'} />
-            </>
-          )}
-        </div>
-      </section>
-
-      <section className="secao">
-        <TituloDeSecao
-          icone={Mic}
-          titulo="Microfone"
-          desc="Deixe um vídeo tocando no alto-falante do aparelho (em outra janela) e toque em Testar. São 10 segundos: 5 com o tratamento de voz ligado, 5 sem."
-        />
-        <div className="cartao p5">
-          <button
-            type="button"
-            className="btn btn-outline"
-            disabled={!!ocupado || !s?.microfone}
-            onClick={testarMicrofone}
-          >
-            {ocupado === 'microfone' ? <Loader2 aria-hidden className="animate-spin" /> : <Mic aria-hidden />}
-            {ocupado === 'microfone' ? 'Ouvindo…' : 'Testar o microfone'}
-          </button>
-          {microfone && (
-            <div style={{ marginTop: 12 }} data-testid="diagnostico-microfone">
-              {microfone.erro && (
-                <p className="aviso-info warn">
-                  <TriangleAlert aria-hidden />
-                  <span>{microfone.erro}</span>
-                </p>
-              )}
-              <Linha rotulo={t('Com tratamento de voz')} valor={nivelEmTexto(microfone.comProcessamento)} />
-              <Linha rotulo={t('Sem tratamento de voz')} valor={nivelEmTexto(microfone.semProcessamento)} />
-              <p className="mut" style={{ fontSize: 13, marginTop: 8 }}>
-                Se o volume cai muito com o tratamento ligado, o cancelamento de eco está apagando o som do
-                alto-falante: para legendar um vídeo pelo microfone, o certo é desligá-lo.
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section className="secao">
-        <TituloDeSecao
-          icone={MonitorUp}
-          titulo="Som do aparelho pelo compartilhamento de tela"
-          desc="Com um vídeo tocando, toque em Testar e aceite compartilhar. Mede se o som vem junto, se ele continua sem a imagem e quanto a tela trava. Leva uns 12 segundos."
-        />
-        <div className="cartao p5">
-          <button
-            type="button"
-            className="btn btn-outline"
-            disabled={!!ocupado || !s?.compartilharTela}
-            onClick={testarCompartilhamento}
-          >
-            {ocupado === 'tela' ? <Loader2 aria-hidden className="animate-spin" /> : <MonitorUp aria-hidden />}
-            {ocupado === 'tela' ? 'Medindo…' : 'Testar o compartilhamento'}
-          </button>
-          {s && !s.compartilharTela && (
-            <p className="mut" style={{ fontSize: 13, marginTop: 8 }}>
-              Este navegador não oferece compartilhamento de tela.
-            </p>
-          )}
-          {compartilhamento && (
-            <div style={{ marginTop: 12 }} data-testid="diagnostico-compartilhamento">
-              {compartilhamento.erro && (
-                <p className="aviso-info warn">
-                  <TriangleAlert aria-hidden />
-                  <span>{compartilhamento.erro}</span>
-                </p>
-              )}
-              <Linha rotulo={t('O que foi compartilhado')} valor={compartilhamento.superficie ?? '—'} />
-              <Linha rotulo={t('Veio som junto')} valor={simNao(compartilhamento.temAudio)} />
-              <Linha rotulo={t('Nível do som')} valor={nivelEmTexto(compartilhamento.nivelComVideo)} />
-              <Linha
-                rotulo={t('O som continua sem a imagem')}
-                valor={
-                  compartilhamento.audioSemVideo
-                    ? `${simNao(compartilhamento.audioSemVideo.vivo)} · ${nivelEmTexto(compartilhamento.audioSemVideo)}`
-                    : '—'
-                }
-              />
-              <Linha
-                rotulo={t('Travadas da tela (antes → durante)')}
-                valor={`${compartilhamento.quadrosAntes?.longos ?? '—'} → ${compartilhamento.quadrosDurante?.longos ?? '—'} (${t('pior')} ${compartilhamento.quadrosDurante?.piorMs ?? '—'} ms)`}
-              />
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section className="secao">
-        <TituloDeSecao
-          icone={Gauge}
-          titulo="Velocidade da transcrição"
-          desc="Transcreve 11 segundos de fala com cada modelo e conta as travadas da tela. Fator abaixo de 1 acompanha a fala; quanto menor, melhor."
-        />
-        <div className="cartao p5">
-          <div className="linha" style={{ gap: 10, flexWrap: 'wrap' }}>
-            <button type="button" className="btn btn-solid" disabled={!!ocupado} onClick={medirNoProcessador}>
-              {ocupado === 'modelos' ? <Loader2 aria-hidden className="animate-spin" /> : <Activity aria-hidden />}
-              {ocupado === 'modelos' ? 'Medindo…' : 'Medir no processador'}
+            <button type="button" className="q-ctl" disabled={!!ocupado || !s?.microfone} onClick={testarMicrofone}>
+              {ocupado === 'microfone' ? girando : <Mic aria-hidden />}
+              {ocupado === 'microfone' ? t('Ouvindo…') : t('Testar o microfone')}
             </button>
+            {s && !s.microfone && (
+              <p className="q-inst-nota">{t('Este navegador não entrega o microfone à página.')}</p>
+            )}
+            {microfone && (
+              <div className="q-diag-resultado" data-testid="diagnostico-microfone">
+                {microfone.erro && (
+                  <p className="q-aviso q-inst-alerta" role="alert">
+                    <span>
+                      <TriangleAlert aria-hidden /> {microfone.erro}
+                    </span>
+                  </p>
+                )}
+                <dl className="q-medidas">
+                  <Dado rotulo={t('Com tratamento de voz')} valor={nivelEmTexto(microfone.comProcessamento)} />
+                  <Dado rotulo={t('Sem tratamento de voz')} valor={nivelEmTexto(microfone.semProcessamento)} />
+                </dl>
+                <p className="q-inst-nota">
+                  {t(
+                    'Se o volume cai muito com o tratamento ligado, o cancelamento de eco está apagando o som do alto-falante: para legendar um vídeo pelo microfone, o certo é desligá-lo.',
+                  )}
+                </p>
+              </div>
+            )}
+          </section>
+
+          <section className="q-cartao">
+            <h2>
+              <MonitorUp aria-hidden /> {t('Som do aparelho pelo compartilhamento')}
+            </h2>
+            <p className="q-inst-nota">
+              {t(
+                'Com um vídeo tocando, toque em Testar e aceite compartilhar. Mede se o som vem junto, se ele continua sem a imagem e quanto a tela trava. Leva uns 12 segundos.',
+              )}
+            </p>
             <button
               type="button"
-              className="btn btn-outline"
-              disabled={!!ocupado || !s?.webGpu}
-              onClick={medirNaPlacaDeVideo}
+              className="q-ctl"
+              disabled={!!ocupado || !s?.compartilharTela}
+              onClick={testarCompartilhamento}
             >
-              {ocupado === 'gpu' ? <Loader2 aria-hidden className="animate-spin" /> : <Cpu aria-hidden />}
-              {ocupado === 'gpu' ? 'Medindo…' : 'Medir na placa de vídeo'}
+              {ocupado === 'tela' ? girando : <MonitorUp aria-hidden />}
+              {ocupado === 'tela' ? t('Medindo…') : t('Testar o compartilhamento')}
             </button>
-            <button type="button" className="btn btn-outline" disabled={!!ocupado} onClick={medirNaNuvem}>
-              {ocupado === 'nuvem' ? <Loader2 aria-hidden className="animate-spin" /> : <Activity aria-hidden />}
-              {ocupado === 'nuvem' ? 'Medindo…' : 'Medir na nuvem'}
+            {s && !s.compartilharTela && (
+              <p className="q-inst-nota">{t('Este navegador não oferece compartilhamento de tela.')}</p>
+            )}
+            {compartilhamento && (
+              <div className="q-diag-resultado" data-testid="diagnostico-compartilhamento">
+                {compartilhamento.erro && (
+                  <p className="q-aviso q-inst-alerta" role="alert">
+                    <span>
+                      <TriangleAlert aria-hidden /> {compartilhamento.erro}
+                    </span>
+                  </p>
+                )}
+                <dl className="q-medidas">
+                  <Dado rotulo={t('O que foi compartilhado')} valor={compartilhamento.superficie ?? '—'} />
+                  <Dado rotulo={t('Veio som junto')} valor={simNao(compartilhamento.temAudio)} />
+                  <Dado rotulo={t('Nível do som')} valor={nivelEmTexto(compartilhamento.nivelComVideo)} />
+                  <Dado
+                    rotulo={t('O som continua sem a imagem')}
+                    valor={
+                      compartilhamento.audioSemVideo
+                        ? `${simNao(compartilhamento.audioSemVideo.vivo)} · ${nivelEmTexto(compartilhamento.audioSemVideo)}`
+                        : '—'
+                    }
+                  />
+                  <Dado
+                    rotulo={t('Travadas da tela (antes → durante)')}
+                    valor={`${compartilhamento.quadrosAntes?.longos ?? '—'} → ${compartilhamento.quadrosDurante?.longos ?? '—'} (${t('pior')} ${compartilhamento.quadrosDurante?.piorMs ?? '—'} ms)`}
+                  />
+                </dl>
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+
+      {/* ── VELOCIDADE DA TRANSCRIÇÃO ── */}
+      <div {...painel('velocidade')}>
+        <section className="q-secao">
+          <header>
+            <div>
+              <h2>{t('Velocidade da transcrição')}</h2>
+              <p>
+                {t(
+                  'Transcreve 11 segundos de fala com cada modelo e conta as travadas da tela. Fator abaixo de 1 acompanha a fala; quanto menor, melhor.',
+                )}
+              </p>
+            </div>
+          </header>
+          <div className="q-acoes">
+            <button type="button" className="q-ctl" disabled={!!ocupado} onClick={medirNoProcessador}>
+              {ocupado === 'modelos' ? girando : <Activity aria-hidden />}
+              {ocupado === 'modelos' ? t('Medindo…') : t('Medir no processador')}
+            </button>
+            <button type="button" className="q-ctl" disabled={!!ocupado || !s?.webGpu} onClick={medirNaPlacaDeVideo}>
+              {ocupado === 'gpu' ? girando : <Cpu aria-hidden />}
+              {ocupado === 'gpu' ? t('Medindo…') : t('Medir na placa de vídeo')}
+            </button>
+            <button type="button" className="q-ctl" disabled={!!ocupado} onClick={medirNaNuvem}>
+              {ocupado === 'nuvem' ? girando : <Cloud aria-hidden />}
+              {ocupado === 'nuvem' ? t('Medindo…') : t('Medir na nuvem')}
             </button>
           </div>
-          <p className="mut" style={{ fontSize: 13, marginTop: 8 }}>
+          <p className="q-inst-nota">
             {t(
               'No processador: baixa cerca de {mb} MB na primeira vez e leva de 1 a 3 minutos. Na placa de vídeo: mais {gpu} MB, e num aparelho fraco a página pode fechar sozinha; faça por último.',
               { mb: mbDaCpu, gpu: MODELO_DA_GPU.mb },
             )}
+            {s && !s.webGpu && ` ${t('Este navegador não entrega a placa de vídeo: essa medida fica desligada.')}`}
           </p>
-          {andamento && (
-            <p role="status" aria-live="polite" style={{ marginTop: 10 }}>
-              {andamento}
-            </p>
-          )}
           {erroDosModelos && (
-            <p className="aviso-info warn" style={{ marginTop: 10 }}>
-              <TriangleAlert aria-hidden />
-              <span>{erroDosModelos}</span>
+            <p className="q-aviso q-inst-alerta" role="alert">
+              <span>
+                <TriangleAlert aria-hidden /> {erroDosModelos}
+              </span>
             </p>
           )}
-          {benchmark && (
-            <Linha
-              rotulo={t('Conta bruta: processador × placa de vídeo')}
-              valor={`${benchmark.pontuacaoWasm ?? '—'} × ${benchmark.pontuacaoWebgpu ?? '—'}`}
-            />
-          )}
-          {nuvem && (
-            <div data-testid="diagnostico-nuvem">
-              <Linha
-                rotulo={t('Nuvem: 11 s de fala')}
-                valor={
-                  nuvem.erro
-                    ? t('falhou: {erro}', { erro: nuvem.erro })
-                    : t('{total} ms no total, {servidor} ms na transcrição', {
-                        total: nuvem.totalMs ?? '—',
-                        servidor: nuvem.servidorMs ?? '—',
-                      })
-                }
-              />
-            </div>
+          {(benchmark || nuvem) && (
+            <dl className="q-medidas">
+              {benchmark && (
+                <Dado
+                  rotulo={t('Conta bruta: processador × placa de vídeo')}
+                  valor={`${benchmark.pontuacaoWasm ?? '—'} × ${benchmark.pontuacaoWebgpu ?? '—'}`}
+                />
+              )}
+              {nuvem && (
+                <Dado
+                  id="diagnostico-nuvem"
+                  rotulo={t('Nuvem: 11 s de fala')}
+                  valor={
+                    nuvem.erro
+                      ? t('falhou: {erro}', { erro: nuvem.erro })
+                      : t('{total} ms no total, {servidor} ms na transcrição', {
+                          total: nuvem.totalMs ?? '—',
+                          servidor: nuvem.servidorMs ?? '—',
+                        })
+                  }
+                />
+              )}
+            </dl>
           )}
           {modelos.length > 0 && (
-            <ul style={{ marginTop: 10, listStyle: 'none', padding: 0 }} data-testid="diagnostico-modelos">
-              {modelos.map((m) => (
-                <li key={m.id} data-veredicto={veredictoDoModelo(m.rtf)} style={{ padding: '6px 0' }}>
-                  {resumirModelo(m)}
-                </li>
-              ))}
+            <ul className="q-diag-modelos" data-testid="diagnostico-modelos">
+              {modelos.map((m) => {
+                const veredicto = veredictoDoModelo(m.rtf);
+                return (
+                  <li key={m.id} data-veredicto={veredicto}>
+                    <span>{resumirModelo(m)}</span>
+                    <span className="q-tag">{t(ROTULO_DO_VEREDICTO[veredicto])}</span>
+                  </li>
+                );
+              })}
             </ul>
           )}
-        </div>
-      </section>
+        </section>
+        {!noQuest && chaveDeDonoNoDesenhoNovo}
+      </div>
 
-      <section className="secao" data-testid="diagnostico-ultima-captura">
-        <TituloDeSecao
-          icone={Timer}
-          titulo="Última captura"
-          desc="Onde o tempo foi gasto na última gravação deste aparelho, e quanto ela usou da nuvem."
-        />
-        <div className="cartao p5">
+      {/* ── ÚLTIMA CAPTURA ── */}
+      <div {...painel('captura')}>
+        <section className="q-secao" data-testid="diagnostico-ultima-captura">
+          <header>
+            <div>
+              <h2>{t('Última captura')}</h2>
+              <p>{t('Onde o tempo foi gasto na última gravação deste aparelho, e quanto ela usou da nuvem.')}</p>
+            </div>
+          </header>
           {!ultima ? (
-            <p className="mut">Nenhuma captura medida ainda neste aparelho. Grave algo em Capturar e volte aqui.</p>
+            <div className="q-vazio q-inst-vazio">
+              <span className="q-ic">
+                <Timer aria-hidden />
+              </span>
+              <h3>{t('Nenhuma captura medida ainda')}</h3>
+              <p>{t('Grave algo em Capturar e volte aqui: os tempos da gravação aparecem nesta aba.')}</p>
+              <button type="button" className="q-ctl" onClick={() => irPara({ view: 'capture' })}>
+                <Mic aria-hidden /> {t('Ir para Capturar')}
+              </button>
+            </div>
           ) : (
-            <>
-              <Linha
+            <dl className="q-medidas">
+              <Dado
                 rotulo={t('Quando e quanto durou')}
                 valor={`${new Date(ultima.quando).toLocaleString()} · ${Math.round(ultima.duracaoS / 60)} min · ${ultima.count} ${t('falas')}`}
               />
-              <Linha
+              <Dado
                 rotulo={t('Do fim da fala ao texto')}
                 valor={t('{p50} ms na metade das falas, {p95} ms nas piores', {
                   p50: ultima.finalLatencyMs.p50,
@@ -1232,7 +803,7 @@ export default function Diagnostico() {
                 })}
               />
               {Object.entries(ultima.porMotor).map(([motor, m]) => (
-                <Linha
+                <Dado
                   key={motor}
                   rotulo={t('Transcrição: {motor}', { motor: nomeDoMotor(motor) })}
                   valor={t('{falas} falas, {min} min de fala, {p50} ms', {
@@ -1242,7 +813,7 @@ export default function Diagnostico() {
                   })}
                 />
               ))}
-              <Linha
+              <Dado
                 rotulo={t('Tradução')}
                 valor={
                   ultima.mtLatencyMs
@@ -1253,136 +824,125 @@ export default function Diagnostico() {
                     : '—'
                 }
               />
-              <Linha rotulo={t('Maior fila de falas esperando')} valor={ultima.maxQueueDepth} />
+              <Dado rotulo={t('Maior fila de falas esperando')} valor={ultima.maxQueueDepth} />
               {ultimoInterprete && (
-                <Linha
+                <Dado
                   rotulo={t('Intérprete: do fim da fala à voz')}
                   valor={t('{p50} ms na metade das falas, {p95} ms nas piores, em {n} falas', {
-                      p50: ultimoInterprete.p50,
-                      p95: ultimoInterprete.p95,
-                      n: ultimoInterprete.amostras,
-                    })}
+                    p50: ultimoInterprete.p50,
+                    p95: ultimoInterprete.p95,
+                    n: ultimoInterprete.amostras,
+                  })}
                 />
               )}
-              {etapasDoInterprete && <Linha rotulo={t('Intérprete: tempo de cada etapa')} valor={etapasDoInterprete} />}
-              {custoDoInterprete && <Linha rotulo={t('Intérprete: custo estimado')} valor={custoDoInterprete} />}
-              <Linha
+              {etapasDoInterprete && <Dado rotulo={t('Intérprete: tempo de cada etapa')} valor={etapasDoInterprete} />}
+              {custoDoInterprete && <Dado rotulo={t('Intérprete: custo estimado')} valor={custoDoInterprete} />}
+              <Dado
                 rotulo={t('Nuvem usada')}
                 valor={t('{min} min de fala, cerca de US$ {usd}', {
                   min: ultima.nuvem.minutos,
                   usd: ultima.nuvem.custoUsd.toFixed(4),
                 })}
               />
-            </>
+            </dl>
           )}
-        </div>
-      </section>
+        </section>
+      </div>
 
-      <section className="secao" data-testid="diagnostico-testes-do-interprete">
-        <TituloDeSecao
-          icone={Timer}
-          titulo="Testes do intérprete"
-          desc="Recursos novos do intérprete, desligados de fábrica. Ligue um, teste com um vídeo ou uma conversa, e desligue se algo sair errado."
-        />
-        <div className="cartao p5">
-          <TestesDoInterprete />
-        </div>
-      </section>
-
-      <section className="secao" data-testid="diagnostico-tela-nova">
-        <TituloDeSecao
-          icone={LayoutPanelTop}
-          titulo="Telas novas do headset"
-          desc="As telas redesenhadas para o Meta Quest. Se alguma sair errada, desligue aqui e a de antes volta."
-        />
-        <div className="cartao p5">
-          <div className="linha" style={{ gap: 10, flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className={telaNova ? 'btn btn-solid' : 'btn btn-outline'}
-              aria-pressed={telaNova}
-              onClick={alternarTelaNova}
-            >
-              {telaNova ? 'Telas novas: ligadas' : 'Telas novas: desligadas'}
-            </button>
-          </div>
-          {/* O teste da vibração: o mesmo pulso que o app usa ao apontar (`provarVibracao`), nas duas
-              intensidades, e o som que entra no lugar quando o navegador não entrega o motor. */}
-          <p className="mut" style={{ fontSize: 13, marginTop: 14 }}>
-            {t('Vibração do controle: um pulso de prova em cada intensidade, e o som que o app toca no lugar.')}
-          </p>
-          <div
-            className="linha"
-            role="group"
-            aria-label={t('Testar a vibração do controle')}
-            style={{ gap: 10, flexWrap: 'wrap', marginTop: 8 }}
-          >
-            <button type="button" className="btn btn-outline" onClick={() => provar('suave')}>
-              <Vibrate aria-hidden /> {t('Suave')}
-            </button>
-            <button type="button" className="btn btn-outline" onClick={() => provar('forte')}>
-              <Vibrate aria-hidden /> {t('Forte')}
-            </button>
-            <button type="button" className="btn btn-outline" onClick={() => provar('som')}>
-              <Volume2 aria-hidden /> {t('Som no lugar')}
-            </button>
-          </div>
-          {vibracao && (
-            <div style={{ marginTop: 12 }} data-testid="diagnostico-vibracao">
-              <Linha rotulo={t('Resultado')} valor={resultadoDaVibracaoEmTexto(vibracao)} />
-              {vibracao.teste !== 'som' && (
-                <Linha rotulo={t('Vibração pelo navegador')} valor={vibrateEmTexto(vibracao)} />
+      {/* ── HEADSET: a vibração do controle e a chave de dono. Só no headset. ── */}
+      {noQuest && (
+        <div {...painel('headset')}>
+          <section className="q-secao" data-testid="diagnostico-headset">
+            <header>
+              <div>
+                <h2>{t('Headset')}</h2>
+              </div>
+            </header>
+            <div className="q-ajustes">
+              <div className="q-ajuste">
+                <div>
+                  <b>{t('Vibração do controle')}</b>
+                  <small>
+                    {t(
+                      'Um pulso de prova em cada intensidade, e o som que o app toca quando o navegador não entrega o motor do controle.',
+                    )}
+                  </small>
+                </div>
+                <div className="q-acoes" role="group" aria-label={t('Testar a vibração do controle')}>
+                  <button type="button" className="q-ctl" onClick={() => provar('suave')}>
+                    <Vibrate aria-hidden /> {t('Suave')}
+                  </button>
+                  <button type="button" className="q-ctl" onClick={() => provar('forte')}>
+                    <Vibrate aria-hidden /> {t('Forte')}
+                  </button>
+                  <button type="button" className="q-ctl" onClick={() => provar('som')}>
+                    <Volume2 aria-hidden /> {t('Som no lugar')}
+                  </button>
+                </div>
+              </div>
+              {vibracao && (
+                <div className="q-cartao fundo" data-testid="diagnostico-vibracao">
+                  <dl className="q-medidas">
+                    <Dado rotulo={t('Resultado')} valor={resultadoDaVibracaoEmTexto(vibracao)} />
+                    {vibracao.teste !== 'som' && (
+                      <Dado rotulo={t('Vibração pelo navegador')} valor={vibrateEmTexto(vibracao)} />
+                    )}
+                    <Dado rotulo={t('Controles que a página enxerga')} valor={controlesEmTexto(vibracao)} />
+                  </dl>
+                  <p className="q-inst-nota">
+                    {t(
+                      'Você sentiu o controle vibrar? Me diga junto com o resultado: o navegador pode aceitar o pedido sem o controle se mexer.',
+                    )}
+                  </p>
+                </div>
               )}
-              <Linha rotulo={t('Controles que a página enxerga')} valor={controlesEmTexto(vibracao)} />
-              <p className="mut" style={{ fontSize: 13, marginTop: 8 }}>
-                Você sentiu o controle vibrar? Me diga junto com o resultado: o navegador pode aceitar o pedido sem o
-                controle se mexer.
-              </p>
             </div>
+          </section>
+
+          {chaveDeDonoNoDesenhoNovo}
+        </div>
+      )}
+
+      {/* ── RESULTADO: o JSON que o botão da faixa copia ── */}
+      <div {...painel('resultado')}>
+        <section className="q-secao">
+          <header>
+            <div>
+              <h2>{t('Resultado')}</h2>
+              <p>{t('Copie e cole onde pediram, ou tire um print desta página.')}</p>
+            </div>
+          </header>
+          {copiaFalhou && (
+            <p className="q-aviso q-inst-alerta" role="alert" data-testid="copia-a-mao">
+              <span>
+                <TriangleAlert aria-hidden />{' '}
+                {t('Não deu para copiar sozinho: o texto está selecionado, copie pelo menu do navegador.')}
+              </span>
+            </p>
           )}
-        </div>
-      </section>
-
-      <section className="secao">
-        <TituloDeSecao
-          icone={KeyRound}
-          titulo="Chave de dono"
-          desc="Só para quem mantém o site: com a chave certa, este aparelho não cai na cota diária da nuvem."
-        />
-        <div className="cartao p5">
-          <input
-            className="campo"
-            type="password"
-            autoComplete="off"
-            aria-label={t('Chave de dono')}
-            value={chaveDeDono}
-            onChange={(e) => mudarChaveDeDono(e.target.value)}
-          />
-        </div>
-      </section>
-
-      <section className="secao">
-        <TituloDeSecao
-          icone={ClipboardCopy}
-          titulo="Resultado"
-          desc="Copie e cole onde pediram, ou tire um print desta página."
-        />
-        <div className="cartao p5">
-          <button type="button" className="btn btn-outline" onClick={copiar}>
-            <ClipboardCopy aria-hidden /> {copiado ? 'Copiado' : 'Copiar o resultado'}
-          </button>
           <textarea
             ref={caixaRef}
-            className="campo"
+            className="q-campo q-diag-json"
             readOnly
             aria-label={t('Resultado do diagnóstico')}
             data-testid="diagnostico-json"
             value={relatorio}
-            rows={10}
-            style={{ marginTop: 12, width: '100%', fontFamily: 'var(--font-mono, monospace)', fontSize: 12 }}
+            rows={9}
           />
-        </div>
-      </section>
-    </Tela>
+        </section>
+      </div>
+
+      <div className="q-faixa" role="toolbar" aria-label={t('Ações do diagnóstico')}>
+        <span className="q-diag-estado" role="status" aria-live="polite" data-testid="diagnostico-andamento">
+          {ocupado && girando}
+          {andamento || (ocupado ? t('Medindo…') : t('Nada rodando: cada medida começa no próprio botão.'))}
+        </span>
+        <span className="q-espaco" />
+        <button type="button" className="q-ctl pri" onClick={copiar}>
+          {copiado ? <Check aria-hidden /> : <ClipboardCopy aria-hidden />}
+          {copiado ? t('Copiado') : t('Copiar o resultado')}
+        </button>
+      </div>
+    </div>
   );
 }

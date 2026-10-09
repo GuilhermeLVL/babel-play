@@ -1,43 +1,24 @@
 // @vitest-environment jsdom
 /**
- * AS REGRAS POR NÍVEL (`src/core/minigames/regras.ts`) e o nível que a pessoa escolheu
- * (`src/lib/jogos/nivelDoJogo.ts`). O que não pode quebrar: no Médio cada jogo tem exatamente os
- * números de sempre; o Fácil nunca aperta mais que o Médio, nem o Difícil menos.
+ * AS AJUDAS POR NÍVEL (`src/core/minigames/regras.ts`) e o nível que a pessoa escolheu
+ * (`src/lib/jogos/nivelDoJogo.ts`).
  *
- * Estas são as regras do DESENHO ANTIGO (o fator igual para todos, por perfil). A tabela de níveis do
- * protótipo, que o desenho novo usa, é travada em `tests/polimentoJogos.test.tsx`.
+ * As regras por perfil de idade (o fator igual para todos) eram dos tabuleiros de antes e saíram com
+ * eles. A tabela de níveis do protótipo, que os tabuleiros usam, é travada em
+ * `tests/polimentoJogos.test.tsx`.
  */
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import {
-  ajudasDoJogo,
-  jogoTemNiveis,
-  NIVEIS_DO_JOGO,
-  type PerfilDeIdade,
-  REGRAS_DE_BASE,
-  resumoDasRegras,
-  segundosDoJogo,
-  tempoAVistaDoJogo,
-  vidasDoJogo,
-} from '../src/core/minigames/regras'
+import { ajudasDoJogo, jogoTemNiveis, NIVEIS_DO_JOGO } from '../src/core/minigames/regras'
 import type { MinigameId } from '../src/core/minigames/types'
+import { MINIGAMES } from '../src/core/minigames/types'
 import { guardarNivelDoJogo, lerNivelDoJogo } from '../src/lib/jogos/nivelDoJogo'
 
-const PERFIS: PerfilDeIdade[] = ['kids', 'pro', 'senior']
-const JOGOS = Object.keys(REGRAS_DE_BASE) as MinigameId[]
+const JOGOS = Object.keys(MINIGAMES) as MinigameId[]
+const AJUDAS = ['espiar', 'radar', 'cortar', 'vogal', 'letra', 'tempo', 'resposta'] as const
 
-describe('as regras por nível', () => {
-  it('o Médio é a regra de sempre: os números que cada jogo trazia no componente', () => {
-    expect(segundosDoJogo('blitz', 'pro', 'medio')).toBe(60)
-    expect(segundosDoJogo('blitz', 'senior', 'medio')).toBe(90)
-    expect(PERFIS.map((p) => segundosDoJogo('karuta', p, 'medio'))).toEqual([12, 8, 14])
-    expect(PERFIS.map((p) => segundosDoJogo('choseong', p, 'medio'))).toEqual([18, 15, 22])
-    expect(PERFIS.map((p) => segundosDoJogo('tenis', p, 'medio'))).toEqual([8, 6, 9])
-    expect(PERFIS.map((p) => segundosDoJogo('shiritori', p, 'medio'))).toEqual([20, 15, 25])
-    expect(PERFIS.map((p) => segundosDoJogo('taboo', p, 'medio'))).toEqual([35, 30, 45])
-    expect(PERFIS.map((p) => vidasDoJogo('koffer', p, 'medio'))).toEqual([4, 3, 4])
-    expect(PERFIS.map((p) => tempoAVistaDoJogo('koffer', p, 'medio'))).toEqual([2600, 2000, 3000])
-    expect(PERFIS.map((p) => vidasDoJogo('bao', p, 'medio'))).toEqual([4, 3, 4])
+describe('as ajudas por nível', () => {
+  it('no Médio cada jogo tem as ajudas de sempre', () => {
     expect(ajudasDoJogo('memory', 'espiar', 'medio')).toBe(2)
     expect(ajudasDoJogo('wordsearch', 'radar', 'medio')).toBe(3)
     expect(ajudasDoJogo('blitz', 'cortar', 'medio')).toBe(2)
@@ -46,44 +27,22 @@ describe('as regras por nível', () => {
     expect(ajudasDoJogo('taboo', 'tempo', 'medio')).toBe(2)
   })
 
-  it('o Fácil nunca aperta mais que o Médio, e o Difícil nunca menos, em todo jogo e perfil', () => {
+  it('o Fácil nunca dá menos ajuda que o Médio, nem o Difícil mais; e no Difícil ninguém fica sem', () => {
     for (const jogo of JOGOS) {
-      for (const perfil of PERFIS) {
-        const [f, m, d] = NIVEIS_DO_JOGO.map((n) => resumoDasRegras(jogo, perfil, n))
-        if (m.segundos !== null) {
-          expect(f.segundos, `${jogo} ${perfil}`).toBeGreaterThan(m.segundos)
-          expect(d.segundos, `${jogo} ${perfil}`).toBeLessThan(m.segundos)
-        }
-        if (m.vidas !== null) {
-          expect(f.vidas, `${jogo} ${perfil}`).toBeGreaterThan(m.vidas)
-          expect(d.vidas, `${jogo} ${perfil}`).toBeLessThan(m.vidas)
-        }
-        for (const qual of Object.keys(m.ajudas)) {
-          expect(f.ajudas[qual]).toBeGreaterThan(m.ajudas[qual])
-          /* "Ver resposta" é 2, 1 e 1 (jogos4.js:76): no Difícil não desce abaixo de uma. */
-          if (qual === 'resposta') expect(d.ajudas[qual]).toBe(m.ajudas[qual])
-          else expect(d.ajudas[qual]).toBeLessThan(m.ajudas[qual])
-        }
+      for (const qual of AJUDAS) {
+        const [f, m, d] = NIVEIS_DO_JOGO.map((n) => ajudasDoJogo(jogo, qual, n))
+        if (!m || !Number.isFinite(m)) continue
+        expect(f, `${jogo} ${qual}`).toBeGreaterThanOrEqual(m)
+        expect(d, `${jogo} ${qual}`).toBeLessThanOrEqual(m)
+        expect(d, `${jogo} ${qual}`).toBeGreaterThanOrEqual(1)
       }
     }
   })
 
-  it('no Difícil ninguém fica sem vida nem sem ajuda', () => {
-    for (const jogo of JOGOS) {
-      for (const perfil of PERFIS) {
-        const d = resumoDasRegras(jogo, perfil, 'dificil')
-        if (d.vidas !== null) expect(d.vidas).toBeGreaterThanOrEqual(1)
-        for (const n of Object.values(d.ajudas)) expect(n).toBeGreaterThanOrEqual(1)
-        if (d.segundos !== null) expect(d.segundos).toBeGreaterThanOrEqual(4)
-      }
-    }
-  })
-
-  it('jogo sem regra que o nível mude diz que não tem níveis', () => {
+  it('a pausa só oferece a troca de nível nos jogos que a têm', () => {
     expect(jogoTemNiveis('tenis')).toBe(true)
     expect(jogoTemNiveis('cadavre')).toBe(false)
     expect(jogoTemNiveis('karaoke')).toBe(false)
-    expect(segundosDoJogo('cadavre', 'pro', 'facil')).toBeNull()
     expect(ajudasDoJogo('cadavre', 'qualquer', 'facil')).toBe(0)
   })
 })

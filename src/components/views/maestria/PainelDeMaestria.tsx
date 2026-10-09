@@ -70,9 +70,16 @@ export default function PainelDeMaestria({ jogos }: { jogos: readonly MaestriaNo
               <div className="linha" style={{ gap: 8, alignItems: 'center' }}>
                 <Icone
                   aria-hidden
-                  style={{ width: 20, height: 20, flex: 'none', color: n.nivel === 0 ? 'var(--ink-muted)' : 'var(--warn-ink)' }}
+                  style={{
+                    width: 20,
+                    height: 20,
+                    flex: 'none',
+                    color: n.nivel === 0 ? 'var(--ink-muted)' : 'var(--warn-ink)',
+                  }}
                 />
-                <h3 style={{ fontSize: 14.5, fontWeight: 800, flex: 1, minWidth: 0 }}>{NOME_DO_JOGO_NA_MAESTRIA[jogo]}</h3>
+                <h3 style={{ fontSize: 14.5, fontWeight: 800, flex: 1, minWidth: 0 }}>
+                  {NOME_DO_JOGO_NA_MAESTRIA[jogo]}
+                </h3>
                 <span className="label-mono">{n.nivel === 0 ? t('Sem nível') : NOMES_DE_MAESTRIA[n.nivel - 1]}</span>
               </div>
               <p className="tn mut" style={{ fontSize: 12.5, margin: '8px 0 6px' }}>
@@ -87,13 +94,17 @@ export default function PainelDeMaestria({ jogos }: { jogos: readonly MaestriaNo
               <p className="mut" style={{ fontSize: 12, marginTop: 10, lineHeight: 1.5 }}>
                 {proxima ? (
                   <>
-                    <Gift aria-hidden style={{ display: 'inline', width: 13, height: 13, verticalAlign: -2, marginRight: 4 }} />
+                    <Gift
+                      aria-hidden
+                      style={{ display: 'inline', width: 13, height: 13, verticalAlign: -2, marginRight: 4 }}
+                    />
                     {t('No {nivel}:', { nivel: proxima.nome })}{' '}
                     <b style={{ color: 'var(--ink)' }}>
                       {proxima.itens.length ? proxima.itens.join(' · ') : t('o emblema no jogo')}
                     </b>{' '}
                     <span className="tn" style={{ whiteSpace: 'nowrap', color: 'var(--good-ink)' }}>
-                      <Sprout aria-hidden style={{ display: 'inline', width: 12, height: 12, verticalAlign: -2 }} />+{proxima.seeds}
+                      <Sprout aria-hidden style={{ display: 'inline', width: 12, height: 12, verticalAlign: -2 }} />+
+                      {proxima.seeds}
                     </span>
                   </>
                 ) : (

@@ -11,15 +11,11 @@ import {
   Eraser,
   Highlighter,
   Mic,
-  MousePointerClick,
   NotebookPen,
   Pause,
-  PenTool,
   Play,
   PlayCircle,
-  Plus,
   Quote,
-  Search,
   SkipBack,
   SkipForward,
   SlidersHorizontal,
@@ -36,7 +32,7 @@ import { buildGateway } from '../../gateway';
 import { getActiveProfile } from '../../gateway/activeProfile';
 import { ficharCartao } from '../../lib/adicionarAoDeck';
 import { consentiuNuvem } from '../../lib/consentimentoDeNuvem';
-import { noHeadset, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
 import { t, tp } from '../../lib/i18n';
 import { useLangConfig } from '../../lib/langConfig';
 import { detectLanguage, hasNativeDetector, type LangDetection } from '../../lib/langDetect';
@@ -67,12 +63,10 @@ import type { ResolvedWord, WordOrigin } from '../../lib/vocabWord';
 import { buildVocabWord, mtNoteFor, resolveWord, tokenizarTexto } from '../../lib/vocabWord';
 import { aparelhoTemVoz, haVozPara } from '../../lib/voz/haVoz';
 import { Recording, VocabCard, VocabWord } from '../../types';
-import EditablePanel from '../EditablePanel';
 import LangPicker from '../LangPicker';
-import PopoverFlutuante from '../PopoverFlutuante';
 import { toast } from '../Toast';
 import TokensClicaveis, { ehPalavraDeConteudo } from '../TokensClicaveis';
-import { Dialogo, fecharDialogoDe, IconeEmBloco, TituloDeSecao } from '../ui';
+import { Dialogo, fecharDialogoDe } from '../ui';
 import VocabularyPanel from '../VocabularyPanel';
 import BarraDeDesenho from './leitura/BarraDeDesenho';
 import { useDesenhoLivre } from './leitura/useDesenhoLivre';
@@ -146,12 +140,10 @@ interface ReadingProps {
 }
 
 export default function Reading({ recording, onChangeView }: ReadingProps = {}) {
-  /* META QUEST com as telas novas: o mesmo estado, outro desenho (o ramo fica no fim, antes do `return`). */
-  const questNovo = useQuestNovo();
   /* O Quest não tem voz de leitura própria: ali a narração vai pelo motor do app (`speak()` de
      `lib/tts`, que leva à voz do site), uma frase por vez. Com voz no aparelho, nada muda. */
-  const narraPeloMotor = questNovo && !aparelhoTemVoz();
-  /* Diálogos que só a tela do Quest abre (a de sempre mostra o mesmo conteúdo na página). */
+  const narraPeloMotor = !aparelhoTemVoz();
+  /* Os diálogos de "Estudos & notas" e de "Ajustar exibição". */
   const [verNotasNoQuest, setVerNotasNoQuest] = useState(false);
   const [ajustandoNoQuest, setAjustandoNoQuest] = useState(false);
   // Gateway (MT/LLM) construído uma vez a partir do perfil ativo.
@@ -394,13 +386,10 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   );
 
   // Largura do leitor: coluna centralizada (foco na leitura) ou espaçada (tela cheia). Persistida.
-  // PADRÃO: 'centered' — coluna de leitura confortável, centralizada, com respiro dos dois lados.
-  // (Antes era 'full', que somado aos 65% fixos do painel jogava o texto para a esquerda e deixava
-  // um vazio à direita.) 'full' continua disponível para quem quiser ocupar a largura inteira.
   const [layoutWidth, setLayoutWidth] = useState<'centered' | 'full'>(() => {
-    /* No desenho novo o texto ocupa o cartão, como no protótipo (`telas3.js:72`); "Coluna" segue em
-       "Ajustar exibição" para quem preferir. */
-    return (localStorage.getItem('reading_layout_width') as 'centered' | 'full') || (questNovo ? 'full' : 'centered');
+    /* O texto ocupa o cartão, como no protótipo (`telas3.js:72`); "Coluna" segue em "Ajustar exibição"
+       para quem preferir. */
+    return (localStorage.getItem('reading_layout_width') as 'centered' | 'full') || 'full';
   });
 
   const handleLayoutWidthChange = (width: 'centered' | 'full') => {
@@ -842,18 +831,6 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     }
   };
 
-  const stopNarration = () => {
-    if (!narraPeloMotor && !('speechSynthesis' in window)) return;
-    runIdRef.current++; // invalida qualquer onend pendente
-    narrationPausedRef.current = false;
-    if (narraPeloMotor) cancelSpeech();
-    else window.speechSynthesis.cancel();
-    setIsNarrating(false);
-    setIsNarrationPaused(false);
-    setActiveNarratingSentenceIndex(null);
-    setCurrentSpeakingLang(null);
-  };
-
   /** Pula frases (−1 / +1) mantendo a narração viva. */
   const skipSentence = (delta: number) => {
     const from = activeNarratingSentenceIndex ?? 0;
@@ -927,28 +904,13 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     [voiceEditLang, voices],
   );
 
-  /**
-   * Badge de idioma por frase (só no modo Auto). Distingue DETECTADO de ASSUMIDO: sem sinal, mostra o
-   * idioma declarado da sessão em estilo apagado e diz no title que foi assumido — jamais vendemos um
-   * chute como detecção.
-   */
-
-  // Rola a frase ativa para o centro da área de leitura — você nunca "perde" o narrador de vista.
-  useEffect(() => {
-    /* No desenho novo quem rola é o marcador (`telas3.js:45`), que respeita "reduzir movimento". */
-    if (questNovo || activeNarratingSentenceIndex === null) return;
-    const el = document.getElementById(`sentence-${activeNarratingSentenceIndex}`);
-    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [activeNarratingSentenceIndex, questNovo]);
-
-  /* DESENHO NOVO: O NARRADOR MARCA PALAVRA POR PALAVRA (`tocar()` e `pararPlayer()`, `telas3.js:16-62`,
+  /* O NARRADOR MARCA PALAVRA POR PALAVRA (`tocar()` e `pararPlayer()`, `telas3.js:16-62`,
      item D51). A frase vem da narração de verdade; a cadência das palavras é a do protótipo, no mesmo
      marcador da Transcrição (`lib/polimento/sessao.ts`), aqui sobre as `.ql-frase`. */
   const frasesDoQuest = useRef<HTMLDivElement>(null);
   const marcador = useMemo(() => criarMarcador(() => frasesDoQuest.current, '.ql-frase'), []);
   const fraseDeAntes = useRef(-1);
-  const fraseNarrada =
-    questNovo && isNarrating && activeNarratingSentenceIndex !== null ? activeNarratingSentenceIndex : -1;
+  const fraseNarrada = isNarrating && activeNarratingSentenceIndex !== null ? activeNarratingSentenceIndex : -1;
   useEffect(() => {
     if (fraseNarrada < 0) {
       marcador.parar();
@@ -974,17 +936,6 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     [],
   );
 
-  const handleWordClick = (tIndex: number, wordText: string) => {
-    // Pronuncia a palavra E abre o Analista de Vocabulário (o hover continua sendo só a prévia).
-    // A pronúncia usa o idioma da FRASE (tIndex) — não o da sessão —, logo acerta mesmo quando o
-    // transcript mistura idiomas, e sai na voz que o usuário escolheu para aquele idioma.
-    playWordTTS(wordText, tIndex);
-    // `\p{L}` (Unicode) em vez de [a-zA-Z]: o filtro ASCII destruía palavras acentuadas e não
-    // latinas — "ação" virava "ao", e qualquer palavra em japonês/russo/árabe virava string vazia.
-    const clean = wordText.replace(/[^\p{L}'-]/gu, '').toLowerCase();
-    if (clean) void examineWord(clean, tIndex);
-  };
-
   /** "Anotação semântica" (protótipo): um tipo por frase; Áudio grava de verdade; Apagar tira. */
   const anotar = (tipo: TipoDeNota | 'apagar') => {
     const i = fraseEscolhida;
@@ -1008,19 +959,6 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
    *
    * O tutor que existe é o iChat global (`components/IChat.tsx`), montado no App e disponível em
    * qualquer tela, esta inclusive. */
-
-  const handleMouseEnter = (e: React.MouseEvent<HTMLSpanElement>, cleanWord: string) => {
-    // O cancelamento vem ANTES do filtro, como sempre veio: passar o cursor por uma palavra curta
-    // no caminho até o cartão não pode deixar o fechamento seguir agendado.
-    popover.cancelarFechamento();
-    // Qualquer palavra de conteúdo (>=3 letras, alfabética) é interativa.
-    // Unicode como o clique (938): 'ação', 'über' e alfabetos não-latinos também abrem o cartão.
-    if (cleanWord.length >= 3 && /^\p{L}+$/u.test(cleanWord)) {
-      popover.abrirEm(e.target as HTMLElement, cleanWord);
-    }
-  };
-
-  const handleMouseLeave = popover.agendarFechamento;
 
   /**
    * Pronúncia de UMA palavra (clique/hover).
@@ -1095,85 +1033,31 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hoveredWord]);
 
-  /**
-   * "Tocar a partir daqui" — aparece ao passar o mouse sobre a frase. É o gesto mais intuitivo de um
-   * narrador (e faltava por completo: antes só existia "Ouvir Tudo", sempre do começo). Fica numa
-   * gutter à esquerda, fora do fluxo do texto, para não competir com o clique nas palavras (que abre
-   * o Analista de Vocabulário / faz TTS da palavra).
-   */
-  const SentencePlayButton = ({ index }: { index: number }) => {
-    const isActive = activeNarratingSentenceIndex === index;
-    return (
-      <button
-        onClick={() => {
-          /* Se ESTA frase já está tocando, o botão é um PAUSE de verdade — antes ele mostrava o
-             ícone de pausa mas chamava speakFrom() e reiniciava a frase do zero. */
-          if (isActive && isNarrating) {
-            toggleNarration();
-            return;
-          }
-          void speakFrom(index);
-        }}
-        title={isActive && isNarrating && !isNarrationPaused ? 'Pausar' : 'Ouvir a partir desta frase'}
-        className={`no-min-target absolute -left-9 top-2 hidden lg:flex w-7 h-7 items-center justify-center rounded-full border transition-all cursor-pointer
-          ${
-            isActive
-              ? 'bg-accent border-accent text-white opacity-100'
-              : 'bg-surface border-border-subtle text-ink-muted opacity-0 group-hover/sent:opacity-100 hover:text-accent hover:border-accent'
-          }`}
-      >
-        {isActive && isNarrating && !isNarrationPaused ? (
-          <Pause className="w-3 h-3" />
-        ) : (
-          <Play className="w-3 h-3 ms-0.5" />
-        )}
-      </button>
-    );
-  };
-
-  /* A frase como o protótipo desenha (`.frase`, com a narrada em `.narrando`): as palavras seguem
-     clicáveis (ouvir, anotar, abrir o Analista) e carregam as marcações e as notas da pessoa.
-     `soMarcas` (o texto do desenho novo, onde a frase inteira é o alvo): as mesmas marcas por palavra (o
-     grifo, o sublinhado da nota e o do áudio), sem o hover em cada palavra. `aoTocar` (só onde o
-     ponteiro acerta uma palavra solta: o computador) faz de cada palavra de conteúdo um alvo dentro da
-     frase; o clique nela não sobe para a frase. */
-  const palavrasDaFrase = (texto: string, sIdx: number, soMarcas = false, aoTocar?: (palavra: string) => void) =>
+  /* As palavras de uma frase, com as marcas da pessoa por palavra (o grifo, o sublinhado da nota e o
+     do áudio). A frase inteira é o alvo; `aoTocar` (só onde o ponteiro acerta uma palavra solta: o
+     computador) faz de cada palavra de conteúdo um alvo dentro da frase; o clique nela não sobe para
+     a frase. */
+  const palavrasDaFrase = (texto: string, sIdx: number, aoTocar?: (palavra: string) => void) =>
     tokenizarTexto(texto).map((token) => {
       const annotation = annotations.find((a) => a.textIndex === sIdx && a.wordIndex === token.id);
       const highlightClass = annotation?.type === 'highlight' ? annotation.color || 'bg-warn-soft' : '';
       const hasNote = annotations.some((a) => a.textIndex === sIdx && a.wordIndex === token.id && a.type === 'note');
       const hasAudio = annotations.some((a) => a.textIndex === sIdx && a.wordIndex === token.id && a.type === 'audio');
       const marcas = `${highlightClass} ${hasNote ? 'underline decoration-dashed decoration-warn decoration-2' : ''} ${hasAudio ? 'underline decoration-double decoration-rare decoration-2' : ''}`;
-      if (soMarcas) {
-        const clicavel = !!aoTocar && ehPalavraDeConteudo(token.clean);
-        return (
-          <React.Fragment key={token.id}>
-            <span
-              className={`w rounded ${marcas}${clicavel ? ' ql-palavra' : ''}`}
-              data-marca={
-                annotation?.type === 'highlight' ? 'grifo' : hasNote ? 'nota' : hasAudio ? 'audio' : undefined
-              }
-              onClick={
-                clicavel
-                  ? (e) => {
-                      e.stopPropagation();
-                      aoTocar?.(token.clean);
-                    }
-                  : undefined
-              }
-            >
-              {token.original}
-            </span>{' '}
-          </React.Fragment>
-        );
-      }
+      const clicavel = !!aoTocar && ehPalavraDeConteudo(token.clean);
       return (
         <React.Fragment key={token.id}>
           <span
-            onMouseEnter={(e) => handleMouseEnter(e, token.clean)}
-            onClick={() => handleWordClick(sIdx, token.original)}
-            onMouseLeave={handleMouseLeave}
-            className={`relative rounded cursor-pointer ${marcas}`}
+            className={`w rounded ${marcas}${clicavel ? ' ql-palavra' : ''}`}
+            data-marca={annotation?.type === 'highlight' ? 'grifo' : hasNote ? 'nota' : hasAudio ? 'audio' : undefined}
+            onClick={
+              clicavel
+                ? (e) => {
+                    e.stopPropagation();
+                    aoTocar?.(token.clean);
+                  }
+                : undefined
+            }
           >
             {token.original}
           </span>{' '}
@@ -1197,806 +1081,496 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
      A narração mora na faixa do pé, como o player da transcrição. O que dependia de hover (o botão
      de tocar ao lado da frase, o cartão da palavra) e as colunas laterais ("Estudos & notas", o
      Analista) viraram diálogos no centro. O desenho livre continua sobre o texto, com o raio. */
-  if (questNovo) {
-    const total = studyTexts.length;
-    const fraseAberta = fraseEscolhida !== null ? studyTexts[fraseEscolhida] : undefined;
-    const notaDaAberta = fraseEscolhida !== null ? notaDaFrase(annotations, fraseEscolhida) : undefined;
-    /* Há voz para narrar ALGUM dos idiomas deste modo? No Quest, só a do site (com a nuvem ligada). */
-    const haVozParaNarrar = narraPeloMotor ? narratedLangs.some((l) => haVozPara(l)) : 'speechSynthesis' in window;
-    const narrando = isNarrating && !isNarrationPaused;
-    const idiomaDaPalavraAberta = selectedExamWord?.lang || forcedLang || langPair.src;
-    const previaDaAberta =
-      wordPreview && selectedExamWord && wordPreview.word === selectedExamWord.word ? wordPreview : null;
+  const total = studyTexts.length;
+  const fraseAberta = fraseEscolhida !== null ? studyTexts[fraseEscolhida] : undefined;
+  const notaDaAberta = fraseEscolhida !== null ? notaDaFrase(annotations, fraseEscolhida) : undefined;
+  /* Há voz para narrar ALGUM dos idiomas deste modo? No Quest, só a do site (com a nuvem ligada). */
+  const haVozParaNarrar = narraPeloMotor ? narratedLangs.some((l) => haVozPara(l)) : 'speechSynthesis' in window;
+  const narrando = isNarrating && !isNarrationPaused;
+  const idiomaDaPalavraAberta = selectedExamWord?.lang || forcedLang || langPair.src;
+  const previaDaAberta =
+    wordPreview && selectedExamWord && wordPreview.word === selectedExamWord.word ? wordPreview : null;
 
-    /** A palavra tocada nas opções da frase: pronuncia (se há voz), busca a imagem e abre a folha. */
-    const abrirPalavra = (indiceDaFrase: number, palavra: string) => {
-      if (haVozPara(langOfSentence(indiceDaFrase))) playWordTTS(palavra, indiceDaFrase);
-      popover.setPalavra(palavra);
-      void examineWord(palavra, indiceDaFrase);
-    };
-    const fecharPalavra = () => {
-      setSelectedExamWord(null);
-      setMtNote(null);
-      popover.setPalavra(null);
-    };
-    const fecharGravacao = () => {
-      stopVoiceRecording();
-      setRecordingTarget(null);
-    };
-    /* DO APARELHO, não do desenho: com o mouse a palavra abre direto do texto, com um clique, como na
+  /** A palavra tocada nas opções da frase: pronuncia (se há voz), busca a imagem e abre a folha. */
+  const abrirPalavra = (indiceDaFrase: number, palavra: string) => {
+    if (haVozPara(langOfSentence(indiceDaFrase))) playWordTTS(palavra, indiceDaFrase);
+    popover.setPalavra(palavra);
+    void examineWord(palavra, indiceDaFrase);
+  };
+  const fecharPalavra = () => {
+    setSelectedExamWord(null);
+    setMtNote(null);
+    popover.setPalavra(null);
+  };
+  const fecharGravacao = () => {
+    stopVoiceRecording();
+    setRecordingTarget(null);
+  };
+  /* DO APARELHO, não do desenho: com o mouse a palavra abre direto do texto, com um clique, como na
        tela de sempre. No headset o raio não acerta uma palavra solta: o caminho é o das opções da frase. */
-    const palavraNoTexto = !noHeadset();
+  const palavraNoTexto = !noHeadset();
 
-    /** Uma anotação como a lista "Estudos & notas" a mostra: o selo, o texto e o áudio, se houver. */
-    const linhaDaNota = (ann: Annotation) => {
-      if (ann.type === 'frase' && ann.tipo) {
-        return {
-          Icone: ICONE_DA_NOTA[ann.tipo],
-          rotulo: TIPOS_DE_NOTA[ann.tipo].rotulo,
-          texto: studyTexts[ann.textIndex]?.original ?? '',
-          detalhe: '',
-        };
-      }
+  /** Uma anotação como a lista "Estudos & notas" a mostra: o selo, o texto e o áudio, se houver. */
+  const linhaDaNota = (ann: Annotation) => {
+    if (ann.type === 'frase' && ann.tipo) {
       return {
-        Icone: ann.type === 'note' ? StickyNote : ann.type === 'audio' ? Mic : Highlighter,
-        rotulo: ann.type === 'highlight' ? ann.content || 'Marcação' : ann.type === 'note' ? 'Nota' : 'Áudio',
-        texto: `“${ann.wordText ?? ''}”`,
-        detalhe: ann.type === 'note' ? (ann.content ?? '') : '',
+        Icone: ICONE_DA_NOTA[ann.tipo],
+        rotulo: TIPOS_DE_NOTA[ann.tipo].rotulo,
+        texto: studyTexts[ann.textIndex]?.original ?? '',
+        detalhe: '',
       };
+    }
+    return {
+      Icone: ann.type === 'note' ? StickyNote : ann.type === 'audio' ? Mic : Highlighter,
+      rotulo: ann.type === 'highlight' ? ann.content || 'Marcação' : ann.type === 'note' ? 'Nota' : 'Áudio',
+      texto: `“${ann.wordText ?? ''}”`,
+      detalhe: ann.type === 'note' ? (ann.content ?? '') : '',
     };
+  };
 
-    return (
-      <div className="ql" data-testid="leitura-do-quest">
-        <div className="q-acoes ql-barra">
-          {/* `telas3.js:71`: os dois modos sem ícone, e os dois chips logo ao lado. */}
-          <div className="q-abas q-seg" role="group" aria-label={t('Modo de leitura')}>
-            <button
-              type="button"
-              className="q-aba"
-              role="radio"
-              aria-checked={!isDrawModeActive}
-              onClick={() => setIsDrawModeActive(false)}
-            >
-              {t('Modo interativo')}
-            </button>
-            <button
-              type="button"
-              className="q-aba"
-              role="radio"
-              aria-checked={isDrawModeActive}
-              onClick={() => {
-                setIsDrawModeActive(true);
-                setFraseEscolhida(null);
-              }}
-            >
-              {t('Desenho livre')}
-            </button>
-          </div>
-          <button type="button" className="q-chip" aria-haspopup="dialog" onClick={() => setVerNotasNoQuest(true)}>
-            {t('Estudos & notas')}
+  return (
+    <div className="ql" data-testid="leitura-do-quest">
+      <div className="q-acoes ql-barra">
+        {/* `telas3.js:71`: os dois modos sem ícone, e os dois chips logo ao lado. */}
+        <div className="q-abas q-seg" role="group" aria-label={t('Modo de leitura')}>
+          <button
+            type="button"
+            className="q-aba"
+            role="radio"
+            aria-checked={!isDrawModeActive}
+            onClick={() => setIsDrawModeActive(false)}
+          >
+            {t('Modo interativo')}
           </button>
-          <button type="button" className="q-chip" aria-haspopup="dialog" onClick={() => setAjustandoNoQuest(true)}>
-            <SlidersHorizontal aria-hidden /> {t('Ajustar exibição')}
+          <button
+            type="button"
+            className="q-aba"
+            role="radio"
+            aria-checked={isDrawModeActive}
+            onClick={() => {
+              setIsDrawModeActive(true);
+              setFraseEscolhida(null);
+            }}
+          >
+            {t('Desenho livre')}
           </button>
         </div>
+        <button type="button" className="q-chip" aria-haspopup="dialog" onClick={() => setVerNotasNoQuest(true)}>
+          {t('Estudos & notas')}
+        </button>
+        <button type="button" className="q-chip" aria-haspopup="dialog" onClick={() => setAjustandoNoQuest(true)}>
+          <SlidersHorizontal aria-hidden /> {t('Ajustar exibição')}
+        </button>
+      </div>
 
-        {isDrawModeActive ? (
-          <div className="q-acoes ql-desenho">
-            <BarraDeDesenho desenho={desenho} questNovo />
-          </div>
-        ) : null}
+      {isDrawModeActive ? (
+        <div className="q-acoes ql-desenho">
+          <BarraDeDesenho desenho={desenho} />
+        </div>
+      ) : null}
 
-        <section
-          className={`q-cartao ql-texto ${layoutWidth === 'centered' ? 'coluna' : ''} ${isDrawModeActive ? 'desenhando' : ''} ${viewMode === 'bilingual-side-by-side' ? 'lado-a-lado' : ''}`}
-          aria-label={t('Texto da sessão')}
-        >
-          {/* Desenho livre por cima do texto */}
-          <canvas
-            ref={canvasRef}
-            className="desenho-tela"
-            data-ativo={isDrawModeActive}
-            {...desenho.handlers}
-            aria-label={t('Área de desenho')}
-          />
-          {total === 0 ? (
-            transcriptLoaded ? (
-              <div className="q-vazio">
-                <span className="q-ic">
-                  <BookOpen aria-hidden />
-                </span>
-                <h2>{t('Sem texto nesta sessão')}</h2>
-                <p>{t('Nenhuma transcrição real para esta sessão ainda.')}</p>
-              </div>
-            ) : (
-              <div className="q-lista" aria-busy="true" aria-label={t('Carregando o texto…')}>
-                <div className="q-esqueleto qs-esqueleto" />
-                <div className="q-esqueleto qs-esqueleto" />
-                <div className="q-esqueleto qs-esqueleto" />
-              </div>
-            )
+      <section
+        className={`q-cartao ql-texto ${layoutWidth === 'centered' ? 'coluna' : ''} ${isDrawModeActive ? 'desenhando' : ''} ${viewMode === 'bilingual-side-by-side' ? 'lado-a-lado' : ''}`}
+        aria-label={t('Texto da sessão')}
+      >
+        {/* Desenho livre por cima do texto */}
+        <canvas
+          ref={canvasRef}
+          className="desenho-tela"
+          data-ativo={isDrawModeActive}
+          {...desenho.handlers}
+          aria-label={t('Área de desenho')}
+        />
+        {total === 0 ? (
+          transcriptLoaded ? (
+            <div className="q-vazio">
+              <span className="q-ic">
+                <BookOpen aria-hidden />
+              </span>
+              <h2>{t('Sem texto nesta sessão')}</h2>
+              <p>{t('Nenhuma transcrição real para esta sessão ainda.')}</p>
+            </div>
           ) : (
-            <div className="ql-frases" ref={frasesDoQuest}>
-              {studyTexts.map((frase, i) => {
-                const nota = notaDaFrase(annotations, i);
-                const IconeDaNota = nota?.tipo ? ICONE_DA_NOTA[nota.tipo] : null;
-                const narrada = activeNarratingSentenceIndex === i;
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    id={`sentence-${i}`}
-                    data-frase={i}
-                    data-fala={i}
-                    className={`ql-frase ${narrada ? 'narrando' : ''} ${nota?.tipo ? `nota-${nota.tipo}` : ''}`}
-                    aria-haspopup="dialog"
-                    aria-current={narrada ? 'true' : undefined}
-                    onClick={() => {
-                      if (!isDrawModeActive) setFraseEscolhida(i);
-                    }}
-                  >
-                    {nota?.tipo && IconeDaNota && (
-                      <span className="q-tag">
-                        <IconeDaNota aria-hidden /> {TIPOS_DE_NOTA[nota.tipo].rotulo}
-                      </span>
-                    )}
-                    <span className="ql-o">
-                      {palavrasDaFrase(
-                        frase.original,
-                        i,
-                        true,
-                        palavraNoTexto && !isDrawModeActive ? (palavra) => abrirPalavra(i, palavra) : undefined,
-                      )}
+            <div className="q-lista" aria-busy="true" aria-label={t('Carregando o texto…')}>
+              <div className="q-esqueleto qs-esqueleto" />
+              <div className="q-esqueleto qs-esqueleto" />
+              <div className="q-esqueleto qs-esqueleto" />
+            </div>
+          )
+        ) : (
+          <div className="ql-frases" ref={frasesDoQuest}>
+            {studyTexts.map((frase, i) => {
+              const nota = notaDaFrase(annotations, i);
+              const IconeDaNota = nota?.tipo ? ICONE_DA_NOTA[nota.tipo] : null;
+              const narrada = activeNarratingSentenceIndex === i;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  id={`sentence-${i}`}
+                  data-frase={i}
+                  data-fala={i}
+                  className={`ql-frase ${narrada ? 'narrando' : ''} ${nota?.tipo ? `nota-${nota.tipo}` : ''}`}
+                  aria-haspopup="dialog"
+                  aria-current={narrada ? 'true' : undefined}
+                  onClick={() => {
+                    if (!isDrawModeActive) setFraseEscolhida(i);
+                  }}
+                >
+                  {nota?.tipo && IconeDaNota && (
+                    <span className="q-tag">
+                      <IconeDaNota aria-hidden /> {TIPOS_DE_NOTA[nota.tipo].rotulo}
                     </span>
-                    {viewMode !== 'original' && frase.translation && <span className="ql-t">{frase.translation}</span>}
-                  </button>
+                  )}
+                  <span className="ql-o">
+                    {palavrasDaFrase(
+                      frase.original,
+                      i,
+                      palavraNoTexto && !isDrawModeActive ? (palavra) => abrirPalavra(i, palavra) : undefined,
+                    )}
+                  </span>
+                  {viewMode !== 'original' && frase.translation && <span className="ql-t">{frase.translation}</span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* A NARRAÇÃO: a faixa do pé, com um único botão principal. */}
+      {/* `telas3.js:73`: anterior, o principal, próxima, o espaço, "Frase n de total" e a voz. */}
+      <div className="q-faixa ql-narrador px-player" role="toolbar" aria-label={t('Narração')}>
+        <button
+          type="button"
+          className="q-ctl"
+          onClick={() => skipSentence(-1)}
+          disabled={!total || !haVozParaNarrar || activeNarratingSentenceIndex === 0}
+          aria-label={t('Frase anterior')}
+          data-px="antes"
+        >
+          <SkipBack aria-hidden />
+        </button>
+        <button
+          type="button"
+          className="q-ctl pri"
+          data-px="tocar"
+          onClick={toggleNarration}
+          disabled={!total || !haVozParaNarrar}
+        >
+          {narrando ? <Pause aria-hidden /> : <Play aria-hidden />}{' '}
+          {!isNarrating ? t('Narrar') : isNarrationPaused ? t('Retomar') : t('Pausar')}
+        </button>
+        <button
+          type="button"
+          className="q-ctl"
+          onClick={() => skipSentence(1)}
+          disabled={
+            !total ||
+            !haVozParaNarrar ||
+            (activeNarratingSentenceIndex !== null && activeNarratingSentenceIndex >= total - 1)
+          }
+          aria-label={t('Próxima frase')}
+          data-px="depois"
+        >
+          <SkipForward aria-hidden />
+        </button>
+        <span className="q-espaco" />
+        <span className="q-tempo ql-onde px-onde" role="status">
+          {!haVozParaNarrar && total > 0
+            ? t('Sem voz para narrar: {idiomas}', { idiomas: narratedLangs.map((l) => langLabel(l)).join(', ') })
+            : total > 0
+              ? t('Frase {n} de {total}', { n: (activeNarratingSentenceIndex ?? 0) + 1, total })
+              : tp(total, '{n} frase', '{n} frases')}
+        </span>
+        <button type="button" className="q-ctl" aria-haspopup="dialog" onClick={() => setShowNarratorSettings(true)}>
+          {t('Voz, idioma e tom')}
+        </button>
+      </div>
+
+      {/* AS OPÇÕES DA FRASE: narrar a partir dela, a anotação semântica e as palavras. */}
+      {fraseAberta && fraseEscolhida !== null && (
+        <Dialogo
+          icone={Quote}
+          titulo={t('Opções da frase')}
+          sub={t('Frase {n} de {total}', { n: fraseEscolhida + 1, total })}
+          aoFechar={() => setFraseEscolhida(null)}
+        >
+          <div className="dlg-corpo qs-miolo qs-folha" data-testid="opcoes-da-frase">
+            <p className="qs-folha-texto">{palavrasDaFrase(fraseAberta.original, fraseEscolhida)}</p>
+            {fraseAberta.translation && <p className="qs-folha-trad">{fraseAberta.translation}</p>}
+            {haVozParaNarrar && (
+              <div className="q-acoes">
+                <button
+                  type="button"
+                  className="q-ctl pri"
+                  onClick={(e) => {
+                    const i = fraseEscolhida;
+                    // `close()` nativo: o foco volta à frase de onde a folha abriu.
+                    fecharDialogoDe(e.currentTarget);
+                    setFraseEscolhida(null);
+                    void speakFrom(i);
+                  }}
+                >
+                  <Volume2 aria-hidden /> {t('Narrar a partir daqui')}
+                </button>
+              </div>
+            )}
+            <span className="q-rotulo">{t('Anotação semântica')}</span>
+            <div className="q-acoes" role="group" aria-label={t('Anotar a frase')}>
+              {ESCOLHAS_DE_NOTA.map(([k, r, Icone]) => (
+                <button
+                  key={k}
+                  type="button"
+                  className="q-chip"
+                  data-anotar={k}
+                  aria-pressed={k !== 'apagar' && notaDaAberta?.tipo === k}
+                  disabled={k === 'apagar' && !notaDaAberta}
+                  onClick={(e) => {
+                    fecharDialogoDe(e.currentTarget);
+                    anotar(k);
+                  }}
+                >
+                  <Icone aria-hidden /> {r}
+                </button>
+              ))}
+            </div>
+            {tokenizarTexto(fraseAberta.original).some((tk) => ehPalavraDeConteudo(tk.clean)) && (
+              <>
+                <span className="q-rotulo">{t('Toque numa palavra')}</span>
+                <TokensClicaveis
+                  comoBotoes
+                  tokens={tokenizarTexto(fraseAberta.original)}
+                  className="qs-palavras-da-fala"
+                  estaNoDeck={(clean) => vocabCards.some((c) => c.word.toLowerCase() === clean && c.inDeck)}
+                  onMouseEnter={() => {}}
+                  onMouseLeave={() => {}}
+                  onExaminar={(clean) => abrirPalavra(fraseEscolhida, clean)}
+                />
+              </>
+            )}
+          </div>
+        </Dialogo>
+      )}
+
+      {/* ESTUDOS & NOTAS: a coluna lateral da tela de sempre. */}
+      {verNotasNoQuest && (
+        <Dialogo
+          icone={NotebookPen}
+          titulo={t('Estudos & notas')}
+          sub={tp(annotations.length, '{n} anotação', '{n} anotações')}
+          aoFechar={() => setVerNotasNoQuest(false)}
+        >
+          {annotations.length ? (
+            <div className="dlg-corpo qs-miolo ql-notas">
+              {annotations.map((ann) => {
+                const { Icone, rotulo, texto, detalhe } = linhaDaNota(ann);
+                return (
+                  <div key={ann.id} className="q-cartao ql-nota">
+                    <div className="ql-nota-texto">
+                      <span className="q-tag">
+                        <Icone aria-hidden /> {rotulo}
+                      </span>
+                      <p>{texto}</p>
+                      {detalhe && <p className="qs-apoio">{detalhe}</p>}
+                    </div>
+                    <div className="q-acoes">
+                      {ann.audioUrl && (
+                        <button type="button" className="q-ctl" onClick={() => void new Audio(ann.audioUrl!).play()}>
+                          <Play aria-hidden /> {t('Ouvir minha gravação')}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="q-ctl perigo"
+                        onClick={() => setAnnotations(annotations.filter((a) => a.id !== ann.id))}
+                        aria-label={t('Remover nota')}
+                      >
+                        <X aria-hidden />
+                      </button>
+                    </div>
+                  </div>
                 );
               })}
             </div>
+          ) : (
+            <div className="dlg-corpo qs-miolo">
+              <div className="q-vazio">
+                <span className="q-ic">
+                  <Highlighter aria-hidden />
+                </span>
+                <h3>{t('Nenhum grifo ou nota')}</h3>
+                <p>{t('No modo interativo, toque numa frase e escolha o tipo de anotação.')}</p>
+              </div>
+            </div>
           )}
-        </section>
+        </Dialogo>
+      )}
 
-        {/* A NARRAÇÃO: a faixa do pé, com um único botão principal. */}
-        {/* `telas3.js:73`: anterior, o principal, próxima, o espaço, "Frase n de total" e a voz. */}
-        <div className="q-faixa ql-narrador px-player" role="toolbar" aria-label={t('Narração')}>
-          <button
-            type="button"
-            className="q-ctl"
-            onClick={() => skipSentence(-1)}
-            disabled={!total || !haVozParaNarrar || activeNarratingSentenceIndex === 0}
-            aria-label={t('Frase anterior')}
-            data-px="antes"
-          >
-            <SkipBack aria-hidden />
-          </button>
-          <button
-            type="button"
-            className="q-ctl pri"
-            data-px="tocar"
-            onClick={toggleNarration}
-            disabled={!total || !haVozParaNarrar}
-          >
-            {narrando ? <Pause aria-hidden /> : <Play aria-hidden />}{' '}
-            {!isNarrating ? t('Narrar') : isNarrationPaused ? t('Retomar') : t('Pausar')}
-          </button>
-          <button
-            type="button"
-            className="q-ctl"
-            onClick={() => skipSentence(1)}
-            disabled={
-              !total ||
-              !haVozParaNarrar ||
-              (activeNarratingSentenceIndex !== null && activeNarratingSentenceIndex >= total - 1)
-            }
-            aria-label={t('Próxima frase')}
-            data-px="depois"
-          >
-            <SkipForward aria-hidden />
-          </button>
-          <span className="q-espaco" />
-          <span className="q-tempo ql-onde px-onde" role="status">
-            {!haVozParaNarrar && total > 0
-              ? t('Sem voz para narrar: {idiomas}', { idiomas: narratedLangs.map((l) => langLabel(l)).join(', ') })
-              : total > 0
-                ? t('Frase {n} de {total}', { n: (activeNarratingSentenceIndex ?? 0) + 1, total })
-                : tp(total, '{n} frase', '{n} frases')}
-          </span>
-          <button type="button" className="q-ctl" aria-haspopup="dialog" onClick={() => setShowNarratorSettings(true)}>
-            {t('Voz, idioma e tom')}
-          </button>
-        </div>
-
-        {/* AS OPÇÕES DA FRASE: narrar a partir dela, a anotação semântica e as palavras. */}
-        {fraseAberta && fraseEscolhida !== null && (
-          <Dialogo
-            icone={Quote}
-            titulo={t('Opções da frase')}
-            sub={t('Frase {n} de {total}', { n: fraseEscolhida + 1, total })}
-            aoFechar={() => setFraseEscolhida(null)}
-          >
-            <div className="dlg-corpo qs-miolo qs-folha" data-testid="opcoes-da-frase">
-              <p className="qs-folha-texto">{palavrasDaFrase(fraseAberta.original, fraseEscolhida, true)}</p>
-              {fraseAberta.translation && <p className="qs-folha-trad">{fraseAberta.translation}</p>}
-              {haVozParaNarrar && (
-                <div className="q-acoes">
+      {/* AJUSTAR EXIBIÇÃO: o modo de visualização e a largura da coluna. */}
+      {ajustandoNoQuest && (
+        <Dialogo
+          icone={SlidersHorizontal}
+          titulo={t('Ajustar exibição')}
+          sub={t('Vale para o texto desta tela.')}
+          aoFechar={() => setAjustandoNoQuest(false)}
+        >
+          <div className="dlg-corpo qs-miolo qs-ajustes">
+            <div className="q-ajuste">
+              <b>{t('Modo de visualização')}</b>
+              <div className="q-abas q-seg" role="group" aria-label={t('Modo de visualização')}>
+                {(
+                  [
+                    ['bilingual-intercalated', t('Intercalado')],
+                    ['bilingual-side-by-side', t('Lado a lado')],
+                    ['original', t('Só o original')],
+                  ] as const
+                ).map(([v, r]) => (
                   <button
+                    key={v}
                     type="button"
-                    className="q-ctl pri"
-                    onClick={(e) => {
-                      const i = fraseEscolhida;
-                      // `close()` nativo: o foco volta à frase de onde a folha abriu.
-                      fecharDialogoDe(e.currentTarget);
-                      setFraseEscolhida(null);
-                      void speakFrom(i);
-                    }}
+                    className="q-aba"
+                    aria-pressed={viewMode === v}
+                    onClick={() => setViewMode(v)}
                   >
-                    <Volume2 aria-hidden /> {t('Narrar a partir daqui')}
-                  </button>
-                </div>
-              )}
-              <span className="q-rotulo">{t('Anotação semântica')}</span>
-              <div className="q-acoes" role="group" aria-label={t('Anotar a frase')}>
-                {ESCOLHAS_DE_NOTA.map(([k, r, Icone]) => (
-                  <button
-                    key={k}
-                    type="button"
-                    className="q-chip"
-                    data-anotar={k}
-                    aria-pressed={k !== 'apagar' && notaDaAberta?.tipo === k}
-                    disabled={k === 'apagar' && !notaDaAberta}
-                    onClick={(e) => {
-                      fecharDialogoDe(e.currentTarget);
-                      anotar(k);
-                    }}
-                  >
-                    <Icone aria-hidden /> {r}
+                    {r}
                   </button>
                 ))}
               </div>
-              {tokenizarTexto(fraseAberta.original).some((tk) => ehPalavraDeConteudo(tk.clean)) && (
-                <>
-                  <span className="q-rotulo">{t('Toque numa palavra')}</span>
-                  <TokensClicaveis
-                    comoBotoes
-                    tokens={tokenizarTexto(fraseAberta.original)}
-                    className="qs-palavras-da-fala"
-                    estaNoDeck={(clean) => vocabCards.some((c) => c.word.toLowerCase() === clean && c.inDeck)}
-                    onMouseEnter={() => {}}
-                    onMouseLeave={() => {}}
-                    onExaminar={(clean) => abrirPalavra(fraseEscolhida, clean)}
-                  />
-                </>
-              )}
             </div>
-          </Dialogo>
-        )}
-
-        {/* ESTUDOS & NOTAS: a coluna lateral da tela de sempre. */}
-        {verNotasNoQuest && (
-          <Dialogo
-            icone={NotebookPen}
-            titulo={t('Estudos & notas')}
-            sub={tp(annotations.length, '{n} anotação', '{n} anotações')}
-            aoFechar={() => setVerNotasNoQuest(false)}
-          >
-            {annotations.length ? (
-              <div className="dlg-corpo qs-miolo ql-notas">
-                {annotations.map((ann) => {
-                  const { Icone, rotulo, texto, detalhe } = linhaDaNota(ann);
-                  return (
-                    <div key={ann.id} className="q-cartao ql-nota">
-                      <div className="ql-nota-texto">
-                        <span className="q-tag">
-                          <Icone aria-hidden /> {rotulo}
-                        </span>
-                        <p>{texto}</p>
-                        {detalhe && <p className="qs-apoio">{detalhe}</p>}
-                      </div>
-                      <div className="q-acoes">
-                        {ann.audioUrl && (
-                          <button type="button" className="q-ctl" onClick={() => void new Audio(ann.audioUrl!).play()}>
-                            <Play aria-hidden /> {t('Ouvir minha gravação')}
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          className="q-ctl perigo"
-                          onClick={() => setAnnotations(annotations.filter((a) => a.id !== ann.id))}
-                          aria-label={t('Remover nota')}
-                        >
-                          <X aria-hidden />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="dlg-corpo qs-miolo">
-                <div className="q-vazio">
-                  <span className="q-ic">
-                    <Highlighter aria-hidden />
-                  </span>
-                  <h3>{t('Nenhum grifo ou nota')}</h3>
-                  <p>{t('No modo interativo, toque numa frase e escolha o tipo de anotação.')}</p>
-                </div>
-              </div>
-            )}
-          </Dialogo>
-        )}
-
-        {/* AJUSTAR EXIBIÇÃO: o modo de visualização e a largura da coluna. */}
-        {ajustandoNoQuest && (
-          <Dialogo
-            icone={SlidersHorizontal}
-            titulo={t('Ajustar exibição')}
-            sub={t('Vale para o texto desta tela.')}
-            aoFechar={() => setAjustandoNoQuest(false)}
-          >
-            <div className="dlg-corpo qs-miolo qs-ajustes">
-              <div className="q-ajuste">
-                <b>{t('Modo de visualização')}</b>
-                <div className="q-abas q-seg" role="group" aria-label={t('Modo de visualização')}>
-                  {(
-                    [
-                      ['bilingual-intercalated', t('Intercalado')],
-                      ['bilingual-side-by-side', t('Lado a lado')],
-                      ['original', t('Só o original')],
-                    ] as const
-                  ).map(([v, r]) => (
-                    <button
-                      key={v}
-                      type="button"
-                      className="q-aba"
-                      aria-pressed={viewMode === v}
-                      onClick={() => setViewMode(v)}
-                    >
-                      {r}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="q-ajuste">
-                <b>{t('Largura')}</b>
-                <div className="q-abas q-seg" role="group" aria-label={t('Largura')}>
-                  <button
-                    type="button"
-                    className="q-aba"
-                    aria-pressed={layoutWidth === 'centered'}
-                    onClick={() => handleLayoutWidthChange('centered')}
-                  >
-                    {t('Coluna')}
-                  </button>
-                  <button
-                    type="button"
-                    className="q-aba"
-                    aria-pressed={layoutWidth === 'full'}
-                    onClick={() => handleLayoutWidthChange('full')}
-                  >
-                    {t('Largura total')}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </Dialogo>
-        )}
-
-        {/* VOZ, IDIOMA E TOM: os mesmos ajustes do narrador, um por linha. */}
-        {showNarratorSettings && (
-          <Dialogo
-            icone={AudioLines}
-            titulo={t('Voz, idioma e tom')}
-            sub={t('Mudanças valem já na frase atual; a narração continua de onde estava.')}
-            aoFechar={() => setShowNarratorSettings(false)}
-          >
-            <div className="dlg-corpo qs-miolo qs-ajustes" data-testid="ajustes-do-narrador">
-              <div className="q-ajuste">
-                <b>{t('Velocidade')}</b>
-                <div className="q-abas q-seg" role="group" aria-label={t('Velocidade da narração')}>
-                  {[0.75, 1, 1.25, 1.5].map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      className="q-aba"
-                      aria-pressed={narrationRate === r}
-                      onClick={() => setNarrationRate(r)}
-                    >
-                      {String(r).replace('.', ',')}×
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="q-ajuste">
-                <div>
-                  <b>{t('O que narrar')}</b>
-                  <small>
-                    {NARRATION_MODES.find((m) => m.id === narrationMode)?.title}
-                    {narrationMode === 'original' ? ` (${langLabel(langPair.src)})` : ''}
-                    {narrationMode === 'translation' ? ` (${langLabel(langPair.tgt)})` : ''}
-                  </small>
-                </div>
-                <div className="q-abas q-seg" role="group" aria-label={t('O que narrar')}>
-                  {NARRATION_MODES.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      className="q-aba"
-                      aria-pressed={narrationMode === m.id}
-                      onClick={() => setNarrationMode(m.id)}
-                    >
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="q-ajuste">
-                <div>
-                  <b>{t('Idioma')}</b>
-                  <small>{t('Força um idioma para toda a narração, ou segue o modo.')}</small>
-                </div>
-                <LangPicker
-                  id="reading-forced-lang"
-                  ariaLabel={t('Forçar idioma da narração')}
-                  value={toBcp47(forcedLang)}
-                  auto={!forcedLang}
-                  allowAuto
-                  autoLabel={t('Detectar (segue o modo)')}
-                  onPick={({ auto, code }) => setForcedLang(auto ? '' : baseLang(code || ''))}
-                />
-              </div>
-              <div className="q-ajuste">
-                <div>
-                  <b>
-                    {t('Voz')} · {langLabel(voiceEditLang)}
-                    {currentSpeakingLang === voiceEditLang && isNarrating ? ` ${t('(narrando agora)')}` : ''}
-                  </b>
-                  {voiceOptions.length === 0 && (
-                    <small>
-                      {/* A frase do headset só vale NELE; no computador as vozes são as do sistema. */}
-                      {narraPeloMotor && noHeadset()
-                        ? t('No Quest a voz é a do site: não há outras vozes para escolher.')
-                        : t('Nenhuma voz instalada para este idioma.')}
-                    </small>
-                  )}
-                </div>
-                {narratedLangs.length > 1 && (
-                  <div className="q-abas q-seg" role="group" aria-label={t('Idioma cuja voz editar')}>
-                    {narratedLangs.map((l) => (
-                      <button
-                        key={l}
-                        type="button"
-                        className="q-aba"
-                        aria-pressed={voiceEditLang === l}
-                        onClick={() => setVoiceEditLangOverride(l)}
-                      >
-                        {l.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                <select
-                  className="q-campo ql-voz"
-                  aria-label={t('Voz')}
-                  value={voicePrefs[voiceEditLang] || ''}
-                  onChange={(e) => {
-                    const name = e.target.value;
-                    setVoicePrefs((prev) => {
-                      const next = { ...prev };
-                      if (name) next[voiceEditLang] = name;
-                      else delete next[voiceEditLang];
-                      return next;
-                    });
-                  }}
+            <div className="q-ajuste">
+              <b>{t('Largura')}</b>
+              <div className="q-abas q-seg" role="group" aria-label={t('Largura')}>
+                <button
+                  type="button"
+                  className="q-aba"
+                  aria-pressed={layoutWidth === 'centered'}
+                  onClick={() => handleLayoutWidthChange('centered')}
                 >
-                  <option value="">{t('Melhor voz disponível (automática)')}</option>
-                  {voiceOptions.length > 0 && (
-                    <optgroup label={langLabel(voiceEditLang)}>
-                      {voiceOptions.map((v) => (
-                        <option key={v.name} value={v.name}>
-                          {v.name.replace('Microsoft', '').replace('Google', '').trim()} ({v.lang})
-                          {v.neural ? ' · Natural' : ''}
-                          {v.local ? ' · Offline' : ' · Rede'}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-                </select>
-              </div>
-              <div className="q-ajuste">
-                <b>
-                  {t('Tom')} · {narrationPitch.toFixed(1)}
-                </b>
-                <input
-                  type="range"
-                  className="ql-tom"
-                  min="0.5"
-                  max="1.5"
-                  step="0.1"
-                  value={narrationPitch}
-                  onChange={(e) => setNarrationPitch(parseFloat(e.target.value))}
-                  aria-label={t('Tom da voz')}
-                />
-              </div>
-              {/* AVISO HONESTO: sem voz para um idioma, aquelas frases NÃO são narradas com a voz de outro. */}
-              {missingVoiceLangs.length > 0 && (
-                <div className="q-aviso" role="note" data-testid="voz-ausente">
-                  <span>
-                    <AlertTriangle aria-hidden />{' '}
-                    {noHeadset()
-                      ? t(
-                          'Sem voz neste aparelho para {idiomas}: essas frases não são narradas. A voz do site lê inglês, espanhol, francês, chinês, japonês e coreano, com a IA de nuvem ligada em Ajustes.',
-                          { idiomas: missingVoiceLangs.map((l) => langLabel(l)).join(', ') },
-                        )
-                      : t(
-                          'Seu sistema não tem voz instalada para {idiomas}: essas frases não são narradas. Instale uma voz para o idioma nas configurações do sistema (no Windows: Hora e Idioma → Voz).',
-                          { idiomas: missingVoiceLangs.map((l) => langLabel(l)).join(', ') },
-                        )}
-                  </span>
-                </div>
-              )}
-              {narrationMode === 'auto' && !forcedLang && (
-                <p className="qs-apoio">
-                  {t('Detecção de idioma: {detector}; frases sem sinal usam o idioma declarado da sessão ({idioma}).', {
-                    detector: nativeDetector ? t('detector on-device do navegador') : t('heurística local'),
-                    idioma: langLabel(langPair.src),
-                  })}
-                </p>
-              )}
-            </div>
-          </Dialogo>
-        )}
-
-        {/* GRAVAR COMENTÁRIO EM ÁUDIO (o "Áudio" da anotação semântica). */}
-        {recordingTarget && (
-          <Dialogo
-            icone={Mic}
-            titulo={t('Gravar comentário em áudio')}
-            sub={t('A sua pronúncia, ou um comentário falado, para esta frase.')}
-            aoFechar={fecharGravacao}
-          >
-            <div className="dlg-corpo qs-miolo qs-folha" data-testid="gravar-comentario">
-              <p className="qs-folha-trad">“{recordingTarget.wordText}”</p>
-              <div className="ql-gravador" role="status">
-                {isRecordingAudio ? (
-                  <>
-                    <span className="ql-ondas" aria-hidden>
-                      <i />
-                      <i />
-                      <i />
-                      <i />
-                    </span>
-                    <b>{t('Gravando: {n} s', { n: recordingSeconds })}</b>
-                  </>
-                ) : playbackAudioUrl ? (
-                  <>
-                    <b>
-                      <Check aria-hidden /> {t('Áudio gravado')}
-                    </b>
-                    <button type="button" className="q-ctl" onClick={() => void new Audio(playbackAudioUrl).play()}>
-                      <PlayCircle aria-hidden /> {t('Ouvir minha voz')}
-                    </button>
-                  </>
-                ) : recordingError ? (
-                  <span className="qs-erro">
-                    <AlertTriangle aria-hidden /> {recordingError}
-                  </span>
-                ) : (
-                  <span>{t('Toque em "Iniciar gravação" e fale.')}</span>
-                )}
-              </div>
-            </div>
-            <div className="dlg-pe">
-              {!isRecordingAudio && !playbackAudioUrl && (
-                <button type="button" className="q-ctl pri" onClick={() => void startVoiceRecording()}>
-                  <Mic aria-hidden /> {t('Iniciar gravação')}
+                  {t('Coluna')}
                 </button>
-              )}
-              {isRecordingAudio && (
-                <button type="button" className="q-ctl pri" onClick={stopVoiceRecording}>
-                  <Square aria-hidden /> {t('Parar gravação')}
+                <button
+                  type="button"
+                  className="q-aba"
+                  aria-pressed={layoutWidth === 'full'}
+                  onClick={() => handleLayoutWidthChange('full')}
+                >
+                  {t('Largura total')}
                 </button>
-              )}
-              {playbackAudioUrl && !isRecordingAudio && (
-                <>
-                  <button type="button" className="q-ctl pri" onClick={saveRecordedAudio}>
-                    <Check aria-hidden /> {t('Salvar áudio')}
-                  </button>
-                  <button type="button" className="q-ctl" onClick={() => void startVoiceRecording()}>
-                    {t('Gravar novamente')}
-                  </button>
-                </>
-              )}
-              <button type="button" className="q-ctl" onClick={(e) => fecharDialogoDe(e.currentTarget)}>
-                {t('Cancelar')}
-              </button>
+              </div>
             </div>
-          </Dialogo>
-        )}
-
-        {/* A FOLHA DA PALAVRA: o Analista e o que o cartão de hover mostrava (imagem, contexto, deck). */}
-        {selectedExamWord && (
-          <VocabularyPanel
-            emFolha
-            viewKey="reading"
-            word={selectedExamWord}
-            mtNote={mtNote}
-            onClose={fecharPalavra}
-            onSpeak={speakWord}
-            onAddToDeck={handleAddVocabWordToDeck}
-            isAdded={isWordAdded(selectedExamWord)}
-            ttsSpeed={ttsSpeed}
-            setTtsSpeed={setTtsSpeed}
-            onPractice={onChangeView ? handlePracticeWord : undefined}
-            imagem={{ url: previaDaAberta?.imageUrl ?? null, carregando: !previaDaAberta || previaDaAberta.loading }}
-            podeOuvir={!!idiomaDaPalavraAberta && haVozPara(idiomaDaPalavraAberta)}
-          />
-        )}
-      </div>
-    );
-  }
-
-  // Marcação do protótipo aprovado (`abaLeitura`): um cartão de controles e, embaixo, o texto com a
-  // coluna "Estudos & notas" (ou o Analista, quando uma palavra está aberta).
-  return (
-    <div className="entra">
-      <section className="cartao p5 barra-leitura" aria-label="Controles da leitura">
-        <div className="linha" style={{ gap: 10, flexWrap: 'wrap' }}>
-          <div className="seg" role="group" aria-label="Modo de visualização">
-            {(
-              [
-                ['bilingual-intercalated', 'Intercalado'],
-                ['bilingual-side-by-side', 'Lado a lado'],
-                ['original', 'Só o original'],
-              ] as const
-            ).map(([v, r]) => (
-              <button key={v} type="button" aria-pressed={viewMode === v} onClick={() => setViewMode(v)}>
-                {r}
-              </button>
-            ))}
           </div>
-          <div className="seg" role="group" aria-label="Largura">
-            <button
-              type="button"
-              aria-pressed={layoutWidth === 'centered'}
-              onClick={() => handleLayoutWidthChange('centered')}
-            >
-              Coluna
-            </button>
-            <button type="button" aria-pressed={layoutWidth === 'full'} onClick={() => handleLayoutWidthChange('full')}>
-              Largura total
-            </button>
-          </div>
-          <span style={{ flex: 1 }} />
-          <div className="linha narra" style={{ gap: 4 }}>
-            <button
-              type="button"
-              className="btn btn-outline peq icone"
-              onClick={() => skipSentence(-1)}
-              disabled={!studyTexts.length || activeNarratingSentenceIndex === 0}
-              aria-label="Frase anterior"
-            >
-              <SkipBack aria-hidden />
-            </button>
-            <button type="button" className="btn btn-solid peq" onClick={toggleNarration} disabled={!studyTexts.length}>
-              {isNarrating && !isNarrationPaused ? <Pause aria-hidden /> : <Volume2 aria-hidden />}{' '}
-              {!isNarrating ? 'Narrar' : isNarrationPaused ? 'Retomar' : 'Pausar'}
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline peq icone"
-              onClick={() => skipSentence(1)}
-              disabled={
-                !studyTexts.length ||
-                (activeNarratingSentenceIndex !== null && activeNarratingSentenceIndex >= studyTexts.length - 1)
-              }
-              aria-label="Próxima frase"
-            >
-              <SkipForward aria-hidden />
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline peq icone"
-              onClick={stopNarration}
-              disabled={!isNarrating}
-              aria-label="Parar e voltar ao início"
-            >
-              <Square aria-hidden />
-            </button>
-          </div>
-          <button
-            type="button"
-            className="btn btn-outline peq"
-            onClick={() => setShowNarratorSettings((v) => !v)}
-            aria-expanded={showNarratorSettings}
-          >
-            <AudioLines aria-hidden /> Voz, idioma e tom
-          </button>
-        </div>
+        </Dialogo>
+      )}
 
-        {showNarratorSettings && (
-          <div className="exib entra">
-            <div>
-              <span className="label-mono">Velocidade</span>
-              <div className="seg" role="group" aria-label="Velocidade da narração">
+      {/* VOZ, IDIOMA E TOM: os mesmos ajustes do narrador, um por linha. */}
+      {showNarratorSettings && (
+        <Dialogo
+          icone={AudioLines}
+          titulo={t('Voz, idioma e tom')}
+          sub={t('Mudanças valem já na frase atual; a narração continua de onde estava.')}
+          aoFechar={() => setShowNarratorSettings(false)}
+        >
+          <div className="dlg-corpo qs-miolo qs-ajustes" data-testid="ajustes-do-narrador">
+            <div className="q-ajuste">
+              <b>{t('Velocidade')}</b>
+              <div className="q-abas q-seg" role="group" aria-label={t('Velocidade da narração')}>
                 {[0.75, 1, 1.25, 1.5].map((r) => (
-                  <button key={r} type="button" aria-pressed={narrationRate === r} onClick={() => setNarrationRate(r)}>
+                  <button
+                    key={r}
+                    type="button"
+                    className="q-aba"
+                    aria-pressed={narrationRate === r}
+                    onClick={() => setNarrationRate(r)}
+                  >
                     {String(r).replace('.', ',')}×
                   </button>
                 ))}
               </div>
             </div>
-            <div>
-              <span className="label-mono">O que narrar</span>
-              <div className="seg" role="group" aria-label="O que narrar">
+            <div className="q-ajuste">
+              <div>
+                <b>{t('O que narrar')}</b>
+                <small>
+                  {NARRATION_MODES.find((m) => m.id === narrationMode)?.title}
+                  {narrationMode === 'original' ? ` (${langLabel(langPair.src)})` : ''}
+                  {narrationMode === 'translation' ? ` (${langLabel(langPair.tgt)})` : ''}
+                </small>
+              </div>
+              <div className="q-abas q-seg" role="group" aria-label={t('O que narrar')}>
                 {NARRATION_MODES.map((m) => (
                   <button
                     key={m.id}
                     type="button"
+                    className="q-aba"
                     aria-pressed={narrationMode === m.id}
                     onClick={() => setNarrationMode(m.id)}
-                    title={
-                      m.id === 'auto'
-                        ? `${m.title} · ${nativeDetector ? 'usando o detector on-device do navegador' : 'usando a heurística local (o navegador não tem detector nativo)'}`
-                        : m.id === 'original'
-                          ? `${m.title} (${langLabel(langPair.src)})`
-                          : m.id === 'translation'
-                            ? `${m.title} (${langLabel(langPair.tgt)})`
-                            : m.title
-                    }
                   >
                     {m.label}
                   </button>
                 ))}
               </div>
             </div>
-            <div>
-              <span className="label-mono">Idioma</span>
-              {/* Guarda o ISO-639-1 ('pt'); o picker fala BCP-47 — daí a conversão nas pontas. */}
+            <div className="q-ajuste">
+              <div>
+                <b>{t('Idioma')}</b>
+                <small>{t('Força um idioma para toda a narração, ou segue o modo.')}</small>
+              </div>
               <LangPicker
                 id="reading-forced-lang"
-                ariaLabel="Forçar idioma da narração"
+                ariaLabel={t('Forçar idioma da narração')}
                 value={toBcp47(forcedLang)}
                 auto={!forcedLang}
                 allowAuto
-                autoLabel="Detectar (segue o modo)"
+                autoLabel={t('Detectar (segue o modo)')}
                 onPick={({ auto, code }) => setForcedLang(auto ? '' : baseLang(code || ''))}
               />
             </div>
-            <div>
-              <span className="label-mono">
-                Voz · {langLabel(voiceEditLang)}
-                {currentSpeakingLang === voiceEditLang && isNarrating ? ' (narrando agora)' : ''}
-              </span>
-              <div className="linha" style={{ gap: 6, flexWrap: 'wrap' }}>
-                {narratedLangs.length > 1 && (
-                  <div className="seg" role="group" aria-label="Idioma cuja voz editar">
-                    {narratedLangs.map((l) => (
-                      <button
-                        key={l}
-                        type="button"
-                        aria-pressed={voiceEditLang === l}
-                        onClick={() => setVoiceEditLangOverride(l)}
-                      >
-                        {l.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
+            <div className="q-ajuste">
+              <div>
+                <b>
+                  {t('Voz')} · {langLabel(voiceEditLang)}
+                  {currentSpeakingLang === voiceEditLang && isNarrating ? ` ${t('(narrando agora)')}` : ''}
+                </b>
+                {voiceOptions.length === 0 && (
+                  <small>
+                    {/* A frase do headset só vale NELE; no computador as vozes são as do sistema. */}
+                    {narraPeloMotor && noHeadset()
+                      ? t('No Quest a voz é a do site: não há outras vozes para escolher.')
+                      : t('Nenhuma voz instalada para este idioma.')}
+                  </small>
                 )}
-                <select
-                  className="campo"
-                  aria-label="Voz"
-                  style={{ width: 'auto', maxWidth: 280 }}
-                  value={voicePrefs[voiceEditLang] || ''}
-                  onChange={(e) => {
-                    const name = e.target.value;
-                    setVoicePrefs((prev) => {
-                      const next = { ...prev };
-                      if (name) next[voiceEditLang] = name;
-                      else delete next[voiceEditLang];
-                      return next;
-                    });
-                  }}
-                >
-                  <option value="">Melhor voz disponível (automática)</option>
+              </div>
+              {narratedLangs.length > 1 && (
+                <div className="q-abas q-seg" role="group" aria-label={t('Idioma cuja voz editar')}>
+                  {narratedLangs.map((l) => (
+                    <button
+                      key={l}
+                      type="button"
+                      className="q-aba"
+                      aria-pressed={voiceEditLang === l}
+                      onClick={() => setVoiceEditLangOverride(l)}
+                    >
+                      {l.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <select
+                className="q-campo ql-voz"
+                aria-label={t('Voz')}
+                value={voicePrefs[voiceEditLang] || ''}
+                onChange={(e) => {
+                  const name = e.target.value;
+                  setVoicePrefs((prev) => {
+                    const next = { ...prev };
+                    if (name) next[voiceEditLang] = name;
+                    else delete next[voiceEditLang];
+                    return next;
+                  });
+                }}
+              >
+                <option value="">{t('Melhor voz disponível (automática)')}</option>
+                {voiceOptions.length > 0 && (
                   <optgroup label={langLabel(voiceEditLang)}>
                     {voiceOptions.map((v) => (
                       <option key={v.name} value={v.name}>
@@ -2006,453 +1580,137 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                       </option>
                     ))}
                   </optgroup>
-                </select>
-              </div>
+                )}
+              </select>
             </div>
-            <div>
-              <span className="label-mono">Tom · {narrationPitch.toFixed(1)}</span>
+            <div className="q-ajuste">
+              <b>
+                {t('Tom')} · {narrationPitch.toFixed(1)}
+              </b>
               <input
                 type="range"
-                className="trilho"
+                className="ql-tom"
                 min="0.5"
                 max="1.5"
                 step="0.1"
                 value={narrationPitch}
                 onChange={(e) => setNarrationPitch(parseFloat(e.target.value))}
-                aria-label="Tom da voz"
-                style={{ ['--p' as string]: `${((narrationPitch - 0.5) / 1) * 100}%`, width: 140 }}
+                aria-label={t('Tom da voz')}
               />
             </div>
-            {/* AVISO HONESTO: sem voz instalada para um idioma NÃO narramos com a voz de outro. */}
+            {/* AVISO HONESTO: sem voz para um idioma, aquelas frases NÃO são narradas com a voz de outro. */}
             {missingVoiceLangs.length > 0 && (
-              <div className="aviso-info" style={{ flexBasis: '100%' }}>
-                <AlertTriangle aria-hidden />
+              <div className="q-aviso" role="note" data-testid="voz-ausente">
                 <span>
-                  Seu sistema não tem voz instalada para{' '}
-                  <b style={{ color: 'var(--ink)' }}>{missingVoiceLangs.map((l) => langLabel(l)).join(', ')}</b>: essas
-                  frases não serão narradas com o sotaque correto. Instale em{' '}
-                  <b style={{ color: 'var(--ink)' }}>Configurações do Windows → Hora e Idioma → Voz</b>.
+                  <AlertTriangle aria-hidden />{' '}
+                  {noHeadset()
+                    ? t(
+                        'Sem voz neste aparelho para {idiomas}: essas frases não são narradas. A voz do site lê inglês, espanhol, francês, chinês, japonês e coreano, com a IA de nuvem ligada em Ajustes.',
+                        { idiomas: missingVoiceLangs.map((l) => langLabel(l)).join(', ') },
+                      )
+                    : t(
+                        'Seu sistema não tem voz instalada para {idiomas}: essas frases não são narradas. Instale uma voz para o idioma nas configurações do sistema (no Windows: Hora e Idioma → Voz).',
+                        { idiomas: missingVoiceLangs.map((l) => langLabel(l)).join(', ') },
+                      )}
                 </span>
               </div>
             )}
-            <p className="mut" style={{ fontSize: 12, flexBasis: '100%' }}>
-              Mudanças de voz, tom, velocidade ou modo valem já na frase atual; a narração continua de onde estava.
-              {narrationMode === 'auto' && !forcedLang && (
-                <>
-                  {' '}
-                  Detecção de idioma: {nativeDetector ? 'detector on-device do navegador' : 'heurística local'}; frases
-                  sem sinal usam o idioma declarado da sessão ({langLabel(langPair.src)}).
-                </>
-              )}
-            </p>
-          </div>
-        )}
-
-        <div className="linha" style={{ gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
-          <div className="seg" role="group" aria-label="Modo">
-            <button type="button" aria-pressed={!isDrawModeActive} onClick={() => setIsDrawModeActive(false)}>
-              <MousePointerClick aria-hidden style={{ width: 14, height: 14 }} /> Modo interativo
-            </button>
-            <button
-              type="button"
-              aria-pressed={isDrawModeActive}
-              onClick={() => {
-                setIsDrawModeActive(true);
-                setFraseEscolhida(null);
-              }}
-            >
-              <PenTool aria-hidden style={{ width: 14, height: 14 }} /> Desenho livre
-            </button>
-          </div>
-          {isDrawModeActive ? (
-            <BarraDeDesenho desenho={desenho} questNovo={false} />
-          ) : (
-            <span className="mut" style={{ fontSize: 12.5 }}>
-              Clique numa frase para anotar: vocabulário, gramática, expressão ou dúvida.
-            </span>
-          )}
-        </div>
-      </section>
-
-      <div className="leitura-grade">
-        <EditablePanel
-          viewKey="reading"
-          panelKey="interactiveArea"
-          title="Área Interativa"
-          canResizeWidth={false}
-          canResizeHeight={false}
-        >
-          <section
-            className={`cartao p6 leitura-texto ${layoutWidth === 'centered' ? 'coluna' : ''} ${isDrawModeActive ? 'desenhando' : ''}`}
-            aria-label="Texto da sessão"
-            style={{ position: 'relative' }}
-          >
-            {/* Desenho livre por cima do texto */}
-            <canvas
-              ref={canvasRef}
-              className="desenho-tela"
-              data-ativo={isDrawModeActive}
-              {...desenho.handlers}
-              aria-label={t('Área de desenho')}
-            />
-            {fraseEscolhida !== null && !isDrawModeActive && (
-              <div className="escolha-nota cartao entra" role="group" aria-label="Anotar a frase">
-                <span className="label-mono">Anotação semântica</span>
-                <div className="chips">
-                  {ESCOLHAS_DE_NOTA.map(([k, r, Icone]) => (
-                    <button key={k} type="button" className="pill" data-anotar={k} onClick={() => anotar(k)}>
-                      <Icone aria-hidden />
-                      {r}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {studyTexts.length === 0 ? (
-              <div className="vazio">
-                <IconeEmBloco icone={BookOpen} />
-                <h3>{transcriptLoaded ? 'Sem texto nesta sessão' : 'Carregando o texto…'}</h3>
-                {transcriptLoaded && <p>Nenhuma transcrição real para esta sessão ainda.</p>}
-              </div>
-            ) : (
-              <div className="leitura" style={{ fontSize: `${fontSize}px` }}>
-                {studyTexts.map((sentenceObj, sIdx) => {
-                  const nota = notaDaFrase(annotations, sIdx);
-                  const cls = `frase ${activeNarratingSentenceIndex === sIdx ? 'narrando' : ''} ${nota?.tipo ? `nota-${nota.tipo}` : ''}`;
-                  /* Clicar na frase abre a "Anotação semântica" dela (a palavra clicada também abre
-                     o Analista). O Enter faz o mesmo pelo teclado. */
-                  const escolher = () => {
-                    if (isDrawModeActive) return;
-                    setFraseEscolhida(sIdx);
-                    requestAnimationFrame(() =>
-                      (document.querySelector('.escolha-nota [data-anotar]') as HTMLElement | null)?.focus({
-                        preventScroll: true,
-                      }),
-                    );
-                  };
-                  const original = (
-                    <span
-                      className={cls}
-                      id={`sentence-${sIdx}`}
-                      data-frase={sIdx}
-                      tabIndex={0}
-                      onClick={escolher}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && e.target === e.currentTarget) escolher();
-                      }}
-                    >
-                      <SentencePlayButton index={sIdx} />
-                      {palavrasDaFrase(sentenceObj.original, sIdx)}
-                    </span>
-                  );
-                  if (viewMode === 'bilingual-side-by-side')
-                    return (
-                      <div key={sIdx} className="lado">
-                        <p>{original}</p>
-                        <p className="trad-l">{sentenceObj.translation}</p>
-                      </div>
-                    );
-                  return (
-                    <p key={sIdx}>
-                      {original}
-                      {viewMode === 'bilingual-intercalated' && sentenceObj.translation && (
-                        <>
-                          <br />
-                          <span className="trad-l">{sentenceObj.translation}</span>
-                        </>
-                      )}
-                    </p>
-                  );
+            {narrationMode === 'auto' && !forcedLang && (
+              <p className="qs-apoio">
+                {t('Detecção de idioma: {detector}; frases sem sinal usam o idioma declarado da sessão ({idioma}).', {
+                  detector: nativeDetector ? t('detector on-device do navegador') : t('heurística local'),
+                  idioma: langLabel(langPair.src),
                 })}
-              </div>
+              </p>
             )}
-          </section>
-        </EditablePanel>
-
-        {selectedExamWord ? (
-          <div>
-            <VocabularyPanel
-              viewKey="reading"
-              word={selectedExamWord}
-              mtNote={mtNote}
-              onClose={() => {
-                setSelectedExamWord(null);
-                setMtNote(null);
-              }}
-              onSpeak={speakWord}
-              onAddToDeck={handleAddVocabWordToDeck}
-              isAdded={!!selectedExamWord && isWordAdded(selectedExamWord)}
-              ttsSpeed={ttsSpeed}
-              setTtsSpeed={setTtsSpeed}
-              // Sem navegação (Leitura montada fora da Análise) → sem botões de praticar. Nada de botão morto.
-              onPractice={onChangeView ? handlePracticeWord : undefined}
-            />
           </div>
-        ) : (
-          <aside className="cartao p5 notas-l" aria-label="Estudos e notas">
-            <TituloDeSecao icone={NotebookPen} titulo="Estudos & notas" nivel="h3" />
-            {annotations.length ? (
-              <div className="pilha">
-                {annotations.map((ann) => {
-                  if (ann.type === 'frase' && ann.tipo) {
-                    const Icone = ICONE_DA_NOTA[ann.tipo];
-                    return (
-                      <div key={ann.id} className="nota-item">
-                        <span className={`badge ${TIPOS_DE_NOTA[ann.tipo].tom}`}>
-                          <Icone aria-hidden /> {TIPOS_DE_NOTA[ann.tipo].rotulo}
-                        </span>
-                        <p>
-                          {studyTexts[ann.textIndex]?.original ?? ''}
-                          {ann.audioUrl && (
-                            <>
-                              <br />
-                              <button
-                                type="button"
-                                className="link"
-                                onClick={() => void new Audio(ann.audioUrl!).play()}
-                              >
-                                <Play aria-hidden /> Ouvir minha gravação
-                              </button>
-                            </>
-                          )}
-                        </p>
-                        <button
-                          type="button"
-                          className="btn btn-outline peq icone"
-                          onClick={() => setAnnotations(annotations.filter((a) => a.id !== ann.id))}
-                          aria-label="Remover nota"
-                        >
-                          <X aria-hidden />
-                        </button>
-                      </div>
-                    );
-                  }
-                  const rotulo =
-                    ann.type === 'highlight' ? ann.content || 'Marcação' : ann.type === 'note' ? 'Nota' : 'Áudio';
-                  const tom = ann.type === 'note' ? 'warn' : ann.type === 'audio' ? 'rare' : 'acc';
-                  return (
-                    <div key={ann.id} className="nota-item">
-                      <span className={`badge ${tom}`}>
-                        {ann.type === 'note' ? (
-                          <StickyNote aria-hidden />
-                        ) : ann.type === 'audio' ? (
-                          <Mic aria-hidden />
-                        ) : (
-                          <Highlighter aria-hidden />
-                        )}{' '}
-                        {rotulo}
-                      </span>
-                      <p>
-                        “{ann.wordText}”
-                        {ann.type === 'note' && ann.content && (
-                          <>
-                            <br />
-                            <span className="mut">{ann.content}</span>
-                          </>
-                        )}
-                        {ann.type === 'audio' && ann.audioUrl && (
-                          <>
-                            <br />
-                            <button type="button" className="link" onClick={() => void new Audio(ann.audioUrl!).play()}>
-                              <Play aria-hidden /> Ouvir minha gravação
-                            </button>
-                          </>
-                        )}
-                      </p>
-                      <button
-                        type="button"
-                        className="btn btn-outline peq icone"
-                        onClick={() => setAnnotations(annotations.filter((a) => a.id !== ann.id))}
-                        aria-label="Remover nota"
-                      >
-                        <X aria-hidden />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="vazio" style={{ padding: '18px 6px' }}>
-                <IconeEmBloco icone={Highlighter} />
-                <h3>Nenhum grifo ou nota</h3>
-                <p>No modo interativo, clique numa frase e escolha o tipo de anotação.</p>
-              </div>
-            )}
-          </aside>
-        )}
-      </div>
-
-      {/* Audio recording memo popover modal */}
-      {recordingTarget && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-surface text-ink rounded-2xl border border-border-subtle shadow-2xl p-6 text-center space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="font-display font-bold text-sm text-rare-ink flex items-center gap-1.5 text-start">
-                <Volume2 className="w-5 h-5" /> Gravar Comentário em Áudio
-              </h3>
-              <button onClick={() => setRecordingTarget(null)} className="p-1 hover:bg-surface-hover rounded">
-                <X className="w-4 h-4 text-ink-muted" />
-              </button>
-            </div>
-
-            <p className="text-xs text-ink-muted leading-relaxed">
-              Grave sua própria pronúncia ou um comentário falado para a frase:{' '}
-              <strong className="text-ink">"{recordingTarget.wordText}"</strong>
-            </p>
-
-            {/* Simulated/real visual wave container */}
-            <div className="h-28 bg-canvas border border-border-subtle rounded-2xl flex flex-col justify-center items-center relative overflow-hidden p-4">
-              {isRecordingAudio ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-center gap-1">
-                    <span className="w-1 h-5 bg-rare rounded eq-bar" style={{ animationDelay: '0.1s' }} />
-                    <span className="w-1 h-9 bg-rare rounded eq-bar" style={{ animationDelay: '0.2s' }} />
-                    <span className="w-1 h-12 bg-rare rounded eq-bar" style={{ animationDelay: '0.3s' }} />
-                    <span className="w-1 h-7 bg-rare rounded eq-bar" style={{ animationDelay: '0.4s' }} />
-                    <span className="w-1 h-11 bg-rare rounded eq-bar" style={{ animationDelay: '0.5s' }} />
-                    <span className="w-1 h-4 bg-rare rounded eq-bar" style={{ animationDelay: '0.6s' }} />
-                  </div>
-                  <span className="text-xs font-mono text-error-ink font-bold block animate-pulse">
-                    Gravando: {recordingSeconds}s
-                  </span>
-                </div>
-              ) : playbackAudioUrl ? (
-                <div className="space-y-2">
-                  <div className="text-good-ink font-bold text-xs">✓ Áudio Gravado com Sucesso!</div>
-                  <button
-                    onClick={() => {
-                      if (playbackAudioUrl) {
-                        const audio = new Audio(playbackAudioUrl);
-                        audio.play();
-                      }
-                    }}
-                    className="px-3 py-1 bg-rare-soft text-rare-ink hover:brightness-95 text-[11px] rounded-lg font-bold inline-flex items-center gap-1 mx-auto"
-                  >
-                    <PlayCircle className="w-4 h-4" /> Ouvir Minha Voz
-                  </button>
-                </div>
-              ) : recordingError ? (
-                <div className="text-xs text-error font-bold px-2 text-center">{recordingError}</div>
-              ) : (
-                <div className="text-xs text-ink-muted">Aguardando início...</div>
-              )}
-            </div>
-
-            <div className="flex justify-center gap-2">
-              {!isRecordingAudio && !playbackAudioUrl && (
-                <button
-                  onClick={startVoiceRecording}
-                  className="px-4 py-2 rounded-xl bg-rare-soft text-rare-ink border border-rare/40 font-bold text-xs flex items-center gap-1 hover:brightness-105 cursor-pointer"
-                >
-                  <span className="w-2 h-2 rounded-full bg-rare animate-ping" />
-                  Iniciar Gravação
-                </button>
-              )}
-
-              {isRecordingAudio && (
-                <button
-                  onClick={stopVoiceRecording}
-                  className="px-4 py-2 rounded-xl bg-error-soft text-error-ink border border-error/40 font-bold text-xs flex items-center gap-1 hover:brightness-105 cursor-pointer"
-                >
-                  Parar Gravação
-                </button>
-              )}
-
-              {playbackAudioUrl && (
-                <>
-                  <button
-                    onClick={startVoiceRecording}
-                    className="px-3 py-2 rounded-xl bg-surface-hover text-ink-muted font-bold text-xs cursor-pointer hover:text-ink"
-                  >
-                    Gravar Novamente
-                  </button>
-                  <button
-                    onClick={saveRecordedAudio}
-                    className="px-4 py-2 rounded-xl bg-rare-soft text-rare-ink border border-rare/40 font-bold text-xs cursor-pointer hover:brightness-105 shadow-sm"
-                  >
-                    Salvar Áudio
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+        </Dialogo>
       )}
 
-      {/* Prévia de imagem da palavra sob o cursor. A MOLDURA é a mesma da Análise
-          (`PopoverFlutuante`); o conteúdo é só desta tela, aqui é a imagem, e nada mais. */}
-      {hoveredWord && (
-        <PopoverFlutuante {...popover.props}>
-          {wordPreview && (
-            <div className="flex flex-col">
-              {/* Imagem REAL (Openverse) — placeholder honesto quando não há imagem */}
-              <div className="relative h-40 bg-ink flex items-center justify-center">
-                {wordPreview.loading ? (
-                  <span className="text-[12px] text-ink-contrast/70 animate-pulse">Buscando imagem…</span>
-                ) : wordPreview.imageUrl ? (
-                  <>
-                    <img
-                      src={wordPreview.imageUrl}
-                      alt={wordPreview.word}
-                      className="w-full h-full object-cover opacity-90"
-                    />
-                    <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1 uppercase tracking-wider">
-                      <Search className="w-3 h-3" /> Imagem Associada
-                    </div>
-                  </>
-                ) : (
-                  <span className="text-[12px] text-ink-contrast/60">sem imagem</span>
-                )}
-              </div>
-
-              <div className="p-4 bg-surface flex flex-col gap-3">
-                <div className="flex justify-between items-start">
-                  <div className="min-w-0">
-                    <h3 className="font-display font-bold text-lg text-ink capitalize truncate">{wordPreview.word}</h3>
-                    {/* Tradução real, ou o MOTIVO de não haver — nunca um texto inventado. */}
-                    {wordPreview.loading ? (
-                      <p className="text-[13px] text-ink-muted">Traduzindo…</p>
-                    ) : wordPreview.translation ? (
-                      <p className="text-[13px] text-ink-muted">{wordPreview.translation}</p>
-                    ) : (
-                      <p className="text-[12px] text-warn-ink">{wordPreview.note ?? 'Tradução indisponível'}</p>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => playWordTTS(wordPreview.word)}
-                    className="w-8 h-8 rounded-full bg-surface-hover flex items-center justify-center text-ink-muted hover:text-accent hover:bg-accent-soft transition-colors cursor-pointer shrink-0"
-                    title="Ouvir Pronúncia"
-                  >
-                    <Volume2 className="w-4 h-4" />
+      {/* GRAVAR COMENTÁRIO EM ÁUDIO (o "Áudio" da anotação semântica). */}
+      {recordingTarget && (
+        <Dialogo
+          icone={Mic}
+          titulo={t('Gravar comentário em áudio')}
+          sub={t('A sua pronúncia, ou um comentário falado, para esta frase.')}
+          aoFechar={fecharGravacao}
+        >
+          <div className="dlg-corpo qs-miolo qs-folha" data-testid="gravar-comentario">
+            <p className="qs-folha-trad">“{recordingTarget.wordText}”</p>
+            <div className="ql-gravador" role="status">
+              {isRecordingAudio ? (
+                <>
+                  <span className="ql-ondas" aria-hidden>
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                  <b>{t('Gravando: {n} s', { n: recordingSeconds })}</b>
+                </>
+              ) : playbackAudioUrl ? (
+                <>
+                  <b>
+                    <Check aria-hidden /> {t('Áudio gravado')}
+                  </b>
+                  <button type="button" className="q-ctl" onClick={() => void new Audio(playbackAudioUrl).play()}>
+                    <PlayCircle aria-hidden /> {t('Ouvir minha voz')}
                   </button>
-                </div>
-
-                {wordPreview.context && (
-                  <p className="text-[13.5px] leading-relaxed text-ink-muted border-s-2 border-border-subtle ps-3 italic">
-                    {wordPreview.context}
-                  </p>
-                )}
-
-                <div className="mt-1 pt-3 border-t border-border-subtle flex gap-2">
-                  {vocabCards.some((c) => c.word.toLowerCase() === wordPreview.word.toLowerCase() && c.inDeck) ? (
-                    <button className="flex-1 py-2 px-3 text-[13px] rounded-lg bg-good-soft text-good font-bold flex items-center justify-center gap-1.5 w-full cursor-not-allowed">
-                      <Check className="w-4 h-4" /> Já está no Deck
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() =>
-                        handleAddWordToDeck(wordPreview.word, wordPreview.translation, wordPreview.context)
-                      }
-                      className="flex-1 btn-solid bg-accent text-white border-none py-2 px-3 text-[13px] hover:scale-[1.02] flex items-center justify-center gap-1.5 w-full cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" /> Adicionar ao Deck
-                    </button>
-                  )}
-                </div>
-              </div>
+                </>
+              ) : recordingError ? (
+                <span className="qs-erro">
+                  <AlertTriangle aria-hidden /> {recordingError}
+                </span>
+              ) : (
+                <span>{t('Toque em "Iniciar gravação" e fale.')}</span>
+              )}
             </div>
-          )}
-        </PopoverFlutuante>
+          </div>
+          <div className="dlg-pe">
+            {!isRecordingAudio && !playbackAudioUrl && (
+              <button type="button" className="q-ctl pri" onClick={() => void startVoiceRecording()}>
+                <Mic aria-hidden /> {t('Iniciar gravação')}
+              </button>
+            )}
+            {isRecordingAudio && (
+              <button type="button" className="q-ctl pri" onClick={stopVoiceRecording}>
+                <Square aria-hidden /> {t('Parar gravação')}
+              </button>
+            )}
+            {playbackAudioUrl && !isRecordingAudio && (
+              <>
+                <button type="button" className="q-ctl pri" onClick={saveRecordedAudio}>
+                  <Check aria-hidden /> {t('Salvar áudio')}
+                </button>
+                <button type="button" className="q-ctl" onClick={() => void startVoiceRecording()}>
+                  {t('Gravar novamente')}
+                </button>
+              </>
+            )}
+            <button type="button" className="q-ctl" onClick={(e) => fecharDialogoDe(e.currentTarget)}>
+              {t('Cancelar')}
+            </button>
+          </div>
+        </Dialogo>
+      )}
+
+      {/* A FOLHA DA PALAVRA: o Analista e o que o cartão de hover mostrava (imagem, contexto, deck). */}
+      {selectedExamWord && (
+        <VocabularyPanel
+          emFolha
+          viewKey="reading"
+          word={selectedExamWord}
+          mtNote={mtNote}
+          onClose={fecharPalavra}
+          onSpeak={speakWord}
+          onAddToDeck={handleAddVocabWordToDeck}
+          isAdded={isWordAdded(selectedExamWord)}
+          ttsSpeed={ttsSpeed}
+          setTtsSpeed={setTtsSpeed}
+          onPractice={onChangeView ? handlePracticeWord : undefined}
+          imagem={{ url: previaDaAberta?.imageUrl ?? null, carregando: !previaDaAberta || previaDaAberta.loading }}
+          podeOuvir={!!idiomaDaPalavraAberta && haVozPara(idiomaDaPalavraAberta)}
+        />
       )}
     </div>
   );

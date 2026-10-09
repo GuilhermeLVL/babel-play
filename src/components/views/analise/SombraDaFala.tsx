@@ -13,7 +13,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { perfilDoDispositivo } from '../../../lib/dispositivo/perfil';
 import { recursosDoAparelho } from '../../../lib/dispositivo/recursos';
-import { noHeadset, useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
+import { noHeadset } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../lib/i18n';
 import { micErrorMessage, speechErrorMessage } from '../../../lib/mediaErrors';
 import { toast } from '../../Toast';
@@ -31,7 +31,6 @@ export default function SombraDaFala({
   /** Ausente = não há como ouvir o original aqui (sem áudio gravado e sem voz para o idioma). */
   aoOuvirOriginal?: () => void;
 }) {
-  const questNovo = useQuestNovo();
   const [etapa, setEtapa] = useState<Etapa>('pronto');
   const [nota, setNota] = useState<{ n: number; texto: string } | null>(null);
   const [minhaGravacao, setMinhaGravacao] = useState<string | null>(null);
@@ -136,12 +135,12 @@ export default function SombraDaFala({
     if (minhaGravacao) void new Audio(minhaGravacao).play();
   };
 
-  /* O DESENHO NOVO SEM RECONHECIMENTO DE FALA (o Quest; no computador, um navegador que não o tem): a
+  /* SEM RECONHECIMENTO DE FALA (o Quest; no computador, um navegador que não o tem): a
      NOTA compara a frase com o que o reconhecimento do NAVEGADOR ouviu. Gravar a própria voz e ouvir a
      gravação não dependem dele (é o `MediaRecorder`): ficam. Só a nota de 0 a 100 fica de fora, com o
      motivo dito. Quem decide é o RECURSO (`recursos.ts`), não o desenho: no computador com o
      reconhecimento, a prática com nota de sempre aparece dentro da folha. */
-  if (questNovo && !recursosDoAparelho(perfilDoDispositivo()).reconhecimentoDoNavegador) {
+  if (!recursosDoAparelho(perfilDoDispositivo()).reconhecimentoDoNavegador) {
     const gravarSemNota = async () => {
       setMinhaGravacao(null);
       const erro = await ligarGravador(() => setEtapa('nota'));

@@ -84,6 +84,30 @@ describe('a cena do Vitendawili', () => {
   })
 })
 
+/* Garantia que veio de `tests/atalhosDasAlternativas.test.tsx`: as teclas 1 a 9 escolhem pela posição. */
+describe('as alternativas pelo teclado', () => {
+  it('número fora da lista não faz nada; dentro, escolhe a alternativa daquela posição', () => {
+    montar()
+    const botoes = () => todos('.opcoes-blitz button')
+    fireEvent.keyDown(window, { key: '9' })
+    expect(botoes().every((b) => !b.disabled)).toBe(true)
+    const errada = botoes().findIndex((b) => b.dataset.op !== 'storm')
+    fireEvent.keyDown(window, { key: String(errada + 1) })
+    expect(botoes()[errada].disabled).toBe(true)
+  })
+
+  it('digitando num campo, o número é texto e não jogada; tecla segurada também não joga', () => {
+    montar()
+    const campo = document.createElement('input')
+    document.body.appendChild(campo)
+    fireEvent.keyDown(campo, { key: '1' })
+    fireEvent.keyDown(window, { key: '1', repeat: true })
+    expect(todos('.opcoes-blitz button').every((b) => !b.disabled)).toBe(true)
+    expect(um('.pj-lacuna.cheia')).toBeNull()
+    campo.remove()
+  })
+})
+
 describe('fechar o enigma', () => {
   it('a errada é riscada e desabilitada, e dá para tentar de novo', () => {
     montar()

@@ -10,7 +10,6 @@ import {
   resolverTextoRemoto,
 } from '../../core/ofertas';
 import { DIAS_DO_TESTE_PREMIUM, PLAN_MATRIX, precoDoPlano } from '../../core/planos';
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { onPlanChange } from '../../lib/entitlements';
 import { ehConfigDeOfertas, useConfigRemota, useFlag } from '../../lib/flags';
 import { estadoDeIdentidade } from '../../lib/identidade';
@@ -111,7 +110,6 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
   const flagLigada = useFlag('oferta_planos');
   const config = useConfigRemota('oferta_planos', OFERTAS_PADRAO, ehConfigDeOfertas);
   const [atual, setAtual] = useState<OfertaNaTela | null>(null);
-  const questNovo = useQuestNovo();
 
   /* Refs: o ouvinte do evento é registrado uma vez e precisa ler o valor MAIS recente. */
   const flagRef = useRef(flagLigada);
@@ -262,8 +260,8 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
     sugerido === 'nenhum' && !informativoDoTeste ? t('Ver consumo do mês') : resolverTextoRemoto(g.cta, idioma, t);
   const selo = seloDoPlano(sugerido, t);
   const props = {
-    /* No desenho novo o fim de sessão traz o livro aberto (`OFERTAS`, `telas.js:480`). */
-    icone: questNovo && momento === 'fim_de_sessao' ? BookOpen : ICONE[momento],
+    /* O fim de sessão traz o livro aberto (`OFERTAS`, `telas.js:480`). */
+    icone: momento === 'fim_de_sessao' ? BookOpen : ICONE[momento],
     titulo,
     texto,
     cta,

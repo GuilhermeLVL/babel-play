@@ -20,16 +20,3 @@ export function MarcaBabel({ className = 'w-8 h-8' }: { className?: string }) {
     </svg>
   );
 }
-
-export function Brand({ compact = false }: { compact?: boolean }) {
-  return (
-    <div className="flex items-center gap-2.5 shrink-0" title="Babel Play">
-      <MarcaBabel />
-      {!compact && (
-        <span className="font-marca font-bold text-[15px] text-ink leading-none whitespace-nowrap select-none">
-          Babel<span className="text-accent">Play</span>
-        </span>
-      )}
-    </div>
-  );
-}

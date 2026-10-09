@@ -43,7 +43,7 @@ import {
   updateCard,
 } from '../../../data/api';
 import { type DictionaryResult, forvoUrl, lookup, wiktionaryUrl } from '../../../lib/dictionary';
-import { noHeadset, useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
+import { noHeadset } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { baseLang, langLabelNaUI } from '../../../lib/languages';
 import { classesDaPalavra } from '../../../lib/pelesDeCartao';
 import { haVozPara } from '../../../lib/voz/haVoz';
@@ -137,7 +137,6 @@ export default function GavetaDaPalavra({
   /* NO META QUEST a gaveta é um painel no CENTRO (`questVocabulario.css`: nada desliza pela lateral), com
      o conteúdo em duas colunas. E a voz: o headset não tem voz própria, só a do site, em alguns idiomas;
      o botão de ouvir (e a velocidade dele) aparece quando há voz para o idioma DESTA palavra. */
-  const questNovo = useQuestNovo();
   const temVoz = haVozPara(lang);
   const traducao = cartao.translation || palavra?.translation || '';
   const motor = !cartao.translation && palavra?.mtEngine ? MOTORES[palavra.mtEngine] : undefined;
@@ -251,7 +250,7 @@ export default function GavetaDaPalavra({
           >
             <Volume2 aria-hidden /> Ouvir
           </button>
-          {(!questNovo || temVoz) && (
+          {temVoz && (
             <Segmentos
               atual={String(velocidade)}
               opcoes={[
@@ -288,7 +287,7 @@ export default function GavetaDaPalavra({
                 value={t}
                 required
                 onChange={(e) => setT(e.target.value)}
-                autoFocus={!(questNovo && noHeadset())}
+                autoFocus={!noHeadset()}
               />
             </div>
             <div>

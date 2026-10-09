@@ -5,7 +5,7 @@
  * 2. Dispensar grava e o card não volta em render seguinte.
  * 3. O preço vem da PLAN_MATRIX, não de string escrita à mão.
  */
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 
 afterEach(() => {
@@ -17,7 +17,14 @@ afterEach(() => {
 async function montar(plan: string, armazenamento: { usados: number; teto: number | null } | null = null) {
   vi.doMock('../src/lib/entitlements', () => ({ getEntitlements: () => ({ plan, armazenamento }) }))
   const { default: CardDePlanos } = await import('../src/components/CardDePlanos')
-  return render(<CardDePlanos onVerPlanos={vi.fn()} />)
+  const tela = render(<CardDePlanos onVerPlanos={vi.fn()} />)
+  /* A faixa do convite chega num pedaço à parte (`usePedacoDoQuest`): a tela só está pronta depois dele,
+     e é só então que "não aparece" quer dizer alguma coisa. */
+  await act(async () => {
+    await import('../src/components/conta/quest/FaixaDeAvisoDoQuest')
+    await new Promise((r) => setTimeout(r, 0))
+  })
+  return tela
 }
 
 it('plano free vê o card, com o menor preço da matriz', async () => {

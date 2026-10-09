@@ -204,15 +204,9 @@ describe('A busca do desenho novo tem o item "Planos"', () => {
     expect(achados[0].querySelector('.cmd-ico svg')?.classList.contains('lucide-sparkles')).toBe(true)
   })
 
-  it('não entra nas sugestões da edição sem servidor, nem no desenho de sempre', async () => {
+  it('não entra nas sugestões da edição sem servidor', async () => {
     palco.estatica = true
     const estatica = await abrir()
     expect(estatica.itens().map((b) => b.querySelector('.cmd-t')?.textContent)).not.toContain('Planos')
-    cleanup()
-
-    palco.estatica = false
-    palco.questNovo = false
-    const antiga = await abrir()
-    expect(antiga.itens().map((b) => b.querySelector('.cmd-t')?.textContent)).not.toContain('Planos')
   })
 })

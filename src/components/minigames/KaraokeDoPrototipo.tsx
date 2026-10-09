@@ -15,7 +15,6 @@ import { sentir } from '../../lib/polimento/sentidos';
 import { toast } from '../Toast';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { usePlacarDaRodada } from './casca/HudDaRodada';
-import type { FalaKaraoke } from './KaraokeGame';
 import { SemVozNoQuest, useVozNoJogo } from './noQuest';
 import { textosDoJogo } from './polimento/textos';
 
@@ -30,6 +29,15 @@ import { textosDoJogo } from './polimento/textos';
  * navegador sem ele) o botão de falar não aparece e a tela diz por quê: nota inventada seria pior que
  * nenhuma. O jogo não tem níveis nem ajudas (`jogos4.js:194`).
  */
+
+export interface FalaKaraoke {
+  id?: string;
+  texto: string;
+  traducao?: string;
+  lang: string;
+  startMs: number;
+  endMs: number;
+}
 
 interface Props {
   falas: FalaKaraoke[];

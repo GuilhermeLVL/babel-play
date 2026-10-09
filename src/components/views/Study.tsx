@@ -2,25 +2,8 @@ import '../../styles/cartoes.css';
 import '../../styles/questRevisao.css';
 
 import { countDue, ganhoDaNota, ganhoDaRevisao, type Grade, isDueNow, makeFsrs5 } from '@core';
-import {
-  Brain,
-  ChartColumn,
-  Check,
-  CheckCircle2,
-  Eye,
-  Gamepad2,
-  PartyPopper,
-  Pause,
-  Pencil,
-  Settings2,
-  SlidersHorizontal,
-  Target,
-  Undo2,
-  Volume2,
-  X,
-  Zap,
-} from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Brain, Zap } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
   desfazerRevisao,
@@ -32,7 +15,6 @@ import {
 } from '../../data/api';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { ActiveProductionExercise, similarityPercentage, stabilityThreshold } from '../../lib/exercicios';
 import { t, tp } from '../../lib/i18n';
 import { ganho } from '../../lib/juice';
@@ -45,10 +27,8 @@ import { useExameDePalavra } from '../../lib/useExameDePalavra';
 import { haVozPara } from '../../lib/voz/haVoz';
 import { ExerciseKind, Recording, SchedulerType, VocabCard } from '../../types';
 import CommandPalette, { useCommandPalette } from '../CommandPalette';
-import FraseComLacuna from '../FraseComLacuna';
 import ResumoDaPratica from '../progress/ResumoDaPratica';
 import { toast } from '../Toast';
-import { CabecalhoDeTela, fecharDialogoDe, IconeEmBloco, Tela } from '../ui';
 import {
   BaralhoVazioNoQuest,
   EsperaDaRevisaoNoQuest,
@@ -58,7 +38,6 @@ import {
   OpcoesDaRevisaoNoQuest,
   RodadaDoQuest,
 } from './revisao/quest/RevisaoDoQuest';
-import Dialogo, { CampoLinha, Interruptor, Segmentos } from './vocab/Dialogo';
 import GavetaDaPalavra from './vocab/GavetaDaPalavra';
 
 /**
@@ -173,11 +152,8 @@ export default function Study({
   onSeedConsumed,
   ageProfile = 'pro',
 }: StudyProps = {}) {
-  /** Quest com as telas novas (maquete de 01/10/2026, tela 8): a mesma revisão, no desenho do headset
-      (`revisao/quest/RevisaoDoQuest.tsx`). O estado, a fila e as notas são os daqui. */
-  const questNovo = useQuestNovo();
   /* DO APARELHO, não do desenho: o mesmo desenho vale no computador, onde há teclado físico. As teclas
-     (Espaço, 1 a 4, Z) e o foco no campo de digitar perguntam por aqui, nunca por `questNovo`. */
+     (Espaço, 1 a 4, Z) e o foco no campo de digitar perguntam por aqui. */
   const temTeclado = useMemo(() => recursosDoAparelho(perfilDoDispositivo()).tecladoFisico, []);
   const [vocabCards, setVocabCards] = useState<VocabCard[]>([]);
   /**
@@ -674,23 +650,16 @@ export default function Study({
 
   const dialogos = (
     <>
-      {opcoesAbertas &&
-        (questNovo ? (
-          <OpcoesDaRevisaoNoQuest
-            valores={valoresDaRevisao}
-            padrao={PADRAO}
-            temVoz={haVozPara(studyLang)}
-            producao={producaoNoQuest}
-            aoTrocar={trocarOpcoes}
-            aoFechar={() => setOpcoesAbertas(false)}
-          />
-        ) : (
-          <OpcoesDaRevisao
-            valores={valoresDaRevisao}
-            aoTrocar={trocarOpcoes}
-            aoFechar={() => setOpcoesAbertas(false)}
-          />
-        ))}
+      {opcoesAbertas && (
+        <OpcoesDaRevisaoNoQuest
+          valores={valoresDaRevisao}
+          padrao={PADRAO}
+          temVoz={haVozPara(studyLang)}
+          producao={producaoNoQuest}
+          aoTrocar={trocarOpcoes}
+          aoFechar={() => setOpcoesAbertas(false)}
+        />
+      )}
       {editando && (
         <GavetaDaPalavra
           key={editando.id}
@@ -717,60 +686,20 @@ export default function Study({
 
   // ── Carregando ─────────────────────────────────────────────────────────────
   if (!deckLoaded) {
-    if (questNovo) return <EsperaDaRevisaoNoQuest titulo={tituloDaRevisao} aoVoltar={voltarAoVocabulario} />;
-    return (
-      <Tela largura="larga">
-        <CabecalhoDeTela
-          voltar={{ rotulo: 'Vocabulário', aoClicar: voltarAoVocabulario }}
-          sobrancelha="Revisão"
-          icone={Target}
-          titulo={tituloDaRevisao}
-        />
-        <p className="mut" aria-busy>
-          Carregando o seu baralho…
-        </p>
-      </Tela>
-    );
+    return <EsperaDaRevisaoNoQuest titulo={tituloDaRevisao} aoVoltar={voltarAoVocabulario} />;
   }
 
   // ── Baralho vazio: o estado que ensina de onde as palavras vêm ─────────────
   if (deckSize === 0) {
-    if (questNovo)
-      return (
-        <BaralhoVazioNoQuest
-          titulo={tituloDaRevisao}
-          motivo={copyDoPerfil('block.emptyDeck', ageProfile)}
-          aoVoltar={voltarAoVocabulario}
-          aoCapturar={onChangeView ? () => onChangeView('capture') : undefined}
-        >
-          {paleta}
-        </BaralhoVazioNoQuest>
-      );
     return (
-      <Tela largura="larga">
-        <CabecalhoDeTela
-          voltar={{ rotulo: 'Vocabulário', aoClicar: voltarAoVocabulario }}
-          sobrancelha="Revisão"
-          icone={Target}
-          titulo={tituloDaRevisao}
-        />
-        <section className="cartao">
-          <div className="vazio">
-            <IconeEmBloco icone={Brain} />
-            <h3>{copyDoPerfil('block.emptyDeck', ageProfile)}</h3>
-            <p>
-              Clique numa palavra em qualquer transcrição, ou selecione um trecho e use o botão direito, para mandá-la
-              ao deck. A revisão espaçada aparece aqui assim que houver cartões.
-            </p>
-            {onChangeView && (
-              <button type="button" className="btn btn-solid" onClick={() => onChangeView('capture')}>
-                Capturar uma sessão
-              </button>
-            )}
-          </div>
-        </section>
+      <BaralhoVazioNoQuest
+        titulo={tituloDaRevisao}
+        motivo={copyDoPerfil('block.emptyDeck', ageProfile)}
+        aoVoltar={voltarAoVocabulario}
+        aoCapturar={onChangeView ? () => onChangeView('capture') : undefined}
+      >
         {paleta}
-      </Tela>
+      </BaralhoVazioNoQuest>
     );
   }
 
@@ -797,162 +726,57 @@ export default function Study({
       const quando = d < amanha.getTime() ? 'ainda hoje' : dias <= 1 ? 'amanhã' : `em ${dias} dias`;
       return { quando, n: dues.filter((x) => x < fimDoDia.getTime()).length };
     })();
-    if (questNovo)
-      return (
-        <FimDaRodadaNoQuest
-          feitoEm={tp(feitas, 'A palavra foi revisada.', 'As {n} palavras foram revisadas.')}
-          proximo={
-            dueCount > 0
-              ? tp(dueCount, 'Ainda vence {n} palavra agora.', 'Ainda vencem {n} palavras agora.')
-              : proxima
-                ? tp(
-                    proxima.n,
-                    'A próxima abre {quando} com {n} palavra.',
-                    'A próxima abre {quando} com {n} palavras.',
-                    { quando: proxima.quando },
-                  )
-                : t('Nada mais vence agora.')
-          }
-          revisoes={feitas}
-          acerto={feitas ? `${Math.round((acertos / feitas) * 100)}%` : '—'}
-          tempo={seg ? `${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, '0')}` : '—'}
-          xp={xp}
-          seeds={v2 ? creditado.seeds : null}
-          resumo={v2 ? <ResumoDaPratica /> : undefined}
-          podeDesfazer={historico.length > 0}
-          aoDesfazer={() => void desfazer()}
-          aoJogar={() => onChangeView?.('play')}
-          aoEstatisticas={() => onChangeView?.('estatisticas')}
-          aoInicio={() => onChangeView?.('hub')}
-          aoVoltar={voltarAoVocabulario}
-          atalhos={temTeclado}
-        >
-          {paleta}
-        </FimDaRodadaNoQuest>
-      );
     return (
-      <Tela largura="larga">
-        <CabecalhoDeTela
-          voltar={{ rotulo: 'Vocabulário', aoClicar: voltarAoVocabulario }}
-          sobrancelha="Revisão"
-          icone={Target}
-          titulo="Rodada concluída"
-          sub={`${feitas === 1 ? 'A palavra foi revisada' : `As ${feitas} palavras foram revisadas`}.${proxima ? ` A próxima rodada abre ${proxima.quando}.` : ''}`}
-        />
-        <section className="cartao p6 fim-rev entra">
-          <div className="vazio" style={{ padding: '12px 0 20px' }}>
-            <IconeEmBloco icone={PartyPopper} />
-            <h3>Você fechou a rodada</h3>
-            <p>
-              {dueCount > 0
-                ? `Ainda ${dueCount === 1 ? 'vence 1 palavra' : `vencem ${dueCount} palavras`} agora.`
-                : proxima
-                  ? `A próxima abre ${proxima.quando} com ${proxima.n} palavra${proxima.n === 1 ? '' : 's'}.`
-                  : 'Nada mais vence agora.'}
-            </p>
-          </div>
-          <div className="ladrilhos">
-            <div className="cartao ladrilho">
-              <span className="label-mono">Revisões</span>
-              <span className="v">{feitas}</span>
-            </div>
-            <div className="cartao ladrilho">
-              <span className="label-mono">Acerto</span>
-              <span className="v good">{feitas ? `${Math.round((acertos / feitas) * 100)}%` : '—'}</span>
-            </div>
-            <div className="cartao ladrilho">
-              <span className="label-mono">Tempo</span>
-              <span className="v">{seg ? `${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, '0')}` : '—'}</span>
-            </div>
-            <div className="cartao ladrilho">
-              <span className="label-mono">XP</span>
-              <span className="v acc">+{xp}</span>
-            </div>
-            {v2 && (
-              <div className="cartao ladrilho" data-seeds-da-revisao={creditado.seeds}>
-                <span className="label-mono">Seeds</span>
-                <span className="v good">+{creditado.seeds}</span>
-              </div>
-            )}
-          </div>
-          {/* Recompensas v2: as missões do dia e a ofensiva, lidas do servidor depois da rodada. */}
-          {v2 && <ResumoDaPratica />}
-          <div className="linha" style={{ gap: 8, justifyContent: 'center', marginTop: 20, flexWrap: 'wrap' }}>
-            <button type="button" className="btn btn-solid" onClick={() => onChangeView?.('play')}>
-              <Gamepad2 aria-hidden /> Jogar com as mesmas
-            </button>
-            <button type="button" className="btn btn-outline" onClick={() => onChangeView?.('estatisticas')}>
-              <ChartColumn aria-hidden /> Ver estatísticas
-            </button>
-            <button type="button" className="btn btn-outline" onClick={() => onChangeView?.('hub')}>
-              Voltar ao início
-            </button>
-          </div>
-        </section>
+      <FimDaRodadaNoQuest
+        feitoEm={tp(feitas, 'A palavra foi revisada.', 'As {n} palavras foram revisadas.')}
+        proximo={
+          dueCount > 0
+            ? tp(dueCount, 'Ainda vence {n} palavra agora.', 'Ainda vencem {n} palavras agora.')
+            : proxima
+              ? tp(proxima.n, 'A próxima abre {quando} com {n} palavra.', 'A próxima abre {quando} com {n} palavras.', {
+                  quando: proxima.quando,
+                })
+              : t('Nada mais vence agora.')
+        }
+        revisoes={feitas}
+        acerto={feitas ? `${Math.round((acertos / feitas) * 100)}%` : '—'}
+        tempo={seg ? `${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, '0')}` : '—'}
+        xp={xp}
+        seeds={v2 ? creditado.seeds : null}
+        resumo={v2 ? <ResumoDaPratica /> : undefined}
+        podeDesfazer={historico.length > 0}
+        aoDesfazer={() => void desfazer()}
+        aoJogar={() => onChangeView?.('play')}
+        aoEstatisticas={() => onChangeView?.('estatisticas')}
+        aoInicio={() => onChangeView?.('hub')}
+        aoVoltar={voltarAoVocabulario}
+        atalhos={temTeclado}
+      >
         {paleta}
-      </Tela>
+      </FimDaRodadaNoQuest>
     );
   }
 
   // ── Fora de uma rodada (encerrada sem sair da tela) ────────────────────────
   if (!reviewing || !currentCard) {
-    if (questNovo)
-      return (
-        <ForaDaRodadaNoQuest
-          titulo={tituloDaRevisao}
-          quantas={dueCount || deckSize}
-          chamada={
-            dueCount > 0
-              ? copyDoPerfil('now.due.title', ageProfile, { n: dueCount })
-              : copyDoPerfil('now.clear.title', ageProfile)
-          }
-          explicacao={copyDoPerfil('now.due.sub', ageProfile, { sched: scheduler === 'fsrs' ? 'FSRS-5' : 'Leitner' })}
-          producao={producaoNoQuest}
-          aoComecar={startReviewSession}
-          aoOpcoes={() => setOpcoesAbertas(true)}
-          aoVoltar={voltarAoVocabulario}
-        >
-          {dialogos}
-          {paleta}
-        </ForaDaRodadaNoQuest>
-      );
     return (
-      <Tela largura="larga">
-        <CabecalhoDeTela
-          voltar={{ rotulo: 'Vocabulário', aoClicar: voltarAoVocabulario }}
-          sobrancelha="Revisão"
-          icone={Target}
-          titulo={tituloDaRevisao}
-          acoes={
-            <button
-              type="button"
-              className="btn btn-outline peq icone"
-              aria-label="Opções da revisão"
-              onClick={() => setOpcoesAbertas(true)}
-            >
-              <Settings2 aria-hidden />
-            </button>
-          }
-        />
-        <section className="cartao faixa-rev">
-          <span className="contador">{dueCount || deckSize}</span>
-          <div style={{ flex: 1, minWidth: 180 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 800 }}>
-              {dueCount > 0
-                ? copyDoPerfil('now.due.title', ageProfile, { n: dueCount })
-                : copyDoPerfil('now.clear.title', ageProfile)}
-            </h2>
-            <p className="mut" style={{ fontSize: 13 }}>
-              {copyDoPerfil('now.due.sub', ageProfile, { sched: scheduler === 'fsrs' ? 'FSRS-5' : 'Leitner' })}
-            </p>
-          </div>
-          <button type="button" className="btn btn-solid" onClick={startReviewSession}>
-            <Target aria-hidden /> {tituloDaRevisao}
-          </button>
-        </section>
+      <ForaDaRodadaNoQuest
+        titulo={tituloDaRevisao}
+        quantas={dueCount || deckSize}
+        chamada={
+          dueCount > 0
+            ? copyDoPerfil('now.due.title', ageProfile, { n: dueCount })
+            : copyDoPerfil('now.clear.title', ageProfile)
+        }
+        explicacao={copyDoPerfil('now.due.sub', ageProfile, { sched: scheduler === 'fsrs' ? 'FSRS-5' : 'Leitner' })}
+        producao={producaoNoQuest}
+        aoComecar={startReviewSession}
+        aoOpcoes={() => setOpcoesAbertas(true)}
+        aoVoltar={voltarAoVocabulario}
+      >
         {dialogos}
         {paleta}
-      </Tela>
+      </ForaDaRodadaNoQuest>
     );
   }
 
@@ -976,23 +800,6 @@ export default function Study({
     setTypingCorrect(score >= 0.85);
     setTypingVerified(true);
   };
-  const resultado = (certo: boolean, texto: React.ReactNode) => (
-    <div className="resp">
-      <p style={{ fontWeight: 700, color: certo ? 'var(--good-ink)' : 'var(--error-ink)' }}>
-        {certo && <CheckCircle2 style={{ display: 'inline', width: 16, height: 16, verticalAlign: -3 }} aria-hidden />}{' '}
-        {texto}
-      </p>
-      <button
-        type="button"
-        className="btn btn-solid"
-        style={{ marginTop: 14, minWidth: 220 }}
-        onClick={(e) => avancar(format === 'mc' ? 'mc' : 'typing', e.currentTarget)}
-      >
-        Avançar
-      </button>
-    </div>
-  );
-
   const encerrar = () => {
     setReviewing(false);
     setEncerrada(true);
@@ -1034,276 +841,73 @@ export default function Study({
     />
   );
 
-  if (questNovo) {
-    const notasDoQuest: NotaDoQuest[] =
-      scheduler === 'fsrs'
-        ? notas.map(([nota, classe, rotulo]) => ({
-            id: String(nota),
-            classe,
-            rotulo: t(rotulo),
-            detalhe: intervaloDaNota(currentCard, nota, agora, retencao),
-            tecla: String(nota),
-            aoDar: (origem: Element) => void handleFsrsFeedback(currentCard.id, nota, undefined, origem),
-          }))
-        : [
-            {
-              id: 'errei',
-              classe: 'e',
-              rotulo: t('Errei'),
-              detalhe: t('volta à caixa 1'),
-              aoDar: () => handleLeitnerFeedback(currentCard.id, false),
-            },
-            {
-              id: 'acertei',
-              classe: 'b',
-              rotulo: t('Acertei'),
-              detalhe: t('avança a caixa'),
-              aoDar: () => handleLeitnerFeedback(currentCard.id, true),
-            },
-          ];
-    return (
-      <RodadaDoQuest
-        titulo={isActiveProductionOnly ? copyDoPerfil('ex.active_production', ageProfile) : tituloDaRevisao}
-        rotulo={isActiveProductionOnly ? t('Produção ativa') : t('Revisão de hoje')}
-        indice={currentReviewIndex}
-        total={reviewCards.length}
-        cartao={currentCard}
-        selo={seloDoCartao(currentCard)}
-        pele={classesDaPalavra(currentCard)}
-        /* A frase só diz de onde veio quando a palavra saiu DESTA sessão gravada (maquete do Quest). */
-        origemDaFrase={recording && currentCard.sourceSessionId === recording.id ? recording.title : undefined}
-        formato={format}
-        notas={notasDoQuest}
-        mostrandoResposta={showAnswer}
-        aoMostrarResposta={mostrarResposta}
-        tentativa={typingAttempt}
-        aoDigitar={setTypingAttempt}
-        verificado={typingVerified}
-        certo={typingCorrect}
-        aoVerificar={verificarDigitacao}
-        alternativas={alternativas}
-        aoEscolher={escolherAlternativa}
-        aoAvancar={(origem) => avancar(format === 'mc' ? 'mc' : 'typing', origem)}
-        producao={producaoAtiva}
-        podeDesfazer={historico.length > 0}
-        aoDesfazer={() => void desfazer()}
-        aoOuvir={temVoz ? () => playWordTTS(currentCard.word) : undefined}
-        aoEditar={() => setEditando(currentCard)}
-        aoSuspender={() => void suspender(currentCard)}
-        aoOpcoes={() => setOpcoesAbertas(true)}
-        aoEncerrar={encerrar}
-        aoVoltar={voltarAoVocabulario}
-        atalhos={temTeclado}
-      >
-        {dialogos}
-        {paleta}
-      </RodadaDoQuest>
-    );
-  }
-
+  const notasDoQuest: NotaDoQuest[] =
+    scheduler === 'fsrs'
+      ? notas.map(([nota, classe, rotulo]) => ({
+          id: String(nota),
+          classe,
+          rotulo: t(rotulo),
+          detalhe: intervaloDaNota(currentCard, nota, agora, retencao),
+          tecla: String(nota),
+          aoDar: (origem: Element) => void handleFsrsFeedback(currentCard.id, nota, undefined, origem),
+        }))
+      : [
+          {
+            id: 'errei',
+            classe: 'e',
+            rotulo: t('Errei'),
+            detalhe: t('volta à caixa 1'),
+            aoDar: () => handleLeitnerFeedback(currentCard.id, false),
+          },
+          {
+            id: 'acertei',
+            classe: 'b',
+            rotulo: t('Acertei'),
+            detalhe: t('avança a caixa'),
+            aoDar: () => handleLeitnerFeedback(currentCard.id, true),
+          },
+        ];
   return (
-    <Tela largura="larga" className="rev-rodada">
-      <CabecalhoDeTela
-        voltar={{ rotulo: 'Vocabulário', aoClicar: voltarAoVocabulario }}
-        sobrancelha={`Revisão · ${currentReviewIndex + 1} de ${reviewCards.length}`}
-        icone={Target}
-        titulo={isActiveProductionOnly ? copyDoPerfil('ex.active_production', ageProfile) : tituloDaRevisao}
-        sub="Tente lembrar a tradução antes de mostrar a resposta. Depois diga o quanto foi fácil."
-        acoes={
-          <>
-            <button
-              type="button"
-              className="btn btn-outline peq icone"
-              aria-label="Opções da revisão"
-              onClick={() => setOpcoesAbertas(true)}
-            >
-              <Settings2 aria-hidden />
-            </button>
-            <button type="button" className="btn btn-outline peq" onClick={encerrar}>
-              <X aria-hidden /> Encerrar
-            </button>
-            <div
-              className="barra"
-              style={{ width: 160 }}
-              role="progressbar"
-              aria-label="Progresso da rodada"
-              aria-valuenow={currentReviewIndex}
-              aria-valuemin={0}
-              aria-valuemax={reviewCards.length}
-            >
-              <span style={{ width: `${(currentReviewIndex / reviewCards.length) * 100}%` }} />
-            </div>
-          </>
-        }
-      />
-
-      {/* A PELE DE CARTÃO equipada (onda 4): a moldura diz se a palavra é nova, aprendida ou
-          dominada — pela fase do FSRS que o cartão já carrega. */}
-      <section className={`cartao flash ${classesDaPalavra(currentCard)}`}>
-        <span className="badge neu">{seloDoCartao(currentCard)}</span>
-
-        {format === 'active-production' ? (
-          <div style={{ marginTop: 14, textAlign: 'left' }}>{producaoAtiva}</div>
-        ) : format === 'typing' ? (
-          <>
-            <div className="termo" style={{ marginTop: 14 }}>
-              {currentCard.word}
-            </div>
-            {currentCard.sentence && <p className="exemplo">“{currentCard.sentence}”</p>}
-            {!typingVerified ? (
-              <div className="resp" style={{ border: 0, paddingTop: 0 }}>
-                <label className="sr" htmlFor="rev-digitar">
-                  Digite a tradução
-                </label>
-                <input
-                  id="rev-digitar"
-                  type="text"
-                  className="campo"
-                  style={{ textAlign: 'center', maxWidth: 320, margin: '0 auto' }}
-                  value={typingAttempt}
-                  onChange={(e) => setTypingAttempt(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && typingAttempt.trim()) verificarDigitacao();
-                  }}
-                  placeholder="Digite a tradução…"
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  className="btn btn-solid"
-                  style={{ marginTop: 12, minWidth: 220 }}
-                  disabled={!typingAttempt.trim()}
-                  onClick={verificarDigitacao}
-                >
-                  Verificar
-                </button>
-              </div>
-            ) : (
-              resultado(
-                typingCorrect,
-                typingCorrect ? (
-                  <>Correto! A tradução era “{currentCard.translation}”</>
-                ) : (
-                  <>
-                    Incorreto. A tradução era “<b style={{ font: 'inherit' }}>{currentCard.translation || '—'}</b>”
-                    (você escreveu “{typingAttempt}”)
-                  </>
-                ),
-              )
-            )}
-          </>
-        ) : format === 'mc' ? (
-          <>
-            <FraseComLacuna sentence={currentCard.sentence} word={currentCard.word} />
-            <p className="exemplo">{currentCard.translation}</p>
-            {!typingVerified ? (
-              <div className="fsrs" role="group" aria-label="Qual palavra completa a frase">
-                {alternativas.map((option, idx) => (
-                  <button key={idx} type="button" onClick={() => escolherAlternativa(option)}>
-                    {option}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              resultado(
-                typingCorrect,
-                typingCorrect ? (
-                  <>Correto!</>
-                ) : (
-                  <>
-                    Incorreto. Você selecionou “{typingAttempt}”. A resposta correta era “{currentCard.word}”
-                  </>
-                ),
-              )
-            )}
-          </>
-        ) : (
-          /* LEMBRAR — o cartão do protótipo: a palavra e a frase; a tradução só depois. */
-          <>
-            <div className="termo" style={{ marginTop: 14 }}>
-              {currentCard.word}
-            </div>
-            {currentCard.sentence && <p className="exemplo">“{currentCard.sentence}”</p>}
-            {showAnswer ? (
-              <div className="resp">
-                <b>{currentCard.translation || '—'}</b>
-                {currentCard.explanation && (
-                  <p className="mut" style={{ fontSize: 13.5, marginTop: 6 }}>
-                    {currentCard.explanation}
-                  </p>
-                )}
-                {scheduler === 'fsrs' ? (
-                  <div className="fsrs" role="group" aria-label="Quão fácil foi lembrar">
-                    {notas.map(([nota, cls, rotulo]) => (
-                      <button
-                        key={nota}
-                        type="button"
-                        className={cls}
-                        onClick={(e) => void handleFsrsFeedback(currentCard.id, nota, undefined, e.currentTarget)}
-                      >
-                        {rotulo}
-                        <small>{intervaloDaNota(currentCard, nota, agora, retencao)}</small>
-                        <kbd data-precisa="teclado">{nota}</kbd>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="fsrs" role="group" aria-label="Acertou?" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                    <button type="button" className="e" onClick={() => handleLeitnerFeedback(currentCard.id, false)}>
-                      Errei<small>volta à caixa 1</small>
-                    </button>
-                    <button type="button" className="b" onClick={() => handleLeitnerFeedback(currentCard.id, true)}>
-                      Acertei<small>avança a caixa</small>
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="resp" style={{ border: 0, paddingTop: 0 }}>
-                <button type="button" className="btn btn-solid" style={{ minWidth: 220 }} onClick={mostrarResposta}>
-                  <Eye aria-hidden /> Mostrar resposta
-                </button>
-                <p className="mut" style={{ fontSize: 12, marginTop: 10 }} data-precisa="teclado">
-                  ou aperte <kbd>Espaço</kbd>
-                </p>
-              </div>
-            )}
-          </>
-        )}
-      </section>
-
-      <div className="rev-ferr" role="toolbar" aria-label="Ações do cartão">
-        <button
-          type="button"
-          className="btn btn-outline peq"
-          disabled={!historico.length}
-          onClick={() => void desfazer()}
-        >
-          <Undo2 aria-hidden /> Desfazer <kbd data-precisa="teclado">Z</kbd>
-        </button>
-        <button
-          type="button"
-          className="btn btn-outline peq"
-          data-precisa={temVoz ? undefined : 'voz'}
-          onClick={() => playWordTTS(currentCard.word)}
-        >
-          <Volume2 aria-hidden /> Ouvir
-        </button>
-        <button type="button" className="btn btn-outline peq" onClick={() => setEditando(currentCard)}>
-          <Pencil aria-hidden /> Editar cartão
-        </button>
-        <button type="button" className="btn btn-outline peq" onClick={() => void suspender(currentCard)}>
-          <Pause aria-hidden /> Suspender
-        </button>
-      </div>
-
+    <RodadaDoQuest
+      titulo={isActiveProductionOnly ? copyDoPerfil('ex.active_production', ageProfile) : tituloDaRevisao}
+      rotulo={isActiveProductionOnly ? t('Produção ativa') : t('Revisão de hoje')}
+      indice={currentReviewIndex}
+      total={reviewCards.length}
+      cartao={currentCard}
+      selo={seloDoCartao(currentCard)}
+      pele={classesDaPalavra(currentCard)}
+      /* A frase só diz de onde veio quando a palavra saiu DESTA sessão gravada (maquete do Quest). */
+      origemDaFrase={recording && currentCard.sourceSessionId === recording.id ? recording.title : undefined}
+      formato={format}
+      notas={notasDoQuest}
+      mostrandoResposta={showAnswer}
+      aoMostrarResposta={mostrarResposta}
+      tentativa={typingAttempt}
+      aoDigitar={setTypingAttempt}
+      verificado={typingVerified}
+      certo={typingCorrect}
+      aoVerificar={verificarDigitacao}
+      alternativas={alternativas}
+      aoEscolher={escolherAlternativa}
+      aoAvancar={(origem) => avancar(format === 'mc' ? 'mc' : 'typing', origem)}
+      producao={producaoAtiva}
+      podeDesfazer={historico.length > 0}
+      aoDesfazer={() => void desfazer()}
+      aoOuvir={temVoz ? () => playWordTTS(currentCard.word) : undefined}
+      aoEditar={() => setEditando(currentCard)}
+      aoSuspender={() => void suspender(currentCard)}
+      aoOpcoes={() => setOpcoesAbertas(true)}
+      aoEncerrar={encerrar}
+      aoVoltar={voltarAoVocabulario}
+      atalhos={temTeclado}
+    >
       {dialogos}
       {paleta}
-    </Tela>
+    </RodadaDoQuest>
   );
 }
 
-/** "Opções da revisão" — o diálogo R1 do protótipo, os seis campos, todos valendo de verdade. */
+/** Os seis campos de "Opções da revisão" (`OpcoesDaRevisaoNoQuest`), todos valendo de verdade. */
 type ValoresDaRevisao = {
   novas: number;
   revisoes: number;
@@ -1312,102 +916,3 @@ type ValoresDaRevisao = {
   ouvir: boolean;
   retencao: number;
 };
-function OpcoesDaRevisao({
-  valores,
-  aoTrocar,
-  aoFechar,
-}: {
-  valores: ValoresDaRevisao;
-  aoTrocar: (v: Partial<ValoresDaRevisao>) => void;
-  aoFechar: () => void;
-}) {
-  const descricao: Record<TipoDeCartao, string> = {
-    lembrar: 'Você pensa e mostra a resposta.',
-    digitar: 'Você escreve a tradução.',
-    escolha: 'Quatro alternativas.',
-  };
-  const numero = (campo: 'novas' | 'revisoes', min: number, max: number, rotulo: string) => (
-    <input
-      className="campo num"
-      type="number"
-      min={min}
-      max={max}
-      value={valores[campo]}
-      aria-label={rotulo}
-      onChange={(e) => {
-        const n = Math.round(Number(e.target.value));
-        if (Number.isFinite(n)) aoTrocar({ [campo]: Math.min(max, Math.max(min, n)) });
-      }}
-    />
-  );
-  return (
-    <Dialogo
-      icone={SlidersHorizontal}
-      titulo="Opções da revisão"
-      sub="Valem para todas as rodadas. A agenda é do FSRS."
-      aoFechar={aoFechar}
-    >
-      <div className="dlg-corpo pilha rola-dlg">
-        <CampoLinha rotulo="Novas por dia" desc="Quantas palavras nunca vistas entram por dia.">
-          {numero('novas', 0, 200, 'Novas por dia')}
-        </CampoLinha>
-        <CampoLinha rotulo="Revisões por dia" desc="Um teto para dias de atraso; o resto fica para amanhã.">
-          {numero('revisoes', 10, 999, 'Revisões por dia')}
-        </CampoLinha>
-        <CampoLinha rotulo="Ordem">
-          <Segmentos<OrdemDaRodada>
-            atual={valores.ordem}
-            aoTrocar={(o) => aoTrocar({ ordem: o })}
-            rotulo="Ordem"
-            opcoes={[
-              ['vencidas', 'Vencidas primeiro'],
-              ['misturar', 'Misturar'],
-            ]}
-          />
-        </CampoLinha>
-        <CampoLinha rotulo="Tipo de cartão" desc={descricao[valores.tipo]}>
-          <Segmentos<TipoDeCartao>
-            atual={valores.tipo}
-            aoTrocar={(t) => aoTrocar({ tipo: t })}
-            rotulo="Tipo de cartão"
-            opcoes={[
-              ['lembrar', 'Lembrar'],
-              ['digitar', 'Digitar'],
-              ['escolha', 'Escolher'],
-            ]}
-          />
-        </CampoLinha>
-        <CampoLinha rotulo="Ouvir a palavra ao mostrar">
-          <Interruptor
-            ligado={valores.ouvir}
-            aoTrocar={() => aoTrocar({ ouvir: !valores.ouvir })}
-            rotulo="Ouvir a palavra ao mostrar"
-          />
-        </CampoLinha>
-        <CampoLinha
-          rotulo={`Meta de retenção · ${valores.retencao}%`}
-          desc="Mais alta = palavras voltam mais cedo, mais revisões por dia."
-        >
-          <input
-            type="range"
-            className="trilho"
-            min={80}
-            max={97}
-            value={valores.retencao}
-            aria-label="Meta de retenção"
-            style={{ '--p': `${((valores.retencao - 80) / 17) * 100}%` } as React.CSSProperties}
-            onChange={(e) => aoTrocar({ retencao: Number(e.target.value) })}
-          />
-        </CampoLinha>
-      </div>
-      <div className="dlg-pe">
-        <button type="button" className="link" style={{ marginRight: 'auto' }} onClick={() => aoTrocar({ ...PADRAO })}>
-          Voltar ao padrão
-        </button>
-        <button type="button" className="btn btn-solid" onClick={(e) => fecharDialogoDe(e.currentTarget)}>
-          <Check aria-hidden /> Pronto
-        </button>
-      </div>
-    </Dialogo>
-  );
-}

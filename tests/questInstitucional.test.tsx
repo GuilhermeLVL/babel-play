@@ -106,13 +106,6 @@ describe('Sobre no Quest', () => {
     fireEvent.click(screen.getByRole('button', { name: /Política de privacidade/ }))
     expect(screen.getByRole('dialog', { name: 'Política de privacidade' })).toBeTruthy()
   })
-
-  it('fora do Quest, a tela de sempre', () => {
-    quest.ligado = false
-    const { container } = render(<Sobre />)
-    expect(container.querySelector('.q-palco')).toBeNull()
-    expect(container.querySelector('.cartao.hero')).not.toBeNull()
-  })
 })
 
 describe('Ajuda no Quest', () => {
@@ -172,16 +165,6 @@ describe('Ajuda no Quest', () => {
     expect(container.querySelectorAll('.q-tile')).toHaveLength(3)
     expect(within(screen.getByTestId('contato-do-quest')).getByRole('link', { name: 'GitHub' })).toBeTruthy()
   })
-
-  it('no computador, a tela de sempre continua com os cinco atalhos (o menu lateral recolhe com Ctrl+B)', () => {
-    quest.ligado = false
-    quest.aparelho = 'desktop-com-gpu'
-    render(<Ajuda />)
-    fireEvent.click(screen.getByRole('button', { name: 'Ver todos' }))
-    const dlg = screen.getByRole('dialog', { name: 'Atalhos de teclado' })
-    expect(dlg.querySelectorAll('.atalho')).toHaveLength(5)
-    expect(dlg.textContent).toContain('Recolher ou abrir o menu lateral')
-  })
 })
 
 describe('Diagnóstico no Quest', () => {
@@ -202,7 +185,8 @@ describe('Diagnóstico no Quest', () => {
     const json = JSON.parse((screen.getByTestId('diagnostico-json') as HTMLTextAreaElement).value)
     expect(json.microfone).toBeNull()
     expect(json.modelos).toEqual([])
-    expect(json.telaNova).toBe(true)
+    /* A chave das telas novas saiu com o desenho de antes: o relatório não a traz mais. */
+    expect(json).not.toHaveProperty('telaNova')
 
     // Só um painel à vista por vez.
     const visiveis = () =>
@@ -255,7 +239,7 @@ describe('Diagnóstico no Quest', () => {
     expect(copiar.textContent).toContain('Copiar o resultado')
   })
 
-  it('headset: a chave das telas novas, a vibração em três botões e a chave de dono', async () => {
+  it('headset: a vibração em três botões e a chave de dono; a chave das telas novas não existe mais', async () => {
     render(<Diagnostico />)
     fireEvent.click(aba('Headset'))
 
@@ -279,11 +263,8 @@ describe('Diagnóstico no Quest', () => {
     fireEvent.change(screen.getByLabelText('Chave de dono'), { target: { value: ' segredo ' } })
     expect(localStorage.getItem('babel.chaveDoDono')).toBe('segredo')
 
-    const chave = screen.getByRole('button', { name: 'Telas novas: ligadas' })
-    expect(chave.getAttribute('aria-pressed')).toBe('true')
-    fireEvent.click(chave)
-    expect(localStorage.getItem('babel.quest.telaNova')).toBe('nao')
-    expect(screen.getByRole('button', { name: 'Telas novas: desligadas' }).getAttribute('aria-pressed')).toBe('false')
+    expect(screen.queryByRole('button', { name: /Telas novas/ })).toBeNull()
+    expect(localStorage.getItem('babel.quest.telaNova')).toBeNull()
   })
 
   it('vibração: os DOIS caminhos (navigator.vibrate e o motor do controle) e o relato por controle no JSON', async () => {
@@ -318,34 +299,6 @@ describe('Diagnóstico no Quest', () => {
       })
     } finally {
       Object.assign(navigator, { vibrate: undefined, getGamepads: undefined })
-    }
-  })
-
-  it('chave DESLIGADA no Quest: a tela de sempre, com o caminho de volta no topo', async () => {
-    quest.ligado = false
-    localStorage.setItem('babel.quest.telaNova', 'nao')
-    const { container } = render(<Diagnostico />)
-    expect(container.querySelector('.q-palco')).toBeNull()
-    expect(container.querySelector('.tela')).not.toBeNull()
-    expect(screen.getByRole('button', { name: 'Telas novas: desligadas' })).toBeTruthy()
-
-    const aviso = screen.getByTestId('religar-telas-novas')
-    expect(aviso.className).toContain('religar-telas-novas')
-    fireEvent.click(within(aviso).getByRole('button', { name: 'Ligar de novo' }))
-    expect(localStorage.getItem('babel.quest.telaNova')).toBeNull()
-    expect(screen.queryByTestId('religar-telas-novas')).toBeNull()
-    // A vibração tem os mesmos três botões na tela de sempre, e chama o caminho do celular.
-    const vibrate = vi.fn(() => true)
-    Object.assign(navigator, { vibrate })
-    try {
-      const grupo = within(screen.getByRole('group', { name: 'Testar a vibração do controle' }))
-      fireEvent.click(grupo.getByRole('button', { name: 'Suave' }))
-      const resultado = await screen.findByTestId('diagnostico-vibracao')
-      expect(vibrate).toHaveBeenCalledTimes(1)
-      expect(resultado.textContent).toMatch(/Vibração pelo navegador.*sim/)
-      expect(resultado.textContent).toMatch(/Controles que a página enxerga.*nenhum/)
-    } finally {
-      Object.assign(navigator, { vibrate: undefined })
     }
   })
 
@@ -407,12 +360,5 @@ describe('Página não encontrada no Quest', () => {
     expect(buscar).toHaveBeenCalledTimes(1)
     fireEvent.click(screen.getByRole('button', { name: 'Ajuda' }))
     expect(ir).toHaveBeenLastCalledWith('ajuda')
-  })
-
-  it('fora do Quest, o cartão de sempre', () => {
-    quest.ligado = false
-    const { container } = render(<NaoEncontrado onChangeView={() => {}} onBuscar={() => {}} />)
-    expect(container.querySelector('.q-palco')).toBeNull()
-    expect(container.querySelector('.cartao.sucesso')).not.toBeNull()
   })
 })

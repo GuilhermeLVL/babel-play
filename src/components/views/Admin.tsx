@@ -4,11 +4,9 @@ import { CreditCard, Flag, Gauge, type LucideIcon, ShieldCheck, TriangleAlert, U
 import { Suspense, useCallback, useState } from 'react';
 
 import { useEhAdmin } from '../../lib/adminAcesso';
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../lib/i18n';
 import { lazyComRecarga } from '../../lib/lazyComRecarga';
 import { usePerfil } from '../../lib/usePerfil';
-import { Abas, CabecalhoDeTela, Tela } from '../ui';
 import PainelCobranca from './admin/PainelCobranca';
 import PainelContas from './admin/PainelContas';
 import PainelErros from './admin/PainelErros';
@@ -43,7 +41,6 @@ export default function Admin({
 }) {
   const { carregando } = usePerfil();
   const ehAdmin = useEhAdmin();
-  const questNovo = useQuestNovo();
   const [aba, setAba] = useState<IdDaAba>('resumo');
   const [codigo, setCodigo] = useState<'nao' | 'pedido' | 'digitando'>('nao');
   /** Sobe depois do código aceito: cada painel remonta e busca de novo, agora com a sessão `aal2`. */
@@ -53,7 +50,7 @@ export default function Admin({
 
   if (carregando)
     return (
-      <div className={questNovo ? 'q-carregando' : 'carregando-da-tela'} role="status">
+      <div className="q-carregando" role="status">
         {t('Carregando…')}
       </div>
     );
@@ -79,11 +76,6 @@ export default function Admin({
     { id: 'flags', rotulo: t('Flags'), Icone: Flag },
   ];
   const abasDoQuest = definicao.map(({ id, rotulo, Icone }) => ({ id, rotulo, icone: <Icone aria-hidden /> }));
-  const abasDeSempre = definicao.map(({ id, rotulo, Icone }) => ({
-    id,
-    rotulo,
-    icone: <Icone className="w-4 h-4" aria-hidden />,
-  }));
 
   const painel =
     codigo === 'pedido' ? (
@@ -111,44 +103,22 @@ export default function Admin({
     </div>
   );
 
-  if (questNovo)
-    return (
-      <div className="q-palco q-admin" data-testid="admin-do-quest">
-        <header className="q-cab">
-          <div>
-            <p className="q-sobre">{t('Dono do serviço')}</p>
-            <h1>{t('Administração')}</h1>
-          </div>
-          <Botao aoClicar={() => setRodada((n) => n + 1)}>{t('Atualizar tudo')}</Botao>
-        </header>
-        <AbasDoQuest
-          itens={abasDoQuest}
-          ativo={aba}
-          aoTrocar={(id) => setAba(id as IdDaAba)}
-          rotuloDoGrupo={t('Partes da administração')}
-        />
-        {corpo}
-      </div>
-    );
-
   return (
-    <Tela largura="larga">
-      <CabecalhoDeTela
-        sobrancelha={t('Dono do serviço')}
-        icone={ShieldCheck}
-        titulo={t('Administração')}
-        sub={t('Operação do Babel Play. Cada ação pede confirmação, e o servidor confere o seu papel.')}
-        acoes={<Botao aoClicar={() => setRodada((n) => n + 1)}>{t('Atualizar tudo')}</Botao>}
-        abas={
-          <Abas
-            itens={abasDeSempre}
-            ativo={aba}
-            aoTrocar={(id) => setAba(id as IdDaAba)}
-            rotuloDoGrupo={t('Partes da administração')}
-          />
-        }
+    <div className="q-palco q-admin" data-testid="admin-do-quest">
+      <header className="q-cab">
+        <div>
+          <p className="q-sobre">{t('Dono do serviço')}</p>
+          <h1>{t('Administração')}</h1>
+        </div>
+        <Botao aoClicar={() => setRodada((n) => n + 1)}>{t('Atualizar tudo')}</Botao>
+      </header>
+      <AbasDoQuest
+        itens={abasDoQuest}
+        ativo={aba}
+        aoTrocar={(id) => setAba(id as IdDaAba)}
+        rotuloDoGrupo={t('Partes da administração')}
       />
       {corpo}
-    </Tela>
+    </div>
   );
 }

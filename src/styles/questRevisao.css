@@ -548,23 +548,6 @@ html[data-quest-novo='true'] .qr-opcoes-dlg .q-abas {
   background: var(--surface);
 }
 
-/* ── AS PEÇAS DE SEMPRE QUE OUTRAS TELAS AINDA USAM (a faixa "Prontas para revisar" da sessão) ──── */
-html[data-quest-novo='true'] :is(.fim-rev, .faixa-rev) .btn {
-  min-height: 60px;
-  padding: 0 22px;
-  font-size: 17px;
-}
-html[data-quest-novo='true'] :is(.fim-rev, .faixa-rev) .btn svg {
-  width: 20px;
-  height: 20px;
-}
-html[data-quest-novo='true'] .faixa-rev h2 {
-  font-size: 20px !important; /* 17 px vêm escritos no elemento */
-}
-html[data-quest-novo='true'] .faixa-rev p {
-  font-size: 16px !important; /* 13 px vêm escritos no elemento */
-}
-
 /* ── JANELA ESTREITA (500 × 495): o progresso desce para a segunda linha, as notas em 2 × 2 ───── */
 @media (max-width: 720px) {
   html[data-quest-novo='true'] .qr-topo {

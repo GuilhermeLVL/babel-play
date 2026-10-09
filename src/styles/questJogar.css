@@ -163,32 +163,6 @@ html[data-quest-novo='true'] .palco-jogo .ajuda-jogo .n {
   height: 26px;
   font-size: 14px;
 }
-/* O "?" das ajudas e a lista que ele abre: o que cada ajuda faz e o que custa, escrito (no computador
-   isso mora na dica ao parar o ponteiro, que o headset não tem). */
-html[data-quest-novo='true'] .palco-jogo .ajuda-jogo[data-ajudas='porque'] {
-  min-width: 60px;
-  padding: 0;
-}
-html[data-quest-novo='true'] .palco-jogo .ajuda-jogo[data-ajudas='porque'][aria-expanded='true'] {
-  border-color: var(--q-acento);
-  background: var(--q-suave);
-}
-html[data-quest-novo='true'] .palco-jogo .qj-ajudas-notas {
-  margin: -4px 0 14px;
-  padding: 12px 18px;
-  list-style: none;
-  display: grid;
-  gap: 6px;
-  border: 1.5px solid var(--border-subtle);
-  border-radius: 16px;
-  background: var(--surface);
-  font: 600 16px/1.4 var(--font-body, inherit);
-  color: var(--ink-muted);
-}
-html[data-quest-novo='true'] .palco-jogo .qj-ajudas-notas b {
-  color: var(--ink);
-  font-weight: 800;
-}
 
 /* ── TODO BOTÃO DO TABULEIRO: alvo de 48 px e o mesmo toque ───────────────────────────────────── */
 html[data-quest-novo='true'] .palco-jogo button {
@@ -228,10 +202,6 @@ html[data-quest-novo='true'] .palco-jogo :is(input, textarea) {
   min-height: 56px;
   font-size: 20px;
 }
-/* O caça-palavras escreve a medida de cada letra na marcação (41 px nesta janela): vale o piso. */
-html[data-quest-novo='true'] .palco-jogo [data-celula] {
-  font-size: 20px !important;
-}
 
 /* ── O TEXTO: 18 px para ler, nada abaixo de 14 px ────────────────────────────────────────────── */
 html[data-quest-novo='true']
@@ -264,90 +234,6 @@ html[data-quest-novo='true']
 html[data-quest-novo='true'] .palco-jogo > [class*='max-w-'],
 html[data-quest-novo='true'] .palco-jogo > div > [class*='max-w-'] {
   max-width: 1040px;
-}
-
-/* ── JOGO DE ESCOLHA (tela 6): a pergunta grande no centro e as respostas enormes ─────────────── */
-html[data-quest-novo='true'] .palco-jogo [data-tour='pergunta'] {
-  font-size: 40px;
-  line-height: 1.08;
-  text-align: center;
-}
-/* Enunciado longo (o Duelo já o marca com a classe menor): grande, mas cabendo em quatro linhas. */
-html[data-quest-novo='true'] .palco-jogo [data-tour='pergunta'][class~='text-xl'] {
-  font-size: 26px;
-  line-height: 1.2;
-}
-html[data-quest-novo='true'] .palco-jogo :is([data-tour='pista'], [data-tour='enigma']) {
-  font-size: 28px;
-  line-height: 1.2;
-  text-align: center;
-}
-html[data-quest-novo='true'] .palco-jogo :is([data-tour='alternativas'], [data-tour='opcoes'], [data-tour='cartas']) {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  width: 100%;
-}
-/* A Corrente tem três opções e a Karuta, até oito cartas: uma fileira, ou duas, sem rolar. */
-html[data-quest-novo='true'] .palco-jogo [data-tour='opcoes'] {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-html[data-quest-novo='true'] .palco-jogo [data-tour='cartas'] {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-html[data-quest-novo='true']
-  .palco-jogo
-  :is([data-tour='alternativas'], [data-tour='opcoes'], [data-tour='cartas'])
-  > button {
-  min-height: 100px;
-  aspect-ratio: auto;
-  padding: 12px 20px;
-  border-width: 2px;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  font: 800 22px/1.2 var(--font-display, inherit);
-  text-align: center;
-}
-/* CERTO E ERRADO, PELA COR E PELO ÍCONE. A cor já vinha dos jogos (verde e vermelho do tema); o
-   ícone entra aqui, ao lado do texto, pintado com a tinta do próprio botão. */
-html[data-quest-novo='true']
-  .palco-jogo
-  :is([data-tour='alternativas'], [data-tour='opcoes'], [data-tour='cartas'])
-  > button:is([class~='border-good'], [class~='border-error'])::after,
-html[data-quest-novo='true']
-  .palco-jogo
-  [data-aviso-da-jogada]:is([data-aviso-da-jogada='certo'], [data-aviso-da-jogada='erro'])::before {
-  content: '';
-  flex: none;
-  display: inline-block;
-  width: 28px;
-  height: 28px;
-  background: currentColor;
-  -webkit-mask: var(--qj-certo) center / contain no-repeat;
-  mask: var(--qj-certo) center / contain no-repeat;
-}
-html[data-quest-novo='true']
-  .palco-jogo
-  :is([data-tour='alternativas'], [data-tour='opcoes'], [data-tour='cartas'])
-  > button[class~='border-error']::after,
-html[data-quest-novo='true'] .palco-jogo [data-aviso-da-jogada='erro']::before {
-  -webkit-mask-image: var(--qj-errado);
-  mask-image: var(--qj-errado);
-}
-/* O aviso que diz qual era a resposta: texto de leitura e o ícone na frente. */
-html[data-quest-novo='true'] .palco-jogo [data-aviso-da-jogada] {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 6px 12px;
-  font-size: 18px;
-}
-html[data-quest-novo='true'] .palco-jogo [data-aviso-da-jogada] b {
-  font-size: 22px;
 }
 
 /* ── MEMÓRIA (tela 7): doze cartas grandes numa grade 4 × 3, sem rolar ────────────────────────── */
@@ -412,8 +298,7 @@ html[data-quest-novo='true'] .palco-jogo .carta.errou::after {
 }
 
 /* ── A PAUSA E A CONFIRMAÇÃO DE SAÍDA ─────────────────────────────────────────────────────────────
-   No headset a pausa é desenhada com as peças `.q-*` (o ramo `useQuestNovo()` de `CascaDaRodada.tsx`);
-   as medidas dela moram em `questJogarTelas.css` (`.qj-pausa`). */
+   A pausa é desenhada com as peças `.q-*` (`CascaDaRodada.tsx`); as medidas dela moram em `questJogarTelas.css` (`.qj-pausa`). */
 
 /* ── JANELA ESTREITA (o Quest deixa encolher até 500 × 495) ───────────────────────────────────── */
 @media (max-width: 720px) {
@@ -426,12 +311,6 @@ html[data-quest-novo='true'] .palco-jogo .carta.errou::after {
   }
   html[data-quest-novo='true'] .palco-jogo {
     padding: 12px;
-  }
-  html[data-quest-novo='true'] .palco-jogo :is([data-tour='opcoes'], [data-tour='cartas']) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  html[data-quest-novo='true'] .palco-jogo [data-tour='pergunta'] {
-    font-size: 30px;
   }
   /* Aqui a Memória rola: doze cartas legíveis não cabem em 495 px de altura. */
   html[data-quest-novo='true'] .palco-jogo .tabuleiro {

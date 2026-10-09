@@ -24,7 +24,7 @@ import { textosDoJogo, unidadeDoPlacar } from '../polimento/textos';
  *
  * As regras e os números são os do protótipo. O que é do app: as palavras (as suas), quantas são (a
  * rodada que o app montou, e não as 5 de exemplo) e o relatório por palavra, acumulado ao longo dos
- * níveis, como o `KofferGame` de sempre: `attempts` soma os erros na posição dela, `correct` diz se ela
+ * níveis, como a Mala de antes: `attempts` soma os erros na posição dela, `correct` diz se ela
  * chegou a ser posta no lugar, `hinted` se houve espiada no nível. Palavra que não chegou a ser cobrada
  * não vira resultado.
  */
@@ -140,6 +140,39 @@ export default function KofferDoPrototipo({ items, onFinish, onExit }: Props) {
     esperas.current.push(window.setTimeout(f, ms));
   };
 
+  /* O TEMPO DE MALA ABERTA É DA RODADA: com a rodada parada (pausa, explicação) ele congela, e volta de
+     onde parou. O protótipo não tem pausa; a Mala de antes congelava, e a de agora fechava sozinha. */
+  const valendo = useRef(ativo);
+  const abertas = useRef<{ resta: number; desde: number; id: number; f: () => void }[]>([]);
+  const armar = (x: (typeof abertas.current)[number]) => {
+    x.desde = Date.now();
+    x.id = window.setTimeout(() => {
+      abertas.current = abertas.current.filter((y) => y !== x);
+      x.f();
+    }, x.resta);
+  };
+  /** Como `depois`, mas o relógio só anda enquanto a rodada vale. */
+  const depoisValendo = (ms: number, f: () => void) => {
+    const x = { resta: ms, desde: 0, id: 0, f };
+    abertas.current.push(x);
+    if (valendo.current) armar(x);
+  };
+  useEffect(() => {
+    valendo.current = ativo;
+    if (!ativo) return;
+    abertas.current.forEach((x) => {
+      if (!x.id) armar(x);
+    });
+    return () => {
+      abertas.current.forEach((x) => {
+        if (!x.id) return;
+        window.clearTimeout(x.id);
+        x.id = 0;
+        x.resta = Math.max(0, x.resta - (Date.now() - x.desde));
+      });
+    };
+  }, [ativo]);
+
   const registro = (k: number): Registro => {
     const atual = registros.current.get(k);
     if (atual) return atual;
@@ -253,7 +286,7 @@ export default function KofferDoPrototipo({ items, onFinish, onExit }: Props) {
       falar(nova.answer, nova.lang);
       sentir('encaixa', 'select');
     });
-    depois(regras.aVistaMs, fechar);
+    depoisValendo(regras.aVistaMs, fechar);
   };
 
   /* `pj.clique` de `jogos3.js:250-283`. */
@@ -319,7 +352,7 @@ export default function KofferDoPrototipo({ items, onFinish, onExit }: Props) {
     abrir(true);
     dizerFala(t('Espiando…'));
     pintar();
-    depois(1500, () => {
+    depoisValendo(1500, () => {
       s.fase = 'lembrando';
       abrir(false);
       dizerFala();

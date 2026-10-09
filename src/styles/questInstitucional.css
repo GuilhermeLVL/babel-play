@@ -330,32 +330,6 @@ textarea.q-campo.q-diag-json {
   font: 500 14px/1.5 var(--font-mono, monospace);
 }
 
-/* ── QUEST COM AS TELAS NOVAS DESLIGADAS: o aviso de religar, no topo do diagnóstico de sempre ─────
-   Nesse estado o CSS do headset (`quest.css`, `questBase.css`) não está na página: o aviso e o botão
-   "Ligar de novo" levam aqui as medidas do headset (alvo de 56 px, texto de 16 px ou mais). Só o Quest
-   renderiza este aviso, e a regra ainda é presa ao aparelho. */
-html[data-dispositivo='quest'] .aviso-info.religar-telas-novas {
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 14px;
-  padding: 14px 18px;
-  font-size: 17px;
-  line-height: 1.4;
-  color: var(--ink);
-}
-html[data-dispositivo='quest'] .aviso-info.religar-telas-novas > svg {
-  width: 22px;
-  height: 22px;
-  flex: none;
-}
-html[data-dispositivo='quest'] .aviso-info.religar-telas-novas .btn {
-  min-height: 56px;
-  min-width: 56px;
-  padding: 0 22px;
-  font-size: 16px;
-  font-weight: 700;
-}
-
 /* ── OS DIÁLOGOS DE LEITURA (guia rápido, atalhos, política e termos) ─────────────────────────────
    `questBase.css` já dá as medidas ao `<dialog>`, aos botões e aos cartões. Falta só o texto que
    estes três escrevem em classe própria e ficava abaixo do piso do headset. */

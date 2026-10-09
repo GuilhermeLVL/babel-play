@@ -1,7 +1,7 @@
 /*
  * A BARRA DO DESENHO LIVRE e a tela de desenho (Leitura). Importado só por `BarraDeDesenho.tsx`
- * (nunca por `main.tsx`: o CSS inicial tem teto). As peças base são as do app: `.seg`, `.campo`,
- * `.btn` no desenho de sempre; `.q-abas`, `.q-campo`, `.q-ctl` no desenho novo.
+ * (nunca por `main.tsx`: o CSS inicial tem teto). As peças base são as do app: `.q-abas`, `.q-campo`,
+ * `.q-ctl`.
  */
 
 /* A tela por cima do texto acompanha o cartão (o bitmap é medido pelo pai, em `useDesenhoLivre`). */
@@ -44,19 +44,9 @@
   gap: 10px 16px;
   min-width: 0;
 }
-.desenho-barra .seg,
 .desenho-barra .q-abas {
   max-width: 100%;
   flex-wrap: wrap;
-}
-.desenho-barra .seg button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.desenho-barra .seg svg {
-  width: 14px;
-  height: 14px;
 }
 
 /* ── cores ── */
@@ -69,7 +59,7 @@
   align-items: center;
   gap: 2px;
 }
-.desenho-amostras > :is(.label-mono, .desenho-rotulo) {
+.desenho-amostras > .desenho-rotulo {
   margin-inline-end: 8px;
 }
 .desenho-amostra {
@@ -181,13 +171,6 @@
 .desenho-dica {
   font-size: 12.5px;
 }
-.desenho-barra .desenho-perigo {
-  color: var(--error-ink, var(--error));
-}
-.desenho-barra .btn svg {
-  width: 14px;
-  height: 14px;
-}
 .desenho-barra.q .desenho-dica {
   font-size: 15px;
 }
@@ -225,8 +208,6 @@
     width: 44px;
     height: 44px;
   }
-  .desenho-barra .seg button,
-  .desenho-barra .btn,
   .desenho-barra .desenho-campo input,
   .desenho-seletor {
     min-height: 44px;

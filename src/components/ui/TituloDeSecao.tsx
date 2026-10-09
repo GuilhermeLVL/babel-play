@@ -17,7 +17,14 @@ interface TituloDeSecaoProps {
   className?: string;
 }
 
-export default function TituloDeSecao({ titulo, icone: Icone, desc, direita, nivel = 'h2', className = '' }: TituloDeSecaoProps) {
+export default function TituloDeSecao({
+  titulo,
+  icone: Icone,
+  desc,
+  direita,
+  nivel = 'h2',
+  className = '',
+}: TituloDeSecaoProps) {
   const Tag = nivel;
   return (
     <div className={`tsec ${className}`}>

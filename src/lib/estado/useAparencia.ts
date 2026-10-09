@@ -2,13 +2,12 @@ import { useEffect, useState } from 'react';
 import { flushSync } from 'react-dom';
 
 import { useCommandPalette } from '../../components/CommandPalette';
-import type { AgeProfileType, FontScale, MenuPositionType } from '../../components/StudioHeader';
+import type { AgeProfileType, FontScale, MenuPositionType } from '../../components/shell/navItems';
 import { fetchSettings, patchUiSettings } from '../../data/api';
 import { CREDENTIAL_KEY, MODE_KEY, PROFILE_KEY } from '../../gateway/activeProfile';
 import type { FonteType, ThemeType } from '../appearance';
 import { ativarLiberacaoTotal, liberadoTudo } from '../desbloqueios';
 import { definirReduzirEfeitos, reduzirEfeitos, reduzirEfeitosMedido } from '../dispositivo/perfil';
-import { questNovo } from '../dispositivo/telaNovaDoQuest';
 import { estaAnonimo } from '../identidade';
 import { revelarEmCirculo } from '../movimento/revelar';
 import { isAgeProfile, readAgeProfile, readStoredEnum, readStoredValue } from '../profile';
@@ -43,7 +42,6 @@ export interface EstadoDaAparencia {
   togglePerformanceMode: () => void;
   fontScale: FontScale;
   setFontScale: (next: FontScale) => void;
-  cycleFontScale: () => void;
   /** Setters crus — só para a hidratação das settings de UI, que aplica o que veio do servidor. */
   setThemeState: (v: ThemeType) => void;
   setFonteState: (v: FonteType) => void;
@@ -65,12 +63,7 @@ export function useAparencia(): EstadoDaAparencia {
   const [buscaAberta, setBuscaAberta] = useCommandPalette();
   const [ageProfile, setAgeProfileState] = useState<AgeProfileType>(readAgeProfile);
 
-  /* PADRÃO MUDOU DE 'top' PARA 'left' (redesign-v4): a referência de design mostra sempre o rail
-     à esquerda, e é o próprio NavRail.tsx que descreve a barra horizontal como a versão antiga
-     ("torcida", sem recolher, sem rolagem própria) que o rail veio substituir. Manter 'top' como
-     padrão fazia a tela inteira parecer outra coisa, não importa quanto se ajustasse componente
-     por componente — quem já escolheu uma posição no dispositivo continua com a escolha dele
-     (é o valor gravado que `readStoredEnum` lê primeiro); isto só muda quem nunca mexeu nisso. */
+  /* A posição do menu é hoje só um item do guarda-roupa (Personalizar): o trilho não muda de lugar. */
   const [menuPosition, setMenuPositionState] = useState<MenuPositionType>(() =>
     readStoredEnum(MENU_POSITION_KEY, MENU_POSITIONS, 'left'),
   );
@@ -90,10 +83,9 @@ export function useAparencia(): EstadoDaAparencia {
     const guardado = readStoredValue('babel.animations_enabled');
     if (guardado === 'true') return true;
     if (guardado === 'false') return false;
-    /* O desenho novo nasce com o movimento ligado em todo aparelho (decisão do dono, 08/10/2026):
-       quem quer menos desliga aqui, em Ajustes. O desenho de sempre continua seguindo o sistema. */
-    if (questNovo()) return true;
-    return !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    /* O movimento nasce ligado em todo aparelho (decisão do dono, 08/10/2026): quem quer menos
+       desliga aqui, em Ajustes. */
+    return true;
   });
   /**
    * MODO DESEMPENHO = o "modo leve" de `lib/dispositivo/perfil.ts` (`reduzirEfeitos()`), a mesma
@@ -162,16 +154,6 @@ export function useAparencia(): EstadoDaAparencia {
     localStorage.setItem('babel.font_scale', next);
   };
 
-  /**
-   * UM botão que CICLA (pedido do dono, 31/08): clique avança a escala e, na máxima, volta à
-   * mínima. Substitui o trio (menos / indicador / mais) — menos alvos no cabeçalho, e o próprio
-   * "A" crescendo mostra onde se está. O salto xl->sm é anunciado pelo aria-label do botão.
-   */
-  const cycleFontScale = () => {
-    const idx = FONT_SCALE_ORDER.indexOf(fontScale);
-    setFontScale(FONT_SCALE_ORDER[(idx + 1) % FONT_SCALE_ORDER.length]);
-  };
-
   const setAgeProfile = (profile: AgeProfileType) => {
     setAgeProfileState(profile);
     localStorage.setItem('babel.age_profile', profile);
@@ -236,11 +218,6 @@ export function useAparencia(): EstadoDaAparencia {
     document.body.classList.toggle('animations-off', !animationsEnabled);
     document.body.classList.toggle('animations-on', animationsEnabled);
   }, [animationsEnabled]);
-
-  // Recuo inferior para os elementos `fixed` quando a barra fica no rodapé (ver index.css).
-  useEffect(() => {
-    document.body.classList.toggle('shell-bar-bottom', menuPosition === 'bottom');
-  }, [menuPosition]);
 
   useEffect(() => {
     setSoundMuted(!soundEnabled);
@@ -338,7 +315,6 @@ export function useAparencia(): EstadoDaAparencia {
     togglePerformanceMode,
     fontScale,
     setFontScale,
-    cycleFontScale,
     setThemeState,
     setFonteState,
     setDarkMode,

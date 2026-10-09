@@ -29,7 +29,7 @@ import { vozDoQuestAtiva } from '../../../../lib/voz/vozDoQuest';
  *    56 px ao lado do tabuleiro: joga-se só apontando, sem o teclado do sistema.
  *  · `teclado`: a pessoa ESCREVE num campo. Ditado e Tênis têm `<input>`, a Frase maluca tem
  *    `<textarea>`: o teclado do sistema sobe quando o campo ganha foco.
- *  · `fala`: o Karaokê dá nota com `SpeechRecognition` (`KaraokeGame.tsx`, `gravar`); o navegador do
+ *  · `fala`: o Karaokê dá nota com `SpeechRecognition` (`KaraokeDoPrototipo.tsx`); o navegador do
  *    headset não o tem. Havendo som, o jogo abre SEM nota ("ouça, repita em voz alta e siga"), e o
  *    cartão avisa; só fica apagado quando não há som nenhum para repetir.
  * `Record` exaustivo: jogo novo não compila até dizer como se joga.
@@ -137,7 +137,7 @@ export function tilesDoQuest<J extends JogoParaOQuest>(
     const semSom = dependeDeVozSintetizada(jogo) && (!haVoz || jogo.estado.motivo === 'sem-voz');
     /* KARAOKÊ sem reconhecimento de fala: sem som nenhum não há o que repetir, e o cartão fica apagado.
        Com som (o clipe da sessão ou a voz de leitura) ele ABRE, mais abaixo, no modo "ouça, repita em
-       voz alta e siga" (`KaraokeGame.tsx`, `semNotaAqui`), com a etiqueta dizendo que não há nota. */
+       voz alta e siga" (`KaraokeDoPrototipo.tsx`), com a etiqueta dizendo que não há nota. */
     if (entrada === 'fala' && semSom)
       return {
         jogo,

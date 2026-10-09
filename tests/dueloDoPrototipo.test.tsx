@@ -107,6 +107,34 @@ describe('responder', () => {
     expect($$('.opcoes-blitz button').some((x) => x.className.includes('certa'))).toBe(true)
   })
 
+  const respondida = () => $$('.opcoes-blitz button').some((x) => x.className.includes('certa'))
+
+  it('tecla segurada (`repeat`) não responde: o "1" preso não leva a pergunta seguinte', () => {
+    fireEvent.keyDown(window, { key: '1', repeat: true })
+    expect(respondida()).toBe(false)
+    expect(rotulo()).toBe('0 de 6 palavras')
+    /* O caso de verdade: a tecla responde a primeira e continua presa quando a segunda chega. */
+    fireEvent.keyDown(window, { key: '1' })
+    expect(respondida()).toBe(true)
+    esperar(650)
+    expect(pergunta()).toBe('pt1')
+    for (let k = 0; k < 5; k++) fireEvent.keyDown(window, { key: '1', repeat: true })
+    expect(respondida()).toBe(false)
+    expect(rotulo()).toBe('1 de 6 palavras')
+  })
+
+  it('tecla com o foco num campo de texto não responde', () => {
+    const campo = document.createElement('input')
+    document.body.append(campo)
+    campo.focus()
+    fireEvent.keyDown(campo, { key: '1' })
+    expect(respondida()).toBe(false)
+    expect(rotulo()).toBe('0 de 6 palavras')
+    campo.remove()
+    fireEvent.keyDown(document.body, { key: '1' })
+    expect(respondida()).toBe(true)
+  })
+
   it('Cortar 2 risca duas erradas, uma vez por pergunta', () => {
     fireEvent.click($('[data-ajuda="cortar"]') as HTMLElement)
     expect($$('.opcoes-blitz .pj-fora')).toHaveLength(2)
@@ -140,5 +168,50 @@ describe('responder', () => {
     expect(relatorio).toBeNull()
     esperar(900)
     expect((relatorio as RoundReport | null)?.items).toHaveLength(6)
+  })
+})
+
+/* Garantias que vieram de `tests/blitzGame.test.tsx` (o tabuleiro de antes): o que é gravado. */
+describe('o que o Duelo grava', () => {
+  it('cada pergunta entra UMA vez: toque repetido na janela da revelação não conta', () => {
+    for (let k = 0; k < 6; k++) {
+      const a = certa()
+      const b = errada()
+      fireEvent.click(a)
+      fireEvent.click(a) // o segundo toque, na revelação
+      fireEvent.click(b) // e outro, em alternativa diferente
+      esperar(420)
+    }
+    esperar(900)
+    const r = relatorio as RoundReport | null
+    expect(r?.gameId).toBe('blitz')
+    const ids = r?.items.map((o) => o.cardId) ?? []
+    expect(ids).toHaveLength(6)
+    /* Nenhum cartão aparece duas vezes: é isso que dobrava a revisão. */
+    expect(new Set(ids).size).toBe(6)
+    expect([...ids].sort()).toEqual(['c0', 'c1', 'c2', 'c3', 'c4', 'c5'])
+    expect(r?.items.every((o) => o.correct)).toBe(true)
+  })
+
+  it('o tempo acabou: a pergunta que ficou na tela não entra, nem tocando depois da hora', () => {
+    let vezes = 0
+    cleanup()
+    render(
+      <DueloDoPrototipo
+        items={itens}
+        onFinish={(r) => {
+          vezes++
+          relatorio = r
+        }}
+        onExit={() => undefined}
+      />,
+    )
+    for (let s = 0; s < 61; s++) esperar(1000)
+    const depois = $$('.opcoes-blitz button')[0]
+    if (depois) fireEvent.click(depois)
+    esperar(2000)
+    /* Quem não foi perguntado não errou: nada foi respondido, nada é gravado. */
+    expect(vezes).toBe(1)
+    expect((relatorio as RoundReport | null)?.items).toHaveLength(0)
   })
 })

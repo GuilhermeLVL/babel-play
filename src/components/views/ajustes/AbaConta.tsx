@@ -1,15 +1,12 @@
 import type { LucideIcon } from 'lucide-react';
 import {
-  AtSign,
   Check,
-  History,
   Info,
   KeyRound,
   Laptop,
   LogIn,
   LogOut,
   Monitor,
-  MonitorSmartphone,
   Pencil,
   RotateCcw,
   ShieldCheck,
@@ -20,14 +17,11 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 
 import * as auth from '../../../lib/auth';
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../../lib/edicaoEstatica';
 import { t } from '../../../lib/i18n';
 import { authRequired, carregarSupabase } from '../../../lib/supabase';
 import { toast } from '../../Toast';
-import { IconeEmBloco, TituloDeSecao } from '../../ui';
 import DialogosDaConta, { type DialogoDaConta } from './DialogosDaConta';
-import { Linha } from './Linha';
 
 /**
  * AJUSTES → CONTA (override de `T.ajustes`, 4042-4055): entrada, aparelhos conectados, atividade
@@ -102,7 +96,6 @@ export default function AbaConta({
   const [conta, setConta] = useState<EstadoDaConta | null>(null);
   const [dialogo, setDialogo] = useState<DialogoDaConta | null>(null);
   const [ocupado, setOcupado] = useState(false);
-  const questNovo = useQuestNovo();
   const aparelho = descreverAparelho(typeof navigator === 'undefined' ? '' : navigator.userAgent);
 
   const reler = useCallback(async () => {
@@ -143,7 +136,6 @@ export default function AbaConta({
     else toast.ok('Os outros aparelhos saíram da conta');
   };
 
-  const semLogin = <span className="badge neu">{t('sem login')}</span>;
   const atividade: Array<[LucideIcon, string, string]> = authRequired
     ? [
         ...(conta?.ultimaEntrada
@@ -162,370 +154,190 @@ export default function AbaConta({
 
   /* QUEST: as mesmas cinco seções. Sem login, cada linha continua lá e diz "sem login" (a regra da
      casa: mostrar e explicar). Excluir a conta é a única ação de perigo, separada no fim. */
-  if (questNovo) {
-    const semLoginDoQuest = <span className="q-tag off">{t('sem login')}</span>;
-    const IconeDoAparelho = aparelho.icone;
-    return (
-      <>
-        <section className="q-secao">
-          <header>
-            <div>
-              <h2>{t('Entrada')}</h2>
-            </div>
-          </header>
-          <div className="q-ajustes">
-            {authRequired ? (
-              <>
-                <div className="q-ajuste">
-                  <div>
-                    <b>{t('E-mail')}</b>
-                    <small>
-                      {conta
-                        ? `${conta.email} · ${conta.verificado ? t('verificado') : t('não verificado')}`
-                        : t('Lendo a conta…')}
-                    </small>
-                  </div>
-                  <button type="button" className="q-ctl" onClick={() => setDialogo('email')} disabled={!conta}>
-                    <Pencil aria-hidden /> {t('Trocar')}
-                  </button>
-                </div>
-                <div className="q-ajuste">
-                  <div>
-                    <b>{t('Senha')}</b>
-                    <small>{t('Troque quando quiser. Os outros aparelhos saem da conta.')}</small>
-                  </div>
-                  <button type="button" className="q-ctl" onClick={() => setDialogo('senha')} disabled={!conta}>
-                    <KeyRound aria-hidden /> {t('Trocar senha')}
-                  </button>
-                </div>
-                <div className="q-ajuste">
-                  <div>
-                    <b>{t('Verificação em duas etapas')}</b>
-                    <small>
-                      {conta?.fator
-                        ? t('Ativa: pede um código do app autenticador ao entrar.')
-                        : t('Um código do app autenticador além da senha. Recomendado.')}
-                    </small>
-                  </div>
-                  {conta?.fator ? (
-                    <>
-                      <span className="q-tag">
-                        <Check aria-hidden /> {t('Ativa')}
-                      </span>
-                      <button type="button" className="q-ctl" disabled={ocupado} onClick={() => void desativar2fa()}>
-                        {t('Desativar')}
-                      </button>
-                    </>
-                  ) : (
-                    <button type="button" className="q-ctl" onClick={() => setDialogo('2fa')} disabled={!conta}>
-                      <ShieldCheck aria-hidden /> {t('Ativar')}
-                    </button>
-                  )}
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="q-ajuste">
-                  <div>
-                    <b>{t('E-mail')}</b>
-                    <small>
-                      {edicaoEstatica()
-                        ? t(
-                            'Esta é a edição de demonstração: roda no seu navegador, sem conta, e não há e-mail cadastrado.',
-                          )
-                        : t('Este app roda no seu computador, sem conta: não há e-mail cadastrado.')}
-                    </small>
-                  </div>
-                  {semLoginDoQuest}
-                </div>
-                <div className="q-ajuste">
-                  <div>
-                    <b>{t('Senha')}</b>
-                    <small>{t('Sem login, não há senha para trocar.')}</small>
-                  </div>
-                  {semLoginDoQuest}
-                </div>
-                <div className="q-ajuste">
-                  <div>
-                    <b>{t('Verificação em duas etapas')}</b>
-                    <small>{t('Só existe no modo com conta, junto da senha.')}</small>
-                  </div>
-                  {semLoginDoQuest}
-                </div>
-              </>
-            )}
-          </div>
-        </section>
-
-        <section className="q-secao">
-          <header>
-            <div>
-              <h2>{t('Aparelhos conectados')}</h2>
-            </div>
-            {authRequired && (
-              <button type="button" className="q-ctl" onClick={() => void sairDosOutros()}>
-                <LogOut aria-hidden /> {t('Sair dos outros')}
-              </button>
-            )}
-          </header>
-          <div className="q-ajuste q-aju-aparelho">
-            <span className="q-ic">
-              <IconeDoAparelho aria-hidden />
-            </span>
-            <div>
-              <b>{aparelho.nome}</b>
-              <small>
-                {aparelho.det} · {t('agora')}
-              </small>
-            </div>
-            <span className="q-tag">{t('Você está aqui')}</span>
-          </div>
-        </section>
-
-        <section className="q-secao">
-          <header>
-            <div>
-              <h2>{t('Atividade recente')}</h2>
-            </div>
-          </header>
-          <div className="q-cartao">
-            {atividade.length === 0 ? (
-              <p className="q-aju-nota">{t('Nada para mostrar ainda.')}</p>
-            ) : (
-              <ul className="q-aju-lista q-aju-atividade">
-                {atividade.map(([Icone, texto, quandoFoi]) => (
-                  <li key={texto}>
-                    <Icone aria-hidden />
-                    <span>{texto}</span>
-                    <small>{quandoFoi}</small>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </section>
-
-        <section className="q-secao">
-          <header>
-            <div>
-              <h2>{t('Recomeçar')}</h2>
-            </div>
-          </header>
-          <div className="q-ajustes">
-            <div className="q-ajuste">
-              <div>
-                <b>{t('Rever a apresentação')}</b>
-                <small>{t('Os passos do primeiro uso, de novo.')}</small>
-              </div>
-              <button type="button" className="q-ctl" onClick={onReplayTour}>
-                <RotateCcw aria-hidden /> {t('Rever')}
-              </button>
-            </div>
-            {authRequired && (
-              <div className="q-ajuste">
-                <div>
-                  <b>{t('Sair da conta')}</b>
-                  <small>{t('Neste aparelho.')}</small>
-                </div>
-                <button type="button" className="q-ctl" onClick={() => void auth.signOut()}>
-                  <LogOut aria-hidden /> {t('Sair')}
-                </button>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Edição estática: não há conta a excluir (a ação iria ao servidor, que ela não tem). */}
-        {!edicaoEstatica() && (
-          <section className="q-ajuste q-aju-perigo">
-            <div>
-              <b>{t('Excluir a conta')}</b>
-              <small>
-                {t(
-                  'Apaga sessões, palavras e progresso na hora. Não tem volta: baixe uma cópia antes se quiser guardar.',
-                )}
-              </small>
-            </div>
-            <button type="button" className="q-ctl perigo" onClick={() => setDialogo('excluir')}>
-              <Trash2 aria-hidden /> {t('Excluir a conta')}
-            </button>
-          </section>
-        )}
-
-        {dialogo && (
-          <DialogosDaConta
-            qual={dialogo}
-            email={conta?.email ?? ''}
-            aoFechar={() => setDialogo(null)}
-            aoMudar={() => void reler()}
-            aoIrParaPrivacidade={aoIrParaPrivacidade}
-          />
-        )}
-      </>
-    );
-  }
-
+  const semLoginDoQuest = <span className="q-tag off">{t('sem login')}</span>;
+  const IconeDoAparelho = aparelho.icone;
   return (
     <>
-      <section>
-        <TituloDeSecao icone={AtSign} titulo={t('Entrada')} />
-        <div className="cartao">
+      <section className="q-secao">
+        <header>
+          <div>
+            <h2>{t('Entrada')}</h2>
+          </div>
+        </header>
+        <div className="q-ajustes">
           {authRequired ? (
             <>
-              <Linha
-                titulo={t('E-mail')}
-                desc={conta ? `${conta.email} · ${conta.verificado ? 'verificado' : 'não verificado'}` : '…'}
-              >
-                <button
-                  type="button"
-                  className="btn btn-outline peq"
-                  onClick={() => setDialogo('email')}
-                  disabled={!conta}
-                >
+              <div className="q-ajuste">
+                <div>
+                  <b>{t('E-mail')}</b>
+                  <small>
+                    {conta
+                      ? `${conta.email} · ${conta.verificado ? t('verificado') : t('não verificado')}`
+                      : t('Lendo a conta…')}
+                  </small>
+                </div>
+                <button type="button" className="q-ctl" onClick={() => setDialogo('email')} disabled={!conta}>
                   <Pencil aria-hidden /> {t('Trocar')}
                 </button>
-              </Linha>
-              <Linha titulo={t('Senha')} desc="Troque quando quiser. Os outros aparelhos saem da conta.">
-                <button
-                  type="button"
-                  className="btn btn-outline peq"
-                  onClick={() => setDialogo('senha')}
-                  disabled={!conta}
-                >
+              </div>
+              <div className="q-ajuste">
+                <div>
+                  <b>{t('Senha')}</b>
+                  <small>{t('Troque quando quiser. Os outros aparelhos saem da conta.')}</small>
+                </div>
+                <button type="button" className="q-ctl" onClick={() => setDialogo('senha')} disabled={!conta}>
                   <KeyRound aria-hidden /> {t('Trocar senha')}
                 </button>
-              </Linha>
-              <Linha
-                titulo={t('Verificação em duas etapas')}
-                desc={
-                  conta?.fator
-                    ? 'Ativa: pede um código do app autenticador ao entrar.'
-                    : 'Um código do app autenticador além da senha. Recomendado.'
-                }
-              >
+              </div>
+              <div className="q-ajuste">
+                <div>
+                  <b>{t('Verificação em duas etapas')}</b>
+                  <small>
+                    {conta?.fator
+                      ? t('Ativa: pede um código do app autenticador ao entrar.')
+                      : t('Um código do app autenticador além da senha. Recomendado.')}
+                  </small>
+                </div>
                 {conta?.fator ? (
-                  <div className="linha" style={{ gap: 8 }}>
-                    <span className="badge ok">
+                  <>
+                    <span className="q-tag">
                       <Check aria-hidden /> {t('Ativa')}
                     </span>
-                    <button
-                      type="button"
-                      className="btn btn-outline peq"
-                      disabled={ocupado}
-                      onClick={() => void desativar2fa()}
-                    >
+                    <button type="button" className="q-ctl" disabled={ocupado} onClick={() => void desativar2fa()}>
                       {t('Desativar')}
                     </button>
-                  </div>
+                  </>
                 ) : (
-                  <button
-                    type="button"
-                    className="btn btn-solid peq"
-                    onClick={() => setDialogo('2fa')}
-                    disabled={!conta}
-                  >
+                  <button type="button" className="q-ctl" onClick={() => setDialogo('2fa')} disabled={!conta}>
                     <ShieldCheck aria-hidden /> {t('Ativar')}
                   </button>
                 )}
-              </Linha>
+              </div>
             </>
           ) : (
             <>
-              <Linha
-                titulo={t('E-mail')}
-                desc={
-                  edicaoEstatica()
-                    ? t(
-                        'Esta é a edição de demonstração: roda no seu navegador, sem conta, e não há e-mail cadastrado.',
-                      )
-                    : 'Este app roda no seu computador, sem conta: não há e-mail cadastrado.'
-                }
-              >
-                {semLogin}
-              </Linha>
-              <Linha titulo={t('Senha')} desc="Sem login, não há senha para trocar.">
-                {semLogin}
-              </Linha>
-              <Linha titulo={t('Verificação em duas etapas')} desc="Só existe no modo com conta, junto da senha.">
-                {semLogin}
-              </Linha>
+              <div className="q-ajuste">
+                <div>
+                  <b>{t('E-mail')}</b>
+                  <small>
+                    {edicaoEstatica()
+                      ? t(
+                          'Esta é a edição de demonstração: roda no seu navegador, sem conta, e não há e-mail cadastrado.',
+                        )
+                      : t('Este app roda no seu computador, sem conta: não há e-mail cadastrado.')}
+                  </small>
+                </div>
+                {semLoginDoQuest}
+              </div>
+              <div className="q-ajuste">
+                <div>
+                  <b>{t('Senha')}</b>
+                  <small>{t('Sem login, não há senha para trocar.')}</small>
+                </div>
+                {semLoginDoQuest}
+              </div>
+              <div className="q-ajuste">
+                <div>
+                  <b>{t('Verificação em duas etapas')}</b>
+                  <small>{t('Só existe no modo com conta, junto da senha.')}</small>
+                </div>
+                {semLoginDoQuest}
+              </div>
             </>
           )}
         </div>
       </section>
 
-      <section className="secao">
-        <TituloDeSecao
-          icone={MonitorSmartphone}
-          titulo={t('Aparelhos conectados')}
-          direita={
-            authRequired ? (
-              <button type="button" className="btn btn-outline peq" onClick={() => void sairDosOutros()}>
-                <LogOut aria-hidden /> {t('Sair dos outros')}
-              </button>
-            ) : undefined
-          }
-        />
-        <div className="cartao">
-          <div className="ajuste ajuste-l">
-            <div className="linha" style={{ gap: 12 }}>
-              <IconeEmBloco icone={aparelho.icone} />
-              <div>
-                <h3>
-                  {aparelho.nome} <span className="badge ok">{t('Você está aqui')}</span>
-                </h3>
-                <p className="mut" style={{ margin: 0 }}>
-                  {aparelho.det} · agora
-                </p>
-              </div>
-            </div>
+      <section className="q-secao">
+        <header>
+          <div>
+            <h2>{t('Aparelhos conectados')}</h2>
           </div>
+          {authRequired && (
+            <button type="button" className="q-ctl" onClick={() => void sairDosOutros()}>
+              <LogOut aria-hidden /> {t('Sair dos outros')}
+            </button>
+          )}
+        </header>
+        <div className="q-ajuste q-aju-aparelho">
+          <span className="q-ic">
+            <IconeDoAparelho aria-hidden />
+          </span>
+          <div>
+            <b>{aparelho.nome}</b>
+            <small>
+              {aparelho.det} · {t('agora')}
+            </small>
+          </div>
+          <span className="q-tag">{t('Você está aqui')}</span>
         </div>
       </section>
 
-      <section className="secao">
-        <TituloDeSecao icone={History} titulo={t('Atividade recente')} />
-        <div className="cartao p5">
-          <ul className="atividade">
-            {atividade.map(([Icone, t, q]) => (
-              <li key={t}>
-                <Icone aria-hidden />
-                <span>{t}</span>
-                <small className="mut">{q}</small>
-              </li>
-            ))}
-          </ul>
+      <section className="q-secao">
+        <header>
+          <div>
+            <h2>{t('Atividade recente')}</h2>
+          </div>
+        </header>
+        <div className="q-cartao">
+          {atividade.length === 0 ? (
+            <p className="q-aju-nota">{t('Nada para mostrar ainda.')}</p>
+          ) : (
+            <ul className="q-aju-lista q-aju-atividade">
+              {atividade.map(([Icone, texto, quandoFoi]) => (
+                <li key={texto}>
+                  <Icone aria-hidden />
+                  <span>{texto}</span>
+                  <small>{quandoFoi}</small>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </section>
 
-      <section className="secao">
-        <TituloDeSecao icone={RotateCcw} titulo={t('Recomeçar')} />
-        <div className="cartao">
-          <Linha titulo={t('Rever a apresentação')} desc={t('Os passos do primeiro uso, de novo.')}>
-            <button type="button" className="btn btn-outline peq" onClick={onReplayTour}>
+      <section className="q-secao">
+        <header>
+          <div>
+            <h2>{t('Recomeçar')}</h2>
+          </div>
+        </header>
+        <div className="q-ajustes">
+          <div className="q-ajuste">
+            <div>
+              <b>{t('Rever a apresentação')}</b>
+              <small>{t('Os passos do primeiro uso, de novo.')}</small>
+            </div>
+            <button type="button" className="q-ctl" onClick={onReplayTour}>
               <RotateCcw aria-hidden /> {t('Rever')}
             </button>
-          </Linha>
+          </div>
           {authRequired && (
-            <Linha titulo={t('Sair da conta')} desc={t('Neste aparelho.')}>
-              <button type="button" className="btn btn-outline peq" onClick={() => void auth.signOut()}>
+            <div className="q-ajuste">
+              <div>
+                <b>{t('Sair da conta')}</b>
+                <small>{t('Neste aparelho.')}</small>
+              </div>
+              <button type="button" className="q-ctl" onClick={() => void auth.signOut()}>
                 <LogOut aria-hidden /> {t('Sair')}
               </button>
-            </Linha>
+            </div>
           )}
         </div>
       </section>
 
       {/* Edição estática: não há conta a excluir (a ação iria ao servidor, que ela não tem). */}
       {!edicaoEstatica() && (
-        <section className="secao zona-perigo">
+        <section className="q-ajuste q-aju-perigo">
           <div>
             <b>{t('Excluir a conta')}</b>
-            <p className="mut">
-              Apaga sessões, palavras e progresso na hora. Não tem volta: baixe uma cópia antes se quiser guardar.
-            </p>
+            <small>
+              {t(
+                'Apaga sessões, palavras e progresso na hora. Não tem volta: baixe uma cópia antes se quiser guardar.',
+              )}
+            </small>
           </div>
-          <button type="button" className="btn btn-outline perigo" onClick={() => setDialogo('excluir')}>
+          <button type="button" className="q-ctl perigo" onClick={() => setDialogo('excluir')}>
             <Trash2 aria-hidden /> {t('Excluir a conta')}
           </button>
         </section>

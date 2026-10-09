@@ -130,5 +130,44 @@ describe('virar cartas', () => {
     const r = relatorio as RoundReport | null
     expect(r?.gameId).toBe('memory')
     expect(r?.items.map((o) => o.correct)).toEqual(Array(8).fill(true))
+    /* O cartão de cada par, uma vez só. */
+    expect(r?.items.map((o) => o.cardId).sort()).toEqual(itens.map((i) => i.cardId).sort())
+  })
+})
+
+/* Garantia que veio de `tests/memoriaExplorar.test.tsx` (o tabuleiro de antes): o que conta como erro. */
+describe('explorar não é errar', () => {
+  const fecharTudo = () => {
+    for (let k = 0; k < 8; k++) {
+      const [a, b] = doPar(k)
+      fireEvent.click(a)
+      fireEvent.click(b)
+      esperar(760)
+    }
+    esperar(900)
+  }
+  const tentativas = () => Object.fromEntries((relatorio as RoundReport).items.map((o) => [o.cardId, o.attempts]))
+
+  it('quem só virou cartas nunca vistas e depois fechou tudo sai com uma tentativa por par', () => {
+    fireEvent.click(doPar(0)[0])
+    fireEvent.click(doPar(1)[0])
+    esperar(760 + 520)
+    fireEvent.click(doPar(2)[0])
+    fireEvent.click(doPar(3)[0])
+    esperar(760 + 520)
+    fecharTudo()
+    expect(Object.values(tentativas())).toEqual(Array(8).fill(1))
+  })
+
+  it('errar com uma carta que já tinha aparecido conta uma tentativa a mais, só para ela', () => {
+    fireEvent.click(doPar(0)[0])
+    fireEvent.click(doPar(1)[0])
+    esperar(760 + 520)
+    /* A carta do par 0 já foi vista; a do par 2, não. */
+    fireEvent.click(doPar(0)[0])
+    fireEvent.click(doPar(2)[0])
+    esperar(760 + 520)
+    fecharTudo()
+    expect(tentativas()).toEqual({ c0: 2, c1: 1, c2: 1, c3: 1, c4: 1, c5: 1, c6: 1, c7: 1 })
   })
 })

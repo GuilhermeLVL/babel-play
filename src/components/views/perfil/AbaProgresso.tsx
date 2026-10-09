@@ -6,14 +6,13 @@ import {
   RETENCAO_DE_DOMINIO,
   rotuloDeFluencia,
 } from '@core';
-import { ChartColumn, GraduationCap, Loader2, Table2, TrendingUp, Trophy } from 'lucide-react';
+import { ChartColumn, Loader2, Table2, Trophy } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Area, AreaChart, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import { fetchDeck } from '../../../data/api';
 import { fetchHistoricoDeXp, type HistoricoDeXp } from '../../../data/me';
 import { precarregarNiveis } from '../../../data/trilha/carregar';
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { palavraDeNivel } from '../../../lib/galeria/textos';
 import { data, numero, t } from '../../../lib/i18n';
 import { baseLang, langLabelNaUI } from '../../../lib/languages';
@@ -22,7 +21,6 @@ import type { DerivedProgress } from '../../../lib/progress';
 import { T } from '../../../lib/T';
 import type { VocabCard } from '../../../types';
 import { Confianca, rotuloDaBase } from '../../Honestidade';
-import { Barra, TituloDeSecao } from '../../ui';
 import ConquistasRecentes from './ConquistasRecentes';
 
 /**
@@ -47,7 +45,6 @@ export default function AbaProgresso({ progress }: AbaProgressoProps) {
   const [historico, setHistorico] = useState<HistoricoDeXp | null>(null);
   const [baralho, setBaralho] = useState<VocabCard[] | null>(null);
   const [carregando, setCarregando] = useState(true);
-  const questNovo = useQuestNovo();
   /* Só no desenho novo (headset e computador): a curva também como tabela. No headset é o único jeito
      de ler o número de cada dia (a dica do gráfico pede hover); no computador a dica continua lá, e a
      tabela serve a quem usa teclado ou leitor de tela. É DESENHO, não limite do aparelho. */
@@ -199,323 +196,163 @@ export default function AbaProgresso({ progress }: AbaProgressoProps) {
   /* QUEST: os mesmos quatro números, as conquistas, a curva e a fluência, com a letra do headset. O
      gráfico é o mesmo (só a letra dos eixos cresce); as faixas de fluência ganham a contagem escrita
      em todas as larguras (na tela de sempre ela some no celular). */
-  if (questNovo)
-    return (
-      <>
-        <div className="q-grade g4" data-testid="numeros-do-perfil">
-          {ladrilhos.map(([rotulo, valor]) => (
-            <div key={rotulo} className="q-num">
-              <b>{valor ?? '—'}</b>
-              <span>{rotulo === 'Ofensiva' ? t('Ofensiva') : rotulo}</span>
-            </div>
-          ))}
-        </div>
-
-        <ConquistasRecentes />
-
-        <section className="q-secao">
-          <header>
-            <div>
-              <h2>{t('Como você chegou até aqui')}</h2>
-              <p>{t('O XP somado dia a dia, com as subidas de nível marcadas.')}</p>
-            </div>
-            {!carregando && serie.length >= 2 && (
-              <button
-                type="button"
-                className="q-ctl"
-                aria-pressed={comoTabela}
-                onClick={() => setComoTabela((v) => !v)}
-              >
-                {comoTabela ? <ChartColumn aria-hidden /> : <Table2 aria-hidden />}
-                {comoTabela ? t('Ver gráfico') : t('Ver como tabela')}
-              </button>
-            )}
-          </header>
-          {carregando ? (
-            <div className="qc-espera" role="status">
-              <Loader2 aria-hidden /> {t('Reconstruindo a sua curva…')}
-            </div>
-          ) : serie.length < 2 ? (
-            <div className="q-cartao fundo">
-              <p className="q-texto">
-                {t(
-                  'Ainda não há dias suficientes para desenhar uma curva. Grave ou revise em dois dias diferentes e ela aparece aqui.',
-                )}
-              </p>
-            </div>
-          ) : (
-            <div className="q-cartao">
-              {comoTabela ? (
-                <div className="q-tabela-caixa qc-no-cartao" tabIndex={0}>
-                  <table className="q-tabela" aria-label={t('XP por dia')}>
-                    <thead>
-                      <tr>
-                        <th scope="col">{t('Dia')}</th>
-                        <th scope="col">{t('XP do dia')}</th>
-                        <th scope="col">{t('Total')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[...serie].reverse().map((p) => (
-                        <tr key={p.em}>
-                          <td>{data(new Date(p.em), { day: '2-digit', month: 'short', year: '2-digit' })}</td>
-                          <td>+{numero(p.xpNoPeriodo)} XP</td>
-                          <td>{numero(p.xpAcumulado)} XP</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="qc-grafico">{curva(14, 16)}</div>
-              )}
-              {(historico?.marcos.length ?? 0) > 0 && (
-                <ul className="qc-marcos" aria-label={t('Subidas de nível')}>
-                  {historico!.marcos.slice(-6).map((m) => (
-                    <li key={`${m.em}-${m.nivel}`} className="q-tag qc-livre">
-                      <Trophy aria-hidden />
-                      {palavraDeNivel().toLowerCase()} {m.nivel} ·{' '}
-                      {data(new Date(m.em), { day: '2-digit', month: 'short', year: '2-digit' })}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <p className="qc-nota">
-                {t(
-                  'Reconstruído a partir das suas gravações, revisões e rodadas, não há um registro separado de XP. Se a fórmula de pontos mudar, este gráfico muda junto.',
-                )}
-              </p>
-            </div>
-          )}
-        </section>
-
-        <section className="q-secao">
-          <header>
-            <div>
-              <h2>{t('Onde você está no idioma')}</h2>
-              <p>
-                <T txt="Medido pelo que você <b>sustenta</b>, a chance de lembrar agora, e não quantas palavras você tem guardadas." />
-              </p>
-            </div>
-          </header>
-          {carregando || !fluencia ? (
-            <div className="qc-espera" role="status">
-              <Loader2 aria-hidden /> {t('Medindo…')}
-            </div>
-          ) : (
-            <div className="q-cartao" data-testid="fluencia-do-perfil">
-              <div className="qc-fluencia-topo">
-                <b>{rotuloDeFluencia(fluencia)}</b>
-                <Confianca valor={fluencia.confianca} estimativa />
-              </div>
-              <p className="q-texto">{fluencia.motivo}</p>
-
-              {fluencia.faixas.length === 0 ? (
-                <p className="qc-nota">{t('Nenhuma das suas palavras está na lista de níveis conferidos ainda.')}</p>
-              ) : (
-                <ul className="qc-faixas">
-                  {fluencia.faixas.map((f) => (
-                    <li key={f.nivel} className={f.sustentada ? 'qc-sustenta' : undefined}>
-                      <b>{f.nivel}</b>
-                      <span
-                        className={`q-barra ${f.sustentada ? 'qc-tom-bom' : 'qc-tom-atencao'}`}
-                        role="progressbar"
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-valuenow={Math.round((f.retencao ?? 0) * 100)}
-                        aria-label={t('Retenção do {nivel}', { nivel: f.nivel })}
-                      >
-                        <span style={{ width: `${Math.max(0, Math.min(100, (f.retencao ?? 0) * 100))}%` }} />
-                      </span>
-                      <span className="qc-pct">{f.retencao === null ? '-' : `${Math.round(f.retencao * 100)}%`}</span>
-                      <span className="qc-base">
-                        {f.retencao === null
-                          ? t('{n} de {min} revisadas', { n: f.medidos, min: MIN_CARTOES_POR_FAIXA })
-                          : t('{n} de {total} medidas', { n: f.medidos, total: f.naFaixa })}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              <div className="qc-rodape">
-                <p className="qc-nota">
-                  {rotuloDaBase(fluencia.base)} ·{' '}
-                  {t('corte de domínio: {pct}%.', { pct: Math.round(RETENCAO_DE_DOMINIO * 100) })}
-                </p>
-                {fluencia.semNivel > 0 && (
-                  <p className="qc-nota">
-                    {t(
-                      '{n} palavras ficaram de fora porque não estão na lista de níveis conferidos, elas não foram chutadas para faixa nenhuma.',
-                      { n: numero(fluencia.semNivel) },
-                    )}
-                  </p>
-                )}
-                {idiomasSemRegua.length > 0 && (
-                  <p className="qc-nota">
-                    {t(
-                      'Não há lista de níveis para {idiomas}, então as palavras desse acervo não entram na estimativa de fluência.',
-                      { idiomas: idiomasSemRegua.map(langLabelNaUI).join(', ') },
-                    )}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-        </section>
-      </>
-    );
-
   return (
     <>
-      {/* ── O QUE VOCÊ ACUMULOU ── os ladrilhos do protótipo (`.ladrilhos` > `.cartao.ladrilho`).
-          Sem métrica, "—": a régua nunca inventa um número. */}
-      <div className="ladrilhos">
-        {ladrilhos.map(([rotulo, valor, tom]) => (
-          <div key={rotulo} className="cartao ladrilho">
-            <span className="label-mono">{rotulo}</span>
-            <span className={`v ${tom}`}>{valor ?? '—'}</span>
+      <div className="q-grade g4" data-testid="numeros-do-perfil">
+        {ladrilhos.map(([rotulo, valor]) => (
+          <div key={rotulo} className="q-num">
+            <b>{valor ?? '—'}</b>
+            <span>{rotulo === 'Ofensiva' ? t('Ofensiva') : rotulo}</span>
           </div>
         ))}
       </div>
 
-      {/* ── CONQUISTAS RECENTES ── a seção do protótipo, logo abaixo dos ladrilhos. */}
       <ConquistasRecentes />
 
-      {/* ── A CURVA ──────────────────────────────────────────────────────────────────────────
-          Reconstruída dos carimbos de tempo que já existem (sessões, revisões, itens de jogo),
-          não há tabela de XP e não precisa haver. A ressalva embaixo é obrigatória: mudar os pesos
-          reescreveria este gráfico, e fingir um livro-razão que não existe seria pior que a
-          limitação. */}
-      <section className="secao">
-        <TituloDeSecao
-          icone={TrendingUp}
-          titulo="Como você chegou até aqui"
-          desc="O XP somado dia a dia, com as subidas de nível marcadas."
-        />
-
-        <div className="cartao p5">
-          {carregando ? (
-            <div className="h-56 flex items-center justify-center gap-2 text-ink-muted text-[13px]">
-              <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> Reconstruindo a sua curva…
-            </div>
-          ) : serie.length < 2 ? (
-            /* Um ponto não é uma curva. Dizer isso é melhor que desenhar uma linha reta que
-               parece estagnação. */
-            <p className="text-[13px] text-ink-muted py-10 text-center">
-              Ainda não há dias suficientes para desenhar uma curva. Grave ou revise em dois dias diferentes e ela
-              aparece aqui.
-            </p>
-          ) : (
-            <>
-              <div className="h-56">{curva(11, 12)}</div>
-
-              {(historico?.marcos.length ?? 0) > 0 && (
-                <ul className="chips" style={{ marginTop: 16, listStyle: 'none', padding: 0 }}>
-                  {historico!.marcos.slice(-6).map((m) => (
-                    <li key={`${m.em}-${m.nivel}`} className="pill">
-                      <Trophy aria-hidden style={{ width: 13, height: 13, color: 'var(--good)' }} />
-                      {palavraDeNivel().toLowerCase()} {m.nivel} ·{' '}
-                      {data(new Date(m.em), { day: '2-digit', month: 'short', year: '2-digit' })}
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              <p className="text-[11px] text-ink-faint mt-4 leading-snug max-w-[70ch]">
-                Reconstruído a partir das suas gravações, revisões e rodadas, não há um registro separado de XP. Se a
-                fórmula de pontos mudar, este gráfico muda junto.
-              </p>
-            </>
+      <section className="q-secao">
+        <header>
+          <div>
+            <h2>{t('Como você chegou até aqui')}</h2>
+            <p>{t('O XP somado dia a dia, com as subidas de nível marcadas.')}</p>
+          </div>
+          {!carregando && serie.length >= 2 && (
+            <button type="button" className="q-ctl" aria-pressed={comoTabela} onClick={() => setComoTabela((v) => !v)}>
+              {comoTabela ? <ChartColumn aria-hidden /> : <Table2 aria-hidden />}
+              {comoTabela ? t('Ver gráfico') : t('Ver como tabela')}
+            </button>
           )}
-        </div>
+        </header>
+        {carregando ? (
+          <div className="qc-espera" role="status">
+            <Loader2 aria-hidden /> {t('Reconstruindo a sua curva…')}
+          </div>
+        ) : serie.length < 2 ? (
+          <div className="q-cartao fundo">
+            <p className="q-texto">
+              {t(
+                'Ainda não há dias suficientes para desenhar uma curva. Grave ou revise em dois dias diferentes e ela aparece aqui.',
+              )}
+            </p>
+          </div>
+        ) : (
+          <div className="q-cartao">
+            {comoTabela ? (
+              <div className="q-tabela-caixa qc-no-cartao" tabIndex={0}>
+                <table className="q-tabela" aria-label={t('XP por dia')}>
+                  <thead>
+                    <tr>
+                      <th scope="col">{t('Dia')}</th>
+                      <th scope="col">{t('XP do dia')}</th>
+                      <th scope="col">{t('Total')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...serie].reverse().map((p) => (
+                      <tr key={p.em}>
+                        <td>{data(new Date(p.em), { day: '2-digit', month: 'short', year: '2-digit' })}</td>
+                        <td>+{numero(p.xpNoPeriodo)} XP</td>
+                        <td>{numero(p.xpAcumulado)} XP</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="qc-grafico">{curva(14, 16)}</div>
+            )}
+            {(historico?.marcos.length ?? 0) > 0 && (
+              <ul className="qc-marcos" aria-label={t('Subidas de nível')}>
+                {historico!.marcos.slice(-6).map((m) => (
+                  <li key={`${m.em}-${m.nivel}`} className="q-tag qc-livre">
+                    <Trophy aria-hidden />
+                    {palavraDeNivel().toLowerCase()} {m.nivel} ·{' '}
+                    {data(new Date(m.em), { day: '2-digit', month: 'short', year: '2-digit' })}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="qc-nota">
+              {t(
+                'Reconstruído a partir das suas gravações, revisões e rodadas, não há um registro separado de XP. Se a fórmula de pontos mudar, este gráfico muda junto.',
+              )}
+            </p>
+          </div>
+        )}
       </section>
 
-      {/* ── FLUÊNCIA ─────────────────────────────────────────────────────────────────────────
-          A única saída deste app que é um JUÍZO sobre a pessoa. Por isso a regra vem escrita ao
-          lado do rótulo, e a base de cálculo aparece sem ser pedida. */}
-      <section className="secao">
-        <TituloDeSecao
-          icone={GraduationCap}
-          titulo="Onde você está no idioma"
-          desc={
-            <>
-              Medido pelo que você <b>sustenta</b>, a chance de lembrar agora, e não quantas palavras você tem
-              guardadas.
-            </>
-          }
-        />
-
-        <div className="cartao p5">
-          {carregando || !fluencia ? (
-            <div className="h-32 flex items-center justify-center gap-2 text-ink-muted text-[13px]">
-              <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> Medindo…
+      <section className="q-secao">
+        <header>
+          <div>
+            <h2>{t('Onde você está no idioma')}</h2>
+            <p>
+              <T txt="Medido pelo que você <b>sustenta</b>, a chance de lembrar agora, e não quantas palavras você tem guardadas." />
+            </p>
+          </div>
+        </header>
+        {carregando || !fluencia ? (
+          <div className="qc-espera" role="status">
+            <Loader2 aria-hidden /> {t('Medindo…')}
+          </div>
+        ) : (
+          <div className="q-cartao" data-testid="fluencia-do-perfil">
+            <div className="qc-fluencia-topo">
+              <b>{rotuloDeFluencia(fluencia)}</b>
+              <Confianca valor={fluencia.confianca} estimativa />
             </div>
-          ) : (
-            <>
-              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-1">
-                <span className="font-display font-black text-2xl text-ink">{rotuloDeFluencia(fluencia)}</span>
-                {/* O selo de confiança acende sozinho quando a base é pequena — e ela costuma ser. */}
-                <Confianca valor={fluencia.confianca} estimativa />
-              </div>
-              {/* A REGRA, em uma frase. Sem ela o rótulo é indistinguível de um chute. */}
-              <p className="text-[12.5px] text-ink-muted mb-4 max-w-[70ch]">{fluencia.motivo}</p>
+            <p className="q-texto">{fluencia.motivo}</p>
 
-              {fluencia.faixas.length === 0 ? (
-                <p className="text-[13px] text-ink-muted">
-                  Nenhuma das suas palavras está na lista de níveis conferidos ainda.
+            {fluencia.faixas.length === 0 ? (
+              <p className="qc-nota">{t('Nenhuma das suas palavras está na lista de níveis conferidos ainda.')}</p>
+            ) : (
+              <ul className="qc-faixas">
+                {fluencia.faixas.map((f) => (
+                  <li key={f.nivel} className={f.sustentada ? 'qc-sustenta' : undefined}>
+                    <b>{f.nivel}</b>
+                    <span
+                      className={`q-barra ${f.sustentada ? 'qc-tom-bom' : 'qc-tom-atencao'}`}
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={Math.round((f.retencao ?? 0) * 100)}
+                      aria-label={t('Retenção do {nivel}', { nivel: f.nivel })}
+                    >
+                      <span style={{ width: `${Math.max(0, Math.min(100, (f.retencao ?? 0) * 100))}%` }} />
+                    </span>
+                    <span className="qc-pct">{f.retencao === null ? '-' : `${Math.round(f.retencao * 100)}%`}</span>
+                    <span className="qc-base">
+                      {f.retencao === null
+                        ? t('{n} de {min} revisadas', { n: f.medidos, min: MIN_CARTOES_POR_FAIXA })
+                        : t('{n} de {total} medidas', { n: f.medidos, total: f.naFaixa })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="qc-rodape">
+              <p className="qc-nota">
+                {rotuloDaBase(fluencia.base)} ·{' '}
+                {t('corte de domínio: {pct}%.', { pct: Math.round(RETENCAO_DE_DOMINIO * 100) })}
+              </p>
+              {fluencia.semNivel > 0 && (
+                <p className="qc-nota">
+                  {t(
+                    '{n} palavras ficaram de fora porque não estão na lista de níveis conferidos, elas não foram chutadas para faixa nenhuma.',
+                    { n: numero(fluencia.semNivel) },
+                  )}
                 </p>
-              ) : (
-                <ul className="space-y-2.5">
-                  {fluencia.faixas.map((f) => (
-                    <li key={f.nivel} className="flex items-center gap-3">
-                      <span
-                        className={`font-display font-black text-[13px] w-7 shrink-0 ${f.sustentada ? 'text-good-ink' : 'text-ink-muted'}`}
-                      >
-                        {f.nivel}
-                      </span>
-                      <Barra
-                        pct={(f.retencao ?? 0) * 100}
-                        tom={f.sustentada ? 'good' : 'warn'}
-                        tamanho="fina"
-                        rotuloAcessivel={`Retenção do ${f.nivel}`}
-                        className="flex-1"
-                      />
-                      <span className="text-[12px] font-mono tabular-nums w-12 text-end text-ink">
-                        {f.retencao === null ? '-' : `${Math.round(f.retencao * 100)}%`}
-                      </span>
-                      <span className="text-[11px] text-ink-faint w-32 text-end hidden sm:block">
-                        {/* Sem evidência, diz o que falta — não deixa o traço sem explicação. */}
-                        {f.retencao === null
-                          ? `${f.medidos} de ${MIN_CARTOES_POR_FAIXA} revisadas`
-                          : `${f.medidos} de ${f.naFaixa} medidas`}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
               )}
-
-              <div className="mt-4 pt-4 border-t border-border-subtle space-y-1">
-                <p className="text-[11px] text-ink-faint">
-                  {rotuloDaBase(fluencia.base)} · corte de domínio: {Math.round(RETENCAO_DE_DOMINIO * 100)}%.
+              {idiomasSemRegua.length > 0 && (
+                <p className="qc-nota">
+                  {t(
+                    'Não há lista de níveis para {idiomas}, então as palavras desse acervo não entram na estimativa de fluência.',
+                    { idiomas: idiomasSemRegua.map(langLabelNaUI).join(', ') },
+                  )}
                 </p>
-                {fluencia.semNivel > 0 && (
-                  <p className="text-[11px] text-ink-faint">
-                    {numero(fluencia.semNivel)} palavras ficaram de fora porque não estão na lista de níveis conferidos,
-                    elas não foram chutadas para faixa nenhuma.
-                  </p>
-                )}
-                {/* NOMEAR O IDIOMA sem régua, em vez de deixar a ausência parecer culpa do acervo. */}
-                {idiomasSemRegua.length > 0 && (
-                  <p className="text-[11px] text-ink-faint">
-                    Não há lista de níveis para {idiomasSemRegua.map(langLabelNaUI).join(', ')}, então as palavras desse
-                    acervo não entram na estimativa de fluência.
-                  </p>
-                )}
-              </div>
-            </>
-          )}
-        </div>
+              )}
+            </div>
+          </div>
+        )}
       </section>
     </>
   );

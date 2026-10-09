@@ -8,7 +8,8 @@
  * de `GET /api/me/entitlements`): o Premium pago nunca ouve isso.
  */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { Sparkles } from 'lucide-react'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { GATILHOS_FUNCIONAIS, momentoFuncional } from '../src/core/ofertas'
 import { decidirOferta, HISTORICO_VAZIO } from '../src/lib/ofertas/motor'
@@ -116,6 +117,30 @@ describe('o motor', () => {
 })
 
 describe('o host', () => {
+  /* O cartão da oferta chega num pedaço à parte (`usePedacoDoQuest`): depois da primeira vez ele monta na
+     hora, e é assim que os testes abaixo o encontram (e que "não aparece" quer dizer alguma coisa). */
+  beforeAll(async () => {
+    const { default: CartaoDeOferta } = await import('../src/components/ofertas/CartaoDeOferta')
+    const nada = () => {}
+    render(
+      <CartaoDeOferta
+        tom="acento"
+        icone={Sparkles}
+        titulo=""
+        texto=""
+        cta=""
+        aoAgir={nada}
+        aoDispensar={nada}
+        aoNaoMostrar={nada}
+      />,
+    )
+    await act(async () => {
+      await import('../src/components/ofertas/quest/CartaoDeOfertaDoQuest')
+      await new Promise((r) => setTimeout(r, 0))
+    })
+    cleanup()
+  })
+
   it('D-3: o aviso aparece sozinho para quem está no teste, e "Ver planos" leva a Planos sem destaque de venda', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval'] })
     estado.teste = { terminaEm: meioDia(3) }

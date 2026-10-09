@@ -11,29 +11,35 @@ import { type MinigameId,MINIGAMES } from '../src/core/minigames/types';
  * Varredura do fonte: cada jogo comemora acerto e erro pelo motor (`celebrar`), e nenhum compõe a
  * festa à mão — nada de `gameFeel`, `canvas-confetti`, vibração ou rajada direta. Era assim que o
  * mesmo acerto vibrava duas vezes num jogo e nenhuma no outro. O fim de rodada comemora só no
- * `ResultadoDaRodada` (`celebrar({ tipo: 'rodada' })`), nunca dentro do jogo.
+ * `casca/FimDaRodada` (`celebrar({ tipo: 'rodada' })`), nunca dentro do jogo.
  */
 
 const ARQUIVO: Record<MinigameId, string> = {
-  memory: 'MemoryGame',
-  wordsearch: 'WordSearchGame',
-  blitz: 'BlitzGame',
-  termo: 'TermoGame',
-  scramble: 'ScrambleGame',
-  karaoke: 'KaraokeGame',
-  escuta: 'EscutaGame',
-  ditado: 'DitadoGame',
-  conectores: 'ConectoresGame',
-  karuta: 'culturais/KarutaGame',
-  choseong: 'culturais/ChoseongGame',
-  tenis: 'culturais/TenseTennisGame',
-  koffer: 'culturais/KofferGame',
-  bao: 'culturais/BaoGame',
-  vitendawili: 'culturais/VitendawiliGame',
-  shiritori: 'culturais/ShiritoriGame',
-  cadavre: 'culturais/CadavreExquisGame',
-  taboo: 'culturais/TabooGame',
+  memory: 'MemoriaDoPrototipo',
+  wordsearch: 'CacaPalavrasDoPrototipo',
+  blitz: 'DueloDoPrototipo',
+  termo: 'TermoDoPrototipo',
+  scramble: 'FraseDoPrototipo',
+  karaoke: 'KaraokeDoPrototipo',
+  escuta: 'EscutaDoPrototipo',
+  ditado: 'DitadoDoPrototipo',
+  conectores: 'ConectoresDoPrototipo',
+  karuta: 'culturais/KarutaDoPrototipo',
+  choseong: 'culturais/ChoseongDoPrototipo',
+  tenis: 'culturais/RaliDoPrototipo',
+  koffer: 'culturais/KofferDoPrototipo',
+  bao: 'culturais/BaoDoPrototipo',
+  vitendawili: 'culturais/VitendawiliDoPrototipo',
+  shiritori: 'culturais/ShiritoriDoPrototipo',
+  cadavre: 'culturais/CadavreDoPrototipo',
+  taboo: 'culturais/TabuDoPrototipo',
 };
+
+/**
+ * Nos tabuleiros do protótipo dois jogos NÃO têm o momento "errou": no Caça-palavras o traço errado diz
+ * "Tente de novo" e não conta erro, e no Cadavre a frase só diz quantas palavras entraram.
+ */
+const SEM_MOMENTO_DE_ERRO: ReadonlySet<MinigameId> = new Set(['wordsearch', 'cadavre']);
 
 const fonte = (id: MinigameId) =>
   readFileSync(join(__dirname, '../src/components/minigames', `${ARQUIVO[id]}.tsx`), 'utf8');
@@ -53,7 +59,8 @@ describe('os 18 jogos no motor único de comemoração', () => {
 
       it('comemora acerto e erro pelo motor', () => {
         expect(src).toMatch(/celebrar\(\{\s*tipo: 'acerto'/);
-        expect(src).toMatch(/celebrar\(\{\s*tipo: 'erro'/);
+        if (SEM_MOMENTO_DE_ERRO.has(id)) expect(src).not.toMatch(/celebrar\(\{\s*tipo: 'erro'/);
+        else expect(src).toMatch(/celebrar\(\{\s*tipo: 'erro'/);
       });
 
       it('não vibra, não solta rajada e não chama a festa antiga à mão', () => {
@@ -71,7 +78,7 @@ describe('fim de rodada e recompensas', () => {
   const ler = (p: string) => readFileSync(join(__dirname, '../src', p), 'utf8');
 
   it('o fim de rodada comum comemora a rodada pelas estrelas', () => {
-    expect(ler('components/minigames/ResultadoDaRodada.tsx')).toMatch(/celebrar\(\{\s*tipo: 'rodada'/);
+    expect(ler('components/minigames/casca/FimDaRodada.tsx')).toMatch(/celebrar\(\{\s*tipo: 'rodada'/);
   });
 
   it('o modal de recompensa comemora pelo motor', () => {

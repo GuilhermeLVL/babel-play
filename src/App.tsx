@@ -2,7 +2,6 @@ import React, { Suspense, useEffect, useState } from 'react';
 
 import LayoutEditorToolbar from './components/LayoutEditorToolbar';
 import PracticeMenu from './components/PracticeMenu';
-import Hub from './components/views/Hub'; // tela inicial, eager p/ primeiro paint instantâneo
 // CODE-SPLITTING: as demais views e overlays pesados carregam SOB DEMANDA. Antes, tudo caía num único
 // bundle de arranque (~1,9 MB) — incluindo o onnxruntime-web/VAD (Captura), o recharts (Métricas) e o
 // gateway/offlineTranscribe (Análise/Biblioteca), pesos que só importam quando você abre aquela tela.
@@ -25,7 +24,7 @@ const Diagnostico = lazyComRecarga(() => import('./components/views/Diagnostico'
 const NaoEncontrado = lazyComRecarga(() => import('./components/views/NaoEncontrado'));
 const Admin = lazyComRecarga(() => import('./components/views/Admin'));
 const Loja = lazyComRecarga(() => import('./components/views/Loja'));
-// As telas do Meta Quest: só o headset as baixa.
+// A casca e o Início: pedaços à parte, fora do JS inicial.
 const TrilhoDoQuest = lazyComRecarga(() => import('./components/shell/TrilhoDoQuest'));
 const InicioDoQuest = lazyComRecarga(() => import('./components/views/quest/InicioDoQuest'));
 /* O modal de resgate: só quando há recompensa na fila (a fila em si mora em `lib/filaDeRecompensas`).
@@ -72,14 +71,10 @@ import { aceitarAnonimo, exigeConta, porta } from './components/conta/exigeConta
 import { usePedacoDoQuest } from './components/conta/quest/usePedacoDoQuest';
 import FloatingScoreLayer from './components/FloatingScoreLayer';
 import IndicadorDeSalvamento from './components/IndicadorDeSalvamento';
-import MobileNav from './components/shell/MobileNav';
-import MobileTopBar from './components/shell/MobileTopBar';
-import StudioHeader from './components/StudioHeader';
 import Toaster from './components/Toast';
 import Vazio from './components/ui/Vazio';
 import { carregarProtecao, fetchSessions } from './data/api';
 import { lerTokenDoConvite } from './lib/conviteNaUrl';
-import { useQuestNovo } from './lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from './lib/edicaoEstatica';
 import { carregarEntitlements } from './lib/entitlements';
 import { useAparencia, useHidratacaoDeAjustes } from './lib/estado/useAparencia';
@@ -116,9 +111,6 @@ export default function App() {
   useIdiomaDaInterfaceEscolhido();
 
   const [activeView, setActiveView] = useState<ViewType>('hub');
-  /* As telas do Meta Quest (maquete de 01/10/2026): trilho de ícones no lugar do menu, e o Início de
-     três caminhos. Só no Quest e com a chave de `/diagnostico` ligada; desligada, volta tudo de antes. */
-  const questNovo = useQuestNovo();
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [selectedRecordingId, setSelectedRecordingId] = useState<string | null>(null);
   const [resumingRecordingId, setResumingRecordingId] = useState<string | null>(null);
@@ -170,7 +162,6 @@ export default function App() {
     togglePerformanceMode,
     fontScale,
     setFontScale,
-    cycleFontScale,
     setThemeState,
     setFonteState,
     setDarkMode,
@@ -449,104 +440,32 @@ export default function App() {
     );
   }
 
-  const shell = (
-    <StudioHeader
-      theme={theme}
-      setTheme={setTheme}
-      fonte={fonte}
-      setFonte={setFonte}
-      nivel={progress.available ? progress.level : 99}
-      darkMode={darkMode}
-      toggleDarkMode={toggleDarkMode}
-      onOpenStudio={abrirEstudio}
-      ageProfile={ageProfile}
-      setAgeProfile={setAgeProfile}
-      fontScale={fontScale}
-      cycleFontScale={cycleFontScale}
-      activeView={viewDoMenu}
-      onChangeView={irPeloShell}
-      menuPosition={menuPosition}
-      setMenuPosition={setMenuPosition}
-      soundEnabled={soundEnabled}
-      toggleSound={toggleSound}
-      animationsEnabled={animationsEnabled}
-      toggleAnimations={toggleAnimations}
-      performanceMode={performanceMode}
-      togglePerformanceMode={togglePerformanceMode}
-      onOpenSearch={() => setBuscaAberta(true)}
-      progress={progress}
-    />
-  );
-
-  const mobileControls = {
-    theme,
-    setTheme,
-    darkMode,
-    toggleDarkMode,
-    onOpenStudio: abrirEstudio,
-    ageProfile,
-    setAgeProfile,
-    fontScale,
-    cycleFontScale,
-    menuPosition,
-    setMenuPosition,
-    fonte,
-    setFonte,
-    nivel: progress.available ? progress.level : 99,
-    soundEnabled,
-    toggleSound,
-    animationsEnabled,
-    toggleAnimations,
-    performanceMode,
-    togglePerformanceMode,
-    onOpenSearch: () => setBuscaAberta(true),
-    onChangeView: irPeloShell,
-  };
-
-  /**
-   * LAYOUT DO SHELL — uma coluna explícita, sem `flex-col-reverse`/`flex-row-reverse`.
-   *
-   * O reverse invertia a ordem VISUAL mas não a de tabulação, e ainda brigava com o `order-last`
-   * espalhado nos filhos. Aqui a posição do menu decide onde o elemento é RENDERIZADO, então o
-   * DOM, a leitura por teclado e o leitor de tela contam a mesma história.
-   */
   return (
     // `h-dvh`: com 100vh a raiz cinza (bg-surface) ficava maior que a viewport dinamica e o
     // overflow-hidden cortava o rodape, a "faixa cinza" que escondia conteudo na Captura.
     <div data-raiz-do-app className="@container/app flex flex-col h-tela w-full bg-canvas overflow-hidden relative">
-      {/* Barra do topo: a de desktop quando a preferência é "topo"; senão, só a do celular. */}
-      {questNovo ? null : menuPosition === 'top' ? (
-        shell
-      ) : (
-        <MobileTopBar progress={progress} controls={mobileControls} />
-      )}
-
-      <div className={`flex-1 flex min-h-0 w-full${questNovo ? ' q-casca' : ''}`}>
-        {questNovo ? (
-          /* O trilho é um chunk à parte: sem reservar o lugar dele, o <main> nascia com a largura toda e
+      <div className="flex-1 flex min-h-0 w-full q-casca">
+        {/* O trilho é um chunk à parte: sem reservar o lugar dele, o <main> nascia com a largura toda e
              saltava 108 px quando o trilho chegava (CLS 0,08 em toda tela do desktop). A reserva (`index.css`)
-             tem as mesmas medidas do trilho, na janela larga e na estreita. */
-          <Suspense fallback={<div className="q-trilho-reserva" aria-hidden="true" />}>
-            <TrilhoDoQuest
-              activeView={viewDoMenu}
-              /* O mesmo caminho do cabeçalho de sempre: é ele que abre Ajustes na aba pedida (o botão
+             tem as mesmas medidas do trilho, na janela larga e na estreita. */}
+        <Suspense fallback={<div className="q-trilho-reserva" aria-hidden="true" />}>
+          <TrilhoDoQuest
+            activeView={viewDoMenu}
+            /* É este caminho que abre Ajustes na aba pedida (o botão
                  "Preferências de notificação" do painel Mais caía em Idiomas). */
-              onChangeView={irPeloShell}
-              aoEntrar={authRequired && anonimo ? () => setPedindoLogin(true) : undefined}
-              aoBuscar={() => setBuscaAberta(true)}
-              ageProfile={ageProfile}
-              semConta={anonimo}
-              darkMode={darkMode}
-              toggleDarkMode={toggleDarkMode}
-              soundEnabled={soundEnabled}
-              toggleSound={toggleSound}
-              performanceMode={performanceMode}
-              togglePerformanceMode={togglePerformanceMode}
-            />
-          </Suspense>
-        ) : (
-          menuPosition === 'left' && shell
-        )}
+            onChangeView={irPeloShell}
+            aoEntrar={authRequired && anonimo ? () => setPedindoLogin(true) : undefined}
+            aoBuscar={() => setBuscaAberta(true)}
+            ageProfile={ageProfile}
+            semConta={anonimo}
+            darkMode={darkMode}
+            toggleDarkMode={toggleDarkMode}
+            soundEnabled={soundEnabled}
+            toggleSound={toggleSound}
+            performanceMode={performanceMode}
+            togglePerformanceMode={togglePerformanceMode}
+          />
+        </Suspense>
 
         <main
           className={`@container/conteudo flex-1 min-w-0 flex flex-col h-full relative overflow-hidden bg-canvas age-${ageProfile}`}
@@ -590,10 +509,10 @@ export default function App() {
               <AvisoDePagamentoAtrasado />
             </Suspense>
           )}
-          {/* A CAMADA DE POLIMENTO (desenho novo): a borda de rolagem e a tela que sai e entra na troca
-              (`src/lib/polimento/telas.ts`). Fora do desenho novo o invólucro não existe para o layout. */}
-          {questNovo && <div className="px-borda" aria-hidden="true" />}
-          <div className={questNovo ? 'px-tela' : 'contents'}>
+          {/* A CAMADA DE POLIMENTO: a borda de rolagem e a tela que sai e entra na troca
+              (`src/lib/polimento/telas.ts`). */}
+          <div className="px-borda" aria-hidden="true" />
+          <div className="px-tela">
             <Suspense
               fallback={
                 <div className="carregando-da-tela flex-1 flex items-center justify-center text-ink-muted text-sm">
@@ -610,7 +529,7 @@ export default function App() {
                   onVoltar={() => setActiveView('hub')}
                 />
               )}
-              {activeView === 'hub' && questNovo && (
+              {activeView === 'hub' && (
                 <InicioDoQuest
                   onChangeView={navigateTo}
                   recordings={recordings}
@@ -619,18 +538,6 @@ export default function App() {
                   missoes={missoes}
                   semConta={anonimo}
                   ageProfile={ageProfile}
-                  carregandoSessoes={!gravacoesCarregadas}
-                  missoesPendentes={missoesPendentes}
-                />
-              )}
-              {activeView === 'hub' && !questNovo && (
-                <Hub
-                  onChangeView={navigateTo}
-                  recordings={recordings}
-                  ageProfile={ageProfile}
-                  progress={progress}
-                  metrics={metrics}
-                  missoes={missoes}
                   carregandoSessoes={!gravacoesCarregadas}
                   missoesPendentes={missoesPendentes}
                 />
@@ -887,21 +794,10 @@ export default function App() {
             />
           )}
         </Suspense>
-
-        {/* O rail da direita fica DEPOIS do chat acoplado, para encostar de fato na borda da tela. */}
-        {!questNovo && menuPosition === 'right' && shell}
       </div>
 
-      {!questNovo && menuPosition === 'bottom' && shell}
-
-      {/* Dock do celular — sempre presente abaixo de `md`, seja qual for a posição escolhida
-          para a tela grande. Sem ela a app ficava literalmente sem navegação no telefone. */}
-      {!questNovo && <MobileNav activeView={viewDoMenu} onChangeView={navigateTo} ageProfile={ageProfile} />}
-
-      {/* Busca global (Ctrl/⌘+K). Renderizada AQUI, na raiz, e não dentro do shell: as quatro
-          posições de menu montam shells diferentes, e um diálogo que muda de dono conforme a
-          posição escolhida seria quatro comportamentos para manter. O gatilho visual mora no
-          `ControlCluster`, que é a peça que todas elas compartilham. */}
+      {/* Busca global (Ctrl/⌘+K). Renderizada AQUI, na raiz, e não dentro do trilho. O gatilho visual
+          mora no painel "Mais" do `TrilhoDoQuest`. */}
       {BuscaGlobal && (
         <BuscaGlobal
           aberta={buscaAberta}

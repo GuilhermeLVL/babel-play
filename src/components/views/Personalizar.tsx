@@ -3,7 +3,7 @@ import { type ReactNode, useState } from 'react';
 
 import { applyCustomColors, FONTE_OPTIONS, type FonteType, THEME_OPTIONS, type ThemeType } from '../../lib/appearance';
 import { celebrarEscolha } from '../../lib/comemoracao';
-import { noHeadset, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
 import { acessoAoEstilo, faltaParaOPerfil } from '../../lib/galeria/acesso';
 import { estaEquipado } from '../../lib/galeria/equipar';
 import { gravarPaletaAtiva, lerPaletaAtiva, type Paleta, paletaPorId } from '../../lib/galeria/paletas';
@@ -16,14 +16,12 @@ import {
   salvarPerfil,
 } from '../../lib/galeria/perfis';
 import { restaurarVisualPadrao } from '../../lib/galeria/restaurar';
-import { palavraDeNivel } from '../../lib/galeria/textos';
 import { t } from '../../lib/i18n';
 import type { ItemDaLoja } from '../../lib/loja';
 import { PARTICULAS_OPTIONS, readParticulas, setParticulas } from '../../lib/particulas';
 import { readRastro, setRastro } from '../../lib/rastroDoMouse';
 import type { AgeProfileType, MenuPositionType } from '../shell/navItems';
 import { toast } from '../Toast';
-import { IconeEmBloco, TituloDeSecao } from '../ui';
 import Inventario from './personalizar/Inventario';
 
 /**
@@ -114,7 +112,6 @@ export default function Personalizar({
   const saldoAgora = saldo;
   /* No Meta Quest (telas novas) o inventário mostra uma seção por vez, e o que mora aqui embaixo (a letra
      e o perfil de exibição) entra nele como mais uma seção, com as peças do desenho do headset. */
-  const questNovo = useQuestNovo();
   /* O mesmo desenho vale no computador (02/10/2026): o que FALA do headset pergunta pelo aparelho. */
   const [headset] = useState(noHeadset);
 
@@ -186,12 +183,6 @@ export default function Personalizar({
       rerender();
     } else toast.warn('O nome não pode ficar vazio.');
   };
-  const renomear = (p: Perfil) => {
-    // prompt nativo: um campo, teclado-acessível, sem estado novo — suficiente para um nome.
-    const nome = window.prompt(`Novo nome para "${p.nome}":`, p.nome);
-    if (nome === null) return;
-    renomearPara(p, nome);
-  };
 
   const temaNome =
     theme === 'custom' && paletaAtiva
@@ -203,7 +194,7 @@ export default function Personalizar({
   /* ACESSIBILIDADE NO DESENHO NOVO: a letra e o perfil de exibição em linhas de 72 px. A posição do menu
      não vira controle: neste desenho o menu é o trilho, e a tela diz isso em vez de oferecer um botão sem
      efeito. A frase depende do aparelho: no computador não se fala em headset. */
-  const acessibilidadeNoQuest = questNovo ? (
+  const acessibilidadeNoQuest = (
     <>
       <section className="q-secao" data-bloco="acessibilidade-e-layout">
         <header>
@@ -284,7 +275,7 @@ export default function Personalizar({
         </div>
       </section>
     </>
-  ) : null;
+  );
 
   const inventario = (
     <Inventario
@@ -312,11 +303,7 @@ export default function Personalizar({
           chave: 'menu',
           rotulo: 'Menu',
           // No desenho novo o menu é o trilho de ícones: a posição escolhida não vale ali.
-          valor: questNovo
-            ? headset
-              ? t('Trilho do headset')
-              : t('Trilho de ícones')
-            : (POSICAO_DO_MENU[menuPosition] ?? menuPosition),
+          valor: headset ? t('Trilho do headset') : t('Trilho de ícones'),
           icone: PanelLeft,
         },
       ]}
@@ -327,7 +314,6 @@ export default function Personalizar({
       perfis={perfis}
       faltaDoPerfil={(p) => faltaParaOPerfil(p, ctxAcesso)}
       aoAplicarPerfil={aplicarPerfil}
-      aoRenomearPerfil={renomear}
       aoApagarPerfil={(p) => {
         apagarPerfil(p.id);
         rerender();
@@ -338,129 +324,27 @@ export default function Personalizar({
       tiposComPrevia={tiposComPrevia}
       /* DIREITO, não recompensa: desfazer o visual nunca depende de nível nem de Seeds. */
       acaoDosPerfis={
-        questNovo ? (
-          <button type="button" className="q-chip" onClick={voltarAoOriginal}>
-            <Undo2 aria-hidden /> {t('Voltar ao visual original')}
-          </button>
-        ) : (
-          <button type="button" className="link" onClick={voltarAoOriginal}>
-            <Undo2 aria-hidden /> Voltar ao visual original
-          </button>
-        )
+        <button type="button" className="q-chip" onClick={voltarAoOriginal}>
+          <Undo2 aria-hidden /> {t('Voltar ao visual original')}
+        </button>
       }
-      aoRenomearPerfilPara={questNovo ? renomearPara : undefined}
+      aoRenomearPerfilPara={renomearPara}
       secaoInicial={secaoInicial}
-      secoesExtras={
-        questNovo
-          ? [
-              {
-                id: 'acessibilidade',
-                titulo: t('Acessibilidade'),
-                icone: Accessibility,
-                conteudo: acessibilidadeNoQuest,
-              },
-            ]
-          : undefined
-      }
+      secoesExtras={[
+        {
+          id: 'acessibilidade',
+          titulo: t('Acessibilidade'),
+          icone: Accessibility,
+          conteudo: acessibilidadeNoQuest,
+        },
+      ]}
     />
   );
-
-  if (questNovo)
-    return (
-      <>
-        {topo}
-        {inventario}
-      </>
-    );
 
   return (
     <>
       {topo}
       {inventario}
-
-      {/* ── ACESSIBILIDADE E LAYOUT (recompensas v2, 27/09): letra e posição do menu saíram do
-             catálogo. São legibilidade e layout — livres desde o nível 1, sem preço e sem cadeado. ── */}
-      <section className="secao" data-bloco="acessibilidade-e-layout">
-        <TituloDeSecao
-          icone={Type}
-          titulo={t('Acessibilidade e layout')}
-          desc={t('A letra e a posição do menu são suas desde o começo: não custam Seeds nem pedem nível.')}
-        />
-        <p className="label-mono" style={{ margin: '0 0 8px' }}>
-          {t('Letra')}
-        </p>
-        <div className="g3">
-          {FONTE_OPTIONS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              className={`cartao opcao ${fonte === f.id ? 'sel' : ''}`}
-              aria-pressed={fonte === f.id}
-              onClick={() => setFonte(f.id)}
-            >
-              <span className="radio" aria-hidden="true" />
-              <span style={{ flex: 1 }}>
-                <h3>{f.name}</h3>
-                <p>{f.desc}</p>
-              </span>
-            </button>
-          ))}
-        </div>
-        <p className="label-mono" style={{ margin: '16px 0 8px' }}>
-          {t('Posição do menu')}
-        </p>
-        <div className="g3">
-          {(Object.keys(POSICAO_DO_MENU) as MenuPositionType[]).map((pos) => (
-            <button
-              key={pos}
-              type="button"
-              className={`cartao opcao ${menuPosition === pos ? 'sel' : ''}`}
-              aria-pressed={menuPosition === pos}
-              onClick={() => setMenuPosition(pos)}
-            >
-              <span className="radio" aria-hidden="true" />
-              <IconeEmBloco icone={PanelLeft} />
-              <span style={{ flex: 1 }}>
-                <h3>{POSICAO_DO_MENU[pos]}</h3>
-              </span>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* ── PERFIL DE EXIBIÇÃO: DIREITO declarado onde mora (ux-v2 §4.4). ── */}
-      <section className="secao">
-        <TituloDeSecao
-          icone={Accessibility}
-          titulo="Perfil de exibição"
-          desc={
-            <>
-              Muda a linguagem e a densidade das telas. Não muda o tema nem esconde recurso nenhum.{' '}
-              <b style={{ color: 'var(--ink)' }}>
-                Isto é acessibilidade: sempre grátis, em qualquer {palavraDeNivel().toLowerCase()}.
-              </b>
-            </>
-          }
-        />
-        <div className="g3">
-          {PERFIS_DE_EXIBICAO.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              className={`cartao opcao ${ageProfile === opt.id ? 'sel' : ''}`}
-              aria-pressed={ageProfile === opt.id}
-              onClick={() => setAgeProfile(opt.id)}
-            >
-              <span className="radio" aria-hidden="true" />
-              <IconeEmBloco icone={opt.icon} />
-              <span style={{ flex: 1 }}>
-                <h3>{opt.label}</h3>
-                <p>{opt.desc}</p>
-              </span>
-            </button>
-          ))}
-        </div>
-      </section>
     </>
   );
 }

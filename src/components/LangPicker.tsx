@@ -1,12 +1,7 @@
-import { Check, ChevronDown, Search, Sparkles } from 'lucide-react';
-import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 
-import { useQuestNovo } from '../lib/dispositivo/telaNovaDoQuest';
 import { langMatches, LANGUAGES } from '../lib/languages';
 import { lazyComRecarga } from '../lib/lazyComRecarga';
-import { usePosicaoFlutuante } from '../lib/posicaoFlutuante';
-import { LangFlag } from './LangFlag';
 
 /* A apresentação do headset (gatilho de 60 px e a lista num diálogo no centro). Por `import()`: este
    seletor mora em várias telas, e só o Quest com as telas novas baixa o desenho e o CSS dele. */
@@ -71,39 +66,10 @@ export default function LangPicker({
   ariaLabel,
   className = '',
 }: LangPickerProps) {
-  // No Quest (telas novas ligadas) a lista abre num diálogo no centro; o estado é o mesmo daqui.
-  const questNovo = useQuestNovo();
+  // A lista abre num diálogo no centro (`SeletorDeIdiomaDoQuest`); o estado mora aqui.
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const searchRef = useRef<HTMLInputElement | null>(null);
-  const listRef = useRef<HTMLUListElement | null>(null);
-  const listboxId = `${id || 'lang'}-listbox`;
-  const popupRef = useRef<HTMLDivElement | null>(null);
-
-  /**
-   * ONDE O POPUP ABRE — e por que ele mora no `body`.
-   *
-   * DOIS DEFEITOS, um dentro do outro. O primeiro: a posição horizontal era `right-0` cravada,
-   * porque "estes seletores ficam à direita do cabeçalho". Era verdade onde ele nasceu e deixou
-   * de ser quando o mesmo componente foi parar no canto ESQUERDO da tela de jogos — a lista abria
-   * em `left: -110px`, cortada pela metade.
-   *
-   * O segundo, e o pior: mesmo bem posicionada, a lista era RECORTADA. Ela ficava dentro de um
-   * `.card-panel`, que tem `overflow: hidden`, e um popup de 293px era espremido nos 56px da
-   * barra. Nenhum ajuste de coordenada resolve isso: o problema é o ancestral.
-   *
-   * Daí o portal. No `body`, com `position: fixed`, não há ancestral que recorte — e a conta da
-   * posição mora em `lib/posicaoFlutuante`, compartilhada com os outros menus do app, porque este
-   * defeito apareceu duas vezes em telas diferentes.
-   */
-  const caixa = usePosicaoFlutuante(open && !questNovo, triggerRef, {
-    largura: block ? 'ancora' : 288, // 288 = w-72
-    alturaEstimada: 300,
-  });
-
   /** Opções visíveis: "automático" (quando permitido) + idiomas filtrados pela busca. */
   const options = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -124,15 +90,12 @@ export default function LangPicker({
   const selectedKey = auto ? AUTO_KEY : value;
   const selectedLabel = auto ? autoLabel : (LANGUAGES.find((l) => l.code === value)?.label ?? value);
 
-  // Ao abrir: foco na busca e destaque já na opção atual (não no topo da lista).
+  // Ao abrir: destaque já na opção atual (não no topo da lista).
   useEffect(() => {
     if (!open) return;
     setQuery('');
     const idx = options.findIndex((o) => o.key === selectedKey);
     setActiveIdx(idx >= 0 ? idx : 0);
-    // rAF: o input só existe depois da pintura.
-    const r = requestAnimationFrame(() => searchRef.current?.focus());
-    return () => cancelAnimationFrame(r);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -141,31 +104,9 @@ export default function LangPicker({
     if (open) setActiveIdx(0);
   }, [query, open]);
 
-  // Mantém a opção destacada visível durante a navegação por teclado.
-  useEffect(() => {
-    if (!open) return;
-    listRef.current?.querySelector<HTMLElement>('[data-active="true"]')?.scrollIntoView({ block: 'nearest' });
-  }, [activeIdx, open]);
-
-  // Clique fora / perda de foco fecha (sem engolir cliques dentro do popup).
-  useEffect(() => {
-    // No Quest quem fecha é o próprio diálogo (o X, o Esc): não há "clique fora" a vigiar.
-    if (!open || questNovo) return;
-    const onDown = (e: MouseEvent) => {
-      const alvo = e.target as Node;
-      // O popup vive no `body`, então NÃO é descendente da raiz: sem checá-lo também, clicar
-      // dentro da própria lista a fecharia antes de a escolha acontecer.
-      if (rootRef.current?.contains(alvo) || popupRef.current?.contains(alvo)) return;
-      setOpen(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [open, questNovo]);
-
   const choose = (opt: { key: string; code?: string; isAuto?: boolean }) => {
     onPick(opt.isAuto ? { auto: true } : { auto: false, code: opt.code });
     setOpen(false);
-    triggerRef.current?.focus();
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -179,7 +120,6 @@ export default function LangPicker({
     if (e.key === 'Escape') {
       e.preventDefault();
       setOpen(false);
-      triggerRef.current?.focus();
       return;
     }
     if (e.key === 'ArrowDown') {
@@ -209,140 +149,30 @@ export default function LangPicker({
     }
   };
 
-  if (questNovo)
-    return (
-      <Suspense
-        fallback={<span aria-hidden className={block ? 'block w-full' : 'inline-block'} style={{ minHeight: 60 }} />}
-      >
-        <SeletorDeIdiomaDoQuest
-          id={id}
-          ariaLabel={ariaLabel}
-          block={block}
-          accent={accent}
-          auto={auto}
-          value={value}
-          rotuloEscolhido={selectedLabel}
-          chaveEscolhida={selectedKey}
-          aberto={open}
-          aoAbrir={() => setOpen(true)}
-          aoFechar={() => setOpen(false)}
-          busca={query}
-          aoBuscar={setQuery}
-          opcoes={options}
-          indiceAtivo={activeIdx}
-          aoTeclar={onKeyDown}
-          aoEscolher={choose}
-          className={className}
-        />
-      </Suspense>
-    );
-
   return (
-    <div ref={rootRef} className={`relative ${block ? 'w-full' : 'inline-block'} ${className}`}>
-      <button
-        ref={triggerRef}
+    <Suspense
+      fallback={<span aria-hidden className={block ? 'block w-full' : 'inline-block'} style={{ minHeight: 60 }} />}
+    >
+      <SeletorDeIdiomaDoQuest
         id={id}
-        type="button"
-        role="combobox"
-        aria-expanded={open}
-        aria-controls={listboxId}
-        aria-haspopup="listbox"
-        aria-label={ariaLabel}
-        onClick={() => setOpen((o) => !o)}
-        onKeyDown={onKeyDown}
-        className={`flex items-center gap-1.5 border rounded-lg cursor-pointer transition-colors outline-none focus-visible:border-accent ${
-          block ? 'w-full justify-between px-3 py-2.5 text-[13px]' : 'px-2 py-1 text-[11px]'
-        } ${accent ? 'bg-accent-soft/50 border-accent/30 text-accent-ink' : 'bg-canvas border-border-subtle text-ink'} ${
-          auto ? 'ring-1 ring-accent/40' : ''
-        } ${open ? 'border-accent' : ''}`}
-      >
-        <span className="flex items-center gap-1.5 min-w-0">
-          {auto ? (
-            <Sparkles className="w-3.5 h-3.5 text-accent shrink-0" aria-hidden />
-          ) : (
-            <LangFlag code={value} className="w-4 h-3" />
-          )}
-          {/* No bloco (Ajustes) o texto tem o peso do `<select class="campo">` do protótipo. */}
-          <span className={`${block ? '' : 'font-bold '}truncate`}>{selectedLabel}</span>
-        </span>
-        <ChevronDown
-          className={`w-3.5 h-3.5 shrink-0 opacity-60 transition-transform ${open ? 'rotate-180' : ''}`}
-          aria-hidden
-        />
-      </button>
-
-      {open &&
-        caixa &&
-        createPortal(
-          <div
-            ref={popupRef}
-            /* MARCA DE PERTENCIMENTO. Esta lista vive num portal no `body`, logo ela está FORA da
-             árvore de quem a abriu. Um contêiner que feche no clique-fora (a gaveta de idiomas do
-             Espaço de Gravação) veria o clique num idioma como "clique fora" e sumiria no meio da
-             escolha. O atributo deixa esses contêineres reconhecerem a lista como parte da mesma
-             interação, via `closest('[data-lang-ui]')`. */
-            data-lang-ui=""
-            // `w-72` (288px) porque "Detectar automaticamente" não cabia em 240 e vinha cortado.
-            // `fixed` + portal no `body`: ver `posicionar` — dentro da árvore, um `.card-panel`
-            // com `overflow: hidden` recortava a lista inteira.
-            style={{ top: caixa.top, left: caixa.left, width: caixa.largura }}
-            className="fixed z-[70] bg-surface border border-border-subtle rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150"
-          >
-            <div className="flex items-center gap-1.5 px-2.5 py-2 border-b border-border-subtle">
-              <Search className="w-3.5 h-3.5 text-ink-faint shrink-0" aria-hidden />
-              <input
-                ref={searchRef}
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={onKeyDown}
-                placeholder="Buscar idioma…"
-                aria-label="Buscar idioma"
-                aria-controls={listboxId}
-                aria-activedescendant={options[activeIdx] ? `${listboxId}-${options[activeIdx].key}` : undefined}
-                className="flex-1 min-w-0 bg-transparent text-[12px] text-ink outline-none placeholder-ink-faint"
-              />
-            </div>
-            <ul
-              ref={listRef}
-              id={listboxId}
-              role="listbox"
-              aria-label={ariaLabel || 'Idiomas'}
-              className="max-h-64 overflow-y-auto custom-scrollbar py-1"
-            >
-              {options.length === 0 && (
-                <li className="px-3 py-2 text-[12px] text-ink-faint">Nenhum idioma encontrado.</li>
-              )}
-              {options.map((o, i) => {
-                const isSelected = o.key === selectedKey;
-                const isActive = i === activeIdx;
-                return (
-                  <li
-                    key={o.key}
-                    id={`${listboxId}-${o.key}`}
-                    role="option"
-                    aria-selected={isSelected}
-                    data-active={isActive}
-                    onMouseEnter={() => setActiveIdx(i)}
-                    onClick={() => choose(o)}
-                    className={`flex items-center gap-2 px-3 py-1.5 text-[12.5px] cursor-pointer ${
-                      isActive ? 'bg-accent-soft text-accent-ink' : 'text-ink'
-                    } ${isSelected ? 'font-bold' : 'font-medium'}`}
-                  >
-                    {o.isAuto ? (
-                      <Sparkles className="w-4 h-3 text-accent shrink-0" aria-hidden />
-                    ) : (
-                      <LangFlag code={o.code!} className="w-4 h-3" />
-                    )}
-                    <span className="flex-1 truncate">{o.label}</span>
-                    {isSelected && <Check className="w-3.5 h-3.5 shrink-0 text-accent" aria-hidden />}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>,
-          document.body,
-        )}
-    </div>
+        ariaLabel={ariaLabel}
+        block={block}
+        accent={accent}
+        auto={auto}
+        value={value}
+        rotuloEscolhido={selectedLabel}
+        chaveEscolhida={selectedKey}
+        aberto={open}
+        aoAbrir={() => setOpen(true)}
+        aoFechar={() => setOpen(false)}
+        busca={query}
+        aoBuscar={setQuery}
+        opcoes={options}
+        indiceAtivo={activeIdx}
+        aoTeclar={onKeyDown}
+        aoEscolher={choose}
+        className={className}
+      />
+    </Suspense>
   );
 }

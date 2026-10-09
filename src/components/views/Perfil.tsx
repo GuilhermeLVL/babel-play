@@ -1,15 +1,14 @@
 import '../../styles/questConta.css';
 
-import { ShieldCheck, TrendingUp, User, UserRound } from 'lucide-react';
+import { ShieldCheck, TrendingUp, User } from 'lucide-react';
 import { useRef, useState } from 'react';
 
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../lib/i18n';
 import { useAbasAVista } from '../../lib/polimento/ajustes';
 import type { AgeProfileType } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
 import MolduraETitulo from '../perfil/MolduraETitulo';
-import { Abas, CabecalhoDeTela, PainelDeAba, Tela } from '../ui';
+import { PainelDeAba } from '../ui';
 import AbasDoQuest from './ajustes/quest/AbasDoQuest';
 import AbaDados from './perfil/AbaDados';
 import AbaProgresso from './perfil/AbaProgresso';
@@ -35,93 +34,47 @@ interface PerfilProps {
 
 export default function Perfil({ progress, ageProfile }: PerfilProps) {
   const [aba, setAba] = useState('voce');
-  const questNovo = useQuestNovo();
   /* O Perfil não existe no protótipo: recebe a camada comum, como os Ajustes (a aba escolhida à vista). */
   const palco = useRef<HTMLDivElement>(null);
   useAbasAVista(palco, aba);
 
   /* QUEST: as mesmas três abas, na mesma ordem, no desenho do headset. Cada aba (`perfil/*`) tem o
      próprio ramo do Quest, com o mesmo estado: aqui só mudam o cabeçalho e as abas. */
-  if (questNovo)
-    return (
-      <div ref={palco} className="q-palco qc" data-testid="perfil-do-quest">
-        <header className="q-cab">
-          <div>
-            <p className="q-sobre">{t('Sua conta')}</p>
-            <h1>{t('Seu perfil')}</h1>
-            <p className="qc-sub">
-              {aba === 'voce'
-                ? t('Como o app te chama, o que você quer alcançar e onde está em cada idioma.')
-                : t('Os seus dados, o que você já conquistou e onde você está no idioma.')}
-            </p>
-          </div>
-          <MolduraETitulo nivel={progress.available ? progress.level : 1} tamanho={56} />
-        </header>
-
-        <AbasDoQuest
-          rotuloDoGrupo={t('Seções do perfil')}
-          ativo={aba}
-          aoTrocar={setAba}
-          itens={[
-            { id: 'voce', rotulo: t('Você'), icone: <User aria-hidden /> },
-            { id: 'progresso', rotulo: t('Progresso'), icone: <TrendingUp aria-hidden /> },
-            { id: 'dados', rotulo: t('Seus dados'), icone: <ShieldCheck aria-hidden /> },
-          ]}
-        />
-
-        <PainelDeAba id="voce" ativo={aba} className="qc-painel">
-          <AbaVoce />
-        </PainelDeAba>
-        <PainelDeAba id="progresso" ativo={aba} className="qc-painel">
-          <AbaProgresso progress={progress} ageProfile={ageProfile} />
-        </PainelDeAba>
-        <PainelDeAba id="dados" ativo={aba} className="qc-painel">
-          <AbaDados />
-        </PainelDeAba>
-      </div>
-    );
-
   return (
-    <Tela largura="estreita">
-      <CabecalhoDeTela
-        sobrancelha={t('Sua conta')}
-        icone={UserRound}
-        titulo={t('Seu perfil')}
-        /* Recompensas v2: a moldura e o título que a pessoa vestiu (maestria, conquista, temporada). */
-        acoes={<MolduraETitulo nivel={progress.available ? progress.level : 1} tamanho={44} />}
-        /* O protótipo troca o subtítulo por aba: "Você" fala do formulário; as outras duas, do resto. */
-        sub={
-          aba === 'voce'
-            ? t('Como o app te chama, o que você quer alcançar e onde está em cada idioma.')
-            : t('Os seus dados, o que você já conquistou e onde você está no idioma.')
-        }
-        abas={
-          <Abas
-            rotuloDoGrupo={t('Seções do perfil')}
-            ativo={aba}
-            aoTrocar={setAba}
-            itens={[
-              { id: 'voce', rotulo: t('Você'), icone: <User aria-hidden /> },
-              { id: 'progresso', rotulo: t('Progresso'), icone: <TrendingUp aria-hidden /> },
-              /* 'Conquistas' saiu do Perfil (v4, 31/08): um lugar só, Personalizar → Desafios. */
-              // LGPD art. 18: exportar e excluir existiam no servidor e NENHUMA tela chamava (E5).
-              { id: 'dados', rotulo: t('Seus dados'), icone: <ShieldCheck aria-hidden /> },
-            ]}
-          />
-        }
+    <div ref={palco} className="q-palco qc" data-testid="perfil-do-quest">
+      <header className="q-cab">
+        <div>
+          <p className="q-sobre">{t('Sua conta')}</p>
+          <h1>{t('Seu perfil')}</h1>
+          <p className="qc-sub">
+            {aba === 'voce'
+              ? t('Como o app te chama, o que você quer alcançar e onde está em cada idioma.')
+              : t('Os seus dados, o que você já conquistou e onde você está no idioma.')}
+          </p>
+        </div>
+        <MolduraETitulo nivel={progress.available ? progress.level : 1} tamanho={56} />
+      </header>
+
+      <AbasDoQuest
+        rotuloDoGrupo={t('Seções do perfil')}
+        ativo={aba}
+        aoTrocar={setAba}
+        itens={[
+          { id: 'voce', rotulo: t('Você'), icone: <User aria-hidden /> },
+          { id: 'progresso', rotulo: t('Progresso'), icone: <TrendingUp aria-hidden /> },
+          { id: 'dados', rotulo: t('Seus dados'), icone: <ShieldCheck aria-hidden /> },
+        ]}
       />
 
-      <PainelDeAba id="voce" ativo={aba}>
+      <PainelDeAba id="voce" ativo={aba} className="qc-painel">
         <AbaVoce />
       </PainelDeAba>
-
-      <PainelDeAba id="progresso" ativo={aba}>
+      <PainelDeAba id="progresso" ativo={aba} className="qc-painel">
         <AbaProgresso progress={progress} ageProfile={ageProfile} />
       </PainelDeAba>
-
-      <PainelDeAba id="dados" ativo={aba}>
+      <PainelDeAba id="dados" ativo={aba} className="qc-painel">
         <AbaDados />
       </PainelDeAba>
-    </Tela>
+    </div>
   );
 }

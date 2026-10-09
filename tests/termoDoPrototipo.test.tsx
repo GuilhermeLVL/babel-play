@@ -182,6 +182,9 @@ describe('escrever e enviar', () => {
       ['shelf', true, 1],
       ['towel', true, 2],
     ])
+    /* O que agenda a revisão: o jogo certo e o cartão de cada palavra. */
+    expect(r?.gameId).toBe('termo')
+    expect(r?.items.map((o) => o.cardId)).toEqual(['STORM', 'SHELF', 'TOWEL'])
   })
 
   it('acabar as tentativas mostra a palavra e encerra', () => {

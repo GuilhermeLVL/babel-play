@@ -296,120 +296,15 @@
 }
 
 /* ---------- Quest (maquete de 01/10/2026): duas colunas, a faixa embaixo, alvos de 60 px ---------- */
-.int[data-layout='quest'] {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr auto;
-  grid-template-areas:
-    'meu outro'
-    'faixa faixa';
-}
-.int[data-layout='quest'] .int-faixa {
-  grid-area: faixa;
-  border-bottom: 0;
-  padding: 10px 18px 14px;
-}
-.int[data-layout='quest'] .int-metade[data-lado='meu'] {
-  grid-area: meu;
-  border-right: 1px solid var(--int-linha);
-}
-.int[data-layout='quest'] .int-metade[data-lado='outro'] {
-  grid-area: outro;
-}
-.int[data-layout='quest'] .int-metade {
-  padding: 30px 34px 22px;
-  gap: 12px;
-}
-.int[data-layout='quest'] .int-idioma {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  font-size: 14px;
-}
 .int-quem {
   font: 800 20px/1 var(--font-display, inherit);
   letter-spacing: 0;
   text-transform: none;
   color: var(--int-tinta);
 }
-.int[data-layout='quest'] .int-traducao {
-  font-size: clamp(26px, 2.5vw, 38px);
-  text-wrap: balance;
-}
-.int[data-layout='quest'] :is(.int-original, .int-dica) {
-  font-size: 18px;
-}
-.int[data-layout='quest'] .int-ao-vivo {
-  font-size: 22px;
-}
-.int[data-layout='quest'] .int-status {
-  font-size: 16px;
-}
-.int[data-layout='quest'] .int-falar {
-  width: 120px;
-  height: 120px;
-  font-size: 16px;
-  transition: transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.int[data-layout='quest'] .int-falar:active {
-  transform: scale(0.96);
-}
-.int[data-layout='quest'] .int-falar svg {
-  width: 40px;
-  height: 40px;
-}
-.int[data-layout='quest'] :is(.int-ib, .int-modo, .int-voz) {
-  min-width: 60px;
-  min-height: 60px;
-  height: auto;
-  padding: 0 18px;
-  font-size: 16px;
-}
-.int[data-layout='quest'] .int-ib.peq {
-  width: 60px;
-  padding: 0;
-}
-.int[data-layout='quest'] :is(.int-ib, .int-modo, .int-voz) svg {
-  width: 22px;
-  height: 22px;
-}
-.int[data-layout='quest'] :is(.int-ib, .int-modo, .int-falar):focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 3px;
-}
-.int[data-layout='quest'] .int-aviso {
-  font-size: 15px;
-}
 /* A janela estreitada ao lado de um jogo: uma metade em cima da outra, sem virar nenhuma. */
-@media (max-width: 720px) {
-  .int[data-layout='quest'] {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr 1fr auto;
-    grid-template-areas:
-      'outro'
-      'meu'
-      'faixa';
-  }
-  .int[data-layout='quest'] .int-metade[data-lado='meu'] {
-    border-right: 0;
-    border-top: 1px solid var(--int-linha);
-  }
-  .int[data-layout='quest'] .int-metade {
-    padding: 16px 18px;
-  }
-  .int[data-layout='quest'] .int-falar {
-    width: 84px;
-    height: 84px;
-  }
-  .int[data-layout='quest'] .int-voz-txt {
-    display: none;
-  }
-}
 
 @media (prefers-reduced-motion: reduce) {
-  .int[data-layout='quest'] .int-falar {
-    transition: none;
-  }
   .int-falar[data-ouvindo] {
     animation: none;
   }
@@ -423,38 +318,6 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-.int-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.int-item:not(.int-item-destaque) {
-  opacity: 0.72;
-}
-/* O que é meu fica à direita, no original; o do outro, à esquerda, traduzido. */
-.int-item[data-propria] {
-  align-items: flex-end;
-  text-align: end;
-}
-/* A tradução parcial de quem ainda fala: cinza e fraca, até o final chegar. */
-.int-parcial-outro,
-.int-parcial-outro .int-hist-texto {
-  color: var(--int-mut);
-  opacity: 0.8;
-  font-style: italic;
-}
-.int-hist-texto {
-  margin: 0;
-  font: 700 clamp(15px, 4.2vw, 19px) / 1.3 var(--font-body);
-  overflow-wrap: anywhere;
-}
-.int-hist-original {
-  margin: 0;
-  font-size: 12.5px;
-  line-height: 1.35;
-  color: var(--int-mut);
-  overflow-wrap: anywhere;
 }
 
 /* Palavras e frases que se tocam para ouvir. */
@@ -559,7 +422,11 @@
   flex-direction: column;
   gap: 8px;
   padding: 12px 16px 16px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 9%, var(--int-escuro)) 0%, var(--int-escuro) 60%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 9%, var(--int-escuro)) 0%,
+    var(--int-escuro) 60%
+  );
 }
 .int-bolhas {
   flex: 1;
@@ -627,18 +494,6 @@
   border-radius: 999px;
   border: 1px solid var(--int-linha);
 }
-.int-conversa-acoes {
-  display: flex;
-  justify-content: space-around;
-  align-items: flex-end;
-  gap: 12px;
-}
-.int-conversa-lado {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
 .int-conversa .int-falar {
   width: 80px;
   height: 80px;
@@ -646,24 +501,8 @@
 .int-conversa .int-falar kbd {
   bottom: -24px;
 }
-.int[data-layout='computador'] .int-bolha,
-.int[data-layout='quest'] .int-bolha {
+.int[data-layout='computador'] .int-bolha {
   max-width: min(72%, 760px);
-}
-.int[data-layout='quest'] .int-hist-texto {
-  font-size: 22px;
-}
-.int[data-layout='quest'] :is(.int-hist-original, .int-bolha-fala, .int-bolha-trad) {
-  font-size: 16px;
-}
-.int[data-layout='quest'] .int-ouvir {
-  width: 44px;
-  height: 44px;
-}
-.int[data-layout='quest'] .int-vermais,
-.int[data-layout='quest'] .int-aofim {
-  min-height: 48px;
-  font-size: 15px;
 }
 /* No celular o botão da lista fica só com o ícone (o nome segue no aria-label). */
 @media (max-width: 480px) {
@@ -734,12 +573,6 @@
 .int-conversa-topo {
   display: flex;
   justify-content: flex-end;
-}
-.int[data-layout='quest'] .int-folha-corpo {
-  width: min(100%, 720px);
-}
-.int[data-layout='quest'] .int-folha textarea {
-  font-size: 22px;
 }
 
 /* ---------- a conversa virtual (Intérprete v3, Fase 4): as duas fontes na faixa ---------- */

@@ -8,11 +8,9 @@
  * ligada caía no Whisper local (centenas de MB e CPU alta). A oferta aparece antes de começar, só
  * quando escolher o idioma leva MESMO ao reconhecimento do navegador, e escolhe num toque.
  */
-import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
-import React, { Suspense } from 'react'
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import LegendaSemBaixar from '../src/components/views/captura/LegendaSemBaixar'
 import {
   desktopFraco,
   oferecerLegendaSemBaixar,
@@ -184,47 +182,5 @@ describe('useMotorComIdiomaEscolhido — a mesma decisão do clique, perguntada 
       await Promise.resolve()
     })
     expect(result.current).toBeNull()
-  })
-})
-
-describe('<LegendaSemBaixar>', () => {
-  function montar(tradutorBaixa = false) {
-    const props = {
-      idioma: 'en-US',
-      tradutorBaixa,
-      aoEscolherIdioma: vi.fn(),
-      aoEscolherOutro: vi.fn(),
-      aoFechar: vi.fn(),
-    }
-    render(
-      <Suspense fallback={null}>
-        <LegendaSemBaixar {...props} />
-      </Suspense>,
-    )
-    return props
-  }
-
-  it('diz a oferta e escolhe o idioma do vídeo num toque', () => {
-    const p = montar()
-    expect(screen.getByTestId('legenda-sem-baixar').textContent).toMatch(
-      /Legenda sem baixar nada: escolha o idioma do vídeo/,
-    )
-    fireEvent.click(screen.getByRole('button', { name: /English|Inglês/ }))
-    expect(p.aoEscolherIdioma).toHaveBeenCalledTimes(1)
-  })
-
-  it('"Outro idioma" leva à escolha do idioma; o X dispensa', () => {
-    const p = montar()
-    fireEvent.click(screen.getByRole('button', { name: 'Outro idioma' }))
-    expect(p.aoEscolherOutro).toHaveBeenCalledTimes(1)
-    fireEvent.click(screen.getByRole('button', { name: 'Fechar aviso' }))
-    expect(p.aoFechar).toHaveBeenCalledTimes(1)
-  })
-
-  it('com o tradutor a baixar, não promete "nada": a transcrição é que não baixa', () => {
-    montar(true)
-    const texto = screen.getByTestId('legenda-sem-baixar').textContent ?? ''
-    expect(texto).not.toMatch(/Legenda sem baixar nada/)
-    expect(texto).toMatch(/Transcrição sem baixar nada: escolha o idioma do vídeo/)
   })
 })

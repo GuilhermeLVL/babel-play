@@ -31,7 +31,6 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 
 import { conquistasDesbloqueadas, dataDaConquista } from '../../lib/conquistasPosse';
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { data, t } from '../../lib/i18n';
 import { CATALOGO_DA_LOJA } from '../../lib/loja';
 import type { DerivedProgress } from '../../lib/progress';
@@ -95,7 +94,6 @@ function dataCurta(ts: number): string {
 export default function Conquistas({ progress, ctx, parteNoQuest }: ConquistasProps) {
   /* No Meta Quest (telas novas): uma parte por vez (conquistas, como ganhar, como subir), e as conquistas
      filtradas por pilar, no lugar da página comprida. O conteúdo de cada parte é o mesmo. */
-  const questNovo = useQuestNovo();
   const [parteQ, setParteQ] = useState<ParteDosDesafios>(parteNoQuest?.parte ?? 'conquistas');
   useEffect(() => {
     if (parteNoQuest) setParteQ(parteNoQuest.parte);
@@ -195,8 +193,8 @@ export default function Conquistas({ progress, ctx, parteNoQuest }: ConquistasPr
   );
 
   /* No headset, um pilar por vez (ou todos): a grade é a mesma, só mais curta. */
-  const grupos = questNovo && pilarQ !== 'todos' ? porPilar.filter((g) => g.pilar.id === pilarQ) : porPilar;
-  const seletorDePilar = questNovo ? (
+  const grupos = pilarQ !== 'todos' ? porPilar.filter((g) => g.pilar.id === pilarQ) : porPilar;
+  const seletorDePilar = (
     <div className="q-abas q-seg qp-secoes" role="group" aria-label={t('Pilares das conquistas')}>
       <button type="button" className="q-aba" aria-pressed={pilarQ === 'todos'} onClick={() => setPilarQ('todos')}>
         {t('Todos')}
@@ -219,7 +217,7 @@ export default function Conquistas({ progress, ctx, parteNoQuest }: ConquistasPr
         </button>
       ))}
     </div>
-  ) : null;
+  );
 
   /* ── AS CONQUISTAS, por raridade ── */
   const secaoDasConquistas = (
@@ -316,44 +314,28 @@ export default function Conquistas({ progress, ctx, parteNoQuest }: ConquistasPr
     </section>
   );
 
-  if (questNovo)
-    return (
-      <div className="qp-pilha" data-testid="conquistas-no-quest">
-        <div className="q-abas q-seg qp-secoes" role="group" aria-label={t('Partes dos desafios')}>
-          <button
-            type="button"
-            className="q-aba"
-            aria-pressed={parteQ === 'conquistas'}
-            onClick={() => setParteQ('conquistas')}
-          >
-            <Award aria-hidden /> {t('Conquistas')}
-            <span className="n">
-              {totalFeitas}/{lista.length}
-            </span>
-          </button>
-          <button
-            type="button"
-            className="q-aba"
-            aria-pressed={parteQ === 'ganhar'}
-            onClick={() => setParteQ('ganhar')}
-          >
-            <Coins aria-hidden /> {t('Como ganhar')}
-          </button>
-          <button type="button" className="q-aba" aria-pressed={parteQ === 'nivel'} onClick={() => setParteQ('nivel')}>
-            <TrendingUp aria-hidden /> {t('Como subir de nível')}
-          </button>
-        </div>
-        {parteQ === 'conquistas' ? secaoDasConquistas : parteQ === 'ganhar' ? secaoComoGanhar : secaoDoNivel}
-      </div>
-    );
-
   return (
-    <>
-      {secaoComoGanhar}
-
-      {secaoDoNivel}
-
-      {secaoDasConquistas}
-    </>
+    <div className="qp-pilha" data-testid="conquistas-no-quest">
+      <div className="q-abas q-seg qp-secoes" role="group" aria-label={t('Partes dos desafios')}>
+        <button
+          type="button"
+          className="q-aba"
+          aria-pressed={parteQ === 'conquistas'}
+          onClick={() => setParteQ('conquistas')}
+        >
+          <Award aria-hidden /> {t('Conquistas')}
+          <span className="n">
+            {totalFeitas}/{lista.length}
+          </span>
+        </button>
+        <button type="button" className="q-aba" aria-pressed={parteQ === 'ganhar'} onClick={() => setParteQ('ganhar')}>
+          <Coins aria-hidden /> {t('Como ganhar')}
+        </button>
+        <button type="button" className="q-aba" aria-pressed={parteQ === 'nivel'} onClick={() => setParteQ('nivel')}>
+          <TrendingUp aria-hidden /> {t('Como subir de nível')}
+        </button>
+      </div>
+      {parteQ === 'conquistas' ? secaoDasConquistas : parteQ === 'ganhar' ? secaoComoGanhar : secaoDoNivel}
+    </div>
   );
 }

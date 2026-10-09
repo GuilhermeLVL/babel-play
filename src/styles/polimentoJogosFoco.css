@@ -1,0 +1,12 @@
+/* O FOCO DO TECLADO NOS TABULEIROS DO PROTÓTIPO.
+   O protótipo só desenha o ponteiro; quem joga pelo teclado precisa ver onde está. Só com teclado
+   (`:focus-visible`): o toque e o clique não acendem nada, e a aparência do protótipo não muda.
+
+   Caça-palavras: o anel fica no vão de 4 px entre as células, na cor do texto. A cor de destaque não
+   serve aqui: é a mesma da borda da célula marcada (`.sel`) e do brilho do Radar (`.dica`). */
+.grade-caca [data-c]:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+  position: relative;
+  z-index: 1;
+}

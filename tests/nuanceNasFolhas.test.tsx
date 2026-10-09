@@ -228,11 +228,6 @@ describe('D4 — o menu do balão no computador', () => {
     expect(aoAbrir).toHaveBeenCalledWith(expect.objectContaining({ id: 'a' }), 'en-US')
   })
 
-  it('no celular (com o toque na fala) não há o botão: a folha da frase já tem a Nuance', () => {
-    render(<ChatTranscript {...base} segments={[fala('a')]} aoAbrirMenuDaFala={vi.fn()} aoTocarFala={vi.fn()} />)
-    expect(screen.queryByRole('button', { name: 'Tradução Nuance da fala' })).toBeNull()
-  })
-
   it('sem o callback, a conversa de sempre', () => {
     render(<ChatTranscript {...base} segments={[fala('a')]} />)
     expect(screen.queryByRole('button', { name: 'Tradução Nuance da fala' })).toBeNull()

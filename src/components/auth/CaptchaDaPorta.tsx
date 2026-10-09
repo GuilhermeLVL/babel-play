@@ -89,11 +89,9 @@ interface CaptchaDaPortaProps {
   rodada: number;
   /** A resposta do desafio, ou `null` quando a anterior deixou de valer. */
   onToken: (resposta: string | null) => void;
-  /** A marcação do headset (`questEntrada.css`) no aviso de problema. */
-  quest?: boolean;
 }
 
-export default function CaptchaDaPorta({ sitekey, rodada, onToken, quest = false }: CaptchaDaPortaProps) {
+export default function CaptchaDaPorta({ sitekey, rodada, onToken }: CaptchaDaPortaProps) {
   const alvo = useRef<HTMLDivElement>(null);
   const widget = useRef<{ api: ApiDoTurnstile; id: string } | null>(null);
   const aoToken = useRef(onToken);
@@ -172,11 +170,7 @@ export default function CaptchaDaPorta({ sitekey, rodada, onToken, quest = false
   }
 
   const botao = (
-    <button
-      type="button"
-      onClick={tentarDeNovo}
-      className={quest ? 'qen-link' : 'ms-1 font-medium text-accent-ink underline underline-offset-2'}
-    >
+    <button type="button" onClick={tentarDeNovo} className="qen-link">
       {t('Tentar de novo')}
     </button>
   );
@@ -184,19 +178,13 @@ export default function CaptchaDaPorta({ sitekey, rodada, onToken, quest = false
   return (
     <div data-testid="captcha-da-porta" className="grid gap-2">
       <div ref={alvo} className="min-h-[65px]" aria-label={t('Verificação de segurança')} />
-      {problema &&
-        (quest ? (
-          <p className="qen-erro" role="status">
-            <CircleAlert aria-hidden />
-            <span>{t(FRASE[problema])}</span>
-            {botao}
-          </p>
-        ) : (
-          <p className="text-sm text-error-ink" role="status">
-            {t(FRASE[problema])}
-            {botao}
-          </p>
-        ))}
+      {problema && (
+        <p className="qen-erro" role="status">
+          <CircleAlert aria-hidden />
+          <span>{t(FRASE[problema])}</span>
+          {botao}
+        </p>
+      )}
     </div>
   );
 }

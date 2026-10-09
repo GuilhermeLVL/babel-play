@@ -282,9 +282,11 @@ describe('PaginaDoInterprete: a entrada da conversa virtual', () => {
     expect(aoComecarVirtual).toHaveBeenLastCalledWith({ comMicrofone: true })
   })
 
-  it('com os idiomas iguais, não deixa abrir', () => {
+  /* Quem barra o início com os idiomas iguais é a captura (`entrarNaConversaVirtual` em `LiveCapture`,
+     que sai sem abrir nada); a tela diz por quê. */
+  it('com os idiomas iguais, a tela diz que faltam dois idiomas diferentes', () => {
     render(<PaginaDoInterprete {...base} possivel={false} aoComecarVirtual={vi.fn()} />)
-    expect((screen.getByTestId('abrir-conversa-virtual') as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByTestId('aviso-do-interprete').textContent).toMatch(/dois idiomas diferentes/)
   })
 })
 

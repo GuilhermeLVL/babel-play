@@ -686,61 +686,6 @@ button.q-chip:active {
   background: currentColor;
 }
 
-/* ── CAPTURAR, ANTES DE COMEÇAR: uma decisão por linha e um único botão principal ─────────────── */
-html[data-quest-novo='true'] .cel.quest-pronto {
-  max-width: none;
-  gap: 18px;
-  padding: 26px clamp(18px, 2.6vw, 34px) 22px;
-  font-size: 18px;
-  overflow-y: auto;
-}
-.q-linha2 {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 16px;
-}
-.quest-pronto :is(.cel-par, .cel-fonte) {
-  margin: 0;
-  padding: 7px;
-  border-radius: 20px;
-  border-width: 1.5px;
-  box-shadow: none;
-}
-.quest-pronto .cel-lado {
-  min-height: 60px;
-  padding: 0 16px;
-  border-radius: 14px;
-  border: 2px solid transparent;
-  cursor: pointer;
-  transition:
-    transform var(--q-toque),
-    border-color var(--q-cor);
-}
-.quest-pronto .cel-lado:hover {
-  border-color: var(--q-acento);
-}
-.quest-pronto .cel-lado:active {
-  transform: scale(0.97);
-}
-.quest-pronto .cel-lado small {
-  font-size: 14px;
-}
-.quest-pronto .cel-lado b {
-  font: 800 19px/1.2 var(--font-display, inherit);
-}
-.quest-pronto .cel-troca {
-  width: 60px;
-  height: 60px;
-  border-radius: 14px;
-}
-.quest-pronto .cel-fonte button {
-  min-height: 60px;
-  font-size: 17px;
-  border-radius: 14px;
-}
-.quest-pronto .cel-fonte button[aria-pressed='true'] {
-  box-shadow: inset 0 0 0 2px var(--q-acento);
-}
 html[data-quest-novo='true'] :is(.quest-pronto, .q-palco) :is(.aviso-info, .aviso-simples) {
   margin: 0 !important;
   font-size: 16px;
@@ -751,31 +696,7 @@ html[data-quest-novo='true'] :is(.quest-pronto, .q-palco) :is(.aviso-info, .avis
   padding-inline: 20px;
   font-size: 16px;
 }
-/* Um par (você fala / a outra pessoa fala) com a troca no meio. */
-.q-par {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  gap: 12px;
-  align-items: center;
-}
-/* Ocupa a sobra, sem nunca ficar mais baixo que o conteúdo (base `auto`, sem encolher): com `flex: 1`
-   e `min-height` fixo, a janela baixa espremia os passos para fora da caixa. */
-.q-meio {
-  flex: 1 0 auto;
-  min-height: 190px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 26px;
-  align-items: center;
-  padding: 22px 30px;
-  border-radius: 24px;
-  background: var(--surface-sunken);
-}
-.q-meio > .cel-conversa {
-  align-self: stretch;
-  min-height: 0;
-  overflow: hidden;
-}
+
 .q-passos {
   display: grid;
   gap: 14px;
@@ -798,63 +719,6 @@ html[data-quest-novo='true'] :is(.quest-pronto, .q-palco) :is(.aviso-info, .avis
   place-items: center;
   background: var(--q-suave);
   font: 800 16px/1 var(--font-mono, monospace);
-}
-.q-passos .q-nota {
-  font-size: 16px;
-  color: var(--ink-muted);
-}
-.q-passos .q-nota > span:first-child {
-  background: none;
-  color: var(--ink-muted);
-}
-.q-passos .q-nota svg {
-  width: 22px;
-  height: 22px;
-}
-.q-grande {
-  display: grid;
-  justify-items: center;
-  gap: 12px;
-  min-width: 190px;
-}
-.q-grande > b {
-  font: 800 18px/1.2 var(--font-display, inherit);
-  text-align: center;
-}
-.q-botao {
-  width: 120px;
-  height: 120px;
-  border: 0;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  color: var(--q-sobre-acento);
-  background: linear-gradient(160deg, var(--q-acento-2), var(--q-acento));
-  box-shadow: 0 12px 26px color-mix(in srgb, var(--q-acento) 35%, transparent);
-  transition:
-    transform var(--q-toque),
-    box-shadow var(--q-cor);
-}
-.q-botao svg {
-  width: 44px;
-  height: 44px;
-}
-.q-botao:hover {
-  box-shadow:
-    0 0 0 5px color-mix(in srgb, var(--q-acento) 35%, transparent),
-    0 12px 26px color-mix(in srgb, var(--q-acento) 35%, transparent);
-}
-.q-botao:focus-visible {
-  outline: 3px solid var(--q-acento);
-  outline-offset: 5px;
-}
-.q-botao:active {
-  transform: scale(0.96);
-}
-.q-botao:disabled {
-  opacity: 0.6;
-  cursor: default;
 }
 
 /* ── ACABAMENTO NO APP INTEIRO (as telas que ainda não foram redesenhadas) ─────────────────────
@@ -953,30 +817,6 @@ button.q-chip[aria-pressed='true'] {
 .q-tile:is([aria-pressed='true'], [aria-checked='true'], [aria-current='page']):not(.pri) {
   background: var(--q-suave);
   border-color: var(--q-acento);
-}
-/* Lista de rótulo e valor (o que o aparelho tem, os dados de uma conta). */
-.q-dados {
-  display: grid;
-  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
-  gap: 10px 18px;
-  margin: 0;
-  font: 600 17px/1.35 var(--font-body, inherit);
-}
-.q-dados dt {
-  color: var(--ink-muted);
-}
-.q-dados dd {
-  margin: 0;
-  min-width: 0;
-  overflow-wrap: anywhere;
-  font-weight: 700;
-}
-/* A faixa de controles presa ao pé de uma tela que rola (o player da sessão, o narrador). */
-.q-faixa.q-no-pe {
-  position: sticky;
-  bottom: 12px;
-  z-index: 2;
-  box-shadow: 0 0 0 12px var(--canvas);
 }
 
 /* ── PEÇAS DE TELA (01/10/2026, a segunda rodada: todas as telas no desenho do headset) ───────────
@@ -1448,34 +1288,7 @@ button.q-chip:active,
 button.q-chip:hover {
   background: color-mix(in srgb, var(--q-acento) 10%, var(--surface));
 }
-.q-botao:not(:disabled):hover {
-  transform: scale(1.05);
-}
-.q-botao:not(:disabled):active {
-  transform: scale(0.96);
-}
-.q-botao svg {
-  transition: transform var(--q-toque);
-}
-.q-botao:not(:disabled):hover svg {
-  transform: scale(1.08);
-}
-.quest-pronto :is(.cel-troca, .cel-fonte button) {
-  transition:
-    transform var(--q-toque),
-    background-color var(--q-cor),
-    box-shadow var(--q-cor);
-}
-.quest-pronto :is(.cel-troca, .cel-fonte button):hover {
-  background: color-mix(in srgb, var(--q-acento) 12%, transparent);
-  box-shadow: inset 0 0 0 2px var(--q-acento);
-}
-.quest-pronto :is(.cel-troca, .cel-fonte button):active {
-  transform: scale(0.96);
-}
-.quest-pronto .cel-lado:hover {
-  background: color-mix(in srgb, var(--q-acento) 8%, transparent);
-}
+
 html[data-quest-novo='true'] :is(.folha-acao, .folha-palavras button) {
   transition:
     transform var(--q-toque),
@@ -1559,10 +1372,7 @@ html[data-quest-novo='true'] :is(.folha-acao, .folha-palavras button):focus-visi
   .q-vazio :is(h2, h3) {
     font-size: 22px;
   }
-  .q-meio {
-    grid-template-columns: minmax(0, 1fr);
-    padding: 18px;
-  }
+
   /* Compacto ao vivo: o histórico continua (rolável), com Ouvir e Opções; na faixa ficam o tempo,
      A+ e Encerrar. */
   .quest-vivo .q-faixa .q-ctl:not(.pri):not(.q-fica) {

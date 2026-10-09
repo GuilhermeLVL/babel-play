@@ -7,8 +7,7 @@
  *
  * As peças são as de `quest.css` (`.q-palco`, `.q-cab`, `.q-tile`, `.q-linha`, `.q-ajuste`, `.q-abas`,
  * `.q-tabela`, `.q-faixa`, `.q-ctl`…); aqui fica só o que estas telas têm de próprio, com o prefixo
- * `qj-`. Essas classes só existem no ramo `useQuestNovo()` dos componentes: computador e celular nunca
- * as desenham. Só tokens do tema, alvo de 56 px ou mais, texto de 14 px ou mais.
+ * `qj-`. Só tokens do tema, alvo de 56 px ou mais, texto de 14 px ou mais.
  */
 
 /* ── COMUM ────────────────────────────────────────────────────────────────────────────────────── */
@@ -73,10 +72,6 @@ html[data-quest-novo='true'] .q-palco.tela > .secao {
   display: block;
   margin-top: 2px;
   font: 600 14px/1.3 var(--font-body, inherit);
-}
-.qj-centro {
-  align-self: center;
-  text-align: center;
 }
 .qj-entre {
   display: flex;
@@ -519,11 +514,6 @@ html[data-quest-novo='true'] dialog.qj-painel[open] {
   padding-left: 6px;
   font: 700 16px/1.2 var(--font-body, inherit);
 }
-.qj-faixa-texto {
-  padding: 0 14px;
-  font: 600 16px/1.3 var(--font-body, inherit);
-  color: var(--ink-muted);
-}
 .qj-ante-topo {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
@@ -576,79 +566,6 @@ html[data-quest-novo='true'] dialog.qj-painel[open] {
   color: var(--ink-muted);
 }
 
-/* ── O FIM DA RODADA ──────────────────────────────────────────────────────────────────────────── */
-.qj-fim {
-  display: grid;
-  gap: 14px;
-  justify-items: center;
-  text-align: center;
-}
-.qj-fim > :is(.q-grade, .q-cartao) {
-  width: 100%;
-}
-.qj-fim > .q-cartao {
-  text-align: left;
-}
-.qj-fim .q-num {
-  justify-items: center;
-}
-.qj-fim .q-sobre {
-  margin: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-.qj-fim h1 {
-  margin: 0;
-  font: 900 32px/1.05 var(--font-display, inherit);
-  letter-spacing: -0.01em;
-}
-.qj-fim .estrelas-fim {
-  margin: 0;
-  font-size: 48px;
-}
-.qj-fim .q-num {
-  padding: 14px 16px;
-}
-.qj-recorde {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-/* A raspadinha: maior, raspável com o ponteiro e revelada num toque. */
-.quest-fim .raspa {
-  width: min(560px, 100%);
-  height: 150px;
-  margin: 4px auto;
-  border-width: 1.5px;
-  border-radius: 22px;
-}
-.quest-fim .raspa .premio {
-  padding: 0 16px;
-  justify-items: center;
-}
-.quest-fim .raspa .premio b {
-  font-size: 34px;
-}
-.quest-fim .raspa .premio[data-rodada-nao-creditada] b {
-  font-size: 20px;
-  line-height: 1.2;
-}
-.quest-fim .raspa .premio small {
-  font: 600 15px/1.35 var(--font-body, inherit);
-  color: var(--ink-muted);
-}
-.quest-fim .capa-raspa {
-  font-size: 18px;
-}
-.quest-fim .raspa:focus-visible {
-  outline: 3px solid var(--q-acento);
-  outline-offset: 3px;
-}
-
 /* ── COMO SE JOGA ─────────────────────────────────────────────────────────────────────────────── */
 .qj-como .q-secao {
   gap: 8px;
@@ -689,46 +606,6 @@ html[data-quest-novo='true'] dialog.qj-painel[open] {
   text-align: right;
   text-transform: none;
   letter-spacing: 0;
-}
-
-/* ── O TOUR GUIADO ────────────────────────────────────────────────────────────────────────────── */
-.qj-tour {
-  position: absolute;
-  display: grid;
-  gap: 14px;
-  padding: 20px;
-  border: 1.5px solid var(--border-subtle);
-  border-radius: 22px;
-  background: var(--surface);
-  color: var(--ink);
-  animation: q-surgir 180ms ease;
-}
-.qj-tour :is(.q-rotulo, .q-texto) {
-  margin: 0;
-}
-.qj-tour-pe {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.qj-tour-pontos {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-}
-.qj-tour-pontos i {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: var(--border-subtle);
-}
-.qj-tour-pontos i[data-estado='atual'] {
-  width: 24px;
-  background: var(--q-acento);
-}
-.qj-tour-pontos i[data-estado='feito'] {
-  background: var(--good);
 }
 
 /* ── RECORDES ─────────────────────────────────────────────────────────────────────────────────── */
@@ -876,8 +753,7 @@ html[data-quest-novo='true'] dialog.qj-pausa {
   .qj-coluna > .q-faixa .q-ctl {
     flex: 1 1 auto;
   }
-  .qj-faixa-ajuste,
-  .qj-faixa-texto {
+  .qj-faixa-ajuste {
     flex: 1 1 100%;
   }
   .qj-ante-topo,
@@ -885,18 +761,11 @@ html[data-quest-novo='true'] dialog.qj-pausa {
     grid-template-columns: minmax(0, 1fr);
   }
   .q-grade.g2.qj-saldo,
-  .qj-fim > .q-grade.g4,
   .q-grade.qj-g5 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .qj-ferramentas .q-espaco {
     display: none;
-  }
-  .qj-fim h1 {
-    font-size: 26px;
-  }
-  .qj-fim .estrelas-fim {
-    font-size: 44px;
   }
   .q-mais-fundo:has(.qj-sala) {
     padding: 10px;
@@ -920,14 +789,5 @@ html[data-quest-novo='true'] dialog.qj-pausa {
     max-width: none;
     margin-left: 34px;
     text-align: left;
-  }
-  .qj-tour-pe {
-    flex-wrap: wrap;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .qj-tour {
-    animation: none;
   }
 }

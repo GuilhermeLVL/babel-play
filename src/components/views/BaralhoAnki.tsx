@@ -24,7 +24,7 @@ import {
   listarBaralhosAnki,
   type ResultadoAtivar,
 } from '../../data/apiAnki';
-import { noHeadset, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
 import { numero, t } from '../../lib/i18n';
 import { langLabelNaUI } from '../../lib/languages';
 import type { AgeProfileType } from '../../lib/profile';
@@ -156,7 +156,6 @@ export default function BaralhoAnki({
      `questBase.css`, e o acabamento desta tela está em `questVocabulario.css`). Só muda o convite da
      área de escolher: não há o que "soltar" com o controle, o toque abre os arquivos do headset. Esse
      convite é do APARELHO (`noHeadset()`): no computador com o mesmo desenho, soltar o arquivo continua. */
-  const questNovo = useQuestNovo();
   /* OS BARALHOS JÁ TRAZIDOS moram aqui, e não na aba Gerenciar: a contagem da aba precisa deles
      antes de a pessoa abri-la, e trazer um arquivo novo muda a lista. */
   const [baralhos, setBaralhos] = useState<BaralhoAnkiResumo[]>([]);
@@ -379,7 +378,7 @@ export default function BaralhoAnki({
             }}
           >
             <IconeEmBloco icone={Upload} />
-            {questNovo && noHeadset() ? (
+            {noHeadset() ? (
               <span>
                 <b>{t('Toque para escolher o arquivo')}</b>
               </span>
@@ -668,7 +667,7 @@ export default function BaralhoAnki({
   ];
 
   return (
-    <Tela largura="larga" className={questNovo ? 'qv-anki' : ''}>
+    <Tela largura="larga" className="qv-anki">
       <CabecalhoDeTela
         voltar={{ rotulo: rotuloVoltar, aoClicar: onVoltar }}
         sobrancelha="Baralhos"

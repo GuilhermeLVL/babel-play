@@ -278,7 +278,13 @@ export default function ConversaVirtual({
             aria-label={ativos.microfone ? t('Silenciar o meu microfone') : t('Ligar o meu microfone')}
             data-testid="fonte-voce"
           >
-            {abrindo ? <Loader2 aria-hidden className="animate-spin" /> : ativos.microfone ? <Mic aria-hidden /> : <MicOff aria-hidden />}
+            {abrindo ? (
+              <Loader2 aria-hidden className="animate-spin" />
+            ) : ativos.microfone ? (
+              <Mic aria-hidden />
+            ) : (
+              <MicOff aria-hidden />
+            )}
             <span>{ativos.microfone ? t('Você · ouvindo') : t('Você · silenciado')}</span>
           </button>
         </div>

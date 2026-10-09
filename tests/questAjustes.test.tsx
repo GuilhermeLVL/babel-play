@@ -12,7 +12,6 @@ import React from 'react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import LangPicker from '../src/components/LangPicker'
-import LangAudit from '../src/components/views/LangAudit'
 import Settings from '../src/components/views/Settings'
 import { PADRAO, type Preferencias } from '../src/lib/preferencias'
 import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
@@ -152,14 +151,6 @@ describe('Ajustes no Quest: a casca', () => {
     fireEvent.keyDown(aba, { key: 'ArrowRight' })
     expect(screen.getByRole('tab', { name: 'Processamento' }).getAttribute('aria-selected')).toBe('true')
   })
-
-  it('fora do Quest, a tela de sempre: nada do desenho do headset', () => {
-    quest.ligado = false
-    const { container } = montar('aparencia')
-    expect(container.querySelector('.q-palco')).toBeNull()
-    expect(container.querySelector('.tela')).not.toBeNull()
-    expect(screen.queryByText('Vibração ao apontar')).toBeNull()
-  })
 })
 
 describe('Ajustes no Quest: Idiomas', () => {
@@ -252,40 +243,16 @@ describe('Ajustes no Quest: Aparência', () => {
   })
 })
 
-describe('Ajustes no computador: o interruptor do desenho novo', () => {
+describe('Ajustes no computador', () => {
   beforeEach(() => {
     quest.aparelho = 'desktop-com-gpu'
   })
 
-  it('na tela de sempre, "Desenho novo" está desligado e ligar grava a escolha neste computador', () => {
-    quest.ligado = false
-    const { container } = montar('aparencia')
-    expect(container.querySelector('.tela')).not.toBeNull()
-    expect(screen.getByText(/A interface limpa que nasceu no headset, agora no computador/)).toBeTruthy()
-    const caixa = screen.getByRole('checkbox', { name: 'Desenho novo' }) as HTMLInputElement
-    expect(caixa.checked).toBe(false)
-    fireEvent.click(caixa)
-    expect(localStorage.getItem('babel.desenhoNovo')).toBe('sim')
-    expect(document.documentElement.dataset.questNovo).toBe('true')
-  })
-
-  it('no desenho novo, o mesmo ajuste é um interruptor ligado; desligar devolve a tela de sempre', () => {
-    localStorage.setItem('babel.desenhoNovo', 'sim')
-    const { container } = montar('aparencia')
-    expect(container.querySelector('.q-palco.q-aju')).not.toBeNull()
-    const linha = screen.getByTestId('desenho-novo')
-    expect(linha.className).toContain('q-ajuste')
-    expect(linha.textContent).toContain('A interface limpa que nasceu no headset, agora no computador.')
-    const chave = interruptor('Desenho novo')
-    expect(chave.className).toContain('q-interruptor')
-    expect(chave.getAttribute('aria-checked')).toBe('true')
-    fireEvent.click(chave)
-    expect(localStorage.getItem('babel.desenhoNovo')).toBeNull()
-    expect(document.documentElement.dataset.questNovo).toBe('false')
-  })
-
   it('o que é do headset não aparece: nada de "Vibração ao apontar", e o resto da aba continua', () => {
     const { toggleSound } = montar('aparencia')
+    /* O desenho novo é o único: não há mais interruptor para voltar ao de antes. */
+    expect(screen.queryByTestId('desenho-novo')).toBeNull()
+    expect(screen.queryByText('Desenho novo')).toBeNull()
     expect(screen.queryByTestId('vibracao-ao-apontar')).toBeNull()
     expect(screen.queryByText('Vibração ao apontar')).toBeNull()
     for (const nome of ['Reduzir movimento', 'Sons', 'Modo desempenho']) expect(interruptor(nome)).toBeTruthy()
@@ -411,21 +378,5 @@ describe('O seletor de idioma', () => {
     expect(aoEscolher).toHaveBeenCalledTimes(1)
     expect(aoEscolher.mock.calls[0][0]).toMatchObject({ auto: false })
     expect(screen.queryByRole('dialog')).toBeNull()
-  })
-
-  it('fora do Quest: a lista de sempre, colada no gatilho', () => {
-    quest.ligado = false
-    const { container } = render(<LangPicker value="en-US" ariaLabel="Idioma do conteúdo" onPick={() => {}} />)
-    expect(container.querySelector('.q-seletor')).toBeNull()
-    expect(screen.getByRole('combobox', { name: 'Idioma do conteúdo' })).toBeTruthy()
-  })
-})
-
-describe('A auditoria de idioma fora do Quest', () => {
-  it('continua com a marcação de sempre', () => {
-    quest.ligado = false
-    const { container } = render(<LangAudit />)
-    expect(container.querySelector('.q-secao')).toBeNull()
-    expect(screen.getByRole('button', { name: /Conferir agora/ })).toBeTruthy()
   })
 })

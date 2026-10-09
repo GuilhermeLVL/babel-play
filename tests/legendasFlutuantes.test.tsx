@@ -29,7 +29,7 @@ beforeEach(() => localStorage.clear())
 afterEach(cleanup)
 
 const montar = (extra: Partial<React.ComponentProps<typeof LegendasFlutuantes>> = {}) =>
-  render(<LegendasFlutuantes falas={FALAS} emJanela={false} aoFechar={vi.fn()} {...extra} />)
+  render(<LegendasFlutuantes falas={FALAS} aoFechar={vi.fn()} {...extra} />)
 
 describe('Legendas flutuantes (C6)', () => {
   it('por padrão, as TRÊS últimas falas à vista, com a tradução; a atual em foco e as anteriores esmaecidas', () => {
@@ -84,16 +84,6 @@ describe('Legendas flutuantes (C6)', () => {
     expect(screen.getByRole('button', { name: 'Expandir' }).getAttribute('aria-expanded')).toBe('false')
     fireEvent.click(screen.getByRole('button', { name: 'Fechar as legendas flutuantes' }))
     expect(aoFechar).toHaveBeenCalledTimes(1)
-  })
-
-  it('travar o clique deixa o corpo passar o clique; na janela sempre-no-topo o cadeado não existe', () => {
-    montar()
-    fireEvent.click(screen.getByRole('button', { name: 'Deixar o clique passar pela janela' }))
-    expect(document.querySelector('.leg-flut.travado')).toBeTruthy()
-    expect((document.querySelector('.leg-corpo') as HTMLElement).style.pointerEvents).toBe('none')
-    cleanup()
-    montar({ emJanela: true })
-    expect(screen.queryByRole('button', { name: 'Deixar o clique passar pela janela' })).toBeNull()
   })
 
   it('Imersão esconde a tradução; a predefinição Conversa troca modo e tamanho', () => {

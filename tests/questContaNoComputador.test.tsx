@@ -1,11 +1,8 @@
 // @vitest-environment jsdom
 /**
- * A ENTRADA E A CONTA NO COMPUTADOR COM O DESENHO NOVO (02/10/2026: o desenho do headset passou a valer
- * também no computador, atrás de `localStorage['babel.desenhoNovo'] === 'sim'`).
- *
- * `tests/questEntrada.test.tsx` e `tests/questConta.test.tsx` trocam `useQuestNovo` por um interruptor.
- * Aqui a chave é a DE VERDADE (`questNovo()` lendo o perfil e o armazenamento), com o aparelho trocado
- * pelo perfil, como em `tests/questInstitucional.test.tsx`.
+ * A ENTRADA E A CONTA NO COMPUTADOR (02/10/2026: o desenho do headset passou a valer também no
+ * computador; desde 08/10/2026 é o único, em todo aparelho). O aparelho é trocado pelo perfil, como em
+ * `tests/questInstitucional.test.tsx`.
  *
  * A auditoria desta área concluiu que todo `useQuestNovo()` dela é DESENHO (nenhum queria dizer "este
  * aparelho é um headset"). Estes testes seguram a conclusão: no computador, o ramo novo guarda o que o
@@ -59,11 +56,9 @@ vi.mock('../src/data/rotas/idade', async (original) => ({
 import DesafioSegundoFator from '../src/components/auth/DesafioSegundoFator'
 import ResetPassword from '../src/components/auth/ResetPassword'
 import Login from '../src/components/Login'
-import { CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR, questNovo } from '../src/lib/dispositivo/telaNovaDoQuest'
 
 const aguardar = () => act(async () => {})
 const campo = (rotulo: string) => screen.getByLabelText(rotulo) as HTMLInputElement
-const ligarODesenhoNovo = () => localStorage.setItem(CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR, 'sim')
 
 beforeEach(() => {
   aparelho.tipo = 'desktop-com-gpu'
@@ -80,50 +75,20 @@ afterEach(() => {
   sessionStorage.clear()
 })
 
-describe('a chave de verdade, por aparelho', () => {
-  it('computador: a tela de sempre de fábrica; com o desenho novo ligado, a tela nova', async () => {
-    expect(questNovo()).toBe(false)
-    const antes = render(<Login />)
-    await aguardar()
-    expect(antes.container.querySelector('.qen')).toBeNull()
-    expect(antes.container.querySelector('.field-input')).not.toBeNull()
-    antes.unmount()
-
-    ligarODesenhoNovo()
-    expect(questNovo()).toBe(true)
-    const depois = render(<Login />)
-    await aguardar()
-    expect(depois.container.querySelector('.qen')).not.toBeNull()
-    expect(depois.container.querySelector('.field-input')).toBeNull()
-  })
-
-  it('headset: a tela nova sem depender da chave do computador (o Quest não mudou)', async () => {
-    aparelho.tipo = 'quest'
-    expect(questNovo()).toBe(true)
-    const { container } = render(<Login />)
-    await aguardar()
-    expect(container.querySelector('.qen')).not.toBeNull()
-  })
-
-  it('celular: o desenho novo nasce ligado (08/10/2026), e a mesma chave em `nao` devolve a entrada de antes', async () => {
-    aparelho.tipo = 'celular-bom'
-    expect(questNovo()).toBe(true)
-    const novo = render(<Login />)
-    await aguardar()
-    expect(novo.container.querySelector('.qen')).not.toBeNull()
-    novo.unmount()
-
-    localStorage.setItem('babel.desenhoNovo', 'nao')
-    expect(questNovo()).toBe(false)
-    const antes = render(<Login />)
-    await aguardar()
-    expect(antes.container.querySelector('.qen')).toBeNull()
+describe('a entrada nova, em todo aparelho', () => {
+  it('computador, headset e celular: a mesma entrada, sem chave para ligar', async () => {
+    for (const tipo of ['desktop-com-gpu', 'quest', 'celular-bom']) {
+      aparelho.tipo = tipo
+      const { container, unmount } = render(<Login />)
+      await aguardar()
+      expect(container.querySelector('.qen'), tipo).not.toBeNull()
+      expect(container.querySelector('.field-input'), tipo).toBeNull()
+      unmount()
+    }
   })
 })
 
 describe('Entrar no computador com o desenho novo', () => {
-  beforeEach(ligarODesenhoNovo)
-
   it('o gerenciador de senhas acha os campos: e-mail, senha atual ao entrar, senha nova ao criar', async () => {
     render(<Login onContinuarSemConta={() => {}} />)
     await aguardar()
@@ -171,8 +136,6 @@ describe('Entrar no computador com o desenho novo', () => {
 })
 
 describe('O segundo fator e a senha nova no computador com o desenho novo', () => {
-  beforeEach(ligarODesenhoNovo)
-
   it('o código: foco ao abrir, preenchimento automático do código, colar só os dígitos, Enter confirma', async () => {
     const aoConcluir = vi.fn()
     const { container } = render(<DesafioSegundoFator onConcluido={aoConcluir} />)

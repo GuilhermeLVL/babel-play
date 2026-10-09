@@ -23,7 +23,6 @@ import {
   type NotaAnkiDetalhe,
   purgarBaralho,
 } from '../../data/apiAnki';
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { data, numero, t } from '../../lib/i18n';
 import { langLabelNaUI } from '../../lib/languages';
 import { toast } from '../Toast';
@@ -93,7 +92,6 @@ export default function GerenciarBaralhos({
   onMudou,
 }: GerenciarBaralhosProps) {
   /* No Meta Quest não há dica ao passar o ponteiro: o que os selos explicam por `title` fica escrito. */
-  const questNovo = useQuestNovo();
   const [aberto, setAberto] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [apagando, setApagando] = useState<BaralhoAnkiResumo | null>(null);
@@ -239,25 +237,23 @@ export default function GerenciarBaralhos({
               <div className="barra" style={{ marginTop: 6 }}>
                 <span style={{ width: `${pct}%` }} />
               </div>
-              {questNovo && (
-                <ul className="qv-notas-do-baralho" data-testid="notas-por-escrito">
-                  <li>{t('Notas do arquivo do Anki. Uma nota pode virar mais de um cartão na sua fila.')}</li>
-                  {b.descartadas > 0 && (
-                    <li>
-                      {t(
-                        'Descartadas: a régua de qualidade recusou estas notas. Dá para corrigir o mapeamento e reimportar.',
-                      )}
-                    </li>
-                  )}
-                  {b.ausentes > 0 && (
-                    <li>
-                      {t(
-                        'Ausentes: estas notas sumiram do arquivo no último import. É histórico do baralho, não defeito.',
-                      )}
-                    </li>
-                  )}
-                </ul>
-              )}
+              <ul className="qv-notas-do-baralho" data-testid="notas-por-escrito">
+                <li>{t('Notas do arquivo do Anki. Uma nota pode virar mais de um cartão na sua fila.')}</li>
+                {b.descartadas > 0 && (
+                  <li>
+                    {t(
+                      'Descartadas: a régua de qualidade recusou estas notas. Dá para corrigir o mapeamento e reimportar.',
+                    )}
+                  </li>
+                )}
+                {b.ausentes > 0 && (
+                  <li>
+                    {t(
+                      'Ausentes: estas notas sumiram do arquivo no último import. É histórico do baralho, não defeito.',
+                    )}
+                  </li>
+                )}
+              </ul>
             </div>
             <div className="linha" style={{ gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
               {restantes > 0 && (
@@ -299,7 +295,7 @@ export default function GerenciarBaralhos({
                 <Trash2 aria-hidden /> Apagar
               </button>
             </div>
-            {abertoAqui && <NotasDoBaralho baralho={b} motivoPorEscrito={questNovo} />}
+            {abertoAqui && <NotasDoBaralho baralho={b} />}
           </section>
         );
       })}
@@ -332,14 +328,7 @@ export default function GerenciarBaralhos({
 }
 
 /** As notas de um baralho: busca (300 ms), filtros de estado e "carregar mais" pelo cursor. */
-function NotasDoBaralho({
-  baralho,
-  motivoPorEscrito = false,
-}: {
-  baralho: BaralhoAnkiResumo;
-  /** No headset, o motivo do descarte (que no computador é a dica do selo) aparece escrito. */
-  motivoPorEscrito?: boolean;
-}) {
+function NotasDoBaralho({ baralho }: { baralho: BaralhoAnkiResumo }) {
   const [busca, setBusca] = useState('');
   const [buscaAplicada, setBuscaAplicada] = useState('');
   const [estado, setEstado] = useState<FiltroDeEstado | 'todas'>('todas');
@@ -433,7 +422,7 @@ function NotasDoBaralho({
                   <div>
                     <b>{n.frente}</b>
                     <small className="mut">{n.verso || 'sem tradução'}</small>
-                    {motivoPorEscrito && n.motivoDescarte && <small className="mut">{n.motivoDescarte}</small>}
+                    {n.motivoDescarte && <small className="mut">{n.motivoDescarte}</small>}
                   </div>
                   <span />
                   <span className={`badge ${tom}`} title={n.motivoDescarte ?? undefined}>

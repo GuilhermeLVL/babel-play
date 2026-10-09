@@ -198,14 +198,6 @@ describe('Login no Quest', () => {
     expect(screen.queryByRole('button', { name: 'Criar uma conta' })).toBeNull()
     expect(screen.getByText(/cadastro de contas novas está pausado/)).toBeTruthy()
   })
-
-  it('fora do Quest, a porta de sempre', async () => {
-    quest.ligado = false
-    const { container } = render(<Login />)
-    await aguardar()
-    expect(container.querySelector('.qen')).toBeNull()
-    expect(container.querySelector('.field-input')).not.toBeNull()
-  })
 })
 
 describe('Redefinir a senha no Quest', () => {
@@ -226,13 +218,6 @@ describe('Redefinir a senha no Quest', () => {
     await enviar(campo('Nova senha'))
     expect(auth.updatePassword).toHaveBeenCalledWith('senha-forte-1')
     expect(aoConcluir).toHaveBeenCalledTimes(1)
-  })
-
-  it('fora do Quest, a tela de sempre', () => {
-    quest.ligado = false
-    const { container } = render(<ResetPassword onDone={() => {}} />)
-    expect(container.querySelector('.qen')).toBeNull()
-    expect(container.querySelectorAll('.field-input')).toHaveLength(2)
   })
 })
 
@@ -292,13 +277,6 @@ describe('A pergunta de idade no Quest', () => {
     fireEvent.change(campo('Data de nascimento'), { target: { value: '1990-05-17' } })
     await enviar(campo('Data de nascimento'))
     expect(screen.getByRole('alert').textContent).toMatch(/Essa data não parece certa/)
-  })
-
-  it('fora do Quest, o cartão de sempre', () => {
-    quest.ligado = false
-    const { container } = render(<PerguntaDeIdade aoConcluir={() => {}} />)
-    expect(container.querySelector('.qen')).toBeNull()
-    expect(container.querySelector('form.cartao')).not.toBeNull()
   })
 
   it('se o desenho do headset não chegar (aba de antes de um deploy), vale a pergunta de sempre, sem recarregar', async () => {
@@ -383,14 +361,5 @@ describe('O aceite do responsável no Quest', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Voltar ao app' }))
     fireEvent.click(screen.getByRole('button', { name: 'Fechar' }))
     expect(aoSair).toHaveBeenCalledTimes(2)
-  })
-
-  it('fora do Quest, o cartão de sempre', async () => {
-    quest.ligado = false
-    idade.verConvite.mockResolvedValue(convite)
-    const { container } = render(<AceiteDoResponsavel token="tok-1" aoSair={() => {}} />)
-    await aguardar()
-    expect(container.querySelector('.qen')).toBeNull()
-    expect(container.querySelector('section.cartao')).not.toBeNull()
   })
 })

@@ -13,14 +13,11 @@
  * O que a linha da tabela mostra vem do cartão REAL (`cartoes`, o mesmo deck da tela): o estado do
  * FSRS e a procedência. Procedência que o cartão não declara aparece como "—", nunca adivinhada.
  */
-import { AlertTriangle, BookOpen, Inbox, RotateCw, Search } from 'lucide-react';
 import React, { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiFetch } from '../../../data/api';
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../lib/i18n';
 import type { VocabCard } from '../../../types';
-import { IconeEmBloco, TituloDeSecao } from '../../ui';
 import NotaDeContagem from './NotaDeContagem';
 import CatalogoDoQuest from './quest/CatalogoDoQuest';
 
@@ -131,7 +128,6 @@ export default function CatalogoDePalavras({
   /** O que vem depois da tabela (o aviso de palavras sem tradução). */
   rodape?: ReactNode;
 }) {
-  const questNovo = useQuestNovo();
   const [busca, setBusca] = useState('');
   const [buscaAplicada, setBuscaAplicada] = useState('');
   const [ordem, setOrdem] = useState<Ordem>('recentes');
@@ -232,276 +228,67 @@ export default function CatalogoDePalavras({
     setOrigens([]);
     campoDeBusca.current?.focus();
   };
-  const temFiltroDePilula = niveis.length > 0 || origens.length > 0;
   const geral = totalGeral ?? total;
 
   /* NO META QUEST: o mesmo catálogo, no desenho do headset (`quest/CatalogoDoQuest.tsx`). A busca, a
      ordem, os filtros e a paginação são os daqui. */
-  if (questNovo) {
-    return (
-      <CatalogoDoQuest
-        carregando={carregando}
-        carregandoMais={carregandoMais}
-        erro={erro}
-        total={total}
-        geral={geral}
-        busca={busca}
-        aoBuscar={setBusca}
-        refDaBusca={campoDeBusca}
-        ordem={ordem}
-        ordens={ORDENS.map((o) => ({ id: o.id, rotulo: t(o.rotulo) }))}
-        aoOrdenar={(id) => setOrdem(id as Ordem)}
-        niveis={NIVEIS.map((n) => {
-          const qtd = porNivel.get(n) ?? 0;
-          const ativo = niveis.includes(n);
-          return {
-            id: n,
-            rotulo: n === 'ausente' ? t('sem nível') : n,
-            qtd,
-            ativo,
-            desligado: !qtd && !ativo && cartoes.length > 0,
-          };
-        })}
-        aoAlternarNivel={(n) => alternar(niveis, setNiveis, n)}
-        origens={ORIGENS.map((o) => {
-          const qtd = porOrigem ? (porOrigem[o.id] ?? 0) : null;
-          const ativo = origens.includes(o.id);
-          return { id: o.id, rotulo: t(o.rotulo), qtd, ativo, desligado: qtd === 0 && !ativo };
-        })}
-        aoAlternarOrigem={(o) => alternar(origens, setOrigens, o)}
-        temFiltro={temFiltro}
-        aoLimpar={limpar}
-        nota={ordem === 'frequentes' && contagem ? <NotaDeContagem {...contagem} /> : null}
-        linhas={itens.map((c) => {
-          const cartao = porId.get(c.id);
-          const estado = estadoDe(cartao);
-          return {
-            id: c.id,
-            palavra: c.word,
-            traducao: c.back,
-            nivel: c.cefrLevel,
-            dicaDoNivel: !c.cefrLevel
-              ? t('Palavra fora da wordlist, nível desconhecido, não estimado')
-              : c.cefrSource === 'curado'
-                ? t('Nível curado')
-                : t('Nível de wordlist (CEFR-J)'),
-            fonteDoNivel: !c.cefrLevel
-              ? t('fora da lista')
-              : c.cefrSource === 'curado'
-                ? t('curado')
-                : t('lista CEFR-J'),
-            origem: t(origemDe(c, cartao)),
-            estado: estado && { rotulo: t(estado.rotulo), tom: estado.tom },
-          };
-        })}
-        aoAbrir={(id) => aoAbrirPalavra?.(id)}
-        temMais={!!cursor}
-        aoMostrarMais={() => void carregar(true)}
-        aoTentarDeNovo={() => void carregar(false)}
-        rodape={rodape}
-      />
-    );
-  }
-
   return (
-    <section className="cartao p5 secao" style={{ marginTop: 20 }}>
-      <TituloDeSecao
-        icone={BookOpen}
-        titulo="Todas as palavras"
-        desc="Busque, filtre por nível e origem. Clique num termo para ouvir a pronúncia e ver a explicação."
-        direita={
-          <span className="mut tn" style={{ fontSize: 12.5 }} aria-live="polite">
-            {carregando ? 'carregando…' : `${total} de ${geral} no caderno`}
-          </span>
-        }
-      />
-      <div className="linha" style={{ gap: 8, flexWrap: 'wrap' }}>
-        <label className="busca">
-          <Search aria-hidden />
-          <span className="sr">Buscar palavra</span>
-          <input
-            className="campo"
-            id="busca-palavra"
-            ref={campoDeBusca}
-            placeholder="Buscar palavra ou tradução"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-          />
-        </label>
-        <select
-          className="campo"
-          style={{ width: 'auto' }}
-          aria-label="Ordenar"
-          value={ordem}
-          onChange={(e) => setOrdem(e.target.value as Ordem)}
-        >
-          {ORDENS.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.rotulo}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="chips" style={{ marginTop: 12 }}>
-        <span className="label-mono">Nível</span>
-        {NIVEIS.map((n) => {
-          const ativo = niveis.includes(n);
-          const qtd = porNivel.get(n) ?? 0;
-          return (
-            <button
-              key={n}
-              type="button"
-              className="pill"
-              aria-pressed={ativo}
-              disabled={!qtd && !ativo && cartoes.length > 0}
-              onClick={() => alternar(niveis, setNiveis, n)}
-            >
-              {n === 'ausente' ? 'sem nível' : n} <span className="n">{qtd}</span>
-            </button>
-          );
-        })}
-        <span className="label-mono" style={{ marginLeft: 10 }}>
-          Origem
-        </span>
-        {ORIGENS.map((o) => {
-          const ativo = origens.includes(o.id);
-          const qtd = porOrigem ? (porOrigem[o.id] ?? 0) : null;
-          return (
-            <button
-              key={o.id}
-              type="button"
-              className="pill"
-              aria-pressed={ativo}
-              disabled={qtd === 0 && !ativo}
-              onClick={() => alternar(origens, setOrigens, o.id)}
-            >
-              {o.rotulo}
-              {qtd !== null && (
-                <>
-                  {' '}
-                  <span className="n">{qtd}</span>
-                </>
-              )}
-            </button>
-          );
-        })}
-        {temFiltroDePilula && (
-          <button type="button" className="link" style={{ marginLeft: 6 }} onClick={limpar}>
-            Limpar
-          </button>
-        )}
-      </div>
-
-      {/* A contagem de encontros só pesa na ordem "Mais vistas" — é ali que "1×" precisaria da nota. */}
-      {ordem === 'frequentes' && contagem && (
-        <div style={{ marginTop: 12 }}>
-          <NotaDeContagem {...contagem} />
-        </div>
-      )}
-
-      <div
-        style={{ marginTop: 14, border: '1px solid var(--border-subtle)', borderRadius: 12, overflow: 'hidden' }}
-        id="tabela-palavras"
-        aria-busy={carregando}
-      >
-        {erro ? (
-          <div className="vazio">
-            <IconeEmBloco icone={AlertTriangle} tom="warn" />
-            <h3>Não consegui carregar seu vocabulário.</h3>
-            <p>{erro}</p>
-            <button type="button" className="btn btn-outline" onClick={() => void carregar(false)}>
-              <RotateCw aria-hidden /> Tentar de novo
-            </button>
-          </div>
-        ) : carregando ? (
-          // Sem zeros durante o carregamento: mostrar "0" é afirmar um número falso.
-          <p className="mut" style={{ padding: 14, fontSize: 13 }}>
-            Carregando as palavras…
-          </p>
-        ) : itens.length === 0 ? (
-          temFiltro ? (
-            <div className="vazio">
-              <IconeEmBloco icone={Search} />
-              <h3>Nada com esses filtros</h3>
-              <p>Tire um filtro de nível ou de origem.</p>
-              <button type="button" className="btn btn-outline" onClick={limpar}>
-                Limpar filtros
-              </button>
-            </div>
-          ) : (
-            <div className="vazio">
-              <IconeEmBloco icone={Inbox} />
-              <h3>Seu vocabulário está vazio</h3>
-              <p>Capture uma sessão ou toque numa palavra durante a leitura para começar.</p>
-            </div>
-          )
-        ) : (
-          <table className="tabela">
-            <thead>
-              <tr>
-                <th className="label-mono">Palavra</th>
-                <th className="label-mono">Tradução</th>
-                <th className="label-mono col-extra">Nível</th>
-                <th className="label-mono col-extra">Origem</th>
-                <th className="label-mono">Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {itens.map((c) => {
-                const cartao = porId.get(c.id);
-                const estado = estadoDe(cartao);
-                const curado = c.cefrSource === 'curado';
-                return (
-                  <tr
-                    key={c.id}
-                    data-palavra={c.word}
-                    tabIndex={0}
-                    onClick={() => aoAbrirPalavra?.(c.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        aoAbrirPalavra?.(c.id);
-                      }
-                    }}
-                  >
-                    <td className="termo">{c.word}</td>
-                    <td className="mut">{c.back || <span style={{ opacity: 0.6 }}>sem tradução</span>}</td>
-                    <td className="col-extra">
-                      <span
-                        className="badge neu"
-                        title={
-                          !c.cefrLevel
-                            ? 'Palavra fora da wordlist, nível desconhecido, não estimado'
-                            : curado
-                              ? 'Nível curado'
-                              : 'Nível de wordlist (CEFR-J)'
-                        }
-                      >
-                        {c.cefrLevel ?? 'sem nível'}
-                      </span>
-                    </td>
-                    <td className="col-extra mut">{origemDe(c, cartao)}</td>
-                    <td>{estado ? <span className={`badge ${estado.tom}`}>{estado.rotulo}</span> : '—'}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-      {!erro && !carregando && cursor && (
-        <div className="linha" style={{ justifyContent: 'center', marginTop: 12 }}>
-          <button
-            type="button"
-            className="btn btn-outline peq"
-            disabled={carregandoMais}
-            onClick={() => void carregar(true)}
-          >
-            {carregandoMais ? 'Carregando…' : `Mostrar mais (${itens.length} de ${total})`}
-          </button>
-        </div>
-      )}
-      {rodape}
-    </section>
+    <CatalogoDoQuest
+      carregando={carregando}
+      carregandoMais={carregandoMais}
+      erro={erro}
+      total={total}
+      geral={geral}
+      busca={busca}
+      aoBuscar={setBusca}
+      refDaBusca={campoDeBusca}
+      ordem={ordem}
+      ordens={ORDENS.map((o) => ({ id: o.id, rotulo: t(o.rotulo) }))}
+      aoOrdenar={(id) => setOrdem(id as Ordem)}
+      niveis={NIVEIS.map((n) => {
+        const qtd = porNivel.get(n) ?? 0;
+        const ativo = niveis.includes(n);
+        return {
+          id: n,
+          rotulo: n === 'ausente' ? t('sem nível') : n,
+          qtd,
+          ativo,
+          desligado: !qtd && !ativo && cartoes.length > 0,
+        };
+      })}
+      aoAlternarNivel={(n) => alternar(niveis, setNiveis, n)}
+      origens={ORIGENS.map((o) => {
+        const qtd = porOrigem ? (porOrigem[o.id] ?? 0) : null;
+        const ativo = origens.includes(o.id);
+        return { id: o.id, rotulo: t(o.rotulo), qtd, ativo, desligado: qtd === 0 && !ativo };
+      })}
+      aoAlternarOrigem={(o) => alternar(origens, setOrigens, o)}
+      temFiltro={temFiltro}
+      aoLimpar={limpar}
+      nota={ordem === 'frequentes' && contagem ? <NotaDeContagem {...contagem} /> : null}
+      linhas={itens.map((c) => {
+        const cartao = porId.get(c.id);
+        const estado = estadoDe(cartao);
+        return {
+          id: c.id,
+          palavra: c.word,
+          traducao: c.back,
+          nivel: c.cefrLevel,
+          dicaDoNivel: !c.cefrLevel
+            ? t('Palavra fora da wordlist, nível desconhecido, não estimado')
+            : c.cefrSource === 'curado'
+              ? t('Nível curado')
+              : t('Nível de wordlist (CEFR-J)'),
+          fonteDoNivel: !c.cefrLevel ? t('fora da lista') : c.cefrSource === 'curado' ? t('curado') : t('lista CEFR-J'),
+          origem: t(origemDe(c, cartao)),
+          estado: estado && { rotulo: t(estado.rotulo), tom: estado.tom },
+        };
+      })}
+      aoAbrir={(id) => aoAbrirPalavra?.(id)}
+      temMais={!!cursor}
+      aoMostrarMais={() => void carregar(true)}
+      aoTentarDeNovo={() => void carregar(false)}
+      rodape={rodape}
+    />
   );
 }

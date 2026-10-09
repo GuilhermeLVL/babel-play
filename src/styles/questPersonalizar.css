@@ -119,51 +119,6 @@ html[data-quest-novo='true'] .qp-salvar .q-ctl {
   border-color: var(--border-subtle);
 }
 
-/* A temporada: o crachá do nível e a barra. */
-html[data-quest-novo='true'] .qp .q-chip.qp-seeds svg {
-  color: var(--good, #3f9b56);
-}
-html[data-quest-novo='true'] .qp .q-chip.qp-creditos svg:first-child {
-  color: var(--premium, var(--q-acento));
-}
-html[data-quest-novo='true'] .qp-nivel-da-temporada {
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 18px;
-}
-html[data-quest-novo='true'] .qp-nivel-da-temporada .qp-pilha {
-  gap: 10px;
-}
-html[data-quest-novo='true'] .qp-cracha {
-  width: 84px;
-  height: 84px;
-  border-radius: 22px;
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: 4px;
-  background: linear-gradient(160deg, var(--q-acento-2), var(--q-acento));
-  color: var(--q-sobre-acento);
-}
-html[data-quest-novo='true'] .qp-cracha b {
-  font: 900 34px/1 var(--font-display, inherit);
-  font-variant-numeric: tabular-nums;
-}
-html[data-quest-novo='true'] .qp-cracha span {
-  font: 800 14px/1 var(--font-mono, monospace);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-html[data-quest-novo='true'] .qp-nivel-linha {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px 16px;
-  flex-wrap: wrap;
-}
-html[data-quest-novo='true'] .qp-nivel-linha b {
-  font: 800 20px/1.2 var(--font-display, inherit);
-}
 html[data-quest-novo='true'] .qp-nota {
   margin: 0;
   font: 600 16px/1.4 var(--font-body, inherit);
@@ -300,63 +255,6 @@ html[data-quest-novo='true'] .qp .tela [class*='text-[8'],
 html[data-quest-novo='true'] dialog.qp-editor [class*='text-[8'] {
   font-size: 14px !important;
   line-height: 1.2;
-}
-
-/* A TRILHA DA TEMPORADA: colunas mais largas, casas mais altas e o trancado ainda legível. */
-html[data-quest-novo='true'] .qp-passe [id^='temporada-nivel-'] {
-  width: 176px;
-}
-html[data-quest-novo='true'] .qp-passe [id^='temporada-nivel-'] > p {
-  height: 36px;
-  font-size: 17px;
-}
-html[data-quest-novo='true'] .qp-passe [id^='temporada-nivel-'] > :is(button, div) {
-  height: 200px;
-  border-radius: 18px;
-}
-html[data-quest-novo='true'] .qp-passe [id^='temporada-nivel-'] > button {
-  transition:
-    transform var(--q-toque),
-    box-shadow var(--q-cor);
-}
-html[data-quest-novo='true'] .qp-passe [id^='temporada-nivel-'] > button:hover {
-  transform: scale(1.03);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--q-acento) 35%, transparent);
-}
-html[data-quest-novo='true'] .qp-passe [id^='temporada-nivel-'] > button:active {
-  transform: scale(0.97);
-}
-html[data-quest-novo='true'] .qp-passe [id^='temporada-nivel-'] > button:focus-visible {
-  outline: 3px solid var(--q-acento);
-  outline-offset: 3px;
-}
-html[data-quest-novo='true'] .qp-passe .opacity-40 {
-  opacity: 0.62;
-}
-/* A coluna que nomeia as fileiras (Grátis, Assinante) some abaixo de 640 px na tela de sempre; a janela do
-   Quest encolhe até 500 px, e lá o nome da fileira não pode sumir. */
-html[data-quest-novo='true'] .qp-passe .qp-fileiras {
-  display: flex !important;
-  width: 128px;
-  padding-top: 46px; /* a altura do número do nível (36) e o vão (10) */
-}
-html[data-quest-novo='true'] .qp-passe .qp-fileiras > div {
-  height: 200px;
-  border-radius: 18px;
-}
-html[data-quest-novo='true'] .qp-passe .qp-fileiras svg {
-  width: 22px;
-  height: 22px;
-}
-html[data-quest-novo='true'] .qp-passe [data-testid='faixa-da-temporada'] {
-  min-height: 48px;
-  padding: 8px 18px;
-  font-size: 16px !important;
-  color: var(--ink);
-}
-html[data-quest-novo='true'] .qp-passe [data-testid='faixa-da-temporada'] svg {
-  width: 20px;
-  height: 20px;
 }
 
 /* A COMPRA DE CRÉDITOS (os botões e campos dela não usam `.btn` nem `.campo`). */
@@ -510,18 +408,11 @@ html[data-quest-novo='true'] dialog.qp-editor .dlg-pe .link {
   html[data-quest-novo='true'] .qp-equip b {
     font-size: 16px;
   }
-  html[data-quest-novo='true'] .qp-nivel-da-temporada {
-    grid-template-columns: minmax(0, 1fr);
-  }
+
   html[data-quest-novo='true'] .qp .q-aviso {
     flex-wrap: wrap;
   }
-  html[data-quest-novo='true'] .qp-passe [id^='temporada-nivel-'] {
-    width: 160px;
-  }
-  html[data-quest-novo='true'] .qp-passe .qp-fileiras {
-    width: 104px;
-  }
+
   html[data-quest-novo='true'] dialog.qp-editor .g-cores {
     grid-template-columns: minmax(0, 1fr);
   }

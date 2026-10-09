@@ -63,8 +63,9 @@ describe('pagamento atrasado', () => {
     m.status = atrasada('premium')
     await montar()
     const aviso = screen.getByTestId('aviso-de-pagamento-atrasado')
-    expect(aviso.className).toContain('aviso-info')
-    expect(aviso.className).toContain('warn')
+    /* A faixa de aviso, no tom de alerta (é um fato da conta, não um convite). */
+    expect(aviso.className).toContain('q-aviso')
+    expect(aviso.className).toContain('qc-alerta')
     expect(aviso.textContent).toContain(
       'Não conseguimos confirmar o pagamento da sua assinatura. Pague a fatura para continuar com o Premium.',
     )

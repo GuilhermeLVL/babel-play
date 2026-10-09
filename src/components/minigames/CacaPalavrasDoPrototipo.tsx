@@ -1,3 +1,5 @@
+import '../../styles/polimentoJogosFoco.css';
+
 import type { ItemOutcome, MinigameItem, RoundReport } from '@core';
 import { entraNaGrade, letrasNaGrade, scoreRound } from '@core';
 import { Radar, Search } from 'lucide-react';
@@ -5,6 +7,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { type Direcao, regrasDoJogo, vezesDaAjuda } from '../../core/minigames/regras';
 import { celebrar } from '../../lib/comemoracao';
+import { t } from '../../lib/i18n';
 import { useNivelDoJogo } from '../../lib/jogos/nivelDoJogo';
 import { flutuar, tremer } from '../../lib/polimento/jogos';
 import { sentir } from '../../lib/polimento/sentidos';
@@ -95,6 +98,8 @@ export default function CacaPalavrasDoPrototipo({ items, onFinish }: Props) {
   const [sel, setSel] = useState<number[]>([]);
   const [achadas, setAchadas] = useState<ReadonlySet<number>>(new Set());
   const [dica, setDica] = useState<number[]>([]);
+  /** A célula que o Tab alcança (as outras ficam fora da ordem de tabulação). */
+  const [foco, setFoco] = useState(0);
   const [sequencia, setSequencia] = useState(0);
   const [radares, setRadares] = useState(() => vezesDaAjuda('wordsearch', 'radar', nivel));
 
@@ -206,6 +211,59 @@ export default function CacaPalavrasDoPrototipo({ items, onFinish }: Props) {
     conferir(era);
   };
 
+  /* O TECLADO (o protótipo só tem ponteiro; o tabuleiro de antes tinha setas e Enter). O foco anda pela
+     grade com as setas, uma célula focável por vez; Enter ou Espaço marca a primeira ponta e depois a
+     última, o mesmo traço por dois toques do ponteiro; Esc desfaz a primeira ponta. Com a ponta marcada,
+     o traço acompanha o foco, como no arrasto. */
+  const focar = (i: number) => {
+    setFoco(i);
+    celula(i)?.focus();
+    const de = ponta.current;
+    if (de >= 0 && ini.current < 0) marcar(reta(de, i) ?? [de]);
+  };
+  const aoTeclar = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const c = (e.target as Element).closest<HTMLElement>('[data-c]');
+    if (!c || e.ctrlKey || e.metaKey || e.altKey) return;
+    const i = Number(c.dataset.c);
+    const [r, col] = [Math.floor(i / N), i % N];
+    const passos: Record<string, number> = {
+      ArrowUp: r > 0 ? i - N : i,
+      ArrowDown: r < N - 1 ? i + N : i,
+      ArrowLeft: col > 0 ? i - 1 : i,
+      ArrowRight: col < N - 1 ? i + 1 : i,
+      Home: r * N,
+      End: r * N + N - 1,
+    };
+    const para: unknown = passos[e.key];
+    if (typeof para === 'number') {
+      e.preventDefault();
+      if (para !== i) focar(para);
+      return;
+    }
+    if (e.key === 'Escape') {
+      /* Só quando há ponta a desfazer; sem ela o Esc segue para a casca, que pausa. */
+      if (ponta.current < 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      ponta.current = -1;
+      marcar([]);
+      return;
+    }
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    if (e.repeat || !ativo || finalizou.current || ini.current >= 0) return;
+    const de = ponta.current;
+    if (de < 0) {
+      ponta.current = i;
+      marcar([i]);
+      return;
+    }
+    ponta.current = -1;
+    marcar([]);
+    const l = de === i ? null : reta(de, i);
+    if (l) conferir(l);
+  };
+
   /* `pj.ajuda`, `jogos.js:628-635`: o Radar faz as duas pontas de uma palavra piscarem. De graça. */
   const radar = () => {
     if (!ativo || finalizou.current || radares <= 0) return;
@@ -263,6 +321,9 @@ export default function CacaPalavrasDoPrototipo({ items, onFinish }: Props) {
             ref={grade}
             className="grade-caca"
             style={{ '--n': N } as React.CSSProperties}
+            role="group"
+            aria-label={t('Grade de letras: setas andam, Enter marca as duas pontas da palavra, Esc desfaz')}
+            onKeyDown={aoTeclar}
             onPointerDown={(e) => {
               const c = (e.target as Element).closest<HTMLElement>('[data-c]');
               if (!c || !ativo || finalizou.current) return;
@@ -297,6 +358,14 @@ export default function CacaPalavrasDoPrototipo({ items, onFinish }: Props) {
                 <span
                   key={i}
                   data-c={i}
+                  role="button"
+                  tabIndex={i === foco ? 0 : -1}
+                  aria-label={t('{letra}, linha {l}, coluna {c}', {
+                    letra: c,
+                    l: Math.floor(i / N) + 1,
+                    c: (i % N) + 1,
+                  })}
+                  aria-pressed={sel.includes(i)}
                   className={classe || undefined}
                   style={k === undefined ? undefined : ({ '--k': k } as React.CSSProperties)}
                 >

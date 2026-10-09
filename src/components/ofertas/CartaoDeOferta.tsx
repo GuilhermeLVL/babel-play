@@ -2,7 +2,6 @@ import type { LucideIcon } from 'lucide-react';
 import { X } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../lib/i18n';
 import { usePedacoDoQuest } from '../conta/quest/usePedacoDoQuest';
 
@@ -50,11 +49,10 @@ export default function CartaoDeOferta({
   const idTitulo = useId();
   const ref = useRef<HTMLElement>(null);
   const alerta = tom === 'alerta';
-  const questNovo = useQuestNovo();
   /* No Quest o cartão chega sob demanda: o Esc só se liga quando o elemento existe. Se o arquivo não
      chegar, vale o cartão de sempre: uma oferta que aparece sozinha NUNCA recarrega a página (pode
      haver uma captura em andamento). */
-  const doQuest = usePedacoDoQuest(carregarCartaoDoQuest, questNovo);
+  const doQuest = usePedacoDoQuest(carregarCartaoDoQuest, true);
   const [montado, setMontado] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -64,18 +62,18 @@ export default function CartaoDeOferta({
       if (e.key === 'Escape') {
         e.stopPropagation();
         /* No desenho novo o Esc sai como o fechar: a oferta desce antes de sumir (`sairOferta`). */
-        const fechar = questNovo ? el.querySelector<HTMLElement>('.qc-fechar') : null;
+        const fechar = el.querySelector<HTMLElement>('.qc-fechar');
         if (fechar) fechar.click();
         else aoDispensar();
       }
     };
     el.addEventListener('keydown', aoTeclar);
     return () => el.removeEventListener('keydown', aoTeclar);
-  }, [aoDispensar, montado, doQuest.falhou, questNovo]);
+  }, [aoDispensar, montado, doQuest.falhou]);
 
   /* QUEST: o mesmo cartão, com as mesmas três saídas, nas medidas do headset. O arquivo desce só no
      Quest (o host das ofertas mora no pacote inicial; o CSS do headset fica fora dele). */
-  if (questNovo && doQuest.Componente) {
+  if (doQuest.Componente) {
     const CartaoDeOfertaDoQuest = doQuest.Componente;
     return (
       <CartaoDeOfertaDoQuest
@@ -93,7 +91,7 @@ export default function CartaoDeOferta({
     );
   }
   /* A oferta não bloqueia nada: enquanto o desenho do headset não chega, ela só espera. */
-  if (questNovo && !doQuest.falhou) return null;
+  if (!doQuest.falhou) return null;
 
   return (
     <section

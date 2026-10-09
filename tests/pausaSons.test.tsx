@@ -5,7 +5,7 @@
  */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useState } from 'react'
-import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import CascaDaRodada from '../src/components/minigames/casca/CascaDaRodada'
 import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
@@ -33,11 +33,18 @@ function ComSom() {
 
 describe('pausa da rodada — Sons', () => {
   beforeAll(() => prepararDialogoNoJsdom())
-  afterEach(cleanup)
+  /* A explicação da primeira partida já foi vista: a rodada começa direto, e o Esc pausa. */
+  beforeEach(() => localStorage.setItem('babel_tour_memory', '1'))
+  afterEach(() => {
+    cleanup()
+    localStorage.clear()
+  })
+  /* O cabeçalho do protótipo não tem "Pausar": quem pausa é o Esc (ou o P). */
+  const pausar = () => fireEvent.keyDown(window, { key: 'Escape' })
 
   it('mostra o interruptor com o estado do app e alterna o som de verdade', () => {
     render(<ComSom />)
-    fireEvent.click(screen.getByRole('button', { name: /Pausar/ }))
+    pausar()
     const sw = screen.getByRole('switch', { name: 'Sons do jogo' })
     expect(sw.getAttribute('aria-checked')).toBe('true')
     fireEvent.click(sw)
@@ -59,7 +66,7 @@ describe('pausa da rodada — Sons', () => {
         <p>tabuleiro</p>
       </CascaDaRodada>,
     )
-    fireEvent.click(screen.getByRole('button', { name: /Pausar/ }))
+    pausar()
     expect(screen.queryByRole('switch', { name: 'Sons do jogo' })).toBeNull()
   })
 })

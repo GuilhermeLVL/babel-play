@@ -12,12 +12,6 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-const quest = vi.hoisted(() => ({ ligado: false }))
-vi.mock('../src/lib/dispositivo/telaNovaDoQuest', async (original) => {
-  const real = await original<typeof import('../src/lib/dispositivo/telaNovaDoQuest')>()
-  return { ...real, useQuestNovo: () => quest.ligado }
-})
-
 afterEach(() => {
   cleanup()
   vi.resetModules()
@@ -26,7 +20,6 @@ afterEach(() => {
   vi.doUnmock('../src/data/api')
   vi.doUnmock('../src/data/rotas/idade')
   vi.doUnmock('../src/lib/entitlements')
-  quest.ligado = false
   localStorage.clear()
   sessionStorage.clear()
   window.history.replaceState({}, '', '/')
@@ -118,12 +111,8 @@ async function abrirCheckout(formaInicial?: 'mensal' | 'anual' | 'anual_12x') {
 
 const cartao = (id: 'gratis' | 'premium') => document.querySelector<HTMLElement>(`[data-plano="${id}"]`)!
 
-describe.each([
-  ['desenho de sempre', false],
-  ['desenho novo (o do headset)', true],
-])('anual desligado — %s', (_nome, questLigado) => {
+describe('anual desligado', () => {
   it('Planos: sem o seletor Mensal/Anual, e nada na aba promete o anual', async () => {
-    quest.ligado = questLigado
     montarMocks({ anual: false })
     const { container } = await abrirPlanos()
     await waitFor(() => expect(screen.queryByRole('radiogroup', { name: 'Período de cobrança' })).toBeNull())
@@ -131,15 +120,12 @@ describe.each([
     // O mensal e o teste continuam à vista.
     expect(cartao('premium').textContent).toContain('19,90')
     expect(cartao('premium').textContent).toContain('por mês')
-    /* As perguntas são as de cada desenho: o novo traz as quatro do protótipo (`telas2.js:53-58`). */
-    const perguntas = questLigado
-      ? [/O teste cobra sozinho no fim\?/, /Posso cancelar\?/, /7 dias para desistir com reembolso/]
-      : [/Como funciona o teste de 14 dias\?/, /Posso cancelar quando quiser\?/, /E se eu me arrepender\?/]
+    /* As perguntas do protótipo (`telas2.js:53-58`). */
+    const perguntas = [/O teste cobra sozinho no fim\?/, /Posso cancelar\?/, /7 dias para desistir com reembolso/]
     for (const p of perguntas) expect(container.textContent).toMatch(p)
   })
 
   it('Planos: quem tinha escolhido o anual nesta aba vê (e assina) o mensal', async () => {
-    quest.ligado = questLigado
     sessionStorage.setItem('babel.checkout.forma', 'anual')
     montarMocks({ anual: false })
     await abrirPlanos()
@@ -150,7 +136,6 @@ describe.each([
   })
 
   it('Checkout: só o mensal; nem "Anual em uma vez" nem "Anual em 12x"', async () => {
-    quest.ligado = questLigado
     montarMocks({ anual: false })
     const { container } = await abrirCheckout()
     await waitFor(() => expect(screen.queryByRole('button', { name: /Anual em uma vez/ })).toBeNull())
@@ -160,7 +145,6 @@ describe.each([
   })
 
   it('Checkout aberto no anual (escolha guardada): cobra o MENSAL', async () => {
-    quest.ligado = questLigado
     const chamadas = montarMocks({ anual: false })
     const { container } = await abrirCheckout('anual')
     await waitFor(() => expect(screen.queryByRole('button', { name: /Anual em uma vez/ })).toBeNull())
@@ -178,7 +162,6 @@ describe.each([
   })
 
   it('Sua assinatura (mensal): sem o cartão "Passar para o anual"; as outras ações ficam', async () => {
-    quest.ligado = questLigado
     montarMocks({ anual: false, status: statusMensal, plano: 'premium' })
     const { container } = await abrirPlanos()
     await act(async () => {
@@ -191,15 +174,11 @@ describe.each([
   })
 })
 
-describe.each([
-  ['desenho de sempre', false],
-  ['desenho novo (o do headset)', true],
-])('anual ligado (o padrão) — %s', (_nome, questLigado) => {
+describe('anual ligado (o padrão)', () => {
   it.each([
     ['`anual: true`', true],
     ['`anual` ausente na resposta', undefined],
   ])('Planos com %s: o seletor e as promessas do anual, como sempre', async (_caso, anual) => {
-    quest.ligado = questLigado
     montarMocks({ anual })
     const { container } = await abrirPlanos()
     const grupo = screen.getByRole('radiogroup', { name: 'Período de cobrança' })
@@ -211,7 +190,6 @@ describe.each([
   })
 
   it('Checkout: as três formas de pagar', async () => {
-    quest.ligado = questLigado
     montarMocks({ anual: true })
     await abrirCheckout()
     expect(screen.getByRole('button', { name: /Mensal recorrente/ })).toBeTruthy()
@@ -220,7 +198,6 @@ describe.each([
   })
 
   it('Sua assinatura (mensal): o cartão "Passar para o anual" está lá', async () => {
-    quest.ligado = questLigado
     montarMocks({ anual: true, status: statusMensal, plano: 'premium' })
     await abrirPlanos()
     await act(async () => {

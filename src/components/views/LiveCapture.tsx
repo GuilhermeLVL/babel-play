@@ -6,41 +6,28 @@ import {
   ArrowRight,
   AudioLines,
   Check,
-  ChevronDown,
   CircleCheck,
-  CircleHelp,
   Cpu,
   Download,
-  Eye,
-  Gamepad2,
   Headphones,
   Info,
-  Languages,
   Loader2,
-  Maximize2,
   Mic,
   MicOff,
   Minimize2,
   MonitorSpeaker,
-  MoreHorizontal,
-  Pencil,
   PictureInPicture2,
   RefreshCw,
-  Save,
   SlidersHorizontal,
-  Snail,
   Sparkles,
   Square,
   TriangleAlert,
   Type,
-  UserPlus,
-  Users,
-  Volume2,
   VolumeX,
   WandSparkles,
   X,
 } from 'lucide-react';
-import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import { configDoReguladorPara } from '../../core/harness/reguladorDeDesempenho';
 import type { MotivoDaOfertaDeAlivio, SinaisDoAparelhoParaAlivio } from '../../core/nuvemDeAlivio';
@@ -107,7 +94,6 @@ import { type PassoDoInicio, planejarInicio } from '../../lib/captura/inicioDaCa
 import { idiomasDaConversa } from '../../lib/captura/interprete';
 import {
   desktopFraco,
-  oferecerLegendaSemBaixar,
   podePerguntarLegendaSemBaixar,
   transcricaoNoNavegadorAntesDeGravar,
   useMotorComIdiomaEscolhido,
@@ -150,13 +136,11 @@ import { DominantLangTracker } from '../../lib/convoLang';
 import { classificarDispositivo, dispositivoDaRota, lerSinaisDoDispositivo } from '../../lib/dispositivo/perfil';
 import {
   ESCALAS_DA_LEGENDA,
-  guardarFonteDoQuest,
   lerEscalaDaLegenda,
   lerFonteDoQuest,
   mudarEscalaDaLegenda,
 } from '../../lib/dispositivo/preferenciasDoQuest';
 import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
-import { telaNovaDoQuest, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { useSondaGuardada } from '../../lib/dispositivo/useSondaGuardada';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { getEntitlements } from '../../lib/entitlements';
@@ -182,7 +166,6 @@ import { usePalavrasAprendidas } from '../../lib/palavrasAprendidas';
 import { destinoDaTraducao, PerfilAdaptativoDeIdioma } from '../../lib/perfilDeIdioma';
 import { coreOnly } from '../../lib/profile';
 import { perfilProtegido } from '../../lib/protecaoDoMenor';
-import { navegarPara } from '../../lib/rotas';
 import { play } from '../../lib/soundFx';
 // Identificação automática de voz (diarização leve): embedding WeSpeaker por enunciado
 // (worker WASM, 6,7MB) + agrupamento online → "Pessoa 1/2/3" com cor própria.
@@ -199,23 +182,18 @@ import AvisoDeNuvemSemConsentimento from '../AvisoDeNuvemSemConsentimento';
 // Um componente só serve a tela embutida E o Modo Foco — antes eram dois blocos que divergiam.
 import ChatTranscript from '../ChatTranscript';
 import DocumentPiP, { isDocumentPiPSupported } from '../DocumentPiP';
-import EditablePanel from '../EditablePanel';
 import GuidePanel from '../GuidePanel';
 // Bandeira SVG do idioma (nunca emoji: o Windows renderiza 🇧🇷 como "BR") + o rótulo curto.
 import { LangFlag } from '../LangFlag';
 import ModelPrepPanel, { type ModelPrepState } from '../ModelPrepPanel';
 import { toast } from '../Toast';
-import { CabecalhoDeTela, Dialogo, fecharDialogoDe } from '../ui';
-import VocabularyPanel from '../VocabularyPanel';
+import { Dialogo, fecharDialogoDe } from '../ui';
 import AjudaDoMicrofone from './captura/AjudaDoMicrofone';
 import AvisoDoTradutorLocal from './captura/AvisoDoTradutorLocal';
 import AvisoDoUsoDoDia from './captura/AvisoDoUsoDoDia';
 import CapturaNaoSalva from './captura/CapturaNaoSalva';
 import CapturaDoPrototipo from './captura/celular/CapturaDoPrototipo';
-import type { FonteDoQuest } from './captura/celular/CapturaNoCelular';
-import CapturaNoCelular from './captura/celular/CapturaNoCelular';
-import FolhaDaFrase, { type FalaTocada, type NuanceNaFolhaDaFrase } from './captura/celular/FolhaDaFrase';
-import FolhaDaPalavra, { type NuanceNaFolhaDaPalavra } from './captura/celular/FolhaDaPalavra';
+import type { FalaTocada, NuanceNaFolhaDaFrase } from './captura/celular/FolhaDaFrase';
 import FolhaDeOpcoes from './captura/celular/FolhaDeOpcoes';
 import FolhasDoPrototipo from './captura/celular/FolhasDoPrototipo';
 // Subcomponentes locais da captura (um arquivo por componente, em `views/captura/`).
@@ -227,17 +205,14 @@ import LegendasFlutuantes, { type LegendaAoVivo } from './captura/LegendasFlutua
 import ModeloNoDispositivo, { type ModeloDaCaptura } from './captura/ModeloNoDispositivo';
 import ModoDesempenho from './captura/ModoDesempenho';
 import NuvemDoQuest from './captura/NuvemDoQuest';
-import OndasDoNivel from './captura/OndasDoNivel';
 import EncerrarNoQuest from './captura/quest/EncerrarNoQuest';
 import HistoricoDoPrototipo from './captura/quest/HistoricoDoPrototipo';
-import LegendaAoVivoDoQuest from './captura/quest/LegendaAoVivoDoQuest';
 import ResumoDaSessaoNoQuest from './captura/quest/ResumoDaSessaoNoQuest';
 import TranscriptVisualSettings, { TEMA } from './captura/TranscriptVisualSettings';
-import { CampoLinha, Interruptor, Segmentos } from './vocab/Dialogo';
+import { CampoLinha, Segmentos } from './vocab/Dialogo';
 
 /* A oferta "Legenda sem baixar nada" só existe no desktop fraco, antes de começar: fora do JS da tela
    para todo o resto (`lib/captura/legendaSemBaixar.ts`). */
-const LegendaSemBaixar = lazy(() => import('./captura/LegendaSemBaixar'));
 /* A oferta da nuvem grátis para aparelho fraco (A10): só existe no aparelho que precisa dela. */
 const OfertaDaNuvemDeAlivio = lazyComRecarga(() => import('./captura/OfertaDaNuvemDeAlivio'));
 /* A Tradução Nuance da fala no computador (D4 da Fase D): o menu do balão abre um diálogo com ela. */
@@ -474,30 +449,14 @@ export default function LiveCapture({
   // --- SPEAKER DIARIZATION STATE ---
   // Só os dois falantes REAIS por origem de áudio (você = mic, sistema = aba/loopback). Nada de
   // perfis pré-populados com estatísticas inventadas — % de fala é derivado dos segmentos reais
-  // (talkTimePct abaixo) e outros falantes entram via "Adicionar Falante".
   const [speakerProfiles, setSpeakerProfiles] = useState<SpeakerProfile[]>([
     { id: 'user', name: 'Você', color: USER_COLOR, isActive: true },
     { id: 'system', name: 'Outros', color: UNKNOWN_VOICE_COLOR, isActive: false },
   ]);
-  const [editingSpeakerId, setEditingSpeakerId] = useState<string | null>(null);
   /** A sessão que acabou de ser salva ficando na tela: o "Abrir a sessão salva" do protótipo. */
   const [sessaoSalva, setSessaoSalva] = useState<{ id: string; palavras: number | null } | null>(null);
-  /* O foco do teclado acompanha o Foco cheio (protótipo): entra em "Tela normal", volta a "Foco cheio". */
-  const entrarNoFocoRef = useRef<HTMLButtonElement>(null);
+  /* O foco do teclado acompanha o Foco cheio: ao entrar, vai para "Tela normal". */
   const sairDoFocoRef = useRef<HTMLButtonElement>(null);
-  const [editingSpeakerName, setEditingSpeakerName] = useState('');
-
-  const handleAddSpeaker = () => {
-    const newId = `speaker_${Date.now()}`;
-    const outros = speakerProfiles.filter((p) => p.id !== 'user').length;
-    const newSpeaker: SpeakerProfile = {
-      id: newId,
-      name: `Falante ${outros + 1}`,
-      color: SPEAKER_COLORS[speakerProfiles.length % SPEAKER_COLORS.length],
-      isActive: false,
-    };
-    setSpeakerProfiles((prev) => [...prev, newSpeaker]);
-  };
 
   // ── IDENTIFICAÇÃO AUTOMÁTICA DE VOZ (cenário Conversa) ─────────────────────────────
   // Cada enunciado do SISTEMA ganha um embedding de voz (worker WASM) e cai num cluster:
@@ -508,8 +467,8 @@ export default function LiveCapture({
   useEffect(() => {
     speakerAutoIdRef.current = speakerAutoId;
   }, [speakerAutoId]);
-  /** Estado honesto p/ o painel Falantes: off | loading | ready | unavailable. */
-  const [speakerIdStatus, setSpeakerIdStatus] = useState<EstadoDaIdentificacaoDeVoz>('off');
+  /** O estado do separador de vozes (off | loading | ready | unavailable): o motor o escreve; nenhuma tela o lê hoje. */
+  const [, setSpeakerIdStatus] = useState<EstadoDaIdentificacaoDeVoz>('off');
   const clustererRef = useRef(new SpeakerClusterer());
   /** Última voz identificada — enunciados curtos demais para identificar herdam esta. */
   const lastVoiceIdRef = useRef<string | null>(null);
@@ -577,16 +536,6 @@ export default function LiveCapture({
   // idioma da app; a config real é carregada logo abaixo (fetchLangConfig) e gravada com saveLangConfig.
   const [sourceLang, setSourceLang] = useState(DEFAULT_LANG_CONFIG.mine);
   const [targetLang, setTargetLang] = useState(DEFAULT_LANG_CONFIG.studying);
-  const [manualSpeakerInput, setManualSpeakerInput] = useState('');
-  // Ferramentas de dev (simulador de fala na UI): opt-in por localStorage, fora da UI normal.
-  const devToolsEnabled = useMemo(() => {
-    try {
-      return localStorage.getItem('babel.devTools') === '1';
-    } catch {
-      return false;
-    }
-  }, []);
-  const [isProcessingManualInput, setIsProcessingManualInput] = useState(false);
 
   // Segmentos de fala capturados AO VIVO (começa vazio; sem simulação).
   const [speechSegments, setSpeechSegments] = useState<SpeechSegment[]>([]);
@@ -594,23 +543,6 @@ export default function LiveCapture({
   const speechSegmentsRef = useRef<SpeechSegment[]>([]);
   useEffect(() => {
     speechSegmentsRef.current = speechSegments;
-  }, [speechSegments]);
-
-  // % de tempo de fala REAL por falante, somando a duração (tEnd−tStart) dos enunciados finais.
-  // null enquanto não há nenhum enunciado com timing — a UI então omite o número em vez de exibir 0% falso.
-  const talkTimePct = useMemo<Record<string, number> | null>(() => {
-    const durBySpeaker = new Map<string, number>();
-    let total = 0;
-    for (const s of speechSegments) {
-      if (s.isPartial || s.tStartMs == null || s.tEndMs == null) continue;
-      const dur = Math.max(0, s.tEndMs - s.tStartMs);
-      durBySpeaker.set(s.speakerId, (durBySpeaker.get(s.speakerId) ?? 0) + dur);
-      total += dur;
-    }
-    if (total <= 0) return null;
-    const pct: Record<string, number> = {};
-    for (const [id, dur] of durBySpeaker) pct[id] = Math.round((dur / total) * 100);
-    return pct;
   }, [speechSegments]);
 
   // As falas das LEGENDAS FLUTUANTES, derivadas das falas REAIS (sem parciais vazios). 'system' =
@@ -673,10 +605,8 @@ export default function LiveCapture({
   const [falhaDoMic, setFalhaDoMic] = useState<AjudaDoMic | null>(null);
   /** Fechou (ou já aceitou) o aviso do bipe do Android nesta tela. */
   const [dispensouBipe, setDispensouBipe] = useState(false);
-  /** Fechou a oferta "Legenda sem baixar nada" (`lib/captura/legendaSemBaixar.ts`) nesta tela. */
-  const [dispensouSemBaixar, setDispensouSemBaixar] = useState(false);
-  /* A CAPTURA NO CELULAR (`captura/celular/*`): a fala e a palavra tocadas (as folhas de baixo), as
-     opções, a fala em foco (a última tocada mostra os atalhos) e a troca de modo antes de gravar. */
+  /* AS FOLHAS DA CAPTURA (`captura/celular/*`): a fala e a palavra tocadas (as folhas de baixo), as
+     opções e a troca de modo antes de gravar. */
   const [falaTocada, setFalaTocada] = useState<FalaTocada | null>(null);
   /* A fala do menu do balão no computador (Tradução Nuance, D4). */
   const [falaNoComputador, setFalaNoComputador] = useState<FalaTocada | null>(null);
@@ -687,7 +617,6 @@ export default function LiveCapture({
     daFrase: FalaTocada | null;
   } | null>(null);
   const [opcoesAbertas, setOpcoesAbertas] = useState(false);
-  const [falaEmFoco, setFalaEmFoco] = useState<string | null>(null);
   const [trocandoModo, setTrocandoModo] = useState(false);
   /** A prática (Repetir eu / Falar eu) emudeceu a captura: as folhas devolvem o microfone ao fechar. */
   const mutouParaPraticarRef = useRef(false);
@@ -706,13 +635,9 @@ export default function LiveCapture({
     window.addEventListener('keydown', aoTeclar);
     return () => window.removeEventListener('keydown', aoTeclar);
   }, [isFocusMode]);
-  // O teclado vai junto: entrar põe o foco em "Tela normal"; sair o devolve a "Foco cheio".
-  const focoJaAbriu = useRef(false);
+  // O teclado vai junto: entrar põe o foco em "Tela normal".
   useEffect(() => {
-    if (isFocusMode) {
-      focoJaAbriu.current = true;
-      requestAnimationFrame(() => sairDoFocoRef.current?.focus());
-    } else if (focoJaAbriu.current) requestAnimationFrame(() => entrarNoFocoRef.current?.focus());
+    if (isFocusMode) requestAnimationFrame(() => sairDoFocoRef.current?.focus());
   }, [isFocusMode]);
   /**
    * O SOM DO COMPUTADOR ENTRA SEMPRE — deixou de ser estado porque deixou de ser escolha.
@@ -725,7 +650,7 @@ export default function LiveCapture({
    */
   /* A FONTE NO QUEST: "Som do headset" compartilha a visão com o áudio; "Microfone" capta a voz, sem
      compartilhar nada; "Os dois" faz as duas coisas (conversa sobre um vídeo, aula com perguntas). */
-  const [fonteDoQuest, setFonteDoQuest] = useState<FonteDoQuest>(lerFonteDoQuest);
+  const [fonteDoQuest] = useState(lerFonteDoQuest);
   const systemEnabled: boolean =
     perfilDoAparelho.capturaDoSistema && !(perfilDoAparelho.tipo === 'quest' && fonteDoQuest === 'mic');
   // COMO capturar o áudio do sistema: 'display' = compartilhar aba/tela (getDisplayMedia; zero
@@ -925,24 +850,14 @@ export default function LiveCapture({
   const partialIdRef = useRef<string | null>(null);
   // Cache de traduções por (src|tgt|texto) para não re-traduzir repetições (espelha o LRU do desktop).
   const translationCacheRef = useRef<Map<string, string>>(new Map());
-  const transcriptScrollRef = useRef<HTMLDivElement>(null);
   const focusScrollRef = useRef<HTMLDivElement>(null);
 
   // ACOMPANHAMENTO INTELIGENTE da conversa (mesma UX do overlay): segue o fim
   // automaticamente ENQUANTO o usuário está lá; se ele rolar para cima para reler,
   // paramos de puxar e um botão "Ir para a fala atual" volta num clique.
-  const transcriptPinnedRef = useRef(true);
   const focusPinnedRef = useRef(true);
-  const [showJumpTranscript, setShowJumpTranscript] = useState(false);
   const [showJumpFocus, setShowJumpFocus] = useState(false);
   const NEAR_BOTTOM_PX = 72;
-  const handleTranscriptScroll = () => {
-    const el = transcriptScrollRef.current;
-    if (!el) return;
-    const pinned = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
-    transcriptPinnedRef.current = pinned;
-    if (pinned) setShowJumpTranscript(false);
-  };
   const handleFocusScroll = () => {
     const el = focusScrollRef.current;
     if (!el) return;
@@ -950,17 +865,12 @@ export default function LiveCapture({
     focusPinnedRef.current = pinned;
     if (pinned) setShowJumpFocus(false);
   };
-  const jumpToCurrent = (which: 'transcript' | 'focus') => {
-    const el = which === 'transcript' ? transcriptScrollRef.current : focusScrollRef.current;
+  const jumpToCurrent = () => {
+    const el = focusScrollRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-    if (which === 'transcript') {
-      transcriptPinnedRef.current = true;
-      setShowJumpTranscript(false);
-    } else {
-      focusPinnedRef.current = true;
-      setShowJumpFocus(false);
-    }
+    focusPinnedRef.current = true;
+    setShowJumpFocus(false);
   };
   /* SEGUIR O FIM SEM FORÇAR LAYOUT A CADA MUDANÇA ("Grátis sem travar", A2). Ler `scrollHeight` força
      um layout síncrono, e este efeito rodava a cada nova versão de `speechSegments` — cada parcial,
@@ -977,27 +887,14 @@ export default function LiveCapture({
     tamanhoDaFala(speechSegments[speechSegments.length - 1]),
   ].join(':');
   useEffect(() => {
-    if (transcriptScrollRef.current && !transcriptPinnedRef.current) setShowJumpTranscript(true);
     if (focusScrollRef.current && !focusPinnedRef.current) setShowJumpFocus(true);
-    if (!transcriptPinnedRef.current && !focusPinnedRef.current) return;
+    if (!focusPinnedRef.current) return;
     const quadro = requestAnimationFrame(() => {
-      const t = transcriptScrollRef.current;
-      if (t && transcriptPinnedRef.current) t.scrollTop = t.scrollHeight;
       const f = focusScrollRef.current;
       if (f && focusPinnedRef.current) f.scrollTop = f.scrollHeight;
     });
     return () => cancelAnimationFrame(quadro);
   }, [crescimentoDaConversa, isRecording]);
-
-  // Manual select speaker helper
-  const handleSelectActiveSpeaker = (id: string) => {
-    setSpeakerProfiles((prev) => prev.map((p) => (p.id === id ? { ...p, isActive: true } : { ...p, isActive: false })));
-    const selected = speakerProfiles.find((p) => p.id === id);
-    if (selected) {
-      setFeedbackMsg(`Orador ativo alterado para ${selected.name}!`);
-      setTimeout(() => setFeedbackMsg(''), 2500);
-    }
-  };
 
   // Timer run loop
   useEffect(() => {
@@ -2038,54 +1935,6 @@ export default function LiveCapture({
    * deve nascer do zero, com falha honesta.
    */
 
-  const handleAddManualSpeechSegment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!manualSpeakerInput.trim()) return;
-
-    setIsProcessingManualInput(true);
-    const inputText = manualSpeakerInput.trim();
-    setManualSpeakerInput('');
-
-    try {
-      // Find active speaker
-      const activeSpeaker =
-        speakerProfiles.find((p) => p.isActive) || speakerProfiles.find((p) => p.id === 'user') || speakerProfiles[0];
-      const speakerId = activeSpeaker.id;
-      const timestampStr = formatTime(timer);
-
-      // Tradução pelo GATEWAY (não mais fetch direto ao MyMemory).
-      const src = sourceLang.split('-')[0];
-      const tgt = targetLang.split('-')[0];
-      const { text: translated } = await gateway.mt.translate(inputText, src, tgt);
-      const clean = translated || inputText;
-      const cleanTranslated = clean.charAt(0).toUpperCase() + clean.slice(1);
-
-      // Append segment to live transcript feed! Vocabulário da fala real.
-      setSpeechSegments((prev) => [
-        ...prev,
-        {
-          id: Math.random().toString(36).substr(2, 9),
-          speakerId,
-          source: 'mic' as const,
-          timestamp: timestampStr,
-          originalText: inputText,
-          translatedText: cleanTranslated,
-          words: wordsFromText(inputText, sourceLang),
-          tStartMs: nowRel(),
-          tEndMs: nowRel(),
-        },
-      ]);
-
-      setFeedbackMsg(`Frase de ${activeSpeaker.name} traduzida e integrada à transcrição!`);
-      setTimeout(() => setFeedbackMsg(''), 3000);
-    } catch (err) {
-      console.error('Falha ao traduzir a frase digitada:', err);
-      toast.error('Não foi possível traduzir e integrar a frase à transcrição.', { detail: err });
-    } finally {
-      setIsProcessingManualInput(false);
-    }
-  };
-
   // --- TTS: escutar palavra/frase (ver src/lib/tts.ts) ---
   // `lang` default = idioma-ALVO (a língua que você está aprendendo/ouvindo) — a maioria das
   // palavras clicadas é do conteúdo estrangeiro. Quem sabe o idioma da linha passa explicitamente.
@@ -2110,7 +1959,7 @@ export default function LiveCapture({
 
   /* O VOCABULÁRIO DA CAPTURA (examinar, fichar no deck, mandar praticar) mora em
      `lib/captura/palavraDaFala.ts`. Fábrica por render, como as closures que substituiu. */
-  const { examineWord, handleAddWordToDeck, handlePracticeWord, glosaDaPalavra } = criarPalavraDaFala({
+  const { examineWord, handleAddWordToDeck, glosaDaPalavra } = criarPalavraDaFala({
     gateway,
     langConfigRef,
     targetLangRef,
@@ -2125,9 +1974,6 @@ export default function LiveCapture({
   /* OS CALLBACKS DA CONVERSA, de identidade fixa: as fábricas acima são recriadas a cada render
      (o relógio renderiza a tela a cada segundo), e um callback novo derrubava o memo da
      `ChatTranscript` — a lista inteira refeita por tique. */
-  const examinarNaConversa = useFuncaoEstavel((w: VocabWord, lang: string, frase: string) => {
-    void examineWord(w, lang, frase);
-  });
   const examinarNoFoco = useFuncaoEstavel((w: VocabWord, lang: string, frase: string) => {
     void examineWord(w, lang, frase);
     setFeedbackMsg(`Examinando: "${w.word}"`);
@@ -2145,20 +1991,6 @@ export default function LiveCapture({
     (item: { palavra: string; frase?: string; lang?: string; traducao?: string }) =>
       handleAddWordToDeck({ word: item.palavra, sentence: item.frase, lang: item.lang, translation: item.traducao }),
   );
-
-  // Speaker Renaming
-  const handleStartRenameSpeaker = (id: string, currentName: string) => {
-    setEditingSpeakerId(id);
-    setEditingSpeakerName(currentName);
-  };
-
-  const handleSaveSpeakerName = (id: string) => {
-    if (!editingSpeakerName.trim()) return;
-    setSpeakerProfiles((prev) => prev.map((p) => (p.id === id ? { ...p, name: editingSpeakerName } : p)));
-    setEditingSpeakerId(null);
-    setFeedbackMsg('Nome do orador atualizado!');
-    setTimeout(() => setFeedbackMsg(''), 2000);
-  };
 
   /* OS DOIS LADOS DO PAR, como o diálogo de idiomas os mostra. Em 'media' o idioma do conteúdo é
      `targetLang` e a legenda sai em `sourceLang`; em conversa é "eu falo" / "eles falam"; só com o
@@ -2603,7 +2435,7 @@ export default function LiveCapture({
     soOSomDoComputador: captureScenario === 'media' && systemEnabled,
     detectarIdioma: autoDetectLang,
     gravando: isRecording,
-    dispensada: dispensouSemBaixar,
+    dispensada: false,
   };
   const comIdiomaEscolhido = useMotorComIdiomaEscolhido({
     ativo: podePerguntarLegendaSemBaixar(condicoesDaOferta),
@@ -2629,21 +2461,6 @@ export default function LiveCapture({
     escolhaDoMic === 'rapido' &&
     getActiveProfile().id !== 'local-private';
   const transcricaoSoNoNavegador = transcricaoNoNavegador || (semSomDoComputador && micPeloNavegador);
-  const ofertaSemBaixar = oferecerLegendaSemBaixar({ ...condicoesDaOferta, comIdiomaEscolhido }) && (
-    <Suspense fallback={null}>
-      <LegendaSemBaixar
-        idioma={targetLang}
-        /* Sem o tradutor do navegador para o par e fora do cache, o nosso ainda baixa: a faixa não
-           promete "nada", só a transcrição sem download. */
-        tradutorBaixa={
-          !preparoDoInicio.tradutorNativo && pecasDoInicio.tradutores.some((m) => !preparoDoInicio.completos?.has(m.id))
-        }
-        aoEscolherIdioma={() => escolherIdioma('alvo', setAutoDetectLang)({ auto: false, code: targetLang })}
-        aoEscolherOutro={() => setIdiomasAbertos(true)}
-        aoFechar={() => setDispensouSemBaixar(true)}
-      />
-    </Suspense>
-  );
   /**
    * `fontes`: as do intérprete (só o microfone) em vez das da captura. `interprete`: a conta do
    * tradutor é a dos dois sentidos, e o tradutor do navegador (conferido só para a ida) não a zera.
@@ -2732,7 +2549,7 @@ export default function LiveCapture({
   /** O par do intérprete: dois idiomas diferentes. Com "Detectar", vale o idioma que está por baixo
       dele: no intérprete cada lado DECLARA o seu, e o microfone abre nele. */
   const interpretePossivel = !mesmoIdioma;
-  /** A entrada (celular e cabeçalho do computador): a mesma folha do início, se houver o que decidir. */
+  /** A entrada pelo menu Intérprete: a mesma folha do início, se houver o que decidir. */
   const entrarNoInterprete = () => {
     if (abrindoCaptura || isRecordingRef.current || !interpretePossivel) return;
     if (tetoAtingido && !resumeId) return avisarTeto();
@@ -2874,23 +2691,12 @@ export default function LiveCapture({
     </p>
   );
 
-  /* ═══════════════ A ABA NO CELULAR (maquete aprovada pelo dono, 2026-09-29) ═══════════════
-     Só no celular (`perfilDoAparelho`, por capacidade): o computador continua com a tela de sempre.
-     O estado e os efeitos são os mesmos; muda a apresentação (`CapturaNoCelular`) e o que o toque
-     faz — o balão abre a folha da frase, a palavra abre a folha da palavra. */
+  /* ═══════════════ O APARELHO ═══════════════
+     A tela é a mesma em todo aparelho (`CapturaDoPrototipo`); o que o celular e o headset mudam é
+     limite de aparelho: tela acesa, voz de leitura, áudio real da fala, a conversa virtual. */
   const noCelular = perfilDoAparelho.tipo.startsWith('celular');
-  /* O QUEST USA A MESMA CAPTURA ENXUTA do celular (poucos controles grandes), no lugar da tela do
-     computador com painéis e ajustes de Windows. O que muda ali vai por `aparelho` e `fonte`. */
   const noQuest = perfilDoAparelho.tipo === 'quest';
   const capturaEnxuta = noCelular || noQuest;
-  /* A TELA AO VIVO NOVA DO QUEST (maquete de 01/10/2026): duas falas grandes e a faixa de controles.
-     Atrás da chave de `/diagnostico` (`telaNovaDoQuest`): desligada, volta a gravação de antes. */
-  const [telaNova] = useState(telaNovaDoQuest);
-  const aoVivoNoQuest = noQuest && telaNova;
-  /* O DESENHO NOVO (headset com a chave ligada, computador com o desenho novo): Capturar é a tela do
-     protótipo de polimento, que abre PRONTA em todo aparelho (`direto.js:1-67`). Só a apresentação
-     muda; desligado, as telas de antes ficam como estavam. */
-  const desenhoNovo = useQuestNovo();
   /** Sem voz que toque no aparelho (o Quest: a API existe, sem voz nenhuma). Com a nuvem ligada, a voz
       do site lê a tradução nos idiomas que tem (`vozDoQuest.ts`); o resto fica em texto. */
   const semVozDeLeitura = !recursosDoAparelho(perfilDoAparelho).vozDeLeitura;
@@ -2898,20 +2704,14 @@ export default function LiveCapture({
   /* "OUVIR" NO QUEST é o áudio REAL da fala (o headset não tem voz de leitura): o pipeline guarda o
      trecho de cada fala enquanto a tela nova está em uso, e uma captura nova começa sem os da anterior. */
   useEffect(() => {
-    ligarAudioDasFalas(aoVivoNoQuest);
+    ligarAudioDasFalas(noQuest);
     return () => ligarAudioDasFalas(false);
-  }, [aoVivoNoQuest]);
+  }, [noQuest]);
   const semFalasNaTela = speechSegments.length === 0;
   useEffect(() => {
     if (isRecording && semFalasNaTela) limparAudioDasFalas();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- só na virada para "gravando"
   }, [isRecording]);
-  const escolherFonteDoQuest = (fonte: FonteDoQuest) => {
-    setFonteDoQuest(fonte);
-    guardarFonteDoQuest(fonte);
-    setMicEnabled(fonte !== 'headset');
-    setCaptureScenario(cenarioDasFontes(fonte !== 'headset', fonte !== 'mic'));
-  };
   const [telaAcesaLigada, setTelaAcesaLigada] = usePreferenciaDeTelaAcesa();
   useTelaAcesa(noCelular && isRecording && telaAcesaLigada);
   useEffect(() => {
@@ -2922,7 +2722,6 @@ export default function LiveCapture({
 
   const tocarFala = useFuncaoEstavel(
     (segment: { id: string; originalText: string; translatedText: string }, lang: string) => {
-      setFalaEmFoco(segment.id);
       setFalaTocada({
         id: segment.id,
         texto: segment.originalText,
@@ -2932,9 +2731,6 @@ export default function LiveCapture({
       });
     },
   );
-  const examinarNoCelular = useFuncaoEstavel((w: VocabWord, lang: string, frase: string) => {
-    setPalavraTocada({ palavra: w.word, frase, lang, daFrase: null });
-  });
   /* A TRADUÇÃO NUANCE NAS FOLHAS (Fase D). O destino de uma fala é o "outro" idioma do par — o seu,
      quando ela é do idioma que você estuda (a mesma regra do fichamento, `palavraDaFala.ts`). O
      convite ao Premium é promocional: o perfil protegido não o recebe (vê o cadeado e o texto). A
@@ -2957,11 +2753,6 @@ export default function LiveCapture({
     : edicaoEstatica() || perfilProtegido()
       ? 'oculto'
       : 'premium';
-  const nuanceDaPalavra = (lang: string): NuanceNaFolhaDaPalavra => ({
-    disponivel: getEntitlements().traducaoNuance,
-    destino: destinoDaFala(lang),
-    aoConhecer: conhecerOPremium,
-  });
   /* ESCOLHER UMA FORMA troca a tradução da fala na conversa (e na folha aberta). A fala já gravada num
      lote da captura longa não é reescrita no banco: a sessão salva no fim leva a tradução da tela. */
   const trocarTraducaoDaFala = (id: string, traducao: string) => {
@@ -2988,22 +2779,6 @@ export default function LiveCapture({
     (segment: { id: string; originalText: string; translatedText: string }, lang: string) => {
       setFalaNoComputador({ id: segment.id, texto: segment.originalText, traducao: segment.translatedText, lang });
     },
-  );
-  const acoesDaFalaNoCelular = useCallback(
-    (segment: { id: string; originalText: string; translatedText: string }, lang: string) => (
-      <div className="cel-acoes-da-fala">
-        <button type="button" onClick={() => ouvirNaLegenda(segment.originalText, lang, false)}>
-          <Volume2 aria-hidden /> {t('Ouvir')}
-        </button>
-        <button type="button" onClick={() => ouvirNaLegenda(segment.originalText, lang, true)}>
-          <Snail aria-hidden /> {t('Devagar')}
-        </button>
-        <button type="button" aria-label={t('Ações da fala')} onClick={() => tocarFala(segment, lang)}>
-          <MoreHorizontal aria-hidden />
-        </button>
-      </div>
-    ),
-    [ouvirNaLegenda, tocarFala],
   );
   /** A prática vai abrir o microfone: a captura fica muda até a folha fechar. */
   const praticarNoCelular = () => {
@@ -3047,26 +2822,13 @@ export default function LiveCapture({
     rapidoDoMicPermitido() &&
     getActiveProfile().id !== 'local-private';
 
-  const ladoNoCelular = (l: Lado) => ({
-    rotulo: l.rotulo,
-    nome: l.auto ? t('Detectar') : langLabel(l.codigo),
-  });
-  const trocarLadosNoCelular =
-    ladosDoPar[0].auto || ladosDoPar[1].auto || mesmoIdioma
-      ? undefined
-      : () => {
-          langTouchedRef.current = true;
-          const fonte = sourceLang;
-          setSourceLang(targetLang);
-          setTargetLang(fonte);
-        };
   const siglaDoLado = (auto: boolean, code: string) => (auto ? t('Auto') : baseLang(code).toUpperCase());
 
   /* O RESUMO AO ENCERRAR NO QUEST: a sessão salva vira três números e uma faixa de saídas, no lugar de
      abrir a Análise. Os números por motor vêm do medidor da captura (`capMetrics`), que só zera no
      próximo início. */
   const resumoNoQuest = (() => {
-    if (!aoVivoNoQuest || isRecording || !sessaoSalva || speechSegments.length === 0) return null;
+    if (!noQuest || isRecording || !sessaoSalva || speechSegments.length === 0) return null;
     const porMotor = capMetrics.summary().porMotor;
     const naNuvem = porMotor[MOTOR_DA_NUVEM]?.falas ?? 0;
     const total = Object.values(porMotor).reduce((s, m) => s + m.falas, 0);
@@ -3098,62 +2860,62 @@ export default function LiveCapture({
     );
   })();
 
-  const telaDoCelular = resumoNoQuest ?? (
+  /* ═══════════════ CAPTURAR (o protótipo de polimento, itens D6–D18) ═══════════════
+     A mesma captura (o mesmo `iniciarCaptura`, o mesmo `handleStopRecording`, as mesmas falas), na
+     marcação do protótipo: tela pronta, legenda ao vivo, folha da frase e folha da palavra. */
+  const alternarFlutuante = () => {
+    const abrir = !showOverlay;
+    setShowOverlay(abrir);
+    toast.info(
+      abrir
+        ? isDocumentPiPSupported()
+          ? t('Legendas flutuantes abertas: a janelinha fica por cima de tudo')
+          : t('Legendas flutuantes abertas nesta tela (a janela por cima de tudo precisa do Chrome ou do Edge)')
+        : t('Legendas flutuantes fechadas'),
+    );
+  };
+  const palavraGuardada = (palavra: string) => {
+    const p = palavra.toLocaleLowerCase();
+    return aprendidas.has(p) || addedWords.some((w) => w.toLocaleLowerCase() === p);
+  };
+  const parPorExtenso = `${parResumido.auto ? t('Detectar') : langLabel(parResumido.de)} → ${langLabel(parResumido.para)}`;
+  const telaDoPrototipo = resumoNoQuest ?? (
     <>
-      <CapturaNoCelular
+      <CapturaDoPrototipo
         gravando={isRecording}
+        temFalas={speechSegments.length > 0}
         abrindo={abrindoCaptura}
-        retomar={!!resumeId}
         tempo={formatTime(timer)}
-        ondas={<OndasDoNivel nivelRef={currentLevelRef} ativo={isRecording && !pausado} variante="celular" />}
-        lados={[ladoNoCelular(ladosDoPar[0]), ladoNoCelular(ladosDoPar[1])]}
-        aoTrocarLados={trocarLadosNoCelular}
-        aoAbrirIdiomas={() => setIdiomasAbertos(true)}
-        parCurto={
-          <>
-            {siglaDoLado(parResumido.auto, parResumido.de)} <ArrowRight aria-hidden />{' '}
-            {siglaDoLado(false, parResumido.para)}
-          </>
+        par={parPorExtenso}
+        parCurto={`${siglaDoLado(parResumido.auto, parResumido.de)} → ${siglaDoLado(false, parResumido.para)}`}
+        modelo={
+          transcricaoNoNavegador
+            ? t('Reconhecimento do navegador')
+            : mbDoModelo
+              ? t('Modelo local · {mb} MB', { mb: mbDoModelo })
+              : t('Modelo local')
         }
-        aparelho={noQuest ? 'quest' : 'celular'}
-        fonte={noQuest && !isRecording ? { atual: fonteDoQuest, escolher: escolherFonteDoQuest } : undefined}
-        micFixo={noQuest && fonteDoQuest === 'headset'}
-        modo={noQuest ? null : modoDoMic}
-        aoTrocarModo={podeTrocarModo ? () => setTrocandoModo(true) : undefined}
         micLigado={micEnabled}
         micAbrindo={micAbrindo}
         aoAlternarMic={alternarMicrofone}
-        semFlutuante={noQuest}
-        faixaDoQuest={
-          aoVivoNoQuest
-            ? {
-                menor: () => setEscalaDaLegenda((e) => mudarEscalaDaLegenda(e, -1)),
-                maior: () => setEscalaDaLegenda((e) => mudarEscalaDaLegenda(e, 1)),
-                noMinimo: escalaDaLegenda <= ESCALAS_DA_LEGENDA[0],
-                noMaximo: escalaDaLegenda >= ESCALAS_DA_LEGENDA[ESCALAS_DA_LEGENDA.length - 1],
-              }
-            : undefined
-        }
-        flutuante={{
-          ativo: showOverlay,
-          alternar: () => {
-            const abrir = !showOverlay;
-            setShowOverlay(abrir);
-            toast.info(abrir ? t('Legendas flutuantes abertas') : t('Legendas flutuantes fechadas'));
-          },
-        }}
         podeIniciar={micEnabled || systemEnabled}
         aoIniciar={() => (tetoAtingido && !resumeId ? avisarTeto() : iniciarCaptura())}
         aoParar={handleStopRecording}
-        aoAbrirOpcoes={() => setOpcoesAbertas(true)}
+        aoAbrirIdiomas={() => setIdiomasAbertos(true)}
+        aoAbrirModelo={() => setModeloAberto(true)}
+        aoAbrirAjustes={() => (noQuest ? setOpcoesAbertas(true) : setShowConfigPanel(true))}
         aoAbrirAjuda={() => setShowGuide(true)}
-        aoAbrirInterprete={interpretePossivel ? entrarNoInterprete : undefined}
-        aoAbrirVisual={() => setShowConfigPanel(true)}
-        temFalas={speechSegments.length > 0}
+        aoFlutuante={noQuest ? undefined : alternarFlutuante}
+        letra={{
+          menor: () => setEscalaDaLegenda((e) => mudarEscalaDaLegenda(e, -1)),
+          maior: () => setEscalaDaLegenda((e) => mudarEscalaDaLegenda(e, 1)),
+          noMinimo: escalaDaLegenda <= ESCALAS_DA_LEGENDA[0],
+          noMaximo: escalaDaLegenda >= ESCALAS_DA_LEGENDA[ESCALAS_DA_LEGENDA.length - 1],
+        }}
         avisos={
           <>
             <AvisoDeNuvemSemConsentimento />
-            {nuvemDoQuestExiste() && <NuvemDoQuest gravando={isRecording} aoVivo={aoVivoNoQuest} />}
+            {nuvemDoQuestExiste() && <NuvemDoQuest gravando={isRecording} aoVivo={noQuest} />}
             {faixaDaNuvemDeAlivio}
             {tradutorLocalFalhou && (
               <AvisoDoTradutorLocal
@@ -3167,123 +2929,56 @@ export default function LiveCapture({
             {avisoDoFim}
             {avisoDePermissao}
             {avisoDoBipe}
-            {modelPrep && !isRecording && (
+            {modelPrep && !preparoConcluido(modelPrep) && (
               <div style={{ margin: '10px 16px 0' }}>
                 <ModelPrepPanel state={modelPrep} onRetry={prepareModels} compact />
               </div>
             )}
           </>
         }
-        conversa={
-          aoVivoNoQuest && isRecording ? (
-            <LegendaAoVivoDoQuest
-              falas={speechSegments}
-              escala={escalaDaLegenda}
-              idiomaPadrao={captureScenario === 'mic' ? sourceLang : targetLang}
-              aoTocar={tocarFala}
-              temAudio={temAudioDaFala}
-              aoOuvir={(fala) => tocarAudioDaFala(fala.id)}
-              aoPararAudio={pararAudioDasFalas}
-              mostrarFonte={micEnabled && systemEnabled}
-            />
-          ) : (
-            <>
-              {showJumpTranscript && (
-                <button type="button" className="cel-novas" onClick={() => jumpToCurrent('transcript')}>
-                  <ArrowDown aria-hidden /> {t('Ir para a fala atual')}
-                </button>
-              )}
-              <div
-                ref={transcriptScrollRef}
-                onScroll={handleTranscriptScroll}
-                className="cel-rolagem"
-                aria-live="polite"
-              >
-                {isRecording && modelPrep && !preparoConcluido(modelPrep) && (
-                  <div className="mb-3">
-                    <ModelPrepPanel state={modelPrep} onRetry={prepareModels} />
-                  </div>
-                )}
-                <ChatTranscript
-                  segments={speechSegments}
-                  speakers={speakerProfiles}
-                  scenario={captureScenario}
-                  tsSettings={tsSettings}
-                  ageProfile={ageProfile}
-                  sourceLang={sourceLang}
-                  targetLang={targetLang}
-                  observedLang={idiomaObservado}
-                  isRecording={isRecording}
-                  escuro
-                  selectedWord={palavraTocada?.palavra ?? null}
-                  addedWords={addedWords}
-                  aprendidas={aprendidas}
-                  onExamineWord={examinarNoCelular}
-                  onSpeakWord={ouvirNaConversa}
-                  onRevelarTraducao={revelarNaConversa}
-                  conhecidas={conhecidas}
-                  progressoDoTradutor={modelPrep?.mt ?? null}
-                  aoTocarFala={tocarFala}
-                  falaEmFoco={falaEmFoco}
-                  acoesDaFala={acoesDaFalaNoCelular}
-                />
-              </div>
-            </>
-          )
-        }
-        rodape={
-          !isRecording &&
-          sessaoSalva &&
-          speechSegments.length > 0 && (
-            <button
-              type="button"
-              className="btn btn-solid"
-              style={{ minHeight: 48 }}
-              onClick={() => onChangeView?.('analysis', { id: sessaoSalva.id })}
-            >
-              <Save aria-hidden /> {t('Abrir a sessão salva')}
-            </button>
-          )
+        legenda={
+          <HistoricoDoPrototipo
+            falas={speechSegments}
+            escala={escalaDaLegenda}
+            idiomaPadrao={captureScenario === 'mic' ? sourceLang : targetLang}
+            idiomaDaTraducao={(lang) => toBcp47(destinoDaFala(lang)) || destinoDaFala(lang)}
+            aoTocar={tocarFala}
+            aoOuvir={(fala, lang) =>
+              temAudioDaFala(fala.id) ? tocarAudioDaFala(fala.id) : ouvirNaLegenda(fala.originalText, lang, false)
+            }
+            aoPararAudio={pararAudioDasFalas}
+          />
         }
       />
-      {falaTocada && !palavraTocada && (
-        <FolhaDaFrase
+      {(falaTocada || palavraTocada) && (
+        <FolhasDoPrototipo
           fala={falaTocada}
+          palavra={palavraTocada}
           aoOuvir={ouvirNaLegenda}
           audioReal={
-            aoVivoNoQuest && temAudioDaFala(falaTocada.id)
+            falaTocada && noQuest && temAudioDaFala(falaTocada.id)
               ? (lenta) => tocarAudioDaFala(falaTocada.id, { lenta })
               : undefined
           }
           semPratica={noQuest || interpreteAberto}
-          ehNova={ehNovaNoCelular(falaTocada.lang)}
+          ehNova={falaTocada ? ehNovaNoCelular(falaTocada.lang) : undefined}
+          guardada={palavraGuardada}
           aoPraticar={praticarNoCelular}
           aoTocarPalavra={(palavra) =>
+            falaTocada &&
             setPalavraTocada({ palavra, frase: falaTocada.texto, lang: falaTocada.lang, daFrase: falaTocada })
           }
-          aoFechar={fecharFolhasDoCelular}
-          nuance={nuanceDaFrase(falaTocada)}
-        />
-      )}
-      {palavraTocada && (
-        <FolhaDaPalavra
-          palavra={palavraTocada.palavra}
-          frase={palavraTocada.frase}
-          lang={palavraTocada.lang}
+          aoVoltar={palavraTocada?.daFrase ? () => setPalavraTocada(null) : undefined}
           aoConsultar={consultarNaLegenda}
-          aoOuvir={ouvirNaLegenda}
           aoSalvar={salvarNaLegenda}
-          aoPraticar={praticarNoCelular}
-          semPratica={interpreteAberto}
-          aoVoltar={palavraTocada.daFrase ? () => setPalavraTocada(null) : undefined}
           aoFechar={fecharFolhasDoCelular}
-          nuance={nuanceDaPalavra(palavraTocada.lang)}
+          nuance={falaTocada ? nuanceDaFrase(falaTocada) : undefined}
         />
       )}
       {opcoesAbertas && (
         <FolhaDeOpcoes
           modo={modoDoMic}
-          par={`${parResumido.auto ? t('Detectar') : langLabel(parResumido.de)} → ${langLabel(parResumido.para)}`}
+          par={parPorExtenso}
           telaAcesa={telaAcesaSuportada() ? { ligada: telaAcesaLigada, trocar: setTelaAcesaLigada } : null}
           aoTrocarModo={
             podeTrocarModo && !isRecording
@@ -3328,172 +3023,6 @@ export default function LiveCapture({
       )}
     </>
   );
-
-  /* ═══════════════ CAPTURAR NO DESENHO NOVO (o protótipo de polimento, itens D6–D18) ═══════════════
-     A mesma captura (o mesmo `iniciarCaptura`, o mesmo `handleStopRecording`, as mesmas falas), na
-     marcação do protótipo: tela pronta, legenda ao vivo, folha da frase e folha da palavra. */
-  const alternarFlutuante = () => {
-    const abrir = !showOverlay;
-    setShowOverlay(abrir);
-    toast.info(
-      abrir
-        ? isDocumentPiPSupported()
-          ? t('Legendas flutuantes abertas: a janelinha fica por cima de tudo')
-          : t('Legendas flutuantes abertas nesta tela (a janela por cima de tudo precisa do Chrome ou do Edge)')
-        : t('Legendas flutuantes fechadas'),
-    );
-  };
-  const palavraGuardada = (palavra: string) => {
-    const p = palavra.toLocaleLowerCase();
-    return aprendidas.has(p) || addedWords.some((w) => w.toLocaleLowerCase() === p);
-  };
-  const parPorExtenso = `${parResumido.auto ? t('Detectar') : langLabel(parResumido.de)} → ${langLabel(parResumido.para)}`;
-  const telaDoPrototipo = !desenhoNovo
-    ? null
-    : (resumoNoQuest ?? (
-        <>
-          <CapturaDoPrototipo
-            gravando={isRecording}
-            temFalas={speechSegments.length > 0}
-            abrindo={abrindoCaptura}
-            tempo={formatTime(timer)}
-            par={parPorExtenso}
-            parCurto={`${siglaDoLado(parResumido.auto, parResumido.de)} → ${siglaDoLado(false, parResumido.para)}`}
-            modelo={
-              transcricaoNoNavegador
-                ? t('Reconhecimento do navegador')
-                : mbDoModelo
-                  ? t('Modelo local · {mb} MB', { mb: mbDoModelo })
-                  : t('Modelo local')
-            }
-            micLigado={micEnabled}
-            micAbrindo={micAbrindo}
-            aoAlternarMic={alternarMicrofone}
-            podeIniciar={micEnabled || systemEnabled}
-            aoIniciar={() => (tetoAtingido && !resumeId ? avisarTeto() : iniciarCaptura())}
-            aoParar={handleStopRecording}
-            aoAbrirIdiomas={() => setIdiomasAbertos(true)}
-            aoAbrirModelo={() => setModeloAberto(true)}
-            aoAbrirAjustes={() => (noQuest ? setOpcoesAbertas(true) : setShowConfigPanel(true))}
-            aoAbrirAjuda={() => setShowGuide(true)}
-            aoFlutuante={noQuest ? undefined : alternarFlutuante}
-            letra={{
-              menor: () => setEscalaDaLegenda((e) => mudarEscalaDaLegenda(e, -1)),
-              maior: () => setEscalaDaLegenda((e) => mudarEscalaDaLegenda(e, 1)),
-              noMinimo: escalaDaLegenda <= ESCALAS_DA_LEGENDA[0],
-              noMaximo: escalaDaLegenda >= ESCALAS_DA_LEGENDA[ESCALAS_DA_LEGENDA.length - 1],
-            }}
-            avisos={
-              <>
-                <AvisoDeNuvemSemConsentimento />
-                {nuvemDoQuestExiste() && <NuvemDoQuest gravando={isRecording} aoVivo={aoVivoNoQuest} />}
-                {faixaDaNuvemDeAlivio}
-                {tradutorLocalFalhou && (
-                  <AvisoDoTradutorLocal
-                    aoAutorizar={() => {
-                      setTradutorLocalFalhou(false);
-                      retraduzirDegradados();
-                    }}
-                    aoFechar={() => setTradutorLocalFalhou(false)}
-                  />
-                )}
-                {avisoDoFim}
-                {avisoDePermissao}
-                {avisoDoBipe}
-                {modelPrep && !preparoConcluido(modelPrep) && (
-                  <div style={{ margin: '10px 16px 0' }}>
-                    <ModelPrepPanel state={modelPrep} onRetry={prepareModels} compact />
-                  </div>
-                )}
-              </>
-            }
-            legenda={
-              <HistoricoDoPrototipo
-                falas={speechSegments}
-                escala={escalaDaLegenda}
-                idiomaPadrao={captureScenario === 'mic' ? sourceLang : targetLang}
-                idiomaDaTraducao={(lang) => toBcp47(destinoDaFala(lang)) || destinoDaFala(lang)}
-                aoTocar={tocarFala}
-                aoOuvir={(fala, lang) =>
-                  temAudioDaFala(fala.id) ? tocarAudioDaFala(fala.id) : ouvirNaLegenda(fala.originalText, lang, false)
-                }
-                aoPararAudio={pararAudioDasFalas}
-              />
-            }
-          />
-          {(falaTocada || palavraTocada) && (
-            <FolhasDoPrototipo
-              fala={falaTocada}
-              palavra={palavraTocada}
-              aoOuvir={ouvirNaLegenda}
-              audioReal={
-                falaTocada && aoVivoNoQuest && temAudioDaFala(falaTocada.id)
-                  ? (lenta) => tocarAudioDaFala(falaTocada.id, { lenta })
-                  : undefined
-              }
-              semPratica={noQuest || interpreteAberto}
-              ehNova={falaTocada ? ehNovaNoCelular(falaTocada.lang) : undefined}
-              guardada={palavraGuardada}
-              aoPraticar={praticarNoCelular}
-              aoTocarPalavra={(palavra) =>
-                falaTocada &&
-                setPalavraTocada({ palavra, frase: falaTocada.texto, lang: falaTocada.lang, daFrase: falaTocada })
-              }
-              aoVoltar={palavraTocada?.daFrase ? () => setPalavraTocada(null) : undefined}
-              aoConsultar={consultarNaLegenda}
-              aoSalvar={salvarNaLegenda}
-              aoFechar={fecharFolhasDoCelular}
-              nuance={falaTocada ? nuanceDaFrase(falaTocada) : undefined}
-            />
-          )}
-          {opcoesAbertas && (
-            <FolhaDeOpcoes
-              modo={modoDoMic}
-              par={parPorExtenso}
-              telaAcesa={telaAcesaSuportada() ? { ligada: telaAcesaLigada, trocar: setTelaAcesaLigada } : null}
-              aoTrocarModo={
-                podeTrocarModo && !isRecording
-                  ? () => {
-                      setOpcoesAbertas(false);
-                      setTrocandoModo(true);
-                    }
-                  : undefined
-              }
-              aoAbrirIdiomas={() => {
-                setOpcoesAbertas(false);
-                setIdiomasAbertos(true);
-              }}
-              aoAbrirVisual={() => {
-                setOpcoesAbertas(false);
-                setShowConfigPanel(true);
-              }}
-              aoFocoCheio={() => {
-                setOpcoesAbertas(false);
-                setIsFocusMode(true);
-              }}
-              aoAbrirModelos={() => {
-                setOpcoesAbertas(false);
-                setModeloAberto(true);
-              }}
-              aoAbrirAjuda={() => {
-                setOpcoesAbertas(false);
-                setShowGuide(true);
-              }}
-              aoFechar={() => setOpcoesAbertas(false)}
-            />
-          )}
-          {trocandoModo && (
-            <EscolhaDoMicrofone
-              mb={mbDoMicPrivado}
-              aoEscolher={(e) => {
-                trocarEscolhaDoMic(e);
-                setTrocandoModo(false);
-              }}
-              aoFechar={() => setTrocandoModo(false)}
-            />
-          )}
-        </>
-      ));
 
   return (
     <div className="flex-1 flex flex-col h-full bg-canvas text-ink overflow-hidden relative font-body">
@@ -4008,28 +3537,25 @@ export default function LiveCapture({
         </Dialogo>
       )}
 
-      {/* --- DASHBOARD WRAPPER (no celular, a tela dele: `telaDoCelular`; pelo menu Intérprete, a
-          tela de começar a conversa) --- */}
+      {/* --- A TELA: pelo menu Intérprete, a de começar a conversa; senão, Capturar --- */}
       {entrada === 'interprete' ? (
-        <div className={aoVivoNoQuest ? 'flex-1 flex flex-col min-h-0' : 'rolagem flex-1'}>
+        <div className={noQuest ? 'flex-1 flex flex-col min-h-0' : 'rolagem flex-1'}>
           <Suspense fallback={null}>
             <PaginaDoInterprete
               idiomas={{ meu: sourceLang, outro: targetLang }}
               possivel={interpretePossivel}
               abrindo={abrindoCaptura}
               aviso={
-                aoVivoNoQuest && nuvemDoQuestAtiva()
+                noQuest && nuvemDoQuestAtiva()
                   ? t('A transcrição e a tradução vêm pela nuvem: não há nada para baixar.')
                   : avisoDoPreparo(modelPrep)
               }
               automatico={automaticoDoInterprete}
-              noQuest={aoVivoNoQuest}
               semVoz={semVozDeLeitura}
               vozDoSite={nuvemDoQuestAtiva()}
-              avisos={nuvemDoQuestExiste() ? <NuvemDoQuest gravando={isRecording} /> : undefined}
               aoConhecerOPremium={conhecerOPremium}
               aoComecar={entrarNoInterprete}
-              {...(chaveLigada('virtual') && systemEnabled && !aoVivoNoQuest && !capturaEnxuta
+              {...(chaveLigada('virtual') && systemEnabled && !capturaEnxuta
                 ? { aoComecarVirtual: entrarNaConversaVirtual }
                 : {})}
               aoEscolherIdiomas={() => setIdiomasAbertos(true)}
@@ -4043,500 +3569,8 @@ export default function LiveCapture({
             />
           </Suspense>
         </div>
-      ) : desenhoNovo ? (
-        telaDoPrototipo
-      ) : capturaEnxuta ? (
-        telaDoCelular
       ) : (
-        <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden relative">
-          {/* ============================================== */}
-          {/* LEFT COLUMN: PRIMARY WORKSPACE & STREAMS       */}
-          {/* ============================================== */}
-          <div className="rolagem flex-1">
-            {/* ============================================== */}
-            {/* WORKSPACE VIEWPORTS (SEPARATE AREAS)          */}
-            {/* ============================================== */}
-            <div className="tela larga entra">
-              <AvisoDeNuvemSemConsentimento />
-              {faixaDaNuvemDeAlivio}
-              {tradutorLocalFalhou && (
-                <AvisoDoTradutorLocal
-                  aoAutorizar={() => {
-                    setTradutorLocalFalhou(false);
-                    retraduzirDegradados();
-                  }}
-                  aoFechar={() => setTradutorLocalFalhou(false)}
-                />
-              )}
-              {/* Cabeçalho no molde do protótipo aprovado (`T.capturar`): rótulo, título, apoio e, à
-                direita, o modelo local, os ajustes da captura e o guia. */}
-              <CabecalhoDeTela
-                icone={ageProfile === 'kids' ? Gamepad2 : ageProfile === 'senior' ? Eye : Cpu}
-                sobrancelha="Transcrição no dispositivo"
-                titulo={
-                  ageProfile === 'kids'
-                    ? 'Gravador de jogos e legendas'
-                    : ageProfile === 'senior'
-                      ? 'Gravação com tradução direta'
-                      : 'Capturar'
-                }
-                sub={
-                  ageProfile === 'kids'
-                    ? 'Grave o som do Roblox, de vídeos ou do microfone e veja a legenda aparecer em tempo real.'
-                    : ageProfile === 'senior'
-                      ? 'Siga os passos abaixo para gravar o som do computador ou a sua voz e ver o texto em português.'
-                      : 'Transcreve e traduz o que você ouve e fala, em tempo real.'
-                }
-                acoes={
-                  <>
-                    <button
-                      type="button"
-                      className="badge neu badge-botao"
-                      onClick={() => setModeloAberto(true)}
-                      aria-label={
-                        transcricaoNoNavegador
-                          ? t('Transcrição pelo reconhecimento do navegador, no aparelho: ver detalhes')
-                          : mbDoModelo
-                            ? `Modelo no dispositivo, ${mbDoModelo} MB: ver detalhes`
-                            : 'Modelo no dispositivo: ver detalhes'
-                      }
-                    >
-                      <Cpu aria-hidden />{' '}
-                      {transcricaoNoNavegador ? (
-                        t('reconhecimento do navegador')
-                      ) : (
-                        <>modelo local{mbDoModelo ? ` · ${mbDoModelo} MB` : ''}</>
-                      )}
-                    </button>
-                    {!isRecording && interpretePossivel && (
-                      <button
-                        type="button"
-                        className="btn btn-outline peq"
-                        onClick={entrarNoInterprete}
-                        aria-label={t('Modo intérprete')}
-                        data-testid="entrar-no-interprete"
-                      >
-                        <Languages aria-hidden /> {t('Intérprete')}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="btn btn-outline peq"
-                      onClick={() => setShowConfigPanel(!showConfigPanel)}
-                      aria-label="Ajustes da captura"
-                    >
-                      <SlidersHorizontal aria-hidden />
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-outline peq"
-                      onClick={() => setShowGuide(true)}
-                      aria-label="Ajuda"
-                    >
-                      <CircleHelp aria-hidden />
-                    </button>
-                  </>
-                }
-              />
-              {/* TRANSCRIÇÃO AO VIVO (modo único da tela) */}
-              {
-                <EditablePanel
-                  viewKey="capture"
-                  panelKey="liveTranscript"
-                  title="Transcrição Ao Vivo"
-                  canResizeWidth={false}
-                  canResizeHeight={true}
-                  defaultHeight={520}
-                >
-                  <div className="flex flex-col gap-5 animate-in fade-in duration-300 h-full min-h-0">
-                    {/* ══════════════ HERO RECORDER — o centro de comando da captura ══════════════
-                    ANTES: os controles ficavam espalhados no RODAPÉ do card de transcrição (abaixo da
-                    dobra), toggles, sub-toggles, guia de setup, botão "Testar" e só então o CTA. Era o
-                    maior gargalo de onboarding.
-                    AGORA: fontes + CTA + timer + idiomas num card só, no TOPO. Tudo que é avançado
-                    (fonte do sistema, device de loopback, motor do mic, teste de captura, guia do
-                    Stereo Mix/VB-Cable) mora na gaveta "Configurações de Dispositivos & IA" do header.
-                    Resultado: iniciar uma captura = 1 clique.
-                    FUNDO ESCURO (extensão do padrão do Hub/redesign): esta é a ação PRIMÁRIA da
-                    tela inteira — o mesmo peso visual que o card "Escutar e traduzir" tem no Hub. */}
-                    <section className="cartao escuro estudio" aria-label="Espaço de gravação">
-                      <div className="estudio-topo">
-                        <h2>
-                          <span className={`ponto ${isRecording ? 'vivo' : ''}`} />
-                          Espaço de gravação
-                        </h2>
-                        <div className="linha" style={{ gap: 8 }}>
-                          <button
-                            ref={entrarNoFocoRef}
-                            type="button"
-                            className="btn btn-outline peq"
-                            onClick={() => setIsFocusMode(true)}
-                          >
-                            <Maximize2 aria-hidden /> Foco cheio
-                          </button>
-                        </div>
-                      </div>
-                      <div className="estudio-acoes">
-                        {isRecording ? (
-                          <button
-                            type="button"
-                            className="btn btn-outline"
-                            onClick={handleStopRecording}
-                            data-sfx="none"
-                          >
-                            <Square aria-hidden />
-                            {ageProfile === 'senior'
-                              ? 'Parar e salvar a gravação'
-                              : ageProfile === 'kids'
-                                ? 'Parar gravação'
-                                : 'Parar captura'}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="btn btn-solid"
-                            /* No teto, nem a folha de início: escolher motor e baixar modelo para uma
-                             captura que não teria onde ficar seria mais uma porta sem saída. */
-                            onClick={() => (tetoAtingido && !resumeId ? avisarTeto() : iniciarCaptura())}
-                            disabled={(!micEnabled && !systemEnabled) || abrindoCaptura}
-                          >
-                            {abrindoCaptura ? <Loader2 aria-hidden className="animate-spin" /> : <Mic aria-hidden />}
-                            {abrindoCaptura
-                              ? micEnabled
-                                ? t('Abrindo o microfone…')
-                                : t('Abrindo a captura…')
-                              : ageProfile === 'senior'
-                                ? resumeId
-                                  ? 'Continuar a gravação da aula'
-                                  : 'Iniciar a gravação de áudio'
-                                : ageProfile === 'kids'
-                                  ? resumeId
-                                    ? 'Continuar gravação'
-                                    : 'Começar a gravar'
-                                  : resumeId
-                                    ? 'Continuar captura'
-                                    : 'Iniciar captura'}
-                          </button>
-                        )}
-                        {botaoDoMicrofone()}
-                        {botaoDasLegendas()}
-                        <span style={{ flex: 1 }} />
-                        {/* O PAR NUM CHIP. Os dois seletores e a explicação da direção ocupavam três
-                          linhas fixas da tela — informação que se lê UMA vez e se muda quase nunca,
-                          disputando espaço com o único gesto que importa aqui. Agora o chip mostra
-                          o par (com bandeira, como no resto do app) e a gaveta guarda a edição.
-                          Os AVISOS ficaram de fora dela de propósito: são a parte que a pessoa
-                          precisa ver sem clicar em nada. */}
-                        <button
-                          type="button"
-                          onClick={() => setIdiomasAbertos(true)}
-                          aria-haspopup="dialog"
-                          className="btn btn-outline peq"
-                        >
-                          {rotuloDoPar} <ChevronDown aria-hidden />
-                        </button>
-                      </div>
-                      <div className="linha">
-                        <span className="relogio">{isRecording ? formatTime(timer) : '00:00'}</span>
-                        {/* As ondas seguem o nível REAL do áudio capturado (sonda RMS), não uma animação.
-                          Uma folha com o próprio laço: o nível mudando não re-renderiza esta tela. */}
-                        {isRecording && <OndasDoNivel nivelRef={currentLevelRef} ativo={!pausado} />}
-                      </div>
-                      {avisoDePermissao}
-                      {avisoDoBipe}
-                      {ofertaSemBaixar}
-
-                      {/* UMA linha de orientação, e ela vale GRAVANDO TAMBÉM.
-                      Antes só aparecia antes de iniciar — justamente quando o estado era mais fácil
-                      de adivinhar. Agora que a fonte muda no meio da sessão, é durante a gravação
-                      que a pessoa precisa ler, em palavras, se a própria voz está entrando. */}
-                      {systemEnabled ? (
-                        <p className="mut orientacao-da-captura" style={{ fontSize: 12.5, marginTop: 6 }}>
-                          O som do computador entra sozinho. Dê play no vídeo, aula ou chamada e clique em Iniciar. A
-                          legenda bilíngue aparece aqui e nas Legendas flutuantes.
-                          {perfilDoAparelho.tipo === 'quest' && (
-                            <>
-                              {' '}
-                              No Meta Quest, ao iniciar, compartilhe a visão do headset: o som vem junto.{' '}
-                              <a
-                                className="link"
-                                href="/diagnostico"
-                                data-testid="abrir-diagnostico"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  navegarPara({ view: 'diagnostico' });
-                                }}
-                              >
-                                Diagnóstico do aparelho
-                              </a>
-                            </>
-                          )}
-                        </p>
-                      ) : (
-                        /* SEM getDisplayMedia (Quest, Android, iOS): nenhum botão de "áudio do sistema"
-                         que não funcionaria — o microfone é a fonte, e a tela diz como usá-lo. */
-                        <p className="aviso-info orientacao-da-captura" data-testid="aviso-sem-audio-do-sistema">
-                          <Mic aria-hidden />
-                          <span>
-                            {perfilDoAparelho.tipo === 'quest'
-                              ? t(
-                                  'No Meta Quest a legenda vem do microfone do headset: é o caminho leve. Deixe o vídeo tocar no alto-falante do próprio headset (o microfone capta) ou use a captura para conversar.',
-                                )
-                              : perfilDoAparelho.tipo.startsWith('celular')
-                                ? /* O que FAZER, e não só o que falta (relato do dono, 2026-09-28): o
-                                   celular não deixa um site ouvir outros apps, e isso não muda com
-                                   ajuste nenhum. Os dois caminhos que funcionam, ditos. */
-                                  t(
-                                    'No celular, o navegador não deixa captar o som de outros apps: a legenda vem do microfone. Para legendar um vídeo, deixe-o tocar no alto-falante, perto do microfone, ou use um computador (Chrome ou Edge, compartilhando a aba com o áudio).',
-                                  )
-                                : t(
-                                    'O navegador deste aparelho não capta o som do sistema: a legenda vem do microfone. Deixe o vídeo tocar no alto-falante, perto do microfone, ou use a captura para conversar.',
-                                  )}
-                          </span>
-                        </p>
-                      )}
-
-                      {nuvemDoQuestExiste() && <NuvemDoQuest gravando={isRecording} />}
-
-                      {/* Linha 5 — preparo dos modelos locais (progresso transitório; não é configuração).
-                      Gravando, o progresso aparece na conversa (abaixo), onde a pessoa olha: mostrar
-                      aqui também repetia o mesmo painel duas vezes na tela. */}
-                      {modelPrep && !isRecording && (
-                        <ModelPrepPanel state={modelPrep} onRetry={prepareModels} compact />
-                      )}
-                    </section>
-
-                    {avisoDoFim}
-
-                    {/* ══════════════ FALANTES (C5 do protótipo) ══════════════
-                    Antes da conversa, no cenário Conversa: as vozes que o identificador local
-                    separou (WeSpeaker, beta), com o % de fala real, renomear e adicionar. Sem a
-                    separação automática, clicar num falante diz quem fala a seguir. */}
-                    {captureScenario === 'conversation' && (
-                      <section className="cartao escuro p6 falantes entra" aria-label="Falantes">
-                        <div className="entre">
-                          <h2 className="h-escuro">
-                            <Users aria-hidden /> Quem está falando
-                          </h2>
-                          <div className="op-linha escuro-op">
-                            <span>Separar vozes sozinho</span>
-                            <Interruptor
-                              ligado={speakerAutoId}
-                              rotulo="Separar vozes automaticamente"
-                              aoTrocar={() => {
-                                const liga = !speakerAutoId;
-                                setSpeakerAutoId(liga);
-                                if (!liga) setSpeakerIdStatus('off');
-                                toast.info(liga ? 'O app separa as vozes sozinho' : 'Você marca quem fala');
-                              }}
-                            />
-                          </div>
-                        </div>
-                        <div className="linha" style={{ gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-                          {speakerProfiles
-                            .filter((f) => f.id !== 'user')
-                            .map((f) =>
-                              editingSpeakerId === f.id ? (
-                                <form
-                                  key={f.id}
-                                  className="chip-falante"
-                                  onSubmit={(e) => {
-                                    e.preventDefault();
-                                    handleSaveSpeakerName(f.id);
-                                  }}
-                                >
-                                  <label className="sr" htmlFor={`ren-${f.id}`}>
-                                    Nome do falante
-                                  </label>
-                                  <input
-                                    id={`ren-${f.id}`}
-                                    className="campo"
-                                    style={{ minHeight: 30, width: 110 }}
-                                    value={editingSpeakerName}
-                                    onChange={(e) => setEditingSpeakerName(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Escape') setEditingSpeakerId(null);
-                                    }}
-                                    autoFocus
-                                  />
-                                  <button className="btn btn-solid peq">OK</button>
-                                </form>
-                              ) : (
-                                <span
-                                  key={f.id}
-                                  className="chip-falante"
-                                  aria-current={!speakerAutoId && f.isActive ? 'true' : undefined}
-                                  onClick={() => !speakerAutoId && handleSelectActiveSpeaker(f.id)}
-                                >
-                                  <b>{f.name}</b>
-                                  {talkTimePct?.[f.id] != null && <span className="tn">{talkTimePct[f.id]}%</span>}
-                                  <button
-                                    type="button"
-                                    className="icone-min"
-                                    aria-label={`Renomear ${f.name}`}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleStartRenameSpeaker(f.id, f.name);
-                                    }}
-                                  >
-                                    <Pencil aria-hidden />
-                                  </button>
-                                </span>
-                              ),
-                            )}
-                          <span
-                            className="chip-falante voce"
-                            aria-current={
-                              !speakerAutoId && speakerProfiles.find((f) => f.id === 'user')?.isActive
-                                ? 'true'
-                                : undefined
-                            }
-                            onClick={() => !speakerAutoId && handleSelectActiveSpeaker('user')}
-                          >
-                            <b>Você</b>
-                            <span className="tn">microfone</span>
-                          </span>
-                          <button type="button" className="btn btn-outline peq" onClick={handleAddSpeaker}>
-                            <UserPlus aria-hidden /> Adicionar falante
-                          </button>
-                        </div>
-                        {speakerAutoId && speakerIdStatus === 'loading' && (
-                          <p className="mut" style={{ fontSize: 12, marginTop: 10 }}>
-                            Carregando o separador de vozes (6,7 MB, uma vez)…
-                          </p>
-                        )}
-                        {speakerAutoId && speakerIdStatus === 'unavailable' && (
-                          <p className="mut" style={{ fontSize: 12, marginTop: 10 }}>
-                            O separador de vozes não carregou: clique num nome para dizer quem fala.
-                          </p>
-                        )}
-                      </section>
-                    )}
-
-                    {/* ══════════════ TRANSCRIÇÃO AO VIVO ══════════════ */}
-                    <section
-                      className={`cartao ${transcricaoEscura ? 'escuro' : ''} conversa flex flex-col flex-1 min-h-0`}
-                      aria-label="Conversa"
-                      aria-live="polite"
-                    >
-                      {/* Fluxo da transcrição — acompanha o fim sozinho; botão volta à fala atual */}
-                      <div className="relative flex-1 min-h-[44vh] flex flex-col">
-                        {showJumpTranscript && (
-                          <button
-                            onClick={() => jumpToCurrent('transcript')}
-                            className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-accent text-white text-[11px] font-bold px-3.5 py-1.5 rounded-full shadow-xl hover:scale-[1.03] transition-transform cursor-pointer animate-in fade-in slide-in-from-bottom-2"
-                          >
-                            <ArrowDown className="w-3.5 h-3.5" /> Ir para a fala atual
-                          </button>
-                        )}
-                        <div
-                          ref={transcriptScrollRef}
-                          onScroll={handleTranscriptScroll}
-                          className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pe-2"
-                        >
-                          {/* Primeiro contato: o download do modelo (dezenas de MB) acontecia atrás do painel de
-                      ajustes, a tela dizia "Ouvindo…" por minutos sem explicar nada. Aqui, onde a pessoa olha. */}
-                          {isRecording && modelPrep && !preparoConcluido(modelPrep) && (
-                            <div className="mb-3">
-                              <ModelPrepPanel state={modelPrep} onRetry={prepareModels} />
-                            </div>
-                          )}
-                          <ChatTranscript
-                            segments={speechSegments}
-                            speakers={speakerProfiles}
-                            scenario={captureScenario}
-                            tsSettings={tsSettings}
-                            ageProfile={ageProfile}
-                            sourceLang={sourceLang}
-                            targetLang={targetLang}
-                            observedLang={idiomaObservado}
-                            isRecording={isRecording}
-                            dense
-                            escuro={transcricaoEscura}
-                            selectedWord={selectedExamWord?.word ?? null}
-                            addedWords={addedWords}
-                            aprendidas={aprendidas}
-                            onExamineWord={examinarNaConversa}
-                            onSpeakWord={ouvirNaConversa}
-                            onRevelarTraducao={revelarNaConversa}
-                            conhecidas={conhecidas}
-                            progressoDoTradutor={modelPrep?.mt ?? null}
-                            aoAbrirMenuDaFala={abrirNuanceNoComputador}
-                          />
-                        </div>
-                      </div>
-
-                      {!isRecording && sessaoSalva && speechSegments.length > 0 && (
-                        <div className="linha" style={{ marginTop: 18, gap: 10, flexWrap: 'wrap' }}>
-                          <button
-                            type="button"
-                            className="btn btn-solid"
-                            onClick={() => onChangeView?.('analysis', { id: sessaoSalva.id })}
-                          >
-                            <Save aria-hidden /> Abrir a sessão salva
-                          </button>
-                          <span className="mut" style={{ fontSize: 12.5 }}>
-                            {sessaoSalva.palavras === null
-                              ? 'Fichando o vocabulário…'
-                              : sessaoSalva.palavras === 1
-                                ? '1 palavra foi para o seu vocabulário.'
-                                : `${sessaoSalva.palavras} palavras foram para o seu vocabulário.`}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Simulador de fala — FERRAMENTA DE DEV/TESTE, não de usuário final. Só aparece
-                    com localStorage['babel.devTools']='1' (o harness __simSystem segue sempre
-                    disponível no console p/ a bateria de regressão MCP). */}
-                      {devToolsEnabled && (
-                        <form
-                          onSubmit={handleAddManualSpeechSegment}
-                          className={`mt-2 flex gap-2 border-t pt-2 ${transcricaoEscura ? 'border-white/15' : 'border-border-subtle'}`}
-                        >
-                          <input
-                            type="text"
-                            id="sim-speaker-text"
-                            name="simSpeakerText"
-                            placeholder="Simular fala do orador... (dev)"
-                            className={`flex-1 border rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-accent font-medium ${transcricaoEscura ? 'bg-white/10 border-white/15 text-ink-contrast placeholder-white/40' : 'bg-canvas border-border-subtle text-ink placeholder-ink-faint'}`}
-                            value={manualSpeakerInput}
-                            onChange={(e) => setManualSpeakerInput(e.target.value)}
-                            disabled={isProcessingManualInput}
-                          />
-                          <button
-                            type="submit"
-                            disabled={isProcessingManualInput || !manualSpeakerInput.trim()}
-                            className="py-2.5 px-4 bg-accent hover:bg-accent-ink disabled:opacity-50 text-white text-[11px] font-bold rounded-xl shadow-btn transition-transform hover:scale-[1.01] cursor-pointer flex items-center gap-1 shrink-0"
-                          >
-                            {isProcessingManualInput ? 'Traduzindo...' : 'Simular'}
-                          </button>
-                        </form>
-                      )}
-                    </section>
-                  </div>
-                </EditablePanel>
-              }
-            </div>
-          </div>
-
-          {/* ============================================== */}
-          {/* COLUNA DIREITA: ANALISTA DE VOCABULÁRIO        */}
-          {/* ============================================== */}
-          {/* Painel COMPARTILHADO (o mesmo de Análise/Leitura/Estudo/Métricas). Fica OCULTO até o
-            usuário clicar numa palavra do transcript, sem palavra, o componente nem monta. */}
-          <VocabularyPanel
-            viewKey="capture"
-            word={selectedExamWord}
-            onClose={() => setSelectedExamWord(null)}
-            onSpeak={speakWord}
-            onAddToDeck={handleAddWordToDeck}
-            isAdded={!!selectedExamWord && addedWords.includes(selectedExamWord.word)}
-            ttsSpeed={ttsSpeed}
-            setTtsSpeed={setTtsSpeed}
-            // Sem navegação → sem botões de praticar (nada de botão morto).
-            onPractice={onChangeView ? handlePracticeWord : undefined}
-          />
-        </div>
+        telaDoPrototipo
       )}
 
       {showGuide && (
@@ -4715,7 +3749,7 @@ export default function LiveCapture({
             {showJumpFocus && (
               <button
                 type="button"
-                onClick={() => jumpToCurrent('focus')}
+                onClick={jumpToCurrent}
                 className="btn btn-solid peq absolute bottom-3 left-1/2 -translate-x-1/2 z-10"
               >
                 <ArrowDown aria-hidden /> Ir para a fala atual
@@ -4892,7 +3926,13 @@ export default function LiveCapture({
             aviso={avisoDoPreparo(modelPrep)}
             aoCorrigirFala={corrigirFalaDoInterprete}
             aoGuardar={(f) =>
-              setFalaTocada({ id: f.id, texto: f.texto, traducao: f.traducao, lang: f.lang, langDaTraducao: f.langDaTraducao })
+              setFalaTocada({
+                id: f.id,
+                texto: f.texto,
+                traducao: f.traducao,
+                lang: f.lang,
+                langDaTraducao: f.langDaTraducao,
+              })
             }
             aoDetectarIdioma={(ligado) => {
               virtualDetectaRef.current = ligado;
@@ -4917,20 +3957,16 @@ export default function LiveCapture({
             registrarPonte={registrarPonteDoInterprete}
             vozNaturalDisponivel={getEntitlements().vozNatural && flagLigada(FLAG_VOZ_NATURAL)}
             velocidade={ttsSpeed}
-            layout={aoVivoNoQuest ? 'quest' : capturaEnxuta ? 'celular' : 'computador'}
+            layout={noQuest ? 'quest' : noCelular ? 'celular' : 'computador'}
             semVoz={semVozDeLeitura}
             vozDoSite={nuvemDoQuestAtiva()}
             abrindo={micAbrindo}
             aviso={avisoDoPreparo(modelPrep)}
             automatico={automaticoDoInterprete}
-            aoCorrigirFala={corrigirFalaDoInterprete}
-            aoGuardar={(f) =>
-              setFalaTocada({ id: f.id, texto: f.texto, traducao: f.traducao, lang: f.lang, langDaTraducao: f.langDaTraducao })
-            }
             aoSair={sairDoInterprete}
             aoEscolherIdiomas={() => setIdiomasAbertos(true)}
             aoConhecerOPremium={conhecerOPremium}
-            comVirtual={chaveLigada('virtual') && systemEnabled && !aoVivoNoQuest && !capturaEnxuta}
+            comVirtual={chaveLigada('virtual') && systemEnabled && !capturaEnxuta}
           />
         </Suspense>
       )}
@@ -5004,7 +4040,7 @@ export default function LiveCapture({
 
       {/* --- ENCERRAR A SESSÃO: o `dialogoEncerrar()` do protótipo (C8) --- */}
       <input type="file" ref={coverFileRef} onChange={handleCoverUpload} accept="image/*" className="hidden" />
-      {showSaveModal && aoVivoNoQuest && (
+      {showSaveModal && noQuest && (
         <EncerrarNoQuest
           nFalas={speechSegments.length}
           resumo={`${speechSegments.length} ${speechSegments.length === 1 ? 'fala' : 'falas'} · ${formatTime(timer)}`}
@@ -5013,7 +4049,7 @@ export default function LiveCapture({
           aoDescartar={descartarCaptura}
         />
       )}
-      {showSaveModal && !aoVivoNoQuest && (
+      {showSaveModal && !noQuest && (
         <EncerrarSessao
           nFalas={speechSegments.length}
           resumo={`${speechSegments.length} ${speechSegments.length === 1 ? 'fala' : 'falas'} · ${formatTime(timer)}`}
@@ -5042,7 +4078,6 @@ export default function LiveCapture({
         >
           <LegendasFlutuantes
             falas={legendasAoVivo}
-            emJanela
             aprendidas={aprendidas}
             aoRevelarTraducao={revelarNaConversa}
             aoConsultarPalavra={consultarNaLegenda}
@@ -5051,27 +4086,14 @@ export default function LiveCapture({
             aoFechar={() => setShowOverlay(false)}
           />
         </DocumentPiP>
-      ) : desenhoNovo ? (
-        /* Sem a janela sempre-no-topo, no desenho novo: a janelinha do protótipo, que se arrasta e se joga. */
+      ) : (
+        /* Sem a janela sempre-no-topo: a janelinha do protótipo, que se arrasta e se joga. */
         <LegendaFlutuanteDoPrototipo
           aberta={showOverlay}
           falas={legendasAoVivo}
           idiomaDaTraducao={(lang) => (lang ? toBcp47(destinoDaFala(lang)) || destinoDaFala(lang) : undefined)}
           aoFechar={() => setShowOverlay(false)}
         />
-      ) : (
-        showOverlay && (
-          <LegendasFlutuantes
-            falas={legendasAoVivo}
-            emJanela={false}
-            aprendidas={aprendidas}
-            aoRevelarTraducao={revelarNaConversa}
-            aoConsultarPalavra={consultarNaLegenda}
-            aoOuvir={ouvirNaLegenda}
-            aoSalvarPalavra={salvarNaLegenda}
-            aoFechar={() => setShowOverlay(false)}
-          />
-        )
       )}
     </div>
   );

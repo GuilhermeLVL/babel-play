@@ -2,7 +2,6 @@ import { Gauge } from 'lucide-react';
 
 import { jogoTemNiveis, NIVEIS_DO_JOGO, type NivelDoJogo } from '../../../core/minigames/regras';
 import type { MinigameId } from '../../../core/minigames/types';
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../lib/i18n';
 import { guardarNivelDoJogo, useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 
@@ -24,7 +23,6 @@ export function nomeDoNivel(nivel: NivelDoJogo): string {
  */
 export default function SeletorDeNivel({ jogo, aoTrocar }: { jogo: MinigameId; aoTrocar: () => void }) {
   const nivel = useNivelDoJogo(jogo);
-  const questNovo = useQuestNovo();
   if (!jogoTemNiveis(jogo)) return null;
 
   const escolher = (novo: NivelDoJogo) => {
@@ -33,38 +31,20 @@ export default function SeletorDeNivel({ jogo, aoTrocar }: { jogo: MinigameId; a
     aoTrocar();
   };
   const botoes = NIVEIS_DO_JOGO.map((n) => (
-    <button
-      key={n}
-      type="button"
-      className={questNovo ? 'q-aba' : undefined}
-      aria-pressed={n === nivel}
-      onClick={() => escolher(n)}
-    >
+    <button key={n} type="button" className="q-aba" aria-pressed={n === nivel} onClick={() => escolher(n)}>
       {nomeDoNivel(n)}
     </button>
   ));
 
-  if (questNovo) {
-    return (
-      <div className="q-ajuste" data-nivel-do-jogo={nivel}>
-        <div>
-          <b>
-            <Gauge aria-hidden /> {t('Nível')}
-          </b>
-          <small>{t('Trocar o nível recomeça a rodada.')}</small>
-        </div>
-        <div className="q-abas q-seg" role="group" aria-label={t('Nível')}>
-          {botoes}
-        </div>
-      </div>
-    );
-  }
   return (
-    <div className="op-linha" style={{ padding: '6px 4px' }} data-nivel-do-jogo={nivel}>
-      <b>
-        <Gauge aria-hidden style={{ display: 'inline-block', width: 16, height: 16, verticalAlign: -3 }} /> {t('Nível')}
-      </b>
-      <div className="seg" role="group" aria-label={t('Nível')} title={t('Trocar o nível recomeça a rodada.')}>
+    <div className="q-ajuste" data-nivel-do-jogo={nivel}>
+      <div>
+        <b>
+          <Gauge aria-hidden /> {t('Nível')}
+        </b>
+        <small>{t('Trocar o nível recomeça a rodada.')}</small>
+      </div>
+      <div className="q-abas q-seg" role="group" aria-label={t('Nível')}>
         {botoes}
       </div>
     </div>

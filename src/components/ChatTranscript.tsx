@@ -108,19 +108,8 @@ interface ChatTranscriptProps {
    */
   progressoDoTradutor?: number | null;
   /**
-   * TOCAR NA FALA (a captura no celular): o toque em qualquer ponto do balão abre as ações dela — a
-   * folha da frase. Com isto, a palavra solta deixa de falar sozinha no toque (o dedo não acerta uma
-   * palavra de 14 px sem acertar a frase); as palavras viram botões dentro da folha. Ausente = o
-   * comportamento de sempre.
-   */
-  aoTocarFala?: (segment: ChatSegment, lang: string) => void;
-  /** A fala tocada por último: ela mostra `acoesDaFala` embaixo do texto (os atalhos Ouvir/Devagar). */
-  falaEmFoco?: string | null;
-  acoesDaFala?: (segment: ChatSegment, lang: string) => React.ReactNode;
-  /**
-   * O MENU DO BALÃO NO COMPUTADOR (Tradução Nuance, D4 da Fase D): um botão discreto em cada fala
-   * final abre as "Outras formas" e o Formal/Informal dela. Só onde não há o toque na fala (o celular
-   * já tem a folha da frase). Ausente = sem o botão.
+   * O MENU DO BALÃO (Tradução Nuance, D4 da Fase D): um botão discreto em cada fala final abre as
+   * "Outras formas" e o Formal/Informal dela. Ausente = sem o botão.
    */
   aoAbrirMenuDaFala?: (segment: ChatSegment, lang: string) => void;
 }
@@ -270,10 +259,7 @@ interface FalaProps {
   aoRevelar?: (segId: string) => void;
   /** O que a linha da tradução diz enquanto ela espera o tradutor (só nas falas pendentes). */
   pendente?: string;
-  aoTocar?: (segment: ChatSegment, lang: string) => void;
-  /** Os atalhos embaixo do texto (só a fala em foco os recebe). */
-  acoes?: React.ReactNode;
-  /** O menu do balão no computador (D4). */
+  /** O menu do balão (D4). */
   aoMenu?: (segment: ChatSegment, lang: string) => void;
 }
 
@@ -299,8 +285,6 @@ const FalaDaConversa = React.memo(function FalaDaConversa({
   aoOuvir,
   aoRevelar,
   pendente,
-  aoTocar,
-  acoes,
   aoMenu,
 }: FalaProps) {
   const aprendida = (palavra: string) => (aprendidas?.has(chaveDaPalavra(palavra)) ? true : undefined);
@@ -330,10 +314,7 @@ const FalaDaConversa = React.memo(function FalaDaConversa({
                 className="palavra"
                 data-aprendida={aprendida(wordStr)}
                 data-nova={nova(wordStr, lineLang)}
-                onClick={(e) => {
-                  e.stopPropagation(); // a palavra abre o cartão dela, não a folha da frase
-                  aoExaminar(segment, vocabMatch, lineLang);
-                }}
+                onClick={() => aoExaminar(segment, vocabMatch, lineLang)}
                 title="Clique para pronúncia nativa e detalhes"
                 aria-pressed={marcada}
                 style={
@@ -355,9 +336,9 @@ const FalaDaConversa = React.memo(function FalaDaConversa({
               className="w"
               data-aprendida={aprendida(wordStr)}
               data-nova={nova(wordStr, lineLang)}
-              onClick={aoTocar ? undefined : () => aoOuvir(segment.id, wordStr, lineLang)}
-              title={aoTocar ? undefined : 'Clique para ouvir'}
-              style={aoTocar ? undefined : { cursor: 'pointer' }}
+              onClick={() => aoOuvir(segment.id, wordStr, lineLang)}
+              title="Clique para ouvir"
+              style={{ cursor: 'pointer' }}
             >
               {wordStr}
             </span>{' '}
@@ -400,23 +381,9 @@ const FalaDaConversa = React.memo(function FalaDaConversa({
     )
   );
 
-  /* O toque na fala (celular): o balão inteiro é o alvo, e um botão de verdade (o "Mais") dá o mesmo
-     caminho a teclado e leitor de tela — um `div` clicável sozinho não é alcançável por eles. */
-  const tocavel = aoTocar && !segment.isPartial && !!segment.originalText;
-  const comMenu = !aoTocar && aoMenu && !segment.isPartial && !!segment.originalText;
+  const comMenu = aoMenu && !segment.isPartial && !!segment.originalText;
   return (
-    <div
-      className={`fala ${segment.isPartial ? 'nova' : ''} ${acoes ? 'em-foco' : ''}`}
-      data-tocavel={tocavel ? true : undefined}
-      onClick={
-        tocavel
-          ? (e) => {
-              if ((e.target as HTMLElement).closest('button, a')) return;
-              aoTocar(segment, lineLang);
-            }
-          : undefined
-      }
-    >
+    <div className={`fala ${segment.isPartial ? 'nova' : ''} `}>
       <span className="quem" style={{ color: speaker.color }}>
         {speaker.name}
       </span>
@@ -431,12 +398,6 @@ const FalaDaConversa = React.memo(function FalaDaConversa({
           {original}
         </>
       )}
-      {tocavel &&
-        (acoes ?? (
-          <button type="button" className="sr fala-mais" onClick={() => aoTocar(segment, lineLang)}>
-            {t('Ações da fala')}
-          </button>
-        ))}
       {comMenu && (
         <span className="fala-acoes" style={{ gridColumn: 2, justifySelf: 'end' }}>
           <button
@@ -479,13 +440,10 @@ function ChatTranscript({
   onRevelarTraducao,
   conhecidas,
   progressoDoTradutor,
-  aoTocarFala,
-  falaEmFoco = null,
-  acoesDaFala,
   aoAbrirMenuDaFala,
 }: ChatTranscriptProps) {
-  const callbacks = React.useRef({ onExamineWord, onSpeakWord, onRevelarTraducao, aoTocarFala, aoAbrirMenuDaFala });
-  callbacks.current = { onExamineWord, onSpeakWord, onRevelarTraducao, aoTocarFala, aoAbrirMenuDaFala };
+  const callbacks = React.useRef({ onExamineWord, onSpeakWord, onRevelarTraducao, aoAbrirMenuDaFala });
+  callbacks.current = { onExamineWord, onSpeakWord, onRevelarTraducao, aoAbrirMenuDaFala };
   /* A fala em que a pessoa tocou por último: a janela não a tira do DOM enquanto ela lê a ficha. */
   const [fixadaId, setFixadaId] = React.useState<string | null>(null);
   const [limite, setLimite] = React.useState(JANELA_DA_CONVERSA);
@@ -500,11 +458,6 @@ function ChatTranscript({
   }, []);
   const aoRevelarEstavel = React.useCallback((segId: string) => callbacks.current.onRevelarTraducao?.(segId), []);
   const aoRevelar = onRevelarTraducao ? aoRevelarEstavel : undefined;
-  const aoTocarEstavel = React.useCallback((segment: ChatSegment, lang: string) => {
-    setFixadaId(segment.id);
-    callbacks.current.aoTocarFala?.(segment, lang);
-  }, []);
-  const aoTocar = aoTocarFala ? aoTocarEstavel : undefined;
   const aoMenuEstavel = React.useCallback((segment: ChatSegment, lang: string) => {
     setFixadaId(segment.id);
     callbacks.current.aoAbrirMenuDaFala?.(segment, lang);
@@ -596,8 +549,6 @@ function ChatTranscript({
           aoOuvir={aoOuvir}
           aoRevelar={aoRevelar}
           pendente={segment.traducaoPendente && segment.translatedText === '…' ? rotuloPendente : undefined}
-          aoTocar={aoTocar}
-          acoes={falaEmFoco === segment.id ? acoesDaFala?.(segment, langOf(segment)) : undefined}
           aoMenu={aoMenu}
         />
       ))}

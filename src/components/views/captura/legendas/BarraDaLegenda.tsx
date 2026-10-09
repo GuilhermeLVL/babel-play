@@ -1,4 +1,4 @@
-import { Gauge, Keyboard, Languages, Lock, MousePointerClick, Palette, Pause, PictureInPicture2, Play, X } from 'lucide-react';
+import { Gauge, Keyboard, Languages, Palette, Pause, PictureInPicture2, Play, X } from 'lucide-react';
 import { useState } from 'react';
 
 import type { Leitura } from '../../../../lib/captura/ritmoDaLegenda';
@@ -16,13 +16,9 @@ const ATALHOS: ReadonlyArray<[string, string]> = [
 /**
  * A BARRA DA JANELINHA, enxuta (ei/leg): pausar, ritmo de leitura, tradução, personalizar e
  * fechar. Modo, cores, tamanho, quantas falas, predefinições e "Meu perfil" moram no Personalizar.
- * O título recolhe e expande a janela; o cadeado (deixar o clique passar) só existe dentro do app —
- * uma janela sempre-no-topo do navegador sempre recebe o clique (limitação da plataforma).
+ * O título recolhe e expande a janela.
  */
 export default function BarraDaLegenda({
-  emJanela,
-  travado,
-  aoTravar,
   pausado,
   aoPausar,
   recolhido,
@@ -35,9 +31,6 @@ export default function BarraDaLegenda({
   aoPainel,
   aoFechar,
 }: {
-  emJanela: boolean;
-  travado: boolean;
-  aoTravar: () => void;
   pausado: boolean;
   aoPausar: () => void;
   recolhido: boolean;
@@ -64,17 +57,6 @@ export default function BarraDaLegenda({
       >
         <PictureInPicture2 aria-hidden /> <span>{t('Legendas')}</span>
       </button>
-      {!emJanela && (
-        <button
-          type="button"
-          aria-pressed={travado}
-          aria-label={travado ? t('Destravar o clique') : t('Deixar o clique passar pela janela')}
-          title={t('Travar o clique')}
-          onClick={aoTravar}
-        >
-          {travado ? <Lock aria-hidden /> : <MousePointerClick aria-hidden />}
-        </button>
-      )}
       <button
         type="button"
         aria-pressed={pausado}
@@ -86,7 +68,11 @@ export default function BarraDaLegenda({
       </button>
       <label className="leg-escolha" title={t('Ritmo de leitura')}>
         <Gauge aria-hidden />
-        <select aria-label={t('Ritmo de leitura')} value={leitura} onChange={(e) => aoTrocarLeitura(e.target.value as Leitura)}>
+        <select
+          aria-label={t('Ritmo de leitura')}
+          value={leitura}
+          onChange={(e) => aoTrocarLeitura(e.target.value as Leitura)}
+        >
           <option value="lenta">{t('Lenta')}</option>
           <option value="normal">{t('Normal')}</option>
           <option value="rapida">{t('Rápida')}</option>
@@ -94,7 +80,11 @@ export default function BarraDaLegenda({
       </label>
       <label className="leg-escolha" title={t('Tradução')}>
         <Languages aria-hidden />
-        <select aria-label={t('Tradução')} value={traducao} onChange={(e) => aoTrocarTraducao(e.target.value as Traducao)}>
+        <select
+          aria-label={t('Tradução')}
+          value={traducao}
+          onChange={(e) => aoTrocarTraducao(e.target.value as Traducao)}
+        >
           <option value="sempre">{t('Sempre')}</option>
           <option value="discreta">{t('Discreta')}</option>
           <option value="oculta">{t('Oculta')}</option>
@@ -121,7 +111,13 @@ export default function BarraDaLegenda({
           </span>
         )}
       </span>
-      <button type="button" aria-pressed={painel} aria-label={t('Personalizar')} title={t('Personalizar')} onClick={aoPainel}>
+      <button
+        type="button"
+        aria-pressed={painel}
+        aria-label={t('Personalizar')}
+        title={t('Personalizar')}
+        onClick={aoPainel}
+      >
         <Palette aria-hidden />
       </button>
       <button type="button" aria-label={t('Fechar as legendas flutuantes')} title={t('Fechar')} onClick={aoFechar}>

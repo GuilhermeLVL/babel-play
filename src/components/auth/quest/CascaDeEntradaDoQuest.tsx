@@ -5,13 +5,18 @@ import type { ReactNode } from 'react';
 
 import { t } from '../../../lib/i18n';
 import { T } from '../../../lib/T';
-import type { AuthHero } from '../AuthShell';
+
+/** `subtitle` chega JÁ TRADUZIDO: quem monta a casca é quem sabe a frase. */
+interface AuthHero {
+  title?: ReactNode;
+  subtitle?: string;
+}
 
 /**
  * A CASCA DAS TELAS DE ANTES DO APP NO META QUEST: entrar, criar conta, recuperar e redefinir a senha,
  * o segundo fator, a pergunta de idade e o aceite do responsável.
  *
- * A mesma divisão de `AuthShell` (a marca de um lado, o formulário do outro), nas medidas do headset.
+ * A marca de um lado, o formulário do outro, nas medidas do headset.
  * Estas telas montam ANTES do trilho, que é quem traz `quest.css`: o CSS delas é `questEntrada.css`,
  * com as próprias peças (`.qen-*`). `semMarca` dá uma coluna só, com o conteúdo num cartão ao centro
  * (a pergunta de idade e o aceite do responsável, que nas telas de sempre também não têm o painel).

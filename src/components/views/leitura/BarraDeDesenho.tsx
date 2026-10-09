@@ -2,8 +2,7 @@
  * A BARRA DO DESENHO LIVRE (Leitura → "Desenho livre"): tipo de caneta, cor (amostras, últimas cores,
  * seletor nativo, R/G/B e HEX), grossura com pré-visualização, opacidade, desfazer/refazer e limpar.
  *
- * Funciona nos dois desenhos do app: `questNovo` só troca as peças (`.q-*` no desenho novo,
- * `.seg`/`.campo`/`.btn` no de sempre). A lógica toda mora em `useDesenhoLivre`.
+ * As peças são as do desenho do app (`.q-*`). A lógica toda mora em `useDesenhoLivre`.
  */
 import '../../../styles/desenho.css';
 
@@ -108,7 +107,7 @@ function PreVisualizacao({ desenho }: { desenho: DesenhoLivre }) {
   );
 }
 
-export default function BarraDeDesenho({ desenho, questNovo }: { desenho: DesenhoLivre; questNovo: boolean }) {
+export default function BarraDeDesenho({ desenho }: { desenho: DesenhoLivre }) {
   const { prefs } = desenho;
   const f = prefs.ferramenta;
   const rgb = hexParaRgb(prefs.cor) ?? { r: 0, g: 0, b: 0 };
@@ -122,18 +121,12 @@ export default function BarraDeDesenho({ desenho, questNovo }: { desenho: Desenh
   const w = prefs.larguras[f];
   const opacidade = Math.round(opacidadeDe(prefs, f) * 100);
 
-  const campo = (rotulo: string, entrada: React.ReactNode) =>
-    questNovo ? (
-      <label key={rotulo} className="q-campo desenho-campo">
-        <span>{rotulo}</span>
-        {entrada}
-      </label>
-    ) : (
-      <label key={rotulo} className="desenho-campo">
-        <span className="label-mono">{rotulo}</span>
-        {entrada}
-      </label>
-    );
+  const campo = (rotulo: string, entrada: React.ReactNode) => (
+    <label key={rotulo} className="q-campo desenho-campo">
+      <span>{rotulo}</span>
+      {entrada}
+    </label>
+  );
 
   const acao = (
     rotulo: string,
@@ -142,27 +135,20 @@ export default function BarraDeDesenho({ desenho, questNovo }: { desenho: Desenh
     desabilitado: boolean,
     perigo = false,
   ) => (
-    <button
-      type="button"
-      className={
-        questNovo ? `q-ctl${perigo ? ' perigo' : ''}` : `btn btn-outline peq${perigo ? ' desenho-perigo' : ''}`
-      }
-      disabled={desabilitado}
-      onClick={aoClicar}
-    >
+    <button type="button" className={`q-ctl${perigo ? ' perigo' : ''}`} disabled={desabilitado} onClick={aoClicar}>
       <Icone aria-hidden /> {rotulo}
     </button>
   );
 
   return (
-    <div className={`desenho-barra${questNovo ? ' q' : ''}`} role="group" aria-label={t('Ferramentas de desenho')}>
+    <div className="desenho-barra q" role="group" aria-label={t('Ferramentas de desenho')}>
       <div className="desenho-linha">
-        <div className={questNovo ? 'q-abas q-seg' : 'seg'} role="group" aria-label={t('Ferramenta de desenho')}>
+        <div className="q-abas q-seg" role="group" aria-label={t('Ferramenta de desenho')}>
           {TIPOS.map(([v, nome, Icone]) => (
             <button
               key={v}
               type="button"
-              className={questNovo ? 'q-aba' : undefined}
+              className="q-aba"
               aria-pressed={f === v}
               onClick={() => desenho.escolherFerramenta(v)}
             >
@@ -191,7 +177,7 @@ export default function BarraDeDesenho({ desenho, questNovo }: { desenho: Desenh
           </div>
           {prefs.recentes.length > 0 && (
             <div className="desenho-amostras" role="group" aria-label={t('Últimas cores')}>
-              <span className={questNovo ? 'desenho-rotulo q' : 'label-mono'}>{t('Últimas')}</span>
+              <span className="desenho-rotulo q">{t('Últimas')}</span>
               {prefs.recentes.map((hex) => (
                 <button
                   key={hex}
@@ -227,7 +213,6 @@ export default function BarraDeDesenho({ desenho, questNovo }: { desenho: Desenh
                   min={0}
                   max={255}
                   step={1}
-                  className={questNovo ? undefined : 'campo'}
                   value={rgb[canal]}
                   aria-label={t('Cor, canal {canal} (0 a 255)', { canal: canal.toUpperCase() })}
                   onChange={(e) => desenho.escolherCor(trocarCanal(prefs.cor, canal, e.target.value))}
@@ -239,7 +224,6 @@ export default function BarraDeDesenho({ desenho, questNovo }: { desenho: Desenh
               <input
                 ref={hexRef}
                 type="text"
-                className={questNovo ? undefined : 'campo'}
                 defaultValue={prefs.cor}
                 maxLength={7}
                 spellCheck={false}
@@ -260,7 +244,7 @@ export default function BarraDeDesenho({ desenho, questNovo }: { desenho: Desenh
 
       <div className="desenho-linha desenho-grossura">
         <label className="desenho-controle">
-          <span className={questNovo ? 'desenho-rotulo q' : 'label-mono'}>
+          <span className="desenho-rotulo q">
             {t('Grossura')} <b className="desenho-valor">{w} px</b>
           </span>
           <input
@@ -276,7 +260,7 @@ export default function BarraDeDesenho({ desenho, questNovo }: { desenho: Desenh
         </label>
         {temOpacidade(f) && (
           <label className="desenho-controle">
-            <span className={questNovo ? 'desenho-rotulo q' : 'label-mono'}>
+            <span className="desenho-rotulo q">
               {t('Opacidade')} <b className="desenho-valor">{opacidade}%</b>
             </span>
             <input

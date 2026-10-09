@@ -44,10 +44,11 @@ describe('edição estática nas telas', () => {
     expect(dialogo.textContent).not.toMatch(SEM_LOGIN)
   })
 
-  it('o aviso de marco de uso não tem botão de criar conta', () => {
+  it('o aviso de marco de uso não tem botão de criar conta', async () => {
     const metrics = { sessions: 4, deckSize: 0 } as never
     render(<AvisoDeConta metrics={metrics} onEntrar={() => {}} />)
-    const aviso = screen.getByTestId('aviso-de-conta')
+    /* A faixa chega num pedaço à parte (`usePedacoDoQuest`). */
+    const aviso = await screen.findByTestId('aviso-de-conta')
     expect(aviso.textContent).toMatch(/demonstração/i)
     expect(aviso.textContent).not.toMatch(SEM_LOGIN)
   })
@@ -71,10 +72,11 @@ describe('a saída para a versão completa (VITE_URL_APP_COMPLETO)', () => {
     expect(screen.getByRole('button', { name: /Voltar ao início/ })).toBeTruthy()
   })
 
-  it('com a URL, o aviso de marco de uso ganha o link, e "Entendi" continua', () => {
+  it('com a URL, o aviso de marco de uso ganha o link, e "Entendi" continua', async () => {
     vi.stubEnv('VITE_URL_APP_COMPLETO', URL_COMPLETA)
     localStorage.clear()
     render(<AvisoDeConta metrics={{ sessions: 4, deckSize: 0 } as never} onEntrar={() => {}} />)
+    await screen.findByTestId('aviso-de-conta')
     confereLink()
     expect(screen.getByRole('button', { name: 'Entendi' })).toBeTruthy()
   })

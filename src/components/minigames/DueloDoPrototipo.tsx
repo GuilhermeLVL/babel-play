@@ -10,6 +10,7 @@ import { useNivelDoJogo } from '../../lib/jogos/nivelDoJogo';
 import { flutuar, palcoDaRodada, selo } from '../../lib/polimento/jogos';
 import { sentir } from '../../lib/polimento/sentidos';
 import AjudasGerais from './casca/AjudasGerais';
+import { useAtalhosDasAlternativas } from './casca/atalhos';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from './casca/HudDaRodada';
 import { falarNoJogo as falar } from './noQuest';
@@ -199,17 +200,16 @@ export default function DueloDoPrototipo({ items, onFinish }: Props) {
     });
   };
 
-  /* As teclas 1 a 4 (`pj.tecla`, `jogos.js:771`). */
-  useEffect(() => {
-    const aoTeclar = (e: KeyboardEvent) => {
-      if (!ativo || e.ctrlKey || e.metaKey || e.altKey || !/^[1-4]$/.test(e.key)) return;
-      const b = miolo.current?.querySelectorAll<HTMLButtonElement>('.opcoes-blitz button')[Number(e.key) - 1];
+  /* As teclas 1 a 4 (`pj.tecla`, `jogos.js:771`), pelo atalho comum dos jogos de múltipla escolha: ele
+     ignora a tecla segurada (um "1" preso responderia a pergunta seguinte) e a digitação em campo de texto. */
+  useAtalhosDasAlternativas(
+    opcoes.length,
+    (k) => {
+      const b = miolo.current?.querySelectorAll<HTMLButtonElement>('.opcoes-blitz button')[k];
       if (b && !b.disabled) escolher(b.dataset.op, b);
-    };
-    window.addEventListener('keydown', aoTeclar);
-    return () => window.removeEventListener('keydown', aoTeclar);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ativo, i, fora, item]);
+    },
+    ativo,
+  );
 
   /* `pj.ajuda`, `jogos.js:772-780`: uma vez por pergunta, tira alternativas erradas. Custa: zera o combo. */
   const cortar = () => {

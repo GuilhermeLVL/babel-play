@@ -34,7 +34,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { createSession, deleteSession, fetchSessions, patchSessionMeta, updateSession } from '../../data/api';
-import { noHeadset, useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
+import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
 import { getEntitlements, onPlanChange } from '../../lib/entitlements';
 import { numero } from '../../lib/i18n';
 import { t } from '../../lib/i18n';
@@ -133,8 +133,7 @@ interface LibraryProps {
 }
 
 export default function Library({ onChangeView, recordings, onRecordingsChange, ageProfile = 'pro' }: LibraryProps) {
-  // No desenho novo a lista é paginada. A tela de sempre só volta para o formulário de "Importar".
-  const questNovo = useQuestNovo();
+  // A lista é paginada (`BibliotecaDoQuest`). A tela completa só abre para o formulário de "Importar".
   const [telaCompleta, setTelaCompleta] = useState(false);
   const [showImport, setShowImport] = useState(false);
   // Entitlements do plano ativo (self-host = tudo liberado). Reage à troca em Configurações.
@@ -397,7 +396,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
   /* O DESENHO NOVO (a Biblioteca do protótipo, `telas.js:382-454`): páginas de linhas grandes de um
      lado e, do outro, a gravação selecionada com as ações dela. O formulário de importar continua
      abaixo, na tela de sempre, que "Importar" abre. */
-  if (questNovo && !telaCompleta) {
+  if (!telaCompleta) {
     return (
       <>
         <BibliotecaDoQuest

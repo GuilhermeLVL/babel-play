@@ -8,7 +8,8 @@
  *    aparelho fraco) e Premium ("Tradução Nuance": outras formas, formal ou informal, variantes e
  *    glossário; a voz natural do intérprete dita como "em breve").
  * 3. CÓDIGO DE DEFESA DO CONSUMIDOR: "sem limite no dia a dia" nunca aparece sozinho — a nota do uso
- *    justo fica AO LADO, no mesmo item (e na mesma linha da tabela), com o dia e o mês.
+ *    justo fica no mesmo item do cartão; na tabela, a célula leva o asterisco e a nota vem logo abaixo
+ *    dela, na mesma seção. Sempre com o dia e o mês.
  * 4. Sem `%` e sem "qualidade" na tela: saíram o grupo de qualidade, o `Medidor` e os textos
  *    CORAA/chrF++ (vender "qualidade melhor" pega mal, decisão do dono).
  * 5. O teste de 14 dias começa com UM toque no cartão do Premium, para quem o servidor deixa testar;
@@ -33,7 +34,8 @@ afterEach(() => {
 })
 
 const TITULO = 'Legenda bilíngue de qualquer coisa que você ouve, em qualquer aparelho'
-const TERMINA = new Date(2026, 9, 14, 15, 0).getTime()
+/* O teste acaba daqui a alguns dias: a tela fala em dias que faltam, não numa data. */
+const TERMINA = Date.now() + 5 * 86_400_000 + 3_600_000
 
 type Resposta = { ok: boolean; status: number; json: () => Promise<unknown> }
 
@@ -117,8 +119,8 @@ describe('as duas colunas', () => {
     await abrirPlanos()
     const texto = cartao('gratis').textContent ?? ''
     expect(texto).toContain('Tradução rápida ao vivo')
-    expect(texto).toMatch(/no seu aparelho, sem limite/)
-    expect(texto).toMatch(/3 h por mês de nuvem grátis para aparelho fraco/)
+    expect(texto).toMatch(/no aparelho, sem limite/)
+    expect(texto).toMatch(/até 3 h por mês, para aparelho fraco/)
   })
 
   it('Premium: "Tradução Nuance" com outras formas, formal ou informal, variantes e glossário; a voz natural é "em breve"', async () => {
@@ -133,21 +135,34 @@ describe('as duas colunas', () => {
     expect(texto).toMatch(/voz natural no modo intérprete \(em breve\)/i)
   })
 
-  it('CDC: todo "sem limite no dia a dia" tem a nota do uso justo AO LADO (o mesmo item ou a mesma linha)', async () => {
+  it('CDC: todo "sem limite no dia a dia" tem a nota do uso justo junto (o mesmo item, ou o asterisco com a nota logo abaixo da tabela)', async () => {
     montarMocks()
     await abrirPlanos()
     /* O elemento mais fundo que diz "sem limite no dia a dia"; o bloco dele é o item ou a linha. */
     const diz = (e: Element) => /sem limite no dia a dia/.test(e.textContent ?? '')
-    const onde = [...document.querySelectorAll<HTMLElement>('#painel-planos *')].filter(
+    const onde = [...screen.getByTestId('planos-do-quest').querySelectorAll<HTMLElement>('*')].filter(
       (e) => diz(e) && ![...e.children].some(diz),
     )
     expect(onde.length).toBeGreaterThanOrEqual(2) // o cartão e a tabela
+    const eANotaInteira = (texto: string, onde: string) => {
+      expect(texto, onde).toMatch(/uso justo/)
+      expect(texto, onde).toMatch(/2 h de nuvem por dia/)
+      expect(texto, onde).toMatch(/40 h por mês/)
+      expect(texto, onde).toMatch(/segue no aparelho/)
+    }
     for (const e of onde) {
       const bloco = e.closest('li, tr') ?? e
-      expect(bloco.textContent, bloco.outerHTML).toMatch(/uso justo/)
-      expect(bloco.textContent).toMatch(/2 h de nuvem por dia/)
-      expect(bloco.textContent).toMatch(/40 h por mês/)
-      expect(bloco.textContent).toMatch(/segue no aparelho/)
+      if (/uso justo/.test(bloco.textContent ?? '')) {
+        eANotaInteira(bloco.textContent ?? '', bloco.outerHTML)
+        continue
+      }
+      /* Na tabela a nota é de rodapé: a célula leva o asterisco, e a nota fica logo abaixo, na mesma seção. */
+      expect(e.textContent, e.outerHTML).toMatch(/sem limite no dia a dia\*/)
+      const nota = [...(e.closest('section')?.querySelectorAll('p') ?? [])].find((p) =>
+        (p.textContent ?? '').trim().startsWith('*'),
+      )
+      expect(nota, 'a nota do asterisco, na seção da tabela').toBeTruthy()
+      eANotaInteira(nota!.textContent ?? '', nota!.outerHTML)
     }
   })
 })
@@ -156,7 +171,7 @@ describe('sem % e sem "qualidade"', () => {
   it('a aba Planos renderizada não tem `%`, "qualidade" nem o medidor', async () => {
     montarMocks()
     await abrirPlanos()
-    const painel = document.querySelector<HTMLElement>('#painel-planos, [role="tabpanel"]')!
+    const painel = screen.getByTestId('planos-do-quest')
     const tudo = [
       painel.textContent ?? '',
       ...[...painel.querySelectorAll('[aria-label],[title]')].map(
@@ -194,7 +209,11 @@ describe('o teste de 14 dias na tela', () => {
     await waitFor(() => expect(chamadas.some((c) => c.url === '/api/billing/teste')).toBe(true))
     const pedido = chamadas.find((c) => c.url === '/api/billing/teste')!
     expect(JSON.parse(String(pedido.init?.body))).toEqual({})
-    expect(await screen.findByText(/o Premium vale até 14\/10\/2026/)).toBeTruthy()
+    /* A tela vai para "Sua assinatura", e lá diz quando o teste acaba e que nada é cobrado. */
+    expect(await screen.findByRole('tab', { name: 'Sua assinatura', selected: true })).toBeTruthy()
+    const tela = screen.getByTestId('planos-do-quest')
+    await waitFor(() => expect(tela.textContent).toMatch(/O teste termina em \d+ dias?/))
+    expect(tela.textContent).toMatch(/nada é cobrado/)
   })
 
   it('perfil protegido: nem teste nem assinatura no cartão — o caminho do responsável', async () => {
@@ -212,7 +231,7 @@ describe('o teste de 14 dias na tela', () => {
     expect(premium.textContent).toMatch(/Peça ao seu responsável/)
   })
 
-  it('quem está testando vê na faixa até quando vale e que nada é cobrado; o Premium segue assinável', async () => {
+  it('quem está testando vê no cartão quando o teste acaba e que nada é cobrado; o Premium segue assinável', async () => {
     montarMocks({
       plano: 'premium',
       teste: { terminaEm: TERMINA },
@@ -223,11 +242,9 @@ describe('o teste de 14 dias na tela', () => {
       },
     })
     await abrirPlanos()
-    const faixa = await screen.findByRole('region', { name: 'Seu plano agora' })
-    await waitFor(() => expect(faixa.textContent).toMatch(/teste/i))
-    expect(faixa.textContent).toContain('14/10/2026')
-    expect(faixa.textContent).toMatch(/nada é cobrado/)
-    expect(screen.queryByRole('tab', { name: 'Sua assinatura' })).toBeNull()
+    await waitFor(() => expect(cartao('premium').textContent).toMatch(/Seu teste termina em \d+ dias?/))
+    expect(cartao('premium').textContent).toMatch(/nada é cobrado/)
+    expect(screen.getByTestId('planos-do-quest').textContent).toMatch(/Premium · em teste/)
     expect(within(cartao('premium')).getByRole('button', { name: 'Assinar Premium' })).toBeTruthy()
     expect(within(cartao('premium')).queryByRole('button', { name: /Testar/ })).toBeNull()
   })

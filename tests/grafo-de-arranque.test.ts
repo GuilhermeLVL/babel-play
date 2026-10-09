@@ -28,7 +28,9 @@ function resolver(de: string, alvo: string): string | null {
 
 /** Imports estáticos de valor (não `import type`, não `import()`), incluindo reexportações. */
 function importsEstaticos(arquivo: string): { locais: string[]; pacotes: string[] } {
-  const fonte = readFileSync(arquivo, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+  const fonte = readFileSync(arquivo, 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '')
   const locais: string[] = []
   const pacotes: string[] = []
   const re = /^\s*(?:import|export)\s+(type\s+)?(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]/gm
@@ -63,10 +65,15 @@ function grafoDeArranque() {
 describe('o chunk de entrada', () => {
   const { arquivos, pacotes } = grafoDeArranque()
 
-  it('o grafo é o de verdade (sanidade: alcança o App e o Hub)', () => {
+  it('o grafo é o de verdade (sanidade: alcança o App e o que ele importa)', () => {
     expect(arquivos.has('src/App.tsx')).toBe(true)
-    expect(arquivos.has('src/components/views/Hub.tsx')).toBe(true)
+    expect(arquivos.has('src/components/Toast.tsx')).toBe(true)
     expect(arquivos.has('src/data/funil.ts')).toBe(true)
+  })
+
+  it('a casca e o Início chegam por import(): nem o trilho nem a tela inicial entram no chunk de entrada', () => {
+    expect(arquivos.has('src/components/shell/TrilhoDoQuest.tsx')).toBe(false)
+    expect(arquivos.has('src/components/views/quest/InicioDoQuest.tsx')).toBe(false)
   })
 
   it('não carrega o servidor em memória do modo sem conta (vem por import() no funil)', () => {

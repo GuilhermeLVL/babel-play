@@ -9,6 +9,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { MinigameItem, RoundReport } from '../src/core'
 
+/* O aparelho do teste é um computador, com teclado físico: sem ele o relógio da bola é mais folgado. */
+vi.mock('../src/lib/dispositivo/perfil', async (original) => {
+  const m = await original<typeof import('../src/lib/dispositivo/perfil')>()
+  return { ...m, perfilDoDispositivo: () => ({ ...m.perfilDoDispositivo(), tipo: 'desktop-com-gpu' }) }
+})
 vi.mock('../src/lib/juice', () => ({
   contarAte: vi.fn(async () => {}),
   comemorar: vi.fn(),

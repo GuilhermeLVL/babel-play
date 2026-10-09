@@ -2,15 +2,7 @@ import '../../../styles/legendas.css';
 import '../../../styles/legendasFlutuantes.css';
 
 import { ArrowDown, AudioLines } from 'lucide-react';
-import {
-  type CSSProperties,
-  type KeyboardEvent as KeyboardEventDoReact,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { fetchSettings, patchUiSettings } from '../../../data/api';
 import {
@@ -52,9 +44,9 @@ export type { LegendaAoVivo };
  * barra, as falas e o painel de personalização. Esta é a RAIZ da composição; as peças moram em
  * `./legendas/` (barra, linha da fala, cartão da palavra, painel, aparência guardada).
  *
- * O MECANISMO é o de antes: no Chrome/Edge a janelinha vive numa Document Picture-in-Picture,
- * SEMPRE NO TOPO por cima do jogo, do vídeo ou da chamada (`emJanela`). Sem essa API, ela flutua
- * dentro do app, no canto, como no protótipo. As falas são as REAIS da captura, nunca texto fixo.
+ * O MECANISMO: no Chrome/Edge a janelinha vive numa Document Picture-in-Picture, SEMPRE NO TOPO por
+ * cima do jogo, do vídeo ou da chamada, e este componente ocupa a janela inteira. Sem essa API, quem
+ * aparece é a `LegendaFlutuanteDoPrototipo`. As falas são as REAIS da captura, nunca texto fixo.
  *
  * O RITMO (ei/leg, relato do dono: "a legenda some rápido demais"): cada fala fica pelo menos o
  * tempo de ler (`lib/captura/ritmoDaLegenda`), a seguinte espera a vez, as N últimas ficam à vista,
@@ -72,7 +64,6 @@ const TOQUE_RECENTE_MS = 800;
 
 export default function LegendasFlutuantes({
   falas,
-  emJanela,
   aoFechar,
   aprendidas,
   aoRevelarTraducao,
@@ -82,8 +73,6 @@ export default function LegendasFlutuantes({
 }: {
   /** As últimas falas da captura, em ordem. A janela decide quais e quando aparecem. */
   falas: LegendaAoVivo[];
-  /** Dentro da janela sempre-no-topo (Document PiP): ocupa a janela inteira. */
-  emJanela: boolean;
   aoFechar: () => void;
   /** Palavras já aprendidas (minúsculas): ganham `data-aprendida`, que o estilo destaca. */
   aprendidas?: ReadonlySet<string>;
@@ -106,7 +95,6 @@ export default function LegendasFlutuantes({
     return () => window.removeEventListener(EVENTO_AJUSTES_DA_LEGENDA, reler);
   }, []);
   const classesDoEstiloEquipado = classesDoEstilo(resolverEstiloDeLegenda(estiloId));
-  const [travado, setTravado] = useState(false);
   const [oculto, setOculto] = useState(false);
   const [recolhido, setRecolhido] = useState(false);
   const [painel, setPainel] = useState(false);
@@ -176,16 +164,6 @@ export default function LegendasFlutuantes({
     } catch {
       toast.info(t('Não deu para salvar o perfil neste navegador.'));
     }
-  };
-
-  const alternarTravado = () => {
-    const novo = !travado;
-    setTravado(novo);
-    toast.info(
-      novo
-        ? t('Clique travado: ele passa através da janela. Destrave pelo cadeado.')
-        : t('A janela volta a receber cliques'),
-    );
   };
 
   /* ── O RITMO ──────────────────────────────────────────────────────────────────────────────── */
@@ -266,10 +244,7 @@ export default function LegendasFlutuantes({
     },
     [ap.traducao, aoRevelarTraducao],
   );
-  const ouvirFala = useCallback(
-    (f: LegendaAoVivo, lenta: boolean) => aoOuvir?.(f.original, f.lang, lenta),
-    [aoOuvir],
-  );
+  const ouvirFala = useCallback((f: LegendaAoVivo, lenta: boolean) => aoOuvir?.(f.original, f.lang, lenta), [aoOuvir]);
   const copiar = useCallback((f: LegendaAoVivo) => {
     /* A área de transferência da JANELA onde a pessoa está: na PiP é a dela, não a do app. */
     const nav = raiz.current?.ownerDocument.defaultView?.navigator ?? navigator;
@@ -333,18 +308,14 @@ export default function LegendasFlutuantes({
   const teclarRef = useRef(teclar);
   teclarRef.current = teclar;
   /* Na PiP o foco costuma ficar no `body` da janelinha, fora da árvore do React: escuta o documento
-     DELA. Dentro do app, só com o foco na janela (Espaço no resto do app é do resto do app). */
+     DELA. */
   useEffect(() => {
-    if (!emJanela) return;
     const doc = raiz.current?.ownerDocument;
     if (!doc) return;
     const ouvinte = (e: KeyboardEvent) => teclarRef.current(e);
     doc.addEventListener('keydown', ouvinte);
     return () => doc.removeEventListener('keydown', ouvinte);
-  }, [emJanela]);
-  const teclarNoApp = emJanela
-    ? undefined
-    : (e: KeyboardEventDoReact<HTMLDivElement>) => teclarRef.current(e.nativeEvent);
+  }, []);
 
   /* ── ROLAR PARA VOLTAR (roda do mouse e arrasto do dedo, uma fala por passo) ────────────────── */
   const ultimaRoda = useRef(0);
@@ -386,19 +357,15 @@ export default function LegendasFlutuantes({
     '--leg-cor': ap.cores.legenda,
     '--leg-trad': ap.cores.traducao,
     /* Na janela sempre-no-topo, a caixa É a janela: ocupa tudo e rola se o painel não couber. */
-    ...(emJanela
-      ? {
-          position: 'relative',
-          right: 'auto',
-          bottom: 'auto',
-          width: '100%',
-          height: '100vh',
-          maxHeight: 'none',
-          borderRadius: 0,
-          boxShadow: 'none',
-          overflowY: 'auto',
-        }
-      : {}),
+    position: 'relative',
+    right: 'auto',
+    bottom: 'auto',
+    width: '100%',
+    height: '100vh',
+    maxHeight: 'none',
+    borderRadius: 0,
+    boxShadow: 'none',
+    overflowY: 'auto',
   } as CSSProperties;
 
   return (
@@ -408,9 +375,8 @@ export default function LegendasFlutuantes({
       role="region"
       aria-label={t('Legendas flutuantes')}
       tabIndex={-1}
-      className={`leg-flut modo-${ap.modo} ${classesDoEstiloEquipado} ${travado ? 'travado' : ''} ${recolhido ? 'recolhido' : ''} ${pausado ? 'pausado' : ''}`}
+      className={`leg-flut modo-${ap.modo} ${classesDoEstiloEquipado} ${recolhido ? 'recolhido' : ''} ${pausado ? 'pausado' : ''}`}
       style={estilo}
-      onKeyDown={teclarNoApp}
       onMouseEnter={() => {
         if (Date.now() - ultimoToque.current > TOQUE_RECENTE_MS) setSobre(true);
       }}
@@ -423,9 +389,6 @@ export default function LegendasFlutuantes({
       onTouchCancel={() => setSegurando(false)}
     >
       <BarraDaLegenda
-        emJanela={emJanela}
-        travado={travado}
-        aoTravar={alternarTravado}
         pausado={pausaManual}
         aoPausar={alternarPausa}
         recolhido={recolhido}
@@ -441,7 +404,6 @@ export default function LegendasFlutuantes({
       {corpo && (
         <div
           className="leg-corpo"
-          style={travado ? { pointerEvents: 'none' } : undefined}
           onWheel={(e) => {
             const agora = Date.now();
             if (!e.deltaY || agora - ultimaRoda.current < PASSO_DA_RODA_MS) return;

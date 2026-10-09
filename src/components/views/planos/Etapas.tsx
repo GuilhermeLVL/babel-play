@@ -1,7 +1,6 @@
 import { Check } from 'lucide-react';
 import { Fragment } from 'react';
 
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../lib/i18n';
 
 /**
@@ -12,31 +11,15 @@ import { t } from '../../../lib/i18n';
  * No Meta Quest, a mesma lista com as medidas do headset (`.qc-etapas` em `questConta.css`).
  */
 export default function Etapas({ passos, atual }: { passos: string[]; atual: number }) {
-  const questNovo = useQuestNovo();
-  if (questNovo)
-    return (
-      <ol className="qc-etapas" aria-label={t('Etapas')}>
-        {passos.map((passo, i) => (
-          <Fragment key={passo}>
-            {i > 0 && <li className="qc-traco" aria-hidden />}
-            <li
-              className={atual === i ? 'qc-atual' : atual > i ? 'qc-feita' : undefined}
-              aria-current={atual === i ? 'step' : undefined}
-            >
-              <span>{atual > i ? <Check aria-hidden /> : i + 1}</span>
-              {t(passo)}
-            </li>
-          </Fragment>
-        ))}
-      </ol>
-    );
-
   return (
-    <ol className="stepper" aria-label={t('Etapas')}>
+    <ol className="qc-etapas" aria-label={t('Etapas')}>
       {passos.map((passo, i) => (
         <Fragment key={passo}>
-          {i > 0 && <li className="traco" aria-hidden />}
-          <li className={atual === i ? 'on' : atual > i ? 'feito' : ''} aria-current={atual === i ? 'step' : undefined}>
+          {i > 0 && <li className="qc-traco" aria-hidden />}
+          <li
+            className={atual === i ? 'qc-atual' : atual > i ? 'qc-feita' : undefined}
+            aria-current={atual === i ? 'step' : undefined}
+          >
             <span>{atual > i ? <Check aria-hidden /> : i + 1}</span>
             {t(passo)}
           </li>

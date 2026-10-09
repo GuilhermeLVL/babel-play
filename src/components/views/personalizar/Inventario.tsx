@@ -38,7 +38,7 @@ import {
 import { Fragment, type ReactNode, useMemo, useState } from 'react';
 
 import { celebrarEscolha } from '../../../lib/comemoracao';
-import { noHeadset, useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
+import { noHeadset } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { comprarPecaComSeeds } from '../../../lib/galeria/comprarPeca';
 import { cromaEquipado } from '../../../lib/galeria/cromas';
 import { type ContextoDeEquipar, equiparItem, equipavel } from '../../../lib/galeria/equipar';
@@ -60,7 +60,7 @@ import {
 import { possuidos } from '../../../lib/loja';
 import MiniaturaDoItem from '../../MiniaturaDoItem';
 import { toast } from '../../Toast';
-import { Dialogo, fecharDialogoDe, TituloDeSecao } from '../../ui';
+import { Dialogo, fecharDialogoDe } from '../../ui';
 import EditorDoItem, { temPersonalizacao } from './EditorDoItem';
 
 /**
@@ -200,7 +200,6 @@ export default function Inventario({
   perfis,
   faltaDoPerfil,
   aoAplicarPerfil,
-  aoRenomearPerfil,
   aoApagarPerfil,
   aoSalvarPerfil,
   acaoDosPerfis,
@@ -230,7 +229,6 @@ export default function Inventario({
   /** O que falta liberar para o perfil poder ser aplicado — vazio = dá para aplicar. */
   faltaDoPerfil: (p: Perfil) => string[];
   aoAplicarPerfil: (p: Perfil, el?: HTMLElement | null) => void;
-  aoRenomearPerfil: (p: Perfil) => void;
   aoApagarPerfil: (p: Perfil) => void;
   aoSalvarPerfil: (nome: string) => void;
   /** O que vai à direita do título de Perfis (o "voltar ao visual original"). */
@@ -243,18 +241,14 @@ export default function Inventario({
   itemEmPrevia?: string | null;
   /** Os tipos que têm prévia. */
   tiposComPrevia?: ReadonlySet<string>;
-  /**
-   * NO HEADSET: renomear com o nome já digitado num diálogo com campo (o teclado do sistema sobe nele),
-   * no lugar do `prompt` nativo de `aoRenomearPerfil`.
-   */
-  aoRenomearPerfilPara?: (p: Perfil, nome: string) => void;
+  /** Renomear com o nome já digitado num diálogo com campo (no headset, o teclado do sistema sobe nele). */
+  aoRenomearPerfilPara: (p: Perfil, nome: string) => void;
   /** NO HEADSET: seções a mais no seletor (a acessibilidade, que na tela de sempre fica abaixo do inventário). */
   secoesExtras?: SecaoExtraDoInventario[];
   /** No desenho novo: a seção em que o inventário abre (a folha "Meu visual" abre na da linha tocada). */
   secaoInicial?: string;
 }) {
   /* No Meta Quest (telas novas): uma seção por vez, escolhida num seletor, no lugar da página comprida. */
-  const questNovo = useQuestNovo();
   const [secaoQ, setSecaoQ] = useState(secaoInicial ?? 'temas');
   const [renomeando, setRenomeando] = useState<Perfil | null>(null);
   const [nomeEmEdicao, setNomeEmEdicao] = useState('');
@@ -467,19 +461,12 @@ export default function Inventario({
         {/* O EDITOR DA PEÇA (paletas, pack próprio, croma) só aparece onde há o que editar. */}
         {liberado && temPersonalizacao(i) && (
           <button type="button" className="link editar" onClick={() => setEditando(i)}>
-            <Pencil aria-hidden /> {questNovo ? t('Personalizar') : 'personalizar'}
+            <Pencil aria-hidden /> {t('Personalizar')}
           </button>
         )}
       </article>
     );
   };
-
-  const alternarAcervo = (
-    <button type="button" className="link" onClick={() => setVerTudo(!verTudo)}>
-      {verTudo ? `Ver só o meu acervo (${meus.length})` : `Ver tudo que existe (${CATALOGO_DA_LOJA.length})`}{' '}
-      <ArrowRight aria-hidden />
-    </button>
-  );
 
   /** O cartão de um perfil: a prévia, o nome, o que falta liberar e as ações. */
   const cartaoDoPerfil = (p: Perfil) => {
@@ -523,24 +510,19 @@ export default function Inventario({
               type="button"
               className="link editar"
               onClick={() => {
-                if (questNovo && aoRenomearPerfilPara) {
-                  setNomeEmEdicao(p.nome);
-                  setRenomeando(p);
-                  return;
-                }
-                aoRenomearPerfil(p);
-                rerender();
+                setNomeEmEdicao(p.nome);
+                setRenomeando(p);
               }}
             >
-              <Pencil aria-hidden /> {questNovo ? t('Renomear') : 'renomear'}
+              <Pencil aria-hidden /> {t('Renomear')}
             </button>
             <button
               type="button"
               className="link editar"
-              aria-pressed={questNovo && apagando === p.id ? true : undefined}
+              aria-pressed={apagando === p.id ? true : undefined}
               onClick={() => {
                 // No headset, o primeiro toque pergunta e o segundo apaga.
-                if (questNovo && apagando !== p.id) {
+                if (apagando !== p.id) {
                   setApagando(p.id);
                   return;
                 }
@@ -551,13 +533,11 @@ export default function Inventario({
             >
               <Trash2 aria-hidden />{' '}
               {/* O segundo passo vale nos dois aparelhos do desenho novo; só o verbo muda (toque ou clique). */}
-              {questNovo
-                ? apagando === p.id
-                  ? noHeadset()
-                    ? t('Toque de novo para apagar')
-                    : t('Clique de novo para apagar')
-                  : t('Apagar')
-                : 'apagar'}
+              {apagando === p.id
+                ? noHeadset()
+                  ? t('Toque de novo para apagar')
+                  : t('Clique de novo para apagar')
+                : t('Apagar')}
             </button>
           </span>
         )}
@@ -581,248 +561,162 @@ export default function Inventario({
     />
   );
 
-  if (questNovo) {
-    /* AS SEÇÕES DO SELETOR: as de peça que têm o que mostrar (a primeira aparece mesmo vazia, como na tela
-       de sempre), os perfis e as que vêm de fora. */
-    const dePecas = SECOES.map((sec) => ({ ...sec, lista: daSecao(sec.tipos) })).filter(
-      (sec, k) => sec.lista.length > 0 || k === 0,
-    );
-    const seletor = [
-      ...dePecas.map((sec) => ({
-        id: sec.id,
-        titulo: sec.titulo,
-        Icone: sec.icone,
-        n: sec.lista.length as number | null,
-      })),
-      { id: 'perfis', titulo: 'Perfis', Icone: Wand2, n: perfis.length as number | null },
-      ...(secoesExtras ?? []).map((x) => ({ id: x.id, titulo: x.titulo, Icone: x.icone, n: null as number | null })),
-    ];
-    const ativa = seletor.some((x) => x.id === secaoQ) ? secaoQ : seletor[0].id;
-    const dePeca = dePecas.find((sec) => sec.id === ativa);
-    const extra = secoesExtras?.find((x) => x.id === ativa);
-    const faltam = colecao.compraveis.length + colecao.porNivel.length;
-    return (
-      <>
-        <section className="qp-equipados" aria-label={t('O que está equipado')}>
-          {loadout.map(({ chave, rotulo, valor, icone: Icone }) => (
-            <span key={chave} className="qp-equip">
-              <span className="q-ic">
-                <Icone aria-hidden />
-              </span>
-              <span>
-                <small>{rotulo}</small>
-                <b>{valor}</b>
-              </span>
-            </span>
-          ))}
-        </section>
-
-        <div className="q-secao">
-          <header>
-            <div>
-              <h2>{verTudo ? t('Tudo o que existe') : t('O que é seu')}</h2>
-              <p>
-                {verTudo
-                  ? t('O acervo inteiro: o que falta aparece com cadeado e diz como se consegue.')
-                  : t('Escolha uma seção. Cada peça mostra a prévia, o que ela é e o botão de equipar.')}
-              </p>
-            </div>
-            <button type="button" className="q-chip" aria-pressed={verTudo} onClick={() => setVerTudo(!verTudo)}>
-              {verTudo ? `Ver só o meu acervo (${meus.length})` : `Ver tudo que existe (${CATALOGO_DA_LOJA.length})`}
-              <ArrowRight aria-hidden />
-            </button>
-          </header>
-          <div className="q-abas q-seg qp-secoes" role="group" aria-label={t('Seções da coleção')}>
-            {seletor.map(({ id, titulo, Icone, n }) => (
-              <button
-                key={id}
-                type="button"
-                className="q-aba"
-                aria-pressed={id === ativa}
-                onClick={() => setSecaoQ(id)}
-              >
-                <Icone aria-hidden /> {titulo}
-                {n !== null && <span className="n">{n}</span>}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {dePeca && (
-          <section className="qp-pilha" data-secao-do-inventario={dePeca.id} aria-label={dePeca.titulo}>
-            {dePeca.lista.length ? (
-              <div className="gauto">
-                {dePeca.lista.map((i) => (
-                  <Fragment key={i.id}>{peca(i)}</Fragment>
-                ))}
-              </div>
-            ) : (
-              <p className="q-texto">{t('Nenhum tema seu ainda.')}</p>
-            )}
-            <div className="q-aviso" role="note">
-              <span>
-                {t('Faltam {n} peças na Loja e {m} só por conquista.', { n: faltam, m: colecao.porConquista.length })}
-              </span>
-              <button type="button" className="q-ctl" onClick={onIrParaLoja}>
-                <ShoppingBag aria-hidden /> {t('Ir à Loja')}
-              </button>
-            </div>
-          </section>
-        )}
-
-        {ativa === 'perfis' && (
-          <section className="q-secao" data-secao-do-inventario="perfis">
-            <header>
-              <div>
-                <h3>Perfis</h3>
-                <p>{DESC_DOS_PERFIS}</p>
-              </div>
-              {acaoDosPerfis}
-            </header>
-            <div className="qp-salvar">
-              <label className="q-campo">
-                <span>{t('Nome do perfil')}</span>
-                <input
-                  value={nomeNovo}
-                  onChange={(e) => setNomeNovo(e.target.value)}
-                  placeholder="Nome para salvar o visual de agora"
-                />
-              </label>
-              <button
-                type="button"
-                className="q-ctl"
-                onClick={() => {
-                  aoSalvarPerfil(nomeNovo);
-                  setNomeNovo('');
-                  rerender();
-                }}
-              >
-                <Save aria-hidden /> Salvar este visual
-              </button>
-            </div>
-            <div className="gauto">{perfis.map(cartaoDoPerfil)}</div>
-          </section>
-        )}
-
-        {extra && (
-          <div className="qp-pilha" data-secao-do-inventario={extra.id}>
-            {extra.conteudo}
-          </div>
-        )}
-
-        {editor}
-
-        {renomeando && aoRenomearPerfilPara && (
-          <Dialogo
-            icone={Pencil}
-            titulo={t('Renomear o perfil')}
-            sub={renomeando.nome}
-            aoFechar={() => setRenomeando(null)}
-          >
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                aoRenomearPerfilPara(renomeando, nomeEmEdicao);
-                setRenomeando(null);
-                rerender();
-              }}
-            >
-              <div className="dlg-corpo">
-                <label className="q-campo">
-                  <span>{t('Novo nome')}</span>
-                  <input data-autofocus value={nomeEmEdicao} onChange={(e) => setNomeEmEdicao(e.target.value)} />
-                </label>
-              </div>
-              <div className="dlg-pe">
-                <button type="button" className="btn btn-outline" onClick={(e) => fecharDialogoDe(e.currentTarget)}>
-                  {t('Cancelar')}
-                </button>
-                <button type="submit" className="btn btn-solid">
-                  <Check aria-hidden /> {t('Salvar')}
-                </button>
-              </div>
-            </form>
-          </Dialogo>
-        )}
-      </>
-    );
-  }
-
+  /* AS SEÇÕES DO SELETOR: as de peça que têm o que mostrar (a primeira aparece mesmo vazia, como na tela
+     de sempre), os perfis e as que vêm de fora. */
+  const dePecas = SECOES.map((sec) => ({ ...sec, lista: daSecao(sec.tipos) })).filter(
+    (sec, k) => sec.lista.length > 0 || k === 0,
+  );
+  const seletor = [
+    ...dePecas.map((sec) => ({
+      id: sec.id,
+      titulo: sec.titulo,
+      Icone: sec.icone,
+      n: sec.lista.length as number | null,
+    })),
+    { id: 'perfis', titulo: 'Perfis', Icone: Wand2, n: perfis.length as number | null },
+    ...(secoesExtras ?? []).map((x) => ({ id: x.id, titulo: x.titulo, Icone: x.icone, n: null as number | null })),
+  ];
+  const ativa = seletor.some((x) => x.id === secaoQ) ? secaoQ : seletor[0].id;
+  const dePeca = dePecas.find((sec) => sec.id === ativa);
+  const extra = secoesExtras?.find((x) => x.id === ativa);
+  const faltam = colecao.compraveis.length + colecao.porNivel.length;
   return (
     <>
-      {/* ── O QUE ESTÁ EQUIPADO ── */}
-      <section className="cartao equipados" aria-label="O que está equipado">
+      <section className="qp-equipados" aria-label={t('O que está equipado')}>
         {loadout.map(({ chave, rotulo, valor, icone: Icone }) => (
-          <span key={chave} className="equip">
-            <Icone aria-hidden style={{ width: 16, height: 16, color: 'var(--ink-muted)' }} />
-            <small>{rotulo}</small>
-            <b>{valor}</b>
+          <span key={chave} className="qp-equip">
+            <span className="q-ic">
+              <Icone aria-hidden />
+            </span>
+            <span>
+              <small>{rotulo}</small>
+              <b>{valor}</b>
+            </span>
           </span>
         ))}
       </section>
 
-      {SECOES.map((s, k) => {
-        const lista = daSecao(s.tipos);
-        /* A primeira seção carrega o "Ver tudo que existe" (como no protótipo) e aparece mesmo
-           vazia, para o controle nunca sumir. As outras só aparecem com peça. */
-        if (!lista.length && k > 0) return null;
-        return (
-          <section key={s.id} className="secao">
-            <TituloDeSecao icone={s.icone} titulo={s.titulo} direita={k === 0 ? alternarAcervo : undefined} />
-            {lista.length ? (
-              <div className="gauto">
-                {lista.map((i) => (
-                  <Fragment key={i.id}>{peca(i)}</Fragment>
-                ))}
-              </div>
-            ) : (
-              <p className="mut" style={{ fontSize: 13 }}>
-                Nenhum tema seu ainda.
-              </p>
-            )}
-          </section>
-        );
-      })}
+      <div className="q-secao">
+        <header>
+          <div>
+            <h2>{verTudo ? t('Tudo o que existe') : t('O que é seu')}</h2>
+            <p>
+              {verTudo
+                ? t('O acervo inteiro: o que falta aparece com cadeado e diz como se consegue.')
+                : t('Escolha uma seção. Cada peça mostra a prévia, o que ela é e o botão de equipar.')}
+            </p>
+          </div>
+          <button type="button" className="q-chip" aria-pressed={verTudo} onClick={() => setVerTudo(!verTudo)}>
+            {verTudo ? `Ver só o meu acervo (${meus.length})` : `Ver tudo que existe (${CATALOGO_DA_LOJA.length})`}
+            <ArrowRight aria-hidden />
+          </button>
+        </header>
+        <div className="q-abas q-seg qp-secoes" role="group" aria-label={t('Seções da coleção')}>
+          {seletor.map(({ id, titulo, Icone, n }) => (
+            <button key={id} type="button" className="q-aba" aria-pressed={id === ativa} onClick={() => setSecaoQ(id)}>
+              <Icone aria-hidden /> {titulo}
+              {n !== null && <span className="n">{n}</span>}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      {/* ── PERFIS: um visual inteiro de uma vez. Salvar mora AQUI: guardar o visual atual é uma
-             ação sobre perfis, e é nesta seção que ela é procurada. */}
-      <section className="secao">
-        <TituloDeSecao icone={Wand2} titulo="Perfis" desc={DESC_DOS_PERFIS} direita={acaoDosPerfis} />
-        <div className="linha" style={{ gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-          <input
-            className="campo"
-            style={{ flex: 1, minWidth: '12rem', width: 'auto' }}
-            value={nomeNovo}
-            onChange={(e) => setNomeNovo(e.target.value)}
-            placeholder="Nome para salvar o visual de agora"
-            aria-label="Nome do perfil"
-          />
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={() => {
-              aoSalvarPerfil(nomeNovo);
-              setNomeNovo('');
+      {dePeca && (
+        <section className="qp-pilha" data-secao-do-inventario={dePeca.id} aria-label={dePeca.titulo}>
+          {dePeca.lista.length ? (
+            <div className="gauto">
+              {dePeca.lista.map((i) => (
+                <Fragment key={i.id}>{peca(i)}</Fragment>
+              ))}
+            </div>
+          ) : (
+            <p className="q-texto">{t('Nenhum tema seu ainda.')}</p>
+          )}
+          <div className="q-aviso" role="note">
+            <span>
+              {t('Faltam {n} peças na Loja e {m} só por conquista.', { n: faltam, m: colecao.porConquista.length })}
+            </span>
+            <button type="button" className="q-ctl" onClick={onIrParaLoja}>
+              <ShoppingBag aria-hidden /> {t('Ir à Loja')}
+            </button>
+          </div>
+        </section>
+      )}
+
+      {ativa === 'perfis' && (
+        <section className="q-secao" data-secao-do-inventario="perfis">
+          <header>
+            <div>
+              <h3>Perfis</h3>
+              <p>{DESC_DOS_PERFIS}</p>
+            </div>
+            {acaoDosPerfis}
+          </header>
+          <div className="qp-salvar">
+            <label className="q-campo">
+              <span>{t('Nome do perfil')}</span>
+              <input
+                value={nomeNovo}
+                onChange={(e) => setNomeNovo(e.target.value)}
+                placeholder="Nome para salvar o visual de agora"
+              />
+            </label>
+            <button
+              type="button"
+              className="q-ctl"
+              onClick={() => {
+                aoSalvarPerfil(nomeNovo);
+                setNomeNovo('');
+                rerender();
+              }}
+            >
+              <Save aria-hidden /> Salvar este visual
+            </button>
+          </div>
+          <div className="gauto">{perfis.map(cartaoDoPerfil)}</div>
+        </section>
+      )}
+
+      {extra && (
+        <div className="qp-pilha" data-secao-do-inventario={extra.id}>
+          {extra.conteudo}
+        </div>
+      )}
+
+      {editor}
+
+      {renomeando && (
+        <Dialogo
+          icone={Pencil}
+          titulo={t('Renomear o perfil')}
+          sub={renomeando.nome}
+          aoFechar={() => setRenomeando(null)}
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              aoRenomearPerfilPara(renomeando, nomeEmEdicao);
+              setRenomeando(null);
               rerender();
             }}
           >
-            <Save aria-hidden /> Salvar este visual
-          </button>
-        </div>
-        <div className="gauto">{perfis.map(cartaoDoPerfil)}</div>
-      </section>
-
-      {/* ── O QUE FALTA — atalho honesto: o acervo mostra o que é seu, e diz onde vê o resto ── */}
-      <p className="mut linha secao" style={{ gap: 8, fontSize: 12.5, flexWrap: 'wrap' }}>
-        <Lock aria-hidden style={{ width: 14, height: 14 }} />
-        Faltam {colecao.compraveis.length + colecao.porNivel.length} peças na Loja e {colecao.porConquista.length} só
-        por conquista.
-        <button type="button" className="link" onClick={onIrParaLoja}>
-          Ir à Loja <ArrowRight aria-hidden />
-        </button>
-      </p>
-
-      {editor}
+            <div className="dlg-corpo">
+              <label className="q-campo">
+                <span>{t('Novo nome')}</span>
+                <input data-autofocus value={nomeEmEdicao} onChange={(e) => setNomeEmEdicao(e.target.value)} />
+              </label>
+            </div>
+            <div className="dlg-pe">
+              <button type="button" className="btn btn-outline" onClick={(e) => fecharDialogoDe(e.currentTarget)}>
+                {t('Cancelar')}
+              </button>
+              <button type="submit" className="btn btn-solid">
+                <Check aria-hidden /> {t('Salvar')}
+              </button>
+            </div>
+          </form>
+        </Dialogo>
+      )}
     </>
   );
 }

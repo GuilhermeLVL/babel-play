@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 /**
- * A ABA DESAFIOS NA EDIÇÃO ESTÁTICA: as conquistas são creditadas pelo servidor em memória
+ * A ABA CONQUISTAS NA EDIÇÃO ESTÁTICA: as conquistas são creditadas pelo servidor em memória
  * (`data/efemero/rotas/economia.ts`), então a aba mostra o conteúdo — e não o cartão "Disponível na
- * versão completa". E a contagem da aba conta DESAFIOS (conquistas em aberto), não itens do catálogo.
+ * versão completa". E a contagem da aba conta CONQUISTAS (feitas/total), não itens do catálogo.
  */
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.hoisted(() => vi.stubEnv('VITE_EDICAO_ESTATICA', '1'))
@@ -37,20 +37,25 @@ function renderizar() {
   )
 }
 
-describe('Loja · aba Desafios na edição estática', () => {
+describe('Personalizar · aba Conquistas na edição estática', () => {
   beforeEach(() => localStorage.clear())
 
   it('mostra as conquistas, e não o cartão de "versão completa"', () => {
     renderizar()
     expect(screen.queryByTestId('cartao-de-convite')).toBeNull()
+    expect(screen.getByTestId('conquistas-no-quest')).toBeTruthy()
+    expect(document.querySelectorAll('.conq')).toHaveLength(CONQUISTAS.length)
+    fireEvent.click(
+      within(screen.getByRole('group', { name: 'Partes dos desafios' })).getByRole('button', { name: /Como ganhar/ }),
+    )
     expect(screen.getByText('Como ganhar Seeds e XP')).toBeTruthy()
   })
 
-  it('a contagem da aba é de conquistas em aberto, não de itens do catálogo', () => {
+  it('a contagem da aba é de conquistas (feitas/total), não de itens do catálogo', () => {
     localStorage.setItem('babel.conquistas', JSON.stringify([CONQUISTAS[0].id, CONQUISTAS[1].id]))
     renderizar()
-    const aba = screen.getByRole('tab', { name: /Desafios/ })
-    expect(within(aba).getByText(String(CONQUISTAS.length - 2))).toBeTruthy()
+    const aba = screen.getByRole('tab', { name: /Conquistas/ })
+    expect(within(aba).getByText(`2/${CONQUISTAS.length}`)).toBeTruthy()
   })
 })
 

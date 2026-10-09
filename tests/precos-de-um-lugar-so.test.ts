@@ -17,7 +17,10 @@ import { armazenamentoEmTexto, menorPrecoDeAssinatura, precoDoPlano } from '../s
 
 const TELAS = [
   'src/components/views/Planos.tsx',
-  'src/components/shell/MenuDaConta.tsx',
+  'src/components/shell/TrilhoDoQuest.tsx',
+  'src/components/conta/quest/FaixaDeAvisoDoQuest.tsx',
+  'src/components/ofertas/quest/CartaoDeOfertaDoQuest.tsx',
+  'src/components/views/sobre/quest/SobreDoQuest.tsx',
   'src/components/CardDePlanos.tsx',
   'src/components/views/loja/ComprarCreditos.tsx',
   'src/components/views/planos/Checkout.tsx',

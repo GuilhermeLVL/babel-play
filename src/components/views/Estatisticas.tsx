@@ -3,32 +3,20 @@ import {
   CalendarCheck,
   CalendarClock,
   CalendarDays,
-  ChartColumn,
-  ChevronDown,
   Clock,
-  Download,
-  FileText,
   Flame,
   Gamepad2,
   GraduationCap,
-  Info,
-  Minus,
-  Sheet,
   Sprout,
-  Table2,
   Target,
-  TrendingDown,
-  TrendingUp,
 } from 'lucide-react';
-import React, { type ReactNode, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import type { AppMetrics } from '../../data/api';
 import { type ExerciseResultRow, fetchDeck, fetchExerciseResults } from '../../data/api';
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { t, tp } from '../../lib/i18n';
 import { usePreferencias } from '../../lib/preferencias';
 import type { VocabCard } from '../../types';
-import { CabecalhoDeTela, Tela } from '../ui';
 import MetaDeNivel from './estatisticas/MetaDeNivel';
 import EstatisticasDoQuest, { type PainelDoQuest } from './estatisticas/quest/EstatisticasDoQuest';
 
@@ -370,97 +358,6 @@ function BarrasHorizontais({ dados, unidade, max }: { dados: [string, number][];
   );
 }
 
-function Tabela({ cab, linhas }: { cab: string[]; linhas: (string | number)[][] }) {
-  return (
-    <div className="compara" tabIndex={0} style={{ maxHeight: 260, overflow: 'auto' }}>
-      <table className="tabela">
-        <thead>
-          <tr>
-            {cab.map((c) => (
-              <th key={c} className="label-mono">
-                {c}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {linhas.map((l, i) => (
-            <tr key={i}>
-              {l.map((c, j) => (
-                <td key={j} className="tn">
-                  {c}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function CartaoDeGrafico({
-  id,
-  Icone,
-  titulo,
-  desc,
-  grafico,
-  tabela,
-  extra,
-}: {
-  id: string;
-  Icone: typeof Clock;
-  titulo: string;
-  desc: string;
-  grafico: ReactNode;
-  tabela: ReactNode;
-  extra?: ReactNode;
-}) {
-  const [comoTabela, setComoTabela] = useState(false);
-  return (
-    <section className="cartao p5 graf-cartao" aria-labelledby={`gt-${id}`}>
-      <div className="tsec">
-        <div className="tsec-l">
-          <div className="tsec-t">
-            <Icone aria-hidden />
-            <h2 id={`gt-${id}`}>{titulo}</h2>
-          </div>
-          <p className="desc">{desc}</p>
-        </div>
-        <button
-          type="button"
-          className="btn btn-outline peq"
-          aria-pressed={comoTabela}
-          onClick={() => setComoTabela((v) => !v)}
-        >
-          {comoTabela ? <ChartColumn aria-hidden /> : <Table2 aria-hidden />}{' '}
-          {comoTabela ? 'Ver gráfico' : 'Ver como tabela'}
-        </button>
-      </div>
-      {comoTabela ? tabela : grafico}
-      {extra}
-    </section>
-  );
-}
-
-function Variacao({ v, un = '%' }: { v: number | null; un?: '%' | 'pp' }) {
-  if (v == null) return null;
-  if (v === 0)
-    return (
-      <span className="var neutra">
-        <Minus aria-hidden /> igual ao anterior
-      </span>
-    );
-  return (
-    <span className={`var ${v > 0 ? 'sobe' : 'desce'}`}>
-      {v > 0 ? <TrendingUp aria-hidden /> : <TrendingDown aria-hidden />} {v > 0 ? '+' : ''}
-      {v}
-      {un === 'pp' ? ' p.p.' : '%'} <span aria-hidden>vs. anterior</span>
-      <span className="sr">em relação ao período anterior</span>
-    </span>
-  );
-}
-
 export default function Estatisticas({ metrics, onChangeView }: EstatisticasProps) {
   const [periodo, setPeriodo] = useState<7 | 30 | 90>(30);
   const [resultados, setResultados] = useState<ExerciseResultRow[] | null>(null);
@@ -469,7 +366,6 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
   const { metaMin } = usePreferencias();
   /* No Meta Quest com as telas novas, a mesma tela em outro arranjo (`EstatisticasDoQuest`): os dados,
      o período e as ações são os daqui. */
-  const questNovo = useQuestNovo();
   // O menu fecha no clique fora e no Esc, como o `.menu-midia` do protótipo.
   useEffect(() => {
     if (!menuExportar) return;
@@ -522,29 +418,6 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
     l.count,
   ]);
 
-  const filtros = (
-    <div className="filtros-stats" role="group" aria-label="Filtros">
-      <div className="seg" role="radiogroup" aria-label="Período">
-        {(
-          [
-            [7, '7 dias'],
-            [30, '30 dias'],
-            [90, '90 dias'],
-          ] as const
-        ).map(([v, r]) => (
-          <button key={v} type="button" role="radio" aria-checked={periodo === v} onClick={() => setPeriodo(v)}>
-            {r}
-          </button>
-        ))}
-      </div>
-      {dias && (
-        <span className="mut" style={{ fontSize: 12.5 }}>
-          {fmtD(dias[90 - periodo].d)} a {fmtD(dias[89].d)} de {dias[89].d.getFullYear()}
-        </span>
-      )}
-    </div>
-  );
-
   const exportarCsv = () => {
     if (!dias) return;
     const linhas = [
@@ -561,96 +434,27 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
     URL.revokeObjectURL(a.href);
   };
 
-  const cabecalho = (
-    <>
-      <CabecalhoDeTela
-        sobrancelha="Seu progresso"
-        icone={ChartColumn}
-        titulo="Estatísticas"
-        sub="Quanto você estudou, o que aprendeu e o que vem pela frente."
-        acoes={
-          /* "Exportar ▾" do protótipo com o que o app sabe gerar: os dados em CSV e a página
-             impressa (o navegador salva em PDF). Relatório por e-mail e imagem não existem aqui. */
-          <div className="linha" style={{ gap: 8, position: 'relative' }} data-exportar>
-            <button
-              type="button"
-              className="btn btn-outline"
-              aria-haspopup="menu"
-              aria-expanded={menuExportar}
-              disabled={!dias}
-              onClick={() => setMenuExportar((v) => !v)}
-            >
-              <Download aria-hidden /> Exportar <ChevronDown aria-hidden />
-            </button>
-            {menuExportar && (
-              <div className="menu-midia cartao" role="menu" style={{ top: 46 }}>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    setMenuExportar(false);
-                    window.setTimeout(() => window.print(), 50);
-                  }}
-                >
-                  <FileText aria-hidden />
-                  Imprimir ou salvar em PDF
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    setMenuExportar(false);
-                    exportarCsv();
-                  }}
-                >
-                  <Sheet aria-hidden />
-                  Dados em CSV
-                </button>
-              </div>
-            )}
-          </div>
-        }
-      />
-      {filtros}
-    </>
-  );
-
   const imprimir = () => window.setTimeout(() => window.print(), 50);
 
   if (!dias) {
-    if (questNovo)
-      return (
-        /* A CHAVE muda quando os dados chegam: o React monta um palco novo, e é isso que avisa a camada
-           de movimento de que o conteúdo de verdade chegou (`lib/polimento/telas.ts`, `chegou`). Com o
-           mesmo palco, a entrada da tela (título, números, abas, gráfico) nunca acontecia quando a
-           espera aparecia antes dos dados. */
-        <EstatisticasDoQuest
-          key="espera"
-          carregando
-          periodo={periodo}
-          aoTrocarPeriodo={setPeriodo}
-          intervalo={null}
-          kpis={[]}
-          paineis={[]}
-          semEstudo={false}
-          aoExportarCsv={exportarCsv}
-          aoImprimir={imprimir}
-          aoPraticar={() => onChangeView('play')}
-        />
-      );
     return (
-      <Tela largura="larga">
-        {cabecalho}
-        <div className="ladrilhos">
-          {Array.from({ length: 5 }, (_, i) => (
-            <div key={i} className="cartao ladrilho esqueleto" style={{ height: 118 }} />
-          ))}
-        </div>
-        <div className="g2 secao">
-          <div className="cartao esqueleto" style={{ height: 260 }} />
-          <div className="cartao esqueleto" style={{ height: 260 }} />
-        </div>
-      </Tela>
+      /* A CHAVE muda quando os dados chegam: o React monta um palco novo, e é isso que avisa a camada
+         de movimento de que o conteúdo de verdade chegou (`lib/polimento/telas.ts`, `chegou`). Com o
+         mesmo palco, a entrada da tela (título, números, abas, gráfico) nunca acontecia quando a
+         espera aparecia antes dos dados. */
+      <EstatisticasDoQuest
+        key="espera"
+        carregando
+        periodo={periodo}
+        aoTrocarPeriodo={setPeriodo}
+        intervalo={null}
+        kpis={[]}
+        paineis={[]}
+        semEstudo={false}
+        aoExportarCsv={exportarCsv}
+        aoImprimir={imprimir}
+        aoPraticar={() => onChangeView('play')}
+      />
     );
   }
 
@@ -729,249 +533,126 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
   const linhasDaPrevisao: (string | number)[][] = previsao.map((d) => [`${DIA_SEM[d.d.getDay()]}, ${fmtD(d.d)}`, d.n]);
   const linhasDosJogos: (string | number)[][] = acertoPorJogo.map(([r, v]) => [r, `${v}%`]);
 
-  if (questNovo) {
-    const paineis: PainelDoQuest[] = [
-      {
-        id: 'minutos',
-        Icone: Clock,
-        aba: t('Minutos'),
-        titulo: periodo === 90 ? t('Minutos por semana') : t('Minutos por dia'),
-        desc:
-          periodo === 90
-            ? t(
-                'A linha tracejada é a sua meta de {n} min por dia, vezes 7 na semana. Barras mais escuras bateram a meta.',
-                {
-                  n: metaMin,
-                },
-              )
-            : t('A linha tracejada é a sua meta de {n} min por dia. Barras mais escuras bateram a meta.', {
+  const paineis: PainelDoQuest[] = [
+    {
+      id: 'minutos',
+      Icone: Clock,
+      aba: t('Minutos'),
+      titulo: periodo === 90 ? t('Minutos por semana') : t('Minutos por dia'),
+      desc:
+        periodo === 90
+          ? t(
+              'A linha tracejada é a sua meta de {n} min por dia, vezes 7 na semana. Barras mais escuras bateram a meta.',
+              {
                 n: metaMin,
-              }),
-        grafico: (largura) => (
-          <GraficoDeBarras
-            rotuloDoGrafico="Minutos de estudo"
-            dados={agrupado}
-            rotulo={(d) => d.rotulo}
-            valor={(d) => d.min}
-            unidade="min"
-            meta={periodo === 90 ? metaMin * 7 : metaMin}
-            q={largura}
-          />
-        ),
-        cab: [t('Data'), t('Minutos')],
-        linhas: linhasDeMinutos,
-      },
-      {
-        id: 'vocab',
-        Icone: BookOpen,
-        aba: t('Palavras'),
-        titulo: t('Palavras no caderno'),
-        desc: t('O total acumulado. Cada degrau é um dia com palavras novas.'),
-        grafico: (largura) => <GraficoDeLinha dados={at} q={largura} />,
-        cab: [t('Data'), t('Total'), t('Novas')],
-        linhas: linhasDoCaderno,
-      },
-      {
-        id: 'calendario',
-        Icone: CalendarDays,
-        aba: t('Calendário'),
-        titulo: t('Calendário de atividade'),
-        desc: t('Últimas 12 semanas. Quanto mais escuro, mais minutos no dia.'),
-        grafico: () => <Calendario dias={dias} q />,
-        cab: [t('Data'), t('Minutos')],
-        linhas: linhasDoCalendario,
-      },
-      {
-        id: 'previsao',
-        Icone: CalendarClock,
-        aba: t('Revisões'),
-        titulo: t('Revisões nos próximos 7 dias'),
-        desc: t('Quantas palavras voltam para revisão em cada dia, pela repetição espaçada.'),
-        grafico: (largura) => (
-          <GraficoDeBarras
-            rotuloDoGrafico="Previsão de revisões"
-            dados={previsao}
-            rotulo={(d) => `${DIA_SEM[d.d.getDay()]} · ${fmtD(d.d)}`}
-            valor={(d) => d.n}
-            unidade="palavras"
-            q={largura}
-          />
-        ),
-        cab: [t('Dia'), t('Palavras')],
-        linhas: linhasDaPrevisao,
-        nota:
-          pico.n > 0
-            ? tp(
-                pico.n,
-                'Pico na {dia}: {n} palavra. Revisar um pouco antes suaviza a semana.',
-                'Pico na {dia}: {n} palavras. Revisar um pouco antes suaviza a semana.',
-                { dia: DIA_SEM[pico.d.getDay()] },
-              )
-            : undefined,
-      },
-      {
-        id: 'jogos',
-        Icone: Gamepad2,
-        aba: t('Jogos'),
-        titulo: t('Acerto por jogo'),
-        desc: t('Onde você vai melhor e onde vale praticar mais.'),
-        grafico: () => <BarrasHorizontais dados={acertoPorJogo} unidade="%" max={100} />,
-        vazio: acertoPorJogo.length ? undefined : t('Nenhuma rodada registrada ainda.'),
-        cab: [t('Jogo'), t('Acerto')],
-        linhas: linhasDosJogos,
-        nota: maisFraco ? t('Mais fraco: {jogo}.', { jogo: maisFraco[0] }) : undefined,
-        acao: maisFraco ? { rotulo: t('Praticar agora'), aoTocar: () => onChangeView('play') } : undefined,
-      },
-      {
-        id: 'niveis',
-        Icone: GraduationCap,
-        aba: t('Níveis'),
-        titulo: t('Palavras por nível'),
-        desc: t('Nível CEFR das palavras do seu caderno (estimativa quando fora da lista curada).'),
-        grafico: () => (
-          <BarrasHorizontais dados={porNivel} unidade="palavras" max={Math.max(...porNivel.map(([, n]) => n))} />
-        ),
-        vazio: porNivel.length ? undefined : t('Sem palavras no caderno ainda.'),
-        cab: [t('Nível'), t('Palavras')],
-        linhas: porNivel,
-      },
-      { id: 'meta', Icone: Target, aba: t('Meta'), conteudo: <MetaDeNivel metrics={metrics} /> },
-    ];
-    return (
-      <EstatisticasDoQuest
-        key="pronto"
-        carregando={false}
-        periodo={periodo}
-        aoTrocarPeriodo={setPeriodo}
-        intervalo={`${fmtD(dias[90 - periodo].d)} a ${fmtD(dias[89].d)} de ${dias[89].d.getFullYear()}`}
-        kpis={kpis.map(([Icone, rotulo, valor, variacao, sub, un]) => ({ Icone, rotulo, valor, variacao, sub, un }))}
-        paineis={paineis}
-        semEstudo={dias[89].total === 0 && dias.every((d) => d.respostas === 0)}
-        aoExportarCsv={exportarCsv}
-        aoImprimir={imprimir}
-        aoPraticar={() => onChangeView('play')}
-      />
-    );
-  }
-
+              },
+            )
+          : t('A linha tracejada é a sua meta de {n} min por dia. Barras mais escuras bateram a meta.', {
+              n: metaMin,
+            }),
+      grafico: (largura) => (
+        <GraficoDeBarras
+          rotuloDoGrafico="Minutos de estudo"
+          dados={agrupado}
+          rotulo={(d) => d.rotulo}
+          valor={(d) => d.min}
+          unidade="min"
+          meta={periodo === 90 ? metaMin * 7 : metaMin}
+          q={largura}
+        />
+      ),
+      cab: [t('Data'), t('Minutos')],
+      linhas: linhasDeMinutos,
+    },
+    {
+      id: 'vocab',
+      Icone: BookOpen,
+      aba: t('Palavras'),
+      titulo: t('Palavras no caderno'),
+      desc: t('O total acumulado. Cada degrau é um dia com palavras novas.'),
+      grafico: (largura) => <GraficoDeLinha dados={at} q={largura} />,
+      cab: [t('Data'), t('Total'), t('Novas')],
+      linhas: linhasDoCaderno,
+    },
+    {
+      id: 'calendario',
+      Icone: CalendarDays,
+      aba: t('Calendário'),
+      titulo: t('Calendário de atividade'),
+      desc: t('Últimas 12 semanas. Quanto mais escuro, mais minutos no dia.'),
+      grafico: () => <Calendario dias={dias} q />,
+      cab: [t('Data'), t('Minutos')],
+      linhas: linhasDoCalendario,
+    },
+    {
+      id: 'previsao',
+      Icone: CalendarClock,
+      aba: t('Revisões'),
+      titulo: t('Revisões nos próximos 7 dias'),
+      desc: t('Quantas palavras voltam para revisão em cada dia, pela repetição espaçada.'),
+      grafico: (largura) => (
+        <GraficoDeBarras
+          rotuloDoGrafico="Previsão de revisões"
+          dados={previsao}
+          rotulo={(d) => `${DIA_SEM[d.d.getDay()]} · ${fmtD(d.d)}`}
+          valor={(d) => d.n}
+          unidade="palavras"
+          q={largura}
+        />
+      ),
+      cab: [t('Dia'), t('Palavras')],
+      linhas: linhasDaPrevisao,
+      nota:
+        pico.n > 0
+          ? tp(
+              pico.n,
+              'Pico na {dia}: {n} palavra. Revisar um pouco antes suaviza a semana.',
+              'Pico na {dia}: {n} palavras. Revisar um pouco antes suaviza a semana.',
+              { dia: DIA_SEM[pico.d.getDay()] },
+            )
+          : undefined,
+    },
+    {
+      id: 'jogos',
+      Icone: Gamepad2,
+      aba: t('Jogos'),
+      titulo: t('Acerto por jogo'),
+      desc: t('Onde você vai melhor e onde vale praticar mais.'),
+      grafico: () => <BarrasHorizontais dados={acertoPorJogo} unidade="%" max={100} />,
+      vazio: acertoPorJogo.length ? undefined : t('Nenhuma rodada registrada ainda.'),
+      cab: [t('Jogo'), t('Acerto')],
+      linhas: linhasDosJogos,
+      nota: maisFraco ? t('Mais fraco: {jogo}.', { jogo: maisFraco[0] }) : undefined,
+      acao: maisFraco ? { rotulo: t('Praticar agora'), aoTocar: () => onChangeView('play') } : undefined,
+    },
+    {
+      id: 'niveis',
+      Icone: GraduationCap,
+      aba: t('Níveis'),
+      titulo: t('Palavras por nível'),
+      desc: t('Nível CEFR das palavras do seu caderno (estimativa quando fora da lista curada).'),
+      grafico: () => (
+        <BarrasHorizontais dados={porNivel} unidade="palavras" max={Math.max(...porNivel.map(([, n]) => n))} />
+      ),
+      vazio: porNivel.length ? undefined : t('Sem palavras no caderno ainda.'),
+      cab: [t('Nível'), t('Palavras')],
+      linhas: porNivel,
+    },
+    { id: 'meta', Icone: Target, aba: t('Meta'), conteudo: <MetaDeNivel metrics={metrics} /> },
+  ];
   return (
-    <Tela largura="larga">
-      {cabecalho}
-      <div className="ladrilhos kpis">
-        {kpis.map(([Icone, r, v, d, sub, un]) => (
-          <div key={r} className="cartao ladrilho kpi">
-            <span className="linha" style={{ gap: 8 }}>
-              <Icone aria-hidden style={{ width: 15, height: 15, color: 'var(--ink-muted)' }} />
-              <span className="label-mono">{r}</span>
-            </span>
-            <span className="v tn">{v}</span>
-            <small className="mut">{sub}</small>
-            <Variacao v={d} un={un} />
-          </div>
-        ))}
-      </div>
-
-      <div className="stats-grade">
-        <CartaoDeGrafico
-          id="minutos"
-          Icone={Clock}
-          titulo={periodo === 90 ? 'Minutos por semana' : 'Minutos por dia'}
-          desc={`A linha tracejada é a sua meta de ${metaMin} min${periodo === 90 ? ' por dia (×7 por semana)' : ''}. Barras mais escuras bateram a meta.`}
-          grafico={
-            <GraficoDeBarras
-              rotuloDoGrafico="Minutos de estudo"
-              dados={agrupado}
-              rotulo={(d) => d.rotulo}
-              valor={(d) => d.min}
-              unidade="min"
-              meta={periodo === 90 ? metaMin * 7 : metaMin}
-            />
-          }
-          tabela={<Tabela cab={['Data', 'Minutos']} linhas={linhasDeMinutos} />}
-        />
-        <CartaoDeGrafico
-          id="vocab"
-          Icone={BookOpen}
-          titulo="Palavras no caderno"
-          desc="O total acumulado. Cada degrau é um dia com palavras novas."
-          grafico={<GraficoDeLinha dados={at} />}
-          tabela={<Tabela cab={['Data', 'Total', 'Novas']} linhas={linhasDoCaderno} />}
-        />
-        <CartaoDeGrafico
-          id="calendario"
-          Icone={CalendarDays}
-          titulo="Calendário de atividade"
-          desc="Últimas 12 semanas. Quanto mais escuro, mais minutos no dia."
-          grafico={<Calendario dias={dias} />}
-          tabela={<Tabela cab={['Data', 'Minutos']} linhas={linhasDoCalendario} />}
-        />
-        <CartaoDeGrafico
-          id="previsao"
-          Icone={CalendarClock}
-          titulo="Revisões nos próximos 7 dias"
-          desc="Quantas palavras voltam para revisão em cada dia, pela repetição espaçada."
-          grafico={
-            <GraficoDeBarras
-              rotuloDoGrafico="Previsão de revisões"
-              dados={previsao}
-              rotulo={(d) => `${DIA_SEM[d.d.getDay()]} · ${fmtD(d.d)}`}
-              valor={(d) => d.n}
-              unidade="palavras"
-              altura={160}
-            />
-          }
-          tabela={<Tabela cab={['Dia', 'Palavras']} linhas={linhasDaPrevisao} />}
-          extra={
-            pico.n > 0 ? (
-              <p className="mut" style={{ fontSize: 12.5, marginTop: 8 }}>
-                <Info aria-hidden style={{ width: 13, height: 13, verticalAlign: -2 }} /> Pico na{' '}
-                {DIA_SEM[pico.d.getDay()]}: {pico.n} {pico.n === 1 ? 'palavra' : 'palavras'}. Revisar um pouco antes
-                suaviza a semana.
-              </p>
-            ) : undefined
-          }
-        />
-        <CartaoDeGrafico
-          id="jogos"
-          Icone={Gamepad2}
-          titulo="Acerto por jogo"
-          desc="Onde você vai melhor e onde vale praticar mais."
-          grafico={
-            acertoPorJogo.length ? (
-              <BarrasHorizontais dados={acertoPorJogo} unidade="%" max={100} />
-            ) : (
-              <p className="mut">Nenhuma rodada registrada ainda.</p>
-            )
-          }
-          tabela={<Tabela cab={['Jogo', 'Acerto']} linhas={linhasDosJogos} />}
-          extra={
-            maisFraco ? (
-              <p className="mut" style={{ fontSize: 12.5, marginTop: 10 }}>
-                Mais fraco: <b style={{ color: 'var(--ink)' }}>{maisFraco[0]}</b>.{' '}
-                <button type="button" className="link" onClick={() => onChangeView('play')}>
-                  Praticar agora
-                </button>
-              </p>
-            ) : undefined
-          }
-        />
-        <CartaoDeGrafico
-          id="niveis"
-          Icone={GraduationCap}
-          titulo="Palavras por nível"
-          desc="Nível CEFR das palavras do seu caderno (estimativa quando fora da lista curada)."
-          grafico={
-            porNivel.length ? (
-              <BarrasHorizontais dados={porNivel} unidade="palavras" max={Math.max(...porNivel.map(([, n]) => n))} />
-            ) : (
-              <p className="mut">Sem palavras no caderno ainda.</p>
-            )
-          }
-          tabela={<Tabela cab={['Nível', 'Palavras']} linhas={porNivel} />}
-        />
-      </div>
-
-      <MetaDeNivel metrics={metrics} />
-    </Tela>
+    <EstatisticasDoQuest
+      key="pronto"
+      carregando={false}
+      periodo={periodo}
+      aoTrocarPeriodo={setPeriodo}
+      intervalo={`${fmtD(dias[90 - periodo].d)} a ${fmtD(dias[89].d)} de ${dias[89].d.getFullYear()}`}
+      kpis={kpis.map(([Icone, rotulo, valor, variacao, sub, un]) => ({ Icone, rotulo, valor, variacao, sub, un }))}
+      paineis={paineis}
+      semEstudo={dias[89].total === 0 && dias.every((d) => d.respostas === 0)}
+      aoExportarCsv={exportarCsv}
+      aoImprimir={imprimir}
+      aoPraticar={() => onChangeView('play')}
+    />
   );
 }

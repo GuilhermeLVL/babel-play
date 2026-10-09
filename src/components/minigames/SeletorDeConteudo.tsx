@@ -1,10 +1,7 @@
-import { Check, ChevronRight, SlidersHorizontal as SlidersIcon, X } from 'lucide-react';
-import { type ReactNode, useId, useRef } from 'react';
+import { Check, ChevronRight, SlidersHorizontal as SlidersIcon } from 'lucide-react';
+import { type ReactNode } from 'react';
 
-import { useQuestNovo } from '../../lib/dispositivo/telaNovaDoQuest';
 import { numero, t, tp } from '../../lib/i18n';
-import { DialogoBase } from '../ui/Dialogo';
-import IconeEmBloco from '../ui/IconeEmBloco';
 import { fecharPainelDe, OpcoesDoQuest, PainelDoQuest } from '../views/play/quest/pecasDoQuest';
 
 /**
@@ -74,13 +71,7 @@ function SeletorDeConteudo({
   acoesBarra,
   soGaveta = false,
 }: SeletorDeConteudoProps) {
-  const idTitulo = useId();
-  const gaveta = useRef<HTMLDialogElement>(null);
   const facetasVisiveis = facetas.filter((f) => f.opcoes.length > 0);
-  /* Fechar pela gaveta (Esc nativo, "x", "Pronto") sempre passa pelo `close` do `<dialog>`, e é
-     ele que avisa a tela: um caminho só, sem o risco de alternar duas vezes. */
-  const fechar = () => gaveta.current?.close();
-  const questNovo = useQuestNovo();
 
   /* META QUEST: a mesma escolha, num painel que abre no centro (nada desliza pela lateral), com as
      opções em pílulas grandes e o motivo de cada opção travada ESCRITO (não há hover no headset). A
@@ -167,76 +158,7 @@ function SeletorDeConteudo({
         </section>
       )}
 
-      {aberta && questNovo && painelDoQuest()}
-      {aberta && !questNovo && (
-        <DialogoBase classe="gaveta" rotuloId={idTitulo} aoFechar={aoAlternar} refDialogo={gaveta}>
-          <div className="dlg-cab">
-            <IconeEmBloco icone={SlidersIcon} />
-            <div style={{ minWidth: 0 }}>
-              <h2 id={idTitulo}>{t('O que você vai praticar')}</h2>
-              <p className="mut" style={{ fontSize: 13 }}>
-                {t('A escolha fica salva para as próximas rodadas.')}
-              </p>
-            </div>
-            <button type="button" className="x" aria-label={t('Fechar')} onClick={fechar}>
-              <X aria-hidden />
-            </button>
-          </div>
-
-          <div className="gav-corpo pilha-g">
-            {facetasVisiveis.map((faceta) => (
-              <div key={faceta.id}>
-                <span className="label-mono">{faceta.rotulo}</span>
-                {faceta.ajuda && <p className="mut aj">{faceta.ajuda}</p>}
-                <div className="chips" role="group" aria-label={faceta.rotulo}>
-                  {faceta.opcoes.map((o) => {
-                    const ligado = faceta.valor.includes(o.id);
-                    const travado = !!o.motivoBloqueio && !ligado;
-                    return (
-                      <button
-                        key={o.id}
-                        type="button"
-                        className="pill"
-                        aria-pressed={ligado}
-                        disabled={travado}
-                        title={travado ? o.motivoBloqueio : undefined}
-                        onClick={() => faceta.aoTrocar(o.id)}
-                      >
-                        {o.icone}
-                        {o.rotulo}
-                        {o.contagem !== undefined && <span className="n">{numero(o.contagem)}</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-
-            {acoes && (
-              <div className="cartao p5 sutil">
-                <span className="label-mono">{t('Trazer ou gerenciar')}</span>
-                <div className="linha" style={{ gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                  {acoes}
-                </div>
-                {detalheDasAcoes}
-              </div>
-            )}
-          </div>
-
-          <div className="gav-pe">
-            <span className="tn" aria-live="polite">
-              <b>{numero(total)}</b> {t('no recorte')}
-              {avisoDeVazio && <span className="aviso-curto">{avisoDeVazio}</span>}
-            </span>
-            <button type="button" className="link" onClick={aoLimpar}>
-              {t('Limpar tudo')}
-            </button>
-            <button type="button" className="btn btn-solid" onClick={fechar}>
-              <Check aria-hidden /> {t('Pronto')}
-            </button>
-          </div>
-        </DialogoBase>
-      )}
+      {aberta && painelDoQuest()}
     </div>
   );
 }

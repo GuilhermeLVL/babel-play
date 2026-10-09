@@ -9,7 +9,6 @@ import {
   listarContas,
   type PapelDaConta,
 } from '../../../lib/admin';
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../lib/i18n';
 import { usePerfil } from '../../../lib/usePerfil';
 import { agir, type PedidoDeAcao } from './agir';
@@ -24,7 +23,6 @@ const nomeDoEstado = (s: string) => (s === 'active' ? t('ativa') : t('suspensa')
 
 /** Contas: lista com busca, e a conta escolhida com as ações (suspender, trocar o papel, conceder Premium). */
 export default function PainelContas({ aoPedirCodigo }: { aoPedirCodigo: () => void }) {
-  const questNovo = useQuestNovo();
   const contas = useCarga(listarContas, aoPedirCodigo);
   const [busca, setBusca] = useState('');
   const [escolhida, setEscolhida] = useState<string | null>(null);
@@ -56,17 +54,13 @@ export default function PainelContas({ aoPedirCodigo }: { aoPedirCodigo: () => v
           'As mais recentes primeiro (a rota devolve no máximo 200). O e-mail quase nunca está guardado: procure pelo id.',
         )}
       >
-        <label className={questNovo ? 'q-campo ad-busca' : 'ad-busca'}>
-          {questNovo ? (
-            <span>{t('Buscar por id ou nome')}</span>
-          ) : (
-            <span className="ad-rotulo">{t('Buscar por id ou nome')}</span>
-          )}
+        <label className="q-campo ad-busca">
+          <span>{t('Buscar por id ou nome')}</span>
           <span className="ad-busca-caixa">
             <Search aria-hidden />
             <input
               type="search"
-              className={questNovo ? '' : 'campo'}
+              className=""
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               placeholder={t('Cole o id da conta')}

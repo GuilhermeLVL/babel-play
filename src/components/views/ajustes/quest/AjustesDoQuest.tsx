@@ -9,12 +9,7 @@ import {
   VIBRACOES_DO_QUEST,
 } from '../../../../lib/dispositivo/preferenciasDoQuest';
 import type { ProvaDeVibracao } from '../../../../lib/dispositivo/respostaAoApontar';
-import {
-  definirDesenhoNovoNoComputador,
-  noComputador,
-  noHeadset,
-  useQuestNovo,
-} from '../../../../lib/dispositivo/telaNovaDoQuest';
+import { noHeadset } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../../../lib/edicaoEstatica';
 import { onPlanChange } from '../../../../lib/entitlements';
 import { idiomasAbaixoDoPiso, t } from '../../../../lib/i18n';
@@ -26,7 +21,7 @@ import { fraseDoPlanoNaConta, tituloDoPlanoNaConta, useAbasAVista } from '../../
 import { perfilProtegido } from '../../../../lib/protecaoDoMenor';
 import AiEnginePanel from '../../../AiEnginePanel';
 import LangPicker from '../../../LangPicker';
-import type { FontScale } from '../../../shell/ControlCluster';
+import type { FontScale } from '../../../shell/navItems';
 import { PainelDeAba } from '../../../ui';
 import LangAudit from '../../LangAudit';
 import AbaConta from '../AbaConta';
@@ -107,11 +102,8 @@ export default function AjustesDoQuest({
 }) {
   const vibracao = useVibracaoDoQuest();
   const [prova, setProva] = useState<ProvaDeVibracao | null>(null);
-  /* O aparelho não muda com a página aberta. No computador, esta tela só existe com o desenho novo
-     ligado: é o que `useQuestNovo()` diz, e o interruptor acompanha a troca na hora. */
+  /* O aparelho não muda com a página aberta. */
   const [headset] = useState(noHeadset);
-  const [computador] = useState(noComputador);
-  const desenhoNovo = useQuestNovo();
   const emAndamento = idiomasAbaixoDoPiso();
   const palco = useRef<HTMLDivElement>(null);
   useAbasAVista(palco, aba);
@@ -330,27 +322,6 @@ export default function AjustesDoQuest({
                 onClick={togglePerformanceMode}
               />
             </div>
-
-            {/* Só no computador: lá o desenho novo é escolha da pessoa (no headset a chave mora em
-                `/diagnostico`). Desligar devolve a tela de sempre na hora, nesta mesma aba. */}
-            {computador && (
-              <div className="q-ajuste" data-testid="desenho-novo">
-                <div>
-                  <b>{t('Desenho novo')}</b>
-                  <small>
-                    {t('A interface limpa que nasceu no headset, agora no computador. Dá para voltar quando quiser.')}
-                  </small>
-                </div>
-                <button
-                  type="button"
-                  className="q-interruptor"
-                  role="switch"
-                  aria-checked={desenhoNovo}
-                  aria-label={t('Desenho novo')}
-                  onClick={() => definirDesenhoNovoNoComputador(!desenhoNovo)}
-                />
-              </div>
-            )}
 
             {/* Só no headset: o pulso do controle quando o raio chega a um alvo (`respostaAoApontar.ts`).
                 Com mouse não há controle para vibrar, e a linha não aparece. */}

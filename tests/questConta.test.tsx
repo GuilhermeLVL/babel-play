@@ -230,15 +230,6 @@ describe('Perfil no Quest: a casca', () => {
     fireEvent.keyDown(aba('Você'), { key: 'ArrowRight' })
     expect(aba('Progresso').getAttribute('aria-selected')).toBe('true')
   })
-
-  it('fora do Quest, a tela de sempre', async () => {
-    quest.ligado = false
-    const { container } = render(<Perfil progress={progresso} ageProfile={'adult' as never} />)
-    await aguardar()
-    expect(container.querySelector('.q-palco')).toBeNull()
-    expect(container.querySelector('.tela')).not.toBeNull()
-    expect(container.querySelector('.barra-salvar')).not.toBeNull()
-  })
 })
 
 describe('Perfil no Quest: Você', () => {
@@ -393,14 +384,6 @@ describe('Planos no Quest: a aba Planos', () => {
     await aguardar()
     fireEvent.click(within(cartao('premium')).getByRole('button', { name: 'Entrar e assinar o Premium' }))
     expect(aoEntrar).toHaveBeenCalledTimes(1)
-  })
-
-  it('fora do Quest, a tela de sempre', async () => {
-    quest.ligado = false
-    const { container } = await abrirPlanos()
-    expect(container.querySelector('.q-palco')).toBeNull()
-    expect(container.querySelector('.tela')).not.toBeNull()
-    expect(container.querySelector('.plano2')).not.toBeNull()
   })
 })
 
@@ -582,14 +565,6 @@ describe('Checkout no Quest', () => {
     montarCheckout({ status: { configurado: true, assinatura: null, teste: { estado: 'disponivel', dias: 14 } } })
     await aguardar()
     expect(botao(/Testar 14 dias grátis/).className).toContain('q-ctl')
-  })
-
-  it('fora do Quest, o checkout de sempre', async () => {
-    quest.ligado = false
-    const { container } = montarCheckout()
-    await aguardar()
-    expect(container.querySelector('.q-palco')).toBeNull()
-    expect(container.querySelector('.checkout-grade')).not.toBeNull()
   })
 })
 

@@ -191,6 +191,23 @@ describe('falar e receber a nota de verdade', () => {
   })
 })
 
+/* Garantia que veio de `tests/karaokeGame.test.tsx` (a tela de antes): rodada sem avaliação não vira erro. */
+describe('seguir sem falar', () => {
+  it('pular todas as falas: um resultado por fala, como desistência, uma vez só', () => {
+    montar()
+    pular()
+    pular()
+    /* A rodada já encerrou: um toque a mais não pode acrescentar nada. */
+    const depois = q('[data-pj="pular"]')
+    if (depois) fireEvent.click(depois)
+    esperar(900)
+    expect(feito()?.items.map((o) => [o.itemRef, o.correct, !!o.revealed])).toEqual([
+      ['k1', false, true],
+      ['k2', false, true],
+    ])
+  })
+})
+
 describe('sem reconhecimento de fala', () => {
   it('o botão de falar não aparece e a tela diz por quê; ouvir e seguir continuam', () => {
     delete global.webkitSpeechRecognition

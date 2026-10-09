@@ -1,17 +1,15 @@
 import type { ItemOutcome, MinigameId } from '@core';
 import { pontuarRodada } from '@core';
-import { CircleHelp, Flame, type LucideIcon } from 'lucide-react';
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useId, useRef, useState } from 'react';
+import { Flame, type LucideIcon } from 'lucide-react';
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 
-import { SEQUENCIA_FEVER } from '../../../core/minigames/blitzRegras';
 import { multiplicador } from '../../../core/minigames/grade';
 import { pontosComBonus } from '../../../core/minigames/regras';
 import { celebrar } from '../../../lib/comemoracao';
 /* Direto do arquivo, e não do índice: a constante não tem DOM nem áudio. */
 import { EVENTO_DA_JOGADA } from '../../../lib/comemoracao/intensidade';
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
-import { t } from '../../../lib/i18n';
-import { contarAte, tremor } from '../../../lib/juice';
+import { eventosCondicionais } from '../../../lib/eventosDeJogo';
+import { executarEfeito } from '../../../lib/juice';
 import { contar, MOLA, polido } from '../../../lib/polimento/base';
 import {
   chamarAjuda,
@@ -33,38 +31,10 @@ import { useRodada } from './CascaDaRodada';
  * tela já somava, a sequência que ela já contava e o quanto da rodada já andou.
  */
 
-/**
- * O nome da sequência, na régua do protótipo (`rotuloSeq`). "FEVER" só para o jogo que TEM a
- * mecânica (o Duelo, onde a partir da sequência 10 o multiplicador dobra): nos outros o nome dizia
- * um modo que não existe, e a sequência longa continua "em chamas".
- */
-/** Depois de quantos erros seguidos as ajudas se anunciam. */
-export const ERROS_ATE_O_SOCORRO = 2;
 /** Quanto o aviso do acerto e os pontos novos esperam um pelo outro, em ms. */
 const ESPERA_DO_GANHO = 400;
 /** O elemento que o motor do app pôs para tremer agora (`tremor`, em `lib/juice`). */
 const TREMENDO = '.palco-jogo [data-tremendo="1"], .palco-jogo[data-tremendo="1"]';
-
-function rotuloDaSequencia(seq: number, comFever: boolean): string {
-  return comFever && seq >= SEQUENCIA_FEVER
-    ? 'FEVER'
-    : seq >= 6
-      ? 'em chamas'
-      : seq >= 4
-        ? 'embalou'
-        : seq >= 3
-          ? 'combo'
-          : 'sequência';
-}
-
-/**
- * O QUE CADA AJUDA FAZ, POR ESCRITO (Meta Quest). No computador o efeito e o preço de uma ajuda moram
- * na dica que aparece ao parar o ponteiro (`title`); no headset não há hover. Cada `BotaoDeAjuda` conta
- * ao placar o que faz, e o placar ganha um "?" que abre a lista. Fora do headset o registro é `null` e
- * nada muda.
- */
-type RegistroDeAjuda = (id: string, ajuda: { rotulo: string; nota: string } | null) => void;
-const AjudasDoPlacar = createContext<RegistroDeAjuda | null>(null);
 
 interface HudDaRodadaProps {
   pontos: number;
@@ -89,8 +59,6 @@ interface HudDaRodadaProps {
   ajudas?: ReactNode;
   /** Multiplicador mostrado, quando o jogo tem um próprio (o FEVER do Duelo dobra). */
   mult?: number;
-  /** O jogo tem a mecânica FEVER (só o Duelo). Sem isto o HUD não fala em FEVER. */
-  comFever?: boolean;
   /** `data-tour` do tempo, quando o tour do jogo aponta para o relógio. */
   tourDoTempo?: string;
   /** `data-tour` do placar inteiro, quando o tour do jogo aponta para ele. */
@@ -108,21 +76,28 @@ export default function HudDaRodada({
   pouco,
   ajudas,
   mult: multDoJogo,
-  comFever = false,
   tourDoTempo,
   tour,
 }: HudDaRodadaProps) {
   const { placar, jogo, nivel } = useRodada();
-  const questNovo = useQuestNovo();
-  /* No desenho novo o placar mostra o bônus do Difícil: 5 pontos a mais por acerto (`jogos4.js:117-122`).
+  /* O placar mostra o bônus do Difícil: 5 pontos a mais por acerto (`jogos4.js:117-122`).
      O jogo continua mandando os pontos de base; quem soma é a casca (`core/minigames/regras.ts`). */
-  const mostrados = questNovo && jogo && nivel ? pontosComBonus(jogo, nivel, pontos, acertos) : pontos;
+  const mostrados = jogo && nivel ? pontosComBonus(jogo, nivel, pontos, acertos) : pontos;
   placar.current = { pontos: mostrados, acertos };
   const ptsRef = useRef<HTMLElement | null>(null);
   const anterior = useRef(mostrados);
   const comboRef = useRef<HTMLSpanElement | null>(null);
   const ajudasRef = useRef<HTMLDivElement | null>(null);
   const mult = multDoJogo ?? multiplicador(sequencia);
+  /* OS EVENTOS DA SEQUÊNCIA (5, 10 e 15 acertos seguidos): antes cada tabuleiro os soltava; com os
+     tabuleiros do protótipo quem sabe da sequência é o placar. Sem isto a conquista "Colecionador"
+     (ver todos os eventos) deixava de ser alcançável jogando. */
+  const sequenciaDeAntes = useRef(sequencia);
+  useEffect(() => {
+    const subiu = sequencia > sequenciaDeAntes.current;
+    sequenciaDeAntes.current = sequencia;
+    if (subiu) for (const ev of eventosCondicionais({ combo: sequencia, fever: false })) executarEfeito(ev);
+  }, [sequencia]);
   const multAnterior = useRef(mult);
   const multAgora = useRef(mult);
   multAgora.current = mult;
@@ -138,10 +113,6 @@ export default function HudDaRodada({
     const de = anterior.current;
     anterior.current = mostrados;
     if (de === mostrados) return;
-    if (!questNovo) {
-      void contarAte(ptsRef.current, mostrados, { de, dur: 350 });
-      return;
-    }
     /* `pjHud`, `jogos.js:176`: 420 ms na curva cúbica de `contar`. */
     const el = ptsRef.current;
     if (el) {
@@ -155,7 +126,6 @@ export default function HudDaRodada({
     acertoAEspera.current = null;
     if (acerto && agora <= acerto.ate) flutuar(acerto.el, textoDoGanho(ganho, multAgora.current), 'good');
     else ganhoAEspera.current = { valor: ganho, ate: agora + ESPERA_DO_GANHO };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- só a mudança dos pontos interessa
   }, [mostrados]);
   /* O multiplicador SUBIU de degrau: é o evento `combo` do motor de comemoração, disparado aqui —
      o único lugar que vê o multiplicador de todos os jogos — em vez de cada jogo repetir a conta.
@@ -166,35 +136,13 @@ export default function HudDaRodada({
     multAnterior.current = mult;
     if (mult > antes && mult > 1) {
       celebrar({ tipo: 'combo', multiplicador: mult, el: comboRef.current });
-      if (questNovo) retornoDeCombo(mult, comboRef.current, MOLA);
-    } else if (mult !== antes && !questNovo) tremor(comboRef.current, 3);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- só a mudança do multiplicador interessa
+      retornoDeCombo(mult, comboRef.current, MOLA);
+    }
   }, [mult]);
 
-  /* META QUEST: as ajudas se apresentam aqui, e o "?" abre o que cada uma faz e o que custa. */
-  const [notasDasAjudas, setNotasDasAjudas] = useState<Record<string, { rotulo: string; nota: string }>>({});
-  const [ajudasExplicadas, setAjudasExplicadas] = useState(false);
-  const registrarAjuda = useCallback<RegistroDeAjuda>((id, ajuda) => {
-    setNotasDasAjudas((antes) => {
-      const atual = antes[id];
-      if (!ajuda) {
-        if (!atual) return antes;
-        const semEla = { ...antes };
-        delete semEla[id];
-        return semEla;
-      }
-      if (atual && atual.rotulo === ajuda.rotulo && atual.nota === ajuda.nota) return antes;
-      return { ...antes, [id]: ajuda };
-    });
-  }, []);
-  const ajudasComNota = Object.entries(notasDasAjudas);
-
-  /* DOIS ERROS SEGUIDOS: as ajudas que ainda dá para usar se anunciam (`data-socorro`, o pulso mora em
-     `styles/questMovimento.css`). Elas ficam no canto e quem está errando é justamente quem não olhou
-     para lá. O acerto ou o uso de uma ajuda apaga o aviso. Quem conta é o motor de comemoração, que
-     todo jogo já chama a cada acerto e a cada erro. */
+  /* ERROS SEGUIDOS: quem conta é o motor de comemoração, que todo jogo já chama a cada acerto e a cada
+     erro. O acerto zera a conta. */
   const errosSeguidos = useRef(0);
-  const [socorro, setSocorro] = useState(false);
   useEffect(() => {
     const aoJogar = (e: Event) => {
       /* O aviso diz só "acerto" ou "erro"; quando trouxer também o elemento da jogada, ele é usado. */
@@ -202,10 +150,6 @@ export default function HudDaRodada({
       const tipo = typeof detalhe === 'string' ? detalhe : detalhe?.tipo;
       const el = typeof detalhe === 'string' ? null : (detalhe?.el ?? null);
       errosSeguidos.current = tipo === 'erro' ? errosSeguidos.current + 1 : 0;
-      if (!questNovo) {
-        setSocorro(errosSeguidos.current >= ERROS_ATE_O_SOCORRO);
-        return;
-      }
       /* O RETORNO DO PROTÓTIPO (`pjAcerto` e `pjErro`, `jogos.js:224-250`; `jogos4.js:117-137`). */
       if (tipo === 'acerto') {
         vinheta('acerto');
@@ -228,11 +172,7 @@ export default function HudDaRodada({
     };
     window.addEventListener(EVENTO_DA_JOGADA, aoJogar);
     return () => window.removeEventListener(EVENTO_DA_JOGADA, aoJogar);
-  }, [questNovo]);
-  const socorroAtendido = () => {
-    errosSeguidos.current = 0;
-    setSocorro(false);
-  };
+  }, []);
   /* No protótipo só o "+10 s" e o "Ver resposta" zeram a conta dos erros seguidos (`jogos4.js:178`). */
   const ajudaGeralUsada = (e: React.MouseEvent) => {
     if ((e.target as Element).closest?.('[data-ajuda="tempo"], [data-ajuda="resposta"]')) errosSeguidos.current = 0;
@@ -240,131 +180,58 @@ export default function HudDaRodada({
 
   const pct = Math.round(Math.max(0, Math.min(1, progresso)) * 100);
   const comTempo = tempo !== undefined;
-  /* O PLACAR DO PROTÓTIPO (desenho novo), `cascaDaPartida` em `jogos.js:131-138`: rótulo e relógio numa
-     linha, a barra da rodada e, nos jogos com relógio, a barra do tempo logo abaixo. */
-  if (questNovo) {
-    const daRodada = Math.round(Math.max(0, Math.min(1, comTempo ? (feito ?? 0) : progresso)) * 100);
-    return (
-      <div className="hud" role="group" aria-label="Placar da rodada" data-tour={tour}>
-        <div className="hud-bloco">
-          <small>Pontos</small>
-          <b ref={ptsRef} className="tn" data-pj="pontos">
-            {mostrados}
-          </b>
-        </div>
-        <div>
-          <div className="entre" style={{ fontSize: 12, marginBottom: 5 }}>
-            <span className="mut" data-pj="rotulo">
-              {rotulo}
-            </span>
-            {comTempo && (
-              <span data-pj="relogio" data-tour={tourDoTempo}>
-                {Math.ceil(tempo)}s
-              </span>
-            )}
-          </div>
-          <div
-            className="hud-progresso pj-progresso"
-            role="progressbar"
-            aria-label="Progresso da rodada"
-            aria-valuenow={daRodada}
-            aria-valuemax={100}
-          >
-            <span style={{ width: `${daRodada}%` }} />
-          </div>
-          {comTempo && (
-            <div className={`hud-progresso hud-tempo${pouco ? ' pouco' : ''}`}>
-              <span style={{ width: `${pct}%` }} />
-            </div>
-          )}
-        </div>
-        <div ref={ajudasRef} className="hud-ajudas" onClickCapture={ajudaGeralUsada}>
-          {ajudas}
-        </div>
-        <span
-          ref={comboRef}
-          className={`combo ${mult > 1 ? 'quente' : ''}`}
-          aria-label={`Multiplicador ${mult}, ${sequencia} seguidas`}
-        >
-          {/* A ordem e o `em` sempre presente são os de `pjHud` (`jogos.js:188`). */}
-          <small>×</small>
-          {mult}
-          <em>{sequencia > 1 ? `${sequencia} seguidas` : ''}</em>
-          {mult > 1 && <Flame className="combo-chama" aria-hidden />}
-        </span>
-      </div>
-    );
-  }
-
-  const linhaDoPlacar = (
+  /* O PLACAR DO PROTÓTIPO, `cascaDaPartida` em `jogos.js:131-138`: rótulo e relógio numa linha, a barra
+     da rodada e, nos jogos com relógio, a barra do tempo logo abaixo. */
+  const daRodada = Math.round(Math.max(0, Math.min(1, comTempo ? (feito ?? 0) : progresso)) * 100);
+  return (
     <div className="hud" role="group" aria-label="Placar da rodada" data-tour={tour}>
       <div className="hud-bloco">
         <small>Pontos</small>
-        <b ref={ptsRef} className="tn">
-          {pontos}
+        <b ref={ptsRef} className="tn" data-pj="pontos">
+          {mostrados}
         </b>
       </div>
       <div>
         <div className="entre" style={{ fontSize: 12, marginBottom: 5 }}>
-          <span className="mut">{rotulo}</span>
+          <span className="mut" data-pj="rotulo">
+            {rotulo}
+          </span>
           {comTempo && (
-            <span className="tn mut" data-tour={tourDoTempo}>
-              {Math.ceil(tempo)} s
+            <span data-pj="relogio" data-tour={tourDoTempo}>
+              {Math.ceil(tempo)}s
             </span>
           )}
         </div>
         <div
-          className={`hud-progresso ${comTempo ? 'hud-tempo' : ''} ${pouco ? 'pouco' : ''}`}
+          className="hud-progresso pj-progresso"
           role="progressbar"
-          aria-label={comTempo ? 'Tempo restante' : 'Progresso da rodada'}
-          aria-valuenow={pct}
+          aria-label="Progresso da rodada"
+          aria-valuenow={daRodada}
           aria-valuemax={100}
         >
-          <span style={{ width: `${pct}%` }} />
+          <span style={{ width: `${daRodada}%` }} />
         </div>
-      </div>
-      <div className="hud-ajudas" data-socorro={socorro || undefined} onClickCapture={socorroAtendido}>
-        <AjudasDoPlacar.Provider value={questNovo ? registrarAjuda : null}>{ajudas}</AjudasDoPlacar.Provider>
-        {questNovo && ajudasComNota.length > 0 && (
-          <button
-            type="button"
-            className="btn btn-outline peq ajuda-jogo"
-            aria-expanded={ajudasExplicadas}
-            aria-label={t('O que cada ajuda faz')}
-            data-ajudas="porque"
-            onClick={() => setAjudasExplicadas((v) => !v)}
-          >
-            <CircleHelp aria-hidden />
-          </button>
+        {comTempo && (
+          <div className={`hud-progresso hud-tempo${pouco ? ' pouco' : ''}`}>
+            <span style={{ width: `${pct}%` }} />
+          </div>
         )}
+      </div>
+      <div ref={ajudasRef} className="hud-ajudas" onClickCapture={ajudaGeralUsada}>
+        {ajudas}
       </div>
       <span
         ref={comboRef}
         className={`combo ${mult > 1 ? 'quente' : ''}`}
         aria-label={`Multiplicador ${mult}, ${sequencia} seguidas`}
       >
-        {/* A chama da sequência quente: ícone lucide, e não emoji (sem emoji na interface). */}
-        {mult > 1 && <Flame className="combo-chama" aria-hidden />}
+        {/* A ordem e o `em` sempre presente são os de `pjHud` (`jogos.js:188`). */}
         <small>×</small>
         {mult}
-        <em>{sequencia ? `${sequencia} ${rotuloDaSequencia(sequencia, comFever)}` : ''}</em>
+        <em>{sequencia > 1 ? `${sequencia} seguidas` : ''}</em>
+        {mult > 1 && <Flame className="combo-chama" aria-hidden />}
       </span>
     </div>
-  );
-  if (!questNovo) return linhaDoPlacar;
-  return (
-    <>
-      {linhaDoPlacar}
-      {ajudasExplicadas && ajudasComNota.length > 0 && (
-        <ul className="qj-ajudas-notas" aria-label={t('O que cada ajuda faz')}>
-          {ajudasComNota.map(([id, ajuda]) => (
-            <li key={id}>
-              <b>{ajuda.rotulo}:</b> {ajuda.nota}
-            </li>
-          ))}
-        </ul>
-      )}
-    </>
   );
 }
 
@@ -401,7 +268,6 @@ export function BotaoDeAjuda({
   disabled,
   onClick,
   title,
-  custo,
   ...resto
 }: {
   icone: LucideIcon;
@@ -410,20 +276,9 @@ export function BotaoDeAjuda({
   disabled?: boolean;
   onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
   title?: string;
-  /** O preço da ajuda ("limita a nota"), quando o `title` não o diz. Só o headset o escreve. */
-  custo?: string;
   'data-tour'?: string;
   'data-ajuda'?: string;
 }) {
-  /* No headset o efeito e o preço vão para a lista do "?" do placar (não há hover para o `title`). */
-  const registrar = useContext(AjudasDoPlacar);
-  const id = useId();
-  const nota = [title && title !== rotulo ? title : null, custo].filter(Boolean).join(' · ');
-  useEffect(() => {
-    if (!registrar || !nota) return;
-    registrar(id, { rotulo, nota });
-    return () => registrar(id, null);
-  }, [registrar, id, rotulo, nota]);
   return (
     <button
       type="button"

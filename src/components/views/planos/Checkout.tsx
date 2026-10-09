@@ -42,13 +42,11 @@ import {
   type StatusDeBilling,
   temAssinatura,
 } from '../../../lib/assinatura';
-import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { carregarEntitlements, type Plan } from '../../../lib/entitlements';
 import { t } from '../../../lib/i18n';
 import { registrarCheckoutIniciado } from '../../../lib/ofertas/instrumentacao';
 import { estadoDaProtecao } from '../../../lib/protecaoDoMenor';
 import { T } from '../../../lib/T';
-import { CabecalhoDeTela, IconeEmBloco, Tela } from '../../ui';
 import { irSub, PLANO_ICO, PLANO_NOME } from './dados';
 import Etapas, { rolarAoTopo } from './Etapas';
 import { entrarParaAssinar, useAnualAVenda, useSemConta, useVendaAberta } from './funil';
@@ -142,11 +140,9 @@ function TesteDoPremium({ teste, beneficiario }: { teste?: SituacaoDoTeste; bene
   const [ocupado, setOcupado] = useState(false);
   const [feito, setFeito] = useState<number | null>(null);
   const [erro, setErro] = useState('');
-  const questNovo = useQuestNovo();
   if (!teste) return null;
   const dias = teste.dias;
-  /* QUEST: o mesmo aviso e o mesmo botão, nas peças do headset (só a classe muda). */
-  const aviso = questNovo ? { className: 'q-aviso' } : { className: 'aviso-info', style: { marginBottom: 12 } };
+  const aviso = { className: 'q-aviso' };
 
   const comecar = async () => {
     setOcupado(true);
@@ -199,9 +195,9 @@ function TesteDoPremium({ teste, beneficiario }: { teste?: SituacaoDoTeste; bene
   if (!beneficiario && teste.estado !== 'disponivel') return null;
 
   return (
-    <div {...(questNovo ? aviso : { className: 'aviso-info', style: { marginBottom: 12, flexWrap: 'wrap' as const } })}>
+    <div {...aviso}>
       <Hourglass aria-hidden />
-      <span style={questNovo ? undefined : { flex: 1, minWidth: 200 }}>
+      <span>
         {beneficiario
           ? t(
               'Teste o Premium na conta de {nome} por {dias} dias, sem cartão. No fim ela volta ao Grátis: nada é cobrado.',
@@ -217,22 +213,13 @@ function TesteDoPremium({ teste, beneficiario }: { teste?: SituacaoDoTeste; bene
               },
             )}
         {erro && (
-          <small
-            className={questNovo ? 'qc-erro-miudo' : 'erro'}
-            role="alert"
-            style={questNovo ? undefined : { display: 'block', marginTop: 6 }}
-          >
+          <small className="qc-erro-miudo" role="alert">
             <CircleAlert aria-hidden /> {erro}
           </small>
         )}
       </span>
-      <button
-        type="button"
-        className={questNovo ? 'q-ctl' : 'btn btn-outline'}
-        onClick={() => void comecar()}
-        disabled={ocupado}
-      >
-        {ocupado ? <LoaderCircle className={questNovo ? 'qc-gira' : 'gira'} aria-hidden /> : <Hourglass aria-hidden />}{' '}
+      <button type="button" className="q-ctl" onClick={() => void comecar()} disabled={ocupado}>
+        {ocupado ? <LoaderCircle className="qc-gira" aria-hidden /> : <Hourglass aria-hidden />}{' '}
         {beneficiario
           ? t('Ativar o teste de {dias} dias para {nome}', {
               dias,
@@ -345,7 +332,6 @@ export default function Checkout({
   const [erroIdade, setErroIdade] = useState('');
   const [protecao, setProtecao] = useState(estadoDaProtecao);
   const campoDaIdade = useRef<HTMLInputElement>(null);
-  const questNovo = useQuestNovo();
   useEffect(() => {
     if (pedirIdade) campoDaIdade.current?.focus();
   }, [pedirIdade]);
@@ -473,11 +459,20 @@ export default function Checkout({
     registrarCheckoutIniciado(plano);
   };
 
-  const campo = (k: Campo, rotulo: string, ph: string, extra: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
-    <div className={`form-l ${erros[k] ? 'com-erro' : ''}`}>
+  /* ── QUEST ─────────────────────────────────────────────────────────────────────────────────────
+     Os mesmos dois passos e o mesmo resumo, no desenho do headset: cada escolha é um cartão-alvo, os
+     campos têm 60 px (o teclado do sistema sobe no foco) e há UM botão principal por passo. Nada de
+     cobrança muda: `pagar`, `irPasso`, a espera pela confirmação e as recusas são os de cima. */
+  const campoDoQuest = (
+    k: Campo,
+    rotulo: string,
+    ph: string,
+    extra: React.InputHTMLAttributes<HTMLInputElement> = {},
+    inteiro = false,
+  ) => (
+    <div className={inteiro ? 'q-campo qc-inteiro' : 'q-campo'}>
       <label htmlFor={`co-${k}`}>{rotulo}</label>
       <input
-        className="campo"
         id={`co-${k}`}
         placeholder={ph}
         value={campos[k]}
@@ -487,192 +482,198 @@ export default function Checkout({
         {...extra}
       />
       {erros[k] && (
-        <small className="erro" id={`e-${k}`}>
+        <small className="qc-campo-erro" id={`e-${k}`}>
           <CircleAlert aria-hidden /> {erros[k]}
         </small>
       )}
     </div>
   );
 
-  const passo1 = (
-    <section className="cartao p6">
+  const passo1DoQuest = (
+    <section className="q-cartao" aria-label={t('Plano e período')}>
       <TesteDoPremium teste={status?.teste} beneficiario={beneficiario} />
-      <fieldset className="escolha">
-        <legend className="label-mono">{t('Plano')}</legend>
-        <div className="opcoes">
-          {PLANOS_PAGOS.map((id) => (
-            <button
-              key={id}
-              type="button"
-              className={`cartao opcao ${plano === id ? 'sel' : ''}`}
-              aria-pressed={plano === id}
-              onClick={() => aoTrocarPlano(id)}
-            >
-              <span className="radio" aria-hidden />
-              <IconeEmBloco icone={PLANO_ICO[id]} />
-              <span style={{ flex: 1 }}>
-                <h3>{PLANO_NOME[id]}</h3>
-                {/* O "sem limite" com a nota do uso justo AO LADO (CDC), o dia e o mês das quotas. */}
-                <p>
-                  {t(
-                    'Tradução Nuance e nuvem sem limite no dia a dia (uso justo: até {dia} h de nuvem por dia e {mes} h por mês; passando disso, a legenda segue no aparelho)',
-                    {
-                      dia: horasDoUsoJusto(id) ?? 0,
-                      mes: horasDeTranscricao(id) ?? 0,
-                    },
-                  )}
-                </p>
-              </span>
-              <b className="tn">
-                {forma === 'mensal' ? brl(precoMensal(id)) : brl(precoAnual(id))}
-                <small className="mut">{forma === 'mensal' ? t('/mês') : t('/ano')}</small>
-              </b>
-            </button>
-          ))}
-        </div>
-      </fieldset>
-      <fieldset className="escolha">
-        <legend className="label-mono">{t('Como você quer pagar')}</legend>
-        <div className="opcoes">
-          {formas.map((f) => {
-            const x = textosDaForma(plano, f);
+      <fieldset className="qc-escolha">
+        <legend>{t('Plano')}</legend>
+        <div className="qc-opcoes">
+          {PLANOS_PAGOS.map((id) => {
+            const IconeDoPlano = PLANO_ICO[id];
             return (
               <button
-                key={f}
+                key={id}
                 type="button"
-                className={`cartao opcao ${forma === f ? 'sel' : ''}`}
-                aria-pressed={forma === f}
-                onClick={() => setForma(f)}
+                className="qc-opcao"
+                aria-pressed={plano === id}
+                onClick={() => aoTrocarPlano(id)}
               >
-                <span className="radio" aria-hidden />
-                <span style={{ flex: 1 }}>
-                  <h3>
-                    {x.titulo}{' '}
-                    {f !== 'mensal' && (
-                      <span className="badge ok">
-                        {t('equivale a {n} meses grátis', { n: economiaDoAnual(plano).meses })}
-                      </span>
+                <span className="qc-bolinha" aria-hidden />
+                <span className="q-ic">
+                  <IconeDoPlano aria-hidden />
+                </span>
+                <span>
+                  <b>{PLANO_NOME[id]}</b>
+                  {/* O "sem limite" com a nota do uso justo AO LADO (CDC), o dia e o mês das quotas. */}
+                  <small>
+                    {t(
+                      'Tradução Nuance e nuvem sem limite no dia a dia (uso justo: até {dia} h de nuvem por dia e {mes} h por mês; passando disso, a legenda segue no aparelho)',
+                      {
+                        dia: horasDoUsoJusto(id) ?? 0,
+                        mes: horasDeTranscricao(id) ?? 0,
+                      },
                     )}
-                  </h3>
-                  <p>{x.descricao}</p>
+                  </small>
+                </span>
+                <span className="qc-valor">
+                  {forma === 'mensal' ? brl(precoMensal(id)) : brl(precoAnual(id))}
+                  <small>{forma === 'mensal' ? t('/mês') : t('/ano')}</small>
                 </span>
               </button>
             );
           })}
         </div>
       </fieldset>
-      <div className="linha" style={{ justifyContent: 'flex-end', marginTop: 8 }}>
-        <button type="button" className="btn btn-solid" onClick={() => irPasso(2)}>
-          <ArrowRight aria-hidden /> {t('Ir para o pagamento')}
+      <fieldset className="qc-escolha">
+        <legend>{t('Como você quer pagar')}</legend>
+        <div className="qc-opcoes">
+          {formas.map((f) => {
+            const x = textosDaForma(plano, f);
+            return (
+              <button key={f} type="button" className="qc-opcao" aria-pressed={forma === f} onClick={() => setForma(f)}>
+                <span className="qc-bolinha" aria-hidden />
+                <span>
+                  <b>
+                    {x.titulo}
+                    {f !== 'mensal' && (
+                      <span className="q-tag qc-bom">
+                        {t('equivale a {n} meses grátis', { n: economiaDoAnual(plano).meses })}
+                      </span>
+                    )}
+                  </b>
+                  <small>{x.descricao}</small>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+      <div className="qc-pe">
+        <button type="button" className="q-ctl pri" onClick={() => irPasso(2)}>
+          {t('Ir para o pagamento')} <ArrowRight aria-hidden />
         </button>
       </div>
     </section>
   );
 
-  const aguardando = link && (
-    <div className="entra">
-      <p className="aguarda">
-        <LoaderCircle className="gira" aria-hidden /> {t('Aguardando a confirmação do pagamento…')}
-      </p>
-      <p className="mut" style={{ fontSize: 13.5, margin: '4px 0 10px' }}>
-        {t(
-          'Abrimos a página de pagamento do Asaas numa nova aba. Assim que o pagamento confirmar, o {plano} libera sozinho e esta tela avança. Boleto pode levar até 2 dias úteis.',
-          { plano: P },
-        )}
-      </p>
-      <button type="button" className="link" onClick={() => window.open(link, '_blank', 'noopener')}>
-        {t('Abrir a página de pagamento de novo')}
-      </button>
-    </div>
-  );
-
-  const rotuloPagar = link ? t('Aguardando o pagamento…') : ocupado ? t('Processando…') : daForma.pagar;
-
-  const passo2 = bloqueio ? (
-    <section className="cartao p6">
-      <div className="vazio">
-        <IconeEmBloco icone={semConta ? UserRound : CreditCard} />
+  const IconeDoBloqueio = semConta ? UserRound : CreditCard;
+  const passo2DoQuest = bloqueio ? (
+    <section className="q-cartao" aria-label={t('Pagamento')}>
+      <div className="q-vazio">
+        <span className="q-ic">
+          <IconeDoBloqueio aria-hidden />
+        </span>
         <h3>{t(bloqueio[0])}</h3>
         <p>{t(bloqueio[1])}</p>
       </div>
-      <div className="linha" style={{ justifyContent: 'space-between', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
-        <button type="button" className="btn btn-outline" onClick={() => irPasso(1)}>
+      <div className="qc-pe">
+        <button type="button" className="q-ctl" onClick={() => irPasso(1)}>
           <ArrowLeft aria-hidden /> {t('Voltar')}
         </button>
+        <span className="q-espaco" />
         {temAssinatura(conta.estado) && (
-          <button type="button" className="btn btn-solid" onClick={() => irSub('assinatura')}>
+          <button type="button" className="q-ctl pri" onClick={() => irSub('assinatura')}>
             {t('Ver minha assinatura')}
           </button>
         )}
         {bloqueio[0] === 'Entre na sua conta para assinar' && (
-          <button type="button" className="btn btn-solid" onClick={() => entrarParaAssinar(plano, aoEntrar)}>
+          <button type="button" className="q-ctl pri" onClick={() => entrarParaAssinar(plano, aoEntrar)}>
             <LogIn aria-hidden /> {t('Entrar ou criar conta')}
           </button>
         )}
       </div>
     </section>
   ) : (
-    <section className="cartao p6">
+    <section className="q-cartao" aria-label={t('Pagamento')}>
       {beneficiario && (
-        <p className="aviso-info" style={{ marginBottom: 12 }}>
+        <div className="q-aviso">
           <UserRound aria-hidden />
           <span>
             <T
               txt="Você está assinando para <b>{nome}</b>, como responsável. O plano vale na conta dele."
               val={{ nome: beneficiario.nome ?? t('a conta vinculada a você') }}
-            />{' '}
-            <button type="button" className="link" onClick={assinarParaMim} disabled={!!link}>
-              {t('Assinar para mim')}
-            </button>
+            />
           </span>
-        </p>
+          <button type="button" className="q-ctl" onClick={assinarParaMim} disabled={!!link}>
+            {t('Assinar para mim')}
+          </button>
+        </div>
       )}
-      {/* Sem seletor de forma de pagamento: o servidor cria a cobrança com `billingType: 'UNDEFINED'`
-          e é a página do Asaas que pergunta Pix, cartão ou boleto. Um seletor aqui seria enfeite. */}
-      <div className="metodo-corpo">
-        {aguardando || (
-          <>
-            <p className="mut" style={{ fontSize: 13.5 }}>
-              {t('Você escolhe Pix, cartão ou boleto na página segura do Asaas.')}
-            </p>
-            <p className="nota-seg">
-              <Lock aria-hidden />{' '}
-              {t(
-                'O número do cartão você digita na página segura do Asaas, que abre quando você continuar. O Babel Play não vê nem guarda esses dados.',
-              )}
-            </p>
-          </>
+      {/* Sem seletor de forma de pagamento: é a página do Asaas que pergunta Pix, cartão ou boleto. */}
+      {link ? (
+        <div className="q-cartao fundo" role="status">
+          <div className="qc-consumo-titulo">
+            <LoaderCircle className="qc-gira" aria-hidden />
+            <h3>{t('Aguardando a confirmação do pagamento…')}</h3>
+          </div>
+          <p className="q-texto">
+            {t(
+              'Abrimos a página de pagamento do Asaas numa nova aba. Assim que o pagamento confirmar, o {plano} libera sozinho e esta tela avança. Boleto pode levar até 2 dias úteis.',
+              { plano: P },
+            )}
+          </p>
+          <div className="q-acoes">
+            <button type="button" className="q-ctl" onClick={() => window.open(link, '_blank', 'noopener')}>
+              <ExternalLink aria-hidden /> {t('Abrir a página de pagamento de novo')}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="qc-grupo">
+          <p className="q-texto">{t('Você escolhe Pix, cartão ou boleto na página segura do Asaas.')}</p>
+          <p className="qc-nota">
+            <Lock aria-hidden />
+            {t(
+              'O número do cartão você digita na página segura do Asaas, que abre quando você continuar. O Babel Play não vê nem guarda esses dados.',
+            )}
+          </p>
+        </div>
+      )}
+      <div className="qc-form">
+        {campoDoQuest(
+          'nome',
+          t('Nome completo'),
+          t('Como está no documento'),
+          { autoComplete: 'name', readOnly: !!link },
+          true,
         )}
-      </div>
-      <div className="grid-form" style={{ marginTop: 6 }}>
-        {campo('nome', t('Nome completo'), t('Como está no documento'), { autoComplete: 'name', readOnly: !!link })}
-        {campo('cpf', t('CPF'), '000.000.000-00', { inputMode: 'numeric', maxLength: 14, readOnly: !!link })}
-        {campo('email', t('E-mail para o recibo'), t('voce@exemplo.com'), {
+        {campoDoQuest('cpf', t('CPF'), '000.000.000-00', {
+          inputMode: 'numeric',
+          maxLength: 14,
+          readOnly: !!link,
+        })}
+        {campoDoQuest('email', t('E-mail para o recibo'), t('voce@exemplo.com'), {
           type: 'email',
           autoComplete: 'email',
           readOnly: !!link,
         })}
       </div>
-      <p className="mut" style={{ fontSize: 12, marginTop: -6 }}>
+      <p className="qc-nota">
         {t(
           'O CPF é exigido para emitir a cobrança. Ele vai direto para o processador de pagamento, não fica no nosso banco.',
         )}
       </p>
       {pedirIdade && (
-        <div className="entra" style={{ marginTop: 12 }}>
-          <p className="aviso-info">
+        <>
+          <div className="q-aviso">
             <CakeSlice aria-hidden />
             <span>
               {t(
                 'Antes de pagar, falta a sua data de nascimento. Pedimos uma vez só: quem assina precisa ter 18 anos ou mais. Depois de confirmada, a data só muda pelo suporte.',
               )}
             </span>
-          </p>
-          <div className={`form-l ${erroIdade ? 'com-erro' : ''}`} style={{ marginTop: 10 }}>
+          </div>
+          <div className="q-campo">
             <label htmlFor="co-nascimento">{t('Data de nascimento')}</label>
             <input
               ref={campoDaIdade}
-              className="campo"
               id="co-nascimento"
               type="date"
               max={new Date().toISOString().slice(0, 10)}
@@ -685,34 +686,31 @@ export default function Checkout({
               aria-describedby={erroIdade ? 'e-nascimento' : undefined}
             />
             {erroIdade && (
-              <small className="erro" id="e-nascimento">
+              <small className="qc-campo-erro" id="e-nascimento">
                 <CircleAlert aria-hidden /> {erroIdade}
               </small>
             )}
           </div>
-        </div>
+        </>
       )}
       {erroServidor && (
-        <p className="erro-auth" role="alert">
-          <CircleAlert aria-hidden /> {erroServidor}
+        <p className="qc-erro" role="alert">
+          <CircleAlert aria-hidden />
+          <span>{erroServidor}</span>
         </p>
       )}
-      <div className="linha" style={{ justifyContent: 'space-between', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
-        <button type="button" className="btn btn-outline" onClick={() => irPasso(1)} disabled={!!link}>
+      <div className="qc-pe">
+        <button type="button" className="q-ctl" onClick={() => irPasso(1)} disabled={!!link}>
           <ArrowLeft aria-hidden /> {t('Voltar')}
         </button>
-        <button
-          type="button"
-          className="btn btn-solid grande"
-          onClick={() => void pagar()}
-          disabled={ocupado || !!link}
-        >
-          {ocupado || link ? <LoaderCircle className="gira" aria-hidden /> : <Lock aria-hidden />} {rotuloPagar}
+        <span className="q-espaco" />
+        <button type="button" className="q-ctl pri" onClick={() => void pagar()} disabled={ocupado || !!link}>
+          {ocupado || link ? <LoaderCircle className="qc-gira" aria-hidden /> : <Lock aria-hidden />}{' '}
+          {link ? t('Aguardando o pagamento…') : ocupado ? t('Processando…') : daForma.pagar}
         </button>
       </div>
-      <p className="legal">
-        {/* O que cada forma AUTORIZA. Depois dos 7 dias, o anual e o 12x não devolvem o proporcional do
-            ano: é o padrão que o dono aprovou para o C5, a validar com o jurídico (C9). */}
+      <p className="qc-legal">
+        {/* O que cada forma AUTORIZA: os mesmos três textos da tela de sempre. */}
         {forma === 'mensal' ? (
           <T
             txt="Ao assinar, você autoriza a cobrança de <b>{preco}</b> por mês, renovada todo mês até você cancelar."
@@ -731,438 +729,84 @@ export default function Checkout({
         )}{' '}
         <T
           txt="Cancele quando quiser em Planos → Sua assinatura. Você tem <b>7 dias</b> para desistir com reembolso integral (CDC, art. 49). Veja os <termos>Termos de uso</termos>."
-          tags={{ termos: <a className="link" href="/termos.html" target="_blank" rel="noopener" /> }}
+          tags={{ termos: <a href="/termos.html" target="_blank" rel="noopener" /> }}
         />
       </p>
     </section>
   );
 
-  const resumo = (
-    <aside className="cartao p6 resumo-pedido" aria-label={t('Resumo do pedido')}>
-      <span className="label-mono">{t('Resumo')}</span>
-      <div className="linha" style={{ gap: 12, marginTop: 10 }}>
-        <IconeEmBloco icone={PLANO_ICO[plano]} />
+  const IconeDoResumo = PLANO_ICO[plano];
+  return (
+    <div className="q-palco qc" data-testid="checkout-do-quest">
+      <header className="q-cab">
+        <button
+          type="button"
+          className="q-ctl q-voltar"
+          aria-label={t('Voltar para Planos')}
+          onClick={() => irSub(null)}
+        >
+          <ArrowLeft aria-hidden /> {t('Planos')}
+        </button>
         <div>
-          <b style={{ font: '800 17px var(--font-display)' }}>Babel Play {P}</b>
-          <p className="mut" style={{ fontSize: 13 }}>
-            {daForma.titulo}
-          </p>
+          <p className="q-sobre">{t('Assinatura')}</p>
+          <h1>{t('Assinar o {plano}', { plano: P })}</h1>
+          <p className="qc-sub">{t('Dois passos. Você vê o total e como a cobrança se renova antes de pagar.')}</p>
         </div>
-      </div>
-      <dl className="linhas-preco">
-        <div>
-          <dt>{daForma.linha[0]}</dt>
-          <dd className="tn">{daForma.linha[1]}</dd>
-        </div>
-        {forma === 'anual_12x' ? (
-          <div className="total">
-            <dt>{t('Por mês no cartão')}</dt>
-            <dd className="tn">{brl(parcelasDoAnual(plano).padrao)}</dd>
-          </div>
-        ) : (
-          <div className="total">
-            <dt>{t('Total hoje')}</dt>
-            <dd className="tn">{daForma.linha[1]}</dd>
-          </div>
-        )}
-      </dl>
-      <p className="mut renova">
-        <Repeat aria-hidden style={{ width: 14, height: 14 }} /> {daForma.renova}
-      </p>
-      {/* No lugar do cupom do protótipo (não há cupom no servidor): onde o pagamento acontece. */}
-      <div className="cupom">
-        <p className="mut renova">
-          <Lock aria-hidden style={{ width: 14, height: 14 }} /> {t('Você paga na página segura do Asaas')}
-        </p>
-      </div>
-      <ul className="lista-check garantias">
-        {[
-          t('7 dias para desistir, com reembolso'),
-          t('Cancele quando quiser, em poucos cliques'),
-          t('Pagamento processado com segurança'),
-        ].map((x) => (
-          <li key={x}>
-            <Check aria-hidden />
-            {x}
-          </li>
-        ))}
-      </ul>
-    </aside>
-  );
-
-  /* ── QUEST ─────────────────────────────────────────────────────────────────────────────────────
-     Os mesmos dois passos e o mesmo resumo, no desenho do headset: cada escolha é um cartão-alvo, os
-     campos têm 60 px (o teclado do sistema sobe no foco) e há UM botão principal por passo. Nada de
-     cobrança muda: `pagar`, `irPasso`, a espera pela confirmação e as recusas são os de cima. */
-  if (questNovo) {
-    const campoDoQuest = (
-      k: Campo,
-      rotulo: string,
-      ph: string,
-      extra: React.InputHTMLAttributes<HTMLInputElement> = {},
-      inteiro = false,
-    ) => (
-      <div className={inteiro ? 'q-campo qc-inteiro' : 'q-campo'}>
-        <label htmlFor={`co-${k}`}>{rotulo}</label>
-        <input
-          id={`co-${k}`}
-          placeholder={ph}
-          value={campos[k]}
-          onChange={(e) => mudar(k, e.target.value)}
-          aria-invalid={erros[k] ? true : undefined}
-          aria-describedby={erros[k] ? `e-${k}` : undefined}
-          {...extra}
-        />
-        {erros[k] && (
-          <small className="qc-campo-erro" id={`e-${k}`}>
-            <CircleAlert aria-hidden /> {erros[k]}
-          </small>
-        )}
-      </div>
-    );
-
-    const passo1DoQuest = (
-      <section className="q-cartao" aria-label={t('Plano e período')}>
-        <TesteDoPremium teste={status?.teste} beneficiario={beneficiario} />
-        <fieldset className="qc-escolha">
-          <legend>{t('Plano')}</legend>
-          <div className="qc-opcoes">
-            {PLANOS_PAGOS.map((id) => {
-              const IconeDoPlano = PLANO_ICO[id];
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  className="qc-opcao"
-                  aria-pressed={plano === id}
-                  onClick={() => aoTrocarPlano(id)}
-                >
-                  <span className="qc-bolinha" aria-hidden />
-                  <span className="q-ic">
-                    <IconeDoPlano aria-hidden />
-                  </span>
-                  <span>
-                    <b>{PLANO_NOME[id]}</b>
-                    {/* O "sem limite" com a nota do uso justo AO LADO (CDC), o dia e o mês das quotas. */}
-                    <small>
-                      {t(
-                        'Tradução Nuance e nuvem sem limite no dia a dia (uso justo: até {dia} h de nuvem por dia e {mes} h por mês; passando disso, a legenda segue no aparelho)',
-                        {
-                          dia: horasDoUsoJusto(id) ?? 0,
-                          mes: horasDeTranscricao(id) ?? 0,
-                        },
-                      )}
-                    </small>
-                  </span>
-                  <span className="qc-valor">
-                    {forma === 'mensal' ? brl(precoMensal(id)) : brl(precoAnual(id))}
-                    <small>{forma === 'mensal' ? t('/mês') : t('/ano')}</small>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
-        <fieldset className="qc-escolha">
-          <legend>{t('Como você quer pagar')}</legend>
-          <div className="qc-opcoes">
-            {formas.map((f) => {
-              const x = textosDaForma(plano, f);
-              return (
-                <button
-                  key={f}
-                  type="button"
-                  className="qc-opcao"
-                  aria-pressed={forma === f}
-                  onClick={() => setForma(f)}
-                >
-                  <span className="qc-bolinha" aria-hidden />
-                  <span>
-                    <b>
-                      {x.titulo}
-                      {f !== 'mensal' && (
-                        <span className="q-tag qc-bom">
-                          {t('equivale a {n} meses grátis', { n: economiaDoAnual(plano).meses })}
-                        </span>
-                      )}
-                    </b>
-                    <small>{x.descricao}</small>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
-        <div className="qc-pe">
-          <button type="button" className="q-ctl pri" onClick={() => irPasso(2)}>
-            {t('Ir para o pagamento')} <ArrowRight aria-hidden />
-          </button>
-        </div>
-      </section>
-    );
-
-    const IconeDoBloqueio = semConta ? UserRound : CreditCard;
-    const passo2DoQuest = bloqueio ? (
-      <section className="q-cartao" aria-label={t('Pagamento')}>
-        <div className="q-vazio">
-          <span className="q-ic">
-            <IconeDoBloqueio aria-hidden />
-          </span>
-          <h3>{t(bloqueio[0])}</h3>
-          <p>{t(bloqueio[1])}</p>
-        </div>
-        <div className="qc-pe">
-          <button type="button" className="q-ctl" onClick={() => irPasso(1)}>
-            <ArrowLeft aria-hidden /> {t('Voltar')}
-          </button>
-          <span className="q-espaco" />
-          {temAssinatura(conta.estado) && (
-            <button type="button" className="q-ctl pri" onClick={() => irSub('assinatura')}>
-              {t('Ver minha assinatura')}
-            </button>
-          )}
-          {bloqueio[0] === 'Entre na sua conta para assinar' && (
-            <button type="button" className="q-ctl pri" onClick={() => entrarParaAssinar(plano, aoEntrar)}>
-              <LogIn aria-hidden /> {t('Entrar ou criar conta')}
-            </button>
-          )}
-        </div>
-      </section>
-    ) : (
-      <section className="q-cartao" aria-label={t('Pagamento')}>
-        {beneficiario && (
-          <div className="q-aviso">
-            <UserRound aria-hidden />
-            <span>
-              <T
-                txt="Você está assinando para <b>{nome}</b>, como responsável. O plano vale na conta dele."
-                val={{ nome: beneficiario.nome ?? t('a conta vinculada a você') }}
-              />
+      </header>
+      <Etapas passos={['Plano e período', 'Pagamento']} atual={passo - 1} />
+      <div className="qc-checkout">
+        {passo === 1 ? passo1DoQuest : passo2DoQuest}
+        <aside className="q-cartao qc-resumo" aria-label={t('Resumo do pedido')}>
+          <span className="q-rotulo">{t('Resumo')}</span>
+          <div className="qc-resumo-plano">
+            <span className="q-ic">
+              <IconeDoResumo aria-hidden />
             </span>
-            <button type="button" className="q-ctl" onClick={assinarParaMim} disabled={!!link}>
-              {t('Assinar para mim')}
-            </button>
-          </div>
-        )}
-        {/* Sem seletor de forma de pagamento: é a página do Asaas que pergunta Pix, cartão ou boleto. */}
-        {link ? (
-          <div className="q-cartao fundo" role="status">
-            <div className="qc-consumo-titulo">
-              <LoaderCircle className="qc-gira" aria-hidden />
-              <h3>{t('Aguardando a confirmação do pagamento…')}</h3>
-            </div>
-            <p className="q-texto">
-              {t(
-                'Abrimos a página de pagamento do Asaas numa nova aba. Assim que o pagamento confirmar, o {plano} libera sozinho e esta tela avança. Boleto pode levar até 2 dias úteis.',
-                { plano: P },
-              )}
-            </p>
-            <div className="q-acoes">
-              <button type="button" className="q-ctl" onClick={() => window.open(link, '_blank', 'noopener')}>
-                <ExternalLink aria-hidden /> {t('Abrir a página de pagamento de novo')}
-              </button>
+            <div>
+              <b>Babel Play {P}</b>
+              <small>{daForma.titulo}</small>
             </div>
           </div>
-        ) : (
-          <div className="qc-grupo">
-            <p className="q-texto">{t('Você escolhe Pix, cartão ou boleto na página segura do Asaas.')}</p>
-            <p className="qc-nota">
-              <Lock aria-hidden />
-              {t(
-                'O número do cartão você digita na página segura do Asaas, que abre quando você continuar. O Babel Play não vê nem guarda esses dados.',
-              )}
-            </p>
-          </div>
-        )}
-        <div className="qc-form">
-          {campoDoQuest(
-            'nome',
-            t('Nome completo'),
-            t('Como está no documento'),
-            { autoComplete: 'name', readOnly: !!link },
-            true,
-          )}
-          {campoDoQuest('cpf', t('CPF'), '000.000.000-00', {
-            inputMode: 'numeric',
-            maxLength: 14,
-            readOnly: !!link,
-          })}
-          {campoDoQuest('email', t('E-mail para o recibo'), t('voce@exemplo.com'), {
-            type: 'email',
-            autoComplete: 'email',
-            readOnly: !!link,
-          })}
-        </div>
-        <p className="qc-nota">
-          {t(
-            'O CPF é exigido para emitir a cobrança. Ele vai direto para o processador de pagamento, não fica no nosso banco.',
-          )}
-        </p>
-        {pedirIdade && (
-          <>
-            <div className="q-aviso">
-              <CakeSlice aria-hidden />
-              <span>
-                {t(
-                  'Antes de pagar, falta a sua data de nascimento. Pedimos uma vez só: quem assina precisa ter 18 anos ou mais. Depois de confirmada, a data só muda pelo suporte.',
-                )}
-              </span>
+          <dl className="qc-dados">
+            <div>
+              <dt>{daForma.linha[0]}</dt>
+              <dd>{daForma.linha[1]}</dd>
             </div>
-            <div className="q-campo">
-              <label htmlFor="co-nascimento">{t('Data de nascimento')}</label>
-              <input
-                ref={campoDaIdade}
-                id="co-nascimento"
-                type="date"
-                max={new Date().toISOString().slice(0, 10)}
-                value={nascimento}
-                onChange={(e) => {
-                  setNascimento(e.target.value);
-                  if (erroIdade) setErroIdade('');
-                }}
-                aria-invalid={erroIdade ? true : undefined}
-                aria-describedby={erroIdade ? 'e-nascimento' : undefined}
-              />
-              {erroIdade && (
-                <small className="qc-campo-erro" id="e-nascimento">
-                  <CircleAlert aria-hidden /> {erroIdade}
-                </small>
-              )}
-            </div>
-          </>
-        )}
-        {erroServidor && (
-          <p className="qc-erro" role="alert">
-            <CircleAlert aria-hidden />
-            <span>{erroServidor}</span>
-          </p>
-        )}
-        <div className="qc-pe">
-          <button type="button" className="q-ctl" onClick={() => irPasso(1)} disabled={!!link}>
-            <ArrowLeft aria-hidden /> {t('Voltar')}
-          </button>
-          <span className="q-espaco" />
-          <button type="button" className="q-ctl pri" onClick={() => void pagar()} disabled={ocupado || !!link}>
-            {ocupado || link ? <LoaderCircle className="qc-gira" aria-hidden /> : <Lock aria-hidden />}{' '}
-            {link ? t('Aguardando o pagamento…') : ocupado ? t('Processando…') : daForma.pagar}
-          </button>
-        </div>
-        <p className="qc-legal">
-          {/* O que cada forma AUTORIZA: os mesmos três textos da tela de sempre. */}
-          {forma === 'mensal' ? (
-            <T
-              txt="Ao assinar, você autoriza a cobrança de <b>{preco}</b> por mês, renovada todo mês até você cancelar."
-              val={{ preco: brl(preco) }}
-            />
-          ) : forma === 'anual' ? (
-            t(
-              'Ao assinar, você autoriza a cobrança de {preco} por ano, renovada todo ano até você cancelar. Depois dos 7 dias, cancelar para a renovação e o acesso vale até o fim do ano pago, sem reembolso proporcional.',
-              { preco: brl(precoAnual(plano)) },
-            )
-          ) : (
-            t(
-              'Ao assinar, você autoriza {n} parcelas no cartão, no total de {total}, sem renovação automática. Depois dos 7 dias, cancelar não interrompe as parcelas: o acesso vale até o fim do ano pago, sem reembolso proporcional.',
-              { n: parcelasDoAnual(plano).quantidade, total: brl(precoAnual(plano)) },
-            )
-          )}{' '}
-          <T
-            txt="Cancele quando quiser em Planos → Sua assinatura. Você tem <b>7 dias</b> para desistir com reembolso integral (CDC, art. 49). Veja os <termos>Termos de uso</termos>."
-            tags={{ termos: <a href="/termos.html" target="_blank" rel="noopener" /> }}
-          />
-        </p>
-      </section>
-    );
-
-    const IconeDoResumo = PLANO_ICO[plano];
-    return (
-      <div className="q-palco qc" data-testid="checkout-do-quest">
-        <header className="q-cab">
-          <button
-            type="button"
-            className="q-ctl q-voltar"
-            aria-label={t('Voltar para Planos')}
-            onClick={() => irSub(null)}
-          >
-            <ArrowLeft aria-hidden /> {t('Planos')}
-          </button>
-          <div>
-            <p className="q-sobre">{t('Assinatura')}</p>
-            <h1>{t('Assinar o {plano}', { plano: P })}</h1>
-            <p className="qc-sub">{t('Dois passos. Você vê o total e como a cobrança se renova antes de pagar.')}</p>
-          </div>
-        </header>
-        <Etapas passos={['Plano e período', 'Pagamento']} atual={passo - 1} />
-        <div className="qc-checkout">
-          {passo === 1 ? passo1DoQuest : passo2DoQuest}
-          <aside className="q-cartao qc-resumo" aria-label={t('Resumo do pedido')}>
-            <span className="q-rotulo">{t('Resumo')}</span>
-            <div className="qc-resumo-plano">
-              <span className="q-ic">
-                <IconeDoResumo aria-hidden />
-              </span>
-              <div>
-                <b>Babel Play {P}</b>
-                <small>{daForma.titulo}</small>
+            {forma === 'anual_12x' ? (
+              <div className="qc-total">
+                <dt>{t('Por mês no cartão')}</dt>
+                <dd>{brl(parcelasDoAnual(plano).padrao)}</dd>
               </div>
-            </div>
-            <dl className="qc-dados">
-              <div>
-                <dt>{daForma.linha[0]}</dt>
+            ) : (
+              <div className="qc-total">
+                <dt>{t('Total hoje')}</dt>
                 <dd>{daForma.linha[1]}</dd>
               </div>
-              {forma === 'anual_12x' ? (
-                <div className="qc-total">
-                  <dt>{t('Por mês no cartão')}</dt>
-                  <dd>{brl(parcelasDoAnual(plano).padrao)}</dd>
-                </div>
-              ) : (
-                <div className="qc-total">
-                  <dt>{t('Total hoje')}</dt>
-                  <dd>{daForma.linha[1]}</dd>
-                </div>
-              )}
-            </dl>
-            <p className="qc-nota">
-              <Repeat aria-hidden />
-              {daForma.renova}
-            </p>
-            {/* No lugar do cupom do protótipo (não há cupom no servidor): onde o pagamento acontece. */}
-            <p className="qc-nota">
-              <Lock aria-hidden />
-              {t('Você paga na página segura do Asaas')}
-            </p>
-            <ul className="qc-lista">
-              {[
-                t('7 dias para desistir, com reembolso'),
-                t('Cancele quando quiser, em poucos cliques'),
-                t('Pagamento processado com segurança'),
-              ].map((x) => (
-                <li key={x}>
-                  <Check aria-hidden />
-                  {x}
-                </li>
-              ))}
-            </ul>
-          </aside>
-        </div>
+            )}
+          </dl>
+          <p className="qc-nota">
+            <Repeat aria-hidden />
+            {daForma.renova}
+          </p>
+          {/* No lugar do cupom do protótipo (não há cupom no servidor): onde o pagamento acontece. */}
+          <p className="qc-nota">
+            <Lock aria-hidden />
+            {t('Você paga na página segura do Asaas')}
+          </p>
+          <ul className="qc-lista">
+            {[
+              t('7 dias para desistir, com reembolso'),
+              t('Cancele quando quiser, em poucos cliques'),
+              t('Pagamento processado com segurança'),
+            ].map((x) => (
+              <li key={x}>
+                <Check aria-hidden />
+                {x}
+              </li>
+            ))}
+          </ul>
+        </aside>
       </div>
-    );
-  }
-
-  return (
-    <Tela largura="larga">
-      <CabecalhoDeTela
-        voltar={{ rotulo: t('Planos'), aoClicar: () => irSub(null) }}
-        sobrancelha={t('Assinatura')}
-        icone={Lock}
-        titulo={t('Assinar o {plano}', { plano: P })}
-        sub={t('Dois passos. Você vê o total e como a cobrança se renova antes de pagar.')}
-      />
-      <Etapas passos={['Plano e período', 'Pagamento']} atual={passo - 1} />
-      <div className="checkout-grade">
-        <div>{passo === 1 ? passo1 : passo2}</div>
-        {resumo}
-      </div>
-    </Tela>
+    </div>
   );
 }

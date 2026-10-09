@@ -4,10 +4,11 @@
  *
  *  · as cinco abas, com a contagem real das conquistas ("x/40");
  *  · Maestria com os 18 jogos no zero, sem "Disponível na versão completa" na edição estática;
- *  · Loja sem Créditos na edição estática e para o perfil protegido; com carteira, a compra tem duas
- *    etapas (prévia → confirmar) e o 403 do perfil protegido vira uma frase clara;
- *  · prévia ao vivo: "Ver prévia" numa legenda muda a legenda de exemplo SEM equipar, e o tema pinta
- *    o app só até "Parar prévia".
+ *  · sem Créditos na edição estática e para o perfil protegido (o chip de Seeds não abre a carteira);
+ *    com carteira, a compra tem duas etapas (prévia → confirmar) e o 403 do perfil protegido vira uma
+ *    frase clara;
+ *  · prévia ao vivo, na folha "Meu visual": "Ver prévia" numa legenda muda a legenda de exemplo SEM
+ *    equipar, e o tema pinta o app só enquanto a folha está aberta.
  */
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -20,7 +21,7 @@ const mocks = vi.hoisted(() => ({
   estatica: false,
   protegido: false,
   carteira: { creditos: 500 as number | null, disponivel: true, recarregar: () => {} },
-  comprar: null as unknown as ReturnType<typeof import('vitest')['vi']['fn']>,
+  comprar: null as unknown as ReturnType<(typeof import('vitest'))['vi']['fn']>,
 }))
 
 vi.mock('../src/lib/recompensasV2', async (orig) => ({
@@ -124,14 +125,23 @@ describe('as cinco abas', () => {
   })
 })
 
-describe('a Loja', () => {
-  const temCreditos = () => !!document.querySelector('[data-item-de-credito]')
+describe('os Créditos', () => {
+  /* Os Créditos moram na folha que o chip de Seeds abre; sem Créditos à venda o chip não é botão. */
+  const chip = () => document.querySelector<HTMLElement>('.px-seeds')!
+  const folhaDeCreditos = () => document.body.querySelector<HTMLElement>('[data-testid="folha-de-creditos"]')
+  const temCreditos = () => !!document.body.querySelector('[data-item-de-credito]')
+  function abrirCreditos() {
+    renderizar('loja')
+    fireEvent.click(chip())
+    return folhaDeCreditos()!
+  }
 
   it('sem Créditos na edição estática', () => {
     mocks.estatica = true
     renderizar('loja')
-    expect(screen.getByTestId('vitrine-v2')).toBeTruthy()
-    expect(document.querySelector('[data-item-da-loja]')).toBeTruthy()
+    expect(chip().getAttribute('role')).toBeNull()
+    fireEvent.click(chip())
+    expect(folhaDeCreditos()).toBeNull()
     expect(temCreditos()).toBe(false)
     expect(screen.queryByTestId('carteira-de-creditos')).toBeNull()
   })
@@ -139,13 +149,16 @@ describe('a Loja', () => {
   it('sem Créditos para o perfil protegido', () => {
     mocks.protegido = true
     renderizar('loja')
+    expect(chip().getAttribute('role')).toBeNull()
+    fireEvent.click(chip())
+    expect(folhaDeCreditos()).toBeNull()
     expect(temCreditos()).toBe(false)
   })
 
   it('com carteira: prévia → confirmar, nunca num clique', async () => {
-    renderizar('loja')
+    const folha = abrirCreditos()
     const item = CATALOGO_DA_LOJA.find((i) => i.precoCreditos !== undefined)!
-    const cartao = document.querySelector(`[data-item-de-credito="${item.id}"]`) as HTMLElement
+    const cartao = folha.querySelector(`[data-item-de-credito="${item.id}"]`) as HTMLElement
     fireEvent.click(within(cartao).getByRole('button', { name: 'Comprar com Créditos' }))
     expect(comprarPecaComCreditos).not.toHaveBeenCalled()
     const confirmacao = screen.getByTestId('confirmar-compra')
@@ -160,9 +173,9 @@ describe('a Loja', () => {
   it('o 403 do perfil protegido vira uma frase clara, sem "tente de novo"', async () => {
     vi.mocked(comprarPecaComCreditos).mockResolvedValueOnce({ ok: false, motivo: 'menor' })
     const aviso = vi.spyOn(toast, 'warn')
-    renderizar('loja')
+    const folha = abrirCreditos()
     const item = CATALOGO_DA_LOJA.find((i) => i.precoCreditos !== undefined)!
-    const cartao = document.querySelector(`[data-item-de-credito="${item.id}"]`) as HTMLElement
+    const cartao = folha.querySelector(`[data-item-de-credito="${item.id}"]`) as HTMLElement
     fireEvent.click(within(cartao).getByRole('button', { name: 'Comprar com Créditos' }))
     await act(async () => {
       fireEvent.click(within(screen.getByTestId('confirmar-compra')).getByRole('button', { name: 'Confirmar compra' }))
@@ -172,28 +185,45 @@ describe('a Loja', () => {
   })
 })
 
-describe('prévia ao vivo na Coleção', () => {
-  it('"Ver prévia" numa legenda muda a legenda de exemplo sem equipar', () => {
+describe('prévia ao vivo no inventário (a folha "Meu visual")', () => {
+  const folha = () => document.body.querySelector<HTMLElement>('[data-testid="folha-do-visual"]')!
+  /* A folha abre por uma linha do resumo da Coleção; "Ver tudo que existe" mostra também o que não é seu. */
+  function abrirFolhaNa(secao: RegExp) {
     renderizar()
-    fireEvent.click(screen.getByRole('button', { name: /Ver tudo que existe/ }))
+    const linha = document.querySelectorAll<HTMLElement>('.q-grade.g4 > .q-linha')[0]
+    expect(linha, 'a linha do resumo').toBeTruthy()
+    fireEvent.click(linha)
+    expect(folha(), 'a folha').toBeTruthy()
+    const tudo = folha().querySelector<HTMLElement>('.q-secao > header .q-chip')
+    expect(tudo, 'o chip Ver tudo').toBeTruthy()
+    fireEvent.click(tudo!)
+    const abas = [...folha().querySelectorAll<HTMLElement>('[aria-label="Seções da coleção"] .q-aba')]
+    const aba = abas.find((b) => secao.test((b.textContent ?? '').trim()))
+    expect(aba, 'a seção: ' + abas.map((b) => b.textContent).join('|')).toBeTruthy()
+    fireEvent.click(aba!)
+  }
+
+  it('"Ver prévia" numa legenda muda a legenda de exemplo sem equipar', () => {
+    abrirFolhaNa(/^Legendas/)
     const legenda = CATALOGO_DA_LOJA.find((i) => i.tipo === 'legenda' && i.alvo !== lerEstiloDeLegenda())!
     const antes = lerEstiloDeLegenda()
-    const cartao = screen.getByText(legenda.nome).closest('article') as HTMLElement
+    const cartao = within(folha()).getByText(legenda.nome).closest('article') as HTMLElement
     fireEvent.click(within(cartao).getByRole('button', { name: /Ver prévia/ }))
     expect(screen.getByTestId('legenda-de-exemplo').getAttribute('data-estilo')).toBe(legenda.alvo)
     expect(lerEstiloDeLegenda()).toBe(antes)
   })
 
-  it('o tema pinta o app só até "Parar prévia", sem equipar', () => {
+  it('o tema pinta o app só enquanto a folha está aberta, sem equipar', () => {
     document.documentElement.setAttribute('data-theme', 'claro')
-    renderizar()
-    fireEvent.click(screen.getByRole('button', { name: /Ver tudo que existe/ }))
+    abrirFolhaNa(/^Temas/)
     const tema = CATALOGO_DA_LOJA.find((i) => i.tipo === 'tema' && i.alvo !== 'claro')!
-    const cartao = screen.getByText(tema.nome).closest('article') as HTMLElement
-    fireEvent.click(within(cartao).getByRole('button', { name: /Ver prévia/ }))
+    const cartao = within(folha()).getByText(tema.nome).closest('article') as HTMLElement
+    const verPrevia = () => within(cartao).getByRole('button', { name: /Ver prévia/ })
+    fireEvent.click(verPrevia())
     expect(document.documentElement.getAttribute('data-theme')).toBe(tema.alvo)
-    expect(screen.getByTestId('tema-em-previa')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: /Parar prévia/ }))
+    expect(verPrevia().getAttribute('aria-pressed')).toBe('true')
+    /* A prévia nunca sobrevive à tela que a mostrou: sair da folha devolve o tema equipado. */
+    cleanup()
     expect(document.documentElement.getAttribute('data-theme')).toBe('claro')
     expect(setTheme).not.toHaveBeenCalled()
   })
@@ -205,7 +235,11 @@ describe('a próxima recompensa da maestria', () => {
     expect(proximaRecompensaDaMaestria('memory', 0)).toEqual({ nivel: 1, nome: 'Bronze', itens: [], seeds: 20 })
     const prata = proximaRecompensaDaMaestria('memory', 30)!
     expect(prata.nivel).toBe(2)
-    expect(prata.itens).toEqual(CATALOGO_DA_LOJA.filter((i) => i.origemMaestria?.jogo === 'memory' && i.origemMaestria.nivel === 2).map((i) => i.nome))
+    expect(prata.itens).toEqual(
+      CATALOGO_DA_LOJA.filter((i) => i.origemMaestria?.jogo === 'memory' && i.origemMaestria.nivel === 2).map(
+        (i) => i.nome,
+      ),
+    )
     expect(prata.seeds).toBe(40)
     expect(proximaRecompensaDaMaestria('memory', 600)).toBeNull()
   })

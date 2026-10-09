@@ -249,9 +249,7 @@
   margin-top: 1px;
   color: var(--good-ink, var(--good));
 }
-.qc-lista.qc-neutra > li > svg {
-  color: var(--ink-muted);
-}
+
 .qc-lista.qc-perde > li > svg {
   color: var(--error-ink, var(--error));
 }
@@ -516,43 +514,7 @@
   border-color: var(--warn);
   background: color-mix(in srgb, var(--warn) 12%, var(--surface));
 }
-.qc-produto {
-  display: grid;
-  justify-items: center;
-  gap: 12px;
-  text-align: center;
-}
-.qc-produto h2 {
-  margin: 0;
-  max-width: 30ch;
-  font: 900 28px/1.15 var(--font-display, inherit);
-  letter-spacing: -0.01em;
-  text-wrap: balance;
-}
-.qc-produto p {
-  margin: 0;
-  max-width: 62ch;
-  font: 600 17px/1.45 var(--font-body, inherit);
-  color: var(--ink-muted);
-}
-.qc-planos {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-  gap: 16px;
-  align-items: start;
-}
-.q-cartao.qc-plano {
-  gap: 16px;
-  padding: 24px;
-}
-.qc-plano.qc-destaque {
-  border: 2px solid var(--q-acento);
-  background: color-mix(in srgb, var(--q-acento) 7%, var(--surface));
-}
-.qc-plano.qc-sugerido {
-  outline: 3px solid var(--q-acento);
-  outline-offset: 4px;
-}
+
 .qc-plano-topo {
   display: flex;
   align-items: center;
@@ -572,192 +534,7 @@
   font: 700 16px/1.3 var(--font-body, inherit);
   color: var(--ink-muted);
 }
-.qc-selos {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.qc-preco {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.qc-preco .qc-moeda {
-  font: 800 20px/1 var(--font-display, inherit);
-  color: var(--ink-muted);
-}
-.qc-preco b {
-  font: 900 48px/1 var(--font-display, inherit);
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-}
-.qc-preco .qc-per {
-  font: 700 17px/1 var(--font-body, inherit);
-  color: var(--ink-muted);
-}
-.qc-plano .qc-nota b {
-  color: var(--good-ink, var(--good));
-}
-.qc-plano .q-texto {
-  font-size: 17px;
-}
-/* O botão que só informa ("Seu plano", "Vendas reabrem em breve"): legível, e não é um alvo. */
-.qc-plano .q-ctl:disabled {
-  opacity: 0.75;
-  border-style: dashed;
-  border-color: var(--border-subtle);
-  white-space: normal;
-  text-align: center;
-  line-height: 1.25;
-}
-.qc-plano .q-ctl {
-  min-height: 64px;
-  white-space: normal;
-  text-align: center;
-  line-height: 1.2;
-}
-.qc-inclui {
-  display: grid;
-  gap: 12px;
-  padding-top: 16px;
-  border-top: 1.5px solid var(--border-subtle);
-}
-.qc-garantia {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  text-align: center;
-  font: 700 16px/1.4 var(--font-body, inherit);
-  color: var(--ink-muted);
-}
-.qc-garantia svg {
-  width: 22px;
-  height: 22px;
-  flex: none;
-  color: var(--good-ink, var(--good));
-}
 
-/* A comparação: a primeira coluna diz o recurso; as outras, um plano cada. */
-.q-tabela.qc-compara :is(th, td):not(:first-child) {
-  width: 210px;
-  text-align: center;
-}
-.q-tabela.qc-compara thead th {
-  white-space: normal;
-  vertical-align: bottom;
-}
-.q-tabela.qc-compara thead th > span {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font: 800 18px/1.2 var(--font-display, inherit);
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--ink);
-}
-.q-tabela.qc-compara thead th svg {
-  width: 20px;
-  height: 20px;
-}
-.q-tabela.qc-compara thead th small {
-  display: block;
-  margin-top: 6px;
-  font: 700 14px/1 var(--font-mono, monospace);
-  letter-spacing: 0.04em;
-  text-transform: none;
-}
-.q-tabela.qc-compara tr.qc-grupo-da-tabela th {
-  padding: 18px 18px 10px;
-  border-top: 1.5px solid var(--border-subtle);
-  color: var(--accent-ink, var(--q-acento));
-}
-.q-tabela.qc-compara tbody tr:not(.qc-grupo-da-tabela) th {
-  padding: 14px 18px;
-  border-top: 1.5px solid var(--border-subtle);
-  font: 700 17px/1.35 var(--font-body, inherit);
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--ink);
-  white-space: normal;
-}
-.q-tabela.qc-compara tbody th small {
-  display: block;
-  margin-top: 4px;
-  font: 600 15px/1.35 var(--font-body, inherit);
-  color: var(--ink-muted);
-}
-.q-tabela.qc-compara td svg {
-  width: 24px;
-  height: 24px;
-  color: var(--good-ink, var(--good));
-}
-.q-tabela.qc-compara td .qc-nao {
-  color: var(--ink-muted);
-  font-weight: 800;
-}
-.q-tabela.qc-compara :is(th, td).qc-coluna-destaque {
-  background: color-mix(in srgb, var(--q-acento) 7%, transparent);
-}
-
-/* Perguntas: cada resumo é um alvo de 64 px; a resposta abre embaixo. */
-.qc-faq {
-  border: 1.5px solid var(--border-subtle);
-  border-radius: 18px;
-  background: var(--surface);
-}
-.qc-faq > summary {
-  min-height: 64px;
-  padding: 10px 18px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border-radius: 16px;
-  font: 800 18px/1.3 var(--font-display, inherit);
-  color: var(--ink);
-  cursor: pointer;
-  list-style: none;
-  transition: background-color var(--q-cor);
-}
-.qc-faq > summary::-webkit-details-marker {
-  display: none;
-}
-.qc-faq > summary > span {
-  flex: 1;
-  min-width: 0;
-}
-.qc-faq > summary svg {
-  width: 24px;
-  height: 24px;
-  flex: none;
-  color: var(--ink-muted);
-  transition: transform var(--q-toque);
-}
-.qc-faq[open] > summary svg {
-  transform: rotate(180deg);
-}
-.qc-faq > summary:hover {
-  background: color-mix(in srgb, var(--q-acento) 10%, transparent);
-}
-.qc-faq > summary:focus-visible {
-  outline: 3px solid var(--q-acento);
-  outline-offset: 3px;
-}
-.qc-faq > p {
-  margin: 0;
-  padding: 2px 18px 18px;
-  max-width: 78ch;
-  font: 600 17px/1.5 var(--font-body, inherit);
-  color: var(--ink-muted);
-}
-
-/* Consumo do mês. */
-.q-cartao.qc-consumo {
-  gap: 12px;
-}
 .qc-consumo-titulo {
   display: flex;
   align-items: center;
@@ -767,34 +544,6 @@
   width: 26px;
   height: 26px;
   flex: none;
-}
-.qc-consumo-valor {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 8px;
-  font: 600 16px/1.3 var(--font-body, inherit);
-  color: var(--ink-muted);
-}
-.qc-consumo-valor b {
-  font: 900 33px/1 var(--font-display, inherit);
-  font-variant-numeric: tabular-nums;
-  color: var(--ink);
-}
-.q-cartao.qc-janela {
-  grid-template-columns: auto minmax(0, 1fr);
-  column-gap: 16px;
-  align-items: start;
-}
-.qc-janela p {
-  margin: 6px 0 0;
-  max-width: 78ch;
-  font: 600 17px/1.45 var(--font-body, inherit);
-  color: var(--ink-muted);
-}
-.qc-janela p[role='status'] {
-  color: var(--ink);
-  font-weight: 800;
 }
 
 /* Sua assinatura: as faturas, uma por linha. */
@@ -1409,35 +1158,11 @@ html[data-quest-novo='true'] dialog .dlg-corpo ol {
   .qc-inicial {
     font-size: 36px;
   }
-  .qc-planos {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .q-cartao.qc-plano {
-    padding: 18px;
-  }
-  .qc-preco b {
-    font-size: 40px;
-  }
-  .qc-produto h2 {
-    font-size: 23px;
-  }
+
   .qc-agora h2 {
     font-size: 21px;
   }
-  .q-tabela.qc-compara :is(th, td):not(:first-child) {
-    width: 104px;
-    padding-inline: 8px;
-  }
-  .q-tabela.qc-compara thead th svg {
-    display: none;
-  }
-  .q-tabela.qc-compara thead th > span {
-    font-size: 16px;
-  }
-  .q-tabela.qc-compara tbody tr:not(.qc-grupo-da-tabela) th {
-    padding: 12px;
-    font-size: 16px;
-  }
+
   .qc-faixas > li {
     grid-template-columns: 40px minmax(60px, 1fr) 56px;
   }

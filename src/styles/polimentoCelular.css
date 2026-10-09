@@ -70,3 +70,11 @@ html[data-quest-novo='true'][data-dispositivo^='celular'] .q-palco {
     letter-spacing: -0.015em;
   }
 }
+
+/* O selo "Salvando…" / "não foi salva" da captura fica ACIMA da barra flutuante: ele contava com
+   `--shell-inset-bottom`, que era da doca de antes, e pousava em cima de Capturar, Intérprete e Jogar. */
+@media (max-width: 720px) {
+  html[data-quest-novo='true'] .indicador-de-salvamento {
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+}

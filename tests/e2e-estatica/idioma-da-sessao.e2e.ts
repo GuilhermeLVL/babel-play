@@ -3,6 +3,8 @@ import path from 'node:path'
 
 import { expect, type Page, test } from '@playwright/test'
 
+import { cartaoDoJogo, entrarNoJogo, fecharPar, paresDaMemoria } from './_jogos'
+
 /**
  * IDIOMA DA SESSÃO NA EDIÇÃO ESTÁTICA (auditoria 2026-09-26).
  *
@@ -14,6 +16,10 @@ import { expect, type Page, test } from '@playwright/test'
  *
  * `speechSynthesis.speak` é interceptado por `addInitScript`: o teste lê o `lang` e a voz de cada
  * fala que a página pediu, sem depender de alto-falante.
+ *
+ * DESENHO NOVO (09/10/2026). O cartão da Memória na grade é `.q-tile[data-jogo="memory"]` e a mesa é
+ * `.tabuleiro[aria-label="Tabuleiro"]`, com as cartas `button.carta[data-texto]`. A palavra é dita
+ * quando o par fecha, e não mais ao virar a carta: o teste fecha pares.
  */
 const PASTA = process.env.SCREENSHOTS_IDIOMA || path.join('test-results', 'idioma-da-sessao')
 mkdirSync(PASTA, { recursive: true })
@@ -72,22 +78,58 @@ async function semear(page: Page, sessoes: Semente[]) {
     const agora = Date.now()
     for (const s of sessoes) {
       tx.objectStore('sessoes').put({
-        id: s.id, title: s.titulo, kind: 'live', createdAt: agora, updatedAt: agora, durationMs: 8000,
-        wordCount: s.texto.split(/\s+/).length, sourceLang: 'pt-BR', targetLang: 'en-US', status: 'done', meta: null,
+        id: s.id,
+        title: s.titulo,
+        kind: 'live',
+        createdAt: agora,
+        updatedAt: agora,
+        durationMs: 8000,
+        wordCount: s.texto.split(/\s+/).length,
+        sourceLang: 'pt-BR',
+        targetLang: 'en-US',
+        status: 'done',
+        meta: null,
       })
       tx.objectStore('falas').put({
-        id: `${s.id}-f1`, sessionId: s.id, idx: 0, speakerName: null, source: 'system', sourceLang: s.falaLang,
-        sourceText: s.texto, targetLang: 'pt-BR', translatedText: '', tStartMs: 0, tEndMs: 8000, engine: 'whisper-local', confidence: null,
+        id: `${s.id}-f1`,
+        sessionId: s.id,
+        idx: 0,
+        speakerName: null,
+        source: 'system',
+        sourceLang: s.falaLang,
+        sourceText: s.texto,
+        targetLang: 'pt-BR',
+        translatedText: '',
+        tStartMs: 0,
+        tEndMs: 8000,
+        engine: 'whisper-local',
+        confidence: null,
       })
       for (const c of s.cartoes) {
         tx.objectStore('cartoes').put({
           id: `${s.id}-${c.word}`,
           // A chave que a versão antiga gravava: `en|palavra`.
           normKey: `en|${c.word.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()}`,
-          word: c.word, back: c.back, sentence: s.texto, srcLang: 'en-US', tgtLang: 'pt-BR',
-          clozePrompt: s.texto.replace(c.word, '___'), clozeAnswer: c.word, box: 1, dueAt: agora,
-          stability: null, difficulty: null, reps: null, lapses: null, lastReview: null, sessionId: s.id,
-          inDeck: 1, cefrLevel: null, cefrConfidence: null, createdAt: agora, occurrences: 1,
+          word: c.word,
+          back: c.back,
+          sentence: s.texto,
+          srcLang: 'en-US',
+          tgtLang: 'pt-BR',
+          clozePrompt: s.texto.replace(c.word, '___'),
+          clozeAnswer: c.word,
+          box: 1,
+          dueAt: agora,
+          stability: null,
+          difficulty: null,
+          reps: null,
+          lapses: null,
+          lastReview: null,
+          sessionId: s.id,
+          inDeck: 1,
+          cefrLevel: null,
+          cefrConfidence: null,
+          createdAt: agora,
+          occurrences: 1,
         })
       }
     }
@@ -106,7 +148,8 @@ async function lerCartoes(page: Page, sessionId: string) {
         const req = indexedDB.open('babel-local')
         req.onsuccess = () => {
           const todos = req.result.transaction('cartoes').objectStore('cartoes').getAll()
-          todos.onsuccess = () => ok((todos.result as never[]).filter((c: { sessionId: string }) => c.sessionId === sessionId))
+          todos.onsuccess = () =>
+            ok((todos.result as never[]).filter((c: { sessionId: string }) => c.sessionId === sessionId))
         }
       }),
     sessionId,
@@ -129,8 +172,20 @@ test.beforeEach(async ({ page }) => {
     }
     // Vozes conhecidas (as do Windows/Edge) e o registro de cada fala pedida pela página.
     const vozes = [
-      { name: 'Microsoft Aria Online (Natural) - English (United States)', lang: 'en-US', localService: false, default: true, voiceURI: 'aria' },
-      { name: 'Microsoft Francisca Online (Natural) - Portuguese (Brazil)', lang: 'pt-BR', localService: false, default: false, voiceURI: 'francisca' },
+      {
+        name: 'Microsoft Aria Online (Natural) - English (United States)',
+        lang: 'en-US',
+        localService: false,
+        default: true,
+        voiceURI: 'aria',
+      },
+      {
+        name: 'Microsoft Francisca Online (Natural) - Portuguese (Brazil)',
+        lang: 'pt-BR',
+        localService: false,
+        default: false,
+        voiceURI: 'francisca',
+      },
     ]
     const w = window as unknown as { __falas: Array<{ texto: string; lang: string; voz: string | null }> }
     w.__falas = []
@@ -207,26 +262,29 @@ async function falasEmJogar(page: Page, sessao: string, idioma: string, nome: st
   if (await sala.isVisible().catch(() => false)) await sala.getByRole('button', { name: /Usar estas palavras/ }).click()
   await fecharComemoracoes(page)
   await page.evaluate(() => ((window as unknown as { __falas: unknown[] }).__falas = []))
-  const carta = page.locator('#grade-de-jogos').getByRole('button', { name: /^Memória/ }).first()
-  await expect(carta).toBeVisible({ timeout: 15_000 })
+  await expect(cartaoDoJogo(page, 'memory')).toBeEnabled({ timeout: 15_000 })
   await page.screenshot({ path: path.join(PASTA, `jogar-${nome}.png`) })
-  await carta.click()
+  await entrarNoJogo(page, 'memory')
   await page.waitForTimeout(1200)
-  // As cartas do tabuleiro (a de PALAVRA fala ao virar; a de tradução, não). Uma por vez, com
-  // pausa entre elas, para o par errado desvirar antes da próxima.
-  const cartas = page.locator('[aria-label="Tabuleiro"] button[data-texto]')
-  const total = await cartas.count()
-  for (let i = 0; i < total; i++) {
+  /* No tabuleiro novo a palavra é dita quando o PAR fecha (não mais ao virar a carta): fecha pares até
+     a página ter pedido três falas. As palavras da sessão não estão na Trilha, e o par sai da marca
+     que a carta traz (`paresDaMemoria`). */
+  const { pares } = await paresDaMemoria(page)
+  for (const par of pares) {
     const n = await page.evaluate(() => (window as unknown as { __falas: unknown[] }).__falas.length)
     if (n >= 3) break
-    await cartas.nth(i).click({ timeout: 1500 }).catch(() => {})
-    await page.waitForTimeout(1000)
+    await fecharPar(page, par)
+    await page.waitForTimeout(400)
   }
   await page.screenshot({ path: path.join(PASTA, `memoria-${nome}.png`) })
-  return page.evaluate(() => (window as unknown as { __falas: Array<{ texto: string; lang: string; voz: string | null }> }).__falas)
+  return page.evaluate(
+    () => (window as unknown as { __falas: Array<{ texto: string; lang: string; voz: string | null }> }).__falas,
+  )
 }
 
-test('sessão em português: cartões, idioma da sessão e Jogar em português; sessão em inglês continua inglês', async ({ page }, info) => {
+test('sessão em português: cartões, idioma da sessão e Jogar em português; sessão em inglês continua inglês', async ({
+  page,
+}, info) => {
   test.skip(info.project.name !== 'desktop-1280', 'uma resolução basta: o que se mede é dado e fala, não layout')
   await prepararEntrada(page)
   await semear(page, [SESSAO_PT, SESSAO_EN])
@@ -235,7 +293,10 @@ test('sessão em português: cartões, idioma da sessão e Jogar em português; 
   const falasPt = await falasEmJogar(page, 'sessao-pt', 'pt', 'pt')
 
   const pt = await lerCartoes(page, 'sessao-pt')
-  expect(pt.every((c) => c.srcLang === 'pt' && c.tgtLang === 'en-US'), JSON.stringify(pt)).toBe(true)
+  expect(
+    pt.every((c) => c.srcLang === 'pt' && c.tgtLang === 'en-US'),
+    JSON.stringify(pt),
+  ).toBe(true)
   expect(pt.find((c) => c.word === 'reunião')?.normKey).toBe('pt|reuniao')
   const en = await lerCartoes(page, 'sessao-en')
   expect(en.every((c) => c.srcLang === 'en-US')).toBe(true)
@@ -252,7 +313,10 @@ test('sessão em português: cartões, idioma da sessão e Jogar em português; 
 
   const falasEn = await falasEmJogar(page, 'sessao-en', 'en', 'en')
   // Evidência: cada fala que a página pediu, com lang e voz.
-  writeFileSync(path.join(PASTA, 'falas.json'), JSON.stringify({ pt: falasPt, en: falasEn, cartoesPt: pt, cartoesEn: en }, null, 2))
+  writeFileSync(
+    path.join(PASTA, 'falas.json'),
+    JSON.stringify({ pt: falasPt, en: falasEn, cartoesPt: pt, cartoesEn: en }, null, 2),
+  )
   const palavrasEn = falasEn.filter((f) => SESSAO_EN.cartoes.some((c) => c.word === f.texto))
   expect(palavrasEn.length, JSON.stringify(falasEn)).toBeGreaterThan(0)
   for (const f of palavrasEn) {

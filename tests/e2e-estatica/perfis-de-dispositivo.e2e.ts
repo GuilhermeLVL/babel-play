@@ -3,21 +3,27 @@ import path from 'node:path'
 
 import { expect, type Page, test } from '@playwright/test'
 
-import { abrirAjustesDaCaptura, controlesDaGravacao, fecharModelos, modeloAnunciado, naTelaDoCelular } from './_captura'
+import { abrirAjustesDaCaptura, capturaPronta, controlesDaCaptura, megasAnunciados, seloDoModelo } from './_captura'
 import { aplicarCpu, DISPOSITIVOS, scriptDoAparelho } from './_dispositivos.mjs'
 
 /**
  * PERFIS DE DISPOSITIVO NA EDIÇÃO ESTÁTICA (auditoria 2026-09-26).
  *
- * Em cada aparelho emulado (Quest, Pixel 7, iPhone 14 — ver `_dispositivos.mjs` para o que é e o que
- * não é emulado): o perfil detectado, o modelo escolhido e o tamanho anunciado, a captura SEM a opção
- * de áudio do sistema (com o texto explicando o microfone), o botão Iniciar habilitado e do tamanho
+ * Em cada aparelho emulado (Pixel 7, iPhone 14 — ver `_dispositivos.mjs` para o que é e o que não é
+ * emulado): o perfil detectado, o modelo escolhido e o tamanho anunciado, a captura SEM a opção de
+ * áudio do sistema (com o texto explicando o microfone), o botão Iniciar habilitado e do tamanho
  * mínimo, o aviso de download ANTES do primeiro byte, e nenhum erro de console. Não baixa modelo
  * nenhum: todo aviso é recusado ("Agora não"). A captura com áudio real é de `medir.mjs --dispositivo`.
  *
- * DUAS TELAS. O Quest usa a tela do computador; os celulares, a captura mobile-first (29/09), onde o
- * modelo mora em Opções → Modelos no aparelho e o Iniciar é o microfone grande da doca (`_captura.ts`
- * diz onde cada coisa está).
+ * DESENHO NOVO (09/10/2026). A tela da captura é uma só em todo aparelho (`_captura.ts`). No celular:
+ *  - o selo do modelo não aparece no topo; o modelo e o tamanho são ditos na folha do início (a opção
+ *    "Privado" diz "cerca de N MB") — é ali que este teste os lê;
+ *  - a faixa "sem áudio do sistema" (`aviso-sem-audio-do-sistema`) não existe mais: a tela pronta diz
+ *    "deixe o celular perto do som", e "Dispositivos e modelos de IA" diz que a captura usa só o
+ *    microfone e por quê;
+ *  - o modo leve não liga mais sozinho no aparelho fraco (decisão do dono, 08/10/2026,
+ *    `reduzirEfeitosAutomatico` em `lib/dispositivo/perfil.ts`): os efeitos valem em todo aparelho e só
+ *    a escolha manual os desliga. O teste confere o que vale agora (`data-modo-leve="false"`).
  *
  * DOIS AVISOS DE DOWNLOAD, desde a folha do início (28/09, `lib/captura/inicioDaCaptura.ts`). Na
  * primeira vez, o toque em Iniciar abre "Como transcrever a sua voz?": a pergunta do motor JÁ É o
@@ -35,9 +41,7 @@ const BYTES_DE_MODELO = /\.onnx(\?|$)|huggingface\.co\/.+\/resolve\/|\/modelos\/
 
 async function abrirCaptura(page: Page) {
   await page.goto('/capturar')
-  await expect(page.getByRole('heading', { name: 'Capturar', level: 1 })).toBeVisible({ timeout: 60_000 })
-  const pular = page.getByRole('button', { name: 'Pular apresentação' })
-  if (await pular.isVisible().catch(() => false)) await pular.click()
+  return capturaPronta(page)
 }
 
 for (const [nome, d] of Object.entries(DISPOSITIVOS)) {
@@ -53,13 +57,8 @@ for (const [nome, d] of Object.entries(DISPOSITIVOS)) {
     page.on('console', (m) => m.type() === 'error' && erros.push(m.text()))
     await page.addInitScript({ content: scriptDoAparelho(d.sinais) })
     await page.addInitScript(() => {
-      try {
-        localStorage.setItem('babel_tour_blitz', '1')
-      } catch {
-        /* storage bloqueado */
-      }
-      /* O Quest TEM getDisplayMedia, e o app não pode chamá-lo: compartilhar a visão do headset era o
-         que travava o aparelho inteiro. Conta as chamadas (onde a API existe). */
+      /* Onde `getDisplayMedia` existir, o app não pode chamá-lo num aparelho que só usa o microfone.
+         Conta as chamadas (onde a API existe). */
       const w = window as unknown as { __chamadasDeTela: number }
       w.__chamadasDeTela = 0
       const md = navigator.mediaDevices as MediaDevices | undefined
@@ -76,54 +75,39 @@ for (const [nome, d] of Object.entries(DISPOSITIVOS)) {
     const bytesDeModelo: string[] = []
     page.on('request', (r) => BYTES_DE_MODELO.test(r.url()) && bytesDeModelo.push(r.url()))
 
-    await abrirCaptura(page)
+    const iniciar = await abrirCaptura(page)
 
-    // 1. Perfil detectado por capacidade (o tipo e o modo leve se corrigem quando o requestAdapter() responde).
+    // 1. Perfil detectado por capacidade (o tipo se corrige quando o requestAdapter() responde).
     await expect.poll(() => page.evaluate(() => document.documentElement.dataset.dispositivo)).toMatch(d.esperado.tipo)
     const tipo = (await page.evaluate(() => document.documentElement.dataset.dispositivo)) ?? ''
-    await expect
-      .poll(() => page.evaluate(() => document.documentElement.dataset.modoLeve))
-      .toBe(tipo === 'quest' || tipo === 'celular-fraco' ? 'true' : 'false')
-    // A tela certa para o perfil: a do celular só no celular (o Quest fica com a do computador).
-    const celular = tipo.startsWith('celular')
-    expect(await naTelaDoCelular(page)).toBe(celular)
+    // O modo leve não liga mais sozinho (08/10/2026): os efeitos valem em todo aparelho.
+    await expect.poll(() => page.evaluate(() => document.documentElement.dataset.modoLeve)).toBe('false')
 
-    // 2. Modelo escolhido: nada de small nem do base híbrido de 209 MB fora do desktop.
-    const modelo = await modeloAnunciado(page)
-    // 80 = base q8; 67/32 = moonshine
-    await expect(modelo).toContainText(/\b(80|67|32) MB/)
-    await expect(modelo).not.toContainText(/209 MB|589 MB/)
-    const anunciado = (await modelo.innerText()).replace(/\s+/g, ' ').trim()
-    const mbDoModelo = Number(/\b(80|67|32) MB/.exec(anunciado)?.[1])
-    if (celular) await page.screenshot({ path: path.join(PASTA, `${nome}-modelos.png`) })
-    await fecharModelos(page)
+    // 2. Celular: o selo do modelo não cabe no topo (o tamanho é dito na folha do início, passo 6a).
+    await expect(seloDoModelo(page)).toBeHidden()
 
-    // 3. Sem áudio do sistema: o aviso explica o microfone; o Iniciar está habilitado.
-    const semAudio = page.getByTestId('aviso-sem-audio-do-sistema')
-    await expect(semAudio).toBeVisible()
-    await expect(semAudio).toContainText(/a legenda vem do microfone/)
-    if (tipo === 'quest') await expect(semAudio).toContainText('Meta Quest')
-    /* No computador, a fonte é o interruptor do microfone ao lado do Iniciar. No celular o microfone
-       grande É o Iniciar (o interruptor de mudo só existe gravando), e o aviso acima é o que diz. */
-    if (!celular) await expect(page.getByRole('switch', { name: /Microfone ativo|Minha voz entra/ })).toBeVisible()
-    const iniciar = page.getByRole('button', { name: 'Iniciar captura' })
+    // 3. Sem áudio do sistema: a tela pronta diz de onde vem o som, o microfone está ligado e o
+    //    Iniciar, habilitado.
+    await expect(page.getByTestId('captura-do-prototipo')).toContainText('deixe o celular perto do som')
+    await expect(page.getByRole('switch', { name: 'Microfone ativo' })).toBeChecked()
     await expect(iniciar).toBeEnabled()
 
-    // 4. Alvo mínimo (56 px no Quest, 48 no celular) nos botões que conduzem a gravação.
+    // 4. Alvo mínimo (48 px no celular) em tudo o que conduz a captura: o topo e a faixa de baixo.
     const altura = (await iniciar.boundingBox())?.height ?? 0
     expect(altura).toBeGreaterThanOrEqual(d.esperado.alvo)
-    const controles = await controlesDaGravacao(page)
-    expect(await controles.count()).toBeGreaterThan(0)
-    const menor = await controles.evaluateAll((els) => Math.min(...els.map((e) => e.getBoundingClientRect().height)))
+    const controles = controlesDaCaptura(page)
+    expect(await controles.count()).toBeGreaterThan(1)
+    const menor = await controles.evaluateAll((els) =>
+      Math.min(...els.map((e) => Math.min(e.getBoundingClientRect().height, e.getBoundingClientRect().width))),
+    )
     expect(menor).toBeGreaterThanOrEqual(d.esperado.alvo)
     await page.screenshot({ path: path.join(PASTA, `${nome}-capturar.png`), fullPage: false })
 
     // 5. Os ajustes da captura não oferecem rota de áudio do sistema, e dizem por quê.
     const ajustes = await abrirAjustesDaCaptura(page)
     await expect(ajustes.getByRole('radiogroup', { name: 'Como capturar o áudio do sistema' })).toHaveCount(0)
-    await expect(
-      ajustes.getByText(tipo === 'quest' ? /No Meta Quest a captura usa só o microfone/ : /getDisplayMedia não existe/),
-    ).toBeVisible()
+    await expect(ajustes.getByText(/getDisplayMedia não existe/)).toBeVisible()
+    await expect(ajustes.getByText(/A captura usa só o microfone/)).toBeVisible()
     await page.screenshot({ path: path.join(PASTA, `${nome}-ajustes.png`) })
     await page.keyboard.press('Escape')
     await expect(ajustes).toBeHidden()
@@ -134,12 +118,14 @@ for (const [nome, d] of Object.entries(DISPOSITIVOS)) {
     const folha = page.getByTestId('escolha-do-microfone')
     await expect(folha).toBeVisible({ timeout: 15_000 })
     const privado = folha.getByRole('button', { name: /Privado/ })
-    // O Privado anuncia o mesmo modelo de transcrição do passo 2.
-    await expect(privado).toContainText(`cerca de ${mbDoModelo} MB`)
+    // O modelo escolhido: nada de small nem do base híbrido de 209 MB fora do desktop.
+    // 80 = base q8; 67/32 = moonshine
+    await expect(privado).toContainText(/cerca de (80|67|32) MB/)
+    await expect(privado).not.toContainText(/209 MB|589 MB/)
+    const mbDoModelo = await megasAnunciados(privado)
     await privado.click()
     const baixaAgora = page.getByTestId('download-da-escolha')
-    await expect(baixaAgora).toContainText(/cerca de \d+ MB/)
-    const totalDaFolha = Number(/cerca de (\d+) MB/.exec((await baixaAgora.textContent()) ?? '')?.[1])
+    const totalDaFolha = await megasAnunciados(baixaAgora)
     expect(totalDaFolha).toBeGreaterThanOrEqual(mbDoModelo)
     await page.screenshot({ path: path.join(PASTA, `${nome}-folha-do-inicio.png`) })
     await page.getByRole('button', { name: 'Agora não' }).click()
@@ -148,14 +134,12 @@ for (const [nome, d] of Object.entries(DISPOSITIVOS)) {
     // 6b. Com a escolha guardada (Privado), a folha é só a confirmação: o mesmo total, antes do
     //     primeiro byte, acima dos 100 MB do perfil (`confirmarDownloadAcimaDeMb`).
     await page.evaluate(() => localStorage.setItem('babel.preferencias', JSON.stringify({ micEscolhido: true })))
-    await abrirCaptura(page)
-    await page.getByRole('button', { name: 'Iniciar captura' }).click()
+    await (await abrirCaptura(page)).click()
     const aviso = page.getByTestId('aviso-de-download')
     await expect(aviso).toBeVisible({ timeout: 15_000 })
     await expect(page.getByTestId('escolha-do-microfone')).toHaveCount(0)
     const textoDoAviso = ((await aviso.textContent()) ?? '').trim()
-    expect(textoDoAviso).toMatch(/cerca de \d+ MB/)
-    expect(Number(/cerca de (\d+) MB/.exec(textoDoAviso)?.[1])).toBe(totalDaFolha)
+    expect(await megasAnunciados(aviso)).toBe(totalDaFolha)
     await page.screenshot({ path: path.join(PASTA, `${nome}-aviso-download.png`) })
     await page.getByRole('button', { name: 'Agora não' }).click()
     await expect(aviso).toBeHidden()
@@ -166,8 +150,11 @@ for (const [nome, d] of Object.entries(DISPOSITIVOS)) {
       'pediu o compartilhamento de tela num aparelho que só usa o microfone',
     ).toBe(0)
 
-    info.annotations.push({ type: 'dispositivo', description: `${nome}: ${tipo} · ${anunciado} · ${textoDoAviso}` })
-    console.log(`[${nome}] tipo=${tipo} | modelo="${anunciado}" | folha=${totalDaFolha} MB | aviso="${textoDoAviso}"`)
+    info.annotations.push({
+      type: 'dispositivo',
+      description: `${nome}: ${tipo} · privado ${mbDoModelo} MB · ${textoDoAviso}`,
+    })
+    console.log(`[${nome}] tipo=${tipo} | modelo=${mbDoModelo} MB | folha=${totalDaFolha} MB | aviso="${textoDoAviso}"`)
     expect(erros).toEqual([])
     await ctx.close()
   })

@@ -18,6 +18,12 @@ import { expect, type Page, test } from '@playwright/test'
  * As falas entram por `window.__simFalas` (a bancada da tela, sem STT nem MT): o que se mede aqui
  * é o fim da captura, não o reconhecimento. A captura começa de verdade, com a mídia falsa do
  * Chromium (a tela compartilhada é escolhida sozinha).
+ *
+ * DESENHO NOVO (09/10/2026). A captura abre pronta, com "Iniciar captura" na faixa de baixo
+ * (`iniciar-captura`); gravando, o botão vira "Encerrar" (`encerrar-captura`, o antigo "Parar
+ * captura"). O menu é o trilho de ícones (a barra de cinco destinos no celular): cada destino é
+ * `.q-item[data-px-rota=<view>]`. Já na captura pronta, tocar de novo em Capturar no menu COMEÇA a
+ * gravar — por isso o teste só toca nele vindo de outra tela.
  */
 const PASTA = process.env.SCREENSHOTS_ESTATICA || path.join('test-results', 'estatica', 'fim-da-captura')
 mkdirSync(PASTA, { recursive: true })
@@ -77,8 +83,17 @@ async function semear(page: Page, n: number, prefixo = 'antiga') {
       const agora = Date.now()
       for (let i = 0; i < n; i++) {
         tx.objectStore('sessoes').put({
-          id: `${prefixo}-${i}`, title: `Gravação ${prefixo} ${i + 1}`, kind: 'live', createdAt: agora - (n - i) * 60_000,
-          updatedAt: agora, durationMs: 8000, wordCount: 3, sourceLang: 'en', targetLang: 'pt-BR', status: 'done', meta: null,
+          id: `${prefixo}-${i}`,
+          title: `Gravação ${prefixo} ${i + 1}`,
+          kind: 'live',
+          createdAt: agora - (n - i) * 60_000,
+          updatedAt: agora,
+          durationMs: 8000,
+          wordCount: 3,
+          sourceLang: 'en',
+          targetLang: 'pt-BR',
+          status: 'done',
+          meta: null,
         })
       }
       await new Promise<void>((ok, erro) => {
@@ -106,7 +121,7 @@ async function contarSessoes(page: Page): Promise<number> {
 
 async function iniciarCaptura(page: Page) {
   await fecharDialogos(page)
-  await page.getByRole('button', { name: /Iniciar captura/ }).first().click()
+  await page.getByTestId('iniciar-captura').click()
   /* No celular a captura pergunta antes de baixar os modelos (os downloads estão bloqueados no
      `beforeEach`: as falas vêm da bancada, o modelo não é necessário). */
   const baixar = page.getByRole('button', { name: /Baixar e iniciar/ })
@@ -115,7 +130,7 @@ async function iniciarCaptura(page: Page) {
     .then(() => true)
     .catch(() => false)
   if (perguntou) await baixar.click()
-  await expect(page.getByRole('button', { name: /Parar captura/ }).first()).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByTestId('encerrar-captura')).toBeVisible({ timeout: 15_000 })
   await page.evaluate(() =>
     (window as unknown as { __simFalas: (t: string[]) => number }).__simFalas([
       'good morning everyone and welcome back',
@@ -131,8 +146,8 @@ test.beforeEach(async ({ page }) => {
   await page.route(/huggingface\.co|hf\.co|cdn-lfs/, (r) => r.abort())
 })
 
-/** Um botão do menu, na barra lateral (desktop) ou na de baixo (celular). */
-const doMenu = (page: Page, nome: RegExp) => page.getByRole('button', { name: nome }).locator('visible=true').first()
+/** Um destino do menu: no trilho de ícones (computador) ou na barra de baixo (celular). */
+const doMenu = (page: Page, view: 'play' | 'capture') => page.locator(`.q-trilho .q-item[data-px-rota="${view}"]`)
 
 test('no teto (20 nesta edição), a tela avisa ANTES de gravar e dá saída ali mesmo', async ({ page }, info) => {
   await entrar(page)
@@ -148,9 +163,9 @@ test('no teto (20 nesta edição), a tela avisa ANTES de gravar e dá saída ali
   await page.screenshot({ path: path.join(PASTA, `teto-${info.project.name}.png`), fullPage: true })
 
   // Iniciar não começa uma captura que não teria onde ficar.
-  await page.getByRole('button', { name: /Iniciar captura/ }).first().click()
+  await page.getByTestId('iniciar-captura').click()
   await page.waitForTimeout(500)
-  await expect(page.getByRole('button', { name: /Parar captura/ })).toHaveCount(0)
+  await expect(page.getByTestId('encerrar-captura')).toHaveCount(0)
 
   // A saída: apagar uma gravação antiga, na própria tela.
   await aviso.getByRole('button', { name: /Apagar uma gravação antiga/ }).click()
@@ -160,27 +175,33 @@ test('no teto (20 nesta edição), a tela avisa ANTES de gravar e dá saída ali
   expect(await contarSessoes(page)).toBe(19)
 })
 
-test('Parar → "Salvar e ficar aqui" → sair: a tela solta na hora, sair não pergunta nem duplica', async ({ page }, info) => {
+test('Parar → "Salvar e ficar aqui" → sair: a tela solta na hora, sair não pergunta nem duplica', async ({
+  page,
+}, info) => {
   await entrar(page)
   await abrir(page, '/capturar')
   await iniciarCaptura(page)
 
-  await page.getByRole('button', { name: /Parar captura/ }).first().click()
+  await page.getByTestId('encerrar-captura').click()
   const encerrar = page.getByRole('dialog', { name: /Encerrar a sessão/ })
   await expect(encerrar).toBeVisible()
   const t0 = Date.now()
   await encerrar.getByRole('button', { name: 'Salvar e ficar aqui' }).click()
   // O diálogo sai e a captura para NA HORA — antes do áudio, da rede e do vocabulário.
   await expect(encerrar).toBeHidden({ timeout: 1500 })
-  await expect(page.getByRole('button', { name: /Iniciar captura/ }).first()).toBeVisible({ timeout: 1500 })
+  await expect(page.getByTestId('iniciar-captura')).toBeVisible({ timeout: 1500 })
   const soltou = Date.now() - t0
-  await expect(page.getByRole('button', { name: /Abrir a sessão salva/ })).toBeVisible({ timeout: 20_000 })
-  await page.screenshot({ path: path.join(PASTA, `salva-${info.project.name}.png`), fullPage: true })
   expect(soltou, 'o Encerrar demorou a soltar a tela').toBeLessThan(2500)
+  // O salvamento termina em segundo plano, com a tela já solta.
+  await expect.poll(() => contarSessoes(page), { timeout: 20_000 }).toBe(1)
+  /* O botão "Abrir a sessão salva" (com a conta das palavras fichadas) era do desenho de antes e não
+     existe na tela nova fora do headset; as falas continuam na tela, e é o que se confere aqui. */
+  await expect(page.getByText('today we are going to talk about travel').first()).toBeVisible()
+  await page.screenshot({ path: path.join(PASTA, `salva-${info.project.name}.png`), fullPage: true })
 
   // Sair: nenhuma trava ("falas não salvas"), e a sessão não é salva de novo.
   await fecharDialogos(page)
-  await doMenu(page, /^Jogar$/).click()
+  await doMenu(page, 'play').click()
   await expect(page).toHaveURL(/\/jogar/, { timeout: 10_000 })
   await expect(page.getByText(/não foram salvas|Você tem falas não salvas/)).toHaveCount(0)
   await expect.poll(() => contarSessoes(page), { timeout: 15_000 }).toBe(1)
@@ -188,7 +209,9 @@ test('Parar → "Salvar e ficar aqui" → sair: a tela solta na hora, sair não 
   expect(await contarSessoes(page)).toBe(1)
 })
 
-test('a recusa no meio do salvamento não prende: mostra o motivo, guarda a captura e dá saída', async ({ page }, info) => {
+test('a recusa no meio do salvamento não prende: mostra o motivo, guarda a captura e dá saída', async ({
+  page,
+}, info) => {
   await entrar(page)
   await semear(page, 19)
   await abrir(page, '/capturar')
@@ -197,7 +220,7 @@ test('a recusa no meio do salvamento não prende: mostra o motivo, guarda a capt
   // O acervo enche DURANTE a gravação (outra aba, por exemplo): o salvamento vai ser recusado.
   await semear(page, 1, 'outra-aba')
 
-  await page.getByRole('button', { name: /Parar captura/ }).first().click()
+  await page.getByTestId('encerrar-captura').click()
   const encerrar = page.getByRole('dialog', { name: /Encerrar a sessão/ })
   await encerrar.getByRole('button', { name: 'Salvar e ficar aqui' }).click()
 
@@ -211,9 +234,27 @@ test('a recusa no meio do salvamento não prende: mostra o motivo, guarda a capt
   await page.screenshot({ path: path.join(PASTA, `recusa-${info.project.name}.png`), fullPage: true })
 
   // Sair não perde nada nem pergunta: a captura está guardada no navegador e volta com a tela.
-  await doMenu(page, /^Jogar$/).click()
+  await doMenu(page, 'play').click()
   await expect(page).toHaveURL(/\/jogar/, { timeout: 10_000 })
-  await doMenu(page, /^Capturar$/).click()
+  // A primeira visita ao Jogar abre "O que você vai praticar" (no celular, por cima da barra): fecha.
+  const sala = page.getByRole('dialog', { name: 'O que você vai praticar' })
+  await expect(sala).toBeVisible({ timeout: 10_000 })
+  await sala.getByRole('button', { name: 'Fechar sem mudar nada' }).click()
+  await expect(sala).toBeHidden()
+  /* DEFEITO DO APP NO CELULAR (09/10/2026, deixado falhando de propósito): o selo "A sessão … não foi
+     salva" (`indicador-de-salvamento`) deveria ficar ACIMA da barra de baixo (`index.css`, pelo
+     `--shell-inset-bottom`) e, com a barra flutuante do desenho novo, fica em cima dela: cobre
+     Capturar, Intérprete e Jogar enquanto a recusa durar. `soft`: o teste registra a falha e segue
+     pela saída que sobra (o "Ver o que fazer" do próprio selo), para conferir o resto. */
+  const pelaBarra = await doMenu(page, 'capture')
+    .click({ timeout: 5000 })
+    .then(
+      () => true,
+      () => false,
+    )
+  expect.soft(pelaBarra, 'com a captura recusada, o destino Capturar do menu continua tocável').toBe(true)
+  if (!pelaBarra)
+    await page.getByTestId('indicador-de-salvamento').getByRole('button', { name: 'Ver o que fazer' }).click()
   await expect(page.getByTestId('captura-nao-salva')).toBeVisible({ timeout: 10_000 })
 
   // A saída de verdade: apagar uma antiga e tentar de novo — com o MESMO id, sem duplicar.

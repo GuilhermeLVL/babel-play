@@ -147,5 +147,5 @@ export function unidadeNoDesenho(jogo: MinigameId, reserva: string): string {
  */
 export function sobrancelhaNoDesenho(jogo: MinigameId, quantos: number, reserva: string): string {
   const molde = TEXTOS[jogo]?.rodada;
-  return molde ? molde.replace(/d+/, String(quantos)) : reserva;
+  return molde ? molde.replace(/\d+/, String(quantos)) : reserva;
 }

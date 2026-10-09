@@ -253,6 +253,8 @@ export default function TrilhoDoQuest({
               data-px-rota={noMaisNoCelular(item.id) ? undefined : item.id}
               onClick={() => ir(item.id)}
               aria-current={activeView === item.id && !noMaisNoCelular(item.id) ? 'page' : undefined}
+              /* O nome não depende do rótulo visível: na barra do celular o de Capturar some (`display: none`). */
+              aria-label={navLabel(item, ageProfile, true)}
             >
               <Icone aria-hidden />
               <span>{navLabel(item, ageProfile, true)}</span>
@@ -406,7 +408,7 @@ export default function TrilhoDoQuest({
                         <Icone aria-hidden />
                       </span>
                       {/* Sem conta, o destino abre o cartão "pede conta": dito aqui, antes do toque. */}
-                      {semConta && exigeConta(item.id) ? (
+                      {semConta && exigeConta(item.id) && !NO_TRILHO.includes(item.id) ? (
                         <span>
                           <b>{navLabel(item, ageProfile)}</b>
                           <small className="q-d q-pede-conta">

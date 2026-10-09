@@ -3,6 +3,8 @@ import path from 'node:path'
 
 import { expect, type Page, test } from '@playwright/test'
 
+import { capturaPronta, seloDoModelo } from './_captura'
+
 /**
  * "LEGENDA SEM BAIXAR NADA" NA EDIÇÃO ESTÁTICA (plano "Grátis sem travar", A9a).
  *
@@ -12,10 +14,16 @@ import { expect, type Page, test } from '@playwright/test'
  * Translator API com o par no disco. O `navigator.webdriver` é desligado para a pergunta
  * `available({processLocally})` ser feita (sob automação o app nem pergunta — o Chromium real cai).
  *
- * O caminho medido: a oferta aparece com a detecção automática ligada; o toque no idioma escolhe-o; a
- * captura começa e o áudio da aba vai ao reconhecedor do navegador; a legenda chega traduzida pelo
- * nativo. E, do começo ao fim, NENHUM byte de Whisper nem de opus-mt: nem os pesos do Hub, nem os
- * workers deles.
+ * O caminho medido: com a detecção automática ligada o selo promete um modelo local; a pessoa escolhe
+ * o idioma do vídeo em "Idiomas da sessão" e o selo passa a dizer "Reconhecimento do navegador", sem
+ * megabytes; a captura começa e o áudio da aba vai ao reconhecedor do navegador; a legenda chega
+ * traduzida pelo nativo. E, do começo ao fim, NENHUM byte de Whisper nem de opus-mt: nem os pesos do
+ * Hub, nem os workers deles.
+ *
+ * DESENHO NOVO (09/10/2026). A faixa da oferta ("Legenda sem baixar nada: escolha o idioma do vídeo",
+ * `legenda-sem-baixar`), com o idioma a um toque, não existe na tela nova: o idioma se escolhe no
+ * diálogo "Idiomas da sessão", aberto pelo chip do par no topo. A garantia (idioma escolhido → o
+ * navegador transcreve e traduz, nada nosso baixa) é a mesma; o que saiu foi o convite na tela.
  */
 const PASTA = process.env.SCREENSHOTS_ESTATICA || path.join('test-results', 'estatica', 'legenda-sem-baixar')
 mkdirSync(PASTA, { recursive: true })
@@ -124,10 +132,10 @@ async function fecharDialogos(page: Page) {
   }
 }
 
-test('desktop fraco: escolher o idioma na oferta leva a legenda ao navegador, sem Whisper nem opus-mt', async ({
+test('desktop fraco: com o idioma do vídeo escolhido a legenda vem do navegador, sem Whisper nem opus-mt', async ({
   page,
 }, info) => {
-  test.skip(info.project.name !== 'desktop-1280', 'a oferta é do computador (o celular não tem o áudio do sistema)')
+  test.skip(info.project.name !== 'desktop-1280', 'o caminho é do computador (o celular não tem o áudio do sistema)')
 
   /* O que NÃO pode sair: os pesos do Hub (Whisper, Moonshine, opus-mt) e os workers deles. O Hub fica
      bloqueado (o runner não baixa nada), e cada pedido é anotado. */
@@ -145,31 +153,30 @@ test('desktop fraco: escolher o idioma na oferta leva a legenda ao navegador, se
     return !gpu || !(await gpu.requestAdapter().catch(() => null))
   })
   test.skip(!semGpu, 'este navegador tem adaptador WebGPU: não é o desktop fraco')
-  await expect(page.getByRole('heading', { name: 'Capturar', level: 1 })).toBeVisible({ timeout: 30_000 })
-  const pular = page.getByRole('button', { name: 'Pular apresentação' })
-  if (await pular.isVisible().catch(() => false)) await pular.click()
+  await capturaPronta(page)
   await fecharDialogos(page)
 
-  // A detecção automática vem ligada: a oferta aparece, com o idioma que o navegador transcreve.
-  const oferta = page.getByTestId('legenda-sem-baixar')
-  await expect(oferta).toBeVisible({ timeout: 15_000 })
-  await expect(oferta).toContainText('Legenda sem baixar nada: escolha o idioma do vídeo')
-  await page.screenshot({ path: path.join(PASTA, `oferta-${info.project.name}.png`), fullPage: true })
+  // A detecção automática vem ligada: o selo promete um modelo local, com o tamanho.
+  const selo = seloDoModelo(page)
+  await expect(selo).toContainText(/modelo local · \d+ MB/i, { timeout: 15_000 })
+  await page.screenshot({ path: path.join(PASTA, `detectar-${info.project.name}.png`), fullPage: true })
 
-  // O toque no idioma: a detecção desliga, a oferta some, e o selo não promete mais um download.
-  const selo = page.getByRole('button', { name: /ver detalhes/ })
-  await expect(selo).toContainText(/modelo local · \d+ MB/i)
-  await oferta.getByRole('button', { name: /English/ }).click()
-  await expect(oferta).toBeHidden()
+  // O idioma do vídeo, escolhido em "Idiomas da sessão": a detecção desliga e o selo não promete mais um download.
+  await page
+    .getByTestId('captura-do-prototipo')
+    .getByRole('button', { name: /^Detectar/ })
+    .click()
+  const idiomas = page.getByRole('dialog', { name: 'Idiomas da sessão' })
+  await idiomas.getByRole('button', { name: /Idioma do conteúdo/ }).click()
+  await idiomas.getByRole('option', { name: 'English (US)' }).click()
+  await idiomas.getByRole('button', { name: 'Usar estes idiomas' }).click()
+  await expect(idiomas).toBeHidden()
   await expect(selo).toContainText(/reconhecimento do navegador/i)
   await expect(selo).not.toContainText(/MB/)
 
   // Iniciar: o áudio da aba vai ao reconhecedor do navegador, no aparelho, com o idioma escolhido.
-  await page
-    .getByRole('button', { name: /Iniciar captura/ })
-    .first()
-    .click()
-  await expect(page.getByRole('button', { name: /Parar captura/ }).first()).toBeVisible({ timeout: 20_000 })
+  await page.getByTestId('iniciar-captura').click()
+  await expect(page.getByTestId('encerrar-captura')).toBeVisible({ timeout: 20_000 })
   await expect
     .poll(() => page.evaluate(() => (window as unknown as { __reconhecedores: unknown[] }).__reconhecedores), {
       timeout: 20_000,

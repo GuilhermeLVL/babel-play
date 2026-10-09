@@ -3,6 +3,8 @@ import path from 'node:path'
 
 import { expect, type Page, test } from '@playwright/test'
 
+import { abrirLobbyDaTrilha, cartaoDoJogo, chegarAoFim, entrarNoJogo, palco, semExplicacao, terminou } from './_jogos'
+
 /**
  * A EDIÇÃO ESTÁTICA DE PONTA A PONTA, contra o `dist/` servido como o Cloudflare Pages serve.
  *
@@ -14,6 +16,10 @@ import { expect, type Page, test } from '@playwright/test'
  *    diz que ela está na versão completa;
  *  - dá para jogar uma rodada inteira sem microfone (Duelo relâmpago com as palavras da Trilha,
  *    que vêm embutidas em `public/`), e ela fica gravada no navegador (IndexedDB `babel-local`).
+ *
+ * DESENHO NOVO (09/10/2026). O menu é o trilho de ícones (a barra de cinco destinos no celular); o que
+ * o menu da conta dizia ("edição de demonstração", sem "Entrar" nem "Planos") mora agora no painel
+ * "Mais". O Duelo se joga no tabuleiro novo (`.opcoes-blitz`) e termina em `casca/FimDaRodada`.
  *
  * AVISOS BENIGNOS (não são erro, e por isso não entram na conta): o `warning` do Chrome "The
  * AudioContext was not allowed to start" — política de autoplay; os efeitos sonoros criam o
@@ -61,13 +67,7 @@ async function abrir(page: Page, rota: string) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
-    try {
-      localStorage.setItem('babel_tour_blitz', '1')
-    } catch {
-      /* storage bloqueado */
-    }
-  })
+  await semExplicacao(page, ['blitz'])
 })
 
 test('edição estática: telas principais sem /api, sem erro, sem login nem planos', async ({ page }, info) => {
@@ -86,18 +86,16 @@ test('edição estática: telas principais sem /api, sem erro, sem login nem pla
   await semProibidos(page, 'início')
   await page.screenshot({ path: path.join(PASTA, `inicio-${sufixo}.png`) })
 
-  // O menu da conta: sem "Entrar", sem "Planos", e dizendo o que a edição é.
-  const conta = page.getByRole('button', { name: 'Sua conta' }).first()
-  // No desktop o avatar está sempre no shell; no celular ele pode morar só no topo compacto.
-  if (sufixo.startsWith('desktop')) await expect(conta).toBeVisible()
-  if (await conta.isVisible().catch(() => false)) {
-    await conta.click()
-    const menu = page.getByRole('menu', { name: 'Sua conta' })
-    await expect(menu).toBeVisible()
-    await expect(menu).toContainText('edição de demonstração')
-    await semProibidos(page, 'menu da conta')
-    await page.keyboard.press('Escape')
-  }
+  // O painel "Mais" (o que o menu da conta era): sem "Entrar", sem "Planos", e dizendo o que a edição é.
+  await page.locator('.q-trilho .q-mais-botao').click()
+  const mais = page.getByRole('dialog', { name: 'Mais destinos' })
+  await expect(mais).toBeVisible()
+  await expect(mais.getByTestId('conta-no-quest')).toContainText('edição de demonstração')
+  await expect(mais.getByTestId('planos-no-mais')).toHaveCount(0)
+  await semProibidos(page, 'painel Mais')
+  await page.screenshot({ path: path.join(PASTA, `mais-${sufixo}.png`) })
+  await mais.getByRole('button', { name: 'Fechar' }).click()
+  await expect(mais).toBeHidden()
 
   await abrir(page, '/capturar')
   await semProibidos(page, 'capturar')
@@ -135,37 +133,25 @@ test('edição estática: telas principais sem /api, sem erro, sem login nem pla
 test('edição estática: uma rodada inteira sem microfone, gravada no navegador', async ({ page }, info) => {
   const coleta = coletar(page)
 
-  await abrir(page, '/jogar')
-  await semProibidos(page, 'jogar')
   // As palavras da Trilha vêm embutidas no site (public/trilha): dá para jogar sem ter capturado nada.
-  await page.getByRole('radio', { name: /Trilha/ }).click()
-  await page.getByRole('button', { name: /Usar estas palavras/ }).click()
-  const carta = page
-    .locator('#grade-de-jogos')
-    .getByRole('button', { name: /^Duelo relâmpago/ })
-    .first()
-  await expect(carta).toBeVisible({ timeout: 15_000 })
+  await abrirLobbyDaTrilha(page)
+  await semProibidos(page, 'jogar')
+  await expect(cartaoDoJogo(page, 'blitz')).toContainText('Duelo relâmpago')
   await page.screenshot({ path: path.join(PASTA, `jogar-${info.project.name}.png`) })
-  await carta.click()
+  await entrarNoJogo(page, 'blitz')
 
-  await expect(page.getByText(/Item 1 de \d+/).first()).toBeVisible({ timeout: 15_000 })
-  // Responde qualquer alternativa até a rodada acabar (por item ou pelo relógio de 60 s).
-  // Onda 0 (recompensas v2): o Duelo termina no fim comum de todos os jogos.
-  const fim = page.getByText(/Rodada concluída/).first()
-  const controles =
-    /^(Pausar|Recomeçar|Cortar duas.*|Jogar|Início|Capturar|Intérprete|Biblioteca|Vocabulário|Estatísticas|Personalizar|Sobre|Ajustes|)$/
-  for (let i = 0; i < 120 && !(await fim.isVisible().catch(() => false)); i++) {
-    const opcoes = page.getByRole('main').getByRole('button')
-    const textos = await opcoes.allInnerTexts()
-    const idx = textos.findIndex((t) => !controles.test(t.replace(/\s+/g, ' ').trim()))
-    if (idx >= 0)
-      await opcoes
-        .nth(idx)
-        .click({ timeout: 2000 })
-        .catch(() => {})
+  // Responde a primeira alternativa de pé até a rodada acabar (por item ou pelo relógio de 60 s).
+  const alternativas = palco(page).locator('.opcoes-blitz button:enabled')
+  await expect(alternativas.first()).toBeVisible({ timeout: 15_000 })
+  for (let i = 0; i < 120 && !(await terminou(page)); i++) {
+    await alternativas
+      .first()
+      .click({ timeout: 2000 })
+      .catch(() => {})
     await page.waitForTimeout(250)
   }
-  await expect(fim).toBeVisible({ timeout: 70_000 })
+  const fim = await chegarAoFim(page, 'blitz', 70_000)
+  await expect(fim).toContainText('Rodada concluída')
   // Sem servidor não há ranking de comunidade: o envio nem é oferecido.
   await expect(page.getByText('Ranking global')).toHaveCount(0)
 

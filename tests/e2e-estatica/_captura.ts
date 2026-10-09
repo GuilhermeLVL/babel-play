@@ -1,76 +1,58 @@
 import { expect, type Locator, type Page } from '@playwright/test'
 
 /**
- * ONDE A CAPTURA DIZ AS COISAS, em cada uma das duas telas dela.
+ * ONDE A CAPTURA DIZ AS COISAS, no desenho novo (09/10/2026).
  *
- * O computador (e o Quest, que usa a tela do computador) tem o cabeçalho com o selo do modelo, o
- * botão "Ajustes da captura" e o Espaço de gravação. O celular, desde a captura mobile-first
- * (29/09, `src/components/views/captura/celular/*`), tem outra tela: sem selo no cabeçalho, com UM
- * microfone grande na doca (é ele o "Iniciar captura") e o resto numa folha de baixo, "Opções da
- * captura". As garantias dos testes são as mesmas; o que muda é o caminho até a informação.
+ * A tela é UMA SÓ em todo aparelho (`CapturaDoPrototipo`, `data-testid="captura-do-prototipo"`): abre
+ * pronta, sem título, com o topo (idiomas, selo do modelo, microfone, "Ajustes da captura", ajuda), o
+ * miolo "Pronto para legendar" e a faixa de baixo com "Iniciar captura". O que muda com a largura:
+ * abaixo de 720 px o selo do modelo (`.px-so-largo`) e os botões secundários da faixa não aparecem, e
+ * o tamanho do modelo só é dito antes do primeiro byte — na folha "Como transcrever a sua voz?" (com
+ * o microfone ligado) ou no aviso "Baixar os modelos desta captura?".
  */
 
-/** A tela da captura é a do celular (`CapturaNoCelular`)? */
-export async function naTelaDoCelular(page: Page): Promise<boolean> {
-  return page.getByTestId('captura-no-celular').isVisible()
+/** A tela da captura, pronta para começar. Fecha a apresentação da primeira visita, se ela abrir. */
+export async function capturaPronta(page: Page): Promise<Locator> {
+  const iniciar = page.getByTestId('iniciar-captura')
+  await expect(iniciar).toBeVisible({ timeout: 60_000 })
+  const pular = page.getByRole('button', { name: 'Pular apresentação' })
+  if (await pular.isVisible().catch(() => false)) await pular.click()
+  return iniciar
 }
 
 /**
- * O modelo de TRANSCRIÇÃO que a captura anuncia, com o tamanho. No computador, o selo do cabeçalho
- * ("modelo local · N MB"); no celular, a linha "Transcrição" de Opções da captura → Modelos no
- * aparelho — o mesmo diálogo "Modelo no dispositivo" que o selo abre. O localizador acompanha a tela
- * (o tamanho se corrige quando o `requestAdapter()` responde): dá para esperar nele. No celular o
- * diálogo fica aberto; `fecharModelos` o fecha.
+ * O selo do topo que diz quem transcreve: "Modelo local · N MB" ou "Reconhecimento do navegador". Só
+ * existe à vista na tela larga (computador, tablet, headset); o toque nele abre "Modelo no dispositivo".
  */
-export async function modeloAnunciado(page: Page): Promise<Locator> {
-  if (!(await naTelaDoCelular(page))) {
-    const selo = page.getByRole('button', { name: /Modelo no dispositivo/ })
-    await expect(selo).toBeVisible()
-    return selo
-  }
-  await page.getByRole('button', { name: 'Opções da captura' }).click()
-  await page
-    .getByRole('dialog', { name: 'Opções da captura' })
-    .getByRole('button', { name: /Modelos no aparelho/ })
-    .click()
-  const dialogo = page.getByRole('dialog', { name: 'Modelo no dispositivo' })
-  await expect(dialogo).toBeVisible()
-  return dialogo.locator('.op-linha').filter({ hasText: /^Transcrição/ })
-}
-
-/** Fecha o diálogo "Modelo no dispositivo", se `modeloAnunciado` o abriu (no celular). */
-export async function fecharModelos(page: Page): Promise<void> {
-  const dialogo = page.getByRole('dialog', { name: 'Modelo no dispositivo' })
-  if (!(await dialogo.isVisible())) return
-  await dialogo.getByRole('button', { name: 'Fechar', exact: true }).last().click()
-  await expect(dialogo).toBeHidden()
+export function seloDoModelo(page: Page): Locator {
+  return page
+    .getByTestId('captura-do-prototipo')
+    .getByRole('button', { name: /^(Modelo local|Reconhecimento do navegador)/ })
 }
 
 /**
  * Abre os ajustes de dispositivo da captura ("Dispositivos e modelos de IA": de onde vem o som, quem
- * transcreve). No computador pelo botão "Ajustes da captura" do cabeçalho; no celular por Opções da
- * captura → Texto e tradução, a linha que leva ao mesmo diálogo.
+ * transcreve), pelo botão "Ajustes da captura" do topo. (No headset o mesmo botão abre "Opções da
+ * captura"; este auxiliar é do computador e do celular.)
  */
 export async function abrirAjustesDaCaptura(page: Page): Promise<Locator> {
-  if (await naTelaDoCelular(page)) {
-    await page.getByRole('button', { name: 'Opções da captura' }).click()
-    await page
-      .getByRole('dialog', { name: 'Opções da captura' })
-      .getByRole('button', { name: /Texto e tradução/ })
-      .click()
-  } else {
-    await page.getByRole('button', { name: 'Ajustes da captura' }).click()
-  }
+  await page.getByRole('button', { name: 'Ajustes da captura' }).click()
   const dialogo = page.getByRole('dialog', { name: 'Dispositivos e modelos de IA' })
   await expect(dialogo).toBeVisible()
   return dialogo
 }
 
 /**
- * Os controles que a pessoa usa para começar e conduzir a captura, onde a regra do alvo mínimo vale:
- * no computador, os botões do Espaço de gravação; no celular, a doca ao alcance do polegar (Opções,
- * o microfone e Flutuante).
+ * Os controles que conduzem a captura, onde a regra do alvo mínimo vale: o topo (idiomas, microfone,
+ * ajustes, ajuda) e a faixa de baixo (Iniciar e o que mais couber). Os botões dos avisos que a tela
+ * mostra no meio (a oferta da nuvem, por exemplo) não entram: não conduzem a gravação.
  */
-export async function controlesDaGravacao(page: Page): Promise<Locator> {
-  return (await naTelaDoCelular(page)) ? page.locator('.cel-doca button') : page.locator('.estudio .btn')
+export function controlesDaCaptura(page: Page): Locator {
+  return page.getByTestId('captura-do-prototipo').locator('.px-vivo-topo button:visible, .q-faixa button:visible')
+}
+
+/** O total anunciado ("cerca de N MB") num aviso ou numa folha de download. */
+export async function megasAnunciados(onde: Locator): Promise<number> {
+  await expect(onde).toContainText(/cerca de \d+ MB/)
+  return Number(/cerca de (\d+) MB/.exec((await onde.textContent()) ?? '')?.[1])
 }

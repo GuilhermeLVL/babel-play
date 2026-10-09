@@ -1,19 +1,51 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
+import { expect, type Page, test } from '@playwright/test'
 
-import { expect, type Locator, type Page, test } from '@playwright/test';
+import {
+  abrirJogo,
+  abrirLobbyDaTrilha,
+  cartaDoTabu,
+  chegarAoFim,
+  fecharPar,
+  JOGOS,
+  norm,
+  opcaoQueFechaAFrase,
+  opcoesDe,
+  palavrasDe,
+  palco,
+  palpitarNoTermo,
+  paresDaMemoria,
+  pegarNaKaruta,
+  REGISTROS,
+  semExplicacao,
+  terminou,
+  textos,
+  ultimaFala,
+  vozFalsa,
+} from './_jogos'
 
 /**
  * OS JOGOS DE PONTA A PONTA NA EDIÇÃO ESTÁTICA (QA dos jogos, 2026-09-26).
  *
  * Cada teste abre um jogo pela Trilha embutida, joga a rodada até o fim de rodada comum
- * (`ResultadoDaRodada`, com "Voltar aos jogos") e confere o comportamento que o QA consertou:
+ * (`casca/FimDaRodada`, com "Jogar de novo" e "Voltar aos jogos") e confere o comportamento que o QA
+ * consertou:
  *  - Caça-palavras: marcar a palavra por TOQUE (tocar a 1ª e a última letra) no celular e por
  *    TECLADO (Enter nas duas pontas) no desktop — antes, os dois caminhos não marcavam nada;
- *  - Mala: a palavra nova aparece DEPOIS da contagem 3-2-1 (antes abria e fechava debaixo dela);
+ *  - Mala: a palavra nova fica à vista com a rodada já andando, e a mala fecha 8 de 8;
  *  - Choseong: quando o tempo acaba, a resposta aparece antes da próxima palavra;
  *  - Tabu: escolher errado mostra a certa antes de trocar de carta;
  *  - Duelo e Karuta: as teclas 1–9 escolhem a alternativa.
+ *
+ * DESENHO NOVO (09/10/2026). Os tabuleiros são os do protótipo (classes `pj-*`, dentro de
+ * `#palco[data-qj=<jogo>]`); o caminho até eles e até o fim está em `_jogos.ts`. O que mudou de
+ * comportamento e o teste acompanha:
+ *  - a contagem 3-2-1 é só do Duelo; os outros começam direto;
+ *  - o Soletrar devolve as letras já certas escritas na fileira (digita-se só o que falta);
+ *  - o Choseong aceita as vogais uma tentativa por vez: as certas ficam presas, as erradas saem;
+ *  - o Rali devolve sozinho quando a palavra fecha (Enter só devolve antes de completar);
+ *  - no Caça-palavras, o que o dicionário não acha sai pelo "Radar" (pisca as duas pontas) no lugar
+ *    do antigo "Revelar esta palavra";
+ *  - a Frase embaralhada tem a Dica contada (3 por rodada): o teste monta a frase lendo a tradução.
  *
  * DETERMINISMO. As respostas saem do mesmo arquivo que o app baixa (`dist/trilha/en.json`): a pista
  * é a tradução, e o teste procura a palavra que a tem. Os jogos de áudio ganham uma voz FALSA em
@@ -22,573 +54,588 @@ import { expect, type Locator, type Page, test } from '@playwright/test';
  * esperas curtas e fixas: nada aqui depende de sorteio do jogo para passar.
  */
 
-const DIST = path.join(process.cwd(), 'dist', 'trilha', 'en.json');
-type Registro = [string, string, string?, string?];
-const TRILHA = JSON.parse(readFileSync(DIST, 'utf8')) as { niveis: Record<string, Registro[]> };
-const REGISTROS: Registro[] = Object.values(TRILHA.niveis).flat();
-
-const norm = (s: string) =>
-  (s || '')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N} ]/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-const POR_TRADUCAO = new Map<string, string[]>();
-for (const [palavra, traducao] of REGISTROS) {
-  const k = norm(traducao);
-  POR_TRADUCAO.set(k, [...(POR_TRADUCAO.get(k) ?? []), palavra]);
-}
-const palavrasDe = (pista: string) => (POR_TRADUCAO.get(norm(pista)) ?? []).map((p) => p.toLowerCase());
-
-const JOGOS = [
-  'memory', 'wordsearch', 'termo', 'blitz', 'scramble', 'escuta', 'ditado', 'karaoke', 'karuta',
-  'choseong', 'tenis', 'koffer', 'bao', 'vitendawili', 'shiritori', 'cadavre', 'taboo',
-];
-
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript((jogos: string[]) => {
-    try {
-      for (const j of jogos) localStorage.setItem(`babel_tour_${j}`, '1');
-    } catch {
-      /* storage bloqueado */
-    }
-    const w = window as unknown as {
-      __falas: Array<{ t: string; lang: string }>;
-      webkitSpeechRecognition: unknown;
-      SpeechRecognition: unknown;
-    };
-    w.__falas = [];
-    const s = window.speechSynthesis;
-    if (s) {
-      const vozes = [
-        { name: 'Teste en', lang: 'en-US', localService: true, default: true, voiceURI: 'en' },
-        { name: 'Teste pt', lang: 'pt-BR', localService: true, default: false, voiceURI: 'pt' },
-      ];
-      try {
-        Object.defineProperty(SpeechSynthesisUtterance.prototype, 'voice', {
-          configurable: true,
-          get() {
-            return (this as { __v?: unknown }).__v ?? null;
-          },
-          set(v) {
-            (this as { __v?: unknown }).__v = v;
-          },
-        });
-      } catch {
-        /* navegador sem o protótipo */
-      }
-      s.getVoices = () => vozes as unknown as SpeechSynthesisVoice[];
-      s.speak = (u: SpeechSynthesisUtterance) => {
-        w.__falas.push({ t: u.text, lang: u.lang });
-        setTimeout(() => {
-          u.onstart?.(new Event('start') as SpeechSynthesisEvent);
-          setTimeout(() => u.onend?.(new Event('end') as SpeechSynthesisEvent), 120);
-        }, 10);
-      };
-      s.cancel = () => {};
-    }
-    /* Reconhecimento de fala falso: "ouve" a última coisa que a voz falou. Os DOIS nomes: o
-       Chromium recente expõe `SpeechRecognition` sem prefixo, e o jogo prefere esse. */
-    w.SpeechRecognition = w.webkitSpeechRecognition = class {
-      onresult?: (e: unknown) => void;
-      onend?: () => void;
-      start() {
-        setTimeout(() => {
-          this.onresult?.({ results: [[{ transcript: w.__falas.at(-1)?.t ?? '' }]] });
-          this.onend?.();
-        }, 200);
-      }
-      stop() {}
-      abort() {}
-    };
-  }, JOGOS);
-});
+  /* Uma leitura de tela que não acha o elemento (a pergunta saiu, o fim chegou) falha logo, em vez de
+     segurar o teste até o prazo dele. */
+  page.setDefaultTimeout(8000)
+  page.setDefaultNavigationTimeout(30_000)
+  await semExplicacao(page, JOGOS)
+  await vozFalsa(page)
+})
 
-/* ─────────────────────────── costura ─────────────────────────── */
+/** O rótulo do placar ("3 de 8 palavras"): quantos itens a rodada já fechou. */
+const rotulo = (page: Page) => palco(page).locator('.hud [data-pj="rotulo"]')
+const feitos = async (page: Page) =>
+  Number.parseInt(
+    (await rotulo(page)
+      .innerText()
+      .catch(() => '')) || '0',
+    10,
+  ) || 0
 
-async function abrirLobbyDaTrilha(page: Page) {
-  await page.goto('/jogar');
-  await expect(page.getByRole('main')).toBeVisible({ timeout: 20_000 });
-  const pular = page.getByRole('button', { name: 'Pular apresentação' });
-  if (await pular.isVisible().catch(() => false)) {
-    await pular.click();
-    await page.getByRole('button', { name: /Começar/ }).click();
-  }
-  await dispensarModais(page);
-  await page.getByRole('radio', { name: /Trilha/ }).click();
-  await page.getByRole('button', { name: /Usar estas palavras/ }).click();
-  await expect(page.locator('#grade-de-jogos')).toBeVisible({ timeout: 15_000 });
+/** Lê um texto da tela sem esperar por ele: vazio quando o elemento não está lá. */
+const ler = (page: Page, seletor: string) =>
+  palco(page)
+    .locator(seletor)
+    .first()
+    .innerText({ timeout: 500 })
+    .then(
+      (t) => t.trim(),
+      () => '',
+    )
+
+/** Espera a jogada seguinte: a leitura muda (a pergunta nova chegou) ou a rodada acaba. */
+async function ateMudar(page: Page, leitura: () => Promise<unknown>, antes: unknown, espera = 8000) {
+  await expect
+    .poll(async () => (await terminou(page)) || (await leitura()) !== antes, { timeout: espera })
+    .toBe(true)
+    .catch(() => {})
 }
 
-/** As recompensas do fim de rodada (baú, conquista, nível) são diálogos: fecha um por um. */
-async function dispensarModais(page: Page) {
-  for (let i = 0; i < 6; i++) {
-    const b = page.getByRole('dialog').getByRole('button', { name: /^(Resgatar e continuar|Continuar)$/ }).first();
-    if (!(await b.isVisible().catch(() => false))) return;
-    await b.click({ force: true, timeout: 3000 }).catch(() => {});
-    await page.waitForTimeout(500);
-  }
-}
-
-/**
- * O "Continuar" de um jogo que tem tela própria antes do fim comum (Duelo, Cadavre). Centralizado
- * antes do clique: no celular, rente à borda, ele fica atrás da barra de navegação fixa.
- */
-async function continuarNoPalco(page: Page) {
-  const b = page.getByRole('main').getByRole('button', { name: /^Continuar$/ }).first();
-  if (!(await b.isVisible().catch(() => false))) return;
-  await b.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => {});
-  await b.click({ timeout: 3000 }).catch(() => {});
-  await page.waitForTimeout(500);
-}
-
-async function abrirJogo(page: Page, titulo: RegExp) {
-  await abrirLobbyDaTrilha(page);
-  const carta = page.locator('#grade-de-jogos').getByRole('button', { name: titulo }).first();
-  await expect(carta).toBeEnabled({ timeout: 15_000 });
-  await carta.scrollIntoViewIfNeeded();
-  await carta.click();
-  const comecar = page.getByRole('button', { name: /^(Começar|Jogar agora|Começar a rodada)/ }).first();
-  if (await comecar.isVisible().catch(() => false)) await comecar.click();
-  await expect(page.locator('#palco')).toHaveAttribute('aria-busy', 'false', { timeout: 15_000 });
-}
-
-/** O fim de rodada comum: dispensa as recompensas e revela a raspadinha. */
-async function chegarAoResultado(page: Page) {
-  const voltar = page.getByRole('button', { name: /Voltar aos jogos/ });
-  for (let i = 0; i < 60 && !(await voltar.isVisible().catch(() => false)); i++) {
-    await continuarNoPalco(page);
-    await dispensarModais(page);
-    const revelar = page.getByRole('button', { name: 'Revelar sem raspar' });
-    if (await revelar.isVisible().catch(() => false)) await revelar.click({ timeout: 3000 }).catch(() => {});
-    await page.waitForTimeout(400);
-  }
-  await expect(voltar, 'a rodada deveria terminar no fim de rodada comum').toBeVisible({ timeout: 5000 });
-}
-
-async function terminou(page: Page) {
-  return (
-    (await page.getByRole('button', { name: /Revelar sem raspar|Voltar aos jogos|Resgatar e continuar/ }).first().isVisible().catch(() => false)) ||
-    (await page.getByText(/^Fim da rodada$/).first().isVisible().catch(() => false))
-  );
-}
-
-const textos = async (l: Locator) => (await l.allInnerTexts()).map((t) => t.trim());
-const ultimaFala = (page: Page) =>
-  page.evaluate(() => (window as unknown as { __falas: Array<{ t: string; lang: string }> }).__falas.at(-1));
+/** Quantas falas a voz falsa já disse. */
+const ditas = (page: Page) => page.evaluate(() => (window as unknown as { __falas: unknown[] }).__falas.length)
 
 /* ─────────────────────────── os jogos ─────────────────────────── */
 
 test('Memória: fecha todos os pares', async ({ page }) => {
-  await abrirJogo(page, /^Jogar: Memória/);
-  const cartas = page.locator('[data-tour="mesa"] > button');
-  const n = await cartas.count();
-  const t: string[] = [];
-  for (let i = 0; i < n; i++) t.push(((await cartas.nth(i).getAttribute('data-texto')) ?? '').toLowerCase());
-  const usados = new Set<number>();
-  for (let i = 0; i < n; i++) {
-    if (usados.has(i)) continue;
-    const j = t.findIndex((x, k) => k !== i && !usados.has(k) && palavrasDe(t[i]).includes(x));
-    if (j < 0) continue;
-    usados.add(i).add(j);
-    await cartas.nth(i).click();
-    await cartas.nth(j).click();
-    await page.waitForTimeout(200);
-  }
-  /* Par que o dicionário não reconheceu (pista mascarada, por exemplo): tenta combinações entre as
-     cartas que sobraram — o erro só desvira as duas, e a rodada sempre fecha. */
-  for (let volta = 0; volta < 40 && !(await terminou(page)); volta++) {
-    const fechadas = await cartas.evaluateAll((bs) => bs.map((b) => b.classList.contains('par')));
-    const abertas = fechadas.flatMap((fechada, k) => (fechada ? [] : [k]));
-    if (abertas.length < 2) break;
-    await cartas.nth(abertas[0]).click();
-    await cartas.nth(abertas[1 + (volta % (abertas.length - 1))]).click();
-    await page.waitForTimeout(1000);
-  }
-  await chegarAoResultado(page);
-});
+  await abrirJogo(page, 'memory')
+  const { pares, cartas } = await paresDaMemoria(page)
+  expect(pares.length * 2, 'todos os pares da mesa identificados').toBe(cartas)
+  for (const par of pares) await fecharPar(page, par)
+  await chegarAoFim(page, 'memory')
+})
 
 test('Caça-palavras: marca por toque (celular) ou por teclado (desktop)', async ({ page }, info) => {
-  await abrirJogo(page, /^Jogar: Caça-palavras/);
-  const celulas = page.locator('[data-tour="grade"] > button');
-  const n = await celulas.count();
-  const lado = Math.round(Math.sqrt(n));
-  const letras = await textos(celulas);
-  const G = (l: number, c: number) => letras[l * lado + c];
+  await abrirJogo(page, 'wordsearch')
+  const celulas = palco(page).locator('.grade-caca [data-c]')
+  const n = await celulas.count()
+  const lado = Math.round(Math.sqrt(n))
+  const letras = await textos(celulas)
+  const G = (l: number, c: number) => letras[l * lado + c]
   /** Todas as ocorrências da palavra na grade, como [início, fim]; o mesmo traço lido nos dois
    *  sentidos (palíndromo) conta uma vez. */
   const ocorrencias = (w: string) => {
-    const W = w.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z]/g, '');
-    const achadas = new Map<string, readonly [number, number]>();
-    if (!W) return [];
+    const W = w
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toUpperCase()
+      .replace(/[^A-Z]/g, '')
+    const achadas = new Map<string, readonly [number, number]>()
+    if (!W) return []
     for (let l = 0; l < lado; l++)
       for (let c = 0; c < lado; c++)
-        for (const [dl, dc] of [[0, 1], [1, 0], [1, 1], [-1, 1], [0, -1], [-1, 0], [-1, -1], [1, -1]]) {
-          let ok = true;
+        for (const [dl, dc] of [
+          [0, 1],
+          [1, 0],
+          [1, 1],
+          [-1, 1],
+          [0, -1],
+          [-1, 0],
+          [-1, -1],
+          [1, -1],
+        ]) {
+          let ok = true
           for (let k = 0; k < W.length && ok; k++) {
-            const L = l + dl * k;
-            const C = c + dc * k;
-            if (L < 0 || C < 0 || L >= lado || C >= lado || G(L, C) !== W[k]) ok = false;
+            const L = l + dl * k
+            const C = c + dc * k
+            if (L < 0 || C < 0 || L >= lado || C >= lado || G(L, C) !== W[k]) ok = false
           }
-          if (!ok) continue;
-          const [a, b] = [l * lado + c, (l + dl * (W.length - 1)) * lado + c + dc * (W.length - 1)];
-          achadas.set(a < b ? `${a}-${b}` : `${b}-${a}`, [a, b] as const);
+          if (!ok) continue
+          const [a, b] = [l * lado + c, (l + dl * (W.length - 1)) * lado + c + dc * (W.length - 1)]
+          achadas.set(a < b ? `${a}-${b}` : `${b}-${a}`, [a, b] as const)
         }
-    return [...achadas.values()];
-  };
-  const pistas = await textos(page.locator('[data-tour="pistas"] li > span:first-child'));
-  const achadas = () => page.locator('[data-tour="pistas"] li [aria-label="encontrada"]').count();
-  let primeira = true;
+    return [...achadas.values()]
+  }
+  /** O traço arrastado da primeira à última letra. */
+  const arrastar = async ([de, ate]: readonly [number, number]) => {
+    const [ba, bb] = [await celulas.nth(de).boundingBox(), await celulas.nth(ate).boundingBox()]
+    await page.mouse.move(ba!.x + ba!.width / 2, ba!.y + ba!.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(bb!.x + bb!.width / 2, bb!.y + bb!.height / 2, { steps: 8 })
+    await page.mouse.up()
+  }
+  // A pista é o significado (no nível fácil, seguida da inicial da palavra, que não entra na leitura).
+  const linhas = palco(page).locator('.pistas li')
+  const pistas = await linhas.evaluateAll((lis) =>
+    lis.map((li) => (li.querySelector('span')?.firstChild?.textContent ?? '').trim()),
+  )
+  expect(pistas.length).toBeGreaterThan(0)
+  const achadas = () => palco(page).locator('.pistas li.feita').count()
+  let primeira = true
   for (const p of pistas) {
     /* A grade é sorteada, e a sequência de letras de uma palavra pode aparecer também POR ACASO no
        preenchimento. O jogo só aceita as pontas de onde a palavra foi COLOCADA; marcar a outra
-       ocorrência não conta (0,7% das grades, medido com o gerador). A marcação conferida usa só a
-       pista cuja palavra aparece uma vez só na grade; as outras seguem pela primeira ocorrência e
-       o que não casar sai no "Revelar" do fim. */
-    const todas = palavrasDe(p).flatMap(ocorrencias);
-    if (primeira ? todas.length !== 1 : todas.length === 0) continue;
-    const pos = todas[0];
-    const antes = await achadas();
-    const [a, b] = [celulas.nth(pos[0]), celulas.nth(pos[1])];
-    if (primeira && info.project.name.startsWith('mobile')) {
-      await a.tap();
-      await b.tap();
-    } else if (primeira) {
-      await a.focus();
-      await page.keyboard.press('Enter');
-      await b.focus();
-      await page.keyboard.press('Enter');
-    } else {
-      const [ba, bb] = [await a.boundingBox(), await b.boundingBox()];
-      await page.mouse.move(ba!.x + ba!.width / 2, ba!.y + ba!.height / 2);
-      await page.mouse.down();
-      await page.mouse.move(bb!.x + bb!.width / 2, bb!.y + bb!.height / 2, { steps: 8 });
-      await page.mouse.up();
-    }
+       ocorrência não conta. A marcação conferida usa só a pista cuja palavra aparece uma vez só na
+       grade; as outras tentam cada ocorrência, e o que não casar sai pelo Radar no fim. */
+    const todas = palavrasDe(p).flatMap(ocorrencias)
+    if (primeira ? todas.length !== 1 : todas.length === 0) continue
+    const antes = await achadas()
     if (primeira) {
-      await expect.poll(achadas, { message: 'a primeira palavra deveria ser marcada' }).toBe(antes + 1);
-      primeira = false;
+      const [a, b] = [celulas.nth(todas[0][0]), celulas.nth(todas[0][1])]
+      if (info.project.name.startsWith('mobile')) {
+        await a.tap()
+        await b.tap()
+      } else {
+        await a.focus()
+        await page.keyboard.press('Enter')
+        await b.focus()
+        await page.keyboard.press('Enter')
+      }
+      await expect.poll(achadas, { message: 'a primeira palavra deveria ser marcada' }).toBe(antes + 1)
+      primeira = false
+      continue
     }
-    await page.waitForTimeout(150);
+    for (const traco of todas) {
+      await arrastar(traco)
+      await page.waitForTimeout(150)
+      if ((await achadas()) > antes) break
+    }
   }
-  // o que não coube no dicionário, revela
-  for (let i = 0; i < 10 && !(await terminou(page)); i++) {
-    const olho = page.getByRole('button', { name: 'Revelar esta palavra' }).first();
-    if (await olho.isVisible().catch(() => false)) await olho.click();
-    await page.waitForTimeout(200);
+  expect(primeira, 'alguma palavra da rodada aparece uma vez só na grade').toBe(false)
+  // A primeira pista (pulada enquanto se procurava a de ocorrência única) e as ambíguas: de novo.
+  for (let k = 0; k < pistas.length && !(await terminou(page)); k++) {
+    if (await linhas.nth(k).evaluate((li) => li.classList.contains('feita'))) continue
+    const antes = await achadas()
+    for (const traco of palavrasDe(pistas[k]).flatMap(ocorrencias)) {
+      await arrastar(traco)
+      await page.waitForTimeout(150)
+      if ((await achadas()) > antes) break
+    }
   }
-  await chegarAoResultado(page);
-});
+  // O que não coube no dicionário: o Radar pisca as duas pontas de uma palavra que falta (3 por rodada).
+  for (let i = 0; i < 3 && !(await terminou(page)) && (await achadas()) < pistas.length; i++) {
+    const radar = palco(page).locator('[data-ajuda="radar"]')
+    if (!(await radar.isEnabled().catch(() => false))) break
+    await radar.click()
+    const pontas = palco(page).locator('.grade-caca [data-c].dica')
+    await expect(pontas).toHaveCount(2)
+    const [de, ate] = await pontas.evaluateAll((els) => els.map((el) => Number((el as HTMLElement).dataset.c)))
+    await arrastar([de, ate])
+    await page.waitForTimeout(300)
+  }
+  await chegarAoFim(page, 'wordsearch')
+})
 
 test('Soletrar (Termo): a escada chega ao fim digitando as palavras', async ({ page }) => {
-  await abrirJogo(page, /^Jogar: Soletrar/);
-  for (let volta = 0; volta < 16 && !(await terminou(page)); volta++) {
-    const pistas = await textos(page.locator('[data-tour="tabuleiro"] .tab-termo:not(.resolvido):not(.falhou) .pista'));
-    if (!pistas.length) {
-      await page.waitForTimeout(800);
-      continue;
+  await abrirJogo(page, 'termo')
+  const tentadas = new Set<string>()
+  for (let volta = 0; volta < 20 && !(await terminou(page)); volta++) {
+    const antes = await feitos(page)
+    if (!(await palpitarNoTermo(page, tentadas))) {
+      // Sem candidata no dicionário: um palpite qualquer gasta a tentativa e a escada segue.
+      const vazias = await palco(page)
+        .locator('.tab-termo:not(.resolvido):not(.falhou)')
+        .first()
+        .locator('.linha-termo.atual .letra:not(.cheia)')
+        .count()
+        .catch(() => 0)
+      if (vazias) {
+        await page.keyboard.type('x'.repeat(vazias), { delay: 20 })
+        await page.keyboard.press('Enter')
+      }
     }
-    const colunas = await page.locator('[data-tour="tabuleiro"] .tab-termo').first().locator('.linha-termo').first().locator('> *').count();
-    const w = palavrasDe(pistas[0]).find((x) => x.replace(/[^a-z]/g, '').length === colunas) ?? 'x'.repeat(colunas);
-    await page.keyboard.type(w, { delay: 20 });
-    await page.keyboard.press('Enter');
-    await page.waitForTimeout(900);
+    // O julgamento vira as letras uma a uma; ao fechar o degrau, a escada sobe antes do seguinte.
+    await page.waitForTimeout(1200)
+    if ((await feitos(page)) > antes) await page.waitForTimeout(1600)
   }
-  await chegarAoResultado(page);
-});
+  await chegarAoFim(page, 'termo')
+})
 
 test('Duelo: responde pelas teclas 1–4 até o fim', async ({ page }) => {
-  await abrirJogo(page, /^Jogar: Duelo/);
-  for (let v = 0; v < 30; v++) {
-    if (await page.getByRole('button', { name: /^Continuar$/ }).isVisible().catch(() => false)) break;
-    const pergunta = page.locator('[data-tour="pergunta"]');
-    if (!(await pergunta.isVisible().catch(() => false))) break;
-    const cand = palavrasDe(await pergunta.innerText());
-    const alts = await textos(page.locator('[data-tour="alternativas"] button'));
-    const i = Math.max(0, alts.findIndex((a) => cand.includes(a.toLowerCase())));
-    await page.keyboard.press(String(i + 1));
-    await page.waitForTimeout(550);
-  }
-  await chegarAoResultado(page);
-});
-
-test('Frase embaralhada: monta com a dica até o fim', async ({ page }) => {
-  await abrirJogo(page, /^Jogar: Frase embaralhada/);
-  for (let v = 0; v < 8 && !(await terminou(page)); v++) {
-    const pecas = page.locator('[data-tour="pecas"] button');
-    for (let d = 0; d < 20 && (await pecas.count()) > 0; d++) {
-      await page.getByRole('button', { name: /Próxima palavra/ }).click();
-      await page.waitForTimeout(60);
+  await abrirJogo(page, 'blitz')
+  const pergunta = palco(page).locator('.blitz-palavra b')
+  const alternativas = palco(page).locator('.opcoes-blitz button')
+  await expect(alternativas.first()).toBeVisible({ timeout: 15_000 })
+  for (let v = 0; v < 40 && !(await terminou(page)); v++) {
+    if (
+      !(await alternativas
+        .first()
+        .isEnabled()
+        .catch(() => false))
+    ) {
+      await page.waitForTimeout(200)
+      continue
     }
-    await page.locator('[data-tour="conferir"]').click({ timeout: 3000 }).catch(() => {});
-    await page.waitForTimeout(1600);
+    const cand = palavrasDe(await pergunta.innerText())
+    const alts = await opcoesDe(alternativas)
+    const i = Math.max(
+      0,
+      alts.findIndex((a) => cand.includes(a.toLowerCase())),
+    )
+    const antes = await feitos(page)
+    await page.keyboard.press(String(i + 1))
+    if (v === 0) await expect.poll(() => feitos(page), { message: 'a tecla escolhe a alternativa' }).toBe(antes + 1)
+    await page.waitForTimeout(700)
   }
-  await chegarAoResultado(page);
-});
+  await chegarAoFim(page, 'blitz', 70_000)
+})
+
+test('Frase embaralhada: monta a frase da tradução até o fim', async ({ page }) => {
+  await abrirJogo(page, 'scramble')
+  const traducaoNaTela = () => ler(page, '.pj-traducao')
+  for (let v = 0; v < 12 && !(await terminou(page)); v++) {
+    const naTela = await traducaoNaTela()
+    if (!naTela) {
+      await page.waitForTimeout(300)
+      continue
+    }
+    const frase = REGISTROS.find((r) => r[3] && norm(r[3]) === norm(naTela))?.[2]
+    const banco = palco(page).locator('.pj-pecas .pj-peca:not(.fantasma)')
+    for (const palavra of (frase ?? '').split(/\s+/).filter(Boolean)) {
+      const peca = banco.filter({ hasText: new RegExp(`^${palavra.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }).first()
+      await peca.click({ timeout: 2000 }).catch(() => {})
+      await page.waitForTimeout(60)
+    }
+    const conferir = palco(page).locator('[data-pj="conferir"]')
+    if (await conferir.isEnabled().catch(() => false)) await conferir.click()
+    // Frase que a Trilha não deu para montar: pular conta erro, e a rodada segue.
+    else
+      await palco(page)
+        .locator('[data-pj="pular"]')
+        .click({ timeout: 2000 })
+        .catch(() => {})
+    await ateMudar(page, traducaoNaTela, naTela)
+  }
+  await chegarAoFim(page, 'scramble')
+})
 
 test('Qual foi?: escolhe a palavra que a voz disse', async ({ page }) => {
-  await abrirJogo(page, /^Jogar: Qual foi/);
-  for (let v = 0; v < 8 && !(await terminou(page)); v++) {
-    const ops = page.locator('[data-tour="alternativas"] button');
-    await expect(ops.first()).toBeEnabled({ timeout: 5000 }).catch(() => {});
-    if (await terminou(page)) break;
-    const f = await ultimaFala(page);
-    const alts = await textos(ops);
-    const i = Math.max(0, alts.findIndex((a) => a === f?.t));
-    await page.keyboard.press(String(i + 1));
-    await page.waitForTimeout(1100);
+  await abrirJogo(page, 'escuta')
+  const ops = palco(page).locator('.pj-lista button')
+  for (let v = 0; v < 10 && !(await terminou(page)); v++) {
+    await expect(ops.first())
+      .toBeEnabled({ timeout: 5000 })
+      .catch(() => {})
+    if (await terminou(page)) break
+    const f = await ultimaFala(page)
+    const alts = await opcoesDe(ops)
+    const i = Math.max(
+      0,
+      alts.findIndex((a) => a === f?.t),
+    )
+    await page.keyboard.press(String(i + 1))
+    if (v === 0) await expect(ops.nth(i), 'a voz disse a alternativa certa').toHaveClass(/certa/)
+    await page.waitForTimeout(1300)
   }
-  await chegarAoResultado(page);
-});
+  await chegarAoFim(page, 'escuta')
+})
 
 test('Ditado: escreve o que ouviu (caixa e pontuação não contam)', async ({ page }) => {
-  await abrirJogo(page, /^Jogar: Ditado/);
-  for (let v = 0; v < 8 && !(await terminou(page)); v++) {
-    const entrada = page.locator('[data-tour="entrada"]');
-    if (!(await entrada.isEnabled().catch(() => false))) {
-      await page.waitForTimeout(400);
-      continue;
+  await abrirJogo(page, 'ditado')
+  const entrada = palco(page).getByLabel('O que você ouviu')
+  let ouvidas = 0
+  for (let v = 0; v < 12 && !(await terminou(page)); v++) {
+    // A fala nova é dita quando chega: só então há o que escrever.
+    await expect
+      .poll(() => ditas(page), { timeout: 5000 })
+      .toBeGreaterThan(ouvidas)
+      .catch(() => {})
+    if (!(await entrada.isEnabled().catch(() => false)) || (await ditas(page)) <= ouvidas) {
+      await page.waitForTimeout(400)
+      continue
     }
-    const f = await ultimaFala(page);
-    await entrada.fill(`${(f?.t ?? 'x').toUpperCase()}!`);
-    await page.keyboard.press('Enter');
-    await expect(page.locator('#palco')).toContainText('100%');
-    await page.waitForTimeout(1400);
+    ouvidas = await ditas(page)
+    const f = await ultimaFala(page)
+    const antes = await feitos(page)
+    await entrada.fill(`${(f?.t ?? 'x').toUpperCase()}!`)
+    await page.keyboard.press('Enter')
+    await expect(palco(page).locator('.pj-correcao')).toContainText('100%')
+    await ateMudar(page, () => feitos(page), antes)
   }
-  await chegarAoResultado(page);
-});
+  await chegarAoFim(page, 'ditado')
+})
 
 test('Karaokê: fala, recebe a nota e termina', async ({ page }) => {
-  await abrirJogo(page, /^Jogar: Karaokê/);
-  for (let v = 0; v < 8 && !(await terminou(page)); v++) {
-    const falar = page.locator('[data-tour="falar"]');
-    if (!(await falar.isVisible().catch(() => false))) break;
-    await page.getByRole('button', { name: /^Ouvir/ }).first().click();
-    await page.waitForTimeout(300);
-    await falar.click();
-    await expect(page.locator('#palco')).toContainText('%', { timeout: 5000 });
-    await expect(page.getByRole('button', { name: /^Parar$/ })).toHaveCount(0);
-    const seguir = page.getByRole('button', { name: /^(Próxima|Terminar)/ });
-    const ultima = /^Terminar/.test((await seguir.innerText()).trim());
-    await seguir.click();
-    if (ultima) break;
-    await page.waitForTimeout(400);
+  await abrirJogo(page, 'karaoke')
+  const falar = palco(page).locator('[data-pj="falar"]')
+  for (let v = 0; v < 10 && !(await terminou(page)); v++) {
+    if (!(await falar.isVisible().catch(() => false))) break
+    await palco(page).locator('[data-pj="ouvir"]').click()
+    await page.waitForTimeout(300)
+    await falar.click()
+    await expect(palco(page).locator('.pj-nota .pj-pct')).toContainText('%', { timeout: 5000 })
+    await expect(palco(page).locator('.pj-ouvindo')).toHaveCount(0)
+    const seguir = palco(page).locator('[data-pj="pular"]')
+    const ultima = /^Terminar/.test((await seguir.innerText()).trim())
+    await seguir.click()
+    if (ultima) break
+    await page.waitForTimeout(400)
   }
-  await chegarAoResultado(page);
-});
+  await chegarAoFim(page, 'karaoke')
+})
 
 test('Karuta: ouve a pista e golpeia pela tecla', async ({ page }) => {
-  await abrirJogo(page, /^Jogar: Karuta/);
-  for (let v = 0; v < 10 && !(await terminou(page)); v++) {
-    const cartas = page.locator('[data-tour="cartas"] button');
-    if (!(await cartas.first().isEnabled().catch(() => false))) {
-      await page.waitForTimeout(300);
-      continue;
+  await abrirJogo(page, 'karuta')
+  const cartas = palco(page).locator('.pj-mesa button')
+  let golpes = 0
+  for (let v = 0; v < 30 && !(await terminou(page)); v++) {
+    if (!(await ultimaFala(page, 'pt'))) {
+      await page.waitForTimeout(300)
+      continue
     }
-    const pista = await page.evaluate(
-      () => (window as unknown as { __falas: Array<{ t: string; lang: string }> }).__falas.filter((f) => /^pt/.test(f.lang)).at(-1)?.t ?? '',
-    );
-    const alts = await textos(cartas);
-    const i = Math.max(0, alts.findIndex((a) => palavrasDe(pista).includes(a.toLowerCase())));
-    await page.keyboard.press(String(i + 1));
-    await page.waitForTimeout(900);
+    const antes = await feitos(page)
+    if (!(await pegarNaKaruta(page))) {
+      // Pista fora do dicionário: golpeia a primeira carta ainda na mesa — o erro gasta a carta.
+      const livres = await cartas.evaluateAll((els) => els.map((el) => !(el as HTMLButtonElement).disabled))
+      await page.keyboard.press(String(Math.max(0, livres.indexOf(true)) + 1))
+    } else if (golpes++ === 0) {
+      await expect.poll(() => feitos(page), { message: 'a tecla pega a carta' }).toBe(antes + 1)
+    }
+    await page.waitForTimeout(1100)
   }
-  await chegarAoResultado(page);
-});
+  expect(golpes, 'alguma pista foi reconhecida e golpeada').toBeGreaterThan(0)
+  await chegarAoFim(page, 'karuta')
+})
 
 test('Choseong: quando o tempo acaba, a resposta aparece', async ({ page }) => {
-  test.slow();
-  await abrirJogo(page, /^Jogar: Choseong/);
-  const aviso = page.locator('[data-aviso-da-jogada]');
-  await expect(aviso, 'o tempo da 1ª palavra acaba e a resposta aparece').toBeVisible({ timeout: 25_000 });
-  const revelada = await aviso.locator('b').innerText();
-  expect(revelada.trim().length).toBeGreaterThan(0);
-  /* PRAZO, não número de voltas: cada espera de 400 ms pelo aviso (1,8 s por palavra) gastava uma
-     volta, e uma palavra fora do dicionário gasta o relógio inteiro (15 s). Com 12 voltas a rodada de
-     8 palavras podia sobrar para o `chegarAoResultado`, que só espera ~36 s — a falha do e2e-estatica
-     do #51. O pior caso (8 × (15 s + 1,8 s) ≈ 135 s) cabe no prazo, e o teste é `slow`. */
-  const prazo = Date.now() + 200_000;
+  test.slow()
+  await abrirJogo(page, 'choseong')
+  const vagas = palco(page).locator('.pj-cho .pj-vaga')
+  await expect(vagas.first()).toBeVisible()
+  await expect(vagas.first(), 'a vaga da vogal começa vazia').toHaveText('')
+  // O tempo da 1ª palavra acaba: as vogais aparecem no lugar delas antes de a próxima palavra chegar.
+  const reveladas = palco(page).locator('.pj-cho .pj-vaga.lugar')
+  await expect(reveladas.first(), 'o tempo da 1ª palavra acaba e a resposta aparece').toBeVisible({ timeout: 30_000 })
+  expect(norm((await textos(reveladas)).join('')), 'as vogais da palavra').toMatch(/^[a-z]+$/)
+  /* As outras palavras, uma tentativa por vogal: as certas ficam presas, as erradas saem — em até
+     cinco tentativas a palavra fecha. PRAZO, não número de voltas: uma palavra que as cinco vogais
+     não fecham gasta o relógio inteiro. */
+  const prazo = Date.now() + 200_000
   while (Date.now() < prazo && !(await terminou(page))) {
-    const pista = page.locator('[data-tour="pista"]');
-    if (!(await pista.isVisible().catch(() => false)) || (await aviso.isVisible().catch(() => false))) {
-      await page.waitForTimeout(400);
-      continue;
+    const antes = await feitos(page)
+    for (const vogal of 'aeiou') {
+      const vazias = await palco(page).locator('.pj-cho .pj-vaga:not(.cheia):not(.lugar)').count()
+      if (!vazias || (await feitos(page)) !== antes) break
+      await page.keyboard.type(vogal.repeat(vazias), { delay: 30 })
+      await page.waitForTimeout(750)
     }
-    const slots = (await page.locator('#palco [lang]').first().innerText()).replace(/\s+/g, '');
-    const w = palavrasDe(await pista.innerText()).find(
-      (x) => x.toUpperCase().replace(/[^A-Z]/g, '').replace(/[AEIOU]/g, '') === slots.replace(/[AEIOU]/g, ''),
-    );
-    if (!w) {
-      await page.waitForTimeout(16_000);
-      continue;
-    }
-    await page.keyboard.type(w.toUpperCase().replace(/[^AEIOU]/g, '').toLowerCase(), { delay: 30 });
-    await page.waitForTimeout(900);
+    // Até a palavra seguinte chegar (ou o relógio desta acabar).
+    await expect
+      .poll(async () => (await terminou(page)) || (await feitos(page)) !== antes, { timeout: 20_000 })
+      .toBe(true)
+      .catch(() => {})
+    await page.waitForTimeout(1500)
   }
-  await chegarAoResultado(page);
-});
+  await chegarAoFim(page, 'choseong')
+})
 
 test('Rali: devolve escrevendo, com caixa e pontuação livres', async ({ page }) => {
-  await abrirJogo(page, /^Jogar: Rali/);
-  for (let v = 0; v < 14 && !(await terminou(page)); v++) {
-    const entrada = page.getByLabel('Sua devolução');
-    if (!(await entrada.isEnabled().catch(() => false))) {
-      await page.waitForTimeout(250);
-      continue;
+  await abrirJogo(page, 'tenis')
+  const entrada = palco(page).getByLabel('Sua devolução')
+  const voce = async () => Number(await ler(page, '.rl-placar [data-voce]'))
+  const tentativas = new Map<string, number>()
+  let devolvidas = 0
+  for (let v = 0; v < 60 && !(await terminou(page)); v++) {
+    const pista = await ler(page, '.rl-pista b')
+    const casas = await palco(page).locator('.rl-letras span').count()
+    if (!pista || !casas) {
+      await page.waitForTimeout(250)
+      continue
     }
-    const w = palavrasDe(await page.locator('[data-tour="bola"] p').innerText())[0] ?? 'x';
-    await entrada.fill(` ${w.toUpperCase()}. `);
-    await page.keyboard.press('Enter');
-    await page.waitForTimeout(800);
+    /* Antes do saque a quadra não aceita a devolução (o campo volta vazio), e há traduções com mais de
+       uma palavra do mesmo tamanho: cada candidata ganha três voltas antes de a seguinte entrar. */
+    const n = tentativas.get(pista) ?? 0
+    tentativas.set(pista, n + 1)
+    const candidatas = palavrasDe(pista).filter((x) => x.length === casas)
+    const w = candidatas[Math.floor(n / 3) % Math.max(1, candidatas.length)]
+    const antes = await voce()
+    if (!w) {
+      // Palavra que o dicionário não deu: Enter devolve o que houver, e a bola seguinte vem.
+      await entrada.pressSequentially('x').catch(() => {})
+      await page.keyboard.press('Enter')
+      await ateMudar(page, () => ler(page, '.rl-pista b'), pista, 4000)
+      continue
+    }
+    /* A palavra completa devolve sozinha, com a caixa e a pontuação que vierem: em maiúsculas e com um
+       ponto no meio. Tecla a tecla, como quem digita — o campo tem o tamanho da palavra, e um texto
+       colado de uma vez seria cortado nele. */
+    const W = w.toUpperCase()
+    await entrada.pressSequentially(` ${W[0]}.${W.slice(1)}`, { delay: 15 }).catch(() => {})
+    const voltou = await expect
+      .poll(voce, { timeout: 1200 })
+      .toBe(antes + 1)
+      .then(
+        () => true,
+        () => false,
+      )
+    if (voltou) devolvidas++
+    await page.waitForTimeout(500)
   }
-  await chegarAoResultado(page);
-});
+  expect(devolvidas, 'alguma bola foi devolvida escrevendo').toBeGreaterThan(0)
+  await chegarAoFim(page, 'tenis')
+})
 
-test('Mala: a palavra nova aparece depois da contagem, e a mala fecha 8 de 8', async ({ page }) => {
-  test.slow();
-  await abrirJogo(page, /^Jogar: Mala/);
-  await expect(page.getByText('Mala aberta'), 'a primeira palavra fica à vista com a rodada já andando').toBeVisible();
-  const ordem: string[] = [];
+test('Mala: a palavra nova fica à vista com a rodada andando, e a mala fecha 8 de 8', async ({ page }) => {
+  test.slow()
+  await abrirJogo(page, 'koffer')
+  const aberta = palco(page).locator('.ml-mala.aberta')
+  const naMala = palco(page).locator('.ml-mala .ml-slot.cheio b')
+  await expect(aberta, 'a mala abre com a rodada já andando').toBeVisible()
+  await expect(naMala.first(), 'a primeira palavra fica à vista').toBeVisible()
+  const ordem: string[] = []
   for (let v = 0; v < 400 && !(await terminou(page)); v++) {
-    if (await page.getByText('Mala aberta').isVisible().catch(() => false)) {
-      const itens = (await textos(page.locator('[data-tour="mala"] ol li'))).map((t) => t.split('\n')[0].replace(/^\d+\s*/, '').trim());
-      if (itens.length > ordem.length) ordem.splice(0, ordem.length, ...itens);
-      await page.waitForTimeout(250);
-      continue;
+    if (await aberta.isVisible().catch(() => false)) {
+      const itens = await textos(naMala)
+      if (itens.length > ordem.length) ordem.splice(0, ordem.length, ...itens)
+      await page.waitForTimeout(250)
+      continue
     }
-    const passo = (await page.getByText(/^Passo \d+ de \d+/).innerText().catch(() => '')).match(/Passo (\d+)/);
+    const passo = (
+      await palco(page)
+        .locator('.ml-fala')
+        .innerText()
+        .catch(() => '')
+    ).match(/Passo (\d+) de/)
     if (!passo) {
-      await page.waitForTimeout(250);
-      continue;
+      await page.waitForTimeout(250)
+      continue
     }
-    const alvo = ordem[Number(passo[1]) - 1];
-    expect(alvo, 'a mala nunca pede uma palavra que não foi vista').toBeTruthy();
-    /* Na última palavra de um nível a mala reabre e a palheta é reembaralhada: o botão pode sumir
-       entre achar e clicar. Aí a volta seguinte relê a tela. */
-    await page
-      .locator(`[data-tour="entrada"] button[data-palavra="${alvo}"]`)
+    const alvo = ordem[Number(passo[1]) - 1]
+    expect(alvo, 'a mala nunca pede uma palavra que não foi vista').toBeTruthy()
+    /* Na última palavra de um nível a mala reabre: o botão pode travar entre achar e clicar. Aí a
+       volta seguinte relê a tela. */
+    await palco(page)
+      .locator(`.ml-paleta button[data-op="${alvo}"]`)
       .click({ timeout: 1500 })
-      .catch(() => {});
-    await page.waitForTimeout(200);
+      .catch(() => {})
+    await page.waitForTimeout(200)
   }
-  await chegarAoResultado(page);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/^8 de 8 palavras$/);
-});
+  const fim = await chegarAoFim(page, 'koffer')
+  await expect(rotulo(page)).toHaveText(/^8 de 8 /)
+  await expect(fim.locator('.fim-numeros')).toContainText('8 de 8')
+})
 
 test('Bao: semeia os pedaços até o fim', async ({ page }) => {
-  await abrirJogo(page, /^Jogar: Bao/);
-  for (let v = 0; v < 16 && !(await terminou(page)); v++) {
-    const pista = (await page.locator('#palco p.font-display').first().innerText().catch(() => '')).trim();
-    const covas = page.locator('[data-tour="tabuleiro"] .grid button');
-    const pedacos = await textos(covas);
+  await abrirJogo(page, 'bao')
+  const covas = palco(page).locator('.pj-covas .pj-cova')
+  for (let v = 0; v < 20 && !(await terminou(page)); v++) {
+    const antes = await feitos(page)
+    const pista = (
+      await palco(page)
+        .locator('.termo-dica b')
+        .innerText()
+        .catch(() => '')
+    ).trim()
+    const pedacos = (await textos(covas)).map((t) => t.toLowerCase())
     /* A pista é a tradução, e há traduções com várias palavras na Trilha ("quarto": bedroom, quarter,
-       room). A certa é a que os pedaços montam INTEIRA: contém cada um e tem a soma dos tamanhos —
-       com cova já semeada (vazia) a soma não fecha, e aí vale a primeira que contém os que restam. */
-    const soma = pedacos.reduce((n, p) => n + p.length, 0);
-    const cabe = (x: string) => pedacos.every((p) => !p || x.includes(p.toLowerCase()));
-    const candidatas = palavrasDe(pista).filter(cabe);
-    let resto = candidatas.find((x) => x.length === soma) ?? candidatas[0] ?? '';
+       room). A certa é a que os pedaços montam INTEIRA: contém cada um e tem a soma dos tamanhos. */
+    const soma = pedacos.reduce((n, p) => n + p.length, 0)
+    const candidatas = palavrasDe(pista).filter((x) => pedacos.every((p) => !p || x.includes(p)))
+    let resto = candidatas.find((x) => x.length === soma) ?? candidatas[0] ?? ''
     if (!resto) {
       // Palavra não identificada: semeia a primeira cova livre — o erro esgota a palavra e a rodada segue.
-      await covas.filter({ hasNot: page.locator('svg') }).first().click({ timeout: 1500 }).catch(() => {});
+      await covas
+        .and(page.locator(':enabled'))
+        .first()
+        .click({ timeout: 1500 })
+        .catch(() => {})
     }
     for (let k = 0; k < 8 && resto; k++) {
-      const atual = (await textos(covas)).map((t) => t.toLowerCase());
-      const i = atual.findIndex((t) => t && resto.startsWith(t));
-      if (i < 0) break;
-      await covas.nth(i).click();
-      resto = resto.slice(atual[i].length);
-      await page.waitForTimeout(120);
+      const atual = (await textos(covas)).map((t) => t.toLowerCase())
+      const i = atual.findIndex((t) => t && resto.startsWith(t))
+      if (i < 0) break
+      await covas.nth(i).click()
+      resto = resto.slice(atual[i].length)
+      await page.waitForTimeout(150)
     }
-    await page.waitForTimeout(1000);
+    // A palavra fechada (ou esgotada) dá lugar à seguinte.
+    await expect
+      .poll(async () => (await terminou(page)) || (await feitos(page)) !== antes, { timeout: 4000 })
+      .toBe(true)
+      .catch(() => {})
+    await page.waitForTimeout(1100)
   }
-  await chegarAoResultado(page);
-});
+  await chegarAoFim(page, 'bao')
+})
 
 test('Vitendawili: completa as lacunas pela tecla', async ({ page }) => {
-  await abrirJogo(page, /^Jogar: Vitendawili/);
-  for (let v = 0; v < 12 && !(await terminou(page)); v++) {
-    const enigma = page.locator('[data-tour="enigma"]');
-    if (!(await enigma.isVisible().catch(() => false))) break;
-    const frase = norm(await enigma.innerText());
-    const alts = await textos(page.locator('[data-tour="alternativas"] button'));
-    const reg = REGISTROS.find((r) => r[2] && alts.some((a) => a.toLowerCase() === r[0].toLowerCase()) && norm(r[2]).replace(norm(r[0]), '').replace(/\s+/g, ' ').trim() === frase);
-    let i = reg ? alts.findIndex((a) => a.toLowerCase() === reg[0].toLowerCase()) : -1;
+  await abrirJogo(page, 'vitendawili')
+  const alternativas = palco(page).locator('.opcoes-blitz button')
+  for (let v = 0; v < 30 && !(await terminou(page)); v++) {
+    const enigma = palco(page).locator('.pj-enigma')
+    if (!(await enigma.isVisible().catch(() => false))) break
+    const antes = await feitos(page)
+    const alts = await opcoesDe(alternativas)
+    const livres = await alternativas.evaluateAll((bs) => bs.map((b) => !(b as HTMLButtonElement).disabled))
+    let i = opcaoQueFechaAFrase((await enigma.innerText()).replace(/\s{2,}/g, ' ___ '), alts)
     // Sem identificar, a primeira ainda de pé: errar elimina a opção, e a certa sobra.
-    if (i < 0) {
-      const habilitadas = await page.locator('[data-tour="alternativas"] button').evaluateAll((bs) => bs.map((b) => !(b as HTMLButtonElement).disabled));
-      i = Math.max(0, habilitadas.indexOf(true));
-    }
-    await page.keyboard.press(String(i + 1));
-    await page.waitForTimeout(900);
+    if (i < 0 || !livres[i]) i = Math.max(0, livres.indexOf(true))
+    await page.keyboard.press(String(i + 1))
+    if (v === 0)
+      await expect(alternativas.nth(i), 'a tecla escolhe a alternativa').toHaveClass(/certa|pj-fora/, { timeout: 3000 })
+    await expect
+      .poll(async () => (await terminou(page)) || (await feitos(page)) !== antes, { timeout: 1500 })
+      .toBe(true)
+      .catch(() => {})
+    await page.waitForTimeout(900)
   }
-  await chegarAoResultado(page);
-});
+  await chegarAoFim(page, 'vitendawili')
+})
 
 test('Shiritori: encadeia pela última letra e termina no fim comum', async ({ page }) => {
-  await abrirJogo(page, /^Jogar: Shiritori/);
-  for (let v = 0; v < 12 && !(await terminou(page)); v++) {
-    const ponta = page.getByText('Palavra na ponta').locator('xpath=following-sibling::p[1]');
+  await abrirJogo(page, 'shiritori')
+  const alternativas = palco(page).locator('.opcoes-blitz button')
+  for (let v = 0; v < 30 && !(await terminou(page)); v++) {
+    const ponta = palco(page).locator('.pj-ponta')
     if (!(await ponta.isVisible().catch(() => false))) {
-      await page.waitForTimeout(300);
-      continue;
+      await page.waitForTimeout(300)
+      continue
     }
-    const ultima = norm(await ponta.innerText()).slice(-1);
-    const alts = await textos(page.locator('[data-tour="opcoes"] button'));
-    const i = Math.max(0, alts.findIndex((a) => norm(a)[0] === ultima));
-    await page.keyboard.press(String(i + 1));
-    await page.waitForTimeout(600);
+    const ultima = norm(await ponta.innerText()).slice(-1)
+    const alts = await opcoesDe(alternativas)
+    const livres = await alternativas.evaluateAll((bs) => bs.map((b) => !(b as HTMLButtonElement).disabled))
+    let i = alts.findIndex((a, k) => livres[k] && norm(a)[0] === ultima)
+    if (i < 0) i = Math.max(0, livres.indexOf(true))
+    await page.keyboard.press(String(i + 1))
+    await page.waitForTimeout(800)
   }
-  await expect(page.getByText('Fim da corrente'), 'a tela própria saiu: o fim é o comum').toHaveCount(0);
-  await chegarAoResultado(page);
-});
+  await expect(page.getByText('Fim da corrente'), 'a tela própria saiu: o fim é o comum').toHaveCount(0)
+  await chegarAoFim(page, 'shiritori')
+})
 
 test('Cadavre exquis: escreve a frase e confere', async ({ page }) => {
-  await abrirJogo(page, /^Jogar: Cadavre/);
-  const palavras = await textos(page.locator('[data-tour="palavras"] span.font-display'));
-  await page.locator('[data-tour="frase"]').fill(`The ${palavras.join(' and ')}.`);
-  await page.getByRole('button', { name: /Conferir/ }).click();
-  await expect(page.locator('#palco')).toContainText(/palavras usadas: 4\/4/);
-  await chegarAoResultado(page);
-});
+  await abrirJogo(page, 'cadavre')
+  const palavras = await textos(palco(page).locator('.pj-quatro .pj-cartao b'))
+  expect(palavras).toHaveLength(4)
+  await palco(page)
+    .getByLabel('Sua frase')
+    .fill(`The ${palavras.join(' and ')}.`)
+  await palco(page).locator('[data-pj="conferir"]').click()
+  await expect(palco(page).locator('.pj-correcao')).toContainText(/palavras usadas:\s*4\/4/)
+  await expect(palco(page).locator('.pj-quatro .pj-cartao.usada')).toHaveCount(4)
+  await palco(page).locator('[data-pj="continuar"]').click()
+  await chegarAoFim(page, 'cadavre')
+})
 
 test('Tabu: errar mostra a certa antes da próxima carta', async ({ page }) => {
-  await abrirJogo(page, /^Jogar: Tabu/);
-  const alts = page.locator('[data-tour="alternativas"] button');
-  await expect(alts.first()).toBeEnabled();
+  await abrirJogo(page, 'taboo')
+  const alternativas = palco(page).locator('.opcoes-blitz button')
   /* A certa é a opção que, posta na lacuna, reconstrói a frase da Trilha; o teste escolhe OUTRA —
      errar de propósito sem depender da ordem sorteada das alternativas. */
-  const aviso = page.locator('[data-aviso-da-jogada="erro"]');
-  for (let tentativa = 0; tentativa < 4 && !(await aviso.isVisible().catch(() => false)); tentativa++) {
-    const texto = norm((await page.locator('[data-tour="alvo"] p[dir]').innerText()).replace(/—+/g, ' '));
-    const opcoes = await textos(alts);
-    const certa = opcoes.findIndex((op) =>
-      REGISTROS.some(
-        (r) =>
-          r[0].toLowerCase() === op.toLowerCase() &&
-          r[2] &&
-          norm(r[2]).replace(norm(op), ' ').replace(/\s+/g, ' ').trim() === texto,
-      ),
-    );
+  const errada = alternativas.and(page.locator('.errada'))
+  for (let tentativa = 0; tentativa < 4 && !(await errada.isVisible().catch(() => false)); tentativa++) {
+    const { opcoes, certa } = await cartaDoTabu(page)
     // Sem identificar a frase (raro), cada carta tenta uma posição diferente.
-    const errada = certa < 0 ? tentativa % opcoes.length : certa === 0 ? 1 : 0;
-    await page.keyboard.press(String(errada + 1));
-    await page.waitForTimeout(300);
-    if (!(await aviso.isVisible().catch(() => false))) await page.waitForTimeout(900);
+    const escolha = certa < 0 ? tentativa % opcoes.length : certa === 0 ? 1 : 0
+    await page.keyboard.press(String(escolha + 1))
+    await page.waitForTimeout(300)
+    if (!(await errada.isVisible().catch(() => false))) await page.waitForTimeout(1500)
   }
-  await expect(aviso).toBeVisible();
-  await expect(aviso.locator('b')).not.toBeEmpty();
-  for (let v = 0; v < 12 && !(await terminou(page)); v++) {
-    await page.waitForTimeout(1900);
-    if (await terminou(page)) break;
-    await page.keyboard.press('1');
+  // Com a errada marcada, a certa aparece na mesma carta, antes de a próxima chegar.
+  await expect(errada).toHaveCount(1)
+  await expect(alternativas.and(page.locator('.certa'))).toHaveCount(1)
+  for (let v = 0; v < 20 && !(await terminou(page)); v++) {
+    await page.waitForTimeout(1900)
+    if (await terminou(page)) break
+    await page.keyboard.press('1')
   }
-  await chegarAoResultado(page);
-});
+  await chegarAoFim(page, 'taboo')
+})
 
 test('Caça-conectores: na Trilha fica em "Precisam de outro material" dizendo o porquê', async ({ page }) => {
-  await abrirLobbyDaTrilha(page);
-  await expect(page.locator('#grade-de-jogos')).toContainText('as frases da trilha quase nunca têm conector');
-});
+  await abrirLobbyDaTrilha(page)
+  const presos = page.locator('#grade-de-jogos .qj-presos')
+  await expect(presos).toContainText('Precisam de outro material')
+  await expect(presos.locator('.q-tile[data-jogo="conectores"]')).toBeDisabled()
+  await expect(presos).toContainText('as frases da trilha quase nunca têm conector')
+})

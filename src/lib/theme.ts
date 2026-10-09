@@ -160,6 +160,17 @@ export function bootTheme(): void {
   /* Os cursores de emoji saíram nas recompensas v2 (27/09): o ponteiro é o do sistema. */
 }
 
+/**
+ * EQUIPAR a Água mergulha: o som e a vibração `mergulho` de `agua.js:276`. No protótipo só o botão da
+ * barra de demonstração chegava aí; no app é equipar o tema, e só equipar: a prova do Personalizar
+ * pinta o tema por `applyTheme` e não passa por aqui, e o tema que volta do servidor também não.
+ * `sentir` cala sozinho com a camada de polimento desligada. O módulo dos sentidos vem por `import()`
+ * para não entrar no arranque (este arquivo roda antes da primeira pintura).
+ */
+function mergulhar(): void {
+  void import('./polimento/sentidos').then((m) => m.sentir('mergulho')).catch(() => undefined);
+}
+
 interface PersistOptions {
   theme?: ThemeType;
   darkMode?: boolean;
@@ -210,6 +221,7 @@ export function persistTheme({ theme, darkMode, customColors, fonte }: PersistOp
     patch.customColors = customColors;
   }
   if (theme !== undefined) {
+    const anterior = readTheme();
     try {
       localStorage.setItem(THEME_KEY, theme);
     } catch {
@@ -217,6 +229,7 @@ export function persistTheme({ theme, darkMode, customColors, fonte }: PersistOp
     }
     applyTheme(theme);
     patch.theme = theme;
+    if (theme === 'agua' && anterior !== 'agua') mergulhar();
   }
   if (darkMode !== undefined) {
     try {

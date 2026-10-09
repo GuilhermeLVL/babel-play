@@ -540,9 +540,14 @@
     --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
     --hud-combo-tinta: var(--accent-contrast);
   }
-  /* ÁGUA (polimento, fase 5): a tela vista de dentro d'água. As cores valem em qualquer tela e modo;
-     a cena viva (superfície, bolhas, inclinação) é um módulo à parte, só no movimento rico
-     (`src/lib/temas/cenaDaAgua.ts`). Aqui o fundo continua CSS puro, como nos outros temas. */
+  /* ÁGUA (polimento): a tela vista de dentro d'água. A paleta é a de `agua.css:10-43` do protótipo
+     (`fidelidade/casca-e-telas.md`, 6.1) e vale em qualquer tela e modo. Dois tons do claro saem um
+     passo mais escuros que os do protótipo, porque lá reprovavam o mínimo de leitura (4,5:1):
+     `--ink-faint` (#56788A dava 3,86:1 sobre `--canvas`) e `--good` (#1F8A5B dava 4,33:1 com o branco).
+     ESTE TEMA É A EXCEÇÃO À REGRA DO FUNDO: os outros têm textura e fundo animado em CSS puro; a Água
+     tem cena própria (superfície, bolhas, raios), desenhada em dois canvas por
+     `src/lib/polimento/aguaCena.ts`, que `agua.ts` só traz com o tema ligado e a camada de polimento
+     ativa. Aqui fica só o fundo parado, o degradê de `agua.css:45`, sem textura. */
   [data-theme="agua"] {
     color-scheme: light;
     --canvas: #D3EDF3;
@@ -551,7 +556,7 @@
     --surface-sunken: #BFDFE8;
     --ink: #0B2A3B;
     --ink-muted: #3F6274;
-    --ink-faint: #47697B;
+    --ink-faint: #4E6D7E;
     --ink-contrast: #E9F8FB;
     --border-subtle: #A9D0DC;
     --border-strong: #7FB4C4;
@@ -577,21 +582,25 @@
     --epic: #8A3F9A;
     --epic-soft: #EBDDF0;
     --epic-ink: #7A3489;
-    --font-display-val: "Baloo 2", "Nunito", sans-serif;
+    --font-display-val: "Archivo", sans-serif;
     --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
     --radius-card: 24px;
     --radius-btn: 20px;
     --r-card: 24px;
     --r-btn: 20px;
-    --textura: radial-gradient(circle, transparent 0 2.2px, color-mix(in srgb, var(--surface) 55%, transparent) 2.6px 3.4px, transparent 3.8px);
-    --textura-tam: 64px 64px;
-    --fundo-animado: linear-gradient(180deg, color-mix(in srgb, var(--surface) 80%, transparent) 0%, transparent 46%, color-mix(in srgb, var(--accent) 22%, transparent) 100%);
+    --textura: none;
+    --fundo-animado: linear-gradient(180deg, var(--ag-alto) 0%, var(--ag-meio) 42%, var(--ag-fundo) 100%);
     --hud-trilho: color-mix(in srgb, var(--accent) 14%, var(--surface));
-    --hud-barra: linear-gradient(90deg, var(--accent), var(--rare));
+    --hud-barra: linear-gradient(90deg, var(--accent), #4FD3EA);
     --hud-combo: color-mix(in srgb, var(--accent) 12%, var(--surface));
-    --hud-combo-quente: linear-gradient(135deg, var(--rare), var(--accent));
+    --hud-combo-quente: linear-gradient(135deg, #4FD3EA, var(--accent));
     --hud-combo-tinta: #FFFFFF;
     --hud-raio: 20px;
+    --ag-alto: #E4F8FB;
+    --ag-meio: #B9E3EE;
+    --ag-fundo: #79BFD8;
+    --ag-luz: 255 255 255;
+    --ag-ar: rgb(255 255 255 / 0.62);
   }
   [data-theme="agua"].dark, .dark [data-theme="agua"], [data-theme="agua"] [class*="dark"] {
     color-scheme: dark;
@@ -601,7 +610,7 @@
     --surface-sunken: #040E15;
     --ink: #DDF3F8;
     --ink-muted: #8FB3C2;
-    --ink-faint: #86AABA;
+    --ink-faint: #7FA3B2;
     --ink-contrast: #06141D;
     --border-subtle: #1E4052;
     --border-strong: #2F5B70;
@@ -627,9 +636,30 @@
     --epic: #E3A3F0;
     --epic-soft: #3A2542;
     --epic-ink: #E3A3F0;
-    --anel: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
     --hud-combo-tinta: var(--accent-contrast);
+    --ag-alto: #0F3D52;
+    --ag-meio: #0A2636;
+    --ag-fundo: #030B11;
+    --ag-luz: 120 225 245;
+    --ag-ar: rgb(120 225 245 / 0.2);
   }
+}
+
+/* ÁGUA, FORA DE CAMADA. A folha do protótipo (`styles/polimento/agua.css`, gerada) traz a paleta dela
+   sem camada, e ganharia dos tons acertados acima sempre que o desenho novo está montado. Estas duas
+   regras devolvem os dois tons de leitura do claro (o escuro do protótipo já passa, e fica igual). */
+html[data-theme="agua"] {
+  --ink-faint: #4E6D7E;
+  --good: #1E8758;
+}
+html[data-theme="agua"].dark {
+  --ink-faint: #7FA3B2;
+  --good: #5FD6A0;
+}
+/* No desenho novo (`data-px`, com ou sem a camada ligada) quem pinta o fundo da Água é o `<main>`, pela
+   regra do protótipo (`agua.css:45`). O fundo de trás sairia a mais, visto através do menu de vidro. */
+html[data-px][data-theme="agua"] {
+  --fundo-animado: none;
 }
 
 /* CAMADA PRÓPRIA, declarada depois das do Tailwind: a cor da raiz e do <main> vem de

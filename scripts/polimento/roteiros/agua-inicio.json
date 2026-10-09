@@ -1,0 +1,117 @@
+{
+  "nome": "agua-inicio",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.px.planoDeProva": "free",
+      "app_theme": "agua"
+    },
+    "passos": [
+      {
+        "js": "import('/src/lib/polimento/agua.ts').then((a) => { window.__agua = window.__agua || a.instalarAgua() })"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "js": "import('/src/lib/theme.ts').then((t) => t.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "js": "document.dispatchEvent(new PointerEvent('pointermove', { clientX: innerWidth / 2, clientY: innerHeight * 0.45, bubbles: true }))"
+      },
+      {
+        "esperar": 6500
+      },
+      {
+        "js": "document.getAnimations().forEach((a) => { if (String(a.animationName || '').startsWith('ag-')) { a.pause(); a.currentTime = 0 } })"
+      },
+      {
+        "esperar": 300
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "js": "document.querySelector(\"[data-px-acao='agua']\").click()"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "js": "document.dispatchEvent(new PointerEvent('pointermove', { clientX: innerWidth / 2, clientY: innerHeight * 0.45, bubbles: true }))"
+      },
+      {
+        "esperar": 6500
+      },
+      {
+        "js": "document.getAnimations().forEach((a) => { if (String(a.animationName || '').startsWith('ag-')) { a.pause(); a.currentTime = 0 } })"
+      },
+      {
+        "esperar": 300
+      },
+      {
+        "js": "document.querySelector('.px-barra')?.style.setProperty('display', 'none')"
+      }
+    ]
+  },
+  "props": [
+    "mixBlendMode",
+    "filter",
+    "zIndex",
+    "overflowX",
+    "contain",
+    "pointerEvents",
+    "maskImage",
+    "backgroundSize",
+    "animationDirection",
+    "animationTimingFunction",
+    "animationIterationCount",
+    "animationDelay",
+    "top",
+    "left",
+    "willChange",
+    "transformOrigin"
+  ],
+  "seletores": [
+    {
+      "app": "main",
+      "proto": "main",
+      "nome": "main (fundo)"
+    },
+    ".px-aura",
+    ".ag-cena",
+    ".ag-raios",
+    ".ag-raios i",
+    ".ag-raios i + i",
+    ".ag-caustica.a",
+    ".ag-caustica.a i",
+    ".ag-caustica.b",
+    ".ag-caustica.b i",
+    "canvas.ag-bolhas",
+    "canvas.ag-mar",
+    ".ag-frente",
+    ".ag-brilho",
+    ".q-trilho",
+    ".q-trilho .q-item",
+    ".q-trilho .px-pilula",
+    ".q-cab h1",
+    ".q-cab .q-sobre",
+    ".px-plano-chip",
+    ".q-grade.g3.q-cresce",
+    ".q-tile.pri",
+    ".q-tile.pri .q-ic",
+    ".q-tile:not(.pri)",
+    ".q-tile b",
+    ".q-tile .q-d",
+    "[data-testid='progresso-no-inicio']",
+    ".q-barra",
+    ".q-barra > span",
+    ".q-tile:not(.pri) .q-ic"
+  ]
+}

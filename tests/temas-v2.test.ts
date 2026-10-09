@@ -149,6 +149,75 @@ describe('CSS do tema completo', () => {
   })
 })
 
+/**
+ * A ÁGUA É A EXCEÇÃO À REGRA DO FUNDO, e só ela. Os outros temas têm o fundo inteiro em CSS (a regra de
+ * cima continua valendo para esta folha, Água incluída). A Água tem, além do fundo parado, uma cena
+ * viva desenhada em dois canvas (`fidelidade/casca-e-telas.md`, seção 6). A exceção tem cerca:
+ *   - a cena não mora nesta folha nem no arranque: o CSS dela é o do protótipo
+ *     (`styles/polimento/agua.css`) e o código vem por `import()` só com o tema ligado
+ *     (`tests/polimentoAgua.test.ts` trava isso);
+ *   - sem a camada de polimento (animações desligadas, Modo desempenho) fica só a paleta e o degradê;
+ *   - a leitura não cede: os tons do protótipo que reprovavam o contraste saem acertados daqui.
+ */
+describe('a Água: paleta do protótipo e cena própria', () => {
+  const cssAgua = readFileSync(path.join(raiz, 'src/styles/polimento/agua.css'), 'utf8')
+  const tokens = (corpo: string) =>
+    Object.fromEntries([...corpo.matchAll(/(--[a-z-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim().toLowerCase()]))
+  const doApp = { claro: tokens(bloco(cssTemas, '[data-theme="agua"] {')!), escuro: tokens(bloco(cssTemas, '[data-theme="agua"].dark,')!) }
+  const doProto = { claro: tokens(bloco(cssAgua, "[data-theme='agua'] {")!), escuro: tokens(bloco(cssAgua, "[data-theme='agua'].dark {")!) }
+  /* Os dois tons do claro que o protótipo tinha abaixo de 4,5:1 (`tests/contrastePaletas.test.ts`). */
+  const ACERTADOS: Record<string, string> = { '--ink-faint': '#4e6d7e', '--good': '#1e8758' }
+
+  it('a paleta é a do protótipo, token por token, nos dois modos', () => {
+    expect(Object.keys(doProto.claro).length).toBeGreaterThanOrEqual(45)
+    expect(Object.keys(doProto.escuro).length).toBeGreaterThanOrEqual(30)
+    for (const modo of ['claro', 'escuro'] as const)
+      for (const [nome, valor] of Object.entries(doProto[modo])) {
+        const esperado = modo === 'claro' && ACERTADOS[nome] ? ACERTADOS[nome] : valor
+        expect(doApp[modo][nome], `${modo} ${nome}`).toBe(esperado)
+      }
+  })
+
+  it('só dois tons diferem do protótipo, e para mais escuro (leitura)', () => {
+    const diferentes = Object.keys(doProto.claro).filter((n) => doApp.claro[n] !== doProto.claro[n])
+    expect(diferentes.sort()).toEqual(Object.keys(ACERTADOS).sort())
+    expect(doProto.claro['--ink-faint']).toBe('#56788a')
+    expect(doProto.claro['--good']).toBe('#1f8a5b')
+  })
+
+  it('os tons acertados ganham da folha do protótipo (que não tem camada) também no desenho novo', () => {
+    const fora = cssTemas.slice(cssTemas.indexOf('/* ÁGUA, FORA DE CAMADA'))
+    const claro = tokens(bloco(fora, 'html[data-theme="agua"] {')!)
+    const escuro = tokens(bloco(fora, 'html[data-theme="agua"].dark {')!)
+    expect(claro).toEqual(ACERTADOS)
+    /* fora de camada o claro ganharia do escuro da camada: o escuro repete os dele */
+    for (const nome of Object.keys(ACERTADOS)) expect(escuro[nome], nome).toBe(doApp.escuro[nome])
+    expect(cssTemas.indexOf('/* ÁGUA, FORA DE CAMADA')).toBeGreaterThan(cssTemas.indexOf('[data-theme="agua"].dark,'))
+    expect(cssTemas.slice(0, cssTemas.indexOf('/* ÁGUA, FORA DE CAMADA')).trimEnd().endsWith('}\n}'.trim())).toBe(true)
+  })
+
+  it('nesta folha o fundo da Água é só o degradê parado, sem textura e sem fonte própria', () => {
+    expect(doApp.claro['--textura']).toBe('none')
+    expect(doApp.claro['--fundo-animado']).toBe(
+      'linear-gradient(180deg, var(--ag-alto) 0%, var(--ag-meio) 42%, var(--ag-fundo) 100%)',
+    )
+    expect(doApp.claro['--font-display-val']).toBe('"archivo", sans-serif')
+    /* o mesmo degradê que o protótipo pinta no <main> */
+    expect(cssAgua).toContain(
+      "html[data-theme='agua'] main { background: linear-gradient(180deg, var(--ag-alto) 0%, var(--ag-meio) 42%, var(--ag-fundo) 100%); }",
+    )
+    /* no desenho novo quem pinta é o <main>: o fundo de trás sai, para não aparecer através do menu */
+    expect(cssTemas).toMatch(/html\[data-px\]\[data-theme="agua"\]\s*\{\s*--fundo-animado:\s*none;\s*\}/)
+  })
+
+  it('a cena em canvas é só da Água e fica escondida fora do tema e fora da camada', () => {
+    expect(cssAgua).toMatch(/\.ag-cena, \.ag-frente \{ display: none; \}/)
+    expect(cssAgua).toMatch(/html\[data-px='on'\]\[data-theme='agua'\] \.ag-cena \{ display: block;/)
+    for (const id of TEMAS_NOVOS) if (id !== 'agua') expect(cssAgua).not.toContain(`'${id}'`)
+    for (const id of TEMAS_NOVOS) expect(cssTemas, id).not.toMatch(/\.ag-(cena|frente|mar|bolhas)/)
+  })
+})
+
 describe('o tema entrega a forma de partícula ao motor de comemoração', () => {
   const CTX = { leve: false, semSom: false, efeitos: EFEITOS_PADRAO }
 

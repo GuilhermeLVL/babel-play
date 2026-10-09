@@ -1,0 +1,174 @@
+{
+  "nome": "agua-personalizar-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "app_theme": "agua"
+    },
+    "passos": [
+      {
+        "js": "import('/src/lib/polimento/agua.ts').then((a) => { window.__agua = window.__agua || a.instalarAgua() })"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "rolar": ".q-trilho .q-item"
+      },
+      {
+        "esperar": 600
+      },
+      {
+        "js": "window.dispatchEvent(new PointerEvent('pointerdown')); [...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Personalizar/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 6000
+      },
+      {
+        "js": "import('/src/lib/theme.ts').then((t) => t.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "js": "document.dispatchEvent(new PointerEvent('pointermove', { clientX: innerWidth / 2, clientY: innerHeight * 0.45, bubbles: true }))"
+      },
+      {
+        "esperar": 6500
+      },
+      {
+        "js": "document.getAnimations().forEach((a) => { if (String(a.animationName || '').startsWith('ag-')) { a.pause(); a.currentTime = 0 } })"
+      },
+      {
+        "esperar": 300
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "js": "document.querySelector(\"[data-px-acao='agua']\").click()"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "rolar": ".q-trilho .q-item"
+      },
+      {
+        "esperar": 600
+      },
+      {
+        "js": "window.dispatchEvent(new PointerEvent('pointerdown')); [...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Personalizar/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 6000
+      },
+      {
+        "js": "document.dispatchEvent(new PointerEvent('pointermove', { clientX: innerWidth / 2, clientY: innerHeight * 0.45, bubbles: true }))"
+      },
+      {
+        "esperar": 6500
+      },
+      {
+        "js": "document.getAnimations().forEach((a) => { if (String(a.animationName || '').startsWith('ag-')) { a.pause(); a.currentTime = 0 } })"
+      },
+      {
+        "esperar": 300
+      },
+      {
+        "js": "document.querySelector('.px-barra')?.style.setProperty('display', 'none')"
+      }
+    ]
+  },
+  "props": [
+    "marginTop",
+    "marginBottom",
+    "alignItems",
+    "justifyContent",
+    "flexGrow",
+    "maxWidth",
+    "borderTopStyle",
+    "textTransform",
+    "mixBlendMode",
+    "filter",
+    "zIndex",
+    "overflowX",
+    "contain",
+    "pointerEvents",
+    "maskImage",
+    "backgroundSize",
+    "animationDirection",
+    "animationTimingFunction",
+    "animationIterationCount",
+    "animationDelay",
+    "top",
+    "left",
+    "willChange",
+    "transformOrigin"
+  ],
+  "seletores": [
+    {
+      "app": "main",
+      "proto": "main",
+      "nome": "main (fundo)"
+    },
+    ".px-aura",
+    ".ag-cena",
+    ".ag-raios",
+    ".ag-raios i",
+    ".ag-raios i + i",
+    ".ag-caustica.a",
+    ".ag-caustica.a i",
+    ".ag-caustica.b",
+    ".ag-caustica.b i",
+    "canvas.ag-bolhas",
+    "canvas.ag-mar",
+    ".ag-frente",
+    ".ag-brilho",
+    ".q-palco",
+    ".px-atelie",
+    ".px-vitrine",
+    ".px-vitrine > .q-rotulo",
+    ".px-vitrine-tela",
+    ".px-vitrine-leg",
+    ".px-vitrine-leg b",
+    ".px-vitrine-leg u",
+    ".px-vitrine-leg i",
+    ".px-vitrine-cartoes",
+    ".px-vitrine-cartoes span",
+    ".px-vitrine-cartoes .ap",
+    ".px-vitrine-cartoes .do",
+    ".px-vitrine-barra",
+    ".px-vitrine-barra i",
+    ".px-vitrine-pe",
+    ".px-vitrine-pe > div",
+    ".px-vitrine-pe .q-rotulo",
+    ".px-vitrine-pe b",
+    ".px-vitrine-pe .q-tag",
+    ".px-vitrine-pe .q-tag svg",
+    ".px-temas",
+    ".px-temas > header",
+    ".px-temas h2",
+    ".px-temas header p",
+    ".px-temas-grade",
+    ".px-tema",
+    ".px-tema[aria-pressed=true]",
+    ".px-amostra",
+    ".px-amostra i",
+    ".px-amostra i:nth-child(3)",
+    ".px-tema b",
+    ".px-tema .q-d",
+    ".q-grade.g4",
+    ".q-grade.g4 .q-linha",
+    ".q-grade.g4 .q-linha .q-ic",
+    ".q-grade.g4 .q-linha .q-ic svg",
+    ".q-grade.g4 .q-linha b",
+    ".q-grade.g4 .q-linha small",
+    ".q-abas",
+    ".q-chip",
+    ".q-cab h1"
+  ]
+}

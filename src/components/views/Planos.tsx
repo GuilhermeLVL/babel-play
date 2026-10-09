@@ -556,9 +556,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
   const menor =
     (teste?.estado === 'indisponivel' && teste.motivo === 'perfil_protegido') ||
     (!!protecao && protecao.nascimentoInformado && protecao.faixa !== 'adulto');
-  /* O desenho novo não tem o seletor de período (`telas2.js:60-73`): o cartão é o mensal, e só quem JÁ
-     assina o anual vê o ano (é o plano dele). */
-  const anual = questNovo ? jaTemOAnual : periodo === 'anual' && (anualAVenda || jaTemOAnual);
+  const anual = periodo === 'anual' && (anualAVenda || jaTemOAnual);
   /* O servidor deixa esta pessoa começar o teste agora (as mesmas condições do botão, em `cta`). */
   const podeTestar =
     !assina && vendaAberta && !menor && !semConta && teste?.estado === 'disponivel' && testeFeito === null;
@@ -933,6 +931,13 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
         t('O que é "uso justo"?'),
         t('Até {dia} h de nuvem por dia e {mes} h por mês. Passando disso, a legenda segue no aparelho.', justo),
       ],
+      /* O protótipo vende só o mensal. Com o anual à venda, as duas perguntas dele (as de sempre, com os
+         números da matriz) entram no fim: quem vê o seletor precisa saber o que ele muda. */
+      ...(anualAVenda
+        ? perguntas(true).filter(([q]) =>
+            [t('Qual a diferença entre mensal e anual?'), t('Posso passar do mensal para o anual?')].includes(q),
+          )
+        : []),
     ];
     const irAba = (id: AbaDePlanos, dir: number) => {
       dirDaAba.current = dir;
@@ -1033,6 +1038,30 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
 
         {aba === 'planos' && (
           <>
+            {/* O PERÍODO. O protótipo não tem este seletor (`telas2.js:60-73` vende só o mensal): ele só existe
+                com o anual à venda, na peça de seletor que a camada já anima (`.q-abas.q-seg`). */}
+            {!selfhost && anualAVenda && (
+              <div className="q-abas q-seg px-periodo" role="radiogroup" aria-label={t('Período de cobrança')}>
+                <button
+                  type="button"
+                  className="q-aba"
+                  role="radio"
+                  aria-checked={!anual}
+                  onClick={() => trocarPeriodo('mensal')}
+                >
+                  {t('Mensal')}
+                </button>
+                <button
+                  type="button"
+                  className="q-aba"
+                  role="radio"
+                  aria-checked={anual}
+                  onClick={() => trocarPeriodo('anual')}
+                >
+                  {t('Anual')} <span className="q-tag">{t('equivale a {n} meses grátis', { n: economia.meses })}</span>
+                </button>
+              </div>
+            )}
             <div className="q-grade g2 px-planos-grade">
               <section className="q-cartao px-plano" data-plano="gratis">
                 <p className="q-rotulo">{noGratis ? t('Seu plano') : ' '}</p>
@@ -1068,6 +1097,11 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
                   <b>{brl(anual ? precoAnual('premium') : precoMensal('premium'))}</b>
                   <span>{anual ? t('por ano') : t('por mês')}</span>
                 </p>
+                {anual && (
+                  <p className="px-nota">
+                    {t('à vista ou em 12x no cartão')} · {t('economize {valor}', { valor: brl(economia.reais) })}
+                  </p>
+                )}
                 <p className="q-d">{t(premium.para)}</p>
                 <p className="px-tudo">{t('Tudo do {plano}, e:', { plano: premium.base ?? '' })}</p>
                 <ul>{premium.itens.map((i) => item(textoDoItem(i), notaDoItem(i)))}</ul>

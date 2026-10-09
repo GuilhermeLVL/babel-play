@@ -1,0 +1,236 @@
+{
+  "nome": "agua-jogar-celular-escuro",
+  "largura": 390,
+  "altura": 844,
+  "escuro": true,
+  "app": {
+    "caminho": "/?ui=pt",
+    "guardar": {
+      "app_theme": "agua"
+    },
+    "passos": [
+      {
+        "js": "import('/src/lib/polimento/agua.ts').then((a) => { window.__agua = window.__agua || a.instalarAgua() })"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".qj-sala button:has-text('Trilha')"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "clicar": "button:has-text('Usar estas palavras')"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".q-cab h1"
+      },
+      {
+        "esperar": 700
+      },
+      {
+        "js": "import('/src/lib/theme.ts').then((t) => t.applyDarkMode(true))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "js": "document.dispatchEvent(new PointerEvent('pointermove', { clientX: innerWidth / 2, clientY: innerHeight * 0.45, bubbles: true }))"
+      },
+      {
+        "esperar": 6500
+      },
+      {
+        "js": "document.getAnimations().forEach((a) => { if (String(a.animationName || '').startsWith('ag-')) { a.pause(); a.currentTime = 0 } })"
+      },
+      {
+        "esperar": 300
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "js": "document.querySelector(\"[data-px-acao='agua']\").click()"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "js": "document.querySelector(\"[data-px-acao='tema']\").click()"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "js": "document.querySelector('.px-barra')?.style.setProperty('display', 'none')"
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 1800
+      },
+      {
+        "clicar": ".q-cab h1"
+      },
+      {
+        "esperar": 700
+      },
+      {
+        "js": "document.dispatchEvent(new PointerEvent('pointermove', { clientX: innerWidth / 2, clientY: innerHeight * 0.45, bubbles: true }))"
+      },
+      {
+        "esperar": 6500
+      },
+      {
+        "js": "document.getAnimations().forEach((a) => { if (String(a.animationName || '').startsWith('ag-')) { a.pause(); a.currentTime = 0 } })"
+      },
+      {
+        "esperar": 300
+      },
+      {
+        "js": "document.querySelector('.px-barra')?.style.setProperty('display', 'none')"
+      }
+    ]
+  },
+  "props": [
+    "mixBlendMode",
+    "filter",
+    "zIndex",
+    "overflowX",
+    "contain",
+    "pointerEvents",
+    "maskImage",
+    "backgroundSize",
+    "animationDirection",
+    "animationTimingFunction",
+    "animationIterationCount",
+    "animationDelay",
+    "top",
+    "left",
+    "willChange",
+    "transformOrigin"
+  ],
+  "seletores": [
+    {
+      "app": "main",
+      "proto": "main",
+      "nome": "main (fundo)"
+    },
+    ".px-aura",
+    ".ag-cena",
+    ".ag-raios",
+    ".ag-raios i",
+    ".ag-raios i + i",
+    ".ag-caustica.a",
+    ".ag-caustica.a i",
+    ".ag-caustica.b",
+    ".ag-caustica.b i",
+    "canvas.ag-bolhas",
+    "canvas.ag-mar",
+    ".ag-frente",
+    ".ag-brilho",
+    ".q-palco.qj",
+    ".q-cab",
+    ".q-cab > div",
+    ".q-cab .q-sobre",
+    ".q-cab h1",
+    ".q-cab > .q-chip",
+    ".q-cab > .q-chip svg",
+    ".q-cab .q-ctl.pri",
+    ".q-cab .q-ctl.pri svg",
+    ".qj-ferramentas",
+    ".qj-ferramentas .q-abas",
+    ".qj-ferramentas .q-abas .px-pilula",
+    ".qj-ferramentas .q-aba",
+    ".qj-ferramentas .q-aba[aria-selected='true']",
+    ".qj-ferramentas .q-aba[aria-selected='false']",
+    ".qj-ferramentas .q-aba svg",
+    ".qj-ferramentas .q-aba .n",
+    ".q-espaco",
+    ".qj-ferramentas > .q-chip",
+    ".qj-ferramentas > .q-chip svg",
+    ".qj-trilha",
+    ".qj-trilha > .q-linha",
+    ".qj-trilha > .q-linha .q-ic",
+    ".qj-trilha > .q-linha .q-ic svg",
+    ".qj-trilha > .q-linha b",
+    ".qj-trilha > .q-linha small",
+    ".qj-trilha > .q-linha .q-fim",
+    ".qj-trilha > .q-linha .q-fim svg",
+    ".qj-sugestao",
+    ".qj-sugestao-linha",
+    ".qj-sugestao .q-ic",
+    ".qj-sugestao-texto",
+    ".qj-sugestao .q-rotulo",
+    ".qj-sugestao-texto b",
+    ".qj-sugestao-texto small",
+    ".qj-sugestao .q-acoes",
+    ".qj-sugestao .q-ctl",
+    ".qj-sugestao .q-ctl svg",
+    "#grade-de-jogos",
+    "#grade-de-jogos > .q-grade.g4",
+    ".qj-jogo",
+    ".qj-jogo > .q-tile",
+    ".q-tile[data-jogo='memory']",
+    ".q-tile[data-jogo='memory'] .px-mini",
+    ".q-tile[data-jogo='tenis'] .px-mini",
+    ".q-tile[data-jogo='koffer'] .px-mini",
+    ".px-mini",
+    ".qj-jogo-topo",
+    ".qj-ponto",
+    ".qj-jogo-topo .q-tag",
+    ".qj-jogo > .q-tile > b",
+    ".qj-jogo > .q-tile > .q-d",
+    ".qj-conta",
+    ".qj-presos",
+    ".qj-presos header",
+    ".qj-presos h2",
+    ".qj-presos header p",
+    ".qj-presos .q-tile",
+    ".qj-presos .q-tag",
+    ".qj-porta",
+    ".qj-porta svg",
+    ".qj-legenda",
+    ".qj-legenda span",
+    ".q-abas",
+    ".q-chip",
+    ".q-ctl"
+  ]
+}

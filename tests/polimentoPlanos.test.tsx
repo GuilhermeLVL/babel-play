@@ -44,9 +44,11 @@ vi.mock('../src/lib/rotas', async (original) => ({
   ...(await original<typeof import('../src/lib/rotas')>()),
   navegarPara: nav.navegarPara,
 }))
+/* O protótipo vende só o mensal: é com o anual fora de venda que a tela é a dele, sem tirar nem pôr. */
+const venda = vi.hoisted(() => ({ anual: false }))
 vi.mock('../src/data/rotas/idade', async (original) => ({
   ...(await original<typeof import('../src/data/rotas/idade')>()),
-  lerAbertura: async () => ({ cadastro: true, checkout: true }),
+  lerAbertura: async () => ({ cadastro: true, checkout: true, anual: venda.anual }),
 }))
 
 import CartaoDeOfertaDoQuest from '../src/components/ofertas/quest/CartaoDeOfertaDoQuest'
@@ -79,6 +81,9 @@ const usoDoGratis = {
 
 beforeEach(() => {
   ents.plan = 'free'
+  venda.anual = false
+  /* "Assinar" leva ao checkout pelo endereço: cada teste começa na tela de Planos. */
+  window.history.replaceState({}, '', '/')
   servidor.rotas = { '/api/billing/status': podeTestar, '/api/me/uso': usoDoGratis }
   servidor.chamadas = []
   nav.navegarPara.mockReset()
@@ -185,10 +190,37 @@ describe('Planos no desenho novo: a aba Planos', () => {
 
   it('sem a camada ligada, a pergunta abre do jeito do navegador (nada é impedido)', () => {
     const impedir = vi.fn()
-    document.body.innerHTML = '<div class="px-faq"><details><summary>p</summary><p>r</p></details></div>'
-    alternarPergunta({ target: document.querySelector('summary'), preventDefault: impedir })
+    const faq = document.createElement('div')
+    faq.className = 'px-faq'
+    const pergunta = faq.appendChild(document.createElement('details'))
+    const resumo = pergunta.appendChild(document.createElement('summary'))
+    alternarPergunta({ target: resumo, preventDefault: impedir })
     expect(impedir).not.toHaveBeenCalled()
-    expect(document.querySelector('details')!.open).toBe(false)
+    expect(pergunta.open).toBe(false)
+  })
+})
+
+describe('Planos no desenho novo: com o anual à venda', () => {
+  it('o seletor de período acima dos cartões, o preço do ano e o checkout no período escolhido', async () => {
+    venda.anual = true
+    const { container } = await abrir()
+    const palco = container.querySelector('.q-palco.px-planos-tela')!
+    const grupo = screen.getByRole('radiogroup', { name: 'Período de cobrança' })
+    expect(grupo.className).toBe('q-abas q-seg px-periodo')
+    expect(grupo.nextElementSibling!.className).toBe('q-grade g2 px-planos-grade')
+    expect(grupo.parentElement).toBe(palco)
+    expect(grupo.textContent).toContain('equivale a 3 meses grátis')
+    expect(screen.getByRole('radio', { name: 'Mensal' }).getAttribute('aria-checked')).toBe('true')
+    expect(document.querySelector('.px-premium .px-preco b')!.textContent).toBe(
+      brl(PLAN_MATRIX.premium.precoMensalBrl!),
+    )
+    expect(container.querySelectorAll('.px-faq details')).toHaveLength(6)
+
+    fireEvent.click(screen.getByRole('radio', { name: /Anual/ }))
+    expect(document.querySelector('.px-premium .px-preco b')!.textContent).toBe(brl(PLAN_MATRIX.premium.precoAnualBrl!))
+    expect(document.querySelector('.px-premium .px-preco span')!.textContent).toBe('por ano')
+    fireEvent.click(botao('Assinar Premium'))
+    expect(sessionStorage.getItem('babel.checkout.forma')).toBe('anual')
   })
 })
 

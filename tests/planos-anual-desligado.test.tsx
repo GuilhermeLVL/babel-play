@@ -131,9 +131,11 @@ describe.each([
     // O mensal e o teste continuam à vista.
     expect(cartao('premium').textContent).toContain('19,90')
     expect(cartao('premium').textContent).toContain('por mês')
-    expect(container.textContent).toMatch(/Como funciona o teste de 14 dias\?/)
-    expect(container.textContent).toMatch(/Posso cancelar quando quiser\?/)
-    expect(container.textContent).toMatch(/E se eu me arrepender\?/)
+    /* As perguntas são as de cada desenho: o novo traz as quatro do protótipo (`telas2.js:53-58`). */
+    const perguntas = questLigado
+      ? [/O teste cobra sozinho no fim\?/, /Posso cancelar\?/, /7 dias para desistir com reembolso/]
+      : [/Como funciona o teste de 14 dias\?/, /Posso cancelar quando quiser\?/, /E se eu me arrepender\?/]
+    for (const p of perguntas) expect(container.textContent).toMatch(p)
   })
 
   it('Planos: quem tinha escolhido o anual nesta aba vê (e assina) o mensal', async () => {

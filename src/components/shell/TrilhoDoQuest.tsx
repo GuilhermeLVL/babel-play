@@ -55,6 +55,7 @@ import { aoMudarIdentidade, estaAnonimo } from '../../lib/identidade';
 import { instalarMarcaDeMovimento } from '../../lib/movimento/animar';
 import { instalarOrigemDoToque } from '../../lib/movimento/revelar';
 import { marcarLida, marcarTodasLidas, naoLidas, quando } from '../../lib/notificacoes';
+import { instalarAgua } from '../../lib/polimento/agua';
 import { instalarPolimento } from '../../lib/polimento/base';
 import { instalarCelular, NO_MAIS_NO_CELULAR, useBarraDeCinco } from '../../lib/polimento/celular';
 import { instalarDialogos } from '../../lib/polimento/dialogos';
@@ -203,6 +204,8 @@ export default function TrilhoDoQuest({
   useEffect(() => instalarCelular(), []);
   /* Os sons, as vibrações e o giroscópio do protótipo (`sentidos.js`). */
   useEffect(() => instalarSentidos(), []);
+  /* A cena do tema Água: só monta (e só baixa o código) com o tema ligado. */
+  useEffect(() => instalarAgua(), []);
   const noTrilho = NO_TRILHO;
   const principais = noTrilho.map((id) => NAV_ITEMS.find((i) => i.id === id)).filter((i) => !!i);
   const outros = [

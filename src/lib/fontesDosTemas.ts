@@ -30,7 +30,7 @@ export const FONTES_POR_TEMA: Readonly<Record<string, readonly Pacote[]>> = {
   papel: ['merriweather'],
   neon: ['orbitron'],
   jardim: ['arredondada'],
-  agua: ['arredondada'],
+  /* A Água não tem fonte própria: no protótipo os títulos dela são os de sempre (Archivo). */
 };
 
 /** Fonte (`data-fonte`) → pacotes. `padrao`, `pixel` e `display` usam só as de base. */

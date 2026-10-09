@@ -125,10 +125,23 @@ function paletaEfetiva(): { rotulo: string; tokens: Record<string, string> }[] {
   const bs = blocos()
   const claros: Record<string, Record<string, string>> = {}
   for (const b of bs) if (!b.escuro) claros[b.tema] = { ...(claros[b.tema] ?? {}), ...b.tokens }
-  return bs.map((b) => ({
-    rotulo: `${b.tema} ${b.escuro ? 'escuro' : 'claro'}`,
-    tokens: b.escuro ? { ...claros[b.tema], ...b.tokens } : b.tokens,
-  }))
+  /* A ÁGUA tem, além dos dois blocos da paleta, duas regras curtas fora de camada que devolvem os
+     tons de leitura quando a folha do protótipo está carregada (`temas-v2.css`, "ÁGUA, FORA DE
+     CAMADA"). Uma regra dessas não é uma paleta: vale somada ao bloco do mesmo modo, na ordem do
+     arquivo, que é como o navegador a aplica. Só a Água é somada; os outros temas seguem bloco a bloco. */
+  const SOMADOS = new Set(['agua'])
+  const escuros: Record<string, Record<string, string>> = {}
+  for (const b of bs) if (b.escuro) escuros[b.tema] = { ...(escuros[b.tema] ?? {}), ...b.tokens }
+  const vistos = new Set<string>()
+  return bs.flatMap((b) => {
+    const rotulo = `${b.tema} ${b.escuro ? 'escuro' : 'claro'}`
+    if (SOMADOS.has(b.tema)) {
+      if (vistos.has(rotulo)) return []
+      vistos.add(rotulo)
+      return [{ rotulo, tokens: b.escuro ? { ...claros[b.tema], ...escuros[b.tema] } : claros[b.tema] }]
+    }
+    return [{ rotulo, tokens: b.escuro ? { ...claros[b.tema], ...b.tokens } : b.tokens }]
+  })
 }
 
 const paletas = paletaEfetiva()

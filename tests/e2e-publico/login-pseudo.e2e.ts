@@ -16,6 +16,8 @@ import { readFileSync } from 'node:fs'
 
 import { expect, type Page, test } from '@playwright/test'
 
+import { abrirPortaDeLogin } from './_porta'
+
 // O Playwright carrega este arquivo como módulo ES: sem `__dirname`, o caminho sai de `import.meta.url`.
 const PSEUDO = JSON.parse(readFileSync(new URL('../../public/i18n/xx.json', import.meta.url), 'utf8')) as Record<
   string,
@@ -66,11 +68,9 @@ async function textoQueCorta(page: Page) {
 
 async function abrirLoginEmPseudo(page: Page) {
   await page.goto('/?ui=xx')
-  /* "Sua conta" ainda não está em catálogo nenhum, então o pseudo não a acentua: `px` devolve o
-     português enquanto isso, e o nome acentuado quando a frase ganhar tradução. */
-  await page.getByRole('button', { name: px('Sua conta'), exact: true }).click({ timeout: 60_000 })
-  await page.getByRole('menuitem', { name: px('Entrar ou criar conta') }).click()
-  await expect(page.getByRole('heading', { name: px('Entrar') })).toBeVisible()
+  /* Os nomes do caminho também vêm do catálogo: `px` devolve o pseudo de cada frase (e o português,
+     se a frase ainda não estiver em catálogo nenhum). */
+  await abrirPortaDeLogin(page, px)
   expect(await page.evaluate(() => document.documentElement.lang), 'o pseudo-idioma não carregou').toBe('xx')
 }
 

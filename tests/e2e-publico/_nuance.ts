@@ -14,6 +14,7 @@
 import { expect, type Locator, type Page } from '@playwright/test'
 
 import { clicarRobusto, fecharSobreposicoes } from '../e2e/_helpers'
+import { abrirPortaDeLogin } from './_porta'
 
 const SENHA = 'senha-e2e-123'
 
@@ -66,9 +67,8 @@ export async function entrar(page: Page, { premium }: { premium: boolean }): Pro
     r.request().method() === 'GET' ? r.fulfill({ json: IDADE_ADULTA }) : r.continue(),
   )
   await page.goto('/')
-  await page.getByRole('button', { name: 'Sua conta' }).click({ timeout: 60_000 })
-  await page.getByRole('menuitem', { name: 'Entrar ou criar conta' }).click()
-  await page.getByLabel('E-mail').fill('e2e@babel.test')
+  await abrirPortaDeLogin(page)
+  await page.locator('#auth-email').fill('e2e@babel.test')
   await page.getByLabel('Senha', { exact: true }).fill(SENHA)
   const autenticada = page.waitForResponse(
     (r) => r.url().includes('/api/') && /^Bearer /.test(r.request().headers().authorization ?? ''),

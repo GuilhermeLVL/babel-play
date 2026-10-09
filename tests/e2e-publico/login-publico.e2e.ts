@@ -11,6 +11,8 @@
  */
 import { expect, type Page, test } from '@playwright/test'
 
+import { abrirPortaDeLogin } from './_porta'
+
 const SENHA = 'senha-e2e-123'
 
 function aalDo(authorization: string | undefined): string | undefined {
@@ -28,17 +30,15 @@ function respostaAutenticada(page: Page) {
   )
 }
 
-/** A porta de login abre pelo menu da conta — sem conta, o app abre direto (soft gate D10). */
+/** A porta de login abre pelo "Mais" do trilho: sem conta, o app abre direto (soft gate D10). */
 async function abrirLogin(page: Page) {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Sua conta' }).click({ timeout: 60_000 })
-  await page.getByRole('menuitem', { name: 'Entrar ou criar conta' }).click()
-  await expect(page.getByRole('heading', { name: 'Entrar' })).toBeVisible()
+  await abrirPortaDeLogin(page)
 }
 
 async function entrar(page: Page, email: string) {
   await abrirLogin(page)
-  await page.getByLabel('E-mail').fill(email)
+  await page.locator('#auth-email').fill(email)
   await page.getByLabel('Senha', { exact: true }).fill(SENHA)
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
 }
@@ -50,7 +50,7 @@ test('sem token, a API responde 401 no modo público', async ({ request }) => {
 
 test('login com e-mail e senha: o servidor aceita o token do navegador', async ({ page }) => {
   await abrirLogin(page)
-  await page.getByLabel('E-mail').fill('e2e@babel.test')
+  await page.locator('#auth-email').fill('e2e@babel.test')
   await page.getByLabel('Senha', { exact: true }).fill(SENHA)
   const autenticada = respostaAutenticada(page)
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
@@ -61,7 +61,7 @@ test('login com e-mail e senha: o servidor aceita o token do navegador', async (
 
 test('senha errada: mensagem genérica, e continua na porta de login', async ({ page }) => {
   await abrirLogin(page)
-  await page.getByLabel('E-mail').fill('e2e@babel.test')
+  await page.locator('#auth-email').fill('e2e@babel.test')
   await page.getByLabel('Senha', { exact: true }).fill('errada-123')
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
   await expect(page.getByRole('alert')).toHaveText('E-mail ou senha incorretos.')

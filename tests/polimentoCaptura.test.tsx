@@ -246,6 +246,137 @@ describe('a fala ao vivo (telas.js:111-160)', () => {
     ])
   })
 
+  /* O protótipo encena e toda fala tem texto; na captura real a fala ABRE antes de haver o que ler. */
+  it('a fala aberta sem texto é a linha de escuta, e o texto entra NESSA linha', () => {
+    const aoTocar = vi.fn()
+    const com = (falas: SpeechSegment[]) => (
+      <HistoricoDoPrototipo falas={falas} escala={1} idiomaPadrao="en" aoTocar={aoTocar} aoOuvir={nada} />
+    )
+    const { rerender, container } = render(com([]))
+    animacoes = []
+    rerender(com([fala('a', '', '…', true)]))
+    const linha = container.querySelector('.q-linha-da-fala.atual[data-fala="a"]') as HTMLElement
+    expect(linha).toBeTruthy()
+    expect(linha.hasAttribute('data-ouvindo')).toBe(true)
+    expect(linha.querySelector('.q-fala > .q-meta .tn')?.textContent).toBe('00:03')
+    const pontos = linha.querySelector('.q-fala > .q-pontos') as HTMLElement
+    expect(pontos.children).toHaveLength(3)
+    expect(pontos.getAttribute('aria-label')).toBe('Ouvindo…')
+    expect(linha.querySelector('.q-t')).toBeNull()
+    /* A linha é o sinal: nem a espera vazia, nem o "Transcrevendo…" solto. */
+    expect(container.querySelector('.q-espera')).toBeNull()
+    expect(container.querySelector('.q-transcrevendo')).toBeNull()
+    expect(animacoes.find((a) => a.quem.startsWith('div.q-linha-da-fala'))).toMatchObject({ d: 520, e: EO })
+    /* Sem texto não há frase para abrir, e os botões da fala guardam o lugar sem aparecer. */
+    fireEvent.click(linha.querySelector('.q-fala') as HTMLElement)
+    expect(aoTocar).not.toHaveBeenCalled()
+    expect((linha.querySelector('.q-acoes-da-fala') as HTMLElement).style.visibility).toBe('hidden')
+
+    animacoes = []
+    rerender(com([fala('a', 'So, are', '…', true)]))
+    expect(container.querySelectorAll('.q-linha-da-fala')).toHaveLength(1)
+    expect(container.querySelector('.q-linha-da-fala[data-fala="a"]')).toBe(linha)
+    expect(linha.hasAttribute('data-ouvindo')).toBe(false)
+    expect(linha.querySelector('.q-pontos')).toBeNull()
+    expect([...(linha.querySelector('.q-t') as HTMLElement).children].map((s) => s.textContent)).toEqual([
+      'So, ',
+      'are ',
+    ])
+    expect((linha.querySelector('.q-acoes-da-fala') as HTMLElement).style.visibility).toBe('')
+    /* A linha não refaz a entrada: só as palavras chegam. */
+    expect(animacoes.filter((a) => a.quem.startsWith('div.q-linha-da-fala'))).toHaveLength(0)
+    expect(animacoes.filter((a) => a.d === 320)).toHaveLength(2)
+    fireEvent.click(linha.querySelector('.q-fala') as HTMLElement)
+    expect(aoTocar).toHaveBeenCalledTimes(1)
+  })
+
+  it('a fala que termina vazia sai apagando (180 ms) e não deixa nada na lista', async () => {
+    const { rerender, container } = render(historico([fala('a', 'One.', 'Um.')]))
+    rerender(historico([fala('a', 'One.', 'Um.'), fala('b', '', '…', true)]))
+    expect(container.querySelector('[data-fala="b"]')?.className).toBe('q-linha-da-fala atual')
+    expect(container.querySelector('[data-fala="a"]')?.className).toBe('q-linha-da-fala')
+    animacoes = []
+    rerender(historico([fala('a', 'One.', 'Um.')]))
+    /* A fala saiu do estado: a linha dela já não existe, e a anterior volta a ser a atual. */
+    expect(container.querySelector('[data-fala="b"]')).toBeNull()
+    expect(container.querySelector('[data-fala="a"]')?.className).toBe('q-linha-da-fala atual')
+    /* Uma cópia sem toque fica no lugar só para apagar (o `animate` daqui já devolve "acabou"). */
+    await act(async () => undefined)
+    const saida = animacoes.find((a) => a.d === 180)
+    expect(saida).toMatchObject({ quem: 'div.q-linha-da-fala atual', e: 'ease', fill: 'forwards' })
+    expect(saida?.quadros[1]).toMatchObject({ opacity: 0, height: '0px' })
+    expect(container.querySelectorAll('.q-linha-da-fala')).toHaveLength(1)
+    expect(container.querySelector('.q-pontos')).toBeNull()
+  })
+
+  it('remontar os efeitos sem tirar a linha da tela (React em desenvolvimento) não cria cópia', async () => {
+    const { container } = render(<React.StrictMode>{historico([fala('a', '', '…', true)])}</React.StrictMode>)
+    await act(async () => undefined)
+    expect(container.querySelectorAll('.q-linha-da-fala')).toHaveLength(1)
+    expect(animacoes.filter((a) => a.d === 180)).toHaveLength(0)
+  })
+
+  it('a fala com texto que sai (descartada) não deixa cópia', async () => {
+    const { rerender, container } = render(historico([fala('a', 'One.', '', true)]))
+    animacoes = []
+    rerender(historico([]))
+    await act(async () => undefined)
+    expect(container.querySelector('.q-linha-da-fala')).toBeNull()
+    expect(animacoes.filter((a) => a.d === 180)).toHaveLength(0)
+  })
+
+  it('a tradução parcial fica até a do final, que entra em UMA troca', async () => {
+    const provisoria = (f: SpeechSegment, traducaoProvisoria: string) => ({ ...f, traducaoProvisoria }) as SpeechSegment
+    const { rerender, container } = render(historico([]))
+    rerender(historico([fala('a', 'So, are we', '…', true)]))
+    rerender(historico([fala('a', 'So, are we', 'Então, nós', true)]))
+    await act(async () => undefined)
+    const linha = container.querySelector('.q-linha-da-fala') as HTMLElement
+    expect(linha.querySelector('.q-t')?.textContent).toBe('Então, nós')
+
+    /* O FINAL chegou: o balão volta a "…", com a parcial à parte. Na tela nada pisca. */
+    animacoes = []
+    rerender(historico([provisoria(fala('a', 'So, are we still shipping?', '…'), 'Então, nós')]))
+    await act(async () => undefined)
+    expect(linha.querySelector('.q-t')?.textContent).toBe('Então, nós')
+    expect(linha.querySelector('.q-t')?.getAttribute('lang')).toBe('pt-BR')
+    expect(linha.querySelector('.q-o')?.textContent).toBe('So, are we still shipping?')
+    expect(animacoes).toHaveLength(0)
+
+    /* A tradução do final: uma troca, com a entrada da tradução (480 ms) e só ela. */
+    rerender(historico([fala('a', 'So, are we still shipping?', 'Então, ainda vamos entregar?')]))
+    await act(async () => undefined)
+    expect(linha.querySelector('.q-t')?.textContent).toBe('Então, ainda vamos entregar?')
+    expect(animacoes.map((a) => a.d)).toEqual([480])
+    expect(animacoes[0].quem).toBe('span.q-t')
+  })
+
+  it('a tradução do final igual à parcial não troca nada', async () => {
+    const { rerender } = render(historico([fala('a', 'Thank you', 'Obrigado', true)]))
+    await act(async () => undefined)
+    animacoes = []
+    rerender(historico([{ ...fala('a', 'Thank you.', '…'), traducaoProvisoria: 'Obrigado' } as SpeechSegment]))
+    rerender(historico([fala('a', 'Thank you.', 'Obrigado')]))
+    await act(async () => undefined)
+    expect(animacoes).toHaveLength(0)
+  })
+
+  it('a parcial não sobrevive à falha nem à espera do tradutor: vale o tratamento de sempre', async () => {
+    const com = (extra: Partial<SpeechSegment>) =>
+      historico([{ ...fala('a', 'So, are we still shipping?', '…'), traducaoProvisoria: 'Então, nós', ...extra }])
+    const { rerender, container } = render(historico([fala('a', 'So, are we', 'Então, nós', true)]))
+    await act(async () => undefined)
+    /* A tradução do final falhou: o original entre parênteses, como sempre. */
+    rerender(com({ translatedText: '(So, are we still shipping?)', traducaoProvisoria: undefined }))
+    await act(async () => undefined)
+    expect(container.querySelector('.q-t')?.textContent).toBe('(So, are we still shipping?)')
+    /* O tradutor ainda carrega (pode levar minutos): a parcial não fica; volta o original. */
+    rerender(com({ traducaoPendente: true }))
+    await act(async () => undefined)
+    expect(container.querySelector('.q-o')).toBeNull()
+    expect(container.querySelector('.q-t')?.textContent).toBe('So, are we still shipping? ')
+  })
+
   it('só a última fala é a atual; tocar numa fala abre a folha dela', () => {
     const aoTocar = vi.fn()
     const falas = [fala('a', 'One.', 'Um.'), fala('b', 'Two.', 'Dois.')]

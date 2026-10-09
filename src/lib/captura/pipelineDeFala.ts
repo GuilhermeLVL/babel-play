@@ -65,7 +65,7 @@ import {
   type SpeechSegment,
   wordsFromText,
 } from './tiposDaFala';
-import { marcadorDeTraducao, type OpcoesDeTraducao, origemDaFala } from './traducaoDaFala';
+import { ehTraducaoParcial, marcadorDeTraducao, type OpcoesDeTraducao, origemDaFala } from './traducaoDaFala';
 import { type DecisaoDoMotorDoSistema, resolverMotorDoSistema } from './webSpeechDoSistema';
 
 /** Um preparo NOVO (Whisper/opus-mt) não apaga as linhas dos pacotes do navegador que já baixam. */
@@ -459,7 +459,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       return marcadorDeTraducao(origemDaFala(from || origemDoMotor, idiomaObservadoRef.current, !isSys), to);
     };
 
-    // Início de fala (seq monotônico): cria o balão. Sem "ouvindo…" — o texto real flui no 1º parcial.
+    // Início de fala (seq monotônico): cria o balão, ainda sem texto. A tela nova o desenha já como a
+    // linha de escuta (`HistoricoDoPrototipo`); o texto real entra nela no 1º parcial ou no final.
     const onSpeechStart = (rawSeq: number) => {
       const seq = rawSeq + offset;
       // ANTI-ECO: se o próprio app está falando (TTS de pronúncia/frase), o que a captura
@@ -914,13 +915,21 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           const registrarContexto = () =>
             contextoDoSttRef?.current.registrar(source, clean, from || idiomaDoMotor || hint);
           if (isSys || captureScenarioRef.current !== 'conversation') registrarContexto();
+          /* A TRADUÇÃO PARCIAL NÃO SOME NO FINAL. O balão volta a "…" (é o que diz a todo o resto que a
+             tradução do final está a caminho: degradar, ficar pendente, retraduzir), mas a tradução parcial
+             que estava na tela vai junto, à parte: a legenda a mantém até a do final chegar. Antes a tela
+             voltava ao original e trocava de novo, três trocas por fala. */
+          const marcador = marcadorPrevisto(idiomaDoMotor, idiomasDaFala);
           setSpeechSegments((prev) =>
             prev.map((s) =>
               s.id === uttId
                 ? {
                     ...s,
                     originalText: clean,
-                    translatedText: marcadorPrevisto(idiomaDoMotor, idiomasDaFala),
+                    translatedText: marcador,
+                    ...(marcador === '…' && s.isPartial && ehTraducaoParcial(s.translatedText)
+                      ? { traducaoProvisoria: s.translatedText }
+                      : {}),
                     words: wordsFromText(clean, from || idiomaDoMotor || sourceLang),
                     isPartial: false,
                     tEndMs: nowRel(),

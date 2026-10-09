@@ -12,7 +12,9 @@ import { AiGateway, BreakerRegistry, BudgetLedger, MotorAindaCarregando, NoRoute
 import { avaliarTraducaoLocal } from '@core/harness/portasDeQualidade';
 import { bindingExigeConsentimento } from '@core/harness/registroDeMotores';
 
+import { getEntitlements } from '../lib/entitlements';
 import { detectLanguage } from '../lib/langDetect';
+import { alivioAceito } from '../lib/nuvemDeAlivio/estado';
 import { nuvemDoQuestAtiva } from '../lib/nuvemDoQuest';
 import { explicarRejeicao, precisaConferir, validarTraducao } from '../lib/validaTraducao';
 import { BergamotLocal, TradutorLocalComBergamot } from './adapters/bergamotLocal';
@@ -305,7 +307,14 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
           };
           /* …e na nuvem do site (aparelho fraco, `nuvemDoQuest.ts`): o tradutor local é a etapa mais
              lenta ali, e a tradução já veio junto com a transcrição. */
-          if (!parcial && (opts?.falada || opts?.nuvemPrimeiro || nuvemDoQuestAtiva())) {
+          /* SEM IDA QUE JÁ SE SABE RECUSADA: a fala do microfone só vai primeiro ao LLM do servidor para
+             quem ele atende — o plano com `managedCloudLlm`, ou o Grátis que aceitou a nuvem de alívio (o
+             adaptador manda o cabeçalho e o servidor confere a franquia). Para o resto do Grátis o
+             servidor responde 402 a cada minuto (a pausa da nuvem dura 60 s) e a fala esperava essa ida
+             e volta antes de começar a cadeia local. O servidor continua sendo a autoridade: aqui só se
+             poupa a pergunta cuja resposta o próprio servidor já deu em `/api/me/entitlements`. */
+          const servidorAtendeAFala = (): boolean => getEntitlements().managedCloudLlm || alivioAceito();
+          if (!parcial && ((opts?.falada && servidorAtendeAFala()) || opts?.nuvemPrimeiro || nuvemDoQuestAtiva())) {
             const r = await tentarNuvem();
             if (r) return r;
           }

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * A TRADUÇÃO PARCIAL ESTÁVEL no pipeline do intérprete (task 3.2), atrás da chave `parcialTraduzido`:
- *   - desligada, cada parcial novo pede tradução como sempre;
+ *   - desligada (`nao`; a chave nasce LIGADA desde 5c267486), cada parcial novo pede tradução como sempre;
  *   - ligada, só o trecho estável (duas leituras iguais + fronteira de oração) é traduzido, com a janela de 1,2 s;
  *   - o parcial é sempre pedido como `descartarSeOcupado` (só local, nunca à nuvem) e nunca chama o aviso do final;
  *   - fora do intérprete a chave não vale.
@@ -109,7 +109,7 @@ function montar(o: { cenario?: string; leituras: string[] }) {
     await esperar()
   }
   p.micHandlers.onSpeechStart(1)
-  return { ler, translateSegment, transcribePartial }
+  return { ler, translateSegment, transcribePartial, p, set, falas: () => estado }
 }
 
 let agora = 0
@@ -127,6 +127,8 @@ const ID = `mic-${MIC + 1}`
 
 describe('pipeline: tradução parcial estável (chave parcialTraduzido)', () => {
   it('desligada: cada parcial novo pede tradução, como sempre', async () => {
+    /* A chave nasce ligada (`testesDoInterprete.ts`: só o valor `nao` desliga). */
+    localStorage.setItem(CHAVE, 'nao')
     const m = montar({ leituras: ['Where is', 'Where is the station'] })
     await m.ler(1000)
     await m.ler(2200)
@@ -161,5 +163,44 @@ describe('pipeline: tradução parcial estável (chave parcialTraduzido)', () =>
     const m = montar({ cenario: 'media', leituras: ['Where is'] })
     await m.ler(1000)
     expect(m.translateSegment).toHaveBeenCalledTimes(1)
+  })
+})
+
+/**
+ * A TRADUÇÃO PARCIAL NÃO É APAGADA NO FINAL: o balão volta a "…" (o resto do motor depende disso), e a
+ * parcial que estava na tela vai à parte, em `traducaoProvisoria`, para a legenda mantê-la até a do final.
+ */
+describe('pipeline: o final guarda a tradução parcial que a tela já mostrava', () => {
+  const fechar = async (m: ReturnType<typeof montar>) => {
+    m.p.micHandlers.onUtterance(PCM, 16000, 1)
+    for (let i = 0; i < 6; i++) await esperar()
+    return m.falas().find((s) => s.id === ID)!
+  }
+
+  it('a fala abre sem texto, com a tradução a caminho', () => {
+    const m = montar({ leituras: [] })
+    expect(m.falas()).toHaveLength(1)
+    expect(m.falas()[0]).toMatchObject({ id: ID, originalText: '', translatedText: '…', isPartial: true })
+  })
+
+  it('com tradução parcial na tela: ela segue em `traducaoProvisoria` e o balão volta a "…"', async () => {
+    const m = montar({ leituras: [] })
+    m.set((prev) => prev.map((s) => ({ ...s, originalText: 'Where is', translatedText: 'Onde fica' })))
+    const f = await fechar(m)
+    expect(f).toMatchObject({
+      originalText: 'x',
+      translatedText: '…',
+      isPartial: false,
+      traducaoProvisoria: 'Onde fica',
+    })
+    expect(m.translateSegment).toHaveBeenCalledWith(ID, 'x', 'en', 'pt', { falada: true })
+  })
+
+  it('sem tradução parcial: nada muda (o balão fica em "…", sem provisória)', async () => {
+    const m = montar({ leituras: [] })
+    m.set((prev) => prev.map((s) => ({ ...s, originalText: 'Where is' })))
+    const f = await fechar(m)
+    expect(f).toMatchObject({ originalText: 'x', translatedText: '…', isPartial: false })
+    expect('traducaoProvisoria' in f).toBe(false)
   })
 })

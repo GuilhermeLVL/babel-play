@@ -41,6 +41,13 @@ export interface SpeechSegment {
    */
   traducaoPendente?: boolean;
   /**
+   * A última tradução PARCIAL desta fala, guardada quando o final chega e a tradução volta a "…": a
+   * tela a mantém até a tradução do final entrar, em vez de voltar ao original e trocar de novo
+   * (`pipelineDeFala.ts`, `HistoricoDoPrototipo`). Só vale enquanto `translatedText` é "…": não é a
+   * tradução da fala, e nada a lê em voz alta, guarda ou exporta.
+   */
+  traducaoProvisoria?: string;
+  /**
    * MODO INTÉRPRETE (Fase E): de que metade da tela veio esta fala. É o LADO, e não a fonte, que diz a
    * direção — as duas pessoas falam no mesmo microfone. Ausente fora do intérprete.
    */

@@ -84,6 +84,29 @@ export function marcadorDeTraducao(origem: string, destino: string): string {
   return mesmaLingua(origem, destino) ? '' : '…';
 }
 
+/** O texto é uma tradução de verdade (a do parcial), e não o "…" nem o vazio? */
+export function ehTraducaoParcial(texto: string): boolean {
+  const t = texto.trim();
+  return !!t && t !== '…';
+}
+
+/**
+ * A tradução que a LEGENDA mostra para uma fala: a dela; enquanto a do final está a caminho ("…"), a
+ * última parcial que a tela já tinha (`traducaoProvisoria`). "…" sozinho não é texto para mostrar. Com a
+ * tradução pendente (o tradutor local ainda carrega) a parcial não fica: pode demorar minutos.
+ */
+export function traducaoNaLegenda(
+  f: Pick<SpeechSegment, 'translatedText' | 'traducaoProvisoria' | 'traducaoPendente'>,
+): {
+  texto: string;
+  provisoria: boolean;
+} {
+  const t = f.translatedText.trim();
+  if (t !== '…') return { texto: t, provisoria: false };
+  const p = f.traducaoPendente ? '' : (f.traducaoProvisoria ?? '').trim();
+  return { texto: p, provisoria: !!p };
+}
+
 /** Opções de uma tradução de balão (as mesmas de antes). */
 export interface OpcoesDeTraducao {
   descartarSeOcupado?: boolean;
@@ -403,6 +426,7 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
                 ...seg,
                 translatedText: capitalized,
                 traducaoPendente: undefined,
+                traducaoProvisoria: undefined,
               }
             : seg,
         ),
@@ -447,7 +471,7 @@ export function criarTraducaoDaFala(deps: DepsDaTraducaoDaFala) {
         setSpeechSegments((prev) =>
           prev.map((seg) =>
             seg.id === segId && seg.translatedText === '…'
-              ? { ...seg, translatedText: `(${text})`, traducaoPendente: undefined }
+              ? { ...seg, translatedText: `(${text})`, traducaoPendente: undefined, traducaoProvisoria: undefined }
               : seg,
           ),
         );

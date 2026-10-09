@@ -486,6 +486,11 @@ body:has(.cel) .fab {
   background: var(--q-acento, var(--accent));
   animation: q-ponto 1.2s ease-in-out infinite;
 }
+/* Na linha da fala que abriu e ainda não tem texto: os pontos guardam a altura da linha grande. */
+.q-fala > .q-pontos {
+  align-items: center;
+  min-height: calc(28px * var(--q-escala, 1) * 1.2);
+}
 .q-pontos i:nth-child(2) {
   animation-delay: 0.15s;
 }

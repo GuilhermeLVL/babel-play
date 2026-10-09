@@ -75,6 +75,41 @@ export function entrarLinha(linha: Element): void {
   );
 }
 
+/**
+ * A linha de ESCUTA que acabou sem texto (ruído, silêncio) sai sem alarde. O protótipo não tem este
+ * momento (lá toda fala tem texto); o jeito é o de `sairFlutuante`: o React tira a linha na hora, e uma
+ * cópia sem toque fica no lugar, apaga, fecha a altura e some. Sem movimento, a linha só sai.
+ *
+ * Chamada na desmontagem, com a linha AINDA no documento. A cópia só nasce depois, se a linha saiu
+ * mesmo: em desenvolvimento o React desmonta e remonta os efeitos sem tirar nada da tela.
+ */
+export function sairLinhaVazia(linha: HTMLElement): void {
+  const pai = linha.parentElement;
+  if (!comMovimento() || !pai) return;
+  const altura = linha.getBoundingClientRect().height;
+  const seguinte = linha.nextSibling;
+  queueMicrotask(() => {
+    if (linha.isConnected || !pai.isConnected) return;
+    const copia = linha.cloneNode(true) as HTMLElement;
+    copia.removeAttribute('data-fala');
+    copia.setAttribute('aria-hidden', 'true');
+    copia.setAttribute('inert', '');
+    copia.style.pointerEvents = 'none';
+    copia.style.overflow = 'hidden';
+    pai.insertBefore(copia, seguinte?.parentNode === pai ? seguinte : null);
+    const some = () => copia.remove();
+    window.setTimeout(some, 400); /* a cópia nunca fica presa se a animação não terminar */
+    anima(
+      copia,
+      [
+        { opacity: 1, height: `${altura}px` },
+        { opacity: 0, height: '0px', paddingBlock: '0px', borderBlockWidth: '0px' },
+      ],
+      { d: 180, e: 'ease', fill: 'forwards' },
+    ).finished.then(some, some);
+  });
+}
+
 /** Cada palavra que chega, `telas.js:134`. */
 export function entrarPalavra(s: Element): void {
   if (!comMovimento()) return;

@@ -3,8 +3,16 @@ import { memo, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStor
 
 import { aoMudarAudioDasFalas, falaTocando } from '../../../../lib/captura/audioDasFalas';
 import type { SpeechSegment } from '../../../../lib/captura/tiposDaFala';
+import { traducaoNaLegenda } from '../../../../lib/captura/traducaoDaFala';
 import { t } from '../../../../lib/i18n';
-import { entrarLinha, entrarPalavra, entrarTraducao, irAoFim, sairOriginal } from '../../../../lib/polimento/captura';
+import {
+  entrarLinha,
+  entrarPalavra,
+  entrarTraducao,
+  irAoFim,
+  sairLinhaVazia,
+  sairOriginal,
+} from '../../../../lib/polimento/captura';
 
 /** A esta distância do fim (px) a lista ainda conta como "no fim" e segue acompanhando. */
 const FOLGA_DO_FIM = 80;
@@ -23,12 +31,17 @@ function Palavra({ texto, anima }: { texto: string; anima: boolean }) {
  * UMA FALA — `proximaFala()` de `telas.js:111-160`. Enquanto só há o original, ele ocupa a linha
  * grande e chega palavra por palavra. Quando a tradução chega, a original sobe para a linha pequena
  * (`.q-o`) e a tradução assume a grande (`.q-t`).
+ *
+ * A LINHA NASCE COM A FALA, não com o texto (o protótipo encena e sempre tem texto; a captura real
+ * não): aberta e ainda sem texto, ela é a linha de ESCUTA, com os três pontos da tela no lugar da
+ * linha grande. O primeiro texto entra NELA; se a fala acabar vazia (ruído), ela sai apagando.
  */
 const Linha = memo(function Linha({
   id,
   hora,
   original,
   traducao,
+  provisoria,
   lang,
   langDaTraducao,
   atual,
@@ -43,6 +56,8 @@ const Linha = memo(function Linha({
   hora: string;
   original: string;
   traducao: string;
+  /** A tradução na tela ainda é a do parcial: quando a do final a troca, entra com a animação. */
+  provisoria: boolean;
   lang: string;
   langDaTraducao?: string;
   atual: boolean;
@@ -60,44 +75,76 @@ const Linha = memo(function Linha({
   const pequena = useRef<HTMLSpanElement>(null);
   /* A tradução que está NA TELA: fica um instante atrás da que chegou, o tempo de a original sair. */
   const [mostrada, setMostrada] = useState(traducao);
-  const trocou = useRef(false);
+  /* O que acabou de trocar na linha grande: a tradução assumiu (`entrada`), ou a do final tomou o
+     lugar da parcial (`final`: só ela entra de novo, a original já está na linha pequena). */
+  const trocou = useRef<'entrada' | 'final' | null>(null);
+  /* A tradução que está na tela é a do parcial. */
+  const parcialNaTela = useRef(provisoria);
+
+  const palavras = original.split(' ').filter(Boolean);
+  /* A fala abriu e nada chegou ainda: a linha de escuta. */
+  const ouvindo = !mostrada && !traducao && palavras.length === 0;
+  const aindaOuvindo = useRef(ouvindo);
+  aindaOuvindo.current = ouvindo;
 
   useLayoutEffect(() => {
-    if (nova && linha.current) entrarLinha(linha.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- só na chegada da linha
+    const el = linha.current;
+    if (nova && el) entrarLinha(el);
+    /* A linha saiu ainda em escuta (ruído, silêncio): apaga em vez de sumir de uma vez. */
+    return () => {
+      if (aindaOuvindo.current && el) sairLinhaVazia(el);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só na chegada e na saída da linha
   }, []);
 
   useEffect(() => {
-    if (traducao === mostrada) return;
-    /* Tradução corrigida depois (a Nuance, a retradução): troca direto, sem refazer a entrada. */
+    if (traducao === mostrada) {
+      parcialNaTela.current = provisoria;
+      return;
+    }
+    /* Tradução corrigida depois (a Nuance, a retradução): troca direto, sem refazer a entrada. A do
+       FINAL no lugar da parcial é a troca da fala: uma só, com a entrada da tradução. */
     if (mostrada || !alvo.current) {
+      if (mostrada && traducao && parcialNaTela.current && !provisoria) trocou.current = 'final';
+      parcialNaTela.current = provisoria;
       setMostrada(traducao);
       return;
     }
     let vivo = true;
     void sairOriginal(alvo.current).then(() => {
       if (!vivo) return;
-      trocou.current = true;
+      trocou.current = 'entrada';
+      parcialNaTela.current = provisoria;
       setMostrada(traducao);
     });
     return () => {
       vivo = false;
     };
-  }, [traducao, mostrada]);
+  }, [traducao, mostrada, provisoria]);
 
   useLayoutEffect(() => {
-    if (!trocou.current || !alvo.current) return;
-    trocou.current = false;
-    entrarTraducao(alvo.current, pequena.current);
+    const troca = trocou.current;
+    if (!troca || !alvo.current) return;
+    trocou.current = null;
+    entrarTraducao(alvo.current, troca === 'entrada' ? pequena.current : null);
     aoMudar();
   }, [mostrada, aoMudar]);
 
-  const palavras = original.split(' ').filter(Boolean);
   useLayoutEffect(() => aoMudar(), [palavras.length, aoMudar]);
 
   return (
-    <div ref={linha} className={atual ? 'q-linha-da-fala atual' : 'q-linha-da-fala'} data-fala={id}>
-      <button type="button" className="q-fala" onClick={() => aoTocar(id)}>
+    <div
+      ref={linha}
+      className={atual ? 'q-linha-da-fala atual' : 'q-linha-da-fala'}
+      data-fala={id}
+      data-ouvindo={ouvindo ? '' : undefined}
+    >
+      <button
+        type="button"
+        className="q-fala"
+        aria-disabled={ouvindo || undefined}
+        onClick={() => !ouvindo && aoTocar(id)}
+      >
         <span className="q-meta">
           <span className="tn">{hora}</span>
         </span>
@@ -110,6 +157,13 @@ const Linha = memo(function Linha({
           <span className="q-t" lang={langDaTraducao} ref={alvo}>
             {mostrada}
           </span>
+        ) : ouvindo ? (
+          /* Os mesmos três pontos de "Transcrevendo…", no lugar do texto que ainda não chegou. */
+          <span className="q-pontos" role="img" aria-label={t('Ouvindo…')}>
+            <i />
+            <i />
+            <i />
+          </span>
         ) : (
           <span className="q-t" lang={lang} ref={alvo}>
             {palavras.map((p, i) => (
@@ -118,7 +172,8 @@ const Linha = memo(function Linha({
           </span>
         )}
       </button>
-      <div className="q-acoes-da-fala">
+      {/* Na escuta os botões guardam o lugar (a linha não muda de tamanho quando o texto chega), sem aparecer. */}
+      <div className="q-acoes-da-fala" style={ouvindo ? { visibility: 'hidden' } : undefined}>
         {aoOuvir && (
           <button
             type="button"
@@ -172,11 +227,13 @@ export default function HistoricoDoPrototipo({
   aoOuvir?: (fala: SpeechSegment, lang: string) => void;
   aoPararAudio?: () => void;
 }) {
-  /* "…" é só o marcador de tradução a caminho: sozinho, não é texto para mostrar. */
-  const traducaoDe = (f: SpeechSegment) => (f.translatedText.trim() === '…' ? '' : f.translatedText.trim());
-  const comTexto = falas.filter((f) => f.originalText.trim() || traducaoDe(f));
-  /* O reconhecimento ainda está entregando alguma fala. */
-  const transcrevendo = falas.some((f) => f.isPartial);
+  /* "…" é só o marcador de tradução a caminho: sozinho, não é texto para mostrar (e enquanto a do
+     final não chega, fica a parcial que a linha já tinha: `traducaoNaLegenda`). */
+  const temTexto = (f: SpeechSegment) => !!(f.originalText.trim() || traducaoNaLegenda(f).texto);
+  /* A fala aberta e ainda sem texto também é linha: a de escuta. Vazia e fechada não existe. */
+  const comTexto = falas.filter((f) => temTexto(f) || f.isPartial);
+  /* O reconhecimento ainda refina uma fala que já tem texto. A que não tem mostra os pontos nela mesma. */
+  const transcrevendo = falas.some((f) => f.isPartial && temTexto(f));
   const atual = comTexto[comTexto.length - 1];
   const tocando = useSyncExternalStore(aoMudarAudioDasFalas, falaTocando, () => null);
   const lista = useRef<HTMLDivElement>(null);
@@ -227,16 +284,18 @@ export default function HistoricoDoPrototipo({
   return (
     <div className="q-leg" style={{ '--q-escala': escala } as React.CSSProperties}>
       <div className="q-historico" ref={lista} onScroll={aoRolar} aria-live="polite">
-        {comTexto.length === 0 && !transcrevendo && <p className="q-espera">{t('Ouvindo… a legenda aparece aqui.')}</p>}
+        {comTexto.length === 0 && <p className="q-espera">{t('Ouvindo… a legenda aparece aqui.')}</p>}
         {comTexto.map((fala) => {
           const lang = fala.lang ?? idiomaPadrao;
+          const traducao = traducaoNaLegenda(fala);
           return (
             <Linha
               key={fala.id}
               id={fala.id}
               hora={fala.timestamp}
               original={fala.originalText.trim()}
-              traducao={traducaoDe(fala)}
+              traducao={traducao.texto}
+              provisoria={traducao.provisoria || !!fala.isPartial}
               lang={lang}
               langDaTraducao={idiomaDaTraducao?.(lang)}
               atual={fala === atual}

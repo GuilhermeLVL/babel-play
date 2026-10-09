@@ -104,6 +104,12 @@ FROM node:22-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
+# Correções de segurança do sistema que a imagem base ainda não trouxe (o Trivy reprovou o
+# `perl-base` com CRITICAL já corrigida no Debian, em 09/10/2026).
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
 # Só dependências de produção. Isto só funciona porque `vite` deixou de ser exigido
 # em runtime: o esbuild com --packages=external transformava o import estático num
 # `require("vite")` no TOPO do bundle e a imagem quebrava no boot com

@@ -1,8 +1,9 @@
-/** Formatação das telas de administração. Datas no fuso do navegador de quem opera, em português. */
+/** Formatação das telas de administração. Datas no fuso e no idioma de quem opera. */
+import { dataHora as dataHoraDoIdioma } from '../../../lib/i18n';
 
 export const dataHora = (ms: number | null | undefined): string =>
   typeof ms === 'number' && Number.isFinite(ms)
-    ? new Date(ms).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+    ? dataHoraDoIdioma(ms, { dateStyle: 'short', timeStyle: 'short' })
     : '—';
 
 export const dolar = (n: number | null | undefined): string =>

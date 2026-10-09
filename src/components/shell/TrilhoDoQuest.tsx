@@ -58,6 +58,7 @@ import { marcarLida, marcarTodasLidas, naoLidas, quando } from '../../lib/notifi
 import { instalarAgua } from '../../lib/polimento/agua';
 import { instalarPolimento } from '../../lib/polimento/base';
 import { instalarCelular, NO_MAIS_NO_CELULAR, useBarraDeCinco } from '../../lib/polimento/celular';
+import { instalarCursor } from '../../lib/polimento/cursor';
 import { instalarDialogos } from '../../lib/polimento/dialogos';
 import { instalarFolhas } from '../../lib/polimento/folha';
 import { instalarPonteiro } from '../../lib/polimento/ponteiro';
@@ -196,6 +197,7 @@ export default function TrilhoDoQuest({
   useEffect(() => instalarTelas(), []);
   useEffect(() => instalarFolhas(), []);
   useEffect(() => instalarPonteiro(), []);
+  useEffect(() => instalarCursor(), []);
   /* A cascata da primeira visita de cada tela, e o ponto de onde a troca de tema se abre. */
   useEffect(() => instalarOrigemDoToque(), []);
   /* Os painéis (o "Mais", os diálogos) crescem a partir do botão que os abriu. */

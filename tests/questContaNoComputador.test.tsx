@@ -21,7 +21,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const aparelho = vi.hoisted(() => ({ tipo: 'desktop-com-gpu' as string }))
 vi.mock('../src/lib/dispositivo/perfil', async (original) => {
   const real = await original<typeof import('../src/lib/dispositivo/perfil')>()
-  return { ...real, perfilDoDispositivo: () => ({ ...real.perfilDoDispositivo(), tipo: aparelho.tipo }) }
+  /* O celular e o tablet de verdade têm tela de toque; o jsdom não tem nenhuma. */
+  const perfilDoDispositivo = () => {
+    const p = real.perfilDoDispositivo()
+    const toques = aparelho.tipo.startsWith('celular') ? 5 : 0
+    return { ...p, tipo: aparelho.tipo, sinais: { ...p.sinais, toques } }
+  }
+  return { ...real, perfilDoDispositivo }
 })
 
 vi.mock('../src/lib/supabase', () => ({
@@ -99,13 +105,19 @@ describe('a chave de verdade, por aparelho', () => {
     expect(container.querySelector('.qen')).not.toBeNull()
   })
 
-  it('celular: a chave do computador não liga nada', async () => {
+  it('celular: o desenho novo nasce ligado (08/10/2026), e a mesma chave em `nao` devolve a entrada de antes', async () => {
     aparelho.tipo = 'celular-bom'
-    ligarODesenhoNovo()
-    expect(questNovo()).toBe(false)
-    const { container } = render(<Login />)
+    expect(questNovo()).toBe(true)
+    const novo = render(<Login />)
     await aguardar()
-    expect(container.querySelector('.qen')).toBeNull()
+    expect(novo.container.querySelector('.qen')).not.toBeNull()
+    novo.unmount()
+
+    localStorage.setItem('babel.desenhoNovo', 'nao')
+    expect(questNovo()).toBe(false)
+    const antes = render(<Login />)
+    await aguardar()
+    expect(antes.container.querySelector('.qen')).toBeNull()
   })
 })
 
@@ -208,8 +220,7 @@ describe('as frases da área não falam em headset', () => {
       const caminho = join(pasta, nome)
       return statSync(caminho).isDirectory() ? listar(caminho) : /\.tsx?$/.test(nome) ? [caminho] : []
     })
-  const semComentarios = (fonte: string) =>
-    fonte.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/.*$/gm, '$1')
+  const semComentarios = (fonte: string) => fonte.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/.*$/gm, '$1')
 
   it('nenhuma frase com "headset" ou "Quest" fora dos comentários', () => {
     const arquivos = [...ARQUIVOS_SOLTOS.map((a) => join(RAIZ, a)), ...PASTAS.flatMap((p) => listar(join(RAIZ, p)))]

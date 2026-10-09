@@ -91,6 +91,7 @@ import AnalistaDaSessao from './analise/AnalistaDaSessao';
 import ExportarSessao from './analise/ExportarSessao';
 import PlayerInterativo from './analise/PlayerInterativo';
 import type { VersaoDaTraducao } from './analise/PolirSessao';
+import JogosDaSessao from './analise/quest/JogosDaSessao';
 import SessaoDoQuest from './analise/quest/SessaoDoQuest';
 import TranscricaoDoQuest, { type AjusteDeExibicao } from './analise/quest/TranscricaoDoQuest';
 import VisaoGeralDoQuest from './analise/quest/VisaoGeralDoQuest';
@@ -1058,22 +1059,21 @@ export default function Analysis({
         {currentTab === 'reading' && <Reading recording={recording} onChangeView={onChangeView} />}
 
         {currentTab === 'practice' && (
-          /* O protótipo tem aqui quatro ladrilhos (`telas3.js:74-82`); o app monta o lobby de verdade, que
-             já traz o título "Jogos com esta sessão". O desenho dos ladrilhos é do `Play`. */
-          <div className="qs-jogos">
-            <Suspense
-              fallback={
-                <div className="q-grade g4" aria-busy="true" aria-label={t('Carregando os jogos')}>
-                  <div className="q-esqueleto qs-esqueleto" />
-                  <div className="q-esqueleto qs-esqueleto" />
-                  <div className="q-esqueleto qs-esqueleto" />
-                  <div className="q-esqueleto qs-esqueleto" />
-                </div>
-              }
-            >
-              {lobbyDosJogos}
-            </Suspense>
-          </div>
+          /* Os quatro ladrilhos do protótipo (`telas3.js:74-82`), em `JogosDaSessao`. O `Play` continua
+             sendo quem sabe o que abre com o material desta gravação e quem abre a rodada; ele só não
+             desenha o lobby aqui (`ladrilhos`). Enquanto o pedaço dele chega, os mesmos ladrilhos, à espera. */
+          <Suspense fallback={<JogosDaSessao tiles={null} aoJogar={() => {}} />}>
+            <PlayLobby
+              embutido
+              onChangeView={onChangeView}
+              ageProfile={ageProfile}
+              progress={progress}
+              metrics={metrics}
+              recording={recording}
+              seed={practiceSeed}
+              ladrilhos={(tiles, aoJogar) => <JogosDaSessao tiles={tiles} aoJogar={aoJogar} aoContar={contarProntos} />}
+            />
+          </Suspense>
         )}
 
         {currentTab === 'overview' && (

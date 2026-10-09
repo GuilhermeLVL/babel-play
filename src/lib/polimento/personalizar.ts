@@ -7,6 +7,7 @@
  */
 import { anima, limpar, MOLA, MOLA_SUAVE, polido, reduz } from './base';
 import { centro, rajada } from './captura';
+import { abaAVista, sentir, somSegurar, vibrar } from './sentidos';
 
 export { centro, rajada };
 
@@ -47,6 +48,7 @@ export function lerAmostras(ids: readonly string[]): Record<string, string[]> {
 
 /** Os irmãos que vêm depois de `g` (ou do bloco dele dentro do palco) entram de lado: 56 px, 520 ms. */
 export function entrarDepoisDe(g: Element | null, dir = 1): void {
+  sentir('aba'); /* todo `repintar`, `sentidos.js:159` */
   if (!g || !polido() || reduz()) return;
   let topo: Element = g;
   while (topo.parentElement && !topo.parentElement.matches('.q-palco')) topo = topo.parentElement;
@@ -63,15 +65,9 @@ export function entrarDepoisDe(g: Element | null, dir = 1): void {
   }
 }
 
-/* ---- A aba ativa à vista (`abaAVista`, `sentidos.js:292-299`) ---------------------------------- */
+/* ---- A aba ativa à vista (`abaAVista`, `sentidos.js:292-299`): mora em `sentidos.ts` ------------ */
 
-/** Numa barra de abas que rola de lado (o celular), a aba escolhida vai para o meio. */
-export function abaAVista(g: HTMLElement | null): void {
-  if (!g || !polido()) return;
-  const a = g.querySelector<HTMLElement>('.q-aba[aria-selected="true"], .q-aba[aria-checked="true"]');
-  if (!a || g.scrollWidth <= g.clientWidth + 2) return;
-  g.scrollLeft = a.offsetLeft - (g.clientWidth - a.offsetWidth) / 2;
-}
+export { abaAVista };
 
 /* ---- Temporada: ir para o nível (`telas3.js:116-122`) ----------------------------------------- */
 
@@ -95,101 +91,16 @@ export function irParaNivel(raiz: ParentNode, n: number): void {
 export function comemorarResgate(x: number, y: number): void {
   if (!polido() || reduz()) return;
   rajada(x, y, 24, 1.2);
-  navigator.vibrate?.(12);
+  vibrar(12);
 }
 
-/* ---- Som (`sentidos.js:13-45, 79, 113-130`): o tom de segurar e a moeda ------------------------ */
+/* ---- Som (`sentidos.js:79, 113-130`): o tom de segurar e a moeda vêm de `sentidos.ts` ----------- */
 
-type ComWebkit = Window & { webkitAudioContext?: typeof AudioContext };
-let ac: AudioContext | null = null;
-let mestre: GainNode | null = null;
+export { somSegurar };
 
-/** O som do app está ligado? (o interruptor "Som" dos Ajustes, `babel.sound_enabled`). */
-function comSom(): boolean {
-  try {
-    return localStorage.getItem('babel.sound_enabled') !== 'false';
-  } catch {
-    return true;
-  }
-}
-
-/** `audio()` de `sentidos.js:13-26`: um contexto só, com o ganho mestre em 0,55 e um compressor. */
-function audio(): AudioContext | null {
-  if (typeof window === 'undefined') return null;
-  if (!ac) {
-    const AC = window.AudioContext ?? (window as ComWebkit).webkitAudioContext;
-    if (!AC) return null;
-    try {
-      ac = new AC();
-    } catch {
-      return null;
-    }
-    mestre = ac.createGain();
-    mestre.gain.value = 0.55;
-    const comp = ac.createDynamicsCompressor();
-    mestre.connect(comp).connect(ac.destination);
-  }
-  if (ac.state === 'suspended') void ac.resume();
-  return ac;
-}
-
-/** `nota()` de `sentidos.js:27-42`, só com o que a moeda usa. */
-function nota(f: number, t: number, d: number, g: number): void {
-  const a = audio();
-  if (!a || !mestre) return;
-  const t0 = a.currentTime + t;
-  const o = a.createOscillator();
-  const v = a.createGain();
-  o.type = 'triangle';
-  o.frequency.setValueAtTime(f, t0);
-  v.gain.setValueAtTime(0.0001, t0);
-  v.gain.exponentialRampToValueAtTime(g, t0 + 0.006);
-  v.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
-  o.connect(v).connect(mestre);
-  o.start(t0);
-  o.stop(t0 + d + 0.02);
-}
-
-/**
- * `sentir('moeda')` (`sentidos.js:79, 87, 94-110`): três notas agudas e o toque curto no aparelho.
- * Só no modo Polido, como lá.
- */
+/** `sentir('moeda')` (`telas2.js:455, 598`): três notas agudas e o toque curto no aparelho. */
 export function sentirMoeda(): void {
-  if (!polido()) return;
-  if (comSom()) {
-    try {
-      [1318, 1760, 2093].forEach((f, i) => nota(f, i * 0.055, 0.16, 0.06));
-    } catch {
-      /* sem áudio neste navegador */
-    }
-  }
-  if (!reduz()) navigator.vibrate?.([8, 30, 8]);
-}
-
-/**
- * `somSegurar()` de `sentidos.js:113-130`: o tom sobe de 280 a 980 Hz em 1,1 s enquanto o dedo segura
- * e some se soltar antes. Devolve como calar.
- */
-export function somSegurar(): () => void {
-  const a = comSom() && polido() ? audio() : null;
-  if (!a || !mestre) return () => undefined;
-  const o = a.createOscillator();
-  const v = a.createGain();
-  o.type = 'triangle';
-  o.frequency.setValueAtTime(280, a.currentTime);
-  o.frequency.exponentialRampToValueAtTime(980, a.currentTime + 1.1);
-  v.gain.setValueAtTime(0.0001, a.currentTime);
-  v.gain.exponentialRampToValueAtTime(0.06, a.currentTime + 0.05);
-  o.connect(v).connect(mestre);
-  o.start();
-  let calado = false;
-  return () => {
-    if (calado) return;
-    calado = true;
-    v.gain.cancelScheduledValues(a.currentTime);
-    v.gain.setTargetAtTime(0.0001, a.currentTime, 0.02);
-    o.stop(a.currentTime + 0.1);
-  };
+  sentir('moeda');
 }
 
 /* ---- Loja: segurar para comprar (`telas2.js:435-457`) ----------------------------------------- */
@@ -252,7 +163,7 @@ export function desarmarCompra(b: Element | null): void {
 /** A festa da compra (`telas2.js:466-471`): vibra, solta a faísca e o cartão novo gira para dentro. */
 export function comemorarCompra(x: number, y: number, novo: Element | null): void {
   if (!polido() || reduz()) return;
-  navigator.vibrate?.([10, 40, 16]);
+  vibrar([10, 40, 16]);
   rajada(x, y, 34, 1.4);
   if (novo)
     anima(novo, [{ transform: 'scale(0.94) rotateY(60deg)' }, { transform: 'scale(1) rotateY(0deg)' }], {
@@ -282,6 +193,7 @@ interface Papel {
  * entra na tela de partículas que já existe; aqui ele traz a própria tela e a tira quando acaba.
  */
 export function confete(n = 170): void {
+  sentir('festa'); /* todo `confete`, `sentidos.js:148` */
   if (reduz()) return;
   const cv = document.createElement('canvas');
   const cx = cv.getContext?.('2d');

@@ -8,7 +8,7 @@ import { celebrar } from '../../lib/comemoracao';
 import { useNivelDoJogo } from '../../lib/jogos/nivelDoJogo';
 import { anima, limpar, MOLA_SUAVE, polido, reduz } from '../../lib/polimento/base';
 import { centro, tremer } from '../../lib/polimento/jogos';
-import { play } from '../../lib/soundFx';
+import { sentir } from '../../lib/polimento/sentidos';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from './casca/HudDaRodada';
 import { falarNoJogo as falar } from './noQuest';
@@ -112,7 +112,7 @@ export default function MemoriaDoPrototipo({ items, onFinish }: Props) {
     vez.current.set(c.id, n);
     const el = els.current.get(c.id);
     if (!el || !polido() || reduz()) return face(c.id, aberta);
-    play('select');
+    sentir('vira', 'select');
     try {
       await anima(el, [{ transform: 'rotateY(90deg) scale(1.14)' }], {
         d: 190,
@@ -217,7 +217,7 @@ export default function MemoriaDoPrototipo({ items, onFinish }: Props) {
       } else {
         seq.current = 0;
         setSequencia(0);
-        play('close');
+        sentir('solta', 'close');
       }
       vistas.current.add(a.id).add(b.id);
       for (const x of [a, b]) tremer(els.current.get(x.id));

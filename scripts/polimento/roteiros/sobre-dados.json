@@ -1,0 +1,32 @@
+{
+  "nome": "sobre-dados",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector('.q-trilho .q-mais-botao'); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-mais button, .q-mais a')].find((b) => /Sobre/.test(b.textContent)); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 3000
+      },
+      {
+        "clicar": ".q-inst > .q-abas .q-aba:nth-of-type(4)"
+      },
+      {
+        "esperar": 1500
+      }
+    ]
+  },
+  "seletores": [
+    ".q-inst > .q-abas .px-pilula",
+    ".q-inst-painel"
+  ]
+}

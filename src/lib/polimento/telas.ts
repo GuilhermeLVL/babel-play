@@ -117,10 +117,15 @@ function marcarTrilho(rota: string): void {
   saltarIcone(alvo);
 }
 
+const FORA_DA_BARRA = { estatisticas: 4, loja: 5 } as const;
+
 /** A ordem do menu decide o lado: quem vem antes sai para baixo (`prototipo.js:232, 236`). */
 function ordem(rota: string): number {
   const trilho = trilhoAtual();
   const i = trilho ? $$('.q-item[data-px-rota]', trilho).findIndex((b) => b.dataset.pxRota === rota) : -1;
+  /* No celular, Estatísticas e Personalizar saem da barra e vão para o "Mais", mas continuam na ordem
+     do menu do protótipo (`ROTAS`, `prototipo.js:87`): 4 e 5. */
+  if (i < 0 && rota in FORA_DA_BARRA) return FORA_DA_BARRA[rota as keyof typeof FORA_DA_BARRA];
   return i < 0 ? 7 : i;
 }
 

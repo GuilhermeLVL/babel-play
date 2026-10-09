@@ -8,7 +8,7 @@ import { celebrar } from '../../../lib/comemoracao';
 import { t } from '../../../lib/i18n';
 import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { flutuar, palcoDaRodada } from '../../../lib/polimento/jogos';
-import { play } from '../../../lib/soundFx';
+import { sentir } from '../../../lib/polimento/sentidos';
 import AjudasGerais from '../casca/AjudasGerais';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
@@ -195,7 +195,7 @@ export default function ChoseongDoPrototipo({ items, onFinish, onExit }: Props) 
       const s = Math.ceil(r / 1000);
       const pouco = r <= Math.min(10000, totalRef.current * 0.34);
       palcoDaRodada()?.classList.toggle('tenso', pouco);
-      if (pouco && s < ultimoTique.current && r > 0) play('tick');
+      if (pouco && s < ultimoTique.current && r > 0) sentir('tique', 'tick');
       ultimoTique.current = pouco ? s : 99;
       if (r > 0) return;
       /* O tempo acabou (`jogos4.js:543-552`): a palavra aparece, conta erro, e vem a próxima em 1,3 s. */
@@ -219,7 +219,7 @@ export default function ChoseongDoPrototipo({ items, onFinish, onExit }: Props) 
     const k = j.vog.indexOf('');
     if (trava.current || !enigma || k < 0) return;
     j.vog[k] = v;
-    play('click');
+    sentir('tecla', 'click');
     pintar();
     if (j.vog.includes('')) return;
     trava.current = true;
@@ -265,7 +265,7 @@ export default function ChoseongDoPrototipo({ items, onFinish, onExit }: Props) 
     while (k >= 0 && (!j.vog[k] || j.presa[k])) k--;
     if (k < 0) return;
     j.vog[k] = '';
-    play('remove');
+    sentir('solta', 'remove');
     pintar();
   };
 

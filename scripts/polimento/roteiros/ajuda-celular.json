@@ -1,0 +1,68 @@
+{
+  "nome": "ajuda-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector('.q-trilho .q-mais-botao'); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-mais button, .q-mais a')].find((b) => /Ajuda/.test(b.textContent)); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 3000
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector('.q-trilho .q-mais-botao'); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-mais button, .q-mais a')].find((b) => /Ajuda/.test(b.textContent)); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 3000
+      }
+    ]
+  },
+  "seletores": [
+    ".q-palco.q-inst",
+    ".q-inst .q-cab",
+    ".q-inst .q-cab .q-sobre",
+    ".q-inst .q-cab h1",
+    ".q-inst > .q-campo",
+    ".q-inst > .q-campo > span",
+    ".q-inst > .q-campo input",
+    ".q-inst > .q-secao",
+    ".q-inst > .q-secao > header",
+    ".q-inst > .q-secao h2",
+    ".q-inst > .q-secao .q-grade",
+    ".q-inst .q-tile",
+    ".q-inst .q-tile .q-ic",
+    ".q-inst .q-tile .q-ic svg",
+    ".q-inst .q-tile b",
+    ".q-inst .q-tile .q-d",
+    ".q-inst-par",
+    ".q-inst-atalhos",
+    ".q-inst-atalhos h2",
+    ".q-inst-atalhos h2 svg",
+    ".q-inst-atalhos .atalho",
+    ".q-inst-atalhos .atalho kbd",
+    ".q-inst-atalhos .atalho .mut",
+    ".q-inst-atalhos > .q-ctl",
+    ".q-inst .q-ajuste",
+    ".q-inst .q-ajuste b",
+    ".q-inst .q-ajuste small",
+    ".q-inst .q-ajuste .q-ctl"
+  ]
+}

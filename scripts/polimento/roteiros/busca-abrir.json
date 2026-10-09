@@ -1,0 +1,26 @@
+{
+  "nome": "busca-abrir",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/",
+    "passos": []
+  },
+  "proto": {
+    "passos": []
+  },
+  "seletores": [],
+  "gravar": {
+    "app": [
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-trilho .q-item, .q-trilho button')].find((b) => /Buscar/.test(b.textContent)); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      }
+    ],
+    "proto": [
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-trilho .q-item, .q-trilho button')].find((b) => /Buscar/.test(b.textContent)); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      }
+    ],
+    "espera": 1400
+  }
+}

@@ -8,6 +8,7 @@
  * Itens da lista `fidelidade/casca-e-telas.md`: D19 a D31.
  */
 import { anima, EIO, MOLA, MOLA_SUAVE, polido, reduz } from './base';
+import { sentir, vibrar } from './sentidos';
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string, r: ParentNode) => r.querySelector<T>(s);
 const $$ = <T extends HTMLElement = HTMLElement>(s: string, r: ParentNode) => [...r.querySelectorAll<T>(s)];
@@ -63,8 +64,9 @@ export const TEMPO_LENDO = 1700;
  * dá um clarão, a tradução sobe e o original aparece depois. Devolve como tirar a marca da metade.
  */
 export function traducaoChegou(raiz: ParentNode, metade: HTMLElement): () => void {
+  sentir('chega'); /* `telas2.js:237` */
   if (!anda()) return () => undefined;
-  navigator.vibrate?.(8);
+  vibrar(8);
   const faixa = $('.int-faixa', raiz);
   if (faixa)
     anima(

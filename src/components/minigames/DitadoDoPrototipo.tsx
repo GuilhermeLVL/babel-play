@@ -10,7 +10,7 @@ import { criarFalante } from '../../lib/falante';
 import { t } from '../../lib/i18n';
 import { useNivelDoJogo } from '../../lib/jogos/nivelDoJogo';
 import { flutuar, tremer } from '../../lib/polimento/jogos';
-import { play } from '../../lib/soundFx';
+import { sentir } from '../../lib/polimento/sentidos';
 import AjudasGerais from './casca/AjudasGerais';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from './casca/HudDaRodada';
@@ -175,7 +175,7 @@ export default function DitadoDoPrototipo({ rodadas, audioUrl, onFinish }: Props
       escrever(n ? juntarPalavras(alvo.slice(0, n), lang) + ' ' : '');
       setFicaram(n);
       setSeq(0);
-      play('error');
+      sentir('erro', 'error');
       tremer(entrada.current);
       trava.current = false;
       focar();

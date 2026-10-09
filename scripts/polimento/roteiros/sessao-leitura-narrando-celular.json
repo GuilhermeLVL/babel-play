@@ -1,0 +1,85 @@
+{
+  "nome": "sessao-leitura-narrando-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector(\".q-trilho .q-mais-botao\"); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-mais button, .q-mais a')].find((b) => /Biblioteca/.test(b.textContent)); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 3000
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector(\".q-bib-det .q-ctl.pri\"); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 3500
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector(\".px-abas-sessao .q-aba:nth-of-type(2)\"); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 3500
+      },
+      {
+        "clicar": ".ql-narrador [data-px=\"tocar\"]"
+      },
+      {
+        "esperar": 500
+      }
+    ],
+    "depois": 0
+  },
+  "proto": {
+    "passos": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector(\".q-trilho .q-mais-botao\"); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-mais button, .q-mais a')].find((b) => /Biblioteca/.test(b.textContent)); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 3000
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector(\".q-bib-det .q-ctl.pri\"); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 3500
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector(\".px-abas-sessao .q-aba:nth-of-type(2)\"); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 3500
+      },
+      {
+        "clicar": ".ql-narrador [data-px=\"tocar\"]"
+      },
+      {
+        "esperar": 500
+      }
+    ],
+    "depois": 0
+  },
+  "seletores": [
+    ".ql-frase.narrando",
+    ".ql-frase.narrando .ql-o",
+    ".ql-o .w.dita",
+    ".ql-narrador",
+    ".ql-narrador .q-ctl.pri",
+    ".ql-narrador .q-ctl.pri svg",
+    ".ql-onde"
+  ]
+}

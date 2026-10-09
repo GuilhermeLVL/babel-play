@@ -1,0 +1,43 @@
+{
+  "nome": "busca",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-trilho .q-item, .q-trilho button')].find((b) => /Buscar/.test(b.textContent)); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 1500
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-trilho .q-item, .q-trilho button')].find((b) => /Buscar/.test(b.textContent)); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 1500
+      }
+    ]
+  },
+  "seletores": [
+    "dialog.paleta-cmd",
+    ".paleta-cmd .cmd-busca",
+    ".paleta-cmd .cmd-busca input",
+    ".paleta-cmd .cmd-lista",
+    ".paleta-cmd .cmd-grupo",
+    ".paleta-cmd .cmd-item",
+    ".paleta-cmd .cmd-item.foco",
+    ".paleta-cmd .cmd-ico",
+    ".paleta-cmd .cmd-ico svg",
+    ".paleta-cmd .cmd-t",
+    ".paleta-cmd .cmd-item:last-of-type",
+    ".paleta-cmd .cmd-item:last-of-type .cmd-t",
+    ".paleta-cmd .cmd-item:last-of-type .cmd-ico svg",
+    ".paleta-cmd .cmd-pe",
+    ".paleta-cmd kbd"
+  ]
+}

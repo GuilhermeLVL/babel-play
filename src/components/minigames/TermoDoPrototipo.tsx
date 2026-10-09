@@ -8,7 +8,7 @@ import { celebrar } from '../../lib/comemoracao';
 import { useNivelDoJogo } from '../../lib/jogos/nivelDoJogo';
 import { polido } from '../../lib/polimento/base';
 import { flutuar, selo, tremer } from '../../lib/polimento/jogos';
-import { play } from '../../lib/soundFx';
+import { sentir } from '../../lib/polimento/sentidos';
 import AjudasGerais from './casca/AjudasGerais';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from './casca/HudDaRodada';
@@ -184,7 +184,7 @@ export default function TermoDoPrototipo({ rodadas, onFinish }: Props) {
     const k = j.cel.indexOf('');
     if (trava.current || k < 0) return;
     j.cel[k] = ch;
-    play('click');
+    sentir('tecla', 'click');
     pintar();
   };
   /* Apagar pula as letras presas (`jogos4.js:308-316`). */
@@ -194,7 +194,7 @@ export default function TermoDoPrototipo({ rodadas, onFinish }: Props) {
     while (k >= 0 && (!j.cel[k] || j.fix[k])) k--;
     if (k < 0) return;
     j.cel[k] = '';
-    play('remove');
+    sentir('solta', 'remove');
     pintar();
   };
   /* `enviar`, `jogos4.js:317-382`. */
@@ -202,7 +202,7 @@ export default function TermoDoPrototipo({ rodadas, onFinish }: Props) {
     if (trava.current) return;
     if (j.cel.includes('')) {
       j.tabs.forEach((t, k) => !t.ok && tremer(fileira(k)));
-      play('error');
+      sentir('erro', 'error');
       return;
     }
     trava.current = true;
@@ -223,7 +223,7 @@ export default function TermoDoPrototipo({ rodadas, onFinish }: Props) {
       }
     });
     pintar();
-    if (polido()) for (let i = 0; i < palpite.length; i++) depois(i * 110, () => play('select'));
+    if (polido()) for (let i = 0; i < palpite.length; i++) depois(i * 110, () => sentir('vira', 'select'));
     depois(5 * 110 + 420, () => {
       j.pintadas = { ...j.teclas };
       for (const k of fechadas) {
@@ -251,7 +251,7 @@ export default function TermoDoPrototipo({ rodadas, onFinish }: Props) {
         if (++j.d >= degraus.length) return encerrar();
         trava.current = true;
         selo('Subiu!');
-        play('levelUp');
+        sentir('sobe', 'levelUp');
         setInstr(SUBIU);
         return depois(1500, () => {
           trava.current = false;

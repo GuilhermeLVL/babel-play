@@ -8,7 +8,7 @@ import { celebrar } from '../../lib/comemoracao';
 import { t } from '../../lib/i18n';
 import { useNivelDoJogo } from '../../lib/jogos/nivelDoJogo';
 import { flutuar, palcoDaRodada, selo } from '../../lib/polimento/jogos';
-import { play } from '../../lib/soundFx';
+import { sentir } from '../../lib/polimento/sentidos';
 import AjudasGerais from './casca/AjudasGerais';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from './casca/HudDaRodada';
@@ -138,7 +138,7 @@ export default function DueloDoPrototipo({ items, onFinish }: Props) {
       const s = Math.ceil(r / 1000);
       const pouco = r <= Math.min(10000, totalRef.current * 0.34);
       palcoDaRodada()?.classList.toggle('tenso', pouco);
-      if (pouco && s < ultimoTique.current && r > 0) play('tick');
+      if (pouco && s < ultimoTique.current && r > 0) sentir('tique', 'tick');
       ultimoTique.current = pouco ? s : 99;
       if (r <= 0) encerrar(true);
     }, 100);

@@ -1,0 +1,19 @@
+{
+  "nome": "nao-encontrado",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/rota-que-nao-existe",
+    "passos": [
+      {
+        "esperar": 1500
+      }
+    ]
+  },
+  "seletores": [
+    ".q-palco",
+    ".q-vazio",
+    ".q-vazio h1",
+    ".q-vazio .q-ctl"
+  ]
+}

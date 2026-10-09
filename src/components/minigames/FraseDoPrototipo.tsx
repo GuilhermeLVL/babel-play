@@ -10,7 +10,7 @@ import { t, tp } from '../../lib/i18n';
 import { useNivelDoJogo } from '../../lib/jogos/nivelDoJogo';
 import { anima, MOLA_SUAVE, polido, reduz } from '../../lib/polimento/base';
 import { flutuar } from '../../lib/polimento/jogos';
-import { play } from '../../lib/soundFx';
+import { sentir } from '../../lib/polimento/sentidos';
 import AjudasGerais from './casca/AjudasGerais';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from './casca/HudDaRodada';
@@ -179,7 +179,7 @@ export default function FraseDoPrototipo({ rodadas, onFinish }: Props) {
     fotografar();
     setLinha(nova);
     setCertas(Math.min(certasRef.current, prefixo(nova)));
-    play(naLinha ? 'remove' : 'add');
+    sentir(naLinha ? 'solta' : 'encaixa', naLinha ? 'remove' : 'add');
     setEstado(null);
     setAviso('');
   };
@@ -266,7 +266,7 @@ export default function FraseDoPrototipo({ rodadas, onFinish }: Props) {
     fotografar();
     setLinha([...base, k]);
     setCertas(n + 1);
-    play('add');
+    sentir('encaixa', 'add');
     flutuar(linhaEl.current, t('palavra {n}', { n: n + 1 }), '');
     seq.current = 0;
     comDica.current = true;

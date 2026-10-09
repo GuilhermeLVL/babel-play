@@ -1,0 +1,65 @@
+{
+  "nome": "celular-barra-volta",
+  "largura": 390,
+  "altura": 844,
+  "toque": true,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "js": "document.querySelector('.q-palco').scrollTo(0, 110)"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "document.querySelector('.q-palco').scrollTo(0, 60)"
+      },
+      {
+        "esperar": 900
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "js": "document.querySelector('.px-barra')?.style.setProperty('display', 'none'); HTMLElement.prototype.find = () => undefined"
+      },
+      {
+        "js": "document.querySelector('.q-palco').scrollTo(0, 110)"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "document.querySelector('.q-palco').scrollTo(0, 60)"
+      },
+      {
+        "esperar": 900
+      }
+    ]
+  },
+  "props": [
+    "order",
+    "flexGrow",
+    "flexBasis",
+    "minHeight",
+    "marginTop",
+    "left",
+    "right",
+    "bottom",
+    "zIndex",
+    "justifyContent",
+    "alignItems",
+    "overflowX",
+    "width",
+    "height",
+    "gridTemplateColumns",
+    "scrollSnapType",
+    "flexWrap",
+    "maxHeight",
+    "touchAction",
+    "maskImage"
+  ],
+  "seletores": [".q-trilho", ".q-trilho:not(.px-some)"]
+}

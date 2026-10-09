@@ -26,6 +26,7 @@ import {
   traducaoChegou,
   trocaDeLados,
 } from '../../../../lib/polimento/interprete';
+import { sentir } from '../../../../lib/polimento/sentidos';
 
 /** O que a metade mostra no meio: a dica de começo, a fala de quem está nela, ou a tradução do outro. */
 export type FraseDaMetade =
@@ -248,7 +249,10 @@ export default function ConversaDoPrototipo({
           data-ouvindo={m.ouvindo ? '' : undefined}
           aria-pressed={m.ouvindo}
           aria-label={m.rotuloParaLeitor}
-          onClick={m.aoFalar}
+          onClick={() => {
+            if (!m.ouvindo) sentir('grava'); /* `telas2.js:213` */
+            m.aoFalar();
+          }}
           data-sfx="none"
           data-testid={`falar-${m.lado}`}
         >

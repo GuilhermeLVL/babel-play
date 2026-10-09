@@ -3,7 +3,7 @@
  *
  * Cada tela redesenhada para o headset entra atrás desta chave: ligada de fábrica, e desligável em
  * `/diagnostico` sem novo deploy. Se uma tela nova sair errada no aparelho, o dono desliga e a tela de
- * antes volta na hora. Só vale no perfil `quest`; computador e celular nunca passam por aqui.
+ * antes volta na hora. Só vale no perfil `quest`; computador e celular têm a chave deles, mais abaixo.
  */
 import { useSyncExternalStore } from 'react';
 
@@ -35,7 +35,7 @@ export function definirTelaNovaDoQuest(ligada: boolean): void {
  * O MESMO DESENHO NO COMPUTADOR (pedido do dono, 02/10/2026: "ficou tão bom que eu gostaria de passar
  * essa interface para o computador também"). DESLIGADO de fábrica enquanto as telas são conferidas no
  * computador; liga em Ajustes → Aparência, ou com `?desenho=novo` na URL (`?desenho=antigo` desliga).
- * O celular fica para depois: lá o desenho precisa de adaptação própria.
+ * NO CELULAR E NO TABLET (08/10/2026) a mesma chave vale, e nasce LIGADA: ver `padraoDeFabrica`.
  */
 export const CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR = 'babel.desenhoNovo';
 
@@ -46,8 +46,27 @@ export const CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR = 'babel.desenhoNovo';
  */
 const DESENHO_NOVO_DE_FABRICA = import.meta.env.VITE_DESENHO_NOVO_PADRAO === '1';
 
+/** O aparelho é um celular ou um tablet (os dois perfis de `perfil.ts` que não são computador nem headset). */
+export const noCelular = (): boolean => perfilDoDispositivo().tipo.startsWith('celular');
+
+/**
+ * NO CELULAR E NO TABLET O PADRÃO É LIGADO (decisão do dono, 08/10/2026: o desenho novo será o único em
+ * todo aparelho; a versão de celular é a do protótipo, `styles/polimento/celular.css`). A chave continua
+ * valendo por enquanto: `nao` devolve a casca de antes (`MobileNav`, `MobileTopBar`).
+ *
+ * "Celular", para o padrão, é o aparelho DE TOQUE (`maxTouchPoints > 0`, todo telefone e todo tablet).
+ * O perfil `celular-*` também acolhe o que só não tem captura de tela (`perfil.ts`: sem `getDisplayMedia`),
+ * e ali, sem toque, o padrão continua o do build, como no computador. É também o caso do jsdom dos
+ * testes, onde dezenas de arquivos descrevem as telas de antes sem escolher aparelho.
+ */
+const celularDeToque = (): boolean => {
+  const p = perfilDoDispositivo();
+  return p.tipo.startsWith('celular') && p.sinais.toques > 0;
+};
+const padraoDeFabrica = (): boolean => DESENHO_NOVO_DE_FABRICA || celularDeToque();
+
 function desligarDesenhoNovo(): void {
-  if (DESENHO_NOVO_DE_FABRICA) localStorage.setItem(CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR, 'nao');
+  if (padraoDeFabrica()) localStorage.setItem(CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR, 'nao');
   else localStorage.removeItem(CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR);
 }
 
@@ -64,9 +83,9 @@ if (typeof window !== 'undefined') {
 export function desenhoNovoNoComputador(): boolean {
   try {
     const guardado = localStorage.getItem(CHAVE_DO_DESENHO_NOVO_NO_COMPUTADOR);
-    return guardado === null ? DESENHO_NOVO_DE_FABRICA : guardado === 'sim';
+    return guardado === null ? padraoDeFabrica() : guardado === 'sim';
   } catch {
-    return DESENHO_NOVO_DE_FABRICA;
+    return padraoDeFabrica();
   }
 }
 
@@ -93,14 +112,15 @@ export const noComputador = (): boolean => perfilDoDispositivo().tipo.startsWith
 export const noHeadset = (): boolean => perfilDoDispositivo().tipo === 'quest';
 
 /**
- * As telas novas valem AQUI: no Quest com a chave ligada, ou no computador com o desenho novo ligado.
+ * As telas novas valem AQUI: no Quest com a chave ligada, e no computador, no celular e no tablet com o
+ * desenho novo ligado (a mesma chave `babel.desenhoNovo`; no celular e no tablet ela nasce ligada).
  * O nome ficou do headset, onde o desenho nasceu; o que é DO APARELHO (captura leve, voz da nuvem,
  * vibração) pergunta por `perfilDoDispositivo().tipo === 'quest'`, nunca por esta função.
  */
 export function questNovo(): boolean {
   const tipo = perfilDoDispositivo().tipo;
   if (tipo === 'quest') return telaNovaDoQuest();
-  return tipo.startsWith('desktop') && desenhoNovoNoComputador();
+  return desenhoNovoNoComputador();
 }
 
 /* Com o desenho novo, o modo leve só liga pela escolha de quem usa (ver `perfil.ts`). */

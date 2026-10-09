@@ -1,0 +1,62 @@
+{
+  "nome": "sobre-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector('.q-trilho .q-mais-botao'); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-mais button, .q-mais a')].find((b) => /Sobre/.test(b.textContent)); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 3000
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelector('.q-trilho .q-mais-botao'); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-mais button, .q-mais a')].find((b) => /Sobre/.test(b.textContent)); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "esperar": 3000
+      }
+    ]
+  },
+  "seletores": [
+    ".q-palco.q-inst",
+    ".q-inst .q-cab",
+    ".q-inst .q-cab .q-sobre",
+    ".q-inst .q-cab h1",
+    ".q-inst .q-cab > .q-chip",
+    ".q-inst > .q-abas",
+    ".q-inst > .q-abas .q-aba",
+    ".q-inst > .q-abas .q-aba[aria-selected='true']",
+    ".q-inst > .q-abas .q-aba svg",
+    ".q-inst > .q-abas .px-pilula",
+    ".q-inst-painel",
+    ".q-sobre-heroi",
+    ".q-sobre-heroi .q-avatar",
+    ".q-sobre-heroi .q-avatar img",
+    ".q-sobre-heroi h2",
+    ".q-sobre-heroi .q-texto",
+    ".q-sobre-heroi .q-acoes",
+    ".q-sobre-heroi .q-ctl.pri",
+    ".q-sobre-heroi .q-ctl:not(.pri)",
+    ".q-inst-fatos",
+    ".q-inst-fatos .q-chip",
+    ".q-inst-fatos .q-chip svg"
+  ]
+}

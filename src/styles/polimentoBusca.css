@@ -1,0 +1,12 @@
+/*
+ * A BUSCA (Ctrl+K) NO DESENHO DO PROTÓTIPO (`docs/prototipos/polimento-movimento.html`).
+ *
+ * Só o que o protótipo mostra diferente do CSS de sempre (`prototipo.css`, `questBase.css`), medido
+ * lado a lado (`scripts/polimento/roteiros/busca*.json`). Vale só com a camada ligada.
+ */
+/* A tecla: no protótipo ela só tem o traço de baixo, na tinta do texto (a borda inteira do `kbd` de
+   sempre não chegou lá). */
+html[data-px='on'] .paleta-cmd kbd {
+  border-width: 0 0 2px;
+  border-color: currentColor;
+}

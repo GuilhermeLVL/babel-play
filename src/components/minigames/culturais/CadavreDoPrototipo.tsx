@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { vazaResposta } from '../../../core/learning/pistaDeJogo';
 import { celebrar } from '../../../lib/comemoracao';
 import { t } from '../../../lib/i18n';
-import { play } from '../../../lib/soundFx';
+import { sentir } from '../../../lib/polimento/sentidos';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { usePlacarDaRodada } from '../casca/HudDaRodada';
 import { falarNoJogo as falar, useVozNoJogo } from '../noQuest';
@@ -59,7 +59,7 @@ export default function CadavreDoPrototipo({ items, onFinish, onExit }: Props) {
   const usadas = useMemo(() => pal.map((it) => vazaResposta(frase, it.answer)), [pal, frase]);
   useEffect(() => {
     const n = usadas.filter(Boolean).length;
-    if (n > acesas.current && !resultado) play('select');
+    if (n > acesas.current && !resultado) sentir('encaixa', 'select');
     acesas.current = n;
   }, [usadas, resultado]);
 

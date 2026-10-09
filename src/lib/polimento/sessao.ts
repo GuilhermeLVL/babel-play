@@ -10,6 +10,7 @@
  * o instante em que a palavra foi dita. O intervalo de 520 ms só vale onde não há relógio (`sozinho`).
  */
 import { anima, MOLA_SUAVE, polido, reduz } from './base';
+import { sentir } from './sentidos';
 
 /** `telas3.js:54`: uma palavra a cada 210 ms. */
 export const PASSO_DA_PALAVRA_MS = 210;
@@ -18,6 +19,7 @@ export const ENTRE_LINHAS_MS = 520;
 
 /** `repintar()` de `telas2.js:17-24`: o que vem depois das abas entra pelo lado da aba escolhida. */
 export function repintarSessao(palco: ParentNode | null, dir: number, deOnde = '.px-abas-sessao'): void {
+  sentir('aba'); /* todo `repintar`, `sentidos.js:159` */
   if (!palco || !polido() || reduz()) return;
   let topo = palco.querySelector(deOnde);
   while (topo?.parentElement && !topo.parentElement.matches('.q-palco')) topo = topo.parentElement;

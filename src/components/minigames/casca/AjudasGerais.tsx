@@ -7,7 +7,7 @@ import { jogoTemVerResposta, SEGUNDOS_A_MAIS as SEGUNDOS, vezesDaAjuda } from '.
 import { useQuestNovo } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { flutuar } from '../../../lib/polimento/jogos';
-import { play } from '../../../lib/soundFx';
+import { sentir } from '../../../lib/polimento/sentidos';
 import { BotaoDeAjuda } from './HudDaRodada';
 
 /** Quanto o "+10 s" devolve ao relógio (`jogos4.js:161`). */
@@ -78,7 +78,7 @@ export default function AjudasGerais({
             if (tempo <= 0) return;
             if (aoGanharTempo(SEGUNDOS_A_MAIS) === false) return;
             setTempo((n) => n - 1);
-            play('timeBonus');
+            sentir('moeda', 'timeBonus'); /* `jogos4.js:165` */
             if (questNovo) flutuar(e.currentTarget, '+10s', 'good');
           }}
         />
@@ -97,6 +97,7 @@ export default function AjudasGerais({
             setVezes((n) => n - 1);
             setAVista({ texto: r, chave: Date.now() });
             aoVerResposta();
+            sentir('liga'); /* `jogos4.js:176` */
           }}
         />
       )}

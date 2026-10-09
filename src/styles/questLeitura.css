@@ -285,3 +285,10 @@ html[data-quest-novo='true'] .ql-ondas i:nth-child(4) {
     height: 60%;
   }
 }
+
+/* ── O DESENHO DO PROTÓTIPO (`docs/prototipos/polimento-movimento.html`, camada de polimento) ───────
+   "Frase 1 de 6" (`telas3.js:73`): a fonte do corpo vem de `.px-player .q-tempo` (`questSessao.css`),
+   que também traria a altura de linha do corpo; no protótipo vale a desta regra (1,25). */
+html[data-px='on'] .ql-narrador.px-player .ql-onde {
+  line-height: 1.25;
+}

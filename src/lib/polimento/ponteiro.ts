@@ -19,6 +19,17 @@ interface Tilt {
   aperta: boolean;
 }
 
+/** Quem leva o ponteiro para onde o giroscópio aponta, enquanto a casca estiver montada. */
+let levarPonteiro: ((x: number, y: number) => void) | null = null;
+
+/**
+ * O giroscópio como ponteiro (`sentidos.js:253`): no celular não há mouse, e o que segue o ponteiro
+ * (a aura) passa a seguir o ponto que o movimento do aparelho indica.
+ */
+export function moverPonteiro(x: number, y: number): void {
+  levarPonteiro?.(x, y);
+}
+
 export function instalarPonteiro(): () => void {
   let til: Tilt | null = null;
   let comLuz: Element | null = null;
@@ -140,6 +151,9 @@ export function instalarPonteiro(): () => void {
   /* ---- Aura que segue o ponteiro (`prototipo.js:792-848`, `efeitos.css:7-22`) ---- */
   let mouse = [innerWidth / 2, innerHeight / 2];
   const aura = [innerWidth / 2, innerHeight / 3];
+  levarPonteiro = (x, y) => {
+    mouse = [x, y];
+  };
   let auraEl: HTMLElement | null = null;
   const garantirAura = (main: HTMLElement): HTMLElement => {
     if (auraEl?.isConnected && auraEl.parentElement === main) return auraEl;
@@ -175,6 +189,7 @@ export function instalarPonteiro(): () => void {
 
   return () => {
     vivo = false;
+    levarPonteiro = null;
     document.removeEventListener('pointermove', aoMover);
     document.removeEventListener('pointerleave', soltarPonteiro);
     document.documentElement.removeEventListener('pointerleave', soltarPonteiro);

@@ -11,7 +11,7 @@ import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
 import { criarFalante } from '../../lib/falante';
 import { t } from '../../lib/i18n';
 import { speechErrorMessage } from '../../lib/mediaErrors';
-import { play } from '../../lib/soundFx';
+import { sentir } from '../../lib/polimento/sentidos';
 import { toast } from '../Toast';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { usePlacarDaRodada } from './casca/HudDaRodada';
@@ -136,7 +136,10 @@ export default function KaraokeDoPrototipo({ falas, audioUrl, onFinish }: Props)
     for (let k = 0; k <= palavras.length; k++)
       relogiosDoOuvir.current.push(
         window.setTimeout(() => {
-          if (vez === vezDoOuvir.current) setAtiva(k);
+          if (vez === vezDoOuvir.current) {
+            setAtiva(k);
+            sentir('fala'); /* `jogos2.js:598` */
+          }
         }, k * passo),
       );
   };
@@ -190,7 +193,7 @@ export default function KaraokeDoPrototipo({ falas, audioUrl, onFinish }: Props)
     trava.current = true;
     pararDeOuvir();
     falante.parar();
-    play('recordStart');
+    sentir('grava', 'recordStart');
     setAtiva(-1);
     setNota(null);
     setPintadas(0);

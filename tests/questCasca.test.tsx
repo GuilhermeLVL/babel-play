@@ -13,7 +13,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const aparelho = vi.hoisted(() => ({ tipo: 'quest' as string }))
 vi.mock('../src/lib/dispositivo/perfil', async (original) => {
   const real = await original<typeof import('../src/lib/dispositivo/perfil')>()
-  return { ...real, perfilDoDispositivo: () => ({ ...real.perfilDoDispositivo(), tipo: aparelho.tipo }) }
+  /* O celular e o tablet de verdade têm tela de toque; o jsdom não tem nenhuma. */
+  const perfilDoDispositivo = () => {
+    const p = real.perfilDoDispositivo()
+    const toques = aparelho.tipo.startsWith('celular') ? 5 : 0
+    return { ...p, tipo: aparelho.tipo, sinais: { ...p.sinais, toques } }
+  }
+  return { ...real, perfilDoDispositivo }
 })
 
 import TrilhoDoQuest from '../src/components/shell/TrilhoDoQuest'
@@ -590,10 +596,12 @@ describe('no headset, a casca não ganha nada do computador', () => {
 })
 
 describe('onde o desenho novo vale', () => {
-  it('no celular, `questNovo()` é falso mesmo com as duas chaves ligadas', () => {
+  it('no celular, `questNovo()` nasce verdadeiro (08/10/2026) e a chave do desenho o desliga; a do Quest não manda', () => {
     aparelho.tipo = 'celular-bom'
-    definirTelaNovaDoQuest(true)
-    definirDesenhoNovoNoComputador(true)
+    definirTelaNovaDoQuest(false)
+    expect(questNovo()).toBe(true)
+    expect(document.documentElement.dataset.questNovo).toBe('true')
+    definirDesenhoNovoNoComputador(false)
     expect(questNovo()).toBe(false)
     expect(document.documentElement.dataset.questNovo).toBe('false')
   })

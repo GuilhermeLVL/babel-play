@@ -238,6 +238,17 @@ function cancelPendingGeneric() {
   }
 }
 
+/**
+ * O DESVIO DA CAMADA DE POLIMENTO (`lib/polimento/sentidos.ts`). Com o desenho novo e as animações
+ * ligados, alguns eventos do kit têm um som do protótipo no lugar (o acerto e o erro dos jogos). Quem
+ * instala o desvio diz, evento por evento, se já respondeu (`true`: o kit se cala) ou não (`false`:
+ * o kit toca como sempre). Com a camada desligada o desvio devolve `false` para tudo.
+ */
+let desvio: ((event: SoundEvent) => boolean) | null = null;
+export function desviarKit(f: ((event: SoundEvent) => boolean) | null): void {
+  desvio = f;
+}
+
 /** Usado pelo listener delegado para o `click` genérico. Ver a explicação acima. */
 export function playGeneric(event: SoundEvent): void {
   cancelPendingGeneric();
@@ -268,6 +279,8 @@ export function playGeneric(event: SoundEvent): void {
  * ±24 para não virar apito.
  */
 export function play(event: SoundEvent, opts: { transpose?: number } = {}): void {
+  /* A camada de polimento responde por este evento com o som do protótipo: o kit não toca por cima. */
+  if (desvio?.(event)) { cancelPendingGeneric(); return; }
   if (soundMuted) { cancelPendingGeneric(); return; }
 
   // Um som pedido diretamente é sempre mais específico que o `click` que o delegado agendou.

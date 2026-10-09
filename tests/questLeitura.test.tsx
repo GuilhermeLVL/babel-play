@@ -240,7 +240,8 @@ describe('A leitura no Quest: o texto', () => {
   it('"Ajustar exibição": intercalado, lado a lado ou só o original, e a largura', async () => {
     const { container, botao, frases } = await montar()
     const texto = () => container.querySelector<HTMLElement>('.ql-texto')!
-    expect(texto().className).toContain('coluna')
+    // No desenho novo o texto abre na largura do cartão, como no protótipo (`telas3.js:72`).
+    expect(texto().className).not.toContain('coluna')
     fireEvent.click(botao(/Ajustar exibição/))
     const grupo = (nome: string) => within(within(folha()).getByRole('group', { name: nome })).getAllByRole('button')
     expect(grupo('Modo de visualização').map((b) => b.textContent)).toEqual([
@@ -254,6 +255,9 @@ describe('A leitura no Quest: o texto', () => {
     expect(texto().className).toContain('lado-a-lado')
     fireEvent.click(grupo('Modo de visualização')[2])
     expect(frases()[0].querySelector('.ql-t')).toBeNull()
+    fireEvent.click(grupo('Largura')[0])
+    expect(texto().className).toContain('coluna')
+    expect(localStorage.getItem('reading_layout_width')).toBe('centered')
     fireEvent.click(grupo('Largura')[1])
     expect(texto().className).not.toContain('coluna')
     expect(localStorage.getItem('reading_layout_width')).toBe('full')
@@ -264,7 +268,8 @@ describe('A leitura no Quest: narração', () => {
   it('"Narrar" lê pela voz do app, frase a frase, e a faixa diz onde está', async () => {
     const { frases, narrador, container } = await montar()
     expect(container.querySelectorAll('.ql-narrador .q-ctl.pri')).toHaveLength(1)
-    expect(container.querySelector('.ql-onde')?.textContent).toBe('3 frases')
+    // Parado, a faixa já diz "Frase 1 de N", como no protótipo (`telas3.js:25, 73`).
+    expect(container.querySelector('.ql-onde')?.textContent).toBe('Frase 1 de 3')
     fireEvent.click(narrador().getByRole('button', { name: /Narrar/ }))
     await act(async () => {})
     expect(ultimaFala()[0]).toBe(FALAS[0].sourceText)
@@ -299,9 +304,9 @@ describe('A leitura no Quest: narração', () => {
     expect(ultimaFala()[0]).toBe(FALAS[0].sourceText)
     expect(narrador().getByRole('button', { name: 'Frase anterior' }).hasAttribute('disabled')).toBe(true)
 
-    fireEvent.click(narrador().getByRole('button', { name: 'Parar e voltar ao início' }))
-    expect(container.querySelector('.ql-frase.narrando')).toBeNull()
-    expect(narrador().getByRole('button', { name: /Narrar/ })).toBeTruthy()
+    // A faixa é a do protótipo (`telas3.js:73`): anterior, o principal, próxima e a voz. Sem "Parar".
+    expect(narrador().queryByRole('button', { name: 'Parar e voltar ao início' })).toBeNull()
+    expect(narrador().getAllByRole('button')).toHaveLength(4)
   })
 
   it('sem voz para o idioma, a narração não oferece um botão que não toca: diz o motivo', async () => {
@@ -368,7 +373,8 @@ describe('A leitura no Quest: a frase e a palavra', () => {
 
   it('a anotação marca a frase, entra em "Estudos & notas" e pode ser removida', async () => {
     const { frases, botao } = await montar()
-    expect(botao(/Estudos & notas/).querySelector('.qs-n')?.textContent).toBe('0')
+    // O chip é o do protótipo (`telas3.js:71`): só o nome, sem ícone e sem a contagem.
+    expect(botao(/Estudos & notas/).textContent).toBe('Estudos & notas')
     fireEvent.click(botao(/Estudos & notas/))
     expect(folha().textContent).toContain('Nenhum grifo ou nota')
     fireEvent.click(within(folha()).getByRole('button', { name: 'Fechar' }))
@@ -456,7 +462,8 @@ describe('A leitura no computador com o desenho novo', () => {
     aparelho.quest = true
     const { container, frases } = await montar()
     expect(container.querySelector('.ql-palavra')).toBeNull()
-    expect(container.querySelector('.ql .qs-apoio')?.textContent).toContain('Toque numa frase')
+    // A dica de como tocar não está no protótipo e saiu da tela.
+    expect(container.querySelector('.ql .qs-apoio')).toBeNull()
     fireEvent.click(frases()[1].querySelector('.ql-o span') as HTMLElement)
     expect(screen.getByTestId('opcoes-da-frase')).toBeTruthy()
   })
@@ -464,7 +471,7 @@ describe('A leitura no computador com o desenho novo', () => {
   it('cada palavra do texto abre a folha dela com UM clique; o resto da frase abre as opções', async () => {
     const { container, frases } = await montar()
     expect(container.querySelector('.ql')).toBeTruthy()
-    expect(container.querySelector('.ql .qs-apoio')?.textContent).toContain('Clique numa palavra')
+    expect(container.querySelector('.ql .qs-apoio')).toBeNull()
     const palavra = [...frases()[1].querySelectorAll<HTMLElement>('.ql-palavra')].find((p) => p.textContent === 'flow')!
     fireEvent.click(palavra)
     await act(async () => {})
@@ -487,8 +494,8 @@ describe('A leitura no computador com o desenho novo', () => {
   })
 
   it('desenhando, as palavras deixam de ser alvos (o traço é que vale)', async () => {
-    const { container, botao } = await montar()
-    fireEvent.click(botao(/Desenho livre/))
+    const { container } = await montar()
+    fireEvent.click(screen.getByRole('radio', { name: 'Desenho livre' }))
     expect(container.querySelector('.ql-palavra')).toBeNull()
   })
 
@@ -513,8 +520,8 @@ describe('A leitura no Quest: desenho livre', () => {
     expect(tela().getAttribute('data-ativo')).toBe('false')
     expect(screen.queryByRole('group', { name: 'Ferramentas de desenho' })).toBeNull()
 
-    fireEvent.click(botao(/Desenho livre/))
-    expect(botao(/Desenho livre/).getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(screen.getByRole('radio', { name: 'Desenho livre' }))
+    expect(screen.getByRole('radio', { name: 'Desenho livre' }).getAttribute('aria-checked')).toBe('true')
     expect(tela().getAttribute('data-ativo')).toBe('true')
     expect(container.querySelector('.ql-texto')?.className).toContain('desenhando')
     const ferramentas = within(screen.getByRole('group', { name: 'Ferramenta de desenho' })).getAllByRole('button')
@@ -532,7 +539,7 @@ describe('A leitura no Quest: desenho livre', () => {
     // Desenhando, a frase não abre as opções.
     fireEvent.click(frases()[0])
     expect(screen.queryByRole('dialog')).toBeNull()
-    fireEvent.click(botao(/Modo interativo/))
+    fireEvent.click(screen.getByRole('radio', { name: 'Modo interativo' }))
     expect(tela().getAttribute('data-ativo')).toBe('false')
   })
 })

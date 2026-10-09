@@ -237,7 +237,13 @@ import {
   TermoGame,
   TourGuiado,
 } from './play/jogosSobDemanda';
-import { jogosQueAbremNoQuest, rodadaParaOQuest } from './play/quest/jogosNoQuest';
+import {
+  type JogoParaOQuest,
+  jogosQueAbremNoQuest,
+  rodadaParaOQuest,
+  type TileDoQuest,
+  tilesDoQuest,
+} from './play/quest/jogosNoQuest';
 import LobbyDoQuest from './play/quest/LobbyDoQuest';
 import { TELA_DO_JOGO } from './play/telaDoJogo';
 
@@ -294,6 +300,16 @@ interface PlayProps {
    * grade nunca discordarem.
    */
   aoContarProntos?: (n: number) => void;
+  /**
+   * DESENHO NOVO, embutido: no lugar do lobby, a sessão desenha os ladrilhos DELA (os quatro do
+   * protótipo, `telas3.js:74-82`, em `analise/quest/JogosDaSessao`). Recebe os cartões como o lobby
+   * do desenho novo os classifica (`tilesDoQuest`: etiqueta, apagado, o que falta), ou `null` enquanto
+   * o baralho carrega, e a função que abre a rodada pelo caminho de sempre (`pedirParaJogar`).
+   */
+  ladrilhos?: (
+    tiles: readonly TileDoQuest<JogoParaOQuest>[] | null,
+    aoJogar: (id: MinigameId) => void,
+  ) => React.ReactNode;
 }
 
 /**
@@ -399,6 +415,7 @@ export default function Play({
   soundEnabled,
   toggleSound,
   aoContarProntos,
+  ladrilhos,
 }: PlayProps) {
   const [deck, setDeck] = useState<VocabCard[] | null>(null);
   /* Preferência de ordem/fixados, lida do `localStorage` na montagem. `lerOrdem` já é defensiva:
@@ -3561,6 +3578,7 @@ export default function Play({
     ) : null;
 
   if (deck === null && !erro) {
+    if (embutido && ladrilhos) return <>{ladrilhos(null, () => {})}</>;
     /* META QUEST: a espera tem a forma do que vai chegar (o cabeçalho, as abas e a grade de cartões). */
     if (questNovo && !embutido && !lobbyCompletoNoQuest) {
       return (
@@ -3782,6 +3800,22 @@ export default function Play({
      habilidade, a ordem, a prévia, a sugestão, o diagnóstico); `LobbyDoQuest` só apresenta. O chip da
      fonte abre a mesma gaveta de sempre, e "Tela de sempre" (em Opções) devolve o lobby do computador
      nesta visita. Dentro de uma sessão (`embutido`) nada muda. */
+  if (embutido && ladrilhos)
+    return (
+      <>
+        {ladrilhos(
+          carregandoTrilha
+            ? null
+            : tilesDoQuest(listaDeJogos, recursosDoAparelho(perfilDoDispositivo()), notaDoJogo, {
+                idioma: fonte.lang || undefined,
+              }),
+          (id) => {
+            play('select');
+            pedirParaJogar({ id });
+          },
+        )}
+      </>
+    );
   if (questNovo && !embutido && !lobbyCompletoNoQuest) {
     const semAcervo = tamanhoDoBaralho < menorMinimo && fonte.id !== 'trilha';
     return (

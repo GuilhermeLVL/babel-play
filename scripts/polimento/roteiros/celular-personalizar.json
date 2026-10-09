@@ -1,0 +1,124 @@
+{
+  "nome": "celular-personalizar",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.liberado": "0"
+    },
+    "passos": [
+      {
+        "js": "(() => { const f = window.fetch.bind(window); window.fetch = async (...a) => { const r = await f(...a); try { const u = String((a[0] && a[0].url) || a[0]); if (u.indexOf('/api/metrics/profile') >= 0) { const j = await r.clone().json(); if (j && typeof j === 'object') { j.seedsGastas = (j.seedsGastas || 0) - 403; return new Response(JSON.stringify(j), { status: r.status, headers: { 'Content-Type': 'application/json' } }); } } } catch (e) {} return r; }; window.dispatchEvent(new CustomEvent('babel:metricas-mudaram')); })()"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "rolar": ".q-trilho .q-item"
+      },
+      {
+        "esperar": 600
+      },
+      {
+        "js": "window.dispatchEvent(new PointerEvent('pointerdown')); [...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Personalizar/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 6000
+      },
+      {
+        "js": "[...document.querySelectorAll('.qp-abas .q-aba')].find((b) => /Loja/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 2500
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "rolar": ".q-trilho .q-item"
+      },
+      {
+        "esperar": 600
+      },
+      {
+        "js": "window.dispatchEvent(new PointerEvent('pointerdown')); [...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Personalizar/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 6000
+      },
+      {
+        "js": "[...document.querySelectorAll('.qp-abas .q-aba')].find((b) => /Loja/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 2500
+      }
+    ]
+  },
+  "props": [
+    "marginTop",
+    "marginBottom",
+    "alignItems",
+    "justifyContent",
+    "flexGrow",
+    "maxWidth",
+    "borderTopStyle",
+    "textTransform"
+  ],
+  "seletores": [
+    ".q-palco",
+    ".px-carteira",
+    ".px-carteira > .q-ic",
+    ".px-carteira > .q-ic svg",
+    ".px-carteira > div",
+    ".px-carteira .q-rotulo",
+    ".px-saldo",
+    ".px-carteira .q-d",
+    ".px-carteira > .q-ctl",
+    ".px-carteira > .q-ctl svg",
+    ".px-cats",
+    ".px-cats .q-aba",
+    ".px-cats .q-aba[aria-checked=true]",
+    ".px-loja",
+    ".px-item",
+    ".px-arte",
+    ".px-item > .q-rotulo",
+    ".px-item > .q-rotulo .q-tag",
+    ".px-item h3",
+    ".px-item > .q-d",
+    ".px-item-pe",
+    ".px-preco-seeds",
+    ".px-preco-seeds svg",
+    ".px-segurar",
+    ".px-segurar-fundo",
+    ".px-segurar > span:last-child",
+    ".px-item-pe > .q-ctl:not(.pri)"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "js": "document.querySelector('.px-segurar').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1 }))"
+      },
+      {
+        "esperar": 350
+      },
+      {
+        "js": "document.querySelector('.px-segurar').dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }))"
+      }
+    ],
+    "proto": [
+      {
+        "js": "document.querySelector('.px-segurar').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1 }))"
+      },
+      {
+        "esperar": 350
+      },
+      {
+        "js": "document.querySelector('.px-segurar').dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }))"
+      }
+    ],
+    "espera": 900
+  },
+  "toque": true
+}

@@ -1,4 +1,5 @@
 import { type Tato, tato } from './dispositivo/tato';
+import { polido } from './polimento/base';
 import { play, playGeneric, type SoundEvent } from './soundFx';
 
 /**
@@ -142,6 +143,10 @@ export function installSfxDelegate(): () => void {
     // Só gesto real do usuário: `detail === 0` é clique sintético (`.click()` de código),
     // e som disparado por código costuma ser duplicata de um som que o handler já toca.
     if (!e.isTrusted) return;
+    /* Com a camada de polimento ligada, o toque, a aba, o interruptor e o abrir/fechar soam pelos
+       sentidos do protótipo (`lib/polimento/sentidos.ts`), já no apertar: aqui não toca um segundo som
+       nem sai uma segunda vibração. Com ela desligada (ou no Modo desempenho) vale o de sempre. */
+    if (polido()) return;
     const el = acionavel(e.target);
     if (!el) return;
     const evento = deduzir(el);
@@ -158,7 +163,7 @@ export function installSfxDelegate(): () => void {
 
   /** `<select>` não emite clique útil: o `change` é o momento em que a escolha existe. */
   const onChange = (e: Event) => {
-    if (!e.isTrusted) return;
+    if (!e.isTrusted || polido()) return;
     const el = e.target;
     if (el instanceof HTMLSelectElement) {
       if (el.closest('[data-sfx="none"]')) return;

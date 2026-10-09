@@ -1,0 +1,100 @@
+{
+  "nome": "celular-barra-personalizar",
+  "largura": 390,
+  "altura": 844,
+  "toque": true,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "js": "window.dispatchEvent(new PointerEvent('pointerdown')); document.querySelector('.q-trilho .q-mais-botao').click()"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "js": "window.dispatchEvent(new PointerEvent('pointerdown')); [...document.querySelectorAll('.q-mais .q-tile')].find((b) => b.textContent.includes('Personalizar')).click()"
+      },
+      {
+        "esperar": 4000
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "js": "document.querySelector('.px-barra')?.style.setProperty('display', 'none'); HTMLElement.prototype.find = () => undefined"
+      },
+      {
+        "js": "window.dispatchEvent(new PointerEvent('pointerdown')); document.querySelector('.q-trilho .q-mais-botao').click()"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "js": "window.dispatchEvent(new PointerEvent('pointerdown')); [...document.querySelectorAll('.q-mais .q-tile')].find((b) => b.textContent.includes('Personalizar')).click()"
+      },
+      {
+        "esperar": 4000
+      }
+    ]
+  },
+  "props": [
+    "order",
+    "flexGrow",
+    "flexBasis",
+    "minHeight",
+    "marginTop",
+    "left",
+    "right",
+    "bottom",
+    "zIndex",
+    "justifyContent",
+    "alignItems",
+    "overflowX",
+    "width",
+    "height",
+    "gridTemplateColumns",
+    "scrollSnapType",
+    "flexWrap",
+    "maxHeight",
+    "touchAction",
+    "maskImage"
+  ],
+  "seletores": [
+    ".q-casca",
+    ".q-trilho",
+    ".q-trilho > .q-item",
+    ".q-trilho > .q-item:nth-of-type(1)",
+    ".q-trilho > .q-item:nth-of-type(2)",
+    ".q-trilho > .q-item:nth-of-type(3)",
+    ".q-trilho > .q-item:nth-of-type(4)",
+    ".q-trilho > .q-item:nth-of-type(5)",
+    ".q-trilho > .q-item:nth-of-type(6)",
+    ".q-trilho > .q-item:nth-of-type(7)",
+    ".q-trilho > .q-item:nth-of-type(8)",
+    ".q-trilho > .q-item:nth-of-type(1) > span",
+    ".q-trilho > .q-item:nth-of-type(1) svg",
+    ".q-trilho > .q-item:nth-of-type(2) svg",
+    ".q-trilho > .q-item:nth-of-type(8) > span",
+    ".q-trilho .q-logo",
+    ".q-trilho > .px-pilula",
+    ".q-trilho > .q-item[aria-current='page']",
+    ".q-trilho .q-contagem",
+    "main",
+    ".px-tela"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "clicar": ".q-trilho .q-item >> text=Início"
+      }
+    ],
+    "proto": [
+      {
+        "clicar": ".q-trilho .q-item >> text=Início"
+      }
+    ],
+    "espera": 1500
+  }
+}

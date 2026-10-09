@@ -5,6 +5,8 @@ import '../../styles/quest.css';
 import '../../styles/questBase.css';
 /* E o movimento rico (molas, curvas), que só se aplica com `<html data-movimento="rico">`. */
 import '../../styles/questMovimento.css';
+/* E o que o protótipo tem por ser um clone do computador, repetido para a marca do celular. */
+import '../../styles/polimentoCelular.css';
 
 import {
   Activity,
@@ -54,9 +56,11 @@ import { instalarMarcaDeMovimento } from '../../lib/movimento/animar';
 import { instalarOrigemDoToque } from '../../lib/movimento/revelar';
 import { marcarLida, marcarTodasLidas, naoLidas, quando } from '../../lib/notificacoes';
 import { instalarPolimento } from '../../lib/polimento/base';
+import { instalarCelular, NO_MAIS_NO_CELULAR, useBarraDeCinco } from '../../lib/polimento/celular';
 import { instalarDialogos } from '../../lib/polimento/dialogos';
 import { instalarFolhas } from '../../lib/polimento/folha';
 import { instalarPonteiro } from '../../lib/polimento/ponteiro';
+import { instalarSentidos } from '../../lib/polimento/sentidos';
 import { instalarTelas } from '../../lib/polimento/telas';
 import { authRequired } from '../../lib/supabase';
 import { usePerfil } from '../../lib/usePerfil';
@@ -152,7 +156,16 @@ export default function TrilhoDoQuest({
      teclado, e com ele o atalho da busca. */
   const [headset] = useState(noHeadset);
   const [temTeclado] = useState(() => recursosDoAparelho(perfilDoDispositivo()).tecladoFisico);
-  const buscaNoTrilho = !!aoBuscar && temTeclado;
+  /* FORA DO HEADSET o botão da busca existe no trilho, como no protótipo, que tem os oito botões em todo
+     aparelho: a barra de cinco destinos (`celular.css:57-62`) conta os botões pela posição, e sem ele o
+     "Mais" seria o sétimo, o que ela esconde. Na barra ele não aparece (a busca fica no "Mais"); no
+     tablet acima de 720 px ele fica no pé do trilho, sem a tecla do atalho. */
+  const buscaNoTrilho = !!aoBuscar && (temTeclado || !headset);
+  /* A BARRA DE CINCO DESTINOS (janela até 720 px, com a camada ligada): Estatísticas e Personalizar saem
+     da barra e viram ladrilhos no começo do "Mais" (`completarMais`, `prototipo.js:410-424`), e o destaque
+     deles vai para o botão "Mais" (`marcarTrilho`, `prototipo.js:243`). */
+  const cinco = useBarraDeCinco();
+  const noMaisNoCelular = (id: ViewType) => cinco && (NO_MAIS_NO_CELULAR as readonly ViewType[]).includes(id);
   /* QUEM EU SOU: o que o menu da conta de sempre dizia (`MenuDaConta.tsx`): nome e e-mail, ou o estado
      real quando não há e-mail, e o aviso do convidado com os tetos. */
   const { perfil } = usePerfil();
@@ -186,10 +199,19 @@ export default function TrilhoDoQuest({
   useEffect(() => instalarOrigemDoToque(), []);
   /* Os painéis (o "Mais", os diálogos) crescem a partir do botão que os abriu. */
   useEffect(() => instalarDialogos(), []);
+  /* No celular a barra sai do caminho ao rolar e volta em toda troca de tela (`sentidos.js:279-304`). */
+  useEffect(() => instalarCelular(), []);
+  /* Os sons, as vibrações e o giroscópio do protótipo (`sentidos.js`). */
+  useEffect(() => instalarSentidos(), []);
   const noTrilho = NO_TRILHO;
   const principais = noTrilho.map((id) => NAV_ITEMS.find((i) => i.id === id)).filter((i) => !!i);
-  const outros = [...NAV_ITEMS.filter((i) => !noTrilho.includes(i.id)), ...(ehAdmin(perfil) ? [ITEM_ADMIN] : [])];
-  const foraDoTrilho = !noTrilho.includes(activeView);
+  const outros = [
+    /* Só na barra de cinco: os dois que ela não mostra, na ordem do protótipo (Estatísticas, Personalizar). */
+    ...(cinco ? NO_MAIS_NO_CELULAR.map((id) => NAV_ITEMS.find((i) => i.id === id)).filter((i) => !!i) : []),
+    ...NAV_ITEMS.filter((i) => !noTrilho.includes(i.id)),
+    ...(ehAdmin(perfil) ? [ITEM_ADMIN] : []),
+  ];
+  const foraDoTrilho = !noTrilho.includes(activeView) || noMaisNoCelular(activeView);
 
   useEffect(() => setMaisAberto(false), [activeView]);
   useEffect(() => {
@@ -222,10 +244,12 @@ export default function TrilhoDoQuest({
               key={item.id}
               type="button"
               className="q-item"
-              /* A camada de polimento acha o destino por aqui (a pílula responde no toque). */
-              data-px-rota={item.id}
+              /* A camada de polimento acha o destino por aqui (a pílula responde no toque). Na barra de
+                 cinco, os dois destinos escondidos não são achados: o toque num ladrilho deles marca o
+                 "Mais", como `marcarTrilho` do protótipo faz no celular. */
+              data-px-rota={noMaisNoCelular(item.id) ? undefined : item.id}
               onClick={() => ir(item.id)}
-              aria-current={activeView === item.id ? 'page' : undefined}
+              aria-current={activeView === item.id && !noMaisNoCelular(item.id) ? 'page' : undefined}
             >
               <Icone aria-hidden />
               <span>{navLabel(item, ageProfile, true)}</span>
@@ -239,16 +263,18 @@ export default function TrilhoDoQuest({
             type="button"
             className="q-item q-busca-botao"
             onClick={() => aoBuscar?.()}
-            aria-label={t('Buscar gravação, palavra ou tela (Ctrl+K)')}
-            title={t('Buscar gravação, palavra ou tela (Ctrl+K)')}
-            aria-keyshortcuts="Control+K Meta+K"
+            aria-label={temTeclado ? t('Buscar gravação, palavra ou tela (Ctrl+K)') : t('Buscar')}
+            title={temTeclado ? t('Buscar gravação, palavra ou tela (Ctrl+K)') : undefined}
+            aria-keyshortcuts={temTeclado ? 'Control+K Meta+K' : undefined}
             data-testid="busca-no-trilho"
           >
             <Search aria-hidden />
             <span>{t('Buscar')}</span>
-            <span className="q-tecla" aria-hidden>
-              {teclaDaBusca()}
-            </span>
+            {temTeclado && (
+              <span className="q-tecla" aria-hidden>
+                {teclaDaBusca()}
+              </span>
+            )}
           </button>
         )}
         <button

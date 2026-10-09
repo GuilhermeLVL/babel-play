@@ -8,6 +8,7 @@
  * Itens da lista `fidelidade/casca-e-telas.md`: D54–D59.
  */
 import { anima, EG, MOLA, MOLA_SUAVE, polido, reduz } from './base';
+import { sentir, vibrar } from './sentidos';
 
 const comMovimento = () => polido() && !reduz();
 
@@ -18,6 +19,7 @@ const comMovimento = () => polido() && !reduz();
  * quinto). `dir` é 1 quando se avança e −1 quando um botão de dentro devolve à primeira aba.
  */
 export function repintarPlanos(abas: HTMLElement | null, dir: number): void {
+  sentir('aba'); /* todo `repintar`, `sentidos.js:159` */
   if (!abas || !comMovimento()) return;
   let topo: HTMLElement = abas;
   while (topo.parentElement && !topo.parentElement.matches('.q-palco')) topo = topo.parentElement;
@@ -89,6 +91,7 @@ interface Papel {
  * `captura.ts`).
  */
 export function confete(n = 170): void {
+  sentir('festa'); /* todo `confete`, `sentidos.js:148` */
   if (reduz() || typeof document === 'undefined') return;
   const cv = document.createElement('canvas');
   const cx = cv.getContext?.('2d');
@@ -145,8 +148,9 @@ export function confete(n = 170): void {
 
 /** O teste começou (`ativarTeste`, `telas2.js:113-116`): o aparelho vibra e cai o confete. */
 export function festejarTeste(): void {
+  sentir('sucesso'); /* `ativarTeste`, `sentidos.js:151` */
   if (!comMovimento()) return;
-  navigator.vibrate?.([12, 60, 12]);
+  vibrar([12, 60, 12]);
   confete(120);
 }
 
@@ -154,6 +158,7 @@ export function festejarTeste(): void {
 
 /** A oferta sobe de baixo (680 ms na mola suave), o ícone gira para o lugar e os textos vêm em fila. */
 export function entrarOferta(o: HTMLElement): void {
+  sentir('chega'); /* `oferta`, `sentidos.js:147` */
   if (!comMovimento()) return;
   anima(
     o,

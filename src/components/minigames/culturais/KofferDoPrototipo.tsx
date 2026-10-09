@@ -11,7 +11,7 @@ import { t, tp } from '../../../lib/i18n';
 import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { anima, EIO, MOLA, MOLA_SUAVE, polido, reduz } from '../../../lib/polimento/base';
 import { flutuar } from '../../../lib/polimento/jogos';
-import { play } from '../../../lib/soundFx';
+import { sentir } from '../../../lib/polimento/sentidos';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
 import { falarNoJogo as falar } from '../noQuest';
@@ -193,7 +193,7 @@ export default function KofferDoPrototipo({ items, onFinish, onExit }: Props) {
   const abrir = (sim: boolean) => {
     s.aberta = sim;
     s.paletaPresa = sim;
-    play(sim ? 'open' : 'close');
+    sentir(sim ? 'abre' : 'fecha', sim ? 'open' : 'close');
   };
   /* `tags` de `jogos3.js:212-215`. */
   const tags = () => {
@@ -210,7 +210,7 @@ export default function KofferDoPrototipo({ items, onFinish, onExit }: Props) {
     pintar();
     /* os fechos batem um instante depois de a tampa descer */
     depois(620, () => {
-      play('select');
+      sentir('encaixa', 'select');
       if (mala.current && polido() && !reduz())
         anima(
           mala.current,
@@ -251,7 +251,7 @@ export default function KofferDoPrototipo({ items, onFinish, onExit }: Props) {
     const nova = pal[s.nivel - 1];
     depois(520, () => {
       falar(nova.answer, nova.lang);
-      play('select');
+      sentir('encaixa', 'select');
     });
     depois(regras.aVistaMs, fechar);
   };
@@ -283,7 +283,7 @@ export default function KofferDoPrototipo({ items, onFinish, onExit }: Props) {
     s.passo++;
     tags();
     if (s.passo < s.nivel) {
-      play('select');
+      sentir('encaixa', 'select');
       recontar(resultados());
       dizerFala();
       return pintar();

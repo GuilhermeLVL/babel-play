@@ -1,8 +1,22 @@
-import { BookOpen, FileAudio, FileText, Mic, Moon, Plus, Sun, Target, UserRound, Youtube } from 'lucide-react';
+import {
+  BookOpen,
+  FileAudio,
+  FileText,
+  Mic,
+  Moon,
+  Plus,
+  Sparkles,
+  Sun,
+  Target,
+  UserRound,
+  Youtube,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { fetchDeck } from '../data/api';
+import { useQuestNovo } from '../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../lib/edicaoEstatica';
+import { t } from '../lib/i18n';
 import type { Recording, VocabCard } from '../types';
 import CommandPalette, { type Command } from './CommandPalette';
 import { type AgeProfileType, NAV_ITEMS, navLabel } from './shell/navItems';
@@ -59,6 +73,8 @@ export default function BuscaGlobal({
   perfil,
 }: BuscaGlobalProps) {
   const [baralho, setBaralho] = useState<VocabCard[] | null>(null);
+  /* DESENHO NOVO: "Planos" entra nas sugestões, com o ícone do protótipo (`telas2.js:143-152`, item D46). */
+  const questNovo = useQuestNovo();
 
   useEffect(() => {
     if (!aberta || baralho) return;
@@ -83,7 +99,7 @@ export default function BuscaGlobal({
           id: `ir:${n.id}`,
           grupo: 'Ir para',
           label: navLabel(n, perfil),
-          icon: <n.icon />,
+          icon: questNovo && n.id === 'planos' ? <Sparkles /> : <n.icon />,
           run: () => aoNavegar(n.id),
         }),
       ),
@@ -177,10 +193,23 @@ export default function BuscaGlobal({
         : []),
       { ...capturar, id: 'sug:capturar', grupo: 'Sugestões' },
       ...telas.slice(0, 5),
+      /* `telas2.js:143-152`: "Planos" depois do último item. Não na edição sem servidor, que não tem
+         plano a assinar. */
+      ...(questNovo && !edicaoEstatica()
+        ? [
+            {
+              id: 'sug:planos',
+              grupo: 'Ir para',
+              label: t('Planos'),
+              icon: <Sparkles />,
+              run: () => aoNavegar('planos'),
+            },
+          ]
+        : []),
     ];
 
     return { comandos: [...telas, ...palavras, ...gravacoes, ...acoes], sugestoes };
-  }, [recordings, baralho, aoNavegar, vencidasAgora, escuro, aoAlternarTema, perfil]);
+  }, [recordings, baralho, aoNavegar, vencidasAgora, escuro, aoAlternarTema, perfil, questNovo]);
 
   return (
     <CommandPalette

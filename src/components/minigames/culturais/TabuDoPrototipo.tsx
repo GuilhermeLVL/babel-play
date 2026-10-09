@@ -9,7 +9,7 @@ import { celebrar } from '../../../lib/comemoracao';
 import { t } from '../../../lib/i18n';
 import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { flutuar } from '../../../lib/polimento/jogos';
-import { play } from '../../../lib/soundFx';
+import { sentir } from '../../../lib/polimento/sentidos';
 import AjudasGerais from '../casca/AjudasGerais';
 import { useAtalhosDasAlternativas } from '../casca/atalhos';
 import { useRodada } from '../casca/CascaDaRodada';
@@ -212,7 +212,7 @@ export default function TabuDoPrototipo({ items, onFinish, onExit }: Props) {
     /* Custa (`jogos.js:334-338`): zera o combo, e o acerto que vier conta como "com dica". */
     comDica.current = true;
     setSeq(0);
-    play('toggleOn');
+    sentir('liga', 'toggleOn');
   };
 
   return (

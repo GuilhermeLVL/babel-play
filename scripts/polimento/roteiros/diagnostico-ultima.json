@@ -1,0 +1,26 @@
+{
+  "nome": "diagnostico-ultima",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/diagnostico",
+    "passos": [
+      {
+        "esperar": 1500
+      },
+      {
+        "clicar": ".q-diag .q-abas .q-aba:nth-of-type(4)"
+      },
+      {
+        "esperar": 1500
+      }
+    ]
+  },
+  "seletores": [
+    ".q-diag .q-abas .px-pilula",
+    ".q-diag .q-abas .q-aba[aria-selected='true']",
+    ".q-diag [role=tabpanel]:not([hidden])",
+    ".q-diag [role=tabpanel]:not([hidden]) > *",
+    ".q-diag [role=tabpanel]:not([hidden]) .q-cartao"
+  ]
+}

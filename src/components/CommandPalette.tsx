@@ -1,3 +1,5 @@
+import '../styles/polimentoBusca.css';
+
 import { CornerDownLeft, Search, SearchX } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 

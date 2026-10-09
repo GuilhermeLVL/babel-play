@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { NivelDoJogo } from '../../../core/minigames/regras';
 import { guardarNivelDoJogo, lerNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { anima, polido, reduz } from '../../../lib/polimento/base';
+import { sentir } from '../../../lib/polimento/sentidos';
 import MiniDoJogo from './MiniDoJogo';
 import { textosDoJogo, vezesDaAjuda } from './textos';
 
@@ -73,6 +74,7 @@ export default function ExplicacaoDoJogo({
   const ir = (dir: 1 | -1) => {
     const nova = pg + dir;
     setPg(nova);
+    sentir('aba'); /* `jogos4.js:232` */
     /* A tela nova entra pelo lado para onde se foi (`jogos4.js:233`). */
     requestAnimationFrame(() => {
       const s = ref.current?.querySelector(`[data-pg="${nova}"]`);

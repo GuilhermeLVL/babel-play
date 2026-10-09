@@ -105,6 +105,11 @@ function abrir(el: HTMLElement): void {
   const gatilho = recente ?? document.querySelector('.q-mais-botao');
   folha = { el, painel, gatilho };
   alturas.set(painel, painel.offsetHeight);
+  /* O foco vai para o botão de fechar, sem rolar a tela (`prototipo.js:528`). O "Fechar" é o último
+     controle do cabeçalho do painel. */
+  (painel.querySelector<HTMLElement>(':scope > .q-cab > .q-ctl:last-of-type') ?? painel).focus?.({
+    preventScroll: true,
+  });
   if (!polido()) return;
   const main = principal();
   main?.classList.add('px-recuado');

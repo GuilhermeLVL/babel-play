@@ -94,3 +94,7 @@ protótipo **não é portado**; fica anotado aqui, para ele decidir depois o que
 | Sessão | **Player: barra de posição arrastável, relógio, velocidades 0,75× / 1× / 1,25×, Smart Slow-Mo, Loop, Reiniciar** | `PlayerInterativo.tsx` | **Atenção:** o player do protótipo só tem ouvir, fala anterior e próxima fala |
 | Sessão | Faixa "Revisar as palavras desta sessão" | `Analysis.tsx` (aba Jogos) |  |
 | Sessão | Visão geral: ladrilhos de leitura, densidade, palavras únicas, ppm, riqueza; ocorrências que tocavam o trecho | `VisaoGeralDoQuest.tsx` | Vícios e pausas continuam em Fluência |
+| Sessão, Jogos | Lobby embutido (grupo "Pedem mais material", estrela, "?", portas) e os jogos fora dos 4 ladrilhos | `Analysis.tsx` + `Play` | Continuam na tela Jogar |
+| Sessão, Leitura | Botão "Parar e voltar ao início", dica "Clique numa palavra…", ícones dos modos e do "Voz, idioma e tom", contagem do chip "Estudos & notas" | `Reading.tsx` | O botão principal continua pausando e retomando |
+| Sons | Som do botão ativado pelo teclado | `sfxDelegate.ts` | Com a camada ligada vale a regra do protótipo: só o toque soa |
+| Sons | Som de sucesso e de erro dos avisos | `Toast.tsx` | Dão lugar ao som de "aviso" do protótipo |

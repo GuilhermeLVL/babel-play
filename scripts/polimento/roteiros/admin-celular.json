@@ -1,0 +1,21 @@
+{
+  "nome": "admin-celular",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/admin",
+    "passos": [
+      {
+        "esperar": 1500
+      }
+    ]
+  },
+  "seletores": [
+    ".q-palco",
+    ".q-cab h1",
+    ".q-abas",
+    ".q-abas .px-pilula",
+    ".q-cartao",
+    ".q-vazio"
+  ]
+}

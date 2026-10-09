@@ -7,6 +7,7 @@ import { ajudasDoJogo } from '../../../core/minigames/regras';
 import { celebrar } from '../../../lib/comemoracao';
 import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { anima, MOLA, polido, reduz } from '../../../lib/polimento/base';
+import { sentir } from '../../../lib/polimento/sentidos';
 import AjudasGerais from '../casca/AjudasGerais';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
@@ -198,6 +199,7 @@ export default function RaliDoPrototipo({ items, onFinish, onExit }: Props) {
         escrever(nivel === 'facil' ? item.answer[0] : '');
         if (!semTeclado) campo.current?.focus({ preventScroll: true });
         bater(opp.current);
+        sentir('quique'); /* `jogos3.js:91` */
         /* A bola é o relógio: sai da raquete do adversário e chega à sua no tempo que você tem. */
         voar(A.current, B.current, seg * 1000, h * 0.3);
         fim.current = performance.now() + seg * 1000;
@@ -235,6 +237,7 @@ export default function RaliDoPrototipo({ items, onFinish, onExit }: Props) {
       raliRef.current = 0;
       setRali(0);
       setEle((n) => n + 1);
+      sentir('quique'); /* `jogos3.js:99` */
       const de = aqui();
       voar(de, { x: de.x, y: (quadra.current?.clientHeight ?? 0) * 1.2, s: 1.3 }, 420, 26);
       setMsg({ rotulo: 'A bola caiu na quadra. Era:', era: alvo });
@@ -253,6 +256,7 @@ export default function RaliDoPrototipo({ items, onFinish, onExit }: Props) {
     trava.current = true;
     const de = aqui();
     bater(eu.current);
+    sentir('quique'); /* `jogos3.js:114` */
     if (semAcento(v) === semAcento(alvo) && v.length === alvo.length) {
       raliRef.current += 1;
       setRali(raliRef.current);
@@ -288,9 +292,11 @@ export default function RaliDoPrototipo({ items, onFinish, onExit }: Props) {
     }
     while (v.length < alvo.length && v.length > 0 && !ehLetra(alvo[v.length])) v += alvo[v.length];
     escrever(v);
+    sentir('tecla'); /* `jogos3.js:135` */
     if (v === alvo) return devolver(v);
     const errada = [...v].findIndex((c, x) => c !== alvo[x]);
     if (errada < 0) return;
+    sentir('erro'); /* `jogos3.js:141` */
     /* Letra errada: fica vermelha um instante e sai sozinha. Não precisa apagar (`jogos3.js:138-147`). */
     depois(380, () => {
       if (valorRef.current !== v || trava.current) return;

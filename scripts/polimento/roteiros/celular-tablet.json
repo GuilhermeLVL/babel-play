@@ -1,0 +1,68 @@
+{
+  "nome": "celular-tablet",
+  "largura": 820,
+  "altura": 1180,
+  "toque": true,
+  "app": {
+    "caminho": "/"
+  },
+  "proto": {
+    "passos": [
+      {
+        "js": "document.querySelector('.px-barra')?.style.setProperty('display', 'none'); HTMLElement.prototype.find = () => undefined"
+      }
+    ]
+  },
+  "props": [
+    "order",
+    "flexGrow",
+    "flexBasis",
+    "minHeight",
+    "marginTop",
+    "left",
+    "right",
+    "bottom",
+    "zIndex",
+    "justifyContent",
+    "alignItems",
+    "overflowX",
+    "width",
+    "height",
+    "gridTemplateColumns",
+    "scrollSnapType",
+    "flexWrap",
+    "maxHeight",
+    "touchAction",
+    "maskImage"
+  ],
+  "seletores": [
+    ".q-casca",
+    ".q-trilho",
+    ".q-trilho > .q-item",
+    ".q-trilho > .q-item:nth-of-type(5)",
+    ".q-trilho > .q-item:nth-of-type(7)",
+    ".q-trilho > .q-item:nth-of-type(8)",
+    ".q-trilho > .px-pilula",
+    ".q-palco",
+    ".q-cab h1",
+    ".q-cab .q-sobre",
+    ".q-grade.g3.q-cresce",
+    ".q-tile.pri",
+    ".q-tile:not(.pri)",
+    "[data-testid='progresso-no-inicio']",
+    ".q-secao h2"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "clicar": ".q-trilho .q-item >> text=Estatísticas"
+      }
+    ],
+    "proto": [
+      {
+        "clicar": ".q-trilho .q-item >> text=Estatísticas"
+      }
+    ],
+    "espera": 2500
+  }
+}

@@ -458,3 +458,17 @@ html[data-quest-novo='true'] dialog .rola-dlg {
     min-height: 200px;
   }
 }
+
+/* ── O DESENHO DO PROTÓTIPO (`docs/prototipos/polimento-movimento.html`, camada de polimento) ───────
+   Medido lado a lado (`scripts/polimento/roteiros/ajuda*.json`). */
+/* A tecla do atalho: no protótipo ela só tem o traço de baixo, na tinta do texto (a borda inteira do
+   `kbd` de sempre não chegou lá). */
+html[data-px='on'] .q-inst-atalhos .atalho kbd {
+  border-width: 0 0 2px;
+  border-color: currentColor;
+}
+/* "Fale com a gente" com mais de um canal: os botões ficam lado a lado, à direita do texto, em vez de
+   o segundo cair sozinho na linha de baixo. Com um canal só (o protótipo) nada muda. */
+.q-inst-par > .q-ajuste > :first-child {
+  flex-basis: 180px;
+}

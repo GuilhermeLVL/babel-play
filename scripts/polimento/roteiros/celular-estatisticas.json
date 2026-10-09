@@ -1,0 +1,107 @@
+{
+  "nome": "celular-estatisticas",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/",
+    "passos": [
+      {
+        "js": "(() => { const f = window.fetch; window.fetch = (u, o) => { const s = String(u && u.url ? u.url : u); const m = String((o && o.method) || (u && u.method) || 'GET').toUpperCase(); if (m === 'GET' && (s.includes('/api/exercises/results') || s.includes('/api/vocab'))) return Promise.resolve(new Response('[]', { status: 200, headers: { 'Content-Type': 'application/json' } })); return f(u, o); }; })()"
+      },
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-trilho .q-item')].find((b) => b.textContent.includes('Estatísticas')); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "js": "new Promise((ok) => { const i = setInterval(() => { if (document.querySelector(\".qe-abas\")) { clearInterval(i); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 30000); })"
+      },
+      {
+        "esperar": 4500
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "js": "new Promise((ok) => { const achar = () => [...document.querySelectorAll('.q-trilho .q-item')].find((b) => b.textContent.includes('Estatísticas')); const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      },
+      {
+        "js": "new Promise((ok) => { const i = setInterval(() => { if (document.querySelector(\".qe-abas\")) { clearInterval(i); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 30000); })"
+      },
+      {
+        "esperar": 4500
+      }
+    ]
+  },
+  "seletores": [
+    ".q-palco",
+    ".q-palco > .q-cab",
+    ".q-cab h1",
+    ".q-cab .q-sobre",
+    ".q-cab .q-abas",
+    ".q-cab .q-abas .q-aba",
+    ".q-cab .q-abas .q-aba:is([aria-checked='true'], [aria-pressed='true'], [aria-selected='true'])",
+    ".q-cab .q-abas .px-pilula",
+    ".q-cab .q-ctl",
+    ".q-cab .q-ctl svg",
+    ".q-aviso[data-testid='sem-estudo']",
+    ".qe-kpis",
+    ".qe-kpi",
+    ".qe-kpi .q-rotulo",
+    ".qe-kpi .q-rotulo svg",
+    ".qe-kpi b",
+    ".qe-kpi > span",
+    ".qe-abas",
+    ".qe-abas > .q-aba",
+    ".qe-abas > .q-aba[aria-selected='true']",
+    ".qe-abas > .q-aba[aria-selected='false']",
+    ".qe-abas > .q-aba svg",
+    ".qe-abas > .px-pilula",
+    ".qe-painel",
+    ".qe-painel:not([hidden])",
+    ".qe-painel:not([hidden]) > .q-secao",
+    ".qe-painel:not([hidden]) .q-secao > header",
+    ".qe-painel:not([hidden]) .q-secao > header > div",
+    ".qe-painel:not([hidden]) h2",
+    ".qe-painel:not([hidden]) .q-secao > header p",
+    ".qe-painel:not([hidden]) .q-secao > header .q-ctl",
+    ".qe-painel:not([hidden]) .q-secao > header .q-ctl svg",
+    ".qe-painel:not([hidden]) .q-ctl",
+    ".qe-painel:not([hidden]) .qe-grafico",
+    ".qe-painel:not([hidden]) .qe-grafico > svg",
+    ".qe-painel:not([hidden]) p"
+  ],
+  "props": [
+    "borderTopStyle",
+    "alignItems",
+    "alignSelf",
+    "justifyContent",
+    "flexDirection",
+    "flexWrap",
+    "flexGrow",
+    "gridTemplateColumns",
+    "marginTop",
+    "marginBottom",
+    "maxWidth",
+    "minHeight",
+    "textTransform",
+    "textAlign",
+    "whiteSpace",
+    "overflowX",
+    "fontVariantNumeric",
+    "scrollSnapAlign"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelectorAll('.qe-abas > .q-aba')[1]; const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      }
+    ],
+    "proto": [
+      {
+        "js": "new Promise((ok) => { const achar = () => document.querySelectorAll('.qe-abas > .q-aba')[1]; const i = setInterval(() => { const e = achar(); if (e) { clearInterval(i); window.dispatchEvent(new PointerEvent('pointerdown')); e.click(); ok(true); } }, 200); setTimeout(() => { clearInterval(i); ok(false); }, 20000); })"
+      }
+    ],
+    "espera": 1500
+  },
+  "toque": true
+}

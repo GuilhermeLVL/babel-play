@@ -10,7 +10,7 @@ import { t } from '../../../lib/i18n';
 import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { anima, EIO, polido, reduz } from '../../../lib/polimento/base';
 import { tremer } from '../../../lib/polimento/jogos';
-import { play } from '../../../lib/soundFx';
+import { sentir } from '../../../lib/polimento/sentidos';
 import AjudasGerais from '../casca/AjudasGerais';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
@@ -193,7 +193,7 @@ export default function BaoDoPrototipo({ items, onFinish, onExit }: Props) {
       ).finished.then(fim, fim);
     }
     if (s.feito < ped.length) {
-      play('select');
+      sentir('encaixa', 'select');
       return pintar();
     }
     s.trava = true;
@@ -225,7 +225,7 @@ export default function BaoDoPrototipo({ items, onFinish, onExit }: Props) {
       : t('Este pedaço não abre a palavra aqui. Restam {n}.', { n: limite - s.erros });
     /* A cova é redesenhada (fica vermelha) ANTES de tremer: o React reescreve a classe dela. */
     flushSync(pintar);
-    play('error');
+    sentir('erro', 'error');
     tremer(botao);
     if (!perdeu) return;
     registrar(false);

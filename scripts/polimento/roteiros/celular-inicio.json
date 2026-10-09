@@ -1,0 +1,67 @@
+{
+  "nome": "celular-inicio",
+  "largura": 390,
+  "altura": 844,
+  "toque": true,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.px.planoDeProva": "free"
+    }
+  },
+  "proto": {
+    "passos": [
+      {
+        "js": "document.querySelector('.px-barra')?.style.setProperty('display', 'none'); HTMLElement.prototype.find = () => undefined"
+      }
+    ]
+  },
+  "props": [
+    "order",
+    "flexGrow",
+    "flexBasis",
+    "minHeight",
+    "marginTop",
+    "left",
+    "right",
+    "bottom",
+    "zIndex",
+    "justifyContent",
+    "alignItems",
+    "overflowX",
+    "width",
+    "height",
+    "gridTemplateColumns",
+    "scrollSnapType",
+    "flexWrap",
+    "maxHeight",
+    "touchAction",
+    "maskImage"
+  ],
+  "seletores": [
+    ".q-trilho",
+    ".q-trilho .q-item",
+    ".q-trilho .px-pilula",
+    ".q-cab h1",
+    ".q-cab .q-sobre",
+    ".px-plano-chip",
+    ".q-grade.g3.q-cresce",
+    ".q-tile.pri",
+    ".q-tile.pri .q-ic",
+    ".q-tile:not(.pri)",
+    ".q-tile b",
+    ".q-tile .q-d",
+    "[data-testid='progresso-no-inicio']",
+    ".q-barra",
+    ".q-palco",
+    ".q-cab",
+    ".q-tile:not(.pri) b",
+    ".q-tile:not(.pri) .q-d",
+    "[data-testid='progresso-no-inicio'] > span:nth-child(2)",
+    "[data-testid='progresso-no-inicio'] > .q-fim",
+    "[data-testid='missoes-no-inicio']",
+    "[data-testid='missoes-no-inicio'] > .q-grade",
+    "[data-testid='missoes-no-inicio'] > .q-grade > *",
+    ".q-secao h2"
+  ]
+}

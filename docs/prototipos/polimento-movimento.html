@@ -12796,7 +12796,7 @@ html[data-px='on'][data-theme='agua'] :is(.q-barra, .hud-progresso) > span { bac
     b.title = 'Desliga animações, partículas, desfoque e sombras. Bom para aparelho fraco.';
     b.innerHTML = ic('gauge') + ' Modo desempenho: ' + (ligado ? 'ligado' : 'desligado');
     b.addEventListener('click', () => modo(polido() ? 'off' : 'on'));
-    const vibra = $('.q-ctl', faixa).find((x) => /Vibra/.test(x.textContent));
+    const vibra = $$('.q-ctl', faixa).find((x) => /Vibra/.test(x.textContent));
     faixa.insertBefore(b, vibra || null);
   });
   aoAbrirBusca.push((d) => {

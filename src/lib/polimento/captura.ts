@@ -12,6 +12,7 @@
  */
 import { anima, limpar, MOLA, MOLA_SUAVE, polido, reduz } from './base';
 import { elastico } from './folha';
+import { sentir, vibrar } from './sentidos';
 
 const $$ = <T extends HTMLElement = HTMLElement>(s: string, r: ParentNode) => [...r.querySelectorAll<T>(s)];
 
@@ -97,6 +98,7 @@ export function sairOriginal(alvo: Element): Promise<unknown> {
 
 /** A tradução assume a linha grande e a original sobe para a pequena, `telas.js:151-153`. */
 export function entrarTraducao(alvo: Element, original: Element | null): void {
+  sentir('fala'); /* `telas.js:156` */
   limpar(alvo);
   if (!comMovimento()) return;
   anima(
@@ -227,7 +229,7 @@ export function rajada(x: number, y: number, n = 14, forca = 1, dentroDe: Elemen
 /** "Guardar" na folha da palavra, `telas.js:248-253`: o botão pula, o ícone gira para dentro e sai a faísca. */
 export function comemorarGuardada(botao: HTMLElement): void {
   if (!comMovimento()) return;
-  navigator.vibrate?.(10);
+  vibrar(10);
   anima(botao, [{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }], {
     d: 520,
     e: MOLA,
@@ -286,6 +288,7 @@ export interface Flutuante {
  */
 export function ligarFlutuante(el: HTMLElement): Flutuante {
   if (!polido()) return { ajustar: () => undefined, desligar: () => undefined };
+  sentir('abre'); /* `abrirFlutuante`, `sentidos.js:145` */
   const app = el.parentElement ?? document.body;
   const M = 16;
   const pos = { x: 0, y: 0 };
@@ -414,6 +417,7 @@ export function ligarFlutuante(el: HTMLElement): Flutuante {
  * existir, uma cópia sem toque fica no lugar, anima e some.
  */
 export function sairFlutuante(el: HTMLElement, pai: Element | null): void {
+  sentir('fecha'); /* `abrirFlutuante` com a janela aberta, `sentidos.js:145` */
   if (!comMovimento() || !pai?.isConnected) return;
   const copia = el.cloneNode(true) as HTMLElement;
   copia.removeAttribute('id');

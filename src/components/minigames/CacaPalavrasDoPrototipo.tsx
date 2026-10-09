@@ -7,7 +7,7 @@ import { type Direcao, regrasDoJogo, vezesDaAjuda } from '../../core/minigames/r
 import { celebrar } from '../../lib/comemoracao';
 import { useNivelDoJogo } from '../../lib/jogos/nivelDoJogo';
 import { flutuar, tremer } from '../../lib/polimento/jogos';
-import { play } from '../../lib/soundFx';
+import { sentir } from '../../lib/polimento/sentidos';
 import AjudasGerais from './casca/AjudasGerais';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from './casca/HudDaRodada';
@@ -127,7 +127,7 @@ export default function CacaPalavrasDoPrototipo({ items, onFinish }: Props) {
     return Array.from({ length: n + 1 }, (_, k) => (r0 + Math.sign(dr) * k) * N + c0 + Math.sign(dc) * k);
   };
   const marcar = (lista: number[]) => {
-    if (lista.length !== selRef.current.length && lista.length > 1) play('click');
+    if (lista.length !== selRef.current.length && lista.length > 1) sentir('tecla', 'click');
     selRef.current = lista;
     setSel(lista);
   };
@@ -178,7 +178,7 @@ export default function CacaPalavrasDoPrototipo({ items, onFinish }: Props) {
       /* Traço errado: zera o combo, treme a grade e diz "Tente de novo". Não conta erro. */
       seq.current = 0;
       setSequencia(0);
-      play('error');
+      sentir('erro', 'error');
       tremer(grade.current);
       flutuar(celula(era[era.length - 1]), 'Tente de novo', 'erro');
     }

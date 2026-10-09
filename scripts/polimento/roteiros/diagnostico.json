@@ -1,0 +1,20 @@
+{
+  "nome": "diagnostico",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/diagnostico",
+    "passos": [
+      {
+        "esperar": 1500
+      }
+    ]
+  },
+  "seletores": [
+    ".q-palco",
+    ".q-cab h1",
+    ".q-palco .q-cartao",
+    ".q-palco .q-faixa",
+    ".q-palco .q-ctl.pri"
+  ]
+}

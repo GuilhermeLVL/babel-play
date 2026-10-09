@@ -1,0 +1,104 @@
+{
+  "nome": "celular-mais",
+  "largura": 390,
+  "altura": 844,
+  "toque": true,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.px.planoDeProva": "free"
+    },
+    "passos": [
+      {
+        "js": "window.dispatchEvent(new PointerEvent('pointerdown')); document.querySelector('.q-trilho .q-mais-botao').click()"
+      },
+      {
+        "esperar": 1500
+      }
+    ]
+  },
+  "proto": {
+    "passos": [
+      {
+        "js": "document.querySelector('.px-barra')?.style.setProperty('display', 'none'); HTMLElement.prototype.find = () => undefined"
+      },
+      {
+        "js": "window.dispatchEvent(new PointerEvent('pointerdown')); document.querySelector('.q-trilho .q-mais-botao').click()"
+      },
+      {
+        "esperar": 1500
+      }
+    ]
+  },
+  "props": [
+    "order",
+    "flexGrow",
+    "flexBasis",
+    "minHeight",
+    "marginTop",
+    "left",
+    "right",
+    "bottom",
+    "zIndex",
+    "justifyContent",
+    "alignItems",
+    "overflowX",
+    "width",
+    "height",
+    "gridTemplateColumns",
+    "scrollSnapType",
+    "flexWrap",
+    "maxHeight",
+    "touchAction",
+    "maskImage"
+  ],
+  "seletores": [
+    ".q-mais-fundo",
+    ".q-mais",
+    ".q-mais > .q-cab",
+    ".q-mais > .q-cab h2",
+    ".q-mais > .q-cab .q-ctl",
+    ".q-mais > .q-abas",
+    ".q-mais > .q-abas .q-aba",
+    ".q-mais .q-grade.g3",
+    ".q-mais .q-tile.em-linha",
+    ".q-mais .q-tile.em-linha:nth-child(1)",
+    ".q-mais .q-tile.em-linha:nth-child(2)",
+    ".q-mais .q-tile.em-linha .q-ic",
+    ".q-mais .q-tile.em-linha .q-ic svg",
+    ".q-mais .q-tile.em-linha b",
+    ".q-mais .px-entrada-premium",
+    ".q-mais .q-faixa-do-mais",
+    ".q-mais .q-faixa-do-mais .q-ctl",
+    ".q-mais .q-conta-do-mais",
+    ".q-mais .q-rodape-do-mais",
+    "main",
+    ".px-tela",
+    ".q-trilho > .q-item[aria-current='page']"
+  ],
+  "gravar": {
+    "app": [
+      {
+        "clicar": ".q-mais .q-cab .q-ctl[aria-label^=\"Fechar\"]"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "window.dispatchEvent(new PointerEvent('pointerdown')); document.querySelector('.q-trilho .q-mais-botao').click()"
+      }
+    ],
+    "proto": [
+      {
+        "clicar": ".q-mais .q-cab .q-ctl[aria-label^=\"Fechar\"]"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "js": "window.dispatchEvent(new PointerEvent('pointerdown')); document.querySelector('.q-trilho .q-mais-botao').click()"
+      }
+    ],
+    "espera": 1500
+  }
+}

@@ -29,7 +29,7 @@ import {
   Volume2,
   X,
 } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { fetchDeck, fetchSessionTranscript, searchImages } from '../../data/api';
 import { buildGateway } from '../../gateway';
@@ -50,6 +50,7 @@ import {
   TIPOS_DE_NOTA,
 } from '../../lib/leitura/anotacaoDaFrase';
 import { micErrorMessage } from '../../lib/mediaErrors';
+import { criarMarcador } from '../../lib/polimento/sessao';
 import { usePopoverDePalavra } from '../../lib/popoverDePalavra';
 import type { ExerciseId, PracticeSeed } from '../../lib/sentences';
 import { seedFromSelection, telaDoExercicio } from '../../lib/sentences';
@@ -397,7 +398,9 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   // (Antes era 'full', que somado aos 65% fixos do painel jogava o texto para a esquerda e deixava
   // um vazio à direita.) 'full' continua disponível para quem quiser ocupar a largura inteira.
   const [layoutWidth, setLayoutWidth] = useState<'centered' | 'full'>(() => {
-    return (localStorage.getItem('reading_layout_width') as 'centered' | 'full') || 'centered';
+    /* No desenho novo o texto ocupa o cartão, como no protótipo (`telas3.js:72`); "Coluna" segue em
+       "Ajustar exibição" para quem preferir. */
+    return (localStorage.getItem('reading_layout_width') as 'centered' | 'full') || (questNovo ? 'full' : 'centered');
   });
 
   const handleLayoutWidthChange = (width: 'centered' | 'full') => {
@@ -932,10 +935,33 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
 
   // Rola a frase ativa para o centro da área de leitura — você nunca "perde" o narrador de vista.
   useEffect(() => {
-    if (activeNarratingSentenceIndex === null) return;
+    /* No desenho novo quem rola é o marcador (`telas3.js:45`), que respeita "reduzir movimento". */
+    if (questNovo || activeNarratingSentenceIndex === null) return;
     const el = document.getElementById(`sentence-${activeNarratingSentenceIndex}`);
     el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [activeNarratingSentenceIndex]);
+  }, [activeNarratingSentenceIndex, questNovo]);
+
+  /* DESENHO NOVO: O NARRADOR MARCA PALAVRA POR PALAVRA (`tocar()` e `pararPlayer()`, `telas3.js:16-62`,
+     item D51). A frase vem da narração de verdade; a cadência das palavras é a do protótipo, no mesmo
+     marcador da Transcrição (`lib/polimento/sessao.ts`), aqui sobre as `.ql-frase`. */
+  const frasesDoQuest = useRef<HTMLDivElement>(null);
+  const marcador = useMemo(() => criarMarcador(() => frasesDoQuest.current, '.ql-frase'), []);
+  const fraseDeAntes = useRef(-1);
+  const fraseNarrada =
+    questNovo && isNarrating && activeNarratingSentenceIndex !== null ? activeNarratingSentenceIndex : -1;
+  useEffect(() => {
+    if (fraseNarrada < 0) {
+      marcador.parar();
+      fraseDeAntes.current = -1;
+      return;
+    }
+    /* Um salto (anterior, próxima, "narrar a partir desta") recomeça limpo, como `tocar(i)`; o avanço
+       natural deixa marcadas as frases que já passaram. */
+    if (fraseDeAntes.current !== -1 && fraseNarrada !== fraseDeAntes.current + 1) marcador.parar();
+    marcador.linha(fraseNarrada);
+    fraseDeAntes.current = fraseNarrada;
+  }, [fraseNarrada, marcador]);
+  useEffect(() => () => marcador.parar(), [marcador]);
 
   // Encerra a fala ao sair da tela (senão o narrador continua tocando em outra view).
   const narraPeloMotorRef = useRef(narraPeloMotor);
@@ -1123,7 +1149,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
         return (
           <React.Fragment key={token.id}>
             <span
-              className={`rounded ${marcas}${clicavel ? ' ql-palavra' : ''}`}
+              className={`w rounded ${marcas}${clicavel ? ' ql-palavra' : ''}`}
               data-marca={
                 annotation?.type === 'highlight' ? 'grifo' : hasNote ? 'nota' : hasAudio ? 'audio' : undefined
               }
@@ -1222,31 +1248,32 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     return (
       <div className="ql" data-testid="leitura-do-quest">
         <div className="q-acoes ql-barra">
-          <div className="q-abas q-seg" role="group" aria-label={t('Modo')}>
+          {/* `telas3.js:71`: os dois modos sem ícone, e os dois chips logo ao lado. */}
+          <div className="q-abas q-seg" role="group" aria-label={t('Modo de leitura')}>
             <button
               type="button"
               className="q-aba"
-              aria-pressed={!isDrawModeActive}
+              role="radio"
+              aria-checked={!isDrawModeActive}
               onClick={() => setIsDrawModeActive(false)}
             >
-              <MousePointerClick aria-hidden /> {t('Modo interativo')}
+              {t('Modo interativo')}
             </button>
             <button
               type="button"
               className="q-aba"
-              aria-pressed={isDrawModeActive}
+              role="radio"
+              aria-checked={isDrawModeActive}
               onClick={() => {
                 setIsDrawModeActive(true);
                 setFraseEscolhida(null);
               }}
             >
-              <PenTool aria-hidden /> {t('Desenho livre')}
+              {t('Desenho livre')}
             </button>
           </div>
-          <span className="q-espaco" />
           <button type="button" className="q-chip" aria-haspopup="dialog" onClick={() => setVerNotasNoQuest(true)}>
-            <NotebookPen aria-hidden /> {t('Estudos & notas')}
-            <span className="qs-n">{annotations.length}</span>
+            {t('Estudos & notas')}
           </button>
           <button type="button" className="q-chip" aria-haspopup="dialog" onClick={() => setAjustandoNoQuest(true)}>
             <SlidersHorizontal aria-hidden /> {t('Ajustar exibição')}
@@ -1257,17 +1284,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
           <div className="q-acoes ql-desenho">
             <BarraDeDesenho desenho={desenho} questNovo />
           </div>
-        ) : (
-          total > 0 && (
-            <p className="qs-apoio">
-              {palavraNoTexto
-                ? t(
-                    'Clique numa palavra para abrir a folha dela, ou no resto da frase para narrar a partir dela e anotar.',
-                  )
-                : t('Toque numa frase para narrar a partir dela, anotar ou abrir uma palavra.')}
-            </p>
-          )
-        )}
+        ) : null}
 
         <section
           className={`q-cartao ql-texto ${layoutWidth === 'centered' ? 'coluna' : ''} ${isDrawModeActive ? 'desenhando' : ''} ${viewMode === 'bilingual-side-by-side' ? 'lado-a-lado' : ''}`}
@@ -1298,7 +1315,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
               </div>
             )
           ) : (
-            <div className="ql-frases">
+            <div className="ql-frases" ref={frasesDoQuest}>
               {studyTexts.map((frase, i) => {
                 const nota = notaDaFrase(annotations, i);
                 const IconeDaNota = nota?.tipo ? ICONE_DA_NOTA[nota.tipo] : null;
@@ -1309,6 +1326,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                     type="button"
                     id={`sentence-${i}`}
                     data-frase={i}
+                    data-fala={i}
                     className={`ql-frase ${narrada ? 'narrando' : ''} ${nota?.tipo ? `nota-${nota.tipo}` : ''}`}
                     aria-haspopup="dialog"
                     aria-current={narrada ? 'true' : undefined}
@@ -1338,18 +1356,26 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
         </section>
 
         {/* A NARRAÇÃO: a faixa do pé, com um único botão principal. */}
-        <div className="q-faixa ql-narrador" role="toolbar" aria-label={t('Narração')}>
+        {/* `telas3.js:73`: anterior, o principal, próxima, o espaço, "Frase n de total" e a voz. */}
+        <div className="q-faixa ql-narrador px-player" role="toolbar" aria-label={t('Narração')}>
           <button
             type="button"
             className="q-ctl"
             onClick={() => skipSentence(-1)}
             disabled={!total || !haVozParaNarrar || activeNarratingSentenceIndex === 0}
             aria-label={t('Frase anterior')}
+            data-px="antes"
           >
             <SkipBack aria-hidden />
           </button>
-          <button type="button" className="q-ctl pri" onClick={toggleNarration} disabled={!total || !haVozParaNarrar}>
-            {narrando ? <Pause aria-hidden /> : <Volume2 aria-hidden />}{' '}
+          <button
+            type="button"
+            className="q-ctl pri"
+            data-px="tocar"
+            onClick={toggleNarration}
+            disabled={!total || !haVozParaNarrar}
+          >
+            {narrando ? <Pause aria-hidden /> : <Play aria-hidden />}{' '}
             {!isNarrating ? t('Narrar') : isNarrationPaused ? t('Retomar') : t('Pausar')}
           </button>
           <button
@@ -1362,28 +1388,20 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
               (activeNarratingSentenceIndex !== null && activeNarratingSentenceIndex >= total - 1)
             }
             aria-label={t('Próxima frase')}
+            data-px="depois"
           >
             <SkipForward aria-hidden />
           </button>
-          <button
-            type="button"
-            className="q-ctl"
-            onClick={stopNarration}
-            disabled={!isNarrating}
-            aria-label={t('Parar e voltar ao início')}
-          >
-            <Square aria-hidden />
-          </button>
-          <span className="q-tempo ql-onde" role="status">
+          <span className="q-espaco" />
+          <span className="q-tempo ql-onde px-onde" role="status">
             {!haVozParaNarrar && total > 0
               ? t('Sem voz para narrar: {idiomas}', { idiomas: narratedLangs.map((l) => langLabel(l)).join(', ') })
-              : activeNarratingSentenceIndex !== null
-                ? t('Frase {n} de {total}', { n: activeNarratingSentenceIndex + 1, total })
+              : total > 0
+                ? t('Frase {n} de {total}', { n: (activeNarratingSentenceIndex ?? 0) + 1, total })
                 : tp(total, '{n} frase', '{n} frases')}
           </span>
-          <span className="q-espaco" />
           <button type="button" className="q-ctl" aria-haspopup="dialog" onClick={() => setShowNarratorSettings(true)}>
-            <AudioLines aria-hidden /> {t('Voz, idioma e tom')}
+            {t('Voz, idioma e tom')}
           </button>
         </div>
 

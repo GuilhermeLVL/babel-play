@@ -192,7 +192,9 @@ export async function dispensarRecompensas(page: Page) {
       .getByRole('button', { name: /^(Resgatar e continuar|Continuar)$/ })
       .first()
     if (!(await b.isVisible().catch(() => false))) return
-    await b.click({ force: true, timeout: 3000 }).catch(() => {})
+    /* O clique vai AO BOTÃO, e não ao ponto da tela onde ele estava: um diálogo dá lugar ao outro, a
+       altura muda, e um clique forçado por coordenada caía em "ver em Personalizar", logo abaixo. */
+    await b.evaluate((el) => (el as HTMLElement).click(), undefined, { timeout: 3000 }).catch(() => {})
     await page.waitForTimeout(500)
   }
 }

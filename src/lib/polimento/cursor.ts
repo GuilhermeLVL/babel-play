@@ -2,7 +2,7 @@
  * O CURSOR DO APP: ponto com anel (opção D de `docs/prototipos/cursor-opcoes.html`, escolhida pelo dono
  * em 09/10/2026, que recusou a versão com mola, abraço e faíscas: "é o suficiente").
  *
- * Um ponto de 8 px e um anel de 34 px na cor do acento seguem o mouse; sobre o que é clicável o anel
+ * Um ponto de 6 px e um anel de 24 px na cor do acento seguem o mouse; sobre o que é clicável o anel
  * cresce e ganha um fundo leve, e no aperto encolhe. Só isso.
  *
  * Só existe com mouse, no computador, e com a camada de polimento ligada: no Modo desempenho, com as

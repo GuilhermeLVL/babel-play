@@ -1,6 +1,6 @@
 /*
- * O cursor do app: ponto com anel (`src/lib/polimento/cursor.ts`). Os números são os da opção D de
- * `docs/prototipos/cursor-opcoes.html`.
+ * O cursor do app: ponto com anel (`src/lib/polimento/cursor.ts`). Os números eram os da opção D de
+ * `docs/prototipos/cursor-opcoes.html` (ponto 8, anel 34); o dono pediu menor em 09/10/2026.
  */
 html.px-com-cursor,
 html.px-com-cursor * {
@@ -31,16 +31,16 @@ html.px-com-cursor * {
   opacity: 0;
 }
 .px-cursor-ponto {
-  width: 8px;
-  height: 8px;
-  margin: -4px 0 0 -4px;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
   background: var(--q-acento, var(--accent));
 }
 .px-cursor-anel {
-  width: 34px;
-  height: 34px;
-  margin: -17px 0 0 -17px;
-  border: 2px solid var(--q-acento, var(--accent));
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border: 1.5px solid var(--q-acento, var(--accent));
   transition:
     scale 160ms cubic-bezier(0.23, 1, 0.32, 1),
     background-color 160ms ease;

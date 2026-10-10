@@ -219,6 +219,14 @@
   border-color: var(--accent);
   color: var(--int-tinta);
 }
+/* Onde há voz a escolher, a pílula é o botão que abre a folha das vozes (`FolhaDasVozes`). */
+button.int-voz {
+  cursor: pointer;
+}
+button.int-voz:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 
 /* ---------- o modo: Automático (o app reconhece quem fala) ou por toque ---------- */
 .int-esq {

@@ -15,7 +15,7 @@ import {
   VolumeX,
   X,
 } from 'lucide-react';
-import { type ReactNode, useEffect, useLayoutEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import type { LadoDoInterprete } from '../../../../lib/captura/tiposDaFala';
 import { noComputador } from '../../../../lib/dispositivo/telaNovaDoQuest';
@@ -29,6 +29,8 @@ import {
   trocaDeLados,
 } from '../../../../lib/polimento/interprete';
 import { sentir } from '../../../../lib/polimento/sentidos';
+import type { LadoDaVoz } from '../../../../lib/voz/catalogoDeVozes';
+import FolhaDasVozes from '../../../voz/FolhaDasVozes';
 
 /** O que a metade mostra no meio: a dica de começo, a fala de quem está nela, ou a tradução do outro. */
 export type FraseDaMetade =
@@ -110,6 +112,7 @@ export default function ConversaDoPrototipo({
   modos,
   lista,
   voz,
+  vozes,
   aviso,
   aoConhecerOPremium,
   aoTrocarLados,
@@ -143,6 +146,11 @@ export default function ConversaDoPrototipo({
     conteudo?: ReactNode;
   };
   voz: { rotulo: string; natural: boolean; muda: boolean };
+  /**
+   * A ESCOLHA DA VOZ: com os lados, a pílula da voz vira o botão que abre a folha das vozes (uma por
+   * idioma da conversa). Ausente onde não há voz a escolher (o aparelho sem voz própria).
+   */
+  vozes?: { lados: readonly LadoDaVoz[] } | undefined;
   aviso: string;
   /** Com o aviso do cadeado na tela: o botão que leva aos Planos. */
   aoConhecerOPremium?: (() => void) | undefined;
@@ -166,6 +174,7 @@ export default function ConversaDoPrototipo({
   const raiz = useRef<HTMLDivElement>(null);
   /** No monitor: duas colunas e ninguém de cabeça para baixo. */
   const emColunas = noComputador();
+  const [escolhendoVoz, setEscolhendoVoz] = useState(false);
 
   useEffect(() => {
     if (comEntrada && raiz.current) entradaDaConversa(raiz.current);
@@ -386,15 +395,31 @@ export default function ConversaDoPrototipo({
           )}
         </div>
         <div className="int-centro">
-          <span
-            className="int-voz"
-            data-natural={voz.natural ? '' : undefined}
-            data-testid="voz-em-uso"
-            title={voz.rotulo}
-          >
-            {voz.muda ? <VolumeX aria-hidden /> : <Volume2 aria-hidden />}
-            <span className="int-voz-txt">{voz.rotulo}</span>
-          </span>
+          {vozes ? (
+            <button
+              type="button"
+              className="int-voz"
+              data-natural={voz.natural ? '' : undefined}
+              data-testid="voz-em-uso"
+              title={voz.rotulo}
+              aria-haspopup="dialog"
+              aria-label={t('{voz}. Escolher a voz', { voz: voz.rotulo })}
+              onClick={() => setEscolhendoVoz(true)}
+            >
+              {voz.muda ? <VolumeX aria-hidden /> : <Volume2 aria-hidden />}
+              <span className="int-voz-txt">{voz.rotulo}</span>
+            </button>
+          ) : (
+            <span
+              className="int-voz"
+              data-natural={voz.natural ? '' : undefined}
+              data-testid="voz-em-uso"
+              title={voz.rotulo}
+            >
+              {voz.muda ? <VolumeX aria-hidden /> : <Volume2 aria-hidden />}
+              <span className="int-voz-txt">{voz.rotulo}</span>
+            </span>
+          )}
           <span className="int-aviso" role="status" data-testid="aviso-do-interprete">
             {aviso}
           </span>
@@ -441,6 +466,7 @@ export default function ConversaDoPrototipo({
       )}
       {metade(baixo, false)}
       {children}
+      {vozes && escolhendoVoz && <FolhaDasVozes lados={vozes.lados} aoFechar={() => setEscolhendoVoz(false)} />}
     </div>
   );
 }

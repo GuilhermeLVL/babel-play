@@ -52,24 +52,18 @@ import { criarMarcador, type GuiaDaFala, seguirFala } from '../../lib/polimento/
 import { usePopoverDePalavra } from '../../lib/popoverDePalavra';
 import type { ExerciseId, PracticeSeed } from '../../lib/sentences';
 import { seedFromSelection, telaDoExercicio } from '../../lib/sentences';
-import {
-  cancelSpeech,
-  getVoicePrefs,
-  hasVoiceFor,
-  pickVoice,
-  setVoicePref,
-  speak as ttsSpeak,
-  voicesFor,
-} from '../../lib/tts';
+import { cancelSpeech, hasVoiceFor, pickVoice, speak as ttsSpeak } from '../../lib/tts';
 import type { ResolvedWord, WordOrigin } from '../../lib/vocabWord';
 import { buildVocabWord, mtNoteFor, resolveWord, tokenizarTexto } from '../../lib/vocabWord';
 import { aparelhoTemVoz, haVozPara } from '../../lib/voz/haVoz';
+import { useVozesPreferidas } from '../../lib/voz/preferenciaDeVoz';
 import { Recording, VocabCard, VocabWord } from '../../types';
 import LangPicker from '../LangPicker';
 import { toast } from '../Toast';
 import TokensClicaveis, { ehPalavraDeConteudo } from '../TokensClicaveis';
 import { Dialogo, fecharDialogoDe } from '../ui';
 import VocabularyPanel from '../VocabularyPanel';
+import SeletorDeVoz from '../voz/SeletorDeVoz';
 import BarraDeDesenho from './leitura/BarraDeDesenho';
 import { useDesenhoLivre } from './leitura/useDesenhoLivre';
 
@@ -479,7 +473,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
    * bilíngue e auto alternam de idioma DENTRO da mesma sessão de narração e precisam de uma voz para
    * cada um. Vazio = deixa o `pickVoice()` escolher a melhor voz instalada.
    */
-  const [voicePrefs, setVoicePrefs] = useState<Record<string, string>>(getVoicePrefs);
+  const voicePrefs = useVozesPreferidas();
   const [narrationRate, setNarrationRate] = useState<number>(
     () => parseFloat(localStorage.getItem(LS_RATE) || '') || DEFAULT_RATE,
   );
@@ -498,11 +492,6 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
   useEffect(() => {
     localStorage.setItem(LS_RATE, String(narrationRate));
   }, [narrationRate]);
-  // Mantém o store COMPARTILHADO (tts.ts) em dia — é dele que as outras telas leem a voz.
-  useEffect(() => {
-    for (const lang of Object.keys(voicePrefs)) setVoicePref(lang, voicePrefs[lang] ?? '');
-  }, [voicePrefs]);
-
   useEffect(() => {
     if (!('speechSynthesis' in window)) return;
     // `getVoices()` costuma vir vazio no 1º acesso e popular via 'voiceschanged'. Guardamos a lista no
@@ -994,13 +983,6 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     (currentSpeakingLang && narratedLangs.includes(currentSpeakingLang) ? currentSpeakingLang : null) ??
     narratedLangs[0] ??
     baseLang(langPair.src);
-
-  const voiceOptions = React.useMemo(
-    () => voicesFor(voiceEditLang),
-    // idem: depende da lista assíncrona de vozes do SO.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [voiceEditLang, voices],
-  );
 
   /* A narração parou de vez (acabou, deu erro, a tela saiu): a marcação sai junto. Pausar não passa
      por aqui: a frase continua sendo a narrada e as palavras marcadas ficam. */
@@ -1620,14 +1602,6 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                   {t('Voz')} · {langLabel(voiceEditLang)}
                   {currentSpeakingLang === voiceEditLang && isNarrating ? ` ${t('(narrando agora)')}` : ''}
                 </b>
-                {voiceOptions.length === 0 && (
-                  <small>
-                    {/* A frase do headset só vale NELE; no computador as vozes são as do sistema. */}
-                    {narraPeloMotor && noHeadset()
-                      ? t('No Quest a voz é a do site: não há outras vozes para escolher.')
-                      : t('Nenhuma voz instalada para este idioma.')}
-                  </small>
-                )}
               </div>
               {narratedLangs.length > 1 && (
                 <div className="q-abas q-seg" role="group" aria-label={t('Idioma cuja voz editar')}>
@@ -1644,33 +1618,8 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
                   ))}
                 </div>
               )}
-              <select
-                className="q-campo ql-voz"
-                aria-label={t('Voz')}
-                value={voicePrefs[voiceEditLang] || ''}
-                onChange={(e) => {
-                  const name = e.target.value;
-                  setVoicePrefs((prev) => {
-                    const next = { ...prev };
-                    if (name) next[voiceEditLang] = name;
-                    else delete next[voiceEditLang];
-                    return next;
-                  });
-                }}
-              >
-                <option value="">{t('Melhor voz disponível (automática)')}</option>
-                {voiceOptions.length > 0 && (
-                  <optgroup label={langLabel(voiceEditLang)}>
-                    {voiceOptions.map((v) => (
-                      <option key={v.name} value={v.name}>
-                        {v.name.replace('Microsoft', '').replace('Google', '').trim()} ({v.lang})
-                        {v.neural ? ' · Natural' : ''}
-                        {v.local ? ' · Offline' : ' · Rede'}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-              </select>
+              {/* O MESMO seletor do intérprete e dos Ajustes: a escolha vale para o app inteiro. */}
+              <SeletorDeVoz idioma={voiceEditLang} />
             </div>
             <div className="q-ajuste">
               <b>

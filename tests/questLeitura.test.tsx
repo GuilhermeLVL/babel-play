@@ -408,7 +408,10 @@ describe('A leitura no Quest: narração', () => {
     const grupo = (nome: string) => within(ajustes.getByRole('group', { name: nome })).getAllByRole('button')
     expect(grupo('Velocidade da narração').map((b) => b.textContent)).toEqual(['0,75×', '1×', '1,25×', '1,5×'])
     expect(grupo('O que narrar').map((b) => b.textContent)).toEqual(['Original', 'Tradução', 'Bilíngue', 'Auto'])
-    expect(ajustes.getByRole('combobox', { name: 'Voz' })).toBeTruthy()
+    // A voz é o seletor comum do app (o mesmo do intérprete e dos Ajustes), com a "Automática" primeiro.
+    expect(
+      within(ajustes.getByRole('radiogroup', { name: /^Voz para / })).getAllByRole('radio')[0].textContent,
+    ).toContain('Automática')
     expect(ajustes.getByRole('slider', { name: 'Tom da voz' })).toBeTruthy()
     expect(screen.getByTestId('ajustes-do-narrador').textContent).toContain('Força um idioma para toda a narração')
     expect(screen.queryByTestId('voz-ausente')).toBeNull()
@@ -626,7 +629,10 @@ describe('A leitura no computador com o desenho novo', () => {
     const { narrador } = await montar()
     fireEvent.click(narrador().getByRole('button', { name: /Voz, idioma e tom/ }))
     const ajustes = within(screen.getByTestId('ajustes-do-narrador'))
-    expect(ajustes.getByRole('combobox', { name: 'Voz' })).toBeTruthy()
+    // A voz é o seletor comum do app (o mesmo do intérprete e dos Ajustes), com a "Automática" primeiro.
+    expect(
+      within(ajustes.getByRole('radiogroup', { name: /^Voz para / })).getAllByRole('radio')[0].textContent,
+    ).toContain('Automática')
     expect(screen.getByTestId('ajustes-do-narrador').textContent).not.toContain('No Quest a voz é a do site')
     fireEvent.click(within(ajustes.getByRole('group', { name: 'O que narrar' })).getAllByRole('button')[1])
     const aviso = screen.getByTestId('voz-ausente').textContent ?? ''
@@ -819,6 +825,39 @@ describe('A leitura com a voz do navegador: a marcação segue a fala', () => {
     fireEvent.click(principal())
     expect(principal().textContent?.trim()).toBe('Retomar')
     expect(voz.paused).toBe(true)
+  })
+
+  /* O ÚLTIMO do bloco de propósito: as vozes que este teste instala ficam no cache de `tts.ts`. */
+  it('narra com a voz escolhida do idioma, e trocá-la em "Voz, idioma e tom" vale já na frase atual', async () => {
+    const VOZES = [
+      { name: 'Microsoft Aria Online (Natural) - English (United States)', lang: 'en-US', localService: false },
+      { name: 'Microsoft David - English (United States)', lang: 'en-US', localService: true },
+    ]
+    const semVozes = voz.getVoices
+    voz.getVoices = (() => VOZES) as unknown as typeof voz.getVoices
+    try {
+      // A escolha veio de outra tela (o intérprete, os Ajustes): o narrador a usa sem ninguém abrir o seletor.
+      localStorage.setItem('babel_voice_prefs', JSON.stringify({ en: VOZES[1].name }))
+      const { narrador } = await narrar()
+      expect(ultima().text).toBe(FALAS[0].sourceText)
+      expect(ultima().voice).toMatchObject({ name: VOZES[1].name })
+
+      fireEvent.click(narrador().getByRole('button', { name: /Voz, idioma e tom/ }))
+      const ajustes = within(screen.getByTestId('ajustes-do-narrador'))
+      expect(ajustes.getByRole('radio', { name: /David/ }).getAttribute('aria-checked')).toBe('true')
+      await act(async () => void fireEvent.click(ajustes.getByRole('radio', { name: /Aria/ })))
+      // A frase atual é relida com a voz nova; a narração não volta ao começo nem perde o lugar.
+      expect(ultima().text).toBe(FALAS[0].sourceText)
+      expect(ultima().voice).toMatchObject({ name: VOZES[0].name })
+      expect(JSON.parse(localStorage.getItem('babel_voice_prefs')!)).toEqual({ en: VOZES[0].name })
+
+      // "Automática": a melhor voz do idioma (a natural), e a escolha some.
+      await act(async () => void fireEvent.click(ajustes.getByRole('radio', { name: /Automática/ })))
+      expect(ultima().voice).toMatchObject({ name: VOZES[0].name })
+      expect(JSON.parse(localStorage.getItem('babel_voice_prefs')!)).toEqual({})
+    } finally {
+      voz.getVoices = semVozes
+    }
   })
 })
 

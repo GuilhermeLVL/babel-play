@@ -11,6 +11,7 @@ import {
   pedirConversa,
   tremer,
 } from '../../../../lib/polimento/interprete';
+import { ladosDaVoz } from '../../../../lib/voz/catalogoDeVozes';
 import {
   aoMudarIdiomasDaVozDoQuest,
   atualizarIdiomasDaVozDoQuest,
@@ -202,6 +203,7 @@ export default function PaginaDoInterprete({
             : {})}
           lista={{ aberta: lista, bolhas: [], aoAlternar: () => setLista((v) => !v), aoExportar: () => undefined }}
           voz={{ rotulo: rotuloDaVoz, natural: false, muda: mudos.length === 2 }}
+          vozes={semVoz ? undefined : { lados: ladosDaVoz(idiomas) }}
           aviso={
             !possivel
               ? t('Escolha dois idiomas diferentes: um para você, outro para a outra pessoa.')

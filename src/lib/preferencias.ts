@@ -67,6 +67,12 @@ export interface Preferencias {
    * (quem decide é o servidor); `lib/traducao/preferenciasDaNuance.ts` diz o que vai no pedido.
    */
   nuance: PreferenciasDaNuance;
+  /**
+   * A VOZ ESCOLHIDA POR IDIOMA (chave: código base, `en`, `pt`…; valor: o nome da voz do aparelho, ou
+   * `@nuvem` para a voz natural). Idioma ausente = automática. `null` = esta conta nunca guardou
+   * vozes: aí valem as do aparelho (`babel_voice_prefs`, `lib/voz/preferenciaDeVoz.ts`).
+   */
+  vozes: Record<string, string> | null;
 }
 
 export type RegistroPadrao = 'automatico' | 'formal' | 'informal';
@@ -100,6 +106,7 @@ export const PADRAO: Preferencias = {
   formatoDaCopia: 'json',
   micEscolhido: false,
   nuance: { registro: 'automatico', variantes: { pt: 'pt-BR', es: 'es-419' } },
+  vozes: null,
 };
 
 const ESPELHO = 'babel.preferencias';
@@ -122,7 +129,19 @@ export function normalizar(bruto: unknown): Preferencias {
     formatoDaCopia: p.formatoDaCopia === 'csv' ? 'csv' : 'json',
     micEscolhido: p.micEscolhido === true,
     nuance: normalizarNuance(p.nuance),
+    vozes: normalizarVozes(p.vozes),
   };
+}
+
+/** As vozes guardadas: só pares de texto, com a chave no código base. O que não é objeto vira `null`. */
+function normalizarVozes(bruto: unknown): Record<string, string> | null {
+  if (!bruto || typeof bruto !== 'object' || Array.isArray(bruto)) return null;
+  const vozes: Record<string, string> = {};
+  for (const [idioma, voz] of Object.entries(bruto as Record<string, unknown>)) {
+    const base = idioma.toLowerCase().split(/[-_]/)[0];
+    if (base && typeof voz === 'string' && voz.trim()) vozes[base] = voz.slice(0, 200);
+  }
+  return vozes;
 }
 
 /** A Nuance guardada, com o que não é valor conhecido caindo no padrão (versão antiga, blob editado). */
@@ -214,6 +233,14 @@ export function mudarConsentimento(chave: Consentimento, valor: boolean): Promis
     consentimentos: { ...p.consentimentos, [chave]: valor },
     registroDeConsentimentos: [...p.registroDeConsentimentos, { chave, valor, em: Date.now() }],
   }));
+}
+
+/** Avisa a cada mudança das preferências (carga do servidor, gravação, volta atrás). Devolve o cancelamento. */
+export function aoMudarPreferencias(cb: (p: Preferencias) => void): () => void {
+  inscritos.add(cb);
+  return () => {
+    inscritos.delete(cb);
+  };
 }
 
 export function usePreferencias(): Preferencias {

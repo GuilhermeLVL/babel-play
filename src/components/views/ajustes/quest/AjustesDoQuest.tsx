@@ -27,6 +27,7 @@ import LangAudit from '../../LangAudit';
 import AbaConta from '../AbaConta';
 import AbaNotificacoes from '../AbaNotificacoes';
 import AbaPrivacidade from '../AbaPrivacidade';
+import PainelDaVoz from '../PainelDaVoz';
 import AbasDoQuest, { type AbaDoQuest } from './AbasDoQuest';
 import { provarComSom, rotuloDaVibracao, textoDaProva } from './vibracao';
 
@@ -218,6 +219,9 @@ export default function AjustesDoQuest({
             </div>
           </div>
         </section>
+
+        {/* A VOZ de cada idioma que a pessoa usa: a mesma escolha da Leitura e do intérprete. */}
+        <PainelDaVoz estudando={idiomas.studying} meu={idiomas.mine} />
 
         {/* O convite ao Premium é promocional: o perfil protegido não o recebe. */}
         {/* A espera é `.q-aju-espera`, não `.q-esqueleto`: esta diz à camada de movimento que a TELA ainda

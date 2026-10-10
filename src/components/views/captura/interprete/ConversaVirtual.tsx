@@ -20,7 +20,9 @@ import { t } from '../../../../lib/i18n';
 import { langLabel, toBcp47 } from '../../../../lib/languages';
 import { mudarEstadoDaTela } from '../../../../lib/polimento/interprete';
 import { nativeTts } from '../../../../lib/tts';
+import { ladosDaVoz } from '../../../../lib/voz/catalogoDeVozes';
 import { criarFilaDeFala, type FilaDeFala } from '../../../../lib/voz/filaDeFala';
+import { criarMotorPorPreferencia } from '../../../../lib/voz/motorPorPreferencia';
 import { criarVozDaNuvem, destravarVozDaNuvem, type VozDaNuvem } from '../../../../lib/voz/vozDaNuvem';
 import ConversaDoPrototipo, { type FraseDaMetade, type MetadeDaConversa } from './ConversaDoPrototipo';
 import FolhaDeEdicao from './FolhaDeEdicao';
@@ -117,7 +119,8 @@ export default function ConversaVirtual({
   const filaRef = useRef<FilaDeFala | null>(null);
   const vozRef = useRef<VozDaNuvem | null>(null);
   useEffect(() => {
-    const voz = vozNaturalDisponivel ? criarVozDaNuvem() : null;
+    /* A voz escolhida do idioma manda: a do aparelho, se a pessoa escolheu uma; senão a nuvem. */
+    const voz = vozNaturalDisponivel ? criarMotorPorPreferencia({ nuvem: criarVozDaNuvem() }) : null;
     vozRef.current = voz;
     const velocidadeInicial = velocidadeRef.current;
     const fila = criarFilaDeFala({
@@ -388,6 +391,7 @@ export default function ConversaVirtual({
         natural: lerEmVozAlta && vozNatural,
         muda: !lerEmVozAlta,
       }}
+      vozes={{ lados: ladosDaVoz(idiomas) }}
       aviso={aviso ?? ''}
       aoTrocarLados={() => setTrocados((v) => !v)}
       aoRepetir={() => {

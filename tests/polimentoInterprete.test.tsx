@@ -7,9 +7,13 @@
  *   - os números do movimento são os do protótipo (`telas2.js:258-279, 569-582`);
  *   - o automático com cadeado avisa, treme e oferece os Planos; o X volta à origem.
  */
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
+
+prepararDialogoNoJsdom()
 
 /** O aparelho do teste: celular (frente a frente) por padrão; os testes do monitor ligam o computador. */
 const aparelho = vi.hoisted(() => ({ computador: false }))
@@ -215,6 +219,27 @@ describe('a tela pronta (o Intérprete abre direto na conversa)', () => {
     expect(screen.getByTestId('interprete-conversa').textContent).toContain(
       'A conversa aparece aqui conforme vocês falam.',
     )
+  })
+
+  it('a pílula da voz é o botão que abre a folha das vozes, uma lista por lado da conversa', () => {
+    pagina()
+    const pilula = screen.getByTestId('voz-em-uso')
+    expect(pilula.tagName).toBe('BUTTON')
+    // O nome da voz em uso continua no `title` (o e2e lê dali); o leitor de tela ouve também a ação.
+    expect(pilula.getAttribute('title')).toBe('Voz do aparelho')
+    expect(pilula.getAttribute('aria-label')).toBe('Voz do aparelho. Escolher a voz')
+    expect(screen.queryByTestId('folha-das-vozes')).toBeNull()
+    fireEvent.click(pilula)
+    const folha = within(screen.getByTestId('folha-das-vozes'))
+    expect(folha.getByRole('radiogroup', { name: 'Voz para português' })).toBeTruthy()
+    expect(folha.getByRole('radiogroup', { name: 'Voz para inglês' })).toBeTruthy()
+    fireEvent.click(folha.getByRole('button', { name: 'Pronto' }))
+    expect(screen.queryByTestId('folha-das-vozes')).toBeNull()
+  })
+
+  it('no aparelho sem voz própria não há voz a escolher: a pílula é só um rótulo', () => {
+    pagina({ semVoz: true })
+    expect(screen.getByTestId('voz-em-uso').tagName).toBe('SPAN')
   })
 })
 

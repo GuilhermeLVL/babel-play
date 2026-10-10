@@ -18,6 +18,8 @@ import { langLabel } from '../../../../lib/languages';
 import { estadoDaTela, mudarEstadoDaTela, tomarPedidoDaConversa, tremer } from '../../../../lib/polimento/interprete';
 import { nativeTts, type TtsEngine } from '../../../../lib/tts';
 import { aquecerInterprete } from '../../../../lib/voz/aquecimentoDoInterprete';
+import { ladosDaVoz } from '../../../../lib/voz/catalogoDeVozes';
+import { criarMotorPorPreferencia } from '../../../../lib/voz/motorPorPreferencia';
 import { tempoAteAVoz } from '../../../../lib/voz/tempoAteAVoz';
 import { criarVozDaNuvem, destravarVozDaNuvem, type VozDaNuvem } from '../../../../lib/voz/vozDaNuvem';
 import {
@@ -170,7 +172,13 @@ export default function ModoInterprete({
   const mudo = (idioma: string) => semVoz && !(comVozDoSite && vozDoQuestFala(idioma));
 
   useEffect(() => {
-    const voz = comVozDoSite ? criarVozDoQuest() : vozNaturalDisponivel ? criarVozDaNuvem() : null;
+    /* Com a voz natural, cada fala pergunta pela voz escolhida do idioma dela: a do aparelho, se a
+       pessoa escolheu uma; senão a nuvem (`motorPorPreferencia.ts`). */
+    const voz = comVozDoSite
+      ? criarVozDoQuest()
+      : vozNaturalDisponivel
+        ? criarMotorPorPreferencia({ nuvem: criarVozDaNuvem() })
+        : null;
     const velocidadeInicial = velocidadeRef.current;
     const controle = criarControleDoInterprete({
       idiomas: () => idiomasRef.current,
@@ -485,6 +493,7 @@ export default function ModoInterprete({
         },
       }}
       voz={{ rotulo: rotuloDaVoz, natural: vozNatural, muda: mudos.length === 2 }}
+      vozes={semVoz ? undefined : { lados: ladosDaVoz(idiomas) }}
       aviso={
         aviso ??
         (avisoDoCadeado

@@ -293,6 +293,25 @@ export function setVoicePref(lang: string, voiceName: string): void {
   }
 }
 
+/**
+ * Troca o mapa INTEIRO das vozes preferidas: a conta chegou com as escolhas feitas em outro aparelho
+ * (`lib/voz/preferenciaDeVoz.ts`). Uma voz que não existe aqui fica guardada e o `pickVoice()` cai na
+ * automática — ela volta a valer no aparelho que a tem.
+ */
+export function setVoicePrefs(prefs: Record<string, string>): void {
+  const limpo: Record<string, string> = {};
+  for (const [lang, voz] of Object.entries(prefs)) {
+    const base = lang.toLowerCase().split('-')[0];
+    if (base && voz) limpo[base] = voz;
+  }
+  try {
+    localStorage.setItem(VOICE_PREFS_KEY, JSON.stringify(limpo));
+    window.dispatchEvent(new CustomEvent('babel_voice_prefs_changed', { detail: limpo }));
+  } catch {
+    /* storage cheio/bloqueado: a fala segue com a automática */
+  }
+}
+
 /** Escuta mudanças na preferência de voz. Devolve o unsubscribe. */
 export function onVoicePrefsChange(cb: (prefs: Record<string, string>) => void): () => void {
   const handler = (e: Event) => cb((e as CustomEvent).detail ?? readPrefs());

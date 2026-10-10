@@ -1,0 +1,86 @@
+/*
+ * O SELETOR DE VOZ (`components/voz/SeletorDeVoz.tsx`).
+ *
+ * Sem peça nova: a lista é a `.q-seletor-lista` do seletor de idioma, cada voz é uma `.q-opcao` e a
+ * amostra é um `.q-ctl` (`questAjustes.css`, `quest.css`). Aqui fica só o ENCAIXE: uma coluna em vez
+ * de várias, a opção com o botão de ouvir ao lado e o texto em duas linhas (o nome e a variante).
+ */
+.voz-seletor {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+/* Numa linha de ajuste (a Leitura), a lista ocupa a largura toda, abaixo do nome do ajuste, e NÃO
+   rola por conta própria: quem rola é o corpo do diálogo. Uma lista rolável dentro de um corpo de
+   altura limitada encolhia até sumir (a área de rolagem não tem altura mínima). */
+.q-ajuste > .voz-seletor {
+  flex: 1 1 100%;
+}
+.q-ajuste > .voz-seletor .voz-lista {
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+}
+.voz-lista {
+  grid-template-columns: minmax(0, 1fr);
+}
+.voz-linha {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 0;
+}
+.voz-linha > .q-opcao {
+  flex: 1;
+  padding-block: 8px;
+}
+/* A opção é um `radio`: a escolhida tem o mesmo desenho da `.q-opcao[aria-selected]`. */
+.voz-linha > .q-opcao[aria-checked='true'] {
+  background: var(--q-suave);
+  border-color: var(--q-acento);
+}
+.q-opcao > .voz-texto {
+  display: grid;
+  gap: 2px;
+  white-space: normal;
+}
+.voz-texto > b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: inherit;
+}
+.voz-texto > small {
+  font: 600 14px/1.3 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.q-opcao > .q-tag {
+  flex: none;
+}
+.voz-linha > .q-ctl {
+  flex: none;
+  align-self: center;
+  padding: 0;
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+
+/* Na folha do intérprete cada lado tem a própria lista; as duas rolam DENTRO da folha. */
+.voz-lados {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.voz-lado {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.voz-lados .voz-lista {
+  max-height: min(30vh, 300px);
+}
+@media (max-height: 560px) {
+  .voz-lados .voz-lista {
+    max-height: 26vh;
+  }
+}

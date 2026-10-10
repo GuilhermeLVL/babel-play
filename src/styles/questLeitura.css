@@ -186,10 +186,7 @@ html[data-quest-novo='true'] .ql-nota .q-ctl {
 }
 
 /* ── VOZ, IDIOMA E TOM (diálogo) ──────────────────────────────────────────────────────────────── */
-html[data-quest-novo='true'] select.ql-voz {
-  flex: 1 1 260px;
-  width: auto;
-}
+/* A lista de vozes é o seletor comum (`components/voz/SeletorDeVoz.tsx`, `seletorDeVoz.css`). */
 html[data-quest-novo='true'] .ql-tom {
   flex: 0 1 260px;
   accent-color: var(--q-acento);

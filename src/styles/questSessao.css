@@ -488,9 +488,20 @@ html[data-quest-novo='true'] dialog .sombra {
 html[data-quest-novo='true'] .qs-ajustes {
   display: grid;
   gap: 12px;
+  /* Cada linha tem a altura do que contém. Sem isto, num diálogo mais alto que a janela as linhas
+     (que têm `min-height` fixo) encolhiam até o mínimo e o conteúdo de uma passava por cima da outra,
+     em vez de o corpo rolar: a lista de vozes da Leitura sumia atrás do "Tom". */
+  grid-auto-rows: max-content;
 }
 html[data-quest-novo='true'] .qs-ajustes .q-ajuste > :first-child {
   flex: 1 1 180px;
+}
+/* Janela estreita: a linha de ajuste de um diálogo empilha (`polimento/paineis.css`), e a base de
+   180 px, que era LARGURA, passaria a valer como altura. Empilhada, cada parte tem a altura do que contém. */
+@media (max-width: 720px) {
+  html[data-quest-novo='true'] dialog .qs-ajustes .q-ajuste > :is(*, :first-child) {
+    flex: 0 0 auto;
+  }
 }
 html[data-quest-novo='true'] .qs-ajustes .q-abas {
   flex-wrap: wrap;

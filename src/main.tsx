@@ -44,6 +44,9 @@ marcarQuestNovoNoDocumento();
 if (document.documentElement.dataset.semVoz === 'true') {
   void import('./lib/voz/haVoz').then((m) => m.instalarVozDoSite());
 }
+// A voz escolhida por idioma acompanha a conta: quando as preferências chegam com vozes guardadas (em
+// outro aparelho), elas passam a valer aqui para tudo que fala. Só escuta; não pede nada ao servidor.
+void import('./lib/voz/preferenciaDeVoz').then((m) => m.ligarVozesAConta());
 // E4 — erro de runtime do navegador deixou de morrer no console: window.onerror e
 // unhandledrejection reportam ao diário do servidor (só erro; nenhum dado do usuário).
 instalarRelatorioDeErros();

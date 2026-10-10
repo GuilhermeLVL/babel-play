@@ -1,0 +1,47 @@
+{
+  "plano": "free",
+  "janela": "2026-10",
+  "chamadas": {
+    "usado": 7,
+    "teto": 0
+  },
+  "segundosDeAudio": {
+    "usado": 0,
+    "teto": 0
+  },
+  "porNivel": {
+    "trechos": {
+      "usado": 0,
+      "teto": 0,
+      "restante": 0
+    },
+    "aovivo": {
+      "usado": 0,
+      "teto": 0,
+      "restante": 0
+    }
+  },
+  "tokensDeLlm": {
+    "usado": 0,
+    "teto": 0
+  },
+  "iaDeNuvem": {
+    "disponivel": true,
+    "motivo": null,
+    "mensagem": null
+  },
+  "alivio": {
+    "disponivel": false,
+    "motivo": "alivio_desligado",
+    "restanteSegundos": 0,
+    "segundosDeAudio": {
+      "usado": 0,
+      "teto": 10800
+    },
+    "tokensDeLlm": {
+      "usado": 0,
+      "teto": 540000
+    }
+  },
+  "hoje": null
+}

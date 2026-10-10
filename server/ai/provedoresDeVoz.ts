@@ -25,6 +25,7 @@
  * tem: vai sem campo de voz nenhum), e a rota recusa o pedido que traga um campo de clonagem
  * (`ttsProxy.ts`). O teste `sem clonagem` cobre as três camadas.
  */
+import { comTempoLimite } from './cancelamento'
 import { pernasDaFuncao, type Provedor } from './registroDeProvedores'
 import { despachanteSeguro, type InitSeguro } from './ssrf'
 
@@ -269,7 +270,12 @@ export function corpoDoPedidoDeVoz(perna: Pick<Provedor, 'model' | 'formato'>, p
  * 'manual'` e o `despachanteSeguro` (IP conferido na CONEXÃO), como o STT. A chave vai no cabeçalho —
  * `Bearer` no formato OpenAI, `X-Goog-Api-Key` no Google — e nunca na URL.
  */
-export function montarPedidoDeVoz(perna: Provedor, pedido: PedidoDeVoz): { url: string; init: InitSeguro } {
+export function montarPedidoDeVoz(
+  perna: Provedor,
+  pedido: PedidoDeVoz,
+  /** Quem pediu desistiu (`cancelamento.ts`): aborta a tentativa junto com o relógio dela. */
+  sinal?: AbortSignal,
+): { url: string; init: InitSeguro } {
   const url = endpointDaVoz(perna)
   if (!url) throw new Error(`perna de voz sem endpoint conhecido (${perna.formato ?? 'openai'})`)
   const formato = perna.formato === 'google-tts' ? 'google-tts' : 'openai'
@@ -285,7 +291,7 @@ export function montarPedidoDeVoz(perna: Provedor, pedido: PedidoDeVoz): { url: 
       method: 'POST',
       headers: { ...autorizacao, 'Content-Type': 'application/json' },
       body: JSON.stringify(corpo),
-      signal: AbortSignal.timeout(TIMEOUT_DA_VOZ_MS),
+      signal: comTempoLimite(TIMEOUT_DA_VOZ_MS, sinal),
       redirect: 'manual',
       dispatcher: despachanteSeguro,
     } as InitSeguro,

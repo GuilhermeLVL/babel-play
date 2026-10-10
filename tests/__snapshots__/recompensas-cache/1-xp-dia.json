@@ -1,0 +1,269 @@
+{
+  "pontos": [
+    {
+      "em": 1786503600000,
+      "xpNoPeriodo": 28,
+      "xpAcumulado": 28,
+      "nivel": 1
+    },
+    {
+      "em": 1786590000000,
+      "xpNoPeriodo": 13,
+      "xpAcumulado": 41,
+      "nivel": 1
+    },
+    {
+      "em": 1786676400000,
+      "xpNoPeriodo": 31,
+      "xpAcumulado": 72,
+      "nivel": 1
+    },
+    {
+      "em": 1786762800000,
+      "xpNoPeriodo": 15,
+      "xpAcumulado": 87,
+      "nivel": 1
+    },
+    {
+      "em": 1786849200000,
+      "xpNoPeriodo": 29,
+      "xpAcumulado": 116,
+      "nivel": 2
+    },
+    {
+      "em": 1786935600000,
+      "xpNoPeriodo": 6,
+      "xpAcumulado": 122,
+      "nivel": 2
+    },
+    {
+      "em": 1787022000000,
+      "xpNoPeriodo": 22,
+      "xpAcumulado": 144,
+      "nivel": 2
+    },
+    {
+      "em": 1787108400000,
+      "xpNoPeriodo": 20,
+      "xpAcumulado": 164,
+      "nivel": 2
+    },
+    {
+      "em": 1787194800000,
+      "xpNoPeriodo": 8,
+      "xpAcumulado": 172,
+      "nivel": 2
+    },
+    {
+      "em": 1787281200000,
+      "xpNoPeriodo": 6,
+      "xpAcumulado": 178,
+      "nivel": 2
+    },
+    {
+      "em": 1787367600000,
+      "xpNoPeriodo": 25,
+      "xpAcumulado": 203,
+      "nivel": 2
+    },
+    {
+      "em": 1787454000000,
+      "xpNoPeriodo": 24,
+      "xpAcumulado": 227,
+      "nivel": 2
+    },
+    {
+      "em": 1787540400000,
+      "xpNoPeriodo": 24,
+      "xpAcumulado": 251,
+      "nivel": 2
+    },
+    {
+      "em": 1787626800000,
+      "xpNoPeriodo": 10,
+      "xpAcumulado": 261,
+      "nivel": 2
+    },
+    {
+      "em": 1787713200000,
+      "xpNoPeriodo": 18,
+      "xpAcumulado": 279,
+      "nivel": 2
+    },
+    {
+      "em": 1787799600000,
+      "xpNoPeriodo": 26,
+      "xpAcumulado": 305,
+      "nivel": 3
+    },
+    {
+      "em": 1787886000000,
+      "xpNoPeriodo": 18,
+      "xpAcumulado": 323,
+      "nivel": 3
+    },
+    {
+      "em": 1787972400000,
+      "xpNoPeriodo": 22,
+      "xpAcumulado": 345,
+      "nivel": 3
+    },
+    {
+      "em": 1788058800000,
+      "xpNoPeriodo": 41,
+      "xpAcumulado": 386,
+      "nivel": 3
+    },
+    {
+      "em": 1788145200000,
+      "xpNoPeriodo": 19,
+      "xpAcumulado": 405,
+      "nivel": 3
+    },
+    {
+      "em": 1788231600000,
+      "xpNoPeriodo": 30,
+      "xpAcumulado": 435,
+      "nivel": 3
+    },
+    {
+      "em": 1788318000000,
+      "xpNoPeriodo": 37,
+      "xpAcumulado": 472,
+      "nivel": 3
+    },
+    {
+      "em": 1788404400000,
+      "xpNoPeriodo": 47,
+      "xpAcumulado": 519,
+      "nivel": 3
+    },
+    {
+      "em": 1788490800000,
+      "xpNoPeriodo": 58,
+      "xpAcumulado": 577,
+      "nivel": 3
+    },
+    {
+      "em": 1788577200000,
+      "xpNoPeriodo": 32,
+      "xpAcumulado": 609,
+      "nivel": 4
+    },
+    {
+      "em": 1788663600000,
+      "xpNoPeriodo": 30,
+      "xpAcumulado": 639,
+      "nivel": 4
+    },
+    {
+      "em": 1788750000000,
+      "xpNoPeriodo": 16,
+      "xpAcumulado": 655,
+      "nivel": 4
+    },
+    {
+      "em": 1788836400000,
+      "xpNoPeriodo": 44,
+      "xpAcumulado": 699,
+      "nivel": 4
+    },
+    {
+      "em": 1788922800000,
+      "xpNoPeriodo": 61,
+      "xpAcumulado": 760,
+      "nivel": 4
+    },
+    {
+      "em": 1789009200000,
+      "xpNoPeriodo": 48,
+      "xpAcumulado": 808,
+      "nivel": 4
+    },
+    {
+      "em": 1789095600000,
+      "xpNoPeriodo": 66,
+      "xpAcumulado": 874,
+      "nivel": 4
+    },
+    {
+      "em": 1789182000000,
+      "xpNoPeriodo": 22,
+      "xpAcumulado": 896,
+      "nivel": 4
+    },
+    {
+      "em": 1789268400000,
+      "xpNoPeriodo": 58,
+      "xpAcumulado": 954,
+      "nivel": 4
+    },
+    {
+      "em": 1789354800000,
+      "xpNoPeriodo": 35,
+      "xpAcumulado": 989,
+      "nivel": 4
+    },
+    {
+      "em": 1789441200000,
+      "xpNoPeriodo": 45,
+      "xpAcumulado": 1034,
+      "nivel": 5
+    },
+    {
+      "em": 1789527600000,
+      "xpNoPeriodo": 59,
+      "xpAcumulado": 1093,
+      "nivel": 5
+    },
+    {
+      "em": 1789614000000,
+      "xpNoPeriodo": 100,
+      "xpAcumulado": 1193,
+      "nivel": 5
+    },
+    {
+      "em": 1789700400000,
+      "xpNoPeriodo": 81,
+      "xpAcumulado": 1274,
+      "nivel": 5
+    },
+    {
+      "em": 1789786800000,
+      "xpNoPeriodo": 100,
+      "xpAcumulado": 1374,
+      "nivel": 5
+    },
+    {
+      "em": 1789873200000,
+      "xpNoPeriodo": 88,
+      "xpAcumulado": 1462,
+      "nivel": 5
+    },
+    {
+      "em": 1791169200000,
+      "xpNoPeriodo": 30,
+      "xpAcumulado": 1492,
+      "nivel": 5
+    }
+  ],
+  "marcos": [
+    {
+      "em": 1786849200000,
+      "nivel": 2
+    },
+    {
+      "em": 1787799600000,
+      "nivel": 3
+    },
+    {
+      "em": 1788577200000,
+      "nivel": 4
+    },
+    {
+      "em": 1789441200000,
+      "nivel": 5
+    }
+  ],
+  "xpTotal": 1492
+}

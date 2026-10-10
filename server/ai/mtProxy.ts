@@ -3,6 +3,7 @@ import type { Request, Response } from 'express'
 import { abrirPortaGratuita } from '../lib/convidado'
 import { getEntitlements } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
+import { sinalDoCliente } from './cancelamento'
 import { lerPedidoDeTraducao, type ResultadoDaTraducao, traduzirNoNivel } from './nucleo/traduzirNoNivel'
 import { responderRecusa } from './respostaDoNucleo'
 import { abrirRastro, type RastroDeIa } from './telemetriaDeIa'
@@ -93,6 +94,8 @@ async function traduzir(req: Request, res: Response, rastro: RastroDeIa): Promis
       canal: 'app',
       perfilProtegido: null,
       registrarCusto: (usd) => gratuita.registrarCusto(usd),
+      /* Quem fecha a conexão aborta a chamada ao provedor e recebe a cota de volta (A7). */
+      sinal: sinalDoCliente(res),
     },
     lido.pedido,
     { aoDecidir: (r) => responderTraducao(res, r) },

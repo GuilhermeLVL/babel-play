@@ -27,6 +27,7 @@ import { ehRodadaPerfeita } from '../../../src/core/minigames/grade'
 import { numeroDoDia, ofensivaComCongelamento } from '../../../src/core/missoes'
 import type { UserId } from '../../lib/authContext'
 import { CachePorVersao } from '../../lib/cachePorVersao'
+import { etagPorVersao } from '../../lib/etagPorVersao'
 import { db } from '../db'
 import { lerCompacto } from '../leituraCompacta'
 import { exerciseResults, reviewLogs, sessions, vocabCards } from '../schema'
@@ -662,6 +663,51 @@ export async function computeProfile(userId: UserId, opts: OpcoesDePerfil = {}):
   return montarPerfil(resumo, await lerRazao(userId), now, escopo, fuso)
 }
 
+/** De quanto em quanto tempo o que depende do relógio é dado como "outro perfil" no ETag. */
+const JANELA_DO_ETAG_DO_PERFIL_MS = 60_000
+
+/**
+ * O PERFIL DA CONTA COM ETAG — para `GET /api/metrics/profile` poder responder 304 (auditoria de
+ * desempenho do servidor de 10/10/2026, A11c).
+ *
+ * A rota nunca respondia 304. O ETag do Express é um hash do CORPO, e o corpo muda a cada
+ * milissegundo: `asOf` é o relógio, e a retenção média é função contínua dele. Tirar o `asOf` do
+ * hash não bastaria, e arredondar o relógio mudaria os números que o cliente lê.
+ *
+ * O ETag sai dos INSUMOS, não do corpo: a versão de `atividade` (as cinco tabelas grandes), o fuso
+ * gravado, o razão de moedas e a presença (que não disparam a versão, e por isso entram pelo
+ * conteúdo: são pequenos e já eram lidos a cada chamada) e o MINUTO do relógio. Enquanto os quatro
+ * não mudam, o navegador reaproveita a resposta que já tem; o 304 sai sem ler o resumo nem montar
+ * o perfil, e sem corpo no fio.
+ *
+ * O CORPO DO 200 É O DE ANTES, bit a bit, com o `asOf` do instante do pedido: nada muda no contrato.
+ * O que o 304 aceita: dentro do mesmo minuto, sem nenhuma escrita, o cliente fica com o corpo de
+ * até 60 s atrás. Nesse intervalo só o relógio andou (retenção média na sétima casa, um cartão que
+ * venceu neste minuto). A virada do dia cai em fronteira de minuto em qualquer fuso, então ofensiva
+ * e dias de prática nunca ficam com o dia de ontem.
+ *
+ * A versão é lida ANTES do resumo (ver `CachePorVersao`); o razão, antes também, o que não muda
+ * nada para quem acabou de gravar nele: a leitura é desta mesma requisição.
+ */
+export async function perfilDaContaComEtag(
+  userId: UserId,
+): Promise<{ etag: string; montar: () => Promise<AppMetrics> }> {
+  const now = Date.now()
+  const fuso = await fusoDoPerfil(userId)
+  const { atividade } = await versoesRepo.de(userId)
+  const razao = await lerRazao(userId)
+  const etag = etagPorVersao(
+    'perfil',
+    userId,
+    atividade,
+    JSON.stringify([fuso, razao, Math.floor(now / JANELA_DO_ETAG_DO_PERFIL_MS)]),
+  )
+  return {
+    etag,
+    montar: async () => montarPerfil(await resumoDaConta(userId, fuso, atividade), razao, now, 'global', fuso),
+  }
+}
+
 /** O fuso gravado do usuário (só leitura), ou o padrão — `decidirFuso` é de quem grava. */
 async function fusoDoPerfil(userId: UserId): Promise<string> {
   const { fuso } = await estadoDaContaRepo.fusoGravado(userId)
@@ -669,10 +715,11 @@ async function fusoDoPerfil(userId: UserId): Promise<string> {
 }
 
 /** O resumo da conta inteira, do cache quando a versão de `atividade` (e o fuso) não mudou. */
-async function resumoDaConta(userId: UserId, fuso: string): Promise<ResumoDaAtividade> {
+async function resumoDaConta(userId: UserId, fuso: string, atividadeJaLida?: number): Promise<ResumoDaAtividade> {
   // A versão ANTES das linhas — ver `CachePorVersao` para o porquê da ordem. O fuso entra na
-  // chave: os dias de prática do resumo são contados nele.
-  const versao = `${(await versoesRepo.de(userId)).atividade}|${fuso}`
+  // chave: os dias de prática do resumo são contados nele. Quem já leu a versão NESTA requisição,
+  // antes de qualquer linha (`perfilDaContaComEtag`), a entrega e poupa a segunda consulta.
+  const versao = `${atividadeJaLida ?? (await versoesRepo.de(userId)).atividade}|${fuso}`
   let resumo = resumosDaConta.obter(userId, versao)
   if (!resumo) {
     resumo = resumirAtividade(await lerAtividade(userId), null, fuso)
@@ -764,10 +811,31 @@ export async function computeXpHistory(
 }
 
 /**
+ * AS LINHAS DA CURVA DE XP, por usuário e versão de `atividade` (auditoria de desempenho do
+ * servidor de 10/10/2026, achado A1).
+ *
+ * `GET /api/metrics/xp` e `/temporada` liam todas as sessões, revisões e exercícios da conta a
+ * cada chamada (medido: 52 a 67 ms com 5.000 + 5.000 linhas). As quatro tabelas lidas (`sessions`,
+ * `vocab_cards`, `review_logs`, `exercise_results`) têm os três gatilhos da migração 0032, que
+ * sobem `atividade` em toda escrita, então a entrada deixa de casar sozinha.
+ *
+ * O que fica guardado são as linhas com carimbo. O que depende do relógio (qual é a temporada em
+ * curso, a janela dela) e do pedido (balde, `desde`) é calculado a cada chamada pelas funções do
+ * core, fora do cache. O objeto é compartilhado entre requisições: quem o recebe só lê.
+ *
+ * Tetos: 256 usuários e ~16 MB, contando ~64 bytes por evento (10.000 eventos pesam ~640 KB).
+ */
+const linhasDeXpDaConta = new CachePorVersao<LinhasDoHistorico>(256, 16 * 1024 * 1024)
+
+/**
  * As linhas com carimbo que a curva de XP soma — também o que a TEMPORADA soma, só que dentro da
  * janela dela (`xpDeTemporada`, do core). Uma leitura, dois leitores.
  */
 export async function linhasDoHistoricoDeXp(userId: UserId): Promise<LinhasDoHistorico> {
+  // A versão ANTES das linhas — ver `CachePorVersao` para o porquê da ordem.
+  const versao = String((await versoesRepo.de(userId)).atividade)
+  const guardadas = linhasDeXpDaConta.obter(userId, versao)
+  if (guardadas) return guardadas
   const [sess, salvas, logs, drills] = await Promise.all([
     db
       .select({ id: sessions.id, createdAt: sessions.createdAt, wordCount: sessions.wordCount })
@@ -796,7 +864,7 @@ export async function linhasDoHistoricoDeXp(userId: UserId): Promise<LinhasDoHis
       .where(and(eq(exerciseResults.userId, userId), isNull(exerciseResults.deletedAt))),
   ])
 
-  return {
+  const linhas: LinhasDoHistorico = {
     sessoes: sess.map((s) => ({
       em: s.createdAt,
       palavras: s.wordCount ?? 0,
@@ -809,6 +877,13 @@ export async function linhasDoHistoricoDeXp(userId: UserId): Promise<LinhasDoHis
       .filter((d) => d.kind === 'drill')
       .map((d) => ({ em: d.createdAt, certo: (d.correct ?? 0) > 0 })),
   }
+  linhasDeXpDaConta.guardar(
+    userId,
+    versao,
+    linhas,
+    256 + 64 * (linhas.sessoes.length + linhas.revisoes.length + linhas.itensDeJogo.length),
+  )
+  return linhas
 }
 
 /**

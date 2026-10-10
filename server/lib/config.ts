@@ -449,6 +449,20 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'só diagnóstico: identifica a instância que registrou uma falha de boot',
   },
   {
+    nome: 'HTTP_KEEP_ALIVE_TIMEOUT_MS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'quanto o servidor HTTP mantem um socket ocioso, em ms (padrao 65.000: acima dos 60 s do proxy do Fly, para quem fecha a conexao parada ser o proxy). O tempo dos cabecalhos e derivado: este valor + 1 s. Ver server/http/temposLimite.ts',
+  },
+  {
+    nome: 'HTTP_REQUEST_TIMEOUT_MS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'teto em ms para o pedido INTEIRO (cabecalhos e corpo) chegar (padrao 300.000, o do Node); nao mede a resposta, entao SSE e transcricao longa nao sao cortados. Baixar corta upload em rede lenta',
+  },
+  {
     nome: 'IA_ADMISSAO_LLM_RPD',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',

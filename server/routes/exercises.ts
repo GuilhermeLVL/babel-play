@@ -2,8 +2,10 @@
 import { Router } from 'express'
 
 import { exerciseResultsRepo } from '../db/repositories/exerciseResults'
+import { versoesRepo } from '../db/repositories/versoes'
 import { vocabRepo } from '../db/repositories/vocab'
 import { erroDeRota } from '../lib/erroDeRota'
+import { casaComIfNoneMatch, etagPorVersao } from '../lib/etagPorVersao'
 import {
   exerciseResultsQuerySchema,
   historicoQuerySchema,
@@ -18,10 +20,27 @@ export const exercisesRouter = Router()
  * O que já apareceu, agregado por item. É a leitura que faltava para a interface poder dizer
  * o que vem, repetir uma rodada e não repetir o que a pessoa já acertou.
  * Filtros opcionais: `?origem=baralho&desde=<epoch-ms>`.
+ *
+ * ETAG PELA VERSÃO (auditoria de desempenho do servidor de 10/10/2026, achado A1). A rota roda em
+ * toda abertura de Jogar e a cada fim de rodada, e o ETag do Express (hash do corpo) fazia o 304
+ * custar o mesmo que o 200: 173 ms medidos com 5.000 linhas, para descobrir que nada mudou. A
+ * resposta só depende de `exercise_results`, cujos gatilhos sobem `atividade`; com o ETag saindo
+ * dela, o 304 custa uma consulta de chave primária. A fonte pedida entra no ETag. Com `desde` o
+ * caminho é o de antes (ver `historicosPorItem`, no repositório, para o porquê).
  */
 exercisesRouter.get('/historico', async (req, res) => {
   const q = parseOr400(historicoQuerySchema, req.query, res)
   if (!q) return
+  if (typeof q.desde !== 'number') {
+    // A versão ANTES do histórico — ver `CachePorVersao` para o porquê da ordem.
+    const { atividade } = await versoesRepo.de(req.userId)
+    const etag = etagPorVersao('historico', req.userId, atividade, q.origem ? `origem:${q.origem}` : '')
+    res.setHeader('ETag', etag)
+    if (casaComIfNoneMatch(req.headers['if-none-match'], etag)) {
+      res.status(304).end()
+      return
+    }
+  }
   res.json(await exerciseResultsRepo.listarHistoricoPorItem(req.userId, q))
 })
 
@@ -90,16 +109,14 @@ exercisesRouter.post('/rodada', async (req, res) => {
       })
     }
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        error: erroDeRota(err, {
-          status: 400,
-          event: 'exercises_route_error',
-          route: req.path,
-          requestId: req.requestId,
-        }),
-      })
+    res.status(400).json({
+      error: erroDeRota(err, {
+        status: 400,
+        event: 'exercises_route_error',
+        route: req.path,
+        requestId: req.requestId,
+      }),
+    })
   }
 })
 

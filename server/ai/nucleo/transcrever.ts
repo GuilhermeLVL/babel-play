@@ -35,6 +35,7 @@ import {
 } from '../../lib/usageQuota'
 import { parseOuMotivo, sttHeadersSchema } from '../../validation'
 import { planoDeAdmissao } from '../admissao'
+import { clienteDesistiu, recusaCancelada } from '../cancelamento'
 import {
   type AdmissaoDoStt,
   admitirStt,
@@ -148,7 +149,10 @@ export interface TranscricaoEntregue {
 export type ResultadoDaTranscricao = TranscricaoEntregue | RecusaDeIa
 
 /** Quem transcreve: o BYOK não resolve plano, então a transcrição só precisa de identidade e rastro. */
-export type QuemTranscreve = Pick<ContextoDeIa, 'userId' | 'requestId' | 'rastro' | 'canal' | 'perfilProtegido'>
+export type QuemTranscreve = Pick<
+  ContextoDeIa,
+  'userId' | 'requestId' | 'rastro' | 'canal' | 'perfilProtegido' | 'sinal'
+>
 
 export async function transcrever(
   ctx: QuemTranscreve,
@@ -211,6 +215,8 @@ async function transcreverComAPorta(
          reserva de propósito: recusa não toca contador, então não há o que estornar. */
       const avaliacao = avaliarAudioFaturavel(audioBuffer)
       if (avaliacao.ok === false) return decidir(recusaDeErro(avaliacao.status, avaliacao.error, avaliacao.code))
+      /* Quem pediu já foi embora (`cancelamento.ts`): nem reserva. */
+      if (clienteDesistiu(ctx.sinal)) return decidir(recusaCancelada())
       // Fair-use: RESERVA antes de chamar o provedor (P0-1 — conferir antes e contabilizar
       // depois deixava N requisições simultâneas passarem pelo mesmo teto). BYOK/local não
       // chegam aqui, então só o uso da chave do DONO consome quota.
@@ -287,11 +293,18 @@ async function transcreverComAPorta(
     const resultado = await percorrerCascataDeStt(
       pernas,
       { audio: audioBuffer, idioma: lang, prompt },
-      { requestId, rastro, byok: !pagoPeloApp, admissao: gerida?.admissao },
+      { requestId, rastro, byok: !pagoPeloApp, admissao: gerida?.admissao, sinal: ctx.sinal },
     )
 
     if (resultado.ok === false) {
       const falha = resultado.falha
+      /* QUEM PEDIU DESISTIU (auditoria de 10/10/2026, A7): a tentativa foi abortada e nenhuma outra
+         perna foi chamada. A chamada e os segundos reservados voltam no `finally`, como em toda
+         saída sem transcrição. */
+      if (falha.tipo === 'cancelado') {
+        log('info', { event: 'stt_cancelado', route: ROTA, status: 499, requestId })
+        return decidir(recusaCancelada())
+      }
       /* O DISJUNTOR (ADR 0007): com os provedores fora do ar, cada fala pagava 30 s de timeout antes
          de o cliente cair no local. Aberto, a resposta é imediata: 503 com `Retry-After`, e o
          cliente religa a nuvem sozinho depois. */

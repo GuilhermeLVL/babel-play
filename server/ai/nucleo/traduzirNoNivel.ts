@@ -36,6 +36,7 @@ import { portaoDaNuvem, registrarGastoDeIa } from '../../lib/orcamentoDeIa'
 import { estimarTokens } from '../../lib/usageQuota'
 import { planoDeAdmissao } from '../admissao'
 import { cabeNoCache, type ConsultaDeTraducao, guardarTraducao, lerTraducao } from '../cacheDeTraducao'
+import { clienteDesistiu, recusaCancelada } from '../cancelamento'
 import { type AdmissaoDaCascata, admitirCascata, encerrarAdmissao, percorrerCascata } from '../cascata'
 import { FUNCOES_DE_IA, maxTokensDaTraducao } from '../funcoesDeIa'
 import { glossarioDoPedido } from '../glossario'
@@ -316,6 +317,8 @@ async function traduzirAdmitido(
   const { provedores, messages, maxTokens, falada, consulta } = p
   // RESERVA chamada + tokens ANTES do provedor (P0-1: conferir antes e contabilizar depois deixava
   // N requisições simultâneas passarem pelo mesmo teto). A recusa (402/429/503) sai sem nada reservado.
+  /* Quem pediu já foi embora (`cancelamento.ts`): nem reserva. */
+  if (clienteDesistiu(ctx.sinal)) return decidir(recusaCancelada())
   const reserva = await reservarLlm(ctx.userId, p.estimativa, ctx.modo)
   if (!(reserva instanceof ReservaDeLlm)) return decidir(reserva)
 
@@ -323,9 +326,15 @@ async function traduzirAdmitido(
   try {
     /* 12 s: alguém está esperando legenda na tela. Fala pede um pouco de liberdade para escolher a
        expressão natural; texto fica determinístico. */
-    const { entregue, ultimaFalha, limitadoPeloProvedor } = await percorrerCascata(
+    const { entregue, ultimaFalha, limitadoPeloProvedor, cancelado } = await percorrerCascata(
       provedores,
-      { messages, temperature: falada ? 0.2 : TRADUCAO.temperatura, maxTokens, timeoutMs: 12_000 },
+      {
+        messages,
+        temperature: falada ? 0.2 : TRADUCAO.temperatura,
+        maxTokens,
+        timeoutMs: 12_000,
+        sinal: ctx.sinal,
+      },
       {
         evento: 'mt',
         route: ROTA,
@@ -341,6 +350,19 @@ async function traduzirAdmitido(
        a resposta é a mesma do STT — 429 `nuvem_ocupada` com o `Retry-After` que a admissão fixou —,
        e o cliente traduz no local e volta à nuvem sozinho. Antes saía 502 `provedor_indisponivel`,
        contado como erro de servidor no SLO e nos alertas. */
+    /* QUEM PEDIU DESISTIU (auditoria de 10/10/2026, A7): a chamada foi abortada e a reserva não foi
+       tentada. Não é erro do provedor nem vai ao log de erro; a chamada e os tokens voltam no
+       `finally`, como em toda saída sem entrega. */
+    if (!entregue && cancelado) {
+      log('info', {
+        event: 'mt_cancelado',
+        route: ROTA,
+        status: 499,
+        latencyMs: Date.now() - t0,
+        requestId: ctx.requestId,
+      })
+      return decidir(recusaCancelada())
+    }
     if (!entregue && limitadoPeloProvedor) {
       log('warn', {
         event: 'mt_provedor_limitou',

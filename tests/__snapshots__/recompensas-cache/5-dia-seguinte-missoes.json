@@ -1,0 +1,31 @@
+{
+  "dia": "2026-10-06",
+  "missoes": [
+    {
+      "id": "revisar",
+      "tipo": "revisar",
+      "alvo": 10,
+      "atual": 0
+    },
+    {
+      "id": "rodadaBoa",
+      "tipo": "rodadaBoa",
+      "alvo": 2,
+      "atual": 0
+    },
+    {
+      "id": "jogoNovo",
+      "tipo": "jogoNovo",
+      "alvo": 1,
+      "atual": 0
+    }
+  ],
+  "metaConcluida": false,
+  "metaCreditada": false,
+  "recompensa": {
+    "seeds": 15,
+    "xp": 20
+  },
+  "ofensiva": 1,
+  "congelamentos": 0
+}

@@ -24,6 +24,7 @@
  * quebrou. O resultado carrega a causa em texto, que é o que vai para o log e para a decisão.
  */
 import { segundosDoRetryAfter } from './admissao'
+import { clienteDesistiu, comTempoLimite } from './cancelamento'
 import { parametrosDoProvedor, registrarRaciocinioObservado, type RoteamentoOpenRouter } from './parametrosDoProvedor'
 
 export interface MensagemDeChat {
@@ -41,6 +42,8 @@ export interface PedidoDeChat {
   timeoutMs?: number
   /** O `provider` do OpenRouter que o registro declarou para esta perna (sempre endurecido aqui). */
   roteamento?: RoteamentoOpenRouter
+  /** Quem pediu desistiu (`cancelamento.ts`): aborta a chamada junto com o relógio. Opcional. */
+  sinal?: AbortSignal
 }
 
 /**
@@ -74,6 +77,8 @@ export interface RespostaDeChat {
   causa?: string
   /** No 429: o `Retry-After` do provedor, em segundos — alimenta a admissão (`admissao.ts`). */
   retryAfterS?: number
+  /** A chamada foi abortada porque quem pediu desistiu: não é falha do provedor, e a cascata para. */
+  cancelado?: boolean
 }
 
 /**
@@ -134,7 +139,7 @@ export async function chamarChat(p: PedidoDeChat): Promise<RespostaDeChat> {
         max_tokens: p.maxTokens ?? MAX_TOKENS_PADRAO,
         ...parametrosDoProvedor(p.base, p.model, p.roteamento),
       }),
-      signal: AbortSignal.timeout(p.timeoutMs ?? TIMEOUT_PADRAO_MS),
+      signal: comTempoLimite(p.timeoutMs ?? TIMEOUT_PADRAO_MS, p.sinal),
     })
 
     if (!r.ok) {
@@ -181,6 +186,9 @@ export async function chamarChat(p: PedidoDeChat): Promise<RespostaDeChat> {
     const tokensEmCache = data.usage?.prompt_tokens_details?.cached_tokens ?? 0
     return { ok: true, texto, tokens: tokensEntrada + tokensSaida, tokensEntrada, tokensSaida, tokensEmCache }
   } catch (err) {
+    /* Quem abortou foi o cliente, não o relógio: dito à parte, para a cascata parar em vez de
+       tentar a reserva e para o disjuntor não contar como falha do provedor. */
+    if (clienteDesistiu(p.sinal)) return { ok: false, status: 0, causa: 'cancelado por quem pediu', cancelado: true }
     const msg = String((err as Error)?.message ?? err)
     // `TimeoutError` do `AbortSignal.timeout` vira uma causa legível: "falhou" e "demorou demais"
     // levam a investigações diferentes.

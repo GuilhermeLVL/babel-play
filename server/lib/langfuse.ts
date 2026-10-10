@@ -62,6 +62,8 @@ export type StatusDaChamada =
   | 'vazio'
   | 'filtrado-vazio'
   | 'disjuntor'
+  /** Quem pediu desistiu e a chamada foi abortada (`server/ai/cancelamento.ts`): não é falha do provedor. */
+  | 'cancelado'
 
 export type ValorDeMetadado = string | number | boolean
 
@@ -211,7 +213,9 @@ function nivelDe(status: StatusDaChamada): 'DEFAULT' | 'WARNING' | 'ERROR' {
   if (status === 'ok') return 'DEFAULT'
   /* 429 é AVISO, não erro: o provedor está pedindo para diminuir o ritmo — é o sinal de subir o
      tier, e a cascata geralmente salvou a chamada na reserva. `filtrado-vazio` é o filtro de
-     qualidade funcionando; `disjuntor` é a proteção funcionando. */
+     qualidade funcionando; `disjuntor` é a proteção funcionando. `cancelado` é o cliente que
+     desistiu: nada quebrou. */
+  if (status === 'cancelado') return 'DEFAULT'
   if (status === '429' || status === 'filtrado-vazio' || status === 'disjuntor' || status === 'vazio') return 'WARNING'
   return 'ERROR'
 }

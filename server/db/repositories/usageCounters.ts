@@ -4,7 +4,7 @@
  */
 import { randomUUID } from 'node:crypto'
 
-import { and, eq, lt, sql } from 'drizzle-orm'
+import { and, eq, inArray, lt, sql } from 'drizzle-orm'
 
 import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
@@ -25,6 +25,33 @@ export const usageCountersRepo = {
       .where(and(eq(usageCounters.userId, userId), eq(usageCounters.metric, metric), eq(usageCounters.window, window)))
       .limit(1)
     return rows[0]?.count ?? 0
+  },
+
+  /**
+   * VÁRIAS CONTAGENS NUMA LEITURA (auditoria de desempenho do servidor de 10/10/2026, A11a): o
+   * `GET /api/me/uso` chamava `get()` uma vez por contador, seis vezes o mesmo `SELECT` com a
+   * métrica e a janela trocadas. Devolve as contagens NA ORDEM dos pares pedidos; par sem linha é 0.
+   *
+   * Só LEITURA de exibição, como o `get()`: decidir se algo cabe no teto continua sendo `reserve`.
+   * As métricas e as janelas são poucas (um punhado por chamada); o filtro pega o produto das duas
+   * listas, e a escolha do par é feita aqui.
+   */
+  async contagens(userId: UserId, pares: ReadonlyArray<{ metric: string; window: string }>): Promise<number[]> {
+    if (!pares.length) return []
+    const metricas = [...new Set(pares.map((p) => p.metric))]
+    const janelas = [...new Set(pares.map((p) => p.window))]
+    const linhas = await db
+      .select({ metric: usageCounters.metric, window: usageCounters.window, count: usageCounters.count })
+      .from(usageCounters)
+      .where(
+        and(
+          eq(usageCounters.userId, userId),
+          inArray(usageCounters.metric, metricas),
+          inArray(usageCounters.window, janelas),
+        ),
+      )
+    const porPar = new Map(linhas.map((l) => [`${l.metric}\n${l.window}`, l.count]))
+    return pares.map((p) => porPar.get(`${p.metric}\n${p.window}`) ?? 0)
   },
 
   /** Soma `by` (default 1) de forma idempotente por janela. */

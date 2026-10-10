@@ -52,6 +52,7 @@ import { authRequired, emailDaRequisicao } from '../lib/auth'
 import { asUserId, type UserId } from '../lib/authContext'
 import { aplicarEvento, eventoSchema, providerRefDoEvento, referenciaDoEvento } from '../lib/billingEventos'
 import { anualLigado, checkoutLigado } from '../lib/config'
+import { memoDoRequest } from '../lib/contextoDeConvidado'
 import { encerrarAssinatura } from '../lib/encerramentoDeAssinatura'
 import { erroDeRota } from '../lib/erroDeRota'
 import { flagLigada } from '../lib/flags'
@@ -725,12 +726,23 @@ function jaAssinou(sub: Awaited<ReturnType<typeof subscriptionsRepo.getActive>>)
 }
 
 /** A situação do teste para a tela (`/status`). Falha de leitura não derruba o status: some o campo. */
+/**
+ * A assinatura de quem pede, lida UMA vez por requisição: a mesma chave de memo que `resolverPlano`
+ * usa (`server/lib/entitlements.ts`). Em `GET /api/billing/status` a rota, a situação do teste e o
+ * plano por trás das flags de venda liam `subscriptions` cada um por conta própria: três vezes a
+ * mesma linha, na rota que o checkout sonda a cada 5 s (auditoria de 10/10/2026, A11b). SÓ para
+ * leitura: as rotas que GRAVAM a assinatura continuam lendo do repositório.
+ */
+function assinaturaDoPedido(req: import('express').Request) {
+  return memoDoRequest(req.userId, 'assinatura', () => subscriptionsRepo.getActive(req.userId))
+}
+
 async function situacaoParaATela(req: import('express').Request): Promise<SituacaoDoTeste | null> {
   const dias = DIAS_DO_TESTE_PREMIUM
   if (!authRequired()) return { estado: 'indisponivel', dias, motivo: 'selfhost' }
   if (req.convidado) return { estado: 'indisponivel', dias, motivo: 'convidado' }
   try {
-    const [sub, idade] = await Promise.all([subscriptionsRepo.getActive(req.userId), ehAdultoDeclarado(req.userId)])
+    const [sub, idade] = await Promise.all([assinaturaDoPedido(req), ehAdultoDeclarado(req.userId)])
     return await situacaoDoTeste(req.userId, { email: emailDaRequisicao(req), jaAssinou: jaAssinou(sub), idade })
   } catch (err) {
     log('warn', { event: 'billing_teste_situacao_falhou', error: String(err).slice(0, 120) })
@@ -845,7 +857,7 @@ billingRouter.post('/teste', async (req, res) => {
 
 /** O que a tela de Planos mostra: existe assinatura? em que estado? até quando vale? quando cobra? */
 billingRouter.get('/status', async (req, res) => {
-  const sub = await subscriptionsRepo.getActive(req.userId)
+  const sub = await assinaturaDoPedido(req)
   const proxima =
     sub?.status === 'active' && sub.provider === 'asaas' && sub.providerSubscriptionId && asaasConfigurado()
       ? await proximaCobranca(sub.providerSubscriptionId)

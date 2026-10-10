@@ -1,0 +1,219 @@
+{
+  "sessions": 4,
+  "sessoesComPalavraSalva": 4,
+  "wordsCaptured": 952,
+  "deckSize": 104,
+  "newCards": 39,
+  "dueToday": 86,
+  "reviews": 260,
+  "correctReviews": 130,
+  "drillItems": 132,
+  "drillCorrect": 95,
+  "accuracy": 0.5,
+  "accuracyConfidence": 0.9,
+  "streakDays": 0,
+  "seedsGastas": 185,
+  "itensComprados": [
+    "posicao-right",
+    "tema-linear"
+  ],
+  "cromasComprados": [
+    "croma:tema:azul"
+  ],
+  "seedsCreditadas": 60,
+  "xpCreditado": 75,
+  "presencas": 11,
+  "sequencias7": 5,
+  "capturaMinutos": 100,
+  "palavrasSalvasPremiadas": 69,
+  "acertosRecentes": [],
+  "idiomas": 2,
+  "rodadasPerfeitas": 7,
+  "streakPresenca": 0,
+  "maiorSequenciaPresenca": 40,
+  "avgStability": 23.465202882713967,
+  "avgRetention": 0.8524592901233284,
+  "avgRetentionConfidence": 0.7,
+  "vocabByWeek": [
+    {
+      "weekStart": 1788393600000,
+      "count": 30
+    },
+    {
+      "weekStart": 1788998400000,
+      "count": 48
+    },
+    {
+      "weekStart": 1789603200000,
+      "count": 26
+    }
+  ],
+  "revisoesRecentes": [],
+  "speakingMs": 98826,
+  "listeningMs": 143511,
+  "palavrasDificeis": [
+    {
+      "cardId": "card-consultaspagante-027",
+      "word": "straße27",
+      "lapses": 3,
+      "revisoes": 6,
+      "fracaoDeErro": 1,
+      "pontuacao": 11.475620652758517
+    },
+    {
+      "cardId": "card-consultaspagante-038",
+      "word": "naïve38",
+      "lapses": 3,
+      "revisoes": 6,
+      "fracaoDeErro": 0.83,
+      "pontuacao": 11.069108786263191
+    },
+    {
+      "cardId": "card-consultaspagante-028",
+      "word": "naïve28",
+      "lapses": 3,
+      "revisoes": 7,
+      "fracaoDeErro": 0.86,
+      "pontuacao": 10.861760522787725
+    },
+    {
+      "cardId": "card-consultaspagante-006",
+      "word": "Garden6",
+      "lapses": 3,
+      "revisoes": 7,
+      "fracaoDeErro": 0.57,
+      "pontuacao": 10.780074274184049
+    },
+    {
+      "cardId": "card-consultaspagante-021",
+      "word": "Água21",
+      "lapses": 3,
+      "revisoes": 7,
+      "fracaoDeErro": 0.43,
+      "pontuacao": 10.766508178093604
+    },
+    {
+      "cardId": "card-consultaspagante-001",
+      "word": "Água1",
+      "lapses": 3,
+      "revisoes": 6,
+      "fracaoDeErro": 0.67,
+      "pontuacao": 10.482276373620456
+    },
+    {
+      "cardId": "card-consultaspagante-008",
+      "word": "naïve8",
+      "lapses": 3,
+      "revisoes": 6,
+      "fracaoDeErro": 0.5,
+      "pontuacao": 10.298463749303483
+    },
+    {
+      "cardId": "card-consultaspagante-025",
+      "word": "bridge25",
+      "lapses": 3,
+      "revisoes": 7,
+      "fracaoDeErro": 0.43,
+      "pontuacao": 10.220009142190351
+    },
+    {
+      "cardId": "card-consultaspagante-012",
+      "word": "água12",
+      "lapses": 3,
+      "revisoes": 6,
+      "fracaoDeErro": 0.33,
+      "pontuacao": 9.994464810184823
+    },
+    {
+      "cardId": "card-consultaspagante-036",
+      "word": "Garden36",
+      "lapses": 2,
+      "revisoes": 6,
+      "fracaoDeErro": 0.33,
+      "pontuacao": 7.427355618930112
+    },
+    {
+      "cardId": "card-consultaspagante-032",
+      "word": "água32",
+      "lapses": 2,
+      "revisoes": 7,
+      "fracaoDeErro": 0.43,
+      "pontuacao": 7.368586511171555
+    },
+    {
+      "cardId": "card-consultaspagante-023",
+      "word": "ÉCOLE23",
+      "lapses": 2,
+      "revisoes": 7,
+      "fracaoDeErro": 0.29,
+      "pontuacao": 7.09048784875444
+    }
+  ],
+  "acertoPorExercicio": [
+    {
+      "kind": "blitz",
+      "total": 28,
+      "acerto": 61
+    },
+    {
+      "kind": "bingo",
+      "total": 28,
+      "acerto": 64
+    },
+    {
+      "kind": "termo",
+      "total": 28,
+      "acerto": 68
+    },
+    {
+      "kind": "memory",
+      "total": 27,
+      "acerto": 100
+    },
+    {
+      "kind": "karuta",
+      "total": 27,
+      "acerto": 100
+    }
+  ],
+  "wpm": 76,
+  "wpmConfidence": 0.7,
+  "uniqueWords": 102,
+  "levelDistribution": [
+    {
+      "level": "N/D",
+      "count": 15
+    },
+    {
+      "level": "A1",
+      "count": 16
+    },
+    {
+      "level": "A2",
+      "count": 15
+    },
+    {
+      "level": "B1",
+      "count": 14
+    },
+    {
+      "level": "B2",
+      "count": 14
+    },
+    {
+      "level": "C1",
+      "count": 15
+    },
+    {
+      "level": "C2",
+      "count": 15
+    }
+  ],
+  "levelConfidence": 0.44783617307125084,
+  "asOf": 1791212400000,
+  "escopo": "global",
+  "base": {
+    "considerados": 65,
+    "total": 104
+  }
+}

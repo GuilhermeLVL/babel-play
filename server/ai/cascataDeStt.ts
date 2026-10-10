@@ -52,6 +52,7 @@ import {
   segundosDoRetryAfter,
   type TicketDeBalde,
 } from './admissao'
+import { clienteDesistiu, comTempoLimite } from './cancelamento'
 import { alvoDaPerna } from './cascata'
 import { chaveDoProvedor, disjuntorPermite, esperaDaRetentativa, registrarFalha, registrarSucesso } from './disjuntor'
 import type { Provedor } from './provedores'
@@ -100,6 +101,8 @@ export interface OpcoesDoPedidoDeStt {
   prompt?: string | null
   /** Só no formato `openai`: `verbose_json` traz idioma e segmentos; `json` é o recuo. */
   formato: FormatoDaResposta
+  /** Quem pediu desistiu (`cancelamento.ts`): aborta a tentativa junto com o relógio dela. */
+  sinal?: AbortSignal
 }
 
 /**
@@ -117,7 +120,7 @@ export function montarPedidoDeStt(
   const autorizacao = { Authorization: 'Bearer ' + (perna.apiKey ?? '') }
   const comum = {
     method: 'POST',
-    signal: AbortSignal.timeout(TIMEOUT_DO_STT_MS),
+    signal: comTempoLimite(TIMEOUT_DO_STT_MS, o.sinal),
     redirect: 'manual' as const,
     dispatcher: despachanteSeguro,
   }
@@ -240,6 +243,8 @@ export interface ContextoDaCascataDeStt {
   byok: boolean
   /** A admissão da porta (chave do DONO). */
   admissao?: AdmissaoDoStt
+  /** Quem pediu desistiu (`cancelamento.ts`): a tentativa em curso aborta e a cascata para. */
+  sinal?: AbortSignal
 }
 
 /** Por que a cascata não entregou — o proxy traduz cada uma na resposta de sempre. */
@@ -254,6 +259,8 @@ export type FalhaDoStt =
   | { tipo: 'http'; status: number; texto: string }
   /** A última falha foi exceção (rede, timeout, destino bloqueado, JSON ilegível): o proxy relança. */
   | { tipo: 'excecao'; erro: unknown }
+  /** Quem pediu desistiu: a tentativa foi abortada e nenhuma outra perna foi chamada. */
+  | { tipo: 'cancelado' }
 
 export type ResultadoDaCascataDeStt =
   | {
@@ -269,7 +276,9 @@ export type ResultadoDaCascataDeStt =
   | { ok: false; falha: FalhaDoStt }
 
 /** O resultado de uma tentativa: a resposta, ou a exceção (nunca lança). */
-type Tentativa = { r: Response; erro?: undefined; inicio: number } | { r?: undefined; erro: unknown; inicio: number }
+type Tentativa =
+  | { r: Response; erro?: undefined; inicio: number; cancelada?: undefined }
+  | { r?: undefined; erro: unknown; inicio: number; cancelada?: boolean }
 
 const esperar = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 
@@ -294,6 +303,9 @@ export async function percorrerCascataDeStt(
     const perna = pernas[k]
     const ultimaPerna = k === pernas.length - 1
     const provedor = ctx.byok ? 'byok' : nomeDoProvedor(perna.base)
+    /* QUEM PEDIU DESISTIU: nenhuma perna a mais é chamada (a da porta, se não foi, devolve o pedido
+       ao balde em `encerrarAdmissaoDoStt`). */
+    if (clienteDesistiu(ctx.sinal)) return { ok: false, falha: { tipo: 'cancelado' } }
 
     /* A ADMISSÃO DA PERNA: a da porta já tem o pedido; as outras pedem ao balde DELAS agora —
        sem saldo, pula sem abrir socket. */
@@ -343,6 +355,7 @@ export async function percorrerCascataDeStt(
         if (repique.ok === false) break
       }
       if (chave && !disjuntorPermite(chave)) break
+      if (clienteDesistiu(ctx.sinal)) break
       const espera = esperaDaRetentativa(n)
       log('warn', {
         event: 'stt_retentativa',
@@ -355,6 +368,7 @@ export async function percorrerCascataDeStt(
       t = await tentativaComDisjuntor(perna, pedido, ctx, provedor, chave)
     }
 
+    if (t.cancelada || clienteDesistiu(ctx.sinal)) return { ok: false, falha: { tipo: 'cancelado' } }
     if (t.erro !== undefined || !t.r) {
       ultima = { tipo: 'excecao', erro: t.erro }
       if (!ultimaPerna) logFalhaDaPerna(perna, 0, String((t.erro as Error)?.message ?? t.erro), ctx.requestId)
@@ -434,7 +448,12 @@ async function tentativaComDisjuntor(
 ): Promise<Tentativa> {
   const inicio = Date.now()
   const enviar = (formato: FormatoDaResposta) => {
-    const p = montarPedidoDeStt(perna, pedido.audio, { idioma: pedido.idioma, prompt: pedido.prompt, formato })
+    const p = montarPedidoDeStt(perna, pedido.audio, {
+      idioma: pedido.idioma,
+      prompt: pedido.prompt,
+      formato,
+      sinal: ctx.sinal,
+    })
     return fetch(p.url, p.init)
   }
   try {
@@ -458,14 +477,18 @@ async function tentativaComDisjuntor(
     }
     return { r, inicio }
   } catch (erro) {
+    /* Quem abortou foi o cliente, não o relógio: não é falha do provedor (o disjuntor não conta). */
+    const cancelada = clienteDesistiu(ctx.sinal)
     ctx.rastro.tentativa({
       inicio,
       fim: Date.now(),
       provedor,
       modelo: perna.model,
-      status: statusDaTentativa(0, String((erro as Error)?.name ?? '') + String((erro as Error)?.message ?? erro)),
+      status: cancelada
+        ? 'cancelado'
+        : statusDaTentativa(0, String((erro as Error)?.name ?? '') + String((erro as Error)?.message ?? erro)),
     })
-    if (chave) registrarFalha(chave, 0)
-    return { erro: erro ?? new Error('falha sem causa'), inicio }
+    if (chave && !cancelada) registrarFalha(chave, 0)
+    return { erro: erro ?? new Error('falha sem causa'), inicio, cancelada }
   }
 }

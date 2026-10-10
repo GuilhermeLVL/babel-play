@@ -6,9 +6,11 @@ import type { LinhaDeMaestria } from '../../../src/core/maestria'
 import { MINIGAME_IDS } from '../../../src/core/minigames/revelavel'
 import { inicioDaRodada } from '../../../src/core/missoes'
 import type { UserId } from '../../lib/authContext'
+import { CachePorVersao } from '../../lib/cachePorVersao'
 import { db } from '../db'
 import { emLotes, tamanhoDoLote } from '../lotes'
 import { exerciseResults, sessions, vocabCards } from '../schema'
+import { versoesRepo } from './versoes'
 
 export type ExerciseResult = typeof exerciseResults.$inferSelect
 
@@ -169,6 +171,36 @@ export interface NovaRodada {
  */
 export const TETO_PADRAO_DE_RESULTADOS = 200
 
+/**
+ * AS LINHAS DE JOGO DA CONTA, por usuário e versão de `atividade` (auditoria de desempenho do
+ * servidor de 10/10/2026, achado A1).
+ *
+ * `linhasDeMaestria` lia TODAS as linhas de jogo da conta a cada chamada, e quem chama é
+ * `GET /api/metrics/missoes` (toda abertura do app), `/maestria` e a conferência dos créditos:
+ * medido, 33 a 37 ms com 5.000 linhas. A única tabela lida é `exercise_results`, e os três gatilhos
+ * dela (migração 0032) sobem `atividade` em toda escrita, inclusive a exclusão lógica (um UPDATE).
+ *
+ * O que fica guardado são as LINHAS, e não a soma: as missões contam cada rodada no DIA dela, no
+ * fuso do usuário e contra o relógio, e isso é calculado a cada pedido, fora do cache.
+ *
+ * O array é compartilhado entre requisições: quem o recebe só lê (o tipo dos leitores do core é
+ * `ReadonlyArray`). Tetos: 256 usuários e ~16 MB, contando ~160 bytes por linha (5.000 linhas
+ * pesam ~800 KB).
+ */
+const linhasDeJogoDaConta = new CachePorVersao<LinhaDeMaestria[]>(256, 16 * 1024 * 1024)
+
+/**
+ * O HISTÓRICO AGREGADO POR ITEM, por usuário, filtro de fonte e versão de `atividade`.
+ *
+ * A consulta era a parte barata (14 de 180 ms, medido): o resto é a dobra em memória de
+ * `agregarHistorico`, que para cada item errado percorre todas as linhas de novo. Por isso o que
+ * fica guardado é o RESULTADO. Só entra o pedido sem `desde`: é um número livre do cliente, e uma
+ * entrada por valor encheria o cache de respostas que ninguém pede duas vezes.
+ *
+ * Tetos: 256 entradas e ~16 MB, contando ~200 bytes por item.
+ */
+const historicosPorItem = new CachePorVersao<HistoricoDeItem[]>(256, 16 * 1024 * 1024)
+
 export const exerciseResultsRepo = {
   /**
    * TETO DE LINHAS, e por que ele nao existia — medido em 2026-09-09 com o k6.
@@ -253,6 +285,17 @@ export const exerciseResultsRepo = {
     if (opts.origem) filtros.push(eq(exerciseResults.origem, opts.origem))
     if (typeof opts.desde === 'number') filtros.push(gte(exerciseResults.createdAt, opts.desde))
 
+    /* A versão ANTES das linhas (ver `CachePorVersao` para o porquê da ordem). A fonte entra na
+       chave; o separador é uma quebra de linha, que nem id de usuário nem fonte carregam. */
+    const guardavel = typeof opts.desde !== 'number'
+    const chave = `${userId}
+${opts.origem ?? ''}`
+    const versao = guardavel ? String((await versoesRepo.de(userId)).atividade) : ''
+    if (guardavel) {
+      const guardado = historicosPorItem.obter(chave, versao)
+      if (guardado) return guardado
+    }
+
     const rows = await db
       .select({
         itemRef: exerciseResults.itemRef,
@@ -274,7 +317,9 @@ export const exerciseResultsRepo = {
       // portabilidade a Postgres que o schema mantém.
       .orderBy(asc(exerciseResults.createdAt))
 
-    return agregarHistorico(rows)
+    const historico = agregarHistorico(rows)
+    if (guardavel) historicosPorItem.guardar(chave, versao, historico, 256 + 200 * historico.length)
+    return historico
   },
 
   /**
@@ -469,7 +514,11 @@ export const exerciseResultsRepo = {
    * (e a deduplicação por `roundId`) é de `maestriaPorJogo`, no core — a mesma do espelho sem conta.
    */
   async linhasDeMaestria(userId: UserId): Promise<LinhaDeMaestria[]> {
-    return db
+    // A versão ANTES das linhas — ver `CachePorVersao` para o porquê da ordem.
+    const versao = String((await versoesRepo.de(userId)).atividade)
+    const guardadas = linhasDeJogoDaConta.obter(userId, versao)
+    if (guardadas) return guardadas
+    const linhas = await db
       .select({
         exerciseKind: exerciseResults.exerciseKind,
         roundId: exerciseResults.roundId,
@@ -486,6 +535,8 @@ export const exerciseResultsRepo = {
           inArray(exerciseResults.exerciseKind, MINIGAME_IDS as unknown as string[]),
         ),
       )
+    linhasDeJogoDaConta.guardar(userId, versao, linhas, 256 + 160 * linhas.length)
+    return linhas
   },
 
   async listarPorRodada(userId: UserId, roundId: string): Promise<ExerciseResult[]> {

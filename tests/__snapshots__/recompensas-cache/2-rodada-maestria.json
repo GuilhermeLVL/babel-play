@@ -1,0 +1,131 @@
+{
+  "jogos": [
+    {
+      "jogo": "memory",
+      "pontos": 25,
+      "nivel": 0,
+      "proximo": 30,
+      "pctNoNivel": 83
+    },
+    {
+      "jogo": "wordsearch",
+      "pontos": 0,
+      "nivel": 0,
+      "proximo": 30,
+      "pctNoNivel": 0
+    },
+    {
+      "jogo": "blitz",
+      "pontos": 27,
+      "nivel": 0,
+      "proximo": 30,
+      "pctNoNivel": 90
+    },
+    {
+      "jogo": "termo",
+      "pontos": 10,
+      "nivel": 0,
+      "proximo": 30,
+      "pctNoNivel": 33
+    },
+    {
+      "jogo": "scramble",
+      "pontos": 0,
+      "nivel": 0,
+      "proximo": 30,
+      "pctNoNivel": 0
+    },
+    {
+      "jogo": "karaoke",
+      "pontos": 0,
+      "nivel": 0,
+      "proximo": 30,
+      "pctNoNivel": 0
+    },
+    {
+      "jogo": "escuta",
+      "pontos": 0,
+      "nivel": 0,
+      "proximo": 30,
+      "pctNoNivel": 0
+    },
+    {
+      "jogo": "ditado",
+      "pontos": 0,
+      "nivel": 0,
+      "proximo": 30,
+      "pctNoNivel": 0
+    },
+    {
+      "jogo": "conectores",
+      "pontos": 0,
+      "nivel": 0,
+      "proximo": 30,
+      "pctNoNivel": 0
+    },
+    {
+      "jogo": "karuta",
+      "pontos": 10,
+      "nivel": 0,
+      "proximo": 30,
+      "pctNoNivel": 33
+    },
+    {
+      "jogo": "choseong",
+      "pontos": 0,
+      "nivel": 0,
+      "proximo": 30,
+      "pctNoNivel": 0
+    },
+    {
+      "jogo": "tenis",
+      "pontos": 0,
+      "nivel": 0,
+      "proximo": 30,
+      "pctNoNivel": 0
+    },
+    {
+      "jogo": "koffer",
+      "pontos": 0,
+      "nivel": 0,
+      "proximo": 30,
+      "pctNoNivel": 0
+    },
+    {
+      "jogo": "bao",
+      "pontos": 0,
+      "nivel": 0,
+      "proximo": 30,
+      "pctNoNivel": 0
+    },
+    {
+      "jogo": "vitendawili",
+      "pontos": 0,
+      "nivel": 0,
+      "proximo": 30,
+      "pctNoNivel": 0
+    },
+    {
+      "jogo": "shiritori",
+      "pontos": 0,
+      "nivel": 0,
+      "proximo": 30,
+      "pctNoNivel": 0
+    },
+    {
+      "jogo": "cadavre",
+      "pontos": 0,
+      "nivel": 0,
+      "proximo": 30,
+      "pctNoNivel": 0
+    },
+    {
+      "jogo": "taboo",
+      "pontos": 0,
+      "nivel": 0,
+      "proximo": 30,
+      "pctNoNivel": 0
+    }
+  ],
+  "creditados": []
+}

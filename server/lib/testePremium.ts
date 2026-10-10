@@ -29,6 +29,7 @@ import { createHmac } from 'node:crypto'
 import { DIAS_DO_TESTE_PREMIUM } from '../../src/core/planos'
 import { type TestePremium, testesPremiumRepo } from '../db/repositories/testesPremium'
 import type { UserId } from './authContext'
+import { memoDoRequest } from './contextoDeConvidado'
 import { log } from './logger'
 
 const DIA_MS = 86_400_000
@@ -86,9 +87,19 @@ export function testeAtivo(t: TestePremium | null, agora = Date.now()): t is Tes
   return !!t && t.iniciadoEm <= agora && agora < t.terminaEm
 }
 
+/**
+ * A linha do teste da conta, lida UMA vez por requisição (`memoDoRequest`; auditoria de desempenho
+ * do servidor de 10/10/2026, A11b): em `GET /api/billing/status` o plano e a situação do teste
+ * perguntavam a mesma linha, cada um por conta própria. Só LEITURA de exibição e de plano: quem
+ * COMEÇA o teste (`POST /api/billing/teste`) lê do repositório, antes e depois de gravar.
+ */
+function testeDaConta(userId: UserId): Promise<TestePremium | null> {
+  return memoDoRequest(userId, 'teste_da_conta', () => testesPremiumRepo.doUsuario(userId))
+}
+
 /** O teste ATIVO da conta, ou `null` (nunca testou, ou já venceu). */
 export async function testeAtivoDe(userId: UserId, agora = Date.now()): Promise<TestePremium | null> {
-  const t = await testesPremiumRepo.doUsuario(userId)
+  const t = await testeDaConta(userId)
   return testeAtivo(t, agora) ? t : null
 }
 
@@ -119,7 +130,7 @@ export async function situacaoDoTeste(
   agora = Date.now(),
 ): Promise<SituacaoDoTeste> {
   const dias = DIAS_DO_TESTE_PREMIUM
-  const t = await testesPremiumRepo.doUsuario(userId)
+  const t = await testeDaConta(userId)
   if (t)
     return { estado: testeAtivo(t, agora) ? 'ativo' : 'usado', dias, iniciadoEm: t.iniciadoEm, terminaEm: t.terminaEm }
   const semTeste = (motivo: MotivoSemTeste): SituacaoDoTeste => ({ estado: 'indisponivel', dias, motivo })

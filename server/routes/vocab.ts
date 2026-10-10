@@ -1,6 +1,4 @@
 /** Rotas de vocabulário/SRS (montadas em `/api/vocab`). */
-import { createHash, randomBytes } from 'node:crypto'
-
 import { Router } from 'express'
 
 import type { Grade } from '../../src/core/learning/scheduler'
@@ -8,6 +6,7 @@ import { versoesRepo } from '../db/repositories/versoes'
 import { vocabRepo } from '../db/repositories/vocab'
 import { CachePorVersao } from '../lib/cachePorVersao'
 import { erroDeRota } from '../lib/erroDeRota'
+import { casaComIfNoneMatch, etagPorVersao } from '../lib/etagPorVersao'
 import { log } from '../lib/logger'
 import {
   bulkAddCardsSchema,
@@ -38,29 +37,17 @@ export const vocabRouter = Router()
  *   · sem ETag, mas versão já servida → o MESMO corpo, guardado em memória (`baralhosServidos`);
  *   · versão nova → lê, serializa e guarda.
  *
- * O ETag carrega também um resumo do usuário e a ÉPOCA do processo. O primeiro impede que um
- * navegador compartilhado (duas contas no mesmo perfil) revalide o baralho de uma conta com o
- * ETag da outra quando os contadores coincidem; a segunda impede que um banco restaurado de
- * backup (contadores de volta ao passado) case com um ETag emitido antes da restauração.
+ * O ETag carrega também um resumo do usuário e a ÉPOCA do processo: o porquê está em
+ * `server/lib/etagPorVersao.ts`, de onde ele sai desde que `GET /api/exercises/historico` e
+ * `GET /api/metrics/profile` passaram a usar o mesmo desenho.
  */
-const EPOCA = randomBytes(4).toString('hex')
 /* Teto de ~64 MB, contando 2 bytes por caractere (o pior caso do V8, texto com acento): ~13
    baralhos grandes (2,3 MB cada) ou centenas de pequenos. Quem não cabe continua sendo servido —
    só não fica. Medido: com 24 MB, dez usuários pesados alternando já não cabiam e toda leitura
    voltava ao banco. */
 const baralhosServidos = new CachePorVersao<string>(512, 64 * 1024 * 1024)
 
-function etagDoBaralho(userId: string, versao: number): string {
-  const quem = createHash('sha256').update(userId).digest('base64url').slice(0, 12)
-  return `W/"vocab-${EPOCA}-${quem}-${versao}"`
-}
-
-/** If-None-Match casa? Comparação FRACA (RFC 9110 §13.1.2): o `W/` não conta, `*` casa com tudo. */
-function casaComIfNoneMatch(cabecalho: string | undefined, etag: string): boolean {
-  if (!cabecalho) return false
-  const semW = (t: string) => t.trim().replace(/^W\//, '')
-  return cabecalho.split(',').some((t) => t.trim() === '*' || semW(t) === semW(etag))
-}
+const etagDoBaralho = (userId: string, versao: number) => etagPorVersao('vocab', userId, versao)
 
 vocabRouter.get('/', async (req, res) => {
   // A versão ANTES do baralho — ver `CachePorVersao` para o porquê da ordem.

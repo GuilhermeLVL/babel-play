@@ -59,6 +59,7 @@ import {
   segundosDoRetryAfter,
   type TicketDeBalde,
 } from '../admissao'
+import { clienteDesistiu, recusaCancelada } from '../cancelamento'
 import { alvoDaPerna } from '../cascata'
 import { chaveDoProvedor, disjuntorPermite, registrarFalha, registrarSucesso } from '../disjuntor'
 import {
@@ -390,8 +391,14 @@ async function sintetizar(
     }
 
     /* 9) A CASCATA. */
-    const r = await percorrerPernasDaVoz(pernas, pedido, adm, rastro, ctx.requestId)
+    const r = await percorrerPernasDaVoz(pernas, pedido, adm, rastro, ctx.requestId, ctx.sinal)
     if (r.ok === false) {
+      /* QUEM PEDIU DESISTIU (auditoria de 10/10/2026, A7): a tentativa foi abortada e a reserva não
+         foi chamada. Os caracteres voltam no `finally`, como em toda saída sem áudio. */
+      if (r.falha === 'cancelado') {
+        log('info', { event: 'tts_cancelado', route: ROTA, status: 499, requestId: ctx.requestId })
+        return decidir(recusaCancelada())
+      }
       if (r.falha === 'limitado')
         return decidir(recusaNuvemOcupada({ motivo: 'provedor_limitou', retryAfterS: r.retryAfterS }))
       if (r.falha === 'sem_saldo') return decidir(recusaNuvemOcupada(r.recusa))
@@ -450,7 +457,7 @@ type CascataDaVoz =
   | { ok: true; perna: Provedor; audio: { bytes: Buffer; tipo: string }; inicio: number }
   | { ok: false; falha: 'limitado'; retryAfterS: number }
   | { ok: false; falha: 'sem_saldo'; recusa: Recusa }
-  | { ok: false; falha: 'disjuntor' | 'indisponivel' }
+  | { ok: false; falha: 'disjuntor' | 'indisponivel' | 'cancelado' }
 
 /**
  * As pernas NA ORDEM DO REGISTRO. A da admissão já tem o pedido no balde; as outras pedem ao balde
@@ -462,6 +469,7 @@ async function percorrerPernasDaVoz(
   adm: AdmissaoDaVoz,
   rastro: RastroDeIa,
   requestId?: string,
+  sinal?: AbortSignal,
 ): Promise<CascataDaVoz> {
   let chamadas = 0
   let limitadas = 0
@@ -469,6 +477,8 @@ async function percorrerPernasDaVoz(
   let semSaldo: Recusa | null = null
   let pulouPorDisjuntor = false
   for (const perna of pernas) {
+    /* Quem pediu desistiu: nenhuma perna a mais é chamada. */
+    if (clienteDesistiu(sinal)) return { ok: false, falha: 'cancelado' }
     let ticket: TicketDeBalde | null = null
     if (perna !== adm.perna) {
       const r = admitirNoBalde({ tipo: 'tts', ...alvoDaPerna(perna), plano: adm.plano })
@@ -491,9 +501,14 @@ async function percorrerPernasDaVoz(
     const inicio = Date.now()
     let resposta: globalThis.Response
     try {
-      const { url, init } = montarPedidoDeVoz(perna, pedido)
+      const { url, init } = montarPedidoDeVoz(perna, pedido, sinal)
       resposta = await fetch(url, init)
     } catch (erro) {
+      /* Quem abortou foi o cliente, não o relógio: não é falha do provedor (o disjuntor não conta). */
+      if (clienteDesistiu(sinal)) {
+        rastro.tentativa({ inicio, fim: Date.now(), provedor, modelo: perna.model, status: 'cancelado' })
+        return { ok: false, falha: 'cancelado' }
+      }
       registrarFalha(disjuntor, 0)
       rastro.tentativa({
         inicio,

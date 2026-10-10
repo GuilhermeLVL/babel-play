@@ -1,0 +1,20 @@
+{
+  "teste": {
+    "estado": "indisponivel",
+    "dias": 14,
+    "motivo": "ja_assinante"
+  },
+  "configurado": false,
+  "planosAVenda": [
+    "premium"
+  ],
+  "assinatura": {
+    "plano": "premium",
+    "status": "active",
+    "valeAte": 1792940400000,
+    "provedor": null,
+    "ciclo": "mensal",
+    "meio": null,
+    "renovacaoAutomatica": false
+  }
+}

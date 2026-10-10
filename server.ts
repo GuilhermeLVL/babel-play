@@ -21,6 +21,7 @@ import { dbReady } from './server/db/db'
 import { seedIfEmpty } from './server/db/seed'
 import { criarApp } from './server/http/app'
 import { montarSpa } from './server/http/estaticos'
+import { aplicarTemposLimite } from './server/http/temposLimite'
 import { authRequired, erroDeAuthEmProducao, mecanismoDe } from './server/lib/auth'
 import { registrarFalhaDeBoot, registrarSucessoDeBoot } from './server/lib/bootStatus'
 import {
@@ -340,6 +341,12 @@ async function startServer({ prepararDados = true } = {}) {
    * `iniciar()`, mais abaixo, para o porquê de o respawn precisar ser desligado junto.
    */
   registrarDesligamento({ servidor: server, antes: () => repassarSinalAosWorkers?.() })
+
+  /* TEMPOS LIMITE (auditoria de 10/10/2026, A6): o socket ocioso vive mais que os 60 s do proxy do
+     Fly, para quem fecha a conexão parada ser o proxy e não o servidor por baixo dele. Nenhum dos
+     três mede a duração da resposta: SSE, importação e transcrição longa não são tocados. O porquê
+     de cada número está em `server/http/temposLimite.ts`. */
+  aplicarTemposLimite(server)
 
   /* MÉTRICAS NA PORTA INTERNA (Fase 5 de prontidão) — o alvo do `[metrics]` do fly.toml, sem token,
      numa porta que o proxy do Fly não publica. Só no processo que prepara os dados (o primário, no

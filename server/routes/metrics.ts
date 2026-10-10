@@ -33,11 +33,18 @@ import {
 } from '../../src/core/temporada'
 import { economiaRepo } from '../db/repositories/economia'
 import { exerciseResultsRepo } from '../db/repositories/exerciseResults'
-import { computeProfile, computeXpHistory, dadosDasMissoes, linhasDoHistoricoDeXp } from '../db/repositories/metrics'
+import {
+  computeProfile,
+  computeXpHistory,
+  dadosDasMissoes,
+  linhasDoHistoricoDeXp,
+  perfilDaContaComEtag,
+} from '../db/repositories/metrics'
 import { economiaDoUsuario } from '../db/repositories/metrics'
 import { seedSpendsRepo } from '../db/repositories/seedSpends'
 import { getPlanForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
+import { casaComIfNoneMatch } from '../lib/etagPorVersao'
 import { fusoDoUsuario } from '../lib/fusoDoUsuario'
 import { reembolsarCorteDoCatalogo } from '../lib/reembolsoDoCorte'
 import { responderErro } from '../lib/respostaDeErro'
@@ -67,6 +74,18 @@ metricsRouter.get('/profile', async (req, res) => {
   if (!q) return
   try {
     const sessao = q.sessao?.trim() ? q.sessao.trim() : null
+    if (!sessao) {
+      /* A CONTA INTEIRA responde 304 quando nada do que o perfil lê mudou neste minuto: o ETag sai
+         dos insumos, sem montar o perfil (`perfilDaContaComEtag`). O 200 é o corpo de sempre. */
+      const perfil = await perfilDaContaComEtag(req.userId)
+      res.setHeader('ETag', perfil.etag)
+      if (casaComIfNoneMatch(req.headers['if-none-match'], perfil.etag)) {
+        res.status(304).end()
+        return
+      }
+      res.json(await perfil.montar())
+      return
+    }
     res.json(await computeProfile(req.userId, { sessionId: sessao }))
   } catch (err) {
     res.status(500).json({

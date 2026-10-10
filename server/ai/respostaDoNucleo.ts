@@ -9,9 +9,16 @@
  */
 import type { Response } from 'express'
 
+import { CODIGO_DE_CANCELAMENTO } from './cancelamento'
 import type { RecusaDeIa } from './nucleo/recusa'
 
 export function responderRecusa(res: Response, recusa: RecusaDeIa): void {
+  /* O CLIENTE DESISTIU (`cancelamento.ts`): não há a quem responder. O status fica marcado para o
+     rastro de telemetria e o log de acesso lerem 499 em vez de um 200 que ninguém recebeu. */
+  if (recusa.code === CODIGO_DE_CANCELAMENTO) {
+    if (!res.headersSent) res.statusCode = recusa.status
+    return
+  }
   if (recusa.retryAfterS !== undefined && typeof res.setHeader === 'function')
     res.setHeader('Retry-After', String(recusa.retryAfterS))
   res.status(recusa.status).json(recusa.corpo)

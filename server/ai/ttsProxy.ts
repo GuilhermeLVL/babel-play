@@ -15,6 +15,7 @@ import type { Request, Response } from 'express'
 import { getEntitlements, resolverPlano } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { flagLigada } from '../lib/flags'
+import { sinalDoCliente } from './cancelamento'
 import { lerPedidoDeVoz, type ResultadoDaVoz, sintetizarVoz } from './nucleo/sintetizarVoz'
 import { responderRecusa } from './respostaDoNucleo'
 import { abrirRastro, type RastroDeIa } from './telemetriaDeIa'
@@ -79,6 +80,8 @@ async function sintetizar(req: Request, res: Response, rastro: RastroDeIa): Prom
       canal: 'app',
       perfilProtegido: null,
       flagLigada: (chave) => flagLigada(req, chave),
+      /* Quem fecha a conexão aborta a chamada ao provedor e recebe os caracteres de volta (A7). */
+      sinal: sinalDoCliente(res),
     },
     lido.pedido,
     { aoDecidir: (r) => enviarVoz(res, r) },

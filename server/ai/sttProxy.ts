@@ -16,6 +16,7 @@ import { abrirPortaGratuita } from '../lib/convidado'
 import { getEntitlements } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { ContadorIndisponivel } from '../lib/usageQuota'
+import { sinalDoCliente } from './cancelamento'
 import {
   admitirTranscricao,
   fecharPortaDoStt,
@@ -116,7 +117,16 @@ async function transcreverPelaRota(req: Request, res: Response, rastro: RastroDe
       if (!porta) return
     }
     await transcrever(
-      { userId: req.userId, requestId: req.requestId, rastro, canal: 'app', perfilProtegido: null },
+      {
+        userId: req.userId,
+        requestId: req.requestId,
+        rastro,
+        canal: 'app',
+        perfilProtegido: null,
+        /* Quem fecha a conexão aborta a chamada ao provedor e recebe a cota de volta (A7). É o que
+           torna certo soltar a vaga no `close` (`portaDoStt`): a chamada acaba junto. */
+        sinal: sinalDoCliente(res),
+      },
       porta,
       {
         audio: req.body as Buffer | undefined,

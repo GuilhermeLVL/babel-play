@@ -1,0 +1,46 @@
+{
+  "plano": "premium",
+  "janela": "2026-10",
+  "chamadas": {
+    "usado": 11,
+    "teto": 26000
+  },
+  "segundosDeAudio": {
+    "usado": 222,
+    "teto": 72000
+  },
+  "porNivel": {
+    "trechos": {
+      "usado": 222,
+      "teto": 72000,
+      "restante": 71778
+    },
+    "aovivo": {
+      "usado": 33,
+      "teto": 0,
+      "restante": 0
+    }
+  },
+  "tokensDeLlm": {
+    "usado": 4444,
+    "teto": 3000000
+  },
+  "iaDeNuvem": {
+    "disponivel": true,
+    "motivo": null,
+    "mensagem": null
+  },
+  "alivio": null,
+  "hoje": {
+    "janela": "2026-10-05",
+    "fuso": "America/Sao_Paulo",
+    "segundosDeAudio": {
+      "usado": 55,
+      "teto": 7200
+    },
+    "tokensDeLlm": {
+      "usado": 666,
+      "teto": 300000
+    }
+  }
+}

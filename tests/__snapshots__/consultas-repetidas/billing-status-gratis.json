@@ -1,0 +1,12 @@
+{
+  "teste": {
+    "estado": "indisponivel",
+    "dias": 14,
+    "motivo": "sem_email"
+  },
+  "configurado": false,
+  "planosAVenda": [
+    "premium"
+  ],
+  "assinatura": null
+}

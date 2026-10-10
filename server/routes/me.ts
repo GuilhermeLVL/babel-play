@@ -437,41 +437,52 @@ meRouter.delete('/', async (req, res) => {
  * `restante` já calculado (`null` = sem teto). É o que o medidor da tela desenha e o que a política de
  * rota recebe para decidir se a nuvem ainda cabe. `segundosDeAudio` continua igual (é o de trechos).
  */
-async function usoDeHoje(userId: import('../lib/authContext').UserId, plano: Parameters<typeof capSegundosDoDia>[0]) {
-  const tetoSegundos = capSegundosDoDia(plano)
-  const tetoTokens = capTokensDoDia(plano)
-  if (!Number.isFinite(tetoSegundos) && !Number.isFinite(tetoTokens)) return null
+/** O dia local de quem tem teto no dia: a janela e o fuso que a define. `null` sem teto no dia. */
+async function diaDoUsoJusto(
+  userId: import('../lib/authContext').UserId,
+  plano: Parameters<typeof capSegundosDoDia>[0],
+): Promise<{ janela: string; fuso: string } | null> {
+  if (!Number.isFinite(capSegundosDoDia(plano)) && !Number.isFinite(capTokensDoDia(plano))) return null
   const fuso = await fusoDaCota(userId)
-  const janela = diaNoFuso(Date.now(), fuso)
-  const [segundos, tokens] = await Promise.all([
-    usageCountersRepo.get(userId, METRIC_STT_SEGUNDOS_DIA, janela),
-    usageCountersRepo.get(userId, METRIC_LLM_TOKENS_DIA, janela),
-  ])
-  const finito = (n: number): number | null => (Number.isFinite(n) ? n : null)
-  return {
-    janela,
-    fuso,
-    segundosDeAudio: { usado: segundos, teto: finito(tetoSegundos) },
-    tokensDeLlm: { usado: tokens, teto: finito(tetoTokens) },
-  }
+  return { janela: diaNoFuso(Date.now(), fuso), fuso }
 }
 
 meRouter.get('/uso', async (req, res) => {
   try {
     const plano = await getPlanForUser(req.userId)
     const janela = new Date().toISOString().slice(0, 7)
-    const [chamadas, segundos, aoVivo, tokens, portao, alivio, hoje] = await Promise.all([
-      usageCountersRepo.get(req.userId, METRIC_MANAGED, janela),
-      usageCountersRepo.get(req.userId, METRIC_STT_SEGUNDOS, janela),
-      usageCountersRepo.get(req.userId, METRIC_STT_AO_VIVO_SEGUNDOS, janela),
-      usageCountersRepo.get(req.userId, METRIC_LLM_TOKENS, janela),
+    const dia = await diaDoUsoJusto(req.userId, plano)
+    /* UMA LEITURA de `usage_counters` para todos os contadores (auditoria de 10/10/2026, A11a): eram
+       quatro `SELECT` do mês e mais dois do dia, o mesmo comando com a métrica trocada, e a tela de
+       captura pede esta rota três vezes ao abrir. */
+    const [contagens, portao, alivio] = await Promise.all([
+      usageCountersRepo.contagens(req.userId, [
+        { metric: METRIC_MANAGED, window: janela },
+        { metric: METRIC_STT_SEGUNDOS, window: janela },
+        { metric: METRIC_STT_AO_VIVO_SEGUNDOS, window: janela },
+        { metric: METRIC_LLM_TOKENS, window: janela },
+        ...(dia
+          ? [
+              { metric: METRIC_STT_SEGUNDOS_DIA, window: dia.janela },
+              { metric: METRIC_LLM_TOKENS_DIA, window: dia.janela },
+            ]
+          : []),
+      ]),
       portaoDaNuvem(),
       /* A NUVEM DE ALÍVIO (A10) só existe para a conta Grátis; para os outros planos (e o convidado,
          que tem o pool dele), `null`. */
       plano === 'free' ? resumoDoAlivio(req) : null,
-      usoDeHoje(req.userId, plano),
     ])
+    const [chamadas, segundos, aoVivo, tokens, segundosDoDia = 0, tokensDoDia = 0] = contagens
     const finito = (n: number): number | null => (Number.isFinite(n) ? n : null)
+    const hoje = dia
+      ? {
+          janela: dia.janela,
+          fuso: dia.fuso,
+          segundosDeAudio: { usado: segundosDoDia, teto: finito(capSegundosDoDia(plano)) },
+          tokensDeLlm: { usado: tokensDoDia, teto: finito(capTokensDoDia(plano)) },
+        }
+      : null
     const doNivel = (usado: number, teto: number) => ({
       usado,
       teto: finito(teto),

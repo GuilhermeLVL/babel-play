@@ -1,0 +1,15 @@
+{
+  "temporada": {
+    "id": "t1",
+    "numero": 1,
+    "nome": "Observatório",
+    "inicio": "2026-10-01",
+    "fim": "2026-11-25",
+    "niveis": 30
+  },
+  "proxima": null,
+  "xp": 30,
+  "nivel": 0,
+  "assinante": false,
+  "creditados": []
+}

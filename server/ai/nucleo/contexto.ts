@@ -51,6 +51,12 @@ export interface ContextoDeIa {
   registrarCusto?: (usd: number) => Promise<void>
   /** As flags de produto de quem pede (a voz natural). Ausente = desligada: fail-closed. */
   flagLigada?: (chave: string) => Promise<boolean>
+  /**
+   * Aborta quando quem pediu DESISTIU (no app: a resposta fechou sem terminar). Vai até o `fetch` do
+   * provedor; o núcleo decide `recusaCancelada()` e sai pelo `finally` que solta a vaga e estorna a
+   * cota. Ausente = só o relógio de cada tentativa (`server/ai/cancelamento.ts`).
+   */
+  sinal?: AbortSignal
 }
 
 /**

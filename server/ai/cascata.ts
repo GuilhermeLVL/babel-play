@@ -17,6 +17,7 @@ import {
   registrarLimiteNaAdmissao,
   type TicketDeBalde,
 } from './admissao'
+import { clienteDesistiu } from './cancelamento'
 import { chaveDoProvedor, disjuntorPermite, registrarFalha, registrarSucesso } from './disjuntor'
 import { chamarChat, parametrosDoProvedor, type PedidoDeChat } from './llmClient'
 import { ehModeloDeRaciocinio } from './parametrosDoProvedor'
@@ -55,6 +56,8 @@ interface ResultadoDaCascata {
    * com `Retry-After` em vez de 502. Ausente quando alguma perna falhou por outro motivo.
    */
   limitadoPeloProvedor?: { retryAfterS: number }
+  /** Quem pediu desistiu no meio (`cancelamento.ts`): a cascata parou, e não há a quem responder. */
+  cancelado?: boolean
 }
 
 /**
@@ -178,6 +181,11 @@ export async function percorrerCascata(
   let esperaDoLimite = Infinity
   for (let i = 0; i < provedores.length; i++) {
     const prov = provedores[i]
+    /* QUEM PEDIU DESISTIU: nenhuma perna a mais é chamada. Se nenhuma foi, o pedido volta ao balde. */
+    if (clienteDesistiu(pedido.sinal)) {
+      if (adm && chamadas === 0) adm.ticket.devolver()
+      return { entregue: null, ultimaFalha: 'cancelado por quem pediu', cancelado: true }
+    }
     /* A ADMISSÃO DA PERNA (ADR 0007). Antes da perna admitida na entrada: estava sem saldo, pula.
        A admitida: já tem o pedido. Depois dela (a reserva, quando o primário falhou): pede ao
        balde DELA agora — sem saldo, pula sem abrir socket. */
@@ -270,7 +278,7 @@ export async function percorrerCascata(
       fim,
       provedor,
       modelo: prov.model,
-      status: r.ok ? 'ok' : statusDaTentativa(r.status, r.causa),
+      status: r.ok ? 'ok' : r.cancelado ? 'cancelado' : statusDaTentativa(r.status, r.causa),
       uso: r.ok
         ? { input: r.tokensEntrada ?? 0, output: r.tokensSaida ?? 0, cached_input: r.tokensEmCache ?? 0 }
         : undefined,
@@ -310,6 +318,9 @@ export async function percorrerCascata(
         ultimaFalha: '',
       }
     }
+    /* Abortada porque quem pediu desistiu: não é falha do provedor (o disjuntor não conta) e a
+       reserva não é tentada. */
+    if (r.cancelado) return { entregue: null, ultimaFalha: r.causa ?? 'cancelado por quem pediu', cancelado: true }
     registrarFalha(chave, r.status)
     ultimaFalha = r.causa ?? 'falha sem causa declarada'
     /* Todo tipo de falha do primário tenta a reserva — inclusive 4xx: chave revogada ou modelo

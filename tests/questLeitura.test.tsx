@@ -24,6 +24,9 @@ const palco = vi.hoisted(() => ({
   falar: null as unknown as ReturnType<(typeof import('vitest'))['vi']['fn']>,
   calar: null as unknown as ReturnType<(typeof import('vitest'))['vi']['fn']>,
   fichar: null as unknown as ReturnType<(typeof import('vitest'))['vi']['fn']>,
+  /** O que a busca de imagens devolve para a palavra aberta (`[]` = nenhuma imagem a ilustra). */
+  imagens: [] as Array<Record<string, string>>,
+  buscarImagens: null as unknown as ReturnType<(typeof import('vitest'))['vi']['fn']>,
 }))
 
 /**
@@ -51,7 +54,9 @@ vi.mock('../src/data/api', async (orig) => ({
       : Promise.resolve({ session: { sourceLang: 'en', targetLang: 'pt' }, utterances: palco.falas }),
   fetchDeck: () => Promise.resolve(palco.cartoes),
   fetchSettings: async () => null,
-  searchImages: async () => [{ url: 'https://exemplo.test/flow.jpg', thumbnail: '' }],
+}))
+vi.mock('../src/lib/imagens/imagensDaPalavra', () => ({
+  buscarImagensDaPalavra: (pedido: unknown) => (palco.buscarImagens as unknown as (p: unknown) => unknown)(pedido),
 }))
 vi.mock('../src/lib/vocabWord', async (orig) => ({
   ...(await orig<typeof import('../src/lib/vocabWord')>()),
@@ -142,8 +147,33 @@ const folha = () => {
 /** O que o motor de voz recebeu na última fala. */
 const ultimaFala = () => (palco.falar.mock.calls.at(-1) ?? []) as Parameters<Fala>
 
+const IMAGENS_DE_FLOW = [
+  {
+    id: 'File:Flow.jpg',
+    url: 'https://exemplo.test/flow.jpg',
+    titulo: 'Flow',
+    autor: 'Ana',
+    licenca: 'CC BY-SA 4.0',
+    pagina: 'https://exemplo.test/pagina/flow',
+    acervo: 'Wikimedia Commons',
+    fonte: 'verbete',
+  },
+  {
+    id: 'busca:rio',
+    url: 'https://exemplo.test/rio.jpg',
+    titulo: 'flow',
+    autor: 'Bia',
+    licenca: 'CC BY 2.0',
+    pagina: 'https://exemplo.test/pagina/rio',
+    acervo: 'Flickr',
+    fonte: 'busca',
+  },
+]
+
 beforeEach(() => {
   localStorage.clear()
+  palco.imagens = IMAGENS_DE_FLOW
+  palco.buscarImagens = vi.fn(async () => palco.imagens)
   aparelho.quest = true
   aparelho.voz = false
   palco.falas = FALAS
@@ -479,6 +509,20 @@ describe('A leitura no Quest: a frase e a palavra', () => {
     expect(palavra.getByRole('heading', { name: 'flow' })).toBeTruthy()
     expect(folha().querySelector('.qp-traducao')?.textContent).toBe('tradução de flow')
     expect(folha().querySelector('.qp-imagem img')?.getAttribute('src')).toBe('https://exemplo.test/flow.jpg')
+    // A busca recebe a palavra e o idioma DELA (o da frase); a tradução vai como pedido, não como valor.
+    expect(palco.buscarImagens).toHaveBeenCalledWith(
+      expect.objectContaining({
+        palavra: 'flow',
+        idioma: 'en',
+        idiomaDaTraducao: 'pt',
+        traducao: expect.any(Function),
+      }),
+    )
+    // A outra imagem é miniatura; tocar nela troca com a principal, e o crédito acompanha.
+    expect(within(folha()).getByTestId('credito-da-imagem').textContent).toContain('imagem de Ana')
+    fireEvent.click(palavra.getByRole('button', { name: /Mostrar em cima a imagem 2 de 2: flow/ }))
+    expect(folha().querySelector('.qp-imagem img')?.getAttribute('src')).toBe('https://exemplo.test/rio.jpg')
+    expect(within(folha()).getByTestId('credito-da-imagem').textContent).toContain('imagem de Bia')
     expect(
       within(palavra.getByRole('group', { name: 'Velocidade do áudio' }))
         .getAllByRole('button')
@@ -498,6 +542,36 @@ describe('A leitura no Quest: a frase e a palavra', () => {
       'play',
       expect.objectContaining({ id: 's1', seed: expect.objectContaining({ word: 'flow' }) }),
     )
+  })
+})
+
+/* SEM IMAGEM QUE ILUSTRE (10/10/2026): a coluna some. Antes a folha mostrava a primeira imagem que a
+   busca livre achasse (a capa de um livro, para "concordado") ou um quadro "Sem imagem". */
+describe('A folha da palavra sem imagem', () => {
+  it('a busca não achou nenhuma imagem que ilustre a palavra: a folha não tem coluna de imagem', async () => {
+    palco.imagens = []
+    const { frases } = await montar()
+    fireEvent.click(frases()[1])
+    fireEvent.click(within(folha()).getByRole('button', { name: 'flow' }))
+    await act(async () => {})
+    const corpo = screen.getByTestId('folha-da-palavra')
+    expect(corpo.querySelector('.qp-traducao')?.textContent).toBe('tradução de flow')
+    expect(corpo.querySelector('.qp-imagem')).toBeNull()
+    expect(corpo.querySelector('.qp-galeria')).toBeNull()
+    expect(corpo.textContent).not.toContain('Sem imagem')
+  })
+
+  it('enquanto a busca não volta, o lugar da imagem avisa; a folha já está aberta com o resto', async () => {
+    palco.buscarImagens = vi.fn(() => new Promise(() => {}))
+    const { frases } = await montar()
+    fireEvent.click(frases()[1])
+    fireEvent.click(within(folha()).getByRole('button', { name: 'flow' }))
+    await act(async () => {})
+    const corpo = screen.getByTestId('folha-da-palavra')
+    expect(within(corpo.querySelector('.qp-imagem') as HTMLElement).getByRole('status').textContent).toContain(
+      'Buscando imagem',
+    )
+    expect(corpo.querySelector('.qp-traducao')?.textContent).toBe('tradução de flow')
   })
 })
 

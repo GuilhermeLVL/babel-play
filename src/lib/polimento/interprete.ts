@@ -1,13 +1,14 @@
 /**
- * O INTÉRPRETE DO PROTÓTIPO — o movimento da conversa (`telas2.js:184-279, 569-582`), o inverter em arco
- * da tela de preparo (`prototipo.js:1096-1130`) e o que a tela pronta combina com a conversa em curso.
+ * O INTÉRPRETE DO PROTÓTIPO — o movimento da conversa (`telas2.js:184-279, 569-582`) e o que a tela
+ * pronta combina com a conversa em curso. (O inverter em arco de `prototipo.js:1096-1130` era da tela de
+ * preparo, que não existe mais: a conversa virtual começa por uma folha.)
  *
  * Cada função é a do protótipo, com os mesmos números; o comentário diz a linha de onde veio. O motor
  * (microfone, reconhecimento, tradução, voz) não passa por aqui: isto é só o que se vê.
  *
  * Itens da lista `fidelidade/casca-e-telas.md`: D19 a D31.
  */
-import { anima, EIO, MOLA, MOLA_SUAVE, polido, reduz } from './base';
+import { anima, MOLA, MOLA_SUAVE, polido, reduz } from './base';
 import { sentir, vibrar } from './sentidos';
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string, r: ParentNode) => r.querySelector<T>(s);
@@ -145,52 +146,6 @@ export function trocaDeLados(raiz: ParentNode, antes: Map<string, number>): void
   }
 }
 
-/** Quantas vezes cada seta já girou (`b._g` de `prototipo.js:1104`). */
-const giro = new WeakMap<Element, number>();
-
-/** A distância entre os dois textos do par, medida ANTES de eles trocarem (`prototipo.js:1098`). */
-export function distanciaDoPar(tela: ParentNode): number {
-  const [a, c] = $$('.par-idiomas .campo-idioma .v', tela);
-  return a && c ? c.getBoundingClientRect().left - a.getBoundingClientRect().left : 0;
-}
-
-/**
- * Inverter os idiomas na tela de preparo (`prototipo.js:1103-1129`): a seta gira meia volta e os dois
- * textos, já trocados, atravessam em arco até o lugar novo.
- */
-export function inverterEmArco(b: Element, tela: ParentNode, dx: number): void {
-  if (!anda()) return;
-  const g = (giro.get(b) ?? 0) + 180;
-  giro.set(b, g);
-  const svg = b.querySelector('svg');
-  if (svg)
-    anima(
-      svg,
-      [
-        { transform: `rotate(${g - 180}deg) scale(1)` },
-        { transform: `rotate(${g - 90}deg) scale(1.35)` },
-        { transform: `rotate(${g}deg) scale(1)` },
-      ],
-      { d: 700, e: EIO, fill: 'forwards' },
-    );
-  $$('.par-idiomas .campo-idioma', tela).forEach((x) => (x.style.overflow = 'visible'));
-  $$('.par-idiomas .campo-idioma .v', tela)
-    .slice(0, 2)
-    .forEach((v, i) => {
-      const s = i ? -1 : 1;
-      v.style.display = 'inline-block';
-      anima(
-        v,
-        [
-          { transform: `translate(${dx * s}px, 0) scale(1)` },
-          { transform: `translate(${(dx * s) / 2}px, ${-26 * s}px) scale(1.12)`, offset: 0.5 },
-          { transform: 'translate(0, 0) scale(1)' },
-        ],
-        { d: 760, e: EIO },
-      );
-    });
-}
-
 /* ---- O que a tela pronta combina com a conversa em curso ------------------------------------------ */
 
 /** O toque que abriu a conversa: o lado tocado, ou a escuta do modo automático. */
@@ -213,19 +168,21 @@ export function tomarPedidoDaConversa(): PedidoDaConversa | null {
 
 /**
  * O que as duas telas veem igual: se a conversa em curso está na frente (a tela pronta, por baixo, se
- * esconde), se os lados estão trocados e se "Virtual" foi tocado dentro da conversa.
+ * esconde), se os lados estão trocados e se a folha da conversa virtual está aberta.
  */
 export interface EstadoDaTela {
   emCurso: boolean;
   trocados: boolean;
-  preparoVirtual: boolean;
+  /** A folha "Conversa virtual" (o aceite e o fone) está aberta por cima da conversa. */
+  folhaVirtual: boolean;
   /**
-   * Para onde ir quando a sessão em curso encerrar, pedido numa conversa em que ninguém falou: o X
-   * volta à tela de origem; "Conhecer o Premium" abre os Planos. Quem navega é a tela pronta.
+   * Para onde ir quando a sessão em curso encerrar: o X volta à tela de origem e "Conhecer o Premium"
+   * abre os Planos (numa conversa em que ninguém falou); "Virtual" abre a folha da conversa virtual
+   * (com falas, o Encerrar decide antes). Quem age é a tela pronta.
    */
-  depois: 'voltar' | 'planos' | null;
+  depois: 'voltar' | 'planos' | 'virtual' | null;
 }
-let estado: EstadoDaTela = { emCurso: false, trocados: false, preparoVirtual: false, depois: null };
+let estado: EstadoDaTela = { emCurso: false, trocados: false, folhaVirtual: false, depois: null };
 const ouvintes = new Set<() => void>();
 
 export const estadoDaTela = (): EstadoDaTela => estado;
@@ -234,7 +191,7 @@ export function mudarEstadoDaTela(parte: Partial<EstadoDaTela>): void {
   if (
     novo.emCurso === estado.emCurso &&
     novo.trocados === estado.trocados &&
-    novo.preparoVirtual === estado.preparoVirtual &&
+    novo.folhaVirtual === estado.folhaVirtual &&
     novo.depois === estado.depois
   )
     return;

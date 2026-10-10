@@ -429,6 +429,9 @@ export const patchSessionSchema = z
 export const imageSearchQuerySchema = z
   .object({
     q: z.string().min(1).max(120),
+    /* Quantos resultados pedir ao Openverse. 8 é o que o seletor de capa mostra; a folha da palavra
+       pede 20 (o teto de quem não tem chave) porque filtra quase tudo antes de mostrar. */
+    n: z.coerce.number().int().min(1).max(20).default(8),
   })
   .strip()
 

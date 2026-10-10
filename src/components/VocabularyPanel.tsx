@@ -2,7 +2,6 @@ import {
   BookOpen,
   Check,
   ExternalLink,
-  ImageOff,
   Loader2,
   Plus,
   SlidersHorizontal,
@@ -16,11 +15,13 @@ import { useEffect, useRef, useState } from 'react';
 
 import { type DictionaryResult, forvoUrl, lookup, wiktionaryUrl } from '../lib/dictionary';
 import { idiomaDaInterface, t } from '../lib/i18n';
+import type { ImagemDaPalavra } from '../lib/imagens/criterios';
 import { baseLang, langLabel, langLabelNaUI } from '../lib/languages';
 import type { AppLayoutConfig } from '../lib/layoutStore';
 import type { ExerciseId } from '../lib/sentences';
 import type { VocabWord } from '../types';
 import EditablePanel from './EditablePanel';
+import GaleriaDaPalavra from './GaleriaDaPalavra';
 import Provenance from './Provenance';
 import { Dialogo } from './ui';
 
@@ -98,12 +99,16 @@ export interface VocabularyPanelProps {
   mtNote?: string | null;
   /**
    * A FOLHA DA PALAVRA (o desenho do headset): o mesmo conteúdo num diálogo no centro, com alvos de
-   * 56 px, no lugar da coluna lateral e do cartão que abria por hover. Quem a usa passa também o que
-   * o cartão de hover mostrava (`imagem`) e diz se há voz para o idioma (`podeOuvir`).
+   * 56 px, no lugar da coluna lateral e do cartão que abria por hover. Quem a usa passa também as
+   * imagens da palavra (`imagens`) e diz se há voz para o idioma (`podeOuvir`).
    */
   emFolha?: boolean;
-  /** Só na folha: a imagem associada (o que o hover mostrava). Ausente = esta tela não busca imagem. */
-  imagem?: { url: string | null; carregando: boolean };
+  /**
+   * Só na folha: as imagens que ilustram a palavra (`lib/imagens/imagensDaPalavra`), a melhor primeiro.
+   * Ausente = esta tela não busca imagem. Lista vazia com a busca terminada = não há imagem que
+   * ilustre a palavra, e a coluna da imagem some em vez de mostrar algo que confunde.
+   */
+  imagens?: { lista: ImagemDaPalavra[]; carregando: boolean };
   /** Só na folha: há voz de leitura para o idioma da palavra? `false` troca o "Ouvir" pelo motivo. */
   podeOuvir?: boolean;
   /** Só na folha: as velocidades do áudio (a Análise oferece 0,5× e 1×; a Leitura, 0,75× e 1×). */
@@ -126,7 +131,7 @@ export default function VocabularyPanel({
   onPractice,
   mtNote,
   emFolha = false,
-  imagem,
+  imagens,
   podeOuvir = true,
   velocidades = VELOCIDADES_PADRAO,
   nivel,
@@ -186,20 +191,13 @@ export default function VocabularyPanel({
         aoFechar={onClose}
       >
         <div className="dlg-corpo qs-miolo qp" data-testid="folha-da-palavra">
-          {imagem && (
-            <div className="qp-imagem">
-              {imagem.url ? (
-                <img src={imagem.url} alt={word.word} referrerPolicy="no-referrer" />
-              ) : imagem.carregando ? (
-                <span role="status">
-                  <Loader2 className="animate-spin" aria-hidden /> {t('Buscando imagem…')}
-                </span>
-              ) : (
-                <span>
-                  <ImageOff aria-hidden /> {t('Sem imagem')}
-                </span>
-              )}
-            </div>
+          {imagens && (
+            <GaleriaDaPalavra
+              key={word.word}
+              palavra={word.word}
+              imagens={imagens.lista}
+              carregando={imagens.carregando}
+            />
           )}
           <div className="qp-texto">
             <section className="qp-bloco">

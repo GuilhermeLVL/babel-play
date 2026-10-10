@@ -12,7 +12,9 @@
  *   cdn.jsdelivr.net                            o runtime WASM do ONNX: sem `wasmPaths` próprio, o
  *                                               transformers.js baixa `ort-wasm-*.{mjs,wasm}` de lá
  *                                               (node_modules/@huggingface/transformers/src/backends/onnx.js)
- *   *.wiktionary.org                            o verbete do dicionário (`src/lib/dictionary.ts`)
+ *   *.wiktionary.org                            o verbete do dicionário (`src/lib/dictionary.ts`) e as
+ *                                               figuras que ele traz, com autor e licença
+ *                                               (`src/lib/imagens/imagensDaPalavra.ts`): é a mesma API
  *   api.openverse.org                           a busca de imagem direta, quando a API cai
  *                                               (`src/data/rotas/imagens.ts`)
  *   api.mymemory.translated.net                 a tradução de reserva do cliente

@@ -415,14 +415,6 @@
 }
 
 /* ---------- a tela "Conversa": uma lista única, na orientação normal ---------- */
-.int[data-layout][data-tela='conversa'] {
-  display: flex;
-  flex-direction: column;
-}
-.int[data-tela='conversa'] .int-faixa {
-  order: -1;
-  border-top: 0;
-}
 .int-conversa {
   flex: 1;
   min-height: 0;
@@ -583,63 +575,8 @@
   justify-content: flex-end;
 }
 
-/* ---------- a conversa virtual (Intérprete v3, Fase 4): as duas fontes na faixa ---------- */
-.int-fonte {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 36px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid var(--int-linha);
-  background: var(--int-escuro-2);
-  font: 700 12.5px var(--font-body);
-  color: var(--int-mut);
-}
-.int-fonte svg {
-  width: 15px;
-  height: 15px;
-}
-.int-fonte[data-ativa] {
-  border-color: var(--accent);
-  color: var(--int-tinta);
-}
-.int[data-virtual] .int-esq {
-  flex-wrap: wrap;
-}
+/* ---------- a lista da conversa virtual: os idiomas ouvidos ao lado de "Exportar" ---------- */
 .int-conversa-topo {
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
-}
-.int-nota-fone {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font: 600 12px var(--font-body);
-  color: var(--int-mut);
-}
-.int-nota-fone svg {
-  width: 15px;
-  height: 15px;
-}
-.int[data-virtual] .int-conversa {
-  padding-bottom: 20px;
-}
-.virtual-painel {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 10px;
-  padding: 14px;
-  border-radius: 14px;
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.16));
-  text-align: left;
-}
-.virtual-painel label {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 13px;
-  line-height: 1.35;
 }

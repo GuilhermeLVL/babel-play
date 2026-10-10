@@ -52,10 +52,11 @@ vi.mock('../src/data/api', async (orig) => {
     },
     fetchDeck: () => Promise.resolve(palco.cartoes),
     fetchSettings: async () => null,
-    searchImages: async () => [{ url: 'https://exemplo.test/retention.jpg', thumbnail: '' }],
     updateUtterance: palco.salvar,
   }
 })
+// A folha da palavra busca as imagens no Wikcionário; aqui nenhuma palavra tem imagem e nada vai à rede.
+vi.mock('../src/lib/imagens/imagensDaPalavra', () => ({ buscarImagensDaPalavra: async () => [] }))
 vi.mock('../src/lib/vocabWord', async (orig) => ({
   ...(await orig<typeof import('../src/lib/vocabWord')>()),
   buildVocabWord: async (origem: { word: string; context?: string }) => ({

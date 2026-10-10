@@ -14,6 +14,23 @@ interface ImageResult {
   creator?: string
   source?: string
   license?: string
+  /* O que a folha da palavra usa para FILTRAR e para dar o crédito (`src/lib/imagens/criterios.ts`).
+     Tudo opcional: o seletor de capa não lê nenhum destes. */
+  licenseVersion?: string
+  /** A página da imagem no acervo de origem (Flickr, Commons…): autor, licença e condições. */
+  landingUrl?: string
+  width?: number
+  height?: number
+  filetype?: string
+  category?: string
+  tags?: string[]
+}
+
+/** As etiquetas que o autor pôs na imagem; no máximo 12, que é o que o filtro lê. */
+function etiquetas(bruto: unknown): string[] | undefined {
+  if (!Array.isArray(bruto)) return undefined
+  const nomes = bruto.map((e) => (typeof e?.name === 'string' ? e.name : '')).filter(Boolean)
+  return nomes.length ? nomes.slice(0, 12) : undefined
 }
 
 /*
@@ -64,14 +81,14 @@ imagesRouter.get('/search', async (req, res) => {
      processo sem limite. O cache saiu (ver acima) e o teto FICA, agora por outro motivo: `q` é
      concatenado na URL do Openverse logo abaixo, e um termo sem tamanho máximo vira requisição de
      saída arbitrariamente grande paga pelo servidor. */
-  const parsed = parseOr400(imageSearchQuerySchema, { q: bruto }, res)
+  const parsed = parseOr400(imageSearchQuerySchema, { q: bruto, n: req.query.n ?? undefined }, res)
   if (!parsed) return
-  const q = parsed.q
+  const { q, n } = parsed
 
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 6000)
   try {
-    const url = `${OPENVERSE_URL}?q=${encodeURIComponent(q)}&page_size=8&license_type=all&mature=false`
+    const url = `${OPENVERSE_URL}?q=${encodeURIComponent(q)}&page_size=${n}&license_type=all&mature=false`
     const response = await fetch(url, { signal: controller.signal })
     if (!response.ok) {
       res.json({ results: [], error: `openverse ${response.status}` })
@@ -85,6 +102,8 @@ imagesRouter.get('/search', async (req, res) => {
       const thumbnail = item?.thumbnail
       const url = item?.url
       if (!thumbnail || !url) continue
+      // `mature=false` já vai na consulta; a marca por imagem é a segunda tranca.
+      if (item?.mature === true) continue
       results.push({
         id: String(item?.id ?? url),
         thumbnail,
@@ -93,8 +112,15 @@ imagesRouter.get('/search', async (req, res) => {
         creator: item?.creator ?? undefined,
         source: item?.source ?? undefined,
         license: item?.license ?? undefined,
+        licenseVersion: item?.license_version ?? undefined,
+        landingUrl: item?.foreign_landing_url ?? undefined,
+        width: typeof item?.width === 'number' ? item.width : undefined,
+        height: typeof item?.height === 'number' ? item.height : undefined,
+        filetype: item?.filetype ?? undefined,
+        category: item?.category ?? undefined,
+        tags: etiquetas(item?.tags),
       })
-      if (results.length >= 8) break
+      if (results.length >= n) break
     }
 
     res.json({ results })

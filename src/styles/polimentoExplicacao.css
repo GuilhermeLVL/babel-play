@@ -1,0 +1,40 @@
+/*
+ * A EXPLICAÇÃO DO JOGO ("Como se joga", as três telas de antes da partida) — três exceções ao protótipo,
+ * pedidas pelo dono em 10/10/2026 ("corrija o espaçamento das divs pré-jogo"). O defeito está no próprio
+ * protótipo (`docs/prototipos/polimento-movimento.html`): o app o copiava ponto por ponto. O CSS copiado
+ * (`styles/polimento/*.css`) não é editado; o acerto mora aqui, só para esta folha (`:has(.pj-onb)`).
+ *
+ * As outras folhas da mesma família (`.pj-como-folha` sem `.pj-onb`: "Como isto funciona", o cadeado do
+ * nível, a conversa virtual, o anúncio premiado) têm a MESMA causa e ficaram como estão: são de outras
+ * telas. Para acertar todas de uma vez, basta tirar o `:has(.pj-onb)` das duas regras do diálogo.
+ */
+
+/* NO COMPUTADOR, O CONTEÚDO COLAVA NA BORDA DE CIMA.
+   A base das folhas (`capturaNoCelular.css`, `dialog.folha-de-baixo`) tem `padding: 0 16px 20px`: em cima
+   é zero porque quem dá o respiro é a pega (`.folha-pega`, 28 px). `polimento/jogos4.css:59-60` transforma
+   a folha em cartão no centro acima de 720 px e ESCONDE a pega, sem devolver o respiro: a miniatura (e,
+   nas telas 2 e 3, o rótulo) encostava na borda, com 16 px dos lados e 26 px embaixo. Volta a margem que
+   os lados têm. */
+@media (min-width: 721px) {
+  html dialog.folha-de-baixo.pj-como-folha:has(.pj-onb) {
+    padding-top: 16px;
+  }
+}
+
+/* JOGO SEM AJUDAS (Cadavre e Karaokê): A LISTA VAZIA ABRIA UM VÃO DOBRADO NA TELA 3.
+   `abrirOnb()` (`jogos4.js:202`) monta sempre a `<ul class="pj-onb-ajudas">`; vazia, ela tem altura zero mas
+   conta como bloco, e os dois parágrafos ficavam a 20 px um do outro, com 10 px entre todos os demais. */
+.pj-onb .pj-onb-ajudas:empty {
+  display: none;
+}
+
+/* NO CELULAR, A FOLHA FICAVA ENCOSTADA À ESQUERDA, COM 20 px VAZIOS À DIREITA.
+   No desenho novo todo `<dialog>` tem `width: calc(100vw - 20px)` até 720 px (`questBase.css`, "DIÁLOGOS"),
+   e a folha herda essa largura. O protótipo pede o centro (`polimento/telas.css:133`,
+   `dialog.folha-de-baixo { margin-inline: auto; }`), mas a regra nunca valeu: a base tem
+   `margin: auto 0 0 !important`. Aqui ela passa a valer: mesma largura, 10 px de cada lado. */
+@media (max-width: 720px) {
+  html dialog.folha-de-baixo.pj-como-folha:has(.pj-onb) {
+    margin-inline: auto !important;
+  }
+}

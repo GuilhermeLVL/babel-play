@@ -141,3 +141,23 @@ mudou de texto porque a folha só afirma o que o código faz.
 O que o app tem na Captura e o protótipo não mostra **continua onde estava** (nada foi tirado nesta
 passada): o seletor "Qualidade" dos Ajustes da captura (Automática, Rápida, Precisa, Nuvem), que grava a
 mesma preferência do seletor de nível; o aviso de nuvem sem consentimento; o aviso do uso do dia.
+
+## Intérprete: a tela de entrada antiga e a conversa virtual no desenho novo (10/10/2026)
+
+O botão "Virtual" da conversa levava à ÚLTIMA tela antiga do Intérprete (a página de entrada). Ela foi
+apagada: "Virtual" abre a folha `interprete/FolhaDaConversaVirtual.tsx` por cima da conversa, e a conversa
+virtual (`interprete/ConversaVirtual.tsx`) passou a desenhar com a tela da conversa nova
+(`ConversaDoPrototipo`). O protótipo não desenha a conversa virtual: o que segue é o que a tela antiga
+mostrava e a nova não mostra, ou mostra em outro lugar.
+
+| Tela | O que saiu ou mudou de lugar | Onde estava | O que fazia / o que ficou no lugar |
+|---|---|---|---|
+| Intérprete, entrada | **A página inteira**: cabeçalho "Intérprete · Conversa frente a frente", o cartão escuro "Conversa" com os dois campos de idioma e o botão de inverter, "Começar conversa", o painel "Conversa virtual" e o cartão "Uma conversa, dois idiomas" com os três passos | `PaginaDoInterprete.tsx` (`PaginaDeEntrada`) | Era o preparo da conversa virtual. O Intérprete já abria direto na conversa; os idiomas se trocam pela seta de cada metade (o diálogo de idiomas, que tem o inverter) |
+| Intérprete, entrada | As linhas "A tradução dos dois lados fica pronta no aparelho antes da primeira frase.", "Modo automático: o app reconhece sozinho… Dá para trocar para o toque na conversa." e "No Premium, o modo automático…" | Idem | O preparo aparece na faixa da conversa; o automático e o cadeado são o botão "Automático" da faixa |
+| Conversa virtual | As pílulas "Eles · ouvindo o computador / Eles · desligado" e "Você · ouvindo / Você · silenciado", e a pílula "Compartilhar áudio" | `ConversaVirtual.tsx` (a faixa) | Viraram as duas colunas: a linha de estado e o botão grande de cada uma (o da outra pessoa, com o monitor, abre o seletor da aba ou tela; o seu liga e silencia o microfone). "Eles" passou a se chamar "A outra pessoa", como no resto da conversa nova (inclusive no Markdown exportado) |
+| Conversa virtual | A nota fixa "De fone, o microfone não ouve o que toca no computador." no alto da lista | Idem | É a dica da sua coluna enquanto você ainda não falou; depois da primeira fala ela não aparece mais |
+| Conversa virtual | A lista em bolhas como tela ÚNICA, com o que está sendo dito agora em cinza no fim dela | Idem | A tela abre nas duas colunas (o que está sendo dito agora aparece na coluna de quem fala); a lista é o botão "Conversa" da faixa. Ouvir, corrigir e guardar cada fala continuam na lista |
+| Conversa virtual | "Exportar" só aparecia com falas | Idem | Fica sempre no alto da lista, como na conversa frente a frente; sem falas, não baixa nada |
+| Conversa virtual | **Parar só o som do computador, ou trocar de aba no meio da conversa** | Não existia | Continua não existindo. Ouvindo, o botão grande da outra pessoa fica aceso e travado: parar é sair da conversa (o X) ou encerrar o compartilhamento no navegador. Não foi inventado um controle para isso |
+| Conversa virtual | Trocar os idiomas no meio da conversa (a seta de cada metade) e os atalhos de teclado (1, 2, R, P, Esc) | Não existiam na virtual | Continuam não existindo na virtual: as setas e os atalhos são do frente a frente (o microfone por lado) |
+| Conversa em curso | "Virtual" tocado numa conversa que já tem falas | `ModoInterprete.tsx` | A conversa virtual é outra sessão: o Encerrar de sempre abre primeiro (salvar ou descartar) e só então a folha. Sem falas, a folha abre na hora |

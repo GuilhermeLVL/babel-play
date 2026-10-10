@@ -1,6 +1,9 @@
 /* A base das folhas de baixo (`dialog.folha-de-baixo`, `.folha-corpo`) mora com a captura do celular, onde elas
    nasceram; a explicação é uma folha e precisa dela. */
 import '../../../styles/capturaNoCelular.css';
+/* O respiro de cima no computador, o centro no celular e a lista de ajudas vazia: as exceções ao
+   protótipo, com o porquê de cada uma. */
+import '../../../styles/polimentoExplicacao.css';
 
 import type { MinigameId } from '@core';
 import { Eye, Lightbulb, type LucideIcon, Radar, Scissors, Sparkles, Timer, Volume2, WandSparkles } from 'lucide-react';

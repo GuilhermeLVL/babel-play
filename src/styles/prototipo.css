@@ -189,13 +189,9 @@ select.campo{appearance:none;padding-right:38px;background-image:url("data:image
 .faixa-rev{display:flex;align-items:center;gap:14px;padding:16px 20px;border-top:1px solid color-mix(in srgb,var(--accent) 35%,var(--border-subtle));flex-wrap:wrap}
 .contador{width:44px;height:44px;border-radius:50%;background:var(--accent-soft);color:var(--accent-ink);display:grid;place-items:center;font:900 16px var(--font-display);flex:none}
 .sessao-mini{display:flex;align-items:center;gap:12px;padding:12px 14px;max-width:340px}
-.estudio{padding:22px 24px}
-.estudio-topo{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:16px;border-bottom:1px solid color-mix(in srgb,var(--ink-contrast) 14%,transparent);flex-wrap:wrap}
-.estudio-topo h2{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
 .ponto{width:10px;height:10px;border-radius:50%;background:#7a766c}
 .ponto.vivo{background:var(--accent);animation:pulsa 1.2s ease-in-out infinite}
 @keyframes pulsa{50%{opacity:.35}}
-.estudio-acoes{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:18px}
 .relogio{font:700 30px var(--font-mono);letter-spacing:.06em;margin-top:14px;font-variant-numeric:tabular-nums}
 .ondas{display:flex;align-items:center;gap:3px;height:28px;margin-left:8px}
 .ondas i{width:3px;border-radius:2px;background:var(--accent);height:30%;animation:onda .9s ease-in-out infinite alternate}
@@ -1156,7 +1152,6 @@ dialog.gaveta{margin:auto 0 0;width:100%;max-width:100%;height:auto;max-height:8
 .raspa:not(.revelada):hover .capa-raspa{filter:brightness(1.04)}
 .badge-botao{border:0;cursor:pointer}
 .badge-botao:hover{background:var(--surface-hover)}
-.estudio .btn.mic-on{border-color:var(--accent);color:var(--ink-contrast);background:color-mix(in srgb,var(--accent) 28%,var(--ink))}
 .pulsa{animation:pulsa-borda 1.6s ease-in-out infinite}
 @keyframes pulsa-borda{50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 35%,transparent)}}
 .h-escuro{display:flex;align-items:center;gap:8px;font:800 14px var(--font-display);letter-spacing:.04em;text-transform:uppercase;color:inherit}

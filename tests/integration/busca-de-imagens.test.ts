@@ -85,6 +85,63 @@ describe('GET /api/images/search', () => {
     expect(corpo.error).toBe('openverse 503')
   })
 
+  /* A FOLHA DA PALAVRA (10/10/2026) pede 20 resultados e os campos que o filtro dela lê
+     (`src/lib/imagens/criterios.ts`): tamanho, tipo, etiquetas, licença com versão e a página de origem. */
+  it('`n` escolhe quantos pedir ao provedor (8 sem ele, teto de 20) e a resposta leva os campos do filtro', async () => {
+    responder = () =>
+      new Response(
+        JSON.stringify({
+          results: [
+            {
+              id: 'i1',
+              thumbnail: 'https://ex/t.jpg',
+              url: 'https://ex/i.jpg',
+              title: 'Cachorros 2',
+              creator: 'monicatenerife',
+              source: 'flickr',
+              license: 'by-nc',
+              license_version: '2.0',
+              foreign_landing_url: 'https://ex/pagina',
+              width: 500,
+              height: 375,
+              filetype: 'jpg',
+              category: 'photograph',
+              tags: [{ name: 'cachorros' }, { name: 'dogs' }, { sem: 'nome' }],
+            },
+            { id: 'i2', thumbnail: 'https://ex/t2.jpg', url: 'https://ex/i2.jpg', title: 'adulto', mature: true },
+          ],
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      )
+    const corpo = await (await fetch(`${base}/api/images/search?q=cachorro&n=20`)).json()
+    expect(chamadas[0]).toContain('page_size=20')
+    expect(chamadas[0], 'o filtro de conteúdo adulto continua na consulta').toContain('mature=false')
+    expect(corpo.results, 'a imagem marcada como adulta não passa, mesmo que o provedor a devolva').toHaveLength(1)
+    expect(corpo.results[0]).toEqual({
+      id: 'i1',
+      thumbnail: 'https://ex/t.jpg',
+      url: 'https://ex/i.jpg',
+      title: 'Cachorros 2',
+      creator: 'monicatenerife',
+      source: 'flickr',
+      license: 'by-nc',
+      licenseVersion: '2.0',
+      landingUrl: 'https://ex/pagina',
+      width: 500,
+      height: 375,
+      filetype: 'jpg',
+      category: 'photograph',
+      tags: ['cachorros', 'dogs'],
+    })
+
+    await buscar('gato')
+    expect(chamadas[1], 'sem `n`, o de sempre: os 8 do seletor de capa').toContain('page_size=8')
+
+    const demais = await fetch(`${base}/api/images/search?q=gato&n=500`)
+    expect(demais.status).toBe(400)
+    expect(chamadas, 'pedido acima do teto não sai do processo').toHaveLength(2)
+  })
+
   it('termo vazio nem sai do processo; termo gigante é recusado antes da chamada de saída', async () => {
     expect((await (await buscar('   ')).json()).results).toEqual([])
     expect(chamadas, 'termo vazio não vira requisição de saída').toHaveLength(0)

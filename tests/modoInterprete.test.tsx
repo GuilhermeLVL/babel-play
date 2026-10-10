@@ -45,7 +45,7 @@ import { mudarEstadoDaTela, tomarPedidoDaConversa } from '../src/lib/polimento/i
 beforeEach(() => {
   voz.falas.length = 0
   localStorage.clear()
-  mudarEstadoDaTela({ emCurso: false, trocados: false, preparoVirtual: false, depois: null })
+  mudarEstadoDaTela({ emCurso: false, trocados: false, folhaVirtual: false, depois: null })
   tomarPedidoDaConversa()
   Element.prototype.animate = function () {
     return { finished: Promise.resolve(), cancel: () => {} } as unknown as Animation

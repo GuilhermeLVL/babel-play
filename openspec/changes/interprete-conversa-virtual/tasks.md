@@ -7,6 +7,7 @@
 - [ ] 1.5 Ducking do original e pausa de "Eles" durante a leitura: **não feito**. O padrão é só legenda; com a leitura ligada vale o anti-eco atual (a fala que começa durante a voz é pulada)
 - [x] 1.6 Tela `ConversaVirtual.tsx`: bolhas, estado de "Eles" e "Você", silenciar o microfone, só legenda por padrão, leitura opcional de "Eles", corrigir, guardar, exportar (`tests/conversaVirtual.test.tsx`)
 - [x] 1.7 Entrada em `PaginaDoInterprete.tsx` ("Conversa virtual"), só no computador com áudio do sistema e com a chave `virtual` ligada
+  - 10/10/2026: a entrada virou a folha `FolhaDaConversaVirtual.tsx`, aberta pelo botão "Virtual" da conversa (a página de entrada antiga foi apagada), e a tela `ConversaVirtual.tsx` passou a usar a conversa do desenho novo (`ConversaDoPrototipo`): ver `polimento-movimento/fidelidade/ficou-de-fora.md`
 - [x] 1.8 Aviso e confirmação (18+, avisar quem estiver na conversa, nada gravado) e a escolha de fone antes de começar; botão de sair sempre visível
 - [ ] 1.9 Medidor de minutos e queda para só legenda no teto: **não feito** (depende do plano, tarefa 1.1)
 - [x] 1.10 Conferido num navegador real (edição estática): a tela abre, "Eles" fica ouvindo o computador com áudio simulado, "Você" silenciado sem fone, sem erros no console

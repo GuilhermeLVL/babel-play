@@ -1,7 +1,7 @@
 import '../../../../styles/modoInterprete.css';
 
-import { Download, Headphones, Languages, Loader2, Mic, MicOff, Monitor, Volume2, VolumeX, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Languages, Monitor, Volume2, VolumeX } from 'lucide-react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { type PonteDoInterprete, VELOCIDADE_LENTA } from '../../../../lib/captura/controleDoInterprete';
 import { baixarTexto, conversaEmMarkdown, nomeDoArquivoDaConversa } from '../../../../lib/captura/exportarConversa';
@@ -18,9 +18,11 @@ import type { LadoDoInterprete } from '../../../../lib/captura/tiposDaFala';
 import type { TraducaoFinal } from '../../../../lib/captura/traducaoDaFala';
 import { t } from '../../../../lib/i18n';
 import { langLabel, toBcp47 } from '../../../../lib/languages';
+import { mudarEstadoDaTela } from '../../../../lib/polimento/interprete';
 import { nativeTts } from '../../../../lib/tts';
 import { criarFilaDeFala, type FilaDeFala } from '../../../../lib/voz/filaDeFala';
-import { criarVozDaNuvem, destravarVozDaNuvem } from '../../../../lib/voz/vozDaNuvem';
+import { criarVozDaNuvem, destravarVozDaNuvem, type VozDaNuvem } from '../../../../lib/voz/vozDaNuvem';
+import ConversaDoPrototipo, { type FraseDaMetade, type MetadeDaConversa } from './ConversaDoPrototipo';
 import FolhaDeEdicao from './FolhaDeEdicao';
 import { ConversaEmBolhas } from './ListaDoHistorico';
 import type { FalaDoInterprete, FraseParaGuardar } from './ModoInterprete';
@@ -29,14 +31,27 @@ import type { AoOuvirTrecho, TrechoEmLeitura } from './TextoTocavel';
 /** Quanto tempo entre as leituras do estado das fontes (os ref da captura não avisam a tela). */
 const INTERVALO_DAS_FONTES_MS = 500;
 
+const outroLado = (lado: LadoDoInterprete): LadoDoInterprete => (lado === 'meu' ? 'outro' : 'meu');
+
 /**
  * A CONVERSA VIRTUAL (Intérprete v3, Fase 4) — o intérprete para quem NÃO está frente a frente: um vídeo,
  * o Discord, um jogo, uma chamada. Duas fontes rodam juntas, cada uma com a direção FIXA:
- *   · "Eles"  = o áudio do computador: o idioma da outra pessoa, traduzido para o meu;
- *   · "Você"  = o microfone: o meu idioma, traduzido para o dela.
- * A tela é a lista em bolhas do histórico (a mesma tela "Conversa" do intérprete), sem tocar em lado nem
- * alternar turnos. O padrão é SÓ LEGENDA: ler a tradução de "Eles" em voz alta é uma escolha (com a voz
- * do app tocando, o que começa a ser dito nesse intervalo é pulado pelo anti-eco — de preferência, de fone).
+ *   · "A outra pessoa" = o áudio do computador: o idioma dela, traduzido para o meu;
+ *   · "Você"           = o microfone: o meu idioma, traduzido para o dela.
+ *
+ * A TELA É A DA CONVERSA DO DESENHO NOVO (`ConversaDoPrototipo`), a mesma do frente a frente: no
+ * computador, duas colunas ("Você" à esquerda, "A outra pessoa" à direita) e a faixa em cima. Onde cada
+ * controle da conversa virtual mora nela:
+ *   · a coluna da outra pessoa mostra o que vem do som do computador (a tradução grande, o que foi dito
+ *     embaixo); o botão grande dela, com o monitor, abre o seletor da aba ou tela com áudio e, ouvindo,
+ *     fica aceso (parar é sair da conversa ou encerrar o compartilhamento no navegador);
+ *   · a sua coluna mostra o que você fala; o botão grande dela liga e silencia o microfone;
+ *   · na faixa, "Detectando idiomas" / "Idiomas fixos" e "Só legenda" / "Lendo em voz alta" são botões de
+ *     modo como o "Automático"; a voz em uso e o aviso do preparo ficam no meio, e o X sai;
+ *   · "Conversa" abre a lista em bolhas, onde cada fala se ouve, se corrige e se guarda, e "Exportar";
+ *   · "Repetir" lê de novo a última tradução da outra pessoa, e "Parar voz" cala a leitura.
+ * O padrão é SÓ LEGENDA: ler a tradução da outra pessoa em voz alta é uma escolha (com a voz do app
+ * tocando, o que começa a ser dito nesse intervalo é pulado pelo anti-eco — de preferência, de fone).
  *
  * A captura (`LiveCapture`) abre as duas fontes e repassa as falas; a ponte liga o fim de cada tradução à
  * leitura. Aqui só vive a tela, a leitura e o estado das fontes.
@@ -50,7 +65,6 @@ export default function ConversaVirtual({
   alternarMicrofone,
   vozNaturalDisponivel,
   velocidade,
-  layout,
   abrindo,
   aviso,
   aoCorrigirFala,
@@ -69,7 +83,6 @@ export default function ConversaVirtual({
   alternarMicrofone: (ligar: boolean) => void;
   vozNaturalDisponivel: boolean;
   velocidade?: number;
-  layout: 'celular' | 'computador' | 'quest';
   abrindo?: boolean;
   aviso?: string | null;
   aoCorrigirFala?: (id: string, texto: string, direcao: { de: string; para: string }) => void;
@@ -94,7 +107,7 @@ export default function ConversaVirtual({
     return () => clearInterval(relogio);
   }, []);
 
-  /* A LEITURA: uma fila só, para a tradução de "Eles" (quando ligada) e para os toques no texto. */
+  /* A LEITURA: uma fila só, para a tradução da outra pessoa (quando ligada) e para os toques no texto. */
   const [lerEmVozAlta, setLerEmVozAlta] = useState(false);
   const lerRef = useRef(false);
   lerRef.current = lerEmVozAlta;
@@ -102,8 +115,10 @@ export default function ConversaVirtual({
   velocidadeRef.current = velocidade;
   const [lendo, setLendo] = useState<TrechoEmLeitura | null>(null);
   const filaRef = useRef<FilaDeFala | null>(null);
+  const vozRef = useRef<VozDaNuvem | null>(null);
   useEffect(() => {
     const voz = vozNaturalDisponivel ? criarVozDaNuvem() : null;
+    vozRef.current = voz;
     const velocidadeInicial = velocidadeRef.current;
     const fila = criarFilaDeFala({
       motor: () => voz ?? nativeTts,
@@ -117,7 +132,7 @@ export default function ConversaVirtual({
     };
   }, [vozNaturalDisponivel]);
 
-  /* DETECTAR IDIOMA: "Eles" podem falar idiomas diferentes; cada fala é medida e a minha resposta vai para o
+  /* DETECTAR IDIOMA: do computador podem vir idiomas diferentes; cada fala é medida e a minha resposta vai para o
      idioma de quem falou por último. Ligado por padrão; desligado, valem os dois idiomas escolhidos. */
   const [detectar, setDetectar] = useState(detectarIdiomaNaVirtual);
   const alternarDetectar = () => {
@@ -129,7 +144,8 @@ export default function ConversaVirtual({
 
   const falaDe = useCallback((lado: LadoDoInterprete) => direcaoDoLado(lado, idiomasRef.current).fala, []);
 
-  /* A PONTE com a captura: a direção é do pipeline (fixa por fonte), então aqui só a tradução de "Eles". */
+  /* A PONTE com a captura: a direção é do pipeline (fixa por fonte), então aqui só a tradução do que vem
+     do computador. */
   useEffect(() => {
     const aoTraduzirFinal = (final: TraducaoFinal) => {
       if (!lerRef.current || !final.segId.startsWith('sys-')) return;
@@ -164,12 +180,13 @@ export default function ConversaVirtual({
     setLerEmVozAlta(ligar);
   };
 
-  const [avisoDaTela, setAvisoDaTela] = useState<string | null>(null);
-  useEffect(() => {
-    if (!avisoDaTela) return;
-    const relogio = setTimeout(() => setAvisoDaTela(null), 6000);
-    return () => clearTimeout(relogio);
-  }, [avisoDaTela]);
+  /* A conversa cobre a tela pronta, que fica por baixo e se esconde enquanto esta está na frente (como
+     na conversa frente a frente, `ModoInterprete`). */
+  useLayoutEffect(() => {
+    mudarEstadoDaTela({ emCurso: true, depois: null });
+    return () => mudarEstadoDaTela({ emCurso: false });
+  }, []);
+
   /** TOQUE NO TEXTO: lê a palavra ou a frase, cortando a leitura em curso. */
   const ouvirTrecho: AoOuvirTrecho = (texto, lang, opcoes) => {
     const fila = filaRef.current;
@@ -185,31 +202,21 @@ export default function ConversaVirtual({
     });
   };
 
-  /* O HISTÓRICO (a mesma lista da tela "Conversa") e o que falta dele ao vivo: o que "Eles" estão dizendo agora. */
+  /* O HISTÓRICO: a lista da tela "Conversa" (a janela) e, inteiro, o que cada coluna mostra por último. */
+  const [lista, setLista] = useState(false);
   const [janela, setJanela] = useState(JANELA_DO_HISTORICO);
   const totalDeFinais = useMemo(
     () => falas.filter((f) => f.lado && !f.isPartial && f.originalText.trim()).length,
     [falas],
   );
   const historico = historicoDoInterprete(falas, 'meu', { janela });
-  /* Os idiomas que "Eles" já falaram nesta conversa, na ordem em que apareceram (com detecção). */
+  const tudo = historicoDoInterprete(falas, 'meu', { janela: Number.MAX_SAFE_INTEGER });
+  /* Os idiomas que a outra pessoa já falou nesta conversa, na ordem em que apareceram (com detecção). */
   const idiomasOuvidos = useMemo(() => {
     const vistos: string[] = [];
     for (const f of falas) if (f.lado === 'outro' && f.lang && !vistos.includes(f.lang)) vistos.push(f.lang);
     return vistos;
   }, [falas]);
-  const dizendoAgora = [...falas].reverse().find((f) => f.lado === 'outro' && f.isPartial && f.originalText.trim());
-  const fim = dizendoAgora ? (
-    <p className="int-ao-vivo" lang={falaDe('outro')} data-testid="eles-dizendo">
-      {dizendoAgora.originalText}
-    </p>
-  ) : historico.itens.length === 0 ? (
-    <p className="int-dica">
-      {ativos.sistema
-        ? t('Estou ouvindo o áudio do computador. Toque um vídeo ou entre na conversa: a tradução aparece aqui.')
-        : t('Compartilhe uma aba ou a tela com áudio para eu ouvir o computador.')}
-    </p>
-  ) : null;
 
   /* CORRIGIR e GUARDAR, como na tela frente a frente. */
   const [edicao, setEdicao] = useState<{ item: ItemDoHistorico; lang: string; de: string; para: string } | null>(null);
@@ -241,120 +248,158 @@ export default function ConversaVirtual({
       nomeDoArquivoDaConversa(titulo),
       conversaEmMarkdown(falas, {
         titulo,
-        rotulos: { meu: t('Você'), outro: t('Eles') },
+        rotulos: { meu: t('Você'), outro: t('A outra pessoa') },
         idiomas: { meu: langLabel(falaDe('meu')), outro: langLabel(falaDe('outro')) },
       }),
     );
   };
 
+  /* AS DUAS COLUNAS. Cada uma é de quem fala nela: a da outra pessoa mostra o que vem do computador
+     (o que EU leio em destaque é a tradução), a minha o que eu disse (em destaque) e a tradução embaixo. */
+  const [trocados, setTrocados] = useState(false);
+  const ultimaDe = (dono: LadoDoInterprete) => [...tudo.itens].reverse().find((i) => i.lado === dono);
+  const ultimaDoOutro = ultimaDe('outro');
+  const vozNatural = !!vozRef.current && vozRef.current.motorDaUltimaFala() === 'voz-da-nuvem';
+  const coluna = (lado: LadoDoInterprete): MetadeDaConversa => {
+    const dono = trocados ? outroLado(lado) : lado;
+    const doComputador = dono === 'outro';
+    const dizendo = [...falas].reverse().find((f) => f.lado === dono && f.isPartial && f.originalText.trim());
+    const item = ultimaDe(dono);
+    /* Com a detecção, a coluna da outra pessoa diz o idioma medido da fala que está na tela. */
+    const lang = doComputador && detectar && item?.idioma ? toBcp47(item.idioma) : falaDe(dono);
+    let frase: FraseDaMetade = {
+      tipo: 'dica',
+      texto: !doComputador
+        ? t('De fone, o microfone não ouve o que toca no computador.')
+        : ativos.sistema
+          ? t('Estou ouvindo o áudio do computador. Toque um vídeo ou entre na conversa: a tradução aparece aqui.')
+          : t('Compartilhe uma aba ou a tela com áudio para eu ouvir o computador.'),
+    };
+    if (dizendo) frase = { tipo: 'fala', texto: dizendo.originalText, lang: falaDe(dono), aoVivo: true };
+    else if (item) {
+      const traducao = item.traduzindo ? '…' : item.traducao.trim();
+      /* Sem tradução (a outra pessoa falou o meu idioma), o que foi dito é o que se lê. */
+      const grande = doComputador ? traducao || item.original : item.original;
+      const pequeno = doComputador ? (traducao ? item.original : '') : traducao;
+      frase = {
+        tipo: 'traducao',
+        id: item.id,
+        traducao: grande,
+        original: pequeno,
+        lang: doComputador && traducao ? idiomaDaTraducao(item) : idiomaDaFala(item),
+        langDoOriginal: doComputador ? idiomaDaFala(item) : idiomaDaTraducao(item),
+      };
+    }
+    if (doComputador)
+      return {
+        lado,
+        dono,
+        lang,
+        nome: langLabel(lang),
+        frase,
+        status: ativos.sistema ? t('Ouvindo o computador…') : '',
+        rotulo: ativos.sistema ? t('Ouvindo') : t('Ouvir'),
+        rotuloParaLeitor: ativos.sistema ? t('Ouvindo o áudio do computador') : t('Compartilhar áudio'),
+        ouvindo: ativos.sistema,
+        aoFalar: abrirSistema,
+        /* Ouvindo, não há o que tocar aqui: a captura do computador só fecha ao sair da conversa. */
+        travado: ativos.sistema,
+        semVoz: false,
+        icone: Monitor,
+      };
+    return {
+      lado,
+      dono,
+      lang,
+      nome: langLabel(lang),
+      frase,
+      status: abrindo ? t('Abrindo o microfone…') : ativos.microfone ? t('Ouvindo…') : '',
+      rotulo: ativos.microfone ? t('Parar') : t('Falar'),
+      rotuloParaLeitor: ativos.microfone ? t('Silenciar o meu microfone') : t('Ligar o meu microfone'),
+      ouvindo: ativos.microfone,
+      aoFalar: () => alternarMicrofone(!ativos.microfone),
+      /* A tradução do microfone nunca é lida aqui: não há o que repetir nem o que calar nesta coluna. */
+      semVoz: true,
+    };
+  };
+
   return (
-    <div
-      className="int"
-      data-layout={layout}
-      data-tela="conversa"
-      data-virtual
-      role="dialog"
-      aria-modal="true"
-      aria-label={t('Conversa virtual')}
-      data-testid="conversa-virtual"
-    >
-      <div className="int-faixa" data-testid="faixa-virtual">
-        <div className="int-esq">
-          <span className="int-fonte" data-ativa={ativos.sistema || undefined} data-testid="fonte-eles">
-            <Monitor aria-hidden />
-            <span>{ativos.sistema ? t('Eles · ouvindo o computador') : t('Eles · desligado')}</span>
-          </span>
-          {!ativos.sistema && (
-            <button type="button" className="int-modo" onClick={abrirSistema} data-testid="compartilhar-audio">
-              <Monitor aria-hidden />
-              <span>{t('Compartilhar áudio')}</span>
-            </button>
-          )}
-          <button
-            type="button"
-            className="int-modo"
-            onClick={() => alternarMicrofone(!ativos.microfone)}
-            aria-pressed={ativos.microfone}
-            aria-label={ativos.microfone ? t('Silenciar o meu microfone') : t('Ligar o meu microfone')}
-            data-testid="fonte-voce"
-          >
-            {abrindo ? (
-              <Loader2 aria-hidden className="animate-spin" />
-            ) : ativos.microfone ? (
-              <Mic aria-hidden />
-            ) : (
-              <MicOff aria-hidden />
-            )}
-            <span>{ativos.microfone ? t('Você · ouvindo') : t('Você · silenciado')}</span>
-          </button>
-        </div>
-        <div className="int-centro">
-          <button
-            type="button"
-            className="int-modo"
-            onClick={alternarLeitura}
-            aria-pressed={lerEmVozAlta}
-            aria-label={t('Ler a tradução de Eles em voz alta')}
-            data-testid="ler-em-voz-alta"
-          >
-            {lerEmVozAlta ? <Volume2 aria-hidden /> : <VolumeX aria-hidden />}
-            <span>{lerEmVozAlta ? t('Lendo em voz alta') : t('Só legenda')}</span>
-          </button>
-          <button
-            type="button"
-            className="int-modo"
-            onClick={alternarDetectar}
-            aria-pressed={detectar}
-            aria-label={t('Detectar o idioma de cada fala')}
-            data-testid="detectar-idioma"
-          >
-            <Languages aria-hidden />
-            <span>{detectar ? t('Detectando idiomas') : t('Idiomas fixos')}</span>
-          </button>
-          <span className="int-aviso" role="status" data-testid="aviso-do-interprete">
-            {avisoDaTela ?? aviso ?? ''}
-          </span>
-        </div>
-        <button type="button" className="int-ib peq" onClick={aoSair} aria-label={t('Sair da conversa virtual')}>
-          <X aria-hidden />
-        </button>
-      </div>
-      <section className="int-conversa" aria-label={t('Conversa')} data-testid="interprete-conversa">
-        <div className="int-conversa-topo">
-          {detectar && idiomasOuvidos.length > 0 && (
-            <span className="int-idiomas" data-testid="idiomas-ouvidos" aria-label={t('Idiomas ouvidos de Eles')}>
+    <ConversaDoPrototipo
+      cima={coluna('outro')}
+      baixo={coluna('meu')}
+      modos={[
+        {
+          id: 'detectar-idioma',
+          icone: Languages,
+          rotulo: detectar ? t('Detectando idiomas') : t('Idiomas fixos'),
+          rotuloParaLeitor: t('Detectar o idioma de cada fala'),
+          ligado: detectar,
+          aoTocar: alternarDetectar,
+        },
+        {
+          id: 'ler-em-voz-alta',
+          icone: lerEmVozAlta ? Volume2 : VolumeX,
+          rotulo: lerEmVozAlta ? t('Lendo em voz alta') : t('Só legenda'),
+          rotuloParaLeitor: t('Ler a tradução da outra pessoa em voz alta'),
+          ligado: lerEmVozAlta,
+          aoTocar: alternarLeitura,
+        },
+      ]}
+      lista={{
+        aberta: lista,
+        bolhas: [],
+        aoAlternar: () => setLista((v) => !v),
+        aoExportar: () => {
+          if (totalDeFinais > 0) exportar();
+        },
+        topo:
+          detectar && idiomasOuvidos.length > 0 ? (
+            <span
+              className="int-idiomas"
+              data-testid="idiomas-ouvidos"
+              aria-label={t('Idiomas ouvidos da outra pessoa')}
+            >
               {idiomasOuvidos.map((l) => (
                 <span key={l}>{langLabel(toBcp47(l))}</span>
               ))}
             </span>
-          )}
-          <span className="int-nota-fone">
-            <Headphones aria-hidden /> {t('De fone, o microfone não ouve o que toca no computador.')}
-          </span>
-          {totalDeFinais > 0 && (
-            <button type="button" className="int-modo" onClick={exportar} data-testid="exportar-conversa">
-              <Download aria-hidden />
-              <span>{t('Exportar')}</span>
-            </button>
-          )}
-        </div>
-        <ConversaEmBolhas
-          historico={historico}
-          total={totalDeFinais}
-          aoVerMais={() => setJanela((j) => subirJanela(j, totalDeFinais))}
-          idiomaDaFala={idiomaDaFala}
-          idiomaDaTraducao={idiomaDaTraducao}
-          {...(detectar
-            ? { rotulo: (item: ItemDoHistorico) => (item.idioma ? langLabel(toBcp47(item.idioma)) : null) }
-            : {})}
-          mudo={() => false}
-          lendo={lendo}
-          aoOuvir={ouvirTrecho}
-          fim={fim}
-          {...(aoCorrigirFala ? { aoEditar: editar } : {})}
-          {...(aoGuardar ? { aoGuardar: guardar } : {})}
-        />
-      </section>
+          ) : null,
+        /* Vazia, a lista é a de sempre ("A conversa aparece aqui…"). */
+        conteudo: totalDeFinais > 0 && (
+          <ConversaEmBolhas
+            historico={historico}
+            total={totalDeFinais}
+            aoVerMais={() => setJanela((j) => subirJanela(j, totalDeFinais))}
+            idiomaDaFala={idiomaDaFala}
+            idiomaDaTraducao={idiomaDaTraducao}
+            {...(detectar
+              ? { rotulo: (item: ItemDoHistorico) => (item.idioma ? langLabel(toBcp47(item.idioma)) : null) }
+              : {})}
+            mudo={() => false}
+            lendo={lendo}
+            aoOuvir={ouvirTrecho}
+            {...(aoCorrigirFala ? { aoEditar: editar } : {})}
+            {...(aoGuardar ? { aoGuardar: guardar } : {})}
+          />
+        ),
+      }}
+      voz={{
+        rotulo: !lerEmVozAlta ? t('Só legenda') : vozNatural ? t('Voz natural · Premium') : t('Voz do aparelho'),
+        natural: lerEmVozAlta && vozNatural,
+        muda: !lerEmVozAlta,
+      }}
+      aviso={aviso ?? ''}
+      aoTrocarLados={() => setTrocados((v) => !v)}
+      aoRepetir={() => {
+        if (ultimaDoOutro?.traducao.trim()) ouvirTrecho(ultimaDoOutro.traducao, idiomaDaTraducao(ultimaDoOutro));
+      }}
+      aoPararVoz={() => filaRef.current?.parar()}
+      aoSair={aoSair}
+      emDialogo
+      testid="conversa-virtual"
+      rotulo={t('Conversa virtual')}
+      rotuloDeSair={t('Sair da conversa virtual')}
+    >
       {edicao && (
         <FolhaDeEdicao
           texto={edicao.item.original}
@@ -366,6 +411,6 @@ export default function ConversaVirtual({
           }}
         />
       )}
-    </div>
+    </ConversaDoPrototipo>
   );
 }

@@ -554,6 +554,49 @@ html[data-quest-novo='true'] .qp-imagem svg {
   width: 26px;
   height: 26px;
 }
+/* A GALERIA (`GaleriaDaPalavra`): a principal no lugar de sempre, as outras em miniaturas logo
+   abaixo e o crédito da que está em cima. Nada de peça nova: o raio da miniatura é o dos blocos
+   pequenos da folha (14 px), a borda e o foco são os das palavras-botão (`.qs-palavra`). Três por
+   linha numa coluna de 220 px dão 68 px de lado: acima dos 56 px que o raio do headset acerta. */
+html[data-quest-novo='true'] .qp-galeria {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+html[data-quest-novo='true'] .qp-miniaturas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+html[data-quest-novo='true'] .qp-miniatura {
+  aspect-ratio: 1;
+  padding: 0;
+  overflow: hidden;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 14px;
+  background: var(--surface-sunken);
+  cursor: pointer;
+  transition:
+    transform var(--q-toque),
+    border-color var(--q-cor);
+}
+html[data-quest-novo='true'] .qp-miniatura img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+html[data-quest-novo='true'] .qp-miniatura:hover {
+  border-color: var(--q-acento);
+  transform: scale(1.04);
+}
+html[data-quest-novo='true'] .qp-miniatura:active {
+  transform: scale(0.96);
+}
+html[data-quest-novo='true'] .qp-miniatura:focus-visible {
+  outline: 3px solid var(--q-acento);
+  outline-offset: 3px;
+}
 html[data-quest-novo='true'] .qp-texto {
   min-width: 0;
   display: grid;
@@ -872,16 +915,38 @@ html[data-quest-novo='true'] .qs-falante .q-barra {
   html[data-quest-novo='true'] .qp-imagem {
     aspect-ratio: 16 / 7;
   }
+  /* No celular a coluna é a folha inteira: um terço da largura daria miniaturas maiores que a
+     principal. Ficam do tamanho do alvo (64 px), em fila, coladas à principal. */
+  html[data-quest-novo='true'] .qp-miniaturas {
+    grid-template-columns: repeat(3, 64px);
+    margin-top: -10px;
+  }
+  /* E O CRÉDITO DESCE PARA O FIM DA FOLHA. Empilhados, a imagem, as miniaturas e o selo de
+     procedência (com os dois botões de 56 px) tomavam a parte visível inteira e a tradução só
+     aparecia rolando. A galeria deixa de ser uma caixa (`display: contents`) e o crédito vai para
+     depois do texto: a tradução volta a aparecer logo abaixo das imagens, como antes. */
+  html[data-quest-novo='true'] .qp-galeria {
+    display: contents;
+  }
+  html[data-quest-novo='true'] .qp-credito {
+    order: 1;
+  }
+  /* AS LINHAS NÃO ENCOLHEM. O miolo da folha tem altura fechada (é ele que rola) e a imagem corta o
+     que transborda: numa linha `auto` isso dá altura mínima ZERO, e a linha da imagem murchava com
+     as miniaturas e a tradução desenhadas por cima dela (visto na captura de 390 px, 10/10/2026). */
+  html[data-quest-novo='true'] dialog > .qp {
+    grid-auto-rows: max-content;
+  }
   html[data-quest-novo='true'] .qs-revisar {
     flex-wrap: wrap;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html[data-quest-novo='true'] :is(.qs-fala, .qs-fala-texto, .qs-palavra, a.q-chip) {
+  html[data-quest-novo='true'] :is(.qs-fala, .qs-fala-texto, .qs-palavra, a.q-chip, .qp-miniatura) {
     transition: none;
   }
-  html[data-quest-novo='true'] :is(.qs-fala-texto, .qs-palavra, a.q-chip):is(:hover, :active) {
+  html[data-quest-novo='true'] :is(.qs-fala-texto, .qs-palavra, a.q-chip, .qp-miniatura):is(:hover, :active) {
     transform: none;
   }
 }

@@ -785,6 +785,12 @@ html[data-quest-novo='true'] dialog.qj-pausa {
   .qj-ajudas li {
     flex-wrap: wrap;
   }
+  /* A etiqueta do preço desce para a linha de baixo (é o que o `flex-wrap` acima e o recuo de 34 px
+     pedem). Sem esta base ela nunca descia: o texto tem `flex: 1` (base zero), cabia "tudo" na mesma
+     linha e o texto era espremido numa coluna de uma palavra por linha ao lado da etiqueta. */
+  .qj-ajudas li > span:first-of-type {
+    flex-basis: calc(100% - 34px);
+  }
   .qj-ajudas .q-tag {
     max-width: none;
     margin-left: 34px;

@@ -1,0 +1,124 @@
+{
+  "nome": "explicacao-do-jogo-sem-ajudas",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/?ui=pt",
+    "passos": [
+      {
+        "js": "import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false))"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "js": "(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Pular apresentação'); if (b) b.click(); })()"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "js": "(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Começar'); if (b) b.click(); })()"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "clicar": ".q-trilho .q-item >> text=Jogar"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": "button:has-text('Trilha')"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "clicar": "button:has-text('Usar estas palavras')"
+      },
+      {
+        "esperar": 2000
+      },
+      {
+        "clicar": ".q-tile[data-jogo='cadavre']"
+      },
+      {
+        "esperar": 2200
+      },
+      {
+        "clicar": "dialog.pj-como-folha [data-onb='prox']"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "clicar": "dialog.pj-como-folha [data-onb='prox']"
+      },
+      {
+        "esperar": 500
+      }
+    ],
+    "depois": 1200
+  },
+  "proto": {
+    "busca": "?jogo=cadavre",
+    "passos": [
+      {
+        "esperar": 1500
+      },
+      {
+        "clicar": "dialog.pj-como-folha [data-onb='prox']"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "clicar": "dialog.pj-como-folha [data-onb='prox']"
+      },
+      {
+        "esperar": 500
+      }
+    ],
+    "depois": 1200
+  },
+  "seletores": [
+    "dialog.pj-como-folha",
+    "dialog.pj-como-folha .folha-pega",
+    "dialog.pj-como-folha .folha-corpo",
+    ".pj-como.pj-onb",
+    ".pj-onb section:not([hidden])",
+    ".pj-onb section:not([hidden]) > *",
+    ".pj-onb section:not([hidden]) .label-mono",
+    ".pj-onb section:not([hidden]) h2",
+    ".pj-onb-ajudas",
+    ".pj-onb section:not([hidden]) .pj-como-ajudas",
+    ".pj-onb-pe",
+    ".pj-onb-pontos",
+    ".pj-onb-pontos i.on",
+    "[data-onb='fechar']",
+    "[data-onb='prox']"
+  ],
+  "props": [
+    "marginTop",
+    "marginLeft",
+    "marginRight",
+    "maxWidth",
+    "overflowX",
+    "overflowY",
+    "minHeight"
+  ]
+}

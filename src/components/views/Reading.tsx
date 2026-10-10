@@ -27,13 +27,15 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
-import { fetchDeck, fetchSessionTranscript, searchImages } from '../../data/api';
+import { fetchDeck, fetchSessionTranscript } from '../../data/api';
 import { buildGateway } from '../../gateway';
 import { getActiveProfile } from '../../gateway/activeProfile';
 import { ficharCartao } from '../../lib/adicionarAoDeck';
 import { consentiuNuvem } from '../../lib/consentimentoDeNuvem';
 import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
 import { t, tp } from '../../lib/i18n';
+import type { ImagemDaPalavra } from '../../lib/imagens/criterios';
+import { buscarImagensDaPalavra } from '../../lib/imagens/imagensDaPalavra';
 import { useLangConfig } from '../../lib/langConfig';
 import { detectLanguage, hasNativeDetector, type LangDetection } from '../../lib/langDetect';
 import { baseLang, langLabel, toBcp47 } from '../../lib/languages';
@@ -117,14 +119,13 @@ interface StudyText {
   speaker: string;
 }
 
-// Pré-visualização REAL de uma palavra ao passar o mouse (imagem + tradução + contexto).
+/* As IMAGENS da palavra aberta na folha. Isto já foi a prévia do cartão de hover (imagem, tradução e
+   contexto); o cartão virou a folha, que tem a tradução e o contexto por conta própria. */
 interface WordPreview {
   word: string;
   loading: boolean;
-  imageUrl: string | null; // null = sem imagem encontrada
-  translation: string | null; // null = tradução indisponível
-  note: string | null; // POR QUE não há tradução (par sem motor, falha do MT). null = há tradução.
-  context: string; // frase de contexto em que a palavra aparece
+  /** Vazio com a busca terminada = nenhuma imagem ilustra a palavra (a folha fecha a coluna). */
+  imagens: ImagemDaPalavra[];
 }
 
 /** Em quanto tempo `speechSynthesis.pause()`/`resume()` precisa ter surtido efeito. */
@@ -313,6 +314,9 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
    * direção decidida por esse idioma, motor declarado. Nada é fabricado — cefr/phonetics/explanation
    * ficam `undefined` até haver fonte real, e a falta de tradução vem com o MOTIVO (`mtNote`).
    */
+  /* A tradução das palavras já abertas nesta visita: reabrir não traduz de novo. (Morava no cache da
+     prévia do cartão de hover, que traduzia toda palavra uma segunda vez só para preenchê-lo.) */
+  const traducoesRef = useRef<Map<string, string>>(new Map());
   const examineWord = async (wordStr: string, sentenceIndex?: number) => {
     const context =
       sentenceIndex !== undefined
@@ -320,9 +324,8 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
         : TRANSCRIPT.find((s) => s.toLowerCase().includes(wordStr.toLowerCase())) || '';
     const origin = originOfWord(wordStr, context || undefined);
 
-    const cached = previewCacheRef.current.get(wordStr);
     const known = vocabCards.find((c) => c.word.toLowerCase() === wordStr.toLowerCase());
-    const alreadyTranslated = cached?.translation || known?.translation || '';
+    const alreadyTranslated = traducoesRef.current.get(wordStr) || known?.translation || '';
 
     setMtNote(null);
     setSelectedExamWord({ word: wordStr, translation: alreadyTranslated, example: origin.context });
@@ -339,6 +342,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
 
     const { vocab, resolved } = await buildVocabWord(origin, gateway.mt);
     selectedWordLangRef.current = resolved.lang;
+    if (vocab.translation) traducoesRef.current.set(wordStr, vocab.translation);
     setSelectedExamWord((prev) => (prev && prev.word === wordStr ? vocab : prev));
     setMtNote(mtNoteFor(resolved, vocab.translation));
   };
@@ -1070,8 +1074,8 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
     if (narrationMode === 'auto' && sentenceIndex !== undefined) void ensureDetection(sentenceIndex);
   };
 
-  // Cache por-palavra da pré-visualização REAL (imagem/tradução/contexto) — evita refazer buscas.
-  const previewCacheRef = useRef<Map<string, WordPreview>>(new Map());
+  /* As imagens da palavra tocada. Não há cache aqui: `buscarImagensDaPalavra` guarda o que já buscou
+     (e a busca em andamento), para esta tela e para qualquer outra. */
   const [wordPreview, setWordPreview] = useState<WordPreview | null>(null);
 
   useEffect(() => {
@@ -1080,40 +1084,36 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
       return;
     }
     const word = hoveredWord;
-
-    const cached = previewCacheRef.current.get(word);
-    if (cached) {
-      setWordPreview(cached);
-      return;
-    }
-
     const origin = originOfWord(word);
-    const context = origin.context || '';
-    // Estado de carregamento HONESTO enquanto busca imagem + tradução reais.
-    setWordPreview({ word, loading: true, imageUrl: null, translation: null, note: null, context });
+    // O lugar da imagem aparece na hora, com o aviso de busca; a folha não espera por ela.
+    setWordPreview({ word, loading: true, imagens: [] });
 
     let cancelled = false;
     (async () => {
-      // A direção da tradução sai do produtor único (idioma da FRASE de origem) — não mais o
-      // `langPair.src → langPair.tgt` fixo da sessão, que mandava palavra inglesa como portuguesa.
-      const [images, built] = await Promise.all([
-        searchImages(word).catch(() => []),
-        buildVocabWord(origin, gateway.mt),
-      ]);
+      /* O idioma da PALAVRA sai do produtor único (o da frase de origem), e é ele que escolhe o
+         verbete. A tradução entra como PEDIDO, não como valor: só é feita se nem a palavra nem o
+         lema têm figura no dicionário (antes esta tela traduzia toda palavra duas vezes, uma aqui
+         e outra para a folha). */
+      const traducao = () =>
+        buildVocabWord(origin, gateway.mt).then(
+          (built) => built.vocab.translation || null,
+          () => null,
+        );
+      let imagens: ImagemDaPalavra[] = [];
+      try {
+        const resolved = await resolveWord(origin);
+        imagens = await buscarImagensDaPalavra({
+          palavra: word,
+          idioma: resolved.lang,
+          traducao,
+          idiomaDaTraducao: resolved.targetLang,
+        });
+      } catch {
+        /* sem idioma ou sem rede: a folha fica sem imagem, que é uma resposta válida */
+      }
       // Corrida: só aplica se ainda estivermos sobre a mesma palavra.
       if (cancelled) return;
-      const imageUrl = images[0]?.url || images[0]?.thumbnail || null;
-      const translation = built.vocab.translation || null;
-      const preview: WordPreview = {
-        word,
-        loading: false,
-        imageUrl,
-        translation,
-        note: mtNoteFor(built.resolved, built.vocab.translation),
-        context,
-      };
-      previewCacheRef.current.set(word, preview);
-      setWordPreview(preview);
+      setWordPreview({ word, loading: false, imagens });
     })();
 
     return () => {
@@ -1797,7 +1797,7 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
           ttsSpeed={ttsSpeed}
           setTtsSpeed={setTtsSpeed}
           onPractice={onChangeView ? handlePracticeWord : undefined}
-          imagem={{ url: previaDaAberta?.imageUrl ?? null, carregando: !previaDaAberta || previaDaAberta.loading }}
+          imagens={{ lista: previaDaAberta?.imagens ?? [], carregando: !previaDaAberta || previaDaAberta.loading }}
           podeOuvir={!!idiomaDaPalavraAberta && haVozPara(idiomaDaPalavraAberta)}
         />
       )}

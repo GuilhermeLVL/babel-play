@@ -5,6 +5,9 @@
  * (`src/data/polimento/jogos-textos.json`). O que não pode mudar sem o desenho mudar: três telas, os
  * rótulos de cada uma, o que cada nível diz, as ajudas com o preço e a conta de quantas vezes valem.
  */
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
 import { cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -102,5 +105,81 @@ describe('a explicação em três telas', () => {
     render(<ExplicacaoDoJogo jogo="cadavre" pagina={2} aoFechar={() => undefined} />)
     expect(document.querySelector('[data-pg="2"] .pj-nivs')).toBeNull()
     expect(document.querySelector('[data-pg="2"]')?.textContent).toContain('Este jogo não tem níveis')
+  })
+})
+
+/**
+ * O ESPAÇAMENTO DA FOLHA (10/10/2026). O protótipo esconde a pega da folha no computador sem devolver o
+ * respiro de cima: a miniatura (e o rótulo, nas telas 2 e 3) colava na borda do cartão. No celular a folha
+ * ficava encostada à esquerda, e a lista de ajudas vazia abria um vão dobrado. O acerto é do app
+ * (`src/styles/polimentoExplicacao.css`); o CSS copiado do protótipo não é editado. Sem navegador, o que
+ * dá para travar é a regra existir, estar ligada ao componente e as premissas dela continuarem de pé.
+ */
+describe('o espaçamento da folha da explicação', () => {
+  /** A folha de estilo com os espaços e as quebras de linha reduzidos a um espaço (a formatação não importa). */
+  const ler = (caminho: string) => readFileSync(resolve(__dirname, '..', caminho), 'utf8').replace(/\s+/g, ' ')
+  /** O miolo de um bloco `@media`: vai até o próximo `@media` (ou até o fim da folha). */
+  const bloco = (css: string, media: string) => {
+    const inicio = css.indexOf(media)
+    expect(inicio, media).toBeGreaterThan(-1)
+    const fim = css.indexOf('@media', inicio + media.length)
+    return css.slice(inicio, fim === -1 ? undefined : fim)
+  }
+  const acerto = ler('src/styles/polimentoExplicacao.css')
+  const FOLHA = 'html dialog.folha-de-baixo.pj-como-folha:has(.pj-onb)'
+
+  it('o componente carrega o acerto e monta a marcação que ele mira', () => {
+    expect(ler('src/components/minigames/polimento/ExplicacaoDoJogo.tsx')).toContain(
+      " import '../../../styles/polimentoExplicacao.css';",
+    )
+    render(<ExplicacaoDoJogo jogo="wordsearch" primeira aoFechar={() => undefined} />)
+    const folha = document.querySelector('dialog.folha-de-baixo.pj-como-folha') as HTMLElement
+    expect(folha.querySelector(':scope > .folha-pega')).not.toBeNull()
+    expect(folha.querySelector(':scope > .folha-corpo > .pj-como.pj-onb')).not.toBeNull()
+    /* A miniatura é o primeiro bloco da tela 1: é ela que encostava na borda. */
+    expect(folha.querySelector('[data-pg="0"]')?.firstElementChild?.className).toBe('px-mini')
+  })
+
+  it('no computador a folha ganha em cima a margem que tem dos lados', () => {
+    const regra = bloco(acerto, '@media (min-width: 721px)')
+    expect(regra).toContain(`${FOLHA} { padding-top: 16px; }`)
+  })
+
+  it('as premissas: a base não tem respiro em cima e o protótipo esconde a pega no computador', () => {
+    /* Se a base ganhar um `padding-top`, ou a pega voltar a aparecer, o respiro dobra: reveja o acerto. */
+    const base = ler('src/styles/capturaNoCelular.css')
+    const daFolha = base.slice(base.indexOf('dialog.folha-de-baixo {'), base.indexOf('dialog.folha-de-baixo[open]'))
+    expect(daFolha).toContain(' padding: 0 16px calc(20px + env(safe-area-inset-bottom, 0px));')
+    const doPrototipo = bloco(ler('src/styles/polimento/jogos4.css'), '@media (min-width: 721px)')
+    expect(doPrototipo).toContain('dialog.folha-de-baixo.pj-como-folha .folha-pega { display: none; }')
+    expect(doPrototipo).not.toContain('padding')
+  })
+
+  it('no celular a folha fica no centro (a regra do protótipo perdia para o !important da base)', () => {
+    const regra = bloco(acerto, '@media (max-width: 720px)')
+    expect(regra).toContain(`${FOLHA} { margin-inline: auto !important; }`)
+    expect(ler('src/styles/capturaNoCelular.css')).toContain('dialog.folha-de-baixo { margin: auto 0 0 !important;')
+    expect(ler('src/styles/polimento/telas.css')).toContain('dialog.folha-de-baixo { margin-inline: auto; }')
+  })
+
+  it('jogo sem ajudas: a lista vazia não ocupa um vão', () => {
+    expect(acerto).toContain('.pj-onb .pj-onb-ajudas:empty { display: none; }')
+    for (const jogo of ['cadavre', 'karaoke'] as const) {
+      cleanup()
+      render(<ExplicacaoDoJogo jogo={jogo} pagina={2} aoFechar={() => undefined} />)
+      /* `:empty` só vale sem nenhum nó dentro, nem texto em branco. */
+      expect(document.querySelector('.pj-onb-ajudas')?.childNodes, jogo).toHaveLength(0)
+    }
+    cleanup()
+    render(<ExplicacaoDoJogo jogo="tenis" pagina={2} aoFechar={() => undefined} />)
+    expect(document.querySelector('.pj-onb-ajudas')?.childNodes.length).toBeGreaterThan(0)
+  })
+
+  it('o painel "Como se joga" no celular: o preço da ajuda desce para a linha de baixo', () => {
+    const regra = bloco(ler('src/styles/questJogarTelas.css'), '@media (max-width: 720px)')
+    expect(regra).toContain('.qj-ajudas li { flex-wrap: wrap; }')
+    expect(regra).toContain('.qj-ajudas li > span:first-of-type { flex-basis: calc(100% - 34px); }')
+    /* O recuo da etiqueta é o do ícone (22 px) mais o vão da linha (12 px): os dois números andam juntos. */
+    expect(regra).toContain('.qj-ajudas .q-tag { max-width: none; margin-left: 34px;')
   })
 })

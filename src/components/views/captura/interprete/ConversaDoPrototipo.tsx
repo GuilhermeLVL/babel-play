@@ -7,6 +7,7 @@ import {
   Languages,
   ListChecks,
   Lock,
+  type LucideIcon,
   Mic,
   Monitor,
   RotateCcw,
@@ -51,6 +52,20 @@ export interface MetadeDaConversa {
   aoFalar: () => void;
   /** Sem voz de leitura para o idioma desta metade: "Repetir" e "Parar voz" não têm o que fazer. */
   semVoz: boolean;
+  /** O ícone do botão grande. Ausente = o microfone; na conversa virtual, o lado do computador usa o monitor. */
+  icone?: LucideIcon;
+  /** O botão grande só mostra o estado (o som do computador já está sendo ouvido): não há o que tocar. */
+  travado?: boolean;
+}
+
+/** Um botão de modo a mais na faixa, ao lado de "Conversa" (a conversa virtual: detectar idioma, ler em voz alta). */
+export interface ModoDaFaixa {
+  id: string;
+  icone: LucideIcon;
+  rotulo: string;
+  rotuloParaLeitor: string;
+  ligado: boolean;
+  aoTocar: () => void;
 }
 
 export interface BolhaDaConversa {
@@ -85,13 +100,14 @@ function Palavra({ texto, animar }: { texto: string; animar: boolean }) {
  * pessoas; num monitor as duas leem do mesmo lado. O desenho das colunas é o de
  * `.int[data-layout='computador']` (`modoInterprete.css`). No celular e no headset fica o frente a frente.
  *
- * Só desenha: quem decide o que cada metade diz é a tela pronta (`PaginaDoInterprete`) ou a conversa em
- * curso (`ModoInterprete`), com o motor de sempre.
+ * Só desenha: quem decide o que cada metade diz é a tela pronta (`PaginaDoInterprete`), a conversa em
+ * curso (`ModoInterprete`) ou a conversa virtual (`ConversaVirtual`), com o motor de sempre.
  */
 export default function ConversaDoPrototipo({
   cima,
   baixo,
   automatico,
+  modos,
   lista,
   voz,
   aviso,
@@ -106,13 +122,26 @@ export default function ConversaDoPrototipo({
   emDialogo = false,
   fase,
   testid = 'modo-interprete',
+  rotulo,
+  rotuloDeSair,
   children,
 }: {
   cima: MetadeDaConversa;
   baixo: MetadeDaConversa;
   /** O botão "Automático": ausente onde não há plano que o tenha; com cadeado para quem não o tem. */
   automatico?: { ligado: boolean; comCadeado: boolean; aoTocar: (botao: HTMLElement) => void };
-  lista: { aberta: boolean; bolhas: BolhaDaConversa[]; aoAlternar: () => void; aoExportar: () => void };
+  /** Os modos que só uma das conversas tem (a virtual), no mesmo botão da faixa. */
+  modos?: readonly ModoDaFaixa[];
+  lista: {
+    aberta: boolean;
+    bolhas: BolhaDaConversa[];
+    aoAlternar: () => void;
+    aoExportar: () => void;
+    /** O que vai ao lado de "Exportar", no alto da lista (os idiomas ouvidos, na conversa virtual). */
+    topo?: ReactNode;
+    /** A lista pronta, no lugar das bolhas simples: a que deixa ouvir, corrigir e guardar cada fala. */
+    conteudo?: ReactNode;
+  };
   voz: { rotulo: string; natural: boolean; muda: boolean };
   aviso: string;
   /** Com o aviso do cadeado na tela: o botão que leva aos Planos. */
@@ -129,6 +158,9 @@ export default function ConversaDoPrototipo({
   emDialogo?: boolean;
   fase?: string | undefined;
   testid?: string;
+  /** O nome da tela e o do X para o leitor de tela. Ausentes = os do modo intérprete. */
+  rotulo?: string;
+  rotuloDeSair?: string;
   children?: ReactNode;
 }) {
   const raiz = useRef<HTMLDivElement>(null);
@@ -259,6 +291,7 @@ export default function ConversaDoPrototipo({
           data-cursor={m.ouvindo ? undefined : 'tinta'}
           aria-pressed={m.ouvindo}
           aria-label={m.rotuloParaLeitor}
+          disabled={m.travado}
           onClick={() => {
             if (!m.ouvindo) sentir('grava'); /* `telas2.js:213` */
             m.aoFalar();
@@ -266,7 +299,7 @@ export default function ConversaDoPrototipo({
           data-sfx="none"
           data-testid={`falar-${m.lado}`}
         >
-          <Mic aria-hidden />
+          {m.icone ? <m.icone aria-hidden /> : <Mic aria-hidden />}
           <span aria-hidden>{m.rotulo}</span>
         </button>
         {!m.semVoz && (
@@ -283,7 +316,7 @@ export default function ConversaDoPrototipo({
     <div
       ref={raiz}
       className="int px-int"
-      aria-label={t('Modo intérprete')}
+      aria-label={rotulo ?? t('Modo intérprete')}
       {...(emDialogo ? { role: 'dialog', 'aria-modal': true } : {})}
       data-testid={testid}
       data-fase={fase}
@@ -321,6 +354,22 @@ export default function ConversaDoPrototipo({
               {t('Conversa')}
             </span>
           </button>
+          {modos?.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              className="int-modo"
+              aria-pressed={m.ligado}
+              aria-label={m.rotuloParaLeitor}
+              onClick={m.aoTocar}
+              data-testid={m.id}
+            >
+              <m.icone aria-hidden />
+              <span className="int-modo-txt" aria-hidden>
+                {m.rotulo}
+              </span>
+            </button>
+          ))}
           {aoVirtual && (
             <button
               type="button"
@@ -355,31 +404,39 @@ export default function ConversaDoPrototipo({
             </button>
           )}
         </div>
-        <button type="button" className="int-ib peq" aria-label={t('Sair do modo intérprete')} onClick={aoSair}>
+        <button
+          type="button"
+          className="int-ib peq"
+          aria-label={rotuloDeSair ?? t('Sair do modo intérprete')}
+          onClick={aoSair}
+        >
           <X aria-hidden />
         </button>
       </div>
       {lista.aberta && (
         <section key="lista" className="int-conversa" aria-label={t('Conversa')} data-testid="interprete-conversa">
           <div className="int-conversa-topo">
+            {lista.topo}
             <button type="button" className="int-modo" onClick={lista.aoExportar} data-testid="exportar-conversa">
               <Download aria-hidden />
               <span>{t('Exportar')}</span>
             </button>
           </div>
-          <div className="int-bolhas">
-            {lista.bolhas.length ? (
-              lista.bolhas.map((b) => (
-                <div key={b.id} className="int-bolha" data-lado={b.dono}>
-                  <p className="int-bolha-idioma">{quem(b.dono)}</p>
-                  <p className="int-bolha-fala">{b.fala}</p>
-                  <p className="int-bolha-trad">{b.traducao}</p>
-                </div>
-              ))
-            ) : (
-              <p className="int-dica">{t('A conversa aparece aqui conforme vocês falam.')}</p>
-            )}
-          </div>
+          {lista.conteudo || (
+            <div className="int-bolhas">
+              {lista.bolhas.length ? (
+                lista.bolhas.map((b) => (
+                  <div key={b.id} className="int-bolha" data-lado={b.dono}>
+                    <p className="int-bolha-idioma">{quem(b.dono)}</p>
+                    <p className="int-bolha-fala">{b.fala}</p>
+                    <p className="int-bolha-trad">{b.traducao}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="int-dica">{t('A conversa aparece aqui conforme vocês falam.')}</p>
+              )}
+            </div>
+          )}
         </section>
       )}
       {metade(baixo, false)}

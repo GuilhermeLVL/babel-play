@@ -261,6 +261,8 @@ test.describe('Modo intérprete no celular (Pixel 7, voz do aparelho)', () => {
     expect(await deCabecaParaBaixo(pronta(page).getByTestId('interprete-outro'))).toBe(true)
     expect(await deCabecaParaBaixo(pronta(page).getByTestId('interprete-meu'))).toBe(false)
     await expect(pronta(page).getByTestId('voz-em-uso')).toHaveAttribute('title', /Voz do aparelho/)
+    // No celular não há som do computador a traduzir: o botão "Virtual" não aparece.
+    await expect(pronta(page).getByTestId('abrir-conversa-virtual')).toHaveCount(0)
     await foto(page, 'celular-1-pronto')
 
     // Eu falo português: a tradução aparece do outro lado e é lida em inglês.
@@ -482,4 +484,180 @@ test.describe('Modo intérprete: automático', () => {
   })
   /* O Grátis (o botão com cadeado, que diz de que plano é) não tem como ser simulado aqui: no servidor
      do e2e o plano é o do self-host, decidido no cliente sem ir à rota. Está em `modoInterprete.test.tsx`. */
+})
+
+/**
+ * O SOM DO COMPUTADOR, falso: o seletor de aba ou tela do navegador não existe no runner, então
+ * `getDisplayMedia` devolve na hora uma trilha de áudio muda (e a de vídeo que o navegador sempre manda).
+ * O que se prova com ele é a TELA da conversa virtual; a transcrição do que toca no computador depende
+ * de áudio e de modelo de verdade, e não é provada aqui.
+ */
+async function somDoComputadorFalso(page: Page) {
+  await page.addInitScript(() => {
+    const falso = async (): Promise<MediaStream> => {
+      const ctx = new AudioContext()
+      const destino = ctx.createMediaStreamDestination()
+      const mudo = ctx.createGain()
+      mudo.gain.value = 0
+      const tom = ctx.createOscillator()
+      tom.connect(mudo).connect(destino)
+      tom.start()
+      const tela = document.createElement('canvas')
+      tela.width = 16
+      tela.height = 16
+      tela.getContext('2d')
+      return new MediaStream([...tela.captureStream(1).getVideoTracks(), ...destino.stream.getAudioTracks()])
+    }
+    try {
+      Object.defineProperty(MediaDevices.prototype, 'getDisplayMedia', { value: falso, configurable: true })
+    } catch {
+      /* sem mediaDevices: o botão "Virtual" não aparece, e o teste falha nele */
+    }
+  })
+}
+
+/* A CONVERSA VIRTUAL NO DESENHO NOVO (10/10/2026). O botão "Virtual" da conversa levava à tela de
+   entrada antiga (o cartão "Conversa", "Começar conversa", "Uma conversa, dois idiomas"), que não existe
+   mais: ele abre uma FOLHA por cima da conversa, a folha exige o aceite, e "Começar conversa virtual"
+   abre a conversa virtual NA MESMA TELA da conversa nova (duas colunas no computador). */
+test.describe('Conversa virtual no computador', () => {
+  test.use({ permissions: ['microphone'] })
+  test.beforeEach(() => {
+    test.skip(test.info().project.name !== 'desktop-1280', 'o som do computador só existe no computador')
+  })
+
+  test('"Virtual" abre a folha por cima da conversa; com o aceite, a conversa virtual abre na tela nova', async ({
+    page,
+  }) => {
+    test.slow()
+    await falsos(page)
+    await somDoComputadorFalso(page)
+    await porToque(page)
+    await abrirPeloMenu(page)
+
+    // O botão não sai da conversa: a folha abre por cima dela, e nada da tela antiga aparece.
+    await clicarRobusto(page, pronta(page).getByTestId('abrir-conversa-virtual'))
+    const folha = page.getByRole('dialog', { name: 'Conversa virtual' })
+    await expect(folha).toBeVisible()
+    await expect(folha).toHaveClass(/folha-de-baixo/)
+    await expect(page).toHaveURL(/\/interprete$/)
+    await expect(pronta(page)).toBeVisible()
+    await expect(page.getByTestId('comecar-conversa')).toHaveCount(0)
+    await expect(page.getByTestId('painel-conversa-virtual')).toHaveCount(0)
+    await expect(page.locator('.estudio, .virtual-painel, .tela .par-idiomas')).toHaveCount(0)
+    await expect(page.getByText('Uma conversa, dois idiomas')).toHaveCount(0)
+
+    // A folha exige o aceite: só o fone não habilita o botão.
+    const comecar = folha.getByTestId('comecar-conversa-virtual')
+    await expect(comecar).toBeDisabled()
+    await folha.getByTestId('fone-da-conversa-virtual').check()
+    await expect(comecar).toBeDisabled()
+    await folha.getByTestId('aceite-da-conversa-virtual').check()
+    await expect(comecar).toBeEnabled()
+    await foto(page, 'virtual-1-folha')
+    await comecar.click()
+    await expect(folha).toBeHidden()
+
+    // A folha "Como transcrever a sua voz?" vem antes, como em todo início, para quem nunca escolheu.
+    const virtual = page.getByTestId('conversa-virtual')
+    const inicio = page.getByRole('dialog', { name: 'Como transcrever a sua voz?' })
+    await expect(virtual.or(inicio).first()).toBeVisible({ timeout: 15_000 })
+    if (await inicio.isVisible()) {
+      await clicarRobusto(page, inicio.getByRole('button', { name: /Rápido/ }).first())
+      await clicarRobusto(page, inicio.getByRole('button', { name: /Baixar e iniciar|^Iniciar$|Continuar/ }))
+      await expect(inicio).toBeHidden()
+    }
+
+    // A conversa virtual é a tela da conversa nova: duas colunas, "Você" à esquerda, e a faixa em cima.
+    await expect(virtual).toBeVisible({ timeout: 15_000 })
+    await expect(virtual).toHaveClass(/\bpx-int\b/)
+    await expect(virtual).toHaveAttribute('data-layout', 'computador')
+    await expect(page).toHaveURL(/\/interprete$/)
+    await expect(pronta(page)).toBeHidden()
+    await expect(virtual.locator('.int-fonte, .int-nota-fone')).toHaveCount(0)
+    const meu = virtual.getByTestId('interprete-meu')
+    const outro = virtual.getByTestId('interprete-outro')
+    await expect(meu.locator('.int-quem')).toHaveText('Você')
+    await expect(outro.locator('.int-quem')).toHaveText('A outra pessoa')
+    expect((await meu.boundingBox())!.x).toBeLessThan((await outro.boundingBox())!.x)
+
+    // A coluna da outra pessoa ouve o computador (o botão dela fica aceso, sem o que tocar).
+    await expect(outro.locator('.int-status')).toHaveText('Ouvindo o computador…', { timeout: 10_000 })
+    await expect(virtual.getByTestId('falar-outro')).toBeDisabled()
+    await expect(virtual.getByTestId('falar-outro')).toHaveAttribute('data-ouvindo', '')
+
+    /* O que se FALA não é provado aqui: na conversa virtual as duas fontes vão ao Whisper (o idioma de
+       cada fala é medido), e o runner não tem modelo nem áudio de verdade. As colunas com falas, a lista,
+       corrigir, guardar e a leitura estão em `tests/conversaVirtual.test.tsx`. Aqui, os controles na faixa. */
+    await expect(virtual.getByTestId('detectar-idioma')).toHaveAttribute('aria-pressed', 'true')
+    await expect(virtual.getByTestId('detectar-idioma')).toHaveText('Detectando idiomas')
+    // O padrão é só legenda: nada é lido em voz alta.
+    await expect(virtual.getByTestId('ler-em-voz-alta')).toHaveAttribute('aria-pressed', 'false')
+    await expect(virtual.getByTestId('ler-em-voz-alta')).toHaveText('Só legenda')
+    expect(await lidas(page)).toEqual([])
+    await foto(page, 'virtual-2-conversa')
+
+    // "Conversa" abre a lista por cima das duas colunas, com "Exportar"; de novo, volta às colunas.
+    await clicarRobusto(page, virtual.getByTestId('tela-conversa'))
+    await expect(virtual.getByTestId('interprete-conversa')).toBeVisible()
+    await expect(virtual.getByTestId('exportar-conversa')).toBeVisible()
+    await expect(meu).toBeHidden()
+    await foto(page, 'virtual-3-lista')
+    await clicarRobusto(page, virtual.getByTestId('tela-conversa'))
+    await expect(meu).toBeVisible()
+
+    // O botão da minha coluna silencia o microfone.
+    await expect(virtual.getByTestId('falar-meu')).toHaveAttribute('aria-pressed', 'true')
+    await clicarRobusto(page, virtual.getByTestId('falar-meu'))
+    await expect(virtual.getByTestId('falar-meu')).toHaveAttribute('aria-pressed', 'false', { timeout: 5_000 })
+
+    // Sair (sem nada dito, não há o que salvar) volta à conversa pronta, nunca a uma tela de entrada.
+    await clicarRobusto(page, virtual.getByRole('button', { name: 'Sair da conversa virtual' }))
+    await expect(virtual).toHaveCount(0)
+    await expect(page).toHaveURL(/\/interprete$/)
+    await expect(pronta(page)).toBeVisible()
+    await expect(page.getByTestId('comecar-conversa')).toHaveCount(0)
+  })
+
+  /* A conversa virtual é outra sessão. Tocado de dentro de uma conversa que já tem falas, "Virtual"
+     passa pelo Encerrar de sempre (salvar ou descartar) e SÓ ENTÃO a folha abre, por cima da conversa
+     pronta: nunca duas janelas empilhadas, e nunca a tela de entrada antiga. */
+  test('de dentro de uma conversa com falas, "Virtual" passa pelo Encerrar e depois abre a folha', async ({ page }) => {
+    test.slow()
+    await falsos(page)
+    await somDoComputadorFalso(page)
+    await porToque(page)
+    await abrirPeloMenu(page)
+
+    await comecarFalando(page, /Falar em Português/)
+    await expect(fase(page).getByTestId('interprete-outro').getByText('[trad] bom dia a todos')).toBeVisible({
+      timeout: 10_000,
+    })
+    await expect(fase(page)).toHaveAttribute('data-fase', 'parado', { timeout: 5_000 })
+
+    const folha = page.getByRole('dialog', { name: 'Conversa virtual' })
+    await clicarRobusto(page, fase(page).getByTestId('abrir-conversa-virtual'))
+    await expect(fase(page)).toHaveCount(0)
+    const encerrar = page.getByRole('dialog').filter({ hasText: /Descartar/ })
+    await expect(encerrar).toBeVisible({ timeout: 5_000 })
+    await expect(folha).toHaveCount(0)
+    await descartar(page)
+    // Descartar pede confirmação; a folha continua esperando até a sessão acabar de verdade.
+    const confirmar = page.getByRole('dialog').filter({ hasText: 'Descartar esta captura?' })
+    await expect(confirmar).toBeVisible({ timeout: 5_000 })
+    await expect(folha).toHaveCount(0)
+    await clicarRobusto(page, confirmar.getByRole('button', { name: 'Descartar', exact: true }))
+
+    await expect(folha).toBeVisible({ timeout: 10_000 })
+    await expect(page).toHaveURL(/\/interprete$/)
+    await expect(pronta(page)).toBeVisible()
+    await expect(page.getByTestId('comecar-conversa')).toHaveCount(0)
+    await expect(folha.getByTestId('comecar-conversa-virtual')).toBeDisabled()
+    await foto(page, 'virtual-4-folha-depois-do-encerrar')
+
+    await clicarRobusto(page, folha.getByRole('button', { name: 'Agora não' }))
+    await expect(folha).toBeHidden()
+    await expect(pronta(page)).toBeVisible()
+    await expect(page.getByTestId('conversa-virtual')).toHaveCount(0)
+  })
 })

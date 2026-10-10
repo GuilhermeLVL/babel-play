@@ -133,7 +133,7 @@ export default function ModoInterprete({
   aoEscolherIdiomas?: (() => void) | undefined;
   /** Os Planos, a partir do aviso do cadeado (ausente no perfil protegido). */
   aoConhecerOPremium?: (() => void) | undefined;
-  /** A conversa virtual existe neste aparelho; "Virtual" leva ao preparo dela. */
+  /** A conversa virtual existe neste aparelho; "Virtual" abre a folha dela. */
   comVirtual?: boolean;
 }) {
   const idiomasRef = useRef(idiomas);
@@ -214,7 +214,8 @@ export default function ModoInterprete({
   /* A conversa abre direto (`direto.js:8-14`). A tela pronta fica por baixo e se esconde
      enquanto esta está na frente; o toque que a abriu (um lado, ou a escuta do automático) começa aqui. */
   useLayoutEffect(() => {
-    mudarEstadoDaTela({ emCurso: true });
+    /* A conversa voltou ("Continuar gravando" no Encerrar): o que foi pedido para depois dela não vale mais. */
+    mudarEstadoDaTela({ emCurso: true, depois: null });
     return () => mudarEstadoDaTela({ emCurso: false });
   }, []);
   useEffect(() => {
@@ -309,6 +310,9 @@ export default function ModoInterprete({
       if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
       const alvo = e.target as HTMLElement | null;
       if (alvo && (alvo.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(alvo.tagName))) return;
+      /* Com um diálogo por cima (os idiomas, o Encerrar), o teclado é dele: o Esc fecha o diálogo, e
+         não a conversa. */
+      if (document.querySelector('dialog[open]')) return;
       const tecla = e.key.toLowerCase();
       /* No automático não há lados a tocar: o 1 liga e desliga a escuta, e o 2 não faz nada. */
       if (tecla === '1') {
@@ -504,8 +508,10 @@ export default function ModoInterprete({
       aoVirtual={
         comVirtual
           ? () => {
+              /* A conversa virtual é outra sessão: esta encerra primeiro (sem falas, na hora; com falas,
+                 o Encerrar pergunta se salva) e a tela pronta abre a folha em seguida, por cima da conversa. */
+              mudarEstadoDaTela({ depois: 'virtual' });
               sair();
-              mudarEstadoDaTela({ preparoVirtual: true });
             }
           : undefined
       }

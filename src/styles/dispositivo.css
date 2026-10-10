@@ -19,14 +19,9 @@ html[data-dispositivo='quest'] {
   --alvo-min: 56px;
 }
 
-/* Botões da captura e do Foco cheio: `.btn` tem 40 px e `.btn.peq` 34 px no protótipo. */
-:is(html[data-dispositivo='quest'], html[data-dispositivo^='celular'])
-  :is(.estudio, .foco-pe, .foco-topo, .dlg-pe)
-  .btn {
+/* Botões do Foco cheio e dos diálogos: `.btn` tem 40 px e `.btn.peq` 34 px no protótipo. */
+:is(html[data-dispositivo='quest'], html[data-dispositivo^='celular']) :is(.foco-pe, .foco-topo, .dlg-pe) .btn {
   min-height: var(--alvo-min);
-}
-:is(html[data-dispositivo='quest'], html[data-dispositivo^='celular']) .estudio-acoes {
-  gap: 12px;
 }
 /* Rodapé de diálogo com três botões ("Modelo no dispositivo": Liberar espaço, Procurar atualização,
    Fechar) não cabe em 375 px com o alvo de 48: sem quebra, o primeiro saía cortado pela borda. */
@@ -54,18 +49,6 @@ html[data-dispositivo='quest'] .leg-flut {
 }
 html[data-dispositivo='quest'] .leg-barra {
   font-size: 15px;
-}
-html[data-dispositivo='quest'] .orientacao-da-captura {
-  font-size: 16px !important;
-  line-height: 1.45;
-}
-html[data-dispositivo^='celular'] .orientacao-da-captura {
-  font-size: 14px !important;
-}
-/* O aviso "a legenda vem do microfone" é a instrução principal nesses aparelhos: cor do texto do
-   cartão (não a esmaecida), para o contraste de texto de corpo (4,5:1, QUEST_GUIDELINES). */
-:is(html[data-dispositivo='quest'], html[data-dispositivo^='celular']) .estudio .aviso-info.orientacao-da-captura {
-  color: inherit;
 }
 
 /* MODO LEVE: o desfoque por trás da legenda custa pintura a cada quadro (o Quest é limitado por

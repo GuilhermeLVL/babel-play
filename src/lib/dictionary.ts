@@ -80,7 +80,7 @@ function sectionName(wikiLang: string, wordLang: string): string | undefined {
   return undefined; // wiki de terceira língua: não temos o mapa, e não vamos adivinhar o título
 }
 
-interface DictionarySense {
+export interface DictionarySense {
   partOfSpeech: string;
   definition: string;
   examples: string[];
@@ -199,7 +199,7 @@ function extractIpa(section: HTMLElement): string | undefined {
  * seções de Pronúncia e Etimologia usam `<ul>`, e ler qualquer `<li>` fazia "(Belgium, France)
  * IPA(key): /ʃjɛ̃/" aparecer como se fosse a definição de *chien*.
  */
-function extractSenses(html: string): DictionarySense[] {
+export function extractSenses(html: string): DictionarySense[] {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   doc.querySelectorAll('.mw-editsection, style, script').forEach(n => n.remove());
 
@@ -228,7 +228,7 @@ function extractSenses(html: string): DictionarySense[] {
   return senses;
 }
 
-interface WikiHit {
+export interface WikiHit {
   html: string;
   heading: string;
   host: string;
@@ -257,6 +257,27 @@ async function fetchSection(
 }
 
 /**
+ * A MESMA SEÇÃO, PEDIDA UMA VEZ SÓ. A folha da palavra consulta o verbete (`lookup`) e, ao mesmo
+ * tempo, as imagens que o verbete traz (`lib/imagens/imagensDaPalavra`): são os mesmos dois pedidos
+ * (lista de seções + a seção) ao mesmo wiki. Guardar a PROMESSA faz o segundo interessado esperar a
+ * resposta do primeiro em vez de repetir o pedido, e o Wikcionário recusa quem pede demais (429).
+ * Falha de rede não fica guardada: seria condenar a palavra a falhar para sempre.
+ */
+const secoes = new Map<string, Promise<WikiHit | null>>();
+const TETO_DE_SECOES = 40;
+
+export function secaoDoVerbete(wikiLang: string, word: string, wordLang: string): Promise<WikiHit | null> {
+  const chave = `${wikiLang}|${wordLang}|${word}`;
+  const guardada = secoes.get(chave);
+  if (guardada) return guardada;
+  if (secoes.size >= TETO_DE_SECOES) secoes.delete(secoes.keys().next().value as string);
+  const pedido = fetchSection(wikiHost(wikiLang), wikiLang, word, wordLang);
+  secoes.set(chave, pedido);
+  pedido.catch(() => secoes.delete(chave));
+  return pedido;
+}
+
+/**
  * A cadeia de wikis, em ordem de preferência:
  *   1. o wiki do idioma DO USUÁRIO → definição EM PORTUGUÊS (era isto que faltava);
  *   2. o wiki do idioma DA PALAVRA → definição na própria língua estudada (legítimo e útil);
@@ -275,9 +296,9 @@ async function lookupUncached(word: string, lang: string): Promise<DictionaryRes
   let hit: WikiHit | null = null;
   let senses: DictionarySense[] = [];
 
-  for (const { host, lang: wikiLang } of wikiChain(lang)) {
+  for (const { lang: wikiLang } of wikiChain(lang)) {
     try {
-      const found = await fetchSection(host, wikiLang, term, lang);
+      const found = await secaoDoVerbete(wikiLang, term, lang);
       if (!found) continue;
       const parsed = extractSenses(found.html);
       if (parsed.length === 0) continue;
@@ -310,7 +331,7 @@ async function lookupUncached(word: string, lang: string): Promise<DictionaryRes
 
   if (!ipa && hit.host !== wikiHost('en')) {
     try {
-      const en = await fetchSection(wikiHost('en'), 'en', term, lang);
+      const en = await secaoDoVerbete('en', term, lang);
       if (en) {
         ipa = extractIpa(new DOMParser().parseFromString(en.html, 'text/html').body);
         if (ipa) ipaSource = { wiki: en.host, url: pageUrl(en.host, term, en.heading) };

@@ -2592,7 +2592,7 @@ export default function LiveCapture({
     handleStartOrResume();
     if (isRecordingRef.current) setIsRecording(true);
   };
-  /** A entrada da conversa virtual (já com o aviso aceito na página): a mesma folha do início, se houver o que decidir. */
+  /** A entrada da conversa virtual (já com o aviso aceito na folha dela): a mesma folha do início, se houver o que decidir. */
   const entrarNaConversaVirtual = ({ comMicrofone }: { comMicrofone: boolean }) => {
     if (abrindoCaptura || isRecordingRef.current || !interpretePossivel) return;
     if (tetoAtingido && !resumeId) return avisarTeto();
@@ -3580,7 +3580,7 @@ export default function LiveCapture({
             <PaginaDoInterprete
               idiomas={{ meu: sourceLang, outro: targetLang }}
               possivel={interpretePossivel}
-              abrindo={abrindoCaptura}
+              sessaoAberta={isRecording || showSaveModal}
               aviso={
                 noQuest && nuvemDoQuestAtiva()
                   ? t('A transcrição e a tradução vêm pela nuvem: não há nada para baixar.')
@@ -3596,12 +3596,6 @@ export default function LiveCapture({
                 : {})}
               aoEscolherIdiomas={() => setIdiomasAbertos(true)}
               aoVoltar={() => onChangeView?.('hub')}
-              aoInverter={() => {
-                langTouchedRef.current = true;
-                const fonte = sourceLang;
-                setSourceLang(targetLang);
-                setTargetLang(fonte);
-              }}
             />
           </Suspense>
         </div>
@@ -3958,7 +3952,6 @@ export default function LiveCapture({
             alternarMicrofone={alternarMicrofone}
             vozNaturalDisponivel={getEntitlements().vozNatural && flagLigada(FLAG_VOZ_NATURAL)}
             velocidade={ttsSpeed}
-            layout="computador"
             abrindo={micAbrindo}
             aviso={avisoDoPreparo(modelPrep)}
             aoCorrigirFala={corrigirFalaDoInterprete}

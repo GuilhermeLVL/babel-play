@@ -47,7 +47,7 @@ beforeEach(() => {
   localStorage.clear()
   document.documentElement.dataset.px = 'on'
   document.body.className = 'animations-on'
-  mudarEstadoDaTela({ emCurso: false, trocados: false, preparoVirtual: false, depois: null })
+  mudarEstadoDaTela({ emCurso: false, trocados: false, folhaVirtual: false, depois: null })
   tomarPedidoDaConversa()
   Element.prototype.animate = function (this: Element, quadros: Keyframe[], o: KeyframeAnimationOptions) {
     gravadas.push({ quem: this.className, quadros, d: Number(o.duration), atraso: Number(o.delay ?? 0) })
@@ -69,13 +69,11 @@ function pagina(extra: Partial<React.ComponentProps<typeof PaginaDoInterprete>> 
     <PaginaDoInterprete
       idiomas={{ meu: 'pt-BR', outro: 'en-US' }}
       possivel
-      abrindo={false}
       aviso={null}
       automatico="premium"
       aoConhecerOPremium={aoConhecerOPremium}
       aoComecar={aoComecar}
       aoEscolherIdiomas={aoEscolherIdiomas}
-      aoInverter={() => {}}
       aoVoltar={aoVoltar}
       {...extra}
     />,
@@ -294,6 +292,40 @@ describe('a conversa em curso no desenho novo', () => {
       ['int-traducao', 620, 0],
       ['int-original', 400, 260],
     ])
+  })
+
+  it('"Virtual" encerra esta conversa e pede a folha da conversa virtual (nunca uma tela de entrada)', async () => {
+    const aoSair = vi.fn()
+    render(
+      <ModoInterprete
+        idiomas={{ meu: 'pt-BR', outro: 'en-US' }}
+        microfone={{ abrir: vi.fn(), fechar: vi.fn() }}
+        registrarPonte={vi.fn()}
+        vozNaturalDisponivel={false}
+        layout="computador"
+        aoSair={aoSair}
+        falas={[]}
+        comVirtual
+      />,
+    )
+    await esperar()
+    fireEvent.click(screen.getByTestId('abrir-conversa-virtual'))
+    expect(aoSair).toHaveBeenCalledOnce()
+    expect(estadoDaTela().depois).toBe('virtual')
+    expect(estadoDaTela().folhaVirtual).toBe(false)
+  })
+
+  it('a conversa que volta ("Continuar gravando") esquece o que foi pedido para depois dela', async () => {
+    mudarEstadoDaTela({ depois: 'virtual' })
+    conversa()
+    await esperar()
+    expect(estadoDaTela().depois).toBe(null)
+  })
+
+  it('sem a conversa virtual neste aparelho, o botão "Virtual" não aparece', async () => {
+    conversa()
+    await esperar()
+    expect(screen.queryByTestId('abrir-conversa-virtual')).toBeNull()
   })
 
   it('sem nada dito, o X encerra e pede a volta à origem; com falas, só encerra', async () => {

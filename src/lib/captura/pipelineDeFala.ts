@@ -1323,6 +1323,26 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       // O APARELHO (Quest/celular: base q8 em WASM, ou na GPU provada; small só no desktop com GPU).
       dispositivo,
     });
+    /* SÓ EM DESENVOLVIMENTO (modo sombra): a política de rota (`core/rota/politicaDeRota.ts`) responde
+       à mesma pergunta e a diferença vai para o console (`conferenciaDaRota.ts`). Não muda a rota; em
+       produção o ramo some no build, e o `import()` com ele. */
+    if (import.meta.env?.DEV) {
+      const efetiva = route;
+      const entrada = {
+        idiomaDoConteudo: listenLang,
+        idiomaDoMicrofone: myLang,
+        micVaiAoModelo: micVaiAoWhisper,
+        soMicrofone: captureScenarioRef.current === 'mic',
+        detectarIdioma: autoDetect,
+        qualidade: getSttQuality(),
+        temWebGpu: hasWebGpu,
+        nuvemDisponivel: cloudAvailable,
+        perfilId: getActiveProfile().id,
+        dispositivo,
+        leve: perfil.leve,
+      };
+      void import('./conferenciaDaRota').then((m) => m.conferirRotaDoStt(entrada, efetiva)).catch(() => undefined);
+    }
     /* MODELO PROIBIDO NESTE APARELHO (a GPU caiu com ele — `proibirModelo`, pelo regulador): a rota
        desce a escada até um que não foi vetado. Sem nenhum livre, fica o menor. */
     const sondaMod = modSonda as typeof import('../dispositivo/sonda') | null;

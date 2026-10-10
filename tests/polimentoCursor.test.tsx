@@ -2,6 +2,9 @@
 /**
  * O CURSOR DO APP (`src/lib/polimento/cursor.ts`): ponto com anel, só com mouse e com a camada ligada.
  */
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { instalarCursor } from '../src/lib/polimento/cursor'
@@ -15,6 +18,12 @@ const comMouse = (sim: boolean) =>
 
 const mexer = (alvo: Element, tipo = 'mouse') =>
   alvo.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: 40, clientY: 50, pointerType: tipo }))
+
+it('o cursor do sistema só some onde o ponto com anel existe (a janela flutuante copia as classes, não o cursor)', () => {
+  const css = readFileSync(resolve(__dirname, '../src/styles/polimentoCursor.css'), 'utf8')
+  expect(css).toContain('html.px-com-cursor:has(.px-cursor) *')
+  expect(css).not.toContain('html.px-com-cursor * {')
+})
 
 describe('o cursor de ponto com anel', () => {
   let desligar = () => undefined as void

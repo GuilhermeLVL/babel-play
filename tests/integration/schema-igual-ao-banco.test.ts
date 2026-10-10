@@ -45,7 +45,9 @@ describe('schema.ts × migrations × snapshot do drizzle', () => {
     /* Tabelas que vivem FORA do schema.ts de propósito, como `__drizzle_migrations`: contabilidade
        interna mantida por gatilho (`versoes_de_dados`, migração 0032 — fora para não entrar no export
        LGPD). O drizzle só as veria como "sobrando" e mandaria apagar. */
-    const FORA_DO_SCHEMA = ['versoes_de_dados']
+    /* E os agregados da migração 0053 (`agregados_diarios`, `estado_dos_agregados`, `estado_por_item`):
+       derivados do bruto, reconstruíveis, mantidos pelo repositório e conferidos por gatilho. */
+    const FORA_DO_SCHEMA = ['versoes_de_dados', 'agregados_diarios', 'estado_dos_agregados', 'estado_por_item']
     let resto = statementsToExecute.filter((s) => !FORA_DO_SCHEMA.some((t) => s.includes('`' + t + '`')))
 
     // Índice parcial: DROP INDEX `x` + CREATE ... INDEX `x` ... WHERE — só se o banco também tem WHERE.

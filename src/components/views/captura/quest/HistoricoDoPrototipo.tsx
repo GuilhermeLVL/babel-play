@@ -2,6 +2,7 @@ import { ArrowDown, Ellipsis, Square, Volume2 } from 'lucide-react';
 import { memo, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { aoMudarAudioDasFalas, falaTocando } from '../../../../lib/captura/audioDasFalas';
+import { agruparEmBlocos, blocosDasFalas } from '../../../../lib/captura/blocosDasFalas';
 import type { SpeechSegment } from '../../../../lib/captura/tiposDaFala';
 import { traducaoNaLegenda } from '../../../../lib/captura/traducaoDaFala';
 import { palavrasDoPedaco } from '../../../../lib/captura/trechosTocaveis';
@@ -262,6 +263,22 @@ export default function HistoricoDoPrototipo({
 
   const porId = useRef(new Map<string, SpeechSegment>());
   porId.current = new Map(comTexto.map((f) => [f.id, f]));
+  /* AS FALAS EM BLOCOS (`lib/captura/blocosDasFalas`): a lista longa deixa de ter um filho por fala, e o
+     navegador pula de uma vez o bloco que está fora da tela. A fala guarda o bloco em que nasceu: trocar
+     de bloco seria trocar de pai, e a linha remontaria no meio da leitura. */
+  const blocoDaFala = useRef<Map<string, number>>(new Map());
+  blocoDaFala.current = blocosDasFalas(
+    comTexto.map((f) => f.id),
+    blocoDaFala.current,
+  );
+  const blocos = agruparEmBlocos(comTexto, blocoDaFala.current);
+  /* O último bloco aberto continua na lista mesmo vazio (sem tamanho: `:empty` no CSS). A linha de escuta
+     que acaba sem texto sai apagando DENTRO do pai dela (`sairLinhaVazia`); se ela era a única do bloco e
+     o bloco saísse junto, sumiria de uma vez. */
+  const blocoAberto = useRef(-1);
+  for (const g of blocos) if (g.bloco > blocoAberto.current) blocoAberto.current = g.bloco;
+  if (blocoAberto.current >= 0 && (blocos[blocos.length - 1]?.bloco ?? -1) < blocoAberto.current)
+    blocos.push({ bloco: blocoAberto.current, falas: [] });
   const tocar = useRef(aoTocar);
   tocar.current = aoTocar;
   const ouvir = useRef(aoOuvir);
@@ -303,29 +320,38 @@ export default function HistoricoDoPrototipo({
     <div className="q-leg" style={{ '--q-escala': escala } as React.CSSProperties}>
       <div className="q-historico" ref={lista} onScroll={aoRolar} aria-live="polite">
         {comTexto.length === 0 && <p className="q-espera">{t('Ouvindo… a legenda aparece aqui.')}</p>}
-        {comTexto.map((fala) => {
-          const lang = fala.lang ?? idiomaPadrao;
-          const traducao = traducaoNaLegenda(fala);
-          return (
-            <Linha
-              key={fala.id}
-              id={fala.id}
-              hora={fala.timestamp}
-              original={fala.originalText.trim()}
-              traducao={traducao.texto}
-              provisoria={traducao.provisoria || !!fala.isPartial}
-              lang={lang}
-              langDaTraducao={idiomaDaTraducao?.(lang)}
-              atual={fala === atual}
-              nova={!deAntes.has(fala.id)}
-              tocando={tocando === fala.id}
-              aoTocar={fixos.tocar}
-              aoOuvir={aoOuvir ? fixos.ouvir : undefined}
-              aoPararAudio={aoPararAudio}
-              aoMudar={fixos.seguir}
-            />
-          );
-        })}
+        {blocos.map((grupo, i) => (
+          /* O último bloco é o que está recebendo falas: fica inteiro à vista do navegador (a linha que
+             entra animada não pode ser cortada pela borda do bloco). Os de antes podem ser pulados. */
+          <div
+            key={grupo.bloco}
+            className={i === blocos.length - 1 ? 'q-bloco-de-falas' : 'q-bloco-de-falas antigo'}
+          >
+            {grupo.falas.map((fala) => {
+              const lang = fala.lang ?? idiomaPadrao;
+              const traducao = traducaoNaLegenda(fala);
+              return (
+                <Linha
+                  key={fala.id}
+                  id={fala.id}
+                  hora={fala.timestamp}
+                  original={fala.originalText.trim()}
+                  traducao={traducao.texto}
+                  provisoria={traducao.provisoria || !!fala.isPartial}
+                  lang={lang}
+                  langDaTraducao={idiomaDaTraducao?.(lang)}
+                  atual={fala === atual}
+                  nova={!deAntes.has(fala.id)}
+                  tocando={tocando === fala.id}
+                  aoTocar={fixos.tocar}
+                  aoOuvir={aoOuvir ? fixos.ouvir : undefined}
+                  aoPararAudio={aoPararAudio}
+                  aoMudar={fixos.seguir}
+                />
+              );
+            })}
+          </div>
+        ))}
         {transcrevendo && (
           <p className="q-transcrevendo">
             <span className="q-pontos">

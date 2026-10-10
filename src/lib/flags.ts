@@ -185,7 +185,14 @@ export function iniciarAtualizacaoDeFlags(): () => void {
   };
   document.addEventListener('visibilitychange', aoFocar);
   window.addEventListener('focus', aoFocar);
-  const intervalo = window.setInterval(() => void carregarFlags(), INTERVALO_DE_REFRESH_MS);
+  /* ABA OCULTA NÃO SONDA (auditoria do servidor de 10/10/2026, achado A4): a aba esquecida em segundo
+     plano pedia as flags a cada 5 minutos para ninguém ver, e no modo público cada pedido é uma escrita
+     no limitador de taxa do servidor. Ao voltar a ficar visível, `aoFocar` (acima) lê na hora se a
+     última leitura tem mais de 30 s, que é sempre o caso de quem pulou uma sondagem. */
+  const intervalo = window.setInterval(() => {
+    if (document.visibilityState === 'hidden') return;
+    void carregarFlags();
+  }, INTERVALO_DE_REFRESH_MS);
   const semIdentidade = aoMudarIdentidade(() => void carregarFlags());
   const semIdioma = assinarIdioma(() => void carregarFlags());
   return () => {

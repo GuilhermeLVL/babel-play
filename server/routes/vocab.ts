@@ -302,7 +302,11 @@ vocabRouter.post('/:id/review', async (req, res) => {
   const p = parseOr400(idParamSchema, req.params, res)
   if (!p) return
   try {
-    const atualizado = await vocabRepo.review(req.userId, p.id, payload.grade as Grade, payload.retencao)
+    const atualizado = await vocabRepo.review(req.userId, p.id, payload.grade as Grade, payload.retencao, {
+      origem: payload.origem,
+      formato: payload.formato,
+      respostaMs: payload.respostaMs,
+    })
     res.json({ ...atualizado, ...(await vocabRepo.procedenciaDe(req.userId, p.id)) })
   } catch (err) {
     res.status(400).json({

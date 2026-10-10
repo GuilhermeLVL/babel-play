@@ -2,11 +2,13 @@
  * O cursor do app: ponto com anel (`src/lib/polimento/cursor.ts`). Os números eram os da opção D de
  * `docs/prototipos/cursor-opcoes.html` (ponto 8, anel 34); o dono pediu menor em 09/10/2026.
  */
-/* O cursor do sistema só some no documento que TEM o ponto com anel. A janela das Legendas flutuantes
-   (Document Picture-in-Picture) copia as classes do <html> e as folhas de estilo, mas não o cursor:
-   sem o `:has`, o ponteiro sumia dentro dela. */
-html.px-com-cursor:has(.px-cursor),
-html.px-com-cursor:has(.px-cursor) * {
+/* O cursor do sistema só some no documento que TEM o ponto com anel: é ele que ganha a classe
+   (`cursor.ts`). A janela das Legendas flutuantes (Document Picture-in-Picture) copia as classes do
+   <html>, MENOS esta (`lib/appearanceSync.ts`, `classesQueAtravessam`): o ponteiro do sistema continua lá.
+   Sem `:has()`: `html.px-com-cursor:has(.px-cursor) *` vale para todo elemento, e com ele qualquer nó que
+   entrava no documento mandava o navegador reexaminar a árvore inteira (auditoria de 10/10/2026). */
+html.px-com-cursor,
+html.px-com-cursor * {
   cursor: none !important;
 }
 .px-cursor {

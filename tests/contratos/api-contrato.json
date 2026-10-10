@@ -9,6 +9,7 @@
     "DELETE /api/vocab/:id",
     "GET /api/abertura",
     "GET /api/admin/billing/pendentes",
+    "GET /api/admin/calibracao/:id",
     "GET /api/admin/erros",
     "GET /api/admin/flags",
     "GET /api/admin/ia",

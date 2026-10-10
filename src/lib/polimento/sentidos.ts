@@ -397,6 +397,16 @@ export function abaAVista(g?: HTMLElement | null): void {
 const ALVOS_DO_GIRO =
   'button.q-tile:not(.apagado):not(.em-linha), .px-premium, .px-vitrine-tela, .px-item .px-arte, .carta:not(.virada):not(.par)';
 const SEM_LUZ = '.carta, .px-arte, .px-vitrine-tela';
+/*
+ * QUANDO O LAÇO DO GIROSCÓPIO DORME E ACORDA. A inclinação vai de −1 a 1 (22° do aparelho) e vira até 9°
+ * de giro no cartão e até 45% da largura da tela no ponto da aura.
+ *   - dorme quando falta menos de 0,001 para chegar: 0,009° no cartão e 0,18 px na aura de um celular;
+ *   - acorda com uma leitura a mais de 0,004 do que está na tela: 0,09° do aparelho, 0,036° no cartão,
+ *     0,7 px na aura. Abaixo disso nada na tela mudaria de lugar de forma visível.
+ * A folga entre os dois números evita o liga-desliga com o ruído do sensor.
+ */
+const GIRO_CHEGOU = 0.001;
+const GIRO_ACORDA = 0.004;
 
 const celular = (): boolean => window.matchMedia?.('(max-width: 720px)').matches ?? false;
 
@@ -448,12 +458,21 @@ export function instalarSentidos(): () => void {
     pediuGiro = true;
     void pedirLicencaDoSensor();
   };
+  /** O que o laço escreveu por último em cada alvo: quadro que não muda nada não escreve de novo. */
+  let escrito = new WeakMap<HTMLElement, string>();
+  /** Volta a pedir quadros: chegou leitura fora do lugar, ou os alvos são outros. */
+  const acordarGiro = () => {
+    if (giro.rodando) return;
+    giro.rodando = true;
+    requestAnimationFrame(quadroDoGiro);
+  };
   const alvosDoGiro = () => {
     for (const el of giro.alvos) {
       el.style.transform = '';
       el.querySelector(':scope > .px-luz.giro')?.remove();
     }
     giro.alvos = [];
+    escrito = new WeakMap();
     if (!vivo || !giro.ativo || !polido()) return;
     giro.alvos = $$(ALVOS_DO_GIRO)
       .filter((el) => el.offsetParent)
@@ -466,31 +485,56 @@ export function instalarSentidos(): () => void {
       l.setAttribute('aria-hidden', 'true');
       el.append(l);
     });
+    /* Os alvos novos ainda não têm a inclinação de agora: o laço escreve neles, mesmo com o aparelho parado. */
+    acordarGiro();
   };
+  /*
+   * O LAÇO DORME COM O APARELHO PARADO (auditoria de desempenho de 10/10/2026, G1). Antes, bastava UMA
+   * leitura do sensor para ele rodar a cada quadro para sempre: 860 ms/s de fio principal no celular médio
+   * e 991 no fraco, com o Início parado. Agora ele para quando a inclinação na tela chegou à do aparelho
+   * e nenhum alvo ficou sem receber o último valor; `aoGirar` o acorda quando uma leitura sai do lugar.
+   * A suavização (12% por quadro) e o que é escrito em cada alvo são os mesmos.
+   */
   const quadroDoGiro = () => {
     if (!vivo || !giro.ativo || !polido()) {
       giro.rodando = false;
       return;
     }
-    giro.x += (giro.ax - giro.x) * 0.12;
-    giro.y += (giro.ay - giro.y) * 0.12;
+    const chegou = Math.abs(giro.ax - giro.x) < GIRO_CHEGOU && Math.abs(giro.ay - giro.y) < GIRO_CHEGOU;
+    if (!chegou) {
+      giro.x += (giro.ax - giro.x) * 0.12;
+      giro.y += (giro.ay - giro.y) * 0.12;
+    }
     /* A aura já segue o ponteiro: o giroscópio passa a ser o ponteiro (`sentidos.js:253`). */
     moverPonteiro(innerWidth * (0.5 + giro.x * 0.45), innerHeight * (0.45 + giro.y * 0.4));
+    let faltou = false;
     for (const el of giro.alvos) {
+      if (!el.isConnected) continue;
+      /* A entrada da tela (ou a transição da própria inclinação) está em curso neste alvo: ele recebe o
+         valor quando ela acabar, e até lá o laço não dorme. */
       if (
-        !el.isConnected ||
         (el.getAnimations?.() ?? []).some(
           (a) => a.playState === 'running' && a.effect?.getTiming().iterations !== Infinity,
         )
-      )
+      ) {
+        faltou = true;
         continue;
+      }
       const f = el.matches('.carta') ? 0.6 : 1;
-      el.style.transform = `perspective(800px) rotateY(${giro.x * 9 * f}deg) rotateX(${-giro.y * 8 * f}deg)`;
+      const inclinado = `perspective(800px) rotateY(${giro.x * 9 * f}deg) rotateX(${-giro.y * 8 * f}deg)`;
+      /* Alguém pode ter limpado o estilo do alvo (uma carta que virou): aí escreve de novo. */
+      if (escrito.get(el) === inclinado && el.style.transform !== '') continue;
+      escrito.set(el, inclinado);
+      el.style.transform = inclinado;
       const l = el.lastElementChild as HTMLElement | null;
       if (l?.classList.contains('giro')) {
         l.style.setProperty('--mx', (0.5 - giro.x * 0.6) * el.offsetWidth + 'px');
         l.style.setProperty('--my', (0.4 - giro.y * 0.6) * el.offsetHeight + 'px');
       }
+    }
+    if (chegou && !faltou) {
+      giro.rodando = false;
+      return;
     }
     requestAnimationFrame(quadroDoGiro);
   };
@@ -506,10 +550,15 @@ export function instalarSentidos(): () => void {
       raiz.dataset.pxGiro = 'on';
       alvosDoGiro();
     }
-    if (!giro.rodando) {
-      giro.rodando = true;
-      requestAnimationFrame(quadroDoGiro);
-    }
+    /* O sensor entrega leituras o tempo todo, mesmo com o aparelho na mesa (o ruído dele). Só acorda o
+       laço a leitura que tiraria a inclinação do lugar. */
+    if (Math.abs(giro.ax - giro.x) > GIRO_ACORDA || Math.abs(giro.ay - giro.y) > GIRO_ACORDA) acordarGiro();
+  };
+  /* Outra largura de tela: a luz de cada alvo é medida de novo. */
+  const aoRedimensionarOGiro = () => {
+    if (!giro.ativo) return;
+    escrito = new WeakMap();
+    acordarGiro();
   };
 
   /* ---- Apertar (`sentidos.js:161-174`) ---- */
@@ -707,6 +756,7 @@ export function instalarSentidos(): () => void {
   document.addEventListener('pointerup', aoLevantar);
   window.addEventListener('keydown', aoTeclar, { capture: true });
   window.addEventListener('deviceorientation', aoGirar);
+  window.addEventListener('resize', aoRedimensionarOGiro);
   window.addEventListener(EVENTO_DA_JOGADA, aoJogar);
   depoisDaTroca();
 
@@ -720,6 +770,7 @@ export function instalarSentidos(): () => void {
     document.removeEventListener('pointerup', aoLevantar);
     window.removeEventListener('keydown', aoTeclar, { capture: true });
     window.removeEventListener('deviceorientation', aoGirar);
+    window.removeEventListener('resize', aoRedimensionarOGiro);
     window.removeEventListener(EVENTO_DA_JOGADA, aoJogar);
     if (pedidoDeAbas) cancelAnimationFrame(pedidoDeAbas);
     alvosDoGiro();

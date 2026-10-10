@@ -336,8 +336,12 @@ describe('GET /api/vocab/resumo', () => {
     expect(r.baralhos.trilha).not.toBeNull()
     // Medido nesta semeadura (116 cartões, 260 revisões): 1.590 bytes.
     expect(corpo.length).toBeLessThan(4000)
-    // Cartões, origens, revisões de sempre e revisões por dia: uma consulta cada.
-    expect(consultas).toHaveLength(4)
+    /* Cartões, origens e revisões por dia: uma consulta cada. As revisões de sempre deixaram de ser
+       um `count(*)` em `review_logs` (eram a quarta) e vêm dos agregados diários (migração 0053):
+       uma consulta para conferir as marcas e uma para somar. */
+    expect(consultas).toHaveLength(3)
+    expect(instrucoes.filter((x) => /\bagregados_diarios\b/.test(x))).toHaveLength(1)
+    expect(instrucoes.filter((x) => /\bestado_dos_agregados\b/.test(x))).toHaveLength(1)
     expect(instrucoes.filter((x) => x.includes('versoes_de_dados'))).toHaveLength(1)
   })
 

@@ -204,7 +204,7 @@ describe('Revisão no Quest', () => {
     expect(voz.falar).toHaveBeenCalledWith(palavra, expect.objectContaining({ lang: 'en' }))
 
     await tocar(notas[2])
-    expect(api.revisar).toHaveBeenCalledWith(expect.any(String), 3, 0.9)
+    expect(api.revisar).toHaveBeenCalledWith(expect.any(String), 3, 0.9, expect.objectContaining({ origem: 'revisao', formato: 'lembrar', respostaMs: expect.any(Number) }))
     expect(api.rodada).toHaveBeenCalledTimes(1)
     expect(container.querySelector('.qr-conta')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('2 / 3')
 
@@ -356,7 +356,7 @@ describe('Revisão no Quest', () => {
     await tocar(botao(/Verificar/))
     expect(palco().querySelector('.qr-veredito.certo')?.textContent).toContain('Correto! A tradução era “gato”.')
     await tocar(botao(/Avançar/))
-    expect(api.revisar).toHaveBeenCalledWith('c1', 3, 0.9)
+    expect(api.revisar).toHaveBeenCalledWith('c1', 3, 0.9, expect.objectContaining({ origem: 'revisao', formato: 'digitar', respostaMs: expect.any(Number) }))
     expect(palco().dataset.estado).toBe('fim')
   })
 
@@ -370,7 +370,7 @@ describe('Revisão no Quest', () => {
     expect(veredito).toContain('“gato”')
     expect(veredito).toContain('“cavalo”')
     await tocar(botao(/Avançar/))
-    expect(api.revisar).toHaveBeenCalledWith('c1', 1, 0.9)
+    expect(api.revisar).toHaveBeenCalledWith('c1', 1, 0.9, expect.objectContaining({ origem: 'revisao', formato: 'digitar', respostaMs: expect.any(Number) }))
   })
 
   it('Escolher: quatro alternativas; a escolha é gravada e Avançar dá a nota', async () => {
@@ -409,7 +409,7 @@ describe('Revisão no Quest', () => {
     expect(within(exercicio).getByRole('button', { name: /Ouvir a frase completa/ })).toBeTruthy()
     await tocar(botao(/Próximo exercício/))
     // Produção ativa é mais difícil: um acerto vale "Fácil".
-    expect(api.revisar).toHaveBeenCalledWith('c1', 4, 0.9)
+    expect(api.revisar).toHaveBeenCalledWith('c1', 4, 0.9, expect.objectContaining({ origem: 'revisao', formato: 'producao-ativa', respostaMs: expect.any(Number) }))
   })
 
   it('a rodada escreve a instrução que o cabeçalho de sempre mostra', async () => {
@@ -571,7 +571,7 @@ describe('Revisão no computador com o desenho novo', () => {
 
     fireEvent.keyDown(window, { key: '3' })
     await act(async () => {})
-    expect(api.revisar).toHaveBeenCalledWith(expect.any(String), 3, 0.9)
+    expect(api.revisar).toHaveBeenCalledWith(expect.any(String), 3, 0.9, expect.objectContaining({ origem: 'revisao', formato: 'lembrar', respostaMs: expect.any(Number) }))
     expect(container.querySelector('.qr-conta')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('2 / 3')
 
     fireEvent.keyDown(window, { key: 'z' })

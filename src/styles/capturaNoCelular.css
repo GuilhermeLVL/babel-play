@@ -403,6 +403,25 @@ body:has(.cel) .fab {
 .q-historico > :first-child {
   margin-top: auto;
 }
+/* AS FALAS EM BLOCOS DE 20 (`lib/captura/blocosDasFalas`). O bloco repete a coluna da lista (mesmo
+   espaço entre as linhas), então a tela é a mesma de quando cada fala era filha direta da lista. O bloco
+   que já passou sai do cálculo inteiro quando está fora da tela: sem isso cada fala nova custava mais
+   que a anterior (45 ms na primeira, 81 ms na ducentésima, CPU 4×). A altura reservada é a de 20 linhas
+   de 84 px com os 19 espaços; `auto` troca pela altura real depois de o bloco ser desenhado uma vez. */
+.q-bloco-de-falas {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.q-bloco-de-falas.antigo {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 1870px;
+}
+/* O bloco aberto que ficou sem fala não ocupa lugar (nem o espaço entre os blocos). */
+.q-bloco-de-falas:empty {
+  display: none;
+}
 .q-espera {
   font: 600 20px/1.4 var(--font-body, inherit);
   color: var(--ink-muted);
@@ -613,6 +632,49 @@ body:has(.cel) .fab {
   font: 600 16px/1.35 var(--font-body, inherit);
   color: var(--ink-muted);
   overflow-wrap: anywhere;
+}
+
+/* GRAVANDO NO CELULAR ESTREITO (360 a 412 px), na tela enxuta: a faixa de baixo tem de mostrar o
+   relógio, o Encerrar INTEIRO, o Pausar, o A− e o A+.
+   O que havia (igual no protótipo `telas-enxutas.html?telas=enxuta&ir=gravando`, medido em 10/10/2026):
+   o Encerrar encolhia até 80 px e o rótulo saía cortado ("Encerra") em 360, 375 e 390 px; e o A− ficava
+   escondido em todo celular (`quest.css`: "na faixa ficam o tempo, A+ e Encerrar"), de modo que a letra
+   aumentada não tinha como voltar.
+   Agora o Encerrar tem a largura do próprio rótulo e não encolhe; os três botões redondos dividem o que
+   sobra, de 40 a 60 px cada; e nas telas mais estreitas a letra do Encerrar, a do relógio e os respiros
+   da faixa encolhem um pouco (a 360 px: 18 para 16 px e 17 para 15 px) para os cinco caberem. */
+@media (max-width: 720px) {
+  html[data-px='on'][data-telas='enxuta'] .cel.px-vivo:not(.px-pronto):not(.px-parada) .q-faixa {
+    gap: clamp(4px, 1.5vw, 8px);
+    padding-inline: clamp(6px, 2vw, 10px);
+  }
+  html[data-px='on'][data-telas='enxuta'] .cel.px-vivo:not(.px-pronto):not(.px-parada) .q-faixa .q-tempo {
+    flex: 0 0 auto;
+    padding: 0 0 0 4px;
+    gap: 6px;
+    font-size: clamp(15px, 4.2vw, 17px);
+  }
+  html[data-px='on'][data-telas='enxuta'] .cel.px-vivo:not(.px-pronto):not(.px-parada) .q-faixa .q-ctl.pri {
+    flex: 1 0 auto;
+    gap: 6px;
+    padding: 0 clamp(8px, 2.2vw, 12px);
+    font-size: clamp(16px, 4.5vw, 18px);
+    white-space: nowrap;
+  }
+  html[data-px='on'][data-telas='enxuta'] .cel.px-vivo:not(.px-pronto):not(.px-parada) .q-faixa .q-espaco {
+    display: none;
+  }
+  html[data-px='on'][data-telas='enxuta'] .cel.px-vivo:not(.px-pronto):not(.px-parada) .q-faixa .q-letra-menor {
+    display: inline-flex;
+  }
+  html[data-px='on'][data-telas='enxuta'] .cel.px-vivo:not(.px-pronto):not(.px-parada) .q-faixa :is(.ex-pausar, .q-letra-menor, .q-fica) {
+    flex: 1 1 40px;
+    /* 40 px no uso normal; só abaixo disso se o relógio passar de uma hora numa tela de 360 px */
+    min-width: 34px;
+    max-width: 60px;
+    padding: 0;
+    justify-content: center;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -87,6 +87,25 @@ export const IMPORT_TIMEOUT_MS = 600_000
 type ApiInit = RequestInit & { timeoutMs?: number }
 
 /**
+ * O SINAL DE QUEM SAIU DA TELA, SEM PERDER O TETO DE TEMPO. `apiFetch` só põe o teto quando quem chama
+ * não traz sinal: o pedido que passa o próprio `AbortController` (para cancelar ao desmontar) ficaria
+ * sem prazo. Este junta os dois: aborta quando a tela sai OU quando o prazo estoura, o que vier primeiro.
+ * Onde `AbortSignal.any` não existe (navegador antigo), faz o mesmo à mão.
+ */
+export function comTeto(signal: AbortSignal, timeoutMs = DEFAULT_TIMEOUT_MS): AbortSignal {
+  const prazo = AbortSignal.timeout(timeoutMs)
+  const juntar = (AbortSignal as unknown as { any?: (sinais: AbortSignal[]) => AbortSignal }).any
+  if (typeof juntar === 'function') return juntar.call(AbortSignal, [signal, prazo])
+  const os2 = new AbortController()
+  const abortar = (de: AbortSignal) => () => os2.abort(de.reason)
+  for (const s of [signal, prazo]) {
+    if (s.aborted) os2.abort(s.reason)
+    else s.addEventListener('abort', abortar(s), { once: true })
+  }
+  return os2.signal
+}
+
+/**
  * QUANTAS ESCRITAS JÁ SAÍRAM POR AQUI (fix/rotas-caras). Sobe no INÍCIO de toda chamada que não
  * seja GET/HEAD.
  *

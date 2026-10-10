@@ -129,6 +129,16 @@ export function contar(pinta: (v: number) => void, de: number, ate: number, ms =
 /** As regras `@media` de preferência do sistema, com o texto original guardado para devolver. */
 const originais = new WeakMap<CSSMediaRule, string>();
 
+/** Uma regra `@media` de preferência do sistema que a camada acerta, com o texto original. */
+interface RegraDeAcess {
+  regra: CSSMediaRule;
+  texto: string;
+  /** `prefers-reduced-motion` (vale para o app inteiro); senão transparência ou contraste, só da camada. */
+  deMovimento: boolean;
+}
+/** As folhas já percorridas: quantas regras tinham e quais delas são de preferência. */
+const folhasVistas = new WeakMap<CSSStyleSheet, { quantas: number; achadas: RegraDeAcess[] }>();
+
 /**
  * `aplicarAcess()` de `prototipo.js:26-33`: as regras `prefers-reduced-*` e `prefers-contrast` da
  * camada só valem quando a pessoa NÃO ligou as animações de propósito no app.
@@ -140,12 +150,17 @@ const originais = new WeakMap<CSSMediaRule, string>();
  */
 export function aplicarAcess(): void {
   const segue = !document.body.classList.contains('animations-on');
-  const visitar = (regras: CSSRuleList) => {
+  /* O que vale para uma regra já achada: o texto dela, ou o que a pessoa escolheu no app. */
+  const acertar = ({ regra, texto, deMovimento }: RegraDeAcess) => {
+    const quer = segue ? texto : deMovimento && /no-preference/.test(texto) ? 'all' : 'not all';
+    if (regra.media.mediaText !== quer) regra.media.mediaText = quer;
+  };
+  const visitar = (regras: CSSRuleList, achadas: RegraDeAcess[]) => {
     for (const r of regras) {
       /* As folhas do app vêm dentro de `@layer` e de outras regras de grupo: desce nelas. */
       if (!(r instanceof CSSMediaRule)) {
         const dentro = (r as CSSGroupingRule).cssRules;
-        if (dentro?.length) visitar(dentro);
+        if (dentro?.length) visitar(dentro, achadas);
         continue;
       }
       const texto = originais.get(r) ?? r.media.mediaText;
@@ -156,25 +171,37 @@ export function aplicarAcess(): void {
          Modo desempenho. A regra `reduce` deixa de valer e a `no-preference` passa a valer sempre. */
       if (/prefers-reduced-motion/.test(texto)) {
         originais.set(r, texto);
-        r.media.mediaText = segue ? texto : /no-preference/.test(texto) ? 'all' : 'not all';
-        visitar(r.cssRules);
+        achadas.push({ regra: r, texto, deMovimento: true });
+        visitar(r.cssRules, achadas);
         continue;
       }
       /* TRANSPARÊNCIA E CONTRASTE: só as regras da camada (as outras são leitura, e leitura não se mexe). */
       if (/prefers-(reduced|contrast)/.test(texto) && r.cssText.includes('data-px')) {
         originais.set(r, texto);
-        r.media.mediaText = segue ? texto : 'not all';
+        achadas.push({ regra: r, texto, deMovimento: false });
         continue;
       }
-      visitar(r.cssRules);
+      visitar(r.cssRules, achadas);
     }
   };
+  /* SÓ AS FOLHAS NOVAS SÃO PERCORRIDAS (auditoria de desempenho de 10/10/2026, G12). Cada tela traz a sua
+     folha, e a cada uma que chegava TODAS eram percorridas de novo, regra por regra: 12 a 28 ms por tela
+     nova no celular médio. Agora cada folha é percorrida uma vez (e de novo se ganhar ou perder regras);
+     das outras fica a lista das regras de preferência, que é o que precisa ser acertado. */
   for (const folha of document.styleSheets) {
+    let regras: CSSRuleList;
     try {
-      visitar(folha.cssRules);
+      regras = folha.cssRules;
     } catch {
-      /* folha de outra origem: não é da camada */
+      continue; /* folha de outra origem: não é da camada */
     }
+    let vista = folhasVistas.get(folha);
+    if (!vista || vista.quantas !== regras.length) {
+      vista = { quantas: regras.length, achadas: [] };
+      visitar(regras, vista.achadas);
+      folhasVistas.set(folha, vista);
+    }
+    vista.achadas.forEach(acertar);
   }
 }
 

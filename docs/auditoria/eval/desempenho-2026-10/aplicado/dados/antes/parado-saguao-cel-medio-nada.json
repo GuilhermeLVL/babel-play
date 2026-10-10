@@ -1,0 +1,448 @@
+{
+ "mediana": {
+  "ocupacao_pct": 65.8,
+  "principal_cpu_ms_por_s": 161.6,
+  "principal_parede_ms_por_s": 658,
+  "script_por_s": 36.7,
+  "estilo_por_s": 280.7,
+  "layout_por_s": 0.8,
+  "pintura_por_s": 214.4,
+  "recalculos_por_s": 59.4,
+  "elementos_por_recalculo": 105,
+  "quadros_por_s": 59.5,
+  "rAF_por_s": 59.4,
+  "pinturas_por_s": 146.8,
+  "gpu_cpu_ms_por_s": 125.1,
+  "compositor_cpu_ms_por_s": 66.4
+ },
+ "runs": [
+  {
+   "janela_ms": 10001,
+   "principal": {
+    "tarefas_parede_ms": 6521.2,
+    "tarefas_cpu_ms": 1586.8,
+    "ocupacao_pct": 65.2,
+    "nTarefas": 3646,
+    "tarefasLongas": 0,
+    "bloqueio_ms": 0,
+    "maiorTarefa_ms": 39.9,
+    "grupos_ms": {
+     "script": 373.5,
+     "estilo": 2775.8,
+     "layout": 7.7,
+     "pintura": 2097.3,
+     "hittest": 3.2,
+     "outro": 1263.8
+    },
+    "por_s": {
+     "script": 37.3,
+     "estilo": 277.6,
+     "layout": 0.8,
+     "pintura": 209.7,
+     "hittest": 0.3,
+     "outro": 126.4
+    }
+   },
+   "estilo": {
+    "recalculos": 591,
+    "por_s": 59.1,
+    "total_ms": 2786.2,
+    "elementos_medio": 105,
+    "elementos_max": 105,
+    "forcadoPor": []
+   },
+   "layout": {
+    "n": 0,
+    "total_ms": 0,
+    "forcados": 0,
+    "forcadoPor": []
+   },
+   "quadros": {
+    "desenhados": 589,
+    "descartados": 11,
+    "beginMain": 590,
+    "commits": 590,
+    "rAF": 591,
+    "pinturas": 1468,
+    "por_s": 58.9
+   },
+   "fios": {
+    "pagina/Compositor": {
+     "parede_ms": 771,
+     "cpu_ms": 647,
+     "cpu_por_s": 64.7
+    },
+    "GPU Process/PerfettoTrace": {
+     "parede_ms": 1,
+     "cpu_ms": 1,
+     "cpu_por_s": 0.1
+    },
+    "GPU Process/Chrome_ChildIOThread": {
+     "parede_ms": 87,
+     "cpu_ms": 72,
+     "cpu_por_s": 7.2
+    },
+    "Browser/CrBrowserMain": {
+     "parede_ms": 2,
+     "cpu_ms": 2,
+     "cpu_por_s": 0.2
+    },
+    "Browser/PerfettoTrace": {
+     "parede_ms": 1,
+     "cpu_ms": 1,
+     "cpu_por_s": 0.1
+    },
+    "Browser/Chrome_IOThread": {
+     "parede_ms": 1,
+     "cpu_ms": 1,
+     "cpu_por_s": 0.1
+    },
+    "pagina/CrRendererMain": {
+     "parede_ms": 6541,
+     "cpu_ms": 1591,
+     "cpu_por_s": 159.1
+    },
+    "GPU Process/CrGpuMain": {
+     "parede_ms": 781,
+     "cpu_ms": 717,
+     "cpu_por_s": 71.7
+    },
+    "pagina/DedicatedWorker thread": {
+     "parede_ms": 223,
+     "cpu_ms": 144,
+     "cpu_por_s": 14.3
+    },
+    "pagina/PerfettoTrace": {
+     "parede_ms": 2,
+     "cpu_ms": 2,
+     "cpu_por_s": 0.2
+    },
+    "pagina/Chrome_ChildIOThread": {
+     "parede_ms": 78,
+     "cpu_ms": 64,
+     "cpu_por_s": 6.4
+    },
+    "GPU Process/VizCompositorThread": {
+     "parede_ms": 529,
+     "cpu_ms": 461,
+     "cpu_por_s": 46.1
+    },
+    "pagina/ThreadPoolForegroundWorker": {
+     "parede_ms": 192,
+     "cpu_ms": 169,
+     "cpu_por_s": 16.9
+    }
+   },
+   "metricas_por_s": {
+    "script": 40.2,
+    "estilo": 522.5,
+    "layout": 0,
+    "tarefa": 1145.1,
+    "nEstilo": 99.9,
+    "nLayout": 0
+   },
+   "estado": {
+    "giro": null,
+    "corpo": "animations-on",
+    "px": "on",
+    "nos": 623,
+    "rodando": 53,
+    "pausadas": 0,
+    "cartoes": 18,
+    "cartoesFora": 0,
+    "painel": false,
+    "canvas": [
+     "780x1688"
+    ]
+   },
+   "aplicadas": []
+  },
+  {
+   "janela_ms": 10001,
+   "principal": {
+    "tarefas_parede_ms": 6695.6,
+    "tarefas_cpu_ms": 1666.4,
+    "ocupacao_pct": 66.9,
+    "nTarefas": 3691,
+    "tarefasLongas": 0,
+    "bloqueio_ms": 0,
+    "maiorTarefa_ms": 29.7,
+    "grupos_ms": {
+     "script": 367.2,
+     "estilo": 2856.8,
+     "layout": 7.3,
+     "pintura": 2162.2,
+     "hittest": 5.2,
+     "outro": 1296.9
+    },
+    "por_s": {
+     "script": 36.7,
+     "estilo": 285.6,
+     "layout": 0.7,
+     "pintura": 216.2,
+     "hittest": 0.5,
+     "outro": 129.7
+    }
+   },
+   "estilo": {
+    "recalculos": 599,
+    "por_s": 59.9,
+    "total_ms": 2861.8,
+    "elementos_medio": 105,
+    "elementos_max": 105,
+    "forcadoPor": []
+   },
+   "layout": {
+    "n": 0,
+    "total_ms": 0,
+    "forcados": 0,
+    "forcadoPor": []
+   },
+   "quadros": {
+    "desenhados": 599,
+    "descartados": 2,
+    "beginMain": 599,
+    "commits": 598,
+    "rAF": 599,
+    "pinturas": 1483,
+    "por_s": 59.9
+   },
+   "fios": {
+    "pagina/Compositor": {
+     "parede_ms": 814,
+     "cpu_ms": 691,
+     "cpu_por_s": 69.1
+    },
+    "Browser/PerfettoTrace": {
+     "parede_ms": 1,
+     "cpu_ms": 1,
+     "cpu_por_s": 0.1
+    },
+    "Browser/CrBrowserMain": {
+     "parede_ms": 2,
+     "cpu_ms": 1,
+     "cpu_por_s": 0.1
+    },
+    "GPU Process/PerfettoTrace": {
+     "parede_ms": 1,
+     "cpu_ms": 1,
+     "cpu_por_s": 0.1
+    },
+    "Browser/Chrome_IOThread": {
+     "parede_ms": 1,
+     "cpu_ms": 1,
+     "cpu_por_s": 0.1
+    },
+    "GPU Process/Chrome_ChildIOThread": {
+     "parede_ms": 88,
+     "cpu_ms": 73,
+     "cpu_por_s": 7.3
+    },
+    "pagina/CrRendererMain": {
+     "parede_ms": 6706,
+     "cpu_ms": 1669,
+     "cpu_por_s": 166.9
+    },
+    "pagina/DedicatedWorker thread": {
+     "parede_ms": 233,
+     "cpu_ms": 151,
+     "cpu_por_s": 15.1
+    },
+    "pagina/PerfettoTrace": {
+     "parede_ms": 2,
+     "cpu_ms": 2,
+     "cpu_por_s": 0.2
+    },
+    "pagina/Chrome_ChildIOThread": {
+     "parede_ms": 79,
+     "cpu_ms": 65,
+     "cpu_por_s": 6.5
+    },
+    "GPU Process/VizCompositorThread": {
+     "parede_ms": 540,
+     "cpu_ms": 472,
+     "cpu_por_s": 47.2
+    },
+    "GPU Process/CrGpuMain": {
+     "parede_ms": 806,
+     "cpu_ms": 741,
+     "cpu_por_s": 74.1
+    },
+    "pagina/ThreadPoolForegroundWorker": {
+     "parede_ms": 182,
+     "cpu_ms": 149,
+     "cpu_por_s": 14.9
+    },
+    "Browser/ThreadPoolServiceThread": {
+     "parede_ms": 2,
+     "cpu_ms": 1,
+     "cpu_por_s": 0.1
+    }
+   },
+   "metricas_por_s": {
+    "script": 39.8,
+    "estilo": 518.9,
+    "layout": 0,
+    "tarefa": 1144.8,
+    "nEstilo": 101.3,
+    "nLayout": 0
+   },
+   "estado": {
+    "giro": null,
+    "corpo": "animations-on",
+    "px": "on",
+    "nos": 623,
+    "rodando": 53,
+    "pausadas": 0,
+    "cartoes": 18,
+    "cartoesFora": 0,
+    "painel": false,
+    "canvas": [
+     "780x1688"
+    ]
+   },
+   "aplicadas": []
+  },
+  {
+   "janela_ms": 10001,
+   "principal": {
+    "tarefas_parede_ms": 6581.1,
+    "tarefas_cpu_ms": 1616.4,
+    "ocupacao_pct": 65.8,
+    "nTarefas": 3650,
+    "tarefasLongas": 0,
+    "bloqueio_ms": 0,
+    "maiorTarefa_ms": 36.5,
+    "grupos_ms": {
+     "script": 360.8,
+     "estilo": 2807.5,
+     "layout": 8.6,
+     "pintura": 2144.6,
+     "hittest": 3.7,
+     "outro": 1255.9
+    },
+    "por_s": {
+     "script": 36.1,
+     "estilo": 280.7,
+     "layout": 0.9,
+     "pintura": 214.4,
+     "hittest": 0.4,
+     "outro": 125.6
+    }
+   },
+   "estilo": {
+    "recalculos": 594,
+    "por_s": 59.4,
+    "total_ms": 2807.5,
+    "elementos_medio": 105,
+    "elementos_max": 105,
+    "forcadoPor": []
+   },
+   "layout": {
+    "n": 0,
+    "total_ms": 0,
+    "forcados": 0,
+    "forcadoPor": []
+   },
+   "quadros": {
+    "desenhados": 595,
+    "descartados": 9,
+    "beginMain": 594,
+    "commits": 594,
+    "rAF": 594,
+    "pinturas": 1447,
+    "por_s": 59.5
+   },
+   "fios": {
+    "pagina/Compositor": {
+     "parede_ms": 785,
+     "cpu_ms": 664,
+     "cpu_por_s": 66.4
+    },
+    "Browser/CrBrowserMain": {
+     "parede_ms": 2,
+     "cpu_ms": 2,
+     "cpu_por_s": 0.2
+    },
+    "Browser/PerfettoTrace": {
+     "parede_ms": 4,
+     "cpu_ms": 2,
+     "cpu_por_s": 0.2
+    },
+    "Browser/Chrome_IOThread": {
+     "parede_ms": 1,
+     "cpu_ms": 1,
+     "cpu_por_s": 0.1
+    },
+    "GPU Process/PerfettoTrace": {
+     "parede_ms": 1,
+     "cpu_ms": 1,
+     "cpu_por_s": 0.1
+    },
+    "GPU Process/Chrome_ChildIOThread": {
+     "parede_ms": 84,
+     "cpu_ms": 69,
+     "cpu_por_s": 6.9
+    },
+    "pagina/CrRendererMain": {
+     "parede_ms": 6581,
+     "cpu_ms": 1616,
+     "cpu_por_s": 161.6
+    },
+    "GPU Process/CrGpuMain": {
+     "parede_ms": 769,
+     "cpu_ms": 705,
+     "cpu_por_s": 70.5
+    },
+    "pagina/DedicatedWorker thread": {
+     "parede_ms": 226,
+     "cpu_ms": 145,
+     "cpu_por_s": 14.5
+    },
+    "pagina/PerfettoTrace": {
+     "parede_ms": 3,
+     "cpu_ms": 2,
+     "cpu_por_s": 0.2
+    },
+    "pagina/Chrome_ChildIOThread": {
+     "parede_ms": 75,
+     "cpu_ms": 62,
+     "cpu_por_s": 6.2
+    },
+    "GPU Process/VizCompositorThread": {
+     "parede_ms": 538,
+     "cpu_ms": 473,
+     "cpu_por_s": 47.3
+    },
+    "pagina/ThreadPoolForegroundWorker": {
+     "parede_ms": 196,
+     "cpu_ms": 152,
+     "cpu_por_s": 15.2
+    }
+   },
+   "metricas_por_s": {
+    "script": 44.5,
+    "estilo": 589.9,
+    "layout": 0,
+    "tarefa": 1281.3,
+    "nEstilo": 103.2,
+    "nLayout": 0
+   },
+   "estado": {
+    "giro": null,
+    "corpo": "animations-on",
+    "px": "on",
+    "nos": 623,
+    "rodando": 53,
+    "pausadas": 0,
+    "cartoes": 18,
+    "cartoesFora": 0,
+    "painel": false,
+    "canvas": [
+     "780x1688"
+    ]
+   },
+   "aplicadas": []
+  }
+ ]
+}

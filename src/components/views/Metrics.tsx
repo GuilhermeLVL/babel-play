@@ -189,12 +189,27 @@ export default function Metrics({
 
   // Falas REAIS de todas as sessões — fonte do painel "Complexidade Estrutural & Tom" (abaixo).
   // Mesmo endpoint que a Auditoria de Idioma já usa (`fetchAllUtterances`, uma chamada só).
+  /* SÓ QUANDO A ABA QUE AS USA ABRE (auditoria do servidor de 10/10/2026, achado A3). São TODAS as falas
+     da conta (1 MB com 2.000, 3 MB com 6.000, e de 80 a 258 ms do servidor parado montando a resposta),
+     e eram pedidas ao abrir Palavras, onde nada as mostra: só a aba "Fala" lê o resultado. O pedido sai
+     na primeira vez em que ela aparece, uma vez por visita à tela, e é cancelado se a pessoa sair antes
+     de a resposta chegar. */
   const [allUtterances, setAllUtterances] = useState<UtteranceRow[]>([]);
+  const [falasPedidas, setFalasPedidas] = useState(false);
+  const pedirFalas = mainTab === 'fluency' && !falasPedidas;
   useEffect(() => {
-    fetchAllUtterances()
+    if (pedirFalas) setFalasPedidas(true);
+  }, [pedirFalas]);
+  useEffect(() => {
+    if (!falasPedidas) return;
+    const cancelar = new AbortController();
+    fetchAllUtterances(cancelar.signal)
       .then(setAllUtterances)
-      .catch(() => setAllUtterances([]));
-  }, []);
+      .catch(() => {
+        if (!cancelar.signal.aborted) setAllUtterances([]);
+      });
+    return () => cancelar.abort();
+  }, [falasPedidas]);
 
   // --- ANALISTA DE VOCABULÁRIO ---
   // C12 — mesma rotina da tela de Revisão, agora em `lib/useExameDePalavra`.

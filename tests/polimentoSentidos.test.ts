@@ -967,6 +967,112 @@ describe('o giroscópio (`sentidos.js:196-265`)', () => {
     expect(document.querySelector('.px-luz.giro')).toBeNull()
     expect(document.documentElement.dataset.pxGiro).toBeUndefined()
   })
+
+  /* O LAÇO DORME COM O APARELHO PARADO (auditoria de desempenho de 10/10/2026, G1): antes, uma leitura do
+     sensor bastava para ele pedir um quadro por vsync para sempre. */
+  describe('o laço dorme e acorda', () => {
+    const rodarAteDormir = (teto = 2000) => {
+      let n = 0
+      while (quadros.length && n < teto) {
+        rodarQuadros()
+        n++
+      }
+      return n
+    }
+
+    it('aparelho parado: a inclinação chega e não sobra quadro pendente', () => {
+      desligar = instalarSentidos()
+      rodarAteDormir()
+      girar(40, 5)
+      girar(29, 16)
+      const rodou = rodarAteDormir()
+      expect(quadros).toHaveLength(0)
+      expect(rodou).toBeGreaterThan(10)
+      expect(rodou).toBeLessThan(200)
+      /* Chegou a menos de 0,001 da leitura (0,009° no cartão). */
+      const ax = (16 - 5.044) / 22
+      const m = /rotateY\(([-\d.e]+)deg\)/.exec($('#premium').style.transform)!
+      expect(Math.abs(Number(m[1]) - ax * 9)).toBeLessThan(0.009)
+      rodarQuadros()
+      expect(quadros).toHaveLength(0)
+    })
+
+    it('o ruído do sensor na mesa (±0,03°) não acorda; uma leitura fora do lugar acorda', () => {
+      desligar = instalarSentidos()
+      girar(40, 5)
+      rodarAteDormir()
+      for (let i = 0; i < 120; i++) girar(40 + (i % 2 ? 0.03 : -0.03), 5 + (i % 3 ? -0.03 : 0.03))
+      expect(quadros).toHaveLength(0)
+      /* 0,2° do aparelho: 0,009 de inclinação, acima do 0,004 que acorda. */
+      girar(40, 5.2)
+      expect(quadros).toHaveLength(1)
+      girar(40, 5.2)
+      expect(quadros).toHaveLength(1)
+      rodarAteDormir()
+      expect(quadros).toHaveLength(0)
+    })
+
+    it('o alvo com a entrada da tela em curso segura o laço até receber a inclinação', () => {
+      desligar = instalarSentidos()
+      girar(40, 5)
+      rodarAteDormir()
+      let entrando = true
+      const emCurso = { playState: 'running', effect: { getTiming: () => ({ iterations: 1 }) } }
+      $('#premium').getAnimations = () => (entrando ? [emCurso as unknown as Animation] : [])
+      girar(29, 16)
+      for (let i = 0; i < 300; i++) rodarQuadros()
+      /* Os outros alvos chegaram, mas este ainda não foi escrito: o laço segue acordado. */
+      expect(quadros).toHaveLength(1)
+      expect($('#premium').style.transform).toBe('perspective(800px) rotateY(0deg) rotateX(0deg)')
+      entrando = false
+      rodarAteDormir()
+      expect(quadros).toHaveLength(0)
+      expect($('#premium').style.transform).toBe($('#t0').style.transform)
+    })
+
+    it('alvos novos acordam o laço mesmo com o aparelho parado, e recebem a inclinação de agora', async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+      try {
+        desligar = instalarSentidos()
+        girar(40, 5)
+        girar(29, 16)
+        rodarAteDormir()
+        const antes = $('#premium').style.transform
+        $('.px-tela').innerHTML = '<div class="q-palco"><div class="px-premium" id="novo"></div></div>'
+        await Promise.resolve()
+        await vi.advanceTimersByTimeAsync(60)
+        expect(quadros.length).toBeGreaterThan(0)
+        rodarAteDormir()
+        expect($('#novo').style.transform).toBe(antes)
+        expect(quadros).toHaveLength(0)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('quadro que não muda nada não escreve de novo no alvo', () => {
+      desligar = instalarSentidos()
+      girar(40, 5)
+      rodarAteDormir()
+      /* Um alvo com a entrada em curso segura o laço acordado depois de a inclinação chegar. */
+      let entrando = true
+      const emCurso = { playState: 'running', effect: { getTiming: () => ({ iterations: 1 }) } }
+      $('#t0').getAnimations = () => (entrando ? [emCurso as unknown as Animation] : [])
+      girar(29, 16)
+      for (let i = 0; i < 300; i++) rodarQuadros()
+      let escritas = 0
+      const estilo = $('#premium').style
+      const valor = estilo.transform
+      Object.defineProperty(estilo, 'transform', { configurable: true, get: () => valor, set: () => void escritas++ })
+      for (let i = 0; i < 50; i++) rodarQuadros()
+      delete (estilo as unknown as Record<string, unknown>).transform
+      expect(quadros).toHaveLength(1)
+      expect(escritas).toBe(0)
+      entrando = false
+      rodarAteDormir()
+      expect(quadros).toHaveLength(0)
+    })
+  })
 })
 
 /* ---- Jeito de celular ----------------------------------------------------------------------------- */

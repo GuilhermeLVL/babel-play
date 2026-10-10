@@ -2,7 +2,7 @@ import { createRequire } from 'module';
 import fs from 'fs';
 const require = createRequire('C:/Users/Guilh/dev/ei-polimento/node_modules/');
 const { chromium } = require('playwright');
-export const URL0 = 'https://babel-play.pages.dev';
+export const URL0 = process.env.URL0 || 'https://babel-play.pages.dev';
 const UA_CEL = 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Mobile Safari/537.36';
 const UA_QUEST = 'Mozilla/5.0 (X11; Linux x86_64; Quest 3) AppleWebKit/537.36 (KHTML, like Gecko) OculusBrowser/40.0.0.0 Chrome/151.0.0.0 VR Safari/537.36';
 export const PERFIS = {
@@ -63,7 +63,7 @@ const INSTR = () => {
   };
 };
 
-export async function abrir(nome, { reduz = false, desempenho = false, gpu = true, storage = null, cpu = undefined, semInstr = false, exp = [], giro = false, fonteTrilha = false } = {}) {
+export async function abrir(nome, { reduz = false, desempenho = false, gpu = true, storage = null, cpu = undefined, semInstr = false, exp = [], giro = false, fonteTrilha = false, semOcioso = false } = {}) {
   const P = PERFIS[nome];
   if (fonteTrilha) storage = { ...(storage ?? {}), 'babel.fonte_da_pratica': '{"origem":"trilha","escopo":"todas"}' };
   const args = gpu ? ['--enable-gpu', '--use-gl=angle', '--use-angle=d3d11', '--ignore-gpu-blocklist'] : [];
@@ -90,6 +90,11 @@ export async function abrir(nome, { reduz = false, desempenho = false, gpu = tru
         for (const k in s) localStorage.setItem(k, s[k]);
       } catch {}
     }, storage);
+  /* So o pedido no toque: o ocioso nunca chega (quem toca logo depois da carga). */
+  if (semOcioso)
+    await ctx.addInitScript(() => {
+      window.requestIdleCallback = () => 0;
+    });
   const aplicadas = [];
   /* O celular na mao: o sensor de orientacao entrega leituras (aqui 60/s, com um tremor pequeno). */
   if (giro)

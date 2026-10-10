@@ -44,6 +44,7 @@ import {
   vocabCards,
   vocabOccurrences,
 } from '../schema'
+import { agregadosRepo } from './agregados'
 
 /**
  * Toda tabela com `user_id` do titular. `secrets` e `users` são tratadas à parte (chave própria).
@@ -306,6 +307,10 @@ export const contaRepo = {
        mas com o id do titular. Vem DEPOIS das tabelas acima porque os gatilhos delas recriam a
        linha a cada DELETE; apagada aqui, no mesmo batch, não sobra nada com o id da pessoa. */
     instrucoes.push(db.run(sql`DELETE FROM versoes_de_dados WHERE user_id = ${userId}`))
+    /* OS AGREGADOS DIÁRIOS E O ESTADO POR ITEM (migração 0053) — a mesma situação: contabilidade
+       derivada, fora do schema, com o id do titular. Depois das tabelas brutas, pelo mesmo motivo
+       (os gatilhos de `review_logs` e `exercise_results` mexem em `estado_dos_agregados`). */
+    instrucoes.push(...(agregadosRepo.instrucoesDeExclusao(userId) as Instrucao[]))
 
     const conta = await db.select({ id: users.id }).from(users).where(eq(users.id, userId))
     linhasPorTabela.users = conta.length

@@ -1,0 +1,504 @@
+{
+ "cel-medio": {
+  "mediana": {
+   "fria": {
+    "ttfb": 5,
+    "fcp": 851,
+    "lcp": 4538,
+    "palco": 3060,
+    "tti": 6905,
+    "tbt": 437,
+    "cls": 0.0201,
+    "maiorLt": 288,
+    "pedidos": 214,
+    "daRede": 214,
+    "kB": 1015,
+    "jsDecodKB": 1798,
+    "script_ms": 843,
+    "estilo_ms": 1108,
+    "layout_ms": 222,
+    "tarefa_ms": 3211,
+    "heapMb": 5.3,
+    "nos": 415
+   },
+   "quente": {
+    "ttfb": 2,
+    "fcp": 413,
+    "lcp": 1018,
+    "palco": 557,
+    "tti": 1844,
+    "tbt": 221,
+    "cls": 0,
+    "maiorLt": 180,
+    "pedidos": 214,
+    "daRede": 1,
+    "kB": 2,
+    "jsDecodKB": 1798,
+    "script_ms": 449,
+    "estilo_ms": 777,
+    "layout_ms": 57,
+    "tarefa_ms": 1977,
+    "heapMb": 7.2,
+    "nos": 415
+   }
+  },
+  "runs": [
+   {
+    "fria": {
+     "ttfb": 6.180000007152557,
+     "dcl": 740.7550000101328,
+     "load": 1086.6350000053644,
+     "fcp": 851.440000012517,
+     "lcp": 4634.07500000298,
+     "lcpEl": "SMALL.",
+     "cls": 0.020115615275764418,
+     "clsN": 2,
+     "marcos": {
+      "tela": 906.1150000095367,
+      "trilho": 2486.770000010729,
+      "palco": 3044.795000001788,
+      "h1": 3044.810000002384
+     },
+     "jsDecod": 1841181,
+     "nJs": 191,
+     "nRes": 214,
+     "nos": 415,
+     "folhas": 20,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "celular-bom",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-ct-nav": "b",
+      "data-movimento": "rico",
+      "data-px": "on",
+      "data-telas": "enxuta"
+     },
+     "sw": false,
+     "tbt": 526,
+     "nLt": 13,
+     "maiorLt": 352,
+     "somaLt": 1262,
+     "tti": 6912.480000004172,
+     "cpu": {
+      "tarefa_ms": 3502,
+      "script_ms": 917,
+      "estilo_ms": 1142,
+      "layout_ms": 269,
+      "n_estilo": 204,
+      "n_layout": 22
+     },
+     "aosMs": 9482.25,
+     "heapMb": 5.3,
+     "rede": {
+      "pedidos": 214,
+      "daRede": 214,
+      "bytes": 1039670,
+      "por": {
+       "Document": {
+        "n": 1,
+        "bytes": 1814
+       },
+       "Script": {
+        "n": 190,
+        "bytes": 800703
+       },
+       "Stylesheet": {
+        "n": 20,
+        "bytes": 135836
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 101317
+       }
+      }
+     }
+    },
+    "quente": {
+     "ttfb": 3.0499999970197678,
+     "dcl": 299.56999999284744,
+     "load": 306.1299999952316,
+     "fcp": 412.6499999910593,
+     "lcp": 1018.2149999886751,
+     "lcpEl": "SMALL.",
+     "cls": 0,
+     "clsN": 1,
+     "marcos": {
+      "tela": 490.60999999940395,
+      "palco": 557.3649999946356,
+      "h1": 557.5349999964237,
+      "trilho": 703.2649999856949
+     },
+     "jsDecod": 1841181,
+     "nJs": 191,
+     "nRes": 214,
+     "nos": 415,
+     "folhas": 20,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "celular-bom",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-ct-nav": "b",
+      "data-movimento": "rico",
+      "data-px": "on",
+      "data-telas": "enxuta"
+     },
+     "sw": false,
+     "tbt": 221,
+     "nLt": 10,
+     "maiorLt": 180,
+     "somaLt": 721,
+     "tti": 1844.375,
+     "cpu": {
+      "tarefa_ms": 1977,
+      "script_ms": 449,
+      "estilo_ms": 777,
+      "layout_ms": 57,
+      "n_estilo": 152,
+      "n_layout": 13
+     },
+     "aosMs": 3888.3499999940395,
+     "heapMb": 7.2,
+     "rede": {
+      "pedidos": 214,
+      "daRede": 1,
+      "bytes": 1814,
+      "por": {
+       "Script": {
+        "n": 190,
+        "bytes": 0
+       },
+       "Stylesheet": {
+        "n": 20,
+        "bytes": 0
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 0
+       },
+       "Document": {
+        "n": 1,
+        "bytes": 1814
+       }
+      }
+     }
+    }
+   },
+   {
+    "fria": {
+     "ttfb": 5.08500000834465,
+     "dcl": 739.0400000065565,
+     "load": 1082.2999999970198,
+     "fcp": 845.4450000077486,
+     "lcp": 4517.04999999702,
+     "lcpEl": "SMALL.",
+     "cls": 0.020115615275764418,
+     "clsN": 2,
+     "marcos": {
+      "tela": 893.6700000017881,
+      "trilho": 2473.484999999404,
+      "palco": 3059.7900000065565,
+      "h1": 3059.954999998212
+     },
+     "jsDecod": 1841181,
+     "nJs": 191,
+     "nRes": 214,
+     "nos": 415,
+     "folhas": 20,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "celular-bom",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-ct-nav": "b",
+      "data-movimento": "rico",
+      "data-px": "on",
+      "data-telas": "enxuta"
+     },
+     "sw": false,
+     "tbt": 353,
+     "nLt": 9,
+     "maiorLt": 283,
+     "somaLt": 889,
+     "tti": 6249.430000007153,
+     "cpu": {
+      "tarefa_ms": 3092,
+      "script_ms": 794,
+      "estilo_ms": 1035,
+      "layout_ms": 220,
+      "n_estilo": 210,
+      "n_layout": 23
+     },
+     "aosMs": 9370.269999995828,
+     "heapMb": 5.3,
+     "rede": {
+      "pedidos": 214,
+      "daRede": 214,
+      "bytes": 1039670,
+      "por": {
+       "Document": {
+        "n": 1,
+        "bytes": 1814
+       },
+       "Script": {
+        "n": 190,
+        "bytes": 800703
+       },
+       "Stylesheet": {
+        "n": 20,
+        "bytes": 135836
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 101317
+       }
+      }
+     }
+    },
+    "quente": {
+     "ttfb": 1.9500000029802322,
+     "dcl": 303.8200000077486,
+     "load": 314.8149999976158,
+     "fcp": 415.5100000053644,
+     "lcp": 1064.1299999952316,
+     "lcpEl": "SMALL.",
+     "cls": 0,
+     "clsN": 1,
+     "marcos": {
+      "tela": 507.14000000059605,
+      "palco": 571.9450000077486,
+      "h1": 571.9450000077486,
+      "trilho": 713.7300000041723
+     },
+     "jsDecod": 1841181,
+     "nJs": 191,
+     "nRes": 214,
+     "nos": 415,
+     "folhas": 20,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "celular-bom",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-ct-nav": "b",
+      "data-movimento": "rico",
+      "data-px": "on",
+      "data-telas": "enxuta"
+     },
+     "sw": false,
+     "tbt": 283,
+     "nLt": 11,
+     "maiorLt": 181,
+     "somaLt": 835,
+     "tti": 2004.1350000053644,
+     "cpu": {
+      "tarefa_ms": 2055,
+      "script_ms": 513,
+      "estilo_ms": 780,
+      "layout_ms": 59,
+      "n_estilo": 152,
+      "n_layout": 12
+     },
+     "aosMs": 4037.8850000053644,
+     "heapMb": 7.2,
+     "rede": {
+      "pedidos": 214,
+      "daRede": 1,
+      "bytes": 1814,
+      "por": {
+       "Script": {
+        "n": 190,
+        "bytes": 0
+       },
+       "Stylesheet": {
+        "n": 20,
+        "bytes": 0
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 0
+       },
+       "Document": {
+        "n": 1,
+        "bytes": 1814
+       }
+      }
+     }
+    }
+   },
+   {
+    "fria": {
+     "ttfb": 4.075000002980232,
+     "dcl": 756.109999999404,
+     "load": 1126.1449999958277,
+     "fcp": 865.3100000023842,
+     "lcp": 4537.875,
+     "lcpEl": "SMALL.",
+     "cls": 0.020115615275764418,
+     "clsN": 2,
+     "marcos": {
+      "tela": 924.6949999928474,
+      "trilho": 2488.0049999952316,
+      "palco": 3070.204999998212,
+      "h1": 3070.2150000035763
+     },
+     "jsDecod": 1841181,
+     "nJs": 191,
+     "nRes": 214,
+     "nos": 415,
+     "folhas": 20,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "celular-bom",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-ct-nav": "b",
+      "data-movimento": "rico",
+      "data-px": "on",
+      "data-telas": "enxuta"
+     },
+     "sw": false,
+     "tbt": 437,
+     "nLt": 14,
+     "maiorLt": 288,
+     "somaLt": 1237,
+     "tti": 6905.390000000596,
+     "cpu": {
+      "tarefa_ms": 3211,
+      "script_ms": 843,
+      "estilo_ms": 1108,
+      "layout_ms": 222,
+      "n_estilo": 210,
+      "n_layout": 22
+     },
+     "aosMs": 9504.640000000596,
+     "heapMb": 5.3,
+     "rede": {
+      "pedidos": 214,
+      "daRede": 214,
+      "bytes": 1039670,
+      "por": {
+       "Document": {
+        "n": 1,
+        "bytes": 1814
+       },
+       "Script": {
+        "n": 190,
+        "bytes": 800703
+       },
+       "Stylesheet": {
+        "n": 20,
+        "bytes": 135836
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 101317
+       }
+      }
+     }
+    },
+    "quente": {
+     "ttfb": 1.9399999976158142,
+     "dcl": 277.5900000035763,
+     "load": 283.89000000059605,
+     "fcp": 383.1200000047684,
+     "lcp": 952,
+     "lcpEl": "SMALL.",
+     "cls": 0,
+     "clsN": 1,
+     "marcos": {
+      "tela": 445.75,
+      "palco": 501.57500000298023,
+      "h1": 501.57999999821186,
+      "trilho": 634.4350000023842
+     },
+     "jsDecod": 1841181,
+     "nJs": 191,
+     "nRes": 214,
+     "nos": 415,
+     "folhas": 20,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "celular-bom",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-ct-nav": "b",
+      "data-movimento": "rico",
+      "data-px": "on",
+      "data-telas": "enxuta"
+     },
+     "sw": false,
+     "tbt": 184,
+     "nLt": 7,
+     "maiorLt": 167,
+     "somaLt": 534,
+     "tti": 1433.5049999952316,
+     "cpu": {
+      "tarefa_ms": 1830,
+      "script_ms": 418,
+      "estilo_ms": 721,
+      "layout_ms": 57,
+      "n_estilo": 153,
+      "n_layout": 14
+     },
+     "aosMs": 3830.2099999934435,
+     "heapMb": 7.2,
+     "rede": {
+      "pedidos": 214,
+      "daRede": 1,
+      "bytes": 1814,
+      "por": {
+       "Script": {
+        "n": 190,
+        "bytes": 0
+       },
+       "Stylesheet": {
+        "n": 20,
+        "bytes": 0
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 0
+       },
+       "Document": {
+        "n": 1,
+        "bytes": 1814
+       }
+      }
+     }
+    }
+   }
+  ]
+ }
+}

@@ -7,7 +7,7 @@
  *   1. os cartões vivos, só com as dez colunas que decidem fase, vencimento e baralho (leitura
  *      compacta: uma célula, sem um objeto do driver por linha — `server/db/leituraCompacta.ts`);
  *   2. os pares distintos cartão × origem de Anki e Trilha (`idx_occ_origem`);
- *   3. a contagem de revisões de sempre;
+ *   3. a contagem de revisões de sempre, somada dos agregados diários (`agregadosRepo.revisoesVivas`);
  *   4. as revisões dos últimos 84 dias, JÁ AGRUPADAS por dia e nota no SQLite: no máximo
  *      84 × 5 linhas, por maior que seja o histórico (`idx_review_user`).
  *
@@ -34,6 +34,7 @@ import {
 import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
 import { type ColunaCompacta, lerCompacto } from '../leituraCompacta'
+import { agregadosRepo } from './agregados'
 
 const DIA = 86_400_000
 const SEMANAS_DA_RETENCAO = 8
@@ -107,7 +108,12 @@ export async function resumoDosCartoes(
   /* O primeiro dia do calendário: o dia k atrás é [inicioDoDia - k·DIA, inicioDoDia - (k-1)·DIA). */
   const inicioDoCalendario = inicioDoDia - (DIAS_DO_CALENDARIO - 1) * DIA
 
-  const [cartoes, origens, deSempre, revisoes] = await Promise.all([
+  /* As revisões de sempre saem dos AGREGADOS DIÁRIOS (migração 0053), e não mais de um `count(*)`
+     sobre o histórico inteiro. Antes das outras leituras, e não junto: se os agregados estiverem
+     atrasados, `revisoesVivas` os reconta numa transação própria. */
+  const revisoesDeSempre = await agregadosRepo.revisoesVivas(userId)
+
+  const [cartoes, origens, revisoes] = await Promise.all([
     lerCompacto<LinhaDeCartao>(COLUNAS_DO_RESUMO, {
       tabela: 'vocab_cards',
       onde: sql`user_id = ${userId} AND deleted_at IS NULL`,
@@ -126,7 +132,6 @@ export async function resumoDosCartoes(
         distinta: true,
       },
     ),
-    db.all<{ n: number }>(sql`SELECT count(*) AS n FROM review_logs WHERE user_id = ${userId} AND deleted_at IS NULL`),
     /* A data da revisão é `reviewed_at`, ou `created_at` nas linhas antigas que não a têm. O filtro
        é escrito em dois ramos (em vez de `coalesce(...) >= ?`) para `idx_review_user`
        (user_id, reviewed_at) servir aos dois. O CAST trunca o quociente; o filtro garante que ele
@@ -233,7 +238,7 @@ export async function resumoDosCartoes(
     suspensas,
     idiomas: idiomas.size,
     dificeis,
-    revisoesDeSempre: Number(deSempre[0]?.n ?? 0),
+    revisoesDeSempre,
     revisadasHoje,
     hoje,
     guardadas,

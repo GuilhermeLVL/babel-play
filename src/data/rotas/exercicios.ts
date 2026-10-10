@@ -77,6 +77,12 @@ export async function salvarRodada(payload: {
   melhorSequencia?: number
   /** Duração da rodada (ms): o servidor grava o INÍCIO dela, e a rodada conta no dia em que começou. */
   duracaoMs?: number
+  /** O nível em que a rodada foi jogada (só registro). */
+  nivel?: 'facil' | 'medio' | 'dificil'
+  /** A fonte dos itens, separada do identificador dela (só registro). */
+  fonte?: 'baralho' | 'sessao' | 'trilha' | 'dificeis' | 'estudo'
+  /** O id da sessão ou o nível da trilha. */
+  fonteRef?: string
   itens: Array<{ cardId?: string; itemRef?: string; correct?: number; attempts?: number; ms?: number; hinted?: number; kind?: string }>
 }): Promise<GravacaoDeExercicio> {
   try {

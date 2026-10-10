@@ -3,7 +3,7 @@ import '../../styles/questRevisao.css';
 
 import { countDue, ganhoDaNota, ganhoDaRevisao, type Grade, isDueNow, makeFsrs5 } from '@core';
 import { Brain, Zap } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   desfazerRevisao,
@@ -191,6 +191,8 @@ export default function Study({
   const [fimDaRodada, setFimDaRodada] = useState(0);
   /** O usuário encerrou a rodada sem navegar: não reabrir sozinha. */
   const [encerrada, setEncerrada] = useState(false);
+  /** Quando o cartão atual apareceu: a nota leva o tempo de resposta (só registro, não muda a agenda). */
+  const mostradoEm = useRef(0);
 
   const [llmValidation] = useState<boolean>(() => {
     return lerPreferencia('practice.activeProduction.llmValidation') === 'true';
@@ -263,7 +265,11 @@ export default function Study({
     let xp = 0;
     let aceita = false;
     try {
-      const updated = await reviewCard(cardId, effectiveRating, retencao / 100);
+      const updated = await reviewCard(cardId, effectiveRating, retencao / 100, {
+        origem: 'revisao',
+        formato: exerciseKind === 'active-production' ? 'producao-ativa' : tipo,
+        respostaMs: mostradoEm.current ? Math.max(0, Date.now() - mostradoEm.current) : undefined,
+      });
       setVocabCards((prev) => prev.map((c) => (c.id === cardId ? updated : c)));
       // Só depois de o servidor gravar: o XP que sobe é o que de fato entrou na conta.
       xp = xpDaNota(effectiveRating);
@@ -285,6 +291,8 @@ export default function Study({
       exerciseKind,
       origem: recording?.id ? `sessao:${recording.id}` : 'estudo',
       sessionId: recording?.id,
+      fonte: recording?.id ? 'sessao' : 'estudo',
+      fonteRef: recording?.id,
       itens: [{ cardId, correct: effectiveRating > 1 ? 1 : 0, kind: 'srs' }],
     });
 
@@ -467,6 +475,11 @@ export default function Study({
         : tipo === 'escolha'
           ? 'mc'
           : 'cloze';
+  /* O relógio do tempo de resposta recomeça a cada cartão mostrado. */
+  const idDoCartaoAtual = currentCard?.id;
+  useEffect(() => {
+    mostradoEm.current = reviewing && idDoCartaoAtual ? Date.now() : 0;
+  }, [reviewing, idDoCartaoAtual, currentReviewIndex]);
 
   const mostrarResposta = () => {
     setShowAnswer(true);

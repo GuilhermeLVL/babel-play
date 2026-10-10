@@ -10,6 +10,7 @@ import { CachePorVersao } from '../../lib/cachePorVersao'
 import { db } from '../db'
 import { emLotes, tamanhoDoLote } from '../lotes'
 import { exerciseResults, sessions, vocabCards } from '../schema'
+import { agregadosRepo, baseDoIdioma } from './agregados'
 import { versoesRepo } from './versoes'
 
 export type ExerciseResult = typeof exerciseResults.$inferSelect
@@ -154,6 +155,12 @@ export interface NovaRodada {
   melhorSequencia?: number | null
   /** Quanto a rodada durou (ms). `created_at` vira o INÍCIO dela (`inicioDaRodada`, teto de 2 h). */
   duracaoMs?: number | null
+  /** O nível em que a rodada foi jogada: 'facil' | 'medio' | 'dificil' (migração 0052). */
+  nivel?: string | null
+  /** A fonte dos itens, separada do identificador: 'baralho' | 'sessao' | 'trilha' | 'dificeis' | 'estudo'. */
+  fonte?: string | null
+  /** O id da sessão ou o nível da trilha. */
+  fonteRef?: string | null
   itens: Array<{
     cardId?: string | null
     itemRef?: string | null
@@ -450,13 +457,14 @@ ${opts.origem ?? ''}`
        referência pendurada. O resultado do exercício continua valendo — o que não pode é a
        coluna apontar para o baralho de outro. */
     const idsPedidos = [...new Set(rodada.itens.map((i) => i.cardId).filter((x): x is string => !!x))]
-    const meus = new Set<string>()
+    /* Com o idioma do cartão: é a célula dos agregados do dia em que o item entra (migração 0053). */
+    const meus = new Map<string, string | null>()
     if (idsPedidos.length) {
       for (const r of await db
-        .select({ id: vocabCards.id })
+        .select({ id: vocabCards.id, srcLang: vocabCards.srcLang })
         .from(vocabCards)
         .where(and(eq(vocabCards.userId, userId), inArray(vocabCards.id, idsPedidos))))
-        meus.add(r.id)
+        meus.set(r.id, r.srcLang)
     }
 
     const linhas = rodada.itens.map((i) => {
@@ -479,6 +487,9 @@ ${opts.origem ?? ''}`
         hinted: i.hinted ?? null,
         origem: rodada.origem ?? null,
         cardId: i.cardId && meus.has(i.cardId) ? i.cardId : null,
+        nivel: rodada.nivel ?? null,
+        fonte: rodada.fonte ?? null,
+        fonteRef: rodada.fonteRef ?? null,
       } satisfies typeof exerciseResults.$inferInsert
     })
 
@@ -492,19 +503,42 @@ ${opts.origem ?? ''}`
     const colunas = sql.join(
       linhas.map(
         (l) =>
-          sql`(${l.id}, ${l.createdAt}, ${l.updatedAt}, ${l.userId}, ${l.sessionId}, ${l.kind}, ${l.correct}, ${l.score}, ${l.combo}, ${l.exerciseKind}, ${l.roundId}, ${l.itemRef}, ${l.attempts}, ${l.ms}, ${l.hinted}, ${l.origem}, ${l.cardId})`,
+          sql`(${l.id}, ${l.createdAt}, ${l.updatedAt}, ${l.userId}, ${l.sessionId}, ${l.kind}, ${l.correct}, ${l.score}, ${l.combo}, ${l.exerciseKind}, ${l.roundId}, ${l.itemRef}, ${l.attempts}, ${l.ms}, ${l.hinted}, ${l.origem}, ${l.cardId}, ${l.nivel}, ${l.fonte}, ${l.fonteRef})`,
       ),
       sql`, `,
     )
-    const r = await db.run(sql`
-      INSERT INTO ${exerciseResults}
-        (id, created_at, updated_at, user_id, session_id, kind, correct, score, combo, exercise_kind, round_id, item_ref, attempts, ms, hinted, origem, card_id)
-      SELECT * FROM (VALUES ${colunas})
-      WHERE NOT EXISTS (
-        SELECT 1 FROM ${exerciseResults}
-        WHERE user_id = ${userId} AND round_id = ${rodada.roundId} AND deleted_at IS NULL
-      )
-    `)
+    /* OS AGREGADOS DO DIA E O ESTADO POR ITEM VÃO NO MESMO LOTE (migração 0053), e só somam se ESTA
+       gravação inseriu a rodada: a condição é a existência da primeira linha, cujo id acabou de ser
+       sorteado aqui. Na rodada repetida o INSERT não insere nada e nada soma. */
+    const fuso = await agregadosRepo.fusoGravado(userId)
+    const [r] = await db.batch([
+      db.run(sql`
+        INSERT INTO ${exerciseResults}
+          (id, created_at, updated_at, user_id, session_id, kind, correct, score, combo, exercise_kind, round_id, item_ref, attempts, ms, hinted, origem, card_id, nivel, fonte, fonte_ref)
+        SELECT * FROM (VALUES ${colunas})
+        WHERE NOT EXISTS (
+          SELECT 1 FROM ${exerciseResults}
+          WHERE user_id = ${userId} AND round_id = ${rodada.roundId} AND deleted_at IS NULL
+        )
+      `),
+      ...agregadosRepo.instrucoesDaRodada(
+        userId,
+        fuso,
+        {
+          em: inicio,
+          jogo: rodada.exerciseKind ?? null,
+          comRodada: true,
+          itens: linhas.map((l) => ({
+            cardId: l.cardId,
+            idioma: l.cardId ? baseDoIdioma(meus.get(l.cardId)) : '',
+            kind: l.kind,
+            correct: l.correct,
+            ms: l.ms,
+          })),
+        },
+        sql`SELECT 1 FROM exercise_results WHERE id = ${linhas[0].id}`,
+      ),
+    ] as unknown as Parameters<typeof db.batch>[0])
     const gravados = Number((r as { rowsAffected?: number }).rowsAffected ?? 0)
     return { gravados, roundId: rodada.roundId, jaExistia: gravados === 0 }
   },

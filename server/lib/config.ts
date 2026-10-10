@@ -591,6 +591,27 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'chave secreta do projeto Langfuse (par da LANGFUSE_PUBLIC_KEY)',
   },
   {
+    nome: 'LIMPEZA_CHECKPOINT',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '`1` faz a limpeza diária terminar com `PRAGMA wal_checkpoint(TRUNCATE)`. Desligado por padrão: com o Litestream replicando, quem faz o checkpoint do WAL é ele, e um checkpoint manual pode obrigá-lo a recomeçar a réplica com uma cópia inteira. Ligue só onde NÃO há Litestream (dev, self-host) (server/lib/limpezaDiaria.ts)',
+  },
+  {
+    nome: 'LIMPEZA_DIARIA',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '`1` liga a limpeza diária do banco: o apagamento físico do que foi apagado há mais de `LIMPEZA_RETENCAO_DIAS`, a conferência dos agregados diários e o `PRAGMA optimize`. Sem ela, desligada: apagar de vez não tem volta, e ligar é ato do dono, depois de um backup (server/lib/limpezaDiaria.ts)',
+  },
+  {
+    nome: 'LIMPEZA_RETENCAO_DIAS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'dias que uma linha apagada (sessão, fala, cartão, ocorrência, revisão) fica no banco com `deleted_at` antes de a limpeza diária apagá-la de vez; sem ela, 30. Mínimo 1 (server/lib/limpezaDiaria.ts)',
+  },
+  {
     nome: 'LLM_API_KEY',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -1109,6 +1130,31 @@ export function diasDeRetencaoDeAudio(env: NodeJS.ProcessEnv = process.env): num
   if (bruto === undefined || bruto === '') return RETENCAO_DE_AUDIO_PADRAO_DIAS
   const n = Number(bruto)
   return Number.isInteger(n) && n >= 0 ? n : RETENCAO_DE_AUDIO_PADRAO_DIAS
+}
+
+/**
+ * Por quantos dias uma linha apagada fica no banco (com `deleted_at`) antes do apagamento físico da
+ * limpeza diária. Padrão 30. Valor inválido ou menor que 1 cai no PADRÃO: um erro de digitação não
+ * pode virar "apagar de vez na hora".
+ */
+export const DIAS_ATE_APAGAR_DE_VEZ_PADRAO = 30
+
+export function diasAteApagarDeVez(env: NodeJS.ProcessEnv = process.env): number {
+  const bruto = env.LIMPEZA_RETENCAO_DIAS?.trim()
+  if (bruto === undefined || bruto === '') return DIAS_ATE_APAGAR_DE_VEZ_PADRAO
+  const n = Number(bruto)
+  return Number.isInteger(n) && n >= 1 ? n : DIAS_ATE_APAGAR_DE_VEZ_PADRAO
+}
+
+/** A limpeza diária do banco só liga com `LIMPEZA_DIARIA=1`: ela apaga de vez, e isso não tem volta, então
+    quem liga é o dono, depois de um backup. Em teste ela nunca agenda. */
+export function limpezaDiariaLigada(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.LIMPEZA_DIARIA?.trim() === '1' && env.NODE_ENV !== 'test'
+}
+
+/** O checkpoint manual do WAL no fim da limpeza: só com `LIMPEZA_CHECKPOINT=1` (ver o inventário). */
+export function checkpointNaLimpeza(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.LIMPEZA_CHECKPOINT?.trim() === '1'
 }
 
 /** O modelo de STT gerenciado quando `STT_MODEL` não diz outro (medido: docs/auditoria/eval/bancada-2026-09.md). */

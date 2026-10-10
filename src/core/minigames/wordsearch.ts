@@ -1,3 +1,4 @@
+import { memoDeTexto } from '../texto/memoDeTexto';
 import { comBaseLatina } from '../texto/palavra';
 import type { MinigameItem } from './types';
 
@@ -57,8 +58,10 @@ const DELTAS: Record<Direcao, { dl: number; dc: number }> = {
  * NÃO é o que vai para a grade — ver `letrasNaGrade`.
  */
 export function normalizarPalavra(p: string): string {
-  return comBaseLatina(p).normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z]/g, '');
+  return p ? normalizadaGuardada(p) : '';
 }
+/* Guardada pela palavra (`memoDeTexto`): o gate do saguão pergunta por todo o acervo, a cada passada. */
+const normalizadaGuardada = memoDeTexto((p: string): string => comBaseLatina(p).normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z]/g, ''));
 
 /**
  * As letras que a palavra OCUPA na grade, com o acento preservado.

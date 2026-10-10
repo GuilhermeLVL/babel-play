@@ -7,7 +7,7 @@ const N = +(process.argv[3] || 3);
 const extra = process.argv[4] ? JSON.parse(process.argv[4]) : {};
 const suf = process.argv[5] || '';
 const estimulo = process.argv[6] || 'nada';
-const caminho = process.argv[7] || '/';
+const caminho = '/' + (process.argv[7] || '');
 const DUR = 10000;
 const runs = [];
 for (let i = 0; i < N; i++) {
@@ -24,6 +24,16 @@ for (let i = 0; i < N; i++) {
           t += 0.016;
           const beta = 45 + Math.sin(t * 1.3) * 1.5 + (Math.random() - 0.5) * 0.3;
           const gamma = Math.sin(t * 0.9) * 2 + (Math.random() - 0.5) * 0.3;
+          window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta, gamma, absolute: false }));
+        }, 16);
+      });
+    }
+    if (estimulo === 'giroquieto') {
+      /* o celular pousado na mesa (ou mao firme): o sensor segue entregando ~60 leituras/s, so com o ruido dele */
+      await s.page.evaluate(() => {
+        window.__giro = setInterval(() => {
+          const beta = 45 + (Math.random() - 0.5) * 0.06;
+          const gamma = (Math.random() - 0.5) * 0.06;
           window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta, gamma, absolute: false }));
         }, 16);
       });

@@ -1,3 +1,5 @@
+import { memoDeTexto } from './memoDeTexto'
+
 /**
  * A CHAVE COMPARÁVEL DE UMA PALAVRA — uma implementação (auditoria de 2026-09-07, achados A24, A55).
  *
@@ -12,12 +14,18 @@
  * `modo-anonimo-em-paridade`, porque mexe em dado gravado e não só em texto.
  */
 export function chaveDaPalavra(s: string | undefined | null): string {
-  return (s ?? '')
+  return s ? chaveGuardada(s) : ''
+}
+
+/* A conta em si, guardada pela própria palavra (`memoDeTexto`): o saguão do Jogar a pedia para cada
+   palavra e cada tradução do acervo, uma vez por jogo e de novo a cada passada. */
+const chaveGuardada = memoDeTexto((s: string): string =>
+  s
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // marcas de acento, já separadas pelo NFD
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}]/gu, '')
-}
+    .replace(/[^\p{L}\p{N}]/gu, ''),
+)
 
 /**
  * DOBRAR TEXTO PARA COMPARAR — a segunda das três normalizações (ADR 0004).

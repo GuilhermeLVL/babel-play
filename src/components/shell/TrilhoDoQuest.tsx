@@ -69,7 +69,10 @@ import {
 import { instalarCursor } from '../../lib/polimento/cursor';
 import { instalarDialogos } from '../../lib/polimento/dialogos';
 import { instalarFolhas } from '../../lib/polimento/folha';
+import { instalarMinis } from '../../lib/polimento/minis';
 import { instalarPonteiro } from '../../lib/polimento/ponteiro';
+import { pedirTela, precarregarNoOcioso } from '../../lib/polimento/precarga';
+import { medirOPulso } from '../../lib/polimento/pulso';
 import { instalarSentidos } from '../../lib/polimento/sentidos';
 import { instalarTelas } from '../../lib/polimento/telas';
 import { authRequired } from '../../lib/supabase';
@@ -241,6 +244,23 @@ export default function TrilhoDoQuest({
   useEffect(() => instalarSentidos(), []);
   /* A cena do tema Água: só monta (e só baixa o código) com o tema ligado. */
   useEffect(() => instalarAgua(), []);
+  /* As miniaturas dos jogos que a rolagem ainda não trouxe ficam paradas (`polimento/minis.ts`). */
+  useEffect(() => instalarMinis(), []);
+  /* O PEDAÇO DE CADA TELA DESCE ANTES DE ELA SER PEDIDA (`polimento/precarga.ts`): no toque do item e,
+     com o navegador ocioso, os destinos do menu. Só o que o toque abre de verdade: sem conta a Biblioteca
+     e o perfil abrem o convite, e na edição sem servidor os Planos também. */
+  const baixa = (id: ViewType) =>
+    id !== 'hub' && !(semConta && (id === 'library' || id === 'profile')) && !(semServidor && id === 'planos');
+  const pedir = (id: ViewType, palpite = false) => {
+    if (baixa(id)) void pedirTela(id, palpite);
+  };
+  /* No ocioso, só os destinos do trilho: os do "Mais" descem no toque. Com os três do "Mais" junto, a
+     pré-carga dobrava o que a primeira visita baixa e ainda ocupava o aparelho quando a pessoa já navegava
+     (medido em 10/10/2026: `docs/auditoria/2026-10-10-desempenho-da-interface.md`, seção 10). */
+  /* E do trilho, só Capturar e Jogar (os dois mais pesados e mais visitados): com o trilho inteiro a
+     carga baixava 916 kB em vez de 484 em segundo plano; os outros descem no toque. */
+  const destinosDoMenu = NO_TRILHO.filter((id) => (id === 'capture' || id === 'play') && baixa(id)).join(' ');
+  useEffect(() => precarregarNoOcioso(destinosDoMenu.split(' ').filter(Boolean)), [destinosDoMenu]);
   const noTrilho = NO_TRILHO;
   const principais = noTrilho.map((id) => NAV_ITEMS.find((i) => i.id === id)).filter((i) => !!i);
   const foraDosSeis = NAV_ITEMS.filter((i) => !noTrilho.includes(i.id));
@@ -265,6 +285,8 @@ export default function TrilhoDoQuest({
         type="button"
         className="q-tile em-linha"
         onClick={() => ir(item.id)}
+        onPointerDown={() => pedir(item.id)}
+        onFocus={() => pedir(item.id, true)}
         aria-current={activeView === item.id ? 'page' : undefined}
       >
         <span className="q-ic">
@@ -328,6 +350,9 @@ export default function TrilhoDoQuest({
               data-px-rota={escondido ? undefined : item.id}
               data-px-tambem={praticar ? 'play' : undefined}
               onClick={() => ir(praticar ? ultimaPratica() : item.id)}
+              /* O pedaço da tela é pedido já no toque (e no foco do teclado), antes de o clique terminar. */
+              onPointerDown={() => pedir(praticar ? ultimaPratica() : item.id)}
+              onFocus={() => pedir(praticar ? ultimaPratica() : item.id, true)}
               aria-current={marcado ? 'page' : undefined}
               /* O nome não depende do rótulo visível: na barra do celular o de Capturar some (`display: none`). */
               aria-label={rotulo}
@@ -338,6 +363,8 @@ export default function TrilhoDoQuest({
               {item.id === 'cartoes' && !!cartoesHoje && cartoesHoje > 0 && (
                 <i
                   className="q-contagem ct-selo-do-dia"
+                  /* O anel que pulsa cresce 10 px para cada lado: a camada dele precisa do tamanho do selo. */
+                  ref={medirOPulso}
                   aria-label={tp(cartoesHoje, '{n} cartão para hoje', '{n} cartões para hoje')}
                 >
                   {cartoesHoje}
@@ -378,7 +405,7 @@ export default function TrilhoDoQuest({
           <Ellipsis aria-hidden />
           <span>{t('Mais')}</span>
           {novos > 0 && (
-            <i className="q-contagem" aria-label={t('{n} não lidas', { n: novos })}>
+            <i className="q-contagem" ref={medirOPulso} aria-label={t('{n} não lidas', { n: novos })}>
               {novos}
             </i>
           )}

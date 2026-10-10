@@ -4,6 +4,7 @@ import { type HistoricoDoItem,ordenarPorMemoria } from '../learning/memoriaDeIte
 import { pistaDeJogo } from '../learning/pistaDeJogo';
 import { chaveComparavel,pistaUtil } from '../learning/quality';
 import { idiomaDoCartao } from '../texto/idioma';
+import { memoDeTexto } from '../texto/memoDeTexto';
 import { comBaseLatina } from '../texto/palavra';
 import type { FaixaDificuldade } from './composicao';
 
@@ -25,8 +26,10 @@ import type { FaixaDificuldade } from './composicao';
 /** Chave de comparação do Termo: sem acento, maiúscula, só LETRAS (Unicode). Hífen/espaço somem
  *  aqui só para COMPARAR; a elegibilidade os trata antes (ver `diagnosticoTermo`). */
 export function chaveDoTermo(texto: string): string {
-  return comBaseLatina(texto ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^\p{L}]/gu, '');
+  return texto ? chaveDoTermoGuardada(texto) : '';
 }
+/* Guardada pela palavra (`memoDeTexto`): o gate do saguão pergunta por todo o acervo, a cada passada. */
+const chaveDoTermoGuardada = memoDeTexto((texto: string): string => comBaseLatina(texto).normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^\p{L}]/gu, ''));
 
 export type MotivoForaDoTermo = 'hifen-ou-espaco' | 'curta' | 'longa' | 'sem-pista';
 

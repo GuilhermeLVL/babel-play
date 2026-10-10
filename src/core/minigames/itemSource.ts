@@ -5,6 +5,7 @@ import { type HistoricoDoItem,ordenarPorMemoria } from '../learning/memoriaDeIte
 import { pistaDeJogo } from '../learning/pistaDeJogo';
 import { avaliarCartao, chaveComparavel } from '../learning/quality';
 import { baseLang, idiomaDoCartao } from '../texto/idioma';
+import { memoDeTexto } from '../texto/memoDeTexto';
 import { itensDaCorrente } from './shiritori';
 import { digitavelNoTermo } from './termo';
 import type { MinigameId,MinigameItem } from './types';
@@ -82,6 +83,36 @@ function embaralhar<T>(xs: T[]): T[] {
  * saiu ruim — são dois defeitos independentes.
  */
 export function promptFor(card: VocabCard): { prompt: string; clozed: boolean } | null {
+  /* A resposta sai só destes cinco campos (os que `avaliarCartao` e a conta abaixo leem), então eles
+     são a chave da memória. O saguão do Jogar pedia a pista do mesmo cartão uma vez por jogo (são 18),
+     e de novo a cada passada: no build de produção, CPU 4×, a régua, a máscara e a lacuna somavam a
+     maior parte dos 712 a 1.070 ms do gate. Cartão editado muda de texto, logo de chave. */
+  const campos = [card.daAnki ? '1' : '0', card.srcLang ?? '', card.word ?? '', card.translation ?? '', card.sentence ?? ''];
+  // Texto que traz o próprio separador não tem chave segura: faz a conta direto.
+  if (campos.some((c) => c.includes(SEPARADOR))) return pistaDoCartao(card);
+  return pistaGuardada(campos.join(SEPARADOR));
+}
+
+/** Um caractere que não aparece em palavra, tradução nem frase: separa os campos de uma chave. */
+const SEPARADOR = '\u0001';
+
+/* O objeto guardado é devolvido como está e ninguém o altera (quem chama só lê `prompt` e `clozed`). */
+const pistaGuardada = memoDeTexto((chave: string): { prompt: string; clozed: boolean } | null => {
+  const [daAnki, srcLang, word, translation, sentence] = chave.split(SEPARADOR);
+  return pistaDoCartao({ daAnki: daAnki === '1', srcLang, word, translation, sentence } as VocabCard);
+});
+
+/** A frase abre lacuna para esta palavra? Guardada pelo par: a Charada perguntava por cartão, por passada. */
+const lacunaGuardada = memoDeTexto((chave: string): boolean => {
+  const [frase, palavra] = chave.split(SEPARADOR);
+  return !!makeCloze(frase, palavra);
+});
+function temLacuna(frase: string, palavra: string): boolean {
+  if (frase.includes(SEPARADOR) || palavra.includes(SEPARADOR)) return !!makeCloze(frase, palavra);
+  return lacunaGuardada(frase + SEPARADOR + palavra);
+}
+
+function pistaDoCartao(card: VocabCard): { prompt: string; clozed: boolean } | null {
   const veredito = avaliarCartao(card);
   // Defeito na PALAVRA (curta, ruído, gramatical) invalida o cartão inteiro; nenhuma pista salva.
   if (!veredito.serve && veredito.motivo !== 'pista-ruim' && veredito.motivo !== 'traducao-igual') return null;
@@ -124,6 +155,16 @@ export function cabeNaEscrita(id: MinigameId): (palavra: string) => boolean {
 }
 
 export function buildItems(gameId: MinigameId, cards: VocabCard[], opts: BuildItemsOptions = {}): MinigameItem[] {
+  return itensDe(gameId, cards, opts, true);
+}
+
+/**
+ * `comAlternativas: false` é para quem só CONTA (`canPlay`, o gate do saguão): os itens saem os
+ * mesmos, na mesma ordem e com os mesmos sorteios, só sem o campo `alternativas`. Montá-lo pede a
+ * chave da tradução de TODOS os cartões do acervo, e o gate fazia isso uma vez por jogo para jogar o
+ * campo fora (a contagem não depende dele).
+ */
+function itensDe(gameId: MinigameId, cards: VocabCard[], opts: BuildItemsOptions, comAlternativas: boolean): MinigameItem[] {
   const def = MINIGAMES[gameId];
   const scheduler = opts.scheduler ?? 'fsrs';
   const now = opts.now ?? Date.now();
@@ -213,14 +254,21 @@ export function buildItems(gameId: MinigameId, cards: VocabCard[], opts: BuildIt
   const respostasUsadas = new Set<string>();
   /* As palavras do acervo por PISTA — para o item saber quais outras respostas a mesma tradução
      aceita ("quarto" → room, bedroom). Medido no léxico embutido: 28% das palavras dividem pista. */
-  const porPista = new Map<string, string[]>();
-  for (const c of noBaralho) {
-    const k = chaveComparavel(c.translation ?? '');
-    if (!k) continue;
-    const lista = porPista.get(k);
-    if (lista) lista.push(c.word.trim());
-    else porPista.set(k, [c.word.trim()]);
-  }
+  /* Montado só quando o primeiro item precisa dele: rodada sem item nenhum não paga a varredura. */
+  let porPista: Map<string, string[]> | null = null;
+  const palavrasDaPista = (chave: string): string[] => {
+    if (!porPista) {
+      porPista = new Map<string, string[]>();
+      for (const c of noBaralho) {
+        const k = chaveComparavel(c.translation ?? '');
+        if (!k) continue;
+        const lista = porPista.get(k);
+        if (lista) lista.push(c.word.trim());
+        else porPista.set(k, [c.word.trim()]);
+      }
+    }
+    return porPista.get(chave) ?? [];
+  };
   for (const card of ordenados) {
     if (itens.length >= limite) break;
     // Memória: o par É palavra↔tradução, então frase-com-lacuna não serve de carta.
@@ -241,14 +289,14 @@ export function buildItems(gameId: MinigameId, cards: VocabCard[], opts: BuildIt
     /* E a frase precisa ABRIR LACUNA: o tabuleiro monta o enigma com `makeCloze`, e a frase em que a
        palavra não aparece como palavra (flexionada, ou colada a outra em chinês) não dá enigma. O
        gate contava essas, e o jogo voltava para a grade ao ser aberto. */
-    if (gameId === 'vitendawili' && !pista.clozed && !makeCloze(card.sentence ?? '', card.word ?? '')) continue;
+    if (gameId === 'vitendawili' && !pista.clozed && !temLacuna(card.sentence ?? '', card.word ?? '')) continue;
     const chaveDaPista = chaveComparavel(pista.prompt);
     if (chaveDaPista && pistasUsadas.has(chaveDaPista)) continue;
     const chaveDaResposta = chaveComparavel(card.word);
     if (chaveDaResposta && respostasUsadas.has(chaveDaResposta)) continue;
     pistasUsadas.add(chaveDaPista);
     respostasUsadas.add(chaveDaResposta);
-    const mesmasPista = pista.clozed ? [] : (porPista.get(chaveComparavel(card.translation ?? '')) ?? []);
+    const mesmasPista = !comAlternativas || pista.clozed ? [] : palavrasDaPista(chaveComparavel(card.translation ?? ''));
     const alternativas = [...new Set(mesmasPista.filter((w) => chaveComparavel(w) !== chaveDaResposta))];
     itens.push({
       cardId: card.id,
@@ -273,7 +321,7 @@ export function canPlay(gameId: MinigameId, cards: VocabCard[], opts: BuildItems
   const def = MINIGAMES[gameId];
   /* O limite fica com o builder quando ele tem regra propria de pool (shiritori procura a
      corrente num pool maior); forcar `maxItems` aqui fazia o gate perguntar outra coisa. */
-  const disponiveis = buildItems(gameId, cards, { ...opts, ...(gameId === 'shiritori' ? {} : { limit: def.maxItems }) }).length;
+  const disponiveis = itensDe(gameId, cards, { ...opts, ...(gameId === 'shiritori' ? {} : { limit: def.maxItems }) }, false).length;
   return { ok: disponiveis >= def.minItems, disponiveis, faltam: Math.max(0, def.minItems - disponiveis) };
 }
 

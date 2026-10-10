@@ -12,28 +12,28 @@ const MAIS = '.q-trilho .q-mais-botao';
 const tela = { modo: 'tela' };
 const abreMais = { modo: 'aparece', seletor: '.q-mais-fundo:not(.px-saindo) .q-tile' };
 function roteiro(celular) {
+  /* A navegacao de 10/10/2026: no computador o trilho tem Inicio, Capturar, Interprete, Biblioteca, Cartoes e Jogar;
+     no celular a barra tem Inicio, Praticar (Cartoes e Jogar), Capturar, Interprete e Mais. Estatisticas,
+     Personalizar e Ajustes ficam no Mais nos dois. Biblioteca e Vocabulario sao so um aviso na edicao estatica. */
   const viaMais = (rot, texto) => [
-    [`abrir Mais (p/ ${rot})`, MAIS, abreMais],
+    ['abrir Mais (p/ ' + rot + ')', MAIS, abreMais],
     [rot, noMais(texto), tela],
   ];
-  const direto = (rot, texto) => [[rot, `.q-trilho .q-item:has-text("${texto}")`, tela]];
   return [
     ['Capturar', item('capture'), tela],
     ['Interprete', item('interprete'), tela],
     ...(celular ? [['Sair do Interprete', 'button[aria-label="Sair do modo intérprete"]', tela]] : []),
-    ['Jogar', item('play'), tela],
-    ...(celular ? viaMais('Estatisticas', 'Estatísticas') : direto('Estatisticas', 'Estatísticas')),
-    ...(celular ? viaMais('Personalizar', 'Personalizar') : direto('Personalizar', 'Personalizar')),
-    ...viaMais('Biblioteca', 'Biblioteca'),
-    [`abrir Mais (p/ Vocabulario)`, MAIS, abreMais],
-    ['Vocabulario', noMais('Vocabulário'), { modo: 'url' }],
+    ['Jogar', celular ? '.q-trilho .q-item[data-px-tambem="play"]' : item('play'), tela],
+    ...viaMais('Estatisticas', 'Estatísticas'),
+    ...viaMais('Personalizar', 'Personalizar'),
     ...viaMais('Ajustes', 'Ajustes'),
+    ...(celular ? [] : [['Cartoes', item('cartoes'), tela]]),
     ['Inicio', item('hub'), tela],
   ];
 }
 const runs = [];
 for (let i = 0; i < N; i++) {
-  const s = await abrir(nome, extra);
+  const s = await abrir(nome, { ...extra, storage: { ...(extra.storage ?? {}), 'babel.praticar': 'play', 'babel.fonte_da_pratica': '{"origem":"trilha","escopo":"todas"}' } });
   const voltas = [];
   try {
     await s.page.goto(URL0 + '/', { waitUntil: 'load', timeout: 90000 });

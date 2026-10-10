@@ -329,12 +329,33 @@ export async function relabelCards(
   return ((await res.json()) as { changed: number }).changed
 }
 
+/**
+ * O que a nota leva só para REGISTRO (não muda o agendamento): de onde veio ('revisao' ou
+ * 'jogo:<id>'), em que formato o cartão foi mostrado e quanto tempo a pessoa levou.
+ */
+export interface RegistroDaNota {
+  origem?: string
+  formato?: string
+  respostaMs?: number
+}
+
 /** Revisão SRS: grade 1=Again 2=Hard 3=Good 4=Easy. Persiste o estado FSRS. */
-export async function reviewCard(id: string, grade: 1 | 2 | 3 | 4, retencao?: number): Promise<VocabCard> {
+export async function reviewCard(
+  id: string,
+  grade: 1 | 2 | 3 | 4,
+  retencao?: number,
+  registro?: RegistroDaNota,
+): Promise<VocabCard> {
+  const corpo: Record<string, unknown> = retencao === undefined ? { grade } : { grade, retencao }
+  if (registro?.origem) corpo.origem = registro.origem
+  if (registro?.formato) corpo.formato = registro.formato
+  if (typeof registro?.respostaMs === 'number' && Number.isFinite(registro.respostaMs)) {
+    corpo.respostaMs = Math.max(0, Math.round(registro.respostaMs))
+  }
   const res = await apiFetch(`/api/vocab/${id}/review`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(retencao === undefined ? { grade } : { grade, retencao }),
+    body: JSON.stringify(corpo),
   })
   if (!res.ok) throw new Error('falha ao revisar o card')
   return rowToVocabCard((await res.json()) as VocabRow)

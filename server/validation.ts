@@ -184,6 +184,11 @@ export const rodadaSchema = z.object({
      (`inicioDaRodada`, teto de 2 h) — a rodada conta no dia em que começou, mesmo gravada depois
      da meia-noite. O teto aqui é só de sanidade; o do core é o que vale. */
   duracaoMs: z.number().int().min(0).max(86_400_000).optional(),
+  /* SÓ REGISTRO (migração 0052): o nível em que a rodada foi jogada e a fonte separada do
+     identificador dela. Opcionais: a aba antiga não manda e a rodada vale igual. */
+  nivel: z.enum(['facil', 'medio', 'dificil']).optional(),
+  fonte: z.enum(['baralho', 'sessao', 'trilha', 'dificeis', 'estudo']).optional(),
+  fonteRef: shortStr(80),
   itens: z
     .array(
       z.object({
@@ -280,6 +285,22 @@ export const reviewGradeSchema = z
     grade: z.number().int().min(1).max(4).default(3),
     /** Meta de retenção escolhida nas Opções da revisão (0,80–0,97). Ausente = 90%. */
     retencao: z.number().min(0.8).max(0.97).optional(),
+    /* SÓ REGISTRO (migração 0052), nada disto entra no agendamento. Tudo opcional: o cliente de uma
+       aba antiga não manda, e a revisão vale do mesmo jeito (as colunas ficam nulas). */
+    /** De onde veio a nota: 'revisao' ou 'jogo:<id do jogo>'. */
+    origem: z
+      .string()
+      .max(60)
+      .regex(/^(revisao|jogo:[a-z0-9-]{1,40})$/)
+      .optional(),
+    /** Como o cartão foi mostrado ('lembrar' | 'digitar' | 'escolha'; nos jogos, o id do jogo). */
+    formato: z
+      .string()
+      .max(40)
+      .regex(/^[a-z0-9-]+$/)
+      .optional(),
+    /** Do cartão na tela até a nota (ms). O servidor aplica o teto de 60 s ao gravar. */
+    respostaMs: z.number().int().min(0).max(86_400_000).optional(),
   })
   .strip()
 

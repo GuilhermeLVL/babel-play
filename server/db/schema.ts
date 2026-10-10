@@ -68,6 +68,11 @@ export const sessions = sqliteTable(
     index('idx_sessions_user').on(t.userId, t.deletedAt),
     // Retenção de áudio varre por data de criação, de todos os usuários (migração 0030).
     index('idx_sessions_created').on(t.createdAt),
+    /* O que a limpeza diária procura (migração 0053): só as linhas apagadas, por data do apagamento.
+       O mesmo índice parcial existe em `utterances`, `vocab_cards`, `vocab_occurrences` e `review_logs`. */
+    index('idx_sessions_apagadas')
+      .on(t.deletedAt)
+      .where(sql`${t.deletedAt} is not null`),
   ],
 )
 
@@ -114,6 +119,10 @@ export const utterances = sqliteTable(
      * tabela do banco (3.593 linhas com UM usuário; ~3,6 milhões projetados para 1.000).
      */
     index('idx_utt_user').on(t.userId, t.deletedAt),
+    // Limpeza diária (migração 0053): ver `idx_sessions_apagadas`.
+    index('idx_utt_apagadas')
+      .on(t.deletedAt)
+      .where(sql`${t.deletedAt} is not null`),
   ],
 )
 
@@ -203,6 +212,10 @@ export const vocabCards = sqliteTable(
      * idioma. `src_lang_base` é gerada (virtual) e este índice é sobre ela: sargável.
      */
     index('idx_vocab_src_lang_base').on(t.srcLangBase),
+    // Limpeza diária (migração 0053): ver `idx_sessions_apagadas`.
+    index('idx_vocab_apagadas')
+      .on(t.deletedAt)
+      .where(sql`${t.deletedAt} is not null`),
   ],
 )
 
@@ -255,6 +268,10 @@ export const vocabOccurrences = sqliteTable(
      índice, o planner escolhia `idx_occ_origem` e visitava milhares de ocorrências POR candidato
      — medido em 20k cartões: 2,7–46 s por seleção (docs/pesquisa/medicao-filtro-20k.md). */
     index('idx_occ_probe').on(t.userId, t.cardId, t.originKind, t.originRef),
+    // Limpeza diária (migração 0053): ver `idx_sessions_apagadas`.
+    index('idx_occ_apagadas')
+      .on(t.deletedAt)
+      .where(sql`${t.deletedAt} is not null`),
   ],
 )
 
@@ -273,6 +290,18 @@ export const reviewLogs = sqliteTable(
     prevDue: integer('prev_due'),
     newDue: integer('new_due'),
     elapsedDays: real('elapsed_days'),
+    /* MEDIR SEM MUDAR COMPORTAMENTO (migração 0052). Nulas nas revisões antigas; nenhuma entra no
+       agendamento. */
+    /** De onde veio a nota: 'revisao' ou 'jogo:<id do jogo>'. */
+    origem: text('origem'),
+    /** Como o cartão foi mostrado: 'lembrar' | 'digitar' | 'escolha' na Revisão; nos jogos, o id do jogo. */
+    formato: text('formato'),
+    /** Do cartão na tela até a nota (ms), com teto (`TETO_DA_RESPOSTA_MS`): abandono não é lentidão. */
+    respostaMs: integer('resposta_ms'),
+    /** A meta de retenção usada para agendar ESTA revisão. */
+    metaRetencao: real('meta_retencao'),
+    /** A retenção que o FSRS previa no momento da resposta (do estado anterior); nula na primeira revisão. */
+    retencaoPrevista: real('retencao_prevista'),
   },
   (t) => [
     /** "histórico desta palavra" — usado pela tela de detalhe (F5) e pelo modelo da F4. */
@@ -283,6 +312,10 @@ export const reviewLogs = sqliteTable(
      * tempo (streak, evolução semanal) e assim o índice também ordena.
      */
     index('idx_review_user').on(t.userId, t.reviewedAt),
+    // Limpeza diária (migração 0053): ver `idx_sessions_apagadas`.
+    index('idx_review_apagadas')
+      .on(t.deletedAt)
+      .where(sql`${t.deletedAt} is not null`),
   ],
 )
 
@@ -346,6 +379,14 @@ export const exerciseResults = sqliteTable(
      resultados eram correlacionáveis (0 casavam por id). Sem isto, desempenho não realimenta a
      dificuldade. */
     cardId: text('card_id').references(() => vocabCards.id),
+    /* Migração 0052: o nível em que a rodada foi jogada e a fonte separada do identificador dela
+       (`origem` junta os dois num texto). Nulas nas rodadas antigas. */
+    /** 'facil' | 'medio' | 'dificil'. */
+    nivel: text('nivel'),
+    /** 'baralho' | 'sessao' | 'trilha' | 'dificeis' | 'estudo'. */
+    fonte: text('fonte'),
+    /** O id da sessão ou o nível da trilha; nulo nas outras fontes. */
+    fonteRef: text('fonte_ref'),
   },
   (t) => [
     // As duas únicas consultas previstas: "o que eu já vi deste conjunto" (item_ref) e

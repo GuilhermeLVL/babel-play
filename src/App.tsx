@@ -7,25 +7,53 @@ import PracticeMenu from './components/PracticeMenu';
 // gateway/offlineTranscribe (Análise/Biblioteca), pesos que só importam quando você abre aquela tela.
 // Agora cada view puxa o seu chunk quando aberta → app leve e dinâmica.
 import { lazyComRecarga } from './lib/lazyComRecarga';
-const LiveCapture = lazyComRecarga(() => import('./components/views/LiveCapture'));
-const Library = lazyComRecarga(() => import('./components/views/Library'));
+import { registrarTelas } from './lib/polimento/precarga';
+/* As telas do menu têm o `import()` com nome: é o mesmo pedido que a pré-carga faz no toque do item do
+   menu e com o navegador ocioso (`lib/polimento/precarga.ts`), para a tela não esperar o arquivo. */
+const carregarCaptura = () => import('./components/views/LiveCapture');
+const carregarBiblioteca = () => import('./components/views/Library');
+const carregarAjustes = () => import('./components/views/Settings');
+const carregarCartoes = () => import('./components/views/Cartoes');
+const carregarJogar = () => import('./components/views/Play');
+const carregarPerfil = () => import('./components/views/Perfil');
+const carregarPlanos = () => import('./components/views/Planos');
+const carregarSobre = () => import('./components/views/Sobre');
+const carregarEstatisticas = () => import('./components/views/Estatisticas');
+const carregarAjuda = () => import('./components/views/Ajuda');
+const carregarLoja = () => import('./components/views/Loja');
+const LiveCapture = lazyComRecarga(carregarCaptura);
+const Library = lazyComRecarga(carregarBiblioteca);
 const Analysis = lazyComRecarga(() => import('./components/views/Analysis'));
-const Settings = lazyComRecarga(() => import('./components/views/Settings'));
+const Settings = lazyComRecarga(carregarAjustes);
 /* Cartões: a casa da revisão, dos baralhos e do catálogo (o Vocabulário é a aba "Palavras" dela e
    desce só quando a aba abre). Pedaço de rota, fora do JS inicial. */
-const Cartoes = lazyComRecarga(() => import('./components/views/Cartoes'));
-const Play = lazyComRecarga(() => import('./components/views/Play'));
+const Cartoes = lazyComRecarga(carregarCartoes);
+const Play = lazyComRecarga(carregarJogar);
 const IChat = lazyComRecarga(() => import('./components/IChat'));
 const LayoutStudio = lazyComRecarga(() => import('./components/LayoutStudio'));
-const Perfil = lazyComRecarga(() => import('./components/views/Perfil'));
-const Planos = lazyComRecarga(() => import('./components/views/Planos'));
-const Sobre = lazyComRecarga(() => import('./components/views/Sobre'));
-const Estatisticas = lazyComRecarga(() => import('./components/views/Estatisticas'));
-const Ajuda = lazyComRecarga(() => import('./components/views/Ajuda'));
+const Perfil = lazyComRecarga(carregarPerfil);
+const Planos = lazyComRecarga(carregarPlanos);
+const Sobre = lazyComRecarga(carregarSobre);
+const Estatisticas = lazyComRecarga(carregarEstatisticas);
+const Ajuda = lazyComRecarga(carregarAjuda);
 const Diagnostico = lazyComRecarga(() => import('./components/views/Diagnostico'));
 const NaoEncontrado = lazyComRecarga(() => import('./components/views/NaoEncontrado'));
 const Admin = lazyComRecarga(() => import('./components/views/Admin'));
-const Loja = lazyComRecarga(() => import('./components/views/Loja'));
+const Loja = lazyComRecarga(carregarLoja);
+registrarTelas({
+  capture: carregarCaptura,
+  interprete: carregarCaptura,
+  library: carregarBiblioteca,
+  settings: carregarAjustes,
+  cartoes: carregarCartoes,
+  play: carregarJogar,
+  profile: carregarPerfil,
+  planos: carregarPlanos,
+  sobre: carregarSobre,
+  estatisticas: carregarEstatisticas,
+  ajuda: carregarAjuda,
+  loja: carregarLoja,
+});
 // A casca e o Início: pedaços à parte, fora do JS inicial.
 const TrilhoDoQuest = lazyComRecarga(() => import('./components/shell/TrilhoDoQuest'));
 const InicioDoQuest = lazyComRecarga(() => import('./components/views/quest/InicioDoQuest'));

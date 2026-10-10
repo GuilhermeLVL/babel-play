@@ -22,6 +22,9 @@ import { lerVibracaoDoQuest, type VibracaoDoQuest } from './preferenciasDoQuest'
 /** Além do que soa ao clicar: os cartões-alvo, as linhas, os campos e as listas de escolha. */
 const SELETOR = `${SELETOR_DO_ACIONAVEL}, select, summary, input:not([type="hidden"]), textarea, [data-tocavel]`;
 
+/** Os alvos com o brilho que segue o ponteiro (`::after` com `var(--mx)` e `var(--my)`). */
+const COM_BRILHO = '.q-tile, .q-linha, .jogo.clicavel';
+
 /** [intensidade de 0 a 1, duração em ms] de cada gesto. */
 const PULSOS: Record<Exclude<VibracaoDoQuest, 'desligada'>, { apontar: [number, number]; clicar: [number, number] }> = {
   suave: { apontar: [0.35, 16], clicar: [0.6, 26] },
@@ -191,7 +194,9 @@ export function instalarRespostaAoApontar(): () => void {
 
   const aoMover = (e: PointerEvent) => {
     const el = atual;
-    if (!el || quadro) return;
+    /* Só quem tem o brilho lê a posição (`quest.css`, `prototipo.css`): gravar nos outros botões só
+       mandava recalcular o estilo deles a cada movimento, sem nada mudar na tela. */
+    if (!el || quadro || !el.matches(COM_BRILHO)) return;
     quadro = requestAnimationFrame(() => {
       quadro = 0;
       if (!el.isConnected) return;

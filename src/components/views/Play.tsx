@@ -162,6 +162,8 @@ import {
   pularAntessala,
   verDetalhesDoBaralho,
 } from '../../lib/jogos/estadoDaPratica';
+import { lerNivelDoJogo } from '../../lib/jogos/nivelDoJogo';
+import { guardaDeReferencia, mesmaLista, mesmaTriagem } from '../../lib/jogos/saguaoEstavel';
 import { executarEfeito } from '../../lib/juice';
 import { langConfigFrom, saveLangConfig } from '../../lib/langConfig';
 import { baseLang, langLabelNaUI } from '../../lib/languages';
@@ -400,6 +402,10 @@ interface RodadaPronta {
   previa: ItemDaAntessala[];
   aplicar: () => void;
 }
+
+/* As guardas de referência do saguão (`lib/jogos/saguaoEstavel`): fora do componente, uma por elo. */
+const triagemDeAntes = guardaDeReferencia<Triagem>(mesmaTriagem);
+const niveisDeAntes = guardaDeReferencia<CefrLevel[]>(mesmaLista);
 
 export default function Play({
   onChangeView,
@@ -1081,7 +1087,14 @@ export default function Play({
     for (const o of report.items) {
       if (!o.cardId || !def.writesSrs) continue;
       try {
-        atualizados.push(await reviewCard(o.cardId, gradeFor(report.gameId, o)));
+        /* A origem, o formato e o tempo vão só para o registro da revisão; a nota e a agenda são as de antes. */
+        atualizados.push(
+          await reviewCard(o.cardId, gradeFor(report.gameId, o), undefined, {
+            origem: `jogo:${report.gameId}`,
+            formato: report.gameId,
+            respostaMs: o.ms,
+          }),
+        );
       } catch (e) {
         falhas.push(`srs ${o.itemRef}: ${String((e as Error)?.message ?? e).slice(0, 80)}`);
       }
@@ -1097,6 +1110,10 @@ export default function Play({
       origem,
       sessionId: daSessao,
       score: report.score,
+      /* Só registro: o nível em que a rodada foi jogada e a fonte separada do identificador dela. */
+      nivel: lerNivelDoJogo(report.gameId),
+      fonte: fonte.id === 'sessao' || fonte.id === 'trilha' || fonte.id === 'dificeis' ? fonte.id : 'baralho',
+      fonteRef: (fonte.id === 'sessao' ? fonte.sessionId : fonte.id === 'trilha' ? fonte.nivel : undefined) || undefined,
       itens,
     });
     if (!gravacao.ok) falhas.push(`${gravacao.status ?? 'rede'}: ${gravacao.motivo}`);
@@ -1603,9 +1620,14 @@ export default function Play({
     contarPassada('triagem', { cartoes: (deck ?? []).length, fonte: fonte.id, lang: fonte.lang });
     // Fonte única mantém a partição exclusiva de sempre (byte a byte). Com mais de uma, quem
     // parte o acervo é o predicado, que sabe somar.
-    return filtro.fontes.length > 1
-      ? cartoesDoFiltro(deck ?? [], filtro, { rankingDificeis: conjuntoDeDificeis, agora: Date.now() })
-      : cartoesDaFonte(deck ?? [], fonteComRanking);
+    /* A MESMA PARTIÇÃO, A MESMA REFERÊNCIA (`lib/jogos/saguaoEstavel`): a fonte restaurada do aparelho
+       e as métricas do perfil trocam `filtro` e `conjuntoDeDificeis` por objetos novos e iguais, e sem
+       a guarda cada um refazia o gate dos 18 jogos com o acervo inteiro. */
+    return triagemDeAntes(
+      filtro.fontes.length > 1
+        ? cartoesDoFiltro(deck ?? [], filtro, { rankingDificeis: conjuntoDeDificeis, agora: Date.now() })
+        : cartoesDaFonte(deck ?? [], fonteComRanking),
+    );
   }, [deck, fonteComRanking, fonte.id, fonte.lang, filtro, conjuntoDeDificeis]);
 
   /* COMPOSIÇÃO SERVIDA. Re-pede quando muda fonte, faixa ou estratégia. Falha de rede cai para
@@ -1715,7 +1737,9 @@ export default function Play({
    * a rodada não montava. Escolher um nível "consertava" — o que fazia o defeito parecer preferência.
    */
   const niveisDaRodada = useMemo<CefrLevel[]>(
-    () => (filtro.fontes.includes('trilha') && trilha ? niveisEmJogo(trilha, filtro.nivelTrilha) : []),
+    /* Os mesmos níveis, a mesma lista: `filtro.fontes` é um array novo a cada filtro restaurado, e uma
+       lista nova aqui sorteava a Trilha de novo e refazia o gate. */
+    () => niveisDeAntes(filtro.fontes.includes('trilha') && trilha ? niveisEmJogo(trilha, filtro.nivelTrilha) : []),
     [filtro.fontes, filtro.nivelTrilha, trilha],
   );
 
@@ -1872,17 +1896,22 @@ export default function Play({
    * por um cartão novo em folha apagaria esse progresso a cada rodada.
    */
   const comTrilha = filtro.fontes.includes('trilha');
+  /* A TRILHA EM JOGO, NUM MEMO SÓ DELA. Morava dentro de `jogaveis`, que também depende da composição do
+     servidor, do filtro e das palavras difíceis: nenhum dos três entra nesta conta, mas cada um que
+     chegava sorteava a Trilha de novo, e a lista nova refazia o gate dos 18 jogos (contado: 3 vezes
+     por entrada, 2 por fim de rodada). `null` = a Trilha não está em jogo, ou ainda não chegou. */
+  const jogaveisDaTrilha = useMemo<VocabCard[] | null>(() => {
+    if (!comTrilha || !trilha || !niveisDaRodada.length) return null;
+    const doBanco = new Map(triagem.usaveis.map((c) => [chaveDaPalavra(c.word), c]));
+    /* `niveisDaRodada` é o nível escolhido, ou TODOS quando não há escolha — ver `niveisEmJogo`.
+       O cartão do BANCO vence o embutido: quem já fichou a palavra carrega o histórico dela. */
+    const embutidos = niveisDaRodada
+      .flatMap((n) => cartoesDaTrilha(trilha, n))
+      .filter((c) => !doBanco.has(chaveDaPalavra(c.word))) as unknown as VocabCard[];
+    return [...triagem.usaveis, ...embutidos];
+  }, [triagem.usaveis, comTrilha, niveisDaRodada, trilha]);
   const jogaveis = useMemo(() => {
-    if (comTrilha) {
-      if (!trilha || !niveisDaRodada.length) return triagem.usaveis;
-      const doBanco = new Map(triagem.usaveis.map((c) => [chaveDaPalavra(c.word), c]));
-      /* `niveisDaRodada` é o nível escolhido, ou TODOS quando não há escolha — ver `niveisEmJogo`.
-         O cartão do BANCO vence o embutido: quem já fichou a palavra carrega o histórico dela. */
-      const embutidos = niveisDaRodada
-        .flatMap((n) => cartoesDaTrilha(trilha, n))
-        .filter((c) => !doBanco.has(chaveDaPalavra(c.word))) as unknown as VocabCard[];
-      return [...triagem.usaveis, ...embutidos];
-    }
+    if (comTrilha) return jogaveisDaTrilha ?? triagem.usaveis;
 
     /**
      * A COMPOSIÇÃO ORDENA E PRIORIZA; ELA NÃO SUBSTITUI A TRIAGEM.
@@ -1915,7 +1944,7 @@ export default function Play({
     /* `filtro` e o conjunto de difíceis entraram no corpo (o complemento do recorte passa pelo
        predicado) e por isso entram AQUI: dependência esquecida congelaria o recorte na primeira
        renderização — a mesma armadilha que o comentário acima já registra para `niveisDaRodada`. */
-  }, [triagem.usaveis, comTrilha, niveisDaRodada, trilha, composicao, faixas.length, filtro, conjuntoDeDificeis]);
+  }, [triagem.usaveis, comTrilha, jogaveisDaTrilha, composicao, faixas.length, filtro, conjuntoDeDificeis]);
 
   const frasesDoIdioma = useMemo<Sentence[]>(
     () => frases.filter((f) => !fonte.lang || !f.lang || baseLang(f.lang) === baseLang(fonte.lang)),
@@ -1948,12 +1977,10 @@ export default function Play({
         passaNoFiltro(c, filtro, { rankingDificeis: conjuntoDeDificeis, agora: Date.now() }),
       );
     }
-    const doBanco = new Map(triagem.usaveis.map((c) => [chaveDaPalavra(c.word), c]));
-    const embutidos = niveisDaRodada
-      .flatMap((n) => cartoesDaTrilha(trilha, n))
-      .filter((c) => !doBanco.has(chaveDaPalavra(c.word))) as unknown as VocabCard[];
-    return [...triagem.usaveis, ...embutidos];
-  }, [triagem.usaveis, comTrilha, niveisDaRodada, trilha, filtro, conjuntoDeDificeis]);
+    /* O MESMO CONJUNTO de `jogaveisDaTrilha` (banco + embutidos que o banco não tem). Era montado de
+       novo aqui, com outro sorteio da Trilha: daqui só saem contagens, que não dependem da ordem. */
+    return jogaveisDaTrilha ?? triagem.usaveis;
+  }, [triagem.usaveis, comTrilha, niveisDaRodada, trilha, filtro, conjuntoDeDificeis, jogaveisDaTrilha]);
 
   /* Contagens das pílulas de recorte, medidas na base SEM os recortes ligados (o padrão facetado:
      cada faceta mostra o que ELA renderia, não o que sobra depois dela mesma). `dueAtMs` é o cru

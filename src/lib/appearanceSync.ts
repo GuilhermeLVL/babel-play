@@ -46,6 +46,23 @@ export interface StyledElement {
   };
 }
 
+/**
+ * AS CLASSES QUE NÃO ATRAVESSAM. `px-com-cursor` diz que ESTE documento tem o cursor de ponto com anel
+ * (`lib/polimento/cursor.ts`) e por isso esconde o do sistema. A janela flutuante não tem esse cursor:
+ * com a classe copiada, o ponteiro sumia dentro dela. Antes quem protegia a janela era um `:has(.px-cursor)`
+ * na regra do CSS, que obrigava o navegador a reexaminar a árvore inteira a cada nó que entrava no
+ * documento (auditoria de desempenho de 10/10/2026); agora a classe simplesmente não vai.
+ */
+const SO_DO_DOCUMENTO_PRINCIPAL = new Set(['px-com-cursor']);
+
+/** As classes da raiz que valem também na janela flutuante. */
+export function classesQueAtravessam(classes: string): string {
+  return classes
+    .split(/\s+/)
+    .filter((c) => c && !SO_DO_DOCUMENTO_PRINCIPAL.has(c))
+    .join(' ');
+}
+
 /** Lê a aparência atual de um documento. */
 export function readAppearance(root: StyledElement, body: StyledElement): AppearanceSnapshot {
   const inlineVars: Record<string, string> = {};
@@ -58,7 +75,7 @@ export function readAppearance(root: StyledElement, body: StyledElement): Appear
   }
   return {
     theme: root.getAttribute('data-theme') || 'babel',
-    rootClass: root.className,
+    rootClass: classesQueAtravessam(root.className),
     bodyClass: body.className,
     inlineVars,
     fontSize: root.style.fontSize || '',

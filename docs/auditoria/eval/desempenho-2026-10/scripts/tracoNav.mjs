@@ -10,10 +10,11 @@ const extra = process.argv[3] ? JSON.parse(process.argv[3]) : {};
 const suf = process.argv[4] || '';
 const comEstilo = (process.argv[5] || 'estilo') === 'estilo';
 const N = comEstilo ? 1 : +(process.argv[6] || 3);
+const JOGAR = '.q-trilho .q-item[data-px-rota="play"], .q-trilho .q-item[data-px-tambem="play"]';
 const runs = [];
 let aplicadas = [];
 for (let i = 0; i < N; i++) {
-  const s = await abrir(nome, { ...extra, storage: { 'babel.fonte_da_pratica': '{"origem":"trilha","escopo":"todas"}' } });
+  const s = await abrir(nome, { ...extra, storage: { 'babel.fonte_da_pratica': '{"origem":"trilha","escopo":"todas"}', 'babel.praticar': 'play' } });
   const { page } = s;
   const toca = async (sel) => {
     const el = page.locator(sel).first();
@@ -80,7 +81,7 @@ for (let i = 0; i < N; i++) {
     await page.goto(URL0 + '/', { waitUntil: 'load', timeout: 90000 });
     await sossegar(s);
     /* aquece: baixa os pedacos do Jogar e volta */
-    await toca('.q-trilho .q-item[data-px-rota="play"]');
+    await toca(JOGAR);
     await page.waitForTimeout(4000);
     await sossegar(s, 1500, 20000);
     await toca('.q-trilho .q-item[data-px-rota="hub"]');
@@ -89,7 +90,7 @@ for (let i = 0; i < N; i++) {
     await medir('abrir Mais', () => toca('.q-trilho .q-mais-botao'));
     await page.keyboard.press('Escape');
     await page.waitForTimeout(1500);
-    await medir('ir para Jogar (pedacos ja baixados)', () => toca('.q-trilho .q-item[data-px-rota="play"]'), 3200);
+    await medir('ir para Jogar (pedacos ja baixados)', () => toca(JOGAR), 3200);
     await medir('abrir Memoria', () => toca('button.q-tile:has-text("Memória")'), 3200);
     if (await page.locator('.pj-link').count()) {
       await toca('.pj-link');

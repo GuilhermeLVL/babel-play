@@ -374,6 +374,16 @@ function entrarAba(g: HTMLElement): void {
 /* ---- Instalação --------------------------------------------------------------------------------- */
 
 const ehDaPilula = (n: Node) => n instanceof Element && n.classList.contains('px-pilula');
+/* Quem tem pílula (as barras de abas e o trilho) e as abas primárias, que nem sempre são `.q-abas`. */
+const COM_PILULA = `.q-abas, .q-trilho, ${PRIMARIA}`;
+/* O que a camada pendura num botão sem mexer no tamanho dele (a luz, a onda do toque: `ponteiro.ts`). */
+const semCaixa = (n: Node) => n instanceof Element && n.matches('.px-pilula, .px-luz, .px-onda-caixa');
+/** A mutação pode ter mudado o lugar ou o tamanho de uma pílula: mexeu dentro de uma barra, ou trouxe uma. */
+function mexeNasPilulas(m: MutationRecord): boolean {
+  const nos = [...m.addedNodes, ...m.removedNodes];
+  if (m.target instanceof Element && m.target.closest(COM_PILULA)) return !nos.every(semCaixa);
+  return nos.some((n) => n instanceof Element && (n.matches(COM_PILULA) || !!n.querySelector(COM_PILULA)));
+}
 /* Diálogo e painel não são tela: abrir os Recordes por cima do lobby não refaz a entrada do lobby. */
 const ehTelaNova = (n: Node): n is HTMLElement =>
   n instanceof HTMLElement &&
@@ -389,41 +399,75 @@ export function instalarTelas(): () => void {
   let pedido = 0;
   let telaNova = false;
   let abasMexidas = new Set<HTMLElement>();
+  /*
+   * AS PÍLULAS SÓ SÃO MEDIDAS QUANDO PODEM TER MUDADO (auditoria de desempenho de 10/10/2026, G5). Antes,
+   * toda mutação do documento (uma fala nova, a luz que entra num botão, um aviso) media todas as barras
+   * de abas e o trilho com `getBoundingClientRect`: 54 a 78 ms por interação no celular médio. Agora só
+   * mede quando uma aba ou o destino muda, quando uma barra entra ou muda por dentro, quando a camada
+   * liga, e quando uma barra muda de tamanho (o `ResizeObserver` abaixo). A posição e a mola são as mesmas.
+   */
+  let pilulasSujas = true;
+  const vigiadas = new Set<HTMLElement>();
+  const tamanhos =
+    typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(() => {
+          pilulasSujas = true;
+          pedir();
+        });
+  const vigiar = (g: HTMLElement) => {
+    if (!tamanhos || vigiadas.has(g)) return;
+    vigiadas.add(g);
+    tamanhos.observe(g);
+  };
 
   const atualizar = () => {
     pedido = 0;
     if (!polido()) tirarPilulas();
-    else {
+    else if (pilulasSujas) {
+      for (const g of vigiadas)
+        if (!g.isConnected) {
+          vigiadas.delete(g);
+          tamanhos?.unobserve(g);
+        }
       const trilho = trilhoAtual();
       if (trilho) {
         porPilula(trilho);
         saltarIcone(ativaDe(trilho));
+        vigiar(trilho);
       }
-      for (const g of $$('.q-abas')) porPilula(g);
+      for (const g of $$('.q-abas')) {
+        porPilula(g);
+        vigiar(g);
+      }
     }
     for (const g of abasMexidas) if (g.isConnected) entrarAba(g);
     abasMexidas = new Set();
     const tela = telaAtual();
     if (telaNova && tela) chegou(tela);
     telaNova = false;
-    for (const g of $$(PRIMARIA)) if (!indiceDaAba.has(g)) entrarAba(g);
+    /* Aba primária nova só chega junto com uma barra (a mesma marca das pílulas). */
+    if (pilulasSujas) for (const g of $$(PRIMARIA)) if (!indiceDaAba.has(g)) entrarAba(g);
+    pilulasSujas = false;
   };
   const pedir = () => {
     if (!pedido) pedido = requestAnimationFrame(atualizar);
   };
 
+  /* O QUE NÃO É DA CAMADA NÃO PEDE QUADRO: a mutação que não troca de tela, não mexe em aba e não toca em
+     barra nenhuma (cada fala nova da captura, com centenas na tela) acaba aqui, sem `atualizar`. Antes cada
+     uma pedia um quadro e uma varredura do documento, que crescia com ele. */
   const observador = new MutationObserver((mudancas) => {
-    let mexeu = false;
+    const tela = telaAtual();
     for (const m of mudancas) {
       if (m.type === 'attributes') {
-        mexeu = true;
+        pilulasSujas = true;
         const g = (m.target as Element).closest<HTMLElement>(PRIMARIA);
         if (g && m.attributeName !== 'aria-current') abasMexidas.add(g);
         continue;
       }
       if ([...m.addedNodes, ...m.removedNodes].every(ehDaPilula)) continue;
-      mexeu = true;
-      const tela = telaAtual();
+      if (!pilulasSujas && mexeNasPilulas(m)) pilulasSujas = true;
       if (!tela || !tela.contains(m.target)) continue;
       for (const n of m.addedNodes) {
         if (!ehTelaNova(n)) continue;
@@ -432,7 +476,7 @@ export function instalarTelas(): () => void {
         if (m.target === tela || n.matches('.q-palco, .tela') || n.querySelector('.q-palco, .tela')) telaNova = true;
       }
     }
-    if (mexeu) pedir();
+    if (pilulasSujas || telaNova || abasMexidas.size) pedir();
   });
   observador.observe(document.body, {
     subtree: true,
@@ -440,7 +484,10 @@ export function instalarTelas(): () => void {
     attributes: true,
     attributeFilter: ['aria-selected', 'aria-checked', 'aria-current', 'data-px'],
   });
-  const daMarca = new MutationObserver(pedir);
+  const daMarca = new MutationObserver(() => {
+    pilulasSujas = true;
+    pedir();
+  });
   daMarca.observe(document.documentElement, { attributes: true, attributeFilter: ['data-px'] });
 
   /* Borda de rolagem: o degradê aparece depois de 6 px (`prototipo.js:266`, `polimento.css:195-208`). */
@@ -464,6 +511,7 @@ export function instalarTelas(): () => void {
   return () => {
     observador.disconnect();
     daMarca.disconnect();
+    tamanhos?.disconnect();
     olheiro?.disconnect();
     olheiro = null;
     itemDoTrilho = null;

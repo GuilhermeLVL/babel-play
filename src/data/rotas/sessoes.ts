@@ -11,7 +11,7 @@
  */
 import { data } from '../../lib/i18n'
 import type { CenarioDaSessao, Recording } from '../../types'
-import { apiFetch, IMPORT_TIMEOUT_MS } from '../funil'
+import { apiFetch, comTeto, IMPORT_TIMEOUT_MS } from '../funil'
 
 interface SessionRow {
   id: string
@@ -102,10 +102,29 @@ export function sessionToRecording(s: SessionRow): Recording {
 }
 
 export async function fetchSessions(): Promise<Recording[]> {
-  const res = await apiFetch('/api/sessions')
-  if (!res.ok) return []
-  const rows = (await res.json()) as SessionRow[]
-  return rows.map(sessionToRecording)
+  let quantas = 0
+  try {
+    const res = await apiFetch('/api/sessions')
+    if (!res.ok) return []
+    const rows = (await res.json()) as SessionRow[]
+    quantas = rows.length
+    return rows.map(sessionToRecording)
+  } finally {
+    leituraDaLista = { lidas: leituraDaLista.lidas + 1, quantas }
+  }
+}
+
+/**
+ * A ÚLTIMA LEITURA DA LISTA DE SESSÕES nesta página: quantas leituras já terminaram (com resposta ou
+ * com erro) e quantas sessões a última trouxe.
+ *
+ * Serve a quem precisa separar "a lista CHEGOU" de "a lista MUDOU": as métricas do perfil recarregam
+ * quando o número de sessões muda, e a primeira chegada da lista (de 0 para N) parecia uma mudança
+ * (`lib/estado/useMetricas`). Atualizada antes de quem pediu receber a resposta.
+ */
+let leituraDaLista = { lidas: 0, quantas: 0 }
+export function leituraDaListaDeSessoes(): { lidas: number; quantas: number } {
+  return leituraDaLista
 }
 
 export interface NewUtterancePayload {
@@ -415,8 +434,10 @@ export async function fetchSessionTranscript(id: string): Promise<SessionTranscr
  * correta para "quais são as suas falas guardadas?" quando não há onde guardá-las — e o convite
  * para criar conta já é feito pelo caminho próprio (`EVENTO_EXIGE_CONTA`), não por uma exceção.
  */
-export async function fetchAllUtterances(): Promise<UtteranceRow[]> {
-  const res = await apiFetch('/api/sessions/utterances/all')
+export async function fetchAllUtterances(signal?: AbortSignal): Promise<UtteranceRow[]> {
+  /* `signal`: quem sai da tela antes de a resposta chegar cancela o pedido (ela pode ter megabytes). O
+     teto de tempo do funil continua valendo junto. */
+  const res = await apiFetch('/api/sessions/utterances/all', signal ? { signal: comTeto(signal) } : undefined)
   if (res.status === 501) return []
   if (!res.ok) throw new Error('falha ao carregar as falas')
   return (await res.json()) as UtteranceRow[]

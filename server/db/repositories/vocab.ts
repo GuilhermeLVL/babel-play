@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 
+import { tempoDeRespostaGravavel } from '../../../src/core/learning/calibracao'
 import { nivelCefr } from '../../../src/core/learning/cefrWordlist'
 import {
   calcularDificuldade,
@@ -11,7 +12,7 @@ import {
   type FaixaDificuldade,
 } from '../../../src/core/learning/dificuldade'
 import { avaliarCartao, foraDoBulkAdd, type MotivoDescarte } from '../../../src/core/learning/quality'
-import { type Grade, makeFsrs5, type SchedulingState } from '../../../src/core/learning/scheduler'
+import { type Grade, makeFsrs5, metaDeRetencao, type SchedulingState } from '../../../src/core/learning/scheduler'
 import { chaveDedup as chaveDedupDoNucleo } from '../../../src/core/texto/palavra'
 import type { UserId } from '../../lib/authContext'
 import { garantirNiveis } from '../../lib/niveisDaTrilha'
@@ -19,6 +20,7 @@ import { db } from '../db'
 import { type ColunaCompacta, lerCompacto } from '../leituraCompacta'
 import { tuplaDeBatch } from '../lotes'
 import { ankiDecks, ankiNotes, reviewLogs, sessions, vocabCards, vocabOccurrences } from '../schema'
+import { agregadosRepo } from './agregados'
 import { exerciseResultsRepo } from './exerciseResults'
 
 // FSRS-5 lift do desktop (núcleo isomórfico) — o agendamento roda no servidor.
@@ -55,6 +57,38 @@ function balancear<T extends { difficultyScore: number | null }>(
 }
 
 export type VocabCard = typeof vocabCards.$inferSelect
+
+/** O que os agregados diários precisam de uma revisão já gravada (para tirá-la das vivas). */
+const COLUNAS_DA_REVISAO_AGREGAVEL = {
+  id: reviewLogs.id,
+  createdAt: reviewLogs.createdAt,
+  reviewedAt: reviewLogs.reviewedAt,
+  grade: reviewLogs.grade,
+  prevStability: reviewLogs.prevStability,
+  respostaMs: reviewLogs.respostaMs,
+  retencaoPrevista: reviewLogs.retencaoPrevista,
+}
+
+function revisaoAgregavel(
+  r: {
+    createdAt: number
+    reviewedAt: number | null
+    grade: number | null
+    prevStability: number | null
+    respostaMs: number | null
+    retencaoPrevista: number | null
+  },
+  srcLang: string | null,
+) {
+  return {
+    em: r.reviewedAt ?? r.createdAt,
+    srcLang,
+    grade: r.grade,
+    nova: r.prevStability == null,
+    respostaMs: r.respostaMs,
+    retencaoPrevista: r.retencaoPrevista,
+  }
+}
 
 /**
  * O FILTRO FACETADO da tela de jogos (openspec/changes/seletor-facetado) — UNIÃO dentro de cada
@@ -1075,11 +1109,13 @@ export const vocabRepo = {
     if (!card) return undefined
     const now = Date.now()
     const [ultimo] = await db
-      .select({ id: reviewLogs.id })
+      .select(COLUNAS_DA_REVISAO_AGREGAVEL)
       .from(reviewLogs)
       .where(and(eq(reviewLogs.userId, userId), eq(reviewLogs.cardId, id), isNull(reviewLogs.deletedAt)))
       .orderBy(desc(reviewLogs.reviewedAt))
       .limit(1)
+    /* A revisão desfeita sai também dos agregados do dia, no mesmo lote (migração 0053). */
+    const fuso = ultimo ? await agregadosRepo.fusoGravado(userId) : ''
     await db.batch([
       db
         .update(vocabCards)
@@ -1091,6 +1127,7 @@ export const vocabRepo = {
               .update(reviewLogs)
               .set({ deletedAt: now, updatedAt: now })
               .where(and(eq(reviewLogs.id, ultimo.id), eq(reviewLogs.userId, userId))),
+            ...agregadosRepo.instrucoesDaRevisaoDesfeita(userId, fuso, [revisaoAgregavel(ultimo, card.srcLang)], now),
           ]
         : []),
     ] as unknown as Parameters<typeof db.batch>[0])
@@ -1112,42 +1149,74 @@ export const vocabRepo = {
       .orderBy(desc(vocabOccurrences.occurredAt))
   },
 
-  /** Aplica uma revisão FSRS-5, persiste o novo estado e grava um review_log. */
-  async review(userId: UserId, id: string, grade: Grade, retencao?: number): Promise<CartaoParaCliente> {
+  /**
+   * Aplica uma revisão FSRS-5, persiste o novo estado e grava um review_log.
+   *
+   * `registro` (migração 0052) é só REGISTRO: de onde veio a nota, em que formato o cartão foi
+   * mostrado e quanto tempo a pessoa levou. Nada dele entra no agendamento, que continua função de
+   * (estado anterior, nota, agora, meta). A retenção prevista é calculada aqui, do estado ANTERIOR.
+   *
+   * O cartão, o log e os agregados do dia vão num `db.batch` só (uma transação): eram duas escritas
+   * soltas, e uma falha entre elas deixava o cartão reagendado sem a revisão no histórico.
+   */
+  async review(
+    userId: UserId,
+    id: string,
+    grade: Grade,
+    retencao?: number,
+    registro: { origem?: string | null; formato?: string | null; respostaMs?: number | null } = {},
+  ): Promise<CartaoParaCliente> {
     const card = await this.get(userId, id)
     if (!card) throw new Error('card não encontrado')
     const now = Date.now()
     const prev = toState(card)
     const next = (retencao === undefined ? fsrs : makeFsrs5(undefined, retencao)).review(prev, grade, now)
+    const retencaoPrevista = fsrs.predictedRetention(prev, now) ?? null
+    const respostaMs = tempoDeRespostaGravavel(registro.respostaMs)
+    const fuso = await agregadosRepo.fusoGravado(userId)
 
-    await db
-      .update(vocabCards)
-      .set({
-        box: next.box,
-        dueAt: next.dueAt,
-        stability: next.stability ?? null,
-        difficulty: next.difficulty ?? null,
-        reps: next.reps ?? null,
-        lapses: next.lapses ?? null,
-        lastReview: next.lastReview ?? null,
+    await db.batch([
+      db
+        .update(vocabCards)
+        .set({
+          box: next.box,
+          dueAt: next.dueAt,
+          stability: next.stability ?? null,
+          difficulty: next.difficulty ?? null,
+          reps: next.reps ?? null,
+          lapses: next.lapses ?? null,
+          lastReview: next.lastReview ?? null,
+          updatedAt: now,
+        })
+        .where(and(eq(vocabCards.id, id), eq(vocabCards.userId, userId))),
+      db.insert(reviewLogs).values({
+        id: randomUUID(),
+        createdAt: now,
         updatedAt: now,
-      })
-      .where(and(eq(vocabCards.id, id), eq(vocabCards.userId, userId)))
-
-    await db.insert(reviewLogs).values({
-      id: randomUUID(),
-      createdAt: now,
-      updatedAt: now,
-      userId,
-      cardId: id,
-      reviewedAt: now,
-      grade,
-      prevStability: prev.stability ?? null,
-      newStability: next.stability ?? null,
-      prevDue: prev.dueAt,
-      newDue: next.dueAt,
-      elapsedDays: prev.lastReview ? (now - prev.lastReview) / 86_400_000 : 0,
-    })
+        userId,
+        cardId: id,
+        reviewedAt: now,
+        grade,
+        prevStability: prev.stability ?? null,
+        newStability: next.stability ?? null,
+        prevDue: prev.dueAt,
+        newDue: next.dueAt,
+        elapsedDays: prev.lastReview ? (now - prev.lastReview) / 86_400_000 : 0,
+        origem: registro.origem ?? null,
+        formato: registro.formato ?? null,
+        respostaMs,
+        metaRetencao: metaDeRetencao(retencao),
+        retencaoPrevista,
+      }),
+      ...agregadosRepo.instrucoesDaRevisao(userId, fuso, {
+        em: now,
+        srcLang: card.srcLang,
+        grade,
+        nova: prev.stability === undefined,
+        respostaMs,
+        retencaoPrevista,
+      }),
+    ] as unknown as Parameters<typeof db.batch>[0])
 
     const updated = await this.get(userId, id)
     if (!updated) throw new Error('falha ao reler card')
@@ -1253,12 +1322,26 @@ export const vocabRepo = {
   async remove(userId: UserId, id: string): Promise<boolean> {
     const now = Date.now()
     const alvo = await db
-      .select({ id: vocabCards.id })
+      .select({ id: vocabCards.id, srcLang: vocabCards.srcLang })
       .from(vocabCards)
       .where(and(eq(vocabCards.id, id), eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt)))
       .limit(1)
     if (!alvo.length) return false
+    /* As revisões vivas do cartão saem dos agregados do dia no mesmo lote (migração 0053). Se outra
+       revisão entrar entre esta leitura e o lote, as marcas deixam de casar e a próxima leitura
+       reconta: nada fica errado em silêncio. */
+    const vivas = await db
+      .select(COLUNAS_DA_REVISAO_AGREGAVEL)
+      .from(reviewLogs)
+      .where(and(eq(reviewLogs.cardId, id), eq(reviewLogs.userId, userId), isNull(reviewLogs.deletedAt)))
+    const fuso = vivas.length ? await agregadosRepo.fusoGravado(userId) : ''
     await db.batch([
+      ...agregadosRepo.instrucoesDaRevisaoDesfeita(
+        userId,
+        fuso,
+        vivas.map((r) => revisaoAgregavel(r, alvo[0].srcLang)),
+        now,
+      ),
       db
         .update(vocabCards)
         .set({ deletedAt: now, updatedAt: now })
@@ -1273,7 +1356,7 @@ export const vocabRepo = {
         .update(reviewLogs)
         .set({ deletedAt: now, updatedAt: now })
         .where(and(eq(reviewLogs.cardId, id), eq(reviewLogs.userId, userId), isNull(reviewLogs.deletedAt))),
-    ])
+    ] as unknown as Parameters<typeof db.batch>[0])
     return true
   },
 

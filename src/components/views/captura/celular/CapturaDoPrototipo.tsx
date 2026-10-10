@@ -306,7 +306,7 @@ export default function CapturaDoPrototipo({
           <>
             <button
               type="button"
-              className="q-ctl"
+              className="q-ctl q-letra-menor"
               aria-label={t('Diminuir a letra')}
               disabled={letra.noMinimo}
               onClick={letra.menor}

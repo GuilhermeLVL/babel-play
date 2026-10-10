@@ -1,7 +1,13 @@
 import React, { useEffect, useRef,useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { APPEARANCE_ATTRS, applyAppearance, readAppearance, type StyledElement } from '../lib/appearanceSync';
+import {
+  APPEARANCE_ATTRS,
+  applyAppearance,
+  classesQueAtravessam,
+  readAppearance,
+  type StyledElement,
+} from '../lib/appearanceSync';
 import { toast } from './Toast';
 
 /**
@@ -75,7 +81,8 @@ export default function DocumentPiP({
 
           // Espelha tema e classes do <html>/<body>.
           win.document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme') || 'babel');
-          win.document.documentElement.className = document.documentElement.className;
+          /* Menos a do cursor do app: a janela não o tem, e o ponteiro do sistema precisa aparecer nela. */
+          win.document.documentElement.className = classesQueAtravessam(document.documentElement.className);
           win.document.body.className = document.body.className;
 
           const container = win.document.createElement('div');

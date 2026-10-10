@@ -62,6 +62,8 @@ const CHAMADOR_EXTERNO = {
   'GET /api/admin/resumo': 'idem',
   'GET /api/admin/billing/pendentes': 'idem',
   'POST /api/admin/billing/reprocessar/:id': 'idem',
+  'GET /api/admin/calibracao/:id':
+    'a calibração do FSRS de um usuário (previsto × real por faixa; change `modelo-do-aluno-e-dados`, tarefa 1.3): leitura do OPERADOR, por `curl` com token de admin/support, para decidir se vale ajustar pesos ou meta. Sem tela nesta etapa de propósito: a medida vem antes de qualquer coisa que se mostre',
 }
 
 const EXT = new Set(['.ts', '.tsx', '.mjs', '.js', '.yml', '.yaml'])

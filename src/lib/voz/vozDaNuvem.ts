@@ -26,11 +26,16 @@
 import { ROTA_DA_VOZ_NATURAL } from '../../core/vozNatural';
 import { apiFetch } from '../../data/funil';
 import { chaveLigada } from '../captura/testesDoInterprete';
+import { getEntitlements } from '../entitlements';
 import { marcarFalaExterna, nativeTts, type SpeakOptions, type TtsEngine } from '../tts';
+import { cacheDeVozDoAparelho, type GuardadosDaVoz } from './cacheDeVoz';
 import { partirEmFrases } from './frasesDaVoz';
 
 /** Quanto a nuvem tem para devolver o áudio antes de a voz do aparelho assumir. */
 export const PRAZO_DA_VOZ_DA_NUVEM_MS = 6_000;
+
+/** Quanto se espera pelo áudio guardado no aparelho antes de pedir à nuvem assim mesmo. */
+const PRAZO_DO_AUDIO_GUARDADO_MS = 150;
 
 /** Quem falou por último: o que o intérprete mostra ("a voz em uso") e o rótulo da métrica `tts_inicio`. */
 export type MotorDaVoz = 'voz-da-nuvem' | 'voz-do-aparelho';
@@ -64,6 +69,17 @@ export interface OpcoesDaVozDaNuvem {
    * frase (2 em voo) e a primeira começa a tocar sem esperar as outras.
    */
   porFrase?: () => boolean;
+  /**
+   * Os áudios guardados no aparelho (`cacheDeVoz.ts`): a frase que já foi sintetizada toca daqui, sem
+   * ir ao servidor. Padrão: o cache deste navegador. `null` = sem guardar nem reaproveitar.
+   */
+  guardados?: GuardadosDaVoz | null;
+  /**
+   * Esta pessoa tem a voz natural AGORA? Lido a cada fala: sem o direito, o aparelho não serve áudio
+   * guardado nem guarda (quem perdeu o Premium ouve a voz do aparelho, como quem nunca teve). Padrão: a
+   * capacidade `vozNatural` do plano.
+   */
+  temDireito?: () => boolean;
 }
 
 /** Sínteses simultâneas na voz por frase: mais que isto só disputa a rede e atrasa a primeira. */
@@ -178,6 +194,14 @@ export function criarVozDaNuvem(o: OpcoesDaVozDaNuvem = {}): VozDaNuvem {
     pedidos.clear();
   };
   const porFrase = o.porFrase ?? (() => chaveLigada('vozPorFrase'));
+  const guardados = o.guardados === undefined ? cacheDeVozDoAparelho() : o.guardados;
+  const temDireito = o.temDireito ?? (() => getEntitlements().vozNatural);
+  /** O áudio guardado no aparelho, ou `null` (não tem, ou demorou): aí quem responde é a nuvem. */
+  const doAparelho = (de: GuardadosDaVoz, pedido: { texto: string; idioma: string; voz?: string; velocidade?: number }) =>
+    Promise.race([
+      de.ler(pedido).catch(() => null),
+      new Promise<null>((ok) => setTimeout(() => ok(null), PRAZO_DO_AUDIO_GUARDADO_MS)),
+    ]);
 
   const pararAudio = () => {
     tocando?.parar();
@@ -273,6 +297,19 @@ export function criarVozDaNuvem(o: OpcoesDaVozDaNuvem = {}): VozDaNuvem {
     if (agora() < pausadaAte) return { recuo: 'pausada' };
     if (idiomasSemVoz.has(idioma)) return { recuo: 'sem-voz' };
 
+    /* O APARELHO JÁ TEM ESTE ÁUDIO? Depois das pausas, de propósito: com a nuvem recusada (sem o plano,
+       cota no fim, flag desligada) a voz do aparelho lê, como se o cache não existisse. */
+    const pedido = { texto, idioma, voz: o.voz, velocidade: opts.rate && opts.rate !== 1 ? opts.rate : undefined };
+    /* Sem cache ou sem o direito, o pedido sai na hora, como sempre (nenhuma espera a mais). */
+    if (guardados && temDireito()) {
+      const jaTem = await doAparelho(guardados, pedido);
+      if (minha !== vez) return null;
+      if (jaTem?.size) {
+        cacheDeAudio.set(chave, jaTem);
+        return { audio: jaTem };
+      }
+    }
+
     const controle = new AbortController();
     pedidos.add(controle);
     let estourou = false;
@@ -311,6 +348,7 @@ export function criarVozDaNuvem(o: OpcoesDaVozDaNuvem = {}): VozDaNuvem {
     if (minha !== vez) return null;
     if (!audio.size) return { recuo: 'servidor' };
     cacheDeAudio.set(chave, audio);
+    if (guardados && temDireito()) void guardados.guardar(pedido, audio).catch(() => undefined);
     return { audio };
   };
 

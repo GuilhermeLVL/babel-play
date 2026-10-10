@@ -23,3 +23,6 @@ import '../../styles/polimento/planos4.css';
 import '../../styles/polimento/enxuto.css';
 /* O protótipo dos cartões (cartoes-src/montar.mjs): a tela Cartões e a barra de cinco com o Praticar. */
 import '../../styles/polimento/cartoes.css';
+/* DO APP, por último: o mesmo desenho por um caminho mais barato (o pulso do contador em camada composta,
+   as miniaturas fora da vista paradas). Cada regra diz qual das de cima ela substitui e por quê. */
+import '../../styles/polimentoDesempenho.css';

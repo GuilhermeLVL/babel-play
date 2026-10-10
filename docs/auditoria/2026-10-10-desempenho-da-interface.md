@@ -481,3 +481,182 @@ Como as medidas variam com a máquina, os portões de tempo devem usar mediana d
 - Traces inteiros (fora do repositório): `C:\Users\Guilh\AppData\Local\Temp\claude\c--Users-Guilh-OneDrive--rea-de-Trabalho-babel-play-lab\de918f0f-08be-4ee8-b701-1de5b0ff2546\scratchpad\perf\traces\`. Só a primeira repetição de cada variante foi guardada.
 
 As linhas de código citadas são as do commit `aa97cf3d`, o publicado. A árvore de trabalho de `ei-polimento` tem mudanças não commitadas em `base.ts`, `LiveCapture.tsx` e outros, de outro agente.
+
+## 10. Aplicado em 10/10
+
+Os consertos "sem nenhuma perda visual" da camada de efeitos foram aplicados na árvore de trabalho (branch `feat/polimento-movimento`, sobre `d4feb9bf`), sem commit. Ficaram de fora, por serem de outro agente: o saguão do Jogar (G2), a lista de falas (G10) e os pedidos ao servidor. Nada do que muda o que se vê foi feito; está na lista da seção 10.6.
+
+Tabelas completas: `eval/desempenho-2026-10/aplicado/tabelas.md`. Dados: `aplicado/dados/{antes,depois}/`. Prova de aparência: `aplicado/prova/`. Scripts: `scripts/intercalado.sh`, `antesDepois.mjs`, `provaVisual.mjs`, `minisFase.mjs`, `buildLimpo.mjs`, `servidor.mjs`.
+
+### 10.1 Como foi medido
+
+| Item | Como |
+|---|---|
+| Alvo | Dois builds de produção locais da edição estática: ANTES = `d4feb9bf` como está no repositório; DEPOIS = o mesmo commit mais só os arquivos deste conserto (os que o outro agente mudou em `src/` entram como estão no HEAD: `scripts/buildLimpo.mjs`). Servidos por `scripts/servidor.mjs`: os cabeçalhos de `public/_headers`, o `.br` que o build grava e o `Cache-Control` de `/assets`. |
+| Método | O da auditoria (Playwright + CDP, `chrome-headless-shell`, 60 Hz, mesmos perfis, 3 repetições, mediana), com os mesmos scripts. Mudou neles: o endereço vem de `URL0`; o roteiro de navegação segue o menu de hoje (Biblioteca e Cartões no trilho; Estatísticas, Personalizar e Ajustes no "Mais"; "Praticar" na barra do celular); e há um estímulo novo, `giroquieto` (o sensor entregando 60 leituras por segundo só com ruído de ±0,03°: o celular pousado). |
+| Intercalado | Cada configuração roda 3 vezes no ANTES e, em seguida, 3 vezes no DEPOIS (`scripts/intercalado.sh`). A primeira tentativa mediu um lado inteiro e o outro horas depois, e a máquina (dividida com outros agentes) estava 1,7 vez mais lenta na segunda leva: aqueles números foram descartados. |
+| Limites | Os números absolutos do ANTES não batem com os da seção 4: lá era o commit publicado, na rede, noutra hora. A comparação que vale é a de cada linha, ANTES × DEPOIS. As linhas de tela parada, saguão e interações foram medidas antes de três acertos finais (pré-carga em ocioso só dos destinos do trilho, o primeiro quadro das miniaturas e a retirada de uma tentativa, seção 10.5); navegação, carga e as duas linhas do computador foram medidas de novo depois deles. Diferença abaixo de 10% está marcada como ruído. |
+
+### 10.2 O que mudou, por conserto
+
+| # | Conserto | Onde | Gargalo |
+|---|---|---|---|
+| 1 | O laço do giroscópio dorme quando a inclinação na tela chegou à do aparelho (falta menos de 0,001) e nenhum alvo ficou sem receber o valor; acorda com uma leitura a mais de 0,004 (0,09° do aparelho) do que está na tela, com alvos novos e ao mudar a largura. Quadro que não muda nada não escreve. | `src/lib/polimento/sentidos.ts:400-409, 462-469, 491-538, 541-563` | G1 |
+| 2a | O laço da aura para ao chegar (menos de 0,05 px) e volta no próximo movimento; não roda com a camada desligada; o canto do `main` é medido ao acordar e quando o `main` muda de tamanho, não a cada quadro. | `src/lib/polimento/ponteiro.ts:24-36, 199-275` | G4 |
+| 2b | O pulso do contador sai do `box-shadow`: uma camada (`::before`) do tamanho final do anel, atrás do número, que cresce por `transform` e some por `opacity`, com os mesmos 1,9 s, curva e cor. A regra do protótipo é desligada pelo app; a cópia não foi editada. | `src/styles/polimentoDesempenho.css` (novo), `src/lib/polimento/pulso.ts` (novo), `src/lib/polimento/estilos.ts:26-28`, `TrilhoDoQuest.tsx:365, 406` | G4 |
+| 3 | A inclinação 3D dorme com o mouse parado sobre o cartão e acorda ao mexer, apertar e soltar; uma medida do cartão por movimento, não duas; a posição do ponteiro (`--mx`, `--my`) só é gravada nos alvos que a leem (`.q-tile`, `.q-linha`, `.jogo.clicavel`), não em todo botão. | `ponteiro.ts:55-97, 111-136`; `src/lib/dispositivo/respostaAoApontar.ts:25-26, 197-200` | G9 |
+| 4 | As miniaturas dos cartões fora da vista ficam pausadas (um `IntersectionObserver` com 160 px de folga); ao voltar, cada animação avança o tempo que ficou parada. | `src/lib/polimento/minis.ts` (novo), `polimentoDesempenho.css`, `TrilhoDoQuest.tsx:248` | G3 |
+| 5 | O pedaço da tela é pedido no `pointerdown` e no foco do item do menu (trilho e ladrilhos do "Mais"), e os destinos do trilho descem com o navegador ocioso, um por vez. O ocioso e o foco não pedem com economia de dados nem em 2G/3G. A saída de 150 ms continua. | `src/lib/polimento/precarga.ts` (novo), `src/App.tsx:10-57`, `TrilhoDoQuest.tsx:249-261, 286-287, 352-353` | G6 |
+| 6a | As pílulas só são medidas quando uma aba ou o destino muda, uma barra entra ou muda por dentro, a camada liga ou uma barra muda de tamanho (`ResizeObserver`). A mutação que não é da camada não pede quadro nenhum. | `src/lib/polimento/telas.ts:376-386, 402-422, 424-480` | G5 |
+| 6b | `aplicarAcess` percorre cada folha de estilo uma vez (de novo se ela ganhar regras) e só regrava a regra que precisa mudar. | `src/lib/polimento/base.ts:132-141, 151-207` | G12 |
+| 7 | (pedido do coordenador) A regra do cursor perde o `:has(.px-cursor)`; em troca, a classe `px-com-cursor` não atravessa para a janela das Legendas flutuantes, nem na abertura nem na sincronia. | `src/styles/polimentoCursor.css:5-12`, `src/lib/appearanceSync.ts:49-64, 78`, `src/components/DocumentPiP.tsx:85` | – |
+
+Não foi feito: abrir o `:is()` final no gerador do CSS. O relatório não diz que é seguro, e não é em geral: `:is(.a, .b c)` dá a todos os argumentos o peso do mais pesado, e separado em seletores cada um fica com o seu, o que muda quem ganha um empate. Só seria seguro onde todos os argumentos têm o mesmo peso, e isso pede um verificador no gerador.
+
+Também não foi feito: as três regras `dialog :is(.op-linha, .q-ajuste):has(…)` de `styles/polimento/paineis.css:44-46`. O arquivo é cópia do protótipo. Para tirá-las sem editar a cópia: (1) uma linha a mais na tabela de cortes de `scripts/polimento/trazer-css.mjs` (`'paineis.css': [{ de: 43, ate: 45, motivo: … }]`); (2) em `polimento/dialogos.ts`, que já observa todo diálogo que abre, marcar a linha que tem interruptor (`data-px-com-interruptor`) e repetir as três regras numa folha do app com esse atributo no lugar do `:has`. Elas estão dentro de `@media (max-width: 720px)`: só pesam no celular. Não foi medido aqui.
+
+### 10.3 Antes e depois
+
+Tela parada, 10 s de trace. Fio principal em ms por segundo: mediana (menor–maior das 3).
+
+| Tela | Perfil | Condição | Antes | Depois | Δ | rAF/s | Recálculos/s | Pinturas/s |
+|---|---|---|---:|---:|---:|---:|---:|---:|
+| Início | celular médio | sem sensor | 195 (185–200) | 24 (23–28) | −88% | 60 → 0 | 60 → 6 | 84 → 0 |
+| Início | celular médio | sensor, aparelho parado | 960 (949–992) | 54 (54–58) | −94% | 79 → 0 | 143 → 7 | 78 → 0 |
+| Início | celular médio | sensor, aparelho em movimento | 966 (793–968) | 918 (900–926) | ruído | 87 → 109 | 151 → 120 | 81 → 27 |
+| Início | celular fraco | sem sensor | 358 (325–377) | 30 (29–30) | −92% | 60 → 0 | 60 → 7 | 86 → 0 |
+| Início | celular fraco | sensor, aparelho parado | 992 (991–993) | 67 (54–68) | −93% | 45 → 0 | 107 → 7 | 55 → 0 |
+| Início | celular fraco | sensor, aparelho em movimento | 994 (993–994) | 991 (988–991) | ruído | 46 → 75 | 108 → 101 | 55 → 27 |
+| Início, Modo desempenho | celular médio | sem sensor | 50 (49–51) | 0 (0–0) | −99% | 60 → 0 | 0 → 0 | 0 → 0 |
+| Início | computador | mouse parado | 47 (46–51) | 7 (6–7) | −86% | 120 → 0 | 60 → 8 | 129 → 11 |
+| Início | computador | mouse em movimento | 265 (263–276) | 211 (210–211) | −20% | 234 → 226 | 216 → 130 | 309 → 282 |
+| Jogar (saguão) | celular médio | sem sensor | 658 (652–669) | 460 (429–476) | −30% | 59 → 0 | 59 → 60 | 147 → 101 |
+| Jogar (saguão) | celular médio | sensor, aparelho parado | 992 (986–992) | 614 (520–675) | −38% | 54 → 0 | 146 → 59 | 84 → 102 |
+| Jogar (saguão) | celular médio | sensor, aparelho em movimento | 993 (992–993) | 991 (989–991) | ruído | 51 → 68 | 140 → 130 | 78 → 75 |
+| Jogar (saguão) | celular fraco | sem sensor | 951 (931–985) | 613 (609–617) | −36% | 57 → 0 | 57 → 60 | 143 → 95 |
+
+No saguão as animações rodando caem de 53 para 15 (38 pausadas) e os elementos por recálculo, de 105 para 29. Sobram 460 ms/s porque as miniaturas à vista seguem pedindo estilo e pintura a cada quadro (`mm-acende` anima `background` e `color`).
+
+Com o aparelho se mexendo o laço do sensor não ganhou nada, como a auditoria previa: o custo por recálculo continua sem causa fechada (G1, item b).
+
+Interações, só com trace (tarefas no fio principal em ms; mediana de 3):
+
+| Perfil | Interação | Antes | Depois | Δ | Quadros feitos no fio principal | INP | Maior tarefa |
+|---|---|---:|---:|---:|---:|---:|---:|
+| celular médio | abrir "Mais" | 1.155 | 824 | −29% | 157 → 66 | 288 → 320 | 159 → 182 |
+| celular médio | ir para o Jogar (peças já baixadas) | 2.782 | 2.461 | −12% | 89 → 88 | 96 → 96 | 353 → 347 |
+| celular médio | abrir a Memória | 1.449 | 1.130 | −22% | 181 → 120 | 240 → 224 | 100 → 82 |
+| celular médio | virar uma carta | 236 | 148 | −37% | 94 → 38 | 32 → 32 | 11 → 11 |
+| celular fraco | abrir "Mais" | 1.702 | 1.249 | −27% | 151 → 64 | 424 → 480 | 174 → 311 |
+| celular fraco | ir para o Jogar | 3.292 | 3.221 | ruído | 27 → 25 | 136 → 160 | 535 → 549 |
+| celular fraco | abrir a Memória | 2.171 | 1.832 | −16% | 161 → 109 | 384 → 352 | 174 → 172 |
+| celular fraco | virar uma carta | 380 | 264 | −31% | 96 → 39 | 48 → 48 | 19 → 22 |
+| computador | abrir "Mais" | 303 | 314 | ruído | 157 → 140 | 56 → 48 | 19 → 16 |
+| computador | ir para o Jogar | 647 | 566 | −13% | 182 → 127 | 24 → 24 | 83 → 86 |
+| computador | abrir a Memória | 453 | 283 | −38% | 192 → 126 | 136 → 112 | 34 → 28 |
+| computador | virar uma carta | 96 | 88 | ruído | 93 → 92 | 32 → 16 | 3 → 5 |
+
+O trabalho total cai, mas a resposta ao toque não melhorou: o INP de abrir o "Mais" ficou igual ou pior (288 → 320 no médio, 424 → 480 no fraco, e a maior tarefa do fraco foi de 174 para 311 ms). O que segura essa abertura é o que a seção 5 (G5) já apontava e não foi tocado: a leitura de altura em `folha.ts` e o vidro.
+
+Navegar pelo menu, celular médio, do toque ao conteúdo em ms (mediana de 3). "Ocioso": o navegador teve tempo ocioso antes do toque. "Só o toque": o ocioso nunca chegou.
+
+| Troca | 1ª visita, ocioso: antes → depois | Arquivos baixados no toque | 1ª visita, só o toque: antes → depois | 2ª visita, ocioso: antes → depois |
+|---|---:|---:|---:|---:|
+| Capturar | 2.402 → 616 (−74%) | 64 → 1 | 2.305 → 1.998 (−13%) | 329 → 275 (−16%) |
+| Intérprete | 473 → 381 (−19%) | 10 → 8 | 428 → 378 (−12%) | 411 → 319 (−22%) |
+| Jogar | 1.509 → 902 (−40%) | 24 → 1 | 1.386 → 1.089 (−21%) | 663 → 503 (−24%) |
+| Estatísticas (pelo "Mais") | 1.395 → 1.106 (−21%) | 10 → 7 | 1.075 → 977 (ruído) | 1.005 → 809 (−20%) |
+| Personalizar (pelo "Mais") | 1.299 → 1.334 (ruído) | 9 → 7 | 1.053 → 848 (−19%) | 451 → 223 (−51%) |
+| Ajustes (pelo "Mais") | 962 → 579 (−40%) | 13 → 13 | 893 → 741 (−17%) | 470 → 224 (−52%) |
+| abrir "Mais" | 383 → 242 / 151 → 137 / 166 → 143 | – | 255 → 220 / 118 → 139 / 139 → 142 | 315 → 280 / 131 → 131 / 139 → 151 |
+
+A segunda visita não é um resultado firme: na rodada "só o toque" ela saiu pior em quatro trocas (de +34% a +58%) e, na "ocioso", melhor (até −52%), com o mesmo código nos dois casos. O que se sustenta é a primeira visita. O tempo até a tela assentar não mudou onde só a espera mudou (Capturar, 2ª visita: 1.368 → 1.344 ms): a animação é a mesma.
+
+O preço da pré-carga em ocioso, na carga (celular médio, 4G, mediana de 3, tudo contado até a rede sossegar):
+
+| Carga | Medida | Antes | Depois | Δ |
+|---|---|---:|---:|---:|
+| fria | FCP / LCP | 841 / 4.466 | 852 / 4.441 | ruído |
+| fria | TBT | 299 | 276 | ruído |
+| fria | fim da última tarefa longa ("até interagir") | 3.384 | 5.455 | +61% |
+| fria | pedidos / kB baixados | 85 / 484 | 188 / 916 | +121% / +89% |
+| fria | JS descomprimido | 651 kB | 1.597 kB | +145% |
+| fria | fio principal até a rede sossegar | 1.984 ms | 2.502 ms | +26% |
+| fria e quente | heap | 3,6 / 4,9 MB | 5,0 / 6,9 MB | +39% / +41% |
+| quente | FCP / LCP / TBT / até interagir | 344 / 736 / 118 / 796 | 358 / 785 / 109 / 831 | ruído |
+
+A pintura da primeira tela não muda. O que muda é que, depois dela, o aparelho baixa 432 kB a mais e avalia quase 1 MB de JS em segundo plano, em tarefas que passam de 50 ms: quem toca nesse intervalo disputa o processador com isso. Por isso o ocioso ficou só com os destinos do trilho (com os três do "Mais" junto eram 1.015 kB e +91% em "até interagir"). É decisão do dono manter, reduzir ou tirar (seção 10.6, P1).
+
+### 10.4 Prova de que a aparência é a mesma
+
+`scripts/polimento/comparar.mjs` não serviu para o antes × depois: os roteiros dele pedem o servidor de desenvolvimento (`import('/src/lib/theme.ts')`) e comparam app × protótipo, não dois estados do app. No lugar, `scripts/provaVisual.mjs` abre as mesmas telas nos dois builds, congela todas as animações no MESMO instante e compara: as caixas e os estilos computados das mesmas 26 propriedades do `comparar.mjs`, em mais de trinta seletores, e a captura pixel a pixel. Telas: Início, "Mais", Capturar, Jogar, Memória, Início com o mouse sobre um cartão e Início e Jogar com o aparelho inclinado; a 1280 e a 390 px, claro e escuro; o pulso e as miniaturas em 3 instantes do ciclo. As partículas ficam fora (são sorteadas, e não foram tocadas).
+
+| O que foi comparado | Resultado |
+|---|---|
+| Caixas (tolerância de 1 px) em todas as telas | iguais |
+| Estilos computados | iguais, fora o esperado: no contador, `animation-name` passa de `px-pulso` para nenhum e `box-shadow` para nenhum (o anel agora é o `::before`); a aura e os cartões inclinados diferem na terceira casa (a aura para a menos de 0,05 px do ponteiro; a inclinação, a menos de 0,01°) |
+| Capturas sem o anel à vista | diferença máxima de 1 a 7 níveis em 255, espalhada pela aura (que para a até 0,05 px de onde chegava) |
+| Capturas com o anel à vista | mesmo tamanho, lugar e cor; a BORDA do anel fica até 1 pixel de aparelho mais suave e o miolo difere em até 8 níveis: 13 a 32 níveis de diferença em 60 a 200 pixels. Ampliado 8 vezes: `aplicado/prova/rec-anel-t187.png` e `rec-anel-escuro-t667.png` |
+| Controle (ANTES × ANTES) | zero pixel de diferença em 17 de 20 cenas; nas outras, ruído de captura |
+| Miniaturas que voltam à vista | no mesmo passo das que nunca pararam: 0 ms de desvio em 13 animações que nasceram fora da vista e em 14 que saíram e voltaram (`scripts/minisFase.mjs`) |
+
+O anel é a única diferença que existe na imagem. Em tamanho natural não a distingo; quem decide se passa é o dono, com as duas imagens ampliadas. O contador de dois algarismos (uma pílula, não um círculo) não foi capturado: nele, pela conta (não por captura), o canto do anel desvia até cerca de 0,5 px no começo do ciclo, porque uma camada esticada não cresce igual para todos os lados.
+
+Um defeito do método, achado no caminho: com o laço parado a página não desenha quadro novo sozinha, e a captura pegava o último quadro desenhado, com a animação ainda no instante de antes de congelar. A Memória "diferia" por isso. `provaVisual.mjs` agora invalida a tela e descarta uma captura antes da que vale.
+
+### 10.5 O que foi tentado e desfeito
+
+| Tentativa | Resultado | Destino |
+|---|---|---|
+| Registrar `--mx`/`--my` sem herança (`@property … inherits: false`) para o cartão não recalcular os filhos | Mouse em movimento, computador: com ela 291 → 264 ms/s (ruído); sem ela 265 → 211 (−20%). Elementos por recálculo: 24 → 23 | desfeita |
+| O anel do pulso como camada do tamanho do contador, ampliada | borda borrada pela ampliação | trocada pela camada do tamanho final, encolhida |
+| Guardar o começo de cada animação ao pausar a miniatura (`getAnimations` em cada cartão que sai da vista) | 132 a 142 ms ao entrar no Jogar (medida do agente de lógica) | trocada: pausar só anota a hora; quem pergunta é a volta |
+| Pré-carga em ocioso de todos os destinos do menu, com os três do "Mais" | 1.015 kB na carga fria, "até interagir" +91%, e a 1ª visita ao Personalizar piorou (1.318 → 1.786 ms) por disputar o processador com a própria pré-carga | reduzida aos destinos do trilho |
+
+### 10.6 Para o dono decidir
+
+Novas, deste trabalho:
+
+| | O quê | O que pesa |
+|---|---|---|
+| P1 | A pré-carga em ocioso: manter (como está), só Capturar e Jogar, ou só o pedido no toque | Como está: 1ª visita a Capturar 2,4 s → 0,6 s e ao Jogar 1,5 s → 0,9 s, ao custo de 432 kB e ~1 MB de JS avaliado em segundo plano depois de cada carga. Só o toque: −13% a −21% na 1ª visita, sem custo |
+| P2 | O anel do contador com a borda um pixel mais suave | É o que tira o `box-shadow` animado de toda tela (Início parado 195 → 24 ms/s junto com o laço da aura) |
+
+As da seção 6 continuam abertas. Com as medidas de hoje:
+
+| | Troca | Ganho estimado |
+|---|---|---|
+| T1 | Vidro sem desfoque no celular | Sem placa de vídeo, 104 → 17 quadros descartados ao abrir o "Mais" (seção 5, G5). É o que sobra nessa abertura: o INP dela não caiu com os consertos de hoje |
+| T2 | Entrada das telas mais curta | A tela assenta entre 1,3 e 2,1 s (medido hoje, 2ª visita); é o tempo do desenho |
+| T3 | Inclinação pelo sensor desligada ou a 30 por segundo no celular fraco | Com o aparelho na mão o Início segue em 918 ms/s (médio) e 991 (fraco); parado caiu para 54 e 67. O teto do ganho é essa diferença |
+| T4 | Partículas mais leves | Processo da GPU: até 117 → 34,5 ms/s (seção 5, G11); não medido de novo |
+| T5 | Modo desempenho automático no celular fraco | Início parado no Modo desempenho: 0 ms/s. Abrir "Mais": 1.295 → 264 ms de tarefas (seção 6) |
+| T6 (nova) | `mm-acende` (a letra achada na miniatura da Caça-palavras) como camada que aparece, em vez de cor animada | É o que mantém o saguão em 460 ms/s com as outras miniaturas já pausadas. Pede marcação nova na miniatura e conferência de cor |
+
+### 10.7 Portões
+
+Entrou como teste (`tests/animacoesInfinitas.test.ts`): nenhum `@keyframes` usado com `infinite` no CSS do app anima algo além de `transform` e `opacity`, com as 19 exceções de hoje listadas uma a uma e o motivo de cada. Animação nova fora da regra reprova; exceção consertada também (sai da lista).
+
+Propostos para a CI, com os limites que as medidas de hoje sustentam (CPU 4×, mediana de 3, folga de 20% nos de tempo):
+
+| Portão | Limite | Hoje |
+|---|---|---|
+| Início parado, sem sensor | 0 rAF/s, 0 pinturas/s, até 10 recálculos/s, até 40 ms/s de fio principal | 0 / 0 / 6 / 24 |
+| Início parado, sensor com o aparelho parado (`giroquieto`) | 0 rAF/s, até 80 ms/s | 0 / 54 |
+| Início no Modo desempenho | 0 rAF/s, até 5 ms/s | 0 / 0 |
+| Computador, mouse parado sobre um cartão | 0 rAF/s, até 15 ms/s | 0 / 7 |
+| Saguão do Jogar parado | 0 rAF/s, até 20 animações rodando, até 600 ms/s (baixar quando a T6 for feita) | 0 / 15 / 460 |
+| 1ª visita a Capturar e Jogar com o ocioso | conteúdo em até 800 ms e 1.200 ms no 4G simulado | 616 / 902 |
+| Carga fria | LCP e TBT dentro do que eram; kB até a rede sossegar até 1.000 | 916 |
+
+`scripts/parado.mjs` (estímulos `nada`, `giroquieto`, `mouse`) e `scripts/navegar.mjs` já dão esses números. Sem contagem que dependa de comparar com outro build: cada portão olha o build de agora.
+
+### 10.8 O que continua sem medida
+
+- Aparelho de verdade, Safari e iOS, Quest: nada do que está aqui. Em particular, QUANTO ruído o sensor de um celular real entrega parado na mesa. O laço acorda com 0,09° de diferença; se o ruído do aparelho passar disso, ele não dorme, e o ganho de 94% do "aparelho parado" não aparece.
+- O contador de dois algarismos e o selo do dia dos Cartões (não aparecem na edição estática sem conta).
+- A captura com falas (o conserto 6a tira `atualizar` do caminho de cada fala; a medida de 109 ms em 21 falas é do agente de lógica, e não foi refeita).
+- O `:has` do cursor: a medida de 49,7 → 10,3 elementos por recálculo é do agente de lógica, numa execução, com as três regras apagadas. Aqui só uma das três saiu, e a linha "mouse em movimento" a inclui sem isolá-la.
+- A janela das Legendas flutuantes num navegador de verdade (o ponteiro do sistema dentro dela): coberto só por teste de unidade.
+- Navegação e carga no celular fraco e no computador com o build final (medidas só no celular médio).
+- Rede pior que 4G, tema Água, conta logada.

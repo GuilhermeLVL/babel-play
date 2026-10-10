@@ -154,4 +154,131 @@ describe('a entrada da tela e a pílula', () => {
     desinstalar = undefined
     expect(document.querySelector('.px-pilula')).toBeNull()
   })
+
+  /* Auditoria de desempenho de 10/10/2026, G5: antes toda mutação do documento media todas as barras. */
+  describe('a pílula só é medida quando pode ter mudado', () => {
+    let medidas = 0
+    const original = Element.prototype.getBoundingClientRect
+    beforeEach(() => {
+      medidas = 0
+      Element.prototype.getBoundingClientRect = function (this: Element) {
+        if (this.matches('.q-trilho, .q-abas')) medidas++
+        return original.call(this)
+      }
+    })
+    afterEach(() => {
+      Element.prototype.getBoundingClientRect = original
+    })
+    const comAbas = () =>
+      document
+        .querySelector('.px-tela .q-palco')!
+        .insertAdjacentHTML(
+          'beforeend',
+          '<div class="q-abas"><button class="q-aba" aria-selected="true">A</button><button class="q-aba" aria-selected="false">B</button></div><ul id="lista"></ul>',
+        )
+
+    it('mutação que não toca em barra nenhuma (uma fala nova, a luz num botão, um aviso) não mede', async () => {
+      comAbas()
+      desinstalar = instalarTelas()
+      await quadro()
+      await quadro()
+      expect(medidas).toBeGreaterThan(0)
+      medidas = 0
+      /* E nem pede quadro: com centenas de falas na tela, cada fala nova pedia uma varredura do documento. */
+      const pedidos = vi.spyOn(window, 'requestAnimationFrame')
+      for (let i = 0; i < 20; i++) document.getElementById('lista')!.append(document.createElement('li'))
+      await new Promise((r) => setTimeout(r, 0))
+      expect(pedidos).not.toHaveBeenCalled()
+      pedidos.mockRestore()
+      document.getElementById('lista')!.append(document.createElement('li'))
+      document.body.append(Object.assign(document.createElement('div'), { className: 'toast' }))
+      await quadro()
+      /* A luz e a onda que `ponteiro.ts` pendura numa aba não mudam o tamanho dela. */
+      const luz = Object.assign(document.createElement('i'), { className: 'px-luz' })
+      document.querySelector('.q-aba')!.append(luz)
+      await quadro()
+      luz.remove()
+      await quadro()
+      expect(medidas).toBe(0)
+    })
+
+    it('trocar a aba, mudar o destino do trilho, entrar uma barra nova e mexer dentro de uma barra medem', async () => {
+      comAbas()
+      desinstalar = instalarTelas()
+      await quadro()
+      await quadro()
+      const [a, b] = [...document.querySelectorAll('.q-aba')]
+      const mediu = async (mexer: () => void) => {
+        medidas = 0
+        mexer()
+        await quadro()
+        return medidas
+      }
+      expect(
+        await mediu(() => {
+          a.setAttribute('aria-selected', 'false')
+          b.setAttribute('aria-selected', 'true')
+        }),
+      ).toBeGreaterThan(0)
+      expect(
+        await mediu(() => {
+          document.querySelector('[data-px-rota="hub"]')!.removeAttribute('aria-current')
+          document.querySelector('[data-px-rota="play"]')!.setAttribute('aria-current', 'page')
+        }),
+      ).toBeGreaterThan(0)
+      expect(
+        await mediu(() => {
+          const painel = document.createElement('div')
+          painel.innerHTML = '<div class="q-abas"><button class="q-aba" aria-selected="true">X</button></div>'
+          document.body.append(painel)
+        }),
+      ).toBeGreaterThan(0)
+      expect(document.querySelectorAll('.q-abas > .px-pilula')).toHaveLength(2)
+      expect(await mediu(() => b.append(Object.assign(document.createElement('span'), { className: 'n' })))).toBeGreaterThan(0)
+      expect(
+        await mediu(() => {
+          document.documentElement.dataset.px = 'off'
+        }),
+      ).toBe(0)
+      expect(document.querySelector('.px-pilula')).toBeNull()
+      expect(
+        await mediu(() => {
+          document.documentElement.dataset.px = 'on'
+        }),
+      ).toBeGreaterThan(0)
+      expect(document.querySelectorAll('.px-pilula')).toHaveLength(3)
+    })
+
+    it('a barra que muda de tamanho é medida de novo (`ResizeObserver`)', async () => {
+      const vigiados: Element[] = []
+      let avisar: () => void = () => undefined
+      vi.stubGlobal(
+        'ResizeObserver',
+        class {
+          constructor(f: () => void) {
+            avisar = f
+          }
+          observe(el: Element) {
+            vigiados.push(el)
+          }
+          unobserve() {}
+          disconnect() {}
+        },
+      )
+      try {
+        comAbas()
+        desinstalar = instalarTelas()
+        await quadro()
+        expect(vigiados.map((e) => e.className.split(' ')[0]).sort()).toEqual(['q-abas', 'q-trilho'])
+        medidas = 0
+        await quadro()
+        expect(medidas).toBe(0)
+        avisar()
+        await quadro()
+        expect(medidas).toBeGreaterThan(0)
+      } finally {
+        vi.unstubAllGlobals()
+      }
+    })
+  })
 })

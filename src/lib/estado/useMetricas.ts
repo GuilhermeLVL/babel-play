@@ -1,8 +1,15 @@
 import type { EstadoDasMissoes } from '@core';
-import { type Dispatch, type SetStateAction,useEffect, useMemo, useState } from 'react';
+import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
 
 import { toast } from '../../components/Toast';
-import { type AppMetrics, fetchMetrics, fetchRecordes, lerMissoes, type RecordeDoJogo } from '../../data/api';
+import {
+  type AppMetrics,
+  fetchMetrics,
+  fetchRecordes,
+  leituraDaListaDeSessoes,
+  lerMissoes,
+  type RecordeDoJogo,
+} from '../../data/api';
 import { hidratarCromas } from '../galeria/cromas';
 import { t } from '../i18n';
 import { estadoDeIdentidade } from '../identidade';
@@ -45,11 +52,49 @@ export function useMetricas(quantidadeDeSessoes: number): EstadoDasMetricas {
     window.addEventListener('babel:conquista', bump);
     return () => { window.removeEventListener('babel:metricas-mudaram', bump); window.removeEventListener('babel:conquista', bump); };
   }, []);
+  /**
+   * A CHEGADA DA LISTA NÃO É UMA MUDANÇA (auditoria do servidor de 10/10/2026, achado A2). O perfil e os
+   * recordes saíam duas vezes a cada abertura do app: na montagem, com zero sessões porque a lista ainda
+   * estava a caminho, e de novo quando ela chegava (de 0 para N). O perfil é da CONTA, não da lista: o
+   * segundo pedido trazia o mesmo dado, e puxava as missões junto, de novo.
+   *
+   * O pedido da montagem vale também para a primeira chegada. Só ela: sessão salva, apagada ou relida
+   * depois continua recarregando, e se o pedido da montagem falhou a chegada da lista tenta outra vez,
+   * como sempre.
+   */
+  const ultimoPedido = useRef<{ versao: number; listasLidas: number; falhou: boolean } | null>(null);
+  /* Quem vale é o ÚLTIMO pedido feito (e nenhum, depois de desmontar). Não é uma marca por efeito: quando
+     a chegada da lista reaproveita o pedido da montagem, o efeito roda de novo e a marca do anterior
+     cairia junto, jogando fora a única resposta que vem. */
+  useEffect(
+    () => () => {
+      ultimoPedido.current = null;
+    },
+    [],
+  );
   useEffect(() => {
-    let alive = true;
+    const anterior = ultimoPedido.current;
+    const lista = leituraDaListaDeSessoes();
+    /* "É a primeira chegada" = o pedido de antes saiu sem lista nenhuma lida, uma leitura terminou desde
+       então, e o número que mudou é exatamente o que ela trouxe. Conta sem sessão que grava a primeira
+       não cai aqui: a lista chegou com zero, e 1 não é o que ela trouxe. */
+    if (
+      anterior &&
+      !anterior.falhou &&
+      anterior.versao === versaoDasMetricas &&
+      anterior.listasLidas === 0 &&
+      lista.lidas > 0 &&
+      lista.quantas === quantidadeDeSessoes
+    ) {
+      anterior.listasLidas = lista.lidas;
+      return;
+    }
+    const pedido = { versao: versaoDasMetricas, listasLidas: lista.lidas, falhou: false };
+    ultimoPedido.current = pedido;
+    const vale = () => ultimoPedido.current === pedido;
     Promise.all([fetchMetrics(), fetchRecordes()])
       .then(([m, rs]) => {
-        if (!alive) return;
+        if (!vale()) return;
         setMetrics(m);
         setMetricasFalharam(false);
         setRecordes(rs);
@@ -61,8 +106,10 @@ export function useMetricas(quantidadeDeSessoes: number): EstadoDasMetricas {
         hidratarPosse(m?.itensComprados, comConta);
         hidratarCromas(m?.cromasComprados, comConta);
       })
-      .catch(() => { if (alive) { setMetrics(null); setMetricasFalharam(true); } });
-    return () => { alive = false; };
+      .catch(() => {
+        pedido.falhou = true;
+        if (vale()) { setMetrics(null); setMetricasFalharam(true); }
+      });
   }, [quantidadeDeSessoes, versaoDasMetricas]);
 
   const progress = useMemo(() => deriveProgress(metrics), [metrics]);

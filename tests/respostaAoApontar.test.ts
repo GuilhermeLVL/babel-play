@@ -4,6 +4,9 @@
  * o ponteiro ENTRA num alvo, não repete no mesmo alvo, respeita a preferência e os desabilitados, e cai
  * num tique sonoro onde não há motor.
  */
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/lib/soundFx', () => ({ play: vi.fn() }))
@@ -158,6 +161,66 @@ describe('ao apontar', () => {
     ponteiro('pointerover', el('b')) // agora só a mão que aponta
     expect(direito.playEffect).toHaveBeenCalledTimes(3)
     expect(esquerdo.playEffect).toHaveBeenCalledTimes(1)
+  })
+})
+
+/* Auditoria de desempenho de 10/10/2026, G9: a posição do ponteiro era gravada em todo botão apontado, e
+   só os alvos com o brilho a leem. */
+describe('a posição do ponteiro dentro do alvo (`--mx`, `--my`)', () => {
+  let quadros: Array<() => void> = []
+  const rodar = () => {
+    const fila = quadros
+    quadros = []
+    fila.forEach((f) => f())
+  }
+  const mover = (alvo: Element, x: number, y: number) =>
+    alvo.dispatchEvent(new MouseEvent('pointermove', { bubbles: true, clientX: x, clientY: y }))
+
+  beforeEach(() => {
+    quadros = []
+    vi.stubGlobal('requestAnimationFrame', (f: () => void) => quadros.push(f))
+    vi.stubGlobal('cancelAnimationFrame', () => undefined)
+    porControles([])
+    document.querySelector('main')!.insertAdjacentHTML(
+      'beforeend',
+      '<button id="cartao" class="q-tile">Jogar</button><button id="linha" class="q-linha">Linha</button>',
+    )
+    for (const id of ['cartao', 'linha', 'a'])
+      el(id).getBoundingClientRect = () => ({ left: 10, top: 20, width: 200, height: 100 }) as DOMRect
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('é gravada no cartão e na linha (quem tem o brilho), uma vez por quadro, em px inteiros', () => {
+    ponteiro('pointerover', el('cartao'))
+    mover(el('cartao'), 60.4, 45.6)
+    mover(el('cartao'), 90, 70)
+    expect(quadros).toHaveLength(1)
+    rodar()
+    expect(el('cartao').style.getPropertyValue('--mx')).toBe('50px')
+    expect(el('cartao').style.getPropertyValue('--my')).toBe('26px')
+    ponteiro('pointerover', el('linha'))
+    mover(el('linha'), 110, 30)
+    rodar()
+    expect(el('linha').style.getPropertyValue('--mx')).toBe('100px')
+  })
+
+  it('num botão comum, que não lê a posição, nada é gravado e nenhum quadro é pedido', () => {
+    ponteiro('pointerover', el('a'))
+    mover(el('a'), 60, 45)
+    expect(quadros).toHaveLength(0)
+    expect(el('a').style.getPropertyValue('--mx')).toBe('')
+  })
+
+  it('quem lê a posição no CSS está na lista de quem a recebe', () => {
+    /* Os três leitores de `var(--mx)` num `::after`: o cartão e a linha (`quest.css`) e o `.jogo.clicavel`. */
+    const css = readFileSync(join(__dirname, '../src/styles/quest.css'), 'utf8')
+    expect(css).toMatch(/:is\(\.q-tile, \.q-linha\):not\(\.apagado, :disabled\)::after \{[^}]*var\(--mx, 50%\)/)
+    el('cartao').className = 'jogo clicavel'
+    ponteiro('pointerover', el('cartao'))
+    mover(el('cartao'), 30, 40)
+    expect(quadros).toHaveLength(1)
   })
 })
 

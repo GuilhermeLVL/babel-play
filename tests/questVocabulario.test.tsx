@@ -18,6 +18,7 @@ type Fn = ReturnType<(typeof import('vitest'))['vi']['fn']>
 const api = vi.hoisted(() => ({
   deck: [] as unknown[],
   falas: [] as unknown[],
+  pedidosDeFalas: [] as Array<AbortSignal | undefined>,
   paginas: [] as string[],
   erroNoCatalogo: false,
   cursor: null as null | { valor: unknown; id: string },
@@ -73,7 +74,10 @@ vi.mock('../src/data/api', async (orig) => {
   return {
     ...(await orig<typeof import('../src/data/api')>()),
     fetchDeck: async () => api.deck,
-    fetchAllUtterances: async () => api.falas,
+    fetchAllUtterances: async (sinal?: AbortSignal) => {
+      api.pedidosDeFalas.push(sinal)
+      return api.falas
+    },
     fetchExerciseResults: async () => [],
     fetchMetrics: async () => null,
     fetchMemoriaDoCartao: async () => ({ revisoes: 4, acertos: 3 }),
@@ -185,6 +189,7 @@ beforeEach(() => {
     cartao('c3', 'bird', 'pássaro'),
   ]
   api.falas = []
+  api.pedidosDeFalas = []
   api.paginas = []
   api.erroNoCatalogo = false
   api.cursor = null
@@ -584,6 +589,26 @@ describe('Vocabulário no Quest', () => {
     expect(screen.getByTestId('voz-passiva').querySelector('.qv-grande')).toBeTruthy()
     expect(painel().textContent).toContain('Tom da fala')
     expect(painel().textContent).toContain('Radar de competências acústicas')
+  })
+
+  /* Auditoria do servidor de 10/10/2026, achado A3: `utterances/all` são TODAS as falas da conta (1 a
+     3 MB), e só a aba de fluência as lê. */
+  it('as falas da conta só são pedidas quando a aba que as usa abre: uma vez, e canceladas ao sair', async () => {
+    const { tocar, unmount } = await montar({ metrics: metricas({ speakingMs: 125_000 }) })
+    expect(api.pedidosDeFalas).toHaveLength(0)
+    await tocar(screen.getAllByRole('tab')[1])
+    await tocar(screen.getAllByRole('tab')[2])
+    expect(api.pedidosDeFalas).toHaveLength(0)
+    await tocar(screen.getAllByRole('tab')[3])
+    expect(api.pedidosDeFalas).toHaveLength(1)
+    // ir e voltar na mesma visita não pede de novo
+    await tocar(screen.getAllByRole('tab')[0])
+    await tocar(screen.getAllByRole('tab')[3])
+    expect(api.pedidosDeFalas).toHaveLength(1)
+    const sinal = api.pedidosDeFalas[0] as AbortSignal
+    expect(sinal.aborted).toBe(false)
+    unmount()
+    expect(sinal.aborted).toBe(true)
   })
 
   it('nos perfis infantil e sênior, as abas de análise ficam atrás de "Mais"', async () => {

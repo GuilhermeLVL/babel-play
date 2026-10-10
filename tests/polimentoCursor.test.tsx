@@ -7,6 +7,7 @@ import { resolve } from 'node:path'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { classesQueAtravessam, readAppearance } from '../src/lib/appearanceSync'
 import { instalarCursor } from '../src/lib/polimento/cursor'
 
 const comMouse = (sim: boolean) =>
@@ -19,10 +20,20 @@ const comMouse = (sim: boolean) =>
 const mexer = (alvo: Element, tipo = 'mouse') =>
   alvo.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: 40, clientY: 50, pointerType: tipo }))
 
-it('o cursor do sistema só some onde o ponto com anel existe (a janela flutuante copia as classes, não o cursor)', () => {
-  const css = readFileSync(resolve(__dirname, '../src/styles/polimentoCursor.css'), 'utf8')
-  expect(css).toContain('html.px-com-cursor:has(.px-cursor) *')
-  expect(css).not.toContain('html.px-com-cursor * {')
+/* Até 10/10/2026 quem protegia a janela flutuante era um `:has(.px-cursor)` nesta regra; ele fazia todo nó
+   novo recalcular a árvore inteira. Agora a classe é que não atravessa (`classesQueAtravessam`). */
+it('o cursor do sistema some no documento marcado, sem `:has()`; a janela flutuante não recebe a marca', () => {
+  const css = readFileSync(resolve(__dirname, '../src/styles/polimentoCursor.css'), 'utf8').replace(
+    /\/\*[\s\S]*?\*\//g,
+    '',
+  )
+  expect(css).toMatch(/html\.px-com-cursor,\s*html\.px-com-cursor \* \{\s*cursor: none !important;/)
+  expect(css).not.toContain(':has(')
+  expect(classesQueAtravessam('dark px-com-cursor px-vt')).toBe('dark px-vt')
+  /* A sincronia que roda a cada mudança de tema também não a leva. */
+  const raiz = document.createElement('html')
+  raiz.className = 'dark px-com-cursor'
+  expect(readAppearance(raiz as never, document.createElement('body') as never).rootClass).toBe('dark')
 })
 
 describe('o cursor de ponto com anel', () => {

@@ -8,6 +8,7 @@ import { z } from 'zod'
 
 import { normalizarPlano, type PlanoDeAssinatura, PLANOS_DE_ASSINATURA } from '../../src/core/planos'
 import { billingEventsRepo } from '../db/repositories/billingEvents'
+import { calibracaoDoUsuario } from '../db/repositories/calibracao'
 import { resumoDoDono } from '../db/repositories/resumo'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
 import { usersRepo } from '../db/repositories/users'
@@ -48,6 +49,19 @@ adminRouter.get('/users/:id', requireRole('admin', 'support'), async (req, res) 
     return
   }
   res.json({ user, subscription: await subscriptionsRepo.getActive(target) })
+})
+
+/**
+ * A CALIBRAÇÃO DO FSRS DE UM USUÁRIO (change `modelo-do-aluno-e-dados`, tarefa 1.3): o que o
+ * agendador previu contra o que a pessoa lembrou, por faixa de retenção prevista, com o erro
+ * resumido, no geral e por origem da nota (Revisão ou qual jogo). Só leitura: é a medida que vem
+ * ANTES de qualquer ajuste de pesos ou de meta. `?repeticoes=1` inclui as repetições do mesmo
+ * cartão no mesmo dia (por padrão só a primeira nota do dia conta).
+ */
+adminRouter.get('/calibracao/:id', requireRole('admin', 'support'), async (req, res) => {
+  const p = parseOr400(idParamSchema, req.params, res)
+  if (!p) return
+  res.json(await calibracaoDoUsuario(asUserId(p.id), { soPrimeiraDoDia: req.query.repeticoes !== '1' }))
 })
 
 // ── Escrita (só admin) ───────────────────────────────────────────────────────

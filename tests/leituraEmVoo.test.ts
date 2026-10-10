@@ -101,10 +101,18 @@ describe('fetchSettings', () => {
     expect(a).not.toBe(b)
   })
 
-  it('pedidos em sequência vão à rede cada um (não é cache)', async () => {
+  it('passada a janela da abertura, pedidos em sequência vão à rede cada um (não é cache)', async () => {
     responder = () => json({ id: 's', activeProfileId: null, targetLanguage: 'en', ui: '{}' })
-    await fetchSettings()
-    await fetchSettings()
-    expect(estado.chamadas).toHaveLength(2)
+    /* A primeira leitura da página (a do teste acima) vale por 10 s para quem pede logo depois
+       (`tests/pedidosDaAbertura.test.tsx`). Depois disso, nada fica guardado. */
+    const agora = Date.now()
+    const relogio = vi.spyOn(Date, 'now').mockReturnValue(agora + 11_000)
+    try {
+      await fetchSettings()
+      await fetchSettings()
+      expect(estado.chamadas).toHaveLength(2)
+    } finally {
+      relogio.mockRestore()
+    }
   })
 })

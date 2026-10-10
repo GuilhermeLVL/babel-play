@@ -31,6 +31,7 @@ import { etagPorVersao } from '../../lib/etagPorVersao'
 import { db } from '../db'
 import { lerCompacto } from '../leituraCompacta'
 import { exerciseResults, reviewLogs, sessions, vocabCards } from '../schema'
+import { agregadosRepo } from './agregados'
 import { economiaRepo } from './economia'
 import { estadoDaContaRepo } from './estadoDaConta'
 import { seedSpendsRepo } from './seedSpends'
@@ -122,7 +123,7 @@ async function lerAtividade(userId: UserId) {
     /* SÓ AS COLUNAS QUE ESTA FUNÇÃO LÊ (auditoria de 2026-09-07, seção 5). Era `SELECT *`, e em
        `utterances` isso trazia o transcrito INTEIRO (`source_text` e `translated_text`) para contar
        palavras e somar duração de fala. */
-    lerCompacto<{ cardId: string; createdAt: number; reviewedAt: number | null; grade: number | null }>(
+    lerCompacto<LinhaDeRevisao>(
       [
         ['cardId', 'card_id', 'texto'],
         ['createdAt', 'created_at'],
@@ -173,6 +174,87 @@ async function lerAtividade(userId: UserId) {
 
 type LinhasDaAtividade = Awaited<ReturnType<typeof lerAtividade>>
 
+interface LinhaDeRevisao {
+  cardId: string
+  createdAt: number
+  reviewedAt: number | null
+  grade: number | null
+}
+
+/**
+ * O QUE O PERFIL TIRA DAS REVISÕES, numa forma que tem DUAS origens (change
+ * `modelo-do-aluno-e-dados`, tarefa 2.2):
+ *
+ *  · `resumirRevisoes`: a conta de sempre, sobre todas as linhas de `review_logs` (o escopo de
+ *    sessão, e a referência dos testes de igualdade);
+ *  · `revisoesDaConta`: a mesma, com os totais e os dias de prática vindos dos agregados diários.
+ *
+ * As duas produzem o MESMO perfil enquanto a limpeza diária não apagou nenhuma revisão do bruto;
+ * depois dela, só a segunda continua contando as que saíram.
+ */
+interface RevisoesResumidas {
+  reviews: number
+  correctReviews: number
+  /** Por cartão: quantas revisões e quantas com nota ruim (< 3, ou sem nota). */
+  porCartao: Map<string, { total: number; ruins: number }>
+  /** Dias com revisão, no fuso do PROCESSO (`toDateString`): a ofensiva antiga, que ainda entra no máximo. */
+  reviewDays: Set<string>
+  /** Carimbos das revisões, em ordem crescente. */
+  temposDeRevisao: number[]
+  /** Carimbos das revisões certas (nota >= 3), sem ordem. */
+  temposDeAcerto: number[]
+  /** Dias com revisão, no fuso do usuário. */
+  diasDePratica: number[]
+}
+
+function resumirRevisoes(logs: LinhaDeRevisao[], fuso: string): RevisoesResumidas {
+  const porCartao = new Map<string, { total: number; ruins: number }>()
+  const diasDePratica = new Set<number>()
+  const temposDeAcerto: number[] = []
+  for (const l of logs) {
+    const r = porCartao.get(l.cardId) ?? { total: 0, ruins: 0 }
+    r.total += 1
+    if ((l.grade ?? 0) < 3) r.ruins += 1
+    porCartao.set(l.cardId, r)
+    diasDePratica.add(diaNumeroNoFuso(l.reviewedAt ?? l.createdAt, fuso))
+    if ((l.grade ?? 0) >= 3) temposDeAcerto.push(l.reviewedAt ?? l.createdAt)
+  }
+  return {
+    reviews: logs.length,
+    correctReviews: logs.filter((l) => (l.grade ?? 0) >= 3).length,
+    porCartao,
+    reviewDays: new Set(logs.map((l) => new Date(l.reviewedAt ?? l.createdAt).toDateString())),
+    temposDeRevisao: logs.map((l) => l.reviewedAt ?? l.createdAt).sort((a, b) => a - b),
+    temposDeAcerto,
+    diasDePratica: [...diasDePratica],
+  }
+}
+
+/**
+ * AS REVISÕES DA CONTA INTEIRA: os TOTAIS vêm dos agregados diários; o resto, das linhas.
+ *
+ * O que os agregados (uma linha por idioma e dia) reproduzem exatamente: quantas revisões
+ * aconteceram, quantas foram acerto e em que dias, no fuso do usuário. É também o que precisa
+ * sobreviver à limpeza diária: as revisões que ela apaga do bruto ficam em `*_purgadas`, e sem isto
+ * o XP cairia 30 dias depois de a pessoa apagar um cartão.
+ *
+ * O que NÃO sai deles, e continua contado das linhas (`resumirRevisoes`): as "palavras difíceis"
+ * (é por cartão, não por dia), a ofensiva no fuso do PROCESSO (`toDateString`) e os carimbos
+ * recentes. Medido em 10/10/2026 no banco sintético (21.900 revisões, ofensiva de 365 dias): trocar
+ * essas três por consultas próprias (agrupar por cartão no SQLite, ler a ofensiva por janelas)
+ * custou MAIS que a leitura única de antes (196 ms contra 157 ms no perfil inteiro), então a leitura
+ * única ficou.
+ */
+async function revisoesDaConta(userId: UserId, fuso: string, logs: LinhaDeRevisao[]): Promise<RevisoesResumidas> {
+  const totais = await agregadosRepo.revisoesDoPerfil(userId, fuso)
+  return {
+    ...resumirRevisoes(logs, fuso),
+    reviews: totais.revisoes,
+    correctReviews: totais.acertos,
+    diasDePratica: totais.dias,
+  }
+}
+
 /**
  * O PERFIL SEM O RELÓGIO: tudo o que sai das cinco tabelas e NÃO depende de `now`, já calculado,
  * mais o mínimo que a parte dependente do relógio precisa (vencimentos, estabilidades, carimbos
@@ -188,7 +270,13 @@ type LinhasDaAtividade = Awaited<ReturnType<typeof lerAtividade>>
  * teto diário de palavras contam no dia de quem estuda — `diaLocal` usava o fuso do PROCESSO, e o
  * servidor em UTC fechava o dia de quem está em São Paulo às 21h.
  */
-function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null, fuso: string) {
+function resumirAtividade(
+  linhas: LinhasDaAtividade,
+  sessionId: string | null,
+  fuso: string,
+  /** As revisões já resumidas (a conta inteira, com os totais dos agregados). Ausente = contar das linhas. */
+  revisoesProntas?: RevisoesResumidas,
+) {
   const { sessTodas, cardsTodos, logs, uttsTodas, drills } = linhas
   const sess = sessionId ? sessTodas.filter((s) => s.id === sessionId) : sessTodas
   const cards = sessionId ? cardsTodos.filter((c) => c.sessionId === sessionId) : cardsTodos
@@ -197,6 +285,7 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null, f
   const idsDeCartao = new Set(cards.map((c) => c.id))
   const logsNoEscopo = sessionId ? logs.filter((l) => idsDeCartao.has(l.cardId)) : logs
   const drillsNoEscopo = sessionId ? drills.filter((d) => (d.origem ?? '') === `sessao:${sessionId}`) : drills
+  const rv = revisoesProntas ?? resumirRevisoes(logsNoEscopo, fuso)
 
   /* A SESSÃO DE DEMONSTRAÇÃO (`server/db/seed.ts`) mora na biblioteca para o app não abrir vazio,
      mas não é captura da pessoa. Contada, ela cumpria a "Primeira captura" (`sessions >= 1`) no
@@ -275,8 +364,8 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null, f
   const drillItems = drillRows.length
   const drillCorrect = drillRows.filter((d) => (d.correct ?? 0) > 0).length
 
-  const reviews = logsNoEscopo.length
-  const correctReviews = logsNoEscopo.filter((l) => (l.grade ?? 0) >= 3).length
+  const reviews = rv.reviews
+  const correctReviews = rv.correctReviews
 
   /**
    * PALAVRAS DIFÍCEIS (spec progresso-de-idioma): o schema grava lapses, difficulty (FSRS) e o
@@ -284,13 +373,7 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null, f
    * lapses (esquecimentos, o sinal mais forte), dificuldade FSRS e a fração de notas ruins.
    * Só entra cartão com >= 2 revisões: com menos, "difícil" seria chute — a base vai junto.
    */
-  const logsPorCartao = new Map<string, { total: number; ruins: number }>()
-  for (const l of logsNoEscopo) {
-    const r = logsPorCartao.get(l.cardId) ?? { total: 0, ruins: 0 }
-    r.total += 1
-    if ((l.grade ?? 0) < 3) r.ruins += 1
-    logsPorCartao.set(l.cardId, r)
-  }
+  const logsPorCartao = rv.porCartao
   const palavrasDificeis = inDeck
     .map((c) => {
       const logs = logsPorCartao.get(c.id) ?? { total: 0, ruins: 0 }
@@ -340,10 +423,10 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null, f
 
   // Streak: dias consecutivos (a partir de hoje) com ao menos uma revisão. O conjunto de dias não
   // depende do relógio; a contagem a partir de hoje, sim (fica em `montarPerfil`).
-  const reviewDays = new Set(logsNoEscopo.map((l) => new Date(l.reviewedAt ?? l.createdAt).toDateString()))
+  const reviewDays = rv.reviewDays
   /* `revisoesRecentes` é um recorte POR TEMPO dos mesmos carimbos: guardá-los já ordenados e
      filtrar depois dá o mesmo array que filtrar e ordenar (a ordem de números iguais é a mesma). */
-  const temposDeRevisao = logsNoEscopo.map((l) => l.reviewedAt ?? l.createdAt).sort((a, b) => a - b)
+  const temposDeRevisao = rv.temposDeRevisao
 
   /* Minutos TOTAIS de captura — a conquista "Ouvinte" ("some 60 minutos de sessão gravada") e a
      estatística. Desde as recompensas v2 (27/09) minuto gravado NÃO paga Seeds nem XP: premiar
@@ -373,13 +456,12 @@ function resumirAtividade(linhas: LinhasDaAtividade, sessionId: string | null, f
   /* DIAS DE PRÁTICA (recompensas v2): revisão, rodada de jogo ou palavra salva. É a unidade da
      ofensiva e dos marcos de 7 dias — abrir o app, sozinho, não entra mais. */
   const diasDePratica = new Set<number>(palavrasPorDia.keys())
-  for (const l of logsNoEscopo) diasDePratica.add(diaNumeroNoFuso(l.reviewedAt ?? l.createdAt, fuso))
+  for (const d of rv.diasDePratica) diasDePratica.add(d)
   for (const e of drillsNoEscopo) if (e.roundId) diasDePratica.add(diaNumeroNoFuso(e.createdAt, fuso))
 
   /* Carimbos dos ACERTOS (revisão certa ou item de jogo certo), ordenados: a meta do dia é
      conferida sobre eles, no fuso do usuário, na parte que depende do relógio. */
-  const temposDeAcerto: number[] = []
-  for (const l of logsNoEscopo) if ((l.grade ?? 0) >= 3) temposDeAcerto.push(l.reviewedAt ?? l.createdAt)
+  const temposDeAcerto: number[] = [...rv.temposDeAcerto]
   for (const d of drillsNoEscopo) if (d.kind === 'drill' && (d.correct ?? 0) > 0) temposDeAcerto.push(d.createdAt)
   temposDeAcerto.sort((a, b) => a - b)
 
@@ -722,10 +804,23 @@ async function resumoDaConta(userId: UserId, fuso: string, atividadeJaLida?: num
   const versao = `${atividadeJaLida ?? (await versoesRepo.de(userId)).atividade}|${fuso}`
   let resumo = resumosDaConta.obter(userId, versao)
   if (!resumo) {
-    resumo = resumirAtividade(await lerAtividade(userId), null, fuso)
+    /* As cinco tabelas, como antes; das revisões, os totais e os dias vêm dos agregados diários. */
+    const linhas = await lerAtividade(userId)
+    resumo = resumirAtividade(linhas, null, fuso, await revisoesDaConta(userId, fuso, linhas.logs))
     resumosDaConta.guardar(userId, versao, resumo, pesoDoResumo(resumo))
   }
   return resumo
+}
+
+/**
+ * O PERFIL DA CONTA PELO CAMINHO ANTIGO: tudo contado das linhas de `review_logs`, sem agregados e
+ * sem cache. Só para a prova de igualdade (`tests/integration/agregados-equivalencia.test.ts`) e para
+ * quem precisar conferir um número em produção; nenhuma rota chama.
+ */
+export async function perfilPeloBruto(userId: UserId, agora: number = Date.now()): Promise<AppMetrics> {
+  const fuso = await fusoDoPerfil(userId)
+  const resumo = resumirAtividade(await lerAtividade(userId), null, fuso)
+  return montarPerfil(resumo, await lerRazao(userId), agora, 'global', fuso)
 }
 
 /**

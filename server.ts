@@ -28,9 +28,11 @@ import {
   avisoDeConviteSemEmail,
   configDoBackupDiario,
   configDoSentry,
+  diasAteApagarDeVez,
   diasDeRetencaoDeAudio,
   erroDeMetricasEmProducao,
   erroDeTrustProxyEmProducao,
+  limpezaDiariaLigada,
   metricasHabilitadas,
   portaInternaDeMetricas,
   verificarConfiguracaoNoBoot,
@@ -270,6 +272,21 @@ async function startServer({ prepararDados = true } = {}) {
       console.warn('[db] backfill de tenancy falhou (segue sem carimbar):', (err as Error)?.message || err)
       registrarFalhaDeBoot('backfill-tenancy', err)
     }
+    /* AGREGADOS DIÁRIOS (migração 0053): conta o passado de quem ainda não tem agregados. Depois do
+       backfill acima, para as linhas legadas já terem dono. Idempotente, um usuário por transação,
+       com teto de usuários e de tempo. Falha aqui NÃO marca o boot: quem ficou sem agregados é
+       contado na primeira leitura (`agregadosRepo.garantir`), então nenhuma rota depende deste passo. */
+    try {
+      const { preencherAgregadosPendentes } = await import('./server/db/repositories/agregados')
+      const { preenchidos, restam } = await preencherAgregadosPendentes()
+      if (preenchidos > 0 || restam) {
+        console.log(
+          `[db] agregados diários contados para ${preenchidos} usuário(s)${restam ? ' (restam outros: entram na primeira leitura de cada um)' : ''}`,
+        )
+      }
+    } catch (err) {
+      console.warn('[db] agregados diários não preenchidos no arranque (segue):', (err as Error)?.message || err)
+    }
   }
   if (process.env.NODE_ENV !== 'production') {
     // Import DINÂMICO, e não estático no topo: `vite` é devDependency, e o esbuild com
@@ -442,6 +459,16 @@ async function startServer({ prepararDados = true } = {}) {
   if (prepararDados) {
     const { agendarPodaDoCacheDeTraducao } = await import('./server/ai/cacheDeTraducao')
     agendarPodaDoCacheDeTraducao()
+  }
+
+  /* LIMPEZA DIÁRIA DO BANCO: apaga de vez o que foi apagado há mais de `LIMPEZA_RETENCAO_DIAS`
+     (padrão 30), confere os agregados diários e roda `PRAGMA optimize`. Mesmo processo e mesmo
+     motivo das limpezas acima. `LIMPEZA_DIARIA=0` desliga; em teste não agenda. O checkpoint do WAL
+     só com `LIMPEZA_CHECKPOINT=1` (com Litestream, não ligar). Ver `server/lib/limpezaDiaria.ts`. */
+  if (prepararDados && limpezaDiariaLigada()) {
+    const { agendarLimpezaDiaria } = await import('./server/lib/limpezaDiaria')
+    agendarLimpezaDiaria()
+    console.log(`[limpeza] linhas apagadas há mais de ${diasAteApagarDeVez()} dias saem de vez (limpeza diária)`)
   }
 
   server.on('error', (err: NodeJS.ErrnoException) => {

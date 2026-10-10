@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cursor do Babel Play: opções</title>
+<style>
+  :root {
+    --canvas: #d9d5c9; --surface: #edeae0; --ink: #22201c; --mut: #5c574d;
+    --accent: #f04e23; --soft: #fbddd3; --borda: #c9c4b6; --creme: #f7f3e8;
+  }
+  html[data-tema='escuro'] {
+    --canvas: #171512; --surface: #23201b; --ink: #f2eee4; --mut: #b3ac9d;
+    --soft: #4a2418; --borda: #3a352d; --creme: #f7f3e8;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--canvas); color: var(--ink); font: 16px/1.45 system-ui, 'Segoe UI', sans-serif; }
+  main { max-width: 1120px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 30px; letter-spacing: -0.02em; margin: 0 0 6px; }
+  .sobre { font: 700 12px ui-monospace, Consolas, monospace; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin: 0 0 4px; }
+  p { margin: 0 0 12px; color: var(--mut); max-width: 70ch; }
+  .topo { display: flex; gap: 12px; align-items: end; justify-content: space-between; flex-wrap: wrap; margin-bottom: 20px; }
+  .grade { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .opcao { background: var(--surface); border: 1px solid var(--borda); border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+  .opcao h2 { margin: 0; font-size: 20px; letter-spacing: -0.01em; }
+  .opcao .nota { font-size: 14px; margin: 0; }
+  .amostras { display: flex; gap: 10px; }
+  .amostra { flex: 1; background: var(--canvas); border-radius: 14px; padding: 10px 6px 8px; text-align: center; font: 700 11px ui-monospace, Consolas, monospace; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mut); }
+  .amostra svg { display: block; margin: 0 auto 4px; width: 64px; height: 64px; }
+  .campo { border: 2px dashed var(--borda); border-radius: 16px; padding: 14px; display: grid; gap: 10px; }
+  .campo > span { font-size: 13px; color: var(--mut); }
+  .ctl { min-height: 48px; padding: 0 18px; border-radius: 999px; border: 2px solid transparent; background: var(--canvas); color: var(--ink); font: 700 15px inherit; }
+  .ctl.pri { background: linear-gradient(135deg, #f46a45, var(--accent)); color: #1c0d07; }
+  .ctl:hover { border-color: var(--accent); }
+  .ctl:active { transform: scale(0.97); }
+  .tile { background: var(--canvas); border-radius: 16px; padding: 14px; border: 2px solid transparent; }
+  .tile:hover { border-color: var(--accent); background: var(--soft); }
+  input[type='text'] { min-height: 44px; border-radius: 12px; border: 1px solid var(--borda); background: var(--canvas); color: var(--ink); padding: 0 12px; font: inherit; }
+  .arrasta { background: var(--soft); border-radius: 12px; padding: 10px 12px; font-weight: 700; user-select: none; }
+  .pros { margin: 0; padding-left: 18px; font-size: 14px; color: var(--mut); }
+  .rec { align-self: start; font: 700 11px ui-monospace, Consolas, monospace; letter-spacing: 0.08em; text-transform: uppercase; background: var(--soft); color: var(--accent); border-radius: 999px; padding: 4px 10px; }
+  html[data-tema='escuro'] .ctl.pri { color: #1c0d07; }
+
+  /* D: ponto com anel. O cursor do sistema some só dentro da área de teste. */
+  #d .campo, #d .campo * { cursor: none; }
+  #d-ponto, #d-anel { position: fixed; left: 0; top: 0; pointer-events: none; border-radius: 50%; opacity: 0; z-index: 9; }
+  #d-ponto { width: 8px; height: 8px; margin: -4px 0 0 -4px; background: var(--accent); }
+  #d-anel { width: 34px; height: 34px; margin: -17px 0 0 -17px; border: 2px solid var(--accent); transition: scale 160ms cubic-bezier(0.23, 1, 0.32, 1), background-color 160ms ease; }
+  #d-anel.sobre { scale: 1.5; background: color-mix(in srgb, var(--accent) 16%, transparent); }
+  #d-anel.aperta { scale: 0.85; }
+</style>
+</head>
+<body>
+<main>
+  <div class="topo">
+    <div>
+      <p class="sobre">Protótipo · cursor</p>
+      <h1>Um cursor com a cara do Babel Play</h1>
+      <p>Passe o mouse dentro de cada área tracejada para sentir a opção. Os desenhos grandes mostram o cursor ampliado: o da esquerda é o normal, o do meio aparece sobre o que é clicável, o da direita ao arrastar. Em campo de texto o cursor continua sendo a barra do sistema, em todas as opções.</p>
+    </div>
+    <button class="ctl" id="tema" type="button">Ver no tema escuro</button>
+  </div>
+  <div class="grade" id="grade"></div>
+</main>
+<div id="d-anel"></div><div id="d-ponto"></div>
+
+<script>
+const TINTA = '#22201c', CREME = '#f7f3e8', LARANJA = '#f04e23';
+
+/* Seta arredondada (32×32, ponta em 5,3). */
+const seta = (fill, borda) => `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M6 4v20l5.6-5 3.6 8.2 3.4-1.5L15 17.6h8z" fill="${fill}" stroke="${borda}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+/* A mesma seta com a faísca do acento: "isto responde ao clique". */
+const setaViva = (fill, borda) => `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><g stroke="${LARANJA}" stroke-width="2.4" stroke-linecap="round"><path d="M22 5.5l2.4-2.4M25 11h3.4M17.5 2.6V6"/></g><path d="M6 4v20l5.6-5 3.6 8.2 3.4-1.5L15 17.6h8z" fill="${fill}" stroke="${borda}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+/* Mão fechada simples para arrastar (ponta em 16,16). */
+const pega = (fill, borda) => `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M9 15c0-1.7 2.6-1.7 2.6 0v-2c0-1.8 2.8-1.8 2.8 0v-.6c0-1.8 2.8-1.8 2.8 0v.8c0-1.7 2.8-1.7 2.8 0v6.300c0 4.400-2.400 7-6 7-3.400 0-5-2-5-5.500z" fill="${fill}" stroke="${borda}" stroke-width="2" stroke-linejoin="round"/></svg>`;
+/* Seta em pixels, no espírito do logotipo (ponta em 3,3). */
+const D_PIXEL = 'M2 2V22H4V20H6V18H8V22H10V26H14V22H12V18H18V16H16V14H14V12H12V10H10V8H8V6H6V4H4V2Z';
+const pixel = (fill, borda, extra = '') => `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" shape-rendering="crispEdges"><path d="${D_PIXEL}" fill="${borda}" stroke="${borda}" stroke-width="3" stroke-linejoin="miter"/><path d="${D_PIXEL}" fill="${fill}"/>${extra}</svg>`;
+const QUADRADOS = `<rect x="20" y="4" width="4" height="4" fill="${LARANJA}"/><rect x="26" y="10" width="4" height="4" fill="#e0a91b"/><rect x="22" y="22" width="4" height="4" fill="#3d7a4f"/>`;
+
+const css = (svg, x, y, reserva) => `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${x} ${y}, ${reserva}`;
+
+const OPCOES = [
+  { id: 'a', nome: 'A. Seta de tinta', rec: true,
+    nota: 'A seta do sistema redesenhada com os cantos arredondados e a tinta do app, com contorno creme. Sobre o que é clicável, ela ganha a faísca laranja.',
+    pros: ['É o cursor nativo do navegador: não atrasa nem pesa, nem no Modo desempenho.', 'Discreto: quem usa o app todo dia não cansa.', 'Contorno creme mantém a leitura no tema claro e no escuro.'],
+    normal: [seta(TINTA, CREME), 5, 3], clica: [setaViva(TINTA, CREME), 5, 3], arrasta: [pega(TINTA, CREME), 16, 16] },
+  { id: 'b', nome: 'B. Seta laranja',
+    nota: 'A mesma forma, mas sempre na cor do acento. Sobre o clicável, inverte para tinta com a faísca.',
+    pros: ['Marca mais presente o tempo todo.', 'Mesmo custo zero da opção A.', 'Risco: laranja sobre botão laranja perde contraste (o contorno creme segura, mas menos).'],
+    normal: [seta(LARANJA, CREME), 5, 3], clica: [setaViva(TINTA, CREME), 5, 3], arrasta: [pega(LARANJA, CREME), 16, 16] },
+  { id: 'c', nome: 'C. Seta em pixels',
+    nota: 'Seta em degraus, como o logotipo. Sobre o clicável aparecem os três quadradinhos da marca.',
+    pros: ['A mais ligada ao logotipo.', 'Mesmo custo zero.', 'Risco: o resto do app é arredondado; o pixel pode destoar fora do logotipo.'],
+    normal: [pixel(TINTA, CREME), 3, 3], clica: [pixel(TINTA, CREME, QUADRADOS), 3, 3], arrasta: [pega(TINTA, CREME), 16, 16] },
+  { id: 'd', nome: 'D. Ponto com anel',
+    nota: 'O cursor do sistema some e um ponto laranja com um anel segue o mouse; o anel cresce sobre o que é clicável.',
+    pros: ['O mais chamativo.', 'Risco: é desenhado por código, então sempre fica um quadro atrás do mouse e some se a página travar.', 'Não recomendo para um app de uso diário; fica aqui para comparar.'] },
+];
+
+const grade = document.getElementById('grade');
+const folha = document.createElement('style');
+for (const o of OPCOES) {
+  if (o.normal) {
+    folha.textContent += `
+#${o.id} .campo { cursor: ${css(...o.normal, 'default')}; }
+#${o.id} .campo :is(button, a, .tile) { cursor: ${css(...o.clica, 'pointer')}; }
+#${o.id} .campo .arrasta { cursor: ${css(...o.arrasta, 'grab')}; }
+#${o.id} .campo input { cursor: text; }`;
+  }
+  const amostras = o.normal
+    ? [['normal', o.normal[0]], ['clicável', o.clica[0]], ['arrastar', o.arrasta[0]]].map(([r, s]) => `<div class="amostra">${s}${r}</div>`).join('')
+    : `<div class="amostra"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="8.500" fill="none" stroke="${LARANJA}" stroke-width="1"/><circle cx="16" cy="16" r="2" fill="${LARANJA}"/></svg>normal</div><div class="amostra"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="12.500" fill="${LARANJA}" fill-opacity=".16" stroke="${LARANJA}" stroke-width="1"/><circle cx="16" cy="16" r="2" fill="${LARANJA}"/></svg>clicável</div>`;
+  grade.insertAdjacentHTML('beforeend', `
+  <section class="opcao" id="${o.id}">
+    ${o.rec ? '<span class="rec">Recomendada</span>' : ''}
+    <h2>${o.nome}</h2>
+    <p class="nota">${o.nota}</p>
+    <div class="amostras">${amostras}</div>
+    <div class="campo">
+      <span>Área de teste</span>
+      <button class="ctl pri" type="button">Iniciar captura</button>
+      <button class="ctl" type="button">Legendas flutuantes</button>
+      <div class="tile"><b>Memória</b><br><span>Um cartão de jogo, clicável.</span></div>
+      <input type="text" placeholder="Buscar por título">
+      <div class="arrasta">Arraste esta janela</div>
+    </div>
+    <ul class="pros">${o.pros.map((p) => `<li>${p}</li>`).join('')}</ul>
+  </section>`);
+}
+document.head.append(folha);
+
+/* D: o seguidor. */
+const ponto = document.getElementById('d-ponto'), anel = document.getElementById('d-anel');
+const campoD = document.querySelector('#d .campo');
+campoD.addEventListener('pointermove', (e) => {
+  ponto.style.opacity = anel.style.opacity = 1;
+  ponto.style.translate = anel.style.translate = `${e.clientX}px ${e.clientY}px`;
+  anel.classList.toggle('sobre', !!e.target.closest('button, .tile, .arrasta'));
+});
+campoD.addEventListener('pointerleave', () => { ponto.style.opacity = anel.style.opacity = 0; });
+campoD.addEventListener('pointerdown', () => anel.classList.add('aperta'));
+addEventListener('pointerup', () => anel.classList.remove('aperta'));
+
+document.getElementById('tema').addEventListener('click', (e) => {
+  const escuro = document.documentElement.dataset.tema !== 'escuro';
+  document.documentElement.dataset.tema = escuro ? 'escuro' : '';
+  e.currentTarget.textContent = escuro ? 'Ver no tema claro' : 'Ver no tema escuro';
+});
+</script>
+</body>
+</html>

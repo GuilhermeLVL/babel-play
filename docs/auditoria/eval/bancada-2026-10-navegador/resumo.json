@@ -1,0 +1,2002 @@
+{
+ "geradoEm": "2026-10-10T01:36:00.210Z",
+ "resultados": [
+  {
+   "sistema": "moonshine-base:q8:wasm",
+   "conjunto": "fleurs_en",
+   "geradoEm": "2026-10-10T01:26:33.210Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 6696.25,
+   "arquivos": {
+    "config.json": 922,
+    "preprocessor_config.json": 128,
+    "generation_config.json": 147,
+    "onnx/encoder_model_quantized.onnx": 20513063,
+    "tokenizer_config.json": 135735,
+    "tokenizer.json": 3761754,
+    "onnx/decoder_model_merged_quantized.onnx": 42498870
+   },
+   "memoriaDoChromeMb": 929,
+   "idioma": "en",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 3,
+   "wer": {
+    "valor": 0.13554083885209714,
+    "ic95": [
+     0.10473179396979904,
+     0.1721351113175962
+    ]
+   },
+   "cer": {
+    "valor": 0.07766990291262135,
+    "ic95": [
+     0.05138107004509846,
+     0.10888674703699924
+    ]
+   },
+   "fatorDeTempoReal": 0.06924870868790738,
+   "msP50": 636.5649999999441,
+   "msP95": 1248.4900000002235,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  },
+  {
+   "sistema": "moonshine-v2-small:q8:wasm",
+   "conjunto": "fleurs_en",
+   "geradoEm": "2026-10-10T01:29:05.361Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 11071.25,
+   "arquivos": {
+    "config.json": 1745,
+    "tokenizer_config.json": 301,
+    "preprocessor_config.json": 284,
+    "generation_config.json": 163,
+    "tokenizer.json": 3761754,
+    "onnx/encoder_model_quantized.onnx": 74923158,
+    "onnx/decoder_model_merged_quantized.onnx": 90830447
+   },
+   "memoriaDoChromeMb": 1219,
+   "idioma": "en",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 1,
+   "wer": {
+    "valor": 0.11743929359823399,
+    "ic95": [
+     0.09150713454554117,
+     0.1479089872005871
+    ]
+   },
+   "cer": {
+    "valor": 0.06594614398241436,
+    "ic95": [
+     0.04597871191033078,
+     0.09186105587248924
+    ]
+   },
+   "fatorDeTempoReal": 0.1360245151395211,
+   "msP50": 1177.1550000002608,
+   "msP95": 2875.875,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  },
+  {
+   "sistema": "parakeet-v3:fp16:webgpu",
+   "conjunto": "fleurs_en",
+   "geradoEm": "2026-10-10T01:10:42.861Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 5775.200000000186,
+   "arquivos": {
+    "striimit/parakeet-tdt-0.6b-v3-webgpu@d233168ffeab/nemo128_conv.onnx": 1190298,
+    "striimit/parakeet-tdt-0.6b-v3-webgpu@d233168ffeab/encoder-model.fp16.onnx": 1239245959,
+    "striimit/parakeet-tdt-0.6b-v3-webgpu@d233168ffeab/decoder_joint-model.onnx": 72520893,
+    "striimit/parakeet-tdt-0.6b-v3-webgpu@d233168ffeab/vocab.txt": 93939
+   },
+   "memoriaDoChromeMb": 4935,
+   "idioma": "en",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.0631346578366446,
+    "ic95": [
+     0.05025410197610491,
+     0.07692563081009297
+    ]
+   },
+   "cer": {
+    "valor": 0.02527935519325884,
+    "ic95": [
+     0.018520796178895984,
+     0.032513587592502835
+    ]
+   },
+   "fatorDeTempoReal": 0.016580377993270296,
+   "msP50": 156.98500000033528,
+   "msP95": 236.81499999994412,
+   "encoderMsMedio": 96.3783999999985,
+   "decoderMsMedio": 62.64914999999106
+  },
+  {
+   "sistema": "parakeet-v3:int8:wasm",
+   "conjunto": "fleurs_en",
+   "geradoEm": "2026-10-10T01:09:32.464Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 3720.024999999907,
+   "arquivos": {
+    "striimit/parakeet-tdt-0.6b-v3-webgpu@d233168ffeab/nemo128_conv.onnx": 1190298,
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/encoder-model.int8.onnx": 652183999,
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/decoder_joint-model.int8.onnx": 18202004,
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/vocab.txt": 93939
+   },
+   "memoriaDoChromeMb": 2162,
+   "idioma": "en",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.0706401766004415,
+    "ic95": [
+     0.055722525922012905,
+     0.08542620726110181
+    ]
+   },
+   "cer": {
+    "valor": 0.03791903278988826,
+    "ic95": [
+     0.025992846252338535,
+     0.04978228187502938
+    ]
+   },
+   "fatorDeTempoReal": 0.0936795764892135,
+   "msP50": 905.2649999996647,
+   "msP95": 1683.154999999795,
+   "encoderMsMedio": 897.1490499999979,
+   "decoderMsMedio": 42.76334999999497
+  },
+  {
+   "sistema": "whisper-base:hybrid-fp16:wasm+basica",
+   "conjunto": "fleurs_en",
+   "geradoEm": "2026-10-10T00:59:15.758Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 2608.6999999999534,
+   "arquivos": {
+    "config.json": 2243,
+    "preprocessor_config.json": 339,
+    "tokenizer.json": 2480466,
+    "tokenizer_config.json": 282682,
+    "onnx/decoder_model_merged_q4.onnx": 123602419,
+    "generation_config.json": 3832,
+    "onnx/encoder_model_fp16.onnx": 41332612
+   },
+   "memoriaDoChromeMb": 1796,
+   "idioma": "en",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.21545253863134659,
+    "ic95": [
+     0.18430532551406248,
+     0.24490296118447377
+    ]
+   },
+   "cer": {
+    "valor": 0.12392379556695365,
+    "ic95": [
+     0.09709080922108425,
+     0.15044025125270197
+    ]
+   },
+   "fatorDeTempoReal": 0.1691847219473549,
+   "msP50": 1700.2399999997579,
+   "msP95": 2056.1949999998324,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  },
+  {
+   "sistema": "whisper-base:hybrid-fp16:webgpu",
+   "conjunto": "fleurs_en",
+   "geradoEm": "2026-10-10T00:47:49.996Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 2626.219999999972,
+   "arquivos": {
+    "config.json": 2243,
+    "preprocessor_config.json": 339,
+    "tokenizer.json": 2480466,
+    "tokenizer_config.json": 282682,
+    "generation_config.json": 3832,
+    "onnx/decoder_model_merged_q4.onnx": 123602419,
+    "onnx/encoder_model_fp16.onnx": 41332612
+   },
+   "memoriaDoChromeMb": 2082,
+   "idioma": "en",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 22,
+   "wer": {
+    "valor": 0.9796909492273731,
+    "ic95": [
+     0.9753863852501159,
+     0.9840548444592068
+    ]
+   },
+   "cer": {
+    "valor": 0.9789338706722843,
+    "ic95": [
+     0.9750878424239835,
+     0.9820762396318261
+    ]
+   },
+   "fatorDeTempoReal": 0.02075893033841223,
+   "msP50": 206.13000000012107,
+   "msP95": 230.67500000004657,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  },
+  {
+   "sistema": "whisper-base:hybrid:webgpu",
+   "conjunto": "fleurs_en",
+   "geradoEm": "2026-10-10T00:47:01.477Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 2600.689999999944,
+   "arquivos": {
+    "config.json": 2243,
+    "preprocessor_config.json": 339,
+    "tokenizer.json": 2480466,
+    "tokenizer_config.json": 282682,
+    "onnx/decoder_model_merged_q4.onnx": 123602419,
+    "generation_config.json": 3832,
+    "onnx/encoder_model.onnx": 82468078
+   },
+   "memoriaDoChromeMb": 2028,
+   "idioma": "en",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.21545253863134659,
+    "ic95": [
+     0.18430532551406248,
+     0.24490296118447377
+    ]
+   },
+   "cer": {
+    "valor": 0.12392379556695365,
+    "ic95": [
+     0.09709080922108425,
+     0.15044025125270197
+    ]
+   },
+   "fatorDeTempoReal": 0.06179479517118689,
+   "msP50": 602.125,
+   "msP95": 900.5300000000279,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  },
+  {
+   "sistema": "whisper-base:q8:wasm",
+   "conjunto": "fleurs_en",
+   "geradoEm": "2026-10-10T00:52:55.400Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 2239.7600000000093,
+   "arquivos": {
+    "config.json": 2243,
+    "preprocessor_config.json": 339,
+    "tokenizer_config.json": 282682,
+    "generation_config.json": 3832,
+    "tokenizer.json": 2480466,
+    "onnx/encoder_model_quantized.onnx": 23201314,
+    "onnx/decoder_model_merged_quantized.onnx": 53693315
+   },
+   "memoriaDoChromeMb": 1160,
+   "idioma": "en",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.22649006622516557,
+    "ic95": [
+     0.1935146826139476,
+     0.2580430351562542
+    ]
+   },
+   "cer": {
+    "valor": 0.13344934969774683,
+    "ic95": [
+     0.10700515579003284,
+     0.16142877765475191
+    ]
+   },
+   "fatorDeTempoReal": 0.12166456065703576,
+   "msP50": 1215.119999999879,
+   "msP95": 1492.7450000001118,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  },
+  {
+   "sistema": "whisper-tiny:hybrid-fp16:webgpu",
+   "conjunto": "fleurs_en",
+   "geradoEm": "2026-10-10T01:03:05.388Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 3110.130000000354,
+   "arquivos": {
+    "config.json": 2243,
+    "preprocessor_config.json": 339,
+    "tokenizer.json": 2480466,
+    "tokenizer_config.json": 282683,
+    "onnx/decoder_model_merged_q4.onnx": 86713702,
+    "generation_config.json": 3772,
+    "onnx/encoder_model_fp16.onnx": 16519192
+   },
+   "memoriaDoChromeMb": 1824,
+   "idioma": "en",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.5492273730684327,
+    "ic95": [
+     0.47875848537613247,
+     0.6266007632034905
+    ]
+   },
+   "cer": {
+    "valor": 0.4059351529584173,
+    "ic95": [
+     0.3400094758018497,
+     0.4845421685201416
+    ]
+   },
+   "fatorDeTempoReal": 0.046510097961606496,
+   "msP50": 450.1049999999814,
+   "msP95": 727.2399999997579,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  },
+  {
+   "sistema": "whisper-tiny:hybrid:webgpu",
+   "conjunto": "fleurs_en",
+   "geradoEm": "2026-10-10T01:01:20.666Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 7733.679999999702,
+   "arquivos": {
+    "config.json": 2243,
+    "preprocessor_config.json": 339,
+    "onnx/encoder_model.onnx": 32904992,
+    "generation_config.json": 3772,
+    "tokenizer_config.json": 282683,
+    "tokenizer.json": 2480466,
+    "onnx/decoder_model_merged_q4.onnx": 86713702
+   },
+   "memoriaDoChromeMb": 1896,
+   "idioma": "en",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.19955849889624724,
+    "ic95": [
+     0.16975932789574366,
+     0.22721398101225224
+    ]
+   },
+   "cer": {
+    "valor": 0.09012639677596629,
+    "ic95": [
+     0.07466094959213554,
+     0.1047028427674659
+    ]
+   },
+   "fatorDeTempoReal": 0.04834158420739913,
+   "msP50": 470.15500000026077,
+   "msP95": 691.5699999998324,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  },
+  {
+   "sistema": "parakeet-v3:fp16:webgpu",
+   "conjunto": "fleurs_es",
+   "geradoEm": "2026-10-10T01:10:24.599Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 5775.200000000186,
+   "arquivos": {
+    "striimit/parakeet-tdt-0.6b-v3-webgpu@d233168ffeab/nemo128_conv.onnx": 1190298,
+    "striimit/parakeet-tdt-0.6b-v3-webgpu@d233168ffeab/encoder-model.fp16.onnx": 1239245959,
+    "striimit/parakeet-tdt-0.6b-v3-webgpu@d233168ffeab/decoder_joint-model.onnx": 72520893,
+    "striimit/parakeet-tdt-0.6b-v3-webgpu@d233168ffeab/vocab.txt": 93939
+   },
+   "memoriaDoChromeMb": 4972,
+   "idioma": "es",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.04198473282442748,
+    "ic95": [
+     0.032256518997514805,
+     0.053010350741942616
+    ]
+   },
+   "cer": {
+    "valor": 0.015041695892759723,
+    "ic95": [
+     0.010439120607838269,
+     0.02059787797923944
+    ]
+   },
+   "fatorDeTempoReal": 0.016397715093053867,
+   "msP50": 182.26000000024214,
+   "msP95": 327.7949999999255,
+   "encoderMsMedio": 107.1492999999784,
+   "decoderMsMedio": 84.05790000002831
+  },
+  {
+   "sistema": "parakeet-v3:int8:wasm",
+   "conjunto": "fleurs_es",
+   "geradoEm": "2026-10-10T01:07:56.330Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 3720.024999999907,
+   "arquivos": {
+    "striimit/parakeet-tdt-0.6b-v3-webgpu@d233168ffeab/nemo128_conv.onnx": 1190298,
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/encoder-model.int8.onnx": 652183999,
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/decoder_joint-model.int8.onnx": 18202004,
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/vocab.txt": 93939
+   },
+   "memoriaDoChromeMb": 2074,
+   "idioma": "es",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.04541984732824427,
+    "ic95": [
+     0.03559032396497922,
+     0.05556036139946174
+    ]
+   },
+   "cer": {
+    "valor": 0.017691528329826203,
+    "ic95": [
+     0.012909415001892932,
+     0.02331827674422351
+    ]
+   },
+   "fatorDeTempoReal": 0.09039829565754028,
+   "msP50": 1025.4200000003912,
+   "msP95": 1938.8050000001676,
+   "encoderMsMedio": 1056.9354500000131,
+   "decoderMsMedio": 48.21654999997932
+  },
+  {
+   "sistema": "whisper-base:hybrid:webgpu",
+   "conjunto": "fleurs_es",
+   "geradoEm": "2026-10-10T01:21:43.700Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 2688.5099999997765,
+   "arquivos": {
+    "config.json": 2243,
+    "preprocessor_config.json": 339,
+    "onnx/encoder_model.onnx": 82468078,
+    "tokenizer.json": 2480466,
+    "tokenizer_config.json": 282682,
+    "generation_config.json": 3832,
+    "onnx/decoder_model_merged_q4.onnx": 123602419
+   },
+   "memoriaDoChromeMb": 2381,
+   "idioma": "es",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.15458015267175573,
+    "ic95": [
+     0.1360754111771291,
+     0.17425105362555904
+    ]
+   },
+   "cer": {
+    "valor": 0.05650377990803523,
+    "ic95": [
+     0.04585121391774647,
+     0.0682904005496434
+    ]
+   },
+   "fatorDeTempoReal": 0.07256652132254983,
+   "msP50": 844.6149999997579,
+   "msP95": 1590.4250000002794,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  },
+  {
+   "sistema": "whisper-base:q8:wasm",
+   "conjunto": "fleurs_es",
+   "geradoEm": "2026-10-10T01:25:13.453Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 2130.1349999997765,
+   "arquivos": {
+    "config.json": 2243,
+    "preprocessor_config.json": 339,
+    "tokenizer.json": 2480466,
+    "tokenizer_config.json": 282682,
+    "onnx/encoder_model_quantized.onnx": 23201314,
+    "onnx/decoder_model_merged_quantized.onnx": 53693315,
+    "generation_config.json": 3832
+   },
+   "memoriaDoChromeMb": 1211,
+   "idioma": "es",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.15954198473282444,
+    "ic95": [
+     0.13907920443480182,
+     0.18066169276605626
+    ]
+   },
+   "cer": {
+    "valor": 0.055178863689501985,
+    "ic95": [
+     0.04555855399430968,
+     0.06710300007947045
+    ]
+   },
+   "fatorDeTempoReal": 0.16464226265874043,
+   "msP50": 1997.2399999997579,
+   "msP95": 2689.439999999944,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  },
+  {
+   "sistema": "whisper-small:hybrid:webgpu",
+   "conjunto": "fleurs_es",
+   "geradoEm": "2026-10-10T01:20:07.721Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 20862.779999999795,
+   "arquivos": {
+    "config.json": 2227,
+    "preprocessor_config.json": 339,
+    "onnx/decoder_model_merged_q4.onnx": 233149327,
+    "generation_config.json": 3893,
+    "tokenizer_config.json": 282683,
+    "tokenizer.json": 2480466,
+    "onnx/encoder_model.onnx": 352825870
+   },
+   "memoriaDoChromeMb": 2878,
+   "idioma": "es",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.09312977099236641,
+    "ic95": [
+     0.07921126652394712,
+     0.10769848275405985
+    ]
+   },
+   "cer": {
+    "valor": 0.0298495830410724,
+    "ic95": [
+     0.024091276207916106,
+     0.035486958829378086
+    ]
+   },
+   "fatorDeTempoReal": 0.10963071632725838,
+   "msP50": 1263.0849999999627,
+   "msP95": 2107.529999999795,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  },
+  {
+   "sistema": "parakeet-v3-stft:int8:wasm",
+   "conjunto": "fleurs_pt",
+   "geradoEm": "2026-10-10T01:03:40.150Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": null,
+   "cargaMs": null,
+   "arquivos": {
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/nemo128.onnx": 139764,
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/encoder-model.int8.onnx": 652183999,
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/decoder_joint-model.int8.onnx": 18202004,
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/vocab.txt": 93939
+   },
+   "memoriaDoChromeMb": null,
+   "n": 0,
+   "falhaDeCarga": "pre (/modelos/parakeet/v3-int8/8f23f0c03c87/nemo128.onnx): Can't create a session. ERROR_CODE: 9, ERROR_MESSAGE: Could not find an implementation for Cast(13) node with name 'node_Cast_6'",
+   "etapa": "pre"
+  },
+  {
+   "sistema": "parakeet-v3:fp16:webgpu",
+   "conjunto": "fleurs_pt",
+   "geradoEm": "2026-10-10T01:10:02.380Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 5775.200000000186,
+   "arquivos": {
+    "striimit/parakeet-tdt-0.6b-v3-webgpu@d233168ffeab/nemo128_conv.onnx": 1190298,
+    "striimit/parakeet-tdt-0.6b-v3-webgpu@d233168ffeab/encoder-model.fp16.onnx": 1239245959,
+    "striimit/parakeet-tdt-0.6b-v3-webgpu@d233168ffeab/decoder_joint-model.onnx": 72520893,
+    "striimit/parakeet-tdt-0.6b-v3-webgpu@d233168ffeab/vocab.txt": 93939
+   },
+   "memoriaDoChromeMb": 4968,
+   "idioma": "pt",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.05043768236765319,
+    "ic95": [
+     0.03781486985037917,
+     0.06391556455086948
+    ]
+   },
+   "cer": {
+    "valor": 0.018293201735727047,
+    "ic95": [
+     0.013442055703794375,
+     0.02449282298815646
+    ]
+   },
+   "fatorDeTempoReal": 0.015808485929448907,
+   "msP50": 188.64500000001863,
+   "msP95": 293.31999999983236,
+   "encoderMsMedio": 111.32714999999851,
+   "decoderMsMedio": 77.3588000000082
+  },
+  {
+   "sistema": "parakeet-v3:int8:wasm",
+   "conjunto": "fleurs_pt",
+   "geradoEm": "2026-10-10T01:06:03.061Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 3720.024999999907,
+   "arquivos": {
+    "striimit/parakeet-tdt-0.6b-v3-webgpu@d233168ffeab/nemo128_conv.onnx": 1190298,
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/encoder-model.int8.onnx": 652183999,
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/decoder_joint-model.int8.onnx": 18202004,
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/vocab.txt": 93939
+   },
+   "memoriaDoChromeMb": 2017,
+   "idioma": "pt",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.05752396832013339,
+    "ic95": [
+     0.045602890833016364,
+     0.07132083963464099
+    ]
+   },
+   "cer": {
+    "valor": 0.02561048243001787,
+    "ic95": [
+     0.01891976574605779,
+     0.033354177579343766
+    ]
+   },
+   "fatorDeTempoReal": 0.08899317875544878,
+   "msP50": 1076.6650000000373,
+   "msP95": 1773.5399999995716,
+   "encoderMsMedio": 1068.2657999999915,
+   "decoderMsMedio": 46.07180000001565
+  },
+  {
+   "sistema": "parakeet-v3:int8:wasm@1t",
+   "conjunto": "fleurs_pt",
+   "geradoEm": "2026-10-10T01:31:41.035Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 1,
+   "cargaMs": 4068.7249999996275,
+   "arquivos": {
+    "striimit/parakeet-tdt-0.6b-v3-webgpu@d233168ffeab/nemo128_conv.onnx": 1190298,
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/encoder-model.int8.onnx": 652183999,
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/decoder_joint-model.int8.onnx": 18202004,
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/vocab.txt": 93939
+   },
+   "memoriaDoChromeMb": 1979,
+   "idioma": "pt",
+   "n": 30,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.04644808743169399,
+    "ic95": [
+     0.02662309835011785,
+     0.07256601649328141
+    ]
+   },
+   "cer": {
+    "valor": 0.023836231071228266,
+    "ic95": [
+     0.011036137099137538,
+     0.04098222782400939
+    ]
+   },
+   "fatorDeTempoReal": 0.2649957598721515,
+   "msP50": 3239.4150000000373,
+   "msP95": 5013.969999999739,
+   "encoderMsMedio": 3257.033999999985,
+   "decoderMsMedio": 143.9083333333023
+  },
+  {
+   "sistema": "parakeet-v3:int8:wasm@2t",
+   "conjunto": "fleurs_pt",
+   "geradoEm": "2026-10-10T01:34:25.997Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 2,
+   "cargaMs": 3788.135000000708,
+   "arquivos": {
+    "striimit/parakeet-tdt-0.6b-v3-webgpu@d233168ffeab/nemo128_conv.onnx": 1190298,
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/encoder-model.int8.onnx": 652183999,
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/decoder_joint-model.int8.onnx": 18202004,
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/vocab.txt": 93939
+   },
+   "memoriaDoChromeMb": 2643,
+   "idioma": "pt",
+   "n": 30,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.04644808743169399,
+    "ic95": [
+     0.02662309835011785,
+     0.07256601649328141
+    ]
+   },
+   "cer": {
+    "valor": 0.023836231071228266,
+    "ic95": [
+     0.011036137099137538,
+     0.04098222782400939
+    ]
+   },
+   "fatorDeTempoReal": 0.14470288174038967,
+   "msP50": 1772.1049999995157,
+   "msP95": 2884.5950000006706,
+   "encoderMsMedio": 1779.7693333333048,
+   "decoderMsMedio": 77.15600000011425
+  },
+  {
+   "sistema": "parakeet-v3:int8:webgpu",
+   "conjunto": "fleurs_pt",
+   "geradoEm": "2026-10-10T01:15:09.345Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 5072.30999999959,
+   "arquivos": {
+    "striimit/parakeet-tdt-0.6b-v3-webgpu@d233168ffeab/nemo128_conv.onnx": 1190298,
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/encoder-model.int8.onnx": 652183999,
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/decoder_joint-model.int8.onnx": 18202004,
+    "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c87/vocab.txt": 93939
+   },
+   "memoriaDoChromeMb": 3522,
+   "idioma": "pt",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.057107127969987494,
+    "ic95": [
+     0.04561216636776213,
+     0.07036188309310587
+    ]
+   },
+   "cer": {
+    "valor": 0.02492980515613035,
+    "ic95": [
+     0.018078024440813804,
+     0.03295263544287562
+    ]
+   },
+   "fatorDeTempoReal": 0.20296157748711877,
+   "msP50": 2467.010000000242,
+   "msP95": 3610.695000000298,
+   "encoderMsMedio": 2476.304500000011,
+   "decoderMsMedio": 72.92469999999274
+  },
+  {
+   "sistema": "whisper-base:hybrid-fp16:wasm",
+   "conjunto": "fleurs_pt",
+   "geradoEm": "2026-10-10T00:43:02.321Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": null,
+   "cargaMs": null,
+   "arquivos": null,
+   "memoriaDoChromeMb": null,
+   "n": 0,
+   "falhaDeCarga": "Can't create a session. ERROR_CODE: 1, ERROR_MESSAGE: /mnt/vss/_work/1/s/onnxruntime/core/graph/graph_utils.cc:30 int onnxruntime::graph_utils::GetIndexFromName(const Node &, const std::string &, bool) itr != node_args.end() was false. Attempting to get index by a name which does not exist:InsertedPrecisionFreeCast_/layer_norm/Constant_output_0for node: /layers.0/self_attn_layer_norm/Mul/SimplifiedLayerNormFusion/\n",
+   "etapa": null
+  },
+  {
+   "sistema": "whisper-base:hybrid-fp16:wasm+basica",
+   "conjunto": "fleurs_pt",
+   "geradoEm": "2026-10-10T00:56:23.297Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 2608.6999999999534,
+   "arquivos": {
+    "config.json": 2243,
+    "preprocessor_config.json": 339,
+    "tokenizer.json": 2480466,
+    "tokenizer_config.json": 282682,
+    "onnx/decoder_model_merged_q4.onnx": 123602419,
+    "generation_config.json": 3832,
+    "onnx/encoder_model_fp16.onnx": 41332612
+   },
+   "memoriaDoChromeMb": 1777,
+   "idioma": "pt",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.18215923301375572,
+    "ic95": [
+     0.1579889931100384,
+     0.20559476693231168
+    ]
+   },
+   "cer": {
+    "valor": 0.06134603930911257,
+    "ic95": [
+     0.0513557208614499,
+     0.07197649016603198
+    ]
+   },
+   "fatorDeTempoReal": 0.15954624653190785,
+   "msP50": 1968.6450000000186,
+   "msP95": 2568.519999999786,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  },
+  {
+   "sistema": "whisper-base:hybrid-fp16:webgpu",
+   "conjunto": "fleurs_pt",
+   "geradoEm": "2026-10-10T00:47:27.635Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 2626.219999999972,
+   "arquivos": {
+    "config.json": 2243,
+    "preprocessor_config.json": 339,
+    "tokenizer.json": 2480466,
+    "tokenizer_config.json": 282682,
+    "generation_config.json": 3832,
+    "onnx/decoder_model_merged_q4.onnx": 123602419,
+    "onnx/encoder_model_fp16.onnx": 41332612
+   },
+   "memoriaDoChromeMb": 2101,
+   "idioma": "pt",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 66,
+   "wer": {
+    "valor": 0.9949979157982493,
+    "ic95": [
+     0.9922379499211413,
+     0.9975480680420838
+    ]
+   },
+   "cer": {
+    "valor": 0.9927678039649451,
+    "ic95": [
+     0.990624938948945,
+     0.9948216831552675
+    ]
+   },
+   "fatorDeTempoReal": 0.016397748711850613,
+   "msP50": 204.77000000001863,
+   "msP95": 223.56999999983236,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  },
+  {
+   "sistema": "whisper-base:hybrid-fp16:webgpu+basica",
+   "conjunto": "fleurs_pt",
+   "geradoEm": "2026-10-10T00:44:05.360Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 2848.5150000001304,
+   "arquivos": {
+    "config.json": 2243,
+    "preprocessor_config.json": 339,
+    "onnx/decoder_model_merged_q4.onnx": 123602419,
+    "tokenizer.json": 2480466,
+    "generation_config.json": 3832,
+    "tokenizer_config.json": 282682,
+    "onnx/encoder_model_fp16.onnx": 41332612
+   },
+   "memoriaDoChromeMb": 1982,
+   "idioma": "pt",
+   "n": 5,
+   "falhas": 0,
+   "vazias": 4,
+   "wer": {
+    "valor": 0.9925373134328358,
+    "ic95": [
+     0.975,
+     1
+    ]
+   },
+   "cer": {
+    "valor": 0.9951845906902087,
+    "ic95": [
+     0.9847972972972973,
+     1
+    ]
+   },
+   "fatorDeTempoReal": 0.01800280112044253,
+   "msP50": 231.6449999997858,
+   "msP95": 241.41499999980442,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  },
+  {
+   "sistema": "whisper-base:hybrid-fp16:webgpu+desligada",
+   "conjunto": "fleurs_pt",
+   "geradoEm": "2026-10-10T00:44:11.192Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 2190.8899999998976,
+   "arquivos": {
+    "config.json": 2243,
+    "preprocessor_config.json": 339,
+    "tokenizer.json": 2480466,
+    "tokenizer_config.json": 282682,
+    "onnx/decoder_model_merged_q4.onnx": 123602419,
+    "generation_config.json": 3832,
+    "onnx/encoder_model_fp16.onnx": 41332612
+   },
+   "memoriaDoChromeMb": 1467,
+   "idioma": "pt",
+   "n": 5,
+   "falhas": 0,
+   "vazias": 4,
+   "wer": {
+    "valor": 0.9925373134328358,
+    "ic95": [
+     0.975,
+     1
+    ]
+   },
+   "cer": {
+    "valor": 0.9951845906902087,
+    "ic95": [
+     0.9847972972972973,
+     1
+    ]
+   },
+   "fatorDeTempoReal": 0.017215841892309437,
+   "msP50": 222.81499999994412,
+   "msP95": 228.7399999999907,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  },
+  {
+   "sistema": "whisper-base:hybrid:webgpu",
+   "conjunto": "fleurs_pt",
+   "geradoEm": "2026-10-10T01:20:12.767Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 2688.5099999997765,
+   "arquivos": {
+    "config.json": 2243,
+    "preprocessor_config.json": 339,
+    "onnx/encoder_model.onnx": 82468078,
+    "tokenizer.json": 2480466,
+    "tokenizer_config.json": 282682,
+    "generation_config.json": 3832,
+    "onnx/decoder_model_merged_q4.onnx": 123602419
+   },
+   "memoriaDoChromeMb": 2200,
+   "idioma": "pt",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.18215923301375572,
+    "ic95": [
+     0.1579889931100384,
+     0.20559476693231168
+    ]
+   },
+   "cer": {
+    "valor": 0.06134603930911257,
+    "ic95": [
+     0.0513557208614499,
+     0.07197649016603198
+    ]
+   },
+   "fatorDeTempoReal": 0.06926552120491486,
+   "msP50": 838.8250000001863,
+   "msP95": 1338.9549999998417,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  },
+  {
+   "sistema": "whisper-base:q8:wasm",
+   "conjunto": "fleurs_pt",
+   "geradoEm": "2026-10-10T01:21:49.025Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 2130.1349999997765,
+   "arquivos": {
+    "config.json": 2243,
+    "preprocessor_config.json": 339,
+    "tokenizer.json": 2480466,
+    "tokenizer_config.json": 282682,
+    "onnx/encoder_model_quantized.onnx": 23201314,
+    "onnx/decoder_model_merged_quantized.onnx": 53693315,
+    "generation_config.json": 3832
+   },
+   "memoriaDoChromeMb": 1041,
+   "idioma": "pt",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.18799499791579824,
+    "ic95": [
+     0.16414979928664164,
+     0.21139286694024711
+    ]
+   },
+   "cer": {
+    "valor": 0.06500467965625797,
+    "ic95": [
+     0.054777808677722625,
+     0.07659002734633072
+    ]
+   },
+   "fatorDeTempoReal": 0.13854614744351915,
+   "msP50": 1741.9799999999814,
+   "msP95": 2288.804999999935,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  },
+  {
+   "sistema": "whisper-base:q8:wasm@1t",
+   "conjunto": "fleurs_pt",
+   "geradoEm": "2026-10-10T01:33:23.539Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 1,
+   "cargaMs": 2139.239999999292,
+   "arquivos": {
+    "config.json": 2243,
+    "preprocessor_config.json": 339,
+    "tokenizer.json": 2480466,
+    "onnx/encoder_model_quantized.onnx": 23201314,
+    "tokenizer_config.json": 282682,
+    "onnx/decoder_model_merged_quantized.onnx": 53693315,
+    "generation_config.json": 3832
+   },
+   "memoriaDoChromeMb": 1082,
+   "idioma": "pt",
+   "n": 30,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.17896174863387979,
+    "ic95": [
+     0.14653218683597452,
+     0.21196420695214413
+    ]
+   },
+   "cer": {
+    "valor": 0.06618059450364554,
+    "ic95": [
+     0.04953088629569732,
+     0.08382132375740008
+    ]
+   },
+   "fatorDeTempoReal": 0.2473265285080908,
+   "msP50": 3125.4599999999627,
+   "msP95": 3681.019999999553,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  },
+  {
+   "sistema": "whisper-base:q8:wasm@2t",
+   "conjunto": "fleurs_pt",
+   "geradoEm": "2026-10-10T01:35:35.904Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 2,
+   "cargaMs": 2171.480000000447,
+   "arquivos": {
+    "config.json": 2243,
+    "preprocessor_config.json": 339,
+    "tokenizer.json": 2480466,
+    "tokenizer_config.json": 282682,
+    "onnx/encoder_model_quantized.onnx": 23201314,
+    "onnx/decoder_model_merged_quantized.onnx": 53693315,
+    "generation_config.json": 3832
+   },
+   "memoriaDoChromeMb": 1091,
+   "idioma": "pt",
+   "n": 30,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.17896174863387979,
+    "ic95": [
+     0.14653218683597452,
+     0.21196420695214413
+    ]
+   },
+   "cer": {
+    "valor": 0.06618059450364554,
+    "ic95": [
+     0.04953088629569732,
+     0.08382132375740008
+    ]
+   },
+   "fatorDeTempoReal": 0.16558527941025053,
+   "msP50": 2071.774999999441,
+   "msP95": 2560.2450000001118,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  },
+  {
+   "sistema": "whisper-small:hybrid:webgpu",
+   "conjunto": "fleurs_pt",
+   "geradoEm": "2026-10-10T01:17:51.161Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 20862.779999999795,
+   "arquivos": {
+    "config.json": 2227,
+    "preprocessor_config.json": 339,
+    "onnx/decoder_model_merged_q4.onnx": 233149327,
+    "generation_config.json": 3893,
+    "tokenizer_config.json": 282683,
+    "tokenizer.json": 2480466,
+    "onnx/encoder_model.onnx": 352825870
+   },
+   "memoriaDoChromeMb": 2850,
+   "idioma": "pt",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.10796165068778658,
+    "ic95": [
+     0.09098296461466586,
+     0.12535870093310242
+    ]
+   },
+   "cer": {
+    "valor": 0.03556538756062282,
+    "ic95": [
+     0.02835674044863348,
+     0.043119245368552196
+    ]
+   },
+   "fatorDeTempoReal": 0.10823273880301054,
+   "msP50": 1316.4799999999814,
+   "msP95": 2011.4750000000931,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  },
+  {
+   "sistema": "whisper-tiny:hybrid-fp16:webgpu",
+   "conjunto": "fleurs_pt",
+   "geradoEm": "2026-10-10T01:02:17.044Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 3110.130000000354,
+   "arquivos": {
+    "config.json": 2243,
+    "preprocessor_config.json": 339,
+    "tokenizer.json": 2480466,
+    "tokenizer_config.json": 282683,
+    "onnx/decoder_model_merged_q4.onnx": 86713702,
+    "generation_config.json": 3772,
+    "onnx/encoder_model_fp16.onnx": 16519192
+   },
+   "memoriaDoChromeMb": 1866,
+   "idioma": "pt",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.822426010837849,
+    "ic95": [
+     0.7718474730317659,
+     0.8761626388763177
+    ]
+   },
+   "cer": {
+    "valor": 0.6235854675402025,
+    "ic95": [
+     0.5773767174934457,
+     0.672151577687328
+    ]
+   },
+   "fatorDeTempoReal": 0.03938906856916301,
+   "msP50": 446.25,
+   "msP95": 869.839999999851,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  },
+  {
+   "sistema": "whisper-tiny:hybrid:webgpu",
+   "conjunto": "fleurs_pt",
+   "geradoEm": "2026-10-10T01:00:30.430Z",
+   "chrome": "154.0.8037.93",
+   "adaptador": {
+    "vendor": "amd",
+    "architecture": "rdna-2",
+    "device": "",
+    "description": "",
+    "reserva": false,
+    "shaderF16": true,
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+   },
+   "threads": 4,
+   "cargaMs": 7733.679999999702,
+   "arquivos": {
+    "config.json": 2243,
+    "preprocessor_config.json": 339,
+    "onnx/encoder_model.onnx": 32904992,
+    "generation_config.json": 3772,
+    "tokenizer_config.json": 282683,
+    "tokenizer.json": 2480466,
+    "onnx/decoder_model_merged_q4.onnx": 86713702
+   },
+   "memoriaDoChromeMb": 1872,
+   "idioma": "pt",
+   "n": 100,
+   "falhas": 0,
+   "vazias": 0,
+   "wer": {
+    "valor": 0.2909545644018341,
+    "ic95": [
+     0.2557965370262003,
+     0.3298307299386256
+    ]
+   },
+   "cer": {
+    "valor": 0.10524972347485749,
+    "ic95": [
+     0.090192989168973,
+     0.12263028014126268
+    ]
+   },
+   "fatorDeTempoReal": 0.05093554102259368,
+   "msP50": 627.8300000000745,
+   "msP95": 904.6450000000186,
+   "encoderMsMedio": null,
+   "decoderMsMedio": null
+  }
+ ],
+ "comparacoes": [
+  {
+   "conjunto": "fleurs_en",
+   "sistema": "whisper-base:hybrid-fp16:webgpu",
+   "contra": "whisper-base:hybrid:webgpu",
+   "n": 100,
+   "diferencaWer": {
+    "valor": 0.7642384105960265,
+    "ic95": [
+     0.7341164475985806,
+     0.7959148169465912
+    ],
+    "significativo": true
+   },
+   "transcricoesIdenticas": 0
+  },
+  {
+   "conjunto": "fleurs_pt",
+   "sistema": "whisper-base:hybrid-fp16:webgpu",
+   "contra": "whisper-base:hybrid:webgpu",
+   "n": 100,
+   "diferencaWer": {
+    "valor": 0.8128386827844936,
+    "ic95": [
+     0.7894083557292696,
+     0.8374966487012304
+    ],
+    "significativo": true
+   },
+   "transcricoesIdenticas": 0
+  },
+  {
+   "conjunto": "fleurs_en",
+   "sistema": "whisper-tiny:hybrid-fp16:webgpu",
+   "contra": "whisper-tiny:hybrid:webgpu",
+   "n": 100,
+   "diferencaWer": {
+    "valor": 0.3496688741721855,
+    "ic95": [
+     0.284982096212451,
+     0.42103405478112005
+    ],
+    "significativo": true
+   },
+   "transcricoesIdenticas": 0
+  },
+  {
+   "conjunto": "fleurs_pt",
+   "sistema": "whisper-tiny:hybrid-fp16:webgpu",
+   "contra": "whisper-tiny:hybrid:webgpu",
+   "n": 100,
+   "diferencaWer": {
+    "valor": 0.531471446436015,
+    "ic95": [
+     0.48005032019310684,
+     0.5868465823531857
+    ],
+    "significativo": true
+   },
+   "transcricoesIdenticas": 0
+  },
+  {
+   "conjunto": "fleurs_en",
+   "sistema": "whisper-base:hybrid-fp16:wasm+basica",
+   "contra": "whisper-base:hybrid:webgpu",
+   "n": 100,
+   "diferencaWer": {
+    "valor": 0,
+    "ic95": [
+     0,
+     0
+    ],
+    "significativo": false
+   },
+   "transcricoesIdenticas": 100
+  },
+  {
+   "conjunto": "fleurs_pt",
+   "sistema": "whisper-base:hybrid-fp16:wasm+basica",
+   "contra": "whisper-base:hybrid:webgpu",
+   "n": 100,
+   "diferencaWer": {
+    "valor": 0,
+    "ic95": [
+     0,
+     0
+    ],
+    "significativo": false
+   },
+   "transcricoesIdenticas": 100
+  },
+  {
+   "conjunto": "fleurs_en",
+   "sistema": "whisper-base:q8:wasm",
+   "contra": "whisper-base:hybrid:webgpu",
+   "n": 100,
+   "diferencaWer": {
+    "valor": 0.011037527593818985,
+    "ic95": [
+     -0.011362148422245468,
+     0.032946550254156444
+    ],
+    "significativo": false
+   },
+   "transcricoesIdenticas": 23
+  },
+  {
+   "conjunto": "fleurs_es",
+   "sistema": "whisper-base:q8:wasm",
+   "contra": "whisper-base:hybrid:webgpu",
+   "n": 100,
+   "diferencaWer": {
+    "valor": 0.004961832061068705,
+    "ic95": [
+     -0.011269000416966752,
+     0.01947904337801414
+    ],
+    "significativo": false
+   },
+   "transcricoesIdenticas": 12
+  },
+  {
+   "conjunto": "fleurs_pt",
+   "sistema": "whisper-base:q8:wasm",
+   "contra": "whisper-base:hybrid:webgpu",
+   "n": 100,
+   "diferencaWer": {
+    "valor": 0.005835764902042517,
+    "ic95": [
+     -0.009772994463652438,
+     0.020282418800445515
+    ],
+    "significativo": false
+   },
+   "transcricoesIdenticas": 15
+  },
+  {
+   "conjunto": "fleurs_en",
+   "sistema": "parakeet-v3:int8:wasm",
+   "contra": "whisper-base:hybrid:webgpu",
+   "n": 100,
+   "diferencaWer": {
+    "valor": -0.14481236203090508,
+    "ic95": [
+     -0.17510829411162068,
+     -0.11240553727150764
+    ],
+    "significativo": true
+   },
+   "transcricoesIdenticas": 4
+  },
+  {
+   "conjunto": "fleurs_es",
+   "sistema": "parakeet-v3:int8:wasm",
+   "contra": "whisper-base:hybrid:webgpu",
+   "n": 100,
+   "diferencaWer": {
+    "valor": -0.10916030534351145,
+    "ic95": [
+     -0.12745118544313988,
+     -0.09116140119166356
+    ],
+    "significativo": true
+   },
+   "transcricoesIdenticas": 2
+  },
+  {
+   "conjunto": "fleurs_pt",
+   "sistema": "parakeet-v3:int8:wasm",
+   "contra": "whisper-base:hybrid:webgpu",
+   "n": 100,
+   "diferencaWer": {
+    "valor": -0.12463526469362234,
+    "ic95": [
+     -0.14462524315004205,
+     -0.10508921895428934
+    ],
+    "significativo": true
+   },
+   "transcricoesIdenticas": 6
+  },
+  {
+   "conjunto": "fleurs_es",
+   "sistema": "parakeet-v3:int8:wasm",
+   "contra": "whisper-small:hybrid:webgpu",
+   "n": 100,
+   "diferencaWer": {
+    "valor": -0.04770992366412214,
+    "ic95": [
+     -0.060251290460674116,
+     -0.03512118302659151
+    ],
+    "significativo": true
+   },
+   "transcricoesIdenticas": 11
+  },
+  {
+   "conjunto": "fleurs_pt",
+   "sistema": "parakeet-v3:int8:wasm",
+   "contra": "whisper-small:hybrid:webgpu",
+   "n": 100,
+   "diferencaWer": {
+    "valor": -0.0504376823676532,
+    "ic95": [
+     -0.06497069555157202,
+     -0.034535774558850374
+    ],
+    "significativo": true
+   },
+   "transcricoesIdenticas": 9
+  },
+  {
+   "conjunto": "fleurs_en",
+   "sistema": "parakeet-v3:int8:wasm",
+   "contra": "whisper-base:q8:wasm",
+   "n": 100,
+   "diferencaWer": {
+    "valor": -0.15584988962472407,
+    "ic95": [
+     -0.18971644335722512,
+     -0.12093126569864143
+    ],
+    "significativo": true
+   },
+   "transcricoesIdenticas": 3
+  },
+  {
+   "conjunto": "fleurs_es",
+   "sistema": "parakeet-v3:int8:wasm",
+   "contra": "whisper-base:q8:wasm",
+   "n": 100,
+   "diferencaWer": {
+    "valor": -0.11412213740458016,
+    "ic95": [
+     -0.13380182054238984,
+     -0.0954636961883744
+    ],
+    "significativo": true
+   },
+   "transcricoesIdenticas": 4
+  },
+  {
+   "conjunto": "fleurs_pt",
+   "sistema": "parakeet-v3:int8:wasm",
+   "contra": "whisper-base:q8:wasm",
+   "n": 100,
+   "diferencaWer": {
+    "valor": -0.13047102959566487,
+    "ic95": [
+     -0.150201411458359,
+     -0.11110644257703081
+    ],
+    "significativo": true
+   },
+   "transcricoesIdenticas": 5
+  },
+  {
+   "conjunto": "fleurs_es",
+   "sistema": "parakeet-v3:fp16:webgpu",
+   "contra": "whisper-small:hybrid:webgpu",
+   "n": 100,
+   "diferencaWer": {
+    "valor": -0.05114503816793893,
+    "ic95": [
+     -0.06238441259579982,
+     -0.039837401297337725
+    ],
+    "significativo": true
+   },
+   "transcricoesIdenticas": 10
+  },
+  {
+   "conjunto": "fleurs_pt",
+   "sistema": "parakeet-v3:fp16:webgpu",
+   "contra": "whisper-small:hybrid:webgpu",
+   "n": 100,
+   "diferencaWer": {
+    "valor": -0.057523968320133394,
+    "ic95": [
+     -0.07190639656004025,
+     -0.042650602895186504
+    ],
+    "significativo": true
+   },
+   "transcricoesIdenticas": 8
+  },
+  {
+   "conjunto": "fleurs_en",
+   "sistema": "parakeet-v3:fp16:webgpu",
+   "contra": "parakeet-v3:int8:wasm",
+   "n": 100,
+   "diferencaWer": {
+    "valor": -0.007505518763796903,
+    "ic95": [
+     -0.020519036385661535,
+     0.006016783856675016
+    ],
+    "significativo": false
+   },
+   "transcricoesIdenticas": 29
+  },
+  {
+   "conjunto": "fleurs_es",
+   "sistema": "parakeet-v3:fp16:webgpu",
+   "contra": "parakeet-v3:int8:wasm",
+   "n": 100,
+   "diferencaWer": {
+    "valor": -0.00343511450381679,
+    "ic95": [
+     -0.009288069561614515,
+     0.0015972990223545552
+    ],
+    "significativo": false
+   },
+   "transcricoesIdenticas": 48
+  },
+  {
+   "conjunto": "fleurs_pt",
+   "sistema": "parakeet-v3:fp16:webgpu",
+   "contra": "parakeet-v3:int8:wasm",
+   "n": 100,
+   "diferencaWer": {
+    "valor": -0.007086285952480197,
+    "ic95": [
+     -0.015003706672734573,
+     0.0004238468185845209
+    ],
+    "significativo": false
+   },
+   "transcricoesIdenticas": 36
+  },
+  {
+   "conjunto": "fleurs_pt",
+   "sistema": "parakeet-v3:int8:webgpu",
+   "contra": "parakeet-v3:int8:wasm",
+   "n": 100,
+   "diferencaWer": {
+    "valor": -0.0004168403501458931,
+    "ic95": [
+     -0.003779501702633764,
+     0.00252892814867901
+    ],
+    "significativo": false
+   },
+   "transcricoesIdenticas": 75
+  },
+  {
+   "conjunto": "fleurs_en",
+   "sistema": "parakeet-v3:int8:wasm",
+   "contra": "moonshine-base:q8:wasm",
+   "n": 100,
+   "diferencaWer": {
+    "valor": -0.06490066225165564,
+    "ic95": [
+     -0.09718088304771723,
+     -0.036452403121050345
+    ],
+    "significativo": true
+   },
+   "transcricoesIdenticas": 15
+  },
+  {
+   "conjunto": "fleurs_en",
+   "sistema": "moonshine-v2-small:q8:wasm",
+   "contra": "moonshine-base:q8:wasm",
+   "n": 100,
+   "diferencaWer": {
+    "valor": -0.01810154525386315,
+    "ic95": [
+     -0.04699384199247262,
+     0.005685601738453695
+    ],
+    "significativo": false
+   },
+   "transcricoesIdenticas": 14
+  },
+  {
+   "conjunto": "fleurs_en",
+   "sistema": "parakeet-v3:int8:wasm",
+   "contra": "moonshine-v2-small:q8:wasm",
+   "n": 100,
+   "diferencaWer": {
+    "valor": -0.04679911699779249,
+    "ic95": [
+     -0.07253125534963271,
+     -0.02394293788752506
+    ],
+    "significativo": true
+   },
+   "transcricoesIdenticas": 14
+  }
+ ]
+}

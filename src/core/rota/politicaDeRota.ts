@@ -379,7 +379,8 @@ function modeloLocal(p: PedidoDeRota, id: ModeloDeStt, motivo: MotivoDaRota): Pa
   if (id === 'moonshine-base' || id === 'moonshine-tiny') return { ...passo, dtype: 'q8' };
   if (id === 'whisper-tiny') return { ...passo, dtype: 'hybrid' };
   const movel = !a.tipo.startsWith('desktop');
-  if (movel && a.whisperNaGpu) return { ...passo, dtype: a.shaderF16 ? 'hybrid-fp16' : 'hybrid', device: 'webgpu' };
+  // fp32 sempre: o encoder fp16 no WebGPU erra 99% (medido em 09/10/2026; ver `dtypeNaGpu` do roteador).
+  if (movel && a.whisperNaGpu) return { ...passo, dtype: 'hybrid', device: 'webgpu' };
   if (movel || a.economiaDeDados) return { ...passo, dtype: 'q8', device: 'wasm' };
   return { ...passo, dtype: 'hybrid' };
 }

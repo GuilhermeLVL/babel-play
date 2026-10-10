@@ -5,7 +5,8 @@
  * (adaptador real, shader-f16, microbenchmark) viajavam com a rota e ninguém os lia. Agora o Whisper
  * vai à GPU quando (1) o `requestAdapter()` entregou um adaptador que NÃO é o de reserva (software),
  * (2) a GPU não caiu antes neste aparelho, e (3) o microbenchmark guardado mediu a GPU pelo menos
- * 1,5× mais rápida que a CPU. O dtype é o que roda bem na GPU: `hybrid-fp16` com shader-f16,
+ * 1,5× mais rápida que a CPU. O dtype é o `hybrid` (encoder fp32) SEMPRE: o `hybrid-fp16` foi medido em 09/10/2026 errando 99% no
+ * WebGPU (`docs/auditoria/2026-10-09-medicoes-no-aparelho.md`). Texto anterior: `hybrid-fp16` com shader-f16,
  * `hybrid` sem. Faltou qualquer um dos três: fica o base q8 no WASM de antes.
  */
 import { describe, expect, it } from 'vitest'
@@ -61,11 +62,12 @@ describe('usarGpuNoAparelho (pura)', () => {
 })
 
 describe('routeStt no Quest/celular com GPU de verdade', () => {
-  it('português: base no WebGPU em hybrid-fp16 (shader-f16), não o q8', () => {
+  it('português: base no WebGPU em hybrid (fp32, mesmo com shader-f16: o fp16 erra 99% na GPU), não o q8', () => {
     const r = routeStt({ ...base, dispositivo: questComGpu })
-    expect(r).toMatchObject({ localModel: WHISPER_MODELS.base, dtype: 'hybrid-fp16', device: 'webgpu' })
+    expect(r).toMatchObject({ localModel: WHISPER_MODELS.base, dtype: 'hybrid', device: 'webgpu' })
     expect(r.label).toMatch(/GPU/)
-    expect(tamanhoDoDownloadMb(r.localModel, r.dtype)).toBe(168)
+    // O preço de não usar o fp16: o download do base na GPU sobe de 168 para 209 MB.
+    expect(tamanhoDoDownloadMb(r.localModel, r.dtype)).toBe(209)
   })
 
   it('sem shader-f16: hybrid (encoder fp32)', () => {
@@ -85,7 +87,7 @@ describe('routeStt no Quest/celular com GPU de verdade', () => {
 
   it('a reserva local da nuvem também vai à GPU', () => {
     const r = routeStt({ ...base, cloudAvailable: true, dispositivo: questComGpu })
-    expect(r).toMatchObject({ preferCloud: true, dtype: 'hybrid-fp16', device: 'webgpu' })
+    expect(r).toMatchObject({ preferCloud: true, dtype: 'hybrid', device: 'webgpu' })
   })
 
   it('desktop fica como estava (auto, sem device forçado)', () => {
@@ -102,7 +104,7 @@ describe('outroBackend (a troca que o regulador pode fazer)', () => {
   it('no WASM, a GPU medida mais rápida é o outro backend', () => {
     const d = { ...questComGpu, pontuacaoWebgpu: 2.5 } // abaixo da margem: a rota ficou no WASM
     const r = routeStt({ ...base, dispositivo: d })
-    expect(outroBackend(r, d, true)).toEqual({ device: 'webgpu', dtype: 'hybrid-fp16' })
+    expect(outroBackend(r, d, true)).toEqual({ device: 'webgpu', dtype: 'hybrid' })
   })
 
   it('na GPU, o WASM medido mais rápido é o outro (q8 no móvel)', () => {

@@ -126,9 +126,17 @@ export function smallComGpuProvada(d: DispositivoDaRota, hasWebGpu: boolean): bo
   return !(benchmarkPresente && gpu < MARGEM_DA_GPU * cpu);
 }
 
-/** O dtype que roda bem na GPU: encoder fp16 com `shader-f16`, fp32 sem (decoder q4 nos dois). */
-function dtypeNaGpu(d: DispositivoDaRota | undefined): DtypeDaRota {
-  return d?.shaderF16 === true ? 'hybrid-fp16' : 'hybrid';
+/**
+ * O dtype da GPU: SEMPRE o encoder fp32 (`hybrid`), mesmo com `shader-f16`.
+ *
+ * MEDIDO em 09/10/2026 (`docs/auditoria/2026-10-09-medicoes-no-aparelho.md`, Chrome 154, 100 falas por
+ * idioma): o encoder fp16 no WebGPU devolve uma palavra por fala — erro de 99,5% em português e 98,0%
+ * em inglês, contra 18,2% e 21,5% do fp32. O arquivo fp16 está certo (no WASM dá o mesmo texto do
+ * fp32); o defeito é da biblioteca no WebGPU (transformers.js #1590). Volta a valer quando ela corrigir
+ * E a bancada repetir a medição.
+ */
+function dtypeNaGpu(_d: DispositivoDaRota | undefined): DtypeDaRota {
+  return 'hybrid';
 }
 
 export interface SttRoute {
@@ -284,8 +292,7 @@ export function routeStt(input: SttRouteInput): SttRoute {
   const micLang = (input.micLang || '').toLowerCase().split('-')[0];
   // Edição estática (Pages, sem servidor): a nuvem não existe, diga o que disser a sondagem.
   // …a não ser a do Quest (`nuvemDoQuest.ts`), ligada pelo consentimento de nuvem.
-  const cloudAllowed =
-    cloudAvailable && profileId !== 'local-private' && (!edicaoEstatica() || nuvemDoQuestAtiva());
+  const cloudAllowed = cloudAvailable && profileId !== 'local-private' && (!edicaoEstatica() || nuvemDoQuestAtiva());
   // "Inglês" só quando TODAS as fontes ativas são inglês: o modelo é um só para sistema e mic.
   // Só o microfone, e ele vai ao modelo: o idioma da fala decide sozinho (ver `soMicrofone`).
   const isEnglish =

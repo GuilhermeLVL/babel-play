@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Bancada de fala no navegador</title>
+  </head>
+  <body>
+    <pre id="log">bancada de fala no navegador — dirigida por scripts/eval-fala/bancada/navegador/rodar.mjs</pre>
+    <script type="module">
+      /*
+       * PÁGINA DE MEDIÇÃO. Não é o app: carrega a MESMA biblioteca (`@huggingface/transformers` de
+       * `node_modules`, servida em /lib) e repete as opções de `src/gateway/adapters/whisperWorker.ts`
+       * (dtype por preset, sessão `basic` no q8, decode guloso com as travas de repetição, teto de
+       * tokens por duração) e de `moonshine.ts`. O texto volta CRU; o filtro de alucinação e o WER são
+       * aplicados em Node pelo `pontuar.mjs`, com o código de `src/`.
+       *
+       * O Parakeet não passa pela biblioteca (ela não tem a arquitetura): roda no onnxruntime-web
+       * direto, com o laço TDT guloso de `scripts/eval-fala/bancada/parakeet.mjs` copiado abaixo.
+       */
+      const log = (m) => {
+        document.getElementById('log').textContent += '\n' + m;
+      };
+
+      // Presets de `whisperWorker.ts` (DTYPE_PRESETS).
+      const DTYPE_PRESETS = {
+        hybrid: { encoder_model: 'fp32', decoder_model_merged: 'q4' },
+        'hybrid-fp16': { encoder_model: 'fp16', decoder_model_merged: 'q4' },
+        q8: 'q8',
+        q4: 'q4',
+        fp16: 'fp16',
+        fp32: 'fp32',
+      };
+
+      let T = null;
+      let asr = null;
+      let cfgAtual = null;
+
+      async function lerWav(url) {
+        const buf = await (await fetch(url)).arrayBuffer();
+        const v = new DataView(buf);
+        let pos = 12;
+        let fmt = null;
+        let dados = null;
+        while (pos + 8 <= v.byteLength) {
+          const id = String.fromCharCode(
+            v.getUint8(pos),
+            v.getUint8(pos + 1),
+            v.getUint8(pos + 2),
+            v.getUint8(pos + 3),
+          );
+          const tam = v.getUint32(pos + 4, true);
+          const corpo = pos + 8;
+          if (id === 'fmt ')
+            fmt = {
+              canais: v.getUint16(corpo + 2, true),
+              taxa: v.getUint32(corpo + 4, true),
+              bits: v.getUint16(corpo + 14, true),
+            };
+          else if (id === 'data') dados = { inicio: corpo, tam: Math.min(tam, v.byteLength - corpo) };
+          pos = corpo + tam + (tam % 2);
+        }
+        if (!fmt || !dados || fmt.bits !== 16 || fmt.taxa !== 16000 || fmt.canais !== 1)
+          throw new Error('esperado WAV PCM16 16 kHz mono');
+        const n = dados.tam / 2;
+        const pcm = new Float32Array(n);
+        for (let i = 0; i < n; i++) pcm[i] = v.getInt16(dados.inicio + i * 2, true) / 32768;
+        return pcm;
+      }
+
+      async function info() {
+        const r = {
+          userAgent: navigator.userAgent,
+          nucleos: navigator.hardwareConcurrency,
+          memoriaGb: navigator.deviceMemory ?? null,
+          isolado: self.crossOriginIsolated,
+          temGpu: 'gpu' in navigator,
+          adaptador: null,
+        };
+        try {
+          const a = await navigator.gpu?.requestAdapter();
+          if (a) {
+            const i = a.info ?? (await a.requestAdapterInfo?.());
+            r.adaptador = {
+              vendor: i?.vendor,
+              architecture: i?.architecture,
+              device: i?.device,
+              description: i?.description,
+              reserva: a.isFallbackAdapter ?? i?.isFallbackAdapter ?? null,
+              shaderF16: a.features.has('shader-f16'),
+              maxBufferSize: a.limits.maxBufferSize,
+              maxStorageBufferBindingSize: a.limits.maxStorageBufferBindingSize,
+            };
+          }
+        } catch (e) {
+          r.erroDoAdaptador = String(e?.message || e);
+        }
+        return r;
+      }
+
+      async function memoria() {
+        try {
+          if (!performance.measureUserAgentSpecificMemory) return null;
+          const m = await Promise.race([
+            performance.measureUserAgentSpecificMemory(),
+            new Promise((s) => setTimeout(() => s(null), 25000)),
+          ]);
+          return m ? m.bytes : null;
+        } catch {
+          return null;
+        }
+      }
+
+      // ------------------------------------------------------------ transformers.js (Whisper, Moonshine)
+      async function carregarTransformers(cfg) {
+        T = await import('/lib/transformers.js');
+        T.env.allowLocalModels = false;
+        T.env.useBrowserCache = true;
+        const wasm = T.env.backends.onnx.wasm;
+        wasm.wasmPaths = '/ort/';
+        wasm.simd = true;
+        wasm.numThreads = cfg.threads ?? 4;
+        const dtype = DTYPE_PRESETS[cfg.dtype] ?? cfg.dtype;
+        const arquivos = new Map();
+        const t0 = performance.now();
+        asr = await T.pipeline('automatic-speech-recognition', cfg.modelo, {
+          device: cfg.device,
+          dtype,
+          ...(cfg.revisao ? { revision: cfg.revisao } : {}),
+          // `SESSAO_MOONSHINE`: sem isto a sessão q8 não abre no ORT-web.
+          ...(cfg.otimizacao || cfg.sessaoBasica
+            ? { session_options: { graphOptimizationLevel: cfg.otimizacao || 'basic' } }
+            : {}),
+          progress_callback: (p) => {
+            if (p?.file && Number.isFinite(p.total)) arquivos.set(p.file, p.total);
+          },
+        });
+        const cargaMs = performance.now() - t0;
+        // Aquecimento igual ao do worker: vários tokens, em silêncio.
+        const t1 = performance.now();
+        let erroDoAquecimento = null;
+        try {
+          await asr(
+            new Float32Array(16000),
+            cfg.moonshine
+              ? { max_new_tokens: 15 }
+              : {
+                  language: 'en',
+                  task: 'transcribe',
+                  return_timestamps: false,
+                  num_beams: 1,
+                  do_sample: false,
+                  max_new_tokens: 8,
+                },
+          );
+        } catch (e) {
+          erroDoAquecimento = String(e?.message || e);
+        }
+        cfgAtual = cfg;
+        return {
+          versao: T.env.version,
+          cargaMs,
+          aquecimentoMs: performance.now() - t1,
+          erroDoAquecimento,
+          arquivos: Object.fromEntries(arquivos),
+          threads: wasm.numThreads,
+        };
+      }
+
+      async function transcreverTransformers(url, idioma) {
+        let pcm = await lerWav(url);
+        const dur = pcm.length / 16000;
+        if (cfgAtual.multiploDe80 && pcm.length % 80) {
+          // Moonshine v2: o front-end de áudio corta em quadros de 80 amostras e falha em quadro parcial.
+          const cheio = new Float32Array(Math.ceil(pcm.length / 80) * 80);
+          cheio.set(pcm);
+          pcm = cheio;
+        }
+        const t0 = performance.now();
+        let out;
+        if (cfgAtual.moonshine) {
+          // `opcoesDeDecodeMoonshine`.
+          out = await asr(pcm, { max_new_tokens: Math.max(8, Math.min(128, Math.round(dur * 15))) });
+        } else {
+          const en = idioma === 'en';
+          out = await asr(pcm, {
+            language: idioma,
+            task: 'transcribe',
+            return_timestamps: false,
+            num_beams: 1,
+            do_sample: false,
+            max_new_tokens: Math.max(8, Math.min(en ? 128 : 160, Math.round(dur * (en ? 15 : 22)))),
+            no_repeat_ngram_size: 3,
+            repetition_penalty: 1.15,
+          });
+        }
+        return { texto: (out.text ?? '').trim(), ms: performance.now() - t0, duracaoS: dur };
+      }
+
+      // ------------------------------------------------------------ Parakeet (onnxruntime-web direto)
+      let pk = null;
+      const MAX_TOKENS_POR_QUADRO = 10;
+
+      function destokenizar(pecas) {
+        return pecas
+          .join('')
+          .replace(/\s(?![\p{L}\p{N}_])/gu, '')
+          .replace(/^\s+/, '');
+      }
+
+      async function carregarParakeet(cfg) {
+        const ort = await import('/ort/ort.webgpu.bundle.min.mjs');
+        ort.env.wasm.wasmPaths = '/ort/';
+        ort.env.wasm.numThreads = cfg.threads ?? 4;
+        const etapas = {};
+        const criar = async (nome, url, opcoes) => {
+          const t = performance.now();
+          try {
+            const s = await ort.InferenceSession.create(url, opcoes);
+            etapas[nome] = { ms: performance.now() - t };
+            return s;
+          } catch (e) {
+            const err = new Error(`${nome} (${url}): ${String(e?.message || e)}`);
+            err.etapa = nome;
+            throw err;
+          }
+        };
+        const cpu = { executionProviders: ['wasm'], graphOptimizationLevel: cfg.otimizacao ?? 'all' };
+        const t0 = performance.now();
+        const pre = await criar('pre', cfg.pre, cpu);
+        const enc = await criar('encoder', cfg.encoder, {
+          executionProviders: [cfg.device === 'webgpu' ? 'webgpu' : 'wasm'],
+          graphOptimizationLevel: cfg.otimizacao ?? 'all',
+        });
+        // O joint roda centenas de vezes por fala, um quadro por vez: fica no WASM (na GPU, o custo
+        // de ir e voltar por chamada domina).
+        const joint = await criar('joint', cfg.decoder, cpu);
+        const vocab = [];
+        for (const linha of (await (await fetch(cfg.vocab)).text()).split('\n')) {
+          if (!linha.trim()) continue;
+          const i = linha.lastIndexOf(' ');
+          vocab[Number(linha.slice(i + 1))] = linha.slice(0, i).replaceAll('▁', ' ');
+        }
+        const blank = vocab.indexOf('<blk>');
+        if (blank < 0) throw new Error('vocab sem <blk>');
+        pk = { ort, pre, enc, joint, vocab, blank, cfg };
+        const cargaMs = performance.now() - t0;
+        const t1 = performance.now();
+        await rodarParakeet(new Float32Array(16000));
+        return {
+          cargaMs,
+          aquecimentoMs: performance.now() - t1,
+          etapas,
+          threads: ort.env.wasm.numThreads,
+          versaoOrt: ort.env.versions?.web ?? null,
+        };
+      }
+
+      async function rodarParakeet(pcm) {
+        const { ort, pre, enc, joint, vocab, blank } = pk;
+        const { Tensor } = ort;
+        const tp = performance.now();
+        const p = await pre.run({
+          waveforms: new Tensor('float32', pcm, [1, pcm.length]),
+          waveforms_lens: new Tensor('int64', BigInt64Array.from([BigInt(pcm.length)]), [1]),
+        });
+        const te = performance.now();
+        const e = await enc.run({ audio_signal: p.features, length: p.features_lens });
+        const td = performance.now();
+        const [, dim, quadros] = e.outputs.dims;
+        const nQuadros = Math.min(quadros, Number(e.encoded_lengths.data[0]));
+        const saida = e.outputs.data;
+        const coluna = new Float32Array(dim);
+        const zeros = (f) => new Tensor('float32', new Float32Array(f.reduce((a, b) => a * b, 1)), f);
+        const nVocab = vocab.length;
+        let estado = [zeros([2, 1, 640]), zeros([2, 1, 640])];
+        const tokens = [];
+        let t = 0;
+        let emitidos = 0;
+        while (t < nQuadros) {
+          for (let d = 0; d < dim; d++) coluna[d] = saida[d * quadros + t];
+          const r = await joint.run({
+            encoder_outputs: new Tensor('float32', coluna, [1, dim, 1]),
+            targets: new Tensor('int32', Int32Array.from([tokens.length ? tokens.at(-1) : blank]), [1, 1]),
+            target_length: new Tensor('int32', Int32Array.from([1]), [1]),
+            input_states_1: estado[0],
+            input_states_2: estado[1],
+          });
+          const o = r.outputs.data;
+          let token = 0;
+          for (let i = 1; i < nVocab; i++) if (o[i] > o[token]) token = i;
+          let duracao = 0;
+          for (let i = nVocab + 1; i < o.length; i++) if (o[i] > o[nVocab + duracao]) duracao = i - nVocab;
+          if (token !== blank) {
+            estado = [r.output_states_1, r.output_states_2];
+            tokens.push(token);
+            emitidos++;
+          }
+          if (duracao > 0) {
+            t += duracao;
+            emitidos = 0;
+          } else if (token === blank || emitidos === MAX_TOKENS_POR_QUADRO) {
+            t++;
+            emitidos = 0;
+          }
+        }
+        const fim = performance.now();
+        return {
+          texto: destokenizar(tokens.map((x) => vocab[x])),
+          preMs: te - tp,
+          encoderMs: td - te,
+          decoderMs: fim - td,
+          ms: fim - tp,
+        };
+      }
+
+      async function transcreverParakeet(url) {
+        const pcm = await lerWav(url);
+        const r = await rodarParakeet(pcm);
+        return { ...r, duracaoS: pcm.length / 16000 };
+      }
+
+      const embrulhar =
+        (f) =>
+        async (...a) => {
+          try {
+            return { ok: true, ...(await f(...a)) };
+          } catch (e) {
+            log('ERRO: ' + (e?.stack || e));
+            return { ok: false, erro: String(e?.message || e).slice(0, 2000), etapa: e?.etapa ?? null };
+          }
+        };
+
+      window.bancada = {
+        info,
+        memoria,
+        carregar: embrulhar((cfg) => (cfg.tipo === 'parakeet' ? carregarParakeet(cfg) : carregarTransformers(cfg))),
+        transcrever: embrulhar((url, idioma) => (pk ? transcreverParakeet(url) : transcreverTransformers(url, idioma))),
+      };
+      log('pronta');
+    </script>
+  </body>
+</html>

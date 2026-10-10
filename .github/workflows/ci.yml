@@ -54,7 +54,7 @@ jobs:
         run: npx vitest run --coverage --reporter=default --reporter=json --outputFile=vitest-resultado.json
       - name: Artefato da cobertura
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: cobertura
           path: |
@@ -63,7 +63,7 @@ jobs:
           if-no-files-found: ignore
       - name: Artefato da suite (vitest)
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: vitest-resultado
           path: vitest-resultado.json
@@ -119,7 +119,7 @@ jobs:
       # runner: a configuracao existia, a evidencia nao.
       - name: Artefato do e2e (trace, screenshot)
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-resultado
           path: |
@@ -203,7 +203,7 @@ jobs:
         run: node scripts/perf/suite/rodar.mjs --vus=10 --duracao=30 --rampa=5 --pensar=6 --pesados=2 --medios=50 --saida=suite-carga.json
       - name: Artefato da suíte de carga
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: suite-carga
           path: suite-carga.json
@@ -228,7 +228,7 @@ jobs:
         run: npx playwright test -c playwright.publico.config.ts
       - name: Artefato do e2e público
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-publico
           path: test-results/
@@ -271,7 +271,7 @@ jobs:
       # Trace e screenshot de falha (`retain-on-failure` na config) e as fotos das telas.
       - name: Artefato do e2e estático (trace, screenshot)
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-estatica
           path: test-results/
@@ -363,7 +363,7 @@ jobs:
           upload-artifact: false
       - name: Artefato da varredura e do SBOM
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: imagem-trivy-sbom
           path: |

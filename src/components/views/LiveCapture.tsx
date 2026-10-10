@@ -31,6 +31,7 @@ import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState, use
 
 import { configDoReguladorPara } from '../../core/harness/reguladorDeDesempenho';
 import type { MotivoDaOfertaDeAlivio, SinaisDoAparelhoParaAlivio } from '../../core/nuvemDeAlivio';
+import type { DecisaoDeRota } from '../../core/rota/politicaDeRota';
 import { estadoDoTeto } from '../../core/tetoAnonimo';
 import { FLAG_VOZ_NATURAL } from '../../core/vozNatural';
 import { deleteSession, fetchSessionTranscript, fetchSettings, patchUiSettings } from '../../data/api';
@@ -108,6 +109,7 @@ import { criarPipelineDeFala, type EnunciadoPendente } from '../../lib/captura/p
 import { lerRascunhos } from '../../lib/captura/rascunhoDaCaptura';
 import { criarReguladorDaCaptura, type ReguladorDaCaptura } from '../../lib/captura/reguladorDaCaptura';
 import { criarSalvarSessao, type EstadoDaIdentificacaoDeVoz } from '../../lib/captura/salvarSessao';
+import { motorDaUltimaFala, seloDaFala } from '../../lib/captura/seloDaFala';
 // Produtor ÚNICO de palavra/cartão: o idioma vem da FRASE de onde a palavra saiu e a direção da
 // tradução é decidida pelo idioma DA PALAVRA (não pelo par da sessão).
 import { telaAcesaSuportada, usePreferenciaDeTelaAcesa, useTelaAcesa } from '../../lib/captura/telaAcesa';
@@ -425,6 +427,8 @@ export default function LiveCapture({
   /* A rota do STT (ex.: "Whisper small · local") — o selo do protótipo mostra o tamanho do modelo, e
      a rota aparece no diálogo "Modelo no dispositivo". */
   const [sttRouteLabel, setSttRouteLabel] = useState('');
+  /** O que a política de rota prevê para esta captura (uma decisão por fonte): o selo da fala o lê. */
+  const [rotaPrevista, setRotaPrevista] = useState<DecisaoDeRota[]>([]);
   /** O áudio da aba está no reconhecedor do navegador, no aparelho (`webSpeechDoSistema.ts`). */
   const [sistemaNoNavegador, setSistemaNoNavegador] = useState(false);
   const [sttQuality, setSttQuality] = useState<SttQuality>(() => getSttQuality());
@@ -1270,6 +1274,7 @@ export default function LiveCapture({
     setFeedbackMsg,
     setModelPrep,
     setSttRouteLabel,
+    setRotaPrevista,
     reguladorRef,
     sistemaAtivo: () => !!systemCaptureRef.current,
     pedirNuvemDeAlivio,
@@ -3607,6 +3612,16 @@ export default function LiveCapture({
       {modeloAberto && (
         <ModeloNoDispositivo
           rota={sttRouteLabel}
+          /* O SELO DA FALA: o previsto da política até a primeira fala; depois, o motor que atendeu a
+             última fala final (`seloDaFala.ts`). */
+          selo={seloDaFala(
+            rotaPrevista,
+            motorDaUltimaFala(speechSegments, {
+              sistemaNoNavegador,
+              micNoNavegador: micEngine === 'browser' && webSpeechSupported,
+            }),
+            { nuvemPorChavePropria: getProviderMode() === 'cloud' },
+          )}
           modelos={modelosDaCaptura}
           nuvem={getProviderMode() === 'cloud'}
           transcricaoNoNavegador={transcricaoSoNoNavegador}

@@ -10,7 +10,9 @@ import {
   type SituacaoDaVersao,
   situacaoDaVersao,
 } from '../../../gateway/modelManifest';
+import { type SeloDaFala, textoDoSelo } from '../../../lib/captura/seloDaFala';
 import { data, t } from '../../../lib/i18n';
+import { langLabelNaUI } from '../../../lib/languages';
 import { toast } from '../../Toast';
 import { Dialogo, fecharDialogoDe } from '../../ui';
 
@@ -43,13 +45,19 @@ const mb = (bytes: number) => Math.round(bytes / 1_048_576);
 export default function ModeloNoDispositivo({
   modelos: todos,
   rota,
+  selo,
   nuvem,
   transcricaoNoNavegador = false,
   aoFechar,
 }: {
   modelos: ModeloDaCaptura[];
-  /** A rota que o STT tomou nesta captura (ex.: "Whisper small · local"), quando já se sabe. */
+  /**
+   * O rótulo TÉCNICO da rota do STT nesta captura (ex.: "nuvem (large-v3-turbo) · reserva local"),
+   * quando já se sabe. Com `selo`, vai para o `title` (suporte); sem ele, é o texto da linha.
+   */
   rota?: string;
+  /** Onde a fala é processada e por quê, em palavras claras (`lib/captura/seloDaFala.ts`). */
+  selo?: SeloDaFala | null;
   /** O provedor ativo é a nuvem (a chave da pessoa): o modelo local é só a reserva. */
   nuvem: boolean;
   /**
@@ -126,6 +134,7 @@ export default function ModeloNoDispositivo({
     toast.ok(`Versão antiga apagada (${mb(bytes)} MB): a nova baixa na próxima captura`);
   };
 
+  const texto = selo ? textoDoSelo(selo, t, langLabelNaUI) : null;
   const total = modelos.reduce((soma, m) => soma + (estados[m.id]?.completo ? estados[m.id]!.bytesTotais : 0), 0);
   const conferido = modelos.every((m) => estados[m.id]);
 
@@ -232,10 +241,24 @@ export default function ModeloNoDispositivo({
             {total > 0 ? 'Funciona sem internet.' : 'Nada baixado ainda: o download acontece na primeira captura.'}
           </p>
         )}
-        {rota && (
-          <p className="mut" style={{ fontSize: 12.5 }}>
-            Nesta captura: <b style={{ color: 'var(--ink)' }}>{rota}</b>
+        {texto ? (
+          /* O SELO DA FALA: a mesma linha, com palavras claras. O rótulo técnico da rota fica no
+             `title`, depois da frase, para o suporte; o leitor de tela lê o texto da linha. */
+          <p
+            className="mut"
+            style={{ fontSize: 12.5 }}
+            data-testid="selo-da-fala"
+            title={[`${texto.frase}.`, texto.motivo, rota && `(${rota})`].filter(Boolean).join(' ')}
+          >
+            {t('Nesta captura:')} <b style={{ color: 'var(--ink)' }}>{texto.frase}</b>
+            {texto.motivo ? `. ${texto.motivo}` : ''}
           </p>
+        ) : (
+          rota && (
+            <p className="mut" style={{ fontSize: 12.5 }}>
+              {t('Nesta captura:')} <b style={{ color: 'var(--ink)' }}>{rota}</b>
+            </p>
+          )
         )}
       </div>
       <div className="dlg-pe">

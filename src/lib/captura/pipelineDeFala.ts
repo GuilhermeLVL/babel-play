@@ -16,6 +16,7 @@ import {
   type MotivoDaOfertaDeAlivio,
   type SinaisDoAparelhoParaAlivio,
 } from '../../core/nuvemDeAlivio';
+import type { DecisaoDeRota } from '../../core/rota/politicaDeRota';
 import { apiFetch } from '../../data/api';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
 import { temAdaptadorWebGpu } from '../../gateway/adaptadorWebGpu';
@@ -27,22 +28,25 @@ import { areModelsCached, expectedModelIds } from '../../gateway/modelCache';
 import { temCopiaNoAparelho } from '../../gateway/modelManifest';
 import type { ContextoDoStt } from '../../gateway/promptDeStt';
 import { getSttQuality, nomeLegivelDoModelo, outroBackend, routeStt } from '../../gateway/sttRouter';
-import { consentiuReconhecimentoDoNavegador, rapidoDoMicPermitido } from '../consentimentoDeNuvem';
+import { consentiuNuvem, consentiuReconhecimentoDoNavegador, rapidoDoMicPermitido } from '../consentimentoDeNuvem';
 import { DominantLangTracker } from '../convoLang';
 import { dispositivoDaRota, medirPerfilDoDispositivo, perfilDoDispositivo } from '../dispositivo/perfil';
+import { edicaoEstatica } from '../edicaoEstatica';
 import { getEntitlements } from '../entitlements';
 import { t } from '../i18n';
 import { detectLanguage } from '../langDetect';
 import { baseLang, langLabel } from '../languages';
-import { cabecalhoDoAlivio } from '../nuvemDeAlivio/estado';
-import { cabecalhoDoDono, ENDPOINT_DA_NUVEM_DO_QUEST, nuvemDoQuestAtiva } from '../nuvemDoQuest';
+import { alivioAceito, cabecalhoDoAlivio } from '../nuvemDeAlivio/estado';
+import { cabecalhoDoDono, ENDPOINT_DA_NUVEM_DO_QUEST, nuvemDoQuestAtiva, nuvemDoQuestExiste } from '../nuvemDoQuest';
 import { PerfilAdaptativoDeIdioma, pesoDaDeteccao } from '../perfilDeIdioma';
+import { perfilProtegido } from '../protecaoDoMenor';
 import { SpeakerClusterer } from '../speakerCluster';
 import { embedUtterance } from '../speakerId';
 import { isTtsActive } from '../tts';
 import { classificarVazamento, type Intervalo } from '../vazamento';
 import { setterNoQuadro } from './agendarNoQuadro';
 import { guardarAudioDaFala } from './audioDasFalas';
+import { conferirRotaDoStt, type EntradaDaConferencia, montarPedidoDeRota } from './conferenciaDaRota';
 import { decidirNaVirtual, ESTADO_DA_VIRTUAL, type EstadoDaVirtual } from './idiomasDaConversaVirtual';
 import { direcaoDoLado as direcaoDeUmLado } from './interprete';
 import type { PistasDoIdioma } from './interpreteAutomatico';
@@ -52,6 +56,7 @@ import { preparoConcluido, semPacotePendente } from './pacotesNativos';
 import { criarTradutorDeParciais, type TradutorDeParciais } from './parcialEstavel';
 import { type EfeitosDoRegulador, escadaDeModelos, type ReguladorDaCaptura } from './reguladorDaCaptura';
 import { planoDaReservaLocal } from './reservaLocal';
+import { previstosDoSelo } from './seloDaFala';
 import { chaveLigada } from './testesDoInterprete';
 import {
   type CaptureScenario,
@@ -198,6 +203,11 @@ export interface DepsDoPipelineDeFala {
   setFeedbackMsg: (msg: string) => void;
   setModelPrep: Dispatch<SetStateAction<ModelPrepState | null>>;
   setSttRouteLabel: Dispatch<SetStateAction<string>>;
+  /**
+   * O que a política de rota PREVÊ para esta captura, uma decisão por fonte de áudio (`seloDaFala.ts`):
+   * o selo o mostra até a primeira fala. Vem junto com o rótulo técnico. Opcional: sem ele, sem previsto.
+   */
+  setRotaPrevista?: (previstos: DecisaoDeRota[]) => void;
   /* --- contexto do STT de nuvem --- */
   /** Última final de cada fonte (o `prompt` do Whisper de nuvem). Opcional: sem ele, sem prompt. */
   contextoDoSttRef?: RefObject<ContextoDoStt>;
@@ -289,6 +299,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     setFeedbackMsg,
     setModelPrep: setModelPrepDaTela,
     setSttRouteLabel,
+    setRotaPrevista,
     contextoDoSttRef,
     reguladorRef,
     sistemaAtivo,
@@ -1323,25 +1334,56 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       // O APARELHO (Quest/celular: base q8 em WASM, ou na GPU provada; small só no desktop com GPU).
       dispositivo,
     });
-    /* SÓ EM DESENVOLVIMENTO (modo sombra): a política de rota (`core/rota/politicaDeRota.ts`) responde
-       à mesma pergunta e a diferença vai para o console (`conferenciaDaRota.ts`). Não muda a rota; em
-       produção o ramo some no build, e o `import()` com ele. */
-    if (import.meta.env?.DEV) {
-      const efetiva = route;
-      const entrada = {
-        idiomaDoConteudo: listenLang,
-        idiomaDoMicrofone: myLang,
-        micVaiAoModelo: micVaiAoWhisper,
-        soMicrofone: captureScenarioRef.current === 'mic',
-        detectarIdioma: autoDetect,
-        qualidade: getSttQuality(),
-        temWebGpu: hasWebGpu,
-        nuvemDisponivel: cloudAvailable,
-        perfilId: getActiveProfile().id,
-        dispositivo,
-        leve: perfil.leve,
-      };
-      void import('./conferenciaDaRota').then((m) => m.conferirRotaDoStt(entrada, efetiva)).catch(() => undefined);
+    /* A POLÍTICA DE ROTA (`core/rota/politicaDeRota.ts`) responde à mesma pergunta, DESLIGADA (modo
+       sombra). Não muda a rota. Serve a duas coisas: */
+    const entradaDaPolitica: EntradaDaConferencia = {
+      idiomaDoConteudo: listenLang,
+      idiomaDoMicrofone: myLang,
+      micVaiAoModelo: micVaiAoWhisper,
+      soMicrofone: captureScenarioRef.current === 'mic',
+      detectarIdioma: autoDetect,
+      qualidade: getSttQuality(),
+      temWebGpu: hasWebGpu,
+      nuvemDisponivel: cloudAvailable,
+      perfilId: getActiveProfile().id,
+      dispositivo,
+      leve: perfil.leve,
+    };
+    // (1) só em desenvolvimento, a diferença para a rota efetiva vai para o console (`conferenciaDaRota.ts`);
+    if (import.meta.env?.DEV) void conferirRotaDoStt(entradaDaPolitica, route);
+    /* (2) O SELO DA FALA (etapa 5, `seloDaFala.ts`): o PREVISTO que a tela mostra até a primeira fala,
+       e o motivo. Uma decisão por fonte: o microfone pelo navegador vai a outro lugar que o modelo.
+       Nunca lança: sem o previsto, o selo vale pelo motor real de cada fala. */
+    let previstos: DecisaoDeRota[] = [];
+    try {
+      const protegido = perfilProtegido();
+      previstos = previstosDoSelo(
+        montarPedidoDeRota(entradaDaPolitica, {
+          consentiuNuvem: consentiuNuvem(),
+          consentiuNavegador: consentiuReconhecimentoDoNavegador(),
+          protegido,
+          // `rapidoDoMicPermitido` é a régua do responsável: adulto, ou protegido com o vínculo aceito.
+          responsavelAutorizou: protegido && rapidoDoMicPermitido(),
+          edicaoEstatica: edicaoEstatica(),
+          nuvemDoSite: nuvemDoQuestExiste(),
+          capacidades: getEntitlements(),
+          alivioAceito: alivioAceito(),
+        }),
+        {
+          soMicrofone: entradaDaPolitica.soMicrofone,
+          semRede: typeof navigator !== 'undefined' && navigator.onLine === false,
+          micNoNavegador:
+            micEnabled && !micVaiAoWhisper
+              ? {
+                  idioma: myLang,
+                  falaNoAparelho: disponibilidadeDaSondaParaIdioma(sourceLangRef.current, sonda?.sinais?.sttNoAparelho),
+                  bipaAoReligar: webSpeechBipaAoReligar(),
+                }
+              : null,
+        },
+      );
+    } catch (erro) {
+      clog('selo da fala: previsto indisponível', String(erro));
     }
     /* MODELO PROIBIDO NESTE APARELHO (a GPU caiu com ele — `proibirModelo`, pelo regulador): a rota
        desce a escada até um que não foi vetado. Sem nenhum livre, fica o menor. */
@@ -1375,6 +1417,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       listenLang,
       myLang,
       route,
+      previstos,
       perfil,
       mtDe,
       mtPara,
@@ -1428,7 +1471,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   const preaquecerModelos = async (): Promise<void> => {
     try {
       if (getProviderMode() === 'cloud' || prepareEmVooRef.current || modelReadyRef.current) return;
-      const { route, perfil, mtDe, mtPara, micVaiAoWhisper } = await rotaDaCaptura();
+      const { route, previstos, perfil, mtDe, mtPara, micVaiAoWhisper } = await rotaDaCaptura();
       if (route.preferCloud) return;
       /* NATIVO PRIMEIRO (plano "Grátis sem travar", A9a): o áudio da aba vai ao reconhecedor do
          navegador, no aparelho, e a sua voz não passa pelo Whisper → aquecê-lo seria memória e CPU à
@@ -1449,6 +1492,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           device: route.device,
         });
         setSttRouteLabel(route.label);
+        setRotaPrevista?.(previstos);
         clog('pré-aquecendo o STT local (em cache):', route.localModel, route.dtype);
         sttAquecendo = gateway.stt
           .preloadModel(undefined, { aoDegradar: avisarDegradacao })
@@ -1469,7 +1513,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   };
 
   const prepareModelsInterno = async (opcoes: OpcoesDaPreparacao) => {
-    const { route, perfil, mtDe, mtPara, soIngles, micVaiAoWhisper, backend, outro, sinaisDoAlivio } =
+    const { route, previstos, perfil, mtDe, mtPara, soIngles, micVaiAoWhisper, backend, outro, sinaisDoAlivio } =
       await rotaDaCaptura();
     /* Sessão nova: o regulador começa no máximo, com a escada do modelo desta rota — o backend e o
        dtype dizem se o português pode descer ao tiny (só híbrido, só na GPU), e o manifesto diz que
@@ -1489,6 +1533,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       device: route.device,
     });
     setSttRouteLabel(route.label);
+    setRotaPrevista?.(previstos);
     clog(
       'roteador STT:',
       route.label,

@@ -43,6 +43,8 @@ const SEM_CARACTERIZACAO = {
   'POST /api/billing/trocar':
     'a troca de plano (planos v3, etapa 8) é coberta com o Asaas simulado em `tests/integration/billing-trocar-plano.test.ts` (subir, rebaixar, o webhook do valor novo e do antigo, recusas, Asaas fora do ar, repetição, chargeback)',
   'POST /api/billing/trocar/cancelar': 'idem',
+  'GET /api/vocab/resumo':
+    'as contagens da tela Cartões são cobertas em `tests/integration/vocab-resumo.test.ts` (26 casos: totais por estado, por idioma, sessão e baralho, previsão, retenção, calendário, virada do dia, ETag e 304, outra conta)',
   'POST /api/billing/webhook/asaas': 'idem (é o próprio webhook)',
   'GET /api/images/search':
     'proxy do Openverse; `tests/integration/audit-s13-image-url.test.ts` e `images` com cache em memória — Fase 5 troca o cache e escreve o teste HTTP',

@@ -1,0 +1,190 @@
+{
+ "casos": {
+  "fleurs_en_1968": {
+   "ok": true,
+   "texto": " Some cruises,  Berlin.  brochures.  As you can see,  from the map above Berlin is nowhere near the  see innovation",
+   "ms": 2988,
+   "tentativas": 1,
+   "usd": 0.000035964,
+   "usdReservado": 0.00011999988,
+   "uso": {
+    "seconds": 10.8,
+    "cost": 0.000035964
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 10.8,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.81,
+     "end": 1.5100000000000002,
+     "avg_logprob": -0.3484416824455063,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6363636363636364
+    },
+    {
+     "start": 1.59,
+     "end": 2.35,
+     "avg_logprob": -0.9709876626729965,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5
+    },
+    {
+     "start": 3,
+     "end": 3.6,
+     "avg_logprob": -0.2728534143418074,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5789473684210527
+    },
+    {
+     "start": 3.93,
+     "end": 4.470000000000001,
+     "avg_logprob": -0.07878757435745294,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6666666666666666
+    },
+    {
+     "start": 4.5,
+     "end": 6.48,
+     "avg_logprob": -0.17917373243042015,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8846153846153846
+    },
+    {
+     "start": 6.54,
+     "end": 7.08,
+     "avg_logprob": -0.5508974939584732,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6521739130434783
+    }
+   ]
+  },
+  "fleurs_en_1819": {
+   "ok": true,
+   "texto": " Ancient China had a unique way of showing different time periods.  each stage of China or each family that was in power  was a distinctive dynasty",
+   "ms": 2046,
+   "tentativas": 1,
+   "usd": 0.0000430902,
+   "usdReservado": 0.00014377763399999998,
+   "uso": {
+    "seconds": 12.94,
+    "cost": 0.0000430902
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 12.94,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.75,
+     "end": 5.29,
+     "avg_logprob": -0.10677084998626794,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9565217391304348
+    },
+    {
+     "start": 5.52,
+     "end": 9.84,
+     "avg_logprob": -0.12758215154127145,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9137931034482759
+    },
+    {
+     "start": 9.87,
+     "end": 11.969999999999999,
+     "avg_logprob": -0.1322142401865373,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7647058823529411
+    }
+   ]
+  },
+  "fleurs_en_1856": {
+   "ok": true,
+   "texto": " Finland is a great boating destination.  The land of a thousand lakes has thousands  islands  And the legs.  still arguing.",
+   "ms": 1008,
+   "tentativas": 1,
+   "usd": 0.0000311688,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.36,
+    "cost": 0.0000311688
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 9.36,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.84,
+     "end": 2.2,
+     "avg_logprob": -0.1150494241854176,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8888888888888888
+    },
+    {
+     "start": 2.67,
+     "end": 4.51,
+     "avg_logprob": -0.09260746873915196,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.048780487804878
+    },
+    {
+     "start": 4.59,
+     "end": 5.01,
+     "avg_logprob": -0.2657977342605591,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5
+    },
+    {
+     "start": 5.73,
+     "end": 6.210000000000001,
+     "avg_logprob": -0.3338728107046336,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6363636363636364
+    },
+    {
+     "start": 6.81,
+     "end": 7.33,
+     "avg_logprob": -0.596585088968277,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6521739130434783
+    }
+   ]
+  }
+ },
+ "sistema": "openrouter:openai/whisper-large-v3-turbo@groq",
+ "conjunto": "fleurs_en",
+ "modelo": "openai/whisper-large-v3-turbo",
+ "provider": {
+  "zdr": true,
+  "data_collection": "deny",
+  "only": [
+   "groq"
+  ],
+  "allow_fallbacks": false
+ },
+ "temperatura": 0,
+ "geradoEm": "2026-10-10T02:16:50.987Z"
+}

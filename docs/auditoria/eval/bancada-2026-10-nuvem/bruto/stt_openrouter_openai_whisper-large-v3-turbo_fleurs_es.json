@@ -1,0 +1,4102 @@
+{
+ "casos": {
+  "fleurs_es_1969": {
+   "ok": true,
+   "texto": " indica que la posición más efectiva donde colocar  El objeto central es la intersección que se forma entre las líneas horizontales y verticales  que dividen a la imagen en tercios  ver ejemplos",
+   "ms": 1228,
+   "tentativas": 1,
+   "usd": 0.0000453546,
+   "usdReservado": 0.00015133318199999997,
+   "uso": {
+    "seconds": 13.62,
+    "cost": 0.0000453546
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 13.62,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.99,
+     "end": 4.57,
+     "avg_logprob": -0.1299514398754885,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8666666666666667
+    },
+    {
+     "start": 5.13,
+     "end": 10.11,
+     "avg_logprob": -0.05035070159330802,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0919540229885059
+    },
+    {
+     "start": 10.26,
+     "end": 11.94,
+     "avg_logprob": -0.05236477819165553,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.875
+    },
+    {
+     "start": 12,
+     "end": 12.78,
+     "avg_logprob": -0.1605674478535851,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6190476190476191
+    }
+   ]
+  },
+  "fleurs_es_1821": {
+   "ok": true,
+   "texto": " El correlato es...  entre la patología cerebral y la conducta, contribuye a la investigación de los científicos.",
+   "ms": 2091,
+   "tentativas": 1,
+   "usd": 0.0000387612,
+   "usdReservado": 0.000129333204,
+   "uso": {
+    "seconds": 11.64,
+    "cost": 0.0000387612
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 11.64,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.5,
+     "end": 2.7800000000000002,
+     "avg_logprob": -0.5320656984778387,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7037037037037037
+    },
+    {
+     "start": 2.82,
+     "end": 10.32,
+     "avg_logprob": -0.16890401747704067,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0786516853932584
+    }
+   ]
+  },
+  "fleurs_es_1858": {
+   "ok": true,
+   "texto": " Según Daniel Lantagne, especialista en la enfermedad que trabaja para la ONU, es probable que el brote haya sido provocado por las fuerzas de paz.",
+   "ms": 1269,
+   "tentativas": 1,
+   "usd": 0.000040959,
+   "usdReservado": 0.00013666653,
+   "uso": {
+    "seconds": 12.3,
+    "cost": 0.000040959
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 12.3,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.89,
+     "end": 10.13,
+     "avg_logprob": -0.027617066829304805,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2131147540983607
+    }
+   ]
+  },
+  "fleurs_es_1696": {
+   "ok": true,
+   "texto": " Gracias.  los investigadores indicaron que los dos compuestos reaccionan entre sí  para dar lugar a cristales que pueden obstruir la función renal.",
+   "ms": 950,
+   "tentativas": 1,
+   "usd": 0.0000335664,
+   "usdReservado": 0.000111999888,
+   "uso": {
+    "seconds": 10.08,
+    "cost": 0.0000335664
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 10.08,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.24,
+     "end": 0.64,
+     "avg_logprob": -0.40705715864896774,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.86,
+     "end": 5.8,
+     "avg_logprob": -0.07740607602237207,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.042857142857143
+    },
+    {
+     "start": 5.88,
+     "end": 9.42,
+     "avg_logprob": -0.027617611463129934,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9705882352941176
+    }
+   ]
+  },
+  "fleurs_es_1754": {
+   "ok": true,
+   "texto": " Es posible que haya más mares en el lado cercano debido a que su corteza es más delgada.  lo que facilitó a la lava ascender a la superficie.",
+   "ms": 963,
+   "tentativas": 1,
+   "usd": 0.0000357642,
+   "usdReservado": 0.00011933321399999999,
+   "uso": {
+    "seconds": 10.74,
+    "cost": 0.0000357642
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 10.74,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.26,
+     "end": 7.08,
+     "avg_logprob": -0.08339849184155285,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0833333333333333
+    },
+    {
+     "start": 7.17,
+     "end": 10.21,
+     "avg_logprob": -0.11815893280436285,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9814814814814815
+    }
+   ]
+  },
+  "fleurs_es_1815": {
+   "ok": true,
+   "texto": " Gracias.  La bomba atómica opera en base al principio de que se requiere energía para conformar un núcleo con gran cantidad de protones y neutrones.",
+   "ms": 1116,
+   "tentativas": 1,
+   "usd": 0.0000337662,
+   "usdReservado": 0.000112666554,
+   "uso": {
+    "seconds": 10.14,
+    "cost": 0.0000337662
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 10.14,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.24,
+     "end": 0.64,
+     "avg_logprob": -0.3763709766790271,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.68,
+     "end": 9.46,
+     "avg_logprob": -0.0980562056736542,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2347826086956522
+    }
+   ]
+  },
+  "fleurs_es_1728": {
+   "ok": true,
+   "texto": " Gracias.  El color del jugo de repollo se verá alterado en función de cuan ácida o básica alcalina sea la sustancia química.",
+   "ms": 992,
+   "tentativas": 1,
+   "usd": 0.0000343656,
+   "usdReservado": 0.00011466655199999999,
+   "uso": {
+    "seconds": 10.32,
+    "cost": 0.0000343656
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 10.32,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.24,
+     "end": 0.64,
+     "avg_logprob": -0.3360477015376091,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 2.28,
+     "end": 9.66,
+     "avg_logprob": -0.06042063091424805,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1650485436893203
+    }
+   ]
+  },
+  "fleurs_es_1762": {
+   "ok": true,
+   "texto": " Los cerdos son los portadores de la enfermedad que luego migra a los humanos mediante los mosquitos.",
+   "ms": 1492,
+   "tentativas": 1,
+   "usd": 0.0000247752,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 7.44,
+    "cost": 0.0000247752
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 7.44,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.21,
+     "end": 6.45,
+     "avg_logprob": -0.10292407447104779,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2023809523809523
+    }
+   ]
+  },
+  "fleurs_es_1949": {
+   "ok": true,
+   "texto": " Los entomólogos emplean el término insecto parásito  en un sentido formal para referirse a este grupo de artrópodos.",
+   "ms": 876,
+   "tentativas": 1,
+   "usd": 0.0000335664,
+   "usdReservado": 0.000111999888,
+   "uso": {
+    "seconds": 10.08,
+    "cost": 0.0000335664
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 10.08,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.83,
+     "end": 5.43,
+     "avg_logprob": -0.11586260984121408,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9016393442622951
+    },
+    {
+     "start": 5.46,
+     "end": 9.42,
+     "avg_logprob": -0.048333266623053026,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9848484848484849
+    }
+   ]
+  },
+  "fleurs_es_1966": {
+   "ok": true,
+   "texto": " Gracias.  La comisión fue la forma en que Martegi respondió a las manifestaciones generalizadas que iniciaron en octubre en contra del régimen.",
+   "ms": 1109,
+   "tentativas": 1,
+   "usd": 0.0000323676,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.72,
+    "cost": 0.0000323676
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 9.72,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 0.7000000000000001,
+     "avg_logprob": -0.5081074144691229,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.2,
+     "end": 9.06,
+     "avg_logprob": -0.07519570505101,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2232142857142858
+    }
+   ]
+  },
+  "fleurs_es_1668": {
+   "ok": true,
+   "texto": " También puede ser conveniente comprar una Wildcar que permite la entrada a selecciones de parques en Sudáfrica,  o a todos los parques nacionales del país.",
+   "ms": 1505,
+   "tentativas": 1,
+   "usd": 0.000041958,
+   "usdReservado": 0.00013999985999999998,
+   "uso": {
+    "seconds": 12.6,
+    "cost": 0.000041958
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 12.6,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.18,
+     "end": 8.98,
+     "avg_logprob": -0.21267045302644233,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1515151515151516
+    },
+    {
+     "start": 9.03,
+     "end": 11.07,
+     "avg_logprob": -0.1393535921950108,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9166666666666666
+    }
+   ]
+  },
+  "fleurs_es_1735": {
+   "ok": true,
+   "texto": " Expertos de la Universidad de Princeton en Estados Unidos y de la Uppsala en Suecia  dieron a conocer que la nueva especie logró evolucionar en tan solo dos generaciones.  aun cuando se estimaba que demorarían mucho más.  a causa de la reproducción entre un pinzor de Darwin endémico  Geospisa Fuertes y un pinzón de cactus migrante, Geospisa Fuertes.  con el otro",
+   "ms": 1510,
+   "tentativas": 1,
+   "usd": 0.0000681318,
+   "usdReservado": 0.000227333106,
+   "uso": {
+    "seconds": 20.46,
+    "cost": 0.0000681318
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 20.46,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.36,
+     "end": 4.840000000000001,
+     "avg_logprob": -0.0858454700846778,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0909090909090908
+    },
+    {
+     "start": 5.13,
+     "end": 9.17,
+     "avg_logprob": -0.0932382162143106,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.12987012987013
+    },
+    {
+     "start": 9.51,
+     "end": 11.77,
+     "avg_logprob": -0.24244160915259272,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.864406779661017
+    },
+    {
+     "start": 12,
+     "end": 15.26,
+     "avg_logprob": -0.18830239669316345,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9411764705882353
+    },
+    {
+     "start": 15.42,
+     "end": 19.32,
+     "avg_logprob": -0.3250046830368004,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.096774193548387
+    },
+    {
+     "start": 19.47,
+     "end": 20.47,
+     "avg_logprob": -1.5848184466361999,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6
+    }
+   ]
+  },
+  "fleurs_es_1791": {
+   "ok": true,
+   "texto": " No arruine el lugar haciendo marcas ni grafitis en las estructuras.",
+   "ms": 890,
+   "tentativas": 1,
+   "usd": 0.0000215784,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 6.48,
+    "cost": 0.0000215784
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 6.48,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.21,
+     "end": 4.91,
+     "avg_logprob": -0.12382920215750345,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0303030303030303
+    }
+   ]
+  },
+  "fleurs_es_1861": {
+   "ok": true,
+   "texto": " Como consecuencia, los artistas fuman cigarros de cannabis en el escenario y el espectáculo incentiva al público a hacer lo propio.",
+   "ms": 675,
+   "tentativas": 1,
+   "usd": 0.000111111111111,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 10,
+    "cost": 0.000111111111111
+   },
+   "idiomaDevolvido": "Spanish",
+   "duracaoDevolvidaS": 9.36,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 8,
+     "avg_logprob": -0.20281002,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2072072
+    }
+   ]
+  },
+  "fleurs_es_1982": {
+   "ok": true,
+   "texto": " se aconseja que todas las visitantes femeninas digan estar casadas sin importar cuál sea su estado civil real",
+   "ms": 722,
+   "tentativas": 1,
+   "usd": 0.00011999999999988,
+   "usdReservado": 0.00011999988,
+   "uso": {
+    "seconds": 10.8,
+    "cost": 0.00011999999999988
+   },
+   "idiomaDevolvido": "Spanish",
+   "duracaoDevolvidaS": 10.8,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 6.68,
+     "avg_logprob": -0.14536655,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2333333
+    },
+    {
+     "start": 6.68,
+     "end": 10.8,
+     "avg_logprob": -0.14536655,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2333333
+    }
+   ]
+  },
+  "fleurs_es_1884": {
+   "ok": true,
+   "texto": " Gracias.  Concretamente se sostiene que, mediante la adecuada lectura de sus microexpresiones,  es posible detectar si una persona está mintiendo.",
+   "ms": 935,
+   "tentativas": 1,
+   "usd": 0.0000325674,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.78,
+    "cost": 0.0000325674
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 9.78,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.24,
+     "end": 0.72,
+     "avg_logprob": -0.27281808480620384,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.26,
+     "end": 6.5,
+     "avg_logprob": -0.0991660511018171,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.103896103896104
+    },
+    {
+     "start": 6.69,
+     "end": 9.27,
+     "avg_logprob": -0.08185533826830439,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8813559322033898
+    }
+   ]
+  },
+  "fleurs_es_1931": {
+   "ok": true,
+   "texto": " El servicio suele usarse en el transporte por agua, incluidas las embarcaciones recreativas, así como para las expediciones que requieren datos y voz remotos.",
+   "ms": 1856,
+   "tentativas": 1,
+   "usd": 0.0000395604,
+   "usdReservado": 0.000131999868,
+   "uso": {
+    "seconds": 11.88,
+    "cost": 0.0000395604
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 11.88,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.02,
+     "end": 11.04,
+     "avg_logprob": -0.04213574176064867,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.3008130081300813
+    }
+   ]
+  },
+  "fleurs_es_1755": {
+   "ok": true,
+   "texto": " Una bomba fue detonada en la puerta de la oficina del gobernador general.",
+   "ms": 941,
+   "tentativas": 1,
+   "usd": 0.0000227772,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 6.84,
+    "cost": 0.0000227772
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 6.84,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.68,
+     "end": 5.02,
+     "avg_logprob": -0.13872734876415713,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0724637681159421
+    }
+   ]
+  },
+  "fleurs_es_1829": {
+   "ok": true,
+   "texto": " Los viajeros que visitan países con una carga tributaria alta pueden a veces ahorrar una cantidad significativa de dinero  particularmente  en bienes tales como las bebidas espirituosas y el tabaco.",
+   "ms": 1072,
+   "tentativas": 1,
+   "usd": 0.0000441558,
+   "usdReservado": 0.000147333186,
+   "uso": {
+    "seconds": 13.26,
+    "cost": 0.0000441558
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 13.26,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.66,
+     "end": 7.42,
+     "avg_logprob": -0.09065684579218214,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2424242424242424
+    },
+    {
+     "start": 7.8,
+     "end": 9.16,
+     "avg_logprob": -0.03598109493032098,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6666666666666666
+    },
+    {
+     "start": 9.36,
+     "end": 12.78,
+     "avg_logprob": -0.04508893664828256,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9672131147540983
+    }
+   ]
+  },
+  "fleurs_es_1912": {
+   "ok": true,
+   "texto": " La mayor parte de las islas más pequeñas constituyen estados independientes o asociadas con Francia,  y son populares por sus playas y complejos turísticos de lujo.",
+   "ms": 996,
+   "tentativas": 1,
+   "usd": 0.0000407592,
+   "usdReservado": 0.000135999864,
+   "uso": {
+    "seconds": 12.24,
+    "cost": 0.0000407592
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 12.24,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.84,
+     "end": 7.08,
+     "avg_logprob": -0.09510916298636908,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.10752688172043
+    },
+    {
+     "start": 7.11,
+     "end": 10.83,
+     "avg_logprob": -0.03719877964420534,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9696969696969697
+    }
+   ]
+  },
+  "fleurs_es_1972": {
+   "ok": true,
+   "texto": " Muchas personas no se los representan como dinosaurios, ya que tienen plumas y pueden volar.",
+   "ms": 727,
+   "tentativas": 1,
+   "usd": 0.00011599999431099511,
+   "usdReservado": 0.00011599988399999999,
+   "uso": {
+    "seconds": 10.439999488,
+    "cost": 0.00011599999431099511
+   },
+   "idiomaDevolvido": "Spanish",
+   "duracaoDevolvidaS": 10.439999488,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 8.96,
+     "avg_logprob": -0.19511282,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1071428
+    }
+   ]
+  },
+  "fleurs_es_1942": {
+   "ok": true,
+   "texto": " Gracias.  construimos nuestras casas a partir de las plantas  y con ellas también fabricamos ropa  La mayoría de los alimentos que ingerimos son plantas.  Sin ellas, los animales no sobrevivirían.",
+   "ms": 945,
+   "tentativas": 1,
+   "usd": 0.0000447552,
+   "usdReservado": 0.000149333184,
+   "uso": {
+    "seconds": 13.44,
+    "cost": 0.0000447552
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 13.44,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.21,
+     "end": 0.8099999999999999,
+     "avg_logprob": -0.5062822829931974,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.08,
+     "end": 4.5,
+     "avg_logprob": -0.07153800018848135,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9622641509433962
+    },
+    {
+     "start": 4.59,
+     "end": 6.75,
+     "avg_logprob": -0.12497053593397141,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8222222222222222
+    },
+    {
+     "start": 6.93,
+     "end": 9.79,
+     "avg_logprob": -0.0838378950720653,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9180327868852459
+    },
+    {
+     "start": 9.96,
+     "end": 12.9,
+     "avg_logprob": -0.09623815425528356,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8431372549019608
+    }
+   ]
+  },
+  "fleurs_es_1967": {
+   "ok": true,
+   "texto": " Durante la reunión llevada a cabo con el primer ministro Leighton, había solicitado que se introdujeran cambios en la ley ambiental de los conservadores, apelando a una modificación exhaustiva y completa de su redacción.",
+   "ms": 1218,
+   "tentativas": 1,
+   "usd": 0.0000491508,
+   "usdReservado": 0.00016399983599999998,
+   "uso": {
+    "seconds": 14.76,
+    "cost": 0.0000491508
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 14.76,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.72,
+     "end": 13.24,
+     "avg_logprob": -0.0683515189187171,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.3636363636363635
+    }
+   ]
+  },
+  "fleurs_es_1812": {
+   "ok": true,
+   "texto": " Al día de hoy no se ha demostrado a ciencia cierta que algún fármaco sea adecuado...  para tratar la infección existente causada por ébola, aun cuando existe una vacuna experimental  que pareciera ser capaz de disminuir la mortalidad causada por esa enfermedad.",
+   "ms": 978,
+   "tentativas": 1,
+   "usd": 0.0000591408,
+   "usdReservado": 0.000197333136,
+   "uso": {
+    "seconds": 17.76,
+    "cost": 0.0000591408
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 17.76,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.65,
+     "end": 6.15,
+     "avg_logprob": -0.06250202501230108,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.035294117647059
+    },
+    {
+     "start": 6.21,
+     "end": 16.11,
+     "avg_logprob": -0.08291558422374817,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.37984496124031
+    }
+   ]
+  },
+  "fleurs_es_2006": {
+   "ok": true,
+   "texto": " Gracias.  se consideran metales a los elementos como el calcio y el potasio  Desde ya, también existen metales del tipo del oro y la plata.",
+   "ms": 1452,
+   "tentativas": 1,
+   "usd": 0.0000363636,
+   "usdReservado": 0.00012133321199999999,
+   "uso": {
+    "seconds": 10.92,
+    "cost": 0.0000363636
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 10.92,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.24,
+     "end": 0.6599999999999999,
+     "avg_logprob": -0.31202845834195614,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 2.19,
+     "end": 5.95,
+     "avg_logprob": -0.06638460084305782,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1
+    },
+    {
+     "start": 5.97,
+     "end": 9.85,
+     "avg_logprob": -0.1091709419043683,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.927536231884058
+    }
+   ]
+  },
+  "fleurs_es_1697": {
+   "ok": true,
+   "texto": " No ha podido tomarse medicamentos para aliviar el dolor porque está prohibido su uso en los juegos.",
+   "ms": 1030,
+   "tentativas": 1,
+   "usd": 0.0000255744,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 7.68,
+    "cost": 0.0000255744
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 7.68,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.78,
+     "end": 5.720000000000001,
+     "avg_logprob": -0.04745512210166243,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1477272727272727
+    }
+   ]
+  },
+  "fleurs_es_1705": {
+   "ok": true,
+   "texto": " El 15 de agosto de 1940 se despe...  se desplegó la denominada Operación Dragón, a través de la cual los aliados invadieron el sur de Francia.",
+   "ms": 990,
+   "tentativas": 1,
+   "usd": 0.0000495504,
+   "usdReservado": 0.000165333168,
+   "uso": {
+    "seconds": 14.88,
+    "cost": 0.0000495504
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 14.88,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.83,
+     "end": 5.130000000000001,
+     "avg_logprob": -0.1704591055621187,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9
+    },
+    {
+     "start": 5.55,
+     "end": 12.71,
+     "avg_logprob": -0.06202565915384639,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1111111111111112
+    }
+   ]
+  },
+  "fleurs_es_1825": {
+   "ok": true,
+   "texto": " Si desea ver de cerca la acción, entonces deberá llegar temprano al campamento para hacerse con un lugar cerca de los eventos musicales.",
+   "ms": 2156,
+   "tentativas": 1,
+   "usd": 0.0000401598,
+   "usdReservado": 0.000133999866,
+   "uso": {
+    "seconds": 12.06,
+    "cost": 0.0000401598
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 12.06,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.85,
+     "end": 11.07,
+     "avg_logprob": -0.035581146475275695,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2410714285714286
+    }
+   ]
+  },
+  "fleurs_es_1869": {
+   "ok": true,
+   "texto": " Sus largas mandíbulas tenían incrustados más de 70 dientes afilados como navajas, además de otro grupo adicional en el paladar,  lo que se traduce en que cualquier cosa que le pasara por delante no tenía escapatoria.",
+   "ms": 1720,
+   "tentativas": 1,
+   "usd": 0.0000483516,
+   "usdReservado": 0.00016133317199999999,
+   "uso": {
+    "seconds": 14.52,
+    "cost": 0.0000483516
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 14.52,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.9,
+     "end": 8.58,
+     "avg_logprob": -0.11820057294569683,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1785714285714286
+    },
+    {
+     "start": 8.61,
+     "end": 13.05,
+     "avg_logprob": -0.04082698344551318,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1710526315789473
+    }
+   ]
+  },
+  "fleurs_es_1898": {
+   "ok": true,
+   "texto": " En esencia, él, Wallace, nos mintió desde un comienzo, por un lado pretendiendo que lo hacía por razones legales,  por el otro fingiendo prestarnos atención hasta el momento en que eliminaba el contenido artístico.",
+   "ms": 1634,
+   "tentativas": 1,
+   "usd": 0.000055944,
+   "usdReservado": 0.00018666648,
+   "uso": {
+    "seconds": 16.8,
+    "cost": 0.000055944
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 16.8,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.18,
+     "end": 9,
+     "avg_logprob": -0.10585171633979104,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1359223300970873
+    },
+    {
+     "start": 9.24,
+     "end": 16.12,
+     "avg_logprob": -0.12077448584845431,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.146067415730337
+    }
+   ]
+  },
+  "fleurs_es_2008": {
+   "ok": true,
+   "texto": " Otros temas incluidos en la agenda de Bali son salvar los bosques que subsisten en el planeta  y compartir tecnologías para contribuir a que las naciones en vías de desarrollo crezcan de forma menos contaminante.",
+   "ms": 1047,
+   "tentativas": 1,
+   "usd": 0.0000523476,
+   "usdReservado": 0.000174666492,
+   "uso": {
+    "seconds": 15.72,
+    "cost": 0.0000523476
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 15.72,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.11,
+     "end": 13.95,
+     "avg_logprob": -0.042734257516044795,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.423841059602649
+    }
+   ]
+  },
+  "fleurs_es_1693": {
+   "ok": true,
+   "texto": " Más, luego de quedar sin el wicket del capitán, India solo logró 36 carreras y 7 de sus wickets fueron derribados para finalizar las vueltas.",
+   "ms": 1288,
+   "tentativas": 1,
+   "usd": 0.0000387612,
+   "usdReservado": 0.000129333204,
+   "uso": {
+    "seconds": 11.64,
+    "cost": 0.0000387612
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 11.64,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.81,
+     "end": 10.07,
+     "avg_logprob": -0.08054318562064908,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.16
+    }
+   ]
+  },
+  "fleurs_es_1905": {
+   "ok": true,
+   "texto": " La capital de Moldavia es...  sin sinal  Su lengua regional es rumano, aunque ruso también es muy hablado.",
+   "ms": 968,
+   "tentativas": 1,
+   "usd": 0.0000343656,
+   "usdReservado": 0.00011466655199999999,
+   "uso": {
+    "seconds": 10.32,
+    "cost": 0.0000343656
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 10.32,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.78,
+     "end": 2.92,
+     "avg_logprob": -0.3488185087335296,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7837837837837838
+    },
+    {
+     "start": 2.97,
+     "end": 4.23,
+     "avg_logprob": -0.8479729883372784,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.625
+    },
+    {
+     "start": 4.68,
+     "end": 8.899999999999999,
+     "avg_logprob": -0.10757828215259667,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9305555555555556
+    }
+   ]
+  },
+  "fleurs_es_1763": {
+   "ok": true,
+   "texto": " La Vía Láctea influye en la galaxia de Sagitario del mismo modo en que la Luna ejerce una fuerza de atracción sobre nuestro planeta y causa las mareas.",
+   "ms": 1053,
+   "tentativas": 1,
+   "usd": 0.000041958,
+   "usdReservado": 0.00013999985999999998,
+   "uso": {
+    "seconds": 12.6,
+    "cost": 0.000041958
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 12.6,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.99,
+     "end": 10.71,
+     "avg_logprob": -0.05285399805035757,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.220472440944882
+    }
+   ]
+  },
+  "fleurs_es_1759": {
+   "ok": true,
+   "texto": " la doctora Malar.  Balasubramanian de 29 años fue hallado en Blue Ash, Ohio, un suburbio ubicado a unas 15 millas al norte de Cincinnati, recostada sobre el suelo al lado de la carretera vistiendo una remera y ropa interior.  y en aparente estado de sobremedicación.",
+   "ms": 1446,
+   "tentativas": 1,
+   "usd": 0.000078921,
+   "usdReservado": 0.00026333306999999997,
+   "uso": {
+    "seconds": 23.7,
+    "cost": 0.000078921
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 23.7,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.86,
+     "end": 3.62,
+     "avg_logprob": -0.5208472477388568,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6923076923076923
+    },
+    {
+     "start": 3.84,
+     "end": 18.54,
+     "avg_logprob": -0.17425250674544562,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.335483870967742
+    },
+    {
+     "start": 18.93,
+     "end": 21.509999999999998,
+     "avg_logprob": -0.07823631146051671,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.84
+    }
+   ]
+  },
+  "fleurs_es_1907": {
+   "ok": true,
+   "texto": " Al poco tiempo de desatarse las hostilidades, los británicos comenzaron un bloqueo naval a Alemania.",
+   "ms": 954,
+   "tentativas": 1,
+   "usd": 0.0000317682,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.54,
+    "cost": 0.0000317682
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 9.54,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.59,
+     "end": 7.87,
+     "avg_logprob": -0.03721085840308141,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0851063829787233
+    }
+   ]
+  },
+  "fleurs_es_1975": {
+   "ok": true,
+   "texto": " Con aproximadamente 800 habitantes, la ciudad del Vaticano es el país...  independiente más pequeño del mundo y el de menor población.",
+   "ms": 1161,
+   "tentativas": 1,
+   "usd": 0.0000367632,
+   "usdReservado": 0.00012266654399999998,
+   "uso": {
+    "seconds": 11.04,
+    "cost": 0.0000367632
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 11.04,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.59,
+     "end": 6.17,
+     "avg_logprob": -0.18938689234399883,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9367088607594937
+    },
+    {
+     "start": 6.27,
+     "end": 9.37,
+     "avg_logprob": -0.16004834723259723,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9142857142857143
+    }
+   ]
+  },
+  "fleurs_es_1785": {
+   "ok": true,
+   "texto": " El andamiaje no es una técnica de aprendizaje  es, antes bien, una asistencia que proporciona apoyo a quienes atraviesan una nueva experiencia  como el uso de un nuevo programa informático  o el inicio de un nuevo proyecto.",
+   "ms": 1207,
+   "tentativas": 1,
+   "usd": 0.0000583416,
+   "usdReservado": 0.00019466647199999998,
+   "uso": {
+    "seconds": 17.52,
+    "cost": 0.0000583416
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 17.52,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 2.07,
+     "end": 5.73,
+     "avg_logprob": -0.10445215475532071,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8703703703703703
+    },
+    {
+     "start": 5.79,
+     "end": 14.89,
+     "avg_logprob": -0.1489391481623446,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.3240740740740742
+    },
+    {
+     "start": 14.91,
+     "end": 16.81,
+     "avg_logprob": -0.19070587742978454,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8095238095238095
+    }
+   ]
+  },
+  "fleurs_es_1818": {
+   "ok": true,
+   "texto": " La gente puede no prever que la tolerancia y la comprensión también son necesarias para los viajeros de regreso a sus hogares.",
+   "ms": 1092,
+   "tentativas": 1,
+   "usd": 0.0000327672,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.84,
+    "cost": 0.0000327672
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 9.84,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.26,
+     "end": 7.76,
+     "avg_logprob": -0.058444828828448536,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.205607476635514
+    }
+   ]
+  },
+  "fleurs_es_1998": {
+   "ok": true,
+   "texto": " Tienen extremidades escamadas y con garras ponen huevos y se desplazan sobre sus patas traseras al igual que el T-Rex.",
+   "ms": 1020,
+   "tentativas": 1,
+   "usd": 0.0000343656,
+   "usdReservado": 0.00011466655199999999,
+   "uso": {
+    "seconds": 10.32,
+    "cost": 0.0000343656
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 10.32,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.26,
+     "end": 8.360000000000001,
+     "avg_logprob": -0.11745369313566464,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.202020202020202
+    }
+   ]
+  },
+  "fleurs_es_1871": {
+   "ok": true,
+   "texto": " Gracias.  En medio del cálido clima del Oriente Medio, la casa no era de mayor importancia.",
+   "ms": 901,
+   "tentativas": 1,
+   "usd": 0.0000233766,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 7.02,
+    "cost": 0.0000233766
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 7.02,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.24,
+     "end": 1.2,
+     "avg_logprob": -0.34164397045969963,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.5,
+     "end": 6.54,
+     "avg_logprob": -0.06913802752562333,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0506329113924051
+    }
+   ]
+  },
+  "fleurs_es_1739": {
+   "ok": true,
+   "texto": " En la cúspide de una de las montañas al norte de la Meca, yace una cueva totalmente abstraída del resto del planeta.",
+   "ms": 1998,
+   "tentativas": 1,
+   "usd": 0.0000307692,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.24,
+    "cost": 0.0000307692
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 9.24,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.83,
+     "end": 8.81,
+     "avg_logprob": -0.14739575448442743,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.188118811881188
+    }
+   ]
+  },
+  "fleurs_es_1786": {
+   "ok": true,
+   "texto": " Al ser comparados a través del uso de la espectroscopía infrarroja FT-IR,  pudo determinarse que la composición de los cristales coincide con la encontrada en la orina de las mascotas afectadas.",
+   "ms": 1426,
+   "tentativas": 1,
+   "usd": 0.0000541458,
+   "usdReservado": 0.00018066648600000002,
+   "uso": {
+    "seconds": 16.26,
+    "cost": 0.0000541458
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 16.26,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.74,
+     "end": 14.26,
+     "avg_logprob": -0.08036994742329565,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.3288590604026846
+    }
+   ]
+  },
+  "fleurs_es_1845": {
+   "ok": true,
+   "texto": " Viajaron de vuelta hacia París en un carruaje rodeados por una muchedumbre que gritaban  y lanzaban amenazas contra el rey y la reina.",
+   "ms": 2142,
+   "tentativas": 1,
+   "usd": 0.0000355644,
+   "usdReservado": 0.00011866654799999998,
+   "uso": {
+    "seconds": 10.68,
+    "cost": 0.0000355644
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 10.68,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.65,
+     "end": 6.789999999999999,
+     "avg_logprob": -0.10951638003825792,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0987654320987654
+    },
+    {
+     "start": 6.96,
+     "end": 9.8,
+     "avg_logprob": -0.10489765545592972,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.92
+    }
+   ]
+  },
+  "fleurs_es_1710": {
+   "ok": true,
+   "texto": " La semana pasada, Metty anunció que Apple les había informado de 34 incidentes adicionales de sobrecalentamiento, que la compañía catalogó como no graves.",
+   "ms": 2073,
+   "tentativas": 1,
+   "usd": 0.0000411588,
+   "usdReservado": 0.00013733319599999998,
+   "uso": {
+    "seconds": 12.36,
+    "cost": 0.0000411588
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 12.36,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.84,
+     "end": 10.36,
+     "avg_logprob": -0.09575257873823376,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2030075187969924
+    }
+   ]
+  },
+  "fleurs_es_1756": {
+   "ok": true,
+   "texto": " Gracias.  El domingo por la noche, en un anuncio realizado mediante el secretario de prensa,  el presidente de los Estados Unidos de América, Donald Trump,  comunicó que las tropas estadounidenses  se retirarían de Siria.",
+   "ms": 1408,
+   "tentativas": 1,
+   "usd": 0.0000477522,
+   "usdReservado": 0.00015933317399999998,
+   "uso": {
+    "seconds": 14.34,
+    "cost": 0.0000477522
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 14.34,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.24,
+     "end": 0.64,
+     "avg_logprob": -0.3608616031706333,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.32,
+     "end": 5.800000000000001,
+     "avg_logprob": -0.0874819214859599,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0921052631578947
+    },
+    {
+     "start": 5.91,
+     "end": 9.030000000000001,
+     "avg_logprob": -0.1647461467821683,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9545454545454546
+    },
+    {
+     "start": 9.15,
+     "end": 11.790000000000001,
+     "avg_logprob": -0.05902712692234976,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8913043478260869
+    },
+    {
+     "start": 11.85,
+     "end": 13.57,
+     "avg_logprob": -0.14802857228787616,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7575757575757576
+    }
+   ]
+  },
+  "fleurs_es_1935": {
+   "ok": true,
+   "texto": " Gracias.  No obstante, eso no es cierto.  Si bien el reverso del documento contiene algo escrito,  No se trata de un mapa de un tesoro.",
+   "ms": 1838,
+   "tentativas": 1,
+   "usd": 0.0000337662,
+   "usdReservado": 0.000112666554,
+   "uso": {
+    "seconds": 10.14,
+    "cost": 0.0000337662
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 10.14,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.11,
+     "end": 1.55,
+     "avg_logprob": -0.7536040171980858,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.77,
+     "end": 4.13,
+     "avg_logprob": -0.24476999466423877,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8378378378378378
+    },
+    {
+     "start": 4.2,
+     "end": 7.5,
+     "avg_logprob": -0.05486717193465059,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9180327868852459
+    },
+    {
+     "start": 7.53,
+     "end": 9.57,
+     "avg_logprob": -0.06659352689390428,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9736842105263158
+    }
+   ]
+  },
+  "fleurs_es_1984": {
+   "ok": true,
+   "texto": " El uso masivo de automóviles también genera una mayor incidencia en los accidentes de tránsito, lo que conduce al desarrollo de nuevas técnicas en el campo de la salud para reparar los cuerpos dañados.",
+   "ms": 1103,
+   "tentativas": 1,
+   "usd": 0.00003996,
+   "usdReservado": 0.00013333319999999998,
+   "uso": {
+    "seconds": 12,
+    "cost": 0.00003996
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 12,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.42,
+     "end": 10.84,
+     "avg_logprob": -0.09226771479125918,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.361842105263158
+    }
+   ]
+  },
+  "fleurs_es_1738": {
+   "ok": true,
+   "texto": " Gracias.  Atacaba también a cualquier criatura que entrara en el agua, ni siquiera un dinosaurio tan enorme como el T-Rex  Era una amenaza para él.",
+   "ms": 1241,
+   "tentativas": 1,
+   "usd": 0.0000333666,
+   "usdReservado": 0.000111333222,
+   "uso": {
+    "seconds": 10.02,
+    "cost": 0.0000333666
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 10.02,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.24,
+     "end": 0.72,
+     "avg_logprob": -0.3972155526280403,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 0.81,
+     "end": 8.01,
+     "avg_logprob": -0.13954585441012657,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.13
+    },
+    {
+     "start": 8.1,
+     "end": 9.64,
+     "avg_logprob": -0.17927840319397445,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7878787878787878
+    }
+   ]
+  },
+  "fleurs_es_1816": {
+   "ok": true,
+   "texto": " Duval, que está casado y tiene dos hijos adultos, no causó una buena impresión a Miller,  que fue a quien le relató la historia.",
+   "ms": 1368,
+   "tentativas": 1,
+   "usd": 0.0000341658,
+   "usdReservado": 0.00011399988599999999,
+   "uso": {
+    "seconds": 10.26,
+    "cost": 0.0000341658
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 10.26,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.47,
+     "end": 6.109999999999999,
+     "avg_logprob": -0.12973464938351334,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0337078651685394
+    },
+    {
+     "start": 6.57,
+     "end": 8.190000000000001,
+     "avg_logprob": -0.12645230408088537,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8695652173913043
+    }
+   ]
+  },
+  "fleurs_es_1955": {
+   "ok": true,
+   "texto": " el sistema nervioso central  unión del cerebro  la médula espinal  Y el nervio óptico es el objeto de ataque de la esclerosis múltiple.",
+   "ms": 1025,
+   "tentativas": 1,
+   "usd": 0.0000435564,
+   "usdReservado": 0.000145333188,
+   "uso": {
+    "seconds": 13.08,
+    "cost": 0.0000435564
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 13.08,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.05,
+     "end": 3.09,
+     "avg_logprob": -0.12058760446961969,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7777777777777778
+    },
+    {
+     "start": 3.33,
+     "end": 4.77,
+     "avg_logprob": -0.09456737697473727,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7037037037037037
+    },
+    {
+     "start": 4.95,
+     "end": 6.25,
+     "avg_logprob": -0.11091028771729075,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7307692307692307
+    },
+    {
+     "start": 6.36,
+     "end": 11.64,
+     "avg_logprob": -0.03114060034643747,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9726027397260274
+    }
+   ]
+  },
+  "fleurs_es_1849": {
+   "ok": true,
+   "texto": " Gracias.  Si ha visto el filme Tesoro Nacional, quizá crea que un mapa del tesoro fue trazado en el dorso de la declaración de la independencia.",
+   "ms": 3482,
+   "tentativas": 1,
+   "usd": 0.0000331668,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.96,
+    "cost": 0.0000331668
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 9.96,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.24,
+     "end": 0.64,
+     "avg_logprob": -0.4785591810941696,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.26,
+     "end": 8.46,
+     "avg_logprob": -0.09731259883571781,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.191304347826087
+    }
+   ]
+  },
+  "fleurs_es_1716": {
+   "ok": true,
+   "texto": " Según la página web de noticias de entretenimiento TMZ, el fotógrafo detuvo el vehículo del lado del boulevard Sepúlveda e intentó tomar fotografías de la parada policial antes de cruzar la calle y seguir.  lo que causó que el agente de la patrulla caminera de California que realizaba la detención de vehículos  le diera dos veces la orden de volver a cruzar.",
+   "ms": 1668,
+   "tentativas": 1,
+   "usd": 0.0000815184,
+   "usdReservado": 0.000271999728,
+   "uso": {
+    "seconds": 24.48,
+    "cost": 0.0000815184
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 24.48,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.78,
+     "end": 14.02,
+     "avg_logprob": -0.11792665667009464,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.3229813664596273
+    },
+    {
+     "start": 14.4,
+     "end": 20.04,
+     "avg_logprob": -0.08259915599386053,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.173913043478261
+    },
+    {
+     "start": 20.13,
+     "end": 22.95,
+     "avg_logprob": -0.05225291697618862,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9056603773584906
+    }
+   ]
+  },
+  "fleurs_es_2009": {
+   "ok": true,
+   "texto": " Gracias.  Las proteínas presentes en las hojas y las legumbres hubiesen constituido la fuente de recursos vegetales de más sencillo acceso.  pero no son fácilmente digeribles  para primatales  como nosotros.  excepto que se las cocine.",
+   "ms": 1250,
+   "tentativas": 1,
+   "usd": 0.0000541458,
+   "usdReservado": 0.00018066648600000002,
+   "uso": {
+    "seconds": 16.26,
+    "cost": 0.0000541458
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 16.26,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.24,
+     "end": 0.9,
+     "avg_logprob": -0.46456882171332836,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.74,
+     "end": 9.22,
+     "avg_logprob": -0.13326515173813439,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2110091743119267
+    },
+    {
+     "start": 9.33,
+     "end": 11.33,
+     "avg_logprob": -0.1311807702993974,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.813953488372093
+    },
+    {
+     "start": 11.43,
+     "end": 12.75,
+     "avg_logprob": -0.32441193982958794,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6666666666666666
+    },
+    {
+     "start": 12.81,
+     "end": 13.450000000000001,
+     "avg_logprob": -0.5920626447536051,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6521739130434783
+    },
+    {
+     "start": 14.01,
+     "end": 15.55,
+     "avg_logprob": -0.2025990317342803,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7714285714285715
+    }
+   ]
+  },
+  "fleurs_es_1886": {
+   "ok": true,
+   "texto": " Con el propósito de obtener fácilmente su leche, pelo, carne y cuero, los pueblos y tribus antiguos empezaron a quedarse con ellos.  Gracias.",
+   "ms": 993,
+   "tentativas": 1,
+   "usd": 0.0000323676,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.72,
+    "cost": 0.0000323676
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 9.72,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.29,
+     "end": 8.370000000000001,
+     "avg_logprob": -0.06326311668531162,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1754385964912282
+    },
+    {
+     "start": 9.27,
+     "end": 9.709999999999999,
+     "avg_logprob": -0.6034478824585676,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    }
+   ]
+  },
+  "fleurs_es_1732": {
+   "ok": true,
+   "texto": " El periodo histórico europeo en el que se sitúa estos acontecimientos se conoce eventualmente como Alta Edad Media, entre los siglos XI, XII y XIII, es decir, entre los años 1000 y 1300 d.C.",
+   "ms": 764,
+   "tentativas": 1,
+   "usd": 0.00020133335039979866,
+   "usdReservado": 0.000201333132,
+   "uso": {
+    "seconds": 18.120001536,
+    "cost": 0.00020133335039979866
+   },
+   "idiomaDevolvido": "Spanish",
+   "duracaoDevolvidaS": 18.120001536,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1,
+     "end": 5.98,
+     "avg_logprob": -0.1192609,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.3197279
+    },
+    {
+     "start": 5.98,
+     "end": 13.9,
+     "avg_logprob": -0.1192609,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.3197279
+    },
+    {
+     "start": 13.9,
+     "end": 18.119999,
+     "avg_logprob": -0.1192609,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.3197279
+    }
+   ]
+  },
+  "fleurs_es_1859": {
+   "ok": true,
+   "texto": " Hacia fines de la Edad Media, Europa Occidental empezó a desarrollar un estilo propio. Uno  de los avances más significativos de esa época fue que producto de las cruzadas, las  personas comenzaron a usar botones para abrochar sus prendas.",
+   "ms": 1321,
+   "tentativas": 1,
+   "usd": 0.0000483516,
+   "usdReservado": 0.00016133317199999999,
+   "uso": {
+    "seconds": 14.52,
+    "cost": 0.0000483516
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 14.52,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.22,
+     "end": 13.42,
+     "avg_logprob": -0.10997068531215,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.35
+    }
+   ]
+  },
+  "fleurs_es_1778": {
+   "ok": true,
+   "texto": " Gracias.  En las coberturas televisivas  puede verse humo blanco emanando de la planta.",
+   "ms": 952,
+   "tentativas": 1,
+   "usd": 0.0000235764,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 7.08,
+    "cost": 0.0000235764
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 7.08,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.24,
+     "end": 0.64,
+     "avg_logprob": -0.3998000845313072,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.53,
+     "end": 3.31,
+     "avg_logprob": -0.1221691028994327,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8333333333333334
+    },
+    {
+     "start": 3.33,
+     "end": 6.67,
+     "avg_logprob": -0.1750589280379548,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9038461538461539
+    }
+   ]
+  },
+  "fleurs_es_1930": {
+   "ok": true,
+   "texto": " Tanto los seis rehenes entre los que había niños y ancianos como los fotógrafos filipinos fueron puestos en libertad temprano.",
+   "ms": 1139,
+   "tentativas": 1,
+   "usd": 0.000031968,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.6,
+    "cost": 0.000031968
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 9.6,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.38,
+     "end": 8.280000000000001,
+     "avg_logprob": -0.06136949750086658,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2037037037037037
+    }
+   ]
+  },
+  "fleurs_es_1894": {
+   "ok": true,
+   "texto": " Gracias.  El curry es una receta a base de hierbas y especias y que se sirve con carne o vegetales.",
+   "ms": 941,
+   "tentativas": 1,
+   "usd": 0.0000263736,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 7.92,
+    "cost": 0.0000263736
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 7.92,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.24,
+     "end": 0.64,
+     "avg_logprob": -0.3802207028493285,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.41,
+     "end": 7.41,
+     "avg_logprob": -0.03900812222639582,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1688311688311688
+    }
+   ]
+  },
+  "fleurs_es_1692": {
+   "ok": true,
+   "texto": " Según ha informado la Agencia Nuclear de Japón,  Se han encontrado cesio y yodo radioactivos en la planta.",
+   "ms": 982,
+   "tentativas": 1,
+   "usd": 0.0000447552,
+   "usdReservado": 0.000149333184,
+   "uso": {
+    "seconds": 13.44,
+    "cost": 0.0000447552
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 13.44,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.53,
+     "end": 4.87,
+     "avg_logprob": -0.06452500656814664,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8620689655172413
+    },
+    {
+     "start": 5.28,
+     "end": 9.22,
+     "avg_logprob": -0.15027116484002603,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9354838709677419
+    }
+   ]
+  },
+  "fleurs_es_1881": {
+   "ok": true,
+   "texto": " Compartir una excursión en forma virtual también es una excelente forma de reflexionar sobre una salida y compartir experiencias con clases futuras.",
+   "ms": 676,
+   "tentativas": 1,
+   "usd": 0.00012466667519987534,
+   "usdReservado": 0.000124666542,
+   "uso": {
+    "seconds": 11.220000768,
+    "cost": 0.00012466667519987534
+   },
+   "idiomaDevolvido": "Spanish",
+   "duracaoDevolvidaS": 11.220000768,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 10.32,
+     "avg_logprob": -0.07931368,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.3017242
+    }
+   ]
+  },
+  "fleurs_es_1751": {
+   "ok": true,
+   "texto": " Gracias.  La cuestión que dio origen al debate fue la controversia en torno al presupuesto destinado al socorro  y reconstrucción posteriores al huracán Katrina.  medida que algunos conservadores fiscales etiquetaron en torno de broma  como el acuerdo de Nueva Orleans de Bulle.",
+   "ms": 1723,
+   "tentativas": 1,
+   "usd": 0.0000633366,
+   "usdReservado": 0.000211333122,
+   "uso": {
+    "seconds": 19.02,
+    "cost": 0.0000633366
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 19.02,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.24,
+     "end": 0.64,
+     "avg_logprob": -0.3507739342749119,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.65,
+     "end": 8.03,
+     "avg_logprob": -0.12104944839229574,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2117647058823529
+    },
+    {
+     "start": 8.07,
+     "end": 11.45,
+     "avg_logprob": -0.22279040680053488,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.864406779661017
+    },
+    {
+     "start": 11.49,
+     "end": 15.510000000000002,
+     "avg_logprob": -0.16854338616279788,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0909090909090908
+    },
+    {
+     "start": 15.78,
+     "end": 18.54,
+     "avg_logprob": -0.2790753473079978,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8775510204081632
+    }
+   ]
+  },
+  "fleurs_es_1707": {
+   "ok": true,
+   "texto": " Esta es una de las atracciones más importantes de Sudáfrica y se la reconoce como ícono principal de los parques nacionales de Sudáfrica, Sun Parks.",
+   "ms": 1287,
+   "tentativas": 1,
+   "usd": 0.0000363636,
+   "usdReservado": 0.00012133321199999999,
+   "uso": {
+    "seconds": 10.92,
+    "cost": 0.0000363636
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 10.92,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.41,
+     "end": 9.49,
+     "avg_logprob": -0.06783825809729616,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2966101694915255
+    }
+   ]
+  },
+  "fleurs_es_1761": {
+   "ok": true,
+   "texto": " Más tarde, los fotógrafos ocuparon el lugar de una anciana  porque necesitaba ir al baño.  Mendoza fue acribillado.",
+   "ms": 930,
+   "tentativas": 1,
+   "usd": 0.0000315684,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.48,
+    "cost": 0.0000315684
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 9.48,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.2,
+     "end": 4.78,
+     "avg_logprob": -0.06743488225612582,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8970588235294118
+    },
+    {
+     "start": 4.95,
+     "end": 6.57,
+     "avg_logprob": -0.10215023596538231,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7948717948717948
+    },
+    {
+     "start": 6.72,
+     "end": 8.06,
+     "avg_logprob": -0.11052800047169016,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7575757575757576
+    }
+   ]
+  },
+  "fleurs_es_1924": {
+   "ok": true,
+   "texto": " Cuatro esquiadores de la categoría sentadas no lograron completar sus carreras y un total de 45 participantes de 117 del slalom gigante no alcanzaron la clasificación en la carrera.",
+   "ms": 1678,
+   "tentativas": 1,
+   "usd": 0.0000495504,
+   "usdReservado": 0.000165333168,
+   "uso": {
+    "seconds": 14.88,
+    "cost": 0.0000495504
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 14.88,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.26,
+     "end": 13.8,
+     "avg_logprob": -0.05203709229332768,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.3237410071942446
+    }
+   ]
+  },
+  "fleurs_es_1701": {
+   "ok": true,
+   "texto": " Gracias.  Al parecer, las cabras fueron domesticadas por primera vez hace unos 10.000 años  en los montes sagros en Irán.",
+   "ms": 951,
+   "tentativas": 1,
+   "usd": 0.0000335664,
+   "usdReservado": 0.000111999888,
+   "uso": {
+    "seconds": 10.08,
+    "cost": 0.0000335664
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 10.08,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.24,
+     "end": 0.72,
+     "avg_logprob": -0.3082208875566721,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.77,
+     "end": 7.23,
+     "avg_logprob": -0.1476312860904727,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9879518072289156
+    },
+    {
+     "start": 7.29,
+     "end": 9.370000000000001,
+     "avg_logprob": -0.22184398717945442,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8378378378378378
+    }
+   ]
+  },
+  "fleurs_es_1909": {
+   "ok": true,
+   "texto": " Gracias.  Gracias.  Los mismos estándares de excelencia que manejan los equipos convencionales  aplican para los virtuales aunque existen pequeñas diferencias.",
+   "ms": 1176,
+   "tentativas": 1,
+   "usd": 0.0000353646,
+   "usdReservado": 0.00011799988199999998,
+   "uso": {
+    "seconds": 10.62,
+    "cost": 0.0000353646
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 10.62,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.21,
+     "end": 0.75,
+     "avg_logprob": -0.3398398943245411,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.14,
+     "end": 1.6199999999999999,
+     "avg_logprob": -0.35110121965408325,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.65,
+     "end": 5.85,
+     "avg_logprob": -0.029808285834262375,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0410958904109588
+    },
+    {
+     "start": 5.97,
+     "end": 9.79,
+     "avg_logprob": -0.1621053626640787,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9558823529411765
+    }
+   ]
+  },
+  "fleurs_es_1706": {
+   "ok": true,
+   "texto": " Las iglesias más tradicionales suelen ofrecer una vigilia pascual  el día sábado en la noche durante el fin de la semana de la Pascua.  y  por lo general  las congregaciones dan inicio a las celebraciones por la resurrección de Cristo  apenas llega la medianoche",
+   "ms": 2059,
+   "tentativas": 1,
+   "usd": 0.0000721278,
+   "usdReservado": 0.00024066642599999998,
+   "uso": {
+    "seconds": 21.66,
+    "cost": 0.0000721278
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 21.66,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 2.22,
+     "end": 6.700000000000001,
+     "avg_logprob": -0.04082713241514284,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9852941176470589
+    },
+    {
+     "start": 6.75,
+     "end": 9.99,
+     "avg_logprob": -0.06658664055748886,
+     "no_speech_prob": 0,
+     "compression_ratio": 1
+    },
+    {
+     "start": 10.44,
+     "end": 10.98,
+     "avg_logprob": -0.3549347221851349,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.2
+    },
+    {
+     "start": 11.07,
+     "end": 12.17,
+     "avg_logprob": -0.26487959478981793,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6521739130434783
+    },
+    {
+     "start": 12.3,
+     "end": 16.78,
+     "avg_logprob": -0.08881453364493179,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1095890410958904
+    },
+    {
+     "start": 17.04,
+     "end": 18.599999999999998,
+     "avg_logprob": -0.13560512809635838,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7714285714285715
+    }
+   ]
+  },
+  "fleurs_es_1903": {
+   "ok": true,
+   "texto": " Cuando la totalidad de los recursos disponibles se utiliza de manera adecuada en los departamentos operativos de una organización,  se genera espacio para la creatividad y el ingenio.",
+   "ms": 2808,
+   "tentativas": 1,
+   "usd": 0.00003996,
+   "usdReservado": 0.00013333319999999998,
+   "uso": {
+    "seconds": 12,
+    "cost": 0.00003996
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 12,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.14,
+     "end": 8.34,
+     "avg_logprob": -0.05808391921915069,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2452830188679245
+    },
+    {
+     "start": 8.43,
+     "end": 11.309999999999999,
+     "avg_logprob": -0.06190174481210609,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9454545454545454
+    }
+   ]
+  },
+  "fleurs_es_1796": {
+   "ok": true,
+   "texto": " Gracias.  Este sedimento era necesario para la formación de bancos de arena y playas las que, a su vez, funcionaban como hábitats para la vida silvestre.",
+   "ms": 1173,
+   "tentativas": 1,
+   "usd": 0.0000377622,
+   "usdReservado": 0.000125999874,
+   "uso": {
+    "seconds": 11.34,
+    "cost": 0.0000377622
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 11.34,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.24,
+     "end": 0.7,
+     "avg_logprob": -0.3640922550112009,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.98,
+     "end": 10.84,
+     "avg_logprob": -0.16754506521176202,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.226890756302521
+    }
+   ]
+  },
+  "fleurs_es_1973": {
+   "ok": true,
+   "texto": " Gracias.  Pero, debido a su ubicación en los trópicos altos,  a unos pocos grados al norte del ecuador, usted deberá lidiar siempre con el calor  y cuando el cielo está despejado, con el sol fuerte, lo que sucede con menor frecuencia.",
+   "ms": 1413,
+   "tentativas": 1,
+   "usd": 0.00004995,
+   "usdReservado": 0.0001666665,
+   "uso": {
+    "seconds": 15,
+    "cost": 0.00004995
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 15,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.24,
+     "end": 0.76,
+     "avg_logprob": -0.37526068091392517,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.86,
+     "end": 4.8,
+     "avg_logprob": -0.09459850076624814,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8833333333333333
+    },
+    {
+     "start": 4.89,
+     "end": 9.649999999999999,
+     "avg_logprob": -0.13692375989497427,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0909090909090908
+    },
+    {
+     "start": 9.78,
+     "end": 15,
+     "avg_logprob": -0.13291894409916563,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0843373493975903
+    }
+   ]
+  },
+  "fleurs_es_1908": {
+   "ok": true,
+   "texto": " es un método clave para diferenciar entre ciertos verbos y objetos.",
+   "ms": 1628,
+   "tentativas": 1,
+   "usd": 0.0000191808,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 5.76,
+    "cost": 0.0000191808
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 5.76,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.96,
+     "end": 4.9,
+     "avg_logprob": -0.08000782651670306,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.971830985915493
+    }
+   ]
+  },
+  "fleurs_es_1916": {
+   "ok": true,
+   "texto": " Gracias.  Muchos de los productos alemanes que se preparan al horno tienen también almendras, avellanas  y otros frutos secos.  En general, los pasteles populares  hacen una excelente combinación con una taza de café fuerte.",
+   "ms": 2512,
+   "tentativas": 1,
+   "usd": 0.0000515484,
+   "usdReservado": 0.000171999828,
+   "uso": {
+    "seconds": 15.48,
+    "cost": 0.0000515484
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 15.48,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.24,
+     "end": 1,
+     "avg_logprob": -0.30824010260403156,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 2.13,
+     "end": 8.71,
+     "avg_logprob": -0.11518049078027962,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1568627450980393
+    },
+    {
+     "start": 8.85,
+     "end": 11.129999999999999,
+     "avg_logprob": -0.1105190332775237,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8536585365853658
+    },
+    {
+     "start": 11.19,
+     "end": 14.95,
+     "avg_logprob": -0.15518216280906927,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9692307692307692
+    }
+   ]
+  },
+  "fleurs_es_1917": {
+   "ok": true,
+   "texto": " Se instalaron de grandes pantallas de televisión en diferentes puntos de Roma.  para que todos pudieran ver la ceremonia.",
+   "ms": 1160,
+   "tentativas": 1,
+   "usd": 0.0000295704,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 8.88,
+    "cost": 0.0000295704
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 8.88,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.17,
+     "end": 5.51,
+     "avg_logprob": -0.1933735381009885,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0526315789473684
+    },
+    {
+     "start": 5.88,
+     "end": 7.84,
+     "avg_logprob": -0.11048285079111035,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.84
+    }
+   ]
+  },
+  "fleurs_es_1906": {
+   "ok": true,
+   "texto": " Esto no será una despedida, es solo el final de un capítulo y el comienzo de uno nuevo.",
+   "ms": 1185,
+   "tentativas": 1,
+   "usd": 0.0000271728,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 8.16,
+    "cost": 0.0000271728
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 8.16,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.47,
+     "end": 6.33,
+     "avg_logprob": -0.03223523659791546,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0465116279069768
+    }
+   ]
+  },
+  "fleurs_es_1771": {
+   "ok": true,
+   "texto": " Hay que tener en cuenta que si bien las actuaciones musicales puede que hayan finalizado, en otras zonas del festival podrían continuar hasta altas horas de la madrugada.",
+   "ms": 1074,
+   "tentativas": 1,
+   "usd": 0.0000403596,
+   "usdReservado": 0.000134666532,
+   "uso": {
+    "seconds": 12.12,
+    "cost": 0.0000403596
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 12.12,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.96,
+     "end": 10.14,
+     "avg_logprob": -0.06669652686204722,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.3129770992366412
+    }
+   ]
+  },
+  "fleurs_es_1807": {
+   "ok": true,
+   "texto": " Gracias.  La lengua que hablan a diario la mayoría de quienes trabajan dentro del estado es también italiano.  y el uso del latín queda generalmente reservado para las ceremonias religiosas.",
+   "ms": 2869,
+   "tentativas": 1,
+   "usd": 0.000041958,
+   "usdReservado": 0.00013999985999999998,
+   "uso": {
+    "seconds": 12.6,
+    "cost": 0.000041958
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 12.6,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.24,
+     "end": 0.64,
+     "avg_logprob": -0.35165915358811617,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.41,
+     "end": 7.11,
+     "avg_logprob": -0.1652759491262259,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.120879120879121
+    },
+    {
+     "start": 7.17,
+     "end": 11.89,
+     "avg_logprob": -0.073856159710669,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0384615384615385
+    }
+   ]
+  },
+  "fleurs_es_1875": {
+   "ok": true,
+   "texto": " Del total del agua proveniente de los ríos del mundo que desemboca en los océanos, el 20% deriva de los Amazonas.",
+   "ms": 1497,
+   "tentativas": 1,
+   "usd": 0.0000365634,
+   "usdReservado": 0.000121999878,
+   "uso": {
+    "seconds": 10.98,
+    "cost": 0.0000365634
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 10.98,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.44,
+     "end": 8.4,
+     "avg_logprob": -0.06484203698310012,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1153846153846154
+    }
+   ]
+  },
+  "fleurs_es_1724": {
+   "ok": true,
+   "texto": " Su fama de ser epicentro de lujo comenzó aproximadamente en 400 a.C. y se extendió hasta aproximadamente 1100 a.C.",
+   "ms": 3127,
+   "tentativas": 1,
+   "usd": 0.0000353646,
+   "usdReservado": 0.00011799988199999998,
+   "uso": {
+    "seconds": 10.62,
+    "cost": 0.0000353646
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 10.62,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.45,
+     "end": 9.65,
+     "avg_logprob": -0.07640881718403501,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2061855670103092
+    }
+   ]
+  },
+  "fleurs_es_1987": {
+   "ok": true,
+   "texto": " El accidente tuvo lugar en lo alto de un terreno de montañas y se estima que fue causado por un incendio hostil.",
+   "ms": 1882,
+   "tentativas": 1,
+   "usd": 0.0000291708,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 8.76,
+    "cost": 0.0000291708
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 8.76,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.23,
+     "end": 8.370000000000001,
+     "avg_logprob": -0.051187691999289464,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1515151515151516
+    }
+   ]
+  },
+  "fleurs_es_1925": {
+   "ok": true,
+   "texto": " Gracias.  Si bien se trató de un trabajo eminentemente teórico, el programa se derractó con la finalidad de simular las observaciones realizadas a la galaxia de Sagitario.",
+   "ms": 2742,
+   "tentativas": 1,
+   "usd": 0.0000387612,
+   "usdReservado": 0.000129333204,
+   "uso": {
+    "seconds": 11.64,
+    "cost": 0.0000387612
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 11.64,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 0.66,
+     "avg_logprob": -0.6957303211092949,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.32,
+     "end": 10.780000000000001,
+     "avg_logprob": -0.11590487150996606,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.32
+    }
+   ]
+  },
+  "fleurs_es_1864": {
+   "ok": true,
+   "texto": " Gracias.  El Teatro Argentino fue el lugar donde la señora Kirchner anunció su intención de candidaterse como presidenta.  Este es el mismo sitio donde inició su campaña para el Senado en el año 2005.  en representación de la provincia de Buenos Aires.",
+   "ms": 1323,
+   "tentativas": 1,
+   "usd": 0.0000591408,
+   "usdReservado": 0.000197333136,
+   "uso": {
+    "seconds": 17.76,
+    "cost": 0.0000591408
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 17.76,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.24,
+     "end": 0.64,
+     "avg_logprob": -0.35284952260553837,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.53,
+     "end": 8.85,
+     "avg_logprob": -0.09877875714664697,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.116504854368932
+    },
+    {
+     "start": 9.42,
+     "end": 13.96,
+     "avg_logprob": -0.0843816249716011,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9878048780487805
+    },
+    {
+     "start": 14.04,
+     "end": 16.619999999999997,
+     "avg_logprob": -0.1414357336526826,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9122807017543859
+    }
+   ]
+  },
+  "fleurs_es_1891": {
+   "ok": true,
+   "texto": " además  la caja  Sing interpretó el Chapman...  Bok Bahán junto al cantante Raju  Candlequac.",
+   "ms": 1162,
+   "tentativas": 1,
+   "usd": 0.0000413586,
+   "usdReservado": 0.000137999862,
+   "uso": {
+    "seconds": 12.42,
+    "cost": 0.0000413586
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 12.42,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.99,
+     "end": 1.75,
+     "avg_logprob": -0.25599344571431476,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5
+    },
+    {
+     "start": 1.83,
+     "end": 2.59,
+     "avg_logprob": -0.8007935971021652,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5
+    },
+    {
+     "start": 2.61,
+     "end": 5.07,
+     "avg_logprob": -0.32431448108076844,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7948717948717948
+    },
+    {
+     "start": 5.52,
+     "end": 8.399999999999999,
+     "avg_logprob": -0.33607478398819995,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.85
+    },
+    {
+     "start": 8.7,
+     "end": 9.36,
+     "avg_logprob": -0.9880647233554295,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6
+    }
+   ]
+  },
+  "fleurs_es_1932": {
+   "ok": true,
+   "texto": " Pasados cinco minutos del inicio del espectáculo,  se desató un viento que aproximadamente  un minuto después había alcanzado los 70 km/h.  Luego llegó la lluvia.  pero tan fuerte y tan densa que perforaba tu piel como una aguja.  A continuación cayó granizo del cielo.  la gente aterrorizada  gritaba y corría por encima de otros.",
+   "ms": 1948,
+   "tentativas": 1,
+   "usd": 0.0000771228,
+   "usdReservado": 0.00025733307599999996,
+   "uso": {
+    "seconds": 23.16,
+    "cost": 0.0000771228
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 23.16,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.66,
+     "end": 3.58,
+     "avg_logprob": -0.08111332580821388,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9444444444444444
+    },
+    {
+     "start": 3.66,
+     "end": 6.0600000000000005,
+     "avg_logprob": -0.06748093246873892,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8541666666666666
+    },
+    {
+     "start": 6.42,
+     "end": 9.9,
+     "avg_logprob": -0.1434869147837162,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8596491228070176
+    },
+    {
+     "start": 10.2,
+     "end": 11.52,
+     "avg_logprob": -0.13129826296305205,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7741935483870968
+    },
+    {
+     "start": 11.76,
+     "end": 15.3,
+     "avg_logprob": -0.05745189166300406,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0153846153846153
+    },
+    {
+     "start": 15.57,
+     "end": 17.95,
+     "avg_logprob": -0.09767790695574756,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8367346938775511
+    },
+    {
+     "start": 18.06,
+     "end": 19.959999999999997,
+     "avg_logprob": -0.10976403645638909,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7333333333333333
+    },
+    {
+     "start": 20.1,
+     "end": 22.040000000000003,
+     "avg_logprob": -0.0922415168703689,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8297872340425532
+    }
+   ]
+  },
+  "fleurs_es_1712": {
+   "ok": true,
+   "texto": " Los undarvans han sido desde 1966 un templo de la vida silvestre y se calcula que en la actualidad existen en el área 400 tigres reales de Bengala y unos 30.000 ciervos moteados.",
+   "ms": 1051,
+   "tentativas": 1,
+   "usd": 0.00005454207,
+   "usdReservado": 0.00018199981799999997,
+   "uso": {
+    "seconds": 16.379,
+    "cost": 0.00005454207
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 16.379,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.35,
+     "end": 14.53,
+     "avg_logprob": -0.08476823451690267,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2765957446808511
+    }
+   ]
+  },
+  "fleurs_es_1729": {
+   "ok": true,
+   "texto": " Por ejemplo, todos los años, los alumnos de la Escuela Bennet en Carolina del Norte diseñan  una página web acerca de su viaje a la capital del estado.  y cada año la página se actualiza  pero se conservan en línea las versiones  previas  en la forma de álbum de recuerdos  Gracias.",
+   "ms": 1494,
+   "tentativas": 1,
+   "usd": 0.0000831168,
+   "usdReservado": 0.000277333056,
+   "uso": {
+    "seconds": 24.96,
+    "cost": 0.0000831168
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 24.96,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 2.56,
+     "end": 12.14,
+     "avg_logprob": -0.12156702809460779,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2301587301587302
+    },
+    {
+     "start": 12.36,
+     "end": 15.04,
+     "avg_logprob": -0.08632452599704266,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8181818181818182
+    },
+    {
+     "start": 15.24,
+     "end": 17.94,
+     "avg_logprob": -0.07773058289736086,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.84
+    },
+    {
+     "start": 18.21,
+     "end": 18.970000000000002,
+     "avg_logprob": -0.11821867839898914,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5
+    },
+    {
+     "start": 19.38,
+     "end": 21.54,
+     "avg_logprob": -0.08725968050809267,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8536585365853658
+    },
+    {
+     "start": 24.03,
+     "end": 24.93,
+     "avg_logprob": -0.5346814133226871,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    }
+   ]
+  },
+  "fleurs_es_2001": {
+   "ok": true,
+   "texto": " Gracias.  Se recomienda enfáticamente a los viajeros que se informen sobre cualquier riesgo del clima extremo en el área que visitan, dado que ello puede afectar sus planes de viaje.",
+   "ms": 1536,
+   "tentativas": 1,
+   "usd": 0.0000427572,
+   "usdReservado": 0.000142666524,
+   "uso": {
+    "seconds": 12.84,
+    "cost": 0.0000427572
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 12.84,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.24,
+     "end": 0.6599999999999999,
+     "avg_logprob": -0.3339150082319975,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.89,
+     "end": 11.790000000000001,
+     "avg_logprob": -0.06213365537814752,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.3257575757575757
+    }
+   ]
+  },
+  "fleurs_es_1840": {
+   "ok": true,
+   "texto": " En muchas otras ciudades italianas, así como en todo el mundo, en particular en Polonia, se llevaron a cabo montajes parecidos que vieron muchísimas personas.",
+   "ms": 679,
+   "tentativas": 1,
+   "usd": 0.000117333333333216,
+   "usdReservado": 0.000117333216,
+   "uso": {
+    "seconds": 10.56,
+    "cost": 0.000117333333333216
+   },
+   "idiomaDevolvido": "Spanish",
+   "duracaoDevolvidaS": 10.56,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 8.639999,
+     "avg_logprob": -0.044682786,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2777778
+    }
+   ]
+  },
+  "fleurs_es_1723": {
+   "ok": true,
+   "texto": " En 1889 el puerto fue el escenario de un nefasto enfrentamiento naval cuando siete barcos alemanes americanos  e ingleses se negaron a salir del puerto.",
+   "ms": 1866,
+   "tentativas": 1,
+   "usd": 0.0000443556,
+   "usdReservado": 0.000147999852,
+   "uso": {
+    "seconds": 13.32,
+    "cost": 0.0000443556
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 13.32,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.18,
+     "end": 9.42,
+     "avg_logprob": -0.05967405387629446,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2087912087912087
+    },
+    {
+     "start": 9.69,
+     "end": 12.149999999999999,
+     "avg_logprob": -0.08695151453333286,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.875
+    }
+   ]
+  },
+  "fleurs_es_1860": {
+   "ok": true,
+   "texto": " Desde el gobierno informaron que 19 de las personas heridas eran policías.",
+   "ms": 833,
+   "tentativas": 1,
+   "usd": 0.0000251748,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 7.56,
+    "cost": 0.0000251748
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 7.56,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.8,
+     "end": 5.7,
+     "avg_logprob": -0.06826449356028913,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9743589743589743
+    }
+   ]
+  },
+  "fleurs_es_1676": {
+   "ok": true,
+   "texto": " ...  Como en todas las reservas naturales de Sudáfrica,  Existen tarifas diarias para la conservación y de acceso al parque.",
+   "ms": 1625,
+   "tentativas": 1,
+   "usd": 0.0000303696,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.12,
+    "cost": 0.0000303696
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 9.12,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 0.72,
+     "avg_logprob": -0.6502435008684794,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.3333333333333333
+    },
+    {
+     "start": 1.74,
+     "end": 4.5,
+     "avg_logprob": -0.04435150777680974,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9122807017543859
+    },
+    {
+     "start": 4.56,
+     "end": 8.719999999999999,
+     "avg_logprob": -0.08473543431900907,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9583333333333334
+    }
+   ]
+  },
+  "fleurs_es_1794": {
+   "ok": true,
+   "texto": " Gracias.  se puede definir a una civilización como una cultura específica de que  forma parte  un extenso grupo de personas que viven y trabajan en conjunto, es decir, una sociedad.",
+   "ms": 1003,
+   "tentativas": 1,
+   "usd": 0.0000403596,
+   "usdReservado": 0.000134666532,
+   "uso": {
+    "seconds": 12.12,
+    "cost": 0.0000403596
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 12.12,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.63,
+     "end": 1.05,
+     "avg_logprob": -0.5892778970301151,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.32,
+     "end": 5.800000000000001,
+     "avg_logprob": -0.10063398489386172,
+     "no_speech_prob": 0,
+     "compression_ratio": 1
+    },
+    {
+     "start": 6.33,
+     "end": 7.35,
+     "avg_logprob": -0.16304531309287995,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6
+    },
+    {
+     "start": 7.41,
+     "end": 11.93,
+     "avg_logprob": -0.07051947216071615,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1153846153846154
+    }
+   ]
+  },
+  "fleurs_es_2003": {
+   "ok": true,
+   "texto": " La forma de disfrutar las mejores visitas de Hong Kong es salir de la isla.  y dirigirse a la ribera de Cung Long, ubicada enfrente.",
+   "ms": 2765,
+   "tentativas": 1,
+   "usd": 0.0000323676,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.72,
+    "cost": 0.0000323676
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 9.72,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.29,
+     "end": 5.1899999999999995,
+     "avg_logprob": -0.07687523294589482,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0555555555555556
+    },
+    {
+     "start": 5.25,
+     "end": 8.629999999999999,
+     "avg_logprob": -0.3055213619906378,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9032258064516129
+    }
+   ]
+  },
+  "fleurs_es_1760": {
+   "ok": true,
+   "texto": " El Mosasaurus fue el depredador alfa de su época, por tanto a nada le temía, excepto a otros de su misma especie.",
+   "ms": 1978,
+   "tentativas": 1,
+   "usd": 0.0000365634,
+   "usdReservado": 0.000121999878,
+   "uso": {
+    "seconds": 10.98,
+    "cost": 0.0000365634
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 10.98,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 2.16,
+     "end": 9.14,
+     "avg_logprob": -0.053307704668173646,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.16
+    }
+   ]
+  },
+  "fleurs_es_1661": {
+   "ok": true,
+   "texto": " No mencionó una cifra para los recortes y manifestó que se harán en base a la producción económica de China.",
+   "ms": 2207,
+   "tentativas": 1,
+   "usd": 0.000025974,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 7.8,
+    "cost": 0.000025974
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 7.8,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.81,
+     "end": 6.33,
+     "avg_logprob": -0.0414895113075721,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1287128712871286
+    }
+   ]
+  },
+  "fleurs_es_1970": {
+   "ok": true,
+   "texto": " No tenemos la seguridad, pero podría haber tenido la viperina».  Su vieta incluía tortugas, peces grandes, otros mosasauridos e incluso podría haber sido un caníbal.  Gracias.",
+   "ms": 1604,
+   "tentativas": 1,
+   "usd": 0.0000445554,
+   "usdReservado": 0.000148666518,
+   "uso": {
+    "seconds": 13.38,
+    "cost": 0.0000445554
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 13.38,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.59,
+     "end": 5.07,
+     "avg_logprob": -0.11104953143149032,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9565217391304348
+    },
+    {
+     "start": 5.1,
+     "end": 11.44,
+     "avg_logprob": -0.10553708304641693,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1304347826086956
+    },
+    {
+     "start": 13.02,
+     "end": 13.379999999999999,
+     "avg_logprob": -0.3368820119649172,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    }
+   ]
+  },
+  "fleurs_es_1799": {
+   "ok": true,
+   "texto": " Carpaneo participó en dos carreras individuales del campeonato aparte de la competencia del miércoles.",
+   "ms": 963,
+   "tentativas": 1,
+   "usd": 0.0000353646,
+   "usdReservado": 0.00011799988199999998,
+   "uso": {
+    "seconds": 10.62,
+    "cost": 0.0000353646
+   },
+   "idiomaDevolvido": "es",
+   "duracaoDevolvidaS": 10.62,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 2.46,
+     "end": 7.96,
+     "avg_logprob": -0.07493627210242267,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1666666666666667
+    }
+   ]
+  },
+  "fleurs_es_1800": {
+   "ok": true,
+   "texto": " El pleno funcionamiento del puente se estima para septiembre de 2017, que es para cuando se prevé que finalicen los controles de aduana brasileños.",
+   "ms": 826,
+   "tentativas": 1,
+   "usd": 0.000127999999999872,
+   "usdReservado": 0.000127999872,
+   "uso": {
+    "seconds": 11.52,
+    "cost": 0.000127999999999872
+   },
+   "idiomaDevolvido": "Spanish",
+   "duracaoDevolvidaS": 11.52,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 11.5199995,
+     "avg_logprob": -0.13112643,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2295082
+    }
+   ]
+  },
+  "fleurs_es_1878": {
+   "ok": true,
+   "texto": " La cúpula central de la iglesia había permanecido en Roma por más de un milenio y esta concentración de poder y dinero hizo que muchos se preguntaran si este principio se estaba respetando.",
+   "ms": 747,
+   "tentativas": 1,
+   "usd": 0.00015933333048872956,
+   "usdReservado": 0.00015933317399999998,
+   "uso": {
+    "seconds": 14.339999744,
+    "cost": 0.00015933333048872956
+   },
+   "idiomaDevolvido": "Spanish",
+   "duracaoDevolvidaS": 14.339999744,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 14.34,
+     "avg_logprob": -0.08281378,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.3287672
+    }
+   ]
+  }
+ },
+ "sistema": "openrouter:openai/whisper-large-v3-turbo",
+ "conjunto": "fleurs_es",
+ "modelo": "openai/whisper-large-v3-turbo",
+ "provider": {
+  "zdr": true,
+  "data_collection": "deny"
+ },
+ "temperatura": 0,
+ "geradoEm": "2026-10-10T02:15:09.352Z"
+}

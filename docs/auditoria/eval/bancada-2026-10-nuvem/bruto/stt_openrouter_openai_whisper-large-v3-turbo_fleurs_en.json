@@ -1,0 +1,4718 @@
+{
+ "casos": {
+  "fleurs_en_1968": {
+   "ok": true,
+   "texto": " Some cruises,  Berlin.  brochures.  As you can see,  from the map above Berlin is nowhere near the  see innovation",
+   "ms": 989,
+   "tentativas": 1,
+   "usd": 0.000035964,
+   "usdReservado": 0.00011999988,
+   "uso": {
+    "seconds": 10.8,
+    "cost": 0.000035964
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 10.8,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.81,
+     "end": 1.5100000000000002,
+     "avg_logprob": -0.3476328339117269,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6363636363636364
+    },
+    {
+     "start": 1.59,
+     "end": 2.35,
+     "avg_logprob": -0.9656247496604919,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5
+    },
+    {
+     "start": 3,
+     "end": 3.6,
+     "avg_logprob": -0.27373712565749886,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5789473684210527
+    },
+    {
+     "start": 3.93,
+     "end": 4.470000000000001,
+     "avg_logprob": -0.07917857181746513,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6666666666666666
+    },
+    {
+     "start": 4.5,
+     "end": 6.48,
+     "avg_logprob": -0.17802999850193207,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8846153846153846
+    },
+    {
+     "start": 6.54,
+     "end": 7.08,
+     "avg_logprob": -0.5486278384923935,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6521739130434783
+    }
+   ]
+  },
+  "fleurs_en_1819": {
+   "ok": true,
+   "texto": " Ancient China had a unique way of showing different time periods.  each stage of China or each family that was in power  was a distinctive dynasty",
+   "ms": 1658,
+   "tentativas": 1,
+   "usd": 0.0000430902,
+   "usdReservado": 0.00014377763399999998,
+   "uso": {
+    "seconds": 12.94,
+    "cost": 0.0000430902
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 12.94,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.75,
+     "end": 5.29,
+     "avg_logprob": -0.10981307403250996,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9565217391304348
+    },
+    {
+     "start": 5.52,
+     "end": 9.84,
+     "avg_logprob": -0.12710215855622664,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9137931034482759
+    },
+    {
+     "start": 9.87,
+     "end": 11.969999999999999,
+     "avg_logprob": -0.13352965260855854,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7647058823529411
+    }
+   ]
+  },
+  "fleurs_en_1856": {
+   "ok": true,
+   "texto": " Finland is a great boating destination.  The land of a thousand lakes has thousands  islands  And the legs.  still arguing.",
+   "ms": 2337,
+   "tentativas": 1,
+   "usd": 0.0000311688,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.36,
+    "cost": 0.0000311688
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 9.36,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.84,
+     "end": 2.2,
+     "avg_logprob": -0.11409885827451945,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8888888888888888
+    },
+    {
+     "start": 2.67,
+     "end": 4.51,
+     "avg_logprob": -0.09315102519467473,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.048780487804878
+    },
+    {
+     "start": 4.59,
+     "end": 5.01,
+     "avg_logprob": -0.2692634065945943,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5
+    },
+    {
+     "start": 5.73,
+     "end": 6.210000000000001,
+     "avg_logprob": -0.3363757630965362,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6363636363636364
+    },
+    {
+     "start": 6.81,
+     "end": 7.33,
+     "avg_logprob": -0.5961007297039032,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6521739130434783
+    }
+   ]
+  },
+  "fleurs_en_1696": {
+   "ok": true,
+   "texto": " two compounds react with  one another.  form crystal  block kidney function.",
+   "ms": 974,
+   "tentativas": 1,
+   "usd": 0.0000247752,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 7.44,
+    "cost": 0.0000247752
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 7.44,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.75,
+     "end": 1.81,
+     "avg_logprob": -0.7062737196683884,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7575757575757576
+    },
+    {
+     "start": 1.83,
+     "end": 2.29,
+     "avg_logprob": -0.4998821422457695,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6190476190476191
+    },
+    {
+     "start": 2.43,
+     "end": 2.95,
+     "avg_logprob": -0.758342981338501,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6190476190476191
+    },
+    {
+     "start": 3.33,
+     "end": 4.21,
+     "avg_logprob": -0.2311460669928541,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7419354838709677
+    }
+   ]
+  },
+  "fleurs_en_1754": {
+   "ok": true,
+   "texto": " There may be more Maria on the near side because the crust is thinner. It was easy for lava to rise up to the surface.",
+   "ms": 846,
+   "tentativas": 1,
+   "usd": 0.0000298368,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 8.96,
+    "cost": 0.0000298368
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 8.96,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.12,
+     "end": 8.459999999999999,
+     "avg_logprob": -0.10018337835911019,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2142857142857142
+    }
+   ]
+  },
+  "fleurs_en_1813": {
+   "ok": true,
+   "texto": " Barcelona's official languages are Catalan and Spanish. About half prefer to speak Catalan  A vast majority under  it and virtually everyone knows Spanish.",
+   "ms": 976,
+   "tentativas": 1,
+   "usd": 0.0000373626,
+   "usdReservado": 0.000124666542,
+   "uso": {
+    "seconds": 11.22,
+    "cost": 0.0000373626
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 11.22,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.39,
+     "end": 5.7299999999999995,
+     "avg_logprob": -0.11933167629697557,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0963855421686748
+    },
+    {
+     "start": 5.82,
+     "end": 6.94,
+     "avg_logprob": -0.5056540891140079,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7333333333333333
+    },
+    {
+     "start": 6.96,
+     "end": 9.1,
+     "avg_logprob": -0.23659521858725283,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8367346938775511
+    }
+   ]
+  },
+  "fleurs_en_1728": {
+   "ok": true,
+   "texto": " cabbage juice changes color depending on how acidic  basic alkaline, the chemical",
+   "ms": 1105,
+   "tentativas": 1,
+   "usd": 0.0000191808,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 5.76,
+    "cost": 0.0000191808
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 5.76,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.39,
+     "end": 3.0900000000000003,
+     "avg_logprob": -0.19504842944443226,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9629629629629629
+    },
+    {
+     "start": 3.15,
+     "end": 4.75,
+     "avg_logprob": -0.2476822876778897,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7837837837837838
+    }
+   ]
+  },
+  "fleurs_en_1762": {
+   "ok": true,
+   "texto": " The disease is...  carried by pigs.  then my greats  humans.",
+   "ms": 895,
+   "tentativas": 1,
+   "usd": 0.000017982,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 5.4,
+    "cost": 0.000017982
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 5.4,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.3,
+     "end": 1.02,
+     "avg_logprob": -0.5908569215486447,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6923076923076923
+    },
+    {
+     "start": 1.23,
+     "end": 2.13,
+     "avg_logprob": -0.2248238061244289,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.68
+    },
+    {
+     "start": 2.4,
+     "end": 3.12,
+     "avg_logprob": -0.8121170848608017,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6521739130434783
+    },
+    {
+     "start": 3.24,
+     "end": 3.62,
+     "avg_logprob": -0.959241509437561,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5
+    }
+   ]
+  },
+  "fleurs_en_1948": {
+   "ok": true,
+   "texto": " the three kingdoms  bloodiest eras in  fighting to  it in the highest",
+   "ms": 988,
+   "tentativas": 1,
+   "usd": 0.0000395604,
+   "usdReservado": 0.000131999868,
+   "uso": {
+    "seconds": 11.88,
+    "cost": 0.0000395604
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 11.88,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.54,
+     "end": 1.44,
+     "avg_logprob": -0.37327147722244264,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7037037037037037
+    },
+    {
+     "start": 2.7,
+     "end": 3.88,
+     "avg_logprob": -0.3157989851066044,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6923076923076923
+    },
+    {
+     "start": 7.2,
+     "end": 7.68,
+     "avg_logprob": -0.04006520612165332,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6
+    },
+    {
+     "start": 7.77,
+     "end": 8.37,
+     "avg_logprob": -0.11698549427092075,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6923076923076923
+    }
+   ]
+  },
+  "fleurs_en_1965": {
+   "ok": true,
+   "texto": " They are almost all Sandy B.  swimming.  most have a  provided by",
+   "ms": 913,
+   "tentativas": 1,
+   "usd": 0.0000281718,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 8.46,
+    "cost": 0.0000281718
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 8.46,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.87,
+     "end": 2.07,
+     "avg_logprob": -0.23216946663645407,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8285714285714286
+    },
+    {
+     "start": 3.15,
+     "end": 3.57,
+     "avg_logprob": -0.6170797012746334,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5555555555555556
+    },
+    {
+     "start": 3.63,
+     "end": 4.17,
+     "avg_logprob": -0.4569626569747925,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6
+    },
+    {
+     "start": 4.41,
+     "end": 5.23,
+     "avg_logprob": -0.36747561604715884,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6
+    }
+   ]
+  },
+  "fleurs_en_1668": {
+   "ok": true,
+   "texto": " It may also be  for one to buy a wild card,  which provides entry to  either selection  South Africa or all of the  South African  National Parks.",
+   "ms": 1207,
+   "tentativas": 1,
+   "usd": 0.0000443556,
+   "usdReservado": 0.000147999852,
+   "uso": {
+    "seconds": 13.32,
+    "cost": 0.0000443556
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 13.32,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.81,
+     "end": 1.75,
+     "avg_logprob": -0.15211403897653022,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6521739130434783
+    },
+    {
+     "start": 2.4,
+     "end": 3.96,
+     "avg_logprob": -0.15554029517807066,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7777777777777778
+    },
+    {
+     "start": 4.2,
+     "end": 5.38,
+     "avg_logprob": -0.1482745996521165,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.75
+    },
+    {
+     "start": 5.43,
+     "end": 6.39,
+     "avg_logprob": -0.14192352956160903,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.68
+    },
+    {
+     "start": 7.23,
+     "end": 9.13,
+     "avg_logprob": -0.14691203215625137,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7714285714285715
+    },
+    {
+     "start": 9.18,
+     "end": 9.959999999999999,
+     "avg_logprob": -0.1307796947658062,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6363636363636364
+    },
+    {
+     "start": 10.02,
+     "end": 10.92,
+     "avg_logprob": -0.5228899151086808,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6666666666666666
+    }
+   ]
+  },
+  "fleurs_en_1735": {
+   "ok": true,
+   "texto": "",
+   "ms": 956,
+   "tentativas": 1,
+   "usd": 0.000067932,
+   "usdReservado": 0.00022666643999999996,
+   "uso": {
+    "seconds": 20.4,
+    "cost": 0.000067932
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 20.4,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 20.4,
+     "avg_logprob": 0,
+     "no_speech_prob": 1,
+     "compression_ratio": 0
+    }
+   ]
+  },
+  "fleurs_en_1789": {
+   "ok": true,
+   "texto": " The other nominations include Best Picture, Director, Cinematography, Costume Design,  film editing, original score,  production design, sound editing, sound mixing, and original screenplay.",
+   "ms": 1918,
+   "tentativas": 1,
+   "usd": 0.000048618,
+   "usdReservado": 0.00016222205999999998,
+   "uso": {
+    "seconds": 14.6,
+    "cost": 0.000048618
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 14.6,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.42,
+     "end": 6.04,
+     "avg_logprob": -0.11997868885028813,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.036144578313253
+    },
+    {
+     "start": 6.18,
+     "end": 8.3,
+     "avg_logprob": -0.15574580553220585,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7894736842105263
+    },
+    {
+     "start": 8.34,
+     "end": 13.68,
+     "avg_logprob": -0.22655204380862415,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0735294117647058
+    }
+   ]
+  },
+  "fleurs_en_1859": {
+   "ok": true,
+   "texto": " Toward the end of the Middle Ages, Western Europe began to develop their own style.  One of the biggest developments of the time as a result of the crusades, people began to use buttons to fasten clothing.",
+   "ms": 1087,
+   "tentativas": 1,
+   "usd": 0.000051948,
+   "usdReservado": 0.00017333316,
+   "uso": {
+    "seconds": 15.6,
+    "cost": 0.000051948
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 15.6,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.03,
+     "end": 5.91,
+     "avg_logprob": -0.10401385443110485,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.024390243902439
+    },
+    {
+     "start": 6.09,
+     "end": 15.59,
+     "avg_logprob": -0.1296234409199786,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2872340425531914
+    }
+   ]
+  },
+  "fleurs_en_1981": {
+   "ok": true,
+   "texto": " If you only go ashore using shipwars excursions,  you will not need a separate visa.  as of 2009.",
+   "ms": 960,
+   "tentativas": 1,
+   "usd": 0.0000308358,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.26,
+    "cost": 0.0000308358
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 9.26,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.02,
+     "end": 4.2,
+     "avg_logprob": -0.26074531431913783,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8596491228070176
+    },
+    {
+     "start": 4.26,
+     "end": 6.32,
+     "avg_logprob": -0.218211827846244,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.813953488372093
+    },
+    {
+     "start": 6.42,
+     "end": 8.22,
+     "avg_logprob": -0.18189621220032373,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6
+    }
+   ]
+  },
+  "fleurs_en_1882": {
+   "ok": true,
+   "texto": " Scientists hope to understand how planets form, especially how the Earth forms,  These comets collided with the Earth long ago.",
+   "ms": 895,
+   "tentativas": 1,
+   "usd": 0.0000205794,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 6.18,
+    "cost": 0.0000205794
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 6.18,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.27,
+     "end": 3.63,
+     "avg_logprob": -0.09612242804723792,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0666666666666667
+    },
+    {
+     "start": 3.75,
+     "end": 5.67,
+     "avg_logprob": -0.10211978747975081,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9038461538461539
+    }
+   ]
+  },
+  "fleurs_en_1930": {
+   "ok": true,
+   "texto": " Six hostages including the children elderly  were released early, as were the Filipino photographers.",
+   "ms": 1573,
+   "tentativas": 1,
+   "usd": 0.0000305028,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.16,
+    "cost": 0.0000305028
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 9.16,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.06,
+     "end": 3.94,
+     "avg_logprob": -0.2420262297641279,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8461538461538461
+    },
+    {
+     "start": 4.05,
+     "end": 9.15,
+     "avg_logprob": -0.1291425043794637,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9344262295081968
+    }
+   ]
+  },
+  "fleurs_en_1755": {
+   "ok": true,
+   "texto": " One bomb exploded outside the Governor General's office.",
+   "ms": 839,
+   "tentativas": 1,
+   "usd": 0.0000221112,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 6.64,
+    "cost": 0.0000221112
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 6.64,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.09,
+     "end": 6.63,
+     "avg_logprob": -0.17630229013351104,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8769230769230769
+    }
+   ]
+  },
+  "fleurs_en_1827": {
+   "ok": true,
+   "texto": " The crust is about 70 kilometers thick on the near side and 100 kilometers thick  on the far side.",
+   "ms": 903,
+   "tentativas": 1,
+   "usd": 0.0000255744,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 7.68,
+    "cost": 0.0000255744
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 7.68,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.81,
+     "end": 5.27,
+     "avg_logprob": -0.19138163048774004,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1571428571428573
+    },
+    {
+     "start": 5.4,
+     "end": 6.42,
+     "avg_logprob": -0.09586789780587424,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.68
+    }
+   ]
+  },
+  "fleurs_en_1910": {
+   "ok": true,
+   "texto": " Parisians have a reputation  for being egocentric,  rude and arrogant.",
+   "ms": 1288,
+   "tentativas": 1,
+   "usd": 0.0000251082,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 7.54,
+    "cost": 0.0000251082
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 7.54,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.6,
+     "end": 3.3600000000000003,
+     "avg_logprob": -0.036907485885811706,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7777777777777778
+    },
+    {
+     "start": 3.39,
+     "end": 4.99,
+     "avg_logprob": -0.21413379984187486,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7333333333333333
+    },
+    {
+     "start": 5.04,
+     "end": 6.7,
+     "avg_logprob": -0.6273532103126248,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7037037037037037
+    }
+   ]
+  },
+  "fleurs_en_1971": {
+   "ok": true,
+   "texto": " High winds hail excessive precipitation  and wildfires are forms and effects of severe weather  as are thunderstorms, tornadoes,  water spouts and cyclones.",
+   "ms": 993,
+   "tentativas": 1,
+   "usd": 0.0000496836,
+   "usdReservado": 0.000165777612,
+   "uso": {
+    "seconds": 14.92,
+    "cost": 0.0000496836
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 14.92,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.75,
+     "end": 4.17,
+     "avg_logprob": -0.13465407863259315,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8333333333333334
+    },
+    {
+     "start": 4.23,
+     "end": 7.99,
+     "avg_logprob": -0.10858464919389614,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9642857142857143
+    },
+    {
+     "start": 8.4,
+     "end": 11.24,
+     "avg_logprob": -0.191483507421799,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8461538461538461
+    },
+    {
+     "start": 11.28,
+     "end": 13.799999999999999,
+     "avg_logprob": -0.27742716897692943,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7714285714285715
+    }
+   ]
+  },
+  "fleurs_en_1964": {
+   "ok": true,
+   "texto": " The 25 Dunlap Broadsides still known to exist are the oldest surviving copies  the original handwritten  has not served.  survive.",
+   "ms": 839,
+   "tentativas": 1,
+   "usd": 0.0000327672,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.84,
+    "cost": 0.0000327672
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 9.84,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.2,
+     "end": 5.2,
+     "avg_logprob": -0.1674310162075256,
+     "no_speech_prob": 0,
+     "compression_ratio": 1
+    },
+    {
+     "start": 6.27,
+     "end": 7.35,
+     "avg_logprob": -0.16522909553411105,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7575757575757576
+    },
+    {
+     "start": 7.71,
+     "end": 8.21,
+     "avg_logprob": -0.5682212879570822,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6666666666666666
+    },
+    {
+     "start": 8.25,
+     "end": 8.67,
+     "avg_logprob": -0.2584174391813576,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    }
+   ]
+  },
+  "fleurs_en_2003": {
+   "ok": true,
+   "texto": " To get the best views of Hong Kong, leave the island and head for the Kowloon waterfront opposite.",
+   "ms": 758,
+   "tentativas": 1,
+   "usd": 0.000111111111111,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 10,
+    "cost": 0.000111111111111
+   },
+   "idiomaDevolvido": "English",
+   "duracaoDevolvidaS": 6.900000256,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 6.8999996,
+     "avg_logprob": -0.19808404,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1511627
+    }
+   ]
+  },
+  "fleurs_en_1810": {
+   "ok": true,
+   "texto": " California Governor Arnold Schwarzenegger signed into law a bill that bans the sale or rental of violent video games.  to minors.",
+   "ms": 907,
+   "tentativas": 1,
+   "usd": 0.0000377622,
+   "usdReservado": 0.000125999874,
+   "uso": {
+    "seconds": 11.34,
+    "cost": 0.0000377622
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 11.34,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.35,
+     "end": 7.77,
+     "avg_logprob": -0.08308043752297706,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1683168316831682
+    },
+    {
+     "start": 8.04,
+     "end": 8.62,
+     "avg_logprob": -0.17226601408522887,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5789473684210527
+    }
+   ]
+  },
+  "fleurs_en_1984": {
+   "ok": true,
+   "texto": " Mass car ownership also  to a higher incidence of accidents on the  which leads to...  the invention of new techniques  healthcare for repairing damaged",
+   "ms": 954,
+   "tentativas": 1,
+   "usd": 0.0000315684,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.48,
+    "cost": 0.0000315684
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 9.48,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.36,
+     "end": 1.7200000000000002,
+     "avg_logprob": -0.29228917222159606,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.75
+    },
+    {
+     "start": 2.01,
+     "end": 3.91,
+     "avg_logprob": -0.06992494794540108,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9130434782608695
+    },
+    {
+     "start": 4.65,
+     "end": 5.15,
+     "avg_logprob": -0.774735135336717,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6923076923076923
+    },
+    {
+     "start": 5.19,
+     "end": 6.61,
+     "avg_logprob": -0.08145852599825178,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8
+    },
+    {
+     "start": 6.72,
+     "end": 8.28,
+     "avg_logprob": -0.34352900460362434,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8048780487804879
+    }
+   ]
+  },
+  "fleurs_en_1697": {
+   "ok": true,
+   "texto": " He has been unable to take the drugs needed to overcome his pain as they are banned from the games.",
+   "ms": 666,
+   "tentativas": 1,
+   "usd": 0.000111111111111,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 10,
+    "cost": 0.000111111111111
+   },
+   "idiomaDevolvido": "English",
+   "duracaoDevolvidaS": 6.36,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 6.3599997,
+     "avg_logprob": -0.12404826,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1627907
+    }
+   ]
+  },
+  "fleurs_en_1705": {
+   "ok": true,
+   "texto": " on August...  15 1940 the allies invaded southern france and the invasion was called operation dragoon",
+   "ms": 936,
+   "tentativas": 1,
+   "usd": 0.0000336996,
+   "usdReservado": 0.00011244433199999998,
+   "uso": {
+    "seconds": 10.12,
+    "cost": 0.0000336996
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 10.12,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.08,
+     "end": 2.16,
+     "avg_logprob": -0.47465241253376006,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6190476190476191
+    },
+    {
+     "start": 3.06,
+     "end": 9.540000000000001,
+     "avg_logprob": -0.07363349009354256,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.141025641025641
+    }
+   ]
+  },
+  "fleurs_en_1823": {
+   "ok": true,
+   "texto": " Traffic flow is the study of the movement of individual drivers and vehicles between two points and the interactions they make with one another.",
+   "ms": 882,
+   "tentativas": 1,
+   "usd": 0.0000255744,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 7.68,
+    "cost": 0.0000255744
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 7.68,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.42,
+     "end": 7.32,
+     "avg_logprob": -0.12598174963905304,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.3302752293577982
+    }
+   ]
+  },
+  "fleurs_en_1867": {
+   "ok": true,
+   "texto": " Plants make ox  B-A-oxid.",
+   "ms": 875,
+   "tentativas": 1,
+   "usd": 0.0000233766,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 7.02,
+    "cost": 0.0000233766
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 7.02,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.18,
+     "end": 0.96,
+     "avg_logprob": -0.7482517771422863,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6521739130434783
+    },
+    {
+     "start": 3.33,
+     "end": 3.87,
+     "avg_logprob": -0.8546531130042341,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5555555555555556
+    }
+   ]
+  },
+  "fleurs_en_1896": {
+   "ok": true,
+   "texto": " USA Gymnastics and the  USOC.  same goal  Making the.  Board of Gymnapses.  and others  safety.  as possible.  for athletes.  follow their dreams  in a safe place.  positive and empowered environment.",
+   "ms": 1438,
+   "tentativas": 1,
+   "usd": 0.00004995,
+   "usdReservado": 0.0001666665,
+   "uso": {
+    "seconds": 15,
+    "cost": 0.00004995
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 15,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.93,
+     "end": 2.5500000000000003,
+     "avg_logprob": -0.1830012712161988,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7419354838709677
+    },
+    {
+     "start": 2.67,
+     "end": 3.3899999999999997,
+     "avg_logprob": -0.3522767167538404,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.42857142857142855
+    },
+    {
+     "start": 4.17,
+     "end": 4.83,
+     "avg_logprob": -0.17830333719030023,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5555555555555556
+    },
+    {
+     "start": 4.89,
+     "end": 5.449999999999999,
+     "avg_logprob": -0.8161016166210174,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6
+    },
+    {
+     "start": 5.52,
+     "end": 6.359999999999999,
+     "avg_logprob": -0.37698187585920095,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7142857142857143
+    },
+    {
+     "start": 7.14,
+     "end": 7.8,
+     "avg_logprob": -0.35607267124578357,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5789473684210527
+    },
+    {
+     "start": 8.22,
+     "end": 8.64,
+     "avg_logprob": -0.36116920225322247,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5
+    },
+    {
+     "start": 8.67,
+     "end": 9.31,
+     "avg_logprob": -0.3195999074727297,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6190476190476191
+    },
+    {
+     "start": 9.39,
+     "end": 9.850000000000001,
+     "avg_logprob": -0.3106852903962135,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6363636363636364
+    },
+    {
+     "start": 10.05,
+     "end": 10.83,
+     "avg_logprob": -0.10452347779646516,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7142857142857143
+    },
+    {
+     "start": 10.86,
+     "end": 11.36,
+     "avg_logprob": -0.460129676386714,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.68
+    },
+    {
+     "start": 11.67,
+     "end": 13.35,
+     "avg_logprob": -0.24273229550038064,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8571428571428571
+    }
+   ]
+  },
+  "fleurs_en_1999": {
+   "ok": true,
+   "texto": " throughout 19...",
+   "ms": 877,
+   "tentativas": 1,
+   "usd": 0.0000291708,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 8.76,
+    "cost": 0.0000291708
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 8.76,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.66,
+     "end": 1.1600000000000001,
+     "avg_logprob": -1.082255220413208,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.68
+    }
+   ]
+  },
+  "fleurs_en_1693": {
+   "ok": true,
+   "texto": " but after losing the captains wicked India only made 36  Seven wicked.",
+   "ms": 1424,
+   "tentativas": 1,
+   "usd": 0.0000283716,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 8.52,
+    "cost": 0.0000283716
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 8.52,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.84,
+     "end": 4.6000000000000005,
+     "avg_logprob": -0.2951783199230424,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8888888888888888
+    },
+    {
+     "start": 5.46,
+     "end": 6.06,
+     "avg_logprob": -0.22711516423150896,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6363636363636364
+    }
+   ]
+  },
+  "fleurs_en_1903": {
+   "ok": true,
+   "texto": " When all available resources are effectively used across the functional departments of an organization, creativity and ingenuity can transpire.",
+   "ms": 688,
+   "tentativas": 1,
+   "usd": 0.000111111111111,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 10,
+    "cost": 0.000111111111111
+   },
+   "idiomaDevolvido": "English",
+   "duracaoDevolvidaS": 9.180000256,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 9,
+     "avg_logprob": -0.19533426,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2972972
+    }
+   ]
+  },
+  "fleurs_en_1763": {
+   "ok": true,
+   "texto": " Just like the moon experts, a pull on the earth causing tides, so does the Milky Way exert  force of the Sagittarius galaxy.",
+   "ms": 1138,
+   "tentativas": 1,
+   "usd": 0.0000237762,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 7.14,
+    "cost": 0.0000237762
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 7.14,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.27,
+     "end": 4.529999999999999,
+     "avg_logprob": -0.1914998594286811,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0963855421686748
+    },
+    {
+     "start": 4.56,
+     "end": 6.3,
+     "avg_logprob": -0.14007142658811061,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8048780487804879
+    }
+   ]
+  },
+  "fleurs_en_1759": {
+   "ok": true,
+   "texto": " Dr.  Mela.  Bala Subramanian 29  was found in Blue Ash, Ohio.  a suburb approximately 15 miles north of Cincinnati,  lying on the ground beside the road in a t-shirt and underwear  in an apparently heavily medicated state.",
+   "ms": 1218,
+   "tentativas": 1,
+   "usd": 0.0000787212,
+   "usdReservado": 0.000262666404,
+   "uso": {
+    "seconds": 23.64,
+    "cost": 0.0000787212
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 23.64,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 2.73,
+     "end": 3.11,
+     "avg_logprob": -0.7094597388058901,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.3333333333333333
+    },
+    {
+     "start": 3.42,
+     "end": 4.06,
+     "avg_logprob": -0.7791814804077148,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.42857142857142855
+    },
+    {
+     "start": 4.08,
+     "end": 7.08,
+     "avg_logprob": -0.42468300953300464,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7142857142857143
+    },
+    {
+     "start": 7.41,
+     "end": 9.75,
+     "avg_logprob": -0.2222598826047033,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7837837837837838
+    },
+    {
+     "start": 10.08,
+     "end": 14.26,
+     "avg_logprob": -0.09189027747197542,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8688524590163934
+    },
+    {
+     "start": 14.49,
+     "end": 18.43,
+     "avg_logprob": -0.12260974417222315,
+     "no_speech_prob": 0,
+     "compression_ratio": 1
+    },
+    {
+     "start": 18.51,
+     "end": 21.270000000000003,
+     "avg_logprob": -0.04551620554120746,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9333333333333333
+    }
+   ]
+  },
+  "fleurs_en_1905": {
+   "ok": true,
+   "texto": " The capital of Moldova is Chisinau. The local language is Romanian but Russian is widely used.",
+   "ms": 710,
+   "tentativas": 1,
+   "usd": 0.000111111111111,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 10,
+    "cost": 0.000111111111111
+   },
+   "idiomaDevolvido": "English",
+   "duracaoDevolvidaS": 6.6,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 6.6,
+     "avg_logprob": -0.1162115,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.091954
+    }
+   ]
+  },
+  "fleurs_en_1967": {
+   "ok": true,
+   "texto": " Layton had asked for changes  environmental bill during the  am asking  for a thorough and  rewriting of the  - The conservatives party  environmental bill.",
+   "ms": 889,
+   "tentativas": 1,
+   "usd": 0.0000323676,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.72,
+    "cost": 0.0000323676
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 9.72,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.75,
+     "end": 2.1100000000000003,
+     "avg_logprob": -0.1359011539898347,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7837837837837838
+    },
+    {
+     "start": 2.4,
+     "end": 3.96,
+     "avg_logprob": -0.41643407195806503,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7894736842105263
+    },
+    {
+     "start": 4.62,
+     "end": 5.22,
+     "avg_logprob": -0.1497462522238493,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5555555555555556
+    },
+    {
+     "start": 5.25,
+     "end": 6.03,
+     "avg_logprob": -0.06109063203136126,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7037037037037037
+    },
+    {
+     "start": 6.36,
+     "end": 7.2,
+     "avg_logprob": -0.10017740757515033,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.68
+    },
+    {
+     "start": 7.35,
+     "end": 8.19,
+     "avg_logprob": -0.5580519239107767,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7647058823529411
+    },
+    {
+     "start": 8.22,
+     "end": 8.940000000000001,
+     "avg_logprob": -0.6262227166444063,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7142857142857143
+    }
+   ]
+  },
+  "fleurs_en_1783": {
+   "ok": true,
+   "texto": " Regional and seasonal severe weather phenomenon include blizzards, storms, ice storms, and dust storms.",
+   "ms": 1014,
+   "tentativas": 1,
+   "usd": 0.0000252414,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 7.58,
+    "cost": 0.0000252414
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 7.58,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.21,
+     "end": 7.07,
+     "avg_logprob": -0.13068774599708954,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1954022988505748
+    }
+   ]
+  },
+  "fleurs_en_1816": {
+   "ok": true,
+   "texto": " of awkward",
+   "ms": 716,
+   "tentativas": 1,
+   "usd": 0.0000207792,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 6.24,
+    "cost": 0.0000207792
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 6.24,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.3,
+     "end": 0.72,
+     "avg_logprob": -1.0764461308717728,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5789473684210527
+    }
+   ]
+  },
+  "fleurs_en_1994": {
+   "ok": true,
+   "texto": " needless  know a romance language  it will be easier for you to  in Portuguese.",
+   "ms": 899,
+   "tentativas": 1,
+   "usd": 0.0000287712,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 8.64,
+    "cost": 0.0000287712
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 8.64,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.81,
+     "end": 1.35,
+     "avg_logprob": -0.2841731421649456,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 2.55,
+     "end": 3.9299999999999997,
+     "avg_logprob": -0.27371286911269027,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.75
+    },
+    {
+     "start": 4.14,
+     "end": 5.5,
+     "avg_logprob": -0.3479458826283614,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7837837837837838
+    },
+    {
+     "start": 5.52,
+     "end": 6.119999999999999,
+     "avg_logprob": -0.2496073093265295,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6521739130434783
+    }
+   ]
+  },
+  "fleurs_en_1869": {
+   "ok": true,
+   "texto": " His long jaws were styled with more than seventy  razor-sharp teeth along with an extra set in the roof of its mouth, meaning that there was no escape or anything that crossed its path.  Thank you.",
+   "ms": 1066,
+   "tentativas": 1,
+   "usd": 0.000053946,
+   "usdReservado": 0.00017999981999999997,
+   "uso": {
+    "seconds": 16.2,
+    "cost": 0.000053946
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 16.2,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.45,
+     "end": 4.69,
+     "avg_logprob": -0.33511422978093225,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8909090909090909
+    },
+    {
+     "start": 5.4,
+     "end": 14.46,
+     "avg_logprob": -0.15844371692219283,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.3076923076923077
+    },
+    {
+     "start": 15.21,
+     "end": 15.99,
+     "avg_logprob": -0.6002894403412938,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5789473684210527
+    }
+   ]
+  },
+  "fleurs_en_1739": {
+   "ok": true,
+   "texto": " resting on the top of one of the mountains  north of Mecca,  The cave is coastal.  isolated from the rest of the  the world.",
+   "ms": 2717,
+   "tentativas": 1,
+   "usd": 0.0000337662,
+   "usdReservado": 0.000112666554,
+   "uso": {
+    "seconds": 10.14,
+    "cost": 0.0000337662
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 10.14,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.6,
+     "end": 2.62,
+     "avg_logprob": -0.08073442395437848,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9555555555555556
+    },
+    {
+     "start": 2.67,
+     "end": 3.55,
+     "avg_logprob": -0.1411486916726322,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6666666666666666
+    },
+    {
+     "start": 4.5,
+     "end": 5.34,
+     "avg_logprob": -0.30869927117601037,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7241379310344828
+    },
+    {
+     "start": 6.03,
+     "end": 7.21,
+     "avg_logprob": -0.4140440918272361,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8571428571428571
+    },
+    {
+     "start": 7.26,
+     "end": 7.74,
+     "avg_logprob": -0.08577548116445541,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5789473684210527
+    }
+   ]
+  },
+  "fleurs_en_1784": {
+   "ok": true,
+   "texto": " Greenland was settled sparsely. In the Norse sagas they say that Erik the Red was exiled from Iceland for murder and when traveling further west found Greenland and named it Greenland.",
+   "ms": 773,
+   "tentativas": 1,
+   "usd": 0.00021133334755534422,
+   "usdReservado": 0.000211333122,
+   "uso": {
+    "seconds": 19.02000128,
+    "cost": 0.00021133334755534422
+   },
+   "idiomaDevolvido": "English",
+   "duracaoDevolvidaS": 19.02000128,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 19,
+     "avg_logprob": -0.29175436,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.4122137
+    }
+   ]
+  },
+  "fleurs_en_1843": {
+   "ok": true,
+   "texto": " Professor Pamela Ferguson  University of Dundee notes,  Journalists.  dangerous line.  photos.  et cetera, of sucks.",
+   "ms": 1088,
+   "tentativas": 1,
+   "usd": 0.000034965,
+   "usdReservado": 0.00011666655,
+   "uso": {
+    "seconds": 10.5,
+    "cost": 0.000034965
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 10.5,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.33,
+     "end": 1.53,
+     "avg_logprob": -0.1052257770303792,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7647058823529411
+    },
+    {
+     "start": 1.89,
+     "end": 3.21,
+     "avg_logprob": -0.11451583820679742,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7777777777777778
+    },
+    {
+     "start": 3.42,
+     "end": 4.02,
+     "avg_logprob": -0.31805175468325614,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6190476190476191
+    },
+    {
+     "start": 5.34,
+     "end": 6.16,
+     "avg_logprob": -0.5731634438037873,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6666666666666666
+    },
+    {
+     "start": 7.11,
+     "end": 7.630000000000001,
+     "avg_logprob": -0.19004087895154953,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5
+    },
+    {
+     "start": 7.71,
+     "end": 8.61,
+     "avg_logprob": -0.45108134869951755,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7241379310344828
+    }
+   ]
+  },
+  "fleurs_en_1710": {
+   "ok": true,
+   "texto": " Medi announced that Apple had informed it  additional overhanging",
+   "ms": 1794,
+   "tentativas": 1,
+   "usd": 0.0000303696,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.12,
+    "cost": 0.0000303696
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 9.12,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.65,
+     "end": 3.77,
+     "avg_logprob": -0.24721606108359992,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8571428571428571
+    },
+    {
+     "start": 3.81,
+     "end": 5.23,
+     "avg_logprob": -1.4010499517122905,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7419354838709677
+    }
+   ]
+  },
+  "fleurs_en_1756": {
+   "ok": true,
+   "texto": " late on Sunday,  The United States President Donald Trump, in a statement delivered via the Press Secretary,  announced U.S. troops would be leaving Syria.",
+   "ms": 998,
+   "tentativas": 1,
+   "usd": 0.0000331668,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.96,
+    "cost": 0.0000331668
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 9.96,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.78,
+     "end": 1.6800000000000002,
+     "avg_logprob": -0.29909111342082423,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6666666666666666
+    },
+    {
+     "start": 1.8,
+     "end": 6.18,
+     "avg_logprob": -0.15394400052415827,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0952380952380953
+    },
+    {
+     "start": 6.24,
+     "end": 8.52,
+     "avg_logprob": -0.07794777778550409,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8518518518518519
+    }
+   ]
+  },
+  "fleurs_en_1934": {
+   "ok": true,
+   "texto": " Usually you always hear the sound  tourists and vendors.  story of the  sound and light is  just like a",
+   "ms": 842,
+   "tentativas": 1,
+   "usd": 0.0000245754,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 7.38,
+    "cost": 0.0000245754
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 7.38,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.69,
+     "end": 2.15,
+     "avg_logprob": -0.1378766258712858,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8095238095238095
+    },
+    {
+     "start": 2.34,
+     "end": 3.42,
+     "avg_logprob": -0.4322898667305708,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7333333333333333
+    },
+    {
+     "start": 3.63,
+     "end": 4.17,
+     "avg_logprob": -0.12120284959673881,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6190476190476191
+    },
+    {
+     "start": 4.23,
+     "end": 4.95,
+     "avg_logprob": -0.5073442462210854,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.76
+    },
+    {
+     "start": 5.01,
+     "end": 5.47,
+     "avg_logprob": -0.354086147621274,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6
+    }
+   ]
+  },
+  "fleurs_en_1942": {
+   "ok": true,
+   "texto": " We make our houses from plants.  and make clothes for implants.  Most foods that we eat are plants.  Without plants, animals could not survive.",
+   "ms": 1166,
+   "tentativas": 1,
+   "usd": 0.0000263736,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 7.92,
+    "cost": 0.0000263736
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 7.92,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.69,
+     "end": 2.15,
+     "avg_logprob": -0.11155396641697735,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8
+    },
+    {
+     "start": 2.31,
+     "end": 3.51,
+     "avg_logprob": -0.16589478615787812,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7948717948717948
+    },
+    {
+     "start": 3.81,
+     "end": 5.43,
+     "avg_logprob": -0.0967495946912095,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8536585365853658
+    },
+    {
+     "start": 5.55,
+     "end": 7.57,
+     "avg_logprob": -0.29483248154865577,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8431372549019608
+    }
+   ]
+  },
+  "fleurs_en_1738": {
+   "ok": true,
+   "texto": " It also attacked anything that entered the water.  even a giant dinosaur such as  T-Rex.  no match",
+   "ms": 1057,
+   "tentativas": 1,
+   "usd": 0.0000303696,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.12,
+    "cost": 0.0000303696
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 9.12,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.72,
+     "end": 3.2800000000000002,
+     "avg_logprob": -0.06392133652909913,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9090909090909091
+    },
+    {
+     "start": 3.84,
+     "end": 5.7,
+     "avg_logprob": -0.14615138768567704,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7894736842105263
+    },
+    {
+     "start": 5.73,
+     "end": 6.210000000000001,
+     "avg_logprob": -0.05379493421475802,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.4666666666666667
+    },
+    {
+     "start": 6.54,
+     "end": 7.14,
+     "avg_logprob": -0.18298901244997978,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    }
+   ]
+  },
+  "fleurs_en_1814": {
+   "ok": true,
+   "texto": " that had their own.  off them  Proton.",
+   "ms": 923,
+   "tentativas": 1,
+   "usd": 0.0000255744,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 7.68,
+    "cost": 0.0000255744
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 7.68,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.59,
+     "end": 2.0500000000000003,
+     "avg_logprob": -0.7731320517403739,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7142857142857143
+    },
+    {
+     "start": 3,
+     "end": 3.6,
+     "avg_logprob": -0.23033679090440273,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 5.7,
+     "end": 6.24,
+     "avg_logprob": -0.30730997696518897,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5
+    }
+   ]
+  },
+  "fleurs_en_1955": {
+   "ok": true,
+   "texto": " MS is a disease that affects the central nervous system, which is made up of the brain, the spinal cord, and the optic nerve.",
+   "ms": 696,
+   "tentativas": 1,
+   "usd": 0.000111111111111,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 10,
+    "cost": 0.000111111111111
+   },
+   "idiomaDevolvido": "English",
+   "duracaoDevolvidaS": 7.2,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 7.2,
+     "avg_logprob": -0.14774062,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2475247
+    }
+   ]
+  },
+  "fleurs_en_1847": {
+   "ok": true,
+   "texto": " He was greeted by Singapore's Deputy Prime Minister, Wang Kain Sang, and discussed trade and terrorism issues with the Singapore Prime Minister, Lee Haseen Long.",
+   "ms": 741,
+   "tentativas": 1,
+   "usd": 0.0001293333390220929,
+   "usdReservado": 0.000129333204,
+   "uso": {
+    "seconds": 11.640000512,
+    "cost": 0.0001293333390220929
+   },
+   "idiomaDevolvido": "English",
+   "duracaoDevolvidaS": 11.640000512,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 10.179999,
+     "avg_logprob": -0.22705205,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.3170732
+    }
+   ]
+  },
+  "fleurs_en_1716": {
+   "ok": true,
+   "texto": " Entertainment news website TMZ understands the photographer stopped his vehicle on the other side of support for the Boulevard and attempted to take pictures that the police stopped before crossing the road and continuing prompting the California Highway Patrol police officer conducting the traffic stop to order him back cross twice.",
+   "ms": 1016,
+   "tentativas": 1,
+   "usd": 0.0000723276,
+   "usdReservado": 0.00024133309199999997,
+   "uso": {
+    "seconds": 21.72,
+    "cost": 0.0000723276
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 21.72,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.54,
+     "end": 21.36,
+     "avg_logprob": -0.10825248614396275,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.5849056603773586
+    }
+   ]
+  },
+  "fleurs_en_2009": {
+   "ok": true,
+   "texto": " The most readily accessible plant resources would have been the proteins accessible in leaves and legumes.  But these are hard for primates like us to digest unless they are cooked.",
+   "ms": 1008,
+   "tentativas": 1,
+   "usd": 0.0000461538,
+   "usdReservado": 0.000153999846,
+   "uso": {
+    "seconds": 13.86,
+    "cost": 0.0000461538
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 13.86,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.03,
+     "end": 7.83,
+     "avg_logprob": -0.09441365878446958,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2298850574712643
+    },
+    {
+     "start": 7.98,
+     "end": 12.82,
+     "avg_logprob": -0.12586126405383563,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0422535211267605
+    }
+   ]
+  },
+  "fleurs_en_1884": {
+   "ok": true,
+   "texto": " it is.  that one  - It's fine, but it's fine.  Microexperience.",
+   "ms": 1153,
+   "tentativas": 1,
+   "usd": 0.0000203796,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 6.12,
+    "cost": 0.0000203796
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 6.12,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.57,
+     "end": 1.15,
+     "avg_logprob": -0.7673547089099884,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.4666666666666667
+    },
+    {
+     "start": 1.38,
+     "end": 1.7399999999999998,
+     "avg_logprob": -0.6668546684086323,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 2.94,
+     "end": 3.78,
+     "avg_logprob": -0.7218203212444981,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9655172413793104
+    },
+    {
+     "start": 4.08,
+     "end": 4.62,
+     "avg_logprob": -0.8992295392921993,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.68
+    }
+   ]
+  },
+  "fleurs_en_1732": {
+   "ok": true,
+   "texto": " The age where the events took place is commonly referred  as the high middle ages  period of European history  11th.  12th, and 13th centuries.  80  100?  or 1,200.",
+   "ms": 1436,
+   "tentativas": 1,
+   "usd": 0.0000455544,
+   "usdReservado": 0.000151999848,
+   "uso": {
+    "seconds": 13.68,
+    "cost": 0.0000455544
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 13.68,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.48,
+     "end": 2.98,
+     "avg_logprob": -0.17400250680899867,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9344262295081968
+    },
+    {
+     "start": 3,
+     "end": 4.4399999999999995,
+     "avg_logprob": -0.41627275943756104,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.75
+    },
+    {
+     "start": 4.86,
+     "end": 6.28,
+     "avg_logprob": -0.2336199686784918,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7714285714285715
+    },
+    {
+     "start": 6.42,
+     "end": 6.86,
+     "avg_logprob": -0.29102169573307035,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.42857142857142855
+    },
+    {
+     "start": 7.17,
+     "end": 8.61,
+     "avg_logprob": -0.31386736869899323,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7647058823529411
+    },
+    {
+     "start": 8.82,
+     "end": 9.24,
+     "avg_logprob": -0.29641520977020264,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.2727272727272727
+    },
+    {
+     "start": 9.63,
+     "end": 10.07,
+     "avg_logprob": -0.9187635183334351,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.38461538461538464
+    },
+    {
+     "start": 10.59,
+     "end": 11.49,
+     "avg_logprob": -0.2511065294300871,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5555555555555556
+    }
+   ]
+  },
+  "fleurs_en_1857": {
+   "ok": true,
+   "texto": " He added they should not  however be asked to take on obligations that go beyond their development stage  responsibility and capabilities.",
+   "ms": 953,
+   "tentativas": 1,
+   "usd": 0.0000406926,
+   "usdReservado": 0.000135777642,
+   "uso": {
+    "seconds": 12.22,
+    "cost": 0.0000406926
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 12.22,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.62,
+     "end": 3.2800000000000002,
+     "avg_logprob": -0.23758446964036142,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7575757575757576
+    },
+    {
+     "start": 3.54,
+     "end": 8.18,
+     "avg_logprob": -0.11048994975474974,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1285714285714286
+    },
+    {
+     "start": 8.22,
+     "end": 11.020000000000001,
+     "avg_logprob": -0.28541366911182803,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8918918918918919
+    }
+   ]
+  },
+  "fleurs_en_1776": {
+   "ok": true,
+   "texto": " Good night.  150 and  copies  as the left broad",
+   "ms": 913,
+   "tentativas": 1,
+   "usd": 0.000015984,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 4.8,
+    "cost": 0.000015984
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 4.8,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.3,
+     "end": 0.6799999999999999,
+     "avg_logprob": -0.5388184927403927,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6
+    },
+    {
+     "start": 1.11,
+     "end": 1.77,
+     "avg_logprob": -0.799614429473877,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5
+    },
+    {
+     "start": 1.83,
+     "end": 2.31,
+     "avg_logprob": -0.2765648066997528,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.4666666666666667
+    },
+    {
+     "start": 3.09,
+     "end": 4.05,
+     "avg_logprob": -0.9193603148063024,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6923076923076923
+    }
+   ]
+  },
+  "fleurs_en_1929": {
+   "ok": true,
+   "texto": " Del Potro has the early advantage in the second set  acquired a tie  break after",
+   "ms": 1514,
+   "tentativas": 1,
+   "usd": 0.000026973,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 8.1,
+    "cost": 0.000026973
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 8.1,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.63,
+     "end": 3.61,
+     "avg_logprob": -0.1780487009539054,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9454545454545454
+    },
+    {
+     "start": 4.29,
+     "end": 5.49,
+     "avg_logprob": -0.37077008775435394,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7777777777777778
+    }
+   ]
+  },
+  "fleurs_en_1892": {
+   "ok": true,
+   "texto": " This is the place the British colonizers took as their own and so if you are looking for evidence of the territories colonial past this is a good place to start.",
+   "ms": 780,
+   "tentativas": 1,
+   "usd": 0.00014600000853318734,
+   "usdReservado": 0.00014599985399999999,
+   "uso": {
+    "seconds": 13.140000768,
+    "cost": 0.00014600000853318734
+   },
+   "idiomaDevolvido": "English",
+   "duracaoDevolvidaS": 13.140000768,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.19999999,
+     "end": 5.8399997,
+     "avg_logprob": -0.17417292,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.3846154
+    },
+    {
+     "start": 5.8399997,
+     "end": 10.599999,
+     "avg_logprob": -0.17417292,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.3846154
+    },
+    {
+     "start": 10.599999,
+     "end": 13.12,
+     "avg_logprob": -0.17417292,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.3846154
+    }
+   ]
+  },
+  "fleurs_en_1692": {
+   "ok": true,
+   "texto": " According to Japan's nuclear agency,  radioactive casein and iodine has been identified at the",
+   "ms": 1041,
+   "tentativas": 1,
+   "usd": 0.0000245754,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 7.38,
+    "cost": 0.0000245754
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 7.38,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.63,
+     "end": 2.49,
+     "avg_logprob": -0.14711112715303898,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8222222222222222
+    },
+    {
+     "start": 2.55,
+     "end": 5.73,
+     "avg_logprob": -0.18064954998688057,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0555555555555556
+    }
+   ]
+  },
+  "fleurs_en_1879": {
+   "ok": true,
+   "texto": " One can only wonder...  What the key?  come, Winston.",
+   "ms": 979,
+   "tentativas": 1,
+   "usd": 0.0000181818,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 5.46,
+    "cost": 0.0000181818
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 5.46,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.57,
+     "end": 1.71,
+     "avg_logprob": -0.16012099821818992,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7419354838709677
+    },
+    {
+     "start": 1.92,
+     "end": 2.4,
+     "avg_logprob": -0.4487243676558137,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6363636363636364
+    },
+    {
+     "start": 3.03,
+     "end": 3.57,
+     "avg_logprob": -0.665787740300099,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6521739130434783
+    }
+   ]
+  },
+  "fleurs_en_1751": {
+   "ok": true,
+   "texto": " The debate was sparked by controversy over spending on relief  reconstruction  of Hurricane Katrina  which some fiscal conservatives have humorously labeled  Bushes.  Orleans deal.",
+   "ms": 1249,
+   "tentativas": 1,
+   "usd": 0.0000411588,
+   "usdReservado": 0.00013733319599999998,
+   "uso": {
+    "seconds": 12.36,
+    "cost": 0.0000411588
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 12.36,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.75,
+     "end": 3.61,
+     "avg_logprob": -0.12356912977217387,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.96875
+    },
+    {
+     "start": 4.05,
+     "end": 4.59,
+     "avg_logprob": -0.6652068495750427,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6521739130434783
+    },
+    {
+     "start": 5.16,
+     "end": 6.42,
+     "avg_logprob": -0.2527902778238058,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7241379310344828
+    },
+    {
+     "start": 6.66,
+     "end": 9.58,
+     "avg_logprob": -0.048854045243933795,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9655172413793104
+    },
+    {
+     "start": 9.66,
+     "end": 10.120000000000001,
+     "avg_logprob": -0.38437158465385435,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5
+    },
+    {
+     "start": 10.2,
+     "end": 11.02,
+     "avg_logprob": -0.6610703229904175,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6363636363636364
+    }
+   ]
+  },
+  "fleurs_en_1707": {
+   "ok": true,
+   "texto": " It's one of the main attractions of South Africa.  and it's considered the flagship of South African National Parks.  Sand parks.",
+   "ms": 882,
+   "tentativas": 1,
+   "usd": 0.0000363636,
+   "usdReservado": 0.00012133321199999999,
+   "uso": {
+    "seconds": 10.92,
+    "cost": 0.0000363636
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 10.92,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.11,
+     "end": 3.55,
+     "avg_logprob": -0.1225043851076267,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8928571428571429
+    },
+    {
+     "start": 4.44,
+     "end": 8.14,
+     "avg_logprob": -0.2374554985601987,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9295774647887324
+    },
+    {
+     "start": 8.67,
+     "end": 9.21,
+     "avg_logprob": -0.16806440614163876,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6
+    }
+   ]
+  },
+  "fleurs_en_1761": {
+   "ok": true,
+   "texto": " The photographers later took the place of an aged lady as she needed the lavatory.  Mendoza was gunned down.",
+   "ms": 1069,
+   "tentativas": 1,
+   "usd": 0.0000287046,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 8.62,
+    "cost": 0.0000287046
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 8.62,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.09,
+     "end": 5.7299999999999995,
+     "avg_logprob": -0.059491273456890335,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1066666666666667
+    },
+    {
+     "start": 5.88,
+     "end": 7.52,
+     "avg_logprob": -0.1762351709068753,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7575757575757576
+    }
+   ]
+  },
+  "fleurs_en_1923": {
+   "ok": true,
+   "texto": " The strategy provides...  Effective cutting off vital military and  suppliers although this  blockade violated generally accepted  international  off.  codified by several international agreements  of the past.",
+   "ms": 1038,
+   "tentativas": 1,
+   "usd": 0.0000511488,
+   "usdReservado": 0.00017066649599999998,
+   "uso": {
+    "seconds": 15.36,
+    "cost": 0.0000511488
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 15.36,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.2,
+     "end": 2.46,
+     "avg_logprob": -0.08851444876442353,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7575757575757576
+    },
+    {
+     "start": 3.06,
+     "end": 5.140000000000001,
+     "avg_logprob": -0.2499807429396444,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8723404255319149
+    },
+    {
+     "start": 5.67,
+     "end": 6.97,
+     "avg_logprob": -0.42350041717290876,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.75
+    },
+    {
+     "start": 6.99,
+     "end": 8.790000000000001,
+     "avg_logprob": -0.05800937222582953,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8409090909090909
+    },
+    {
+     "start": 8.88,
+     "end": 9.420000000000002,
+     "avg_logprob": -0.19212724268436432,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6363636363636364
+    },
+    {
+     "start": 9.48,
+     "end": 9.9,
+     "avg_logprob": -0.24397585727274418,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.38461538461538464
+    },
+    {
+     "start": 10.2,
+     "end": 12.42,
+     "avg_logprob": -0.04756910281139426,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8823529411764706
+    },
+    {
+     "start": 12.57,
+     "end": 13.21,
+     "avg_logprob": -0.3593341161031276,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6190476190476191
+    }
+   ]
+  },
+  "fleurs_en_1701": {
+   "ok": true,
+   "texto": " Goats seem to have  been first domesticated roughly 10,000 years ago.  in the Zagros Mountains of Iran.",
+   "ms": 964,
+   "tentativas": 1,
+   "usd": 0.0000353646,
+   "usdReservado": 0.00011799988199999998,
+   "uso": {
+    "seconds": 10.62,
+    "cost": 0.0000353646
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 10.62,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.99,
+     "end": 2.4699999999999998,
+     "avg_logprob": -0.3456262541668756,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7037037037037037
+    },
+    {
+     "start": 2.49,
+     "end": 5.91,
+     "avg_logprob": -0.1184241066926356,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8620689655172413
+    },
+    {
+     "start": 6.18,
+     "end": 8.68,
+     "avg_logprob": -0.16736787193539468,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8048780487804879
+    }
+   ]
+  },
+  "fleurs_en_1907": {
+   "ok": true,
+   "texto": " the outbreak of",
+   "ms": 892,
+   "tentativas": 1,
+   "usd": 0.0000181818,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 5.46,
+    "cost": 0.0000181818
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 5.46,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.6,
+     "end": 1.08,
+     "avg_logprob": -0.644046139717102,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6666666666666666
+    }
+   ]
+  },
+  "fleurs_en_1706": {
+   "ok": true,
+   "texto": " more traditional churches  as a congregation.  At the stroke of the...  break Christ  Resurrection.",
+   "ms": 1037,
+   "tentativas": 1,
+   "usd": 0.0000423576,
+   "usdReservado": 0.000141333192,
+   "uso": {
+    "seconds": 12.72,
+    "cost": 0.0000423576
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 12.72,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.66,
+     "end": 1.7400000000000002,
+     "avg_logprob": -0.18718865364789963,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7647058823529411
+    },
+    {
+     "start": 5.97,
+     "end": 6.43,
+     "avg_logprob": -0.4728592683871587,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7037037037037037
+    },
+    {
+     "start": 9.18,
+     "end": 9.84,
+     "avg_logprob": -0.5796734138857573,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8275862068965517
+    },
+    {
+     "start": 10.71,
+     "end": 11.25,
+     "avg_logprob": -0.051442467607557774,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6190476190476191
+    },
+    {
+     "start": 11.43,
+     "end": 11.99,
+     "avg_logprob": -1.0147486329078674,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6363636363636364
+    }
+   ]
+  },
+  "fleurs_en_1901": {
+   "ok": true,
+   "texto": " Although AI has a strong connotation of science fiction,  AI forms a very important branch of computer science dealing with behavior learning and intelligent adaptation in the machine.",
+   "ms": 1115,
+   "tentativas": 1,
+   "usd": 0.0000448884,
+   "usdReservado": 0.00014977762799999998,
+   "uso": {
+    "seconds": 13.48,
+    "cost": 0.0000448884
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 13.48,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 4.04,
+     "avg_logprob": -0.15658527705818415,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9193548387096774
+    },
+    {
+     "start": 4.08,
+     "end": 11.9,
+     "avg_logprob": -0.23326858562755992,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2211538461538463
+    }
+   ]
+  },
+  "fleurs_en_1794": {
+   "ok": true,
+   "texto": " A civilization is  cultural  shared by a security guard.  - We can't large--  cooperate.",
+   "ms": 896,
+   "tentativas": 1,
+   "usd": 0.0000295704,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 8.88,
+    "cost": 0.0000295704
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 8.88,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.48,
+     "end": 1.5,
+     "avg_logprob": -0.21825305446982385,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6923076923076923
+    },
+    {
+     "start": 1.77,
+     "end": 2.35,
+     "avg_logprob": -1.4903619686762493,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 2.49,
+     "end": 3.1300000000000003,
+     "avg_logprob": -0.8067998215556145,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7777777777777778
+    },
+    {
+     "start": 3.42,
+     "end": 4,
+     "avg_logprob": -1.088010904379189,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7037037037037037
+    },
+    {
+     "start": 5.55,
+     "end": 6.029999999999999,
+     "avg_logprob": -0.24427153985016048,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5789473684210527
+    }
+   ]
+  },
+  "fleurs_en_1972": {
+   "ok": true,
+   "texto": "",
+   "ms": 684,
+   "tentativas": 1,
+   "usd": 0.0000143856,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 4.32,
+    "cost": 0.0000143856
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 4.32,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 4.32,
+     "avg_logprob": 0,
+     "no_speech_prob": 1,
+     "compression_ratio": 0
+    }
+   ]
+  },
+  "fleurs_en_1906": {
+   "ok": true,
+   "texto": " This is not going to be goodbye. This is the closing of one chapter and the opening of a new one.",
+   "ms": 643,
+   "tentativas": 1,
+   "usd": 0.000111111111111,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 10,
+    "cost": 0.000111111111111
+   },
+   "idiomaDevolvido": "English",
+   "duracaoDevolvidaS": 5.88,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 5.8799996,
+     "avg_logprob": -0.20148431,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.2405063
+    }
+   ]
+  },
+  "fleurs_en_1914": {
+   "ok": true,
+   "texto": " 20th century research.  there are two",
+   "ms": 926,
+   "tentativas": 1,
+   "usd": 0.0000231768,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 6.96,
+    "cost": 0.0000231768
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 6.96,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.17,
+     "end": 2.07,
+     "avg_logprob": -0.3552318221357252,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7419354838709677
+    },
+    {
+     "start": 2.88,
+     "end": 3.3,
+     "avg_logprob": -0.25400698781013487,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7
+    }
+   ]
+  },
+  "fleurs_en_1915": {
+   "ok": true,
+   "texto": " You can use Boda Boda Morris Cycle Taxi to get around Goma.  The normal local price is $500.  Thank you.  a Congolese Franks for the short ride.",
+   "ms": 1634,
+   "tentativas": 1,
+   "usd": 0.0000444222,
+   "usdReservado": 0.000148222074,
+   "uso": {
+    "seconds": 13.34,
+    "cost": 0.0000444222
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 13.34,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.09,
+     "end": 5.31,
+     "avg_logprob": -0.27564196069724856,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9523809523809523
+    },
+    {
+     "start": 5.55,
+     "end": 8.91,
+     "avg_logprob": -0.1590847608167678,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8421052631578947
+    },
+    {
+     "start": 9.06,
+     "end": 9.5,
+     "avg_logprob": -1.047214720211923,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5789473684210527
+    },
+    {
+     "start": 9.54,
+     "end": 13.32,
+     "avg_logprob": -0.2256007635822663,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8297872340425532
+    }
+   ]
+  },
+  "fleurs_en_1904": {
+   "ok": true,
+   "texto": " However,  due to the slow communication channel.  styles in the West could lag behind by 25 to 30 years.",
+   "ms": 1013,
+   "tentativas": 1,
+   "usd": 0.0000351648,
+   "usdReservado": 0.000117333216,
+   "uso": {
+    "seconds": 10.56,
+    "cost": 0.0000351648
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 10.56,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.99,
+     "end": 1.53,
+     "avg_logprob": -0.34339985623955727,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 1.98,
+     "end": 3.7199999999999998,
+     "avg_logprob": -0.08369387075718906,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8297872340425532
+    },
+    {
+     "start": 4.38,
+     "end": 8.780000000000001,
+     "avg_logprob": -0.14110906085309882,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.873015873015873
+    }
+   ]
+  },
+  "fleurs_en_1769": {
+   "ok": true,
+   "texto": " built by the Egyptians  in the 3rd century",
+   "ms": 805,
+   "tentativas": 1,
+   "usd": 0.0000297702,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 8.94,
+    "cost": 0.0000297702
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 8.94,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.69,
+     "end": 1.63,
+     "avg_logprob": -0.3483417605360349,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7419354838709677
+    },
+    {
+     "start": 1.65,
+     "end": 2.65,
+     "avg_logprob": -0.4543421408161521,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7037037037037037
+    }
+   ]
+  },
+  "fleurs_en_1805": {
+   "ok": true,
+   "texto": " Scott Turb Bus 403 travels regularly to Sintra, stopping at Cabo da Roca.",
+   "ms": 984,
+   "tentativas": 1,
+   "usd": 0.0000384948,
+   "usdReservado": 0.000128444316,
+   "uso": {
+    "seconds": 11.56,
+    "cost": 0.0000384948
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 11.56,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.15,
+     "end": 10.270000000000001,
+     "avg_logprob": -0.1883783492489981,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9367088607594937
+    }
+   ]
+  },
+  "fleurs_en_1873": {
+   "ok": true,
+   "texto": " Be firming.  and turning down.  Amen.  And don't be afraid to see.  Stand your ground.  Cultural differences are not, it doesn't make it okay.",
+   "ms": 1117,
+   "tentativas": 1,
+   "usd": 0.0000365634,
+   "usdReservado": 0.000121999878,
+   "uso": {
+    "seconds": 10.98,
+    "cost": 0.0000365634
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 10.98,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.3199999999999998,
+     "end": 2.04,
+     "avg_logprob": -0.203690768374751,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6
+    },
+    {
+     "start": 2.07,
+     "end": 2.59,
+     "avg_logprob": -0.4930294031898181,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6923076923076923
+    },
+    {
+     "start": 2.61,
+     "end": 2.83,
+     "avg_logprob": -0.8473683865740895,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.42857142857142855
+    },
+    {
+     "start": 3.27,
+     "end": 4.19,
+     "avg_logprob": -0.43443952982197515,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7777777777777778
+    },
+    {
+     "start": 4.23,
+     "end": 5.090000000000001,
+     "avg_logprob": -0.5287846377274642,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7037037037037037
+    },
+    {
+     "start": 5.67,
+     "end": 8.89,
+     "avg_logprob": -0.3105270001771195,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9166666666666666
+    }
+   ]
+  },
+  "fleurs_en_1724": {
+   "ok": true,
+   "texto": " This renown for being an epicenter of luxury began in about 400 AD and lasted up until about 1100 AD.  What?",
+   "ms": 1155,
+   "tentativas": 1,
+   "usd": 0.0000382284,
+   "usdReservado": 0.000127555428,
+   "uso": {
+    "seconds": 11.48,
+    "cost": 0.0000382284
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 11.48,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.06,
+     "end": 11.46,
+     "avg_logprob": -0.20444714099433298,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1354166666666667
+    }
+   ]
+  },
+  "fleurs_en_1986": {
+   "ok": true,
+   "texto": " The presence of the true invisible team, Larson and Lofasto, 1989, page 102.  is also a unique component of a virtual",
+   "ms": 981,
+   "tentativas": 1,
+   "usd": 0.0000397602,
+   "usdReservado": 0.000132666534,
+   "uso": {
+    "seconds": 11.94,
+    "cost": 0.0000397602
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 11.94,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.14,
+     "end": 7.26,
+     "avg_logprob": -0.2979321272154762,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9746835443037974
+    },
+    {
+     "start": 7.83,
+     "end": 10.21,
+     "avg_logprob": -0.0935429313860368,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.851063829787234
+    }
+   ]
+  },
+  "fleurs_en_1956": {
+   "ok": true,
+   "texto": " Using ships to transports  is by far the most efficient way to move  large amounts of  across oceans.",
+   "ms": 2195,
+   "tentativas": 1,
+   "usd": 0.0000253746,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 7.62,
+    "cost": 0.0000253746
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 7.62,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.78,
+     "end": 2.16,
+     "avg_logprob": -0.26420983263025327,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7647058823529411
+    },
+    {
+     "start": 2.22,
+     "end": 4.36,
+     "avg_logprob": -0.15957756105556406,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8541666666666666
+    },
+    {
+     "start": 4.38,
+     "end": 5.04,
+     "avg_logprob": -0.14289925023913383,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.68
+    },
+    {
+     "start": 5.76,
+     "end": 6.32,
+     "avg_logprob": -0.47894634306430817,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6521739130434783
+    }
+   ]
+  },
+  "fleurs_en_1862": {
+   "ok": true,
+   "texto": " NextGen is a system the FAA claims  would allow aircraft to fly shorter routes  and save millions of gallons  cut carbon.",
+   "ms": 1001,
+   "tentativas": 1,
+   "usd": 0.0000335664,
+   "usdReservado": 0.000111999888,
+   "uso": {
+    "seconds": 10.08,
+    "cost": 0.0000335664
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 10.08,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.72,
+     "end": 3.1799999999999997,
+     "avg_logprob": -0.08950991200452502,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.813953488372093
+    },
+    {
+     "start": 3.21,
+     "end": 5.17,
+     "avg_logprob": -0.014062924187682155,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8775510204081632
+    },
+    {
+     "start": 5.25,
+     "end": 6.3100000000000005,
+     "avg_logprob": -0.19226980498725815,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8285714285714286
+    },
+    {
+     "start": 7.29,
+     "end": 7.99,
+     "avg_logprob": -0.48113293945789337,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6
+    }
+   ]
+  },
+  "fleurs_en_1889": {
+   "ok": true,
+   "texto": "",
+   "ms": 758,
+   "tentativas": 1,
+   "usd": 0.0000161838,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 4.86,
+    "cost": 0.0000161838
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 4.86,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0,
+     "end": 4.86,
+     "avg_logprob": 0,
+     "no_speech_prob": 1,
+     "compression_ratio": 0
+    }
+   ]
+  },
+  "fleurs_en_1931": {
+   "ok": true,
+   "texto": " The service is frequently  used by shipping  including pleasure craft as well as expeditions  who have remote data and voice data.",
+   "ms": 1456,
+   "tentativas": 1,
+   "usd": 0.0000375624,
+   "usdReservado": 0.000125333208,
+   "uso": {
+    "seconds": 11.28,
+    "cost": 0.0000375624
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 11.28,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.99,
+     "end": 2.29,
+     "avg_logprob": -0.14312380459159613,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7647058823529411
+    },
+    {
+     "start": 2.31,
+     "end": 3.39,
+     "avg_logprob": -0.19997813180088997,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.68
+    },
+    {
+     "start": 3.75,
+     "end": 6.550000000000001,
+     "avg_logprob": -0.08804930180194788,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9056603773584906
+    },
+    {
+     "start": 6.66,
+     "end": 8.22,
+     "avg_logprob": -0.19737932989373802,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.925
+    }
+   ]
+  },
+  "fleurs_en_1712": {
+   "ok": true,
+   "texto": " Since 1966,  The Sundarbans.  have been in a wildlife sanctuary and it is estimated there are now 400 royal Bengal tigers and about  30,000 spotted deer in the area.",
+   "ms": 1421,
+   "tentativas": 1,
+   "usd": 0.0000581418,
+   "usdReservado": 0.000193999806,
+   "uso": {
+    "seconds": 17.46,
+    "cost": 0.0000581418
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 17.46,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.06,
+     "end": 2.2800000000000002,
+     "avg_logprob": -0.2117994111031294,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6
+    },
+    {
+     "start": 2.55,
+     "end": 4.73,
+     "avg_logprob": -0.6779557636805943,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6666666666666666
+    },
+    {
+     "start": 4.89,
+     "end": 12.969999999999999,
+     "avg_logprob": -0.273571103234731,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.146067415730337
+    },
+    {
+     "start": 13.17,
+     "end": 17.47,
+     "avg_logprob": -0.16895806410519237,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8048780487804879
+    }
+   ]
+  },
+  "fleurs_en_1729": {
+   "ok": true,
+   "texto": " For example,  to your students from Bennett's  in North Carolina designed a website about their trips  capital.  Each year the website gets remodeled, but  versions are kept online to serve as  scrapbook.",
+   "ms": 1267,
+   "tentativas": 1,
+   "usd": 0.0000375624,
+   "usdReservado": 0.000125333208,
+   "uso": {
+    "seconds": 11.28,
+    "cost": 0.0000375624
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 11.28,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.27,
+     "end": 1.05,
+     "avg_logprob": -0.2049809968098998,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6190476190476191
+    },
+    {
+     "start": 1.14,
+     "end": 2.4,
+     "avg_logprob": -0.22026742284651846,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8
+    },
+    {
+     "start": 2.49,
+     "end": 4.890000000000001,
+     "avg_logprob": -0.17481275262649765,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9322033898305084
+    },
+    {
+     "start": 5.22,
+     "end": 5.819999999999999,
+     "avg_logprob": -0.5867424309253693,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 6.18,
+     "end": 8.34,
+     "avg_logprob": -0.25219790133026737,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.84
+    },
+    {
+     "start": 8.43,
+     "end": 10.209999999999999,
+     "avg_logprob": -0.19854175521888667,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8409090909090909
+    },
+    {
+     "start": 10.26,
+     "end": 10.8,
+     "avg_logprob": -0.09827963057905435,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5789473684210527
+    }
+   ]
+  },
+  "fleurs_en_2000": {
+   "ok": true,
+   "texto": " If crossing the northern Baltic in winter,  Check the cabin location as going through ice causes quite horrible noises for those most affected.  Thank you.",
+   "ms": 2524,
+   "tentativas": 1,
+   "usd": 0.000044289,
+   "usdReservado": 0.00014777763,
+   "uso": {
+    "seconds": 13.3,
+    "cost": 0.000044289
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 13.3,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.48,
+     "end": 3.86,
+     "avg_logprob": -0.2019058367957107,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8775510204081632
+    },
+    {
+     "start": 4.14,
+     "end": 12.780000000000001,
+     "avg_logprob": -0.07807744684089955,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.1904761904761905
+    },
+    {
+     "start": 12.9,
+     "end": 14.9,
+     "avg_logprob": -0.8628546198830008,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5789473684210527
+    }
+   ]
+  },
+  "fleurs_en_1838": {
+   "ok": true,
+   "texto": " The Great Pyramid at Giza  Is it is one?  Seven Wonders that is still standing.",
+   "ms": 826,
+   "tentativas": 1,
+   "usd": 0.0000201798,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 6.06,
+    "cost": 0.0000201798
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 6.06,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.54,
+     "end": 1.6,
+     "avg_logprob": -0.5808716590167023,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8125
+    },
+    {
+     "start": 1.68,
+     "end": 2.24,
+     "avg_logprob": -0.6692885650055749,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6363636363636364
+    },
+    {
+     "start": 3.06,
+     "end": 4.58,
+     "avg_logprob": -0.4400767817220185,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8636363636363636
+    }
+   ]
+  },
+  "fleurs_en_1723": {
+   "ok": true,
+   "texto": " The harbor was the site of an infamous  Naval Standoff in 1889 when seven ships from Germany, the US, and Britain refused to leave the harbor.  Thank you.",
+   "ms": 1188,
+   "tentativas": 1,
+   "usd": 0.0000425574,
+   "usdReservado": 0.00014199985799999998,
+   "uso": {
+    "seconds": 12.78,
+    "cost": 0.0000425574
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 12.78,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.03,
+     "end": 3.9099999999999997,
+     "avg_logprob": -0.17539939610287547,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8666666666666667
+    },
+    {
+     "start": 4.02,
+     "end": 12.36,
+     "avg_logprob": -0.1600690719877513,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.0510204081632653
+    },
+    {
+     "start": 12.39,
+     "end": 14.39,
+     "avg_logprob": -1.10123460162431,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5789473684210527
+    }
+   ]
+  },
+  "fleurs_en_1858": {
+   "ok": true,
+   "texto": " Danielle Lentz.  the outbreak.",
+   "ms": 867,
+   "tentativas": 1,
+   "usd": 0.000020979,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 6.3,
+    "cost": 0.000020979
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 6.3,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.18,
+     "end": 0.8600000000000001,
+     "avg_logprob": -0.6102372195039477,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6666666666666666
+    },
+    {
+     "start": 3.18,
+     "end": 3.8400000000000003,
+     "avg_logprob": -0.47945302035659554,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6363636363636364
+    }
+   ]
+  },
+  "fleurs_en_1676": {
+   "ok": true,
+   "texto": " As with all South African national parks,  There are daily conservation and entry fees  for the park.",
+   "ms": 1055,
+   "tentativas": 1,
+   "usd": 0.0000313686,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 9.42,
+    "cost": 0.0000313686
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 9.42,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.84,
+     "end": 4.04,
+     "avg_logprob": -0.10305615339893848,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.875
+    },
+    {
+     "start": 4.23,
+     "end": 7.390000000000001,
+     "avg_logprob": -0.13609110566580462,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.88
+    },
+    {
+     "start": 7.47,
+     "end": 8.35,
+     "avg_logprob": -0.25027078778172535,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6363636363636364
+    }
+   ]
+  },
+  "fleurs_en_1792": {
+   "ok": true,
+   "texto": " called a  You can make an indicator.  red cabbage.",
+   "ms": 853,
+   "tentativas": 1,
+   "usd": 0.0000195804,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 5.88,
+    "cost": 0.0000195804
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 5.88,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.72,
+     "end": 1.14,
+     "avg_logprob": -0.24187078326940536,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 2.31,
+     "end": 3.45,
+     "avg_logprob": -0.19917901506414637,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8181818181818182
+    },
+    {
+     "start": 3.6,
+     "end": 4.22,
+     "avg_logprob": -0.494575322419405,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6190476190476191
+    }
+   ]
+  },
+  "fleurs_en_1952": {
+   "ok": true,
+   "texto": " Drive at Hatlighter.  or over?  Mountain Pass.  No ice.",
+   "ms": 1898,
+   "tentativas": 1,
+   "usd": 0.0000285714,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 8.58,
+    "cost": 0.0000285714
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 8.58,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 1.17,
+     "end": 1.99,
+     "avg_logprob": -0.6275524720549583,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7241379310344828
+    },
+    {
+     "start": 2.31,
+     "end": 2.73,
+     "avg_logprob": -0.4701962677761912,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    },
+    {
+     "start": 3.45,
+     "end": 4.07,
+     "avg_logprob": -0.9566289186477661,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6521739130434783
+    },
+    {
+     "start": 5.67,
+     "end": 6.23,
+     "avg_logprob": -0.3817586362361908,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5
+    }
+   ]
+  },
+  "fleurs_en_1760": {
+   "ok": true,
+   "texto": " apex predator of  it feared nothing  except other",
+   "ms": 1056,
+   "tentativas": 1,
+   "usd": 0.000022977,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 6.9,
+    "cost": 0.000022977
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 6.9,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 2.34,
+     "end": 3.36,
+     "avg_logprob": -0.23050237633287907,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.68
+    },
+    {
+     "start": 4.08,
+     "end": 4.8,
+     "avg_logprob": -0.4248889096081257,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6923076923076923
+    },
+    {
+     "start": 5.07,
+     "end": 5.59,
+     "avg_logprob": -0.8164218291640282,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6190476190476191
+    }
+   ]
+  },
+  "fleurs_en_1661": {
+   "ok": true,
+   "texto": " He did not set a figure for  cuts saying they will  on China's  economic output.",
+   "ms": 866,
+   "tentativas": 1,
+   "usd": 0.0000211788,
+   "usdReservado": 0.000111111,
+   "uso": {
+    "seconds": 6.36,
+    "cost": 0.0000211788
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 6.36,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.78,
+     "end": 1.96,
+     "avg_logprob": -0.11866119493626887,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7777777777777778
+    },
+    {
+     "start": 2.07,
+     "end": 2.9099999999999997,
+     "avg_logprob": -0.20757542938614884,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7333333333333333
+    },
+    {
+     "start": 3.48,
+     "end": 4.06,
+     "avg_logprob": -0.3810886688530445,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5789473684210527
+    },
+    {
+     "start": 4.23,
+     "end": 5.07,
+     "avg_logprob": -0.4858181357383728,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.68
+    }
+   ]
+  },
+  "fleurs_en_1969": {
+   "ok": true,
+   "texto": " It states that the most effective place for the main subject is at the intersection of lines dividing the image into vertically and horizontally. See an example.",
+   "ms": 926,
+   "tentativas": 1,
+   "usd": 0.000042624,
+   "usdReservado": 0.00014222208,
+   "uso": {
+    "seconds": 12.8,
+    "cost": 0.000042624
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 12.8,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.03,
+     "end": 11.87,
+     "avg_logprob": -0.21232004678477684,
+     "no_speech_prob": 0,
+     "compression_ratio": 1.35
+    }
+   ]
+  },
+  "fleurs_en_1797": {
+   "ok": true,
+   "texto": " Everyone participated.  and uses.  transportation.  almost everyone complains about  interpretation system.",
+   "ms": 912,
+   "tentativas": 1,
+   "usd": 0.0000387612,
+   "usdReservado": 0.000129333204,
+   "uso": {
+    "seconds": 11.64,
+    "cost": 0.0000387612
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 11.64,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.87,
+     "end": 2.13,
+     "avg_logprob": -0.27565965093672273,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7419354838709677
+    },
+    {
+     "start": 3.36,
+     "end": 3.94,
+     "avg_logprob": -0.3401829913258553,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5555555555555556
+    },
+    {
+     "start": 3.96,
+     "end": 4.86,
+     "avg_logprob": -0.15980351623147726,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.6666666666666666
+    },
+    {
+     "start": 6.36,
+     "end": 8.38,
+     "avg_logprob": -0.19063680244809283,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8
+    },
+    {
+     "start": 8.97,
+     "end": 10.39,
+     "avg_logprob": -0.2596566013991833,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7419354838709677
+    }
+   ]
+  },
+  "fleurs_en_1798": {
+   "ok": true,
+   "texto": " In its early days, the show was featured solely  at the long-running internet radio site, TokiNet Radio.  a site focused on talk radio.",
+   "ms": 901,
+   "tentativas": 1,
+   "usd": 0.0000438894,
+   "usdReservado": 0.000146444298,
+   "uso": {
+    "seconds": 13.18,
+    "cost": 0.0000438894
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 13.18,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.15,
+     "end": 4.3500000000000005,
+     "avg_logprob": -0.08824463798858535,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8727272727272727
+    },
+    {
+     "start": 4.56,
+     "end": 9.18,
+     "avg_logprob": -0.196660009371044,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9333333333333333
+    },
+    {
+     "start": 9.21,
+     "end": 11.350000000000001,
+     "avg_logprob": -0.19128105447938046,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.7894736842105263
+    }
+   ]
+  },
+  "fleurs_en_1876": {
+   "ok": true,
+   "texto": " the Northern Marianas Emergency Management Office,  there were no damages  reported",
+   "ms": 959,
+   "tentativas": 1,
+   "usd": 0.000035964,
+   "usdReservado": 0.00011999988,
+   "uso": {
+    "seconds": 10.8,
+    "cost": 0.000035964
+   },
+   "idiomaDevolvido": "en",
+   "duracaoDevolvidaS": 10.8,
+   "provedorReal": null,
+   "camposDaResposta": [
+    "text",
+    "usage",
+    "task",
+    "language",
+    "duration",
+    "segments"
+   ],
+   "segmentos": [
+    {
+     "start": 0.75,
+     "end": 4.27,
+     "avg_logprob": -0.14336665514856578,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.9107142857142857
+    },
+    {
+     "start": 4.86,
+     "end": 5.880000000000001,
+     "avg_logprob": -0.21572505931059519,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.8148148148148148
+    },
+    {
+     "start": 6.03,
+     "end": 6.69,
+     "avg_logprob": -0.3804781436920166,
+     "no_speech_prob": 0,
+     "compression_ratio": 0.5294117647058824
+    }
+   ]
+  }
+ },
+ "sistema": "openrouter:openai/whisper-large-v3-turbo",
+ "conjunto": "fleurs_en",
+ "modelo": "openai/whisper-large-v3-turbo",
+ "provider": {
+  "zdr": true,
+  "data_collection": "deny"
+ },
+ "temperatura": 0,
+ "geradoEm": "2026-10-10T02:12:55.032Z"
+}

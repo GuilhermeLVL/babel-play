@@ -1,0 +1,1140 @@
+{
+ "geradoEm": "2026-10-10T02:43:34.241Z",
+ "retratosDaChave": [
+  {
+   "rotulo": "antes",
+   "em": "2026-10-10T02:07:56.291Z",
+   "limit": 1,
+   "usage": 0,
+   "limit_remaining": 1,
+   "is_free_tier": false
+  },
+  {
+   "rotulo": "meio",
+   "em": "2026-10-10T02:22:11.022Z",
+   "limit": 1,
+   "usage": 0.018916135,
+   "limit_remaining": 0.981083865,
+   "is_free_tier": false
+  },
+  {
+   "rotulo": "depois",
+   "em": "2026-10-10T02:39:47.350Z",
+   "limit": 1,
+   "usage": 0.029074403,
+   "limit_remaining": 0.970925597,
+   "is_free_tier": false
+  }
+ ],
+ "livroCaixa": {
+  "totalUsd": 0.0290745734067061,
+  "porSistema": {
+   "openrouter:openai/whisper-large-v3-turbo": 0.014220311471063143,
+   "openrouter:openai/whisper-large-v3-turbo@groq": 0.000110223,
+   "openrouter:openai/whisper-large-v3-turbo+ganho": 0.004524847935642891,
+   "openrouter:openai/gpt-oss-120b": 0.006042421999999996,
+   "openrouter:openai/gpt-oss-20b": 0.004176768999999999
+  }
+ },
+ "transcricao": {
+  "resultados": [
+   {
+    "sistema": "openrouter:openai/whisper-large-v3-turbo",
+    "conjunto": "fleurs_en",
+    "idioma": "en",
+    "n": 100,
+    "falhas": 0,
+    "segundaTentativa": 0,
+    "vazias": 3,
+    "filtroMudouOTexto": 78,
+    "wer": {
+     "valor": 0.27770419426048565,
+     "ic95": [
+      0.22073224816396822,
+      0.33896273579081276
+     ]
+    },
+    "latenciaMs": {
+     "p50": 981,
+     "p90": 1573,
+     "media": 1087.95
+    },
+    "fatorDeTempoReal": 0.10765386898871959,
+    "audioS": 1010.5999999999998,
+    "segundosFaturados": 1028.48000256,
+    "usdTotal": 0.004232517761776624,
+    "usdPorHoraDeAudio": 0.01507724514387082,
+    "usdPorSegundoObservado": {
+     "3.330e-6": 91,
+     "1.111e-5": 9
+    }
+   },
+   {
+    "sistema": "openrouter:openai/whisper-large-v3-turbo",
+    "conjunto": "fleurs_es",
+    "idioma": "es",
+    "n": 100,
+    "falhas": 0,
+    "segundaTentativa": 0,
+    "vazias": 0,
+    "filtroMudouOTexto": 62,
+    "wer": {
+     "valor": 0.055725190839694655,
+     "ic95": [
+      0.043776105895957075,
+      0.06925288556352549
+     ]
+    },
+    "latenciaMs": {
+     "p50": 1207,
+     "p90": 2142,
+     "media": 1384.49
+    },
+    "fatorDeTempoReal": 0.11241758420215016,
+    "audioS": 1231.5599999999997,
+    "segundosFaturados": 1232.1990015359995,
+    "usdTotal": 0.004857990464843366,
+    "usdPorHoraDeAudio": 0.014200498289515832,
+    "usdPorSegundoObservado": {
+     "3.330e-6": 92,
+     "1.111e-5": 8
+    }
+   },
+   {
+    "sistema": "openrouter:openai/whisper-large-v3-turbo",
+    "conjunto": "fleurs_pt",
+    "idioma": "pt",
+    "n": 100,
+    "falhas": 0,
+    "segundaTentativa": 0,
+    "vazias": 0,
+    "filtroMudouOTexto": 76,
+    "wer": {
+     "valor": 0.05168820341809087,
+     "ic95": [
+      0.039639851139043135,
+      0.06370008434400722
+     ]
+    },
+    "latenciaMs": {
+     "p50": 1192,
+     "p90": 2097,
+     "media": 1337.87
+    },
+    "fatorDeTempoReal": 0.10605390408244156,
+    "audioS": 1261.4999999999998,
+    "segundosFaturados": 1268.6799999999998,
+    "usdTotal": 0.005129803244443153,
+    "usdPorHoraDeAudio": 0.014639153135152877,
+    "usdPorSegundoObservado": {
+     "3.330e-6": 91,
+     "1.111e-5": 9
+    }
+   },
+   {
+    "sistema": "openrouter:openai/whisper-large-v3-turbo+ganho",
+    "conjunto": "fleurs_en",
+    "idioma": "en",
+    "n": 100,
+    "falhas": 0,
+    "segundaTentativa": 0,
+    "vazias": 0,
+    "filtroMudouOTexto": 50,
+    "wer": {
+     "valor": 0.06136865342163356,
+     "ic95": [
+      0.048427045601936065,
+      0.0746879739635996
+     ]
+    },
+    "latenciaMs": {
+     "p50": 1250,
+     "p90": 2250,
+     "media": 1416.15
+    },
+    "fatorDeTempoReal": 0.14012962596477344,
+    "audioS": 1010.5999999999998,
+    "segundosFaturados": 1032.099998208,
+    "usdTotal": 0.004524847935642891,
+    "usdPorHoraDeAudio": 0.016118595456475766,
+    "usdPorSegundoObservado": {
+     "3.330e-6": 88,
+     "1.111e-5": 12
+    }
+   }
+  ],
+  "comparacoes": [
+   {
+    "conjunto": "fleurs_en",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo",
+    "contra": "whisper-base:hybrid:webgpu",
+    "origemDoPar": "aparelho, 09/10/2026",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.21545253863134659,
+     "ic95": [
+      0.18430532551406248,
+      0.24490296118447377
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 602,
+     "p90": 806
+    },
+    "diferencaWer": {
+     "valor": 0.06225165562913906,
+     "ic95": [
+      0.0012846562779751003,
+      0.13263158139916223
+     ],
+     "significativo": true
+    },
+    "nuvemErraMenosEm": 50,
+    "aparelhoErraMenosEm": 42
+   },
+   {
+    "conjunto": "fleurs_en",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo",
+    "contra": "whisper-base:q8:wasm",
+    "origemDoPar": "aparelho, 09/10/2026",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.22649006622516557,
+     "ic95": [
+      0.1935146826139476,
+      0.2580430351562542
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 1215,
+     "p90": 1408
+    },
+    "diferencaWer": {
+     "valor": 0.05121412803532008,
+     "ic95": [
+      -0.0112933076772092,
+      0.12230447101886015
+     ],
+     "significativo": false
+    },
+    "nuvemErraMenosEm": 49,
+    "aparelhoErraMenosEm": 43
+   },
+   {
+    "conjunto": "fleurs_en",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo",
+    "contra": "parakeet-v3:int8:wasm",
+    "origemDoPar": "aparelho, 09/10/2026",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.0706401766004415,
+     "ic95": [
+      0.055722525922012905,
+      0.08542620726110181
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 905,
+     "p90": 1355
+    },
+    "diferencaWer": {
+     "valor": 0.20706401766004415,
+     "ic95": [
+      0.15258605574761333,
+      0.26795145057571884
+     ],
+     "significativo": true
+    },
+    "nuvemErraMenosEm": 11,
+    "aparelhoErraMenosEm": 63
+   },
+   {
+    "conjunto": "fleurs_en",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo",
+    "contra": "parakeet-v3:fp16:webgpu",
+    "origemDoPar": "aparelho, 09/10/2026",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.0631346578366446,
+     "ic95": [
+      0.05025410197610491,
+      0.07692563081009297
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 157,
+     "p90": 210
+    },
+    "diferencaWer": {
+     "valor": 0.21456953642384105,
+     "ic95": [
+      0.15809751982343295,
+      0.27459316818571317
+     ],
+     "significativo": true
+    },
+    "nuvemErraMenosEm": 11,
+    "aparelhoErraMenosEm": 67
+   },
+   {
+    "conjunto": "fleurs_en",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo",
+    "contra": "moonshine-base:q8:wasm",
+    "origemDoPar": "aparelho, 09/10/2026",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.13554083885209714,
+     "ic95": [
+      0.10473179396979904,
+      0.1721351113175962
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 637,
+     "p90": 1068
+    },
+    "diferencaWer": {
+     "valor": 0.1421633554083885,
+     "ic95": [
+      0.08158764696162209,
+      0.20979816318526268
+     ],
+     "significativo": true
+    },
+    "nuvemErraMenosEm": 22,
+    "aparelhoErraMenosEm": 57
+   },
+   {
+    "conjunto": "fleurs_en",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo",
+    "contra": "groq-direto:whisper-large-v3-turbo (setembro)",
+    "origemDoPar": "nuvem direta na Groq, 25/09/2026 — não é desta rodada",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.04944812362030905,
+     "ic95": [
+      0.03832220735966969,
+      0.06071493346178468
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 365,
+     "p90": 547
+    },
+    "diferencaWer": {
+     "valor": 0.2282560706401766,
+     "ic95": [
+      0.17289756641303505,
+      0.28583701706568765
+     ],
+     "significativo": true
+    },
+    "nuvemErraMenosEm": 1,
+    "aparelhoErraMenosEm": 63
+   },
+   {
+    "conjunto": "fleurs_es",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo",
+    "contra": "whisper-base:hybrid:webgpu",
+    "origemDoPar": "aparelho, 09/10/2026",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.15458015267175573,
+     "ic95": [
+      0.1360754111771291,
+      0.17425105362555904
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 845,
+     "p90": 1255
+    },
+    "diferencaWer": {
+     "valor": -0.09885496183206108,
+     "ic95": [
+      -0.11708780107658782,
+      -0.08088619512208405
+     ],
+     "significativo": true
+    },
+    "nuvemErraMenosEm": 82,
+    "aparelhoErraMenosEm": 4
+   },
+   {
+    "conjunto": "fleurs_es",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo",
+    "contra": "whisper-base:q8:wasm",
+    "origemDoPar": "aparelho, 09/10/2026",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.15954198473282444,
+     "ic95": [
+      0.13907920443480182,
+      0.18066169276605626
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 1997,
+     "p90": 2449
+    },
+    "diferencaWer": {
+     "valor": -0.10381679389312978,
+     "ic95": [
+      -0.12205334649027921,
+      -0.08654435176290186
+     ],
+     "significativo": true
+    },
+    "nuvemErraMenosEm": 84,
+    "aparelhoErraMenosEm": 4
+   },
+   {
+    "conjunto": "fleurs_es",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo",
+    "contra": "whisper-small:hybrid:webgpu",
+    "origemDoPar": "aparelho, 09/10/2026",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.09312977099236641,
+     "ic95": [
+      0.07921126652394712,
+      0.10769848275405985
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 1263,
+     "p90": 1835
+    },
+    "diferencaWer": {
+     "valor": -0.03740458015267176,
+     "ic95": [
+      -0.04922626175093723,
+      -0.025394110042678292
+     ],
+     "significativo": true
+    },
+    "nuvemErraMenosEm": 57,
+    "aparelhoErraMenosEm": 15
+   },
+   {
+    "conjunto": "fleurs_es",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo",
+    "contra": "parakeet-v3:int8:wasm",
+    "origemDoPar": "aparelho, 09/10/2026",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.04541984732824427,
+     "ic95": [
+      0.03559032396497922,
+      0.05556036139946174
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 1025,
+     "p90": 1605
+    },
+    "diferencaWer": {
+     "valor": 0.010305343511450384,
+     "ic95": [
+      0,
+      0.01949299265702159
+     ],
+     "significativo": false
+    },
+    "nuvemErraMenosEm": 15,
+    "aparelhoErraMenosEm": 36
+   },
+   {
+    "conjunto": "fleurs_es",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo",
+    "contra": "parakeet-v3:fp16:webgpu",
+    "origemDoPar": "aparelho, 09/10/2026",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.04198473282442748,
+     "ic95": [
+      0.032256518997514805,
+      0.053010350741942616
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 182,
+     "p90": 291
+    },
+    "diferencaWer": {
+     "valor": 0.013740458015267173,
+     "ic95": [
+      0.005967755653155647,
+      0.02098483570230037
+     ],
+     "significativo": true
+    },
+    "nuvemErraMenosEm": 11,
+    "aparelhoErraMenosEm": 38
+   },
+   {
+    "conjunto": "fleurs_pt",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo",
+    "contra": "whisper-base:hybrid:webgpu",
+    "origemDoPar": "aparelho, 09/10/2026",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.18215923301375572,
+     "ic95": [
+      0.1579889931100384,
+      0.20559476693231168
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 839,
+     "p90": 1171
+    },
+    "diferencaWer": {
+     "valor": -0.13047102959566487,
+     "ic95": [
+      -0.1503029286920297,
+      -0.11063317317529318
+     ],
+     "significativo": true
+    },
+    "nuvemErraMenosEm": 85,
+    "aparelhoErraMenosEm": 2
+   },
+   {
+    "conjunto": "fleurs_pt",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo",
+    "contra": "whisper-base:q8:wasm",
+    "origemDoPar": "aparelho, 09/10/2026",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.18799499791579824,
+     "ic95": [
+      0.16414979928664164,
+      0.21139286694024711
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 1742,
+     "p90": 2213
+    },
+    "diferencaWer": {
+     "valor": -0.13630679449770738,
+     "ic95": [
+      -0.15685614940691894,
+      -0.1154160197608539
+     ],
+     "significativo": true
+    },
+    "nuvemErraMenosEm": 84,
+    "aparelhoErraMenosEm": 3
+   },
+   {
+    "conjunto": "fleurs_pt",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo",
+    "contra": "whisper-small:hybrid:webgpu",
+    "origemDoPar": "aparelho, 09/10/2026",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.10796165068778658,
+     "ic95": [
+      0.09098296461466586,
+      0.12535870093310242
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 1316,
+     "p90": 1853
+    },
+    "diferencaWer": {
+     "valor": -0.056273447269695714,
+     "ic95": [
+      -0.06897964796202843,
+      -0.043728200427139
+     ],
+     "significativo": true
+    },
+    "nuvemErraMenosEm": 62,
+    "aparelhoErraMenosEm": 6
+   },
+   {
+    "conjunto": "fleurs_pt",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo",
+    "contra": "parakeet-v3:int8:wasm",
+    "origemDoPar": "aparelho, 09/10/2026",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.05752396832013339,
+     "ic95": [
+      0.045602890833016364,
+      0.07132083963464099
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 1077,
+     "p90": 1558
+    },
+    "diferencaWer": {
+     "valor": -0.005835764902042517,
+     "ic95": [
+      -0.01772101784998222,
+      0.006593525983596645
+     ],
+     "significativo": false
+    },
+    "nuvemErraMenosEm": 31,
+    "aparelhoErraMenosEm": 22
+   },
+   {
+    "conjunto": "fleurs_pt",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo",
+    "contra": "parakeet-v3:fp16:webgpu",
+    "origemDoPar": "aparelho, 09/10/2026",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.05043768236765319,
+     "ic95": [
+      0.03781486985037917,
+      0.06391556455086948
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 189,
+     "p90": 264
+    },
+    "diferencaWer": {
+     "valor": 0.0012505210504376793,
+     "ic95": [
+      -0.00936197098521773,
+      0.012036931314771725
+     ],
+     "significativo": false
+    },
+    "nuvemErraMenosEm": 20,
+    "aparelhoErraMenosEm": 21
+   },
+   {
+    "conjunto": "fleurs_pt",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo",
+    "contra": "groq-direto:whisper-large-v3-turbo (setembro)",
+    "origemDoPar": "nuvem direta na Groq, 25/09/2026 — não é desta rodada",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.04085035431429762,
+     "ic95": [
+      0.030619501621660015,
+      0.05123834386867504
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 363,
+     "p90": 517
+    },
+    "diferencaWer": {
+     "valor": 0.010837849103793248,
+     "ic95": [
+      0.0036954289745471593,
+      0.01793736691819333
+     ],
+     "significativo": true
+    },
+    "nuvemErraMenosEm": 7,
+    "aparelhoErraMenosEm": 27
+   },
+   {
+    "conjunto": "fleurs_en",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo+ganho",
+    "contra": "whisper-base:hybrid:webgpu",
+    "origemDoPar": "aparelho, 09/10/2026",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.21545253863134659,
+     "ic95": [
+      0.18430532551406248,
+      0.24490296118447377
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 602,
+     "p90": 806
+    },
+    "diferencaWer": {
+     "valor": -0.15408388520971303,
+     "ic95": [
+      -0.184015585801433,
+      -0.12218086313244629
+     ],
+     "significativo": true
+    },
+    "nuvemErraMenosEm": 78,
+    "aparelhoErraMenosEm": 5
+   },
+   {
+    "conjunto": "fleurs_en",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo+ganho",
+    "contra": "whisper-base:q8:wasm",
+    "origemDoPar": "aparelho, 09/10/2026",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.22649006622516557,
+     "ic95": [
+      0.1935146826139476,
+      0.2580430351562542
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 1215,
+     "p90": 1408
+    },
+    "diferencaWer": {
+     "valor": -0.16512141280353201,
+     "ic95": [
+      -0.19543900610735443,
+      -0.13258530531968032
+     ],
+     "significativo": true
+    },
+    "nuvemErraMenosEm": 80,
+    "aparelhoErraMenosEm": 4
+   },
+   {
+    "conjunto": "fleurs_en",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo+ganho",
+    "contra": "parakeet-v3:int8:wasm",
+    "origemDoPar": "aparelho, 09/10/2026",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.0706401766004415,
+     "ic95": [
+      0.055722525922012905,
+      0.08542620726110181
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 905,
+     "p90": 1355
+    },
+    "diferencaWer": {
+     "valor": -0.009271523178807944,
+     "ic95": [
+      -0.021836435623200336,
+      0.002862073433511893
+     ],
+     "significativo": false
+    },
+    "nuvemErraMenosEm": 28,
+    "aparelhoErraMenosEm": 19
+   },
+   {
+    "conjunto": "fleurs_en",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo+ganho",
+    "contra": "parakeet-v3:fp16:webgpu",
+    "origemDoPar": "aparelho, 09/10/2026",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.0631346578366446,
+     "ic95": [
+      0.05025410197610491,
+      0.07692563081009297
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 157,
+     "p90": 210
+    },
+    "diferencaWer": {
+     "valor": -0.001766004415011041,
+     "ic95": [
+      -0.014269070864892394,
+      0.011008580928285163
+     ],
+     "significativo": false
+    },
+    "nuvemErraMenosEm": 27,
+    "aparelhoErraMenosEm": 20
+   },
+   {
+    "conjunto": "fleurs_en",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo+ganho",
+    "contra": "moonshine-base:q8:wasm",
+    "origemDoPar": "aparelho, 09/10/2026",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.13554083885209714,
+     "ic95": [
+      0.10473179396979904,
+      0.1721351113175962
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 637,
+     "p90": 1068
+    },
+    "diferencaWer": {
+     "valor": -0.07417218543046358,
+     "ic95": [
+      -0.10470704650829982,
+      -0.045452019079186716
+     ],
+     "significativo": true
+    },
+    "nuvemErraMenosEm": 50,
+    "aparelhoErraMenosEm": 11
+   },
+   {
+    "conjunto": "fleurs_en",
+    "sistema": "openrouter:openai/whisper-large-v3-turbo+ganho",
+    "contra": "groq-direto:whisper-large-v3-turbo (setembro)",
+    "origemDoPar": "nuvem direta na Groq, 25/09/2026 — não é desta rodada",
+    "n": 100,
+    "werDoAparelho": {
+     "valor": 0.04944812362030905,
+     "ic95": [
+      0.03832220735966969,
+      0.06071493346178468
+     ]
+    },
+    "latenciaDoAparelhoMs": {
+     "p50": 365,
+     "p90": 547
+    },
+    "diferencaWer": {
+     "valor": 0.011920529801324506,
+     "ic95": [
+      0.0025355526826115063,
+      0.02169003856042417
+     ],
+     "significativo": true
+    },
+    "nuvemErraMenosEm": 7,
+    "aparelhoErraMenosEm": 15
+   }
+  ]
+ },
+ "traducao": {
+  "resultados": [
+   {
+    "sistema": "local:opus-mt",
+    "direcao": "en-pt",
+    "origemDosDados": "medido nesta rodada",
+    "n": 100,
+    "falhas": 0,
+    "vazias": 0,
+    "segundaTentativa": 0,
+    "chrf": {
+     "valor": 63.44972503641795,
+     "ic95": [
+      60.67232976410038,
+      66.1481722772288
+     ]
+    },
+    "latenciaMs": {
+     "p50": 628,
+     "p90": 1015,
+     "media": 683.28
+    },
+    "acimaDe12s": 0,
+    "usdTotal": 0,
+    "usdPorFrase": 0,
+    "usdPorMilFrases": 0,
+    "usdPorHoraDeFala": 0,
+    "tokens": {
+     "entrada": 0,
+     "saida": 0,
+     "raciocinio": 0
+    },
+    "provedoresQueAtenderam": {}
+   },
+   {
+    "sistema": "local:opus-mt",
+    "direcao": "pt-en",
+    "origemDosDados": "medido nesta rodada",
+    "n": 100,
+    "falhas": 0,
+    "vazias": 0,
+    "segundaTentativa": 0,
+    "chrf": {
+     "valor": 63.47016018704678,
+     "ic95": [
+      60.78869988308546,
+      66.3594778112064
+     ]
+    },
+    "latenciaMs": {
+     "p50": 506,
+     "p90": 720,
+     "media": 516.61
+    },
+    "acimaDe12s": 0,
+    "usdTotal": 0,
+    "usdPorFrase": 0,
+    "usdPorMilFrases": 0,
+    "usdPorHoraDeFala": 0,
+    "tokens": {
+     "entrada": 0,
+     "saida": 0,
+     "raciocinio": 0
+    },
+    "provedoresQueAtenderam": {}
+   },
+   {
+    "sistema": "openrouter:openai/gpt-oss-120b",
+    "direcao": "en-pt",
+    "origemDosDados": "medido nesta rodada",
+    "n": 100,
+    "falhas": 0,
+    "vazias": 0,
+    "segundaTentativa": 0,
+    "chrf": {
+     "valor": 65.34856795057614,
+     "ic95": [
+      62.752056966787734,
+      68.13417178722656
+     ]
+    },
+    "latenciaMs": {
+     "p50": 1341,
+     "p90": 2819,
+     "media": 1590.32
+    },
+    "acimaDe12s": 0,
+    "usdTotal": 0.002752393999999999,
+    "usdPorFrase": 0.000027523939999999992,
+    "usdPorMilFrases": 0.027523939999999993,
+    "usdPorHoraDeFala": 0.011068608579088469,
+    "tokens": {
+     "entrada": 32436,
+     "saida": 6221,
+     "raciocinio": 1993
+    },
+    "provedoresQueAtenderam": {
+     "CoreWeave": 17,
+     "DekaLLM": 21,
+     "AkashML": 24,
+     "Crusoe": 9,
+     "Parasail": 4,
+     "Mara": 1,
+     "Novita": 4,
+     "DeepInfra": 8,
+     "Mancer 2": 6,
+     "DigitalOcean": 4,
+     "BaseTen": 2
+    }
+   },
+   {
+    "sistema": "openrouter:openai/gpt-oss-120b",
+    "direcao": "pt-en",
+    "origemDosDados": "medido nesta rodada",
+    "n": 100,
+    "falhas": 0,
+    "vazias": 0,
+    "segundaTentativa": 0,
+    "chrf": {
+     "valor": 64.62077257166844,
+     "ic95": [
+      62.15069305534978,
+      67.41218653895598
+     ]
+    },
+    "latenciaMs": {
+     "p50": 1462,
+     "p90": 2537,
+     "media": 1702.9
+    },
+    "acimaDe12s": 1,
+    "usdTotal": 0.003290028000000001,
+    "usdPorFrase": 0.000032900280000000006,
+    "usdPorMilFrases": 0.032900280000000004,
+    "usdPorHoraDeFala": 0.012451746005046262,
+    "tokens": {
+     "entrada": 32977,
+     "saida": 6344,
+     "raciocinio": 2949
+    },
+    "provedoresQueAtenderam": {
+     "CoreWeave": 21,
+     "AkashML": 11,
+     "DeepInfra": 16,
+     "Crusoe": 7,
+     "SambaNova": 2,
+     "Novita": 6,
+     "Mancer 2": 4,
+     "DigitalOcean": 4,
+     "Together": 3,
+     "DekaLLM": 19,
+     "Amazon Bedrock": 1,
+     "BaseTen": 2,
+     "Phala": 1,
+     "Groq": 1,
+     "Cerebras": 1,
+     "Parasail": 1
+    }
+   },
+   {
+    "sistema": "openrouter:openai/gpt-oss-20b",
+    "direcao": "en-pt",
+    "origemDosDados": "medido nesta rodada",
+    "n": 100,
+    "falhas": 1,
+    "vazias": 1,
+    "segundaTentativa": 0,
+    "chrf": {
+     "valor": 64.49097497557726,
+     "ic95": [
+      61.56628923014198,
+      67.52454921434418
+     ]
+    },
+    "latenciaMs": {
+     "p50": 1810,
+     "p90": 5977,
+     "media": 2713.969696969697
+    },
+    "acimaDe12s": 2,
+    "usdTotal": 0.0022352900000000005,
+    "usdPorFrase": 0.000022352900000000004,
+    "usdPorMilFrases": 0.022352900000000005,
+    "usdPorHoraDeFala": 0.008989101876675605,
+    "tokens": {
+     "entrada": 31940,
+     "saida": 7813,
+     "raciocinio": 4263
+    },
+    "provedoresQueAtenderam": {
+     "CoreWeave": 28,
+     "AkashML": 7,
+     "Parasail": 26,
+     "SiliconFlow": 14,
+     "DekaLLM": 8,
+     "DeepInfra": 11,
+     "Amazon Bedrock": 5
+    }
+   },
+   {
+    "sistema": "openrouter:openai/gpt-oss-20b",
+    "direcao": "pt-en",
+    "origemDosDados": "medido nesta rodada",
+    "n": 100,
+    "falhas": 0,
+    "vazias": 0,
+    "segundaTentativa": 0,
+    "chrf": {
+     "valor": 64.94365132469083,
+     "ic95": [
+      62.45942484552698,
+      67.48660314107256
+     ]
+    },
+    "latenciaMs": {
+     "p50": 2009,
+     "p90": 7297,
+     "media": 3111.33
+    },
+    "acimaDe12s": 5,
+    "usdTotal": 0.001941478999999999,
+    "usdPorFrase": 0.00001941478999999999,
+    "usdPorMilFrases": 0.019414789999999987,
+    "usdPorHoraDeFala": 0.0073479020185029395,
+    "tokens": {
+     "entrada": 32938,
+     "saida": 6298,
+     "raciocinio": 2811
+    },
+    "provedoresQueAtenderam": {
+     "DeepInfra": 10,
+     "AkashML": 5,
+     "Parasail": 24,
+     "SiliconFlow": 12,
+     "DekaLLM": 21,
+     "CoreWeave": 25,
+     "Amazon Bedrock": 3
+    }
+   }
+  ],
+  "comparacoes": [
+   {
+    "direcao": "en-pt",
+    "sistema": "openrouter:openai/gpt-oss-120b",
+    "contra": "local:opus-mt",
+    "n": 100,
+    "diferencaChrf": {
+     "valor": 1.8988429141581875,
+     "ic95": [
+      -0.712311038065776,
+      4.38187211651144
+     ],
+     "significativo": false
+    }
+   },
+   {
+    "direcao": "en-pt",
+    "sistema": "openrouter:openai/gpt-oss-20b",
+    "contra": "local:opus-mt",
+    "n": 100,
+    "diferencaChrf": {
+     "valor": 1.0412499391593073,
+     "ic95": [
+      -1.850195679796116,
+      3.582540494101369
+     ],
+     "significativo": false
+    }
+   },
+   {
+    "direcao": "en-pt",
+    "sistema": "openrouter:openai/gpt-oss-20b",
+    "contra": "openrouter:openai/gpt-oss-120b",
+    "n": 100,
+    "diferencaChrf": {
+     "valor": -0.8575929749988802,
+     "ic95": [
+      -3.5148377257629897,
+      1.696372207646145
+     ],
+     "significativo": false
+    }
+   },
+   {
+    "direcao": "pt-en",
+    "sistema": "openrouter:openai/gpt-oss-120b",
+    "contra": "local:opus-mt",
+    "n": 100,
+    "diferencaChrf": {
+     "valor": 1.1506123846216596,
+     "ic95": [
+      -0.9311024201095804,
+      3.404501954525363
+     ],
+     "significativo": false
+    }
+   },
+   {
+    "direcao": "pt-en",
+    "sistema": "openrouter:openai/gpt-oss-20b",
+    "contra": "local:opus-mt",
+    "n": 100,
+    "diferencaChrf": {
+     "valor": 1.4734911376440536,
+     "ic95": [
+      -0.7194690748120797,
+      3.7582384364941173
+     ],
+     "significativo": false
+    }
+   },
+   {
+    "direcao": "pt-en",
+    "sistema": "openrouter:openai/gpt-oss-20b",
+    "contra": "openrouter:openai/gpt-oss-120b",
+    "n": 100,
+    "diferencaChrf": {
+     "valor": 0.322878753022394,
+     "ic95": [
+      -1.4440048307849707,
+      2.0751200019119778
+     ],
+     "significativo": false
+    }
+   }
+  ]
+ }
+}

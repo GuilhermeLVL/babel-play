@@ -1,0 +1,10 @@
+{
+ "totalUsd": 0.0290745734067061,
+ "porSistema": {
+  "openrouter:openai/whisper-large-v3-turbo": 0.014220311471063143,
+  "openrouter:openai/whisper-large-v3-turbo@groq": 0.000110223,
+  "openrouter:openai/whisper-large-v3-turbo+ganho": 0.004524847935642891,
+  "openrouter:openai/gpt-oss-120b": 0.006042421999999996,
+  "openrouter:openai/gpt-oss-20b": 0.004176768999999999
+ }
+}

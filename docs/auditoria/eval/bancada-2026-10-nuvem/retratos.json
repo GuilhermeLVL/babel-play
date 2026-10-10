@@ -1,0 +1,26 @@
+[
+ {
+  "rotulo": "antes",
+  "em": "2026-10-10T02:07:56.291Z",
+  "limit": 1,
+  "usage": 0,
+  "limit_remaining": 1,
+  "is_free_tier": false
+ },
+ {
+  "rotulo": "meio",
+  "em": "2026-10-10T02:22:11.022Z",
+  "limit": 1,
+  "usage": 0.018916135,
+  "limit_remaining": 0.981083865,
+  "is_free_tier": false
+ },
+ {
+  "rotulo": "depois",
+  "em": "2026-10-10T02:39:47.350Z",
+  "limit": 1,
+  "usage": 0.029074403,
+  "limit_remaining": 0.970925597,
+  "is_free_tier": false
+ }
+]

@@ -305,7 +305,18 @@ export async function aplicarEvento(
        */
       const plano: PlanoDeAssinatura = planoPago ?? planoDaIntencao
       const ciclo: CicloDeCobranca = pago?.ciclo ?? cicloDaIntencao
-      if (pago && (pago.plano !== planoDaIntencao || pago.ciclo !== cicloDaIntencao)) {
+      /* A TROCA DE PLANO (etapa 8, `POST /api/billing/trocar`): a pessoa pediu outro plano, a assinatura
+         passou ao valor novo no Asaas, e ESTE é o pagamento dele. Não é divergência: é a troca chegando,
+         no ciclo combinado. Quem decide continua sendo o VALOR pago — a intenção gravada só explica o
+         que aconteceu e é encerrada. Pago o valor ANTIGO (a fatura que já estava emitida), nada disto
+         roda: o plano atual segue, e a troca continua pendente para a cobrança seguinte. */
+      const trocaPedida = atual?.trocaPara ? normalizarPlano(atual.trocaPara) : null
+      const trocaChegou = Boolean(pago && trocaPedida && pago.plano === trocaPedida && pago.ciclo === 'mensal')
+      if (trocaChegou) {
+        motivo = [motivo, `troca-de-plano: ${planoDaIntencao} → ${plano}, pedida pelo assinante`]
+          .filter(Boolean)
+          .join('; ')
+      } else if (pago && (pago.plano !== planoDaIntencao || pago.ciclo !== cicloDaIntencao)) {
         const nota = `plano-divergente: pago ${pago.plano} ${pago.ciclo} (R$ ${vValor}), intenção ${planoDaIntencao} ${cicloDaIntencao} — vale o pago`
         log('warn', { event: 'billing_plano_divergente', error: nota, requestId })
         motivo = motivo ? `${motivo}; ${nota}` : nota
@@ -329,6 +340,7 @@ export async function aplicarEvento(
         ciclo: vale.ciclo,
         currentPeriodEnd: vale.fim,
         cancelAtPeriodEnd: 0,
+        ...(trocaChegou ? { trocaPara: null, trocaAPartirDe: null } : {}),
       })
       return { estado: 'aplicado', motivo }
     }

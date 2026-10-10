@@ -351,6 +351,13 @@
       "when": 1790820000000,
       "tag": "0049_planos_v3",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "6",
+      "when": 1790830000000,
+      "tag": "0050_troca_de_plano",
+      "breakpoints": true
     }
   ]
 }

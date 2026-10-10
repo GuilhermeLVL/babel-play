@@ -311,10 +311,55 @@ export interface AssinaturaDetalhadaAsaas {
   deleted?: boolean
   /** O NOSSO userId, gravado ao criar — é o que prova de quem a assinatura é. */
   externalReference?: string
+  /** O valor que a assinatura cobra a cada ciclo — é o que confirma uma troca de plano. */
+  value?: number
 }
 
 export async function buscarAssinatura(assinaturaId: string): Promise<AssinaturaDetalhadaAsaas> {
   return chamar<AssinaturaDetalhadaAsaas>(`/subscriptions/${encodeURIComponent(assinaturaId)}`)
+}
+
+/**
+ * TROCA DE PLANO — altera o VALOR (e a descrição) de uma assinatura que já existe: `PUT
+ * /v3/subscriptions/{id}` (docs.asaas.com/reference/atualizar-assinatura-existente e
+ * docs.asaas.com/docs/faq-assinaturas, conferidos em 09/10/2026).
+ *
+ * O QUE A DOCUMENTAÇÃO DIZ, e por que o corpo é este:
+ *  - "Por padrão, as alterações são aplicadas às próximas cobranças da recorrência" — as que ainda
+ *    vão ser geradas. Só que o Asaas gera cada cobrança 40 dias ANTES do vencimento (padrão da conta;
+ *    configurável para 14 ou 7): numa assinatura mensal, a fatura do mês que vem quase sempre já
+ *    existe quando a pessoa pede a troca. Sem `updatePendingPayments: true` ela sairia no valor
+ *    antigo, e a troca "do próximo ciclo" só chegaria no seguinte.
+ *  - `updatePendingPayments: true` "atualiza as propriedades possíveis de cobranças pendentes já
+ *    existentes". Cobrança PAGA não é pendente: o que a pessoa já pagou não é tocado, e não há
+ *    pro-rata — a regra da troca (`design.md` §11, item 11).
+ *  - `nextDueDate` NÃO vai: a troca não mexe no vencimento.
+ *
+ * NÃO VERIFICADO NO SANDBOX: a página de referência lista os campos do corpo sem `value` (o guia de
+ * perguntas frequentes diz que o valor é alterável por este PUT), e nenhuma das duas diz QUAIS
+ * propriedades de uma cobrança pendente são "possíveis" de atualizar. Por isso a resposta é CONFERIDA:
+ * se o Asaas devolver 200 sem o valor novo na assinatura, isto LANÇA, e quem chama não grava uma troca
+ * que não aconteceu. E se a fatura pendente não for atualizada, ninguém recebe plano errado: o webhook
+ * concede pelo valor PAGO, então ela mantém o plano atual e a troca chega na cobrança seguinte.
+ *
+ * IDEMPOTENTE por natureza: o PUT diz o estado final ("a assinatura vale X"), então repetir a chamada
+ * — a pessoa tocou duas vezes, o tempo limite estourou depois de o Asaas aplicar — não cobra nada a
+ * mais nem muda nada. Erro (rede, 4xx, 5xx, 404 da assinatura que não existe mais) sobe como exceção.
+ */
+export async function alterarValorDaAssinatura(
+  assinaturaId: string,
+  valorBrl: number,
+  descricao: string,
+): Promise<AssinaturaDetalhadaAsaas> {
+  const a = await chamar<AssinaturaDetalhadaAsaas>(`/subscriptions/${encodeURIComponent(assinaturaId)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ value: valorBrl, description: descricao, updatePendingPayments: true }),
+  })
+  // Meio centavo, como em `planoPeloPagamento`: o Asaas devolve o valor em ponto flutuante.
+  if (typeof a.value !== 'number' || Math.abs(a.value - valorBrl) >= 0.005) {
+    throw new Error(`Asaas /subscriptions (PUT) não confirmou o valor novo: pedido ${valorBrl}, devolvido ${a.value}`)
+  }
+  return a
 }
 
 /**

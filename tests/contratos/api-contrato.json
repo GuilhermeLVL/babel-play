@@ -83,6 +83,8 @@
     "POST /api/billing/creditar-passe",
     "POST /api/billing/gastar",
     "POST /api/billing/teste",
+    "POST /api/billing/trocar",
+    "POST /api/billing/trocar/cancelar",
     "POST /api/billing/webhook/asaas",
     "POST /api/erros-do-cliente",
     "POST /api/exercises/rodada",

@@ -731,6 +731,10 @@ export const subscriptions = sqliteTable(
     ciclo: text('ciclo').notNull().default('mensal'), // CicloDeCobranca: 'mensal' | 'anual'
     meio: text('meio'), // MeioDeCobranca: 'assinatura' | 'parcelamento' | 'pix_automatico'; null = sem cobrança
     providerInstallmentId: text('provider_installment_id'), // o parcelamento do Asaas (12x), quando é ele
+    /* TROCA DE PLANO PENDENTE (migração 0050): o plano de destino e o vencimento (`AAAA-MM-DD`) da primeira
+       cobrança no valor novo. `plan` continua sendo o que está PAGO; as duas nulas = sem troca pendente. */
+    trocaPara: text('troca_para'),
+    trocaAPartirDe: text('troca_a_partir_de'),
   },
   (t) => [unique('uq_subscriptions_user').on(t.userId)],
 )

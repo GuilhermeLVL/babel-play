@@ -36,6 +36,7 @@ import { type TestePremium, testesPremiumRepo } from '../db/repositories/testesP
 import { vinculosRepo } from '../db/repositories/vinculos'
 import { MENSAGEM_ANUAL_INDISPONIVEL, MENSAGEM_CHECKOUT_DESLIGADO } from '../lib/abertura'
 import {
+  alterarValorDaAssinatura,
   asaasConfigurado,
   buscarAssinatura,
   criarAssinatura,
@@ -66,6 +67,7 @@ import {
   type SituacaoDoTeste,
   situacaoDoTeste,
   testeAtivo,
+  testeAtivoDe,
 } from '../lib/testePremium'
 import { parseOr400 } from '../validation'
 
@@ -157,13 +159,17 @@ async function recusouPerfilProtegido(
  *
  * Self-host não passa pelas regras 2 e 3 (não há idade nem venda de verdade). Devolve o id de
  * quem RECEBE, ou `null` depois de já ter respondido o erro.
+ *
+ * `exigeVendaAberta: false` dispensa só a regra 1, para o que NÃO é venda: desistir de uma troca de
+ * plano pendente tem de continuar possível com a venda pausada.
  */
 async function autorizarPagamento(
   req: import('express').Request,
   res: import('express').Response,
   paraUsuario: string | undefined,
+  { exigeVendaAberta = true }: { exigeVendaAberta?: boolean } = {},
 ): Promise<UserId | null> {
-  if (!checkoutLigado()) {
+  if (exigeVendaAberta && !checkoutLigado()) {
     responderErro(res, 503, MENSAGEM_CHECKOUT_DESLIGADO, 'checkout_desligado')
     return null
   }
@@ -455,6 +461,230 @@ billingRouter.post('/assinar', async (req, res) => {
   }
 })
 
+/* ------------------------------------------------------------------ troca de plano (planos v3, etapa 8) */
+
+const trocarSchema = z
+  .object({
+    plano: z.string(),
+    /** O RESPONSÁVEL troca o plano do menor vinculado — o mesmo `paraUsuario` do checkout. */
+    paraUsuario: z.string().min(1).max(128).optional(),
+  })
+  .strip()
+
+const cancelarTrocaSchema = trocarSchema.pick({ paraUsuario: true })
+
+const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/
+
+/** O nome da assinatura no Asaas (a fatura do pagador), o mesmo de `/assinar` no mensal. */
+const descricaoDoMensal = (plano: PlanoPago): string => `Babel Play ${PLAN_MATRIX[plano].rotulo}`
+
+/** A mensalidade de um plano pago. Todo plano pago tem uma (`ehPlanoPago`); o `throw` é só o tipo. */
+function mensalidadeDe(plano: PlanoPago): number {
+  const preco = PLAN_MATRIX[plano].precoMensalBrl
+  if (preco === null) throw new Error(`plano ${plano} sem preço mensal`)
+  return preco
+}
+
+type Recusa = { status: number; mensagem: string; codigo: string }
+
+/**
+ * QUEM PODE TROCAR DE PLANO: só a ASSINATURA mensal do Asaas, ativa e em dia. Devolve a recusa, com
+ * código estável para a tela, ou `null`.
+ *
+ *  - `sem_assinatura_ativa`: não há o que trocar — nenhuma linha, só o checkout iniciado (`trialing`),
+ *    ou plano concedido pelo admin (sem cobrança no provedor). O caminho é `/assinar`.
+ *  - `em_teste`: o mesmo caso, com o teste de 14 dias valendo. O teste não tem cobrança para alterar.
+ *  - `assinatura_cancelada`: a renovação parou; não há próxima cobrança para sair no valor novo.
+ *  - `assinatura_em_atraso`: há uma fatura vencida em aberto. Alterar o valor agora mexeria NELA
+ *    (`updatePendingPayments`), e pagar o atraso passaria a conceder outro plano.
+ *  - `troca_so_no_mensal`: o anual (pago inteiro) e o 12x já pagaram o ano; trocar no meio dele pede
+ *    pro-rata ou crédito, que a regra desta etapa não tem (`design.md` §11, item 11). Fica para depois.
+ */
+async function recusaDaTroca(
+  destino: UserId,
+  sub: Awaited<ReturnType<typeof subscriptionsRepo.getActive>>,
+): Promise<Recusa | null> {
+  const noAsaas = sub?.provider === 'asaas' && Boolean(sub.providerSubscriptionId || sub.providerInstallmentId)
+  if (!sub || !noAsaas || sub.status === 'trialing' || !ehPlanoPago(normalizarPlano(sub.plan))) {
+    if (await testeAtivoDe(destino)) {
+      return {
+        status: 409,
+        mensagem: 'você está no teste grátis: para ficar com um plano, assine o que preferir',
+        codigo: 'em_teste',
+      }
+    }
+    return { status: 409, mensagem: 'esta conta não tem assinatura ativa para trocar', codigo: 'sem_assinatura_ativa' }
+  }
+  if (sub.status === 'canceled') {
+    return {
+      status: 409,
+      mensagem: 'a assinatura está cancelada: assine de novo o plano que preferir',
+      codigo: 'assinatura_cancelada',
+    }
+  }
+  if (sub.status !== 'active') {
+    return {
+      status: 409,
+      mensagem: 'há um pagamento em atraso: regularize a fatura antes de trocar de plano',
+      codigo: 'assinatura_em_atraso',
+    }
+  }
+  if (sub.ciclo === 'anual' || sub.meio === 'parcelamento' || !sub.providerSubscriptionId) {
+    return {
+      status: 409,
+      mensagem:
+        'a troca de plano ainda só vale para a assinatura mensal; no plano anual, o seu plano segue até o fim do período pago',
+      codigo: 'troca_so_no_mensal',
+    }
+  }
+  return null
+}
+
+/**
+ * A PARTIR DE QUANDO o valor novo vale: o vencimento da cobrança PENDENTE mais próxima (o Asaas gera a
+ * fatura até 40 dias antes; é ela que `updatePendingPayments` passou ao valor novo). Sem fatura
+ * emitida, o próximo vencimento da assinatura. A listagem é só para a tela dizer a data: se ela
+ * falhar, a troca — que já aconteceu no Asaas — não é desfeita, e vale o vencimento que o PUT devolveu.
+ */
+async function primeiroVencimentoNoValorNovo(assinaturaId: string, proximoVencimento?: string): Promise<string | null> {
+  try {
+    const pendentes = (await listarCobrancasDaAssinatura(assinaturaId))
+      .filter((c) => c.status === 'PENDING' && typeof c.dueDate === 'string' && DATA_ISO.test(c.dueDate))
+      .map((c) => c.dueDate as string)
+      .sort()
+    if (pendentes[0]) return pendentes[0]
+  } catch (err) {
+    log('warn', { event: 'billing_troca_sem_cobrancas', error: String(err).slice(0, 120) })
+  }
+  return typeof proximoVencimento === 'string' && DATA_ISO.test(proximoVencimento) ? proximoVencimento : null
+}
+
+/**
+ * TROCAR DE PLANO — vale no PRÓXIMO ciclo, sem pro-rata (`design.md` §11, item 11; ADR 0013).
+ *
+ * O MESMO DESENHO DE `/assinar`: esta rota só INICIA. Ela muda o valor da assinatura no Asaas (a
+ * cobrança já paga não é tocada) e grava a intenção — `trocaPara` e `trocaAPartirDe` —, mas NÃO toca
+ * em `plan`, `status` nem no período: o plano concedido continua o que está pago. Quem troca o plano é
+ * o webhook, quando um pagamento do VALOR NOVO confirmar (ele concede pelo valor pago). Subir e
+ * rebaixar seguem a mesma regra: quem rebaixa fica com o plano de cima até o fim do que pagou.
+ *
+ * A ORDEM: quem pede é adulto e a venda está aberta (`autorizarPagamento`) → o destino é um plano pago
+ * → a assinatura é trocável (`recusaDaTroca`) → o destino não é o plano atual → e está À VENDA para
+ * este pedido (o mesmo 503 de `/assinar`). Só então o Asaas é chamado; falhando, nada muda no banco. Pedir de novo a troca que já está pendente devolve a mesma resposta sem falar com o Asaas.
+ */
+billingRouter.post('/trocar', async (req, res) => {
+  const dados = parseOr400(trocarSchema, req.body, res)
+  if (!dados) return
+  const destino = await autorizarPagamento(req, res, dados.paraUsuario)
+  if (!destino) return
+  if (!asaasConfigurado()) {
+    res.status(501).json({ error: 'cobrança não configurada no servidor (ASAAS_API_KEY ausente)' })
+    return
+  }
+  const plano = normalizarPlano(dados.plano)
+  if (!ehPlanoPago(plano)) {
+    res.status(400).json({ error: 'este plano não é vendável' })
+    return
+  }
+
+  try {
+    const sub = await subscriptionsRepo.getActive(destino)
+    const recusa = await recusaDaTroca(destino, sub)
+    if (recusa || !sub?.providerSubscriptionId) {
+      const r = recusa ?? {
+        status: 409,
+        mensagem: 'esta conta não tem assinatura ativa',
+        codigo: 'sem_assinatura_ativa',
+      }
+      responderErro(res, r.status, r.mensagem, r.codigo)
+      return
+    }
+    const planoAtual = normalizarPlano(sub.plan) as PlanoPago
+    const pendente = normalizarPlano(sub.trocaPara)
+    if (plano === planoAtual) {
+      responderErro(
+        res,
+        409,
+        pendente
+          ? 'este já é o seu plano de agora; para desistir da troca pedida, cancele a troca'
+          : 'este já é o seu plano',
+        'mesmo_plano',
+      )
+      return
+    }
+    /* VENDA FECHADA: o mesmo 503 de `/assinar`, antes de qualquer conversa com o Asaas e sem gravar
+       intenção. Vem depois do "mesmo plano" porque pedir o plano que já se tem não é uma compra. */
+    if (!(await planosAVendaPara(req)).includes(plano)) {
+      responderErro(res, 503, 'este plano ainda não está à venda', 'plano_indisponivel')
+      return
+    }
+    // A MESMA troca pedida de novo (dois toques, a resposta que se perdeu): nada a refazer.
+    if (pendente === plano) {
+      res.json({
+        ok: true,
+        planoAtual,
+        trocaPendente: { plano, aPartirDe: sub.trocaAPartirDe ?? null },
+        jaEstavaPedida: true,
+      })
+      return
+    }
+
+    const assinatura = await alterarValorDaAssinatura(
+      sub.providerSubscriptionId,
+      mensalidadeDe(plano),
+      descricaoDoMensal(plano),
+    )
+    const aPartirDe = await primeiroVencimentoNoValorNovo(sub.providerSubscriptionId, assinatura.nextDueDate)
+    await subscriptionsRepo.upsert(destino, { trocaPara: plano, trocaAPartirDe: aPartirDe })
+    log('info', { event: 'billing_troca_pedida', route: '/api/billing/trocar', requestId: req.requestId })
+    res.json({ ok: true, planoAtual, trocaPendente: { plano, aPartirDe } })
+  } catch (err) {
+    res.status(502).json({ error: `falha ao trocar de plano: ${erroDeRota(err, { event: 'billing_error' })}` })
+  }
+})
+
+/**
+ * DESISTIR DA TROCA antes da virada: a assinatura volta ao valor do plano que está pago, e a intenção
+ * some. Depois de o valor novo ser pago não há mais troca pendente (o webhook a encerrou): aí é uma
+ * troca nova, no outro sentido.
+ *
+ * Não é venda, então a venda pausada (`CHECKOUT_ENABLED=0`) não a impede; continua sendo ato de adulto
+ * declarado (o responsável desfaz a do menor pelo `paraUsuario`). Asaas falhando → 502 e a troca
+ * continua pendente, igual estava.
+ */
+billingRouter.post('/trocar/cancelar', async (req, res) => {
+  const dados = parseOr400(cancelarTrocaSchema, req.body ?? {}, res)
+  if (!dados) return
+  const destino = await autorizarPagamento(req, res, dados.paraUsuario, { exigeVendaAberta: false })
+  if (!destino) return
+  if (!asaasConfigurado()) {
+    res.status(501).json({ error: 'cobrança não configurada no servidor (ASAAS_API_KEY ausente)' })
+    return
+  }
+  try {
+    const sub = await subscriptionsRepo.getActive(destino)
+    if (!sub?.trocaPara) {
+      responderErro(res, 404, 'não há troca de plano pendente', 'sem_troca_pendente')
+      return
+    }
+    const planoAtual = normalizarPlano(sub.plan)
+    /* Sem assinatura no provedor ou sem plano pago na linha não há valor para onde voltar (o
+       repositório já apaga a troca quando a assinatura acaba; isto é só o resto): limpa a intenção. */
+    if (sub.providerSubscriptionId && ehPlanoPago(planoAtual)) {
+      await alterarValorDaAssinatura(
+        sub.providerSubscriptionId,
+        mensalidadeDe(planoAtual),
+        descricaoDoMensal(planoAtual),
+      )
+    }
+    await subscriptionsRepo.upsert(destino, { trocaPara: null, trocaAPartirDe: null })
+    log('info', { event: 'billing_troca_cancelada', route: '/api/billing/trocar/cancelar', requestId: req.requestId })
+    res.json({ ok: true, planoAtual: planoAtual ?? sub.plan, trocaPendente: null })
+  } catch (err) {
+    res.status(502).json({ error: `falha ao cancelar a troca: ${erroDeRota(err, { event: 'billing_error' })}` })
+  }
+})
+
 /**
  * A PRÓXIMA COBRANÇA — o `nextDueDate` da assinatura no Asaas, que é a data que a tela promete
  * ("Próxima cobrança em 30/10"). NÃO é o `valeAte`: esse é o vencimento mais a graça de atraso,
@@ -623,6 +853,10 @@ billingRouter.get('/status', async (req, res) => {
   /* C6: a situação do teste de 14 dias — a tela de Planos (C7) oferece o toque só a quem o servidor
      deixaria começar, e diz por que não quando não. */
   const teste = await situacaoParaATela(req)
+  /* A TROCA DE PLANO PENDENTE (etapa 8): o plano de destino e o vencimento da primeira cobrança no
+     valor novo — a tela diz "a partir de DD/MM seu plano será X". `assinatura.plano` continua sendo o
+     que está pago. O campo só existe enquanto há troca pendente (o webhook e o cancelamento a apagam). */
+  const destinoDaTroca = sub?.trocaPara ? normalizarPlano(sub.trocaPara) : null
   res.json({
     ...(teste ? { teste } : {}),
     configurado: asaasConfigurado(),
@@ -645,6 +879,9 @@ billingRouter.get('/status', async (req, res) => {
         }
       : null,
     ...(proxima ? { proximaCobranca: proxima } : {}),
+    ...(sub && ehPlanoPago(destinoDaTroca)
+      ? { trocaPendente: { plano: destinoDaTroca, aPartirDe: sub.trocaAPartirDe ?? null } }
+      : {}),
   })
 })
 

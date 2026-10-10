@@ -28,6 +28,28 @@ export interface SubscriptionPatch {
   meio?: MeioDeCobranca | null
   /** O parcelamento do Asaas, quando o anual é pago em 12x (C5). */
   providerInstallmentId?: string | null
+  /**
+   * A TROCA DE PLANO PENDENTE (migração 0050): o plano de destino e o vencimento (`AAAA-MM-DD`) da
+   * primeira cobrança no valor novo. `plan` continua sendo o que está pago; `null` nas duas = sem troca.
+   */
+  trocaPara?: Plan | null
+  trocaAPartirDe?: string | null
+}
+
+/**
+ * A TROCA PENDENTE NÃO SOBREVIVE À ASSINATURA DELA. A intenção vale para UMA assinatura do Asaas, em
+ * dia: quando a linha é cancelada (botão Cancelar, arrependimento, estorno, chargeback, assinatura
+ * removida) ou passa a apontar para OUTRA assinatura (`/assinar` de novo), a troca pedida deixa de
+ * existir — e a tela não pode continuar prometendo "a partir de DD/MM seu plano será X". Fica aqui, e
+ * não em cada lugar que cancela (webhook, encerramento, admin), para nenhum deles esquecer. Quem grava a troca
+ * (`trocaPara` no patch) decide por si.
+ */
+function semTrocaSeAAssinaturaAcabou(existente: Subscription, patch: SubscriptionPatch): SubscriptionPatch {
+  if (!existente.trocaPara || 'trocaPara' in patch) return patch
+  const cancelou = patch.status === 'canceled'
+  const outraAssinatura =
+    'providerSubscriptionId' in patch && patch.providerSubscriptionId !== existente.providerSubscriptionId
+  return cancelou || outraAssinatura ? { ...patch, trocaPara: null, trocaAPartirDe: null } : patch
 }
 
 /** A assinatura (não-apagada) do usuário — no máx. uma (unique user_id). Null se não há. */
@@ -73,7 +95,7 @@ export const subscriptionsRepo = {
     if (existente) {
       await db
         .update(subscriptions)
-        .set({ ...patch, updatedAt: now })
+        .set({ ...semTrocaSeAAssinaturaAcabou(existente, patch), updatedAt: now })
         .where(and(eq(subscriptions.userId, userId), isNull(subscriptions.deletedAt)))
       const r = await getActiveSub(userId)
       if (!r) throw new Error('falha ao atualizar assinatura')
@@ -94,6 +116,8 @@ export const subscriptionsRepo = {
       ciclo: patch.ciclo ?? 'mensal',
       meio: patch.meio ?? null,
       providerInstallmentId: patch.providerInstallmentId ?? null,
+      trocaPara: patch.trocaPara ?? null,
+      trocaAPartirDe: patch.trocaAPartirDe ?? null,
     }
     await db.insert(subscriptions).values(row)
     const r = await getActiveSub(userId)

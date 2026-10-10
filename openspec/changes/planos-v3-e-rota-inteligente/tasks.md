@@ -69,8 +69,8 @@ lint e só os testes dos arquivos tocados; a suíte inteira roda na CI.
 
 ## 8. Cobrança e troca de plano
 
-- [ ] 8.1 `/assinar` aceita os planos novos; teste de 14 dias no plano decidido
-- [ ] 8.2 `POST /api/billing/trocar` e a alteração de valor no Asaas
+- [x] 8.1 `/assinar` aceita os planos novos; teste de 14 dias no plano decidido
+- [x] 8.2 `POST /api/billing/trocar` e a alteração de valor no Asaas (migração 0050; Asaas só simulado)
 - [ ] 8.3 Testes de webhook, anual, 12x, troca e chargeback por plano; conferência no sandbox
 
 ## 9. Telas

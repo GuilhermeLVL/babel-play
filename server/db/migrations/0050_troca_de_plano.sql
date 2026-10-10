@@ -1,0 +1,22 @@
+-- TROCA DE PLANO (change `planos-v3-e-rota-inteligente`, etapa 8; ADR 0013; `design.md` §11, item 11) —
+-- `server/routes/billing.ts` (`POST /api/billing/trocar`), `server/lib/billingEventos.ts` (o webhook).
+--
+-- Quem assina no mensal troca de plano sem cancelar, e a troca vale no PRÓXIMO ciclo, sem pro-rata: a assinatura no
+-- Asaas passa ao valor novo, mas o plano CONCEDIDO (`plan`) só muda quando o webhook confirmar um pagamento desse
+-- valor. Entre o pedido e o pagamento a linha precisa dizer duas coisas que nenhuma coluna existente guarda:
+--   - `troca_para`: o plano de DESTINO (`essencial` | `premium` | `aovivo`). Não cabe em `plan`: `plan` é o que está
+--     pago e concedido AGORA, e gravar o destino ali daria o plano de cima antes do pagamento (a escalada do GAP-001).
+--   - `troca_a_partir_de`: o vencimento (`AAAA-MM-DD`) da primeira cobrança no valor novo — a tela diz "a partir de
+--     DD/MM seu plano será X". Texto, e não epoch: é uma data de calendário do Asaas, sem fuso para errar.
+-- As duas NULAS = sem troca pendente (toda linha existente). O webhook as zera quando o valor novo é pago; o
+-- repositório, quando a assinatura é cancelada ou trocada por outra (`subscriptionsRepo.upsert`).
+--
+-- Aditiva (expand): só acrescenta colunas anuláveis; o código anterior não as lê. Os `ALTER` seguem o formato do
+-- `drizzle-kit generate`, com o snapshot.
+-- REVERSÃO: `ALTER TABLE subscriptions DROP COLUMN troca_para` e `ALTER TABLE subscriptions DROP COLUMN
+-- troca_a_partir_de` — mas ANTES, para cada linha com `troca_para` preenchido, voltar o valor da assinatura no Asaas
+-- ao preço do `plan` atual (é o que `POST /api/billing/trocar/cancelar` faz): sem isso a próxima cobrança sai no valor
+-- novo, e o webhook (que concede pelo valor pago) trocaria o plano do mesmo jeito. Voltar só a imagem, sem apagar as
+-- colunas, também serve: o código anterior as ignora.
+ALTER TABLE `subscriptions` ADD `troca_para` text;--> statement-breakpoint
+ALTER TABLE `subscriptions` ADD `troca_a_partir_de` text;

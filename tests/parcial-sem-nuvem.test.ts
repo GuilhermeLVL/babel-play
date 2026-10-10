@@ -54,7 +54,9 @@ function stubTradutorNativo() {
   vi.stubGlobal('self', globalThis)
   vi.stubGlobal('Translator', {
     availability: async () => 'available',
-    create: async () => ({ translate: async (t: string) => `nativo: ${t.replace('Hello', 'Olá')}` }),
+    /* A saída é português DE VERDADE: o gateway confere o idioma do que o tradutor devolve, e uma
+       frase quase toda em inglês (o molde antigo trocava só o 'Hello') é recusada como não traduzida. */
+    create: async () => ({ translate: async () => 'nativo: Olá mundo, isto é o que eu estava dizendo' }),
   })
 }
 

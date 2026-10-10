@@ -76,27 +76,25 @@ RUN test -n "$VITE_SUPABASE_URL" && test -n "$VITE_SUPABASE_ANON_KEY" || \
 RUN npm run build
 
 # ─── litestream ───────────────────────────────────────────────────────────────
-# O binário OFICIAL do Litestream (github.com/benbjohnson/litestream), versão FIXADA e conferida
-# pelo sha256 que o próprio GitHub publica para o asset da release (campo `digest` da API). Estágio
-# próprio para o `curl` não ir parar na imagem de runtime. Atualizar = trocar a versão E os dois
-# sha256 no mesmo commit; checksum que não bate derruba o build, que é o ponto.
-FROM debian:bookworm-slim AS litestream
+# O Litestream (github.com/benbjohnson/litestream) COMPILADO DA FONTE, no commit FIXADO da release.
+# Até 09/10/2026 vinha o binário oficial conferido por sha256. A 0.5.17 é a última release e foi
+# compilada com Go 1.25.14 e golang.org/x/net 0.55, os dois com falhas HIGH corrigidas depois
+# (net/http, HTTP/2 e crypto/tls: negação de serviço) justamente no caminho que usamos, o cliente
+# HTTPS da réplica S3. Não dava para aceitar o risco sem prova de que não é alcançável; compilar com
+# o Go e o x/net corrigidos resolve de verdade. O commit conferido derruba o build se a tag mudar.
+# Quando sair release nova com isso, dá para voltar ao binário oficial.
+FROM golang:1.26-bookworm AS litestream
 ARG LITESTREAM_VERSAO=0.5.17
-ARG LITESTREAM_SHA256_AMD64=cfb371176d164437ae869f8351cfde49bd1804ae71c61923f75c9cba9c9c006d
-ARG LITESTREAM_SHA256_ARM64=f8ca4a050095c1efbda2c4365172e61bf9d955ea0d9ac42f448b52e51819baa5
-ARG TARGETARCH
+ARG LITESTREAM_COMMIT=ccd326c175b583b5e82893a6078f06dcef5fba3f
+ARG X_NET_VERSAO=v0.60.0
+ENV CGO_ENABLED=0 GOFLAGS=-trimpath
 RUN set -eu; \
-    apt-get update; apt-get install -y --no-install-recommends ca-certificates curl; \
-    case "${TARGETARCH:-amd64}" in \
-      amd64) arq=x86_64; soma="$LITESTREAM_SHA256_AMD64" ;; \
-      arm64) arq=arm64;  soma="$LITESTREAM_SHA256_ARM64" ;; \
-      *) echo "arquitetura sem checksum fixado: $TARGETARCH" >&2; exit 1 ;; \
-    esac; \
-    curl -fsSL -o /tmp/litestream.tar.gz \
-      "https://github.com/benbjohnson/litestream/releases/download/v${LITESTREAM_VERSAO}/litestream-${LITESTREAM_VERSAO}-linux-${arq}.tar.gz"; \
-    echo "${soma}  /tmp/litestream.tar.gz" | sha256sum -c -; \
-    mkdir /tmp/ls; tar -xzf /tmp/litestream.tar.gz -C /tmp/ls; \
-    install -m 0755 "$(find /tmp/ls -type f -name litestream | head -n 1)" /usr/local/bin/litestream; \
+    git clone --depth 1 --branch "v${LITESTREAM_VERSAO}" https://github.com/benbjohnson/litestream /src; \
+    cd /src; \
+    test "$(git rev-parse HEAD)" = "$LITESTREAM_COMMIT"; \
+    go get "golang.org/x/net@${X_NET_VERSAO}"; \
+    go mod tidy; \
+    go build -ldflags "-s -w -X main.Version=${LITESTREAM_VERSAO}" -o /usr/local/bin/litestream ./cmd/litestream; \
     /usr/local/bin/litestream version
 
 # ─── runtime ──────────────────────────────────────────────────────────────────

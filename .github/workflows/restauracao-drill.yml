@@ -123,17 +123,27 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # O binário OFICIAL, na versão e com o sha256 que o Dockerfile fixa — lidos do próprio Dockerfile,
-      # para o exercício nunca restaurar com um Litestream diferente do que grava em produção.
-      - name: Litestream (mesma versão da imagem)
+      # O MESMO Litestream da imagem: compilado da fonte, no commit e com o Go e o x/net que o Dockerfile
+      # fixa (lidos do próprio Dockerfile), para o exercício nunca restaurar com um binário diferente do
+      # que grava em produção.
+      - name: Litestream (mesma fonte da imagem)
         if: inputs.litestream
         run: |
           set -euo pipefail
-          versao=$(sed -n 's/^ARG LITESTREAM_VERSAO=//p' Dockerfile)
-          soma=$(sed -n 's/^ARG LITESTREAM_SHA256_AMD64=//p' Dockerfile)
-          curl -fsSL -o litestream.tar.gz "https://github.com/benbjohnson/litestream/releases/download/v${versao}/litestream-${versao}-linux-x86_64.tar.gz"
-          echo "${soma}  litestream.tar.gz" | sha256sum -c -
-          tar -xzf litestream.tar.gz litestream
+          ler() { sed -n "s/^ARG $1=//p" Dockerfile | tr -d '\r'; }
+          versao=$(ler LITESTREAM_VERSAO)
+          commit=$(ler LITESTREAM_COMMIT)
+          xnet=$(ler X_NET_VERSAO)
+          imagem=$(sed -n 's/^FROM \(golang:[^ ]*\) AS litestream.*/\1/p' Dockerfile | tr -d '\r')
+          test -n "$versao" && test -n "$commit" && test -n "$xnet" && test -n "$imagem"
+          docker run --rm -v "$PWD:/saida" -e CGO_ENABLED=0 -e GOFLAGS=-trimpath \
+            -e VERSAO="$versao" -e COMMIT="$commit" -e XNET="$xnet" "$imagem" sh -euc '
+              git clone --depth 1 --branch "v$VERSAO" https://github.com/benbjohnson/litestream /src
+              cd /src
+              test "$(git rev-parse HEAD)" = "$COMMIT"
+              go get "golang.org/x/net@$XNET"
+              go mod tidy
+              go build -ldflags "-s -w -X main.Version=$VERSAO" -o /saida/litestream ./cmd/litestream'
           ./litestream version
 
       - name: Restaurar a réplica contínua (Litestream) + integrity_check + contagens

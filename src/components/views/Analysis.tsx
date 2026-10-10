@@ -76,6 +76,9 @@ function provenanceLabel(engine?: string | null): string | null {
       return 'Whisper nuvem (large-v3)';
     case 'web-speech':
       return 'Reconhecimento do navegador';
+    case 'web-speech-local':
+    case 'web-speech-local-trilha':
+      return 'Reconhecimento do navegador (no aparelho)';
     case 'import-text':
       return 'Texto importado';
     default:

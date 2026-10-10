@@ -23,8 +23,11 @@ import { assentar, clicarRobusto, semCapturaDeTela, trilho } from './_helpers'
  * toque num lado começa a conversa (`modo-interprete`, com a fase em `data-fase`) já com o microfone
  * daquele lado. O modo é o botão `modo-automatico` (`aria-pressed`), e a voz em uso vem no `title` de
  * `voz-em-uso`. SAÍRAM: o botão "entrar no intérprete" da tela da captura (`entrar-no-interprete`), a
- * tela de entrada com "Começar conversa" (`comecar-conversa`) e os atributos `data-modo` e
- * `data-layout` da conversa.
+ * tela de entrada com "Começar conversa" (`comecar-conversa`) e o atributo `data-modo` da conversa.
+ *
+ * NO COMPUTADOR A CONVERSA FICA EM DUAS COLUNAS, sem metade virada (decisão do dono, 09/10/2026): a
+ * conversa leva `data-layout="computador"`; no celular não há `data-layout` e a metade de cima segue
+ * virada (`data-virada`).
  */
 
 /* O áudio da voz natural toca sem esperar um gesto a mais (o toque que a destrava é o do atalho). */
@@ -386,10 +389,17 @@ test.describe('Modo intérprete no computador (Premium, voz natural)', () => {
         await new Promise((r) => setTimeout(r, 100))
     })
 
-    /* A tela é a do protótipo aprovado: frente a frente em todo aparelho, a metade do outro virada
-       (`producao-interprete.css` previa duas colunas no computador, mas a maquete não usa). Se o dono
-       pedir as duas colunas no monitor, é aqui que a asserção muda. */
-    expect(await deCabecaParaBaixo(pronta(page).getByTestId('interprete-outro'))).toBe(true)
+    /* NO MONITOR, DUAS COLUNAS E NINGUÉM VIRADO (decisão do dono, 09/10/2026: `planos-v3-e-rota-
+       inteligente/design.md` §11, item 14). A metade virada é para o aparelho deitado entre duas
+       pessoas; num monitor as duas leem do mesmo lado: "Você" à esquerda, a outra pessoa à direita. */
+    await expect(pronta(page)).toHaveAttribute('data-layout', 'computador')
+    await expect(pronta(page).locator('.int-metade[data-virada]')).toHaveCount(0)
+    expect(await deCabecaParaBaixo(pronta(page).getByTestId('interprete-outro'))).toBe(false)
+    expect(await deCabecaParaBaixo(pronta(page).getByTestId('interprete-meu'))).toBe(false)
+    const colunaDoMeu = await pronta(page).getByTestId('interprete-meu').boundingBox()
+    const colunaDoOutro = await pronta(page).getByTestId('interprete-outro').boundingBox()
+    expect(colunaDoMeu!.x).toBeLessThan(colunaDoOutro!.x)
+    expect(Math.abs(colunaDoMeu!.y - colunaDoOutro!.y)).toBeLessThan(2)
     await foto(page, 'computador-1-pronto')
 
     // O primeiro toque começa a conversa pelo meu lado; a voz natural lê a tradução em inglês.

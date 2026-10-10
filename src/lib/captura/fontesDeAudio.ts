@@ -37,7 +37,7 @@ import { abrirContextoDoClique, descartarContextoDoClique, tomarContextoDoClique
 import { type EscolhaDoMic, resolverMotorDoMic } from './motorDoMicrofone';
 import { criarProgressoDosPacotesNativos } from './pacotesNativos';
 import type { OpcoesDaPreparacao } from './pipelineDeFala';
-import { segmentosDaWebSpeech } from './segmentosDaWebSpeech';
+import { motorDoMicrofoneNoNavegador, segmentosDaWebSpeech } from './segmentosDaWebSpeech';
 import { chaveLigada } from './testesDoInterprete';
 import { clog, type DirecaoDaFala, type FimDaFala, type HandlersDaFonte, type SpeechSegment } from './tiposDaFala';
 import type { OpcoesDeTraducao } from './traducaoDaFala';
@@ -313,6 +313,8 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
         de: () => targetLangRef.current.split('-')[0], // você OUVE o idioma-alvo
         para: () => sourceLangRef.current.split('-')[0],
         falada: false,
+        // A trilha só é reconhecida no aparelho: o adaptador lança sem `processLocally`.
+        engine: 'web-speech-local-trilha',
         idDoParcialRef: idDoParcialDoSistema,
         timerRef,
         nowRel,
@@ -570,6 +572,8 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
         de: () => from,
         para: () => to,
         falada: true,
+        // O modo com que ESTA sessão abre: é ele que diz se o áudio da fala saiu do aparelho.
+        engine: motorDoMicrofoneNoNavegador(noAparelho),
         ...(direcao ? { lado: direcao.lado } : {}),
         aoFinalComprometido: (segId) =>
           deps.aoFimDaFala?.({ segId, source: 'mic', ...(direcao ? { lado: direcao.lado } : {}) }),

@@ -17,6 +17,7 @@ import {
 import { type ReactNode, useEffect, useLayoutEffect, useRef } from 'react';
 
 import type { LadoDoInterprete } from '../../../../lib/captura/tiposDaFala';
+import { noComputador } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../../lib/i18n';
 import {
   entradaDaConversa,
@@ -77,7 +78,12 @@ function Palavra({ texto, animar }: { texto: string; animar: boolean }) {
 
 /**
  * A CONVERSA DO INTÉRPRETE COMO NO PROTÓTIPO (`telas2.js:161-182`, `direto.js:68-74`): duas metades, a de
- * cima virada para a outra pessoa, e a faixa no meio. Em todo aparelho, e acompanhando o tema claro.
+ * cima virada para a outra pessoa, e a faixa no meio, acompanhando o tema claro.
+ *
+ * NO COMPUTADOR (decisão do dono, `planos-v3-e-rota-inteligente/design.md` §11, item 14): duas colunas,
+ * a faixa em cima, e NENHUMA metade virada. A metade virada é para o aparelho deitado entre duas
+ * pessoas; num monitor as duas leem do mesmo lado. O desenho das colunas é o de
+ * `.int[data-layout='computador']` (`modoInterprete.css`). No celular e no headset fica o frente a frente.
  *
  * Só desenha: quem decide o que cada metade diz é a tela pronta (`PaginaDoInterprete`) ou a conversa em
  * curso (`ModoInterprete`), com o motor de sempre.
@@ -126,6 +132,8 @@ export default function ConversaDoPrototipo({
   children?: ReactNode;
 }) {
   const raiz = useRef<HTMLDivElement>(null);
+  /** No monitor: duas colunas e ninguém de cabeça para baixo. */
+  const emColunas = noComputador();
 
   useEffect(() => {
     if (comEntrada && raiz.current) entradaDaConversa(raiz.current);
@@ -207,7 +215,7 @@ export default function ConversaDoPrototipo({
       key={m.dono}
       className="int-metade"
       data-lado={m.dono}
-      data-virada={virada ? '' : undefined}
+      data-virada={virada && !emColunas ? '' : undefined}
       hidden={lista.aberta}
       aria-label={t('Lado de quem fala {idioma}', { idioma: m.nome })}
       data-testid={`interprete-${m.lado}`}
@@ -247,6 +255,8 @@ export default function ConversaDoPrototipo({
           type="button"
           className="int-falar"
           data-ouvindo={m.ouvindo ? '' : undefined}
+          /* Parado, o botão é laranja: o cursor do app passa à cor de tinta sobre ele (`cursor.ts`). */
+          data-cursor={m.ouvindo ? undefined : 'tinta'}
           aria-pressed={m.ouvindo}
           aria-label={m.rotuloParaLeitor}
           onClick={() => {
@@ -277,6 +287,7 @@ export default function ConversaDoPrototipo({
       {...(emDialogo ? { role: 'dialog', 'aria-modal': true } : {})}
       data-testid={testid}
       data-fase={fase}
+      data-layout={emColunas ? 'computador' : undefined}
     >
       {metade(cima, true)}
       <div key="faixa" className="int-faixa" data-com-modo="">

@@ -155,6 +155,18 @@ describe('captura da aba × Web Speech no aparelho (fontesDeAudio)', () => {
     expect(m.sysHandlers.onUtterance).not.toHaveBeenCalled()
   })
 
+  it('no aparelho: a fala da trilha guarda o motor que não envia (`web-speech-local-trilha`)', async () => {
+    let segs: Array<{ engine?: string; source: string }> = []
+    const setSpeechSegments = (f: (p: typeof segs) => typeof segs) => {
+      segs = f(segs)
+    }
+    const m = montar('web-speech-local', { setSpeechSegments })
+    await m.fontes.handleStartSystemCapture()
+    ;(estado.opcoesDoNavegador as { aoFinal: (t: string) => void }).aoFinal('hello everyone')
+    expect(segs).toHaveLength(1)
+    expect(segs[0]).toMatchObject({ source: 'system', engine: 'web-speech-local-trilha' })
+  })
+
   it('a Web Speech caiu: o pipeline volta a receber o VAD e o Whisper é preparado', async () => {
     const m = montar('web-speech-local')
     await m.fontes.handleStartSystemCapture()

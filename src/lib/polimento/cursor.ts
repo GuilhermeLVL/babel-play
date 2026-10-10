@@ -3,7 +3,8 @@
  * em 09/10/2026, que recusou a versão com mola, abraço e faíscas: "é o suficiente").
  *
  * Um ponto de 6 px e um anel de 24 px na cor do acento seguem o mouse; sobre o que é clicável o anel
- * cresce e ganha um fundo leve, e no aperto encolhe. Só isso.
+ * cresce e ganha um fundo leve, e no aperto encolhe. Só isso. Sobre uma superfície laranja ele troca
+ * o acento pela cor de tinta, para não sumir no fundo da própria cor.
  *
  * Só existe com mouse, no computador, e com a camada de polimento ligada: no Modo desempenho, com as
  * animações desligadas, no toque, na caneta e no headset o cursor é o do sistema.
@@ -16,6 +17,10 @@ import { polido } from './base';
 const CLICAVEL =
   'button, a[href], summary, label, select, [role="button"], [role="tab"], [role="radio"], [role="checkbox"], [role="switch"], [role="menuitem"], [role="option"], [role="link"], input[type="checkbox"], input[type="radio"], input[type="range"], [data-cursor="clicavel"]';
 const PARADO = ':disabled, [aria-disabled="true"]';
+/* AS SUPERFÍCIES LARANJA: sobre o fundo do acento o cursor (que é do acento) some, então passa à cor
+   de tinta. Reconhecidas pela classe, sem medir o estilo a cada movimento; o que tiver o fundo do
+   acento e não estiver na lista se declara com `data-cursor="tinta"`. */
+const LARANJA = '.q-ctl.pri, .btn-solid, .q-tile.pri, [data-cursor="tinta"]';
 
 export function instalarCursor(): () => void {
   if (typeof document === 'undefined' || noHeadset()) return () => undefined;
@@ -66,8 +71,10 @@ export function instalarCursor(): () => void {
     }
     delete caixa.dataset.fora;
     ponto.style.translate = anel.style.translate = `${e.clientX}px ${e.clientY}px`;
-    const alvo = e.target instanceof Element ? e.target.closest(CLICAVEL) : null;
+    const debaixo = e.target instanceof Element ? e.target : null;
+    const alvo = debaixo?.closest(CLICAVEL) ?? null;
     anel.classList.toggle('sobre', !!alvo && !alvo.matches(PARADO));
+    caixa.classList.toggle('tinta', !!debaixo?.closest(LARANJA));
   };
   const apertar = (e: PointerEvent) => e.pointerType === 'mouse' && anel.classList.add('aperta');
   const soltar = () => anel.classList.remove('aperta');

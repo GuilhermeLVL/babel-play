@@ -395,7 +395,33 @@ describe('motorDaUltimaFala', () => {
     expect(motorDaUltimaFala(falas, dicas)).toBe('groq-whisper')
   })
 
-  it('fala do microfone sem motor, com o microfone no navegador: falha FECHADO (o modo não vem na fala)', () => {
+  it('fala do microfone pelo navegador: o motor que a fala guarda decide (no aparelho × enviado)', () => {
+    const noNavegador = { ...dicas, micNoNavegador: true }
+    const local = [fala({ source: 'mic', engine: 'web-speech-local' })]
+    expect(motorDaUltimaFala(local, noNavegador)).toBe('web-speech-local')
+    expect(seloDaFala(navegadorLocal, motorDaUltimaFala(local, noNavegador))).toMatchObject({
+      etiqueta: 'No aparelho',
+      detalhe: 'seu áudio não sai daqui',
+      saiDoAparelho: false,
+      mudou: false,
+    })
+    const enviado = [fala({ source: 'mic', engine: 'web-speech' })]
+    expect(motorDaUltimaFala(enviado, noNavegador)).toBe('web-speech')
+    expect(seloDaFala(peloNavegador, motorDaUltimaFala(enviado, noNavegador))).toMatchObject({
+      etiqueta: 'Pelo navegador',
+      saiDoAparelho: true,
+    })
+    // A sessão trocou de modo no meio: vale a ÚLTIMA fala, nunca uma anterior mais favorável.
+    expect(motorDaUltimaFala([...local, ...enviado], noNavegador)).toBe('web-speech')
+    // Previsto "pelo navegador" (enviado) e o navegador reconheceu no aparelho: mudou, para melhor.
+    expect(seloDaFala(peloNavegador, 'web-speech-local')).toMatchObject({
+      etiqueta: 'No aparelho',
+      saiDoAparelho: false,
+      mudou: true,
+    })
+  })
+
+  it('fala do microfone SEM motor (sessão antiga), com o microfone no navegador: falha FECHADO', () => {
     const falas = [fala({ engine: 'whisper-local' }), fala({ source: 'mic' })]
     expect(motorDaUltimaFala(falas, { ...dicas, micNoNavegador: true })).toBe('web-speech')
     // Com o microfone no nosso modelo, uma fala sem motor é uma falha de transcrição: nada a afirmar.

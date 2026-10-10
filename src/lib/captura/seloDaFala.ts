@@ -107,8 +107,9 @@ const lugarDoPrevisto = (d: DecisaoDeRota): Lugar => ({
 
 /**
  * O lugar do motor que atendeu a fala, pelo registro. Aceita o id do motor (`web-speech-local`) ou o
- * do adaptador (`whisper-local`, `groq-whisper`, `web-speech`): é o adaptador que a fala guarda
- * (`r.engine ?? b.adapterId`, em `gateway/index.ts`). `null` = o selo não tem o que afirmar.
+ * do adaptador (`whisper-local`, `groq-whisper`, `web-speech`): a fala do pipeline guarda o adaptador
+ * (`r.engine ?? b.adapterId`, em `gateway/index.ts`), e a da Web Speech, o motor com o modo
+ * (`segmentosDaWebSpeech.ts`). `null` = o selo não tem o que afirmar.
  */
 function lugarDoMotor(id: string): Lugar | null {
   const exato = motorPorId(id);
@@ -214,12 +215,15 @@ export function textoDoSelo(
  * O MOTOR REAL da última fala FINAL da tela (o parcial em curso não conta: ele nunca sai do aparelho
  * e ainda não é a fala). `null` = nenhuma fala final, ou a última não diz quem a atendeu.
  *
- * A fala do pipeline traz o motor (`engine`). A da Web Speech não traz (`segmentosDaWebSpeech.ts`),
- * então ele é deduzido da fonte, sempre para o lado que NÃO esconde um envio:
+ * A fala traz o motor (`engine`): a do pipeline, o adaptador; a da Web Speech, o motor do registro
+ * com o modo em que a sessão abriu (`segmentosDaWebSpeech.ts`: `web-speech-local` quando o navegador
+ * reconheceu no aparelho, `web-speech` quando enviou ao fabricante). Vale o que a fala guarda.
+ *
+ * A fala SEM motor (as de antes de a Web Speech guardá-lo) é deduzida da fonte, sempre para o lado
+ * que NÃO esconde um envio:
  *   · som do computador pelo navegador: é sempre no aparelho (o adaptador lança se receber uma
  *     trilha sem `processLocally`) → `web-speech-local-trilha`;
- *   · microfone pelo navegador: a fala não diz se o modo era o do aparelho ou o que envia ao
- *     fabricante → `web-speech`, o que envia (falha fechado);
+ *   · microfone pelo navegador: não se sabe o modo → `web-speech`, o que envia (falha fechado);
  *   · sem o navegador na fonte, a fala sem motor é uma transcrição que falhou: nada a afirmar.
  */
 export function motorDaUltimaFala(

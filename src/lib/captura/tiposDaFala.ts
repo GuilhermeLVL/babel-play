@@ -28,7 +28,12 @@ export interface SpeechSegment {
   tEndMs?: number;
   /** ISO-639-1 REAL desta fala quando DETECTADO (modo multi-idioma). undefined = usa a config. */
   lang?: string;
-  /** Adapter que transcreveu (procedência: whisper-local/groq-whisper/web-speech). */
+  /**
+   * Quem transcreveu (procedência). No pipeline, o id do ADAPTADOR (`whisper-local`, `groq-whisper`);
+   * na Web Speech, o id do MOTOR no registro, que diz o modo: `web-speech-local` e
+   * `web-speech-local-trilha` (reconhecida no aparelho) ou `web-speech` (áudio enviado ao fabricante
+   * do navegador). Ausente = não se sabe, e quem lê trata como enviado (`seloDaFala.ts`).
+   */
   engine?: string;
   /**
    * A fala ficou SEM tradução automática pela preferência "Tradução" (`traducaoSobDemanda.ts`): o

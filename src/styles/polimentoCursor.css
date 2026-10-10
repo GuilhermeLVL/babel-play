@@ -52,3 +52,13 @@ html.px-com-cursor * {
 .px-cursor-anel.aperta {
   scale: 0.85;
 }
+/* Sobre o laranja (botão primário, cartão principal): o acento sumiria no fundo da própria cor. */
+.px-cursor.tinta .px-cursor-ponto {
+  background: var(--ink);
+}
+.px-cursor.tinta .px-cursor-anel {
+  border-color: var(--ink);
+}
+.px-cursor.tinta .px-cursor-anel.sobre {
+  background: color-mix(in srgb, var(--ink) 16%, transparent);
+}

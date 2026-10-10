@@ -520,6 +520,8 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
         speakerName: nameOf(s.speakerId),
         // Idioma REAL detectado (multi-idioma) vence; senão, o da config.
         sourceLang: idiomaDaFala(s, { sourceLang, targetLang }),
+        /* A procedência é a que a fala guarda: a da Web Speech traz o modo (`web-speech-local` no
+           aparelho, `web-speech` enviado). Sem ela, a reserva de sempre, que na dúvida diz "enviado". */
         engine: s.engine ?? (isSys ? 'whisper-local' : micEngine === 'browser' ? 'web-speech' : 'whisper-local'),
         sourceText: s.originalText,
         // Idioma de `translatedText`. No intérprete, o do OUTRO lado: as duas pessoas falam no microfone.

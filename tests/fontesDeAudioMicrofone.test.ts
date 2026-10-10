@@ -226,6 +226,56 @@ describe('microfone pelo Rápido (Web Speech)', () => {
   })
 })
 
+describe('a fala do navegador guarda se foi reconhecida no aparelho ou enviada', () => {
+  type Seg = { engine?: string; source: string; isPartial?: boolean }
+  const comSegmentos = () => {
+    let segs: Seg[] = []
+    return {
+      segs: () => segs,
+      setSpeechSegments: (f: (p: Seg[]) => Seg[]) => {
+        segs = f(segs)
+      },
+    }
+  }
+  /** Um interino e depois o final (o caminho do computador: o final é comprometido na hora). */
+  const falar = (texto: string) => {
+    const rec = ReconhecedorFalso.ultimo!
+    const resultado = (fim: boolean) => ({
+      results: [Object.assign([{ transcript: texto, confidence: 0.9 }], { isFinal: fim })],
+    })
+    rec.onresult?.(resultado(false))
+    rec.onresult?.(resultado(true))
+  }
+
+  it('Rápido (sem `processLocally`): `web-speech`, o que envia', async () => {
+    const tela = comSegmentos()
+    const { fontes } = montar('rapido', { setSpeechSegments: tela.setSpeechSegments })
+    await fontes.startMic()
+    falar('olá tudo bem')
+    const finais = tela.segs().filter((s) => !s.isPartial)
+    expect(finais).toHaveLength(1)
+    expect(finais[0]).toMatchObject({ source: 'mic', engine: 'web-speech' })
+  })
+
+  it('o navegador reconhece no aparelho (`processLocally`): `web-speech-local`', async () => {
+    class ReconhecedorLocal extends ReconhecedorFalso {
+      static available = async () => 'available'
+      processLocally = false
+    }
+    vi.stubGlobal('window', { SpeechRecognition: ReconhecedorLocal })
+    vi.stubGlobal('SpeechRecognition', ReconhecedorLocal)
+    const tela = comSegmentos()
+    // Sem consentimento do "Rápido": só o reconhecimento no aparelho pode ter aberto a Web Speech.
+    const { fontes } = montar('privado', { setSpeechSegments: tela.setSpeechSegments })
+    await fontes.startMic()
+    expect((ReconhecedorFalso.ultimo as unknown as { processLocally: boolean }).processLocally).toBe(true)
+    falar('olá tudo bem')
+    const finais = tela.segs().filter((s) => !s.isPartial)
+    expect(finais).toHaveLength(1)
+    expect(finais[0]).toMatchObject({ source: 'mic', engine: 'web-speech-local' })
+  })
+})
+
 describe('microfone pelo Privado (Whisper)', () => {
   it('abre depois do getUserMedia + VAD, com o contexto do clique', async () => {
     vi.stubGlobal(

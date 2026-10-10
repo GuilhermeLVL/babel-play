@@ -45,6 +45,41 @@ describe('o cursor de ponto com anel', () => {
     expect(anel.classList.contains('sobre')).toBe(false)
   })
 
+  it('sobre o laranja passa à cor de tinta, e volta ao acento fora dele', () => {
+    document.body.innerHTML =
+      '<p id="p">texto</p>' +
+      '<button id="pri" class="q-ctl pri"><span id="dentro">Iniciar</span></button>' +
+      '<button id="solido" class="btn-solid">Salvar</button>' +
+      '<div id="cartao" class="q-tile pri"><b id="titulo">Capturar</b></div>' +
+      '<div id="marcado" data-cursor="tinta"><i id="filho">selo</i></div>' +
+      '<button id="comum" class="q-ctl">Pausar</button>'
+    comMouse(true)
+    desligar = instalarCursor()
+    const caixa = document.querySelector('.px-cursor') as HTMLElement
+    mexer(document.getElementById('p')!)
+    expect(caixa.classList.contains('tinta')).toBe(false)
+    for (const id of ['pri', 'dentro', 'solido', 'cartao', 'titulo', 'marcado', 'filho']) {
+      mexer(document.getElementById(id)!)
+      expect(caixa.classList.contains('tinta'), id).toBe(true)
+      mexer(document.getElementById('p')!)
+      expect(caixa.classList.contains('tinta'), `${id} → fora`).toBe(false)
+    }
+    // O botão comum (sem o fundo do acento) segue com o cursor no acento.
+    mexer(document.getElementById('comum')!)
+    expect(caixa.classList.contains('tinta')).toBe(false)
+  })
+
+  it('não mede o estilo a cada movimento: a superfície laranja é reconhecida pelo seletor', () => {
+    document.body.innerHTML = '<button id="pri" class="q-ctl pri">Iniciar</button>'
+    comMouse(true)
+    desligar = instalarCursor()
+    const medir = vi.spyOn(window, 'getComputedStyle')
+    mexer(document.getElementById('pri')!)
+    mexer(document.body)
+    expect(medir).not.toHaveBeenCalled()
+    medir.mockRestore()
+  })
+
   it('toque ou caneta: o cursor some', () => {
     comMouse(true)
     desligar = instalarCursor()

@@ -11,9 +11,12 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+/** O aparelho do teste: celular (frente a frente) por padrão; os testes do monitor ligam o computador. */
+const aparelho = vi.hoisted(() => ({ computador: false }))
 vi.mock('../src/lib/dispositivo/telaNovaDoQuest', async (original) => ({
   ...(await original<typeof import('../src/lib/dispositivo/telaNovaDoQuest')>()),
   useQuestNovo: () => true,
+  noComputador: () => aparelho.computador,
 }))
 vi.mock('../src/lib/tts', async (original) => {
   const real = await original<typeof import('../src/lib/tts')>()
@@ -40,6 +43,7 @@ let gravadas: Gravada[] = []
 
 beforeEach(() => {
   gravadas = []
+  aparelho.computador = false
   localStorage.clear()
   document.documentElement.dataset.px = 'on'
   document.body.className = 'animations-on'
@@ -107,6 +111,23 @@ describe('a tela pronta (o Intérprete abre direto na conversa)', () => {
       'Ver a conversa em lista',
     ])
     expect(raiz.querySelectorAll('.px-int-idioma')).toHaveLength(2)
+    // No celular a conversa não declara layout: é o frente a frente de sempre.
+    expect(raiz.hasAttribute('data-layout')).toBe(false)
+  })
+
+  it('NO COMPUTADOR: duas colunas (`data-layout`), e nenhuma metade virada', () => {
+    aparelho.computador = true
+    pagina()
+    const raiz = screen.getByTestId('conversa-pronta')
+    expect(raiz.dataset.layout).toBe('computador')
+    const metades = [...raiz.querySelectorAll<HTMLElement>('.int-metade')]
+    expect(metades.map((m) => m.dataset.lado)).toEqual(['outro', 'meu'])
+    expect(metades.map((m) => m.hasAttribute('data-virada'))).toEqual([false, false])
+    // Trocar os lados troca as colunas, e segue sem virar ninguém.
+    fireEvent.click(screen.getByLabelText('Trocar os lados'))
+    const trocadas = [...document.querySelectorAll<HTMLElement>('.int-metade')]
+    expect(trocadas.map((m) => m.dataset.lado)).toEqual(['meu', 'outro'])
+    expect(trocadas.map((m) => m.hasAttribute('data-virada'))).toEqual([false, false])
   })
 
   it('a entrada usa os números do protótipo (telas2.js:275-278)', () => {
@@ -231,6 +252,15 @@ describe('a conversa em curso no desenho novo', () => {
     expect(estadoDaTela().emCurso).toBe(false)
   })
 
+  it('no computador a conversa em curso também fica em duas colunas, sem metade virada', async () => {
+    aparelho.computador = true
+    conversa()
+    await esperar()
+    const raiz = screen.getByTestId('modo-interprete')
+    expect(raiz.dataset.layout).toBe('computador')
+    expect(raiz.querySelectorAll('.int-metade[data-virada]')).toHaveLength(0)
+  })
+
   it('começa ouvindo o lado tocado na tela pronta', async () => {
     pedirConversa('meu')
     const { abrir } = conversa()
@@ -238,6 +268,9 @@ describe('a conversa em curso no desenho novo', () => {
     expect(abrir).toHaveBeenCalledOnce()
     expect(screen.getByTestId('falar-meu').textContent).toBe('Parar')
     expect(screen.getByTestId('falar-meu').hasAttribute('data-ouvindo')).toBe(true)
+    // O cursor do app só passa à tinta sobre o botão LARANJA (parado); ouvindo, o botão não é laranja.
+    expect(screen.getByTestId('falar-meu').dataset.cursor).toBeUndefined()
+    expect(screen.getByTestId('falar-outro').dataset.cursor).toBe('tinta')
   })
 
   it('a tradução aparece do lado de quem escuta, com o original embaixo, e anima uma vez', async () => {

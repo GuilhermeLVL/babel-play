@@ -269,24 +269,32 @@
 }
 
 /* ---------- computador: duas colunas, a faixa em cima ---------- */
+/* Nenhuma metade virada: num monitor as duas pessoas leem do mesmo lado (decisão do dono, 09/10/2026).
+   A coluna é a POSIÇÃO da metade, não o dono dela: a de baixo (quem está ao teclado, "Você" de saída)
+   fica à esquerda e a de cima à direita, e "Trocar os lados" troca as colunas. */
 .int[data-layout='computador'] {
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: auto 1fr;
   grid-template-areas:
     'faixa faixa'
-    'meu outro';
+    'esquerda direita';
 }
 .int[data-layout='computador'] .int-faixa {
   grid-area: faixa;
   border-top: 0;
 }
-.int[data-layout='computador'] .int-metade[data-lado='meu'] {
-  grid-area: meu;
+.int[data-layout='computador'] .int-metade:not(:first-child) {
+  grid-area: esquerda;
   border-right: 1px solid var(--int-linha);
 }
-.int[data-layout='computador'] .int-metade[data-lado='outro'] {
-  grid-area: outro;
+.int[data-layout='computador'] .int-metade:first-child {
+  grid-area: direita;
+}
+/* A conversa em lista ocupa as duas colunas. */
+.int[data-layout='computador'] .int-conversa {
+  grid-column: 1 / -1;
+  grid-row: 2;
 }
 .int[data-layout='computador'] .int-metade {
   padding: 28px 32px 48px;

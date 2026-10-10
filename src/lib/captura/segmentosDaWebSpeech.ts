@@ -42,7 +42,25 @@ export interface DepsDosSegmentosDaWebSpeech {
    * fala — o microfone fecha aqui.
    */
   aoFinalComprometido?: (segId: string) => void;
+  /**
+   * O MOTOR desta sessão de reconhecimento, no id do registro (`registroDeMotores.ts`): a fala final o
+   * guarda em `engine`, e é por ele que o selo e a sessão salva sabem se o áudio saiu do aparelho —
+   * `web-speech-local` (microfone com `processLocally`), `web-speech-local-trilha` (a trilha da aba,
+   * sempre no aparelho) ou `web-speech` (enviado ao fabricante). Quem abre a sessão é quem sabe o
+   * modo; sem ele a fala não afirma motor, e quem lê falha FECHADO (`motorDaUltimaFala`).
+   */
+  engine?: MotorDaWebSpeech;
 }
+
+/** Os três motores do adaptador `web-speech` no registro. */
+export type MotorDaWebSpeech = 'web-speech' | 'web-speech-local' | 'web-speech-local-trilha';
+
+/**
+ * O motor do MICROFONE pelo navegador. `noAparelho` é o `processLocally` com que a sessão abriu (o
+ * adaptador lança se o navegador não o conhece); qualquer outra coisa é o modo que envia.
+ */
+export const motorDoMicrofoneNoNavegador = (noAparelho: boolean): MotorDaWebSpeech =>
+  noAparelho === true ? 'web-speech-local' : 'web-speech';
 
 const novoId = () => Math.random().toString(36).slice(2, 11);
 
@@ -131,6 +149,7 @@ export function segmentosDaWebSpeech(d: DepsDosSegmentosDaWebSpeech) {
         isPartial: false,
         tStartMs: existing?.tStartMs ?? d.nowRel(),
         tEndMs: d.nowRel(),
+        ...(d.engine ? { engine: d.engine } : {}),
         /* No intérprete o idioma é o do lado (declarado, não detectado): a sessão salva narra e estuda
            cada lado no idioma dele. */
         ...(d.lado ? { lado: d.lado, lang: d.de() } : {}),

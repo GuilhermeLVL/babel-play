@@ -509,7 +509,10 @@ meRouter.get('/entitlements', async (req, res) => {
   try {
     // Provisiona a conta no 1º acesso (idempotente) — assim o usuário aparece na gestão admin.
     // O convidado (Fase 7) NÃO vira conta: anônimo não entra na gestão admin nem ganha linha em `users`.
-    if (!req.convidado) await usersRepo.ensure(req.userId)
+    /* A DATA DE CRIAÇÃO DA CONTA vai junto (`contaCriadaEm`, ms): a política de anúncios do Grátis não
+       mostra nada nos três primeiros dias (`src/core/anuncios/politicaDeAnuncio.ts`). O convidado não tem
+       conta, e portanto não tem data: `null`. É a linha que o `ensure` já lê, sem consulta a mais. */
+    const conta = req.convidado ? null : await usersRepo.ensure(req.userId)
     /* `resolverPlano` e não só o plano: o TESTE de 14 dias (C6) chega ao cliente com o fim dele, para
        o aviso de D-3 e D0 (`fim_do_teste`) e a tela dizerem "teste até <data>" em vez de "Premium". */
     const [entitlements, { plano, teste }] = await Promise.all([
@@ -525,7 +528,12 @@ meRouter.get('/entitlements', async (req, res) => {
      */
     const usados = Number.isFinite(teto) ? await reconciliarSeVencido(req.userId) : await usoDeArmazenamento(req.userId)
     // `Infinity` não sobrevive ao JSON (vira null); `null` diz "sem teto" de forma explícita.
-    res.json({ ...entitlements, teste, armazenamento: { usados, teto: Number.isFinite(teto) ? teto : null } })
+    res.json({
+      ...entitlements,
+      teste,
+      contaCriadaEm: conta?.createdAt ?? null,
+      armazenamento: { usados, teto: Number.isFinite(teto) ? teto : null },
+    })
   } catch (err) {
     res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'me_route_error' }) })
   }

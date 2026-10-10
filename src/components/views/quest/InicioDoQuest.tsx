@@ -28,6 +28,7 @@ import type { AgeProfileType } from '../../../lib/profile';
 import type { DerivedProgress } from '../../../lib/progress';
 import { perfilProtegido } from '../../../lib/protecaoDoMenor';
 import type { Recording } from '../../../types';
+import EspacoDeAnuncio from '../../anuncios/EspacoDeAnuncio';
 import CardDePlanos from '../../CardDePlanos';
 import AvisoDeConta from '../../conta/AvisoDeConta';
 import { ICONE_DA_MISSAO, rotuloDaMissao } from '../../progress/MissoesDoDia';
@@ -388,6 +389,11 @@ export default function InicioDoQuest({
           </div>
         </section>
       )}
+
+      {/* O ESPAÇO DE ANÚNCIO DO INÍCIO (flag `anuncios`, desligada de fábrica; sem provedor não desenha
+          nada). No protótipo é o último cartão de uma seção "Para continuar", que o app não tem: o espaço
+          fica onde ela ficaria, no fim da tela, abaixo das três ações, das missões e das sessões. */}
+      <EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" aoSemAnuncios={() => onChangeView('planos')} />
     </div>
   );
 }

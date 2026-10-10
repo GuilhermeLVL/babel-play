@@ -13,11 +13,13 @@ import {
   Plus,
   Search,
 } from 'lucide-react';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, useLayoutEffect, useRef, useState } from 'react';
 
+import { noCelular } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { idiomaDaInterface, numero, t, tp } from '../../../../lib/i18n';
 import { type ComoRedesenhar, redesenharBib } from '../../../../lib/polimento/biblioteca';
 import type { Recording } from '../../../../types';
+import EspacoDeAnuncio from '../../../anuncios/EspacoDeAnuncio';
 
 /**
  * A BIBLIOTECA NO QUEST — a maquete aprovada pelo dono em 01/10/2026 (tela 9), refeita em 02/10/2026
@@ -314,6 +316,11 @@ export default function BibliotecaDoQuest({
     [t('Idioma'), nomeDoIdioma(selecionada.idioma) || '—'],
     [t('Data'), selecionada.date || '—'],
   ];
+  /* A LINHA PATROCINADA (flag `anuncios`, desligada de fábrica; sem provedor não desenha nada): entre a
+     2ª e a 3ª gravação, só em página com pelo menos duas. No celular a gravação escolhida fica presa ao
+     pé, com o botão "Abrir", e qualquer linha passaria colada nele ao rolar: ali o espaço não existe
+     (`anuncios.js:132-137` do protótipo; spec, "Linha patrocinada na Biblioteca"). */
+  const linhaPatrocinada = visiveis.length >= 2 && !noCelular();
   // Retomar captura: só sessões de áudio têm captura (documento e vídeo importado não).
   const podeRetomar = !!aoRetomar && selecionada.type === 'audio';
 
@@ -326,31 +333,33 @@ export default function BibliotecaDoQuest({
       <div className="q-bib-corpo">
         <div className="q-bib-col">
           <div className="q-lista" role="group" aria-label={t('Gravações')}>
-            {visiveis.map((g) => {
+            {visiveis.map((g, i) => {
               const Icone = ICONE_DO_TIPO[g.type] ?? Mic;
               const detalhes = [g.date, minutosDe(g.durationStr), nomeDoIdioma(g.idioma)].filter(Boolean).join(' · ');
               return (
-                <button
-                  key={g.id}
-                  type="button"
-                  className="q-linha"
-                  data-px-grav={g.id}
-                  aria-pressed={g.id === selecionada.id}
-                  onClick={() => {
-                    setEscolhida(g.id);
-                    redesenhar('detalhe');
-                  }}
-                  onDoubleClick={duploCliqueAbre ? () => aoAbrir(g) : undefined}
-                >
-                  <span className="q-ic" aria-hidden>
-                    <Icone />
-                  </span>
-                  <span>
-                    <b>{g.title}</b>
-                    <small>{detalhes}</small>
-                  </span>
-                  <span className="q-fim">{palavrasDe(g)}</span>
-                </button>
+                <Fragment key={g.id}>
+                  <button
+                    type="button"
+                    className="q-linha"
+                    data-px-grav={g.id}
+                    aria-pressed={g.id === selecionada.id}
+                    onClick={() => {
+                      setEscolhida(g.id);
+                      redesenhar('detalhe');
+                    }}
+                    onDoubleClick={duploCliqueAbre ? () => aoAbrir(g) : undefined}
+                  >
+                    <span className="q-ic" aria-hidden>
+                      <Icone />
+                    </span>
+                    <span>
+                      <b>{g.title}</b>
+                      <small>{detalhes}</small>
+                    </span>
+                    <span className="q-fim">{palavrasDe(g)}</span>
+                  </button>
+                  {i === 1 && linhaPatrocinada && <EspacoDeAnuncio espaco="bib-infeed" formato="nativo" />}
+                </Fragment>
               );
             })}
           </div>

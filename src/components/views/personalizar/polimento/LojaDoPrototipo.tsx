@@ -18,6 +18,7 @@ import {
   previaDoEfeito,
   sentirMoeda,
 } from '../../../../lib/polimento/personalizar';
+import EspacoDeAnuncio from '../../../anuncios/EspacoDeAnuncio';
 import MiniaturaDoItem from '../../../MiniaturaDoItem';
 import { toast } from '../../../Toast';
 
@@ -225,6 +226,9 @@ export default function LojaDoPrototipo({
           <Gamepad2 aria-hidden /> {t('Ganhar jogando')}
         </button>
       </section>
+      {/* O PREMIADO DE SEEDS (flag `anuncios`, desligada de fábrica; sem provedor não desenha nada): a faixa
+          logo abaixo da carteira (`plantarLoja`, `anuncios.js:213-223` do protótipo). */}
+      <EspacoDeAnuncio espaco="loja-seeds" formato="premiado" />
 
       <div className="q-abas q-seg px-cats" role="group" aria-label={t('Categoria')} ref={cats}>
         {CATEGORIAS.map((c) => (

@@ -37,8 +37,13 @@ export type Canal = 'app' | 'email' | 'push';
  * navegador, que manda o áudio ao Google (Chrome, Android), à Microsoft (Edge) ou à Apple (Safari).
  * PRÓPRIO, e não o `nuvem`: o destinatário e a finalidade são outros (LGPD art. 8º, § 4º), e quem
  * autorizou os nossos servidores de IA não autorizou o Google a ouvir a sua voz. Desligado por padrão.
+ *
+ * `anuncios` (2026-10-09, change `planos-v3-e-rota-inteligente`): ver anúncios no plano Grátis. PRÓPRIO,
+ * como os outros: a finalidade é outra (publicidade), e quem autorizou a nuvem ou as métricas não
+ * autorizou anúncio. Desligado por padrão, e sem ele a política (`src/core/anuncios/politicaDeAnuncio.ts`)
+ * nega todo espaço. Nunca é pedido ao perfil protegido: para ele a política nega antes.
  */
-export type Consentimento = 'metricas' | 'novidades' | 'ia' | 'nuvem' | 'reconhecimentoDoNavegador';
+export type Consentimento = 'metricas' | 'novidades' | 'ia' | 'nuvem' | 'reconhecimentoDoNavegador' | 'anuncios';
 
 export interface Preferencias {
   lembrete: { on: boolean; hora: string };
@@ -81,7 +86,14 @@ export const PADRAO: Preferencias = {
   },
   silencio: { on: true, de: '22:00', ate: '08:00' },
   semanal: { on: true, dia: 'domingo' },
-  consentimentos: { metricas: true, novidades: false, ia: false, nuvem: false, reconhecimentoDoNavegador: false },
+  consentimentos: {
+    metricas: true,
+    novidades: false,
+    ia: false,
+    nuvem: false,
+    reconhecimentoDoNavegador: false,
+    anuncios: false,
+  },
   registroDeConsentimentos: [],
   metaMin: 15,
   niveis: {},

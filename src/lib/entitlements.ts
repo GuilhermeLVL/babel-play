@@ -49,6 +49,12 @@ export interface Entitlements extends EntitlementsDoPlano {
    * Premium. É o que o aviso `fim_do_teste` (D-3 e D0) lê.
    */
   teste?: { terminaEm: number } | null;
+  /**
+   * Quando a CONTA foi criada (ms), como o servidor a gravou. `null`/ausente = sem conta, ou um servidor
+   * anterior que não manda o campo. É o que a política de anúncios lê para a regra dos três dias
+   * (`src/core/anuncios/politicaDeAnuncio.ts`): sem data, ela nega.
+   */
+  contaCriadaEm?: number | null;
 }
 
 const CACHE_KEY = 'babel.entitlements';
@@ -108,6 +114,7 @@ function normalizar(v: unknown): Entitlements | null {
     ...lerEntitlements(o),
     armazenamento,
     teste,
+    contaCriadaEm: typeof o.contaCriadaEm === 'number' && Number.isFinite(o.contaCriadaEm) ? o.contaCriadaEm : null,
   };
 }
 

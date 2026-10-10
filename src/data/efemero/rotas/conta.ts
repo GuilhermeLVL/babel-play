@@ -18,6 +18,8 @@ export async function entitlementsAnonimos(): Promise<Response> {
     ...ENTITLEMENTS_FECHADOS,
     // Sem conta não há teste do Premium (C6): a mesma forma do servidor, com o campo vazio.
     teste: null,
+    // Sem conta não há data de criação: a mesma forma do servidor, com o campo vazio.
+    contaCriadaEm: null,
     armazenamento: { usados: 0, teto: 0 },
   });
 }

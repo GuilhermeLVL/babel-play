@@ -8,6 +8,7 @@ import { celebrar } from '../../../lib/comemoracao';
 import { numero, t } from '../../../lib/i18n';
 import { guardarNivelDoJogo, lerNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import type { DerivedProgress } from '../../../lib/progress';
+import EspacoDeAnuncio from '../../anuncios/EspacoDeAnuncio';
 import { nomeCurtoDoJogo, textosDoJogo, unidadeDoPlacar } from '../polimento/textos';
 import HudDaRodada from './HudDaRodada';
 import { nomeDoNivel } from './SeletorDeNivel';
@@ -184,6 +185,10 @@ export default function FimDaRodada({
               </div>
             </div>
           )}
+          {/* OS ESPAÇOS DE ANÚNCIO DO FIM DE RODADA (flag `anuncios`, desligada de fábrica; sem provedor não
+              desenham nada): o premiado, que é escolha, logo abaixo do XP; e o bloco nativo ABAIXO dos
+              botões, longe do "Próximo jogo" (`plantarFim`, `anuncios.js:234-258` do protótipo). */}
+          <EspacoDeAnuncio espaco="fim-premiado" formato="premiado" />
           <div className="pj-fim-acoes">
             {para && comSugestao && (
               <button
@@ -221,6 +226,7 @@ export default function FimDaRodada({
               <ChevronLeft data-pj-i="" aria-hidden /> {t('Voltar aos jogos')}
             </button>
           </div>
+          <EspacoDeAnuncio espaco="fim-bloco" formato="nativo" />
         </div>
       </div>
     </>

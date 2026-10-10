@@ -2,6 +2,7 @@ import { Check, Cpu, Download, RefreshCw, Trash2, TriangleAlert } from 'lucide-r
 import { useEffect, useState } from 'react';
 
 import { revisaoFixaDoModelo } from '../../../gateway/adapters/bergamotModelo';
+import { revisaoFixaDoParakeet } from '../../../gateway/adapters/parakeetModelo';
 import {
   apagarModelo,
   baixadoEm,
@@ -103,9 +104,10 @@ export default function ModeloNoDispositivo({
     const baixados = modelos.filter((m) => estados[m.id]?.completo);
     if (!baixados.length) return;
     setProcurando(true);
-    // O Bergamot tem a versão fixada no código (não pergunta ao Hub); os outros, o commit publicado.
+    // O Bergamot e o Parakeet têm a versão fixada no código (não perguntam ao Hub); os outros, o commit publicado.
+    const fixa = (id: string) => revisaoFixaDoModelo(id) ?? revisaoFixaDoParakeet(id);
     const pares = await Promise.all(
-      baixados.map(async (m) => [m.id, await situacaoDaVersao(m.id, fetch, revisaoFixaDoModelo(m.id))] as const),
+      baixados.map(async (m) => [m.id, await situacaoDaVersao(m.id, fetch, fixa(m.id))] as const),
     );
     setProcurando(false);
     setVersoes(Object.fromEntries(pares));

@@ -85,7 +85,7 @@ const mb = (n: number): number => n * 1_000_000;
 
 /**
  * Os motores de HOJE, fiéis ao código (`src/gateway/index.ts` resolveMt/resolveStt/resolveLlm,
- * `profiles.ts`, `sttRouter.ts`, `adapters/*`). Motores futuros (Parakeet, ML Kit) entram quando existir o adaptador — registro de motor que não roda é
+ * `profiles.ts`, `sttRouter.ts`, `adapters/*`). Motores futuros (ML Kit) entram quando existir o adaptador — registro de motor que não roda é
  * promessa, e o teste de fidelidade exige que tudo aqui corresponda a um adaptador real.
  */
 export const REGISTRO_DE_MOTORES: readonly RegistroDeMotor[] = [
@@ -207,6 +207,29 @@ export const REGISTRO_DE_MOTORES: readonly RegistroDeMotor[] = [
     enviaDadosA: null,
     custo: 'download',
     licenca: 'MIT (só o modelo de inglês)',
+  },
+  {
+    /* PARAKEET TDT 0.6b v3 int8 em WASM (`adapters/parakeetLocal.ts`, worker próprio sobre o
+       onnxruntime-web): o "preciso no aparelho" de português e espanhol no computador, ATRÁS da chave
+       local `babel.stt.parakeet`, desligada de fábrica. Não está em perfil nenhum: o gateway o põe na
+       frente do `whisper-local` quando a rota o escolhe (`sttRouter.ts`), e o Whisper fica de reserva. */
+    id: 'parakeet-v3',
+    adapterId: 'parakeet-local',
+    modelo: 'parakeet-tdt-0.6b-v3', // `ID_DO_PARAKEET` em `adapters/parakeetModelo.ts`
+    tarefa: 'stt',
+    runtime: 'local',
+    idiomas: ['pt', 'es'], // os medidos; o modelo cobre 25 idiomas europeus, e a rota só usa estes dois
+    bytes: mb(672), // medido: os quatro arquivos nos commits fixados (671,7 MB)
+    requer: {},
+    enviaDadosA: null,
+    custo: 'download',
+    licenca:
+      'CC-BY-4.0 (pesos: NVIDIA, nvidia/parakeet-tdt-0.6b-v3; export ONNX: istupakov; extrator de áudio: onnx-asr)',
+    nota:
+      'Pesos em dois repositórios de TERCEIROS no Hugging Face (istupakov e striimit), no commit fixado e com ' +
+      'sha256 conferido no navegador. Sem texto parcial. 2,0 GB de RAM somando os processos do Chrome com o modelo ' +
+      'carregado (foto de 09/10/2026, não o pico: por isso `memoriaDePicoMb` fica vazio). Falta medir em notebook ' +
+      'sem placa de vídeo e com áudio real.',
   },
   {
     id: 'groq-whisper',

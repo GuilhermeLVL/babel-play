@@ -25,6 +25,7 @@ import type { TipoDeDispositivo } from '../lib/dispositivo/perfil';
 import { edicaoEstatica } from '../lib/edicaoEstatica';
 import { nuvemDoQuestAtiva } from '../lib/nuvemDoQuest';
 import { mbDoDownload, parDoId } from './adapters/bergamotModelo';
+import { ID_DO_PARAKEET, IDIOMAS_DO_PARAKEET, MB_DO_PARAKEET, parakeetLigado } from './adapters/parakeetModelo';
 
 export type SttQuality = 'auto' | 'fast' | 'accurate' | 'cloud';
 
@@ -61,6 +62,11 @@ export interface SttRouteInput {
    * (quem ainda não mede o aparelho continua igual).
    */
   dispositivo?: DispositivoDaRota;
+  /**
+   * A chave local do Parakeet (`babel.stt.parakeet`). Ausente = lê a chave (`parakeetLigado`), que é
+   * DESLIGADA de fábrica; quem testa a rota passa o valor. Ligada, não basta: ver `parakeetCabeNoAparelho`.
+   */
+  parakeet?: boolean;
 }
 
 /** O pedaço do perfil do dispositivo que a rota usa. */
@@ -70,6 +76,10 @@ export interface DispositivoDaRota {
   permiteSmall: boolean;
   /** `navigator.connection.saveData`: o menor modelo que serve. */
   economiaDeDados: boolean;
+  /** `navigator.deviceMemory` em GB (só Chromium: 1, 2, 4 ou 8, com teto em 8). `null`/ausente = não medido. */
+  memoriaGb?: number | null;
+  /** `PerfilDoDispositivo.poucaMemoria`: celular, Quest, 2 GB ou aba com heap pequeno. */
+  poucaMemoria?: boolean;
   /* Da SONDA (`dispositivoDaRota` em `lib/dispositivo/perfil.ts`); ausentes = sem sonda guardada. */
   /** O `requestAdapter()` entregou um adaptador e ele NÃO é o de reserva (software). */
   adaptadorReal?: boolean;
@@ -139,6 +149,26 @@ function dtypeNaGpu(_d: DispositivoDaRota | undefined): DtypeDaRota {
   return 'hybrid';
 }
 
+/**
+ * Memória mínima MEDIDA para o Parakeet: o balde mais alto do `deviceMemory` (8 = "8 GB ou mais").
+ * A bancada mediu 2,0 GB de RAM somando os processos do Chrome só com ele carregado (o dobro do
+ * Whisper base q8), e na captura ainda entram o tradutor e a página. Num computador de 4 GB isso é
+ * metade da máquina; não foi medido lá, então não entra.
+ */
+export const MEMORIA_MINIMA_DO_PARAKEET_GB = 8;
+
+/**
+ * O Parakeet int8 (672 MB de download, ~2 GB de RAM) CABE neste aparelho? Só no COMPUTADOR, com a
+ * memória medida e suficiente, sem `poucaMemoria` e sem economia de dados. Sem medida (Firefox e
+ * Safari não informam `deviceMemory`; perfil sem os campos) a resposta é não: quem não prova a
+ * memória fica no Whisper. Celular e Quest nunca. Não exige GPU: ele roda no processador, e é por
+ * isso que serve também o computador sem placa de vídeo. Pura.
+ */
+export function parakeetCabeNoAparelho(d: DispositivoDaRota | undefined): boolean {
+  if (!d || !d.tipo.startsWith('desktop') || d.economiaDeDados || d.poucaMemoria !== false) return false;
+  return typeof d.memoriaGb === 'number' && d.memoriaGb >= MEMORIA_MINIMA_DO_PARAKEET_GB;
+}
+
 export interface SttRoute {
   /** Modelo local a carregar (sempre definido — é a reserva mesmo no modo nuvem). */
   localModel: string;
@@ -202,6 +232,9 @@ export const MODEL_DOWNLOAD_MB: Record<string, number> = {
   [WHISPER_MODELS.small]: 589, // medido (bytes do Hub, hybrid; download real 588,7 MB)
   [MOONSHINE_MODELS.base]: 67, // medido (bytes do Hub, q8)
   [MOONSHINE_MODELS.tiny]: 32, // medido (bytes do Hub, q8)
+  /* Parakeet TDT 0.6b v3 int8: a soma dos quatro arquivos nos commits fixados (`parakeetModelo.ts`):
+     encoder 652,18 MB + decoder 18,20 MB + extrator de áudio 1,19 MB + vocabulário 0,09 MB = 671,7 MB. */
+  [ID_DO_PARAKEET]: MB_DO_PARAKEET, // medido (bytes do Hub, int8)
 };
 
 /**
@@ -263,6 +296,7 @@ export const MODEL_DOWNLOAD_MEDIDO: Record<string, boolean> = {
   [WHISPER_MODELS.small]: true,
   [MOONSHINE_MODELS.base]: true,
   [MOONSHINE_MODELS.tiny]: true,
+  [ID_DO_PARAKEET]: true,
 };
 
 /**
@@ -270,6 +304,7 @@ export const MODEL_DOWNLOAD_MEDIDO: Record<string, boolean> = {
  * Hub (`moonshine-base-ONNX`) carrega o sufixo do formato, que não diz nada a quem usa o app.
  */
 export function nomeLegivelDoModelo(id: string): string {
+  if (id === ID_DO_PARAKEET) return 'Parakeet v3';
   const nome = (id.split('/').pop() ?? id).replace(/-ONNX$/i, '');
   return nome
     .replace(/^whisper-/i, 'Whisper ')
@@ -321,6 +356,30 @@ export function routeStt(input: SttRouteInput): SttRoute {
   const bestLocal = podeSmall ? WHISPER_MODELS.small : WHISPER_MODELS.base;
   const nomeCurto = (m: string) => m.split('-').pop();
   const sufixo = gpuMovel ? ' · GPU' : q8 ? ' q8' : '';
+  /* PARAKEET (chave `babel.stt.parakeet`, DESLIGADA de fábrica): com a chave ligada, no computador
+     com memória medida (`parakeetCabeNoAparelho`), o modelo local de PRECISÃO de português e espanhol
+     é o Parakeet int8 em WASM, no lugar do Whisper small/base — 5,8% de erro em português contra
+     10,8% do small e 18,2% do base, 11 vezes mais rápido que a fala sem usar a GPU
+     (`docs/auditoria/2026-10-09-medicoes-no-aparelho.md`). Um modelo só decodifica todas as fontes,
+     então TODAS têm de ser pt ou es (a mesma régua do `isEnglish`); com "Detectar" não entra. Inglês,
+     os outros idiomas, o "rápido" e a RESERVA da nuvem (o base, para não baixar 672 MB de reserva)
+     ficam como estavam. */
+  const fontes = input.soMicrofone && micLang ? [micLang] : micLang ? [lang, micLang] : [lang];
+  const parakeet =
+    (input.parakeet ?? parakeetLigado()) &&
+    !autoDetect &&
+    fontes.every((l) => IDIOMAS_DO_PARAKEET.includes(l)) &&
+    parakeetCabeNoAparelho(dispositivo);
+  /** A rota local de precisão: o Parakeet quando serve, senão o melhor Whisper do aparelho. */
+  const precisoLocal = (rotulo: (nome: string) => string): SttRoute =>
+    parakeet
+      ? {
+          localModel: ID_DO_PARAKEET,
+          device: 'wasm',
+          preferCloud: false,
+          label: rotulo(nomeLegivelDoModelo(ID_DO_PARAKEET)),
+        }
+      : { ...whisperLocal(bestLocal), preferCloud: false, label: rotulo(`${nomeCurto(bestLocal)}${sufixo}`) };
   /** Moonshine do "auto" em inglês: o tiny no celular fraco, no Quest (~3 núcleos em clock reduzido
       para o app) ou com economia de dados. */
   const moonshineAuto =
@@ -347,11 +406,7 @@ export function routeStt(input: SttRouteInput): SttRoute {
         label: 'local · modelo rápido (tiny)',
       };
     case 'accurate':
-      return {
-        ...whisperLocal(bestLocal),
-        preferCloud: false,
-        label: `local · modelo preciso (${nomeCurto(bestLocal)}${sufixo})`,
-      };
+      return precisoLocal((nome) => `local · modelo preciso (${nome})`);
     case 'cloud':
       if (cloudAllowed) {
         // Reserva local moderada (base): não força um download de 250MB em quem escolheu nuvem.
@@ -369,11 +424,7 @@ export function routeStt(input: SttRouteInput): SttRoute {
         };
       }
       // Nuvem pedida mas indisponível/proibida → degrada honesto para o melhor local.
-      return {
-        ...whisperLocal(bestLocal),
-        preferCloud: false,
-        label: `local (nuvem indisponível) · ${nomeCurto(bestLocal)}${sufixo}`,
-      };
+      return precisoLocal((nome) => `local (nuvem indisponível) · ${nome}`);
     case 'auto':
     default: {
       /* INGLÊS DE QUEM TEM NUVEM VAI À NUVEM (auditoria de eficiência 2026-09-28, achado 5). Antes o
@@ -399,11 +450,7 @@ export function routeStt(input: SttRouteInput): SttRoute {
           label: 'nuvem (large-v3-turbo) · reserva local',
         };
       }
-      return {
-        ...whisperLocal(bestLocal),
-        preferCloud: false,
-        label: `local · modelo preciso (${nomeCurto(bestLocal)}${sufixo})`,
-      };
+      return precisoLocal((nome) => `local · modelo preciso (${nome})`);
     }
   }
 }
@@ -418,14 +465,15 @@ export interface OutroBackend {
  * O OUTRO backend, quando o microbenchmark guardado o mediu mais rápido que o desta rota — o que o
  * regulador usa para emitir `trocar-backend` quando o atual não acompanha. Sem margem (a troca só
  * acontece com o aparelho já sofrendo); a GPU só entra com adaptador real e sem queda anterior.
- * Moonshine é sempre WASM (ver `whisperLocal.ts`). `null` = nenhum. Pura.
+ * Moonshine é sempre WASM (ver `whisperLocal.ts`), e o Parakeet também: o int8 dele no WebGPU ficou
+ * 2,3 vezes mais lento que no WASM (bancada de 09/10/2026). `null` = nenhum. Pura.
  */
 export function outroBackend(
   route: SttRoute,
   d: DispositivoDaRota | undefined,
   hasWebGpu: boolean,
 ): OutroBackend | null {
-  if (!d || /moonshine/i.test(route.localModel)) return null;
+  if (!d || /moonshine/i.test(route.localModel) || route.localModel === ID_DO_PARAKEET) return null;
   const cpu = d.pontuacaoWasm;
   const gpu = d.pontuacaoWebgpu;
   if (typeof cpu !== 'number' || typeof gpu !== 'number' || cpu <= 0 || gpu <= 0) return null;

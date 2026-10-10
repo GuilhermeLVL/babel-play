@@ -327,8 +327,18 @@ export function dispositivoDaRota(
   tipo: TipoDeDispositivo;
   permiteSmall: boolean;
   economiaDeDados: boolean;
+  memoriaGb: number | null;
+  poucaMemoria: boolean;
 } & CamposDaSondaNaRota {
-  const base = { tipo: p.tipo, permiteSmall: p.permiteSmall, economiaDeDados: p.sinais.economiaDeDados };
+  /* `memoriaGb` e `poucaMemoria`: o que a rota lê para saber se o Parakeet (672 MB, ~2 GB de RAM) cabe
+     (`parakeetCabeNoAparelho` em `sttRouter.ts`). Sem a chave dele ligada, ninguém os consulta. */
+  const base = {
+    tipo: p.tipo,
+    permiteSmall: p.permiteSmall,
+    economiaDeDados: p.sinais.economiaDeDados,
+    memoriaGb: p.sinais.memoriaGb,
+    poucaMemoria: p.poucaMemoria,
+  };
   if (!sonda) return base;
   const s = sonda.sinais;
   return {

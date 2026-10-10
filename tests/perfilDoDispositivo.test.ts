@@ -342,12 +342,23 @@ describe('reduzirEfeitosMedido — o automático com a resposta real do adaptado
 })
 
 describe('dispositivoDaRota + sonda (campos novos, sem mudar a decisão)', () => {
-  it('sem sonda: exatamente os três campos de sempre', () => {
+  it('sem sonda: os três campos de sempre, mais a memória (que só o Parakeet, atrás da chave, lê)', () => {
     expect(dispositivoDaRota(classificarDispositivo(desktop))).toStrictEqual({
       tipo: 'desktop-com-gpu',
       permiteSmall: true,
       economiaDeDados: false,
+      memoriaGb: 8,
+      poucaMemoria: false,
     })
+  })
+
+  it('a memória vem do perfil: sem `deviceMemory` é null; celular é sempre pouca memória', () => {
+    expect(dispositivoDaRota(classificarDispositivo({ ...desktop, memoriaGb: null }))).toMatchObject({
+      memoriaGb: null,
+      poucaMemoria: false,
+    })
+    const celular = { ...desktop, capturaDeTela: false, ponteiroGrosso: true, toques: 5 }
+    expect(dispositivoDaRota(classificarDispositivo(celular)).poucaMemoria).toBe(true)
   })
 
   it('com sonda: expõe f16, limites, nativo, STT/tradutor no aparelho, iOS e pontuações', () => {
@@ -379,6 +390,8 @@ describe('dispositivoDaRota + sonda (campos novos, sem mudar a decisão)', () =>
       tipo: 'desktop-com-gpu',
       permiteSmall: true,
       economiaDeDados: false,
+      memoriaGb: 8,
+      poucaMemoria: false,
       shaderF16: true,
       limites: { maxStorageBufferBindingSize: 128, maxBufferSize: 256 },
       nativo: false,

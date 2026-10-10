@@ -5,6 +5,7 @@
     "src/gateway/adapters/mtWorker.ts",
     "src/gateway/adapters/bergamotWorker.ts",
     "src/gateway/adapters/whisperWorker.ts",
+    "src/gateway/adapters/parakeetWorker.ts",
     "src/lib/speakerIdWorker.ts",
     "src/gateway/capture/fimDeFalaWorker.ts",
     "tests/**/*.{test,spec}.{ts,tsx}",

@@ -19,6 +19,7 @@ import {
   REGISTRO_DE_MOTORES,
 } from '../src/core/harness/registroDeMotores'
 import { mbDoDownload } from '../src/gateway/adapters/bergamotModelo'
+import { ADAPTADOR_DO_PARAKEET, ID_DO_PARAKEET, IDIOMAS_DO_PARAKEET } from '../src/gateway/adapters/parakeetModelo'
 import { BUILTIN_PROFILES } from '../src/gateway/profiles'
 import { MODEL_DOWNLOAD_MB, MOONSHINE_MODELS, MT_DOWNLOAD_MB, WHISPER_MODELS } from '../src/gateway/sttRouter'
 
@@ -149,6 +150,24 @@ describe('registro de motores — fidelidade ao código de hoje', () => {
     expect(bindingExigeConsentimento({ adapterId: 'opus-mt-local' })).toBe(false)
     expect(b.idiomas).toEqual(['pt', 'en'])
     expect(b.licenca).toMatch(/MPL-2.0/)
+  })
+
+  it('o Parakeet roda no aparelho, não manda nada, é CC-BY-4.0 e tem o tamanho da tabela da rota', () => {
+    const p = motorPorId('parakeet-v3')!
+    expect(p.adapterId).toBe(ADAPTADOR_DO_PARAKEET)
+    expect(p.modelo).toBe(ID_DO_PARAKEET)
+    expect(p.tarefa).toBe('stt')
+    expect(p.runtime).toBe('local')
+    expect(p.idiomas).toEqual([...IDIOMAS_DO_PARAKEET])
+    expect(p.enviaDadosA).toBeNull()
+    expect(exigeConsentimento(p)).toBe(false)
+    // O gateway monta um binding só com o adaptador: não pode pedir consentimento de nuvem.
+    expect(bindingExigeConsentimento({ adapterId: ADAPTADOR_DO_PARAKEET })).toBe(false)
+    expect(adaptersQueExigemConsentimento().has(ADAPTADOR_DO_PARAKEET)).toBe(false)
+    expect(p.requer.webgpu).toBeFalsy()
+    expect(p.licenca).toMatch(/CC-BY-4\.0/)
+    expect(p.licenca).toMatch(/NVIDIA/)
+    expect(p.bytes! / 1_000_000).toBe(MODEL_DOWNLOAD_MB[ID_DO_PARAKEET])
   })
 
   it('Moonshine é só inglês; Whisper é multilíngue; o small exige WebGPU', () => {

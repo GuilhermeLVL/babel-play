@@ -86,6 +86,26 @@ Por que só pt→en: a bancada da Etapa 5 (`docs/auditoria/eval/bancada-2026-09-
 +0,028 (significativo) sobre o opus-mt nesse sentido; no en→pt o modelo da Mozilla escreve português
 de Portugal e o gold de conversa piora, então ali fica o opus-mt (Helsinki-NLP, CC-BY-4.0).
 
+## Transcrição de português e espanhol no aparelho — **Parakeet TDT 0.6b v3**, licença **CC BY 4.0**
+
+Atrás da chave local `babel.stt.parakeet` (desligada de fábrica), o app transcreve português e
+espanhol no computador com o **Parakeet TDT 0.6b v3**, da **NVIDIA**
+(<https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3>), sob
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). A licença pede o crédito, e é este:
+
+- **Modelo**: NVIDIA, _Parakeet TDT 0.6b v3_ (CC BY 4.0).
+- **Conversão para ONNX e quantização int8**: `istupakov`, projeto
+  [onnx-asr](https://github.com/istupakov/onnx-asr) —
+  <https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx>, commit `8f23f0c0`. Usamos, sem
+  mudança, `encoder-model.int8.onnx`, `decoder_joint-model.int8.onnx` e `vocab.txt`.
+- **Extrator de áudio** (`nemo128_conv.onnx`, do onnx-asr, escrito com convolução no lugar do
+  operador STFT, que o onnxruntime-web não abre): redistribuído em
+  <https://huggingface.co/striimit/parakeet-tdt-0.6b-v3-webgpu>, commit `d233168f`. Sem mudança.
+
+O app **não redistribui** esses arquivos: o navegador os baixa direto do Hugging Face, no commit
+fixado, e confere o sha256 de cada um (`src/gateway/adapters/parakeetModelo.ts`). O que medimos com
+ele está em `docs/auditoria/2026-10-09-medicoes-no-aparelho.md`.
+
 ## Áudio de teste da bancada de desempenho — **FLEURS**, licença **CC BY 4.0**
 
 Fora do aplicativo: só o repositório carrega `tests/fixtures/bancada-captura/fleurs-en-8.wav`, as

@@ -121,9 +121,19 @@ export function knownShorts(): string[] {
   return [...new Set(LANGUAGES.map(l => l.short))];
 }
 
-// Espelha o conjunto ROMANCE do opus-mt local (src/gateway/adapters/opusMtLocal.ts L24).
-// Manter em sincronia: o tradutor on-device só cobre Romance↔Inglês.
-const ROMANCE = new Set(['pt', 'es', 'fr', 'it', 'ro', 'ca', 'gl']);
+/* ESPELHA `modelFor` do opus-mt local (`src/gateway/adapters/opusMtLocal.ts`), par a par. A versão
+   anterior dizia "inglês ↔ românicas" e errava dos dois lados: o alemão tem modelo local nos dois
+   sentidos (e a tela avisava "usa a internet"), e inglês → romeno/catalão/galego não tem (e a tela
+   prometia "no aparelho"). `tests/outros-idiomas.test.ts` confere esta tabela contra o adaptador. */
+const DEDICADOS_COM_O_INGLES = new Set(['es', 'fr', 'it', 'de']);
+const ROMANICAS_PARA_O_INGLES = new Set(['pt', 'ro', 'ca', 'gl']);
+
+/** O tradutor do aparelho (opus-mt/Bergamot) tem modelo para este par? Bases ISO-639-1. */
+function temTradutorNoAparelho(s: string, t: string): boolean {
+  if (s === 'en') return DEDICADOS_COM_O_INGLES.has(t) || t === 'pt';
+  if (t === 'en') return DEDICADOS_COM_O_INGLES.has(s) || ROMANICAS_PARA_O_INGLES.has(s);
+  return false;
+}
 
 /**
  * COBERTURA REAL DE TRADUÇÃO de um par. É a matriz que faltava: até aqui a app só sabia responder
@@ -131,7 +141,7 @@ const ROMANCE = new Set(['pt', 'es', 'fr', 'it', 'ro', 'ca', 'gl']);
  * simplesmente ficava em "traduzindo…" para sempre, indistinguível de lentidão.
  *
  *  • 'same'    — nada a traduzir (mesmo idioma).
- *  • 'local'   — opus-mt on-device. Só Inglês↔Românicas. Nem pt↔es é local.
+ *  • 'local'   — opus-mt on-device: inglês ↔ es/fr/it/de/pt (e ro/ca/gl → inglês). Nem pt↔es é local.
  *  • 'online'  — depende de Chrome Translator (pacote baixado) ou MyMemory (cota diária). Funciona,
  *                mas exige internet e pode falhar — a UI precisa dizer isso ANTES de o usuário esperar.
  *  • 'unknown' — código ausente ou fora da lista: não prometemos nada.
@@ -143,7 +153,7 @@ export function mtCoverage(src: string, tgt: string): MtCoverage {
   const t = baseLang(tgt);
   if (!s || !t) return 'unknown';
   if (s === t) return 'same';
-  if ((s === 'en' && ROMANCE.has(t)) || (ROMANCE.has(s) && t === 'en')) return 'local';
+  if (temTradutorNoAparelho(s, t)) return 'local';
   if (!isKnownLang(s) || !isKnownLang(t)) return 'unknown';
   return 'online';
 }

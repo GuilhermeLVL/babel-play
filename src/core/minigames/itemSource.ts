@@ -231,9 +231,17 @@ export function buildItems(gameId: MinigameId, cards: VocabCard[], opts: BuildIt
        numa coluna estreita: vira parede de texto para um jogo cuja tarefa é achar uma palavra na
        grade. Sem tradução curta, o cartão sai da rodada em vez de virar atrito. */
     if (pista.clozed && gameId === 'wordsearch') continue;
+    /* Na MEMÓRIA o par é palavra ↔ tradução (o comentário acima): a tradução que a régua reprovou
+       caía na frase com lacuna, e a mesa ganhava um par no MESMO idioma ("أنا" com "_____ آسف لكن ذلك
+       مستحيل."), uma carta de frase inteira que não é o que o jogo pede. Sem tradução que sirva, o
+       cartão fica fora desta mesa. */
+    if (pista.clozed && gameId === 'memory') continue;
     /* Charada joga sobre a FRASE do proprio usuario: item sem frase nao produz enigma, e um item
        que o jogo descarta nao pode ser contado pelo gate. */
-    if (gameId === 'vitendawili' && !pista.clozed && !(card.sentence ?? '').trim()) continue;
+    /* E a frase precisa ABRIR LACUNA: o tabuleiro monta o enigma com `makeCloze`, e a frase em que a
+       palavra não aparece como palavra (flexionada, ou colada a outra em chinês) não dá enigma. O
+       gate contava essas, e o jogo voltava para a grade ao ser aberto. */
+    if (gameId === 'vitendawili' && !pista.clozed && !makeCloze(card.sentence ?? '', card.word ?? '')) continue;
     const chaveDaPista = chaveComparavel(pista.prompt);
     if (chaveDaPista && pistasUsadas.has(chaveDaPista)) continue;
     const chaveDaResposta = chaveComparavel(card.word);

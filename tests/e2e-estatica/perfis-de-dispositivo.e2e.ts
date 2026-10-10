@@ -3,7 +3,7 @@ import path from 'node:path'
 
 import { expect, type Page, test } from '@playwright/test'
 
-import { abrirAjustesDaCaptura, capturaPronta, controlesDaCaptura, megasAnunciados, seloDoModelo } from './_captura'
+import { abrirAjustesDaCaptura, capturaPronta, controlesDaCaptura, megasAnunciados, modeloAnunciado } from './_captura'
 import { aplicarCpu, DISPOSITIVOS, scriptDoAparelho } from './_dispositivos.mjs'
 
 /**
@@ -83,8 +83,8 @@ for (const [nome, d] of Object.entries(DISPOSITIVOS)) {
     // O modo leve não liga mais sozinho (08/10/2026): os efeitos valem em todo aparelho.
     await expect.poll(() => page.evaluate(() => document.documentElement.dataset.modoLeve)).toBe('false')
 
-    // 2. Celular: o selo do modelo não cabe no topo (o tamanho é dito na folha do início, passo 6a).
-    await expect(seloDoModelo(page)).toBeHidden()
+    // 2. Celular: a folha do estado não tem a linha do modelo (o tamanho é dito na folha do início, passo 6a).
+    expect(await modeloAnunciado(page)).toBe('')
 
     // 3. Sem áudio do sistema: a tela pronta diz de onde vem o som, o microfone está ligado e o
     //    Iniciar, habilitado.

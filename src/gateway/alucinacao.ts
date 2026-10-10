@@ -75,17 +75,31 @@ const INTERJEICOES = new Set([
   'ugh',
 ]);
 
+/** Escritas em que um caractere sozinho é palavra ou sílaba: han, kana e hangul. */
+const UM_CARACTERE_E_PALAVRA = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+const SO_LATINO = /^[\p{Script=Latin}\p{M}]+$/u;
+/** As vogais do alfabeto latino, depois de separar o acento (NFD): cobre ä, ö, å, ě, ů e as demais. */
+const VOGAL_LATINA = /[aeiouyıøæœ]/;
+
 /**
  * Um token é vocalização: letra solta, letra triplicada ou sílaba curta em ciclo — sempre. A
  * interjeição SIMPLES ("Ah.", "Hum.") só conta com áudio longo: dita, é resposta legítima de ~1 s;
  * sozinha num trecho de mais de 3 s, é o motor completando ruído (a mesma régua das cortesias).
  */
 function ehVocalizacao(token: string, audioSec: number): boolean {
-  const w = token.toLowerCase().replace(/[^\p{L}]/gu, '');
-  if (w.length <= 1) return true;
+  /* As marcas (`\p{M}`) ficam: em hindi, árabe e tailandês a vogal É uma marca, e sem ela "हाँ" virava
+     uma letra só. */
+  const w = token.toLowerCase().replace(/[^\p{L}\p{M}]/gu, '');
+  /* Um caractere só é letra solta num ALFABETO. Em chinês, japonês e coreano um caractere é uma
+     palavra (ou uma sílaba) inteira: "好", "对", "네" são respostas completas. */
+  if ([...w].length <= 1) return !UM_CARACTERE_E_PALAVRA.test(w);
   if (INTERJEICOES.has(w)) return audioSec > SEGUNDOS_DE_CORTESIA_SUSPEITA;
-  // Sem nenhuma vogal não é palavra de pt/en/es: "Vrm", "Grr", "Shh", "Tsk" — ruído virando texto.
-  if (!/[aeiouyàáâãéêíóôõúü]/.test(w)) return true;
+  /* Sem nenhuma vogal não é palavra: "Vrm", "Grr", "Shh", "Tsk" — ruído virando texto. A RÉGUA É DO
+     ALFABETO LATINO: aplicada a tudo, ela descartava TODA fala em chinês, japonês, coreano, árabe,
+     russo, hindi, grego, hebraico e tailandês (nenhuma tem vogal latina), e a transcrição certa sumia
+     antes de chegar à tela (relato do dono, 10/10/2026: "botei no mandarim e não funcionou"). As
+     vogais são conferidas sem o acento, para "Öl", "kış" e "řekl" não caírem junto. */
+  if (SO_LATINO.test(w) && !VOGAL_LATINA.test(w.normalize('NFD'))) return true;
   if (/(\p{L})\1{2,}/u.test(w)) return true; // "aaah", "hmmm", "rrrr"
   return /(\p{L}{1,3})\1{2,}/u.test(w); // "hahaha", "ahahah", "bapapap"
 }

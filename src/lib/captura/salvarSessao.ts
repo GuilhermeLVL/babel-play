@@ -343,8 +343,8 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
   /** Alguma fonte ainda aberta (pausada ou não)? É o que decide entre retomar e recomeçar. */
   const fontesAbertas = () => !!(systemCaptureRef.current || micCaptureRef.current || webSpeechRef.current);
 
-  /** Pausa as fontes SEM encerrá-las (ver `AudioCapture.setPaused`). */
-  const pausarFontes = () => {
+  /** Pausa as fontes SEM encerrá-las (ver `AudioCapture.setPaused`). `porQue` vai só para o registro. */
+  const pausarFontes = (porQue = 'Encerrar aberto') => {
     systemCaptureRef.current?.setPaused(true);
     micCaptureRef.current?.setPaused(true);
     /* A Web Speech não grava áudio (não há blob a preservar): encerrar o reconhecedor É a pausa
@@ -359,9 +359,11 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
       webSpeechPartialIdRef.current = null;
     }
     partialIdRef.current = null;
-    pausaInicioRef.current = Date.now();
+    /* Já pausada (a pessoa pausou e depois tocou em Encerrar): a pausa começou lá, e é de lá que o
+       relógio das legendas tem de pular. */
+    if (!pausaInicioRef.current) pausaInicioRef.current = Date.now();
     setPausado(true);
-    clog('❚❚ PAUSA (Encerrar aberto, fontes vivas)');
+    clog(`❚❚ PAUSA (${porQue}, fontes vivas)`);
   };
 
   /** Retoma as MESMAS fontes e adianta o relógio pela duração da pausa (o gravador não a gravou). */
@@ -375,6 +377,24 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     if (!soNoToque() && micEnabled && !micCaptureRef.current && !webSpeechRef.current) void startMic();
     setPausado(false);
     clog('▶ RETOMADA depois de', Math.round(pausa), 'ms de pausa');
+  };
+
+  /**
+   * A PAUSA PEDIDA PELA PESSOA (o botão "Pausar" da tela enxuta): a mesma pausa do Encerrar, sem o
+   * diálogo. O gravador pausa (o trecho não entra no áudio salvo), a detecção de fala para entregando
+   * a frase em curso, o reconhecedor do navegador é encerrado e o relógio para. As faixas continuam
+   * abertas: retomar não pede de novo o compartilhamento nem o microfone. Devolve se pausou.
+   */
+  const pausarCaptura = (): boolean => {
+    if (!isRecordingRef.current || pausaInicioRef.current) return false;
+    pausarFontes('botão Pausar');
+    return true;
+  };
+  /** Retoma a captura pausada (pelo botão ou pelo Encerrar). Devolve se retomou. */
+  const retomarCaptura = (): boolean => {
+    if (!isRecordingRef.current || !pausaInicioRef.current) return false;
+    retomarFontes();
+    return true;
   };
 
   /**
@@ -622,5 +642,7 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     handleCancelStop,
     handleFinalizeSave,
     encerrarFontes,
+    pausarCaptura,
+    retomarCaptura,
   };
 }

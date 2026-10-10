@@ -272,7 +272,10 @@ export function estadoDoJogo(id: MinigameId, e: EntradaDoEstado, pools?: PoolPor
      * subconjunto digitável é o que separa "acervo pequeno demais" de "acervo tem material, mas em
      * alfabeto que o Termo não suporta". */
     const { semFiltro: semFiltroDeAlfabeto, apto: n } = contagemComAlfabeto('termo', e.cartas, faixa);
-    if (n === 0 && semFiltroDeAlfabeto >= def.minItems) {
+    /* …ou o baralho inteiro está numa escrita que o teclado não digita (chinês, japonês, hindi: as
+       palavras nem chegam às 4 a 6 "letras" da contagem, e a carta dizia "faltam 3"). */
+    const nenhumaDigitavel = e.cartas.length >= def.minItems && !e.cartas.some(c => cabeNaEscrita('termo')(c.word ?? ''));
+    if (n === 0 && (semFiltroDeAlfabeto >= def.minItems || nenhumaDigitavel)) {
       return { id, ok: false, disponiveis: 0, faltam: def.minItems, fonte: 'baralho', motivo: 'alfabeto-nao-suportado', tamanhoDaRodada: 0 };
     }
     return { id, ok: n >= def.minItems, disponiveis: n, faltam: Math.max(0, def.minItems - n), fonte: 'baralho', tamanhoDaRodada: tamanhoDaRodadaDe(id, n, e.faixa) };
@@ -344,6 +347,16 @@ export function estadoDoJogo(id: MinigameId, e: EntradaDoEstado, pools?: PoolPor
   const pronto = canPlay(id, e.cartas);
   const medidos = pools ?? poolDosJogosDePalavra(e.cartas);
   const pool = medidos.get(id) ?? pronto.disponiveis;
+  /* OS OUTROS JOGOS DE LETRAS (Choseong, Rali, Bao, Shiritori) declaram o mesmo requisito do Termo e
+     do Caça-palavras, e recusavam o baralho em chinês, árabe ou russo SEM dizer por quê: a carta
+     mostrava "faltam 4 palavras" para quem tinha centenas, e oferecia "jogar em inglês". Baralho com
+     material e NENHUMA palavra na escrita do jogo é o mesmo motivo, dito do mesmo jeito. */
+  if (!pronto.ok && def.requisitos?.alfabeto === 'latino' && e.cartas.length >= def.minItems) {
+    const cabe = cabeNaEscrita(id);
+    if (!e.cartas.some(c => cabe(c.word ?? ''))) {
+      return { id, ok: false, disponiveis: 0, faltam: def.minItems, fonte: 'baralho', pool, motivo: 'alfabeto-nao-suportado', tamanhoDaRodada: 0 };
+    }
+  }
   return { id, ...pronto, pool, fonte: 'baralho', tamanhoDaRodada: tamanhoDaRodadaDe(id, pronto.disponiveis) };
 }
 

@@ -196,3 +196,15 @@ export function cellsBetween(
   for (let k = 0; k <= n; k++) celulas.push({ linha: inicio.linha + dl * k, coluna: inicio.coluna + dc * k });
   return celulas;
 }
+
+/**
+ * AS LETRAS QUE ENCHEM O RESTO DA GRADE: as de base mais TODA letra que alguma palavra colocada usa.
+ *
+ * O tabuleiro enche com um alfabeto curto (sem J, K, Q, V, X, Y e Z) e acrescentava só as letras
+ * acentuadas. Em português quase não se nota; em alemão, espanhol, francês e italiano, toda casa com
+ * K, V, J, Z, X, Q ou Y pertencia a uma resposta ("KATZE", "VOITURE", "JUEVES"): bastava procurar a
+ * letra rara. Uma letra que só aparece dentro das palavras entrega as palavras, tenha ou não acento.
+ */
+export function alfabetoDeEnchimento(base: string, palavras: readonly string[]): string[] {
+  return [...new Set([...base, ...palavras.flatMap((p) => [...p])])];
+}

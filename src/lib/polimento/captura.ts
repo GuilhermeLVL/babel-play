@@ -30,21 +30,32 @@ export const comMovimento = (): boolean => polido() && !reduz();
  * A marca do topo e a nota do nível de serviço ficam DE FORA desta cascata, como no protótipo dos
  * planos: lá elas são postas na tela depois dela (`planos4.js:293-298`), e a fileira nova tem a sua
  * (`lib/polimento/niveis.ts`). Sem isto, a marca empurraria em 60 ms cada botão que vem depois dela.
+ *
+ * NA TELA ENXUTA (`enxuto.js`) o chip de estado também entra depois (`enxuto.js:80, 96`) e tem a entrada
+ * dele (`entraSuave`, 180 ms). E no protótipo o chip do modelo e o botão de ajuda continuam na fileira,
+ * só escondidos (`enxuto.css:10`), e contam na cascata: aqui eles não existem, então quem vem depois do
+ * idioma pula uma posição (o chip do modelo) e o miolo pula duas (o chip e a ajuda). Cada peça sobe no
+ * mesmo instante do protótipo.
  */
 export function entrarPronta(v: HTMLElement): void {
   if (!comMovimento()) return;
   const ic = v.querySelector('.px-pronto-miolo .q-ic');
   if (ic) anima(ic, [{ transform: 'scale(0.4)' }, { transform: 'scale(1)' }], { d: 700, atraso: 200, e: MOLA });
-  $$('.px-vivo-topo > :not(.pl-onde), .px-pronto-miolo > :not(.q-ic):not(.pl-nota):not(.pl-sem)', v).forEach((x, i) =>
+  const enxuta = !!v.querySelector('.px-vivo-topo > .ex-estado');
+  $$(
+    '.px-vivo-topo > :not(.pl-onde):not(.ex-estado), .px-pronto-miolo > :not(.q-ic):not(.pl-nota):not(.pl-sem)',
+    v,
+  ).forEach((x, i) => {
+    const pulo = !enxuta || i === 0 ? 0 : x.parentElement?.classList.contains('px-vivo-topo') ? 1 : 2;
     anima(
       x,
       [
         { opacity: 0, transform: 'translateY(14px)' },
         { opacity: 1, transform: 'translateY(0)' },
       ],
-      { d: 480, atraso: 120 + i * 60 },
-    ),
-  );
+      { d: 480, atraso: 120 + (i + pulo) * 60 },
+    );
+  });
 }
 
 /** `iniciarVivo()` de `direto.js:60`: o botão afunda e volta na mola. */

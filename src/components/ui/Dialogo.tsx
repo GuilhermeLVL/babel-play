@@ -105,6 +105,7 @@ export default function Dialogo({
   titulo,
   sub,
   largura = 'medio',
+  acao,
   aoFechar,
   children,
 }: {
@@ -114,6 +115,8 @@ export default function Dialogo({
   titulo: ReactNode;
   sub?: ReactNode;
   largura?: 'medio' | 'largo' | '';
+  /** Um botão a mais no cabeçalho, antes do Fechar (a ajuda da captura no painel de ajustes). */
+  acao?: ReactNode;
   aoFechar: () => void;
   children: ReactNode;
 }) {
@@ -131,7 +134,15 @@ export default function Dialogo({
             </p>
           )}
         </div>
-        <button type="button" className="x" aria-label={t('Fechar')} onClick={() => ref.current?.close()}>
+        {acao}
+        {/* Com um botão a mais no cabeçalho, o foco de abertura continua no Fechar (era o primeiro focável). */}
+        <button
+          type="button"
+          className="x"
+          aria-label={t('Fechar')}
+          data-autofocus={acao ? '' : undefined}
+          onClick={() => ref.current?.close()}
+        >
           <X aria-hidden />
         </button>
       </div>

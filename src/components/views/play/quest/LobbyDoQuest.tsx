@@ -28,6 +28,9 @@ import { perfilDoDispositivo } from '../../../../lib/dispositivo/perfil';
 import { type RecursosDoAparelho, recursosDoAparelho } from '../../../../lib/dispositivo/recursos';
 import { noHeadset } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { numero, t, tp } from '../../../../lib/i18n';
+import { telasEnxutas } from '../../../../lib/polimento/base';
+import { celular } from '../../../../lib/polimento/captura';
+import { entrarSecao, entraSuave, trocarSugestao } from '../../../../lib/polimento/enxuto';
 import type { AgeProfileType } from '../../../../lib/profile';
 import { aoMudarIdiomasDaVozDoQuest } from '../../../../lib/voz/vozDoQuest';
 import { FAMILIAS, tomDoJogo } from '../../../minigames/ArteDosJogos';
@@ -147,6 +150,18 @@ export interface AvisoDoLobby {
 
 const CATEGORIAS: readonly CategoriaDoLobby[] = ['todos', 'classicos', 'favoritos'];
 
+/** Uma seção do painel "Buscar e organizar" (`SECOES` de `enxuto.js:302-306`): um dos painéis de sempre. */
+interface SecaoDoPainel {
+  id: 'filtros' | 'ordem' | 'opcoes';
+  /** O nome inteiro (o `aria-label` da aba) e o curto, que se lê nela. */
+  nome: string;
+  curto: string;
+  icone: LucideIcon;
+  sub: string;
+  miolo: ReactNode;
+  pe?: ReactNode;
+}
+
 const HABILIDADES: ReadonlyArray<{ id: HabilidadeDoLobby; rotulo: string }> = [
   { id: 'todas', rotulo: 'Todas' },
   { id: 'vocab', rotulo: 'Vocabulário' },
@@ -169,6 +184,12 @@ const HABILIDADES: ReadonlyArray<{ id: HabilidadeDoLobby; rotulo: string }> = [
  *
  * Só apresentação: quais jogos existem, o nome, a descrição, a ordem, o filtro, o que falta a cada
  * um e o clique que abre a rodada vêm todos de `Play.tsx`.
+ *
+ * A TELA ENXUTA (protótipo `telas-enxutas`, `enxugarJogar()` de `enxuto.js:207-343`; no computador e no
+ * celular, não no headset): as mesmas funções, com menos coisas à vista. O cartão "Sugestão para hoje"
+ * sobe para logo abaixo do título, com "Começar" como único botão cheio; "Partida rápida" vira o link
+ * "Sortear um jogo" dentro dele, e "Por que este?" e "Outra sugestão" viram links de texto (`.ex-lig`);
+ * as abas ficam coladas na grade; os três painéis viram um, "Buscar e organizar", com as três seções.
  */
 export default function LobbyDoQuest<J extends JogoDoLobby>({
   jogos,
@@ -214,6 +235,10 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
   /* O desenho também liga no computador: a frase que fala em headset, toque ou "lobby do computador" é
      do aparelho. */
   const noHeadsetAqui = noHeadset();
+  /* `enxuta()` de `enxuto.js:27`: a arrumação enxuta vale fora do headset. */
+  const enxuta = telasEnxutas();
+  const temFiltros = !!(aoBuscar || aoTrocarHabilidade);
+  const temOrdem = !!ordem && !!(aoFavoritar || aoMover || aoComoSeJoga);
   /* SETAS NAS ABAS (como as `<Abas>` da tela de sempre): ←/→ andam, Home/End vão às pontas. Só faz
      diferença onde há teclado físico. */
   const aoTeclarNaAba = (e: React.KeyboardEvent<HTMLButtonElement>, atual: CategoriaDoLobby) => {
@@ -237,10 +262,42 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
   const [porQueAberto, setPorQueAberto] = useState(false);
   /* O porquê abre na própria tela: só as linhas novas entram animadas (`telas2.js:527-543, 613`). */
   const antesDoPorQue = useRef<Set<string> | null>(null);
+  const palco = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     if (porQueAberto) entrarOQueAbriu(antesDoPorQue.current);
     antesDoPorQue.current = null;
+    /* `alternarEstado` de `enxuto.js:284`: na tela enxuta as linhas do porquê sobem em cascata. */
+    if (porQueAberto && enxuta) entraSuave([...(palco.current?.querySelectorAll('.qj-porque li') ?? [])]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `enxuta` é do aparelho, não muda
   }, [porQueAberto]);
+
+  const alternarPorQue = () => {
+    antesDoPorQue.current = porQueAberto ? null : fotoDaTela();
+    setPorQueAberto((v) => !v);
+  };
+
+  /* "Outra sugestão" (`outraSugestao()` de `enxuto.js:286-293`): o texto novo entra depois de pedido. */
+  const pediuOutra = useRef(false);
+  const idDaSugestao = sugestao ? `${sugestao.jogo.id}|${sugestao.titulo}` : '';
+  useLayoutEffect(() => {
+    if (!pediuOutra.current) return;
+    pediuOutra.current = false;
+    trocarSugestao(palco.current?.querySelector('.qj-sugestao-texto') ?? null);
+  }, [idDaSugestao]);
+
+  /* "Buscar e organizar": trocar de seção com o painel aberto volta ao topo e anima o miolo
+     (`por(d, i, true)` de `enxuto.js:323-330`). Abrir não: a entrada do painel já pega as linhas. */
+  const organizar = useRef<HTMLDialogElement>(null);
+  const secaoDeAntes = useRef<typeof painel>(null);
+  useLayoutEffect(() => {
+    const antes = secaoDeAntes.current;
+    secaoDeAntes.current = painel;
+    if (!enxuta || !painel || !antes || antes === painel) return;
+    const corpo = organizar.current?.querySelector('.dlg-corpo');
+    if (corpo) corpo.scrollTop = 0;
+    entrarSecao(organizar.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `enxuta` é do aparelho, não muda
+  }, [painel]);
 
   /* A lista de idiomas da voz do site chega depois (um GET): os cartões que dependem dela se refazem. */
   const [, refazer] = useState(0);
@@ -302,8 +359,368 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
     );
   };
 
+  /* OS TRÊS PAINÉIS — o miolo e o pé de cada um. No headset cada um abre no seu painel, como sempre; na
+     tela enxuta os três são as seções de UM painel, "Buscar e organizar" (`abrirOrganizar()` de
+     `enxuto.js:300-343`: "o miolo de cada seção é o dos três painéis de produção, sem tirar nem pôr"). */
+  const peDosFiltros = (
+    <>
+      {aoLimparFiltros && (
+        <button type="button" className="q-ctl" onClick={aoLimparFiltros}>
+          {t('Limpar filtros e busca')}
+        </button>
+      )}
+      <button type="button" className="q-ctl pri" onClick={(e) => fecharPainelDe(e.currentTarget)}>
+        {tp(tiles.length, 'Ver {n} jogo', 'Ver {n} jogos')}
+      </button>
+    </>
+  );
+  const mioloDosFiltros = (
+    <>
+      {aoBuscar && (
+        <label className="q-campo">
+          <span>{t('Buscar jogo')}</span>
+          <input
+            type="search"
+            /* `enxuto.js:342`: na tela enxuta o painel abre com a busca em foco (não no celular,
+                   onde o teclado cobriria a folha). */
+            data-autofocus={enxuta && !celular() ? '' : undefined}
+            value={busca}
+            onChange={(e) => aoBuscar(e.target.value)}
+            placeholder={t('Buscar por nome ou mecânica')}
+          />
+        </label>
+      )}
+      {aoTrocarHabilidade && (
+        <div className="q-secao">
+          <p className="q-rotulo">{t('Filtrar por habilidade')}</p>
+          <OpcoesDoQuest
+            rotulo={t('Filtrar por habilidade')}
+            exclusiva
+            valor={[habilidade]}
+            aoTrocar={(id) => aoTrocarHabilidade(id as HabilidadeDoLobby)}
+            opcoes={HABILIDADES.map((h) => ({ id: h.id, rotulo: t(h.rotulo) }))}
+          />
+        </div>
+      )}
+    </>
+  );
+  const mioloDasOpcoes = (
+    <>
+      {aoTrocarPrevia && previa !== undefined && (
+        <div className="q-ajuste">
+          <div>
+            <b>{ageProfile === 'kids' ? t('Ver antes de jogar') : t('Prévia antes de começar')}</b>
+            <small>
+              {noHeadsetAqui
+                ? t('Mostra o que vai cair antes de a rodada começar. Desligada, o toque já começa o jogo.')
+                : t('Mostra o que vai cair antes de a rodada começar. Desligada, o clique já começa o jogo.')}
+            </small>
+          </div>
+          <InterruptorDoQuest
+            ligado={previa}
+            aoTrocar={aoTrocarPrevia}
+            rotulo={ageProfile === 'kids' ? t('Ver antes de jogar') : t('Prévia antes de começar')}
+          />
+        </div>
+      )}
+      {diagnostico && (
+        <div className="q-ajuste">
+          <div>
+            <b>{t('Diagnóstico do material')}</b>
+            <small>{t('Mostra no alto quantas palavras servem aos jogos, e por que as outras ficaram de fora.')}</small>
+          </div>
+          <InterruptorDoQuest
+            ligado={diagnostico.ligado}
+            aoTrocar={diagnostico.aoTrocar}
+            rotulo={t('Diagnóstico do material')}
+          />
+        </div>
+      )}
+      <div className="q-lista">
+        {(
+          [
+            aoVerRecordes && [Trophy, t('Recordes'), t('Seus melhores resultados e o ranking.'), aoVerRecordes],
+            aoVerMapa && [
+              MapIcon,
+              t('Mapa do conteúdo'),
+              t('O que já caiu, o que vence e o que nunca apareceu.'),
+              aoVerMapa,
+            ],
+            curadoria && [
+              ListChecks,
+              t('Curadoria'),
+              tp(curadoria.n, '{n} palavra ficou de fora dos jogos.', '{n} palavras ficaram de fora dos jogos.', {
+                n: numero(curadoria.n),
+              }),
+              curadoria.aoAbrir,
+            ],
+            [
+              LayoutGrid,
+              t('Tela de sempre'),
+              noHeadsetAqui
+                ? t('O lobby do computador, só nesta visita.')
+                : t('O lobby de antes do desenho novo, só nesta visita.'),
+              aoVerTelaCompleta,
+            ],
+          ] as Array<false | undefined | [LucideIcon, string, string, () => void]>
+        )
+          .filter((l): l is [LucideIcon, string, string, () => void] => !!l)
+          .map(([Icone, titulo, apoio, agir]) => (
+            <button
+              key={titulo}
+              type="button"
+              className="q-linha"
+              onClick={(e) => {
+                /* Sai do painel antes de abrir o destino: ao voltar, a pessoa cai no lobby. O painel
+                       FECHA pelo `close` nativo, que avisa o `aoFechar`, como no "x": tirado da tela
+                       ainda aberto, a camada de polimento o segurava para a saída e ele ficava preso,
+                       aberto e sem toque, por cima do destino. */
+                fecharPainelDe(e.currentTarget);
+                agir();
+              }}
+            >
+              <span className="q-ic" aria-hidden>
+                <Icone />
+              </span>
+              <span>
+                <b>{titulo}</b>
+                <small>{apoio}</small>
+              </span>
+              <span className="q-fim" aria-hidden>
+                <ChevronRight />
+              </span>
+            </button>
+          ))}
+      </div>
+    </>
+  );
+  const peDaOrdem = (
+    <button type="button" className="q-ctl pri" onClick={(e) => fecharPainelDe(e.currentTarget)}>
+      {t('Pronto')}
+    </button>
+  );
+  const mioloDaOrdem = ordem ? (
+    <ol className="qj-ordem">
+      {naOrdemDaGrade.map(({ jogo, apagado }) => {
+        const titulo = tituloDoJogo(jogo, ageProfile);
+        const fixado = favoritos.includes(jogo.id);
+        /* A seta move DENTRO do grupo (favoritos entre si, o resto entre si), como em `mover`. */
+        const doGrupo = idsNaOrdemDaGrade.filter((id) => favoritos.includes(id) === fixado);
+        const i = doGrupo.indexOf(jogo.id);
+        return (
+          <li key={jogo.chave} className="q-ajuste" data-ordem={jogo.id}>
+            <div>
+              <b>{titulo}</b>
+              {(fixado || apagado) && (
+                <small>
+                  {[
+                    fixado ? t('Favorito: fica no topo') : null,
+                    apagado ? t('Não abre agora: fica no fim da grade') : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </small>
+              )}
+            </div>
+            <span className="q-acoes">
+              {aoComoSeJoga && (
+                <button
+                  type="button"
+                  className="q-ctl"
+                  aria-haspopup="dialog"
+                  aria-label={`${t('Como se joga')}: ${titulo}`}
+                  onClick={() => aoComoSeJoga(jogo)}
+                >
+                  <CircleHelp aria-hidden />
+                </button>
+              )}
+              {aoMover && (
+                <>
+                  <button
+                    type="button"
+                    className="q-ctl"
+                    disabled={i === 0}
+                    aria-label={`${t('Mover para antes')}: ${titulo}`}
+                    onClick={() => aoMover(jogo, -1, idsNaOrdemDaGrade)}
+                  >
+                    <ArrowUp aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    className="q-ctl"
+                    disabled={i === doGrupo.length - 1}
+                    aria-label={`${t('Mover para depois')}: ${titulo}`}
+                    onClick={() => aoMover(jogo, 1, idsNaOrdemDaGrade)}
+                  >
+                    <ArrowDown aria-hidden />
+                  </button>
+                </>
+              )}
+              {aoFavoritar && (
+                <button
+                  type="button"
+                  className="q-ctl qj-estrela"
+                  aria-pressed={fixado}
+                  aria-label={`${fixado ? t('Tirar dos favoritos') : t('Favoritar')}: ${titulo}`}
+                  onClick={() => aoFavoritar(jogo)}
+                >
+                  <Star aria-hidden />
+                </button>
+              )}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  ) : null;
+
+  const SUB_DOS_FILTROS = t('Por nome, por mecânica ou pelo que o jogo treina.');
+  const SUB_DAS_OPCOES = t('A rodada, o seu material e a ordem dos jogos.');
+  const SUB_DA_ORDEM = t('Fixe os favoritos no topo, mude a ordem dos cartões e veja como cada jogo se joga.');
+  /* `SECOES` de `enxuto.js:302-306`: só entram as que este lobby tem. */
+  const secoes: SecaoDoPainel[] = [
+    ...(temFiltros
+      ? [
+          {
+            id: 'filtros' as const,
+            nome: t('Buscar e filtrar'),
+            curto: t('Buscar'),
+            icone: Search,
+            sub: SUB_DOS_FILTROS,
+            miolo: mioloDosFiltros,
+            pe: peDosFiltros,
+          },
+        ]
+      : []),
+    ...(temOrdem
+      ? [
+          {
+            id: 'ordem' as const,
+            nome: t('Favoritos e ordem'),
+            curto: t('Favoritos e ordem'),
+            icone: Star,
+            sub: SUB_DA_ORDEM,
+            miolo: mioloDaOrdem,
+            pe: peDaOrdem,
+          },
+        ]
+      : []),
+    {
+      id: 'opcoes',
+      nome: t('Opções'),
+      curto: t('Opções'),
+      icone: Settings2,
+      sub: SUB_DAS_OPCOES,
+      miolo: mioloDasOpcoes,
+    },
+  ];
+  const secaoAberta = secoes.find((x) => x.id === painel) ?? null;
+
+  /* O CARTÃO DA SUGESTÃO. Na tela enxuta ele sobe para logo abaixo do título (`enxuto.js:246-268`). */
+  const cartaoDaSugestao = sugestao && (
+    <section className="q-cartao qj-sugestao" aria-labelledby="qj-sugestao-t">
+      <div className="qj-sugestao-linha">
+        <span className="q-ic" aria-hidden>
+          <Sparkles />
+        </span>
+        <div className="qj-sugestao-texto">
+          <p className="q-rotulo">{t('Sugestão para hoje')}</p>
+          <b id="qj-sugestao-t">{sugestao.titulo}</b>
+          <small>
+            {t('Com')} {tituloDoJogo(sugestao.jogo, ageProfile)} · {t('rodada curta')}
+          </small>
+        </div>
+        {enxuta ? (
+          <>
+            {/* `enxuto.js:259-264`: três links discretos e UM botão cheio. */}
+            <span className="ex-ligs">
+              <button
+                type="button"
+                className="ex-lig"
+                data-ex="porque"
+                aria-expanded={porQueAberto}
+                onClick={alternarPorQue}
+              >
+                <CircleHelp aria-hidden />
+                {porQueAberto ? t('Esconder o porquê') : t('Por que este?')}
+              </button>
+              {aoOutraSugestao && (
+                <button
+                  type="button"
+                  className="ex-lig"
+                  data-ex="outra"
+                  onClick={() => {
+                    pediuOutra.current = true;
+                    aoOutraSugestao();
+                  }}
+                >
+                  <Shuffle aria-hidden />
+                  {t('Outra sugestão')}
+                </button>
+              )}
+              {aoPartidaRapida && (
+                <button
+                  type="button"
+                  className="ex-lig"
+                  data-ex="sortear"
+                  title={t('Sorteia um jogo aleatório dentre os disponíveis e inicia imediatamente')}
+                  onClick={aoPartidaRapida}
+                >
+                  <Zap aria-hidden />
+                  {t('Sortear um jogo')}
+                </button>
+              )}
+            </span>
+            <button
+              type="button"
+              className="q-ctl pri"
+              data-ex="comecar"
+              data-sugestao={sugestao.jogo.id}
+              onClick={() => aoJogar(sugestao.jogo)}
+            >
+              <Play aria-hidden />
+              {t('Começar')}
+            </button>
+          </>
+        ) : (
+          <div className="q-acoes">
+            <button type="button" className="q-ctl" aria-expanded={porQueAberto} onClick={alternarPorQue}>
+              <CircleHelp aria-hidden />
+              {porQueAberto ? t('Esconder o porquê') : t('Por que este?')}
+            </button>
+            {aoOutraSugestao && (
+              <button type="button" className="q-ctl" onClick={aoOutraSugestao}>
+                <Shuffle aria-hidden />
+                {t('Outra sugestão')}
+              </button>
+            )}
+            <button
+              type="button"
+              className="q-ctl"
+              data-sugestao={sugestao.jogo.id}
+              onClick={() => aoJogar(sugestao.jogo)}
+            >
+              <Play aria-hidden />
+              {t('Começar')}
+            </button>
+          </div>
+        )}
+      </div>
+      {porQueAberto && (
+        <ul className="qj-porque">
+          {sugestao.porque.map(([Icone, texto]) => (
+            <li key={texto}>
+              <Icone aria-hidden />
+              <span>{texto}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+
   return (
-    <div className="q-palco qj quest-jogar" data-testid="lobby-do-quest">
+    <div ref={palco} className={`q-palco qj quest-jogar${enxuta ? ' ex-jogar' : ''}`} data-testid="lobby-do-quest">
       <div className="q-cab">
         <div>
           <p className="q-sobre">
@@ -322,12 +739,14 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
             aria-label={`${t('Trocar')}: ${rotuloDaFonte}`}
           >
             <ArrowLeftRight aria-hidden />
-            {rotuloDaFonte}
+            {/* `enxuto.js:226-230`: o nome da fonte num `span`, para encolher com reticências. */}
+            {enxuta ? <span className="ex-fonte-txt">{rotuloDaFonte}</span> : rotuloDaFonte}
           </button>
         ) : (
           fonte && <span className="q-chip">{rotuloDaFonte}</span>
         )}
-        {aoPartidaRapida && (
+        {/* `enxuto.js:238-239`: na tela enxuta a "Partida rápida" é o link "Sortear um jogo" do cartão. */}
+        {!enxuta && aoPartidaRapida && (
           <button
             type="button"
             className="q-ctl pri"
@@ -340,6 +759,25 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
           </button>
         )}
       </div>
+
+      {/* `enxuto.js:266-268`: o cartão logo abaixo do título e, com a fonte Trilha, a linha dela em seguida. */}
+      {enxuta && cartaoDaSugestao}
+      {/* Sem sugestão (nenhum jogo pronto) não há cartão: o sorteio continua à mão, e avisa que não há jogo. */}
+      {enxuta && !sugestao && aoPartidaRapida && (
+        <span className="ex-ligs">
+          <button
+            type="button"
+            className="ex-lig"
+            data-ex="sortear"
+            title={t('Sorteia um jogo aleatório dentre os disponíveis e inicia imediatamente')}
+            onClick={aoPartidaRapida}
+          >
+            <Zap aria-hidden />
+            {t('Sortear um jogo')}
+          </button>
+        </span>
+      )}
+      {enxuta && trilha}
 
       <div className="qj-ferramentas">
         {aoTrocarCategoria && (
@@ -369,23 +807,43 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
           </div>
         )}
         <span className="q-espaco" />
-        {(aoBuscar || aoTrocarHabilidade) && (
-          <button type="button" className="q-chip" aria-haspopup="dialog" onClick={() => setPainel('filtros')}>
+        {enxuta ? (
+          /* `enxuto.js:241-244`: três chips viram um. Abre na primeira seção (a busca). */
+          <button
+            type="button"
+            className="q-chip ex-organizar"
+            aria-haspopup="dialog"
+            data-ex="organizar"
+            aria-label={t('Buscar e organizar os jogos')}
+            title={t('Buscar e filtrar, favoritos e ordem, opções')}
+            onClick={() => setPainel(secoes[0].id)}
+          >
             <Search aria-hidden />
-            {t('Buscar e filtrar')}
+            <span>{t('Buscar e organizar')}</span>
+            {/* Dado do app: quantos filtros estão ligados (no celular o chip é só o ícone). */}
             {filtrosLigados > 0 && <span className="qj-n">{filtrosLigados}</span>}
           </button>
+        ) : (
+          <>
+            {temFiltros && (
+              <button type="button" className="q-chip" aria-haspopup="dialog" onClick={() => setPainel('filtros')}>
+                <Search aria-hidden />
+                {t('Buscar e filtrar')}
+                {filtrosLigados > 0 && <span className="qj-n">{filtrosLigados}</span>}
+              </button>
+            )}
+            {temOrdem && (
+              <button type="button" className="q-chip" aria-haspopup="dialog" onClick={() => setPainel('ordem')}>
+                <Star aria-hidden />
+                {t('Favoritos e ordem')}
+              </button>
+            )}
+            <button type="button" className="q-chip" aria-haspopup="dialog" onClick={() => setPainel('opcoes')}>
+              <Settings2 aria-hidden />
+              {t('Opções')}
+            </button>
+          </>
         )}
-        {ordem && (aoFavoritar || aoMover || aoComoSeJoga) && (
-          <button type="button" className="q-chip" aria-haspopup="dialog" onClick={() => setPainel('ordem')}>
-            <Star aria-hidden />
-            {t('Favoritos e ordem')}
-          </button>
-        )}
-        <button type="button" className="q-chip" aria-haspopup="dialog" onClick={() => setPainel('opcoes')}>
-          <Settings2 aria-hidden />
-          {t('Opções')}
-        </button>
       </div>
 
       {aviso && (
@@ -428,63 +886,9 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
         </ul>
       )}
 
-      {trilha}
+      {!enxuta && trilha}
 
-      {sugestao && (
-        <section className="q-cartao qj-sugestao" aria-labelledby="qj-sugestao-t">
-          <div className="qj-sugestao-linha">
-            <span className="q-ic" aria-hidden>
-              <Sparkles />
-            </span>
-            <div className="qj-sugestao-texto">
-              <p className="q-rotulo">{t('Sugestão para hoje')}</p>
-              <b id="qj-sugestao-t">{sugestao.titulo}</b>
-              <small>
-                {t('Com')} {tituloDoJogo(sugestao.jogo, ageProfile)} · {t('rodada curta')}
-              </small>
-            </div>
-            <div className="q-acoes">
-              <button
-                type="button"
-                className="q-ctl"
-                aria-expanded={porQueAberto}
-                onClick={() => {
-                  antesDoPorQue.current = porQueAberto ? null : fotoDaTela();
-                  setPorQueAberto((v) => !v);
-                }}
-              >
-                <CircleHelp aria-hidden />
-                {porQueAberto ? t('Esconder o porquê') : t('Por que este?')}
-              </button>
-              {aoOutraSugestao && (
-                <button type="button" className="q-ctl" onClick={aoOutraSugestao}>
-                  <Shuffle aria-hidden />
-                  {t('Outra sugestão')}
-                </button>
-              )}
-              <button
-                type="button"
-                className="q-ctl"
-                data-sugestao={sugestao.jogo.id}
-                onClick={() => aoJogar(sugestao.jogo)}
-              >
-                <Play aria-hidden />
-                {t('Começar')}
-              </button>
-            </div>
-          </div>
-          {porQueAberto && (
-            <ul className="qj-porque">
-              {sugestao.porque.map(([Icone, texto]) => (
-                <li key={texto}>
-                  <Icone aria-hidden />
-                  <span>{texto}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
+      {!enxuta && cartaoDaSugestao}
 
       {/* A aba escolhida já se vê nas abas; busca e habilidade moram num painel, então são ditas aqui. */}
       {filtrosLigados > 0 && (
@@ -556,235 +960,73 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
         </p>
       )}
 
-      {painel === 'filtros' && (
+      {!enxuta && painel === 'filtros' && (
         <PainelDoQuest
           icone={SlidersHorizontal}
           titulo={t('Buscar e filtrar')}
-          sub={t('Por nome, por mecânica ou pelo que o jogo treina.')}
+          sub={SUB_DOS_FILTROS}
           aoFechar={() => setPainel(null)}
-          pe={
-            <>
-              {aoLimparFiltros && (
-                <button type="button" className="q-ctl" onClick={aoLimparFiltros}>
-                  {t('Limpar filtros e busca')}
-                </button>
-              )}
-              <button type="button" className="q-ctl pri" onClick={(e) => fecharPainelDe(e.currentTarget)}>
-                {tp(tiles.length, 'Ver {n} jogo', 'Ver {n} jogos')}
-              </button>
-            </>
-          }
+          pe={peDosFiltros}
         >
-          {aoBuscar && (
-            <label className="q-campo">
-              <span>{t('Buscar jogo')}</span>
-              <input
-                type="search"
-                value={busca}
-                onChange={(e) => aoBuscar(e.target.value)}
-                placeholder={t('Buscar por nome ou mecânica')}
-              />
-            </label>
-          )}
-          {aoTrocarHabilidade && (
-            <div className="q-secao">
-              <p className="q-rotulo">{t('Filtrar por habilidade')}</p>
-              <OpcoesDoQuest
-                rotulo={t('Filtrar por habilidade')}
-                exclusiva
-                valor={[habilidade]}
-                aoTrocar={(id) => aoTrocarHabilidade(id as HabilidadeDoLobby)}
-                opcoes={HABILIDADES.map((h) => ({ id: h.id, rotulo: t(h.rotulo) }))}
-              />
-            </div>
-          )}
+          {mioloDosFiltros}
         </PainelDoQuest>
       )}
 
-      {painel === 'opcoes' && (
-        <PainelDoQuest
-          icone={Settings2}
-          titulo={t('Opções')}
-          sub={t('A rodada, o seu material e a ordem dos jogos.')}
-          aoFechar={() => setPainel(null)}
-        >
-          {aoTrocarPrevia && previa !== undefined && (
-            <div className="q-ajuste">
-              <div>
-                <b>{ageProfile === 'kids' ? t('Ver antes de jogar') : t('Prévia antes de começar')}</b>
-                <small>
-                  {noHeadsetAqui
-                    ? t('Mostra o que vai cair antes de a rodada começar. Desligada, o toque já começa o jogo.')
-                    : t('Mostra o que vai cair antes de a rodada começar. Desligada, o clique já começa o jogo.')}
-                </small>
-              </div>
-              <InterruptorDoQuest
-                ligado={previa}
-                aoTrocar={aoTrocarPrevia}
-                rotulo={ageProfile === 'kids' ? t('Ver antes de jogar') : t('Prévia antes de começar')}
-              />
-            </div>
-          )}
-          {diagnostico && (
-            <div className="q-ajuste">
-              <div>
-                <b>{t('Diagnóstico do material')}</b>
-                <small>
-                  {t('Mostra no alto quantas palavras servem aos jogos, e por que as outras ficaram de fora.')}
-                </small>
-              </div>
-              <InterruptorDoQuest
-                ligado={diagnostico.ligado}
-                aoTrocar={diagnostico.aoTrocar}
-                rotulo={t('Diagnóstico do material')}
-              />
-            </div>
-          )}
-          <div className="q-lista">
-            {(
-              [
-                aoVerRecordes && [Trophy, t('Recordes'), t('Seus melhores resultados e o ranking.'), aoVerRecordes],
-                aoVerMapa && [
-                  MapIcon,
-                  t('Mapa do conteúdo'),
-                  t('O que já caiu, o que vence e o que nunca apareceu.'),
-                  aoVerMapa,
-                ],
-                curadoria && [
-                  ListChecks,
-                  t('Curadoria'),
-                  tp(curadoria.n, '{n} palavra ficou de fora dos jogos.', '{n} palavras ficaram de fora dos jogos.', {
-                    n: numero(curadoria.n),
-                  }),
-                  curadoria.aoAbrir,
-                ],
-                [
-                  LayoutGrid,
-                  t('Tela de sempre'),
-                  noHeadsetAqui
-                    ? t('O lobby do computador, só nesta visita.')
-                    : t('O lobby de antes do desenho novo, só nesta visita.'),
-                  aoVerTelaCompleta,
-                ],
-              ] as Array<false | undefined | [LucideIcon, string, string, () => void]>
-            )
-              .filter((l): l is [LucideIcon, string, string, () => void] => !!l)
-              .map(([Icone, titulo, apoio, agir]) => (
-                <button
-                  key={titulo}
-                  type="button"
-                  className="q-linha"
-                  onClick={(e) => {
-                    /* Sai do painel antes de abrir o destino: ao voltar, a pessoa cai no lobby. O painel
-                       FECHA pelo `close` nativo, que avisa o `aoFechar`, como no "x": tirado da tela
-                       ainda aberto, a camada de polimento o segurava para a saída e ele ficava preso,
-                       aberto e sem toque, por cima do destino. */
-                    fecharPainelDe(e.currentTarget);
-                    agir();
-                  }}
-                >
-                  <span className="q-ic" aria-hidden>
-                    <Icone />
-                  </span>
-                  <span>
-                    <b>{titulo}</b>
-                    <small>{apoio}</small>
-                  </span>
-                  <span className="q-fim" aria-hidden>
-                    <ChevronRight />
-                  </span>
-                </button>
-              ))}
-          </div>
+      {!enxuta && painel === 'opcoes' && (
+        <PainelDoQuest icone={Settings2} titulo={t('Opções')} sub={SUB_DAS_OPCOES} aoFechar={() => setPainel(null)}>
+          {mioloDasOpcoes}
         </PainelDoQuest>
       )}
 
-      {painel === 'ordem' && ordem && (
+      {!enxuta && painel === 'ordem' && ordem && (
         <PainelDoQuest
           largo
           icone={ArrowUpDown}
           titulo={t('Favoritos e ordem')}
-          sub={t('Fixe os favoritos no topo, mude a ordem dos cartões e veja como cada jogo se joga.')}
+          sub={SUB_DA_ORDEM}
           aoFechar={() => setPainel(null)}
           classe="qj-organizar"
-          pe={
-            <button type="button" className="q-ctl pri" onClick={(e) => fecharPainelDe(e.currentTarget)}>
-              {t('Pronto')}
-            </button>
-          }
+          pe={peDaOrdem}
         >
-          <ol className="qj-ordem">
-            {naOrdemDaGrade.map(({ jogo, apagado }) => {
-              const titulo = tituloDoJogo(jogo, ageProfile);
-              const fixado = favoritos.includes(jogo.id);
-              /* A seta move DENTRO do grupo (favoritos entre si, o resto entre si), como em `mover`. */
-              const doGrupo = idsNaOrdemDaGrade.filter((id) => favoritos.includes(id) === fixado);
-              const i = doGrupo.indexOf(jogo.id);
-              return (
-                <li key={jogo.chave} className="q-ajuste" data-ordem={jogo.id}>
-                  <div>
-                    <b>{titulo}</b>
-                    {(fixado || apagado) && (
-                      <small>
-                        {[
-                          fixado ? t('Favorito: fica no topo') : null,
-                          apagado ? t('Não abre agora: fica no fim da grade') : null,
-                        ]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </small>
-                    )}
-                  </div>
-                  <span className="q-acoes">
-                    {aoComoSeJoga && (
-                      <button
-                        type="button"
-                        className="q-ctl"
-                        aria-haspopup="dialog"
-                        aria-label={`${t('Como se joga')}: ${titulo}`}
-                        onClick={() => aoComoSeJoga(jogo)}
-                      >
-                        <CircleHelp aria-hidden />
-                      </button>
-                    )}
-                    {aoMover && (
-                      <>
-                        <button
-                          type="button"
-                          className="q-ctl"
-                          disabled={i === 0}
-                          aria-label={`${t('Mover para antes')}: ${titulo}`}
-                          onClick={() => aoMover(jogo, -1, idsNaOrdemDaGrade)}
-                        >
-                          <ArrowUp aria-hidden />
-                        </button>
-                        <button
-                          type="button"
-                          className="q-ctl"
-                          disabled={i === doGrupo.length - 1}
-                          aria-label={`${t('Mover para depois')}: ${titulo}`}
-                          onClick={() => aoMover(jogo, 1, idsNaOrdemDaGrade)}
-                        >
-                          <ArrowDown aria-hidden />
-                        </button>
-                      </>
-                    )}
-                    {aoFavoritar && (
-                      <button
-                        type="button"
-                        className="q-ctl qj-estrela"
-                        aria-pressed={fixado}
-                        aria-label={`${fixado ? t('Tirar dos favoritos') : t('Favoritar')}: ${titulo}`}
-                        onClick={() => aoFavoritar(jogo)}
-                      >
-                        <Star aria-hidden />
-                      </button>
-                    )}
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
+          {mioloDaOrdem}
+        </PainelDoQuest>
+      )}
+
+      {/* "BUSCAR E ORGANIZAR" (`abrirOrganizar()` de `enxuto.js:313-343`): um painel só, com as três seções
+          dos painéis de sempre, uma por vez. O painel fica montado enquanto a seção troca. */}
+      {enxuta && secaoAberta && (
+        <PainelDoQuest
+          largo
+          icone={SlidersHorizontal}
+          titulo={t('Buscar e organizar')}
+          sub={secaoAberta.sub}
+          classe="ex-organizar-dlg"
+          refDoPainel={organizar}
+          aoFechar={() => setPainel(null)}
+          abas={
+            <div className="ex-org-abas">
+              <div className="q-abas q-seg" role="tablist" aria-label={t('Seções')}>
+                {secoes.map(({ id, nome, curto, icone: Icone }, i) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    className="q-aba"
+                    aria-selected={id === secaoAberta.id}
+                    data-ex-secao={i}
+                    aria-label={nome}
+                    onClick={() => setPainel(id)}
+                  >
+                    <Icone aria-hidden />
+                    <span>{curto}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          }
+          pe={secaoAberta.pe}
+        >
+          {secaoAberta.miolo}
         </PainelDoQuest>
       )}
     </div>

@@ -12,6 +12,8 @@ import {
   tremer,
 } from '../../../../lib/polimento/interprete';
 import { ladosDaVoz } from '../../../../lib/voz/catalogoDeVozes';
+import { comoInstalarVoz, faltaVozNoAparelho, useVozesDoAparelho } from '../../../../lib/voz/faltaDeVoz';
+import { vozDaNuvemDisponivel } from '../../../../lib/voz/preferenciaDeVoz';
 import {
   aoMudarIdiomasDaVozDoQuest,
   atualizarIdiomasDaVozDoQuest,
@@ -116,7 +118,11 @@ export default function PaginaDoInterprete({
   useEffect(() => {
     if (comVozDoSite) void atualizarIdiomasDaVozDoQuest();
   }, [comVozDoSite]);
-  const mudo = (idioma: string) => semVoz && !(comVozDoSite && vozDoQuestFala(idioma));
+  /* O aparelho tem voz, mas não a deste idioma (`faltaDeVoz.ts`): a tela pronta já diz, antes do
+     primeiro toque, que a tradução dele fica em texto e como instalar a voz. */
+  useVozesDoAparelho();
+  const semVozDoIdioma = (idioma: string) => !semVoz && !vozDaNuvemDisponivel() && faltaVozNoAparelho(idioma);
+  const mudo = (idioma: string) => (semVoz && !(comVozDoSite && vozDoQuestFala(idioma))) || semVozDoIdioma(idioma);
 
   const [lista, setLista] = useState(false);
   const [cadeado, setCadeado] = useState(false);
@@ -130,6 +136,7 @@ export default function PaginaDoInterprete({
 
   const idiomaDe = (dono: LadoDoInterprete) => (dono === 'meu' ? idiomas.meu : idiomas.outro);
   const mudos = (['meu', 'outro'] as const).filter((l) => mudo(idiomaDe(l)));
+  const idiomaSemVoz = (['outro', 'meu'] as const).map(idiomaDe).find(semVozDoIdioma);
   const rotuloDaVoz =
     mudos.length === 2
       ? t('Tradução em texto neste aparelho')
@@ -210,9 +217,11 @@ export default function PaginaDoInterprete({
               : (aviso ??
                 (avisoDoCadeado
                   ? t('O modo automático faz parte do Premium: o app reconhece sozinho quem fala qual idioma.')
-                  : noAutomatico
-                    ? t('Automático ligado: é só conversar. O app reconhece quem fala qual idioma.')
-                    : ''))
+                  : idiomaSemVoz
+                    ? comoInstalarVoz(idiomaSemVoz)
+                    : noAutomatico
+                      ? t('Automático ligado: é só conversar. O app reconhece quem fala qual idioma.')
+                      : ''))
           }
           aoConhecerOPremium={avisoDoCadeado && possivel && !aviso ? aoConhecerOPremium : undefined}
           aoTrocarLados={() => mudarEstadoDaTela({ trocados: !tela.trocados })}

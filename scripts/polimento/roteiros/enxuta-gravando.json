@@ -1,0 +1,108 @@
+{
+  "nome": "enxuta-gravando",
+  "prototipo": "telas-enxutas",
+  "largura": 1280,
+  "altura": 960,
+  "midiaFalsa": true,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.px.planoDeProva": "free",
+      "babel.px.planosAVendaDeProva": "essencial,premium,aovivo",
+      "babel.px.aparelhoDeProva": "pc"
+    },
+    "passos": [
+      {
+        "js": "(() => { const f = window.fetch; window.fetch = (u, o) => { const s = String(u && u.url ? u.url : u); if (s.includes('/api/me/uso')) return Promise.resolve(new Response(JSON.stringify({\"plano\":\"free\",\"janela\":\"2026-10\",\"chamadas\":{\"usado\":0,\"teto\":0},\"segundosDeAudio\":{\"usado\":0,\"teto\":0},\"porNivel\":{\"trechos\":{\"usado\":0,\"teto\":0,\"restante\":0},\"aovivo\":{\"usado\":0,\"teto\":0,\"restante\":0}},\"tokensDeLlm\":{\"usado\":0,\"teto\":0},\"iaDeNuvem\":{\"disponivel\":true,\"motivo\":null,\"mensagem\":null},\"alivio\":null,\"hoje\":null}), { status: 200, headers: { 'Content-Type': 'application/json' } })); return f(u, o); }; })()"
+      },
+      {
+        "js": "Promise.all([import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false)), import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt-BR'))])"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "js": "(async () => { for (let i = 0; i < 8; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || [...d.querySelectorAll('button')].find((b) => /Pular|Fechar|Agora não|Entendi|Depois/.test(b.textContent || '')) || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 600)); } })()"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item, nav button')].find((b) => /Captur/.test(b.textContent))?.click()"
+      },
+      {
+        "esperar": 6000
+      },
+      {
+        "js": "(async () => { for (let i = 0; i < 8; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || [...d.querySelectorAll('button')].find((b) => /Pular|Fechar|Agora não|Entendi|Depois/.test(b.textContent || '')) || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 600)); } })()"
+      },
+      {
+        "js": "document.querySelector(\"[data-testid='iniciar-captura']\")?.click()"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "js": "[...document.querySelectorAll(\"button\")].find((b) => /Baixar e iniciar/.test(b.textContent || ''))?.click()"
+      },
+      {
+        "esperar": 3000
+      },
+      {
+        "js": "new Promise((ok) => { const i = setInterval(() => { if (window.__simFalas) { clearInterval(i); ok(window.__simFalas(['So, are we still shipping the roadmap today?', 'We ship it today, but the dashboard needs one more review.'])); } }, 250); })"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "js": "document.querySelectorAll('.px-vivo > :not(.px-vivo-topo):not(.pl-linha):not(.cel-conversa):not(.q-faixa):not(dialog)').forEach((e) => e.remove())"
+      },
+      {
+        "js": "Promise.all([import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false)), import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt-BR'))])"
+      },
+      {
+        "esperar": 600
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?telas=enxuta&ir=gravando&limpo",
+    "assentar": 7000,
+    "passos": []
+  },
+  "seletores": [
+    ".px-vivo-topo",
+    "[data-px-vivo='capturar:Detectar']",
+    ".ex-estado",
+    ".ex-estado > svg:first-child",
+    ".ex-estado-txt",
+    ".ex-estado-txt b",
+    ".ex-estado > svg:last-child",
+    ".px-vivo-topo [role='switch']",
+    ".px-vivo-topo [aria-label='Ajustes da captura']",
+    ".q-faixa",
+    ".q-faixa .q-tempo",
+    ".q-faixa .q-ctl.pri",
+    ".ex-pausar",
+    ".ex-pausar svg",
+    ".ex-pausar-t",
+    ".q-faixa [aria-label='Aumentar a letra']"
+  ],
+  "props": [
+    "alignItems",
+    "justifyContent",
+    "flexWrap",
+    "flexDirection",
+    "minHeight",
+    "maxWidth",
+    "marginTop",
+    "marginLeft",
+    "whiteSpace",
+    "textAlign",
+    "gridTemplateColumns",
+    "gridColumnStart",
+    "order",
+    "borderTopStyle",
+    "textOverflow"
+  ]
+}

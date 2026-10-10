@@ -199,14 +199,21 @@ describe('Parar abre o Encerrar com a gravação de pé', () => {
     ciclo2.handleStopRecording()
     await ciclo2.handleFinalizeSave(false)
     const api = await import('../src/data/api')
-    const payload = vi.mocked(api.criarSessaoEmLotes).mock.calls.at(-1)![0] as { utterances: Array<{ sourceText: string }> }
+    const payload = vi.mocked(api.criarSessaoEmLotes).mock.calls.at(-1)![0] as {
+      utterances: Array<{ sourceText: string }>
+    }
     expect(payload.utterances.map((u) => u.sourceText)).toEqual(['hello there', 'the late one'])
   })
 
   it('no teto sem conta, Iniciar não começa uma captura: avisa', () => {
     const { deps } = montar(0)
     const aoTetoAtingido = vi.fn()
-    const ciclo = criarSalvarSessao({ ...deps, isRecordingRef: ref(false), tetoAtingido: true, aoTetoAtingido } as never)
+    const ciclo = criarSalvarSessao({
+      ...deps,
+      isRecordingRef: ref(false),
+      tetoAtingido: true,
+      aoTetoAtingido,
+    } as never)
     ciclo.handleStartOrResume()
     expect(aoTetoAtingido).toHaveBeenCalled()
     expect(deps.setIsRecording).not.toHaveBeenCalled()
@@ -226,5 +233,80 @@ describe('Parar abre o Encerrar com a gravação de pé', () => {
     await ciclo.encerrarFontes()
     expect(sistema.stop).toHaveBeenCalledTimes(1)
     expect(deps.isRecordingRef.current).toBe(false)
+  })
+})
+
+/* O PAUSAR DA TELA ENXUTA (protótipo `telas-enxutas`, `pausarOuRetomar()` de `enxuto.js:125-139`): o
+   botão ao lado do Encerrar usa a MESMA pausa das fontes, sem o diálogo. */
+describe('Pausar e Retomar pelo botão da tela', () => {
+  it('Pausar pausa a MESMA fonte e para o relógio, sem encerrar nem abrir o Encerrar', () => {
+    const { ciclo, sistema, estado, deps } = montar()
+    expect(ciclo.pausarCaptura()).toBe(true)
+    expect(sistema.setPaused).toHaveBeenCalledWith(true)
+    expect(sistema.stop).not.toHaveBeenCalled()
+    expect(estado.pausado).toBe(true)
+    expect(estado.modal).toBe(false)
+    expect(estado.gravando).toBe(true)
+    expect(deps.systemCaptureRef.current).toBe(sistema)
+    // Já pausada: o segundo toque não é outra pausa.
+    expect(ciclo.pausarCaptura()).toBe(false)
+  })
+
+  it('Retomar volta a ouvir a MESMA fonte, e o relógio das legendas pula o trecho pausado', () => {
+    const { ciclo, sistema, estado, deps } = montar()
+    vi.useFakeTimers()
+    vi.setSystemTime(200_000)
+    ciclo.pausarCaptura()
+    vi.setSystemTime(207_000) // 7 s pausada
+    expect(ciclo.retomarCaptura()).toBe(true)
+    vi.useRealTimers()
+    expect(sistema.setPaused).toHaveBeenLastCalledWith(false)
+    expect(deps.handleStartSystemCapture).not.toHaveBeenCalled()
+    expect(deps.sessionStartMsRef.current).toBe(5000 + 7000)
+    expect(estado.pausado).toBe(false)
+    // Sem pausa em curso não há o que retomar.
+    expect(ciclo.retomarCaptura()).toBe(false)
+  })
+
+  it('pausada pelo botão, o Encerrar não recomeça a conta da pausa; "Continuar gravando" retoma tudo', () => {
+    const { ciclo, sistema, estado, deps } = montar()
+    vi.useFakeTimers()
+    vi.setSystemTime(300_000)
+    ciclo.pausarCaptura()
+    vi.setSystemTime(304_000) // 4 s pausada, e então Encerrar
+    ciclo.handleStopRecording()
+    expect(estado.modal).toBe(true)
+    expect(sistema.stop).not.toHaveBeenCalled()
+    vi.setSystemTime(306_000) // mais 2 s com o Encerrar aberto
+    ciclo.handleCancelStop()
+    vi.useRealTimers()
+    // O relógio pula a pausa INTEIRA (6 s), não só o tempo do diálogo.
+    expect(deps.sessionStartMsRef.current).toBe(5000 + 6000)
+    expect(sistema.setPaused).toHaveBeenLastCalledWith(false)
+    expect(estado.pausado).toBe(false)
+  })
+
+  it('o microfone do navegador (sem áudio a preservar) é encerrado na pausa e reabre na retomada', () => {
+    const { deps } = montar()
+    const reconhecedor = { stop: vi.fn() }
+    const ciclo = criarSalvarSessao({
+      ...deps,
+      micEnabled: true,
+      systemCaptureRef: ref(null),
+      webSpeechRef: ref(reconhecedor),
+    } as never)
+    expect(ciclo.pausarCaptura()).toBe(true)
+    expect(reconhecedor.stop).toHaveBeenCalledTimes(1)
+    expect(deps.startMic).not.toHaveBeenCalled()
+    ciclo.retomarCaptura()
+    expect(deps.startMic).toHaveBeenCalledTimes(1)
+  })
+
+  it('fora de uma gravação não há o que pausar', () => {
+    const { deps, sistema } = montar()
+    const ciclo = criarSalvarSessao({ ...deps, isRecordingRef: ref(false) } as never)
+    expect(ciclo.pausarCaptura()).toBe(false)
+    expect(sistema.setPaused).not.toHaveBeenCalled()
+    expect(deps.setPausado).not.toHaveBeenCalled()
   })
 })

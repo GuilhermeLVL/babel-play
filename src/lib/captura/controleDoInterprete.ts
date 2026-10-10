@@ -299,6 +299,15 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
     },
     aoFimDaFala(fim) {
       if (desligado || fim.source !== 'mic') return;
+      /* A fala acabou SEM TEXTO (`FimDaFala.semTexto`): nenhuma tradução vem. É o mesmo "sem tradução"
+         de sempre — o toque volta a "parado", o automático reabre o microfone. */
+      if (fim.semTexto) {
+        fins.delete(fim.segId);
+        decisoes.delete(fim.segId);
+        traducoes.delete(fim.segId);
+        if (maquina.estado().pendentes.includes(fim.segId)) maquina.enviar({ tipo: 'semTraducao', segId: fim.segId });
+        return;
+      }
       const lado = fim.lado ?? maquina.estado().lado;
       /* Sem lado só no automático: o idioma medido o dirá (`ladoDaFala`), antes de a tradução chegar. */
       if (!lado && !maquina.estado().automatico) return;

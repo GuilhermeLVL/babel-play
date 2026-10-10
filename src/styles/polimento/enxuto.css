@@ -1,0 +1,135 @@
+/* GERADO por scripts/polimento/trazer-css.mjs a partir de enxuto.css do protótipo das telas enxutas.
+   NÃO EDITAR À MÃO: mude a tabela do script e gere de novo. As regras são as do protótipo, sem
+   reescrita; valem sob html[data-px='on'], a marca que src/lib/polimento/base.ts põe. */
+/* ==========================================================================
+   TELAS ENXUTAS (enxuto.js). Só vale com html[data-px='on'][data-telas='enxuta'].
+   Nada aqui cria peça nova: as regras escondem o que foi guardado, acertam a
+   ordem e dão ao chip de estado o tom que a marca já tinha. A única peça
+   acrescentada é o link discreto (.ex-lig).
+   ========================================================================== */
+
+/* ---- Capturar: uma fileira em cima -------------------------------------------- */
+html[data-px='on'][data-telas='enxuta'] .px-vivo .pl-linha,
+html[data-px='on'][data-telas='enxuta'] .px-vivo-topo :is([data-px-vivo='capturar:Modelo no dispositivo'], .pl-onde, [data-px-vivo='capturar:Ajuda']) { display: none; }
+/* a barra de baixo: o idioma já está em cima; a letra só aparece quando há texto */
+html[data-px='on'][data-telas='enxuta'] .px-vivo .q-faixa [aria-label='Idiomas da sessão'],
+html[data-px='on'][data-telas='enxuta'] .px-vivo.px-pronto .q-faixa [aria-label$='a letra'] { display: none; }
+
+.px-vivo-topo .q-chip.ex-estado { flex: 0 1 auto; gap: 9px; }
+.ex-estado > svg:first-child { flex: 0 0 auto; width: 20px; height: 20px; }
+.ex-estado > svg:last-child { flex: 0 0 auto; opacity: 0.7; }
+.ex-estado-txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: var(--ink-muted); }
+.ex-estado-txt b { font-weight: 800; color: var(--ink); }
+.ex-estado[data-tom='nuvem'] { background: var(--q-suave, var(--accent-soft)); border-color: var(--q-acento, var(--accent)); }
+.ex-estado[data-tom='alerta'] { background: color-mix(in srgb, var(--warn) 22%, var(--surface)); border-color: color-mix(in srgb, var(--warn) 55%, var(--border-subtle)); }
+.ex-pausado .cel-ponto { animation: none; opacity: 0.45; box-shadow: none; }
+.ex-pausar svg { width: 20px; height: 20px; }
+
+/* a ajuda dentro do painel de ajustes: o mesmo botão do cabeçalho, ao lado do Fechar */
+dialog .dlg-cab .x.ex-ajuda-no-dlg { margin-left: auto; }
+dialog .dlg-cab .x.ex-ajuda-no-dlg + .x { margin-left: 8px; }
+
+/* a folha "Como isto funciona" com o modelo e a ajuda */
+.ex-lista-da-folha { display: grid; gap: 10px; }
+.ex-lista-da-folha .q-linha { width: 100%; text-align: left; min-height: 0; padding: 10px 14px; gap: 12px; border-radius: 16px; }
+.ex-lista-da-folha .q-linha .q-ic { width: 40px; height: 40px; border-radius: 12px; flex: 0 0 auto; }
+.ex-lista-da-folha .q-linha .q-ic svg { width: 20px; height: 20px; }
+/* na folha, as linhas seguem a escala de texto da própria folha (os cartões de nível logo acima) */
+dialog.folha-de-baixo .ex-lista-da-folha .q-linha b { font-size: 15.5px !important; line-height: 1.25; }
+dialog.folha-de-baixo .ex-lista-da-folha .q-linha small { font-size: 13.5px !important; line-height: 1.35; }
+dialog.folha-de-baixo .ex-lista-da-folha .q-linha .q-fim svg { width: 18px; height: 18px; }
+.ex-sem-nuvem { margin: 0; }
+
+/* ---- Jogar ---------------------------------------------------------------------- */
+/* O link discreto: texto com ícone, sem caixa. Mesma fonte, mesmo raio e mesmo toque dos chips. */
+.ex-lig {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font: 700 15px/1 var(--font-body, inherit);
+  color: var(--ink-muted);
+  white-space: nowrap;
+  transition: color 0.16s ease, background-color 0.16s ease, transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.ex-lig svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.ex-lig:active { transform: scale(0.96); }
+.ex-lig:focus-visible { outline: 3px solid var(--q-acento, var(--accent)); outline-offset: 2px; }
+.ex-lig[aria-expanded='true'] { color: var(--ink); background: color-mix(in srgb, var(--ink) 6%, transparent); }
+@media (hover: hover) {
+  .ex-lig:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 6%, transparent); }
+}
+.ex-ligs { display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
+.ex-jogar .qj-sugestao-linha { gap: 10px 12px; }
+.ex-jogar .qj-sugestao-linha > .q-ctl.pri { flex: 0 0 auto; }
+.ex-organizar svg { flex: 0 0 auto; }
+.ex-fonte-txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* A folha única: as três seções dos painéis de hoje, uma por vez */
+.ex-org-abas { flex: 0 0 auto; display: flex; padding: 14px 24px 0; min-width: 0; }
+.ex-org-abas .q-abas { align-self: flex-start; max-width: 100%; }
+dialog.ex-organizar-dlg .dlg-pe:empty { display: none; }
+@media (min-width: 721px) {
+  /* a altura não pula ao trocar de seção */
+  html[data-quest-novo='true'] dialog.ex-organizar-dlg[open] { height: min(680px, 86vh); }
+}
+
+/* ---- Celular ---------------------------------------------------------------------- */
+@media (max-width: 720px) {
+  /* Capturar: [idioma] [mic] [ajustes] e, embaixo, o chip de estado numa linha só */
+  html[data-px='on'][data-telas='enxuta'] .px-vivo-topo { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; }
+  html[data-px='on'][data-telas='enxuta'] .px-vivo-topo > .q-espaco { display: none; }
+  html[data-px='on'][data-telas='enxuta'] .px-vivo-topo > [data-px-vivo='capturar:Detectar'] { justify-self: start; max-width: 100%; padding: 0 14px; gap: 6px; font-size: 15px; }
+  html[data-px='on'][data-telas='enxuta'] .px-vivo-topo .q-chip.ex-estado { grid-column: 1 / -1; grid-row: 2; min-height: 48px; padding: 0 14px; font-size: 14.5px; }
+  html[data-px='on'][data-telas='enxuta'] .ex-estado > svg:last-child { margin-left: auto; }
+
+  /* gravando: [relógio] [Encerrar] [pausar, só o ícone] [A+] cabem sem apertar o Encerrar */
+  html[data-px='on'][data-telas='enxuta'] .px-vivo:not(.px-pronto) .q-faixa { gap: 8px; }
+  html[data-px='on'][data-telas='enxuta'] .px-vivo:not(.px-pronto) .q-faixa .q-tempo { padding: 0 4px 0 10px; }
+  html[data-px='on'][data-telas='enxuta'] .px-vivo:not(.px-pronto) .q-faixa .q-ctl.pri { flex: 1 1 auto; min-width: 0; padding: 0 12px; }
+  html[data-px='on'][data-telas='enxuta'] .px-vivo .q-faixa .q-quadrado { flex: 0 0 14px; }
+  html[data-px='on'][data-telas='enxuta'] .px-vivo .q-faixa .ex-pausar { flex: 0 0 auto; min-width: 60px; padding: 0; }
+  html[data-px='on'][data-telas='enxuta'] .px-vivo .q-faixa .ex-pausar-t { display: none; }
+
+  /* Jogar: o chip da fonte sobe para a linha do título */
+  html[data-px='on'][data-telas='enxuta'] .ex-jogar .q-cab { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 10px; }
+  html[data-px='on'][data-telas='enxuta'] .ex-jogar .q-cab > :first-child { display: contents; }
+  html[data-px='on'][data-telas='enxuta'] .ex-jogar .q-cab .q-sobre { grid-column: 1 / -1; margin: 0; }
+  html[data-px='on'][data-telas='enxuta'] .ex-jogar .q-cab > .q-chip { flex: none; min-width: 0; max-width: 100%; justify-content: flex-start; padding: 0 14px; font-size: 15px; }
+
+  /* as abas ocupam a largura e o "Buscar e organizar" vira o ícone ao lado: nada rola de lado */
+  html[data-px='on'][data-telas='enxuta'] .ex-jogar .qj-ferramentas { overflow: visible; margin-inline: 0; padding-inline: 0; gap: 8px; }
+  html[data-px='on'][data-telas='enxuta'] .ex-jogar .qj-ferramentas > .q-abas { flex: 1 1 0; min-width: 0; }
+  html[data-px='on'][data-telas='enxuta'] .ex-jogar .qj-ferramentas > .q-abas .q-aba { flex: 1 1 0; min-width: 0; justify-content: center; padding: 0 6px; font-size: 14px; gap: 5px; }
+  html[data-px='on'][data-telas='enxuta'] .ex-jogar .qj-ferramentas > .q-abas .q-aba > svg { display: none; }
+  html[data-px='on'][data-telas='enxuta'] .ex-jogar .ex-organizar { flex: 0 0 auto; width: 52px; min-height: 52px; padding: 0; justify-content: center; }
+  html[data-px='on'][data-telas='enxuta'] .ex-jogar .ex-organizar > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+
+  /* o cartão: texto, dois links, e na linha de baixo [Começar] + Sortear um jogo */
+  html[data-px='on'][data-telas='enxuta'] .ex-jogar .qj-sugestao-linha { gap: 4px 8px; }
+  html[data-px='on'][data-telas='enxuta'] .ex-jogar .ex-ligs { display: contents; }
+  html[data-px='on'][data-telas='enxuta'] .ex-jogar .qj-sugestao-linha > .q-ctl.pri { order: 3; flex: 1 1 0; min-width: 130px; margin-top: 4px; }
+  html[data-px='on'][data-telas='enxuta'] .ex-jogar .ex-lig { min-height: 40px; padding: 0 8px; font-size: 14.5px; }
+  html[data-px='on'][data-telas='enxuta'] .ex-jogar .ex-lig[data-ex='sortear'] { order: 4; margin-top: 4px; min-height: 60px; }
+  /* a linha de cima fecha no texto; a de baixo tem os dois links, alinhados com o texto do cartão */
+  html[data-px='on'][data-telas='enxuta'] .ex-jogar .qj-sugestao-texto { flex: 1 1 60%; }
+  html[data-px='on'][data-telas='enxuta'] .ex-jogar .ex-lig:is([data-ex='porque'], [data-ex='outra']) { order: 6; }
+  html[data-px='on'][data-telas='enxuta'] .ex-jogar .ex-lig[data-ex='porque'] { margin-left: -8px; }
+
+  .ex-org-abas { padding: 12px 16px 0; }
+  .ex-org-abas .q-abas { flex: 1 1 auto; }
+  html[data-px] .ex-org-abas .q-abas .q-aba { flex: 1 1 auto; justify-content: center; min-height: 44px; padding: 0 8px; font-size: 14px; }
+  .ex-org-abas .q-aba > svg { display: none; }
+}
+
+/* [enxuto.css:128-154] não vem: barra do protótipo e painel "O que mudou" */
+
+@media (prefers-reduced-motion: reduce) {
+  .ex-lig { transition: none; }
+}

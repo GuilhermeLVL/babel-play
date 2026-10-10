@@ -48,6 +48,7 @@ import { setterNoQuadro } from './agendarNoQuadro';
 import { guardarAudioDaFala } from './audioDasFalas';
 import { conferirRotaDoStt, type EntradaDaConferencia, montarPedidoDeRota } from './conferenciaDaRota';
 import { decidirNaVirtual, ESTADO_DA_VIRTUAL, type EstadoDaVirtual } from './idiomasDaConversaVirtual';
+import { idiomasDoModelo } from './idiomasDoModelo';
 import { direcaoDoLado as direcaoDeUmLado } from './interprete';
 import type { PistasDoIdioma } from './interpreteAutomatico';
 import { umModeloDeCadaVez } from './memoriaDosModelos';
@@ -897,6 +898,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             capMetrics.final(seq, { decodeMs, queueDepth, text: '', audioMs, engine });
             clog('Whisper final vazio → parcial descartado (seq', seq, ')');
             setSpeechSegments((prev) => prev.filter((s) => s.id !== uttId));
+            /* O fim desta fala já foi anunciado (o intérprete fechou o microfone e espera a tradução):
+               sem texto não há tradução, e ele precisa saber para devolver a vez. */
+            aoFimDaFala?.({ segId: uttId, source, semTexto: true });
             return;
           }
           /* O IDIOMA DEIXOU DE FICAR NA FRENTE DO TEXTO.
@@ -1024,6 +1028,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
               );
               capMetrics.drop(seq);
               setSpeechSegments((prev) => prev.filter((s) => s.id !== uttId));
+              aoFimDaFala?.({ segId: uttId, source, semTexto: true });
               if (!avisoVazamentoRef.current) {
                 avisoVazamentoRef.current = true;
                 setFeedbackMsg(
@@ -1170,6 +1175,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         })
         .catch((err) => {
           clog('Whisper final', source, '(seq', seq, ') ERRO:', String(err));
+          // A transcrição falhou: o intérprete não fica esperando uma tradução que não vem.
+          aoFimDaFala?.({ segId: uttId, source, semTexto: true });
           seqToSegmentRef.current.delete(seq);
           lastPartialTextRef.current.delete(seq);
           capMetrics.final(seq, { queueDepth });
@@ -1314,17 +1321,28 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         perfilId: getActiveProfile().id,
       }).motor === 'whisper';
     const autoDetect = autoDetectLangRef.current || autoDetectMyLangRef.current;
+    /* O que o modelo vai ouvir (`idiomasDoModelo.ts`): no intérprete, os dois idiomas pelo microfone —
+       nunca o modelo só de inglês, mesmo com inglês de um dos lados. */
+    const doModelo = idiomasDoModelo({
+      cenario: captureScenarioRef.current,
+      virtual: !!interpreteVirtual?.(),
+      ouve: listenLang,
+      falo: myLang,
+      micVaiAoModelo: micVaiAoWhisper,
+      detectar: autoDetect,
+    });
     /** O modelo local só decodifica inglês: a escada do regulador pode descer ao Moonshine. */
-    const soIngles = listenLang === 'en' && !autoDetect && (!micVaiAoWhisper || myLang === 'en');
+    const soIngles = doModelo.soIngles;
     const hasWebGpu = await temAdaptadorWebGpu();
     const dispositivo = dispositivoDaRota(perfil, sonda);
     let route = routeStt({
       contentLang: listenLang,
       // O mesmo modelo decodifica o MIC: se você fala PT enquanto ouve EN, o moonshine (só inglês) não serve.
-      micLang: micVaiAoWhisper ? myLang : '',
+      micLang: doModelo.idiomaDoMicrofone,
       // Sem áudio do sistema, o único áudio decodificado é o do microfone: o idioma dele decide.
       soMicrofone: captureScenarioRef.current === 'mic',
-      autoDetect,
+      // No intérprete o idioma de cada fala muda de lado para lado (e é medido, no automático).
+      autoDetect: doModelo.detectar,
       quality: getSttQuality(),
       /* O ADAPTADOR, não a API: `navigator.gpu` existe no headless sem GPU nenhuma, e o small no
          WebGPU sem adaptador era captura sem legenda (auditoria de latência 2026-09-26). */

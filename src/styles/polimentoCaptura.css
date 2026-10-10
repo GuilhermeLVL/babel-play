@@ -23,3 +23,36 @@ html[data-quest-novo='true'] .q-casca:has(.px-pronto, .px-parada) .q-trilho {
   animation: none !important;
   opacity: 0.4;
 }
+
+/* A TELA ENXUTA NO CELULAR COM AS ANIMAÇÕES DESLIGADAS. O protótipo arruma o topo em duas linhas (o
+   idioma, o microfone e os ajustes; embaixo, o chip de estado) com regras que dependem da camada ligada
+   (`enxuto.css:83-87`, sob `html[data-px='on']`). Sem ela os dois chips disputavam a mesma linha e o
+   idioma ficava cortado ("Detec"). São as MESMAS regras, para quando a camada não está. */
+@media (max-width: 720px) {
+  html[data-telas='enxuta']:not([data-px='on']) .px-vivo-topo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 8px;
+  }
+  html[data-telas='enxuta']:not([data-px='on']) .px-vivo-topo > .q-espaco {
+    display: none;
+  }
+  html[data-telas='enxuta']:not([data-px='on']) .px-vivo-topo > [data-px-vivo='capturar:Detectar'] {
+    justify-self: start;
+    max-width: 100%;
+    padding: 0 14px;
+    gap: 6px;
+    font-size: 15px;
+  }
+  html[data-telas='enxuta']:not([data-px='on']) .px-vivo-topo .q-chip.ex-estado {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-height: 48px;
+    padding: 0 14px;
+    font-size: 14.5px;
+  }
+  html[data-telas='enxuta']:not([data-px='on']) .ex-estado > svg:last-child {
+    margin-left: auto;
+  }
+}

@@ -168,6 +168,8 @@ import { pedirDestaqueEmPlanos } from '../../lib/ofertas/destaque';
 import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
 import { usePalavrasAprendidas } from '../../lib/palavrasAprendidas';
 import { destinoDaTraducao, PerfilAdaptativoDeIdioma } from '../../lib/perfilDeIdioma';
+import { telasEnxutas } from '../../lib/polimento/base';
+import { sentir } from '../../lib/polimento/sentidos';
 import { coreOnly } from '../../lib/profile';
 import { perfilProtegido } from '../../lib/protecaoDoMenor';
 import { play } from '../../lib/soundFx';
@@ -202,6 +204,7 @@ import FolhaDeOpcoes from './captura/celular/FolhaDeOpcoes';
 import FolhasDoPrototipo from './captura/celular/FolhasDoPrototipo';
 // Subcomponentes locais da captura (um arquivo por componente, em `views/captura/`).
 import EncerrarSessao from './captura/EncerrarSessao';
+import { AjudaNoPainel } from './captura/enxuta/pecas';
 import EscolhaDoMicrofone from './captura/EscolhaDoMicrofone';
 import IdiomasDaSessao, { type Lado } from './captura/IdiomasDaSessao';
 import LegendaFlutuanteDoPrototipo from './captura/legendas/LegendaFlutuanteDoPrototipo';
@@ -1397,6 +1400,8 @@ export default function LiveCapture({
           : null,
       /* No automático o microfone vai ao Whisper, que mede o idioma (a Web Speech não detecta). */
       interpreteAutomatico: () => ponteDoInterpreteRef.current?.automatico() ?? false,
+      /* Pausada (o botão Pausar, ou o Encerrar aberto), nenhuma fonte nova abre. */
+      pausada: () => pausaInicioRef.current !== 0,
     });
 
   // Harness OFFLINE de teste (dev): injeta um PCM conhecido pelo MESMO caminho do sistema
@@ -1687,6 +1692,8 @@ export default function LiveCapture({
     handleCancelStop,
     handleFinalizeSave,
     encerrarFontes,
+    pausarCaptura,
+    retomarCaptura,
   } = criarSalvarSessao({
     gateway,
     onSave,
@@ -2883,6 +2890,16 @@ export default function LiveCapture({
         : t('Legendas flutuantes fechadas'),
     );
   };
+  /* PAUSAR E RETOMAR (`pausarOuRetomar()` de `enxuto.js:125-139`): a pausa de verdade das fontes, a mesma
+     que o Encerrar já usava (`pausarFontes`/`retomarFontes`, `salvarSessao.ts`). */
+  const alternarPausa = () => {
+    if (pausado) {
+      if (retomarCaptura()) toast.info(t('Captura retomada.'));
+    } else if (pausarCaptura()) {
+      toast.info(t('Captura pausada: nada está sendo ouvido. O que já foi legendado continua na tela.'));
+    }
+    sentir('aba');
+  };
   const palavraGuardada = (palavra: string) => {
     const p = palavra.toLocaleLowerCase();
     return aprendidas.has(p) || addedWords.some((w) => w.toLocaleLowerCase() === p);
@@ -2932,6 +2949,7 @@ export default function LiveCapture({
           noMaximo: escalaDaLegenda >= ESCALAS_DA_LEGENDA[ESCALAS_DA_LEGENDA.length - 1],
         }}
         noQuest={noQuest}
+        pausa={telasEnxutas() ? { pausada: pausado, aoAlternar: alternarPausa } : undefined}
         /* O NÍVEL DE SERVIÇO (`captura/niveis/`): escolher um nível grava a preferência que já existia
            ("Qualidade da transcrição"), como o seletor dos Ajustes da captura. */
         niveis={{
@@ -3138,6 +3156,13 @@ export default function LiveCapture({
               : 'De onde vem o som, quem transcreve e como a legenda aparece.'
           }
           largura="largo"
+          /* A AJUDA NO PAINEL (`enxuto.js:148-158`): saiu do topo da tela enxuta e abre por cima deste
+             painel, 340 ms depois do toque, como no protótipo. No headset o botão continua no topo. */
+          acao={
+            telasEnxutas() ? (
+              <AjudaNoPainel aoAbrir={() => window.setTimeout(() => setShowGuide(true), 340)} />
+            ) : undefined
+          }
           aoFechar={() => {
             play('close');
             setShowConfigPanel(false);

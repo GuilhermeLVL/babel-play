@@ -19,3 +19,5 @@ import '../../styles/polimento/agua.css';
 /* O protótipo dos quatro planos (`anuncios-no-gratis-src/montar.mjs:77-78`): só o que a tela Planos usa. */
 import '../../styles/polimento/anuncios.css';
 import '../../styles/polimento/planos4.css';
+/* O protótipo das telas enxutas (`telas-enxutas-src/montar.mjs`): Capturar e Jogar com menos coisas à vista. */
+import '../../styles/polimento/enxuto.css';

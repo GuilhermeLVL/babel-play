@@ -10,6 +10,7 @@ import {
 } from '../../../../core/planos';
 import type { DecisaoDeRota, NivelDeServico } from '../../../../core/rota/politicaDeRota';
 import type { SttQuality } from '../../../../gateway/sttRouter';
+import { estadoDoChip } from '../../../../lib/captura/estadoDaCaptura';
 import {
   escolhaDaPreferencia,
   marcaDoSelo,
@@ -21,7 +22,7 @@ import {
   qualidadeDoNivel,
   quemTemONivel,
 } from '../../../../lib/captura/nivelDeServico';
-import { type SeloDaFala, seloDaFala } from '../../../../lib/captura/seloDaFala';
+import { type SeloDaFala, seloDaFala, textoDoSelo } from '../../../../lib/captura/seloDaFala';
 import { useSemRede } from '../../../../lib/captura/useSemRede';
 import { consentiuNuvem } from '../../../../lib/consentimentoDeNuvem';
 import type { TipoDeDispositivo } from '../../../../lib/dispositivo/perfil';
@@ -29,11 +30,13 @@ import { edicaoEstatica } from '../../../../lib/edicaoEstatica';
 import { getEntitlements } from '../../../../lib/entitlements';
 import { flagLigada } from '../../../../lib/flags';
 import { numero, t } from '../../../../lib/i18n';
+import { langLabelNaUI } from '../../../../lib/languages';
 import { provaDosPlanos } from '../../../../lib/polimento/planos';
 import { sentir } from '../../../../lib/polimento/sentidos';
 import { perfilProtegido } from '../../../../lib/protecaoDoMenor';
 import { carregarUso, type UsoDoMes } from '../../../../lib/uso';
 import { toast } from '../../../Toast';
+import { ChipDeEstado } from '../enxuta/pecas';
 import FolhaComoFunciona from './FolhaComoFunciona';
 import FolhaDoCadeado, { type AparelhoDoNivel } from './FolhaDoCadeado';
 import { ChipDoMedidor, MarcaDeOnde, type NivelDoSeletor, NotaDoPronto, SeletorDeNivel } from './pecas';
@@ -127,8 +130,13 @@ let ultimoUso: { de: AmbienteDosNiveis['carregarUso']; uso: UsoDoMes } | null = 
 type FolhaAberta = { qual: 'como' } | { qual: 'tranca'; nivel: 'precisao' | 'aovivo' } | null;
 
 export interface PecasDosNiveis {
-  /** A fileira `.pl-linha`: seletor, marca (estreita) e medidor. Vai logo abaixo do topo. */
+  /** A fileira `.pl-linha`: seletor, marca (estreita) e medidor. Vai logo abaixo do topo. Na tela enxuta, nada. */
   linha: ReactNode;
+  /**
+   * O CHIP DE ESTADO da tela enxuta (`enxuto.js:62-65`): junta o chip do modelo, a marca e o seletor, e
+   * abre a folha. `null` fora da tela enxuta.
+   */
+  chipDeEstado: ReactNode;
   /** A marca do topo (`pl-so-largo`). */
   marcaDoTopo: ReactNode;
   /** A nota da tela pronta (horas esgotadas, sem internet). Vai dentro do miolo. */
@@ -146,6 +154,7 @@ export interface PecasDosNiveis {
 
 const NADA: PecasDosNiveis = {
   linha: null,
+  chipDeEstado: null,
   marcaDoTopo: null,
   nota: null,
   folhas: null,
@@ -169,6 +178,17 @@ export function useNiveisDaCaptura(
     /** A linha do modelo local ("Modelo local · 589 MB"), para a folha. */
     modelo?: string | null;
     aoAbrirModelo?: () => void;
+    /**
+     * A TELA ENXUTA (protótipo `telas-enxutas`): a fileira e a marca saem, e o chip de estado e a folha
+     * ficam com o que elas faziam.
+     */
+    enxuta?: boolean;
+    /** A captura está pausada pela pessoa (o chip diz "Pausado"). */
+    pausada?: boolean;
+    /** O par de idiomas como o chip o escreve enquanto grava. */
+    par?: string;
+    /** A ajuda da captura: na tela enxuta ela mora na folha. */
+    aoAbrirAjuda?: () => void;
   },
 ): PecasDosNiveis {
   const semRede = useSemRede();
@@ -255,7 +275,7 @@ export function useNiveisDaCaptura(
     : undefined;
   const verPlanos = amb.protegido || amb.semPlanos ? undefined : dados.aoVerPlanos;
 
-  const linha = (
+  const linha = tela.enxuta ? null : (
     <div className="pl-linha" data-testid="fileira-do-nivel">
       <SeletorDeNivel niveis={niveis} emUso={emUso} aoEscolher={escolher} />
       {selo && marca && <MarcaDeOnde selo={selo} marca={marca} classe="pl-so-estreito" aoAbrir={abrirComo} />}
@@ -266,7 +286,45 @@ export function useNiveisDaCaptura(
     </div>
   );
   const marcaDoTopo =
-    selo && marca ? <MarcaDeOnde selo={selo} marca={marca} classe="pl-so-largo" aoAbrir={abrirComo} /> : null;
+    !tela.enxuta && selo && marca ? (
+      <MarcaDeOnde selo={selo} marca={marca} classe="pl-so-largo" aoAbrir={abrirComo} />
+    ) : null;
+  const chipDeEstado = tela.enxuta ? (
+    <ChipDeEstado
+      estado={estadoDoChip(
+        { selo, gravando: tela.gravando, pausada: !!tela.pausada, medidores, emUso, par: tela.par ?? '' },
+        t,
+      )}
+      marca={marca}
+      motivo={selo ? textoDoSelo(selo, t, langLabelNaUI).motivo : ''}
+      aoAbrir={abrirComo}
+    />
+  ) : null;
+  /* `enxuto.js:171-173`: a folha diz que não há nuvem a quem não a tem no plano, com as horas dos planos
+     À VENDA (as de verdade, de `quemTemONivel`). Sem oferta (perfil protegido, edição estática), nada. */
+  const comHoras = quem.precisao.filter((p) => p.aVenda && p.horasNoMes !== null);
+  const horasDe = (p: (typeof comHoras)[number]) => `${numero(p.horasNoMes ?? 0)} h`;
+  const semNuvem =
+    amb.capacidades.managedCloudStt || amb.semPlanos || amb.protegido
+      ? null
+      : [
+          t('O seu plano não tem horas de nuvem: a legenda roda no aparelho, sem limite.'),
+          comHoras.length > 1
+            ? t('O {plano} tem {horas} por mês; o {outro}, {outras}.', {
+                plano: nomeDoPlano(comHoras[0].plano),
+                horas: horasDe(comHoras[0]),
+                outro: nomeDoPlano(comHoras[1].plano),
+                outras: horasDe(comHoras[1]),
+              })
+            : comHoras.length === 1
+              ? t('O {plano} tem {horas} por mês.', {
+                  plano: nomeDoPlano(comHoras[0].plano),
+                  horas: horasDe(comHoras[0]),
+                })
+              : '',
+        ]
+          .filter(Boolean)
+          .join(' ');
   const nota = tela.noQuest ? null : (
     <NotaDoPronto
       medidores={medidores}
@@ -293,6 +351,7 @@ export function useNiveisDaCaptura(
         }}
         aoVerPlanos={verPlanos ? () => verPlanos(null) : undefined}
         aoVerModelo={tela.aoAbrirModelo}
+        enxuta={tela.enxuta ? { semNuvem, aoAjuda: tela.aoAbrirAjuda } : undefined}
         aoFechar={() => setFolha(null)}
       />
     ) : folha?.qual === 'tranca' ? (
@@ -307,5 +366,13 @@ export function useNiveisDaCaptura(
       />
     ) : null;
 
-  return { linha, marcaDoTopo, nota, folhas, emUso, modeloOculto: emUso === 'precisao' || aparelho === 'celular' };
+  return {
+    linha,
+    chipDeEstado,
+    marcaDoTopo,
+    nota,
+    folhas,
+    emUso,
+    modeloOculto: emUso === 'precisao' || aparelho === 'celular',
+  };
 }

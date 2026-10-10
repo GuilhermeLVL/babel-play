@@ -129,6 +129,34 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
+/* A PAUSA PEDIDA PELA PESSOA (o Pausar da tela enxuta): a tela diz "nada está sendo ouvido", então uma
+   fonte pedida no meio da pausa não pode nascer ouvindo. O microfone abre na retomada (`retomarFontes`). */
+describe('com a captura pausada, nenhuma fonte nova abre', () => {
+  it('o microfone pedido durante a pausa não abre (nem pelo navegador, nem pelo Whisper)', async () => {
+    for (const escolha of ['rapido', 'privado'] as const) {
+      const { fontes, d } = montar(escolha, { pausada: () => true })
+      await fontes.startMic()
+      expect(ReconhecedorFalso.ultimo).toBeNull()
+      expect(getUserMedia).not.toHaveBeenCalled()
+      expect(d.micCaptureRef.current).toBeNull()
+      expect(d.webSpeechRef.current).toBeNull()
+    }
+  })
+
+  it('o som do computador pedido durante a pausa não abre, e a tela diz por quê', async () => {
+    const { fontes, d } = montar('privado', { pausada: () => true })
+    await fontes.handleStartSystemCapture()
+    expect(d.systemCaptureRef.current).toBeNull()
+    expect(d.setFeedbackMsg).toHaveBeenCalledWith('A captura está pausada. Retome para abrir o som do computador.')
+  })
+
+  it('fora da pausa o microfone abre como sempre', async () => {
+    const { fontes } = montar('rapido', { pausada: () => false })
+    await fontes.startMic()
+    expect(ReconhecedorFalso.ultimo).not.toBeNull()
+  })
+})
+
 describe('microfone pelo Rápido (Web Speech)', () => {
   it('a fonte só "abre" com o onaudiostart; nenhum segundo getUserMedia no celular', async () => {
     const { fontes, d } = montar('rapido')

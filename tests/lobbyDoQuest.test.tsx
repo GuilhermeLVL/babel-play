@@ -2,6 +2,10 @@
 /**
  * JOGAR NO META QUEST (maquete aprovada em 01/10/2026, tela 5): a ordem dos cartões, o motivo de quem
  * não abre no headset, o clique que abre a rodada e a Memória com seis pares.
+ *
+ * A ARRUMAÇÃO DESTA TELA (partida rápida no alto, três chips de painel, o cartão da sugestão depois das
+ * abas) é a do HEADSET. No computador e no celular a tela é a enxuta, com as mesmas funções em outro
+ * lugar: `tests/lobbyEnxuto.test.tsx`.
  */
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { Target } from 'lucide-react'
@@ -98,7 +102,9 @@ describe('LobbyDoQuest no computador com o desenho novo', () => {
 
   it('Opções fala em clique e no "lobby de antes", sem falar no computador como outro aparelho', () => {
     noPc({ previa: true, aoTrocarPrevia: () => {} })
-    fireEvent.click(screen.getByRole('button', { name: 'Opções' }))
+    /* No computador a tela é a enxuta: "Opções" é uma seção de "Buscar e organizar" (`lobbyEnxuto.test.tsx`). */
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar e organizar os jogos' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Opções' }))
     const opcoes = screen.getByRole('dialog').textContent ?? ''
     expect(opcoes).toContain('o clique já começa o jogo')
     expect(opcoes).toContain('O lobby de antes do desenho novo, só nesta visita.')

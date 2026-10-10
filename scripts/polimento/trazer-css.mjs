@@ -1,11 +1,15 @@
 /**
  * TRAZ O CSS DO PROTÓTIPO DE POLIMENTO PARA O APP, SEM REESCREVER.
  *
- *     node scripts/polimento/trazer-css.mjs "<pasta polimento-movimento-src do protótipo>" ["<pasta anuncios-no-gratis-src>"]
+ *     node scripts/polimento/trazer-css.mjs "<pasta polimento-movimento-src do protótipo>" ["<pasta anuncios-no-gratis-src>" ["<pasta telas-enxutas-src>"]]
  *
  * A SEGUNDA PASTA (opcional) é a do protótipo dos QUATRO PLANOS (`anuncios-no-gratis-src`): dela vêm
  * só os arquivos da tabela `DA_SEGUNDA_PASTA`. Sem ela, esses arquivos ficam como
  * estão (os outros são iguais nas duas pastas, conferido em 09/10/2026).
+ *
+ * A TERCEIRA PASTA (opcional) é a do protótipo das TELAS ENXUTAS (`telas-enxutas-src`): dela vem só
+ * `enxuto.css` (tabela `DA_TERCEIRA_PASTA`). Os outros arquivos dela são iguais aos das duas primeiras
+ * (conferido em 10/10/2026).
  *
  * Por que copiar e não reescrever: o protótipo é um clone do DOM do desenho novo (`.q-*`, `.hud`,
  * `.cab`…) e a camada dele é ADITIVA, toda sob `html[data-px='on']`. O app passa a pôr a mesma marca
@@ -27,6 +31,7 @@ if (!origem) {
   process.exit(1)
 }
 const origemDosPlanos = process.argv[3]
+const origemDasEnxutas = process.argv[4]
 const destino = join(dirname(fileURLToPath(import.meta.url)), '../../src/styles/polimento')
 
 /** Linhas a tirar de cada arquivo (1 = primeira, inclusivas). `adiado`: entra quando o item for portado. */
@@ -81,10 +86,25 @@ const DA_SEGUNDA_PASTA = {
   ],
 }
 
+/** O arquivo que só existe no protótipo das telas enxutas (a terceira pasta). */
+const DA_TERCEIRA_PASTA = {
+  /* CAPTURAR E JOGAR COM MENOS COISAS À VISTA (`enxuto.js`): o chip de estado, a folha com o modelo e a
+     ajuda, o link discreto (`.ex-lig`), "Buscar e organizar" e a arrumação do celular. Vale sob
+     `html[data-px='on'][data-telas='enxuta']`, a marca que `src/lib/polimento/base.ts` põe fora do headset. */
+  'enxuto.css': [{ de: 128, ate: 154, motivo: 'barra do protótipo e painel "O que mudou"' }],
+}
+
+const NOME_DO_PROTOTIPO = new Map([
+  [origem, 'de polimento'],
+  [origemDosPlanos, 'dos quatro planos'],
+  [origemDasEnxutas, 'das telas enxutas'],
+])
+
 mkdirSync(destino, { recursive: true })
 const TODOS = [
   ...Object.entries(ARQUIVOS).map(([nome, cortes]) => [nome, cortes, origem]),
   ...(origemDosPlanos ? Object.entries(DA_SEGUNDA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDosPlanos]) : []),
+  ...(origemDasEnxutas ? Object.entries(DA_TERCEIRA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDasEnxutas]) : []),
 ]
 for (const [nome, cortes, pasta] of TODOS) {
   const linhas = readFileSync(join(pasta, nome), 'utf8').replace(/\r\n/g, '\n').split('\n')
@@ -105,7 +125,7 @@ for (const [nome, cortes, pasta] of TODOS) {
     }
   })
   const cabecalho =
-    `/* GERADO por scripts/polimento/trazer-css.mjs a partir de ${nome} do protótipo ${pasta === origem ? 'de polimento' : 'dos quatro planos'}.\n` +
+    `/* GERADO por scripts/polimento/trazer-css.mjs a partir de ${nome} do protótipo ${NOME_DO_PROTOTIPO.get(pasta)}.\n` +
     `   NÃO EDITAR À MÃO: mude a tabela do script e gere de novo. As regras são as do protótipo, sem\n` +
     `   reescrita; valem sob html[data-px='on'], a marca que src/lib/polimento/base.ts põe. */\n`
   writeFileSync(join(destino, nome), cabecalho + corpo.join('\n').trimEnd() + '\n')

@@ -13,6 +13,8 @@
  *
  * Vale em todo aparelho, inclusive no headset e no modo leve (decisão do dono, 08/10/2026).
  */
+import { perfilDoDispositivo } from '../dispositivo/perfil';
+
 /** As três curvas de `prototipo.js:35-37`. */
 export const EO = 'cubic-bezier(0.23, 1, 0.32, 1)';
 export const EIO = 'cubic-bezier(0.77, 0, 0.175, 1)';
@@ -40,6 +42,25 @@ const html = (): HTMLElement => document.documentElement;
 /** `polido()` de `prototipo.js:20`. */
 export function polido(): boolean {
   return typeof document !== 'undefined' && html().dataset.px === 'on';
+}
+
+/**
+ * `enxuta()` de `enxuto.js:27`: a arrumação enxuta de Capturar e Jogar vale em todo aparelho menos no
+ * headset. Não depende das animações: a marcação é a mesma com a camada desligada.
+ *
+ * A CHAVE "TELAS: ATUAL | ENXUTA" do protótipo (`?telas=atual`, `enxuto.js:18`) existe SÓ EM
+ * DESENVOLVIMENTO, para a prova lado a lado e para a contagem de controles antes e depois:
+ * `localStorage['babel.px.telasDeProva'] = 'atual'` mostra a arrumação de antes. Num build de produção
+ * a chave não é lida.
+ */
+export function telasEnxutas(): boolean {
+  if (perfilDoDispositivo().tipo === 'quest') return false;
+  if (!(import.meta as unknown as { env?: Record<string, unknown> }).env?.DEV) return true;
+  try {
+    return localStorage.getItem('babel.px.telasDeProva') !== 'atual';
+  } catch {
+    return true;
+  }
 }
 
 /** `reduz()` de `prototipo.js:25`: a pessoa pediu menos movimento ao sistema (e não religou no app). */
@@ -170,6 +191,10 @@ export function instalarPolimento(): () => void {
     /* O Modo desempenho desliga a camada inteira, como o interruptor das animações. */
     const corpo = document.body.classList;
     raiz.dataset.px = corpo.contains('animations-off') || corpo.contains('performance-mode') ? 'off' : 'on';
+    /* AS TELAS ENXUTAS (`enxuto.js:18-28`): Capturar e Jogar com menos coisas à vista. No protótipo é a
+       chave "Telas: Atual | Enxuta" da barra; aqui a enxuta é a tela do computador e do celular, e o
+       headset fica como estava (decisão do dono, 10/10/2026: "no Quest a captura fica como está"). */
+    raiz.dataset.telas = telasEnxutas() ? 'enxuta' : 'atual';
     aplicarAcess();
   };
   raiz.style.setProperty('--px-mola', MOLA);
@@ -219,5 +244,6 @@ export function instalarPolimento(): () => void {
     folhas.disconnect();
     cancelAnimationFrame(pedido);
     delete raiz.dataset.px;
+    delete raiz.dataset.telas;
   };
 }

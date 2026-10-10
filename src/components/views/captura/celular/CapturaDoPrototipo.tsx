@@ -13,8 +13,11 @@ import {
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { t } from '../../../../lib/i18n';
+import { telasEnxutas } from '../../../../lib/polimento/base';
 import { afundarBotao, celular, entrarPronta, sairMiolo } from '../../../../lib/polimento/captura';
+import { entraSuave } from '../../../../lib/polimento/enxuto';
 import { entrarNivel } from '../../../../lib/polimento/niveis';
+import { BotaoDePausa } from '../enxuta/pecas';
 import { type NiveisDaCaptura, useNiveisDaCaptura } from '../niveis/useNiveisDaCaptura';
 
 /**
@@ -31,6 +34,12 @@ import { type NiveisDaCaptura, useNiveisDaCaptura } from '../niveis/useNiveisDaC
  * O NÍVEL DE SERVIÇO (protótipo `anuncios-no-gratis`, `planos4.js:251-298`): com `niveis`, a tela ganha
  * a fileira `.pl-linha` logo abaixo do topo (seletor, marca, medidor), a marca no topo e a nota no
  * miolo. As peças e o dado real moram em `../niveis/`.
+ *
+ * A TELA ENXUTA (protótipo `telas-enxutas`, `enxuto.js:39-158`; no computador e no celular, não no
+ * headset): em cima, UMA fileira — o idioma, o chip de estado (junta o chip do modelo, a marca e o
+ * seletor, e abre a folha "Como isto funciona"), o microfone e os ajustes. Embaixo, o tempo, Iniciar e
+ * as Legendas flutuantes; A− e A+ só quando há texto na tela; o atalho de idioma repetido sai. Gravando,
+ * entra o Pausar ao lado do Encerrar. A ajuda passa para a folha e para o cabeçalho do painel de ajustes.
  */
 export default function CapturaDoPrototipo({
   gravando,
@@ -55,6 +64,7 @@ export default function CapturaDoPrototipo({
   legenda,
   avisos,
   niveis,
+  pausa,
   noQuest = false,
 }: {
   gravando: boolean;
@@ -87,13 +97,34 @@ export default function CapturaDoPrototipo({
   avisos?: ReactNode;
   /** O nível de serviço (seletor, marca, medidor e folhas). Ausente = a tela de antes, sem a fileira. */
   niveis?: NiveisDaCaptura;
+  /**
+   * Pausar e retomar a captura (o gravador e a detecção de fala param, as fontes continuam abertas).
+   * Só na tela enxuta; ausente = sem o botão.
+   */
+  pausa?: { pausada: boolean; aoAlternar: () => void };
   /** No Quest a captura fica como está: só o seletor e a marca. */
   noQuest?: boolean;
 }) {
   const raiz = useRef<HTMLDivElement>(null);
   const principal = useRef<HTMLButtonElement>(null);
   const miolo = useRef<HTMLDivElement>(null);
-  const nivel = useNiveisDaCaptura(niveis, { gravando, noQuest, modelo, aoAbrirModelo });
+  /* `enxuta()` de `enxuto.js:27`. Sem os níveis não há chip de estado, e a tela fica como era. */
+  const enxuta = telasEnxutas() && !noQuest && !!niveis;
+  const pausada = enxuta && gravando && !!pausa?.pausada;
+  const nivel = useNiveisDaCaptura(niveis, {
+    gravando,
+    noQuest,
+    modelo,
+    aoAbrirModelo,
+    enxuta,
+    pausada,
+    /* `enxuto.js:58`: por extenso e em minúsculas no computador ("inglês → português"), em siglas no
+       celular. Só a inicial de cada lado baixa: "Português (BR)" continua com a sigla do país. */
+    par: celular()
+      ? parCurto
+      : par.replace(/(^|→ )(\p{Lu})/gu, (_, antes: string, l: string) => antes + l.toLocaleLowerCase()),
+    aoAbrirAjuda,
+  });
   /* Pronta é a tela de quem ainda não tem nada: parada, com falas na tela (uma captura retomada, um
      salvar que ficou para depois), a legenda continua à vista. */
   const semNada = !gravando && !temFalas;
@@ -123,7 +154,15 @@ export default function CapturaDoPrototipo({
     if (!pronta || !raiz.current) return;
     entrarPronta(raiz.current);
     entrarNivel(raiz.current); /* `planos4.js:297` */
+    entraSuave([raiz.current.querySelector('.ex-estado')], 180); /* `enxuto.js:96` */
   }, [pronta]);
+
+  /* `comecarVivo` de `enxuto.js:106`: o Pausar e a letra entram quando a gravação começa. */
+  useLayoutEffect(() => {
+    if (!enxuta || !gravando || pronta || !raiz.current) return;
+    entraSuave([...raiz.current.querySelectorAll('.q-faixa .ex-pausar, .q-faixa .q-espaco ~ .q-ctl')], 80);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só na virada para a legenda
+  }, [gravando, pronta]);
 
   /* `direto.js:15-20`: já na captura pronta, tocar de novo em Capturar na navegação começa a gravar. */
   const iniciar = useRef(aoIniciar);
@@ -151,18 +190,31 @@ export default function CapturaDoPrototipo({
   return (
     <div
       ref={raiz}
-      className={`cel cel-gravando quest-vivo px-vivo${pronta ? ' px-pronto' : ''}${!pronta && !gravando ? ' px-parada' : ''}`}
+      className={`cel cel-gravando quest-vivo px-vivo${pronta ? ' px-pronto' : ''}${!pronta && !gravando ? ' px-parada' : ''}${pausada ? ' ex-pausado' : ''}`}
       data-testid="captura-do-prototipo"
     >
       <div className="px-vivo-topo">
-        <button type="button" className="q-chip" onClick={aoAbrirIdiomas}>
+        <button
+          type="button"
+          className="q-chip"
+          data-px-vivo={enxuta ? 'capturar:Detectar' : undefined}
+          onClick={aoAbrirIdiomas}
+        >
           <Languages aria-hidden /> {par} <ChevronDown aria-hidden />
         </button>
-        {/* `planos4.js:266-268`: o chip "Modelo local" só diz a verdade com o modelo local em uso. */}
-        <button type="button" className="q-chip px-so-largo" hidden={nivel.modeloOculto} onClick={aoAbrirModelo}>
-          <Cpu aria-hidden /> {modelo}
-        </button>
-        {nivel.marcaDoTopo}
+        {enxuta ? (
+          /* `enxugarCapturar()` de `enxuto.js:80`: o chip de estado, logo depois do idioma. O chip do
+             modelo e a marca saem da fileira (`enxuto.css:9-10`): os dois estão na folha que ele abre. */
+          nivel.chipDeEstado
+        ) : (
+          <>
+            {/* `planos4.js:266-268`: o chip "Modelo local" só diz a verdade com o modelo local em uso. */}
+            <button type="button" className="q-chip px-so-largo" hidden={nivel.modeloOculto} onClick={aoAbrirModelo}>
+              <Cpu aria-hidden /> {modelo}
+            </button>
+            {nivel.marcaDoTopo}
+          </>
+        )}
         <span className="q-espaco" />
         <button
           type="button"
@@ -178,9 +230,12 @@ export default function CapturaDoPrototipo({
         <button type="button" className="q-ctl" aria-label={t('Ajustes da captura')} onClick={aoAbrirAjustes}>
           <SlidersHorizontal aria-hidden />
         </button>
-        <button type="button" className="q-ctl" aria-label={t('Ajuda')} onClick={aoAbrirAjuda}>
-          <CircleQuestionMark aria-hidden />
-        </button>
+        {/* `enxuto.css:10`: na tela enxuta a ajuda está na folha do estado e no painel de ajustes. */}
+        {!enxuta && (
+          <button type="button" className="q-ctl" aria-label={t('Ajuda')} onClick={aoAbrirAjuda}>
+            <CircleQuestionMark aria-hidden />
+          </button>
+        )}
       </div>
       {nivel.linha}
       {avisos}
@@ -238,33 +293,43 @@ export default function CapturaDoPrototipo({
             <i className="q-quadrado" /> {t('Encerrar')}
           </button>
         )}
+        {/* `enxugarCapturar()` de `enxuto.js:82`: o Pausar, logo depois do Encerrar, só enquanto grava. */}
+        {enxuta && gravando && pausa && <BotaoDePausa pausada={pausa.pausada} aoAlternar={pausa.aoAlternar} />}
         {aoFlutuante && (
           <button type="button" className="q-ctl" data-px="flutuante" onClick={aoFlutuante}>
             <PictureInPicture2 aria-hidden /> {t('Legendas flutuantes')}
           </button>
         )}
         <span className="q-espaco" />
-        <button
-          type="button"
-          className="q-ctl"
-          aria-label={t('Diminuir a letra')}
-          disabled={letra.noMinimo}
-          onClick={letra.menor}
-        >
-          A−
-        </button>
-        <button
-          type="button"
-          className="q-ctl q-fica"
-          aria-label={t('Aumentar a letra')}
-          disabled={letra.noMaximo}
-          onClick={letra.maior}
-        >
-          A+
-        </button>
-        <button type="button" className="q-ctl" aria-label={t('Idiomas da sessão')} onClick={aoAbrirIdiomas}>
-          {parCurto}
-        </button>
+        {/* `enxuto.css:13`: na tela enxuta a letra só aparece quando há texto para aumentar. */}
+        {(!enxuta || !pronta) && (
+          <>
+            <button
+              type="button"
+              className="q-ctl"
+              aria-label={t('Diminuir a letra')}
+              disabled={letra.noMinimo}
+              onClick={letra.menor}
+            >
+              A−
+            </button>
+            <button
+              type="button"
+              className="q-ctl q-fica"
+              aria-label={t('Aumentar a letra')}
+              disabled={letra.noMaximo}
+              onClick={letra.maior}
+            >
+              A+
+            </button>
+          </>
+        )}
+        {/* `enxuto.css:12`: o atalho repetia o chip de idioma de cima, que abre o mesmo painel. */}
+        {!enxuta && (
+          <button type="button" className="q-ctl" aria-label={t('Idiomas da sessão')} onClick={aoAbrirIdiomas}>
+            {parCurto}
+          </button>
+        )}
       </div>
       {nivel.folhas}
     </div>

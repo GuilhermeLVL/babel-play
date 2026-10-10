@@ -996,5 +996,10 @@
   "A troca vale no próximo ciclo, sem cobrança proporcional. Até lá você continua com o {plano}.": "يسري التغيير في الدورة القادمة، دون رسوم تناسبية. حتى ذلك الحين تبقى على {plano}.",
   "O {plano} passa a valer em {data}.": "تبدأ {plano} في {data}.",
   "Nuvem hoje": "السحابة اليوم",
-  "IA hoje (tradução e tutor)": "الذكاء الاصطناعي اليوم (الترجمة والمدرّس)"
+  "IA hoje (tradução e tutor)": "الذكاء الاصطناعي اليوم (الترجمة والمدرّس)",
+  "Este aparelho não tem voz em {idioma}: a tradução fica em texto. Para ouvir, instale a voz no Windows em Configurações → Hora e idioma → Fala → Adicionar vozes, e reabra o navegador.": "لا يوجد في هذا الجهاز صوت باللغة {idioma}: تبقى الترجمة نصًا. لسماعها، ثبّت الصوت في Windows من الإعدادات ← الوقت واللغة ← الكلام ← إضافة أصوات، ثم أعد فتح المتصفح.",
+  "Este aparelho não tem voz em {idioma}: a tradução fica em texto. Para ouvir, instale a voz no Android em Configurações → Sistema → Idiomas e entrada → Conversão de texto em voz → Instalar dados de voz.": "لا يوجد في هذا الجهاز صوت باللغة {idioma}: تبقى الترجمة نصًا. لسماعها، ثبّت الصوت في Android من الإعدادات ← النظام ← اللغات والإدخال ← تحويل النص إلى كلام ← تثبيت بيانات الصوت.",
+  "Este aparelho não tem voz em {idioma}: a tradução fica em texto. Para ouvir, baixe a voz no iPhone ou iPad em Ajustes → Acessibilidade → Conteúdo Falado → Vozes.": "لا يوجد في هذا الجهاز صوت باللغة {idioma}: تبقى الترجمة نصًا. لسماعها، نزّل الصوت في iPhone أو iPad من الإعدادات ← تسهيلات الاستخدام ← المحتوى المنطوق ← الأصوات.",
+  "Este aparelho não tem voz em {idioma}: a tradução fica em texto. Para ouvir, baixe a voz no Mac em Ajustes do Sistema → Acessibilidade → Conteúdo Falado → Voz do sistema → Gerenciar vozes.": "لا يوجد في هذا الجهاز صوت باللغة {idioma}: تبقى الترجمة نصًا. لسماعها، نزّل الصوت في Mac من إعدادات النظام ← تسهيلات الاستخدام ← المحتوى المنطوق ← صوت النظام ← إدارة الأصوات.",
+  "Este aparelho não tem voz em {idioma}: a tradução fica em texto. Para ouvir, instale uma voz desse idioma nas configurações de fala do sistema e reabra o navegador.": "لا يوجد في هذا الجهاز صوت باللغة {idioma}: تبقى الترجمة نصًا. لسماعها، ثبّت صوتًا لهذه اللغة من إعدادات الكلام في النظام ثم أعد فتح المتصفح."
 }

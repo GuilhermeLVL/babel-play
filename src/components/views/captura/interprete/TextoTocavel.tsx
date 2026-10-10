@@ -3,6 +3,7 @@ import { Fragment, useMemo, useRef } from 'react';
 
 import { trechosTocaveis } from '../../../../lib/captura/trechosTocaveis';
 import { t } from '../../../../lib/i18n';
+import { direcaoDoTexto } from '../../../../lib/languages';
 
 /** O trecho que a voz está lendo por causa de um toque (para marcar a palavra na tela). */
 export interface TrechoEmLeitura {
@@ -87,7 +88,7 @@ export function TextoTocavel({
 
   if (mudo) {
     return (
-      <p className={className} lang={lang} {...segurar}>
+      <p className={className} lang={lang} dir={direcaoDoTexto(lang)} {...segurar}>
         {texto}
         {(aoEditar || aoGuardar) && <span className="int-fr-acoes">{acoesDeEdicao}</span>}
       </p>
@@ -97,7 +98,7 @@ export function TextoTocavel({
   /* Sem segmentador (chinês, japonês...): o alvo do toque é a frase inteira, e não um caractere. */
   const fraseInteira = trechos.every((x) => !x.palavra) && /\p{L}/u.test(texto);
   return (
-    <p className={className} lang={lang} {...segurar}>
+    <p className={className} lang={lang} dir={direcaoDoTexto(lang)} {...segurar}>
       {fraseInteira ? (
         <button type="button" className="int-w" data-lendo={lendoIsto(texto)} onClick={() => aoOuvir(texto, lang)}>
           {texto}

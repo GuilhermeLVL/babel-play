@@ -15,6 +15,7 @@
  *     "props": ["fontSize"],            // além das de sempre (ver PROPS)
  *     "escuro": true,                 // tema escuro (o padrão é o claro)
  *     "prototipo": "anuncios-no-gratis", // outro protótipo de docs/prototipos (o padrão é polimento-movimento)
+ *     "midiaFalsa": true,             // microfone e tela falsos do Chromium: a captura do app começa de verdade
  *     "gravar": { "app": [ ...passos ], "proto": [ ...passos ], "espera": 900 } }
  *   passo: { "clicar": "seletor" } | { "texto": "rótulo visível" } | { "esperar": ms }
  *        | { "js": "expressão" } | { "tecla": "Escape" } | { "rolar": "seletor" }
@@ -147,6 +148,11 @@ async function lado(browser, qual) {
     })
   }
   const page = await contexto.newPage()
+  if (roteiro.midiaFalsa && qual === 'app') {
+    await contexto.grantPermissions(['microphone'])
+    /* Nenhum modelo de fala é baixado: as falas vêm da bancada da tela (`window.__simFalas`). */
+    await page.route(/huggingface\.co|hf\.co|cdn-lfs/, (r) => r.abort())
+  }
   await page.goto(qual === 'app' ? comPortugues(APP + (r.caminho || '/')) : PROTO + (r.busca || ''), {
     waitUntil: 'load',
   })
@@ -206,7 +212,19 @@ async function lado(browser, qual) {
   return { medidas, animacoes, marca }
 }
 
-const browser = await chromium.launch()
+/* `midiaFalsa`: a captura começa de verdade (o "Encerrar" e o "Pausar" só existem gravando), com o
+   microfone e a tela falsos do Chromium, como nas suítes de navegador (`tests/e2e/fim-da-captura.e2e.ts`). */
+const browser = await chromium.launch(
+  roteiro.midiaFalsa
+    ? {
+        args: [
+          '--use-fake-ui-for-media-stream',
+          '--use-fake-device-for-media-stream',
+          '--auto-select-desktop-capture-source=Entire screen',
+        ],
+      }
+    : {},
+)
 const resultado = {}
 for (const qual of ['app', 'proto']) if (!so || so === qual) resultado[qual] = await lado(browser, qual)
 await browser.close()

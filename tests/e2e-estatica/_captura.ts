@@ -4,11 +4,14 @@ import { expect, type Locator, type Page } from '@playwright/test'
  * ONDE A CAPTURA DIZ AS COISAS, no desenho novo (09/10/2026).
  *
  * A tela é UMA SÓ em todo aparelho (`CapturaDoPrototipo`, `data-testid="captura-do-prototipo"`): abre
- * pronta, sem título, com o topo (idiomas, selo do modelo, microfone, "Ajustes da captura", ajuda), o
- * miolo "Pronto para legendar" e a faixa de baixo com "Iniciar captura". O que muda com a largura:
- * abaixo de 720 px o selo do modelo (`.px-so-largo`) e os botões secundários da faixa não aparecem, e
- * o tamanho do modelo só é dito antes do primeiro byte — na folha "Como transcrever a sua voz?" (com
- * o microfone ligado) ou no aviso "Baixar os modelos desta captura?".
+ * pronta, sem título, com o topo, o miolo "Pronto para legendar" e a faixa de baixo com "Iniciar captura".
+ *
+ * TELA ENXUTA (10/10/2026, computador e celular). O topo é UMA fileira: o par de idiomas, o chip de
+ * estado (`chip-de-estado`), o microfone e "Ajustes da captura". O selo "Modelo local · N MB" e a ajuda
+ * saíram do topo: moram na folha "Como isto funciona" (`como-isto-funciona`), que o chip de estado abre.
+ * No celular a folha não tem a linha do modelo (quem transcreve lá é um recurso do aparelho), e o
+ * tamanho do modelo só é dito antes do primeiro byte — na folha "Como transcrever a sua voz?" (com o
+ * microfone ligado) ou no aviso "Baixar os modelos desta captura?".
  */
 
 /** A tela da captura, pronta para começar. Fecha a apresentação da primeira visita, se ela abrir. */
@@ -21,13 +24,20 @@ export async function capturaPronta(page: Page): Promise<Locator> {
 }
 
 /**
- * O selo do topo que diz quem transcreve: "Modelo local · N MB" ou "Reconhecimento do navegador". Só
- * existe à vista na tela larga (computador, tablet, headset); o toque nele abre "Modelo no dispositivo".
+ * QUEM TRANSCREVE, como a tela diz: "Modelo local · N MB" ou "Reconhecimento do navegador". Na tela
+ * enxuta é a linha "Neste aparelho" da folha "Como isto funciona", aberta pelo chip de estado do topo
+ * (o toque na linha abre "Modelo no dispositivo"). Abre a folha, lê a linha e fecha. Devolve '' quando
+ * a linha não existe (no celular).
  */
-export function seloDoModelo(page: Page): Locator {
-  return page
-    .getByTestId('captura-do-prototipo')
-    .getByRole('button', { name: /^(Modelo local|Reconhecimento do navegador)/ })
+export async function modeloAnunciado(page: Page): Promise<string> {
+  await page.getByTestId('chip-de-estado').click()
+  const folha = page.getByTestId('como-isto-funciona')
+  await expect(folha).toBeVisible()
+  const linha = folha.locator('[data-ex-f="modelo"] b')
+  const texto = (await linha.count()) ? ((await linha.textContent()) ?? '') : ''
+  await page.keyboard.press('Escape')
+  await expect(folha).toBeHidden()
+  return texto
 }
 
 /**
@@ -43,8 +53,8 @@ export async function abrirAjustesDaCaptura(page: Page): Promise<Locator> {
 }
 
 /**
- * Os controles que conduzem a captura, onde a regra do alvo mínimo vale: o topo (idiomas, microfone,
- * ajustes, ajuda) e a faixa de baixo (Iniciar e o que mais couber). Os botões dos avisos que a tela
+ * Os controles que conduzem a captura, onde a regra do alvo mínimo vale: o topo (idiomas, o chip de
+ * estado, microfone, ajustes) e a faixa de baixo (Iniciar e o que mais couber). Os botões dos avisos que a tela
  * mostra no meio (a oferta da nuvem, por exemplo) não entram: não conduzem a gravação.
  */
 export function controlesDaCaptura(page: Page): Locator {

@@ -61,6 +61,12 @@ export interface DepsDasFontesDeAudio {
   decidirMotorDoSistema?: () => Promise<DecisaoDoMotorDoSistema>;
   /** Quem transcreve o áudio da aba agora (o selo "Motor de IA ativo"); `null` = captura encerrada. */
   aoMudarMotorDoSistema?: (motor: MotorDoSistema | null) => void;
+  /**
+   * A captura está PAUSADA (o botão "Pausar" da tela, ou o Encerrar aberto)? Pausada, nenhuma fonte
+   * nova abre: a tela diz "nada está sendo ouvido", e uma fonte aberta no meio da pausa nasceria
+   * ouvindo. O microfone pedido durante a pausa abre na retomada (`retomarFontes`, `salvarSessao.ts`).
+   */
+  pausada?: () => boolean;
   /* --- escolhas de rota/dispositivo (espelhadas em ref: lidas ao ABRIR a captura) --- */
   systemSourceRef: RefObject<'display' | 'loopback' | 'server'>;
   loopbackDeviceIdRef: RefObject<string>;
@@ -262,6 +268,11 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
      Enquanto a decisão não chega, o que o VAD entrega fica guardado e vai ao pipeline se ele for o
      motor; se for a Web Speech, é descartado (ela começa a ouvir dali em diante). */
   const handleStartSystemCapture = async () => {
+    if (deps.pausada?.()) {
+      setFeedbackMsg('A captura está pausada. Retome para abrir o som do computador.');
+      setTimeout(() => setFeedbackMsg(''), 5000);
+      return;
+    }
     // O estado de gravação (isRecording/timer) já foi ligado por handleStartRecording (captura dupla).
     const source = systemSourceRef.current;
     const decidir = deps.decidirMotorDoSistema;
@@ -710,6 +721,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
      de o mic abrir. Sempre a partir de um clique (Iniciar, desmutar, retomar) — é o que permite pedir
      a instalação do pacote do idioma. */
   const startMic = async (): Promise<void> => {
+    if (deps.pausada?.()) return; // pausada: o microfone abre na retomada, nunca no meio da pausa
     /* No intérprete, os DOIS idiomas: um lado cujo idioma o aparelho não reconhece não pode herdar o
        "no aparelho" do outro. */
     const conversa = deps.idiomasDaConversa?.();

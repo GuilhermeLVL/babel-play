@@ -3,7 +3,7 @@ import path from 'node:path'
 
 import { expect, type Page, test } from '@playwright/test'
 
-import { capturaPronta, seloDoModelo } from './_captura'
+import { capturaPronta, modeloAnunciado } from './_captura'
 
 /**
  * "LEGENDA SEM BAIXAR NADA" NA EDIÇÃO ESTÁTICA (plano "Grátis sem travar", A9a).
@@ -16,7 +16,8 @@ import { capturaPronta, seloDoModelo } from './_captura'
  *
  * O caminho medido: com a detecção automática ligada o selo promete um modelo local; a pessoa escolhe
  * o idioma do vídeo em "Idiomas da sessão" e o selo passa a dizer "Reconhecimento do navegador", sem
- * megabytes; a captura começa e o áudio da aba vai ao reconhecedor do navegador; a legenda chega
+ * megabytes (o "selo" é a linha do modelo na folha do chip de estado, desde a tela enxuta de 10/10/2026);
+ * a captura começa e o áudio da aba vai ao reconhecedor do navegador; a legenda chega
  * traduzida pelo nativo. E, do começo ao fim, NENHUM byte de Whisper nem de opus-mt: nem os pesos do
  * Hub, nem os workers deles.
  *
@@ -157,8 +158,7 @@ test('desktop fraco: com o idioma do vídeo escolhido a legenda vem do navegador
   await fecharDialogos(page)
 
   // A detecção automática vem ligada: o selo promete um modelo local, com o tamanho.
-  const selo = seloDoModelo(page)
-  await expect(selo).toContainText(/modelo local · \d+ MB/i, { timeout: 15_000 })
+  await expect.poll(() => modeloAnunciado(page), { timeout: 15_000 }).toMatch(/modelo local · \d+ MB/i)
   await page.screenshot({ path: path.join(PASTA, `detectar-${info.project.name}.png`), fullPage: true })
 
   // O idioma do vídeo, escolhido em "Idiomas da sessão": a detecção desliga e o selo não promete mais um download.
@@ -171,8 +171,8 @@ test('desktop fraco: com o idioma do vídeo escolhido a legenda vem do navegador
   await idiomas.getByRole('option', { name: 'English (US)' }).click()
   await idiomas.getByRole('button', { name: 'Usar estes idiomas' }).click()
   await expect(idiomas).toBeHidden()
-  await expect(selo).toContainText(/reconhecimento do navegador/i)
-  await expect(selo).not.toContainText(/MB/)
+  await expect.poll(() => modeloAnunciado(page)).toMatch(/reconhecimento do navegador/i)
+  expect(await modeloAnunciado(page)).not.toMatch(/MB/)
 
   // Iniciar: o áudio da aba vai ao reconhecedor do navegador, no aparelho, com o idioma escolhido.
   await page.getByTestId('iniciar-captura').click()
@@ -186,7 +186,9 @@ test('desktop fraco: com o idioma do vídeo escolhido a legenda vem do navegador
   // A legenda chega, traduzida pelo tradutor do navegador; gravando, o selo segue dizendo quem ouve.
   await expect(page.getByText(FALA).first()).toBeVisible({ timeout: 20_000 })
   await expect(page.getByText(TRADUCAO).first()).toBeVisible({ timeout: 20_000 })
-  await expect(selo).toContainText(/reconhecimento do navegador/i)
+  expect(await modeloAnunciado(page)).toMatch(/reconhecimento do navegador/i)
+  /* E o chip de estado diz o que está acontecendo: legendando, no aparelho. */
+  await expect(page.getByTestId('chip-de-estado')).toContainText(/Legendando · no aparelho/)
   await page.screenshot({ path: path.join(PASTA, `legenda-${info.project.name}.png`), fullPage: true })
 
   // Um respiro para a preparação em segundo plano terminar: nada de Whisper nem de opus-mt.

@@ -1,0 +1,114 @@
+{
+  "nome": "enxuta-favoritos-celular",
+  "prototipo": "telas-enxutas",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.px.planoDeProva": "free",
+      "babel.px.planosAVendaDeProva": "essencial,premium,aovivo",
+      "babel.px.aparelhoDeProva": "pc"
+    },
+    "passos": [
+      {
+        "js": "Promise.all([import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false)), import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt-BR'))])"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "js": "(async () => { for (let i = 0; i < 8; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || [...d.querySelectorAll('button')].find((b) => /Pular|Fechar|Agora não|Entendi|Depois/.test(b.textContent || '')) || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 600)); } })()"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item, nav button')].find((b) => /Jogar/.test(b.textContent))?.click()"
+      },
+      {
+        "esperar": 3000
+      },
+      {
+        "js": "(async () => { for (let i = 0; i < 8; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || [...d.querySelectorAll('button')].find((b) => /Pular|Fechar|Agora não|Entendi|Depois/.test(b.textContent || '')) || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 600)); } })()"
+      },
+      {
+        "js": "[...document.querySelectorAll(\".qj-sala button\")].find((b) => /Trilha/.test(b.textContent || ''))?.click()"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "js": "[...document.querySelectorAll(\"button\")].find((b) => /Usar estas palavras/.test(b.textContent || ''))?.click()"
+      },
+      {
+        "esperar": 3000
+      },
+      {
+        "js": "(async () => { for (let i = 0; i < 8; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || [...d.querySelectorAll('button')].find((b) => /Pular|Fechar|Agora não|Entendi|Depois/.test(b.textContent || '')) || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 600)); } })()"
+      },
+      {
+        "js": "Promise.all([import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false)), import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt-BR'))])"
+      },
+      {
+        "esperar": 600
+      },
+      {
+        "js": "document.querySelector(\".ex-organizar\")?.click()"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "js": "document.querySelector(\"[data-ex-secao='1']\")?.click()"
+      },
+      {
+        "esperar": 1500
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?telas=enxuta&ir=favoritos&limpo&fonte=trilha",
+    "assentar": 4500,
+    "passos": []
+  },
+  "seletores": [
+    "dialog.ex-organizar-dlg[open]",
+    ".ex-organizar-dlg .dlg-cab",
+    ".ex-organizar-dlg .dlg-cab .q-ic",
+    ".ex-organizar-dlg .dlg-cab h2",
+    ".ex-organizar-dlg .dlg-cab .qj-nota",
+    ".ex-organizar-dlg .dlg-cab .x",
+    ".ex-org-abas",
+    ".ex-org-abas .q-abas",
+    ".ex-org-abas .q-aba",
+    ".ex-org-abas .q-aba[aria-selected='true']",
+    ".ex-org-abas .q-aba svg",
+    ".ex-organizar-dlg .dlg-corpo",
+    ".ex-organizar-dlg .dlg-pe",
+    ".ex-organizar-dlg .dlg-pe .q-ctl.pri",
+    ".ex-organizar-dlg .qj-ordem",
+    ".ex-organizar-dlg .qj-ordem > li",
+    ".ex-organizar-dlg .qj-ordem > li b",
+    ".ex-organizar-dlg .qj-ordem .q-acoes",
+    ".ex-organizar-dlg .qj-ordem .q-ctl",
+    ".ex-organizar-dlg .qj-estrela"
+  ],
+  "props": [
+    "alignItems",
+    "justifyContent",
+    "flexWrap",
+    "flexDirection",
+    "minHeight",
+    "maxWidth",
+    "marginTop",
+    "marginLeft",
+    "whiteSpace",
+    "textAlign",
+    "gridTemplateColumns",
+    "gridColumnStart",
+    "order",
+    "borderTopStyle",
+    "textOverflow"
+  ]
+}

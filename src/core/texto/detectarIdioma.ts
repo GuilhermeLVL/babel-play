@@ -40,7 +40,12 @@ const SCRIPT_RANGES: Array<{ lang: string; re: RegExp }> = [
  */
 const STOPWORDS: Record<string, string[]> = {
   pt: ['de', 'que', 'não', 'para', 'com', 'uma', 'os', 'as', 'do', 'da', 'em', 'você', 'é', 'mais', 'mas', 'como', 'está', 'isso', 'muito', 'também'],
-  en: ['the', 'and', 'that', 'for', 'with', 'you', 'this', 'have', 'not', 'are', 'was', 'but', 'they', 'from', 'what', 'about', 'would', 'there', 'their', 'which'],
+  /* O inglês tinha só palavras longas: faltavam justamente as mais frequentes ("I", "to", "it", "is",
+     "of", "we"). Sem elas, "I want to buy a car" pontuava só no tcheco ("a", "to") e saía como tcheco
+     — o relato de "inglês classificado como tcheco". Ficam de fora as que são palavra comum em
+     idioma vizinho ("a", "in", "on", "me", "my"): entrariam como ruído no português e no polonês. */
+  en: ['the', 'and', 'that', 'for', 'with', 'you', 'this', 'have', 'not', 'are', 'was', 'but', 'they', 'from', 'what', 'about', 'would', 'there', 'their', 'which',
+    'i', 'to', 'it', 'is', 'of', 'we', 'am', 'so', 'want', 'need', "i'm", "it's", "don't"],
   es: ['de', 'que', 'no', 'para', 'con', 'una', 'los', 'las', 'del', 'en', 'es', 'más', 'pero', 'como', 'está', 'esto', 'muy', 'también', 'por', 'su'],
   fr: ['de', 'que', 'ne', 'pour', 'avec', 'une', 'les', 'des', 'du', 'est', 'pas', 'plus', 'mais', 'comme', 'cette', 'dans', 'vous', 'nous', 'sur', 'ce'],
   it: ['di', 'che', 'non', 'per', 'con', 'una', 'gli', 'del', 'della', 'è', 'più', 'ma', 'come', 'questo', 'sono', 'nel', 'anche', 'sono', 'alla', 'si'],
@@ -83,15 +88,26 @@ const DIACRITIC_HINTS: Array<{ lang: string; re: RegExp; weight: number }> = [
   { lang: 'gl', re: /[áéíóúñx]/i, weight: 0.5 },
 ];
 
+/** Abaixo disto, as letras de outra escrita são um nome ou uma citação, e não o idioma da frase. */
+const PARTE_MINIMA_DA_ESCRITA = 0.4;
+
 export function detectarIdiomaPorTexto(text: string): DeteccaoDeTexto | null {
   const raw = (text || '').trim();
   if (raw.length < 2) return null;
 
-  // Script próprio → decisivo (com uma desambiguação: kana vence han).
+  /* Script próprio → decisivo, QUANDO É A ESCRITA DA FRASE. Bastava UM caractere: a tradução para o
+     português que citava um nome chinês ("Meu nome é 王伟…") saía como chinês com 0,95, e a conferência
+     da tradução a rejeitava como "não traduziu" (`validaTraducao.ts`). Agora a escrita precisa ser
+     uma parte de verdade das letras do texto; abaixo disso, quem decide são as palavras latinas. */
+  const letras = raw.match(/\p{L}/gu) ?? [];
+  const parte = (re: RegExp) => letras.filter((c) => re.test(c)).length / (letras.length || 1);
   const hasKana = /[぀-ゟ゠-ヿ]/.test(raw);
   for (const { lang, re } of SCRIPT_RANGES) {
     if (!re.test(raw)) continue;
     if (lang === 'zh' && hasKana) continue; // texto com kana é japonês, não chinês
+    // Japonês mistura kana e han: as duas contam para a parte japonesa da frase.
+    const doScript = lang === 'ja' ? parte(re) + parte(/[一-鿿]/) : parte(re);
+    if (doScript < PARTE_MINIMA_DA_ESCRITA) continue;
     // ru vs uk: caracteres exclusivos do ucraniano.
     if (lang === 'ru' && /[іїєґ]/i.test(raw)) return { lang: 'uk', confidence: 0.9, method: 'heuristic' as const };
     return { lang, confidence: 0.95, method: 'heuristic' as const };

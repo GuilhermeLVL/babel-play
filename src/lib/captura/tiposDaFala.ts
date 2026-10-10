@@ -140,6 +140,12 @@ export interface FimDaFala {
   source: 'system' | 'mic';
   /** No modo intérprete, o lado de quem falou. */
   lado?: LadoDoInterprete;
+  /**
+   * A fala JÁ ANUNCIADA acabou sem texto: o decode não achou fala, o filtro a descartou, ou o motor
+   * falhou. Não haverá tradução a esperar — o intérprete devolve a vez (sem isto ele ficava em
+   * "Traduzindo…" para sempre, com o microfone fechado).
+   */
+  semTexto?: boolean;
 }
 
 /** mm:ss a partir de segundos — o carimbo de tempo de cada fala e o cronômetro da sessão. */

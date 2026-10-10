@@ -12,7 +12,9 @@ import {
 import { type SeloDaFala, textoDoSelo } from '../../../../lib/captura/seloDaFala';
 import { t } from '../../../../lib/i18n';
 import { langLabelNaUI } from '../../../../lib/languages';
+import { entraSuave } from '../../../../lib/polimento/enxuto';
 import FolhaDeBaixo from '../celular/FolhaDeBaixo';
+import { NesteAparelho } from '../enxuta/pecas';
 import { ICONE_DO_NIVEL, type NivelDoSeletor } from './pecas';
 
 const ICONE_DO_AGORA: Record<MarcaDoSelo['icone'], LucideIcon> = {
@@ -65,6 +67,11 @@ function LinhaDoMedidor({ m }: { m: Medidor }) {
  *   - "O que é enviado" não diz "com a ordem de não guardar" nem fala de anúncio: o nosso servidor não
  *     grava o áudio, mas a retenção do provedor é configuração de conta ainda não conferida. Fica a
  *     frase do selo: o áudio vai para o nosso servidor.
+ *
+ * NA TELA ENXUTA (`enxuta`; `enxugarComo()` de `enxuto.js:163-205`) a folha ganha o que saiu da tela:
+ * "Escolha o nível" (o seletor morava na fileira de cima), a nuvem do mês também para quem não a tem
+ * (para dizer que não há) e "Neste aparelho", com o modelo local como uma linha (era um chip) e a ajuda
+ * da captura (era um botão do topo). A nota de rodapé "Ver o modelo" sai: a linha a substitui.
  */
 export default function FolhaComoFunciona({
   selo,
@@ -78,6 +85,7 @@ export default function FolhaComoFunciona({
   aoAutomatico,
   aoVerPlanos,
   aoVerModelo,
+  enxuta,
   aoFechar,
 }: {
   /** O selo da fala; `null` = ainda não há o que afirmar (o bloco "Agora" não aparece). */
@@ -96,6 +104,12 @@ export default function FolhaComoFunciona({
   /** Ausente = sem oferta (perfil protegido, edição estática). */
   aoVerPlanos?: () => void;
   aoVerModelo?: () => void;
+  /** A tela enxuta: o que a folha passa a guardar. Ausente = a folha de antes (o headset). */
+  enxuta?: {
+    /** O que dizer em "Nuvem deste mês" a quem não tem nuvem no plano. `null` = nada a dizer. */
+    semNuvem: string | null;
+    aoAjuda?: () => void;
+  };
   aoFechar: () => void;
 }) {
   const folha = useRef<HTMLDialogElement>(null);
@@ -107,11 +121,18 @@ export default function FolhaComoFunciona({
     d.setAttribute('tabindex', '-1');
     d.focus({ preventScroll: true });
   }, []);
+  /* `abrirComo` de `enxuto.js:196`: o que entrou na folha sobe depois do resto. */
+  useEffect(() => {
+    if (!enxuta || !folha.current) return;
+    entraSuave([...folha.current.querySelectorAll('.ex-neste, .ex-lista-da-folha > *, .ex-sem-nuvem')], 260);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando a folha abre
+  }, []);
   const fecharE = (faz: () => void) => {
     depois.current = faz;
     folha.current?.close();
   };
 
+  const aoAjuda = enxuta?.aoAjuda;
   const texto = selo ? textoDoSelo(selo, t, langLabelNaUI) : null;
   const Agora = marca ? ICONE_DO_AGORA[marca.icone] : null;
 
@@ -143,7 +164,10 @@ export default function FolhaComoFunciona({
             </div>
           </div>
         )}
-        <p className="folha-rotulo">{niveis.length === 3 ? t('Os três níveis') : t('Os níveis')}</p>
+        <p className="folha-rotulo">
+          {/* `enxuto.js:166-167`: na tela enxuta é aqui que o nível se escolhe. */}
+          {enxuta ? t('Escolha o nível') : niveis.length === 3 ? t('Os três níveis') : t('Os níveis')}
+        </p>
         <div className="pj-nivs pl-nivs" role="radiogroup" aria-label={t('Nível de serviço')}>
           {niveis.map(({ nivel, tranca, plano }) => {
             const Icone = tranca ? Lock : ICONE_DO_NIVEL[nivel];
@@ -180,6 +204,22 @@ export default function FolhaComoFunciona({
                 {t('Quando as horas acabam, a legenda segue no aparelho, sem travar nada. Elas voltam no dia 1º.')}
               </p>
             </div>
+          </>
+        )}
+        {enxuta && (
+          <>
+            {medidores.length === 0 && enxuta.semNuvem && (
+              <>
+                <p className="folha-rotulo">{t('Nuvem deste mês')}</p>
+                <p className="pj-como-ajudas ex-sem-nuvem">{enxuta.semNuvem}</p>
+              </>
+            )}
+            {/* `enxuto.js:199-204`: a linha fecha esta folha e abre o painel dela. */}
+            <NesteAparelho
+              modelo={modelo}
+              aoVerModelo={aoVerModelo && (() => fecharE(aoVerModelo))}
+              aoAjuda={aoAjuda && (() => fecharE(aoAjuda))}
+            />
           </>
         )}
         <p className="folha-rotulo">{t('Como o app escolhe sozinho')}</p>
@@ -255,7 +295,8 @@ export default function FolhaComoFunciona({
             </button>
           )}
         </div>
-        {modelo && aoVerModelo && (
+        {/* `enxuto.js:184-187`: na tela enxuta a linha de cima substitui esta nota. */}
+        {!enxuta && modelo && aoVerModelo && (
           <p className="ad-confirma-nota">
             <span>{modelo}.</span>
             <button type="button" className="ad-sem" data-pl-f="modelo" onClick={() => fecharE(aoVerModelo)}>

@@ -981,5 +981,10 @@
     "other": "Tu prueba termina en {n} días. Después, la cuenta vuelve al Gratis sola."
   },
   "Nuvem hoje": "Nube hoy",
-  "IA hoje (tradução e tutor)": "IA hoy (traducción y tutor)"
+  "IA hoje (tradução e tutor)": "IA hoy (traducción y tutor)",
+  "Este aparelho não tem voz em {idioma}: a tradução fica em texto. Para ouvir, instale a voz no Windows em Configurações → Hora e idioma → Fala → Adicionar vozes, e reabra o navegador.": "Este dispositivo no tiene voz en {idioma}: la traducción queda en texto. Para oírla, instala la voz en Windows en Configuración → Hora e idioma → Voz → Agregar voces, y vuelve a abrir el navegador.",
+  "Este aparelho não tem voz em {idioma}: a tradução fica em texto. Para ouvir, instale a voz no Android em Configurações → Sistema → Idiomas e entrada → Conversão de texto em voz → Instalar dados de voz.": "Este dispositivo no tiene voz en {idioma}: la traducción queda en texto. Para oírla, instala la voz en Android en Ajustes → Sistema → Idiomas e introducción de texto → Síntesis de voz → Instalar datos de voz.",
+  "Este aparelho não tem voz em {idioma}: a tradução fica em texto. Para ouvir, baixe a voz no iPhone ou iPad em Ajustes → Acessibilidade → Conteúdo Falado → Vozes.": "Este dispositivo no tiene voz en {idioma}: la traducción queda en texto. Para oírla, descarga la voz en el iPhone o iPad en Ajustes → Accesibilidad → Contenido leído → Voces.",
+  "Este aparelho não tem voz em {idioma}: a tradução fica em texto. Para ouvir, baixe a voz no Mac em Ajustes do Sistema → Acessibilidade → Conteúdo Falado → Voz do sistema → Gerenciar vozes.": "Este dispositivo no tiene voz en {idioma}: la traducción queda en texto. Para oírla, descarga la voz en el Mac en Ajustes del Sistema → Accesibilidad → Contenido leído → Voz del sistema → Gestionar voces.",
+  "Este aparelho não tem voz em {idioma}: a tradução fica em texto. Para ouvir, instale uma voz desse idioma nas configurações de fala do sistema e reabra o navegador.": "Este dispositivo no tiene voz en {idioma}: la traducción queda en texto. Para oírla, instala una voz de ese idioma en los ajustes de voz del sistema y vuelve a abrir el navegador."
 }

@@ -6,6 +6,7 @@ import { Radar, Search } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { type Direcao, regrasDoJogo, vezesDaAjuda } from '../../core/minigames/regras';
+import { alfabetoDeEnchimento } from '../../core/minigames/wordsearch';
 import { celebrar } from '../../lib/comemoracao';
 import { t } from '../../lib/i18n';
 import { useNivelDoJogo } from '../../lib/jogos/nivelDoJogo';
@@ -79,8 +80,10 @@ function montar(items: MinigameItem[], direcoes: readonly Direcao[]) {
       }
     }
   }
-  const acentos = [...new Set(jog.flatMap((x) => [...x.w]).filter((l) => !/[A-Z]/.test(l)))];
-  const alfabeto = [...PREENCHIMENTO, ...acentos];
+  const alfabeto = alfabetoDeEnchimento(
+    PREENCHIMENTO,
+    jog.map((x) => x.w),
+  );
   g.forEach((c, i) => c || (g[i] = alfabeto[rand(alfabeto.length)]));
   return { N, g, jog };
 }

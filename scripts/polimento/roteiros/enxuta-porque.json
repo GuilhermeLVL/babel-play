@@ -1,0 +1,125 @@
+{
+  "nome": "enxuta-porque",
+  "prototipo": "telas-enxutas",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.px.planoDeProva": "free",
+      "babel.px.planosAVendaDeProva": "essencial,premium,aovivo",
+      "babel.px.aparelhoDeProva": "pc"
+    },
+    "passos": [
+      {
+        "js": "Promise.all([import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false)), import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt-BR'))])"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "js": "(async () => { for (let i = 0; i < 8; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || [...d.querySelectorAll('button')].find((b) => /Pular|Fechar|Agora não|Entendi|Depois/.test(b.textContent || '')) || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 600)); } })()"
+      },
+      {
+        "esperar": 400
+      },
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item, nav button')].find((b) => /Jogar/.test(b.textContent))?.click()"
+      },
+      {
+        "esperar": 3000
+      },
+      {
+        "js": "(async () => { for (let i = 0; i < 8; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || [...d.querySelectorAll('button')].find((b) => /Pular|Fechar|Agora não|Entendi|Depois/.test(b.textContent || '')) || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 600)); } })()"
+      },
+      {
+        "js": "[...document.querySelectorAll(\".qj-sala button\")].find((b) => /Trilha/.test(b.textContent || ''))?.click()"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "js": "[...document.querySelectorAll(\"button\")].find((b) => /Usar estas palavras/.test(b.textContent || ''))?.click()"
+      },
+      {
+        "esperar": 3000
+      },
+      {
+        "js": "(async () => { for (let i = 0; i < 8; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || [...d.querySelectorAll('button')].find((b) => /Pular|Fechar|Agora não|Entendi|Depois/.test(b.textContent || '')) || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 600)); } })()"
+      },
+      {
+        "js": "Promise.all([import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false)), import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt-BR'))])"
+      },
+      {
+        "esperar": 600
+      },
+      {
+        "js": "document.querySelector(\"[data-ex='porque']\")?.click()"
+      },
+      {
+        "esperar": 1500
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?telas=enxuta&ir=porque&limpo&fonte=trilha",
+    "assentar": 4500,
+    "passos": []
+  },
+  "seletores": [
+    ".q-palco.qj",
+    ".q-cab",
+    ".q-cab .q-sobre",
+    ".q-cab h1",
+    ".q-cab > .q-chip",
+    ".q-cab > .q-chip svg",
+    ".ex-fonte-txt",
+    ".qj-sugestao",
+    ".qj-sugestao-linha",
+    ".qj-sugestao .q-ic",
+    ".qj-sugestao-texto",
+    ".qj-sugestao .q-rotulo",
+    ".qj-sugestao-texto b",
+    ".qj-sugestao-texto small",
+    ".ex-ligs",
+    ".ex-lig",
+    ".ex-lig svg",
+    "[data-ex='porque']",
+    "[data-ex='outra']",
+    "[data-ex='sortear']",
+    ".qj-sugestao-linha > .q-ctl.pri",
+    ".qj-sugestao-linha > .q-ctl.pri svg",
+    ".qj-trilha",
+    ".qj-ferramentas",
+    ".qj-ferramentas .q-abas",
+    ".qj-ferramentas .q-aba",
+    ".qj-ferramentas .q-aba[aria-selected='true']",
+    ".qj-ferramentas .q-aba svg",
+    ".qj-ferramentas > .q-chip",
+    ".ex-organizar",
+    ".ex-organizar svg",
+    ".ex-organizar > span",
+    "#grade-de-jogos",
+    ".qj-porque",
+    ".qj-porque li",
+    ".qj-porque li svg",
+    ".qj-porque li span"
+  ],
+  "props": [
+    "alignItems",
+    "justifyContent",
+    "flexWrap",
+    "flexDirection",
+    "minHeight",
+    "maxWidth",
+    "marginTop",
+    "marginLeft",
+    "whiteSpace",
+    "textAlign",
+    "gridTemplateColumns",
+    "gridColumnStart",
+    "order",
+    "borderTopStyle",
+    "textOverflow"
+  ]
+}

@@ -20,6 +20,7 @@ import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 're
 import type { LadoDoInterprete } from '../../../../lib/captura/tiposDaFala';
 import { noComputador } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../../lib/i18n';
+import { direcaoDoTexto } from '../../../../lib/languages';
 import {
   entradaDaConversa,
   entradaDasBolhas,
@@ -228,7 +229,7 @@ export default function ConversaDoPrototipo({
     if (f.tipo === 'dica') return <p className="int-dica">{f.texto}</p>;
     if (f.tipo === 'fala')
       return (
-        <p className="int-ao-vivo" lang={f.lang}>
+        <p className="int-ao-vivo" lang={f.lang} dir={direcaoDoTexto(f.lang)}>
           {f.texto
             .split(' ')
             .filter(Boolean)
@@ -239,11 +240,11 @@ export default function ConversaDoPrototipo({
       );
     return (
       <>
-        <p className="int-traducao" lang={f.lang}>
+        <p className="int-traducao" lang={f.lang} dir={direcaoDoTexto(f.lang)}>
           {f.traducao}
         </p>
         {f.original && (
-          <p className="int-original" lang={f.langDoOriginal}>
+          <p className="int-original" lang={f.langDoOriginal} dir={direcaoDoTexto(f.langDoOriginal)}>
             {f.original}
           </p>
         )}
@@ -453,8 +454,13 @@ export default function ConversaDoPrototipo({
                 lista.bolhas.map((b) => (
                   <div key={b.id} className="int-bolha" data-lado={b.dono}>
                     <p className="int-bolha-idioma">{quem(b.dono)}</p>
-                    <p className="int-bolha-fala">{b.fala}</p>
-                    <p className="int-bolha-trad">{b.traducao}</p>
+                    {/* O idioma de cada linha não chega aqui: `auto` lê a direção do próprio texto. */}
+                    <p className="int-bolha-fala" dir="auto">
+                      {b.fala}
+                    </p>
+                    <p className="int-bolha-trad" dir="auto">
+                      {b.traducao}
+                    </p>
                   </div>
                 ))
               ) : (

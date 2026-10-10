@@ -1,7 +1,7 @@
 import '../../../../styles/questJogarTelas.css';
 
 import { ArrowLeft, type LucideIcon, X } from 'lucide-react';
-import { type ReactNode, useId, useRef } from 'react';
+import { type ReactNode, type RefObject, useId, useRef } from 'react';
 
 import { numero, t } from '../../../../lib/i18n';
 import { DialogoBase } from '../../../ui/Dialogo';
@@ -137,6 +137,8 @@ export function PainelDoQuest({
   largo = false,
   aoFechar,
   pe,
+  abas,
+  refDoPainel,
   classe = '',
   children,
 }: {
@@ -149,10 +151,17 @@ export function PainelDoQuest({
   aoFechar: () => void;
   /** As ações do pé (`.dlg-pe`): ficam à vista enquanto o miolo rola. */
   pe?: ReactNode;
+  /**
+   * As seções do painel, entre o cabeçalho e o miolo ("Buscar e organizar", `enxuto.js:319`). Com elas,
+   * o miolo é o `tabpanel`.
+   */
+  abas?: ReactNode;
+  refDoPainel?: RefObject<HTMLDialogElement | null>;
   classe?: string;
   children: ReactNode;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
+  const proprio = useRef<HTMLDialogElement>(null);
+  const ref = refDoPainel ?? proprio;
   const idTitulo = useId();
   return (
     <DialogoBase
@@ -176,7 +185,10 @@ export function PainelDoQuest({
           <X aria-hidden />
         </button>
       </div>
-      <div className="dlg-corpo qj-painel-corpo">{children}</div>
+      {abas}
+      <div className="dlg-corpo qj-painel-corpo" role={abas ? 'tabpanel' : undefined}>
+        {children}
+      </div>
       {pe && <div className="dlg-pe">{pe}</div>}
     </DialogoBase>
   );

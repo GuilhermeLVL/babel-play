@@ -5,6 +5,10 @@
  * o medidor das horas de nuvem, a nota das horas esgotadas e a marca, que segue o selo da fala.
  *
  * O protótipo é a especificação da MARCAÇÃO (`planos4.js:205-437`); o dado é o do app.
+ *
+ * A FILEIRA (seletor, marca, medidor) é a tela do HEADSET. No computador e no celular a tela é a enxuta:
+ * as mesmas peças de dado (o selo, o cadeado, as horas) atrás de UM chip de estado e da folha
+ * (`tests/capturaEnxuta.test.tsx`).
  */
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import React from 'react'

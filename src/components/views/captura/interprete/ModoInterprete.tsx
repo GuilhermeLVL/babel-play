@@ -19,6 +19,7 @@ import { estadoDaTela, mudarEstadoDaTela, tomarPedidoDaConversa, tremer } from '
 import { nativeTts, type TtsEngine } from '../../../../lib/tts';
 import { aquecerInterprete } from '../../../../lib/voz/aquecimentoDoInterprete';
 import { ladosDaVoz } from '../../../../lib/voz/catalogoDeVozes';
+import { comoInstalarVoz, faltaVozNoAparelho, useVozesDoAparelho } from '../../../../lib/voz/faltaDeVoz';
 import { criarMotorPorPreferencia } from '../../../../lib/voz/motorPorPreferencia';
 import { tempoAteAVoz } from '../../../../lib/voz/tempoAteAVoz';
 import { criarVozDaNuvem, destravarVozDaNuvem, type VozDaNuvem } from '../../../../lib/voz/vozDaNuvem';
@@ -168,8 +169,16 @@ export default function ModoInterprete({
   useEffect(() => {
     if (comVozDoSite) void atualizarIdiomasDaVozDoQuest();
   }, [comVozDoSite]);
+  /* A lista de vozes do aparelho chega depois da tela, e muda quando a pessoa instala uma voz. */
+  useVozesDoAparelho();
+  /**
+   * O APARELHO TEM VOZ, MAS NÃO A DESTE IDIOMA (o Windows sem o pacote de chinês): o motor não lê com
+   * voz de outro idioma, e a tela precisa dizer isso em vez de prometer leitura. Com a voz natural no
+   * plano, quem lê é a nuvem, que não depende das vozes do aparelho.
+   */
+  const semVozDoIdioma = (idioma: string) => !semVoz && !vozNaturalDisponivel && faltaVozNoAparelho(idioma);
   /** Este idioma não é lido em voz alta aqui: a tradução dele fica em texto. */
-  const mudo = (idioma: string) => semVoz && !(comVozDoSite && vozDoQuestFala(idioma));
+  const mudo = (idioma: string) => (semVoz && !(comVozDoSite && vozDoQuestFala(idioma))) || semVozDoIdioma(idioma);
 
   useEffect(() => {
     /* Com a voz natural, cada fala pergunta pela voz escolhida do idioma dela: a do aparelho, se a
@@ -344,6 +353,8 @@ export default function ModoInterprete({
   /* O que a faixa do meio diz da voz, no aparelho sem voz própria: quem é lido e quem fica em texto. */
   const idiomaDoLado = (lado: LadoDoInterprete) => direcaoDoLado(lado, idiomas, atual.trocados).fala;
   const mudos = (['meu', 'outro'] as const).filter((l) => mudo(idiomaDoLado(l)));
+  /** O idioma sem voz NESTE aparelho (que tem as de outros): a faixa diz como instalar a dele. */
+  const idiomaSemVoz = (['outro', 'meu'] as const).map(idiomaDoLado).find(semVozDoIdioma);
   const rotuloDaVoz =
     mudos.length === 2
       ? t('Tradução em texto neste aparelho')
@@ -498,9 +509,11 @@ export default function ModoInterprete({
         aviso ??
         (avisoDoCadeado
           ? t('O modo automático faz parte do Premium: o app reconhece sozinho quem fala qual idioma.')
-          : noAutomatico
-            ? t('Automático ligado: é só conversar. O app reconhece quem fala qual idioma.')
-            : '')
+          : idiomaSemVoz
+            ? comoInstalarVoz(idiomaSemVoz)
+            : noAutomatico
+              ? t('Automático ligado: é só conversar. O app reconhece quem fala qual idioma.')
+              : '')
       }
       aoConhecerOPremium={
         avisoDoCadeado && !aviso && aoConhecerOPremium && totalDeFinais === 0

@@ -91,6 +91,9 @@ const fala = (id: string, originalText: string, translatedText = '', isPartial =
     lang: 'en',
   }) as unknown as SpeechSegment
 
+/* SEM O NÍVEL DE SERVIÇO (`niveis` ausente) a tela é a de antes da versão enxuta, que é também a do
+   headset: o chip do modelo, a ajuda e a letra na faixa. A tela do computador e do celular, com o chip
+   de estado, está em `tests/capturaEnxuta.test.tsx`. */
 describe('a captura pronta (direto.js:25-47)', () => {
   it('monta o topo, o miolo e a faixa do protótipo, com o texto do computador', () => {
     const { container } = render(<CapturaDoPrototipo {...base} />)

@@ -80,6 +80,9 @@ export function comoDesbloquear(estado: EstadoDoJogo, ctx: ContextoDeDesbloqueio
 
   // Sem ação possível — e dizer isso é mais honesto que inventar um botão.
   if (estado.motivo === 'sem-voz' || estado.motivo === 'audio-carregando') return null;
+  /* O jogo não desenha a escrita deste idioma: juntar mais palavras não muda isso, e "jogar em
+     inglês" não é o que quem estuda mandarim veio fazer. */
+  if (estado.motivo === 'alfabeto-nao-suportado' || estado.motivo === 'escrita-sem-separacao') return null;
 
   const nome = ctx.nomeDoIdioma ?? ((l: string) => l);
   const precisa = MINIGAMES[estado.id].minItems;

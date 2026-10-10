@@ -33,6 +33,7 @@ export * from './funil'
 // Onde um domínio existe só de um lado, isso está escrito no cabeçalho do arquivo e cobrado por
 // `tests/contratos/rotas-espelhadas.test.ts`.
 
+export * from './rotas/cartoes'
 export * from './rotas/conta'
 export * from './rotas/credenciais'
 export * from './rotas/economia'

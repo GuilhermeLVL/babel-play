@@ -35,6 +35,7 @@ import type { AgeProfileType } from '../../../../lib/profile';
 import { aoMudarIdiomasDaVozDoQuest } from '../../../../lib/voz/vozDoQuest';
 import { FAMILIAS, tomDoJogo } from '../../../minigames/ArteDosJogos';
 import MiniDoJogo from '../../../minigames/polimento/MiniDoJogo';
+import AbasDePraticar from '../../../shell/AbasDePraticar';
 import { descricaoDoJogo, type JogoUI, tituloDoJogo } from '../jogos';
 import {
   entrarOQueAbriu,
@@ -721,6 +722,8 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
 
   return (
     <div ref={palco} className={`q-palco qj quest-jogar${enxuta ? ' ex-jogar' : ''}`} data-testid="lobby-do-quest">
+      {/* Na barra de cinco do celular, Cartões e Jogar são as duas abas do "Praticar" (`cartoes3.js:162-166`). */}
+      <AbasDePraticar qual="jogar" />
       <div className="q-cab">
         <div>
           <p className="q-sobre">

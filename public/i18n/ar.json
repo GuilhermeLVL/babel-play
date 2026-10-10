@@ -8,7 +8,6 @@
   "Biblioteca": "المكتبة",
   "Minhas Mídias": "وسائطي",
   "Vocabulário": "المفردات",
-  "Minhas Palavras": "كلماتي",
   "Personalizar": "تخصيص",
   "Sobre": "حول",
   "Sobre o App": "حول التطبيق",
@@ -1001,5 +1000,10 @@
   "Este aparelho não tem voz em {idioma}: a tradução fica em texto. Para ouvir, instale a voz no Android em Configurações → Sistema → Idiomas e entrada → Conversão de texto em voz → Instalar dados de voz.": "لا يوجد في هذا الجهاز صوت باللغة {idioma}: تبقى الترجمة نصًا. لسماعها، ثبّت الصوت في Android من الإعدادات ← النظام ← اللغات والإدخال ← تحويل النص إلى كلام ← تثبيت بيانات الصوت.",
   "Este aparelho não tem voz em {idioma}: a tradução fica em texto. Para ouvir, baixe a voz no iPhone ou iPad em Ajustes → Acessibilidade → Conteúdo Falado → Vozes.": "لا يوجد في هذا الجهاز صوت باللغة {idioma}: تبقى الترجمة نصًا. لسماعها، نزّل الصوت في iPhone أو iPad من الإعدادات ← تسهيلات الاستخدام ← المحتوى المنطوق ← الأصوات.",
   "Este aparelho não tem voz em {idioma}: a tradução fica em texto. Para ouvir, baixe a voz no Mac em Ajustes do Sistema → Acessibilidade → Conteúdo Falado → Voz do sistema → Gerenciar vozes.": "لا يوجد في هذا الجهاز صوت باللغة {idioma}: تبقى الترجمة نصًا. لسماعها، نزّل الصوت في Mac من إعدادات النظام ← تسهيلات الاستخدام ← المحتوى المنطوق ← صوت النظام ← إدارة الأصوات.",
-  "Este aparelho não tem voz em {idioma}: a tradução fica em texto. Para ouvir, instale uma voz desse idioma nas configurações de fala do sistema e reabra o navegador.": "لا يوجد في هذا الجهاز صوت باللغة {idioma}: تبقى الترجمة نصًا. لسماعها، ثبّت صوتًا لهذه اللغة من إعدادات الكلام في النظام ثم أعد فتح المتصفح."
+  "Este aparelho não tem voz em {idioma}: a tradução fica em texto. Para ouvir, instale uma voz desse idioma nas configurações de fala do sistema e reabra o navegador.": "لا يوجد في هذا الجهاز صوت باللغة {idioma}: تبقى الترجمة نصًا. لسماعها، ثبّت صوتًا لهذه اللغة من إعدادات الكلام في النظام ثم أعد فتح المتصفح.",
+  "este jogo usa letras do alfabeto latino, e {idioma} não é escrito com elas": "تستخدم هذه اللعبة حروف الأبجدية اللاتينية، واللغة {idioma} لا تُكتب بها",
+  "Os dois lados estão em {idioma}: não há o que traduzir, e as palavras fichadas ficam sem verso. Troque um dos dois.": "الجانبان باللغة {idioma}: لا يوجد ما يُترجم، والكلمات المحفوظة تبقى بلا وجه خلفي. غيّر أحدهما.",
+  "Detectar sozinho precisa do Whisper. Troque em Ajustes da captura → Microfone.": "الاكتشاف التلقائي يحتاج إلى Whisper. غيّره من Ajustes da captura → Microfone.",
+  "Ainda não há tradutor no aparelho para este par: a tradução usa a internet.": "لا يوجد بعد مترجم على الجهاز لهذا الزوج: الترجمة تستخدم الإنترنت.",
+  "Não há tradutor para este par: as falas são transcritas, mas ficam sem tradução.": "لا يوجد مترجم لهذا الزوج: يُنسخ الكلام نصًا، لكنه يبقى بلا ترجمة."
 }

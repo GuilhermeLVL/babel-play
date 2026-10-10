@@ -46,6 +46,8 @@ const SO_COM_CONTA: Record<string, string> = {
   '/api/erros-do-cliente': 'diário de erros do servidor; sem conta o erro fica no console',
   '/api/sessions/utterances/relabel': 'reetiquetagem em lote: escrita cruzada de sessões',
   '/api/vocab/relabel': 'idem, no acervo',
+  '/api/vocab/resumo':
+    'as contagens da tela Cartões (o que vence agora, a previsão, a retenção medida): a revisão exige conta, então sem conta a tela mostra o estado vazio e NÃO chama a rota. Um espelho contaria um baralho que não pode ser revisado',
   '/api/vocab/para-jogo':
     'NÃO precisa de espelho: `compor` cai em `composicaoLocal`, a MESMA ordenação do core rodando no cliente. Espelhá-la criaria uma segunda verdade onde hoje há uma',
   '/api/health':

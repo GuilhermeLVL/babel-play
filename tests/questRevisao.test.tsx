@@ -57,7 +57,11 @@ vi.mock('../src/lib/langConfig', async (orig) => {
   const real = await orig<typeof import('../src/lib/langConfig')>()
   return { ...real, fetchLangConfig: async () => real.DEFAULT_LANG_CONFIG, onLangConfigChange: () => () => {} }
 })
-vi.mock('../src/lib/dictionary', () => ({ lookup: vi.fn(async () => null), forvoUrl: () => '#', wiktionaryUrl: () => '#' }))
+vi.mock('../src/lib/dictionary', () => ({
+  lookup: vi.fn(async () => null),
+  forvoUrl: () => '#',
+  wiktionaryUrl: () => '#',
+}))
 vi.mock('../src/components/Toast', async (orig) => {
   avisos.ok = vi.fn()
   avisos.erro = vi.fn()
@@ -156,8 +160,8 @@ describe('Revisão no Quest', () => {
     expect(palco().dataset.estado).toBe('carregando')
     expect(palco().querySelectorAll('.q-esqueleto').length).toBe(2)
     expect(screen.getByRole('status')).toBeTruthy()
-    fireEvent.click(botao('Voltar ao Vocabulário'))
-    expect(ir).toHaveBeenCalledWith('metrics')
+    fireEvent.click(botao('Voltar aos Cartões'))
+    expect(ir).toHaveBeenCalledWith('cartoes')
   })
 
   it('baralho vazio: diz de onde as palavras vêm e leva à captura, com um único botão principal', async () => {
@@ -186,7 +190,10 @@ describe('Revisão no Quest', () => {
   it('Lembrar: as quatro notas com o intervalo; a nota vai ao servidor, a fila anda e dá para desfazer', async () => {
     const { container, botao, tocar } = await montar()
     const palavra = container.querySelector('.termo')?.textContent as string
-    const desfazer = () => within(screen.getByRole('toolbar', { name: 'Ações do cartão' })).getByRole('button', { name: /Desfazer/ }) as HTMLButtonElement
+    const desfazer = () =>
+      within(screen.getByRole('toolbar', { name: 'Ações do cartão' })).getByRole('button', {
+        name: /Desfazer/,
+      }) as HTMLButtonElement
     expect(desfazer().disabled).toBe(true)
 
     await tocar(botao(/Mostrar resposta/))
@@ -246,10 +253,36 @@ describe('Revisão no Quest', () => {
     expect(container.querySelector('.qr-conta')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('1 / 3')
   })
 
-  it('Encerrar volta ao Vocabulário; sem navegação, a tela diz quantas esperam e recomeça', async () => {
+  /* O RECORTE QUE A TELA CARTÕES PEDE (10/10/2026): "Só 10 agora" e "Mais N novas". */
+  it('rodada com limite: só as primeiras da fila, que são as vencidas há mais tempo', async () => {
+    api.deck = [
+      cartao('c1', 'cat', 'gato', { dueAtMs: Date.now() - 1 * 86_400_000 }),
+      cartao('c2', 'dog', 'cão', { dueAtMs: Date.now() - 9 * 86_400_000 }),
+      cartao('c3', 'bird', 'pássaro', { dueAtMs: Date.now() - 5 * 86_400_000 }),
+    ].map((c) => ({ ...c, fsrsDueAt: new Date(c.dueAtMs as number).toISOString() }))
+    const { palco } = await montar({ rodada: { limite: 2 } })
+    expect(palco().dataset.estado).toBe('rodada')
+    expect(palco().querySelector('[role="progressbar"]')?.getAttribute('aria-valuemax')).toBe('2')
+    expect(palco().querySelector('.flash')?.textContent).toContain('dog')
+  })
+
+  it('rodada só de novas: as nunca vistas, sem adiantar a revisão das outras', async () => {
+    api.deck = [
+      cartao('c1', 'cat', 'gato', { dueAtMs: Date.now() + 3 * 86_400_000 }),
+      cartao('n1', 'owl', 'coruja', { fsrsState: 'New', dueAtMs: null, lastReview: undefined, stability: undefined }),
+      cartao('n2', 'fox', 'raposa', { fsrsState: 'New', dueAtMs: null, lastReview: undefined, stability: undefined }),
+      cartao('n3', 'elk', 'alce', { fsrsState: 'New', dueAtMs: null, lastReview: undefined, stability: undefined }),
+    ]
+    const { palco } = await montar({ rodada: { soNovas: true, limite: 2 } })
+    expect(palco().dataset.estado).toBe('rodada')
+    expect(palco().querySelector('[role="progressbar"]')?.getAttribute('aria-valuemax')).toBe('2')
+    expect(palco().querySelector('.flash')?.textContent).toContain('owl')
+  })
+
+  it('Encerrar volta aos Cartões; sem navegação, a tela diz quantas esperam e recomeça', async () => {
     const com = await montar()
     fireEvent.click(com.botao(/Encerrar/))
-    expect(com.ir).toHaveBeenCalledWith('metrics')
+    expect(com.ir).toHaveBeenCalledWith('cartoes')
     cleanup()
 
     const { palco, botao, tocar } = await montar({ onChangeView: undefined })
@@ -500,7 +533,9 @@ describe('Revisão no Quest', () => {
       ['Acerto', '100%'],
     ])
     expect(numeros.map(([r]) => r)).toEqual(expect.arrayContaining(['Tempo', 'XP']))
-    expect([...palco().querySelectorAll('.q-ctl.pri')].map((b) => b.textContent?.trim())).toEqual(['Jogar com as mesmas'])
+    expect([...palco().querySelectorAll('.q-ctl.pri')].map((b) => b.textContent?.trim())).toEqual([
+      'Jogar com as mesmas',
+    ])
 
     fireEvent.click(botao(/Jogar com as mesmas/))
     fireEvent.click(botao(/Ver estatísticas/))

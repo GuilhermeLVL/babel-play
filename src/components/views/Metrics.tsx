@@ -101,6 +101,8 @@ export default function Metrics({
   onChangeView,
   ageProfile = 'pro',
   metrics: metricsDoApp,
+  embutida = false,
+  pedidoDeAdicionar = 0,
 }: {
   recordings: Recording[];
   /** Navegação entre telas (ex.: abrir um exercício a partir de uma métrica). */
@@ -116,6 +118,14 @@ export default function Metrics({
    * documentava ter feito com o `StudioHeader`, e que ficou pela metade.
    */
   metrics?: AppMetrics | null;
+  /**
+   * A ABA "PALAVRAS" DA TELA CARTÕES (10/10/2026): o Vocabulário deixou de ser tela própria e é
+   * desenhado dentro de Cartões, sem o palco e o cabeçalho dele. Trazer do Anki e exportar passam a
+   * morar na aba "Trazer e levar" de lá.
+   */
+  embutida?: boolean;
+  /** Muda (cresce) quando o "+ Palavra" do cabeçalho de Cartões é tocado: abre o diálogo daqui. */
+  pedidoDeAdicionar?: number;
 }) {
   /* 'palavras' É A ABA DE ENTRADA (referência de design): a tela chamada Vocabulário abria num
      painel de analytics — retenção, WPM, CEFR, complexidade — e o acervo, que é o que o nome
@@ -404,6 +414,9 @@ export default function Metrics({
 
   /* Os três botões do cabeçalho (protótipo: "+ Palavra", "Trazer do Anki", "Exportar"). */
   const [adicionando, setAdicionando] = useState(false);
+  useEffect(() => {
+    if (pedidoDeAdicionar > 0) setAdicionando(true);
+  }, [pedidoDeAdicionar]);
   const [exportando, setExportando] = useState(false);
   const [filtroDoCatalogo, setFiltroDoCatalogo] = useState<FiltroDoCatalogo | null>(null);
   const [noAnki, setNoAnki] = useState(false);
@@ -424,7 +437,7 @@ export default function Metrics({
     gravarFiltro({ ...FILTRO_PADRAO, fontes: ['baralho'], baralhos: [deckId] });
     onChangeView?.('play');
   };
-  if (noAnki) {
+  if (noAnki && !embutida) {
     return (
       <BaralhoAnki
         deck={vocabCards}
@@ -545,6 +558,7 @@ export default function Metrics({
       aoMostrarMais={mostrarMais ? () => setShowAllTabs(true) : undefined}
       rotuloDeExportar={rotuloDeExportar}
       aoAdicionar={() => setAdicionando(true)}
+      embutida={embutida}
       aoAnki={() => setNoAnki(true)}
       aoExportar={() => setExportando(true)}
       metrics={metrics}

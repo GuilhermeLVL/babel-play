@@ -9,6 +9,8 @@ import { askNavGuard } from '../navGuard';
 import { lembrarPlanoDoCheckout } from '../planoDoCheckout';
 import { trocarDeTela } from '../polimento/telas';
 import {
+  type AbaDeCartoes,
+  ABAS_DE_CARTOES,
   estadoDaIntencao,
   type EstadoDeRota,
   irParaSubTelaDePlanos,
@@ -41,7 +43,22 @@ export interface EstadoDaNavegacao {
   setIsChatDocked: Dispatch<SetStateAction<boolean>>;
   practiceSeed: PracticeSeed | null;
   setPracticeSeed: Dispatch<SetStateAction<PracticeSeed | null>>;
+  /** A aba aberta da tela Cartões (`/cartoes/<aba>`). */
+  cartoesAba: AbaDeCartoes;
+  setCartoesAba: Dispatch<SetStateAction<AbaDeCartoes>>;
+  /** A rodada de revisão aberta dentro de Cartões (`/cartoes/estudar`), ou `null`. */
+  estudo: EstudoAberto | null;
   navigateTo: (view: string, data?: any) => void;
+}
+
+/** O que a rodada de revisão recebeu de quem a abriu. */
+export interface EstudoAberto {
+  /** A sessão que recorta a rodada ("Revisar as palavras desta sessão"); sem ela, o baralho todo. */
+  sessionId: string | null;
+  /** "Só 10 agora". */
+  limite?: number;
+  /** "Mais 5 novas": só palavras nunca vistas. */
+  soNovas?: boolean;
 }
 
 /**
@@ -79,6 +96,10 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
    */
   const [practiceSeed, setPracticeSeed] = useState<PracticeSeed | null>(null);
 
+  /* CARTÕES (10/10/2026): a aba aberta e a rodada de revisão, que passou a morar na tela. */
+  const [cartoesAba, setCartoesAba] = useState<AbaDeCartoes>('hoje');
+  const [estudo, setEstudo] = useState<EstudoAberto | null>(null);
+
   const navigateTo = (view: string, data?: any) => {
     // Sem conta: a porta de entrada é um destino ("Entrar" no menu), e o que exige conta abre o
     // convite em vez de navegar — a tela atual fica como está.
@@ -99,17 +120,31 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
   /* A troca passa pela camada de polimento: a tela de antes sai antes de a nova entrar. Fora do
      desenho novo (ou com as animações desligadas) ela chama `aplicar` na hora. */
   const doNavigate = (view: string, data?: any) => {
-    const destino = view === 'study' || view === 'reading' ? 'analysis' : view;
+    /* A revisão e o Vocabulário moram em Cartões: é o item do menu que acende no toque. */
+    const destino = view === 'study' || view === 'metrics' ? 'cartoes' : view === 'reading' ? 'analysis' : view;
     trocarDeTela(destino, activeView, () => aplicarNavegacao(view, data));
   };
 
   const aplicarNavegacao = (view: string, data?: any) => {
     if (view === 'study') {
-      setActiveView('analysis');
-      setAnalysisSubTab('study');
+      /* A REVISÃO ABRE DENTRO DE CARTÕES. Antes ela era uma pseudo-aba da sessão: sem gravação
+         nenhuma a tela dizia "Nenhuma sessão ainda", e sem `id` a rodada ficava presa à sessão mais
+         recente. Agora o recorte só existe quando alguém pede (`data.id`). */
+      setActiveView('cartoes');
+      setEstudo({
+        sessionId: data?.id ?? null,
+        limite: typeof data?.limite === 'number' ? data.limite : undefined,
+        soNovas: data?.soNovas === true ? true : undefined,
+      });
       // A semente vem no `data` (texto selecionado, palavra, exercício-alvo). Antes era jogada fora.
       setPracticeSeed(data?.seed ?? null);
-      if (data?.id) setSelectedRecordingId(data.id);
+    } else if (view === 'cartoes' || view === 'metrics') {
+      /* `metrics` era a tela Vocabulário: virou a aba "Palavras" de Cartões. Quem ainda navega pelo
+         nome antigo (a busca, a folha da palavra) chega ao catálogo. */
+      setActiveView('cartoes');
+      setEstudo(null);
+      const aba = view === 'metrics' ? 'palavras' : data?.aba;
+      setCartoesAba((ABAS_DE_CARTOES as readonly string[]).includes(aba) ? (aba as AbaDeCartoes) : 'hoje');
     } else if (view === 'reading') {
       setActiveView('analysis');
       setAnalysisSubTab('reading');
@@ -150,10 +185,10 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
 
   /** Um estado de rota (URL, intenção de login) vira navegação — o mesmo mapa do boot e do voltar. */
   const irParaEstado = (e: EstadoDeRota, via: (view: string, data?: any) => void = doNavigate) =>
-    via(e.subTab === 'study' ? 'study' : e.view, {
+    via(e.subTab === 'study' || (e.view === 'cartoes' && e.estudando) ? 'study' : e.view, {
       id: e.sessionId,
       subTab: e.subTab,
-      aba: e.lojaTab,
+      aba: e.view === 'cartoes' ? e.cartoesAba : e.lojaTab,
       planosTela: e.planosTela,
     });
 
@@ -220,11 +255,18 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
     if (!rotaRestaurada.current || isOnAuthCallback()) return;
     publicarUrl({
       view: (activeView === 'study' || activeView === 'reading' ? 'analysis' : activeView) as ViewDeRota,
-      sessionId: activeView === 'analysis' ? (selectedRecordingId ?? recordings[0]?.id ?? undefined) : undefined,
+      sessionId:
+        activeView === 'analysis'
+          ? (selectedRecordingId ?? recordings[0]?.id ?? undefined)
+          : activeView === 'cartoes'
+            ? (estudo?.sessionId ?? undefined)
+            : undefined,
       subTab: activeView === 'analysis' ? (analysisSubTab as EstadoDeRota['subTab']) : undefined,
       lojaTab: activeView === 'loja' ? ((lojaAba ?? undefined) as EstadoDeRota['lojaTab']) : undefined,
+      cartoesAba: activeView === 'cartoes' && !estudo ? cartoesAba : undefined,
+      estudando: activeView === 'cartoes' && !!estudo,
     });
-  }, [activeView, selectedRecordingId, recordings, analysisSubTab, lojaAba]);
+  }, [activeView, selectedRecordingId, recordings, analysisSubTab, lojaAba, cartoesAba, estudo]);
 
   /* 3) BOTÃO VOLTAR. Sem isto, "voltar" saía do app — era o beco relatado na auditoria.
         Passa pelo `navGuard`: uma captura em andamento ainda pode pedir confirmação. */
@@ -251,6 +293,9 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
     setIsChatDocked,
     practiceSeed,
     setPracticeSeed,
+    cartoesAba,
+    setCartoesAba,
+    estudo,
     navigateTo,
   };
 }

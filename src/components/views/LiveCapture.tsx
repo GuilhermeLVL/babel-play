@@ -1452,8 +1452,9 @@ export default function LiveCapture({
     /* FALAS PRONTAS, sem STT nem MT (bancada do fim da captura, 2026-09-28): acrescenta finais já
        transcritas e traduzidas, pelo MESMO estado que o pipeline escreve. É o que deixa o e2e
        medir Parar → Salvar → sair sem modelo de fala, rede nem áudio de verdade.
-       Uso no console: window.__simFalas(['primeira frase', 'segunda frase']) */
-    (window as any).__simFalas = (textos: string[], fonte: 'system' | 'mic' = 'system') => {
+       Uso no console: window.__simFalas(['primeira frase', 'segunda frase'])
+       O terceiro argumento é o idioma das falas (o que o pipeline declara): 'ar', 'zh'… */
+    (window as any).__simFalas = (textos: string[], fonte: 'system' | 'mic' = 'system', lang = 'en') => {
       const agora = Date.now();
       setSpeechSegments((prev) => [
         ...prev,
@@ -1464,11 +1465,11 @@ export default function LiveCapture({
           timestamp: formatTime(Math.round((prev.length + i) * 2)),
           originalText: texto,
           translatedText: `(${texto})`,
-          words: wordsFromText(texto, 'en'),
+          words: wordsFromText(texto, lang),
           isPartial: false,
           tStartMs: (prev.length + i) * 2000,
           tEndMs: (prev.length + i) * 2000 + 1500,
-          lang: 'en',
+          lang,
         })),
       ]);
       return textos.length;
@@ -2266,27 +2267,29 @@ export default function LiveCapture({
         <div className="aviso-info warn" role="alert">
           <TriangleAlert aria-hidden />
           <span>
-            Os dois lados estão em {langLabel(sourceLang)}: não há o que traduzir, e as palavras fichadas ficam sem
-            verso. Troque um dos dois.
+            {t(
+              'Os dois lados estão em {idioma}: não há o que traduzir, e as palavras fichadas ficam sem verso. Troque um dos dois.',
+              { idioma: langLabelNaUI(sourceLang) },
+            )}
           </span>
         </div>
       )}
       {autoDetectMyLang && captureScenario !== 'media' && micEngine === 'browser' && (
         <div className="aviso-info">
           <Info aria-hidden />
-          <span>Detectar sozinho precisa do Whisper. Troque em Ajustes da captura → Microfone.</span>
+          <span>{t('Detectar sozinho precisa do Whisper. Troque em Ajustes da captura → Microfone.')}</span>
         </div>
       )}
       {coberturaDoPar === 'online' && !mesmoIdioma && (
         <div className="aviso-info warn">
           <TriangleAlert aria-hidden />
-          <span>Ainda não há tradutor no aparelho para este par: a tradução usa a internet.</span>
+          <span>{t('Ainda não há tradutor no aparelho para este par: a tradução usa a internet.')}</span>
         </div>
       )}
       {coberturaDoPar === 'unknown' && !mesmoIdioma && (
         <div className="aviso-info warn">
           <TriangleAlert aria-hidden />
-          <span>Não há tradutor para este par: as falas são transcritas, mas ficam sem tradução.</span>
+          <span>{t('Não há tradutor para este par: as falas são transcritas, mas ficam sem tradução.')}</span>
         </div>
       )}
     </>

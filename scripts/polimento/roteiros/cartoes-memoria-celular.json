@@ -1,0 +1,59 @@
+{
+  "nome": "cartoes-memoria-celular",
+  "prototipo": "cartoes",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/cartoes/memoria",
+    "assentar": 3500,
+    "passos": [
+      {
+        "js": "(async () => { for (let i = 0; i < 14; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || [...d.querySelectorAll('button')].find((b) => /Resgatar|Pular|Fechar|Agora não|Entendi|Depois/.test(b.textContent || '')) || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 500)); } })()"
+      },
+      {
+        "esperar": 1200
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?ver=memoria&quieto&nav=b",
+    "assentar": 3500,
+    "passos": [
+      {
+        "esperar": 600
+      }
+    ]
+  },
+  "seletores": [
+    ".q-palco.ct",
+    ".q-cab",
+    ".q-cab .q-sobre",
+    ".q-cab h1",
+    ".q-cab > .q-ctl",
+    ".ct-abas",
+    ".ct-abas .q-aba",
+    ".ct-painel",
+    ".ct-kpis",
+    ".ct-kpis .q-num",
+    ".ct-kpis .q-num b",
+    ".ct-mem-ret",
+    ".ct-graf",
+    ".ct-mem-prev",
+    ".ct-prev30",
+    ".ct-prev30 i",
+    ".ct-mem-cal",
+    ".ct-cal",
+    ".ct-cal i",
+    ".ct-cal-fatos",
+    ".ct-mem-botoes",
+    ".ct-bh",
+    ".ct-bh .q-barra",
+    ".ct-mem-fases",
+    ".ct-pilha-h",
+    ".ct-leg-fases li",
+    ".q-trilho",
+    ".q-trilho .q-item",
+    ".ct-praticar",
+    ".ct-praticar .q-aba"
+  ]
+}

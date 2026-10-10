@@ -66,19 +66,55 @@ describe('TrilhoDoQuest', () => {
     return { ir, ...r }
   }
 
-  it('os seis destinos do protótipo e "Mais", com o destino atual marcado', () => {
+  it('os seis destinos da navegação A (cartoes3.js:14) e "Mais", com o destino atual marcado', () => {
     const { container } = montar('play')
     const itens = [...container.querySelectorAll('.q-trilho .q-item')]
     expect(itens.map((i) => i.textContent)).toEqual([
       'Início',
       'Capturar',
       'Intérprete',
+      'Biblioteca',
+      'Cartões',
       'Jogar',
-      'Estatísticas',
-      'Personalizar',
       'Mais',
     ])
     expect(container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Jogar')
+  })
+
+  it('o item Cartões leva o número do dia; em dia, sem cartões ou carregando, sem selo', () => {
+    const comSelo = render(
+      <TrilhoDoQuest
+        activeView="hub"
+        onChangeView={() => {}}
+        ageProfile="pro"
+        darkMode={false}
+        toggleDarkMode={() => {}}
+        soundEnabled
+        toggleSound={() => {}}
+        cartoesHoje={17}
+      />,
+    )
+    const selo = comSelo.container.querySelector('.q-item .ct-selo-do-dia')
+    expect(selo?.textContent).toBe('17')
+    expect(selo?.getAttribute('aria-label')).toBe('17 cartões para hoje')
+    expect(selo?.closest('.q-item')?.querySelector('span')?.textContent).toBe('Cartões')
+    comSelo.unmount()
+    for (const n of [0, null]) {
+      const sem = render(
+        <TrilhoDoQuest
+          activeView="hub"
+          onChangeView={() => {}}
+          ageProfile="pro"
+          darkMode={false}
+          toggleDarkMode={() => {}}
+          soundEnabled
+          toggleSound={() => {}}
+          cartoesHoje={n}
+        />,
+      )
+      expect(sem.container.querySelector('.ct-selo-do-dia')).toBeNull()
+      sem.unmount()
+    }
   })
 
   it('"Mais" abre o painel com o resto do menu, e escolher um destino o fecha', () => {
@@ -87,15 +123,22 @@ describe('TrilhoDoQuest', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
     const painel = screen.getByRole('dialog')
     expect(painel.textContent).toContain('Ajustes')
-    expect(painel.textContent).toContain('Biblioteca')
-    expect(painel.textContent).toContain('Vocabulário')
+    /* O conteúdo subiu para o trilho; o acessório desceu para cá (decisão do dono, 10/10/2026). */
+    expect(painel.textContent).toContain('Estatísticas')
+    expect(painel.textContent).toContain('Personalizar')
+    expect(painel.textContent).not.toContain('Biblioteca')
+    expect(painel.textContent).not.toContain('Vocabulário')
     expect(painel.textContent).toContain('Diagnóstico do aparelho')
+    /* A ordem do protótipo (`CT_NAV.a.mais`, cartoes3.js:14): Sobre vem depois do perfil e da ajuda. */
+    const ladrilhos = [...painel.querySelectorAll('.q-grade .q-tile b')].map((b) => b.textContent)
+    expect(ladrilhos.slice(0, 5)).toEqual(['Estatísticas', 'Personalizar', 'Ajustes', 'Seu perfil', 'Ajuda e suporte'])
+    expect(ladrilhos.indexOf('Sobre')).toBeGreaterThan(ladrilhos.indexOf('Ajuda e suporte'))
     fireEvent.click(screen.getByRole('button', { name: 'Ajustes' }))
     expect(ir).toHaveBeenCalledWith('settings')
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
-  it('sem conta, Biblioteca e Vocabulário (que só abririam o convite) ficam em "Mais"; entram Estatísticas e Personalizar', () => {
+  it('sem conta o trilho é o mesmo; no "Mais", o que só abriria o convite diz que pede conta', () => {
     const { container } = render(
       <TrilhoDoQuest
         activeView="hub"
@@ -109,10 +152,12 @@ describe('TrilhoDoQuest', () => {
       />,
     )
     const itens = [...container.querySelectorAll('.q-trilho .q-item')].map((i) => i.textContent)
-    expect(itens).toEqual(['Início', 'Capturar', 'Intérprete', 'Jogar', 'Estatísticas', 'Personalizar', 'Mais'])
+    expect(itens).toEqual(['Início', 'Capturar', 'Intérprete', 'Biblioteca', 'Cartões', 'Jogar', 'Mais'])
     fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
-    expect(screen.getByRole('dialog').textContent).toContain('Biblioteca')
-    expect(screen.getByRole('dialog').textContent).toContain('Vocabulário')
+    const estatisticas = [...screen.getByRole('dialog').querySelectorAll('.q-tile')].find((x) =>
+      x.textContent?.includes('Estatísticas'),
+    )
+    expect(estatisticas?.querySelector('.q-pede-conta')).toBeTruthy()
   })
 
   it('numa tela que só existe no "Mais", é o "Mais" que fica marcado', () => {
@@ -124,7 +169,7 @@ describe('TrilhoDoQuest', () => {
 describe('InicioDoQuest', () => {
   const metricas = (dueToday: number) => ({ dueToday }) as AppMetrics
 
-  it('com palavras vencendo, o segundo caminho é revisar (no máximo uma sessão de 20)', () => {
+  it('o ladrilho dos Cartões é fixo, logo depois de "Legendar agora", com o número do dia', () => {
     const ir = vi.fn()
     render(
       <InicioDoQuest
@@ -134,15 +179,39 @@ describe('InicioDoQuest', () => {
         metrics={metricas(57)}
       />,
     )
-    fireEvent.click(screen.getByRole('button', { name: /Revisar 20 palavras/ }))
-    expect(ir).toHaveBeenLastCalledWith('study')
+    const caminhos = [...screen.getByTestId('inicio-do-quest').querySelectorAll('.q-cresce > .q-tile b')]
+    expect(caminhos.map((b) => b.textContent)).toEqual([
+      'Legendar agora',
+      'Cartões: 57 para hoje',
+      'Conversar',
+      'Jogar',
+    ])
+    fireEvent.click(screen.getByTestId('cartoes-no-inicio'))
+    expect(ir).toHaveBeenLastCalledWith('cartoes')
     fireEvent.click(screen.getByRole('button', { name: /Legendar agora/ }))
     expect(ir).toHaveBeenLastCalledWith('capture')
     fireEvent.click(screen.getByRole('button', { name: /Continuar: Aula 7/ }))
     expect(ir).toHaveBeenLastCalledWith('analysis', { id: 'a' })
   })
 
-  it('sem nada para revisar, o segundo caminho é o do protótipo, Conversar; sem sessão, não há "Continuar"', () => {
+  it('o ladrilho diz o estado dos cartões: nenhum, primeiras palavras, em dia, e a forma enquanto carrega', () => {
+    const casos: Array<[AppMetrics | null, string]> = [
+      [{ dueToday: 0, deckSize: 0, reviews: 0 } as AppMetrics, 'Cartões'],
+      [{ dueToday: 34, deckSize: 34, reviews: 0 } as AppMetrics, 'Cartões: comece por 10'],
+      [{ dueToday: 4, deckSize: 4, reviews: 0 } as AppMetrics, 'Cartões: comece agora'],
+      [{ dueToday: 0, deckSize: 34, reviews: 12 } as AppMetrics, 'Cartões: tudo em dia'],
+      [null, 'Cartões'],
+    ]
+    for (const [metrics, titulo] of casos) {
+      const r = render(
+        <InicioDoQuest onChangeView={() => {}} recordings={[]} progress={EMPTY_PROGRESS} metrics={metrics} />,
+      )
+      expect(screen.getByTestId('cartoes-no-inicio').querySelector('b')?.textContent).toBe(titulo)
+      r.unmount()
+    }
+  })
+
+  it('Conversar continua sendo um caminho; sem sessão, não há "Continuar"', () => {
     const ir = vi.fn()
     render(<InicioDoQuest onChangeView={ir} recordings={[]} progress={EMPTY_PROGRESS} metrics={metricas(0)} />)
     fireEvent.click(screen.getByRole('button', { name: /Conversar/ }))
@@ -152,7 +221,7 @@ describe('InicioDoQuest', () => {
 })
 
 describe('InicioDoQuest sem conta', () => {
-  it('só oferece o que funciona: legendar, conversar e jogar; nada de revisão nem de sessão salva', () => {
+  it('os Cartões levam ao estado vazio da tela, sem número; nada de sessão salva', () => {
     const ir = vi.fn()
     render(
       <InicioDoQuest
@@ -163,7 +232,10 @@ describe('InicioDoQuest sem conta', () => {
         semConta
       />,
     )
-    expect(screen.queryByRole('button', { name: /Revisar/ })).toBeNull()
+    /* Sem conta, o perfil pode até dizer que há palavra vencendo: o ladrilho não promete revisão. */
+    expect(screen.getByTestId('cartoes-no-inicio').querySelector('b')?.textContent).toBe('Cartões')
+    fireEvent.click(screen.getByTestId('cartoes-no-inicio'))
+    expect(ir).toHaveBeenLastCalledWith('cartoes')
     expect(screen.queryByRole('button', { name: /Continuar/ })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: /Conversar/ }))
     expect(ir).toHaveBeenLastCalledWith('interprete')
@@ -477,9 +549,9 @@ describe('a casca no computador com o desenho novo', () => {
       'Início',
       'Capturar',
       'Intérprete',
+      'Biblioteca',
+      'Cartões',
       'Jogar',
-      'Estatísticas',
-      'Personalizar',
       'Buscar',
       'Mais',
     ])
@@ -500,7 +572,7 @@ describe('a casca no computador com o desenho novo', () => {
     expect(screen.queryByTestId('vibracao-do-quest')).toBeNull()
     expect(painel.textContent).not.toContain('Vibração')
     expect(painel.textContent).not.toContain('Diagnóstico do aparelho')
-    for (const destino of ['Biblioteca', 'Vocabulário', 'Sobre', 'Ajustes', 'Seu perfil', 'Ajuda e suporte'])
+    for (const destino of ['Estatísticas', 'Personalizar', 'Sobre', 'Ajustes', 'Seu perfil', 'Ajuda e suporte'])
       expect(painel.textContent).toContain(destino)
     expect(painel.textContent).toMatch(/Tema (claro|escuro)/)
     expect(painel.textContent).toContain('Som dos toques: ligado')

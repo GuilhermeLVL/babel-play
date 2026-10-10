@@ -1,10 +1,10 @@
 import {
-  BookOpen,
   ChartColumn,
   CreditCard,
   Gamepad2,
   Heart,
   Languages,
+  Layers,
   LayoutDashboard,
   Library,
   type LucideIcon,
@@ -85,10 +85,13 @@ const TODOS_OS_ITENS: NavItemDef[] = [
      DENTRO de uma mídia capturada — o caminho é Biblioteca → mídia → aula. A rota continua
      existindo; só a porta redundante no topo foi removida. */
   {
-    id: 'metrics',
-    icon: BookOpen,
-    short: 'Vocabulário',
-    labels: { kids: 'Palavras', pro: 'Vocabulário', senior: 'Minhas Palavras' },
+    /* CARTÕES (10/10/2026): a casa da revisão, dos baralhos e do catálogo. Tomou o lugar do
+       Vocabulário, que virou a aba "Palavras" dela. Antes de Jogar, como no protótipo
+       (`CT_NAV.a`, `cartoes3.js:14`): as coisas da pessoa primeiro. */
+    id: 'cartoes',
+    icon: Layers,
+    short: 'Cartões',
+    labels: { kids: 'Cartões', pro: 'Cartões', senior: 'Cartões' },
   },
   {
     // Estatísticas (protótipo aprovado, 23/09/2026): o primeiro do grupo "Mais".

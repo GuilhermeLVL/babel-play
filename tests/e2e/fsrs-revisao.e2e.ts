@@ -4,8 +4,11 @@ import { type CartaoNoServidor, listarCartoes, semearSessaoComCartoes } from './
 import { abrirTela, clicarRobusto } from './_helpers'
 
 /**
- * A REVISÃO ESPAÇADA, de ponta a ponta: abrir `/revisar`, avaliar um cartão e ver o agendamento
- * mudar no SERVIDOR.
+ * A REVISÃO ESPAÇADA, de ponta a ponta: abrir `/cartoes/estudar`, avaliar um cartão e ver o
+ * agendamento mudar no SERVIDOR.
+ *
+ * A revisão mora na tela Cartões desde 10/10/2026 (`/cartoes/estudar`; o endereço de antes,
+ * `/revisar`, continua abrindo a rodada e quem o prende é `cartoes.e2e.ts`).
  *
  * O que o teste prende é o caminho que a auditoria de 2026-09-07 corrigiu (achado A53): a nota
  * dada na tela vai por `POST /api/vocab/:id/review`, o FSRS-5 roda no servidor e o `dueAt` do
@@ -32,12 +35,12 @@ test.describe('Revisão FSRS', () => {
     const antes = await listarCartoes()
     const porId = new Map(antes.map((c) => [c.id, c]))
 
-    await abrirTela(page, '/revisar')
+    await abrirTela(page, '/cartoes/estudar')
     const tela = page.getByTestId('revisao-no-quest')
     await expect(tela).toHaveAttribute('data-estado', /^(rodada|fora)$/, { timeout: 20_000 })
     await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1)
 
-    /* `/revisar` É o "Revisar agora": a rodada abre sozinha, ou a tela diz quantas há e o botão
+    /* `/cartoes/estudar` É o "Revisar agora": a rodada abre sozinha, ou a tela diz quantas há e o botão
        principal a começa. O teste reprova se nenhum dos dois. */
     if ((await tela.getAttribute('data-estado')) === 'fora') {
       await clicarRobusto(page, tela.locator('.q-vazio .q-ctl.pri'))

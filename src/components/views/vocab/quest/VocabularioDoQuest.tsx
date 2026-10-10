@@ -108,6 +108,7 @@ export default function VocabularioDoQuest({
   corpus,
   textStats,
   vozPassiva,
+  embutida = false,
   children,
 }: {
   titulo: ReactNode;
@@ -147,6 +148,11 @@ export default function VocabularioDoQuest({
   corpus: { noAlvo: number; emOutrosIdiomas: number; totalFalas: number };
   textStats: EstatisticasDoTexto;
   vozPassiva: VozPassiva;
+  /**
+   * DENTRO DA TELA CARTÕES (aba "Palavras", 10/10/2026): sem o palco, o cabeçalho e o convite da
+   * revisão, que são da tela de fora (o cabeçalho e a aba "Hoje" dela). Ficam as abas e o painel.
+   */
+  embutida?: boolean;
   /** Os diálogos da tela (adicionar, exportar, a palavra aberta). */
   children?: ReactNode;
 }) {
@@ -156,8 +162,9 @@ export default function VocabularioDoQuest({
 
   const minhasPalavras = (
     <>
-      {/* O CONVITE DA REVISÃO: só com o que revisar. Sem vencidas, a tela diz que está tudo em dia. */}
-      {metrics && metrics.dueToday > 0 ? (
+      {/* O CONVITE DA REVISÃO: só com o que revisar. Sem vencidas, a tela diz que está tudo em dia.
+          Dentro de Cartões ele não aparece: é a aba "Hoje" de lá. */}
+      {embutida ? null : metrics && metrics.dueToday > 0 ? (
         <div className="q-cartao qv-convite" data-testid="convite-da-revisao">
           <span className="qv-contagem">{numero(metrics.dueToday)}</span>
           <div>
@@ -552,26 +559,8 @@ export default function VocabularioDoQuest({
     fluency: fluencia,
   };
 
-  return (
-    <div className="q-palco qv" data-testid="vocabulario-no-quest">
-      <header className="q-cab">
-        <div>
-          <p className="q-sobre">{t('Seu caderno')}</p>
-          <h1>{titulo}</h1>
-        </div>
-        <button type="button" className="q-ctl" onClick={aoAdicionar}>
-          <Plus aria-hidden /> {t('Palavra')}
-        </button>
-        <button type="button" className="q-ctl" onClick={aoAnki}>
-          <Upload aria-hidden /> {t('Trazer do Anki')}
-        </button>
-        <button type="button" className="q-ctl" onClick={aoExportar}>
-          <Download aria-hidden /> {rotuloDeExportar}
-        </button>
-      </header>
-
-      <p className="q-texto qv-sub">{sub}</p>
-
+  const abasEPainel = (
+    <>
       <div className="q-abas qv-abas">
         <div role="tablist" aria-label={t('Seções do vocabulário')} className="qv-tablist">
           {abas.map((a) => (
@@ -602,6 +591,37 @@ export default function VocabularioDoQuest({
       </div>
 
       {children}
+    </>
+  );
+
+  if (embutida)
+    return (
+      <div className="ct-palavras" data-testid="vocabulario-no-quest">
+        {abasEPainel}
+      </div>
+    );
+
+  return (
+    <div className="q-palco qv" data-testid="vocabulario-no-quest">
+      <header className="q-cab">
+        <div>
+          <p className="q-sobre">{t('Seu caderno')}</p>
+          <h1>{titulo}</h1>
+        </div>
+        <button type="button" className="q-ctl" onClick={aoAdicionar}>
+          <Plus aria-hidden /> {t('Palavra')}
+        </button>
+        <button type="button" className="q-ctl" onClick={aoAnki}>
+          <Upload aria-hidden /> {t('Trazer do Anki')}
+        </button>
+        <button type="button" className="q-ctl" onClick={aoExportar}>
+          <Download aria-hidden /> {rotuloDeExportar}
+        </button>
+      </header>
+
+      <p className="q-texto qv-sub">{sub}</p>
+
+      {abasEPainel}
     </div>
   );
 }

@@ -21,6 +21,14 @@ import { ganho } from '../../lib/juice';
 import { classesDaPalavra } from '../../lib/pelesDeCartao';
 import { type AgeProfileType, copyDoPerfil, showsPowerUserAffordances } from '../../lib/profile';
 import { recompensasV2Ligadas } from '../../lib/recompensasV2';
+import {
+  gravarOpcoesDaRevisao,
+  lerOpcoesDaRevisao,
+  OPCOES_PADRAO,
+  type OpcoesDaRevisao,
+  type OrdemDaRodada,
+  type TipoDeCartao,
+} from '../../lib/revisao/preferencias';
 import type { PracticeSeed, Sentence } from '../../lib/sentences';
 import { speak as ttsSpeak } from '../../lib/tts';
 import { useExameDePalavra } from '../../lib/useExameDePalavra';
@@ -63,42 +71,25 @@ interface StudyProps {
   onSeedConsumed?: () => void;
   /** Perfil de exibição — decide a linguagem dos exercícios. */
   ageProfile?: AgeProfileType;
+  /**
+   * O RECORTE DA RODADA que a tela Cartões pede: "Só 10 agora" (`limite`) e "Mais 5 novas"
+   * (`soNovas`, só palavras nunca vistas). Sem ele, a rodada é a de sempre.
+   */
+  rodada?: RecorteDaRodada;
 }
 
-/** O tipo de cartão (Opções da revisão). O padrão, por decisão do dono, é "Lembrar". */
-type TipoDeCartao = 'lembrar' | 'digitar' | 'escolha';
-type OrdemDaRodada = 'vencidas' | 'misturar';
-const CHAVE_TIPO = 'revisao.tipoDeCartao';
-const CHAVE_OUVIR = 'revisao.ouvirAoMostrar';
-const CHAVE_NOVAS = 'revisao.novasPorDia';
-const CHAVE_REVISOES = 'revisao.revisoesPorDia';
-const CHAVE_ORDEM = 'revisao.ordem';
-const CHAVE_RETENCAO = 'revisao.metaDeRetencao';
-const PADRAO = {
-  novas: 20,
-  revisoes: 200,
-  ordem: 'vencidas' as OrdemDaRodada,
-  tipo: 'lembrar' as TipoDeCartao,
-  ouvir: true,
-  retencao: 90,
-};
-const numeroEntre = (v: string | null, min: number, max: number, padrao: number) => {
-  const n = Number(v);
-  return v !== null && Number.isFinite(n) && n >= min && n <= max ? Math.round(n) : padrao;
-};
+export interface RecorteDaRodada {
+  /** No máximo tantos cartões, na ordem da rodada (as vencidas há mais tempo primeiro). */
+  limite?: number;
+  /** Só palavras nunca vistas: é pedir mais novas com o dia em dia, sem adiantar revisão. */
+  soNovas?: boolean;
+}
 
 function lerPreferencia(chave: string): string | null {
   try {
     return localStorage.getItem(chave);
   } catch {
     return null;
-  }
-}
-function gravarPreferencia(chave: string, valor: string) {
-  try {
-    localStorage.setItem(chave, valor);
-  } catch {
-    /* sem armazenamento: a escolha vale só nesta abertura */
   }
 }
 
@@ -151,6 +142,7 @@ export default function Study({
   practiceSeed = null,
   onSeedConsumed,
   ageProfile = 'pro',
+  rodada,
 }: StudyProps = {}) {
   /* DO APARELHO, não do desenho: o mesmo desenho vale no computador, onde há teclado físico. As teclas
      (Espaço, 1 a 4, Z) e o foco no campo de digitar perguntam por aqui. */
@@ -206,20 +198,15 @@ export default function Study({
 
   const [isActiveProductionOnly, setIsActiveProductionOnly] = useState(false);
 
-  // Opções da revisão (diálogo do protótipo) — preferências locais, valem para as próximas rodadas.
-  const [tipo, setTipo] = useState<TipoDeCartao>(() => {
-    const v = lerPreferencia(CHAVE_TIPO);
-    return v === 'digitar' || v === 'escolha' ? v : 'lembrar';
-  });
-  const [ouvirAoMostrar, setOuvirAoMostrar] = useState<boolean>(() => lerPreferencia(CHAVE_OUVIR) !== 'false');
-  const [novasPorDia, setNovasPorDia] = useState(() => numeroEntre(lerPreferencia(CHAVE_NOVAS), 0, 200, PADRAO.novas));
-  const [revisoesPorDia, setRevisoesPorDia] = useState(() =>
-    numeroEntre(lerPreferencia(CHAVE_REVISOES), 10, 999, PADRAO.revisoes),
-  );
-  const [ordem, setOrdem] = useState<OrdemDaRodada>(() =>
-    lerPreferencia(CHAVE_ORDEM) === 'misturar' ? 'misturar' : 'vencidas',
-  );
-  const [retencao, setRetencao] = useState(() => numeroEntre(lerPreferencia(CHAVE_RETENCAO), 80, 97, PADRAO.retencao));
+  // Opções da revisão (diálogo do protótipo) — preferências locais (`lib/revisao/preferencias`),
+  // valem para as próximas rodadas.
+  const [opcoesIniciais] = useState(lerOpcoesDaRevisao);
+  const [tipo, setTipo] = useState<TipoDeCartao>(opcoesIniciais.tipo);
+  const [ouvirAoMostrar, setOuvirAoMostrar] = useState<boolean>(opcoesIniciais.ouvir);
+  const [novasPorDia, setNovasPorDia] = useState(opcoesIniciais.novas);
+  const [revisoesPorDia, setRevisoesPorDia] = useState(opcoesIniciais.revisoes);
+  const [ordem, setOrdem] = useState<OrdemDaRodada>(opcoesIniciais.ordem);
+  const [retencao, setRetencao] = useState(opcoesIniciais.retencao);
   const [opcoesAbertas, setOpcoesAbertas] = useState(false);
   const [editando, setEditando] = useState<VocabCard | null>(null);
   /** As notas desta rodada, com o estado de ANTES de cada uma — o "Desfazer" (Z) volta uma a uma. */
@@ -359,6 +346,12 @@ export default function Study({
     /* Os VENCIDOS primeiro, pela data real (`isDueNow`). A comparação antiga era com a string
        'hoje', que a API nunca grava — a fila nunca achava vencido e caía sempre no baralho inteiro. */
     const noBaralho = activeVocabCards.filter((c) => c.inDeck);
+    /* "Mais N novas" (tela Cartões, dia cumprido): só palavras nunca vistas, sem adiantar revisão. */
+    if (rodada?.soNovas) {
+      const nuncaVistas = noBaralho.filter((c) => c.fsrsState === 'New').slice(0, rodada.limite ?? novasPorDia);
+      if (nuncaVistas.length > 0) abrirRodada(nuncaVistas, false);
+      return;
+    }
     const due = noBaralho.filter((c) => isDueNow(c, scheduler));
     const base = due.length > 0 ? due : noBaralho;
     /* OPÇÕES DA REVISÃO: no máximo N novas (nunca vistas) e M revisões por rodada; "Vencidas
@@ -370,8 +363,10 @@ export default function Study({
         ? [...revisoes, ...novas].sort(() => Math.random() - 0.5)
         : [...revisoes.sort((a, b) => (a.dueAtMs ?? 0) - (b.dueAtMs ?? 0)), ...novas];
     if (!fila.length) fila = base.slice(0, Math.max(1, revisoesPorDia));
+    /* "Só 10 agora": as primeiras da fila, que na ordem padrão são as vencidas há mais tempo. */
+    if (rodada?.limite) fila = fila.slice(0, rodada.limite);
     if (fila.length > 0) abrirRodada(fila, false);
-  }, [activeVocabCards, scheduler, novasPorDia, revisoesPorDia, ordem]);
+  }, [activeVocabCards, scheduler, novasPorDia, revisoesPorDia, ordem, rodada?.limite, rodada?.soNovas]);
 
   /** Revisão FOCADA numa palavra — o "Revisar agora" do Analista de Vocabulário, via semente. */
   const startReviewSessionFor = (card: VocabCard) => abrirRodada([card], false);
@@ -585,7 +580,8 @@ export default function Study({
     });
   };
 
-  const voltarAoVocabulario = () => onChangeView?.('metrics');
+  /* A revisão mora em Cartões (10/10/2026): o voltar leva para lá, e não mais ao Vocabulário. */
+  const voltarAoVocabulario = () => onChangeView?.('cartoes');
   const tituloDaRevisao = copyDoPerfil('now.due.cta', ageProfile);
 
   const paleta = (
@@ -613,30 +609,13 @@ export default function Study({
     retencao,
   };
   const trocarOpcoes = (v: Partial<ValoresDaRevisao>) => {
-    if (v.novas !== undefined) {
-      setNovasPorDia(v.novas);
-      gravarPreferencia(CHAVE_NOVAS, String(v.novas));
-    }
-    if (v.revisoes !== undefined) {
-      setRevisoesPorDia(v.revisoes);
-      gravarPreferencia(CHAVE_REVISOES, String(v.revisoes));
-    }
-    if (v.ordem !== undefined) {
-      setOrdem(v.ordem);
-      gravarPreferencia(CHAVE_ORDEM, v.ordem);
-    }
-    if (v.tipo !== undefined) {
-      setTipo(v.tipo);
-      gravarPreferencia(CHAVE_TIPO, v.tipo);
-    }
-    if (v.ouvir !== undefined) {
-      setOuvirAoMostrar(v.ouvir);
-      gravarPreferencia(CHAVE_OUVIR, String(v.ouvir));
-    }
-    if (v.retencao !== undefined) {
-      setRetencao(v.retencao);
-      gravarPreferencia(CHAVE_RETENCAO, String(v.retencao));
-    }
+    if (v.novas !== undefined) setNovasPorDia(v.novas);
+    if (v.revisoes !== undefined) setRevisoesPorDia(v.revisoes);
+    if (v.ordem !== undefined) setOrdem(v.ordem);
+    if (v.tipo !== undefined) setTipo(v.tipo);
+    if (v.ouvir !== undefined) setOuvirAoMostrar(v.ouvir);
+    if (v.retencao !== undefined) setRetencao(v.retencao);
+    gravarOpcoesDaRevisao(v);
   };
 
   /* PRODUÇÃO ATIVA NO DESENHO NOVO: o mesmo exercício da paleta de comandos, com um botão (no headset
@@ -653,7 +632,7 @@ export default function Study({
       {opcoesAbertas && (
         <OpcoesDaRevisaoNoQuest
           valores={valoresDaRevisao}
-          padrao={PADRAO}
+          padrao={OPCOES_PADRAO}
           temVoz={haVozPara(studyLang)}
           producao={producaoNoQuest}
           aoTrocar={trocarOpcoes}
@@ -908,11 +887,4 @@ export default function Study({
 }
 
 /** Os seis campos de "Opções da revisão" (`OpcoesDaRevisaoNoQuest`), todos valendo de verdade. */
-type ValoresDaRevisao = {
-  novas: number;
-  revisoes: number;
-  ordem: OrdemDaRodada;
-  tipo: TipoDeCartao;
-  ouvir: boolean;
-  retencao: number;
-};
+type ValoresDaRevisao = OpcoesDaRevisao;

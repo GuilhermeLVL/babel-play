@@ -2,6 +2,7 @@
 import { Router } from 'express'
 
 import type { Grade } from '../../src/core/learning/scheduler'
+import { resumoDosCartoes } from '../db/repositories/resumoDosCartoes'
 import { versoesRepo } from '../db/repositories/versoes'
 import { vocabRepo } from '../db/repositories/vocab'
 import { CachePorVersao } from '../lib/cachePorVersao'
@@ -18,6 +19,7 @@ import {
   reviewGradeSchema,
   vocabPaginaQuerySchema,
   vocabParaJogoQuerySchema,
+  vocabResumoQuerySchema,
 } from '../validation'
 
 export const vocabRouter = Router()
@@ -130,6 +132,46 @@ vocabRouter.get('/pagina', async (req, res) => {
   } catch (err) {
     res.status(400).json({
       error: erroDeRota(err, { status: 400, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
+/**
+ * O RESUMO DOS CARTÕES: as contagens da tela Cartões, no lugar do baralho inteiro (2 MB só para
+ * contar). O contrato é `src/core/learning/resumoDosCartoes.ts`.
+ *
+ * ETag pela versão, como o `GET /` acima, com duas diferenças:
+ *   · o resumo depende de `vocab_cards`, `vocab_occurrences` E `review_logs`, e nenhum contador da
+ *     migração 0032 cobre os três (`vocab` não vê revisão apagada ou desfeita; `atividade` não vê
+ *     ocorrência). Os dois entram juntos na versão;
+ *   · "vence agora" depende do relógio. O `agora` é o fim do minuto do pedido, e ele e o começo do dia de
+ *     quem pediu entram como variante: a resposta é a mesma para (versão, dia, minuto), e o ETag
+ *     de um minuto não vale no seguinte.
+ * If-None-Match igual → 304 com UMA consulta de chave primária, sem tocar nas três tabelas.
+ */
+vocabRouter.get('/resumo', async (req, res) => {
+  const q = parseOr400(vocabResumoQuerySchema, req.query, res)
+  if (!q) return
+  try {
+    /* O FIM do minuto do pedido, e não o começo: a palavra que a pessoa acabou de guardar nasce
+       vencendo "agora" (`due_at = now`), e com o começo do minuto ela ficava até 59 s fora da contagem
+       de "Hoje". Continua determinístico por (versão, minuto), que é o que o ETag promete. */
+    const agora = Math.ceil(Date.now() / 60_000) * 60_000
+    // A versão ANTES das tabelas — ver `CachePorVersao` para o porquê da ordem.
+    const { vocab, atividade } = await versoesRepo.de(req.userId)
+    const etag = etagPorVersao('resumo-cartoes', req.userId, `${vocab}.${atividade}`, `${q.inicioDoDia}|${agora}`)
+    res.setHeader('ETag', etag)
+    if (casaComIfNoneMatch(req.headers['if-none-match'], etag)) {
+      res.status(304).end()
+      return
+    }
+    res.json(await resumoDosCartoes(req.userId, { agora, inicioDoDia: q.inicioDoDia }))
+  } catch (err) {
+    /* 500, e não o 400 das vizinhas: a entrada já passou pelo schema, então o que estoura aqui é
+       do servidor. Sem o ETag, para um erro não ser revalidado como se fosse o resumo. */
+    res.removeHeader('ETag')
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
     })
   }
 })

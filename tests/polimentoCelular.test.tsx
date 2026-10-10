@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 /**
  * O DESENHO NOVO NO CELULAR (08/10/2026) — a versão de celular do protótipo de polimento:
- *   · a barra flutuante de cinco destinos (`celular.css:57-62` conta os botões pela posição: o trilho
- *     precisa ter os oito do protótipo, com o "Mais" em oitavo);
- *   · Estatísticas e Personalizar viram ladrilhos no começo do "Mais" (`prototipo.js:410-424`) e o
- *     destaque deles vai para o "Mais" (`prototipo.js:243`);
+ *   · a barra flutuante de cinco destinos (`celular.css:57-62` e `cartoes.css:322-323` contam os botões
+ *     pela posição: o trilho precisa ter os oito do protótipo, com o "Mais" em oitavo);
+ *   · desde a navegação de 10/10/2026 a barra é Início, Praticar, Capturar, Intérprete, Mais
+ *     (`CT_NAV.b.cel`, `cartoes3.js:15`): o quinto botão vira o "Praticar" (Cartões e Jogar), a
+ *     Biblioteca vira o primeiro ladrilho do "Mais" e o destaque dela vai para o "Mais";
  *   · a barra some ao rolar e volta ao subir, no fim e em toda troca de tela (`sentidos.js:279-304`);
  *   · o "Mais" sobe de baixo e fecha arrastado (`prototipo.js:428-469, 502-509, 546-549`).
  * Os números são os do protótipo: se um mudar, o teste acusa.
@@ -101,13 +102,41 @@ describe('a barra de cinco destinos', () => {
       'Início',
       'Capturar',
       'Intérprete',
+      'Biblioteca',
+      'Praticar',
       'Jogar',
-      'Estatísticas',
-      'Personalizar',
       'Buscar',
       'Mais',
     ])
     expect(botoes(container)[7].classList.contains('q-mais-botao')).toBe(true)
+    /* Quem escolhe os cinco da barra é o CSS do protótipo, pela variante da navegação (`cartoes.css:322-323`). */
+    expect(document.documentElement.dataset.ctNav).toBe('b')
+  })
+
+  it('o "Praticar" abre a última das duas telas (Cartões de início) e fica marcado nas duas', async () => {
+    const primeiro = montar()
+    fireEvent.click(screen.getByRole('button', { name: 'Praticar' }))
+    expect(primeiro.ir).toHaveBeenLastCalledWith('cartoes')
+    primeiro.unmount()
+
+    for (const tela of ['cartoes', 'play']) {
+      const { container, ir, unmount } = montar(tela)
+      await act(vez)
+      const marcados = [...container.querySelectorAll('.q-item[aria-current="page"]')]
+      expect(
+        marcados.map((b) => b.querySelector('span')?.textContent),
+        tela,
+      ).toEqual(['Praticar'])
+      /* Estar na tela a faz a última: é para ela que o botão volta. */
+      fireEvent.click(screen.getByRole('button', { name: 'Praticar' }))
+      expect(ir).toHaveBeenLastCalledWith(tela)
+      unmount()
+    }
+  })
+
+  it('o "Praticar" leva o número do dia dos cartões', () => {
+    const { container } = montar('hub', { cartoesHoje: 17 })
+    expect(botoes(container)[4].querySelector('.ct-selo-do-dia')?.textContent).toBe('17')
   })
 
   it('a busca do trilho, no celular, não fala de teclado: sem tecla, sem atalho, e abre a busca', () => {
@@ -121,8 +150,8 @@ describe('a barra de cinco destinos', () => {
     expect(aoBuscar).toHaveBeenCalledTimes(1)
   })
 
-  it('em Estatísticas e em Personalizar o destaque é do "Mais", e o botão escondido não fica marcado', async () => {
-    for (const tela of ['estatisticas', 'loja']) {
+  it('na Biblioteca (fora da barra), em Estatísticas e em Personalizar o destaque é do "Mais"', async () => {
+    for (const tela of ['library', 'estatisticas', 'loja']) {
       const { container, unmount } = montar(tela)
       /* A marca da camada (`data-px`) chega com o trilho montado: a barra de cinco acompanha. */
       await act(vez)
@@ -135,57 +164,66 @@ describe('a barra de cinco destinos', () => {
     }
   })
 
-  it('os dois destinos escondidos não são achados pela camada: o toque neles marca o "Mais"', () => {
+  it('os destinos escondidos não são achados pela camada; o "Praticar" responde por Cartões e por Jogar', () => {
     const { container } = montar()
     expect(botoes(container).map((b) => b.dataset.pxRota ?? null)).toEqual([
       'hub',
       'capture',
       'interprete',
-      'play',
       null,
+      'cartoes',
       null,
       null,
       null,
     ])
+    expect(botoes(container)[4].dataset.pxTambem).toBe('play')
   })
 
-  it('o "Mais" começa com Estatísticas e Personalizar, nessa ordem, e o toque leva à tela', () => {
+  it('o "Mais" começa com a Biblioteca, depois Estatísticas e Personalizar, e o toque leva à tela', () => {
     const { ir } = montar()
     fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
     const ladrilhos = [...screen.getByRole('dialog').querySelectorAll('.q-grade .q-tile b')].map((b) => b.textContent)
-    expect(ladrilhos.slice(0, 2)).toEqual(['Estatísticas', 'Personalizar'])
-    expect(ladrilhos.filter((r) => r === 'Estatísticas')).toHaveLength(1)
+    expect(ladrilhos.slice(0, 3)).toEqual(['Biblioteca', 'Estatísticas', 'Personalizar'])
+    expect(ladrilhos.filter((r) => r === 'Biblioteca')).toHaveLength(1)
+    expect(ladrilhos).not.toContain('Jogar')
     fireEvent.click(screen.getByRole('dialog').querySelector('.q-grade .q-tile')!)
-    expect(ir).toHaveBeenLastCalledWith('estatisticas')
+    expect(ir).toHaveBeenLastCalledWith('library')
   })
 
-  it('acima de 720 px (o tablet) vale o trilho de seis: sem os ladrilhos, e Estatísticas marcada no trilho', () => {
+  it('acima de 720 px (o tablet) vale o trilho de seis: Biblioteca e Cartões no trilho, sem "Praticar"', () => {
     estreita = false
-    const { container } = montar('estatisticas')
+    const { container } = montar('library')
     expect(barraDeCinco()).toBe(false)
-    expect(container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Estatísticas')
-    expect(botoes(container)[4].dataset.pxRota).toBe('estatisticas')
+    expect(container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Biblioteca')
+    expect(
+      botoes(container)
+        .map((b) => b.dataset.pxRota ?? null)
+        .slice(0, 6),
+    ).toEqual(['hub', 'capture', 'interprete', 'library', 'cartoes', 'play'])
+    expect(botoes(container)[4].querySelector('span')?.textContent).toBe('Cartões')
+    expect(botoes(container)[4].dataset.pxTambem).toBeUndefined()
     fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
     const ladrilhos = [...screen.getByRole('dialog').querySelectorAll('.q-grade .q-tile b')].map((b) => b.textContent)
-    expect(ladrilhos).not.toContain('Estatísticas')
-    expect(ladrilhos).not.toContain('Personalizar')
+    expect(ladrilhos).not.toContain('Biblioteca')
+    expect(ladrilhos.slice(0, 2)).toEqual(['Estatísticas', 'Personalizar'])
   })
 
   it('girar o aparelho troca de uma para a outra sem recarregar', () => {
-    const { container } = montar('loja')
+    const { container } = montar('library')
     expect(container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Mais')
     act(() => mudarLargura(false))
-    expect(container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Personalizar')
+    expect(container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Biblioteca')
     act(() => mudarLargura(true))
     expect(container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Mais')
   })
 
   it('com a camada desligada (animações desligadas) a barra de cinco não existe: nada vai para o "Mais"', async () => {
     document.body.className = 'animations-off'
-    const { container } = montar('estatisticas')
+    const { container } = montar('library')
     await act(vez)
     expect(document.documentElement.dataset.px).toBe('off')
-    expect(container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Estatísticas')
+    expect(container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Biblioteca')
+    expect(botoes(container)[4].querySelector('span')?.textContent).toBe('Cartões')
   })
 })
 

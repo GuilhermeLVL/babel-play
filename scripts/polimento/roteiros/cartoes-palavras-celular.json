@@ -1,0 +1,53 @@
+{
+  "nome": "cartoes-palavras-celular",
+  "prototipo": "cartoes",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/cartoes/palavras",
+    "assentar": 3500,
+    "passos": [
+      {
+        "js": "(async () => { for (let i = 0; i < 14; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || [...d.querySelectorAll('button')].find((b) => /Resgatar|Pular|Fechar|Agora não|Entendi|Depois/.test(b.textContent || '')) || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 500)); } })()"
+      },
+      {
+        "esperar": 1200
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?ver=palavras&quieto&nav=b",
+    "assentar": 3500,
+    "passos": [
+      {
+        "esperar": 600
+      }
+    ]
+  },
+  "seletores": [
+    ".q-palco.ct",
+    ".q-cab",
+    ".q-cab .q-sobre",
+    ".q-cab h1",
+    ".q-cab > .q-ctl",
+    ".ct-abas",
+    ".ct-abas .q-aba",
+    ".ct-painel",
+    "[data-testid='fases-do-baralho']",
+    ".q-num",
+    ".q-num b",
+    ".qv-catalogo",
+    ".qv-catalogo > header h2",
+    ".qv-busca",
+    ".qv-campo-busca",
+    ".q-tabela",
+    ".q-tabela th",
+    ".q-tabela td",
+    ".qv-palavra",
+    ".qv-estado",
+    ".q-trilho",
+    ".q-trilho .q-item",
+    ".ct-praticar",
+    ".ct-praticar .q-aba"
+  ]
+}

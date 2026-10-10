@@ -1,7 +1,7 @@
 /**
  * TRAZ O CSS DO PROTÓTIPO DE POLIMENTO PARA O APP, SEM REESCREVER.
  *
- *     node scripts/polimento/trazer-css.mjs "<pasta polimento-movimento-src do protótipo>" ["<pasta anuncios-no-gratis-src>" ["<pasta telas-enxutas-src>"]]
+ *     node scripts/polimento/trazer-css.mjs "<pasta polimento-movimento-src do protótipo>" ["<pasta anuncios-no-gratis-src>" ["<pasta telas-enxutas-src>" ["<pasta cartoes-src>"]]]
  *
  * A SEGUNDA PASTA (opcional) é a do protótipo dos QUATRO PLANOS (`anuncios-no-gratis-src`): dela vêm
  * só os arquivos da tabela `DA_SEGUNDA_PASTA`. Sem ela, esses arquivos ficam como
@@ -10,6 +10,9 @@
  * A TERCEIRA PASTA (opcional) é a do protótipo das TELAS ENXUTAS (`telas-enxutas-src`): dela vem só
  * `enxuto.css` (tabela `DA_TERCEIRA_PASTA`). Os outros arquivos dela são iguais aos das duas primeiras
  * (conferido em 10/10/2026).
+ *
+ * A QUARTA PASTA (opcional) é a do protótipo dos CARTÕES (`cartoes-src`): dela vem só `cartoes.css`
+ * (tabela `DA_QUARTA_PASTA`).
  *
  * Por que copiar e não reescrever: o protótipo é um clone do DOM do desenho novo (`.q-*`, `.hud`,
  * `.cab`…) e a camada dele é ADITIVA, toda sob `html[data-px='on']`. O app passa a pôr a mesma marca
@@ -32,6 +35,7 @@ if (!origem) {
 }
 const origemDosPlanos = process.argv[3]
 const origemDasEnxutas = process.argv[4]
+const origemDosCartoes = process.argv[5]
 const destino = join(dirname(fileURLToPath(import.meta.url)), '../../src/styles/polimento')
 
 /** Linhas a tirar de cada arquivo (1 = primeira, inclusivas). `adiado`: entra quando o item for portado. */
@@ -94,10 +98,24 @@ const DA_TERCEIRA_PASTA = {
   'enxuto.css': [{ de: 128, ate: 154, motivo: 'barra do protótipo e painel "O que mudou"' }],
 }
 
+/** O arquivo que só existe no protótipo dos cartões (a quarta pasta). */
+const DA_QUARTA_PASTA = {
+  /* A TELA CARTÕES (`cartoes.js`: Hoje, Baralhos, Palavras, Trazer e levar, Memória) e a navegação
+     (`cartoes3.js`: Biblioteca e Cartões no trilho, "Praticar" na barra de cinco do celular). A revisão
+     melhorada (`cartoes2.js`) é fatia seguinte: as regras dela ficam de fora até a marcação existir. */
+  'cartoes.css': [
+    { de: 245, ate: 299, adiado: 'a revisão melhorada (openspec/changes/cartoes, fatia 3)' },
+    { de: 381, ate: 404, adiado: 'a revisão melhorada no celular (openspec/changes/cartoes, fatia 3)' },
+    { de: 413, ate: 416, adiado: 'a revisão melhorada no tablet (openspec/changes/cartoes, fatia 3)' },
+    { de: 431, ate: Infinity, motivo: 'barra do protótipo e Mapa das portas' },
+  ],
+}
+
 const NOME_DO_PROTOTIPO = new Map([
   [origem, 'de polimento'],
   [origemDosPlanos, 'dos quatro planos'],
   [origemDasEnxutas, 'das telas enxutas'],
+  [origemDosCartoes, 'dos cartões'],
 ])
 
 mkdirSync(destino, { recursive: true })
@@ -105,6 +123,7 @@ const TODOS = [
   ...Object.entries(ARQUIVOS).map(([nome, cortes]) => [nome, cortes, origem]),
   ...(origemDosPlanos ? Object.entries(DA_SEGUNDA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDosPlanos]) : []),
   ...(origemDasEnxutas ? Object.entries(DA_TERCEIRA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDasEnxutas]) : []),
+  ...(origemDosCartoes ? Object.entries(DA_QUARTA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDosCartoes]) : []),
 ]
 for (const [nome, cortes, pasta] of TODOS) {
   const linhas = readFileSync(join(pasta, nome), 'utf8').replace(/\r\n/g, '\n').split('\n')

@@ -563,6 +563,26 @@ export const vocabPaginaQuerySchema = z
   .strip()
 
 /**
+ * `GET /api/vocab/resumo`: o começo do dia de QUEM PEDE (epoch-ms), porque o servidor não sabe o
+ * fuso do navegador e os dias do resumo (hoje, a previsão, o calendário) contam a partir dele.
+ *
+ * Obrigatório e a no máximo 36 h do relógio do servidor: o começo do dia local fica até 24 h atrás,
+ * e o resto é folga para relógio torto. Sem o teto, um valor arbitrário faria a rota varrer o
+ * histórico inteiro de revisões como se fosse "os últimos 84 dias".
+ */
+const FOLGA_DO_INICIO_DO_DIA_MS = 36 * 3_600_000
+export const vocabResumoQuerySchema = z
+  .object({
+    inicioDoDia: z.coerce
+      .number()
+      .int()
+      .refine((v) => Math.abs(v - Date.now()) <= FOLGA_DO_INICIO_DO_DIA_MS, {
+        message: 'inicioDoDia longe demais do relógio do servidor',
+      }),
+  })
+  .strip()
+
+/**
  * PATCH de cartão: o handler fazia `typeof` + `slice(0,2000)` à mão.
  *
  * Só `back` e `inDeck`, porque é só isso que a rota aceita hoje — o resto do cartão (agendamento,

@@ -85,6 +85,7 @@ export function camposDaTela({
         `${plural(pendentes, 'palavra pendente', 'palavras pendentes')}`,
         ...(selectedRecording ? [`sessão “${selectedRecording.title}”`] : []),
       ];
+    case 'cartoes':
     case 'metrics':
       return metrics
         ? [

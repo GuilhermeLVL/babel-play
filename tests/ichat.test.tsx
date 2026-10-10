@@ -50,7 +50,7 @@ function Casca({ onChangeView = vi.fn() }: { onChangeView?: (v: string, d?: unkn
   return (
     <main>
       <IChat
-        activeView="metrics"
+        activeView="cartoes"
         selectedRecording={null}
         liveTranscription=""
         onChangeView={onChangeView}
@@ -98,7 +98,7 @@ describe('iChat', () => {
       'Crie uma frase com as minhas palavras',
     ])
       expect(screen.getByRole('button', { name: s })).toBeTruthy()
-    expect(screen.getByText(/Contexto: tela Vocabulário \+ 2 palavras no caderno/)).toBeTruthy()
+    expect(screen.getByText(/Contexto: tela Cartões \+ 2 palavras no caderno/)).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Abrir o iChat' }).getAttribute('aria-expanded')).toBe('true')
   })
 

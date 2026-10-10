@@ -180,6 +180,8 @@ export type ViewType =
   | 'settings'
   | 'reading'
   | 'metrics'
+  /** Cartões (`/cartoes`): a casa da revisão, dos baralhos e do catálogo de palavras. */
+  | 'cartoes'
   | 'profile'
   | 'sobre'
   | 'loja'

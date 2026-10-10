@@ -42,11 +42,36 @@ export function useBarraDeCinco(): boolean {
 }
 
 /**
- * Os dois destinos do trilho que a barra de cinco não mostra (`celular.css:62`), na ordem em que entram
- * no começo da grade do "Mais": `completarMais` põe Personalizar e depois Estatísticas, sempre na frente,
- * então Estatísticas fica primeiro (`prototipo.js:414-423`).
+ * O destino do trilho que a barra de cinco não mostra e que passa a morar no começo do "Mais"
+ * (`maisCel`, `cartoes3.js:14-15`). Desde a navegação de 10/10/2026 o trilho é Início, Capturar,
+ * Intérprete, Biblioteca, Cartões, Jogar, e a barra é Início, Praticar, Capturar, Intérprete, Mais:
+ * a Biblioteca sai da barra; Cartões e Jogar ficam atrás do "Praticar" (`PRATICAR`, abaixo).
+ * Estatísticas e Personalizar já moram no "Mais" em todo aparelho.
  */
-export const NO_MAIS_NO_CELULAR = ['estatisticas', 'loja'] as const;
+export const NO_MAIS_NO_CELULAR = ['library'] as const;
+
+/** As duas telas atrás do "Praticar" da barra de cinco (`cartoes3.js:72, 93-96`). */
+export const PRATICAR = ['cartoes', 'play'] as const;
+export type TelaDePraticar = (typeof PRATICAR)[number];
+
+const CHAVE_DE_PRATICAR = 'babel.praticar';
+
+/** A última das duas que a pessoa abriu: é a que o "Praticar" abre (`CT.praticar`, `cartoes3.js:87`). */
+export function ultimaPratica(): TelaDePraticar {
+  try {
+    return localStorage.getItem(CHAVE_DE_PRATICAR) === 'play' ? 'play' : 'cartoes';
+  } catch {
+    return 'cartoes';
+  }
+}
+
+export function lembrarPratica(tela: TelaDePraticar): void {
+  try {
+    localStorage.setItem(CHAVE_DE_PRATICAR, tela);
+  } catch {
+    /* sem armazenamento: o "Praticar" abre os Cartões */
+  }
+}
 
 const ROLAGEM = '.q-palco, .rolagem';
 

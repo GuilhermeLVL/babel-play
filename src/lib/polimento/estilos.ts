@@ -21,3 +21,5 @@ import '../../styles/polimento/anuncios.css';
 import '../../styles/polimento/planos4.css';
 /* O protótipo das telas enxutas (`telas-enxutas-src/montar.mjs`): Capturar e Jogar com menos coisas à vista. */
 import '../../styles/polimento/enxuto.css';
+/* O protótipo dos cartões (cartoes-src/montar.mjs): a tela Cartões e a barra de cinco com o Praticar. */
+import '../../styles/polimento/cartoes.css';

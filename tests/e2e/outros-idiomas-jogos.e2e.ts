@@ -155,21 +155,18 @@ test.describe('Jogos na Trilha de outros idiomas', () => {
       }
     })
 
-    /* O MOTIVO NA CARTA depende de `notaDoJogo` (`src/components/views/Play.tsx`), que este trabalho não
-       pôde tocar: o núcleo já devolve `alfabeto-nao-suportado` para os seis jogos, e a carta ainda cai
-       em "faltam N palavras". A troca está descrita no relatório. */
-    test.fixme(
-      `${idioma.nome}: a carta do jogo de letras diz que o jogo não escreve este alfabeto`,
-      async ({ page }) => {
-        await abrirTrilha(page, idioma.base)
-        for (const jogo of DE_LETRAS) {
-          const cartao = cartaoDoJogo(page, jogo)
-          if ((await cartao.count()) === 0) continue
-          await expect(cartao).toContainText(/alfabeto|escrita/i)
-          await expect(cartao).not.toContainText(/faltam \d+/i)
-        }
-      },
-    )
+    /* O MOTIVO NA CARTA: o núcleo devolve `alfabeto-nao-suportado` para os seis jogos, e a carta diz
+       isso (`notaDoJogo`, em `src/components/views/Play.tsx`) em vez de "faltam N palavras", que
+       mandava a pessoa juntar palavras que nunca abririam o jogo. */
+    test(`${idioma.nome}: a carta do jogo de letras diz que o jogo não escreve este alfabeto`, async ({ page }) => {
+      await abrirTrilha(page, idioma.base)
+      for (const jogo of DE_LETRAS) {
+        const cartao = cartaoDoJogo(page, jogo)
+        if ((await cartao.count()) === 0) continue
+        await expect(cartao).toContainText(/alfabeto|escrita/i)
+        await expect(cartao).not.toContainText(/faltam \d+/i)
+      }
+    })
   }
 })
 
@@ -225,6 +222,12 @@ test.describe('Captura: a fala em outra escrita aparece na tela', () => {
     await expect(botaoEncerrar(page)).toBeVisible({ timeout: 20_000 })
   }
 
+  /** A captura de tela para o relatório, depois de a entrada da folha e da fala assentar. */
+  async function foto(page: Page, nome: string) {
+    await page.waitForTimeout(900)
+    await page.screenshot({ path: test.info().outputPath(`${nome}.png`) })
+  }
+
   test('chinês e árabe: o texto aparece inteiro e não estoura a largura da tela', async ({ page }) => {
     test.slow()
     await comecarCaptura(page)
@@ -241,15 +244,71 @@ test.describe('Captura: a fala em outra escrita aparece na tela', () => {
     }
   })
 
-  /* A legenda da captura não leva `dir` em tela alguma (`direcaoDoTexto` não tinha chamador): o árabe
-     sai alinhado à esquerda, com a pontuação do lado errado. As telas da captura
-     (`src/components/views/captura/celular/**`) não puderam ser tocadas neste trabalho; a troca está
-     descrita no relatório. No Intérprete o conserto foi feito (`outros-idiomas-interprete.e2e.ts`). */
-  test.fixme('árabe na legenda da captura sai da direita para a esquerda', async ({ page }) => {
+  /* Todo texto de fala leva `dir` ao lado do `lang` (`direcaoDoTexto`): o árabe sai da direita para a
+     esquerda, com a pontuação do lado certo, e alinha pelo começo da escrita dele. */
+  test('árabe na legenda da captura sai da direita para a esquerda', async ({ page }) => {
+    test.slow()
     await comecarCaptura(page)
-    await falar(page, [ARABE])
-    const fala = page.getByTestId('captura-do-prototipo').getByText(ARABE, { exact: false }).first()
+    // Uma fala em inglês antes: a régua do que NÃO muda (esquerda para a direita, colada à esquerda).
+    await falar(page, ['Good morning, everyone.'])
+    await falar(page, [ARABE], 'ar')
+    const tela = page.getByTestId('captura-do-prototipo')
+    const fala = tela.getByText(ARABE, { exact: false }).first()
     await expect(fala).toBeVisible({ timeout: 10_000 })
     expect(await fala.evaluate((el) => getComputedStyle(el).direction)).toBe('rtl')
+    await foto(page, 'arabe-na-legenda')
+
+    /* O texto encosta na borda DIREITA da coluna da fala, e o inglês segue encostado na esquerda. */
+    const bordas = (texto: string) =>
+      tela
+        .getByText(texto, { exact: false })
+        .first()
+        .evaluate((el) => {
+          const faixa = document.createRange()
+          faixa.selectNodeContents(el)
+          const r = faixa.getBoundingClientRect()
+          const c = el.closest('.q-fala')!.getBoundingClientRect()
+          return { esquerda: r.left - c.left, direita: c.right - r.right, direcao: getComputedStyle(el).direction }
+        })
+    const arabe = await bordas(ARABE)
+    expect(arabe.direita, 'o árabe encosta na direita').toBeLessThan(12)
+    const ingles = await bordas('Good morning, everyone.')
+    expect(ingles.direcao).toBe('ltr')
+    expect(ingles.esquerda, 'o inglês segue encostado na esquerda').toBeLessThan(12)
+
+    // Na folha da frase, a mesma direção.
+    await clicarRobusto(page, fala.locator('xpath=ancestor::button[1]'))
+    const folha = page.getByRole('dialog', { name: 'Ações', exact: true })
+    await expect(folha).toBeVisible()
+    expect(await folha.locator('.folha-frase').evaluate((el) => getComputedStyle(el).direction)).toBe('rtl')
+    await foto(page, 'arabe-na-folha')
+  })
+
+  /* Em chinês não há espaço entre as palavras: a divisão por espaço entregava a frase inteira como UMA
+     palavra. A folha da frase passa a ter um botão por palavra (`palavrasDoPedaco`, pelo segmentador do
+     navegador), e o toque abre a folha DAQUELA palavra. */
+  test('chinês: tocar numa palavra da frase abre a palavra, e não a frase inteira', async ({ page }) => {
+    test.slow()
+    await comecarCaptura(page)
+    await falar(page, [CHINES], 'zh')
+    const tela = page.getByTestId('captura-do-prototipo')
+    const fala = tela.getByText(CHINES, { exact: false }).first()
+    await expect(fala).toBeVisible({ timeout: 10_000 })
+    await clicarRobusto(page, fala.locator('xpath=ancestor::button[1]'))
+    const folha = page.getByRole('dialog', { name: 'Ações', exact: true })
+    await expect(folha).toBeVisible()
+
+    const palavras = folha.locator('.folha-palavras button')
+    await expect(palavras.first()).toBeVisible()
+    const textos = (await palavras.allTextContents()).map((p) => p.trim())
+    expect(textos.length, `palavras da frase: ${textos.join(' | ')}`).toBeGreaterThan(4)
+    expect(textos).toContain('中文')
+    expect(textos, 'a frase inteira não é uma palavra').not.toContain(CHINES)
+    for (const p of textos) expect(p, `"${p}" traz pontuação`).not.toMatch(/[，。]/)
+    await foto(page, 'chines-palavras-da-frase')
+
+    await clicarRobusto(page, palavras.filter({ hasText: /^中文$/ }))
+    await expect(page.getByRole('dialog', { name: 'Palavra: 中文' })).toBeVisible()
+    await foto(page, 'chines-folha-da-palavra')
   })
 })

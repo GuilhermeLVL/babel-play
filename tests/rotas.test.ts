@@ -25,7 +25,7 @@ describe('estadoParaUrl', () => {
     expect(estadoParaUrl({ view: 'capture' })).toBe('/capturar')
     expect(estadoParaUrl({ view: 'play' })).toBe('/jogar')
     expect(estadoParaUrl({ view: 'library' })).toBe('/biblioteca')
-    expect(estadoParaUrl({ view: 'metrics' })).toBe('/vocabulario')
+    expect(estadoParaUrl({ view: 'cartoes' })).toBe('/cartoes')
     expect(estadoParaUrl({ view: 'settings' })).toBe('/ajustes')
   })
 
@@ -38,9 +38,20 @@ describe('estadoParaUrl', () => {
     expect(estadoParaUrl({ view: 'analysis', sessionId: 'abc', subTab: 'transcript' })).toBe('/sessao/abc/transcricao')
   })
 
-  it('`study` ganha porta própria — era a funcionalidade órfã do menu', () => {
-    expect(estadoParaUrl({ view: 'analysis', subTab: 'study' })).toBe('/revisar')
-    expect(estadoParaUrl({ view: 'analysis', sessionId: 'abc', subTab: 'study' })).toBe('/revisar/abc')
+  it('a revisão mora em Cartões: a rodada tem endereço, com ou sem o recorte da sessão', () => {
+    expect(estadoParaUrl({ view: 'cartoes', estudando: true })).toBe('/cartoes/estudar')
+    expect(estadoParaUrl({ view: 'cartoes', estudando: true, sessionId: 'abc' })).toBe('/cartoes/estudar/abc')
+    // Quem ainda navega com o estado antigo (`analysis` + `study`) cai no mesmo endereço.
+    expect(estadoParaUrl({ view: 'analysis', subTab: 'study' })).toBe('/cartoes/estudar')
+    expect(estadoParaUrl({ view: 'analysis', sessionId: 'abc', subTab: 'study' })).toBe('/cartoes/estudar/abc')
+  })
+
+  it('as abas de Cartões entram no caminho; "Hoje" é a entrada e fica no endereço curto', () => {
+    expect(estadoParaUrl({ view: 'cartoes', cartoesAba: 'hoje' })).toBe('/cartoes')
+    expect(estadoParaUrl({ view: 'cartoes', cartoesAba: 'baralhos' })).toBe('/cartoes/baralhos')
+    expect(estadoParaUrl({ view: 'cartoes', cartoesAba: 'palavras' })).toBe('/cartoes/palavras')
+    expect(estadoParaUrl({ view: 'cartoes', cartoesAba: 'trazer' })).toBe('/cartoes/trazer')
+    expect(estadoParaUrl({ view: 'cartoes', cartoesAba: 'memoria' })).toBe('/cartoes/memoria')
   })
 
   it('sessão sem id não inventa caminho de sessão', () => {
@@ -75,9 +86,19 @@ describe('urlParaEstado', () => {
     expect(urlParaEstado('/sessao/abc/metricas')).toEqual({ view: 'analysis', sessionId: 'abc', subTab: 'overview' })
   })
 
-  it('lê /revisar como a aba de estudo', () => {
-    expect(urlParaEstado('/revisar')).toEqual({ view: 'analysis', subTab: 'study' })
-    expect(urlParaEstado('/revisar/abc')).toEqual({ view: 'analysis', sessionId: 'abc', subTab: 'study' })
+  it('os endereços antigos levam ao lugar novo: /revisar abre a rodada e /vocabulario a aba Palavras', () => {
+    expect(urlParaEstado('/revisar')).toEqual({ view: 'cartoes', estudando: true })
+    expect(urlParaEstado('/revisar/abc')).toEqual({ view: 'cartoes', estudando: true, sessionId: 'abc' })
+    expect(urlParaEstado('/vocabulario')).toEqual({ view: 'cartoes', cartoesAba: 'palavras' })
+  })
+
+  it('lê Cartões com a aba e a rodada; aba desconhecida degrada para a tela', () => {
+    expect(urlParaEstado('/cartoes')).toEqual({ view: 'cartoes' })
+    expect(urlParaEstado('/cartoes/hoje')).toEqual({ view: 'cartoes', cartoesAba: 'hoje' })
+    expect(urlParaEstado('/cartoes/memoria')).toEqual({ view: 'cartoes', cartoesAba: 'memoria' })
+    expect(urlParaEstado('/cartoes/estudar')).toEqual({ view: 'cartoes', estudando: true })
+    expect(urlParaEstado('/cartoes/estudar/abc')).toEqual({ view: 'cartoes', estudando: true, sessionId: 'abc' })
+    expect(urlParaEstado('/cartoes/nao-existe')).toEqual({ view: 'cartoes' })
   })
 
   it('tolera barra final e caixa alta — URL digitada à mão não pode quebrar a tela', () => {
@@ -104,13 +125,15 @@ describe('ida e volta — o estado sobrevive ao recarregamento', () => {
     { view: 'hub' },
     { view: 'play' },
     { view: 'library' },
-    { view: 'metrics' },
+    { view: 'cartoes' },
+    { view: 'cartoes', cartoesAba: 'baralhos' },
+    { view: 'cartoes', cartoesAba: 'palavras' },
+    { view: 'cartoes', estudando: true },
+    { view: 'cartoes', estudando: true, sessionId: 's1' },
     { view: 'analysis', sessionId: 's1' },
     { view: 'analysis', sessionId: 's1', subTab: 'overview' },
     { view: 'analysis', sessionId: 's1', subTab: 'reading' },
     { view: 'analysis', sessionId: 's1', subTab: 'practice' },
-    { view: 'analysis', sessionId: 's1', subTab: 'study' },
-    { view: 'analysis', subTab: 'study' },
     { view: 'loja', lojaTab: 'personalizar' },
     { view: 'loja', lojaTab: 'conquistas' },
   ]

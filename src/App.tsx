@@ -11,7 +11,9 @@ const LiveCapture = lazyComRecarga(() => import('./components/views/LiveCapture'
 const Library = lazyComRecarga(() => import('./components/views/Library'));
 const Analysis = lazyComRecarga(() => import('./components/views/Analysis'));
 const Settings = lazyComRecarga(() => import('./components/views/Settings'));
-const Metrics = lazyComRecarga(() => import('./components/views/Metrics'));
+/* Cartões: a casa da revisão, dos baralhos e do catálogo (o Vocabulário é a aba "Palavras" dela e
+   desce só quando a aba abre). Pedaço de rota, fora do JS inicial. */
+const Cartoes = lazyComRecarga(() => import('./components/views/Cartoes'));
 const Play = lazyComRecarga(() => import('./components/views/Play'));
 const IChat = lazyComRecarga(() => import('./components/IChat'));
 const LayoutStudio = lazyComRecarga(() => import('./components/LayoutStudio'));
@@ -248,6 +250,9 @@ export default function App() {
     setIsChatDocked,
     practiceSeed,
     setPracticeSeed,
+    cartoesAba,
+    setCartoesAba,
+    estudo,
     navigateTo,
   } = useNavegacao({
     activeView,
@@ -316,14 +321,18 @@ export default function App() {
   });
 
   // Map sub tabs like reading and study to distinct views for precise iChat context matching
-  const mappedActiveViewForChat =
+  const mappedActiveViewForChat: ViewType =
     activeView === 'analysis'
-      ? ((analysisSubTab === 'study' ? 'study' : analysisSubTab === 'reading' ? 'reading' : 'analysis') as ViewType)
-      : activeView;
+      ? analysisSubTab === 'reading'
+        ? 'reading'
+        : 'analysis'
+      : activeView === 'cartoes' && estudo
+        ? /* A rodada aberta dentro de Cartões é, para o tutor, a revisão de sempre. */
+          'study'
+        : activeView;
 
-  // Item aceso no menu (protótipo): a sessão vive na Biblioteca; a revisão, no Vocabulário.
-  const viewDoMenu: ViewType =
-    activeView === 'analysis' ? (analysisSubTab === 'study' ? 'metrics' : 'library') : activeView;
+  // Item aceso no menu (protótipo): a sessão vive na Biblioteca; a revisão, em Cartões.
+  const viewDoMenu: ViewType = activeView === 'analysis' ? 'library' : activeView;
 
   // Marco 1: OAuth/recuperação voltando em /auth/callback — aguarda o supabase-js processar a URL.
   if (authRequired && processingCallback) {
@@ -464,6 +473,8 @@ export default function App() {
             toggleSound={toggleSound}
             performanceMode={performanceMode}
             togglePerformanceMode={togglePerformanceMode}
+            /* O número do dia no item Cartões: o que vence agora, do perfil que o App já carregou. */
+            cartoesHoje={anonimo ? null : (metrics?.dueToday ?? null)}
           />
         </Suspense>
 
@@ -613,7 +624,6 @@ export default function App() {
                   subTab={analysisSubTab}
                   onSubTabChange={setAnalysisSubTab}
                   practiceSeed={practiceSeed}
-                  onSeedConsumed={() => setPracticeSeed(null)}
                   ageProfile={ageProfile}
                   /* A aba "Jogos" da sessão monta o mesmo lobby do `<Play>` acima; os números têm de vir
                  da MESMA fonte, senão nível/ofensiva apareceriam diferentes nas duas telas. */
@@ -621,8 +631,28 @@ export default function App() {
                   metrics={metrics}
                 />
               )}
-              {activeView === 'metrics' && !anonimo && (
-                <Metrics recordings={recordings} onChangeView={navigateTo} ageProfile={ageProfile} metrics={metrics} />
+              {/* CARTÕES abre também sem conta, no estado vazio (decisão do dono, 10/10/2026). A rodada de
+                  revisão continua pedindo conta: sem ela, o convite de sempre. */}
+              {activeView === 'cartoes' && anonimo && estudo && (
+                <CartaoDeConvite
+                  view="study"
+                  onEntrar={() => setPedindoLogin(true)}
+                  onVoltar={() => navigateTo('cartoes')}
+                />
+              )}
+              {activeView === 'cartoes' && !(anonimo && estudo) && (
+                <Cartoes
+                  aba={cartoesAba}
+                  aoTrocarAba={setCartoesAba}
+                  estudo={estudo}
+                  recordings={recordings}
+                  metrics={metrics}
+                  onChangeView={navigateTo}
+                  ageProfile={ageProfile}
+                  semConta={anonimo}
+                  practiceSeed={practiceSeed}
+                  onSeedConsumed={() => setPracticeSeed(null)}
+                />
               )}
 
               {activeView === 'profile' && !anonimo && <Perfil progress={progress} ageProfile={ageProfile} />}

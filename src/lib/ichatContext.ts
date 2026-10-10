@@ -54,6 +54,8 @@ function nomeTela(view: ViewType): string {
       return 'Modo Leitura';
     case 'study':
       return 'Prática & Treinos';
+    /* O Vocabulário virou a aba "Palavras" da tela Cartões (10/10/2026): o tutor recebe o mesmo contexto. */
+    case 'cartoes':
     case 'metrics':
       return 'Vocabulário & Métricas';
     case 'settings':
@@ -82,6 +84,7 @@ async function _construir(
     }
 
     case 'hub':
+    case 'cartoes':
     case 'metrics': {
       const m = await fetchMetrics();
       if (!m) return `Tela: ${nomeTela(view)}. Sem métricas disponíveis ainda.`;

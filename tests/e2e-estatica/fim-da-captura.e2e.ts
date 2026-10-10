@@ -22,7 +22,8 @@ import { expect, type Page, test } from '@playwright/test'
  * DESENHO NOVO (09/10/2026). A captura abre pronta, com "Iniciar captura" na faixa de baixo
  * (`iniciar-captura`); gravando, o botão vira "Encerrar" (`encerrar-captura`, o antigo "Parar
  * captura"). O menu é o trilho de ícones (a barra de cinco destinos no celular): cada destino é
- * `.q-item[data-px-rota=<view>]`. Já na captura pronta, tocar de novo em Capturar no menu COMEÇA a
+ * `.q-item[data-px-rota=<view>]` — menos o Jogar no celular, que desde 10/10/2026 mora atrás do
+ * "Praticar" da barra (`irAoJogarPeloMenu`). Já na captura pronta, tocar de novo em Capturar no menu COMEÇA a
  * gravar — por isso o teste só toca nele vindo de outra tela.
  */
 const PASTA = process.env.SCREENSHOTS_ESTATICA || path.join('test-results', 'estatica', 'fim-da-captura')
@@ -149,6 +150,23 @@ test.beforeEach(async ({ page }) => {
 /** Um destino do menu: no trilho de ícones (computador) ou na barra de baixo (celular). */
 const doMenu = (page: Page, view: 'play' | 'capture') => page.locator(`.q-trilho .q-item[data-px-rota="${view}"]`)
 
+/**
+ * Vai ao Jogar pelo menu. No trilho (computador) o Jogar tem botão próprio; na barra de cinco do celular
+ * (navegação de 10/10/2026) ele mora atrás do "Praticar", que abre a última das duas telas de praticar
+ * (os Cartões, num navegador novo), e a aba "Jogos" do alto da tela leva ao Jogar.
+ */
+async function irAoJogarPeloMenu(page: Page) {
+  if ((page.viewportSize()?.width ?? 1280) > 720) {
+    await doMenu(page, 'play').click()
+  } else {
+    await page.locator('.q-trilho .q-item[data-px-tambem="play"]').click()
+    await expect(page).toHaveURL(/\/(cartoes|jogar)/, { timeout: 10_000 })
+    if (!/\/jogar/.test(new URL(page.url()).pathname))
+      await page.getByTestId('abas-de-praticar').getByRole('tab', { name: 'Jogos' }).click()
+  }
+  await expect(page).toHaveURL(/\/jogar/, { timeout: 10_000 })
+}
+
 test('no teto (20 nesta edição), a tela avisa ANTES de gravar e dá saída ali mesmo', async ({ page }, info) => {
   await entrar(page)
   await semear(page, 20)
@@ -201,8 +219,7 @@ test('Parar → "Salvar e ficar aqui" → sair: a tela solta na hora, sair não 
 
   // Sair: nenhuma trava ("falas não salvas"), e a sessão não é salva de novo.
   await fecharDialogos(page)
-  await doMenu(page, 'play').click()
-  await expect(page).toHaveURL(/\/jogar/, { timeout: 10_000 })
+  await irAoJogarPeloMenu(page)
   await expect(page.getByText(/não foram salvas|Você tem falas não salvas/)).toHaveCount(0)
   await expect.poll(() => contarSessoes(page), { timeout: 15_000 }).toBe(1)
   await page.waitForTimeout(1500)
@@ -234,8 +251,7 @@ test('a recusa no meio do salvamento não prende: mostra o motivo, guarda a capt
   await page.screenshot({ path: path.join(PASTA, `recusa-${info.project.name}.png`), fullPage: true })
 
   // Sair não perde nada nem pergunta: a captura está guardada no navegador e volta com a tela.
-  await doMenu(page, 'play').click()
-  await expect(page).toHaveURL(/\/jogar/, { timeout: 10_000 })
+  await irAoJogarPeloMenu(page)
   // A primeira visita ao Jogar abre "O que você vai praticar" (no celular, por cima da barra): fecha.
   const sala = page.getByRole('dialog', { name: 'O que você vai praticar' })
   await expect(sala).toBeVisible({ timeout: 10_000 })

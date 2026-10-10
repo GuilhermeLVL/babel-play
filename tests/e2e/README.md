@@ -16,9 +16,9 @@ subir um segundo — não precisa parar o seu.
 
 **Três viewports, um motor.** Os projetos são `mobile-375` (375×812, com toque), `tablet-768`
 (768×1024) e `desktop-1280` (1280×800). A navegação é uma só, o trilho de ícones
-(`nav.q-trilho`), mas ela muda com a largura: abaixo de 720 px vira a barra de cinco destinos, e
-Estatísticas e Personalizar passam ao painel "Mais". Um projeto só, de desktop, nunca tocaria na
-barra. Os testes falam por papel e nome acessível (`getByRole`) e por `data-testid`, então o mesmo
+(`nav.q-trilho`), mas ela muda com a largura: abaixo de 720 px vira a barra de cinco destinos
+(Início, Praticar, Capturar, Intérprete, Mais), em que Cartões e Jogar dividem o "Praticar" e a
+Biblioteca passa ao painel "Mais". Um projeto só, de desktop, nunca tocaria na barra. Os testes falam por papel e nome acessível (`getByRole`) e por `data-testid`, então o mesmo
 teste vale nos três; onde a tela muda de verdade com a largura, o teste diz o que espera em cada uma.
 
 **Banco.** O servidor usa o `DATABASE_URL` do ambiente e, sem ele, o padrão `file:./data/babel.db`
@@ -56,6 +56,7 @@ Quando um rótulo muda na tela, o teste falha no mesmo commit e é atualizado ju
 | `grade-so-com-jogos-do-sistema.e2e.ts` | a grade só anuncia jogo que registra progresso                                 |
 | `sessao-de-jogo.e2e.ts`                | Memória, Termo e Bao (cultural) do início ao fim da rodada                     |
 | `fsrs-revisao.e2e.ts`                  | avaliar um cartão move o `due` no servidor                                     |
+| `cartoes.e2e.ts`                       | a tela Cartões: a porta, Hoje e a rodada, trazer do Anki, endereços de antes   |
 | `seeds.e2e.ts`                         | o saldo da tela é o do servidor; o item mais barato diz o preço ou o que falta |
 | `dois-dispositivos.e2e.ts`             | a mesma conta em dois navegadores; compra simultânea não fura o saldo          |
 | `estatisticas.e2e.ts`                  | os contadores batem com `GET /api/vocab`                                       |

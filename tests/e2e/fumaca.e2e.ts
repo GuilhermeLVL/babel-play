@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { clicarRobusto } from './_helpers'
+import { irAoJogarPeloMenu, naBarraDeCinco, trilho } from './_helpers'
 
 /** O item de navegação, seja ele um link ou um botão, em qualquer das redações por perfil. */
 const porNome = (page: import('@playwright/test').Page, nome: RegExp) =>
@@ -27,17 +27,25 @@ test('a casca do app carrega e a navegação principal aparece', async ({ page }
 
   // A navegação real (nav/rail) expõe os itens como links/botões com role de navegação.
   await expect(porNome(page, /^(Início|Página Inicial)$/)).toBeVisible()
-  await expect(porNome(page, /^(Jogar|Praticar)$/)).toBeVisible()
+  /* "Jogar" no trilho (ou "Praticar", no perfil sênior). Na barra de cinco do celular o destino é o
+     "Praticar", e o botão do Jogar existe no DOM escondido pelo CSS da barra — daí o nome exato lá. */
+  const jogar = naBarraDeCinco(page) ? 'Praticar' : /^(Jogar|Praticar)$/
+  await expect(trilho(page).getByRole('button', { name: jogar, exact: true })).toBeVisible()
 })
 
 test('a navegação leva até a tela de jogos (Praticar) e ela renderiza', async ({ page }) => {
   await page.goto('/')
 
-  const praticar = porNome(page, /^(Jogar|Praticar)$/)
   /* Numa conta que acabou de nascer (o caso do runner da CI), a primeira visita abre o diálogo
      de conquista por cima da navegação e o clique cru fica 30 s esperando o overlay sumir.
-     `clicarRobusto` fecha as sobreposições e tenta de novo — o mesmo laço das outras suítes. */
-  await clicarRobusto(page, praticar)
+     `clicarRobusto` (dentro de `irAoJogarPeloMenu`) fecha as sobreposições e tenta de novo — o mesmo
+     laço das outras suítes.
+
+     DESDE A NAVEGAÇÃO DE 10/10/2026 o caminho depende da largura: no trilho o Jogar tem botão próprio;
+     na barra de cinco do celular ele mora atrás do "Praticar", que abre os Cartões na primeira vez, e
+     a aba "Jogos" do alto da tela leva ao Jogar. */
+  await expect(trilho(page)).toBeVisible()
+  await irAoJogarPeloMenu(page)
 
   // Prova de renderização: a URL espelha o estado (`src/lib/rotas.ts`) — a view `play` publica
   // `/jogar`, não `/play` — e algo do conteúdo da tela aparece.

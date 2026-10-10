@@ -49,6 +49,7 @@ export default function ExportarVocabulario({
   metrics,
   idioma,
   filtro,
+  formatoInicial = 'apkg',
   aoFechar,
 }: {
   cartoes: VocabCard[];
@@ -56,9 +57,11 @@ export default function ExportarVocabulario({
   idioma: string;
   /** O filtro do catálogo agora; sem ele, "Filtradas" é igual a "Todas". */
   filtro: FiltroDoCatalogo | null;
+  /** O formato já marcado ao abrir: a aba "Trazer e levar" de Cartões abre em cada um dos quatro. */
+  formatoInicial?: Formato;
   aoFechar: () => void;
 }) {
-  const [formato, setFormato] = useState<Formato>('apkg');
+  const [formato, setFormato] = useState<Formato>(formatoInicial);
   const [escopo, setEscopo] = useState<Escopo>('todas');
   const [frase, setFrase] = useState(true);
   const [enviando, setEnviando] = useState(false);

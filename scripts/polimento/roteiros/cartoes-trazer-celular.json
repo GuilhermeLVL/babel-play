@@ -1,0 +1,53 @@
+{
+  "nome": "cartoes-trazer-celular",
+  "prototipo": "cartoes",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/cartoes/trazer",
+    "assentar": 3500,
+    "passos": [
+      {
+        "js": "(async () => { for (let i = 0; i < 14; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || [...d.querySelectorAll('button')].find((b) => /Resgatar|Pular|Fechar|Agora não|Entendi|Depois/.test(b.textContent || '')) || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 500)); } })()"
+      },
+      {
+        "esperar": 1200
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?ver=trazer&quieto&nav=b",
+    "assentar": 3500,
+    "passos": [
+      {
+        "esperar": 600
+      }
+    ]
+  },
+  "seletores": [
+    ".q-palco.ct",
+    ".q-cab",
+    ".q-cab .q-sobre",
+    ".q-cab h1",
+    ".q-cab > .q-ctl",
+    ".ct-abas",
+    ".ct-abas .q-aba",
+    ".ct-painel",
+    ".ct-trazer-topo",
+    ".ct-anki",
+    ".ct-anki h2",
+    ".ct-soltar",
+    ".ct-soltar .q-ic",
+    ".ct-soltar b",
+    ".ct-soltar small",
+    ".ct-levar",
+    ".ct-levar h2",
+    ".ct-levar .q-tile",
+    ".ct-levar .q-tile b",
+    ".ct-levar .q-tile .q-d",
+    ".q-trilho",
+    ".q-trilho .q-item",
+    ".ct-praticar",
+    ".ct-praticar .q-aba"
+  ]
+}

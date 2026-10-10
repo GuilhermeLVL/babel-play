@@ -16,7 +16,6 @@ import { buildVocabWord } from '../../lib/vocabWord';
 import type { VocabWord } from '../../types';
 import { Recording } from '../../types';
 import Reading from './Reading';
-import Study from './Study';
 /**
  * O lobby de jogos, SOB DEMANDA.
  *
@@ -105,7 +104,6 @@ export default function Analysis({
   subTab,
   onSubTabChange,
   practiceSeed,
-  onSeedConsumed,
   ageProfile = 'pro',
   progress,
   metrics,
@@ -117,7 +115,6 @@ export default function Analysis({
   onSubTabChange: (tab: string) => void;
   /** Semente vinda de outra tela ("praticar esta frase") — repassada ao Study/lobby de jogos. */
   practiceSeed?: PracticeSeed | null;
-  onSeedConsumed?: () => void;
   ageProfile?: 'kids' | 'pro' | 'senior';
   /** Só existem porque a aba "Jogos" monta o lobby aqui dentro e o `Play` os exige. */
   progress: DerivedProgress;
@@ -126,17 +123,10 @@ export default function Analysis({
   /* `selectedWord` foi removido junto com o overlay de pronúncia inalcançável que ele guardava. */
   const [showExportModal, setShowExportModal] = useState<boolean>(false);
   const currentTab = subTab === 'study' ? 'practice' : subTab;
-  /**
-   * A aba 'practice' tem DOIS corpos e o alias 'study' é quem escolhe:
-   *  - clicou na aba "Jogos" (`subTab === 'practice'`) → lobby de jogos desta sessão;
-   *  - chegou por `onChangeView('study')` → revisão espaçada (`Study`).
-   * Não é firula: `Study` — SRS/FSRS, Produção Ativa e "Meu vocabulário" — é montado só aqui, em
-   * lugar nenhum mais do app. Trocar o corpo da aba pelo lobby sem manter este modo deixaria 13
-   * pontos de navegação para 'study' (Hub, Métricas, Leitura, lib/progress…) apontando para uma
-   * tela que não existiria mais. O id interno segue 'practice' porque mudá-lo quebraria a
-   * normalização acima e os deep-links já gravados.
-   */
-  const modoRevisao = subTab === 'study';
+  /* A REVISÃO SAIU DAQUI em 10/10/2026: `Study` era montado dentro da sessão (o alias 'study' da aba
+     'practice') e por isso ficava preso a uma gravação. Agora mora na tela Cartões
+     (`/cartoes/estudar`), que a abre com ou sem o recorte de uma sessão. O alias segue normalizado
+     acima para um estado antigo não derrubar a aba. */
   /**
    * Quantos jogos abrem com esta sessão — o número da aba "Jogos" (protótipo: `n` na aba). Quem
    * conta é o próprio lobby embutido (`aoContarProntos`), com a mesma regra da grade; guardado com o
@@ -641,23 +631,6 @@ export default function Analysis({
       icone: <BarChart3 aria-hidden />,
     },
   ];
-
-  /* `/revisar` é uma tela própria no protótipo (`T.revisao`): cabeçalho "Revisão · 1 de N" e o
-     cartão, sem o cabeçalho e as abas da sessão por cima (eram dois h1 na mesma página). A `key`
-     pelo id da sessão remonta a fila ao trocar de sessão — ver o comentário na aba Jogos. */
-  if (modoRevisao) {
-    return (
-      <Study
-        key={recording.id}
-        recording={recording}
-        sentences={sentences}
-        onChangeView={onChangeView}
-        practiceSeed={practiceSeed}
-        onSeedConsumed={onSeedConsumed}
-        ageProfile={ageProfile}
-      />
-    );
-  }
 
   const propsDoPlayer = {
     recording,

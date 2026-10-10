@@ -1,7 +1,7 @@
 import { expect, type Page, test } from '@playwright/test'
 
 import { iniciarCaptura } from './_captura'
-import { abrirTela, clicarRobusto, fecharSobreposicoes, trilho } from './_helpers'
+import { abrirTela, clicarRobusto, fecharSobreposicoes, irAoJogarPeloMenu } from './_helpers'
 
 /**
  * O FIM DA CAPTURA COM O SERVIDOR DE VERDADE (relato do dono, 2026-09-28: "quando tento ENCERRAR
@@ -78,8 +78,8 @@ test('600 falas: Encerrar → "Salvar e ficar aqui" → sair — em lotes, sem t
 
     // Sair: nenhuma trava, e nada é salvo de novo.
     await fecharSobreposicoes(page)
-    await clicarRobusto(page, trilho(page).locator('.q-item[data-px-rota="play"]'))
-    await expect(page).toHaveURL(/\/jogar/, { timeout: 10_000 })
+    // No celular o Jogar mora atrás do "Praticar" da barra de cinco (navegação de 10/10/2026).
+    await irAoJogarPeloMenu(page)
     await expect(page.getByText(/não foram salvas|Você tem falas não salvas/)).toHaveCount(0)
     await page.waitForTimeout(1500)
     expect(await novasAgora()).toHaveLength(1)

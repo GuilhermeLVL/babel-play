@@ -33,8 +33,33 @@ import CardDePlanos from '../../CardDePlanos';
 import AvisoDeConta from '../../conta/AvisoDeConta';
 import { ICONE_DA_MISSAO, rotuloDaMissao } from '../../progress/MissoesDoDia';
 
-/** Uma sessão de revisão, não a fila inteira (a mesma conta do Início de sempre, `Hub.tsx`). */
-const TAMANHO_DA_SESSAO = 20;
+/**
+ * O QUE O LADRILHO DOS CARTÕES DIZ — os estados de `ctLadrilhoDoInicio` (`cartoes3.js:138-144`), com o
+ * perfil que o App já carregou (nenhum pedido a mais): o que vence agora, o tamanho do caderno e se já
+ * houve revisão. O protótipo detalha "a rever, aprendendo e novas" e o tempo; o perfil não traz essa
+ * divisão, e o tempo da revisão não é medido, então a frase fica na que o Início já dizia.
+ */
+function ladrilhoDosCartoes(metrics: AppMetrics | null | 'sem-conta'): { titulo: string; frase: string } {
+  if (metrics === null) return { titulo: t('Cartões'), frase: t('Suas palavras, de volta na hora certa.') };
+  if (metrics === 'sem-conta' || metrics.deckSize === 0)
+    return {
+      titulo: t('Cartões'),
+      frase: t('Guarde palavras e o app traz cada uma de volta na hora certa.'),
+    };
+  if (metrics.reviews === 0)
+    return {
+      titulo: metrics.deckSize > 10 ? t('Cartões: comece por 10') : t('Cartões: comece agora'),
+      frase: tp(metrics.deckSize, 'Sua {n} palavra já é cartão.', 'Suas {n} palavras já são cartões.', {
+        n: numero(metrics.deckSize),
+      }),
+    };
+  if (metrics.dueToday > 0)
+    return {
+      titulo: t('Cartões: {n} para hoje', { n: numero(metrics.dueToday) }),
+      frase: t('As que estão para sair da memória hoje.'),
+    };
+  return { titulo: t('Cartões: tudo em dia'), frase: t('Nada vence agora.') };
+}
 /** Quantas sessões recentes cabem sem virar a Biblioteca (as mesmas seis do Início de sempre). */
 const RECENTES = 6;
 type TipoDeSessao = 'all' | Recording['type'];
@@ -93,7 +118,7 @@ export default function InicioDoQuest({
   carregandoSessoes = false,
   missoesPendentes = false,
 }: InicioDoQuestProps) {
-  const vencidas = Math.min(metrics?.dueToday ?? 0, TAMANHO_DA_SESSAO);
+  const cartoes = ladrilhoDosCartoes(semConta ? 'sem-conta' : metrics);
   const [tipo, setTipo] = useState<TipoDeSessao>('all');
   const sessoes = semConta ? [] : recordings;
   const recentes = sessoes.filter((r) => tipo === 'all' || r.type === tipo).slice(0, RECENTES);
@@ -142,7 +167,7 @@ export default function InicioDoQuest({
         )}
       </div>
 
-      <div className="q-grade g3 q-cresce">
+      <div className="q-grade g3 q-cresce ct-g4">
         <button type="button" className="q-tile pri" onClick={() => onChangeView('capture')}>
           <span className="q-ic">
             <Mic aria-hidden />
@@ -150,29 +175,29 @@ export default function InicioDoQuest({
           <b>{t('Legendar agora')}</b>
           <span className="q-d">{t('Vídeo, jogo, aula ou conversa, com tradução ao vivo.')}</span>
         </button>
-        {/* O SEGUNDO CAMINHO é o do protótipo, "Conversar" (`prototipo.js:1174-1177`). Só cede o lugar quando
-            há palavras vencendo hoje: revisar é o que não pode esperar. */}
-        {!semConta && vencidas > 0 ? (
-          <button type="button" className="q-tile" onClick={() => onChangeView('study')}>
-            <span className="q-ic">
-              <Layers aria-hidden />
-            </span>
-            <b>{tp(vencidas, 'Revisar {n} palavra', 'Revisar {n} palavras')}</b>
-            <span className="q-d">
-              {(metrics?.dueToday ?? 0) > vencidas
-                ? t('As que estão para sair da memória hoje. São {n} no total.', { n: numero(metrics?.dueToday ?? 0) })
-                : t('As que estão para sair da memória hoje.')}
-            </span>
-          </button>
-        ) : (
-          <button type="button" className="q-tile" onClick={() => onChangeView('interprete')}>
-            <span className="q-ic">
-              <Languages aria-hidden />
-            </span>
-            <b>{t('Conversar')}</b>
-            <span className="q-d">{t('Intérprete frente a frente: cada pessoa fala no seu idioma.')}</span>
-          </button>
-        )}
+        {/* O LADRILHO DOS CARTÕES É FIXO (`ctLadrilhoDoInicio`, `cartoes3.js:134-156`): antes a revisão só
+            aparecia aqui com palavra vencendo, e tomava o lugar do "Conversar". Agora está sempre, logo
+            depois de "Legendar agora", com o número do dia; sem conta ou sem cartões, leva ao estado
+            vazio da tela. */}
+        <button
+          type="button"
+          className="q-tile ct-ladrilho"
+          onClick={() => onChangeView('cartoes')}
+          data-testid="cartoes-no-inicio"
+        >
+          <span className="q-ic">
+            <Layers aria-hidden />
+          </span>
+          <b>{cartoes.titulo}</b>
+          <span className="q-d">{cartoes.frase}</span>
+        </button>
+        <button type="button" className="q-tile" onClick={() => onChangeView('interprete')}>
+          <span className="q-ic">
+            <Languages aria-hidden />
+          </span>
+          <b>{t('Conversar')}</b>
+          <span className="q-d">{t('Intérprete frente a frente: cada pessoa fala no seu idioma.')}</span>
+        </button>
         <button type="button" className="q-tile" onClick={() => onChangeView('play')}>
           <span className="q-ic">
             <Gamepad2 aria-hidden />

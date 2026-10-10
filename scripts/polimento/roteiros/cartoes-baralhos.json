@@ -1,0 +1,54 @@
+{
+  "nome": "cartoes-baralhos",
+  "prototipo": "cartoes",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/cartoes/baralhos",
+    "assentar": 3500,
+    "passos": [
+      {
+        "js": "(async () => { for (let i = 0; i < 14; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || [...d.querySelectorAll('button')].find((b) => /Resgatar|Pular|Fechar|Agora não|Entendi|Depois/.test(b.textContent || '')) || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 500)); } })()"
+      },
+      {
+        "esperar": 1200
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?ver=baralhos&quieto&nav=a",
+    "assentar": 3500,
+    "passos": [
+      {
+        "esperar": 600
+      }
+    ]
+  },
+  "seletores": [
+    ".q-palco.ct",
+    ".q-cab",
+    ".q-cab .q-sobre",
+    ".q-cab h1",
+    ".q-cab > .q-ctl",
+    ".ct-abas",
+    ".ct-abas .q-aba",
+    ".ct-painel",
+    ".ct-legenda",
+    ".ct-legenda .q-tag",
+    ".ct-bar-corpo",
+    ".ct-bar-col",
+    ".q-linha.ct-linha-b",
+    ".ct-linha-b .q-ic",
+    ".ct-tres",
+    ".ct-tres b",
+    ".ct-grupo h3",
+    ".ct-novo-baralho",
+    ".ct-bar-det",
+    ".ct-bar-det h2",
+    ".q-bib-fatos",
+    ".q-bib-fatos dd",
+    ".q-bib-acoes > .q-ctl.pri",
+    ".q-bib-acoes .q-acoes > .q-ctl",
+    ".q-trilho .q-item"
+  ]
+}

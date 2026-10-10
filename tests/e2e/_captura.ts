@@ -40,6 +40,17 @@ export async function iniciarCaptura(page: Page) {
   await expect(botaoEncerrar(page)).toBeVisible({ timeout: 15_000 })
 }
 
-/** Põe falas prontas na captura em curso, pela bancada da tela (sem STT nem MT). */
-export const falar = (page: Page, falas: string[]) =>
-  page.evaluate((x) => (window as unknown as { __simFalas: (t: string[]) => number }).__simFalas(x), falas)
+/**
+ * Põe falas prontas na captura em curso, pela bancada da tela (sem STT nem MT). `lang` é o idioma
+ * que a fala declara (o que o pipeline diria); sem ele, inglês.
+ */
+export const falar = (page: Page, falas: string[], lang?: string) =>
+  page.evaluate(
+    ([x, l]) =>
+      (window as unknown as { __simFalas: (t: string[], fonte?: string, lang?: string) => number }).__simFalas(
+        x,
+        undefined,
+        l,
+      ),
+    [falas, lang] as const,
+  )

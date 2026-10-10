@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test'
 
 import { listarCartoes, perfil, semearCartoes } from './_fixtures'
-import { abrirTela } from './_helpers'
+import { abaDeCartoes, abrirTela } from './_helpers'
 
 /**
  * OS CONTADORES DE VOCABULARIO BATEM COM O ACERVO.
  *
- * `/vocabulario` mostra o tamanho do baralho em dois lugares — o KPI do painel e a linha
+ * `/cartoes/palavras` (o Vocabulario de antes, hoje a aba "Palavras" da tela Cartoes) mostra o tamanho do baralho em dois lugares — o KPI do painel e a linha
  * "mostrando N de M" do catalogo — e os dois vem de caminhos diferentes (`/api/metrics/profile`
  * e `/api/vocab/pagina`). O que se prova aqui e que ambos descrevem o mesmo `GET /api/vocab`.
  */
@@ -24,7 +24,10 @@ test.describe('Estatisticas do vocabulario', () => {
     const p = await perfil()
     expect(p.deckSize, 'deckSize do perfil deveria ser o total de cartoes no baralho').toBe(noBaralho)
 
-    await abrirTela(page, '/vocabulario')
+    /* O Vocabulário é a aba "Palavras" da tela Cartões desde 10/10/2026 (o endereço de antes,
+       `/vocabulario`, leva para cá: quem o prende é `cartoes.e2e.ts`). */
+    await abrirTela(page, '/cartoes/palavras')
+    await expect(abaDeCartoes(page, /^Palavras/)).toHaveAttribute('aria-selected', 'true')
 
     /* O NÚMERO "Guardadas" (aba Minhas palavras, a primeira das quatro fases do baralho —
        `data-testid="fases-do-baralho"`, `VocabularioDoQuest`) conta o baralho que `GET /api/vocab`

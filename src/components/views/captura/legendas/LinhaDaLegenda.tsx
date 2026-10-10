@@ -1,8 +1,10 @@
 import { BookmarkPlus, Copy, Languages, Snail, Volume2 } from 'lucide-react';
 import { memo, type MouseEvent } from 'react';
 
+import { palavrasDoPedaco } from '../../../../lib/captura/trechosTocaveis';
 import { pedacosDaLegenda } from '../../../../lib/estilosDeLegenda';
 import { t } from '../../../../lib/i18n';
+import { direcaoDoTexto } from '../../../../lib/languages';
 import type { Modo, Traducao } from './aparenciaDaLegenda';
 
 /** Uma fala real da captura, pronta para a legenda. `lado` = de quem é (sistema = eles). */
@@ -26,16 +28,20 @@ function limparPalavra(pedaco: string): string {
   return pedaco.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
 }
 
-/** O texto em pedaços tocáveis: cada palavra é um `span[data-palavra]`, os espaços ficam como texto. */
-function Palavras({ texto, aprendidas }: { texto: string; aprendidas?: ReadonlySet<string> }) {
+/**
+ * O texto em pedaços tocáveis: cada palavra é um `span[data-palavra]`, os espaços ficam como texto.
+ * Em chinês e japonês, sem espaço para dividir, cada pedaço vem partido nas palavras dele.
+ */
+function Palavras({ texto, lang, aprendidas }: { texto: string; lang: string; aprendidas?: ReadonlySet<string> }) {
   const marcadas = new Set(
     pedacosDaLegenda(texto, aprendidas)
       .filter((p) => p.aprendida)
       .map((p) => p.texto),
   );
+  const pedacos = texto.split(/(\s+)/).flatMap((p) => palavrasDoPedaco(p, lang));
   return (
     <>
-      {texto.split(/(\s+)/).map((p, i) => {
+      {pedacos.map((p, i) => {
         const palavra = limparPalavra(p);
         if (!palavra) return p;
         return (
@@ -106,8 +112,13 @@ function LinhaDaLegenda({
       onClick={tocarNaFala}
     >
       {modo === 'conversa' && <span className="leg-quem">{fala.quem}</span>}
-      <span className="leg-o" lang={fala.lang || undefined} onClick={tocar}>
-        <Palavras texto={fala.original} aprendidas={aprendidas} />
+      <span
+        className="leg-o"
+        lang={fala.lang || undefined}
+        dir={fala.lang ? direcaoDoTexto(fala.lang) : undefined}
+        onClick={tocar}
+      >
+        <Palavras texto={fala.original} lang={fala.lang ?? ''} aprendidas={aprendidas} />
       </span>
       {modoDaTraducao !== 'oculta' && !fala.traducao && fala.sobDemanda && aoRevelarTraducao ? (
         /* Compacto, na cor e no tamanho da linha de tradução que ele substitui. */
@@ -127,7 +138,12 @@ function LinhaDaLegenda({
       <div className="leg-acoes" role="group" aria-label={t('Ações da fala')}>
         {aoOuvir && (
           <>
-            <button type="button" aria-label={t('Ouvir a frase')} title={t('Ouvir a frase')} onClick={() => aoOuvir(fala, false)}>
+            <button
+              type="button"
+              aria-label={t('Ouvir a frase')}
+              title={t('Ouvir a frase')}
+              onClick={() => aoOuvir(fala, false)}
+            >
               <Volume2 aria-hidden />
             </button>
             <button
@@ -151,7 +167,12 @@ function LinhaDaLegenda({
             <Languages aria-hidden />
           </button>
         )}
-        <button type="button" aria-label={t('Copiar o texto')} title={t('Copiar o texto')} onClick={() => aoCopiar(fala)}>
+        <button
+          type="button"
+          aria-label={t('Copiar o texto')}
+          title={t('Copiar o texto')}
+          onClick={() => aoCopiar(fala)}
+        >
           <Copy aria-hidden />
         </button>
         {aoSalvarFrase && (

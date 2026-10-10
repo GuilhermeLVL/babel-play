@@ -1,0 +1,5025 @@
+{
+ "cel-medio": {
+  "mediana": {
+   "fria": {
+    "ttfb": 82,
+    "fcp": 1027,
+    "lcp": 2187,
+    "palco": 1332,
+    "tti": 2074,
+    "tbt": 143,
+    "cls": 0.0194,
+    "maiorLt": 118,
+    "pedidos": 86,
+    "daRede": 86,
+    "kB": 517,
+    "jsDecodKB": 646,
+    "script_ms": 555,
+    "estilo_ms": 647,
+    "layout_ms": 221,
+    "tarefa_ms": 2670,
+    "heapMb": 3.7,
+    "nos": 276
+   },
+   "quente": {
+    "ttfb": 31,
+    "fcp": 387,
+    "lcp": 812,
+    "palco": 530,
+    "tti": 907,
+    "tbt": 115,
+    "cls": 0,
+    "maiorLt": 117,
+    "pedidos": 86,
+    "daRede": 2,
+    "kB": 3,
+    "jsDecodKB": 646,
+    "script_ms": 317,
+    "estilo_ms": 699,
+    "layout_ms": 47,
+    "tarefa_ms": 2255,
+    "heapMb": 5,
+    "nos": 276
+   }
+  },
+  "runs": [
+   {
+    "fria": {
+     "ttfb": 77.64499999582767,
+     "dcl": 855.6300000026822,
+     "load": 1267.4499999955297,
+     "fcp": 1018.6850000023842,
+     "lcp": 2186.530000001192,
+     "lcpEl": "SMALL.",
+     "lcpTodos": [
+      {
+       "s": 1018.6850000023842,
+       "size": 1530,
+       "el": "DIV.carregando-da-tela flex-1 flex items-cen",
+       "url": ""
+      },
+      {
+       "s": 1779.3800000026822,
+       "size": 12348,
+       "el": "SPAN.q-d",
+       "url": ""
+      },
+      {
+       "s": 2186.530000001192,
+       "size": 14790,
+       "el": "SMALL.",
+       "url": ""
+      }
+     ],
+     "cls": 0.019444475640708878,
+     "clsN": 1,
+     "lt": [
+      {
+       "s": 748.5050000026822,
+       "d": 110
+      },
+      {
+       "s": 931.3999999985099,
+       "d": 67
+      },
+      {
+       "s": 1057.8249999955297,
+       "d": 52
+      },
+      {
+       "s": 1621.679999999702,
+       "d": 109
+      },
+      {
+       "s": 1875.9900000020862,
+       "d": 91
+      },
+      {
+       "s": 1969.6700000017881,
+       "d": 99
+      }
+     ],
+     "marcos": {
+      "tela": 998.4900000020862,
+      "palco": 1321.530000001192,
+      "h1": 1321.5349999964237,
+      "trilho": 1621.6700000017881
+     },
+     "jsDecod": 661313,
+     "nJs": 76,
+     "nRes": 86,
+     "nos": 276,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "celular-bom",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 151,
+     "nLt": 6,
+     "maiorLt": 110,
+     "somaLt": 528,
+     "tti": 2068.670000001788,
+     "cpu": {
+      "tarefa_ms": 2670,
+      "script_ms": 555,
+      "estilo_ms": 647,
+      "layout_ms": 217,
+      "n_estilo": 868,
+      "n_layout": 16
+     },
+     "aosMs": 4118.609999999404,
+     "heapMb": 3.7,
+     "rede": {
+      "pedidos": 86,
+      "daRede": 86,
+      "bytes": 529002,
+      "por": {
+       "Document": {
+        "n": 1,
+        "bytes": 1951
+       },
+       "Script": {
+        "n": 75,
+        "bytes": 311126
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 101468
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 113116
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1341
+       }
+      },
+      "urls": [
+       "/ 1951",
+       "/assets/edicaoEstatica-CEZszL7c.js 1251",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 1552",
+       "/assets/grade-p0ReBe33.js 2150",
+       "/assets/store-BXxuL5Fj.js 2918",
+       "/assets/servidor-Do-UhOOh.js 14213",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 36062",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 49390",
+       "/assets/index-CdsPRvTv.css 56861",
+       "/assets/vendor-react-dq0ylnNG.js 62171",
+       "/assets/index-1qSZE85D.js 92036",
+       "/assets/vozNatural-B3-Ser37.js 1160",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 1884",
+       "/assets/base-ext-BThVIs_G.css 8295",
+       "/assets/preferencias-CTRhZH1b.js 2494",
+       "/assets/trophy-DSvwDaWi.js 1460",
+       "/assets/target-7DJmIJU_.js 1356",
+       "/assets/flame-DACqiDzf.js 1367",
+       "/assets/repeat-acTlPVje.js 1391",
+       "/assets/graduation-cap-Co1UqVfm.js 1431",
+       "/assets/star-lS2HOlKd.js 1483",
+       "/assets/globe-B-et50ej.js 1378",
+       "/assets/languages-CINJDKXq.js 1406",
+       "/assets/audio-lines-1rEfOK5R.js 1391",
+       "/assets/brain-cmcjPoCc.js 1497",
+       "/assets/shield-D4Iq-W2-.js 1415",
+       "/assets/lightbulb-qImJsbBz.js 1413",
+       "/assets/calendar-days-B-k-mrZL.js 1504",
+       "/assets/library-DxWrZdOx.js 1367",
+       "/assets/award-BI1TsRla.js 1421",
+       "/assets/book-open-cpk-4Xzs.js 1405",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 3922",
+       "/assets/user-round-Db5XiLqU.js 1370",
+       "/assets/sprout-D82hbF8V.js 1412",
+       "/assets/rocket-Bh1qhf2f.js 1506",
+       "/assets/medal-BoUJLM8Q.js 1744",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 4906",
+       "/assets/radio-Do3raI1L.js 1559",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 1616",
+       "/assets/flags-DMdFaCK3.js 1488",
+       "/assets/shield-check-CkDArtVE.js 1439",
+       "/assets/layout-dashboard-C5RtMBxN.js 1394",
+       "/assets/shirt-DPfE49ad.js 1415",
+       "/assets/chart-column-DcM-4yWp.js 1388",
+       "/assets/credit-card-C-O1df3v.js 1382",
+       "/assets/heart-CZVyHiAN.js 1418",
+       "/assets/settings-DElI3Z6t.js 1448",
+       "/assets/bell-6emOjM2p.js 1424",
+       "/assets/lock-uV26nSOP.js 1377",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 3629",
+       "/assets/ellipsis-ClxI3ryJ.js 1356",
+       "/assets/activity-qqNai76g.js 1389",
+       "/assets/life-buoy-8BfPgVDv.js 1419",
+       "/assets/gauge-DM0B9XiK.js 1352",
+       "/assets/admin-BxidJPk5.js 1699",
+       "/assets/hard-drive-ydu0DVN6.js 1458",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 1597",
+       "/assets/respostaAoApontar-CA9sOugZ.js 2785",
+       "/assets/navItems-BQ5HTjgj.js 1894",
+       "/assets/gamepad-2-B3rwVGdH.js 1573",
+       "/assets/cloud-off-_LAaJP8R.js 1430",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 1281",
+       "/assets/circle-check-yosmW-RQ.js 1360",
+       "/assets/TituloDeSecao-BfoRzA-g.js 1322",
+       "/assets/list-checks-CDFBDRul.js 1374",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 2640",
+       "/assets/chevron-right-D88YNDcF.js 1331",
+       "/assets/layers-Bn7dd7b-.js 1431",
+       "/assets/file-text-B6eP1fcq.js 1405",
+       "/assets/sun-Do1fpNDD.js 1549",
+       "/assets/youtube-CXR9EGQz.js 1411",
+       "/assets/usePerfil-S0DoRvYz.js 1721",
+       "/assets/ParticleCanvas-C05xNdBx.js 5401",
+       "/assets/planos-GRg-WrVS.js 2939",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 2425",
+       "/assets/MissoesDoDia-DijBx2ih.js 2723",
+       "/assets/Barra-BQ1-GuKl.js 1524",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 5751",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 8406",
+       "/assets/questBase-BM6kpslA.css 9162",
+       "/assets/sentidos-D7KDiSu2.js 7869",
+       "/favicon.svg 1341",
+       "/assets/questConta-DeQE6NNH.css 5694",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 16016",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 1600",
+       "/assets/estilos-Bn2P06nb.css 30464"
+      ]
+     }
+    },
+    "quente": {
+     "ttfb": 27.80000000447035,
+     "dcl": 279.38499999791384,
+     "load": 289.2250000014901,
+     "fcp": 387.2550000026822,
+     "lcp": 815.8299999982119,
+     "lcpEl": "SMALL.",
+     "lcpTodos": [
+      {
+       "s": 387.2550000026822,
+       "size": 1530,
+       "el": "DIV.flex h-tela w-full items-center justify-",
+       "url": ""
+      },
+      {
+       "s": 501.52000000327826,
+       "size": 2520,
+       "el": null,
+       "url": ""
+      },
+      {
+       "s": 815.8299999982119,
+       "size": 14790,
+       "el": "SMALL.",
+       "url": ""
+      }
+     ],
+     "cls": 0,
+     "clsN": 1,
+     "lt": [
+      {
+       "s": 568.695000000298,
+       "d": 117
+      },
+      {
+       "s": 688.1899999976158,
+       "d": 115
+      },
+      {
+       "s": 819.6300000026822,
+       "d": 87
+      }
+     ],
+     "marcos": {
+      "tela": 463.3100000023842,
+      "trilho": 535.9500000029802,
+      "palco": 535.9650000035763,
+      "h1": 535.9750000014901
+     },
+     "jsDecod": 661313,
+     "nJs": 76,
+     "nRes": 86,
+     "nos": 276,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "celular-bom",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 169,
+     "nLt": 3,
+     "maiorLt": 117,
+     "somaLt": 319,
+     "tti": 906.6300000026822,
+     "cpu": {
+      "tarefa_ms": 2255,
+      "script_ms": 330,
+      "estilo_ms": 748,
+      "layout_ms": 57,
+      "n_estilo": 824,
+      "n_layout": 14
+     },
+     "aosMs": 3104.7000000029802,
+     "heapMb": 5.1,
+     "rede": {
+      "pedidos": 86,
+      "daRede": 2,
+      "bytes": 2946,
+      "por": {
+       "Script": {
+        "n": 75,
+        "bytes": 0
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 0
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 0
+       },
+       "Document": {
+        "n": 1,
+        "bytes": 1913
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1033
+       }
+      },
+      "urls": [
+       "/assets/index-1qSZE85D.js 0",
+       "/assets/vendor-react-dq0ylnNG.js 0",
+       "/assets/index-CdsPRvTv.css 0",
+       "/assets/servidor-Do-UhOOh.js 0",
+       "/assets/store-BXxuL5Fj.js 0",
+       "/assets/grade-p0ReBe33.js 0",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 0",
+       "/assets/edicaoEstatica-CEZszL7c.js 0",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 0",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 0",
+       "/ 1913",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 0",
+       "/assets/vozNatural-B3-Ser37.js 0",
+       "/assets/preferencias-CTRhZH1b.js 0",
+       "/assets/base-ext-BThVIs_G.css 0",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 0",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 0",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 0",
+       "/assets/trophy-DSvwDaWi.js 0",
+       "/assets/target-7DJmIJU_.js 0",
+       "/assets/calendar-days-B-k-mrZL.js 0",
+       "/assets/repeat-acTlPVje.js 0",
+       "/assets/flame-DACqiDzf.js 0",
+       "/assets/rocket-Bh1qhf2f.js 0",
+       "/assets/graduation-cap-Co1UqVfm.js 0",
+       "/assets/medal-BoUJLM8Q.js 0",
+       "/assets/star-lS2HOlKd.js 0",
+       "/assets/audio-lines-1rEfOK5R.js 0",
+       "/assets/languages-CINJDKXq.js 0",
+       "/assets/globe-B-et50ej.js 0",
+       "/assets/radio-Do3raI1L.js 0",
+       "/assets/shield-D4Iq-W2-.js 0",
+       "/assets/brain-cmcjPoCc.js 0",
+       "/assets/lightbulb-qImJsbBz.js 0",
+       "/assets/library-DxWrZdOx.js 0",
+       "/assets/book-open-cpk-4Xzs.js 0",
+       "/assets/award-BI1TsRla.js 0",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 0",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 0",
+       "/assets/user-round-Db5XiLqU.js 0",
+       "/assets/sprout-D82hbF8V.js 0",
+       "/assets/ParticleCanvas-C05xNdBx.js 0",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 0",
+       "/assets/admin-BxidJPk5.js 0",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 0",
+       "/assets/respostaAoApontar-CA9sOugZ.js 0",
+       "/assets/flags-DMdFaCK3.js 0",
+       "/assets/sentidos-D7KDiSu2.js 0",
+       "/assets/usePerfil-S0DoRvYz.js 0",
+       "/assets/navItems-BQ5HTjgj.js 0",
+       "/assets/shield-check-CkDArtVE.js 0",
+       "/assets/layout-dashboard-C5RtMBxN.js 0",
+       "/assets/gamepad-2-B3rwVGdH.js 0",
+       "/assets/chart-column-DcM-4yWp.js 0",
+       "/assets/shirt-DPfE49ad.js 0",
+       "/assets/heart-CZVyHiAN.js 0",
+       "/assets/credit-card-C-O1df3v.js 0",
+       "/assets/settings-DElI3Z6t.js 0",
+       "/assets/ellipsis-ClxI3ryJ.js 0",
+       "/assets/bell-6emOjM2p.js 0",
+       "/assets/lock-uV26nSOP.js 0",
+       "/assets/life-buoy-8BfPgVDv.js 0",
+       "/assets/activity-qqNai76g.js 0",
+       "/assets/sun-Do1fpNDD.js 0",
+       "/assets/gauge-DM0B9XiK.js 0",
+       "/assets/hard-drive-ydu0DVN6.js 0",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 0",
+       "/assets/questBase-BM6kpslA.css 0",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 0",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 0",
+       "/assets/planos-GRg-WrVS.js 0",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 0",
+       "/assets/cloud-off-_LAaJP8R.js 0",
+       "/assets/MissoesDoDia-DijBx2ih.js 0",
+       "/assets/Barra-BQ1-GuKl.js 0",
+       "/assets/TituloDeSecao-BfoRzA-g.js 0",
+       "/assets/list-checks-CDFBDRul.js 0",
+       "/assets/circle-check-yosmW-RQ.js 0",
+       "/assets/layers-Bn7dd7b-.js 0",
+       "/assets/chevron-right-D88YNDcF.js 0",
+       "/assets/youtube-CXR9EGQz.js 0",
+       "/assets/file-text-B6eP1fcq.js 0",
+       "/assets/estilos-Bn2P06nb.css 0",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 0",
+       "/assets/questConta-DeQE6NNH.css 0",
+       "/favicon.svg 1033"
+      ]
+     }
+    }
+   },
+   {
+    "fria": {
+     "ttfb": 108.84500000625849,
+     "dcl": 892.4950000047684,
+     "load": 1306.6000000014901,
+     "fcp": 1044.8950000032783,
+     "lcp": 2227.0250000059605,
+     "lcpEl": "SMALL.",
+     "lcpTodos": [
+      {
+       "s": 1044.8950000032783,
+       "size": 1530,
+       "el": "DIV.carregando-da-tela flex-1 flex items-cen",
+       "url": ""
+      },
+      {
+       "s": 1823.460000000894,
+       "size": 12348,
+       "el": "SPAN.q-d",
+       "url": ""
+      },
+      {
+       "s": 2227.0250000059605,
+       "size": 14790,
+       "el": "SMALL.",
+       "url": ""
+      }
+     ],
+     "cls": 0.019444475640708878,
+     "clsN": 1,
+     "lt": [
+      {
+       "s": 776.7250000014901,
+       "d": 118
+      },
+      {
+       "s": 968.6750000044703,
+       "d": 58
+      },
+      {
+       "s": 1090.6600000038743,
+       "d": 51
+      },
+      {
+       "s": 1662.4200000017881,
+       "d": 111
+      },
+      {
+       "s": 1920.3950000032783,
+       "d": 87
+      },
+      {
+       "s": 2009.5200000032783,
+       "d": 94
+      }
+     ],
+     "marcos": {
+      "tela": 1026.5450000017881,
+      "palco": 1360.6300000026822,
+      "h1": 1360.6350000053644,
+      "trilho": 1662.234999999404
+     },
+     "jsDecod": 661313,
+     "nJs": 76,
+     "nRes": 86,
+     "nos": 276,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "celular-bom",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 143,
+     "nLt": 6,
+     "maiorLt": 118,
+     "somaLt": 519,
+     "tti": 2103.5200000032783,
+     "cpu": {
+      "tarefa_ms": 2760,
+      "script_ms": 567,
+      "estilo_ms": 678,
+      "layout_ms": 221,
+      "n_estilo": 841,
+      "n_layout": 17
+     },
+     "aosMs": 4161.210000000894,
+     "heapMb": 3.7,
+     "rede": {
+      "pedidos": 86,
+      "daRede": 86,
+      "bytes": 529318,
+      "por": {
+       "Document": {
+        "n": 1,
+        "bytes": 1958
+       },
+       "Script": {
+        "n": 75,
+        "bytes": 311325
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 101465
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 113227
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1343
+       }
+      },
+      "urls": [
+       "/ 1958",
+       "/assets/edicaoEstatica-CEZszL7c.js 1287",
+       "/assets/grade-p0ReBe33.js 2149",
+       "/assets/store-BXxuL5Fj.js 2923",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 1560",
+       "/assets/servidor-Do-UhOOh.js 14211",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 36047",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 49390",
+       "/assets/index-CdsPRvTv.css 56976",
+       "/assets/vendor-react-dq0ylnNG.js 62157",
+       "/assets/index-1qSZE85D.js 92195",
+       "/assets/vozNatural-B3-Ser37.js 1158",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 1891",
+       "/assets/preferencias-CTRhZH1b.js 2486",
+       "/assets/base-ext-BThVIs_G.css 8298",
+       "/assets/trophy-DSvwDaWi.js 1468",
+       "/assets/repeat-acTlPVje.js 1389",
+       "/assets/target-7DJmIJU_.js 1354",
+       "/assets/calendar-days-B-k-mrZL.js 1498",
+       "/assets/flame-DACqiDzf.js 1375",
+       "/assets/graduation-cap-Co1UqVfm.js 1434",
+       "/assets/star-lS2HOlKd.js 1486",
+       "/assets/audio-lines-1rEfOK5R.js 1395",
+       "/assets/languages-CINJDKXq.js 1408",
+       "/assets/globe-B-et50ej.js 1386",
+       "/assets/shield-D4Iq-W2-.js 1410",
+       "/assets/brain-cmcjPoCc.js 1491",
+       "/assets/lightbulb-qImJsbBz.js 1420",
+       "/assets/book-open-cpk-4Xzs.js 1394",
+       "/assets/library-DxWrZdOx.js 1371",
+       "/assets/award-BI1TsRla.js 1421",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 3928",
+       "/assets/sprout-D82hbF8V.js 1410",
+       "/assets/user-round-Db5XiLqU.js 1370",
+       "/assets/rocket-Bh1qhf2f.js 1507",
+       "/assets/medal-BoUJLM8Q.js 1738",
+       "/assets/radio-Do3raI1L.js 1549",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 1614",
+       "/assets/flags-DMdFaCK3.js 1476",
+       "/assets/layout-dashboard-C5RtMBxN.js 1395",
+       "/assets/shield-check-CkDArtVE.js 1439",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 4901",
+       "/assets/chart-column-DcM-4yWp.js 1385",
+       "/assets/heart-CZVyHiAN.js 1416",
+       "/assets/credit-card-C-O1df3v.js 1385",
+       "/assets/shirt-DPfE49ad.js 1418",
+       "/assets/settings-DElI3Z6t.js 1452",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 3636",
+       "/assets/ellipsis-ClxI3ryJ.js 1348",
+       "/assets/lock-uV26nSOP.js 1383",
+       "/assets/bell-6emOjM2p.js 1430",
+       "/assets/activity-qqNai76g.js 1390",
+       "/assets/life-buoy-8BfPgVDv.js 1416",
+       "/assets/gauge-DM0B9XiK.js 1355",
+       "/assets/hard-drive-ydu0DVN6.js 1461",
+       "/assets/admin-BxidJPk5.js 1695",
+       "/assets/respostaAoApontar-CA9sOugZ.js 2782",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 1601",
+       "/assets/usePerfil-S0DoRvYz.js 1719",
+       "/assets/navItems-BQ5HTjgj.js 1899",
+       "/assets/gamepad-2-B3rwVGdH.js 1571",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 1274",
+       "/assets/cloud-off-_LAaJP8R.js 1416",
+       "/assets/TituloDeSecao-BfoRzA-g.js 1327",
+       "/assets/list-checks-CDFBDRul.js 1376",
+       "/assets/layers-Bn7dd7b-.js 1421",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 2639",
+       "/assets/circle-check-yosmW-RQ.js 1363",
+       "/assets/chevron-right-D88YNDcF.js 1332",
+       "/assets/youtube-CXR9EGQz.js 1407",
+       "/assets/file-text-B6eP1fcq.js 1398",
+       "/assets/sun-Do1fpNDD.js 1548",
+       "/assets/ParticleCanvas-C05xNdBx.js 5406",
+       "/assets/planos-GRg-WrVS.js 2942",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 2421",
+       "/assets/MissoesDoDia-DijBx2ih.js 2723",
+       "/assets/Barra-BQ1-GuKl.js 1527",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 5769",
+       "/assets/questBase-BM6kpslA.css 9162",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 8412",
+       "/assets/sentidos-D7KDiSu2.js 7872",
+       "/favicon.svg 1343",
+       "/assets/questConta-DeQE6NNH.css 5687",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 16028",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 1605",
+       "/assets/estilos-Bn2P06nb.css 30465"
+      ]
+     }
+    },
+    "quente": {
+     "ttfb": 39.939999997615814,
+     "dcl": 295.94999999552965,
+     "load": 305.9949999973178,
+     "fcp": 401.6599999964237,
+     "lcp": 812.3349999934435,
+     "lcpEl": "SMALL.",
+     "lcpTodos": [
+      {
+       "s": 401.6599999964237,
+       "size": 1530,
+       "el": "DIV.flex h-tela w-full items-center justify-",
+       "url": ""
+      },
+      {
+       "s": 812.3349999934435,
+       "size": 14790,
+       "el": "SMALL.",
+       "url": ""
+      }
+     ],
+     "cls": 0,
+     "clsN": 1,
+     "lt": [
+      {
+       "s": 618.7949999943376,
+       "d": 120
+      },
+      {
+       "s": 801.3549999967217,
+       "d": 94
+      },
+      {
+       "s": 919.6399999931455,
+       "d": 51
+      }
+     ],
+     "marcos": {
+      "tela": 474.31999999284744,
+      "palco": 530.2549999952316,
+      "h1": 530.2649999931455,
+      "trilho": 580.1649999991059
+     },
+     "jsDecod": 661313,
+     "nJs": 76,
+     "nRes": 86,
+     "nos": 276,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "celular-bom",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 115,
+     "nLt": 3,
+     "maiorLt": 120,
+     "somaLt": 265,
+     "tti": 970.6399999931455,
+     "cpu": {
+      "tarefa_ms": 2298,
+      "script_ms": 317,
+      "estilo_ms": 699,
+      "layout_ms": 46,
+      "n_estilo": 841,
+      "n_layout": 15
+     },
+     "aosMs": 3097.4649999961257,
+     "heapMb": 5,
+     "rede": {
+      "pedidos": 86,
+      "daRede": 2,
+      "bytes": 2951,
+      "por": {
+       "Script": {
+        "n": 75,
+        "bytes": 0
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 0
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 0
+       },
+       "Document": {
+        "n": 1,
+        "bytes": 1920
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1031
+       }
+      },
+      "urls": [
+       "/assets/index-1qSZE85D.js 0",
+       "/assets/vendor-react-dq0ylnNG.js 0",
+       "/assets/index-CdsPRvTv.css 0",
+       "/assets/servidor-Do-UhOOh.js 0",
+       "/assets/store-BXxuL5Fj.js 0",
+       "/assets/grade-p0ReBe33.js 0",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 0",
+       "/assets/edicaoEstatica-CEZszL7c.js 0",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 0",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 0",
+       "/ 1920",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 0",
+       "/assets/vozNatural-B3-Ser37.js 0",
+       "/assets/preferencias-CTRhZH1b.js 0",
+       "/assets/base-ext-BThVIs_G.css 0",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 0",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 0",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 0",
+       "/assets/trophy-DSvwDaWi.js 0",
+       "/assets/target-7DJmIJU_.js 0",
+       "/assets/calendar-days-B-k-mrZL.js 0",
+       "/assets/repeat-acTlPVje.js 0",
+       "/assets/flame-DACqiDzf.js 0",
+       "/assets/rocket-Bh1qhf2f.js 0",
+       "/assets/graduation-cap-Co1UqVfm.js 0",
+       "/assets/medal-BoUJLM8Q.js 0",
+       "/assets/star-lS2HOlKd.js 0",
+       "/assets/audio-lines-1rEfOK5R.js 0",
+       "/assets/languages-CINJDKXq.js 0",
+       "/assets/globe-B-et50ej.js 0",
+       "/assets/radio-Do3raI1L.js 0",
+       "/assets/shield-D4Iq-W2-.js 0",
+       "/assets/brain-cmcjPoCc.js 0",
+       "/assets/lightbulb-qImJsbBz.js 0",
+       "/assets/library-DxWrZdOx.js 0",
+       "/assets/book-open-cpk-4Xzs.js 0",
+       "/assets/award-BI1TsRla.js 0",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 0",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 0",
+       "/assets/user-round-Db5XiLqU.js 0",
+       "/assets/sprout-D82hbF8V.js 0",
+       "/assets/ParticleCanvas-C05xNdBx.js 0",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 0",
+       "/assets/admin-BxidJPk5.js 0",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 0",
+       "/assets/respostaAoApontar-CA9sOugZ.js 0",
+       "/assets/flags-DMdFaCK3.js 0",
+       "/assets/sentidos-D7KDiSu2.js 0",
+       "/assets/usePerfil-S0DoRvYz.js 0",
+       "/assets/navItems-BQ5HTjgj.js 0",
+       "/assets/shield-check-CkDArtVE.js 0",
+       "/assets/layout-dashboard-C5RtMBxN.js 0",
+       "/assets/gamepad-2-B3rwVGdH.js 0",
+       "/assets/chart-column-DcM-4yWp.js 0",
+       "/assets/shirt-DPfE49ad.js 0",
+       "/assets/heart-CZVyHiAN.js 0",
+       "/assets/credit-card-C-O1df3v.js 0",
+       "/assets/settings-DElI3Z6t.js 0",
+       "/assets/ellipsis-ClxI3ryJ.js 0",
+       "/assets/bell-6emOjM2p.js 0",
+       "/assets/lock-uV26nSOP.js 0",
+       "/assets/life-buoy-8BfPgVDv.js 0",
+       "/assets/activity-qqNai76g.js 0",
+       "/assets/sun-Do1fpNDD.js 0",
+       "/assets/gauge-DM0B9XiK.js 0",
+       "/assets/hard-drive-ydu0DVN6.js 0",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 0",
+       "/assets/questBase-BM6kpslA.css 0",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 0",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 0",
+       "/assets/planos-GRg-WrVS.js 0",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 0",
+       "/assets/cloud-off-_LAaJP8R.js 0",
+       "/assets/MissoesDoDia-DijBx2ih.js 0",
+       "/assets/Barra-BQ1-GuKl.js 0",
+       "/assets/TituloDeSecao-BfoRzA-g.js 0",
+       "/assets/list-checks-CDFBDRul.js 0",
+       "/assets/circle-check-yosmW-RQ.js 0",
+       "/assets/layers-Bn7dd7b-.js 0",
+       "/assets/chevron-right-D88YNDcF.js 0",
+       "/assets/youtube-CXR9EGQz.js 0",
+       "/assets/file-text-B6eP1fcq.js 0",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 0",
+       "/assets/questConta-DeQE6NNH.css 0",
+       "/favicon.svg 1031",
+       "/assets/estilos-Bn2P06nb.css 0"
+      ]
+     }
+    }
+   },
+   {
+    "fria": {
+     "ttfb": 82.30499999970198,
+     "dcl": 864.984999999404,
+     "load": 1279.8800000026822,
+     "fcp": 1026.7400000020862,
+     "lcp": 2187.429999999702,
+     "lcpEl": "SMALL.",
+     "lcpTodos": [
+      {
+       "s": 1026.7400000020862,
+       "size": 1530,
+       "el": "DIV.carregando-da-tela flex-1 flex items-cen",
+       "url": ""
+      },
+      {
+       "s": 1783.8650000020862,
+       "size": 12348,
+       "el": "SPAN.q-d",
+       "url": ""
+      },
+      {
+       "s": 2187.429999999702,
+       "size": 14790,
+       "el": "SMALL.",
+       "url": ""
+      }
+     ],
+     "cls": 0.019444475640708878,
+     "clsN": 1,
+     "lt": [
+      {
+       "s": 748.2850000038743,
+       "d": 120
+      },
+      {
+       "s": 944.5950000062585,
+       "d": 64
+      },
+      {
+       "s": 1069.3400000035763,
+       "d": 51
+      },
+      {
+       "s": 1632.9800000041723,
+       "d": 106
+      },
+      {
+       "s": 1886.1050000041723,
+       "d": 91
+      },
+      {
+       "s": 1979.554999999702,
+       "d": 94
+      }
+     ],
+     "marcos": {
+      "tela": 1009.125,
+      "palco": 1332.2250000014901,
+      "h1": 1332.2300000041723,
+      "trilho": 1632.9650000035763
+     },
+     "jsDecod": 661313,
+     "nJs": 76,
+     "nRes": 86,
+     "nos": 276,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "celular-bom",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 142,
+     "nLt": 6,
+     "maiorLt": 120,
+     "somaLt": 526,
+     "tti": 2073.554999999702,
+     "cpu": {
+      "tarefa_ms": 2485,
+      "script_ms": 540,
+      "estilo_ms": 599,
+      "layout_ms": 233,
+      "n_estilo": 870,
+      "n_layout": 17
+     },
+     "aosMs": 4113.955000005662,
+     "heapMb": 3.7,
+     "rede": {
+      "pedidos": 86,
+      "daRede": 86,
+      "bytes": 529042,
+      "por": {
+       "Document": {
+        "n": 1,
+        "bytes": 1954
+       },
+       "Script": {
+        "n": 75,
+        "bytes": 311147
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 101462
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 113141
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1338
+       }
+      },
+      "urls": [
+       "/ 1954",
+       "/assets/edicaoEstatica-CEZszL7c.js 1249",
+       "/assets/store-BXxuL5Fj.js 2918",
+       "/assets/grade-p0ReBe33.js 2149",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 1564",
+       "/assets/servidor-Do-UhOOh.js 14211",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 36050",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 49387",
+       "/assets/index-CdsPRvTv.css 56973",
+       "/assets/vendor-react-dq0ylnNG.js 62175",
+       "/assets/index-1qSZE85D.js 92037",
+       "/assets/base-ext-BThVIs_G.css 8300",
+       "/assets/vozNatural-B3-Ser37.js 1168",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 1888",
+       "/assets/preferencias-CTRhZH1b.js 2488",
+       "/assets/target-7DJmIJU_.js 1357",
+       "/assets/trophy-DSvwDaWi.js 1469",
+       "/assets/repeat-acTlPVje.js 1392",
+       "/assets/flame-DACqiDzf.js 1366",
+       "/assets/graduation-cap-Co1UqVfm.js 1434",
+       "/assets/languages-CINJDKXq.js 1406",
+       "/assets/audio-lines-1rEfOK5R.js 1389",
+       "/assets/star-lS2HOlKd.js 1487",
+       "/assets/calendar-days-B-k-mrZL.js 1505",
+       "/assets/globe-B-et50ej.js 1379",
+       "/assets/shield-D4Iq-W2-.js 1413",
+       "/assets/brain-cmcjPoCc.js 1492",
+       "/assets/lightbulb-qImJsbBz.js 1414",
+       "/assets/book-open-cpk-4Xzs.js 1399",
+       "/assets/library-DxWrZdOx.js 1368",
+       "/assets/award-BI1TsRla.js 1419",
+       "/assets/sprout-D82hbF8V.js 1412",
+       "/assets/user-round-Db5XiLqU.js 1369",
+       "/assets/rocket-Bh1qhf2f.js 1505",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 3924",
+       "/assets/medal-BoUJLM8Q.js 1739",
+       "/assets/radio-Do3raI1L.js 1553",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 4904",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 1612",
+       "/assets/flags-DMdFaCK3.js 1479",
+       "/assets/shield-check-CkDArtVE.js 1435",
+       "/assets/layout-dashboard-C5RtMBxN.js 1396",
+       "/assets/chart-column-DcM-4yWp.js 1386",
+       "/assets/heart-CZVyHiAN.js 1417",
+       "/assets/shirt-DPfE49ad.js 1417",
+       "/assets/ellipsis-ClxI3ryJ.js 1348",
+       "/assets/credit-card-C-O1df3v.js 1382",
+       "/assets/settings-DElI3Z6t.js 1450",
+       "/assets/bell-6emOjM2p.js 1436",
+       "/assets/life-buoy-8BfPgVDv.js 1423",
+       "/assets/lock-uV26nSOP.js 1383",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 3631",
+       "/assets/activity-qqNai76g.js 1387",
+       "/assets/gauge-DM0B9XiK.js 1355",
+       "/assets/hard-drive-ydu0DVN6.js 1458",
+       "/assets/admin-BxidJPk5.js 1698",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 1593",
+       "/assets/respostaAoApontar-CA9sOugZ.js 2778",
+       "/assets/navItems-BQ5HTjgj.js 1893",
+       "/assets/usePerfil-S0DoRvYz.js 1723",
+       "/assets/gamepad-2-B3rwVGdH.js 1568",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 1280",
+       "/assets/cloud-off-_LAaJP8R.js 1424",
+       "/assets/TituloDeSecao-BfoRzA-g.js 1326",
+       "/assets/list-checks-CDFBDRul.js 1369",
+       "/assets/circle-check-yosmW-RQ.js 1362",
+       "/assets/layers-Bn7dd7b-.js 1427",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 2637",
+       "/assets/youtube-CXR9EGQz.js 1403",
+       "/assets/chevron-right-D88YNDcF.js 1328",
+       "/assets/file-text-B6eP1fcq.js 1406",
+       "/assets/sun-Do1fpNDD.js 1547",
+       "/assets/ParticleCanvas-C05xNdBx.js 5406",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 2432",
+       "/assets/planos-GRg-WrVS.js 2942",
+       "/assets/MissoesDoDia-DijBx2ih.js 2725",
+       "/assets/Barra-BQ1-GuKl.js 1529",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 5755",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 8413",
+       "/assets/questBase-BM6kpslA.css 9153",
+       "/assets/sentidos-D7KDiSu2.js 7869",
+       "/favicon.svg 1338",
+       "/assets/questConta-DeQE6NNH.css 5688",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 16025",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 1614",
+       "/assets/estilos-Bn2P06nb.css 30390"
+      ]
+     }
+    },
+    "quente": {
+     "ttfb": 31.365000002086163,
+     "dcl": 271.4050000011921,
+     "load": 279.78999999910593,
+     "fcp": 369.52000000327826,
+     "lcp": 758.8100000023842,
+     "lcpEl": "SMALL.",
+     "lcpTodos": [
+      {
+       "s": 369.52000000327826,
+       "size": 1530,
+       "el": "DIV.flex h-tela w-full items-center justify-",
+       "url": ""
+      },
+      {
+       "s": 758.8100000023842,
+       "size": 14790,
+       "el": "SMALL.",
+       "url": ""
+      }
+     ],
+     "cls": 0,
+     "clsN": 1,
+     "lt": [
+      {
+       "s": 568.9350000023842,
+       "d": 112
+      },
+      {
+       "s": 682.0300000011921,
+       "d": 53
+      },
+      {
+       "s": 755.0099999979138,
+       "d": 98
+      }
+     ],
+     "marcos": {
+      "tela": 437.14500000327826,
+      "palco": 492.7150000035763,
+      "h1": 492.7250000014901,
+      "trilho": 538.7000000029802
+     },
+     "jsDecod": 661313,
+     "nJs": 76,
+     "nRes": 86,
+     "nos": 276,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "celular-bom",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 113,
+     "nLt": 3,
+     "maiorLt": 112,
+     "somaLt": 263,
+     "tti": 853.0099999979138,
+     "cpu": {
+      "tarefa_ms": 2119,
+      "script_ms": 312,
+      "estilo_ms": 645,
+      "layout_ms": 47,
+      "n_estilo": 863,
+      "n_layout": 15
+     },
+     "aosMs": 3039.1450000032783,
+     "heapMb": 5,
+     "rede": {
+      "pedidos": 86,
+      "daRede": 2,
+      "bytes": 2941,
+      "por": {
+       "Script": {
+        "n": 75,
+        "bytes": 0
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 0
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 0
+       },
+       "Document": {
+        "n": 1,
+        "bytes": 1910
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1031
+       }
+      },
+      "urls": [
+       "/assets/index-1qSZE85D.js 0",
+       "/assets/vendor-react-dq0ylnNG.js 0",
+       "/assets/index-CdsPRvTv.css 0",
+       "/assets/servidor-Do-UhOOh.js 0",
+       "/assets/store-BXxuL5Fj.js 0",
+       "/assets/grade-p0ReBe33.js 0",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 0",
+       "/assets/edicaoEstatica-CEZszL7c.js 0",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 0",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 0",
+       "/ 1910",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 0",
+       "/assets/vozNatural-B3-Ser37.js 0",
+       "/assets/preferencias-CTRhZH1b.js 0",
+       "/assets/base-ext-BThVIs_G.css 0",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 0",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 0",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 0",
+       "/assets/trophy-DSvwDaWi.js 0",
+       "/assets/target-7DJmIJU_.js 0",
+       "/assets/calendar-days-B-k-mrZL.js 0",
+       "/assets/repeat-acTlPVje.js 0",
+       "/assets/flame-DACqiDzf.js 0",
+       "/assets/rocket-Bh1qhf2f.js 0",
+       "/assets/graduation-cap-Co1UqVfm.js 0",
+       "/assets/medal-BoUJLM8Q.js 0",
+       "/assets/star-lS2HOlKd.js 0",
+       "/assets/audio-lines-1rEfOK5R.js 0",
+       "/assets/languages-CINJDKXq.js 0",
+       "/assets/globe-B-et50ej.js 0",
+       "/assets/radio-Do3raI1L.js 0",
+       "/assets/shield-D4Iq-W2-.js 0",
+       "/assets/brain-cmcjPoCc.js 0",
+       "/assets/lightbulb-qImJsbBz.js 0",
+       "/assets/library-DxWrZdOx.js 0",
+       "/assets/book-open-cpk-4Xzs.js 0",
+       "/assets/award-BI1TsRla.js 0",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 0",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 0",
+       "/assets/user-round-Db5XiLqU.js 0",
+       "/assets/sprout-D82hbF8V.js 0",
+       "/assets/ParticleCanvas-C05xNdBx.js 0",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 0",
+       "/assets/admin-BxidJPk5.js 0",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 0",
+       "/assets/respostaAoApontar-CA9sOugZ.js 0",
+       "/assets/flags-DMdFaCK3.js 0",
+       "/assets/sentidos-D7KDiSu2.js 0",
+       "/assets/usePerfil-S0DoRvYz.js 0",
+       "/assets/navItems-BQ5HTjgj.js 0",
+       "/assets/shield-check-CkDArtVE.js 0",
+       "/assets/layout-dashboard-C5RtMBxN.js 0",
+       "/assets/gamepad-2-B3rwVGdH.js 0",
+       "/assets/chart-column-DcM-4yWp.js 0",
+       "/assets/shirt-DPfE49ad.js 0",
+       "/assets/heart-CZVyHiAN.js 0",
+       "/assets/credit-card-C-O1df3v.js 0",
+       "/assets/settings-DElI3Z6t.js 0",
+       "/assets/ellipsis-ClxI3ryJ.js 0",
+       "/assets/bell-6emOjM2p.js 0",
+       "/assets/lock-uV26nSOP.js 0",
+       "/assets/life-buoy-8BfPgVDv.js 0",
+       "/assets/activity-qqNai76g.js 0",
+       "/assets/sun-Do1fpNDD.js 0",
+       "/assets/gauge-DM0B9XiK.js 0",
+       "/assets/hard-drive-ydu0DVN6.js 0",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 0",
+       "/assets/questBase-BM6kpslA.css 0",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 0",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 0",
+       "/assets/planos-GRg-WrVS.js 0",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 0",
+       "/assets/cloud-off-_LAaJP8R.js 0",
+       "/assets/MissoesDoDia-DijBx2ih.js 0",
+       "/assets/Barra-BQ1-GuKl.js 0",
+       "/assets/TituloDeSecao-BfoRzA-g.js 0",
+       "/assets/list-checks-CDFBDRul.js 0",
+       "/assets/circle-check-yosmW-RQ.js 0",
+       "/assets/layers-Bn7dd7b-.js 0",
+       "/assets/chevron-right-D88YNDcF.js 0",
+       "/assets/youtube-CXR9EGQz.js 0",
+       "/assets/file-text-B6eP1fcq.js 0",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 0",
+       "/assets/questConta-DeQE6NNH.css 0",
+       "/assets/estilos-Bn2P06nb.css 0",
+       "/favicon.svg 1031"
+      ]
+     }
+    }
+   }
+  ]
+ },
+ "cel-fraco": {
+  "mediana": {
+   "fria": {
+    "ttfb": 100,
+    "fcp": 1108,
+    "lcp": 2733,
+    "palco": 1695,
+    "tti": 2717,
+    "tbt": 562,
+    "cls": 0.0198,
+    "maiorLt": 211,
+    "pedidos": 86,
+    "daRede": 86,
+    "kB": 517,
+    "jsDecodKB": 646,
+    "script_ms": 842,
+    "estilo_ms": 968,
+    "layout_ms": 412,
+    "tarefa_ms": 4000,
+    "heapMb": 4.3,
+    "nos": 276
+   },
+   "quente": {
+    "ttfb": 31,
+    "fcp": 437,
+    "lcp": 1133,
+    "palco": 709,
+    "tti": 1398,
+    "tbt": 333,
+    "cls": 0,
+    "maiorLt": 187,
+    "pedidos": 86,
+    "daRede": 2,
+    "kB": 3,
+    "jsDecodKB": 646,
+    "script_ms": 476,
+    "estilo_ms": 991,
+    "layout_ms": 76,
+    "tarefa_ms": 3138,
+    "heapMb": 5.7,
+    "nos": 276
+   }
+  },
+  "runs": [
+   {
+    "fria": {
+     "ttfb": 100.48499999940395,
+     "dcl": 1124.4099999964237,
+     "load": 1330.3399999961257,
+     "fcp": 1287.3299999982119,
+     "lcp": 3062.329999998212,
+     "lcpEl": "SMALL.",
+     "lcpTodos": [
+      {
+       "s": 1287.3299999982119,
+       "size": 1530,
+       "el": "DIV.flex h-tela w-full items-center justify-",
+       "url": ""
+      },
+      {
+       "s": 3062.329999998212,
+       "size": 14790,
+       "el": "SMALL.",
+       "url": ""
+      }
+     ],
+     "cls": 0.019774484124173035,
+     "clsN": 2,
+     "lt": [
+      {
+       "s": 864.75,
+       "d": 270
+      },
+      {
+       "s": 1141.6349999979138,
+       "d": 53
+      },
+      {
+       "s": 1366.7949999943376,
+       "d": 73
+      },
+      {
+       "s": 1833.984999999404,
+       "d": 102
+      },
+      {
+       "s": 1962.9899999946356,
+       "d": 55
+      },
+      {
+       "s": 2226.5849999934435,
+       "d": 230
+      },
+      {
+       "s": 2462.4349999949336,
+       "d": 125
+      },
+      {
+       "s": 2644.869999997318,
+       "d": 156
+      },
+      {
+       "s": 2843.570000000298,
+       "d": 106
+      },
+      {
+       "s": 2952.039999999106,
+       "d": 212
+      }
+     ],
+     "marcos": {
+      "tela": 1440.0299999937415,
+      "trilho": 2018.1749999970198,
+      "palco": 2018.359999999404,
+      "h1": 2018.3649999946356
+     },
+     "jsDecod": 661313,
+     "nJs": 76,
+     "nRes": 86,
+     "nos": 276,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "celular-bom",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 659,
+     "nLt": 10,
+     "maiorLt": 270,
+     "somaLt": 1382,
+     "tti": 3164.039999999106,
+     "cpu": {
+      "tarefa_ms": 4494,
+      "script_ms": 1001,
+      "estilo_ms": 1066,
+      "layout_ms": 436,
+      "n_estilo": 662,
+      "n_layout": 18
+     },
+     "aosMs": 5252.125,
+     "heapMb": 4.4,
+     "rede": {
+      "pedidos": 86,
+      "daRede": 86,
+      "bytes": 529234,
+      "por": {
+       "Document": {
+        "n": 1,
+        "bytes": 1956
+       },
+       "Script": {
+        "n": 75,
+        "bytes": 311261
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 101466
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 113218
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1333
+       }
+      },
+      "urls": [
+       "/ 1956",
+       "/assets/edicaoEstatica-CEZszL7c.js 1243",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 1552",
+       "/assets/grade-p0ReBe33.js 2149",
+       "/assets/store-BXxuL5Fj.js 2918",
+       "/assets/servidor-Do-UhOOh.js 14236",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 36058",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 49383",
+       "/assets/index-CdsPRvTv.css 56964",
+       "/assets/vendor-react-dq0ylnNG.js 62137",
+       "/assets/index-1qSZE85D.js 92199",
+       "/assets/base-ext-BThVIs_G.css 8302",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 1880",
+       "/assets/vozNatural-B3-Ser37.js 1164",
+       "/assets/preferencias-CTRhZH1b.js 2484",
+       "/assets/trophy-DSvwDaWi.js 1472",
+       "/assets/target-7DJmIJU_.js 1354",
+       "/assets/repeat-acTlPVje.js 1389",
+       "/assets/flame-DACqiDzf.js 1364",
+       "/assets/graduation-cap-Co1UqVfm.js 1436",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 3924",
+       "/assets/calendar-days-B-k-mrZL.js 1503",
+       "/assets/star-lS2HOlKd.js 1482",
+       "/assets/audio-lines-1rEfOK5R.js 1392",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 4904",
+       "/assets/languages-CINJDKXq.js 1407",
+       "/assets/globe-B-et50ej.js 1377",
+       "/assets/shield-D4Iq-W2-.js 1409",
+       "/assets/brain-cmcjPoCc.js 1496",
+       "/assets/lightbulb-qImJsbBz.js 1415",
+       "/assets/rocket-Bh1qhf2f.js 1509",
+       "/assets/library-DxWrZdOx.js 1371",
+       "/assets/book-open-cpk-4Xzs.js 1397",
+       "/assets/award-BI1TsRla.js 1417",
+       "/assets/medal-BoUJLM8Q.js 1743",
+       "/assets/user-round-Db5XiLqU.js 1372",
+       "/assets/sprout-D82hbF8V.js 1409",
+       "/assets/radio-Do3raI1L.js 1547",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 1613",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 3632",
+       "/assets/ParticleCanvas-C05xNdBx.js 5403",
+       "/assets/flags-DMdFaCK3.js 1481",
+       "/assets/admin-BxidJPk5.js 1700",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 1605",
+       "/assets/shield-check-CkDArtVE.js 1441",
+       "/assets/layout-dashboard-C5RtMBxN.js 1400",
+       "/assets/respostaAoApontar-CA9sOugZ.js 2785",
+       "/assets/chart-column-DcM-4yWp.js 1391",
+       "/assets/shirt-DPfE49ad.js 1416",
+       "/assets/heart-CZVyHiAN.js 1413",
+       "/assets/credit-card-C-O1df3v.js 1382",
+       "/assets/settings-DElI3Z6t.js 1447",
+       "/assets/ellipsis-ClxI3ryJ.js 1352",
+       "/assets/usePerfil-S0DoRvYz.js 1723",
+       "/assets/lock-uV26nSOP.js 1373",
+       "/assets/bell-6emOjM2p.js 1426",
+       "/assets/life-buoy-8BfPgVDv.js 1421",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 2644",
+       "/assets/activity-qqNai76g.js 1389",
+       "/assets/navItems-BQ5HTjgj.js 1893",
+       "/assets/hard-drive-ydu0DVN6.js 1465",
+       "/assets/gauge-DM0B9XiK.js 1356",
+       "/assets/gamepad-2-B3rwVGdH.js 1576",
+       "/assets/cloud-off-_LAaJP8R.js 1420",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 1276",
+       "/assets/questBase-BM6kpslA.css 9158",
+       "/assets/TituloDeSecao-BfoRzA-g.js 1323",
+       "/assets/circle-check-yosmW-RQ.js 1362",
+       "/assets/list-checks-CDFBDRul.js 1370",
+       "/assets/layers-Bn7dd7b-.js 1426",
+       "/assets/chevron-right-D88YNDcF.js 1326",
+       "/assets/sun-Do1fpNDD.js 1553",
+       "/assets/youtube-CXR9EGQz.js 1413",
+       "/assets/file-text-B6eP1fcq.js 1409",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 2426",
+       "/assets/planos-GRg-WrVS.js 2935",
+       "/assets/MissoesDoDia-DijBx2ih.js 2720",
+       "/assets/Barra-BQ1-GuKl.js 1523",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 8411",
+       "/assets/sentidos-D7KDiSu2.js 7873",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 5755",
+       "/favicon.svg 1333",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 16025",
+       "/assets/estilos-Bn2P06nb.css 30461",
+       "/assets/questConta-DeQE6NNH.css 5689",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 1606"
+      ]
+     }
+    },
+    "quente": {
+     "ttfb": 36.78999999910593,
+     "dcl": 340.57999999821186,
+     "load": 354.04499999433756,
+     "fcp": 434.5199999958277,
+     "lcp": 1138.094999998808,
+     "lcpEl": "SMALL.",
+     "lcpTodos": [
+      {
+       "s": 434.5199999958277,
+       "size": 1530,
+       "el": "DIV.flex h-tela w-full items-center justify-",
+       "url": ""
+      },
+      {
+       "s": 652.3649999946356,
+       "size": 2520,
+       "el": null,
+       "url": ""
+      },
+      {
+       "s": 1138.094999998808,
+       "size": 14790,
+       "el": "SMALL.",
+       "url": ""
+      }
+     ],
+     "cls": 0,
+     "clsN": 1,
+     "lt": [
+      {
+       "s": 355.4649999961257,
+       "d": 59
+      },
+      {
+       "s": 533.9649999961257,
+       "d": 69
+      },
+      {
+       "s": 850.2099999934435,
+       "d": 189
+      },
+      {
+       "s": 1041.179999999702,
+       "d": 73
+      },
+      {
+       "s": 1131.1949999928474,
+       "d": 151
+      },
+      {
+       "s": 1314.1949999928474,
+       "d": 76
+      }
+     ],
+     "marcos": {
+      "tela": 603.4949999973178,
+      "palco": 712.5799999982119,
+      "h1": 712.5799999982119,
+      "trilho": 793.1599999964237
+     },
+     "jsDecod": 661313,
+     "nJs": 76,
+     "nRes": 86,
+     "nos": 276,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "celular-bom",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 308,
+     "nLt": 6,
+     "maiorLt": 189,
+     "somaLt": 617,
+     "tti": 1390.1949999928474,
+     "cpu": {
+      "tarefa_ms": 3138,
+      "script_ms": 476,
+      "estilo_ms": 991,
+      "layout_ms": 71,
+      "n_estilo": 608,
+      "n_layout": 16
+     },
+     "aosMs": 3474.7299999967217,
+     "heapMb": 5.8,
+     "rede": {
+      "pedidos": 86,
+      "daRede": 2,
+      "bytes": 2962,
+      "por": {
+       "Script": {
+        "n": 75,
+        "bytes": 0
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 0
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 0
+       },
+       "Document": {
+        "n": 1,
+        "bytes": 1926
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1036
+       }
+      },
+      "urls": [
+       "/assets/index-1qSZE85D.js 0",
+       "/assets/vendor-react-dq0ylnNG.js 0",
+       "/assets/index-CdsPRvTv.css 0",
+       "/assets/servidor-Do-UhOOh.js 0",
+       "/assets/store-BXxuL5Fj.js 0",
+       "/assets/grade-p0ReBe33.js 0",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 0",
+       "/assets/edicaoEstatica-CEZszL7c.js 0",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 0",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 0",
+       "/ 1926",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 0",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 0",
+       "/assets/vozNatural-B3-Ser37.js 0",
+       "/assets/preferencias-CTRhZH1b.js 0",
+       "/assets/base-ext-BThVIs_G.css 0",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 0",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 0",
+       "/assets/trophy-DSvwDaWi.js 0",
+       "/assets/target-7DJmIJU_.js 0",
+       "/assets/calendar-days-B-k-mrZL.js 0",
+       "/assets/repeat-acTlPVje.js 0",
+       "/assets/flame-DACqiDzf.js 0",
+       "/assets/rocket-Bh1qhf2f.js 0",
+       "/assets/graduation-cap-Co1UqVfm.js 0",
+       "/assets/medal-BoUJLM8Q.js 0",
+       "/assets/star-lS2HOlKd.js 0",
+       "/assets/audio-lines-1rEfOK5R.js 0",
+       "/assets/languages-CINJDKXq.js 0",
+       "/assets/globe-B-et50ej.js 0",
+       "/assets/radio-Do3raI1L.js 0",
+       "/assets/shield-D4Iq-W2-.js 0",
+       "/assets/brain-cmcjPoCc.js 0",
+       "/assets/lightbulb-qImJsbBz.js 0",
+       "/assets/library-DxWrZdOx.js 0",
+       "/assets/book-open-cpk-4Xzs.js 0",
+       "/assets/award-BI1TsRla.js 0",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 0",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 0",
+       "/assets/user-round-Db5XiLqU.js 0",
+       "/assets/sprout-D82hbF8V.js 0",
+       "/assets/ParticleCanvas-C05xNdBx.js 0",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 0",
+       "/assets/admin-BxidJPk5.js 0",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 0",
+       "/assets/respostaAoApontar-CA9sOugZ.js 0",
+       "/assets/flags-DMdFaCK3.js 0",
+       "/assets/sentidos-D7KDiSu2.js 0",
+       "/assets/usePerfil-S0DoRvYz.js 0",
+       "/assets/navItems-BQ5HTjgj.js 0",
+       "/assets/shield-check-CkDArtVE.js 0",
+       "/assets/layout-dashboard-C5RtMBxN.js 0",
+       "/assets/gamepad-2-B3rwVGdH.js 0",
+       "/assets/chart-column-DcM-4yWp.js 0",
+       "/assets/shirt-DPfE49ad.js 0",
+       "/assets/heart-CZVyHiAN.js 0",
+       "/assets/credit-card-C-O1df3v.js 0",
+       "/assets/settings-DElI3Z6t.js 0",
+       "/assets/ellipsis-ClxI3ryJ.js 0",
+       "/assets/bell-6emOjM2p.js 0",
+       "/assets/lock-uV26nSOP.js 0",
+       "/assets/life-buoy-8BfPgVDv.js 0",
+       "/assets/activity-qqNai76g.js 0",
+       "/assets/sun-Do1fpNDD.js 0",
+       "/assets/gauge-DM0B9XiK.js 0",
+       "/assets/hard-drive-ydu0DVN6.js 0",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 0",
+       "/assets/questBase-BM6kpslA.css 0",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 0",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 0",
+       "/assets/planos-GRg-WrVS.js 0",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 0",
+       "/assets/cloud-off-_LAaJP8R.js 0",
+       "/assets/MissoesDoDia-DijBx2ih.js 0",
+       "/assets/Barra-BQ1-GuKl.js 0",
+       "/assets/TituloDeSecao-BfoRzA-g.js 0",
+       "/assets/list-checks-CDFBDRul.js 0",
+       "/assets/circle-check-yosmW-RQ.js 0",
+       "/assets/layers-Bn7dd7b-.js 0",
+       "/assets/chevron-right-D88YNDcF.js 0",
+       "/assets/youtube-CXR9EGQz.js 0",
+       "/assets/file-text-B6eP1fcq.js 0",
+       "/favicon.svg 1036",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 0",
+       "/assets/questConta-DeQE6NNH.css 0",
+       "/assets/estilos-Bn2P06nb.css 0"
+      ]
+     }
+    }
+   },
+   {
+    "fria": {
+     "ttfb": 79.03499999642372,
+     "dcl": 950.3649999946356,
+     "load": 1538.1599999964237,
+     "fcp": 1094.6599999964237,
+     "lcp": 2655.414999999106,
+     "lcpEl": "SMALL.",
+     "lcpTodos": [
+      {
+       "s": 1094.6599999964237,
+       "size": 1530,
+       "el": "DIV.@container/app flex flex-col h-tela w-fu",
+       "url": ""
+      },
+      {
+       "s": 2655.414999999106,
+       "size": 14790,
+       "el": "SMALL.",
+       "url": ""
+      }
+     ],
+     "cls": 0.019774484124173035,
+     "clsN": 2,
+     "lt": [
+      {
+       "s": 780.6299999952316,
+       "d": 174
+      },
+      {
+       "s": 1112.2599999979138,
+       "d": 70
+      },
+      {
+       "s": 1369.6499999985099,
+       "d": 80
+      },
+      {
+       "s": 1582.0849999934435,
+       "d": 53
+      },
+      {
+       "s": 1826.8249999955297,
+       "d": 211
+      },
+      {
+       "s": 2043.7149999961257,
+       "d": 137
+      },
+      {
+       "s": 2256.570000000298,
+       "d": 150
+      },
+      {
+       "s": 2454.7399999946356,
+       "d": 79
+      },
+      {
+       "s": 2535.344999998808,
+       "d": 182
+      }
+     ],
+     "marcos": {
+      "tela": 1181.7299999967217,
+      "trilho": 1635.2149999961257,
+      "palco": 1635.4049999937415,
+      "h1": 1635.4049999937415
+     },
+     "jsDecod": 661313,
+     "nJs": 76,
+     "nRes": 86,
+     "nos": 276,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "celular-bom",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 562,
+     "nLt": 9,
+     "maiorLt": 211,
+     "somaLt": 1136,
+     "tti": 2717.344999998808,
+     "cpu": {
+      "tarefa_ms": 4000,
+      "script_ms": 842,
+      "estilo_ms": 968,
+      "layout_ms": 390,
+      "n_estilo": 701,
+      "n_layout": 15
+     },
+     "aosMs": 4796.354999996722,
+     "heapMb": 4.3,
+     "rede": {
+      "pedidos": 86,
+      "daRede": 86,
+      "bytes": 528944,
+      "por": {
+       "Document": {
+        "n": 1,
+        "bytes": 1952
+       },
+       "Script": {
+        "n": 75,
+        "bytes": 311157
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 101456
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 113037
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1342
+       }
+      },
+      "urls": [
+       "/ 1952",
+       "/assets/edicaoEstatica-CEZszL7c.js 1251",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 1562",
+       "/assets/grade-p0ReBe33.js 2152",
+       "/assets/store-BXxuL5Fj.js 2913",
+       "/assets/servidor-Do-UhOOh.js 14216",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 36053",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 49375",
+       "/assets/index-CdsPRvTv.css 56864",
+       "/assets/vendor-react-dq0ylnNG.js 62150",
+       "/assets/index-1qSZE85D.js 92035",
+       "/assets/base-ext-BThVIs_G.css 8300",
+       "/assets/vozNatural-B3-Ser37.js 1165",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 1893",
+       "/assets/preferencias-CTRhZH1b.js 2487",
+       "/assets/trophy-DSvwDaWi.js 1468",
+       "/assets/target-7DJmIJU_.js 1361",
+       "/assets/calendar-days-B-k-mrZL.js 1497",
+       "/assets/repeat-acTlPVje.js 1394",
+       "/assets/flame-DACqiDzf.js 1373",
+       "/assets/rocket-Bh1qhf2f.js 1501",
+       "/assets/graduation-cap-Co1UqVfm.js 1433",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 3924",
+       "/assets/star-lS2HOlKd.js 1479",
+       "/assets/audio-lines-1rEfOK5R.js 1389",
+       "/assets/languages-CINJDKXq.js 1407",
+       "/assets/globe-B-et50ej.js 1381",
+       "/assets/shield-D4Iq-W2-.js 1422",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 4910",
+       "/assets/brain-cmcjPoCc.js 1494",
+       "/assets/lightbulb-qImJsbBz.js 1413",
+       "/assets/library-DxWrZdOx.js 1371",
+       "/assets/book-open-cpk-4Xzs.js 1403",
+       "/assets/award-BI1TsRla.js 1418",
+       "/assets/medal-BoUJLM8Q.js 1744",
+       "/assets/user-round-Db5XiLqU.js 1369",
+       "/assets/sprout-D82hbF8V.js 1405",
+       "/assets/radio-Do3raI1L.js 1548",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 1617",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 3633",
+       "/assets/ParticleCanvas-C05xNdBx.js 5402",
+       "/assets/admin-BxidJPk5.js 1698",
+       "/assets/flags-DMdFaCK3.js 1479",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 1602",
+       "/assets/shield-check-CkDArtVE.js 1439",
+       "/assets/layout-dashboard-C5RtMBxN.js 1395",
+       "/assets/respostaAoApontar-CA9sOugZ.js 2783",
+       "/assets/chart-column-DcM-4yWp.js 1388",
+       "/assets/shirt-DPfE49ad.js 1417",
+       "/assets/heart-CZVyHiAN.js 1414",
+       "/assets/credit-card-C-O1df3v.js 1389",
+       "/assets/settings-DElI3Z6t.js 1450",
+       "/assets/ellipsis-ClxI3ryJ.js 1354",
+       "/assets/bell-6emOjM2p.js 1431",
+       "/assets/usePerfil-S0DoRvYz.js 1727",
+       "/assets/lock-uV26nSOP.js 1385",
+       "/assets/life-buoy-8BfPgVDv.js 1411",
+       "/assets/activity-qqNai76g.js 1392",
+       "/assets/navItems-BQ5HTjgj.js 1898",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 2640",
+       "/assets/questBase-BM6kpslA.css 9155",
+       "/assets/gauge-DM0B9XiK.js 1356",
+       "/assets/hard-drive-ydu0DVN6.js 1465",
+       "/assets/gamepad-2-B3rwVGdH.js 1572",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 1272",
+       "/assets/cloud-off-_LAaJP8R.js 1423",
+       "/assets/TituloDeSecao-BfoRzA-g.js 1329",
+       "/assets/list-checks-CDFBDRul.js 1380",
+       "/assets/circle-check-yosmW-RQ.js 1357",
+       "/assets/layers-Bn7dd7b-.js 1415",
+       "/assets/chevron-right-D88YNDcF.js 1329",
+       "/assets/youtube-CXR9EGQz.js 1408",
+       "/assets/file-text-B6eP1fcq.js 1404",
+       "/assets/sun-Do1fpNDD.js 1550",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 2427",
+       "/assets/planos-GRg-WrVS.js 2940",
+       "/assets/MissoesDoDia-DijBx2ih.js 2725",
+       "/assets/Barra-BQ1-GuKl.js 1527",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 8415",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 5756",
+       "/assets/sentidos-D7KDiSu2.js 7867",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 16028",
+       "/assets/estilos-Bn2P06nb.css 30390",
+       "/assets/questConta-DeQE6NNH.css 5688",
+       "/favicon.svg 1342",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 1608"
+      ]
+     }
+    },
+    "quente": {
+     "ttfb": 28.105000004172325,
+     "dcl": 338.195000000298,
+     "load": 349.0649999976158,
+     "fcp": 493.39000000059605,
+     "lcp": 1132.664999999106,
+     "lcpEl": "SMALL.",
+     "lcpTodos": [
+      {
+       "s": 493.39000000059605,
+       "size": 1530,
+       "el": "DIV.@container/app flex flex-col h-tela w-fu",
+       "url": ""
+      },
+      {
+       "s": 639.8100000023842,
+       "size": 2520,
+       "el": null,
+       "url": ""
+      },
+      {
+       "s": 1132.664999999106,
+       "size": 14790,
+       "el": "SMALL.",
+       "url": ""
+      }
+     ],
+     "cls": 0,
+     "clsN": 1,
+     "lt": [
+      {
+       "s": 350.08500000089407,
+       "d": 56
+      },
+      {
+       "s": 524.265000000596,
+       "d": 69
+      },
+      {
+       "s": 828.8849999979138,
+       "d": 185
+      },
+      {
+       "s": 1016.6199999973178,
+       "d": 99
+      },
+      {
+       "s": 1133.5900000035763,
+       "d": 153
+      },
+      {
+       "s": 1320.9800000041723,
+       "d": 77
+      }
+     ],
+     "marcos": {
+      "tela": 592.8500000014901,
+      "palco": 687.3400000035763,
+      "h1": 687.3449999988079,
+      "trilho": 777.359999999404
+     },
+     "jsDecod": 661313,
+     "nJs": 76,
+     "nRes": 86,
+     "nos": 276,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "celular-bom",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 333,
+     "nLt": 6,
+     "maiorLt": 185,
+     "somaLt": 639,
+     "tti": 1397.9800000041723,
+     "cpu": {
+      "tarefa_ms": 3014,
+      "script_ms": 470,
+      "estilo_ms": 940,
+      "layout_ms": 76,
+      "n_estilo": 720,
+      "n_layout": 15
+     },
+     "aosMs": 3462.7850000038743,
+     "heapMb": 5.7,
+     "rede": {
+      "pedidos": 86,
+      "daRede": 2,
+      "bytes": 2942,
+      "por": {
+       "Script": {
+        "n": 75,
+        "bytes": 0
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 0
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 0
+       },
+       "Document": {
+        "n": 1,
+        "bytes": 1910
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1032
+       }
+      },
+      "urls": [
+       "/assets/index-1qSZE85D.js 0",
+       "/assets/vendor-react-dq0ylnNG.js 0",
+       "/assets/index-CdsPRvTv.css 0",
+       "/assets/servidor-Do-UhOOh.js 0",
+       "/assets/store-BXxuL5Fj.js 0",
+       "/assets/grade-p0ReBe33.js 0",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 0",
+       "/assets/edicaoEstatica-CEZszL7c.js 0",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 0",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 0",
+       "/ 1910",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 0",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 0",
+       "/assets/vozNatural-B3-Ser37.js 0",
+       "/assets/preferencias-CTRhZH1b.js 0",
+       "/assets/base-ext-BThVIs_G.css 0",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 0",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 0",
+       "/assets/trophy-DSvwDaWi.js 0",
+       "/assets/target-7DJmIJU_.js 0",
+       "/assets/calendar-days-B-k-mrZL.js 0",
+       "/assets/repeat-acTlPVje.js 0",
+       "/assets/flame-DACqiDzf.js 0",
+       "/assets/rocket-Bh1qhf2f.js 0",
+       "/assets/graduation-cap-Co1UqVfm.js 0",
+       "/assets/medal-BoUJLM8Q.js 0",
+       "/assets/star-lS2HOlKd.js 0",
+       "/assets/audio-lines-1rEfOK5R.js 0",
+       "/assets/languages-CINJDKXq.js 0",
+       "/assets/globe-B-et50ej.js 0",
+       "/assets/radio-Do3raI1L.js 0",
+       "/assets/shield-D4Iq-W2-.js 0",
+       "/assets/brain-cmcjPoCc.js 0",
+       "/assets/lightbulb-qImJsbBz.js 0",
+       "/assets/library-DxWrZdOx.js 0",
+       "/assets/book-open-cpk-4Xzs.js 0",
+       "/assets/award-BI1TsRla.js 0",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 0",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 0",
+       "/assets/user-round-Db5XiLqU.js 0",
+       "/assets/sprout-D82hbF8V.js 0",
+       "/assets/ParticleCanvas-C05xNdBx.js 0",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 0",
+       "/assets/admin-BxidJPk5.js 0",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 0",
+       "/assets/respostaAoApontar-CA9sOugZ.js 0",
+       "/assets/flags-DMdFaCK3.js 0",
+       "/assets/sentidos-D7KDiSu2.js 0",
+       "/assets/usePerfil-S0DoRvYz.js 0",
+       "/assets/navItems-BQ5HTjgj.js 0",
+       "/assets/shield-check-CkDArtVE.js 0",
+       "/assets/layout-dashboard-C5RtMBxN.js 0",
+       "/assets/gamepad-2-B3rwVGdH.js 0",
+       "/assets/chart-column-DcM-4yWp.js 0",
+       "/assets/shirt-DPfE49ad.js 0",
+       "/assets/heart-CZVyHiAN.js 0",
+       "/assets/credit-card-C-O1df3v.js 0",
+       "/assets/settings-DElI3Z6t.js 0",
+       "/assets/ellipsis-ClxI3ryJ.js 0",
+       "/assets/bell-6emOjM2p.js 0",
+       "/assets/lock-uV26nSOP.js 0",
+       "/assets/life-buoy-8BfPgVDv.js 0",
+       "/assets/activity-qqNai76g.js 0",
+       "/assets/sun-Do1fpNDD.js 0",
+       "/assets/gauge-DM0B9XiK.js 0",
+       "/assets/hard-drive-ydu0DVN6.js 0",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 0",
+       "/assets/questBase-BM6kpslA.css 0",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 0",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 0",
+       "/assets/planos-GRg-WrVS.js 0",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 0",
+       "/assets/cloud-off-_LAaJP8R.js 0",
+       "/assets/MissoesDoDia-DijBx2ih.js 0",
+       "/assets/Barra-BQ1-GuKl.js 0",
+       "/assets/TituloDeSecao-BfoRzA-g.js 0",
+       "/assets/list-checks-CDFBDRul.js 0",
+       "/assets/circle-check-yosmW-RQ.js 0",
+       "/assets/layers-Bn7dd7b-.js 0",
+       "/assets/chevron-right-D88YNDcF.js 0",
+       "/assets/youtube-CXR9EGQz.js 0",
+       "/assets/file-text-B6eP1fcq.js 0",
+       "/favicon.svg 1032",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 0",
+       "/assets/questConta-DeQE6NNH.css 0",
+       "/assets/estilos-Bn2P06nb.css 0"
+      ]
+     }
+    }
+   },
+   {
+    "fria": {
+     "ttfb": 105.60000000149012,
+     "dcl": 962.5500000044703,
+     "load": 1538.4750000014901,
+     "fcp": 1108.2850000038743,
+     "lcp": 2733.280000001192,
+     "lcpEl": "SMALL.",
+     "lcpTodos": [
+      {
+       "s": 1108.2850000038743,
+       "size": 1530,
+       "el": "DIV.@container/app flex flex-col h-tela w-fu",
+       "url": ""
+      },
+      {
+       "s": 2733.280000001192,
+       "size": 14790,
+       "el": "SMALL.",
+       "url": ""
+      }
+     ],
+     "cls": 0.019774484124173035,
+     "clsN": 2,
+     "lt": [
+      {
+       "s": 784.3450000062585,
+       "d": 182
+      },
+      {
+       "s": 1135.1500000059605,
+       "d": 87
+      },
+      {
+       "s": 1347.085000000894,
+       "d": 80
+      },
+      {
+       "s": 1643.929999999702,
+       "d": 51
+      },
+      {
+       "s": 1962.4500000029802,
+       "d": 198
+      },
+      {
+       "s": 2166.0650000050664,
+       "d": 136
+      },
+      {
+       "s": 2363.210000000894,
+       "d": 144
+      },
+      {
+       "s": 2518.4150000065565,
+       "d": 168
+      }
+     ],
+     "marcos": {
+      "tela": 1222.5050000026822,
+      "trilho": 1695.0050000026822,
+      "palco": 1695.1900000050664,
+      "h1": 1695.195000000298
+     },
+     "jsDecod": 661313,
+     "nJs": 76,
+     "nRes": 86,
+     "nos": 276,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "celular-bom",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 514,
+     "nLt": 8,
+     "maiorLt": 198,
+     "somaLt": 1046,
+     "tti": 2686.4150000065565,
+     "cpu": {
+      "tarefa_ms": 3816,
+      "script_ms": 806,
+      "estilo_ms": 905,
+      "layout_ms": 412,
+      "n_estilo": 718,
+      "n_layout": 16
+     },
+     "aosMs": 4759.4000000059605,
+     "heapMb": 4.2,
+     "rede": {
+      "pedidos": 86,
+      "daRede": 86,
+      "bytes": 529058,
+      "por": {
+       "Document": {
+        "n": 1,
+        "bytes": 1956
+       },
+       "Script": {
+        "n": 75,
+        "bytes": 311129
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 101455
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 113180
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1338
+       }
+      },
+      "urls": [
+       "/ 1956",
+       "/assets/edicaoEstatica-CEZszL7c.js 1250",
+       "/assets/store-BXxuL5Fj.js 2924",
+       "/assets/grade-p0ReBe33.js 2148",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 1561",
+       "/assets/servidor-Do-UhOOh.js 14208",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 36054",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 49379",
+       "/assets/index-CdsPRvTv.css 57007",
+       "/assets/vendor-react-dq0ylnNG.js 62141",
+       "/assets/index-1qSZE85D.js 92054",
+       "/assets/vozNatural-B3-Ser37.js 1159",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 1879",
+       "/assets/base-ext-BThVIs_G.css 8297",
+       "/assets/preferencias-CTRhZH1b.js 2484",
+       "/assets/trophy-DSvwDaWi.js 1466",
+       "/assets/target-7DJmIJU_.js 1349",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 3918",
+       "/assets/repeat-acTlPVje.js 1390",
+       "/assets/flame-DACqiDzf.js 1371",
+       "/assets/graduation-cap-Co1UqVfm.js 1436",
+       "/assets/calendar-days-B-k-mrZL.js 1502",
+       "/assets/star-lS2HOlKd.js 1491",
+       "/assets/audio-lines-1rEfOK5R.js 1393",
+       "/assets/languages-CINJDKXq.js 1400",
+       "/assets/globe-B-et50ej.js 1383",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 4907",
+       "/assets/shield-D4Iq-W2-.js 1408",
+       "/assets/brain-cmcjPoCc.js 1495",
+       "/assets/lightbulb-qImJsbBz.js 1412",
+       "/assets/library-DxWrZdOx.js 1373",
+       "/assets/book-open-cpk-4Xzs.js 1406",
+       "/assets/rocket-Bh1qhf2f.js 1509",
+       "/assets/award-BI1TsRla.js 1420",
+       "/assets/medal-BoUJLM8Q.js 1741",
+       "/assets/user-round-Db5XiLqU.js 1370",
+       "/assets/sprout-D82hbF8V.js 1416",
+       "/assets/radio-Do3raI1L.js 1552",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 1616",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 3629",
+       "/assets/ParticleCanvas-C05xNdBx.js 5400",
+       "/assets/admin-BxidJPk5.js 1702",
+       "/assets/flags-DMdFaCK3.js 1479",
+       "/assets/respostaAoApontar-CA9sOugZ.js 2782",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 2637",
+       "/assets/questBase-BM6kpslA.css 9158",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 1599",
+       "/assets/shield-check-CkDArtVE.js 1447",
+       "/assets/layout-dashboard-C5RtMBxN.js 1399",
+       "/assets/chart-column-DcM-4yWp.js 1389",
+       "/assets/shirt-DPfE49ad.js 1412",
+       "/assets/heart-CZVyHiAN.js 1417",
+       "/assets/settings-DElI3Z6t.js 1444",
+       "/assets/credit-card-C-O1df3v.js 1383",
+       "/assets/ellipsis-ClxI3ryJ.js 1359",
+       "/assets/bell-6emOjM2p.js 1431",
+       "/assets/lock-uV26nSOP.js 1386",
+       "/assets/usePerfil-S0DoRvYz.js 1722",
+       "/assets/life-buoy-8BfPgVDv.js 1422",
+       "/assets/activity-qqNai76g.js 1385",
+       "/assets/navItems-BQ5HTjgj.js 1896",
+       "/assets/gauge-DM0B9XiK.js 1353",
+       "/assets/hard-drive-ydu0DVN6.js 1458",
+       "/assets/gamepad-2-B3rwVGdH.js 1570",
+       "/assets/sun-Do1fpNDD.js 1552",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 1271",
+       "/assets/cloud-off-_LAaJP8R.js 1427",
+       "/assets/TituloDeSecao-BfoRzA-g.js 1321",
+       "/assets/list-checks-CDFBDRul.js 1374",
+       "/assets/circle-check-yosmW-RQ.js 1365",
+       "/assets/layers-Bn7dd7b-.js 1428",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 2427",
+       "/assets/planos-GRg-WrVS.js 2938",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 8418",
+       "/assets/Barra-BQ1-GuKl.js 1528",
+       "/assets/MissoesDoDia-DijBx2ih.js 2722",
+       "/assets/chevron-right-D88YNDcF.js 1336",
+       "/assets/youtube-CXR9EGQz.js 1405",
+       "/assets/file-text-B6eP1fcq.js 1403",
+       "/assets/sentidos-D7KDiSu2.js 7862",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 5753",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 16022",
+       "/assets/estilos-Bn2P06nb.css 30396",
+       "/favicon.svg 1338",
+       "/assets/questConta-DeQE6NNH.css 5685",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 1603"
+      ]
+     }
+    },
+    "quente": {
+     "ttfb": 30.594999998807907,
+     "dcl": 343.75,
+     "load": 354.5649999976158,
+     "fcp": 437.1000000014901,
+     "lcp": 1129.929999999702,
+     "lcpEl": "SMALL.",
+     "lcpTodos": [
+      {
+       "s": 437.1000000014901,
+       "size": 1530,
+       "el": "DIV.flex h-tela w-full items-center justify-",
+       "url": ""
+      },
+      {
+       "s": 651.3699999973178,
+       "size": 2520,
+       "el": null,
+       "url": ""
+      },
+      {
+       "s": 1129.929999999702,
+       "size": 14790,
+       "el": "SMALL.",
+       "url": ""
+      }
+     ],
+     "cls": 0,
+     "clsN": 1,
+     "lt": [
+      {
+       "s": 355.41499999910593,
+       "d": 54
+      },
+      {
+       "s": 529.6499999985099,
+       "d": 74
+      },
+      {
+       "s": 839.5900000035763,
+       "d": 187
+      },
+      {
+       "s": 1029.140000000596,
+       "d": 80
+      },
+      {
+       "s": 1127.304999999702,
+       "d": 179
+      },
+      {
+       "s": 1349.0450000017881,
+       "d": 119
+      },
+      {
+       "s": 3314.789999999106,
+       "d": 57
+      },
+      {
+       "s": 3411.314999997616,
+       "d": 52
+      }
+     ],
+     "marcos": {
+      "tela": 603.5750000029802,
+      "palco": 709.3550000041723,
+      "h1": 709.359999999404,
+      "trilho": 787.5
+     },
+     "jsDecod": 661313,
+     "nJs": 76,
+     "nRes": 86,
+     "nos": 276,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "celular-bom",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 398,
+     "nLt": 8,
+     "maiorLt": 187,
+     "somaLt": 802,
+     "tti": 3463.314999997616,
+     "cpu": {
+      "tarefa_ms": 5148,
+      "script_ms": 603,
+      "estilo_ms": 1578,
+      "layout_ms": 92,
+      "n_estilo": 809,
+      "n_layout": 16
+     },
+     "aosMs": 5667.195000000298,
+     "heapMb": 5.7,
+     "rede": {
+      "pedidos": 86,
+      "daRede": 2,
+      "bytes": 2957,
+      "por": {
+       "Script": {
+        "n": 75,
+        "bytes": 0
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 0
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 0
+       },
+       "Document": {
+        "n": 1,
+        "bytes": 1927
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1030
+       }
+      },
+      "urls": [
+       "/assets/index-1qSZE85D.js 0",
+       "/assets/vendor-react-dq0ylnNG.js 0",
+       "/assets/index-CdsPRvTv.css 0",
+       "/assets/servidor-Do-UhOOh.js 0",
+       "/assets/store-BXxuL5Fj.js 0",
+       "/assets/grade-p0ReBe33.js 0",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 0",
+       "/assets/edicaoEstatica-CEZszL7c.js 0",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 0",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 0",
+       "/ 1927",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 0",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 0",
+       "/assets/vozNatural-B3-Ser37.js 0",
+       "/assets/preferencias-CTRhZH1b.js 0",
+       "/assets/base-ext-BThVIs_G.css 0",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 0",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 0",
+       "/assets/trophy-DSvwDaWi.js 0",
+       "/assets/target-7DJmIJU_.js 0",
+       "/assets/calendar-days-B-k-mrZL.js 0",
+       "/assets/repeat-acTlPVje.js 0",
+       "/assets/flame-DACqiDzf.js 0",
+       "/assets/rocket-Bh1qhf2f.js 0",
+       "/assets/graduation-cap-Co1UqVfm.js 0",
+       "/assets/medal-BoUJLM8Q.js 0",
+       "/assets/star-lS2HOlKd.js 0",
+       "/assets/audio-lines-1rEfOK5R.js 0",
+       "/assets/languages-CINJDKXq.js 0",
+       "/assets/globe-B-et50ej.js 0",
+       "/assets/radio-Do3raI1L.js 0",
+       "/assets/shield-D4Iq-W2-.js 0",
+       "/assets/brain-cmcjPoCc.js 0",
+       "/assets/lightbulb-qImJsbBz.js 0",
+       "/assets/library-DxWrZdOx.js 0",
+       "/assets/book-open-cpk-4Xzs.js 0",
+       "/assets/award-BI1TsRla.js 0",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 0",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 0",
+       "/assets/user-round-Db5XiLqU.js 0",
+       "/assets/sprout-D82hbF8V.js 0",
+       "/assets/ParticleCanvas-C05xNdBx.js 0",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 0",
+       "/assets/admin-BxidJPk5.js 0",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 0",
+       "/assets/respostaAoApontar-CA9sOugZ.js 0",
+       "/assets/flags-DMdFaCK3.js 0",
+       "/assets/sentidos-D7KDiSu2.js 0",
+       "/assets/usePerfil-S0DoRvYz.js 0",
+       "/assets/navItems-BQ5HTjgj.js 0",
+       "/assets/shield-check-CkDArtVE.js 0",
+       "/assets/layout-dashboard-C5RtMBxN.js 0",
+       "/assets/gamepad-2-B3rwVGdH.js 0",
+       "/assets/chart-column-DcM-4yWp.js 0",
+       "/assets/shirt-DPfE49ad.js 0",
+       "/assets/heart-CZVyHiAN.js 0",
+       "/assets/credit-card-C-O1df3v.js 0",
+       "/assets/settings-DElI3Z6t.js 0",
+       "/assets/ellipsis-ClxI3ryJ.js 0",
+       "/assets/bell-6emOjM2p.js 0",
+       "/assets/lock-uV26nSOP.js 0",
+       "/assets/life-buoy-8BfPgVDv.js 0",
+       "/assets/activity-qqNai76g.js 0",
+       "/assets/sun-Do1fpNDD.js 0",
+       "/assets/gauge-DM0B9XiK.js 0",
+       "/assets/hard-drive-ydu0DVN6.js 0",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 0",
+       "/assets/questBase-BM6kpslA.css 0",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 0",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 0",
+       "/assets/planos-GRg-WrVS.js 0",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 0",
+       "/assets/cloud-off-_LAaJP8R.js 0",
+       "/assets/MissoesDoDia-DijBx2ih.js 0",
+       "/assets/Barra-BQ1-GuKl.js 0",
+       "/assets/TituloDeSecao-BfoRzA-g.js 0",
+       "/assets/list-checks-CDFBDRul.js 0",
+       "/assets/circle-check-yosmW-RQ.js 0",
+       "/assets/layers-Bn7dd7b-.js 0",
+       "/assets/chevron-right-D88YNDcF.js 0",
+       "/assets/youtube-CXR9EGQz.js 0",
+       "/assets/file-text-B6eP1fcq.js 0",
+       "/favicon.svg 1030",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 0",
+       "/assets/questConta-DeQE6NNH.css 0",
+       "/assets/estilos-Bn2P06nb.css 0"
+      ]
+     }
+    }
+   }
+  ]
+ },
+ "desktop": {
+  "mediana": {
+   "fria": {
+    "ttfb": 70,
+    "fcp": 309,
+    "lcp": 577,
+    "palco": 314,
+    "tti": 363,
+    "tbt": 0,
+    "cls": 0.0035,
+    "maiorLt": 0,
+    "pedidos": 86,
+    "daRede": 86,
+    "kB": 517,
+    "jsDecodKB": 646,
+    "script_ms": 124,
+    "estilo_ms": 183,
+    "layout_ms": 49,
+    "tarefa_ms": 684,
+    "heapMb": 3.7,
+    "nos": 280
+   },
+   "quente": {
+    "ttfb": 29,
+    "fcp": 191,
+    "lcp": 191,
+    "palco": 93,
+    "tti": 191,
+    "tbt": 0,
+    "cls": 0,
+    "maiorLt": 0,
+    "pedidos": 86,
+    "daRede": 2,
+    "kB": 3,
+    "jsDecodKB": 646,
+    "script_ms": 65,
+    "estilo_ms": 216,
+    "layout_ms": 6,
+    "tarefa_ms": 583,
+    "heapMb": 5.5,
+    "nos": 280
+   }
+  },
+  "runs": [
+   {
+    "fria": {
+     "ttfb": 80.60000000149012,
+     "dcl": 219.7550000026822,
+     "load": 306.11500000208616,
+     "fcp": 463.6199999973178,
+     "lcp": 602.8999999985099,
+     "lcpEl": "SPAN.q-d",
+     "lcpTodos": [
+      {
+       "s": 463.6199999973178,
+       "size": 1479,
+       "el": "SPAN.",
+       "url": ""
+      },
+      {
+       "s": 602.8999999985099,
+       "size": 14700,
+       "el": "SPAN.q-d",
+       "url": ""
+      }
+     ],
+     "cls": 0.003467901234567902,
+     "clsN": 2,
+     "lt": [],
+     "marcos": {
+      "tela": 251.14000000059605,
+      "trilho": 343.054999999702,
+      "palco": 343.0649999976158,
+      "h1": 343.0649999976158
+     },
+     "jsDecod": 661313,
+     "nJs": 76,
+     "nRes": 86,
+     "nos": 280,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "desktop-com-gpu",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "false",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 0,
+     "nLt": 0,
+     "maiorLt": 0,
+     "somaLt": 0,
+     "tti": 463.6199999973178,
+     "cpu": {
+      "tarefa_ms": 710,
+      "script_ms": 132,
+      "estilo_ms": 189,
+      "layout_ms": 46,
+      "n_estilo": 821,
+      "n_layout": 12
+     },
+     "aosMs": 2603.634999997914,
+     "heapMb": 3.7,
+     "rede": {
+      "pedidos": 86,
+      "daRede": 86,
+      "bytes": 529145,
+      "por": {
+       "Document": {
+        "n": 1,
+        "bytes": 1959
+       },
+       "Script": {
+        "n": 75,
+        "bytes": 311302
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 113083
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 101464
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1337
+       }
+      },
+      "urls": [
+       "/ 1959",
+       "/assets/store-BXxuL5Fj.js 2922",
+       "/assets/grade-p0ReBe33.js 2146",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 1557",
+       "/assets/edicaoEstatica-CEZszL7c.js 1249",
+       "/assets/servidor-Do-UhOOh.js 14213",
+       "/assets/index-CdsPRvTv.css 56868",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 36049",
+       "/assets/vendor-react-dq0ylnNG.js 62163",
+       "/assets/index-1qSZE85D.js 92196",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 49392",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 1886",
+       "/assets/preferencias-CTRhZH1b.js 2488",
+       "/assets/vozNatural-B3-Ser37.js 1157",
+       "/assets/base-ext-BThVIs_G.css 8295",
+       "/assets/target-7DJmIJU_.js 1356",
+       "/assets/audio-lines-1rEfOK5R.js 1393",
+       "/assets/graduation-cap-Co1UqVfm.js 1431",
+       "/assets/rocket-Bh1qhf2f.js 1509",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 2646",
+       "/assets/questBase-BM6kpslA.css 9162",
+       "/assets/trophy-DSvwDaWi.js 1464",
+       "/assets/radio-Do3raI1L.js 1549",
+       "/assets/globe-B-et50ej.js 1383",
+       "/assets/star-lS2HOlKd.js 1485",
+       "/assets/shield-D4Iq-W2-.js 1414",
+       "/assets/lightbulb-qImJsbBz.js 1414",
+       "/assets/flame-DACqiDzf.js 1374",
+       "/assets/user-round-Db5XiLqU.js 1370",
+       "/assets/medal-BoUJLM8Q.js 1736",
+       "/assets/sprout-D82hbF8V.js 1415",
+       "/assets/flags-DMdFaCK3.js 1475",
+       "/assets/credit-card-C-O1df3v.js 1387",
+       "/assets/heart-CZVyHiAN.js 1409",
+       "/assets/languages-CINJDKXq.js 1399",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 3925",
+       "/assets/calendar-days-B-k-mrZL.js 1501",
+       "/assets/brain-cmcjPoCc.js 1496",
+       "/assets/library-DxWrZdOx.js 1375",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 3634",
+       "/assets/shirt-DPfE49ad.js 1415",
+       "/assets/sentidos-D7KDiSu2.js 7868",
+       "/assets/admin-BxidJPk5.js 1700",
+       "/assets/bell-6emOjM2p.js 1428",
+       "/assets/award-BI1TsRla.js 1421",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 1613",
+       "/assets/gauge-DM0B9XiK.js 1362",
+       "/assets/gamepad-2-B3rwVGdH.js 1574",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 1601",
+       "/assets/lock-uV26nSOP.js 1385",
+       "/assets/ParticleCanvas-C05xNdBx.js 5400",
+       "/assets/ellipsis-ClxI3ryJ.js 1357",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 4908",
+       "/assets/hard-drive-ydu0DVN6.js 1461",
+       "/assets/activity-qqNai76g.js 1394",
+       "/assets/repeat-acTlPVje.js 1388",
+       "/assets/layout-dashboard-C5RtMBxN.js 1388",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 8411",
+       "/assets/life-buoy-8BfPgVDv.js 1414",
+       "/assets/usePerfil-S0DoRvYz.js 1722",
+       "/assets/sun-Do1fpNDD.js 1547",
+       "/assets/chart-column-DcM-4yWp.js 1386",
+       "/assets/settings-DElI3Z6t.js 1453",
+       "/assets/shield-check-CkDArtVE.js 1435",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 1277",
+       "/assets/list-checks-CDFBDRul.js 1377",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 5759",
+       "/assets/circle-check-yosmW-RQ.js 1362",
+       "/assets/planos-GRg-WrVS.js 2942",
+       "/assets/cloud-off-_LAaJP8R.js 1425",
+       "/assets/youtube-CXR9EGQz.js 1407",
+       "/assets/MissoesDoDia-DijBx2ih.js 2722",
+       "/assets/Barra-BQ1-GuKl.js 1521",
+       "/assets/layers-Bn7dd7b-.js 1422",
+       "/assets/book-open-cpk-4Xzs.js 1409",
+       "/assets/file-text-B6eP1fcq.js 1404",
+       "/assets/chevron-right-D88YNDcF.js 1331",
+       "/assets/respostaAoApontar-CA9sOugZ.js 2784",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 2425",
+       "/assets/TituloDeSecao-BfoRzA-g.js 1325",
+       "/assets/navItems-BQ5HTjgj.js 1898",
+       "/favicon.svg 1337",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 16023",
+       "/assets/estilos-Bn2P06nb.css 30458",
+       "/assets/questConta-DeQE6NNH.css 5654",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 1610"
+      ]
+     }
+    },
+    "quente": {
+     "ttfb": 28.410000003874302,
+     "dcl": 56.05000000447035,
+     "load": 58.0350000038743,
+     "fcp": 191.9400000050664,
+     "lcp": 191.9400000050664,
+     "lcpEl": "H1.",
+     "lcpTodos": [
+      {
+       "s": 191.9400000050664,
+       "size": 12469,
+       "el": "H1.",
+       "url": ""
+      }
+     ],
+     "cls": 0,
+     "clsN": 0,
+     "lt": [],
+     "marcos": {
+      "tela": 78.1900000050664,
+      "trilho": 93.23499999940395,
+      "palco": 93.25,
+      "h1": 93.25
+     },
+     "jsDecod": 661313,
+     "nJs": 76,
+     "nRes": 86,
+     "nos": 280,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "desktop-com-gpu",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "false",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 0,
+     "nLt": 0,
+     "maiorLt": 0,
+     "somaLt": 0,
+     "tti": 191.9400000050664,
+     "cpu": {
+      "tarefa_ms": 605,
+      "script_ms": 66,
+      "estilo_ms": 225,
+      "layout_ms": 6,
+      "n_estilo": 831,
+      "n_layout": 9
+     },
+     "aosMs": 2130.170000001788,
+     "heapMb": 5.5,
+     "rede": {
+      "pedidos": 86,
+      "daRede": 2,
+      "bytes": 2957,
+      "por": {
+       "Script": {
+        "n": 75,
+        "bytes": 0
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 0
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 0
+       },
+       "Document": {
+        "n": 1,
+        "bytes": 1924
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1033
+       }
+      },
+      "urls": [
+       "/assets/index-1qSZE85D.js 0",
+       "/assets/vendor-react-dq0ylnNG.js 0",
+       "/assets/index-CdsPRvTv.css 0",
+       "/assets/servidor-Do-UhOOh.js 0",
+       "/assets/store-BXxuL5Fj.js 0",
+       "/assets/grade-p0ReBe33.js 0",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 0",
+       "/assets/edicaoEstatica-CEZszL7c.js 0",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 0",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 0",
+       "/ 1924",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 0",
+       "/assets/vozNatural-B3-Ser37.js 0",
+       "/assets/preferencias-CTRhZH1b.js 0",
+       "/assets/base-ext-BThVIs_G.css 0",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 0",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 0",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 0",
+       "/assets/trophy-DSvwDaWi.js 0",
+       "/assets/target-7DJmIJU_.js 0",
+       "/assets/calendar-days-B-k-mrZL.js 0",
+       "/assets/repeat-acTlPVje.js 0",
+       "/assets/flame-DACqiDzf.js 0",
+       "/assets/rocket-Bh1qhf2f.js 0",
+       "/assets/graduation-cap-Co1UqVfm.js 0",
+       "/assets/medal-BoUJLM8Q.js 0",
+       "/assets/star-lS2HOlKd.js 0",
+       "/assets/audio-lines-1rEfOK5R.js 0",
+       "/assets/languages-CINJDKXq.js 0",
+       "/assets/globe-B-et50ej.js 0",
+       "/assets/radio-Do3raI1L.js 0",
+       "/assets/shield-D4Iq-W2-.js 0",
+       "/assets/brain-cmcjPoCc.js 0",
+       "/assets/lightbulb-qImJsbBz.js 0",
+       "/assets/library-DxWrZdOx.js 0",
+       "/assets/book-open-cpk-4Xzs.js 0",
+       "/assets/award-BI1TsRla.js 0",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 0",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 0",
+       "/assets/user-round-Db5XiLqU.js 0",
+       "/assets/sprout-D82hbF8V.js 0",
+       "/assets/ParticleCanvas-C05xNdBx.js 0",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 0",
+       "/assets/admin-BxidJPk5.js 0",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 0",
+       "/assets/respostaAoApontar-CA9sOugZ.js 0",
+       "/assets/flags-DMdFaCK3.js 0",
+       "/assets/sentidos-D7KDiSu2.js 0",
+       "/assets/usePerfil-S0DoRvYz.js 0",
+       "/assets/navItems-BQ5HTjgj.js 0",
+       "/assets/shield-check-CkDArtVE.js 0",
+       "/assets/layout-dashboard-C5RtMBxN.js 0",
+       "/assets/gamepad-2-B3rwVGdH.js 0",
+       "/assets/chart-column-DcM-4yWp.js 0",
+       "/assets/shirt-DPfE49ad.js 0",
+       "/assets/heart-CZVyHiAN.js 0",
+       "/assets/credit-card-C-O1df3v.js 0",
+       "/assets/settings-DElI3Z6t.js 0",
+       "/assets/ellipsis-ClxI3ryJ.js 0",
+       "/assets/bell-6emOjM2p.js 0",
+       "/assets/lock-uV26nSOP.js 0",
+       "/assets/life-buoy-8BfPgVDv.js 0",
+       "/assets/activity-qqNai76g.js 0",
+       "/assets/sun-Do1fpNDD.js 0",
+       "/assets/gauge-DM0B9XiK.js 0",
+       "/assets/hard-drive-ydu0DVN6.js 0",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 0",
+       "/assets/questBase-BM6kpslA.css 0",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 0",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 0",
+       "/assets/planos-GRg-WrVS.js 0",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 0",
+       "/assets/cloud-off-_LAaJP8R.js 0",
+       "/assets/MissoesDoDia-DijBx2ih.js 0",
+       "/assets/Barra-BQ1-GuKl.js 0",
+       "/assets/TituloDeSecao-BfoRzA-g.js 0",
+       "/assets/list-checks-CDFBDRul.js 0",
+       "/assets/circle-check-yosmW-RQ.js 0",
+       "/assets/layers-Bn7dd7b-.js 0",
+       "/assets/chevron-right-D88YNDcF.js 0",
+       "/assets/youtube-CXR9EGQz.js 0",
+       "/assets/file-text-B6eP1fcq.js 0",
+       "/assets/estilos-Bn2P06nb.css 0",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 0",
+       "/assets/questConta-DeQE6NNH.css 0",
+       "/favicon.svg 1033"
+      ]
+     }
+    }
+   },
+   {
+    "fria": {
+     "ttfb": 69.16999999433756,
+     "dcl": 181.79999999701977,
+     "load": 263.3699999973178,
+     "fcp": 297.16499999910593,
+     "lcp": 565.015000000596,
+     "lcpEl": "H1.",
+     "lcpTodos": [
+      {
+       "s": 297.16499999910593,
+       "size": 1530,
+       "el": "DIV.@container/app flex flex-col h-tela w-fu",
+       "url": ""
+      },
+      {
+       "s": 565.015000000596,
+       "size": 12469,
+       "el": "H1.",
+       "url": ""
+      }
+     ],
+     "cls": 0,
+     "clsN": 0,
+     "lt": [
+      {
+       "s": 299.7449999973178,
+       "d": 63
+      }
+     ],
+     "marcos": {
+      "tela": 206.07999999821186,
+      "trilho": 298.35999999940395,
+      "palco": 298.375,
+      "h1": 298.3799999952316
+     },
+     "jsDecod": 661313,
+     "nJs": 76,
+     "nRes": 86,
+     "nos": 280,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "desktop-com-gpu",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "false",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 13,
+     "nLt": 1,
+     "maiorLt": 63,
+     "somaLt": 63,
+     "tti": 362.7449999973178,
+     "cpu": {
+      "tarefa_ms": 648,
+      "script_ms": 123,
+      "estilo_ms": 174,
+      "layout_ms": 52,
+      "n_estilo": 819,
+      "n_layout": 13
+     },
+     "aosMs": 2558.8549999967217,
+     "heapMb": 3.7,
+     "rede": {
+      "pedidos": 86,
+      "daRede": 86,
+      "bytes": 529239,
+      "por": {
+       "Document": {
+        "n": 1,
+        "bytes": 1959
+       },
+       "Script": {
+        "n": 75,
+        "bytes": 311261
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 101462
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 113215
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1342
+       }
+      },
+      "urls": [
+       "/ 1959",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 1554",
+       "/assets/store-BXxuL5Fj.js 2921",
+       "/assets/servidor-Do-UhOOh.js 14211",
+       "/assets/grade-p0ReBe33.js 2146",
+       "/assets/edicaoEstatica-CEZszL7c.js 1244",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 49384",
+       "/assets/index-CdsPRvTv.css 56970",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 36049",
+       "/assets/vendor-react-dq0ylnNG.js 62157",
+       "/assets/index-1qSZE85D.js 92190",
+       "/assets/base-ext-BThVIs_G.css 8295",
+       "/assets/vozNatural-B3-Ser37.js 1167",
+       "/assets/preferencias-CTRhZH1b.js 2482",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 1878",
+       "/assets/repeat-acTlPVje.js 1398",
+       "/assets/flame-DACqiDzf.js 1371",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 4902",
+       "/assets/graduation-cap-Co1UqVfm.js 1435",
+       "/assets/shield-D4Iq-W2-.js 1412",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 3922",
+       "/assets/questBase-BM6kpslA.css 9159",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 2635",
+       "/assets/star-lS2HOlKd.js 1473",
+       "/assets/trophy-DSvwDaWi.js 1462",
+       "/assets/audio-lines-1rEfOK5R.js 1394",
+       "/assets/award-BI1TsRla.js 1422",
+       "/assets/target-7DJmIJU_.js 1356",
+       "/assets/radio-Do3raI1L.js 1547",
+       "/assets/user-round-Db5XiLqU.js 1369",
+       "/assets/rocket-Bh1qhf2f.js 1508",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 1598",
+       "/assets/library-DxWrZdOx.js 1373",
+       "/assets/medal-BoUJLM8Q.js 1737",
+       "/assets/sprout-D82hbF8V.js 1415",
+       "/assets/flags-DMdFaCK3.js 1476",
+       "/assets/lock-uV26nSOP.js 1387",
+       "/assets/ParticleCanvas-C05xNdBx.js 5400",
+       "/assets/lightbulb-qImJsbBz.js 1415",
+       "/assets/credit-card-C-O1df3v.js 1383",
+       "/assets/brain-cmcjPoCc.js 1497",
+       "/assets/shield-check-CkDArtVE.js 1445",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 8411",
+       "/assets/languages-CINJDKXq.js 1400",
+       "/assets/settings-DElI3Z6t.js 1449",
+       "/assets/book-open-cpk-4Xzs.js 1408",
+       "/assets/shirt-DPfE49ad.js 1421",
+       "/assets/chart-column-DcM-4yWp.js 1386",
+       "/assets/hard-drive-ydu0DVN6.js 1459",
+       "/assets/gamepad-2-B3rwVGdH.js 1568",
+       "/assets/respostaAoApontar-CA9sOugZ.js 2791",
+       "/assets/ellipsis-ClxI3ryJ.js 1356",
+       "/assets/sentidos-D7KDiSu2.js 7871",
+       "/assets/layout-dashboard-C5RtMBxN.js 1395",
+       "/assets/activity-qqNai76g.js 1387",
+       "/assets/navItems-BQ5HTjgj.js 1895",
+       "/assets/usePerfil-S0DoRvYz.js 1723",
+       "/assets/heart-CZVyHiAN.js 1413",
+       "/assets/sun-Do1fpNDD.js 1548",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 5750",
+       "/assets/gauge-DM0B9XiK.js 1355",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 1279",
+       "/assets/MissoesDoDia-DijBx2ih.js 2721",
+       "/assets/life-buoy-8BfPgVDv.js 1422",
+       "/assets/bell-6emOjM2p.js 1430",
+       "/assets/cloud-off-_LAaJP8R.js 1424",
+       "/assets/chevron-right-D88YNDcF.js 1328",
+       "/assets/Barra-BQ1-GuKl.js 1524",
+       "/assets/planos-GRg-WrVS.js 2938",
+       "/assets/youtube-CXR9EGQz.js 1406",
+       "/assets/list-checks-CDFBDRul.js 1374",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 2423",
+       "/assets/layers-Bn7dd7b-.js 1425",
+       "/assets/globe-B-et50ej.js 1379",
+       "/assets/file-text-B6eP1fcq.js 1404",
+       "/assets/circle-check-yosmW-RQ.js 1363",
+       "/assets/admin-BxidJPk5.js 1704",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 3632",
+       "/assets/calendar-days-B-k-mrZL.js 1501",
+       "/assets/TituloDeSecao-BfoRzA-g.js 1332",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 1618",
+       "/assets/estilos-Bn2P06nb.css 30468",
+       "/assets/questConta-DeQE6NNH.css 5688",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 16029",
+       "/favicon.svg 1342",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 1601"
+      ]
+     }
+    },
+    "quente": {
+     "ttfb": 28.58500000089407,
+     "dcl": 58.75500000268221,
+     "load": 60.80000000447035,
+     "fcp": 191.45000000298023,
+     "lcp": 191.45000000298023,
+     "lcpEl": "H1.",
+     "lcpTodos": [
+      {
+       "s": 191.45000000298023,
+       "size": 12469,
+       "el": "H1.",
+       "url": ""
+      }
+     ],
+     "cls": 0,
+     "clsN": 0,
+     "lt": [],
+     "marcos": {
+      "tela": 84.1550000011921,
+      "trilho": 101.73000000417233,
+      "palco": 101.74500000476837,
+      "h1": 101.75
+     },
+     "jsDecod": 661313,
+     "nJs": 76,
+     "nRes": 86,
+     "nos": 280,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "desktop-com-gpu",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "false",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 0,
+     "nLt": 0,
+     "maiorLt": 0,
+     "somaLt": 0,
+     "tti": 191.45000000298023,
+     "cpu": {
+      "tarefa_ms": 583,
+      "script_ms": 65,
+      "estilo_ms": 216,
+      "layout_ms": 7,
+      "n_estilo": 832,
+      "n_layout": 9
+     },
+     "aosMs": 2142.7600000053644,
+     "heapMb": 5.5,
+     "rede": {
+      "pedidos": 86,
+      "daRede": 2,
+      "bytes": 2960,
+      "por": {
+       "Script": {
+        "n": 75,
+        "bytes": 0
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 0
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 0
+       },
+       "Document": {
+        "n": 1,
+        "bytes": 1926
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1034
+       }
+      },
+      "urls": [
+       "/assets/index-1qSZE85D.js 0",
+       "/assets/vendor-react-dq0ylnNG.js 0",
+       "/assets/index-CdsPRvTv.css 0",
+       "/assets/servidor-Do-UhOOh.js 0",
+       "/assets/store-BXxuL5Fj.js 0",
+       "/assets/grade-p0ReBe33.js 0",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 0",
+       "/assets/edicaoEstatica-CEZszL7c.js 0",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 0",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 0",
+       "/ 1926",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 0",
+       "/assets/vozNatural-B3-Ser37.js 0",
+       "/assets/preferencias-CTRhZH1b.js 0",
+       "/assets/base-ext-BThVIs_G.css 0",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 0",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 0",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 0",
+       "/assets/trophy-DSvwDaWi.js 0",
+       "/assets/target-7DJmIJU_.js 0",
+       "/assets/calendar-days-B-k-mrZL.js 0",
+       "/assets/repeat-acTlPVje.js 0",
+       "/assets/flame-DACqiDzf.js 0",
+       "/assets/rocket-Bh1qhf2f.js 0",
+       "/assets/graduation-cap-Co1UqVfm.js 0",
+       "/assets/medal-BoUJLM8Q.js 0",
+       "/assets/star-lS2HOlKd.js 0",
+       "/assets/audio-lines-1rEfOK5R.js 0",
+       "/assets/languages-CINJDKXq.js 0",
+       "/assets/globe-B-et50ej.js 0",
+       "/assets/radio-Do3raI1L.js 0",
+       "/assets/shield-D4Iq-W2-.js 0",
+       "/assets/brain-cmcjPoCc.js 0",
+       "/assets/lightbulb-qImJsbBz.js 0",
+       "/assets/library-DxWrZdOx.js 0",
+       "/assets/book-open-cpk-4Xzs.js 0",
+       "/assets/award-BI1TsRla.js 0",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 0",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 0",
+       "/assets/user-round-Db5XiLqU.js 0",
+       "/assets/sprout-D82hbF8V.js 0",
+       "/assets/ParticleCanvas-C05xNdBx.js 0",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 0",
+       "/assets/admin-BxidJPk5.js 0",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 0",
+       "/assets/respostaAoApontar-CA9sOugZ.js 0",
+       "/assets/flags-DMdFaCK3.js 0",
+       "/assets/sentidos-D7KDiSu2.js 0",
+       "/assets/usePerfil-S0DoRvYz.js 0",
+       "/assets/navItems-BQ5HTjgj.js 0",
+       "/assets/shield-check-CkDArtVE.js 0",
+       "/assets/layout-dashboard-C5RtMBxN.js 0",
+       "/assets/gamepad-2-B3rwVGdH.js 0",
+       "/assets/chart-column-DcM-4yWp.js 0",
+       "/assets/shirt-DPfE49ad.js 0",
+       "/assets/heart-CZVyHiAN.js 0",
+       "/assets/credit-card-C-O1df3v.js 0",
+       "/assets/settings-DElI3Z6t.js 0",
+       "/assets/ellipsis-ClxI3ryJ.js 0",
+       "/assets/bell-6emOjM2p.js 0",
+       "/assets/lock-uV26nSOP.js 0",
+       "/assets/life-buoy-8BfPgVDv.js 0",
+       "/assets/activity-qqNai76g.js 0",
+       "/assets/sun-Do1fpNDD.js 0",
+       "/assets/gauge-DM0B9XiK.js 0",
+       "/assets/hard-drive-ydu0DVN6.js 0",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 0",
+       "/assets/questBase-BM6kpslA.css 0",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 0",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 0",
+       "/assets/planos-GRg-WrVS.js 0",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 0",
+       "/assets/cloud-off-_LAaJP8R.js 0",
+       "/assets/MissoesDoDia-DijBx2ih.js 0",
+       "/assets/Barra-BQ1-GuKl.js 0",
+       "/assets/TituloDeSecao-BfoRzA-g.js 0",
+       "/assets/list-checks-CDFBDRul.js 0",
+       "/assets/circle-check-yosmW-RQ.js 0",
+       "/assets/layers-Bn7dd7b-.js 0",
+       "/assets/chevron-right-D88YNDcF.js 0",
+       "/assets/youtube-CXR9EGQz.js 0",
+       "/assets/file-text-B6eP1fcq.js 0",
+       "/assets/estilos-Bn2P06nb.css 0",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 0",
+       "/assets/questConta-DeQE6NNH.css 0",
+       "/favicon.svg 1034"
+      ]
+     }
+    }
+   },
+   {
+    "fria": {
+     "ttfb": 69.87999999523163,
+     "dcl": 193.27499999850988,
+     "load": 273.3649999946356,
+     "fcp": 309.2749999985099,
+     "lcp": 577.1049999967217,
+     "lcpEl": "SPAN.q-d",
+     "lcpTodos": [
+      {
+       "s": 309.2749999985099,
+       "size": 1530,
+       "el": "DIV.@container/app flex flex-col h-tela w-fu",
+       "url": ""
+      },
+      {
+       "s": 577.1049999967217,
+       "size": 14700,
+       "el": "SPAN.q-d",
+       "url": ""
+      }
+     ],
+     "cls": 0.003467901234567902,
+     "clsN": 2,
+     "lt": [],
+     "marcos": {
+      "tela": 222.50499999523163,
+      "trilho": 313.8149999976158,
+      "palco": 313.82999999821186,
+      "h1": 313.8449999988079
+     },
+     "jsDecod": 661313,
+     "nJs": 76,
+     "nRes": 86,
+     "nos": 280,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "desktop-com-gpu",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "false",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 0,
+     "nLt": 0,
+     "maiorLt": 0,
+     "somaLt": 0,
+     "tti": 313.82999999821186,
+     "cpu": {
+      "tarefa_ms": 684,
+      "script_ms": 124,
+      "estilo_ms": 183,
+      "layout_ms": 49,
+      "n_estilo": 821,
+      "n_layout": 14
+     },
+     "aosMs": 2568.5699999928474,
+     "heapMb": 3.8,
+     "rede": {
+      "pedidos": 86,
+      "daRede": 86,
+      "bytes": 529164,
+      "por": {
+       "Document": {
+        "n": 1,
+        "bytes": 1959
+       },
+       "Script": {
+        "n": 75,
+        "bytes": 311298
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 101463
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 113104
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1340
+       }
+      },
+      "urls": [
+       "/ 1959",
+       "/assets/edicaoEstatica-CEZszL7c.js 1250",
+       "/assets/store-BXxuL5Fj.js 2924",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 1557",
+       "/assets/servidor-Do-UhOOh.js 14239",
+       "/assets/grade-p0ReBe33.js 2151",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 49381",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 36056",
+       "/assets/index-CdsPRvTv.css 56864",
+       "/assets/vendor-react-dq0ylnNG.js 62151",
+       "/assets/index-1qSZE85D.js 92184",
+       "/assets/vozNatural-B3-Ser37.js 1166",
+       "/assets/base-ext-BThVIs_G.css 8296",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 1882",
+       "/assets/preferencias-CTRhZH1b.js 2487",
+       "/assets/target-7DJmIJU_.js 1355",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 4903",
+       "/assets/trophy-DSvwDaWi.js 1472",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 2640",
+       "/assets/graduation-cap-Co1UqVfm.js 1435",
+       "/assets/questBase-BM6kpslA.css 9156",
+       "/assets/audio-lines-1rEfOK5R.js 1393",
+       "/assets/lightbulb-qImJsbBz.js 1412",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 3628",
+       "/assets/rocket-Bh1qhf2f.js 1506",
+       "/assets/star-lS2HOlKd.js 1483",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 3909",
+       "/assets/shield-D4Iq-W2-.js 1409",
+       "/assets/user-round-Db5XiLqU.js 1375",
+       "/assets/brain-cmcjPoCc.js 1496",
+       "/assets/award-BI1TsRla.js 1424",
+       "/assets/globe-B-et50ej.js 1383",
+       "/assets/book-open-cpk-4Xzs.js 1402",
+       "/assets/ParticleCanvas-C05xNdBx.js 5402",
+       "/assets/medal-BoUJLM8Q.js 1744",
+       "/assets/radio-Do3raI1L.js 1555",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 1601",
+       "/assets/layout-dashboard-C5RtMBxN.js 1392",
+       "/assets/bell-6emOjM2p.js 1424",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 8411",
+       "/assets/admin-BxidJPk5.js 1697",
+       "/assets/gamepad-2-B3rwVGdH.js 1567",
+       "/assets/credit-card-C-O1df3v.js 1392",
+       "/assets/respostaAoApontar-CA9sOugZ.js 2781",
+       "/assets/ellipsis-ClxI3ryJ.js 1360",
+       "/assets/shirt-DPfE49ad.js 1412",
+       "/assets/flags-DMdFaCK3.js 1477",
+       "/assets/life-buoy-8BfPgVDv.js 1420",
+       "/assets/lock-uV26nSOP.js 1382",
+       "/assets/navItems-BQ5HTjgj.js 1897",
+       "/assets/shield-check-CkDArtVE.js 1440",
+       "/assets/usePerfil-S0DoRvYz.js 1725",
+       "/assets/chart-column-DcM-4yWp.js 1382",
+       "/assets/sentidos-D7KDiSu2.js 7870",
+       "/assets/activity-qqNai76g.js 1390",
+       "/assets/TituloDeSecao-BfoRzA-g.js 1330",
+       "/assets/flame-DACqiDzf.js 1368",
+       "/assets/gauge-DM0B9XiK.js 1357",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 2424",
+       "/assets/heart-CZVyHiAN.js 1413",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 1273",
+       "/assets/languages-CINJDKXq.js 1402",
+       "/assets/planos-GRg-WrVS.js 2948",
+       "/assets/library-DxWrZdOx.js 1364",
+       "/assets/Barra-BQ1-GuKl.js 1525",
+       "/assets/MissoesDoDia-DijBx2ih.js 2724",
+       "/assets/sun-Do1fpNDD.js 1549",
+       "/assets/cloud-off-_LAaJP8R.js 1421",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 1611",
+       "/assets/youtube-CXR9EGQz.js 1408",
+       "/assets/file-text-B6eP1fcq.js 1402",
+       "/assets/sprout-D82hbF8V.js 1408",
+       "/assets/hard-drive-ydu0DVN6.js 1461",
+       "/assets/repeat-acTlPVje.js 1393",
+       "/assets/chevron-right-D88YNDcF.js 1332",
+       "/assets/circle-check-yosmW-RQ.js 1363",
+       "/assets/calendar-days-B-k-mrZL.js 1502",
+       "/assets/settings-DElI3Z6t.js 1450",
+       "/assets/list-checks-CDFBDRul.js 1380",
+       "/assets/layers-Bn7dd7b-.js 1427",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 5758",
+       "/favicon.svg 1340",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 16026",
+       "/assets/estilos-Bn2P06nb.css 30456",
+       "/assets/questConta-DeQE6NNH.css 5692",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 1608"
+      ]
+     }
+    },
+    "quente": {
+     "ttfb": 29.054999999701977,
+     "dcl": 53.42500000447035,
+     "load": 54.55000000447035,
+     "fcp": 140.88499999791384,
+     "lcp": 180.17000000178814,
+     "lcpEl": "H1.",
+     "lcpTodos": [
+      {
+       "s": 140.88499999791384,
+       "size": 1530,
+       "el": "DIV.@container/app flex flex-col h-tela w-fu",
+       "url": ""
+      },
+      {
+       "s": 180.17000000178814,
+       "size": 12469,
+       "el": "H1.",
+       "url": ""
+      }
+     ],
+     "cls": 0,
+     "clsN": 0,
+     "lt": [],
+     "marcos": {
+      "tela": 74.89999999850988,
+      "trilho": 88.41499999910593,
+      "palco": 88.42000000178814,
+      "h1": 88.42500000447035
+     },
+     "jsDecod": 661313,
+     "nJs": 76,
+     "nRes": 86,
+     "nos": 280,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "desktop-com-gpu",
+      "data-modo-leve": "false",
+      "data-sem-voz": "false",
+      "data-sem-teclado": "false",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 0,
+     "nLt": 0,
+     "maiorLt": 0,
+     "somaLt": 0,
+     "tti": 140.88499999791384,
+     "cpu": {
+      "tarefa_ms": 542,
+      "script_ms": 56,
+      "estilo_ms": 193,
+      "layout_ms": 6,
+      "n_estilo": 898,
+      "n_layout": 11
+     },
+     "aosMs": 2354.2700000032783,
+     "heapMb": 5.5,
+     "rede": {
+      "pedidos": 86,
+      "daRede": 2,
+      "bytes": 2957,
+      "por": {
+       "Script": {
+        "n": 75,
+        "bytes": 0
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 0
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 0
+       },
+       "Document": {
+        "n": 1,
+        "bytes": 1921
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1036
+       }
+      },
+      "urls": [
+       "/assets/index-1qSZE85D.js 0",
+       "/assets/vendor-react-dq0ylnNG.js 0",
+       "/assets/index-CdsPRvTv.css 0",
+       "/assets/servidor-Do-UhOOh.js 0",
+       "/assets/store-BXxuL5Fj.js 0",
+       "/assets/grade-p0ReBe33.js 0",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 0",
+       "/assets/edicaoEstatica-CEZszL7c.js 0",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 0",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 0",
+       "/ 1921",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 0",
+       "/assets/vozNatural-B3-Ser37.js 0",
+       "/assets/preferencias-CTRhZH1b.js 0",
+       "/assets/base-ext-BThVIs_G.css 0",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 0",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 0",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 0",
+       "/assets/trophy-DSvwDaWi.js 0",
+       "/assets/target-7DJmIJU_.js 0",
+       "/assets/calendar-days-B-k-mrZL.js 0",
+       "/assets/repeat-acTlPVje.js 0",
+       "/assets/flame-DACqiDzf.js 0",
+       "/assets/rocket-Bh1qhf2f.js 0",
+       "/assets/graduation-cap-Co1UqVfm.js 0",
+       "/assets/medal-BoUJLM8Q.js 0",
+       "/assets/star-lS2HOlKd.js 0",
+       "/assets/audio-lines-1rEfOK5R.js 0",
+       "/assets/languages-CINJDKXq.js 0",
+       "/assets/globe-B-et50ej.js 0",
+       "/assets/radio-Do3raI1L.js 0",
+       "/assets/shield-D4Iq-W2-.js 0",
+       "/assets/brain-cmcjPoCc.js 0",
+       "/assets/lightbulb-qImJsbBz.js 0",
+       "/assets/library-DxWrZdOx.js 0",
+       "/assets/book-open-cpk-4Xzs.js 0",
+       "/assets/award-BI1TsRla.js 0",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 0",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 0",
+       "/assets/user-round-Db5XiLqU.js 0",
+       "/assets/sprout-D82hbF8V.js 0",
+       "/assets/ParticleCanvas-C05xNdBx.js 0",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 0",
+       "/assets/admin-BxidJPk5.js 0",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 0",
+       "/assets/respostaAoApontar-CA9sOugZ.js 0",
+       "/assets/flags-DMdFaCK3.js 0",
+       "/assets/sentidos-D7KDiSu2.js 0",
+       "/assets/usePerfil-S0DoRvYz.js 0",
+       "/assets/navItems-BQ5HTjgj.js 0",
+       "/assets/shield-check-CkDArtVE.js 0",
+       "/assets/layout-dashboard-C5RtMBxN.js 0",
+       "/assets/gamepad-2-B3rwVGdH.js 0",
+       "/assets/chart-column-DcM-4yWp.js 0",
+       "/assets/shirt-DPfE49ad.js 0",
+       "/assets/heart-CZVyHiAN.js 0",
+       "/assets/credit-card-C-O1df3v.js 0",
+       "/assets/settings-DElI3Z6t.js 0",
+       "/assets/ellipsis-ClxI3ryJ.js 0",
+       "/assets/bell-6emOjM2p.js 0",
+       "/assets/lock-uV26nSOP.js 0",
+       "/assets/life-buoy-8BfPgVDv.js 0",
+       "/assets/activity-qqNai76g.js 0",
+       "/assets/sun-Do1fpNDD.js 0",
+       "/assets/gauge-DM0B9XiK.js 0",
+       "/assets/hard-drive-ydu0DVN6.js 0",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 0",
+       "/assets/questBase-BM6kpslA.css 0",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 0",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 0",
+       "/assets/planos-GRg-WrVS.js 0",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 0",
+       "/assets/cloud-off-_LAaJP8R.js 0",
+       "/assets/MissoesDoDia-DijBx2ih.js 0",
+       "/assets/Barra-BQ1-GuKl.js 0",
+       "/assets/TituloDeSecao-BfoRzA-g.js 0",
+       "/assets/list-checks-CDFBDRul.js 0",
+       "/assets/circle-check-yosmW-RQ.js 0",
+       "/assets/layers-Bn7dd7b-.js 0",
+       "/assets/chevron-right-D88YNDcF.js 0",
+       "/assets/youtube-CXR9EGQz.js 0",
+       "/assets/file-text-B6eP1fcq.js 0",
+       "/assets/estilos-Bn2P06nb.css 0",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 0",
+       "/assets/questConta-DeQE6NNH.css 0",
+       "/favicon.svg 1036"
+      ]
+     }
+    }
+   }
+  ]
+ },
+ "quest": {
+  "mediana": {
+   "fria": {
+    "ttfb": 97,
+    "fcp": 484,
+    "lcp": 1244,
+    "palco": 795,
+    "tti": 1245,
+    "tbt": 191,
+    "cls": 0.0529,
+    "maiorLt": 125,
+    "pedidos": 89,
+    "daRede": 89,
+    "kB": 524,
+    "jsDecodKB": 653,
+    "script_ms": 515,
+    "estilo_ms": 608,
+    "layout_ms": 191,
+    "tarefa_ms": 2344,
+    "heapMb": 4.3,
+    "nos": 274
+   },
+   "quente": {
+    "ttfb": 31,
+    "fcp": 229,
+    "lcp": 597,
+    "palco": 368,
+    "tti": 669,
+    "tbt": 88,
+    "cls": 0.0526,
+    "maiorLt": 91,
+    "pedidos": 89,
+    "daRede": 2,
+    "kB": 3,
+    "jsDecodKB": 653,
+    "script_ms": 299,
+    "estilo_ms": 666,
+    "layout_ms": 52,
+    "tarefa_ms": 2096,
+    "heapMb": 5.7,
+    "nos": 274
+   }
+  },
+  "runs": [
+   {
+    "fria": {
+     "ttfb": 99.52500000596046,
+     "dcl": 359.70500000566244,
+     "load": 449,
+     "fcp": 514.2600000053644,
+     "lcp": 1253.445000000298,
+     "lcpEl": "SMALL.",
+     "lcpTodos": [
+      {
+       "s": 514.2600000053644,
+       "size": 1530,
+       "el": "DIV.@container/app flex flex-col h-tela w-fu",
+       "url": ""
+      },
+      {
+       "s": 599.8450000062585,
+       "size": 2520,
+       "el": "DIV.carregando-da-tela flex-1 flex items-cen",
+       "url": ""
+      },
+      {
+       "s": 1253.445000000298,
+       "size": 11229,
+       "el": "SMALL.",
+       "url": ""
+      }
+     ],
+     "cls": 0.052875874837239586,
+     "clsN": 1,
+     "lt": [
+      {
+       "s": 245.46000000089407,
+       "d": 117
+      },
+      {
+       "s": 903.1450000032783,
+       "d": 107
+      },
+      {
+       "s": 1020.9250000044703,
+       "d": 115
+      },
+      {
+       "s": 1170.1450000032783,
+       "d": 110
+      }
+     ],
+     "marcos": {
+      "tela": 565.7300000041723,
+      "trilho": 799.0750000029802,
+      "palco": 799.0850000008941,
+      "h1": 799.0900000035763
+     },
+     "jsDecod": 668747,
+     "nJs": 79,
+     "nRes": 89,
+     "nos": 274,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "quest",
+      "data-modo-leve": "false",
+      "data-sem-voz": "true",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 182,
+     "nLt": 4,
+     "maiorLt": 117,
+     "somaLt": 449,
+     "tti": 1280.1450000032783,
+     "cpu": {
+      "tarefa_ms": 2470,
+      "script_ms": 526,
+      "estilo_ms": 653,
+      "layout_ms": 184,
+      "n_estilo": 847,
+      "n_layout": 14
+     },
+     "aosMs": 3456.859999999404,
+     "heapMb": 4.3,
+     "rede": {
+      "pedidos": 89,
+      "daRede": 89,
+      "bytes": 536337,
+      "por": {
+       "Document": {
+        "n": 1,
+        "bytes": 1953
+       },
+       "Script": {
+        "n": 78,
+        "bytes": 318452
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 113128
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 101459
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1345
+       }
+      },
+      "urls": [
+       "/ 1953",
+       "/assets/grade-p0ReBe33.js 2146",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 1560",
+       "/assets/store-BXxuL5Fj.js 2915",
+       "/assets/vendor-react-dq0ylnNG.js 62131",
+       "/assets/servidor-Do-UhOOh.js 14210",
+       "/assets/edicaoEstatica-CEZszL7c.js 1253",
+       "/assets/index-CdsPRvTv.css 56960",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 36057",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 49381",
+       "/assets/index-1qSZE85D.js 92185",
+       "/assets/base-ext-BThVIs_G.css 8293",
+       "/assets/haVoz-CKSLTEah.js 2118",
+       "/assets/vozNatural-B3-Ser37.js 1164",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 1886",
+       "/assets/vozDaNuvem-DHJKD6VE.js 3549",
+       "/assets/preferencias-CTRhZH1b.js 2487",
+       "/assets/nuvemDoQuest-DDPKGPGx.js 1601",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 4901",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 3920",
+       "/assets/trophy-DSvwDaWi.js 1459",
+       "/assets/flame-DACqiDzf.js 1367",
+       "/assets/rocket-Bh1qhf2f.js 1515",
+       "/assets/target-7DJmIJU_.js 1352",
+       "/assets/star-lS2HOlKd.js 1480",
+       "/assets/audio-lines-1rEfOK5R.js 1396",
+       "/assets/medal-BoUJLM8Q.js 1740",
+       "/assets/shield-D4Iq-W2-.js 1414",
+       "/assets/repeat-acTlPVje.js 1394",
+       "/assets/lightbulb-qImJsbBz.js 1415",
+       "/assets/calendar-days-B-k-mrZL.js 1494",
+       "/assets/languages-CINJDKXq.js 1409",
+       "/assets/globe-B-et50ej.js 1383",
+       "/assets/brain-cmcjPoCc.js 1497",
+       "/assets/book-open-cpk-4Xzs.js 1401",
+       "/assets/user-round-Db5XiLqU.js 1366",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 1614",
+       "/assets/sprout-D82hbF8V.js 1414",
+       "/assets/library-DxWrZdOx.js 1366",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 3630",
+       "/assets/award-BI1TsRla.js 1423",
+       "/assets/graduation-cap-Co1UqVfm.js 1427",
+       "/assets/radio-Do3raI1L.js 1547",
+       "/assets/ParticleCanvas-C05xNdBx.js 5398",
+       "/assets/questBase-BM6kpslA.css 9154",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 2637",
+       "/favicon.svg 1345",
+       "/assets/flags-DMdFaCK3.js 1472",
+       "/assets/usePerfil-S0DoRvYz.js 1720",
+       "/assets/respostaAoApontar-CA9sOugZ.js 2780",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 8416",
+       "/assets/sentidos-D7KDiSu2.js 7869",
+       "/assets/settings-DElI3Z6t.js 1447",
+       "/assets/layout-dashboard-C5RtMBxN.js 1391",
+       "/assets/shirt-DPfE49ad.js 1418",
+       "/assets/heart-CZVyHiAN.js 1417",
+       "/assets/chart-column-DcM-4yWp.js 1384",
+       "/assets/shield-check-CkDArtVE.js 1438",
+       "/assets/admin-BxidJPk5.js 1703",
+       "/assets/life-buoy-8BfPgVDv.js 1420",
+       "/assets/navItems-BQ5HTjgj.js 1899",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 1595",
+       "/assets/bell-6emOjM2p.js 1422",
+       "/assets/gauge-DM0B9XiK.js 1360",
+       "/assets/activity-qqNai76g.js 1387",
+       "/assets/gamepad-2-B3rwVGdH.js 1568",
+       "/assets/ellipsis-ClxI3ryJ.js 1352",
+       "/assets/lock-uV26nSOP.js 1377",
+       "/assets/sun-Do1fpNDD.js 1544",
+       "/assets/hard-drive-ydu0DVN6.js 1461",
+       "/assets/credit-card-C-O1df3v.js 1395",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 5750",
+       "/assets/TituloDeSecao-BfoRzA-g.js 1322",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 1282",
+       "/assets/cloud-off-_LAaJP8R.js 1416",
+       "/assets/MissoesDoDia-DijBx2ih.js 2720",
+       "/assets/youtube-CXR9EGQz.js 1409",
+       "/assets/circle-check-yosmW-RQ.js 1364",
+       "/assets/list-checks-CDFBDRul.js 1382",
+       "/assets/chevron-right-D88YNDcF.js 1325",
+       "/assets/file-text-B6eP1fcq.js 1405",
+       "/assets/Barra-BQ1-GuKl.js 1523",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 2422",
+       "/assets/layers-Bn7dd7b-.js 1424",
+       "/assets/planos-GRg-WrVS.js 2942",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 16021",
+       "/assets/estilos-Bn2P06nb.css 30394",
+       "/assets/questConta-DeQE6NNH.css 5690",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 1604"
+      ]
+     }
+    },
+    "quente": {
+     "ttfb": 33.57500000298023,
+     "dcl": 147.9050000011921,
+     "load": 159.4699999988079,
+     "fcp": 256.11500000208616,
+     "lcp": 631.0750000029802,
+     "lcpEl": "SPAN.q-d",
+     "lcpTodos": [
+      {
+       "s": 256.11500000208616,
+       "size": 1530,
+       "el": "DIV.flex h-tela w-full items-center justify-",
+       "url": ""
+      },
+      {
+       "s": 388.2150000035763,
+       "size": 2520,
+       "el": null,
+       "url": ""
+      },
+      {
+       "s": 631.0750000029802,
+       "size": 12348,
+       "el": "SPAN.q-d",
+       "url": ""
+      }
+     ],
+     "cls": 0.04596306790245904,
+     "clsN": 1,
+     "lt": [
+      {
+       "s": 294.2150000035763,
+       "d": 53
+      },
+      {
+       "s": 508.0300000011921,
+       "d": 78
+      },
+      {
+       "s": 622.5900000035763,
+       "d": 80
+      }
+     ],
+     "marcos": {
+      "tela": 347.1000000014901,
+      "palco": 413.64000000059605,
+      "h1": 413.64500000327826,
+      "trilho": 466.11500000208616
+     },
+     "jsDecod": 668747,
+     "nJs": 79,
+     "nRes": 89,
+     "nos": 274,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "quest",
+      "data-modo-leve": "false",
+      "data-sem-voz": "true",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 61,
+     "nLt": 3,
+     "maiorLt": 80,
+     "somaLt": 211,
+     "tti": 702.5900000035763,
+     "cpu": {
+      "tarefa_ms": 2096,
+      "script_ms": 317,
+      "estilo_ms": 629,
+      "layout_ms": 48,
+      "n_estilo": 857,
+      "n_layout": 12
+     },
+     "aosMs": 2910.27499999851,
+     "heapMb": 5.6,
+     "rede": {
+      "pedidos": 89,
+      "daRede": 2,
+      "bytes": 2952,
+      "por": {
+       "Script": {
+        "n": 78,
+        "bytes": 0
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 0
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 0
+       },
+       "Document": {
+        "n": 1,
+        "bytes": 1918
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1034
+       }
+      },
+      "urls": [
+       "/assets/index-1qSZE85D.js 0",
+       "/assets/vendor-react-dq0ylnNG.js 0",
+       "/assets/index-CdsPRvTv.css 0",
+       "/assets/servidor-Do-UhOOh.js 0",
+       "/assets/store-BXxuL5Fj.js 0",
+       "/assets/grade-p0ReBe33.js 0",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 0",
+       "/assets/edicaoEstatica-CEZszL7c.js 0",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 0",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 0",
+       "/ 1918",
+       "/assets/haVoz-CKSLTEah.js 0",
+       "/assets/nuvemDoQuest-DDPKGPGx.js 0",
+       "/assets/preferencias-CTRhZH1b.js 0",
+       "/assets/vozDaNuvem-DHJKD6VE.js 0",
+       "/assets/vozNatural-B3-Ser37.js 0",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 0",
+       "/assets/base-ext-BThVIs_G.css 0",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 0",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 0",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 0",
+       "/assets/trophy-DSvwDaWi.js 0",
+       "/assets/target-7DJmIJU_.js 0",
+       "/assets/calendar-days-B-k-mrZL.js 0",
+       "/assets/repeat-acTlPVje.js 0",
+       "/assets/flame-DACqiDzf.js 0",
+       "/assets/rocket-Bh1qhf2f.js 0",
+       "/assets/graduation-cap-Co1UqVfm.js 0",
+       "/assets/medal-BoUJLM8Q.js 0",
+       "/assets/star-lS2HOlKd.js 0",
+       "/assets/audio-lines-1rEfOK5R.js 0",
+       "/assets/languages-CINJDKXq.js 0",
+       "/assets/globe-B-et50ej.js 0",
+       "/assets/radio-Do3raI1L.js 0",
+       "/assets/shield-D4Iq-W2-.js 0",
+       "/assets/brain-cmcjPoCc.js 0",
+       "/assets/lightbulb-qImJsbBz.js 0",
+       "/assets/library-DxWrZdOx.js 0",
+       "/assets/book-open-cpk-4Xzs.js 0",
+       "/assets/award-BI1TsRla.js 0",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 0",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 0",
+       "/assets/user-round-Db5XiLqU.js 0",
+       "/assets/sprout-D82hbF8V.js 0",
+       "/assets/ParticleCanvas-C05xNdBx.js 0",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 0",
+       "/assets/admin-BxidJPk5.js 0",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 0",
+       "/assets/respostaAoApontar-CA9sOugZ.js 0",
+       "/assets/flags-DMdFaCK3.js 0",
+       "/assets/sentidos-D7KDiSu2.js 0",
+       "/assets/usePerfil-S0DoRvYz.js 0",
+       "/assets/navItems-BQ5HTjgj.js 0",
+       "/assets/shield-check-CkDArtVE.js 0",
+       "/assets/layout-dashboard-C5RtMBxN.js 0",
+       "/assets/gamepad-2-B3rwVGdH.js 0",
+       "/assets/chart-column-DcM-4yWp.js 0",
+       "/assets/shirt-DPfE49ad.js 0",
+       "/assets/heart-CZVyHiAN.js 0",
+       "/assets/credit-card-C-O1df3v.js 0",
+       "/assets/settings-DElI3Z6t.js 0",
+       "/assets/ellipsis-ClxI3ryJ.js 0",
+       "/assets/bell-6emOjM2p.js 0",
+       "/assets/lock-uV26nSOP.js 0",
+       "/assets/life-buoy-8BfPgVDv.js 0",
+       "/assets/activity-qqNai76g.js 0",
+       "/assets/sun-Do1fpNDD.js 0",
+       "/assets/gauge-DM0B9XiK.js 0",
+       "/assets/hard-drive-ydu0DVN6.js 0",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 0",
+       "/assets/questBase-BM6kpslA.css 0",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 0",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 0",
+       "/assets/planos-GRg-WrVS.js 0",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 0",
+       "/assets/cloud-off-_LAaJP8R.js 0",
+       "/assets/MissoesDoDia-DijBx2ih.js 0",
+       "/assets/Barra-BQ1-GuKl.js 0",
+       "/assets/TituloDeSecao-BfoRzA-g.js 0",
+       "/assets/list-checks-CDFBDRul.js 0",
+       "/assets/circle-check-yosmW-RQ.js 0",
+       "/assets/layers-Bn7dd7b-.js 0",
+       "/assets/chevron-right-D88YNDcF.js 0",
+       "/assets/youtube-CXR9EGQz.js 0",
+       "/assets/file-text-B6eP1fcq.js 0",
+       "/favicon.svg 1034",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 0",
+       "/assets/questConta-DeQE6NNH.css 0",
+       "/assets/estilos-Bn2P06nb.css 0"
+      ]
+     }
+    }
+   },
+   {
+    "fria": {
+     "ttfb": 78.73999999463558,
+     "dcl": 319.554999999702,
+     "load": 387.0899999961257,
+     "fcp": 465.070000000298,
+     "lcp": 1204.3799999952316,
+     "lcpEl": "SMALL.",
+     "lcpTodos": [
+      {
+       "s": 465.070000000298,
+       "size": 1530,
+       "el": "DIV.@container/app flex flex-col h-tela w-fu",
+       "url": ""
+      },
+      {
+       "s": 550.7899999991059,
+       "size": 2520,
+       "el": "DIV.carregando-da-tela flex-1 flex items-cen",
+       "url": ""
+      },
+      {
+       "s": 1204.3799999952316,
+       "size": 11229,
+       "el": "SMALL.",
+       "url": ""
+      }
+     ],
+     "cls": 0.052875874837239586,
+     "clsN": 1,
+     "lt": [
+      {
+       "s": 211.35999999940395,
+       "d": 111
+      },
+      {
+       "s": 842.2399999946356,
+       "d": 104
+      },
+      {
+       "s": 956.1349999979138,
+       "d": 133
+      },
+      {
+       "s": 1108.664999999106,
+       "d": 104
+      }
+     ],
+     "marcos": {
+      "tela": 501.9949999973178,
+      "trilho": 716.9649999961257,
+      "palco": 716.9799999967217,
+      "h1": 716.984999999404
+     },
+     "jsDecod": 668747,
+     "nJs": 79,
+     "nRes": 89,
+     "nos": 274,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "quest",
+      "data-modo-leve": "false",
+      "data-sem-voz": "true",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 191,
+     "nLt": 4,
+     "maiorLt": 133,
+     "somaLt": 452,
+     "tti": 1212.664999999106,
+     "cpu": {
+      "tarefa_ms": 2174,
+      "script_ms": 481,
+      "estilo_ms": 602,
+      "layout_ms": 191,
+      "n_estilo": 827,
+      "n_layout": 13
+     },
+     "aosMs": 3249.814999997616,
+     "heapMb": 4.3,
+     "rede": {
+      "pedidos": 89,
+      "daRede": 89,
+      "bytes": 536505,
+      "por": {
+       "Document": {
+        "n": 1,
+        "bytes": 1954
+       },
+       "Script": {
+        "n": 78,
+        "bytes": 318592
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 101464
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 113158
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1337
+       }
+      },
+      "urls": [
+       "/ 1954",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 1560",
+       "/assets/servidor-Do-UhOOh.js 14216",
+       "/assets/grade-p0ReBe33.js 2148",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 49377",
+       "/assets/edicaoEstatica-CEZszL7c.js 1245",
+       "/assets/store-BXxuL5Fj.js 2926",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 36061",
+       "/assets/index-CdsPRvTv.css 56974",
+       "/assets/vendor-react-dq0ylnNG.js 62176",
+       "/assets/index-1qSZE85D.js 92183",
+       "/assets/base-ext-BThVIs_G.css 8296",
+       "/assets/haVoz-CKSLTEah.js 2112",
+       "/assets/vozDaNuvem-DHJKD6VE.js 3548",
+       "/assets/vozNatural-B3-Ser37.js 1165",
+       "/assets/nuvemDoQuest-DDPKGPGx.js 1604",
+       "/assets/preferencias-CTRhZH1b.js 2493",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 1882",
+       "/assets/target-7DJmIJU_.js 1356",
+       "/assets/trophy-DSvwDaWi.js 1463",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 3923",
+       "/assets/repeat-acTlPVje.js 1394",
+       "/assets/audio-lines-1rEfOK5R.js 1390",
+       "/assets/star-lS2HOlKd.js 1487",
+       "/assets/calendar-days-B-k-mrZL.js 1493",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 4906",
+       "/assets/globe-B-et50ej.js 1379",
+       "/assets/languages-CINJDKXq.js 1404",
+       "/assets/medal-BoUJLM8Q.js 1741",
+       "/assets/flame-DACqiDzf.js 1368",
+       "/assets/book-open-cpk-4Xzs.js 1404",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 3627",
+       "/assets/graduation-cap-Co1UqVfm.js 1436",
+       "/assets/lightbulb-qImJsbBz.js 1419",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 1612",
+       "/assets/shield-D4Iq-W2-.js 1415",
+       "/assets/library-DxWrZdOx.js 1371",
+       "/assets/rocket-Bh1qhf2f.js 1509",
+       "/assets/user-round-Db5XiLqU.js 1375",
+       "/assets/brain-cmcjPoCc.js 1499",
+       "/assets/sprout-D82hbF8V.js 1409",
+       "/assets/radio-Do3raI1L.js 1558",
+       "/assets/ParticleCanvas-C05xNdBx.js 5402",
+       "/assets/award-BI1TsRla.js 1422",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 2642",
+       "/assets/questBase-BM6kpslA.css 9163",
+       "/favicon.svg 1337",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 1594",
+       "/assets/admin-BxidJPk5.js 1705",
+       "/assets/navItems-BQ5HTjgj.js 1893",
+       "/assets/sentidos-D7KDiSu2.js 7871",
+       "/assets/flags-DMdFaCK3.js 1476",
+       "/assets/gamepad-2-B3rwVGdH.js 1572",
+       "/assets/settings-DElI3Z6t.js 1449",
+       "/assets/chart-column-DcM-4yWp.js 1388",
+       "/assets/heart-CZVyHiAN.js 1414",
+       "/assets/shirt-DPfE49ad.js 1417",
+       "/assets/usePerfil-S0DoRvYz.js 1720",
+       "/assets/layout-dashboard-C5RtMBxN.js 1394",
+       "/assets/ellipsis-ClxI3ryJ.js 1362",
+       "/assets/sun-Do1fpNDD.js 1551",
+       "/assets/activity-qqNai76g.js 1388",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 8425",
+       "/assets/credit-card-C-O1df3v.js 1384",
+       "/assets/respostaAoApontar-CA9sOugZ.js 2779",
+       "/assets/life-buoy-8BfPgVDv.js 1416",
+       "/assets/hard-drive-ydu0DVN6.js 1454",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 5760",
+       "/assets/lock-uV26nSOP.js 1382",
+       "/assets/cloud-off-_LAaJP8R.js 1420",
+       "/assets/planos-GRg-WrVS.js 2940",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 2426",
+       "/assets/shield-check-CkDArtVE.js 1440",
+       "/assets/TituloDeSecao-BfoRzA-g.js 1330",
+       "/assets/MissoesDoDia-DijBx2ih.js 2720",
+       "/assets/gauge-DM0B9XiK.js 1366",
+       "/assets/chevron-right-D88YNDcF.js 1333",
+       "/assets/youtube-CXR9EGQz.js 1405",
+       "/assets/circle-check-yosmW-RQ.js 1358",
+       "/assets/file-text-B6eP1fcq.js 1401",
+       "/assets/list-checks-CDFBDRul.js 1378",
+       "/assets/Barra-BQ1-GuKl.js 1523",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 1278",
+       "/assets/layers-Bn7dd7b-.js 1425",
+       "/assets/bell-6emOjM2p.js 1427",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 16026",
+       "/assets/estilos-Bn2P06nb.css 30393",
+       "/assets/questConta-DeQE6NNH.css 5690",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 1608"
+      ]
+     }
+    },
+    "quente": {
+     "ttfb": 28.614999994635582,
+     "dcl": 115.26500000059605,
+     "load": 124,
+     "fcp": 204.60499999672174,
+     "lcp": 572.4549999982119,
+     "lcpEl": "SMALL.",
+     "lcpTodos": [
+      {
+       "s": 204.60499999672174,
+       "size": 1530,
+       "el": "DIV.flex h-tela w-full items-center justify-",
+       "url": ""
+      },
+      {
+       "s": 311.7549999952316,
+       "size": 2520,
+       "el": "DIV.carregando-da-tela flex-1 flex items-cen",
+       "url": ""
+      },
+      {
+       "s": 572.4549999982119,
+       "size": 11229,
+       "el": "SMALL.",
+       "url": ""
+      }
+     ],
+     "cls": 0.05260940090815227,
+     "clsN": 1,
+     "lt": [
+      {
+       "s": 396.1849999949336,
+       "d": 73
+      },
+      {
+       "s": 471.60499999672174,
+       "d": 91
+      },
+      {
+       "s": 571.1199999973178,
+       "d": 74
+      }
+     ],
+     "marcos": {
+      "tela": 273.57999999821186,
+      "trilho": 358.6899999976158,
+      "palco": 358.71000000089407,
+      "h1": 358.7149999961257
+     },
+     "jsDecod": 668747,
+     "nJs": 79,
+     "nRes": 89,
+     "nos": 274,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "quest",
+      "data-modo-leve": "false",
+      "data-sem-voz": "true",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 88,
+     "nLt": 3,
+     "maiorLt": 91,
+     "somaLt": 238,
+     "tti": 645.1199999973178,
+     "cpu": {
+      "tarefa_ms": 2026,
+      "script_ms": 282,
+      "estilo_ms": 666,
+      "layout_ms": 57,
+      "n_estilo": 831,
+      "n_layout": 12
+     },
+     "aosMs": 2857.094999998808,
+     "heapMb": 5.7,
+     "rede": {
+      "pedidos": 89,
+      "daRede": 2,
+      "bytes": 2952,
+      "por": {
+       "Script": {
+        "n": 78,
+        "bytes": 0
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 0
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 0
+       },
+       "Document": {
+        "n": 1,
+        "bytes": 1916
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1036
+       }
+      },
+      "urls": [
+       "/assets/index-1qSZE85D.js 0",
+       "/assets/vendor-react-dq0ylnNG.js 0",
+       "/assets/index-CdsPRvTv.css 0",
+       "/assets/servidor-Do-UhOOh.js 0",
+       "/assets/store-BXxuL5Fj.js 0",
+       "/assets/grade-p0ReBe33.js 0",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 0",
+       "/assets/edicaoEstatica-CEZszL7c.js 0",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 0",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 0",
+       "/ 1916",
+       "/assets/haVoz-CKSLTEah.js 0",
+       "/assets/nuvemDoQuest-DDPKGPGx.js 0",
+       "/assets/preferencias-CTRhZH1b.js 0",
+       "/assets/vozDaNuvem-DHJKD6VE.js 0",
+       "/assets/vozNatural-B3-Ser37.js 0",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 0",
+       "/assets/base-ext-BThVIs_G.css 0",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 0",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 0",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 0",
+       "/assets/trophy-DSvwDaWi.js 0",
+       "/assets/target-7DJmIJU_.js 0",
+       "/assets/calendar-days-B-k-mrZL.js 0",
+       "/assets/repeat-acTlPVje.js 0",
+       "/assets/flame-DACqiDzf.js 0",
+       "/assets/rocket-Bh1qhf2f.js 0",
+       "/assets/graduation-cap-Co1UqVfm.js 0",
+       "/assets/medal-BoUJLM8Q.js 0",
+       "/assets/star-lS2HOlKd.js 0",
+       "/assets/audio-lines-1rEfOK5R.js 0",
+       "/assets/languages-CINJDKXq.js 0",
+       "/assets/globe-B-et50ej.js 0",
+       "/assets/radio-Do3raI1L.js 0",
+       "/assets/shield-D4Iq-W2-.js 0",
+       "/assets/brain-cmcjPoCc.js 0",
+       "/assets/lightbulb-qImJsbBz.js 0",
+       "/assets/library-DxWrZdOx.js 0",
+       "/assets/book-open-cpk-4Xzs.js 0",
+       "/assets/award-BI1TsRla.js 0",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 0",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 0",
+       "/assets/user-round-Db5XiLqU.js 0",
+       "/assets/sprout-D82hbF8V.js 0",
+       "/assets/ParticleCanvas-C05xNdBx.js 0",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 0",
+       "/assets/admin-BxidJPk5.js 0",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 0",
+       "/assets/respostaAoApontar-CA9sOugZ.js 0",
+       "/assets/flags-DMdFaCK3.js 0",
+       "/assets/sentidos-D7KDiSu2.js 0",
+       "/assets/usePerfil-S0DoRvYz.js 0",
+       "/assets/navItems-BQ5HTjgj.js 0",
+       "/assets/shield-check-CkDArtVE.js 0",
+       "/assets/layout-dashboard-C5RtMBxN.js 0",
+       "/assets/gamepad-2-B3rwVGdH.js 0",
+       "/assets/chart-column-DcM-4yWp.js 0",
+       "/assets/shirt-DPfE49ad.js 0",
+       "/assets/heart-CZVyHiAN.js 0",
+       "/assets/credit-card-C-O1df3v.js 0",
+       "/assets/settings-DElI3Z6t.js 0",
+       "/assets/ellipsis-ClxI3ryJ.js 0",
+       "/assets/bell-6emOjM2p.js 0",
+       "/assets/lock-uV26nSOP.js 0",
+       "/assets/life-buoy-8BfPgVDv.js 0",
+       "/assets/activity-qqNai76g.js 0",
+       "/assets/sun-Do1fpNDD.js 0",
+       "/assets/gauge-DM0B9XiK.js 0",
+       "/assets/hard-drive-ydu0DVN6.js 0",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 0",
+       "/assets/questBase-BM6kpslA.css 0",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 0",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 0",
+       "/assets/planos-GRg-WrVS.js 0",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 0",
+       "/assets/cloud-off-_LAaJP8R.js 0",
+       "/assets/MissoesDoDia-DijBx2ih.js 0",
+       "/assets/Barra-BQ1-GuKl.js 0",
+       "/assets/TituloDeSecao-BfoRzA-g.js 0",
+       "/assets/list-checks-CDFBDRul.js 0",
+       "/assets/circle-check-yosmW-RQ.js 0",
+       "/assets/layers-Bn7dd7b-.js 0",
+       "/assets/chevron-right-D88YNDcF.js 0",
+       "/assets/youtube-CXR9EGQz.js 0",
+       "/assets/file-text-B6eP1fcq.js 0",
+       "/favicon.svg 1036",
+       "/assets/estilos-Bn2P06nb.css 0",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 0",
+       "/assets/questConta-DeQE6NNH.css 0"
+      ]
+     }
+    }
+   },
+   {
+    "fria": {
+     "ttfb": 96.97499999403954,
+     "dcl": 329.9949999973178,
+     "load": 394.875,
+     "fcp": 483.59999999403954,
+     "lcp": 1244.2999999970198,
+     "lcpEl": "SMALL.",
+     "lcpTodos": [
+      {
+       "s": 483.59999999403954,
+       "size": 1530,
+       "el": "DIV.@container/app flex flex-col h-tela w-fu",
+       "url": ""
+      },
+      {
+       "s": 544.320000000298,
+       "size": 2520,
+       "el": "DIV.carregando-da-tela flex-1 flex items-cen",
+       "url": ""
+      },
+      {
+       "s": 1244.2999999970198,
+       "size": 11229,
+       "el": "SMALL.",
+       "url": ""
+      }
+     ],
+     "cls": 0.052829717053307426,
+     "clsN": 1,
+     "lt": [
+      {
+       "s": 232.2449999973178,
+       "d": 100
+      },
+      {
+       "s": 688.5999999940395,
+       "d": 62
+      },
+      {
+       "s": 796.5399999991059,
+       "d": 119
+      },
+      {
+       "s": 916.984999999404,
+       "d": 125
+      },
+      {
+       "s": 1051.664999999106,
+       "d": 109
+      },
+      {
+       "s": 1177.3549999967217,
+       "d": 68
+      }
+     ],
+     "marcos": {
+      "tela": 508.97499999403954,
+      "trilho": 795.0799999982119,
+      "palco": 795.2749999985099,
+      "h1": 795.2799999937415
+     },
+     "jsDecod": 668747,
+     "nJs": 79,
+     "nRes": 89,
+     "nos": 274,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "quest",
+      "data-modo-leve": "false",
+      "data-sem-voz": "true",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 233,
+     "nLt": 6,
+     "maiorLt": 125,
+     "somaLt": 583,
+     "tti": 1245.3549999967217,
+     "cpu": {
+      "tarefa_ms": 2344,
+      "script_ms": 515,
+      "estilo_ms": 608,
+      "layout_ms": 195,
+      "n_estilo": 873,
+      "n_layout": 13
+     },
+     "aosMs": 3461.5,
+     "heapMb": 4.4,
+     "rede": {
+      "pedidos": 89,
+      "daRede": 89,
+      "bytes": 536156,
+      "por": {
+       "Document": {
+        "n": 1,
+        "bytes": 1957
+       },
+       "Script": {
+        "n": 78,
+        "bytes": 318357
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 101460
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 113044
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1338
+       }
+      },
+      "urls": [
+       "/ 1957",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 1558",
+       "/assets/edicaoEstatica-CEZszL7c.js 1245",
+       "/assets/store-BXxuL5Fj.js 2914",
+       "/assets/grade-p0ReBe33.js 2153",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 49381",
+       "/assets/servidor-Do-UhOOh.js 14206",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 36051",
+       "/assets/index-CdsPRvTv.css 56869",
+       "/assets/vendor-react-dq0ylnNG.js 62161",
+       "/assets/index-1qSZE85D.js 92047",
+       "/assets/base-ext-BThVIs_G.css 8301",
+       "/assets/haVoz-CKSLTEah.js 2112",
+       "/assets/nuvemDoQuest-DDPKGPGx.js 1600",
+       "/assets/vozDaNuvem-DHJKD6VE.js 3547",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 1890",
+       "/assets/vozNatural-B3-Ser37.js 1158",
+       "/assets/preferencias-CTRhZH1b.js 2484",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 4905",
+       "/assets/target-7DJmIJU_.js 1354",
+       "/assets/repeat-acTlPVje.js 1395",
+       "/assets/trophy-DSvwDaWi.js 1465",
+       "/assets/globe-B-et50ej.js 1380",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 3925",
+       "/assets/medal-BoUJLM8Q.js 1736",
+       "/assets/rocket-Bh1qhf2f.js 1516",
+       "/assets/star-lS2HOlKd.js 1479",
+       "/assets/shield-D4Iq-W2-.js 1412",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 3630",
+       "/assets/radio-Do3raI1L.js 1552",
+       "/assets/lightbulb-qImJsbBz.js 1415",
+       "/assets/library-DxWrZdOx.js 1370",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 1613",
+       "/assets/flame-DACqiDzf.js 1370",
+       "/assets/sprout-D82hbF8V.js 1409",
+       "/assets/award-BI1TsRla.js 1415",
+       "/assets/brain-cmcjPoCc.js 1501",
+       "/assets/user-round-Db5XiLqU.js 1372",
+       "/assets/book-open-cpk-4Xzs.js 1406",
+       "/assets/languages-CINJDKXq.js 1403",
+       "/assets/ParticleCanvas-C05xNdBx.js 5404",
+       "/assets/graduation-cap-Co1UqVfm.js 1434",
+       "/assets/calendar-days-B-k-mrZL.js 1507",
+       "/assets/audio-lines-1rEfOK5R.js 1384",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 2643",
+       "/assets/questBase-BM6kpslA.css 9155",
+       "/favicon.svg 1338",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 8407",
+       "/assets/admin-BxidJPk5.js 1696",
+       "/assets/respostaAoApontar-CA9sOugZ.js 2781",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 1597",
+       "/assets/navItems-BQ5HTjgj.js 1897",
+       "/assets/shield-check-CkDArtVE.js 1442",
+       "/assets/flags-DMdFaCK3.js 1474",
+       "/assets/lock-uV26nSOP.js 1380",
+       "/assets/layout-dashboard-C5RtMBxN.js 1393",
+       "/assets/bell-6emOjM2p.js 1428",
+       "/assets/credit-card-C-O1df3v.js 1382",
+       "/assets/gamepad-2-B3rwVGdH.js 1573",
+       "/assets/shirt-DPfE49ad.js 1413",
+       "/assets/chart-column-DcM-4yWp.js 1386",
+       "/assets/ellipsis-ClxI3ryJ.js 1350",
+       "/assets/settings-DElI3Z6t.js 1451",
+       "/assets/activity-qqNai76g.js 1391",
+       "/assets/heart-CZVyHiAN.js 1416",
+       "/assets/usePerfil-S0DoRvYz.js 1721",
+       "/assets/life-buoy-8BfPgVDv.js 1416",
+       "/assets/gauge-DM0B9XiK.js 1357",
+       "/assets/sun-Do1fpNDD.js 1556",
+       "/assets/sentidos-D7KDiSu2.js 7862",
+       "/assets/hard-drive-ydu0DVN6.js 1459",
+       "/assets/Barra-BQ1-GuKl.js 1534",
+       "/assets/planos-GRg-WrVS.js 2944",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 5753",
+       "/assets/TituloDeSecao-BfoRzA-g.js 1325",
+       "/assets/chevron-right-D88YNDcF.js 1326",
+       "/assets/circle-check-yosmW-RQ.js 1360",
+       "/assets/cloud-off-_LAaJP8R.js 1426",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 1276",
+       "/assets/youtube-CXR9EGQz.js 1408",
+       "/assets/file-text-B6eP1fcq.js 1402",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 2423",
+       "/assets/MissoesDoDia-DijBx2ih.js 2719",
+       "/assets/list-checks-CDFBDRul.js 1374",
+       "/assets/layers-Bn7dd7b-.js 1423",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 16028",
+       "/assets/estilos-Bn2P06nb.css 30388",
+       "/assets/questConta-DeQE6NNH.css 5688",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 1609"
+      ]
+     }
+    },
+    "quente": {
+     "ttfb": 31.239999994635582,
+     "dcl": 131.01500000059605,
+     "load": 139.98999999463558,
+     "fcp": 229.0299999937415,
+     "lcp": 596.8849999979138,
+     "lcpEl": "SMALL.",
+     "lcpTodos": [
+      {
+       "s": 229.0299999937415,
+       "size": 1530,
+       "el": "DIV.@container/app flex flex-col h-tela w-fu",
+       "url": ""
+      },
+      {
+       "s": 332.59999999403954,
+       "size": 2520,
+       "el": null,
+       "url": ""
+      },
+      {
+       "s": 596.8849999979138,
+       "size": 11229,
+       "el": "SMALL.",
+       "url": ""
+      }
+     ],
+     "cls": 0.05260940090815227,
+     "clsN": 1,
+     "lt": [
+      {
+       "s": 401.1599999964237,
+       "d": 80
+      },
+      {
+       "s": 484.04999999701977,
+       "d": 100
+      },
+      {
+       "s": 593.765000000596,
+       "d": 75
+      }
+     ],
+     "marcos": {
+      "tela": 288.07999999821186,
+      "trilho": 367.70499999821186,
+      "palco": 367.875,
+      "h1": 367.875
+     },
+     "jsDecod": 668747,
+     "nJs": 79,
+     "nRes": 89,
+     "nos": 274,
+     "folhas": 6,
+     "corpo": "animations-on",
+     "raiz": {
+      "data-theme": "babel",
+      "data-fonte": "padrao",
+      "data-particulas": "tema",
+      "data-dispositivo": "quest",
+      "data-modo-leve": "false",
+      "data-sem-voz": "true",
+      "data-sem-teclado": "true",
+      "data-quest-novo": "true",
+      "data-movimento": "rico",
+      "data-px": "on"
+     },
+     "sw": false,
+     "tbt": 105,
+     "nLt": 3,
+     "maiorLt": 100,
+     "somaLt": 255,
+     "tti": 668.765000000596,
+     "cpu": {
+      "tarefa_ms": 2206,
+      "script_ms": 299,
+      "estilo_ms": 727,
+      "layout_ms": 52,
+      "n_estilo": 843,
+      "n_layout": 12
+     },
+     "aosMs": 2884.4899999946356,
+     "heapMb": 5.7,
+     "rede": {
+      "pedidos": 89,
+      "daRede": 2,
+      "bytes": 2949,
+      "por": {
+       "Script": {
+        "n": 78,
+        "bytes": 0
+       },
+       "Stylesheet": {
+        "n": 6,
+        "bytes": 0
+       },
+       "Font": {
+        "n": 3,
+        "bytes": 0
+       },
+       "Document": {
+        "n": 1,
+        "bytes": 1918
+       },
+       "Other": {
+        "n": 1,
+        "bytes": 1031
+       }
+      },
+      "urls": [
+       "/assets/index-1qSZE85D.js 0",
+       "/assets/vendor-react-dq0ylnNG.js 0",
+       "/assets/index-CdsPRvTv.css 0",
+       "/assets/servidor-Do-UhOOh.js 0",
+       "/assets/store-BXxuL5Fj.js 0",
+       "/assets/grade-p0ReBe33.js 0",
+       "/assets/tetoAnonimo-BoDnG4kQ.js 0",
+       "/assets/edicaoEstatica-CEZszL7c.js 0",
+       "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2 0",
+       "/assets/archivo-latin-wght-normal-E0tuGl4L.woff2 0",
+       "/ 1918",
+       "/assets/haVoz-CKSLTEah.js 0",
+       "/assets/nuvemDoQuest-DDPKGPGx.js 0",
+       "/assets/preferencias-CTRhZH1b.js 0",
+       "/assets/vozDaNuvem-DHJKD6VE.js 0",
+       "/assets/vozNatural-B3-Ser37.js 0",
+       "/assets/preferenciaDeVoz-D6EvF7yc.js 0",
+       "/assets/base-ext-BThVIs_G.css 0",
+       "/assets/ibm-plex-mono-latin-700-normal-7sUh57Bg.woff2 0",
+       "/assets/RecompensaDesbloqueada-CKMoAFN0.js 0",
+       "/assets/iconesDaConquista-Ce3B8LTM.js 0",
+       "/assets/trophy-DSvwDaWi.js 0",
+       "/assets/target-7DJmIJU_.js 0",
+       "/assets/calendar-days-B-k-mrZL.js 0",
+       "/assets/repeat-acTlPVje.js 0",
+       "/assets/flame-DACqiDzf.js 0",
+       "/assets/rocket-Bh1qhf2f.js 0",
+       "/assets/graduation-cap-Co1UqVfm.js 0",
+       "/assets/medal-BoUJLM8Q.js 0",
+       "/assets/star-lS2HOlKd.js 0",
+       "/assets/audio-lines-1rEfOK5R.js 0",
+       "/assets/languages-CINJDKXq.js 0",
+       "/assets/globe-B-et50ej.js 0",
+       "/assets/radio-Do3raI1L.js 0",
+       "/assets/shield-D4Iq-W2-.js 0",
+       "/assets/brain-cmcjPoCc.js 0",
+       "/assets/lightbulb-qImJsbBz.js 0",
+       "/assets/library-DxWrZdOx.js 0",
+       "/assets/book-open-cpk-4Xzs.js 0",
+       "/assets/award-BI1TsRla.js 0",
+       "/assets/MiniaturaDoItem-DLnxhP4v.js 0",
+       "/assets/pecasDoPerfil-DWGtBeBo.js 0",
+       "/assets/user-round-Db5XiLqU.js 0",
+       "/assets/sprout-D82hbF8V.js 0",
+       "/assets/ParticleCanvas-C05xNdBx.js 0",
+       "/assets/TrilhoDoQuest-DrO6Rio9.js 0",
+       "/assets/admin-BxidJPk5.js 0",
+       "/assets/preferenciasDoQuest-CBuWnxfD.js 0",
+       "/assets/respostaAoApontar-CA9sOugZ.js 0",
+       "/assets/flags-DMdFaCK3.js 0",
+       "/assets/sentidos-D7KDiSu2.js 0",
+       "/assets/usePerfil-S0DoRvYz.js 0",
+       "/assets/navItems-BQ5HTjgj.js 0",
+       "/assets/shield-check-CkDArtVE.js 0",
+       "/assets/layout-dashboard-C5RtMBxN.js 0",
+       "/assets/gamepad-2-B3rwVGdH.js 0",
+       "/assets/chart-column-DcM-4yWp.js 0",
+       "/assets/shirt-DPfE49ad.js 0",
+       "/assets/heart-CZVyHiAN.js 0",
+       "/assets/credit-card-C-O1df3v.js 0",
+       "/assets/settings-DElI3Z6t.js 0",
+       "/assets/ellipsis-ClxI3ryJ.js 0",
+       "/assets/bell-6emOjM2p.js 0",
+       "/assets/lock-uV26nSOP.js 0",
+       "/assets/life-buoy-8BfPgVDv.js 0",
+       "/assets/activity-qqNai76g.js 0",
+       "/assets/sun-Do1fpNDD.js 0",
+       "/assets/gauge-DM0B9XiK.js 0",
+       "/assets/hard-drive-ydu0DVN6.js 0",
+       "/assets/TrilhoDoQuest-DClDjpVg.css 0",
+       "/assets/questBase-BM6kpslA.css 0",
+       "/assets/InicioDoQuest-YX7tRD0Q.js 0",
+       "/assets/EspacoDeAnuncio-Cc0P1dYC.js 0",
+       "/assets/planos-GRg-WrVS.js 0",
+       "/assets/sessaoDeCaptura-ClXWlGBL.js 0",
+       "/assets/cloud-off-_LAaJP8R.js 0",
+       "/assets/MissoesDoDia-DijBx2ih.js 0",
+       "/assets/Barra-BQ1-GuKl.js 0",
+       "/assets/TituloDeSecao-BfoRzA-g.js 0",
+       "/assets/list-checks-CDFBDRul.js 0",
+       "/assets/circle-check-yosmW-RQ.js 0",
+       "/assets/layers-Bn7dd7b-.js 0",
+       "/assets/chevron-right-D88YNDcF.js 0",
+       "/assets/youtube-CXR9EGQz.js 0",
+       "/assets/file-text-B6eP1fcq.js 0",
+       "/favicon.svg 1031",
+       "/assets/estilos-Bn2P06nb.css 0",
+       "/assets/FaixaDeAvisoDoQuest-Z8y9vVDx.js 0",
+       "/assets/questConta-DeQE6NNH.css 0"
+      ]
+     }
+    }
+   }
+  ]
+ }
+}

@@ -429,7 +429,8 @@ body:has(.cel) .fab {
   min-width: 0;
   display: grid;
   gap: 4px;
-  text-align: left;
+  /* O começo da ESCRITA de cada linha (`dir` no texto da fala): o árabe alinha à direita. */
+  text-align: start;
   background: none;
   border: 0;
   padding: 4px 6px;

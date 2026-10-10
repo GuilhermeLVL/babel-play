@@ -46,6 +46,7 @@ function telaDoPrototipo(view: ViewType): TelaDoPrototipo {
       return 'sessao';
     case 'study':
       return 'revisao';
+    case 'cartoes':
     case 'metrics':
       return 'vocabulario';
     case 'play':

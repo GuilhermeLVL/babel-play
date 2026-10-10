@@ -4,7 +4,9 @@ import { memo, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStor
 import { aoMudarAudioDasFalas, falaTocando } from '../../../../lib/captura/audioDasFalas';
 import type { SpeechSegment } from '../../../../lib/captura/tiposDaFala';
 import { traducaoNaLegenda } from '../../../../lib/captura/traducaoDaFala';
+import { palavrasDoPedaco } from '../../../../lib/captura/trechosTocaveis';
 import { t } from '../../../../lib/i18n';
+import { direcaoDoTexto } from '../../../../lib/languages';
 import {
   entrarLinha,
   entrarPalavra,
@@ -17,14 +19,17 @@ import {
 /** A esta distância do fim (px) a lista ainda conta como "no fim" e segue acompanhando. */
 const FOLGA_DO_FIM = 80;
 
-/** Uma palavra da fala que ainda está chegando: entra desfocada e assenta (`telas.js:131-134`). */
+/**
+ * Uma palavra da fala que ainda está chegando: entra desfocada e assenta (`telas.js:131-134`).
+ * `texto` já traz o espaço de depois, quando a escrita tem espaço entre as palavras.
+ */
 function Palavra({ texto, anima }: { texto: string; anima: boolean }) {
   const ref = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
     if (anima && ref.current) entrarPalavra(ref.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- só na chegada da palavra
   }, []);
-  return <span ref={ref}>{texto} </span>;
+  return <span ref={ref}>{texto}</span>;
 }
 
 /**
@@ -81,7 +86,15 @@ const Linha = memo(function Linha({
   /* A tradução que está na tela é a do parcial. */
   const parcialNaTela = useRef(provisoria);
 
-  const palavras = original.split(' ').filter(Boolean);
+  /* Um pedaço por espaço, com o espaço depois. Em chinês e japonês não há espaço: o pedaço chega
+     partido nas palavras dele (`palavrasDoPedaco`), coladas como na escrita. */
+  const palavras = original
+    .split(' ')
+    .filter(Boolean)
+    .flatMap((pedaco) => {
+      const partes = palavrasDoPedaco(pedaco, lang);
+      return partes.map((p, i) => (i === partes.length - 1 ? `${p} ` : p));
+    });
   /* A fala abriu e nada chegou ainda: a linha de escuta. */
   const ouvindo = !mostrada && !traducao && palavras.length === 0;
   const aindaOuvindo = useRef(ouvindo);
@@ -149,12 +162,17 @@ const Linha = memo(function Linha({
           <span className="tn">{hora}</span>
         </span>
         {mostrada && original && (
-          <span className="q-o" lang={lang} ref={pequena}>
+          <span className="q-o" lang={lang} dir={direcaoDoTexto(lang)} ref={pequena}>
             {original}
           </span>
         )}
         {mostrada ? (
-          <span className="q-t" lang={langDaTraducao} ref={alvo}>
+          <span
+            className="q-t"
+            lang={langDaTraducao}
+            dir={langDaTraducao ? direcaoDoTexto(langDaTraducao) : undefined}
+            ref={alvo}
+          >
             {mostrada}
           </span>
         ) : ouvindo ? (
@@ -165,7 +183,7 @@ const Linha = memo(function Linha({
             <i />
           </span>
         ) : (
-          <span className="q-t" lang={lang} ref={alvo}>
+          <span className="q-t" lang={lang} dir={direcaoDoTexto(lang)} ref={alvo}>
             {palavras.map((p, i) => (
               <Palavra key={i} texto={p} anima={nova} />
             ))}

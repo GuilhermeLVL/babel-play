@@ -12,8 +12,9 @@
  * montar o app, e a ida-e-volta (estado → URL → estado) é verificável.
  *
  * Decisões que valem registro:
- *  · `/revisar` existe para dar a `Study` a porta que ela não tinha. É a única rota que não
- *    espelha um `ViewType` — `study` é uma pseudo-view que o App remapeia para `analysis`.
+ *  · a revisão mora em Cartões (`/cartoes/estudar`, desde 10/10/2026). `/revisar` foi a porta dela
+ *    enquanto `Study` era uma pseudo-view dentro da sessão; continua valendo como endereço de
+ *    leitura, e `/vocabulario` também (abre a aba "Palavras").
  *  · a aba entra no CAMINHO, não em query. `/sessao/<id>/metricas` põe o escopo na barra de
  *    endereço, o que reforça a separação que a aba de métricas embaralhava.
  *  · caminho desconhecido cai no Hub. Uma URL digitada errado não pode produzir tela em branco.
@@ -26,7 +27,7 @@ export type ViewDeRota =
   | 'play'
   | 'library'
   | 'analysis'
-  | 'metrics'
+  | 'cartoes'
   | 'settings'
   | 'profile'
   | 'sobre'
@@ -45,7 +46,7 @@ export type AbaDaLoja = AbaClassica | 'colecao' | 'maestria' | 'temporada' | 'lo
 
 export interface EstadoDeRota {
   view: ViewDeRota;
-  /** Só para `analysis`: qual gravação. */
+  /** Para `analysis`: qual gravação. Para `cartoes` estudando: a sessão que recorta a rodada. */
   sessionId?: string;
   /** Só para `analysis`: qual aba. */
   subTab?: 'transcript' | 'reading' | 'practice' | 'overview' | 'study';
@@ -71,7 +72,19 @@ export interface EstadoDeRota {
    * espelhar "estou em Planos" não a apaga (ver `publicarUrl`).
    */
   planosTela?: SubTelaDePlanos;
+  /** Só para `cartoes`: qual das cinco abas. Sem ela, a tela abre em "Hoje". */
+  cartoesAba?: AbaDeCartoes;
+  /** Só para `cartoes`: a rodada de revisão está aberta (`/cartoes/estudar`). */
+  estudando?: boolean;
 }
+
+/** As cinco abas da tela Cartões, na ordem do protótipo (`cartoes.js:64`), e o segmento de cada uma. */
+export const ABAS_DE_CARTOES = ['hoje', 'baralhos', 'palavras', 'trazer', 'memoria'] as const;
+export type AbaDeCartoes = (typeof ABAS_DE_CARTOES)[number];
+const ehAbaDeCartoes = (s: string | undefined): s is AbaDeCartoes =>
+  !!s && (ABAS_DE_CARTOES as readonly string[]).includes(s);
+/** O segmento da rodada de revisão dentro de Cartões. */
+const SEGMENTO_DE_ESTUDO = 'estudar';
 
 export const SUBTELAS_DE_PLANOS = ['assinar', 'assinado', 'cancelar', 'assinatura'] as const;
 export type SubTelaDePlanos = (typeof SUBTELAS_DE_PLANOS)[number];
@@ -85,7 +98,7 @@ const SEGMENTO: Record<Exclude<ViewDeRota, 'analysis'>, string> = {
   interprete: 'interprete',
   play: 'jogar',
   library: 'biblioteca',
-  metrics: 'vocabulario',
+  cartoes: 'cartoes',
   settings: 'ajustes',
   profile: 'perfil',
   sobre: 'sobre',
@@ -109,8 +122,14 @@ const SEGMENTO: Record<Exclude<ViewDeRota, 'analysis'>, string> = {
  * Só de leitura: `estadoParaUrl` continua publicando o canônico, senão a mesma tela teria dois
  * endereços na barra e o histórico ficaria ambíguo.
  */
-const ALIAS_DE_SEGMENTO: Record<string, { view: ViewDeRota; lojaTab?: EstadoDeRota['lojaTab'] }> = {
+const ALIAS_DE_SEGMENTO: Record<
+  string,
+  { view: ViewDeRota; lojaTab?: EstadoDeRota['lojaTab']; cartoesAba?: AbaDeCartoes }
+> = {
   planos: { view: 'planos' },
+  /* O Vocabulário virou a aba "Palavras" da tela Cartões (10/10/2026). O endereço antigo abre o
+     catálogo, que é o que ele sempre abriu. */
+  vocabulario: { view: 'cartoes', cartoesAba: 'palavras' },
   // A tela chama-se Personalizar desde o protótipo aprovado (23/09); o endereço canônico segue /loja.
   personalizar: { view: 'loja' },
   creditos: { view: 'loja', lojaTab: 'conquistas' },
@@ -121,7 +140,7 @@ const VIEW_DE_SEGMENTO = Object.fromEntries(
     .map(([v, seg]) => [seg, v as ViewDeRota]),
 ) as Record<string, ViewDeRota>;
 
-/** Aba da sessão → segmento. `study` não entra: tem rota própria (`/revisar`). */
+/** Aba da sessão → segmento. `study` não entra: a revisão mora em Cartões (`/cartoes/estudar`). */
 const ABA: Record<string, string> = {
   transcript: 'transcricao',
   reading: 'leitura',
@@ -213,9 +232,16 @@ export function normalizarAbaDaLojaV2(bruta: string | null | undefined): AbaDaLo
 }
 
 export function estadoParaUrl(e: EstadoDeRota): string {
+  /* A revisão: quem ainda fala a língua antiga (`analysis` + `study`) recebe o endereço novo. */
+  if ((e.view === 'cartoes' && e.estudando) || (e.view === 'analysis' && e.subTab === 'study')) {
+    const base = `/${SEGMENTO.cartoes}/${SEGMENTO_DE_ESTUDO}`;
+    return e.sessionId ? `${base}/${e.sessionId}` : base;
+  }
+  if (e.view === 'cartoes') {
+    // "Hoje" é a aba de entrada: fica no endereço curto, como a aba padrão das outras telas.
+    return e.cartoesAba && e.cartoesAba !== 'hoje' ? `/${SEGMENTO.cartoes}/${e.cartoesAba}` : `/${SEGMENTO.cartoes}`;
+  }
   if (e.view === 'analysis') {
-    // `/revisar` primeiro: é a porta da revisão espaçada, e ela vence a aba genérica.
-    if (e.subTab === 'study') return e.sessionId ? `/revisar/${e.sessionId}` : '/revisar';
     // Sem gravação escolhida a aba ainda importa: perdê-la aqui fazia `/sessao/x/metricas`
     // virar `/sessao` no primeiro render, antes de a gravação resolver.
     if (!e.sessionId) return e.subTab && ABA[e.subTab] ? `/sessao/-/${ABA[e.subTab]}` : '/sessao';
@@ -248,10 +274,21 @@ export function urlParaEstado(caminho: string): EstadoDeRota {
   // O callback do Supabase tem dono (`lib/authCallback`) e não é rota de tela.
   if (partes[0] === 'auth') return { view: 'hub' };
 
+  /* `/revisar` (e `/revisar/<sessão>`) é o endereço antigo da revisão: abre a rodada, em Cartões. */
   if (partes[0] === 'revisar') {
     return partes[1]
-      ? { view: 'analysis', sessionId: partes[1], subTab: 'study' }
-      : { view: 'analysis', subTab: 'study' };
+      ? { view: 'cartoes', estudando: true, sessionId: partes[1] }
+      : { view: 'cartoes', estudando: true };
+  }
+
+  if (partes[0] === SEGMENTO.cartoes) {
+    if (partes[1] === SEGMENTO_DE_ESTUDO) {
+      return partes[2]
+        ? { view: 'cartoes', estudando: true, sessionId: partes[2] }
+        : { view: 'cartoes', estudando: true };
+    }
+    // Aba desconhecida degrada para a tela, nunca para o 404: a pessoa pediu Cartões.
+    return ehAbaDeCartoes(partes[1]) ? { view: 'cartoes', cartoesAba: partes[1] } : { view: 'cartoes' };
   }
 
   if (partes[0] === 'sessao') {
@@ -283,6 +320,7 @@ export function urlParaEstado(caminho: string): EstadoDeRota {
   if ((alias?.view ?? VIEW_DE_SEGMENTO[partes[0]]) === 'planos' && partes[1]) {
     return ehSubTelaDePlanos(partes[1]) ? { view: 'planos', planosTela: partes[1] } : { view: 'planos' };
   }
+  if (alias?.cartoesAba) return { view: alias.view, cartoesAba: alias.cartoesAba };
   if (alias) return alias.lojaTab ? { view: alias.view, lojaTab: alias.lojaTab } : { view: alias.view };
 
   const view = VIEW_DE_SEGMENTO[partes[0]];

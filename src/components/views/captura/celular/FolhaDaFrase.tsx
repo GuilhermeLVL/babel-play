@@ -1,7 +1,9 @@
 import { Copy, Languages, Mic, Snail, Volume2 } from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';
 
+import { palavrasDoPedaco } from '../../../../lib/captura/trechosTocaveis';
 import { t } from '../../../../lib/i18n';
+import { direcaoDoTexto } from '../../../../lib/languages';
 import { haVozPara } from '../../../../lib/voz/haVoz';
 import { toast } from '../../../Toast';
 import FolhaDeBaixo from './FolhaDeBaixo';
@@ -37,11 +39,14 @@ export interface FalaTocada {
   langDaTraducao?: string;
 }
 
-/** As palavras da frase como botões: sem pontuação nas pontas, sem repetir a mesma palavra. */
-export function palavrasDaFrase(texto: string): string[] {
+/**
+ * As palavras da frase como botões: sem pontuação nas pontas, sem repetir a mesma palavra. Em chinês e
+ * japonês, sem espaço para dividir, cada pedaço vem partido nas palavras dele (`palavrasDoPedaco`).
+ */
+export function palavrasDaFrase(texto: string, lang = ''): string[] {
   const vistas = new Set<string>();
   const saida: string[] = [];
-  for (const bruto of texto.split(/\s+/)) {
+  for (const bruto of texto.split(/\s+/).flatMap((pedaco) => palavrasDoPedaco(pedaco, lang))) {
     const p = bruto.replace(/^[\p{P}\p{S}]+|[\p{P}\p{S}]+$/gu, '');
     if (!p || !/\p{L}/u.test(p)) continue;
     const chave = p.toLocaleLowerCase();
@@ -90,7 +95,7 @@ export default function FolhaDaFrase({
   nuance?: NuanceNaFolhaDaFrase;
 }) {
   const [praticando, setPraticando] = useState(false);
-  const palavras = palavrasDaFrase(fala.texto);
+  const palavras = palavrasDaFrase(fala.texto, fala.lang);
   const temTraducao = !!fala.traducao && fala.traducao !== '…';
   /* Há voz para o idioma da fala (a do aparelho, ou a do site no aparelho sem voz)? Sem ela e sem o
      áudio real, o botão some (`data-precisa`), em vez de ficar sem fazer nada. */
@@ -108,11 +113,15 @@ export default function FolhaDaFrase({
 
   return (
     <FolhaDeBaixo titulo={t('Ações da frase')} tituloVisivel={false} aoFechar={aoFechar} classe="folha-da-frase">
-      <p className="folha-frase" lang={fala.lang}>
+      <p className="folha-frase" lang={fala.lang} dir={direcaoDoTexto(fala.lang)}>
         {fala.texto}
       </p>
       {temTraducao && (
-        <p className="folha-frase-trad" lang={fala.langDaTraducao}>
+        <p
+          className="folha-frase-trad"
+          lang={fala.langDaTraducao}
+          dir={fala.langDaTraducao ? direcaoDoTexto(fala.langDaTraducao) : undefined}
+        >
           {fala.traducao}
         </p>
       )}
@@ -187,12 +196,14 @@ export default function FolhaDaFrase({
       {palavras.length > 0 && (
         <>
           <p className="folha-rotulo">{t('Toque numa palavra')}</p>
-          <div className="folha-palavras">
+          {/* A fila segue a ordem de leitura da frase: em árabe, a primeira palavra fica à direita. */}
+          <div className="folha-palavras" dir={direcaoDoTexto(fala.lang)}>
             {palavras.map((p) => (
               <button
                 key={p}
                 type="button"
                 lang={fala.lang}
+                dir={direcaoDoTexto(fala.lang)}
                 data-nova={ehNova?.(p) ? true : undefined}
                 onClick={() => aoTocarPalavra(p)}
               >

@@ -3,11 +3,15 @@ import { expect, type Locator, type Page } from '@playwright/test'
 /**
  * O QUE AS SUÍTES DIVIDEM, no desenho que virou o único (09/10/2026).
  *
- * A casca é o trilho de ícones (`nav.q-trilho`): Início, Capturar, Intérprete, Jogar, Estatísticas,
- * Personalizar, Buscar e "Mais". Abaixo de 720 px ele vira uma barra de cinco destinos (Início, Jogar,
- * Capturar, Intérprete, Mais), e Estatísticas e Personalizar passam a morar no painel "Mais"
- * (`.q-mais`, o diálogo "Mais destinos"), que também traz Biblioteca, Vocabulário, Sobre, Planos,
- * Ajustes, o perfil e a ajuda — e, no pé, o tema claro/escuro, o som dos toques e o Modo desempenho.
+ * A casca é o trilho de ícones (`nav.q-trilho`): Início, Capturar, Intérprete, Biblioteca, Cartões,
+ * Jogar, Buscar e "Mais" (navegação de 10/10/2026). Abaixo de 720 px ele vira uma barra de cinco
+ * destinos (Início, Praticar, Capturar, Intérprete, Mais): "Praticar" abre a última das duas telas
+ * de praticar (Cartões de início, `localStorage['babel.praticar']`), e no alto das duas há as abas
+ * `abas-de-praticar` ("Cartões" e "Jogos") para ir de uma à outra; o Jogar não tem botão próprio na
+ * barra, e a Biblioteca vira o primeiro ladrilho do "Mais". O painel "Mais" (`.q-mais`, o diálogo
+ * "Mais destinos") traz, em todo aparelho, Estatísticas, Personalizar, Ajustes, o perfil, a ajuda,
+ * Sobre e Planos — e, no pé, o tema claro/escuro, o som dos toques e o Modo desempenho. O
+ * Vocabulário deixou de ser destino: é a aba "Palavras" da tela Cartões (`/cartoes/palavras`).
  *
  * O Jogar abre no lobby (`data-testid="lobby-do-quest"`); a fonte das palavras troca-se pelo chip
  * "Trocar: …" do cabeçalho, que abre o painel "O que você vai praticar" (`dialog.qj-fonte`). Na
@@ -16,6 +20,19 @@ import { expect, type Locator, type Page } from '@playwright/test'
 
 /** O trilho (ou a barra de cinco, no celular): é a mesma `nav`. */
 export const trilho = (page: Page) => page.locator('nav.q-trilho')
+
+/** A janela está na largura da barra de cinco (até 720 px)? Os projetos são 375, 768 e 1280. */
+export const naBarraDeCinco = (page: Page) => (page.viewportSize()?.width ?? 1280) <= 720
+
+/** As abas "Cartões" e "Jogos" no alto das duas telas de praticar (só existem na barra de cinco). */
+export const abasDePraticar = (page: Page) => page.getByTestId('abas-de-praticar')
+
+/** A tela Cartões (`/cartoes`), com o estado do dia em `data-ct-hoje`. */
+export const telaDeCartoes = (page: Page) => page.getByTestId('cartoes')
+
+/** Uma aba da tela Cartões: Hoje, Baralhos, Palavras, Trazer e levar, Memória. */
+export const abaDeCartoes = (page: Page, nome: string | RegExp) =>
+  page.getByRole('tablist', { name: 'Seções de Cartões' }).getByRole('tab', { name: nome })
 
 /** O lobby do Jogar. */
 export const lobby = (page: Page) => page.getByTestId('lobby-do-quest')
@@ -193,6 +210,24 @@ export async function abrirMais(page: Page): Promise<Locator> {
   }
   await expect(mais).toBeVisible()
   return mais
+}
+
+/**
+ * VAI AO JOGAR PELO MENU, como a pessoa vai em cada largura: no trilho (computador e tablet) o Jogar
+ * tem botão próprio; na barra de cinco do celular ele mora atrás do "Praticar", que abre a última das
+ * duas telas de praticar — e, se abrir os Cartões, a aba "Jogos" do alto leva ao Jogar.
+ */
+export async function irAoJogarPeloMenu(page: Page) {
+  if (!naBarraDeCinco(page)) {
+    await clicarRobusto(page, trilho(page).locator('.q-item[data-px-rota="play"]'))
+  } else {
+    await clicarRobusto(page, trilho(page).getByRole('button', { name: 'Praticar', exact: true }))
+    await expect(page).toHaveURL(/\/(cartoes|jogar)/, { timeout: 10_000 })
+    if (!/\/jogar/.test(new URL(page.url()).pathname)) {
+      await clicarRobusto(page, abasDePraticar(page).getByRole('tab', { name: 'Jogos' }))
+    }
+  }
+  await expect(page).toHaveURL(/\/jogar/, { timeout: 10_000 })
 }
 
 /**

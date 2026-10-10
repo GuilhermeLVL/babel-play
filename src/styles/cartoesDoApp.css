@@ -1,0 +1,66 @@
+/*
+ * A TELA CARTÕES NO APP — só o que o porte precisa além do CSS do protótipo
+ * (`styles/polimento/cartoes.css`, copiado por `scripts/polimento/trazer-css.mjs`). Nada aqui é
+ * desenho novo: são os embrulhos que o React pede e o arranjo de quando falta um cartão do protótipo.
+ */
+
+/* Os embrulhos de cada aba existem para o React ter um nó (e o movimento de entrada, um alvo). No
+   desenho eles não contam: os filhos são filhos do painel, como no protótipo. */
+.ct-hoje-estado,
+.ct-memoria,
+.ct-palavras {
+  display: contents;
+}
+
+/* DOS TRÊS CARTÕES DE "HOJE" SÓ UM TEM DADO REAL NESTA FATIA (a retenção da semana). A sequência com
+   congelamento e o teto do dia ficaram de fora (`fidelidade/ficou-de-fora.md`), e a previsão, que no
+   protótipo vem logo abaixo, ocupa as duas colunas que sobraram. Quando os dois cartões entrarem,
+   esta regra sai e a grade volta a ser a do protótipo. */
+@media (min-width: 1101px) {
+  html[data-quest-novo='true'] .ct .q-grade.g3.ct-ret-e-previsao > .ct-prev7 {
+    grid-column: span 2;
+  }
+}
+
+/* A aba Memória tem quatro números nesta fatia (o tempo por cartão não é medido). */
+@media (min-width: 1101px) {
+  html[data-quest-novo='true'] .ct .qe-kpis.ct-kpis.ct-kpis-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* NO CELULAR o cabeçalho do protótipo tem três botões: o do idioma ocupa a linha e os outros dois
+   dividem a de baixo. Sem o do idioma (fatia seguinte), o título ocupa a linha e os dois dividem a
+   seguinte, como lá. */
+@media (max-width: 720px) {
+  html[data-quest-novo='true'] .q-palco.ct > .q-cab > div:first-child {
+    flex: 1 1 100%;
+  }
+  html[data-quest-novo='true'] .q-palco.ct > .q-cab > .q-ctl {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+  /* O total a levar já está no cabeçalho da tela; ao lado do título de "Levar" ele o espremeria. */
+  .ct-levar > header > .q-chip {
+    display: none;
+  }
+}
+
+/* O campo de arquivo fica fora da vista: quem abre a escolha é a área de soltar. */
+.ct-anki > input[type='file'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.ct-soltar[disabled] {
+  cursor: progress;
+  opacity: 0.75;
+}
+
+/* O relatório do Anki mostra o campo e o destino lado a lado; no protótipo o destino é um seletor,
+   que é fatia seguinte ("mapear campos"). */
+.ct-campo-do-anki > b {
+  font: 800 17px/1.2 var(--font-display, inherit);
+}

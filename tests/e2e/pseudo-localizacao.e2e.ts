@@ -81,7 +81,9 @@ const COM_PSEUDO = '/jogar?ui=xx'
  */
 const TELAS = [
   { nome: 'jogar', url: '/jogar?ui=xx' },
-  { nome: 'vocabulario', url: '/vocabulario?ui=xx' },
+  // O Vocabulário é a aba "Palavras" da tela Cartões desde 10/10/2026 (`/vocabulario` leva para lá).
+  { nome: 'cartoes', url: '/cartoes?ui=xx' },
+  { nome: 'vocabulario', url: '/cartoes/palavras?ui=xx' },
   { nome: 'biblioteca', url: '/biblioteca?ui=xx' },
   { nome: 'ajustes', url: '/ajustes?ui=xx' },
   { nome: 'planos', url: '/planos?ui=xx' },

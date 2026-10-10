@@ -54,7 +54,7 @@ import { Dialogo, fecharDialogoDe } from '../../../ui';
 function Cabecalho({ titulo, aoVoltar, acoes }: { titulo: string; aoVoltar: () => void; acoes?: ReactNode }) {
   return (
     <header className="q-cab">
-      <button type="button" className="q-ctl q-voltar" aria-label={t('Voltar ao Vocabulário')} onClick={aoVoltar}>
+      <button type="button" className="q-ctl q-voltar" aria-label={t('Voltar aos Cartões')} onClick={aoVoltar}>
         <ArrowLeft aria-hidden />
       </button>
       <div>
@@ -402,7 +402,7 @@ export function RodadaDoQuest({
   return (
     <div className="q-palco q-revisao" data-testid="revisao-no-quest" data-estado="rodada" data-formato={formato}>
       <header className="q-cab qr-topo">
-        <button type="button" className="q-ctl q-voltar" aria-label={t('Voltar ao Vocabulário')} onClick={aoVoltar}>
+        <button type="button" className="q-ctl q-voltar" aria-label={t('Voltar aos Cartões')} onClick={aoVoltar}>
           <ArrowLeft aria-hidden />
         </button>
         <div className="qr-progresso">

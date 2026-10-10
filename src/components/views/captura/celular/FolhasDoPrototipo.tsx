@@ -7,6 +7,7 @@ import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 're
 
 import { type DictionaryResult, lookup } from '../../../../lib/dictionary';
 import { t } from '../../../../lib/i18n';
+import { direcaoDoTexto } from '../../../../lib/languages';
 import { comemorarGuardada, entrarFolha } from '../../../../lib/polimento/captura';
 import { haVozPara } from '../../../../lib/voz/haVoz';
 import { toast } from '../../../Toast';
@@ -53,7 +54,7 @@ function CorpoDaFrase({
   nuance?: NuanceNaFolhaDaFrase;
 }) {
   const [praticando, setPraticando] = useState(false);
-  const palavras = palavrasDaFrase(fala.texto);
+  const palavras = palavrasDaFrase(fala.texto, fala.lang);
   const temTraducao = !!fala.traducao && fala.traducao !== '…';
   const vozDoOriginal = haVozPara(fala.lang);
 
@@ -69,11 +70,15 @@ function CorpoDaFrase({
 
   return (
     <>
-      <p className="folha-frase" lang={fala.lang}>
+      <p className="folha-frase" lang={fala.lang} dir={direcaoDoTexto(fala.lang)}>
         {fala.texto}
       </p>
       {temTraducao && (
-        <p className="folha-frase-trad" lang={fala.langDaTraducao}>
+        <p
+          className="folha-frase-trad"
+          lang={fala.langDaTraducao}
+          dir={fala.langDaTraducao ? direcaoDoTexto(fala.langDaTraducao) : undefined}
+        >
           {fala.traducao}
         </p>
       )}
@@ -178,7 +183,8 @@ function CorpoDaFrase({
       {palavras.length > 0 && (
         <>
           <p className="folha-rotulo">{t('Toque numa palavra')}</p>
-          <div className="folha-palavras">
+          {/* A fila segue a ordem de leitura da frase: em árabe, a primeira palavra fica à direita. */}
+          <div className="folha-palavras" dir={direcaoDoTexto(fala.lang)}>
             {palavras.map((p) => {
               const ja = !!guardada?.(p);
               return (
@@ -186,6 +192,7 @@ function CorpoDaFrase({
                   key={p}
                   type="button"
                   lang={fala.lang}
+                  dir={direcaoDoTexto(fala.lang)}
                   data-nova={!ja && ehNova?.(p) ? '' : undefined}
                   data-aprendida={ja ? '' : undefined}
                   onClick={() => aoTocarPalavra(p)}
@@ -293,7 +300,7 @@ function CorpoDaPalavra({
           <ArrowLeft aria-hidden /> {t('Voltar à frase')}
         </button>
       )}
-      <p className="folha-pal" lang={lang}>
+      <p className="folha-pal" lang={lang} dir={direcaoDoTexto(lang)}>
         {palavra}
       </p>
       {ipa && <p className="folha-ipa">{ipa}</p>}

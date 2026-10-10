@@ -196,3 +196,76 @@ saiu: o que mudou de lugar está em `tests/capturaEnxuta.test.tsx`, `tests/lobby
 protótipo): trocar de nível passou de 1 para 2 toques; favoritar um jogo, de 2 para 3; a ajuda da captura, de 1
 para 2; A− e A+ só depois do primeiro texto; no celular a grade do Jogar não sobe; em 1280 de largura o texto
 pequeno da sugestão quebra em duas linhas.
+
+## Cartões: fatias seguintes (protótipo `cartoes`, 10/10/2026)
+
+A fatia 1 trouxe a tela `/cartoes`, a porta na navegação e as áreas que já têm dado real
+(`openspec/changes/cartoes/`). A regra foi a de sempre: a aparência é a do protótipo; o que ele mostra e o app
+ainda não faz de verdade **não aparece com número inventado**: fica aqui, com a fatia que o destrava
+(`openspec/changes/cartoes/tasks.md`).
+
+| Onde | O protótipo | O app | Por quê |
+|---|---|---|---|
+| Cabeçalho | Chip "Todos os idiomas" (estudar um idioma por vez) | Não existe | A revisão só aceita o recorte por sessão (`Study.tsx`); por idioma é a fatia 4 |
+| Cabeçalho | "Ajustes" abre os "Ajustes da memória" (14 opções: passos, dias leves, otimizar…) | Abre as "Opções da revisão" que já existiam (seis opções, todas valendo) | As outras oito não têm comportamento no app (fatias 2 e 8) |
+| Cabeçalho | "+ Palavra" abre um diálogo próprio | Abre o diálogo "Adicionar palavra" que já existia, na aba Palavras | É a função real; o diálogo precisa do baralho, que só a aba Palavras baixa |
+| Abas | Contagem na aba Baralhos ("13") | Só a aba Palavras tem contagem | A lista de baralhos junta o resumo com a lista do Anki, lida ao abrir a aba |
+| Hoje | "uns 6 min", "uns 2 min", "Leva uns 3 minutos" | Sem tempo estimado | A revisão não mede tempo por cartão; o app só diz tempo medido (`estimativaDeMinutos`). Fatia 3 |
+| Hoje | Cartão "4 dias seguidos" com a semana e os congelamentos | Não existe | O servidor calcula a ofensiva com congelamento, mas não expõe o mapa por dia (qual dia foi estudado, qual o congelamento cobriu). Fatia 8 |
+| Hoje | Cartão "Teto de hoje" ("5 de 10 novas", "12 de 100 revisões") e "Mudar o teto" | Não existe | Os dois limites valem por RODADA e ficam em `localStorage`: não há contador por dia. Fatia 2 |
+| Hoje | Três cartões lado a lado; a previsão embaixo, na largura toda | A retenção da semana e, ao lado dela, a previsão (ocupa as duas colunas que sobraram) | Dos três cartões só um tem dado real; a regra do arranjo está em `styles/cartoesDoApp.css` e sai quando os outros dois entrarem |
+| Hoje | "Só as difíceis · 2" | Não existe | A revisão não recorta por número de erros. Fatia 5 |
+| Hoje, pilha | "Vamos de 40 **hoje**?", o teto com menos e mais, e "E o resto?" com quatro saídas (teto, espalhar, adiar, sem novas) | "Você tem N esperando. Vamos de R **agora**?", onde R é o tamanho real da rodada (os limites das Opções da revisão); sem as quatro saídas | Não há teto por dia nem reagendamento no servidor. Fatias 2 e 5 |
+| Hoje, pilha | "começando pelas que você tem mais chance de lembrar" | "Começando pelas que venceram há mais tempo" | É a ordem real da rodada (`startReviewSession`: vencimento mais antigo primeiro) |
+| Hoje, dia cumprido | "Você estudou 26 cartões **em 6 minutos**" | "Você estudou N cartões hoje." | Sem tempo medido |
+| Hoje, dia cumprido | "Jogar com as mesmas", "Mais 5 novas", "Estudo livre" | "Jogar" (abre o Jogar, sem recorte) e "Mais N novas" só quando há palavra nunca vista guardada | O Jogar não recorta pelas palavras de hoje; o estudo livre "fora da agenda" não existe (toda nota grava no agendador). Fatias 2 e 3 |
+| Hoje, primeiras palavras | "lembrei ou esqueci" | "errei, difícil, bom ou fácil" | Os quatro botões são o padrão (decisão do dono); dois botões é a fatia 3 |
+| Hoje, vazio e primeiras | "704 palavras do A1…", "Ativar a Trilha" | "Começar pela Trilha" / "Jogar com a Trilha": abre o Jogar com a fonte Trilha; sem o número | A Trilha não tem ativação em lote: as palavras entram no caderno conforme se joga, e o total dela não está no cliente sem um pedido a mais |
+| Hoje, vazio | "Também dá para colar uma lista…" | "Também dá para adicionar uma palavra de cada vez…" | Colar lista não existe (fatia 7) |
+| Hoje | "com a frase **e a fala de quem disse**" | "com a frase de onde veio" | A fala original no cartão é a fatia 3 |
+| Baralhos | "Revisar este" em todo baralho | Só em "Tudo" e nos de sessão; nos outros, o botão principal é "Jogar com este" | A revisão aceita o baralho inteiro e uma sessão. Fatia 4 |
+| Baralhos | Grupo "Para cuidar" (Difíceis, Suspensas) | Não existe | O catálogo não filtra por estado; sanguessugas são a fatia 5 |
+| Baralhos | Fatos "Retenção" e "Próxima" de cada baralho | Quatro fatos: Cartões, A revisar, Aprendendo, Novas hoje | O resumo não mede por baralho. Fatia 4 |
+| Baralhos | "Ver cartões" em todo baralho | Só em "Tudo" (aba Palavras) e nos do Anki (a lista de notas que já existia) | O catálogo não filtra por sessão nem por idioma. Fatia 6 |
+| Baralhos | "Gerenciar" abre opções do baralho (novas por dia, prioridade, Mapa, Curadoria); "Exportar" por baralho; "Mapear campos", "Desativar", "Apagar" | "Gerenciar" (só Anki) abre a tela de baralhos do Anki que já existia, onde se desativa e apaga; "Exportar" só em "Tudo" | Fatias 4 e 7 |
+| Baralhos | "Ativar mais 20" na Trilha | Só nos baralhos do Anki | A Trilha não tem ativação em lote |
+| Baralhos | "318 cartões · 4 sessões, a Trilha e 1 baralho do Anki" | "318 cartões" | O resumo não cruza idioma com origem |
+| Baralhos | Baralho de idioma sempre | Só com dois idiomas ou mais | Com um idioma só, ele repetiria o "Tudo" |
+| Palavras | Filtros por estado, baralho, sessão, idioma e etiqueta; "Selecionar" e a faixa de ações em massa; colunas "Origem" e "Volta" | O catálogo que já existia (busca, nível, origem, cinco ordenações), com as colunas dele | "Sem perder função" nesta fatia; o navegador novo é a fatia 6 |
+| Palavras | Só o catálogo | As quatro abas do Vocabulário ("Minhas palavras", "Visão geral", "Inteligência lexical", "Desempenho & fluência") continuam, numa segunda fileira | O protótipo não mostra as três de análise; tirá-las apagaria telas que o dono usa. **A decidir** (a proposta manda para Estatísticas): fatia 6 |
+| Palavras | — | O convite "Prontas para revisar" e os botões "Trazer do Anki" e "Exportar" do cabeçalho do Vocabulário saíram | Moram agora na aba Hoje e na aba Trazer e levar |
+| Trazer | "lido neste aparelho · nada foi gravado ainda"; "Trazer as 480 e ativar 20"; "Cancelar" | "N notas lidas e guardadas no baralho… Nenhuma virou cartão ainda."; "Ativar N"; "Deixar para depois" | No app a leitura JÁ grava as notas (`POST /api/import/anki`); o que se decide depois é quantas ativar. Ler sem gravar é a fatia 7 |
+| Trazer | Um seletor de destino por campo | O campo e o destino lidos, sem seletor | Mapear campos (`motor-anki-mapeador`) é a fatia 7 |
+| Trazer | "12 etiquetas", "312 arquivos" de mídia | "As etiquetas", "Áudio e imagens", sem número | A rota não devolve essas contagens |
+| Trazer | "Colar uma lista" e "Escolher um CSV" | Não existe (a área do Anki ocupa a linha) | Não há função de colar; o arquivo .txt/.csv/.tsv entra pela mesma área de soltar. Fatia 7 |
+| Trazer | "O caminho mais curto: nasceu da legenda" (demonstração) e "Minhas anotações" | Não existe | É demonstração; as anotações da Leitura não viram cartão. Fatia 9 |
+| Levar | "O que levar": Tudo, Um baralho, A seleção | Só "Tudo" (um selo com o total) | A exportação é do caderno inteiro (o diálogo ainda oferece "só as de revisar"). Fatia 4 |
+| Levar | "Planilha: palavra, tradução, frase, sessão, estado e próxima revisão"; "Relatório… para imprimir" | "Palavra, tradução, frase e nível."; relatório em texto | São as colunas e o formato que `ExportarVocabulario` gera |
+| Memória | Cinco números, com "Tempo: 4 min por dia · 7,2 s por cartão" | Quatro números | A revisão não mede tempo |
+| Memória | "Sequência… 2 congelamentos"; legenda e célula de congelamento no calendário; "Congelamentos usados" | A sequência é a ofensiva do perfil (dias de prática) com o recorde; sem congelamentos | O mapa por dia não é exposto. Fatia 8 |
+| Memória | "…e subindo. Não precisa mexer em nada" | "N pontos abaixo da meta nos 30 dias. A agenda já encurta os intervalos…" | A tendência não é calculada; a frase afirma só o que o FSRS faz |
+| Memória | "Com o teto de 100 revisões por dia, nenhum desses dias passa…" | Não aparece | Não há teto por dia |
+| Memória | "Ajustes da memória"; "Ver as 6 difíceis" | "Opções da revisão"; sem o botão das difíceis | Como no cabeçalho; o catálogo não filtra por estado |
+| Memória | Jovens e maduras sem definição | "Jovem é o cartão em revisão com menos de 21 dias de estabilidade" | A divisão é derivada da estabilidade do FSRS (a régua de 21 dias do Anki), e a tela diz |
+| Revisão | A rodada nova de `cartoes2.js` (fala original, lacuna, dois botões, rever o erro na sessão, gestos, combo, fim com "virar jogo") | A rodada que já existia, com o voltar para Cartões | Sem redesenho nesta fatia. Fatia 3 |
+| Navegação | "Praticar" com contagens ("Cartões 26", "Jogos 18") | As duas abas, sem contagem | A tela Jogar não tem o número do dia sem um pedido a mais. Fatia 9 |
+| Navegação | No "Mais": "Tutor" e o chip do idioma da interface | Não existem | São do "Mapa das portas". Fatia 9 |
+| Navegação, celular | Variante A tira o Intérprete da barra e põe "Legenda \| Conversa" no Capturar | Não: a barra é Início, Praticar, Capturar, Intérprete, Mais | Decisão do dono: o Intérprete não sai da barra |
+| Início | "18 a rever, 3 aprendendo e 5 novas. Uns 6 min."; "A próxima revisão abre amanhã com 8."; "40 hoje, 240 esperando" | "As que estão para sair da memória hoje."; "Nada vence agora."; o total que vence | O ladrilho usa o perfil que o App já carregou (nenhum pedido a mais), e ele não traz a divisão nem a próxima data |
+| Início | O chip de Seeds abre a Temporada | Não mudou | "Mapa das portas". Fatia 9 |
+| Outras telas | As portas plantadas na Biblioteca, na Sessão, no Intérprete e na Ajuda; "Importar" único; "Exportar" único; tecla "?"; a busca ampliada | Não mudaram | "Mapa das portas". Fatia 9 |
+
+**O que saiu das telas antigas com esta fatia:**
+
+- **Trilho**: Estatísticas e Personalizar saíram do trilho (estão no "Mais"); o item Vocabulário deixou de existir
+  (é a aba Palavras de Cartões).
+- **Início**: o ladrilho "Revisar N palavras", que tomava o lugar do "Conversar" quando havia palavra vencendo, deu
+  lugar ao ladrilho fixo dos Cartões; o Início passou a ter quatro caminhos.
+- **Sessão (Análise)**: a revisão deixou de ser montada dentro da sessão (`modoRevisao`). Quem pede "revisar as
+  palavras desta sessão" abre `/cartoes/estudar/<id>`.
+- **Vocabulário**: a tela própria (`/vocabulario`) deixou de existir; o cabeçalho dela e o convite da revisão não
+  aparecem no modo embutido.
+
+**Comportamento que mudou de propósito** (era defeito): "Revisar agora" sem sessão escolhida revisava só as
+palavras da gravação mais recente, e sem gravação nenhuma abria "Nenhuma sessão ainda". Agora revisa o baralho
+inteiro, com ou sem gravação.

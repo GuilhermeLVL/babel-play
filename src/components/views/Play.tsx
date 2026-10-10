@@ -3466,6 +3466,12 @@ export default function Play({
           : t('este jogo separa as palavras da frase, e {idioma} não marca onde cada uma começa', {
               idioma: langLabelNaUI(fonte.lang),
             });
+      /* Antes do "faltam N": juntar mais palavras não abre um jogo de letras (grade, teclado) num
+         idioma que não se escreve com elas. */
+      if (motivo === 'alfabeto-nao-suportado')
+        return t('este jogo usa letras do alfabeto latino, e {idioma} não é escrito com elas', {
+          idioma: langLabelNaUI(fonte.lang),
+        });
       if (motivo === 'audio-carregando') return t('baixando o áudio da gravação…');
       if (j.estado.fonte === 'falas' && j.estado.disponiveis === 0) return t('precisa de uma gravação com legenda');
       const precisa = MINIGAMES[j.id].minItems;

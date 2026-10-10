@@ -106,25 +106,35 @@ function saltarIcone(alvo: Element | null): void {
     });
 }
 
+/**
+ * O botão do trilho que responde por uma rota. Na barra de cinco, o "Praticar" responde por duas
+ * (Cartões e Jogar): a segunda vem em `data-px-tambem` (`marcarTrilho`, `cartoes3.js:66-78`).
+ */
+const itemDaRota = (trilho: ParentNode, rota: string): HTMLElement | null =>
+  $(`.q-item[data-px-rota="${CSS.escape(rota)}"], .q-item[data-px-tambem="${CSS.escape(rota)}"]`, trilho);
+
 /** Marca o destino no trilho já no toque, antes de a tela trocar (`prototipo.js:240`). */
 function marcarTrilho(rota: string): void {
   const trilho = trilhoAtual();
   if (!trilho) return;
-  const alvo = $(`.q-item[data-px-rota="${CSS.escape(rota)}"]`, trilho) ?? $('.q-mais-botao', trilho);
+  const alvo = itemDaRota(trilho, rota) ?? $('.q-mais-botao', trilho);
   for (const b of $$('.q-item', trilho)) b.removeAttribute('aria-current');
   alvo?.setAttribute('aria-current', 'page');
   porPilula(trilho);
   saltarIcone(alvo);
 }
 
-const FORA_DA_BARRA = { estatisticas: 4, loja: 5 } as const;
+/* A posição no menu de quem não tem botão: a Biblioteca, que a barra de cinco esconde, continua em
+   quarto (`CT_NAV.a.itens`, `cartoes3.js:14`). */
+const FORA_DA_BARRA = { library: 3 } as const;
 
 /** A ordem do menu decide o lado: quem vem antes sai para baixo (`prototipo.js:232, 236`). */
 function ordem(rota: string): number {
   const trilho = trilhoAtual();
-  const i = trilho ? $$('.q-item[data-px-rota]', trilho).findIndex((b) => b.dataset.pxRota === rota) : -1;
-  /* No celular, Estatísticas e Personalizar saem da barra e vão para o "Mais", mas continuam na ordem
-     do menu do protótipo (`ROTAS`, `prototipo.js:87`): 4 e 5. */
+  const i = trilho
+    ? $$('.q-item[data-px-rota]', trilho).findIndex((b) => b.dataset.pxRota === rota || b.dataset.pxTambem === rota)
+    : -1;
+  /* No celular a Biblioteca sai da barra e vai para o "Mais", mas continua na ordem do menu. */
   if (i < 0 && rota in FORA_DA_BARRA) return FORA_DA_BARRA[rota as keyof typeof FORA_DA_BARRA];
   return i < 0 ? 7 : i;
 }

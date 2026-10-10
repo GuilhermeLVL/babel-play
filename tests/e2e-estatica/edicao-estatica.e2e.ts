@@ -103,12 +103,40 @@ test('edição estática: telas principais sem /api, sem erro, sem login nem pla
   await page.screenshot({ path: path.join(PASTA, `capturar-${sufixo}.png`) })
 
   // Telas que só existem com servidor: o cartão honesto, sem botão de login.
-  for (const rota of ['/biblioteca', '/vocabulario', '/plano']) {
+  // A rodada de revisão (`/revisar`, hoje `/cartoes/estudar`) continua entre elas.
+  for (const rota of ['/biblioteca', '/revisar', '/plano']) {
     await abrir(page, rota)
     await expect(page.getByTestId('cartao-de-convite'), rota).toContainText('Disponível na versão completa')
     await semProibidos(page, rota)
   }
   await page.screenshot({ path: path.join(PASTA, `versao-completa-${sufixo}.png`) })
+
+  /* CARTÕES ABRE TAMBÉM SEM SERVIDOR, no estado vazio (navegação de 10/10/2026): a tela explica como os
+     cartões nascem, não oferece o "+ Palavra" (que gravaria na conta) e não pede nada a `/api`. O
+     Vocabulário, que aqui era um cartão de "versão completa", virou a aba "Palavras" dela. */
+  await abrir(page, '/cartoes')
+  const cartoes = page.getByTestId('cartoes')
+  await expect(cartoes).toHaveAttribute('data-ct-hoje', 'vazio')
+  await expect(cartoes.getByRole('heading', { name: 'Seus cartões aparecem aqui' })).toBeVisible()
+  await expect(cartoes.locator('header.q-cab').getByRole('button', { name: 'Palavra' })).toHaveCount(0)
+  await expect(page.getByTestId('cartao-de-convite')).toHaveCount(0)
+  await semProibidos(page, '/cartoes')
+  await page.screenshot({ path: path.join(PASTA, `cartoes-${sufixo}.png`) })
+  for (const [rota, aba] of [
+    ['/cartoes/baralhos', /^Baralhos/],
+    ['/cartoes/trazer', /^Trazer e levar/],
+    ['/cartoes/memoria', /^Memória/],
+  ] as const) {
+    await abrir(page, rota)
+    await expect(cartoes.getByRole('tab', { name: aba }), rota).toHaveAttribute('aria-selected', 'true')
+    await semProibidos(page, rota)
+  }
+  // O endereço de antes do Vocabulário abre a aba "Palavras", com o caderno vazio.
+  await abrir(page, '/vocabulario')
+  await expect(page).toHaveURL(/\/cartoes\/palavras$/)
+  await expect(cartoes.getByRole('tab', { name: /^Palavras/ })).toHaveAttribute('aria-selected', 'true')
+  await expect(cartoes.getByRole('heading', { name: 'Seu caderno está vazio' })).toBeVisible()
+  await semProibidos(page, '/vocabulario')
 
   await abrir(page, '/estatisticas')
   await expect(page.getByRole('heading', { name: 'Estatísticas' }).first()).toBeVisible()

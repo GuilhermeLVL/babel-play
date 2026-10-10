@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 
 import { avancar, type EstadoDoRitmo, RITMO_VAZIO, saltarParaOFim } from '../../../../lib/captura/ritmoDaLegenda';
 import { t } from '../../../../lib/i18n';
+import { direcaoDoTexto } from '../../../../lib/languages';
 import { anima } from '../../../../lib/polimento/base';
 import {
   comMovimento,
@@ -51,10 +52,15 @@ function Fala({
       data-fala={fala.id}
       aria-current={atual ? 'true' : undefined}
     >
-      <span className="leg-o" lang={fala.lang}>
+      <span className="leg-o" lang={fala.lang} dir={fala.lang ? direcaoDoTexto(fala.lang) : undefined}>
         {fala.original}
       </span>
-      <span className="leg-t discreta" lang={langDaTraducao} ref={trad}>
+      <span
+        className="leg-t discreta"
+        lang={langDaTraducao}
+        dir={langDaTraducao ? direcaoDoTexto(langDaTraducao) : undefined}
+        ref={trad}
+      >
         {fala.traducao}
       </span>
     </div>

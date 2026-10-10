@@ -46,3 +46,39 @@ export function trechosTocaveis(
   if (SEM_ESPACO.has(baseDoIdioma(lang))) return [{ texto, palavra: false }];
   return porEspaco(texto);
 }
+
+/** Escritas que não põem espaço entre as palavras: quem diz que o pedaço precisa do segmentador. */
+const ESCRITA_SEM_ESPACO =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]/u;
+
+/**
+ * UM PEDAÇO ENTRE ESPAÇOS, partido nas palavras que ele tem — para as telas da Captura, que dividem a
+ * fala por espaço e em chinês ou japonês recebiam a frase inteira como UMA palavra.
+ *
+ * Juntar o que volta devolve o pedaço. Em escrita com espaço o pedaço volta COMO VEIO, sem passar
+ * pelo segmentador: ele separa "well-known" e "guarda-chuva" no hífen, e essas telas sempre trataram
+ * o que está entre dois espaços como uma palavra só (com a pontuação colada, que cada uma limpa).
+ *
+ * Quem decide é a ESCRITA do pedaço, e não o idioma declarado: a detecção de idioma erra, e uma fala
+ * em inglês pode citar uma palavra em chinês. Sem segmentador no aparelho, ou se ele não achar
+ * palavra, o pedaço fica inteiro (o contrato de `trechosTocaveis`: a frase, nunca um caractere solto).
+ */
+export function palavrasDoPedaco(
+  pedaco: string,
+  lang: string,
+  opcoes: { segmentador?: Segmentador | null } = {},
+): string[] {
+  if (!ESCRITA_SEM_ESPACO.test(pedaco)) return [pedaco];
+  let trechos: TrechoTocavel[];
+  try {
+    trechos = trechosTocaveis(pedaco, lang, opcoes);
+  } catch {
+    /* Idioma que o `Intl` recusa ("auto", "zh_CN"): o segmentador do aparelho, no idioma padrão. */
+    try {
+      trechos = trechosTocaveis(pedaco, '', opcoes);
+    } catch {
+      return [pedaco];
+    }
+  }
+  return trechos.some((t) => t.palavra) ? trechos.map((t) => t.texto) : [pedaco];
+}

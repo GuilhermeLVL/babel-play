@@ -1,0 +1,45 @@
+{
+  "nome": "cartoes-hoje-primeiro",
+  "prototipo": "cartoes",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/cartoes",
+    "assentar": 3500,
+    "passos": [
+      {
+        "js": "(async () => { for (let i = 0; i < 14; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || [...d.querySelectorAll('button')].find((b) => /Resgatar|Pular|Fechar|Agora não|Entendi|Depois/.test(b.textContent || '')) || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 500)); } })()"
+      },
+      {
+        "esperar": 1200
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?ver=hoje-primeiro&quieto&nav=a",
+    "assentar": 3500,
+    "passos": [
+      {
+        "esperar": 600
+      }
+    ]
+  },
+  "seletores": [
+    ".q-palco.ct",
+    ".q-cab",
+    ".q-cab .q-sobre",
+    ".q-cab h1",
+    ".q-cab > .q-ctl",
+    ".ct-abas",
+    ".ct-abas .q-aba",
+    ".ct-painel",
+    ".ct-hoje",
+    ".ct-hoje .qv-contagem",
+    ".ct-hoje h2",
+    ".ct-hoje .q-ctl.pri",
+    ".q-passos",
+    ".q-passos li",
+    ".ct-tres-caminhos .q-tile",
+    ".q-trilho .q-item"
+  ]
+}

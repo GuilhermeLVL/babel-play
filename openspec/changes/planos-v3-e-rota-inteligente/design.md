@@ -266,3 +266,38 @@ Cada uma com o padrão que assumo se não houver resposta.
     fica sem anúncio. Padrão: sem anúncio na estática e nada ligado antes da consulta.
 14. No computador, o Intérprete volta a ter duas colunas sem metade virada? Padrão: fica como o
     protótipo.
+
+## 11. Decisões tomadas em 09/10/2026 (o dono delegou: "você mesmo pode fazer essas coisas")
+
+O dono delegou as decisões pendentes e pediu a implementação dos planos e das telas do protótipo. Valem
+os padrões da seção 10, com estes registros:
+
+1. O ADR 0011 é substituído por um ADR novo (quatro planos).
+2. O plano de R$ 9,90 usa o id `essencial`; o apelido antigo (`essencial` = Premium) sai.
+3. Preços legados (R$ 39,90 = Premium, R$ 179 ao ano) saem. O servidor nunca foi implantado
+   (`docs/ESTADO-DO-LANCAMENTO.md`), então não pode haver assinatura neles criada por este sistema. Se o
+   dono tiver cobrança manual no Asaas nesses valores, precisa avisar ANTES de abrir a venda.
+4. Essencial: 5 h de nuvem por trechos (transcrição e tradução), sob demanda, não por padrão.
+5. Ao Vivo: 10 h ao vivo SOMADAS às 20 h por trechos.
+6. Premium: 20 h por mês; anual R$ 149,90.
+7. Teste de 14 dias: do Premium, sem anúncios durante o teste.
+8. As 3 h de nuvem de alívio do Grátis viram a amostra por anúncio premiado, com teto global diário.
+   Enquanto a flag `anuncios` estiver desligada, o alívio continua como está (o Grátis não perde nada
+   antes de a amostra existir).
+9. O Grátis continua guardando no servidor; "sincronização" sai da comparação de planos.
+10. Vozes "básica" e "boa": a escolher por medição de custo; até lá o Premium e o Ao Vivo usam a mesma
+    voz neural que existe hoje.
+11. Troca de plano: vale no próximo ciclo, sem pro-rata.
+12. Serviço do "Ao vivo": não escolhido. O plano Ao Vivo entra na matriz e nas telas, mas NÃO é vendido
+    enquanto a flag `stt_ao_vivo` estiver desligada.
+13. Anúncios: política e espaços entram atrás da flag `anuncios`, desligada, sem rede de anúncios
+    configurada. Sem anúncio na edição estática, no perfil protegido e no Quest. Ligar exige domínio
+    próprio, rede escolhida e consulta jurídica: continua sendo decisão do dono.
+14. Intérprete no computador: duas colunas, nenhuma metade virada (a metade virada é para o aparelho
+    deitado entre duas pessoas; num monitor as duas leem do mesmo lado).
+
+Do selo: o modo do reconhecimento do navegador passa a ser gravado por fala; o motivo fica visível; a
+linha aparece também sem rótulo técnico. Do cursor: o tamanho menor fica; sobre superfícies laranja ele
+passa à cor de tinta para não sumir.
+
+Venda: tudo que cobra entra atrás de `venda_planos_v3`, desligada. Abrir a venda é ato do dono.

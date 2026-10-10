@@ -3,8 +3,8 @@
  * `ANUAL_ENABLED=0` NA TELA — o MVP vende só o mensal (R$ 19,90) e o teste de 14 dias.
  *
  * `GET /api/abertura` passa a dizer `anual`. Com `anual: false`, nos DOIS desenhos do app:
- * 1. Planos: some o seletor Mensal/Anual, e nada na aba promete o anual (nem "R$ 179", nem "12x",
- *    nem "equivale a 3 meses grátis" — cartão, comparativo e perguntas).
+ * 1. Planos: some o seletor Mensal/Anual, e nada na aba promete o anual (nem "R$ 149,90", nem "12x",
+ *    nem "equivale a 4 meses grátis" — cartão, comparativo e perguntas).
  * 2. Checkout: só a forma "Mensal recorrente"; quem tinha escolhido o anual nesta aba paga o mensal.
  * 3. Sua assinatura (mensal): sem o cartão "Passar para o anual".
  * Com `anual: true` — ou ausente na resposta, que é o servidor de antes — tudo fica como era.
@@ -26,7 +26,7 @@ afterEach(() => {
 })
 
 const TITULO = 'Legenda bilíngue de qualquer coisa que você ouve, em qualquer aparelho'
-const PROMETE_O_ANUAL = /anual|179|12x|meses grátis|por ano|\/ano/i
+const PROMETE_O_ANUAL = /anual|149,90|12x|meses grátis|por ano|\/ano/i
 
 const statusMensal = {
   configurado: true,
@@ -170,7 +170,7 @@ describe('anual desligado', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: /Passar para o anual/ })).toBeNull())
     expect(screen.getByRole('button', { name: /Forma de pagamento/ })).toBeTruthy()
     expect(screen.getByRole('button', { name: /Pausar a assinatura/ })).toBeTruthy()
-    expect(container.textContent).not.toMatch(/Passar para o anual|Mudar para o anual|179/)
+    expect(container.textContent).not.toMatch(/Passar para o anual|Mudar para o anual|149,90/)
   })
 })
 
@@ -182,18 +182,18 @@ describe('anual ligado (o padrão)', () => {
     montarMocks({ anual })
     const { container } = await abrirPlanos()
     const grupo = screen.getByRole('radiogroup', { name: 'Período de cobrança' })
-    expect(grupo.textContent).toContain('equivale a 3 meses grátis')
+    expect(grupo.textContent).toContain('equivale a 4 meses grátis')
     expect(container.textContent).toMatch(/Qual a diferença entre mensal e anual\?/)
     expect(container.textContent).toMatch(/Posso passar do mensal para o anual\?/)
     fireEvent.click(screen.getByRole('radio', { name: /Anual/ }))
-    expect(cartao('premium').textContent).toContain('179,00')
+    expect(cartao('premium').textContent).toContain('149,90')
   })
 
   it('Checkout: as três formas de pagar', async () => {
     montarMocks({ anual: true })
     await abrirCheckout()
     expect(screen.getByRole('button', { name: /Mensal recorrente/ })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Anual em uma vez/ }).textContent).toContain('R$ 179,00')
+    expect(screen.getByRole('button', { name: /Anual em uma vez/ }).textContent).toContain('R$ 149,90')
     expect(screen.getByRole('button', { name: /Anual em 12x no cartão/ })).toBeTruthy()
   })
 

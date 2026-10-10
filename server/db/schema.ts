@@ -711,8 +711,8 @@ export const userInterests = sqliteTable(
  * SaaS Fatia 1 — ASSINATURA (o "que você pagou"), eixo SEPARADO do `role`. Fonte da verdade do plano
  * server-side (o billing escreve aqui via webhook — Fatia 6). Uma assinatura por usuário.
  *
- * MATRIZ V2 (migração 0041, ADR 0011): `plan` é `free | premium | selfhost` — linha antiga com
- * `essencial`/`pro` é LIDA como `premium` (`normalizarPlano`) — e a assinatura diz o CICLO (mensal ou
+ * MATRIZ V3 (ADR 0013): `plan` é `free | essencial | premium | aovivo | selfhost` — linha antiga com
+ * `pro` é LIDA como `premium` (`normalizarPlano`) — e, desde a 0041, a assinatura diz o CICLO (mensal ou
  * anual) e o MEIO do Asaas que cobra (assinatura recorrente, parcelamento do 12x ou Pix Automático),
  * com o id do parcelamento quando é ele (C5).
  */
@@ -721,7 +721,7 @@ export const subscriptions = sqliteTable(
   {
     id: text('id').primaryKey(),
     ...meta,
-    plan: text('plan').notNull().default('free'), // 'free' | 'premium' | 'selfhost' (PlanoDeAssinatura)
+    plan: text('plan').notNull().default('free'), // 'free' | 'essencial' | 'premium' | 'aovivo' | 'selfhost' (PlanoDeAssinatura)
     status: text('status').notNull().default('active'), // 'trialing'|'active'|'past_due'|'canceled'
     currentPeriodEnd: integer('current_period_end'),
     cancelAtPeriodEnd: integer('cancel_at_period_end'), // 0/1

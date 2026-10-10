@@ -28,7 +28,8 @@ describe('usageQuota', () => {
        e cada fala ao microfone gasta DUAS chamadas (transcrever + traduzir). 12.000 ≈ 6.000 falas
        ≈ 10 h — o perfil do usuário pesado, ~US$ 0,64/mês ao preço medido. */
     /* Fase 2 do lançamento: 26.000 = 20 h ÷ 6 s × 2 chamadas + folga (conta em src/core/planos.ts). */
-    expect(quota.capForPlan('premium')).toBe(50_000)
+    /* Matriz v3: o Premium voltou a 20 h por mês (a v2 vendia 40 h, com 50.000 chamadas). */
+    expect(quota.capForPlan('premium')).toBe(26_000)
     process.env.PREMIUM_MONTHLY_MANAGED_CALLS = '3'
     expect(quota.capForPlan('premium')).toBe(3)
     expect(quota.capForPlan('free')).toBe(0)

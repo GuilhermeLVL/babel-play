@@ -38,13 +38,13 @@ afterAll(async () => {
 })
 
 describe('GAP-011 — o webhook confere o pagamento na API do Asaas', () => {
-  it('vale o VALOR REAL da API, não o do payload (payload diz 19,90 — um mês; Asaas diz 179 — o ano)', async () => {
+  it('vale o VALOR REAL da API, não o do payload (payload diz 19,90 — um mês; Asaas diz 149,90 — o ano)', async () => {
     const u = asUserId('u-ver')
     await subs.upsert(u, { plan: 'premium', status: 'trialing', provider: 'asaas', providerSubscriptionId: 'sub_1' })
     const verificar = async () => ({
       id: 'pay_ver',
       status: 'CONFIRMED',
-      value: 179,
+      value: 149.9,
       subscription: 'sub_1',
       externalReference: 'u-ver',
     })
@@ -53,7 +53,7 @@ describe('GAP-011 — o webhook confere o pagamento na API do Asaas', () => {
     const s = await subs.getActive(u)
     expect(s.status).toBe('active')
     expect(s.plan).toBe('premium')
-    expect(s.ciclo, 'o valor autoritativo (179) decide o ciclo, não o payload (19,90)').toBe('anual')
+    expect(s.ciclo, 'o valor autoritativo (149,90) decide o ciclo, não o payload (19,90)').toBe('anual')
   })
 
   it('payload forja CONFIRMED, mas o Asaas diz PENDING → não aplica, não concede', async () => {
@@ -92,7 +92,7 @@ describe('GAP-011 — o webhook confere o pagamento na API do Asaas', () => {
       undefined,
     )
     expect(r.estado).toBe('aplicado')
-    // A intenção era o nome antigo (`essencial`, antes da 0041): o pagamento de 19,90 concede o Premium.
+    // A intenção era o Essencial; o pagamento foi de 19,90: vale o VALOR, e ele é o do Premium.
     expect((await subs.getActive(u)).plan).toBe('premium')
   })
 })

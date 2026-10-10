@@ -87,14 +87,24 @@ export interface VariavelDeclarada {
  *
  * MATRIZ V2 (ADR 0011): com o Essencial e o Pro fora da matriz, as `ESSENCIAL_*`/`PRO_*` deixam de
  * ser lidas — quem as tinha no deploy passa o valor para a `PREMIUM_*` correspondente. Nao ha leitura
- * de compatibilidade de proposito: o teto do Premium e outro numero (40 h, o empate de custo), e
- * herdar em silencio as 15 h do Essencial ou as 20 h do Pro seria vender "sem limite no dia a dia"
- * com o teto de um plano que nao existe mais.
+ * de compatibilidade de proposito: herdar em silencio o teto de um plano que nao existe mais seria
+ * vender o Premium com o numero de outro produto.
+ *
+ * MATRIZ V3 (ADR 0013): o Essencial VOLTOU a ser plano (o de R$ 9,90, 5 h por trechos) e o Ao Vivo
+ * nasceu, entao `ESSENCIAL_*` e `AOVIVO_*` voltam a ser lidas — geradas daqui, como as outras. As
+ * `ESSENCIAL_*` de hoje NAO sao as de antes da v2 (aquele Essencial tinha 15 h): quem ainda tiver uma
+ * definida num deploy antigo precisa conferir o numero. As `PRO_*` continuam sem leitura.
  */
 const SUFIXOS_POR_PLANO: ReadonlyArray<{ sufixo: string; paraQue: string }> = [
   { sufixo: 'STORAGE_MB', paraQue: 'teto de armazenamento do plano, em MB (override da PLAN_MATRIX)' },
   { sufixo: 'MONTHLY_MANAGED_CALLS', paraQue: 'cota mensal de chamadas gerenciadas do plano (default da PLAN_MATRIX)' },
   { sufixo: 'MONTHLY_STT_SECONDS', paraQue: 'teto mensal de segundos de STT do plano' },
+  /* A NUVEM AO VIVO (planos v3): o contador próprio (`stt_live_seconds`), somado ao de trechos. Só vale
+     para plano com `sttAoVivo` na matriz; nos outros o teto é 0 e a variável é o único jeito de abri-lo. */
+  {
+    sufixo: 'MONTHLY_STT_LIVE_SECONDS',
+    paraQue: 'teto mensal de segundos de STT AO VIVO (em fluxo) do plano, somado ao de trechos',
+  },
   { sufixo: 'MONTHLY_LLM_TOKENS', paraQue: 'teto mensal de tokens (entrada + saída) do LLM de nuvem do plano' },
   /* O USO JUSTO DO DIA (matriz v2, ADR 0011): o teto por dia LOCAL da pessoa. Só vale para plano com
      teto diário na matriz (hoje, o Premium); nos outros o dia não é contado e a variável não tem efeito. */

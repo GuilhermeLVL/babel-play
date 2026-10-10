@@ -10,7 +10,13 @@
  *
  * Sem `Date.now()` proibido aqui — é módulo Node normal (não script de workflow).
  */
-import { definicaoDoPlano, type EntitlementsDoPlano, normalizarPlano, type PlanoEfetivo } from '../../src/core/planos'
+import {
+  definicaoDoPlano,
+  type EntitlementsDoPlano,
+  normalizarPlano,
+  PLANO_DO_TESTE,
+  type PlanoEfetivo,
+} from '../../src/core/planos'
 import { type Subscription, subscriptionsRepo } from '../db/repositories/subscriptions'
 import { authRequired } from './auth'
 import type { UserId } from './authContext'
@@ -68,7 +74,7 @@ export async function resolverPlano(userId: UserId): Promise<PlanoResolvido> {
   //    mesmo request perguntam o plano, e a mesma linha era lida 3x por STT/MT.
   const sub = await memoDoRequest(userId, 'assinatura', () => subscriptionsRepo.getActive(userId))
   if (sub) {
-    /* O NOME ANTIGO É LIDO COMO O ATUAL (matriz v2, ADR 0011): uma linha `essencial`/`pro` que a
+    /* O NOME ANTIGO É LIDO COMO O ATUAL (matriz v2, ADR 0011): uma linha `pro` que a
        migração 0041 não reescreveu — ou que um processo velho gravou durante o deploy — é
        `premium`, e o assinante antigo não perde o acesso por causa de um nome. */
     const plano = normalizarPlano(sub.plan)
@@ -80,10 +86,10 @@ export async function resolverPlano(userId: UserId): Promise<PlanoResolvido> {
     /* Assinatura que não concede (cancelada, graça expirada, checkout não pago) segue para o teste. */
   }
 
-  // 2) O TESTE DE 14 DIAS (C6): sem assinatura que conceda, o teste ativo concede o Premium. Vem
+  // 2) O TESTE DE 14 DIAS (C6): sem assinatura que conceda, o teste ativo concede `PLANO_DO_TESTE`. Vem
   //    DEPOIS da assinatura: quem assina durante o teste passa a ser Premium pago na mesma hora.
   const teste = await memoDoRequest(userId, 'teste_premium', () => testeAtivoDe(userId))
-  if (teste) return { plano: 'premium', teste: { terminaEm: teste.terminaEm } }
+  if (teste) return { plano: PLANO_DO_TESTE, teste: { terminaEm: teste.terminaEm } }
 
   // 3) Público sem assinatura nem teste → free. NÃO honramos settings.ui.plan: é gravável pelo
   //    cliente (PUT /api/settings) e concedê-lo seria escalada de privilégio/gasto (OWASP A01). Para
@@ -108,6 +114,11 @@ export function getEntitlements(plan: PlanoEfetivo): Entitlements {
   return { plan, ...def.entitlements }
 }
 
+/** As capacidades da matriz que são sim ou não — as que `hasEntitlement` sabe responder. */
+type CapacidadeSimOuNao = {
+  [K in keyof EntitlementsDoPlano]: EntitlementsDoPlano[K] extends boolean ? K : never
+}[keyof EntitlementsDoPlano]
+
 /** Os entitlements EFETIVOS do usuário (plano resolvido no servidor). */
 export async function getEntitlementsForUser(userId: UserId): Promise<Entitlements> {
   return getEntitlements(await getPlanForUser(userId))
@@ -116,8 +127,9 @@ export async function getEntitlementsForUser(userId: UserId): Promise<Entitlemen
 /**
  * Conveniência para o enforcement nos proxies (Fatia 1b): o usuário tem o entitlement `key`?
  * Deriva o plano NO SERVIDOR — o cliente nunca decide. BYOK/local não passam por aqui (só o ramo
- * da chave gerenciada chama esta checagem).
+ * da chave gerenciada chama esta checagem). Só as capacidades de SIM/NÃO: o nível de voz
+ * (`nivelDeVoz`, planos v3) não é uma pergunta de "tem ou não tem".
  */
-export async function hasEntitlement(userId: UserId, key: keyof Omit<Entitlements, 'plan'>): Promise<boolean> {
+export async function hasEntitlement(userId: UserId, key: CapacidadeSimOuNao): Promise<boolean> {
   return (await getEntitlementsForUser(userId))[key]
 }

@@ -60,8 +60,8 @@ export const CABECALHO_DA_VERSAO_DO_CLIENTE = 'x-babel-versao'
 
 /**
  * A lista de planos de uma regra, lida com TOLERÂNCIA ao nome antigo (matriz v2, ADR 0011):
- * `essencial`/`pro` viram `premium` e a repetição some ANTES do teto de tamanho — sem isso,
- * `["free","essencial","pro"]` viraria `["free","premium","premium"]` e uma regra que só envelheceu
+ * `pro` vira `premium` e a repetição some ANTES do teto de tamanho — sem isso,
+ * `["free","pro","premium"]` viraria `["free","premium","premium"]` e uma regra que só envelheceu
  * seria recusada como inválida, desligando a flag inteira. Nome desconhecido continua recusado.
  */
 const planosDaRegra = z.preprocess(

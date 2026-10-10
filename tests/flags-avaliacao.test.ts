@@ -49,12 +49,22 @@ describe('regra por plano', () => {
     expect(avaliarFlag(f, ctx({ plano: 'selfhost' }))).toBe(false)
   })
 
-  it('matriz v2: o plano de uma regra antiga é lido pela régua da matriz', () => {
+  /* Matriz v3: só `pro` continua apelido (do Premium); `essencial` voltou a ser plano, e a lista do
+     que uma regra pode nomear é derivada da matriz — os dois planos novos já entram. */
+  it('o plano de uma regra é lido pela régua da matriz', () => {
     expect(planoDaFlag('pro')).toBe('premium')
-    expect(planoDaFlag('essencial')).toBe('premium')
+    expect(planoDaFlag('essencial')).toBe('essencial')
+    expect(planoDaFlag('aovivo')).toBe('aovivo')
     expect(planoDaFlag('convidado')).toBe('convidado')
     expect(planoDaFlag('ouro')).toBeNull()
-    expect(PLANOS_DA_FLAG).toEqual(['convidado', 'free', 'premium', 'selfhost'])
+    expect(PLANOS_DA_FLAG).toEqual(['convidado', 'free', 'essencial', 'premium', 'aovivo', 'selfhost'])
+  })
+
+  it('a regra por plano distingue os três planos pagos', () => {
+    const soAoVivo = flag({ planos: ['aovivo'] })
+    expect(avaliarFlag(soAoVivo, ctx({ plano: 'aovivo' }))).toBe(true)
+    expect(avaliarFlag(soAoVivo, ctx({ plano: 'premium' }))).toBe(false)
+    expect(avaliarFlag(soAoVivo, ctx({ plano: 'essencial' }))).toBe(false)
   })
 })
 

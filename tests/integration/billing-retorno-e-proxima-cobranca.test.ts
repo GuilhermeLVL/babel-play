@@ -155,7 +155,12 @@ describe('GET /api/billing/status — proximaCobranca', () => {
   it('assinatura cancelada, ou sem assinatura: nem pergunta ao Asaas', async () => {
     const f = vi.spyOn(globalThis, 'fetch')
     expect((await status('u-st-c')).body).not.toHaveProperty('proximaCobranca')
-    expect((await status('u-st-nada')).body).toEqual({ configurado: true, assinatura: null })
+    expect((await status('u-st-nada')).body).toEqual({
+      configurado: true,
+      assinatura: null,
+      // Planos v3: o status passou a dizer o que o servidor vende agora (a venda dos novos nasce fechada).
+      planosAVenda: ['premium'],
+    })
     expect(f).not.toHaveBeenCalled()
   })
 })

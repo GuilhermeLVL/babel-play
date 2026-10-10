@@ -8,12 +8,14 @@
  *
  * Rotas: GET `/api/me/entitlements`.
  */
+import { ENTITLEMENTS_FECHADOS } from '../../../core/planos';
 import { json } from '../nucleo';
 
 export async function entitlementsAnonimos(): Promise<Response> {
   return json({
-    plan: 'anonimo', youtubeImport: false, managedCloudStt: false, managedCloudLlm: false, largerModels: false,
-    traducaoNuance: false, vozNatural: false, interpreteAutomatico: false,
+    plan: 'anonimo',
+    /* Os campos são os da MATRIZ, todos fechados: uma capacidade nova chega aqui sem cópia manual. */
+    ...ENTITLEMENTS_FECHADOS,
     // Sem conta não há teste do Premium (C6): a mesma forma do servidor, com o campo vazio.
     teste: null,
     armazenamento: { usados: 0, teto: 0 },

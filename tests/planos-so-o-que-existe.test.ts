@@ -46,8 +46,10 @@ describe('nenhuma promessa que o app hospedado não cumpre', () => {
 })
 
 describe('as horas de transcrição vêm da matriz', () => {
-  it('Premium 40 h no mês (o empate de custo) e 2 h no dia (o uso justo); Grátis nenhuma', () => {
-    expect(horasDeTranscricao('premium')).toBe(40)
+  it('Premium 20 h no mês e 2 h no dia (o uso justo); Essencial 5 h; Grátis nenhuma', () => {
+    expect(horasDeTranscricao('premium')).toBe(20)
+    expect(horasDeTranscricao('essencial')).toBe(5)
+    expect(horasDeTranscricao('aovivo')).toBe(20)
     expect(horasDoUsoJusto('premium')).toBe(2)
     expect(horasDoUsoJusto('free')).toBeNull()
     expect(horasDeTranscricao('free')).toBe(0)
@@ -57,7 +59,7 @@ describe('as horas de transcrição vêm da matriz', () => {
   it('a tela de planos escreve as horas pela função, não à mão', () => {
     const dados = semComentarios(readFileSync('src/components/views/planos/dados.ts', 'utf8'))
     expect(dados).toContain('horasDeTranscricao(')
-    expect(dados).not.toMatch(/\b(2|40)\s*h\b/)
-    expect(PLAN_MATRIX.premium.quotas.sttSegundosMes).toBe(144_000)
+    expect(dados).not.toMatch(/\b(2|5|10|20|40)\s*h\b/)
+    expect(PLAN_MATRIX.premium.quotas.sttSegundosMes).toBe(72_000)
   })
 })

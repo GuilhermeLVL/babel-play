@@ -88,7 +88,8 @@ adminRouter.patch('/users/:id', requireRole('admin'), async (req, res) => {
   res.json(await usersRepo.get(target))
 })
 
-/* Deriva da matriz. O nome antigo (`essencial`/`pro`) de um script de operação escrito antes da matriz
+/* Deriva da matriz: o admin concede QUALQUER plano dela, inclusive os que ainda não estão à venda
+   (planos v3). O nome antigo (`pro`) de um script de operação escrito antes da matriz
    v2 é lido como o atual — conceder "pro" hoje é conceder o Premium, não um 400 no meio do suporte. */
 const planSchema = z
   .object({

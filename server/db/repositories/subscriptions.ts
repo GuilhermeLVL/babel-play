@@ -10,7 +10,7 @@ export type Subscription = typeof subscriptions.$inferSelect
 import type { CicloDeCobranca, MeioDeCobranca, PlanoDeAssinatura } from '../../../src/core/planos'
 // O tipo deriva da MATRIZ (src/core/planos.ts) — era uma união escrita à mão aqui, uma das
 // cinco cópias que a mudança planos-essencial consolidou. A coluna pode trazer nome ANTIGO
-// (`essencial`/`pro`, antes da migração 0041): quem lê `plan` para decidir passa por `normalizarPlano`.
+// (`pro`, antes da migração 0041): quem lê `plan` para decidir passa por `normalizarPlano`.
 export type Plan = PlanoDeAssinatura
 export type SubStatus = 'trialing' | 'active' | 'past_due' | 'canceled'
 

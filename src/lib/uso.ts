@@ -9,6 +9,7 @@
  * lê e pinta. Sem cache síncrono, porque nenhuma tela depende deste número para renderizar — quem
  * o mostra pode mostrar "carregando".
  */
+import type { NivelDaNuvem } from '../core/planos';
 import { apiFetch } from '../data/api';
 import type { Plan } from './entitlements';
 
@@ -16,6 +17,11 @@ import type { Plan } from './entitlements';
 export interface Contador {
   usado: number;
   teto: number | null;
+}
+
+/** O contador de um nível da nuvem, com o que RESTA do mês já calculado pelo servidor (`null` = sem teto). */
+export interface ContadorDoNivel extends Contador {
+  restante: number | null;
 }
 
 export interface UsoDoMes {
@@ -26,6 +32,12 @@ export interface UsoDoMes {
   chamadas: Contador;
   /** Segundos de áudio faturáveis no STT de nuvem. É o teto que controla gasto de verdade. */
   segundosDeAudio: Contador;
+  /**
+   * O MÊS POR NÍVEL DE SERVIÇO (planos v3): a nuvem por trechos (o mesmo número de `segundosDeAudio`) e
+   * a nuvem ao vivo, cada uma com o seu contador — as horas se somam. Ausente em servidor anterior;
+   * quem lê usa `restanteDoNivel`.
+   */
+  porNivel?: Record<NivelDaNuvem, ContadorDoNivel>;
   /** Tokens do LLM (tradução e tutor). Teto desde a Fase 2 do lançamento: reservados antes, acertados depois. */
   tokensDeLlm: Contador;
   /** Portão global da nuvem (chave de emergência e orçamento do mês). Ausente em servidor antigo. */
@@ -70,6 +82,21 @@ export async function carregarUso(): Promise<UsoDoMes | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * QUANTOS SEGUNDOS RESTAM NO MÊS num nível da nuvem — o que o medidor mostra e o que a política de
+ * rota recebe. `null` = sem teto (self-host): ilimitado NÃO é zero. Sem resposta do servidor não há o
+ * que prometer (0). Diante de um servidor anterior (sem `porNivel`), os trechos saem do contador de
+ * sempre e o ao vivo não existe.
+ */
+export function restanteDoNivel(uso: UsoDoMes | null, nivel: NivelDaNuvem): number | null {
+  if (!uso) return 0;
+  const doServidor = uso.porNivel?.[nivel];
+  if (doServidor) return doServidor.restante === null ? null : Math.max(0, doServidor.restante);
+  if (nivel !== 'trechos') return 0;
+  const { usado, teto } = uso.segundosDeAudio;
+  return teto === null ? null : Math.max(0, teto - usado);
 }
 
 /**

@@ -11,16 +11,21 @@
  * verdade: self-host, grátis, ativa, pagamento pendente e cancelada. "Pausada" não existe (a
  * cobrança não tem pausa).
  *
- * MATRIZ V2 (ADR 0011): um plano pago só, o Premium. O ciclo (mensal ou anual) vem do servidor; o
+ * MATRIZ V3 (ADR 0013): três planos pagos na matriz (Essencial, Premium, Ao Vivo), com a venda dos
+ * novos FECHADA — o checkout oferece só os que estão à venda (`PLANOS_PAGOS`, abaixo), e a conta
+ * mostra o plano que o servidor disse, seja qual for. O ciclo (mensal ou anual) vem do servidor; o
  * checkout escolhe entre o mensal, o anual em uma vez e o anual em 12x no cartão (C5). O nome antigo
- * (`essencial`/`pro`) de um servidor anterior é lido como o Premium (`planoPagoDe`).
+ * (`pro`) de um servidor anterior é lido como o Premium (`planoPagoDe`).
  */
 import {
   type CicloDeCobranca,
-  ehPlanoPago as ehPlanoPagoDaMatriz,
+  ehPlanoPago,
   normalizarPlano,
   PARCELAS_DO_ANUAL,
   PLAN_MATRIX,
+  PLANO_DO_TESTE,
+  type PlanoPago,
+  planosAVenda,
   valoresDasParcelas,
 } from '../core/planos';
 import { apiFetch } from '../data/api';
@@ -28,10 +33,19 @@ import type { Plan } from './entitlements';
 import { t } from './i18n';
 import { lembrarSituacaoDoTeste } from './ofertas/teste';
 
-export type PlanoPago = 'premium';
-export const PLANOS_PAGOS: readonly PlanoPago[] = ['premium'];
-/** ESTRITO: só o nome atual. Para ler o que veio de fora (servidor, armazenamento), `planoPagoDe`. */
-export const ehPlanoPago = (p: unknown): p is PlanoPago => ehPlanoPagoDaMatriz(p);
+/* O plano pago é o da MATRIZ (`src/core/planos.ts`): o cliente não tem tipo nem régua própria.
+   `ehPlanoPago` é ESTRITO (só o nome atual); para ler o que veio de fora (servidor, armazenamento),
+   `planoPagoDe`. */
+export { ehPlanoPago, type PlanoPago };
+
+/**
+ * OS PLANOS QUE O CHECKOUT OFERECE. Não são todos os pagos da matriz: são os À VENDA (`planosAVenda`),
+ * e a venda dos planos novos nasce FECHADA (`venda_planos_v3`, e `stt_ao_vivo` para o Ao Vivo) — então
+ * hoje é só o que nunca teve chave, o Premium. O servidor recusa os outros em `/api/billing/assinar`;
+ * oferecê-los aqui seria um botão que sempre falha. Quando a venda abrir (etapas 8 e 9), isto passa a
+ * ler as flags do servidor.
+ */
+export const PLANOS_PAGOS: readonly PlanoPago[] = planosAVenda(() => false);
 /** O plano pago que um valor de fora é — o nome antigo vira o atual; o que não é plano pago, `null`. */
 export function planoPagoDe(p: unknown): PlanoPago | null {
   const plano = normalizarPlano(p);
@@ -63,6 +77,11 @@ export interface StatusDeBilling {
   proximaCobranca?: string;
   /** O teste de 14 dias do Premium desta conta (C6). Ausente em servidor anterior. */
   teste?: SituacaoDoTeste;
+  /**
+   * Os planos que o servidor vende AGORA a esta conta (planos v3): os pagos cujas chaves de venda estão
+   * ligadas. Ausente em servidor anterior (= só o que `PLANOS_PAGOS` oferece).
+   */
+  planosAVenda?: PlanoPago[];
 }
 
 /** Por que a conta não pode começar o teste (o servidor decide; a tela só explica). */
@@ -165,7 +184,7 @@ export function estadoDaConta(
       : !status?.teste && testeDosEntitlements
         ? testeDosEntitlements.terminaEm
         : null;
-  if (terminaEm !== null && terminaEm > agora) return { estado: 'teste', plano: 'premium', valeAte: terminaEm };
+  if (terminaEm !== null && terminaEm > agora) return { estado: 'teste', plano: PLANO_DO_TESTE, valeAte: terminaEm };
   // Plano pago sem cobrança no provedor (concedido pelo administrador): ativo, sem data.
   const pagoNoPlano = planoPagoDe(plan);
   if (pagoNoPlano) return { estado: 'ativa', plano: pagoNoPlano, valeAte: null };

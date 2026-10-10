@@ -552,7 +552,7 @@ function registrarMedidoresLidosNoScrape(): void {
 
 /**
  * O plano que vira rótulo — a lista fechada da PLAN_MATRIX, mais o `convidado` (que também custa).
- * Fora dela, `desconhecido`: o rótulo nunca é o texto que chegou. O nome antigo (`pro`/`essencial`,
+ * Fora dela, `desconhecido`: o rótulo nunca é o texto que chegou. O nome antigo (`pro`,
  * matriz v2) soma no Premium, e não vira uma série que ninguém mais olha.
  */
 function rotuloDoPlano(plano: string | undefined): string {

@@ -1,7 +1,10 @@
 # ADR 0011 — Vender um plano pago só (Premium), com uso justo diário, e o anual pelos dois fluxos do Asaas
 
 - **Data:** 2026-09-29
-- **Estado:** aceito (2026-10-02)
+- **Estado:** substituído pelo [ADR 0013](0013-quatro-planos-por-nivel-de-servico.md) em 2026-10-09 (aceito em
+  2026-10-02). Continuam valendo o uso justo do dia (429 `uso_justo_do_dia`), o plano e o ciclo decididos pelo valor
+  pago e os dois fluxos do anual no Asaas; caem "um plano pago só", as 40 h, o anual a R$ 179 e a leitura de
+  `essencial` como Premium.
 - **Change OpenSpec:** `planos-v2`
 - **Confirmação do dono (2026-10-02):** o lançamento sai com Grátis + Premium; um terceiro nível "Ao vivo"
   (streaming) fica para depois do lançamento.

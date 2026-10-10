@@ -58,10 +58,11 @@ describe('GAP-001 — iniciar assinatura não concede o plano', () => {
   })
 
   it('o nome antigo ativo vale Premium; a mesma linha em trialing não concede nada', async () => {
-    // Matriz v2: a linha de antes da 0041 (`essencial`) ativa é o Premium — e a leitura tolerante
-    // não abre a porta do GAP-001: em `trialing` (checkout iniciado, não pago) continua sem plano.
+    // A linha com o nome antigo (`pro`) ativa é o Premium — e a leitura tolerante não abre a porta do
+    // GAP-001: em `trialing` (checkout iniciado, não pago) continua sem plano. (Na matriz v3 o
+    // `essencial` deixou de ser nome antigo: é um plano, e a linha ativa nele concede ELE.)
     const u = asUserId('u-upgrade')
-    await subs.upsert(u, { plan: 'essencial', status: 'active' })
+    await subs.upsert(u, { plan: 'pro', status: 'active' })
     expect(await ent.getPlanForUser(u)).toBe('premium')
     await subs.upsert(u, { plan: 'pro', status: 'trialing' })
     expect(await ent.getPlanForUser(u), 'intenção não paga não concede, com nome antigo ou novo').toBe('free')

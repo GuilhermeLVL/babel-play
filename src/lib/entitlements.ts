@@ -15,7 +15,15 @@
  *
  * Regra de honestidade (inalterada): gate NUNCA esconde a feature — mostra com selo e explica.
  */
-import { normalizarPlano, PLAN_MATRIX, type PlanoDeAssinatura, PLANOS_DE_ASSINATURA } from '../core/planos';
+import {
+  ENTITLEMENTS_FECHADOS,
+  type EntitlementsDoPlano,
+  lerEntitlements,
+  normalizarPlano,
+  PLAN_MATRIX,
+  type PlanoDeAssinatura,
+  PLANOS_DE_ASSINATURA,
+} from '../core/planos';
 import { apiFetch } from '../data/api';
 import { edicaoEstatica } from './edicaoEstatica';
 import { authRequired } from './supabase';
@@ -24,25 +32,15 @@ import { authRequired } from './supabase';
  *  servidor nunca o atribui, por isso ele fica fora da matriz. */
 export type Plan = PlanoDeAssinatura | 'anonimo';
 
-export interface Entitlements {
+/**
+ * As CAPACIDADES são as da matriz (`EntitlementsDoPlano`, em `src/core/planos.ts`), herdadas e não
+ * copiadas: até a change `planos-v3` cada campo era repetido aqui, nos três padrões abaixo, no
+ * `normalizar` e no espelho sem conta — e um campo novo no servidor só chegava à tela depois de cinco
+ * edições à mão. A tela só PINTA (com cadeado sem a capacidade); quem decide é o servidor, pelo mesmo
+ * campo — nunca pelo nome do plano.
+ */
+export interface Entitlements extends EntitlementsDoPlano {
   plan: Plan;
-  /** Importação de YouTube (yt-dlp roda no servidor — custo/infra de quem hospeda). */
-  youtubeImport: boolean;
-  /** STT de nuvem com a chave do DONO do serviço (Groq gerenciado). BYOK é sempre livre. */
-  managedCloudStt: boolean;
-  /** LLM/MT de nuvem com a chave do dono. */
-  managedCloudLlm: boolean;
-  /** Modelos locais maiores (whisper-base+) — mais download/latência, mais precisão. */
-  largerModels: boolean;
-  /**
-   * A Tradução Nuance (Fase D): outras formas, formal/informal, variantes e glossário. A tela só PINTA
-   * (com cadeado sem ela); quem decide é o servidor, pelo mesmo campo — nunca pelo nome do plano.
-   */
-  traducaoNuance: boolean;
-  /** A voz natural da nuvem no modo intérprete (matriz v2); sem ela, a voz do aparelho. */
-  vozNatural: boolean;
-  /** O modo automático do intérprete (o idioma de cada fala medido pelo áudio); sem ele, por toque. */
-  interpreteAutomatico: boolean;
   /** Disco usado/teto em bytes; `teto: null` = sem teto; `null` inteiro = desconhecido. */
   armazenamento: { usados: number; teto: number | null } | null;
   /**
@@ -56,26 +54,11 @@ export interface Entitlements {
 const CACHE_KEY = 'babel.entitlements';
 const CHANGED = 'babel_plan_changed';
 
-const FECHADO: Entitlements = Object.freeze({
-  plan: 'free',
-  youtubeImport: false,
-  managedCloudStt: false,
-  managedCloudLlm: false,
-  largerModels: false,
-  traducaoNuance: false,
-  vozNatural: false,
-  interpreteAutomatico: false,
-  armazenamento: null,
-});
+/* Os dois padrões sem cache são PLANOS DA MATRIZ, com as capacidades que ela declara. */
+const FECHADO: Entitlements = Object.freeze({ plan: 'free', ...PLAN_MATRIX.free.entitlements, armazenamento: null });
 const SELFHOST: Entitlements = Object.freeze({
   plan: 'selfhost',
-  youtubeImport: true,
-  managedCloudStt: true,
-  managedCloudLlm: true,
-  largerModels: true,
-  traducaoNuance: true,
-  vozNatural: true,
-  interpreteAutomatico: true,
+  ...PLAN_MATRIX.selfhost.entitlements,
   armazenamento: null,
 });
 
@@ -86,17 +69,11 @@ const SELFHOST: Entitlements = Object.freeze({
  */
 const EDICAO_ESTATICA: Entitlements = Object.freeze({
   plan: 'anonimo',
-  youtubeImport: false,
-  managedCloudStt: false,
-  managedCloudLlm: false,
-  largerModels: false,
-  traducaoNuance: false,
-  vozNatural: false,
-  interpreteAutomatico: false,
+  ...ENTITLEMENTS_FECHADOS,
   armazenamento: { usados: 0, teto: 0 },
 });
 
-/** O plano da resposta: `anonimo` passa; o nome antigo (`essencial`/`pro` de um servidor anterior ou
+/** O plano da resposta: `anonimo` passa; o nome antigo (`pro` de um servidor anterior ou
  *  do cache de antes da matriz v2) é o Premium; o resto é `null`. */
 const planoDaResposta = (v: string): Plan | null => (v === 'anonimo' ? 'anonimo' : normalizarPlano(v));
 
@@ -109,7 +86,7 @@ const planoDaResposta = (v: string): Plan | null => (v === 'anonimo' ? 'anonimo'
  * rótulo degrada) e as flags do servidor valem — a UI mostra o que o servidor de fato concedeu.
  *
  * O NOME ANTIGO É O PREMIUM (matriz v2): um servidor anterior durante o deploy, ou o cache do
- * navegador de antes da troca, diz `pro`/`essencial` — e a tela mostra o Premium, não o Grátis.
+ * navegador de antes da troca, diz `pro` — e a tela mostra o Premium, não o Grátis.
  * Entitlement que não veio (servidor anterior não conhece `traducaoNuance`) fica FECHADO.
  */
 function normalizar(v: unknown): Entitlements | null {
@@ -117,7 +94,6 @@ function normalizar(v: unknown): Entitlements | null {
   const o = v as Record<string, unknown>;
   if (typeof o.plan !== 'string') return null;
   const plan: Plan = planoDaResposta(o.plan) ?? 'free';
-  const bool = (k: string) => o[k] === true;
   let armazenamento: Entitlements['armazenamento'] = null;
   if (o.armazenamento && typeof o.armazenamento === 'object') {
     const a = o.armazenamento as Record<string, unknown>;
@@ -126,15 +102,10 @@ function normalizar(v: unknown): Entitlements | null {
   }
   const t = o.teste as { terminaEm?: unknown } | null | undefined;
   const teste = t && typeof t === 'object' && typeof t.terminaEm === 'number' ? { terminaEm: t.terminaEm } : null;
+  /* As capacidades são lidas pela forma da MATRIZ (`lerEntitlements`): nenhum campo é listado aqui. */
   return {
     plan,
-    youtubeImport: bool('youtubeImport'),
-    managedCloudStt: bool('managedCloudStt'),
-    managedCloudLlm: bool('managedCloudLlm'),
-    largerModels: bool('largerModels'),
-    traducaoNuance: bool('traducaoNuance'),
-    vozNatural: bool('vozNatural'),
-    interpreteAutomatico: bool('interpreteAutomatico'),
+    ...lerEntitlements(o),
     armazenamento,
     teste,
   };

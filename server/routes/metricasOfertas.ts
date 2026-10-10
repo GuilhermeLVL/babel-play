@@ -63,7 +63,9 @@ export function validarLoteDeOfertas(corpo: unknown, conhecidos: RotulosConhecid
     if (!incluso(EVENTOS_DE_OFERTA, e.evento)) return null
     if (!incluso(COMPONENTES, e.componente)) return null
     /* Os planos passam pela leitura tolerante (matriz v2): uma aba aberta com o bundle anterior manda
-       `essencial`/`pro`, e o evento dela conta como Premium em vez de derrubar o lote inteiro em 400. */
+       `pro`, e o evento dela conta como Premium em vez de derrubar o lote inteiro em 400. Na matriz
+       v3 o plano ATUAL é o da pessoa (o Essencial e o Ao Vivo são planos); o SUGERIDO continua um
+       rótulo só para qualquer plano pago (`planoSugeridoDe`). */
     const planoAtual = planoDaFlag(e.plano_atual)
     const planoSugerido = planoSugeridoDe(e.plano_sugerido)
     if (!planoAtual || !planoSugerido) return null

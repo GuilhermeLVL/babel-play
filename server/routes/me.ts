@@ -3,6 +3,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 
 import { diaNoFuso } from '../../src/core/learning/economia'
+import type { NivelDaNuvem } from '../../src/core/planos'
 import { billingEventsRepo } from '../db/repositories/billingEvents'
 import { contaRepo } from '../db/repositories/conta'
 import { idadesRepo } from '../db/repositories/idades'
@@ -33,6 +34,7 @@ import { responderErro } from '../lib/respostaDeErro'
 import { capDeArmazenamento, reconciliarSeVencido, usoDeArmazenamento } from '../lib/storageQuota'
 import {
   capForPlan,
+  capSegundosAoVivoParaPlano,
   capSegundosDoDia,
   capSegundosParaPlano,
   capTokensDoDia,
@@ -41,6 +43,7 @@ import {
   METRIC_LLM_TOKENS,
   METRIC_LLM_TOKENS_DIA,
   METRIC_MANAGED,
+  METRIC_STT_AO_VIVO_SEGUNDOS,
   METRIC_STT_SEGUNDOS,
   METRIC_STT_SEGUNDOS_DIA,
 } from '../lib/usageQuota'
@@ -429,6 +432,10 @@ meRouter.delete('/', async (req, res) => {
  * `hoje` (matriz v2, uso justo): o DIA local da pessoa — janela `AAAA-MM-DD`, o fuso que a define e
  * os contadores do dia com os tetos. `null` para plano sem teto no dia (Grátis, self-host): ali nada é
  * contado por dia, e "0 usado hoje" seria uma mentira.
+ *
+ * `porNivel` (planos v3): o mês da NOSSA nuvem por nível de serviço — por trechos e ao vivo —, com o
+ * `restante` já calculado (`null` = sem teto). É o que o medidor da tela desenha e o que a política de
+ * rota recebe para decidir se a nuvem ainda cabe. `segundosDeAudio` continua igual (é o de trechos).
  */
 async function usoDeHoje(userId: import('../lib/authContext').UserId, plano: Parameters<typeof capSegundosDoDia>[0]) {
   const tetoSegundos = capSegundosDoDia(plano)
@@ -453,9 +460,10 @@ meRouter.get('/uso', async (req, res) => {
   try {
     const plano = await getPlanForUser(req.userId)
     const janela = new Date().toISOString().slice(0, 7)
-    const [chamadas, segundos, tokens, portao, alivio, hoje] = await Promise.all([
+    const [chamadas, segundos, aoVivo, tokens, portao, alivio, hoje] = await Promise.all([
       usageCountersRepo.get(req.userId, METRIC_MANAGED, janela),
       usageCountersRepo.get(req.userId, METRIC_STT_SEGUNDOS, janela),
+      usageCountersRepo.get(req.userId, METRIC_STT_AO_VIVO_SEGUNDOS, janela),
       usageCountersRepo.get(req.userId, METRIC_LLM_TOKENS, janela),
       portaoDaNuvem(),
       /* A NUVEM DE ALÍVIO (A10) só existe para a conta Grátis; para os outros planos (e o convidado,
@@ -464,11 +472,21 @@ meRouter.get('/uso', async (req, res) => {
       usoDeHoje(req.userId, plano),
     ])
     const finito = (n: number): number | null => (Number.isFinite(n) ? n : null)
+    const doNivel = (usado: number, teto: number) => ({
+      usado,
+      teto: finito(teto),
+      restante: Number.isFinite(teto) ? Math.max(0, teto - usado) : null,
+    })
+    const porNivel: Record<NivelDaNuvem, ReturnType<typeof doNivel>> = {
+      trechos: doNivel(segundos, capSegundosParaPlano(plano)),
+      aovivo: doNivel(aoVivo, capSegundosAoVivoParaPlano(plano)),
+    }
     res.json({
       plano,
       janela,
       chamadas: { usado: chamadas, teto: finito(capForPlan(plano)) },
       segundosDeAudio: { usado: segundos, teto: finito(capSegundosParaPlano(plano)) },
+      porNivel,
       // Tokens viraram TETO na Fase 2 do lançamento: reservados antes da chamada, acertados depois.
       tokensDeLlm: { usado: tokens, teto: finito(capTokensParaPlano(plano)) },
       /* O PORTÃO GLOBAL (chave de emergência e orçamento do mês), para a tela dizer POR QUE a nuvem

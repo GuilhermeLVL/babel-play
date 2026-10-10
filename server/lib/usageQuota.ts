@@ -19,7 +19,7 @@
  * `quota_exceeded` de sempre; o dia é o 429 `uso_justo_do_dia`, que não vende nada.
  */
 import { diaNoFuso } from '../../src/core/learning/economia'
-import { definicaoDoPlano, FRANQUIA_DE_ALIVIO, type PlanoEfetivo } from '../../src/core/planos'
+import { definicaoDoPlano, FRANQUIA_DE_ALIVIO, type NivelDaNuvem, type PlanoEfetivo } from '../../src/core/planos'
 import { usageCountersRepo } from '../db/repositories/usageCounters'
 import type { UserId } from './authContext'
 import { memoDoRequest } from './contextoDeConvidado'
@@ -34,6 +34,13 @@ export const METRIC_MANAGED = 'managed_calls'
  * `server/lib/duracaoDeAudio.ts`.
  */
 export const METRIC_STT_SEGUNDOS = 'stt_seconds'
+/**
+ * Segundos de fala na NUVEM AO VIVO (planos v3, `design.md` §4) — o contador do nível `aovivo`, ao
+ * lado do de trechos e na MESMA tabela (`usage_counters.metric` é texto: métrica nova não pede
+ * migração de esquema). As horas ao vivo se SOMAM às de trechos, então um contador nunca desconta do
+ * outro. Só a janela do MÊS: o uso justo do dia é da nuvem por trechos.
+ */
+export const METRIC_STT_AO_VIVO_SEGUNDOS = 'stt_live_seconds'
 /** Tokens (entrada + saída) gastos no LLM gerenciado. Reservados ANTES, acertados DEPOIS. */
 export const METRIC_LLM_TOKENS = 'llm_tokens'
 
@@ -244,9 +251,9 @@ export async function refundManagedCall(userId: UserId, modo: ModoDaCota = 'plan
 
 /**
  * Teto MENSAL DE SEGUNDOS de áudio no STT gerenciado. O default vem da matriz (`src/core/planos.ts`:
- * 144.000 s = 40 h no Premium — o empate de custo na pilha atual, até o B7 —, ∞ no selfhost, 0 no
+ * 18.000 s = 5 h no Essencial, 72.000 s = 20 h no Premium e no Ao Vivo, ∞ no selfhost, 0 no
  * free — barrado antes, pelo entitlement), e `<PLANO>_MONTHLY_STT_SECONDS` sobrepõe. Os segundos
- * contados são os REAIS da fala (`segundosDeAudioDoUsuario`): 40 h no plano são 40 h de áudio transcrito.
+ * contados são os REAIS da fala (`segundosDeAudioDoUsuario`): 20 h no plano são 20 h de áudio transcrito.
  *
  * POR QUE ESTE TETO EXISTE, ao lado do de chamadas. O de chamadas é fair-use; este é o de DINHEIRO.
  * A Groq cobra STT por hora de áudio, então o gasto de um usuário depende de quanto tempo ele fala,
@@ -261,6 +268,14 @@ export async function refundManagedCall(userId: UserId, modo: ModoDaCota = 'plan
  */
 export function capSegundosParaPlano(plan: PlanoEfetivo): number {
   return tetoComEnv(definicaoDoPlano(plan).quotas.sttSegundosMes, envDoPlano(plan, 'MONTHLY_STT_SECONDS'))
+}
+
+/**
+ * Teto MENSAL de segundos na nuvem AO VIVO. O default vem da matriz (`sttAoVivoSegundosMes`: 0 em quem
+ * não tem o nível, ∞ no selfhost) e `<PLANO>_MONTHLY_STT_LIVE_SECONDS` sobrepõe.
+ */
+export function capSegundosAoVivoParaPlano(plan: PlanoEfetivo): number {
+  return tetoComEnv(definicaoDoPlano(plan).quotas.sttAoVivoSegundosMes, envDoPlano(plan, 'MONTHLY_STT_LIVE_SECONDS'))
 }
 
 /** Teto DIÁRIO de segundos de STT (o uso justo). `<PLANO>_DAILY_STT_SECONDS` sobrepõe; ∞ = sem teto no dia. */
@@ -321,14 +336,31 @@ async function reservarNoMesENoDia(
  * concorrência. No plano, o mês e depois o dia (`reservarNoMesENoDia`); no alívio, só a franquia
  * do mês dele (o alívio tem o pool do dia próprio, `nuvemDeAlivio.ts`).
  *
+ * O NÍVEL (planos v3): `trechos` é o de sempre; `aovivo` reserva no contador próprio
+ * (`METRIC_STT_AO_VIVO_SEGUNDOS`), só no mês, e nunca toca o de trechos nem o do dia — as horas dos
+ * dois níveis se somam. O fluxo ao vivo reserva em blocos (30 s) e o servidor corta quando a reserva
+ * recusa. A nuvem de alívio do Grátis não tem ao vivo: ali a reserva recusa sem contar.
+ *
  * Falha FECHADA como as outras reservas: erro de infra lança `ContadorIndisponivel`.
  */
 export async function reservarSegundosDeStt(
   userId: UserId,
   segundos: number,
   modo: ModoDaCota = 'plano',
+  nivel: NivelDaNuvem = 'trechos',
 ): Promise<ReservaDaCota> {
   try {
+    if (nivel === 'aovivo') {
+      if (modo === 'alivio') return { cabe: false, recusa: 'mes' }
+      const cabe = await usageCountersRepo.reserve(
+        userId,
+        METRIC_STT_AO_VIVO_SEGUNDOS,
+        currentWindow(),
+        capSegundosAoVivoParaPlano(await getPlanForUser(userId)),
+        segundos,
+      )
+      return cabe ? { cabe: true, dia: null } : { cabe: false, recusa: 'mes' }
+    }
     if (modo === 'alivio') {
       const cabe = await usageCountersRepo.reserve(
         userId,
@@ -355,15 +387,23 @@ export async function reservarSegundosDeStt(
 
 /**
  * Estorna segundos reservados que não viraram transcrição (o provedor recusou ou caiu) — do mês e,
- * quando a reserva caiu num dia (`dia` da `ReservaDaCota`), do dia também.
+ * quando a reserva caiu num dia (`dia` da `ReservaDaCota`), do dia também. O estorno volta para o
+ * contador do MESMO nível da reserva: o do ao vivo devolve só ao ao vivo.
  */
 export async function estornarSegundosDeStt(
   userId: UserId,
   segundos: number,
   modo: ModoDaCota = 'plano',
   dia: string | null = null,
+  nivel: NivelDaNuvem = 'trechos',
 ): Promise<void> {
   try {
+    if (nivel === 'aovivo') {
+      if (modo === 'plano') {
+        await usageCountersRepo.refund(userId, METRIC_STT_AO_VIVO_SEGUNDOS, currentWindow(), segundos)
+      }
+      return
+    }
     await usageCountersRepo.refund(userId, METRICA.segundos[modo], currentWindow(), segundos)
     if (dia && modo === 'plano') await usageCountersRepo.refund(userId, METRIC_STT_SEGUNDOS_DIA, dia, segundos)
   } catch (err) {

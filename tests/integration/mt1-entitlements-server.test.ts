@@ -73,9 +73,13 @@ describe('SaaS Fatia 1a — entitlements server-side', () => {
   it('assinatura cancelada com período pago no futuro → mantém o plano até o fim (Decreto 11.034/2022)', async () => {
     process.env.AUTH_REQUIRED = '1'
     const u = asUserId('u-sub-cancel-no-periodo')
-    // Nome de antes da matriz v2 na linha: lido como Premium.
-    await subs.upsert(u, { plan: 'essencial', status: 'canceled', currentPeriodEnd: Date.now() + 5 * 86_400_000 })
+    // Nome de antes da matriz v2 na linha (`pro`): lido como Premium.
+    await subs.upsert(u, { plan: 'pro', status: 'canceled', currentPeriodEnd: Date.now() + 5 * 86_400_000 })
     expect(await ent.getPlanForUser(u)).toBe('premium')
+    // Matriz v3: o Essencial é um plano, e a regra do período pago vale para ele do mesmo jeito.
+    const e = asUserId('u-sub-cancel-essencial')
+    await subs.upsert(e, { plan: 'essencial', status: 'canceled', currentPeriodEnd: Date.now() + 5 * 86_400_000 })
+    expect(await ent.getPlanForUser(e)).toBe('essencial')
   })
 
   it('past_due dentro da graça → mantém o plano; graça expirada → free', async () => {

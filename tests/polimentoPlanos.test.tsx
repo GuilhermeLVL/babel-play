@@ -209,7 +209,7 @@ describe('Planos no desenho novo: com o anual à venda', () => {
     expect(grupo.className).toBe('q-abas q-seg px-periodo')
     expect(grupo.nextElementSibling!.className).toBe('q-grade g2 px-planos-grade')
     expect(grupo.parentElement).toBe(palco)
-    expect(grupo.textContent).toContain('equivale a 3 meses grátis')
+    expect(grupo.textContent).toContain('equivale a 4 meses grátis')
     expect(screen.getByRole('radio', { name: 'Mensal' }).getAttribute('aria-checked')).toBe('true')
     expect(document.querySelector('.px-premium .px-preco b')!.textContent).toBe(
       brl(PLAN_MATRIX.premium.precoMensalBrl!),

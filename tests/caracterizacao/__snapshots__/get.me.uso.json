@@ -26,6 +26,18 @@
     },
     "janela": "string",
     "plano": "string",
+    "porNivel": {
+      "aovivo": {
+        "restante": "number",
+        "teto": "number",
+        "usado": "number"
+      },
+      "trechos": {
+        "restante": "number",
+        "teto": "number",
+        "usado": "number"
+      }
+    },
     "segundosDeAudio": {
       "teto": "number",
       "usado": "number"

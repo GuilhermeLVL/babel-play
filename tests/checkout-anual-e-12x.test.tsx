@@ -4,7 +4,7 @@
  * funcionarem; a tela de Planos nova, com o seletor Mensal/Anual, é o C7.
  *
  * 1. O passo 1 oferece Mensal recorrente, Anual em uma vez e Anual em 12x no cartão, com o preço de
- *    cada um saído da matriz (R$ 19,90, R$ 179, 11 × R$ 14,91 + R$ 14,99).
+ *    cada um saído da matriz (R$ 19,90, R$ 149,90, 11 × R$ 12,49 + R$ 12,51).
  * 2. O pedido ao servidor leva `ciclo` e `meio`: o anual é `assinatura` anual; o 12x é `parcelamento`.
  * 3. O texto legal diz o que cada forma autoriza: o anual renova em um ano; o 12x não renova sozinho,
  *    e depois dos 7 dias cancelar não devolve o proporcional (padrão do dono, a validar com o jurídico).
@@ -66,10 +66,10 @@ describe('as três formas de pagar o Premium', () => {
     mockApi()
     await abrir()
     expect(screen.getByRole('button', { name: /Mensal recorrente/ }).getAttribute('aria-pressed')).toBe('true')
-    expect(screen.getByRole('button', { name: /Anual em uma vez/ }).textContent).toContain('R$ 179,00')
+    expect(screen.getByRole('button', { name: /Anual em uma vez/ }).textContent).toContain('R$ 149,90')
     const dozeVezes = screen.getByRole('button', { name: /Anual em 12x no cartão/ })
-    expect(dozeVezes.textContent).toContain('R$ 14,91')
-    expect(dozeVezes.textContent).toContain('R$ 14,99')
+    expect(dozeVezes.textContent).toContain('R$ 12,49')
+    expect(dozeVezes.textContent).toContain('R$ 12,51')
   })
 
   it('anual: o pedido vai com `ciclo: anual` e `meio: assinatura`, e o texto legal fala da renovação em um ano', async () => {
@@ -79,7 +79,7 @@ describe('as três formas de pagar o Premium', () => {
     fireEvent.click(screen.getByRole('button', { name: /Ir para o pagamento/ }))
     expect(screen.getByText(/renovada todo ano/)).toBeTruthy()
     preencher()
-    fireEvent.click(screen.getByRole('button', { name: /Assinar e pagar R\$ 179,00/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Assinar e pagar R\$ 149,90/ }))
     await waitFor(() => expect(chamadas.some((c) => c.url === '/api/billing/assinar')).toBe(true))
     const pedido = chamadas.find((c) => c.url === '/api/billing/assinar')?.corpo
     expect(pedido).toMatchObject({ plano: 'premium', ciclo: 'anual', meio: 'assinatura' })
@@ -93,7 +93,7 @@ describe('as três formas de pagar o Premium', () => {
     expect(screen.getByText(/sem renovação automática/)).toBeTruthy()
     expect(screen.getByText(/sem reembolso proporcional/)).toBeTruthy()
     preencher()
-    fireEvent.click(screen.getByRole('button', { name: /em 12x de R\$ 14,91/ }))
+    fireEvent.click(screen.getByRole('button', { name: /em 12x de R\$ 12,49/ }))
     await waitFor(() => expect(chamadas.some((c) => c.url === '/api/billing/assinar')).toBe(true))
     const pedido = chamadas.find((c) => c.url === '/api/billing/assinar')?.corpo
     expect(pedido).toMatchObject({ plano: 'premium', ciclo: 'anual', meio: 'parcelamento' })

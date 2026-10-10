@@ -18,8 +18,9 @@
  *      inteiro; quem não paga — convidado, Grátis sem alívio e, no C6, o TESTE do Premium — para na
  *      metade (ou antes, se a reserva dos pagantes passar disso); a nuvem de alívio do Grátis (A10)
  *      só usa os 20% de cima — os 80% são de quem paga. Assim quem paga nunca encontra o bucket vazio
- *      por causa de quem não paga. (Matriz v2, ADR 0011: com um plano pago só, a faixa do meio que
- *      o Essencial ocupava deixou de existir.)
+ *      por causa de quem não paga. (Matriz v3, ADR 0013: os três planos pagos dividem a MESMA
+ *      faixa de pagante — quem separa um do outro é a cota de cada um, não a prioridade. A faixa do
+ *      meio que o Essencial da v1 ocupava não voltou.)
  *   4. O 429 DO PROVEDOR ALIMENTA O BUCKET: zera o saldo e bloqueia até o `Retry-After` dele. O
  *      provedor sabe mais do que o nosso contador (outra réplica, outro app na mesma organização).
  *   5. OS LIMITES SÃO OS DO REGISTRO (B4 da Fase B, 29/09/2026). As `IA_ADMISSAO_*` são os da camada
@@ -39,7 +40,7 @@
  * bucket e a soma passaria do limite da conta. O ADR 0007 registra a troca por estado compartilhado
  * junto com o gatilho do ADR 0006 — até lá a trava de boot mantém uma réplica só.
  */
-import { normalizarPlano } from '../../src/core/planos'
+import { ehPlanoPago, normalizarPlano } from '../../src/core/planos'
 import { contarAdmissaoRecusada, registrarLeitorDeSaldo } from '../http/metricas'
 import { configDeAdmissao } from '../lib/config'
 import type { LimitesDeclarados } from './registroDeProvedores'
@@ -63,18 +64,19 @@ export interface Recusa {
 export const PISO_DO_ALIVIO = 0.8
 
 /**
- * O plano da assinatura vira uma das faixas de prioridade. `selfhost` é Premium: a chave é do próprio
- * dono. A requisição da nuvem de alívio (A10: conta Grátis, oferta aceita, franquia conferida na porta)
+ * O plano da assinatura vira uma das faixas de prioridade. A faixa `premium` é a de QUEM PAGA — todo
+ * plano pago da matriz (`ehPlanoPago`), e não um nome: um plano pago novo entra nela sem tocar aqui.
+ * `selfhost` também: a chave é do próprio dono. A requisição da nuvem de alívio (A10: conta Grátis, oferta aceita, franquia conferida na porta)
  * é `alivio`. O TESTE de 14 dias do Premium (C6) tem os entitlements do Premium mas entra como
  * `gratis`: ele ainda não paga, e a capacidade de quem paga não pode encolher por causa de uma
  * campanha de teste. Todo o resto (free sem alívio, anônimo/convidado) é `gratis` — o seguro.
- * O nome antigo (`pro`/`essencial`) é lido como Premium, como em toda fronteira.
+ * O nome antigo (`pro`) é lido como Premium, como em toda fronteira.
  */
 export function planoDeAdmissao(plan: string | undefined, alivio = false, teste = false): PlanoDeAdmissao {
   if (alivio) return 'alivio'
   if (teste) return 'gratis'
   const plano = normalizarPlano(plan)
-  if (plano === 'premium' || plano === 'selfhost') return 'premium'
+  if (ehPlanoPago(plano) || plano === 'selfhost') return 'premium'
   return 'gratis'
 }
 

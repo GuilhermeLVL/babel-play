@@ -110,21 +110,32 @@ describe('inventário de configuração', () => {
 
   it('as variáveis por plano cobrem TODOS os planos, não só os pagos', () => {
     // O defeito que isto fecha: `FREE_STORAGE_MB` era lido e não declarado.
-    for (const plano of ['free', 'premium', 'selfhost']) {
+    for (const plano of ['free', 'essencial', 'premium', 'aovivo', 'selfhost']) {
       expect(declaradas.has(`${plano.toUpperCase()}_STORAGE_MB`), `${plano} sem teto de armazenamento declarado`).toBe(
         true,
       )
     }
   })
 
-  it('matriz v2: o Premium declara o mensal E o uso justo do dia; os planos antigos não declaram nada', () => {
+  it('o Premium declara o mensal E o uso justo do dia; o plano antigo (Pro) não declara nada', () => {
     for (const nome of ['PREMIUM_MONTHLY_STT_SECONDS', 'PREMIUM_DAILY_STT_SECONDS', 'PREMIUM_DAILY_LLM_TOKENS']) {
       expect(declaradas.has(nome), nome).toBe(true)
     }
-    /* Sem leitura de compatibilidade: herdar as 15 h do Essencial ou as 20 h do Pro seria vender o
-       Premium com o teto de um plano que não existe mais (`server/lib/config.ts`, ADR 0011). */
-    const antigas = [...declaradas].filter((n) => /^(ESSENCIAL|PRO)_/.test(n))
+    /* Sem leitura de compatibilidade: herdar as 20 h do Pro seria vender o Premium com o teto de um
+       plano que não existe mais (`server/lib/config.ts`, ADR 0011). */
+    const antigas = [...declaradas].filter((n) => /^PRO_/.test(n))
     expect(antigas).toEqual([])
+  })
+
+  /* Matriz v3 (ADR 0013): o Essencial voltou a ser plano e o Ao Vivo nasceu — as variáveis deles são
+     GERADAS da matriz no mesmo commit, inclusive a do contador novo (a nuvem ao vivo). */
+  it('matriz v3: todo plano declara o teto da nuvem ao vivo, e os planos novos declaram as suas', () => {
+    for (const plano of ['FREE', 'ESSENCIAL', 'PREMIUM', 'AOVIVO', 'SELFHOST', 'CONVIDADO']) {
+      expect(declaradas.has(`${plano}_MONTHLY_STT_LIVE_SECONDS`), plano).toBe(true)
+    }
+    for (const nome of ['ESSENCIAL_MONTHLY_STT_SECONDS', 'AOVIVO_MONTHLY_STT_SECONDS', 'AOVIVO_DAILY_STT_SECONDS']) {
+      expect(declaradas.has(nome), nome).toBe(true)
+    }
   })
 
   it('nenhuma declaração sem explicação de PARA QUÊ', () => {

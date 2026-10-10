@@ -112,14 +112,24 @@ describe('custo de IA: por plano, e o gasto do dia e do mês lidos do banco', ()
     expect(corpo).not.toContain('plano-inventado-pelo-cliente')
   })
 
-  it('matriz v2: o nome antigo soma no Premium, e não vira série própria', async () => {
+  it('o nome antigo (`pro`) soma no Premium, e não vira série própria', async () => {
     const antes = valor(await scrape(), 'ia_custo_usd_total{plano="premium"}') ?? 0
     m.contarCustoPorPlano('pro', 0.2)
-    m.contarCustoPorPlano('essencial', 0.1)
     const corpo = await scrape()
-    expect(valor(corpo, 'ia_custo_usd_total{plano="premium"}')).toBeCloseTo(antes + 0.3, 6)
+    expect(valor(corpo, 'ia_custo_usd_total{plano="premium"}')).toBeCloseTo(antes + 0.2, 6)
     expect(corpo).not.toContain('ia_custo_usd_total{plano="pro"}')
-    expect(corpo).not.toContain('ia_custo_usd_total{plano="essencial"}')
+  })
+
+  /* Matriz v3: o Essencial e o Ao Vivo são planos, e o custo de cada um é a série dele — é ela que
+     vai dizer se o plano de R$ 9,90 se paga. */
+  it('matriz v3: cada plano pago tem a sua série de custo', async () => {
+    const premiumAntes = valor(await scrape(), 'ia_custo_usd_total{plano="premium"}') ?? 0
+    m.contarCustoPorPlano('essencial', 0.1)
+    m.contarCustoPorPlano('aovivo', 0.4)
+    const corpo = await scrape()
+    expect(valor(corpo, 'ia_custo_usd_total{plano="essencial"}')).toBeCloseTo(0.1, 6)
+    expect(valor(corpo, 'ia_custo_usd_total{plano="aovivo"}')).toBeCloseTo(0.4, 6)
+    expect(valor(corpo, 'ia_custo_usd_total{plano="premium"}')).toBeCloseTo(premiumAntes, 6)
   })
 
   it('ia_gasto_usd{periodo} vem de gasto_de_ia; o teto só aparece quando existe', async () => {

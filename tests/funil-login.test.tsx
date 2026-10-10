@@ -276,9 +276,15 @@ describe('o plano da intenção chega ao checkout', () => {
     expect(sessionStorage.getItem(CHAVE_DO_PLANO_DO_CHECKOUT)).toBeNull()
     lembrarPlanoDoCheckout('premium')
     expect(sessionStorage.getItem(CHAVE_DO_PLANO_DO_CHECKOUT)).toBe('premium')
-    // Matriz v2: a intenção de antes do deploy ("assinar o Essencial") abre o checkout no Premium.
+    // A intenção de antes do deploy ("assinar o Pro") abre o checkout no Premium.
+    sessionStorage.clear()
+    lembrarPlanoDoCheckout('pro')
+    expect(sessionStorage.getItem(CHAVE_DO_PLANO_DO_CHECKOUT)).toBe('premium')
+    // Matriz v3, venda fechada: plano que o servidor ainda não vende não abre o checkout.
     sessionStorage.clear()
     lembrarPlanoDoCheckout('essencial')
-    expect(sessionStorage.getItem(CHAVE_DO_PLANO_DO_CHECKOUT)).toBe('premium')
+    expect(sessionStorage.getItem(CHAVE_DO_PLANO_DO_CHECKOUT)).toBeNull()
+    lembrarPlanoDoCheckout('aovivo')
+    expect(sessionStorage.getItem(CHAVE_DO_PLANO_DO_CHECKOUT)).toBeNull()
   })
 })

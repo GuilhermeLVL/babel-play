@@ -7,7 +7,7 @@ lint e só os testes dos arquivos tocados; a suíte inteira roda na CI.
 ## 0. Decisões
 
 - [ ] 0.1 Dono responde as 14 perguntas de `design.md`
-- [ ] 0.2 ADR novo substituindo o 0011
+- [x] 0.2 ADR novo substituindo o 0011 (`docs/adr/0013-quatro-planos-por-nivel-de-servico.md`)
 - [ ] 0.3 Conferir no Asaas e nos bancos que não há assinatura em `essencial`, `pro`, R$ 39,90 ou R$ 179
 
 ## Q. Qualidade no aparelho (medir, depois adotar)
@@ -23,21 +23,21 @@ lint e só os testes dos arquivos tocados; a suíte inteira roda na CI.
 
 ## 1. Matriz preparada para vários planos pagos
 
-- [ ] 1.1 `PLANOS_PAGOS` e `ehPlanoPago` derivados da matriz; tirar `'premium'` à mão de admissão,
+- [x] 1.1 `PLANOS_PAGOS` e `ehPlanoPago` derivados da matriz; tirar `'premium'` à mão de admissão,
       `jaAssinou`, intenção do webhook e `PLANOS_DA_FLAG`
-- [ ] 1.2 Entitlements do cliente gerados da matriz
-- [ ] 1.3 `tests/planos-n-pagos.test.ts`; os testes existentes passam sem alteração
+- [x] 1.2 Entitlements do cliente gerados da matriz
+- [x] 1.3 `tests/planos-n-pagos.test.ts`; os testes existentes passam sem alteração
 
 ## 2. Capacidades e cotas novas (ainda dois planos)
 
-- [ ] 2.1 `semAnuncios`, `sttAoVivo`, nível de voz e `sttAoVivoSegundosMes` em `src/core/planos.ts`
-- [ ] 2.2 `/api/me/entitlements` devolve os campos; testes de matriz e de rota
+- [x] 2.1 `semAnuncios`, `sttAoVivo`, nível de voz e `sttAoVivoSegundosMes` em `src/core/planos.ts`
+- [x] 2.2 `/api/me/entitlements` devolve os campos; testes de matriz e de rota
 
 ## 3. Contador por nível
 
-- [ ] 3.1 Métrica `stt_live_seconds` e reserva com nível em `server/lib/usageQuota.ts`
-- [ ] 3.2 `/api/me/uso` e `src/lib/uso.ts` com o restante por nível
-- [ ] 3.3 Testes de reserva concorrente e estorno no nível certo
+- [x] 3.1 Métrica `stt_live_seconds` e reserva com nível em `server/lib/usageQuota.ts`
+- [x] 3.2 `/api/me/uso` e `src/lib/uso.ts` com o restante por nível
+- [x] 3.3 Testes de reserva concorrente e estorno no nível certo
 
 ## 4. Política de rota em modo sombra
 
@@ -62,10 +62,10 @@ lint e só os testes dos arquivos tocados; a suíte inteira roda na CI.
 
 ## 7. Os quatro planos na matriz, venda fechada
 
-- [ ] 7.1 `essencial` e `aovivo` na matriz com cotas e preços; tirar apelidos e preços legados
-- [ ] 7.2 Migração de dados das flags e das ofertas, idempotente e com reversão escrita
-- [ ] 7.3 Flag `venda_planos_v3` desligada; teste de valores cobráveis distintos
-- [ ] 7.4 Reescrever `planos-matriz.test.ts` e os testes de migração e de configuração
+- [x] 7.1 `essencial` e `aovivo` na matriz com cotas e preços; tirar apelidos e preços legados
+- [x] 7.2 Migração de dados das flags e das ofertas, idempotente e com reversão escrita
+- [x] 7.3 Flag `venda_planos_v3` desligada; teste de valores cobráveis distintos
+- [x] 7.4 Reescrever `planos-matriz.test.ts` e os testes de migração e de configuração
 
 ## 8. Cobrança e troca de plano
 

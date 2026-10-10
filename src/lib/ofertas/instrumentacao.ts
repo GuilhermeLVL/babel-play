@@ -23,9 +23,11 @@ import {
   type ComponenteDeOferta,
   type EventoDeOferta,
   type PlanoSugerido,
+  planoSugeridoDe,
   type RegistroDeOferta,
   SEM_OFERTA,
 } from '../../core/ofertas';
+import type { PlanoPago } from '../../core/planos';
 import { apiFetch } from '../../data/funil';
 import { edicaoEstatica } from '../edicaoEstatica';
 import { lerPreferencias } from '../preferencias';
@@ -162,8 +164,10 @@ export function atribuicaoDoCheckout(planoEscolhido: PlanoSugerido, agora = Date
 }
 
 /** O checkout abriu a página de pagamento. */
-export function registrarCheckoutIniciado(planoEscolhido: 'premium', agora = Date.now()): void {
-  const r = atribuicaoDoCheckout(planoEscolhido, agora);
+export function registrarCheckoutIniciado(planoEscolhido: PlanoPago, agora = Date.now()): void {
+  /* O rótulo do funil continua sendo o de sempre para QUALQUER plano pago (`planoSugeridoDe`): separar
+     a métrica por plano é da etapa que abre a venda dos novos, não desta. */
+  const r = atribuicaoDoCheckout(planoSugeridoDe(planoEscolhido) ?? 'nenhum', agora);
   registrarEventoDeOferta('checkout_iniciado', r);
   try {
     localStorage.setItem(CHAVE_CHECKOUT, JSON.stringify(r));

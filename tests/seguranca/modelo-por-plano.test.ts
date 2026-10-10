@@ -94,9 +94,11 @@ describe('a cascata de tradução repassa o plano ao primário', () => {
 })
 
 describe('a matriz de planos, que é quem alimenta a decisão', () => {
-  it('os planos que prometem largerModels são premium e selfhost, e só eles', () => {
+  /* Matriz v3: o Ao Vivo contém o Premium, então também tem; o Essencial (R$ 9,90) NÃO — além dos
+     modelos locais maiores, `largerModels` liga o `LLM_MODEL_GRANDE`, que é custo de nuvem. */
+  it('os planos que prometem largerModels são premium, aovivo e selfhost, e só eles', () => {
     const comModeloGrande = Object.keys(PLAN_MATRIX).filter((p) => getEntitlements(p as never).largerModels)
-    expect(comModeloGrande.sort()).toEqual(['premium', 'selfhost'])
+    expect(comModeloGrande.sort()).toEqual(['aovivo', 'premium', 'selfhost'])
   })
 
   it('quem não tem managedCloudLlm também não tem largerModels', () => {

@@ -20,6 +20,7 @@ import {
   normalizarPlano,
   PARCELAS_DO_ANUAL,
   type PlanoDeAssinatura,
+  planoPagoMaisBarato,
   planoPeloPagamento,
 } from '../../src/core/planos'
 import { creditsRepo } from '../db/repositories/credits'
@@ -273,9 +274,12 @@ export async function aplicarEvento(
          (`parcelas`, a parcela do 12x) é do C5. */
       const pago = planoPeloPagamento(vValor)
       const planoPago = pago?.plano ?? null
-      /* A intenção gravada pode ter nome antigo (linha de antes da 0041): lida como o atual. */
+      /* A intenção gravada pode ter nome antigo (linha de antes da 0041): lida como o atual. Sem
+         intenção de plano pago (a linha não existe, ou é a do admin), o padrão é o plano pago MAIS
+         BARATO da matriz: ele só vale quando o evento também veio sem valor, e sem saber quanto entrou
+         não se concede o mais caro. */
       const planoGravado = atual ? normalizarPlano(atual.plan) : null
-      const planoDaIntencao: PlanoDeAssinatura = planoGravado && ehPlanoPago(planoGravado) ? planoGravado : 'premium'
+      const planoDaIntencao: PlanoDeAssinatura = ehPlanoPago(planoGravado) ? planoGravado : planoPagoMaisBarato()
       const cicloDaIntencao: CicloDeCobranca = atual?.ciclo === 'anual' ? 'anual' : 'mensal'
 
       /**

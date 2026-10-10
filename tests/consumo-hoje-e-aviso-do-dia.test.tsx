@@ -54,7 +54,7 @@ function uso(hoje: unknown) {
     plano: 'premium',
     janela: '2026-10',
     chamadas: contador(10, 4000),
-    segundosDeAudio: contador(3600, 144_000),
+    segundosDeAudio: contador(3600, 72_000),
     tokensDeLlm: contador(1000, 4_000_000),
     hoje,
   }
@@ -106,7 +106,7 @@ describe('Planos → Consumo do mês: o medidor "Hoje"', () => {
     await abrirConsumo()
     await screen.findByRole('progressbar', { name: 'Nuvem hoje' })
     expect(document.body.textContent).toContain(
-      'até 2 h de nuvem por dia e 40 h por mês; passando disso, a legenda segue no aparelho',
+      'até 2 h de nuvem por dia e 20 h por mês; passando disso, a legenda segue no aparelho',
     )
   })
 

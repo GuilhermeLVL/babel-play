@@ -3,7 +3,7 @@
  * A TELA DE PLANOS NOVA (C7 da change `planos-v2`) — o que ela promete, e como.
  *
  * 1. O título do produto ("Legenda bilíngue de qualquer coisa que você ouve, em qualquer aparelho") e
- *    o seletor Mensal/Anual, com "equivale a 3 meses grátis" no anual (R$ 179 contra 12 × R$ 19,90).
+ *    o seletor Mensal/Anual, com "equivale a 4 meses grátis" no anual (R$ 149,90 contra 12 × R$ 19,90).
  * 2. Duas colunas: Grátis ("Tradução rápida ao vivo": o aparelho sem limite e as horas de nuvem para
  *    aparelho fraco) e Premium ("Tradução Nuance": outras formas, formal ou informal, variantes e
  *    glossário; a voz natural do intérprete dita como "em breve").
@@ -89,14 +89,14 @@ async function abrirPlanos() {
 const cartao = (id: 'gratis' | 'premium') => document.querySelector<HTMLElement>(`[data-plano="${id}"]`)!
 
 describe('o título e o período', () => {
-  it('o título do produto e o seletor Mensal/Anual, com "equivale a 3 meses grátis" no anual', async () => {
+  it('o título do produto e o seletor Mensal/Anual, com "equivale a 4 meses grátis" no anual', async () => {
     montarMocks()
     await abrirPlanos()
     const grupo = screen.getByRole('radiogroup', { name: 'Período de cobrança' })
     const mensal = within(grupo).getByRole('radio', { name: 'Mensal' })
     const anual = within(grupo).getByRole('radio', { name: /Anual/ })
     expect(mensal.getAttribute('aria-checked')).toBe('true')
-    expect(anual.textContent).toContain('equivale a 3 meses grátis')
+    expect(anual.textContent).toContain('equivale a 4 meses grátis')
   })
 
   it('no anual o Premium mostra o preço do ano e a economia; no mensal, o do mês', async () => {
@@ -106,9 +106,9 @@ describe('o título e o período', () => {
     expect(cartao('premium').textContent).toContain('por mês')
     fireEvent.click(screen.getByRole('radio', { name: /Anual/ }))
     const texto = cartao('premium').textContent ?? ''
-    expect(texto).toContain('179,00')
+    expect(texto).toContain('149,90')
     expect(texto).toContain('por ano')
-    expect(texto).toContain('economize R$ 59,80')
+    expect(texto).toContain('economize R$ 88,90')
     expect(texto).toMatch(/12x no cartão/)
   })
 })
@@ -147,7 +147,7 @@ describe('as duas colunas', () => {
     const eANotaInteira = (texto: string, onde: string) => {
       expect(texto, onde).toMatch(/uso justo/)
       expect(texto, onde).toMatch(/2 h de nuvem por dia/)
-      expect(texto, onde).toMatch(/40 h por mês/)
+      expect(texto, onde).toMatch(/20 h por mês/)
       expect(texto, onde).toMatch(/segue no aparelho/)
     }
     for (const e of onde) {

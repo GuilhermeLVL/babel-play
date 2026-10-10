@@ -67,7 +67,7 @@ describe('a faixa "Seu plano agora"', () => {
     expect(faixa.textContent).toContain('Premium · anual')
     expect(faixa.textContent).not.toContain('mensal')
     expect(faixa.textContent).toContain('30/09/2027')
-    expect(faixa.textContent).toContain('R$ 179,00')
+    expect(faixa.textContent).toContain('R$ 149,90')
   })
 
   it('12x: "Premium · anual em 12x", não renova sozinho, vale até o fim do ano', async () => {
@@ -105,12 +105,12 @@ describe('"Sua assinatura"', () => {
     const { default: SuaAssinatura } = await import('../src/components/views/planos/SuaAssinatura')
     const { unmount } = render(<SuaAssinatura conta={anual} abrir={semAcao} {...props} />)
     expect(screen.getByRole('heading', { name: 'Premium · anual' })).toBeTruthy()
-    expect(screen.getByText('R$ 179,00 por ano')).toBeTruthy()
+    expect(screen.getByText('R$ 149,90 por ano')).toBeTruthy()
     unmount()
 
     render(<SuaAssinatura conta={doze} abrir={semAcao} {...props} />)
     expect(screen.getByRole('heading', { name: 'Premium · anual em 12x' })).toBeTruthy()
-    expect(screen.getByText(/11 × R\$ 14,91 \+ R\$ 14,99/)).toBeTruthy()
+    expect(screen.getByText(/11 × R\$ 12,49 \+ R\$ 12,51/)).toBeTruthy()
   })
 
   it('mensal ativo: "Passar para o anual" abre o diálogo da troca; anual: "Passar para o mensal"', async () => {
@@ -210,6 +210,6 @@ describe('a confirmação', () => {
     render(<Assinado />)
     expect(await screen.findByText('Bem-vindo ao Premium!')).toBeTruthy()
     expect(screen.getByText('Premium · anual')).toBeTruthy()
-    expect(screen.getByText('R$ 179,00')).toBeTruthy()
+    expect(screen.getByText('R$ 149,90')).toBeTruthy()
   })
 })

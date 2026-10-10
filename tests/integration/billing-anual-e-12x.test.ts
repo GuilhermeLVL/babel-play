@@ -2,10 +2,10 @@
  * O ANUAL E O 12x (C5 da change `planos-v2`, sondagem real do sandbox em `design.md`).
  *
  * Os contratos de DINHEIRO presos aqui, com o Asaas simulado por URL:
- * 1. `/assinar` com `ciclo: 'anual'` cria a assinatura `YEARLY` de R$ 179 (Pix, boleto ou cartão —
+ * 1. `/assinar` com `ciclo: 'anual'` cria a assinatura `YEARLY` de R$ 149,90 (Pix, boleto ou cartão —
  *    `UNDEFINED`); com `meio: 'parcelamento'` cria o 12x como PARCELAMENTO (`installmentCount: 12`,
- *    `totalValue: 179`) e SÓ no cartão — fora dele cada parcela seria uma cobrança avulsa que a pessoa
- *    pode deixar de pagar, e o ano sairia por R$ 14,91. Pix Automático não está integrado (501).
+ *    `totalValue: 149.9`) e SÓ no cartão — fora dele cada parcela seria uma cobrança avulsa que a pessoa
+ *    pode deixar de pagar, e o ano sairia por R$ 12,49. Pix Automático não está integrado (501).
  * 2. O webhook reconhece a parcela (`installment` presente, `subscription` ausente), CONFERIDA na API
  *    do Asaas (GAP-011): concede o ano (vencimento da 1ª parcela + 370 d), e as outras 11 parcelas —
  *    ou o mesmo evento de novo — não esticam nada.
@@ -73,14 +73,14 @@ interface Parcela {
   confirmedDate?: string
 }
 
-/** As 12 parcelas como o Asaas as cobra: 11 × 14,91 + 14,99, vencimentos mensais a partir de `d0`. */
+/** As 12 parcelas como o Asaas as cobra: 11 × 12,49 + 12,51, vencimentos mensais a partir de `d0`. */
 function parcelasDoAno(instId: string, d0: Date, status: string, confirmadaEm?: string): Parcela[] {
   return Array.from({ length: 12 }, (_, i) => {
     const venc = new Date(Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() + i, d0.getUTCDate()))
     return {
       id: `${instId}_p${i + 1}`,
       status,
-      value: i === 11 ? 14.99 : 14.91,
+      value: i === 11 ? 12.51 : 12.49,
       dueDate: dataIso(venc.getTime()),
       installmentNumber: i + 1,
       billingType: 'CREDIT_CARD',
@@ -165,7 +165,7 @@ describe('POST /api/billing/assinar — o ciclo e o meio', () => {
     expect(criar?.corpo).toMatchObject({ cycle: 'MONTHLY', value: 19.9, billingType: 'UNDEFINED' })
   })
 
-  it('anual em uma vez: assinatura YEARLY de R$ 179, com Pix, boleto ou cartão', async () => {
+  it('anual em uma vez: assinatura YEARLY de R$ 149,90, com Pix, boleto ou cartão', async () => {
     await adulto('u-anual')
     const chamadas = asaasSimulado()
     const res = mockRes()
@@ -173,7 +173,7 @@ describe('POST /api/billing/assinar — o ciclo e o meio', () => {
     expect(res.statusCode).toBe(200)
     expect(res.body.linkDePagamento).toBe('https://sandbox.asaas.com/i/sub1')
     const criar = chamadas.find((c) => c.metodo === 'POST' && c.url.endsWith('/subscriptions'))
-    expect(criar?.corpo).toMatchObject({ cycle: 'YEARLY', value: 179, billingType: 'UNDEFINED' })
+    expect(criar?.corpo).toMatchObject({ cycle: 'YEARLY', value: 149.9, billingType: 'UNDEFINED' })
     expect(
       chamadas.some((c) => c.metodo === 'POST' && c.url.endsWith('/payments')),
       'anual não é parcelamento',
@@ -189,7 +189,7 @@ describe('POST /api/billing/assinar — o ciclo e o meio', () => {
     expect(await ent.getPlanForUser(asUserId('u-anual'))).toBe('free')
   })
 
-  it('12x: PARCELAMENTO de R$ 179 em 12 vezes, SÓ no cartão, sem assinatura recorrente', async () => {
+  it('12x: PARCELAMENTO de R$ 149,90 em 12 vezes, SÓ no cartão, sem assinatura recorrente', async () => {
     await adulto('u-12x')
     const chamadas = asaasSimulado()
     const res = mockRes()
@@ -204,7 +204,7 @@ describe('POST /api/billing/assinar — o ciclo e o meio', () => {
     expect(criar?.corpo).toMatchObject({
       billingType: 'CREDIT_CARD',
       installmentCount: 12,
-      totalValue: 179,
+      totalValue: 149.9,
       externalReference: 'u-12x',
     })
     expect(criar?.corpo.value, 'o valor da parcela quem calcula é o Asaas (trunca e joga a diferença na última)').toBe(
@@ -279,7 +279,7 @@ describe('webhook — o ramo do parcelamento', () => {
       id: pagamentoId,
       installment: 'ins_w',
       externalReference: 'u-wh-12x',
-      value: 179,
+      value: 149.9,
       dueDate: '2030-01-01',
     },
   })
@@ -309,7 +309,7 @@ describe('webhook — o ramo do parcelamento', () => {
     expect(await ent.getPlanForUser(u)).toBe('premium')
   })
 
-  it('as outras parcelas (e a última, de R$ 14,99) não esticam o ano', async () => {
+  it('as outras parcelas (e a última, de R$ 12,51) não esticam o ano', async () => {
     const u = asUserId('u-wh-12x')
     const fim = (await subs.getActive(u)).currentPeriodEnd
     asaasSimulado({ pagamentos })
@@ -357,7 +357,7 @@ describe('webhook — o ramo do parcelamento', () => {
     const verificar = async () => ({
       id: 'pay_c1',
       status: 'RECEIVED',
-      value: 14.91,
+      value: 12.49,
       installment: 'ins_c',
       installmentNumber: 1,
       billingType: 'PIX',
@@ -380,7 +380,7 @@ describe('webhook — o ramo do parcelamento', () => {
     const verificar = async () => ({
       id: 'pay_nc1',
       status: 'CONFIRMED',
-      value: 14.91,
+      value: 12.49,
       installment: 'ins_nc',
       installmentNumber: 1,
       billingType: 'CREDIT_CARD',
@@ -405,7 +405,7 @@ describe('webhook — o ramo do parcelamento', () => {
         ins_w_p1: {
           id: 'ins_w_p1',
           status: 'REFUNDED',
-          value: 14.91,
+          value: 12.49,
           installment: 'ins_w',
           installmentNumber: 1,
           billingType: 'CREDIT_CARD',
@@ -465,7 +465,7 @@ describe('POST /api/billing/cancelar — anual e 12x', () => {
     return res
   }
 
-  it('anual em até 7 dias: arrependimento estorna os R$ 179 e o acesso acaba agora', async () => {
+  it('anual em até 7 dias: arrependimento estorna os R$ 149,90 e o acesso acaba agora', async () => {
     const u = asUserId('u-cx-anual-novo')
     await subs.upsert(u, {
       provider: 'asaas',
@@ -477,11 +477,11 @@ describe('POST /api/billing/cancelar — anual e 12x', () => {
       currentPeriodEnd: Date.now() + 360 * DIA,
     })
     const chamadas = asaasSimulado({
-      cobrancas: [{ id: 'pay_an_n', status: 'CONFIRMED', value: 179, confirmedDate: dataIso(Date.now() - 2 * DIA) }],
+      cobrancas: [{ id: 'pay_an_n', status: 'CONFIRMED', value: 149.9, confirmedDate: dataIso(Date.now() - 2 * DIA) }],
     })
     const res = await cancelar('u-cx-anual-novo')
     expect(res.statusCode).toBe(200)
-    expect(res.body.arrependimento).toMatchObject({ estornado: true, valor: 179 })
+    expect(res.body.arrependimento).toMatchObject({ estornado: true, valor: 149.9 })
     expect(chamadas.some((c) => c.metodo === 'POST' && c.url.endsWith('/payments/pay_an_n/refund'))).toBe(true)
     expect(chamadas.some((c) => c.metodo === 'DELETE' && c.url.includes('/subscriptions/sub_an_n'))).toBe(true)
     expect(await ent.getPlanForUser(u)).toBe('free')
@@ -500,7 +500,7 @@ describe('POST /api/billing/cancelar — anual e 12x', () => {
     })
     const renova = Date.now() + 335 * DIA
     const chamadas = asaasSimulado({
-      cobrancas: [{ id: 'pay_an_v', status: 'RECEIVED', value: 179, paymentDate: dataIso(Date.now() - 30 * DIA) }],
+      cobrancas: [{ id: 'pay_an_v', status: 'RECEIVED', value: 149.9, paymentDate: dataIso(Date.now() - 30 * DIA) }],
       nextDueDate: dataIso(renova),
     })
     const res = await cancelar('u-cx-anual-velho')
@@ -531,7 +531,7 @@ describe('POST /api/billing/cancelar — anual e 12x', () => {
     })
     const res = await cancelar('u-cx-12x-novo')
     expect(res.statusCode).toBe(200)
-    expect(res.body.arrependimento).toMatchObject({ estornado: true, valor: 179 })
+    expect(res.body.arrependimento).toMatchObject({ estornado: true, valor: 149.9 })
     const estornos = chamadas.filter((c) => c.url.includes('/refund'))
     expect(estornos.map((c) => c.url.replace(/^.*\/v3/, ''))).toEqual(['/installments/ins_n/refund'])
     expect(await ent.getPlanForUser(u)).toBe('free')
@@ -620,7 +620,7 @@ describe('status e faturas do 12x', () => {
     await rota(billingRouter, '/faturas', 'get')(req('u-st-12x', {}, '/faturas'), res)
     expect(res.statusCode).toBe(200)
     expect(res.body.faturas).toHaveLength(12)
-    expect(res.body.faturas[0]).toMatchObject({ valor: 14.91, status: 'paga', metodo: 'cartao' })
-    expect(res.body.faturas[11].valor).toBe(14.99)
+    expect(res.body.faturas[0]).toMatchObject({ valor: 12.49, status: 'paga', metodo: 'cartao' })
+    expect(res.body.faturas[11].valor).toBe(12.51)
   })
 })

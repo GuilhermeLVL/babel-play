@@ -27,11 +27,21 @@ describe('validarLoteDeOfertas (o contrato do corpo)', () => {
     expect(validarLoteDeOfertas({ v: 1, eventos: [evento()] }, conhecidos)).toEqual([evento()])
   })
 
-  it('matriz v2: a aba aberta com o bundle anterior manda o nome antigo, e o evento conta como Premium', () => {
-    const lote = [evento({ plano_atual: 'essencial', plano_sugerido: 'pro' }), evento({ plano_sugerido: 'essencial' })]
+  it('a aba aberta com o bundle anterior manda o nome antigo (`pro`), e o evento conta como Premium', () => {
+    const lote = [evento({ plano_atual: 'pro', plano_sugerido: 'pro' })]
     expect(validarLoteDeOfertas({ v: 1, eventos: lote }, conhecidos)).toEqual([
       evento({ plano_atual: 'premium', plano_sugerido: 'premium' }),
-      evento({ plano_sugerido: 'premium' }),
+    ])
+  })
+
+  /* Matriz v3: o plano ATUAL de quem viu a oferta é o dele (o Essencial e o Ao Vivo são planos, com
+     série própria); o SUGERIDO continua um rótulo só para qualquer plano pago, até a venda dos novos
+     abrir e o funil ser separado por plano. */
+  it('matriz v3: o plano atual é o da pessoa; o sugerido é o rótulo único de plano pago', () => {
+    const lote = [evento({ plano_atual: 'essencial', plano_sugerido: 'essencial' }), evento({ plano_atual: 'aovivo' })]
+    expect(validarLoteDeOfertas({ v: 1, eventos: lote }, conhecidos)).toEqual([
+      evento({ plano_atual: 'essencial', plano_sugerido: 'premium' }),
+      evento({ plano_atual: 'aovivo' }),
     ])
   })
 

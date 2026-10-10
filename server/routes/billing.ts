@@ -19,7 +19,16 @@ import { z } from 'zod'
 
 import { centavosParaReais, pacotePorSku } from '../../src/core/creditos'
 import { autorizarGastoDeCredito, ehRecusa } from '../../src/core/economiaAutoridade'
-import { DIAS_DO_TESTE_PREMIUM, normalizarPlano, PARCELAS_DO_ANUAL, PLAN_MATRIX } from '../../src/core/planos'
+import {
+  DIAS_DO_TESTE_PREMIUM,
+  ehPlanoPago,
+  normalizarPlano,
+  PARCELAS_DO_ANUAL,
+  PLAN_MATRIX,
+  type PlanoPago,
+  PLANOS_PAGOS,
+  planosAVenda,
+} from '../../src/core/planos'
 import { billingEventsRepo } from '../db/repositories/billingEvents'
 import { creditsRepo } from '../db/repositories/credits'
 import { subscriptionsRepo } from '../db/repositories/subscriptions'
@@ -44,6 +53,7 @@ import { aplicarEvento, eventoSchema, providerRefDoEvento, referenciaDoEvento } 
 import { anualLigado, checkoutLigado } from '../lib/config'
 import { encerrarAssinatura } from '../lib/encerramentoDeAssinatura'
 import { erroDeRota } from '../lib/erroDeRota'
+import { flagLigada } from '../lib/flags'
 import { ehAdultoDeclarado } from '../lib/idade'
 import { criarLimitadorDeFalhas } from '../lib/limitadorDeFalhas'
 import { log } from '../lib/logger'
@@ -166,6 +176,22 @@ async function autorizarPagamento(
     return null
   }
   return menor
+}
+
+/**
+ * OS PLANOS À VENDA PARA ESTE PEDIDO (planos v3, ADR 0013). A matriz diz as chaves que abrem a venda de
+ * cada plano (`flagsDeVenda`): o Essencial pede `venda_planos_v3`; o Ao Vivo, ela E `stt_ao_vivo`; o
+ * Premium, nenhuma. As chaves nascem desligadas (migração 0048) — a venda dos planos novos é FECHADA
+ * até o dono abrir. A flag é avaliada para o pedido (`flagLigada`), então dá para abrir aos poucos.
+ *
+ * É a régua de QUEM PODE COMPRAR, não de quem pode usar: o plano concedido pelo admin, ou pago com a
+ * venda aberta, não depende disto.
+ */
+async function planosAVendaPara(req: import('express').Request): Promise<PlanoPago[]> {
+  const chaves = [...new Set(PLANOS_PAGOS.flatMap((p) => PLAN_MATRIX[p].flagsDeVenda))]
+  const ligadas = new Set<string>()
+  for (const chave of chaves) if (await flagLigada(req, chave)) ligadas.add(chave)
+  return planosAVenda((chave) => ligadas.has(chave))
 }
 
 /**
@@ -324,11 +350,17 @@ billingRouter.post('/assinar', async (req, res) => {
     res.status(501).json({ error: 'cobrança não configurada no servidor (ASAAS_API_KEY ausente)' })
     return
   }
-  /* O nome antigo (`essencial`/`pro`) de uma aba aberta com o bundle anterior é lido como o atual:
-     quem clicou "Assinar o Pro" antes do deploy assina o Premium agora, em vez de receber um 400. */
+  /* O nome antigo (`pro`) de uma aba aberta com o bundle anterior é lido como o atual: quem clicou
+     "Assinar o Pro" antes do deploy assina o Premium agora, em vez de receber um 400. */
   const plano = normalizarPlano(dados.plano)
-  if (!plano || PLAN_MATRIX[plano].precoMensalBrl === null) {
+  if (!ehPlanoPago(plano)) {
     res.status(400).json({ error: 'este plano não é vendável' })
+    return
+  }
+  /* VENDA FECHADA (planos v3): o plano existe na matriz, mas as chaves da venda dele estão desligadas.
+     Recusado AQUI, antes de qualquer conversa com o Asaas e sem gravar intenção. */
+  if (!(await planosAVendaPara(req)).includes(plano)) {
+    responderErro(res, 503, 'este plano ainda não está à venda', 'plano_indisponivel')
     return
   }
   const { ciclo, meio } = dados
@@ -454,12 +486,12 @@ async function proximaCobranca(assinaturaId: string): Promise<string | null> {
 /* ------------------------------------------------------------------ o teste de 14 dias (C6) */
 
 /**
- * A conta já teve o Premium PAGO? Ativa, atrasada ou cancelada — qualquer linha do Premium que não
- * seja só o checkout iniciado (`trialing`). O teste é para quem ainda não conhece o Premium: quem já
- * assinou e cancelou não ganha mais 14 dias por isso.
+ * A conta já teve um plano PAGO? Ativa, atrasada ou cancelada — qualquer linha de plano pago da matriz
+ * (`ehPlanoPago`, não um nome) que não seja só o checkout iniciado (`trialing`). O teste é para quem
+ * ainda não conhece a nuvem paga: quem já assinou e cancelou não ganha mais 14 dias por isso.
  */
 function jaAssinou(sub: Awaited<ReturnType<typeof subscriptionsRepo.getActive>>): boolean {
-  return !!sub && sub.status !== 'trialing' && normalizarPlano(sub.plan) === 'premium'
+  return !!sub && sub.status !== 'trialing' && ehPlanoPago(normalizarPlano(sub.plan))
 }
 
 /** A situação do teste para a tela (`/status`). Falha de leitura não derruba o status: some o campo. */
@@ -594,6 +626,9 @@ billingRouter.get('/status', async (req, res) => {
   res.json({
     ...(teste ? { teste } : {}),
     configurado: asaasConfigurado(),
+    /* Os planos que `/assinar` aceitaria AGORA deste pedido (a venda dos planos novos nasce fechada):
+       a tela oferece só o que o servidor vende. */
+    planosAVenda: await planosAVendaPara(req),
     /* O plano no nome ATUAL (a linha pode ser de antes da 0041) e, desde a matriz v2, o ciclo e o
        meio — a tela de conta do C7 fala de "renova todo mês" ou "vale até <data> (anual)".
        `renovacaoAutomatica` é a promessa que a tela faz: só a ASSINATURA ativa renova sozinha

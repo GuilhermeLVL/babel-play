@@ -53,12 +53,24 @@ describe('estadoDaConta', () => {
     expect(estadoDaConta('free', null, AGORA).estado).toBe('gratis')
   })
 
-  it('matriz v2: o servidor anterior manda o nome antigo, e a conta é do Premium', () => {
+  it('o servidor anterior manda o nome antigo (`pro`), e a conta é do Premium', () => {
     expect(estadoDaConta('free', sub('active', AGORA + 1000, 'pro'), AGORA)).toMatchObject({
       estado: 'ativa',
       plano: 'premium',
     })
-    expect(estadoDaConta('essencial' as never, { configurado: true, assinatura: null }, AGORA).plano).toBe('premium')
+  })
+
+  /* Matriz v3: `essencial` deixou de ser apelido do Premium e `aovivo` é plano novo. A conta mostra o
+     plano que o servidor disse, da assinatura ou concedido pelo admin (sem cobrança). */
+  it('matriz v3: a conta do Essencial é do Essencial, e a do Ao Vivo é do Ao Vivo', () => {
+    expect(estadoDaConta('essencial', { configurado: true, assinatura: null }, AGORA)).toMatchObject({
+      estado: 'ativa',
+      plano: 'essencial',
+    })
+    expect(estadoDaConta('aovivo', sub('active', AGORA + 1000, 'aovivo'), AGORA)).toMatchObject({
+      estado: 'ativa',
+      plano: 'aovivo',
+    })
   })
 
   it('o ciclo da assinatura chega à conta quando o servidor o diz (o anual do C5)', () => {

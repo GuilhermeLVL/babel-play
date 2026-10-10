@@ -186,9 +186,11 @@ describe('compra avulsa não vira assinatura', () => {
  *
  * NA MATRIZ V2 (ADR 0011) há um plano pago só, e a escalada que sobra é a de CICLO: registrar a
  * intenção do ANUAL (um ano de acesso) e pagar só o MENSAL. O valor decide o ciclo como decidia o
- * plano: R$ 19,90 é um mês e cinco dias; R$ 179 é um ano e cinco dias. E o valor ANTIGO (o Pro a
- * R$ 39,90, o Essencial a R$ 19,90) continua concedendo — assinatura recorrente de antes não perde o
- * plano no mês seguinte.
+ * plano: R$ 19,90 é um mês e cinco dias; R$ 149,90 é um ano e cinco dias.
+ *
+ * NA MATRIZ V3 (ADR 0013) voltam a existir vários planos pagos, e o valor volta a dizer QUAL: os
+ * preços antigos saíram (R$ 39,90 não é mais "o Pro lido como Premium": é o Ao Vivo), e o caso
+ * "pagar o barato com a intenção do caro" está em `planos-v3-venda.test.ts`.
  */
 describe('a assinatura concedida é a que foi paga', () => {
   /**
@@ -282,7 +284,7 @@ describe('a assinatura concedida é a que foi paga', () => {
           id: 'pay_esc5',
           subscription: 'sub_S5',
           externalReference: 'u-esc5',
-          value: 179,
+          value: 149.9,
           dueDate: '2026-10-01',
         },
       }),
@@ -293,11 +295,13 @@ describe('a assinatura concedida é a que foi paga', () => {
     expect(sub.currentPeriodEnd).toBe(Date.parse('2026-10-01T12:00:00Z') + 370 * 86_400_000)
   })
 
-  it('o valor ANTIGO do Pro (R$ 39,90) continua concedendo: Premium mensal', async () => {
+  /* Era "o valor ANTIGO do Pro (R$ 39,90) continua concedendo: Premium mensal". Na matriz v3 esse
+     valor é a mensalidade do Ao Vivo, e um valor não paga dois planos: quem paga R$ 39,90 recebe o
+     Ao Vivo, com a intenção que for (aqui, o nome antigo `pro`, lido como Premium). */
+  it('R$ 39,90 não é mais o Pro antigo: o valor pago é o do Ao Vivo, e é ele que vale', async () => {
     const u = asUserId('u-esc3')
-    // A intenção também é de antes da matriz v2 — a linha que a migração 0041 ainda não reescreveu.
     await subs.upsert(u, {
-      plan: 'essencial' as never,
+      plan: 'pro' as never,
       status: 'trialing',
       provider: 'asaas',
       providerSubscriptionId: 'sub_S3',
@@ -312,8 +316,9 @@ describe('a assinatura concedida é a que foi paga', () => {
       res,
     )
     expect(res.body.estado).toBe('aplicado')
-    expect(await subs.getActive(u)).toMatchObject({ plan: 'premium', ciclo: 'mensal', status: 'active' })
-    expect(await entitlements.getPlanForUser(u)).toBe('premium')
+    expect(res.body.motivo).toMatch(/plano-divergente/)
+    expect(await subs.getActive(u)).toMatchObject({ plan: 'aovivo', ciclo: 'mensal', status: 'active' })
+    expect(await entitlements.getPlanForUser(u)).toBe('aovivo')
   })
 })
 

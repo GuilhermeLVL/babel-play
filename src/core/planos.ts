@@ -16,40 +16,53 @@
  * `anonimo` NÃO está aqui: é identidade do cliente sem conta, não um plano que o servidor possa
  * atribuir a uma assinatura. O tipo do cliente o acrescenta por união.
  *
- * A MATRIZ V2 (decisão do dono em 29/09/2026, ADR 0011): Grátis + PREMIUM. O Essencial e o Pro
- * saíram — dois planos pagos quase iguais pediam uma conta que a pessoa não quer fazer — e os nomes
- * antigos continuam sendo LIDOS como Premium (`PLANOS_LEGADOS`, `normalizarPlano`): linha antiga no
- * banco, regra antiga de flag e cache antigo no navegador não derrubam o acesso de ninguém.
+ * A MATRIZ V3 (decisões de 09/10/2026, ADR 0013, `openspec/changes/planos-v3-e-rota-inteligente`):
+ * Grátis + TRÊS planos pagos por NÍVEL DE SERVIÇO — Essencial (no aparelho, com a nuvem por trechos
+ * sob demanda), Premium (a nuvem por trechos por padrão onde compensa) e Ao Vivo (o texto durante a
+ * fala). Substitui a v2 (ADR 0011, um plano pago só). O id `essencial` voltou a ser um plano de
+ * verdade, e por isso SAIU dos apelidos: só `pro` continua sendo lido como Premium (`PLANOS_LEGADOS`).
  *
- * A CONTA DE CUSTO, para que o Premium não dê prejuízo no uso TÍPICO de quem usa o teto inteiro:
+ * O PLANO É IDENTIFICADO PELO VALOR PAGO (`planoPeloPagamento`), então todo valor cobrável — a
+ * mensalidade, o ano e as duas parcelas do 12x de cada plano — tem de ser DIFERENTE de todos os
+ * outros. `tests/planos-matriz.test.ts` cobra isso: quem mexer num preço e criar um empate quebra o
+ * teste, e não a conta de um assinante.
+ *
+ * A CONTA DE CUSTO, para que nenhum plano dê prejuízo no uso TÍPICO de quem usa o teto inteiro:
  *
  *   Preços (Groq, 24/09/2026): whisper-large-v3-turbo US$ 0,04/h, faturado 1,08× o tempo real com o
  *   VAD fechando a fala após 800 ms (mínimo de 10 s por pedaço — custo do DONO, não da cota: o
  *   assinante gasta segundos REAIS, `segundosDeAudioDoUsuario`); gpt-oss-120b em raciocínio "low"
  *   custou US$ 0,036 por hora de fala traduzida (docs/auditoria/eval/bancada-2026-09.md), a US$ 0,15
  *   por 1M tokens de entrada e US$ 0,60 de saída. Câmbio de planejamento R$ 5,60/US$.
- *   UMA HORA DE LEGENDA (transcrita e traduzida) ≈ 1,08 × 0,04 + 0,036 = US$ 0,079.
+ *   UMA HORA DE LEGENDA POR TRECHOS (transcrita e traduzida) ≈ 1,08 × 0,04 + 0,036 = US$ 0,079.
+ *   TOKENS: US$ 0,036/h ÷ US$ 0,24 por 1M (mistura medida: 80% entrada, 20% saída) ≈ 150 MIL TOKENS
+ *   POR HORA DE FALA. CHAMADAS: uma fala de ~6 s usa duas (transcrever + traduzir).
  *
- *   PREMIUM R$ 19,90 → líquido ≈ R$ 17,62 (− Asaas R$ 1,09 − Simples ~6%) ≈ US$ 3,15
- *     O TETO MENSAL É O EMPATE: 40 h × US$ 0,079 = US$ 3,17. É o número do plano ATÉ o B7 medir a
- *     cascata barata (DeepInfra ~US$ 0,024/h); aí o mensal sobe para 60 h (= 30 dias × 2 h) — com a
- *     pilha de hoje 60 h custariam ~US$ 4,74, prejuízo em todo assinante intenso. Quem mexe antes disso
- *     mexe por `PREMIUM_MONTHLY_STT_SECONDS`, sabendo que passa do empate.
- *     TOKENS: US$ 0,036/h ÷ US$ 0,24 por 1M (mistura medida: 80% entrada, 20% saída) ≈ 150 MIL TOKENS
- *     POR HORA DE FALA → 6 M no mês (40 h) e 300 mil no dia (2 h). O PIOR CASO TEÓRICO (tudo saída,
- *     6 M × 0,60 = US$ 3,60, mais o STT) NÃO fecha no líquido, e isto é declarado: quem segura esse
- *     caso é o orçamento global (`AI_BUDGET_USD_MONTH`/`_DAY`) e o teto do dia, não esta matriz.
- *     CHAMADAS 50.000: 40 h ÷ 6 s × 2 (transcrever + traduzir) = 48.000, com folga para o tutor. Quem
- *     limita dinheiro são segundos e tokens; chamadas é fair-use.
+ *   ESSENCIAL R$ 9,90 → líquido ≈ R$ 8,22 (− Asaas R$ 1,09 − Simples ~6%) ≈ US$ 1,47
+ *     5 h por trechos × US$ 0,079 = US$ 0,40 no teto. Tokens 750 mil (5 h); chamadas 6.000 + folga.
+ *     Sem teto no dia: 5 h no mês já são o limite (como no convidado).
+ *   PREMIUM R$ 19,90 → líquido ≈ R$ 17,62 ≈ US$ 3,15
+ *     20 h por trechos × US$ 0,079 = US$ 1,58 no teto (a v2 vendia 40 h, que era o EMPATE: todo
+ *     assinante intenso saía no zero). Tokens 3 M (20 h); chamadas 26.000 = 20 h ÷ 6 s × 2, com folga
+ *     para o tutor.
+ *   AO VIVO R$ 39,90 → líquido ≈ R$ 36,42 ≈ US$ 6,50
+ *     20 h por trechos (US$ 1,58) MAIS 10 h ao vivo. O serviço de fluxo NÃO foi escolhido (§11, item
+ *     12): o custo da hora ao vivo é estimativa, e por isso o plano não é vendido enquanto a flag
+ *     `stt_ao_vivo` estiver desligada. Tokens 4,5 M (a tradução das 30 h); chamadas 24.000 dos
+ *     trechos + 6.000 traduções das 10 h ao vivo + 1.200 blocos de 30 s = 31.200; 34.000 com folga.
  *
- *   O USO JUSTO DO DIA ("sem limite no dia a dia", decisão do dono): 2 h de STT por dia local, e os
- *   tokens de 2 h de fala. Passando disso a nuvem descansa até amanhã e a legenda segue no aparelho
- *   (429 `uso_justo_do_dia`, `src/core/usoJusto.ts`) — sem venda nenhuma. Com o mensal em 40 h, quem
- *   usa 2 h TODO dia encontra o mensal no dia 20; depois do B7 o diário passa a ser o teto que manda.
+ *   O PIOR CASO TEÓRICO de tokens (tudo saída) não fecha no líquido, e isto é declarado: quem segura
+ *   esse caso é o orçamento global (`AI_BUDGET_USD_MONTH`/`_DAY`) e o teto do dia, não esta matriz.
+ *   São ESTIMATIVAS; o uso real por assinante precisa ser medido antes de abrir a venda do anual.
+ *
+ *   O USO JUSTO DO DIA (ADR 0011, mantido): 2 h de nuvem por trechos por dia local, e os tokens de
+ *   2 h de fala. Passando disso a nuvem descansa até amanhã e a legenda segue no aparelho (429
+ *   `uso_justo_do_dia`, `src/core/usoJusto.ts`) — sem venda nenhuma. Com 20 h no mês, quem usa 2 h
+ *   TODO dia encontra o mensal no dia 10.
  */
 
 /** Planos que o servidor pode atribuir. Derive listas com `PLANOS_DE_ASSINATURA`, nunca à mão. */
-export type PlanoDeAssinatura = 'free' | 'premium' | 'selfhost';
+export type PlanoDeAssinatura = 'free' | 'essencial' | 'premium' | 'aovivo' | 'selfhost';
 
 /**
  * OS NOMES QUE JÁ EXISTIRAM, e o plano que eles são hoje. Existe porque o nome antigo vive FORA do
@@ -57,10 +70,12 @@ export type PlanoDeAssinatura = 'free' | 'premium' | 'selfhost';
  * deploy), `regras.planos` de uma flag editada à mão, o script de admin de alguém, o cache do
  * navegador de quem não recarregou a aba. Toda fronteira que lê plano de fora passa por
  * `normalizarPlano`; o código de dentro só conhece os nomes atuais.
+ *
+ * `essencial` SAIU daqui na matriz v3: voltou a ser um plano (o de R$ 9,90), e lê-lo como Premium
+ * daria o plano de cima a quem paga o de baixo. O servidor nunca foi implantado com o Essencial antigo
+ * (`docs/ESTADO-DO-LANCAMENTO.md`), e a migração 0041 já tinha reescrito qualquer linha com esse nome.
  */
-export const PLANOS_LEGADOS = Object.freeze({ essencial: 'premium', pro: 'premium' }) satisfies Readonly<
-  Record<string, PlanoDeAssinatura>
->;
+export const PLANOS_LEGADOS = Object.freeze({ pro: 'premium' }) satisfies Readonly<Record<string, PlanoDeAssinatura>>;
 
 /** Como a pessoa paga: por MÊS, ou o ANO (inteiro, na assinatura `YEARLY`, ou em 12x no cartão). */
 export type CicloDeCobranca = 'mensal' | 'anual';
@@ -81,6 +96,15 @@ export const PARCELAS_DO_ANUAL = 12;
  * `server/lib/testePremium.ts`). A tela diz o número a partir daqui, nunca à mão.
  */
 export const DIAS_DO_TESTE_PREMIUM = 14;
+
+/**
+ * EM QUE NÍVEL O PLANO FALA (planos v3): a voz do `aparelho` (a do sistema, de graça), a neural
+ * `basica` ou a neural `boa`, na ordem. Quais vozes são a básica e a boa fica para a medição de custo
+ * (`design.md` §11, item 10): até lá as duas saem do mesmo provedor, e o nível só registra o que o
+ * plano promete.
+ */
+export const NIVEIS_DE_VOZ = ['aparelho', 'basica', 'boa'] as const;
+export type NivelDeVoz = (typeof NIVEIS_DE_VOZ)[number];
 
 export interface EntitlementsDoPlano {
   /** Importação de YouTube (yt-dlp roda no servidor — custo/infra de quem hospeda). */
@@ -106,6 +130,21 @@ export interface EntitlementsDoPlano {
    * no Grátis isso seria um download no aparelho — lá fica o modo por toque.
    */
   interpreteAutomatico: boolean;
+  /**
+   * SEM ANÚNCIOS (planos v3). A política de anúncios (`src/core/anuncios`, atrás da flag `anuncios`)
+   * nega por ESTE campo; quem paga, quem testa o Premium e o self-host não veem anúncio.
+   */
+  semAnuncios: boolean;
+  /**
+   * A NUVEM AO VIVO (planos v3): o texto durante a fala, em fluxo, com a cota própria
+   * `sttAoVivoSegundosMes`. O plano diz que PODE; se a rota existe AGORA é a flag `stt_ao_vivo`.
+   */
+  sttAoVivo: boolean;
+  /**
+   * O nível da voz que lê a tradução. `vozNatural` continua sendo o campo que as rotas leem ("tem voz
+   * de nuvem?"), e é sempre o mesmo que `nivelDeVoz !== 'aparelho'` (`tests/planos-capacidades.test.ts`).
+   */
+  nivelDeVoz: NivelDeVoz;
 }
 
 export interface QuotasDoPlano {
@@ -130,7 +169,21 @@ export interface QuotasDoPlano {
    */
   vozCaracteresMes: number | null;
   vozCaracteresDia: number | null;
+  /**
+   * Segundos de fala na NUVEM AO VIVO por mês (planos v3) — um contador À PARTE do de trechos
+   * (`stt_live_seconds` ao lado de `stt_seconds`), e as duas cotas se SOMAM. `0` em quem não tem
+   * `sttAoVivo`; `null` = sem teto.
+   */
+  sttAoVivoSegundosMes: number | null;
 }
+
+/**
+ * OS NÍVEIS DA NOSSA NUVEM que têm horas no plano (planos v3): `trechos` (a fala fechada pelo VAD e
+ * enviada inteira — `POST /api/ai/stt`, a cota `sttSegundosMes`) e `aovivo` (o texto durante a fala,
+ * em fluxo — a cota `sttAoVivoSegundosMes`). Cada um tem o SEU contador; as horas se somam.
+ */
+export const NIVEIS_DA_NUVEM = ['trechos', 'aovivo'] as const;
+export type NivelDaNuvem = (typeof NIVEIS_DA_NUVEM)[number];
 
 export interface DefinicaoDePlano {
   rotulo: string;
@@ -138,15 +191,29 @@ export interface DefinicaoDePlano {
   precoMensalBrl: number | null;
   /** Preço do ANO em reais (à vista na assinatura `YEARLY`, ou em `PARCELAS_DO_ANUAL` vezes). */
   precoAnualBrl: number | null;
+  /**
+   * AS FLAGS QUE ABREM A VENDA deste plano (planos v3): `POST /api/billing/assinar` só o vende com
+   * TODAS ligadas. Vazio = vende como sempre (o Premium). Não é permissão de USO: quem já tem o plano
+   * (pagou antes, ou o admin concedeu) continua com ele, flag ligada ou não.
+   */
+  flagsDeVenda: readonly string[];
   entitlements: EntitlementsDoPlano;
   quotas: QuotasDoPlano;
 }
+
+/**
+ * AS CHAVES DA VENDA (planos v3). `venda_planos_v3` abre a venda dos planos novos; `stt_ao_vivo` diz
+ * que a nuvem ao vivo existe. As duas nascem DESLIGADAS (migração 0048): abrir a venda é ato do dono.
+ */
+export const FLAG_VENDA_PLANOS_V3 = 'venda_planos_v3';
+export const FLAG_STT_AO_VIVO = 'stt_ao_vivo';
 
 export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
   free: {
     rotulo: 'Grátis',
     precoMensalBrl: null,
     precoAnualBrl: null,
+    flagsDeVenda: [],
     entitlements: {
       youtubeImport: false,
       managedCloudStt: false,
@@ -155,6 +222,9 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       traducaoNuance: false,
       vozNatural: false,
       interpreteAutomatico: false,
+      semAnuncios: false,
+      sttAoVivo: false,
+      nivelDeVoz: 'aparelho',
     },
     /* Chamadas 0: o free já é barrado antes, pelo entitlement — o teto só reafirma. A nuvem de
        aparelho fraco do Grátis NÃO é esta quota: é a `FRANQUIA_DE_ALIVIO`, com contadores próprios. */
@@ -167,16 +237,53 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       tokensDia: null,
       vozCaracteresMes: 0,
       vozCaracteresDia: null,
+      sttAoVivoSegundosMes: 0,
+    },
+  },
+  essencial: {
+    rotulo: 'Essencial',
+    precoMensalBrl: 9.9,
+    precoAnualBrl: 79.9,
+    flagsDeVenda: [FLAG_VENDA_PLANOS_V3],
+    /* NO APARELHO, com a nuvem por trechos SOB DEMANDA (5 h no mês para transcrever e traduzir, não
+       por padrão — quem decide quando usar é a política de rota) e a Tradução Nuance. Sem anúncios.
+       Fala com a voz do aparelho e o intérprete é por toque. `largerModels` fica de fora: além dos
+       modelos locais maiores ele liga o `LLM_MODEL_GRANDE` do registro legado, que é custo de nuvem. */
+    entitlements: {
+      youtubeImport: false,
+      managedCloudStt: true,
+      managedCloudLlm: true,
+      largerModels: false,
+      traducaoNuance: true,
+      vozNatural: false,
+      interpreteAutomatico: false,
+      semAnuncios: true,
+      sttAoVivo: false,
+      nivelDeVoz: 'aparelho',
+    },
+    /* 5 h por trechos; a conta está no topo. Sem teto no dia (o mês já é curto) e sem voz de nuvem. */
+    quotas: {
+      chamadasMes: 6_500,
+      sttSegundosMes: 18_000,
+      tokensMes: 750_000,
+      armazenamentoMb: 500,
+      sttSegundosDia: null,
+      tokensDia: null,
+      vozCaracteresMes: 0,
+      vozCaracteresDia: null,
+      sttAoVivoSegundosMes: 0,
     },
   },
   premium: {
     rotulo: 'Premium',
     precoMensalBrl: 19.9,
-    precoAnualBrl: 179,
-    /* A nuvem inteira. YouTube fica de fora: no modo hospedado a importação responde 403 (o yt-dlp
-       roda no servidor; só o self-host a libera) — vender o que a rota recusa seria cobrar por uma
-       promessa. `largerModels` vem do Pro (quem pagava por ele não perde nada); `LLM_MODEL_GRANDE`
-       continua ausente por padrão, e o modelo mais forte chega pelo nível `nuance` (B3/D1). */
+    precoAnualBrl: 149.9,
+    flagsDeVenda: [],
+    /* A nuvem por trechos POR PADRÃO onde compensa. YouTube fica de fora: no modo hospedado a
+       importação responde 403 (o yt-dlp roda no servidor; só o self-host a libera) — vender o que a
+       rota recusa seria cobrar por uma promessa. `largerModels` vem do Pro (quem pagava por ele não
+       perde nada); `LLM_MODEL_GRANDE` continua ausente por padrão, e o modelo mais forte chega pelo
+       nível `nuance` (B3/D1). É o plano do TESTE de 14 dias (`PLANO_DO_TESTE`). */
     entitlements: {
       youtubeImport: false,
       managedCloudStt: true,
@@ -185,14 +292,16 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       traducaoNuance: true,
       vozNatural: true,
       interpreteAutomatico: true,
+      semAnuncios: true,
+      sttAoVivo: false,
+      nivelDeVoz: 'basica',
     },
-    /* 5 GB: o maior dos dois planos antigos — ninguém do Pro perde espaço. A conta de cada número
-       está no topo do arquivo. */
+    /* 20 h por trechos (a v2 vendia 40 h, o empate de custo). A conta de cada número está no topo. */
     quotas: {
-      chamadasMes: 50_000,
-      sttSegundosMes: 144_000,
-      tokensMes: 6_000_000,
-      /* MVP (04/10/2026, decisão do dono): o Premium NÃO vende espaço. Sem armazenamento externo o áudio
+      chamadasMes: 26_000,
+      sttSegundosMes: 72_000,
+      tokensMes: 3_000_000,
+      /* MVP (04/10/2026, decisão do dono): nenhum plano VENDE espaço. Sem armazenamento externo o áudio
          divide com o banco um volume de 1 a 10 GB, e dois assinantes com 5 GB cheios o enchiam. O teto é
          o mesmo do Grátis; volta a subir quando houver bucket (S3_*) e a oferta voltar à tela. */
       armazenamentoMb: 500,
@@ -201,19 +310,59 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       /* A VOZ NATURAL (E4 da Fase E). Chatterbox Multilingual na DeepInfra: US$ 1,00 por 1M de caracteres
          (deepinfra.com, 30/09/2026). A voz lê ~15 caracteres por segundo → ~54.000 por hora de voz
          → ~US$ 0,054 por hora.
-           dia  60.000 ≈ 1,1 h de voz — a tradução lida de ~2 h de conversa (o uso justo do Premium,
+           dia  60.000 ≈ 1,1 h de voz — a tradução lida de ~2 h de conversa (o uso justo do dia,
                 a metade do tempo é a pessoa falando) → no máximo ~US$ 0,06 no dia;
            mês 600.000 ≈ 11 h de voz → no máximo ~US$ 0,60 por assinante no mês.
-         PROVISÓRIO, como as 40 h: o teto liga com o custo medido no uso real (E6); `PREMIUM_*_TTS_CHARS`
-         sobrepõe. Passando dele, a voz do aparelho segue — o intérprete nunca para. */
+         PROVISÓRIO: o teto liga com o custo medido no uso real (E6); `PREMIUM_*_TTS_CHARS` sobrepõe.
+         Passando dele, a voz do aparelho segue — o intérprete nunca para. */
       vozCaracteresMes: 600_000,
       vozCaracteresDia: 60_000,
+      sttAoVivoSegundosMes: 0,
+    },
+  },
+  aovivo: {
+    rotulo: 'Ao Vivo',
+    precoMensalBrl: 39.9,
+    /* Só mensal no início (`design.md` §1): o custo da hora ao vivo ainda é estimativa, e um ano
+       vendido adiantado travaria o preço antes de ele ser medido. */
+    precoAnualBrl: null,
+    /* Duas chaves: a venda dos planos novos E a nuvem ao vivo existir — vender o plano sem a rota
+       seria cobrar por uma promessa (§11, item 12). */
+    flagsDeVenda: [FLAG_VENDA_PLANOS_V3, FLAG_STT_AO_VIVO],
+    /* Tudo do Premium, MAIS o texto durante a fala (`sttAoVivo`) e a voz neural boa. Até a medição de
+       custo escolher as vozes, a "boa" e a "básica" saem do mesmo provedor (§11, item 10). */
+    entitlements: {
+      youtubeImport: false,
+      managedCloudStt: true,
+      managedCloudLlm: true,
+      largerModels: true,
+      traducaoNuance: true,
+      vozNatural: true,
+      interpreteAutomatico: true,
+      semAnuncios: true,
+      sttAoVivo: true,
+      nivelDeVoz: 'boa',
+    },
+    /* 20 h por trechos MAIS 10 h ao vivo (as duas se somam; contadores separados). O dia: as 2 h de
+       trechos do uso justo, e os tokens de 4 h de fala — as 2 h de trechos mais 2 h de conversa ao
+       vivo, que não tem teto próprio no dia. PROVISÓRIO até o serviço de fluxo ser escolhido. */
+    quotas: {
+      chamadasMes: 34_000,
+      sttSegundosMes: 72_000,
+      tokensMes: 4_500_000,
+      armazenamentoMb: 500,
+      sttSegundosDia: 7_200,
+      tokensDia: 600_000,
+      vozCaracteresMes: 600_000,
+      vozCaracteresDia: 60_000,
+      sttAoVivoSegundosMes: 36_000,
     },
   },
   selfhost: {
     rotulo: 'Self-host (tudo liberado)',
     precoMensalBrl: null,
     precoAnualBrl: null,
+    flagsDeVenda: [],
     // A chave de IA é do próprio dono da instância: não há custo nosso, nada a gatear.
     entitlements: {
       youtubeImport: true,
@@ -223,6 +372,9 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       traducaoNuance: true,
       vozNatural: true,
       interpreteAutomatico: true,
+      semAnuncios: true,
+      sttAoVivo: true,
+      nivelDeVoz: 'boa',
     },
     quotas: {
       chamadasMes: null,
@@ -233,6 +385,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       tokensDia: null,
       vozCaracteresMes: null,
       vozCaracteresDia: null,
+      sttAoVivoSegundosMes: null,
     },
   },
 };
@@ -262,6 +415,7 @@ export const PLANO_CONVIDADO: DefinicaoDePlano = {
   rotulo: 'Convidado',
   precoMensalBrl: null,
   precoAnualBrl: null,
+  flagsDeVenda: [],
   entitlements: {
     youtubeImport: false,
     managedCloudStt: true,
@@ -270,6 +424,9 @@ export const PLANO_CONVIDADO: DefinicaoDePlano = {
     traducaoNuance: false,
     vozNatural: false,
     interpreteAutomatico: false,
+    semAnuncios: false,
+    sttAoVivo: false,
+    nivelDeVoz: 'aparelho',
   },
   /* Armazenamento 0: o convidado guarda tudo no aparelho; o servidor recusa escrita (`exige_conta`).
      Chamadas: 600 s ÷ 6 s × 2 (transcrever + traduzir) = 200, mais as 5 do tutor, com folga. Sem teto
@@ -283,8 +440,42 @@ export const PLANO_CONVIDADO: DefinicaoDePlano = {
     tokensDia: null,
     vozCaracteresMes: 0,
     vozCaracteresDia: null,
+    sttAoVivoSegundosMes: 0,
   },
 };
+
+/**
+ * TUDO FECHADO — o que vale para um campo que o servidor não mandou (servidor anterior, cache antigo
+ * do navegador) e para quem não tem conta na edição estática. O tipo obriga: um campo novo em
+ * `EntitlementsDoPlano` não compila sem dizer aqui como é "fechado".
+ */
+export const ENTITLEMENTS_FECHADOS: Readonly<EntitlementsDoPlano> = Object.freeze({
+  youtubeImport: false,
+  managedCloudStt: false,
+  managedCloudLlm: false,
+  largerModels: false,
+  traducaoNuance: false,
+  vozNatural: false,
+  interpreteAutomatico: false,
+  semAnuncios: false,
+  sttAoVivo: false,
+  nivelDeVoz: 'aparelho',
+});
+
+/**
+ * OS ENTITLEMENTS DE UMA RESPOSTA DE FORA (`GET /api/me/entitlements`, o cache do navegador), campo a
+ * campo, pela forma de `ENTITLEMENTS_FECHADOS`. É o que acaba com a cópia manual no cliente: a lista
+ * de campos é a da matriz, e o que não veio (ou veio fora da forma) fica FECHADO.
+ */
+export function lerEntitlements(o: Record<string, unknown>): EntitlementsDoPlano {
+  const lidos: Record<string, unknown> = { ...ENTITLEMENTS_FECHADOS };
+  for (const [campo, fechado] of Object.entries(ENTITLEMENTS_FECHADOS)) {
+    if (typeof fechado === 'boolean') lidos[campo] = o[campo] === true;
+  }
+  /* O único campo que não é sim/não: o nível de voz só vale se for um dos conhecidos. */
+  if ((NIVEIS_DE_VOZ as readonly unknown[]).includes(o.nivelDeVoz)) lidos.nivelDeVoz = o.nivelDeVoz;
+  return lidos as unknown as EntitlementsDoPlano;
+}
 
 /** O que só o convidado tem: teto de mensagens de tutor e teto de gasto por mês. */
 export const LIMITES_DO_CONVIDADO = {
@@ -366,20 +557,57 @@ export function normalizarPlano(v: unknown): PlanoDeAssinatura | null {
   return null;
 }
 
-/** O plano é vendável (tem preço)? Hoje, só o Premium. */
-export const ehPlanoPago = (p: unknown): p is PlanoDeAssinatura =>
+/**
+ * OS PLANOS QUE SE COMPRAM. O tipo tira os dois que nunca têm preço; a LISTA sai da matriz (quem tem
+ * `precoMensalBrl`), e `tests/planos-n-pagos.test.ts` cobra que as duas coisas digam o mesmo. Tudo
+ * que pergunta "é pagante?" — a faixa da admissão, o "já assinou" do teste, a intenção do webhook, o
+ * tipo do cliente — pergunta AQUI, nunca comparando com um nome.
+ */
+export type PlanoPago = Exclude<PlanoDeAssinatura, 'free' | 'selfhost'>;
+
+/** O plano é vendável (tem preço)? */
+export const ehPlanoPago = (p: unknown): p is PlanoPago =>
   ehPlanoDeAssinatura(p) && PLAN_MATRIX[p].precoMensalBrl !== null;
 
+/** Os planos pagos, na ordem da matriz. */
+export const PLANOS_PAGOS: readonly PlanoPago[] = PLANOS_DE_ASSINATURA.filter(ehPlanoPago);
+
 /**
- * OS PREÇOS QUE JÁ FORAM COBRADOS, e o plano que eles pagam hoje. Uma assinatura recorrente criada
- * antes da matriz v2 continua mandando a mesma cobrança ao Asaas todo mês (o Pro a R$ 39,90, até o
- * dono decidir baixar o valor dela) — e o webhook precisa reconhecê-la, senão o assinante antigo
- * cairia na intenção gravada ou, pior, ficaria sem plano no mês seguinte.
+ * OS PLANOS À VENDA AGORA: os pagos cujas `flagsDeVenda` estão TODAS ligadas — quem pergunta diz como
+ * ler uma flag (o servidor, pelo request; a tela, pelo cache de `GET /api/flags`). É a régua única de
+ * `POST /api/billing/assinar` e do que a tela oferece. Com tudo desligado (a venda fechada da matriz
+ * v3) sobra o que nunca teve chave: o Premium.
  */
-const PRECOS_LEGADOS: ReadonlyArray<{ valor: number; plano: PlanoDeAssinatura }> = [
-  { valor: 19.9, plano: 'premium' }, // Essencial (o mesmo preço do Premium mensal)
-  { valor: 39.9, plano: 'premium' }, // Pro
-];
+export function planosAVenda(flagLigada: (chave: string) => boolean): PlanoPago[] {
+  return PLANOS_PAGOS.filter((p) => PLAN_MATRIX[p].flagsDeVenda.every(flagLigada));
+}
+
+/** Nenhuma chave de venda ligada: a venda dos planos novos fechada, como nasce. */
+const VENDA_FECHADA = (): boolean => false;
+
+/**
+ * O plano que o TESTE de 14 dias concede (`DIAS_DO_TESTE_PREMIUM`). É uma decisão comercial, e por
+ * isso mora ao lado da matriz: o servidor (`resolverPlano`) e a tela leem daqui.
+ */
+export const PLANO_DO_TESTE: PlanoPago = 'premium';
+
+/**
+ * O plano pago de MENOR mensalidade. É o que o webhook concede quando um pagamento confirmado chega
+ * sem valor E sem intenção gravada: sem saber quanto entrou, o que se dá é o mínimo que qualquer
+ * pagamento de plano paga — nunca o mais caro por omissão.
+ */
+export function planoPagoMaisBarato(): PlanoPago {
+  return PLANOS_PAGOS.reduce((a, b) =>
+    (PLAN_MATRIX[b].precoMensalBrl as number) < (PLAN_MATRIX[a].precoMensalBrl as number) ? b : a,
+  );
+}
+
+/* NÃO HÁ MAIS PREÇOS LEGADOS (matriz v3, `design.md` §11, item 3). A v2 lia R$ 39,90 como "o Pro
+   antigo" e o concedia como Premium; hoje R$ 39,90 é o Ao Vivo, e um valor não pode pagar dois planos.
+   O anual antigo (R$ 179, e as parcelas de R$ 14,91 e R$ 14,99) também não paga mais nada. O servidor
+   nunca foi implantado, então este sistema não criou assinatura nesses valores; se o dono tiver
+   cobrança MANUAL no Asaas num deles, precisa avisar antes de abrir a venda — o webhook dela cairia
+   em "sem plano" (ou, a R$ 39,90, concederia o Ao Vivo). */
 
 /* O provedor devolve o valor em ponto flutuante (19.899999…). Meio centavo, e não um: todo preço é
    um número inteiro de centavos, então o ruído do ponto flutuante fica muito abaixo disso — e um
@@ -388,8 +616,8 @@ const casa = (a: number, b: number) => Math.abs(a - b) < 0.005;
 
 /**
  * AS PARCELAS COMO O ASAAS AS COBRA (sondagem de 29/09/2026): com `totalValue`, ele TRUNCA a divisão
- * e joga a diferença na ÚLTIMA — 179 em 12x são 11 × R$ 14,91 + R$ 14,99. Em centavos inteiros, para
- * a soma fechar exata.
+ * e joga a diferença na ÚLTIMA — 149,90 em 12x são 11 × R$ 12,49 + R$ 12,51 (na sondagem, com o preço
+ * da v2: 179 = 11 × R$ 14,91 + R$ 14,99). Em centavos inteiros, para a soma fechar exata.
  */
 export function valoresDasParcelas(total: number, parcelas: number): { padrao: number; ultima: number } {
   const centavos = Math.round(total * 100);
@@ -404,10 +632,12 @@ export function valoresDasParcelas(total: number, parcelas: number): { padrao: n
  * INTENÇÃO gravada por `POST /api/billing/assinar` — e assinar é de graça: assinar o barato, assinar
  * o caro, pagar só o barato e receber o caro. O dinheiro tem de decidir, não a intenção.
  *
- * NA MATRIZ V2 o valor também diz o CICLO: o preço mensal é mensal; o anual inteiro é anual; a
- * parcela do 12x (`parcelas: PARCELAS_DO_ANUAL`, que o webhook do parcelamento informa) é anual.
- * Parcela de outra quantidade, ou parcela que chega sem dizer que é parcela, não paga plano nenhum:
- * R$ 14,91 como mensalidade seria o Premium pela terça parte. Os preços antigos pagam Premium mensal.
+ * O valor também diz o CICLO: o preço mensal é mensal; o anual inteiro é anual; a parcela do 12x
+ * (`parcelas: PARCELAS_DO_ANUAL`, que o webhook do parcelamento informa) é anual. Parcela de outra
+ * quantidade, ou parcela que chega sem dizer que é parcela, não paga plano nenhum: R$ 12,49 como
+ * mensalidade seria o Premium por menos que o Essencial. Com VÁRIOS planos pagos (matriz v3) o valor
+ * também diz QUAL: por isso todo valor cobrável é distinto dos outros, e pagar R$ 9,90 com a intenção
+ * do Premium concede o Essencial.
  */
 export function planoPeloPagamento(
   valor: number | undefined,
@@ -430,8 +660,7 @@ export function planoPeloPagamento(
     if (mensal !== null && casa(valor, mensal)) return { plano, ciclo: 'mensal' };
     if (anual !== null && casa(valor, anual)) return { plano, ciclo: 'anual' };
   }
-  const legado = PRECOS_LEGADOS.find((p) => casa(valor, p.valor));
-  return legado ? { plano: legado.plano, ciclo: 'mensal' } : null;
+  return null;
 }
 
 /**
@@ -447,11 +676,15 @@ export function precoDoPlano(plano: PlanoDeAssinatura): string | null {
   return v === null ? null : v.toFixed(2).replace('.', ',');
 }
 
-/** O menor preço mensal entre os planos vendáveis — para "a partir de R$ X". */
-export function menorPrecoDeAssinatura(): string | null {
-  const precos = PLANOS_DE_ASSINATURA.map((p) => PLAN_MATRIX[p].precoMensalBrl).filter(
-    (v): v is number => typeof v === 'number' && v > 0,
-  );
+/**
+ * O menor preço mensal entre os planos À VENDA — para "a partir de R$ X". Sem dizer quais flags estão
+ * ligadas, vale a venda fechada: anunciar "a partir de R$ 9,90" de um plano que o checkout recusa
+ * seria prometer o que não se vende.
+ */
+export function menorPrecoDeAssinatura(flagLigada: (chave: string) => boolean = VENDA_FECHADA): string | null {
+  const precos = planosAVenda(flagLigada)
+    .map((p) => PLAN_MATRIX[p].precoMensalBrl)
+    .filter((v): v is number => typeof v === 'number' && v > 0);
   return precos.length
     ? Math.min(...precos)
         .toFixed(2)

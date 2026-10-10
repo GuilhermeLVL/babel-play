@@ -14,7 +14,7 @@
  * gatilho, contados no aparelho. Não é cota nem segurança — é educação com a pessoa.
  */
 import type { PlanoDaFlag } from './flags';
-import { ehPlanoPago, normalizarPlano } from './planos';
+import { ehPlanoPago, normalizarPlano, PLANO_DO_TESTE, PLANOS_PAGOS } from './planos';
 
 export const MOMENTOS_DE_OFERTA = [
   'fim_de_cota',
@@ -93,7 +93,9 @@ export function resolverTextoRemoto(texto: TextoRemoto, idioma: string, traduzir
 /**
  * OS AVISOS FUNCIONAIS EMBUTIDOS — o que aparece com a flag desligada (e, com ela ligada, quando o
  * payload não define um gatilho para o mesmo momento). Os textos são CHAVES do i18n (português),
- * traduzidas pelo catálogo (`public/i18n/*.json`). `planos` não inclui `selfhost`: lá não há cota.
+ * traduzidas pelo catálogo (`public/i18n/*.json`). `planos` não inclui `selfhost`: lá não há cota. Os
+ * pagos vêm de `PLANOS_PAGOS` (todo plano com cota recebe o aviso da cota dele), e o fim do teste é de
+ * quem tem o plano que o teste concede (`PLANO_DO_TESTE`).
  *
  * Frequência conservadora: fim de cota no máximo 1 vez por dia e 3 por semana, 12 h entre um e
  * outro; cota próxima 1 por dia, 2 por semana, 24 h entre um e outro.
@@ -109,7 +111,7 @@ export const GATILHOS_FUNCIONAIS: readonly GatilhoDeOferta[] = Object.freeze([
     maxPorDia: 1,
     maxPorSemana: 3,
     intervaloMinHoras: 12,
-    planos: ['convidado', 'free', 'premium'],
+    planos: ['convidado', 'free', ...PLANOS_PAGOS],
   },
   {
     id: 'funcional_cota_proxima',
@@ -121,7 +123,7 @@ export const GATILHOS_FUNCIONAIS: readonly GatilhoDeOferta[] = Object.freeze([
     maxPorDia: 1,
     maxPorSemana: 2,
     intervaloMinHoras: 24,
-    planos: ['convidado', 'free', 'premium'],
+    planos: ['convidado', 'free', ...PLANOS_PAGOS],
   },
   /* O FIM DO TESTE DE 14 DIAS (C6): quem testa tem o Premium nos entitlements (`premium`), e só quem
      testa recebe o momento (o host o dispara pelo `teste` de `/api/me/entitlements`). Informativo: diz
@@ -137,7 +139,7 @@ export const GATILHOS_FUNCIONAIS: readonly GatilhoDeOferta[] = Object.freeze([
     maxPorDia: 1,
     maxPorSemana: 1,
     intervaloMinHoras: 24,
-    planos: ['premium'],
+    planos: [PLANO_DO_TESTE],
   },
   {
     id: 'funcional_fim_do_teste_d0',
@@ -150,7 +152,7 @@ export const GATILHOS_FUNCIONAIS: readonly GatilhoDeOferta[] = Object.freeze([
     maxPorDia: 1,
     maxPorSemana: 1,
     intervaloMinHoras: 24,
-    planos: ['premium'],
+    planos: [PLANO_DO_TESTE],
   },
 ] satisfies GatilhoDeOferta[]);
 
@@ -183,7 +185,8 @@ export type PlanoSugerido = (typeof PLANOS_SUGERIDOS)[number];
 
 /**
  * O plano sugerido de um evento que chegou de FORA (a métrica do funil, um histórico antigo): o nome
- * antigo (`essencial`/`pro`) de uma aba aberta antes do deploy é o Premium; o que não é plano é `null`.
+ * antigo (`pro`) de uma aba aberta antes do deploy é o Premium; o que não é plano é `null`. O rótulo é
+ * UM para qualquer plano pago (`premium`): o funil por plano é da etapa que abre a venda dos novos.
  */
 export function planoSugeridoDe(v: unknown): PlanoSugerido | null {
   if (v === 'conta' || v === 'nenhum' || v === 'teste') return v;

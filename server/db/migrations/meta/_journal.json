@@ -337,6 +337,20 @@
       "when": 1790800000000,
       "tag": "0047_billing_events_payload_minimo",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "6",
+      "when": 1790810000000,
+      "tag": "0048_flags_venda_planos_v3",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "6",
+      "when": 1790820000000,
+      "tag": "0049_planos_v3",
+      "breakpoints": true
     }
   ]
 }

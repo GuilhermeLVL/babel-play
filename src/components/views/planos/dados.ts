@@ -16,7 +16,9 @@ import {
   FRANQUIA_DE_ALIVIO,
   horasDeTranscricao,
   horasDoUsoJusto,
+  PLAN_MATRIX,
   type PlanoDeAssinatura,
+  type PlanoPago,
 } from '../../../core/planos';
 import { t } from '../../../lib/i18n';
 import { irParaSubTelaDePlanos, navegarPara, type SubTelaDePlanos } from '../../../lib/rotas';
@@ -159,10 +161,24 @@ export function itemCompleto(i: ItemDoPlano): string {
   return nota ? `${textoDoItem(i)} (${nota})` : textoDoItem(i);
 }
 
-export const PLANO_NOME: Record<Coluna, string> = { gratis: 'Grátis', premium: 'Premium' };
-export const PLANO_ICO: Record<Coluna, LucideIcon> = { gratis: Cpu, premium: Sparkles };
+// planos-v3: tela na etapa 9 — as chaves dos planos novos existem só para compilar (o tipo do plano
+// pago agora vem da matriz); o nome é o da matriz, e o ícone e os itens ainda são os do Premium.
+export const PLANO_NOME: Record<Coluna | PlanoPago, string> = {
+  gratis: 'Grátis',
+  premium: 'Premium',
+  essencial: PLAN_MATRIX.essencial.rotulo,
+  aovivo: PLAN_MATRIX.aovivo.rotulo,
+};
+export const PLANO_ICO: Record<Coluna | PlanoPago, LucideIcon> = {
+  gratis: Cpu,
+  premium: Sparkles,
+  essencial: Sparkles,
+  aovivo: Sparkles,
+};
 
-export const planoPorId = (id: Coluna): Plano => PLANOS.find((p) => p.id === id)!;
+// planos-v3: tela na etapa 9 — plano pago sem coluna própria mostra os itens do Premium.
+export const planoPorId = (id: Coluna | PlanoPago): Plano =>
+  PLANOS.find((p) => p.id === id) ?? PLANOS.find((p) => p.id === 'premium')!;
 
 /** Troca a sub-tela de Planos (`null` = a tela principal). */
 export const irSub = (planosTela: SubTelaDePlanos | null): void => irParaSubTelaDePlanos(planosTela);

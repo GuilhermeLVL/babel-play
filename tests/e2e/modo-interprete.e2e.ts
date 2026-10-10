@@ -425,8 +425,13 @@ test.describe('Modo intérprete no computador (Premium, voz natural)', () => {
 
     // "1" fala do meu lado de novo.
     await page.keyboard.press('1')
-    await expect.poll(() => pedidosDeVoz.length, { timeout: 10_000 }).toBe(3)
-    expect(pedidosDeVoz[2]).toMatchObject({ texto: '[trad] bom dia a todos', idioma: 'en-US' })
+    /* A MESMA frase de novo: a voz da nuvem já está guardada no aparelho (`lib/voz/cacheDeVoz.ts`), então
+       ela toca sem pedido novo. A conversa anda (a fala aparece duas vezes) e a rede fica nos dois pedidos. */
+    await expect(fase(page).getByTestId('interprete-outro').getByText('[trad] bom dia a todos')).toHaveCount(2, {
+      timeout: 10_000,
+    })
+    await expect(fase(page)).toHaveAttribute('data-fase', 'parado', { timeout: 10_000 })
+    expect(pedidosDeVoz).toHaveLength(2)
     // A voz da nuvem leu as três (a do aparelho não foi chamada).
     expect(await lidas(page)).toEqual([])
 

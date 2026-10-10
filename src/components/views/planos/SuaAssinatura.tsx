@@ -74,7 +74,14 @@ export default function SuaAssinatura({
   aoCancelar,
   aoTentarDeNovo,
   aoReativar,
+  soOResto = false,
 }: {
+  /**
+   * Na tela dos quatro planos o resumo, a troca de ciclo e o cancelar estão no cartão do protótipo
+   * (`.px-assinatura`, `planos4.js:644-662`): aqui fica só o que ele não tem e é da cobrança — a faixa
+   * do pagamento que falhou, a forma de pagamento, a pausa e as faturas.
+   */
+  soOResto?: boolean;
   conta: Conta;
   faturas: Fatura[] | null;
   carregandoFaturas: boolean;
@@ -159,44 +166,10 @@ export default function SuaAssinatura({
           aoReativar={aoReativar}
         />
       )}
-      <div className="q-grade g2">
-        <section className="q-cartao" aria-label={t('Resumo da assinatura')}>
-          <div className="qc-plano-topo">
-            <span className="q-ic">
-              <IconeDoPlano aria-hidden />
-            </span>
-            <div>
-              <span className="q-rotulo">{t('Plano')}</span>
-              <h2>{`${p} · ${rotuloDaForma(forma)}`}</h2>
-            </div>
-          </div>
-          <dl className="qc-dados">
-            <div>
-              <dt>{t('Valor')}</dt>
-              <dd>{valor}</dd>
-            </div>
-            <div>
-              <dt>
-                {e === 'ativa' && conta.proximaCobranca
-                  ? forma === 'anual'
-                    ? t('Renova em')
-                    : t('Próxima cobrança')
-                  : t('Acesso até')}
-              </dt>
-              <dd>{dataCurta(e === 'ativa' && conta.proximaCobranca ? conta.proximaCobranca : conta.valeAte)}</dd>
-            </div>
-            <div>
-              <dt>{t('Pagamento')}</dt>
-              <dd>{forma === 'anual_12x' ? t('Cartão, sem renovação automática') : metodoAtual(faturas)}</dd>
-            </div>
-            <div>
-              <dt>{t('Assinante desde')}</dt>
-              <dd>{dataCurta(desde)}</dd>
-            </div>
-          </dl>
-        </section>
-        <section className="q-lista" aria-label={t('O que dá para mudar')} style={{ alignContent: 'start' }}>
+      {soOResto && acoes.slice(1).some((a) => a[4]) && (
+        <section className="q-lista" aria-label={t('O que dá para mudar')}>
           {acoes
+            .slice(1)
             .filter((a) => a[4])
             .map(([I, titulo, d, k]) => (
               <button key={titulo} type="button" className="q-linha" onClick={() => abrir(k)}>
@@ -213,7 +186,64 @@ export default function SuaAssinatura({
               </button>
             ))}
         </section>
-      </div>
+      )}
+      {!soOResto && (
+        <div className="q-grade g2">
+          <section className="q-cartao" aria-label={t('Resumo da assinatura')}>
+            <div className="qc-plano-topo">
+              <span className="q-ic">
+                <IconeDoPlano aria-hidden />
+              </span>
+              <div>
+                <span className="q-rotulo">{t('Plano')}</span>
+                <h2>{`${p} · ${rotuloDaForma(forma)}`}</h2>
+              </div>
+            </div>
+            <dl className="qc-dados">
+              <div>
+                <dt>{t('Valor')}</dt>
+                <dd>{valor}</dd>
+              </div>
+              <div>
+                <dt>
+                  {e === 'ativa' && conta.proximaCobranca
+                    ? forma === 'anual'
+                      ? t('Renova em')
+                      : t('Próxima cobrança')
+                    : t('Acesso até')}
+                </dt>
+                <dd>{dataCurta(e === 'ativa' && conta.proximaCobranca ? conta.proximaCobranca : conta.valeAte)}</dd>
+              </div>
+              <div>
+                <dt>{t('Pagamento')}</dt>
+                <dd>{forma === 'anual_12x' ? t('Cartão, sem renovação automática') : metodoAtual(faturas)}</dd>
+              </div>
+              <div>
+                <dt>{t('Assinante desde')}</dt>
+                <dd>{dataCurta(desde)}</dd>
+              </div>
+            </dl>
+          </section>
+          <section className="q-lista" aria-label={t('O que dá para mudar')} style={{ alignContent: 'start' }}>
+            {acoes
+              .filter((a) => a[4])
+              .map(([I, titulo, d, k]) => (
+                <button key={titulo} type="button" className="q-linha" onClick={() => abrir(k)}>
+                  <span className="q-ic">
+                    <I aria-hidden />
+                  </span>
+                  <span>
+                    <b>{titulo}</b>
+                    <small>{d}</small>
+                  </span>
+                  <span className="q-fim">
+                    <ChevronRight aria-hidden style={{ width: 22, height: 22 }} />
+                  </span>
+                </button>
+              ))}
+          </section>
+        </div>
+      )}
 
       <section className="q-secao">
         <header>
@@ -269,7 +299,7 @@ export default function SuaAssinatura({
         )}
       </section>
 
-      {e !== 'cancelada' && (
+      {e !== 'cancelada' && !soOResto && (
         <section className="q-ajuste qc-perigo">
           <div>
             <b>{t('Cancelar assinatura')}</b>

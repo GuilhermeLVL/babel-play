@@ -1,0 +1,88 @@
+{
+  "nome": "planos4-comparar",
+  "prototipo": "anuncios-no-gratis",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.px.planoDeProva": "essencial",
+      "babel.px.planosAVendaDeProva": "essencial,premium,aovivo",
+      "babel.px.aparelhoDeProva": "pc",
+      "babel.px.anunciosDeProva": "1"
+    },
+    "passos": [
+      {
+        "js": "(() => { const f = window.fetch; window.fetch = (u, o) => { const s = String(u && u.url ? u.url : u); const j = (c) => Promise.resolve(new Response(JSON.stringify(c), { status: 200, headers: { 'Content-Type': 'application/json' } })); if (s.includes('/api/abertura')) return j({ cadastro: true, checkout: true, anual: true }); if (s.includes('/api/billing/status')) return j({\"configurado\":true,\"assinatura\":null,\"teste\":{\"estado\":\"disponivel\",\"dias\":14}}); if (s.includes('/api/billing/faturas')) return j({ faturas: [] }); if (s.includes('/api/me/uso')) return j({\"plano\":\"free\",\"janela\":\"2026-10\",\"chamadas\":{\"usado\":0,\"teto\":0},\"segundosDeAudio\":{\"usado\":0,\"teto\":0},\"porNivel\":{\"trechos\":{\"usado\":0,\"teto\":0,\"restante\":0},\"aovivo\":{\"usado\":0,\"teto\":0,\"restante\":0}},\"tokensDeLlm\":{\"usado\":0,\"teto\":0},\"iaDeNuvem\":{\"disponivel\":true,\"motivo\":null,\"mensagem\":null},\"alivio\":null,\"hoje\":null}); return f(u, o); }; })()"
+      },
+      {
+        "clicar": "[data-testid='plano-no-inicio']"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "rolar": ".pl-compara"
+      },
+      {
+        "esperar": 1800
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?ver=planos-comparar&quieto&plano=essencial&aparelho=pc",
+    "assentar": 4000,
+    "passos": [
+      {
+        "rolar": ".pl-compara"
+      },
+      {
+        "esperar": 1800
+      }
+    ]
+  },
+  "seletores": [
+    ".pl-comparar",
+    ".pl-comparar > header",
+    ".pl-comparar > header h2",
+    ".pl-compara-escolha",
+    ".pl-compara-escolha .q-aba",
+    ".q-tabela-caixa",
+    ".pl-compara",
+    ".pl-compara thead th",
+    ".pl-compara th[scope='col'][data-c='gratis']",
+    ".pl-compara th[scope='col'][data-c='essencial']",
+    ".pl-compara th[scope='col'] small",
+    ".pl-compara tbody tr",
+    ".pl-compara th[scope='row']",
+    ".pl-compara td[data-c='gratis']",
+    ".pl-compara td[data-c='essencial']",
+    ".pl-compara td[data-c='premium']",
+    ".pl-compara td[data-c='aovivo']",
+    ".pl-compara .px-sim",
+    ".pl-compara .px-sim svg",
+    ".pl-compara .px-nao",
+    ".pl-compara-preco",
+    ".pl-compara-preco td b",
+    ".pl-comparar > .px-nota"
+  ],
+  "props": [
+    "borderTopStyle",
+    "alignItems",
+    "gridTemplateColumns",
+    "maxWidth",
+    "marginTop",
+    "marginBottom",
+    "order",
+    "textAlign",
+    "justifyContent",
+    "flexDirection",
+    "overflowX",
+    "whiteSpace",
+    "flexWrap",
+    "verticalAlign",
+    "textTransform",
+    "minHeight",
+    "scrollSnapType"
+  ]
+}

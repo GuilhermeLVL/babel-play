@@ -132,6 +132,7 @@ import { criarRelogioDaSessao, criarTraducaoDaFala } from '../../lib/captura/tra
 import { modoDeTraducao, type PedidoSobDemanda } from '../../lib/captura/traducaoSobDemanda';
 import { usePalavrasConhecidas } from '../../lib/captura/usePalavrasConhecidas';
 import { usePreparoDoInicio } from '../../lib/captura/usePreparoDoInicio';
+import { useSemRede } from '../../lib/captura/useSemRede';
 import { cenarioDasFontes, type CenarioDeCaptura } from '../../lib/cenarioDeCaptura';
 import { consentiuNuvem, rapidoDoMicPermitido, useEscolhaDoMic } from '../../lib/consentimentoDeNuvem';
 import { DominantLangTracker } from '../../lib/convoLang';
@@ -163,6 +164,7 @@ import { baseLang, langLabel, langLabelNaUI, mtCoverage, toBcp47 } from '../../l
 import { lazyComRecarga } from '../../lib/lazyComRecarga';
 import { setNavGuard } from '../../lib/navGuard';
 import { nuvemDoQuestAtiva, nuvemDoQuestExiste } from '../../lib/nuvemDoQuest';
+import { pedirDestaqueEmPlanos } from '../../lib/ofertas/destaque';
 import { OrdemDasTraducoes } from '../../lib/ordemDaTraducao';
 import { usePalavrasAprendidas } from '../../lib/palavrasAprendidas';
 import { destinoDaTraducao, PerfilAdaptativoDeIdioma } from '../../lib/perfilDeIdioma';
@@ -1311,11 +1313,13 @@ export default function LiveCapture({
      renderização da tela; a gravação em curso não é tocada. */
   const preaquecerRef = useRef(preaquecerModelos);
   preaquecerRef.current = preaquecerModelos;
+  /* A conexão entra na lista: o previsto do selo da fala (e a marca da tela) muda quando ela cai ou volta. */
+  const semRede = useSemRede();
   useEffect(() => {
     if (isRecordingRef.current) return;
     const relogio = setTimeout(() => void preaquecerRef.current(), 400);
     return () => clearTimeout(relogio);
-  }, [sourceLang, targetLang, autoDetectLang, autoDetectMyLang, micEnabled, micEngine, sttQuality]);
+  }, [sourceLang, targetLang, autoDetectLang, autoDetectMyLang, micEnabled, micEngine, sttQuality, semRede]);
 
   /* AS FONTES DE ÁUDIO (sistema/aba, microfone, medidor e o interruptor do mic) moram em
      `lib/captura/fontesDeAudio.ts`. Fábrica por render, como as closures que substituiu: elas
@@ -2884,6 +2888,16 @@ export default function LiveCapture({
     return aprendidas.has(p) || addedWords.some((w) => w.toLocaleLowerCase() === p);
   };
   const parPorExtenso = `${parResumido.auto ? t('Detectar') : langLabel(parResumido.de)} → ${langLabel(parResumido.para)}`;
+  /* O SELO DA FALA: o previsto da política até a primeira fala; depois, o motor que atendeu a última
+     fala final (`seloDaFala.ts`). Uma leitura só, para a marca da tela e para a janela do modelo. */
+  const seloDaCaptura = seloDaFala(
+    rotaPrevista,
+    motorDaUltimaFala(speechSegments, {
+      sistemaNoNavegador,
+      micNoNavegador: micEngine === 'browser' && webSpeechSupported,
+    }),
+    { nuvemPorChavePropria: getProviderMode() === 'cloud' },
+  );
   const telaDoPrototipo = resumoNoQuest ?? (
     <>
       <CapturaDoPrototipo
@@ -2916,6 +2930,23 @@ export default function LiveCapture({
           maior: () => setEscalaDaLegenda((e) => mudarEscalaDaLegenda(e, 1)),
           noMinimo: escalaDaLegenda <= ESCALAS_DA_LEGENDA[0],
           noMaximo: escalaDaLegenda >= ESCALAS_DA_LEGENDA[ESCALAS_DA_LEGENDA.length - 1],
+        }}
+        noQuest={noQuest}
+        /* O NÍVEL DE SERVIÇO (`captura/niveis/`): escolher um nível grava a preferência que já existia
+           ("Qualidade da transcrição"), como o seletor dos Ajustes da captura. */
+        niveis={{
+          selo: seloDaCaptura,
+          qualidade: sttQuality,
+          aoEscolherQualidade: (q) => {
+            setSttQuality(q);
+            setSttQualityMirror(q);
+            void patchUiSettings({ sttQuality: q });
+          },
+          tipoDoAparelho: perfilDoAparelho.tipo,
+          aoVerPlanos: (plano) => {
+            if (plano === 'premium') pedirDestaqueEmPlanos({ plano: 'premium' });
+            onChangeView?.('planos');
+          },
         }}
         avisos={
           <>
@@ -3612,16 +3643,7 @@ export default function LiveCapture({
       {modeloAberto && (
         <ModeloNoDispositivo
           rota={sttRouteLabel}
-          /* O SELO DA FALA: o previsto da política até a primeira fala; depois, o motor que atendeu a
-             última fala final (`seloDaFala.ts`). */
-          selo={seloDaFala(
-            rotaPrevista,
-            motorDaUltimaFala(speechSegments, {
-              sistemaNoNavegador,
-              micNoNavegador: micEngine === 'browser' && webSpeechSupported,
-            }),
-            { nuvemPorChavePropria: getProviderMode() === 'cloud' },
-          )}
+          selo={seloDaCaptura}
           modelos={modelosDaCaptura}
           nuvem={getProviderMode() === 'cloud'}
           transcricaoNoNavegador={transcricaoSoNoNavegador}

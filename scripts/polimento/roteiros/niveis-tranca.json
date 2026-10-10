@@ -1,0 +1,88 @@
+{
+  "nome": "niveis-tranca",
+  "prototipo": "anuncios-no-gratis",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.px.planoDeProva": "free",
+      "babel.px.planosAVendaDeProva": "essencial,premium,aovivo",
+      "babel.px.aparelhoDeProva": "fraco"
+    },
+    "passos": [
+      {
+        "js": "(() => { const f = window.fetch; window.fetch = (u, o) => { const s = String(u && u.url ? u.url : u); if (s.includes('/api/me/uso')) return Promise.resolve(new Response(JSON.stringify({\"plano\":\"free\",\"janela\":\"2026-10\",\"chamadas\":{\"usado\":0,\"teto\":0},\"segundosDeAudio\":{\"usado\":0,\"teto\":0},\"porNivel\":{\"trechos\":{\"usado\":0,\"teto\":0,\"restante\":0},\"aovivo\":{\"usado\":0,\"teto\":0,\"restante\":0}},\"tokensDeLlm\":{\"usado\":0,\"teto\":0},\"iaDeNuvem\":{\"disponivel\":true,\"motivo\":null,\"mensagem\":null},\"alivio\":null,\"hoje\":null}), { status: 200, headers: { 'Content-Type': 'application/json' } })); return f(u, o); }; })()"
+      },
+      {
+        "js": "Promise.all([import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false)), import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt-BR'))])"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "tecla": "Escape"
+      },
+      {
+        "esperar": 500
+      },
+      {
+        "js": "[...document.querySelectorAll('.q-trilho .q-item')].find((b) => /Captur/.test(b.textContent)).click()"
+      },
+      {
+        "esperar": 6000
+      },
+      {
+        "js": "document.querySelectorAll('.px-vivo > :not(.px-vivo-topo):not(.pl-linha):not(.cel-conversa):not(.q-faixa):not(dialog)').forEach((e) => e.remove())"
+      },
+      {
+        "js": "Promise.all([import('/src/lib/theme.ts').then((m) => m.applyDarkMode(false)), import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt-BR'))])"
+      },
+      {
+        "esperar": 600
+      },
+      {
+        "clicar": ".pl-niveis [data-pl-nivel='precisao']"
+      },
+      {
+        "esperar": 1200
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?ver=capturar-tranca&quieto",
+    "assentar": 4000,
+    "passos": []
+  },
+  "seletores": [
+    "dialog.folha-de-baixo[open]",
+    "dialog[open] .folha-pega",
+    "dialog[open] .folha-corpo",
+    ".pl-tranca",
+    ".pl-tranca .label-mono",
+    ".pl-tranca h2",
+    ".pl-tranca .ad-lista",
+    ".pl-tranca .ad-lista li",
+    ".pl-tranca .ad-lista li svg",
+    ".pl-tranca .ad-lista li b",
+    ".pl-tranca .ad-confirma-pe",
+    ".pl-tranca .ad-confirma-pe .btn-outline",
+    ".pl-tranca .ad-confirma-pe .btn-solid",
+    ".pl-tranca .ad-confirma-nota",
+    ".pl-tranca .ad-confirma-nota .ad-sem"
+  ],
+  "props": [
+    "alignItems",
+    "justifyContent",
+    "flexWrap",
+    "flexDirection",
+    "minHeight",
+    "maxWidth",
+    "marginTop",
+    "textTransform",
+    "whiteSpace",
+    "textAlign",
+    "gridTemplateColumns",
+    "borderTopStyle"
+  ]
+}

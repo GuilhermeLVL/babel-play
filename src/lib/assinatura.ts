@@ -82,6 +82,17 @@ export interface StatusDeBilling {
    * ligadas. Ausente em servidor anterior (= só o que `PLANOS_PAGOS` oferece).
    */
   planosAVenda?: PlanoPago[];
+  /**
+   * A TROCA DE PLANO pedida e ainda não cobrada (`POST /api/billing/trocar`): o plano que passa a valer
+   * e a partir de quando (`AAAA-MM-DD`). Ausente = não há troca pedida (ou o servidor é anterior).
+   */
+  trocaPendente?: TrocaPendente | null;
+}
+
+/** A troca de plano que vale no próximo ciclo (`design.md` §11, item 11: sem pro-rata). */
+export interface TrocaPendente {
+  plano: PlanoPago;
+  aPartirDe: string | null;
 }
 
 /** Por que a conta não pode começar o teste (o servidor decide; a tela só explica). */
@@ -452,6 +463,63 @@ export async function cancelarRenovacao(): Promise<{
     return { ok: false, erro: 'não consegui falar com o servidor.' };
   }
 }
+
+/** O que a tela faz com a resposta de uma troca de plano. */
+export interface RespostaDaTroca {
+  ok: boolean;
+  /** A troca gravada: o plano novo e o dia em que ele passa a valer. */
+  trocaPendente?: TrocaPendente | null;
+  /** A rota ainda não existe neste servidor (404/405/501): a tela diz "ainda não disponível". */
+  indisponivel?: boolean;
+  erro?: string;
+  codigo?: string;
+}
+
+async function pedirTroca(caminho: string, corpo: Record<string, unknown>): Promise<RespostaDaTroca> {
+  try {
+    const r = await apiFetch(caminho, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(corpo),
+    });
+    const c = (await r.json().catch(() => ({}))) as {
+      trocaPendente?: { plano?: unknown; aPartirDe?: unknown } | null;
+      error?: string;
+      code?: string;
+    };
+    if (!r.ok) {
+      /* 404 SEM código é a rota que não existe (servidor anterior); `sem_troca_pendente` também é 404,
+         mas vem com código e é resposta de verdade. */
+      const semRota = (r.status === 404 && !c.code) || r.status === 405 || r.status === 501;
+      return {
+        ok: false,
+        ...(semRota ? { indisponivel: true } : {}),
+        erro: c.error ?? `falha (HTTP ${r.status})`,
+        ...(c.code ? { codigo: c.code } : {}),
+      };
+    }
+    const plano = planoPagoDe(c.trocaPendente?.plano);
+    return {
+      ok: true,
+      trocaPendente: plano
+        ? { plano, aPartirDe: typeof c.trocaPendente?.aPartirDe === 'string' ? c.trocaPendente.aPartirDe : null }
+        : null,
+    };
+  } catch {
+    return { ok: false, erro: 'não consegui falar com o servidor.' };
+  }
+}
+
+/**
+ * TROCA DE PLANO de quem já assina no mensal (`POST /api/billing/trocar`, `{ plano }`). A regra é do
+ * servidor: vale no PRÓXIMO ciclo, sem pro-rata; até lá o plano continua o que está pago. A tela só
+ * pede e mostra o que voltou — inclusive a recusa (`troca_so_no_mensal`, `plano_indisponivel`…).
+ */
+export const trocarDePlano = (plano: PlanoPago): Promise<RespostaDaTroca> =>
+  pedirTroca('/api/billing/trocar', { plano });
+
+/** Desiste da troca antes da virada (`POST /api/billing/trocar/cancelar`). */
+export const desistirDaTroca = (): Promise<RespostaDaTroca> => pedirTroca('/api/billing/trocar/cancelar', {});
 
 // O plano que o checkout abre mora em `lib/planoDoCheckout` (fora do JS de arranque); daqui, só o repasse.
 export { CHAVE_DO_PLANO_DO_CHECKOUT, lembrarPlanoDoCheckout } from './planoDoCheckout';

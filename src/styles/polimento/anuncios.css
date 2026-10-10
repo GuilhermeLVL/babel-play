@@ -1,0 +1,56 @@
+/* GERADO por scripts/polimento/trazer-css.mjs a partir de anuncios.css do protótipo dos quatro planos.
+   NÃO EDITAR À MÃO: mude a tabela do script e gere de novo. As regras são as do protótipo, sem
+   reescrita; valem sob html[data-px='on'], a marca que src/lib/polimento/base.ts põe. */
+/* [anuncios.css:1-17] ADIADO até portar: anúncios no Grátis (flag anuncios) */
+.ad-sem {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  padding: 6px 0;
+  font: 600 12.5px/1.2 var(--font-body, inherit);
+  color: var(--ink-muted);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--ink-muted) 40%, transparent);
+  text-underline-offset: 3px;
+  white-space: nowrap;
+  transition: color 0.16s ease;
+}
+.ad-sem:focus-visible, .ad-cta:focus-visible, .ad-ancora-x:focus-visible { outline: 2px solid var(--q-acento, var(--accent)); outline-offset: 3px; border-radius: 8px; }
+/* [anuncios.css:32-50] ADIADO até portar: anúncios no Grátis (flag anuncios) */
+@media (hover: hover) and (pointer: fine) {
+  .ad-sem:hover { color: var(--ink); }
+  .ad-cta:hover { border-color: var(--q-acento, var(--accent)); background: color-mix(in srgb, var(--q-acento, var(--accent)) 8%, var(--canvas)); }
+}
+.ad-mini-tag {
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ink) 9%, transparent);
+  color: var(--ink-muted);
+  font: 700 10px/1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+/* [anuncios.css:64-158] ADIADO até portar: anúncios no Grátis (flag anuncios) */
+.ad-sub { display: block; font: 500 12.5px/1.35 var(--font-body, inherit); color: var(--ink-muted); }
+/* [anuncios.css:160-248] ADIADO até portar: anúncios no Grátis (flag anuncios) */
+/* ---- Folhas: confirmação do premiado e consentimento ------------------------- */
+.ad-confirma, .ad-consent { display: grid; gap: 12px; }
+@media (min-width: 721px) {
+  .ad-confirma, .ad-consent { padding-top: 20px; }
+}
+.ad-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; counter-reset: none; }
+.pj-como .ad-lista li { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border-subtle); background: var(--surface); font-size: 14px; line-height: 1.4; counter-increment: none; }
+.pj-como .ad-lista li::before { display: none; }
+.ad-lista li svg { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 1px; color: var(--accent-ink, var(--q-acento)); }
+.ad-lista .ad-sem { display: inline; min-height: 0; padding: 0; margin-left: 4px; font-size: 13px; }
+dialog.folha-de-baixo.ad-folha:focus { outline: none; }
+dialog.ad-tela:focus { outline: none; }
+.ad-confirma-pe { display: flex; gap: 8px; margin-top: 2px; }
+.ad-confirma-pe .btn { flex: 1 1 0; min-height: 48px; margin-top: 0; white-space: normal; text-align: center; line-height: 1.15; }
+.ad-confirma-pe .btn-solid { flex: 1.4 1 0; }
+.ad-confirma-pe .btn svg { width: 16px; height: 16px; }
+.ad-confirma-nota { margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-muted); }
+/* [anuncios.css:266-443] ADIADO até portar: anúncios no Grátis (flag anuncios) */
+@keyframes ad-aqui { 0%, 100% { box-shadow: 0 0 0 0 rgb(224 69 123 / 0); } 30% { box-shadow: 0 0 0 10px rgb(224 69 123 / 0.35); } }
+.ad-aqui { animation: ad-aqui 1.3s ease 2; }
+/* [anuncios.css:446-555] ADIADO até portar: anúncios no Grátis (flag anuncios) */

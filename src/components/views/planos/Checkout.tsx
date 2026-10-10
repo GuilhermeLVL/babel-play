@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { horasDeTranscricao, horasDoUsoJusto } from '../../../core/planos';
+import { horasDeTranscricao, horasDoUsoJusto, PLAN_MATRIX } from '../../../core/planos';
 import { declararNascimento, ehFalha } from '../../../data/rotas/idade';
 import {
   type Beneficiario,
@@ -50,6 +50,7 @@ import { T } from '../../../lib/T';
 import { irSub, PLANO_ICO, PLANO_NOME } from './dados';
 import Etapas, { rolarAoTopo } from './Etapas';
 import { entrarParaAssinar, useAnualAVenda, useSemConta, useVendaAberta } from './funil';
+import { resumoDoPlano } from './quatroPlanos';
 
 /**
  * CHECKOUT — `T.checkout` do protótipo aprovado: dois passos, com o resumo sempre visível.
@@ -287,6 +288,7 @@ function impedimento(
 
 export default function Checkout({
   plano,
+  planos = PLANOS_PAGOS,
   aoTrocarPlano,
   formaInicial = 'mensal',
   plan,
@@ -295,6 +297,8 @@ export default function Checkout({
   aoEntrar,
 }: {
   plano: PlanoPago;
+  /** Os planos que o seletor oferece: os À VENDA para esta conta (planos v3). Sem dizer, só o Premium. */
+  planos?: readonly PlanoPago[];
   aoTrocarPlano: (p: PlanoPago) => void;
   /** O período escolhido na tela de Planos (C7): o anual abre no anual em uma vez. */
   formaInicial?: FormaDeAssinar;
@@ -310,7 +314,8 @@ export default function Checkout({
      `anual_indisponivel`): essa recusa também vale como "desligado" aqui. */
   const anualNoCliente = useAnualAVenda();
   const [anualRecusado, setAnualRecusado] = useState(false);
-  const anualAVenda = anualNoCliente && !anualRecusado;
+  /* Plano sem preço de ano na matriz (o Ao Vivo, só mensal no início): não há anual para escolher. */
+  const anualAVenda = anualNoCliente && !anualRecusado && PLAN_MATRIX[plano].precoAnualBrl !== null;
   const [formaEscolhida, setForma] = useState<FormaDeAssinar>(formaInicial);
   const forma: FormaDeAssinar = anualAVenda ? formaEscolhida : 'mensal';
   const formas: readonly FormaDeAssinar[] = anualAVenda ? FORMAS_DE_ASSINAR : ['mensal'];
@@ -495,7 +500,7 @@ export default function Checkout({
       <fieldset className="qc-escolha">
         <legend>{t('Plano')}</legend>
         <div className="qc-opcoes">
-          {PLANOS_PAGOS.map((id) => {
+          {(planos.includes(plano) ? planos : [...planos, plano]).map((id) => {
             const IconeDoPlano = PLANO_ICO[id];
             return (
               <button
@@ -513,13 +518,16 @@ export default function Checkout({
                   <b>{PLANO_NOME[id]}</b>
                   {/* O "sem limite" com a nota do uso justo AO LADO (CDC), o dia e o mês das quotas. */}
                   <small>
-                    {t(
-                      'Tradução Nuance e nuvem sem limite no dia a dia (uso justo: até {dia} h de nuvem por dia e {mes} h por mês; passando disso, a legenda segue no aparelho)',
-                      {
-                        dia: horasDoUsoJusto(id) ?? 0,
-                        mes: horasDeTranscricao(id) ?? 0,
-                      },
-                    )}
+                    {/* planos-v3: os planos novos dizem o que têm pelas linhas do cartão de Planos (da matriz). */}
+                    {id === 'premium'
+                      ? t(
+                          'Tradução Nuance e nuvem sem limite no dia a dia (uso justo: até {dia} h de nuvem por dia e {mes} h por mês; passando disso, a legenda segue no aparelho)',
+                          {
+                            dia: horasDoUsoJusto(id) ?? 0,
+                            mes: horasDeTranscricao(id) ?? 0,
+                          },
+                        )
+                      : resumoDoPlano(id)}
                   </small>
                 </span>
                 <span className="qc-valor">

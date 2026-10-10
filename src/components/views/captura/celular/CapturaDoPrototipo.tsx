@@ -14,6 +14,8 @@ import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 're
 
 import { t } from '../../../../lib/i18n';
 import { afundarBotao, celular, entrarPronta, sairMiolo } from '../../../../lib/polimento/captura';
+import { entrarNivel } from '../../../../lib/polimento/niveis';
+import { type NiveisDaCaptura, useNiveisDaCaptura } from '../niveis/useNiveisDaCaptura';
 
 /**
  * CAPTURAR NO DESENHO NOVO — a tela do protótipo de polimento, em todo aparelho (`direto.js:25-62`,
@@ -25,6 +27,10 @@ import { afundarBotao, celular, entrarPronta, sairMiolo } from '../../../../lib/
  *
  * Só apresentação: o estado e os efeitos continuam em `LiveCapture` (o mesmo `iniciarCaptura`, o
  * mesmo `handleStopRecording`); a legenda e os avisos chegam prontos.
+ *
+ * O NÍVEL DE SERVIÇO (protótipo `anuncios-no-gratis`, `planos4.js:251-298`): com `niveis`, a tela ganha
+ * a fileira `.pl-linha` logo abaixo do topo (seletor, marca, medidor), a marca no topo e a nota no
+ * miolo. As peças e o dado real moram em `../niveis/`.
  */
 export default function CapturaDoPrototipo({
   gravando,
@@ -48,6 +54,8 @@ export default function CapturaDoPrototipo({
   letra,
   legenda,
   avisos,
+  niveis,
+  noQuest = false,
 }: {
   gravando: boolean;
   /** Já há falas na tela (mesmo parada). */
@@ -77,10 +85,15 @@ export default function CapturaDoPrototipo({
   /** A legenda ao vivo (`HistoricoDoPrototipo`), usada enquanto grava. */
   legenda: ReactNode;
   avisos?: ReactNode;
+  /** O nível de serviço (seletor, marca, medidor e folhas). Ausente = a tela de antes, sem a fileira. */
+  niveis?: NiveisDaCaptura;
+  /** No Quest a captura fica como está: só o seletor e a marca. */
+  noQuest?: boolean;
 }) {
   const raiz = useRef<HTMLDivElement>(null);
   const principal = useRef<HTMLButtonElement>(null);
   const miolo = useRef<HTMLDivElement>(null);
+  const nivel = useNiveisDaCaptura(niveis, { gravando, noQuest, modelo, aoAbrirModelo });
   /* Pronta é a tela de quem ainda não tem nada: parada, com falas na tela (uma captura retomada, um
      salvar que ficou para depois), a legenda continua à vista. */
   const semNada = !gravando && !temFalas;
@@ -107,7 +120,9 @@ export default function CapturaDoPrototipo({
 
   /* `prepararVivo()` de `direto.js:43-46`: a cada vez que a tela pronta aparece. */
   useLayoutEffect(() => {
-    if (pronta && raiz.current) entrarPronta(raiz.current);
+    if (!pronta || !raiz.current) return;
+    entrarPronta(raiz.current);
+    entrarNivel(raiz.current); /* `planos4.js:297` */
   }, [pronta]);
 
   /* `direto.js:15-20`: já na captura pronta, tocar de novo em Capturar na navegação começa a gravar. */
@@ -125,7 +140,6 @@ export default function CapturaDoPrototipo({
     };
     document.addEventListener('click', aoClicar);
     return () => document.removeEventListener('click', aoClicar);
-     
   }, [semNada, podeIniciar, abrindo]);
 
   /** `iniciarVivo()` de `direto.js:48-62`: o botão responde na hora; o miolo sai quando a gravação começa. */
@@ -144,9 +158,11 @@ export default function CapturaDoPrototipo({
         <button type="button" className="q-chip" onClick={aoAbrirIdiomas}>
           <Languages aria-hidden /> {par} <ChevronDown aria-hidden />
         </button>
-        <button type="button" className="q-chip px-so-largo" onClick={aoAbrirModelo}>
+        {/* `planos4.js:266-268`: o chip "Modelo local" só diz a verdade com o modelo local em uso. */}
+        <button type="button" className="q-chip px-so-largo" hidden={nivel.modeloOculto} onClick={aoAbrirModelo}>
           <Cpu aria-hidden /> {modelo}
         </button>
+        {nivel.marcaDoTopo}
         <span className="q-espaco" />
         <button
           type="button"
@@ -166,6 +182,7 @@ export default function CapturaDoPrototipo({
           <CircleQuestionMark aria-hidden />
         </button>
       </div>
+      {nivel.linha}
       {avisos}
       <div className="cel-conversa">
         {pronta ? (
@@ -183,6 +200,7 @@ export default function CapturaDoPrototipo({
                         'O som do computador entra sozinho. Dê play no vídeo, aula ou chamada e clique em Iniciar. A legenda bilíngue aparece aqui e nas Legendas flutuantes.',
                       )}
                 </p>
+                {nivel.nota}
               </div>
             </div>
           </div>
@@ -248,6 +266,7 @@ export default function CapturaDoPrototipo({
           {parCurto}
         </button>
       </div>
+      {nivel.folhas}
     </div>
   );
 }

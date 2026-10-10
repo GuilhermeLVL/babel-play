@@ -1,0 +1,80 @@
+{
+  "nome": "planos4-consumo-celular",
+  "prototipo": "anuncios-no-gratis",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/",
+    "guardar": {
+      "babel.px.planoDeProva": "aovivo",
+      "babel.px.planosAVendaDeProva": "essencial,premium,aovivo",
+      "babel.px.aparelhoDeProva": "celular",
+      "babel.px.anunciosDeProva": "1"
+    },
+    "passos": [
+      {
+        "js": "(() => { const f = window.fetch; window.fetch = (u, o) => { const s = String(u && u.url ? u.url : u); const j = (c) => Promise.resolve(new Response(JSON.stringify(c), { status: 200, headers: { 'Content-Type': 'application/json' } })); if (s.includes('/api/abertura')) return j({ cadastro: true, checkout: true, anual: true }); if (s.includes('/api/billing/status')) return j({\"configurado\":true,\"assinatura\":null,\"teste\":{\"estado\":\"disponivel\",\"dias\":14}}); if (s.includes('/api/billing/faturas')) return j({ faturas: [] }); if (s.includes('/api/me/uso')) return j({\"plano\":\"aovivo\",\"janela\":\"2026-10\",\"chamadas\":{\"usado\":0,\"teto\":0},\"segundosDeAudio\":{\"usado\":49200,\"teto\":72000},\"porNivel\":{\"trechos\":{\"usado\":49200,\"teto\":72000,\"restante\":22800},\"aovivo\":{\"usado\":33600,\"teto\":36000,\"restante\":2400}},\"tokensDeLlm\":{\"usado\":0,\"teto\":0},\"iaDeNuvem\":{\"disponivel\":true,\"motivo\":null,\"mensagem\":null},\"alivio\":null,\"hoje\":null}); return f(u, o); }; })()"
+      },
+      {
+        "clicar": "[data-testid='plano-no-inicio']"
+      },
+      {
+        "esperar": 2500
+      },
+      {
+        "clicar": ".px-abas-planos .q-aba >> text='Consumo do mês'"
+      },
+      {
+        "clicar": ".pl-planos-tela .q-cab .q-sobre"
+      },
+      {
+        "esperar": 1500
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?ver=consumo&quieto&plano=aovivo&aparelho=celular&nuvem=pouco",
+    "assentar": 4000,
+    "passos": []
+  },
+  "seletores": [
+    ".pl-planos-tela",
+    ".pl-planos-tela .q-cab",
+    ".pl-planos-tela .q-cab h1",
+    ".pl-planos-tela .q-cab .q-sobre",
+    ".px-meu-plano",
+    ".px-meu-plano svg",
+    ".px-abas-planos",
+    ".px-abas-planos .q-aba",
+    ".px-abas-planos .px-pilula",
+    ".pl-consumo",
+    ".px-consumo",
+    ".px-consumo .q-rotulo",
+    ".px-consumo > b",
+    ".px-consumo .q-barra",
+    ".px-consumo .q-barra > span",
+    ".px-consumo[data-tom='pouco'] .q-barra > span",
+    ".px-consumo > span:last-child",
+    ".pl-renova",
+    ".pl-renova svg"
+  ],
+  "props": [
+    "borderTopStyle",
+    "alignItems",
+    "gridTemplateColumns",
+    "maxWidth",
+    "marginTop",
+    "marginBottom",
+    "order",
+    "textAlign",
+    "justifyContent",
+    "flexDirection",
+    "overflowX",
+    "whiteSpace",
+    "flexWrap",
+    "verticalAlign",
+    "textTransform",
+    "minHeight",
+    "scrollSnapType"
+  ]
+}

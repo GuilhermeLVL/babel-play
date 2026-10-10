@@ -24,12 +24,18 @@ export const comMovimento = (): boolean => polido() && !reduz();
 
 /* ---- A captura pronta ------------------------------------------------------------------------ */
 
-/** `prepararVivo()` de `direto.js:43-46`: o ícone cresce na mola e o resto sobe em cascata. */
+/**
+ * `prepararVivo()` de `direto.js:43-46`: o ícone cresce na mola e o resto sobe em cascata.
+ *
+ * A marca do topo e a nota do nível de serviço ficam DE FORA desta cascata, como no protótipo dos
+ * planos: lá elas são postas na tela depois dela (`planos4.js:293-298`), e a fileira nova tem a sua
+ * (`lib/polimento/niveis.ts`). Sem isto, a marca empurraria em 60 ms cada botão que vem depois dela.
+ */
 export function entrarPronta(v: HTMLElement): void {
   if (!comMovimento()) return;
   const ic = v.querySelector('.px-pronto-miolo .q-ic');
   if (ic) anima(ic, [{ transform: 'scale(0.4)' }, { transform: 'scale(1)' }], { d: 700, atraso: 200, e: MOLA });
-  $$('.px-vivo-topo > *, .px-pronto-miolo > :not(.q-ic)', v).forEach((x, i) =>
+  $$('.px-vivo-topo > :not(.pl-onde), .px-pronto-miolo > :not(.q-ic):not(.pl-nota):not(.pl-sem)', v).forEach((x, i) =>
     anima(
       x,
       [

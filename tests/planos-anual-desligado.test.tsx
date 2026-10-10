@@ -109,18 +109,18 @@ async function abrirCheckout(formaInicial?: 'mensal' | 'anual' | 'anual_12x') {
   return tela
 }
 
-const cartao = (id: 'gratis' | 'premium') => document.querySelector<HTMLElement>(`[data-plano="${id}"]`)!
+const cartao = (id: 'gratis' | 'premium') => document.querySelector<HTMLElement>(`.pl-plano[data-pl-plano="${id}"]`)!
 
 describe('anual desligado', () => {
   it('Planos: sem o seletor Mensal/Anual, e nada na aba promete o anual', async () => {
     montarMocks({ anual: false })
     const { container } = await abrirPlanos()
-    await waitFor(() => expect(screen.queryByRole('radiogroup', { name: 'Período de cobrança' })).toBeNull())
+    await waitFor(() => expect(screen.queryByRole('radiogroup', { name: 'Cobrança' })).toBeNull())
     expect(container.textContent).not.toMatch(PROMETE_O_ANUAL)
     // O mensal e o teste continuam à vista.
     expect(cartao('premium').textContent).toContain('19,90')
     expect(cartao('premium').textContent).toContain('por mês')
-    /* As perguntas do protótipo (`telas2.js:53-58`). */
+    /* As perguntas do protótipo (`planos4.js:585-592`). */
     const perguntas = [/O teste cobra sozinho no fim\?/, /Posso cancelar\?/, /7 dias para desistir com reembolso/]
     for (const p of perguntas) expect(container.textContent).toMatch(p)
   })
@@ -181,10 +181,11 @@ describe('anual ligado (o padrão)', () => {
   ])('Planos com %s: o seletor e as promessas do anual, como sempre', async (_caso, anual) => {
     montarMocks({ anual })
     const { container } = await abrirPlanos()
-    const grupo = screen.getByRole('radiogroup', { name: 'Período de cobrança' })
-    expect(grupo.textContent).toContain('equivale a 4 meses grátis')
-    expect(container.textContent).toMatch(/Qual a diferença entre mensal e anual\?/)
-    expect(container.textContent).toMatch(/Posso passar do mensal para o anual\?/)
+    const grupo = screen.getByRole('radiogroup', { name: 'Cobrança' })
+    /* O desconto do anual no seletor, o preço do ano no cartão e a linha "Por ano" da comparação. */
+    expect(grupo.textContent).toMatch(/até \d+% a menos/)
+    expect(cartao('premium').textContent).toContain('ou R$ 149,90 por ano')
+    expect(container.querySelector('.pl-compara')!.textContent).toContain('Por ano')
     fireEvent.click(screen.getByRole('radio', { name: /Anual/ }))
     expect(cartao('premium').textContent).toContain('149,90')
   })

@@ -374,7 +374,7 @@ const abrirPlanos = async () => {
   await aguardar()
   return tela
 }
-const cartao = (id: 'gratis' | 'premium') => document.querySelector<HTMLElement>(`[data-plano="${id}"]`)!
+const cartao = (id: 'gratis' | 'premium') => document.querySelector<HTMLElement>(`.pl-plano[data-pl-plano="${id}"]`)!
 
 describe('Planos no Quest: a aba Planos', () => {
   it('sem conta, o cartão leva ao login com a intenção guardada', async () => {
@@ -413,11 +413,11 @@ describe('Planos no Quest: Sua assinatura', () => {
   it('o resumo, as três ações com os diálogos de sempre, as faturas com o recibo', async () => {
     await abrirAssinatura()
     expect(screen.getAllByRole('tab').map((a) => a.textContent)).toEqual(['Planos', 'Sua assinatura', 'Consumo do mês'])
-    const resumo = screen.getByRole('region', { name: 'Resumo da assinatura' })
-    expect(resumo.textContent).toContain('Premium · mensal')
-    expect(resumo.textContent).toContain('R$ 19,90 por mês')
-    expect(resumo.textContent).toContain('22/10/2026')
-    expect(resumo.textContent).toContain('Pix')
+    /* O resumo é o cartão do protótipo dos quatro planos (`planos4.js:644-662`), com o dado do servidor. */
+    const resumo = document.querySelector<HTMLElement>('.px-assinatura')!
+    expect(resumo.textContent).toContain('Plano Premium')
+    expect(resumo.textContent).toContain('R$ 19,90 por mês, renovado no dia 22.')
+    expect(botao(/Forma de pagamento/).textContent).toContain('Pix')
 
     fireEvent.click(botao(/Passar para o anual/))
     expect(screen.getByRole('dialog', { name: 'Passar para o anual' })).toBeTruthy()
@@ -436,10 +436,10 @@ describe('Planos no Quest: Sua assinatura', () => {
     expect(screen.getByRole('dialog', { name: 'Recibo pay_1' })).toBeTruthy()
   })
 
-  it('"Cancelar assinatura" abre o cancelamento do headset', async () => {
+  it('"Cancelar a assinatura" abre o cancelamento do headset', async () => {
     await abrirAssinatura()
     await act(async () => {
-      fireEvent.click(botao(/Cancelar assinatura/))
+      fireEvent.click(botao(/Cancelar a assinatura/))
     })
     expect(await screen.findByTestId('cancelar-do-quest')).toBeTruthy()
     expect(screen.getByRole('heading', { level: 1, name: 'Cancelar assinatura' })).toBeTruthy()

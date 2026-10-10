@@ -76,6 +76,18 @@ protótipo **não é portado**; fica anotado aqui, para ele decidir depois o que
 | Planos | Botões "Volta sozinho no fim do teste" e "Voltar ao Grátis"; aviso "o Premium vale até {data}" | `Planos.tsx` | Cancelar continua em "Sua assinatura" |
 | Planos | Comparação: grupos, preço no cabeçalho, linha "Sua própria chave de IA (BYOK)" | `Planos.tsx` | A nota do uso justo virou asterisco e rodapé |
 | Planos | Consumo: ícones, seção "Hoje", cartão da janela do mês, frase "o uso do dia zera à meia-noite" | `Planos.tsx` |  |
+| Planos (4 planos, 10/10) | **Selo "Recomendado" fixo no Premium e o rótulo "Tradução Nuance"** | `Planos.tsx` | O recomendado agora é o do aparelho ("Recomendado aqui") |
+| Planos (4 planos, 10/10) | Itens do Premium: "variantes e glossário" da Nuance, **"Tutor de IA (iChat) sobre o seu material"**, "Voz natural no modo intérprete (em breve)", "Nuvem sem limite no dia a dia" | `planos/dados.ts` (continua valendo em Assinado e Cancelar) | **Atenção:** o iChat continua no plano, só não é dito na tela. O "sem limite no dia a dia" deu lugar a "20 h de nuvem por mês · até 2 h por dia" |
+| Planos (4 planos, 10/10) | Comparação: linhas "Tradução rápida ao vivo", "Tutor de IA (iChat)" e "Armazenamento" | `Planos.tsx` |  |
+| Planos (4 planos, 10/10) | Seletor de período com "equivale a N meses grátis"; no anual, "à vista ou em 12x no cartão · economize R$ X" | `Planos.tsx` | Agora "até N% a menos" e "dá R$ X por mês · N% a menos". O 12x continua no checkout |
+| Planos (4 planos, 10/10) | Perguntas "O Grátis tem limite?", "O que é \"uso justo\"?", "Qual a diferença entre mensal e anual?" e "Posso passar do mensal para o anual?" | `Planos.tsx` | O teto do dia passou para o item do cartão, o pé da tabela e o Consumo |
+| Planos (4 planos, 10/10) | No cartão do próprio plano, "Mudar para o anual / para o mensal" | `Planos.tsx` | O cartão diz "Este é o seu plano"; a troca de ciclo está em Sua assinatura |
+| Planos (4 planos, 10/10) | Sua assinatura de quem assina: cartão de resumo (Valor, Próxima cobrança, Pagamento, Assinante desde), a linha "Passar para o anual / para o mensal" e a faixa "Cancelar assinatura" | `planos/SuaAssinatura.tsx` | Viraram o cartão do protótipo. **"Assinante desde" e "Passar para o mensal" não aparecem mais.** Forma de pagamento, pausa, faturas e a faixa do pagamento que falhou CONTINUAM na aba (o protótipo não as mostra; são da cobrança) |
+| Planos (4 planos, 10/10) | Consumo: "Chamadas à IA de nuvem", "Tokens de IA (tradução e tutor)" do mês e o aviso "Chamadas e tokens de IA de nuvem fazem parte do Premium" | `Planos.tsx` | Os medidores do mês agora são por nível (Precisão, Ao vivo). "Nuvem hoje" e "IA hoje" CONTINUAM, com a nota do uso justo (CDC) |
+| Planos (4 planos, 10/10) | **Do protótipo, fora por decisão (design §11):** "Sincronização entre os seus aparelhos" (item do Essencial e linha da comparação) | `planos4.js:89, 582` | Decisão 9: o Grátis também guarda no servidor |
+| Planos (4 planos, 10/10) | **Do protótipo, fora enquanto a flag `anuncios` estiver desligada:** "Com anúncios leves", "Sem anúncios", a linha "Anúncios", "amostra por anúncio", a pergunta "Por que o Grátis tem anúncio?", "Sem anúncios · Nuance", "tira os anúncios" | `planos4.js:79, 83-87, 575, 577, 589` | Decisão 13. Entram sozinhos quando a flag ligar. No lugar da amostra, o Grátis mostra a nuvem de alívio do aparelho fraco (decisão 8) |
+| Planos (4 planos, 10/10) | **Do protótipo, frases do Quest ajustadas:** "Sem nuvem não há legenda nem intérprete aqui", "Não existe de graça neste aparelho", "no Quest não existe", "O Quest não deixa um site ouvir o som de outro aplicativo" | `planos4.js:61-66, 586-587` | O inglês roda no aparelho, e o Quest ouve o som do headset pelo compartilhamento de tela (`lib/dispositivo/perfil.ts`, medido em 01/10) |
+| Planos (4 planos, 10/10) | **Do protótipo, sem dado no servidor:** "18 consultas neste mês" da Tradução Nuance; "Voltar ao Grátis agora" durante o teste | `planos4.js:639, 658` | O cartão diz só "Incluída"; o teste acaba sozinho (não há rota para encerrá-lo) |
 | Oferta | Selo abaixo do texto e o rótulo "Dispensar aviso" | `CartaoDeOfertaDoQuest.tsx` | Virou "Fechar" |
 | Personalizar | Inventário por seção na própria tela (Efeitos, Legendas, Cartões, Efeitos de jogo, Moldura e título, Capacidades, Perfis, Acessibilidade) | `Personalizar.tsx`, `Inventario.tsx` | **Continua funcionando**: abre numa folha ao tocar nas linhas Tema, Partículas, Fonte e Menu da Coleção |
 | Personalizar | Moldura e título de perfil no cabeçalho | `CascaDePersonalizarNoQuest` | Continuam equipáveis na folha, mas não aparecem no alto |
@@ -98,3 +110,34 @@ protótipo **não é portado**; fica anotado aqui, para ele decidir depois o que
 | Sessão, Leitura | Botão "Parar e voltar ao início", dica "Clique numa palavra…", ícones dos modos e do "Voz, idioma e tom", contagem do chip "Estudos & notas" | `Reading.tsx` | O botão principal continua pausando e retomando |
 | Sons | Som do botão ativado pelo teclado | `sfxDelegate.ts` | Com a camada ligada vale a regra do protótipo: só o toque soa |
 | Sons | Som de sucesso e de erro dos avisos | `Toast.tsx` | Dão lugar ao som de "aviso" do protótipo |
+
+## Nível de serviço na Captura (protótipo `anuncios-no-gratis`, 10/10/2026)
+
+Porte de `planos4.js:115-437` para `src/components/views/captura/niveis/`. Aqui a tabela é ao contrário
+da de cima: o que o **protótipo mostra** e o app **ainda não tem** (pendente, não inventado), e o que
+mudou de texto porque a folha só afirma o que o código faz.
+
+| Peça | O que ficou pendente ou mudou | Por quê | O que destrava |
+|---|---|---|---|
+| Fileira do nível | **Chip "Precisão: ganhar 30 min · Anúncio"** (a amostra de nuvem por anúncio no Grátis). O lugar dele (`.pl-vaga`) fica vazio | A flag `anuncios` não existe | Anúncios no Grátis (`design.md` §11, itens 8 e 13) |
+| Folha do cadeado | Bloco "Quer provar antes? Veja um anúncio…" (`.pl-amostra`) | Idem | Idem |
+| Seletor | **"Ao vivo" funcionando.** Tem cadeado para todo plano, inclusive o que declara `sttAoVivo`; nesse caso a folha diz "ainda não está disponível" em vez de oferecer plano | O transporte em fluxo não existe no servidor (`design.md` §11, item 12) | Flag `stt_ao_vivo` e o transporte; trocar `TRANSPORTE_AO_VIVO_EXISTE` em `lib/captura/nivelDeServico.ts` |
+| Seletor | Etiqueta "amostra" na Precisão do Grátis e a marca "amostra de hoje: 30 min" | Sem anúncios não há amostra | Anúncios no Grátis |
+| Seletor | Nível "No aparelho" riscado no Quest ("não existe neste aparelho") | Decisão do dono: no Quest o inglês roda no aparelho | Nada: não vale para o app |
+| Tela pronta | **Quest sem legenda** ("No Quest, a legenda precisa da nuvem", "Testar o Premium por 14 dias", "Legenda indisponível aqui") | Idem. A captura do Quest fica como está, só com o seletor e a marca (sem medidor e sem nota) | Nada: não vale para o app |
+| Tela pronta | Nota "Este celular não tem tradutor embutido" com "Baixar · grátis" | Fora do pedido desta passada; o app já avisa do tradutor pelo preparo dos modelos | Uma passada própria |
+| Marca | Textos "grátis · seu áudio não sai daqui", "Nuvem · Precisão · por trechos · nada fica guardado", "Recurso do aparelho", "Sem internet · no aparelho" | A marca usa o texto do selo da fala (`seloDaFala.ts`): "No aparelho", "Pelo navegador", "Nuvem do Babel" e a forma "Vai…" antes da primeira fala. "Nada fica guardado" não é afirmado: a retenção do provedor não foi conferida | Conferir a retenção zero na conta do provedor |
+| Marca | Com as horas esgotadas o protótipo diz "No aparelho · as horas de nuvem acabaram". No app, antes da primeira fala, a marca continua dizendo o previsto ("Vai pela Nuvem do Babel"), em tom de alerta; o chip e a nota dizem que as horas acabaram | A rota de hoje tenta a nuvem primeiro e é o servidor que recusa; a política que desce sozinha por cota (`cota-do-mes`) está desligada e não recebe o restante | Ligar a política (`rota_inteligente`) com o restante por nível |
+| Marca | Sem marca quando o provedor é a chave da própria pessoa e ainda não houve fala | O selo não afirma o que não sabe (`nuvemPorChavePropria`) | Nada |
+| Como isto funciona | "Como o app escolhe sozinho": o protótipo diz "primeiro o que é grátis… nuvem só quando vale a pena" | Isso é a política nova. Hoje quem tem nuvem no plano vai à nuvem primeiro (`escolhaDeHoje`); a folha descreve o que acontece | Ligar a política |
+| Como isto funciona | "O que é enviado": saíram "com a ordem de não guardar" e "nunca é usado para escolher anúncio" | Não conferido no código; ficou "o áudio vai para o nosso servidor" | Retenção conferida; anúncios |
+| Como isto funciona | "Modelo baixado neste aparelho: 589 MB" virou a linha real do chip ("Modelo local · N MB") | O tamanho é o do modelo desta rota, e a folha não afirma que já foi baixado | Nada |
+| Como isto funciona | **"Testar sem internet"** (spec `transparencia-da-fala`) | O protótipo não tem o botão; não foi inventado | Desenho do dono |
+| Folha do cadeado | "No Quest é o único jeito de ter legenda e intérprete" virou "No Quest o inglês roda no aparelho. Vale para os outros idiomas e para áudio com barulho." | Decisão do dono sobre o Quest | Nada |
+| Folha do cadeado | A porta "Ver o {plano}" só nomeia plano À VENDA; o plano e as horas vêm da matriz. A tela Planos só sabe destacar o Premium (`lib/ofertas/destaque.ts`) | Com a venda v3 fechada, só o Premium é vendido | Destaque por plano na tela Planos |
+| Intérprete | A mesma marca na faixa do meio (`.pl-int-onde`) | Fora do pedido (o intérprete é de outra passada); o CSS continua adiado em `trazer-css.mjs` | Passada do intérprete |
+| Ajustes › Processamento | Os três níveis como opções e o medidor do mês | Fora do pedido; CSS adiado | Passada dos Ajustes |
+
+O que o app tem na Captura e o protótipo não mostra **continua onde estava** (nada foi tirado nesta
+passada): o seletor "Qualidade" dos Ajustes da captura (Automática, Rápida, Precisa, Nuvem), que grava a
+mesma preferência do seletor de nível; o aviso de nuvem sem consentimento; o aviso do uso do dia.

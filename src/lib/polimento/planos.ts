@@ -1,12 +1,21 @@
 /**
- * PLANOS E OFERTA — porte de `telas2.js:9-25, 108-117, 622-634`, `telas.js:484-519` e
- * `prototipo.js:816-834`, com os mesmos números.
+ * PLANOS E OFERTA — porte de `telas2.js:9-25, 108-117, 622-634`, `telas.js:484-519`,
+ * `prototipo.js:816-834` e `planos4.js:685-704` (os quatro planos), com os mesmos números.
+ *
+ * O MODO DE PROVA, SÓ EM DESENVOLVIMENTO (`provaDosPlanos`, no fim do arquivo, com a explicação). As
+ * chaves do `localStorage`:
+ *   babel.px.planoDeProva         free | essencial | premium | aovivo   (o plano que a tela trata como seu)
+ *   babel.px.testeDeProva         1                                      (em teste de 14 dias do Premium)
+ *   babel.px.planosAVendaDeProva  premium | essencial,premium | essencial,premium,aovivo
+ *   babel.px.aparelhoDeProva      pc | fraco | celular | quest
+ *   babel.px.anunciosDeProva      1                                      (como se a flag `anuncios` existisse)
  *
  * No protótipo a tela de Planos é um `innerHTML` que ele mesmo troca (`repintar`); no app quem troca o
  * miolo é o React, e estas funções rodam logo depois, sobre o que ele desenhou.
  *
  * Itens da lista `fidelidade/casca-e-telas.md`: D54–D59.
  */
+import { ehPlanoPago, type PlanoPago, PLANOS_PAGOS } from '../../core/planos';
 import { anima, EG, MOLA, MOLA_SUAVE, polido, reduz } from './base';
 import { sentir, vibrar } from './sentidos';
 
@@ -201,24 +210,114 @@ export function sairOferta(o: HTMLElement | null, depois: () => void): void {
   anima(o, [{ opacity: 0, translate: '0 120%' }], { d: 280, e: EG, fill: 'forwards' }).finished.then(fim, fim);
 }
 
-/* ---- A bancada ------------------------------------------------------------------------------------ */
+/* ---- Os cartões no lugar (`arrumarPlanos`, `planos4.js:685-704`) -------------------------------- */
 
-const CHAVE_DA_PROVA = 'babel.px.planoDeProva';
+/** `celular()` do protótipo (`prototipo.js:406-407`). */
+const noTamanhoDeCelular = (): boolean => typeof matchMedia === 'function' && matchMedia('(max-width: 720px)').matches;
 
 /**
- * SÓ NA BANCADA: o servidor local é `selfhost` (tudo liberado), e ali a tela de Planos de quem está
- * no Grátis e a oferta nunca aparecem. Com `localStorage['babel.px.planoDeProva'] = 'free'` o
- * comparador (`scripts/polimento/roteiros/planos*.json`, `oferta*.json`) as vê como o Grátis as vê.
- *
- * Cercada por `import.meta.env.DEV`, como `liberacaoDev.ts`: num build de produção devolve `null`
- * antes de olhar o armazenamento. Muda só o que a tela DESENHA; quem concede plano é o servidor.
+ * Depois de pintar a aba Planos: no tamanho de celular o carrossel para no cartão `alvo` (o recomendado
+ * para o aparelho), centralizado. Com `destaque` (um cadeado ou a oferta pediu este plano), a tela rola
+ * até o cartão e ele pulsa por 2,6 s (`.ad-aqui`), 700 ms depois de a tela entrar (60 ms sem movimento).
  */
-export function planoDeProva(): 'free' | null {
-  const env = (import.meta as unknown as { env?: Record<string, unknown> }).env;
-  if (!env?.DEV) return null;
+export function arrumarPlanos(palco: HTMLElement | null, alvo: string | null, destaque = false): void {
+  const grade = palco?.querySelector<HTMLElement>('.pl-planos-grade');
+  if (!grade || !alvo) return;
+  const cartao = grade.querySelector<HTMLElement>(`[data-pl-plano="${alvo}"]`);
+  if (!cartao) return;
+  if (noTamanhoDeCelular()) grade.scrollLeft = cartao.offsetLeft - (grade.clientWidth - cartao.offsetWidth) / 2;
+  if (!destaque) return;
+  window.setTimeout(
+    () => {
+      if (!cartao.isConnected) return;
+      cartao.scrollIntoView?.({ block: 'center', inline: 'center', behavior: reduz() ? 'auto' : 'smooth' });
+      cartao.classList.add('ad-aqui');
+      window.setTimeout(() => cartao.classList.remove('ad-aqui'), 2600);
+    },
+    comMovimento() ? 700 : 60,
+  );
+}
+
+/* ---- A bancada ------------------------------------------------------------------------------------ */
+
+/**
+ * O MODO DE PROVA — SÓ EM DESENVOLVIMENTO (`import.meta.env.DEV`, como `liberacaoDev.ts`): num build de
+ * produção `provaDosPlanos()` devolve tudo vazio ANTES de olhar o armazenamento.
+ *
+ * Existe porque o servidor local é `selfhost` (tudo liberado) e a venda dos planos novos nasce
+ * fechada: sem isto ninguém vê a tela de quem está no Grátis, nem os quatro cartões. Muda só o que a
+ * tela DESENHA; quem concede plano e quem vende continua sendo o servidor.
+ *
+ * As chaves do `localStorage` (apague a chave para voltar ao real):
+ *
+ *   babel.px.planoDeProva          o plano que a tela trata como o seu:
+ *                                  free | essencial | premium | aovivo
+ *   babel.px.testeDeProva          1 = em teste de 14 dias (o plano vira o Premium, "em teste")
+ *   babel.px.planosAVendaDeProva   os planos pagos à venda, separados por vírgula, na ordem que for:
+ *                                  "premium" (o estado de fábrica) · "essencial,premium" (com
+ *                                  venda_planos_v3) · "essencial,premium,aovivo" (com stt_ao_vivo também)
+ *   babel.px.aparelhoDeProva       o aparelho do cartão "Você está num…" e do "Recomendado aqui":
+ *                                  pc | fraco | celular | quest
+ *   babel.px.anunciosDeProva       1 = como se a flag `anuncios` estivesse ligada (as linhas de anúncio
+ *                                  do protótipo aparecem)
+ *
+ * No console do navegador, por exemplo, para ver os quatro planos como um assinante do Essencial:
+ *   localStorage['babel.px.planoDeProva'] = 'essencial';
+ *   localStorage['babel.px.planosAVendaDeProva'] = 'essencial,premium,aovivo'; location.reload()
+ *
+ * Quem usa: a tela Planos, a oferta e o cartão do plano em Ajustes (`planoDeProva`), e o comparador
+ * (`scripts/polimento/roteiros/planos*.json`, `oferta*.json`).
+ */
+const CHAVE_DA_PROVA = 'babel.px.planoDeProva';
+const CHAVE_DO_TESTE_DE_PROVA = 'babel.px.testeDeProva';
+const CHAVE_DOS_PLANOS_A_VENDA_DE_PROVA = 'babel.px.planosAVendaDeProva';
+const CHAVE_DO_APARELHO_DE_PROVA = 'babel.px.aparelhoDeProva';
+const CHAVE_DOS_ANUNCIOS_DE_PROVA = 'babel.px.anunciosDeProva';
+
+export type PlanoDeProva = 'free' | PlanoPago;
+export type AparelhoDeProva = 'pc' | 'fraco' | 'celular' | 'quest';
+
+export interface ProvaDosPlanos {
+  plano: PlanoDeProva | null;
+  teste: boolean;
+  /** `null` = a venda real (o servidor e as flags). */
+  aVenda: PlanoPago[] | null;
+  aparelho: AparelhoDeProva | null;
+  anuncios: boolean;
+}
+
+const SEM_PROVA: ProvaDosPlanos = { plano: null, teste: false, aVenda: null, aparelho: null, anuncios: false };
+
+const emDesenvolvimento = (): boolean => !!(import.meta as unknown as { env?: Record<string, unknown> }).env?.DEV;
+
+/** Tudo o que a bancada simula na tela Planos. Fora do desenvolvimento, nada. */
+export function provaDosPlanos(): ProvaDosPlanos {
+  if (!emDesenvolvimento()) return SEM_PROVA;
   try {
-    return localStorage.getItem(CHAVE_DA_PROVA) === 'free' ? 'free' : null;
+    const plano = localStorage.getItem(CHAVE_DA_PROVA);
+    const aVenda = localStorage.getItem(CHAVE_DOS_PLANOS_A_VENDA_DE_PROVA);
+    const aparelho = localStorage.getItem(CHAVE_DO_APARELHO_DE_PROVA);
+    return {
+      plano: plano === 'free' || ehPlanoPago(plano) ? plano : null,
+      teste: localStorage.getItem(CHAVE_DO_TESTE_DE_PROVA) === '1',
+      aVenda:
+        aVenda === null
+          ? null
+          : PLANOS_PAGOS.filter((p) =>
+              aVenda
+                .split(',')
+                .map((x) => x.trim())
+                .includes(p),
+            ),
+      aparelho: (['pc', 'fraco', 'celular', 'quest'] as const).find((a) => a === aparelho) ?? null,
+      anuncios: localStorage.getItem(CHAVE_DOS_ANUNCIOS_DE_PROVA) === '1',
+    };
   } catch {
-    return null;
+    return SEM_PROVA;
   }
+}
+
+/** O plano de prova (`babel.px.planoDeProva`), ou `null`: só em desenvolvimento. */
+export function planoDeProva(): PlanoDeProva | null {
+  return provaDosPlanos().plano;
 }

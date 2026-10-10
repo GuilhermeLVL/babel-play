@@ -14,6 +14,7 @@
  *     "seletores": [".q-cab h1", { "app": ".a", "proto": ".b", "nome": "titulo" }],
  *     "props": ["fontSize"],            // além das de sempre (ver PROPS)
  *     "escuro": true,                 // tema escuro (o padrão é o claro)
+ *     "prototipo": "anuncios-no-gratis", // outro protótipo de docs/prototipos (o padrão é polimento-movimento)
  *     "gravar": { "app": [ ...passos ], "proto": [ ...passos ], "espera": 900 } }
  *   passo: { "clicar": "seletor" } | { "texto": "rótulo visível" } | { "esperar": ms }
  *        | { "js": "expressão" } | { "tecla": "Escape" } | { "rolar": "seletor" }
@@ -21,6 +22,9 @@
  * Saída: duas capturas e um JSON em `test-results/comparar/<nome>/`, e na tela só o que DIFERE: caixa
  * (largura × altura, tolerância de 1 px), estilos computados e as animações disparadas em `gravar`
  * (duração, atraso, curva, quadros). Sai com código 1 se houver diferença.
+ *
+ * Variáveis de ambiente: `APP_URL` (o app; padrão http://localhost:3177) e `PROTOTIPOS_DIR` (a pasta
+ * dos protótipos montados, quando eles não estão em `docs/prototipos` desta árvore).
  */
 /* As funções passadas a `page.evaluate`/`addInitScript` rodam no navegador. */
 /* global window, document, Element, getComputedStyle, sessionStorage, localStorage */
@@ -32,7 +36,6 @@ import { chromium } from 'playwright'
 
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const APP = process.env.APP_URL || 'http://localhost:3177'
-const PROTO = pathToFileURL(join(RAIZ, 'docs/prototipos/polimento-movimento.html')).href
 
 const PROPS = [
   'display',
@@ -70,6 +73,12 @@ if (!arquivo) {
 }
 const so = resto.includes('--so') ? resto[resto.indexOf('--so') + 1] : null
 const roteiro = JSON.parse(readFileSync(arquivo, 'utf8'))
+const PROTO = pathToFileURL(
+  join(
+    process.env.PROTOTIPOS_DIR || join(RAIZ, 'docs/prototipos'),
+    `${roteiro.prototipo || 'polimento-movimento'}.html`,
+  ),
+).href
 const pasta = join(RAIZ, 'test-results/comparar', roteiro.nome)
 mkdirSync(pasta, { recursive: true })
 

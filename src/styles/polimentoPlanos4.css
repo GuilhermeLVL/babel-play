@@ -1,0 +1,14 @@
+/* A TELA PLANOS COM MENOS DE QUATRO CARTÕES.
+
+   O protótipo (`planos4.css:150`) sempre desenha os quatro planos, em quatro colunas. No app só aparece
+   o que está à venda para a pessoa: com as flags de venda desligadas são dois cartões (Grátis e Premium),
+   com `venda_planos_v3` são três. Sem isto os cartões ficariam em quatro colunas com buracos à direita.
+   Só no computador largo: no tablet (duas colunas) e no celular (carrossel) vale a regra do protótipo. */
+@media (min-width: 1180px) {
+  html[data-px='on'] .pl-planos-grade[data-pl-n='2'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  html[data-px='on'] .pl-planos-grade[data-pl-n='3'] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

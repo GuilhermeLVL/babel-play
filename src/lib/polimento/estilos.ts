@@ -16,3 +16,6 @@ import '../../styles/polimento/jogos.css';
 import '../../styles/polimento/jogos3.css';
 import '../../styles/polimento/jogos4.css';
 import '../../styles/polimento/agua.css';
+/* O protótipo dos quatro planos (`anuncios-no-gratis-src/montar.mjs:77-78`): só o que a tela Planos usa. */
+import '../../styles/polimento/anuncios.css';
+import '../../styles/polimento/planos4.css';

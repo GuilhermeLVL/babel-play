@@ -1,7 +1,11 @@
 /**
  * TRAZ O CSS DO PROTÓTIPO DE POLIMENTO PARA O APP, SEM REESCREVER.
  *
- *     node scripts/polimento/trazer-css.mjs "<pasta polimento-movimento-src do protótipo>"
+ *     node scripts/polimento/trazer-css.mjs "<pasta polimento-movimento-src do protótipo>" ["<pasta anuncios-no-gratis-src>"]
+ *
+ * A SEGUNDA PASTA (opcional) é a do protótipo dos QUATRO PLANOS (`anuncios-no-gratis-src`): dela vêm
+ * só os arquivos da tabela `DA_SEGUNDA_PASTA`. Sem ela, esses arquivos ficam como
+ * estão (os outros são iguais nas duas pastas, conferido em 09/10/2026).
  *
  * Por que copiar e não reescrever: o protótipo é um clone do DOM do desenho novo (`.q-*`, `.hud`,
  * `.cab`…) e a camada dele é ADITIVA, toda sob `html[data-px='on']`. O app passa a pôr a mesma marca
@@ -22,6 +26,7 @@ if (!origem) {
   console.error('Diga a pasta do protótipo (polimento-movimento-src).')
   process.exit(1)
 }
+const origemDosPlanos = process.argv[3]
 const destino = join(dirname(fileURLToPath(import.meta.url)), '../../src/styles/polimento')
 
 /** Linhas a tirar de cada arquivo (1 = primeira, inclusivas). `adiado`: entra quando o item for portado. */
@@ -50,9 +55,39 @@ const ARQUIVOS = {
   'agua.css': [],
 }
 
+/** Os arquivos que só existem no protótipo dos quatro planos (a segunda pasta). */
+const DA_SEGUNDA_PASTA = {
+  /* A TELA PLANOS (cartão do aparelho, ciclo, quatro cartões, comparação, consumo) e, desde 10/10/2026,
+     a CAPTURA (seletor de nível, marca de onde a fala é processada, medidor, notas e as folhas "Como isto
+     funciona" e do cadeado: `views/captura/niveis/`). O resto mexe em telas que ainda não foram portadas
+     (`.px-int .int-centro`, Ajustes › Processamento) e mudaria o app. */
+  'planos4.css': [
+    { de: 81, ate: 90, adiado: 'a marca na faixa do meio do Intérprete' },
+    { de: 189, ate: 196, adiado: 'Ajustes › Processamento com os três níveis' },
+    { de: 266, ate: 267, adiado: 'Ajustes › Processamento com os três níveis (celular)' },
+    { de: 270, ate: 292, motivo: 'barra do protótipo e Mapa dos planos' },
+  ],
+  /* Da camada de anúncios a tela Planos só usa a etiqueta pequena do seletor de ciclo e o pulso que
+     aponta o cartão pedido; as folhas do nível (captura) usam o link discreto (`.ad-sem`), a segunda
+     linha (`.ad-sub`) e a folha de confirmação (`.ad-confirma`, `.ad-lista`). O resto entra com os
+     anúncios (flag `anuncios`). */
+  'anuncios.css': [
+    { de: 1, ate: 17, adiado: 'anúncios no Grátis (flag anuncios)' },
+    { de: 32, ate: 50, adiado: 'anúncios no Grátis (flag anuncios)' },
+    { de: 64, ate: 158, adiado: 'anúncios no Grátis (flag anuncios)' },
+    { de: 160, ate: 248, adiado: 'anúncios no Grátis (flag anuncios)' },
+    { de: 266, ate: 443, adiado: 'anúncios no Grátis (flag anuncios)' },
+    { de: 446, ate: Infinity, adiado: 'anúncios no Grátis (flag anuncios)' },
+  ],
+}
+
 mkdirSync(destino, { recursive: true })
-for (const [nome, cortes] of Object.entries(ARQUIVOS)) {
-  const linhas = readFileSync(join(origem, nome), 'utf8').replace(/\r\n/g, '\n').split('\n')
+const TODOS = [
+  ...Object.entries(ARQUIVOS).map(([nome, cortes]) => [nome, cortes, origem]),
+  ...(origemDosPlanos ? Object.entries(DA_SEGUNDA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDosPlanos]) : []),
+]
+for (const [nome, cortes, pasta] of TODOS) {
+  const linhas = readFileSync(join(pasta, nome), 'utf8').replace(/\r\n/g, '\n').split('\n')
   const fora = (n) => cortes.find((c) => n >= c.de && n <= c.ate)
   const corpo = []
   let ultimo = null
@@ -70,7 +105,7 @@ for (const [nome, cortes] of Object.entries(ARQUIVOS)) {
     }
   })
   const cabecalho =
-    `/* GERADO por scripts/polimento/trazer-css.mjs a partir de ${nome} do protótipo de polimento.\n` +
+    `/* GERADO por scripts/polimento/trazer-css.mjs a partir de ${nome} do protótipo ${pasta === origem ? 'de polimento' : 'dos quatro planos'}.\n` +
     `   NÃO EDITAR À MÃO: mude a tabela do script e gere de novo. As regras são as do protótipo, sem\n` +
     `   reescrita; valem sob html[data-px='on'], a marca que src/lib/polimento/base.ts põe. */\n`
   writeFileSync(join(destino, nome), cabecalho + corpo.join('\n').trimEnd() + '\n')

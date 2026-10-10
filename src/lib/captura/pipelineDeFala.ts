@@ -1467,11 +1467,19 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
    *
    * Só o que JÁ ESTÁ NO NAVEGADOR: baixar é decisão da pessoa, tomada no "Iniciar". Rota de nuvem
    * também não aquece nada (o modelo local ali é só reserva). Nunca lança.
+   *
+   * O PREVISTO DO SELO sai daqui em TODO caso (com a nuvem primeiro, com o modelo já pronto, sem nada
+   * em cache): a marca da tela pronta diz onde a fala VAI ser processada antes de qualquer captura, e
+   * acompanha a troca de idioma, de nível e de conexão. É só a resposta da política; nada aquece por isso.
    */
   const preaquecerModelos = async (): Promise<void> => {
     try {
-      if (getProviderMode() === 'cloud' || prepareEmVooRef.current || modelReadyRef.current) return;
+      if (prepareEmVooRef.current) return;
       const { route, previstos, perfil, mtDe, mtPara, micVaiAoWhisper } = await rotaDaCaptura();
+      // Uma preparação que começou enquanto a rota era lida publica o previsto dela.
+      if (prepareEmVooRef.current) return;
+      setRotaPrevista?.(previstos);
+      if (getProviderMode() === 'cloud' || modelReadyRef.current) return;
       if (route.preferCloud) return;
       /* NATIVO PRIMEIRO (plano "Grátis sem travar", A9a): o áudio da aba vai ao reconhecedor do
          navegador, no aparelho, e a sua voz não passa pelo Whisper → aquecê-lo seria memória e CPU à
@@ -1492,7 +1500,6 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           device: route.device,
         });
         setSttRouteLabel(route.label);
-        setRotaPrevista?.(previstos);
         clog('pré-aquecendo o STT local (em cache):', route.localModel, route.dtype);
         sttAquecendo = gateway.stt
           .preloadModel(undefined, { aoDegradar: avisarDegradacao })

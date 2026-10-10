@@ -186,7 +186,13 @@ describe('as frases da área não falam em headset', () => {
   const semComentarios = (fonte: string) => fonte.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/.*$/gm, '$1')
 
   it('nenhuma frase com "headset" ou "Quest" fora dos comentários', () => {
-    const arquivos = [...ARQUIVOS_SOLTOS.map((a) => join(RAIZ, a)), ...PASTAS.flatMap((p) => listar(join(RAIZ, p)))]
+    /* FORA DA VARREDURA, com o motivo: `quatroPlanos.ts` traz os textos da tela dos quatro planos, que
+       falam do Quest como APARELHO de quem lê ("celular, notebook fraco, Quest", o cartão "Você está num
+       Meta Quest", que só aparece no headset: `aparelhoAtual()`), não como o desenho da tela. */
+    const arquivos = [
+      ...ARQUIVOS_SOLTOS.map((a) => join(RAIZ, a)),
+      ...PASTAS.flatMap((p) => listar(join(RAIZ, p))),
+    ].filter((a) => !a.replace(/\\/g, '/').endsWith('views/planos/quatroPlanos.ts'))
     expect(arquivos.length).toBeGreaterThan(30)
     for (const arquivo of arquivos) {
       const codigo = semComentarios(readFileSync(arquivo, 'utf8'))

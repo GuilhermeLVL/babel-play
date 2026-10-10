@@ -92,7 +92,7 @@ describe('Planos → Consumo do mês: o medidor "Hoje"', () => {
     expect(medidor.getAttribute('aria-valuetext')).toBe('1 h 30 min de 2 h')
     expect(medidor.getAttribute('aria-valuenow')).toBe('75')
     // os do mês continuam lá
-    expect(screen.getByRole('progressbar', { name: 'Áudio transcrito na nuvem' })).toBeTruthy()
+    expect(screen.getByRole('progressbar', { name: 'Nuvem · Precisão' })).toBeTruthy()
     expect(screen.getByRole('progressbar', { name: 'IA hoje (tradução e tutor)' })).toBeTruthy()
     // sem "%" e sem "qualidade" no texto da tela
     expect(document.body.textContent).not.toMatch(/%|qualidade/i)
@@ -113,7 +113,7 @@ describe('Planos → Consumo do mês: o medidor "Hoje"', () => {
   it('sem `hoje` (plano sem teto no dia), nenhum medidor do dia e nenhuma nota', async () => {
     usoDoServidor.valor = uso(null)
     await abrirConsumo()
-    await screen.findByRole('progressbar', { name: 'Áudio transcrito na nuvem' })
+    await screen.findByRole('progressbar', { name: 'Nuvem · Precisão' })
     expect(screen.queryByRole('progressbar', { name: 'Nuvem hoje' })).toBeNull()
   })
 })

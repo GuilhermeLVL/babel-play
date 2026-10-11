@@ -284,7 +284,7 @@ jobs:
       # caiu no JSON da suíte.
       - name: Artefato da fatia (blob do vitest)
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: vitest-fatia-${{ matrix.fatia }}
           path: vitest-fatias/
@@ -333,7 +333,7 @@ jobs:
         run: npx vitest run --merge-reports=vitest-fatias --coverage --reporter=default --reporter=json --outputFile.json=vitest-resultado.json
       - name: Artefato da cobertura
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: cobertura
           path: |
@@ -342,7 +342,7 @@ jobs:
           if-no-files-found: ignore
       - name: Artefato da suite (vitest)
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: vitest-resultado
           path: vitest-resultado.json
@@ -404,7 +404,7 @@ jobs:
       # runner: a configuracao existia, a evidencia nao.
       - name: Artefato do e2e (trace, screenshot)
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-resultado-${{ matrix.projeto }}-${{ matrix.fatia }}de${{ matrix.fatias }}
           path: |
@@ -475,7 +475,7 @@ jobs:
         timeout-minutes: 5
       - name: Artefato da suíte de carga
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: suite-carga
           path: suite-carga.json
@@ -515,7 +515,7 @@ jobs:
         timeout-minutes: 10
       - name: Artefato do e2e público
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-publico
           path: test-results/
@@ -587,7 +587,7 @@ jobs:
       # Trace e screenshot de falha (`retain-on-failure` na config) e as fotos das telas.
       - name: Artefato do e2e estático (trace, screenshot)
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-estatica-${{ matrix.projeto }}-${{ matrix.fatia }}de2
           path: test-results/
@@ -633,7 +633,7 @@ jobs:
           no-cache: ${{ github.ref == 'refs/heads/main' }}
           provenance: false
       - name: Artefato da imagem (para os dois jobs de baixo)
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: imagem-docker
           path: ${{ runner.temp }}/babel-play-ci.tar
@@ -728,7 +728,7 @@ jobs:
           upload-artifact: false
       - name: Artefato da varredura e do SBOM
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: imagem-trivy-sbom
           path: |

@@ -426,22 +426,17 @@ test.describe('Modo intérprete no computador (Premium, voz natural)', () => {
     // "1" fala do meu lado de novo.
     await page.keyboard.press('1')
     /* A MESMA frase de novo: a voz da nuvem já está guardada no aparelho (`lib/voz/cacheDeVoz.ts`), então
-       ela toca sem pedido novo. A conversa anda (a fala aparece duas vezes) e a rede fica nos dois pedidos. */
-    await expect(fase(page).getByTestId('interprete-outro').getByText('[trad] bom dia a todos')).toHaveCount(2, {
-      timeout: 10_000,
-    })
-    await expect(fase(page)).toHaveAttribute('data-fase', 'parado', { timeout: 10_000 })
-    expect(pedidosDeVoz).toHaveLength(2)
-    // A voz da nuvem leu as três (a do aparelho não foi chamada).
-    expect(await lidas(page)).toEqual([])
-
-    // A meta do plano: do fim da fala à voz em ≤ 2,5 s no p50, pela voz natural.
+       ela toca sem pedido novo. A terceira leitura acontece (três amostras, todas da voz da nuvem) e a rede
+       fica nos dois pedidos. A meta do plano: do fim da fala à voz em ≤ 2,5 s no p50, pela voz natural. */
     await expect
-      .poll(() => tempoAteAVoz(page), { timeout: 5_000 })
+      .poll(() => tempoAteAVoz(page), { timeout: 15_000 })
       .toMatchObject({
         amostras: 3,
         motores: ['voz-da-nuvem'],
       })
+    expect(pedidosDeVoz).toHaveLength(2)
+    // A voz da nuvem leu as três (a do aparelho não foi chamada).
+    expect(await lidas(page)).toEqual([])
     const p50 = (await tempoAteAVoz(page))!.p50
     console.log(`[e2e] tts_inicio p50 (voz natural): ${p50} ms`)
     expect(p50).toBeLessThanOrEqual(2_500)

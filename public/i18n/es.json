@@ -1040,10 +1040,6 @@
   "Palavras prontas do app, por nível. Servem para quem ainda não tem as suas e para completar o que falta.": "Palabras listas de la app, por nivel. Sirven para quien aún no tiene las suyas y para completar lo que falta.",
   "Arquivo do Anki, lista ou texto colado, vídeo ou PDF. Ela já vem escolhida.": "Archivo de Anki, lista o texto pegado, vídeo o PDF. Ya viene elegida.",
   "Conteúdo selecionado": "Contenido seleccionado",
-  "e mais {n} jogos pelo mesmo motivo": {
-    "one": "y {n} juego más por el mismo motivo",
-    "other": "y {n} juegos más por el mismo motivo"
-  },
   "Conteúdo: {nome} em {idioma}": "Contenido: {nome} en {idioma}",
   "Conteúdo: {nome}": "Contenido: {nome}",
   "{rotulo}. Trocar": "{rotulo}. Cambiar",
@@ -1374,9 +1370,6 @@
   "com palavras faladas": "con palabras habladas",
   "Precisa de internet para ouvir a sua voz.": "Necesita internet para oír tu voz.",
   "Precisa de {min} frases com conector; a Trilha quase não tem.": "Necesita {min} frases con conector; la Ruta casi no tiene.",
-  "Precisa de voz de leitura em {idioma}; este navegador não tem.": "Necesita voz de lectura en {idioma}; este navegador no la tiene.",
-  "Precisa de palavras separadas por espaço; {idioma} não as separa.": "Necesita palabras separadas por espacios; {idioma} no las separa.",
-  "Precisa do alfabeto latino; {idioma} não é escrito com ele.": "Necesita el alfabeto latino; {idioma} no se escribe con él.",
   "Baixando o áudio da gravação…": "Descargando el audio de la grabación…",
   "Precisa de {min} frases com áudio; aqui há {ha}.": "Necesita {min} frases con audio; aquí hay {ha}.",
   "Precisa de {min} frases; aqui há {ha}.": "Necesita {min} frases; aquí hay {ha}.",
@@ -1610,5 +1603,19 @@
   "{n} lembradas": {
     "one": "{n} recordada",
     "other": "{n} recordadas"
-  }
+  },
+  "este jogo usa letras do alfabeto latino, e {idioma} não é escrito com elas": "este juego usa letras del alfabeto latino, y el {idioma} no se escribe con ellas",
+  "precisa de uma gravação com áudio; este conteúdo não tem.": "necesita una grabación con audio; este contenido no tiene.",
+  "e mais {n} jogos": {
+    "one": "y {n} juego más",
+    "other": "y {n} juegos más"
+  },
+  "Arquivo do Anki ou uma captura nova. Ela já vem escolhida.": "Un archivo de Anki o una captura nueva. Ya viene elegida.",
+  "Arquivo do Anki. Ele já vem escolhido.": "Un archivo de Anki. Ya viene elegido.",
+  "A Trilha ainda não tem cartões seus": "La Ruta aún no tiene tarjetas tuyas",
+  "As palavras da Trilha viram cartão quando você joga com elas: as que você erra entram aqui e voltam na hora certa.": "Las palabras de la Ruta se vuelven tarjetas cuando juegas con ellas: las que fallas entran aquí y vuelven en el momento justo.",
+  "Ver todos os cartões": "Ver todas las tarjetas",
+  "Jogar com a Trilha": "Jugar con la Ruta",
+  "este jogo separa as palavras da frase, e {idioma} não marca onde cada uma começa": "este juego separa las palabras de la frase, y {idioma} no marca dónde empieza cada una",
+  "este navegador não tem voz em {idioma}": "este navegador no tiene voz en {idioma}"
 }

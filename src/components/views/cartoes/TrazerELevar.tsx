@@ -96,7 +96,8 @@ export function FluxoDoAnki({
   /** O baralho mudou (notas trazidas, ativadas ou apagadas): as contagens precisam ser lidas de novo. */
   aoMudou?: () => void;
   /** Notas viraram cartão: o baralho novo vira o conteúdo escolhido (quem chama relê o catálogo). */
-  aoTrouxe?: (fonte: BaralhoTrazido) => void | Promise<void>;
+  /* Devolve `false` quando o baralho ficou sem cartão nenhum (nada a escolher): a tela não diz que escolheu. */
+  aoTrouxe?: (fonte: BaralhoTrazido) => boolean | void | Promise<boolean | void>;
   /** "Ver no catálogo": fecha e abre o catálogo de conteúdo. */
   aoVerNoCatalogo?: () => void;
   aoFechar: () => void;
@@ -112,15 +113,25 @@ export function FluxoDoAnki({
   const [escolhido, setEscolhido] = useState(false);
   const nome = arquivo.name;
 
-  /* Lê ao abrir. A leitura é idempotente no servidor (reimportar atualiza, sem duplicar), então o efeito
-     em dobro do modo estrito só repete um pedido. */
+  /* Lê ao abrir, UMA VEZ POR ARQUIVO. O efeito roda em dobro no modo estrito (desenvolvimento), e o servidor
+     só aceita um envio grande por pessoa de cada vez: o segundo pedido, que era o que a tela esperava,
+     voltava com "já existe um envio grande seu em andamento", e o fluxo abria no erro. O pedido fica
+     guardado por arquivo, e as duas passadas do efeito esperam o mesmo. */
   const avisar = useRef(aoMudou);
   avisar.current = aoMudou;
+  const leitura = useRef<{ de: string; pedido: ReturnType<typeof importarBaralhoAnki> } | null>(null);
   useEffect(() => {
     let vivo = true;
+    const de = `${arquivo.name}|${arquivo.size}|${arquivo.lastModified}|${idioma}|${idiomaNativo}`;
+    if (leitura.current?.de !== de)
+      leitura.current = {
+        de,
+        pedido: soAColecao(arquivo).then((colecao) => importarBaralhoAnki(colecao, idioma, idiomaNativo)),
+      };
+    const pedido = leitura.current.pedido;
     void (async () => {
       try {
-        const r = await importarBaralhoAnki(await soAColecao(arquivo), idioma, idiomaNativo);
+        const r = await pedido;
         if (!vivo) return;
         setLido(r);
         setAtivar(Math.min(ATIVAR_DE_INICIO, Math.max(0, r.resumo.notas - r.resumo.descartadas)));
@@ -148,15 +159,22 @@ export function FluxoDoAnki({
     setErro(null);
     try {
       const r = await ativarNotasDoBaralho(lido.deckId, ativar);
-      setAtivadas(r.ativadas);
+      /* A LEITURA JÁ ATIVA O PRIMEIRO LOTE (`resumo.ativadas` da importação): num baralho pequeno o pedido de
+         ativar volta com zero, porque não sobrou nota arquivada. Contar só o que ESTE pedido ativou fazia o
+         relatório dizer "0 ativadas" de um baralho com cartões, e o baralho não virava o conteúdo escolhido. */
+      const comCartao = r.ativadas + (lido.resumo.ativadas ?? 0);
+      setAtivadas(comCartao);
       aoMudou?.();
-      if (r.ativadas > 0) {
+      if (comCartao > 0) {
         sentir('sucesso');
         if (polido() && !reduz()) confete(60);
-        if (aoTrouxe) {
-          await aoTrouxe({ tipo: 'anki', id: lido.deckId, nome: nomeDoBaralho });
-          setEscolhido(true);
-        }
+      }
+      /* O BARALHO VIRA O CONTEÚDO ESCOLHIDO SEMPRE QUE TEM CARTÃO, também quando nada foi ativado AGORA: trazer
+         de novo um arquivo que já estava inteiro ativado (a reimportação) não ativa nada, e a pessoa trouxe
+         o baralho para usá-lo. Quem sabe se ele tem cartão é o catálogo relido por quem chama. */
+      if (aoTrouxe) {
+        const escolheu = await aoTrouxe({ tipo: 'anki', id: lido.deckId, nome: nomeDoBaralho });
+        setEscolhido(escolheu !== false);
       }
     } catch (e) {
       setErro((e as Error).message);
@@ -420,9 +438,14 @@ export function FluxoDoAnki({
               {r.descartadas > 0 && (
                 <Item
                   veio={false}
-                  titulo={tp(r.descartadas, '{n} nota fora da régua de qualidade', '{n} notas fora da régua de qualidade', {
-                    n: numero(r.descartadas),
-                  })}
+                  titulo={tp(
+                    r.descartadas,
+                    '{n} nota fora da régua de qualidade',
+                    '{n} notas fora da régua de qualidade',
+                    {
+                      n: numero(r.descartadas),
+                    },
+                  )}
                   detalhe={motivos.map(([n, m]) => `${n} ${m.toLowerCase()}`).join(' · ') || undefined}
                 />
               )}

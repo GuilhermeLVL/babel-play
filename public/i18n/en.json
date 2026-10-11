@@ -4175,10 +4175,6 @@
   "Palavras prontas do app, por nível. Servem para quem ainda não tem as suas e para completar o que falta.": "Ready-made words from the app, by level. For those who have none of their own yet, and to fill in what is missing.",
   "Arquivo do Anki, lista ou texto colado, vídeo ou PDF. Ela já vem escolhida.": "An Anki file, a pasted list or text, a video or a PDF. It comes already chosen.",
   "Conteúdo selecionado": "Selected content",
-  "e mais {n} jogos pelo mesmo motivo": {
-    "one": "and {n} more game for the same reason",
-    "other": "and {n} more games for the same reason"
-  },
   "Conteúdo: {nome} em {idioma}": "Content: {nome} in {idioma}",
   "Conteúdo: {nome}": "Content: {nome}",
   "{rotulo}. Trocar": "{rotulo}. Change",
@@ -4492,9 +4488,6 @@
   "com palavras faladas": "with spoken words",
   "Precisa de internet para ouvir a sua voz.": "Needs internet to hear your voice.",
   "Precisa de {min} frases com conector; a Trilha quase não tem.": "Needs {min} sentences with a connector; the Path has almost none.",
-  "Precisa de voz de leitura em {idioma}; este navegador não tem.": "Needs a reading voice in {idioma}; this browser has none.",
-  "Precisa de palavras separadas por espaço; {idioma} não as separa.": "Needs words separated by spaces; {idioma} does not separate them.",
-  "Precisa do alfabeto latino; {idioma} não é escrito com ele.": "Needs the Latin alphabet; {idioma} is not written with it.",
   "Baixando o áudio da gravação…": "Downloading the recording audio…",
   "Precisa de {min} frases com áudio; aqui há {ha}.": "Needs {min} sentences with audio; there are {ha} here.",
   "Precisa de {min} frases; aqui há {ha}.": "Needs {min} sentences; there are {ha} here.",
@@ -4728,5 +4721,18 @@
   "{n} lembradas": {
     "one": "{n} remembered",
     "other": "{n} remembered"
-  }
+  },
+  "este jogo usa letras do alfabeto latino, e {idioma} não é escrito com elas": "this game uses letters of the Latin alphabet, and {idioma} is not written with them",
+  "este jogo separa as palavras da frase, e {idioma} não marca onde cada uma começa": "this game splits the sentence into words, and {idioma} does not mark where each one starts",
+  "este navegador não tem voz em {idioma}": "this browser has no voice for {idioma}",
+  "precisa de uma gravação com áudio; este conteúdo não tem.": "needs a recording with audio; this content has none.",
+  "e mais {n} jogos": {
+    "one": "and {n} more game",
+    "other": "and {n} more games"
+  },
+  "Arquivo do Anki ou uma captura nova. Ela já vem escolhida.": "An Anki file or a new capture. It comes already selected.",
+  "Arquivo do Anki. Ele já vem escolhido.": "An Anki file. It comes already selected.",
+  "A Trilha ainda não tem cartões seus": "The Path has no cards of yours yet",
+  "As palavras da Trilha viram cartão quando você joga com elas: as que você erra entram aqui e voltam na hora certa.": "Path words become cards when you play with them: the ones you miss come here and return at the right time.",
+  "Ver todos os cartões": "See all cards"
 }

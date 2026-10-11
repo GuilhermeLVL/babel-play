@@ -175,15 +175,23 @@ describe('quantos jogos servem (a regra de MINIGAMES)', () => {
     expect(jogosQueServem({ palavras: 50, frases: 50 })).toEqual({ servem: TODOS_OS_JOGOS.length, total: TODOS_OS_JOGOS.length, fora: [] });
     expect(jogosQueServem({ palavras: 0, frases: 0 }).servem).toBe(0);
   });
-  it('sem frases: os de frase ficam de fora, os de fala aceitam a palavra falada', () => {
-    const r = jogosQueServem({ palavras: 60, frases: 0 });
+  it('sem frases: os de frase ficam de fora; os de fala aceitam a palavra falada SÓ na Trilha (a regra do gate)', () => {
+    const r = jogosQueServem({ palavras: 60, frases: 0 }, { trilha: true });
     expect(r.fora.sort()).toEqual(['conectores', 'scramble']);
-    expect(jogoServe('ditado', { palavras: 60, frases: 0 })).toMatchObject({ ok: true, de: 'palavras', comPalavrasFaladas: true });
+    expect(jogoServe('ditado', { palavras: 60, frases: 0 }, { trilha: true })).toMatchObject({ ok: true, de: 'palavras', comPalavrasFaladas: true });
+    /* Fora da Trilha o jogo de ouvir não abre só com palavras: é o que a grade do Jogar faz (`estadoDoJogo`). */
+    expect(jogosQueServem({ palavras: 60, frases: 0 }).fora.sort()).toEqual(['conectores', 'ditado', 'escuta', 'karaoke', 'scramble']);
+    expect(jogoServe('ditado', { palavras: 60, frases: 0 })).toEqual({ ok: false, pede: 'frases', minimo: 3, ha: 0 });
+    /* E numa fonte sem gravação (baralho do Anki, Difíceis) ele não tem o que tocar, com as frases que tiver. */
+    expect(jogoServe('ditado', { palavras: 60, frases: 40 }, { semGravacao: true })).toMatchObject({ ok: false, pede: 'gravacao' });
+    expect(jogoServe('scramble', { palavras: 60, frases: 40 }, { semGravacao: true })).toMatchObject({ ok: true });
     expect(jogoServe('scramble', { palavras: 60, frases: 2 })).toEqual({ ok: false, pede: 'frases', minimo: 3, ha: 2 });
   });
-  it('fonte pequena (3 palavras): só o Termo abre, e os de fala', () => {
+  it('fonte pequena (3 palavras): só o Termo abre; na Trilha, também os de fala', () => {
     const r = jogosQueServem({ palavras: 3, frases: 0 });
-    expect(TODOS_OS_JOGOS.filter((j) => !r.fora.includes(j)).sort()).toEqual(['ditado', 'karaoke', 'termo']);
+    expect(TODOS_OS_JOGOS.filter((j) => !r.fora.includes(j)).sort()).toEqual(['termo']);
+    const naTrilha = jogosQueServem({ palavras: 3, frases: 0 }, { trilha: true });
+    expect(TODOS_OS_JOGOS.filter((j) => !naTrilha.fora.includes(j)).sort()).toEqual(['ditado', 'karaoke', 'termo']);
     expect(jogoServe('memory', { palavras: 3, frases: 0 })).toEqual({ ok: false, pede: 'palavras', minimo: 4, ha: 3 });
   });
   it('sem rede, o Karaokê espera', () => {

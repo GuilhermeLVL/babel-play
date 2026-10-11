@@ -156,6 +156,33 @@ export async function semearSessaoComCartoes(): Promise<{ sessionId: string; car
   return { sessionId, cartoes }
 }
 
+/**
+ * DOIS CARTOES NOVOS NA SESSAO DA REVISAO, com palavras que nenhuma outra passada criou. As suites rodam
+ * tres vezes no MESMO banco (um viewport depois do outro), e as rodadas de jogo e de revisao vao tirando
+ * os cartoes da fila do dia: na terceira passada "Hoje" ja estava "tudo em dia" e os testes que precisam
+ * de algo para estudar caiam (medido em 11/10/2026: passam na 1a e na 2a, caem na 3a). Cartao novo entra
+ * na fila de hoje; com dois por passada sempre ha o que estudar, em "Tudo" e na sessao.
+ */
+export async function semearCartoesNovosNaSessao(sessionId: string): Promise<void> {
+  /* So letras: a chave de uma palavra descarta digitos e pontuacao. */
+  const letras = (n: number) => [...n.toString(26)].map((d) => String.fromCharCode(97 + parseInt(d, 26))).join('')
+  const marca = letras(Date.now())
+  const r = await fetch(`${BASE}/api/vocab/bulk-add`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      cards: ['a', 'b'].map((x) => ({
+        word: `nova${marca}${x}`,
+        back: `novo ${marca} ${x}`,
+        srcLang: 'en',
+        tgtLang: 'pt-BR',
+        sessionId,
+      })),
+    }),
+  })
+  if (!r.ok) throw new Error(`POST /api/vocab/bulk-add devolveu ${r.status}: ${(await r.text()).slice(0, 200)}`)
+}
+
 export interface PerfilDeMetricas {
   deckSize: number
   reviews: number
@@ -243,6 +270,24 @@ export async function uiDoServidor(): Promise<Record<string, unknown>> {
   } catch {
     return {}
   }
+}
+
+/**
+ * DEVOLVE O CONTEUDO ESCOLHIDO A "TUDO", no servidor. A escolha de conteudo (a ficha de Cartoes, Jogar e
+ * Biblioteca) mora na CONTA (`settings.ui.conteudo`), e a conta e uma so para todas as suites e para os
+ * tres viewports: o baralho ou a sessao que um teste escolheu viria junto para o seguinte, e "Hoje"
+ * passaria a contar so aquele conteudo. Quem precisa partir do padrao chama isto antes de abrir a tela.
+ */
+export async function conteudoPadraoNoServidor(): Promise<void> {
+  const ui = await uiDoServidor()
+  if (!('conteudo' in ui)) return
+  delete ui.conteudo
+  const r = await fetch(`${BASE}/api/settings`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ ui }),
+  })
+  if (!r.ok) throw new Error(`PUT /api/settings devolveu ${r.status}`)
 }
 
 export interface BaralhoNoServidor {

@@ -212,8 +212,9 @@ describe('o catálogo', () => {
     const det = d.querySelector('.fx-cat-det')!
     expect(det.querySelector('h2')!.textContent).toBe('Entrevista com a designer')
     expect([...det.querySelectorAll('.ct-fatos3 > div')].map((x) => x.textContent)).toEqual(['Palavras3', 'Frases2', 'Para hoje0'])
-    expect(det.querySelector('.fx-fora-t')!.textContent).toContain('3 de 18 jogos abrem com ele.')
-    expect(det.querySelectorAll('.fx-fora li')).toHaveLength(4)
+    /* A conta dos jogos só aparece com os números da GRADE do Jogar (`jogosDaGrade`), e só no conteúdo em
+       uso: a conta por palavras e frases dizia "18 abrem" onde a grade abria 14. Aqui (Biblioteca) não há. */
+    expect(det.querySelector('.fx-fora, .fx-todos')).toBeNull()
     /* sem ação ligada, o botão não existe; "Revisar" sem nada para hoje fica desligado */
     expect(within(det as HTMLElement).queryByRole('button', { name: /Ver palavras/ })).toBeNull()
     expect((within(det as HTMLElement).getByRole('button', { name: 'Revisar' }) as HTMLButtonElement).disabled).toBe(true)

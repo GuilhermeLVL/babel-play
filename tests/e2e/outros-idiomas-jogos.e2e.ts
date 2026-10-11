@@ -167,6 +167,8 @@ test.describe('Jogos na Trilha de outros idiomas', () => {
         if ((await cartao.count()) === 0) continue
         await expect(cartao).toContainText(/alfabeto|escrita/i)
         await expect(cartao).not.toContainText(/faltam \d+/i)
+        /* Nem a forma nova do "falta quantidade": juntar palavras não abre este jogo. */
+        await expect(cartao).not.toContainText(/Precisa de \d+ palavras/i)
       }
     })
   }

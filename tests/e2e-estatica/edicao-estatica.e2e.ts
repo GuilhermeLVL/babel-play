@@ -118,7 +118,16 @@ test('edição estática: telas principais sem /api, sem erro, sem login nem pla
   const cartoes = page.getByTestId('cartoes')
   await expect(cartoes).toHaveAttribute('data-ct-hoje', 'vazio')
   await expect(cartoes.getByRole('heading', { name: 'Seus cartões aparecem aqui' })).toBeVisible()
-  await expect(cartoes.locator('header.q-cab').getByRole('button', { name: 'Palavra' })).toHaveCount(0)
+  /* Nome EXATO: o "…" do cabeçalho ("Mais opções: palavra nova, trazer e levar…") casava por pedaço. O que
+     não pode existir é a porta que grava na conta: nem o botão "Palavra" no cabeçalho, nem "Palavra nova" e
+     "Trazer e levar" dentro do menu. */
+  await expect(cartoes.locator('header.q-cab').getByRole('button', { name: 'Palavra', exact: true })).toHaveCount(0)
+  await cartoes.getByTestId('mais-de-cartoes').click()
+  const menu = page.locator('dialog[open]').last()
+  await expect(menu).toBeVisible()
+  await expect(menu.getByRole('button', { name: /Palavra nova|Trazer e levar/ })).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await expect(page.locator('dialog[open]')).toHaveCount(0)
   await expect(page.getByTestId('cartao-de-convite')).toHaveCount(0)
   await semProibidos(page, '/cartoes')
   await page.screenshot({ path: path.join(PASTA, `cartoes-${sufixo}.png`) })

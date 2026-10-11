@@ -1,6 +1,11 @@
 import { expect, type Page, test } from '@playwright/test'
 
-import { semearCartoes, semearSessaoComCartoes } from './_fixtures'
+import {
+  conteudoPadraoNoServidor,
+  semearCartoes,
+  semearCartoesNovosNaSessao,
+  semearSessaoComCartoes,
+} from './_fixtures'
 import {
   abaDeCartoes,
   abasDePraticar,
@@ -44,6 +49,14 @@ let sessionId = ''
 test.beforeAll(async () => {
   await semearCartoes()
   ;({ sessionId } = await semearSessaoComCartoes())
+  /* A fila de hoje não pode depender de quantas passadas já rodaram neste banco. */
+  await semearCartoesNovosNaSessao(sessionId)
+})
+
+/* Cada teste parte de "Tudo": o conteúdo escolhido é da conta, e o baralho ou a sessão que o teste anterior
+   (ou o viewport anterior) escolheu faria "Hoje" contar só aquilo. */
+test.beforeEach(async () => {
+  await conteudoPadraoNoServidor()
 })
 
 /** O cartão do alto da aba "Hoje". */
@@ -338,7 +351,9 @@ test.describe('Cartões: trazer do Anki', () => {
     await expect(page).toHaveURL(/\/cartoes$/)
   })
 
-  test('uma sessão escolhida na ficha: "Hoje" passa a ser dela, e a rodada abre recortada por ela', async ({ page }) => {
+  test('uma sessão escolhida na ficha: "Hoje" passa a ser dela, e a rodada abre recortada por ela', async ({
+    page,
+  }) => {
     test.slow()
     await abrirTela(page, '/cartoes')
     const tela = telaDeCartoes(page)

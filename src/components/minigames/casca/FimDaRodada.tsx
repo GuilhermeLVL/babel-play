@@ -75,7 +75,7 @@ export default function FimDaRodada({
   const feitos = Math.min(report.items.length, total);
   const unidade = unidadeDoPlacar(jogo);
   /* O texto é do protótipo (fixo no repositório), com a marcação simples que ele traz. */
-  const instr = textosDoJogo(jogo)?.instr;
+  const textos = textosDoJogo(jogo);
 
   const fimRef = useRef<HTMLDivElement | null>(null);
   /* O som e a festa do fim (`jogos.js:323-326`), pelo motor do app: três estrelas soltam a finalização
@@ -117,7 +117,10 @@ export default function FimDaRodada({
         progresso={total ? feitos / total : 1}
       />
       {/* A instrução continua no palco, escondida pelo `.pj-acabou` (`jogos.css:212`). */}
-      {instr && <p className="pj-instr" dangerouslySetInnerHTML={{ __html: instr }} />}
+      {/* O HTML vem de `jogos-textos.json`, fixo no repositório e indexado pelo id do jogo (um enum):
+          não há entrada de usuário aqui. É o mesmo texto que cada jogo põe no próprio palco. */}
+      {/* nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml.react-dangerouslysetinnerhtml */}
+      {textos && <p className="pj-instr" dangerouslySetInnerHTML={{ __html: textos.instr }} />}
       <div className="pj-miolo">
         <div ref={fimRef} className="fim" data-fim-da-rodada={jogo}>
           <span className="label-mono">{t('Rodada concluída · {jogo}', { jogo: nomeCurtoDoJogo(jogo) })}</span>

@@ -461,8 +461,7 @@ export default function Cartoes({
   }
 
   /* O "…" da fonte: o que ela aceita. */
-  const baralhoDoMenu =
-    menuDaFonte?.tipo === 'anki' ? (doAnki?.find((b) => b.id === menuDaFonte.id) ?? null) : null;
+  const baralhoDoMenu = menuDaFonte?.tipo === 'anki' ? (doAnki?.find((b) => b.id === menuDaFonte.id) ?? null) : null;
   const porAtivar = baralhoDoMenu
     ? Math.max(0, baralhoDoMenu.total - baralhoDoMenu.ativas - baralhoDoMenu.descartadas - baralhoDoMenu.ausentes)
     : 0;
@@ -710,7 +709,10 @@ export default function Cartoes({
           aoMudou={recarregar}
           aoTrouxe={async (fonte) => {
             const k = await recarregarContagens();
+            /* Só há o que escolher se o baralho tem cartão (o catálogo só lista fonte com cartão). */
+            if (k && !k.anki.some((b) => b.id === fonte.id)) return false;
             escolherConteudo(fonte, k?.idioma ?? '');
+            return true;
           }}
           aoVerNoCatalogo={() => controleDoSeletor.current?.abrir()}
           aoFechar={() => setArquivoDoAnki(null)}

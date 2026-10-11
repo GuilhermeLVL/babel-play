@@ -12,6 +12,7 @@ import type { RefObject } from 'react';
 import type { ContagensDeConteudo } from '../../../core/learning/contagensDeConteudo';
 import type { Conteudo, FonteDeConteudo } from '../../../lib/conteudo/estado';
 import { useContagensDeConteudo } from '../../../lib/conteudo/useContagens';
+import type { JogosDaGrade } from '../../conteudo/CatalogoDeConteudo';
 import { type ControleDoSeletor, SeletorDeConteudo } from '../../conteudo/SeletorDeConteudo';
 
 export default function FichaDoJogar({
@@ -19,6 +20,7 @@ export default function FichaDoJogar({
   semVolta,
   nomeNaFicha,
   trilhaDoApp,
+  jogosDaGrade,
   semRede,
   controle,
   aoRevisar,
@@ -31,6 +33,7 @@ export default function FichaDoJogar({
   semVolta?: boolean;
   nomeNaFicha?: string;
   trilhaDoApp?: { palavras: number; frases: number } | null;
+  jogosDaGrade?: JogosDaGrade | null;
   semRede?: boolean;
   controle: RefObject<ControleDoSeletor | null>;
   aoRevisar: (fonte: FonteDeConteudo) => void;
@@ -56,6 +59,7 @@ export default function FichaDoJogar({
       semVolta={semVolta}
       nomeNaFicha={nomeNaFicha}
       trilhaDoApp={trilhaDoApp}
+      jogosDaGrade={jogosDaGrade}
       aoRevisar={aoRevisar}
       aoJogar={aoJogar}
       aoCapturar={aoCapturar}

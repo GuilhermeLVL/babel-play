@@ -20,6 +20,8 @@ export interface ResumoImportAnki {
   iguais: number;
   descartadas: number;
   porMotivo: Record<string, number>;
+  /** Quantas notas desta leitura já viraram cartão: o servidor ativa o primeiro lote ao importar. */
+  ativadas?: number;
 }
 
 export interface ImportAnkiResposta {

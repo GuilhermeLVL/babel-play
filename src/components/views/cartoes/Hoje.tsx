@@ -6,6 +6,7 @@ import {
   Gamepad2,
   GraduationCap,
   Languages,
+  Layers,
   Mic,
   PartyPopper,
   Plus,
@@ -28,6 +29,7 @@ import {
 } from '../../../lib/cartoes/estadoDeHoje';
 import { type HojeDaFonte, somaDaFila } from '../../../lib/conteudo/cartoes';
 import type { Conteudo, FonteDeConteudo } from '../../../lib/conteudo/estado';
+import { voltarParaTudoNoConteudo } from '../../../lib/conteudo/loja';
 import { numero, t, tp } from '../../../lib/i18n';
 import { anima, contar, MOLA, MOLA_SUAVE, polido, reduz } from '../../../lib/polimento/base';
 import type { OpcoesDaRevisao } from '../../../lib/revisao/preferencias';
@@ -404,9 +406,39 @@ export default function Hoje({
     );
   }
 
+  /* A TRILHA ESCOLHIDA SEM NENHUM CARTÃO DELA (a escolha vale no Jogar, que joga as palavras prontas do
+     app): aqui não há o que revisar ainda, e a tela diz como os cartões da Trilha nascem e para onde ir,
+     no lugar de um "tudo em dia" com zeros. */
+  if (conteudo.fonte.tipo === 'trilha' && daFonte.total === 0) {
+    return (
+      <div ref={raiz} className="ct-hoje-estado" data-ct-hoje="trilha-sem-cartao">
+        <div className="q-vazio ct-vazio">
+          <span className="q-ic">
+            <GraduationCap aria-hidden />
+          </span>
+          <h2>{t('A Trilha ainda não tem cartões seus')}</h2>
+          <p>
+            {t(
+              'As palavras da Trilha viram cartão quando você joga com elas: as que você erra entram aqui e voltam na hora certa.',
+            )}
+          </p>
+          <div className="q-acoes">
+            <button type="button" className="q-ctl pri" onClick={aoTrilha}>
+              <Gamepad2 aria-hidden /> {t('Jogar com a Trilha')}
+            </button>
+            <button type="button" className="q-ctl" onClick={voltarParaTudoNoConteudo}>
+              <Layers aria-hidden /> {t('Ver todos os cartões')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const n = daFonte.fila;
   const total = somaDaFila(n);
-  const noConteudo = conteudo.fonte.tipo === 'tudo' ? t('As palavras de hoje') : t('As palavras de hoje deste conteúdo');
+  const noConteudo =
+    conteudo.fonte.tipo === 'tudo' ? t('As palavras de hoje') : t('As palavras de hoje deste conteúdo');
   const praticarHoje = () => aoPraticar(noConteudo, 'hoje');
 
   /* Quem estuda dois idiomas vê um por vez: o outro fica a um toque, com a contagem dele (`cartoes.js:297-299`). */
@@ -528,9 +560,14 @@ export default function Hoje({
           <div>
             <h2>
               {todasDeSessao
-                ? tp(palavras, 'Sua {n} palavra das sessões já é cartão', 'Suas {n} palavras das sessões já são cartões', {
-                    n: numero(palavras),
-                  })
+                ? tp(
+                    palavras,
+                    'Sua {n} palavra das sessões já é cartão',
+                    'Suas {n} palavras das sessões já são cartões',
+                    {
+                      n: numero(palavras),
+                    },
+                  )
                 : tp(palavras, 'Sua {n} palavra já é cartão', 'Suas {n} palavras já são cartões', {
                     n: numero(palavras),
                   })}
@@ -674,7 +711,9 @@ export default function Hoje({
             <button
               type="button"
               className="q-ctl ct-resto"
-              title={t('Escolher o que fazer com as {n} que sobram', { n: numero(Math.max(0, dia.vencem - dia.rodada)) })}
+              title={t('Escolher o que fazer com as {n} que sobram', {
+                n: numero(Math.max(0, dia.vencem - dia.rodada)),
+              })}
               onClick={aoResto}
             >
               {t('E o resto?')}

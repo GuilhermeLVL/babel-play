@@ -1055,14 +1055,6 @@
   "Palavras prontas do app, por nível. Servem para quem ainda não tem as suas e para completar o que falta.": "كلمات جاهزة من التطبيق حسب المستوى. لمن ليست لديه كلماته بعد، ولإكمال ما ينقص.",
   "Arquivo do Anki, lista ou texto colado, vídeo ou PDF. Ela já vem escolhida.": "ملف Anki، قائمة أو نص ملصق، فيديو أو PDF. يأتي مختارًا مباشرةً.",
   "Conteúdo selecionado": "المحتوى المحدد",
-  "e mais {n} jogos pelo mesmo motivo": {
-    "zero": "و{n} لعبة أخرى للسبب نفسه",
-    "one": "ولعبة أخرى للسبب نفسه",
-    "two": "ولعبتان أخريان للسبب نفسه",
-    "few": "و{n} ألعاب أخرى للسبب نفسه",
-    "many": "و{n} لعبة أخرى للسبب نفسه",
-    "other": "و{n} لعبة أخرى للسبب نفسه"
-  },
   "Conteúdo: {nome} em {idioma}": "المحتوى: {nome} بـ{idioma}",
   "Conteúdo: {nome}": "المحتوى: {nome}",
   "{rotulo}. Trocar": "{rotulo}. تغيير",
@@ -1465,9 +1457,6 @@
   "com palavras faladas": "بكلمات منطوقة",
   "Precisa de internet para ouvir a sua voz.": "يحتاج إلى الإنترنت ليسمع صوتك.",
   "Precisa de {min} frases com conector; a Trilha quase não tem.": "يحتاج إلى {min} جمل فيها أداة ربط؛ والمسار يكاد يخلو منها.",
-  "Precisa de voz de leitura em {idioma}; este navegador não tem.": "يحتاج إلى صوت قراءة بـ{idioma}؛ وهذا المتصفح لا يوفّره.",
-  "Precisa de palavras separadas por espaço; {idioma} não as separa.": "يحتاج إلى كلمات تفصلها مسافات؛ و{idioma} لا تفصل بينها.",
-  "Precisa do alfabeto latino; {idioma} não é escrito com ele.": "يحتاج إلى الأبجدية اللاتينية؛ و{idioma} لا تُكتب بها.",
   "Baixando o áudio da gravação…": "جارٍ تنزيل صوت التسجيل…",
   "Precisa de {min} frases com áudio; aqui há {ha}.": "يحتاج إلى {min} جمل مع صوت؛ هنا {ha}.",
   "Precisa de {min} frases; aqui há {ha}.": "يحتاج إلى {min} جمل؛ هنا {ha}.",
@@ -1741,5 +1730,19 @@
     "few": "{n} متذكَّرة",
     "many": "{n} متذكَّرة",
     "other": "{n} متذكَّرة"
-  }
+  },
+  "este jogo usa letras do alfabeto latino, e {idioma} não é escrito com elas": "تستخدم هذه اللعبة حروف الأبجدية اللاتينية، واللغة {idioma} لا تُكتب بها",
+  "precisa de uma gravação com áudio; este conteúdo não tem.": "يحتاج إلى تسجيل مع صوت؛ وهذا المحتوى لا يحويه.",
+  "e mais {n} jogos": {
+    "one": "ولعبة أخرى",
+    "other": "و{n} ألعاب أخرى"
+  },
+  "Arquivo do Anki ou uma captura nova. Ela já vem escolhida.": "ملف Anki أو التقاط جديد. يأتي مختارًا مسبقًا.",
+  "Arquivo do Anki. Ele já vem escolhido.": "ملف Anki. يأتي مختارًا مسبقًا.",
+  "A Trilha ainda não tem cartões seus": "لا يحوي المسار بطاقات لك بعد",
+  "As palavras da Trilha viram cartão quando você joga com elas: as que você erra entram aqui e voltam na hora certa.": "تتحوّل كلمات المسار إلى بطاقات حين تلعب بها: ما تخطئ فيه يدخل هنا ويعود في الوقت المناسب.",
+  "Ver todos os cartões": "عرض كل البطاقات",
+  "Jogar com a Trilha": "اللعب بالمسار",
+  "este jogo separa as palavras da frase, e {idioma} não marca onde cada uma começa": "هذه اللعبة تفصل كلمات الجملة، و{idioma} لا تحدّد أين تبدأ كل كلمة",
+  "este navegador não tem voz em {idioma}": "هذا المتصفح لا يملك صوتًا بـ{idioma}"
 }

@@ -47,8 +47,15 @@ test.describe('Trilha carregada sob demanda', () => {
       const texto = await lobby(page)
         .innerText()
         .catch(() => '')
-      for (const frase of ['Nenhum jogo abre só com este material ainda', 'Conteúdo pequeno', 'Precisa de 4 palavras'])
+      for (const frase of ['Nenhum jogo abre só com este material ainda', 'Conteúdo pequeno'])
         if (texto.includes(frase)) mentiu.push(frase)
+      /* A Memória (4 palavras) nunca pode cair em "Precisam de outro material": com o caderno ela abre, e com
+         a Trilha também. Outros jogos podem estar lá de verdade (os de ouvir, sem gravação). */
+      const memoriaPresa = await lobby(page)
+        .locator('.fx-falta .q-tile[data-jogo="memory"]')
+        .count()
+        .catch(() => 0)
+      if (memoriaPresa) mentiu.push('Memória sem material')
     }, 120)
 
     await escolherConteudo(page, 'trilha')

@@ -7,7 +7,8 @@ import { expect, type Locator, type Page } from '@playwright/test'
  * O CAMINHO ATÉ UM JOGO E ATÉ O FIM DA RODADA, no desenho novo (09/10/2026) — o que as e2e que jogam
  * têm em comum (`jogos`, `comemoracao`, `personalizar-v2`, `edicao-estatica`, `idioma-da-sessao`).
  *
- *  - LOBBY: a primeira visita ao Jogar abre o painel "O que você vai praticar"; escolhe-se "Trilha" e
+ *  - LOBBY: quem não tem palavra própria joga com a Trilha, direto (a sala "O que você vai praticar" só
+ *    abre por Opções desde 10/10/2026; o ramo dela abaixo fica para quem a abrir); escolhe-se "Trilha" e
  *    "Usar estas palavras" (as palavras da Trilha vêm embutidas no site). A escolha fica guardada: na
  *    visita seguinte a grade abre direto.
  *  - JOGO: cada cartão da grade é `.q-tile[data-jogo=<id>]`; o toque abre a partida direto, no palco
@@ -212,7 +213,7 @@ export async function abrirLobbyDaTrilha(page: Page, rota = '/jogar') {
     await page.getByRole('button', { name: /Começar/ }).click()
   }
   await dispensarRecompensas(page)
-  /* A primeira visita abre "O que você vai praticar"; com a fonte já escolhida, a grade abre direto. */
+  /* Sem palavra própria o saguão já abre com a Trilha; se a sala estiver aberta, escolhe-se nela. */
   const sala = page.getByRole('dialog', { name: 'O que você vai praticar' })
   const trilha = sala.getByRole('radio', { name: /Trilha/ })
   const pronto = cartaoDoJogo(page, 'memory').and(page.locator(':enabled'))

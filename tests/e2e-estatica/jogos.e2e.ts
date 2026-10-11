@@ -632,10 +632,20 @@ test('Tabu: errar mostra a certa antes da próxima carta', async ({ page }) => {
   await chegarAoFim(page, 'taboo')
 })
 
-test('Caça-conectores: na Trilha fica em "Precisam de outro material" dizendo o porquê', async ({ page }) => {
+test('Caça-conectores: na Trilha fica em "Precisa de outro material" dizendo o porquê, com a saída', async ({
+  page,
+}) => {
   await abrirLobbyDaTrilha(page)
   const presos = page.locator('#grade-de-jogos .qj-presos')
-  await expect(presos).toContainText('Precisam de outro material')
-  await expect(presos.locator('.q-tile[data-jogo="conectores"]')).toBeDisabled()
-  await expect(presos).toContainText('as frases da trilha quase nunca têm conector')
+  /* O título acompanha a contagem, como no protótipo (`fontes.js:251`): um jogo só, no singular. */
+  await expect(presos.locator('.q-tile')).toHaveCount(1)
+  await expect(presos.getByRole('heading', { level: 2 })).toHaveText('Precisa de outro material')
+  const cartao = presos.locator('.q-tile[data-jogo="conectores"]')
+  await expect(cartao).toHaveClass(/apagado/)
+  await expect(cartao.locator('.fx-motivo')).toHaveText('Precisa de 3 frases com conector; a Trilha quase não tem.')
+  /* Não abre a rodada: a saída é o catálogo de conteúdo, já com o que serve para ele. */
+  await expect(presos.getByRole('button', { name: /^Ver o conteúdo que serve para/ })).toBeVisible()
+  await cartao.click()
+  await expect(page.locator('dialog.fx-catalogo')).toBeVisible()
+  await expect(page.locator('#palco')).toHaveCount(0)
 })

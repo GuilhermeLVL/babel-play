@@ -39,11 +39,10 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import type { ContagensDeConteudo } from '../../core/learning/contagensDeConteudo';
 import type { MinigameId } from '../../core/minigames/types';
 import { chaveDaFonte, type Conteudo, type FonteDeConteudo } from '../../lib/conteudo/estado';
-import { jogoServe, jogosQueServem, type ServeOuNao } from '../../lib/conteudo/jogos';
+import { type ContextoDaFonte, jogoServe, type ServeOuNao } from '../../lib/conteudo/jogos';
 import { numero, t, tp } from '../../lib/i18n';
 import { fetchLangConfig } from '../../lib/langConfig';
 import { anima, polido, reduz } from '../../lib/polimento/base';
-import { nomeCurtoDoJogo } from '../minigames/polimento/textos';
 import { toast } from '../Toast';
 import { DialogoBase } from '../ui/Dialogo';
 import { ARQUIVOS_DO_ANKI, FluxoDoAnki } from '../views/cartoes/TrazerELevar';
@@ -100,6 +99,8 @@ export interface PropsDoCatalogo extends AcoesDoCatalogo {
   semRede?: boolean;
   paraJogo?: JogoDoCatalogo | null;
   /** A Trilha do app no idioma: ver `linhasDoCatalogo`. */
+  /** Os jogos do conteúdo em uso, contados pela grade do Jogar (só o Jogar os passa). */
+  jogosDaGrade?: JogosDaGrade | null;
   trilhaDoApp?: { palavras: number; frases: number } | null;
 }
 
@@ -118,11 +119,31 @@ function Dica({ texto }: { texto: string }) {
   );
 }
 
+/** O que a regra dos jogos precisa saber da fonte (`lib/conteudo/jogos.ts`): a Trilha fala a palavra; baralho e Difíceis não têm gravação. */
+const contextoDa = (linha: LinhaDoCatalogo, semRede: boolean): ContextoDaFonte => ({
+  semRede,
+  trilha: linha.grupo === 'trilha',
+  semGravacao: linha.grupo === 'anki' || linha.chave === 'dificeis',
+});
+
+/**
+ * OS JOGOS DO CONTEÚDO EM USO, como a GRADE do Jogar os mostra (quem os conta é o gate de verdade, que vê
+ * os cartões). O catálogo só diz "N de 18 jogos" com estes números: a conta por palavras e frases não
+ * garante o mesmo resultado, e dois números diferentes na mesma viagem eram pior que nenhum.
+ */
+export interface JogosDaGrade {
+  servem: number;
+  total: number;
+  /** Os que não abrem, com o nome curto e o motivo que o cartão diz. */
+  fora: ReadonlyArray<{ nome: string; motivo: string }>;
+}
+
 /** O motivo de um jogo não abrir, em poucas palavras (`fxServe`, `fontes.js:100-105`), já em minúscula. */
 function motivo(linha: LinhaDoCatalogo, serve: ServeOuNao): string {
   if (serve.ok) return '';
   const s = serve as Extract<ServeOuNao, { ok: false }>;
   if (s.pede === 'rede') return t('precisa de internet para ouvir a sua voz.');
+  if (s.pede === 'gravacao') return t('precisa de uma gravação com áudio; este conteúdo não tem.');
   if (s.pede === 'palavras') return t('precisa de {min} palavras; aqui há {ha}.', { min: s.minimo, ha: s.ha });
   if (s.pede === 'frases-ou-palavras')
     return t('precisa de {min} frases ou palavras; aqui há {ha}.', { min: s.minimo, ha: s.ha });
@@ -202,7 +223,7 @@ function Detalhe({
   linha,
   emUso,
   comIdioma,
-  semRede,
+  jogos,
   aoUsar,
   aoAgir,
   acoes,
@@ -211,14 +232,14 @@ function Detalhe({
   emUso: boolean;
   /** "Inglês", quando há dois idiomas. */
   comIdioma: string;
-  semRede: boolean;
+  /** Os jogos como a grade do Jogar os mostra: só para o conteúdo em uso, e só quando a tela os tem. */
+  jogos: JogosDaGrade | null;
   aoUsar: () => void;
   /** Uma ação do painel: a fonte vira a escolha, o catálogo fecha e a ação leva. */
   aoAgir: (acao: (fonte: FonteDeConteudo) => void) => void;
   acoes: AcoesDoCatalogo;
 }) {
   const { Icone } = linha;
-  const { servem, total, fora } = jogosQueServem(linha, { semRede });
   const hoje = linha.paraHoje;
   return (
     <>
@@ -260,40 +281,36 @@ function Detalhe({
           </div>
         ))}
       </dl>
-      {fora.length ? (
-        <ul className="fx-fora">
-          <li className="fx-fora-t">
-            <Gamepad2 aria-hidden />
-            <span>
-              <b>{t('{n} de {total} jogos', { n: servem, total })}</b> {t('abrem com ele.')}
-            </span>
-          </li>
-          {fora.slice(0, 2).map((id) => {
-            const s = jogoServe(id, linha, { semRede });
-            return (
-              <li key={id}>
-                <Lock aria-hidden />
-                <span>
-                  <b>{nomeCurtoDoJogo(id)}</b> {motivo(linha, s)}
-                </span>
-              </li>
-            );
-          })}
-          {fora.length > 2 && (
-            <li className="mais">
-              <Lock aria-hidden />
+      {jogos &&
+        (jogos.fora.length ? (
+          <ul className="fx-fora">
+            <li className="fx-fora-t">
+              <Gamepad2 aria-hidden />
               <span>
-                {tp(fora.length - 2, 'e mais {n} jogo pelo mesmo motivo', 'e mais {n} jogos pelo mesmo motivo')}
+                <b>{t('{n} de {total} jogos', { n: jogos.servem, total: jogos.total })}</b> {t('abrem com ele.')}
               </span>
             </li>
-          )}
-        </ul>
-      ) : (
-        <p className="fx-todos">
-          <Check aria-hidden />
-          <span>{t('Os {n} jogos abrem com ele.', { n: total })}</span>
-        </p>
-      )}
+            {jogos.fora.slice(0, 2).map((j) => (
+              <li key={j.nome}>
+                <Lock aria-hidden />
+                <span>
+                  <b>{j.nome}</b> {j.motivo.charAt(0).toLocaleLowerCase() + j.motivo.slice(1)}
+                </span>
+              </li>
+            ))}
+            {jogos.fora.length > 2 && (
+              <li className="mais">
+                <Lock aria-hidden />
+                <span>{tp(jogos.fora.length - 2, 'e mais {n} jogo', 'e mais {n} jogos')}</span>
+              </li>
+            )}
+          </ul>
+        ) : (
+          <p className="fx-todos">
+            <Check aria-hidden />
+            <span>{t('Os {n} jogos abrem com ele.', { n: jogos.total })}</span>
+          </p>
+        ))}
       <div className="q-bib-acoes" role="toolbar" aria-label={t('O que fazer com este conteúdo')}>
         <button type="button" className="q-ctl pri" data-fx-usar={linha.chave} onClick={aoUsar}>
           <Check aria-hidden /> {emUso ? t('Continuar com este') : t('Usar este conteúdo')}
@@ -317,7 +334,7 @@ function Detalhe({
               </button>
             )}
             {acoes.aoJogar && (
-              <button type="button" className="q-ctl" disabled={!servem} onClick={() => aoAgir(acoes.aoJogar!)}>
+              <button type="button" className="q-ctl" onClick={() => aoAgir(acoes.aoJogar!)}>
                 <Gamepad2 aria-hidden /> {t('Jogar')}
               </button>
             )}
@@ -476,6 +493,7 @@ export default function CatalogoDeConteudo({
   semRede = false,
   paraJogo = null,
   trilhaDoApp = null,
+  jogosDaGrade = null,
   ...acoes
 }: PropsDoCatalogo) {
   const [vista, setVista] = useState<'catalogo' | 'trazer'>(abrirEm);
@@ -538,7 +556,7 @@ export default function CatalogoDeConteudo({
   /* `fxLinhaDaFonte()` de `seletor.js:201`: a fonte serve ao jogo que pediu o catálogo? */
   const naoServeA = (linha: LinhaDoCatalogo): string => {
     if (!paraJogo) return '';
-    const m = motivo(linha, jogoServe(paraJogo.id, linha, { semRede }));
+    const m = motivo(linha, jogoServe(paraJogo.id, linha, contextoDa(linha, semRede)));
     return m ? m.charAt(0).toLocaleUpperCase() + m.slice(1) : '';
   };
   const tocar = (linha: LinhaDoCatalogo) => {
@@ -570,7 +588,10 @@ export default function CatalogoDeConteudo({
         aoMudou={() => void aoRecarregar()}
         aoTrouxe={async (fonte) => {
           const k = await aoRecarregar();
+          /* Só há o que escolher se o baralho tem cartão (o catálogo só lista fonte com cartão). */
+          if (k && !k.anki.some((b) => b.id === fonte.id)) return false;
           aoEscolher(fonte, k?.idioma ?? idioma);
+          return true;
         }}
         aoFechar={aoFechar}
       />
@@ -759,7 +780,13 @@ export default function CatalogoDeConteudo({
               </span>
               <span>
                 <b>{t('Trazer uma fonte')}</b>
-                <small>{t('Arquivo do Anki, lista ou texto colado, vídeo ou PDF. Ela já vem escolhida.')}</small>
+                <small>
+                  {acoes.aoColarLista && acoes.aoTrazerArquivo
+                    ? t('Arquivo do Anki, lista ou texto colado, vídeo ou PDF. Ela já vem escolhida.')
+                    : acoes.aoCapturar
+                      ? t('Arquivo do Anki ou uma captura nova. Ela já vem escolhida.')
+                      : t('Arquivo do Anki. Ele já vem escolhido.')}
+                </small>
               </span>
             </span>
           </button>
@@ -774,7 +801,7 @@ export default function CatalogoDeConteudo({
               linha={selecionada}
               emUso={selecionada.chave === emUso}
               comIdioma={dois ? nomeDoIdioma(idioma) : ''}
-              semRede={semRede}
+              jogos={selecionada.chave === emUso ? jogosDaGrade : null}
               aoUsar={() => usar(selecionada)}
               aoAgir={agir(selecionada)}
               acoes={acoes}

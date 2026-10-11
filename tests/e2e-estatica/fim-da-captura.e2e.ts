@@ -252,11 +252,10 @@ test('a recusa no meio do salvamento não prende: mostra o motivo, guarda a capt
 
   // Sair não perde nada nem pergunta: a captura está guardada no navegador e volta com a tela.
   await irAoJogarPeloMenu(page)
-  // A primeira visita ao Jogar abre "O que você vai praticar" (no celular, por cima da barra): fecha.
-  const sala = page.getByRole('dialog', { name: 'O que você vai praticar' })
-  await expect(sala).toBeVisible({ timeout: 10_000 })
-  await sala.getByRole('button', { name: 'Fechar sem mudar nada' }).click()
-  await expect(sala).toBeHidden()
+  /* O Jogar abre direto no saguão (10/10/2026: a sala "O que você vai praticar" deixou de abrir sozinha na
+     primeira visita); nada fica por cima da barra. */
+  await expect(page.getByTestId('lobby-do-quest')).toBeVisible({ timeout: 10_000 })
+  await expect(page.getByRole('dialog', { name: 'O que você vai praticar' })).toHaveCount(0)
   /* DEFEITO DO APP NO CELULAR (09/10/2026, deixado falhando de propósito): o selo "A sessão … não foi
      salva" (`indicador-de-salvamento`) deveria ficar ACIMA da barra de baixo (`index.css`, pelo
      `--shell-inset-bottom`) e, com a barra flutuante do desenho novo, fica em cima dela: cobre

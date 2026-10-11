@@ -14,7 +14,7 @@ import type { ContagensDeConteudo } from '../../core/learning/contagensDeConteud
 import type { Conteudo } from '../../lib/conteudo/estado';
 import { escolherConteudo, mudarIdiomaDoConteudo, voltarParaTudoNoConteudo } from '../../lib/conteudo/loja';
 import { sentir } from '../../lib/polimento/sentidos';
-import type { AcoesDoCatalogo, JogoDoCatalogo } from './CatalogoDeConteudo';
+import type { AcoesDoCatalogo, JogoDoCatalogo, JogosDaGrade } from './CatalogoDeConteudo';
 import { FichaDeConteudo } from './FichaDeConteudo';
 import { idiomaNaFicha } from './fontes';
 
@@ -37,6 +37,7 @@ export function SeletorDeConteudo({
   semVolta,
   nomeNaFicha,
   trilhaDoApp,
+  jogosDaGrade,
   ...acoes
 }: AcoesDoCatalogo & {
   controle?: RefObject<ControleDoSeletor | null>;
@@ -50,6 +51,8 @@ export function SeletorDeConteudo({
   nomeNaFicha?: string;
   /** A Trilha do app no idioma (palavras e frases prontas): a linha existe mesmo sem cartão ativado. */
   trilhaDoApp?: { palavras: number; frases: number } | null;
+  /** Os jogos do conteúdo em uso, como a grade do Jogar os conta (o catálogo só mostra a conta com eles). */
+  jogosDaGrade?: JogosDaGrade | null;
 }) {
   const [aberto, setAberto] = useState<false | 'catalogo' | 'trazer'>(false);
   const [paraJogo, setParaJogo] = useState<JogoDoCatalogo | null>(null);
@@ -108,6 +111,7 @@ export function SeletorDeConteudo({
               semRede={semRede}
               paraJogo={paraJogo}
               trilhaDoApp={trilhaDoApp}
+              jogosDaGrade={jogosDaGrade}
               abrirEm={aberto}
               aoFechar={fechar}
               aoEscolher={(fonte, idioma) => {

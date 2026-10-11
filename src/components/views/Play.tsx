@@ -195,7 +195,7 @@ import { familiaDoJogo, FAMILIAS, tomDoJogo } from '../minigames/ArteDosJogos';
 import { unidadeDaRodada } from '../minigames/casca/regras';
 import { TabelaDaCobertura } from '../minigames/CoberturaDosIdiomas';
 import type { FalaKaraoke } from '../minigames/KaraokeDoPrototipo';
-import { jogosSeguintes } from '../minigames/polimento/textos';
+import { jogosSeguintes, nomeCurtoDoJogo } from '../minigames/polimento/textos';
 import SalaDeEscolha from '../minigames/SalaDeEscolha';
 import { toast } from '../Toast';
 import { Abas, CabecalhoDeTela, IconeEmBloco, Tela as MolduraDaTela, TituloDeSecao } from '../ui';
@@ -2575,6 +2575,74 @@ export default function Play({
     );
   };
 
+  /* O PÉ DO CARTÃO (aqui em cima porque a ficha de conteúdo também o lê, para o catálogo dizer os jogos
+     com as MESMAS palavras da grade): a conta da rodada quando o jogo abre, ou o que falta quando não abre. */
+  const notaDoJogo = (j: (typeof jogosClassicosFiltrados)[number]) => {
+    const liberado = j.estado.ok;
+    const unidade = (n: number) => (j.estado.fonte === 'falas' ? tp(n, 'fala', 'falas') : tp(n, 'palavra', 'palavras'));
+    return (() => {
+      if (liberado) {
+        const total = ('pool' in j.estado ? j.estado.pool : undefined) ?? j.estado.disponiveis;
+        const naRodada = j.estado.tamanhoDaRodada;
+        const conta =
+          naRodada < total
+            ? t('{n} nesta rodada · {total} disponíveis', { n: naRodada, total })
+            : t('{n} {unidade} nesta rodada', { n: naRodada, unidade: unidade(naRodada) });
+        /* `fontes.js:232`: a nota de que o jogo de ouvir vai com a palavra falada (sem frase gravada). */
+        const falada =
+          j.estado.fonte === 'baralho' && MINIGAMES[j.id].aceitaPalavraFalada
+            ? `${conta} · ${t('com palavras faladas')}`
+            : conta;
+        const rec = recordeDoJogo(j.id) ?? 0;
+        return rec > 0 ? `${falada} · ${t('recorde {n}', { n: rec })}` : falada;
+      }
+      /* O MOTIVO CURTO (`fxServe()`, `fontes.js:97-106`): "Precisa de N …; aqui há M." O número é o do gate
+         de verdade (`estadoDoJogo`), que vê os cartões; quando o que falta não é quantidade (voz, escrita,
+         rede), a frase diz o que é, na mesma forma. */
+      const motivo = 'motivo' in j.estado ? j.estado.motivo : undefined;
+      const idioma = langLabelNaUI(fonte.lang);
+      const min = MINIGAMES[j.id].minItems;
+      const ha = j.estado.disponiveis;
+      if (motivo === 'sem-rede') return t('Precisa de internet para ouvir a sua voz.');
+      /* Só o Caça-conectores cai aqui: a Frase embaralhada JOGA com as frases da trilha. O que falta é
+         conector (4,5% das frases). */
+      if (motivo === 'trilha-sem-frase')
+        return t('Precisa de {min} frases com conector; a Trilha quase não tem.', { min });
+      /* OS MOTIVOS DE OUTROS IDIOMAS (mandarim, árabe, japonês…) SÃO DITOS POR EXTENSO, com as palavras de
+         sempre: "Precisa de N palavras" mandaria a pessoa juntar palavras que nunca abririam o jogo. Só a
+         forma muda (frase com maiúscula e ponto, como os outros motivos da seção). */
+      const porExtenso = (frase: string) => `${frase.charAt(0).toLocaleUpperCase()}${frase.slice(1)}.`;
+      if (motivo === 'sem-voz') return porExtenso(t('este navegador não tem voz em {idioma}', { idioma }));
+      if (motivo === 'escrita-sem-separacao')
+        return porExtenso(
+          t('este jogo separa as palavras da frase, e {idioma} não marca onde cada uma começa', { idioma }),
+        );
+      /* Antes do "aqui há N": juntar mais palavras não abre um jogo de letras (grade, teclado) num idioma
+         que não se escreve com elas. */
+      if (motivo === 'alfabeto-nao-suportado')
+        return porExtenso(t('este jogo usa letras do alfabeto latino, e {idioma} não é escrito com elas', { idioma }));
+      if (motivo === 'audio-carregando') return t('Baixando o áudio da gravação…');
+      if (j.estado.fonte === 'falas')
+        return MINIGAMES[j.id].modalidade === 'frase-audio'
+          ? t('Precisa de {min} frases com áudio; aqui há {ha}.', { min, ha })
+          : t('Precisa de {min} frases; aqui há {ha}.', { min, ha });
+      return t('Precisa de {min} palavras; aqui há {ha}.', { min, ha });
+    })();
+  };
+  /**
+   * OS JOGOS DO CONTEÚDO EM USO, COMO A GRADE OS MOSTRA: é com estes números que o catálogo diz "N de 18
+   * jogos abrem com ele". A conta do catálogo (palavras e frases) dizia 18 onde a grade abria 14: a verdade
+   * é a do gate (`estadoDeCadaJogo`), então é ela que vai. Só existe com o baralho carregado.
+   */
+  const jogosDaGrade =
+    deck === null || carregandoTrilha
+      ? null
+      : {
+          servem: jogosProntos.length,
+          total: listaDeJogos.length,
+          fora: jogosPresos.map((x) => ({ nome: nomeCurtoDoJogo(x.ui.id), motivo: notaDoJogo(x.ui) })),
+        };
+
   /* "Trocar" no mapa: o mapa fecha, o saguão volta e o catálogo abre (a ficha só existe no saguão). */
   const [abrirCatalogo, setAbrirCatalogo] = useState(false);
   useEffect(() => {
@@ -2595,6 +2663,7 @@ export default function Play({
       semVolta={soTrilha}
       nomeNaFicha={fonteDoConteudo.tipo === 'trilha' ? nomeDoConteudo : undefined}
       trilhaDoApp={entradaDaTrilha ? { palavras: entradaDaTrilha.total, frases: entradaDaTrilha.comFrase ?? 0 } : null}
+      jogosDaGrade={jogosDaGrade}
       semRede={semRede}
       controle={controleDoSeletor}
       aoRevisar={(f) => onChangeView('study', f.tipo === 'sessao' ? { id: f.id } : undefined)}
@@ -3155,52 +3224,6 @@ export default function Play({
      "Jogar" e a conta desta rodada. Presa, a carta é tracejada e o pé diz o que falta. */
   /* O PÉ DA CARTA: a conta da rodada quando o jogo abre, ou o que falta quando não abre. Fora de
      `cartaDoJogo` porque o lobby do Quest diz o mesmo motivo com as mesmas palavras. */
-  const notaDoJogo = (j: (typeof jogosClassicosFiltrados)[number]) => {
-    const liberado = j.estado.ok;
-    const unidade = (n: number) => (j.estado.fonte === 'falas' ? tp(n, 'fala', 'falas') : tp(n, 'palavra', 'palavras'));
-    return (() => {
-      if (liberado) {
-        const total = ('pool' in j.estado ? j.estado.pool : undefined) ?? j.estado.disponiveis;
-        const naRodada = j.estado.tamanhoDaRodada;
-        const conta =
-          naRodada < total
-            ? t('{n} nesta rodada · {total} disponíveis', { n: naRodada, total })
-            : t('{n} {unidade} nesta rodada', { n: naRodada, unidade: unidade(naRodada) });
-        /* `fontes.js:232`: a nota de que o jogo de ouvir vai com a palavra falada (sem frase gravada). */
-        const falada =
-          j.estado.fonte === 'baralho' && MINIGAMES[j.id].aceitaPalavraFalada
-            ? `${conta} · ${t('com palavras faladas')}`
-            : conta;
-        const rec = recordeDoJogo(j.id) ?? 0;
-        return rec > 0 ? `${falada} · ${t('recorde {n}', { n: rec })}` : falada;
-      }
-      /* O MOTIVO CURTO (`fxServe()`, `fontes.js:97-106`): "Precisa de N …; aqui há M." O número é o do gate
-         de verdade (`estadoDoJogo`), que vê os cartões; quando o que falta não é quantidade (voz, escrita,
-         rede), a frase diz o que é, na mesma forma. */
-      const motivo = 'motivo' in j.estado ? j.estado.motivo : undefined;
-      const idioma = langLabelNaUI(fonte.lang);
-      const min = MINIGAMES[j.id].minItems;
-      const ha = j.estado.disponiveis;
-      if (motivo === 'sem-rede') return t('Precisa de internet para ouvir a sua voz.');
-      /* Só o Caça-conectores cai aqui: a Frase embaralhada JOGA com as frases da trilha. O que falta é
-         conector (4,5% das frases). */
-      if (motivo === 'trilha-sem-frase')
-        return t('Precisa de {min} frases com conector; a Trilha quase não tem.', { min });
-      if (motivo === 'sem-voz') return t('Precisa de voz de leitura em {idioma}; este navegador não tem.', { idioma });
-      if (motivo === 'escrita-sem-separacao')
-        return t('Precisa de palavras separadas por espaço; {idioma} não as separa.', { idioma });
-      /* Antes do "aqui há N": juntar mais palavras não abre um jogo de letras (grade, teclado) num idioma
-         que não se escreve com elas. */
-      if (motivo === 'alfabeto-nao-suportado')
-        return t('Precisa do alfabeto latino; {idioma} não é escrito com ele.', { idioma });
-      if (motivo === 'audio-carregando') return t('Baixando o áudio da gravação…');
-      if (j.estado.fonte === 'falas')
-        return MINIGAMES[j.id].modalidade === 'frase-audio'
-          ? t('Precisa de {min} frases com áudio; aqui há {ha}.', { min, ha })
-          : t('Precisa de {min} frases; aqui há {ha}.', { min, ha });
-      return t('Precisa de {min} palavras; aqui há {ha}.', { min, ha });
-    })();
-  };
   /** "Ver o que serve" (`data-fx-para`, `fontes.js:490`): o catálogo, com o que não serve ao jogo marcado. */
   const verOQueServe = (j: Pick<JogoUI, 'id'>, falta: string) => {
     const carta = JOGOS.find((x) => x.id === j.id);

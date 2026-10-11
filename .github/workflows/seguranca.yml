@@ -12,6 +12,12 @@ permissions:
   contents: read
   security-events: write
 
+# O commit novo cancela a varredura do anterior no mesmo ramo (o CodeQL leva ~4,5 min e rodava
+# inteiro para cada commit de uma sequência). Na `main` e no agendamento, toda execução termina.
+concurrency:
+  group: seguranca-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'schedule' && github.ref != 'refs/heads/main' }}
+
 jobs:
   gitleaks:
     runs-on: ubuntu-latest

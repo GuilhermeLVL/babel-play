@@ -266,3 +266,14 @@ html[data-px='on'] .q-bib-paginas .q-tempo {
   font: inherit;
   font-variant-numeric: tabular-nums;
 }
+
+/* A LINHA DE TOTAIS NO CELULAR ("2 gravações · 6 min · 39 palavras"): o protótipo a corta com
+   reticências numa linha só, e em idioma de texto mais longo (o alemão, o pseudo-idioma do teste) o
+   total das palavras sumia. Aqui ela quebra em duas linhas em vez de cortar. */
+@media (max-width: 720px) {
+  html[data-quest-novo='true'] .q-bib > .q-cab.fs-cab-bib > p.fs-bib-sobre {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+}

@@ -92,6 +92,8 @@ export interface VocabCard {
    * "minhas gravações OU trilha" ser exclusiva de verdade.
    */
   daTrilha?: boolean;
+  /** Quantas vezes o cartão foi errado (o `lapses` do agendador). "Difícil" é `>= ERROS_DE_DIFICIL`. */
+  lapses?: number;
   /**
    * Veio de um baralho Anki importado. MESMA razão de `daTrilha`: a procedência real mora em
    * `vocab_occurrences.origin_kind` e não é derivável do cartão.

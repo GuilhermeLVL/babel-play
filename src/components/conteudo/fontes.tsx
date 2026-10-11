@@ -90,7 +90,12 @@ export const doisIdiomas = (k: ContagensDeConteudo | null) => (k?.idiomas.length
  * Trilha (`fxListaDoCatalogo`, `seletor.js:211-226`). "Difíceis" só entra quando há alguma (ou quando é
  * a escolha): uma linha de zero palavras não serve a jogo nem a revisão.
  */
-export function linhasDoCatalogo(k: ContagensDeConteudo, emUso: FonteDeConteudo): LinhaDoCatalogo[] {
+export function linhasDoCatalogo(
+  k: ContagensDeConteudo,
+  emUso: FonteDeConteudo,
+  /** A Trilha do app no idioma (o Jogar a joga inteira): a linha existe mesmo sem palavra ativada. */
+  trilhaDoApp?: { palavras: number; frases: number } | null,
+): LinhaDoCatalogo[] {
   const dois = doisIdiomas(k);
   const origens = [
     k.sessoes.length ? tp(k.sessoes.length, '{n} sessão', '{n} sessões') : '',
@@ -148,16 +153,20 @@ export function linhasDoCatalogo(k: ContagensDeConteudo, emUso: FonteDeConteudo)
       frases: b.frases,
       paraHoje: b.paraHoje,
     });
-  if (k.trilha)
+  if (k.trilha || trilhaDoApp)
     linhas.push({
       chave: 'trilha',
       fonte: { tipo: 'trilha' },
       grupo: 'trilha',
       nome: t('Trilha de vocabulário'),
       tipo: t('Trilha'),
-      deOnde: tp(k.trilha.palavras, '{n} palavra ativada', '{n} palavras ativadas', { n: numero(k.trilha.palavras) }),
+      deOnde: k.trilha
+        ? tp(k.trilha.palavras, '{n} palavra ativada', '{n} palavras ativadas', { n: numero(k.trilha.palavras) })
+        : t('Palavras prontas do app, por nível'),
       Icone: GraduationCap,
-      ...k.trilha,
+      palavras: trilhaDoApp?.palavras ?? k.trilha?.palavras ?? 0,
+      frases: trilhaDoApp?.frases ?? k.trilha?.frases ?? 0,
+      paraHoje: k.trilha?.paraHoje ?? 0,
     });
   return linhas;
 }

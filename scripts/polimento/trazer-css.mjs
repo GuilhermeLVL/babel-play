@@ -11,14 +11,15 @@
  * `enxuto.css` (tabela `DA_TERCEIRA_PASTA`). Os outros arquivos dela são iguais aos das duas primeiras
  * (conferido em 10/10/2026).
  *
- * A QUARTA PASTA (opcional) é a do protótipo dos CARTÕES (`cartoes-src`): dela vem só `cartoes.css`
- * (tabela `DA_QUARTA_PASTA`).
+ * A QUARTA PASTA (opcional) é a do protótipo dos CARTÕES (`cartoes-src`): dela vem `cartoes.css`
+ * (tabela `DA_QUARTA_PASTA`) só quando a quinta pasta não é dada.
  *
  * A QUINTA PASTA (opcional) é a do protótipo dos CARTÕES ENXUTOS (`cartoes-enxuto-src`): dela vem só
  * `cartoes4.css` (tabela `DA_QUINTA_PASTA`): a revisão com o mínimo em tela, a cena no verso, minha voz,
  * a folha "Praticar de outro jeito", as práticas e o fim da sessão. O `cartoes.css` dela é o da quarta
- * pasta mais as telas enxutas de Hoje, Baralhos e Palavras (linhas 431-744), que entram quando essas
- * telas forem refeitas.
+ * pasta (linhas 1-430, iguais, conferido em 10/10/2026) mais as telas enxutas de Hoje, Palavras, Memória
+ * e as folhas (linhas 431-744): desde que essas telas foram refeitas, é DELA que `cartoes.css` vem
+ * (tabela `CARTOES_DA_QUINTA_PASTA`).
  *
  * Por que copiar e não reescrever: o protótipo é um clone do DOM do desenho novo (`.q-*`, `.hud`,
  * `.cab`…) e a camada dele é ADITIVA, toda sob `html[data-px='on']`. O app passa a pôr a mesma marca
@@ -102,7 +103,16 @@ const DA_TERCEIRA_PASTA = {
   /* CAPTURAR E JOGAR COM MENOS COISAS À VISTA (`enxuto.js`): o chip de estado, a folha com o modelo e a
      ajuda, o link discreto (`.ex-lig`), "Buscar e organizar" e a arrumação do celular. Vale sob
      `html[data-px='on'][data-telas='enxuta']`, a marca que `src/lib/polimento/base.ts` põe fora do headset. */
-  'enxuto.css': [{ de: 128, ate: 154, motivo: 'barra do protótipo e painel "O que mudou"' }],
+  /* O cabeçalho e o cartão "Sugestão para hoje" do Jogar enxuto SAÍRAM em 10/10/2026 (decisão do dono): o
+     protótipo dos cartões enxutos pôs a ficha de conteúdo no cabeçalho (`fontes.css`, `seletor.css`) e não
+     carrega estas regras. Ficando, a grade do cabeçalho do celular desmontava a linha [Cartões | Jogos][ficha]. */
+  'enxuto.css': [
+    { de: 65, ate: 67, motivo: 'o cartão da sugestão do Jogar, que saiu' },
+    { de: 69, ate: 69, motivo: 'o chip da fonte do Jogar, trocado pela ficha de conteúdo' },
+    { de: 97, ate: 101, motivo: 'o cabeçalho do Jogar no celular, trocado pelo da ficha (seletor.css)' },
+    { de: 111, ate: 120, motivo: 'o cartão da sugestão do Jogar no celular, que saiu' },
+    { de: 128, ate: 154, motivo: 'barra do protótipo e painel "O que mudou"' },
+  ],
 }
 
 /** O arquivo que só existe no protótipo dos cartões (a quarta pasta). */
@@ -115,6 +125,11 @@ const DA_QUARTA_PASTA = {
 }
 
 /** O arquivo que só existe no protótipo dos cartões enxutos (a quinta pasta). */
+/** `cartoes.css` inteiro, com as telas enxutas (Hoje em faixa, Palavras, a Memória de dentro, as folhas). */
+const CARTOES_DA_QUINTA_PASTA = {
+  'cartoes.css': [{ de: 745, ate: Infinity, motivo: 'barra do protótipo e Mapa das portas' }],
+}
+
 const DA_QUINTA_PASTA = {
   /* A REVISÃO ENXUTA E AS PRÁTICAS (`cartoes2.js` e `cartoes4.js` de `cartoes-enxuto-src`): tudo com o
      prefixo `cx-`. Entra depois de `cartoes.css`, como no `montar.mjs` do protótipo. */
@@ -134,7 +149,12 @@ const TODOS = [
   ...Object.entries(ARQUIVOS).map(([nome, cortes]) => [nome, cortes, origem]),
   ...(origemDosPlanos ? Object.entries(DA_SEGUNDA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDosPlanos]) : []),
   ...(origemDasEnxutas ? Object.entries(DA_TERCEIRA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDasEnxutas]) : []),
-  ...(origemDosCartoes ? Object.entries(DA_QUARTA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDosCartoes]) : []),
+  ...(origemDosCartoes && !origemDosEnxutos
+    ? Object.entries(DA_QUARTA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDosCartoes])
+    : []),
+  ...(origemDosEnxutos
+    ? Object.entries(CARTOES_DA_QUINTA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDosEnxutos])
+    : []),
   ...(origemDosEnxutos ? Object.entries(DA_QUINTA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDosEnxutos]) : []),
 ]
 for (const [nome, cortes, pasta] of TODOS) {
@@ -166,21 +186,19 @@ for (const [nome, cortes, pasta] of TODOS) {
 /* ── O SELETOR DE CONTEÚDO (quinta pasta, `cartoes-enxuto-src`) ───────────────────────────────────────
    A ficha no cabeçalho, o catálogo "Escolher o conteúdo" e a Biblioteca com a ficha (`seletor.js`,
    `fontes.js`, `telas.js:395-446`). Bloco à parte, no fim, para não mexer nas tabelas de cima:
-     · `fontes.css` e `seletor.css` vêm com os cortes abaixo (o que é do Jogar e da pergunta na entrada
-       entra quando essas peças forem portadas);
-     · `cartoes-enxuto-base.css` são SÓ as regras de `cartoes.css` (linhas 431-744, as telas enxutas) que
-       o catálogo usa: o botão só de ícone, a dica, a linha com a ação na ponta, o painel de três fatos e
-       as folhas de menu. Quando Hoje, Baralhos e Palavras forem refeitas e o trecho inteiro entrar em
-       `cartoes.css`, este arquivo sai. */
+     · `fontes.css` e `seletor.css` vêm com os cortes abaixo. O que é do Jogar (a ficha no cabeçalho, o
+       aviso do estado, os jogos que não servem, a faixa de anúncio do Grátis) entrou em 10/10/2026; a
+       pergunta na entrada (opção desligada de fábrica) entra quando for portada;
+     · `cartoes-enxuto-base.css` SAIU em 10/10/2026: as regras das telas enxutas que o catálogo usa (o
+       botão só de ícone, a dica, a linha com a ação na ponta, o painel de três fatos e as folhas de menu)
+       agora vêm inteiras em `cartoes.css` (`CARTOES_DA_QUINTA_PASTA`). */
 const DO_SELETOR = {
   'fontes.css': {
     de: 'fontes.css',
     cortes: [
       { de: 8, ate: 38, motivo: 'a versão enxuta do Jogar: já vem de enxuto.css' },
-      { de: 40, ate: 42, adiado: 'a ficha no cabeçalho do Jogar' },
-      { de: 47, ate: 67, adiado: 'o Jogar que responde à fonte (aviso do estado, jogos que não servem)' },
+      { de: 47, ate: 47, motivo: 'a folga para a barra do protótipo' },
       { de: 107, ate: 108, motivo: 'as barras do protótipo' },
-      { de: 112, ate: 134, adiado: 'o Jogar que responde à fonte (celular)' },
       { de: 149, ate: 151, motivo: 'a versão enxuta do Jogar: já vem de enxuto.css' },
     ],
   },
@@ -188,27 +206,7 @@ const DO_SELETOR = {
     de: 'seletor.css',
     cortes: [
       { de: 43, ate: 60, adiado: 'a pergunta na entrada (opção desligada de fábrica)' },
-      { de: 97, ate: 103, adiado: 'a faixa de anúncio do Grátis no Jogar' },
       { de: 149, ate: 151, adiado: 'a pergunta na entrada (celular)' },
-      { de: 164, ate: 181, adiado: 'o Jogar com a ficha (celular)' },
-    ],
-  },
-  'cartoes-enxuto-base.css': {
-    de: 'cartoes.css',
-    so: [
-      [442, 444],
-      [450, 453],
-      [498, 505],
-      [507, 513],
-      [543, 543],
-      [546, 546],
-      [549, 551],
-      [636, 636],
-      [655, 655],
-      [680, 680],
-      [682, 682],
-      [725, 725],
-      [739, 739],
     ],
   },
 }

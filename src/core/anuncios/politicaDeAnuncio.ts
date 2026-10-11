@@ -13,11 +13,13 @@
  *
  *  1. FLAG `anuncios` desligada: nada. É o estado de fábrica.
  *  2. LISTAS FECHADAS: o espaço e o formato são os do protótipo (`anuncios-no-gratis-src/anuncios.js`,
- *     `ESPACOS`); um nome de fora, ou um formato que não é o do espaço, não aparece.
+ *     `ESPACOS`, mais `jogar-faixa` de `cartoes-enxuto-src/fontes.js:152-164`: a faixa no alto do Jogar,
+ *     no lugar que era da "Sugestão para hoje"); um nome de fora, ou um formato que não é o do espaço, não aparece.
  *  3. EDIÇÃO ESTÁTICA: sem anúncio (ali todo mundo é "sem conta"; decisão 13 do design).
  *  4. PLANO com `semAnuncios` (os pagos e o self-host) e o TESTE de 14 dias: nada.
  *  5. PERFIL PROTEGIDO (menor, idade não declarada, sem conta): nada, nem premiado (ECA Digital).
- *  6. HEADSET: nada neste aparelho.
+ *  6. HEADSET: nada neste aparelho. SEM REDE: nada (não há de onde o anúncio vir, e a tela não reserva
+ *     lugar para o que não chega).
  *  7. TELA OCUPADA: captura ativa, intérprete aberto ou rodada em andamento. Vale também para o
  *     premiado: a pessoa escolher não fura a regra.
  *  8. CONTA com menos de três dias (ou de idade desconhecida): os primeiros dias são sem anúncio.
@@ -40,6 +42,7 @@ export const ESPACOS_DE_ANUNCIO = [
   'loja-seeds',
   'trilha-oferecida',
   'jogar-miniatura',
+  'jogar-faixa',
   'loja-tema',
   'intersticial',
   'ancora',
@@ -66,6 +69,7 @@ export const FORMATO_DO_ESPACO: Readonly<Record<EspacoDeAnuncio, FormatoDeAnunci
   'loja-seeds': 'premiado',
   'trilha-oferecida': 'nativo',
   'jogar-miniatura': 'nativo',
+  'jogar-faixa': 'nativo',
   'loja-tema': 'nativo',
   intersticial: 'intersticial',
   ancora: 'nativo',
@@ -97,6 +101,8 @@ export interface PedidoDeAnuncio {
   /** Menor, idade não declarada ou sem conta (`perfilProtegido()`). */
   perfilProtegido: boolean;
   noHeadset: boolean;
+  /** O navegador diz que não há internet (`navigator.onLine === false`). */
+  semRede: boolean;
   edicaoEstatica: boolean;
   tela: TelaDoAnuncio;
   /** Quando a conta foi criada (ms). `null` = não se sabe, e quem não se sabe não vê anúncio. */
@@ -119,6 +125,7 @@ export type MotivoDoAnuncio =
   | 'em_teste'
   | 'perfil_protegido'
   | 'headset'
+  | 'sem_rede'
   | 'captura_ativa'
   | 'interprete_aberto'
   | 'rodada_em_andamento'
@@ -158,6 +165,7 @@ export function podeMostrar(p: PedidoDeAnuncio): DecisaoDeAnuncio {
 
   // 6. O aparelho.
   if (p.noHeadset) return nega('headset');
+  if (p.semRede) return nega('sem_rede');
 
   // 7. Tela ocupada (vale para o premiado também).
   if (p.tela.capturaAtiva) return nega('captura_ativa');

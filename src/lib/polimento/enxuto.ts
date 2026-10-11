@@ -27,21 +27,6 @@ export function pulsarPausa(b: Element | null): void {
   anima(b, [{ transform: 'scale(1)' }, { transform: 'scale(0.9)' }, { transform: 'scale(1)' }], { d: 420, e: MOLA });
 }
 
-/** "Outra sugestão": o título e a linha de baixo entram desfocados (`outraSugestao()`, `enxuto.js:291-292`). */
-export function trocarSugestao(texto: Element | null): void {
-  if (!texto || !polido() || reduz()) return;
-  texto.querySelectorAll('b, small').forEach((x, i) =>
-    anima(
-      x,
-      [
-        { opacity: 0, transform: 'translateY(10px)', filter: 'blur(4px)' },
-        { opacity: 1, transform: 'translateY(0)', filter: 'blur(0)' },
-      ],
-      { d: 420, atraso: i * 60 },
-    ),
-  );
-}
-
 /** Trocar de seção em "Buscar e organizar": o miolo e o pé sobem em cascata (`por()`, `enxuto.js:329`). */
 export function entrarSecao(d: Element | null): void {
   if (!d || !polido() || reduz()) return;

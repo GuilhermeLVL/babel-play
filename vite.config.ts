@@ -196,7 +196,13 @@ export default defineConfig(({ mode }) => {
       // vad-web (CJS) + onnxruntime-web pré-bundlados JÁ NO START — senão o Vite os descobre só quando
       // a captura abre, re-otimiza no meio da sessão e o require do ort quebra ("Dynamic require").
       // transformers.js fica fora (o Web Worker cuida do wasm dele).
-      include: ['@ricky0123/vad-web', 'onnxruntime-web'],
+      // `onnxruntime-web/wasm` é OUTRA entrada do pacote, e só os workers a importam (o do fim de fala,
+      // `fimDeFalaWorker.ts`, que sobe quando o microfone abre, e o do Parakeet). O Vite não segue
+      // `new Worker(new URL(...))` na varredura do arranque: sem ela aqui, a primeira captura de um
+      // servidor frio a descobria com a sessão no ar, re-otimizava e RECARREGAVA a página (o relógio
+      // voltava a 00:00 e a sessão sumia; na CI, a 1ª tentativa de `captura-no-celular.e2e.ts:236`).
+      // `tests/viteDepsDosWorkers.test.ts` cobra esta lista.
+      include: ['@ricky0123/vad-web', 'onnxruntime-web', 'onnxruntime-web/wasm'],
       exclude: ['@huggingface/transformers'],
     },
     server: {
@@ -204,7 +210,12 @@ export default defineConfig(({ mode }) => {
          fica fora da raiz, e recusava (403) as fontes do @fontsource. A pasta real entra na lista. */
       fs: { allow: [__dirname, fs.realpathSync(path.join(__dirname, 'node_modules'))] },
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      hmr: process.env.DISABLE_HMR !== 'true',
+      /* `VITE_HMR_PORT`: em modo middleware o canal do Vite (recarga e HMR) abre na porta fixa 24678. Um
+         segundo servidor de dev na mesma máquina (outra worktree) perde a porta, e a página dele fica
+         sem o canal: não recarrega, e o que só acontece COM a recarga some da vista. */
+      hmr:
+        process.env.DISABLE_HMR !== 'true' &&
+        (process.env.VITE_HMR_PORT ? { port: Number(process.env.VITE_HMR_PORT) } : true),
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
   }

@@ -4,7 +4,7 @@
  * persistência (aparelho e conta), a fonte que sumiu, os dois idiomas, a tradução de mão dupla com o
  * filtro guardado do Jogar e a conta de quantos jogos servem.
  */
-import { FILTRO_PADRAO } from '@core';
+import { FILTRO_PADRAO, passaNoFiltro } from '@core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type ContagensDeConteudo, contarConteudo } from '../src/core/learning/contagensDeConteudo';
@@ -126,8 +126,14 @@ describe('a conta, a mesma no servidor e no aparelho', () => {
 });
 
 describe('a tradução de mão dupla com o filtro do Jogar', () => {
-  it('"Tudo" é o filtro padrão: a URL do Jogar fica limpa', () => {
-    expect(filtroDoConteudo(CONTEUDO_PADRAO)).toEqual(FILTRO_PADRAO);
+  it('"Tudo" são as três origens, sem recorte (o que a contagem de "Tudo" conta): a URL do Jogar fica limpa', () => {
+    expect(filtroDoConteudo(CONTEUDO_PADRAO)).toEqual({ ...FILTRO_PADRAO, fontes: ['baralho', 'sessao', 'trilha'] });
+    /* O cartão que só veio da Trilha (ativado, sem sessão) entra em "Tudo": o padrão antigo o deixava de fora. */
+    const daTrilha = { daTrilha: true, srcLang: 'en' };
+    expect(passaNoFiltro(daTrilha, filtroDoConteudo(CONTEUDO_PADRAO))).toBe(true);
+    expect(passaNoFiltro(daTrilha, FILTRO_PADRAO)).toBe(false);
+    /* O padrão de antes (um link, uma escolha guardada) continua sendo lido como "Tudo". */
+    expect(conteudoDoFiltro(FILTRO_PADRAO)).toEqual({ conteudo: CONTEUDO_PADRAO, exato: true });
     expect(queryDoFiltro(filtroDoConteudo(CONTEUDO_PADRAO))).toBe('');
   });
 

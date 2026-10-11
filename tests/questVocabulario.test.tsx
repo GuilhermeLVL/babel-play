@@ -380,10 +380,25 @@ describe('Vocabulário no Quest', () => {
     expect(d.getByRole('radiogroup', { name: 'Velocidade da pronúncia' })).toBeTruthy()
     expect(d.getByRole('link', { name: /Wiktionary/ })).toBeTruthy()
     expect(d.getByRole('link', { name: /Forvo/ })).toBeTruthy()
-    expect(dialogo.textContent).toContain('Tradução automática')
+    /* A ordem do protótipo enxuto: ouvir e a fala original lado a lado, a tradução, a cena, o dicionário. */
+    expect(dialogo.classList.contains('ct-gaveta')).toBe(true)
+    expect(dialogo.querySelector('.ct-ouvir [data-testid="sem-fala"]')?.textContent).toContain('Sem fala gravada')
+    expect(dialogo.querySelector('.ct-traducao-t')?.textContent).toBe('gato')
+    expect(dialogo.querySelector('[data-testid="de-onde-veio"] .ct-cena blockquote')).toBeTruthy()
     expect(dialogo.textContent).toContain('Dicionário')
     expect(dialogo.textContent).toContain('Na sua memória')
     expect(dialogo.textContent).toContain('3 de 4')
+    /* A linha do Histórico diz o que a rota conta (revisões e acertos); não é botão, porque não abre lista. */
+    const historico = d.getByTestId('historico-da-palavra')
+    expect(historico.textContent).toBe('Histórico4 revisões · 3 lembradas')
+    expect(historico.tagName).toBe('P')
+    /* O pé: Editar, "…" e Revisar. O resto mora no "…". */
+    expect([...dialogo.querySelectorAll('.ct-pe-da-palavra button')].map((b) => b.textContent?.trim() || b.getAttribute('aria-label'))).toEqual([
+      'Editar',
+      'Mais ações: suspender, praticar, exercitar, excluir',
+      'Revisar',
+    ])
+    expect(dialogo.querySelector('.ct-mais-da-palavra')?.hasAttribute('hidden')).toBe(true)
   })
 
   it('sem voz para o idioma da palavra, ouvir e a velocidade não aparecem', async () => {
@@ -409,6 +424,7 @@ describe('Vocabulário no Quest', () => {
     expect(api.atualizar).toHaveBeenCalledWith('c1', expect.objectContaining({ translation: 'gatinho' }))
 
     d = within(screen.getByRole('dialog'))
+    await tocar(d.getByRole('button', { name: /^Mais ações/ }))
     await tocar(d.getByRole('button', { name: /Suspender/ }))
     expect(api.atualizar).toHaveBeenLastCalledWith('c1', { inDeck: false })
     expect(d.getByRole('button', { name: /Reativar/ })).toBeTruthy()
@@ -421,6 +437,7 @@ describe('Vocabulário no Quest', () => {
     const { linhas, tocar } = await montar()
     await tocar(linhas()[1])
     const d = within(screen.getByRole('dialog'))
+    await tocar(d.getByRole('button', { name: /^Mais ações/ }))
     await tocar(d.getByRole('button', { name: /^Excluir$/ }))
     expect(avisos.aviso).toHaveBeenCalledTimes(1)
     await tocar(d.getByRole('button', { name: /Confirmar exclusão/ }))
@@ -432,11 +449,12 @@ describe('Vocabulário no Quest', () => {
     expect(api.apagar).not.toHaveBeenCalled()
   })
 
-  it('"Revisar", na palavra aberta, leva à revisão', async () => {
+  it('"Revisar", na palavra aberta, leva à revisão DESTA palavra', async () => {
     const { linhas, tocar, ir } = await montar()
+    const palavra = linhas()[2].getAttribute('data-palavra')
     await tocar(linhas()[2])
     await tocar(within(screen.getByRole('dialog')).getByRole('button', { name: /^Revisar$/ }))
-    expect(ir).toHaveBeenCalledWith('study')
+    expect(ir).toHaveBeenCalledWith('study', { seed: expect.objectContaining({ exercise: 'review', word: palavra }) })
   })
 
   it('"+ Palavra" abre o diálogo de adicionar, com palavra, tradução, frase e nível', async () => {

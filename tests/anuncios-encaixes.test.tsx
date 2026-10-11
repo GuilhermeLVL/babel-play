@@ -18,6 +18,13 @@ import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
 
 const chave = vi.hoisted(() => ({ comEspaco: true, celular: false }))
 
+/* O Início lê o conteúdo escolhido do app, que confere a conta UMA vez por página (com memória): aqui a
+   conta não responde, para as duas fotos de cada tela pedirem à rede a mesma coisa. */
+vi.mock('../src/data/rotas/settings', async (original) => ({
+  ...(await original<typeof import('../src/data/rotas/settings')>()),
+  fetchSettings: async () => null,
+}))
+
 /* `EspacoDeAnuncio` de verdade, com um interruptor só do teste: desligado, é a tela de ANTES. */
 vi.mock('../src/components/anuncios/EspacoDeAnuncio', async (original) => {
   const real = await original<typeof import('../src/components/anuncios/EspacoDeAnuncio')>()

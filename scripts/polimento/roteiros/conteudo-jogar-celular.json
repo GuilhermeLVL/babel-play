@@ -1,0 +1,87 @@
+{
+  "nome": "conteudo-jogar-celular",
+  "prototipo": "cartoes-enxuto",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/jogar",
+    "guardar": {
+      "babel.px.planoDeProva": "free",
+      "babel.px.anunciosDeProva": "1",
+      "babel.px.aparelhoDeProva": "celular"
+    },
+    "assentar": 4500,
+    "passos": [
+      {
+        "js": "(async () => { for (let i = 0; i < 14; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || [...d.querySelectorAll('button')].find((b) => /Resgatar|Pular|Fechar|Agora não|Entendi|Depois/.test(b.textContent || '')) || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 500)); } })()"
+      },
+      {
+        "esperar": 1500
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?quieto&nav=d&limpo",
+    "assentar": 3500,
+    "passos": [
+      {
+        "js": "window.__fontes.ir('jogar')"
+      },
+      {
+        "esperar": 1800
+      }
+    ]
+  },
+  "seletores": [
+    ".q-palco.quest-jogar",
+    ".quest-jogar > .q-cab.fs-cab",
+    ".quest-jogar > .q-cab h1",
+    ".fs-ficha",
+    ".fs-ficha > .fs-abrir",
+    ".fs-ficha > .fs-abrir > svg:first-child",
+    ".fs-ficha > .fs-abrir > svg:last-child",
+    ".fs-nome",
+    ".fs-nome b",
+    ".fs-nome small",
+    ".fx-anuncio",
+    ".fx-anuncio > .q-ic",
+    ".fx-anuncio .ad-infeed-texto",
+    ".fx-anuncio .ad-infeed-texto b",
+    ".fx-anuncio .ad-infeed-texto small",
+    ".fx-anuncio .ad-rotulo",
+    ".fx-anuncio .ad-infeed-fim",
+    ".fx-anuncio .ad-cta",
+    ".fx-anuncio .ad-sem",
+    ".qj-ferramentas",
+    ".qj-ferramentas .q-abas",
+    ".qj-ferramentas .q-aba",
+    ".qj-ferramentas .q-aba[aria-selected='true']",
+    ".ex-organizar",
+    ".ex-organizar svg",
+    ".ex-organizar > span",
+    "#grade-de-jogos",
+    "#grade-de-jogos > .q-grade",
+    "#grade-de-jogos .qj-jogo",
+    "#grade-de-jogos .q-tile",
+    "#grade-de-jogos .q-tile .px-mini",
+    "#grade-de-jogos .q-tile .q-tag",
+    "#grade-de-jogos .q-tile > b",
+    "#grade-de-jogos .q-tile .qj-conta",
+    ".quest-jogar > .q-cab .ct-praticar",
+    ".quest-jogar > .q-cab .ct-praticar .q-aba"
+  ],
+  "props": [
+    "alignItems",
+    "justifyContent",
+    "flexWrap",
+    "minHeight",
+    "height",
+    "maxWidth",
+    "marginTop",
+    "marginLeft",
+    "whiteSpace",
+    "gridTemplateColumns",
+    "order",
+    "textOverflow"
+  ]
+}

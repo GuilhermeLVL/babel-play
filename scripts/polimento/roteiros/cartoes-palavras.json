@@ -1,6 +1,6 @@
 {
   "nome": "cartoes-palavras",
-  "prototipo": "cartoes",
+  "prototipo": "cartoes-enxuto",
   "largura": 1280,
   "altura": 960,
   "app": {
@@ -16,7 +16,7 @@
     ]
   },
   "proto": {
-    "busca": "?ver=palavras&quieto&nav=a",
+    "busca": "?ver=palavras&quieto",
     "assentar": 3500,
     "passos": [
       {
@@ -26,25 +26,28 @@
   },
   "seletores": [
     ".q-palco.ct",
-    ".q-cab",
-    ".q-cab .q-sobre",
+    ".q-cab.ct-cab",
     ".q-cab h1",
-    ".q-cab > .q-ctl",
+    ".fs-ficha",
+    ".fs-ficha .fs-abrir",
     ".ct-abas",
     ".ct-abas .q-aba",
+    ".q-cab > .q-ctl.ct-so-icone",
     ".ct-painel",
-    "[data-testid='fases-do-baralho']",
-    ".q-num",
-    ".q-num b",
-    ".qv-catalogo",
-    ".qv-catalogo > header h2",
-    ".qv-busca",
-    ".qv-campo-busca",
-    ".q-tabela",
+    ".ct-busca-fixa",
+    ".ct-busca-fixa .qv-campo-busca",
+    ".ct-filtros-botao",
+    ".ct-selecionar",
+    ".ct-estados",
+    ".ct-estados .q-aba",
+    ".ct-quantas",
+    ".q-tabela.ct-tabela",
     ".q-tabela th",
     ".q-tabela td",
     ".qv-palavra",
     ".qv-estado",
+    ".ct-volta",
+    ".ct-origem-da-linha",
     ".q-trilho .q-item"
   ]
 }

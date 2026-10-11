@@ -14,7 +14,14 @@ import { navegarPara } from '../../lib/rotas';
  * As contagens que o protótipo põe em cada aba ("26", "18") ficaram de fora: a tela Jogar não tem o
  * número do dia dos cartões sem um pedido a mais.
  */
-export default function AbasDePraticar({ qual }: { qual: 'cartoes' | 'jogar' }) {
+export default function AbasDePraticar({
+  qual,
+  semIcone = false,
+}: {
+  qual: 'cartoes' | 'jogar';
+  /** Na linha do título, ao lado da ficha de conteúdo, o seletor vai sem ícone, para caber (`cartoes3.js:97-103`). */
+  semIcone?: boolean;
+}) {
   const cinco = useBarraDeCinco();
   if (!cinco) return null;
   return (
@@ -26,7 +33,7 @@ export default function AbasDePraticar({ qual }: { qual: 'cartoes' | 'jogar' }) 
         aria-selected={qual === 'cartoes'}
         onClick={() => qual !== 'cartoes' && navegarPara({ view: 'cartoes' })}
       >
-        <Layers aria-hidden />
+        {!semIcone && <Layers aria-hidden />}
         {t('Cartões')}
       </button>
       <button
@@ -36,7 +43,7 @@ export default function AbasDePraticar({ qual }: { qual: 'cartoes' | 'jogar' }) 
         aria-selected={qual === 'jogar'}
         onClick={() => qual !== 'jogar' && navegarPara({ view: 'play' })}
       >
-        <Gamepad2 aria-hidden />
+        {!semIcone && <Gamepad2 aria-hidden />}
         {t('Jogos')}
       </button>
     </div>

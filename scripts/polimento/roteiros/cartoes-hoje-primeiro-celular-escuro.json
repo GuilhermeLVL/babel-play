@@ -1,6 +1,6 @@
 {
   "nome": "cartoes-hoje-primeiro-celular-escuro",
-  "prototipo": "cartoes",
+  "prototipo": "cartoes-enxuto",
   "largura": 390,
   "altura": 844,
   "escuro": true,
@@ -23,7 +23,7 @@
     ]
   },
   "proto": {
-    "busca": "?ver=hoje-primeiro&quieto&nav=b",
+    "busca": "?ver=hoje-primeiro&quieto",
     "assentar": 3500,
     "passos": [
       {
@@ -39,20 +39,21 @@
   },
   "seletores": [
     ".q-palco.ct",
-    ".q-cab",
-    ".q-cab .q-sobre",
+    ".q-cab.ct-cab",
     ".q-cab h1",
-    ".q-cab > .q-ctl",
+    ".fs-ficha",
+    ".fs-ficha .fs-abrir",
     ".ct-abas",
     ".ct-abas .q-aba",
+    ".q-cab > .q-ctl.ct-so-icone",
     ".ct-painel",
     ".ct-hoje",
     ".ct-hoje .qv-contagem",
     ".ct-hoje h2",
     ".ct-hoje .q-ctl.pri",
-    ".q-passos",
+    ".ct-atalho",
+    ".ct-como",
     ".q-passos li",
-    ".ct-tres-caminhos .q-tile",
     ".q-trilho",
     ".q-trilho .q-item",
     ".ct-praticar",

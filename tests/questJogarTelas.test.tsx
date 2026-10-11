@@ -57,7 +57,6 @@ const { default: CascaDaRodada } = await import('../src/components/minigames/cas
 const { default: ComoSeJoga } = await import('../src/components/minigames/ComoSeJoga')
 const { default: FimDaRodada } = await import('../src/components/minigames/casca/FimDaRodada')
 const { default: SalaDeEscolha } = await import('../src/components/minigames/SalaDeEscolha')
-const { default: SeletorDeConteudo } = await import('../src/components/minigames/SeletorDeConteudo')
 const { default: CuradoriaBaralho } = await import('../src/components/views/CuradoriaBaralho')
 const { default: MapaDoConteudo } = await import('../src/components/views/MapaDoConteudo')
 const { default: PainelTrilha } = await import('../src/components/views/PainelTrilha')
@@ -78,73 +77,8 @@ const botao = (nome: RegExp | string) => screen.getByRole('button', { name: nome
 const principais = (raiz: ParentNode = document) =>
   [...raiz.querySelectorAll<HTMLElement>('.q-ctl.pri')].map((b) => b.textContent?.trim())
 
-describe('a fonte no Quest (SeletorDeConteudo)', () => {
-  const montar = () => {
-    const acoes = { aoTrocar: vi.fn(), aoAlternar: vi.fn(), aoLimpar: vi.fn() }
-    render(
-      <SeletorDeConteudo
-        soGaveta
-        aberta
-        total={847}
-        nomeDaFonte="Minhas gravações"
-        idioma="inglês"
-        aoAlternar={acoes.aoAlternar}
-        aoLimpar={acoes.aoLimpar}
-        avisoDeVazio="nenhum item passa; desligue um recorte"
-        acoes={<button type="button">Trazer do Anki</button>}
-        facetas={[
-          {
-            id: 'idioma',
-            rotulo: 'Idioma',
-            exclusiva: true,
-            valor: ['en'],
-            aoTrocar: acoes.aoTrocar,
-            opcoes: [
-              { id: 'en', rotulo: 'inglês', contagem: 847 },
-              { id: 'pt', rotulo: 'português', contagem: 0, motivoBloqueio: 'nenhuma palavra pronta neste idioma' },
-            ],
-          },
-          {
-            id: 'recorte',
-            rotulo: 'Recorte',
-            valor: [],
-            aoTrocar: acoes.aoTrocar,
-            opcoes: [{ id: 'nuncaVistas', rotulo: 'Nunca vistas', contagem: 12 }],
-          },
-          { id: 'nivel', rotulo: 'Nível do curso', valor: [], aoTrocar: acoes.aoTrocar, opcoes: [] },
-        ]}
-      />,
-    )
-    return { ...acoes, painel: screen.getByRole('dialog') }
-  }
-
-  it('abre no centro com cada faceta, a contagem e o motivo ESCRITO da opção travada', () => {
-    const { painel, aoTrocar } = montar()
-    expect(painel.className).not.toContain('gaveta')
-    expect([...painel.querySelectorAll('[data-faceta]')].map((f) => (f as HTMLElement).dataset.faceta)).toEqual([
-      'idioma',
-      'recorte',
-    ])
-    const portugues = within(painel).getByRole('radio', { name: /português/ }) as HTMLButtonElement
-    expect(portugues.disabled).toBe(true)
-    expect(painel.textContent).toContain('nenhuma palavra pronta neste idioma')
-
-    fireEvent.click(within(painel).getByRole('button', { name: /Nunca vistas/ }))
-    expect(aoTrocar).toHaveBeenCalledWith('nuncaVistas')
-    expect(within(painel).getByRole('button', { name: 'Trazer do Anki' })).toBeTruthy()
-  })
-
-  it('o pé diz o total do recorte, limpa tudo e fecha no único botão principal', () => {
-    const { painel, aoLimpar, aoAlternar } = montar()
-    expect(painel.querySelector('.qj-total')?.textContent).toContain('847')
-    expect(painel.textContent).toContain('nenhum item passa; desligue um recorte')
-    fireEvent.click(within(painel).getByRole('button', { name: 'Limpar tudo' }))
-    expect(aoLimpar).toHaveBeenCalledTimes(1)
-    expect(principais(painel)).toEqual(['Pronto'])
-    fireEvent.click(within(painel).getByRole('button', { name: 'Pronto' }))
-    expect(aoAlternar).toHaveBeenCalledTimes(1)
-  })
-})
+/* A gaveta da fonte (`minigames/SeletorDeConteudo`) saiu em 10/10/2026: o conteúdo é escolhido na ficha do
+   cabeçalho (`components/conteudo`, coberta em `conteudoSeletor.test.tsx` e `seletorNoJogar.test.tsx`). */
 
 describe('a sala de escolha no Quest', () => {
   const trilhaDe = (lang: string) =>

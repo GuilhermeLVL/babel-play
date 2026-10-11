@@ -29,6 +29,7 @@ const pedido = (p: Partial<PedidoDeAnuncio> = {}): PedidoDeAnuncio => ({
   emTeste: false,
   perfilProtegido: false,
   noHeadset: false,
+  semRede: false,
   edicaoEstatica: false,
   tela: { capturaAtiva: false, interpreteAberto: false, rodadaEmAndamento: false },
   contaCriadaEm: AGORA - 10 * DIA,
@@ -57,6 +58,7 @@ describe('podeMostrar — a tabela das negativas (uma mudança por linha)', () =
     ['teste de 14 dias valendo', { emTeste: true }, 'em_teste'],
     ['perfil protegido (menor, idade não declarada, sem conta)', { perfilProtegido: true }, 'perfil_protegido'],
     ['headset', { noHeadset: true }, 'headset'],
+    ['sem rede', { semRede: true }, 'sem_rede'],
     ['edição estática', { edicaoEstatica: true }, 'edicao_estatica'],
     [
       'captura ativa',
@@ -130,6 +132,7 @@ describe('podeMostrar — listas fechadas', () => {
         'fim-premiado',
         'inicio-nativo',
         'intersticial',
+        'jogar-faixa',
         'jogar-miniatura',
         'loja-seeds',
         'loja-tema',

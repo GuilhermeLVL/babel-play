@@ -57,8 +57,7 @@ const montar = (jogos = comGravacao, extra: Partial<React.ComponentProps<typeof 
       jogos={jogos}
       ageProfile="pro"
       naTrilha={false}
-      palavras={32}
-      fonte="Inglês · Minhas palavras"
+      ficha={<span className="fs-ficha" data-fs-ficha />}
       notaDoBloqueio={(j) => `faltam ${j.estado.faltam} palavras`}
       aoJogar={aoJogar}
       aoVerTelaCompleta={aoVerTelaCompleta}
@@ -142,7 +141,7 @@ describe('LobbyDoQuest', () => {
       'Sem nota de voz',
       'Áudio da sessão',
       'Pede teclado',
-      'Falta material',
+      'Falta material',
     ])
   })
 
@@ -169,11 +168,12 @@ describe('LobbyDoQuest', () => {
     ])
   })
 
-  it('o cabeçalho diz quantas palavras há e de onde vêm', () => {
-    montar()
-    expect(screen.getByText('32 palavras prontas')).toBeTruthy()
+  it('o cabeçalho é o título e a ficha de conteúdo, no molde das outras telas', () => {
+    const { container } = montar()
     expect(screen.getByRole('heading', { name: 'Jogar' })).toBeTruthy()
-    expect(screen.getByText('Inglês · Minhas palavras')).toBeTruthy()
+    const cab = container.querySelector('header.q-cab.fs-cab.ct-cab.fx-cab') as HTMLElement
+    expect(cab.querySelector('h1 + .fs-ficha')).not.toBeNull()
+    expect(cab.querySelector('.q-sobre, .q-chip')).toBeNull()
   })
 
   it('quem não abre no headset fica apagado, desligado e com o motivo escrito', () => {
@@ -232,11 +232,19 @@ describe('LobbyDoQuest', () => {
     expect(aoJogar.mock.calls[0][0].id).toBe('memory')
   })
 
-  it('a fonte continua a um toque; a tela de sempre fica em Opções', () => {
-    const aoTrocarFonte = vi.fn()
-    const { aoVerTelaCompleta } = montar(comGravacao, { aoTrocarFonte })
-    fireEvent.click(screen.getByRole('button', { name: /Inglês · Minhas palavras/ }))
-    expect(aoTrocarFonte).toHaveBeenCalledTimes(1)
+  it('o que morava na gaveta da fonte fica em Opções, com a tela de sempre', () => {
+    const aoGerenciar = vi.fn()
+    const { aoVerTelaCompleta } = montar(comGravacao, {
+      maisOpcoes: [
+        { icone: Target, titulo: 'Gerenciar baralhos', apoio: 'Os baralhos do Anki.', aoAbrir: aoGerenciar },
+      ],
+      fimDasOpcoes: <p data-fim-das-opcoes>O que cada idioma tem</p>,
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Opções' }))
+    expect(screen.getByRole('dialog').querySelector('[data-fim-das-opcoes]')).not.toBeNull()
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Gerenciar baralhos/ }))
+    expect(aoGerenciar).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('dialog')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Opções' }))
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Tela de sempre/ }))
     expect(aoVerTelaCompleta).toHaveBeenCalledTimes(1)
@@ -334,12 +342,6 @@ describe('LobbyDoQuest completo', () => {
       aoTrocarPrevia: acoes.aoTrocarPrevia,
       ordem: comGravacao,
       aoMover: acoes.aoMover,
-      sugestao: {
-        jogo: comGravacao[3],
-        titulo: 'Revisar 12 palavras que voltaram a vencer',
-        porque: [[Target, '12 palavras voltaram a vencer hoje.']],
-      },
-      aoOutraSugestao: acoes.aoOutraSugestao,
       aoVerRecordes: acoes.aoVerRecordes,
       aoVerMapa: acoes.aoVerMapa,
       curadoria: { n: 7, aoAbrir: acoes.aoAbrirCuradoria },
@@ -354,8 +356,7 @@ describe('LobbyDoQuest completo', () => {
           },
         ],
       },
-      portaDoJogo: (j) =>
-        j.id === 'wordsearch' ? { rotulo: 'Jogar com a trilha', aoAbrir: acoes.aoAbrirPorta } : null,
+      aoVerOQueServe: acoes.aoAbrirPorta,
       correnteEncerrada: { rodadas: 3, pontos: 420, precisao: 85 },
     }
     return { ...montar(comGravacao, extra), acoes, extra }
@@ -380,16 +381,11 @@ describe('LobbyDoQuest completo', () => {
     expect(acoes.aoTrocarCategoria).toHaveBeenCalledWith('favoritos')
   })
 
-  it('a sugestão para hoje começa o jogo sugerido, gira e explica o porquê', () => {
-    const { acoes, aoJogar } = completo()
-    expect(screen.getByText('Revisar 12 palavras que voltaram a vencer')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Começar' }))
-    expect(aoJogar.mock.calls[0][0].id).toBe('memory')
-    fireEvent.click(screen.getByRole('button', { name: 'Outra sugestão' }))
-    expect(acoes.aoOutraSugestao).toHaveBeenCalledTimes(1)
-    expect(screen.queryByText('12 palavras voltaram a vencer hoje.')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Por que este?' }))
-    expect(screen.getByText('12 palavras voltaram a vencer hoje.')).toBeTruthy()
+  it('a "Sugestão para hoje" saiu do Jogar (decisão do dono): nem o cartão, nem os botões dela', () => {
+    const { container } = completo()
+    expect(container.querySelector('.qj-sugestao')).toBeNull()
+    for (const nome of ['Começar', 'Outra sugestão', 'Por que este?'])
+      expect(screen.queryByRole('button', { name: nome })).toBeNull()
   })
 
   it('"Buscar e filtrar" abre a busca e o filtro de habilidade num painel', () => {
@@ -483,15 +479,17 @@ describe('LobbyDoQuest completo', () => {
     expect(linhas[5].textContent).toContain('Não abre agora')
   })
 
-  it('jogo que abre mostra a conta da rodada; o bloqueado, a saída logo abaixo', () => {
+  it('jogo que abre mostra a conta da rodada; o que não serve, o motivo e "Ver o que serve" logo abaixo', () => {
     const { container, cartao, acoes } = completo()
     expect(cartao('memory').querySelector('.qj-conta')?.textContent).toBe('faltam 0 palavras')
     expect(cartao('wordsearch').querySelector('.qj-conta')).toBeNull()
-    const porta = container.querySelector('[data-porta="wordsearch"]') as HTMLButtonElement
-    expect(porta.textContent).toContain('Jogar com a trilha')
+    expect(cartao('wordsearch').querySelector('.fx-motivo')?.textContent).toBe('faltam 2 palavras')
+    const porta = container.querySelector('[data-fx-para="wordsearch"]') as HTMLButtonElement
+    expect(porta.textContent).toContain('Ver o que serve')
     fireEvent.click(porta)
     expect(acoes.aoAbrirPorta).toHaveBeenCalledTimes(1)
-    expect(container.querySelectorAll('[data-porta]')).toHaveLength(1)
+    expect(acoes.aoAbrirPorta.mock.calls[0][1]).toBe('faltam 2 palavras')
+    expect(container.querySelectorAll('[data-fx-para]')).toHaveLength(1)
   })
 
   it('a sequência que acabou de encerrar é dita, e o diagnóstico aparece quando ligado', () => {
@@ -508,7 +506,7 @@ describe('LobbyDoQuest completo', () => {
   it('filtro sem nenhum jogo: diz o que houve em vez de uma grade vazia', () => {
     const { extra } = completo()
     cleanup()
-    const { container } = montar([], { ...extra, busca: 'xyz', sugestao: null })
+    const { container } = montar([], { ...extra, busca: 'xyz' })
     expect(container.querySelector('.q-tile')).toBeNull()
     expect(screen.getByRole('heading', { name: 'Nenhum jogo pronto com esse filtro' })).toBeTruthy()
   })

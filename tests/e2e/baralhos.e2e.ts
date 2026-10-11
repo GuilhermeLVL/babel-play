@@ -1,15 +1,24 @@
 import { expect, test } from '@playwright/test'
 
 import { semearBaralhoAnki } from './_fixtures'
-import { abrirSeletor, baralhosNoServidor, chipDaFonte, clicarRobusto, irParaPraticar, lobby } from './_helpers'
+import {
+  abrirOrganizar,
+  abrirSeletor,
+  baralhosNoServidor,
+  chipDaFonte,
+  clicarRobusto,
+  irParaPraticar,
+  lobby,
+  voltarParaTudo,
+} from './_helpers'
 
 /**
  * Baralhos do Anki: a importação e a tela de baralhos, pelo caminho do usuário.
  *
- * NO DESENHO NOVO (09/10/2026) o caminho é: Jogar → chip "Trocar: …" do cabeçalho → painel "O que
- * você vai praticar" → cartão "Trazer ou gerenciar", com "Trazer do Anki" e "Gerenciar baralhos". Os
- * dois abrem a tela "Baralhos do Anki" (abas Trazer, Levar embora, Gerenciar), cujo "voltar" traz o
- * nome da tela de origem ("Jogar").
+ * COM A FICHA DE CONTEÚDO (10/10/2026) o caminho é: Jogar → "Buscar e organizar" → seção "Opções" →
+ * "Gerenciar baralhos", que abre a tela "Baralhos do Anki" (abas Trazer, Levar embora, Gerenciar), cujo
+ * "voltar" traz o nome da tela de origem ("Jogar"). Trazer um arquivo também está no catálogo de
+ * conteúdo ("Trazer uma fonte"), e o baralho escolhido é um CONTEÚDO: a ficha do cabeçalho o nomeia.
  *
  * O BARALHO VEM DA FIXTURE (`semearBaralhoAnki`): num banco novo não há nenhum, e a parte que depende
  * de haver um ("Gerenciar", o saldo, "Jogar só com este") pulava sempre. Agora ela roda.
@@ -20,24 +29,26 @@ test.beforeAll(async () => {
 })
 
 test.describe('Anki: importar', () => {
-  test('"Trazer do Anki" abre a importação, e o voltar ("Jogar") retorna ao lobby', async ({ page }) => {
+  test('a aba "Trazer" da tela do Anki abre a importação, e o voltar ("Jogar") retorna ao lobby', async ({ page }) => {
     test.slow()
     await irParaPraticar(page)
 
-    const painel = await abrirSeletor(page)
-    const botaoAnki = painel.getByRole('button', { name: 'Trazer do Anki' })
-    await expect(botaoAnki).toBeVisible({ timeout: 15_000 })
-    await clicarRobusto(page, botaoAnki)
+    const opcoes = await abrirOrganizar(page, 'Opções')
+    const gerenciar = opcoes.getByRole('button', { name: /Gerenciar baralhos/ })
+    await expect(gerenciar).toBeVisible({ timeout: 15_000 })
+    await clicarRobusto(page, gerenciar)
 
-    /* A tela de importação: a área de soltar o arquivo, na aba "Trazer", e o voltar do cabeçalho com
-       o nome da tela de origem. */
+    /* A tela do Anki: a área de soltar o arquivo, na aba "Trazer", e o voltar do cabeçalho com o nome da
+       tela de origem. */
     await expect(page.getByRole('heading', { level: 1, name: 'Baralhos do Anki' })).toBeVisible()
+    await clicarRobusto(page, page.getByRole('tab', { name: /^Trazer/ }))
     await expect(page.getByRole('tab', { name: /^Trazer/ })).toHaveAttribute('aria-selected', 'true')
     await expect(page.getByText('Solte o arquivo aqui')).toBeVisible()
 
     await clicarRobusto(page, page.getByRole('main').getByRole('button', { name: 'Jogar', exact: true }))
     await expect(lobby(page)).toBeVisible()
-    await expect((await abrirSeletor(page)).getByRole('button', { name: 'Trazer do Anki' })).toBeVisible()
+    /* E a porta de trazer do catálogo continua lá. */
+    await expect((await abrirSeletor(page)).getByRole('button', { name: /Trazer uma fonte/ })).toBeVisible()
   })
 })
 
@@ -56,8 +67,8 @@ test.describe('Baralhos do Anki', () => {
     const acervo = await baralhosNoServidor(page)
     expect(acervo.quantos, `a fixture deveria ter deixado um baralho — ${acervo.porque}`).toBeGreaterThan(0)
 
-    const painel = await abrirSeletor(page)
-    const botaoBaralhos = painel.getByRole('button', { name: 'Gerenciar baralhos' })
+    const painel = await abrirOrganizar(page, 'Opções')
+    const botaoBaralhos = painel.getByRole('button', { name: /Gerenciar baralhos/ })
     await expect(
       botaoBaralhos,
       'o servidor tem baralho, então a porta "Gerenciar baralhos" deveria existir',
@@ -85,18 +96,17 @@ test.describe('Baralhos do Anki', () => {
 
     await clicarRobusto(page, jogarSoComEste)
     await expect(lobby(page)).toBeVisible()
-    /* O recorte é anunciado por escrito antes de a rodada começar: o chip da fonte passa a dizer o
-       baralho, e no painel o chip dele está marcado. */
-    await expect(chipDaFonte(page), 'o chip da fonte deveria nomear o baralho escolhido').toContainText(nomeBaralho)
-    const reaberto = await abrirSeletor(page)
-    const chipDoBaralho = reaberto
-      .getByRole('group', { name: 'Quais baralhos' })
-      .getByRole('button', { name: nomeBaralho })
-    await expect(chipDoBaralho).toHaveAttribute('aria-pressed', 'true')
-    await expect(reaberto.getByRole('button', { name: 'Trazer do Anki' })).toBeVisible()
+    /* O baralho vira o CONTEÚDO ESCOLHIDO: a ficha do cabeçalho passa a dizer o nome dele, e no catálogo
+       a linha dele está "em uso". */
+    await expect(chipDaFonte(page), 'a ficha de conteúdo deveria nomear o baralho escolhido').toContainText(nomeBaralho)
+    const catalogo = await abrirSeletor(page)
+    const emUso = catalogo.locator('[data-fx-fonte^="anki:"][data-em-uso="1"]')
+    await expect(emUso).toContainText(nomeBaralho)
+    await catalogo.locator('button.x').click()
+    await expect(catalogo).toBeHidden()
 
-    // Devolve o lobby sem recorte: o mesmo chip que ligou também desliga.
-    await clicarRobusto(page, chipDoBaralho)
-    await expect(chipDoBaralho).toHaveAttribute('aria-pressed', 'false')
+    // Devolve o lobby a "Tudo": o "x" da ficha.
+    await clicarRobusto(page, voltarParaTudo(page))
+    await expect(chipDaFonte(page)).not.toContainText(nomeBaralho)
   })
 })

@@ -13,9 +13,12 @@ import { expect, type Locator, type Page } from '@playwright/test'
  * Sobre e Planos — e, no pé, o tema claro/escuro, o som dos toques e o Modo desempenho. O
  * Vocabulário deixou de ser destino: é a aba "Palavras" da tela Cartões (`/cartoes/palavras`).
  *
- * O Jogar abre no lobby (`data-testid="lobby-do-quest"`); a fonte das palavras troca-se pelo chip
- * "Trocar: …" do cabeçalho, que abre o painel "O que você vai praticar" (`dialog.qj-fonte`). Na
- * primeira visita de um navegador, uma SALA com o mesmo título (`.qj-sala`) abre antes do lobby.
+ * O Jogar abre no lobby (`data-testid="lobby-do-quest"`), direto: a sala da primeira visita saiu em
+ * 10/10/2026. O CONTEÚDO das palavras é um só para o app inteiro e troca-se na FICHA do cabeçalho
+ * (`.fs-ficha`, a mesma da Biblioteca e dos Cartões), que abre o catálogo "Escolher o conteúdo"
+ * (`dialog.fx-catalogo`). O que não é escolher conteúdo mora em "Buscar e organizar": o recorte das
+ * palavras na seção "Buscar e filtrar"; "Gerenciar baralhos" e "Praticar outro idioma" (a sala,
+ * `.qj-sala`) na seção "Opções".
  */
 
 /** O trilho (ou a barra de cinco, no celular): é a mesma `nav`. */
@@ -30,21 +33,45 @@ export const abasDePraticar = (page: Page) => page.getByTestId('abas-de-praticar
 /** A tela Cartões (`/cartoes`), com o estado do dia em `data-ct-hoje`. */
 export const telaDeCartoes = (page: Page) => page.getByTestId('cartoes')
 
-/** Uma aba da tela Cartões: Hoje, Baralhos, Palavras, Trazer e levar, Memória. */
+/** Uma aba da tela Cartões: Hoje ou Palavras. */
 export const abaDeCartoes = (page: Page, nome: string | RegExp) =>
   page.getByRole('tablist', { name: 'Seções de Cartões' }).getByRole('tab', { name: nome })
 
 /** O lobby do Jogar. */
 export const lobby = (page: Page) => page.getByTestId('lobby-do-quest')
 
-/** A sala da primeira visita ("Antes de jogar · O que você vai praticar"). */
+/** A sala "O que você vai praticar": só abre por "Praticar outro idioma", em Opções. */
 export const salaDeEscolha = (page: Page) => page.locator('.qj-sala')
 
-/** O painel da fonte, aberto pelo chip "Trocar: …". */
-export const painelDaFonte = (page: Page) => page.locator('dialog.qj-fonte')
+/** O catálogo "Escolher o conteúdo", aberto pela ficha do cabeçalho. */
+export const painelDaFonte = (page: Page) => page.locator('dialog.fx-catalogo')
 
-/** O chip do cabeçalho do lobby que abre o painel da fonte. */
-export const chipDaFonte = (page: Page) => lobby(page).getByRole('button', { name: /^Trocar: / })
+/** A ficha de conteúdo do cabeçalho do lobby: o botão que diz o conteúdo em uso e abre o catálogo. */
+export const chipDaFonte = (page: Page) => lobby(page).locator('.fs-ficha [data-fs="abrir"]')
+
+/** O "x" da ficha: volta para "Tudo" em um toque (só existe com outro conteúdo escolhido). */
+export const voltarParaTudo = (page: Page) => lobby(page).locator('.fs-ficha [data-fs="tudo"]')
+
+/**
+ * DEVOLVE "TUDO" AO FIM DE UM TESTE, sem nunca falhar por isso. O conteúdo escolhido é da CONTA (o servidor
+ * o guarda): o que um teste escolhe a suíte seguinte herdaria. Fecha o que estiver por cima e toca no "x".
+ */
+export async function devolverTudo(page: Page): Promise<void> {
+  for (
+    let i = 0;
+    i < 3 &&
+    (await page
+      .locator('dialog[open]')
+      .count()
+      .catch(() => 0));
+    i++
+  ) {
+    await page.keyboard.press('Escape').catch(() => {})
+    await page.waitForTimeout(300)
+  }
+  const x = voltarParaTudo(page)
+  if (await x.isVisible().catch(() => false)) await x.click({ timeout: 3000 }).catch(() => {})
+}
 
 /**
  * Fecha o que pode estar por cima da tela: as recompensas (conquista, baú, nível — um diálogo por vez,
@@ -151,6 +178,9 @@ export async function irParaPraticar(page: Page, rota = '/jogar') {
     .slice(0, 200)
   await expect(lobby(page), `o lobby do Jogar não apareceu; a tela mostrava: "${mostrava}"`).toBeVisible()
   await expect(salaDeEscolha(page)).toBeHidden()
+  /* O CONTEÚDO ESCOLHIDO É DA CONTA: o que outra suíte escolheu (um baralho, a trilha de outro idioma) viria
+     junto. Quem entra sem dizer o conteúdo no endereço parte de "Tudo". */
+  if (!rota.includes('?')) await devolverTudo(page)
 }
 
 /**
@@ -184,9 +214,9 @@ export async function baralhosNoServidor(page: Page): Promise<{ quantos: number;
 }
 
 /**
- * ABRE O PAINEL DA FONTE ("O que você vai praticar") pelo chip "Trocar: …" e o devolve. As facetas
- * (idioma, de onde vêm, recorte, baralhos) e as ações de material (Trazer do Anki, Gerenciar
- * baralhos) moram nele.
+ * ABRE O CATÁLOGO "Escolher o conteúdo" pela ficha do cabeçalho e o devolve. Cada fonte é uma linha
+ * (`[data-fx-fonte]`: `tudo`, `dificeis`, `sessao:<id>`, `anki:<id>`, `trilha`); "Usar" escolhe (no celular,
+ * a linha inteira).
  */
 export async function abrirSeletor(page: Page): Promise<Locator> {
   const painel = painelDaFonte(page)
@@ -196,6 +226,36 @@ export async function abrirSeletor(page: Page): Promise<Locator> {
     await clicarRobusto(page, chip)
   }
   await expect(painel).toBeVisible()
+  return painel
+}
+
+/** ESCOLHE UMA FONTE NO CATÁLOGO pela chave da linha e espera o catálogo fechar. */
+export async function escolherConteudo(page: Page, chave: string): Promise<void> {
+  const painel = await abrirSeletor(page)
+  const linha = painel.locator(`[data-fx-fonte="${chave}"]`)
+  await expect(linha, `o catálogo deveria listar a fonte "${chave}"`).toBeVisible({ timeout: 15_000 })
+  if ((await linha.getAttribute('data-em-uso')) === '1') {
+    await painel.locator('button.x').click()
+  } else if (naBarraDeCinco(page)) {
+    await clicarRobusto(page, linha)
+  } else {
+    await clicarRobusto(page, painel.locator(`.fx-linha-caixa > [data-fx-usar="${chave}"]`))
+  }
+  await expect(painel).toBeHidden()
+}
+
+/**
+ * ABRE "BUSCAR E ORGANIZAR" numa seção ("Buscar e filtrar", "Favoritos e ordem" ou "Opções") e devolve o
+ * painel. É onde mora o que a gaveta da fonte tinha e o catálogo não cobre.
+ */
+export async function abrirOrganizar(page: Page, secao: string): Promise<Locator> {
+  const painel = page.getByRole('dialog', { name: 'Buscar e organizar' })
+  if (!(await painel.isVisible().catch(() => false)))
+    await clicarRobusto(page, lobby(page).getByRole('button', { name: 'Buscar e organizar os jogos' }))
+  await expect(painel).toBeVisible()
+  const aba = painel.getByRole('tab', { name: secao })
+  if ((await aba.getAttribute('aria-selected')) !== 'true') await clicarRobusto(page, aba)
+  await expect(aba).toHaveAttribute('aria-selected', 'true')
   return painel
 }
 

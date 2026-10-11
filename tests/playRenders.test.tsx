@@ -45,6 +45,8 @@ vi.mock('../src/data/api', async (orig) => ({
   fetchDeck: vi.fn(async () => Array.from({ length: 40 }, (_, i) => cartao(i))),
 }))
 vi.mock('../src/lib/soundFx', () => ({ play: vi.fn() }))
+/* A ficha de conteúdo lê as contagens do catálogo; o `fetch` de mentira abaixo devolve `[]` para tudo. */
+vi.mock('../src/data/rotas/conteudo', () => ({ lerContagensDeConteudo: vi.fn(async () => null) }))
 
 const { default: Play } = await import('../src/components/views/Play')
 const { deriveProgress } = await import('../src/lib/progress')

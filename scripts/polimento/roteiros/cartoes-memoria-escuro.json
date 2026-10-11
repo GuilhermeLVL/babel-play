@@ -1,6 +1,6 @@
 {
   "nome": "cartoes-memoria-escuro",
-  "prototipo": "cartoes",
+  "prototipo": "cartoes-enxuto",
   "largura": 1280,
   "altura": 960,
   "escuro": true,
@@ -23,7 +23,7 @@
     ]
   },
   "proto": {
-    "busca": "?ver=memoria&quieto&nav=a",
+    "busca": "?ver=memoria&quieto",
     "assentar": 3500,
     "passos": [
       {
@@ -39,30 +39,31 @@
   },
   "seletores": [
     ".q-palco.ct",
-    ".q-cab",
-    ".q-cab .q-sobre",
+    ".q-cab.ct-cab",
     ".q-cab h1",
-    ".q-cab > .q-ctl",
+    ".fs-ficha",
+    ".fs-ficha .fs-abrir",
     ".ct-abas",
     ".ct-abas .q-aba",
+    ".q-cab > .q-ctl.ct-so-icone",
     ".ct-painel",
-    ".ct-kpis",
+    ".q-cab.ct-cab-dentro",
+    ".ct-cab-dentro .q-voltar",
     ".ct-kpis .q-num",
     ".ct-kpis .q-num b",
+    ".ct-seq",
+    ".ct-seq .ct-semana li i",
+    ".ct-prev7",
+    ".ct-prev7 .qv-barra",
     ".ct-mem-ret",
     ".ct-graf",
     ".ct-mem-prev",
-    ".ct-prev30",
     ".ct-prev30 i",
     ".ct-mem-cal",
-    ".ct-cal",
     ".ct-cal i",
-    ".ct-cal-fatos",
     ".ct-mem-botoes",
-    ".ct-bh",
     ".ct-bh .q-barra",
     ".ct-mem-fases",
-    ".ct-pilha-h",
     ".ct-leg-fases li",
     ".q-trilho .q-item"
   ]

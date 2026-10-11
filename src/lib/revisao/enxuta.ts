@@ -3,6 +3,7 @@
  * `cartoes4.js`), função por função, com os mesmos números. Nada aqui toca em tela, rede ou relógio:
  * é o que os componentes de `views/revisao/` e os testes (`tests/revisaoEnxuta.test.ts`) usam.
  */
+import { ERROS_DE_DIFICIL } from '../../core/learning/resumoDosCartoes';
 
 /** `cxHash()` de `cartoes2.js:50`. */
 export const hashDoTexto = (s: string): number => [...s].reduce((n, ch) => (n * 31 + ch.charCodeAt(0)) % 9973, 7);
@@ -72,8 +73,11 @@ export function pedeDizer(
   return e.ligado && !e.semDizerNestaRodada && e.formatoLembrar && hashDoTexto(idDoCartao) % 3 === 0;
 }
 
-/** Quantos erros até o app avisar que a palavra não está entrando (`CT_AJ.dificil`, `cartoes.js:69`). */
-export const ERROS_ATE_O_AVISO = 8;
+/**
+ * Quantos erros até o app avisar que a palavra não está entrando (`CT_AJ.dificil`, `cartoes.js:69`). É a
+ * MESMA régua de "Difíceis" na tela Cartões e no catálogo de conteúdo: uma constante só.
+ */
+export const ERROS_ATE_O_AVISO = ERROS_DE_DIFICIL;
 
 /** `ctDificil()` de `cartoes.js:151` (o app não tem etiquetas: vale só a conta de erros). */
 export const palavraDificil = (lapsos: number | null | undefined): boolean => (lapsos ?? 0) >= ERROS_ATE_O_AVISO;

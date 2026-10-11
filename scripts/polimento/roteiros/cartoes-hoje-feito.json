@@ -1,6 +1,6 @@
 {
   "nome": "cartoes-hoje-feito",
-  "prototipo": "cartoes",
+  "prototipo": "cartoes-enxuto",
   "largura": 1280,
   "altura": 960,
   "app": {
@@ -16,7 +16,7 @@
     ]
   },
   "proto": {
-    "busca": "?ver=hoje-feito&quieto&nav=a",
+    "busca": "?ver=hoje-feito&quieto",
     "assentar": 3500,
     "passos": [
       {
@@ -26,19 +26,31 @@
   },
   "seletores": [
     ".q-palco.ct",
-    ".q-cab",
-    ".q-cab .q-sobre",
+    ".q-cab.ct-cab",
     ".q-cab h1",
-    ".q-cab > .q-ctl",
+    ".fs-ficha",
+    ".fs-ficha .fs-abrir",
     ".ct-abas",
     ".ct-abas .q-aba",
+    ".q-cab > .q-ctl.ct-so-icone",
     ".ct-painel",
     ".ct-feito",
-    ".ct-feito .q-ic",
+    ".ct-festa",
     ".ct-feito h2",
-    ".ct-depois-do-dia .q-ctl",
-    ".ct-ret",
-    ".ct-prev7",
+    ".ct-feito .ct-semana li i",
+    ".ct-feito .q-ctl.pri",
+    ".ct-atalhos",
+    ".ct-atalho",
+    ".q-cartao.ct-estado",
+    ".ct-estado-mem",
+    ".ct-chama i",
+    ".px-anel.ct-anel-mini",
+    ".ct-estado-teto",
+    ".ct-estado-teto .q-barra",
+    ".ct-continuar h2",
+    ".q-linha.ct-linha-estudar",
+    ".q-fim.ct-pilula",
+    ".ct-tres b",
     ".q-trilho .q-item"
   ]
 }

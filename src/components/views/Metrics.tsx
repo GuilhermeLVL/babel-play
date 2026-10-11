@@ -14,16 +14,19 @@ import {
   type UtteranceRow,
 } from '../../data/api';
 import { ficharPalavraDoAnalista } from '../../lib/adicionarAoDeck';
+import { type Conteudo, CONTEUDO_PADRAO } from '../../lib/conteudo/estado';
 import { gravarFiltro } from '../../lib/filtroDaPratica';
 import { numero, t, tp } from '../../lib/i18n';
 import { baseLang, langLabelNaUI } from '../../lib/languages';
 import { copyDoPerfil, coreOnly } from '../../lib/profile';
+import type { RecorteDaPratica as PedidoDePratica } from '../../lib/revisao/pratica';
 import type { ExerciseId, PracticeSeed } from '../../lib/sentences';
 import { seedFromSelection, telaDoExercicio } from '../../lib/sentences';
 import { useExameDePalavra } from '../../lib/useExameDePalavra';
 import { Recording, VocabCard, VocabWord } from '../../types';
 import { toast } from '../Toast';
 import BaralhoAnki from './BaralhoAnki';
+import Palavras from './cartoes/Palavras';
 import AdicionarPalavra from './vocab/AdicionarPalavra';
 import CatalogoDePalavras, { type FiltroDoCatalogo } from './vocab/CatalogoDePalavras';
 import ExportarVocabulario from './vocab/ExportarVocabulario';
@@ -103,6 +106,8 @@ export default function Metrics({
   metrics: metricsDoApp,
   embutida = false,
   pedidoDeAdicionar = 0,
+  conteudo = CONTEUDO_PADRAO,
+  rotuloDoConteudo = '',
 }: {
   recordings: Recording[];
   /** Navegação entre telas (ex.: abrir um exercício a partir de uma métrica). */
@@ -126,6 +131,12 @@ export default function Metrics({
   embutida?: boolean;
   /** Muda (cresce) quando o "+ Palavra" do cabeçalho de Cartões é tocado: abre o diálogo daqui. */
   pedidoDeAdicionar?: number;
+  /**
+   * EMBUTIDA: o conteúdo escolhido na ficha de Cartões. A lista de Palavras (`cartoes/Palavras.tsx`) só
+   * mostra os cartões dele, e `rotuloDoConteudo` é o nome que vai ao lado da contagem.
+   */
+  conteudo?: Conteudo;
+  rotuloDoConteudo?: string;
 }) {
   /* 'palavras' É A ABA DE ENTRADA (referência de design): a tela chamada Vocabulário abria num
      painel de analytics — retenção, WPM, CEFR, complexidade — e o acervo, que é o que o nome
@@ -433,6 +444,8 @@ export default function Metrics({
     if (pedidoDeAdicionar > 0) setAdicionando(true);
   }, [pedidoDeAdicionar]);
   const [exportando, setExportando] = useState(false);
+  /** As palavras selecionadas na lista que a pessoa mandou exportar (a seleção em massa de Palavras). */
+  const [selecaoParaExportar, setSelecaoParaExportar] = useState<VocabCard[] | null>(null);
   const [filtroDoCatalogo, setFiltroDoCatalogo] = useState<FiltroDoCatalogo | null>(null);
   const [noAnki, setNoAnki] = useState(false);
   /** Muda quando o deck muda por aqui — o catálogo (paginado no servidor) recarrega junto. */
@@ -519,6 +532,15 @@ export default function Metrics({
           aoFechar={() => setExportando(false)}
         />
       )}
+      {selecaoParaExportar && (
+        <ExportarVocabulario
+          cartoes={selecaoParaExportar}
+          metrics={metrics}
+          idioma={baseLang(langCfg.studying)}
+          filtro={null}
+          aoFechar={() => setSelecaoParaExportar(null)}
+        />
+      )}
     </>
   );
   const abrirPalavra = (id: string) => {
@@ -547,9 +569,63 @@ export default function Metrics({
       }}
       aoExcluir={excluirCartao}
       aoExercitar={(c) => void handlePracticeWord({ word: c.word, translation: c.translation }, 'memory')}
-      aoRevisar={() => onChangeView?.('study')}
+      /* "Revisar" revisa ESTA palavra (`ctEstudar({ ids: [id] })`, `cartoes.js:773`): a semente leva a palavra. */
+      aoRevisar={(c) =>
+        onChangeView?.('study', {
+          seed: { ...seedFromSelection(c.word, baseLang(c.srcLang || ''), 'review', undefined), word: c.word },
+        })
+      }
+      aoPraticar={(c) =>
+        onChangeView?.('study', { praticar: { origem: 'selecao', rotulo: c.word, ids: [c.id] } satisfies PedidoDePratica })
+      }
+      aoAbrirSessao={(id) => onChangeView?.('analysis', { id })}
     />
   );
+  const semTraducao = semVerso > 0 && (
+    <div className="q-aviso qv-sem-verso" role="note">
+      <span>
+        <b>
+          {tp(semVerso, '{n} palavra está sem tradução.', '{n} palavras estão sem tradução.', {
+            n: numero(semVerso),
+          })}
+        </b>{' '}
+        {t(
+          'Isso acontece quando o idioma que você aprende e o seu idioma são o mesmo: não há o que traduzir, e o cartão fica sem verso.',
+        )}
+      </span>
+      <button type="button" className="q-ctl" onClick={() => onChangeView?.('settings')}>
+        <Languages aria-hidden /> {t('Conferir os dois idiomas')}
+      </button>
+    </div>
+  );
+
+  /* DENTRO DE CARTÕES (a aba "Palavras" do protótipo enxuto): só a lista, com a busca presa no alto e o
+     conteúdo da ficha. As abas de análise do Vocabulário antigo não fazem parte dela. */
+  if (embutida)
+    return (
+      <div className="ct-palavras" data-testid="vocabulario-no-quest">
+        <Palavras
+          cartoes={vocabCards}
+          carregando={!deckCarregado}
+          conteudo={conteudo}
+          rotuloDoConteudo={rotuloDoConteudo}
+          sessoes={recordings}
+          aoAbrir={abrirPalavra}
+          aoPraticar={(ids, rotulo) =>
+            onChangeView?.('study', { praticar: { origem: 'selecao', rotulo, ids } satisfies PedidoDePratica })
+          }
+          aoExportar={setSelecaoParaExportar}
+          aoMudar={(novos) => {
+            const porId = new Map(novos.map((c) => [c.id, c]));
+            setVocabCards((prev) => prev.map((c) => porId.get(c.id) ?? c));
+          }}
+          rodape={semTraducao}
+        />
+        {dialogos}
+        {gaveta}
+      </div>
+    );
+
   const rotuloDeExportar =
     ageProfile === 'kids' ? 'Baixar Palavras' : ageProfile === 'senior' ? 'Exportar Meu Caderno' : 'Exportar';
 
@@ -587,25 +663,7 @@ export default function Metrics({
           cartoes={vocabCards}
           aoMudarFiltro={setFiltroDoCatalogo}
           aoAbrirPalavra={abrirPalavra}
-          rodape={
-            semVerso > 0 && (
-              <div className="q-aviso qv-sem-verso" role="note">
-                <span>
-                  <b>
-                    {tp(semVerso, '{n} palavra está sem tradução.', '{n} palavras estão sem tradução.', {
-                      n: numero(semVerso),
-                    })}
-                  </b>{' '}
-                  {t(
-                    'Isso acontece quando o idioma que você aprende e o seu idioma são o mesmo: não há o que traduzir, e o cartão fica sem verso.',
-                  )}
-                </span>
-                <button type="button" className="q-ctl" onClick={() => onChangeView?.('settings')}>
-                  <Languages aria-hidden /> {t('Conferir os dois idiomas')}
-                </button>
-              </div>
-            )
-          }
+          rodape={semTraducao}
         />
       }
       aoRevisar={() => onChangeView?.('study')}

@@ -1,41 +1,50 @@
 import { type MotivoDescarte, motivoLegivel, ROTULO_MOTIVO } from '@core';
 import {
+  ArrowLeftRight,
   ArrowRight,
-  ChartColumn,
   Check,
+  ChevronRight,
   CircleCheck,
   CircleX,
-  FileText,
+  Download,
   Layers,
   Minus,
   Plus,
-  Table2,
   TriangleAlert,
+  Undo2,
   Upload,
   WalletCards,
-  X,
 } from 'lucide-react';
-import { type ReactNode, useRef, useState } from 'react';
+import { type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
 
-import { ativarNotasDoBaralho } from '../../../data/apiAnki';
+import { ativarNotasDoBaralho, purgarBaralho } from '../../../data/apiAnki';
 import { type ImportAnkiResposta, importarBaralhoAnki, soAColecao } from '../../../data/importarAnki';
-import { noHeadset } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { numero, t, tp } from '../../../lib/i18n';
-import type { AbaDeCartoes } from '../../../lib/rotas';
-import { CabecaDoCartao } from './pecas';
+import { polido, reduz } from '../../../lib/polimento/base';
+import { confete } from '../../../lib/polimento/planos';
+import { sentir } from '../../../lib/polimento/sentidos';
+import { toast } from '../../Toast';
+import { fecharAFolhaDe, FolhaDeCartoes, LinhasDeMenu } from './pecas';
 
 /**
- * A ABA "TRAZER E LEVAR" — porte de `ctAnki` e `ctTrazer` (`cartoes.js:438-497`).
+ * "TRAZER E LEVAR", EM FOLHAS — porte de `ctAbrirTrazerELevar` e `ctAbrirAnki` (`cartoes.js:1011-1027,
+ * 1062-1130` do protótipo enxuto). A aba virou folha do "…"; o Anki entra em dois passos.
  *
- * TRAZER é o fluxo que já existia em `BaralhoAnki.tsx`, com o desenho novo e o relatório do que veio e
- * do que não veio. Uma diferença do protótipo, que é do comportamento real: no app a leitura do
- * arquivo JÁ GUARDA as notas no baralho (`POST /api/import/anki` grava ao ler). O que a pessoa decide
- * depois é quantas viram cartão agora. Por isso o relatório diz "veio", e o botão é "Ativar".
+ * O FLUXO DO ANKI (`FluxoDoAnki`) é o MESMO aqui e em "Trazer uma fonte", dentro do catálogo de conteúdo
+ * (`components/conteudo/CatalogoDeConteudo.tsx`), e o baralho novo já vira o conteúdo escolhido.
  *
- * LEVAR são os quatro formatos de `ExportarVocabulario`, que já saem de verdade.
+ * O QUE O APP FAZ HOJE, dito como é (e por isso os passos não são os do protótipo ao pé da letra):
+ *  · ler o arquivo JÁ GUARDA as notas no baralho (`POST /api/import/anki` grava ao ler); nenhuma vira
+ *    cartão até a pessoa ativar. Não existe "ensaio sem gravar";
+ *  · a agenda e o histórico do Anki NÃO vêm (o dono ainda não decidiu essa importação): não há a escolha
+ *    "com a agenda | do zero", e o passo 1 diz que a agenda recomeça aqui;
+ *  · áudio e imagens não vêm; o destino de cada campo é o que a rota leu, sem escolha.
+ * "DESFAZER ESTA IMPORTAÇÃO" só aparece quando o app cumpre: o baralho nasceu desta leitura e nenhuma
+ * nota virou cartão. Aí apagar o baralho (`DELETE /api/anki/decks/:id`) devolve tudo ao que era. Depois
+ * de ativar, os cartões já estão no caderno e a purga não os tira: o desfazer some.
  *
- * FORA DESTA FATIA (`fidelidade/ficou-de-fora.md`): colar uma lista, escolher o destino de cada campo
- * do Anki, a demonstração "nasceu da legenda", as anotações da Leitura e levar só um baralho.
+ * FORA (o app não faz): colar uma lista de palavras, "Juntar a cena" em massa e escolher o destino de
+ * cada campo.
  */
 
 export type FormatoDeLevar = 'apkg' | 'csv' | 'tsv' | 'txt';
@@ -44,7 +53,10 @@ export type FormatoDeLevar = 'apkg' | 'csv' | 'tsv' | 'txt';
 const ATIVAR_DE_INICIO = 20;
 const TETO_DE_ATIVAR = 300;
 
-/** Um item de "o que veio" e "o que não veio" (`ctItem`, `cartoes.js:441`). */
+/** Os arquivos que a rota do Anki lê. */
+export const ARQUIVOS_DO_ANKI = '.apkg,.colpkg,.txt,.csv,.tsv';
+
+/** Um item de "o que vem" e "o que não vem" (`ctItem`, `cartoes.js:510`). */
 function Item({ veio, titulo, detalhe }: { veio: boolean; titulo: ReactNode; detalhe?: ReactNode }) {
   return (
     <li className={veio ? 'vem' : 'nao'}>
@@ -57,75 +69,120 @@ function Item({ veio, titulo, detalhe }: { veio: boolean; titulo: ReactNode; det
   );
 }
 
-export default function TrazerELevar({
+/** O baralho que chegou, como fonte de conteúdo. */
+export interface BaralhoTrazido {
+  tipo: 'anki';
+  id: string;
+  nome: string;
+}
+
+/**
+ * O ANKI EM DOIS PASSOS, num diálogo: lê o arquivo ao abrir; passo 1, o que veio e o que não veio, e
+ * quantas notas ativar; passo 2, o relatório.
+ */
+export function FluxoDoAnki({
+  arquivo,
   idioma,
   idiomaNativo,
-  total,
-  aoIrAba,
   aoMudou,
-  aoLevar,
+  aoTrouxe,
+  aoVerNoCatalogo,
+  aoFechar,
 }: {
+  arquivo: File;
   /** Os idiomas a atribuir ao que for trazido: o Anki não guarda isso de forma confiável. */
   idioma: string;
   idiomaNativo: string;
-  /** Cartões no baralho; `null` enquanto não se sabe (sem conta, ou carregando). */
-  total: number | null;
-  aoIrAba: (aba: AbaDeCartoes) => void;
-  /** O baralho mudou (notas trazidas ou ativadas): as contagens precisam ser lidas de novo. */
-  aoMudou: () => void;
-  /** Abre a exportação no formato escolhido. */
-  aoLevar: (formato: FormatoDeLevar) => void;
+  /** O baralho mudou (notas trazidas, ativadas ou apagadas): as contagens precisam ser lidas de novo. */
+  aoMudou?: () => void;
+  /** Notas viraram cartão: o baralho novo vira o conteúdo escolhido (quem chama relê o catálogo). */
+  aoTrouxe?: (fonte: BaralhoTrazido) => void | Promise<void>;
+  /** "Ver no catálogo": fecha e abre o catálogo de conteúdo. */
+  aoVerNoCatalogo?: () => void;
+  aoFechar: () => void;
 }) {
-  const entrada = useRef<HTMLInputElement>(null);
-  const [nome, setNome] = useState('');
-  const [lendo, setLendo] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const dialogo = useRef<HTMLDialogElement>(null);
+  const depois = useRef<(() => void) | null>(null);
   const [lido, setLido] = useState<ImportAnkiResposta | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
   const [ativar, setAtivar] = useState(ATIVAR_DE_INICIO);
-  const [ativando, setAtivando] = useState(false);
+  const [ocupado, setOcupado] = useState(false);
+  /** `null` no passo 1; no passo 2, quantas viraram cartão. */
   const [ativadas, setAtivadas] = useState<number | null>(null);
+  const [escolhido, setEscolhido] = useState(false);
+  const nome = arquivo.name;
 
-  /* A ordem em que a rota lê os campos: o primeiro é a palavra, o segundo a tradução, o terceiro a frase. */
-  const destinos = [t('Palavra'), t('Tradução'), t('Frase de exemplo')];
+  /* Lê ao abrir. A leitura é idempotente no servidor (reimportar atualiza, sem duplicar), então o efeito
+     em dobro do modo estrito só repete um pedido. */
+  const avisar = useRef(aoMudou);
+  avisar.current = aoMudou;
+  useEffect(() => {
+    let vivo = true;
+    void (async () => {
+      try {
+        const r = await importarBaralhoAnki(await soAColecao(arquivo), idioma, idiomaNativo);
+        if (!vivo) return;
+        setLido(r);
+        setAtivar(Math.min(ATIVAR_DE_INICIO, Math.max(0, r.resumo.notas - r.resumo.descartadas)));
+        avisar.current?.();
+      } catch (e) {
+        if (vivo) setErro((e as Error).message || t('Não deu para trazer este arquivo do Anki.'));
+      }
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, [arquivo, idioma, idiomaNativo]);
 
-  const recomecar = () => {
-    setLido(null);
-    setAtivadas(null);
-    setErro(null);
-    setNome('');
-  };
-  const escolher = async (arquivo: File | undefined) => {
-    if (!arquivo) return;
-    recomecar();
-    setNome(arquivo.name);
-    setLendo(true);
-    try {
-      const r = await importarBaralhoAnki(await soAColecao(arquivo), idioma, idiomaNativo);
-      setLido(r);
-      const pode = Math.max(0, r.resumo.notas - r.resumo.descartadas);
-      setAtivar(Math.min(ATIVAR_DE_INICIO, pode));
-      aoMudou();
-    } catch (e) {
-      setErro((e as Error).message);
-    } finally {
-      setLendo(false);
-    }
-  };
+  const nomeDoBaralho = lido?.baralhos?.[0] || nome.replace(/\.[^.]+$/, '');
   /** O que dá para ativar: tudo o que entrou, menos o que a régua de qualidade recusou. */
   const podeAtivar = lido ? Math.max(0, lido.resumo.notas - lido.resumo.descartadas) : 0;
   const tetoDeAgora = Math.min(TETO_DE_ATIVAR, podeAtivar);
+  /** O baralho nasceu desta leitura (nada atualizado, nada igual): apagá-lo desfaz a importação inteira. */
+  const baralhoNovo = !!lido && lido.resumo.atualizadas === 0 && lido.resumo.iguais === 0;
+  const daParaDesfazer = baralhoNovo && (ativadas ?? 0) === 0;
+
   const confirmar = async () => {
-    if (!lido || !ativar) return;
-    setAtivando(true);
+    if (!lido || !ativar || ocupado) return;
+    setOcupado(true);
     setErro(null);
     try {
       const r = await ativarNotasDoBaralho(lido.deckId, ativar);
       setAtivadas(r.ativadas);
-      aoMudou();
+      aoMudou?.();
+      if (r.ativadas > 0) {
+        sentir('sucesso');
+        if (polido() && !reduz()) confete(60);
+        if (aoTrouxe) {
+          await aoTrouxe({ tipo: 'anki', id: lido.deckId, nome: nomeDoBaralho });
+          setEscolhido(true);
+        }
+      }
     } catch (e) {
       setErro((e as Error).message);
     } finally {
-      setAtivando(false);
+      setOcupado(false);
+    }
+  };
+  const desfazer = async () => {
+    if (!lido || ocupado) return;
+    setOcupado(true);
+    try {
+      const r = await purgarBaralho(lido.deckId);
+      aoMudou?.();
+      sentir('desliga');
+      toast.ok(
+        tp(
+          r.notasApagadas,
+          'Importação desfeita: {n} nota saiu e nada mais mudou.',
+          'Importação desfeita: as {n} notas saíram e nada mais mudou.',
+          { n: numero(r.notasApagadas) },
+        ),
+      );
+      dialogo.current?.close();
+    } catch (e) {
+      setErro((e as Error).message);
+      setOcupado(false);
     }
   };
 
@@ -137,53 +194,188 @@ export default function TrazerELevar({
       </span>
     </div>
   );
+  const linhaDeDesfazer = daParaDesfazer && lido && (
+    <div className="q-ajuste ct-desfazer-importacao">
+      <div>
+        <b>{t('Desfazer esta importação')}</b>
+        <small>
+          {tp(
+            lido.resumo.notas,
+            'Enquanto nenhuma nota virou cartão. Tira a {n} nota lida e apaga o baralho.',
+            'Enquanto nenhuma nota virou cartão. Tira as {n} notas lidas e apaga o baralho.',
+            { n: numero(lido.resumo.notas) },
+          )}
+        </small>
+      </div>
+      <button type="button" className="q-ctl" disabled={ocupado} onClick={() => void desfazer()}>
+        <Undo2 aria-hidden /> {t('Desfazer')}
+      </button>
+    </div>
+  );
+  const motivos = lido
+    ? Object.entries(lido.resumo.porMotivo).map(
+        ([m, n]) => [n, t(ROTULO_MOTIVO[m as MotivoDescarte]?.titulo ?? motivoLegivel(m))] as const,
+      )
+    : [];
+  const fechar = () => {
+    aoFechar();
+    const f = depois.current;
+    depois.current = null;
+    f?.();
+  };
 
-  let anki: ReactNode;
-  if (lido && ativadas !== null) {
-    /* Pronto (`cartoes.js:446-448`). */
-    anki = (
-      <section className="q-cartao ct-anki" data-testid="anki-trazido">
-        <div className="q-cartao fundo qr-fecho">
-          <span className="q-ic">
-            <CircleCheck aria-hidden />
-          </span>
-          <div>
-            <h2>
-              {t('{notas} notas trazidas, {ativadas} ativadas', {
-                notas: numero(lido.resumo.notas),
-                ativadas: numero(ativadas),
-              })}
-            </h2>
-            <p>
-              {t('“{nome}” virou um baralho.', { nome: lido.baralhos?.[0] || nome })}{' '}
-              {ativadas > 0
-                ? tp(ativadas, 'A primeira entra como nova.', 'As {n} primeiras entram como novas.')
-                : t('Nenhuma foi ativada: as notas ficam guardadas até você ativar.')}
-            </p>
+  if (!lido) {
+    /* A leitura (ou o erro dela). */
+    return (
+      <FolhaDeCartoes
+        Icone={Upload}
+        titulo={t('Trazer do Anki')}
+        sub={nome}
+        classe="ct-anki ct-anki-1"
+        refDialogo={dialogo}
+        aoFechar={fechar}
+        pe={
+          <button type="button" className="q-ctl" onClick={(e) => fecharAFolhaDe(e.currentTarget)}>
+            {erro ? t('Fechar') : t('Cancelar')}
+          </button>
+        }
+      >
+        {erro ? (
+          avisoDeErro
+        ) : (
+          <div className="q-vazio" role="status" data-testid="anki-lendo">
+            <span className="q-ic">
+              <Upload aria-hidden />
+            </span>
+            <h2>{t('Lendo {nome}…', { nome })}</h2>
+            <p>{t('Baralho grande leva alguns segundos.')}</p>
           </div>
-        </div>
-        <div className="q-acoes">
-          <button type="button" className="q-ctl pri" onClick={() => aoIrAba('baralhos')}>
-            <Layers aria-hidden /> {t('Ver nos baralhos')}
-          </button>
-          <button type="button" className="q-ctl" onClick={recomecar}>
-            <Upload aria-hidden /> {t('Trazer outro')}
-          </button>
-        </div>
-      </section>
+        )}
+      </FolhaDeCartoes>
     );
-  } else if (lido) {
-    /* O relatório do que veio e do que não veio (`cartoes.js:449-465`), com o que a rota devolveu. */
-    const r = lido.resumo;
-    const primeiro = lido.amostra[0];
-    const motivos = Object.entries(r.porMotivo)
-      .map(([m, n]) => `${n} ${t(ROTULO_MOTIVO[m as MotivoDescarte]?.titulo ?? motivoLegivel(m)).toLowerCase()}`)
-      .join(' · ');
-    anki = (
-      <section className="q-cartao ct-anki" data-testid="anki-lido">
-        <CabecaDoCartao
-          titulo={nome}
-          sub={t(
+  }
+
+  const r = lido.resumo;
+
+  if (ativadas !== null) {
+    /* Passo 2, o relatório (`ctHtmlDoRelatorio`, `cartoes.js:1087-1098`). */
+    return (
+      <FolhaDeCartoes
+        Icone={CircleCheck}
+        titulo={t('Trazer do Anki')}
+        sub={t('Passo 2 de 2: o relatório · {nome}', { nome: nomeDoBaralho })}
+        classe="ct-anki ct-anki-2"
+        refDialogo={dialogo}
+        aoFechar={fechar}
+        pe={
+          <>
+            {aoVerNoCatalogo && (
+              <button
+                type="button"
+                className="q-ctl"
+                onClick={() => {
+                  depois.current = aoVerNoCatalogo;
+                  dialogo.current?.close();
+                }}
+              >
+                <Layers aria-hidden /> {t('Ver no catálogo')}
+              </button>
+            )}
+            <button type="button" className="q-ctl pri" onClick={(e) => fecharAFolhaDe(e.currentTarget)}>
+              <Check aria-hidden /> {t('Pronto')}
+            </button>
+          </>
+        }
+      >
+        <div data-testid="anki-trazido" style={{ display: 'contents' }}>
+          <div className="q-cartao fundo qr-fecho ct-relatorio-topo">
+            <span className="q-ic">
+              <CircleCheck aria-hidden />
+            </span>
+            <div>
+              <h2>
+                {t('{notas} notas trazidas, {ativadas} ativadas', {
+                  notas: numero(r.notas),
+                  ativadas: numero(ativadas),
+                })}
+              </h2>
+              <p>
+                {ativadas > 0
+                  ? tp(ativadas, 'A primeira entra como nova.', 'As {n} primeiras entram como novas.')
+                  : t('Nenhuma foi ativada: as notas ficam guardadas até você ativar.')}{' '}
+                {escolhido
+                  ? t('“{nome}” já é o conteúdo escolhido, nos Cartões e no Jogar.', { nome: nomeDoBaralho })
+                  : t('“{nome}” virou um baralho.', { nome: nomeDoBaralho })}
+              </p>
+            </div>
+          </div>
+          <div className="q-grade g3 ct-relatorio-numeros">
+            {(
+              [
+                [t('Vieram'), r.notas, 'bom'],
+                [t('Ficaram de fora'), r.descartadas, r.descartadas ? 'aviso' : ''],
+                [t('Viraram cartão'), ativadas, ''],
+              ] as const
+            ).map(([rotulo, valor, tom]) => (
+              <div key={rotulo} className="q-num">
+                <span className="q-rotulo">{rotulo}</span>
+                <b className={tom}>{numero(valor)}</b>
+              </div>
+            ))}
+          </div>
+          <div className="q-cartao fundo">
+            <p className="q-rotulo">{t('Ficaram de fora, e por quê')}</p>
+            <ul className="ct-itens">
+              {motivos.map(([n, motivo]) => (
+                <Item
+                  key={motivo}
+                  veio={false}
+                  titulo={`${numero(n)} · ${motivo}`}
+                  detalhe={t('Fora da régua de qualidade. Continuam no seu arquivo.')}
+                />
+              ))}
+              <Item veio={false} titulo={t('Áudio e imagens')} detalhe={t('O cartão usa a voz do aparelho.')} />
+              <Item
+                veio={false}
+                titulo={t('A agenda do Anki')}
+                detalhe={t('Intervalos e histórico ficam lá. Aqui as notas entram como novas e a agenda recomeça.')}
+              />
+            </ul>
+          </div>
+          {linhaDeDesfazer}
+          {avisoDeErro}
+        </div>
+      </FolhaDeCartoes>
+    );
+  }
+
+  /* Passo 1: o que veio e o que não veio, os campos e quantas ativar (`ctHtmlDoEnsaio`, `cartoes.js:1064-1085`). */
+  const primeiro = lido.amostra[0];
+  const destinos = [t('Palavra'), t('Tradução'), t('Frase de exemplo')];
+  return (
+    <FolhaDeCartoes
+      Icone={Upload}
+      titulo={t('Trazer do Anki')}
+      sub={t('Passo 1 de 2: o que veio · {nome} · nenhuma nota virou cartão ainda', { nome })}
+      classe="ct-anki ct-anki-1"
+      refDialogo={dialogo}
+      aoFechar={fechar}
+      pe={
+        <>
+          <button type="button" className="q-ctl" disabled={ocupado} onClick={() => setAtivadas(0)}>
+            {t('Deixar para depois')}
+          </button>
+          {podeAtivar > 0 && (
+            <button type="button" className="q-ctl pri" disabled={ocupado || !ativar} onClick={() => void confirmar()}>
+              <Check aria-hidden /> {t('Ativar {n}', { n: numero(ativar) })}
+            </button>
+          )}
+        </>
+      }
+    >
+      <div data-testid="anki-lido" style={{ display: 'contents' }}>
+        <p className="qv-nota">
+          {t(
             '{notas} notas lidas e guardadas no baralho: {novas} novas, {atualizadas} atualizadas, {iguais} iguais. Nenhuma virou cartão ainda.',
             {
               notas: numero(r.notas),
@@ -192,21 +384,14 @@ export default function TrazerELevar({
               iguais: numero(r.iguais),
             },
           )}
-          extra={
-            <button type="button" className="q-ctl" onClick={recomecar}>
-              <X aria-hidden /> {t('Trocar arquivo')}
-            </button>
-          }
-        />
+        </p>
         <div className="q-grade g2 ct-vem-nao-vem">
           <div className="q-cartao fundo">
-            <p className="q-rotulo">{t('O que veio')}</p>
+            <p className="q-rotulo">{t('O que vem')}</p>
             <ul className="ct-itens">
               <Item
                 veio
-                titulo={tp(r.notas, '{n} nota, todos os campos', '{n} notas, todos os campos', {
-                  n: numero(r.notas),
-                })}
+                titulo={tp(r.notas, '{n} nota, todos os campos', '{n} notas, todos os campos', { n: numero(r.notas) })}
                 detalhe={
                   lido.campos.length > 0
                     ? t('Guardados pelo nome que têm no Anki: {campos}.', { campos: lido.campos.join(', ') })
@@ -224,37 +409,32 @@ export default function TrazerELevar({
             </ul>
           </div>
           <div className="q-cartao fundo">
-            <p className="q-rotulo">{t('O que não veio')}</p>
+            <p className="q-rotulo">{t('O que não vem')}</p>
             <ul className="ct-itens">
-              <Item veio={false} titulo={t('Áudio e imagens')} detalhe={t('O cartão usa a voz do aparelho.')} />
               <Item
                 veio={false}
                 titulo={t('A agenda do Anki')}
                 detalhe={t('Intervalos e histórico ficam lá. Aqui as notas entram como novas e a agenda recomeça.')}
               />
+              <Item veio={false} titulo={t('Áudio e imagens')} detalhe={t('O cartão usa a voz do aparelho.')} />
+              {r.descartadas > 0 && (
+                <Item
+                  veio={false}
+                  titulo={tp(r.descartadas, '{n} nota fora da régua de qualidade', '{n} notas fora da régua de qualidade', {
+                    n: numero(r.descartadas),
+                  })}
+                  detalhe={motivos.map(([n, m]) => `${n} ${m.toLowerCase()}`).join(' · ') || undefined}
+                />
+              )}
               <Item
                 veio={false}
                 titulo={t('O desenho do cartão')}
                 detalhe={t('Modelos com HTML e CSS não são usados: cada nota vira palavra, tradução e frase.')}
               />
-              {r.descartadas > 0 && (
-                <Item
-                  veio={false}
-                  titulo={tp(
-                    r.descartadas,
-                    '{n} nota fora da régua de qualidade',
-                    '{n} notas fora da régua de qualidade',
-                    {
-                      n: numero(r.descartadas),
-                    },
-                  )}
-                  detalhe={motivos || undefined}
-                />
-              )}
             </ul>
           </div>
         </div>
-        {lido.campos.length > 0 && (
+        {(lido.campos.length > 0 || primeiro) && (
           <div className="q-secao">
             <header>
               <div>
@@ -262,35 +442,30 @@ export default function TrazerELevar({
                 <p>{t('O app leu os campos nesta ordem.')}</p>
               </div>
             </header>
-            <div className="ct-mapear">
-              {lido.campos.slice(0, destinos.length).map((campo, i) => (
-                <span key={campo} className="ct-campo-do-anki">
-                  <span className="q-tag off">{campo}</span>
-                  <ArrowRight aria-hidden />
-                  <b>{destinos[i]}</b>
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-        {primeiro && (
-          <div className="q-secao">
-            <header>
-              <div>
-                <h3>{t('Como fica o primeiro cartão')}</h3>
+            {lido.campos.length > 0 && (
+              <div className="ct-mapear">
+                {lido.campos.slice(0, destinos.length).map((campo, i) => (
+                  <span key={campo} className="ct-campo-do-anki">
+                    <span className="q-tag off">{campo}</span>
+                    <ArrowRight aria-hidden />
+                    <b>{destinos[i]}</b>
+                  </span>
+                ))}
               </div>
-            </header>
-            <div className="ct-previa">
-              <div>
-                <span className="q-rotulo">{t('Frente')}</span>
-                <b lang={idioma || undefined}>{primeiro.frente}</b>
-                {primeiro.exemplo && <small lang={idioma || undefined}>“{primeiro.exemplo}”</small>}
+            )}
+            {primeiro && (
+              <div className="ct-previa">
+                <div>
+                  <span className="q-rotulo">{t('Frente')}</span>
+                  <b lang={idioma || undefined}>{primeiro.frente}</b>
+                  {primeiro.exemplo && <small lang={idioma || undefined}>“{primeiro.exemplo}”</small>}
+                </div>
+                <div>
+                  <span className="q-rotulo">{t('Verso')}</span>
+                  <b>{primeiro.verso}</b>
+                </div>
               </div>
-              <div>
-                <span className="q-rotulo">{t('Verso')}</span>
-                <b>{primeiro.verso}</b>
-              </div>
-            </div>
+            )}
           </div>
         )}
         {lido.truncado && (
@@ -348,107 +523,85 @@ export default function TrazerELevar({
             </span>
           </div>
         )}
+        {linhaDeDesfazer}
         {avisoDeErro}
-        <div className="q-acoes">
-          {podeAtivar > 0 && (
-            <button type="button" className="q-ctl pri" disabled={ativando} onClick={() => void confirmar()}>
-              <Check aria-hidden /> {t('Ativar {n}', { n: numero(ativar) })}
-            </button>
-          )}
-          <button type="button" className="q-ctl" onClick={() => setAtivadas(0)}>
-            {t('Deixar para depois')}
-          </button>
-        </div>
-      </section>
-    );
-  } else {
-    /* A área de soltar (`cartoes.js:443-445`). */
-    anki = (
-      <section className="q-cartao ct-anki" data-testid="anki-escolher">
-        <CabecaDoCartao
-          titulo={t('Baralho do Anki (.apkg)')}
-          sub={t('Os três formatos do Anki, inclusive o atual. Depois de ler, a tela diz o que veio e o que não veio.')}
-          extra={<span className="q-tag">Anki</span>}
-        />
-        <input
-          ref={entrada}
-          type="file"
-          className="sr"
-          accept=".apkg,.txt,.csv,.tsv"
-          aria-label={t('Arquivo do baralho')}
-          data-testid="anki-arquivo"
-          onChange={(e) => {
-            void escolher(e.target.files?.[0]);
-            e.target.value = '';
-          }}
-        />
-        <button
-          type="button"
-          className="ct-soltar"
-          disabled={lendo}
-          aria-busy={lendo}
-          onClick={() => entrada.current?.click()}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            e.preventDefault();
-            void escolher(e.dataTransfer.files?.[0]);
-          }}
-        >
-          <span className="q-ic">
-            <Upload aria-hidden />
-          </span>
-          {lendo ? (
-            <b role="status">{t('Lendo {nome}…', { nome })}</b>
-          ) : (
-            <b>{noHeadset() ? t('Toque para escolher o arquivo') : t('Solte o arquivo .apkg aqui')}</b>
-          )}
-          <small>
-            {lendo
-              ? t('Baralho grande leva alguns segundos.')
-              : t('ou toque para escolher · também .txt, .csv e .tsv · até 200 MB')}
-          </small>
-        </button>
-        {avisoDeErro}
-      </section>
-    );
-  }
+      </div>
+    </FolhaDeCartoes>
+  );
+}
 
-  const formatos: Array<[typeof WalletCards, string, string, FormatoDeLevar]> = [
-    [
-      WalletCards,
-      t('Anki (.apkg)'),
-      t('Abre no Anki de qualquer aparelho. Vai sem mídia e sem a agenda daqui.'),
-      'apkg',
-    ],
-    [Table2, t('Planilha (CSV)'), t('Palavra, tradução, frase e nível.'), 'csv'],
-    [FileText, t('Texto para o Quizlet'), t('Uma linha por palavra, pronta para colar.'), 'tsv'],
-    [ChartColumn, t('Relatório'), t('O resumo do seu progresso, para ler ou mandar ao professor.'), 'txt'],
-  ];
-
+/**
+ * A FOLHA "TRAZER E LEVAR" (`ctAbrirTrazerELevar`, `cartoes.js:1011-1027`): uma folha só para o que entra
+ * e sai. Cada linha fecha a folha e segue: a palavra nova, o arquivo do Anki (o seletor de arquivos abre
+ * no próprio toque) e exportar.
+ */
+export default function TrazerELevar({
+  total,
+  aoPalavraNova,
+  aoExportar,
+  aoFechar,
+  entrada,
+}: {
+  /** Cartões no caderno; `null` enquanto não se sabe. Sem cartão não há o que exportar. */
+  total: number | null;
+  aoPalavraNova: () => void;
+  aoExportar: () => void;
+  aoFechar: () => void;
+  /** O campo de arquivo, que fica com a tela (o "Trazer do Anki" de Hoje usa o mesmo): ao escolher, ela abre o `FluxoDoAnki`. */
+  entrada: RefObject<HTMLInputElement | null>;
+}) {
+  const dialogo = useRef<HTMLDialogElement>(null);
+  const depois = useRef<(() => void) | null>(null);
+  const ir = (acao: () => void) => () => {
+    depois.current = acao;
+    dialogo.current?.close();
+  };
   return (
-    <>
-      {/* Uma coluna só: o cartão "Colar uma lista", que dividia a linha no protótipo, é fatia seguinte. */}
-      <div className="q-grade g2 ct-trazer-topo ct-lendo">{anki}</div>
-      <section className="q-secao ct-levar" data-testid="levar">
-        <header>
-          <div>
-            <h2>{t('Levar')}</h2>
-            <p>{t('Suas palavras são suas. Saem inteiras, em formato aberto, quando você quiser.')}</p>
-          </div>
-          {total !== null && total > 0 && <span className="q-chip">{t('Tudo · {n}', { n: numero(total) })}</span>}
-        </header>
-        <div className="q-grade g4">
-          {formatos.map(([Icone, titulo, detalhe, formato]) => (
-            <button key={formato} type="button" className="q-tile" onClick={() => aoLevar(formato)}>
-              <span className="q-ic">
-                <Icone aria-hidden />
-              </span>
-              <b>{titulo}</b>
-              <span className="q-d">{detalhe}</span>
-            </button>
-          ))}
-        </div>
-      </section>
-    </>
+    <FolhaDeCartoes
+      Icone={ArrowLeftRight}
+      titulo={t('Trazer e levar')}
+      sub={t('Suas palavras são suas: entram e saem em formato aberto.')}
+      classe="ct-menu ct-trazer"
+      refDialogo={dialogo}
+      aoFechar={() => {
+        aoFechar();
+        const f = depois.current;
+        depois.current = null;
+        f?.();
+      }}
+    >
+      <LinhasDeMenu
+        fim={ChevronRight}
+        linhas={[
+          {
+            chave: 'nova',
+            Icone: Plus,
+            titulo: t('Palavra nova'),
+            detalhe: t('Uma de cada vez, com a frase se quiser.'),
+            acao: ir(aoPalavraNova),
+          },
+          {
+            chave: 'anki',
+            Icone: WalletCards,
+            titulo: t('Arquivo do Anki'),
+            detalhe: t('Arquivo .apkg, texto ou CSV. A tela diz o que vem e o que não vem.'),
+            /* O seletor de arquivos precisa do toque: abre agora, com a folha ainda na tela. */
+            acao: () => entrada.current?.click(),
+          },
+          {
+            chave: 'exportar',
+            Icone: Download,
+            titulo: t('Exportar'),
+            detalhe: total
+              ? t('De volta ao Anki, planilha ou texto. O que você traz, você leva. {n} no caderno.', {
+                  n: numero(total),
+                })
+              : t('De volta ao Anki, planilha ou texto. O que você traz, você leva.'),
+            acao: ir(aoExportar),
+            desligada: total === 0,
+          },
+        ]}
+      />
+    </FolhaDeCartoes>
   );
 }

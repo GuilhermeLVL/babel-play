@@ -1,6 +1,6 @@
 {
   "nome": "cartoes-hoje",
-  "prototipo": "cartoes",
+  "prototipo": "cartoes-enxuto",
   "largura": 1280,
   "altura": 960,
   "app": {
@@ -16,7 +16,7 @@
     ]
   },
   "proto": {
-    "busca": "?ver=hoje&quieto&nav=a",
+    "busca": "?ver=hoje&quieto",
     "assentar": 3500,
     "passos": [
       {
@@ -26,28 +26,30 @@
   },
   "seletores": [
     ".q-palco.ct",
-    ".q-cab",
-    ".q-cab .q-sobre",
+    ".q-cab.ct-cab",
     ".q-cab h1",
-    ".q-cab > .q-ctl",
+    ".fs-ficha",
+    ".fs-ficha .fs-abrir",
     ".ct-abas",
     ".ct-abas .q-aba",
+    ".q-cab > .q-ctl.ct-so-icone",
     ".ct-painel",
     ".ct-hoje",
     ".ct-hoje .qv-contagem",
     ".ct-hoje h2",
     ".ct-hoje .q-ctl.pri",
     ".ct-tags-do-dia .q-tag",
-    ".ct-recortes .q-chip",
-    ".ct-ret",
-    ".ct-ret .px-anel",
-    ".ct-ret .px-anel b",
-    ".ct-ret > .q-ctl",
-    ".ct-prev7",
-    ".ct-prev7 .qv-barras",
-    ".ct-prev7 .qv-barra",
-    ".q-linha.ct-linha-b",
-    ".ct-tres",
+    ".ct-atalhos",
+    ".ct-atalho",
+    ".q-cartao.ct-estado",
+    ".ct-estado-mem",
+    ".ct-chama i",
+    ".px-anel.ct-anel-mini",
+    ".ct-estado-teto",
+    ".ct-estado-teto .q-barra",
+    ".ct-continuar h2",
+    ".q-linha.ct-linha-estudar",
+    ".q-fim.ct-pilula",
     ".ct-tres b",
     ".q-trilho .q-item"
   ]

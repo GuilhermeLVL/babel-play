@@ -3,15 +3,17 @@
  * JOGAR NA TELA ENXUTA (protótipo `telas-enxutas`, `enxugarJogar()` e `abrirOrganizar()` de
  * `enxuto.js:207-343`): no computador e no celular, as mesmas funções com menos coisas à vista.
  *
- *  · o cartão "Sugestão para hoje" sobe para logo abaixo do título, com "Começar" como ÚNICO botão cheio;
- *  · "Partida rápida" vira o link "Sortear um jogo" dentro do cartão; "Por que este?" e "Outra sugestão"
- *    viram links de texto com ícone (`.ex-lig`);
+ *  · o cabeçalho é o título e a FICHA de conteúdo (protótipo `cartoes-enxuto`, `fontes.js:187-191`); o cartão
+ *    "Sugestão para hoje" SAIU (decisão do dono), e com ele "Por que este?" e "Outra sugestão";
+ *  · "Partida rápida" é o botão pequeno "Sortear", ao lado de "Buscar e organizar";
+ *  · o aviso do estado e a faixa de anúncio ficam logo abaixo do cabeçalho; sem eles, a grade sobe;
+ *  · o jogo que não serve ao conteúdo desce para "Precisam de outro material", com o motivo e a saída;
  *  · os três painéis viram um, "Buscar e organizar", com as três seções — e cada função antiga continua
  *    alcançável e chamando o que chamava;
  *  · no headset nada muda (`tests/lobbyDoQuest.test.tsx` cobre a tela de lá).
  */
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { Target } from 'lucide-react'
+import { GraduationCap, Plus } from 'lucide-react'
 import React from 'react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -48,12 +50,14 @@ const JOGOS_DA_TELA = [
   jogo('wordsearch', { ok: false, disponiveis: 2, faltam: 2 }),
   jogo('blitz'),
 ]
+const FALTA = 'Precisa de 4 palavras; aqui há 2.'
 
 function montar(extra: Partial<React.ComponentProps<typeof LobbyDoQuest>> = {}) {
   const acoes = {
     aoJogar: vi.fn(),
     aoVerTelaCompleta: vi.fn(),
-    aoTrocarFonte: vi.fn(),
+    aoVerOQueServe: vi.fn(),
+    aoTrocarConteudo: vi.fn(),
     aoPartidaRapida: vi.fn(),
     aoTrocarCategoria: vi.fn(),
     aoBuscar: vi.fn(),
@@ -63,7 +67,6 @@ function montar(extra: Partial<React.ComponentProps<typeof LobbyDoQuest>> = {}) 
     aoComoSeJoga: vi.fn(),
     aoTrocarPrevia: vi.fn(),
     aoMover: vi.fn(),
-    aoOutraSugestao: vi.fn(),
     aoVerRecordes: vi.fn(),
     aoVerMapa: vi.fn(),
     aoAbrirCuradoria: vi.fn(),
@@ -74,12 +77,12 @@ function montar(extra: Partial<React.ComponentProps<typeof LobbyDoQuest>> = {}) 
       jogos={JOGOS_DA_TELA}
       ageProfile="pro"
       naTrilha={false}
-      palavras={32}
-      fonte="inglês · Minhas gravações"
-      notaDoBloqueio={(j) => `faltam ${j.estado.faltam} palavras`}
+      ficha={<span className="fs-ficha" data-fs-ficha />}
+      aoVerOQueServe={acoes.aoVerOQueServe}
+      aoTrocarConteudo={acoes.aoTrocarConteudo}
+      notaDoBloqueio={(j) => (j.estado.ok ? `${j.estado.tamanhoDaRodada} nesta rodada` : FALTA)}
       aoJogar={acoes.aoJogar}
       aoVerTelaCompleta={acoes.aoVerTelaCompleta}
-      aoTrocarFonte={acoes.aoTrocarFonte}
       recursos={PC}
       aoPartidaRapida={acoes.aoPartidaRapida}
       categoria="todos"
@@ -97,12 +100,6 @@ function montar(extra: Partial<React.ComponentProps<typeof LobbyDoQuest>> = {}) 
       aoTrocarPrevia={acoes.aoTrocarPrevia}
       ordem={JOGOS_DA_TELA}
       aoMover={acoes.aoMover}
-      sugestao={{
-        jogo: JOGOS_DA_TELA[3],
-        titulo: 'Revisar 12 palavras que voltaram a vencer',
-        porque: [[Target, '12 palavras voltaram a vencer hoje.']],
-      }}
-      aoOutraSugestao={acoes.aoOutraSugestao}
       aoVerRecordes={acoes.aoVerRecordes}
       aoVerMapa={acoes.aoVerMapa}
       curadoria={{ n: 7, aoAbrir: acoes.aoAbrirCuradoria }}
@@ -118,80 +115,138 @@ const painel = () => within(screen.getByRole('dialog'))
 const abrirOrganizar = () => fireEvent.click(screen.getByRole('button', { name: 'Buscar e organizar os jogos' }))
 const secao = (nome: string) => painel().getByRole('tab', { name: nome })
 
-describe('Jogar na tela enxuta: a arrumação (enxuto.js:220-272)', () => {
-  it('o cartão da sugestão sobe para logo abaixo do título, a trilha vem em seguida e as abas colam na grade', () => {
+describe('Jogar na tela enxuta: o cabeçalho com a ficha (fontes.js:187-205)', () => {
+  it('título, ficha e nada mais no cabeçalho; a trilha vem em seguida e as abas colam na grade', () => {
     const { palco } = montar()
     expect(palco.classList.contains('ex-jogar')).toBe(true)
+    const cab = palco.querySelector('header.q-cab') as HTMLElement
+    expect(cab.className).toBe('q-cab fs-cab ct-cab fx-cab')
+    expect([...cab.children].map((x) => x.tagName + (x.className ? '.' + x.className.split(' ')[0] : ''))).toEqual([
+      'H1',
+      'SPAN.fs-ficha',
+      'SPAN.q-espaco',
+    ])
+    expect(cab.querySelector('h1')?.textContent).toBe('Jogar')
     const ordem = [...palco.children].map((x) => x.className.split(' ')[0] || x.id)
-    expect(ordem.slice(0, 4)).toEqual(['q-cab', 'q-cartao', 'qj-trilha', 'qj-ferramentas'])
+    expect(ordem.slice(0, 3)).toEqual(['q-cab', 'qj-trilha', 'qj-ferramentas'])
     expect(palco.querySelector('.qj-ferramentas')?.nextElementSibling?.id).toBe('grade-de-jogos')
   })
 
-  it('"Começar" é o único botão cheio da tela, e começa o jogo sugerido', () => {
-    const { palco, acoes } = montar()
-    const cheios = palco.querySelectorAll('.q-ctl.pri')
-    expect(cheios).toHaveLength(1)
-    expect(cheios[0].textContent).toBe('Começar')
-    expect(cheios[0].closest('.qj-sugestao-linha')).not.toBeNull()
-    fireEvent.click(cheios[0])
-    expect(acoes.aoJogar.mock.calls[0][0].id).toBe('memory')
+  it('a "Sugestão para hoje" saiu: nem o cartão, nem "Por que este?", nem "Outra sugestão", nem botão cheio', () => {
+    const { palco } = montar()
+    expect(palco.querySelector('.qj-sugestao')).toBeNull()
+    expect(screen.queryByText('Sugestão para hoje')).toBeNull()
+    for (const nome of ['Por que este?', 'Outra sugestão', 'Começar', 'Partida rápida'])
+      expect(screen.queryByRole('button', { name: nome })).toBeNull()
+    expect(palco.querySelectorAll('.q-ctl.pri')).toHaveLength(0)
   })
 
-  it('"Partida rápida" sai do cabeçalho e vira o link "Sortear um jogo" do cartão, com a mesma função', () => {
+  it('"Sortear" é o botão pequeno ao lado de "Buscar e organizar", com a função da partida rápida', () => {
     const { palco, acoes } = montar()
-    expect(screen.queryByRole('button', { name: 'Partida rápida' })).toBeNull()
-    expect(palco.querySelector('.q-cab .q-ctl')).toBeNull()
+    const chips = [...palco.querySelectorAll('.qj-ferramentas > .q-chip')] as HTMLElement[]
+    expect(chips.map((c) => c.className)).toEqual(['q-chip fx-sortear', 'q-chip ex-organizar'])
     const sortear = screen.getByRole('button', { name: 'Sortear um jogo' })
-    expect(sortear.className).toBe('ex-lig')
-    expect(sortear.closest('.qj-sugestao')).not.toBeNull()
+    expect(sortear).toBe(chips[0])
+    expect(sortear.textContent).toBe('Sortear')
+    expect(sortear.dataset.ex).toBe('sortear')
     fireEvent.click(sortear)
     expect(acoes.aoPartidaRapida).toHaveBeenCalledTimes(1)
   })
 
-  it('"Por que este?" e "Outra sugestão" são links de texto com ícone, na ordem do protótipo', () => {
+  it('o aviso do estado e a faixa de anúncio ficam entre o cabeçalho e as abas; sem eles a grade sobe', () => {
+    const aoTrazer = vi.fn()
+    const { palco } = montar({
+      avisosDoEstado: [
+        {
+          tom: 'trilha',
+          icone: GraduationCap,
+          forte: 'Você joga com as palavras prontas da Trilha.',
+          texto: 'Traga as suas e o jogo fica com a sua cara.',
+          acoes: [{ rotulo: 'Trazer uma fonte', icone: Plus, primaria: true, aoAgir: aoTrazer }],
+        },
+      ],
+      anuncio: <div className="q-linha fx-anuncio" />,
+      trilha: undefined,
+    })
+    const ordem = [...palco.children].map((x) => x.className.split(' ').slice(0, 2).join(' ') || x.id)
+    expect(ordem.slice(0, 4)).toEqual(['q-cab fs-cab', 'q-aviso fx-aviso', 'q-linha fx-anuncio', 'qj-ferramentas'])
+    const aviso = palco.querySelector('.fx-aviso') as HTMLElement
+    expect(aviso.className).toBe('q-aviso fx-aviso fx-aviso-trilha')
+    expect(aviso.querySelector('.qv-aviso-texto b')?.textContent).toBe('Você joga com as palavras prontas da Trilha.')
+    const trazer = within(aviso).getByRole('button', { name: 'Trazer uma fonte' })
+    expect(trazer.className).toBe('q-ctl pri')
+    expect(trazer.closest('.fx-aviso-acoes')).not.toBeNull()
+    fireEvent.click(trazer)
+    expect(aoTrazer).toHaveBeenCalledTimes(1)
+
+    cleanup()
+    const semNada = montar({ trilha: undefined }).palco
+    expect(semNada.querySelector('.fx-aviso, .fx-anuncio')).toBeNull()
+    expect(semNada.querySelector('header.q-cab')?.nextElementSibling?.className).toBe('qj-ferramentas')
+  })
+})
+
+describe('os jogos que não servem ao conteúdo (fontes.js:208-253)', () => {
+  it('descem para "Precisam de outro material", com a arte, o motivo e "Ver o que serve"', () => {
     const { palco, acoes } = montar()
-    const ligs = [...palco.querySelectorAll('.ex-ligs > .ex-lig')] as HTMLElement[]
-    expect(ligs.map((b) => [b.dataset.ex, b.textContent])).toEqual([
-      ['porque', 'Por que este?'],
-      ['outra', 'Outra sugestão'],
-      ['sortear', 'Sortear um jogo'],
+    const secaoDosPresos = palco.querySelector('.qj-presos.fx-faltam') as HTMLElement
+    expect(secaoDosPresos.querySelector('h2')?.textContent).toBe('Precisa de outro material')
+    expect(secaoDosPresos.querySelector('header p')?.textContent).toBe(
+      'Não está quebrado: pede algo que este conteúdo não tem.',
+    )
+    const caixa = secaoDosPresos.querySelector('.fx-grade-falta > .qj-jogo.fx-falta') as HTMLElement
+    const tile = caixa.querySelector('.q-tile') as HTMLButtonElement
+    expect(tile.dataset.jogo).toBe('wordsearch')
+    expect(tile.classList.contains('apagado')).toBe(true)
+    expect(tile.disabled).toBe(false)
+    expect(tile.querySelector('.px-mini')).not.toBeNull()
+    expect(tile.querySelector('.q-tag.off.fx-tag-falta')?.textContent).toBe('Falta\u00a0material')
+    expect(tile.querySelector('.q-tag svg')).not.toBeNull()
+    expect(tile.querySelector('.q-d.fx-motivo')?.textContent).toBe(FALTA)
+    expect(tile.querySelector('.qj-conta')).toBeNull()
+    expect(tile.getAttribute('aria-label')).toContain('Não serve para este conteúdo: ' + FALTA)
+
+    const porta = within(caixa).getByRole('button', { name: /^Ver o conteúdo que serve para/ })
+    expect(porta.className).toBe('q-ctl qj-porta')
+    expect(porta.textContent?.trim()).toBe('Ver o que serve')
+    fireEvent.click(porta)
+    fireEvent.click(tile)
+    expect(acoes.aoVerOQueServe.mock.calls.map(([j, falta]) => [j.id, falta])).toEqual([
+      ['wordsearch', FALTA],
+      ['wordsearch', FALTA],
     ])
-    expect(ligs.every((b) => !!b.querySelector('svg'))).toBe(true)
-    /* Nenhum botão com caixa sobra no cartão além do "Começar". */
-    expect(palco.querySelectorAll('.qj-sugestao .q-ctl')).toHaveLength(1)
-    expect(palco.querySelector('.qj-sugestao .q-acoes')).toBeNull()
-
-    expect(screen.queryByText('12 palavras voltaram a vencer hoje.')).toBeNull()
-    fireEvent.click(ligs[0])
-    expect(screen.getByText('12 palavras voltaram a vencer hoje.')).toBeTruthy()
-    expect(ligs[0].getAttribute('aria-expanded')).toBe('true')
-    expect(ligs[0].textContent).toBe('Esconder o porquê')
-    fireEvent.click(ligs[1])
-    expect(acoes.aoOutraSugestao).toHaveBeenCalledTimes(1)
   })
 
-  it('o chip da fonte fica no cabeçalho, com o nome num span que encolhe', () => {
-    const { palco, acoes } = montar()
-    const fonte = palco.querySelector('.q-cab > .q-chip') as HTMLElement
-    expect(fonte.querySelector('.ex-fonte-txt')?.textContent).toBe('Inglês · Minhas gravações')
-    fireEvent.click(fonte)
-    expect(acoes.aoTrocarFonte).toHaveBeenCalledTimes(1)
+  it('muitos presos (conteúdo pequeno): uma saída só, "Trocar o conteúdo", no título da seção', () => {
+    const presos = (['memory', 'wordsearch', 'blitz', 'karuta', 'tenis'] as const).map((id) =>
+      jogo(id, { ok: false, disponiveis: 3, faltam: 1 }),
+    )
+    const { palco, acoes } = montar({ jogos: [jogo('termo'), ...presos], ordem: [jogo('termo'), ...presos] })
+    const secaoDosPresos = palco.querySelector('.qj-presos') as HTMLElement
+    expect(secaoDosPresos.querySelector('h2')?.textContent).toBe('Precisam de outro material')
+    expect(secaoDosPresos.querySelectorAll('.qj-porta')).toHaveLength(0)
+    fireEvent.click(within(secaoDosPresos).getByRole('button', { name: 'Trocar o conteúdo' }))
+    expect(acoes.aoTrocarConteudo).toHaveBeenCalledTimes(1)
   })
 
-  it('sem sugestão (nenhum jogo pronto), o sorteio continua à mão', () => {
-    const { palco, acoes } = montar({ sugestao: null })
-    expect(palco.querySelector('.qj-sugestao')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Sortear um jogo' }))
-    expect(acoes.aoPartidaRapida).toHaveBeenCalledTimes(1)
+  it('sem rede, o Karaokê diz "Sem rede", não tem saída e não abre o catálogo', () => {
+    const { palco, acoes } = montar({
+      jogos: [jogo('memory'), jogo('karaoke', { ok: false, fonte: 'falas', motivo: 'sem-rede' })],
+      notaDoBloqueio: (j) => (j.estado.ok ? '8 nesta rodada' : 'Precisa de internet para ouvir a sua voz.'),
+    })
+    const tile = palco.querySelector('.fx-falta .q-tile') as HTMLButtonElement
+    expect(tile.querySelector('.fx-tag-falta')?.textContent).toBe('Sem rede')
+    expect(palco.querySelector('.fx-falta .qj-porta')).toBeNull()
+    fireEvent.click(tile)
+    expect(acoes.aoVerOQueServe).not.toHaveBeenCalled()
   })
 })
 
 describe('"Buscar e organizar": um painel com as três seções (enxuto.js:300-343)', () => {
   it('três chips viram um; o painel abre na busca, com as três seções em abas', () => {
     const { palco } = montar()
-    const chips = palco.querySelectorAll('.qj-ferramentas > .q-chip')
+    const chips = palco.querySelectorAll('.qj-ferramentas > .q-chip.ex-organizar')
     expect(chips).toHaveLength(1)
-    expect(chips[0].className).toBe('q-chip ex-organizar')
     expect(chips[0].textContent).toBe('Buscar e organizar')
     for (const antigo of ['Buscar e filtrar', 'Favoritos e ordem', 'Opções'])
       expect(screen.queryByRole('button', { name: antigo })).toBeNull()
@@ -311,7 +366,7 @@ describe('"Buscar e organizar": um painel com as três seções (enxuto.js:300-3
 })
 
 describe('onde a tela enxuta não vale', () => {
-  it('no headset fica a tela de antes: partida rápida no alto, três chips, cartão depois das abas', () => {
+  it('no headset fica a arrumação de lá: partida rápida no alto e três chips; a ficha é a mesma', () => {
     aparelho.tipo = 'quest'
     const { palco } = montar()
     expect(palco.classList.contains('ex-jogar')).toBe(false)
@@ -322,8 +377,8 @@ describe('onde a tela enxuta não vale', () => {
       'Opções',
     ])
     expect(palco.querySelector('.ex-lig')).toBeNull()
-    const ordem = [...palco.children].map((x) => x.className.split(' ')[0] || x.id)
-    expect(ordem.indexOf('qj-ferramentas')).toBeLessThan(ordem.indexOf('q-cartao'))
+    expect(palco.querySelector('header.q-cab.fs-cab > .fs-ficha')).not.toBeNull()
+    expect(palco.querySelector('.fx-sortear, .qj-sugestao')).toBeNull()
   })
 
   it('a chave de prova do desenvolvimento ("Telas: Atual") mostra a arrumação de antes no computador', () => {

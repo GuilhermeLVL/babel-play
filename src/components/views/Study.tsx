@@ -14,6 +14,8 @@ import {
   salvarRodada,
   updateCard,
 } from '../../data/api';
+import { cartoesDoConteudo } from '../../lib/conteudo/cartoes';
+import type { Conteudo } from '../../lib/conteudo/estado';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
 import { ActiveProductionExercise, similarityPercentage, stabilityThreshold } from '../../lib/exercicios';
@@ -124,6 +126,12 @@ interface StudyProps {
    * a folha das práticas sobre este recorte, sem começar uma rodada (`lib/revisao/pratica.ts`).
    */
   praticar?: RecorteDaPratica;
+  /**
+   * O CONTEÚDO ESCOLHIDO (a ficha do cabeçalho de Cartões): a fila, a folha das práticas e as contagens
+   * desta tela só enxergam os cartões da fonte, no idioma dela (`lib/conteudo/cartoes.ts`). Sem ele, o
+   * baralho inteiro. Com `recording`, quem recorta é a sessão.
+   */
+  conteudo?: Conteudo | null;
 }
 
 export interface RecorteDaRodada {
@@ -215,6 +223,7 @@ export default function Study({
   rodada,
   gravacoes,
   praticar,
+  conteudo = null,
 }: StudyProps = {}) {
   /* DO APARELHO, não do desenho: o mesmo desenho vale no computador, onde há teclado físico. As teclas
      (Espaço, 1 a 4, Z…) e o foco no campo de digitar perguntam por aqui. */
@@ -239,8 +248,13 @@ export default function Study({
    * falta disso que já fez a fila ser montada com os cartões de antes da última avaliação.
    */
   const activeVocabCards = useMemo(
-    () => (recording ? vocabCards.filter((c) => c.sourceSessionId === recording.id) : vocabCards),
-    [vocabCards, recording],
+    () =>
+      recording
+        ? vocabCards.filter((c) => c.sourceSessionId === recording.id)
+        : conteudo
+          ? cartoesDoConteudo(vocabCards, conteudo)
+          : vocabCards,
+    [vocabCards, recording, conteudo],
   );
   const [scheduler] = useState<SchedulerType>('fsrs');
   const sessoes = useMemo(() => gravacoes ?? (recording ? [recording] : []), [gravacoes, recording]);
@@ -878,7 +892,8 @@ export default function Study({
   /* ── Praticar de outro jeito ──────────────────────────────────────────────────────────────────── */
   /** Os cartões de um recorte: os ids recebidos, os da sessão, ou os que vencem agora. */
   const cartoesDoRecorte = (r: RecorteDaPratica): VocabCard[] => {
-    const noBaralho = vocabCards.filter((c) => c.inDeck);
+    /* Sem ids, o recorte é o do conteúdo em uso (`activeVocabCards`): praticar "Difíceis" pratica as difíceis. */
+    const noBaralho = activeVocabCards.filter((c) => c.inDeck);
     if (r.ids) {
       const ids = new Set(r.ids);
       return vocabCards.filter((c) => ids.has(c.id));

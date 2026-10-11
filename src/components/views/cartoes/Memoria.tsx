@@ -1,28 +1,61 @@
 import '../../../styles/questEstatisticas.css';
 import '../../../styles/questInstitucional.css';
 
-import { Brain, CalendarCheck, Flame, SlidersHorizontal, Target, TriangleAlert } from 'lucide-react';
+import { Brain, CalendarCheck, Flame, Target, TriangleAlert } from 'lucide-react';
 import { type ReactNode, useEffect, useRef } from 'react';
 
 import { ERROS_DE_DIFICIL, type ResumoDosCartoes } from '../../../core/learning/resumoDosCartoes';
-import { porcentoDeLembradas } from '../../../lib/cartoes/estadoDeHoje';
+import { diasAPartirDeAmanha, porcentoDeLembradas } from '../../../lib/cartoes/estadoDeHoje';
 import { numero, t, tp } from '../../../lib/i18n';
-import { anima, MOLA_SUAVE, polido, reduz } from '../../../lib/polimento/base';
+import { anima, MOLA, MOLA_SUAVE, polido, reduz } from '../../../lib/polimento/base';
 import { celular } from '../../../lib/polimento/celular';
-import type { AbaDeCartoes } from '../../../lib/rotas';
-import { CabecaDoCartao, diaCurto, diaEMes } from './pecas';
+import { Semana } from './Hoje';
+import { CabecaDoCartao, diaCurto, diaEMes, Dica } from './pecas';
 
 /**
- * A ABA "MEMÓRIA" — porte de `ctMemoria`, `ctGraficoDeRetencao` e `ctCalendario`
- * (`cartoes.js:499-574`): as estatísticas só dos cartões, que estavam espalhadas entre Estatísticas
+ * A MEMÓRIA, TELA DE DENTRO COM VOLTAR — porte de `ctMemoria`, `ctGraficoDeRetencao`, `ctCalendario` e
+ * `ctPrevisao7` (`cartoes.js:254-261, 528-622` do protótipo enxuto). Abre pela faixa de estado de "Hoje" e
+ * pelo "…" do cabeçalho. São as estatísticas só dos cartões, que estavam espalhadas entre Estatísticas
  * (previsão de 7 dias) e o Vocabulário (revisões por dia), mais o que `review_logs` já guardava e
  * nenhuma tela mostrava (retenção medida, botões usados). Tudo de `GET /api/vocab/resumo`.
  *
- * FORA DESTA FATIA (`fidelidade/ficou-de-fora.md`): o tempo por dia e por cartão (a revisão não mede
- * tempo), os congelamentos no calendário e "Ver as difíceis" (o catálogo não filtra por estado).
+ * A SEMANA DA SEQUÊNCIA são os últimos sete dias do calendário de revisões; o número de dias seguidos é
+ * a ofensiva do perfil. FORA (o app não mede nem faz): o tempo por dia e por cartão e os congelamentos.
  */
 
 const DIA = 86_400_000;
+
+/** "Os próximos 7 dias": sete barras a partir de amanhã (`ctPrevisao7`, `cartoes.js:254-261`). */
+function Previsao7({ resumo }: { resumo: ResumoDosCartoes }) {
+  const valores = resumo.previsao.slice(1, 8);
+  const dias = diasAPartirDeAmanha(resumo.inicioDoDia, valores.length).map(diaCurto);
+  const maior = Math.max(1, ...valores);
+  return (
+    <section className="q-cartao ct-prev7" data-testid="previsao-dos-proximos-dias">
+      <CabecaDoCartao
+        titulo={t('Os próximos 7 dias')}
+        sub={t('Quantos cartões voltam em cada dia; a barra destacada é amanhã.')}
+        extra={<Dica texto={t('Dia sem estudo não vira dívida: o limite de revisões por dia segura a carga.')} />}
+      />
+      <div
+        className="qv-barras"
+        role="img"
+        aria-label={t('Previsão: {lista}', { lista: valores.map((v, i) => `${dias[i]} ${v}`).join(', ') })}
+      >
+        {valores.map((v, i) => (
+          <div key={i} className="qv-col">
+            <b>{v}</b>
+            <span
+              className={`qv-barra ${i === 0 ? 'hoje' : ''}`}
+              style={{ height: Math.max(4, Math.round((v / maior) * 120)) }}
+            />
+            <small>{dias[i]}</small>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 /** Retenção por semana contra a meta (`ctGraficoDeRetencao`, `cartoes.js:500-516`). */
 function GraficoDeRetencao({ resumo, meta }: { resumo: ResumoDosCartoes; meta: number }) {
@@ -115,8 +148,8 @@ export default function Memoria({
   metaDeRetencao,
   sequencia,
   maiorSequencia,
-  aoIrAba,
-  aoAjustes,
+  aoHoje,
+  aoVerDificeis,
 }: {
   /** `null` = estado vazio (sem conta, ou nenhum cartão). */
   resumo: ResumoDosCartoes | null;
@@ -124,8 +157,10 @@ export default function Memoria({
   /** A ofensiva do perfil (dias de prática seguidos) e a maior já feita; `null` enquanto não chegam. */
   sequencia: number | null;
   maiorSequencia: number | null;
-  aoIrAba: (aba: AbaDeCartoes) => void;
-  aoAjustes: () => void;
+  /** "Ver como começar": volta para "Hoje". */
+  aoHoje: () => void;
+  /** "Ver as N difíceis": "Difíceis" vira o conteúdo e a lista de Palavras abre. */
+  aoVerDificeis: () => void;
 }) {
   const raiz = useRef<HTMLDivElement>(null);
   const semDado = !resumo || resumo.revisoesDeSempre === 0;
@@ -134,6 +169,16 @@ export default function Memoria({
   useEffect(() => {
     const el = raiz.current;
     if (!el || semDado || !polido() || reduz()) return;
+    el.querySelectorAll('.qv-barras .qv-barra').forEach((x, k) =>
+      anima(x, [{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }], {
+        d: 760,
+        atraso: 320 + k * 60,
+        e: MOLA_SUAVE,
+      }),
+    );
+    el.querySelectorAll('.ct-semana li i').forEach((x, k) =>
+      anima(x, [{ transform: 'scale(0)' }, { transform: 'scale(1)' }], { d: 520, atraso: 300 + k * 55, e: MOLA }),
+    );
     el.querySelectorAll('.ct-prev30 i').forEach((x, k) =>
       anima(x, [{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }], {
         d: 620,
@@ -175,7 +220,7 @@ export default function Memoria({
         <p>
           {t('Retenção real contra a meta, previsão de carga, calendário de dias estudados e os botões que você usa.')}
         </p>
-        <button type="button" className="q-ctl pri" onClick={() => aoIrAba('hoje')}>
+        <button type="button" className="q-ctl pri" onClick={aoHoje}>
           <CalendarCheck aria-hidden /> {t('Ver como começar')}
         </button>
       </div>
@@ -278,6 +323,27 @@ export default function Memoria({
         ))}
       </div>
       <div className="q-grade g2 ct-mem-par">
+        <section className="q-cartao ct-seq" data-testid="sequencia-da-semana">
+          <CabecaDoCartao
+            titulo={sequencia === null ? t('Os últimos sete dias') : tp(sequencia, '{n} dia seguido', '{n} dias seguidos')}
+            sub={[
+              sequencia === null ? '' : t('Dias de prática seguidos.'),
+              maiorSequencia === null ? '' : tp(maiorSequencia, 'Recorde: {n} dia.', 'Recorde: {n} dias.'),
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            extra={
+              <span className="q-ic" aria-hidden="true">
+                <Flame />
+              </span>
+            }
+          />
+          <Semana resumo={resumo} />
+          <p className="qv-nota">{t('Os dias marcados são os que tiveram revisão de cartões.')}</p>
+        </section>
+        <Previsao7 resumo={resumo} />
+      </div>
+      <div className="q-grade g2 ct-mem-par">
         <section className="q-cartao ct-mem-ret" data-testid="retencao-contra-a-meta">
           <CabecaDoCartao
             titulo={t('Retenção real contra a meta')}
@@ -300,9 +366,6 @@ export default function Memoria({
                   )}{' '}
             {t('A agenda já encurta os intervalos das palavras que você erra.')}
           </p>
-          <button type="button" className="q-ctl" onClick={aoAjustes}>
-            <SlidersHorizontal aria-hidden /> {t('Opções da revisão')}
-          </button>
         </section>
         <section className="q-cartao ct-mem-prev" data-testid="previsao-de-carga">
           <CabecaDoCartao
@@ -444,6 +507,12 @@ export default function Memoria({
               </li>
             ))}
           </ul>
+          {resumo.dificeis > 0 && (
+            <button type="button" className="q-ctl" onClick={aoVerDificeis}>
+              <TriangleAlert aria-hidden />{' '}
+              {tp(resumo.dificeis, 'Ver a {n} difícil', 'Ver as {n} difíceis', { n: numero(resumo.dificeis) })}
+            </button>
+          )}
         </section>
       </div>
     </div>

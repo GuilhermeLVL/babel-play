@@ -1,0 +1,59 @@
+{
+  "nome": "cartoes-menu-celular",
+  "prototipo": "cartoes-enxuto",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/cartoes",
+    "assentar": 3500,
+    "passos": [
+      {
+        "js": "(async () => { for (let i = 0; i < 14; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || [...d.querySelectorAll('button')].find((b) => /Resgatar|Pular|Fechar|Agora não|Entendi|Depois/.test(b.textContent || '')) || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 500)); } })()"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "clicar": ".q-cab > .q-ctl.ct-so-icone"
+      },
+      {
+        "esperar": 900
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?ver=hoje&quieto",
+    "assentar": 3500,
+    "passos": [
+      {
+        "esperar": 600
+      },
+      {
+        "clicar": ".q-cab > .q-ctl.ct-so-icone"
+      },
+      {
+        "esperar": 900
+      }
+    ]
+  },
+  "seletores": [
+    ".q-palco.ct",
+    ".q-cab.ct-cab",
+    ".q-cab h1",
+    ".fs-ficha",
+    ".fs-ficha .fs-abrir",
+    ".ct-abas",
+    ".ct-abas .q-aba",
+    ".q-cab > .q-ctl.ct-so-icone",
+    ".ct-painel",
+    "dialog.ct-menu",
+    "dialog.ct-menu .dlg-cab h2",
+    ".ct-menu-lista",
+    ".ct-menu-lista .q-linha",
+    ".ct-menu-lista .q-linha b",
+    ".q-trilho",
+    ".q-trilho .q-item",
+    ".ct-praticar",
+    ".ct-praticar .q-aba"
+  ]
+}

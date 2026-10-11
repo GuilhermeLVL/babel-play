@@ -14,14 +14,14 @@ import type { ContagensDeConteudo } from '../../core/learning/contagensDeConteud
 import type { Conteudo } from '../../lib/conteudo/estado';
 import { escolherConteudo, mudarIdiomaDoConteudo, voltarParaTudoNoConteudo } from '../../lib/conteudo/loja';
 import { sentir } from '../../lib/polimento/sentidos';
-import type { AcoesDoCatalogo } from './CatalogoDeConteudo';
+import type { AcoesDoCatalogo, JogoDoCatalogo } from './CatalogoDeConteudo';
 import { FichaDeConteudo } from './FichaDeConteudo';
 import { idiomaNaFicha } from './fontes';
 
 /** O que a tela pode pedir ao seletor sem tocar na ficha. */
 export interface ControleDoSeletor {
-  /** Abre o catálogo. */
-  abrir: () => void;
+  /** Abre o catálogo. Com `paraJogo`, marca o que não serve para aquele jogo (`seletor.js:301-307`). */
+  abrir: (o?: { paraJogo?: JogoDoCatalogo }) => void;
   /** Abre direto em "Trazer uma fonte" (a porta "+" das telas, `fontes.js:369-370`). */
   abrirTrazer: () => void;
 }
@@ -34,6 +34,9 @@ export function SeletorDeConteudo({
   aoRecarregar,
   semRede,
   controle,
+  semVolta,
+  nomeNaFicha,
+  trilhaDoApp,
   ...acoes
 }: AcoesDoCatalogo & {
   controle?: RefObject<ControleDoSeletor | null>;
@@ -41,15 +44,33 @@ export function SeletorDeConteudo({
   contagens: ContagensDeConteudo | null;
   aoRecarregar: () => Promise<ContagensDeConteudo | null>;
   semRede?: boolean;
+  /** A ficha sem o "x" (quem só tem a Trilha). */
+  semVolta?: boolean;
+  /** O nome na ficha, quando a tela sabe mais que o nome curto ("Trilha · A1"). */
+  nomeNaFicha?: string;
+  /** A Trilha do app no idioma (palavras e frases prontas): a linha existe mesmo sem cartão ativado. */
+  trilhaDoApp?: { palavras: number; frases: number } | null;
 }) {
   const [aberto, setAberto] = useState<false | 'catalogo' | 'trazer'>(false);
+  const [paraJogo, setParaJogo] = useState<JogoDoCatalogo | null>(null);
   const botao = useRef<HTMLButtonElement>(null);
   const tipoDaSessao =
     conteudo.fonte.tipo === 'sessao'
       ? contagens?.sessoes.find((s) => s.id === (conteudo.fonte as { id: string }).id)?.tipo
       : null;
 
-  if (controle) controle.current = { abrir: () => setAberto('catalogo'), abrirTrazer: () => setAberto('trazer') };
+  const abrir = (o?: { paraJogo?: JogoDoCatalogo }) => {
+    setParaJogo(o?.paraJogo ?? null);
+    setAberto('catalogo');
+  };
+  if (controle)
+    controle.current = {
+      abrir,
+      abrirTrazer: () => {
+        setParaJogo(null);
+        setAberto('trazer');
+      },
+    };
 
   const fechar = () => {
     setAberto(false);
@@ -67,7 +88,9 @@ export function SeletorDeConteudo({
         idioma={idiomaNaFicha(conteudo, contagens)}
         tipoDaSessao={tipoDaSessao}
         refDoBotao={botao}
-        aoAbrir={() => setAberto('catalogo')}
+        semVolta={semVolta}
+        nome={nomeNaFicha}
+        aoAbrir={() => abrir()}
         aoVoltarParaTudo={() => {
           sentir('aba');
           voltarParaTudoNoConteudo();
@@ -83,6 +106,8 @@ export function SeletorDeConteudo({
               contagens={contagens}
               aoRecarregar={aoRecarregar}
               semRede={semRede}
+              paraJogo={paraJogo}
+              trilhaDoApp={trilhaDoApp}
               abrirEm={aberto}
               aoFechar={fechar}
               aoEscolher={(fonte, idioma) => {

@@ -1,7 +1,16 @@
 import { expect, test } from '@playwright/test'
 
 import { semearBaralhoAnki, semearCartoes } from './_fixtures'
-import { abrirSeletor, chipDaFonte, clicarRobusto, fecharSobreposicoes, irParaPraticar, lobby } from './_helpers'
+import {
+  abrirOrganizar,
+  chipDaFonte,
+  clicarRobusto,
+  devolverTudo,
+  fecharSobreposicoes,
+  irParaPraticar,
+  lobby,
+  voltarParaTudo,
+} from './_helpers'
 
 /**
  * AS FACETAS DO ACERVO no Jogar: o RECORTE ("Pedindo revisão", "Nunca vistas", "Com tradução"…), a
@@ -9,8 +18,10 @@ import { abrirSeletor, chipDaFonte, clicarRobusto, fecharSobreposicoes, irParaPr
  * (`localStorage['babel.filtro_da_pratica']`) através de F5 — antes o baralho escolhido evaporava num
  * reload.
  *
- * NO DESENHO NOVO (09/10/2026) as facetas moram no painel "O que você vai praticar", que abre pelo
- * chip "Trocar: …" do cabeçalho do lobby: cada faceta é um grupo de pílulas (`aria-pressed`), a opção
+ * COM A FICHA DE CONTEÚDO (10/10/2026) a gaveta das facetas saiu: o conteúdo (tudo, difíceis, uma sessão,
+ * um baralho, a trilha) é escolhido na ficha do cabeçalho, e o RECORTE DAS PALAVRAS ("Só estas palavras":
+ * pedindo revisão, nunca vistas, com tradução, com frase) mora em "Buscar e organizar › Buscar e filtrar".
+ * Continua sendo um grupo de pílulas (`aria-pressed`), a opção
  * sem material fica desligada com o MOTIVO ESCRITO abaixo do grupo (não há hover no toque), e o pé do
  * painel diz "N no recorte". O chip da fonte nomeia o baralho escolhido.
  *
@@ -26,6 +37,8 @@ test.beforeAll(async () => {
 })
 
 test.afterEach(async ({ page }) => {
+  /* O conteúdo escolhido é da CONTA (atravessa suítes): quem escolheu um baralho devolve "Tudo". */
+  await devolverTudo(page)
   await page.evaluate((chave) => localStorage.removeItem(chave), CHAVE_FILTRO).catch(() => {})
   await page.reload().catch(() => {})
 })
@@ -33,17 +46,17 @@ test.afterEach(async ({ page }) => {
 type Filtro = { recorte?: Record<string, boolean>; midia?: Record<string, boolean> } | null
 
 test.describe('Facetas do acervo: o recorte', () => {
-  test('o recorte existe no painel da fonte, a pílula alterna aria-pressed e persiste, e "no recorte" mostra um número', async ({
+  test('o recorte das palavras mora em "Buscar e organizar", a pílula alterna aria-pressed e o filtro guardado acompanha', async ({
     page,
   }) => {
     test.slow()
     await irParaPraticar(page)
 
-    /* O painel nasce FECHADO de propósito — quem chega quer jogar, não configurar. O caminho até o
-       recorte passa pelo chip da fonte, e é esse caminho que o teste exercita. */
-    const painel = await abrirSeletor(page)
-    const grupoRecorte = painel.getByRole('group', { name: 'Recorte' })
-    await expect(grupoRecorte, 'a faceta de recorte deveria aparecer no painel').toBeVisible({ timeout: 10_000 })
+    const painel = await abrirOrganizar(page, 'Buscar e filtrar')
+    const grupoRecorte = painel.getByRole('group', { name: 'Só estas palavras' })
+    await expect(grupoRecorte, 'o recorte das palavras deveria aparecer em "Buscar e filtrar"').toBeVisible({
+      timeout: 10_000,
+    })
 
     const pedindo = grupoRecorte.getByRole('button', { name: /^Pedindo revisão/ })
     await expect(pedindo).toBeVisible()
@@ -71,6 +84,8 @@ test.describe('Facetas do acervo: o recorte', () => {
     await expect
       .poll(async () => !!lerDoFiltro(await lerFiltro()), { message: 'o recorte ligado deveria estar em localStorage' })
       .toBe(!pressionadaAntes)
+    /* Ligado, o chip "Buscar e organizar" conta o filtro e a tela oferece limpar. */
+    if (!pressionadaAntes) await expect(lobby(page).locator('.ex-organizar .qj-n')).toHaveText('1')
 
     // Desliga de volta e confere que o localStorage acompanha.
     await clicarRobusto(page, pilula)
@@ -78,17 +93,16 @@ test.describe('Facetas do acervo: o recorte', () => {
     await expect
       .poll(async () => !!lerDoFiltro(await lerFiltro()), { message: 'o recorte desligado deveria acompanhar' })
       .toBe(pressionadaAntes)
-
-    // A linha "N no recorte" existe e mostra um número.
-    await expect(painel.getByText(/[\d.]+\s+no recorte/)).toBeVisible()
   })
 
-  test('o recorte por baralho persiste através de F5, e o chip que o ligou também o desliga', async ({ page }) => {
+  test('o baralho escolhido como conteúdo persiste através de F5, e o "x" da ficha volta para Tudo', async ({
+    page,
+  }) => {
     test.slow()
     await irParaPraticar(page)
 
-    let painel = await abrirSeletor(page)
-    await clicarRobusto(page, painel.getByRole('button', { name: 'Gerenciar baralhos' }))
+    const opcoes = await abrirOrganizar(page, 'Opções')
+    await clicarRobusto(page, opcoes.getByRole('button', { name: /Gerenciar baralhos/ }))
     const lista = page.getByRole('tabpanel', { name: /^Gerenciar/ })
     await expect(lista.getByText(/[\d.]+\s+de\s+[\d.]+\s+notas ativadas/).first()).toBeVisible()
 
@@ -101,7 +115,7 @@ test.describe('Facetas do acervo: o recorte', () => {
     await expect(lobby(page)).toBeVisible()
 
     /* O recorte é anunciado por escrito antes de a rodada começar: o chip da fonte nomeia o baralho. */
-    await expect(chipDaFonte(page), 'o chip da fonte deveria nomear o baralho escolhido').toContainText(nomeBaralho)
+    await expect(chipDaFonte(page), 'a ficha de conteúdo deveria nomear o baralho escolhido').toContainText(nomeBaralho)
     const filtroAntesDoReload = await page.evaluate((chave) => localStorage.getItem(chave), CHAVE_FILTRO)
     expect(filtroAntesDoReload, 'o recorte por baralho deveria estar gravado antes do F5').not.toBeNull()
 
@@ -109,22 +123,13 @@ test.describe('Facetas do acervo: o recorte', () => {
     await page.reload()
     await expect(page.getByRole('main')).toBeVisible()
     await fecharSobreposicoes(page)
-    await expect(chipDaFonte(page), 'o recorte por baralho deveria sobreviver ao F5 (persistência)').toContainText(
+    await expect(chipDaFonte(page), 'o baralho escolhido deveria sobreviver ao F5 (persistência)').toContainText(
       nomeBaralho,
       { timeout: 10_000 },
     )
 
-    /* TIRAR O RECORTE: quem desliga é o próprio chip do baralho dentro do painel — o mesmo controle
-       que ligou, que é como toda faceta se comporta. */
-    painel = await abrirSeletor(page)
-    const chipDoBaralho = painel
-      .getByRole('group', { name: 'Quais baralhos' })
-      .getByRole('button', { pressed: true })
-      .first()
-    await expect(chipDoBaralho, 'o baralho escolhido deveria estar marcado no painel').toBeVisible()
-    await clicarRobusto(page, chipDoBaralho)
-    await clicarRobusto(page, painel.getByRole('button', { name: 'Pronto' }))
-    await expect(painel).toBeHidden()
+    /* TIRAR O BARALHO: o "x" da ficha volta para "Tudo" em um toque. */
+    await clicarRobusto(page, voltarParaTudo(page))
 
     await expect(chipDaFonte(page), 'depois de limpar, a fonte não deveria mais nomear o baralho').not.toContainText(
       nomeBaralho,

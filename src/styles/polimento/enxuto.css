@@ -65,11 +65,9 @@ dialog.folha-de-baixo .ex-lista-da-folha .q-linha .q-fim svg { width: 18px; heig
 @media (hover: hover) {
   .ex-lig:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 6%, transparent); }
 }
-.ex-ligs { display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
-.ex-jogar .qj-sugestao-linha { gap: 10px 12px; }
-.ex-jogar .qj-sugestao-linha > .q-ctl.pri { flex: 0 0 auto; }
+/* [enxuto.css:65-67] não vem: o cartão da sugestão do Jogar, que saiu */
 .ex-organizar svg { flex: 0 0 auto; }
-.ex-fonte-txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* [enxuto.css:69-69] não vem: o chip da fonte do Jogar, trocado pela ficha de conteúdo */
 
 /* A folha única: as três seções dos painéis de hoje, uma por vez */
 .ex-org-abas { flex: 0 0 auto; display: flex; padding: 14px 24px 0; min-width: 0; }
@@ -97,11 +95,7 @@ dialog.ex-organizar-dlg .dlg-pe:empty { display: none; }
   html[data-px='on'][data-telas='enxuta'] .px-vivo .q-faixa .ex-pausar { flex: 0 0 auto; min-width: 60px; padding: 0; }
   html[data-px='on'][data-telas='enxuta'] .px-vivo .q-faixa .ex-pausar-t { display: none; }
 
-  /* Jogar: o chip da fonte sobe para a linha do título */
-  html[data-px='on'][data-telas='enxuta'] .ex-jogar .q-cab { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 10px; }
-  html[data-px='on'][data-telas='enxuta'] .ex-jogar .q-cab > :first-child { display: contents; }
-  html[data-px='on'][data-telas='enxuta'] .ex-jogar .q-cab .q-sobre { grid-column: 1 / -1; margin: 0; }
-  html[data-px='on'][data-telas='enxuta'] .ex-jogar .q-cab > .q-chip { flex: none; min-width: 0; max-width: 100%; justify-content: flex-start; padding: 0 14px; font-size: 15px; }
+/* [enxuto.css:97-101] não vem: o cabeçalho do Jogar no celular, trocado pelo da ficha (seletor.css) */
 
   /* as abas ocupam a largura e o "Buscar e organizar" vira o ícone ao lado: nada rola de lado */
   html[data-px='on'][data-telas='enxuta'] .ex-jogar .qj-ferramentas { overflow: visible; margin-inline: 0; padding-inline: 0; gap: 8px; }
@@ -111,16 +105,7 @@ dialog.ex-organizar-dlg .dlg-pe:empty { display: none; }
   html[data-px='on'][data-telas='enxuta'] .ex-jogar .ex-organizar { flex: 0 0 auto; width: 52px; min-height: 52px; padding: 0; justify-content: center; }
   html[data-px='on'][data-telas='enxuta'] .ex-jogar .ex-organizar > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 
-  /* o cartão: texto, dois links, e na linha de baixo [Começar] + Sortear um jogo */
-  html[data-px='on'][data-telas='enxuta'] .ex-jogar .qj-sugestao-linha { gap: 4px 8px; }
-  html[data-px='on'][data-telas='enxuta'] .ex-jogar .ex-ligs { display: contents; }
-  html[data-px='on'][data-telas='enxuta'] .ex-jogar .qj-sugestao-linha > .q-ctl.pri { order: 3; flex: 1 1 0; min-width: 130px; margin-top: 4px; }
-  html[data-px='on'][data-telas='enxuta'] .ex-jogar .ex-lig { min-height: 40px; padding: 0 8px; font-size: 14.5px; }
-  html[data-px='on'][data-telas='enxuta'] .ex-jogar .ex-lig[data-ex='sortear'] { order: 4; margin-top: 4px; min-height: 60px; }
-  /* a linha de cima fecha no texto; a de baixo tem os dois links, alinhados com o texto do cartão */
-  html[data-px='on'][data-telas='enxuta'] .ex-jogar .qj-sugestao-texto { flex: 1 1 60%; }
-  html[data-px='on'][data-telas='enxuta'] .ex-jogar .ex-lig:is([data-ex='porque'], [data-ex='outra']) { order: 6; }
-  html[data-px='on'][data-telas='enxuta'] .ex-jogar .ex-lig[data-ex='porque'] { margin-left: -8px; }
+/* [enxuto.css:111-120] não vem: o cartão da sugestão do Jogar no celular, que saiu */
 
   .ex-org-abas { padding: 12px 16px 0; }
   .ex-org-abas .q-abas { flex: 1 1 auto; }

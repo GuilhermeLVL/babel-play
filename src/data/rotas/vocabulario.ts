@@ -29,6 +29,7 @@ interface VocabRow {
   stability: number | null
   difficulty: number | null
   reps: number | null
+  lapses?: number | null
   /** epoch ms da última revisão FSRS. A coluna sempre existiu (`server/db/schema.ts`); só esta
    *  interface a omitia, então o servidor já mandava o campo e o cliente o descartava aqui. */
   lastReview: number | null
@@ -106,6 +107,8 @@ export function rowToVocabCard(row: VocabRow): VocabCard {
        151 cartões revisados como "nunca revisados", invertendo o próprio diagnóstico. */
     lastReview: row.lastReview ?? undefined,
     reps: row.reps ?? undefined,
+    /* A régua única de "Difíceis" (`ERROS_DE_DIFICIL`): o Jogar a aplica sobre o baralho já carregado. */
+    lapses: row.lapses ?? undefined,
   }
 }
 

@@ -1,0 +1,73 @@
+{
+  "nome": "cartoes-palavras-selecao-celular-escuro",
+  "prototipo": "cartoes-enxuto",
+  "largura": 390,
+  "altura": 844,
+  "escuro": true,
+  "app": {
+    "caminho": "/cartoes/palavras",
+    "assentar": 3500,
+    "passos": [
+      {
+        "js": "Promise.all([import('/src/lib/theme.ts').then((m) => m.applyDarkMode(true)), import('/src/lib/i18n.ts').then((m) => m.usarIdioma('pt-BR'))])"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "js": "(async () => { for (let i = 0; i < 14; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || [...d.querySelectorAll('button')].find((b) => /Resgatar|Pular|Fechar|Agora não|Entendi|Depois/.test(b.textContent || '')) || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 500)); } })()"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "clicar": ".ct-selecionar"
+      },
+      {
+        "esperar": 500
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?ver=palavras&quieto",
+    "assentar": 3500,
+    "passos": [
+      {
+        "js": "[...document.querySelectorAll('.px-barra button')].find((b) => /^Tema/.test(b.textContent.trim()))?.click()"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "esperar": 600
+      },
+      {
+        "clicar": ".ct-selecionar"
+      },
+      {
+        "esperar": 500
+      }
+    ]
+  },
+  "seletores": [
+    ".q-palco.ct",
+    ".q-cab.ct-cab",
+    ".q-cab h1",
+    ".fs-ficha",
+    ".fs-ficha .fs-abrir",
+    ".ct-abas",
+    ".ct-abas .q-aba",
+    ".q-cab > .q-ctl.ct-so-icone",
+    ".ct-painel",
+    ".ct-faixa-sel",
+    ".ct-faixa-sel .q-tempo",
+    ".ct-faixa-sel .q-ctl",
+    ".ct-cancelar",
+    ".ct-caixa",
+    ".ct-th-caixa",
+    ".q-trilho",
+    ".q-trilho .q-item",
+    ".ct-praticar",
+    ".ct-praticar .q-aba"
+  ]
+}

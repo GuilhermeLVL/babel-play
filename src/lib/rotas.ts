@@ -72,14 +72,19 @@ export interface EstadoDeRota {
    * espelhar "estou em Planos" não a apaga (ver `publicarUrl`).
    */
   planosTela?: SubTelaDePlanos;
-  /** Só para `cartoes`: qual das cinco abas. Sem ela, a tela abre em "Hoje". */
+  /** Só para `cartoes`: "Hoje", "Palavras" ou a Memória (tela de dentro). Sem ela, a tela abre em "Hoje". */
   cartoesAba?: AbaDeCartoes;
   /** Só para `cartoes`: a rodada de revisão está aberta (`/cartoes/estudar`). */
   estudando?: boolean;
 }
 
-/** As cinco abas da tela Cartões, na ordem do protótipo (`cartoes.js:64`), e o segmento de cada uma. */
-export const ABAS_DE_CARTOES = ['hoje', 'baralhos', 'palavras', 'trazer', 'memoria'] as const;
+/**
+ * As telas de Cartões e o segmento de cada uma (`ctTela`, `cartoes.js:572-580` do protótipo enxuto): as
+ * duas abas, "Hoje" e "Palavras", e a Memória, que é tela de dentro com voltar. "Baralhos" virou o
+ * catálogo do seletor de conteúdo e "Trazer e levar" virou folha do "…": `/cartoes/baralhos` e
+ * `/cartoes/trazer` caem em `/cartoes`, como qualquer aba que não existe.
+ */
+export const ABAS_DE_CARTOES = ['hoje', 'palavras', 'memoria'] as const;
 export type AbaDeCartoes = (typeof ABAS_DE_CARTOES)[number];
 const ehAbaDeCartoes = (s: string | undefined): s is AbaDeCartoes =>
   !!s && (ABAS_DE_CARTOES as readonly string[]).includes(s);

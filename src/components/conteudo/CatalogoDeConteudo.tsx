@@ -37,8 +37,7 @@ import {
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { ContagensDeConteudo } from '../../core/learning/contagensDeConteudo';
-import { ativarNotasDoBaralho } from '../../data/apiAnki';
-import { importarBaralhoAnki, soAColecao } from '../../data/importarAnki';
+import type { MinigameId } from '../../core/minigames/types';
 import { chaveDaFonte, type Conteudo, type FonteDeConteudo } from '../../lib/conteudo/estado';
 import { jogoServe, jogosQueServem, type ServeOuNao } from '../../lib/conteudo/jogos';
 import { numero, t, tp } from '../../lib/i18n';
@@ -47,6 +46,7 @@ import { anima, polido, reduz } from '../../lib/polimento/base';
 import { nomeCurtoDoJogo } from '../minigames/polimento/textos';
 import { toast } from '../Toast';
 import { DialogoBase } from '../ui/Dialogo';
+import { ARQUIVOS_DO_ANKI, FluxoDoAnki } from '../views/cartoes/TrazerELevar';
 import {
   contagemPorExtenso,
   doisIdiomas,
@@ -57,9 +57,6 @@ import {
 } from './fontes';
 
 const celular = () => window.matchMedia?.('(max-width: 720px)').matches ?? false;
-
-/** Quantas notas de um baralho recém-trazido viram cartão de início (o mesmo de `TrazerELevar`). */
-const ATIVAR_DE_INICIO = 20;
 
 export interface AcoesDoCatalogo {
   /** "Revisar · N": a fonte já virou a escolha; quem recebe leva para a revisão. */
@@ -80,6 +77,14 @@ export interface AcoesDoCatalogo {
   aoTrazerArquivo?: () => void;
 }
 
+/** O jogo que pediu o catálogo ("Ver o que serve"): o que não serve para ele vem marcado (`FX.paraJogo`). */
+export interface JogoDoCatalogo {
+  id: MinigameId;
+  titulo: string;
+  /** O que falta a ele no conteúdo de agora, como o cartão do jogo diz ("Precisa de 3 frases; aqui há 2."). */
+  falta: string;
+}
+
 export interface PropsDoCatalogo extends AcoesDoCatalogo {
   conteudo: Conteudo;
   /** `null` enquanto a primeira leitura não chega. */
@@ -93,6 +98,9 @@ export interface PropsDoCatalogo extends AcoesDoCatalogo {
   /** Abre direto em "Trazer uma fonte". */
   abrirEm?: 'catalogo' | 'trazer';
   semRede?: boolean;
+  paraJogo?: JogoDoCatalogo | null;
+  /** A Trilha do app no idioma: ver `linhasDoCatalogo`. */
+  trilhaDoApp?: { palavras: number; frases: number } | null;
 }
 
 const GRUPOS: Array<[GrupoDoCatalogo, string]> = [
@@ -128,19 +136,24 @@ function Linha({
   linha,
   emUso,
   selecionada,
+  naoServe,
   aoTocar,
   aoUsar,
 }: {
   linha: LinhaDoCatalogo;
   emUso: boolean;
   selecionada: boolean;
+  /** O motivo de a fonte não servir ao jogo que pediu o catálogo (`seletor.js:201-206`). */
+  naoServe?: string;
   aoTocar: () => void;
   aoUsar: () => void;
 }) {
   const { Icone } = linha;
   const contagem = contagemPorExtenso(linha);
   return (
-    <div className={`ct-linha-caixa fx-linha-caixa ${emUso ? 'fx-linha-em-uso' : ''}`}>
+    <div
+      className={`ct-linha-caixa fx-linha-caixa ${naoServe ? 'fx-nao-serve' : ''} ${emUso ? 'fx-linha-em-uso' : ''}`}
+    >
       <button
         type="button"
         className="q-linha ct-linha-b fx-linha"
@@ -154,11 +167,16 @@ function Linha({
         </span>
         <span className="fx-linha-texto">
           <b>{linha.nome}</b>
-          <small className="fx-linha-conta">{contagem}</small>
+          <small className="fx-linha-conta">{naoServe || contagem}</small>
           <small className="fx-linha-de">{linha.deOnde}</small>
         </span>
       </button>
-      {emUso ? (
+      {naoServe ? (
+        <span className="ct-em-dia fx-nao">
+          <Lock aria-hidden />
+          <span>{t('não serve')}</span>
+        </span>
+      ) : emUso ? (
         <span className="ct-em-dia fx-em-uso">
           <Check aria-hidden />
           <span>{t('em uso')}</span>
@@ -316,7 +334,7 @@ function Detalhe({
 }
 
 /** O cabeçalho do diálogo (`ctDlg()`, `cartoes.js:168-169`, e `seletor.js:310`). */
-function Cabeca({ Icone, titulo, sub }: { Icone: typeof Layers; titulo: string; sub: string }) {
+function Cabeca({ Icone, titulo, sub }: { Icone: typeof Layers; titulo: string; sub: ReactNode }) {
   return (
     <div className="dlg-cab">
       <span className="q-ic" aria-hidden>
@@ -344,15 +362,15 @@ function Cabeca({ Icone, titulo, sub }: { Icone: typeof Layers; titulo: string; 
  */
 function TrazerUmaFonte({
   aoFechar,
-  aoTrouxe,
+  aoArquivoDoAnki,
   aoColarLista,
   aoTrazerArquivo,
   aoCapturar,
   semRede,
 }: {
   aoFechar: () => void;
-  /** Um baralho do Anki chegou e já tem cartões: vira a escolha. */
-  aoTrouxe: (fonte: FonteDeConteudo) => Promise<void>;
+  /** O arquivo do Anki foi escolhido: o catálogo segue para o fluxo de trazer (`FluxoDoAnki`). */
+  aoArquivoDoAnki: (arquivo: File) => void;
   aoColarLista?: () => void;
   aoTrazerArquivo?: () => void;
   aoCapturar?: () => void;
@@ -360,33 +378,6 @@ function TrazerUmaFonte({
 }) {
   const entrada = useRef<HTMLInputElement>(null);
   const dialogo = useRef<HTMLDialogElement>(null);
-  const [lendo, setLendo] = useState(false);
-
-  const trazerAnki = async (arquivo: File | undefined) => {
-    if (!arquivo || lendo) return;
-    setLendo(true);
-    try {
-      const idiomas = await fetchLangConfig();
-      const r = await importarBaralhoAnki(await soAColecao(arquivo), idiomas.studying, idiomas.mine);
-      /* As notas chegam guardadas; as primeiras viram cartão para o baralho já servir de conteúdo. */
-      const pode = Math.max(0, r.resumo.notas - r.resumo.descartadas);
-      const ativadas = pode ? (await ativarNotasDoBaralho(r.deckId, Math.min(ATIVAR_DE_INICIO, pode))).ativadas : 0;
-      const nome = r.baralhos?.[0] || arquivo.name.replace(/\.[^.]+$/, '');
-      if (!ativadas) {
-        toast.warn(t('O baralho foi lido, mas nenhuma nota virou cartão. Veja em Cartões, Trazer e levar.'));
-        dialogo.current?.close();
-        return;
-      }
-      await aoTrouxe({ tipo: 'anki', id: r.deckId, nome });
-      toast.ok(t('Conteúdo novo, já escolhido: {nome}.', { nome }));
-      dialogo.current?.close();
-    } catch (e) {
-      toast.error(t('Não deu para trazer este arquivo do Anki.'), { detail: e });
-    } finally {
-      setLendo(false);
-    }
-  };
-
   const sair = (depois?: () => void) => () => {
     dialogo.current?.close();
     depois?.();
@@ -396,8 +387,8 @@ function TrazerUmaFonte({
     [
       WalletCards,
       t('Arquivo do Anki'),
-      lendo ? t('Lendo o arquivo…') : t('Com a agenda e o histórico. As primeiras notas já viram cartão.'),
-      lendo ? undefined : () => entrada.current?.click(),
+      t('Arquivo .apkg, texto ou CSV. A tela diz o que vem e o que não vem.'),
+      () => entrada.current?.click(),
       'anki',
     ],
     [
@@ -441,8 +432,8 @@ function TrazerUmaFonte({
         <div className="q-lista ct-menu-lista">
           {linhas.map(
             ([Icone, titulo, detalhe, acao, chave]) =>
-              (acao || chave === 'anki') && (
-                <button key={chave} type="button" className="q-linha" data-ct-m={chave} disabled={!acao} onClick={acao}>
+              acao && (
+                <button key={chave} type="button" className="q-linha" data-ct-m={chave} onClick={acao}>
                   <span className="q-ic" aria-hidden>
                     <Icone />
                   </span>
@@ -460,13 +451,13 @@ function TrazerUmaFonte({
         <input
           ref={entrada}
           type="file"
-          accept=".apkg,.colpkg,.txt,.csv,.tsv"
+          accept={ARQUIVOS_DO_ANKI}
           hidden
           aria-label={t('Arquivo do Anki')}
           onChange={(e) => {
             const arquivo = e.target.files?.[0];
             e.target.value = '';
-            void trazerAnki(arquivo);
+            if (arquivo) aoArquivoDoAnki(arquivo);
           }}
         />
       </div>
@@ -483,9 +474,13 @@ export default function CatalogoDeConteudo({
   aoFechar,
   abrirEm = 'catalogo',
   semRede = false,
+  paraJogo = null,
+  trilhaDoApp = null,
   ...acoes
 }: PropsDoCatalogo) {
   const [vista, setVista] = useState<'catalogo' | 'trazer'>(abrirEm);
+  /* O arquivo do Anki escolhido em "Trazer uma fonte", com os idiomas a dar ao que vier. */
+  const [doAnki, setDoAnki] = useState<{ arquivo: File; idioma: string; idiomaNativo: string } | null>(null);
   const [busca, setBusca] = useState('');
   /* `FX.sel` (`seletor.js:305`): o painel abre na fonte em uso. */
   const [sel, setSel] = useState(() => chaveDaFonte(conteudo.fonte));
@@ -494,8 +489,13 @@ export default function CatalogoDeConteudo({
   const animarPainel = useRef(false);
 
   const linhas = useMemo(
-    () => (contagens ? linhasDoCatalogo(contagens, conteudo.fonte) : []),
-    [contagens, conteudo.fonte],
+    () =>
+      contagens
+        ? linhasDoCatalogo(contagens, conteudo.fonte, trilhaDoApp)
+            /* Quem ainda não tem palavra nenhuma: "Tudo" vazio não é uma escolha; fica a Trilha (`fsTodas`, `fontes.js:75`). */
+            .filter((l, _i, todas) => l.chave !== 'tudo' || l.palavras > 0 || todas.length === 1)
+        : [],
+    [contagens, conteudo.fonte, trilhaDoApp],
   );
   const emUso = chaveDaFonte(conteudo.fonte);
   const selecionada = linhas.find((l) => l.chave === sel) ?? linhas.find((l) => l.chave === emUso) ?? linhas[0];
@@ -535,8 +535,19 @@ export default function CatalogoDeConteudo({
     dialogo.current?.close();
   };
   /* `fsCliqueNoCatalogo()` de `seletor.js:270-281`: no celular a linha inteira usa; no computador mostra o painel. */
+  /* `fxLinhaDaFonte()` de `seletor.js:201`: a fonte serve ao jogo que pediu o catálogo? */
+  const naoServeA = (linha: LinhaDoCatalogo): string => {
+    if (!paraJogo) return '';
+    const m = motivo(linha, jogoServe(paraJogo.id, linha, { semRede }));
+    return m ? m.charAt(0).toLocaleUpperCase() + m.slice(1) : '';
+  };
   const tocar = (linha: LinhaDoCatalogo) => {
-    if (celular()) return usar(linha);
+    if (celular()) {
+      /* `seletor.js:271`. */
+      if (naoServeA(linha))
+        return void toast.warn(t('Este não serve para o jogo que você tocou. Escolha um sem cadeado.'));
+      return usar(linha);
+    }
     if (linha.chave === sel) return;
     animarPainel.current = true;
     setSel(linha.chave);
@@ -548,6 +559,22 @@ export default function CatalogoDeConteudo({
     acao(linha.fonte);
   };
 
+  /* O MESMO fluxo do Anki da tela Cartões (`views/cartoes/TrazerELevar.tsx`): o que vem e o que não vem,
+     quantas ativar e o relatório. O baralho que ganhar cartões já vira o conteúdo escolhido. */
+  if (doAnki)
+    return (
+      <FluxoDoAnki
+        arquivo={doAnki.arquivo}
+        idioma={doAnki.idioma}
+        idiomaNativo={doAnki.idiomaNativo}
+        aoMudou={() => void aoRecarregar()}
+        aoTrouxe={async (fonte) => {
+          const k = await aoRecarregar();
+          aoEscolher(fonte, k?.idioma ?? idioma);
+        }}
+        aoFechar={aoFechar}
+      />
+    );
   if (vista === 'trazer')
     return (
       <TrazerUmaFonte
@@ -556,9 +583,10 @@ export default function CatalogoDeConteudo({
         aoColarLista={acoes.aoColarLista}
         aoTrazerArquivo={acoes.aoTrazerArquivo}
         aoCapturar={acoes.aoCapturar}
-        aoTrouxe={async (fonte) => {
-          const k = await aoRecarregar();
-          aoEscolher(fonte, k?.idioma ?? idioma);
+        aoArquivoDoAnki={(arquivo) => {
+          void fetchLangConfig().then((idiomas) =>
+            setDoAnki({ arquivo, idioma: idiomas.studying, idiomaNativo: idiomas.mine }),
+          );
         }}
       />
     );
@@ -579,6 +607,7 @@ export default function CatalogoDeConteudo({
           linha={l}
           emUso={l.chave === emUso}
           selecionada={l.chave === selecionada?.chave}
+          naoServe={naoServeA(l)}
           aoTocar={() => tocar(l)}
           aoUsar={() => usar(l)}
         />
@@ -633,7 +662,16 @@ export default function CatalogoDeConteudo({
       <Cabeca
         Icone={Layers}
         titulo={t('Escolher o conteúdo')}
-        sub={t('Vale para os Cartões e para o Jogar, e fica guardado.')}
+        sub={
+          paraJogo ? (
+            <>
+              <b>{paraJogo.titulo}</b> {paraJogo.falta.charAt(0).toLocaleLowerCase() + paraJogo.falta.slice(1)}{' '}
+              {t('O que não serve para ele está marcado.')}
+            </>
+          ) : (
+            t('Vale para os Cartões e para o Jogar, e fica guardado.')
+          )
+        }
       />
       <div className="dlg-corpo qj-painel-corpo fx-cat-corpo">
         <div className="fx-cat-col">

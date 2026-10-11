@@ -58,7 +58,7 @@ describe('pele de cartão na gaveta da palavra (Vocabulário)', () => {
         aoRevisar={() => {}}
       />,
     )
-    const bloco = screen.getByText('Na sua memória').closest('section')!
+    const bloco = screen.getByText(/^Na sua memória/).closest('section')!
     expect(bloco.className).toMatch(/pele-padrao/)
     expect(bloco.className).toMatch(/cartao-nova/)
   })

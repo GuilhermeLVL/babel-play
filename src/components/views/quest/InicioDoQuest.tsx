@@ -19,6 +19,9 @@ import {
 import React, { useState } from 'react';
 
 import type { AppMetrics } from '../../../data/api';
+import { contagemDaFonte,type Conteudo } from '../../../lib/conteudo/estado';
+import { useConteudo } from '../../../lib/conteudo/loja';
+import { useContagensDeConteudo } from '../../../lib/conteudo/useContagens';
 import { noCelular } from '../../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../../lib/edicaoEstatica';
 import { getEntitlements } from '../../../lib/entitlements';
@@ -31,6 +34,7 @@ import type { Recording } from '../../../types';
 import EspacoDeAnuncio from '../../anuncios/EspacoDeAnuncio';
 import CardDePlanos from '../../CardDePlanos';
 import AvisoDeConta from '../../conta/AvisoDeConta';
+import { idiomaNaFicha, nomeCurtoDaFonte } from '../../conteudo/fontes';
 import { ICONE_DA_MISSAO, rotuloDaMissao } from '../../progress/MissoesDoDia';
 
 /**
@@ -60,6 +64,58 @@ function ladrilhoDosCartoes(metrics: AppMetrics | null | 'sem-conta'): { titulo:
     };
   return { titulo: t('Cartões: tudo em dia'), frase: t('Nada vence agora.') };
 }
+
+/**
+ * O LADRILHO SEGUE O CONTEÚDO ESCOLHIDO (`ctLadrilhoDoInicio()`, `cartoes3.js:143-158`): com outro conteúdo
+ * que não "Tudo", o número do título é o DELE, a frase diz qual é e o total da conta vem ao lado ("Reunião
+ * de produto: … No total, 26."). O selo do trilho continua com o total. Tocar leva aos Cartões sem trocar
+ * a escolha.
+ *
+ * Componente à parte para a leitura das contagens (`GET /api/vocab/conteudo`) só acontecer quando há um
+ * conteúdo escolhido: com "Tudo", o Início continua sem pedido a mais. Enquanto a leitura não chega (ou se
+ * a fonte sumiu), vale o texto geral.
+ */
+function TextoDoLadrilhoDaFonte({
+  conteudo,
+  total,
+  geral,
+}: {
+  conteudo: Conteudo;
+  /** O que vence hoje na conta inteira (o número do selo). */
+  total: number;
+  geral: { titulo: string; frase: string };
+}) {
+  const { contagens } = useContagensDeConteudo(conteudo.idioma);
+  const linha = contagens ? contagemDaFonte(conteudo.fonte, contagens) : null;
+  if (!linha) return <TextoDoLadrilho {...geral} />;
+  const idioma = idiomaNaFicha(conteudo, contagens);
+  /* `quem` de `cartoes3.js:148`. */
+  const fonte = idioma
+    ? t('{nome} em {idioma}', { nome: nomeCurtoDaFonte(conteudo.fonte), idioma: idioma.toLocaleLowerCase() })
+    : nomeCurtoDaFonte(conteudo.fonte);
+  const noTotal = linha.paraHoje !== total && total > 0 ? ` ${t('No total, {n}.', { n: numero(total) })}` : '';
+  return linha.paraHoje > 0 ? (
+    <TextoDoLadrilho
+      titulo={t('Cartões: {n} para hoje', { n: numero(linha.paraHoje) })}
+      frase={`${t('{fonte}: as que estão para sair da memória hoje.', { fonte })}${noTotal}`}
+    />
+  ) : (
+    <TextoDoLadrilho
+      titulo={t('Cartões: tudo em dia')}
+      frase={`${t('{fonte}: nada vence agora.', { fonte })}${noTotal}`}
+    />
+  );
+}
+
+function TextoDoLadrilho({ titulo, frase }: { titulo: string; frase: string }) {
+  return (
+    <>
+      <b>{titulo}</b>
+      <span className="q-d">{frase}</span>
+    </>
+  );
+}
+
 /** Quantas sessões recentes cabem sem virar a Biblioteca (as mesmas seis do Início de sempre). */
 const RECENTES = 6;
 type TipoDeSessao = 'all' | Recording['type'];
@@ -119,6 +175,10 @@ export default function InicioDoQuest({
   missoesPendentes = false,
 }: InicioDoQuestProps) {
   const cartoes = ladrilhoDosCartoes(semConta ? 'sem-conta' : metrics);
+  /* O conteúdo escolhido no app (um só, o mesmo da ficha de Cartões, Jogar e Biblioteca). */
+  const conteudo = useConteudo();
+  const comFonte =
+    !semConta && !!metrics && metrics.deckSize > 0 && metrics.reviews > 0 && conteudo.fonte.tipo !== 'tudo';
   const [tipo, setTipo] = useState<TipoDeSessao>('all');
   const sessoes = semConta ? [] : recordings;
   const recentes = sessoes.filter((r) => tipo === 'all' || r.type === tipo).slice(0, RECENTES);
@@ -188,8 +248,11 @@ export default function InicioDoQuest({
           <span className="q-ic">
             <Layers aria-hidden />
           </span>
-          <b>{cartoes.titulo}</b>
-          <span className="q-d">{cartoes.frase}</span>
+          {comFonte ? (
+            <TextoDoLadrilhoDaFonte conteudo={conteudo} total={metrics.dueToday} geral={cartoes} />
+          ) : (
+            <TextoDoLadrilho {...cartoes} />
+          )}
         </button>
         <button type="button" className="q-tile" onClick={() => onChangeView('interprete')}>
           <span className="q-ic">

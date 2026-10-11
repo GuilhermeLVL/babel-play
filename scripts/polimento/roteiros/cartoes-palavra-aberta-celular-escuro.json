@@ -1,11 +1,11 @@
 {
-  "nome": "cartoes-baralhos-escuro",
-  "prototipo": "cartoes",
-  "largura": 1280,
-  "altura": 960,
+  "nome": "cartoes-palavra-aberta-celular-escuro",
+  "prototipo": "cartoes-enxuto",
+  "largura": 390,
+  "altura": 844,
   "escuro": true,
   "app": {
-    "caminho": "/cartoes/baralhos",
+    "caminho": "/cartoes/palavras",
     "assentar": 3500,
     "passos": [
       {
@@ -19,11 +19,17 @@
       },
       {
         "esperar": 1200
+      },
+      {
+        "clicar": ".ct-tabela tbody tr"
+      },
+      {
+        "esperar": 1800
       }
     ]
   },
   "proto": {
-    "busca": "?ver=baralhos&quieto&nav=a",
+    "busca": "?ver=palavras&quieto",
     "assentar": 3500,
     "passos": [
       {
@@ -34,34 +40,38 @@
       },
       {
         "esperar": 600
+      },
+      {
+        "clicar": ".ct-tabela tbody tr"
+      },
+      {
+        "esperar": 1800
       }
     ]
   },
   "seletores": [
     ".q-palco.ct",
-    ".q-cab",
-    ".q-cab .q-sobre",
+    ".q-cab.ct-cab",
     ".q-cab h1",
-    ".q-cab > .q-ctl",
+    ".fs-ficha",
+    ".fs-ficha .fs-abrir",
     ".ct-abas",
     ".ct-abas .q-aba",
+    ".q-cab > .q-ctl.ct-so-icone",
     ".ct-painel",
-    ".ct-legenda",
-    ".ct-legenda .q-tag",
-    ".ct-bar-corpo",
-    ".ct-bar-col",
-    ".q-linha.ct-linha-b",
-    ".ct-linha-b .q-ic",
-    ".ct-tres",
-    ".ct-tres b",
-    ".ct-grupo h3",
-    ".ct-novo-baralho",
-    ".ct-bar-det",
-    ".ct-bar-det h2",
-    ".q-bib-fatos",
-    ".q-bib-fatos dd",
-    ".q-bib-acoes > .q-ctl.pri",
-    ".q-bib-acoes .q-acoes > .q-ctl",
-    ".q-trilho .q-item"
+    "dialog.ct-gaveta",
+    "dialog.ct-gaveta .dlg-cab h2",
+    ".ct-ouvir .btn",
+    ".ct-traducao-t",
+    ".ct-cena",
+    ".ct-cena-quadro",
+    ".ct-cena blockquote",
+    ".ct-historico",
+    ".ct-pe-da-palavra",
+    ".ct-pe-da-palavra .btn",
+    ".q-trilho",
+    ".q-trilho .q-item",
+    ".ct-praticar",
+    ".ct-praticar .q-aba"
   ]
 }

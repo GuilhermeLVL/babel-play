@@ -3,23 +3,23 @@ import '../../../../styles/questJogarFiel.css';
 
 import {
   ArrowDown,
-  ArrowLeftRight,
   ArrowUp,
   ArrowUpDown,
   ChevronRight,
   CircleHelp,
+  Layers,
   LayoutGrid,
   ListChecks,
+  Lock,
   type LucideIcon,
   Map as MapIcon,
-  Play,
   Search,
   Settings2,
-  Shuffle,
   SlidersHorizontal,
   Sparkles,
   Star,
   Trophy,
+  WifiOff,
   Zap,
 } from 'lucide-react';
 import React, { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -30,21 +30,16 @@ import { noHeadset } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { numero, t, tp } from '../../../../lib/i18n';
 import { telasEnxutas } from '../../../../lib/polimento/base';
 import { celular } from '../../../../lib/polimento/captura';
-import { entrarSecao, entraSuave, trocarSugestao } from '../../../../lib/polimento/enxuto';
+import { entrarSecao } from '../../../../lib/polimento/enxuto';
 import type { AgeProfileType } from '../../../../lib/profile';
 import { aoMudarIdiomasDaVozDoQuest } from '../../../../lib/voz/vozDoQuest';
+import { CabecalhoComFicha } from '../../../conteudo/FichaDeConteudo';
 import { FAMILIAS, tomDoJogo } from '../../../minigames/ArteDosJogos';
 import MiniDoJogo from '../../../minigames/polimento/MiniDoJogo';
 import AbasDePraticar from '../../../shell/AbasDePraticar';
+import { toast } from '../../../Toast';
 import { descricaoDoJogo, type JogoUI, tituloDoJogo } from '../jogos';
-import {
-  entrarOQueAbriu,
-  fotoDaTela,
-  type JogoParaOQuest,
-  type TileDoQuest,
-  tilesDoQuest,
-  type VozParaOQuest,
-} from './jogosNoQuest';
+import { type JogoParaOQuest, type TileDoQuest, tilesDoQuest, type VozParaOQuest } from './jogosNoQuest';
 import { fecharPainelDe, InterruptorDoQuest, OpcoesDoQuest, PainelDoQuest } from './pecasDoQuest';
 
 /** O jogo como `Play.tsx` já o tem: a apresentação (`JOGOS`) mais o estado real dele neste recorte. */
@@ -53,11 +48,16 @@ type JogoDoLobby = JogoUI & JogoParaOQuest;
 export type CategoriaDoLobby = 'todos' | 'classicos' | 'favoritos';
 export type HabilidadeDoLobby = 'todas' | 'vocab' | 'escuta_fala' | 'frase_gramatica';
 
-/** A sugestão para hoje, como `Play.tsx` a calcula (`sugestao`). */
-export interface SugestaoDoLobby<J> {
-  jogo: J;
-  titulo: string;
-  porque: ReadonlyArray<readonly [LucideIcon, string]>;
+/**
+ * UM AVISO DO ESTADO (`fxAviso()` de `fontes.js:166-179`): sem rede, só a Trilha, conteúdo pequeno. O texto
+ * forte vem primeiro; as saídas ficam ao lado (a primeira `primaria` é o botão cheio).
+ */
+export interface AvisoDoEstado {
+  tom: 'rede' | 'trilha' | 'pequena';
+  icone: LucideIcon;
+  forte: string;
+  texto: string;
+  acoes?: ReadonlyArray<{ rotulo: string; icone: LucideIcon; aoAgir: () => void; primaria?: boolean; marca?: string }>;
 }
 
 interface LobbyDoQuestProps<J extends JogoDoLobby> {
@@ -69,16 +69,23 @@ interface LobbyDoQuestProps<J extends JogoDoLobby> {
   ageProfile: AgeProfileType;
   /** A fonte é a trilha: três jogos mudam de natureza e de descrição (`descricaoNaTrilha`). */
   naTrilha: boolean;
-  /** Quantas palavras a fonte escolhida tem prontas. */
-  palavras: number;
-  /** A fonte em uso, numa linha ("Inglês · Minhas palavras"). */
-  fonte: string;
+  /**
+   * A FICHA DE CONTEÚDO (`SeletorDeConteudo`, já ligada à escolha do app): fica ao lado do título, no
+   * mesmo lugar da Biblioteca e dos Cartões (`fxArrumarJogar()`, `fontes.js:187-191`).
+   */
+  ficha?: ReactNode;
+  /** Os avisos do estado, na ordem (`fxAviso()`). */
+  avisosDoEstado?: readonly AvisoDoEstado[];
+  /** A faixa de anúncio do Grátis, logo abaixo dos avisos (`fxFaixaDeAnuncio()`); nada nos planos pagos. */
+  anuncio?: ReactNode;
+  /** "Ver o que serve": o catálogo aberto para o jogo, com o que não serve marcado (`data-fx-para`). */
+  aoVerOQueServe?: (jogo: J, falta: string) => void;
+  /** "Trocar o conteúdo": o catálogo, quando são muitos os jogos que não abrem. */
+  aoTrocarConteudo?: () => void;
   /** O pé da carta de sempre: a conta da rodada quando o jogo abre, o que falta quando não abre. */
   notaDoBloqueio: (jogo: J) => string;
   /** O mesmo clique da carta de sempre: monta a rodada e abre a antessala. */
   aoJogar: (jogo: J) => void;
-  /** Abre "O que você vai praticar" (a gaveta da fonte). Ausente quando só há uma fonte. */
-  aoTrocarFonte?: () => void;
   /** Mostra a tela de sempre nesta visita (fica em Opções: o lobby do headset já traz tudo). */
   aoVerTelaCompleta: () => void;
   /**
@@ -119,9 +126,6 @@ interface LobbyDoQuestProps<J extends JogoDoLobby> {
   ordem?: readonly J[];
   ordemEscolhida?: readonly string[];
   aoMover?: (jogo: J, direcao: -1 | 1, visiveis: string[]) => void;
-  /** A sugestão para hoje e o "Outra sugestão". */
-  sugestao?: SugestaoDoLobby<J> | null;
-  aoOutraSugestao?: () => void;
   aoVerRecordes?: () => void;
   aoVerMapa?: () => void;
   /** Curadoria: só quando a fonte inclui um baralho de fora; `n` é o que ficou de fora. */
@@ -133,8 +137,13 @@ interface LobbyDoQuestProps<J extends JogoDoLobby> {
     /** `explicacao`: o que o número quer dizer (na tela de sempre mora na dica ao parar o ponteiro). */
     itens: ReadonlyArray<{ icone: LucideIcon; texto: string; explicacao?: string }>;
   };
-  /** A saída de um jogo bloqueado ("Jogar em inglês", "Escolher gravação"), quando existe. */
-  portaDoJogo?: (jogo: J) => { rotulo: string; aoAbrir: () => void } | null;
+  /** Linhas a mais em Opções (o que morava na gaveta da fonte: gerenciar baralhos, outro idioma). */
+  maisOpcoes?: ReadonlyArray<{ icone: LucideIcon; titulo: string; apoio: string; aoAbrir: () => void }>;
+  /** Um bloco a mais no fim de Opções, que abre no lugar (a tabela "O que cada idioma tem"). */
+  fimDasOpcoes?: ReactNode;
+  /** Um grupo a mais em "Buscar e filtrar" (o recorte das palavras) e quantos estão ligados. */
+  maisFiltros?: ReactNode;
+  maisFiltrosLigados?: number;
   /** O placar da corrente que acabou de encerrar (sair no meio não o apaga em silêncio). */
   correnteEncerrada?: { rodadas: number; pontos: number; precisao: number } | null;
   /** O painel da trilha (`PainelTrilha`, já no desenho do headset), quando a fonte é a trilha. */
@@ -187,20 +196,27 @@ const HABILIDADES: ReadonlyArray<{ id: HabilidadeDoLobby; rotulo: string }> = [
  * um e o clique que abre a rodada vêm todos de `Play.tsx`.
  *
  * A TELA ENXUTA (protótipo `telas-enxutas`, `enxugarJogar()` de `enxuto.js:207-343`; no computador e no
- * celular, não no headset): as mesmas funções, com menos coisas à vista. O cartão "Sugestão para hoje"
- * sobe para logo abaixo do título, com "Começar" como único botão cheio; "Partida rápida" vira o link
- * "Sortear um jogo" dentro dele, e "Por que este?" e "Outra sugestão" viram links de texto (`.ex-lig`);
- * as abas ficam coladas na grade; os três painéis viram um, "Buscar e organizar", com as três seções.
+ * celular, não no headset): as mesmas funções, com menos coisas à vista. As abas ficam coladas na grade e os
+ * três painéis viram um, "Buscar e organizar", com as três seções.
+ *
+ * O JOGAR QUE RESPONDE AO CONTEÚDO (protótipo `cartoes-enxuto`, `fxArrumarJogar()` de `fontes.js:180-259`):
+ * o cabeçalho é o título e a FICHA de conteúdo, no mesmo lugar das outras telas (no celular, o seletor
+ * Cartões | Jogos e a ficha na mesma linha); abaixo, o aviso do estado (só quando há) e, no Grátis, a
+ * faixa de anúncio. O cartão "Sugestão para hoje" SAIU (decisão do dono): "Sortear" é um botão pequeno ao
+ * lado de "Buscar e organizar", só no computador. Os jogos que não servem ao conteúdo descem para
+ * "Precisam de outro material", com o motivo curto e "Ver o que serve", que abre o catálogo.
  */
 export default function LobbyDoQuest<J extends JogoDoLobby>({
   jogos,
   ageProfile,
   naTrilha,
-  palavras,
-  fonte,
+  ficha,
+  avisosDoEstado = [],
+  anuncio,
+  aoVerOQueServe,
+  aoTrocarConteudo,
   notaDoBloqueio,
   aoJogar,
-  aoTrocarFonte,
   aoVerTelaCompleta,
   aviso,
   recursos,
@@ -222,13 +238,14 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
   ordem,
   ordemEscolhida,
   aoMover,
-  sugestao,
-  aoOutraSugestao,
   aoVerRecordes,
   aoVerMapa,
   curadoria,
   diagnostico,
-  portaDoJogo,
+  maisOpcoes = [],
+  fimDasOpcoes,
+  maisFiltros,
+  maisFiltrosLigados = 0,
   correnteEncerrada,
   trilha,
 }: LobbyDoQuestProps<J>) {
@@ -260,31 +277,7 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
     document.getElementById(`aba-${alvo}`)?.focus();
   };
   const [painel, setPainel] = useState<null | 'filtros' | 'opcoes' | 'ordem'>(null);
-  const [porQueAberto, setPorQueAberto] = useState(false);
-  /* O porquê abre na própria tela: só as linhas novas entram animadas (`telas2.js:527-543, 613`). */
-  const antesDoPorQue = useRef<Set<string> | null>(null);
   const palco = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    if (porQueAberto) entrarOQueAbriu(antesDoPorQue.current);
-    antesDoPorQue.current = null;
-    /* `alternarEstado` de `enxuto.js:284`: na tela enxuta as linhas do porquê sobem em cascata. */
-    if (porQueAberto && enxuta) entraSuave([...(palco.current?.querySelectorAll('.qj-porque li') ?? [])]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `enxuta` é do aparelho, não muda
-  }, [porQueAberto]);
-
-  const alternarPorQue = () => {
-    antesDoPorQue.current = porQueAberto ? null : fotoDaTela();
-    setPorQueAberto((v) => !v);
-  };
-
-  /* "Outra sugestão" (`outraSugestao()` de `enxuto.js:286-293`): o texto novo entra depois de pedido. */
-  const pediuOutra = useRef(false);
-  const idDaSugestao = sugestao ? `${sugestao.jogo.id}|${sugestao.titulo}` : '';
-  useLayoutEffect(() => {
-    if (!pediuOutra.current) return;
-    pediuOutra.current = false;
-    trocarSugestao(palco.current?.querySelector('.qj-sugestao-texto') ?? null);
-  }, [idDaSugestao]);
 
   /* "Buscar e organizar": trocar de seção com o painel aberto volta ao topo e anima o miolo
      (`por(d, i, true)` de `enxuto.js:323-330`). Abrir não: a entrada do painel já pega as linhas. */
@@ -315,16 +308,72 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
     : [];
   const abrem = tiles.filter((tile) => tile.grupo !== 'material');
   const semMaterial = tiles.filter((tile) => tile.grupo === 'material');
-  /* O nome do idioma vem em minúscula (`langLabelNaUI`); abrindo a linha, ganha a maiúscula. */
-  const rotuloDaFonte = fonte.charAt(0).toLocaleUpperCase() + fonte.slice(1);
   const buscando = busca.trim() !== '';
   const filtrado = buscando || habilidade !== 'todas' || categoria !== 'todos';
-  const filtrosLigados = Number(buscando) + Number(habilidade !== 'todas');
+  const filtrosLigados = Number(buscando) + Number(habilidade !== 'todas') + maisFiltrosLigados;
+  /* `fontes.js:248-250`: poucos presos, cada um com a sua saída; muitos (conteúdo pequeno), uma saída só. */
+  const muitosPresos = semMaterial.length > 4;
 
   const cartao = ({ jogo, grupo, tag, apagado, nota }: TileDoQuest<J>) => {
     const titulo = tituloDoJogo(jogo, ageProfile);
     const fixado = favoritos.includes(jogo.id);
-    const porta = !jogo.estado.ok ? portaDoJogo?.(jogo) : null;
+    /* O JOGO QUE NÃO SERVE PARA O CONTEÚDO (`fontes.js:236-245`): a arte fica, apagada; a etiqueta diz
+       "Falta material" (ou "Sem rede"); no lugar da descrição, o motivo; tocar abre o catálogo já com o que
+       serve para ele. A saída só existe quando o que falta é MATERIAL (quantidade, ou frase com conector):
+       sem rede, sem voz, com o áudio baixando ou num idioma que o jogo não escreve, trocar o conteúdo não
+       resolve, e o cartão fica desligado, com o motivo. */
+    if (grupo === 'material') {
+      const motivo = nota ?? '';
+      const rede = jogo.estado.motivo === 'sem-rede';
+      const temSaida = !!aoVerOQueServe && (!jogo.estado.motivo || jogo.estado.motivo === 'trilha-sem-frase');
+      return (
+        <div key={jogo.chave} className="qj-jogo fx-falta" data-grupo={grupo}>
+          <button
+            type="button"
+            className="q-tile px-com-mini apagado"
+            data-jogo={jogo.id}
+            data-grupo={grupo}
+            data-fx-falta={motivo}
+            disabled={!temSaida && !rede}
+            aria-label={t('{jogo}. Não serve para este conteúdo: {motivo}', { jogo: titulo, motivo })}
+            onClick={() =>
+              rede
+                ? toast.warn(t('{jogo}: {motivo} Os outros jogos continuam.', { jogo: titulo, motivo }))
+                : aoVerOQueServe?.(jogo, motivo)
+            }
+          >
+            <MiniDoJogo jogo={jogo.id} cor={tomDoJogo(jogo.id)} />
+            <span className="qj-jogo-topo">
+              <i className="qj-ponto" style={{ background: tomDoJogo(jogo.id) }} aria-hidden />
+              <span className="q-tag off fx-tag-falta">
+                {rede ? <WifiOff aria-hidden /> : <Lock aria-hidden />}
+                {rede ? (
+                  t('Sem rede')
+                ) : (
+                  <>
+                    {t('Falta')}
+                    <span className="fx-so-pc">&nbsp;{t('material')}</span>
+                  </>
+                )}
+              </span>
+            </span>
+            <b>{titulo}</b>
+            <span className="q-d fx-motivo">{motivo}</span>
+          </button>
+          {temSaida && !muitosPresos && (
+            <button
+              type="button"
+              className="q-ctl qj-porta"
+              data-fx-para={jogo.id}
+              aria-label={t('Ver o conteúdo que serve para {jogo}', { jogo: titulo })}
+              onClick={() => aoVerOQueServe?.(jogo, motivo)}
+            >
+              <Layers aria-hidden /> {t('Ver o que serve')}
+            </button>
+          )}
+        </div>
+      );
+    }
     return (
       <div key={jogo.chave} className="qj-jogo" data-grupo={grupo}>
         <button
@@ -351,11 +400,6 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
           {/* A conta da rodada e o recorde, como no pé da carta de sempre (só no jogo que abre). */}
           {jogo.estado.ok && !apagado && <span className="qj-conta">{notaDoBloqueio(jogo)}</span>}
         </button>
-        {porta && (
-          <button type="button" className="q-ctl qj-porta" data-porta={jogo.id} onClick={porta.aoAbrir}>
-            {porta.rotulo} <ChevronRight aria-hidden />
-          </button>
-        )}
       </div>
     );
   };
@@ -403,6 +447,7 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
           />
         </div>
       )}
+      {maisFiltros}
     </>
   );
   const mioloDasOpcoes = (
@@ -447,6 +492,9 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
               t('O que já caiu, o que vence e o que nunca apareceu.'),
               aoVerMapa,
             ],
+            ...maisOpcoes.map(
+              (o) => [o.icone, o.titulo, o.apoio, o.aoAbrir] as [LucideIcon, string, string, () => void],
+            ),
             curadoria && [
               ListChecks,
               t('Curadoria'),
@@ -493,6 +541,7 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
             </button>
           ))}
       </div>
+      {fimDasOpcoes}
     </>
   );
   const peDaOrdem = (
@@ -617,169 +666,58 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
   ];
   const secaoAberta = secoes.find((x) => x.id === painel) ?? null;
 
-  /* O CARTÃO DA SUGESTÃO. Na tela enxuta ele sobe para logo abaixo do título (`enxuto.js:246-268`). */
-  const cartaoDaSugestao = sugestao && (
-    <section className="q-cartao qj-sugestao" aria-labelledby="qj-sugestao-t">
-      <div className="qj-sugestao-linha">
-        <span className="q-ic" aria-hidden>
-          <Sparkles />
-        </span>
-        <div className="qj-sugestao-texto">
-          <p className="q-rotulo">{t('Sugestão para hoje')}</p>
-          <b id="qj-sugestao-t">{sugestao.titulo}</b>
-          <small>
-            {t('Com')} {tituloDoJogo(sugestao.jogo, ageProfile)} · {t('rodada curta')}
-          </small>
-        </div>
-        {enxuta ? (
-          <>
-            {/* `enxuto.js:259-264`: três links discretos e UM botão cheio. */}
-            <span className="ex-ligs">
-              <button
-                type="button"
-                className="ex-lig"
-                data-ex="porque"
-                aria-expanded={porQueAberto}
-                onClick={alternarPorQue}
-              >
-                <CircleHelp aria-hidden />
-                {porQueAberto ? t('Esconder o porquê') : t('Por que este?')}
-              </button>
-              {aoOutraSugestao && (
-                <button
-                  type="button"
-                  className="ex-lig"
-                  data-ex="outra"
-                  onClick={() => {
-                    pediuOutra.current = true;
-                    aoOutraSugestao();
-                  }}
-                >
-                  <Shuffle aria-hidden />
-                  {t('Outra sugestão')}
-                </button>
-              )}
-              {aoPartidaRapida && (
-                <button
-                  type="button"
-                  className="ex-lig"
-                  data-ex="sortear"
-                  title={t('Sorteia um jogo aleatório dentre os disponíveis e inicia imediatamente')}
-                  onClick={aoPartidaRapida}
-                >
-                  <Zap aria-hidden />
-                  {t('Sortear um jogo')}
-                </button>
-              )}
-            </span>
-            <button
-              type="button"
-              className="q-ctl pri"
-              data-ex="comecar"
-              data-sugestao={sugestao.jogo.id}
-              onClick={() => aoJogar(sugestao.jogo)}
-            >
-              <Play aria-hidden />
-              {t('Começar')}
-            </button>
-          </>
-        ) : (
-          <div className="q-acoes">
-            <button type="button" className="q-ctl" aria-expanded={porQueAberto} onClick={alternarPorQue}>
-              <CircleHelp aria-hidden />
-              {porQueAberto ? t('Esconder o porquê') : t('Por que este?')}
-            </button>
-            {aoOutraSugestao && (
-              <button type="button" className="q-ctl" onClick={aoOutraSugestao}>
-                <Shuffle aria-hidden />
-                {t('Outra sugestão')}
-              </button>
-            )}
-            <button
-              type="button"
-              className="q-ctl"
-              data-sugestao={sugestao.jogo.id}
-              onClick={() => aoJogar(sugestao.jogo)}
-            >
-              <Play aria-hidden />
-              {t('Começar')}
-            </button>
-          </div>
-        )}
-      </div>
-      {porQueAberto && (
-        <ul className="qj-porque">
-          {sugestao.porque.map(([Icone, texto]) => (
-            <li key={texto}>
-              <Icone aria-hidden />
-              <span>{texto}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-
   return (
     <div ref={palco} className={`q-palco qj quest-jogar${enxuta ? ' ex-jogar' : ''}`} data-testid="lobby-do-quest">
-      {/* Na barra de cinco do celular, Cartões e Jogar são as duas abas do "Praticar" (`cartoes3.js:162-166`). */}
-      <AbasDePraticar qual="jogar" />
-      <div className="q-cab">
-        <div>
-          <p className="q-sobre">
-            {palavras > 0
-              ? tp(palavras, '{n} palavra pronta', '{n} palavras prontas', { n: numero(palavras) })
-              : t('Nenhuma palavra pronta')}
-          </p>
-          <h1>{t('Jogar')}</h1>
-        </div>
-        {aoTrocarFonte ? (
-          <button
-            type="button"
-            className="q-chip"
-            onClick={aoTrocarFonte}
-            aria-haspopup="dialog"
-            aria-label={`${t('Trocar')}: ${rotuloDaFonte}`}
-          >
-            <ArrowLeftRight aria-hidden />
-            {/* `enxuto.js:226-230`: o nome da fonte num `span`, para encolher com reticências. */}
-            {enxuta ? <span className="ex-fonte-txt">{rotuloDaFonte}</span> : rotuloDaFonte}
-          </button>
-        ) : (
-          fonte && <span className="q-chip">{rotuloDaFonte}</span>
-        )}
-        {/* `enxuto.js:238-239`: na tela enxuta a "Partida rápida" é o link "Sortear um jogo" do cartão. */}
+      {/* O CABEÇALHO (`fontes.js:187-191`): o título, o seletor Cartões | Jogos (só na barra de cinco do
+          celular) e a ficha de conteúdo, no MESMO lugar da Biblioteca e dos Cartões. */}
+      <CabecalhoComFicha
+        titulo={t('Jogar')}
+        classe="ct-cab fx-cab"
+        antesDaFicha={<AbasDePraticar qual="jogar" semIcone />}
+        ficha={ficha}
+      >
+        {/* No headset não há "Buscar e organizar" enxuto: a "Partida rápida" continua no alto. */}
         {!enxuta && aoPartidaRapida && (
           <button
             type="button"
             className="q-ctl pri"
             onClick={aoPartidaRapida}
-            /* A mesma dica da tela de sempre, para quem para o ponteiro em cima (no computador). */
             title={t('Sorteia um jogo aleatório dentre os disponíveis e inicia imediatamente')}
           >
             <Zap aria-hidden />
             {t('Partida rápida')}
           </button>
         )}
-      </div>
+      </CabecalhoComFicha>
 
-      {/* `enxuto.js:266-268`: o cartão logo abaixo do título e, com a fonte Trilha, a linha dela em seguida. */}
-      {enxuta && cartaoDaSugestao}
-      {/* Sem sugestão (nenhum jogo pronto) não há cartão: o sorteio continua à mão, e avisa que não há jogo. */}
-      {enxuta && !sugestao && aoPartidaRapida && (
-        <span className="ex-ligs">
-          <button
-            type="button"
-            className="ex-lig"
-            data-ex="sortear"
-            title={t('Sorteia um jogo aleatório dentre os disponíveis e inicia imediatamente')}
-            onClick={aoPartidaRapida}
-          >
-            <Zap aria-hidden />
-            {t('Sortear um jogo')}
-          </button>
-        </span>
-      )}
+      {/* O AVISO DO ESTADO, só quando há (`fxAviso()`, `fontes.js:166-179`), e a faixa de anúncio do Grátis
+          (`fontes.js:193-194`). Nos planos pagos não entra nada aqui: a grade sobe. */}
+      {avisosDoEstado.map((a) => (
+        <div key={a.tom} className={`q-aviso fx-aviso fx-aviso-${a.tom}`} data-fx-alvo="aviso" role="status">
+          <span className="qv-aviso-texto">
+            <a.icone aria-hidden />
+            <span>
+              <b>{a.forte}</b> {a.texto}
+            </span>
+          </span>
+          {!!a.acoes?.length && (
+            <span className="fx-aviso-acoes">
+              {a.acoes.map((acao) => (
+                <button
+                  key={acao.rotulo}
+                  type="button"
+                  className={`q-ctl${acao.primaria ? ' pri' : ''}`}
+                  data-fx={acao.marca}
+                  onClick={acao.aoAgir}
+                >
+                  <acao.icone aria-hidden /> {acao.rotulo}
+                </button>
+              ))}
+            </span>
+          )}
+        </div>
+      ))}
+      {anuncio}
       {enxuta && trilha}
 
       <div className="qj-ferramentas">
@@ -811,21 +749,38 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
         )}
         <span className="q-espaco" />
         {enxuta ? (
-          /* `enxuto.js:241-244`: três chips viram um. Abre na primeira seção (a busca). */
-          <button
-            type="button"
-            className="q-chip ex-organizar"
-            aria-haspopup="dialog"
-            data-ex="organizar"
-            aria-label={t('Buscar e organizar os jogos')}
-            title={t('Buscar e filtrar, favoritos e ordem, opções')}
-            onClick={() => setPainel(secoes[0].id)}
-          >
-            <Search aria-hidden />
-            <span>{t('Buscar e organizar')}</span>
-            {/* Dado do app: quantos filtros estão ligados (no celular o chip é só o ícone). */}
-            {filtrosLigados > 0 && <span className="qj-n">{filtrosLigados}</span>}
-          </button>
+          <>
+            {/* `fontes.js:204-205`: "Sortear" sobrevive pequeno, ao lado de "Buscar e organizar" (o CSS o
+                esconde no celular, onde não cabe ao lado das três abas). */}
+            {aoPartidaRapida && (
+              <button
+                type="button"
+                className="q-chip fx-sortear"
+                data-ex="sortear"
+                aria-label={t('Sortear um jogo')}
+                title={t('Sorteia um jogo dentre os que servem para este conteúdo e começa na hora')}
+                onClick={aoPartidaRapida}
+              >
+                <Zap aria-hidden />
+                <span>{t('Sortear')}</span>
+              </button>
+            )}
+            {/* `enxuto.js:241-244`: três chips viram um. Abre na primeira seção (a busca). */}
+            <button
+              type="button"
+              className="q-chip ex-organizar"
+              aria-haspopup="dialog"
+              data-ex="organizar"
+              aria-label={t('Buscar e organizar os jogos')}
+              title={t('Buscar e filtrar, favoritos e ordem, opções')}
+              onClick={() => setPainel(secoes[0].id)}
+            >
+              <Search aria-hidden />
+              <span>{t('Buscar e organizar')}</span>
+              {/* Dado do app: quantos filtros estão ligados (no celular o chip é só o ícone). */}
+              {filtrosLigados > 0 && <span className="qj-n">{filtrosLigados}</span>}
+            </button>
+          </>
         ) : (
           <>
             {temFiltros && (
@@ -891,8 +846,6 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
 
       {!enxuta && trilha}
 
-      {!enxuta && cartaoDaSugestao}
-
       {/* A aba escolhida já se vê nas abas; busca e habilidade moram num painel, então são ditas aqui. */}
       {filtrosLigados > 0 && (
         <div className="q-aviso" data-filtro>
@@ -939,14 +892,23 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
         )}
 
         {semMaterial.length > 0 && (
-          <section className="q-secao qj-presos">
+          <section className="q-secao qj-presos fx-faltam" data-fx-alvo="faltam">
             <header>
               <div>
-                <h2>{t('Precisam de outro material')}</h2>
-                <p>{t('Não estão quebrados: pedem algo que este recorte não tem. Cada um diz o que falta.')}</p>
+                <h2>{semMaterial.length === 1 ? t('Precisa de outro material') : t('Precisam de outro material')}</h2>
+                <p>
+                  {semMaterial.length === 1
+                    ? t('Não está quebrado: pede algo que este conteúdo não tem.')
+                    : t('Não estão quebrados: pedem algo que este conteúdo não tem. Cada um diz o que falta.')}
+                </p>
               </div>
+              {muitosPresos && aoTrocarConteudo && (
+                <button type="button" className="q-ctl" data-fs="abrir" onClick={aoTrocarConteudo}>
+                  <Layers aria-hidden /> {t('Trocar o conteúdo')}
+                </button>
+              )}
             </header>
-            <div className="q-grade g4">{semMaterial.map(cartao)}</div>
+            <div className="q-grade g4 fx-grade-falta">{semMaterial.map(cartao)}</div>
           </section>
         )}
       </div>

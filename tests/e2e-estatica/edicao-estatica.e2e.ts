@@ -122,15 +122,17 @@ test('edição estática: telas principais sem /api, sem erro, sem login nem pla
   await expect(page.getByTestId('cartao-de-convite')).toHaveCount(0)
   await semProibidos(page, '/cartoes')
   await page.screenshot({ path: path.join(PASTA, `cartoes-${sufixo}.png`) })
-  for (const [rota, aba] of [
-    ['/cartoes/baralhos', /^Baralhos/],
-    ['/cartoes/trazer', /^Trazer e levar/],
-    ['/cartoes/memoria', /^Memória/],
-  ] as const) {
+  /* As abas que saíram (Baralhos, Trazer e levar) caem em /cartoes; a Memória é tela de dentro, com voltar. */
+  for (const rota of ['/cartoes/baralhos', '/cartoes/trazer']) {
     await abrir(page, rota)
-    await expect(cartoes.getByRole('tab', { name: aba }), rota).toHaveAttribute('aria-selected', 'true')
+    await expect(page, rota).toHaveURL(/\/cartoes$/)
+    await expect(cartoes.getByRole('tab', { name: /^Hoje/ }), rota).toHaveAttribute('aria-selected', 'true')
     await semProibidos(page, rota)
   }
+  await abrir(page, '/cartoes/memoria')
+  await expect(cartoes.getByRole('heading', { level: 1, name: 'Memória' })).toBeVisible()
+  await expect(cartoes.getByRole('button', { name: 'Voltar para Cartões' })).toBeVisible()
+  await semProibidos(page, '/cartoes/memoria')
   // O endereço de antes do Vocabulário abre a aba "Palavras", com o caderno vazio.
   await abrir(page, '/vocabulario')
   await expect(page).toHaveURL(/\/cartoes\/palavras$/)

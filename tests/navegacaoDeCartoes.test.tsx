@@ -61,6 +61,11 @@ describe('a navegação de Cartões', () => {
     expect(window.location.pathname).toBe('/cartoes/estudar/s1')
     act(() => result.current.navigateTo('study', { soNovas: true, limite: 5 }))
     expect(result.current.estudo).toEqual({ sessionId: null, limite: 5, soNovas: true })
+    /* O conteúdo que recorta a fila viaja junto, já conferido (o que não é fonte vira "Tudo"). */
+    act(() => result.current.navigateTo('study', { conteudo: { idioma: 'EN-us', fonte: { tipo: 'dificeis' } } }))
+    expect(result.current.estudo?.conteudo).toEqual({ idioma: 'en', fonte: { tipo: 'dificeis' } })
+    act(() => result.current.navigateTo('study', { conteudo: { idioma: 'es', fonte: { tipo: 'nao-existe' } } }))
+    expect(result.current.estudo?.conteudo).toEqual({ idioma: 'es', fonte: { tipo: 'tudo' } })
   })
 
   it('o voltar da rodada (`cartoes`) fecha a rodada e cai em "Hoje"', () => {
@@ -85,15 +90,19 @@ describe('a navegação de Cartões', () => {
 
   it('trocar de aba na tela publica o endereço da aba', () => {
     const { result } = abrirEm('/cartoes')
-    act(() => result.current.setCartoesAba('baralhos'))
-    expect(window.location.pathname).toBe('/cartoes/baralhos')
+    act(() => result.current.setCartoesAba('palavras'))
+    expect(window.location.pathname).toBe('/cartoes/palavras')
+    act(() => result.current.setCartoesAba('memoria'))
+    expect(window.location.pathname).toBe('/cartoes/memoria')
   })
 
   it.each([
     ['/revisar', 'cartoes', { sessionId: null }, 'hoje', '/cartoes/estudar'],
     ['/revisar/s9', 'cartoes', { sessionId: 's9' }, 'hoje', '/cartoes/estudar/s9'],
     ['/vocabulario', 'cartoes', null, 'palavras', '/cartoes/palavras'],
-    ['/cartoes/trazer', 'cartoes', null, 'trazer', '/cartoes/trazer'],
+    /* As abas que saíram: "Baralhos" é o catálogo do seletor e "Trazer e levar" é folha do "…". */
+    ['/cartoes/trazer', 'cartoes', null, 'hoje', '/cartoes'],
+    ['/cartoes/baralhos', 'cartoes', null, 'hoje', '/cartoes'],
   ] as const)('o endereço %s abre %s no lugar novo', (endereco, view, estudo, aba, canonico) => {
     const { result } = abrirEm(endereco)
     expect(result.current.activeView).toBe(view)

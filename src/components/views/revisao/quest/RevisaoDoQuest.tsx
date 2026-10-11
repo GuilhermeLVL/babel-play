@@ -1074,7 +1074,7 @@ export interface ValoresDaRevisaoNoQuest {
 }
 
 /** Número com menos e mais: escrever um número com o teclado do headset é o caminho lento. */
-function Passo({
+export function Passo({
   rotulo,
   valor,
   min,
@@ -1127,7 +1127,7 @@ function Passo({
 }
 
 /** Escolha entre poucos, com as pílulas do headset. */
-function Escolha<T extends string>({
+export function Escolha<T extends string>({
   rotulo,
   atual,
   opcoes,

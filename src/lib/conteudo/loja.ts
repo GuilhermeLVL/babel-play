@@ -16,6 +16,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 
 import type { ContagensDeConteudo } from '../../core/learning/contagensDeConteudo';
 import { fetchSettings, patchUiSettings } from '../../data/rotas/settings';
+import { baseDoIdioma, indiceDaTrilha } from '../../data/trilha/indice';
 import {
   type Conteudo,
   CONTEUDO_PADRAO,
@@ -107,6 +108,10 @@ export function mudarIdiomaDoConteudo(idioma: string): void {
  */
 export function conferirConteudo(k: ContagensDeConteudo, pedido: string): void {
   if (pedido !== atual.idioma) return;
+  /* A TRILHA DO APP NÃO DEPENDE DE CARTÃO: as palavras prontas existem por idioma (`data/trilha`), mesmo
+     sem nenhuma ativada e mesmo num idioma em que a pessoa ainda não tem cartão. A escolha "Trilha" num
+     idioma que tem trilha fica como está; quem não tem cartão dela vê a contagem zerada nos Cartões. */
+  if (atual.fonte.tipo === 'trilha' && atual.idioma && indiceDaTrilha()[baseDoIdioma(atual.idioma)]) return;
   por(sanear(atual, k));
 }
 

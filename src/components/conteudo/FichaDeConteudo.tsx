@@ -43,6 +43,8 @@ export function FichaDeConteudo({
   aoAbrir,
   aoVoltarParaTudo,
   refDoBotao,
+  semVolta = false,
+  nome: nomeDado,
 }: {
   conteudo: Conteudo;
   /** "Inglês": só quando há dois idiomas e a fonte não é de um só (`idiomaNaFicha`). */
@@ -53,12 +55,16 @@ export function FichaDeConteudo({
   aoVoltarParaTudo: () => void;
   /** O botão que abre: é para ele que o foco volta quando o catálogo fecha. */
   refDoBotao?: Ref<HTMLButtonElement>;
+  /** Sem o "x": quem só tem a Trilha não tem para onde voltar (`fsTemVolta`, `seletor.js:109`). */
+  semVolta?: boolean;
+  /** O nome a mostrar no lugar do nome curto da fonte ("Trilha · A1", o nível escolhido no Jogar). */
+  nome?: string;
 }) {
   const ficha = useRef<HTMLSpanElement>(null);
   const fonte = conteudo.fonte;
-  const nome = nomeCurtoDaFonte(fonte);
+  const nome = nomeDado || nomeCurtoDaFonte(fonte);
   const Icone = iconeDaFonte(fonte, tipoDaSessao);
-  const temVolta = fonte.tipo !== 'tudo';
+  const temVolta = fonte.tipo !== 'tudo' && !semVolta;
   /* `fsRotulo()` de `seletor.js:108`. */
   const rotulo = idioma
     ? t('Conteúdo: {nome} em {idioma}', { nome, idioma: idioma.toLocaleLowerCase() })

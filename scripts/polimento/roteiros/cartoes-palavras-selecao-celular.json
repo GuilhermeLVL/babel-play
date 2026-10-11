@@ -1,10 +1,10 @@
 {
-  "nome": "cartoes-trazer-celular",
-  "prototipo": "cartoes",
+  "nome": "cartoes-palavras-selecao-celular",
+  "prototipo": "cartoes-enxuto",
   "largura": 390,
   "altura": 844,
   "app": {
-    "caminho": "/cartoes/trazer",
+    "caminho": "/cartoes/palavras",
     "assentar": 3500,
     "passos": [
       {
@@ -12,39 +12,46 @@
       },
       {
         "esperar": 1200
+      },
+      {
+        "clicar": ".ct-selecionar"
+      },
+      {
+        "esperar": 500
       }
     ]
   },
   "proto": {
-    "busca": "?ver=trazer&quieto&nav=b",
+    "busca": "?ver=palavras&quieto",
     "assentar": 3500,
     "passos": [
       {
         "esperar": 600
+      },
+      {
+        "clicar": ".ct-selecionar"
+      },
+      {
+        "esperar": 500
       }
     ]
   },
   "seletores": [
     ".q-palco.ct",
-    ".q-cab",
-    ".q-cab .q-sobre",
+    ".q-cab.ct-cab",
     ".q-cab h1",
-    ".q-cab > .q-ctl",
+    ".fs-ficha",
+    ".fs-ficha .fs-abrir",
     ".ct-abas",
     ".ct-abas .q-aba",
+    ".q-cab > .q-ctl.ct-so-icone",
     ".ct-painel",
-    ".ct-trazer-topo",
-    ".ct-anki",
-    ".ct-anki h2",
-    ".ct-soltar",
-    ".ct-soltar .q-ic",
-    ".ct-soltar b",
-    ".ct-soltar small",
-    ".ct-levar",
-    ".ct-levar h2",
-    ".ct-levar .q-tile",
-    ".ct-levar .q-tile b",
-    ".ct-levar .q-tile .q-d",
+    ".ct-faixa-sel",
+    ".ct-faixa-sel .q-tempo",
+    ".ct-faixa-sel .q-ctl",
+    ".ct-cancelar",
+    ".ct-caixa",
+    ".ct-th-caixa",
     ".q-trilho",
     ".q-trilho .q-item",
     ".ct-praticar",

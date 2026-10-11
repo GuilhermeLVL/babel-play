@@ -48,9 +48,7 @@ describe('estadoParaUrl', () => {
 
   it('as abas de Cartões entram no caminho; "Hoje" é a entrada e fica no endereço curto', () => {
     expect(estadoParaUrl({ view: 'cartoes', cartoesAba: 'hoje' })).toBe('/cartoes')
-    expect(estadoParaUrl({ view: 'cartoes', cartoesAba: 'baralhos' })).toBe('/cartoes/baralhos')
     expect(estadoParaUrl({ view: 'cartoes', cartoesAba: 'palavras' })).toBe('/cartoes/palavras')
-    expect(estadoParaUrl({ view: 'cartoes', cartoesAba: 'trazer' })).toBe('/cartoes/trazer')
     expect(estadoParaUrl({ view: 'cartoes', cartoesAba: 'memoria' })).toBe('/cartoes/memoria')
   })
 
@@ -99,6 +97,10 @@ describe('urlParaEstado', () => {
     expect(urlParaEstado('/cartoes/estudar')).toEqual({ view: 'cartoes', estudando: true })
     expect(urlParaEstado('/cartoes/estudar/abc')).toEqual({ view: 'cartoes', estudando: true, sessionId: 'abc' })
     expect(urlParaEstado('/cartoes/nao-existe')).toEqual({ view: 'cartoes' })
+    /* As abas que saíram (o catálogo do seletor e a folha do "…" fazem o papel delas) caem em /cartoes. */
+    expect(urlParaEstado('/cartoes/baralhos')).toEqual({ view: 'cartoes' })
+    expect(urlParaEstado('/cartoes/trazer')).toEqual({ view: 'cartoes' })
+    expect(estadoParaUrl(urlParaEstado('/cartoes/baralhos'))).toBe('/cartoes')
   })
 
   it('tolera barra final e caixa alta — URL digitada à mão não pode quebrar a tela', () => {
@@ -126,7 +128,7 @@ describe('ida e volta — o estado sobrevive ao recarregamento', () => {
     { view: 'play' },
     { view: 'library' },
     { view: 'cartoes' },
-    { view: 'cartoes', cartoesAba: 'baralhos' },
+    { view: 'cartoes', cartoesAba: 'memoria' },
     { view: 'cartoes', cartoesAba: 'palavras' },
     { view: 'cartoes', estudando: true },
     { view: 'cartoes', estudando: true, sessionId: 's1' },

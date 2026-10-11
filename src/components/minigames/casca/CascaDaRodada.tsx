@@ -1,5 +1,5 @@
 import type { MinigameId } from '@core';
-import { CircleHelp, DoorOpen, Gauge, LogOut, Pause, Play, RotateCcw, Volume2, X } from 'lucide-react';
+import { CircleHelp, DoorOpen, Gauge, LogOut, type LucideIcon, Pause, Play, RotateCcw, Volume2, X } from 'lucide-react';
 import {
   createContext,
   type ReactNode,
@@ -96,6 +96,8 @@ interface CascaDaRodadaProps {
    * perder), Esc não pausa, e o palco ganha `.pj-acabou`, que esconde as ajudas e a instrução.
    */
   acabou?: boolean;
+  /** O conteúdo desta rodada (o da ficha do Jogar): o ícone e o nome, ao lado da sobrancelha. */
+  conteudo?: { icone: LucideIcon; nome: string };
   /** Tela cheia de largura para tabuleiros que precisam (padrão `larga`, como no protótipo). */
   children: ReactNode;
 }
@@ -132,6 +134,7 @@ export default function CascaDaRodada({
   pausaComP = true,
   som,
   acabou = false,
+  conteudo,
   children,
 }: CascaDaRodadaProps) {
   const palcoRef = useRef<HTMLElement | null>(null);
@@ -233,11 +236,18 @@ export default function CascaDaRodada({
       <Tela largura="larga">
         <CabecalhoDeTela
           voltar={{ rotulo: 'Jogar', aoClicar: () => (acabou ? onSair() : setPasso('sair')) }}
-          sobrancelha={sobrancelhaNoDesenho(
-            jogo,
-            quantosNaSobrancelha(jogo, nivel, total),
-            `Rodada · ${total} ${unidade}`,
-          )}
+          sobrancelha={
+            <>
+              {sobrancelhaNoDesenho(jogo, quantosNaSobrancelha(jogo, nivel, total), `Rodada · ${total} ${unidade}`)}
+              {/* `aoMostrar.partida` de `fontes.js:289-294`: de onde vêm as palavras desta rodada. */}
+              {conteudo && (
+                <span className="fx-na-partida" title={t('O conteúdo desta rodada')}>
+                  <conteudo.icone aria-hidden />
+                  {conteudo.nome}
+                </span>
+              )}
+            </>
+          }
           /* A sobrancelha traz o ícone do próprio jogo (`jogos.js:128`). */
           icone={ICONE_DO_JOGO[jogo]}
           titulo={titulo}

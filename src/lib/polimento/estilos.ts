@@ -21,14 +21,13 @@ import '../../styles/polimento/anuncios.css';
 import '../../styles/polimento/planos4.css';
 /* O protótipo das telas enxutas (`telas-enxutas-src/montar.mjs`): Capturar e Jogar com menos coisas à vista. */
 import '../../styles/polimento/enxuto.css';
-/* O protótipo dos cartões (cartoes-src/montar.mjs): a tela Cartões e a barra de cinco com o Praticar. */
+/* O protótipo dos cartões enxutos (cartoes-enxuto-src/montar.mjs): a tela Cartões (Hoje em faixa, Palavras,
+   a Memória de dentro, as folhas) e a barra de cinco com o Praticar. */
 import '../../styles/polimento/cartoes.css';
 /* O protótipo dos cartões enxutos (cartoes-enxuto-src/montar.mjs): a revisão enxuta, a cena, minha voz e as práticas. */
 import '../../styles/polimento/cartoes4.css';
 /* O seletor de conteúdo (cartoes-enxuto-src/montar.mjs: `fontes.css` e `seletor.css`, nesta ordem, depois
-   dos cartões): a ficha no cabeçalho, o catálogo e a Biblioteca. `cartoes-enxuto-base.css` são as poucas
-   regras das telas enxutas dos Cartões que o catálogo usa (ver `scripts/polimento/trazer-css.mjs`). */
-import '../../styles/polimento/cartoes-enxuto-base.css';
+   dos cartões): a ficha no cabeçalho, o catálogo e a Biblioteca. */
 import '../../styles/polimento/fontes.css';
 import '../../styles/polimento/seletor.css';
 /* DO APP, por último: o mesmo desenho por um caminho mais barato (o pulso do contador em camada composta,

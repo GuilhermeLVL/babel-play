@@ -2,6 +2,7 @@ import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 
 
 import type { Recording, ViewType } from '../../types';
 import { clearAuthCallbackUrl, isOnAuthCallback } from '../authCallback';
+import { type Conteudo, lerConteudo } from '../conteudo/estado';
 import { edicaoEstatica } from '../edicaoEstatica';
 import { aoMudarIdentidade } from '../identidade';
 import { consumirIntencao } from '../intencaoDeLogin';
@@ -65,6 +66,11 @@ export interface EstudoAberto {
   soNovas?: boolean;
   /** "Praticar de outro jeito": a tela abre com a folha das práticas sobre este recorte, sem rodada. */
   praticar?: RecorteDaPratica;
+  /**
+   * O conteúdo que recorta a fila (`lib/conteudo/cartoes.ts`): "Difíceis", um baralho do Anki, a Trilha,
+   * uma sessão. Sem ele (e sem `sessionId`), a tela Cartões usa o conteúdo escolhido no app.
+   */
+  conteudo?: Conteudo;
 }
 
 /**
@@ -143,6 +149,7 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
         limite: typeof data?.limite === 'number' ? data.limite : undefined,
         soNovas: data?.soNovas === true ? true : undefined,
         praticar: lerRecorteDaPratica(data?.praticar),
+        conteudo: data?.conteudo ? lerConteudo(data.conteudo) : undefined,
       });
       // A semente vem no `data` (texto selecionado, palavra, exercício-alvo). Antes era jogada fora.
       setPracticeSeed(data?.seed ?? null);

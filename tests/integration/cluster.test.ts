@@ -171,7 +171,9 @@ describe('F6-01 — modo cluster', () => {
 
   it('com CLUSTER_WORKERS=3, o primário anuncia 3 processos na mesma porta', async () => {
     const { porta, saida } = await subirServidor({ CLUSTER_WORKERS: '3' }, 60_000, /\[cluster\] \d+ processos|ABORTADO/)
-    expect(saida()).toMatch(/rodando em/)
+    /* O anúncio do cluster sai logo depois dos `fork()`; o "rodando em" sai no retorno do `listen`, uma
+       volta do laço de eventos depois. Conferir na hora era corrida (falhou na CI em 11/10/2026). */
+    await expect.poll(() => saida(), { timeout: 15_000 }).toMatch(/rodando em/)
     // `Math.min(pedidos, availableParallelism())` — numa máquina de 1 núcleo o número cai, e o
     // teste não pode exigir 3 onde o hardware não dá. Exigir >= 2 é o que prova que forkou.
     const anuncio = /\[cluster\] (\d+) processos/.exec(saida())

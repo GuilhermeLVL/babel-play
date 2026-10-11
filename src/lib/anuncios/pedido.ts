@@ -3,7 +3,7 @@
  *
  * A política não lê nada sozinha; quem lê é este arquivo, e só de CACHES SÍNCRONOS que o app já mantém:
  * a flag (`flagsCache`), o plano e a data da conta (`getEntitlements()`), o perfil (`perfilProtegido()`),
- * o aparelho (`noHeadset()`), a edição (`edicaoEstatica()`), a tela (a captura, a rodada, a rota) e o
+ * o aparelho (`noHeadset()`), a rede (`navigator.onLine`), a edição (`edicaoEstatica()`), a tela (a captura, a rodada, a rota) e o
  * consentimento (`lerPreferencias()`). NADA AQUI PEDE REDE.
  *
  * O MODO DE DEMONSTRAÇÃO, SÓ EM DESENVOLVIMENTO (`demonstracaoDeAnuncios()`): com
@@ -90,6 +90,7 @@ export function montarPedidoDeAnuncio(
     emTeste,
     perfilProtegido: perfilProtegido(),
     noHeadset: noHeadset(),
+    semRede: typeof navigator !== 'undefined' && navigator.onLine === false,
     edicaoEstatica: edicaoEstatica(),
     tela: telaDoAnuncio(),
     contaCriadaEm: demonstracao ? agora - IDADE_MINIMA_DA_CONTA_MS : (e.contaCriadaEm ?? null),

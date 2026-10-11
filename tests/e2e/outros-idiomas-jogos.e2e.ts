@@ -60,7 +60,9 @@ const DE_LETRAS = ['wordsearch', 'termo', 'choseong', 'tenis', 'bao', 'shiritori
 async function abrirTrilha(page: Page, base: string) {
   await semExplicacao(page, [...DE_QUALQUER_ESCRITA])
   await irParaPraticar(page, `/jogar?fonte=trilha&idioma=${base}`)
-  await expect(lobby(page).locator('.q-cab .q-sobre')).toHaveText(/^[\d.]+ palavras prontas$/, { timeout: 20_000 })
+  /* O link vira o conteúdo escolhido: a ficha do cabeçalho diz "Trilha", e a grade tem jogo pronto. */
+  await expect(lobby(page).locator('.fs-ficha [data-fs="abrir"]')).toContainText('Trilha', { timeout: 20_000 })
+  await expect(lobby(page).locator('#grade-de-jogos > .q-grade .q-tile').first()).toBeVisible({ timeout: 20_000 })
 }
 
 /** Sai da rodada no meio: o "Jogar" do cabeçalho pergunta antes. */

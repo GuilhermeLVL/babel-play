@@ -27,7 +27,7 @@ import { ligarDemonstracaoDeAnuncios } from './demonstracao/ligar';
  *      (`lib/anuncios/pedido.ts`). Negou, não renderiza nada.
  *
  * Só com as duas respostas o provedor desenha. O espaço volta a perguntar quando muda o que a política
- * lê: a flag, o plano, o perfil, o consentimento e o fim de uma rodada.
+ * lê: a flag, o plano, o perfil, o consentimento, a rede e o fim de uma rodada.
  *
  * A DEMONSTRAÇÃO (só em desenvolvimento): com `localStorage['babel.px.anunciosDeProva'] = '1'` o
  * provedor de demonstração é carregado e desenha "Patrocinado · exemplo" nos lugares do protótipo.
@@ -70,7 +70,12 @@ function EspacoComProvedor({
     /* A tela de fim nasce com a rodada ainda marcada como ativa (`Play.tsx` tira a marca num efeito e
        avisa por este evento): é aqui que o espaço do fim de rodada passa a poder. */
     window.addEventListener('babel:rodada-fechou', reavaliar);
+    /* Sem rede não há anúncio (a política nega): caiu ou voltou, o espaço pergunta de novo. */
+    window.addEventListener('online', reavaliar);
+    window.addEventListener('offline', reavaliar);
     return () => {
+      window.removeEventListener('online', reavaliar);
+      window.removeEventListener('offline', reavaliar);
       semPlano();
       semProtecao();
       window.removeEventListener('babel:rodada-fechou', reavaliar);

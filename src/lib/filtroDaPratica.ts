@@ -157,10 +157,12 @@ export function queryDoFiltro(f: FiltroDaPratica): string {
   const texto = q.toString();
   // Padrão vira URL limpa. A comparação é sobre a SERIALIZAÇÃO (não sobre o objeto) de propósito:
   // o saneador da persistência materializa `false` explícitos que são semanticamente o padrão.
-  return texto === QUERY_DO_PADRAO ? '' : texto;
+  return texto === QUERY_DO_PADRAO || texto === QUERY_DE_TUDO ? '' : texto;
 }
 
 const QUERY_DO_PADRAO = new URLSearchParams({ fonte: FILTRO_PADRAO.fontes.join(',') }).toString();
+/* "Tudo" do seletor de conteúdo (as três origens, `lib/conteudo/filtro.ts`): é o padrão de hoje, e a barra fica limpa. */
+const QUERY_DE_TUDO = new URLSearchParams({ fonte: 'baralho,sessao,trilha' }).toString();
 
 /**
  * Lê a query de `/jogar` de volta a um filtro. `null` quando a query não fala de filtro (sem o

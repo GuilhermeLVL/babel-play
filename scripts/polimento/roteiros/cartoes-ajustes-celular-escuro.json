@@ -1,11 +1,11 @@
 {
-  "nome": "cartoes-trazer-escuro",
-  "prototipo": "cartoes",
-  "largura": 1280,
-  "altura": 960,
+  "nome": "cartoes-ajustes-celular-escuro",
+  "prototipo": "cartoes-enxuto",
+  "largura": 390,
+  "altura": 844,
   "escuro": true,
   "app": {
-    "caminho": "/cartoes/trazer",
+    "caminho": "/cartoes",
     "assentar": 3500,
     "passos": [
       {
@@ -19,11 +19,17 @@
       },
       {
         "esperar": 1200
+      },
+      {
+        "clicar": ".ct-estado-teto"
+      },
+      {
+        "esperar": 900
       }
     ]
   },
   "proto": {
-    "busca": "?ver=trazer&quieto&nav=a",
+    "busca": "?ver=hoje&quieto",
     "assentar": 3500,
     "passos": [
       {
@@ -34,30 +40,33 @@
       },
       {
         "esperar": 600
+      },
+      {
+        "clicar": ".ct-estado-teto"
+      },
+      {
+        "esperar": 900
       }
     ]
   },
   "seletores": [
     ".q-palco.ct",
-    ".q-cab",
-    ".q-cab .q-sobre",
+    ".q-cab.ct-cab",
     ".q-cab h1",
-    ".q-cab > .q-ctl",
+    ".fs-ficha",
+    ".fs-ficha .fs-abrir",
     ".ct-abas",
     ".ct-abas .q-aba",
+    ".q-cab > .q-ctl.ct-so-icone",
     ".ct-painel",
-    ".ct-trazer-topo",
-    ".ct-anki",
-    ".ct-anki h2",
-    ".ct-soltar",
-    ".ct-soltar .q-ic",
-    ".ct-soltar b",
-    ".ct-soltar small",
-    ".ct-levar",
-    ".ct-levar h2",
-    ".ct-levar .q-tile",
-    ".ct-levar .q-tile b",
-    ".ct-levar .q-tile .q-d",
-    ".q-trilho .q-item"
+    "dialog.ct-ajustes",
+    "dialog.ct-ajustes .q-ajuste",
+    ".qr-passo",
+    ".ct-mais-ajustes",
+    "dialog.ct-ajustes .dlg-pe .q-ctl",
+    ".q-trilho",
+    ".q-trilho .q-item",
+    ".ct-praticar",
+    ".ct-praticar .q-aba"
   ]
 }

@@ -12,7 +12,9 @@ import { abrirTela, clicarRobusto, fecharSobreposicoes, irParaPraticar, lobby, v
  *    painel de ajustes; A− e A+ só com texto na tela; gravando, o PAUSAR ao lado do Encerrar.
  *  - O Pausar é a pausa de verdade das fontes (`pausarFontes`/`retomarFontes`, `salvarSessao.ts`): o
  *    relógio da captura para e volta a andar. Aqui a captura começa com a mídia falsa do Chromium.
- *  - Jogar: "Começar" é o único botão cheio; "Sortear um jogo", "Por que este?" e "Outra sugestão" são
+ *  - Jogar (10/10/2026): o cabeçalho é o título e a ficha de conteúdo; a "Sugestão para hoje" saiu; "Sortear" é
+ *    um botão pequeno ao lado de "Buscar e organizar". O texto de antes dizia: "Começar" é o único botão cheio;
+ *    "Sortear um jogo", "Por que este?" e "Outra sugestão" são
  *    links do cartão; "Buscar e organizar" abre UM painel com as três seções; no celular nada rola de lado.
  */
 test.use({
@@ -146,7 +148,9 @@ test('Capturar gravando: A− e A+ aparecem com o texto, e o Pausar para o reló
   await expect(botaoEncerrar(page)).toHaveCount(0)
 })
 
-test('Jogar: um botão cheio, os links do cartão e "Buscar e organizar" com as três seções', async ({ page }) => {
+test('Jogar: a ficha de conteúdo no cabeçalho, "Sortear" pequeno e "Buscar e organizar" com as três seções', async ({
+  page,
+}) => {
   test.slow()
   await irParaPraticar(page)
   const tela = lobby(page)
@@ -162,35 +166,44 @@ test('Jogar: um botão cheio, os links do cartão e "Buscar e organizar" com as 
   )
   const cortados = await tela.evaluate((t) => {
     const limite = t.getBoundingClientRect().right + 1
-    return [...t.querySelectorAll('.q-cab button, .qj-ferramentas button, .qj-sugestao button')].filter(
+    return [...t.querySelectorAll('.q-cab button, .qj-ferramentas button, .fx-aviso button')].filter(
       (b) => b.getBoundingClientRect().width > 0 && b.getBoundingClientRect().right > limite,
     ).length
   })
   expect(cortados, 'nenhum controle fica fora da tela, de lado').toBe(0)
 
-  // Com sugestão (há jogo pronto): "Começar" é o único botão cheio, e os outros três são links.
-  const sugestao = tela.locator('.qj-sugestao')
-  if (await sugestao.count()) {
-    await expect(tela.locator('.q-ctl.pri:visible')).toHaveCount(1)
-    await expect(sugestao.locator('.q-ctl.pri')).toHaveText('Começar')
-    await expect(sugestao.locator('.ex-lig')).toHaveText(['Por que este?', 'Outra sugestão', 'Sortear um jogo'])
-    // O cartão vem logo abaixo do título, antes das abas.
-    expect(
-      await tela.evaluate(
-        (t) => !!(t.querySelector('.qj-sugestao')!.compareDocumentPosition(t.querySelector('.qj-ferramentas')!) & 4),
-      ),
-    ).toBe(true)
-    await clicarRobusto(page, sugestao.getByRole('button', { name: 'Por que este?' }))
-    await expect(sugestao.locator('.qj-porque li').first()).toBeVisible()
-    await sugestao.getByRole('button', { name: 'Esconder o porquê' }).click()
-    await expect(sugestao.locator('.qj-porque')).toHaveCount(0)
-    // "Outra sugestão" gira entre os jogos prontos (com um só, fica o mesmo): o cartão continua inteiro.
-    await sugestao.getByRole('button', { name: 'Outra sugestão' }).click()
-    await expect(sugestao.locator('.q-ctl.pri')).toHaveAttribute('data-sugestao', /.+/)
-    await expect(sugestao.locator('.q-ctl.pri')).toBeEnabled()
+  /* O CABEÇALHO (10/10/2026): o título e a ficha de conteúdo, a mesma da Biblioteca e dos Cartões. A
+     "Sugestão para hoje" saiu do Jogar, com "Por que este?" e "Outra sugestão". */
+  const ficha = tela.locator('header.q-cab.fs-cab .fs-ficha [data-fs="abrir"]')
+  await expect(ficha).toBeVisible()
+  await expect(ficha).toHaveAttribute('aria-haspopup', 'dialog')
+  await expect(tela.locator('.qj-sugestao')).toHaveCount(0)
+  for (const antigo of ['Começar', 'Por que este?', 'Outra sugestão'])
+    await expect(tela.getByRole('button', { name: antigo, exact: true })).toHaveCount(0)
+  /* A ficha é um alvo de toque inteiro (44 px ou mais). */
+  expect((await ficha.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+
+  /* "Sortear" sobrevive pequeno, ao lado de "Buscar e organizar", só onde cabe (fora do celular). */
+  const sortear = tela.getByRole('button', { name: 'Sortear um jogo' })
+  if ((page.viewportSize()?.width ?? 1280) > 720) {
+    await expect(sortear).toBeVisible()
+    await expect(sortear).toHaveClass(/fx-sortear/)
   } else {
-    await expect(tela.getByRole('button', { name: 'Sortear um jogo' })).toBeVisible()
+    await expect(sortear).toBeHidden()
   }
+
+  /* Sem a flag `anuncios` (o estado de fábrica) não há faixa de anúncio: a grade vem logo depois das abas,
+     e as abas logo depois do cabeçalho (ou do aviso do estado, quando há). */
+  await expect(tela.locator('.fx-anuncio, [data-ad]')).toHaveCount(0)
+
+  /* A ficha abre o catálogo "Escolher o conteúdo", e fechar devolve o foco a ela. */
+  await clicarRobusto(page, ficha)
+  const catalogo = page.locator('dialog.fx-catalogo')
+  await verSemSobreposicao(page, catalogo)
+  await expect(catalogo.locator('[data-fx-fonte="tudo"]')).toBeVisible({ timeout: 15_000 })
+  await catalogo.locator('button.x').click()
+  await expect(catalogo).toBeHidden()
+  await expect(ficha).toBeFocused()
 
   // Um painel, três seções: o miolo de cada uma é o do painel de antes.
   await clicarRobusto(page, organizar)

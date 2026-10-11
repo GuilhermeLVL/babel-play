@@ -64,7 +64,12 @@ export type MotivoBloqueio =
    * assim que a tela dizia "precisa de uma gravação com legenda" para a trilha japonesa, que tem
    * 5.181 frases. Nada a consertar: é uma limitação do jogo naquela escrita, dita como tal.
    */
-  | 'escrita-sem-separacao';
+  | 'escrita-sem-separacao'
+  /**
+   * SEM INTERNET, e o jogo depende dela: o Karaokê dá a nota pelo reconhecimento de fala do navegador,
+   * que vai à rede. Quem marca é a tela (`Play.tsx`, com `navigator.onLine`): `estadoDoJogo` não lê a rede.
+   */
+  | 'sem-rede';
 
 /**
  * RÓTULO HUMANO de cada motivo — título curto + o que resolve.
@@ -94,6 +99,10 @@ export const ROTULO_DO_MOTIVO: Record<MotivoBloqueio, { titulo: string; conserto
   'escrita-sem-separacao': {
     titulo: 'escrita sem separação de palavras',
     conserto: 'a trilha tem frases, mas esta escrita não marca onde cada palavra começa',
+  },
+  'sem-rede': {
+    titulo: 'sem internet',
+    conserto: 'este jogo ouve a sua voz pela internet; os outros continuam',
   },
 };
 

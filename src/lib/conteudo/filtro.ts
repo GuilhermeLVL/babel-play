@@ -6,7 +6,10 @@
  * quem escreve nele. A etapa seguinte só liga: ao escolher, `gravarFiltro(filtroDoConteudo(c))` e
  * `publicarQueryDoJogar(queryDoFiltro(...))`; ao abrir o Jogar por um link, `conteudoDoFiltro(...)`.
  *
- *   Tudo      ⇄ o filtro padrão (acervo geral + sessões, sem recorte)
+ *   Tudo      ⇄ as três origens juntas (acervo geral + sessões + as palavras da Trilha já ativadas), sem
+ *               recorte: o MESMO conjunto que a contagem de "Tudo" conta (`contarConteudo`). O filtro
+ *               padrão antigo (acervo geral + sessões) deixava de fora o cartão que só veio da Trilha;
+ *               ele continua sendo lido como "Tudo" (um link ou uma escolha guardada de antes)
  *   Difíceis  ⇄ baralho + recorte `dificeis`
  *   sessão    ⇄ fonte `sessao` com UMA sessão
  *   Anki      ⇄ fonte `baralho` com UM baralho
@@ -18,6 +21,9 @@ import { FILTRO_PADRAO } from '@core';
 
 import { type Conteudo, type FonteDeConteudo, TUDO } from './estado';
 
+/** As origens de "Tudo": todo cartão do baralho passa (`passaFontes`: o que não é da Trilha, e o que é). */
+export const FONTES_DE_TUDO: FiltroDaPratica['fontes'] = ['baralho', 'sessao', 'trilha'];
+
 export function filtroDoConteudo(c: Conteudo): FiltroDaPratica {
   const idiomas = c.idioma ? [c.idioma] : [];
   const f = c.fonte;
@@ -25,7 +31,7 @@ export function filtroDoConteudo(c: Conteudo): FiltroDaPratica {
   if (f.tipo === 'sessao') return { ...FILTRO_PADRAO, fontes: ['sessao'], sessoes: [f.id], idiomas };
   if (f.tipo === 'anki') return { ...FILTRO_PADRAO, fontes: ['baralho'], baralhos: [f.id], idiomas };
   if (f.tipo === 'trilha') return { ...FILTRO_PADRAO, fontes: ['trilha'], idiomas };
-  return { ...FILTRO_PADRAO, idiomas };
+  return { ...FILTRO_PADRAO, fontes: [...FONTES_DE_TUDO], idiomas };
 }
 
 /** Os nomes que a volta não tem como saber (o filtro só guarda ids): quem chama os fornece. */
@@ -65,7 +71,10 @@ export function conteudoDoFiltro(
     fonte = { tipo: 'anki', id: f.baralhos[0], nome: nomes.anki?.(f.baralhos[0]) ?? '' };
     exato &&= f.baralhos.length === 1;
   } else {
-    const padrao = f.fontes.length === 2 && f.fontes.includes('baralho') && f.fontes.includes('sessao');
+    /* "Tudo" de hoje (as três origens) e o padrão de antes (acervo geral + sessões). */
+    const semTrilha = f.fontes.filter((x) => x !== 'trilha');
+    const padrao =
+      semTrilha.length === 2 && semTrilha.includes('baralho') && semTrilha.includes('sessao') && !f.nivelTrilha;
     exato &&= padrao && !f.sessoes.length && !f.baralhos.length;
   }
   return { conteudo: { idioma, fonte }, exato };

@@ -8,11 +8,8 @@ import {
   type CefrLevel,
   chaveDaPalavra,
   chaveDaPalavra as chaveDaPalavraCore,
-  comoDesbloquear,
   CONFIANCA_CURADA,
-  type ContextoDeDesbloqueio,
   type DadoTrilha,
-  type Desbloqueio,
   diagnosticoTermo,
   escolhaDaFonte,
   type EscolhaDaPratica,
@@ -24,10 +21,7 @@ import {
   etapaAtual,
   etapasDoNivel,
   faixaAuto,
-  fonteDaEscolha,
   type FonteDeItens,
-  type FonteId,
-  fontesDisponiveis,
   frasesDaTrilha,
   frasesDoAcervo,
   gradeFor,
@@ -43,7 +37,6 @@ import {
   type MinigameItem,
   MINIGAMES,
   niveisEmJogo,
-  type OrigemDaPratica,
   pistasDaTriagem,
   pontuarRodada,
   previaSegura,
@@ -69,9 +62,7 @@ import {
 } from '@core';
 import { idiomaDominanteDosCartoes } from '@core/texto/idioma';
 import {
-  BarChart2,
   BookOpen,
-  Brain,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -79,38 +70,33 @@ import {
   CircleHelp,
   CirclePlay,
   Filter,
-  Flame,
   Gamepad2,
   Globe,
   GraduationCap,
   Headphones,
   Languages,
   Layers,
-  ListChecks,
   Lock,
-  Map as MapIcon,
   Mic,
   Package,
   PackageOpen,
   Pin,
   Play as IconePlay,
+  Plus,
   Puzzle,
   Quote,
   Search,
-  Shuffle,
-  Sparkle,
   Sparkles,
   Star,
-  Target,
-  Timer,
-  Trophy as TrophyIcon,
-  Upload,
+  TriangleAlert,
+  WifiOff,
   Zap,
 } from 'lucide-react';
 import React, { Suspense, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { escalaDe } from '../../core/learning/cefrWordlist';
+import { ERROS_DE_DIFICIL } from '../../core/learning/resumoDosCartoes';
 import { rotuloDaEtapa } from '../../core/learning/trilha';
 import { type EstrategiaDaUI } from '../../core/minigames/composicao';
 import {
@@ -144,6 +130,10 @@ import {
 import { listarBaralhosAnki } from '../../data/apiAnki';
 import { carregarTrilha, indiceDaTrilha, precarregarNiveis, trilhaEmCache } from '../../data/trilha/carregar';
 import { useAudioDaSessao } from '../../lib/audioDaSessao';
+import { useSemRede } from '../../lib/captura/useSemRede';
+import { chaveDaFonte, type FonteDeConteudo, TUDO } from '../../lib/conteudo/estado';
+import { conteudoDoFiltro, filtroDoConteudo } from '../../lib/conteudo/filtro';
+import { conteudoAtual, escolherConteudo, useConteudo } from '../../lib/conteudo/loja';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
 import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
@@ -151,7 +141,6 @@ import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { eventosCondicionais } from '../../lib/eventosDeJogo';
 import { type DetalheDoDrop, EVENTO_DROP_GANHO } from '../../lib/filaDeRecompensas';
 import { filtroDaQuery, gravarFiltro, lerFiltroGuardado, queryDoFiltro } from '../../lib/filtroDaPratica';
-import { temFonteGuardada } from '../../lib/fonteDaPratica';
 import { numero, t, tp } from '../../lib/i18n';
 import {
   buscarComposicaoPeloFunil,
@@ -198,14 +187,16 @@ import { T } from '../../lib/T';
 import { aoMudarVozes, hasVoiceFor, isTtsSupported, vozesCarregadas } from '../../lib/tts';
 import { aparelhoTemVoz, haVozPara } from '../../lib/voz/haVoz';
 import type { Recording, VocabCard } from '../../types';
-import { LangFlag } from '../LangFlag';
+import EspacoDeAnuncio from '../anuncios/EspacoDeAnuncio';
+import { CabecalhoComFicha } from '../conteudo/FichaDeConteudo';
+import { iconeDaFonte, nomeCurtoDaFonte as nomeCurtoDoConteudo } from '../conteudo/fontes';
+import type { ControleDoSeletor } from '../conteudo/SeletorDeConteudo';
 import { familiaDoJogo, FAMILIAS, tomDoJogo } from '../minigames/ArteDosJogos';
 import { unidadeDaRodada } from '../minigames/casca/regras';
 import { TabelaDaCobertura } from '../minigames/CoberturaDosIdiomas';
 import type { FalaKaraoke } from '../minigames/KaraokeDoPrototipo';
 import { jogosSeguintes } from '../minigames/polimento/textos';
 import SalaDeEscolha from '../minigames/SalaDeEscolha';
-import SeletorDeConteudo from '../minigames/SeletorDeConteudo';
 import { toast } from '../Toast';
 import { Abas, CabecalhoDeTela, IconeEmBloco, Tela as MolduraDaTela, TituloDeSecao } from '../ui';
 
@@ -222,6 +213,7 @@ const MapaDoConteudo = lazyComRecarga(() => import('./MapaDoConteudo'));
 const CuradoriaBaralho = lazyComRecarga(() => import('./CuradoriaBaralho'));
 const Recordes = lazyComRecarga(() => import('./play/Recordes'));
 import PainelTrilha from './PainelTrilha';
+import FichaDoJogar from './play/FichaDoJogar';
 import { IconePixel } from './play/IconesPixel';
 import { descricaoDoJogo, JOGOS, type JogoUI, tituloDoJogo } from './play/jogos';
 import {
@@ -244,7 +236,8 @@ import {
   type TileDoQuest,
   tilesDoQuest,
 } from './play/quest/jogosNoQuest';
-import LobbyDoQuest from './play/quest/LobbyDoQuest';
+import LobbyDoQuest, { type AvisoDoEstado } from './play/quest/LobbyDoQuest';
+import { OpcoesDoQuest } from './play/quest/pecasDoQuest';
 import { TELA_DO_JOGO } from './play/telaDoJogo';
 
 /**
@@ -321,49 +314,6 @@ interface PlayProps {
 }
 
 /**
- * AS TRÊS FONTES, COMO A TELA AS OFERECE.
- *
- * `OrigemDaPratica` é o vocabulário da TELA; `FonteId` é o do dado (e não pode ser renomeado, ver
- * `core/minigames/source.ts` — `exercise_results.origem` é derivado dele). "Minhas gravações"
- * cobre dois `FonteId` porque a diferença entre "todas" e "uma" é escopo, não matéria.
- *
- * Os três perfis não são tradução, são públicos diferentes — mesma regra de `play/jogos.tsx`.
- */
-const ABAS_DE_FONTE: Array<{
-  origem: OrigemDaPratica;
-  fontes: FonteId[];
-  icone: React.ReactNode;
-  rotulo: Record<AgeProfileType, string>;
-  dica: string;
-  semMaterial: string;
-}> = [
-  {
-    origem: 'trilha',
-    fontes: ['trilha'],
-    icone: <GraduationCap className="w-4 h-4" aria-hidden />,
-    rotulo: { kids: 'Trilha', pro: 'Trilha', senior: 'Curso de palavras' },
-    dica: 'Uma lista curada, do básico ao avançado, com etapa e fim.',
-    semMaterial: 'Ainda não existe trilha neste idioma.',
-  },
-  {
-    origem: 'gravacoes',
-    fontes: ['baralho', 'sessao'],
-    icone: <Mic className="w-4 h-4" aria-hidden />,
-    rotulo: { kids: 'O que eu gravei', pro: 'Minhas gravações', senior: 'As minhas palavras' },
-    dica: 'As palavras que você fichou do que ouviu. Revisão, não curso.',
-    semMaterial: 'Você ainda não salvou palavras de nenhuma gravação.',
-  },
-  {
-    origem: 'dificeis',
-    fontes: ['dificeis'],
-    icone: <Flame className="w-4 h-4" aria-hidden />,
-    rotulo: { kids: 'As que eu erro', pro: 'Difíceis', senior: 'As que mais escapam' },
-    dica: 'As que você mais erra, primeiro. A fila encolhe quando você acerta.',
-    semMaterial: 'Revise mais um pouco — ainda não há material para uma rodada.',
-  },
-];
-
-/**
  * OS NOVE JOGOS CULTURAIS SAIRAM DA GRADE (auditoria de 2026-09-07, achado A02).
  *
  * `JogoAtivo`, `JogoCulturalMeta` e `JOGOS_CULTURAIS` viviam aqui: um registro paralelo de jogos,
@@ -412,6 +362,40 @@ interface RodadaPronta {
   aplicar: () => void;
 }
 
+/**
+ * O QUE O SELETOR DE CONTEÚDO NÃO ESCOLHE e esta tela guarda: o nível da Trilha (o painel dela) e o
+ * recorte das palavras ("Buscar e organizar"). Vale por cima do conteúdo escolhido; trocar de conteúdo
+ * zera o recorte.
+ */
+interface AjusteDoJogar {
+  nivelTrilha?: CefrLevel;
+  recorte: { nuncaVistas?: boolean; pedindoRevisao?: boolean };
+  midia: { comTraducao?: boolean; comFrase?: boolean };
+}
+const SEM_AJUSTE: AjusteDoJogar = { recorte: {}, midia: {} };
+const TRILHA: FonteDeConteudo = { tipo: 'trilha' };
+/** Os quatro recortes das palavras, com o lugar de cada um no filtro. */
+const RECORTES_DAS_PALAVRAS = ['pedindoRevisao', 'nuncaVistas', 'comTraducao', 'comFrase'] as const;
+type RecorteDasPalavras = (typeof RECORTES_DAS_PALAVRAS)[number];
+/** O ajuste que um filtro guardado ou de um link traz (o que não é a fonte). */
+const ajusteDoFiltro = (f: FiltroDaPratica): AjusteDoJogar => ({
+  nivelTrilha: f.fontes.length === 1 && f.fontes[0] === 'trilha' ? f.nivelTrilha : undefined,
+  recorte: {
+    ...(f.recorte.nuncaVistas ? { nuncaVistas: true } : {}),
+    ...(f.recorte.pedindoRevisao ? { pedindoRevisao: true } : {}),
+  },
+  midia: {
+    ...(f.midia.comTraducao ? { comTraducao: true } : {}),
+    ...(f.midia.comFrase ? { comFrase: true } : {}),
+  },
+});
+/** O MAIOR mínimo entre os jogos de palavra: abaixo disto o conteúdo é "pequeno" (`fontes.js:174`). */
+const MINIMO_DE_PALAVRAS = Math.max(
+  ...(Object.keys(MINIGAMES) as MinigameId[])
+    .filter((id) => MINIGAMES[id].modalidade === 'palavra')
+    .map((id) => MINIGAMES[id].minItems),
+);
+
 /* As guardas de referência do saguão (`lib/jogos/saguaoEstavel`): fora do componente, uma por elo. */
 const triagemDeAntes = guardaDeReferencia<Triagem>(mesmaTriagem);
 const niveisDeAntes = guardaDeReferencia<CefrLevel[]>(mesmaLista);
@@ -420,7 +404,6 @@ export default function Play({
   onChangeView,
   ageProfile,
   progress,
-  metrics,
   recording,
   seed,
   recorte,
@@ -473,17 +456,58 @@ export default function Play({
    * baralho — era o defeito "chip aceso e inerte" da auditoria (D2), que existia porque aba e chip
    * eram estados que não se conheciam. Agora são o mesmo objeto; a incoerência ficou inexprimível.
    */
-  const [filtro, setFiltro] = useState<FiltroDaPratica>(() => filtroDaFonte({ id: 'baralho', lang: '' }, null));
-  /* A gaveta do seletor nasce FECHADA: quem chega quer jogar, não configurar. Ela é a resposta
-     ao «Trocar», e o resumo acima dela já diz o que está valendo sem precisar abrir nada. */
-  const [seletorAberto, setSeletorAberto] = useState(false);
+  /**
+   * UM ESTADO SÓ (seletor de conteúdo, 10/10/2026): fora de uma sessão, QUEM MANDA É O CONTEÚDO ESCOLHIDO
+   * do app inteiro (`lib/conteudo/loja.ts`), o mesmo da Biblioteca e dos Cartões. O filtro deixa de ser
+   * estado: é a tradução dele (`filtroDoConteudo`), mais o que o seletor não escolhe e esta tela guarda
+   * (`ajuste`: o nível da Trilha e o recorte das palavras). O idioma é o do conteúdo; enquanto ele não
+   * decide, o idioma de estudo. Derivado num `useMemo`, e não copiado por efeito, para o baralho e o
+   * filtro certo chegarem no MESMO render (uma passada do pipeline, não duas).
+   *
+   * Dentro de uma sessão (`embutido`) nada disto vale: a fonte É a gravação aberta, e o estado antigo
+   * (`filtroDaSessao`, escrito por `setFonte`) continua sendo o dela.
+   */
+  const [filtroDaSessao, setFiltro] = useState<FiltroDaPratica>(() => filtroDaFonte({ id: 'baralho', lang: '' }, null));
+  const conteudo = useConteudo();
+  const [idiomaDeEstudo, setIdiomaDeEstudo] = useState('');
+  const [ajuste, setAjuste] = useState<AjusteDoJogar>(SEM_AJUSTE);
+  const semRede = useSemRede();
+  const controleDoSeletor = useRef<ControleDoSeletor | null>(null);
   /* O lobby é a grade de `play/quest/LobbyDoQuest`. "Tela de sempre" (em Opções) devolve o lobby
      completo só nesta visita. O que é LIMITE DO APARELHO (a Memória com menos pares, o jogo de ouvir
      que abre pela tradução por falta de voz) pergunta por `noHeadset()`. */
   const noHeadsetNovo = noHeadset();
   const [lobbyCompletoNoQuest, setLobbyCompletoNoQuest] = useState(false);
-  /** "O que cada idioma tem", dentro da gaveta: a tabela abre e fecha no próprio botão. */
+  /** "O que cada idioma tem", em Opções: a tabela abre e fecha no próprio botão. */
   const [verCobertura, setVerCobertura] = useState(false);
+  /**
+   * QUEM SÓ TEM A TRILHA (`fxSoTrilha()`, `fontes.js:67`): nenhuma palavra própria e o idioma tem trilha.
+   * A escolha guardada continua "Tudo"; o que se joga, e o que a ficha diz, é a Trilha, até a pessoa trazer
+   * as suas. Só se sabe depois de o baralho chegar.
+   */
+  const idiomaDoJogar = baseLang(conteudo.idioma || idiomaDeEstudo);
+  const soTrilha =
+    !embutido &&
+    deck !== null &&
+    (conteudo.fonte.tipo === 'tudo' || conteudo.fonte.tipo === 'trilha') &&
+    !!idiomaDoJogar &&
+    !!indiceDaTrilha()[idiomaDoJogar] &&
+    !deck.some((c) => !c.daTrilha && (!c.srcLang || baseLang(c.srcLang) === idiomaDoJogar));
+  const fonteDoConteudo: FonteDeConteudo = soTrilha ? TRILHA : conteudo.fonte;
+  const chaveDoConteudo = chaveDaFonte(fonteDoConteudo);
+  const filtroDoSeletor = useMemo<FiltroDaPratica>(() => {
+    const base = filtroDoConteudo({ idioma: idiomaDoJogar, fonte: fonteDoConteudo });
+    return {
+      ...base,
+      nivelTrilha: fonteDoConteudo.tipo === 'trilha' ? ajuste.nivelTrilha : undefined,
+      /* O recorte das palavras não vale na Trilha (os cartões prontos não têm agenda nem frase própria). */
+      recorte: fonteDoConteudo.tipo === 'trilha' ? base.recorte : { ...base.recorte, ...ajuste.recorte },
+      midia: fonteDoConteudo.tipo === 'trilha' ? base.midia : ajuste.midia,
+    };
+    // `fonteDoConteudo` entra pela chave: o objeto muda de referência a cada leitura da loja.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chaveDoConteudo, idiomaDoJogar, ajuste]);
+  const filtro = embutido ? filtroDaSessao : filtroDoSeletor;
   const fonte = useMemo<FonteDeItens>(() => ({ ...fonteDominante(filtro), lang: filtro.idiomas[0] ?? '' }), [filtro]);
   const setFonte = useCallback((upd: FonteDeItens | ((f: FonteDeItens) => FonteDeItens)) => {
     setFiltro((prev) => {
@@ -501,12 +525,21 @@ export default function Play({
   }, []);
 
   /**
-   * O RANKING DE DIFÍCEIS, injetado VIVO na fonte (progresso-de-idioma 2.3). O estado `fonte`
-   * guarda só `{id:'dificeis', lang}`; os ids vêm do servidor a cada render — congelá-los no
-   * estado (ou no localStorage) faria a rodada praticar a foto do dia da escolha, e "difícil"
-   * é exatamente o que muda conforme se pratica.
+   * AS DIFÍCEIS, PELA RÉGUA ÚNICA: erradas `ERROS_DE_DIFICIL` vezes ou mais (`lapses`), a MESMA conta que a
+   * linha "Difíceis" do catálogo mostra (`contarConteudo`) e que a tela Cartões usa. O Jogar tinha a régua
+   * dele (o ranking de `metrics.palavrasDificeis`, que mistura dificuldade e notas ruins): a contagem do
+   * catálogo e o que entrava no jogo eram conjuntos diferentes. Sai do baralho já carregado, a cada
+   * render dele, e continua sendo INJETADO na hora do uso (nunca guardado): "difícil" muda conforme se
+   * pratica. Na ordem do que mais se errou.
    */
-  const rankingDeDificeis = useMemo(() => (metrics?.palavrasDificeis ?? []).map((p) => p.cardId), [metrics]);
+  const rankingDeDificeis = useMemo(
+    () =>
+      (deck ?? [])
+        .filter((c) => (c.lapses ?? 0) >= ERROS_DE_DIFICIL)
+        .sort((a, b) => (b.lapses ?? 0) - (a.lapses ?? 0))
+        .map((c) => c.id),
+    [deck],
+  );
 
   /* O ranking como CONJUNTO — o formato que `passaNoFiltro` consome no complemento do recorte.
      Derivado do mesmo memo acima; nunca persiste (regra de `source.ts`: difícil é o que muda). */
@@ -545,7 +578,10 @@ export default function Play({
    * `sessoesCarregadas`): sem aquele conserto, entrar direto no lobby cairia na fonte ERRADA, e
    * sem a sala para denunciar a troca.
    */
-  const [salaAberta, setSalaAberta] = useState(() => !embutido && !temFonteGuardada());
+  /* 10/10/2026: a sala deixou de abrir sozinha na primeira visita. O Jogar abre direto com o conteúdo
+     escolhido (o padrão é "Tudo"; quem só tem a Trilha joga com ela), e a ficha do cabeçalho troca. A sala
+     continua a um toque, em Opções ("Praticar outro idioma"), para a trilha de um idioma sem cartão. */
+  const [salaAberta, setSalaAberta] = useState(false);
   /* Números do baralho (contagens, mapa, recorte, revisão) COLAPSADOS por padrão: quem chega quer
      jogar, não auditar o acervo, pedido do dono (2026-08-26). A escolha persiste no navegador. */
   const [verRecordes, setVerRecordes] = useState(false);
@@ -587,11 +623,7 @@ export default function Play({
     try {
       const lista = await listarBaralhosAnki();
       setDecksAnki(lista.map((d) => ({ id: d.id, nome: d.nome, lang: d.idiomaOrigem ?? null })));
-      // Baralho escolhido que sumiu (purgado noutra aba) não pode continuar recortando a rodada.
-      setFiltro((prev) => {
-        const vivos = prev.baralhos.filter((id) => lista.some((d) => d.id === id));
-        return vivos.length === prev.baralhos.length ? prev : { ...prev, baralhos: vivos };
-      });
+      /* O baralho escolhido que sumiu volta para "Tudo" pela conferência do seletor (`sanear`). */
     } catch {
       /* sem baralhos: a porta só não aparece */
     } finally {
@@ -607,17 +639,6 @@ export default function Play({
     if (!id) return null;
     return { id, nome: decksAnki.find((d) => d.id === id)?.nome ?? 'Baralho' };
   }, [filtro.baralhos, decksAnki]);
-  const setBaralhoAnki = useCallback((v: { id: string; nome: string } | null) => {
-    setFiltro((prev) =>
-      v
-        ? {
-            ...prev,
-            fontes: prev.fontes.includes('baralho') ? prev.fontes : [...prev.fontes, 'baralho'],
-            baralhos: [v.id],
-          }
-        : { ...prev, baralhos: [] },
-    );
-  }, []);
   /** Idioma da pessoa — é o destino da tradução das palavras da trilha. */
   const [idiomaNativo, setIdiomaNativo] = useState('pt');
   /**
@@ -954,6 +975,8 @@ export default function Play({
 
   /** O recorte das práticas em jogo: as palavras e se a rodada fica fora da agenda. */
   const recorteAtivo = React.useRef<{ apenas: ReadonlySet<string>; semAgenda: boolean } | null>(null);
+  /** O nome do recorte em jogo (o que a folha das práticas escreveu), para o cabeçalho da partida. */
+  const rotuloDoRecorte = React.useRef('');
   const comecar = (pronta: RodadaPronta) => {
     setResultado(null);
     setAntessala(null);
@@ -1033,7 +1056,10 @@ export default function Play({
     /* SELEÇÃO v2: a memória curta agora PERSISTE por origem (sobrevive ao F5, teto 200), e a
        precisão desta rodada alimenta o modo Auto deste jogo. */
     {
-      const origemDaRodada = chaveDaMemoriaCurta(fonte, baralhoAnki);
+      const origemDaRodada = chaveDaMemoriaCurta(
+        recorteAtivo.current ? { id: 'baralho', lang: fonte.lang } : fonte,
+        recorteAtivo.current ? null : baralhoAnki,
+      );
       const refs = report.items.map((o) => o.itemRef).filter((r): r is string => !!r);
       registrarVistas(origemDaRodada, refs);
       setVistasRecentes(vistasGuardadas(origemDaRodada));
@@ -1053,12 +1079,17 @@ export default function Play({
      * `attempts`, `ms` e `hinted` o `ItemOutcome` já media e o POST jogava fora.
      */
     const roundId = `${report.gameId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    /* A FONTE DE VERDADE DESTA RODADA. O "Jogo rápido" das práticas tira as palavras do baralho INTEIRO
+       (`doBaralhoInteiro`), seja qual for o conteúdo do saguão: gravada com a fonte do saguão, uma rodada
+       dessas saía como `trilha` ou `sessao:<id>` sem ter uma palavra de lá. Com recorte, a fonte é o baralho. */
+    const doRecorte = !!recorteAtivo.current;
+    const fonteDaRodada: FonteDeItens = doRecorte ? { id: 'baralho', lang: fonte.lang } : fonte;
     const origem =
-      fonte.id === 'sessao'
-        ? `sessao:${fonte.sessionId ?? ''}`
-        : fonte.id === 'trilha'
-          ? `trilha:${fonte.nivel ?? ''}`
-          : fonte.id === 'dificeis'
+      fonteDaRodada.id === 'sessao'
+        ? `sessao:${fonteDaRodada.sessionId ?? ''}`
+        : fonteDaRodada.id === 'trilha'
+          ? `trilha:${fonteDaRodada.nivel ?? ''}`
+          : fonteDaRodada.id === 'dificeis'
             ? 'dificeis'
             : 'baralho';
 
@@ -1091,7 +1122,7 @@ export default function Play({
        viaja junto: `itemRef` guarda a PALAVRA, e por isso só 14,9% dos resultados no banco real
        eram correlacionáveis a um cartão, nenhum por id. Sem a referência, desempenho não
        realimenta a dificuldade. */
-    const daSessao = fonte.id === 'sessao' ? fonte.sessionId : undefined;
+    const daSessao = fonteDaRodada.id === 'sessao' ? fonteDaRodada.sessionId : undefined;
     /* O "JOGO RÁPIDO" das práticas (`lib/revisao/pratica.ts`): reconhecer não mexe na agenda. */
     const semAgenda = !!recorteAtivo.current?.semAgenda;
     const itens = report.items.map((o) => ({
@@ -1141,8 +1172,16 @@ export default function Play({
       score: report.score,
       /* Só registro: o nível em que a rodada foi jogada e a fonte separada do identificador dela. */
       nivel: lerNivelDoJogo(report.gameId),
-      fonte: fonte.id === 'sessao' || fonte.id === 'trilha' || fonte.id === 'dificeis' ? fonte.id : 'baralho',
-      fonteRef: (fonte.id === 'sessao' ? fonte.sessionId : fonte.id === 'trilha' ? fonte.nivel : undefined) || undefined,
+      fonte:
+        fonteDaRodada.id === 'sessao' || fonteDaRodada.id === 'trilha' || fonteDaRodada.id === 'dificeis'
+          ? fonteDaRodada.id
+          : 'baralho',
+      fonteRef:
+        (fonteDaRodada.id === 'sessao'
+          ? fonteDaRodada.sessionId
+          : fonteDaRodada.id === 'trilha'
+            ? fonteDaRodada.nivel
+            : undefined) || undefined,
       itens,
     });
     if (!gravacao.ok) falhas.push(`${gravacao.status ?? 'rede'}: ${gravacao.motivo}`);
@@ -1221,7 +1260,7 @@ export default function Play({
     const paresDaTrilha = entradaDaTrilha?.glosas ?? [];
     const glosaDoNativo = paresDaTrilha.includes(baseLang(idiomaNativo));
 
-    if (fonte.id === 'trilha' && fonte.nivel && glosaDoNativo) {
+    if (!doRecorte && fonte.id === 'trilha' && fonte.nivel && glosaDoNativo) {
       /* `Set` na itemRef: um jogo pode apresentar a MESMA palavra mais de uma vez na rodada (o
          Duelo sorteia distratores do próprio lote), e sem isto o lote sairia com a palavra
          repetida. O servidor deduplica e não criaria linha dupla, mas mandar duas é pedir para
@@ -1353,6 +1392,8 @@ export default function Play({
          eventos), e é disso que depende o ganho: separados, voltariam a ser duas passadas. */
       if (baralho.cards) setDeck(baralho.cards.filter((c) => c.inDeck));
       else setErro(baralho.erro);
+      /* Fora de uma sessão o idioma é o do conteúdo escolhido; este é o de quem ainda não decidiu. */
+      setIdiomaDeEstudo(lang);
       setFonte((f) => (f.lang === lang ? f : { ...f, lang }));
       setIdiomaNativo(baseLang(cfg.mine));
     })();
@@ -1376,67 +1417,72 @@ export default function Play({
   };
 
   /**
-   * A FONTE VOLTA COMO ESTAVA — uma vez só, e nunca dentro de uma sessão.
+   * AO ABRIR, UMA VEZ SÓ, e nunca dentro de uma sessão (ali a fonte É a gravação aberta).
    *
-   * Espera as gravações carregarem porque a escolha "uma gravação" guarda um id, e esse id precisa
-   * ser conferido contra o que ainda existe: apagada noutro dispositivo, ela restauraria uma fonte
-   * vazia sem dizer por quê. `lerFonteGuardada` faz essa validação e cai para "todas".
+   * O LINK VENCE: `/jogar?fonte=…` é uma escolha explícita de quem o abriu agora. Ele é traduzido para o
+   * conteúdo do seletor (`conteudoDoFiltro`) e vira A escolha do app (`escolherConteudo`); o que ele traz
+   * e o seletor não escolhe (o nível da Trilha, o recorte das palavras) vira o ajuste desta tela. Sem link,
+   * quem manda é o conteúdo já escolhido, e o filtro guardado só devolve o ajuste, e só se for do mesmo
+   * conteúdo. O filtro guardado deixou de ser uma segunda fonte de verdade: é o espelho do que se joga.
    *
-   * EMBUTIDO NÃO RESTAURA NADA. Ali a fonte É a gravação aberta; trazer de volta "trilha B1"
-   * sequestraria a aba de jogos da sessão para outro material.
-   *
-   * O `ref` garante uma vez só: sem ele, cada recarga da lista de gravações desfaria a escolha que
-   * a pessoa acabou de fazer na sala.
+   * Espera as gravações e os baralhos: o link guarda ids, que são conferidos contra o que ainda existe, e
+   * é deles que sai o nome para a ficha.
    */
   const fonteRestaurada = React.useRef(false);
+  const [restaurado, setRestaurado] = useState(false);
   useEffect(() => {
-    /* Espera TAMBÉM os baralhos: o filtro guardado pode recortar por deck, e restaurar antes da
-       lista chegar apagaria o recorte no saneamento (deck "inexistente" só porque ainda não veio). */
     if (embutido || fonteRestaurada.current || !sessoesCarregadas || !decksCarregados) return;
     fonteRestaurada.current = true;
-    /* A URL VENCE A MEMÓRIA: um link compartilhado com `?fonte=…` é uma escolha EXPLÍCITA de quem
-       o abriu agora; a chave local é a escolha de ontem. Sem query de filtro na barra (o caso
-       normal), `filtroDaQuery` devolve null e a persistência decide como sempre. */
-    /* A query viva na barra vence; sem ela, vale a capturada no BOOT do módulo — a dança de
-       inicialização do App (efeito "navegação → URL" rodando uma vez com a view antiga) reescreve
-       a barra antes de este componente montar, e o caminho volta na passada seguinte mas a query
-       não. Consumo único: um link vale para ESTA abertura, não para toda troca de aba futura. */
-    const daUrl = filtroDaQuery(
-      lerUrlAtual().jogarQuery ?? consumirQueryDoBoot(),
-      sessoes.map((s) => s.id),
-      decksAnki.map((d) => d.id),
-    );
-    const guardado =
-      daUrl ??
-      lerFiltroGuardado(
-        sessoes.map((s) => s.id),
-        decksAnki.map((d) => d.id),
-      );
-    /* RESTAURAR O MESMO FILTRO NÃO É MUDAR DE FILTRO: devolver `prev` aborta a atualização e poupa
-       uma passada inteira do pipeline (triagem, composição, gate) — a mesma economia que a
-       restauração de fonte já tinha, mantida aqui. O idioma NÃO vem do guardado: chega pelo
-       carregador de settings (preferência de perfil, atravessa dispositivos) e o merge preserva o
-       que já estiver no estado. */
-    setFiltro((prev) => {
-      // Idioma explícito na URL também vence; o guardado local nunca vence o de settings (perfil).
-      const idiomas = daUrl?.idiomas.length ? daUrl.idiomas : prev.idiomas.length ? prev.idiomas : guardado.idiomas;
-      const restaurado = { ...guardado, idiomas };
-      return JSON.stringify(restaurado) === JSON.stringify(prev) ? prev : restaurado;
-    });
+    setRestaurado(true);
+    const idsDasSessoes = sessoes.map((x) => x.id);
+    const idsDosBaralhos = decksAnki.map((d) => d.id);
+    /* A query viva na barra vence; sem ela, vale a capturada no BOOT do módulo (o App reescreve a barra
+       antes de este componente montar). Consumo único: um link vale para ESTA abertura. */
+    const daUrl = filtroDaQuery(lerUrlAtual().jogarQuery ?? consumirQueryDoBoot(), idsDasSessoes, idsDosBaralhos);
+    const nomes = {
+      sessao: (id: string) => sessoes.find((x) => x.id === id)?.title,
+      anki: (id: string) => decksAnki.find((d) => d.id === id)?.nome,
+    };
+    if (daUrl) {
+      const { conteudo: doLink } = conteudoDoFiltro(daUrl, nomes);
+      /* Tirado o que vira ajuste, o resto cabe no seletor? Se não (duas gravações, dois baralhos, fontes
+         somadas, recorte por nível), o link abre com o conteúdo mais próximo, e a pessoa fica sabendo. */
+      const semAjuste = { ...daUrl, nivelTrilha: undefined, recorte: { dificeis: daUrl.recorte.dificeis }, midia: {} };
+      /* As abas de antes ("Minhas palavras": só o acervo geral; "todas as gravações") não têm linha própria
+         no catálogo: abrem como "Tudo", que as contém, sem aviso. */
+      const abaDeAntes =
+        !daUrl.fontes.includes('trilha') && !daUrl.baralhos.length && !daUrl.sessoes.length && !daUrl.recorte.niveis;
+      if (!abaDeAntes && !conteudoDoFiltro(semAjuste, nomes).exato)
+        toast.warn(
+          t('Este link trazia uma combinação que o seletor de conteúdo não tem. Abri com {nome}.', {
+            nome: nomeCurtoDoConteudo(doLink.fonte),
+          }),
+        );
+      setAjuste(ajusteDoFiltro(daUrl));
+      escolherConteudo(doLink.fonte, doLink.idioma || conteudoAtual().idioma);
+      return;
+    }
+    const guardado = lerFiltroGuardado(idsDasSessoes, idsDosBaralhos);
+    const doGuardado = conteudoDoFiltro(guardado, nomes).conteudo;
+    if (chaveDaFonte(doGuardado.fonte) === chaveDaFonte(conteudoAtual().fonte)) {
+      const a = ajusteDoFiltro(guardado);
+      if (a.nivelTrilha || Object.keys(a.recorte).length || Object.keys(a.midia).length) setAjuste(a);
+    }
   }, [embutido, sessoes, sessoesCarregadas, decksCarregados, decksAnki]);
 
-  /* FONTE 'dificeis' SEM MATERIAL degrada para o baralho — o ranking guardado ontem pode ter
-     esvaziado hoje (revisar bem TIRA palavra do ranking, que é o objetivo). Só age com as
-     métricas carregadas: antes disso, ranking vazio significa "ainda não sei". */
+  /* Trocar de conteúdo é começar outro assunto: o recorte das palavras não acompanha (o nível da Trilha
+     só vale na Trilha, e o filtro já o ignora fora dela). A primeira leitura não conta. */
+  const conteudoDeAntes = useRef<string | null>(null);
   useEffect(() => {
-    if (!metrics || fonte.id !== 'dificeis' || rankingDeDificeis.length >= 4) return;
-    setFonte((f) => ({ id: 'baralho', lang: f.lang }));
-  }, [metrics, fonte.id, rankingDeDificeis.length, setFonte]);
+    const antes = conteudoDeAntes.current;
+    conteudoDeAntes.current = chaveDoConteudo;
+    if (antes === null || antes === chaveDoConteudo || !restaurado) return;
+    setAjuste((a) =>
+      Object.keys(a.recorte).length || Object.keys(a.midia).length ? { ...a, recorte: {}, midia: {} } : a,
+    );
+  }, [chaveDoConteudo, restaurado]);
 
-  /**
-   * Falas para os jogos de frase. Quando se chega por uma sessão, são as DAQUELA sessão; senão, a
-   * gravação mais recente com áudio. Falha aqui não impede os jogos de baralho: são independentes.
-   */
+  /** A lista das gravações: uma vez. Falha aqui não impede os jogos de baralho: são independentes. */
   useEffect(() => {
     let cancelado = false;
     void (async () => {
@@ -1444,36 +1490,72 @@ export default function Play({
         const lista = await fetchSessions();
         if (cancelado) return;
         setSessoes(lista.map((x) => ({ id: x.id, title: x.title, audioUrl: x.audioUrl ?? undefined })));
-        setSessoesCarregadas(true);
-
-        /* A gravação de onde se veio vence o palpite do código — e o palpite continua sendo dito
-           na tela, nunca silencioso. O ramo de "escolha manual" saiu junto com a lista de
-           gravações inalcançável: quem escolhe a gravação hoje é a Sala, por `fonte.sessionId`. */
-        const escolhida = recording?.id ? lista.find((x) => x.id === recording.id) : undefined;
-        const alvo = escolhida ?? (recording?.id ? undefined : (lista.find((x) => x.audioUrl) ?? lista[0]));
-        const alvoId = alvo?.id ?? recording?.id ?? '';
-        const alvoAudio = alvo?.audioUrl ?? recording?.audioUrl ?? '';
-        if (!alvoId) return;
-
-        const { utterances } = await fetchSessionTranscript(alvoId);
-        if (cancelado) return;
-        setFrases(toSentences(utterances));
-        setAudioSessao(alvoAudio);
-        setIdDoAudio(alvoAudio ? alvoId : null);
-        setSessaoEmUso({ id: alvoId, title: alvo?.title ?? tituloRef.current ?? 'sessão' });
       } catch {
-        /* Sem sessão os jogos de frase ficam bloqueados com o motivo. E a busca terminou:
-           quem espera por ela (a restauração da fonte) não pode ficar esperando para sempre. */
+        /* Sem lista os jogos de frase ficam com o que o conteúdo tiver. */
+      } finally {
+        /* A busca terminou: quem espera por ela (a restauração) não pode ficar esperando para sempre. */
         if (!cancelado) setSessoesCarregadas(true);
       }
     })();
     return () => {
       cancelado = true;
     };
-    /* `recording?.title` é lido por REF de propósito, e não como dependência: ele só serve de
-       fallback para quando a sessão não aparece na lista, e colocá-lo aqui faria uma simples
-       RENOMEAÇÃO refazer a busca do transcrito na rede. A atualização do rótulo é o efeito abaixo. */
-  }, [recording?.id, recording?.audioUrl]);
+  }, []);
+
+  /**
+   * DE QUAL GRAVAÇÃO VÊM AS FALAS dos jogos de frase: a do conteúdo. Com uma sessão escolhida (ou aberta,
+   * na aba "Jogos" dela), as DELA; com "Tudo", a mais recente que tenha áudio (o palpite de sempre, dito
+   * na tela); com um baralho do Anki, as Difíceis ou a Trilha, nenhuma: ali valem as frases dos próprios
+   * cartões (`frasesDoAcervo`) ou as da Trilha. Antes a gravação mais recente alimentava os jogos de frase
+   * de QUALQUER fonte: escolhia-se a "Reunião de produto" e a Frase embaralhada vinha de outra sessão.
+   */
+  const idDaSessaoDoConteudo = fonteDoConteudo.tipo === 'sessao' ? fonteDoConteudo.id : null;
+  const tudoDoConteudo = fonteDoConteudo.tipo === 'tudo';
+  const alvoDasFalas = useMemo<{ id: string; audio: string; titulo?: string } | null>(() => {
+    const daLista = (id: string) => sessoes.find((x) => x.id === id);
+    if (recording?.id) {
+      const s = daLista(recording.id);
+      return { id: recording.id, audio: s?.audioUrl ?? recording.audioUrl ?? '', titulo: s?.title };
+    }
+    if (embutido || !sessoesCarregadas) return null;
+    const s = idDaSessaoDoConteudo
+      ? daLista(idDaSessaoDoConteudo)
+      : tudoDoConteudo
+        ? (sessoes.find((x) => x.audioUrl) ?? sessoes[0])
+        : undefined;
+    return s ? { id: s.id, audio: s.audioUrl ?? '', titulo: s.title } : null;
+  }, [recording?.id, recording?.audioUrl, embutido, sessoes, sessoesCarregadas, idDaSessaoDoConteudo, tudoDoConteudo]);
+  const idDasFalas = alvoDasFalas?.id ?? '';
+  const audioDasFalas = alvoDasFalas?.audio ?? '';
+  const tituloDasFalas = alvoDasFalas?.titulo;
+  useEffect(() => {
+    if (!idDasFalas) {
+      /* Nenhuma gravação serve a este conteúdo: as falas da anterior não podem ficar. */
+      setFrases((f) => (f.length ? [] : f));
+      setAudioSessao('');
+      setIdDoAudio(null);
+      setSessaoEmUso(null);
+      return;
+    }
+    let cancelado = false;
+    void (async () => {
+      try {
+        const { utterances } = await fetchSessionTranscript(idDasFalas);
+        if (cancelado) return;
+        setFrases(toSentences(utterances));
+        setAudioSessao(audioDasFalas);
+        setIdDoAudio(audioDasFalas ? idDasFalas : null);
+        setSessaoEmUso({ id: idDasFalas, title: tituloDasFalas ?? tituloRef.current ?? 'sessão' });
+      } catch {
+        /* Sem a transcrição os jogos de frase ficam bloqueados com o motivo. */
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+    /* O título é lido na hora (e por REF, o da sessão aberta): renomear não refaz a busca na rede. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idDasFalas, audioDasFalas]);
 
   /** Espelho do título para o efeito acima poder lê-lo sem depender dele. */
   useEffect(() => {
@@ -1494,16 +1576,16 @@ export default function Play({
     setSessaoEmUso((s) => (s && s.id === recording.id && s.title !== t ? { ...s, title: t } : s));
   }, [recording?.id, recording?.title]);
 
-  // Chegar pela Análise já entra no modo sessão — senão o botão "Jogar com esta sessão" mentiria.
+  // Dentro da sessão (a aba "Jogos" dela) a fonte É a gravação aberta.
   // Já estando nessa sessão, o estado fica como está: um objeto novo com os mesmos valores custa
   // uma passada inteira do pipeline (ver `mesmaFonte`).
   useEffect(() => {
-    if (recording?.id) {
+    if (embutido && recording?.id) {
       setFonte((f) =>
         f.id === 'sessao' && f.sessionId === recording.id ? f : { ...f, id: 'sessao', sessionId: recording.id },
       );
     }
-  }, [recording?.id, setFonte]);
+  }, [embutido, recording?.id, setFonte]);
 
   /**
    * A SESSÃO JOGA NO IDIOMA DELA (auditoria 2026-09-26, idioma da sessão).
@@ -1512,14 +1594,26 @@ export default function Play({
    * triagem jogava para "outro idioma" tudo que não fosse ele: a sessão em português, com os cartões
    * agora etiquetados em português, abriria sem jogo nenhum. O idioma vem dos CARTÕES que saíram da
    * sessão (o que ela entregou) e, sem eles, do idioma gravado na sessão.
+   *
+   * FORA DA SESSÃO ("Jogar com esta sessão", vindo da Biblioteca ou da Análise): a gravação vira o
+   * CONTEÚDO ESCOLHIDO do app, no idioma dela, uma vez por chegada. Trocar na ficha depois vale.
    */
+  const sessaoAdotada = useRef<string | null>(null);
   useEffect(() => {
     if (!recording?.id || deck === null) return;
     const daSessao =
       idiomaDominanteDosCartoes(deck.filter((c) => c.sourceSessionId === recording.id)) ||
       baseLang(recording.idioma ?? '');
-    if (daSessao) setFonte((f) => (baseLang(f.lang) === daSessao ? f : { ...f, lang: daSessao }));
-  }, [recording?.id, recording?.idioma, deck, setFonte]);
+    if (embutido) {
+      if (daSessao) setFonte((f) => (baseLang(f.lang) === daSessao ? f : { ...f, lang: daSessao }));
+      return;
+    }
+    if (sessaoAdotada.current === recording.id) return;
+    sessaoAdotada.current = recording.id;
+    escolherConteudo({ tipo: 'sessao', id: recording.id, nome: recording.title ?? '' }, daSessao);
+    // O título é só o nome lembrado na ficha: renomear a sessão não é chegar de novo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [embutido, recording?.id, recording?.idioma, deck, setFonte]);
 
   /** A `origem` como ela é gravada em `exercise_results` — precisa casar com o que o fim de
    *  rodada escreve, senão o histórico da fonte errada apareceria na antessala. */
@@ -1597,43 +1691,53 @@ export default function Play({
     setSequencia(null);
   }, [fonte, baralhoAnki]);
 
-  const trocarIdioma = (lang: string) => {
-    setFonte((f) => ({ ...f, lang }));
-    // Trocar o idioma da prática É trocar o idioma que se estuda — mesmo campo, uma escrita só.
-    void saveLangConfig({ studying: lang }).catch(() => {
-      /* preferência é conveniência */
-    });
-  };
-
   /**
-   * A escolha da sala vira fonte — e fica GUARDADA.
-   *
-   * Duas persistências distintas de propósito: o idioma é preferência de perfil e vai para o
-   * servidor (`settings.targetLanguage`, atravessa dispositivos); a fonte é contexto de trabalho
-   * local e vai para o `localStorage`. Antes, NADA da fonte sobrevivia a um F5 — quem escolhia
-   * "Trilha B1" voltava para "Minhas palavras" sem aviso.
+   * A ESCOLHA DA SALA ("Praticar outro idioma", em Opções) VIRA O CONTEÚDO ESCOLHIDO: a trilha, as
+   * difíceis, uma gravação ou tudo, no idioma pedido. O idioma também é o que se estuda (o mesmo campo dos
+   * Ajustes, que atravessa aparelhos). A trilha de um idioma sem cartão fica (`conferirConteudo`); "tudo"
+   * num idioma sem cartão volta para o idioma que tem, que é o que há para jogar.
    */
   const aplicarEscolha = (escolha: EscolhaDaPratica) => {
-    if (baseLang(escolha.lang) !== baseLang(fonte.lang)) trocarIdioma(escolha.lang);
-    /* A TRILHA NÃO ATRAVESSA IDIOMA. Sair do inglês com a fonte trilha marcada deixava a tela
-       anunciando "Curso de palavras · japonês · 0 palavras", sem jogo nenhum e sem dizer por quê.
-       A Sala já caía para as gravações nesse caso; a gaveta e o recorte por baralho, não. */
-    const semTrilha = escolha.origem === 'trilha' && !indiceDaTrilha()[baseLang(escolha.lang)];
-    setFonte(fonteDaEscolha(semTrilha ? { ...escolha, origem: 'gravacoes', nivel: undefined } : escolha));
-    // A persistência mudou de lugar: um efeito grava o FILTRO inteiro a cada mudança (e espelha a
-    // chave legada) — antes, só a escolha da Sala sobrevivia ao F5; o recorte por baralho evaporava.
+    const lang = baseLang(escolha.lang);
+    if (lang !== baseLang(fonte.lang)) {
+      setIdiomaDeEstudo(lang);
+      // Trocar o idioma da prática É trocar o idioma que se estuda: mesmo campo, uma escrita só.
+      void saveLangConfig({ studying: escolha.lang }).catch(() => {
+        /* preferência é conveniência */
+      });
+    }
+    /* A TRILHA NÃO ATRAVESSA IDIOMA: sem trilha no idioma pedido, valem as palavras da pessoa. */
+    const comTrilhaAli = escolha.origem === 'trilha' && !!indiceDaTrilha()[lang];
+    const nova: FonteDeConteudo = comTrilhaAli
+      ? TRILHA
+      : escolha.origem === 'dificeis'
+        ? { tipo: 'dificeis' }
+        : escolha.origem === 'gravacoes' && escolha.escopo === 'uma' && escolha.sessionId
+          ? {
+              tipo: 'sessao',
+              id: escolha.sessionId,
+              nome: sessoes.find((x) => x.id === escolha.sessionId)?.title ?? '',
+            }
+          : TUDO;
+    setAjuste((a) => ({ ...a, nivelTrilha: comTrilhaAli ? escolha.nivel : undefined }));
+    escolherConteudo(nova, lang);
   };
+  /** O nível da Trilha (o painel dela e o mapa): fica no ajuste desta tela, o seletor não o escolhe. */
+  const escolherNivelDaTrilha = (n: CefrLevel | undefined) => setAjuste((a) => ({ ...a, nivelTrilha: n }));
 
   /* GRAVAR SÓ DEPOIS DE RESTAURAR: sem a guarda, o primeiro render (filtro padrão) sobrescreveria
      o que a pessoa tinha guardado antes de a restauração rodar. Embutido não persiste nada — ali a
-     fonte É a gravação aberta, não uma escolha do usuário. */
+     fonte É a gravação aberta, não uma escolha do usuário.
+     O FILTRO GUARDADO E A QUERY SÃO O ESPELHO do conteúdo escolhido (que mora na conta e pode ter mudado em
+     outra tela ou outro aparelho): por isso são gravados também logo depois da restauração (`restaurado`),
+     e não só quando a pessoa troca aqui. */
   useEffect(() => {
-    if (embutido || !fonteRestaurada.current) return;
+    if (embutido || !restaurado) return;
     gravarFiltro(filtro);
     // A barra de endereço é o TERCEIRO espelho da mesma escolha (estado → storage → URL): a tela
     // vira compartilhável por link, e o helper limpa a query quando o filtro volta ao padrão.
     publicarQueryDoJogar(queryDoFiltro(filtro));
-  }, [filtro, embutido]);
+  }, [filtro, embutido, restaurado]);
 
   /**
    * A TRIAGEM — calculada uma vez e usada por todos: pelas cartas, pelo início da rodada e pela
@@ -1765,11 +1869,15 @@ export default function Play({
    * promovida ao baralho ainda): a tela anunciava 2.784 palavras, o rodapé da Sala confirmava, e
    * a rodada não montava. Escolher um nível "consertava" — o que fazia o defeito parecer preferência.
    */
+  /* A TRILHA DO APP ENTRA NA RODADA QUANDO ELA É O CONTEÚDO. "Tudo" também traz 'trilha' entre as origens
+     (os cartões da Trilha que a pessoa já ativou, que a contagem de "Tudo" conta), mas sem as palavras
+     prontas que ela ainda não viu: com elas "Tudo" jogaria milhares de palavras que não são dela. */
+  const comTrilha = fonte.id === 'trilha';
   const niveisDaRodada = useMemo<CefrLevel[]>(
     /* Os mesmos níveis, a mesma lista: `filtro.fontes` é um array novo a cada filtro restaurado, e uma
        lista nova aqui sorteava a Trilha de novo e refazia o gate. */
-    () => niveisDeAntes(filtro.fontes.includes('trilha') && trilha ? niveisEmJogo(trilha, filtro.nivelTrilha) : []),
-    [filtro.fontes, filtro.nivelTrilha, trilha],
+    () => niveisDeAntes(comTrilha && trilha ? niveisEmJogo(trilha, filtro.nivelTrilha) : []),
+    [comTrilha, filtro.nivelTrilha, trilha],
   );
 
   const frasesTrilha = useMemo<Sentence[]>(
@@ -1809,68 +1917,6 @@ export default function Play({
      é a mesma lista, um quadro depois. */
   const deckParaIdiomas = useDeferredValue(deck);
   const idiomasDoBaralho = useMemo(() => idiomasDisponiveis(deckParaIdiomas ?? []), [deckParaIdiomas]);
-
-  /**
-   * QUAIS FONTES ESTA TELA PODE OFERECER — derivado, não repetido.
-   *
-   * `fontesDisponiveis` existia, estava testada em `escopoDaFonte.test.ts` e **nunca foi chamada**.
-   * A regra que ela declara ("embutido → só a sessão") vivia reimplementada em três condicionais
-   * espalhadas por este arquivo, que não sabiam uma da outra: o `!embutido` da faixa, o
-   * `(recording || sessaoEmUso) &&` do botão de sessão e o `trilha &&` do botão de trilha.
-   *
-   * Agora é uma pergunta só, e a garantia "a sala não aparece dentro de uma sessão" passa a ter
-   * teste — o que já existia e não cobria nada.
-   */
-  /* Gravação só aparece no idioma que ela de fato produziu. O idioma vem das PALAVRAS que
-     saíram dela, não do campo declarado na captura: é o que a sessão entregou, não o que foi
-     configurado. Sem isto, as 4 gravações apareciam em todos os idiomas, inclusive nos que nunca
-     foram falados ali. */
-  const sessoesDoIdioma = useMemo(() => {
-    const base = baseLang(fonte.lang);
-    if (!base) return sessoes;
-    const comMaterial = new Set(
-      (deck ?? [])
-        .filter((c) => c.sourceSessionId && baseLang(c.srcLang ?? '') === base)
-        .map((c) => c.sourceSessionId as string),
-    );
-    return sessoes.filter((s) => comMaterial.has(s.id));
-  }, [sessoes, deck, fonte.lang]);
-
-  const fontesOferecidas = useMemo(
-    () =>
-      fontesDisponiveis({
-        embutido: !!embutido,
-        temSessao: !!(recording || sessaoEmUso),
-        temTrilha: !!entradaDaTrilha,
-        sessoesDisponiveis: sessoes.length,
-        // 4 é o menor `minItems` dos jogos: com menos que isso a fonte abriria só telas trancadas.
-        temDificeis: rankingDeDificeis.length >= 4,
-      }),
-    [embutido, recording, sessaoEmUso, entradaDaTrilha, sessoes.length, rankingDeDificeis.length],
-  );
-
-  /** A fonte vigente no vocabulário DA TELA — é por ele que as abas comparam e trocam. */
-  const escolhaAtual = useMemo(() => escolhaDaFonte(fonte), [fonte]);
-
-  /** Quantas palavras a trilha do idioma atual tem, no recorte vigente (nível ou todos). */
-  const totalDaTrilhaAtual = useMemo(() => {
-    if (!entradaDaTrilha) return 0;
-    const niveis = fonte.nivel ? [fonte.nivel] : Object.keys(entradaDaTrilha.porNivel);
-    return niveis.reduce((n, nv) => n + (entradaDaTrilha.porNivel[nv] ?? 0), 0);
-  }, [entradaDaTrilha, fonte.nivel]);
-
-  /**
-   * O TAMANHO DE CADA ABA É DELA, não da fonte selecionada.
-   *
-   * `triagem` é o recorte da fonte VIGENTE: com a trilha aberta, ela conta palavras da trilha, e
-   * usá-la para o número da aba "minhas gravações" fazia a contagem sumir sempre que a pessoa
-   * estava em outra aba. Uma aba que muda de tamanho conforme a aba vizinha está aberta ensina
-   * a coisa errada sobre o próprio acervo.
-   */
-  const palavrasDasGravacoes = useMemo(
-    () => cartoesDaFonte(deck ?? [], { id: 'baralho', lang: fonte.lang }).usaveis.length,
-    [deck, fonte.lang],
-  );
 
   /**
    * O QUE A FAIXA DE CONTEXTO DIZ — diferente por fonte, porque as fontes são diferentes.
@@ -1924,7 +1970,6 @@ export default function Play({
    * palavra que a pessoa já errou e que voltou para a revisão espaçada tem estado real, e trocá-lo
    * por um cartão novo em folha apagaria esse progresso a cada rodada.
    */
-  const comTrilha = filtro.fontes.includes('trilha');
   /* A TRILHA EM JOGO, NUM MEMO SÓ DELA. Morava dentro de `jogaveis`, que também depende da composição do
      servidor, do filtro e das palavras difíceis: nenhum dos três entra nesta conta, mas cada um que
      chegava sorteava a Trilha de novo, e a lista nova refazia o gate dos 18 jogos (contado: 3 vezes
@@ -2002,8 +2047,10 @@ export default function Play({
          contava o recortado — dois números discordando na mesma tela. A trilha fica fora do
          predicado porque seus itens embutidos são pseudo-cartões sem `daTrilha`/`dueAtMs`, e o
          filtro os comeria por engano. */
+      /* `idDoCartao`: o recorte "difíceis" confere o cartão no ranking pelo id. Sem ele nenhum passava, e
+         com as Difíceis escolhidas o acervo exibido dizia zero enquanto o gate contava as palavras. */
       return triagem.usaveis.filter((c) =>
-        passaNoFiltro(c, filtro, { rankingDificeis: conjuntoDeDificeis, agora: Date.now() }),
+        passaNoFiltro(c, filtro, { rankingDificeis: conjuntoDeDificeis, agora: Date.now(), idDoCartao: c.id }),
       );
     }
     /* O MESMO CONJUNTO de `jogaveisDaTrilha` (banco + embutidos que o banco não tem). Era montado de
@@ -2021,12 +2068,13 @@ export default function Play({
     const semMidia = { ...filtro, midia: {} };
     const soTraducao = { ...semMidia, midia: { comTraducao: true } };
     const soFrase = { ...semMidia, midia: { comFrase: true } };
-    const extras = { rankingDificeis: conjuntoDeDificeis, agora };
+    const base = { rankingDificeis: conjuntoDeDificeis, agora };
     let pedindo = 0,
       nunca = 0,
       traducao = 0,
       frase = 0;
     for (const c of triagem.usaveis) {
+      const extras = { ...base, idDoCartao: c.id };
       if (passaNoFiltro(c, semRecorte, extras)) {
         const d = (c as { dueAtMs?: number | null }).dueAtMs ?? null;
         if (d == null) nunca++;
@@ -2165,6 +2213,7 @@ export default function Play({
     const pronta = montarRodada('memory', null, apenas, undefined, true);
     if (pronta) {
       recorteAtivo.current = { apenas, semAgenda: recorte.semAgenda };
+      rotuloDoRecorte.current = recorte.rotulo;
       comecar(pronta);
     } else {
       recorteAtivo.current = null;
@@ -2259,8 +2308,13 @@ export default function Play({
       fonteId: fonte.id,
       lang: fonte.lang,
     });
+    /* SEM INTERNET (`fxServe`, `fontes.js:100`): o Karaokê dá a nota pelo reconhecimento de fala do
+       navegador, que vai à rede. Onde ele existe, o jogo espera a rede e diz isso; os outros continuam. */
+    if (semRede && porId.karaoke.ok && recursosDoAparelho(perfilDoDispositivo()).reconhecimentoDoNavegador)
+      porId.karaoke = { ...porId.karaoke, ok: false, motivo: 'sem-rede' };
     return JOGOS.map((j) => ({ ...j, estado: porId[j.id] }));
   }, [
+    semRede,
     jogaveis,
     frasesDoIdioma,
     frasesDoAcervoAtual,
@@ -2272,61 +2326,6 @@ export default function Play({
     fonte.id,
     temVozOuEscrita,
   ]);
-
-  /**
-   * O QUE A CARTA BLOQUEADA PRECISA SABER PARA OFERECER UMA SAÍDA.
-   *
-   * A carta já dizia a causa com número honesto e não oferecia alavanca nenhuma — nove cartas
-   * cinza e nenhum botão. A regra de qual saída cabe mora em `@core/minigames/desbloqueio`; aqui
-   * fica só a MEDIÇÃO do contexto, que depende de dados desta tela.
-   *
-   * `naOutraFonte` é medido de verdade, e não presumido: da trilha, contamos as gravações; das
-   * gravações, o tamanho da trilha do idioma. **Zero quando embutido** — dentro de uma sessão a
-   * fonte é fixa por decisão de produto, e um botão "jogar com a trilha" ali seria um botão que
-   * troca a tela por baixo de quem escolheu aquela sessão.
-   */
-  const contextoDoDesbloqueio = useMemo((): ContextoDeDesbloqueio => {
-    const atual = baseLang(fonte.lang);
-    const naOutraFonte = embutido
-      ? 0
-      : fonte.id === 'trilha'
-        ? cartoesDaFonte(deck ?? [], { id: 'baralho', lang: fonte.lang }).usaveis.length
-        : trilhaDe(fonte.lang).total;
-    return {
-      fonteId: fonte.id,
-      outrosIdiomas: idiomasDoBaralho.filter((i) => i.lang !== atual),
-      naOutraFonte,
-      descartados: triagem.fora.length,
-      gravacoes: embutido ? 0 : sessoes.length,
-      nomeDoIdioma: langLabelNaUI,
-    };
-  }, [deck, fonte, embutido, idiomasDoBaralho, triagem.fora.length, sessoes.length, trilhaDe]);
-
-  /** A porta escolhida vira navegação. Cada ação leva ao lugar que RESOLVE aquela causa. */
-  const abrirPorta = (d: Desbloqueio) => {
-    const base = escolhaDaFonte(fonte);
-    if (d.acao === 'trocar-idioma' && d.lang) {
-      aplicarEscolha({ ...base, lang: d.lang });
-      return;
-    }
-    /* Aplica direto, sem reabrir a sala: a queixa era ATRITO, e mandar de volta para o menu quem
-       acabou de ler "jogue em inglês" é pedir a mesma decisão duas vezes. A mudança é visível na
-       hora, a faixa "Praticando" e a grade inteira se refazem. */
-    if (d.acao === 'trocar-fonte' && d.paraFonte) {
-      aplicarEscolha({ ...base, origem: d.paraFonte, escopo: 'todas', sessionId: undefined });
-      return;
-    }
-    if (d.acao === 'revisar-descartes') {
-      setCurando(true);
-      return;
-    }
-    // Escolher gravação é exatamente a linha "QUAIS" da sala — aqui reabrir é o caminho certo.
-    if (d.acao === 'escolher-gravacao') {
-      setSalaAberta(true);
-      return;
-    }
-    onChangeView('capture');
-  };
 
   /**
    * A ORDEM É DO USUÁRIO. Saiu daqui a revelação progressiva, que escondia cinco dos nove jogos
@@ -2439,7 +2438,7 @@ export default function Play({
        Rapida" duas vezes seguidas podia jogar dez minutos sem um item no historico. */
     const liberados = listaDeJogos.filter((j) => j.estado.ok && abremNoHeadset.has(j.id));
     if (liberados.length === 0) {
-      toast.warn(t('Nenhum jogo disponível no momento'));
+      toast.warn(t('Nenhum jogo abre com este conteúdo. Troque o conteúdo ou traga mais palavras.'));
       return;
     }
 
@@ -2455,57 +2454,17 @@ export default function Play({
 
   const buscaNormalizada = buscaJogos.trim().toLowerCase();
 
-  /* ── A SUGESTÃO PARA HOJE ──
-     Um jogo pronto, na ordem de rendimento de `agruparJogos`, e "Outra sugestão" gira entre eles. */
-  const [indiceDaSugestao, setIndiceDaSugestao] = useState(0);
-  const [porQueAberto, setPorQueAberto] = useState(false);
-  const nomeCurtoDaFonte = baralhoAnki
-    ? baralhoAnki.nome
-    : (() => {
-        const r = ABAS_DE_FONTE.find((a) => a.origem === escolhaAtual.origem)?.rotulo[ageProfile];
-        return r ? t(r) : '';
-      })();
-  const sugestao = useMemo(() => {
-    const prontosPorRendimento = agruparJogos(listaDeJogos.map((j) => j.estado)).prontos.filter((p) =>
-      abremNoHeadset.has(p.id),
-    );
-    if (!prontosPorRendimento.length) return null;
-    const alvo = prontosPorRendimento[indiceDaSugestao % prontosPorRendimento.length];
-    const jogo = listaDeJogos.find((j) => j.id === alvo.id);
-    if (!jogo) return null;
-    const vencidos = vencidosAgora.size;
-    const nunca = contagemRecortes.nunca;
-    const titulo =
-      vencidos > 0
-        ? tp(vencidos, 'Revisar {n} palavra que voltou a vencer', 'Revisar {n} palavras que voltaram a vencer')
-        : nunca > 0
-          ? tp(nunca, 'Aprender {n} palavra nova', 'Aprender {n} palavras novas')
-          : tp(acervoDaFonte.length, 'Praticar {n} palavra', 'Praticar {n} palavras');
-    const porque: [typeof Target, string][] = [
-      vencidos > 0
-        ? [
-            Target,
-            t('{n} palavras voltaram a vencer hoje: revisar agora rende mais do que aprender novas.', { n: vencidos }),
-          ]
-        : [Sparkles, t('Nada está pedindo revisão agora, então vale avançar em material novo.')],
-      [
-        Timer,
-        t('{jogo} é o que mais palavras cobre por rodada com este material.', { jogo: tituloDoJogo(jogo, ageProfile) }),
-      ],
-      [BookOpen, t('Vem de {fonte}. Troque em Fonte.', { fonte: nomeCurtoDaFonte })],
-      [Brain, t('O que você acertar aqui conta na sua revisão.')],
-    ];
-    return { jogo, titulo, porque };
-  }, [
-    listaDeJogos,
-    indiceDaSugestao,
-    vencidosAgora,
-    contagemRecortes,
-    acervoDaFonte.length,
-    ageProfile,
-    nomeCurtoDaFonte,
-    abremNoHeadset,
-  ]);
+  /**
+   * O CONTEÚDO, COMO A TELA O DIZ: o nome e o ícone da ficha (`fsNome`, `seletor.js:29`). Na Trilha com um
+   * nível escolhido, "Trilha · A1". É o que o cabeçalho da partida e a antessala mostram.
+   */
+  const nomeDoConteudo =
+    fonteDoConteudo.tipo === 'trilha' && fonte.nivel
+      ? `${nomeCurtoDoConteudo(fonteDoConteudo)} · ${rotuloDaEtapa(fonte.nivel, trilha?.escala ?? 'cefr')}`
+      : fonteDoConteudo.tipo === 'sessao' && !fonteDoConteudo.nome
+        ? (sessoes.find((x) => x.id === fonteDoConteudo.id)?.title ?? nomeCurtoDoConteudo(fonteDoConteudo))
+        : nomeCurtoDoConteudo(fonteDoConteudo);
+  const IconeDoConteudo = iconeDaFonte(fonteDoConteudo);
 
   const jogosClassicosFiltrados = useMemo(() => {
     return listaDeJogos.filter((j) => {
@@ -2555,6 +2514,15 @@ export default function Play({
         acabou={!!fim}
         /* No Termo e no Rali a letra vale mesmo com o campo sem foco: lá o P é letra, e só o Esc pausa. */
         pausaComP={jogo !== 'termo' && jogo !== 'tenis'}
+        /* `aoMostrar.partida` de `fontes.js:289-294`: o conteúdo desta rodada, no cabeçalho. Dentro de uma
+           sessão o cabeçalho já é o dela. No "Jogo rápido" das práticas, o recorte que veio dos Cartões. */
+        conteudo={
+          embutido
+            ? undefined
+            : recorteAtivo.current
+              ? { icone: Layers, nome: rotuloDoRecorte.current || t('Recorte dos Cartões') }
+              : { icone: IconeDoConteudo, nome: nomeDoConteudo }
+        }
         som={soundEnabled !== undefined && toggleSound ? { ligado: soundEnabled, alternar: toggleSound } : undefined}
       >
         {tela}
@@ -2607,380 +2575,42 @@ export default function Play({
     );
   };
 
+  /* "Trocar" no mapa: o mapa fecha, o saguão volta e o catálogo abre (a ficha só existe no saguão). */
+  const [abrirCatalogo, setAbrirCatalogo] = useState(false);
+  useEffect(() => {
+    if (!abrirCatalogo || vendoMapa) return;
+    setAbrirCatalogo(false);
+    controleDoSeletor.current?.abrir();
+  }, [abrirCatalogo, vendoMapa]);
+
   /**
-   * A FONTE (faixa escura + gaveta "O que você vai praticar"). Uma função e não um trecho do lobby
-   * porque o Mapa abre a MESMA gaveta por cima dele (`soGaveta`): duas cópias divergiriam.
+   * A FICHA DE CONTEÚDO DO JOGAR (`fsFicha()`, `seletor.js:110-115`), a mesma da Biblioteca. O catálogo que
+   * ela abre só é baixado quando ela é tocada. "Jogar" no painel de uma fonte define o conteúdo e fica
+   * aqui (`fxJogarCom`, `fontes.js:117-124`); "Revisar" leva à revisão com a fonte (`fxRevisar`).
+   * Quem só tem a Trilha vê "Trilha", sem o "x": não há para onde voltar.
    */
-  const fonteIncluiAnki = filtro.baralhos.length > 0 || (filtro.fontes.includes('baralho') && decksAnki.length > 0);
-  const seletorDaFonte = (soGaveta = false) => (
-    <SeletorDeConteudo
-      soGaveta={soGaveta}
-      total={acervoDaFonte.length}
-      /* O nome curto da ABA, não o título longo do painel de contexto: a linha precisa caber
-       ao lado do total e do idioma, e "Revisão do que você ouviu" empurrava o resto. */
-      nomeDaFonte={
-        filtro.fontes.length > 1
-          ? t('{n} fontes', { n: filtro.fontes.length })
-          : baralhoAnki
-            ? baralhoAnki.nome
-            : (() => {
-                const r = ABAS_DE_FONTE.find((a) => a.origem === escolhaAtual.origem)?.rotulo[ageProfile];
-                return r ? t(r) : '';
-              })()
-      }
-      idioma={fonte.lang ? langLabelNaUI(fonte.lang) : undefined}
-      aberta={seletorAberto}
-      aoAlternar={() => setSeletorAberto((v) => !v)}
-      aoLimpar={() => {
-        setFiltro((prev) => ({ ...prev, baralhos: [], recorte: {}, midia: {} }));
+  const ficha = embutido ? null : (
+    <FichaDoJogar
+      conteudo={soTrilha ? { idioma: conteudo.idioma, fonte: TRILHA } : conteudo}
+      semVolta={soTrilha}
+      nomeNaFicha={fonteDoConteudo.tipo === 'trilha' ? nomeDoConteudo : undefined}
+      trilhaDoApp={entradaDaTrilha ? { palavras: entradaDaTrilha.total, frases: entradaDaTrilha.comFrase ?? 0 } : null}
+      semRede={semRede}
+      controle={controleDoSeletor}
+      aoRevisar={(f) => onChangeView('study', f.tipo === 'sessao' ? { id: f.id } : undefined)}
+      aoJogar={() => {
+        /* O conteúdo já virou a escolha e o catálogo já fechou: o saguão se refaz no lugar. */
       }}
-      avisoDeVazio={
-        acervoDaFonte.length === 0 &&
-        (filtro.recorte.pedindoRevisao ||
-          filtro.recorte.nuncaVistas ||
-          filtro.midia.comTraducao ||
-          filtro.midia.comFrase ||
-          filtro.baralhos.length > 0)
-          ? t('nenhum item passa; desligue um recorte')
-          : undefined
-      }
-      acoesBarra={
-        <>
-          <button
-            type="button"
-            className="btn btn-outline peq"
-            onClick={() => setVerRecordes(true)}
-            aria-haspopup="dialog"
-          >
-            <TrophyIcon aria-hidden /> {t('Recordes')}
-          </button>
-          <button type="button" className="btn btn-outline peq" onClick={() => setVendoMapa(true)}>
-            <MapIcon aria-hidden /> {t('Mapa')}
-          </button>
-          {/* Curadoria só quando a fonte inclui o Anki (protótipo: `E.fonte.origens.includes('anki')`):
-              é o baralho de fora que traz o que curar. Com zero, a tela diz "Nada para revisar". */}
-          {fonteIncluiAnki && (
-            <button
-              type="button"
-              className="btn btn-outline peq"
-              onClick={() => setCurando(true)}
-              title={resumoDosPulados(triagem.fora) || t('Ver itens fora do recorte')}
-            >
-              <ListChecks aria-hidden /> {t('Curadoria')} <span className="n">{triagem.fora.length}</span>
-            </button>
-          )}
-          <button
-            type="button"
-            className="btn btn-outline peq icone"
-            onClick={alternarDetalhes}
-            aria-pressed={detalhes}
-            aria-label={t('Diagnóstico do material')}
-            title={t('Diagnóstico do material')}
-          >
-            <BarChart2 aria-hidden />
-          </button>
-        </>
-      }
-      acoes={
-        /* O cartão "Trazer ou gerenciar" do protótipo: sair para o Anki fecha a gaveta
-           antes (`fecharGaveta()`), senão ela reabriria ao voltar. */
-        <>
-          {/* Edição estática: o Anki é lido e guardado no SERVIDOR (`/api/import/anki`, baralhos) —
-              sem ele, os dois botões levariam a uma tela que só falha. */}
-          {!edicaoEstatica() && (
-            <>
-              <button
-                type="button"
-                className="btn btn-outline peq"
-                onClick={() => {
-                  setSeletorAberto(false);
-                  setVendoMapa(false);
-                  setImportando(true);
-                }}
-              >
-                <Upload aria-hidden /> {ageProfile === 'kids' ? t('Palavras de fora') : t('Trazer do Anki')}
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline peq"
-                onClick={() => {
-                  setSeletorAberto(false);
-                  setVendoMapa(false);
-                  setVendoBaralhos(true);
-                }}
-              >
-                <Layers aria-hidden /> {t('Gerenciar baralhos')}
-              </button>
-            </>
-          )}
-          <button
-            type="button"
-            className="btn btn-outline peq"
-            aria-expanded={verCobertura}
-            onClick={() => setVerCobertura((v) => !v)}
-          >
-            <Globe aria-hidden /> {t('O que cada idioma tem')}
-          </button>
-          {/* META QUEST: a sala "O que você vai praticar" continua a um toque, para quem quer um
-              idioma que o baralho ainda não tem (na tela de sempre ela só abre na primeira visita). */}
-          {fontesOferecidas.length > 1 && (
-            <button
-              type="button"
-              className="btn btn-outline peq"
-              onClick={() => {
-                setSeletorAberto(false);
-                setVendoMapa(false);
-                setSalaAberta(true);
-              }}
-            >
-              <Languages aria-hidden /> {t('Praticar outro idioma')}
-            </button>
-          )}
-        </>
-      }
-      /* O app oferece 28 idiomas e não entrega 28 experiências iguais: a tabela diz o que
-         cada um tem antes de a pessoa escolher. */
-      detalheDasAcoes={verCobertura ? <TabelaDaCobertura baralho={idiomasDoBaralho} /> : undefined}
-      facetas={[
-        {
-          /* IDIOMA É A PRIMEIRA FACETA porque manda em todas as outras: trocar de idioma
-           troca o acervo inteiro, e as contagens abaixo passam a falar de outro material.
-           Ele morava atrás de um botão que abria um modal — a decisão mais determinante
-           da tela era a mais escondida. A lista completa continua na Sala, para quem
-           estuda um idioma que ainda não tem palavra nenhuma. */
-          id: 'idioma',
-          rotulo: t('Idioma'),
-          exclusiva: true,
-          valor: fonte.lang ? [baseLang(fonte.lang)] : [],
-          aoTrocar: (lang) => {
-            /* Baralho de OUTRO idioma não sobrevive à troca: ficaria marcado recortando
-             para zero, e o motivo não estaria em lugar nenhum da tela. */
-            setFiltro((prev) => ({
-              ...prev,
-              baralhos: prev.baralhos.filter((id) => {
-                const d = decksAnki.find((x) => x.id === id);
-                return !d?.lang || baseLang(d.lang) === baseLang(lang);
-              }),
-            }));
-            aplicarEscolha({ ...escolhaAtual, lang });
-          },
-          opcoes: idiomasDoBaralho.map((i) => ({
-            id: i.lang,
-            rotulo: langLabelNaUI(i.lang),
-            contagem: i.jogaveis,
-            icone: <LangFlag code={i.lang} className="w-4 h-3" />,
-            motivoBloqueio: i.jogaveis === 0 ? t('nenhuma palavra pronta para jogar neste idioma ainda') : undefined,
-          })),
-        },
-        {
-          id: 'fonte',
-          rotulo: t('De onde vêm'),
-          ajuda: t('Marque quantas quiser: elas se somam na rodada.'),
-          valor: filtro.fontes.map((f) => (f === 'trilha' ? 'trilha' : 'gravacoes')),
-          aoTrocar: (origem) => {
-            const alvo = origem === 'trilha' ? ('trilha' as const) : ('baralho' as const);
-            setFiltro((prev) => {
-              const tinha = prev.fontes.includes(alvo);
-              const fontes = tinha ? prev.fontes.filter((f) => f !== alvo) : [...prev.fontes, alvo];
-              // Nenhuma fonte marcada não é "tudo", é uma rodada que não abre.
-              return fontes.length ? { ...prev, fontes } : prev;
-            });
-          },
-          /* A fonte sem material continua VISÍVEL, travada e com o porquê — some da tela
-           era pior: "As que mais escapam" desaparecia sem explicação assim que a pessoa
-           revisava bem, que é justamente quando ela merece saber por que sumiu. */
-          opcoes: ABAS_DE_FONTE.filter((aba) => aba.origem !== 'dificeis')
-            .sort((a, b) => Number(a.origem === 'trilha') - Number(b.origem === 'trilha'))
-            .map((aba) => {
-              const contagem =
-                aba.origem === 'trilha'
-                  ? totalDaTrilhaAtual
-                  : aba.origem === 'dificeis'
-                    ? rankingDeDificeis.length
-                    : palavrasDasGravacoes;
-              const oferecida = aba.fontes.some((f) => fontesOferecidas.includes(f));
-              return {
-                id: aba.origem,
-                rotulo: t(aba.rotulo[ageProfile]),
-                contagem,
-                icone:
-                  aba.origem === 'trilha' ? (
-                    <GraduationCap className="w-3.5 h-3.5" aria-hidden />
-                  ) : aba.origem === 'dificeis' ? (
-                    <Flame className="w-3.5 h-3.5" aria-hidden />
-                  ) : (
-                    <Mic className="w-3.5 h-3.5" aria-hidden />
-                  ),
-                motivoBloqueio: oferecida ? undefined : t(aba.semMaterial),
-              };
-            }),
-        },
-        {
-          /* A VISÃO DA TRILHA, que não existia. Com o Curso escolhido a gaveta mostrava
-           UMA faceta e mais nada — a pessoa via "2.784 palavras" sem saber que elas estão
-           organizadas em níveis, nem em qual delas está. O nível já era escolhível, mas só
-           dentro do modal; aqui ele fica ao lado da fonte que o governa, com o tamanho de
-           cada etapa à vista. "Todos os níveis" é a ausência de recorte, e por isso vem
-           primeiro: é o estado em que a trilha nasce. */
-          id: 'nivel',
-          rotulo: trilha?.escala === 'frequencia' ? t('Faixa do curso') : t('Nível do curso'),
-          ajuda:
-            trilha?.escala === 'frequencia'
-              ? t('Por frequência de uso: a faixa 1 traz as mais comuns.')
-              : t('Cada etapa tem o seu vocabulário.'),
-          exclusiva: true,
-          valor: [fonte.nivel ?? 'todos'],
-          aoTrocar: (n) => aplicarEscolha({ ...escolhaAtual, nivel: n === 'todos' ? undefined : (n as CefrLevel) }),
-          opcoes:
-            fonte.id !== 'trilha' || !trilha
-              ? []
-              : [
-                  {
-                    id: 'todos',
-                    rotulo: trilha.escala === 'frequencia' ? t('Todas as faixas') : t('Todos os níveis'),
-                    contagem: trilhaDe(fonte.lang).total,
-                    icone: <BookOpen className="w-3.5 h-3.5" aria-hidden />,
-                  },
-                  ...trilhaDe(fonte.lang).niveis.map((n) => ({
-                    id: n,
-                    rotulo: rotuloDaEtapa(n, trilha.escala),
-                    contagem: trilha.niveis[n]?.length ?? 0,
-                  })),
-                ],
-        },
-        {
-          /* A Sala existia para escolher UMA gravação, e cobrava a volta inteira por isso:
-           ela repetia idioma, fonte e nível, que já vivem aqui. Como faceta, a escolha
-           fica ao lado das outras e a Sala deixa de ser caminho obrigatório. */
-          id: 'gravacao',
-          rotulo: t('Quais gravações'),
-          ajuda: t('Nenhuma marcada = todas.'),
-          valor: filtro.sessoes,
-          aoTrocar: (id) =>
-            setFiltro((prev) => ({
-              ...prev,
-              sessoes: prev.sessoes.includes(id) ? [] : [id],
-              fontes: prev.sessoes.includes(id) ? prev.fontes : ['sessao'],
-            })),
-          opcoes:
-            fonte.id === 'trilha' || sessoesDoIdioma.length < 2
-              ? []
-              : sessoesDoIdioma.map((s) => ({
-                  id: s.id,
-                  rotulo: s.title || t('gravação sem título'),
-                })),
-        },
-        {
-          id: 'baralho',
-          rotulo: t('Quais baralhos'),
-          ajuda: t('Nenhum marcado = todos.'),
-          valor: filtro.baralhos,
-          aoTrocar: (id) =>
-            setBaralhoAnki(filtro.baralhos.includes(id) ? null : (decksAnki.find((d) => d.id === id) ?? null)),
-          /* SÓ OS BARALHOS DO IDIOMA ESCOLHIDO. Oferecer um baralho japonês com inglês
-           selecionado produzia "0 palavras · nenhum item passa" — a tela convidava a uma
-           escolha que ela mesma anulava. O idioma do baralho vem do import. */
-          opcoes:
-            fonte.id === 'trilha'
-              ? []
-              : decksAnki
-                  .filter((d) => !fonte.lang || !d.lang || baseLang(d.lang) === baseLang(fonte.lang))
-                  .map((d) => ({
-                    id: d.id,
-                    icone: <Package className="w-3.5 h-3.5" aria-hidden />,
-                    /* O NOME DO BARALHO COMO SE LÊ, não como o Anki o guarda. Dois problemas reais
-             do acervo do dono: o `::` da hierarquia do Anki ("4000 Essential English
-             Words::1.Book") é sintaxe de arquivo, não nome; e importar o mesmo arquivo
-             duas vezes produzia DOIS chips com texto idêntico, impossíveis de distinguir.
-             O sufixo só aparece quando há de fato colisão — numerar um baralho único seria
-             ruído. */
-                    rotulo: (() => {
-                      const legivel = d.nome.split('::').filter(Boolean).join(' › ');
-                      const homonimos = decksAnki.filter((o) => o.nome === d.nome);
-                      return homonimos.length > 1
-                        ? t('{nome} ({i} de {n})', {
-                            nome: legivel,
-                            i: homonimos.indexOf(d) + 1,
-                            n: homonimos.length,
-                          })
-                        : legivel;
-                    })(),
-                  })),
-        },
-        {
-          id: 'recorte',
-          rotulo: t('Recorte'),
-          valor: [
-            ...(filtro.recorte.dificeis ? ['dificeis'] : []),
-            ...(filtro.recorte.pedindoRevisao ? ['pedindoRevisao'] : []),
-            ...(filtro.recorte.nuncaVistas ? ['nuncaVistas'] : []),
-            ...(filtro.midia.comTraducao ? ['comTraducao'] : []),
-            ...(filtro.midia.comFrase ? ['comFrase'] : []),
-          ],
-          aoTrocar: (id) =>
-            setFiltro((prev) =>
-              id === 'comTraducao' || id === 'comFrase'
-                ? { ...prev, midia: { ...prev.midia, [id]: !prev.midia[id] } }
-                : {
-                    ...prev,
-                    recorte: {
-                      ...prev.recorte,
-                      [id]: !prev.recorte[id as 'pedindoRevisao' | 'nuncaVistas' | 'dificeis'],
-                    },
-                  },
-            ),
-          opcoes:
-            fonte.id === 'trilha'
-              ? []
-              : [
-                  {
-                    id: 'dificeis',
-                    rotulo: t('As que mais escapam'),
-                    contagem: rankingDeDificeis.length,
-                    icone: <Flame className="w-3.5 h-3.5" aria-hidden />,
-                    motivoBloqueio:
-                      rankingDeDificeis.length < 4
-                        ? t('revise mais um pouco — ainda não há material para uma rodada')
-                        : undefined,
-                  },
-                  {
-                    id: 'pedindoRevisao',
-                    rotulo: t('Pedindo revisão'),
-                    contagem: contagemRecortes.pedindo,
-                    icone: <Target aria-hidden />,
-                    motivoBloqueio: contagemRecortes.pedindo === 0 ? t('nada vencido neste acervo agora') : undefined,
-                  },
-                  {
-                    id: 'nuncaVistas',
-                    rotulo: t('Nunca vistas'),
-                    contagem: contagemRecortes.nunca,
-                    icone: <Sparkle aria-hidden />,
-                    motivoBloqueio:
-                      contagemRecortes.nunca === 0 ? t('tudo aqui já foi visto ao menos uma vez') : undefined,
-                  },
-                  {
-                    id: 'comTraducao',
-                    rotulo: t('Com tradução'),
-                    contagem: contagemRecortes.traducao,
-                    icone: <Languages className="w-3.5 h-3.5" aria-hidden />,
-                    motivoBloqueio:
-                      contagemRecortes.traducao === 0
-                        ? t('nenhum item deste acervo tem tradução utilizável')
-                        : undefined,
-                  },
-                  {
-                    id: 'comFrase',
-                    rotulo: t('Com frase'),
-                    contagem: contagemRecortes.frase,
-                    icone: <Quote aria-hidden />,
-                    motivoBloqueio:
-                      contagemRecortes.frase === 0 ? t('nenhum item deste acervo tem frase de exemplo') : undefined,
-                  },
-                ],
-        },
-      ]}
+      aoCapturar={() => onChangeView('capture')}
+      aoTrazer={() => {
+        void recarregarBaralho();
+        void recarregarBaralhosAnki();
+      }}
     />
   );
+
+  /* A curadoria só existe quando o conteúdo inclui o Anki: é o baralho de fora que traz o que curar. */
+  const fonteIncluiAnki = filtro.baralhos.length > 0 || (filtro.fontes.includes('baralho') && decksAnki.length > 0);
 
   /* A ANTESSALA ocupa a tela como uma rodada ocupa: é a mesma decisão de "não dividir atenção", e
      de quebra herda o `telaCheia` que resolve o `transform` do invólucro da aba. */
@@ -3025,7 +2655,10 @@ export default function Play({
         ageProfile={ageProfile}
         /* O recorte que a pessoa escolheu no lobby seguia até aqui e sumia da tela. `rotuloDaFonte`
            já era calculado neste componente para o lobby, bastava repassar. */
-        fonte={{ rotulo: rotuloDaFonte(fonte, sessaoEmUso?.title), idioma: langLabelNaUI(fonte.lang) }}
+        fonte={{
+          rotulo: embutido ? rotuloDaFonte(fonte, sessaoEmUso?.title) : nomeDoConteudo,
+          idioma: langLabelNaUI(fonte.lang),
+        }}
         duracao={rotuloDeDuracao(estimativaDeMinutos(antessala.previa.length, temposMedidos))}
         /* O MAPA DE FASES: as rodadas passadas deste jogo nesta fonte, com estrelas e rejogar.
            `historico.size` é o nº de itens distintos já jogados — o numerador do % de vocabulário. */
@@ -3320,15 +2953,15 @@ export default function Play({
           onMudouBaralhos={relerDeck}
           /* Depois de ativar: recorta pelo baralho recém-trazido e ABRE o jogo (ver `jogoPendente`). */
           onJogarCom={(id, nome) => {
-            setBaralhoAnki({ id, nome });
+            escolherConteudo({ tipo: 'anki', id, nome }, baseLang(fonte.lang));
             setJogoPendente({ jogo: 'memory', baralho: id });
             sair();
           }}
           /* O IDIOMA VEM JUNTO. Recortar por um baralho de japonês sem sair do inglês deixava a
            gaveta — que lista baralhos do idioma vigente — sem o chip do baralho recortado. */
           onJogarSoCom={(id, nome, lang) => {
-            setBaralhoAnki({ id, nome });
-            if (lang && baseLang(lang) !== baseLang(fonte.lang)) trocarIdioma(lang);
+            /* O idioma vem junto: o baralho é do idioma dele, e o conteúdo escolhido passa a ser também. */
+            escolherConteudo({ tipo: 'anki', id, nome }, baseLang(lang || fonte.lang));
             sair();
             toast.ok(t('Jogando só com este baralho'));
           }}
@@ -3379,7 +3012,7 @@ export default function Play({
     return telaCheia(
       <>
         <MapaDoConteudo
-          titulo={rotuloDaFonte(fonte, sessaoEmUso?.title)}
+          titulo={embutido ? rotuloDaFonte(fonte, sessaoEmUso?.title) : nomeDoConteudo}
           /* Na sessão o material É a fala; nas outras fontes é a palavra. Misturar os dois daria
            uma lista que não corresponde a rodada nenhuma. */
           itens={fonte.id === 'sessao' ? dasFalas : doBaralho}
@@ -3394,13 +3027,18 @@ export default function Play({
               : undefined
           }
           nivelAtivo={fonte.nivel}
-          onEscolherNivel={
-            fonte.id === 'trilha' ? (n) => setFonte((f) => ({ ...f, nivel: n as CefrLevel })) : undefined
-          }
+          onEscolherNivel={fonte.id === 'trilha' ? (n) => escolherNivelDaTrilha(n as CefrLevel) : undefined}
           historicoDesde={historicoDesde}
-          onTrocarFonte={() => setSeletorAberto(true)}
+          /* Trocar o conteúdo é na ficha do Jogar: o mapa fecha e o catálogo abre. */
+          onTrocarFonte={
+            embutido
+              ? undefined
+              : () => {
+                  setVendoMapa(false);
+                  setAbrirCatalogo(true);
+                }
+          }
         />
-        {seletorAberto && seletorDaFonte(true)}
       </>,
     );
   }
@@ -3435,7 +3073,7 @@ export default function Play({
    * mesma função que o resto da tela consulta, em vez de repetida num `!embutido` solto.
    */
   const sala =
-    salaAberta && fontesOferecidas.length > 1 ? (
+    salaAberta && !embutido ? (
       <SalaDeEscolha
         escolhaAtual={escolhaDaFonte(fonte)}
         idiomas={idiomasDoBaralho}
@@ -3460,12 +3098,9 @@ export default function Play({
         <>
           {sala}
           <div className="q-palco qj quest-jogar" aria-busy="true" data-testid="lobby-do-quest-carregando">
-            <div className="q-cab">
-              <div>
-                <p className="q-sobre">{t('Carregando o seu material')}</p>
-                <h1>{t('Jogar')}</h1>
-              </div>
-            </div>
+            {/* O cabeçalho já é o de verdade: o título e a ficha nascem no lugar (não pulam ao chegar o baralho). */}
+            <CabecalhoComFicha titulo={t('Jogar')} classe="ct-cab fx-cab" ficha={ficha} />
+            <p className="sr-only">{t('Carregando o seu material')}</p>
             <div className="q-esqueleto qj-esqueleto-abas" aria-hidden />
             <div className="q-grade g4" aria-hidden>
               {Array.from({ length: 8 }, (_, i) => (
@@ -3531,40 +3166,47 @@ export default function Play({
           naRodada < total
             ? t('{n} nesta rodada · {total} disponíveis', { n: naRodada, total })
             : t('{n} {unidade} nesta rodada', { n: naRodada, unidade: unidade(naRodada) });
+        /* `fontes.js:232`: a nota de que o jogo de ouvir vai com a palavra falada (sem frase gravada). */
+        const falada =
+          j.estado.fonte === 'baralho' && MINIGAMES[j.id].aceitaPalavraFalada
+            ? `${conta} · ${t('com palavras faladas')}`
+            : conta;
         const rec = recordeDoJogo(j.id) ?? 0;
-        return rec > 0 ? `${conta} · ${t('recorde {n}', { n: rec })}` : conta;
+        return rec > 0 ? `${falada} · ${t('recorde {n}', { n: rec })}` : falada;
       }
+      /* O MOTIVO CURTO (`fxServe()`, `fontes.js:97-106`): "Precisa de N …; aqui há M." O número é o do gate
+         de verdade (`estadoDoJogo`), que vê os cartões; quando o que falta não é quantidade (voz, escrita,
+         rede), a frase diz o que é, na mesma forma. */
       const motivo = 'motivo' in j.estado ? j.estado.motivo : undefined;
-      /* Só o Caça-conectores cai aqui: a Frase embaralhada JOGA com as frases da trilha, então
-         "a trilha tem palavras soltas" era falso. O que falta é conector (4,5% das frases). */
+      const idioma = langLabelNaUI(fonte.lang);
+      const min = MINIGAMES[j.id].minItems;
+      const ha = j.estado.disponiveis;
+      if (motivo === 'sem-rede') return t('Precisa de internet para ouvir a sua voz.');
+      /* Só o Caça-conectores cai aqui: a Frase embaralhada JOGA com as frases da trilha. O que falta é
+         conector (4,5% das frases). */
       if (motivo === 'trilha-sem-frase')
-        return ageProfile === 'kids'
-          ? t('as frases da trilha quase não têm conector')
-          : t('as frases da trilha quase nunca têm conector; escolha uma gravação');
-      if (motivo === 'sem-voz')
-        return t('este navegador não tem voz em {idioma}', { idioma: langLabelNaUI(fonte.lang) });
+        return t('Precisa de {min} frases com conector; a Trilha quase não tem.', { min });
+      if (motivo === 'sem-voz') return t('Precisa de voz de leitura em {idioma}; este navegador não tem.', { idioma });
       if (motivo === 'escrita-sem-separacao')
-        return ageProfile === 'kids'
-          ? t('em {idioma} as palavras ficam juntinhas, sem espaço', { idioma: langLabelNaUI(fonte.lang) })
-          : t('este jogo separa as palavras da frase, e {idioma} não marca onde cada uma começa', {
-              idioma: langLabelNaUI(fonte.lang),
-            });
-      /* Antes do "faltam N": juntar mais palavras não abre um jogo de letras (grade, teclado) num
-         idioma que não se escreve com elas. */
+        return t('Precisa de palavras separadas por espaço; {idioma} não as separa.', { idioma });
+      /* Antes do "aqui há N": juntar mais palavras não abre um jogo de letras (grade, teclado) num idioma
+         que não se escreve com elas. */
       if (motivo === 'alfabeto-nao-suportado')
-        return t('este jogo usa letras do alfabeto latino, e {idioma} não é escrito com elas', {
-          idioma: langLabelNaUI(fonte.lang),
-        });
-      if (motivo === 'audio-carregando') return t('baixando o áudio da gravação…');
-      if (j.estado.fonte === 'falas' && j.estado.disponiveis === 0) return t('precisa de uma gravação com legenda');
-      const precisa = MINIGAMES[j.id].minItems;
-      const falta = tp(j.estado.faltam, 'falta {n} {unidade}', 'faltam {n} {unidade}', {
-        unidade: unidade(j.estado.faltam),
-      });
-      return ageProfile === 'kids'
-        ? t('{falta} para abrir', { falta })
-        : t('{falta} · precisa de {precisa}', { falta, precisa });
+        return t('Precisa do alfabeto latino; {idioma} não é escrito com ele.', { idioma });
+      if (motivo === 'audio-carregando') return t('Baixando o áudio da gravação…');
+      if (j.estado.fonte === 'falas')
+        return MINIGAMES[j.id].modalidade === 'frase-audio'
+          ? t('Precisa de {min} frases com áudio; aqui há {ha}.', { min, ha })
+          : t('Precisa de {min} frases; aqui há {ha}.', { min, ha });
+      return t('Precisa de {min} palavras; aqui há {ha}.', { min, ha });
     })();
+  };
+  /** "Ver o que serve" (`data-fx-para`, `fontes.js:490`): o catálogo, com o que não serve ao jogo marcado. */
+  const verOQueServe = (j: Pick<JogoUI, 'id'>, falta: string) => {
+    const carta = JOGOS.find((x) => x.id === j.id);
+    controleDoSeletor.current?.abrir({
+      paraJogo: { id: j.id, titulo: carta ? tituloDoJogo(carta, ageProfile) : j.id, falta },
+    });
   };
   const cartaDoJogo = (j: (typeof jogosClassicosFiltrados)[number]) => {
     const liberado = j.estado.ok;
@@ -3574,8 +3216,9 @@ export default function Play({
       play('select');
       pedirParaJogar(j);
     };
-    const porta = liberado ? null : comoDesbloquear(j.estado, contextoDoDesbloqueio);
     const nota = notaDoJogo(j);
+    /* A saída de um jogo que não abre é o catálogo, já com o que serve para ele (fora de uma sessão). */
+    const temSaida = !liberado && !embutido && (!j.estado.motivo || j.estado.motivo === 'trilha-sem-frase');
     return (
       <article
         key={j.chave}
@@ -3664,9 +3307,9 @@ export default function Play({
               >
                 <IconePlay aria-hidden /> {t('Jogar')}
               </button>
-            ) : porta ? (
-              <button type="button" className="btn btn-outline peq" onClick={() => abrirPorta(porta)}>
-                {porta.rotulo} <ChevronRight aria-hidden />
+            ) : temSaida ? (
+              <button type="button" className="btn btn-outline peq" onClick={() => verOQueServe(j, nota)}>
+                {t('Ver o que serve')} <ChevronRight aria-hidden />
               </button>
             ) : null}
             <span className="nota">{nota}</span>
@@ -3699,6 +3342,89 @@ export default function Play({
     );
   if (!embutido && !lobbyCompletoNoQuest) {
     const semAcervo = tamanhoDoBaralho < menorMinimo && fonte.id !== 'trilha';
+    /* OS AVISOS DO ESTADO (`fxAviso()`, `fontes.js:166-179`), na ordem do protótipo. */
+    const palavrasDoConteudo = acervoDaFonte.length;
+    const frasesDoConteudo = comTrilha
+      ? frasesTrilha.length
+      : frasesDoIdioma.length
+        ? frasesDoIdioma.length
+        : frasesDoAcervoAtual.length;
+    const quantosAbrem = jogosProntos.length;
+    const avisosDoEstado: AvisoDoEstado[] = [];
+    if (semRede)
+      avisosDoEstado.push({
+        tom: 'rede',
+        icone: WifiOff,
+        forte: t('Sem internet.'),
+        /* O protótipo ainda diz "Anki e lista colada funcionam": aqui trazer um baralho passa pelo servidor,
+           então a frase para no que é verdade neste app. */
+        texto: t('Você joga com o que já está no aparelho. Só o Karaokê da fala espera a rede.'),
+      });
+    if (soTrilha)
+      avisosDoEstado.push({
+        tom: 'trilha',
+        icone: GraduationCap,
+        forte: t('Você joga com as palavras prontas da Trilha.'),
+        texto: t('Traga as suas e o jogo fica com a sua cara.'),
+        acoes: [
+          {
+            rotulo: t('Trazer uma fonte'),
+            icone: Plus,
+            primaria: true,
+            marca: 'trazer',
+            aoAgir: () => controleDoSeletor.current?.abrirTrazer(),
+          },
+        ],
+      });
+    else if (!erro && !semAcervo && !carregandoTrilha && quantosAbrem <= 6 && palavrasDoConteudo < MINIMO_DE_PALAVRAS)
+      avisosDoEstado.push({
+        tom: 'pequena',
+        icone: TriangleAlert,
+        forte: frasesDoConteudo
+          ? t('Conteúdo pequeno: {palavras} e {frases}.', {
+              palavras: tp(palavrasDoConteudo, '{n} palavra', '{n} palavras'),
+              frases: tp(frasesDoConteudo, '{n} frase', '{n} frases'),
+            })
+          : t('Conteúdo pequeno: {palavras}.', {
+              palavras: tp(palavrasDoConteudo, '{n} palavra', '{n} palavras'),
+            }),
+        texto: quantosAbrem
+          ? tp(
+              quantosAbrem,
+              'Só {n} jogo abre com ele; os outros dizem o que falta.',
+              'Só {n} jogos abrem com ele; os outros dizem o que falta.',
+            )
+          : t('Nenhum jogo abre com ele; cada um diz o que falta.'),
+        acoes: [
+          /* Com "Tudo" já escolhido o botão não levaria a lugar nenhum: fica só "Trazer mais". */
+          ...(fonteDoConteudo.tipo === 'tudo'
+            ? []
+            : [
+                {
+                  rotulo: t('Usar Tudo'),
+                  icone: Layers,
+                  primaria: true,
+                  marca: 'usar-tudo',
+                  aoAgir: () => escolherConteudo(TUDO),
+                },
+              ]),
+          {
+            rotulo: t('Trazer mais'),
+            icone: Plus,
+            marca: 'trazer',
+            aoAgir: () => controleDoSeletor.current?.abrirTrazer(),
+          },
+        ],
+      });
+    const recortesLigados = RECORTES_DAS_PALAVRAS.filter((id) =>
+      id === 'comTraducao' || id === 'comFrase' ? ajuste.midia[id] : ajuste.recorte[id],
+    );
+    const alternarRecorte = (id: RecorteDasPalavras) =>
+      setAjuste((a) =>
+        id === 'comTraducao' || id === 'comFrase'
+          ? { ...a, midia: { ...a.midia, [id]: !a.midia[id] } }
+          : { ...a, recorte: { ...a.recorte, [id]: !a.recorte[id] } },
+      );
     return (
       <>
         {sala}
@@ -3708,14 +3434,19 @@ export default function Play({
             <Recordes ageProfile={ageProfile} onFechar={() => setVerRecordes(false)} />
           </Suspense>
         )}
-        {/* A fonte: a mesma gaveta de sempre (as seis facetas e "Trazer ou gerenciar"), sem a faixa. */}
-        {seletorAberto && seletorDaFonte(true)}
         <LobbyDoQuest
           jogos={jogosClassicosFiltrados}
           ageProfile={ageProfile}
           naTrilha={fonte.id === 'trilha'}
-          palavras={acervoDaFonte.length}
-          fonte={[fonte.lang ? langLabelNaUI(fonte.lang) : '', nomeCurtoDaFonte].filter(Boolean).join(' · ')}
+          ficha={ficha}
+          avisosDoEstado={avisosDoEstado}
+          /* A FAIXA DE ANÚNCIO DO GRÁTIS (`fxFaixaDeAnuncio()`, `fontes.js:152-164`), no lugar que era da
+             "Sugestão para hoje". Quem decide se aparece é a política (`politicaDeAnuncio.ts`): só no Grátis,
+             nunca em perfil protegido, no headset, sem rede ou sem consentimento, e só com a flag `anuncios`
+             ligada. Negado (ou sem provedor, o estado de fábrica) não entra nada, e a grade sobe. */
+          anuncio={<EspacoDeAnuncio espaco="jogar-faixa" formato="nativo" />}
+          aoVerOQueServe={verOQueServe}
+          aoTrocarConteudo={() => controleDoSeletor.current?.abrir()}
           notaDoBloqueio={notaDoJogo}
           /* A voz de leitura é conferida no idioma do baralho (`jogosNoQuest`, `VozParaOQuest`). */
           voz={{ idioma: fonte.lang || undefined }}
@@ -3723,7 +3454,6 @@ export default function Play({
             play('select');
             pedirParaJogar(j);
           }}
-          aoTrocarFonte={fontesOferecidas.length > 1 ? () => setSeletorAberto(true) : undefined}
           aoVerTelaCompleta={() => setLobbyCompletoNoQuest(true)}
           aoPartidaRapida={partidaRapida}
           categoria={categoriaAtiva}
@@ -3732,7 +3462,8 @@ export default function Play({
             play('select');
           }}
           contagens={{
-            todos: listaDeJogos.length,
+            /* `fontes.js:255-256`: "Todos" conta os que SERVEM para este conteúdo. */
+            todos: jogosProntos.length,
             classicos: listaDeJogos.filter((j) => CLASSICOS.has(j.id)).length,
             favoritos: ordem.fixados.length,
           }}
@@ -3747,7 +3478,54 @@ export default function Play({
             setBuscaJogos('');
             setFiltroHabilidade('todas');
             setCategoriaAtiva('todos');
+            setAjuste((a) => ({ ...a, recorte: {}, midia: {} }));
           }}
+          /* O RECORTE DAS PALAVRAS (era a faceta "Recorte" da gaveta da fonte): vale por cima do conteúdo
+             escolhido. Na Trilha não se aplica (as palavras prontas não têm agenda nem frase própria). */
+          maisFiltrosLigados={fonte.id === 'trilha' ? 0 : recortesLigados.length}
+          maisFiltros={
+            fonte.id === 'trilha' ? null : (
+              <div className="q-secao">
+                <p className="q-rotulo">{t('Só estas palavras')}</p>
+                <OpcoesDoQuest
+                  rotulo={t('Só estas palavras')}
+                  valor={recortesLigados}
+                  aoTrocar={(id) => alternarRecorte(id as RecorteDasPalavras)}
+                  opcoes={[
+                    {
+                      id: 'pedindoRevisao',
+                      rotulo: t('Pedindo revisão'),
+                      contagem: contagemRecortes.pedindo,
+                      motivoBloqueio: contagemRecortes.pedindo === 0 ? t('nada vencido neste acervo agora') : undefined,
+                    },
+                    {
+                      id: 'nuncaVistas',
+                      rotulo: t('Nunca vistas'),
+                      contagem: contagemRecortes.nunca,
+                      motivoBloqueio:
+                        contagemRecortes.nunca === 0 ? t('tudo aqui já foi visto ao menos uma vez') : undefined,
+                    },
+                    {
+                      id: 'comTraducao',
+                      rotulo: t('Com tradução'),
+                      contagem: contagemRecortes.traducao,
+                      motivoBloqueio:
+                        contagemRecortes.traducao === 0
+                          ? t('nenhum item deste acervo tem tradução utilizável')
+                          : undefined,
+                    },
+                    {
+                      id: 'comFrase',
+                      rotulo: t('Com frase'),
+                      contagem: contagemRecortes.frase,
+                      motivoBloqueio:
+                        contagemRecortes.frase === 0 ? t('nenhum item deste acervo tem frase de exemplo') : undefined,
+                    },
+                  ]}
+                />
+              </div>
+            )
+          }
           favoritos={ordem.fixados}
           aoFavoritar={(j) => mexerNaOrdem(alternarFixado(ordem, j.id))}
           aoComoSeJoga={(j) => setExplicando(j.id)}
@@ -3757,11 +3535,50 @@ export default function Play({
           ordemEscolhida={ordem.ordem}
           /* A seta troca com o vizinho que o PAINEL mostra (a ordem da grade do headset). */
           aoMover={(j, direcao, visiveis) => mexerNaOrdem(mover(ordem, visiveis, j.id, direcao))}
-          sugestao={semAcervo ? null : sugestao}
-          aoOutraSugestao={() => setIndiceDaSugestao((n) => n + 1)}
           aoVerRecordes={() => setVerRecordes(true)}
           aoVerMapa={() => setVendoMapa(true)}
           curadoria={fonteIncluiAnki ? { n: triagem.fora.length, aoAbrir: () => setCurando(true) } : undefined}
+          /* O QUE MORAVA NA GAVETA DA FONTE e o catálogo não cobre: gerenciar os baralhos do Anki (apagar,
+             levar embora) e a trilha de um idioma em que a pessoa ainda não tem cartão. */
+          maisOpcoes={[
+            /* Edição estática: o Anki é lido e guardado no SERVIDOR; sem ele a tela só falharia. */
+            ...(edicaoEstatica()
+              ? []
+              : [
+                  {
+                    icone: Package,
+                    titulo: t('Gerenciar baralhos'),
+                    apoio: t('Os baralhos do Anki que você trouxe: ver, levar embora, apagar.'),
+                    aoAbrir: () => setVendoBaralhos(true),
+                  },
+                ]),
+            {
+              icone: Languages,
+              titulo: t('Praticar outro idioma'),
+              apoio: t('A trilha de um idioma em que você ainda não tem palavras.'),
+              aoAbrir: () => setSalaAberta(true),
+            },
+          ]}
+          /* O app oferece 28 idiomas e não entrega 28 experiências iguais: a tabela diz o que cada um tem. */
+          fimDasOpcoes={
+            <>
+              <button
+                type="button"
+                className="q-linha"
+                aria-expanded={verCobertura}
+                onClick={() => setVerCobertura((v) => !v)}
+              >
+                <span className="q-ic" aria-hidden>
+                  <Globe />
+                </span>
+                <span>
+                  <b>{t('O que cada idioma tem')}</b>
+                  <small>{t('Trilha, voz de leitura e jogos, idioma por idioma.')}</small>
+                </span>
+              </button>
+              {verCobertura && <TabelaDaCobertura baralho={idiomasDoBaralho} />}
+            </>
+          }
           diagnostico={{
             ligado: detalhes,
             aoTrocar: alternarDetalhes,
@@ -3801,10 +3618,6 @@ export default function Play({
               { icone: CircleDashed, texto: t('{n} nunca caíram', { n: numero(nuncaCairam) }) },
             ],
           }}
-          portaDoJogo={(j) => {
-            const porta = comoDesbloquear(j.estado, contextoDoDesbloqueio);
-            return porta ? { rotulo: porta.rotulo, aoAbrir: () => abrirPorta(porta) } : null;
-          }}
           correnteEncerrada={ultimaCorrente}
           trilha={
             fonte.id === 'trilha' && trilha ? (
@@ -3813,7 +3626,7 @@ export default function Play({
                 deck={deck ?? []}
                 ageProfile={ageProfile}
                 nivel={fonte.nivel}
-                onEscolherNivel={(n: CefrLevel) => setFonte((f) => ({ ...f, nivel: n }))}
+                onEscolherNivel={(n: CefrLevel) => escolherNivelDaTrilha(n)}
                 nativo={idiomaNativo}
                 paresDeGlosa={entradaDaTrilha?.glosas ?? []}
               />
@@ -3830,24 +3643,19 @@ export default function Play({
                 texto: t('Não consegui carregar o seu baralho: {erro}', { erro }),
                 acoes: [{ rotulo: t('Tentar de novo'), aoAgir: () => void recarregarBaralho() }, capturar],
               };
+            /* Quem só tem a Trilha já está jogando com ela (o aviso do estado diz); aqui é quem não tem
+               palavra nem trilha no idioma: quanto há, quanto falta, e capturar. */
             if (!semAcervo) return undefined;
-            /* Acervo pequeno demais: quanto há e quanto falta, como na tela de sempre, e capturar. Havendo
-               outra fonte pronta (a trilha do idioma), escolher o que praticar vem na frente. */
             return {
               texto:
-                fontesOferecidas.length > 1
-                  ? t('Você ainda não tem palavras suas para jogar. Dá para jogar com as da trilha.')
-                  : tamanhoDoBaralho === 0
-                    ? t('Você ainda não salvou palavras')
-                    : t('Faltam {n} palavras', { n: menorMinimo - tamanhoDoBaralho }),
+                tamanhoDoBaralho === 0
+                  ? t('Você ainda não salvou palavras')
+                  : t('Faltam {n} palavras', { n: menorMinimo - tamanhoDoBaralho }),
               detalhe: t(
                 'Os jogos usam as palavras que você guarda das suas gravações, nada de lista pronta. Você tem {tem} e precisa de {precisa} para a primeira rodada.',
                 { tem: tamanhoDoBaralho, precisa: menorMinimo },
               ),
-              acoes:
-                fontesOferecidas.length > 1
-                  ? [{ rotulo: t('Escolher o que praticar'), aoAgir: () => setSalaAberta(true) }, capturar]
-                  : [capturar],
+              acoes: [capturar],
             };
           })()}
         />
@@ -3903,6 +3711,8 @@ export default function Play({
                     <ChevronLeft aria-hidden /> {noHeadset() ? t('Tela do headset') : t('Tela nova')}
                   </button>
                 )}
+                {/* O conteúdo: a mesma ficha do desenho novo (a gaveta da fonte saiu). */}
+                {ficha}
                 <button
                   type="button"
                   onClick={partidaRapida}
@@ -3959,45 +3769,6 @@ export default function Play({
           </div>
         )}
 
-        {/* ─── A FONTE DA RODADA ───
-          De onde vêm as palavras e em que idioma. É a peça que faltava: sem ela, uma rodada de
-          "inglês" sorteava entre as 1.166 palavras em português e as 337 em inglês do mesmo
-          baralho, a queixa de "mistura tudo" era literal. */}
-        {/* ════════════════════════════════════════════════════════════════════════
-          F6, CONFIGURAR e AGIR deixaram de dividir a mesma régua.
-
-          Antes, uma única linha horizontal misturava três naturezas sem nada distingui-las:
-            CONFIGURAR  idioma · "Minhas palavras" · nome da sessão · "Trilha"
-            STATUS      "200 prontas" · "988 em outro idioma"
-            AGIR        "19 para revisar" (abre tela cheia) · "mapa do conteúdo" (idem)
-          "988 em outro idioma" não era clicável e "19 para revisar" era, ambos texto cinza de
-          12px na mesma linha, distinguidos só por um sublinhado.
-
-          Agora: configuração RECOLHIDA (o caso comum não mexe nela), status numa faixa própria e
-          não-clicável, e as ações como links explícitos, fora da linha de números.
-          ════════════════════════════════════════════════════════════════════════ */}
-        {/* A ALTURA DO RECIBO FICA RESERVADA. `fontesOferecidas` depende de `sessoes`, que vem de
-          `fetchSessions`: o botão nascia DEPOIS da primeira pintura e empurrava a faixa de status
-          e a grade de nove cartas para baixo (parte do CLS 0,364 medido no achado F0-02). O valor
-          é a altura de repouso do botão: p-3 + uma linha de texto + a borda do `card-panel`. */}
-        {/* A FAIXA DE AÇÕES SAIU DAQUI. Anki, Baralhos e o seletor de idioma flutuavam à direita,
-          acima do seletor, como três botões sem rótulo de grupo: pareciam navegação da tela e
-          eram, na verdade, parte de UMA decisão — de onde vem o que eu jogo. Foram para o rodapé
-          da gaveta, atrás da separação "trazer ou gerenciar", junto das facetas que governam.
-          Com isso a tela perde a terceira linha de controle: sobra o resumo e a gaveta. */}
-
-        {/* ── O SELETOR DE CONTEÚDO: três linhas de controle viraram uma (redesenho de 02/09) ───
-          Abas de fonte, chips de baralho e a faixa de recorte eram três controles que não se
-          conheciam — e o inventário do código contou 53 controles e 64 contadores nesta tela.
-          Aqui a escolha inteira é UMA linha de resumo com um «Trocar» que abre a gaveta. A linha
-          é também o resumo-verdade: o painel de números, o mapa e as cartas derivam do MESMO
-          conjunto (S9), então os números não têm como discordar de novo.
-
-          A faceta "de onde vêm" segue EXCLUSIVA nesta etapa (ver `exclusiva` em
-          `SeletorDeConteudo`): somar fontes é mudança de comportamento da rodada e entra com a
-          distribuição por cota, não de carona no redesenho visual. */}
-        {!embutido && fontesOferecidas.length > 1 && <div className="mb-4">{seletorDaFonte()}</div>}
-
         {verRecordes && (
           <Suspense fallback={null}>
             <Recordes ageProfile={ageProfile} onFechar={() => setVerRecordes(false)} />
@@ -4042,7 +3813,7 @@ export default function Play({
             deck={deck ?? []}
             ageProfile={ageProfile}
             nivel={fonte.nivel}
-            onEscolherNivel={(n: CefrLevel) => setFonte((f) => ({ ...f, nivel: n }))}
+            onEscolherNivel={(n: CefrLevel) => escolherNivelDaTrilha(n)}
             nativo={idiomaNativo}
             paresDeGlosa={entradaDaTrilha?.glosas ?? []}
           />
@@ -4075,58 +3846,6 @@ export default function Play({
           </section>
         ) : (
           <>
-            {/* ── SUGESTÃO PARA HOJE (protótipo aprovado, `cartaoRecomendacao`) ──
-                Os números são os DESTE recorte: vencidos que a rodada pode usar, nunca vistas, ou o
-                acervo — nunca o "dueToday" global da conta (defeito 2 da auditoria). */}
-            {!embutido && sugestao && (
-              <section className="cartao reco entra" aria-labelledby="reco-t">
-                <div className="reco-arte" aria-hidden>
-                  <IconePixel id={sugestao.jogo.id} />
-                </div>
-                <div className="reco-texto">
-                  <span className="sobrancelha">
-                    <Sparkles aria-hidden />
-                    <span>{t('Sugestão para hoje')}</span>
-                  </span>
-                  <h2 id="reco-t">{sugestao.titulo}</h2>
-                  <p className="mut">
-                    {t('Com')} <b style={{ color: 'var(--ink)' }}>{tituloDoJogo(sugestao.jogo, ageProfile)}</b> ·{' '}
-                    {t('rodada curta')} · {nomeCurtoDaFonte}
-                  </p>
-                  {porQueAberto && (
-                    <ul className="porque entra">
-                      {sugestao.porque.map(([Icone, texto]) => (
-                        <li key={texto}>
-                          <Icone aria-hidden />
-                          <span>{texto}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-                <div className="reco-acoes">
-                  <button type="button" className="btn btn-solid" onClick={() => pedirParaJogar(sugestao.jogo)}>
-                    <IconePlay aria-hidden /> {t('Começar')}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline peq"
-                    onClick={() => setIndiceDaSugestao((n) => n + 1)}
-                  >
-                    <Shuffle aria-hidden /> {t('Outra sugestão')}
-                  </button>
-                  <button
-                    type="button"
-                    className="link"
-                    aria-expanded={porQueAberto}
-                    onClick={() => setPorQueAberto((v) => !v)}
-                  >
-                    <CircleHelp aria-hidden /> {porQueAberto ? t('Esconder o porquê') : t('Por que este?')}
-                  </button>
-                </div>
-              </section>
-            )}
-
             {/* ── BUSCA, HABILIDADES E OPÇÕES (marcação do protótipo) ──
                 Dentro de uma sessão não há filtro: o protótipo mostra só os jogos desta gravação. */}
             {!embutido && (
@@ -4184,7 +3903,7 @@ export default function Play({
                       ? t('Só as palavras e falas desta gravação. A tela Jogar usa o baralho inteiro.')
                       : t('Estes rodam com as {n} palavras de {fonte}.', {
                           n: numero(acervoDaFonte.length),
-                          fonte: nomeCurtoDaFonte,
+                          fonte: nomeDoConteudo,
                         })
                   }
                   direita={
@@ -4257,7 +3976,7 @@ export default function Play({
                     desc={
                       embutido
                         ? descDosPresosDaSessao
-                        : t('Não estão quebrados: pedem algo que este recorte não tem. Cada um diz o que falta.')
+                        : t('Não estão quebrados: pedem algo que este conteúdo não tem. Cada um diz o que falta.')
                     }
                   />
                   <div className="gauto">{presosVisiveis.map(cartaDoJogo)}</div>

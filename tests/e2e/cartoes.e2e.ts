@@ -14,7 +14,9 @@ import {
 } from './_helpers'
 
 /**
- * A TELA CARTÕES (`/cartoes`, 10/10/2026): a casa da revisão, dos baralhos e do catálogo de palavras.
+ * A TELA CARTÕES (`/cartoes`, versão enxuta de 10/10/2026): a casa da revisão e das palavras, com a ficha
+ * de conteúdo no cabeçalho. A aba "Baralhos" virou o catálogo da ficha; "Trazer e levar", os ajustes e a
+ * Memória saem do "…" (a Memória é tela de dentro, com voltar).
  *
  * O que este arquivo prende, na ordem em que a pessoa encontra:
  *  1. A PORTA. No computador e no tablet, o item "Cartões" do trilho; no celular, o "Praticar" da barra
@@ -22,11 +24,13 @@ import {
  *     `localStorage['babel.praticar']`) e tem as abas "Cartões" e "Jogos" no alto das duas.
  *  2. A ABA "HOJE" diz quantos cartões há para agora, e a rodada começa e termina na própria tela: o
  *     voltar da revisão devolve a `/cartoes`.
- *  3. TRAZER um `.apkg` pela aba "Trazer e levar": o relatório do que veio e do que não veio, ativar, e
- *     o baralho aparece na aba "Baralhos". Reimportar atualiza, sem duplicar.
+ *  3. TRAZER um `.apkg` pela folha "Trazer e levar" do "…": o que vem e o que não vem, ativar, o
+ *     relatório, e o baralho já vira o conteúdo escolhido e aparece no catálogo. Reimportar atualiza, sem
+ *     duplicar. "Gerenciar" continua alcançável pelo "…" da fonte.
  *  4. OS ENDEREÇOS DE ANTES: `/revisar` abre a rodada em `/cartoes/estudar`, e `/vocabulario` abre o
  *     catálogo em `/cartoes/palavras`.
- *  5. O PESO DA ABERTURA: a aba "Hoje" lê só `GET /api/vocab/resumo`. O baralho inteiro
+ *  5. O PESO DA ABERTURA: a aba "Hoje" lê só `GET /api/vocab/resumo` e `GET /api/vocab/conteudo` (as
+ *     contagens da ficha), poucos KB cada. O baralho inteiro
  *     (`GET /api/vocab`, megabytes numa conta grande) só desce quando a pessoa abre o catálogo, a
  *     rodada ou a exportação.
  *
@@ -48,20 +52,21 @@ const convite = (page: Page) => page.getByTestId('convite-de-hoje')
 /** A tela da rodada de revisão (a de sempre, agora dentro de Cartões). */
 const revisao = (page: Page) => page.getByTestId('revisao-no-quest')
 
-/**
- * O detalhe do baralho escolhido na aba "Baralhos": o painel ao lado da lista (`baralho-selecionado`)
- * no computador e no tablet; no celular o painel não cabe, e o mesmo conteúdo sobe numa folha com o
- * nome do baralho no título.
- */
-async function detalheDoBaralho(page: Page, nome: string) {
-  if (naBarraDeCinco(page)) {
-    const folha = page.getByRole('dialog', { name: nome })
-    await expect(folha).toBeVisible()
-    return folha
-  }
-  const painel = page.getByTestId('baralho-selecionado')
-  await expect(painel).toContainText(nome)
-  return painel
+/** O "…" do cabeçalho e a folha "Mais opções" que ele abre. */
+async function abrirMais(page: Page) {
+  await clicarRobusto(page, page.getByTestId('mais-de-cartoes'))
+  const menu = page.getByRole('dialog', { name: 'Mais opções' })
+  await expect(menu).toBeVisible()
+  return menu
+}
+
+/** A ficha de conteúdo do cabeçalho e o catálogo que ela abre. */
+const ficha = (page: Page) => telaDeCartoes(page).locator('[data-fs="abrir"]')
+async function abrirCatalogo(page: Page) {
+  await clicarRobusto(page, ficha(page))
+  const catalogo = page.getByRole('dialog', { name: 'Escolher o conteúdo' })
+  await expect(catalogo).toBeVisible()
+  return catalogo
 }
 
 const ultimaPratica = (page: Page) => page.evaluate(() => localStorage.getItem('babel.praticar'))
@@ -136,33 +141,51 @@ test.describe('Cartões: a porta', () => {
       await expect.poll(() => ultimaPratica(page)).toBe('cartoes')
     }
 
-    // A tela, por qualquer das portas: um h1, a aba "Hoje" escolhida e as cinco abas na ordem.
+    // A tela, por qualquer das portas: um h1, a ficha de conteúdo, a aba "Hoje" escolhida, as duas abas e o "…".
     const tela = telaDeCartoes(page)
     await expect(tela).toBeVisible()
-    await expect(page.getByRole('heading', { level: 1, name: 'Cartões' })).toBeVisible()
     await expect(page.locator('h1')).toHaveCount(1)
+    await expect(page.locator('h1')).toHaveText('Cartões')
+    await expect(ficha(page)).toBeVisible()
     await expect(abaDeCartoes(page, /^Hoje/)).toHaveAttribute('aria-selected', 'true')
     const abas = page.getByRole('tablist', { name: 'Seções de Cartões' }).getByRole('tab')
-    await expect(abas).toHaveCount(5)
+    await expect(abas).toHaveCount(2)
     const rotulos = (await abas.allTextContents()).map((r) => r.replace(/[\d.\s]+$/, '').trim())
-    expect(rotulos).toEqual(['Hoje', 'Baralhos', 'Palavras', 'Trazer e levar', 'Memória'])
+    expect(rotulos).toEqual(['Hoje', 'Palavras'])
+    await expect(page.getByTestId('mais-de-cartoes')).toBeVisible()
 
-    /* Cada aba tem o seu endereço, e "Hoje" fica no endereço curto. A Memória, antes da primeira
-       revisão da conta (banco novo), mostra o estado de espera no lugar dos números. */
-    const memoria = page
-      .getByTestId('memoria-dos-cartoes')
-      .or(tela.getByRole('heading', { name: 'Os números aparecem depois das primeiras revisões' }))
+    /* Cada aba tem o seu endereço, e "Hoje" fica no endereço curto. */
     for (const [nome, url, marca] of [
-      [/^Baralhos/, /\/cartoes\/baralhos$/, tela.locator('.ct-linha-b').first()],
-      [/^Palavras/, /\/cartoes\/palavras$/, page.getByTestId('vocabulario-no-quest')],
-      [/^Trazer e levar/, /\/cartoes\/trazer$/, page.getByTestId('anki-escolher')],
-      [/^Memória/, /\/cartoes\/memoria$/, memoria],
+      [/^Palavras/, /\/cartoes\/palavras$/, page.getByTestId('palavras-dos-cartoes')],
       [/^Hoje/, /\/cartoes$/, convite(page)],
     ] as const) {
       await clicarRobusto(page, abaDeCartoes(page, nome))
       await expect(abaDeCartoes(page, nome)).toHaveAttribute('aria-selected', 'true')
       await expect(page).toHaveURL(url)
       await expect(marca, `a aba ${nome} deveria mostrar o conteúdo dela`).toBeVisible({ timeout: 15_000 })
+    }
+
+    /* A MEMÓRIA é tela de dentro: abre pelo "…", tem endereço próprio, e o voltar devolve à aba de antes.
+       Antes da primeira revisão da conta (banco novo) ela mostra o estado de espera no lugar dos números. */
+    await clicarRobusto(page, (await abrirMais(page)).getByRole('button', { name: /^Memória/ }))
+    await expect(page).toHaveURL(/\/cartoes\/memoria$/)
+    await expect(page.getByRole('heading', { level: 1, name: 'Memória' })).toBeVisible()
+    await expect(page.getByRole('tablist', { name: 'Seções de Cartões' })).toHaveCount(0)
+    await expect(
+      page
+        .getByTestId('memoria-dos-cartoes')
+        .or(tela.getByRole('heading', { name: 'Os números aparecem depois das primeiras revisões' })),
+    ).toBeVisible({ timeout: 15_000 })
+    await clicarRobusto(page, page.getByRole('button', { name: 'Voltar para Cartões' }))
+    await expect(page).toHaveURL(/\/cartoes$/)
+    await expect(abaDeCartoes(page, /^Hoje/)).toHaveAttribute('aria-selected', 'true')
+
+    /* AS ABAS QUE SAÍRAM: os endereços antigos caem em /cartoes (o catálogo da ficha e a folha do "…"
+       fazem o papel delas). */
+    for (const antigo of ['/cartoes/baralhos', '/cartoes/trazer']) {
+      await abrirTela(page, antigo)
+      await expect(page).toHaveURL(/\/cartoes$/)
+      await expect(convite(page)).toBeVisible({ timeout: 15_000 })
     }
   })
 })
@@ -228,7 +251,7 @@ test.describe('Cartões: hoje e a rodada', () => {
 })
 
 test.describe('Cartões: trazer do Anki', () => {
-  test('o .apkg entra pela aba Trazer e levar, o relatório diz o que veio, e o baralho aparece em Baralhos', async ({
+  test('o .apkg entra pela folha Trazer e levar, o relatório diz o que veio, e o baralho já vem escolhido', async ({
     page,
   }) => {
     test.slow()
@@ -242,35 +265,36 @@ test.describe('Cartões: trazer do Anki', () => {
     const antes = await baralhos()
 
     await abrirTela(page, '/cartoes')
-    await clicarRobusto(page, abaDeCartoes(page, /^Trazer e levar/))
-    await expect(page).toHaveURL(/\/cartoes\/trazer$/)
-    await expect(page.getByTestId('anki-escolher')).toBeVisible()
-
-    // LEVAR: os quatro formatos, à vista na mesma aba.
-    const levar = page.getByTestId('levar')
-    for (const formato of [/^Anki \(\.apkg\)/, /^Planilha \(CSV\)/, /^Texto para o Quizlet/, /^Relatório/])
-      await expect(levar.getByRole('button', { name: formato })).toBeVisible()
+    /* A FOLHA "TRAZER E LEVAR", pelo "…": palavra nova, arquivo do Anki e exportar. */
+    await clicarRobusto(page, (await abrirMais(page)).getByRole('button', { name: /^Trazer e levar/ }))
+    const trazer = page.getByRole('dialog', { name: 'Trazer e levar' })
+    await expect(trazer).toBeVisible()
+    for (const linha of [/^Palavra nova/, /^Arquivo do Anki/, /^Exportar/])
+      await expect(trazer.getByRole('button', { name: linha })).toBeVisible()
 
     await page.getByTestId('anki-arquivo').setInputFiles('tests/fixtures/baralho-moderno.apkg')
 
-    /* O RELATÓRIO: o que veio e o que não veio, com o nome do arquivo no alto. */
+    /* PASSO 1: o que vem e o que não vem, dito como o app faz hoje (a agenda do Anki não vem). */
     const lido = page.getByTestId('anki-lido')
-    await expect(lido, 'o relatório do arquivo deveria aparecer').toBeVisible({ timeout: 60_000 })
-    await expect(lido.getByText('baralho-moderno.apkg')).toBeVisible()
-    await expect(lido.getByText('O que veio', { exact: true })).toBeVisible()
-    await expect(lido.getByText('O que não veio', { exact: true })).toBeVisible()
+    await expect(lido, 'o passo 1 do arquivo deveria aparecer').toBeVisible({ timeout: 60_000 })
+    const fluxo = page.getByRole('dialog', { name: 'Trazer do Anki' })
+    await expect(fluxo.getByText(/Passo 1 de 2.*baralho-moderno\.apkg/)).toBeVisible()
+    await expect(lido.getByText('O que vem', { exact: true })).toBeVisible()
+    await expect(lido.getByText('O que não vem', { exact: true })).toBeVisible()
     await expect(lido.getByText(/\d+ notas?, todos os campos/)).toBeVisible()
     await expect(lido.getByText('A agenda do Anki')).toBeVisible()
 
-    /* ATIVAR, quando há o que ativar; senão "Deixar para depois". As duas saídas chegam ao mesmo fim. */
-    const ativar = lido.getByRole('button', { name: /^Ativar \d+$/ })
+    /* ATIVAR, quando há o que ativar; senão "Deixar para depois". As duas saídas chegam ao relatório. */
+    const ativar = fluxo.getByRole('button', { name: /^Ativar \d+$/ })
     const ramo = (await ativar.isVisible().catch(() => false)) ? 'ativar' : 'deixar para depois'
     test.info().annotations.push({ type: 'ramo', description: ramo })
-    await clicarRobusto(page, ramo === 'ativar' ? ativar : lido.getByRole('button', { name: 'Deixar para depois' }))
+    await clicarRobusto(page, ramo === 'ativar' ? ativar : fluxo.getByRole('button', { name: 'Deixar para depois' }))
 
+    /* PASSO 2: o relatório. */
     const trazido = page.getByTestId('anki-trazido')
     await expect(trazido).toBeVisible({ timeout: 30_000 })
     await expect(trazido.getByRole('heading', { level: 2 })).toHaveText(/\d+ notas trazidas, \d+ ativadas/)
+    await expect(trazido.getByText('Ficaram de fora, e por quê')).toBeVisible()
 
     const depois = await baralhos()
     expect(depois.length, 'o servidor deveria ter o baralho trazido').toBeGreaterThan(0)
@@ -285,23 +309,23 @@ test.describe('Cartões: trazer do Anki', () => {
         'depois de ativar, o baralho tem notas ativadas',
       ).toBe(true)
 
-    await clicarRobusto(page, trazido.getByRole('button', { name: 'Ver nos baralhos' }))
-    await expect(page).toHaveURL(/\/cartoes\/baralhos$/)
-    await expect(abaDeCartoes(page, /^Baralhos/)).toHaveAttribute('aria-selected', 'true')
+    await clicarRobusto(page, fluxo.getByRole('button', { name: /Pronto/ }))
+    await expect(fluxo).toBeHidden()
+    if (ramo !== 'ativar') return
 
-    /* O BARALHO NA LISTA, com o nome que o servidor guarda; escolhido, o detalhe diz o que dá para fazer. */
+    /* A FONTE NOVA JÁ VEM ESCOLHIDA: a ficha do cabeçalho mostra o baralho, e o catálogo o lista. */
     const nome = depois[0].nome
-    const linha = telaDeCartoes(page).locator('.ct-linha-b', { hasText: nome }).first()
-    await expect(linha, `o baralho "${nome}" deveria estar na aba Baralhos`).toBeVisible({ timeout: 15_000 })
-    await clicarRobusto(page, linha)
-    const detalhe = await detalheDoBaralho(page, nome)
-    // Baralho do Anki: joga-se com ele e gerencia-se ("Revisar este" é das sessões, dos idiomas e de "Tudo").
-    await expect(detalhe.getByRole('button', { name: 'Jogar com este' })).toBeVisible()
-    const gerenciar = detalhe.getByRole('button', { name: 'Gerenciar' })
-    await expect(gerenciar).toBeVisible()
+    await expect(ficha(page)).toContainText(nome, { timeout: 15_000 })
+    const catalogo = await abrirCatalogo(page)
+    await expect(catalogo.locator('.fx-linha', { hasText: nome }).first()).toBeVisible({ timeout: 15_000 })
+    await clicarRobusto(page, catalogo.getByRole('button', { name: 'Fechar' }))
 
-    /* "GERENCIAR" abre a tela de baralhos do Anki que já existia, e o voltar dela devolve aos Cartões. */
-    await clicarRobusto(page, gerenciar)
+    /* "GERENCIAR" (o que só existia na aba Baralhos) está no "…" da fonte: abre a tela de baralhos do Anki
+       que já existia, e o voltar dela devolve aos Cartões. */
+    await clicarRobusto(page, (await abrirMais(page)).getByRole('button', { name: /^Opções de / }))
+    const daFonte = page.getByRole('dialog', { name: nome })
+    await expect(daFonte.getByRole('button', { name: /^Exportar/ })).toBeVisible()
+    await clicarRobusto(page, daFonte.getByRole('button', { name: /^Gerenciar/ }))
     await expect(page.getByRole('heading', { level: 1, name: 'Baralhos do Anki' })).toBeVisible({ timeout: 15_000 })
     await expect(
       page
@@ -311,31 +335,53 @@ test.describe('Cartões: trazer do Anki', () => {
     ).toBeVisible()
     await clicarRobusto(page, page.getByRole('main').getByRole('button', { name: 'Cartões', exact: true }))
     await expect(telaDeCartoes(page)).toBeVisible()
-    await expect(page).toHaveURL(/\/cartoes\/baralhos$/)
+    await expect(page).toHaveURL(/\/cartoes$/)
   })
 
-  test('a aba Baralhos: o baralho de uma sessão tem "Revisar este", que abre a rodada dela', async ({ page }) => {
+  test('uma sessão escolhida na ficha: "Hoje" passa a ser dela, e a rodada abre recortada por ela', async ({ page }) => {
     test.slow()
-    await abrirTela(page, '/cartoes/baralhos')
-    await expect(abaDeCartoes(page, /^Baralhos/)).toHaveAttribute('aria-selected', 'true')
+    await abrirTela(page, '/cartoes')
     const tela = telaDeCartoes(page)
-    // A sessão da fixture é um baralho (cada gravação vira um, com a frase de cada palavra).
-    const daSessao = tela.locator('.ct-linha-b', { hasText: 'Sessao e2e de revisao' }).first()
+    // A sessão da fixture é uma fonte do catálogo (cada gravação com cartão vira uma).
+    const catalogo = await abrirCatalogo(page)
+    const daSessao = catalogo.locator('.fx-linha', { hasText: 'Sessao e2e de revisao' }).first()
     await expect(daSessao).toBeVisible({ timeout: 15_000 })
+    // No celular a linha inteira usa; no computador ela mostra o painel, e "Usar" escolhe.
     await clicarRobusto(page, daSessao)
-    const detalhe = await detalheDoBaralho(page, 'Sessao e2e de revisao')
-    await expect(detalhe.getByRole('button', { name: 'Abrir a sessão' })).toBeVisible()
-    const revisar = detalhe.getByRole('button', { name: /^(Revisar este · [\d.]+|Nada vence aqui hoje)$/ })
-    await expect(revisar).toBeVisible()
-    if (await revisar.isEnabled()) {
+    if (!naBarraDeCinco(page)) {
+      /* O painel da fonte tem as ações que eram da aba Baralhos. */
+      const painel = catalogo.getByRole('region', { name: 'Conteúdo selecionado' })
+      await expect(painel).toContainText('Sessao e2e de revisao')
+      for (const acao of [/^Revisar/, /^Praticar$/, /^Jogar$/, /^Ver palavras$/])
+        await expect(painel.getByRole('button', { name: acao })).toBeVisible()
+      await expect(painel.getByRole('button', { name: 'Mais ações deste conteúdo' })).toBeVisible()
+      await clicarRobusto(page, painel.getByRole('button', { name: /^(Usar este conteúdo|Continuar com este)$/ }))
+    }
+    await expect(catalogo).toBeHidden()
+    await expect(ficha(page)).toContainText('Sessao e2e de revisao')
+    await expect(
+      tela.getByTestId('continuar-por-baralho'),
+      '"Continuar por baralho" é de quem está em "Tudo"',
+    ).toHaveCount(0)
+
+    const estudar = convite(page).getByRole('button', {
+      name: /^(Estudar( \d+)? agora|Começar( por 10)?|Nada vence aqui hoje)$/,
+    })
+    await expect(estudar).toBeVisible({ timeout: 15_000 })
+    if (await estudar.isEnabled()) {
       // Com cartão vencendo, a rodada abre recortada pela sessão: o id dela vai no endereço.
-      await clicarRobusto(page, revisar)
+      await clicarRobusto(page, estudar)
       await expect(page).toHaveURL(new RegExp(`/cartoes/estudar/${sessionId}$`))
       await expect(revisao(page)).toBeVisible({ timeout: 20_000 })
       test.info().annotations.push({ type: 'ramo', description: 'a sessão tinha cartão vencendo: a rodada abriu' })
+      await clicarRobusto(page, revisao(page).getByRole('button', { name: 'Voltar aos Cartões' }))
+      await expect(page).toHaveURL(/\/cartoes$/)
     } else {
       test.info().annotations.push({ type: 'ramo', description: 'nada vencia na sessão: o botão diz isso, desligado' })
     }
+    /* O "x" da ficha volta para "Tudo" em um toque (a escolha é do app inteiro e fica guardada). */
+    await clicarRobusto(page, tela.getByRole('button', { name: 'Voltar para Tudo' }))
+    await expect(ficha(page)).toContainText('Tudo')
   })
 })
 
@@ -359,16 +405,25 @@ test.describe('Cartões: os endereços de antes', () => {
     await expect(page).toHaveURL(/\/cartoes\/palavras$/)
     await expect(telaDeCartoes(page)).toBeVisible()
     await expect(abaDeCartoes(page, /^Palavras/)).toHaveAttribute('aria-selected', 'true')
-    const catalogo = page.getByTestId('vocabulario-no-quest')
+    const catalogo = page.getByTestId('palavras-dos-cartoes')
     await expect(catalogo).toBeVisible({ timeout: 15_000 })
-    await expect(
-      catalogo.getByText(/^[\d.]+ de [\d.]+ no caderno$/),
-      'o catálogo deveria listar as palavras',
-    ).toBeVisible({ timeout: 15_000 })
-    /* O cabeçalho próprio do Vocabulário saiu: "Trazer do Anki" e "Exportar" moram na aba "Trazer e
-       levar", e o "+ Palavra" é o do cabeçalho da tela Cartões, que abre o mesmo diálogo. */
+    await expect(catalogo.locator('.qv-quantas'), 'a lista deveria dizer quantas palavras há').toHaveText(
+      /^[\d.]+ de [\d.]+/,
+      { timeout: 15_000 },
+    )
+    await expect(catalogo.locator('tbody tr').first()).toBeVisible()
+    /* A busca fica presa no alto; os estados numa linha, com "Difíceis" em segundo. */
+    await expect(catalogo.getByPlaceholder('Buscar palavra ou frase')).toBeVisible()
+    const estados = catalogo.getByRole('radiogroup', { name: 'Estado do cartão' }).getByRole('radio')
+    expect((await estados.allTextContents()).map((r) => r.replace(/[\d.\s]+$/, '').trim()).slice(0, 2)).toEqual([
+      'Todas',
+      'Difíceis',
+    ])
+    /* "Trazer do Anki", "Exportar" e a palavra nova moram no "…" do cabeçalho. */
     await expect(catalogo.getByRole('button', { name: 'Trazer do Anki' })).toHaveCount(0)
-    await expect(telaDeCartoes(page).locator('header.q-cab').getByRole('button', { name: 'Palavra' })).toBeVisible()
+    const menu = await abrirMais(page)
+    await expect(menu.getByRole('button', { name: /^Trazer e levar/ })).toBeVisible()
+    await expect(menu.getByRole('button', { name: /^Palavra nova/ })).toBeVisible()
   })
 })
 
@@ -419,12 +474,14 @@ test.describe('Cartões: o peso da abertura', () => {
 
     const doVocab = sairam.filter((p) => / \/api\/vocab(\/|$)/.test(p))
     expect(doVocab, 'a aba Hoje deveria ler o resumo dos cartões').toContain('GET /api/vocab/resumo')
+    expect(doVocab, 'a ficha de conteúdo deveria ler as contagens do catálogo').toContain('GET /api/vocab/conteudo')
     expect(
       doVocab.filter((p) => p === 'GET /api/vocab'),
       'a aba Hoje NÃO deveria baixar o baralho inteiro (GET /api/vocab)',
     ).toEqual([])
-    expect([...new Set(doVocab)], 'de /api/vocab*, a abertura dos Cartões deveria pedir só o resumo').toEqual([
-      'GET /api/vocab/resumo',
-    ])
+    expect(
+      [...new Set(doVocab)].sort(),
+      'de /api/vocab*, a abertura dos Cartões deveria pedir só o resumo e as contagens do catálogo',
+    ).toEqual(['GET /api/vocab/conteudo', 'GET /api/vocab/resumo'])
   })
 })

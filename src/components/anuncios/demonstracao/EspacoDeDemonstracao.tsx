@@ -150,6 +150,48 @@ function LinhaNaBiblioteca({ aoSemAnuncios }: { aoSemAnuncios: () => void }) {
   );
 }
 
+/**
+ * Jogar: a faixa no alto, no lugar que era da "Sugestão para hoje" (`fxFaixaDeAnuncio()`,
+ * `cartoes-enxuto-src/fontes.js:158-164`). A altura é reservada pelo CSS (`.fx-anuncio`, `seletor.css:99`).
+ */
+function FaixaNoJogar({ aoSemAnuncios }: { aoSemAnuncios: () => void }) {
+  const m = CURSO;
+  const Icone = m.icone;
+  return (
+    <div
+      className="q-linha ad ad-infeed fx-anuncio"
+      data-fx-alvo="anuncio"
+      {...marca('jogar-faixa', 'Faixa no Jogar')}
+      role="complementary"
+      aria-label="Anúncio"
+    >
+      <span className="q-ic" style={cor(m)}>
+        <Icone aria-hidden />
+      </span>
+      <span className="ad-infeed-texto">
+        <b>{m.titulo}</b>
+        <small>
+          <Rotulo texto="Anúncio" />
+          <span className="ad-marca-linha"> · {m.nome}</span>
+        </small>
+      </span>
+      <span className="ad-infeed-fim">
+        <button
+          type="button"
+          className="ad-cta"
+          data-ad-cta={m.nome}
+          aria-label={`${m.acao}: ${m.nome}`}
+          onClick={() => toast.info(`Anúncio de exemplo. No app, abriria a página de ${m.nome} em outra aba.`)}
+        >
+          <span className="fx-cta-longo">{m.acao}</span>
+          <span className="fx-cta-curto">Ver</span>
+        </button>
+        <SemAnuncios aoSemAnuncios={aoSemAnuncios} />
+      </span>
+    </div>
+  );
+}
+
 /** Fim de rodada: o bloco discreto ABAIXO dos botões (`plantarFim`, `anuncios.js:249-257`). */
 function BlocoNoFim({ aoSemAnuncios }: { aoSemAnuncios: () => void }) {
   const m = CADERNO;
@@ -270,6 +312,7 @@ function PremiadoNaLoja({ aoSemAnuncios }: { aoSemAnuncios: () => void }) {
 export default function EspacoDeDemonstracao({ espaco, aoSemAnuncios }: PropsDoEspacoDeAnuncio) {
   if (espaco === 'inicio-nativo') return <CartaoNoInicio aoSemAnuncios={aoSemAnuncios} />;
   if (espaco === 'bib-infeed') return <LinhaNaBiblioteca aoSemAnuncios={aoSemAnuncios} />;
+  if (espaco === 'jogar-faixa') return <FaixaNoJogar aoSemAnuncios={aoSemAnuncios} />;
   if (espaco === 'fim-bloco') return <BlocoNoFim aoSemAnuncios={aoSemAnuncios} />;
   if (espaco === 'fim-premiado') return <PremiadoNoFim aoSemAnuncios={aoSemAnuncios} />;
   if (espaco === 'loja-seeds') return <PremiadoNaLoja aoSemAnuncios={aoSemAnuncios} />;

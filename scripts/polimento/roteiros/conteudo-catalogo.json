@@ -1,0 +1,89 @@
+{
+  "nome": "conteudo-catalogo",
+  "prototipo": "cartoes-enxuto",
+  "largura": 1280,
+  "altura": 960,
+  "app": {
+    "caminho": "/biblioteca",
+    "assentar": 3500,
+    "passos": [
+      {
+        "js": "(async () => { for (let i = 0; i < 14; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || [...d.querySelectorAll('button')].find((b) => /Resgatar|Pular|Fechar|Agora não|Entendi|Depois/.test(b.textContent || '')) || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 500)); } })()"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "clicar": "[data-fs=\"abrir\"]"
+      },
+      {
+        "esperar": 1800
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?quieto&nav=a&limpo",
+    "assentar": 3500,
+    "passos": [
+      {
+        "js": "window.__fontes.ir('biblioteca')"
+      },
+      {
+        "esperar": 1500
+      },
+      {
+        "clicar": "[data-fs=\"abrir\"]"
+      },
+      {
+        "esperar": 1800
+      }
+    ]
+  },
+  "seletores": [
+    "dialog.fx-catalogo",
+    "dialog.fx-catalogo .dlg-cab",
+    "dialog.fx-catalogo .dlg-cab .q-ic",
+    "dialog.fx-catalogo .dlg-cab h2",
+    "dialog.fx-catalogo .qj-nota",
+    "dialog.fx-catalogo .dlg-cab .x",
+    ".fx-cat-corpo",
+    ".fx-cat-col",
+    ".fs-idiomas",
+    ".fs-idiomas > .q-rotulo",
+    ".fs-idiomas .q-abas",
+    ".fs-idiomas .q-aba",
+    ".fs-idiomas .q-aba .n",
+    ".fx-busca",
+    ".fx-busca input",
+    ".fx-cat-lista",
+    ".fx-cat-lista > .q-lista",
+    ".fx-linha-caixa",
+    ".fx-linha-caixa > .q-linha.fx-linha",
+    ".fx-linha .q-ic",
+    ".fx-linha-texto",
+    ".fx-linha-texto > b",
+    ".fx-linha-conta",
+    ".fx-linha-de",
+    ".fx-linha-caixa > .ct-em-dia",
+    ".fx-linha-caixa > .fx-usar",
+    ".fx-usar svg",
+    ".ct-grupo",
+    ".ct-grupo h3",
+    ".fx-nova",
+    ".fx-nova b",
+    ".fx-nova small",
+    ".fx-cat-det",
+    ".fx-cat-det .q-bib-topo",
+    ".fx-cat-det .q-bib-tags .q-tag",
+    ".fx-cat-det h2",
+    ".fx-cat-det .ct-fatos3",
+    ".fx-cat-det .ct-fatos3 > div",
+    ".fx-cat-det .ct-fatos3 dt",
+    ".fx-cat-det .ct-fatos3 dd",
+    ".fx-todos, .fx-fora",
+    ".fx-cat-det .q-bib-acoes",
+    ".fx-cat-det .q-bib-acoes > .q-ctl.pri",
+    ".fx-cat-det .fs-acoes",
+    ".fx-cat-det .fs-acoes > .q-ctl"
+  ]
+}

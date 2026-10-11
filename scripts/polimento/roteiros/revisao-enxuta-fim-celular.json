@@ -1,0 +1,57 @@
+{
+  "nome": "revisao-enxuta-fim-celular",
+  "prototipo": "cartoes-enxuto",
+  "largura": 390,
+  "altura": 844,
+  "toque": true,
+  "app": {
+    "caminho": "/cartoes/estudar",
+    "assentar": 3500,
+    "passos": [
+      {
+        "js": "(async () => { for (let i = 0; i < 8; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 400)); } })()"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "js": "(async () => { for (let i = 0; i < 60 && !document.querySelector('[data-estado=\"fim\"]'); i++) { (document.querySelector('.fsrs .b') || document.querySelector('.qr-principal'))?.click(); await new Promise((r) => setTimeout(r, 450)); } })()"
+      },
+      {
+        "esperar": 2600
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?cx=fim&quieto&embutido",
+    "assentar": 3500,
+    "passos": [
+      {
+        "esperar": 1800
+      }
+    ]
+  },
+  "seletores": [
+    ".cx-fim",
+    ".cx-fim .cx-topo",
+    ".cx-fim .cx-topo h1",
+    ".cx-desfazer",
+    ".qr-fecho",
+    ".qr-fecho .q-ic",
+    ".qr-fecho h2",
+    ".qr-numeros",
+    ".q-num",
+    ".q-num .q-rotulo",
+    ".q-num b",
+    ".cx-ganho",
+    ".cx-ganho b",
+    ".cx-mudou",
+    ".cx-mudou h2",
+    ".cx-subiu li",
+    ".cx-subiu .q-tag",
+    ".cx-subiu .q-chip",
+    ".cx-fim-pe",
+    ".cx-fim-pe .q-ctl.pri",
+    ".cx-fim-pe .q-ctl:not(.pri)"
+  ]
+}

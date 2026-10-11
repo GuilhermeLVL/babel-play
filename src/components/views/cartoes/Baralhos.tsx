@@ -16,6 +16,7 @@ import {
   Monitor,
   Plus,
   SlidersHorizontal,
+  Sparkles,
   Target,
   Upload,
   WalletCards,
@@ -384,6 +385,26 @@ export default function Baralhos({
           {(revisavel || verCartoes) && (
             <div className="q-acoes">
               {revisavel && botaoDeJogar(false)}
+              {/* "Praticar de outro jeito" sobre este baralho (`ctOutroJeito`, `cartoes.js:195`): a folha das
+                  práticas abre na revisão com o recorte (`lib/revisao/pratica.ts`). */}
+              {revisavel && (
+                <button
+                  type="button"
+                  className="q-ctl"
+                  onClick={() => {
+                    setFolha(false);
+                    aoNavegar('study', {
+                      praticar: {
+                        origem: 'baralho',
+                        rotulo: x.nome,
+                        ...(x.g === 'sessao' ? { sessionId: idDe(x) } : {}),
+                      },
+                    });
+                  }}
+                >
+                  <Sparkles aria-hidden /> {t('Praticar de outro jeito')}
+                </button>
+              )}
               {verCartoes}
             </div>
           )}

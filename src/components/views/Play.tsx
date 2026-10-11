@@ -190,6 +190,7 @@ import { estadoDoCartao } from '../../lib/pelesDeCartao';
 import { sairDaTelaDoJogar, type TelaDoJogar } from '../../lib/polimento/jogos';
 import { type AgeProfileType, coreOnly } from '../../lib/profile';
 import type { DerivedProgress } from '../../lib/progress';
+import type { RecorteDoJogar } from '../../lib/revisao/pratica';
 import { consumirQueryDoBoot, lerUrlAtual, publicarQueryDoJogar } from '../../lib/rotas';
 import { type PracticeSeed, type Sentence, toSentences } from '../../lib/sentences';
 import { play } from '../../lib/soundFx';
@@ -280,6 +281,14 @@ interface PlayProps {
    * botão que parece função e não é.
    */
   seed?: PracticeSeed | null;
+  /**
+   * O "JOGO RÁPIDO" das práticas da revisão (`lib/revisao/pratica.ts`): uma rodada só com estas
+   * palavras. Com `semAgenda`, a rodada não manda nota ao agendador: é o que o selo "não mexe na sua
+   * agenda" da folha das práticas promete.
+   */
+  recorte?: RecorteDoJogar | null;
+  /** O recorte virou rodada (ou não deu para montar): o App o esquece, para não reabrir ao voltar. */
+  aoUsarRecorte?: () => void;
   /**
    * Esta tela está DENTRO de outra (a aba "Jogos" da sessão), não é a view de primeiro nível.
    *
@@ -414,6 +423,8 @@ export default function Play({
   metrics,
   recording,
   seed,
+  recorte,
+  aoUsarRecorte,
   embutido,
   soundEnabled,
   toggleSound,
@@ -858,11 +869,16 @@ export default function Play({
     semente?: PracticeSeed | null,
     apenas?: ReadonlySet<string>,
     evitarTambem?: ReadonlySet<string>,
+    /** O recorte das práticas: as palavras saem do baralho inteiro, e não só da fonte escolhida no saguão. */
+    doBaralhoInteiro = false,
   ): RodadaPronta | null => {
     const montada = montarRodadaPura({
       jogo,
       agora: Date.now(),
-      jogaveis,
+      jogaveis:
+        doBaralhoInteiro && apenas
+          ? (deck ?? []).filter((c) => c.inDeck && !!c.translation && apenas.has(c.word))
+          : jogaveis,
       fonte,
       etapaDaTrilha,
       memoria: historico,
@@ -903,6 +919,8 @@ export default function Play({
    * apontaria para elementos do jogo que ainda não estão na tela.
    */
   const pedirParaJogar = (carta: Pick<JogoUI, 'id'>, forcarAntessala = false, de: TelaDoJogar = 'jogar') => {
+    /* Escolher um jogo no saguão é rodada comum: o recorte das práticas (e o "sem agenda" dele) acabou. */
+    recorteAtivo.current = null;
     const pronta = montarRodada(carta.id);
     /**
      * CLIQUE MORTO NUNCA MAIS.
@@ -934,6 +952,8 @@ export default function Play({
        ela mudava. Agora o storage é só persistência; quem decide é o estado (`direto`, acima). */
   };
 
+  /** O recorte das práticas em jogo: as palavras e se a rodada fica fora da agenda. */
+  const recorteAtivo = React.useRef<{ apenas: ReadonlySet<string>; semAgenda: boolean } | null>(null);
   const comecar = (pronta: RodadaPronta) => {
     setResultado(null);
     setAntessala(null);
@@ -959,6 +979,12 @@ export default function Play({
    */
   const jogarDeNovo = () => {
     if (!resultado) return;
+    /* Dentro do recorte das práticas, "jogar de novo" é com as mesmas palavras e a mesma regra. */
+    const doRecorte = recorteAtivo.current;
+    if (doRecorte) {
+      const outra = montarRodada(resultado.gameId, null, doRecorte.apenas, undefined, true);
+      if (outra) return comecar(outra);
+    }
     const nova =
       montarRodada(resultado.gameId, null, undefined, new Set<string>(sequencia?.vistosNaSequencia ?? [])) ??
       (refsDoResultado.length ? montarRodada(resultado.gameId, null, new Set(refsDoResultado)) : null);
@@ -1066,6 +1092,8 @@ export default function Play({
        eram correlacionáveis a um cartão, nenhum por id. Sem a referência, desempenho não
        realimenta a dificuldade. */
     const daSessao = fonte.id === 'sessao' ? fonte.sessionId : undefined;
+    /* O "JOGO RÁPIDO" das práticas (`lib/revisao/pratica.ts`): reconhecer não mexe na agenda. */
+    const semAgenda = !!recorteAtivo.current?.semAgenda;
     const itens = report.items.map((o) => ({
       cardId: o.cardId ?? undefined,
       itemRef: o.itemRef,
@@ -1073,7 +1101,8 @@ export default function Play({
       attempts: o.attempts,
       ms: o.ms,
       hinted: o.hinted ? 1 : 0,
-      kind: o.cardId && def.writesSrs ? 'srs' : 'drill',
+      /* Com o recorte "sem agenda" nenhuma nota vai ao agendador: o item conta como exercício. */
+      kind: o.cardId && def.writesSrs && !semAgenda ? 'srs' : 'drill',
     }));
 
     // O FSRS continua item a item: é ele que reagenda cada cartão, e a nota depende do item.
@@ -1085,7 +1114,7 @@ export default function Play({
     /** Cartas CRIADAS pela promoção da trilha, que também precisam entrar no baralho local. */
     const promovidos: VocabCard[] = [];
     for (const o of report.items) {
-      if (!o.cardId || !def.writesSrs) continue;
+      if (!o.cardId || !def.writesSrs || semAgenda) continue;
       try {
         /* A origem, o formato e o tempo vão só para o registro da revisão; a nota e a agenda são as de antes. */
         atualizados.push(
@@ -2114,6 +2143,7 @@ export default function Play({
     if (sementeUsadaRef.current === marca) return;
     if (!deck || (!jogaveis.length && !frases.length)) return; // ainda carregando
     sementeUsadaRef.current = marca;
+    recorteAtivo.current = null;
     /* "Praticar isto" vindo de outra tela é um começo, não a continuação de nada — mesmo que a
        corrente anterior fosse do mesmo jogo. */
     setSequencia(null);
@@ -2121,6 +2151,32 @@ export default function Play({
     if (pronta) comecar(pronta);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seed, deck, frases.length, jogaveis.length]);
+  /**
+   * O RECORTE DAS PRÁTICAS chegando da revisão ("Jogo rápido"): uma rodada de Memória só com as
+   * palavras recebidas, tiradas do baralho inteiro. Uma tentativa por recorte; sem material que baste,
+   * a pessoa fica sabendo e cai no saguão.
+   */
+  const recorteUsado = React.useRef<RecorteDoJogar | null>(null);
+  useEffect(() => {
+    if (!recorte || recorteUsado.current === recorte || !deck) return;
+    recorteUsado.current = recorte;
+    const apenas = new Set(recorte.palavras);
+    setSequencia(null);
+    const pronta = montarRodada('memory', null, apenas, undefined, true);
+    if (pronta) {
+      recorteAtivo.current = { apenas, semAgenda: recorte.semAgenda };
+      comecar(pronta);
+    } else {
+      recorteAtivo.current = null;
+      toast.warn(
+        t('Estas palavras não bastam para um jogo: são precisas pelo menos {n} com tradução.', {
+          n: MINIGAMES.memory.minItems,
+        }),
+      );
+    }
+    aoUsarRecorte?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recorte, deck]);
   /**
    * HÁ VOZ **NESTE IDIOMA**? É o que decide se a trilha tem jogo de escuta.
    *

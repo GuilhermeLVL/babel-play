@@ -152,13 +152,21 @@ export async function fetchDeck(): Promise<VocabCard[]> {
  */
 export async function updateCard(
   id: string,
-  patch: { translation?: string; inDeck?: boolean; sentence?: string; cefrLevel?: string | null },
+  patch: {
+    translation?: string
+    inDeck?: boolean
+    sentence?: string
+    cefrLevel?: string | null
+    /** O cartão só volta a vencer nesta data (ms). Não é revisão: a memória dele fica como está. */
+    adiarAte?: number
+  },
 ): Promise<VocabCard> {
   const body: Record<string, unknown> = {}
   if (typeof patch.translation === 'string') body.back = patch.translation
   if (typeof patch.inDeck === 'boolean') body.inDeck = patch.inDeck
   if (typeof patch.sentence === 'string') body.sentence = patch.sentence
   if (patch.cefrLevel !== undefined) body.cefrLevel = patch.cefrLevel
+  if (typeof patch.adiarAte === 'number' && Number.isFinite(patch.adiarAte)) body.adiarAte = Math.round(patch.adiarAte)
   const res = await apiFetch(`/api/vocab/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },

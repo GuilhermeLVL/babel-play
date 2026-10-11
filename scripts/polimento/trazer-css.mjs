@@ -1,7 +1,7 @@
 /**
  * TRAZ O CSS DO PROTÓTIPO DE POLIMENTO PARA O APP, SEM REESCREVER.
  *
- *     node scripts/polimento/trazer-css.mjs "<pasta polimento-movimento-src do protótipo>" ["<pasta anuncios-no-gratis-src>" ["<pasta telas-enxutas-src>" ["<pasta cartoes-src>"]]]
+ *     node scripts/polimento/trazer-css.mjs "<pasta polimento-movimento-src do protótipo>" ["<pasta anuncios-no-gratis-src>" ["<pasta telas-enxutas-src>" ["<pasta cartoes-src>" ["<pasta cartoes-enxuto-src>"]]]]
  *
  * A SEGUNDA PASTA (opcional) é a do protótipo dos QUATRO PLANOS (`anuncios-no-gratis-src`): dela vêm
  * só os arquivos da tabela `DA_SEGUNDA_PASTA`. Sem ela, esses arquivos ficam como
@@ -13,6 +13,12 @@
  *
  * A QUARTA PASTA (opcional) é a do protótipo dos CARTÕES (`cartoes-src`): dela vem só `cartoes.css`
  * (tabela `DA_QUARTA_PASTA`).
+ *
+ * A QUINTA PASTA (opcional) é a do protótipo dos CARTÕES ENXUTOS (`cartoes-enxuto-src`): dela vem só
+ * `cartoes4.css` (tabela `DA_QUINTA_PASTA`): a revisão com o mínimo em tela, a cena no verso, minha voz,
+ * a folha "Praticar de outro jeito", as práticas e o fim da sessão. O `cartoes.css` dela é o da quarta
+ * pasta mais as telas enxutas de Hoje, Baralhos e Palavras (linhas 431-744), que entram quando essas
+ * telas forem refeitas.
  *
  * Por que copiar e não reescrever: o protótipo é um clone do DOM do desenho novo (`.q-*`, `.hud`,
  * `.cab`…) e a camada dele é ADITIVA, toda sob `html[data-px='on']`. O app passa a pôr a mesma marca
@@ -36,6 +42,7 @@ if (!origem) {
 const origemDosPlanos = process.argv[3]
 const origemDasEnxutas = process.argv[4]
 const origemDosCartoes = process.argv[5]
+const origemDosEnxutos = process.argv[6]
 const destino = join(dirname(fileURLToPath(import.meta.url)), '../../src/styles/polimento')
 
 /** Linhas a tirar de cada arquivo (1 = primeira, inclusivas). `adiado`: entra quando o item for portado. */
@@ -100,15 +107,18 @@ const DA_TERCEIRA_PASTA = {
 
 /** O arquivo que só existe no protótipo dos cartões (a quarta pasta). */
 const DA_QUARTA_PASTA = {
-  /* A TELA CARTÕES (`cartoes.js`: Hoje, Baralhos, Palavras, Trazer e levar, Memória) e a navegação
-     (`cartoes3.js`: Biblioteca e Cartões no trilho, "Praticar" na barra de cinco do celular). A revisão
-     melhorada (`cartoes2.js`) é fatia seguinte: as regras dela ficam de fora até a marcação existir. */
-  'cartoes.css': [
-    { de: 245, ate: 299, adiado: 'a revisão melhorada (openspec/changes/cartoes, fatia 3)' },
-    { de: 381, ate: 404, adiado: 'a revisão melhorada no celular (openspec/changes/cartoes, fatia 3)' },
-    { de: 413, ate: 416, adiado: 'a revisão melhorada no tablet (openspec/changes/cartoes, fatia 3)' },
-    { de: 431, ate: Infinity, motivo: 'barra do protótipo e Mapa das portas' },
-  ],
+  /* A TELA CARTÕES (`cartoes.js`: Hoje, Baralhos, Palavras, Trazer e levar, Memória), a navegação
+     (`cartoes3.js`: Biblioteca e Cartões no trilho, "Praticar" na barra de cinco do celular) e, desde
+     10/10/2026, a REVISÃO (`cartoes2.js`): as regras `.ct-rev`, `.ct-fim`, o carimbo do gesto, o
+     equalizador do botão de ouvir. A marcação está em `views/revisao/`. */
+  'cartoes.css': [{ de: 431, ate: Infinity, motivo: 'barra do protótipo e Mapa das portas' }],
+}
+
+/** O arquivo que só existe no protótipo dos cartões enxutos (a quinta pasta). */
+const DA_QUINTA_PASTA = {
+  /* A REVISÃO ENXUTA E AS PRÁTICAS (`cartoes2.js` e `cartoes4.js` de `cartoes-enxuto-src`): tudo com o
+     prefixo `cx-`. Entra depois de `cartoes.css`, como no `montar.mjs` do protótipo. */
+  'cartoes4.css': [{ de: 371, ate: Infinity, motivo: 'o menu "Revisão e práticas" da barra do protótipo' }],
 }
 
 const NOME_DO_PROTOTIPO = new Map([
@@ -116,6 +126,7 @@ const NOME_DO_PROTOTIPO = new Map([
   [origemDosPlanos, 'dos quatro planos'],
   [origemDasEnxutas, 'das telas enxutas'],
   [origemDosCartoes, 'dos cartões'],
+  [origemDosEnxutos, 'dos cartões enxutos'],
 ])
 
 mkdirSync(destino, { recursive: true })
@@ -124,6 +135,7 @@ const TODOS = [
   ...(origemDosPlanos ? Object.entries(DA_SEGUNDA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDosPlanos]) : []),
   ...(origemDasEnxutas ? Object.entries(DA_TERCEIRA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDasEnxutas]) : []),
   ...(origemDosCartoes ? Object.entries(DA_QUARTA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDosCartoes]) : []),
+  ...(origemDosEnxutos ? Object.entries(DA_QUINTA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDosEnxutos]) : []),
 ]
 for (const [nome, cortes, pasta] of TODOS) {
   const linhas = readFileSync(join(pasta, nome), 'utf8').replace(/\r\n/g, '\n').split('\n')
@@ -149,4 +161,85 @@ for (const [nome, cortes, pasta] of TODOS) {
     `   reescrita; valem sob html[data-px='on'], a marca que src/lib/polimento/base.ts põe. */\n`
   writeFileSync(join(destino, nome), cabecalho + corpo.join('\n').trimEnd() + '\n')
   console.log(nome, linhas.length, '→', corpo.length, 'linhas')
+}
+
+/* ── O SELETOR DE CONTEÚDO (quinta pasta, `cartoes-enxuto-src`) ───────────────────────────────────────
+   A ficha no cabeçalho, o catálogo "Escolher o conteúdo" e a Biblioteca com a ficha (`seletor.js`,
+   `fontes.js`, `telas.js:395-446`). Bloco à parte, no fim, para não mexer nas tabelas de cima:
+     · `fontes.css` e `seletor.css` vêm com os cortes abaixo (o que é do Jogar e da pergunta na entrada
+       entra quando essas peças forem portadas);
+     · `cartoes-enxuto-base.css` são SÓ as regras de `cartoes.css` (linhas 431-744, as telas enxutas) que
+       o catálogo usa: o botão só de ícone, a dica, a linha com a ação na ponta, o painel de três fatos e
+       as folhas de menu. Quando Hoje, Baralhos e Palavras forem refeitas e o trecho inteiro entrar em
+       `cartoes.css`, este arquivo sai. */
+const DO_SELETOR = {
+  'fontes.css': {
+    de: 'fontes.css',
+    cortes: [
+      { de: 8, ate: 38, motivo: 'a versão enxuta do Jogar: já vem de enxuto.css' },
+      { de: 40, ate: 42, adiado: 'a ficha no cabeçalho do Jogar' },
+      { de: 47, ate: 67, adiado: 'o Jogar que responde à fonte (aviso do estado, jogos que não servem)' },
+      { de: 107, ate: 108, motivo: 'as barras do protótipo' },
+      { de: 112, ate: 134, adiado: 'o Jogar que responde à fonte (celular)' },
+      { de: 149, ate: 151, motivo: 'a versão enxuta do Jogar: já vem de enxuto.css' },
+    ],
+  },
+  'seletor.css': {
+    de: 'seletor.css',
+    cortes: [
+      { de: 43, ate: 60, adiado: 'a pergunta na entrada (opção desligada de fábrica)' },
+      { de: 97, ate: 103, adiado: 'a faixa de anúncio do Grátis no Jogar' },
+      { de: 149, ate: 151, adiado: 'a pergunta na entrada (celular)' },
+      { de: 164, ate: 181, adiado: 'o Jogar com a ficha (celular)' },
+    ],
+  },
+  'cartoes-enxuto-base.css': {
+    de: 'cartoes.css',
+    so: [
+      [442, 444],
+      [450, 453],
+      [498, 505],
+      [507, 513],
+      [543, 543],
+      [546, 546],
+      [549, 551],
+      [636, 636],
+      [655, 655],
+      [680, 680],
+      [682, 682],
+      [725, 725],
+      [739, 739],
+    ],
+  },
+}
+if (origemDosEnxutos) {
+  for (const [nome, { de, cortes, so }] of Object.entries(DO_SELETOR)) {
+    const linhas = readFileSync(join(origemDosEnxutos, de), 'utf8').replace(/\r\n/g, '\n').split('\n')
+    const corpo = []
+    if (so) {
+      for (const [a, b] of so) {
+        corpo.push(`/* [${de}:${a}${b > a ? '-' + b : ''}] */`, ...linhas.slice(a - 1, b))
+      }
+    } else {
+      let ultimo = null
+      linhas.forEach((linha, i) => {
+        const corte = cortes.find((c) => i + 1 >= c.de && i + 1 <= c.ate)
+        if (!corte) {
+          corpo.push(linha)
+          ultimo = null
+        } else if (corte !== ultimo) {
+          corpo.push(
+            `/* [${de}:${corte.de}-${corte.ate}] ${corte.adiado ? 'ADIADO até portar: ' + corte.adiado : 'não vem: ' + corte.motivo} */`,
+          )
+          ultimo = corte
+        }
+      })
+    }
+    const cabecalho =
+      `/* GERADO por scripts/polimento/trazer-css.mjs a partir de ${de} do protótipo dos cartões enxutos.\n` +
+      `   NÃO EDITAR À MÃO: mude a tabela DO_SELETOR do script e gere de novo. As regras são as do protótipo,\n` +
+      `   sem reescrita. */\n`
+    writeFileSync(join(destino, nome), cabecalho + corpo.join('\n').trimEnd() + '\n')
+    console.log(nome, linhas.length, '→', corpo.length, 'linhas')
+  }
 }

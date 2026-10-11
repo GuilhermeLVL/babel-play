@@ -34,6 +34,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { createSession, deleteSession, fetchSessions, patchSessionMeta, updateSession } from '../../data/api';
+import { escolherConteudo, mudarIdiomaDoConteudo, useConteudo } from '../../lib/conteudo/loja';
+import { useContagensDeConteudo } from '../../lib/conteudo/useContagens';
 import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
 import { getEntitlements, onPlanChange } from '../../lib/entitlements';
 import { numero } from '../../lib/i18n';
@@ -49,6 +51,8 @@ import { fetchLangConfig } from '../../lib/langConfig';
 import { usePosicaoFlutuante } from '../../lib/posicaoFlutuante';
 import { T } from '../../lib/T';
 import { Recording } from '../../types';
+import { nomeDoIdioma as nomeDoIdiomaDoConteudo } from '../conteudo/fontes';
+import { type ControleDoSeletor, SeletorDeConteudo } from '../conteudo/SeletorDeConteudo';
 import EditablePanel from '../EditablePanel';
 import { toast } from '../Toast';
 import { Abas, CabecalhoDeTela, IconeEmBloco, TituloDeSecao } from '../ui';
@@ -188,6 +192,33 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
     };
   }, []);
   const idiomas = [...new Set([...items.map(idiomaBase), estudando].filter(Boolean))].sort();
+
+  /* O CONTEÚDO ESCOLHIDO (um só, para o app inteiro) e as contagens por fonte. O idioma da Biblioteca
+     vem do seletor (`bibDoIdioma()`, `telas.js:395-396`): com dois idiomas ou mais, um por vez. A
+     gravação sem idioma gravado aparece em todos, para nunca ficar inalcançável. */
+  const conteudo = useConteudo();
+  const { contagens, recarregar: recarregarContagens } = useContagensDeConteudo(conteudo.idioma);
+  const controleDoSeletor = useRef<ControleDoSeletor | null>(null);
+  const idiomaDoConteudo = (contagens?.idiomas.length ?? 0) > 1 ? (contagens?.idioma ?? '') : '';
+  const noIdioma = (r: Recording) => !idiomaDoConteudo || !idiomaBase(r) || idiomaBase(r) === idiomaDoConteudo;
+  /* `telas.js:414-415`: o outro idioma com gravações (o que tem mais, se houver vários). */
+  const outroIdioma = !idiomaDoConteudo
+    ? null
+    : ((contagens?.idiomas ?? [])
+        .filter((i) => i.id !== idiomaDoConteudo)
+        .map((i) => ({ id: i.id, quantas: items.filter((r) => idiomaBase(r) === i.id).length }))
+        .filter((i) => i.quantas > 0)
+        .sort((a, b) => b.quantas - a.quantas)[0] ?? null);
+  const baralhoDaSessao = new Map((contagens?.sessoes ?? []).map((s) => [s.id, s]));
+  /** "Revisar" e "Jogar" de uma sessão definem o conteúdo e levam (`fontes.js:480-482`). */
+  const escolherSessao = (rec: Recording) =>
+    escolherConteudo({ tipo: 'sessao', id: rec.id, nome: rec.title }, idiomaBase(rec));
+  const abrirImportacao = (fonte?: FonteDeImportacao) => {
+    importarDoQuest.current = true;
+    setTelaCompleta(true);
+    setShowImport(true);
+    if (fonte) setImportSource(fonte);
+  };
 
   const filteredRecordings = items.filter((rec) => {
     const q = searchQuery.toLowerCase();
@@ -400,19 +431,46 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
     return (
       <>
         <BibliotecaDoQuest
-          gravacoes={sortedRecordings}
-          /* A sobrancelha e as contagens das abas são da biblioteca inteira, não do que a busca achou. */
-          total={items}
+          gravacoes={sortedRecordings.filter(noIdioma)}
+          /* A sobrancelha e as contagens das abas são da biblioteca inteira (do idioma), não do que a busca achou. */
+          total={items.filter(noIdioma)}
           ordem={ordem}
           aoTrocarOrdem={setOrdem}
           aoAbrir={(rec) => onChangeView('analysis', { id: rec.id })}
-          aoJogar={(rec) => onChangeView('play', { id: rec.id })}
-          aoRevisar={(rec) => onChangeView('study', { id: rec.id })}
+          aoJogar={(rec) => {
+            escolherSessao(rec);
+            onChangeView('play', { id: rec.id });
+          }}
+          aoRevisar={(rec) => {
+            escolherSessao(rec);
+            onChangeView('study', { id: rec.id });
+          }}
           aoCapturar={() => onChangeView('capture')}
-          aoImportar={() => {
-            importarDoQuest.current = true;
-            setTelaCompleta(true);
-            setShowImport(true);
+          aoImportar={() => abrirImportacao()}
+          conteudo={{
+            ficha: (
+              <SeletorDeConteudo
+                conteudo={conteudo}
+                contagens={contagens}
+                aoRecarregar={recarregarContagens}
+                controle={controleDoSeletor}
+                aoRevisar={(f) => onChangeView('study', f.tipo === 'sessao' ? { id: f.id } : undefined)}
+                aoJogar={(f) => onChangeView('play', f.tipo === 'sessao' ? { id: f.id } : undefined)}
+                aoCapturar={() => onChangeView('capture')}
+                aoColarLista={() => abrirImportacao('texto')}
+                aoTrazerArquivo={() => abrirImportacao()}
+              />
+            ),
+            daSessao: (id) => baralhoDaSessao.get(id),
+            carregado: !!contagens,
+            emUso: conteudo.fonte.tipo === 'sessao' ? conteudo.fonte.id : null,
+            idioma: idiomaDoConteudo ? nomeDoIdiomaDoConteudo(idiomaDoConteudo).toLocaleLowerCase() : '',
+            outro: outroIdioma && {
+              nome: nomeDoIdiomaDoConteudo(outroIdioma.id).toLocaleLowerCase(),
+              quantas: outroIdioma.quantas,
+              aoIr: () => mudarIdiomaDoConteudo(outroIdioma.id),
+            },
+            aoTrazer: () => controleDoSeletor.current?.abrirTrazer(),
           }}
           aoFixar={(rec) => void togglePin(rec)}
           aoRenomear={setEditando}

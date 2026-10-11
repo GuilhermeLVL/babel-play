@@ -1,0 +1,53 @@
+{
+  "nome": "revisao-enxuta-praticar-celular",
+  "prototipo": "cartoes-enxuto",
+  "largura": 390,
+  "altura": 844,
+  "toque": true,
+  "app": {
+    "caminho": "/cartoes/estudar",
+    "assentar": 3500,
+    "passos": [
+      {
+        "js": "(async () => { for (let i = 0; i < 8; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 400)); } })()"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "js": "(async () => { for (let i = 0; i < 60 && !document.querySelector('[data-estado=\"fim\"]'); i++) { (document.querySelector('.fsrs .b') || document.querySelector('.qr-principal'))?.click(); await new Promise((r) => setTimeout(r, 450)); } })()"
+      },
+      {
+        "esperar": 2200
+      },
+      {
+        "clicar": ".cx-fim-pe .q-ctl.pri"
+      },
+      {
+        "esperar": 1400
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?cx=praticar&quieto&embutido",
+    "assentar": 3500,
+    "passos": [
+      {
+        "esperar": 1800
+      }
+    ]
+  },
+  "seletores": [
+    "dialog.cx-folha-praticar",
+    ".cx-folha-cab .folha-pal",
+    ".cx-recorte",
+    ".cx-recorte .q-tag",
+    ".cx-ladrilhos",
+    ".cx-ladrilho",
+    ".cx-ladrilho .px-mini",
+    ".cx-ladrilho b",
+    ".cx-ladrilho .q-d",
+    ".cx-selo.conta",
+    ".cx-selo.leve"
+  ]
+}

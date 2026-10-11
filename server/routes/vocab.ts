@@ -2,6 +2,7 @@
 import { Router } from 'express'
 
 import type { Grade } from '../../src/core/learning/scheduler'
+import { contagensDeConteudo, versaoDosBaralhos } from '../db/repositories/contagensDeConteudo'
 import { resumoDosCartoes } from '../db/repositories/resumoDosCartoes'
 import { versoesRepo } from '../db/repositories/versoes'
 import { vocabRepo } from '../db/repositories/vocab'
@@ -17,6 +18,7 @@ import {
   patchVocabSchema,
   relabelVocabSchema,
   reviewGradeSchema,
+  vocabConteudoQuerySchema,
   vocabPaginaQuerySchema,
   vocabParaJogoQuerySchema,
   vocabResumoQuerySchema,
@@ -176,6 +178,53 @@ vocabRouter.get('/resumo', async (req, res) => {
   }
 })
 
+/**
+ * AS CONTAGENS POR FONTE: o que o seletor de conteúdo mostra (Tudo, Difíceis, cada sessão com cartões,
+ * cada baralho do Anki, a Trilha), no idioma pedido. O contrato, com a definição de cada número, é
+ * `src/core/learning/contagensDeConteudo.ts`.
+ *
+ * O mesmo desenho do resumo, logo acima: ETag pela versão dos dados, com o minuto do pedido e o idioma
+ * como variante ("para hoje" depende do relógio). A versão junta `vocab` (cartões e ocorrências),
+ * `atividade` (o título de uma sessão) e a dos baralhos do Anki, que nenhum contador cobre.
+ *   · If-None-Match igual → 304 com duas consultas de chave/índice, sem tocar nos cartões;
+ *   · mesma versão, mesmo minuto e mesmo idioma → o corpo já serializado (`conteudosServidos`);
+ *   · senão → lê, conta e guarda.
+ */
+const conteudosServidos = new CachePorVersao<string>(512, 8 * 1024 * 1024)
+
+vocabRouter.get('/conteudo', async (req, res) => {
+  const q = parseOr400(vocabConteudoQuerySchema, req.query, res)
+  if (!q) return
+  try {
+    const idioma = (q.idioma ?? '').toLowerCase().slice(0, 2)
+    const agora = Math.ceil(Date.now() / 60_000) * 60_000
+    // A versão ANTES das tabelas — ver `CachePorVersao` para o porquê da ordem.
+    const [{ vocab, atividade }, baralhos] = await Promise.all([
+      versoesRepo.de(req.userId),
+      versaoDosBaralhos(req.userId),
+    ])
+    const versao = `${vocab}.${atividade}.${baralhos}`
+    const etag = etagPorVersao('conteudo', req.userId, versao, `${idioma}|${agora}`)
+    res.setHeader('ETag', etag)
+    if (casaComIfNoneMatch(req.headers['if-none-match'], etag)) {
+      res.status(304).end()
+      return
+    }
+    const chave = `${req.userId}|${idioma}`
+    let corpo = conteudosServidos.obter(chave, `${versao}|${agora}`)
+    if (corpo === undefined) {
+      corpo = JSON.stringify(await contagensDeConteudo(req.userId, { agora, idioma }))
+      conteudosServidos.guardar(chave, `${versao}|${agora}`, corpo, corpo.length)
+    }
+    res.type('application/json').send(corpo)
+  } catch (err) {
+    res.removeHeader('ETag')
+    res.status(500).json({
+      error: erroDeRota(err, { status: 500, event: 'vocab_route_error', route: req.path, requestId: req.requestId }),
+    })
+  }
+})
+
 /** Z3: instrumentação da distribuição por faixa — o drift precisa ser um número observável. */
 vocabRouter.get('/distribuicao-dificuldade', async (req, res) => {
   try {
@@ -265,8 +314,9 @@ vocabRouter.post('/relabel', async (req, res) => {
 })
 
 /**
- * Edição de um cartão pela curadoria: tradução e presença no baralho.
- * Só estes dois campos — o resto do cartão (agendamento, idioma, frase) tem donos próprios.
+ * Edição de um cartão pela curadoria: tradução, frase, nível e presença no baralho; e, pela revisão,
+ * `adiarAte` ("Deixar para amanhã", "Descansar 30 dias"): só a data em que o cartão volta a vencer.
+ * A memória do cartão (estabilidade, dificuldade, erros) e o idioma têm donos próprios.
  */
 vocabRouter.patch('/:id', async (req, res) => {
   const p = parseOr400(idParamSchema, req.params, res)
@@ -274,11 +324,18 @@ vocabRouter.patch('/:id', async (req, res) => {
   const body = parseOr400(patchVocabSchema, req.body, res)
   if (!body) return
   try {
-    const patch: { back?: string; inDeck?: boolean; sentence?: string; cefrLevel?: string | null } = {}
+    const patch: {
+      back?: string
+      inDeck?: boolean
+      sentence?: string
+      cefrLevel?: string | null
+      adiarAte?: number
+    } = {}
     if (body.back !== undefined) patch.back = body.back
     if (body.inDeck !== undefined) patch.inDeck = body.inDeck
     if (body.sentence !== undefined) patch.sentence = body.sentence
     if (body.cefrLevel !== undefined) patch.cefrLevel = body.cefrLevel
+    if (body.adiarAte !== undefined) patch.adiarAte = body.adiarAte
     if (!Object.keys(patch).length) return res.status(400).json({ error: 'nada a alterar' })
     const card = await vocabRepo.patch(req.userId, p.id, patch)
     if (!card) return res.status(404).json({ error: 'card não encontrado' })

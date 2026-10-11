@@ -3,23 +3,27 @@ import '../../../../styles/questBiblioteca.css';
 import {
   ArrowUpDown,
   BookOpen,
+  Check,
   ChevronLeft,
   ChevronRight,
   Download,
   Gamepad2,
+  Languages,
   Library,
   Mic,
   Monitor,
   Plus,
   Search,
+  Target,
 } from 'lucide-react';
-import { Fragment, useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, type ReactNode, useLayoutEffect, useRef, useState } from 'react';
 
 import { noCelular } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { idiomaDaInterface, numero, t, tp } from '../../../../lib/i18n';
 import { type ComoRedesenhar, redesenharBib } from '../../../../lib/polimento/biblioteca';
 import type { Recording } from '../../../../types';
 import EspacoDeAnuncio from '../../../anuncios/EspacoDeAnuncio';
+import { CabecalhoComFicha } from '../../../conteudo/FichaDeConteudo';
 
 /**
  * A BIBLIOTECA NO QUEST — a maquete aprovada pelo dono em 01/10/2026 (tela 9), refeita em 02/10/2026
@@ -85,6 +89,24 @@ const palavrasDe = (g: Recording) =>
       : t('Sem texto ainda')
     : tp(g.wordCount, '{n} palavra', '{n} palavras', { n: numero(g.wordCount) });
 
+/** O que a Biblioteca precisa saber do conteúdo escolhido: quem lê e guarda é a `Library`. */
+export interface ConteudoNaBiblioteca {
+  /** A ficha (`SeletorDeConteudo`), já ligada. */
+  ficha: ReactNode;
+  /** O baralho da sessão: palavras guardadas como cartão e o que vence hoje. Sem cartão, `undefined`. */
+  daSessao: (id: string) => { palavras: number; paraHoje: number } | undefined;
+  /** As contagens já chegaram? Antes disso (ou sem rede) a linha mostra as palavras da transcrição e nada fica desligado. */
+  carregado: boolean;
+  /** O id da sessão que é o conteúdo escolhido, se for uma sessão. */
+  emUso: string | null;
+  /** "espanhol": o idioma mostrado, em minúscula, quando a conta tem dois ou mais; senão vazio. */
+  idioma: string;
+  /** O outro idioma com gravações: o link "Ver a gravação em …" (`telas.js:414-415, 438`). */
+  outro: { nome: string; quantas: number; aoIr: () => void } | null;
+  /** "Trazer ou capturar": abre "Trazer uma fonte" (`telas.js:439`). */
+  aoTrazer: () => void;
+}
+
 export default function BibliotecaDoQuest({
   gravacoes,
   total = gravacoes,
@@ -104,7 +126,14 @@ export default function BibliotecaDoQuest({
   aoBuscar,
   duploCliqueAbre = false,
   porPagina = GRAVACOES_POR_PAGINA,
+  conteudo,
 }: {
+  /**
+   * O SELETOR DE CONTEÚDO (`telas.js:395-446` de `cartoes-enxuto-src`). Com ele o cabeçalho ganha a
+   * ficha, a linha de totais vai para a direita, cada linha mostra as palavras GUARDADAS (as do baralho
+   * da sessão) e as duas ações diretas, e a sessão em uso ganha a marca. Sem ele, a tela é a de antes.
+   */
+  conteudo?: ConteudoNaBiblioteca;
   /** Já na ordem em que aparecem (fixadas primeiro) e já filtradas pela busca. */
   gravacoes: readonly Recording[];
   /**
@@ -185,23 +214,34 @@ export default function BibliotecaDoQuest({
   const buscando = !!busca?.trim();
   const semNada = total.length === 0 && !buscando;
 
-  const cabecalho = (
+  const botaoDaOrdem = (classe = '') => (
+    <button
+      type="button"
+      className={`q-chip ${classe}`.trim()}
+      aria-label={t('Ordem: {ordem}. Trocar a ordem', { ordem: rotuloDaOrdem(ordem) })}
+      title={conteudo ? t('Ordem: {ordem}. Trocar a ordem', { ordem: rotuloDaOrdem(ordem) }) : undefined}
+      onClick={() => {
+        aoTrocarOrdem(ORDENS[(ORDENS.indexOf(ordem) + 1) % ORDENS.length]);
+        setPagina(0);
+      }}
+    >
+      <ArrowUpDown aria-hidden /> {rotuloDaOrdem(ordem)}
+    </button>
+  );
+
+  /* `telas.js:422-423`: título, ficha e, à direita, a linha de totais e a ordem. */
+  const cabecalho = conteudo ? (
+    <CabecalhoComFicha titulo={t('Biblioteca')} ficha={conteudo.ficha} classe="fs-cab-bib">
+      <p className="q-sobre fs-bib-sobre">{resumo}</p>
+      {botaoDaOrdem('fs-bib-ordem')}
+    </CabecalhoComFicha>
+  ) : (
     <header className="q-cab">
       <div>
         <p className="q-sobre">{resumo}</p>
         <h1>{t('Biblioteca')}</h1>
       </div>
-      <button
-        type="button"
-        className="q-chip"
-        aria-label={t('Ordem: {ordem}. Trocar a ordem', { ordem: rotuloDaOrdem(ordem) })}
-        onClick={() => {
-          aoTrocarOrdem(ORDENS[(ORDENS.indexOf(ordem) + 1) % ORDENS.length]);
-          setPagina(0);
-        }}
-      >
-        <ArrowUpDown aria-hidden /> {rotuloDaOrdem(ordem)}
-      </button>
+      {botaoDaOrdem()}
       {aoImportar && (
         <button type="button" className="q-chip" onClick={aoImportar}>
           <Plus aria-hidden /> {t('Importar')}
@@ -289,7 +329,16 @@ export default function BibliotecaDoQuest({
         {abas}
         <div className="q-vazio" data-testid="busca-sem-resultado">
           <h2>{t('Nenhum resultado')}</h2>
-          <p>{t('Nenhuma gravação tem “{busca}” no título.', { busca: busca?.trim() ?? '' })}</p>
+          <p>
+            {!conteudo?.idioma
+              ? t('Nenhuma gravação tem “{busca}” no título.', { busca: busca?.trim() ?? '' })
+              : buscando
+                ? t('Nenhuma gravação tem “{busca}” no título em {idioma}.', {
+                    busca: busca?.trim() ?? '',
+                    idioma: conteudo.idioma,
+                  })
+                : t('Nenhuma gravação em {idioma}.', { idioma: conteudo.idioma })}
+          </p>
           <button
             type="button"
             className="q-ctl"
@@ -310,8 +359,22 @@ export default function BibliotecaDoQuest({
   // Sessão que ficou no meio (sem texto, ou ainda processando) abre, mas não tem o que jogar nem revisar.
   const semTexto = selecionada.pronta === false;
   const IconeDaSelecionada = ICONE_DO_TIPO[selecionada.type] ?? Mic;
-  const fatos: [string, string][] = [
-    [t('Palavras'), selecionada.wordCount ? numero(selecionada.wordCount) : '—'],
+  /* `fxDaGravacao()` de `fontes.js:114`: o baralho desta sessão (as palavras guardadas como cartão). */
+  const baralhoDaSelecionada = conteudo?.daSessao(selecionada.id);
+  const semBaralho = !!conteudo?.carregado && !baralhoDaSelecionada;
+  const fatos: [string, string, string?][] = [
+    conteudo?.carregado
+      ? [
+          t('Guardadas'),
+          selecionada.wordCount
+            ? t('{guardadas} de {total}', {
+                guardadas: numero(baralhoDaSelecionada?.palavras ?? 0),
+                total: numero(selecionada.wordCount),
+              })
+            : '—',
+          t('Palavras guardadas como cartão, do total de palavras da transcrição'),
+        ]
+      : [t('Palavras'), selecionada.wordCount ? numero(selecionada.wordCount) : '—'],
     [t('Duração'), minutosDe(selecionada.durationStr) || '—'],
     [t('Idioma'), nomeDoIdioma(selecionada.idioma) || '—'],
     [t('Data'), selecionada.date || '—'],
@@ -336,45 +399,128 @@ export default function BibliotecaDoQuest({
             {visiveis.map((g, i) => {
               const Icone = ICONE_DO_TIPO[g.type] ?? Mic;
               const detalhes = [g.date, minutosDe(g.durationStr), nomeDoIdioma(g.idioma)].filter(Boolean).join(' · ');
+              const linha = (fim: ReactNode, marca?: ReactNode, titulo?: string) => (
+                <button
+                  type="button"
+                  className="q-linha"
+                  data-px-grav={g.id}
+                  aria-pressed={g.id === selecionada.id}
+                  onClick={() => {
+                    setEscolhida(g.id);
+                    redesenhar('detalhe');
+                  }}
+                  onDoubleClick={duploCliqueAbre ? () => aoAbrir(g) : undefined}
+                >
+                  <span className="q-ic" aria-hidden>
+                    <Icone />
+                  </span>
+                  <span>
+                    <b>{g.title}</b>
+                    <small>
+                      {detalhes}
+                      {marca}
+                    </small>
+                  </span>
+                  <span className="q-fim" title={titulo}>
+                    {fim}
+                  </span>
+                </button>
+              );
+              /* `telas.js:430-436`: o número é o das palavras GUARDADAS, e a linha traz Revisar e Jogar. */
+              const bar = conteudo?.daSessao(g.id);
               return (
                 <Fragment key={g.id}>
-                  <button
-                    type="button"
-                    className="q-linha"
-                    data-px-grav={g.id}
-                    aria-pressed={g.id === selecionada.id}
-                    onClick={() => {
-                      setEscolhida(g.id);
-                      redesenhar('detalhe');
-                    }}
-                    onDoubleClick={duploCliqueAbre ? () => aoAbrir(g) : undefined}
-                  >
-                    <span className="q-ic" aria-hidden>
-                      <Icone />
-                    </span>
-                    <span>
-                      <b>{g.title}</b>
-                      <small>{detalhes}</small>
-                    </span>
-                    <span className="q-fim">{palavrasDe(g)}</span>
-                  </button>
+                  {conteudo ? (
+                    <div className="ct-linha-caixa fx-bib-caixa">
+                      {linha(
+                        bar
+                          ? tp(bar.palavras, '{n} palavra', '{n} palavras', { n: numero(bar.palavras) })
+                          : g.pronta === false || !conteudo.carregado
+                            ? palavrasDe(g)
+                            : t('sem cartões'),
+                        conteudo.emUso === g.id && (
+                          <>
+                            {' · '}
+                            <span className="fs-em-uso">
+                              <Check aria-hidden />
+                              {t('em uso')}
+                            </span>
+                          </>
+                        ),
+                        t('Palavras guardadas como cartão nesta sessão'),
+                      )}
+                      {bar && (
+                        <span className="fx-bib-acoes">
+                          <button
+                            type="button"
+                            className="q-ctl ct-so-icone"
+                            disabled={!bar.paraHoje}
+                            aria-label={
+                              bar.paraHoje
+                                ? t('Revisar {titulo}: {n} para hoje', { titulo: g.title, n: bar.paraHoje })
+                                : t('Revisar {titulo}: nada vence hoje', { titulo: g.title })
+                            }
+                            title={
+                              bar.paraHoje ? t('Revisar · {n} para hoje', { n: bar.paraHoje }) : t('Nada vence hoje')
+                            }
+                            onClick={() => aoRevisar(g)}
+                          >
+                            <Target aria-hidden />
+                          </button>
+                          <button
+                            type="button"
+                            className="q-ctl ct-so-icone"
+                            aria-label={t('Jogar com {titulo}', { titulo: g.title })}
+                            title={t('Jogar com esta sessão: ela vira o conteúdo escolhido')}
+                            onClick={() => aoJogar(g)}
+                          >
+                            <Gamepad2 aria-hidden />
+                          </button>
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    linha(palavrasDe(g))
+                  )}
                   {i === 1 && linhaPatrocinada && <EspacoDeAnuncio espaco="bib-infeed" formato="nativo" />}
                 </Fragment>
               );
             })}
           </div>
 
-          <button type="button" className="q-linha q-bib-nova" data-px="capturar" onClick={aoCapturar}>
-            <span className="q-bib-nova-dentro">
-              <span className="q-ic" aria-hidden>
-                <Mic />
+          {conteudo?.outro && (
+            <button type="button" className="ex-lig fs-outro-idioma" onClick={conteudo.outro.aoIr}>
+              <Languages aria-hidden />
+              {tp(conteudo.outro.quantas, 'Ver a gravação em {idioma}', 'Ver as {n} gravações em {idioma}', {
+                idioma: conteudo.outro.nome,
+              })}
+            </button>
+          )}
+          {conteudo ? (
+            <button type="button" className="q-linha q-bib-nova" data-fx="trazer" onClick={conteudo.aoTrazer}>
+              <span className="q-bib-nova-dentro">
+                <span className="q-ic" aria-hidden>
+                  <Plus />
+                </span>
+                <span>
+                  <b>{t('Trazer ou capturar')}</b>
+                  <small>{t('Vídeo, áudio, PDF, texto ou captura ao vivo.')}</small>
+                </span>
               </span>
-              <span>
-                <b>{t('Capturar outra sessão')}</b>
-                <small>{t('O que você ouvir vira texto, palavras e jogos.')}</small>
+            </button>
+          ) : (
+            <button type="button" className="q-linha q-bib-nova" data-px="capturar" onClick={aoCapturar}>
+              <span className="q-bib-nova-dentro">
+                <span className="q-ic" aria-hidden>
+                  <Mic />
+                </span>
+                <span>
+                  <b>{t('Capturar outra sessão')}</b>
+                  <small>{t('O que você ouvir vira texto, palavras e jogos.')}</small>
+                </span>
               </span>
-            </span>
-          </button>
+            </button>
+          )}
 
           <div className="q-faixa q-bib-paginas">
             <button
@@ -418,6 +564,7 @@ export default function BibliotecaDoQuest({
             <div>
               <p className="q-bib-tags">
                 <span className="q-tag">{rotuloDoTipo(selecionada.type)}</span>
+                {conteudo?.emUso === selecionada.id && <span className="q-tag ct-rv">{t('Em uso')}</span>}
                 {selecionada.pinned && <span className="q-tag">{t('Fixada')}</span>}
                 {semTexto && <span className="q-tag off">{palavrasDe(selecionada)}</span>}
               </p>
@@ -426,8 +573,8 @@ export default function BibliotecaDoQuest({
           </div>
 
           <dl className="q-bib-fatos">
-            {fatos.map(([rotulo, valor]) => (
-              <div key={rotulo}>
+            {fatos.map(([rotulo, valor, dica]) => (
+              <div key={rotulo} title={dica}>
                 <dt>{rotulo}</dt>
                 <dd>{valor}</dd>
               </div>
@@ -443,13 +590,20 @@ export default function BibliotecaDoQuest({
                 type="button"
                 className="q-ctl"
                 data-px="jogar"
-                disabled={semTexto}
+                disabled={semTexto || semBaralho}
+                title={conteudo ? t('Esta sessão vira o conteúdo escolhido e o Jogar abre') : undefined}
                 onClick={() => aoJogar(selecionada)}
               >
                 <Gamepad2 aria-hidden /> {t('Jogar com esta')}
               </button>
-              <button type="button" className="q-ctl" disabled={semTexto} onClick={() => aoRevisar(selecionada)}>
-                {t('Revisar palavras')}
+              <button
+                type="button"
+                className="q-ctl"
+                disabled={semTexto || semBaralho}
+                title={conteudo ? t('Esta sessão vira o conteúdo escolhido e a revisão abre') : undefined}
+                onClick={() => aoRevisar(selecionada)}
+              >
+                {conteudo && <Target aria-hidden />} {t('Revisar palavras')}
               </button>
             </div>
             {(aoExportar || aoRetomar) && (

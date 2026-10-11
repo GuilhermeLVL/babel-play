@@ -1,0 +1,49 @@
+/* GERADO por scripts/polimento/trazer-css.mjs a partir de cartoes.css do protótipo dos cartões enxutos.
+   NÃO EDITAR À MÃO: mude a tabela DO_SELETOR do script e gere de novo. As regras são as do protótipo,
+   sem reescrita. */
+/* [cartoes.css:442-444] */
+html[data-quest-novo='true'] :is(.q-ctl, .btn).ct-so-icone { flex: 0 0 auto; padding: 0; justify-content: center; gap: 0; aspect-ratio: 1; }
+html[data-quest-novo='true'] .q-ctl.ct-so-icone { min-width: 56px; min-height: 56px; }
+.btn.ct-so-icone { min-width: 48px; }
+/* [cartoes.css:450-453] */
+.ct-dica { all: unset; box-sizing: border-box; cursor: help; display: inline-grid; place-items: center; width: 32px; height: 32px; margin: -6px 0; border-radius: 50%; vertical-align: middle; color: var(--ink-muted); transition: color 0.16s ease, background-color 0.16s ease; }
+.ct-dica svg { width: 19px; height: 19px; }
+.ct-dica:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.ct-dica:focus-visible { outline: 3px solid var(--q-acento); outline-offset: 1px; }
+/* [cartoes.css:498-505] */
+.ct-linha-caixa { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; }
+html[data-quest-novo='true'] .ct-linha-caixa > .q-linha.ct-linha-b { padding-right: 136px; }
+.ct-linha-caixa > :is(.ct-revisar, .ct-em-dia) { position: absolute; right: 14px; top: calc(50% - 22px); height: 44px; }
+html[data-quest-novo='true'] .q-ctl.ct-revisar { min-height: 44px; padding: 0 14px 0 12px; gap: 6px; font-size: 15.5px; background: var(--canvas); }
+html[data-quest-novo='true'] .q-ctl.ct-revisar:hover { background: var(--q-suave); border-color: var(--q-acento); }
+.ct-revisar svg, .ct-em-dia svg { width: 18px; height: 18px; }
+.ct-em-dia { display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: 108px; font: 700 13.5px/1 var(--font-mono, monospace); color: var(--ink-muted); pointer-events: none; }
+.ct-grupo > header { gap: 4px; }
+/* [cartoes.css:507-513] */
+.ct-bar-det .q-bib-topo { align-items: flex-start; }
+.ct-bar-det .q-bib-topo > div { flex: 1 1 auto; min-width: 0; }
+html[data-quest-novo='true'] .ct-bar-det .q-bib-topo > .q-ctl.ct-so-icone { min-width: 48px; min-height: 48px; margin: -4px -6px 0 0; background: none; border-color: transparent; }
+html[data-quest-novo='true'] .ct-bar-det .q-bib-topo > .q-ctl.ct-so-icone:hover { background: var(--canvas); border-color: var(--border-subtle); }
+html[data-quest-novo='true'] .ct-bar-det .q-bib-fatos.ct-fatos3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+html[data-quest-novo='true'] .ct-bar-det .ct-fatos3 > div { display: grid; gap: 8px; justify-items: start; align-content: start; padding: 12px 14px; }
+html[data-quest-novo='true'] .ct-bar-det .ct-fatos3 dd { margin: 0; font: 900 24px/1 var(--font-display, inherit); font-variant-numeric: tabular-nums; }
+/* [cartoes.css:543] */
+html[data-quest-novo='true'] dialog.ct-dlg.ct-menu.ct-menu { width: min(560px, calc(100vw - 32px)); max-width: none; }
+/* [cartoes.css:546] */
+html[data-quest-novo='true'] dialog.ct-dlg .q-linha b { white-space: normal; }
+/* [cartoes.css:549-551] */
+.ct-menu-lista { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+html[data-quest-novo='true'] dialog.ct-dlg .q-linha { background: var(--canvas); text-align: left; }
+html[data-quest-novo='true'] dialog.ct-dlg .q-linha small { white-space: normal; }
+/* [cartoes.css:636] */
+@media (max-width: 720px) {
+/* [cartoes.css:655] */
+  .ct-dica { width: 44px; height: 44px; margin: -12px -6px; }
+/* [cartoes.css:680] */
+  html[data-quest-novo='true'] .ct-linha-caixa > .q-linha.ct-linha-b { padding-right: 14px; padding-bottom: 16px; }
+/* [cartoes.css:682] */
+  .ct-linha-caixa > :is(.ct-revisar, .ct-em-dia) { top: auto; bottom: 12px; right: 12px; }
+/* [cartoes.css:725] */
+  html[data-quest-novo='true'] dialog.ct-dlg.ct-menu.ct-menu, html[data-quest-novo='true'] dialog.ct-dlg.ct-anki.ct-anki, html[data-quest-novo='true'] dialog.ct-dlg.ct-enriquecer.ct-enriquecer { width: 100%; }
+/* [cartoes.css:739] */
+}

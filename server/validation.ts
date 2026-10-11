@@ -287,11 +287,11 @@ export const reviewGradeSchema = z
     retencao: z.number().min(0.8).max(0.97).optional(),
     /* SÓ REGISTRO (migração 0052), nada disto entra no agendamento. Tudo opcional: o cliente de uma
        aba antiga não manda, e a revisão vale do mesmo jeito (as colunas ficam nulas). */
-    /** De onde veio a nota: 'revisao' ou 'jogo:<id do jogo>'. */
+    /** De onde veio a nota: 'revisao', 'jogo:<id do jogo>' ou 'pratica:<falar|ditado|completar>'. */
     origem: z
       .string()
       .max(60)
-      .regex(/^(revisao|jogo:[a-z0-9-]{1,40})$/)
+      .regex(/^(revisao|(jogo|pratica):[a-z0-9-]{1,40})$/)
       .optional(),
     /** Como o cartão foi mostrado ('lembrar' | 'digitar' | 'escolha'; nos jogos, o id do jogo). */
     formato: z
@@ -604,6 +604,20 @@ export const vocabResumoQuerySchema = z
   .strip()
 
 /**
+ * `GET /api/vocab/conteudo`: o idioma pedido ao seletor de conteúdo (`en`, ou `pt-BR`, que o
+ * handler reduz à base). Ausente = o maior idioma da conta.
+ */
+export const vocabConteudoQuerySchema = z
+  .object({
+    idioma: z
+      .string()
+      .trim()
+      .regex(/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/, 'idioma inválido')
+      .optional(),
+  })
+  .strip()
+
+/**
  * PATCH de cartão: o handler fazia `typeof` + `slice(0,2000)` à mão.
  *
  * Só `back` e `inDeck`, porque é só isso que a rota aceita hoje — o resto do cartão (agendamento,
@@ -618,6 +632,10 @@ export const patchVocabSchema = z
        protótipo aprovado. Nível escolhido à mão vira nível curado; `null` volta ao da wordlist. */
     sentence: z.string().max(2_000).optional(),
     cefrLevel: z.enum(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']).nullable().optional(),
+    /* "Deixar para amanhã" e "Descansar 30 dias" (revisão, 10/10/2026): o cartão só volta a vencer
+       nesta data. Não é uma revisão: nada entra em `review_logs`, e a memória do cartão (estabilidade,
+       dificuldade, erros) fica como está. O teto de um ano é o do repositório, contado de agora. */
+    adiarAte: z.number().int().min(0).max(4_102_444_800_000).optional(),
   })
   .strip()
 

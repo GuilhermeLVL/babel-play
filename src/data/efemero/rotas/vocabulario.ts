@@ -127,6 +127,8 @@ export async function editarCartao(m: RegExpMatchArray, _u: URL, init: RequestIn
     inDeck: typeof p.inDeck === 'boolean' ? (p.inDeck ? 1 : 0) : c.inDeck,
     sentence: typeof p.sentence === 'string' ? p.sentence.trim() || null : c.sentence,
     cefrLevel: p.cefrLevel === null || typeof p.cefrLevel === 'string' ? (p.cefrLevel as string | null) : c.cefrLevel,
+    /* "Deixar para amanhã" e "Descansar 30 dias": só a data em que o cartão volta a vencer. */
+    dueAt: typeof p.adiarAte === 'number' && Number.isFinite(p.adiarAte) ? Math.max(0, Math.round(p.adiarAte)) : c.dueAt,
   };
   await db.put('cartoes', novo);
   return json(novo);

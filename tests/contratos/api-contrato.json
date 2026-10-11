@@ -54,6 +54,7 @@
     "GET /api/vocab",
     "GET /api/vocab/:id/memoria",
     "GET /api/vocab/:id/ocorrencias",
+    "GET /api/vocab/conteudo",
     "GET /api/vocab/distribuicao-dificuldade",
     "GET /api/vocab/inicio-da-contagem",
     "GET /api/vocab/pagina",

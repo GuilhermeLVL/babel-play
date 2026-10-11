@@ -3,7 +3,10 @@
  * A REVISÃO NO QUEST (segunda rodada do desenho do headset, 01/10/2026): a tela nova monta em todos os
  * estados (espera, baralho vazio, rodada, fora da rodada, fim) e cada função da tela de sempre continua
  * alcançável: os quatro formatos de cartão, as quatro notas com o intervalo, desfazer, ouvir, editar,
- * suspender (com desfazer no aviso), as seis opções da revisão e as saídas do fim da rodada.
+ * suspender (com desfazer no aviso), os ajustes da memória e as saídas do fim da sessão.
+ *
+ * VERSÃO ENXUTA (10/10/2026, `cartoes-enxuto-src/cartoes2.js`): o desfazer subiu para o topo, e editar,
+ * suspender, os ajustes e o encerrar moram na folha do "…". Os testes chegam a eles por lá.
  */
 import { readFileSync } from 'node:fs'
 
@@ -135,7 +138,26 @@ async function montar(props: Partial<React.ComponentProps<typeof Study>> = {}) {
     fireEvent.click(el)
     await act(async () => {})
   }
-  return { ...tela, ir, palco, botao, tocar }
+  /** Uma ação da folha do "…": abre a folha (que chega num pedaço à parte), toca e espera os 240 ms dela. */
+  const peloMais = async (nome: RegExp | string) => {
+    fireEvent.click(botao('Mais ações e ajustes'))
+    await assentar()
+    const folha = document.querySelector('dialog.cx-folha-acoes') as HTMLElement
+    fireEvent.click(within(folha).getByRole('button', { name: nome }))
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 300))
+    })
+    await assentar()
+  }
+  return { ...tela, ir, palco, botao, tocar, peloMais }
+}
+
+/** Espera o que é carregado sob demanda (as folhas e os diálogos da revisão). */
+async function assentar() {
+  await act(async () => {
+    await vi.dynamicImportSettled()
+  })
+  await act(async () => {})
 }
 
 beforeEach(() => {
@@ -190,11 +212,9 @@ describe('Revisão no Quest', () => {
   it('Lembrar: as quatro notas com o intervalo; a nota vai ao servidor, a fila anda e dá para desfazer', async () => {
     const { container, botao, tocar } = await montar()
     const palavra = container.querySelector('.termo')?.textContent as string
-    const desfazer = () =>
-      within(screen.getByRole('toolbar', { name: 'Ações do cartão' })).getByRole('button', {
-        name: /Desfazer/,
-      }) as HTMLButtonElement
+    const desfazer = () => botao('Desfazer a última nota')
     expect(desfazer().disabled).toBe(true)
+    expect(desfazer().closest('header')).toBeTruthy()
 
     await tocar(botao(/Mostrar resposta/))
     const notas = [...container.querySelectorAll<HTMLButtonElement>('.fsrs button')]
@@ -217,20 +237,22 @@ describe('Revisão no Quest', () => {
 
   it('Ouvir só aparece quando há voz para o idioma da palavra', async () => {
     const com = await montar()
-    const ouvir = com.botao(/^Ouvir$/)
-    fireEvent.click(ouvir)
-    expect(voz.falar).toHaveBeenCalledTimes(1)
+    /* Cartão sem sessão: o botão da fileira é "Ouvir" (a voz do aparelho), e não "Fala original". */
+    const ouvir = com.botao('Ouvir na voz do aparelho')
+    expect(ouvir.textContent).toContain('Ouvir')
+    expect(screen.queryByRole('button', { name: 'Fala original' })).toBeNull()
+    expect(ouvir.closest('.cx-fileira')?.querySelector('.qr-principal')).toBeTruthy()
     cleanup()
 
     api.deck = [cartao('d1', 'Katze', 'gato', { srcLang: 'de' })]
     await montar()
-    expect(screen.queryByRole('button', { name: /^Ouvir$/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Ouvir na voz do aparelho' })).toBeNull()
   })
 
   it('Editar cartão abre a palavra num diálogo, já em edição, sem roubar o foco para o teclado', async () => {
-    const { container, botao, tocar } = await montar()
+    const { container, peloMais } = await montar()
     const palavra = container.querySelector('.termo')?.textContent as string
-    await tocar(botao(/Editar cartão/))
+    await peloMais(/^Editar/)
     const dialogo = screen.getByRole('dialog')
     expect(within(dialogo).getByRole('heading', { name: palavra })).toBeTruthy()
     expect(within(dialogo).getByLabelText('Tradução')).toBeTruthy()
@@ -239,9 +261,9 @@ describe('Revisão no Quest', () => {
   })
 
   it('Suspender tira a palavra da rodada e o aviso oferece desfazer', async () => {
-    const { container, botao, tocar } = await montar()
+    const { container, peloMais } = await montar()
     const palavra = container.querySelector('.termo')?.textContent as string
-    await tocar(botao(/Suspender/))
+    await peloMais(/^Suspender/)
     expect(api.atualizar).toHaveBeenCalledWith(expect.any(String), { inDeck: false })
     expect(container.querySelector('.termo')?.textContent).not.toBe(palavra)
     expect(container.querySelector('.qr-conta')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('1 / 2')
@@ -281,12 +303,12 @@ describe('Revisão no Quest', () => {
 
   it('Encerrar volta aos Cartões; sem navegação, a tela diz quantas esperam e recomeça', async () => {
     const com = await montar()
-    fireEvent.click(com.botao(/Encerrar/))
+    await com.peloMais(/Encerrar a revisão/)
     expect(com.ir).toHaveBeenCalledWith('cartoes')
     cleanup()
 
-    const { palco, botao, tocar } = await montar({ onChangeView: undefined })
-    await tocar(botao(/Encerrar/))
+    const { palco, botao, tocar, peloMais } = await montar({ onChangeView: undefined })
+    await peloMais(/Encerrar a revisão/)
     expect(palco().dataset.estado).toBe('fora')
     expect(palco().querySelector('.qr-contagem')?.textContent).toBe('3')
     expect(botao('Opções da revisão')).toBeTruthy()
@@ -295,12 +317,17 @@ describe('Revisão no Quest', () => {
     expect(palco().dataset.estado).toBe('rodada')
   })
 
-  it('Opções da revisão: os seis ajustes valem e ficam guardados; "Voltar ao padrão" desfaz', async () => {
-    const { botao, tocar } = await montar()
-    await tocar(botao('Opções da revisão'))
+  it('Ajustes da memória: os sete ajustes valem e ficam guardados; "Voltar ao padrão" desfaz', async () => {
+    const { tocar, peloMais } = await montar()
+    await peloMais(/Ajustes da memória/)
     const dlg = within(screen.getByRole('dialog'))
-    // Os seis ajustes e, na sétima linha, a porta da produção ativa.
-    expect(screen.getByRole('dialog').querySelectorAll('.q-ajuste')).toHaveLength(7)
+    // Os sete ajustes e, na oitava linha, a porta da produção ativa.
+    expect(screen.getByRole('dialog').querySelectorAll('.q-ajuste')).toHaveLength(8)
+
+    // Dois botões de resposta (Esqueci e Lembrei) é escolha; quatro é o padrão.
+    expect(dlg.getByRole('button', { name: 'Quatro' }).getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(dlg.getByRole('button', { name: 'Dois' }))
+    expect(localStorage.getItem('revisao.botoesDeNota')).toBe('2')
 
     fireEvent.click(dlg.getByRole('button', { name: 'Aumentar: Novas por dia' }))
     expect(localStorage.getItem('revisao.novasPorDia')).toBe('25')
@@ -330,6 +357,7 @@ describe('Revisão no Quest', () => {
     expect(localStorage.getItem('revisao.novasPorDia')).toBe('20')
     expect(localStorage.getItem('revisao.tipoDeCartao')).toBe('lembrar')
     expect(localStorage.getItem('revisao.metaDeRetencao')).toBe('90')
+    expect(localStorage.getItem('revisao.botoesDeNota')).toBe('4')
     expect(ouvir.getAttribute('aria-checked')).toBe('true')
 
     await tocar(dlg.getByRole('button', { name: /Pronto/ }))
@@ -338,8 +366,8 @@ describe('Revisão no Quest', () => {
 
   it('sem voz para o idioma estudado, "ouvir ao mostrar" diz o motivo', async () => {
     aparelho.vozes = new Set()
-    const { botao, tocar } = await montar()
-    await tocar(botao('Opções da revisão'))
+    const { peloMais } = await montar()
+    await peloMais(/Ajustes da memória/)
     expect(screen.getByRole('dialog').textContent).toContain('Este aparelho não tem voz para o idioma que você estuda.')
   })
 
@@ -412,24 +440,32 @@ describe('Revisão no Quest', () => {
     expect(api.revisar).toHaveBeenCalledWith('c1', 4, 0.9, expect.objectContaining({ origem: 'revisao', formato: 'producao-ativa', respostaMs: expect.any(Number) }))
   })
 
-  it('a rodada escreve a instrução que o cabeçalho de sempre mostra', async () => {
-    const { palco } = await montar()
-    expect(palco().querySelector('.qr-dica')?.textContent).toBe(
-      'Tente lembrar a tradução antes de mostrar a resposta. Depois diga o quanto foi fácil.',
-    )
+  it('a instrução aparece só nos três primeiros cartões, e o lugar dela existe sempre', async () => {
+    api.deck = [...tres(), cartao('c4', 'fish', 'peixe'), cartao('c5', 'frog', 'sapo')]
+    const { palco, container, botao, tocar } = await montar()
+    const instrucao = () => palco().querySelector('.cx-linha .qr-dica')?.textContent
+    expect(instrucao()).toBe('Tente lembrar a tradução antes de mostrar a resposta. Depois diga como foi.')
+    for (let i = 0; i < 3; i++) {
+      await tocar(botao(/Mostrar resposta/))
+      await tocar(container.querySelector('.fsrs button.b') as HTMLElement)
+    }
+    expect(container.querySelector('.qr-conta')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('4 / 5')
+    expect(instrucao()).toBeUndefined()
+    // A linha continua lá, vazia: um aviso que chegue não empurra o cartão.
+    expect(palco().querySelector('.cx-linha')).toBeTruthy()
   })
 
   it('produção ativa tem botão (não há teclado para a paleta): fora da rodada e nas opções', async () => {
     api.deck = [cartao('c1', 'cat', 'gato', { stability: 30, fsrsStability: 30 }), cartao('c2', 'dog', 'cão')]
-    const { palco, botao, tocar } = await montar({ onChangeView: undefined })
-    await tocar(botao(/Encerrar/))
+    const { palco, tocar, peloMais } = await montar({ onChangeView: undefined })
+    await peloMais(/Encerrar a revisão/)
     const fora = within(screen.getByTestId('producao-ativa-fora')).getByRole('button') as HTMLButtonElement
     expect(fora.disabled).toBe(false)
     await tocar(fora)
     expect(palco().dataset.formato).toBe('active-production')
     expect(palco().querySelector('.qr-conta')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('1 / 1')
 
-    await tocar(botao('Opções da revisão'))
+    await peloMais(/Ajustes da memória/)
     const nasOpcoes = within(screen.getByTestId('producao-ativa-nas-opcoes')).getByRole('button', { name: /Começar/ })
     await tocar(nasOpcoes)
     expect(screen.queryByRole('dialog')).toBeNull()
@@ -437,8 +473,8 @@ describe('Revisão no Quest', () => {
   })
 
   it('sem palavra madura, o botão da produção ativa aparece desligado e diz o motivo', async () => {
-    const { botao, tocar } = await montar({ onChangeView: undefined })
-    await tocar(botao(/Encerrar/))
+    const { peloMais } = await montar({ onChangeView: undefined })
+    await peloMais(/Encerrar a revisão/)
     const bloco = screen.getByTestId('producao-ativa-fora')
     expect((within(bloco).getByRole('button') as HTMLButtonElement).disabled).toBe(true)
     expect((bloco.querySelector('small')?.textContent ?? '').length).toBeGreaterThan(0)
@@ -486,8 +522,12 @@ describe('Revisão no Quest', () => {
     cleanup()
 
     const fora = await raizDe({ onChangeView: undefined })
-    fireEvent.click(screen.getByRole('button', { name: /Encerrar/ }))
-    await act(async () => {})
+    fireEvent.click(screen.getByRole('button', { name: 'Mais ações e ajustes' }))
+    await assentar()
+    fireEvent.click(screen.getByRole('button', { name: /Encerrar a revisão/ }))
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 300))
+    })
     confere(fora.raiz(), 'fora')
 
     const css = readFileSync('src/styles/questRevisao.css', 'utf8')
@@ -517,34 +557,200 @@ describe('Revisão no Quest', () => {
     }
   })
 
-  it('fim da rodada: os números, as três saídas e o desfazer da última nota', async () => {
+  it('fim da sessão, enxuto: três números, o ganho creditado, dois botões e o desfazer da última nota', async () => {
     api.deck = [cartao('c1', 'cat', 'gato')]
     const { palco, container, botao, tocar, ir } = await montar()
     await tocar(botao(/Mostrar resposta/))
     await tocar(container.querySelector('.fsrs button.b') as HTMLElement)
     expect(palco().dataset.estado).toBe('fim')
-    expect(screen.getByRole('heading', { level: 1, name: 'Rodada concluída' })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 1, name: 'Sessão concluída' })).toBeTruthy()
     const numeros = [...palco().querySelectorAll('.qr-numeros .q-num')].map((n) => [
       n.querySelector('.q-rotulo')?.textContent,
       n.querySelector('b')?.textContent,
     ])
+    expect(numeros).toHaveLength(3)
     expect(numeros.slice(0, 2)).toEqual([
-      ['Revisões', '1'],
-      ['Acerto', '100%'],
+      ['Cartões', '1'],
+      ['Lembradas', '100%'],
     ])
-    expect(numeros.map(([r]) => r)).toEqual(expect.arrayContaining(['Tempo', 'XP']))
-    expect([...palco().querySelectorAll('.q-ctl.pri')].map((b) => b.textContent?.trim())).toEqual([
-      'Jogar com as mesmas',
+    expect(numeros[2][0]).toBe('Tempo')
+    // O ganho é o que o servidor creditou; sem as recompensas v2 não há Seeds nem missão.
+    expect(screen.getByTestId('ganho-da-sessao').textContent).toMatch(/\+\d+ XP/)
+    expect(screen.getByTestId('ganho-da-sessao').textContent).not.toContain('Seeds')
+    expect(screen.queryByTestId('hoje-em-uma-linha')).toBeNull()
+    expect(palco().querySelector('.cx-mudou')?.textContent).toContain('Todas lembradas')
+    const pe = within(screen.getByRole('toolbar', { name: 'O que fazer agora' }))
+    expect(pe.getAllByRole('button').map((b) => b.textContent?.trim())).toEqual(['Praticar de outro jeito', 'Voltar'])
+
+    // "Praticar de outro jeito" abre a folha das práticas sobre os cartões da sessão.
+    fireEvent.click(pe.getByRole('button', { name: /Praticar de outro jeito/ }))
+    await assentar()
+    const folha = document.querySelector('dialog.cx-folha-praticar') as HTMLElement
+    expect(folha.querySelector('.cx-recorte')?.textContent).toContain('A desta sessão')
+    expect([...folha.querySelectorAll('[data-pratica]')].map((b) => (b as HTMLElement).dataset.pratica)).toEqual([
+      'falar',
+      'ditado',
+      'completar',
+      'jogo',
     ])
+    // Um cartão só não dá um jogo: o ladrilho fica desligado e diz o motivo.
+    const jogo = folha.querySelector('[data-pratica="jogo"]') as HTMLButtonElement
+    expect(jogo.disabled).toBe(true)
+    expect(jogo.textContent).toContain('pelo menos 4 cartões')
+    // Os selos dizem o que cada prática faz com a agenda.
+    expect(folha.querySelector('[data-pratica="falar"] .cx-selo')?.textContent).toBe('conta como revisão')
+    expect(jogo.querySelector('.cx-selo')?.textContent).toBe('não mexe na sua agenda')
+    fireEvent.click(within(folha).getByRole('button', { name: 'Fechar' }))
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 320))
+    })
 
-    fireEvent.click(botao(/Jogar com as mesmas/))
-    fireEvent.click(botao(/Ver estatísticas/))
-    fireEvent.click(botao(/Voltar ao início/))
-    expect(ir.mock.calls.map(([v]) => v)).toEqual(['play', 'estatisticas', 'hub'])
+    fireEvent.click(pe.getByRole('button', { name: /Voltar/ }))
+    expect(ir.mock.calls.map(([v]) => v)).toEqual(['cartoes'])
 
-    await tocar(botao(/Desfazer a última/))
+    await tocar(botao('Desfazer a última nota'))
     expect(api.desfazer).toHaveBeenCalledTimes(1)
     expect(palco().dataset.estado).toBe('rodada')
+  })
+
+  it('fim da sessão: as que escaparam aparecem em "O que mudou" e viram o recorte do botão principal', async () => {
+    const { palco, container, botao, tocar } = await montar()
+    for (const nota of ['e', 'b', 'e']) {
+      await tocar(botao(/Mostrar resposta/))
+      await tocar(container.querySelector(`.fsrs button.${nota}`) as HTMLElement)
+    }
+    expect(palco().dataset.estado).toBe('fim')
+    const escaparam = palco().querySelector('.cx-subiu li') as HTMLElement
+    expect(escaparam.querySelector('.q-tag')?.textContent?.trim()).toBe('2')
+    expect(escaparam.querySelectorAll('.q-chip')).toHaveLength(2)
+    expect(palco().querySelector('.cx-fim-pe .q-ctl.pri')?.textContent?.trim()).toBe('Praticar as 2 que escaparam')
+    expect([...palco().querySelectorAll('.qr-numeros .q-num b')].map((b) => b.textContent)[1]).toBe('33%')
+  })
+
+  it('dois botões de resposta: Esqueci grava Errei (1) e Lembrei grava Bom (3)', async () => {
+    localStorage.setItem('revisao.botoesDeNota', '2')
+    const { container, botao, tocar } = await montar()
+    await tocar(botao(/Mostrar resposta/))
+    const notas = [...container.querySelectorAll<HTMLButtonElement>('.fsrs button')]
+    expect(notas.map((n) => n.firstChild?.textContent)).toEqual(['Esqueci', 'Lembrei'])
+    await tocar(notas[1])
+    expect(api.revisar).toHaveBeenLastCalledWith(expect.any(String), 3, 0.9, expect.anything())
+    await tocar(botao(/Mostrar resposta/))
+    await tocar(container.querySelector('.fsrs button.e') as HTMLElement)
+    expect(api.revisar).toHaveBeenLastCalledWith(expect.any(String), 1, 0.9, expect.anything())
+  })
+
+  it('a folha do "…": três grandes, os menores, os dois interruptores e o pé', async () => {
+    const { botao } = await montar()
+    fireEvent.click(botao('Mais ações e ajustes'))
+    await assentar()
+    const folha = document.querySelector('dialog.cx-folha-acoes') as HTMLElement
+    expect([...folha.querySelectorAll('.cx-tres .cx-grande b')].map((b) => b.textContent)).toEqual([
+      'Editar',
+      'Deixar para amanhã',
+      'Suspender',
+    ])
+    // Na frente do cartão a folha não entrega a tradução.
+    expect(folha.querySelector('.folha-glosa')?.textContent).toBe('Ações deste cartão')
+    expect(folha.querySelectorAll('.cx-menores .folha-acao')).toHaveLength(4)
+    // Sem sessão de origem não há o que abrir: o botão existe desligado, não morto.
+    expect((within(folha).getByRole('button', { name: /Abrir na sessão/ }) as HTMLButtonElement).disabled).toBe(true)
+    const dizer = within(folha).getByRole('switch', { name: 'Dizer antes de virar' })
+    const guardar = within(folha).getByRole('switch', { name: 'Guardar minha voz no cartão' })
+    expect(dizer.getAttribute('aria-checked')).toBe('true')
+    // Guardar a voz vem DESLIGADO de fábrica.
+    expect(guardar.getAttribute('aria-checked')).toBe('false')
+    fireEvent.click(dizer)
+    expect(localStorage.getItem('revisao.dizerAntesDeVirar')).toBe('false')
+    fireEvent.click(guardar)
+    expect(localStorage.getItem('revisao.guardarMinhaVoz')).toBe('true')
+    // No headset não há teclado: sem o botão "Atalhos".
+    expect(within(folha).queryByRole('button', { name: /Atalhos/ })).toBeNull()
+    expect(within(folha).getByRole('button', { name: /Encerrar a revisão/ })).toBeTruthy()
+  })
+
+  it('"Deixar para amanhã" adia sem dar nota, tira da rodada e o aviso desfaz', async () => {
+    const { container, peloMais } = await montar()
+    const palavra = container.querySelector('.termo')?.textContent as string
+    await peloMais(/Deixar para amanhã/)
+    const [id, patch] = api.atualizar.mock.calls.at(-1) as [string, { adiarAte: number }]
+    expect(patch.adiarAte).toBeGreaterThan(Date.now())
+    expect(patch.adiarAte - Date.now()).toBeLessThanOrEqual(86_400_000)
+    expect(api.revisar).not.toHaveBeenCalled()
+    expect(container.querySelector('.termo')?.textContent).not.toBe(palavra)
+    expect(container.querySelector('.qr-conta')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('1 / 2')
+    const [, opcoes] = avisos.ok.mock.calls.at(-1) as [string, { action: { label: string; onClick: () => void } }]
+    await act(async () => opcoes.action.onClick())
+    expect(api.atualizar).toHaveBeenLastCalledWith(id, { adiarAte: expect.any(Number) })
+    expect((api.atualizar.mock.calls.at(-1) as [string, { adiarAte: number }])[1].adiarAte).toBeLessThan(Date.now())
+    expect(container.querySelector('.qr-conta')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('1 / 3')
+  })
+
+  it('"Dizer antes de virar": o convite aparece em parte dos cartões e "Agora não" o tira desta rodada', async () => {
+    /* A regra é a do protótipo (`cxPedeDizer`): um de cada três, pelo id do cartão. */
+    const { pedeDizer } = await import('../src/lib/revisao/enxuta')
+    const e = { ligado: true, semDizerNestaRodada: false, formatoLembrar: true }
+    const ids = Array.from({ length: 40 }, (_, i) => `cartao-${i}`)
+    const com = ids.find((id) => pedeDizer(id, e)) as string
+    const sem = ids.find((id) => !pedeDizer(id, e)) as string
+    api.deck = [cartao(com, 'cat', 'gato'), cartao(`${com}`.replace(/\d+$/, 'x'), 'dog', 'cão')]
+    const { palco, botao } = await montar()
+    expect(palco().querySelector('.cx-diga')?.textContent).toContain('Diga em voz alta antes de virar')
+    fireEvent.click(botao('Agora não'))
+    expect(palco().querySelector('.cx-diga')).toBeNull()
+    cleanup()
+
+    api.deck = [cartao(sem, 'cat', 'gato')]
+    const outro = await montar()
+    expect(outro.palco().querySelector('.cx-diga')).toBeNull()
+    cleanup()
+
+    localStorage.setItem('revisao.dizerAntesDeVirar', 'false')
+    api.deck = [cartao(com, 'cat', 'gato')]
+    const desligado = await montar()
+    expect(desligado.palco().querySelector('.cx-diga')).toBeNull()
+  })
+
+  it('sem rede: a nota fica numa linha de aviso, "Tentar" manda de novo e o cartão não sai do lugar', async () => {
+    const { palco, container, botao, tocar } = await montar()
+    api.revisar.mockRejectedValueOnce(new Error('sem rede'))
+    await tocar(botao(/Mostrar resposta/))
+    await tocar(container.querySelector('.fsrs button.b') as HTMLElement)
+    const aviso = palco().querySelector('.cx-linha .cx-aviso.ct-sem-rede') as HTMLElement
+    expect(aviso.textContent).toContain('1 nota não foi gravada')
+    await tocar(within(aviso).getByRole('button', { name: 'Tentar enviar agora' }))
+    expect(api.revisar).toHaveBeenCalledTimes(2)
+    expect(palco().querySelector('.cx-aviso')).toBeNull()
+  })
+
+  it('palavra que não entra: a linha aparece quando uma palavra com muitos erros escapa de novo', async () => {
+    api.deck = [cartao('c1', 'cat', 'gato', { lapses: 8 } as Partial<VocabCard>), cartao('c2', 'dog', 'cão')]
+    api.deck = (api.deck as VocabCard[]).map((c, i) => ({ ...c, dueAtMs: Date.now() - (9 - i) * 86_400_000 }))
+    const { palco, container, botao, tocar } = await montar()
+    expect(palco().querySelector('.ct-dif')?.textContent).toContain('difícil')
+    await tocar(botao(/Mostrar resposta/))
+    await tocar(container.querySelector('.fsrs button.e') as HTMLElement)
+    const aviso = palco().querySelector('.cx-linha .cx-aviso.ct-aviso-dif') as HTMLElement
+    expect(aviso.textContent).toContain('“cat” não está entrando.')
+    // As saídas que o app cumpre: trocar a frase, rever a cena e descansar 30 dias (sem lembrete).
+    fireEvent.click(aviso.querySelector('.cx-aviso-corpo') as HTMLElement)
+    await assentar()
+    const folha = document.querySelector('dialog.cx-folha-saidas') as HTMLElement
+    expect([...folha.querySelectorAll('.cx-saidas .q-linha b')].map((b) => b.textContent)).toEqual([
+      'Trocar a frase',
+      'Rever a cena',
+      'Descansar 30 dias',
+    ])
+    // Sem outra ocorrência e sem captura, as duas primeiras ficam desligadas, com o motivo escrito.
+    const [trocar, cena, descansar] = [...folha.querySelectorAll<HTMLButtonElement>('.cx-saidas .q-linha')]
+    expect(trocar.disabled).toBe(true)
+    expect(cena.disabled).toBe(true)
+    fireEvent.click(descansar)
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 300))
+    })
+    const [, patch] = api.atualizar.mock.calls.at(-1) as [string, { adiarAte: number }]
+    expect(Math.round((patch.adiarAte - Date.now()) / 86_400_000)).toBe(30)
   })
 })
 
@@ -555,17 +761,18 @@ describe('Revisão no computador com o desenho novo', () => {
   })
 
   it('as teclas aparecem (Espaço, 1 a 4, Z) e funcionam: Espaço mostra a resposta, 3 dá "Bom", Z desfaz', async () => {
-    const { palco, container } = await montar()
+    const { palco, container, botao } = await montar()
     expect(palco().dataset.estado).toBe('rodada')
-    expect(container.querySelector('.qr-atalho')?.textContent).toMatch(/ou aperte\s*Espaço/)
-    const desfazer = () =>
-      within(screen.getByRole('toolbar', { name: 'Ações do cartão' })).getByRole('button', { name: /Desfazer/ })
-    expect(desfazer().querySelector('kbd')?.textContent).toBe('Z')
+    /* A linha discreta de teclas no pé, só no computador (`cx-teclas`). */
+    const teclas = () => [...container.querySelectorAll('.cx-teclas kbd')].map((k) => k.textContent)
+    expect(teclas()).toEqual(['Espaço', 'R', 'Z', '?'])
+    expect(botao('Desfazer a última nota').title).toBe('Desfazer a última nota (Z)')
 
     fireEvent.keyDown(window, { key: ' ', code: 'Space' })
     await act(async () => {})
+    expect(teclas()).toEqual(['1', '4', 'R', 'M', 'Z', '?'])
     const notas = [...container.querySelectorAll<HTMLButtonElement>('.fsrs button')]
-    expect(notas.map((n) => n.querySelector('kbd')?.textContent)).toEqual(['1', '2', '3', '4'])
+    expect(notas.map((n) => n.title)).toEqual(['Tecla 1', 'Tecla 2', 'Tecla 3', 'Tecla 4'])
     // As teclas são dica, não conteúdo: só existem onde o CSS as mostra (`data-precisa="teclado"`).
     expect([...container.querySelectorAll('kbd')].every((k) => k.closest('[data-precisa="teclado"]'))).toBe(true)
 
@@ -594,17 +801,42 @@ describe('Revisão no computador com o desenho novo', () => {
   })
 
   it('Editar cartão: o campo da tradução pega o foco, como na tela de sempre', async () => {
-    const { botao, tocar } = await montar()
-    await tocar(botao(/Editar cartão/))
+    const { peloMais } = await montar()
+    await peloMais(/^Editar/)
     expect(document.activeElement?.id).toBe('pw-t')
   })
 
-  it('fim da rodada: o desfazer mostra a tecla Z', async () => {
+  it('fim da sessão: o desfazer diz a tecla Z', async () => {
     api.deck = [cartao('c1', 'cat', 'gato')]
     const { palco, container, botao, tocar } = await montar()
     await tocar(botao(/Mostrar resposta/))
     await tocar(container.querySelector('.fsrs button.b') as HTMLElement)
     expect(palco().dataset.estado).toBe('fim')
-    expect(botao(/Desfazer a última/).querySelector('kbd')?.textContent).toBe('Z')
+    expect(botao('Desfazer a última nota').title).toBe('Desfazer a última nota (Z)')
+  })
+
+  it('as teclas novas: "?" abre os atalhos, "-" deixa para amanhã e a folha do "…" oferece "Atalhos"', async () => {
+    const { botao, container } = await montar()
+    fireEvent.keyDown(window, { key: '?' })
+    await assentar()
+    const atalhos = screen.getByRole('dialog')
+    expect(atalhos.textContent).toContain('Atalhos e gestos')
+    expect([...atalhos.querySelectorAll('.atalho kbd')].map((k) => k.textContent)).toEqual(
+      expect.arrayContaining(['Espaço', 'Z', 'R', 'M', '?']),
+    )
+    fireEvent.click(atalhos.querySelector('.dlg-pe .q-ctl.pri') as HTMLElement)
+    await act(async () => {})
+
+    const palavra = container.querySelector('.termo')?.textContent
+    fireEvent.keyDown(window, { key: '-' })
+    await act(async () => {})
+    expect(api.atualizar).toHaveBeenCalledWith(expect.any(String), { adiarAte: expect.any(Number) })
+    expect(container.querySelector('.termo')?.textContent).not.toBe(palavra)
+
+    fireEvent.click(botao('Mais ações e ajustes'))
+    await assentar()
+    expect(
+      within(document.querySelector('dialog.cx-folha-acoes') as HTMLElement).getByRole('button', { name: /Atalhos/ }),
+    ).toBeTruthy()
   })
 })

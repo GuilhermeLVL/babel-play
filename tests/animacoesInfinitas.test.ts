@@ -134,6 +134,11 @@ const EXCECOES: Record<string, string> = {
   'styles/prototipo.css · laco-luz · box-shadow': 'a lista de passos do tour de boas-vindas',
   /* Fica na tela o tempo todo, mas só em quem tem um cartão com a pele lendária à vista: */
   'styles/cartoes.css · pele-brilho · box-shadow': 'o brilho do cartão com pele lendária',
+  /* Da revisão enxuta (CSS copiado do protótipo, `cartoes-enxuto-src`). Nenhuma fica na tela parada:
+     a primeira só existe enquanto um som toca (fora disso as barras estão com `display: none`), a
+     segunda só enquanto o microfone grava, e uma gravação não passa de 8 s. */
+  'styles/polimento/cartoes.css · ct-eq · height': 'as 4 barras do botão de ouvir, só enquanto a fala toca',
+  'styles/polimento/cartoes4.css · cx-pulso · box-shadow': 'o botão do microfone, só enquanto grava (até 8 s)',
 }
 
 describe('animação infinita só em transform e opacity', () => {

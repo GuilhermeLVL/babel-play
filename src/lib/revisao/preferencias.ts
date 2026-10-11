@@ -21,6 +21,11 @@ export interface OpcoesDaRevisao {
   tipo: TipoDeCartao;
   ouvir: boolean;
   retencao: number;
+  /**
+   * Quantas notas o verso mostra (`CT_AJ.botoes`, `cartoes.js:69`): as quatro do FSRS (o padrão) ou
+   * duas, "Esqueci" e "Lembrei", que gravam Errei (1) e Bom (3).
+   */
+  botoes: 2 | 4;
 }
 
 export const OPCOES_PADRAO: OpcoesDaRevisao = {
@@ -30,6 +35,7 @@ export const OPCOES_PADRAO: OpcoesDaRevisao = {
   tipo: 'lembrar',
   ouvir: true,
   retencao: 90,
+  botoes: 4,
 };
 
 const CHAVE: Record<keyof OpcoesDaRevisao, string> = {
@@ -39,6 +45,7 @@ const CHAVE: Record<keyof OpcoesDaRevisao, string> = {
   revisoes: 'revisao.revisoesPorDia',
   ordem: 'revisao.ordem',
   retencao: 'revisao.metaDeRetencao',
+  botoes: 'revisao.botoesDeNota',
 };
 
 function ler(chave: string): string | null {
@@ -63,6 +70,7 @@ export function lerOpcoesDaRevisao(): OpcoesDaRevisao {
     tipo: tipo === 'digitar' || tipo === 'escolha' ? tipo : 'lembrar',
     ouvir: ler(CHAVE.ouvir) !== 'false',
     retencao: numeroEntre(ler(CHAVE.retencao), 80, 97, OPCOES_PADRAO.retencao),
+    botoes: ler(CHAVE.botoes) === '2' ? 2 : 4,
   };
 }
 
@@ -86,4 +94,35 @@ export function tamanhoDaRodada(
   opcoes: Pick<OpcoesDaRevisao, 'novas' | 'revisoes'>,
 ): number {
   return Math.min(vence.novas, opcoes.novas) + Math.min(vence.aprendendo + vence.revisar, opcoes.revisoes);
+}
+
+/**
+ * AS DUAS PREFERÊNCIAS DA VOZ NA REVISÃO (`CX`, `cartoes2.js:36-43`), guardadas como as outras
+ * (no navegador, por aparelho):
+ *  · `dizer`: o convite "Diga em voz alta antes de virar" em parte dos cartões. Ligado de fábrica.
+ *  · `guardarVoz`: guardar a gravação de "Minha voz" no cartão. DESLIGADO de fábrica; a gravação fica
+ *    só neste aparelho (`lib/revisao/vozGuardada.ts`) e nunca sobe ao servidor.
+ */
+export interface VozNaRevisao {
+  dizer: boolean;
+  guardarVoz: boolean;
+}
+
+const CHAVE_DA_VOZ: Record<keyof VozNaRevisao, string> = {
+  dizer: 'revisao.dizerAntesDeVirar',
+  guardarVoz: 'revisao.guardarMinhaVoz',
+};
+
+export function lerVozNaRevisao(): VozNaRevisao {
+  return { dizer: ler(CHAVE_DA_VOZ.dizer) !== 'false', guardarVoz: ler(CHAVE_DA_VOZ.guardarVoz) === 'true' };
+}
+
+export function gravarVozNaRevisao(mudou: Partial<VozNaRevisao>): void {
+  for (const [campo, valor] of Object.entries(mudou) as Array<[keyof VozNaRevisao, boolean]>) {
+    try {
+      localStorage.setItem(CHAVE_DA_VOZ[campo], String(valor));
+    } catch {
+      /* sem armazenamento: a escolha vale só nesta abertura */
+    }
+  }
 }

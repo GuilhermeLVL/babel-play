@@ -1,0 +1,77 @@
+/* GERADO por scripts/polimento/trazer-css.mjs a partir de fontes.css do protótipo dos cartões enxutos.
+   NÃO EDITAR À MÃO: mude a tabela DO_SELETOR do script e gere de novo. As regras são as do protótipo,
+   sem reescrita. */
+/* ============================================================================
+   FONTES — o catálogo de fontes (Biblioteca, Baralhos, Jogar) e a tela Jogar refeita.
+   Nenhuma peça nova: q-cartao, q-linha, q-chip, q-ctl, q-abas, q-aviso, q-tag, a folha e o
+   diálogo de sempre. A primeira parte é a versão enxuta do Jogar, aprovada
+   (telas-enxutas-src/enxuto.css), trazida sem mudar.
+   ============================================================================ */
+
+/* [fontes.css:8-38] não vem: a versão enxuta do Jogar: já vem de enxuto.css */
+
+/* [fontes.css:40-42] ADIADO até portar: a ficha no cabeçalho do Jogar */
+@media (min-width: 721px) {
+  html[data-quest-novo='true'] .fx-catalogo .q-linha.fx-linha small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  html[data-quest-novo='true'] .fx-catalogo .q-linha.fx-linha > span > b { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+}
+/* [fontes.css:47-67] ADIADO até portar: o Jogar que responde à fonte (aviso do estado, jogos que não servem) */
+
+/* ---- O catálogo de fontes (a folha do "Trocar a fonte") --------------------------------- */
+@media (min-width: 721px) {
+  html[data-quest-novo='true'] dialog.fx-catalogo[open] { width: min(1080px, calc(100vw - 48px)); max-width: none; height: min(760px, 90vh); }
+}
+html[data-quest-novo='true'] dialog.ct-dlg.fx-catalogo .dlg-corpo.fx-cat-corpo { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr); gap: 20px; align-items: start; align-content: start; max-height: none; }
+html[data-quest-novo='true'] .fx-catalogo .q-ctl.fx-usar { min-height: 44px; height: 44px; }
+.fx-cat-col { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.fx-cat-lista { gap: 16px; }
+.fx-cat-lista .q-lista { grid-template-columns: minmax(0, 1fr); }
+html[data-quest-novo='true'] .fx-cat-det { position: sticky; top: 0; background: var(--surface-sunken); box-shadow: none; }
+.fx-em-uso { color: var(--good-ink, var(--good)); }
+.fx-nao-serve > .q-linha { opacity: 0.55; }
+.fx-nao-serve > .q-linha .q-ic { filter: grayscale(1); }
+.fx-grupo-vazio { margin: 0; padding: 14px 16px; border: 1px dashed var(--border-subtle); border-radius: 20px; display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; font: 500 15px/1.4 var(--font-body, inherit); color: var(--ink-muted); }
+.fx-grupo-vazio > span { display: inline-flex; flex-wrap: wrap; margin-left: auto; }
+.fx-fora { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.fx-fora li, .fx-todos { display: flex; align-items: flex-start; gap: 8px; margin: 0; font: 500 14.5px/1.35 var(--font-body, inherit); color: var(--ink-muted); }
+.fx-fora li b { color: var(--ink); font-weight: 800; }
+.fx-fora svg, .fx-todos svg { width: 16px; height: 16px; flex: 0 0 auto; margin-top: 2px; }
+.fx-todos svg { color: var(--good-ink, var(--good)); }
+html[data-quest-novo='true'] .fx-busca input { min-height: 52px; }
+.fx-vazio { padding: 28px 16px; }
+.fx-rotulo-menu { margin: 16px 4px 8px; }
+.fx-sem-rede { display: flex; align-items: center; gap: 8px; color: var(--warn-ink, var(--warn)); }
+.fx-sem-rede svg { width: 16px; height: 16px; flex: 0 0 auto; }
+.fx-campo-link { display: grid; gap: 8px; }
+
+html[data-quest-novo='true'] .ct-fatos3 dd .fx-de { font: 700 13px/1 var(--font-body, inherit) !important; color: var(--ink-muted); white-space: nowrap; }
+
+/* ---- Biblioteca: a linha ganha as duas ações diretas, no lugar onde os Baralhos têm "Revisar" ---- */
+.fx-bib-acoes { position: absolute; right: 12px; top: calc(50% - 22px); display: inline-flex; gap: 6px; }
+html[data-quest-novo='true'] .fx-bib-acoes .q-ctl.ct-so-icone { min-width: 44px; min-height: 44px; background: var(--canvas); }
+html[data-quest-novo='true'] .fx-bib-acoes .q-ctl.ct-so-icone:hover:not(:disabled) { background: var(--q-suave); border-color: var(--q-acento); }
+.fx-bib-acoes svg { width: 19px; height: 19px; }
+html[data-quest-novo='true'] .fx-bib-caixa:has(.fx-bib-acoes) > .q-linha { padding-right: 118px; }
+html[data-quest-novo='true'] .q-bib .fx-bib-caixa .q-fim { white-space: nowrap; }
+html[data-quest-novo='true'] .q-bib > .q-cab > .q-ctl.ct-so-icone { align-self: center; }
+
+/* [fontes.css:107-108] não vem: as barras do protótipo */
+
+/* ---- Celular ---------------------------------------------------------------------------- */
+@media (max-width: 720px) {
+/* [fontes.css:112-134] ADIADO até portar: o Jogar que responde à fonte (celular) */
+
+  /* o catálogo: uma coluna; a linha inteira escolhe (o painel não cabe) */
+  html[data-quest-novo='true'] dialog.ct-dlg.fx-catalogo .dlg-corpo.fx-cat-corpo { grid-template-columns: minmax(0, 1fr); }
+  .fx-cat-corpo > .fx-cat-det { display: none !important; }
+  .fx-grupo-vazio > span { margin-left: -8px; }
+  .fx-grupo-vazio .ex-lig { min-height: 44px; }
+
+  /* Biblioteca: no celular o painel preso ao pé já traz Jogar e Revisar; a linha fica como era */
+  .fx-bib-acoes { display: none; }
+  html[data-quest-novo='true'] .fx-bib-caixa:has(.fx-bib-acoes) > .q-linha { padding-right: 14px; }
+  html[data-px='on'] .q-bib > .q-cab > .q-ctl.ct-so-icone { min-width: 48px; min-height: 48px; }
+  html[data-px='on'] .q-bib > .q-cab > div:first-child { flex: 1 1 100%; }
+  html[data-px='on'] .q-bib > .q-cab > .q-ctl.ct-so-icone { margin-left: auto; }
+}
+/* [fontes.css:149-151] não vem: a versão enxuta do Jogar: já vem de enxuto.css */

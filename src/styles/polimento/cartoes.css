@@ -245,7 +245,61 @@ dialog.ct-atalhos.ct-atalhos { width: min(980px, calc(100vw - 48px)); }
 .ct-aviso-dificil .label-mono svg { width: 16px; height: 16px; }
 .ct-tocando { border-color: var(--q-acento) !important; }
 
-/* [cartoes.css:245-299] ADIADO até portar: a revisão melhorada (openspec/changes/cartoes, fatia 3) */
+/* ---- A revisão: o que a proposta acrescenta ao cartão do app --------------------------------- */
+.ct-contadores { flex: 0 0 auto; padding: 0 6px; }
+.ct-combo { margin-left: 12px; vertical-align: 2px; background: color-mix(in srgb, var(--warn) 24%, var(--surface)) !important; }
+html[data-quest-novo='true'] .ct-rev .qr-cartao { position: relative; overflow: hidden; touch-action: pan-y; }
+html[data-quest-novo='true'] .ct-rev .qr-cartao.ct-arrastando { transition: none; cursor: grabbing; }
+.ct-selos { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; margin-bottom: 14px; }
+html[data-quest-novo='true'] .ct-rev .ct-selos .qr-selo { margin-bottom: 0; }
+.ct-ipa { margin: 8px 0 0; font: 600 16px/1 var(--font-mono, monospace); color: var(--ink-muted); }
+.ct-frase { display: grid; justify-items: center; gap: 12px; }
+html[data-quest-novo='true'] .ct-rev .flash .exemplo { transition: color 0.3s ease; }
+.ct-rev .exemplo mark, .ct-rev .qr-lacuna mark { padding: 1px 6px; border-radius: 8px; background: var(--q-suave); color: var(--ink); font-weight: 800; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+html[data-quest-novo='true'] .ct-rev .flash .exemplo.ct-tocando { color: var(--ink); }
+.ct-origem { display: grid; justify-items: center; gap: 10px; }
+.ct-onde { display: inline-flex; align-items: center; gap: 7px; font: 700 14px/1.2 var(--font-mono, monospace); letter-spacing: 0.02em; color: var(--ink-muted); }
+.ct-onde svg { width: 16px; height: 16px; flex: 0 0 auto; }
+.ct-origem .q-acoes { justify-content: center; gap: 8px; }
+html[data-quest-novo='true'] .ct-origem .q-chip { min-height: 48px; padding: 0 14px; font-size: 15px; background: var(--canvas); }
+.ct-origem .q-chip.ct-sem-fala { color: var(--ink-muted); border-style: dashed; background: none; }
+.ct-origem .q-chip kbd { margin-left: 2px !important; }
+.ct-eq { display: none; align-items: center; gap: 3px; height: 18px; }
+.ct-eq i { width: 3px; height: 6px; border-radius: 2px; background: var(--q-acento); animation: ct-eq 0.46s ease-in-out infinite alternate; }
+.ct-eq i:nth-child(2) { animation-delay: -0.12s; }
+.ct-eq i:nth-child(3) { animation-delay: -0.27s; }
+.ct-eq i:nth-child(4) { animation-delay: -0.06s; }
+@keyframes ct-eq { to { height: 18px; } }
+.ct-som.ct-tocando { background: var(--q-suave) !important; }
+.ct-som.ct-tocando > svg { display: none; }
+.ct-som.ct-tocando .ct-eq { display: inline-flex; }
+.btn.ct-tocando { background: var(--q-suave); }
+.ct-quadro { margin: 0 0 16px; display: grid; justify-items: center; gap: 6px; }
+.ct-quadro > svg { width: min(280px, 70%); height: auto; border-radius: 16px; border: 1.5px solid var(--border-subtle); }
+.ct-quadro figcaption { display: inline-flex; align-items: center; gap: 6px; font: 700 13px/1 var(--font-mono, monospace); color: var(--ink-muted); }
+.ct-quadro figcaption svg { width: 15px; height: 15px; }
+html[data-quest-novo='true'] .ct-rev .flash .resp > .ct-gestos { display: none; }
+.ct-vao { display: inline-block; min-width: 3.4em; margin: 0 4px; padding: 0 10px; border-bottom: 3px dashed var(--q-acento); border-radius: 8px 8px 0 0; background: var(--q-suave); }
+html[data-quest-novo='true'] .ct-rev .flash .resp > .ct-consequencia { margin: 0; font-size: 16px; }
+.ct-rev .qr-opcao { display: inline-flex; align-items: center; justify-content: center; gap: 12px; }
+.ct-carimbo { position: absolute; top: 22px; z-index: 2; padding: 8px 16px; border: 3px solid; border-radius: 14px; font: 900 22px/1 var(--font-display, inherit); font-style: normal; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0; pointer-events: none; background: var(--surface); }
+.ct-carimbo.e { right: 22px; color: var(--error-ink, var(--error)); transform: rotate(8deg); }
+.ct-carimbo.b { left: 22px; color: var(--good-ink, var(--good)); transform: rotate(-8deg); }
+html[data-quest-novo='true'] .ct-rev .q-aviso { flex-wrap: wrap; font-weight: 600; }
+html[data-quest-novo='true'] .ct-rev .q-aviso b { font-weight: 800; }
+.ct-aviso-dif { background: color-mix(in srgb, var(--warn) 20%, var(--surface)) !important; }
+.ct-aviso-dif svg:first-child, .ct-sem-rede .qv-aviso-texto > svg { color: var(--warn-ink, var(--warn)); }
+.ct-so-cel-txt { display: none; }
+html[data-quest-novo='true'] .ct-faixa-rev .q-ctl[aria-pressed='true'] { background: var(--q-suave); }
+/* o fim */
+.ct-fim-par > .q-cartao { align-content: start; }
+.ct-mudancas { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.ct-mudancas li { display: flex; align-items: center; gap: 12px; font: 600 17px/1.3 var(--font-body, inherit); }
+.ct-mudancas .q-tag { flex: 0 0 auto; min-width: 56px; justify-content: center; font-size: 15px; }
+.ct-erradas .q-chip { min-height: 48px; }
+html[data-quest-novo='true'] .ct-fim .qr-numeros { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+html[data-quest-novo='true'] .ct-fim .q-num b { font: 900 30px/1.05 var(--font-display, inherit); font-variant-numeric: tabular-nums; }
+html[data-quest-novo='true'] .ct-fim > .q-faixa { margin-top: auto; }
 
 /* ---- Navegação ------------------------------------------------------------------------------- */
 .ct-praticar { align-self: flex-start; margin-bottom: -4px; }
@@ -327,7 +381,30 @@ dialog.ct-atalhos.ct-atalhos { width: min(980px, calc(100vw - 48px)); }
   html[data-quest-novo='true'] dialog.ct-dlg .q-ajuste > :first-child { flex: 1 1 100%; }
   html[data-quest-novo='true'] dialog.ct-dlg .qr-passo input[type='range'] { width: 150px; }
   html[data-quest-novo='true'] dialog.ct-dlg .q-ajuste .q-abas { max-width: 100%; }
-/* [cartoes.css:381-404] ADIADO até portar: a revisão melhorada no celular (openspec/changes/cartoes, fatia 3) */
+  /* a revisão no celular: sem teclas, com gestos; as ações do cartão vão para a folha */
+  .ct-rev kbd, html[data-quest-novo='true'] .ct-rev .flash .resp > .qr-atalho { display: none !important; }
+  html[data-quest-novo='true'] .ct-rev .flash .resp > .ct-gestos { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 12px; font-size: 14px; }
+  .ct-gestos svg { width: 18px; height: 18px; flex: 0 0 auto; }
+  .ct-longo, .ct-so-pc-txt { display: none; }
+  .ct-so-cel-txt { display: inline; }
+  html[data-quest-novo='true'] .ct-rev .qr-topo .qr-progresso { order: 5; flex: 1 1 calc(100% - 110px); gap: 10px; }
+  html[data-quest-novo='true'] .ct-rev .qr-topo .ct-contadores { order: 6; margin-left: 0; }
+  html[data-quest-novo='true'] .ct-rev .qr-progresso .q-rotulo { display: none; }
+  html[data-quest-novo='true'] .ct-rev .qr-topo .qr-botao-opcoes { margin-left: 0; }
+  html[data-quest-novo='true'] .ct-rev .qr-topo > .q-ctl:not(.q-voltar) { padding: 0 14px; font-size: 16px; }
+  html[data-quest-novo='true'] .ct-rev .qr-dica { font-size: 15px; margin: -6px 0; }
+  html[data-quest-novo='true'] .ct-origem .q-chip { padding: 0 12px; }
+  .ct-carimbo { top: 14px; font-size: 18px; padding: 6px 12px; }
+  .ct-carimbo.e { right: 14px; }
+  .ct-carimbo.b { left: 14px; }
+  html[data-quest-novo='true'] .ct-rev .ct-faixa-rev { flex-wrap: nowrap; border-radius: 999px; }
+  html[data-quest-novo='true'] .ct-rev .ct-faixa-rev .q-ctl { flex: 1 1 auto; padding: 0 12px; }
+  html[data-quest-novo='true'] .ct-fim .qr-numeros { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  html[data-quest-novo='true'] .ct-fim .q-num { padding: 12px; }
+  html[data-quest-novo='true'] .ct-fim .q-num b { font-size: 22px; }
+  html[data-quest-novo='true'] .ct-fim .q-num .q-rotulo { font-size: 12px; letter-spacing: 0.04em; }
+  .ct-fim > .q-faixa .q-ctl { flex: 1 1 100%; }
+  .ct-fim > .q-faixa .q-ctl:not(.pri) { flex: 1 1 40%; }
 }
 @media (max-width: 1100px) and (min-width: 721px) {
   .ct-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -336,7 +413,10 @@ dialog.ct-atalhos.ct-atalhos { width: min(980px, calc(100vw - 48px)); }
   html[data-quest-novo='true'] .ct .q-grade.g4:not(.ct-kpis) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   html[data-quest-novo='true'] .ct-fim .qr-numeros { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-/* [cartoes.css:413-416] ADIADO até portar: a revisão melhorada no tablet (openspec/changes/cartoes, fatia 3) */
+@media (max-width: 1020px) and (min-width: 721px) {
+  html[data-quest-novo='true'] .ct-rev .qr-progresso .q-rotulo { display: none; }
+  html[data-quest-novo='true'] .ct-rev .qr-progresso { flex: 1 1 120px; gap: 10px; }
+}
 /* tablet em pé: o detalhe do baralho sobe para cima da lista, inteiro (a regra da Biblioteca o prenderia ao pé) */
 @media (max-width: 900px) and (min-width: 721px) {
   .ct-bar-corpo { grid-template-columns: minmax(0, 1fr); }

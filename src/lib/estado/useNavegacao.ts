@@ -8,6 +8,7 @@ import { consumirIntencao } from '../intencaoDeLogin';
 import { askNavGuard } from '../navGuard';
 import { lembrarPlanoDoCheckout } from '../planoDoCheckout';
 import { trocarDeTela } from '../polimento/telas';
+import { lerRecorteDaPratica, lerRecorteDoJogar, type RecorteDaPratica, type RecorteDoJogar } from '../revisao/pratica';
 import {
   type AbaDeCartoes,
   ABAS_DE_CARTOES,
@@ -43,6 +44,9 @@ export interface EstadoDaNavegacao {
   setIsChatDocked: Dispatch<SetStateAction<boolean>>;
   practiceSeed: PracticeSeed | null;
   setPracticeSeed: Dispatch<SetStateAction<PracticeSeed | null>>;
+  /** O recorte do "Jogo rápido" das práticas, a caminho do Jogar. */
+  recorteDoJogar: RecorteDoJogar | null;
+  setRecorteDoJogar: Dispatch<SetStateAction<RecorteDoJogar | null>>;
   /** A aba aberta da tela Cartões (`/cartoes/<aba>`). */
   cartoesAba: AbaDeCartoes;
   setCartoesAba: Dispatch<SetStateAction<AbaDeCartoes>>;
@@ -59,6 +63,8 @@ export interface EstudoAberto {
   limite?: number;
   /** "Mais 5 novas": só palavras nunca vistas. */
   soNovas?: boolean;
+  /** "Praticar de outro jeito": a tela abre com a folha das práticas sobre este recorte, sem rodada. */
+  praticar?: RecorteDaPratica;
 }
 
 /**
@@ -95,6 +101,7 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
    * era literalmente impossível. Agora a semente é guardada aqui e desce até o Study.
    */
   const [practiceSeed, setPracticeSeed] = useState<PracticeSeed | null>(null);
+  const [recorteDoJogar, setRecorteDoJogar] = useState<RecorteDoJogar | null>(null);
 
   /* CARTÕES (10/10/2026): a aba aberta e a rodada de revisão, que passou a morar na tela. */
   const [cartoesAba, setCartoesAba] = useState<AbaDeCartoes>('hoje');
@@ -135,6 +142,7 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
         sessionId: data?.id ?? null,
         limite: typeof data?.limite === 'number' ? data.limite : undefined,
         soNovas: data?.soNovas === true ? true : undefined,
+        praticar: lerRecorteDaPratica(data?.praticar),
       });
       // A semente vem no `data` (texto selecionado, palavra, exercício-alvo). Antes era jogada fora.
       setPracticeSeed(data?.seed ?? null);
@@ -179,6 +187,8 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
            passou a ser o minijogo equivalente, e a semente precisa viajar junto, senão o atalho
            abriria o lobby genérico e escolher uma frase não teria efeito. */
         setPracticeSeed(data?.seed ?? null);
+        /* O "Jogo rápido" das práticas: a rodada abre só com as palavras do recorte (`lib/revisao/pratica`). */
+        setRecorteDoJogar(lerRecorteDoJogar(data?.recorte));
       }
     }
   };
@@ -293,6 +303,8 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
     setIsChatDocked,
     practiceSeed,
     setPracticeSeed,
+    recorteDoJogar,
+    setRecorteDoJogar,
     cartoesAba,
     setCartoesAba,
     estudo,

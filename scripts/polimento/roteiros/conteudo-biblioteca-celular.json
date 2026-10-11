@@ -1,0 +1,77 @@
+{
+  "nome": "conteudo-biblioteca-celular",
+  "prototipo": "cartoes-enxuto",
+  "largura": 390,
+  "altura": 844,
+  "app": {
+    "caminho": "/biblioteca",
+    "assentar": 3500,
+    "passos": [
+      {
+        "js": "(async () => { for (let i = 0; i < 14; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || [...d.querySelectorAll('button')].find((b) => /Resgatar|Pular|Fechar|Agora não|Entendi|Depois/.test(b.textContent || '')) || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 500)); } })()"
+      },
+      {
+        "esperar": 1500
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?quieto&nav=a&limpo",
+    "assentar": 3500,
+    "passos": [
+      {
+        "js": "window.__fontes.ir('biblioteca')"
+      },
+      {
+        "esperar": 1500
+      }
+    ]
+  },
+  "seletores": [
+    ".q-palco.q-bib",
+    ".q-bib > .q-cab.fs-cab",
+    ".q-bib > .q-cab h1",
+    ".fs-ficha",
+    ".fs-ficha > .fs-abrir",
+    ".fs-ficha > .fs-abrir > svg:first-child",
+    ".fs-ficha > .fs-abrir > svg:last-child",
+    ".fs-nome",
+    ".fs-nome b",
+    ".fs-nome small",
+    ".q-bib > .q-cab > .q-espaco",
+    ".fs-bib-sobre",
+    ".fs-bib-ordem",
+    ".q-bib-busca",
+    ".q-bib > .q-abas",
+    ".q-bib > .q-abas .q-aba",
+    ".q-bib-corpo",
+    ".q-bib-col",
+    ".q-bib .q-lista",
+    ".fx-bib-caixa",
+    ".fx-bib-caixa > .q-linha",
+    ".fx-bib-caixa > .q-linha .q-ic",
+    ".fx-bib-caixa > .q-linha b",
+    ".fx-bib-caixa > .q-linha small",
+    ".fx-bib-caixa > .q-linha .q-fim",
+    ".fx-bib-acoes",
+    ".fx-bib-acoes .q-ctl.ct-so-icone",
+    ".fx-bib-acoes .q-ctl.ct-so-icone svg",
+    ".fs-outro-idioma",
+    ".fs-outro-idioma svg",
+    ".q-bib-nova",
+    ".q-bib-nova b",
+    ".q-bib-nova small",
+    ".q-bib-paginas",
+    ".q-bib-det",
+    ".q-bib-tags .q-tag",
+    ".q-bib-det h2",
+    ".q-bib-fatos",
+    ".q-bib-fatos > div",
+    ".q-bib-fatos dt",
+    ".q-bib-fatos dd",
+    ".q-bib-acoes > .q-ctl.pri",
+    ".q-bib-acoes > .q-acoes",
+    ".q-bib-acoes .q-acoes .q-ctl"
+  ],
+  "toque": true
+}

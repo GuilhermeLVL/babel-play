@@ -1,0 +1,64 @@
+{
+  "nome": "revisao-enxuta-pr-completar-celular",
+  "prototipo": "cartoes-enxuto",
+  "largura": 390,
+  "altura": 844,
+  "toque": true,
+  "app": {
+    "caminho": "/cartoes/estudar",
+    "assentar": 3500,
+    "passos": [
+      {
+        "js": "(async () => { for (let i = 0; i < 8; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 400)); } })()"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "js": "(async () => { for (let i = 0; i < 60 && !document.querySelector('[data-estado=\"fim\"]'); i++) { (document.querySelector('.fsrs .b') || document.querySelector('.qr-principal'))?.click(); await new Promise((r) => setTimeout(r, 450)); } })()"
+      },
+      {
+        "esperar": 2200
+      },
+      {
+        "clicar": ".cx-fim-pe .q-ctl.pri"
+      },
+      {
+        "esperar": 1200
+      },
+      {
+        "clicar": "[data-pratica=\"completar\"]"
+      },
+      {
+        "esperar": 1800
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?cx=pr-completar&quieto&embutido",
+    "assentar": 3500,
+    "passos": [
+      {
+        "esperar": 1800
+      }
+    ]
+  },
+  "seletores": [
+    ".cx-pr .cx-topo",
+    ".cx-pr .qr-conta",
+    ".cx-pr-linha",
+    ".cx-pr-linha .q-tag",
+    ".cx-pr-linha .cx-selo",
+    ".cx-pr-cartao",
+    ".cx-pr-cartao > .q-rotulo",
+    ".cx-pr-frase-vao",
+    ".cx-pr-frase-vao .qr-vao",
+    ".cx-pr-quer",
+    ".cx-pr-tocar",
+    ".cx-pr-tocar .q-ctl",
+    ".cx-pr-cartao .q-campo",
+    ".cx-pr-cartao .q-campo input",
+    ".cx-pr-cartao .cx-fileira",
+    ".cx-pr-cartao .cx-fileira .q-ctl"
+  ]
+}

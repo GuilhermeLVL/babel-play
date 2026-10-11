@@ -280,6 +280,9 @@ const COLUNAS_COMPACTAS_DO_CARTAO: ColunaCompacta[] = Object.entries(COLUNAS_DO_
     coluna.columnType === 'SQLiteText' ? ([chave, coluna.name, 'texto'] as const) : ([chave, coluna.name] as const),
   )
 
+/** O teto de "adiar" um cartão (`patch.adiarAte`). */
+const UM_ANO_MS = 366 * 86_400_000
+
 export const vocabRepo = {
   /**
    * O baralho, com a marca de PROCEDÊNCIA que faltava.
@@ -1295,9 +1298,14 @@ export const vocabRepo = {
   async patch(
     userId: UserId,
     id: string,
-    patch: { back?: string; inDeck?: boolean; sentence?: string; cefrLevel?: string | null },
+    patch: { back?: string; inDeck?: boolean; sentence?: string; cefrLevel?: string | null; adiarAte?: number },
   ): Promise<CartaoParaCliente | undefined> {
-    const set: Record<string, unknown> = { updatedAt: Date.now() }
+    const agora = Date.now()
+    const set: Record<string, unknown> = { updatedAt: agora }
+    /* ADIAR não é revisar: muda só quando o cartão volta a vencer (no máximo daqui a um ano). Nada
+       entra em `review_logs`, então XP, acerto e ofensiva não se mexem, e o "desfazer" é outro adiar
+       com a data de antes. */
+    if (typeof patch.adiarAte === 'number') set.dueAt = Math.min(Math.max(0, Math.round(patch.adiarAte)), agora + UM_ANO_MS)
     if (typeof patch.back === 'string') set.back = patch.back.trim() || null
     if (typeof patch.inDeck === 'boolean') set.inDeck = patch.inDeck ? 1 : 0
     if (typeof patch.sentence === 'string') set.sentence = patch.sentence.trim() || null

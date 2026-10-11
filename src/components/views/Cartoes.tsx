@@ -192,7 +192,9 @@ export default function Cartoes({
         }
       >
         <Study
-          key={`${estudo.sessionId ?? 'tudo'}:${estudo.limite ?? ''}:${estudo.soNovas ? 'novas' : ''}`}
+          key={`${estudo.sessionId ?? 'tudo'}:${estudo.limite ?? ''}:${estudo.soNovas ? 'novas' : ''}:${estudo.praticar ? `p:${estudo.praticar.rotulo}:${estudo.praticar.ids?.length ?? ''}` : ''}`}
+          gravacoes={recordings}
+          praticar={estudo.praticar}
           recording={sessao}
           onChangeView={onChangeView}
           practiceSeed={practiceSeed}

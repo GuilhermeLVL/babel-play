@@ -33,6 +33,7 @@ import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { json, naoDisponivelSemConta, PASSAM_DIRETO, semServidorNaEdicaoEstatica } from './nucleo';
 import { garantirReparoDeIdiomas } from './reparoDeIdioma';
 import * as conta from './rotas/conta';
+import * as conteudo from './rotas/conteudo';
 import * as economia from './rotas/economia';
 import * as exercicios from './rotas/exercicios';
 import * as metricas from './rotas/metricas';
@@ -69,6 +70,7 @@ const ROTAS: Array<{ metodo: string; padrao: RegExp; handler: Handler }> = [
   { metodo: 'GET', padrao: /^\/api\/vocab$/, handler: vocabulario.listarCartoes },
   { metodo: 'GET', padrao: /^\/api\/vocab\/pagina$/, handler: vocabulario.paginaDeCartoes },
   { metodo: 'GET', padrao: /^\/api\/vocab\/inicio-da-contagem$/, handler: vocabulario.inicioDaContagemLocal },
+  { metodo: 'GET', padrao: /^\/api\/vocab\/conteudo$/, handler: conteudo.contagensDeConteudoLocal },
   { metodo: 'POST', padrao: /^\/api\/vocab\/bulk-add$/, handler: vocabulario.adicionarCartoes },
   { metodo: 'PATCH', padrao: /^\/api\/vocab\/([^/]+)$/, handler: vocabulario.editarCartao },
   { metodo: 'GET', padrao: /^\/api\/vocab\/([^/]+)\/memoria$/, handler: vocabulario.memoriaDoCartao },

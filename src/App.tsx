@@ -278,6 +278,8 @@ export default function App() {
     setIsChatDocked,
     practiceSeed,
     setPracticeSeed,
+    recorteDoJogar,
+    setRecorteDoJogar,
     cartoesAba,
     setCartoesAba,
     estudo,
@@ -615,6 +617,8 @@ export default function App() {
                   metrics={metrics}
                   recording={selectedRecordingId ? selectedRecording : null}
                   seed={practiceSeed}
+                  recorte={recorteDoJogar}
+                  aoUsarRecorte={() => setRecorteDoJogar(null)}
                   soundEnabled={soundEnabled}
                   toggleSound={toggleSound}
                 />

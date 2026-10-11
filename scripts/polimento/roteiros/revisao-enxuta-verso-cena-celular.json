@@ -1,0 +1,64 @@
+{
+  "nome": "revisao-enxuta-verso-cena-celular",
+  "prototipo": "cartoes-enxuto",
+  "largura": 390,
+  "altura": 844,
+  "toque": true,
+  "app": {
+    "caminho": "/cartoes/estudar",
+    "assentar": 3500,
+    "passos": [
+      {
+        "js": "(async () => { for (let i = 0; i < 8; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 400)); } })()"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "clicar": ".qr-principal"
+      },
+      {
+        "esperar": 1500
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?cx=verso-cena&quieto&embutido",
+    "assentar": 3500,
+    "passos": [
+      {
+        "esperar": 1800
+      }
+    ]
+  },
+  "seletores": [
+    ".qr-topo",
+    ".qr-topo .q-voltar",
+    ".qr-progresso",
+    ".qr-progresso .q-barra",
+    ".qr-conta",
+    ".cx-desfazer",
+    ".cx-linha",
+    ".qr-cartao",
+    ".ct-selos .qr-selo",
+    ".termo",
+    ".ct-frase",
+    ".ct-frase .exemplo",
+    ".ct-frase .exemplo mark",
+    ".cx-icones",
+    ".cx-icones .cx-ic",
+    ".cx-resposta",
+    ".cx-cena",
+    ".cx-cena-quadro",
+    ".cx-cena-tempo",
+    ".cx-cena-de",
+    ".cx-cena .cx-link",
+    ".cx-resposta-texto",
+    ".cx-resposta-texto b",
+    ".ct-trad-da-frase",
+    ".fsrs",
+    ".fsrs button",
+    ".fsrs button small",
+    ".cx-teclas"
+  ]
+}

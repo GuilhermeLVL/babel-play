@@ -1,0 +1,61 @@
+{
+  "nome": "revisao-enxuta-mais-celular",
+  "prototipo": "cartoes-enxuto",
+  "largura": 390,
+  "altura": 844,
+  "toque": true,
+  "app": {
+    "caminho": "/cartoes/estudar",
+    "assentar": 3500,
+    "passos": [
+      {
+        "js": "(async () => { for (let i = 0; i < 8; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 400)); } })()"
+      },
+      {
+        "esperar": 800
+      },
+      {
+        "clicar": ".qr-principal"
+      },
+      {
+        "esperar": 900
+      },
+      {
+        "clicar": ".cx-topo .cx-ic:not(.cx-desfazer)"
+      },
+      {
+        "esperar": 1200
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?cx=mais&quieto&embutido",
+    "assentar": 3500,
+    "passos": [
+      {
+        "esperar": 1800
+      }
+    ]
+  },
+  "seletores": [
+    "dialog.cx-folha-acoes",
+    ".cx-folha-cab",
+    ".cx-folha-cab .folha-pal",
+    ".cx-folha-cab .folha-glosa",
+    ".cx-folha-cab .cx-ic",
+    ".cx-tres",
+    ".cx-grande",
+    ".cx-grande b",
+    ".cx-grande small",
+    ".cx-menores",
+    ".cx-menores .folha-acao",
+    ".folha-rotulo",
+    ".cx-ajuste",
+    ".cx-ajuste b",
+    ".cx-ajuste small",
+    ".cx-ajuste .q-interruptor",
+    ".cx-folha-pe",
+    ".cx-folha-pe .q-ctl",
+    ".cx-encerrar"
+  ]
+}

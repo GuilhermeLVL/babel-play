@@ -1,0 +1,48 @@
+{
+  "nome": "revisao-enxuta-frente-celular",
+  "prototipo": "cartoes-enxuto",
+  "largura": 390,
+  "altura": 844,
+  "toque": true,
+  "app": {
+    "caminho": "/cartoes/estudar",
+    "assentar": 3500,
+    "passos": [
+      {
+        "js": "(async () => { for (let i = 0; i < 8; i++) { const d = [...document.querySelectorAll('dialog[open]')].pop(); if (!d) return; (d.querySelector('button.x, [aria-label=\"Fechar\"]') || d.querySelector('button'))?.click(); await new Promise((r) => setTimeout(r, 400)); } })()"
+      },
+      {
+        "esperar": 800
+      }
+    ]
+  },
+  "proto": {
+    "busca": "?cx=frente-inicio&quieto&embutido",
+    "assentar": 3500,
+    "passos": [
+      {
+        "esperar": 1800
+      }
+    ]
+  },
+  "seletores": [
+    ".qr-topo",
+    ".qr-topo .q-voltar",
+    ".qr-progresso",
+    ".qr-progresso .q-barra",
+    ".qr-conta",
+    ".cx-desfazer",
+    ".cx-linha",
+    ".qr-cartao",
+    ".ct-selos .qr-selo",
+    ".termo",
+    ".ct-frase",
+    ".ct-frase .exemplo",
+    ".ct-frase .exemplo mark",
+    ".qr-dica",
+    ".cx-fileira",
+    ".cx-fileira .ct-som",
+    ".qr-principal",
+    ".cx-teclas"
+  ]
+}

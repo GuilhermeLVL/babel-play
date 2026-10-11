@@ -21,12 +21,14 @@
 
 ## 3. A revisão melhorada (`cartoes2.js`)
 
-- [ ] 3.1 A fala original da sessão no cartão (`vocab_occurrences.utterance_id`), a frase destacada, "Abrir na sessão"
+Feita em 10/10/2026 na VERSÃO ENXUTA (`cartoes-enxuto-src`), com Minha voz, a cena no verso e as práticas: o que entrou, o que cada prática grava e o que ficou de fora estão em `revisao-enxuta.md`.
+
+- [x] 3.1 A fala original da sessão no cartão (`vocab_occurrences.utterance_id`), a frase destacada, "Abrir na sessão"
 - [ ] 3.2 Formatos novos (lacuna) e alternar a frase a cada revisão
-- [ ] 3.3 Modo de dois botões como opção (quatro continuam o padrão)
-- [ ] 3.4 Gestos no celular: tocar vira, deslizar dá nota, segurar abre as ações
-- [ ] 3.5 Fim da rodada com as palavras que mudaram de estado e "virar jogo" com as mesmas
-- [ ] 3.6 Enterrar até amanhã, bandeira, informações do cartão
+- [x] 3.3 Modo de dois botões como opção (quatro continuam o padrão)
+- [x] 3.4 Gestos no celular: tocar vira, deslizar dá nota, segurar abre as ações
+- [x] 3.5 Fim da rodada com as palavras que mudaram de estado e "virar jogo" com as mesmas
+- [ ] 3.6 Enterrar até amanhã (feito: "Deixar para amanhã"), informações do cartão (feito, sem a tabela de revisões), bandeira (falta: não há campo)
 - [ ] 3.7 Tempo medido por cartão (destrava os tempos estimados da tela e o número "Tempo" da Memória)
 
 ## 4. Baralhos e recortes

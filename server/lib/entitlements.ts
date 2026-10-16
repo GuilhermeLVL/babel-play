@@ -31,8 +31,8 @@ export interface Entitlements extends EntitlementsDoPlano {
 }
 
 /**
- * A assinatura CONCEDE o plano? Só com LASTRO de pagamento: `active` (webhook confirmou) sempre, e
- * `past_due` na graça (já pagou o período corrente). `trialing` NÃO concede (GAP-001): é o estado
+ * A assinatura CONCEDE o plano? Só com LASTRO de pagamento: `active` (webhook confirmou) até o fim do
+ * período, e `past_due` na graça (já pagou o período corrente). `trialing` NÃO concede (GAP-001): é o estado
  * que `POST /api/billing/assinar` grava ao INICIAR o checkout, antes de qualquer pagamento — tratá-lo
  * como concessão deixava qualquer conta virar o plano pedido só por clicar em assinar, sem pagar
  * (provado em openspec/audits/2026-09-13-pre-deploy/evidencias/poc-billing.txt). Nada legítimo produz
@@ -42,9 +42,19 @@ export interface Entitlements extends EntitlementsDoPlano {
  * 11.034/2022): cancelar para a RENOVAÇÃO, e o mês que já foi pago continua valendo até o fim. Antes
  * o cancelamento cortava o acesso na hora enquanto a tela prometia "você continua até o fim do
  * período". Quem zera o período é o arrependimento (reembolso = sem período pago) e o estorno.
+ *
+ * `active` COM PERÍODO GRAVADO também acaba nele (auditoria de 15/10/2026, B1). Antes `active` concedia
+ * sem olhar `currentPeriodEnd`: a linha do Asaas que ficasse `active` sem o evento seguinte chegar — o
+ * 12x depois da 12ª parcela (o parcelamento não renova), a assinatura removida no Asaas, o RECEIVED
+ * atrasado que reativava a cancelada — virava Premium para sempre. Todo `active` que o webhook grava
+ * traz o período (ciclo + 5 dias, ou o ano do 12x); a renovação chega como outro pagamento confirmado,
+ * que estica o fim. O discriminador é o PERÍODO, e não `provider = 'asaas'`: o plano dado pelo admin
+ * (rota admin e `contas plano`) grava `active` SEM período, e pode cair numa linha que já tem
+ * `provider = 'asaas'` (a pessoa abriu um checkout antes) — exigir período pelo provedor revogaria a
+ * concessão do operador. Sem período = concessão sem fim, como sempre foi.
  */
 function subConcede(sub: Subscription): boolean {
-  if (sub.status === 'active') return true
+  if (sub.status === 'active') return sub.currentPeriodEnd == null || sub.currentPeriodEnd > Date.now()
   const periodoPagoAFrente = sub.currentPeriodEnd != null && sub.currentPeriodEnd > Date.now()
   if ((sub.status === 'past_due' || sub.status === 'canceled') && periodoPagoAFrente) return true
   return false // 'trialing' (não pago), cancelada sem período à frente ou graça expirada → free

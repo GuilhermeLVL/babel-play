@@ -95,6 +95,44 @@ function periodoQueVale(
   return { fim, ciclo, manteve: false }
 }
 
+/**
+ * A LINHA É A DE UMA ASSINATURA CANCELADA PARA A RENOVAÇÃO, e o pagamento é DELA (auditoria de
+ * 15/10/2026, B1)? No cartão o Asaas manda `PAYMENT_CONFIRMED` na compra e `PAYMENT_RECEIVED` uns 30
+ * dias depois, quando o dinheiro cai. Quem cancelou nesse meio fica `canceled` + `cancelAtPeriodEnd = 1`
+ * (`encerramentoDeAssinatura`), e o RECEIVED atrasado — que passa na conferência da API, porque o
+ * pagamento é mesmo `RECEIVED` e a assinatura é a registrada — regravava `active` sem renovar nada.
+ *
+ * O `cancelAtPeriodEnd = 1` diz que a assinatura REGISTRADA foi cancelada: quem assina de novo grava os
+ * ids da nova e zera a marca (`POST /api/billing/assinar`), então o pagamento da nova reativa.
+ */
+function canceladaSemRenovar(
+  atual: Subscription | null,
+  fluxo: { assinatura?: string; parcelamento?: string },
+): atual is Subscription {
+  if (!atual || atual.status !== 'canceled' || atual.cancelAtPeriodEnd !== 1) return false
+  if (fluxo.assinatura && fluxo.assinatura === atual.providerSubscriptionId) return true
+  return Boolean(fluxo.parcelamento && fluxo.parcelamento === atual.providerInstallmentId)
+}
+
+/**
+ * O pagamento da cancelada não reativa: a linha segue `canceled` e sem renovar, e o período fica o que
+ * o cancelamento gravou (o fim que o Asaas informou para o que já foi pago) — nunca encurta, e não
+ * ganha os cinco dias de folga, que existem para a PRÓXIMA cobrança compensar e aqui não haverá
+ * próxima. Só a linha sem período nenhum recebe o que este pagamento cobre.
+ */
+async function manterCancelada(
+  userId: UserId,
+  atual: Subscription,
+  fimDoPagamento: number,
+  motivo: string | null,
+  requestId: string | undefined,
+): Promise<ResultadoDoEvento> {
+  if (atual.currentPeriodEnd == null) await subscriptionsRepo.upsert(userId, { currentPeriodEnd: fimDoPagamento })
+  const nota = 'cancelada-sem-renovar: o pagamento é da assinatura cancelada; segue cancelada até o fim do período pago'
+  log('info', { event: 'billing_pagamento_da_cancelada', requestId })
+  return { estado: 'aplicado', motivo: motivo ? `${motivo}; ${nota}` : nota }
+}
+
 /** GAP-011: confere um pagamento contra a fonte autoritativa (a API do Asaas). Injetável p/ teste. */
 export type VerificadorDePagamento = (id: string) => Promise<PagamentoAsaas | null>
 /** O par dele para os eventos de ASSINATURA (`SUBSCRIPTION_DELETED`/`_INACTIVATED`). `null` = 404. */
@@ -334,6 +372,9 @@ export async function aplicarEvento(
         log('warn', { event: 'billing_periodo_mantido', error: nota, requestId })
         motivo = motivo ? `${motivo}; ${nota}` : nota
       }
+      if (canceladaSemRenovar(atual, { assinatura: vSub })) {
+        return manterCancelada(userIdEfetivo, atual, vale.fim, motivo, requestId)
+      }
       await subscriptionsRepo.upsert(userIdEfetivo, {
         plan: plano,
         status: 'active',
@@ -495,7 +536,9 @@ export async function aplicarEvento(
           }
         }
       }
-      await subscriptionsRepo.upsert(userId, { status: 'canceled' })
+      /* `cancelAtPeriodEnd = 1`, como o botão Cancelar: a assinatura registrada não renova mais, e um
+         pagamento atrasado dela não a reativa (`canceladaSemRenovar`). */
+      await subscriptionsRepo.upsert(userId, { status: 'canceled', cancelAtPeriodEnd: 1 })
       return { estado: 'aplicado', motivo: null }
     }
     default:
@@ -663,6 +706,11 @@ async function aplicarParcela(
   const primeira = vencimentoDaPrimeiraParcela(p.vencimento, p.numero)
   const base = Number.isFinite(primeira) ? primeira : Date.now()
   const vale = periodoQueVale(atual, base + DIAS_DO_PERIODO_ANUAL * DIA_MS, 'anual')
+  /* As parcelas do cartão confirmam juntas, mas cada RECEIVED cai no mês dela: o 12x cancelado depois
+     dos 7 dias recebe parcelas pelo ano todo, e nenhuma delas o reativa. */
+  if (canceladaSemRenovar(atual, { parcelamento: p.parcelamento })) {
+    return manterCancelada(userId, atual, vale.fim, motivo, p.requestId)
+  }
   await subscriptionsRepo.upsert(userId, {
     plan: pago.plano,
     status: 'active',

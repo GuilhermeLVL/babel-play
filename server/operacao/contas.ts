@@ -29,7 +29,7 @@ import { sql } from 'drizzle-orm'
 
 import { normalizarPlano, PLANOS_DE_ASSINATURA } from '../../src/core/planos'
 import { db } from '../db/db'
-import { subscriptionsRepo } from '../db/repositories/subscriptions'
+import { concessaoDoOperador, subscriptionsRepo } from '../db/repositories/subscriptions'
 import { type Role, usersRepo } from '../db/repositories/users'
 import { users } from '../db/schema'
 import { asUserId, type UserId } from '../lib/authContext'
@@ -167,7 +167,7 @@ export async function comandoDeContas(
       const id = await localizar(alvo, deps)
       const antes = await planoDe(id)
       // O mesmo efeito de `PATCH /api/admin/users/:id/plan`: concessão do operador, sem cobrança.
-      const s = await subscriptionsRepo.upsert(id, { plan: plano, status: 'active' })
+      const s = await subscriptionsRepo.upsert(id, concessaoDoOperador(plano))
       saida.out(`plano de ${id}: ${antes} → ${s.plan} (${s.status})`)
       return 0
     }

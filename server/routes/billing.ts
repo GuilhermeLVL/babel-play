@@ -113,10 +113,17 @@ const assinarSchema = z
  * cobrando junto (dois débitos por mês, ou o mensal por cima do anual), e a troca de ciclo é um
  * fluxo próprio da tela de Planos (C7). A fatura atrasada se paga pelo link dela, não assinando de
  * novo. A linha do admin (sem provedor) e a cancelada podem assinar.
+ *
+ * O 12x com o ano já vencido também pode (B1, 15/10/2026): o parcelamento não renova, não há nada no
+ * Asaas cobrando junto, e a linha continua `active` porque nenhum evento chega depois da 12ª parcela —
+ * sem esta saída, quem comprou o ano ficaria sem plano e sem como comprar de novo.
  */
 function jaPagaNoAsaas(sub: Awaited<ReturnType<typeof subscriptionsRepo.getActive>>): boolean {
   if (!sub || sub.provider !== 'asaas') return false
   if (sub.status !== 'active' && sub.status !== 'past_due') return false
+  const parcelamentoVencido =
+    !sub.providerSubscriptionId && sub.currentPeriodEnd != null && sub.currentPeriodEnd <= Date.now()
+  if (parcelamentoVencido) return false
   return Boolean(sub.providerSubscriptionId || sub.providerInstallmentId)
 }
 
@@ -441,11 +448,14 @@ billingRouter.post('/assinar', async (req, res) => {
        - Assinatura JÁ existente (cancelada, ou tentativa anterior não paga): só atualiza os ids da
          nova tentativa de cobrança; NÃO toca em plan/status/ciclo. Sobrescrever `plan` promoveria
          sem pagar (a escalada que o GAP-001 fechou); baixar para `trialing` revogaria o período que
-         a cancelada ainda tem. O `meio` diz só qual fluxo do Asaas cobra esta tentativa. */
+         a cancelada ainda tem. O `meio` diz só qual fluxo do Asaas cobra esta tentativa.
+         `cancelAtPeriodEnd` volta a 0: a marca diz que a assinatura REGISTRADA foi cancelada, e a
+         registrada agora é esta, nova — o pagamento dela reativa; o atrasado da antiga, não
+         (billingEventos `canceladaSemRenovar`). */
     await subscriptionsRepo.upsert(
       destino,
       atual
-        ? { provider: 'asaas', providerCustomerId: clienteId, ...ids, meio }
+        ? { provider: 'asaas', providerCustomerId: clienteId, ...ids, meio, cancelAtPeriodEnd: 0 }
         : { provider: 'asaas', providerCustomerId: clienteId, ...ids, meio, ciclo, plan: plano, status: 'trialing' },
     )
 

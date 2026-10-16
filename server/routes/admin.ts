@@ -10,7 +10,7 @@ import { normalizarPlano, type PlanoDeAssinatura, PLANOS_DE_ASSINATURA } from '.
 import { billingEventsRepo } from '../db/repositories/billingEvents'
 import { calibracaoDoUsuario } from '../db/repositories/calibracao'
 import { resumoDoDono } from '../db/repositories/resumo'
-import { subscriptionsRepo } from '../db/repositories/subscriptions'
+import { concessaoDoOperador, subscriptionsRepo } from '../db/repositories/subscriptions'
 import { usersRepo } from '../db/repositories/users'
 import { asUserId } from '../lib/authContext'
 import { aplicarEvento, eventoSchema } from '../lib/billingEventos'
@@ -128,7 +128,7 @@ adminRouter.patch('/users/:id/plan', requireRole('admin'), async (req, res) => {
     res.status(404).json({ error: 'usuário não encontrado' })
     return
   }
-  res.json(await subscriptionsRepo.upsert(target, { plan: parsed.data.plan, status: 'active' }))
+  res.json(await subscriptionsRepo.upsert(target, concessaoDoOperador(parsed.data.plan)))
 })
 
 /**

@@ -37,6 +37,17 @@ export interface SubscriptionPatch {
 }
 
 /**
+ * A CONCESSÃO DO OPERADOR (`PATCH /api/admin/users/:id/plan` e `contas plano`): o plano, `active`, SEM
+ * período. Sem período é o que faz ela não ter fim (`entitlements.subConcede`); o período zerado de
+ * propósito também vale por cima de uma linha do Asaas já vencida, que de outro modo continuaria
+ * limitando o acesso pelo fim antigo. Os ids do provedor ficam: o cancelamento e as faturas da
+ * assinatura real, se houver, continuam sabendo onde perguntar.
+ */
+export function concessaoDoOperador(plan: Plan): SubscriptionPatch {
+  return { plan, status: 'active', currentPeriodEnd: null, cancelAtPeriodEnd: 0 }
+}
+
+/**
  * A TROCA PENDENTE NÃO SOBREVIVE À ASSINATURA DELA. A intenção vale para UMA assinatura do Asaas, em
  * dia: quando a linha é cancelada (botão Cancelar, arrependimento, estorno, chargeback, assinatura
  * removida) ou passa a apontar para OUTRA assinatura (`/assinar` de novo), a troca pedida deixa de

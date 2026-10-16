@@ -1,14 +1,12 @@
-import { readFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
-
 import { expect, type Page, test } from '@playwright/test'
 
+import { violacoesGraves } from './_acessibilidade'
 import { abasDePraticar, abrirMais, clicarRobusto, fecharSobreposicoes, trilho } from './_helpers'
 
 /**
  * FUNDAÇÃO (23/09/2026) — o que o shell novo promete e o que as duas telas-molde garantem.
  *
- * - Início e Ajustes sem violação WCAG 2.2 AA séria ou crítica (axe injetado direto: `axe-core`
+ * - Início e Ajustes sem violação WCAG 2.2 AA séria ou crítica (`_acessibilidade.ts`: `axe-core`
  *   já é dependência, e o wrapper do Playwright seria um pacote a mais para a mesma coisa).
  * - Nenhuma tela rola de lado, em nenhum dos três tamanhos.
  * - O trilho de ícones leva a todo destino: no computador e no tablet, seis no trilho (Início,
@@ -17,8 +15,6 @@ import { abasDePraticar, abrirMais, clicarRobusto, fecharSobreposicoes, trilho }
  * - iChat fixo: divide a linha com o conteúdo, a largura muda pela alça e volta a flutuar sozinho
  *   quando a janela fica estreita demais.
  */
-const AXE = readFileSync(createRequire(import.meta.url).resolve('axe-core/axe.min.js'), 'utf8')
-
 async function abrir(page: Page, caminho = '/') {
   await page.goto(caminho)
   await expect(page.getByRole('main')).toBeVisible()
@@ -31,51 +27,6 @@ async function abrir(page: Page, caminho = '/') {
   await page.waitForLoadState('networkidle')
   await fecharSobreposicoes(page)
   await expect(page.locator('dialog[open]')).toHaveCount(0)
-}
-
-async function violacoesGraves(page: Page) {
-  /* Espera as animações de entrada terminarem: no meio de um fade o texto está semitransparente,
-     e o axe mede a cor MISTURADA — acusava 4,17:1 num rótulo que, parado, passa com folga. */
-  await page.evaluate(() =>
-    Promise.all(
-      document
-        .getAnimations()
-        .filter((a) => a.effect?.getTiming().iterations !== Infinity)
-        .map((a) => a.finished.catch(() => undefined)),
-    ),
-  )
-  await page.addScriptTag({ content: AXE })
-  return page.evaluate(async () => {
-    type No = { target: string[]; any: { data?: { fgColor?: string; bgColor?: string; contrastRatio?: number } }[] }
-    const axe = (
-      window as unknown as {
-        axe: {
-          run: (ctx: unknown, opts: unknown) => Promise<{ violations: { id: string; impact: string; nodes: No[] }[] }>
-        }
-      }
-    ).axe
-    /* A marca (logotipo) fica de fora: WCAG 1.4.3 isenta logotipos do contraste mínimo. */
-    const r = await axe.run(
-      { exclude: [['.font-marca']] },
-      {
-        runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] },
-      },
-    )
-    return r.violations
-      .filter((v) => v.impact === 'serious' || v.impact === 'critical')
-      .map(
-        (v) =>
-          `${v.id}: ${v.nodes
-            .slice(0, 4)
-            .map((n) => {
-              const x = n.any[0]?.data
-              return (
-                n.target.join(' ') + (x?.contrastRatio ? ` (${x.fgColor} sobre ${x.bgColor} = ${x.contrastRatio})` : '')
-              )
-            })
-            .join(' | ')}`,
-      )
-  })
 }
 
 const semRolagemLateral = (page: Page) =>

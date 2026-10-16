@@ -69,6 +69,7 @@ Quando um rótulo muda na tela, o teste falha no mesmo commit e é atualizado ju
 | `pseudo-localizacao.e2e.ts`            | nada corta com texto 40% mais longo                                            |
 | `duas-superficies-alcancaveis.e2e.ts`  | as cinco abas de Personalizar, e os endereços de antes                         |
 | `fundacao.e2e.ts`                      | acessibilidade (axe) de Início e Ajustes, o trilho e o "Mais", o iChat fixo    |
+| `acessibilidade.e2e.ts`                | axe das telas do lançamento e das páginas legais (a porta: e2e-publico)        |
 | `planos-pagamento.e2e.ts`              | Planos, checkout e confirmação no self-host: nada a cobrar                     |
 | `fim-da-captura.e2e.ts`                | 600 falas salvas em lotes; sair não trava nem duplica                          |
 | `legendas-flutuantes.e2e.ts`           | a janela flutuante dentro do app: espelho, pausar, fechar                      |

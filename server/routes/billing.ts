@@ -1052,6 +1052,27 @@ const limitadorDeTokenErrado = criarLimitadorDeFalhas({
 asaasWebhookRouter.use((req, res, next) => (authRequired() ? limitadorDeTokenErrado(req, res, next) : next()))
 asaasWebhookRouter.use(json({ limit: '100kb' }))
 
+/**
+ * O que dá para dizer de um corpo que a forma recusou SEM dado pessoal: o tipo do evento, os ids (do
+ * evento, do pagamento, da assinatura) e os NOMES dos campos que falharam — nunca os valores. Só passa
+ * o que tem cara de identificador (`[A-Za-z0-9_.:-]`, até 80): um nome ou um e-mail num campo de id
+ * fica de fora.
+ */
+function rastroDoCorpo(corpo: unknown, problemas: ReadonlyArray<{ path: ReadonlyArray<PropertyKey> }>): string {
+  const ident = (v: unknown): string | null => (typeof v === 'string' && /^[A-Za-z0-9_.:-]{1,80}$/.test(v) ? v : null)
+  const obj = (v: unknown): Record<string, unknown> =>
+    typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {}
+  const c = obj(corpo)
+  const partes = [
+    `evento=${ident(c.event) ?? '?'}`,
+    `id=${ident(c.id) ?? '?'}`,
+    `pagamento=${ident(obj(c.payment).id) ?? '?'}`,
+    `assinatura=${ident(obj(c.payment).subscription) ?? ident(obj(c.subscription).id) ?? '?'}`,
+    `campos=${[...new Set(problemas.map((p) => p.path.map(String).join('.') || '(raiz)'))].slice(0, 6).join(',')}`,
+  ]
+  return partes.join(' ')
+}
+
 asaasWebhookRouter.post('/', async (req, res) => {
   const segredo = webhookToken()
   if (!segredo) {
@@ -1068,7 +1089,15 @@ asaasWebhookRouter.post('/', async (req, res) => {
 
   const parsed = eventoSchema.safeParse(req.body ?? {})
   if (!parsed.success) {
-    // 200 de propósito: corpo estranho não é motivo para o Asaas ficar reentregando para sempre.
+    /* 200 de propósito: corpo estranho não é motivo para o Asaas ficar reentregando para sempre. Mas
+       NÃO em silêncio (auditoria de 15/10/2026): se o Asaas mudar o payload, todo evento cai aqui, e
+       sem rastro ninguém saberia que os pagamentos pararam de conceder plano. `error` chega ao Sentry. */
+    log('error', {
+      event: 'billing_webhook_corpo_fora_da_forma',
+      route: '/api/billing/webhook/asaas',
+      provider: 'asaas',
+      error: rastroDoCorpo(req.body, parsed.error.issues),
+    })
     res.status(200).json({ ok: false, motivo: 'corpo fora da forma' })
     return
   }

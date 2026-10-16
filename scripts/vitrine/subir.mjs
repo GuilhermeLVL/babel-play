@@ -82,6 +82,8 @@ const ambienteDoApp = {
   APP_URL: APP,
   // O convite ao responsável não tem e-mail para onde ir: o link aparece na tela.
   CONVITE_LINK_NA_TELA: '1',
+  // A vitrine mostra o anual e o 12x (contas `anual` e `parcelado`): desde o B4 ele só vende com `1`.
+  ANUAL_ENABLED: '1',
   VITE_CACHE_DIR: path.join('node_modules', '.vite-vitrine'),
 }
 

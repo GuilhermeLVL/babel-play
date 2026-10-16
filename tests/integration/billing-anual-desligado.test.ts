@@ -4,7 +4,8 @@
  * O anual (à vista e em 12x) fica desligado até o jurídico validar os Termos §3–§4
  * (`docs/ESTADO-DO-LANCAMENTO.md`). É uma chave do mesmo molde de `CHECKOUT_ENABLED`:
  *
- * 1. Ausente = LIGADA (nenhum contrato de antes muda); `0`/`false` desliga.
+ * 1. FAIL-SAFE (auditoria de 15/10/2026, B4): só `ANUAL_ENABLED=1` abre. Ausente, vazia ou qualquer
+ *    outro valor = DESLIGADA — esquecer a variável no `fly secrets` não põe o anual à venda.
  * 2. Desligada, `POST /api/billing/assinar` com `ciclo: 'anual'` — em qualquer meio, inclusive o
  *    parcelamento — responde 503 `anual_indisponivel` com mensagem clara, ANTES de falar com o Asaas.
  * 3. O mensal segue vendendo.
@@ -68,13 +69,29 @@ afterEach(() => {
 })
 
 describe('ANUAL_ENABLED', () => {
-  it('anualLigado: ausente = ligado; só `0` e `false` desligam', async () => {
+  it('anualLigado: só `1` abre; ausente, vazia ou qualquer outro valor fecha', async () => {
     const { anualLigado } = await import('../../server/lib/config')
-    expect(anualLigado({})).toBe(true)
     expect(anualLigado({ ANUAL_ENABLED: '1' })).toBe(true)
-    expect(anualLigado({ ANUAL_ENABLED: 'sim' })).toBe(true)
+    expect(anualLigado({ ANUAL_ENABLED: ' 1 ' })).toBe(true)
+    expect(anualLigado({})).toBe(false)
+    expect(anualLigado({ ANUAL_ENABLED: '' })).toBe(false)
+    expect(anualLigado({ ANUAL_ENABLED: 'sim' })).toBe(false)
     expect(anualLigado({ ANUAL_ENABLED: '0' })).toBe(false)
     expect(anualLigado({ ANUAL_ENABLED: ' False ' })).toBe(false)
+  })
+
+  it('ausente: o anual não está à venda (503), sem chamar o Asaas', async () => {
+    await adulto('an-ausente')
+    delete process.env.ANUAL_ENABLED
+    const corpos = asaasSimulado()
+    const r = await s.post(
+      '/api/billing/assinar',
+      { ...pedido, ciclo: 'anual', meio: 'assinatura' },
+      await tk('an-ausente'),
+    )
+    expect(r.status).toBe(503)
+    expect((await r.json()).code).toBe('anual_indisponivel')
+    expect(corpos, 'nada chegou ao Asaas').toHaveLength(0)
   })
 
   it('desligado: o anual à vista responde 503 anual_indisponivel, sem chamar o Asaas', async () => {
@@ -120,8 +137,9 @@ describe('ANUAL_ENABLED', () => {
     expect(corpos.find((c) => c.url.endsWith('/subscriptions'))?.body).toMatchObject({ cycle: 'MONTHLY' })
   })
 
-  it('ligado (ausente): o anual vende como sempre', async () => {
+  it('ligado (=1): o anual vende como sempre', async () => {
     await adulto('an-ligado')
+    process.env.ANUAL_ENABLED = '1'
     const corpos = asaasSimulado()
     const r = await s.post(
       '/api/billing/assinar',
@@ -133,6 +151,8 @@ describe('ANUAL_ENABLED', () => {
   })
 
   it('a abertura devolve `anual`, lida em tempo de chamada, sem mexer nas outras portas', async () => {
+    expect(await (await s.get('/api/abertura')).json()).toEqual({ cadastro: true, checkout: true, anual: false })
+    process.env.ANUAL_ENABLED = '1'
     expect(await (await s.get('/api/abertura')).json()).toEqual({ cadastro: true, checkout: true, anual: true })
     process.env.ANUAL_ENABLED = '0'
     expect(await (await s.get('/api/abertura')).json()).toEqual({ cadastro: true, checkout: true, anual: false })

@@ -214,7 +214,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'chave de venda do plano ANUAL (à vista e em 12x): `0` tira o anual da tela e faz `/api/billing/assinar` recusar `ciclo: anual` (503 `anual_indisponivel`); o mensal e o teste seguem, e quem já tem o anual não é afetado. O MVP sobe com `0` até o jurídico validar os Termos §3–§4. Ausente = ligada',
+      'chave de venda do plano ANUAL (à vista e em 12x): só `1` o põe à venda. Ausente, vazia ou qualquer outro valor = FECHADA (fail-safe): o anual sai da tela e `/api/billing/assinar` recusa `ciclo: anual` (503 `anual_indisponivel`); o mensal e o teste seguem, e quem já tem o anual não é afetado. O MVP sobe sem ela até o jurídico validar os Termos §3–§4',
   },
   {
     nome: 'APP_URL',
@@ -1453,15 +1453,19 @@ export function cadastroLigado(env: NodeJS.ProcessEnv = process.env): boolean {
 }
 
 /**
- * O plano ANUAL (à vista e em 12x) está à venda? `ANUAL_ENABLED=0` (ou `false`) o tira da tela e do
- * `/assinar`; o mensal e o teste de 14 dias seguem. Não é chave de emergência, é de LANÇAMENTO: o MVP
- * sobe só com o mensal até o jurídico validar os Termos §3–§4. Ausente = ligado, para nenhum contrato
- * de antes mudar. Só fecha a VENDA: quem já tem o anual segue com ele, e o webhook continua
- * concedendo o ano a um pagamento anual que chegar. Lida em tempo de chamada.
+ * O plano ANUAL (à vista e em 12x) está à venda? Só com `ANUAL_ENABLED=1`; desligado, ele sai da tela
+ * e do `/assinar`, e o mensal e o teste de 14 dias seguem. Não é chave de emergência, é de LANÇAMENTO:
+ * o MVP sobe só com o mensal até o jurídico validar os Termos §3–§4.
+ *
+ * FAIL-SAFE (auditoria de 15/10/2026, B4): ausente, vazia ou qualquer valor que não seja `1` = FECHADO.
+ * Antes ausente era aberto, e esquecer a variável no `fly secrets` punha à venda, de uma vez, o anual
+ * com os Termos ainda não validados. Ao contrário de `CHECKOUT_ENABLED`/`SIGNUP_ENABLED` (emergência:
+ * nascer fechadas seria um lançamento que não vende sem ninguém saber por quê), abrir o anual é um ato
+ * deliberado. Só fecha a VENDA: quem já tem o anual segue com ele, e o webhook continua concedendo o ano
+ * a um pagamento anual que chegar. Lida em tempo de chamada.
  */
 export function anualLigado(env: NodeJS.ProcessEnv = process.env): boolean {
-  const v = env.ANUAL_ENABLED?.trim().toLowerCase()
-  return !(v === '0' || v === 'false')
+  return env.ANUAL_ENABLED?.trim() === '1'
 }
 
 /** O endereço público do app, sem barra final, ou `null`. */

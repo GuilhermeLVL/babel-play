@@ -28,33 +28,37 @@ describe('GET /api/abertura (modo publico)', () => {
     await s.encerrar()
   })
 
-  it('e publica: 200 sem token, sem cache, e as portas nascem abertas (o anual tambem)', async () => {
+  it('e publica: 200 sem token, sem cache; cadastro e checkout nascem abertos, o anual FECHADO', async () => {
     const r = await s.get('/api/abertura')
     expect(r.status).toBe(200)
     expect(r.headers.get('cache-control')).toBe('no-store')
-    expect(await r.clone().json()).toEqual({ cadastro: true, checkout: true, anual: true })
+    expect(await r.clone().json()).toEqual({ cadastro: true, checkout: true, anual: false })
     await expect(JSON.stringify(await resposta(r), null, 2)).toMatchFileSnapshot('__snapshots__/get.abertura.json')
   })
 
   it('CHECKOUT_ENABLED=0 fecha so a venda', async () => {
     process.env.CHECKOUT_ENABLED = '0'
-    expect(await (await s.get('/api/abertura')).json()).toEqual({ cadastro: true, checkout: false, anual: true })
+    expect(await (await s.get('/api/abertura')).json()).toEqual({ cadastro: true, checkout: false, anual: false })
   })
 
   it('SIGNUP_ENABLED=false fecha so o cadastro', async () => {
     process.env.SIGNUP_ENABLED = 'false'
-    expect(await (await s.get('/api/abertura')).json()).toEqual({ cadastro: false, checkout: true, anual: true })
+    expect(await (await s.get('/api/abertura')).json()).toEqual({ cadastro: false, checkout: true, anual: false })
   })
 
-  it('ANUAL_ENABLED=0 tira so o anual da venda (cadastro e checkout seguem abertos)', async () => {
+  it('so ANUAL_ENABLED=1 poe o anual a venda (cadastro e checkout nao mudam)', async () => {
+    process.env.ANUAL_ENABLED = '1'
+    expect(await (await s.get('/api/abertura')).json()).toEqual({ cadastro: true, checkout: true, anual: true })
     process.env.ANUAL_ENABLED = '0'
     expect(await (await s.get('/api/abertura')).json()).toEqual({ cadastro: true, checkout: true, anual: false })
   })
 
-  it('qualquer outro valor deixa a porta aberta (so 0/false fecham)', async () => {
+  it('qualquer outro valor deixa cadastro e checkout abertos (so 0/false fecham); o anual, fechado', async () => {
     process.env.CHECKOUT_ENABLED = '1'
     process.env.SIGNUP_ENABLED = 'sim'
-    expect(await (await s.get('/api/abertura')).json()).toEqual({ cadastro: true, checkout: true, anual: true })
+    // O anual e o contrario (fail-safe, B4): qualquer valor que nao seja `1` o deixa fechado.
+    process.env.ANUAL_ENABLED = 'sim'
+    expect(await (await s.get('/api/abertura')).json()).toEqual({ cadastro: true, checkout: true, anual: false })
   })
 
   it('a leitura e em tempo de chamada: fechar e reabrir sem reiniciar', async () => {

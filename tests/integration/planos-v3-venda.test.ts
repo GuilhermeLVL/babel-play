@@ -105,6 +105,8 @@ beforeAll(async () => {
   process.env.AUTH_REQUIRED = '1'
   process.env.ASAAS_API_KEY = 'chave-de-teste'
   process.env.ASAAS_WEBHOOK_TOKEN = SEGREDO
+  // O anual só está à venda com `ANUAL_ENABLED=1` (fail-safe, B4): esta suíte vende o anual.
+  process.env.ANUAL_ENABLED = '1'
   ;({ billingRouter, asaasWebhookRouter } = (await h.load('../../server/routes/billing')) as any)
   ;({ adminRouter } = (await h.load('../../server/routes/admin')) as any)
   ;({ subscriptionsRepo: subs } = (await h.load('../../server/db/repositories/subscriptions')) as any)
@@ -125,6 +127,7 @@ afterAll(async () => {
   delete process.env.AUTH_REQUIRED
   delete process.env.ASAAS_API_KEY
   delete process.env.ASAAS_WEBHOOK_TOKEN
+  delete process.env.ANUAL_ENABLED
   await h.cleanup()
 })
 afterEach(async () => {

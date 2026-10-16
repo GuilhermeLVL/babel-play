@@ -165,11 +165,12 @@ esperado um AVISA em `ASAAS_BASE_URL` ("sandbox em produção?"): é o sandbox, 
 `SIGNUP_ENABLED`/`CHECKOUT_ENABLED` aparecem como **FECHADO** (OK).
 
 `ANUAL_ENABLED=0` também aparece como **FECHADO** (OK): o MVP sobe vendendo **só o mensal e o teste de
-14 dias**, porque o anual (à vista e em 12x) depende de o jurídico validar os Termos §3–§4. Com `0`, o
+14 dias**, porque o anual (à vista e em 12x) depende de o jurídico validar os Termos §3–§4. Fechado, o
 anual some da tela de Planos e do checkout e `/api/billing/assinar` recusa `ciclo: anual` (503
-`anual_indisponivel`); quem já tem o anual não é afetado. Ausente ou `1` = anual à venda (o preflight
-mostra **ABERTO** como AVISA, que não bloqueia). Esta chave **não** é ligada no passo 9: fica em `0` no
-staging e na produção até o jurídico liberar.
+`anual_indisponivel`); quem já tem o anual não é afetado. A chave é **fail-safe** (desde 15/10/2026):
+**só `1` abre** — ausente, vazia ou qualquer outro valor é FECHADO, então esquecer a variável não põe o
+anual à venda. Com `1` o preflight mostra **ABERTO** como AVISA, que não bloqueia. Esta chave **não** é
+ligada no passo 9: fica fechada no staging e na produção até o jurídico liberar.
 
 ## 6. Os segredos no Fly
 

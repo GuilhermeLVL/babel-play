@@ -30,6 +30,7 @@ import {
   configDoSentry,
   diasAteApagarDeVez,
   diasDeRetencaoDeAudio,
+  erroDeAsaasSandboxEmProducao,
   erroDeMetricasEmProducao,
   erroDeTrustProxyEmProducao,
   limpezaDiariaLigada,
@@ -95,6 +96,15 @@ async function startServer({ prepararDados = true } = {}) {
   const metricasInseguras = erroDeMetricasEmProducao()
   if (metricasInseguras) {
     console.error(`[boot] ABORTADO: ${metricasInseguras}`)
+    process.exit(1)
+  }
+  /* Correção de alto valor 3 (auditoria de 15/10/2026): o sandbox do Asaas em produção, sem o
+     `ASAAS_SANDBOX=1` que só o staging declara, é Premium de graça com o cartão de teste. Aborta como
+     as travas acima; o `log('error')` deixa o evento no formato que o coletor de logs procura. */
+  const sandboxEmProducao = erroDeAsaasSandboxEmProducao()
+  if (sandboxEmProducao) {
+    log('error', { event: 'asaas_sandbox_em_producao', error: sandboxEmProducao })
+    console.error(`[boot] ABORTADO: ${sandboxEmProducao}`)
     process.exit(1)
   }
   /* B1 da Fase B: o registro de provedores de IA (`IA_PROVEDORES`) inválido — Gemini, OpenRouter sem

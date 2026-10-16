@@ -123,6 +123,7 @@ VITE_SUPABASE_URL=troque-a-mesma-url-do-projeto
 VITE_SUPABASE_ANON_KEY=troque-cole-aqui
 VITE_TURNSTILE_SITE_KEY=troque-cole-aqui
 ASAAS_BASE_URL=https://api-sandbox.asaas.com/v3
+ASAAS_SANDBOX=1
 ASAAS_API_KEY=troque-cole-aqui
 ASAAS_WEBHOOK_TOKEN=troque-cole-aqui
 S3_ENDPOINT=troque-cole-aqui
@@ -161,7 +162,11 @@ npm run preflight -- "$SEGREDOS\.env.staging"
 Ele diz, **só pelos nomes**, o que **BLOQUEIA** o boot, o que **AVISA** (capacidade que fica
 desligada) e o que está **OK**, e nunca imprime um valor. O arquivo dentro do repositório é recusado.
 Código de saída 0 = nada bloqueia. **Corrija todo BLOQUEIA e repita até passar.** No staging é
-esperado um AVISA em `ASAAS_BASE_URL` ("sandbox em produção?"): é o sandbox, de propósito. Os
+esperado um AVISA em `ASAAS_BASE_URL` ("sandbox em produção?"): é o sandbox, de propósito, e
+**declarado** com `ASAAS_SANDBOX=1` (que o `[env]` do `fly.staging.toml` também fixa). Sem a
+declaração, o sandbox com `NODE_ENV=production` **BLOQUEIA** aqui e **aborta o boot** (evento
+`asaas_sandbox_em_producao`): é a trava que impede a produção de subir com as variáveis do staging,
+em que qualquer um assinaria com o cartão de teste. `ASAAS_SANDBOX` **nunca** vai para a produção. Os
 `SIGNUP_ENABLED`/`CHECKOUT_ENABLED` aparecem como **FECHADO** (OK).
 
 `ANUAL_ENABLED=0` também aparece como **FECHADO** (OK): o MVP sobe vendendo **só o mensal e o teste de

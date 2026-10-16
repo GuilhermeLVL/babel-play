@@ -155,18 +155,21 @@ describe('conferirProducao: o que BLOQUEIA', () => {
 })
 
 describe('conferirProducao: o que AVISA', () => {
-  it('ASAAS_BASE_URL no sandbox, ou ausente (o padrão do servidor é o sandbox)', () => {
+  it('ASAAS_BASE_URL no sandbox, ou ausente (o padrão do servidor é o sandbox), DECLARADO com ASAAS_SANDBOX=1', () => {
+    // O staging: o sandbox de propósito, declarado. Sem a declaração o boot aborta e isto BLOQUEIA
+    // (tests/asaas-sandbox-em-producao.test.ts).
     const sandbox = {
       ...completo(),
       ASAAS_BASE_URL: 'https://api-sandbox.asaas.com/v3',
       ASAAS_API_KEY: `$aact_hmlg_${aleatorio()}`,
+      ASAAS_SANDBOX: '1',
     }
     const a = conferirProducao(sandbox)
     expect(nivelDe(a, 'ASAAS_BASE_URL')).toEqual(['AVISA'])
     expect(a.find((x) => x.nome === 'ASAAS_BASE_URL')?.texto).toMatch(/sandbox em produção\?/)
     expect(resumir(a).podeSubir).toBe(true)
 
-    const ausente = completo()
+    const ausente: Record<string, string> = { ...completo(), ASAAS_SANDBOX: '1' }
     delete ausente.ASAAS_BASE_URL
     expect(nivelDe(conferirProducao(ausente), 'ASAAS_BASE_URL')).toEqual(['AVISA'])
   })

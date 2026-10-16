@@ -26,6 +26,7 @@ import {
   cadastroLigado,
   checkoutLigado,
   conferirConfiguracao,
+  erroDeAsaasSandboxEmProducao,
   erroDeMetricasEmProducao,
   erroDeTrustProxyEmProducao,
 } from './config'
@@ -183,7 +184,13 @@ export function conferirProducao(arquivo: NodeJS.ProcessEnv): Achado[] {
   } else {
     ok('ASAAS_WEBHOOK_TOKEN', 'presente')
   }
-  if (!preenchida(env, 'ASAAS_BASE_URL')) {
+  /* A trava do boot (`erroDeAsaasSandboxEmProducao`): com a cobrança ligada, o sandbox em produção só
+     sobe DECLARADO (`ASAAS_SANDBOX=1`, o staging). Sem a declaração o boot aborta — e o preflight
+     bloqueia junto, para não passar aqui e cair na máquina. */
+  const sandboxIndeclarado = erroDeAsaasSandboxEmProducao(env)
+  if (sandboxIndeclarado) {
+    bloqueia('ASAAS_BASE_URL', sandboxIndeclarado)
+  } else if (!preenchida(env, 'ASAAS_BASE_URL')) {
     avisa('ASAAS_BASE_URL', 'ausente: o servidor usa o SANDBOX por padrão — sandbox em produção?')
   } else if (/sandbox/i.test(env.ASAAS_BASE_URL!)) {
     avisa(

@@ -46,6 +46,10 @@ kill_timeout = 30
   BACKUP_DIARIO = "0"
   BACKUP_HORA_UTC = "6"
   SENTRY_ENVIRONMENT = "staging"
+  # O staging cobra no SANDBOX do Asaas, de propósito — e DECLARA isso. Com NODE_ENV=production, o
+  # sandbox sem esta declaração ABORTA o boot (server/lib/config.ts, erroDeAsaasSandboxEmProducao):
+  # é a trava que impede a produção de subir com as variáveis do staging. NUNCA no fly.toml.
+  ASAAS_SANDBOX = "1"
   # Métricas Prometheus (Fase 5 de prontidão). O `/metrics` sai da porta pública e vai para a porta
   # interna 9091, que o bloco `[metrics]` abaixo manda o Fly raspar. Não é segredo: é configuração.
   METRICS_ENABLED = "1"

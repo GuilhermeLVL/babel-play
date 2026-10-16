@@ -243,6 +243,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'endpoint do Asaas (sandbox ou produção)',
   },
   {
+    nome: 'ASAAS_SANDBOX',
+    exigencia: 'opcional',
+    criticidade: 'impede-servico',
+    paraQue:
+      '`1` DECLARA o sandbox do Asaas em NODE_ENV=production — só o staging. Sem ela, a produção com a cobrança ligada e ASAAS_BASE_URL ausente ou de sandbox ABORTA o boot (qualquer um assinaria com o cartão de teste)',
+  },
+  {
     nome: 'ASAAS_WEBHOOK_TOKEN',
     exigencia: 'opcional',
     criticidade: 'impede-servico',
@@ -1036,6 +1043,29 @@ export function erroDeMetricasEmProducao(env: NodeJS.ProcessEnv = process.env): 
     return 'METRICS_ENABLED=1 em produção exige METRICS_TOKEN (ou METRICS_PORTA_INTERNA): recusando expor /metrics sem autenticação.'
   }
   return null
+}
+
+/**
+ * A base do Asaas é o SANDBOX? Ausente também é: o cliente (`server/lib/asaas.ts`) cai no sandbox
+ * quando `ASAAS_BASE_URL` falta — errar para o lado do sandbox custa um teste, não uma cobrança real.
+ */
+export function baseDoAsaasEhSandbox(env: NodeJS.ProcessEnv = process.env): boolean {
+  const base = env.ASAAS_BASE_URL?.trim()
+  return !base || /sandbox/i.test(base)
+}
+
+/**
+ * O SANDBOX DO ASAAS EM PRODUÇÃO (auditoria de 15/10/2026, correção de alto valor 3). Com as
+ * variáveis do staging copiadas para a produção — ou a `ASAAS_BASE_URL` esquecida —, a cobrança
+ * fala com o sandbox: qualquer pessoa assina com o cartão de teste e ganha o Premium. O preflight
+ * manual só avisava, e o boot não dizia nada. Em produção, com a cobrança ligada (`ASAAS_API_KEY`), a
+ * base no sandbox tem de ser DECLARADA com `ASAAS_SANDBOX=1` — o que só o staging faz. Retorna a
+ * mensagem de aborto de boot, ou `null` se ok.
+ */
+export function erroDeAsaasSandboxEmProducao(env: NodeJS.ProcessEnv = process.env): string | null {
+  if (env.NODE_ENV !== 'production' || !env.ASAAS_API_KEY?.trim()) return null
+  if (!baseDoAsaasEhSandbox(env) || env.ASAAS_SANDBOX?.trim() === '1') return null
+  return 'o Asaas aponta para o SANDBOX com NODE_ENV=production (ASAAS_BASE_URL ausente ou de sandbox): qualquer um assinaria com o cartão de teste. Produção: ASAAS_BASE_URL=https://api.asaas.com/v3. Staging: declare ASAAS_SANDBOX=1.'
 }
 
 /**

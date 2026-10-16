@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * A TRANSCRIÇÃO DA IMPORTAÇÃO USA A NUVEM DE QUEM PAGA POR ELA (docs/PROXIMOS-PASSOS.md, D4).
+ * A TRANSCRIÇÃO DA IMPORTAÇÃO USA A NUVEM DE QUEM PAGA POR ELA (docs/historico/PROXIMOS-PASSOS.md, D4).
  *
  * A importação (YouTube sem legenda, áudio local) transcrevia SEMPRE no Whisper local — 57% de WER
  * em português — mesmo para quem assina a transcrição de nuvem (24%). Agora ela segue a MESMA

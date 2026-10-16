@@ -114,3 +114,7 @@ vitest-resultado.json
 
 # Dumps de dados baixados pelos geradores (Wikcionário/kaikki, FrequencyWords): nunca no git.
 .cache/
+
+# Cache do Python (bancadas de fala e Blender)
+__pycache__/
+*.pyc

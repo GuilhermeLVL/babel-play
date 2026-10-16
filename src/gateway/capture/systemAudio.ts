@@ -82,7 +82,7 @@ export { TAXA_DE_BITS_DA_GRAVACAO };
  * decode longo, e a legenda atrasa. Seis segundos mantêm o retorno responsivo.
  *
  * NUVEM (12 s): a Groq COBRA NO MÍNIMO 10 s POR REQUISIÇÃO. Fatiar em 6 s paga ~o dobro pelo mesmo
- * áudio, e ainda parte frases ao meio — o que piora o WER (docs/PROXIMOS-PASSOS.md, D1), porque o
+ * áudio, e ainda parte frases ao meio — o que piora o WER (docs/historico/PROXIMOS-PASSOS.md, D1), porque o
  * modelo perde o contexto da outra metade. O parcial continua LOCAL e a cada ~1 s, então um final
  * mais longo NÃO atrasa o texto que aparece na tela enquanto a pessoa fala.
  */

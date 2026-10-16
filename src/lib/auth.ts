@@ -5,7 +5,7 @@
  *    OWASP ASVS V2.1/V2.5);
  *  - sem Supabase configurado (self-host), tudo devolve "não configurado" e nada acontece.
  *
- * Identidade/senha/MFA são do SUPABASE — não reimplementamos segurança. Ver docs/auth/auth-flow-design.md.
+ * Identidade/senha/MFA são do SUPABASE — não reimplementamos segurança. Ver docs/historico/auth-flow-design.md.
  * Nota: a API de MFA (enroll/challenge/verify) segue o SDK atual do @supabase/supabase-js; revalidar
  * contra a doc do Supabase ao ligar de verdade (o MCP tem `search_docs`).
  */

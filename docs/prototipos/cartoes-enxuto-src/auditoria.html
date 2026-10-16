@@ -1,0 +1,300 @@
+<button type="button" class="px-fechar" aria-label="Fechar a auditoria">×</button>
+<h2>Auditoria de movimento e acabamento</h2>
+<p>
+  Base: o CSS que está em produção hoje (desenho novo, 7 de outubro de 2026), lido pelas skills do Emil Kowalski
+  (<code>emil-design-eng</code>, <code>find-animation-opportunities</code>) e pela <code>apple-design</code>.
+  Ícones, cores, partículas e cartões são os mesmos. O que muda é como as coisas chegam, saem e respondem.
+</p>
+<p>
+  <b>Rodada 2:</b> a primeira versão ficou discreta demais. Agora o movimento é evidente e o protótipo ignora
+  "reduzir movimento" e "reduzir transparência" do Windows, a menos que você ligue <b>Seguir o sistema</b>.
+  Clique em <b>▶ Demonstração</b> para ver tudo em sequência, com legenda.
+</p>
+
+<h3>O que já estava certo em produção</h3>
+<ul>
+  <li>Todo botão responde ao toque com <code>scale(0.96)</code> em 120 ms, só em <code>transform</code>.</li>
+  <li>Não há <code>ease-in</code> nem <code>transition: all</code> no CSS do desenho novo.</li>
+  <li><code>prefers-reduced-motion</code> é respeitado em 12 blocos.</li>
+</ul>
+
+<h3>O que o modo Polido faz</h3>
+<table>
+  <thead>
+    <tr><th>Onde</th><th>Antes</th><th>Depois</th><th>Por quê</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Troca de tela</td>
+      <td><code>q-surgir</code>: opacidade em 180 ms, tudo de uma vez</td>
+      <td>A tela antiga sai em 150 ms. O título sobe palavra por palavra; os blocos entram em cascata de 60 ms, com 30 px de percurso e desfoque. A direção segue a ordem do trilho</td>
+      <td>A cascata mostra a hierarquia; a direção diz se você subiu ou desceu no menu.</td>
+    </tr>
+    <tr>
+      <td>Rolagem</td>
+      <td>Tudo já está lá</td>
+      <td>O que está abaixo da dobra entra quando chega na vista</td>
+      <td>Dá ritmo a telas longas (Jogar, Personalizar).</td>
+    </tr>
+    <tr>
+      <td>Abas e trilho</td>
+      <td>O destaque teleporta</td>
+      <td>Uma pílula desliza com mola (520 ms); o ícone do trilho salta; o painel da aba entra pelo lado de onde a aba veio</td>
+      <td>O olho acompanha para onde a seleção foi.</td>
+    </tr>
+    <tr>
+      <td>Painéis ("Mais", "O que você vai praticar")</td>
+      <td>Só o véu faz fade; o painel aparece parado e some sem saída</td>
+      <td>Nasce do botão que abriu, com mola; o conteúdo entra em cascata; sai pelo mesmo caminho em 260 ms. A tela de trás encolhe para 93%, arredonda e desfoca</td>
+      <td>Entrar e sair pelo mesmo caminho explica de onde o painel veio.</td>
+    </tr>
+    <tr>
+      <td>Material</td>
+      <td>Fundo opaco, véu preto a 55%</td>
+      <td>Vidro: <code>blur(28px) saturate(170%)</code>, borda de luz, sombra funda</td>
+      <td>Separa as camadas sem escurecer tanto.</td>
+    </tr>
+    <tr>
+      <td>Cartões</td>
+      <td>Só borda. 91 regras <code>:hover</code>, nenhuma atrás de <code>(hover: hover)</code></td>
+      <td>Inclinam em 3D seguindo o ponteiro (mola), uma luz acompanha o mouse, a sombra aprofunda, o ícone gira. Todo toque solta uma onda</td>
+      <td>O cartão parece um objeto. No toque (celular) nada disso dispara.</td>
+    </tr>
+    <tr>
+      <td>Coisas vivas</td>
+      <td>Paradas</td>
+      <td>Brilho correndo nas barras, anéis pulsando no microfone do "Legendar agora", contador de avisos pulsando, reflexo atravessando o botão principal, aura que segue o ponteiro, partículas com paralaxe</td>
+      <td>A tela respira mesmo sem ninguém mexer.</td>
+    </tr>
+    <tr>
+      <td>Início</td>
+      <td>Barras e números já prontos</td>
+      <td>Barras enchem (1,1 s), XP e missões contam do zero</td>
+      <td>Mostra progresso como conquista.</td>
+    </tr>
+    <tr>
+      <td>Missão concluída</td>
+      <td>Os números trocam</td>
+      <td>Ícone vira "certo", anel verde, faíscas, "+5" sobe do contador de Seeds, vibração</td>
+      <td>Momento raro: aqui cabe festa.</td>
+    </tr>
+    <tr>
+      <td>Aviso (toast)</td>
+      <td>Aparece 6 px acima, some sozinho</td>
+      <td>Entra com mola pela borda de cima; arraste para cima ou para a direita para dispensar (velocidade acima de 0,11 px/ms basta); no sentido contrário estica e volta</td>
+      <td>Um gesto curto e rápido deve bastar.</td>
+    </tr>
+    <tr>
+      <td>Memória</td>
+      <td>Cartas entram com <code>scale(.7)</code>; ao abrir, meio giro de 450 ms; ao desvirar, troca seca depois de 850 ms</td>
+      <td>Cartas distribuídas de um monte; giro 3D completo com a carta levantando; par: salto, anel e faíscas; erro: tremida; fim: confete</td>
+      <td>O giro explica que a carta tem dois lados; a tremida diz "não" sem precisar ler.</td>
+    </tr>
+    <tr>
+      <td>Inverter idiomas</td>
+      <td>Os textos trocam</td>
+      <td>Os dois idiomas atravessam em arco até o lugar um do outro; a seta gira</td>
+      <td>Mostra a troca em vez de só o resultado.</td>
+    </tr>
+    <tr>
+      <td>Tema claro e escuro</td>
+      <td>Corte seco</td>
+      <td>A cor nova se abre em círculo a partir do clique (850 ms)</td>
+      <td>Evita o salto brusco de brilho.</td>
+    </tr>
+    <tr>
+      <td>Títulos e números</td>
+      <td>Espaçamento 0 nos títulos grandes</td>
+      <td><code>letter-spacing: -0.022em</code>, quebra equilibrada, <code>tabular-nums</code> nos contadores</td>
+      <td>Número de largura fixa não treme quando conta.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Rodada 3: aparelhos, celular, uso e venda</h3>
+<p>Na barra, <b>Computador / Tablet / Celular</b> mostra a mesma página dentro de molduras, lado a lado. As regras de largura do app respondem de verdade, porque cada moldura é uma janela própria.</p>
+<table>
+  <thead><tr><th>Onde</th><th>Hoje</th><th>Proposta</th><th>Por quê</th></tr></thead>
+  <tbody>
+    <tr><td>Celular: navegação</td><td>O celular ainda usa o desenho antigo. O desenho novo, forçado em 390 px, espreme 8 ícones sem rótulo e corta o "Mais"</td><td>Barra flutuante de vidro com 5 destinos e rótulo; Capturar no centro, maior. Estatísticas e Personalizar passam para o Mais</td><td>O polegar alcança; o que mais importa fica no meio.</td></tr>
+    <tr><td>Celular: painéis</td><td>Caixa centralizada</td><td>Sobem de baixo, com alça. Arraste para fechar: segue o dedo, resiste para cima, e decide pela velocidade</td><td>É o gesto que o celular já ensinou.</td></tr>
+    <tr><td>Celular: Início e Jogar</td><td>Uma coluna só; a linha de progresso quebra letra por letra</td><td>Grade de 2 colunas, missões e números em carrossel, filtros em faixa que rola</td><td>Mais conteúdo por tela, sem apertar.</td></tr>
+    <tr><td>Captura ao vivo</td><td>No computador, a tela nova de captura não existe (só no headset)</td><td>A tela do headset trazida para computador e celular: as palavras chegam uma a uma, a tradução assume a linha, a fala antiga esmaece</td><td>Mostra o que está acontecendo: ouvindo, transcrevendo, traduzindo.</td></tr>
+    <tr><td>Frase e palavra</td><td>Folha com ações; a palavra abre outra folha</td><td>Mesma estrutura, com entrada em cascata; "Guardar" confirma com faísca e a palavra passa a aparecer marcada</td><td>Guardar palavra é o gesto central do produto: merece resposta clara.</td></tr>
+    <tr><td>Legendas flutuantes</td><td>Janela presa no canto de baixo</td><td>Arraste e jogue: a janela herda a velocidade do dedo e pousa no canto para onde ia. Dá para pegá-la no meio do voo</td><td>A legenda nunca deve cobrir o que você está vendo.</td></tr>
+    <tr><td>Biblioteca</td><td>Lista paginada + painel da gravação</td><td>Mesma tela; trocar de gravação refaz o painel com desfoque, páginas entram pelo lado, busca filtra ao digitar</td><td>Fica claro qual gravação o painel descreve.</td></tr>
+    <tr><td>Convite ao Premium</td><td>Existe no código (ofertas), com regras</td><td>Três pontos: cadeado à vista dentro da folha da frase, sugestão depois de encerrar a sessão, sugestão depois de uma conquista. Sempre com "Agora não" e "Não mostrar novamente"</td><td>Vende no momento em que a pessoa sentiu o valor, sem interromper captura nem jogo.</td></tr>
+    <tr><td>Planos</td><td>Tela própria</td><td>Painel com Grátis e Premium lado a lado, textos e preços do código (R$ 19,90/mês, 14 dias sem cartão), borda de luz girando no Premium</td><td>O Grátis aparece inteiro: quem não assina não se sente punido.</td></tr>
+  </tbody>
+</table>
+<p>Os textos de venda são os que já estão no repositório. A prévia desfocada de "Outras formas de dizer" é ideia minha e precisa da sua aprovação: ela mostra um exemplo fixo, não a tradução real da frase.</p>
+
+<h3>Rodada 4: correções, Premium à mão, intérprete, Personalizar e submenus</h3>
+<p><b>Corrigido:</b> a luz do ponteiro ficava presa nos cartões e se acumulava (por isso a tela esbranquiçava no tema escuro), e a inclinação 3D pegava cartões de conteúdo. Agora há uma luz só na tela, ela sai ao trocar de cartão, de tela ou de janela, e só botões inclinam.</p>
+<table>
+  <thead><tr><th>Onde</th><th>Hoje</th><th>Proposta</th><th>Por quê</th></tr></thead>
+  <tbody>
+    <tr><td>Onde achar o Premium</td><td>Depende de uma oferta aparecer, ou de achar a tela de Planos</td><td>Quatro entradas fixas: linha "Planos e Premium" no Mais, selo do plano no Início, cartão em Ajustes → Conta e "Planos" na busca (Ctrl+K)</td><td>Quem quer assinar não fica esperando o app oferecer.</td></tr>
+    <tr><td>Tela de Planos</td><td>Existe no app (não capturada)</td><td>Três abas do código: Planos, Sua assinatura, Consumo do mês. Comparação em tabela, perguntas frequentes, teste de 14 dias que ativa na hora</td><td>Depois de ativar o teste, o cadeado da Nuance e o modo automático do intérprete se abrem: dá para ver o funil inteiro.</td></tr>
+    <tr><td>Intérprete</td><td>Só a tela de entrada estava clonada</td><td>A conversa, com a marcação real: duas metades, a de cima virada para a outra pessoa. Quem toca "Falar" vê as palavras chegando; a tradução aparece grande do outro lado. Lista da conversa, trocar os lados, automático com cadeado</td><td>Mostra o produto funcionando, não só a porta.</td></tr>
+    <tr><td>Personalizar</td><td>Uma peça por vez, em lista</td><td>Ateliê: vitrine fixa à esquerda e os 12 temas à direita. Tocar num tema repinta o app inteiro a partir do clique, em prévia, sem equipar</td><td>Ver o tema no app inteiro vende mais do que uma miniatura.</td></tr>
+    <tr><td>Temporada</td><td>Lista de níveis</td><td>Cabeçalho com anel de nível e uma trilha horizontal: grátis em cima, assinante embaixo com cadeado; recompensa alcançada pede "resgatar"</td><td>A trilha mostra o que falta e o que a assinatura acrescenta, sem esconder nada.</td></tr>
+    <tr><td>Loja</td><td>Lista com preço e "faltam N"</td><td>Carteira de Seeds no topo, cartões com arte de cada item, barra do quanto falta e "Segure para comprar"</td><td>Gastar Seeds não pode acontecer num toque sem querer.</td></tr>
+    <tr><td>Submenus</td><td>Não abriam no protótipo</td><td>Capturados de produção e ligados: Buscar e filtrar, Favoritos e ordem, Opções, Trilha e "Por que este?" (Jogar); Modelo, Ajustes, Ajuda e idiomas (Capturar); idiomas e Conversa virtual (Intérprete); Sobre e Ajuda. Nascem do botão que abriu</td><td>Dá para percorrer o app inteiro.</td></tr>
+    <tr><td>Desenho no computador</td><td>Controles do tamanho pensado para o headset</td><td>Abas em trilho rebaixado com a pílula branca, bordas de 1 px, títulos um pouco maiores</td><td>Mais sóbrio na tela grande, sem tirar ícones nem cor.</td></tr>
+  </tbody>
+</table>
+<p>Os nomes dos temas (fora Babel Atelier e Linear Indigo), o que cada tema custa e as perguntas frequentes são rascunho meu. Os itens e preços da Loja, as recompensas da Temporada e os textos de plano vêm do app.</p>
+
+<h3>Rodada 5: celular sem sobreposição, som, vibração e movimento</h3>
+<table>
+  <thead><tr><th>Onde</th><th>Antes</th><th>Depois</th><th>Por quê</th></tr></thead>
+  <tbody>
+    <tr><td>Abas no celular</td><td>Empilhavam uma embaixo da outra e ocupavam meia tela</td><td>Sempre uma linha que rola; a aba ativa vem sozinha para a vista</td><td>Espaço de tela é o recurso mais caro do celular.</td></tr>
+    <tr><td>Cabeçalho do jogo</td><td>O título quebrava letra por letra entre Voltar e Pausar</td><td>Botões em cima, título inteiro embaixo</td><td></td></tr>
+    <tr><td>Intérprete em conversa</td><td>A barra de navegação cobria o botão Falar</td><td>A conversa ocupa a tela toda; a barra sai</td><td>Nada pode ficar por cima do botão principal.</td></tr>
+    <tr><td>Barra de navegação</td><td>Sempre na frente do conteúdo</td><td>Some ao rolar para baixo e volta ao subir ou chegar no fim</td><td>Mais conteúdo visível enquanto se lê.</td></tr>
+    <tr><td>Trocar de aba</td><td>Só tocando na aba</td><td>Deslizar o dedo de lado também troca; sem mais abas, a tela estica e volta</td><td>É o gesto que o celular já ensinou.</td></tr>
+    <tr><td>Efeitos sem mouse</td><td>Luz, inclinação e aura dependiam do ponteiro</td><td>No celular seguem o giroscópio: inclinar o aparelho inclina os cartões, move o reflexo, a aura e as partículas. O jeito de segurar vira o "zero" aos poucos</td><td>O efeito continua existindo onde não há mouse.</td></tr>
+    <tr><td>Som</td><td>Nenhum no protótipo</td><td>18 sons curtos sintetizados na hora: abrir sobe, fechar desce, erro é grave, acerto é um acorde, comprar segurando faz o tom subir</td><td>O som dispara no mesmo quadro da imagem. Desliga em "Som dos toques".</td></tr>
+    <tr><td>Vibração</td><td>Só em três lugares</td><td>Um padrão por tipo de acontecimento (toque, abrir, acerto, erro, moeda, festa). No iPhone usa o toque do sistema</td><td>Confirma o gesto sem olhar.</td></tr>
+  </tbody>
+</table>
+<p>Na prévia de Celular e Tablet, mova o mouse em volta dos aparelhos: as molduras inclinam e a página recebe a inclinação como se fosse o sensor. Num celular de verdade, o navegador só entrega o giroscópio em endereço seguro (https), e o iPhone pede permissão no primeiro toque.</p>
+
+<h3>Rodada 6: sessão aberta e a temporada inteira</h3>
+<table>
+  <thead><tr><th>Onde</th><th>Antes</th><th>Depois</th><th>Por quê</th></tr></thead>
+  <tbody>
+    <tr><td>Abrir uma gravação</td><td>O botão "Abrir" da Biblioteca não fazia nada no protótipo</td><td>Abre a tela da sessão, com as quatro abas do app: Transcrição, Leitura, Jogos e Visão geral &amp; métricas</td><td></td></tr>
+    <tr><td>Transcrição e Leitura</td><td>—</td><td>Player preso embaixo: a fala ativa acende e as palavras vão sendo marcadas uma a uma, com a tela acompanhando. Tocar numa fala abre a mesma folha de frase e palavra da captura</td><td>Ouvir e ler ao mesmo tempo é o coração do estudo; o olho precisa saber onde está.</td></tr>
+    <tr><td>Temporada</td><td>Só os níveis 1 a 10 apareciam</td><td>A trilha inteira, do 1 ao 30, com os prêmios reais de produção. Cada prêmio mostra a raridade (Comum, Raro, Épico, Lendário). Um cartão no topo mostra o que há no fim e leva até lá</td><td>Ver o prêmio final é o que dá vontade de seguir até o fim e de assinar.</td></tr>
+    <tr><td>Selos com ícone</td><td>O ícone ficava em cima do texto ("Na sua coleção")</td><td>Ícone e texto na mesma linha</td><td></td></tr>
+  </tbody>
+</table>
+
+<h3>Rodadas 7 e 8: direto para a tela de uso</h3>
+<table>
+  <thead><tr><th>Onde</th><th>Antes</th><th>Depois</th><th>Por quê</th></tr></thead>
+  <tbody>
+    <tr><td>Capturar no celular</td><td>Tela de entrada (título, modelo, "três passos") e só depois a captura</td><td>Abre direto na tela de legenda, pronta: idiomas, ajustes e ajuda no topo, "Iniciar captura" embaixo. Tocar de novo no microfone da barra também começa</td><td>No celular a pessoa já chegou decidida; a entrada era um toque a mais.</td></tr>
+    <tr><td>Microfone</td><td>—</td><td>A tela abre pronta, não gravando. A barra de navegação só some quando a gravação começa</td><td>Ligar o microfone sem um toque explícito assusta e gasta a confiança do usuário.</td></tr>
+    <tr><td>Intérprete no celular</td><td>Tela de entrada com os dois idiomas e "Começar conversa"</td><td>Abre direto nas duas metades. O idioma de cada lado troca ali mesmo; o X volta para a tela de onde a pessoa veio</td><td>A conversa já está parada até alguém tocar em Falar, então não há o que preparar.</td></tr>
+  </tbody>
+</table>
+<p><b>Rodada 8:</b> a entrada direta passou a valer em todo aparelho (computador e tablet também). O que a tela de entrada tinha foi para dentro da tela de uso: idiomas, modelo, microfone, ajustes e ajuda no topo da captura; no intérprete, o idioma de cada lado e um botão "Virtual" que leva ao preparo da conversa virtual. Os painéis de ajuste, no celular, viraram folha de baixo, com o texto em cima e o controle embaixo.</p>
+
+<h3>Rodada 10: miniaturas dos minijogos</h3>
+<table>
+  <thead><tr><th>Onde</th><th>Antes</th><th>Depois</th><th>Por quê</th></tr></thead>
+  <tbody>
+    <tr><td>Cartão de cada jogo</td><td>Só texto: etiqueta, nome, descrição e contagem</td><td>Uma miniatura no topo de cada um dos 18 jogos, mostrando a mecânica: cartas viradas com um par (Memória), a palavra achada na grade (Caça-palavras), tentativas coloridas (Termo), a peça encaixando na lacuna (Vitendawili), a mala recebendo palavras, a bola do rali, o tabuleiro do Bao</td><td>Quem ainda não lê bem, ou não quer ler, reconhece o jogo pelo desenho. É o que torna a prateleira atraente para o público mais novo.</td></tr>
+    <tr><td>Movimento</td><td>—</td><td>A cena fica parada no estado "pronto" e se mexe quando o ponteiro passa por cima; no celular, anda devagar o tempo todo</td><td>18 cenas se mexendo ao mesmo tempo cansam; uma por vez convida.</td></tr>
+    <tr><td>Cor</td><td>Bolinha colorida do grupo</td><td>A miniatura usa a mesma cor do grupo (apontar, digitar, voz) e as cores do tema escolhido</td><td>A cor já ajuda a separar os tipos de jogo antes de ler.</td></tr>
+  </tbody>
+</table>
+<p>As miniaturas são desenhadas em HTML e CSS, sem imagem: pesam quase nada, acompanham tema claro, escuro e os 12 temas, e não usam emoji. São um primeiro traço: se você preferir ilustração de verdade (pixel art, por exemplo), a estrutura já está pronta para trocar o desenho de cada jogo.</p>
+
+<h3>Rodada 11: os minijogos jogáveis</h3>
+<table>
+  <thead><tr><th>Onde</th><th>Antes</th><th>Depois</th><th>Por quê</th></tr></thead>
+  <tbody>
+    <tr><td>Jogar</td><td>Só a Memória abria; os outros 17 mostravam um aviso</td><td>Os 18 jogos abrem e dão para jogar até o fim, cada um com a regra do componente real</td><td>Só jogando dá para sentir o ritmo, o retorno e onde a tela aperta.</td></tr>
+    <tr><td>Casca do jogo</td><td>Cada jogo antigo repete à mão um cabeçalho próprio, em tela cheia</td><td>Todos usam o mesmo palco do desenho novo: voltar, título, placar, barra de progresso, ajudas e combo no mesmo lugar</td><td>Aprendeu um, sabe os outros. Coisa igual fica no mesmo lugar.</td></tr>
+    <tr><td>Acerto e erro</td><td>Só a cor do botão muda</td><td>Acerto: som, vibração curta, partículas, "+10 ×2" subindo e clarão verde na borda. Erro: som grave, vibração dupla, tremor e clarão vermelho. Tudo no mesmo instante</td><td>Som, imagem e vibração juntos é o que faz parecer um objeto.</td></tr>
+    <tr><td>Combo</td><td>Selo que quica sem parar</td><td>O selo cresce com mola só quando o multiplicador sobe, e um carimbo "Combo ×2" passa pelo palco</td><td>O que pisca o tempo todo vira ruído; o que aparece na hora certa vira prêmio.</td></tr>
+    <tr><td>Relógio</td><td>Número no canto</td><td>Barra que esvazia; no fim fica vermelha, o palco pulsa e toca um tique por segundo. No Rali, a própria bola caindo é o relógio</td><td>Dá para sentir o tempo sem ler número.</td></tr>
+    <tr><td>Frase embaralhada, Vitendawili, Bao</td><td>A palavra some de um lugar e aparece no outro</td><td>A palavra viaja do banco até a frase, do botão até a lacuna, da cova até a palavra montada</td><td>Mostra de onde veio e para onde foi.</td></tr>
+    <tr><td>Frase maluca (Cadavre)</td><td>Só sabe o que usou depois de conferir</td><td>Cada palavra acende enquanto você escreve</td><td>A pessoa vê o que falta sem precisar errar.</td></tr>
+    <tr><td>Fim de rodada</td><td>Três jogos tinham tela própria, os outros saíam direto</td><td>Uma tela só: estrelas caindo, acertos, tempo, pontos, melhor combo, XP ganho e o botão "Próximo jogo"</td><td>O fim é o momento raro: é onde cabe festa. E o próximo jogo a um toque segura a pessoa.</td></tr>
+    <tr><td>Como se joga</td><td>Diálogo no meio da tela</td><td>Folha que sobe de baixo, com a miniatura do jogo se mexendo, três passos e o que cada ajuda custa</td><td>A miniatura já ensina antes do texto.</td></tr>
+  </tbody>
+</table>
+<p>Achados no código enquanto montava:</p>
+<ul>
+  <li>O app antigo já tem miniaturas desenhadas por jogo (<code>ArteDosJogos.tsx</code>), mas o desenho novo não as mostra. E nove jogos culturais reaproveitam a arte de outros (Karuta, Rali, Vitendawili e Tabu usam todas a do Duelo).</li>
+  <li>No Bao, palavra curta vira só dois pedaços: é cara ou coroa. No protótipo o corte é a cada duas letras, com no mínimo três pedaços.</li>
+  <li>O subtítulo do Termo diz "6 tentativas" mesmo quando são 7 ou 9.</li>
+  <li>Em produção o botão Recomeçar fica escondido no jogo; mantive assim. Hoje só dá para recomeçar pela tela de fim.</li>
+</ul>
+
+<h3>Rodada 12: Rali e Mala com cara de jogo</h3>
+<table>
+  <thead><tr><th>Onde</th><th>Antes</th><th>Depois</th><th>Por quê</th></tr></thead>
+  <tbody>
+    <tr><td>Rali: cenário</td><td>Um cartão com a pista, um campo de texto e o botão Devolver</td><td>Uma quadra em perspectiva, com rede, arquibancada, adversário e a sua raquete. O adversário saca; a bola cruza a quadra com sombra no chão e chega até você no tempo que você tem</td><td>A bola é o relógio: dá para ver quanto tempo falta sem olhar número.</td></tr>
+    <tr><td>Rali: escrever</td><td>Digita, aperta Devolver e só então sabe se acertou</td><td>Uma caixa por letra. Cada letra certa fica verde e a errada, vermelha, na hora. Completou certo, a raquete devolve sozinha</td><td>Resposta imediata a cada tecla é o que faz parecer jogo de fliperama.</td></tr>
+    <tr><td>Rali: placar</td><td>Selo "3 no rali"</td><td>Placar de quadra: Você × Babel, com o rali no meio, que acende quando esquenta</td><td>Ponto perdido também conta: dá vontade de virar o jogo.</td></tr>
+    <tr><td>Mala: cenário</td><td>Um cartão com a lista de palavras e o selo "Mala aberta / fechada"</td><td>Uma mala de verdade. A tampa abre, a palavra nova cai no compartimento dela, a tampa fecha e os fechos batem</td><td>Abrir e fechar é a regra do jogo; agora a regra é o que se vê.</td></tr>
+    <tr><td>Mala: lembrar</td><td>Pergunta em texto e chips verdes</td><td>Etiquetas de bagagem na tampa: a da vez pulsa com "?", e a palavra tocada voa até ela</td><td>Mostra de onde veio e para onde foi.</td></tr>
+    <tr><td>Mala: progresso</td><td>Contador "2/5"</td><td>Rota com cinco paradas e um avião que avança; cada nível refeito cola um adesivo de viagem na mala</td><td>A mala vai ficando "viajada": o progresso vira coleção.</td></tr>
+    <tr><td>Miniaturas dos dois</td><td>Bolinha e risco; mala simples</td><td>Quadra com raquetes e bola; mala que abre e mostra as palavras</td><td>O cartão promete o que o jogo entrega.</td></tr>
+  </tbody>
+</table>
+<p>Mudei duas regras do Rali em relação ao app, para você avaliar: as caixas mostram quantas letras a palavra tem, e dá para corrigir a letra errada enquanto a bola não cai (no app é uma tentativa só, sem saber o tamanho).</p>
+
+<h3>Rodada 13: jogar sem frustração</h3>
+<table>
+  <thead><tr><th>Onde</th><th>Antes</th><th>Depois</th><th>Por quê</th></tr></thead>
+  <tbody>
+    <tr><td>Níveis</td><td>Um só jeito de jogar cada jogo</td><td>Fácil, Médio e Difícil em 15 jogos. O selo do nível fica no topo do jogo; tocar nele troca. O Médio é a regra do app; o Fácil dá mais tempo, mais ajudas e um empurrão (primeira letra, menos alternativas, mais vidas); o Difícil tira tempo e ajudas e paga 5 pontos a mais por acerto</td><td>Quem está começando não trava; quem já sabe não se entedia.</td></tr>
+    <tr><td>Fim de rodada</td><td>Só o resultado</td><td>Errou mais da metade: "Ficou puxado? Jogar no Fácil". Acertou tudo: "Foi tranquilo? Jogar no Difícil"</td><td>O jogo se ajusta à pessoa sem ela precisar procurar o ajuste.</td></tr>
+    <tr><td>Ajudas</td><td>Uma ou duas por jogo; alguns sem nenhuma</td><td>Duas ajudas gerais: "+10 s" em todo jogo com relógio e "Ver resposta" em quase todos. As quantidades mudam com o nível</td><td>Sempre existe uma saída antes de desistir.</td></tr>
+    <tr><td>Dois erros seguidos</td><td>Nada acontece</td><td>A ajuda que a pessoa ainda tem pulsa, com um "quer uma ajuda?"</td><td>Muita gente não usa ajuda porque esquece que ela existe.</td></tr>
+    <tr><td>Primeira vez em cada jogo</td><td>O jogo começa direto, com o relógio correndo</td><td>Uma explicação em três telas antes de começar: o que é e o que treina, o passo a passo, e o nível com as ajudas. O relógio só anda depois</td><td>Ninguém aprende a regra perdendo a primeira rodada.</td></tr>
+    <tr><td>Rever a explicação</td><td>Botão "Como se joga" abria uma lista</td><td>O mesmo botão reabre as três telas a qualquer momento. O jogo pausa (relógio e bola) e retoma de onde estava</td><td>Tirar a dúvida não pode custar a rodada.</td></tr>
+    <tr><td>Termo</td><td>A cada tentativa, redigitar as letras já descobertas</td><td>A linha nova já vem com as letras verdes escritas; você só digita o que falta</td><td>Menos toque repetido, mais atenção no que falta descobrir.</td></tr>
+    <tr><td>Frase embaralhada</td><td>Errou: tirar as palavras erradas uma a uma</td><td>O começo certo fica verde e preso; as erradas voltam sozinhas para baixo</td><td>O erro vira informação, não trabalho.</td></tr>
+    <tr><td>Choseong</td><td>Errou uma vogal: todas eram apagadas</td><td>As vogais certas ficam; só a errada pisca em vermelho e sai</td><td>Não se perde o que já estava certo.</td></tr>
+    <tr><td>Rali</td><td>Letra errada: apagar com o teclado</td><td>A letra errada fica vermelha um instante e some sozinha</td><td>Contra o relógio, apagar custa a bola.</td></tr>
+    <tr><td>Ditado</td><td>Uma tentativa só</td><td>No Fácil e no Médio há segunda chance: o começo certo fica, o resto sai e a fala toca de novo</td><td>Quem errou uma palavra não precisa reescrever a frase toda.</td></tr>
+    <tr><td>Bao</td><td>A cova errada ficava vermelha até o próximo acerto</td><td>Ela desmarca sozinha em menos de um segundo</td><td>A tela volta limpa para a próxima tentativa.</td></tr>
+  </tbody>
+</table>
+<p>Sem níveis: Cadavre exquis e Karaokê (não têm certo ou errado contra o relógio). O nível fica guardado só enquanto a aba está aberta; a explicação de cada jogo aparece uma vez por carregamento da página.</p>
+
+<h3>Rodada 14: nível por jogo e Memória no mesmo motor</h3>
+<table>
+  <thead><tr><th>Onde</th><th>Antes</th><th>Depois</th><th>Por quê</th></tr></thead>
+  <tbody>
+    <tr><td>Nível</td><td>Um nível só, valendo para todos os jogos</td><td>Cada jogo guarda o seu. Um jogo ainda não ajustado começa no último nível escolhido</td><td>Quem vai bem no Termo pode precisar do Fácil no Ditado.</td></tr>
+    <tr><td>Memória</td><td>Tela copiada de produção, fora do motor: sem níveis, sem explicação, sem tela de fim</td><td>Entra no mesmo motor: Fácil com 6 pares e cartas abertas por mais tempo, Difícil com cartas que fecham rápido; explicação na primeira vez; Espiar; tela de fim comum</td><td>O primeiro jogo da prateleira não pode ser o único diferente.</td></tr>
+    <tr><td>Memória: erro</td><td>Todo par errado zerava o combo como erro</td><td>Virar duas cartas que você nunca tinha visto não conta como erro; só conta quando uma delas já tinha aparecido</td><td>Explorar não é errar. Senão a rodada perfeita é impossível.</td></tr>
+  </tbody>
+</table>
+<p>Decisões mantidas: o Difícil paga 5 pontos a mais por acerto; "Ver resposta" zera o combo; o Ditado tem segunda chance no Fácil e no Médio.</p>
+
+<h3>Rodada 15: tema Água</h3>
+<table>
+  <thead><tr><th>Peça</th><th>O que faz</th><th>Por quê</th></tr></thead>
+  <tbody>
+    <tr><td>Cores</td><td>Tema novo, "Água", no mesmo formato dos outros temas do app, com versão clara (piscina) e escura (mar fundo). Vale em todas as telas e nos jogos</td><td>É uma pele como as outras: entra na coleção sem mexer em tela nenhuma.</td></tr>
+    <tr><td>Superfície</td><td>A tela é vista de dentro d'água; a superfície fica no alto, em ondas. Ao inclinar o aparelho ela gira para o outro lado e balança até assentar</td><td>Líquido fica no nível. É o efeito que faz a pessoa virar o celular só para ver.</td></tr>
+    <tr><td>Luz</td><td>Raios que descem da superfície e reflexos que deslizam pelo fundo; um brilho passa por cima dos cartões conforme a inclinação</td><td>É a luz, não a cor azul, que faz parecer água.</td></tr>
+    <tr><td>Bolhas</td><td>Sobem devagar e escorregam para o lado mais alto do aparelho; estouram ao chegar na superfície</td><td>Mostram para onde é "para cima" sem nenhum texto.</td></tr>
+    <tr><td>Toque</td><td>Cada toque faz uma onda em anéis, solta bolhinhas e toca um som de gota</td><td>Imagem, som e vibração no mesmo instante.</td></tr>
+    <tr><td>Profundidade</td><td>Reflexos, bolhas e brilho andam em velocidades diferentes com a inclinação</td><td>O que está longe anda menos: dá volume sem 3D.</td></tr>
+    <tr><td>Cartões e botões</td><td>Vidro molhado: translúcidos, com a água desfocada por trás e um fio de luz na borda. Os ícones boiam de leve. As barras de progresso parecem água enchendo</td><td>As peças do app continuam as mesmas; só o material muda.</td></tr>
+    <tr><td>Sacudir</td><td>Sacudir o aparelho agita a água</td><td>Brinquedo: ninguém precisa, todo mundo testa.</td></tr>
+  </tbody>
+</table>
+<p><b>Ajuste (rodada 16):</b> o dono achou as ondas feias. A superfície era um desenho de onda repetido lado a lado, com contorno duro e emendas à vista. Agora é desenhada quadro a quadro: três ondas de tamanhos e velocidades diferentes somadas (nunca repete igual), três camadas de profundidade, a linha d'água em fio de luz com halo, cintilações nas cristas e respingo de verdade (um toque ou uma bolha que estoura empurra a superfície e a ondulação corre para os lados). As ondas de toque ganharam três anéis com relevo.</p>
+<p>No computador não há sensor, então o ponteiro faz o papel da inclinação. Para ver com giroscópio simulado, ligue o tema e escolha "Celular" na barra: mover o mouse em volta dos aparelhos inclina os dois.</p>
+<p>Custo, para quando for ao app: o vidro dos cartões usa desfoque de fundo, que pesa em celular fraco; o tema deve desligar o desfoque e as bolhas no modo de desempenho. Quem pede menos movimento ou menos transparência recebe só as cores.</p>
+
+<h3>O que cortar antes de levar para o app</h3>
+<p>Nesta rodada o volume está alto de propósito, para você ver e escolher. Para uso diário eu reduziria:</p>
+<ul>
+  <li><b>Troca de tela:</b> manter a cascata, encurtar para cerca de 350 ms e tirar o desfoque. Quem navega 50 vezes por dia não pode esperar.</li>
+  <li><b>Busca (Ctrl+K) pelo teclado:</b> já está sem animação, e deve ficar assim.</li>
+  <li><b>Inclinação 3D e onda no toque:</b> escolher uma das duas.</li>
+  <li><b>Estatísticas:</b> não animar gráficos nem números; é dado que a pessoa está lendo.</li>
+  <li><b>Sistema:</b> no app real, "reduzir movimento" troca tudo por fades curtos (é o que o botão Seguir o sistema mostra).</li>
+</ul>
+
+<h3>Limites deste protótipo</h3>
+<ul>
+  <li>Captura ao vivo, Biblioteca, Planos e ofertas foram montadas a partir do código, com dados de exemplo; as outras telas vêm de produção.</li>
+  <li>Nada grava áudio. Nos jogos, as palavras e frases são de exemplo; a voz é a do navegador; e a nota do Karaokê é sorteada, porque o microfone não é ligado.</li>
+  <li>O Início usa dados de exemplo, porque a conta anônima tem tudo em zero.</li>
+</ul>

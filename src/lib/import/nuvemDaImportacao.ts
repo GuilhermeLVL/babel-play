@@ -2,7 +2,7 @@
  * A IMPORTAÇÃO TRANSCREVE NA NUVEM? — a MESMA régua da captura ao vivo, aplicada ao arquivo.
  *
  * Antes a importação era sempre local (57% de WER em português) mesmo para quem paga pela nuvem
- * (24%; docs/PROXIMOS-PASSOS.md, D4). As condições são as da captura, uma por uma:
+ * (24%; docs/historico/PROXIMOS-PASSOS.md, D4). As condições são as da captura, uma por uma:
  *  - ROTA: `routeStt` com a preferência "Qualidade da transcrição", o idioma e a disponibilidade
  *    da nuvem no servidor — inglês no "auto" continua local, "rápido"/"preciso" continuam locais,
  *    o perfil Privado/Local nunca vai à nuvem;

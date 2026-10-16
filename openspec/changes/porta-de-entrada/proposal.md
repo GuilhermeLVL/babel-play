@@ -39,7 +39,7 @@ fichou cem palavras sem conta nunca ouve que vai perder tudo ao trocar de navega
 ## Non-Goals
 
 - Telas de verificar e-mail, desafio 2FA no login e sessões ativas
-  (`docs/auth/auth-flow-design.md:60-69`): dependem de configurar o Supabase, que é infra do dono.
+  (`docs/historico/auth-flow-design.md:60-69`): dependem de configurar o Supabase, que é infra do dono.
 - Migrar rodadas, recordes, presenças e créditos de conquista (`migracao.ts:12-14`): cada um precisa
   de chave de idempotência própria no servidor. Fica registrado como a dívida que é.
 - Facebook e Apple: a arquitetura aceita, e é decisão de quando.

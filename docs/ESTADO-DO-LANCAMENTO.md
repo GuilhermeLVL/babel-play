@@ -83,7 +83,7 @@ Resend, Sentry nem a voz (DeepInfra/Workers AI) — ver [operadores.md](lgpd/ope
 
 ## 5. Documentos que não valem mais
 
-Têm o aviso "Documento histórico" no topo: `PROXIMOS-PASSOS.md`, `HANDOFF-PROXIMA-SESSAO.md`,
-`lancamento-2026-09.md`, `roadmap-distribuicao.md`, `marco1-auth-multitenant.md`, `auth/auth-flow-design.md`,
+Ficam em [`docs/historico/`](historico/) e têm o aviso "Documento histórico" no topo: `PROXIMOS-PASSOS.md`, `HANDOFF-PROXIMA-SESSAO.md`,
+`lancamento-2026-09.md`, `roadmap-distribuicao.md`, `marco1-auth-multitenant.md`, `auth-flow-design.md`,
 `auditoria/decisao-infraestrutura-v1.md`, `auditoria/viabilidade-producao-v1.md` e, em
 `openspec/audits/2026-09-13-pre-deploy/`, `DEPLOY_GUIDE.md` e `LGPD_COMPLIANCE.md`.

@@ -20,7 +20,7 @@ E **11 achados são defeitos de correção**, não de gosto:
 A separação "trilha × conteúdo capturado" **já existe e é exclusiva** (`src/core/minigames/source.ts:23`
 e `:74-98`, com o servidor concordando em `server/db/repositories/vocab.ts:476-486`). Ela só não
 aparece: vive dentro de um modal atrás do link `trocar`. É a segunda vez que o projeto quase
-reconstruiu algo pronto — registrado em `docs/PROXIMOS-PASSOS.md`, seção "Armadilhas já pagas".
+reconstruiu algo pronto — registrado em `docs/historico/PROXIMOS-PASSOS.md`, seção "Armadilhas já pagas".
 
 ## What Changes
 

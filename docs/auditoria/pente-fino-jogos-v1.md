@@ -67,7 +67,7 @@ sem checar.
   **rótulo da prévia** (honestidade da informação exibida), não o comportamento de fato de os 5
   jogos de frase ignorarem o chip — o próprio plano já registrava esse comportamento como dependente
   de F10 ("Frase do baralho alimentando os 5 jogos de frase"), que segue pendente conforme
-  `docs/PROXIMOS-PASSOS.md` (item F10, "Hoje eles vivem das gravações; o caminho existe").
+  `docs/historico/PROXIMOS-PASSOS.md` (item F10, "Hoje eles vivem das gravações; o caminho existe").
 - **Teste que reproduz**: `tests/antessala.test.ts`, `tests/antessala-fases.test.tsx` (26 testes na
   antessala citados no commit `b1b23be`, "3 novos"). Não localizado teste isolado de
   `origemDoMaterial` por nome.
@@ -204,21 +204,21 @@ rodada em `tests/integration/filtro-composicao.test.ts`), não pela observação
 
 ## Tabela final — defeito → estado → commit responsável
 
-| Defeito | Estado | Commit responsável |
-|---|---|---|
-| S1 — régua de fala no Termo/contadores | Corrigido | `dbbfa74` |
-| S2 — caça-palavras não-latino (grade vazia) | Corrigido | `dbbfa74` |
-| S3 — Termo não-latino insolúvel | Corrigido (via gate; teclado em si não verificado) | `dbbfa74` |
-| S4 — jogos de frase ignoram chip / prévia falsa | Corrigido só o rótulo da prévia ("S4-mínimo"); comportamento de fundo é follow-up (F10) | `b1b23be` |
-| S5 — Memória sem clamp | Corrigido (verificado por leitura direta) | `dbbfa74` |
-| S6 — memória curta / origem genérica | Corrigido só a memória de sessão; `origem` em `exercise_results` segue genérica por decisão declarada | `b1b23be` |
-| S7 — Duelo sem clamp/overflow | Corrigido (verificado por leitura direta) | `dbbfa74` |
-| S8 — `word` sem teto na projeção | Corrigido | `7e0972a` |
-| S9 — acervo vs gate discordando | Corrigido | `1a8432d` |
-| S10 — entidades/furigana em `limparCampo` | Corrigido (parte de cloze não verificada, e não era defeito no plano) | `7e0972a` |
-| S11 — idioma do baralho carimbado às cegas | Corrigido | `7e0972a` |
-| S12 — dedupe da Escuta em A–Z | Corrigido | `dbbfa74` |
-| S13 — janela de corrida na inicialização | Corrigido | `b1b23be` |
+| Defeito                                         | Estado                                                                                                | Commit responsável |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------ |
+| S1 — régua de fala no Termo/contadores          | Corrigido                                                                                             | `dbbfa74`          |
+| S2 — caça-palavras não-latino (grade vazia)     | Corrigido                                                                                             | `dbbfa74`          |
+| S3 — Termo não-latino insolúvel                 | Corrigido (via gate; teclado em si não verificado)                                                    | `dbbfa74`          |
+| S4 — jogos de frase ignoram chip / prévia falsa | Corrigido só o rótulo da prévia ("S4-mínimo"); comportamento de fundo é follow-up (F10)               | `b1b23be`          |
+| S5 — Memória sem clamp                          | Corrigido (verificado por leitura direta)                                                             | `dbbfa74`          |
+| S6 — memória curta / origem genérica            | Corrigido só a memória de sessão; `origem` em `exercise_results` segue genérica por decisão declarada | `b1b23be`          |
+| S7 — Duelo sem clamp/overflow                   | Corrigido (verificado por leitura direta)                                                             | `dbbfa74`          |
+| S8 — `word` sem teto na projeção                | Corrigido                                                                                             | `7e0972a`          |
+| S9 — acervo vs gate discordando                 | Corrigido                                                                                             | `1a8432d`          |
+| S10 — entidades/furigana em `limparCampo`       | Corrigido (parte de cloze não verificada, e não era defeito no plano)                                 | `7e0972a`          |
+| S11 — idioma do baralho carimbado às cegas      | Corrigido                                                                                             | `7e0972a`          |
+| S12 — dedupe da Escuta em A–Z                   | Corrigido                                                                                             | `dbbfa74`          |
+| S13 — janela de corrida na inicialização        | Corrigido                                                                                             | `b1b23be`          |
 
 Defeitos de fundação facetada citados no plano mas fora da numeração S1–S13 (ex.: `dueToday` global
 sem filtro de idioma/aba/chip, unificação dos dois seletores de idioma — D5/Q3) permanecem

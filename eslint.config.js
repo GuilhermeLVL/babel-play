@@ -26,7 +26,17 @@ export default tseslint.config(
       'simple-import-sort/exports': 'warn',
     },
   },
-  { ignores: ['dist/**', 'dist-server/**', 'node_modules/**', 'public/**', 'data/**', '*.cjs'] },
+  {
+    ignores: [
+      'dist/**',
+      'dist-server/**',
+      'node_modules/**',
+      'public/**',
+      'data/**',
+      '*.cjs',
+      'docs/prototipos/*-src/**',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

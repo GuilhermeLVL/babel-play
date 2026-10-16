@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cursor do Babel Play: ponto com anel</title>
+<style>
+  :root {
+    --canvas: #d9d5c9; --surface: #edeae0; --ink: #22201c; --mut: #5c574d;
+    --accent: #f04e23; --soft: #fbddd3; --borda: #c9c4b6; --creme: #f7f3e8; --good: #3d7a4f;
+    --mola: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  html[data-tema='escuro'] {
+    --canvas: #171512; --surface: #23201b; --ink: #f2eee4; --mut: #b3ac9d;
+    --soft: #4a2418; --borda: #3a352d; --good: #6fb486;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--canvas); color: var(--ink); font: 16px/1.45 system-ui, 'Segoe UI', sans-serif; display: grid; grid-template-columns: 108px 1fr; }
+  button, input { font: inherit; color: inherit; }
+  .trilho { background: var(--surface); border-right: 1px solid var(--borda); padding: 20px 6px; display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+  .item { border: 1px solid transparent; background: none; border-radius: 16px; padding: 10px 4px; display: grid; justify-items: center; gap: 4px; font-weight: 700; font-size: 13px; }
+  .item svg { width: 24px; height: 24px; }
+  .item[aria-current] { background: var(--soft); border-color: var(--accent); }
+  main { padding: 28px 28px 80px; overflow: auto; }
+  .sobre { font: 700 12px ui-monospace, Consolas, monospace; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin: 0 0 4px; }
+  h1 { font-size: 30px; letter-spacing: -0.02em; margin: 0 0 6px; }
+  h2 { font-size: 18px; margin: 28px 0 10px; letter-spacing: -0.01em; }
+  p { margin: 0 0 12px; color: var(--mut); max-width: 72ch; }
+  a { color: var(--accent); font-weight: 700; }
+  .fila { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .ctl { min-height: 52px; padding: 0 20px; border-radius: 999px; border: 2px solid transparent; background: var(--surface); font-weight: 700; display: inline-flex; align-items: center; gap: 8px; transition: transform 140ms var(--mola), background-color 160ms ease; }
+  .ctl.pri { background: linear-gradient(135deg, #f46a45, var(--accent)); color: #1c0d07; }
+  .ctl:active { transform: scale(0.97); }
+  .ctl:disabled { opacity: 0.45; }
+  .ctl svg { width: 20px; height: 20px; }
+  .chip { min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--borda); background: var(--surface); font-weight: 700; font-size: 14px; }
+  .abas { display: inline-flex; gap: 4px; background: var(--surface); padding: 4px; border-radius: 999px; }
+  .aba { min-height: 40px; padding: 0 16px; border-radius: 999px; border: 0; background: none; font-weight: 700; color: var(--mut); }
+  .aba[aria-selected='true'] { background: var(--soft); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--accent); }
+  .grade { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+  .tile { text-align: left; background: var(--surface); border: 1px solid var(--borda); border-radius: 22px; padding: 18px; min-height: 130px; display: grid; align-content: start; gap: 6px; transition: transform 200ms var(--mola), box-shadow 200ms ease; }
+  .tile:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -14px rgb(0 0 0 / 0.45); }
+  .tile b { font-size: 17px; }
+  .tile span { color: var(--mut); font-size: 14px; }
+  .ico { width: 44px; height: 44px; border-radius: 12px; background: var(--soft); display: grid; place-items: center; }
+  .ico svg { width: 22px; height: 22px; }
+  input[type='text'] { min-height: 48px; width: min(360px, 100%); border-radius: 14px; border: 1px solid var(--borda); background: var(--surface); padding: 0 14px; }
+  .frase { background: #141210; color: #f7f3e8; border-radius: 14px; padding: 12px 16px; font-weight: 700; display: inline-block; }
+  .frase i { font-style: normal; border-bottom: 2px solid #6fb486; }
+  .arrasta { background: var(--soft); border: 1px solid var(--accent); border-radius: 14px; padding: 12px 16px; font-weight: 700; user-select: none; touch-action: none; display: inline-flex; gap: 8px; align-items: center; }
+  .barra { position: fixed; right: 16px; bottom: 16px; z-index: 5; display: flex; gap: 8px; background: var(--surface); border: 1px solid var(--borda); border-radius: 999px; padding: 6px; box-shadow: 0 12px 30px -16px rgb(0 0 0 / 0.5); }
+  .barra .chip[aria-pressed='true'] { background: var(--soft); border-color: var(--accent); }
+  ul.estados { margin: 0; padding-left: 18px; color: var(--mut); max-width: 72ch; }
+  ul.estados li { margin-bottom: 4px; }
+  ul.estados b { color: var(--ink); }
+
+  /* ================= O CURSOR ================= */
+  html.cur, html.cur * { cursor: none !important; }
+  .cur-ponto, .cur-anel, .cur-onda, .cur-faisca { position: fixed; left: 0; top: 0; pointer-events: none; z-index: 2147483647; will-change: transform; }
+  .cur-ponto {
+    width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 4px; background: var(--cur, var(--accent));
+    box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--creme) 80%, transparent);
+    transition: width 180ms var(--mola), height 180ms var(--mola), margin 180ms var(--mola), border-radius 180ms var(--mola), opacity 160ms ease, background-color 160ms ease;
+  }
+  .cur-anel {
+    width: 34px; height: 34px; border-radius: 17px; border: 1.5px solid var(--cur, var(--accent));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--creme) 55%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--creme) 35%, transparent);
+    background: color-mix(in srgb, var(--cur, var(--accent)) var(--cur-tinta, 0%), transparent);
+    transition: opacity 180ms ease, border-color 160ms ease, background-color 200ms ease;
+  }
+  .cur-fora .cur-ponto, .cur-fora .cur-anel { opacity: 0; }
+  /* sobre o laranja, o cursor vira tinta para não sumir */
+  .cur-tinta { --cur: #22201c; }
+  /* texto: o ponto vira a barra de escrever e o anel sai */
+  .cur-texto .cur-ponto { width: 3px; height: 24px; margin: -12px 0 0 -1.5px; border-radius: 2px; }
+  .cur-texto .cur-anel { opacity: 0; }
+  /* abraçando um botão: o ponto recua para deixar ler o rótulo */
+  .cur-abraca .cur-ponto { opacity: 0.0; }
+  .cur-abraca .cur-anel { --cur-tinta: 9%; }
+  .cur-grande .cur-anel { --cur-tinta: 13%; }
+  .cur-pega .cur-anel { --cur-tinta: 18%; border-style: dashed; }
+  .cur-pegando .cur-anel { --cur-tinta: 28%; border-style: solid; }
+  .cur-parado .cur-anel { border-style: dotted; opacity: 0.45; }
+  .cur-parado .cur-ponto { opacity: 0.45; }
+  /* ocupado: o anel vira um arco que gira */
+  .cur-ocupado .cur-anel { border-color: color-mix(in srgb, var(--cur, var(--accent)) 22%, transparent); }
+  .cur-ocupado .cur-anel::after { content: ''; position: absolute; inset: -1.5px; border-radius: 50%; border: 1.5px solid transparent; border-top-color: var(--cur, var(--accent)); animation: cur-gira 700ms linear infinite; }
+  @keyframes cur-gira { to { rotate: 360deg; } }
+  .cur-onda { width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; border: 1.5px solid var(--cur, var(--accent)); }
+  .cur-faisca { width: 2.5px; height: 9px; margin: -4.5px 0 0 -1.25px; border-radius: 2px; background: var(--cur, var(--accent)); }
+</style>
+</head>
+<body>
+<nav class="trilho" aria-label="Navegação">
+  <button class="item" aria-current="page" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>Início</button>
+  <button class="item" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>Capturar</button>
+  <button class="item" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.010" y1="10" y2="10"/><path d="M17.320 5H6.680a4 4 0 0 0-3.978 3.590c-.006.052-.010.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.500-.500 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.500.500 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.050-.011-.100-.017-.151A4 4 0 0 0 17.320 5z"/></svg>Jogar</button>
+</nav>
+
+<main>
+  <p class="sobre">Protótipo · cursor</p>
+  <h1>Ponto com anel</h1>
+  <p>Mexa o mouse por esta página: ela imita as peças do app. O ponto fica colado no mouse, sem atraso; o anel vem atrás com mola e muda de forma conforme o que está embaixo. Os estados estão descritos no fim. No canto de baixo dá para trocar o tema e comparar com o cursor do sistema.</p>
+
+  <h2>Botões e chips: o anel abraça</h2>
+  <div class="fila">
+    <button class="ctl pri" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>Iniciar captura</button>
+    <button class="ctl" type="button">Legendas flutuantes</button>
+    <button class="chip" type="button">Detectar → Português</button>
+    <button class="chip" type="button">420 Seeds</button>
+    <button class="ctl" type="button" disabled>Indisponível</button>
+    <button class="ctl" type="button" id="ocupar">Salvar (fica ocupado 2 s)</button>
+  </div>
+
+  <h2>Abas</h2>
+  <div class="abas" role="tablist">
+    <button class="aba" role="tab" aria-selected="true" type="button">Coleção</button>
+    <button class="aba" role="tab" aria-selected="false" type="button">Maestria</button>
+    <button class="aba" role="tab" aria-selected="false" type="button">Temporada</button>
+    <button class="aba" role="tab" aria-selected="false" type="button">Loja</button>
+  </div>
+
+  <h2>Cartões: o anel cresce</h2>
+  <div class="grade">
+    <button class="tile" type="button"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span><b>Memória</b><span>Pares de palavra e tradução.</span></button>
+    <button class="tile" type="button"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg></span><b>Ditado</b><span>Escreva o que ouviu.</span></button>
+    <button class="tile" type="button"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg></span><b>Intérprete</b><span>Conversa frente a frente.</span></button>
+  </div>
+
+  <h2>Texto, link e legenda</h2>
+  <div class="fila">
+    <input type="text" placeholder="Buscar por título">
+    <span class="frase">We ship the <i>roadmap</i> today.</span>
+    <a href="#" onclick="return false">Ver todos os planos</a>
+  </div>
+
+  <h2>Arrastar</h2>
+  <div class="fila"><div class="arrasta" id="arrasta">Arraste esta janelinha</div></div>
+
+  <h2>Os estados</h2>
+  <ul class="estados">
+    <li><b>Parado ou andando:</b> ponto de 8 px e anel de 34 px. Em movimento rápido o anel estica na direção do gesto e volta.</li>
+    <li><b>Botão, chip e aba:</b> o anel toma a forma da peça e a abraça, com uma leve atração para o centro; o ponto recua para não tapar o rótulo.</li>
+    <li><b>Cartão e linha grandes:</b> o anel cresce e ganha um fundo leve; o ponto fica.</li>
+    <li><b>Sobre o laranja:</b> o cursor vira tinta para não sumir.</li>
+    <li><b>Campo de texto:</b> o ponto vira a barra de escrever; o anel sai.</li>
+    <li><b>Apertar e soltar:</b> o anel encolhe no aperto; ao soltar sai uma onda e, se era clicável, quatro faíscas.</li>
+    <li><b>Arrastar:</b> anel tracejado ao passar; cheio e firme enquanto segura.</li>
+    <li><b>Indisponível:</b> pontilhado e apagado. <b>Ocupado:</b> o anel vira um arco girando.</li>
+    <li><b>Fora da janela, toque ou caneta:</b> some; no celular e no Quest não existe.</li>
+    <li><b>Modo desempenho ou movimento reduzido:</b> sem mola, sem esticar e sem faíscas; o anel só acompanha e troca de forma.</li>
+  </ul>
+</main>
+
+<div class="barra">
+  <button class="chip" id="b-tema" type="button" aria-pressed="false">Tema escuro</button>
+  <button class="chip" id="b-leve" type="button" aria-pressed="false">Modo desempenho</button>
+  <button class="chip" id="b-sistema" type="button" aria-pressed="false">Cursor do sistema</button>
+</div>
+
+<script>
+(() => {
+  const raiz = document.documentElement;
+  const ponto = Object.assign(document.createElement('div'), { className: 'cur-ponto' });
+  const anel = Object.assign(document.createElement('div'), { className: 'cur-anel' });
+  document.body.append(anel, ponto);
+
+  const ABRACA = '.ctl, .chip, .aba, .item, a[href]';
+  const GRANDE = '.tile, .linha';
+  const TEXTO = 'input[type="text"], input:not([type]), textarea, [contenteditable="true"]';
+  const PEGA = '.arrasta';
+  const BASE = 34;
+  let leve = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let ligado = true, dentro = false, apertado = false, quadro = 0;
+  let mx = 0, my = 0, antX = 0, antY = 0, antT = 0, vel = 0, ang = 0;
+  /* o que está na tela (a) persegue o alvo (t): x, y, largura, altura, raio, esticada */
+  const a = { x: 0, y: 0, w: BASE, h: BASE, r: BASE / 2, s: 0, e: 1 };
+  const t = { x: 0, y: 0, w: BASE, h: BASE, r: BASE / 2, s: 0, e: 1 };
+  const v = { x: 0, y: 0, w: 0, h: 0, r: 0 };
+
+  const estado = (nome, sim) => raiz.classList.toggle('cur-' + nome, sim);
+  function ler(alvo) {
+    const el = alvo instanceof Element ? alvo : null;
+    const parado = el?.closest(':disabled, [aria-disabled="true"]');
+    const texto = !parado && el?.closest(TEXTO);
+    const pega = !parado && el?.closest(PEGA);
+    const abraca = !parado && !texto && !pega && el?.closest(ABRACA);
+    const grande = !parado && !abraca && !texto && !pega && el?.closest(GRANDE);
+    estado('parado', !!parado); estado('texto', !!texto); estado('pega', !!pega && !apertado);
+    estado('pegando', !!pega && apertado); estado('abraca', !!abraca); estado('grande', !!grande);
+    estado('tinta', !!el?.closest('.pri'));
+    estado('ocupado', !!el?.closest('[aria-busy="true"]'));
+    if (abraca) {
+      const c = abraca.getBoundingClientRect();
+      const raio = parseFloat(getComputedStyle(abraca).borderRadius) || 12;
+      const folga = 5;
+      t.w = c.width + folga * 2; t.h = c.height + folga * 2;
+      t.r = Math.min(raio + folga, t.h / 2);
+      /* atração: o anel fica na peça e só cede um pouco para o lado do mouse */
+      t.x = c.left + c.width / 2 + (mx - (c.left + c.width / 2)) * 0.08;
+      t.y = c.top + c.height / 2 + (my - (c.top + c.height / 2)) * 0.14;
+      t.s = 0;
+    } else {
+      const lado = parado ? 26 : grande ? 54 : pega ? 44 : BASE;
+      t.w = t.h = lado; t.r = lado / 2; t.x = mx; t.y = my;
+      t.s = leve || grande || pega ? 0 : Math.min(vel / 2200, 0.32);
+    }
+    t.e = apertado ? 0.84 : 1;
+  }
+
+  function pintar() {
+    quadro = 0;
+    let vivo = false;
+    if (leve) Object.assign(a, t);
+    else {
+      /* mola crítica nas posições e medidas; a esticada e o aperto só aproximam */
+      for (const k of ['x', 'y', 'w', 'h', 'r']) {
+        const rig = k === 'x' || k === 'y' ? 0.2 : 0.24;
+        v[k] = (v[k] + (t[k] - a[k]) * rig) * 0.62;
+        a[k] += v[k];
+        if (Math.abs(t[k] - a[k]) > 0.1 || Math.abs(v[k]) > 0.1) vivo = true;
+      }
+      a.s += (t.s - a.s) * 0.2; a.e += (t.e - a.e) * 0.3;
+      if (Math.abs(t.s - a.s) > 0.004 || Math.abs(t.e - a.e) > 0.004) vivo = true;
+      vel *= 0.86; if (vel > 20) { vivo = true; if (!raiz.classList.contains('cur-abraca')) t.s = Math.min(vel / 2200, 0.32); } else t.s = 0;
+    }
+    anel.style.width = a.w + 'px'; anel.style.height = a.h + 'px'; anel.style.borderRadius = a.r + 'px';
+    anel.style.transform = `translate3d(${a.x - a.w / 2}px, ${a.y - a.h / 2}px, 0) rotate(${ang}rad) scale(${(1 + a.s) * a.e}, ${(1 - a.s * 0.5) * a.e}) rotate(${-ang}rad)`;
+    if (vivo) quadro = requestAnimationFrame(pintar);
+  }
+  const pedir = () => { if (!quadro) quadro = requestAnimationFrame(pintar); };
+
+  function mover(e) {
+    if (!ligado) return;
+    if (e.pointerType && e.pointerType !== 'mouse') return sair();
+    mx = e.clientX; my = e.clientY;
+    const agora = e.timeStamp, dt = Math.max(1, agora - antT);
+    const dx = mx - antX, dy = my - antY;
+    if (dt < 80) { vel = vel * 0.6 + (Math.hypot(dx, dy) / dt) * 1000 * 0.4; if (Math.hypot(dx, dy) > 1.5) ang = Math.atan2(dy, dx); }
+    antX = mx; antY = my; antT = agora;
+    /* o ponto vai direto no evento: nunca fica um quadro atrás */
+    ponto.style.transform = `translate3d(${mx}px, ${my}px, 0)`;
+    if (!dentro) { dentro = true; estado('fora', false); Object.assign(a, { x: mx, y: my }); }
+    ler(e.target);
+    pedir();
+  }
+  function sair() { dentro = false; estado('fora', true); }
+
+  function soltar(e) {
+    if (!apertado) return;
+    apertado = false; ler(document.elementFromPoint(mx, my)); pedir();
+    if (leve || !ligado || !dentro) return;
+    const onda = Object.assign(document.createElement('div'), { className: 'cur-onda' });
+    document.body.append(onda);
+    onda.animate([{ transform: `translate3d(${mx}px, ${my}px, 0) scale(0.6)`, opacity: 0.9 }, { transform: `translate3d(${mx}px, ${my}px, 0) scale(1.9)`, opacity: 0 }], { duration: 420, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' }).finished.then(() => onda.remove());
+    const el = document.elementFromPoint(mx, my);
+    if (!el?.closest(`${ABRACA}, ${GRANDE}`) || el.closest(':disabled')) return;
+    for (let i = 0; i < 4; i++) {
+      const f = Object.assign(document.createElement('div'), { className: 'cur-faisca' });
+      const g = -Math.PI / 2 + (i - 1.5) * 0.62, de = 20, ate = 34;
+      document.body.append(f);
+      const pos = (d) => `translate3d(${mx + Math.cos(g) * d}px, ${my + Math.sin(g) * d}px, 0) rotate(${g + Math.PI / 2}rad)`;
+      f.animate([{ transform: pos(de) + ' scaleY(0.4)', opacity: 1 }, { transform: pos(ate) + ' scaleY(1)', opacity: 0 }], { duration: 360, delay: i * 18, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'backwards' }).finished.then(() => f.remove());
+    }
+  }
+
+  addEventListener('pointermove', mover, { passive: true });
+  addEventListener('pointerdown', (e) => { if (e.pointerType === 'mouse') { apertado = true; ler(e.target); pedir(); } }, { passive: true });
+  addEventListener('pointerup', soltar, { passive: true });
+  addEventListener('pointercancel', soltar, { passive: true });
+  /* o clique pode mudar a peça (ocupada, selecionada): relê no quadro seguinte */
+  addEventListener('click', () => requestAnimationFrame(() => { if (dentro) { ler(document.elementFromPoint(mx, my)); pedir(); } }));
+  document.addEventListener('pointerleave', sair);
+  addEventListener('blur', sair);
+  addEventListener('scroll', () => { if (dentro) { ler(document.elementFromPoint(mx, my)); pedir(); } }, { passive: true, capture: true });
+
+  function ligar(sim) {
+    ligado = sim; raiz.classList.toggle('cur', sim);
+    ponto.hidden = anel.hidden = !sim;
+  }
+  ligar(matchMedia('(hover: hover) and (pointer: fine)').matches);
+  estado('fora', true);
+
+  /* ---- controles da página de demonstração ---- */
+  const botao = (id, f) => document.getElementById(id).addEventListener('click', (e) => { const on = e.currentTarget.getAttribute('aria-pressed') !== 'true'; e.currentTarget.setAttribute('aria-pressed', on); f(on); });
+  botao('b-tema', (on) => (raiz.dataset.tema = on ? 'escuro' : ''));
+  botao('b-leve', (on) => (leve = on));
+  botao('b-sistema', (on) => ligar(!on));
+  document.querySelectorAll('.aba').forEach((b) => b.addEventListener('click', () => document.querySelectorAll('.aba').forEach((o) => o.setAttribute('aria-selected', o === b))));
+  document.getElementById('ocupar').addEventListener('click', (e) => { const b = e.currentTarget; b.setAttribute('aria-busy', 'true'); setTimeout(() => b.removeAttribute('aria-busy'), 2000); });
+  /* a janelinha que se arrasta */
+  const j = document.getElementById('arrasta'); let jx = 0, jy = 0, px = 0, py = 0, seg = false;
+  j.addEventListener('pointerdown', (e) => { seg = true; px = e.clientX - jx; py = e.clientY - jy; j.setPointerCapture(e.pointerId); });
+  j.addEventListener('pointermove', (e) => { if (seg) { jx = e.clientX - px; jy = e.clientY - py; j.style.transform = `translate(${jx}px, ${jy}px)`; } });
+  j.addEventListener('pointerup', () => (seg = false));
+  window.__cursor = { a, t };
+})();
+</script>
+</body>
+</html>

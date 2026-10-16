@@ -8,7 +8,7 @@
  *     de modelo da captura (nada re-baixa).
  *   - NUVEM, quando quem chama entrega um motor (`nuvem`): o Whisper de nuvem (large-v3-turbo) no
  *     lugar do local. Antes a importação era SEMPRE local — 57% de WER em português — mesmo para
- *     quem assina a transcrição de nuvem (24%; docs/PROXIMOS-PASSOS.md, D4). A decisão de usar ou
+ *     quem assina a transcrição de nuvem (24%; docs/historico/PROXIMOS-PASSOS.md, D4). A decisão de usar ou
  *     não é de quem chama, com a mesma régua da captura ao vivo (`lib/import/nuvemDaImportacao`).
  *     Recusa DEFINITIVA da nuvem (402 plano/cota, 429 limite, 501 sem conta ou não configurada,
  *     503 orçamento) desliga a nuvem pelo resto do arquivo e o local assume; falha passageira

@@ -36,10 +36,10 @@ describe('planos e quotas (modo publico)', () => {
   beforeAll(async () => {
     for (const k of CHAVES_DE_IA) {
       salvo[k] = process.env[k]
-      /* As chaves que um .env de desenvolvedor pode trazer (a da OpenRouter e a da reserva) ficam
+      /* As chaves que um .env de desenvolvedor pode trazer (Groq, OpenRouter, LLM, STT e a reserva) ficam
          VAZIAS, não apagadas: o dotenv do servidor repõe do .env toda variável ausente (ver
          ia.test.ts). As demais seguem apagadas. */
-      if (k === 'OPENROUTER_API_KEY' || k === 'LLM_RESERVA_API_KEY') process.env[k] = ''
+      if (k.endsWith('_API_KEY')) process.env[k] = ''
       else delete process.env[k]
     }
     s = await subirApp({ modo: 'publico' })

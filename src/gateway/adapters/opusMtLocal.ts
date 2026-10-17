@@ -52,11 +52,30 @@ export class OpusMtLocal implements TranslationProvider {
     if (this.DEDICADOS.has(s) && t === 'en') return `Xenova/opus-mt-${s}-en`;
     if (s === 'en' && t === 'pt') return 'Xenova/opus-mt-en-ROMANCE'; // só pt tem o ID do token (ver worker)
     if (this.ROMANCE.has(s) && t === 'en') return 'Xenova/opus-mt-ROMANCE-en';
+    if (s === 'zh' && t === 'en') return 'Xenova/opus-mt-zh-en';
     return null;
+  }
+
+  /**
+   * CHINÊS PASSA PELO INGLÊS. Não há modelo local zh→pt/es/fr/it/de, e o tradutor da web (MyMemory) exige o
+   * consentimento de nuvem: sem ele o chinês saía transcrito e SEM tradução. O pivô zh→en→alvo usa dois modelos
+   * que já existem (zh-en e o en→alvo), como a cascata faz com qualquer par que não tem modelo direto.
+   * Só o chinês: é o idioma sem espaço que as pessoas pedem; outros pares ficam como estavam.
+   */
+  private viaIngles(src: string, tgt: string): boolean {
+    const s = src.toLowerCase().split('-')[0];
+    const t = tgt.toLowerCase().split('-')[0];
+    return s === 'zh' && t !== 'en' && t !== 'zh' && this.modelFor('en', t) !== null;
+  }
+
+  /** Os dois modelos de um par que passa pelo inglês (zh→en e en→alvo). */
+  private pernasViaIngles(src: string, tgt: string): [string, string] {
+    return [this.modelFor(src, 'en')!, this.modelFor('en', tgt)!];
   }
 
   supports(src: string | null, tgt: string): boolean {
     if (!src || !tgt) return false;
+    if (this.viaIngles(src, tgt)) return this.pernasViaIngles(src, tgt).every((m) => !this.failed.has(m));
     const model = this.modelFor(src, tgt);
     // Modelo que já falhou o carregamento aqui deixa de ser "suportado" → o gateway o pula
     // e roteia direto para o próximo tradutor (Chrome/Edge Translator), sem re-tentar.
@@ -176,6 +195,11 @@ export class OpusMtLocal implements TranslationProvider {
     tgt: string,
     onProgress?: (p: number, label?: string, bytes?: { loaded: number; total: number }) => void,
   ): void {
+    if (this.viaIngles(src, tgt)) {
+      this.preload(src, 'en', onProgress);
+      this.preload('en', tgt, onProgress);
+      return;
+    }
     if (onProgress) this.onProgress = onProgress;
     const model = this.modelFor(src, tgt);
     if (!model || this.failed.has(model)) return;
@@ -191,6 +215,7 @@ export class OpusMtLocal implements TranslationProvider {
 
   async translate(text: string, src: string | null, tgt: string, opts?: MtOptions): Promise<MtResult> {
     if (!src) throw new Error('opus-mt exige idioma de origem');
+    if (this.viaIngles(src, tgt)) return this.traduzirViaIngles(text, src, tgt, opts);
     const model = this.modelFor(src, tgt);
     if (!model) throw new Error(`opus-mt não cobre ${src}->${tgt}`);
     if (this.failed.has(model)) throw new Error('opus-mt indisponível neste ambiente (fallback)');
@@ -228,5 +253,22 @@ export class OpusMtLocal implements TranslationProvider {
     });
     if (!translated) throw new Error('opus-mt devolveu vazio');
     return { text: translated, detectedSourceLang: src, engine: 'opus-mt-local' };
+  }
+
+  /** zh→en e, com o texto em inglês, en→alvo. Sem os DOIS modelos prontos, falha rápido e pede a carga dos dois. */
+  private async traduzirViaIngles(text: string, src: string, tgt: string, opts?: MtOptions): Promise<MtResult> {
+    const pernas = this.pernasViaIngles(src, tgt);
+    if (pernas.some((m) => this.failed.has(m))) throw new Error('opus-mt indisponível neste ambiente (fallback)');
+    if (pernas.some((m) => !this.ready.has(m))) {
+      // Como no par direto: parcial não baixa modelo; o final dispara a carga das duas pernas e usa a cascata.
+      if (opts?.parcial)
+        throw new MotorAindaCarregando(this.id, 'opus-mt não carregado: parcial fica sem tradução local');
+      this.preload(src, 'en');
+      this.preload('en', tgt);
+      throw new MotorAindaCarregando(this.id, 'opus-mt (via inglês) ainda carregando (usando fallback)');
+    }
+    const meio = await this.translate(text, src, 'en', opts);
+    const fim = await this.translate(meio.text, 'en', tgt, opts);
+    return { text: fim.text, detectedSourceLang: src, engine: 'opus-mt-local' };
   }
 }

@@ -32,6 +32,8 @@ export const REVISOES_DOS_MODELOS: Readonly<Record<string, string>> = {
   'Xenova/opus-mt-de-en': '399dfd68706739fffd503f876093e455ae268a06',
   'Xenova/opus-mt-en-ROMANCE': '9d2ba69ac80c8e8453c3d9a1e2323a0e7b8ca3cd',
   'Xenova/opus-mt-ROMANCE-en': 'f60feaabe8bb435a5871e7702b25f53a01e770f8',
+  // Chinês → inglês (pivô do zh→pt/es/fr/it/de), `main` conferido em 2026-10-17 (último commit: jul/2025).
+  'Xenova/opus-mt-zh-en': '39d480d52a9ea3065a1f117adfe4dbc55de10e6f',
   'onnx-community/wespeaker-voxceleb-resnet34-LM': '6a61a1833ff2583aabeba044f5c8221f00b67ceb',
 };
 

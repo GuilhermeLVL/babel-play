@@ -66,13 +66,34 @@ export const LANGUAGES: Language[] = [
  * aqui digita "日本語" para achar japonês: sem isto, buscar "japonês" ou "russo" não devolvia nada.
  */
 const PT_NAMES: Record<string, string> = {
-  pt: 'português brasil portugal', en: 'inglês ingles estados unidos reino unido', es: 'espanhol castelhano méxico',
-  fr: 'francês frances', de: 'alemão alemao', it: 'italiano', nl: 'holandês holandes neerlandês',
-  ru: 'russo', pl: 'polonês polones', uk: 'ucraniano', tr: 'turco', sv: 'sueco', da: 'dinamarquês dinamarques',
-  nb: 'norueguês noruegues', fi: 'finlandês finlandes', cs: 'tcheco checo', el: 'grego', ro: 'romeno',
-  hu: 'húngaro hungaro', ja: 'japonês japones', ko: 'coreano', zh: 'chinês chines mandarim',
-  hi: 'híndi hindi indiano', ar: 'árabe arabe', he: 'hebraico', id: 'indonésio indonesio',
-  vi: 'vietnamita', th: 'tailandês tailandes',
+  pt: 'português brasil portugal',
+  en: 'inglês ingles estados unidos reino unido',
+  es: 'espanhol castelhano méxico',
+  fr: 'francês frances',
+  de: 'alemão alemao',
+  it: 'italiano',
+  nl: 'holandês holandes neerlandês',
+  ru: 'russo',
+  pl: 'polonês polones',
+  uk: 'ucraniano',
+  tr: 'turco',
+  sv: 'sueco',
+  da: 'dinamarquês dinamarques',
+  nb: 'norueguês noruegues',
+  fi: 'finlandês finlandes',
+  cs: 'tcheco checo',
+  el: 'grego',
+  ro: 'romeno',
+  hu: 'húngaro hungaro',
+  ja: 'japonês japones',
+  ko: 'coreano',
+  zh: 'chinês chines mandarim',
+  hi: 'híndi hindi indiano',
+  ar: 'árabe arabe',
+  he: 'hebraico',
+  id: 'indonésio indonesio',
+  vi: 'vietnamita',
+  th: 'tailandês tailandes',
 };
 
 /** Remove acentos e caixa — "japones" precisa achar "japonês". Espaço intacto: nomes de idioma
@@ -97,7 +118,7 @@ export function langMatches(l: Language, query: string): boolean {
 /** Primeiro código BCP-47 conhecido para um ISO-639-1 ('pt' → 'pt-BR'). Útil p/ TTS. */
 export function toBcp47(short: string): string {
   const b = baseLang(short);
-  return LANGUAGES.find(l => l.short === b)?.code ?? b;
+  return LANGUAGES.find((l) => l.short === b)?.code ?? b;
 }
 
 /** Base ISO-639-1 de um código BCP-47 ('pt-BR' → 'pt'). Implementacao em `core/texto/idioma.ts`. */
@@ -107,18 +128,18 @@ export { baseLang };
 /** Rótulo amigável de um código (aceita BCP-47 ou short); cai para o próprio código. */
 export function langLabel(code: string): string {
   const b = baseLang(code);
-  return (LANGUAGES.find(l => l.code === code) || LANGUAGES.find(l => l.short === b))?.label || code;
+  return (LANGUAGES.find((l) => l.code === code) || LANGUAGES.find((l) => l.short === b))?.label || code;
 }
 
 /** O idioma está na lista que a app oferece? Código fora daqui não tem rótulo nem cobertura conhecida. */
 export function isKnownLang(code: string): boolean {
   const b = baseLang(code);
-  return !!b && LANGUAGES.some(l => l.short === b);
+  return !!b && LANGUAGES.some((l) => l.short === b);
 }
 
 /** Todos os ISO-639-1 distintos oferecidos ('pt', 'en', 'es'…). */
 export function knownShorts(): string[] {
-  return [...new Set(LANGUAGES.map(l => l.short))];
+  return [...new Set(LANGUAGES.map((l) => l.short))];
 }
 
 /* ESPELHA `modelFor` do opus-mt local (`src/gateway/adapters/opusMtLocal.ts`), par a par. A versão
@@ -130,6 +151,8 @@ const ROMANICAS_PARA_O_INGLES = new Set(['pt', 'ro', 'ca', 'gl']);
 
 /** O tradutor do aparelho (opus-mt/Bergamot) tem modelo para este par? Bases ISO-639-1. */
 function temTradutorNoAparelho(s: string, t: string): boolean {
+  /* Chinês: zh→en direto e, passando pelo inglês (pivô do adaptador), para as que têm modelo saindo do inglês. */
+  if (s === 'zh') return t === 'en' || t === 'pt' || DEDICADOS_COM_O_INGLES.has(t);
   if (s === 'en') return DEDICADOS_COM_O_INGLES.has(t) || t === 'pt';
   if (t === 'en') return DEDICADOS_COM_O_INGLES.has(s) || ROMANICAS_PARA_O_INGLES.has(s);
   return false;
@@ -158,7 +181,6 @@ export function mtCoverage(src: string, tgt: string): MtCoverage {
   return 'online';
 }
 
-
 /**
  * O nome do idioma EM PORTUGUÊS, para caber numa frase — "8 palavras do inglês".
  *
@@ -181,7 +203,9 @@ export function langLabelNaUI(code: string): string {
     const nome = new Intl.DisplayNames([idiomaDaInterface()], { type: 'language' }).of(b);
     // A API devolve o próprio código quando não conhece o idioma; aí o nome nativo informa mais.
     if (nome && nome.toLowerCase() !== b) return nome.toLowerCase();
-  } catch { /* runtime sem Intl.DisplayNames */ }
+  } catch {
+    /* runtime sem Intl.DisplayNames */
+  }
   return langLabel(code);
 }
 

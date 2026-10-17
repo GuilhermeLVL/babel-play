@@ -313,12 +313,28 @@ describe('tradução: a cobertura que a tela anuncia é a do tradutor local de v
     expect(mtCoverage(base, toBcp47(base))).toBe('same')
   })
 
-  it.each(['zh', 'ja', 'ko', 'ar', 'ru', 'hi'])('pt ↔ %s não tem tradutor no aparelho (depende da internet)', (b) => {
+  it.each(['ja', 'ko', 'ar', 'ru', 'hi'])('pt ↔ %s não tem tradutor no aparelho (depende da internet)', (b) => {
     expect(mtCoverage('pt', b)).toBe('online')
     expect(mtCoverage(b, 'pt')).toBe('online')
   })
 
-  it.todo('pt ↔ zh/ja/ko/ar/ru/hi sem internet: pivô pelo inglês ou modelo próprio — decisão do dono (não há hoje)')
+  /* O CHINÊS PASSA PELO INGLÊS: zh→en (opus-mt-zh-en) e en→alvo, no aparelho e sem consentimento de nuvem. O sentido
+     contrário (pt→zh) segue dependendo da internet: não há modelo local para ele. */
+  it.each(['pt', 'es', 'fr', 'it', 'de', 'en'])('zh → %s tem tradutor no aparelho', (alvo) => {
+    expect(opus.supports('zh', alvo)).toBe(true)
+    expect(mtCoverage('zh', alvo)).toBe('local')
+  })
+  it.each(['pt', 'es', 'fr', 'it', 'de', 'en'])('%s → zh depende da internet', (de) => {
+    expect(opus.supports(de, 'zh')).toBe(false)
+    expect(mtCoverage(de, 'zh')).toBe('online')
+  })
+  it.each(['ro', 'ca', 'gl'])('zh → %s não tem tradutor no aparelho (sem modelo en→%s)', (alvo) => {
+    expect(opus.supports('zh', alvo)).toBe(false)
+  })
+
+  it.todo(
+    'ja/ko/ar/ru/hi → pt sem internet: o mesmo pivô pelo inglês, se houver modelo X→en (ja-en existe no Hub; só o chinês foi feito)',
+  )
 })
 
 /* ─────────────────────────────── 3. FALAR ─────────────────────────────── */

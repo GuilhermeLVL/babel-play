@@ -46,7 +46,12 @@ export function expectedModelIds(src: string, tgt: string, whisperModel?: string
   const t = (tgt || '').toLowerCase().split('-')[0];
   const ROMANCE = new Set(['pt', 'es', 'fr', 'it', 'ro', 'ca', 'gl']);
   if (s === 'en' && ROMANCE.has(t)) ids.push('Xenova/opus-mt-en-ROMANCE');
-  else if (bergamotOferecido(s, t)) ids.push(ID_DO_BERGAMOT_PT_EN);
+  else if (s === 'zh' && t !== 'zh') {
+    /* Chinês passa pelo inglês (pivô do `OpusMtLocal`): zh→en e, se o alvo não é o inglês, en→alvo (o mesmo modelo que o adaptador escolhe). */
+    ids.push('Xenova/opus-mt-zh-en');
+    if (t === 'pt') ids.push('Xenova/opus-mt-en-ROMANCE');
+    else if (['es', 'fr', 'it', 'de'].includes(t)) ids.push(`Xenova/opus-mt-en-${t}`);
+  } else if (bergamotOferecido(s, t)) ids.push(ID_DO_BERGAMOT_PT_EN);
   else if (ROMANCE.has(s) && t === 'en') ids.push('Xenova/opus-mt-ROMANCE-en');
   return ids;
 }

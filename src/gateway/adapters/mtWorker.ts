@@ -96,6 +96,8 @@ function dirConfig(src: string, tgt: string): DirCfg | null {
   // língua latina, e isso é pior do que cair no MyMemory.
   if (s === 'en' && t === 'pt') return { model: 'Xenova/opus-mt-en-ROMANCE', langToken: '>>pt_br<<', langTokenId: 51 };
   if (ROMANCE.has(s) && t === 'en') return { model: 'Xenova/opus-mt-ROMANCE-en' };
+  // Chinês → inglês: o único idioma sem espaço com modelo local. Os outros alvos passam pelo inglês (o adaptador faz o pivô).
+  if (s === 'zh' && t === 'en') return { model: 'Xenova/opus-mt-zh-en' };
   return null; // par não coberto → o gateway cai para o próximo adapter (MyMemory)
 }
 

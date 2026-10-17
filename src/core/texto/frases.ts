@@ -29,15 +29,56 @@
  */
 const ABREVIACOES = new Set([
   // Português
-  'sr', 'sra', 'srta', 'dr', 'dra', 'prof', 'profa', 'eng', 'av', 'r', 'ltda', 'etc',
-  'p.ex', 'ex', 'obs', 'ref', 'núm', 'num', 'pág', 'pag', 'fl', 'art', 'cia', 'ed',
+  'sr',
+  'sra',
+  'srta',
+  'dr',
+  'dra',
+  'prof',
+  'profa',
+  'eng',
+  'av',
+  'r',
+  'ltda',
+  'etc',
+  'p.ex',
+  'ex',
+  'obs',
+  'ref',
+  'núm',
+  'num',
+  'pág',
+  'pag',
+  'fl',
+  'art',
+  'cia',
+  'ed',
   // Inglês
-  'mr', 'mrs', 'ms', 'jr', 'sr.', 'st', 'vs', 'inc', 'ltd', 'co', 'approx', 'dept',
-  'e.g', 'i.e', 'no', 'fig', 'vol', 'pp',
-])
+  'mr',
+  'mrs',
+  'ms',
+  'jr',
+  'sr.',
+  'st',
+  'vs',
+  'inc',
+  'ltd',
+  'co',
+  'approx',
+  'dept',
+  'e.g',
+  'i.e',
+  'no',
+  'fig',
+  'vol',
+  'pp',
+]);
 
-/** Terminadores de frase. As reticências entram como caractere único e como três pontos. */
-const TERMINADORES = /[.!?…]/
+/** Terminadores de frase. As reticências entram como caractere único e como três pontos; `。！？` são os do chinês e do japonês. */
+const TERMINADORES = /[.!?…。！？]/;
+
+/** Os terminadores de largura total (chinês, japonês): terminam a frase sem espaço depois e sem maiúscula depois, que essas escritas não têm. */
+const TERMINADORES_DE_LARGURA_TOTAL = /[。！？]/;
 
 /**
  * `true` quando o ponto na posição `i` realmente encerra a frase.
@@ -48,27 +89,28 @@ const TERMINADORES = /[.!?…]/
  *  · inicial     — "J. R. R."       (uma letra sozinha antes do ponto)
  */
 function terminaFrase(texto: string, i: number): boolean {
-  const ch = texto[i]
-  if (!TERMINADORES.test(ch)) return false
+  const ch = texto[i];
+  if (!TERMINADORES.test(ch)) return false;
+  if (TERMINADORES_DE_LARGURA_TOTAL.test(ch)) return true;
 
   // Depois do terminador precisa vir espaço (ou o fim do texto). "3.14" não quebra por isso.
-  const depois = texto.slice(i + 1)
-  if (depois.length > 0 && !/^\s/.test(depois)) return false
+  const depois = texto.slice(i + 1);
+  if (depois.length > 0 && !/^\s/.test(depois)) return false;
 
   if (ch === '.') {
     // A palavra imediatamente antes do ponto.
-    const antes = texto.slice(0, i)
-    const palavra = (antes.match(/([\p{L}\p{N}.]+)$/u)?.[1] ?? '').toLowerCase()
-    if (ABREVIACOES.has(palavra)) return false
+    const antes = texto.slice(0, i);
+    const palavra = (antes.match(/([\p{L}\p{N}.]+)$/u)?.[1] ?? '').toLowerCase();
+    if (ABREVIACOES.has(palavra)) return false;
     // Inicial isolada: uma única letra antes do ponto ("J. R. R. Tolkien").
-    if (/^\p{L}$/u.test(palavra)) return false
+    if (/^\p{L}$/u.test(palavra)) return false;
   }
 
   // O que vem depois começa frase? Espaço seguido de maiúscula, dígito ou aspas. Minúscula depois
   // do ponto quase sempre é abreviação ou erro de transcrição, e juntar erra menos que separar.
-  const proximo = depois.replace(/^\s+/, '')
-  if (proximo.length === 0) return true
-  return /^[\p{Lu}\p{N}"“'(¿¡]/u.test(proximo)
+  const proximo = depois.replace(/^\s+/, '');
+  if (proximo.length === 0) return true;
+  return /^[\p{Lu}\p{N}"“'(¿¡]/u.test(proximo);
 }
 
 /**
@@ -78,10 +120,10 @@ function terminaFrase(texto: string, i: number): boolean {
  * a mesma lista de abreviações, uma fonte só.
  */
 export function terminaEmAbreviacao(trecho: string): boolean {
-  const t = (trecho ?? '').trimEnd()
-  if (!t.endsWith('.')) return false
-  const palavra = (t.slice(0, -1).match(/([\p{L}\p{N}.]+)$/u)?.[1] ?? '').toLowerCase()
-  return ABREVIACOES.has(palavra) || /^\p{L}$/u.test(palavra)
+  const t = (trecho ?? '').trimEnd();
+  if (!t.endsWith('.')) return false;
+  const palavra = (t.slice(0, -1).match(/([\p{L}\p{N}.]+)$/u)?.[1] ?? '').toLowerCase();
+  return ABREVIACOES.has(palavra) || /^\p{L}$/u.test(palavra);
 }
 
 export interface OpcoesDeSeparacao {
@@ -91,7 +133,7 @@ export interface OpcoesDeSeparacao {
    * Um fragmento de duas letras não é uma frase para o tradutor — é ruído que ele traduz mal e
    * isoladamente. Colar preserva o texto e dá contexto.
    */
-  minimoDeCaracteres?: number
+  minimoDeCaracteres?: number;
 }
 
 /**
@@ -99,34 +141,34 @@ export interface OpcoesDeSeparacao {
  * Texto sem pontuação (o caso comum em fala transcrita) volta como uma única frase.
  */
 export function separarEmFrases(texto: string, opcoes: OpcoesDeSeparacao = {}): string[] {
-  const minimo = opcoes.minimoDeCaracteres ?? 4
-  const t = (texto ?? '').trim()
-  if (!t) return []
+  const minimo = opcoes.minimoDeCaracteres ?? 4;
+  const t = (texto ?? '').trim();
+  if (!t) return [];
 
-  const partes: string[] = []
-  let inicio = 0
+  const partes: string[] = [];
+  let inicio = 0;
   for (let i = 0; i < t.length; i++) {
-    if (!terminaFrase(t, i)) continue
+    if (!terminaFrase(t, i)) continue;
     // Absorve terminadores repetidos ("!!!", "...") num só corte.
-    let fim = i
-    while (fim + 1 < t.length && TERMINADORES.test(t[fim + 1])) fim++
-    const trecho = t.slice(inicio, fim + 1).trim()
-    if (trecho) partes.push(trecho)
-    inicio = fim + 1
-    i = fim
+    let fim = i;
+    while (fim + 1 < t.length && TERMINADORES.test(t[fim + 1])) fim++;
+    const trecho = t.slice(inicio, fim + 1).trim();
+    if (trecho) partes.push(trecho);
+    inicio = fim + 1;
+    i = fim;
   }
-  const resto = t.slice(inicio).trim()
-  if (resto) partes.push(resto)
+  const resto = t.slice(inicio).trim();
+  if (resto) partes.push(resto);
 
-  if (partes.length <= 1) return partes
+  if (partes.length <= 1) return partes;
 
   // Cola os fragmentos curtos demais na frase anterior.
-  const saida: string[] = []
+  const saida: string[] = [];
   for (const p of partes) {
-    if (saida.length > 0 && p.length < minimo) saida[saida.length - 1] += ` ${p}`
-    else saida.push(p)
+    if (saida.length > 0 && p.length < minimo) saida[saida.length - 1] += ` ${p}`;
+    else saida.push(p);
   }
-  return saida
+  return saida;
 }
 
 /**
@@ -136,5 +178,8 @@ export function separarEmFrases(texto: string, opcoes: OpcoesDeSeparacao = {}): 
  * Espelha a doutrina do resto do produto — degradar dizendo o que saiu, em vez de sumir.
  */
 export function juntarFrases(partes: string[]): string {
-  return partes.map((p) => p.trim()).filter(Boolean).join(' ')
+  return partes
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .join(' ');
 }

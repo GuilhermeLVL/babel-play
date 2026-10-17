@@ -97,9 +97,9 @@ const FONTES: Array<{ key: FonteDeImportacao; Icone: typeof Youtube; label: stri
   {
     key: 'doc',
     Icone: FileText,
-    label: 'Documento de texto',
-    sub: 'PDF, DOCX, TXT',
-    hint: 'Extrai o texto e monta uma sessão de estudo. A leitura usa voz sintética.',
+    label: 'Documento ou legenda',
+    sub: 'PDF, DOCX, TXT, SRT, VTT',
+    hint: 'Extrai o texto e monta uma sessão de estudo. Legenda (.srt, .vtt, .ass) vira texto na hora, sem gastar nuvem. A leitura usa voz sintética.',
   },
   {
     key: 'web',
@@ -738,7 +738,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
                         <input
                           type="file"
                           className="sr"
-                          accept={importSource === 'doc' ? '.txt,.pdf,.docx' : 'audio/*'}
+                          accept={importSource === 'doc' ? '.txt,.pdf,.docx,.srt,.vtt,.ass,.ssa' : 'audio/*'}
                           onChange={(e) => {
                             escolherArquivo(e.target.files?.[0]);
                             e.target.value = '';

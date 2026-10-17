@@ -39,8 +39,10 @@ A retenção e a região são as que se configura no painel; o que depende de li
 transcrição, a tradução e o tutor passam pelo OpenRouter, que encaminha a um provedor com **retenção zero** (cada pedido leva
 `provider: { zdr: true, data_collection: "deny" }` e ignora o Google). Os provedores finais que o OpenRouter escolhe entre os
 de retenção zero (entre eles DeepInfra, Groq, Together, Cloudflare e Parasail) passam a ser **suboperadores** a nomear e a
-cobrir nos DPAs; `GET /api/v1/endpoints/zdr` lista quem hoje atende cada modelo. **A política de privacidade ainda diz que o
-provedor é a Groq (com a OpenRouter de reserva): se este registro for para produção, o texto muda antes.**
+cobrir nos DPAs; `GET /api/v1/endpoints/zdr` lista quem hoje atende cada modelo. **A política de privacidade foi atualizada em 17/10/2026
+(`public/privacidade.html`) para dizer que a IA de nuvem passa pela OpenRouter, com retenção zero em cada chamada, e que ela
+escolhe o provedor entre os que cumprem a exigência. Ainda falta, e é do dono e do jurídico: nomear os suboperadores atrás
+dela, quando a lista estabilizar, e aceitar os DPAs.**
 
 **Voz natural do intérprete (30/09/2026, E4 da Fase E):** a rota `POST /api/ai/tts` nasce com a flag
 `voz_natural` DESLIGADA (migração 0046). A retenção do provedor está marcada "a confirmar com o contrato

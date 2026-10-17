@@ -1,6 +1,7 @@
 import type { MicVAD } from '@ricky0123/vad-web';
 
 import { apiFetch } from '../../data/api';
+import { navegadorSemAudioDaTela } from '../../lib/captura/navegadorSemAudioDaTela';
 import { marcarAberturaDoVad } from '../../lib/captura/vigiaDoMainThread';
 import { ortDoVadNumaThread } from '../../lib/dispositivo/orcamentoDeThreads';
 import { ehPrefixo, EspelhoDoVad } from './espelhoDoVad';
@@ -890,6 +891,16 @@ export async function startSystemAudioCapture(
     registrarSuperficieComAudio(surface, audioTracks.length);
     if (audioTracks.length === 0) {
       stream.getTracks().forEach((t) => t.stop());
+      /* Firefox e Safari nunca entregam o som da tela/aba: mandar "marcar o áudio" (opção do Chrome/Edge)
+         é um ciclo sem saída. Um código próprio abre o guia com o caminho que existe. */
+      if (navegadorSemAudioDaTela(globalThis.navigator?.userAgent ?? '')) {
+        vlog('SEM faixa de áudio ✗ (navegador sem áudio de tela)');
+        const err = new Error(
+          'Este navegador não compartilha o som da tela nem da aba. Abra o Babel Play no Chrome ou no Edge para capturar o som do computador, ou use só o microfone.',
+        ) as Error & { code?: string };
+        err.code = 'NAVEGADOR_SEM_AUDIO_DA_TELA';
+        throw err;
+      }
       let msg: string;
       if (surface === 'window') {
         msg =

@@ -365,7 +365,7 @@ export default function LiveCapture({
 
   const [isFocusMode, setIsFocusMode] = useState(false);
   /** Guia pós-erro do compartilhamento ('JANELA_SEM_AUDIO' | 'SEM_AUDIO_COMPARTILHADO' |
-   *  'AUDIO_DA_TELA_INDISPONIVEL'). */
+   *  'AUDIO_DA_TELA_INDISPONIVEL' | 'NAVEGADOR_SEM_AUDIO_DA_TELA'). */
   const [guiaDeAudio, setGuiaDeAudio] = useState<string | null>(null);
   /** O Windows já recusou o áudio da janela/tela NESTE navegador (lembrado pela captura): a dica da
    *  rota "Compartilhar" passa a recomendar a aba ou o loopback antes do próximo clique. */
@@ -3685,9 +3685,11 @@ export default function LiveCapture({
             <h2 className="font-display font-extrabold text-lg text-ink mb-2">
               {guiaDeAudio === 'AUDIO_DA_TELA_INDISPONIVEL'
                 ? 'O Windows não liberou o áudio'
-                : guiaDeAudio === 'JANELA_SEM_AUDIO'
-                  ? 'A janela veio sem áudio'
-                  : 'Faltou marcar o áudio'}
+                : guiaDeAudio === 'NAVEGADOR_SEM_AUDIO_DA_TELA'
+                  ? 'Este navegador não captura o som da tela'
+                  : guiaDeAudio === 'JANELA_SEM_AUDIO'
+                    ? 'A janela veio sem áudio'
+                    : 'Faltou marcar o áudio'}
             </h2>
             <div className="text-[13.5px] text-ink-muted leading-relaxed space-y-2">
               {guiaDeAudio === 'AUDIO_DA_TELA_INDISPONIVEL' ? (
@@ -3704,6 +3706,22 @@ export default function LiveCapture({
                     <li>
                       <b className="text-ink">Dispositivo de loopback</b> (Stereo Mix / VB-Cable): pega Discord, jogos e
                       o computador inteiro.
+                    </li>
+                  </ol>
+                </>
+              ) : guiaDeAudio === 'NAVEGADOR_SEM_AUDIO_DA_TELA' ? (
+                <>
+                  <p>
+                    O Firefox e o Safari não entregam o som de uma aba ou tela, então marcar o áudio não resolve. Dois
+                    caminhos funcionam:
+                  </p>
+                  <ol className="list-decimal ms-5 space-y-1">
+                    <li>
+                      Abrir o Babel Play no <b className="text-ink">Chrome ou no Edge</b>, que compartilham o som da aba
+                      e da tela;
+                    </li>
+                    <li>
+                      Usar o <b className="text-ink">microfone</b>, deixando o som do vídeo sair pelo alto-falante.
                     </li>
                   </ol>
                 </>
@@ -3741,7 +3759,7 @@ export default function LiveCapture({
                 onClick={() => setGuiaDeAudio(null)}
                 className="px-4 py-2 rounded-xl border border-border-subtle text-[13px] font-bold text-ink-muted hover:text-ink cursor-pointer"
               >
-                Cancelar
+                {guiaDeAudio === 'NAVEGADOR_SEM_AUDIO_DA_TELA' ? 'Entendi' : 'Cancelar'}
               </button>
               {guiaDeAudio === 'AUDIO_DA_TELA_INDISPONIVEL' && (serverCaptureAvailable || loopbackDetected) && (
                 <button
@@ -3763,15 +3781,18 @@ export default function LiveCapture({
                   Usar o loopback
                 </button>
               )}
-              <button
-                onClick={() => {
-                  setGuiaDeAudio(null);
-                  void handleStartSystemCapture();
-                }}
-                className="px-5 py-2 rounded-xl bg-accent hover:bg-accent-ink text-white text-[13px] font-bold shadow-btn cursor-pointer"
-              >
-                {guiaDeAudio === 'AUDIO_DA_TELA_INDISPONIVEL' ? 'Escolher a aba' : 'Escolher de novo'}
-              </button>
+              {/* Neste navegador escolher de novo não muda nada: o botão só existe onde repetir pode funcionar. */}
+              {guiaDeAudio !== 'NAVEGADOR_SEM_AUDIO_DA_TELA' && (
+                <button
+                  onClick={() => {
+                    setGuiaDeAudio(null);
+                    void handleStartSystemCapture();
+                  }}
+                  className="px-5 py-2 rounded-xl bg-accent hover:bg-accent-ink text-white text-[13px] font-bold shadow-btn cursor-pointer"
+                >
+                  {guiaDeAudio === 'AUDIO_DA_TELA_INDISPONIVEL' ? 'Escolher a aba' : 'Escolher de novo'}
+                </button>
+              )}
             </div>
           </div>
         </div>

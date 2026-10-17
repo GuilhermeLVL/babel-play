@@ -296,7 +296,10 @@ describe('ConversaVirtual: só legenda por padrão, leitura por escolha', () => 
 
   it('"Repetir" lê de novo a última tradução da outra pessoa, no meu idioma', () => {
     montar({ falas: conversa })
-    fireEvent.click(coluna('outro').querySelector('[aria-label="Repetir a tradução"]')!)
+    const repetir = coluna('outro').querySelector('[aria-label="Repetir a tradução"]')!
+    // A conversa virtual não informa quando há o que repetir: o botão fica à mostra, como sempre foi.
+    expect(repetir.hasAttribute('data-oculto')).toBe(false)
+    fireEvent.click(repetir)
     expect(voz.falas.at(-1)).toMatchObject({ texto: 'Onde fica a estação?', lang: 'pt-BR' })
   })
 

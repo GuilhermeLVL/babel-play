@@ -190,6 +190,9 @@ export default function PaginaDoInterprete({
       },
       semVoz: mudo(lang),
       atalho: lado === 'meu' ? '1' : '2',
+      /* Ninguém falou ainda: nada a repetir, nenhuma voz lendo. */
+      podeRepetir: false,
+      lendo: false,
     };
   };
   const avisoDoCadeado = cadeado && automatico === 'premium';

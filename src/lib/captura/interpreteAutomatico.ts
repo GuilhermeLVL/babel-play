@@ -119,8 +119,13 @@ export function decidirLadoDaFala(
   if (doPar(texto)) return pelo(texto);
 
   if (detectar) {
+    /* Um idioma NOVO para ela pede evidência: motor e texto de acordo, ou fala que não é um estalo (um
+       "ok" do dono medido como galego não pode virar o idioma da conversa). O já detectado vale sempre. */
     const dela = motor || texto;
-    if (dela) return doOutroLado(dela, false, false);
+    const crivel =
+      !!dela &&
+      (dela === estado.estrangeiro || (!!motor && texto === motor) || pistas.audioMs >= MS_DO_TERCEIRO_COM_TEXTO);
+    if (crivel) return doOutroLado(dela, false, false);
     /* Sem evidência: alterna só se já há o idioma dela para onde traduzir. */
     return estado.ultimoLado === 'meu' && estado.estrangeiro
       ? doOutroLado(estado.estrangeiro, false, true)

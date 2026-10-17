@@ -229,7 +229,7 @@ describe('ModoInterprete: automático', () => {
 
     fireEvent.click(screen.getByTestId('escuta-automatica'))
     act(() => ponte.atual!.aoFimDaFala({ segId: 'd1', source: 'mic' }))
-    act(() => void ponte.atual!.ladoDaFala('d1', { idiomaDoMotor: 'en', idiomaDoTexto: '', audioMs: 900 }))
+    act(() => void ponte.atual!.ladoDaFala('d1', { idiomaDoMotor: 'en', idiomaDoTexto: '', audioMs: 1500 }))
     trocarFalas([{ id: 'd1', originalText: 'hello', translatedText: 'olá', lado: 'outro' }])
     expect(screen.getByTestId('interprete-outro').textContent).toMatch(/English.*detectado/)
   })

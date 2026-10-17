@@ -338,16 +338,29 @@ describe('automático: o controle ouve a conversa sem ninguém tocar em lado', (
     expect(String(m.voz.falas[1].opts.lang).toLowerCase().startsWith('es')).toBe(true)
   })
 
-  it('"Detectar": o idioma da outra pessoa aparece no estado na primeira fala dela e zera ao recomeçar', () => {
+  it('"Detectar": o idioma da outra pessoa aparece no estado na primeira fala dela e sobrevive ao recomeçar', () => {
     const m = montar({ idiomas: () => ({ meu: 'pt-BR', outro: '' }) })
     m.controle.ouvir()
     expect(m.controle.estado().detectado).toBeNull()
     m.controle.aoFimDaFala({ segId: 'e', source: 'mic' })
     expect(m.controle.ladoDaFala('e', pistas('en'))).toMatchObject({ lado: 'outro', de: 'en', para: 'pt' })
     expect(m.controle.estado().detectado).toBe('en')
+    /* Parar → Ouvir não esquece o idioma descoberto: a minha próxima fala já vai para ele. */
     m.controle.parar()
     m.controle.ouvir()
-    expect(m.controle.estado().detectado).toBeNull()
+    expect(m.controle.estado().detectado).toBe('en')
+    m.controle.aoFimDaFala({ segId: 'f', source: 'mic' })
+    expect(m.controle.ladoDaFala('f', pistas('pt'))).toMatchObject({ lado: 'meu', para: 'en' })
+  })
+
+  it('"Detectar" com os lados trocados: o meu idioma continua o meu; só a metade troca', () => {
+    const m = montar({ idiomas: () => ({ meu: 'pt-BR', outro: '' }) })
+    m.controle.trocarLados()
+    m.controle.ouvir()
+    m.controle.aoFimDaFala({ segId: 'g', source: 'mic' })
+    expect(m.controle.ladoDaFala('g', pistas('en'))).toMatchObject({ lado: 'meu', de: 'en', para: 'pt' })
+    m.controle.aoFimDaFala({ segId: 'h', source: 'mic' })
+    expect(m.controle.ladoDaFala('h', pistas('pt'))).toMatchObject({ lado: 'outro', de: 'pt', para: 'en' })
   })
 
   it('"parar" fecha o microfone e o fim da voz não o reabre', () => {

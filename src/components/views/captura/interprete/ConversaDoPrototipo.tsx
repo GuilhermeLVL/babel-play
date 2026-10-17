@@ -60,9 +60,9 @@ export interface MetadeDaConversa {
   icone?: LucideIcon;
   /** O botão grande só mostra o estado (o som do computador já está sendo ouvido): não há o que tocar. */
   travado?: boolean;
-  /** A metade mostra uma tradução: "Repetir" tem o que repetir. Ausente = não mostra. */
+  /** A metade mostra uma tradução: "Repetir" tem o que repetir. Ausente = sempre à mostra (quem não sabe dizer). */
   podeRepetir?: boolean;
-  /** A voz lê a tradução desta metade agora: "Parar voz" tem o que parar. Ausente = não mostra. */
+  /** A voz lê a tradução desta metade agora: "Parar voz" tem o que parar. Ausente = sempre à mostra. */
   lendo?: boolean;
   /** A tecla que fala por esta metade no computador ("1", "2"); aparece embaixo do botão. */
   atalho?: string;
@@ -317,9 +317,9 @@ export default function ConversaDoPrototipo({
             className="int-ib"
             aria-label={t('Repetir a tradução')}
             onClick={aoRepetir}
-            data-oculto={m.podeRepetir ? undefined : ''}
-            tabIndex={m.podeRepetir ? undefined : -1}
-            aria-hidden={m.podeRepetir ? undefined : true}
+            data-oculto={m.podeRepetir !== false ? undefined : ''}
+            tabIndex={m.podeRepetir !== false ? undefined : -1}
+            aria-hidden={m.podeRepetir !== false ? undefined : true}
           >
             <RotateCcw aria-hidden />
             <span>{t('Repetir')}</span>
@@ -353,9 +353,9 @@ export default function ConversaDoPrototipo({
             className="int-ib"
             aria-label={t('Parar a voz')}
             onClick={aoPararVoz}
-            data-oculto={m.lendo ? undefined : ''}
-            tabIndex={m.lendo ? undefined : -1}
-            aria-hidden={m.lendo ? undefined : true}
+            data-oculto={m.lendo !== false ? undefined : ''}
+            tabIndex={m.lendo !== false ? undefined : -1}
+            aria-hidden={m.lendo !== false ? undefined : true}
           >
             <Volume2 aria-hidden />
             <span>{t('Parar voz')}</span>

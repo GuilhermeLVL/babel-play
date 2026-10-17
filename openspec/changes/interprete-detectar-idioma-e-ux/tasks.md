@@ -1,7 +1,7 @@
 ## 1. Regra pura (testes antes)
 
 - [x] 1.1 `decidirLadoDaFala` com `outro` vazio: a primeira fala estrangeira define `estrangeiro`; o meu lado sem destino traduz para o próprio idioma (sem tradução); sem evidência, o meu lado
-- [x] 1.2 `controleDoInterprete`: `detectado` no estado, zerado em `ouvir`
+- [x] 1.2 `controleDoInterprete`: `detectado` no estado, mantido entre Parar → Ouvir
 
 ## 2. Detectar na tela
 

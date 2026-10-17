@@ -282,7 +282,11 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
     ouvir() {
       if (desligado) return;
       destravar();
-      conversa = ESTADO_DO_AUTOMATICO;
+      /* Recomeçar a escuta esquece quem falou por último. No "Detectar", o idioma já descoberto fica:
+         esquecê-lo deixaria a primeira resposta do dono sem tradução a cada Parar → Ouvir. */
+      conversa = o.idiomas().outro
+        ? ESTADO_DO_AUTOMATICO
+        : { ...ESTADO_DO_AUTOMATICO, estrangeiro: conversa.estrangeiro };
       maquina.enviar({ tipo: 'ouvir' });
     },
     parar: () => void (desligado || maquina.enviar({ tipo: 'parar' })),
@@ -290,12 +294,15 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
     ladoDaFala(segId, pistas) {
       const m = maquina.estado();
       const idiomas = o.idiomas();
-      /* Com os lados trocados, a metade de baixo fala o idioma do outro. */
-      const decisao = decidirLadoDaFala(
+      /* Com os lados trocados, a metade de baixo fala o idioma do outro. No "Detectar" (o do outro vazio)
+         trocar os idiomas apagaria o MEU: a regra decide com os idiomas como são, e o lado é que troca. */
+      const detectar = !idiomas.outro;
+      const decidida = decidirLadoDaFala(
         pistas,
-        m.trocados ? { meu: idiomas.outro, outro: idiomas.meu } : idiomas,
+        m.trocados && !detectar ? { meu: idiomas.outro, outro: idiomas.meu } : idiomas,
         conversa,
       );
+      const decisao = m.trocados && detectar ? { ...decidida, lado: outroLado(decidida.lado) } : decidida;
       const mudou = decisao.estado.estrangeiro !== conversa.estrangeiro;
       conversa = decisao.estado;
       if (mudou) avisar();

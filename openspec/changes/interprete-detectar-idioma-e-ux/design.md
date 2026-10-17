@@ -20,14 +20,14 @@ primeira fala**: o `outro` começa vazio.
    significa "idioma do conteúdo", e ligar um não pode ligar o outro em silêncio.
 4. **A regra pura com `outro` vazio** (`decidirLadoDaFala`):
    - Um idioma medido (motor; ou texto, se o motor não for o meu) diferente do meu é **a outra pessoa**, sem os
-     limiares do terceiro idioma. Nesse caso, `estrangeiro` passa a ser esse idioma.
+     limiares do terceiro idioma (mas com evidência mínima, ver as correções da revisão). Nesse caso, `estrangeiro` passa a ser esse idioma.
    - O meu idioma medido é o meu lado. A tradução vai para `estrangeiro`. Sem `estrangeiro`, `para` é igual a
      `de`, e o tradutor já trata "mesmo idioma" como "sem tradução" (`traducaoDaFala.ts`): nada é lido, e a
      máquina volta a ouvir.
    - Sem evidência: o meu lado. Alternar para um lado cujo idioma não se conhece não teria para onde traduzir.
 5. **O idioma detectado aparece na tela.** `EstadoDoControle` ganha `detectado: string | null`, lido do estado da
-   conversa a cada decisão. A metade da outra pessoa mostra "Detectando…" ou "Inglês · detectado". O estado zera
-   quando a conversa recomeça (`ouvir`).
+   conversa a cada decisão. A metade da outra pessoa mostra "Detectando…" ou "Inglês · detectado". Ele sobrevive a
+   Parar → Ouvir, para a primeira resposta do dono não perder a tradução.
 6. **Um controle no automático.** `ConversaDoPrototipo` recebe `escuta?: {ouvindo, rotulo, rotuloParaLeitor,
 aoTocar}`. Quando recebe, as metades não desenham o botão grande, e o botão único vai para a faixa (celular) ou
    para a base (computador). No toque, nada muda.
@@ -49,3 +49,12 @@ aoTocar}`. Quando recebe, as metades não desenham o botão grande, e o botão �
 ## Fora do escopo
 
 Detectar no modo por toque; detectar o MEU idioma; mudar planos ou preços; refazer a conversa virtual.
+
+## Correções da revisão (17/10)
+
+- Com os lados trocados, a regra decide com os idiomas **sem trocar**, e o que troca é a metade da decisão.
+  Trocar os idiomas deixaria o MEU idioma vazio.
+- Um idioma **novo** para a outra pessoa precisa de evidência: motor e texto de acordo, ou uma fala de pelo
+  menos 1,2 s. Um "ok" curto medido como galego não vira o idioma da conversa.
+- O idioma detectado sobrevive a Parar → Ouvir.
+- "Repetir" e "Parar voz" sem as props (a conversa virtual) continuam à mostra, como antes.

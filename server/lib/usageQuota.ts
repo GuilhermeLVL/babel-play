@@ -19,11 +19,17 @@
  * `quota_exceeded` de sempre; o dia é o 429 `uso_justo_do_dia`, que não vende nada.
  */
 import { diaNoFuso } from '../../src/core/learning/economia'
-import { definicaoDoPlano, FRANQUIA_DE_ALIVIO, type NivelDaNuvem, type PlanoEfetivo } from '../../src/core/planos'
+import {
+  definicaoDoPlano,
+  FRANQUIA_DE_ALIVIO,
+  FRANQUIA_DO_TESTE,
+  type NivelDaNuvem,
+  type PlanoEfetivo,
+} from '../../src/core/planos'
 import { usageCountersRepo } from '../db/repositories/usageCounters'
 import type { UserId } from './authContext'
 import { memoDoRequest } from './contextoDeConvidado'
-import { getPlanForUser } from './entitlements'
+import { getPlanForUser, resolverPlano } from './entitlements'
 import { fusoGravado } from './fusoDoUsuario'
 import { log } from './logger'
 
@@ -185,6 +191,19 @@ function tetoComEnv(padrao: number | null, envNome: string): number {
   return padrao === null ? Infinity : padrao
 }
 
+/**
+ * O TESTE DE 14 DIAS limita a nuvem por USO (`FRANQUIA_DO_TESTE`): em teste, o teto é o MENOR entre o do plano (o Premium)
+ * e o do teste. Fora do teste, é o do plano, como sempre.
+ */
+const doTeste = (capDoPlano: number, capDoTeste: number, emTeste: boolean): number =>
+  emTeste ? Math.min(capDoPlano, capDoTeste) : capDoPlano
+
+/** O plano E se a conta está no teste — UMA resolução (memorizada por requisição), como `getPlanForUser`. */
+async function planoETeste(userId: UserId): Promise<{ plano: PlanoEfetivo; emTeste: boolean }> {
+  const r = await resolverPlano(userId)
+  return { plano: r.plano, emTeste: r.teste !== null }
+}
+
 /** Env de quota por plano: `PREMIUM_MONTHLY_MANAGED_CALLS`, `FREE_STORAGE_MB`… (geradas da matriz, `config.ts`). */
 const envDoPlano = (plan: PlanoEfetivo, sufixo: string): string => `${plan.toUpperCase()}_${sufixo}`
 
@@ -204,8 +223,12 @@ const envDoPlano = (plan: PlanoEfetivo, sufixo: string): string => `${plan.toUpp
  * Este teto é de FAIR-USE, não de dinheiro: uma chamada pode ser de um segundo ou de vinte e cinco
  * megabytes. O teto de gasto real é o de segundos, em `capSegundosParaPlano`.
  */
-export function capForPlan(plan: PlanoEfetivo): number {
-  return tetoComEnv(definicaoDoPlano(plan).quotas.chamadasMes, envDoPlano(plan, 'MONTHLY_MANAGED_CALLS'))
+export function capForPlan(plan: PlanoEfetivo, emTeste = false): number {
+  return doTeste(
+    tetoComEnv(definicaoDoPlano(plan).quotas.chamadasMes, envDoPlano(plan, 'MONTHLY_MANAGED_CALLS')),
+    FRANQUIA_DO_TESTE.chamadasMes,
+    emTeste,
+  )
 }
 
 /**
@@ -223,7 +246,11 @@ export function capForPlan(plan: PlanoEfetivo): number {
  */
 export async function reserveManagedCall(userId: UserId, modo: ModoDaCota = 'plano'): Promise<boolean> {
   try {
-    const cap = modo === 'alivio' ? FRANQUIA_DE_ALIVIO.chamadasMes : capForPlan(await getPlanForUser(userId))
+    let cap: number = FRANQUIA_DE_ALIVIO.chamadasMes
+    if (modo !== 'alivio') {
+      const { plano, emTeste } = await planoETeste(userId)
+      cap = capForPlan(plano, emTeste)
+    }
     return await usageCountersRepo.reserve(userId, METRICA.chamadas[modo], currentWindow(), cap)
   } catch (err) {
     falharFechado('quota_reserve_failed_closed', err)
@@ -266,8 +293,12 @@ export async function refundManagedCall(userId: UserId, modo: ModoDaCota = 'plan
  * que protege a FATURA como um todo é o orçamento global (`orcamentoDeIa.ts`), que conta os
  * segundos faturados.
  */
-export function capSegundosParaPlano(plan: PlanoEfetivo): number {
-  return tetoComEnv(definicaoDoPlano(plan).quotas.sttSegundosMes, envDoPlano(plan, 'MONTHLY_STT_SECONDS'))
+export function capSegundosParaPlano(plan: PlanoEfetivo, emTeste = false): number {
+  return doTeste(
+    tetoComEnv(definicaoDoPlano(plan).quotas.sttSegundosMes, envDoPlano(plan, 'MONTHLY_STT_SECONDS')),
+    FRANQUIA_DO_TESTE.sttSegundosMes,
+    emTeste,
+  )
 }
 
 /**
@@ -371,11 +402,11 @@ export async function reservarSegundosDeStt(
       )
       return cabe ? { cabe: true, dia: null } : { cabe: false, recusa: 'mes' }
     }
-    const plano = await getPlanForUser(userId)
+    const { plano, emTeste } = await planoETeste(userId)
     return await reservarNoMesENoDia(
       userId,
       METRIC_STT_SEGUNDOS,
-      capSegundosParaPlano(plano),
+      capSegundosParaPlano(plano, emTeste),
       METRIC_STT_SEGUNDOS_DIA,
       capSegundosDoDia(plano),
       segundos,
@@ -418,8 +449,12 @@ export async function estornarSegundosDeStt(
  *
  * Os números e a conta de custo por plano estão em `src/core/planos.ts`.
  */
-export function capTokensParaPlano(plan: PlanoEfetivo): number {
-  return tetoComEnv(definicaoDoPlano(plan).quotas.tokensMes, envDoPlano(plan, 'MONTHLY_LLM_TOKENS'))
+export function capTokensParaPlano(plan: PlanoEfetivo, emTeste = false): number {
+  return doTeste(
+    tetoComEnv(definicaoDoPlano(plan).quotas.tokensMes, envDoPlano(plan, 'MONTHLY_LLM_TOKENS')),
+    FRANQUIA_DO_TESTE.tokensMes,
+    emTeste,
+  )
 }
 
 /**
@@ -454,11 +489,11 @@ export async function reservarTokensDeLlm(
       )
       return cabe ? { cabe: true, dia: null } : { cabe: false, recusa: 'mes' }
     }
-    const plano = await getPlanForUser(userId)
+    const { plano, emTeste } = await planoETeste(userId)
     return await reservarNoMesENoDia(
       userId,
       METRIC_LLM_TOKENS,
-      capTokensParaPlano(plano),
+      capTokensParaPlano(plano, emTeste),
       METRIC_LLM_TOKENS_DIA,
       capTokensDoDia(plano),
       quantidade,
@@ -496,8 +531,12 @@ export async function acertarTokensDeLlm(
 }
 
 /** Teto MENSAL de caracteres da voz natural. `<PLANO>_MONTHLY_TTS_CHARS` sobrepõe; ∞ = sem teto. */
-export function capCaracteresDeVozParaPlano(plan: PlanoEfetivo): number {
-  return tetoComEnv(definicaoDoPlano(plan).quotas.vozCaracteresMes, envDoPlano(plan, 'MONTHLY_TTS_CHARS'))
+export function capCaracteresDeVozParaPlano(plan: PlanoEfetivo, emTeste = false): number {
+  return doTeste(
+    tetoComEnv(definicaoDoPlano(plan).quotas.vozCaracteresMes, envDoPlano(plan, 'MONTHLY_TTS_CHARS')),
+    FRANQUIA_DO_TESTE.vozCaracteresMes,
+    emTeste,
+  )
 }
 
 /** Teto DIÁRIO (o uso justo) de caracteres da voz natural. `<PLANO>_DAILY_TTS_CHARS` sobrepõe; ∞ = sem teto no dia. */
@@ -513,11 +552,11 @@ export function capCaracteresDeVozDoDia(plan: PlanoEfetivo): number {
 export async function reservarCaracteresDeVoz(userId: UserId, caracteres: number): Promise<ReservaDaCota> {
   const quantidade = Math.max(1, Math.round(caracteres))
   try {
-    const plano = await getPlanForUser(userId)
+    const { plano, emTeste } = await planoETeste(userId)
     return await reservarNoMesENoDia(
       userId,
       METRIC_TTS_CARACTERES,
-      capCaracteresDeVozParaPlano(plano),
+      capCaracteresDeVozParaPlano(plano, emTeste),
       METRIC_TTS_CARACTERES_DIA,
       capCaracteresDeVozDoDia(plano),
       quantidade,

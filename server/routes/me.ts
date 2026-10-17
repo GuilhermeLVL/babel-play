@@ -24,7 +24,7 @@ import {
   type ResultadoDoEnvio,
 } from '../lib/conviteDoResponsavel'
 import { encerrarAssinatura } from '../lib/encerramentoDeAssinatura'
-import { getEntitlementsForUser, getPlanForUser, resolverPlano } from '../lib/entitlements'
+import { getEntitlementsForUser, resolverPlano } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { estadoDeProtecao, mascararEmail, validarNascimento } from '../lib/idade'
 import { log } from '../lib/logger'
@@ -449,7 +449,10 @@ async function diaDoUsoJusto(
 
 meRouter.get('/uso', async (req, res) => {
   try {
-    const plano = await getPlanForUser(req.userId)
+    const resolvido = await resolverPlano(req.userId)
+    const plano = resolvido.plano
+    /* No teste de 14 dias a nuvem tem um teto de USO (`FRANQUIA_DO_TESTE`): a tela mostra o teto real. */
+    const emTeste = resolvido.teste !== null
     const janela = new Date().toISOString().slice(0, 7)
     const dia = await diaDoUsoJusto(req.userId, plano)
     /* UMA LEITURA de `usage_counters` para todos os contadores (auditoria de 10/10/2026, A11a): eram
@@ -489,17 +492,17 @@ meRouter.get('/uso', async (req, res) => {
       restante: Number.isFinite(teto) ? Math.max(0, teto - usado) : null,
     })
     const porNivel: Record<NivelDaNuvem, ReturnType<typeof doNivel>> = {
-      trechos: doNivel(segundos, capSegundosParaPlano(plano)),
+      trechos: doNivel(segundos, capSegundosParaPlano(plano, emTeste)),
       aovivo: doNivel(aoVivo, capSegundosAoVivoParaPlano(plano)),
     }
     res.json({
       plano,
       janela,
-      chamadas: { usado: chamadas, teto: finito(capForPlan(plano)) },
-      segundosDeAudio: { usado: segundos, teto: finito(capSegundosParaPlano(plano)) },
+      chamadas: { usado: chamadas, teto: finito(capForPlan(plano, emTeste)) },
+      segundosDeAudio: { usado: segundos, teto: finito(capSegundosParaPlano(plano, emTeste)) },
       porNivel,
       // Tokens viraram TETO na Fase 2 do lançamento: reservados antes da chamada, acertados depois.
-      tokensDeLlm: { usado: tokens, teto: finito(capTokensParaPlano(plano)) },
+      tokensDeLlm: { usado: tokens, teto: finito(capTokensParaPlano(plano, emTeste)) },
       /* O PORTÃO GLOBAL (chave de emergência e orçamento do mês), para a tela dizer POR QUE a nuvem
          não está respondendo. Só o estado e o motivo: o valor em dólares é do operador
          (`GET /api/admin/ia`), não de cada assinante. */

@@ -530,6 +530,29 @@ export const FRANQUIA_DE_ALIVIO = {
   tetoUsdMes: 0.13,
 } as const;
 
+/**
+ * O TETO DO TESTE DE 14 DIAS, EM USO (não em tempo). O teste dá os recursos do Premium, mas a nuvem dele é uma AMOSTRA:
+ * antes ele herdava as 20 h do mês inteiro (US$ 1,16 a US$ 1,76 por pessoa no teto, sem receita), e quem testa e some é
+ * a maioria. Agora o teste acaba no que vier primeiro: os 14 dias ou este teto.
+ *
+ * A CONTA (17/10/2026; STT + tradução por hora de legenda: US$ 0,028 esperado a US$ 0,058 conservador — Whisper turbo e
+ * Gemma 4 pelo OpenRouter, `ops/ia-provedores.openrouter.json`):
+ *   3 h de legenda na nuvem        ≤ US$ 0,17 (conservador)  — 10.800 s, o mesmo tamanho da franquia do alívio
+ *   voz natural, 30.000 caracteres ≤ US$ 0,03                — a US$ 1,00 por 1M de caracteres
+ *   TOTAL POR TESTE                ≤ US$ 0,20, contra US$ 1,76 antes. 3 h bastam para sentir a diferença (a nuvem acerta
+ *   o que o aparelho erra) sem torná-la uma assinatura grátis; o uso justo do dia (2 h) continua valendo por cima.
+ * Tokens: 150 mil por hora de fala, 450 mil nas 3 h. Chamadas: 3 h ÷ 6 s × 2 = 3.600, com folga.
+ *
+ * Usa os MESMOS contadores do plano (o teto vale o menor entre os dois): quem assina no meio do teste continua com
+ * o mês do plano, descontado do que gastou no teste. O mês de um teste que cruza a virada recomeça o contador.
+ */
+export const FRANQUIA_DO_TESTE = {
+  sttSegundosMes: 10_800,
+  tokensMes: 450_000,
+  chamadasMes: 4_000,
+  vozCaracteresMes: 30_000,
+} as const;
+
 /** O plano EFETIVO que o servidor resolve: um de assinatura, ou `convidado` (anônimo com JWT). */
 export type PlanoEfetivo = PlanoDeAssinatura | 'convidado';
 

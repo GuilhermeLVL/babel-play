@@ -14,7 +14,7 @@
  *    responsável vinculado ativa pelo menor, pelo mesmo `paraUsuario` do checkout.
  * 6. Nenhum dado pessoal no log.
  */
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, onTestFinished, vi } from 'vitest'
 
 import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
 
@@ -129,6 +129,56 @@ describe('um toque, 14 dias, sem cartão', () => {
     const r = await testar('t-log', 'segredo.do.log@exemplo.com')
     expect(r.status).toBe(200)
     expect(linhas.join('\n')).not.toMatch(/segredo\.do\.log/)
+  })
+})
+
+describe('o teste tem teto de USO, não só de tempo (a nuvem é uma amostra)', () => {
+  it('em teste, /api/me/uso mostra o teto do teste; o assinante do Premium vê o do plano', async () => {
+    await declarar('t-uso', 30)
+    expect((await testar('t-uso')).status).toBe(200)
+    const doTeste = await (await s.get('/api/me/uso', await tk('t-uso'))).json()
+    expect(doTeste.segundosDeAudio.teto).toBe(10_800)
+    expect(doTeste.tokensDeLlm.teto).toBe(450_000)
+    expect(doTeste.chamadas.teto).toBe(4_000)
+
+    await declarar('t-paga', 30)
+    const { subscriptionsRepo } = await s.load('../../server/db/repositories/subscriptions')
+    await subscriptionsRepo.upsert('t-paga', { plan: 'premium', status: 'active', provider: 'asaas' })
+    const paga = await (await s.get('/api/me/uso', await tk('t-paga'))).json()
+    expect(paga.segundosDeAudio.teto).toBe(72_000)
+    expect(paga.tokensDeLlm.teto).toBe(3_000_000)
+    expect(paga.chamadas.teto).toBe(26_000)
+  })
+
+  it('a reserva de STT do teste recusa no teto do teste, e o assinante segue até o do plano', async () => {
+    const { reservarSegundosDeStt, estornarSegundosDeStt } = await s.load('../../server/lib/usageQuota')
+    /* O uso justo do dia (2 h) recusaria antes do teto de 3 h do mês: aqui só o MÊS está em prova. */
+    process.env.PREMIUM_DAILY_STT_SECONDS = '1000000'
+    onTestFinished(() => {
+      delete process.env.PREMIUM_DAILY_STT_SECONDS
+    })
+    await declarar('t-reserva', 30)
+    expect((await testar('t-reserva')).status).toBe(200)
+    // Cabem exatamente as 3 h do teste (10.800 s)...
+    expect((await reservarSegundosDeStt('t-reserva', 10_800)).cabe).toBe(true)
+    // ...e o próximo segundo já é recusado, no MÊS (402 `quota_exceeded`, que vira a oferta de plano).
+    const recusa = await reservarSegundosDeStt('t-reserva', 1)
+    expect(recusa).toEqual({ cabe: false, recusa: 'mes' })
+    // O estorno devolve ao mesmo contador: a hora que não virou legenda não sai do teste.
+    await estornarSegundosDeStt('t-reserva', 600)
+    expect((await reservarSegundosDeStt('t-reserva', 600)).cabe).toBe(true)
+
+    const { subscriptionsRepo } = await s.load('../../server/db/repositories/subscriptions')
+    await subscriptionsRepo.upsert('t-assina', { plan: 'premium', status: 'active', provider: 'asaas' })
+    expect((await reservarSegundosDeStt('t-assina', 10_801)).cabe).toBe(true)
+  })
+
+  it('a voz natural do teste também tem teto próprio (30.000 caracteres)', async () => {
+    const { reservarCaracteresDeVoz } = await s.load('../../server/lib/usageQuota')
+    await declarar('t-voz', 30)
+    expect((await testar('t-voz')).status).toBe(200)
+    expect((await reservarCaracteresDeVoz('t-voz', 30_000)).cabe).toBe(true)
+    expect((await reservarCaracteresDeVoz('t-voz', 1)).cabe).toBe(false)
   })
 })
 

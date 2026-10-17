@@ -13,6 +13,7 @@ import { type MinigameId, MINIGAMES } from '../src/core/minigames/types'
 import { alfabetoDeEnchimento } from '../src/core/minigames/wordsearch'
 import { detectarIdiomaPorTexto } from '../src/core/texto/detectarIdioma'
 import { escreveSemEspaco, palavrasDoTexto } from '../src/core/texto/segmentacao'
+import { MODELOS_PARA_O_INGLES } from '../src/core/traducao/viaIngles'
 import { OpusMtLocal } from '../src/gateway/adapters/opusMtLocal'
 import { filtrarAlucinacao } from '../src/gateway/alucinacao'
 import { routeStt } from '../src/gateway/sttRouter'
@@ -313,28 +314,37 @@ describe('tradução: a cobertura que a tela anuncia é a do tradutor local de v
     expect(mtCoverage(base, toBcp47(base))).toBe('same')
   })
 
-  it.each(['ja', 'ko', 'ar', 'ru', 'hi'])('pt ↔ %s não tem tradutor no aparelho (depende da internet)', (b) => {
+  /* O hindi e o vietnamita têm modelo X→inglês no Hub, mas saíram piores que a internet no teste de 17/10/2026: ficam de fora. */
+  it.each(['hi', 'vi'])('pt ↔ %s não tem tradutor no aparelho (depende da internet)', (b) => {
     expect(mtCoverage('pt', b)).toBe('online')
     expect(mtCoverage(b, 'pt')).toBe('online')
   })
 
-  /* O CHINÊS PASSA PELO INGLÊS: zh→en (opus-mt-zh-en) e en→alvo, no aparelho e sem consentimento de nuvem. O sentido
-     contrário (pt→zh) segue dependendo da internet: não há modelo local para ele. */
-  it.each(['pt', 'es', 'fr', 'it', 'de', 'en'])('zh → %s tem tradutor no aparelho', (alvo) => {
-    expect(opus.supports('zh', alvo)).toBe(true)
-    expect(mtCoverage('zh', alvo)).toBe('local')
-  })
-  it.each(['pt', 'es', 'fr', 'it', 'de', 'en'])('%s → zh depende da internet', (de) => {
-    expect(opus.supports(de, 'zh')).toBe(false)
-    expect(mtCoverage(de, 'zh')).toBe('online')
+  /* PASSAM PELO INGLÊS (`core/traducao/viaIngles.ts`): X→en e en→alvo, no aparelho e sem consentimento de nuvem. O sentido
+     contrário (→X) segue dependendo da internet: não há modelo local para ele. */
+  const PIVO = Object.keys(MODELOS_PARA_O_INGLES)
+  const ALVOS = ['pt', 'es', 'fr', 'it', 'de', 'en']
+  it.each(PIVO.flatMap((de) => ALVOS.map((alvo) => [de, alvo] as const)))(
+    '%s → %s tem tradutor no aparelho',
+    (de, alvo) => {
+      expect(opus.supports(de, alvo)).toBe(true)
+      expect(mtCoverage(de, alvo)).toBe('local')
+    },
+  )
+  it.each(PIVO.flatMap((para) => ALVOS.map((de) => [de, para] as const)))('%s → %s depende da internet', (de, para) => {
+    expect(opus.supports(de, para)).toBe(false)
+    expect(mtCoverage(de, para)).toBe('online')
   })
   it.each(['ro', 'ca', 'gl'])('zh → %s não tem tradutor no aparelho (sem modelo en→%s)', (alvo) => {
     expect(opus.supports('zh', alvo)).toBe(false)
   })
+  it('o par entre idiomas que já têm modelo direto não ganha pivô (o inglês no meio piora o tradutor da web)', () => {
+    expect(opus.supports('pt', 'es')).toBe(false)
+    expect(opus.supports('es', 'pt')).toBe(false)
+    expect(opus.supports('de', 'fr')).toBe(false)
+  })
 
-  it.todo(
-    'ja/ko/ar/ru/hi → pt sem internet: o mesmo pivô pelo inglês, se houver modelo X→en (ja-en existe no Hub; só o chinês foi feito)',
-  )
+  it.todo('hi e vi → pt sem internet: os modelos existem, mas a tradução saiu pior que a da internet (17/10/2026)')
 })
 
 /* ─────────────────────────────── 3. FALAR ─────────────────────────────── */

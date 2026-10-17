@@ -7,6 +7,7 @@
 import { env, pipeline, Tensor } from '@huggingface/transformers';
 
 import { juntarFrases, separarEmFrases } from '../../core/texto/frases';
+import { modeloParaOIngles } from '../../core/traducao/viaIngles';
 import { registrarModeloBaixado } from '../modelManifest';
 import { FilaSerial, processadorDeCancelamento, type SinalDeCancelamento } from './filaDoWorker';
 import { LruDePipes, type ReservaDePipe } from './lruDePipes';
@@ -96,8 +97,9 @@ function dirConfig(src: string, tgt: string): DirCfg | null {
   // língua latina, e isso é pior do que cair no MyMemory.
   if (s === 'en' && t === 'pt') return { model: 'Xenova/opus-mt-en-ROMANCE', langToken: '>>pt_br<<', langTokenId: 51 };
   if (ROMANCE.has(s) && t === 'en') return { model: 'Xenova/opus-mt-ROMANCE-en' };
-  // Chinês → inglês: o único idioma sem espaço com modelo local. Os outros alvos passam pelo inglês (o adaptador faz o pivô).
-  if (s === 'zh' && t === 'en') return { model: 'Xenova/opus-mt-zh-en' };
+  // Idiomas sem modelo direto → inglês (zh, ja, ko, ru…): os outros alvos passam pelo inglês (o adaptador faz o pivô).
+  const paraOIngles = modeloParaOIngles(s);
+  if (paraOIngles && t === 'en') return { model: paraOIngles };
   return null; // par não coberto → o gateway cai para o próximo adapter (MyMemory)
 }
 

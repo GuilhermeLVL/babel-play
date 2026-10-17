@@ -1,4 +1,5 @@
 import { dobrarTexto } from '../core/texto/palavra';
+import { modeloParaOIngles } from '../core/traducao/viaIngles';
 import { ehRTL, idiomaDaInterface } from './i18n';
 /**
  * Lista única de idiomas usada pelos seletores (captura, configurações). `code` é
@@ -151,8 +152,9 @@ const ROMANICAS_PARA_O_INGLES = new Set(['pt', 'ro', 'ca', 'gl']);
 
 /** O tradutor do aparelho (opus-mt/Bergamot) tem modelo para este par? Bases ISO-639-1. */
 function temTradutorNoAparelho(s: string, t: string): boolean {
-  /* Chinês: zh→en direto e, passando pelo inglês (pivô do adaptador), para as que têm modelo saindo do inglês. */
-  if (s === 'zh') return t === 'en' || t === 'pt' || DEDICADOS_COM_O_INGLES.has(t);
+  /* Chinês, japonês, coreano, russo…: X→en direto e, passando pelo inglês (pivô do adaptador, `core/traducao/viaIngles.ts`),
+     para as que têm modelo saindo do inglês. */
+  if (modeloParaOIngles(s)) return t === 'en' || t === 'pt' || DEDICADOS_COM_O_INGLES.has(t);
   if (s === 'en') return DEDICADOS_COM_O_INGLES.has(t) || t === 'pt';
   if (t === 'en') return DEDICADOS_COM_O_INGLES.has(s) || ROMANICAS_PARA_O_INGLES.has(s);
   return false;

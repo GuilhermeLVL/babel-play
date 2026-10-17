@@ -33,6 +33,8 @@
     "start": "node dist-server/server.cjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "ia:validar": "tsx scripts/ia/validar-registro.ts",
+    "ia:custo": "tsx scripts/ia/simular-custo.ts",
     "typecheck:core": "tsc -p src/core/tsconfig.json",
     "typecheck:estrito": "tsc -p tsconfig.estrito.json --noEmit",
     "test": "vitest run",

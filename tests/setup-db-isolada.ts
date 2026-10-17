@@ -22,11 +22,23 @@ import { afterAll } from 'vitest'
 const dir = mkdtempSync(path.join(tmpdir(), 'babel-vitest-'))
 process.env.DATABASE_URL = 'file:' + path.join(dir, 'isolado.db').split(path.sep).join('/')
 
+/* O `.env` DO DESENVOLVEDOR NÃO ENTRA NOS TESTES. `server/db/db.ts` faz `import 'dotenv/config'`, que lê o `.env` do
+   diretório e preenche toda variável ausente — chaves reais de IA, `IA_PROVEDORES_ARQUIVO`, `IA_EM_VOO_STT`… Os testes
+   caracterizam o servidor SEM provedor configurado (o estado de qualquer CI), então um `.env` com chave ou registro
+   mudava o resultado de centenas deles. Apontado a um arquivo que não existe, o `dotenv` não injeta nada. Os testes que
+   precisam de uma variável a definem eles mesmos. */
+process.env.DOTENV_CONFIG_PATH ??= path.join(dir, 'sem-env-no-teste')
+process.env.DOTENV_CONFIG_QUIET ??= 'true'
+
 // Migrations também: sem isto um teste poderia migrar a partir de um caminho inesperado.
 process.env.MIGRATIONS_DIR ??= path.resolve(process.cwd(), 'server', 'db', 'migrations')
 
 afterAll(() => {
-  try { rmSync(dir, { recursive: true, force: true }) } catch { /* OneDrive/AV pode segurar */ }
+  try {
+    rmSync(dir, { recursive: true, force: true })
+  } catch {
+    /* OneDrive/AV pode segurar */
+  }
 })
 
 /**

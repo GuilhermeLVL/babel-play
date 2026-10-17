@@ -55,6 +55,7 @@ import {
 import { clienteDesistiu, comTempoLimite } from './cancelamento'
 import { alvoDaPerna } from './cascata'
 import { chaveDoProvedor, disjuntorPermite, esperaDaRetentativa, registrarFalha, registrarSucesso } from './disjuntor'
+import { ehBaseDoOpenRouter, parametrosDoProvedor } from './parametrosDoProvedor'
 import type { Provedor } from './provedores'
 import { endpointDaTranscricao, pernasDaFuncao } from './registroDeProvedores'
 import { assertPublicUrl, despachanteSeguro, type InitSeguro } from './ssrf'
@@ -106,6 +107,15 @@ export interface OpcoesDoPedidoDeStt {
 }
 
 /**
+ * O OpenRouter tem um endpoint próprio de transcrição (`POST /audio/transcriptions`) que aceita JSON com o áudio em
+ * base64. É por ele que o roteamento de retenção zero (`provider.zdr`) vai NO PEDIDO — o multipart da OpenAI não tem
+ * onde levá-lo, e ficaria só a configuração da conta como garantia. A resposta traz `text` e `usage`, sem o
+ * `verbose_json`.
+ */
+export const ehPernaDoOpenRouter = (p: Pick<Provedor, 'base' | 'formato'>): boolean =>
+  (p.formato ?? 'openai') === 'openai' && ehBaseDoOpenRouter(p.base)
+
+/**
  * O PEDIDO DE UMA TENTATIVA. Um por tentativa: `FormData` é de uso único e o `AbortSignal.timeout`
  * conta a partir daqui. `redirect: 'manual'` e o `despachanteSeguro` (IP conferido na CONEXÃO, contra
  * DNS rebinding) valem para os dois formatos — auditoria de segurança de 26/09/2026.
@@ -123,6 +133,23 @@ export function montarPedidoDeStt(
     signal: comTempoLimite(TIMEOUT_DO_STT_MS, o.sinal),
     redirect: 'manual' as const,
     dispatcher: despachanteSeguro,
+  }
+  if (ehPernaDoOpenRouter(perna)) {
+    const corpo = {
+      model: perna.model,
+      input_audio: {
+        data: audio.toString('base64'),
+        format: arquivoDoAudio(audio).nome.endsWith('.ogg') ? 'ogg' : 'wav',
+      },
+      temperature: 0,
+      ...(o.idioma ? { language: o.idioma } : {}),
+      /* `provider`: retenção zero e sem o Google, o mesmo mínimo de todo pedido ao OpenRouter. */
+      ...parametrosDoProvedor(perna.base, perna.model, perna.roteamento),
+    }
+    return {
+      url,
+      init: { ...comum, headers: { ...autorizacao, 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) },
+    } as { url: string; init: InitSeguro }
   }
   if (perna.formato === 'cloudflare') {
     const corpo = {
@@ -458,7 +485,15 @@ async function tentativaComDisjuntor(
   }
   try {
     let r = await enviar('verbose_json')
-    if (perna.formato !== 'cloudflare' && !r.ok && r.status >= 400 && r.status < 500 && r.status !== 429)
+    /* Só o multipart da OpenAI tem `verbose_json` para recuar: o JSON do OpenRouter e a Cloudflare não têm. */
+    if (
+      perna.formato !== 'cloudflare' &&
+      !ehPernaDoOpenRouter(perna) &&
+      !r.ok &&
+      r.status >= 400 &&
+      r.status < 500 &&
+      r.status !== 429
+    )
       r = await enviar('json')
     if (r.status === 429) registrarLimiteDoProvedor(provedor, ctx.byok ? 'byok' : perna.model)
     if (!r.ok) {

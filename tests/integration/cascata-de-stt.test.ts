@@ -144,6 +144,49 @@ describe('os dois formatos', () => {
     expect((f.get('file') as File).name).toBe('audio.wav')
   })
 
+  it('OpenRouter: JSON com o áudio em base64 e o roteamento de retenção zero NO pedido', () => {
+    const or = pernaDe({
+      model: 'openai/whisper-large-v3-turbo',
+      base: 'https://openrouter.ai/api/v1',
+      fornecedor: 'openrouter',
+    })
+    const audio = wavPcm(1)
+    const p = montarPedidoDeStt(or, audio, { idioma: 'zh', formato: 'verbose_json' })
+    expect(p.url).toBe('https://openrouter.ai/api/v1/audio/transcriptions')
+    expect((p.init.headers as Record<string, string>)['Content-Type']).toBe('application/json')
+    const corpo = JSON.parse(p.init.body as string)
+    expect(corpo).toMatchObject({
+      model: 'openai/whisper-large-v3-turbo',
+      temperature: 0,
+      language: 'zh',
+      input_audio: { data: audio.toString('base64'), format: 'wav' },
+      provider: { data_collection: 'deny', zdr: true },
+    })
+    expect(corpo.provider.ignore).toEqual(expect.arrayContaining(['google-ai-studio', 'google-vertex']))
+    // O `verbose_json` é do multipart da OpenAI: o JSON do OpenRouter não leva `response_format`.
+    expect(corpo).not.toHaveProperty('response_format')
+  })
+
+  it('OpenRouter: Ogg Opus vai como format ogg, e sem idioma não há campo language', () => {
+    const or = pernaDe({ model: 'openai/whisper-large-v3-turbo', base: 'https://openrouter.ai/api/v1' })
+    const ogg = Buffer.concat([Buffer.from('OggS'), Buffer.alloc(40)])
+    const corpo = JSON.parse(montarPedidoDeStt(or, ogg, { formato: 'verbose_json' }).init.body as string)
+    expect(corpo.input_audio.format).toBe('ogg')
+    expect(corpo).not.toHaveProperty('language')
+  })
+
+  it('OpenRouter: um modelo gemini nunca chega ao pedido (o registro o recusa; o roteamento ignora o Google)', () => {
+    const or = pernaDe({ model: 'openai/whisper-large-v3-turbo', base: 'https://openrouter.ai/api/v1' })
+    const corpo = JSON.parse(montarPedidoDeStt(or, wavPcm(1), { formato: 'json' }).init.body as string)
+    expect(corpo.provider.ignore).toEqual(expect.arrayContaining(['google-ai-studio', 'google-vertex']))
+  })
+
+  it('OpenRouter: a resposta {text, usage} passa como está (sem idioma nem segmentos)', () => {
+    const r = lerRespostaDeStt('openai', { text: ' 你好', usage: { seconds: 2, cost: 0.00001 } })
+    expect(r.text).toBe(' 你好')
+    expect(r.language).toBeUndefined()
+  })
+
   it('a resposta da Cloudflare vira a forma do verbose_json (texto, idioma, duração, segmentos)', () => {
     const r = lerRespostaDeStt('cloudflare', {
       success: true,

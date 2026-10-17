@@ -1,0 +1,40 @@
+{
+  "provedores": [
+    {
+      "id": "openrouter",
+      "formato": "openai",
+      "base": "https://openrouter.ai/api/v1",
+      "chave": "OPENROUTER_API_KEY",
+      "retencao": "zdr",
+      "limites": { "rpm": 120 },
+      "roteamento": {
+        "data_collection": "deny",
+        "zdr": true,
+        "ignore": ["google-ai-studio", "google-vertex"]
+      },
+      "modelos": [
+        {
+          "id": "openai/whisper-large-v3-turbo",
+          "funcoes": ["stt"],
+          "preco": { "hora": 0.04, "minimoFaturadoS": 10 }
+        },
+        {
+          "id": "google/gemma-4-26b-a4b-it",
+          "funcoes": ["traducao", "tutor"],
+          "preco": { "entrada": 0.0675, "saida": 0.225 }
+        },
+        {
+          "id": "meta-llama/llama-3.3-70b-instruct",
+          "funcoes": ["traducao", "tutor"],
+          "preco": { "entrada": 0.1, "saida": 0.32 }
+        },
+        {
+          "id": "openai/gpt-oss-120b",
+          "funcoes": ["traducao", "tutor"],
+          "niveis": ["nuance", "polimento"],
+          "preco": { "entrada": 0.15, "entradaEmCache": 0.075, "saida": 0.6 }
+        }
+      ]
+    }
+  ]
+}

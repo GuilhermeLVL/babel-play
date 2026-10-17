@@ -14,6 +14,7 @@ import {
 import React from 'react';
 
 import type { ConhecidasDaFala } from '../lib/captura/traducaoSobDemanda';
+import { palavrasDoPedaco } from '../lib/captura/trechosTocaveis';
 import { chaveDaPalavra, classesDoEstilo, resolverEstiloDeLegenda } from '../lib/estilosDeLegenda';
 import { t } from '../lib/i18n';
 import { baseLang, toBcp47 } from '../lib/languages';
@@ -301,50 +302,64 @@ const FalaDaConversa = React.memo(function FalaDaConversa({
 
   const original = !esconderOriginal && (
     <span className={`orig ${tamOriginal}`} style={{ gridColumn: 2 }}>
-      {segment.originalText.split(' ').map((wordStr, wIdx) => {
-        const cleanWord = wordStr.replace(/[,.:?!]/g, '').toLowerCase();
-        const vocabMatch = segment.words.find((vw) => vw.word.toLowerCase() === cleanWord);
-        if (vocabMatch) {
-          const marcada = selecionada === cleanWord;
-          const guardada = guardadas.includes(vocabMatch.word);
+      {/* Em chinês e japonês não há espaço para dividir: cada pedaço vem partido nas palavras dele
+          (`palavrasDoPedaco`), colado ao seguinte (sem espaço inventado). Com espaço, o pedaço volta inteiro. */}
+      {segment.originalText
+        .split(' ')
+        .flatMap((pedaco) => {
+          const partes = palavrasDoPedaco(pedaco, lineLang);
+          return partes.map((texto, k) => ({ texto, colar: k < partes.length - 1, partido: partes.length > 1 }));
+        })
+        .map(({ texto: wordStr, colar, partido }, wIdx) => {
+          if (partido && !/[\p{L}\p{N}]/u.test(wordStr)) {
+            // A pontuação de um pedaço partido (，。！) fica como texto: não é palavra para tocar.
+            return <React.Fragment key={wIdx}>{wordStr}</React.Fragment>;
+          }
+          const cleanWord = wordStr.replace(/[,.:?!]/g, '').toLowerCase();
+          const vocabMatch = segment.words.find((vw) => vw.word.toLowerCase() === cleanWord);
+          if (vocabMatch) {
+            const marcada = selecionada === cleanWord;
+            const guardada = guardadas.includes(vocabMatch.word);
+            return (
+              <React.Fragment key={wIdx}>
+                <button
+                  type="button"
+                  className="palavra"
+                  data-aprendida={aprendida(wordStr)}
+                  data-nova={nova(wordStr, lineLang)}
+                  onClick={() => aoExaminar(segment, vocabMatch, lineLang)}
+                  title="Clique para pronúncia nativa e detalhes"
+                  aria-pressed={marcada}
+                  style={
+                    marcada
+                      ? { background: 'color-mix(in srgb,var(--accent) 28%,transparent)', borderRadius: 4 }
+                      : guardada
+                        ? { borderBottomColor: 'var(--good)' }
+                        : undefined
+                  }
+                >
+                  {wordStr}
+                </button>
+                {colar ? null : ' '}
+              </React.Fragment>
+            );
+          }
           return (
             <React.Fragment key={wIdx}>
-              <button
-                type="button"
-                className="palavra"
+              <span
+                className="w"
                 data-aprendida={aprendida(wordStr)}
                 data-nova={nova(wordStr, lineLang)}
-                onClick={() => aoExaminar(segment, vocabMatch, lineLang)}
-                title="Clique para pronúncia nativa e detalhes"
-                aria-pressed={marcada}
-                style={
-                  marcada
-                    ? { background: 'color-mix(in srgb,var(--accent) 28%,transparent)', borderRadius: 4 }
-                    : guardada
-                      ? { borderBottomColor: 'var(--good)' }
-                      : undefined
-                }
+                onClick={() => aoOuvir(segment.id, wordStr, lineLang)}
+                title="Clique para ouvir"
+                style={{ cursor: 'pointer' }}
               >
                 {wordStr}
-              </button>{' '}
+              </span>
+              {colar ? null : ' '}
             </React.Fragment>
           );
-        }
-        return (
-          <React.Fragment key={wIdx}>
-            <span
-              className="w"
-              data-aprendida={aprendida(wordStr)}
-              data-nova={nova(wordStr, lineLang)}
-              onClick={() => aoOuvir(segment.id, wordStr, lineLang)}
-              title="Clique para ouvir"
-              style={{ cursor: 'pointer' }}
-            >
-              {wordStr}
-            </span>{' '}
-          </React.Fragment>
-        );
-      })}
+        })}
       {/* Fala ainda em andamento: três pontos vivos. */}
       {segment.isPartial && !segment.originalText && (
         <span className="inline-flex items-center gap-1 py-0.5" aria-label="transcrevendo">

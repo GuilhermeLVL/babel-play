@@ -47,6 +47,7 @@ import { classificarVazamento, type Intervalo } from '../vazamento';
 import { setterNoQuadro } from './agendarNoQuadro';
 import { guardarAudioDaFala } from './audioDasFalas';
 import { conferirRotaDoStt, type EntradaDaConferencia, montarPedidoDeRota } from './conferenciaDaRota';
+import { converterEscritaChinesa, escritaDoIdioma, prepararEscritaChinesa } from './escritaChinesa';
 import { decidirNaVirtual, ESTADO_DA_VIRTUAL, type EstadoDaVirtual } from './idiomasDaConversaVirtual';
 import { idiomasDoModelo } from './idiomasDoModelo';
 import { direcaoDoLado as direcaoDeUmLado } from './interprete';
@@ -465,6 +466,18 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           };
     };
 
+    /**
+     * A ESCRITA DO CHINÊS (`escritaChinesa.ts`): o Whisper devolve 简体 ou 繁體 conforme o provedor, e a dica não muda isso. O texto de um
+     * trecho em chinês vai para a variante que a pessoa escolheu. A dica corta a região (`zh-TW` vira `zh`), então a variante vem do idioma
+     * configurado desta fonte (o sistema ouve o idioma-alvo; o microfone fala o da pessoa). Só converte se o idioma do trecho é chinês: o
+     * detectado pelo motor, ou a dica quando ele não disse. Outro idioma, ou nenhum dos dois, passa como veio.
+     */
+    const naEscritaEscolhida = (texto: string, detectado: string | undefined, dica: string): string => {
+      if (baseLang(detectado || dica) !== 'zh') return texto;
+      const configurado = isSys ? targetLangRef.current : sourceLangRef.current;
+      return converterEscritaChinesa(texto, escritaDoIdioma(configurado) ? configurado : 'zh');
+    };
+
     /** "…" (tradução a caminho) ou '' quando a origem já conhecida é o próprio idioma da legenda. */
     const marcadorPrevisto = (origemDoMotor = '', idiomas = langs()): string => {
       const { from, to } = idiomas;
@@ -616,7 +629,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
              frente) é quem escreve e quem traduz. Traduzir este texto agora só disputaria o tradutor
              com a tradução do final. */
           if (lastPartialTextRef.current.get(seq) === FALA_FECHADA) return;
-          const clean = (res.text ?? '').trim();
+          const clean = naEscritaEscolhida((res.text ?? '').trim(), undefined, hint);
           if (!clean) return;
           capMetrics.partial(seq);
           // No quadro seguinte, junto com o que mais chegar nele (ver `falasNoQuadro`).
@@ -859,7 +872,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           return nuvem;
         })
         .then(({ text, engine, language, confiancaDoIdioma, alucinacaoDescartada }) => {
-          const clean = (text ?? '').trim();
+          const clean = naEscritaEscolhida((text ?? '').trim(), language, hint);
           if (!clean && alucinacaoDescartada) capMetrics.alucinacao();
           const decodeMs = Math.round(performance.now() - t0);
           clog(
@@ -1538,6 +1551,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   };
 
   const prepareModelsInterno = async (opcoes: OpcoesDaPreparacao) => {
+    /* Chinês na sessão: o conversor de escrita (simplificada ou tradicional) carrega agora, antes da 1ª fala (`escritaChinesa.ts`). */
+    if (escritaDoIdioma(targetLangRef.current) || escritaDoIdioma(sourceLangRef.current)) void prepararEscritaChinesa();
     const { route, previstos, perfil, mtDe, mtPara, soIngles, micVaiAoWhisper, backend, outro, sinaisDoAlivio } =
       await rotaDaCaptura();
     /* Sessão nova: o regulador começa no máximo, com a escada do modelo desta rota — o backend e o

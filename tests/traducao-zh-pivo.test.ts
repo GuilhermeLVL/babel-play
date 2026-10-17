@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { juntarFrases, separarEmFrases } from '../src/core/texto/frases'
+import { modeloParaOIngles, MODELOS_PARA_O_INGLES } from '../src/core/traducao/viaIngles'
 import { expectedModelIds } from '../src/gateway/modelCache'
 import { REVISOES_DOS_MODELOS } from '../src/gateway/revisoesDosModelos'
 
@@ -39,6 +40,57 @@ describe('separarEmFrases: chinês e japonês', () => {
     ])
     expect(separarEmFrases('Dr. Silva chegou. Sentou.')).toEqual(['Dr. Silva chegou.', 'Sentou.'])
     expect(separarEmFrases('Pi vale 3.14 mais ou menos')).toEqual(['Pi vale 3.14 mais ou menos'])
+  })
+})
+
+describe('separarEmFrases: idiomas sem maiúscula (coreano, árabe)', () => {
+  it('o ponto seguido de letra sem maiúscula separa a frase (hangul)', () => {
+    expect(separarEmFrases('저는 언어를 공부하는 것을 좋아해요. 오늘은 날씨가 좋으니까 공원에 산책하러 가요.')).toEqual(
+      ['저는 언어를 공부하는 것을 좋아해요.', '오늘은 날씨가 좋으니까 공원에 산책하러 가요.'],
+    )
+  })
+
+  it('o ponto de interrogação árabe (؟) também termina a frase', () => {
+    expect(separarEmFrases('هل تحب دراسة اللغات؟ الطقس جميل اليوم.')).toEqual([
+      'هل تحب دراسة اللغات؟',
+      'الطقس جميل اليوم.',
+    ])
+  })
+
+  it('minúscula depois do ponto, em alfabeto com maiúscula, continua sendo a mesma frase (abreviação ou erro)', () => {
+    expect(separarEmFrases('Eu vi o sr. silva ontem. Ele estava bem.')).toEqual([
+      'Eu vi o sr. silva ontem.',
+      'Ele estava bem.',
+    ])
+  })
+})
+
+describe('os idiomas que passam pelo inglês: modelos e revisões', () => {
+  const ids = Object.entries(MODELOS_PARA_O_INGLES)
+
+  it.each(ids)('%s tem o modelo Xenova/opus-mt-%s-en, com a revisão fixada', (lang, modelo) => {
+    expect(modelo).toBe(`Xenova/opus-mt-${lang}-en`)
+    expect(REVISOES_DOS_MODELOS[modelo], modelo).toMatch(/^[0-9a-f]{40}$/)
+  })
+
+  it('o hindi e o vietnamita ficam de fora (saíram piores que a internet)', () => {
+    expect(modeloParaOIngles('hi')).toBeNull()
+    expect(modeloParaOIngles('vi')).toBeNull()
+  })
+
+  it('ja-JP, ko_KR e zh-TW chegam pela base do idioma', () => {
+    expect(modeloParaOIngles('ja-JP')).toBe('Xenova/opus-mt-ja-en')
+    expect(modeloParaOIngles('ko_KR')).toBe('Xenova/opus-mt-ko-en')
+    expect(modeloParaOIngles('zh-TW')).toBe('Xenova/opus-mt-zh-en')
+    expect(modeloParaOIngles('pt-BR')).toBeNull()
+  })
+
+  it('a lista de download do japonês para o português traz ja-en e en→pt', () => {
+    expect(expectedModelIds('ja-JP', 'pt-BR', 'whisper-x').slice(1)).toEqual([
+      'Xenova/opus-mt-ja-en',
+      'Xenova/opus-mt-en-ROMANCE',
+    ])
+    expect(expectedModelIds('ko', 'en', 'whisper-x').slice(1)).toEqual(['Xenova/opus-mt-ko-en'])
   })
 })
 

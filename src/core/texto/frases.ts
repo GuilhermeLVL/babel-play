@@ -75,7 +75,7 @@ const ABREVIACOES = new Set([
 ]);
 
 /** Terminadores de frase. As reticências entram como caractere único e como três pontos; `。！？` são os do chinês e do japonês. */
-const TERMINADORES = /[.!?…。！？]/;
+const TERMINADORES = /[.!?…。！？؟]/;
 
 /** Os terminadores de largura total (chinês, japonês): terminam a frase sem espaço depois e sem maiúscula depois, que essas escritas não têm. */
 const TERMINADORES_DE_LARGURA_TOTAL = /[。！？]/;
@@ -110,7 +110,8 @@ function terminaFrase(texto: string, i: number): boolean {
   // do ponto quase sempre é abreviação ou erro de transcrição, e juntar erra menos que separar.
   const proximo = depois.replace(/^\s+/, '');
   if (proximo.length === 0) return true;
-  return /^[\p{Lu}\p{N}"“'(¿¡]/u.test(proximo);
+  /* `\p{Lo}`: letra SEM maiúscula (hangul, árabe, hindi, tailandês…): a frase seguinte não começa em maiúscula. */
+  return /^[\p{Lu}\p{Lo}\p{N}"“'(¿¡]/u.test(proximo);
 }
 
 /**

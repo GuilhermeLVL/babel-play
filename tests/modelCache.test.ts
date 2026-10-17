@@ -23,7 +23,8 @@ describe('expectedModelIds', () => {
   })
 
   it('par sem opus-mt local não espera modelo de MT', () => {
-    expect(expectedModelIds('ja', 'pt')).toEqual(['onnx-community/whisper-tiny'])
+    // O hindi não tem modelo X→inglês aprovado (`core/traducao/viaIngles.ts`); o japonês, o chinês e outros passam pelo inglês.
+    expect(expectedModelIds('hi', 'pt')).toEqual(['onnx-community/whisper-tiny'])
   })
 
   it('aceita BCP-47 completo', () => {

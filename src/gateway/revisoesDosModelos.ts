@@ -34,6 +34,21 @@ export const REVISOES_DOS_MODELOS: Readonly<Record<string, string>> = {
   'Xenova/opus-mt-ROMANCE-en': 'f60feaabe8bb435a5871e7702b25f53a01e770f8',
   // Chinês → inglês (pivô do zh→pt/es/fr/it/de), `main` conferido em 2026-10-17 (último commit: jul/2025).
   'Xenova/opus-mt-zh-en': '39d480d52a9ea3065a1f117adfe4dbc55de10e6f',
+  // Os demais idiomas que passam pelo inglês (`core/traducao/viaIngles.ts`), `main` conferido em 2026-10-17.
+  'Xenova/opus-mt-ja-en': '1a906cfaaf7c8f4193f67f5885c082aa6dbd9d16',
+  'Xenova/opus-mt-ko-en': 'd9fa1ac6008242100fecb4fff9b0a5917a1be81f',
+  'Xenova/opus-mt-ru-en': 'afe8c6c738ec81b6d033fd8f44f9678a639a7c67',
+  'Xenova/opus-mt-ar-en': '09c7556866400dcc53562ba8d7035119e7d9a2c1',
+  'Xenova/opus-mt-tr-en': '78247f41f354af036d24e6f0f8a3d02c6806f96e',
+  'Xenova/opus-mt-pl-en': 'aeaf0e003b045248c28a559a5ce6027b54ebdaba',
+  'Xenova/opus-mt-nl-en': '82c42d95d1508037cbe7172d85fd4e940a2f3584',
+  'Xenova/opus-mt-uk-en': 'b2ad6afa424aaeff8913ff350860b7a7b7c0a607',
+  'Xenova/opus-mt-sv-en': '63a40256869b6a2b29a84e47aa7f03524fa5f3a2',
+  'Xenova/opus-mt-fi-en': 'a623e4812687be788e3ab720c8a950ab64704793',
+  'Xenova/opus-mt-cs-en': 'c9f7336d1cf49ba5b7a412cba3b86999fa781716',
+  'Xenova/opus-mt-hu-en': 'c9e8a7617fb4cb4fca3785c5bb22cfe457cde00b',
+  'Xenova/opus-mt-id-en': 'c38ef36c843b71177da903442835c3c870975fd6',
+  'Xenova/opus-mt-th-en': '7f0406b972f742985cfbe3be8f61dead9f1bc0e3',
   'onnx-community/wespeaker-voxceleb-resnet34-LM': '6a61a1833ff2583aabeba044f5c8221f00b67ceb',
 };
 

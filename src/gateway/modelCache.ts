@@ -8,6 +8,7 @@
  * impressão de "re-download a cada captura" (a barra reaparecia mesmo em cache-hit).
  */
 
+import { modeloParaOIngles } from '../core/traducao/viaIngles';
 import { bergamotOferecido, ID_DO_BERGAMOT_PT_EN } from './adapters/bergamotModelo';
 import { modeloDisponivel } from './modelManifest';
 
@@ -46,9 +47,9 @@ export function expectedModelIds(src: string, tgt: string, whisperModel?: string
   const t = (tgt || '').toLowerCase().split('-')[0];
   const ROMANCE = new Set(['pt', 'es', 'fr', 'it', 'ro', 'ca', 'gl']);
   if (s === 'en' && ROMANCE.has(t)) ids.push('Xenova/opus-mt-en-ROMANCE');
-  else if (s === 'zh' && t !== 'zh') {
-    /* Chinês passa pelo inglês (pivô do `OpusMtLocal`): zh→en e, se o alvo não é o inglês, en→alvo (o mesmo modelo que o adaptador escolhe). */
-    ids.push('Xenova/opus-mt-zh-en');
+  else if (modeloParaOIngles(s) && t !== s) {
+    /* Passa pelo inglês (pivô do `OpusMtLocal`, `core/traducao/viaIngles.ts`): X→en e, se o alvo não é o inglês, en→alvo (o mesmo modelo que o adaptador escolhe). */
+    ids.push(modeloParaOIngles(s)!);
     if (t === 'pt') ids.push('Xenova/opus-mt-en-ROMANCE');
     else if (['es', 'fr', 'it', 'de'].includes(t)) ids.push(`Xenova/opus-mt-en-${t}`);
   } else if (bergamotOferecido(s, t)) ids.push(ID_DO_BERGAMOT_PT_EN);

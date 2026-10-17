@@ -1,5 +1,6 @@
 import { ChamadaCancelada, MotorAindaCarregando } from '@core';
 
+import { ALVOS_DO_INGLES, modeloParaOIngles } from '../../core/traducao/viaIngles';
 import { distribuirThreads } from '../../lib/dispositivo/orcamentoDeThreads';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import type { MtOptions, MtResult, TranslationProvider } from '../capabilities';
@@ -52,23 +53,31 @@ export class OpusMtLocal implements TranslationProvider {
     if (this.DEDICADOS.has(s) && t === 'en') return `Xenova/opus-mt-${s}-en`;
     if (s === 'en' && t === 'pt') return 'Xenova/opus-mt-en-ROMANCE'; // só pt tem o ID do token (ver worker)
     if (this.ROMANCE.has(s) && t === 'en') return 'Xenova/opus-mt-ROMANCE-en';
-    if (s === 'zh' && t === 'en') return 'Xenova/opus-mt-zh-en';
+    // Idiomas sem modelo direto → inglês (zh, ja, ko, ru…): `core/traducao/viaIngles.ts`.
+    if (t === 'en') return modeloParaOIngles(s);
     return null;
   }
 
   /**
-   * CHINÊS PASSA PELO INGLÊS. Não há modelo local zh→pt/es/fr/it/de, e o tradutor da web (MyMemory) exige o
-   * consentimento de nuvem: sem ele o chinês saía transcrito e SEM tradução. O pivô zh→en→alvo usa dois modelos
-   * que já existem (zh-en e o en→alvo), como a cascata faz com qualquer par que não tem modelo direto.
-   * Só o chinês: é o idioma sem espaço que as pessoas pedem; outros pares ficam como estavam.
+   * PASSA PELO INGLÊS. Não há modelo local de chinês, japonês, coreano, russo… para pt/es/fr/it/de, e o tradutor da
+   * web (MyMemory) exige o consentimento de nuvem: sem ele a fala saía transcrita e SEM tradução. O pivô X→en→alvo
+   * usa dois modelos (o do idioma e o en→alvo que já existia), como a cascata faz com qualquer par sem modelo direto.
+   * Quais idiomas entram, e por quê: `core/traducao/viaIngles.ts`. Os pares entre idiomas que já têm modelo direto
+   * (pt↔es…) ficam como estavam: o inglês no meio piora o que o tradutor da web faz bem.
    */
   private viaIngles(src: string, tgt: string): boolean {
     const s = src.toLowerCase().split('-')[0];
     const t = tgt.toLowerCase().split('-')[0];
-    return s === 'zh' && t !== 'en' && t !== 'zh' && this.modelFor('en', t) !== null;
+    return (
+      modeloParaOIngles(s) !== null &&
+      t !== 'en' &&
+      t !== s &&
+      ALVOS_DO_INGLES.has(t) &&
+      this.modelFor('en', t) !== null
+    );
   }
 
-  /** Os dois modelos de um par que passa pelo inglês (zh→en e en→alvo). */
+  /** Os dois modelos de um par que passa pelo inglês (X→en e en→alvo). */
   private pernasViaIngles(src: string, tgt: string): [string, string] {
     return [this.modelFor(src, 'en')!, this.modelFor('en', tgt)!];
   }
@@ -255,7 +264,7 @@ export class OpusMtLocal implements TranslationProvider {
     return { text: translated, detectedSourceLang: src, engine: 'opus-mt-local' };
   }
 
-  /** zh→en e, com o texto em inglês, en→alvo. Sem os DOIS modelos prontos, falha rápido e pede a carga dos dois. */
+  /** X→en e, com o texto em inglês, en→alvo. Sem os DOIS modelos prontos, falha rápido e pede a carga dos dois. */
   private async traduzirViaIngles(text: string, src: string, tgt: string, opts?: MtOptions): Promise<MtResult> {
     const pernas = this.pernasViaIngles(src, tgt);
     if (pernas.some((m) => this.failed.has(m))) throw new Error('opus-mt indisponível neste ambiente (fallback)');

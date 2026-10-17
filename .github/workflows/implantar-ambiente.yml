@@ -57,6 +57,11 @@ jobs:
       VITE_SELF_HOST_MODELS: ${{ vars.VITE_SELF_HOST_MODELS }}
       VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
       VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+      # Opcionais, do Environment: sem elas o build sai com o padrão do Dockerfile (botão do Google à mostra,
+      # desenho antigo, modelos do Bergamot no próprio domínio). `VITE_LOGIN_GOOGLE=0` esconde o botão do Google.
+      VITE_LOGIN_GOOGLE: ${{ vars.VITE_LOGIN_GOOGLE }}
+      VITE_DESENHO_NOVO_PADRAO: ${{ vars.VITE_DESENHO_NOVO_PADRAO }}
+      VITE_BERGAMOT_MODELOS_URL: ${{ vars.VITE_BERGAMOT_MODELOS_URL }}
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
     steps:
@@ -108,6 +113,9 @@ jobs:
             --build-arg VITE_SELF_HOST_MODELS="$VITE_SELF_HOST_MODELS" \
             --build-arg VITE_SENTRY_DSN="$VITE_SENTRY_DSN" \
             --build-arg VITE_TURNSTILE_SITE_KEY="$VITE_TURNSTILE_SITE_KEY" \
+            --build-arg VITE_LOGIN_GOOGLE="$VITE_LOGIN_GOOGLE" \
+            --build-arg VITE_DESENHO_NOVO_PADRAO="$VITE_DESENHO_NOVO_PADRAO" \
+            --build-arg VITE_BERGAMOT_MODELOS_URL="$VITE_BERGAMOT_MODELOS_URL" \
             --build-arg VERSAO="$SHA"
           echo "IMAGEM=registry.fly.io/${FLY_APP}:${SHA}" >> "$GITHUB_ENV"
 

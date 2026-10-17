@@ -297,7 +297,10 @@ https://<domínio>/api/health` (liga o `uptime.yml`, o segundo par de olhos, que
    **production** (com _Required reviewers_ = você) → _secret_ `FLY_API_TOKEN` e as _variables_
    `FLY_APP=babel-play`, `URL_PUBLICA=https://<domínio>`, `VITE_SUPABASE_URL`,
    `VITE_SUPABASE_ANON_KEY`, `VITE_SELF_HOST_MODELS=https://modelos.<domínio>`, `VITE_SENTRY_DSN`
-   (o do projeto do navegador). Repita com um app `babel-play-staging` no environment **staging**.
+   (o do projeto do navegador). Opcionais, também como _variables_: `VITE_LOGIN_GOOGLE=0` (esconde "Continuar
+   com Google" enquanto o provedor não estiver ligado no Supabase; sem a variável o botão aparece),
+   `VITE_DESENHO_NOVO_PADRAO=1` e `VITE_BERGAMOT_MODELOS_URL`. Repita com um app `babel-play-staging` no
+   environment **staging**.
 4. `fly ips allocate-v6 --app babel-play` (o IPv4 compartilhado já vem).
 5. GitHub → _Actions_ → **Deploy (Fly.io)** → _Run workflow_ → destino `staging-e-producao` (ou
    `staging` e depois `producao`: produção só aceita commit com o selo `deploy/staging`). Cada
@@ -315,8 +318,12 @@ https://<domínio>/api/health` (liga o `uptime.yml`, o segundo par de olhos, que
 2. **Rules → Transform Rules → Modify Request Header** → "Set static" `x-origem-segredo` =
    o `ORIGEM_SEGREDO` → aplicar a todas as requisições do domínio. A partir daqui quem chega por
    `babel-play.fly.dev` recebe 403 (as sondas `/api/health` e `/api/ready` continuam passando).
-3. **Security → WAF → Managed rules**: ligar o conjunto gratuito. **Security → Bots**: _Bot Fight
-   Mode_ ligado.
+3. **Security → WAF → Managed rules**: ligar o conjunto gratuito. **Security → Bots**: deixar o
+   _Bot Fight Mode_ **desligado** no MVP. No plano Free ele não pode ser pulado por regra de WAF para um
+   caminho, e o POST do Asaas em `/api/billing/webhook/asaas` receberia um desafio: com 15 falhas
+   seguidas o Asaas pausa a fila e nenhum pagamento concede plano. Os limites do servidor e a regra de
+   rate limit do passo 4 já cobrem o abuso. Se um dia ligar, conferir no painel do Asaas (Webhooks →
+   histórico) que a entrega segue com 200 logo depois.
 4. **Security → WAF → Rate limiting rules** (1 regra no Free): "se o caminho começa com `/api/` e
    o mesmo IP passa de **300 requisições em 10 s** → bloquear por 10 s". É a rede de fora; os limites
    finos por usuário estão no servidor.

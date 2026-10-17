@@ -1617,5 +1617,12 @@
   "Ver todos os cartões": "Ver todas las tarjetas",
   "Jogar com a Trilha": "Jugar con la Ruta",
   "este jogo separa as palavras da frase, e {idioma} não marca onde cada uma começa": "este juego separa las palabras de la frase, y {idioma} no marca dónde empieza cada una",
-  "este navegador não tem voz em {idioma}": "este navegador no tiene voz en {idioma}"
+  "este navegador não tem voz em {idioma}": "este navegador no tiene voz en {idioma}",
+  "Permissões": "Permisos",
+  "Libere o microfone agora": "Permite el micrófono ahora",
+  "Assim o navegador não interrompe você na hora de começar a ouvir. Dá para pular e liberar depois.": "Así el navegador no te interrumpe justo al empezar a escuchar. Puedes omitirlo y permitirlo después.",
+  "Microfone liberado": "Micrófono permitido",
+  "Liberar microfone": "Permitir micrófono",
+  "Agora não": "Ahora no",
+  "Para capturar o som de uma aba ou tela, o navegador abre um seletor a cada captura. Isso não dá para liberar antes: é uma proteção dele.": "Para capturar el sonido de una pestaña o pantalla, el navegador abre un selector en cada captura. No se puede permitir antes: es una protección del navegador."
 }

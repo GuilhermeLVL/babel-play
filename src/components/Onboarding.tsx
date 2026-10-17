@@ -12,6 +12,7 @@ import {
   Languages,
   type LucideIcon,
   Mic,
+  MicOff,
   Repeat,
   Rocket,
   Search,
@@ -24,6 +25,7 @@ import { patchUiSettings, saveSettings } from '../data/api';
 import { setProviderChoice } from '../gateway/activeProfile';
 import { t } from '../lib/i18n';
 import { DEFAULT_LANG_CONFIG, idiomasDaInterfaceOferecidos, saveLangConfig } from '../lib/langConfig';
+import { micErrorMessage } from '../lib/mediaErrors';
 import type { AgeProfileType } from '../lib/profile';
 import LangPicker from './LangPicker';
 import { DialogoBase, IconeEmBloco } from './ui';
@@ -56,8 +58,11 @@ async function concluir() {
   });
 }
 
-type Passo = 'welcome' | 'idioma' | 'perfil' | 'laco' | 'privacidade';
-const PASSOS: Passo[] = ['welcome', 'idioma', 'perfil', 'laco', 'privacidade'];
+type Passo = 'welcome' | 'idioma' | 'perfil' | 'laco' | 'permissoes' | 'privacidade';
+const PASSOS: Passo[] = ['welcome', 'idioma', 'perfil', 'laco', 'permissoes', 'privacidade'];
+
+/** O microfone no passo de permissões: `idle` ainda não pediu, `liberado`/`negado` é a resposta do navegador. */
+type EstadoDoMic = 'idle' | 'pedindo' | 'liberado' | 'negado';
 
 type Cena = 'ondas' | 'orbita' | 'perfil' | 'laco' | 'escudo';
 const DO_PASSO: Record<Passo, { icone: LucideIcon; sob: string; titulo: string; desc: string; cena: Cena }> = {
@@ -83,6 +88,13 @@ const DO_PASSO: Record<Passo, { icone: LucideIcon; sob: string; titulo: string; 
     cena: 'perfil',
   },
   laco: { icone: Repeat, sob: 'Como funciona', titulo: 'Um laço em quatro passos', desc: '', cena: 'laco' },
+  permissoes: {
+    icone: Mic,
+    sob: 'Permissões',
+    titulo: 'Libere o microfone agora',
+    desc: 'Assim o navegador não interrompe você na hora de começar a ouvir. Dá para pular e liberar depois.',
+    cena: 'ondas',
+  },
   privacidade: {
     icone: ShieldCheck,
     sob: 'Privacidade',
@@ -164,6 +176,8 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
   const [idiomaDaTela, setIdiomaDaTela] = useState(DEFAULT_LANG_CONFIG.daInterface);
   const [ageProfile, setAgeProfile] = useState<AgeProfileType>('pro');
   const [entrando, setEntrando] = useState(false);
+  const [mic, setMic] = useState<EstadoDoMic>('idle');
+  const [erroDoMic, setErroDoMic] = useState('');
 
   const i = PASSOS.indexOf(passo);
   const ultimo = i === PASSOS.length - 1;
@@ -188,6 +202,24 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
     setAgeProfile(id);
     localStorage.setItem('babel.age_profile', id);
     void patchUiSettings({ ageProfile: id });
+  };
+
+  /**
+   * Pede o microfone UMA vez, no toque, e solta a faixa na hora: o app só quer a permissão guardada, não o áudio.
+   * Qualquer resposta deixa "Continuar" disponível; a captura de aba/tela NÃO é pedida aqui (o navegador abre o
+   * seletor a cada captura e não deixa pré-autorizar).
+   */
+  const liberarMicrofone = async () => {
+    setMic('pedindo');
+    setErroDoMic('');
+    try {
+      const fluxo = await navigator.mediaDevices.getUserMedia({ audio: true });
+      fluxo.getTracks().forEach((faixa) => faixa.stop());
+      setMic('liberado');
+    } catch (err) {
+      setErroDoMic(micErrorMessage(err));
+      setMic('negado');
+    }
   };
 
   const comecar = async () => {
@@ -322,6 +354,36 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
               </ol>
             )}
 
+            {passo === 'permissoes' && (
+              <div style={{ marginTop: 14 }}>
+                {mic === 'liberado' ? (
+                  <p role="status" style={{ fontSize: 14.5, fontWeight: 700 }}>
+                    <Mic aria-hidden size={16} /> {t('Microfone liberado')}
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={() => void liberarMicrofone()}
+                    disabled={mic === 'pedindo'}
+                  >
+                    {mic === 'negado' ? <MicOff aria-hidden /> : <Mic aria-hidden />}{' '}
+                    {mic === 'negado' ? t('Tentar de novo') : t('Liberar microfone')}
+                  </button>
+                )}
+                {mic === 'negado' && (
+                  <p role="alert" className="mut" style={{ fontSize: 13, marginTop: 8 }}>
+                    {t(erroDoMic)}
+                  </p>
+                )}
+                <p className="mut" style={{ fontSize: 13, marginTop: 12 }}>
+                  {t(
+                    'Para capturar o som de uma aba ou tela, o navegador abre um seletor a cada captura. Isso não dá para liberar antes: é uma proteção dele.',
+                  )}
+                </p>
+              </div>
+            )}
+
             {passo === 'privacidade' && (
               <p className="mut" style={{ fontSize: 13, marginTop: 8 }}>
                 {t(
@@ -346,6 +408,11 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
               onClick={recuar}
             >
               {t('Voltar')}
+            </button>
+          )}
+          {passo === 'permissoes' && mic !== 'liberado' && (
+            <button type="button" className="link" onClick={avancar}>
+              {t('Agora não')}
             </button>
           )}
           {ultimo ? (

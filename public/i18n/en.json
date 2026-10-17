@@ -4734,5 +4734,11 @@
   "Arquivo do Anki. Ele já vem escolhido.": "An Anki file. It comes already selected.",
   "A Trilha ainda não tem cartões seus": "The Path has no cards of yours yet",
   "As palavras da Trilha viram cartão quando você joga com elas: as que você erra entram aqui e voltam na hora certa.": "Path words become cards when you play with them: the ones you miss come here and return at the right time.",
-  "Ver todos os cartões": "See all cards"
+  "Ver todos os cartões": "See all cards",
+  "Permissões": "Permissions",
+  "Libere o microfone agora": "Allow the microphone now",
+  "Assim o navegador não interrompe você na hora de começar a ouvir. Dá para pular e liberar depois.": "This way the browser won't interrupt you right when you start listening. You can skip it and allow it later.",
+  "Microfone liberado": "Microphone allowed",
+  "Liberar microfone": "Allow microphone",
+  "Para capturar o som de uma aba ou tela, o navegador abre um seletor a cada captura. Isso não dá para liberar antes: é uma proteção dele.": "To capture the sound of a tab or screen, the browser opens a picker every time. This can't be allowed in advance: it is a browser protection."
 }

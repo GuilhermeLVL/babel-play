@@ -48,6 +48,23 @@ describe('expectedModelIds com o Bergamot', () => {
     expect(expectedModelIds('en', 'pt')).toEqual(['onnx-community/whisper-tiny', 'Xenova/opus-mt-en-ROMANCE'])
   })
 
+  it('com o CDN: ja→en e ja→pt esperam o Bergamot na primeira perna; es→en também; es→pt segue no opus-mt', () => {
+    vi.stubGlobal('__BERGAMOT_CDN__', true)
+    expect(expectedModelIds('ja', 'en')).toEqual(['onnx-community/whisper-tiny', 'bergamot/ja-en'])
+    expect(expectedModelIds('ja', 'pt')).toEqual([
+      'onnx-community/whisper-tiny',
+      'bergamot/ja-en',
+      'Xenova/opus-mt-en-ROMANCE',
+    ])
+    expect(expectedModelIds('es', 'en')).toEqual(['onnx-community/whisper-tiny', 'bergamot/es-en'])
+    expect(expectedModelIds('es', 'pt')).not.toContain('bergamot/es-en')
+  })
+
+  it('sem o CDN: o opus-mt de antes também no ja→en', () => {
+    vi.stubGlobal('__BERGAMOT_CDN__', false)
+    expect(expectedModelIds('ja', 'en')).toContain('Xenova/opus-mt-ja-en')
+  })
+
   it('build sem o modelo: o opus-mt de antes', () => {
     vi.stubGlobal('__BERGAMOT_PT_EN__', false)
     expect(expectedModelIds('pt', 'en')).toContain('Xenova/opus-mt-ROMANCE-en')

@@ -100,7 +100,19 @@ de custo por assinante está em `scripts/custo/modelo.mjs` (`node scripts/custo/
    S3_ENDPOINT=https://<conta>.r2.cloudflarestorage.com S3_ACCESS_KEY_ID=<token modelos> \
    S3_SECRET_ACCESS_KEY=<segredo> npx tsx scripts/modelos/publicar-no-r2.ts --bucket=babel-modelos
    ```
-8. A WAF, a regra de rate limit e o cabeçalho de origem ficam para o passo 9 (precisam do app no ar).
+8. Publicar os modelos do **Bergamot** (tradução X→inglês no aparelho: 16 idiomas, ~450 MB no bucket, ~30–45 MB
+   por idioma para quem usa — contra ~113 MB do opus-mt). Mesmo bucket e mesmas credenciais; baixa do bucket da
+   Mozilla, confere o sha256 de cada arquivo contra `src/gateway/adapters/modelosDoBergamot.json` e sobe em
+   `bergamot/<par>/<execução>/<arquivo>`:
+   ```bash
+   S3_ENDPOINT=https://<conta>.r2.cloudflarestorage.com S3_ACCESS_KEY_ID=<token modelos> \
+   S3_SECRET_ACCESS_KEY=<segredo> npx tsx scripts/modelos/publicar-bergamot-no-r2.ts --bucket=babel-modelos
+   ```
+   Depois, no build (variável do environment no GitHub, passo 3 da §8): `VITE_BERGAMOT_MODELOS_URL=https://modelos.<domínio>`
+   (a raiz do bucket, **sem** sufixo). Sem a variável o app segue como antes: só pt→en, embutido no `dist`; com ela,
+   ja/ko/zh/es/fr/de/it/ru/ar/cs/fi/hu/nl/pl/th→inglês (e `X→pt` pelo inglês, nos que o opus-mt já cobria) passam a
+   usar o Bergamot, com o opus-mt de reserva. Rode `--seco` antes para ver a lista sem enviar nada.
+9. A WAF, a regra de rate limit e o cabeçalho de origem ficam para o passo 9 (precisam do app no ar).
 
 ## 3. Supabase Pro (login) — 30 min
 

@@ -38,7 +38,7 @@ import { deleteSession, fetchSessionTranscript, fetchSettings, patchUiSettings }
 import { buildGateway } from '../../gateway';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
 import { temAdaptadorWebGpu, webGpuProvavel } from '../../gateway/adaptadorWebGpu';
-import { ID_DO_BERGAMOT_PT_EN } from '../../gateway/adapters/bergamotModelo';
+import { parDoId } from '../../gateway/adapters/bergamotModelo';
 import type { SttSession } from '../../gateway/capabilities';
 import { capMetrics, MOTOR_DA_NUVEM } from '../../gateway/capture/captureMetrics';
 import {
@@ -2349,8 +2349,8 @@ export default function LiveCapture({
                num sentido só (en-ROMANCE ou ROMANCE-en) — a seta diz o que o modelo faz. */
             titulo: /en-ROMANCE/i.test(id)
               ? `Tradutor ${langLabelNaUI('en')} → ${langLabelNaUI(baseLang(meu) === 'en' ? ouvir : meu)} (opus-mt)`
-              : id === ID_DO_BERGAMOT_PT_EN
-                ? `Tradutor ${langLabelNaUI('pt')} → ${langLabelNaUI('en')} (Bergamot)`
+              : parDoId(id)
+                ? `Tradutor ${langLabelNaUI(id.slice('bergamot/'.length).split('-')[0])} → ${langLabelNaUI('en')} (Bergamot)`
                 : /ROMANCE-en/i.test(id)
                   ? `Tradutor ${langLabelNaUI(baseLang(ouvir) === 'en' ? meu : ouvir)} → ${langLabelNaUI('en')} (opus-mt)`
                   : `Tradutor (${id.split('/').pop()})`,

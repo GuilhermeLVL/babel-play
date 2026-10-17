@@ -43,3 +43,26 @@ export function modeloParaOIngles(lang: string): string | null {
 
 /** Os alvos que o aparelho alcança saindo do inglês (os mesmos do `opus-mt` direto). */
 export const ALVOS_DO_INGLES: ReadonlySet<string> = new Set(['pt', 'es', 'fr', 'it', 'de']);
+
+/**
+ * Os idiomas com modelo do Bergamot (X→inglês) no CDN (`VITE_BERGAMOT_MODELOS_URL`): `paresDoCdn` de
+ * `src/gateway/adapters/modelosDoBergamot.json` (um teste prende as duas listas). Só entra onde existe a arquitetura
+ * `base-memory` (a menor): o A/B de 17/10/2026 mediu o Bergamot melhor que o opus-mt em todos eles.
+ */
+export const ORIGENS_DO_BERGAMOT_NO_CDN: ReadonlySet<string> = new Set([
+  'es',
+  'fr',
+  'de',
+  'it',
+  'ru',
+  'ar',
+  'ja',
+  'ko',
+  'zh',
+  'cs',
+  'fi',
+  'hu',
+  'nl',
+  'pl',
+  'th',
+]);

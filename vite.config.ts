@@ -62,14 +62,16 @@ function serveVadOnnxAssets(): Plugin {
  * `src/gateway/adapters/bergamotModelo.ts`. Roda no `config` (e não no `buildStart`, como o ORT)
  * porque o `define` precisa da resposta antes de o Vite montar a configuração. Build sem rede sai
  * com `false`: o app segue no opus-mt, sem prometer 31 MB que não estão no `dist`. Com
- * `VITE_BERGAMOT_MODELOS_URL` (R2/CDN) basta o motor, que sempre sai do próprio domínio.
+ * `VITE_BERGAMOT_MODELOS_URL` (R2/CDN) basta o motor, que sempre sai do próprio domínio — e liga também
+ * `__BERGAMOT_CDN__`: os outros 15 pares X→inglês (`paresDoCdn`), que o build NÃO baixa para o `public/`.
  * `BERGAMOT_BAIXAR=0` desliga (nem baixa, nem oferece).
  */
 function modelosDoBergamot(urlDosModelos: string | undefined): Plugin {
   return {
     name: 'modelos-do-bergamot',
     config() {
-      if (process.env.BERGAMOT_BAIXAR === '0') return { define: { __BERGAMOT_PT_EN__: 'false' } }
+      if (process.env.BERGAMOT_BAIXAR === '0')
+        return { define: { __BERGAMOT_PT_EN__: 'false', __BERGAMOT_CDN__: 'false' } }
       try {
         execFileSync(process.execPath, [path.join(__dirname, 'scripts', 'baixar-modelos-bergamot.mjs')], {
           stdio: 'inherit',
@@ -81,7 +83,13 @@ function modelosDoBergamot(urlDosModelos: string | undefined): Plugin {
         raiz: path.join(__dirname, 'public', 'modelos', 'bergamot'),
         exigirModelos: !urlDosModelos?.trim(),
       })
-      return { define: { __BERGAMOT_PT_EN__: JSON.stringify(disponivel) } }
+      /* Os outros pares (`paresDoCdn`) só existem no bucket: valem com a URL do CDN e o motor no build. */
+      return {
+        define: {
+          __BERGAMOT_PT_EN__: JSON.stringify(disponivel),
+          __BERGAMOT_CDN__: JSON.stringify(disponivel && !!urlDosModelos?.trim()),
+        },
+      }
     },
   }
 }

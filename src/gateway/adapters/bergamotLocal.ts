@@ -4,10 +4,12 @@ import type { MtOptions, MtResult, TranslationProvider } from '../capabilities';
 import { gravarManifesto, MENSAGEM_DO_MANIFESTO } from '../modelManifest';
 import {
   bergamotOferecido,
+  idDoBergamot,
   lembrarFalhaDoBergamot,
   type ParDoBergamot,
   parDoBergamot,
   parDoId,
+  parDoPivo,
   planoDaPagina,
 } from './bergamotModelo';
 import type { MensagemDoWorker, MensagemParaOWorker, MotivoDaFalha } from './bergamotWorker';
@@ -32,18 +34,25 @@ export class BergamotLocal implements TranslationProvider {
   readonly cost = 'free' as const;
   readonly label = 'Bergamot local (on-device)';
 
-  private worker: Worker | null = null;
-  private pendentes = new Map<string, { resolve: (t: string[]) => void; reject: (e: Error) => void }>();
+  /** UM worker por par: o motor guarda um modelo só (o heap do WASM, ~550 MB, vai junto com ele). */
+  private workers = new Map<ParDoBergamot, Worker>();
+  private pendentes = new Map<
+    string,
+    { par: ParDoBergamot; resolve: (t: string[]) => void; reject: (e: Error) => void }
+  >();
   private prontos = new Set<ParDoBergamot>();
   private emCarga = new Set<ParDoBergamot>();
-  /** Falhou NESTA sessão (qualquer motivo): daqui em diante o par vai ao opus-mt. */
+  /** Pares que falharam NESTA sessão (qualquer motivo): daqui em diante vão ao opus-mt. */
+  private falhouNoPar = new Set<ParDoBergamot>();
+  /** O MOTOR falhou nesta sessão (WASM que não abre): vale para todos os pares. */
   private falhou = false;
   private onProgress: AoProgresso | null = null;
   private prontidao = new Set<(modelo: string) => void>();
   private falhasDeCarga = new Set<(modelo: string, motivo: MotivoDaFalha) => void>();
 
   supports(src: string | null, tgt: string): boolean {
-    return !this.falhou && bergamotOferecido(src, tgt);
+    const par = parDoBergamot(src, tgt);
+    return !this.falhou && !!par && !this.falhouNoPar.has(par) && bergamotOferecido(src, tgt);
   }
 
   aoFicarPronto(fn: (modelo: string) => void): () => void {
@@ -65,30 +74,39 @@ export class BergamotLocal implements TranslationProvider {
     /* CANCELAMENTO, não falha: a tradução que estava em voo quando a captura soltou os modelos não
        interessa mais — e uma falha faria o composto cair no opus-mt, que começaria a baixar 113 MB
        justo quando a memória está sendo devolvida. */
-    this.encerrar(new ChamadaCancelada('tradutor local liberado'));
+    for (const par of [...this.workers.keys()]) this.encerrar(par, new ChamadaCancelada('tradutor local liberado'));
   }
 
-  private encerrar(motivo: Error): void {
-    const w = this.worker;
-    this.worker = null;
+  /** Encerra o worker de UM par e rejeita o que ele tinha em voo. */
+  private encerrar(par: ParDoBergamot, motivo: Error): void {
+    const w = this.workers.get(par);
+    this.workers.delete(par);
     try {
       w?.postMessage({ type: 'descartar' } satisfies MensagemParaOWorker);
       w?.terminate();
     } catch {
       /* já morto */
     }
-    this.prontos.clear();
-    this.emCarga.clear();
-    for (const p of this.pendentes.values()) p.reject(motivo);
-    this.pendentes.clear();
+    this.prontos.delete(par);
+    this.emCarga.delete(par);
+    for (const [id, p] of this.pendentes) {
+      if (p.par !== par) continue;
+      p.reject(motivo);
+      this.pendentes.delete(id);
+    }
   }
 
   /** A carga não deu: o Bergamot sai desta sessão, e quem espera é avisado (o composto cai no opus-mt). */
   private falhar(modelo: string, motivo: MotivoDaFalha, mensagem: string): void {
-    this.falhou = true;
-    if (motivo === 'motor') lembrarFalhaDoBergamot(mensagem);
+    const par = parDoId(modelo) ?? 'pt-en';
+    this.falhouNoPar.add(par);
+    // Só o MOTOR (WASM que não abre) tira todos os pares; um modelo que não monta ou não baixa tira só o seu.
+    if (motivo === 'motor') {
+      this.falhou = true;
+      lembrarFalhaDoBergamot(mensagem);
+    }
     console.warn(`[bergamot] ${modelo} indisponível (${motivo}): ${mensagem} — o opus-mt assume o par`);
-    this.encerrar(new Error(`Bergamot indisponível (${motivo})`));
+    this.encerrar(par, new Error(`Bergamot indisponível (${motivo})`));
     for (const fn of this.falhasDeCarga) {
       try {
         fn(modelo, motivo);
@@ -98,8 +116,9 @@ export class BergamotLocal implements TranslationProvider {
     }
   }
 
-  private ensureWorker(): Worker {
-    if (this.worker) return this.worker;
+  private ensureWorker(par: ParDoBergamot): Worker {
+    const existente = this.workers.get(par);
+    if (existente) return existente;
     const w = new Worker(new URL('./bergamotWorker.ts', import.meta.url), { type: 'module' });
     w.onmessage = (ev: MessageEvent) => {
       const m = ev.data as MensagemDoWorker | { type: typeof MENSAGEM_DO_MANIFESTO; manifesto: never };
@@ -152,24 +171,23 @@ export class BergamotLocal implements TranslationProvider {
             /* Erro do MOTOR numa frase: o WASM pode ter abortado (o heap não é confiável depois
                disso). O Bergamot sai da sessão e esta frase já vai ao opus-mt (o composto). */
             p.reject(new Error(m.message || 'Bergamot: erro na tradução'));
-            this.falhar('bergamot/pt-en', 'motor', m.message || 'erro na tradução');
+            this.falhar(idDoBergamot(p.par), 'motor', m.message || 'erro na tradução');
           }
         }
       }
     };
     w.onerror = (ev: ErrorEvent) => {
       // O script do worker não abriu (deploy incompleto, rede): não é "este navegador não roda".
-      const carregava = [...this.emCarga][0];
-      this.falhar(carregava ? `bergamot/${carregava}` : 'bergamot/pt-en', 'rede', ev.message || 'worker quebrou');
+      this.falhar(idDoBergamot(par), 'rede', ev.message || 'worker quebrou');
     };
-    this.worker = w;
+    this.workers.set(par, w);
     return w;
   }
 
   private pedirCarga(par: ParDoBergamot): void {
     if (this.prontos.has(par) || this.emCarga.has(par)) return;
     this.emCarga.add(par);
-    this.ensureWorker().postMessage({ type: 'carregar', plano: planoDaPagina(par) } satisfies MensagemParaOWorker);
+    this.ensureWorker(par).postMessage({ type: 'carregar', plano: planoDaPagina(par) } satisfies MensagemParaOWorker);
   }
 
   preload(src: string, tgt: string, onProgress?: AoProgresso): void {
@@ -196,9 +214,9 @@ export class BergamotLocal implements TranslationProvider {
       throw new MotorAindaCarregando(this.id, 'Bergamot ainda carregando');
     }
     const id = Math.random().toString(36).slice(2);
-    const worker = this.ensureWorker();
+    const worker = this.ensureWorker(par);
     const [traduzido] = await new Promise<string[]>((resolve, reject) => {
-      this.pendentes.set(id, { resolve, reject });
+      this.pendentes.set(id, { par, resolve, reject });
       worker.postMessage({
         type: 'traduzir',
         id,
@@ -212,8 +230,8 @@ export class BergamotLocal implements TranslationProvider {
 }
 
 /**
- * O TRADUTOR LOCAL do perfil (binding `opus-mt-local`): Bergamot no pt→en, opus-mt no resto — e o
- * opus-mt de RESERVA do pt→en.
+ * O TRADUTOR LOCAL do perfil (binding `opus-mt-local`): Bergamot no pt→en e no `X→en` dos idiomas do CDN (e como
+ * primeira perna de `X→alvo` pelo inglês), opus-mt no resto — e o opus-mt de RESERVA de tudo isso.
  *
  * POR QUE UM COMPOSTO, e não um binding a mais na cadeia. Com os dois lado a lado na cascata do
  * gateway, o `MotorAindaCarregando` do Bergamot (baixando) passaria a vez ao opus-mt, que dispararia
@@ -237,6 +255,8 @@ export class TradutorLocalComBergamot implements TranslationProvider {
 
   /** A barra de cada par, para a reserva continuar a mesma quando o Bergamot cai. */
   private progressoDoPar = new Map<ParDoBergamot, AoProgresso | undefined>();
+  /** O alvo pedido junto com cada par (o pivô `X→en→alvo` pede a reserva do opus-mt para o alvo, não para o inglês). */
+  private alvoDoPar = new Map<ParDoBergamot, string>();
   private falhasDeCarga = new Set<(modelo: string) => void>();
 
   constructor(
@@ -261,7 +281,8 @@ export class TradutorLocalComBergamot implements TranslationProvider {
   private cairNaReserva(modelo: string): void {
     const par = parDoId(modelo);
     if (!par) return;
-    const [src, tgt] = par.split('-');
+    const [src] = par.split('-');
+    const tgt = this.alvoDoPar.get(par) ?? 'en';
     if (!this.opus.supports(src, tgt)) {
       this.avisarFalha(modelo);
       return;
@@ -277,7 +298,18 @@ export class TradutorLocalComBergamot implements TranslationProvider {
     const par = parDoBergamot(src, tgt);
     if (par && this.bergamot.supports(src, tgt)) {
       this.progressoDoPar.set(par, onProgress);
+      this.alvoDoPar.set(par, tgt);
       this.bergamot.preload(src, tgt, onProgress);
+      return;
+    }
+    // X→alvo pelo inglês: a primeira perna é do Bergamot, a segunda (en→alvo) do opus-mt, que já existia.
+    const pivo = parDoPivo(src, tgt);
+    if (pivo && this.bergamot.supports(src, 'en') && this.opus.supports('en', tgt)) {
+      this.progressoDoPar.set(pivo, onProgress);
+      this.alvoDoPar.set(pivo, tgt);
+      this.bergamot.preload(src, 'en', onProgress);
+      if (onProgress) this.opus.preload('en', tgt, onProgress);
+      else this.opus.preload('en', tgt);
       return;
     }
     // Os mesmos argumentos que o gateway passou (sem um `undefined` a mais): o opus-mt é o de sempre.
@@ -286,7 +318,11 @@ export class TradutorLocalComBergamot implements TranslationProvider {
   }
 
   async translate(text: string, src: string | null, tgt: string, opts?: MtOptions): Promise<MtResult> {
-    if (!this.bergamot.supports(src, tgt)) return this.opus.translate(text, src, tgt, opts);
+    if (!this.bergamot.supports(src, tgt)) {
+      if (src && parDoPivo(src, tgt) && this.bergamot.supports(src, 'en') && this.opus.supports('en', tgt))
+        return this.traduzirPeloPivo(text, src, tgt, opts);
+      return this.opus.translate(text, src, tgt, opts);
+    }
     try {
       return await this.bergamot.translate(text, src, tgt, opts);
     } catch (e) {
@@ -294,6 +330,26 @@ export class TradutorLocalComBergamot implements TranslationProvider {
       if (ehMotorCarregando(e) || ehCancelamento(e)) throw e;
       return this.opus.translate(text, src, tgt, opts);
     }
+  }
+
+  /**
+   * `X → inglês` no Bergamot e `inglês → alvo` no opus-mt. Enquanto a primeira perna carrega, a segunda já vai
+   * baixando (um parcial não dispara download). Erro do Bergamot na frase: ela inteira passa ao pivô do opus-mt.
+   */
+  private async traduzirPeloPivo(text: string, src: string, tgt: string, opts?: MtOptions): Promise<MtResult> {
+    let meio: MtResult;
+    try {
+      meio = await this.bergamot.translate(text, src, 'en', opts);
+    } catch (e) {
+      if (ehMotorCarregando(e)) {
+        if (!opts?.parcial) this.opus.preload('en', tgt);
+        throw e;
+      }
+      if (ehCancelamento(e)) throw e;
+      return this.opus.translate(text, src, tgt, opts);
+    }
+    const fim = await this.opus.translate(meio.text, 'en', tgt, opts);
+    return { text: fim.text, detectedSourceLang: src, engine: this.id };
   }
 
   aoFicarPronto(fn: (modelo: string) => void): () => void {

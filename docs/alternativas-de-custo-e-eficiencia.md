@@ -44,8 +44,11 @@ pt→en, +0,028 COMET, ~10× mais rápido), que só adotou o pt→en porque no *
 - **O que muda para o usuário:** no pivô (X→en→pt) o primeiro passo passa a ser o Bergamot. Para os 14 idiomas do pivô o download vai de
   ~226 MB para ~140 MB (o en→pt segue Opus-MT, em português do Brasil) e o primeiro passo fica 5–10× mais rápido; nos pares diretos
   es/fr/de/it→en o download cai ~70%.
-- **O que falta:** hospedar os modelos num CDN com CORS (o bucket da Mozilla só libera `localhost`; o R2 do dono ainda não está ativo), estender
-  `modelosDoBergamot.json`, o worker e a rota além do pt→en, e rodar a bancada completa. **Recomendado, depende do R2.**
+- **Já implementado (17/10/2026), falta só publicar no R2:** o app lê `paresDoCdn` de `modelosDoBergamot.json` (15 pares X→en, ~423 MB no
+  bucket), um worker por par, pivô X→en (Bergamot) + en→alvo (Opus-MT) e reserva no Opus-MT. Só liga com `VITE_BERGAMOT_MODELOS_URL`;
+  sem ela nada muda. Provado no Chromium com um servidor estático como CDN (ja/es/pt→en, 80–130 ms/frase). Passos do dono em
+  `docs/LANCAMENTO.md` (§2, passo 8). Atenção: o heap do WASM é ~550 MB por idioma carregado (743 MB no japonês), medido no desktop;
+  falta medir no celular. Falta ainda a bancada completa (COMET/FLEURS) e o gold de conversa.
 - O Bergamot NÃO tem par direto es→pt nem fr→pt (todos passam pelo inglês _[fonte]_).
 
 Descartados: NLLB-200 600M (~0,9 GB, sem ganho claro), madlad400 e TranslateGemma (pesados, sem build de navegador confirmado), Chrome
@@ -92,7 +95,7 @@ e a política de rota (`rota_inteligente`), ambas em modo sombra. Ligá-las é o
 
 ## 3. Prioridades
 
-1. **Bergamot para X→inglês** (impacto: −70% de download, 5–10× mais rápido, +7,9 de chrF++ no teste; depende do R2 e da bancada completa).
+1. **Bergamot para X→inglês** (impacto: −70% de download, 5–10× mais rápido, +7,9 de chrF++ no teste; implementado; depende de o dono publicar no R2, e da bancada completa).
 2. **Ligar a porta de qualidade e a política de rota** (nuvem só quando o aparelho falha): é a única alavanca que corta de verdade as horas de nuvem.
 3. **Medir** o acerto do cache de tradução e a taxa de escalonamento, antes de qualquer outra coisa.
 4. SenseVoice-Small para CJK no grátis (testar com fala real); normalização do chinês (aprovar a dependência).

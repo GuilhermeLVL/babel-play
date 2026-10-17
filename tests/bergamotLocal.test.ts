@@ -146,6 +146,67 @@ describe('pt→en prefere o Bergamot', () => {
   })
 })
 
+describe('X→en e X→alvo com os modelos do CDN', () => {
+  beforeEach(() => {
+    vi.stubGlobal('__BERGAMOT_CDN__', true)
+  })
+
+  it('ja→en: um worker POR PAR, com o plano do ja-en (a URL do CDN vem do plano)', async () => {
+    const { local } = await montar()
+    local.preload('ja', 'en')
+    local.preload('pt', 'en')
+    const [a, b] = WorkerFalso.de('bergamot')
+    expect(a.recebidas[0]).toMatchObject({ type: 'carregar', plano: { par: 'ja-en' } })
+    expect(b.recebidas[0]).toMatchObject({ type: 'carregar', plano: { par: 'pt-en' } })
+    expect(WorkerFalso.de('opus')).toHaveLength(0)
+  })
+
+  it('sem o CDN no build (`__BERGAMOT_CDN__` falso): ja→en volta ao opus-mt; pt→en segue no Bergamot', async () => {
+    vi.stubGlobal('__BERGAMOT_CDN__', false)
+    const { bergamot } = await montar()
+    expect(bergamot.supports('ja', 'en')).toBe(false)
+    expect(bergamot.supports('pt', 'en')).toBe(true)
+  })
+
+  it('ja→pt: a primeira perna é do Bergamot e a segunda (en→pt) do opus-mt, que já vai baixando', async () => {
+    const { local } = await montar()
+    await expect(local.translate('おはよう', 'ja', 'pt')).rejects.toMatchObject({ name: 'MotorAindaCarregando' })
+    expect(WorkerFalso.de('bergamot')[0].recebidas[0]).toMatchObject({ plano: { par: 'ja-en' } })
+    expect(WorkerFalso.de('opus')[0].recebidas[0]).toMatchObject({ type: 'preload', src: 'en', tgt: 'pt' })
+  })
+
+  it('ja→pt pronto nas duas pernas: traduz pelo inglês', async () => {
+    const { local } = await montar()
+    local.preload('ja', 'pt')
+    WorkerFalso.de('bergamot')[0].responder({ type: 'ready', model: 'bergamot/ja-en' })
+    WorkerFalso.de('opus')[0].responder({ type: 'ready', model: 'Xenova/opus-mt-en-ROMANCE' })
+    const r = await local.translate('おはよう', 'ja', 'pt')
+    expect(r.text).toBe('[opus] [bergamot] おはよう')
+  })
+
+  it('o Bergamot do ja-en não carrega: a reserva é o pivô inteiro do opus-mt (ja→en→pt), sem tocar no pt-en', async () => {
+    const { local } = await montar()
+    local.preload('ja', 'pt')
+    WorkerFalso.de('bergamot')[0].responder({
+      type: 'loadError',
+      model: 'bergamot/ja-en',
+      motivo: 'rede',
+      message: 'x',
+    })
+    const pedidos = WorkerFalso.de('opus').flatMap((w) => w.recebidas.map((m) => `${m.src}>${m.tgt}`))
+    expect(pedidos).toContain('ja>en')
+    expect(local.supports('pt', 'en')).toBe(true)
+    expect(local.bergamot.supports('pt', 'en')).toBe(true)
+  })
+
+  it('es→pt e en→ja não usam o Bergamot (o opus-mt direto escreve melhor)', async () => {
+    const { bergamot } = await montar()
+    expect(bergamot.supports('es', 'pt')).toBe(false)
+    expect(bergamot.supports('en', 'ja')).toBe(false)
+    expect(bergamot.supports('es', 'en')).toBe(true)
+  })
+})
+
 describe('en→pt não usa o Bergamot', () => {
   it('preload e tradução vão ao opus-mt (en-ROMANCE com >>pt_br<<)', async () => {
     const { local, bergamot } = await montar()

@@ -21,12 +21,21 @@
  * Os números (bytes, sha256, id da execução de treino) vêm de `modelosDoBergamot.json`, a MESMA
  * fonte que o script de build lê: um só lugar para trocar de modelo.
  */
-import { bergamotVenceNoPar } from '../../core/harness/roteadorDeTraducao';
+import { ALVOS_DO_INGLES, modeloParaOIngles, ORIGENS_DO_BERGAMOT_NO_CDN } from '../../core/traducao/viaIngles';
 import modelos from './modelosDoBergamot.json';
 
 declare const __BERGAMOT_PT_EN__: boolean | undefined;
+declare const __BERGAMOT_CDN__: boolean | undefined;
 
-export type ParDoBergamot = keyof typeof modelos.pares;
+/**
+ * Todos os pares que o app conhece: `pares` vem EMBUTIDO no build (pt→en) e `paresDoCdn` só existe no bucket
+ * (`VITE_BERGAMOT_MODELOS_URL`, enchido por `scripts/modelos/publicar-bergamot-no-r2.ts`). O mesmo formato.
+ */
+const PARES = { ...modelos.pares, ...modelos.paresDoCdn };
+type ConfigDoPar = (typeof modelos.pares)['pt-en'];
+const configDoPar = (par: ParDoBergamot): ConfigDoPar => (PARES as Record<string, ConfigDoPar>)[par];
+
+export type ParDoBergamot = keyof typeof modelos.pares | keyof typeof modelos.paresDoCdn;
 export type ChaveDoArquivo = 'modelo' | 'lex' | 'vocab';
 
 /** Id do modelo no manifesto e no Cache Storage (as URLs sempre contêm `bergamot/<par>`). */
@@ -35,15 +44,37 @@ export const ID_DO_BERGAMOT_PT_EN = idDoBergamot('pt-en');
 
 export const VERSAO_DO_MOTOR: string = modelos.motor.versao;
 
-/** O par do Bergamot para esta direção, ou `null` (só pt→en — a decisão da bancada). */
+const baseDoIdioma = (l: string): string => l.toLowerCase().split(/[-_]/)[0] ?? '';
+
+/**
+ * O par do Bergamot que traduz ESTA direção de uma vez, ou `null`: pt→en (bancada Etapa 5) e `X→en` dos idiomas
+ * do CDN (A/B de 17/10/2026: chrF++ 77,3 contra 69,3 do opus-mt, 5–10× mais rápido, ~3× menor). Saindo do inglês
+ * o Bergamot não entra (o opus-mt escreve melhor o português do Brasil); `X→alvo` passa pelo inglês (`parDoPivo`).
+ */
 export function parDoBergamot(src: string | null, tgt: string): ParDoBergamot | null {
-  return src && bergamotVenceNoPar(src, tgt) ? 'pt-en' : null;
+  if (!src) return null;
+  const s = baseDoIdioma(src);
+  if (baseDoIdioma(tgt) !== 'en') return null;
+  if (s === 'pt') return 'pt-en';
+  return ORIGENS_DO_BERGAMOT_NO_CDN.has(s) ? (`${s}-en` as ParDoBergamot) : null;
+}
+
+/**
+ * A perna `X→en` de um par que passa pelo inglês (a outra, `en→alvo`, é do opus-mt). Só os idiomas que o opus-mt
+ * já cobria saindo do inglês (`MODELOS_PARA_O_INGLES`): es/fr/it/de têm modelo direto até o português e ficam como estavam.
+ */
+export function parDoPivo(src: string | null, tgt: string): ParDoBergamot | null {
+  if (!src) return null;
+  const s = baseDoIdioma(src);
+  const t = baseDoIdioma(tgt);
+  if (t === 'en' || t === s || !ALVOS_DO_INGLES.has(t) || !modeloParaOIngles(s)) return null;
+  return parDoBergamot(s, 'en');
 }
 
 /** O id do manifesto quando o `modelId` é de um par do Bergamot; `null` para os outros. */
 export function parDoId(modelId: string): ParDoBergamot | null {
   const par = /^bergamot\/(.+)$/.exec(modelId)?.[1];
-  return par && par in modelos.pares ? (par as ParDoBergamot) : null;
+  return par && Object.hasOwn(PARES, par) ? (par as ParDoBergamot) : null;
 }
 
 /**
@@ -52,7 +83,7 @@ export function parDoId(modelId: string): ParDoBergamot | null {
  * de download usa o teto, para nunca prometer menos do que baixa — a mesma regra do opus-mt.
  */
 export function bytesDoDownload(par: ParDoBergamot): number {
-  const arquivos = Object.values(modelos.pares[par].arquivos).reduce((soma, a) => soma + a.bytes, 0);
+  const arquivos = Object.values(configDoPar(par).arquivos).reduce((soma, a) => soma + a.bytes, 0);
   return arquivos + modelos.motor.wasm.bytes + modelos.motor.cola.bytes;
 }
 
@@ -62,13 +93,21 @@ export const mbDoDownload = (par: ParDoBergamot): number => Math.ceil(bytesDoDow
 /** A versão fixada do par (o id da execução de treino): é o que "Procurar atualização" compara. */
 export function revisaoFixaDoModelo(modelId: string): string | null {
   const par = parDoId(modelId);
-  return par ? modelos.pares[par].execucao : null;
+  return par ? configDoPar(par).execucao : null;
 }
 
 /** O build embutiu os modelos (ou um CDN para eles)? Fora do Vite (testes, Node) é `false`. */
 export function bergamotNoBuild(): boolean {
   return typeof __BERGAMOT_PT_EN__ === 'boolean' && __BERGAMOT_PT_EN__;
 }
+
+/** O build aponta para o CDN dos outros pares (`VITE_BERGAMOT_MODELOS_URL`)? Sem ele só o pt→en existe. */
+export function bergamotCdnNoBuild(): boolean {
+  return typeof __BERGAMOT_CDN__ === 'boolean' && __BERGAMOT_CDN__;
+}
+
+/** Este par está disponível no build (embutido, ou no CDN)? */
+export const parNoBuild = (par: ParDoBergamot): boolean => (par === 'pt-en' ? bergamotNoBuild() : bergamotCdnNoBuild());
 
 /** O navegador tem o que o worker usa. Sem `DecompressionStream` (Safari < 16.4) não há como abrir o `.gz`. */
 export function ambienteRodaBergamot(g: typeof globalThis = globalThis): boolean {
@@ -113,7 +152,8 @@ export function lembrarFalhaDoBergamot(motivo: string): void {
 
 /** O Bergamot atende esta direção neste aparelho? (ver o topo do arquivo) */
 export function bergamotOferecido(src: string | null, tgt: string): boolean {
-  return !!parDoBergamot(src, tgt) && bergamotNoBuild() && ambienteRodaBergamot() && !bergamotFalhouNesteAparelho();
+  const par = parDoBergamot(src, tgt);
+  return !!par && parNoBuild(par) && ambienteRodaBergamot() && !bergamotFalhouNesteAparelho();
 }
 
 export interface ArquivoDaCarga {
@@ -152,13 +192,13 @@ export function planoDeCarga(
   par: ParDoBergamot,
   opcoes: { origem: string; baseDoApp?: string; baseDosModelos?: string },
 ): PlanoDeCarga {
-  const cfg = modelos.pares[par];
+  const cfg = configDoPar(par);
   const app = new URL(opcoes.baseDoApp ?? '/', opcoes.origem).href;
   const baseModelos = opcoes.baseDosModelos?.trim()
     ? semBarraNoFim(new URL(opcoes.baseDosModelos.trim(), app).href)
     : semBarraNoFim(new URL('modelos', app).href);
   const motor = new URL(`modelos/bergamot/motor-${VERSAO_DO_MOTOR}/`, app).href;
-  const arquivos = (Object.entries(cfg.arquivos) as [ChaveDoArquivo, (typeof cfg.arquivos)['modelo']][]).map(
+  const arquivos = (Object.entries(cfg.arquivos) as [ChaveDoArquivo, ConfigDoPar['arquivos']['modelo']][]).map(
     ([chave, a]) => ({
       chave,
       url: `${baseModelos}/bergamot/${par}/${cfg.execucao}/${a.nome}`,

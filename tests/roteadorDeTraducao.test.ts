@@ -214,3 +214,25 @@ describe('routeMt — degraus sem IA (M0–M2)', () => {
     ])
   })
 })
+
+describe('Bergamot nos idiomas do CDN', () => {
+  const motoresLocais = (origem: string, destino: string) =>
+    routeMt(base({ texto: 'こんにちは、元気ですか', origem, destino }))
+      .degraus.filter((d) => d.degrau === 'local')
+      .map((d) => d.motor)
+
+  it('X→en vai primeiro ao Bergamot, com o opus-mt de reserva', () => {
+    expect(motoresLocais('ja', 'en')).toEqual(['bergamot-local', 'opus-mt-local'])
+    expect(motoresLocais('es-ES', 'en')).toEqual(['bergamot-local', 'opus-mt-local'])
+  })
+
+  it('X→alvo que passa pelo inglês também (a primeira perna é do Bergamot)', () => {
+    expect(motoresLocais('ja', 'pt-BR')).toEqual(['bergamot-local', 'opus-mt-local'])
+  })
+
+  it('es→pt, en→X e idioma fora da lista não entram', () => {
+    expect(motoresLocais('es', 'pt')).toEqual(['opus-mt-local'])
+    expect(motoresLocais('en', 'ja')).toEqual(['opus-mt-local'])
+    expect(motoresLocais('tr', 'en')).toEqual(['opus-mt-local'])
+  })
+})

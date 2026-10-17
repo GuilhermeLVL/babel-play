@@ -153,6 +153,25 @@ describe('modelosDoBergamot.json — a fonte única', () => {
     }
   })
 
+  it('`paresDoCdn` tem o mesmo formato, e as origens do roteador são exatamente os pares publicados no CDN', async () => {
+    const { ORIGENS_DO_BERGAMOT_NO_CDN } = await import('../src/core/traducao/viaIngles')
+    const cdn = modelos.paresDoCdn as Record<string, (typeof modelos.pares)['pt-en']>
+    expect(
+      Object.keys(cdn)
+        .map((p) => p.replace(/-en$/, ''))
+        .sort(),
+    ).toEqual([...ORIGENS_DO_BERGAMOT_NO_CDN].sort())
+    for (const [par, cfg] of Object.entries(cdn)) {
+      expect(par).toMatch(/^[a-z]{2}-en$/)
+      expect(cfg.caminhoNaOrigem).toContain(cfg.execucao)
+      for (const a of Object.values(cfg.arquivos)) {
+        // Sem o limite de 25 MiB do Pages: o bucket (R2) guarda o arquivo inteiro.
+        expect(a.sha256).toMatch(/^[0-9a-f]{64}$/)
+        expect(a.bytes).toBeGreaterThan(0)
+      }
+    }
+  })
+
   it('o hash do modelo descomprimido é o que a bancada mediu (scripts/eval-fala/bancada/bergamot.mjs)', () => {
     expect(modelos.pares['pt-en'].arquivos.modelo.sha256Descomprimido).toBe(
       '7b854f1ec5a485dd33efd7c1bc01dd7d5a57f566957c5e47722af333f0ce9157',

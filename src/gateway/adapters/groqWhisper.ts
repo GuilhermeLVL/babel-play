@@ -29,6 +29,41 @@ export interface GroqWhisperConfig {
   endpoint?: string;
 }
 
+/** Quantas vezes se tenta de novo quando a vaga em voo está ocupada. */
+const RETENTATIVAS_EM_VOO = 2;
+
+/** Quanto esperar antes de tentar de novo, se o 429 é "vaga em voo ocupada"; `null` em qualquer outra recusa. Teto de 2 s. */
+async function esperaDaVagaEmVoo(res: Response): Promise<number | null> {
+  try {
+    const corpo = (await res.clone().json()) as {
+      code?: unknown;
+      detalhes?: { motivo?: unknown; retryAfter?: unknown };
+    };
+    if (corpo?.code !== 'nuvem_ocupada' || corpo.detalhes?.motivo !== 'em_voo') return null;
+    const doCabecalho = Number(res.headers?.get?.('retry-after'));
+    const segundos =
+      Number.isFinite(doCabecalho) && doCabecalho > 0 ? doCabecalho : Number(corpo.detalhes?.retryAfter) || 1;
+    return Math.min(2, Math.max(1, segundos)) * 1000 + Math.floor(Math.random() * 250);
+  } catch {
+    return null;
+  }
+}
+
+/** Dorme `ms`, e acorda antes se quem pediu desistir (a fala continuou e este trecho foi cancelado). */
+function dormir(ms: number, sinal?: AbortSignal): Promise<void> {
+  return new Promise((resolver) => {
+    const id = setTimeout(resolver, ms);
+    sinal?.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(id);
+        resolver();
+      },
+      { once: true },
+    );
+  });
+}
+
 export class GroqWhisperStt implements SttProvider {
   readonly id = 'groq-whisper';
   readonly runtime = 'proxy' as const;
@@ -114,7 +149,23 @@ export class GroqWhisperStt implements SttProvider {
         signal: opts?.signal,
       };
       // No Quest (site estático) é `fetch` direto à função do Pages: o `apiFetch` ali responde em memória.
-      res = noQuest ? await fetch(ENDPOINT_DA_NUVEM_DO_QUEST, pedido) : await apiFetch(this.endpoint, pedido);
+      const chamar = () => (noQuest ? fetch(ENDPOINT_DA_NUVEM_DO_QUEST, pedido) : apiFetch(this.endpoint, pedido));
+      res = await chamar();
+      /* A VAGA EM VOO ESTAVA OCUPADA (429 `nuvem_ocupada`, motivo `em_voo`): a admissão deixa UMA transcrição por pessoa
+         ao mesmo tempo, e a captura dupla (microfone + som do sistema) manda dois trechos juntos. O outro acaba em 1 a
+         2 s (medido: 0,7 a 2,9 s no provedor); esperar e tentar de novo, no máximo DUAS vezes, custa 1 a 2,5 s, contra
+         os 8 s do modelo local (e o texto pior dele). Outro 429, ou a terceira recusa, segue o caminho de sempre:
+         pausa e cai no local. */
+      for (
+        let tentativa = 0;
+        tentativa < RETENTATIVAS_EM_VOO && res.status === 429 && !opts?.signal?.aborted;
+        tentativa++
+      ) {
+        const espera = await esperaDaVagaEmVoo(res);
+        if (espera === null) break;
+        await dormir(espera, opts?.signal);
+        res = await chamar();
+      }
     } catch (e) {
       // Rede caída também é falha da nuvem (acorda a reserva preguiçosa); cancelamento não é.
       if ((e as Error)?.name !== 'AbortError') avisarFalhaDaNuvemDoStt();

@@ -103,6 +103,71 @@ describe('STT de nuvem (groq-whisper)', () => {
     await expect(a.transcribePcm(pcm, 16_000)).resolves.toMatchObject({ text: 'olá mundo' })
   })
 
+  /* A CAPTURA DUPLA manda dois trechos juntos e a admissão deixa UMA transcrição em voo por pessoa: o segundo recebe
+     429 `nuvem_ocupada/em_voo` com Retry-After 1. Esperar e tentar UMA vez custa ~1 s; o modelo local, 8 s e pior. */
+  const emVoo = () =>
+    new Response(
+      JSON.stringify({ error: 'cheia', code: 'nuvem_ocupada', detalhes: { motivo: 'em_voo', retryAfter: 1 } }),
+      {
+        status: 429,
+        headers: { 'content-type': 'application/json', 'retry-after': '1' },
+      },
+    )
+
+  it('429 em_voo: espera o Retry-After, tenta de novo e entrega o texto da nuvem', async () => {
+    const a = new GroqWhisperStt({ model: 'whisper-large-v3-turbo' })
+    api.mockResolvedValueOnce(emVoo())
+    api.mockResolvedValueOnce(new Response(JSON.stringify({ text: 'olá mundo', language: 'pt' }), { status: 200 }))
+    const pronto = a.transcribePcm(pcm, 16_000)
+    await vi.advanceTimersByTimeAsync(1_300)
+    await expect(pronto).resolves.toMatchObject({ text: 'olá mundo' })
+    expect(api).toHaveBeenCalledTimes(2)
+    expect(a.isAvailable()).toBe(true) // não pausou: o provedor não estava fora
+  })
+
+  it('429 em_voo na 1ª tentativa e na 2ª: a 3ª entrega o texto (o outro canal demora 1 a 2 s)', async () => {
+    const a = new GroqWhisperStt({ model: 'whisper-large-v3-turbo' })
+    api.mockResolvedValueOnce(emVoo())
+    api.mockResolvedValueOnce(emVoo())
+    api.mockResolvedValueOnce(new Response(JSON.stringify({ text: 'olá mundo', language: 'pt' }), { status: 200 }))
+    const pronto = a.transcribePcm(pcm, 16_000)
+    await vi.advanceTimersByTimeAsync(3_000)
+    await expect(pronto).resolves.toMatchObject({ text: 'olá mundo' })
+    expect(api).toHaveBeenCalledTimes(3)
+  })
+
+  it('429 em_voo três vezes: cai no caminho de sempre (pausa e erro para o gateway usar o local)', async () => {
+    const a = new GroqWhisperStt({ model: 'whisper-large-v3-turbo' })
+    api.mockResolvedValueOnce(emVoo())
+    api.mockResolvedValueOnce(emVoo())
+    api.mockResolvedValueOnce(emVoo())
+    const pronto = a.transcribePcm(pcm, 16_000).catch((e) => e)
+    await vi.advanceTimersByTimeAsync(3_000)
+    expect(await pronto).toMatchObject({ status: 429, code: 'nuvem_ocupada' })
+    expect(api).toHaveBeenCalledTimes(3) // DUAS novas tentativas, nunca um laço
+    expect(a.isAvailable()).toBe(false)
+  })
+
+  it('429 que não é em_voo (o balde do provedor) não espera nem repete', async () => {
+    const a = new GroqWhisperStt({ model: 'whisper-large-v3-turbo' })
+    api.mockResolvedValueOnce(ocupada('2'))
+    const erro = await a.transcribePcm(pcm, 16_000).catch((e) => e)
+    expect(erro).toMatchObject({ status: 429, code: 'nuvem_ocupada' })
+    expect(api).toHaveBeenCalledTimes(1)
+  })
+
+  it('cancelar durante a espera do em_voo acorda na hora (a tentativa seguinte já nasce abortada)', async () => {
+    const a = new GroqWhisperStt({ model: 'whisper-large-v3-turbo' })
+    const ctrl = new AbortController()
+    api.mockResolvedValueOnce(emVoo())
+    api.mockRejectedValueOnce(Object.assign(new Error('abortado'), { name: 'AbortError' }))
+    const pronto = a.transcribePcm(pcm, 16_000, { signal: ctrl.signal }).catch((e) => e)
+    await vi.advanceTimersByTimeAsync(10)
+    ctrl.abort()
+    await vi.advanceTimersByTimeAsync(10)
+    expect(await pronto).toMatchObject({ name: 'AbortError' })
+  })
+
   it('402 e 503 também pausam; um 500 isolado não', async () => {
     const a = new GroqWhisperStt({ model: 'whisper-large-v3-turbo' })
     api.mockResolvedValueOnce(new Response('{}', { status: 500 }))

@@ -107,12 +107,17 @@ describe('a tela pronta (o Intérprete abre direto na conversa)', () => {
       'Falar',
       'Parar voz',
     ])
+    // Antes de qualquer fala não há o que repetir nem voz a parar: os dois guardam o lugar, ocultos.
+    expect([...baixo.querySelectorAll('.int-acoes > .int-ib')].map((b) => b.hasAttribute('data-oculto'))).toEqual([
+      true,
+      true,
+    ])
     expect([...raiz.querySelectorAll('.int-esq > button')].map((b) => b.getAttribute('aria-label'))).toEqual([
       'Trocar os lados',
       'Modo automático: o app reconhece quem fala qual idioma',
       'Ver a conversa em lista',
     ])
-    expect(raiz.querySelectorAll('.px-int-idioma')).toHaveLength(2)
+    expect(raiz.querySelectorAll('.int-idioma-btn')).toHaveLength(2)
     // No celular a conversa não declara layout: é o frente a frente de sempre.
     expect(raiz.hasAttribute('data-layout')).toBe(false)
   })
@@ -187,11 +192,12 @@ describe('a tela pronta (o Intérprete abre direto na conversa)', () => {
 
   it('quem tem o automático começa nele: os botões viram "Ouvir" e o toque pede a escuta', () => {
     const { aoComecar } = pagina({ automatico: 'disponivel' })
-    expect(screen.getByTestId('falar-meu').textContent).toBe('Ouvir')
+    expect(screen.getByTestId('escuta-automatica').textContent).toBe('Ouvir')
+    expect(screen.queryByTestId('falar-meu')).toBeNull()
     expect(screen.getByTestId('aviso-do-interprete').textContent).toBe(
       'Automático ligado: é só conversar. O app reconhece quem fala qual idioma.',
     )
-    fireEvent.click(screen.getByTestId('falar-meu'))
+    fireEvent.click(screen.getByTestId('escuta-automatica'))
     expect(aoComecar).toHaveBeenCalledOnce()
     expect(tomarPedidoDaConversa()).toBe('ouvir')
   })

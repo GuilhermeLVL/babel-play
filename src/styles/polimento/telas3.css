@@ -86,8 +86,6 @@ html .q-palco.px-personalizar > * { flex: 0 0 auto; min-height: auto; }
 .px-pronto-miolo p { margin: 0; color: var(--ink-muted); font-weight: 600; line-height: 1.4; }
 .px-pronto .q-historico { display: flex; }
 .px-pronto .cel-ponto { animation: none !important; opacity: 0.4; }
-.px-int-idioma { min-height: 32px !important; padding: 0 8px !important; vertical-align: middle; }
-.px-int-idioma svg { width: 16px; height: 16px; }
 @media (max-width: 720px) {
   /* Enquanto não está gravando, a barra de navegação continua lá: dá para sair sem gravar nada. */
   html[data-px='on'] .q-casca:has(.px-pronto) .q-trilho { display: flex !important; }

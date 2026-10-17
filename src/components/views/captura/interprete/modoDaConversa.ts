@@ -26,3 +26,23 @@ export function guardarModo(modo: ModoDaConversa) {
     /* sem armazenamento: a escolha vale só nesta tela */
   }
 }
+
+/* "DETECTAR" O IDIOMA DA OUTRA PESSOA: a escolha fica neste aparelho, como o modo. */
+const CHAVE_DO_DETECTAR = 'babel.interprete.detectarOutro';
+
+export function detectarOutroGuardado(): boolean {
+  try {
+    return localStorage.getItem(CHAVE_DO_DETECTAR) === 'sim';
+  } catch {
+    return false;
+  }
+}
+
+export function guardarDetectarOutro(ligado: boolean) {
+  try {
+    if (ligado) localStorage.setItem(CHAVE_DO_DETECTAR, 'sim');
+    else localStorage.removeItem(CHAVE_DO_DETECTAR);
+  } catch {
+    /* sem armazenamento: a escolha vale só nesta tela */
+  }
+}

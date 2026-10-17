@@ -14,6 +14,11 @@
  *      e a resposta do dono vai para essa língua, até a outra pessoa voltar ao idioma combinado;
  *   4. sem evidência: a conversa alterna — fala agora quem não falou por último (o dono primeiro).
  *
+ * "DETECTAR" (pedido do dono, 17/10): o idioma da outra pessoa pode vir VAZIO. Aí qualquer idioma medido
+ * que não é o meu é dela, sem os limiares do terceiro (não há um combinado a defender), e ele fica em
+ * `estrangeiro` como o idioma detectado. Antes de detectar, a minha fala não tem para onde ir: traduz
+ * para o próprio idioma, que o tradutor trata como "sem tradução".
+ *
  * O ESTADO (quem falou por último, o terceiro idioma em uso) é de quem chama: o controle do
  * intérprete o guarda por conversa. Aqui entra um e sai o próximo.
  */
@@ -80,16 +85,18 @@ export function decidirLadoDaFala(
   const outro = baseLang(idiomas.outro);
   const motor = baseLang(pistas.idiomaDoMotor || '');
   const texto = baseLang(pistas.idiomaDoTexto || '');
+  const detectar = !outro;
   const doPar = (l: string) => !!l && (l === meu || l === outro);
 
   const doMeuLado = (palpite: boolean): DecisaoDoLado => {
-    /* A minha resposta vai para a língua que a outra pessoa está falando AGORA. */
-    const para = estado.estrangeiro ?? outro;
+    /* A minha resposta vai para a língua que a outra pessoa está falando AGORA; sem nenhuma (o "Detectar"
+       antes da primeira fala dela), fica no meu idioma: sem tradução. */
+    const para = estado.estrangeiro ?? (outro || meu);
     return {
       lado: 'meu',
       de: meu,
       para,
-      fala: estado.estrangeiro ? bcp47(estado.estrangeiro) : bcp47(idiomas.outro),
+      fala: estado.estrangeiro ? bcp47(estado.estrangeiro) : bcp47(idiomas.outro || idiomas.meu),
       terceiro: false,
       palpite,
       estado: { ...estado, ultimoLado: 'meu' },
@@ -102,13 +109,23 @@ export function decidirLadoDaFala(
     fala: bcp47(idiomas.meu),
     terceiro,
     palpite,
-    /* O idioma combinado de volta apaga o terceiro; um terceiro novo o troca. */
-    estado: { ultimoLado: 'outro', estrangeiro: terceiro ? de : null },
+    /* O idioma combinado de volta apaga o terceiro; um terceiro novo o troca. No "Detectar", o idioma
+       dela é sempre o guardado. */
+    estado: { ultimoLado: 'outro', estrangeiro: terceiro || detectar ? de : null },
   });
   const pelo = (l: string) => (l === meu ? doMeuLado(false) : doOutroLado(outro, false, false));
 
   if (doPar(motor)) return pelo(motor);
   if (doPar(texto)) return pelo(texto);
+
+  if (detectar) {
+    const dela = motor || texto;
+    if (dela) return doOutroLado(dela, false, false);
+    /* Sem evidência: alterna só se já há o idioma dela para onde traduzir. */
+    return estado.ultimoLado === 'meu' && estado.estrangeiro
+      ? doOutroLado(estado.estrangeiro, false, true)
+      : doMeuLado(true);
+  }
 
   const terceiroForte =
     !!motor &&

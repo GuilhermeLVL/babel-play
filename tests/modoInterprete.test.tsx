@@ -163,25 +163,27 @@ describe('ModoInterprete', () => {
 describe('ModoInterprete: automático', () => {
   const botaoDoModo = () => screen.getByRole('button', { name: /Modo automático/ })
 
-  it('com o automático no plano, ele já vem escolhido: "Ouvir a conversa", nenhum "Falar" por lado', () => {
+  it('com o automático no plano, ele já vem escolhido: UM botão "Ouvir a conversa", nenhum por lado', () => {
     montar({ automatico: 'disponivel' })
     expect(botaoDoModo().getAttribute('aria-pressed')).toBe('true')
-    expect(screen.getByTestId('falar-meu').getAttribute('aria-label')).toBe('Ouvir a conversa')
+    expect(screen.getByTestId('escuta-automatica').getAttribute('aria-label')).toBe('Ouvir a conversa')
+    expect(screen.getAllByRole('button', { name: 'Ouvir a conversa' })).toHaveLength(1)
+    expect(screen.queryByTestId('falar-meu')).toBeNull()
     expect(screen.queryByRole('button', { name: /Falar em/ })).toBeNull()
   })
 
   it('"Ouvir a conversa" abre o microfone sem lado; o botão vira "Parar de ouvir a conversa"', () => {
     const { abrir, ponte } = montar({ automatico: 'disponivel' })
-    fireEvent.click(screen.getByTestId('falar-meu'))
+    fireEvent.click(screen.getByTestId('escuta-automatica'))
     expect(abrir).toHaveBeenCalledTimes(1)
     expect(ponte.atual!.automatico()).toBe(true)
     expect(ponte.atual!.direcao()).toBeNull()
-    expect(screen.getByTestId('falar-meu').getAttribute('aria-label')).toBe('Parar de ouvir a conversa')
+    expect(screen.getByTestId('escuta-automatica').getAttribute('aria-label')).toBe('Parar de ouvir a conversa')
   })
 
   it('a fala do outro (inglês medido) aparece traduzida na MINHA metade, é lida em português, e o microfone reabre', () => {
     const { abrir, ponte, trocarFalas } = montar({ automatico: 'disponivel' })
-    fireEvent.click(screen.getByTestId('falar-meu'))
+    fireEvent.click(screen.getByTestId('escuta-automatica'))
     act(() => ponte.atual!.aoFimDaFala({ segId: 'a1', source: 'mic' }))
     act(() => void ponte.atual!.ladoDaFala('a1', { idiomaDoMotor: 'en', idiomaDoTexto: '', audioMs: 2500 }))
     trocarFalas([{ id: 'a1', originalText: 'good morning', translatedText: 'bom dia', lado: 'outro' }])
@@ -206,10 +208,30 @@ describe('ModoInterprete: automático', () => {
 
   it('trocar de modo no meio da escuta fecha o microfone', () => {
     const { fechar } = montar({ automatico: 'disponivel' })
-    fireEvent.click(screen.getByTestId('falar-meu'))
+    fireEvent.click(screen.getByTestId('escuta-automatica'))
     fireEvent.click(botaoDoModo())
     expect(fechar).toHaveBeenCalled()
     expect(fase()).toBe('parado')
+  })
+
+  it('"Detectar": o modo fica no automático, a metade dela diz "Detectando…" e, depois da 1ª fala, o idioma medido', () => {
+    const { ponte, trocarFalas } = montar({
+      automatico: 'disponivel',
+      extra: { idiomas: { meu: 'pt-BR', outro: '' } },
+    })
+    expect(screen.getByTestId('interprete-outro').textContent).toContain('Detectando…')
+    expect(screen.getByTestId('interprete-meu').textContent).toContain('Deixe a outra pessoa falar primeiro')
+    fireEvent.click(botaoDoModo())
+    expect(botaoDoModo().getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByTestId('aviso-do-interprete').textContent).toBe(
+      'Para falar por toque, escolha o idioma da outra pessoa.',
+    )
+
+    fireEvent.click(screen.getByTestId('escuta-automatica'))
+    act(() => ponte.atual!.aoFimDaFala({ segId: 'd1', source: 'mic' }))
+    act(() => void ponte.atual!.ladoDaFala('d1', { idiomaDoMotor: 'en', idiomaDoTexto: '', audioMs: 900 }))
+    trocarFalas([{ id: 'd1', originalText: 'hello', translatedText: 'olá', lado: 'outro' }])
+    expect(screen.getByTestId('interprete-outro').textContent).toMatch(/English.*detectado/)
   })
 
   it('sem o automático no plano (Grátis): o modo é por toque, e o botão diz que é do Premium sem ligar nada', () => {

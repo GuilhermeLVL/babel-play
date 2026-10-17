@@ -225,6 +225,7 @@ const OfertaDaNuvemDeAlivio = lazyComRecarga(() => import('./captura/OfertaDaNuv
 /* A Tradução Nuance da fala no computador (D4 da Fase D): o menu do balão abre um diálogo com ela. */
 const NuanceDaFrase = lazyComRecarga(() => import('./captura/nuance/NuanceDaFrase'));
 /* O MODO INTÉRPRETE (E3 da Fase E): a tela, o controle e a fila de voz chegam só quando alguém entra nele. */
+import { detectarOutroGuardado, guardarDetectarOutro } from './captura/interprete/modoDaConversa';
 import type { AutomaticoNoPlano } from './captura/interprete/ModoInterprete';
 
 const ModoInterprete = lazyComRecarga(() => import('./captura/interprete/ModoInterprete'));
@@ -724,6 +725,15 @@ export default function LiveCapture({
      "Continuar gravando" devolve a tela. A ponte liga o pipeline, as fontes e a tradução ao controle
      da tela aberta; sem tela, ela é `null` e nada muda. */
   const [interpreteAberto, setInterpreteAberto] = useState(false);
+  /* "DETECTAR" O IDIOMA DA OUTRA PESSOA (pedido do dono, 17/10): só com o automático no plano, que é quem
+     mede o idioma de cada fala. Com ele, o idioma dela chega VAZIO à conversa e é descoberto na primeira
+     fala (`interpreteAutomatico.ts`). A escolha é do intérprete, à parte do "Detectar" da captura. */
+  const [detectarOutroEscolhido, setDetectarOutro] = useState(detectarOutroGuardado);
+  const detectarOutro = detectarOutroEscolhido && !!getEntitlements().interpreteAutomatico;
+  const detectarOutroRef = useRef(detectarOutro);
+  detectarOutroRef.current = detectarOutro;
+  /** O idioma da outra pessoa como a conversa o recebe: vazio no "Detectar". */
+  const outroDoInterprete = detectarOutro ? '' : targetLang;
   const sessaoDoInterpreteRef = useRef(false);
   /* A CONVERSA VIRTUAL (Intérprete v3, Fase 4): em vez da tela dividida, a lista em bolhas com o áudio do
      computador ("Eles") e o microfone ("Você") juntos, direção fixa por fonte. `virtualComMicRef`: de fone,
@@ -1396,7 +1406,10 @@ export default function LiveCapture({
       /* O motor do microfone serve aos DOIS idiomas da conversa (e não só ao "Eu falo"). */
       idiomasDaConversa: () =>
         captureScenarioRef.current === 'interprete'
-          ? idiomasDaConversa({ meu: sourceLangRef.current, outro: targetLangRef.current })
+          ? idiomasDaConversa({
+              meu: sourceLangRef.current,
+              outro: detectarOutroRef.current ? '' : targetLangRef.current,
+            })
           : null,
       /* No automático o microfone vai ao Whisper, que mede o idioma (a Web Speech não detecta). */
       interpreteAutomatico: () => ponteDoInterpreteRef.current?.automatico() ?? false,
@@ -2021,9 +2034,9 @@ export default function LiveCapture({
       if (quem === 'fonte') setSourceLang(code);
       else setTargetLang(code);
     };
-  /* NO INTÉRPRETE, cada lado DECLARA o seu idioma (nada de "Detectar": o microfone abre no idioma de
-     quem tocou). "Você fala" é o `sourceLang` e "A outra pessoa fala", o `targetLang` — os mesmos da
-     conversa na Captura, então a escolha vale nas duas telas. */
+  /* NO INTÉRPRETE, "Você fala" é o `sourceLang` e "A outra pessoa fala", o `targetLang` — os mesmos da
+     conversa na Captura, então a escolha vale nas duas telas. A outra pessoa pode ficar em "Detectar"
+     (só com o automático no plano): o idioma escolhido continua por baixo, para quando ele for desligado. */
   const ladosDoPar: [Lado, Lado] =
     entrada === 'interprete'
       ? [
@@ -2037,9 +2050,12 @@ export default function LiveCapture({
           {
             rotulo: t('A outra pessoa fala'),
             codigo: targetLang,
-            auto: false,
-            aceitaAuto: false,
-            aoEscolher: escolherIdioma('alvo'),
+            auto: detectarOutro,
+            aceitaAuto: !!getEntitlements().interpreteAutomatico,
+            aoEscolher: escolherIdioma('alvo', (auto) => {
+              setDetectarOutro(auto);
+              guardarDetectarOutro(auto);
+            }),
           },
         ]
       : captureScenario === 'media'
@@ -2565,9 +2581,9 @@ export default function LiveCapture({
     handleStartOrResume();
     if (isRecordingRef.current) setIsRecording(true);
   };
-  /** O par do intérprete: dois idiomas diferentes. Com "Detectar", vale o idioma que está por baixo
-      dele: no intérprete cada lado DECLARA o seu, e o microfone abre nele. */
-  const interpretePossivel = !mesmoIdioma;
+  /** O par do intérprete: dois idiomas diferentes, ou o da outra pessoa em "Detectar" (o automático o
+      descobre na primeira fala dela). */
+  const interpretePossivel = detectarOutro || !mesmoIdioma;
   /** A entrada pelo menu Intérprete: a mesma folha do início, se houver o que decidir. */
   const entrarNoInterprete = () => {
     if (abrindoCaptura || isRecordingRef.current || !interpretePossivel) return;
@@ -3606,7 +3622,7 @@ export default function LiveCapture({
         <div className={noQuest ? 'flex-1 flex flex-col min-h-0' : 'rolagem flex-1'}>
           <Suspense fallback={null}>
             <PaginaDoInterprete
-              idiomas={{ meu: sourceLang, outro: targetLang }}
+              idiomas={{ meu: sourceLang, outro: outroDoInterprete }}
               possivel={interpretePossivel}
               sessaoAberta={isRecording || showSaveModal}
               aviso={
@@ -3652,10 +3668,17 @@ export default function LiveCapture({
           lados={ladosDoPar}
           resumo={
             entrada === 'interprete'
-              ? t('Você fala {meu} e ouve a outra pessoa em {meu}; ela fala {outro} e ouve você em {outro}.', {
-                  meu: langLabel(sourceLang),
-                  outro: langLabel(targetLang),
-                })
+              ? detectarOutro
+                ? t(
+                    'Você fala {meu}. O app descobre o idioma da outra pessoa quando ela falar e traduz nos dois sentidos.',
+                    {
+                      meu: langLabel(sourceLang),
+                    },
+                  )
+                : t('Você fala {meu} e ouve a outra pessoa em {meu}; ela fala {outro} e ouve você em {outro}.', {
+                    meu: langLabel(sourceLang),
+                    outro: langLabel(targetLang),
+                  })
               : resumoDaDirecao()
           }
           avisos={avisosDoPar}
@@ -4023,7 +4046,7 @@ export default function LiveCapture({
       {interpreteAberto && !virtualAberta && (
         <Suspense fallback={null}>
           <ModoInterprete
-            idiomas={{ meu: sourceLang, outro: targetLang }}
+            idiomas={{ meu: sourceLang, outro: outroDoInterprete }}
             falas={speechSegments}
             microfone={{
               abrir: () => {

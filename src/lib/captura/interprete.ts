@@ -127,7 +127,8 @@ export function direcaoDoLado(lado: LadoDoInterprete, idiomas: IdiomasDoInterpre
  * `fala` que `direcaoDoLado` dá a cada lado. É para eles que o motor do microfone é decidido.
  */
 export function idiomasDaConversa(idiomas: IdiomasDoInterprete): string[] {
-  return [bcp47(idiomas.meu), bcp47(idiomas.outro)];
+  /* No "Detectar", o idioma do outro chega vazio: o motor serve só ao meu (e mede o dele). */
+  return [idiomas.meu, idiomas.outro].filter(Boolean).map(bcp47);
 }
 
 /**

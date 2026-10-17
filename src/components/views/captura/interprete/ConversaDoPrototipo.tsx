@@ -1,6 +1,7 @@
 import '../../../../styles/modoInterprete.css';
 
 import {
+  ArrowLeftRight,
   ArrowUpDown,
   ChevronDown,
   Download,
@@ -59,6 +60,25 @@ export interface MetadeDaConversa {
   icone?: LucideIcon;
   /** O botão grande só mostra o estado (o som do computador já está sendo ouvido): não há o que tocar. */
   travado?: boolean;
+  /** A metade mostra uma tradução: "Repetir" tem o que repetir. Ausente = não mostra. */
+  podeRepetir?: boolean;
+  /** A voz lê a tradução desta metade agora: "Parar voz" tem o que parar. Ausente = não mostra. */
+  lendo?: boolean;
+  /** A tecla que fala por esta metade no computador ("1", "2"); aparece embaixo do botão. */
+  atalho?: string;
+}
+
+/**
+ * A ESCUTA DO AUTOMÁTICO, num botão só: no automático ninguém toca em lado, e dois botões iguais (um por
+ * metade) eram dois controles para uma ação. No celular ele fica na faixa do meio, ao alcance das duas
+ * pessoas; no computador, centrado embaixo das colunas, com a tecla.
+ */
+export interface EscutaDaConversa {
+  ouvindo: boolean;
+  rotulo: string;
+  rotuloParaLeitor: string;
+  aoTocar: () => void;
+  atalho?: string;
 }
 
 /** Um botão de modo a mais na faixa, ao lado de "Conversa" (a conversa virtual: detectar idioma, ler em voz alta). */
@@ -109,6 +129,7 @@ function Palavra({ texto, animar }: { texto: string; animar: boolean }) {
 export default function ConversaDoPrototipo({
   cima,
   baixo,
+  escuta,
   automatico,
   modos,
   lista,
@@ -132,6 +153,8 @@ export default function ConversaDoPrototipo({
 }: {
   cima: MetadeDaConversa;
   baixo: MetadeDaConversa;
+  /** O automático: um botão de escuta no lugar do "Falar" de cada metade. */
+  escuta?: EscutaDaConversa | undefined;
   /** O botão "Automático": ausente onde não há plano que o tenha; com cadeado para quem não o tem. */
   automatico?: { ligado: boolean; comCadeado: boolean; aoTocar: (botao: HTMLElement) => void };
   /** Os modos que só uma das conversas tem (a virtual), no mesmo botão da faixa. */
@@ -264,20 +287,19 @@ export default function ConversaDoPrototipo({
     >
       <p className="int-idioma">
         <span className="int-quem">{quem(m.dono)}</span>
-        {' · '}
-        {m.nome}
-        {aoEscolherIdioma && (
-          <>
-            {' '}
-            <button
-              type="button"
-              className="int-modo px-int-idioma"
-              aria-label={t('Trocar este idioma')}
-              onClick={aoEscolherIdioma}
-            >
-              <ChevronDown aria-hidden />
-            </button>
-          </>
+        {aoEscolherIdioma ? (
+          /* O NOME DO IDIOMA É O BOTÃO: o alvo é a palavra que a pessoa procura, e não um chevron ao lado. */
+          <button
+            type="button"
+            className="int-idioma-btn"
+            aria-label={t('{idioma}. Trocar este idioma', { idioma: m.nome })}
+            onClick={aoEscolherIdioma}
+          >
+            <span>{m.nome}</span>
+            <ChevronDown aria-hidden />
+          </button>
+        ) : (
+          <span className="int-idioma-nome">{m.nome}</span>
         )}
       </p>
       <div className="int-frase" aria-live="polite">
@@ -287,39 +309,81 @@ export default function ConversaDoPrototipo({
         {m.status}
       </p>
       <div className="int-acoes">
+        {/* "Repetir" e "Parar voz" só quando servem; escondidos (e não fora do fluxo) para o botão do
+            meio não pular de lugar quando aparecem. */}
         {!m.semVoz && (
-          <button type="button" className="int-ib" aria-label={t('Repetir a tradução')} onClick={aoRepetir}>
+          <button
+            type="button"
+            className="int-ib"
+            aria-label={t('Repetir a tradução')}
+            onClick={aoRepetir}
+            data-oculto={m.podeRepetir ? undefined : ''}
+            tabIndex={m.podeRepetir ? undefined : -1}
+            aria-hidden={m.podeRepetir ? undefined : true}
+          >
             <RotateCcw aria-hidden />
             <span>{t('Repetir')}</span>
           </button>
         )}
-        <button
-          type="button"
-          className="int-falar"
-          data-ouvindo={m.ouvindo ? '' : undefined}
-          /* Parado, o botão é laranja: o cursor do app passa à cor de tinta sobre ele (`cursor.ts`). */
-          data-cursor={m.ouvindo ? undefined : 'tinta'}
-          aria-pressed={m.ouvindo}
-          aria-label={m.rotuloParaLeitor}
-          disabled={m.travado}
-          onClick={() => {
-            if (!m.ouvindo) sentir('grava'); /* `telas2.js:213` */
-            m.aoFalar();
-          }}
-          data-sfx="none"
-          data-testid={`falar-${m.lado}`}
-        >
-          {m.icone ? <m.icone aria-hidden /> : <Mic aria-hidden />}
-          <span aria-hidden>{m.rotulo}</span>
-        </button>
+        {!escuta && (
+          <button
+            type="button"
+            className="int-falar"
+            data-ouvindo={m.ouvindo ? '' : undefined}
+            /* Parado, o botão é laranja: o cursor do app passa à cor de tinta sobre ele (`cursor.ts`). */
+            data-cursor={m.ouvindo ? undefined : 'tinta'}
+            aria-pressed={m.ouvindo}
+            aria-label={m.rotuloParaLeitor}
+            disabled={m.travado}
+            onClick={() => {
+              if (!m.ouvindo) sentir('grava'); /* `telas2.js:213` */
+              m.aoFalar();
+            }}
+            data-sfx="none"
+            data-testid={`falar-${m.lado}`}
+          >
+            {m.icone ? <m.icone aria-hidden /> : <Mic aria-hidden />}
+            <span aria-hidden>{m.rotulo}</span>
+            {emColunas && m.atalho && <kbd aria-hidden>{m.atalho}</kbd>}
+          </button>
+        )}
         {!m.semVoz && (
-          <button type="button" className="int-ib" aria-label={t('Parar a voz')} onClick={aoPararVoz}>
+          <button
+            type="button"
+            className="int-ib"
+            aria-label={t('Parar a voz')}
+            onClick={aoPararVoz}
+            data-oculto={m.lendo ? undefined : ''}
+            tabIndex={m.lendo ? undefined : -1}
+            aria-hidden={m.lendo ? undefined : true}
+          >
             <Volume2 aria-hidden />
             <span>{t('Parar voz')}</span>
           </button>
         )}
       </div>
     </section>
+  );
+
+  const botaoDeEscuta = escuta && (
+    <button
+      type="button"
+      className="int-falar int-escuta"
+      data-ouvindo={escuta.ouvindo ? '' : undefined}
+      data-cursor={escuta.ouvindo ? undefined : 'tinta'}
+      aria-pressed={escuta.ouvindo}
+      aria-label={escuta.rotuloParaLeitor}
+      onClick={() => {
+        if (!escuta.ouvindo) sentir('grava');
+        escuta.aoTocar();
+      }}
+      data-sfx="none"
+      data-testid="escuta-automatica"
+    >
+      <Mic aria-hidden />
+      <span aria-hidden>{escuta.rotulo}</span>
+      {emColunas && escuta.atalho && <kbd aria-hidden>{escuta.atalho}</kbd>}
+    </button>
   );
 
   return (
@@ -331,12 +395,13 @@ export default function ConversaDoPrototipo({
       data-testid={testid}
       data-fase={fase}
       data-layout={emColunas ? 'computador' : undefined}
+      data-escuta={escuta ? '' : undefined}
     >
       {metade(cima, true)}
       <div key="faixa" className="int-faixa" data-com-modo="">
         <div className="int-esq">
           <button type="button" className="int-ib peq" aria-label={t('Trocar os lados')} onClick={trocar}>
-            <ArrowUpDown aria-hidden />
+            {emColunas ? <ArrowLeftRight aria-hidden /> : <ArrowUpDown aria-hidden />}
           </button>
           {automatico && (
             <button
@@ -348,7 +413,9 @@ export default function ConversaDoPrototipo({
               data-testid="modo-automatico"
             >
               {automatico.comCadeado ? <Lock aria-hidden /> : <Languages aria-hidden />}
-              <span aria-hidden>{t('Automático')}</span>
+              <span className="int-modo-txt" aria-hidden>
+                {t('Automático')}
+              </span>
             </button>
           )}
           <button
@@ -395,6 +462,7 @@ export default function ConversaDoPrototipo({
             </button>
           )}
         </div>
+        {!emColunas && botaoDeEscuta}
         <div className="int-centro">
           {vozes ? (
             <button
@@ -471,6 +539,7 @@ export default function ConversaDoPrototipo({
         </section>
       )}
       {metade(baixo, false)}
+      {emColunas && botaoDeEscuta && <div className="int-base">{botaoDeEscuta}</div>}
       {children}
       {vozes && escolhendoVoz && <FolhaDasVozes lados={vozes.lados} aoFechar={() => setEscolhendoVoz(false)} />}
     </div>

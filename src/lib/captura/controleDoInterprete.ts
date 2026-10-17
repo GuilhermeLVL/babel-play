@@ -42,6 +42,11 @@ import type { TraducaoFinal } from './traducaoDaFala';
 export interface EstadoDoControle extends EstadoDoInterprete {
   /** A tradução sendo lida agora (a metade de quem OUVE mostra "Repetir" e "Parar voz"). */
   falando: ItemDeFala | null;
+  /**
+   * O idioma que o automático ouviu da outra pessoa fora do combinado (ISO-639-1): o detectado, no
+   * "Detectar", ou o terceiro idioma. `null` = o combinado, ou ainda nenhum. Zera quando a escuta recomeça.
+   */
+  detectado: string | null;
 }
 
 export interface OpcoesDoControle {
@@ -151,7 +156,7 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
   let cortandoParaTrecho = false;
   let trechos = 0;
 
-  const estado = (): EstadoDoControle => ({ ...maquina.estado(), falando });
+  const estado = (): EstadoDoControle => ({ ...maquina.estado(), falando, detectado: conversa.estrangeiro });
   const avisar = () => {
     if (!desligado) o.aoMudar?.(estado());
   };
@@ -291,7 +296,9 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
         m.trocados ? { meu: idiomas.outro, outro: idiomas.meu } : idiomas,
         conversa,
       );
+      const mudou = decisao.estado.estrangeiro !== conversa.estrangeiro;
       conversa = decisao.estado;
+      if (mudou) avisar();
       decisoes.set(segId, decisao);
       const fim = fins.get(segId);
       if (fim) fim.lado = decisao.lado;

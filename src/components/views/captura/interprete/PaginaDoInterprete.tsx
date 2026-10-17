@@ -122,16 +122,21 @@ export default function PaginaDoInterprete({
      primeiro toque, que a tradução dele fica em texto e como instalar a voz. */
   useVozesDoAparelho();
   const semVozDoIdioma = (idioma: string) => !semVoz && !vozDaNuvemDisponivel() && faltaVozNoAparelho(idioma);
-  const mudo = (idioma: string) => (semVoz && !(comVozDoSite && vozDoQuestFala(idioma))) || semVozDoIdioma(idioma);
+  const mudo = (idioma: string) =>
+    !!idioma && ((semVoz && !(comVozDoSite && vozDoQuestFala(idioma))) || semVozDoIdioma(idioma));
 
   const [lista, setLista] = useState(false);
   const [cadeado, setCadeado] = useState(false);
-  const [modo, setModo] = useState<ModoDaConversa>(() =>
+  const [modoEscolhido, setModo] = useState<ModoDaConversa>(() =>
     automatico === 'disponivel' ? (modoGuardado() ?? 'automatico') : 'toque',
   );
   useEffect(() => {
     if (automatico !== 'disponivel') setModo('toque');
   }, [automatico]);
+  /* "DETECTAR": o idioma da outra pessoa chega vazio; só o automático o descobre. */
+  const detectar = !idiomas.outro;
+  const [presoNoDetectar, setPresoNoDetectar] = useState(false);
+  const modo: ModoDaConversa = detectar ? 'automatico' : modoEscolhido;
   const noAutomatico = modo === 'automatico';
 
   const idiomaDe = (dono: LadoDoInterprete) => (dono === 'meu' ? idiomas.meu : idiomas.outro);
@@ -152,7 +157,7 @@ export default function PaginaDoInterprete({
   const metade = (lado: LadoDoInterprete): MetadeDaConversa => {
     const dono = tela.trocados ? outroLado(lado) : lado;
     const lang = idiomaDe(dono);
-    const nome = langLabel(lang);
+    const nome = detectar && dono === 'outro' ? t('Detectar automaticamente') : langLabel(lang);
     const semVozParaOOutro = mudo(idiomaDe(outroLado(dono)));
     return {
       lado,
@@ -161,13 +166,17 @@ export default function PaginaDoInterprete({
       nome,
       frase: {
         tipo: 'dica',
-        texto: semVozParaOOutro
-          ? noAutomatico
-            ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e mostra a tradução.')
-            : t('Toque em Falar e fale. A tradução aparece do outro lado, em texto.')
-          : noAutomatico
-            ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e lê a tradução em voz alta.')
-            : t('Toque em Falar e fale. A tradução aparece do outro lado e é lida em voz alta.'),
+        texto: detectar
+          ? dono === 'meu'
+            ? t('Toque em Ouvir. Deixe a outra pessoa falar primeiro: o app descobre o idioma dela.')
+            : t('Fale no seu idioma: o app descobre qual é e traduz.')
+          : semVozParaOOutro
+            ? noAutomatico
+              ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e mostra a tradução.')
+              : t('Toque em Falar e fale. A tradução aparece do outro lado, em texto.')
+            : noAutomatico
+              ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e lê a tradução em voz alta.')
+              : t('Toque em Falar e fale. A tradução aparece do outro lado e é lida em voz alta.'),
       },
       status: '',
       rotulo: noAutomatico ? t('Ouvir') : t('Falar'),
@@ -180,6 +189,7 @@ export default function PaginaDoInterprete({
         aoComecar();
       },
       semVoz: mudo(lang),
+      atalho: lado === 'meu' ? '1' : '2',
     };
   };
   const avisoDoCadeado = cadeado && automatico === 'premium';
@@ -190,6 +200,21 @@ export default function PaginaDoInterprete({
         <ConversaDoPrototipo
           cima={metade('outro')}
           baixo={metade('meu')}
+          escuta={
+            noAutomatico
+              ? {
+                  ouvindo: false,
+                  rotulo: t('Ouvir'),
+                  rotuloParaLeitor: t('Ouvir a conversa'),
+                  aoTocar: () => {
+                    abrirContextoDoClique();
+                    pedirConversa('ouvir');
+                    aoComecar();
+                  },
+                  atalho: '1',
+                }
+              : undefined
+          }
           {...(automatico !== 'oculto'
             ? {
                 automatico: {
@@ -198,6 +223,11 @@ export default function PaginaDoInterprete({
                   aoTocar: (botao: HTMLElement) => {
                     if (automatico !== 'disponivel') {
                       setCadeado(true);
+                      tremer(botao);
+                      return;
+                    }
+                    if (detectar) {
+                      setPresoNoDetectar(true);
                       tremer(botao);
                       return;
                     }
@@ -210,18 +240,22 @@ export default function PaginaDoInterprete({
             : {})}
           lista={{ aberta: lista, bolhas: [], aoAlternar: () => setLista((v) => !v), aoExportar: () => undefined }}
           voz={{ rotulo: rotuloDaVoz, natural: false, muda: mudos.length === 2 }}
-          vozes={semVoz ? undefined : { lados: ladosDaVoz(idiomas) }}
+          vozes={semVoz ? undefined : { lados: ladosDaVoz(idiomas).filter((l) => l.idioma) }}
           aviso={
             !possivel
               ? t('Escolha dois idiomas diferentes: um para você, outro para a outra pessoa.')
               : (aviso ??
-                (avisoDoCadeado
-                  ? t('O modo automático faz parte do Premium: o app reconhece sozinho quem fala qual idioma.')
-                  : idiomaSemVoz
-                    ? comoInstalarVoz(idiomaSemVoz)
-                    : noAutomatico
-                      ? t('Automático ligado: é só conversar. O app reconhece quem fala qual idioma.')
-                      : ''))
+                (presoNoDetectar && detectar
+                  ? t('Para falar por toque, escolha o idioma da outra pessoa.')
+                  : avisoDoCadeado
+                    ? t('O modo automático faz parte do Premium: o app reconhece sozinho quem fala qual idioma.')
+                    : idiomaSemVoz
+                      ? comoInstalarVoz(idiomaSemVoz)
+                      : detectar
+                        ? t('O app descobre o idioma da outra pessoa quando ela falar.')
+                        : noAutomatico
+                          ? t('Automático ligado: é só conversar. O app reconhece quem fala qual idioma.')
+                          : ''))
           }
           aoConhecerOPremium={avisoDoCadeado && possivel && !aviso ? aoConhecerOPremium : undefined}
           aoTrocarLados={() => mudarEstadoDaTela({ trocados: !tela.trocados })}

@@ -100,3 +100,53 @@ describe('decidirLadoDaFala: sem evidência, a conversa alterna', () => {
     expect(d.estado.ultimoLado).toBe('outro')
   })
 })
+
+/* "DETECTAR" (pedido do dono, 17/10): a outra pessoa sem idioma escolhido. A primeira fala medida fora do meu
+   idioma revela o dela, e a conversa segue com ele. */
+describe('decidirLadoDaFala: o idioma da outra pessoa detectado', () => {
+  const DETECTAR = { meu: 'pt-BR', outro: '' }
+
+  it('a primeira fala em outro idioma é da outra pessoa, mesmo curta, e vira o idioma dela', () => {
+    const d = decidirLadoDaFala(pistas({ idiomaDoMotor: 'en', audioMs: 700 }), DETECTAR, ESTADO_DO_AUTOMATICO)
+    expect(d).toMatchObject({ lado: 'outro', de: 'en', para: 'pt', fala: 'pt-BR', terceiro: false, palpite: false })
+    expect(d.estado).toEqual({ ultimoLado: 'outro', estrangeiro: 'en' })
+  })
+
+  it('o texto vale quando o motor não mediu nada', () => {
+    const d = decidirLadoDaFala(pistas({ idiomaDoTexto: 'es' }), DETECTAR, ESTADO_DO_AUTOMATICO)
+    expect(d).toMatchObject({ lado: 'outro', de: 'es', para: 'pt' })
+  })
+
+  it('a minha fala antes da detecção não tem para onde ir: fica no meu idioma, sem tradução', () => {
+    const d = decidirLadoDaFala(pistas({ idiomaDoMotor: 'pt' }), DETECTAR, ESTADO_DO_AUTOMATICO)
+    expect(d).toMatchObject({ lado: 'meu', de: 'pt', para: 'pt', palpite: false })
+    expect(d.estado.estrangeiro).toBeNull()
+  })
+
+  it('depois da detecção, a minha resposta vai para o idioma detectado', () => {
+    const primeira = decidirLadoDaFala(pistas({ idiomaDoMotor: 'en' }), DETECTAR, ESTADO_DO_AUTOMATICO)
+    const d = decidirLadoDaFala(pistas({ idiomaDoMotor: 'pt' }), DETECTAR, primeira.estado)
+    expect(d).toMatchObject({ lado: 'meu', de: 'pt', para: 'en', fala: 'en-US' })
+    expect(d.estado.estrangeiro).toBe('en')
+  })
+
+  it('a outra pessoa troca de idioma: o novo passa a valer', () => {
+    const en = decidirLadoDaFala(pistas({ idiomaDoMotor: 'en' }), DETECTAR, ESTADO_DO_AUTOMATICO)
+    const es = decidirLadoDaFala(pistas({ idiomaDoMotor: 'es', idiomaDoTexto: 'es' }), DETECTAR, en.estado)
+    expect(es).toMatchObject({ lado: 'outro', de: 'es', para: 'pt' })
+    expect(es.estado.estrangeiro).toBe('es')
+  })
+
+  it('sem evidência e sem idioma detectado: o meu lado, sem tradução', () => {
+    const depoisDeMim = decidirLadoDaFala(pistas({ idiomaDoMotor: 'pt' }), DETECTAR, ESTADO_DO_AUTOMATICO)
+    const d = decidirLadoDaFala(pistas(), DETECTAR, depoisDeMim.estado)
+    expect(d).toMatchObject({ lado: 'meu', para: 'pt', palpite: true })
+  })
+
+  it('sem evidência com o idioma já detectado: alterna como sempre', () => {
+    const en = decidirLadoDaFala(pistas({ idiomaDoMotor: 'en' }), DETECTAR, ESTADO_DO_AUTOMATICO)
+    const eu = decidirLadoDaFala(pistas({ idiomaDoMotor: 'pt' }), DETECTAR, en.estado)
+    const d = decidirLadoDaFala(pistas(), DETECTAR, eu.estado)
+    expect(d).toMatchObject({ lado: 'outro', de: 'en', para: 'pt', palpite: true })
+  })
+})

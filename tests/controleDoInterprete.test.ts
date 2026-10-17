@@ -115,7 +115,10 @@ describe('criarControleDoInterprete', () => {
     const etapa = vi.fn()
     const { controle } = montar({
       registrarEtapa: etapa,
-      etapasDaFala: () => ({ stt: { ms: 400, motor: 'groq-whisper', audioMs: 3000 }, mt: { ms: 700, motor: 'server-llm-mt' } }),
+      etapasDaFala: () => ({
+        stt: { ms: 400, motor: 'groq-whisper', audioMs: 3000 },
+        mt: { ms: 700, motor: 'server-llm-mt' },
+      }),
     })
     controle.tocar('meu')
     controle.aoFimDaFala({ segId: 's1', source: 'mic', lado: 'meu' })
@@ -333,6 +336,18 @@ describe('automático: o controle ouve a conversa sem ninguém tocar em lado', (
     expect(m.controle.ladoDaFala('d', pistas('pt'))).toMatchObject({ lado: 'meu', para: 'es' })
     m.controle.aoTraduzirFinal({ ...traduzida('d', 'buenos días'), de: 'pt', para: 'es' })
     expect(String(m.voz.falas[1].opts.lang).toLowerCase().startsWith('es')).toBe(true)
+  })
+
+  it('"Detectar": o idioma da outra pessoa aparece no estado na primeira fala dela e zera ao recomeçar', () => {
+    const m = montar({ idiomas: () => ({ meu: 'pt-BR', outro: '' }) })
+    m.controle.ouvir()
+    expect(m.controle.estado().detectado).toBeNull()
+    m.controle.aoFimDaFala({ segId: 'e', source: 'mic' })
+    expect(m.controle.ladoDaFala('e', pistas('en'))).toMatchObject({ lado: 'outro', de: 'en', para: 'pt' })
+    expect(m.controle.estado().detectado).toBe('en')
+    m.controle.parar()
+    m.controle.ouvir()
+    expect(m.controle.estado().detectado).toBeNull()
   })
 
   it('"parar" fecha o microfone e o fim da voz não o reabre', () => {

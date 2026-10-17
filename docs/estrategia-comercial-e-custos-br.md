@@ -76,7 +76,7 @@ não viram oferta). Mensagens em português do Brasil, no tom de ajuda, com o fa
 
 1. Boas-vindas: "Assista do seu jeito. A legenda acompanha e você aprende sem pausar."
 2. Início do teste: "Suas primeiras 3 horas de nuvem são por nossa conta. Sem cartão."
-3. Saldo visível (hoje só na tela de Planos; **falta na captura**): "Você usou 2 h de 3. Quando acabar, a legenda continua no aparelho."
+3. Saldo visível (já existe: o chip "Nuvem: restam X de Y", com barra, e a folha de nível na captura, e o medidor na tela de Planos; aparecem com a venda dos planos v3 aberta, e **ainda não conferi no navegador com a venda aberta**): "Você usou 2 h de 3. Quando acabar, a legenda continua no aparelho."
 4. Valor percebido (depois de uma boa sessão): "Hoje você entendeu um episódio inteiro e salvou 23 palavras."
 5. Antes do fim do teste: "Seu teste acaba em 3 dias. Nada é cobrado sozinho; se quiser seguir com a nuvem, o Essencial é R$ 9,90."
 6. Preço em contexto: "Menos que um lanche por mês. Cancele em dois toques."
@@ -105,7 +105,7 @@ Para o lançamento pequeno os US$ 40 / 4 do exemplo servem; para ~1.000 ativos, 
 **Lacunas que o código ainda tem** (mapeadas em 17/10/2026): (a) roteamento por valor e por custo: a política de rota está em modo sombra
 (`rota_inteligente`), e `routeStt` ainda manda tudo à nuvem quando há nuvem, sem olhar plano nem custo; (b) teto em dólar por conta nos
 planos pagos (hoje só convidado e alívio); (c) cache de transcrição: não há (compatível com áudio pessoal); (d) aviso de fim do teste
-**por uso** (hoje só D-3 e D0); (e) saldo de horas na captura; (f) o canal do alerta (Alertmanager) é pendência do dono.
+**por uso** (hoje só D-3 e D0); (e) conferir no navegador o chip de saldo de nuvem com a venda dos planos v3 aberta (ele já existe no código); (f) o canal do alerta (Alertmanager) é pendência do dono.
 
 ## 7. O que medir (e o alerta de cada um)
 
@@ -123,7 +123,7 @@ planos pagos (hoje só convidado e alívio); (c) cache de transcrição: não h�
 
 **Antes de abrir a venda (P0):** (1) pôr o crédito no OpenRouter e ajustar `AI_BUDGET_*` ao §2; (2) Alertmanager (e-mail ou Telegram);
 (3) política de privacidade (provedor deixa de ser a Groq) e parecer jurídico; (4) medir o uso real no beta fechado.
-**Logo depois (P1):** abrir o anual com Pix e 12x; saldo de horas na captura; aviso de fim do teste por uso; teto em dólar por conta nos pagos.
+**Logo depois (P1):** abrir o anual com Pix e 12x; aviso de fim do teste por uso; teto em dólar por conta nos pagos.
 **Depois (P2):** roteamento por valor (usar a nuvem só quando o aparelho está ruim); "mais horas pelo mesmo preço"; canal de escolas e cursinhos; Pix Automático.
 
 ## 9. Riscos e o que não sei

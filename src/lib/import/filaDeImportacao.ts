@@ -15,6 +15,7 @@ import { createSession, importDocument, importWeb, importYoutube, uploadSessionA
 import type { OfflineProgress } from '../../gateway/offlineTranscribe';
 import { fetchLangConfig } from '../langConfig';
 import { buildDocumentSession, transcribeImportedAudio } from './buildSession';
+import { formatoDaLegenda, TAMANHO_MAXIMO_DA_LEGENDA_BYTES, textoDaLegenda } from './legendas';
 
 export type FonteDeImportacao = 'youtube' | 'doc' | 'web' | 'local' | 'texto';
 
@@ -99,6 +100,16 @@ async function executar(item: ItemDaFila): Promise<string> {
   }
   if (e.fonte === 'doc') {
     passo(25, 'Lendo o arquivo…');
+    /* LEGENDA (.srt, .vtt, .ass): lida AQUI, no navegador — sem servidor, sem nuvem, sem custo. O texto já existe. */
+    const formato = formatoDaLegenda(e.arquivo.name);
+    if (formato) {
+      if (e.arquivo.size > TAMANHO_MAXIMO_DA_LEGENDA_BYTES)
+        throw new Error('Esta legenda é grande demais (limite de 5 MB).');
+      passo(55, 'Extraindo as falas…');
+      const texto = textoDaLegenda(await e.arquivo.text(), formato);
+      const { recording } = await buildDocumentSession({ title: e.arquivo.name.replace(/\.[^.]+$/, ''), text: texto });
+      return recording.id;
+    }
     const doc = await importDocument(e.arquivo);
     passo(55, 'Extraindo o texto…');
     const { recording } = await buildDocumentSession({ title: doc.title, text: doc.text, langHint: doc.lang });

@@ -442,10 +442,15 @@ sessionsRouter.get('/:id/audio', async (req, res) => {
   let start = 0
   let end = size - 1
   if (range) {
-    const m = /bytes=(\d*)-(\d*)/.exec(range)
-    start = m && m[1] ? parseInt(m[1], 10) : 0
-    end = m && m[2] ? parseInt(m[2], 10) : size - 1
-    if (start >= size || end >= size) {
+    const m = /^bytes=(\d*)-(\d*)$/.exec(range)
+    if (m && !m[1] && m[2]) {
+      // `bytes=-N`: os N últimos bytes (antes era lido como 0-N).
+      start = Math.max(0, size - parseInt(m[2], 10))
+    } else {
+      start = m && m[1] ? parseInt(m[1], 10) : 0
+      end = m && m[2] ? parseInt(m[2], 10) : size - 1
+    }
+    if (!m || start >= size || end >= size || start > end) {
       res.status(416).setHeader('Content-Range', `bytes */${size}`)
       res.end()
       return

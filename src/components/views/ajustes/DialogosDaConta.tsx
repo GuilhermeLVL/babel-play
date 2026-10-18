@@ -101,6 +101,36 @@ async function conferirSenha(email: string, senha: string): Promise<boolean> {
   return (await auth.signInEmail(email, senha)).ok;
 }
 
+/** A conta entrou só pelo Google (sem identidade de e-mail)? Aí não há senha atual para conferir. */
+function useContaSemSenha(): boolean {
+  const [semSenha, setSemSenha] = useState(false);
+  useEffect(() => {
+    let vivo = true;
+    void supabase?.auth
+      .getUser()
+      .then(({ data }) => {
+        const ids = data.user?.identities;
+        if (vivo && ids && ids.length > 0 && !ids.some((i) => i.provider === 'email')) setSemSenha(true);
+      })
+      .catch(() => undefined);
+    return () => {
+      vivo = false;
+    };
+  }, []);
+  return semSenha;
+}
+
+function SemSenhaNaConta({ aoFechar }: { aoFechar: () => void }) {
+  return (
+    <Dialogo icone={Info} titulo="Conta entrou com o Google" aoFechar={aoFechar}>
+      <p className="sub">
+        Esta conta não tem senha do Babel Play: o e-mail e o acesso são os da sua conta Google. Para criar uma senha,
+        saia e use “Esqueci minha senha” na tela de entrada.
+      </p>
+    </Dialogo>
+  );
+}
+
 function TrocarEmail({ emailAtual, aoFechar }: { emailAtual: string; aoFechar: () => void }) {
   const [novo, setNovo] = useState('');
   const [senha, setSenha] = useState('');
@@ -420,6 +450,8 @@ export default function DialogosDaConta({
   aoMudar: () => void;
   aoIrParaPrivacidade: () => void;
 }) {
+  const semSenha = useContaSemSenha();
+  if ((qual === 'email' || qual === 'senha') && semSenha) return <SemSenhaNaConta aoFechar={aoFechar} />;
   if (qual === 'email') return <TrocarEmail emailAtual={email} aoFechar={aoFechar} />;
   if (qual === 'senha') return <TrocarSenha email={email} aoFechar={aoFechar} />;
   if (qual === '2fa') return <AtivarDuasEtapas aoFechar={aoFechar} aoAtivar={aoMudar} />;

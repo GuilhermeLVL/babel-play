@@ -50,6 +50,15 @@ import { armazenamentoDeMidia, AUDIO_DIR } from './sessions'
 
 export const importRouter = Router()
 
+/** O nome do arquivo vem codificado no cabeçalho; um `%` malformado é 400 do cliente, não um 500 nosso. */
+function nomeDoCabecalho(valor: string | undefined, padrao: string): string {
+  try {
+    return decodeURIComponent(valor || padrao)
+  } catch {
+    return padrao
+  }
+}
+
 /*
  * F4-03 — só ESTA rota grava arquivo. `/document` (30 MB) e `/anki` (200 MB) passam o corpo por um
  * temporário e devolvem o texto/as notas; nada delas fica no armazenamento, então não consomem cota.
@@ -288,7 +297,7 @@ importRouter.post('/anki', vagaDeCorpoGrande(), async (req: Request, res: Respon
     res.status(400).json({ error: 'arquivo vazio' })
     return
   }
-  const nome = decodeURIComponent(cab['x-filename'] || 'baralho')
+  const nome = nomeDoCabecalho(cab['x-filename'], 'baralho')
 
   // Leitura: se o ARQUIVO não abre (zip corrompido, formato desconhecido), nada foi criado ainda
   // no acervo — é só um 400, igual ao comportamento antigo.
@@ -629,7 +638,7 @@ importRouter.post('/document', vagaDeCorpoGrande(), async (req, res) => {
       res.status(400).json({ error: 'Arquivo vazio.' })
       return
     }
-    const filename = decodeURIComponent(cab['x-filename'] || 'documento')
+    const filename = nomeDoCabecalho(cab['x-filename'], 'documento')
     const mime = cab['content-type'] || ''
     res.json(await extractDocument(buf, filename, mime))
   } catch (err) {

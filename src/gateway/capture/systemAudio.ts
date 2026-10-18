@@ -1,4 +1,4 @@
-import type { MicVAD } from '@ricky0123/vad-web';
+import type { MicVAD, RealTimeVADOptions } from '@ricky0123/vad-web';
 
 import { apiFetch } from '../../data/api';
 import { navegadorSemAudioDaTela } from '../../lib/captura/navegadorSemAudioDaTela';
@@ -9,6 +9,7 @@ import { criarFimDeFala } from './fimDeFala';
 import { pararGravador } from './pararGravador';
 import { criarPisoDoSilencio } from './pisoDoSilencio';
 import { TAXA_DE_BITS_DA_GRAVACAO } from './taxaDeBits';
+import { type OpcoesDoVadEmWorker, VadEmWorker } from './vadEmWorker';
 
 /**
  * O VAD (`@ricky0123/vad-web` + `onnxruntime-web`, ~92 KB gzip) SOB DEMANDA. O import estático o
@@ -482,7 +483,7 @@ async function startCaptureFromStream(
    * forma síncrona durante o `new`, a referência cai na TDZ e a captura de áudio quebra em tempo de
    * execução — algo que nenhum teste daqui pega. Declarar antes e atribuir depois é imune a isso.
    */
-  let vad: MicVAD;
+  let vad: Pick<MicVAD, 'start' | 'pause'>;
 
   // Estado do enunciado em andamento (para partials + seq).
   let seqCounter = 0;
@@ -605,20 +606,24 @@ async function startCaptureFromStream(
   };
 
   vlog(label, 'criando Silero VAD sobre o áudio…');
-  /* A ABERTURA DO VAD TRAVA A TELA UMA VEZ, e não é travamento (A6c, medido em 30/09/2026): a 1ª sessão
-     do ORT da página instancia o WASM de 12 MB (`ort-wasm-simd-threaded.wasm`) na thread principal —
-     ~170 ms no desktop, ~880 ms com a CPU 4× mais lenta, sem script no LoAF. Com `env.wasm.proxy` ele
-     sai da thread principal (medido: 0 quadros longos), mas o vad-web reusa o tensor `sr` a cada quadro
-     e o proxy o transfere (DataCloneError no 2º quadro): é outra mudança. Até lá, o intervalo é marcado
-     e o vigia do regulador não o conta (`vigiaDoMainThread.ts`). */
+  /* A INFERÊNCIA DO SILERO RODA NUM WORKER (`vadEmWorker.ts`), e com ela a instanciação do WASM de 12 MB
+     que travava a tela uma vez na abertura (A6c, medido em 30/09/2026: ~170 ms no desktop, ~880 ms com a
+     CPU 4× mais lenta) e os quadros longos do ONNX durante a captura. O `MicVAD` da thread principal fica de
+     reserva; nele a abertura segue sendo esse quadro longo, e o intervalo é marcado para o vigia do
+     regulador não o contar (`vigiaDoMainThread.ts`). */
   const inicioDoVad = performance.now();
+  /* Em qual thread o Silero roda. 'worker': a inferência fica fora da thread principal (`vadEmWorker.ts`);
+     'principal': o `MicVAD` da biblioteca, o caminho de antes, que sobra de reserva. */
+  let ondeRoda: 'worker' | 'principal' = 'worker';
   try {
-    const { MicVAD } = await carregarVad();
-    vad = await MicVAD.new({
+    const vadWeb = await carregarVad();
+    const { MicVAD } = vadWeb;
+    const opcoesDoVad: Partial<RealTimeVADOptions> = {
       baseAssetPath: '/',
       onnxWASMBasePath: '/',
       /* 1 THREAD (orçamento global, `orcamentoDeThreads.ts`): o Silero roda o ONNX na thread principal,
-         e com o padrão do ORT ele abriria workers de pthread que a thread principal espera girando. */
+         e com o padrão do ORT ele abriria workers de pthread que a thread principal espera girando.
+         (Só vale no reserva; o worker do VAD também usa 1 thread.) */
       ortConfig: ortDoVadNumaThread,
       model: 'legacy', // usa /silero_vad_legacy.onnx
       // O contexto do clique (se veio): o VAD não cria o dele, e não o fecha (não é dele).
@@ -709,7 +714,17 @@ async function startCaptureFromStream(
         }
         resetUtterance();
       },
-    });
+    };
+    /* O worker é o caminho; se ele não sobe (sem Worker/AudioWorklet, modelo ou wasm que não carregam), o
+       `MicVAD` da thread principal assume com as MESMAS opções — nada do que se ouve ou se segmenta muda.
+       Nesse caso a abertura volta a ser o quadro longo conhecido (marcado mais abaixo). */
+    try {
+      vad = await VadEmWorker.new(opcoesDoVad as OpcoesDoVadEmWorker, vadWeb);
+    } catch (eWorker) {
+      vlog(label, 'VAD em worker indisponível, usando a thread principal:', String(eWorker));
+      ondeRoda = 'principal';
+      vad = await MicVAD.new(opcoesDoVad);
+    }
   } catch (e) {
     vlog(label, 'Silero VAD NÃO subiu:', String(e));
     await desfazerAbertura();
@@ -724,8 +739,8 @@ async function startCaptureFromStream(
   /* AQUECIMENTO do modelo de turno junto da abertura do VAD: baixa e prepara o ONNX sem enviar áudio nenhum.
      Desligada a chave, nada é carregado. */
   if (opcoes.fimDeFala?.ligado()) void modeloDeTurno?.aquecer();
-  marcarAberturaDoVad(inicioDoVad, performance.now());
-  vlog(label, 'VAD iniciado ✓');
+  if (ondeRoda === 'principal') marcarAberturaDoVad(inicioDoVad, performance.now());
+  vlog(label, 'VAD iniciado ✓ (' + ondeRoda + ')');
 
   // Tick de PARCIAIS: enquanto se fala, transcreve o buffer-até-agora (rolling partial).
   /* O PRIMEIRO PARCIAL SAI ASSIM QUE HÁ 0,6 s DE FALA, e não no próximo tique de 1,1 s. Medido na

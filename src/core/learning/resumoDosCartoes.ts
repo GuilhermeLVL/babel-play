@@ -27,6 +27,12 @@ export interface BaralhoNoResumo extends ContagemDeFila {
   id: string;
   /** Cartões no baralho (`in_deck`). */
   total: number;
+  /**
+   * A mesma linha repartida por idioma (base ISO; `''` = cartão sem idioma), SÓ quando o baralho mistura
+   * idiomas. A tela, com dois idiomas na conta, mostra os cartões do idioma do conteúdo; `linhaNoIdioma`
+   * escolhe a fatia para as três contagens baterem com as "palavras" do catálogo.
+   */
+  porIdioma?: Record<string, ContagemDeFila & { total: number }>;
 }
 
 /** Revisões e quantas foram lembradas (nota 2, 3 ou 4; "Errei" é a esquecida). */
@@ -76,7 +82,7 @@ export interface ResumoDosCartoes {
     /** As sessões com cartão, da mais recente para a mais antiga (no máximo 60). */
     sessoes: BaralhoNoResumo[];
     anki: BaralhoNoResumo[];
-    trilha: (ContagemDeFila & { total: number }) | null;
+    trilha: (ContagemDeFila & { total: number; porIdioma?: BaralhoNoResumo['porIdioma'] }) | null;
   };
 }
 
@@ -89,3 +95,16 @@ export const ESTABILIDADE_MADURA = 21;
 export const ERROS_DE_DIFICIL = 8;
 /** Quantas sessões o resumo lista. */
 export const MAXIMO_DE_SESSOES = 60;
+
+/**
+ * A linha de um baralho (sessão, Anki, Trilha) NO IDIOMA do conteúdo: o catálogo (`contarConteudo`) só
+ * conta os cartões do idioma quando a conta tem dois ou mais, então as três fases têm de sair da mesma
+ * fatia. Sem idioma, ou com o baralho num idioma só, a linha inteira.
+ */
+export function linhaNoIdioma<L extends ContagemDeFila & { total: number; porIdioma?: BaralhoNoResumo['porIdioma'] }>(
+  linha: L,
+  idioma: string,
+): ContagemDeFila & { total: number } {
+  if (!idioma || !linha.porIdioma) return linha;
+  return linha.porIdioma[idioma] ?? { total: 0, novas: 0, aprendendo: 0, revisar: 0 };
+}

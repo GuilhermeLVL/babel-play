@@ -295,6 +295,64 @@ describe('GET /api/vocab/resumo', () => {
     })
   })
 
+  it('sessão com dois idiomas: `porIdioma` reparte as fases (a linha inteira soma 13, o inglês 9)', async () => {
+    const MISTA = 'resumo-mista'
+    const m = await s.token(MISTA)
+    expect((await s.get('/api/me/entitlements', m)).status).toBe(200)
+    expect((await s.put('/api/me/idade', { nascimento: '1990-05-17' }, m)).status).toBeLessThan(300)
+    const { db } = await s.load('../../server/db/db')
+    const t = await s.load('../../server/db/schema')
+    await db.insert(t.sessions).values({
+      id: 'sm',
+      createdAt: AGORA - DIA,
+      updatedAt: AGORA - DIA,
+      userId: MISTA,
+      title: 'Mista',
+      kind: 'live',
+      sourceLang: 'en',
+      targetLang: 'pt',
+      status: 'done',
+    })
+    for (let i = 0; i < 13; i++) {
+      const lang = i < 9 ? 'en' : 'es'
+      await db.insert(t.vocabCards).values({
+        id: `m${i}`,
+        createdAt: AGORA - DIA,
+        updatedAt: AGORA - DIA,
+        userId: MISTA,
+        sessionId: 'sm',
+        word: `palavra-m${i}`,
+        back: 'tradução',
+        srcLang: lang,
+        tgtLang: 'pt',
+        inDeck: 1,
+        box: 1,
+        dueAt: AGORA - 1000,
+        reps: 0,
+        lapses: 0,
+        addedAt: AGORA - DIA,
+        normKey: `k|m${i}`,
+        occurrences: 1,
+      })
+    }
+    const r = await ler(m)
+    expect(r.baralhos.sessoes).toEqual([
+      {
+        id: 'sm',
+        total: 13,
+        novas: 13,
+        aprendendo: 0,
+        revisar: 0,
+        porIdioma: {
+          en: { total: 9, novas: 9, aprendendo: 0, revisar: 0 },
+          es: { total: 4, novas: 4, aprendendo: 0, revisar: 0 },
+        },
+      },
+    ])
+    // Um idioma só: a linha já é a fatia, sem `porIdioma`.
+    expect((await ler(a)).baralhos.sessoes[0]).not.toHaveProperty('porIdioma')
+  })
+
   it('outra conta só vê o que é dela, e sem cartão de Trilha a Trilha é nula', async () => {
     const r = await ler(b)
     expect(r.total).toBe(1)

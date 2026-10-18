@@ -20,7 +20,7 @@ import {
 import { type ReactNode, useEffect, useRef } from 'react';
 
 import type { ContagensDeConteudo, FonteContada } from '../../../core/learning/contagensDeConteudo';
-import type { ContagemDeFila, ResumoDosCartoes } from '../../../core/learning/resumoDosCartoes';
+import { type ContagemDeFila, linhaNoIdioma, type ResumoDosCartoes } from '../../../core/learning/resumoDosCartoes';
 import {
   type Hoje as EstadoDoDia,
   porcentoDeLembradas,
@@ -225,7 +225,9 @@ function fontesParaContinuar(
   if (!contagens) return [];
   const serve = (x: FonteContada) => (soComFila ? x.paraHoje > 0 : x.palavras > 0);
   const fila = (lista: ResumoDosCartoes['baralhos']['sessoes'], x: FonteContada): ContagemDeFila => {
-    const l = lista.find((b) => b.id === x.id);
+    const achada = lista.find((b) => b.id === x.id);
+    /* Dois idiomas: a fatia do idioma do conteúdo, a mesma que `palavras` contou. */
+    const l = achada && linhaNoIdioma(achada, contagens.idioma);
     return l
       ? { novas: l.novas, aprendendo: l.aprendendo, revisar: l.revisar }
       : { novas: 0, aprendendo: 0, revisar: x.paraHoje };

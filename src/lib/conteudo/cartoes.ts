@@ -13,7 +13,12 @@
  * idioma (o cartão sem idioma continua contando).
  */
 import type { ContagemDaFonte, ContagensDeConteudo } from '../../core/learning/contagensDeConteudo';
-import { type ContagemDeFila, ERROS_DE_DIFICIL, type ResumoDosCartoes } from '../../core/learning/resumoDosCartoes';
+import {
+  type ContagemDeFila,
+  ERROS_DE_DIFICIL,
+  linhaNoIdioma,
+  type ResumoDosCartoes,
+} from '../../core/learning/resumoDosCartoes';
 import type { VocabCard } from '../../types';
 import { contagemDaFonte, type Conteudo, type FonteDeConteudo } from './estado';
 
@@ -106,6 +111,8 @@ export function hojeDaFonte(
   else linha = resumo.baralhos.trilha;
 
   if (!linha) return soDoTotal();
+  /* Dois idiomas na conta: o catálogo conta só os cartões do idioma; as fases saem da mesma fatia. */
+  if (f.tipo !== 'tudo') linha = linhaNoIdioma(linha, contagens?.idioma ?? '');
   const { novas, aprendendo, revisar } = linha;
   return { total: contada?.palavras ?? linha.total, fila: { novas, aprendendo, revisar }, porFase: true };
 }

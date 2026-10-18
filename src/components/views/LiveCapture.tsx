@@ -2498,7 +2498,7 @@ export default function LiveCapture({
   const transcricaoSoNoNavegador = transcricaoNoNavegador || (semSomDoComputador && micPeloNavegador);
   /**
    * `fontes`: as do intérprete (só o microfone) em vez das da captura. `interprete`: a conta do
-   * tradutor é a dos dois sentidos, e o tradutor do navegador (conferido só para a ida) não a zera.
+   * tradutor é a dos dois sentidos: só o tradutor do navegador que cobre os DOIS sentidos a zera.
    */
   const planoDoInicio = (
     escolha: EscolhaDoMic | null,
@@ -2524,7 +2524,9 @@ export default function LiveCapture({
       /* O tradutor entra no download de TODA escolha (o Rápido também traduz): a folha diz o tamanho —
          menos quando o navegador já traduz o par no aparelho (aí o nosso não baixa). */
       mbTradutor: interprete
-        ? tradutoresDoInterprete.reduce((s, m) => s + falta(m.id, m.mb), 0)
+        ? preparoDoInicio.tradutorNativoNosDois
+          ? 0
+          : tradutoresDoInterprete.reduce((s, m) => s + falta(m.id, m.mb), 0)
         : preparoDoInicio.tradutorNativo
           ? 0
           : pecasDoInicio.tradutores.reduce((s, m) => s + falta(m.id, m.mb), 0),

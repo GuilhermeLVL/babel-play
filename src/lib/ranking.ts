@@ -38,10 +38,6 @@ export interface LinhaDoRanking {
  */
 export const JOGOS_COM_RANKING: readonly MinigameId[] = ['blitz'];
 
-export function temRanking(jogo: string): boolean {
-  return (JOGOS_COM_RANKING as readonly string[]).includes(jogo);
-}
-
 const CHAVE_APELIDO = 'babel.apelido';
 /** Espelho local do que já foi enviado, por jogo — evita reenvio de pontuação menor. */
 const CHAVE_ENVIADO = 'babel.rank_enviado';

@@ -191,6 +191,10 @@ html[data-quest-novo='true']:has(.quest-vivo) .q-trilho {
   min-width: 24px;
   height: 24px;
   padding: 0 6px;
+  box-sizing: border-box;
+  /* O número não quebra nem é cortado: o selo cresce para o lado ("38", "99+"), com a altura fixa. */
+  white-space: nowrap;
+  width: max-content;
   border-radius: 999px;
   display: grid;
   place-items: center;
@@ -1417,8 +1421,13 @@ html[data-quest-novo='true'][data-dispositivo^='desktop'] .q-palco {
 /* A PRIMEIRA DOBRA DO INÍCIO É A DO PROTÓTIPO: cabeçalho, os três caminhos, o progresso e as missões. Os
    caminhos ocupam o que sobra da janela depois dessas peças (473 px, medido no protótipo), até o teto de
    cima; o que o app tem a mais (sessões recentes) fica abaixo, na rolagem, em vez de achatar os cartões. */
-html[data-quest-novo='true'][data-dispositivo^='desktop'] [data-testid='inicio-do-quest'] > .q-cresce > * {
-  min-height: clamp(0px, calc(100dvh - 473px), var(--q-cresce-max, 380px));
+/* Só acima de 720 px: um desktop com a janela estreita (ou o celular em modo desktop) usa o layout do
+   celular, e esta altura mínima deixava o cartão dos cartões com ~370 px, empurrando Conversar/Jogar
+   para baixo da dobra. */
+@media (min-width: 721px) {
+  html[data-quest-novo='true'][data-dispositivo^='desktop'] [data-testid='inicio-do-quest'] > .q-cresce > * {
+    min-height: clamp(0px, calc(100dvh - 473px), var(--q-cresce-max, 380px));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

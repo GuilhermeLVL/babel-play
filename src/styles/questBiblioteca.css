@@ -245,6 +245,14 @@ html[data-quest-novo='true'] .q-bib-vazia .q-acoes {
   html[data-quest-novo='true'] .q-bib-cuidar > .q-ctl {
     font-size: 15px;
   }
+  /* Os botões do painel quebram o texto em vez de cortá-lo (o `.q-ctl` base é `nowrap`); a altura
+     continua a de uma fileira, só que com até duas linhas. */
+  html[data-quest-novo='true'] .q-bib-acoes .q-ctl {
+    white-space: normal;
+    text-align: center;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
 }
 @media (max-width: 720px) {
   html[data-quest-novo='true'] .q-bib .q-linha {

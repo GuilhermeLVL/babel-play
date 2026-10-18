@@ -10,7 +10,6 @@
  * Vibração não é movimento na tela: quem pediu "reduzir movimento" continua sentindo o toque. Ela tem
  * a sua própria chave, e só existe em aparelho de toque.
  */
-import { useSyncExternalStore } from 'react';
 
 export type Tato =
   | 'toque'
@@ -61,15 +60,6 @@ export function guardarTato(ligado: boolean): void {
     /* sem armazenamento: vale só nesta visita */
   }
   if (typeof window !== 'undefined') window.dispatchEvent(new Event(EVENTO_DO_TATO));
-}
-
-const assinar = (aoMudar: () => void) => {
-  window.addEventListener(EVENTO_DO_TATO, aoMudar);
-  return () => window.removeEventListener(EVENTO_DO_TATO, aoMudar);
-};
-
-export function useTato(): boolean {
-  return useSyncExternalStore(assinar, tatoLigado, () => true);
 }
 
 /** O navegador só deixa vibrar depois de um gesto da pessoa; antes disso `navigator.vibrate` vira erro no console. */

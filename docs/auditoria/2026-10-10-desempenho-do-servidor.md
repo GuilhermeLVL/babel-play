@@ -34,18 +34,18 @@ voz sintetizada de novo para a mesma frase (achados 7 e 9).
 
 ## 1. Método e limites da medição
 
-| Item | Valor |
-|---|---|
-| Máquina | Ryzen 5 5600, 16 GB, Windows 11, Node 24.18.0, **com outros agentes rodando** |
-| Servidor | `tsx server.ts` (desenvolvimento, **não** o bundle de produção), porta 3210, um processo |
-| Banco | `%TEMP%\e2e-babel\perf-srv.db`, migrations reais + `scripts/perf/escala/semear.mjs --pesados=3 --medios=10 --leves=5 --mega-sessoes=60` (22 MB) |
-| Usuário "mega" (`local-owner`) | 3.000 cartões, 60 sessões × 100 falas, 5.000 revisões, 5.000 exercícios |
-| Usuário "pesado" (`u-p-0000`) | 3.000 cartões, 20 sessões × 100 falas, 1.000 revisões, 1.000 exercícios |
-| Modo self-host | `PORT=3210 node subir-dev.mjs` (sem login); usuário mega |
-| Modo público | `AUTH_REQUIRED=1` com JWKS ES256 local na 3211 (o desenho de `scripts/perf/escala/carga-servidor.mjs`); usuário pesado |
-| Tempo e bytes | um cliente, uma conexão, em série, 5 a 15 repetições por rota; p50 e p95; corpo cru e como viaja (`Accept-Encoding: gzip, deflate, br`) |
-| Consultas por rota | `scripts/perf/consultas/coletor.cjs` (o coletor da auditoria de 26/09) via `NODE_OPTIONS` |
-| Mapa de chamadas | Chromium (Playwright) abrindo cada tela por carga direta; contagem pelo coletor do servidor |
+| Item                           | Valor                                                                                                                                           |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Máquina                        | Ryzen 5 5600, 16 GB, Windows 11, Node 24.18.0, **com outros agentes rodando**                                                                   |
+| Servidor                       | `tsx server.ts` (desenvolvimento, **não** o bundle de produção), porta 3210, um processo                                                        |
+| Banco                          | `%TEMP%\e2e-babel\perf-srv.db`, migrations reais + `scripts/perf/escala/semear.mjs --pesados=3 --medios=10 --leves=5 --mega-sessoes=60` (22 MB) |
+| Usuário "mega" (`local-owner`) | 3.000 cartões, 60 sessões × 100 falas, 5.000 revisões, 5.000 exercícios                                                                         |
+| Usuário "pesado" (`u-p-0000`)  | 3.000 cartões, 20 sessões × 100 falas, 1.000 revisões, 1.000 exercícios                                                                         |
+| Modo self-host                 | `PORT=3210 node scripts/subir-dev.mjs` (sem login); usuário mega                                                                                |
+| Modo público                   | `AUTH_REQUIRED=1` com JWKS ES256 local na 3211 (o desenho de `scripts/perf/escala/carga-servidor.mjs`); usuário pesado                          |
+| Tempo e bytes                  | um cliente, uma conexão, em série, 5 a 15 repetições por rota; p50 e p95; corpo cru e como viaja (`Accept-Encoding: gzip, deflate, br`)         |
+| Consultas por rota             | `scripts/perf/consultas/coletor.cjs` (o coletor da auditoria de 26/09) via `NODE_OPTIONS`                                                       |
+| Mapa de chamadas               | Chromium (Playwright) abrindo cada tela por carga direta; contagem pelo coletor do servidor                                                     |
 
 O que isso **não** é:
 
@@ -65,31 +65,31 @@ O que isso **não** é:
 
 ### 2.1 Rotas do caminho quente — modo público, usuário pesado [medido]
 
-| Rota | p50 ms | p95 ms | corpo cru | no fio (br) | instruções SQL/req | `Cache-Control` |
-|---|---:|---:|---:|---:|---:|---|
-| GET `/api/flags` | 18,6¹ | 879¹ | 4,3 KB | 1,4 KB | 3,4 | `private, max-age=30` |
-| GET `/api/me` | 3,0 | 74¹ | 0,2 KB | — | 5 | — |
-| GET `/api/me/entitlements` | 4,2 | 12,8 | 0,3 KB | — | 7 | — |
-| GET `/api/me/uso` | 3,9 | 5,7 | 0,5 KB | — | **9** | — |
-| GET `/api/me/idade` | 1,9 | 3,2 | 0,2 KB | — | 3 | — |
-| GET `/api/settings` | 2,3 | 2,9 | 0,2 KB | — | 3,5 | — |
-| GET `/api/billing/status` | 3,7 | 5,6 | 0,1 KB | — | **8** | — |
-| GET `/api/metrics/profile` | 4,3 | 155² | 3,0 KB | 1,1 KB | 8,4 | — |
-| GET `/api/metrics/missoes` | **14,0** | 26 | 0,3 KB | — | 7 | — |
-| GET `/api/metrics/temporada` | **21,9** | 27 | 0,2 KB | — | 10 | — |
-| GET `/api/metrics/maestria` | **12,8** | 14 | 1,2 KB | 0,2 KB | 5 | — |
-| GET `/api/metrics/xp` | **23,7** | 28 | 12 KB | 1,7 KB | 7 | — |
-| GET `/api/vocab` | **44,4** | 236² | **2.158 KB** | **417 KB** | 4,2 | — (ETag de versão) |
-| GET `/api/vocab/pagina?limite=200` | 31,5 | 60 | 170 KB | 34 KB | 7 | — |
-| GET `/api/vocab/para-jogo` | 24,1 | 27 | 21 KB | 4,6 KB | 5 | — |
-| GET `/api/sessions` | 3,5 | 4,9 | 8,4 KB | 1,0 KB | 4 | — |
-| GET `/api/sessions/utterances/all` | **79,6** | 84 | **1.008 KB** | 85 KB | 4 | — |
-| GET `/api/sessions/:id` (100 falas) | 6,4 | 9,1 | 51 KB | 4,9 KB | 5 | — |
-| GET `/api/exercises/results` | 7,3 | 10 | 67 KB | 4,5 KB | 4 | — |
-| GET `/api/exercises/historico` | **20,3** | 24 | 136 KB | 10 KB | 4 | — |
-| GET `/api/exercises/recordes` | 4,3 | 5,7 | 0,1 KB | — | 4 | — |
-| PUT `/api/settings` | 3,2 | 21 | — | — | 8,1 | — |
-| POST `/api/metrics/presenca` | 2,6 | — | — | — | 6 | — |
+| Rota                                |   p50 ms | p95 ms |    corpo cru | no fio (br) | instruções SQL/req | `Cache-Control`       |
+| ----------------------------------- | -------: | -----: | -----------: | ----------: | -----------------: | --------------------- |
+| GET `/api/flags`                    |    18,6¹ |   879¹ |       4,3 KB |      1,4 KB |                3,4 | `private, max-age=30` |
+| GET `/api/me`                       |      3,0 |    74¹ |       0,2 KB |           — |                  5 | —                     |
+| GET `/api/me/entitlements`          |      4,2 |   12,8 |       0,3 KB |           — |                  7 | —                     |
+| GET `/api/me/uso`                   |      3,9 |    5,7 |       0,5 KB |           — |              **9** | —                     |
+| GET `/api/me/idade`                 |      1,9 |    3,2 |       0,2 KB |           — |                  3 | —                     |
+| GET `/api/settings`                 |      2,3 |    2,9 |       0,2 KB |           — |                3,5 | —                     |
+| GET `/api/billing/status`           |      3,7 |    5,6 |       0,1 KB |           — |              **8** | —                     |
+| GET `/api/metrics/profile`          |      4,3 |   155² |       3,0 KB |      1,1 KB |                8,4 | —                     |
+| GET `/api/metrics/missoes`          | **14,0** |     26 |       0,3 KB |           — |                  7 | —                     |
+| GET `/api/metrics/temporada`        | **21,9** |     27 |       0,2 KB |           — |                 10 | —                     |
+| GET `/api/metrics/maestria`         | **12,8** |     14 |       1,2 KB |      0,2 KB |                  5 | —                     |
+| GET `/api/metrics/xp`               | **23,7** |     28 |        12 KB |      1,7 KB |                  7 | —                     |
+| GET `/api/vocab`                    | **44,4** |   236² | **2.158 KB** |  **417 KB** |                4,2 | — (ETag de versão)    |
+| GET `/api/vocab/pagina?limite=200`  |     31,5 |     60 |       170 KB |       34 KB |                  7 | —                     |
+| GET `/api/vocab/para-jogo`          |     24,1 |     27 |        21 KB |      4,6 KB |                  5 | —                     |
+| GET `/api/sessions`                 |      3,5 |    4,9 |       8,4 KB |      1,0 KB |                  4 | —                     |
+| GET `/api/sessions/utterances/all`  | **79,6** |     84 | **1.008 KB** |       85 KB |                  4 | —                     |
+| GET `/api/sessions/:id` (100 falas) |      6,4 |    9,1 |        51 KB |      4,9 KB |                  5 | —                     |
+| GET `/api/exercises/results`        |      7,3 |     10 |        67 KB |      4,5 KB |                  4 | —                     |
+| GET `/api/exercises/historico`      | **20,3** |     24 |       136 KB |       10 KB |                  4 | —                     |
+| GET `/api/exercises/recordes`       |      4,3 |    5,7 |       0,1 KB |           — |                  4 | —                     |
+| PUT `/api/settings`                 |      3,2 |     21 |            — |           — |                8,1 | —                     |
+| POST `/api/metrics/presenca`        |      2,6 |      — |            — |           — |                  6 | —                     |
 
 ¹ a primeira chamada do processo (busca do JWKS, carga de módulo) puxa o p95; o p50 de `flags` em regime é de 1 a 2 ms.
 ² a primeira chamada é o caminho frio (sem cache por versão); as seguintes são o quente.
@@ -98,15 +98,15 @@ O que isso **não** é:
 
 Só as que **crescem com o histórico**; o resto fica igual.
 
-| Rota | pesado (1.000 + 1.000) | mega (5.000 + 5.000) | ms de banco (mega) | corpo cru (mega) |
-|---|---:|---:|---:|---:|
-| GET `/api/metrics/missoes` | 14,0 ms | **37,5 ms** | 12,9 | 0,3 KB |
-| GET `/api/metrics/temporada` | 21,9 ms | **66,8 ms** | 26,6 | 0,2 KB |
-| GET `/api/metrics/maestria` | 12,8 ms | **33,3 ms** | 12,5 | 1,2 KB |
-| GET `/api/metrics/xp` | 23,7 ms | **61,2 ms** | 28,0 | 12,8 KB |
-| GET `/api/exercises/historico` | 20,3 ms | **179,6 ms** | 14,2 | **421 KB** |
-| GET `/api/sessions/utterances/all` | 79,6 ms (2.000 falas) | **227–258 ms** (6.000 falas) | 52–67 | **3.082 KB** (245 KB no fio) |
-| GET `/api/metrics/profile` (quente) | 4,3 ms | 2,7 ms | 0,5 | 7,4 KB |
+| Rota                                | pesado (1.000 + 1.000) |         mega (5.000 + 5.000) | ms de banco (mega) |             corpo cru (mega) |
+| ----------------------------------- | ---------------------: | ---------------------------: | -----------------: | ---------------------------: |
+| GET `/api/metrics/missoes`          |                14,0 ms |                  **37,5 ms** |               12,9 |                       0,3 KB |
+| GET `/api/metrics/temporada`        |                21,9 ms |                  **66,8 ms** |               26,6 |                       0,2 KB |
+| GET `/api/metrics/maestria`         |                12,8 ms |                  **33,3 ms** |               12,5 |                       1,2 KB |
+| GET `/api/metrics/xp`               |                23,7 ms |                  **61,2 ms** |               28,0 |                      12,8 KB |
+| GET `/api/exercises/historico`      |                20,3 ms |                 **179,6 ms** |               14,2 |                   **421 KB** |
+| GET `/api/sessions/utterances/all`  |  79,6 ms (2.000 falas) | **227–258 ms** (6.000 falas) |              52–67 | **3.082 KB** (245 KB no fio) |
+| GET `/api/metrics/profile` (quente) |                 4,3 ms |                       2,7 ms |                0,5 |                       7,4 KB |
 
 Leitura: `profile` não cresce porque tem cache por versão; as outras releem tudo. Em `historico`, só
 14 de 180 ms são banco: o resto é a dobra em memória e a serialização de 421 KB.
@@ -115,13 +115,13 @@ Leitura: `profile` não cresce porque tem cache por versão; as outras releem tu
 
 O navegador guarda a resposta e revalida sozinho. O que o servidor gasta para responder 304:
 
-| Rota | Resposta | p50 | Observação |
-|---|---|---:|---|
-| GET `/api/vocab` | 304 | **1,8 ms** | ETag da versão: uma consulta de chave primária (`server/routes/vocab.ts:65-72`) |
-| GET `/api/sessions` | 304 | 2,6 ms | ETag do corpo, mas o corpo é pequeno |
-| GET `/api/sessions/utterances/all` | 304 | **53,6–72,7 ms** | ETag do Express é hash do corpo: o servidor monta 1 MB para descobrir que não mudou |
-| GET `/api/exercises/historico` | 304 | 15,5–20,5 ms | idem |
-| GET `/api/metrics/profile` | **200** | 3,2 ms | nunca dá 304: o corpo leva `asOf: now` (`server/db/repositories/metrics.ts:620`) |
+| Rota                               | Resposta |              p50 | Observação                                                                          |
+| ---------------------------------- | -------- | ---------------: | ----------------------------------------------------------------------------------- |
+| GET `/api/vocab`                   | 304      |       **1,8 ms** | ETag da versão: uma consulta de chave primária (`server/routes/vocab.ts:65-72`)     |
+| GET `/api/sessions`                | 304      |           2,6 ms | ETag do corpo, mas o corpo é pequeno                                                |
+| GET `/api/sessions/utterances/all` | 304      | **53,6–72,7 ms** | ETag do Express é hash do corpo: o servidor monta 1 MB para descobrir que não mudou |
+| GET `/api/exercises/historico`     | 304      |     15,5–20,5 ms | idem                                                                                |
+| GET `/api/metrics/profile`         | **200**  |           3,2 ms | nunca dá 304: o corpo leva `asOf: now` (`server/db/repositories/metrics.ts:620`)    |
 
 ### 2.4 Custo fixo por requisição autenticada [medido]
 
@@ -133,18 +133,18 @@ auditoria de 26/09 (§2.1 de lá). As rotas de escrita somam o upsert do limitad
 
 ### 3.1 Abrir o app (hub), segunda abertura, self-host [medido em desenvolvimento]
 
-| Pedido | Medido (dev, StrictMode) | Produção (estimado pela leitura) | Por quê |
-|---|---:|---:|---|
-| GET `/api/settings` | 2–4 | 2–3 | `useLangConfig` (`App.tsx:111`), `useAparencia`, `usePreferencias`; só divide o pedido enquanto está em voo (`src/data/rotas/settings.ts:36`) |
-| GET `/api/me/entitlements` | 2 | 1 | `App.tsx:179-182` |
-| GET `/api/sessions` | 2 | 1 | `App.tsx:212-217` |
-| GET `/api/metrics/profile` | **3** | **2** | `useMetricas.ts:48-66`: roda na montagem e de novo quando `quantidadeDeSessoes` sai de 0 |
-| GET `/api/exercises/recordes` | **3** | **2** | no mesmo `Promise.all` do perfil |
-| GET `/api/metrics/missoes` | 1 | 1–2 | `useMetricas.ts:93-106`: a cada objeto `metrics` novo |
-| POST `/api/metrics/seeds/reembolso` | 1 | 1 | `useMetricas.ts:80-87`: uma vez por página, **toda** abertura; 7 instruções |
-| GET `/api/me` | 1 | 1 | `usePerfil.ts` (cache de módulo) |
-| GET `/api/flags` | 1 | 1 | `flags.ts:180` |
-| **Total** | **16** | **11 a 13** | |
+| Pedido                              | Medido (dev, StrictMode) | Produção (estimado pela leitura) | Por quê                                                                                                                                       |
+| ----------------------------------- | -----------------------: | -------------------------------: | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET `/api/settings`                 |                      2–4 |                              2–3 | `useLangConfig` (`App.tsx:111`), `useAparencia`, `usePreferencias`; só divide o pedido enquanto está em voo (`src/data/rotas/settings.ts:36`) |
+| GET `/api/me/entitlements`          |                        2 |                                1 | `App.tsx:179-182`                                                                                                                             |
+| GET `/api/sessions`                 |                        2 |                                1 | `App.tsx:212-217`                                                                                                                             |
+| GET `/api/metrics/profile`          |                    **3** |                            **2** | `useMetricas.ts:48-66`: roda na montagem e de novo quando `quantidadeDeSessoes` sai de 0                                                      |
+| GET `/api/exercises/recordes`       |                    **3** |                            **2** | no mesmo `Promise.all` do perfil                                                                                                              |
+| GET `/api/metrics/missoes`          |                        1 |                              1–2 | `useMetricas.ts:93-106`: a cada objeto `metrics` novo                                                                                         |
+| POST `/api/metrics/seeds/reembolso` |                        1 |                                1 | `useMetricas.ts:80-87`: uma vez por página, **toda** abertura; 7 instruções                                                                   |
+| GET `/api/me`                       |                        1 |                                1 | `usePerfil.ts` (cache de módulo)                                                                                                              |
+| GET `/api/flags`                    |                        1 |                                1 | `flags.ts:180`                                                                                                                                |
+| **Total**                           |                   **16** |                      **11 a 13** |                                                                                                                                               |
 
 No modo público com conta somam-se `GET /api/me/idade` (que **segura** quase todos os outros,
 `src/data/funil.ts:130-133`), `GET /api/billing/status` (`AvisoDePagamentoAtrasado.tsx:51`) e, uma vez
@@ -163,15 +163,15 @@ rajada. Cada crédito muda a versão dos dados, então o perfil seguinte sai pel
 
 Só os pedidos **além** do arranque da seção 3.1. Entre parênteses, a contagem medida em desenvolvimento.
 
-| Tela | Pedidos próprios | Maior custo |
-|---|---|---|
-| Início `/` | nenhum | — |
-| Jogar `/jogar` | `anki/decks` (2), `vocab` (1), `settings` (+1), `sessions` (+2), `sessions/:id` (1), `exercises/historico` (2), `exercises/results` (2), `exercises/recordes` (+2), `vocab/para-jogo` (1); com a flag `recompensas_v2`, `metrics/maestria` | `vocab` 2,1 MB na primeira carga; `para-jogo` 24 ms; `historico` 20–180 ms |
-| Vocabulário `/vocabulario` | `vocab` (1), `sessions/utterances/all` (2), `exercises/results` (2), `vocab/inicio-da-contagem` (2), `vocab/pagina` (2) | **`utterances/all`: 1–3 MB crus, 80–258 ms** |
-| Sessão `/sessao/:id` | `sessions/:id` (3), `vocab` (1), `vocab/pagina` (1), `exercises/results` (1), `sessions/utterances/all` (2) | `utterances/all` de novo³ |
-| Loja `/loja` | `metrics/temporada` (2) | 22–67 ms por chamada |
-| Perfil `/perfil` | `vocab` (1), `settings` (+1) | — |
-| Capturar `/capturar` | `me/uso` (3), `settings` (+2), `vocab` (1), `ai/stt/available` (1), `audio/loopback/support` (2) | — |
+| Tela                       | Pedidos próprios                                                                                                                                                                                                                           | Maior custo                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| Início `/`                 | nenhum                                                                                                                                                                                                                                     | —                                                                          |
+| Jogar `/jogar`             | `anki/decks` (2), `vocab` (1), `settings` (+1), `sessions` (+2), `sessions/:id` (1), `exercises/historico` (2), `exercises/results` (2), `exercises/recordes` (+2), `vocab/para-jogo` (1); com a flag `recompensas_v2`, `metrics/maestria` | `vocab` 2,1 MB na primeira carga; `para-jogo` 24 ms; `historico` 20–180 ms |
+| Vocabulário `/vocabulario` | `vocab` (1), `sessions/utterances/all` (2), `exercises/results` (2), `vocab/inicio-da-contagem` (2), `vocab/pagina` (2)                                                                                                                    | **`utterances/all`: 1–3 MB crus, 80–258 ms**                               |
+| Sessão `/sessao/:id`       | `sessions/:id` (3), `vocab` (1), `vocab/pagina` (1), `exercises/results` (1), `sessions/utterances/all` (2)                                                                                                                                | `utterances/all` de novo³                                                  |
+| Loja `/loja`               | `metrics/temporada` (2)                                                                                                                                                                                                                    | 22–67 ms por chamada                                                       |
+| Perfil `/perfil`           | `vocab` (1), `settings` (+1)                                                                                                                                                                                                               | —                                                                          |
+| Capturar `/capturar`       | `me/uso` (3), `settings` (+2), `vocab` (1), `ai/stt/available` (1), `audio/loopback/support` (2)                                                                                                                                           | —                                                                          |
 
 ³ não rastreei qual componente da tela de sessão pede `utterances/all`; o número é do coletor.
 
@@ -181,12 +181,12 @@ voltar custa os 9 a 10 pedidos outra vez; o baralho volta 304 se nada mudou.
 
 ### 3.3 Sondagens periódicas [lido]
 
-| O quê | Intervalo | Onde | Para com a aba oculta? |
-|---|---|---|---|
-| GET `/api/flags` | 5 min, mais foco (no máximo 1 a cada 30 s), mais troca de identidade e de idioma | `src/lib/flags.ts:177-190` | **Não** (o `setInterval` da linha 188 não olha a visibilidade) |
-| GET `/api/billing/status` | 5 s enquanto o checkout espera o pagamento | `Checkout.tsx:364-388`, `Assinado.tsx:58-62` [subagente] | Não |
-| GET `/api/me/uso` e `/api/billing/status` | 1 h | `HostDeOfertas.tsx` [subagente] | Não; com cache de 1 h |
-| POST `/api/metricas/captura` | 60 s durante a captura | `telemetriaDeCaptura.ts` [subagente] | Não |
+| O quê                                     | Intervalo                                                                        | Onde                                                     | Para com a aba oculta?                                         |
+| ----------------------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------- | -------------------------------------------------------------- |
+| GET `/api/flags`                          | 5 min, mais foco (no máximo 1 a cada 30 s), mais troca de identidade e de idioma | `src/lib/flags.ts:177-190`                               | **Não** (o `setInterval` da linha 188 não olha a visibilidade) |
+| GET `/api/billing/status`                 | 5 s enquanto o checkout espera o pagamento                                       | `Checkout.tsx:364-388`, `Assinado.tsx:58-62` [subagente] | Não                                                            |
+| GET `/api/me/uso` e `/api/billing/status` | 1 h                                                                              | `HostDeOfertas.tsx` [subagente]                          | Não; com cache de 1 h                                          |
+| POST `/api/metricas/captura`              | 60 s durante a captura                                                           | `telemetriaDeCaptura.ts` [subagente]                     | Não                                                            |
 
 Não há sondagem de versão (vem no cabeçalho `x-babel-versao` de toda resposta), de saúde nem de presença.
 
@@ -346,18 +346,18 @@ Esforço: **P** até meio dia, **M** um a dois dias, **G** mais que isso.
 
 ### A11. Achados menores
 
-| # | Achado | Evidência | Conserto | Esforço |
-|---|---|---|---|---|
-| a | `GET /api/me/uso` faz 9 instruções, 5 delas o mesmo `SELECT` em `usage_counters` com janelas diferentes | [medido] | uma consulta com `IN` | P |
-| b | `GET /api/billing/status` faz 8 instruções: `subscriptions` 3 vezes, `testes_premium` 2 | [medido]; o `memoDoRequest` de 26/09 não cobre este caminho | usar o memo | P |
-| c | `GET /api/metrics/profile` nunca responde 304 por causa de `asOf` | [medido], `metrics.ts:620` | ETag pela versão, `asOf` fora do hash | P |
-| d | O cliente não cancela pedidos ao sair da tela | [lido por subagente], `src/data/funil.ts` | `AbortController` nos pedidos pesados (`utterances/all`, `vocab`, `sessions/:id`) | M |
-| e | Cada mudança de preferência é um GET + PUT do blob `ui` inteiro, sem espera em `preferencias.ts`; idioma na captura custa GET + PUT + PUT | [lido por subagente] | volume baixo; juntar com A2 | P |
-| f | `duracaoDoAudio` roda 6 vezes sobre o mesmo áudio num STT, com CRC do Ogg em JS no laço de eventos | [lido por subagente], **não conferido nem medido** | calcular uma vez por requisição | P |
-| g | `express.json` aceita 5 MB em `/api/ai` e `/api/tutor`, embora os esquemas aceitem 4.000 a 10.000 caracteres | [lido por subagente], `server/http/limitesDeCorpo.ts:25` | teto por rota | P |
-| h | STT com `x-credential-id` (chave própria) lê os 25 MB antes de conferir se a credencial existe, sem vaga em voo | [lido por subagente], `server/ai/sttProxy.ts:42`, **não conferido** | conferir antes de ler o corpo | P |
-| i | PRAGMAs: só WAL, `busy_timeout`, `synchronous=NORMAL` e `foreign_keys` (`server/db/db.ts:88-93`); `cache_size`, `mmap_size` e `temp_store` ficam no padrão | [lido]; efeito **não medido** | testar no volume do Fly antes de mexer | P |
-| j | Importação (PDF, DOCX, página web, `.apkg`) é interpretada dentro da requisição, no laço de eventos | [lido], `server/import/document.ts`, `web.ts`, `anki.ts`; **não medido agora** | `worker_threads` ou a fila do ADR 0007 | G |
+| #   | Achado                                                                                                                                                     | Evidência                                                                      | Conserto                                                                          | Esforço |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- | ------- |
+| a   | `GET /api/me/uso` faz 9 instruções, 5 delas o mesmo `SELECT` em `usage_counters` com janelas diferentes                                                    | [medido]                                                                       | uma consulta com `IN`                                                             | P       |
+| b   | `GET /api/billing/status` faz 8 instruções: `subscriptions` 3 vezes, `testes_premium` 2                                                                    | [medido]; o `memoDoRequest` de 26/09 não cobre este caminho                    | usar o memo                                                                       | P       |
+| c   | `GET /api/metrics/profile` nunca responde 304 por causa de `asOf`                                                                                          | [medido], `metrics.ts:620`                                                     | ETag pela versão, `asOf` fora do hash                                             | P       |
+| d   | O cliente não cancela pedidos ao sair da tela                                                                                                              | [lido por subagente], `src/data/funil.ts`                                      | `AbortController` nos pedidos pesados (`utterances/all`, `vocab`, `sessions/:id`) | M       |
+| e   | Cada mudança de preferência é um GET + PUT do blob `ui` inteiro, sem espera em `preferencias.ts`; idioma na captura custa GET + PUT + PUT                  | [lido por subagente]                                                           | volume baixo; juntar com A2                                                       | P       |
+| f   | `duracaoDoAudio` roda 6 vezes sobre o mesmo áudio num STT, com CRC do Ogg em JS no laço de eventos                                                         | [lido por subagente], **não conferido nem medido**                             | calcular uma vez por requisição                                                   | P       |
+| g   | `express.json` aceita 5 MB em `/api/ai` e `/api/tutor`, embora os esquemas aceitem 4.000 a 10.000 caracteres                                               | [lido por subagente], `server/http/limitesDeCorpo.ts:25`                       | teto por rota                                                                     | P       |
+| h   | STT com `x-credential-id` (chave própria) lê os 25 MB antes de conferir se a credencial existe, sem vaga em voo                                            | [lido por subagente], `server/ai/sttProxy.ts:42`, **não conferido**            | conferir antes de ler o corpo                                                     | P       |
+| i   | PRAGMAs: só WAL, `busy_timeout`, `synchronous=NORMAL` e `foreign_keys` (`server/db/db.ts:88-93`); `cache_size`, `mmap_size` e `temp_store` ficam no padrão | [lido]; efeito **não medido**                                                  | testar no volume do Fly antes de mexer                                            | P       |
+| j   | Importação (PDF, DOCX, página web, `.apkg`) é interpretada dentro da requisição, no laço de eventos                                                        | [lido], `server/import/document.ts`, `web.ts`, `anki.ts`; **não medido agora** | `worker_threads` ou a fila do ADR 0007                                            | G       |
 
 ### A12. `functions/quest/stt.js` responde só depois de traduzir
 
@@ -374,21 +374,21 @@ Esforço: **P** até meio dia, **M** um a dois dias, **G** mais que isso.
 
 ## 5. Lista ordenada por ganho ÷ esforço
 
-| Ordem | Achado | Ganho | Esforço | Onde mexe |
-|---:|---|---|---|---|
-| 1 | **A1** cache por versão nas rotas das recompensas e em `historico` | −13 a −180 ms por chamada, em toda abertura e todo fim de rodada | P–M | servidor |
-| 2 | **A2** uma leitura de métricas, missões e settings no arranque | −4 a −5 pedidos por abertura (~35 % da CPU dela) | P | cliente |
-| 3 | **A4** limitadores em memória; flags não sondam com aba oculta | −1 escrita por requisição de escrita e de IA; zero escrita em repouso | P | servidor + cliente |
-| 4 | **A6** tempos limite do servidor HTTP | some uma classe de erro de conexão atrás do proxy | P | servidor |
-| 5 | **A3** `utterances/all` vira agregado (ou ganha ETag de versão) | −80 a −258 ms e −1 a −3 MB por abertura de Vocabulário | M | servidor + cliente |
-| 6 | **A7** abortar o provedor quando o cliente fecha | dinheiro de IA e cota não desperdiçados | P–M | servidor |
-| 7 | **A11 a, b, c** consultas repetidas e 304 do perfil | −5 a −9 instruções em três rotas | P | servidor |
-| 8 | **A5** escritas da IA em lote | 14 → ~4 idas ao banco por par STT + MT | M | servidor |
-| 9 | **A8** reconciliar créditos numa chamada | −1,8 s de CPU numa rajada rara | M | servidor + cliente |
-| 10 | **A9** voz guardada | dinheiro de TTS (não estimado) | M | servidor |
-| 11 | **A12** Quest: resposta em duas partes | latência percebida (não medida) | M | função + cliente |
-| 12 | **A10** baralho incremental | −417 KB e −44 a −236 ms depois de cada escrita | G | servidor + cliente |
-| 13 | **A11 d–j** | pequenos ou não medidos | P–G | vários |
+| Ordem | Achado                                                             | Ganho                                                                 | Esforço | Onde mexe          |
+| ----: | ------------------------------------------------------------------ | --------------------------------------------------------------------- | ------- | ------------------ |
+|     1 | **A1** cache por versão nas rotas das recompensas e em `historico` | −13 a −180 ms por chamada, em toda abertura e todo fim de rodada      | P–M     | servidor           |
+|     2 | **A2** uma leitura de métricas, missões e settings no arranque     | −4 a −5 pedidos por abertura (~35 % da CPU dela)                      | P       | cliente            |
+|     3 | **A4** limitadores em memória; flags não sondam com aba oculta     | −1 escrita por requisição de escrita e de IA; zero escrita em repouso | P       | servidor + cliente |
+|     4 | **A6** tempos limite do servidor HTTP                              | some uma classe de erro de conexão atrás do proxy                     | P       | servidor           |
+|     5 | **A3** `utterances/all` vira agregado (ou ganha ETag de versão)    | −80 a −258 ms e −1 a −3 MB por abertura de Vocabulário                | M       | servidor + cliente |
+|     6 | **A7** abortar o provedor quando o cliente fecha                   | dinheiro de IA e cota não desperdiçados                               | P–M     | servidor           |
+|     7 | **A11 a, b, c** consultas repetidas e 304 do perfil                | −5 a −9 instruções em três rotas                                      | P       | servidor           |
+|     8 | **A5** escritas da IA em lote                                      | 14 → ~4 idas ao banco por par STT + MT                                | M       | servidor           |
+|     9 | **A8** reconciliar créditos numa chamada                           | −1,8 s de CPU numa rajada rara                                        | M       | servidor + cliente |
+|    10 | **A9** voz guardada                                                | dinheiro de TTS (não estimado)                                        | M       | servidor           |
+|    11 | **A12** Quest: resposta em duas partes                             | latência percebida (não medida)                                       | M       | função + cliente   |
+|    12 | **A10** baralho incremental                                        | −417 KB e −44 a −236 ms depois de cada escrita                        | G       | servidor + cliente |
+|    13 | **A11 d–j**                                                        | pequenos ou não medidos                                               | P–G     | vários             |
 
 Os quatro primeiros são pequenos e independentes entre si.
 
@@ -396,25 +396,25 @@ Os quatro primeiros são pequenos e independentes entre si.
 
 Conferido no código de hoje ou reconfirmado pela medição:
 
-| Item | Origem | Estado hoje |
-|---|---|---|
-| ETag de versão e cache do corpo em `GET /api/vocab` | `fix/rotas-caras`, 25/09 | [medido] 304 em 1,8 ms; `server/routes/vocab.ts:51-81` |
-| Perfil com cache por versão | idem | [medido] 2,7–4,3 ms no quente; `metrics.ts:672-682` |
-| Compressão das respostas e estáticos pré-comprimidos com `immutable` | Fase 4 e 5 | [medido] `br` em toda resposta grande; `server/http/estaticos.ts` |
-| `index.html` com `no-cache`, `/assets/*` 1 ano | Fase 5 | [lido] `estaticos.ts:33-47`, igual ao `public/_headers` |
-| Índices do lado filho das chaves estrangeiras | 26/09, migração 0034 | [lido] `server/db/schema.ts` |
-| Boot sem varrer `vocab_cards` | 26/09, migração 0035 | não remedido |
-| Plano lido uma vez por requisição | 26/09 | [medido] vale para IA; **não** cobre `billing/status` (A11b) |
-| Transação fora do caminho quente (`db.batch` no lugar) | auditoria v2 | [lido] só `testesPremium.ts:46` usa `emTransacao` |
-| Limitador de força bruta sem escrita em requisição válida | Fase 2 | [lido] `app.ts:431-443` |
-| Uploads em streaming com semáforo | Fase 2 | não remedido |
-| Snapshot diário em processo filho | Fase 2 | [lido] `server.ts:383-391` |
-| Litestream a cada 10 s | Fase 3 | [lido] `litestream.yml:31` |
-| `exercises/results` com teto padrão | Fase 5 de 09/09 | [medido] 67 KB sem filtro |
-| Capa de sessão fora do JSON | 07/09 | [medido] `sessions` 8–25 KB |
-| Poda de `usage_counters`, cache de tradução, convidados, marcas de teste, áudio | várias | [lido] agendadas em `server.ts:396-438` |
-| Tradução com cache L1 + L2 | 28/09 | [lido por subagente] `server/ai/cacheDeTraducao.ts` |
-| Tempo limite em toda chamada a provedor | 09/09 | [lido por subagente] |
+| Item                                                                            | Origem                   | Estado hoje                                                       |
+| ------------------------------------------------------------------------------- | ------------------------ | ----------------------------------------------------------------- |
+| ETag de versão e cache do corpo em `GET /api/vocab`                             | `fix/rotas-caras`, 25/09 | [medido] 304 em 1,8 ms; `server/routes/vocab.ts:51-81`            |
+| Perfil com cache por versão                                                     | idem                     | [medido] 2,7–4,3 ms no quente; `metrics.ts:672-682`               |
+| Compressão das respostas e estáticos pré-comprimidos com `immutable`            | Fase 4 e 5               | [medido] `br` em toda resposta grande; `server/http/estaticos.ts` |
+| `index.html` com `no-cache`, `/assets/*` 1 ano                                  | Fase 5                   | [lido] `estaticos.ts:33-47`, igual ao `public/_headers`           |
+| Índices do lado filho das chaves estrangeiras                                   | 26/09, migração 0034     | [lido] `server/db/schema.ts`                                      |
+| Boot sem varrer `vocab_cards`                                                   | 26/09, migração 0035     | não remedido                                                      |
+| Plano lido uma vez por requisição                                               | 26/09                    | [medido] vale para IA; **não** cobre `billing/status` (A11b)      |
+| Transação fora do caminho quente (`db.batch` no lugar)                          | auditoria v2             | [lido] só `testesPremium.ts:46` usa `emTransacao`                 |
+| Limitador de força bruta sem escrita em requisição válida                       | Fase 2                   | [lido] `app.ts:431-443`                                           |
+| Uploads em streaming com semáforo                                               | Fase 2                   | não remedido                                                      |
+| Snapshot diário em processo filho                                               | Fase 2                   | [lido] `server.ts:383-391`                                        |
+| Litestream a cada 10 s                                                          | Fase 3                   | [lido] `litestream.yml:31`                                        |
+| `exercises/results` com teto padrão                                             | Fase 5 de 09/09          | [medido] 67 KB sem filtro                                         |
+| Capa de sessão fora do JSON                                                     | 07/09                    | [medido] `sessions` 8–25 KB                                       |
+| Poda de `usage_counters`, cache de tradução, convidados, marcas de teste, áudio | várias                   | [lido] agendadas em `server.ts:396-438`                           |
+| Tradução com cache L1 + L2                                                      | 28/09                    | [lido por subagente] `server/ai/cacheDeTraducao.ts`               |
+| Tempo limite em toda chamada a provedor                                         | 09/09                    | [lido por subagente]                                              |
 
 Continua **aberto** de antes: baralho incremental (A10), tempos limite HTTP (A6), importação no laço de
 eventos (A11j), `cortesDeFaixa` lendo 3.000 dificuldades por seleção (`para-jogo`, 24 ms medidos hoje).
@@ -465,7 +465,7 @@ node --input-type=module -e "import {createClient} from '@libsql/client'; import
 node scripts/perf/escala/semear.mjs --db=<tmp>/perf-srv.db --pesados=3 --leves=5 --medios=10 --mega-sessoes=60
 # servidor self-host com o coletor de consultas
 PORT=3210 DATABASE_URL=file:<tmp>/perf-srv.db AUDIO_DIR=<tmp>/audio BACKUP_DIARIO=0 \
-  COLETOR_DIR=<dir> NODE_OPTIONS="-r ./scripts/perf/consultas/coletor.cjs" node subir-dev.mjs
+  COLETOR_DIR=<dir> NODE_OPTIONS="-r ./scripts/perf/consultas/coletor.cjs" node scripts/subir-dev.mjs
 # modo público: AUTH_REQUIRED=1 e SUPABASE_URL apontando para um JWKS ES256 local,
 # como em scripts/perf/escala/carga-servidor.mjs (linhas 75-103)
 ```

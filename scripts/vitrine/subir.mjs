@@ -23,7 +23,7 @@
  * preenche o que falta), então nem Supabase, nem Asaas, nem R2, nem e-mail, nem Sentry de verdade
  * recebem nada. `--com-ia` abre a exceção das chaves de IA, e só delas.
  *
- * Roda em primeiro plano, como o `subir-dev.mjs`: Ctrl+C encerra os quatro.
+ * Roda em primeiro plano, como o `scripts/subir-dev.mjs`: Ctrl+C encerra os quatro.
  */
 import { spawn, spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'

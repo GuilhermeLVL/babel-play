@@ -313,7 +313,8 @@ html[data-quest-novo='true'] .ct-fim > .q-faixa { margin-top: auto; }
 .q-tile[data-ct-mais] small.q-d { display: block; margin-top: 3px; font-size: 15px; line-height: 1.2; }
 @media (min-width: 721px) {
   html[data-quest-novo='true'] .q-grade.g3.q-cresce.ct-g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .q-trilho .ct-selo-do-dia { top: 0; right: 8px; }
+  /* À direita do ícone, sem cobri-lo: o selo de dois dígitos tem ~27 px e o ícone ocupa o centro do trilho. */
+  .q-trilho .ct-selo-do-dia { top: -2px; right: 0; }
 }
 
 /* ---- Celular (até 720 px, o mesmo corte do clone) ----------------------------------------------- */
@@ -330,6 +331,8 @@ html[data-quest-novo='true'] .ct-fim > .q-faixa { margin-top: auto; }
   /* Início: o ladrilho dos cartões ocupa a linha, logo abaixo de "Legendar agora" */
   html[data-px='on'] .q-grade.g3.q-cresce > .q-tile.ct-ladrilho { grid-column: 1 / -1; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 14px; row-gap: 2px; }
   html[data-px='on'] .q-grade.g3.q-cresce > .q-tile.ct-ladrilho .q-ic { grid-row: span 2; }
+  /* O ladrilho dos cartões ocupa só o que o texto pede: sem esticar nem altura mínima. */
+  html[data-quest-novo='true'] .q-grade.g3.q-cresce > .q-tile.ct-ladrilho { min-height: 0; align-self: start; }
   .ct .q-cab > .q-chip { flex: 1 1 100%; justify-content: center; }
   .ct-praticar { align-self: stretch; }
   html[data-quest-novo='true'] .ct-hoje { padding: 16px; }

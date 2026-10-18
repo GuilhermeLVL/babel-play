@@ -12,11 +12,19 @@
   right: calc(22px + var(--shell-inset-right, 0px));
   bottom: calc(22px + var(--shell-inset-bottom, 0px));
 }
+/* O botão flutua sobre o canto do conteúdo: o palco reserva o espaço dele embaixo (22 + 46 px + respiro),
+   para o último botão ou rodapé de cartão poder rolar para fora de baixo dele. */
+@media (min-width: 721px) {
+  html[data-quest-novo='true'] .q-palco {
+    padding-bottom: calc(84px + var(--shell-inset-bottom, 0px));
+  }
+}
 /* No celular vale a posição do protótipo (acima da dock) — repetida aqui só porque a regra de cima
    vem depois da dele. */
 @container app (max-width: 760px) {
   .fab {
-    bottom: 80px;
+    /* 96 px: o botão pousa 16 px ACIMA da barra inferior (que ocupa os 80 px de baixo), sem encostar. */
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
     right: 14px;
   }
 }

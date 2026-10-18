@@ -94,8 +94,10 @@
   /* ---- Conteúdo: respiro para a barra e nada de rolagem lateral ------------ */
   html[data-px='on'] :is(.q-palco, .rolagem) {
     overflow-x: hidden;
-    padding-bottom: 112px;
-    scroll-padding-bottom: 112px;
+    /* 156 px: a barra (80 px) + o botão do iChat (46 px, a 96 px do pé) + respiro; o fim do conteúdo
+       não fica por baixo dele. */
+    padding-bottom: calc(156px + env(safe-area-inset-bottom, 0px));
+    scroll-padding-bottom: calc(156px + env(safe-area-inset-bottom, 0px));
   }
   html[data-px='on'] .q-palco { gap: 16px; }
   html[data-px='on'] .q-cab :is(h1, h2) { font-size: 28px; }

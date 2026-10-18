@@ -464,27 +464,6 @@ export function ligarFlutuante(el: HTMLElement): Flutuante {
   };
 }
 
-/**
- * `fecharFlutuante()` de `telas.js:281-290`. O React tira a janela do documento na hora; para a saída
- * existir, uma cópia sem toque fica no lugar, anima e some.
- */
-export function sairFlutuante(el: HTMLElement, pai: Element | null): void {
-  sentir('fecha'); /* `abrirFlutuante` com a janela aberta, `sentidos.js:145` */
-  if (!comMovimento() || !pai?.isConnected) return;
-  const copia = el.cloneNode(true) as HTMLElement;
-  copia.removeAttribute('id');
-  copia.setAttribute('aria-hidden', 'true');
-  copia.setAttribute('inert', '');
-  copia.style.pointerEvents = 'none';
-  pai.append(copia);
-  const some = () => copia.remove();
-  window.setTimeout(some, 420); /* a cópia nunca fica presa se a animação não terminar */
-  anima(copia, [{ opacity: 0, scale: '0.85', filter: 'blur(6px)' }], { d: 220, fill: 'forwards' }).finished.then(
-    some,
-    some,
-  );
-}
-
 /** A fala nova no espelho, `telas.js:271`. */
 export function entrarFalaNoEspelho(l: Element): void {
   if (!comMovimento()) return;

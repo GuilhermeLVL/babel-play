@@ -1,7 +1,7 @@
 /**
  * Sobe o app em modo dev COM O LOGIN DESLIGADO, para inspeção local.
  *
- *     node subir-dev.mjs          (ou `npm run dev:local`)
+ *     node scripts/subir-dev.mjs          (ou `npm run dev:local`)
  *
  * POR QUE ESTE ARQUIVO EXISTE. O `.env` real tem `VITE_AUTH_REQUIRED=1` e não existe conta
  * cadastrada — a tabela `users` tem só `local-owner`, com email NULL. Rodar `npm run dev` puro
@@ -47,4 +47,6 @@ const filho = spawn(process.execPath, ['node_modules/tsx/dist/cli.mjs', 'server.
 })
 
 filho.on('exit', (codigo) => process.exit(codigo ?? 0))
-process.on('SIGINT', () => { filho.kill('SIGINT') })
+process.on('SIGINT', () => {
+  filho.kill('SIGINT')
+})

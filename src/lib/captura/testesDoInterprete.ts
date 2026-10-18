@@ -56,16 +56,6 @@ export function gravarChave(id: string, ligada: boolean): void {
   if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(EVENTO, { detail: { id, ligada } }));
 }
 
-/** Quem quer saber quando uma chave muda. Devolve o cancelamento. */
-export function aoMudarChave(cb: (id: string, ligada: boolean) => void): () => void {
-  const ouvinte = (e: Event) => {
-    const d = (e as CustomEvent<{ id: string; ligada: boolean }>).detail;
-    cb(d.id, d.ligada);
-  };
-  window.addEventListener(EVENTO, ouvinte);
-  return () => window.removeEventListener(EVENTO, ouvinte);
-}
-
 /**
  * DETECTAR O IDIOMA na conversa virtual (escolha da pessoa, não chave de teste): "Eles" podem falar idiomas
  * diferentes, medidos fala a fala. Ligada por padrão; só o valor `nao` desliga. Neste aparelho.

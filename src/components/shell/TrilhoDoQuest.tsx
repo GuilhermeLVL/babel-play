@@ -367,7 +367,7 @@ export default function TrilhoDoQuest({
                   ref={medirOPulso}
                   aria-label={tp(cartoesHoje, '{n} cartão para hoje', '{n} cartões para hoje')}
                 >
-                  {cartoesHoje}
+                  {cartoesHoje > 99 ? '99+' : cartoesHoje}
                 </i>
               )}
             </button>

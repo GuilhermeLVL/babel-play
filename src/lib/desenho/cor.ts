@@ -51,12 +51,6 @@ export function hexParaRgb(texto: string): Rgb | null {
   };
 }
 
-/** Cor com opacidade para o canvas: `rgba(r, g, b, a)`. */
-export function rgba(hex: string, alfa: number): string {
-  const c = hexParaRgb(hex) ?? { r: 0, g: 0, b: 0 };
-  return `rgba(${c.r}, ${c.g}, ${c.b}, ${Math.min(1, Math.max(0, alfa))})`;
-}
-
 /** Mexe só em UM canal e devolve o HEX novo — o que o campo R, G ou B faz ao ser editado. */
 export function trocarCanal(hex: string, canal: keyof Rgb, valor: number | string): string {
   const atual = hexParaRgb(hex) ?? { r: 0, g: 0, b: 0 };

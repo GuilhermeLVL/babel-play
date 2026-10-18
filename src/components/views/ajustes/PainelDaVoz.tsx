@@ -52,7 +52,7 @@ export default function PainelDaVoz({ estudando, meu }: { estudando: string; meu
           return (
             <div key={idioma} className="q-ajuste" data-voz-idioma={idioma}>
               <div>
-                <b>{nome}</b>
+                <b>{nome.charAt(0).toLocaleUpperCase() + nome.slice(1)}</b>
                 <small>{papel[idioma]}</small>
               </div>
               <button

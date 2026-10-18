@@ -2,7 +2,7 @@ import { CircleHelp, type LucideIcon, X } from 'lucide-react';
 import type { ReactNode, RefObject } from 'react';
 
 import type { ContagemDeFila } from '../../../core/learning/resumoDosCartoes';
-import { numero, t } from '../../../lib/i18n';
+import { idiomaDaInterface, numero, t } from '../../../lib/i18n';
 import { langLabelNaUI } from '../../../lib/languages';
 import { toast } from '../../Toast';
 import { DialogoBase } from '../../ui/Dialogo';
@@ -19,15 +19,13 @@ export function Tres({ n, comRotulo = false }: { n: ContagemDeFila; comRotulo?: 
     ['ap', n.aprendendo, t('aprendendo')],
     ['rv', n.revisar, t('a revisar')],
   ];
+  const rotuloDasTres = t('{novas} novas, {aprendendo} aprendendo, {revisar} a revisar', {
+    novas: n.novas,
+    aprendendo: n.aprendendo,
+    revisar: n.revisar,
+  });
   return (
-    <span
-      className="ct-tres"
-      aria-label={t('{novas} novas, {aprendendo} aprendendo, {revisar} a revisar', {
-        novas: n.novas,
-        aprendendo: n.aprendendo,
-        revisar: n.revisar,
-      })}
-    >
+    <span className="ct-tres" role="img" aria-label={rotuloDasTres} title={rotuloDasTres}>
       {itens.map(([classe, valor, rotulo]) => (
         <b key={classe} className={`${classe} ${valor ? '' : 'zero'}`}>
           {numero(valor)}
@@ -73,7 +71,7 @@ export function nomeDoIdioma(codigo: string): string {
 /** "17 ago": o dia e o mês curto, sem ponto nem preposição (os rótulos do protótipo, `cartoes.js:515`). */
 export function diaEMes(ms: number): string {
   const d = new Date(ms);
-  return `${d.getDate()} ${d.toLocaleDateString(undefined, { month: 'short' }).replace('.', '')}`;
+  return `${d.getDate()} ${d.toLocaleDateString(idiomaDaInterface(), { month: 'short' }).replace('.', '')}`;
 }
 
 /** Os três nomes curtos de dia da semana, de domingo a sábado (`CT_DIAS7`, `cartoes.js:93`). */
@@ -165,7 +163,13 @@ export interface LinhaDeMenu {
   desligada?: boolean;
 }
 
-export function LinhasDeMenu({ linhas, fim }: { linhas: Array<LinhaDeMenu | false | null | undefined>; fim: LucideIcon }) {
+export function LinhasDeMenu({
+  linhas,
+  fim,
+}: {
+  linhas: Array<LinhaDeMenu | false | null | undefined>;
+  fim: LucideIcon;
+}) {
   const Fim = fim;
   return (
     <div className="q-lista ct-menu-lista">

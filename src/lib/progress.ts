@@ -97,14 +97,3 @@ export function deriveProgress(metrics: AppMetrics | null | undefined): DerivedP
     palavrasNovas: metrics.newCards,
   };
 }
-
-/** 1.240 → "1,2 mil". Números grandes numa pílula estreita precisam caber sem cortar. */
-export function compactNumber(value: number): string {
-  if (value < 1000) return String(value);
-  if (value < 1_000_000) {
-    const k = value / 1000;
-    return `${k.toFixed(k < 10 ? 1 : 0).replace('.', ',')} mil`;
-  }
-  const m = value / 1_000_000;
-  return `${m.toFixed(m < 10 ? 1 : 0).replace('.', ',')} mi`;
-}

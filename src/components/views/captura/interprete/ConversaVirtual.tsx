@@ -16,7 +16,7 @@ import { ESTADO_DO_AUTOMATICO } from '../../../../lib/captura/interpreteAutomati
 import { detectarIdiomaNaVirtual, gravarDetectarIdiomaNaVirtual } from '../../../../lib/captura/testesDoInterprete';
 import type { LadoDoInterprete } from '../../../../lib/captura/tiposDaFala';
 import type { TraducaoFinal } from '../../../../lib/captura/traducaoDaFala';
-import { t } from '../../../../lib/i18n';
+import { data, t } from '../../../../lib/i18n';
 import { langLabel, toBcp47 } from '../../../../lib/languages';
 import { mudarEstadoDaTela } from '../../../../lib/polimento/interprete';
 import { nativeTts } from '../../../../lib/tts';
@@ -246,7 +246,7 @@ export default function ConversaVirtual({
     });
   };
   const exportar = () => {
-    const titulo = t('Conversa de {data}', { data: new Date().toLocaleDateString() });
+    const titulo = t('Conversa de {data}', { data: data(new Date()) });
     baixarTexto(
       nomeDoArquivoDaConversa(titulo),
       conversaEmMarkdown(falas, {

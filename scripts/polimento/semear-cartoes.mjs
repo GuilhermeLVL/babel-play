@@ -4,7 +4,7 @@
  * (`cartoes.js:66-136`): duas sessões com cartões, palavras soltas em dois idiomas, um baralho do Anki
  * e 12 semanas de revisões.
  *
- *     PORT=3203 DATABASE_URL=file:<tmp>/cartoes.db AUDIO_DIR=<tmp>/audio node subir-dev.mjs
+ *     PORT=3203 DATABASE_URL=file:<tmp>/cartoes.db AUDIO_DIR=<tmp>/audio node scripts/subir-dev.mjs
  *     node scripts/polimento/semear-cartoes.mjs --base=http://localhost:3203 --db=<tmp>/cartoes.db [--estado=normal]
  *
  * NUNCA aponte para `data/babel.db`: o script recusa. Os cartões e as sessões entram pelas rotas de

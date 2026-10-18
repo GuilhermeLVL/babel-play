@@ -4740,5 +4740,28 @@
   "Assim o navegador não interrompe você na hora de começar a ouvir. Dá para pular e liberar depois.": "This way the browser won't interrupt you right when you start listening. You can skip it and allow it later.",
   "Microfone liberado": "Microphone allowed",
   "Liberar microfone": "Allow microphone",
-  "Para capturar o som de uma aba ou tela, o navegador abre um seletor a cada captura. Isso não dá para liberar antes: é uma proteção dele.": "To capture the sound of a tab or screen, the browser opens a picker every time. This can't be allowed in advance: it is a browser protection."
+  "Para capturar o som de uma aba ou tela, o navegador abre um seletor a cada captura. Isso não dá para liberar antes: é uma proteção dele.": "To capture the sound of a tab or screen, the browser opens a picker every time. This can't be allowed in advance: it is a browser protection.",
+  "Subiu de nível": "Level up",
+  "Você liberou:": "You unlocked:",
+  "Conquista feita": "Achievement done",
+  "Item exclusivo liberado:": "Exclusive item unlocked:",
+  "Baú da rodada": "Round chest",
+  "O baú abriu:": "The chest opened:",
+  "Nada novo para equipar neste nível: o próximo desbloqueio vem aí.": "Nothing new to equip at this level: the next unlock is coming.",
+  "Resgatar e continuar": "Claim and continue",
+  "Ver em Personalizar": "See in Customize",
+  "Liberado": "Unlocked",
+  "{n} novidades": "{n} new things",
+  "{i} de {n}": "{i} of {n}",
+  "Nível {n}!": "Level {n}!",
+  "Captura ao vivo": "Live capture",
+  "Os três números de cada baralho: novas · aprendendo · a revisar.": "The three numbers for each deck: new · learning · to review.",
+  "Sua {n} palavra já é cartão (somando todos os idiomas).": {
+    "one": "Your {n} word is already a card (across all languages).",
+    "other": "Your {n} words are already cards (across all languages)."
+  },
+  "Suas {n} palavras já são cartões (somando todos os idiomas).": {
+    "one": "Your {n} word is already a card (across all languages).",
+    "other": "Your {n} words are already cards (across all languages)."
+  }
 }

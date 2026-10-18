@@ -30,7 +30,7 @@ import {
 import { type HojeDaFonte, somaDaFila } from '../../../lib/conteudo/cartoes';
 import type { Conteudo, FonteDeConteudo } from '../../../lib/conteudo/estado';
 import { voltarParaTudoNoConteudo } from '../../../lib/conteudo/loja';
-import { numero, t, tp } from '../../../lib/i18n';
+import { idiomaDaInterface, numero, t, tp } from '../../../lib/i18n';
 import { anima, contar, MOLA, MOLA_SUAVE, polido, reduz } from '../../../lib/polimento/base';
 import type { OpcoesDaRevisao } from '../../../lib/revisao/preferencias';
 import { iconeDaFonte, nomeDoIdioma as nomeDoIdiomaDoConteudo } from '../../conteudo/fontes';
@@ -210,7 +210,7 @@ interface FonteParaContinuar {
 const diaEMesCurto = (ms: number) => {
   if (!ms) return '';
   const d = new Date(ms);
-  return `${d.getDate()} ${d.toLocaleDateString(undefined, { month: 'short' }).replace('.', '')}`;
+  return `${d.getDate()} ${d.toLocaleDateString(idiomaDaInterface(), { month: 'short' }).replace('.', '')}`;
 };
 
 /**
@@ -507,6 +507,7 @@ export default function Hoje({
       <header>
         <div>
           <h2>{feito ? t('Praticar por baralho') : t('Continuar por baralho')}</h2>
+          {!feito && <p>{t('Os três números de cada baralho: novas · aprendendo · a revisar.')}</p>}
         </div>
       </header>
       <div className="q-lista">

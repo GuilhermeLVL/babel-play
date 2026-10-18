@@ -6,6 +6,17 @@ import tseslint from 'typescript-eslint'
 import reactHooks from 'eslint-plugin-react-hooks'
 import simpleImportSort from 'eslint-plugin-simple-import-sort'
 
+/** Regra de `no-restricted-imports` do `src/core` para arquivo a `nivel` pastas dentro dele. */
+const regraDoCore = (nivel) => ({
+  patterns: [
+    {
+      regex: `^(\\.\\./){${nivel}}(gateway|components|lib)(/|$)|^@/src/(gateway|components|lib)(/|$)`,
+      message:
+        'src/core é puro: não importa de src/gateway, src/components nem src/lib (a dependência vai no outro sentido).',
+    },
+  ],
+})
+
 export default tseslint.config(
   {
     /**
@@ -109,6 +120,25 @@ export default tseslint.config(
         },
       ],
     },
+  },
+  {
+    /**
+     * `src/core` É PURO: não importa das camadas que dependem dele (`src/gateway`, `src/components`,
+     * `src/lib`). Há também um `src/core/gateway` interno, que PODE ser importado de dentro do core,
+     * então a regra conta os `../` de cada profundidade: só o import que escapa do `src/core` e cai
+     * na pasta irmã é proibido. Cobre também o alias `@/src/...`. (Sem glob literal aqui: asterisco
+     * com barra fecharia o bloco.)
+     */
+    files: ['src/core/*.{ts,tsx}'],
+    rules: { 'no-restricted-imports': ['error', regraDoCore(1)] },
+  },
+  {
+    files: ['src/core/*/*.{ts,tsx}'],
+    rules: { 'no-restricted-imports': ['error', regraDoCore(2)] },
+  },
+  {
+    files: ['src/core/*/*/*.{ts,tsx}'],
+    rules: { 'no-restricted-imports': ['error', regraDoCore(3)] },
   },
   {
     /**

@@ -5,7 +5,7 @@
  * palavras soltas, um baralho do Anki com uma palavra que também foi capturada ("Juntar a cena") e uma
  * palavra com 8 erros (a linha "não está entrando").
  *
- *     PORT=4340 DATABASE_URL=file:<tmp>/revisao.db AUDIO_DIR=<tmp>/audio node subir-dev.mjs
+ *     PORT=4340 DATABASE_URL=file:<tmp>/revisao.db AUDIO_DIR=<tmp>/audio node scripts/subir-dev.mjs
  *     node scripts/polimento/semear-revisao.mjs --base=http://localhost:4340 --db=<tmp>/revisao.db [--zerar]
  *
  * NUNCA aponte para `data/babel.db`: o script recusa. Tudo entra pelas rotas de verdade; só o passado
@@ -88,21 +88,87 @@ await json('/api/settings', 'PUT', { ui: { onboarded: true, providerMode: 'local
 
 /* [palavra, tradução, frase, tradução da frase, quem falou] — as falas do protótipo (`cartoes.js:66-136`). */
 const REUNIAO = [
-  ['complain', 'reclamar', "That's a big deal. Customers were complaining about it.", 'Isso é importante. Os clientes estavam reclamando disso.', 'Ana'],
-  ['dashboard', 'painel', 'We ship it today, but the dashboard needs one more review.', 'Entregamos hoje, mas o painel precisa de mais uma revisão.', 'Leo'],
-  ['roadmap', 'roteiro, plano de entregas', 'So, are we still shipping the roadmap today?', 'Então, ainda vamos entregar o roteiro hoje?', 'Ana'],
-  ['walk through', 'explicar passo a passo', 'Fair enough. Can you walk me through the changes?', 'Justo. Você pode me explicar as mudanças passo a passo?', 'Leo'],
-  ['onboarding', 'entrada, primeiros passos', 'We rewrote the onboarding and cut the loading time in half.', 'Reescrevemos a entrada e cortamos o tempo de carga pela metade.', 'Ana'],
-  ['release', 'lançamento', "Then let's celebrate after the release.", 'Então vamos comemorar depois do lançamento.', 'Leo'],
+  [
+    'complain',
+    'reclamar',
+    "That's a big deal. Customers were complaining about it.",
+    'Isso é importante. Os clientes estavam reclamando disso.',
+    'Ana',
+  ],
+  [
+    'dashboard',
+    'painel',
+    'We ship it today, but the dashboard needs one more review.',
+    'Entregamos hoje, mas o painel precisa de mais uma revisão.',
+    'Leo',
+  ],
+  [
+    'roadmap',
+    'roteiro, plano de entregas',
+    'So, are we still shipping the roadmap today?',
+    'Então, ainda vamos entregar o roteiro hoje?',
+    'Ana',
+  ],
+  [
+    'walk through',
+    'explicar passo a passo',
+    'Fair enough. Can you walk me through the changes?',
+    'Justo. Você pode me explicar as mudanças passo a passo?',
+    'Leo',
+  ],
+  [
+    'onboarding',
+    'entrada, primeiros passos',
+    'We rewrote the onboarding and cut the loading time in half.',
+    'Reescrevemos a entrada e cortamos o tempo de carga pela metade.',
+    'Ana',
+  ],
+  [
+    'release',
+    'lançamento',
+    "Then let's celebrate after the release.",
+    'Então vamos comemorar depois do lançamento.',
+    'Leo',
+  ],
   ['put off', 'adiar', "We can't put off the release again.", 'Não podemos adiar o lançamento de novo.', 'Leo'],
-  ['thorough', 'minucioso, completo', 'The review was thorough, but the team was small.', 'A revisão foi minuciosa, mas a equipe era pequena.', 'Ana'],
+  [
+    'thorough',
+    'minucioso, completo',
+    'The review was thorough, but the team was small.',
+    'A revisão foi minuciosa, mas a equipe era pequena.',
+    'Ana',
+  ],
   ['thorough', 'minucioso, completo', 'She gave the plan a thorough reading.', 'Ela leu o plano com cuidado.', 'Leo'],
 ]
 const PODCAST = [
-  ['nap', 'cochilo', 'A short nap can restore your attention for hours.', 'Um cochilo curto pode restaurar a sua atenção por horas.', 'Narrador'],
-  ['deprive', 'privar', 'If you deprive the brain of sleep, memory is the first to suffer.', 'Se você priva o cérebro de sono, a memória é a primeira a sofrer.', 'Narrador'],
-  ['drowsy', 'sonolento', 'You feel drowsy after lunch for a reason.', 'Você fica sonolento depois do almoço por um motivo.', 'Narrador'],
-  ['though', 'embora; no entanto', 'It works, though nobody knows exactly why.', 'Funciona, embora ninguém saiba exatamente por quê.', 'Narrador'],
+  [
+    'nap',
+    'cochilo',
+    'A short nap can restore your attention for hours.',
+    'Um cochilo curto pode restaurar a sua atenção por horas.',
+    'Narrador',
+  ],
+  [
+    'deprive',
+    'privar',
+    'If you deprive the brain of sleep, memory is the first to suffer.',
+    'Se você priva o cérebro de sono, a memória é a primeira a sofrer.',
+    'Narrador',
+  ],
+  [
+    'drowsy',
+    'sonolento',
+    'You feel drowsy after lunch for a reason.',
+    'Você fica sonolento depois do almoço por um motivo.',
+    'Narrador',
+  ],
+  [
+    'though',
+    'embora; no entanto',
+    'It works, though nobody knows exactly why.',
+    'Funciona, embora ninguém saiba exatamente por quê.',
+    'Narrador',
+  ],
 ]
 const SOLTAS = [
   ['commute', 'trajeto até o trabalho', 'Without the commute, people gained almost an hour a day.'],
@@ -156,7 +222,15 @@ const imp = await fetch(`${BASE}/api/import/anki`, {
 if (!imp.ok) throw new Error(`POST /api/import/anki devolveu ${imp.status}`)
 /* Uma palavra colada à mão que DEPOIS aparece numa captura: o convite "Juntar a cena". */
 await json('/api/vocab/bulk-add', 'POST', {
-  cards: [{ word: 'put off', back: 'adiar', sentence: 'Never put off until tomorrow what you can do today.', srcLang: 'en', tgtLang: 'pt-BR' }],
+  cards: [
+    {
+      word: 'put off',
+      back: 'adiar',
+      sentence: 'Never put off until tomorrow what you can do today.',
+      srcLang: 'en',
+      tgtLang: 'pt-BR',
+    },
+  ],
 })
 await sessao('Reunião de produto', REUNIAO, true)
 await sessao('Podcast: The science of sleep', PODCAST, false)

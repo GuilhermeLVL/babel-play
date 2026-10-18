@@ -1736,3 +1736,24 @@ svg.lucide { flex-shrink: 0; }
 @media (max-width: 720px) {
   .missoes-reserva, .q-missoes-reserva { min-height: 304px; }
 }
+
+/* ── ALVOS DE TOQUE ─────────────────────────────────────────────────────────────────────────────
+   Checkbox e radio nativos têm 13 px: o rótulo que os envolve vira o alvo (44 px de altura, o clique
+   no texto marca), e a caixa em si cresce para 24 px. `:where()` zera a especificidade: qualquer
+   classe de rótulo que já defina o próprio `display` ou altura continua valendo. */
+:where(label:has(> input[type='checkbox'], > input[type='radio'])) {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  cursor: pointer;
+}
+:where(input[type='checkbox'], input[type='radio']) {
+  width: 24px;
+  height: 24px;
+  flex: none;
+}
+/* O botão pequeno do aviso de IA de nuvem (40 px) chega aos 44 px de toque. */
+.aviso-info .btn.peq {
+  min-height: 44px;
+}

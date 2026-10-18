@@ -38,7 +38,7 @@ import { escolherConteudo, mudarIdiomaDoConteudo, useConteudo } from '../../lib/
 import { useContagensDeConteudo } from '../../lib/conteudo/useContagens';
 import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
 import { getEntitlements, onPlanChange } from '../../lib/entitlements';
-import { numero } from '../../lib/i18n';
+import { idiomaDaInterface, numero } from '../../lib/i18n';
 import { t } from '../../lib/i18n';
 import {
   type Entrada,
@@ -74,9 +74,12 @@ function faixaDeTamanho(wordCount: number): 'short' | 'medium' | 'long' {
 
 /** Idioma base de uma sessão ('en-US' → 'en'); sem idioma gravado = ''. */
 const idiomaBase = (r: Recording) => (r.idioma ?? '').split('-')[0].toLowerCase();
+/** Nome de idioma no meio da frase: minúsculo em pt/es/fr…, com inicial maiúscula em inglês e alemão. */
+const emFrase = (nome: string) =>
+  ['en', 'de'].includes(idiomaDaInterface().split('-')[0]) ? nome : nome.toLocaleLowerCase();
 function nomeDoIdioma(cod: string): string {
   try {
-    const n = new Intl.DisplayNames(['pt-BR'], { type: 'language' }).of(cod) ?? cod;
+    const n = new Intl.DisplayNames([idiomaDaInterface()], { type: 'language' }).of(cod) ?? cod;
     return n.charAt(0).toUpperCase() + n.slice(1);
   } catch {
     return cod;
@@ -464,9 +467,9 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
             daSessao: (id) => baralhoDaSessao.get(id),
             carregado: !!contagens,
             emUso: conteudo.fonte.tipo === 'sessao' ? conteudo.fonte.id : null,
-            idioma: idiomaDoConteudo ? nomeDoIdiomaDoConteudo(idiomaDoConteudo).toLocaleLowerCase() : '',
+            idioma: idiomaDoConteudo ? emFrase(nomeDoIdiomaDoConteudo(idiomaDoConteudo)) : '',
             outro: outroIdioma && {
-              nome: nomeDoIdiomaDoConteudo(outroIdioma.id).toLocaleLowerCase(),
+              nome: emFrase(nomeDoIdiomaDoConteudo(outroIdioma.id)),
               quantas: outroIdioma.quantas,
               aoIr: () => mudarIdiomaDoConteudo(outroIdioma.id),
             },

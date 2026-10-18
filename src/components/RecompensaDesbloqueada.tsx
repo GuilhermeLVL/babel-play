@@ -41,12 +41,18 @@ import MiniaturaDoItem from './MiniaturaDoItem';
 import PreviaRealDaPeca, { TIPOS_COM_PREVIA_REAL } from './PreviaRealDaPeca';
 import { DialogoBase } from './ui';
 
-/** Rotulo e frase de cada tipo, para o JSX parar de ramificar em quatro lugares. */
-const CABECALHO: Record<Recompensa['tipo'], { rotulo: string; frase: string }> = {
-  nivel: { rotulo: 'Subiu de nível', frase: 'Você liberou:' },
-  conquista: { rotulo: 'Conquista feita', frase: 'Item exclusivo liberado:' },
-  drop: { rotulo: 'Baú da rodada', frase: 'O baú abriu:' },
-  maestria: { rotulo: 'Maestria', frase: 'Você liberou:' },
+/** Rotulo e frase de cada tipo, para o JSX parar de ramificar em quatro lugares. Função: lê `t()` na hora de desenhar. */
+const cabecalhoDe = (tipo: Recompensa['tipo']): { rotulo: string; frase: string } => {
+  switch (tipo) {
+    case 'nivel':
+      return { rotulo: t('Subiu de nível'), frase: t('Você liberou:') };
+    case 'conquista':
+      return { rotulo: t('Conquista feita'), frase: t('Item exclusivo liberado:') };
+    case 'drop':
+      return { rotulo: t('Baú da rodada'), frase: t('O baú abriu:') };
+    case 'maestria':
+      return { rotulo: t('Maestria'), frase: t('Você liberou:') };
+  }
 };
 
 /** O ícone de cada nível de maestria — o mesmo da barra (`BarraDeMaestria`). */
@@ -166,11 +172,15 @@ function Resgate({
 
   const itens: ItemDaLoja[] =
     atual.tipo === 'nivel' || atual.tipo === 'maestria' ? atual.itens : atual.item ? [atual.item] : [];
-  const cabecalho = CABECALHO[atual.tipo];
+  const cabecalho = cabecalhoDe(atual.tipo);
   // Esc (o `close` nativo) e os dois botões passam por aqui; a recompensa sai da fila uma vez só.
   const fechar = () => {
     if (fechado.current) return;
     fechado.current = true;
+    /* Tira o foco de dentro do <dialog> antes de ele sair do DOM: sem isto o botão focado some com o
+       foco "retido" e o navegador reclama de aria-hidden sobre um ancestral com foco. */
+    const ativo = document.activeElement;
+    if (ativo instanceof HTMLElement && ativo.closest('dialog')) ativo.blur();
     marcarVista(atual);
     onFechar(atual);
   };
@@ -178,12 +188,12 @@ function Resgate({
     if (!onEquipar(i)) return;
     setEquipados((s) => new Set(s).add(i.id));
     play('select');
-    pontosDoElemento(TEXTOS.emUso, el, 'bom');
+    pontosDoElemento(t(TEXTOS.emUso), el, 'bom');
   };
 
   const titulo =
     atual.tipo === 'nivel'
-      ? `Nível ${atual.nivel}!`
+      ? t('Nível {n}!', { n: atual.nivel })
       : atual.tipo === 'drop'
         ? (atual.item?.nome ?? t('Peça repetida'))
         : atual.tipo === 'maestria'
@@ -213,7 +223,11 @@ function Resgate({
           )}
         </div>
         {grupo.total > 1 && (
-          <span className="badge acc" data-novidades={grupo.total} style={{ marginBottom: 6 }}>
+          <span
+            className="badge acc"
+            data-novidades={grupo.total}
+            style={{ marginBottom: 6, whiteSpace: 'normal', textAlign: 'center', maxWidth: '100%' }}
+          >
             {t('{n} novidades', { n: grupo.total })} · {t('{i} de {n}', { i: grupo.posicao, n: grupo.total })}
           </span>
         )}
@@ -228,7 +242,7 @@ function Resgate({
               ? cabecalho.frase
               : atual.tipo === 'maestria'
                 ? t('Novo nível de maestria neste jogo.')
-                : 'Nada novo para equipar neste nível: o próximo desbloqueio vem aí.'}
+                : t('Nada novo para equipar neste nível: o próximo desbloqueio vem aí.')}
         </p>
 
         {itens.length > 0 && (
@@ -276,14 +290,14 @@ function Resgate({
                     >
                       {equipado ? (
                         <>
-                          <Check aria-hidden /> {TEXTOS.emUso}
+                          <Check aria-hidden /> {t(TEXTOS.emUso)}
                         </>
                       ) : (
-                        TEXTOS.equiparAgora
+                        t(TEXTOS.equiparAgora)
                       )}
                     </button>
                   ) : (
-                    <span className="badge neu">{TEXTOS.liberado}</span>
+                    <span className="badge neu">{t(TEXTOS.liberado)}</span>
                   )}
                 </li>
               );
@@ -313,7 +327,7 @@ function Resgate({
         )}
 
         <button type="button" className="btn btn-solid bloco" data-autofocus onClick={fechar}>
-          {TEXTOS.resgatarEContinuar}
+          {t(TEXTOS.resgatarEContinuar)}
         </button>
         <button
           type="button"
@@ -324,7 +338,7 @@ function Resgate({
             onVerPersonalizar();
           }}
         >
-          {TEXTOS.verEmPersonalizar}
+          {t(TEXTOS.verEmPersonalizar)}
         </button>
       </div>
     </DialogoBase>

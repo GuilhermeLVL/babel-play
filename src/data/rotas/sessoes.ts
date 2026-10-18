@@ -9,7 +9,7 @@
  * POST/GET `/api/sessions/:id/audio`, PATCH `/api/sessions/utterances/:id`,
  * GET `/api/sessions/utterances/all`, POST `/api/sessions/utterances/relabel`.
  */
-import { data } from '../../lib/i18n'
+import { data, idiomaDaInterface } from '../../lib/i18n'
 import type { CenarioDaSessao, Recording } from '../../types'
 import { apiFetch, comTeto, IMPORT_TIMEOUT_MS } from '../funil'
 
@@ -57,13 +57,23 @@ function fmtDuration(ms: number | null): string {
 function fmtDate(ts: number): string {
   const d = new Date(ts)
   const now = new Date()
-  if (d.toDateString() === now.toDateString()) return 'Hoje'
+  /* "Hoje"/"Ontem"/"Há N dias" no idioma da UI (Intl.RelativeTimeFormat), com a inicial maiúscula como antes. */
+  const relativo = (n: number, un: Intl.RelativeTimeFormatUnit) => {
+    let txt: string
+    try {
+      txt = new Intl.RelativeTimeFormat(idiomaDaInterface(), { numeric: 'auto' }).format(n, un)
+    } catch {
+      txt = new Intl.RelativeTimeFormat('pt', { numeric: 'auto' }).format(n, un)
+    }
+    return txt.charAt(0).toLocaleUpperCase(idiomaDaInterface()) + txt.slice(1)
+  }
+  if (d.toDateString() === now.toDateString()) return relativo(0, 'day')
   // Diferença por dia de CALENDÁRIO, não por 24h corridas: gravado ontem à noite e visto de
   // manhã dava floor(0.6)=0 → "Há 0 dias" (ux-v2 §1.9).
   const meiaNoite = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime()
   const diffDays = Math.round((meiaNoite(now) - meiaNoite(d)) / 86_400_000)
-  if (diffDays <= 1) return 'Ontem'
-  if (diffDays < 7) return `Há ${diffDays} dias`
+  if (diffDays <= 1) return relativo(-1, 'day')
+  if (diffDays < 7) return relativo(-diffDays, 'day')
   return data(d)
 }
 

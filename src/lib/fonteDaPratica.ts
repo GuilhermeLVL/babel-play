@@ -1,4 +1,4 @@
-import type { EscopoDeGravacoes,OrigemDaPratica } from '@core';
+import type { EscopoDeGravacoes, OrigemDaPratica } from '@core';
 import type { CefrLevel } from '@core';
 
 /**
@@ -52,13 +52,13 @@ export function lerFonteGuardada(sessoesExistentes: readonly string[]): FonteGua
     if (!texto) return PADRAO;
     cru = JSON.parse(texto);
   } catch {
-    return PADRAO;   // storage bloqueado ou JSON corrompido, o padrão sempre funciona
+    return PADRAO; // storage bloqueado ou JSON corrompido, o padrão sempre funciona
   }
 
   const o = (cru ?? {}) as Partial<FonteGuardada>;
-  const origem = ORIGENS.includes(o.origem as OrigemDaPratica) ? o.origem as OrigemDaPratica : PADRAO.origem;
-  const escopo = ESCOPOS.includes(o.escopo as EscopoDeGravacoes) ? o.escopo as EscopoDeGravacoes : PADRAO.escopo;
-  const nivel = NIVEIS.includes(o.nivel as string) ? o.nivel as CefrLevel : undefined;
+  const origem = ORIGENS.includes(o.origem as OrigemDaPratica) ? (o.origem as OrigemDaPratica) : PADRAO.origem;
+  const escopo = ESCOPOS.includes(o.escopo as EscopoDeGravacoes) ? (o.escopo as EscopoDeGravacoes) : PADRAO.escopo;
+  const nivel = NIVEIS.includes(o.nivel as string) ? (o.nivel as CefrLevel) : undefined;
 
   // A gravação guardada só vale se ainda existe. Senão, "todas" — que nunca aponta para o vazio.
   const sessionId = o.sessionId && sessoesExistentes.includes(o.sessionId) ? o.sessionId : undefined;
@@ -72,20 +72,16 @@ export function lerFonteGuardada(sessoesExistentes: readonly string[]): FonteGua
 /** Grava. Falha de storage é silenciosa de propósito: perder a memória não pode travar a prática. */
 export function gravarFonteGuardada(f: FonteGuardada): void {
   try {
-    localStorage.setItem(CHAVE, JSON.stringify({
-      origem: f.origem, escopo: f.escopo, sessionId: f.sessionId, nivel: f.nivel,
-    }));
-  } catch { /* storage bloqueado */ }
-}
-
-/**
- * A PESSOA JÁ ESCOLHEU ALGUMA VEZ?
- *
- * `lerFonteGuardada` devolve o PADRÃO quando não há nada gravado, e isso é o certo para montar a
- * fonte — mas apaga a diferença entre "nunca escolheu" e "escolheu justamente o padrão". A tela
- * precisa dessa diferença: a Sala de Escolha abria a CADA entrada, para todo mundo, inclusive para
- * quem já tinha decidido e só queria jogar. Agora ela abre para quem ainda não decidiu.
- */
-export function temFonteGuardada(): boolean {
-  try { return localStorage.getItem(CHAVE) !== null; } catch { return false; }
+    localStorage.setItem(
+      CHAVE,
+      JSON.stringify({
+        origem: f.origem,
+        escopo: f.escopo,
+        sessionId: f.sessionId,
+        nivel: f.nivel,
+      }),
+    );
+  } catch {
+    /* storage bloqueado */
+  }
 }

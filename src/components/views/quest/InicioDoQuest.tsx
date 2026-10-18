@@ -19,7 +19,7 @@ import {
 import React, { useState } from 'react';
 
 import type { AppMetrics } from '../../../data/api';
-import { contagemDaFonte,type Conteudo } from '../../../lib/conteudo/estado';
+import { contagemDaFonte, type Conteudo } from '../../../lib/conteudo/estado';
 import { useConteudo } from '../../../lib/conteudo/loja';
 import { useContagensDeConteudo } from '../../../lib/conteudo/useContagens';
 import { noCelular } from '../../../lib/dispositivo/telaNovaDoQuest';
@@ -53,9 +53,14 @@ function ladrilhoDosCartoes(metrics: AppMetrics | null | 'sem-conta'): { titulo:
   if (metrics.reviews === 0)
     return {
       titulo: metrics.deckSize > 10 ? t('Cartões: comece por 10') : t('Cartões: comece agora'),
-      frase: tp(metrics.deckSize, 'Sua {n} palavra já é cartão.', 'Suas {n} palavras já são cartões.', {
-        n: numero(metrics.deckSize),
-      }),
+      frase: tp(
+        metrics.deckSize,
+        'Sua {n} palavra já é cartão (somando todos os idiomas).',
+        'Suas {n} palavras já são cartões (somando todos os idiomas).',
+        {
+          n: numero(metrics.deckSize),
+        },
+      ),
     };
   if (metrics.dueToday > 0)
     return {

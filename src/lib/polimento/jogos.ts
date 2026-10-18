@@ -91,15 +91,6 @@ export function selo(texto: string, classe = '', palco: Element | null = palcoDa
 /** O texto do ganho (`jogos.js:236`): "+20 ×2", ou só "+10" sem multiplicador. */
 export const textoDoGanho = (ganho: number, mult: number): string => `+${ganho}${mult > 1 ? ` ×${mult}` : ''}`;
 
-/**
- * O retorno visual de um ACERTO (`pjAcerto`, `jogos.js:236-237`): o ganho que sobe e a vinheta verde.
- * O som, a vibração e as partículas continuam com o motor de comemoração do app, que o jogo já chamou.
- */
-export function retornoDeAcerto(el: Element | null | undefined, ganho: number, mult: number): void {
-  if (ganho > 0) flutuar(el, textoDoGanho(ganho, mult), 'good');
-  vinheta('acerto');
-}
-
 /** O retorno visual de um ERRO (`pjErro`, `jogos.js:247-249`): vinheta vermelha, tremida e a mensagem. */
 export function retornoDeErro(el: Element | null | undefined, msg?: string | null): void {
   vinheta('erro');

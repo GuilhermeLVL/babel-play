@@ -163,11 +163,6 @@ export async function registrarPresenca(dia: number): Promise<{ jaExistia: boole
  * valor que a tela não mostrou.
  */
 
-export async function gastarCreditos(payload: { spendId: string; amount: number; reason: string; ref?: string }):
-  Promise<{ jaExistia: boolean; gasto: number; saldo: number } | null> {
-  return (await gastarCreditosEx(payload)).resultado;
-}
-
 /**
  * O mesmo gasto de Créditos, com o MOTIVO da recusa (recompensas v2, onda 6): o perfil protegido
  * recebe 403 `menor_nao_compra` (ou `idade_nao_informada`), e a tela precisa dizer isso em vez de

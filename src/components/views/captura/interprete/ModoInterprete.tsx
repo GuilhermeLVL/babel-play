@@ -13,7 +13,7 @@ import { historicoDoInterprete, JANELA_DO_HISTORICO } from '../../../../lib/capt
 import { direcaoDoLado, ESTADO_INICIAL, type IdiomasDoInterprete } from '../../../../lib/captura/interprete';
 import { chaveLigada } from '../../../../lib/captura/testesDoInterprete';
 import type { LadoDoInterprete, SpeechSegment } from '../../../../lib/captura/tiposDaFala';
-import { t } from '../../../../lib/i18n';
+import { data, t } from '../../../../lib/i18n';
 import { langLabel, toBcp47 } from '../../../../lib/languages';
 import { estadoDaTela, mudarEstadoDaTela, tomarPedidoDaConversa, tremer } from '../../../../lib/polimento/interprete';
 import { nativeTts, type TtsEngine } from '../../../../lib/tts';
@@ -301,7 +301,7 @@ export default function ModoInterprete({
 
   /** EXPORTAR: o Markdown da conversa, baixado no aparelho (nada sai dele). */
   const exportar = () => {
-    const titulo = t('Conversa de {data}', { data: new Date().toLocaleDateString() });
+    const titulo = t('Conversa de {data}', { data: data(new Date()) });
     const md = conversaEmMarkdown(falas, {
       titulo,
       rotulos: { meu: t('Você'), outro: t('A outra pessoa') },

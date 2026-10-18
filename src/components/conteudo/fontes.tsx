@@ -16,7 +16,7 @@ import {
 
 import type { ContagemDaFonte, ContagensDeConteudo, FonteContada } from '../../core/learning/contagensDeConteudo';
 import { type Conteudo, type FonteDeConteudo, TUDO } from '../../lib/conteudo/estado';
-import { numero, t, tp } from '../../lib/i18n';
+import { idiomaDaInterface, numero, t, tp } from '../../lib/i18n';
 import { langLabelNaUI } from '../../lib/languages';
 
 /** Os grupos e a ordem do catálogo (`FX_GRUPOS`, `fontes.js:51-55`). */
@@ -70,7 +70,7 @@ export function contagemPorExtenso(m: { palavras: number; frases: number }): str
 function diaEMes(ms: number): string {
   if (!ms) return '';
   const d = new Date(ms);
-  return `${d.getDate()} ${d.toLocaleDateString(undefined, { month: 'short' }).replace('.', '')}`;
+  return `${d.getDate()} ${d.toLocaleDateString(idiomaDaInterface(), { month: 'short' }).replace('.', '')}`;
 }
 
 function deOndeDaSessao(s: FonteContada): string {

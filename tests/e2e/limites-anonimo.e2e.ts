@@ -7,7 +7,7 @@ import { test } from '@playwright/test'
  * quando `authRequired` e verdade, e `authRequired = VITE_AUTH_REQUIRED === '1' && configurado`
  * (`src/lib/supabase.ts`) — exige URL e chave anonima de um projeto Supabase compilados no
  * bundle. O `webServer` desta suite e `npm run dev:local`, que forca `VITE_AUTH_REQUIRED=0` e
- * zera as duas variaveis (`subir-dev.mjs`), entao a identidade e sempre `selfhost`: nenhuma
+ * zera as duas variaveis (`scripts/subir-dev.mjs`), entao a identidade e sempre `selfhost`: nenhuma
  * flag de localStorage ou de URL leva ao estado `anonimo`, e o servidor efemero (`data/efemero`)
  * nunca e montado. Cobrir o teto de verdade pede um segundo `webServer` com um projeto Supabase de
  * teste — fora do escopo desta fase. A regra em si esta coberta em `tests/` (vitest) pelo core.

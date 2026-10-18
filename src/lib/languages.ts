@@ -204,7 +204,11 @@ export function langLabelNaUI(code: string): string {
        LISTA de escolha — lá a pessoa procura o próprio idioma e o reconhece escrito como ele é. */
     const nome = new Intl.DisplayNames([idiomaDaInterface()], { type: 'language' }).of(b);
     // A API devolve o próprio código quando não conhece o idioma; aí o nome nativo informa mais.
-    if (nome && nome.toLowerCase() !== b) return nome.toLowerCase();
+    if (nome && nome.toLowerCase() !== b) {
+      /* Em inglês e alemão o nome do idioma leva inicial maiúscula mesmo no meio da frase ("in Portuguese");
+         em português, espanhol etc. é minúscula ("em português"). */
+      return ['en', 'de'].includes(idiomaDaInterface().split('-')[0]) ? nome : nome.toLowerCase();
+    }
   } catch {
     /* runtime sem Intl.DisplayNames */
   }

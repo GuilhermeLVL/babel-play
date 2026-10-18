@@ -20,7 +20,7 @@ import { DominantLangTracker } from '../convoLang';
 import { perfilDoDispositivo } from '../dispositivo/perfil';
 import { comPrazo } from '../dispositivo/sonda';
 import { burstFromElement } from '../effects';
-import { dataHora } from '../i18n';
+import { dataHora, t } from '../i18n';
 import { misturarAudios } from '../misturarAudios';
 import { OrdemDasTraducoes } from '../ordemDaTraducao';
 import { PerfilAdaptativoDeIdioma } from '../perfilDeIdioma';
@@ -476,11 +476,13 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
     // Pré-preenche o modal: retomando → título/capa existentes; senão, título por data.
     if (resumeId) {
       const existing = (recordings ?? []).find((r) => r.id === resumeId);
-      setCustomSessionTitle((prev) => prev.trim() || existing?.title || `Captura ao vivo, ${dataHora(new Date())}`);
+      setCustomSessionTitle(
+        (prev) => prev.trim() || existing?.title || `${t('Captura ao vivo')}, ${dataHora(new Date())}`,
+      );
       setCustomSessionImage(existing?.imageUrl ?? '');
       setImgQuery(existing?.title ?? '');
     } else {
-      setCustomSessionTitle(`Captura ao vivo, ${dataHora(new Date())}`);
+      setCustomSessionTitle(`${t('Captura ao vivo')}, ${dataHora(new Date())}`);
       setCustomSessionImage('');
       setImgQuery('');
     }
@@ -564,7 +566,7 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
    * ainda não foi salva", com saídas de verdade. Sessão RETOMADA mantém o mesmo id.
    */
   const handleFinalizeSave = (shouldRedirect: boolean): Promise<void> => {
-    const title = customSessionTitle.trim() || `Captura ao vivo, ${dataHora(new Date())}`;
+    const title = customSessionTitle.trim() || `${t('Captura ao vivo')}, ${dataHora(new Date())}`;
     const cover = customSessionImage.trim();
     const retomada = resumeId;
     const durationMs = timer * 1000;

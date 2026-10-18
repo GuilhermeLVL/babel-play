@@ -38,7 +38,8 @@ html[data-quest-novo='true'] .q-cab.fs-cab { flex-wrap: nowrap; align-items: cen
 html[data-quest-novo='true'][data-px='on'] .q-cab.fs-cab > h1 { flex: 0 0 190px; width: 190px; margin: 0; white-space: nowrap; }
 html[data-quest-novo='true'] .q-cab.fs-cab > .fs-ficha { align-self: center; }
 html[data-quest-novo='true'] .q-cab.fs-cab > .q-espaco { flex: 1 1 0; min-width: 0; }
-html[data-quest-novo='true'] .q-bib > .q-cab.fs-cab-bib > .fs-bib-sobre { flex: 0 1 auto; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* O resumo quebra em duas linhas em vez de cortar com reticências: o total das palavras não pode sumir (o alemão e o acervo grande o alongam). */
+html[data-quest-novo='true'] .q-bib > .q-cab.fs-cab-bib > .fs-bib-sobre { flex: 0 1 auto; min-width: 0; margin: 0; white-space: normal; }
 html[data-quest-novo='true'] .q-bib > .q-cab.fs-cab-bib > .fs-bib-ordem { flex: 0 0 auto; }
 html[data-quest-novo='true'] .ct-abas .q-aba[hidden] { display: none !important; }
 .fs-so-cel { display: none !important; }

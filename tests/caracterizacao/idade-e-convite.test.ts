@@ -36,7 +36,9 @@ const tokenDoLink = (link: string): string => new URL(link, 'http://x').searchPa
 describe('idade e convite ao responsavel (modo publico)', () => {
   let s: AppDeTeste
   const tokens: Record<string, string> = {}
-  const tk = async (sub: string) => (tokens[sub] ??= await s.token(sub))
+  /* A mãe entra com o e-mail do convite: quem aceita precisa ser quem o recebeu. */
+  const tk = async (sub: string) =>
+    (tokens[sub] ??= await s.token(sub, sub === 'mae' ? { email: 'mae@exemplo.com' } : {}))
 
   beforeAll(async () => {
     s = await subirApp({ modo: 'publico' })
@@ -127,11 +129,11 @@ describe('idade e convite ao responsavel (modo publico)', () => {
 
     it('o token e de uso unico, e convidar de novo invalida o anterior', async () => {
       const primeiro = tokenDoLink(
-        (await (await s.post('/api/me/responsavel/convite', { email: 'a@exemplo.com' }, await tk('menor-13'))).json())
+        (await (await s.post('/api/me/responsavel/convite', { email: 'mae@exemplo.com' }, await tk('menor-13'))).json())
           .linkDeTeste,
       )
       const segundo = tokenDoLink(
-        (await (await s.post('/api/me/responsavel/convite', { email: 'b@exemplo.com' }, await tk('menor-13'))).json())
+        (await (await s.post('/api/me/responsavel/convite', { email: 'mae@exemplo.com' }, await tk('menor-13'))).json())
           .linkDeTeste,
       )
       const aceitar = (token: string) =>
@@ -248,7 +250,7 @@ describe('idade e convite ao responsavel (modo publico)', () => {
       const anterior = tokenDoLink(
         (
           await (
-            await s.post('/api/me/responsavel/convite', { email: 'antigo@exemplo.com' }, await tk('menor-sem-sorte'))
+            await s.post('/api/me/responsavel/convite', { email: 'mae@exemplo.com' }, await tk('menor-sem-sorte'))
           ).json()
         ).linkDeTeste,
       )
@@ -264,7 +266,7 @@ describe('idade e convite ao responsavel (modo publico)', () => {
       vi.restoreAllMocks()
 
       const estado = await (await s.get('/api/me/idade', await tk('menor-sem-sorte'))).json()
-      expect(estado.vinculo.emailMascarado).toMatch(/^an/)
+      expect(estado.vinculo.emailMascarado).toMatch(/^ma/)
       const aceite = await s.post(
         '/api/responsavel/aceitar',
         { token: anterior, nomeDoResponsavel: 'Maria', declaroSerResponsavelLegal: true },

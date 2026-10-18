@@ -27,7 +27,8 @@ function nascidoHa(anos: number): string {
 }
 
 async function tk(sub: string): Promise<string> {
-  tokens[sub] ??= await s.token(sub)
+  // A mãe entra com o e-mail do convite padrão (`convidar`): quem aceita precisa ser quem o recebeu.
+  tokens[sub] ??= await s.token(sub, sub === 'u-mae' ? { email: 'responsavel@exemplo.com' } : {})
   return tokens[sub]
 }
 async function declarar(sub: string, anos: number) {

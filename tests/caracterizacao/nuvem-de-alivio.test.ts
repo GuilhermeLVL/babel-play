@@ -301,7 +301,7 @@ describe('pool do dia e reserva dos pagantes', () => {
       status: 'active',
       currentPeriodEnd: Date.now() + 30 * 86_400_000,
     })
-    const pago = await mt(await s.token('pagante-reserva'))
+    const pago = await mt(await adulto('pagante-reserva'))
     expect(pago.status).toBe(200)
   })
 
@@ -321,16 +321,17 @@ describe('pool do dia e reserva dos pagantes', () => {
       status: 'active',
       currentPeriodEnd: Date.now() + 30 * 86_400_000,
     })
-    expect((await mt(await s.token('pagante-balde'))).status).toBe(200)
+    expect((await mt(await adulto('pagante-balde'))).status).toBe(200)
   })
 })
 
 describe('perfil protegido', () => {
-  it('idade não declarada (protegido por padrão) ou 16–17 anos, sem responsável: 403 alivio_exige_responsavel', async () => {
+  it('idade não declarada (403 idade_nao_informada) ou 16–17 anos, sem responsável (403 alivio_exige_responsavel)', async () => {
     const semData = await s.token('alivio-sem-data')
     const r = await stt(semData)
     expect(r.status).toBe(403)
-    expect((await r.json()).code).toBe('alivio_exige_responsavel')
+    // Sem data de nascimento a conta nem chega ao alívio: a porta das rotas de nuvem fecha antes.
+    expect((await r.json()).code).toBe('idade_nao_informada')
 
     const t17 = await s.token('alivio-17')
     await s.put('/api/me/idade', { nascimento: nascidoHa(17) }, t17)
@@ -367,7 +368,7 @@ describe('quem não é afetado', () => {
       currentPeriodEnd: Date.now() + 30 * 86_400_000,
     })
     await ligar(false)
-    const t = await s.token('pagante-alivio')
+    const t = await adulto('pagante-alivio')
     expect((await stt(t)).status).toBe(200)
     expect(await counters.get('pagante-alivio', quota.METRIC_STT_SEGUNDOS, janela())).toBe(1)
     expect(await counters.get('pagante-alivio', quota.METRIC_ALIVIO_STT_SEGUNDOS, janela())).toBe(0)

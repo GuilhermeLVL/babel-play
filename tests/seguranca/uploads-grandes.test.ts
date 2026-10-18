@@ -62,7 +62,7 @@ describe('uploads grandes: semáforo, streaming e teto (ADR 0009)', () => {
     audioDir = mkdtempSync(path.join(tmpdir(), 'babel-uploads-grandes-'))
     process.env.AUDIO_DIR = audioDir
     process.env.FREE_STORAGE_MB = '100000'
-    s = await subirApp({ modo: 'publico' })
+    s = await subirApp({ modo: 'publico', adultoPorPadrao: true })
     for (const u of ['ana', 'bia', 'caio', 'duda', 'edu', 'fabi', 'gil']) tokens[u] = await s.token(`uploads-${u}`)
   }, 60_000)
 

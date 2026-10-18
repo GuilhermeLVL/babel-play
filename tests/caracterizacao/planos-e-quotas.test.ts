@@ -42,7 +42,7 @@ describe('planos e quotas (modo publico)', () => {
       if (k.endsWith('_API_KEY')) process.env[k] = ''
       else delete process.env[k]
     }
-    s = await subirApp({ modo: 'publico' })
+    s = await subirApp({ modo: 'publico', adultoPorPadrao: true })
     tokenA = await s.token(A)
     tokenB = await s.token(B)
   })

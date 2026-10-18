@@ -24,7 +24,7 @@ describe('limites de corpo por rota (GAP-015)', () => {
   let token: string
 
   beforeAll(async () => {
-    s = await subirApp({ modo: 'publico' })
+    s = await subirApp({ modo: 'publico', adultoPorPadrao: true })
     token = await s.token('usuario-limites')
   }, 60_000)
   afterAll(async () => {

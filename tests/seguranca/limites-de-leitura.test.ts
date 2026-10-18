@@ -29,7 +29,7 @@ let trustProxyAnterior: string | undefined
 beforeAll(async () => {
   trustProxyAnterior = process.env.TRUST_PROXY
   process.env.TRUST_PROXY = '1'
-  s = await subirApp({ modo: 'publico' })
+  s = await subirApp({ modo: 'publico', adultoPorPadrao: true })
 }, 60_000)
 
 afterAll(async () => {

@@ -17,7 +17,7 @@ let pagante: string
 let gratis: string
 
 beforeAll(async () => {
-  s = await subirApp({ modo: 'publico' })
+  s = await subirApp({ modo: 'publico', adultoPorPadrao: true })
   pagante = await s.token('glossario-pagante')
   gratis = await s.token('glossario-gratis')
   /* As contas nascem no primeiro request (o `authMiddleware` provisiona). */

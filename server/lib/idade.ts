@@ -208,7 +208,8 @@ export function exigirAdultoDeclarado(req: Request, res: Response, next: NextFun
 
 /**
  * MIDDLEWARE: rotas de dados na nuvem só para conta liberada. Menor de 16 sem vínculo aceito (ou
- * menor de 12 sem consentimento específico) recebe 403 `responsavel_pendente` — o cliente
+ * menor de 12 sem consentimento específico) recebe 403 `responsavel_pendente`; quem ainda não declarou a data,
+ * 403 `idade_nao_informada` — o cliente
  * (`src/lib/protecaoDoMenor.ts`) já desvia essas chamadas para o modo local, então isto é a
  * defesa do lado do servidor, não a experiência.
  */
@@ -219,6 +220,12 @@ export function exigirContaLiberada(req: Request, res: Response, next: NextFunct
   }
   estadoDeProtecao(req.userId)
     .then((e) => {
+      /* SEM DATA DE NASCIMENTO NÃO HÁ NUVEM. O App pergunta a idade antes de tudo, mas quem chama a API direto com o
+         próprio token pulava a pergunta e usava a IA sem o vínculo que o menor exige (ECA Digital). */
+      if (!e.nascimentoInformado && !req.convidado) {
+        responderErro(res, 403, 'informe a sua data de nascimento para usar a nuvem', 'idade_nao_informada')
+        return
+      }
       if (e.restrita) {
         responderErro(
           res,

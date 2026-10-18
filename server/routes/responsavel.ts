@@ -16,6 +16,7 @@ import { z } from 'zod'
 import { idadesRepo } from '../db/repositories/idades'
 import { usersRepo } from '../db/repositories/users'
 import { vinculosRepo } from '../db/repositories/vinculos'
+import { emailDaRequisicao } from '../lib/auth'
 import { asUserId } from '../lib/authContext'
 import { textoParaFaixa, VERSAO_DO_CONSENTIMENTO } from '../lib/consentimentoDoResponsavel'
 import { erroDeRota } from '../lib/erroDeRota'
@@ -98,6 +99,20 @@ responsavelRouter.post('/aceitar', async (req, res) => {
 
     if (menorId === req.userId) {
       responderErro(res, 403, 'o convite precisa ser aceito pela conta do responsável, não pela sua', 'mesma_conta')
+      return
+    }
+    /* QUEM ACEITA É QUEM RECEBEU. O link vai ao e-mail que o menor digitou, e o token era a única prova: um adolescente
+       criava uma segunda conta, declarava 18+ e se "autorizava" (e, abaixo de 12, fraudava o consentimento do art. 14).
+       Agora o e-mail da conta que aceita (claim já verificada do JWT) precisa ser o do convite. */
+    const doConvite = c.emailDoResponsavel.trim().toLowerCase()
+    const de = (emailDaRequisicao(req) ?? '').trim().toLowerCase()
+    if (!de || de !== doConvite) {
+      responderErro(
+        res,
+        403,
+        'este convite foi enviado para outro e-mail; entre com a conta desse e-mail para aceitar',
+        'convite_de_outro_email',
+      )
       return
     }
     const quem = await ehAdultoDeclarado(req.userId)

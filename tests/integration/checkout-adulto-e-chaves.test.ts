@@ -16,7 +16,8 @@ import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
 let s: AppDeTeste
 const tokens: Record<string, string> = {}
 async function tk(sub: string): Promise<string> {
-  tokens[sub] ??= await s.token(sub)
+  // A mãe entra com o e-mail do convite: quem aceita precisa ser quem o recebeu.
+  tokens[sub] ??= await s.token(sub, sub === 'p-mae' ? { email: 'mae@exemplo.com' } : {})
   return tokens[sub]
 }
 function nascidoHa(anos: number): string {

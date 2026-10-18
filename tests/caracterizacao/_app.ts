@@ -38,6 +38,8 @@ import type { Server } from 'node:http'
 
 import { generateKeyPair, SignJWT } from 'jose'
 
+import { asUserId } from '../../server/lib/authContext'
+
 type Chave = Awaited<ReturnType<typeof generateKeyPair>>['privateKey']
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
@@ -60,6 +62,8 @@ export interface AppDeTeste {
   del: (caminho: string, token?: string) => Promise<Response>
   /** Só no modo público: token ES256 válido para o `sub` dado (`claims` extras, ex.: `{ aal: 'aal2' }`). */
   token: (sub: string, claims?: Record<string, unknown>) => Promise<string>
+  /** Como `token`, mas a conta antes declara ADULTO (sem data de nascimento a nuvem é recusada: `idade_nao_informada`). */
+  tokenAdulto: (sub: string, claims?: Record<string, unknown>) => Promise<string>
   /** Import dinâmico de um módulo de servidor já ligado ao banco efêmero. */
   load: <T = any>(spec: string) => Promise<T>
   encerrar: () => Promise<void>
@@ -109,7 +113,13 @@ function restaurarEnv() {
   }
 }
 
-export async function subirApp(opts: { modo: Modo } = { modo: 'self-host' }): Promise<AppDeTeste> {
+export async function subirApp(
+  opts: {
+    modo: Modo
+    /** Todo `token()` declara ADULTO (1990-01-01) a quem ainda não declarou: sem data a nuvem é recusada (`idade_nao_informada`). */
+    adultoPorPadrao?: boolean
+  } = { modo: 'self-host' },
+): Promise<AppDeTeste> {
   const h = await setupEphemeralDb()
   fixarEnv('AUTH_REQUIRED', opts.modo === 'publico' ? '1' : '0')
   fixarEnv('SUPABASE_URL', opts.modo === 'publico' ? URL_SUPABASE_TESTE : undefined)
@@ -167,6 +177,23 @@ export async function subirApp(opts: { modo: Modo } = { modo: 'self-host' }): Pr
     return fetch(base + caminho, { method: metodo, headers, body })
   }
 
+  const declararAdulto = async (sub: string) => {
+    const { idadesRepo } = await import('../../server/db/repositories/idades')
+    const id = asUserId(sub)
+    if (!(await idadesRepo.nascimento(id))) await idadesRepo.declarar(id, '1990-01-01')
+  }
+  const emitirToken = async (sub: string, claims: Record<string, unknown>) => {
+    if (!chavePrivada) throw new Error('token() só existe no modo publico')
+    return new SignJWT(claims)
+      .setProtectedHeader({ alg: 'ES256' })
+      .setSubject(sub)
+      .setAudience('authenticated')
+      .setIssuer(`${URL_SUPABASE_TESTE}/auth/v1`)
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      .sign(chavePrivada)
+  }
+
   return {
     h,
     base,
@@ -179,15 +206,14 @@ export async function subirApp(opts: { modo: Modo } = { modo: 'self-host' }): Pr
     patch: (c, b, t) => chamar('PATCH', c, { body: b, token: t }),
     del: (c, t) => chamar('DELETE', c, { token: t }),
     token: async (sub, claims = {}) => {
-      if (!chavePrivada) throw new Error('token() só existe no modo publico')
-      return new SignJWT(claims)
-        .setProtectedHeader({ alg: 'ES256' })
-        .setSubject(sub)
-        .setAudience('authenticated')
-        .setIssuer(`${URL_SUPABASE_TESTE}/auth/v1`)
-        .setIssuedAt()
-        .setExpirationTime('1h')
-        .sign(chavePrivada)
+      /* `adultoPorPadrao`: quem ainda não declarou entra como ADULTO DECLARADO; a data de quem já declarou (um menor,
+         por exemplo) não é tocada. */
+      if (opts.adultoPorPadrao) await declararAdulto(sub)
+      return emitirToken(sub, claims)
+    },
+    tokenAdulto: async (sub, claims = {}) => {
+      await declararAdulto(sub)
+      return emitirToken(sub, claims)
     },
     encerrar: async () => {
       await new Promise<void>((r) => server.close(() => r()))

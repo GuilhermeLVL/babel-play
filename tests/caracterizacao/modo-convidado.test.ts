@@ -157,7 +157,7 @@ describe('flag nuvem_convidado', () => {
 
   it('o free logado continua sem nuvem (402 de plano), com a flag ligada ou não', async () => {
     await ligarNuvem(true)
-    const r = await s.post('/api/ai/mt', { text: 'good morning', tgt: 'pt' }, await s.token('conta-free'))
+    const r = await s.post('/api/ai/mt', { text: 'good morning', tgt: 'pt' }, await s.tokenAdulto('conta-free'))
     expect(r.status).toBe(402)
   })
 })
@@ -186,7 +186,7 @@ describe('escrita no servidor exige conta', () => {
   })
 
   it('conta de verdade escreve normalmente (o middleware só olha o convidado)', async () => {
-    const r = await s.put('/api/settings', { ui: {} }, await s.token('conta-escreve'))
+    const r = await s.put('/api/settings', { ui: {} }, await s.tokenAdulto('conta-escreve'))
     expect(r.status).not.toBe(403)
   })
 })

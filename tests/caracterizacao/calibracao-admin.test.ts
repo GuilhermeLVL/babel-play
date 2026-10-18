@@ -20,7 +20,7 @@ describe('calibração do FSRS no admin (modo público)', () => {
   let cartao: { id: string }
 
   beforeAll(async () => {
-    s = await subirApp({ modo: 'publico' })
+    s = await subirApp({ modo: 'publico', adultoPorPadrao: true })
     const { usersRepo } = await s.load('../../server/db/repositories/users')
     admin = await s.token('cal-admin')
     suporte = await s.token('cal-suporte')

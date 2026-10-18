@@ -40,7 +40,7 @@ beforeAll(async () => {
       headers: { 'content-type': 'application/json' },
     })
   })
-  s = await subirApp({ modo: 'publico' })
+  s = await subirApp({ modo: 'publico', adultoPorPadrao: true })
 }, 60_000)
 
 afterAll(async () => {

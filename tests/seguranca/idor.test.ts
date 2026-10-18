@@ -91,7 +91,7 @@ describe('IDOR — usuario B contra os recursos de A', () => {
   let semeaduras: Record<string, () => Promise<Alvo>>
 
   beforeAll(async () => {
-    s = await subirApp({ modo: 'publico' })
+    s = await subirApp({ modo: 'publico', adultoPorPadrao: true })
     const { criarApp } = await s.load('../../server/http/app')
     m = lerMatriz(criarApp({}))
     ta = await s.token('usuario-a')

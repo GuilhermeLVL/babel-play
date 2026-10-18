@@ -21,7 +21,7 @@ describe('memoria e desfazer do vocabulario (modo publico)', () => {
   let cartao: { id: string; box: number; dueAt: number }
 
   beforeAll(async () => {
-    s = await subirApp({ modo: 'publico' })
+    s = await subirApp({ modo: 'publico', adultoPorPadrao: true })
     const semente = await semear(s, 'dono-do-cartao')
     cartao = semente.cartoes.find((c: { word: string }) => c.word === 'garden')
     dono = await s.token('dono-do-cartao')

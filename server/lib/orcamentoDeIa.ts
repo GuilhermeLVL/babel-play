@@ -43,6 +43,7 @@ import {
 import { criarVigiaDeGasto } from './gastoAnomalo'
 import { log } from './logger'
 import { pseudonimoDoUsuario } from './pseudonimoDeUsuario'
+import { registrarGastoDaConta } from './tetoUsdDaConta'
 
 /**
  * Preços OFICIAIS (US$) usados quando nem o registro de provedores nem o operador declaram um. LLM:
@@ -305,6 +306,7 @@ export async function registrarGastoDeIa(custoUsd: number, contexto: ContextoDoG
   if (!Number.isFinite(custoUsd) || custoUsd <= 0) return
   contarCustoPorPlano(contexto.plano, custoUsd)
   if (contexto.userId) await vigiarUsuario(contexto.userId, custoUsd)
+  await registrarGastoDaConta(contexto.userId, contexto.plano, custoUsd)
   try {
     await somarNoPeriodo('mes', mesAtual(), custoUsd, tetoDoMesUsd())
     /* O dia é somado SEMPRE, com ou sem teto: é ele que alimenta `ia_gasto_usd{periodo="dia"}` e o

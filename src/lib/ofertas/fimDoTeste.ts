@@ -35,3 +35,18 @@ export function faseDoTesteAgora(agora = Date.now()): FaseDoFimDoTeste | null {
   const teste = getEntitlements().teste;
   return teste ? faseDoFimDoTeste(teste.terminaEm, agora) : null;
 }
+
+/** As fases do aviso por USO: a franquia de nuvem do teste (`FRANQUIA_DO_TESTE`) quase no fim, ou no fim. */
+export type FaseDeUsoDoTeste = 'uso_perto' | 'uso_acabou';
+
+/**
+ * A fase por uso de quem está no teste, a partir do estado da cota (`/api/me/uso`, que no teste já traz o teto do
+ * TESTE). Quem não está no teste, ou tem folga, não recebe: a cota do mês dos outros planos tem o aviso dela.
+ */
+export function faseDeUsoDoTeste(
+  estado: 'perto' | 'esgotada' | null,
+  noTeste = getEntitlements().teste != null,
+): FaseDeUsoDoTeste | null {
+  if (!noTeste || !estado) return null;
+  return estado === 'esgotada' ? 'uso_acabou' : 'uso_perto';
+}

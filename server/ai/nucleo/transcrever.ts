@@ -46,7 +46,12 @@ import {
 } from '../cascataDeStt'
 import { JANELA_ABERTA_MS } from '../disjuntor'
 import type { Provedor } from '../provedores'
-import { recusaContadorIndisponivel, recusaFranquiaDeAlivioEsgotada, recusaUsoJustoDoDia } from '../reservaDeNuvem'
+import {
+  recusaContadorIndisponivel,
+  recusaFranquiaDeAlivioEsgotada,
+  recusaPeloTetoDaConta,
+  recusaUsoJustoDoDia,
+} from '../reservaDeNuvem'
 import { promptDoCabecalho, triarSegmentos } from '../sttQualidade'
 import { codigoDeIdioma, nomeDoProvedor } from '../telemetriaDeIa'
 import { type ContextoDeIa, recusaDeQuemPede } from './contexto'
@@ -220,6 +225,8 @@ async function transcreverComAPorta(
       // Fair-use: RESERVA antes de chamar o provedor (P0-1 — conferir antes e contabilizar
       // depois deixava N requisições simultâneas passarem pelo mesmo teto). BYOK/local não
       // chegam aqui, então só o uso da chave do DONO consome quota.
+      const noTeto = await recusaPeloTetoDaConta(userId, gerida?.planoDaAssinatura, modo)
+      if (noTeto) return decidir(noTeto)
       if (!(await reserveManagedCall(userId, modo))) {
         if (modo === 'alivio') return decidir(recusaFranquiaDeAlivioEsgotada())
         return decidir(recusar(402, { error: 'limite mensal do plano atingido', code: 'quota_exceeded' }))

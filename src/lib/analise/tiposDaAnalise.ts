@@ -6,7 +6,6 @@
  * fala que a tela monta, e importá-lo do componente criaria um ciclo módulo↔tela. Aqui não há
  * nenhum import de `src/`, então nenhum ciclo é possível.
  */
-import type { ImageResult } from '../../data/api';
 
 /**
  * A FALA como o player e o transcrito desta tela a enxergam.
@@ -51,13 +50,4 @@ export interface FalaCrua {
 export interface SilencioDaSessao {
   ms: number;
   pct: number;
-}
-
-/** O que o cartão flutuante de uma palavra guarda em cache (imagem, tradução, contexto). */
-export interface EntradaDeHover {
-  image: ImageResult | null;
-  translation: string | null;
-  note: string | null;
-  context: string | null;
-  lang: string | null;
 }

@@ -24,7 +24,7 @@ import { CATALOGO_DAS_CONQUISTAS } from './catalogoConquistas';
 import { CATALOGO_DA_MAESTRIA } from './catalogoMaestria';
 import { CATALOGO_DA_TEMPORADA } from './catalogoTemporada';
 
-export type { ItemDaLoja, Raridade, TipoDaLoja, TipoDesbloqueavel } from './tiposDaLoja';
+export type { ItemDaLoja, Raridade, TipoDesbloqueavel } from './tiposDaLoja';
 import type { ItemDaLoja } from './tiposDaLoja';
 
 /* PREÇOS (recompensas v2, 27/09) — calibrados por SIMULAÇÃO (`scripts/economia/simular-ritmo.ts`,

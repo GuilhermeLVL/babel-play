@@ -68,7 +68,6 @@ import { log } from '../lib/logger'
 import {
   ehBaseDoOpenRouter,
   PROVEDORES_DO_GOOGLE_NO_OPENROUTER,
-  ROTEAMENTO_OPENROUTER,
   type RoteamentoOpenRouter,
 } from './parametrosDoProvedor'
 
@@ -165,7 +164,7 @@ export const MODELO_LLM_PADRAO = 'openai/gpt-oss-120b'
 
 /* O roteamento mínimo do OpenRouter e o reconhecimento da base moram em `parametrosDoProvedor.ts`
    (módulo sem imports, que a bancada também carrega); daqui, o repasse para quem já importava. */
-export { ehBaseDoOpenRouter, PROVEDORES_DO_GOOGLE_NO_OPENROUTER, ROTEAMENTO_OPENROUTER, type RoteamentoOpenRouter }
+export { ehBaseDoOpenRouter, PROVEDORES_DO_GOOGLE_NO_OPENROUTER, type RoteamentoOpenRouter }
 
 const semBarra = (u: string) => u.replace(/\/+$/, '')
 

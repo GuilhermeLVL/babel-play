@@ -472,10 +472,6 @@ html[data-quest-novo='true'] .qr-numeros .q-num b.acento {
 html[data-quest-novo='true'] .qr-numeros .q-num .q-rotulo {
   color: var(--ink-muted);
 }
-/* O resumo das missões e da ofensiva (`ResumoDaPratica`) vem com a margem de quem mora num cartão. */
-html[data-quest-novo='true'] .q-revisao [data-testid='resumo-da-pratica'] {
-  margin-top: 0 !important;
-}
 
 /* ── A ESPERA: a forma do cartão e da faixa que vão chegar ────────────────────────────────────── */
 html[data-quest-novo='true'] .qr-espera {

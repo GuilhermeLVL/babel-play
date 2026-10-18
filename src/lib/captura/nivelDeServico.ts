@@ -28,9 +28,6 @@ import type { SttQuality } from '../../gateway/sttRouter';
 import type { UsoDoMes } from '../uso';
 import type { SeloDaFala } from './seloDaFala';
 
-/** `NIVEL_IDS`, `planos4.js:120`. */
-export const NIVEL_IDS: readonly NivelDeServico[] = ['aparelho', 'precisao', 'aovivo'];
-
 /** `NIVEIS`, `planos4.js:115-119`: o nome, a frase curta (o `title` e o aviso) e a longa (a folha do cadeado). */
 export const NIVEIS: Record<NivelDeServico, { nome: string; curto: string; longo: string }> = {
   aparelho: {

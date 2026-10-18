@@ -1,25 +1,18 @@
 import type { MinigameId } from '@core';
 import {
   Briefcase,
-  Eye,
   Keyboard,
-  Lightbulb,
   Link2,
   type LucideIcon,
   Mic,
   PenLine,
   Puzzle,
-  Radar,
-  Scissors,
   Search,
   Sprout,
-  Timer,
   TriangleAlert,
   Volume2,
   Zap,
 } from 'lucide-react';
-
-import type { IconeDaAjuda } from '../../../core/minigames/regras';
 
 /** O ícone de cada jogo na sobrancelha da partida (`icone` em cada `JOGOS[id]` do protótipo). */
 export const ICONE_DO_JOGO: Record<MinigameId, LucideIcon> = {
@@ -41,14 +34,4 @@ export const ICONE_DO_JOGO: Record<MinigameId, LucideIcon> = {
   escuta: Volume2 /* `jogos2.js:648` */,
   ditado: PenLine /* `jogos2.js:693` */,
   conectores: Link2 /* `jogos2.js:767` */,
-};
-
-/** O ícone de cada ajuda (`ajudasDoNivel`, em `core/minigames/regras.ts`, diz o nome). */
-export const ICONE_DA_AJUDA: Record<IconeDaAjuda, LucideIcon> = {
-  eye: Eye,
-  radar: Radar,
-  lightbulb: Lightbulb,
-  'volume-2': Volume2,
-  scissors: Scissors,
-  timer: Timer,
 };

@@ -47,8 +47,6 @@ import { fecharAFolhaDe, FolhaDeCartoes, LinhasDeMenu } from './pecas';
  * cada campo.
  */
 
-export type FormatoDeLevar = 'apkg' | 'csv' | 'tsv' | 'txt';
-
 /** Quantas notas ativar por padrão, e o teto de uma vez só (o mesmo de `BaralhoAnki.tsx`). */
 const ATIVAR_DE_INICIO = 20;
 const TETO_DE_ATIVAR = 300;

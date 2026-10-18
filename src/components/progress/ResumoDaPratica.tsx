@@ -1,12 +1,8 @@
 import type { EstadoDasMissoes } from '@core';
-import { Flame } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { fetchMetrics, lerMissoes } from '../../data/api';
-import { tp } from '../../lib/i18n';
-import { perfilProtegido } from '../../lib/protecaoDoMenor';
 import { recompensasV2Ligadas } from '../../lib/recompensasV2';
-import MissoesDoDia from './MissoesDoDia';
 
 /**
  * O QUE A PRÁTICA MOVEU NO DIA (recompensas v2, spec 10.2): as missões do dia e a ofensiva, no fim
@@ -36,21 +32,4 @@ export function useResumoDaPratica(pronto: boolean): { missoes: EstadoDasMissoes
     };
   }, [pronto]);
   return estado;
-}
-
-export default function ResumoDaPratica({ pronto = true }: { pronto?: boolean }) {
-  const { missoes, ofensiva } = useResumoDaPratica(pronto);
-  const mostraOfensiva = ofensiva !== null && ofensiva > 0 && !perfilProtegido();
-  if (!missoes && !mostraOfensiva) return null;
-  return (
-    <div data-testid="resumo-da-pratica" style={{ marginTop: 18, textAlign: 'left' }}>
-      {mostraOfensiva && (
-        <p className="linha tn" style={{ gap: 6, fontSize: 13, justifyContent: 'center', marginBottom: 10 }} data-ofensiva={ofensiva}>
-          <Flame aria-hidden style={{ width: 15, height: 15, color: 'var(--warn)' }} />
-          {tp(ofensiva, 'Ofensiva: {n} dia de prática', 'Ofensiva: {n} dias de prática')}
-        </p>
-      )}
-      <MissoesDoDia estado={missoes} />
-    </div>
-  );
 }

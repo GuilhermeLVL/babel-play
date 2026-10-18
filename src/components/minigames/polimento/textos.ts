@@ -136,11 +136,6 @@ const UNIDADE: Record<MinigameId, string> = {
 
 export const unidadeDoPlacar = (jogo: MinigameId): string => UNIDADE[jogo] ?? 'palavras';
 
-/** A unidade da rodada como o protótipo a chama ("Rodada · 8 bolas"): bolas, cartas, pares, elos… */
-export function unidadeNoDesenho(jogo: MinigameId, reserva: string): string {
-  return /^Rodada · \d+ (.+)$/.exec(TEXTOS[jogo]?.rodada ?? '')?.[1] ?? reserva;
-}
-
 /**
  * A sobrancelha da partida como o protótipo a escreve: "Rodada · 8 bolas", "Escada · 3 palavras",
  * "Rodada · pares de palavra e tradução" (sem número). O número é o da rodada de verdade (`quantos`).

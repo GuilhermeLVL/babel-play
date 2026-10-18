@@ -1,7 +1,6 @@
 /**
  * A PALAVRA DA ANÁLISE — o vocabulário dentro da tela de sessão: examinar a palavra clicada,
- * fichá-la no deck (FSRS), mandá-la praticar num exercício, pronunciá-la e o cache do cartão
- * flutuante de hover (imagem + tradução + contexto).
+ * fichá-la no deck (FSRS), mandá-la praticar num exercício e pronunciá-la.
  *
  * Saiu de `views/Analysis.tsx` sem mudar comportamento: a fábrica roda a cada render, como as
  * closures que substituiu, e o estado da tela entra por PARÂMETRO explícito.
@@ -30,123 +29,19 @@
  */
 import { makeCloze } from '@core';
 import type { Dispatch, SetStateAction } from 'react';
-import React from 'react';
 
-import { searchImages } from '../../data/api';
 import type { buildGateway } from '../../gateway';
 import type { VocabWord } from '../../types';
 import { ficharCartao } from '../adicionarAoDeck';
 import { toBcp47 } from '../languages';
-import type { ExerciseId,PracticeSeed } from '../sentences';
+import type { ExerciseId, PracticeSeed } from '../sentences';
 import { seedFromSelection, telaDoExercicio } from '../sentences';
 import { speak as ttsSpeak } from '../tts';
-import type { ResolvedWord,WordOrigin } from '../vocabWord';
+import type { ResolvedWord, WordOrigin } from '../vocabWord';
 import { buildVocabWord, mtNoteFor, resolveWord } from '../vocabWord';
-import type { EntradaDeHover } from './tiposDaAnalise';
 
 /** O AI Gateway como a análise o enxerga (mesma instância que a tela monta com `buildGateway`). */
 export type GatewayDaAnalise = ReturnType<typeof buildGateway>;
-
-/** O que a tela precisa para manter o cartão flutuante de hover. */
-export interface DepsDoCacheDeHover {
-  /** Palavra sob o cursor (vem de `usePopoverDePalavra`). */
-  hoveredWord: string | null;
-  /** Deck do backend — o ATALHO do cartão já fichado. */
-  vocabCards: any[];
-  originOfWord: (word: string, sentence?: string) => WordOrigin;
-  gateway: GatewayDaAnalise;
-}
-
-/**
- * Dados reais do hover: imagem (Openverse), tradução (gateway) e frase de contexto.
- * `note` = motivo de NÃO haver tradução (nunca um texto fabricado no lugar dela).
- * Cache por palavra evita refetch ao re-passar o mouse.
- *
- * Os quatro hooks abaixo eram um bloco contíguo em `Analysis.tsx` e seguem na mesma ordem.
- */
-export function useCacheDeHover(deps: DepsDoCacheDeHover) {
-  const { hoveredWord, vocabCards, originOfWord, gateway } = deps;
-
-  const hoverCacheRef = React.useRef<Map<string, EntradaDeHover>>(new Map());
-  const vocabCardsRef = React.useRef(vocabCards);
-  vocabCardsRef.current = vocabCards;
-  const [hoverData, setHoverData] = React.useState<(EntradaDeHover & { word: string; loading: boolean }) | null>(null);
-
-  React.useEffect(() => {
-    const word = hoveredWord;
-    if (!word) {
-      setHoverData(null);
-      return;
-    }
-    const cached = hoverCacheRef.current.get(word);
-    if (cached) {
-      setHoverData({ word, ...cached, loading: false });
-      return;
-    }
-    const origin = originOfWord(word);
-    /* O CADERNO É O ATALHO: palavra já fichada tem tradução guardada — aparece na hora, sem
-       esperar motor nenhum. Foi o caso do relato: "Já está no Deck" e "Traduzindo…" na mesma tela. */
-    const doCaderno =
-      vocabCardsRef.current.find((c) => c.word.toLowerCase() === word.toLowerCase())?.translation || null;
-    setHoverData({
-      word,
-      image: null,
-      translation: doCaderno,
-      note: null,
-      context: origin.context ?? null,
-      lang: null,
-      loading: true,
-    });
-    let alive = true;
-    /* Estado PARCIAL: cada pedaço entra assim que chega. Antes o cartão esperava imagem E
-       tradução em série, e a tradução (motor local carregando modelo, sem teto de tempo) podia
-       nunca voltar: "Buscando imagem…" ficava eterno mesmo com a imagem já baixada. */
-    const parcial: EntradaDeHover = {
-      image: null,
-      translation: doCaderno,
-      note: null,
-      context: origin.context ?? null,
-      lang: null,
-    };
-    const publicar = (final: boolean) => {
-      if (!alive) return;
-      if (final) hoverCacheRef.current.set(word, { ...parcial });
-      setHoverData({ word, ...parcial, loading: !final });
-    };
-    const TETO_MS = 7000;
-    const comTeto = <T,>(p: Promise<T>, fallback: T) =>
-      Promise.race([p, new Promise<T>((r) => setTimeout(() => r(fallback), TETO_MS))]);
-    const imagem = comTeto(
-      searchImages(word)
-        .then((imgs) => imgs[0] ?? null)
-        .catch(() => null),
-      null,
-    ).then((img) => {
-      parcial.image = img;
-    });
-    const traducao = doCaderno
-      ? Promise.resolve()
-      : comTeto(buildVocabWord(origin, gateway.mt), null)
-          .then((r) => {
-            if (r) {
-              parcial.translation = r.vocab.translation || null;
-              parcial.note = mtNoteFor(r.resolved, r.vocab.translation);
-              parcial.lang = r.resolved.lang || null;
-            } else {
-              parcial.note = 'A tradução demorou demais; clique na palavra para tentar de novo.';
-            }
-          })
-          .catch(() => {
-            parcial.note = 'Sem tradução automática agora.';
-          });
-    void Promise.allSettled([imagem, traducao]).then(() => publicar(true));
-    return () => {
-      alive = false;
-    };
-  }, [hoveredWord, originOfWord, gateway]);
-
-  return { hoverData };
-}
 
 /** Tudo que o vocabulário da análise precisa da tela — por parâmetro, sem contexto novo. */
 export interface DepsDaPalavraDaAnalise {

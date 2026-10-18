@@ -218,23 +218,6 @@ export async function fetchOcorrencias(id: string): Promise<OcorrenciaDoCartao[]
   }
 }
 
-/** Uma nota lida de um baralho do Anki (ainda NÃO gravada). */
-export interface NotaAnki {
-  frente: string
-  verso: string
-  exemplo?: string
-  tags: string[]
-}
-
-export interface LeituraAnki {
-  notas: NotaAnki[]
-  formato: string
-  campos: string[]
-  descartadas: number
-  temMidia: boolean
-}
-
-
 /**
  * Gera um `.apkg` no servidor e devolve o arquivo para download.
  *

@@ -23,7 +23,7 @@ import { itensDaTemporadaPossuidos } from './temporadaPosse';
    cabeçalho de lá). Reexportados daqui porque 30+ telas importam `from '../lib/loja'` e trocar o
    caminho em todas seria ruído sem ganho — o dono do dado é o core, o endereço continua o mesmo. */
 export { abrePorNivel, CATALOGO_DA_LOJA, soPorSeeds, temPortaDeNivel };
-export type { ItemDaLoja, Raridade, TipoDaLoja } from '@core';
+export type { ItemDaLoja, Raridade } from '@core';
 
 
 

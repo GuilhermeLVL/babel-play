@@ -256,7 +256,7 @@ interface PedidoDeAdmissao extends AlvoDoBalde {
 }
 
 /**
- * Consulta e CONSOME o balde. Não mexe na vaga em voo (quem precisa das duas usa `admitirChamada`):
+ * Consulta e CONSOME o balde. Não mexe na vaga em voo (`ocuparVaga`):
  * a perna de reserva da cascata é admitida no balde DELA, na hora de ser chamada.
  */
 export function admitirNoBalde(
@@ -344,30 +344,6 @@ export function ocuparVaga(userId: string, tipo: TipoDeIa): (() => void) | null 
     if (n <= 0) emVoo.delete(chave)
     else emVoo.set(chave, n)
   }
-}
-
-/** Uma chamada admitida: a vaga do usuário e o pedido no balde do modelo. */
-export interface ChamadaAdmitida {
-  ticket: TicketDeBalde
-  /** Solta a vaga em voo. Idempotente; chame no `finally`. */
-  liberar: () => void
-}
-
-/** Vaga em voo + balde, nesta ordem (a vaga é a checagem mais barata e não gasta limite de ninguém). */
-export function admitirChamada(
-  p: PedidoDeAdmissao & { userId: string },
-): { ok: true; chamada: ChamadaAdmitida } | { ok: false; recusa: Recusa } {
-  const liberar = ocuparVaga(p.userId, p.tipo)
-  if (!liberar) {
-    contarAdmissaoRecusada('em_voo', p.plano)
-    return { ok: false, recusa: { motivo: 'em_voo', retryAfterS: 1 } }
-  }
-  const r = admitirNoBalde(p)
-  if (r.ok === false) {
-    liberar()
-    return r
-  }
-  return { ok: true, chamada: { ticket: r.ticket, liberar } }
 }
 
 /**

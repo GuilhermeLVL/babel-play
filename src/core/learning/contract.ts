@@ -156,16 +156,6 @@ export interface BaseDeCalculo {
 /** Bandas CEFR válidas. */
 export type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
 
-/** Resultado de uma rodada de exercício (practice-hub). */
-export interface ExerciseResult {
-  kind: 'read-aloud' | 'blocks' | 'dictation' | 'compose' | 'fill-blank' | 'active-production';
-  correct: boolean;
-  /** Score por instância 0..1 (opcional → migração aditiva). */
-  score?: number;
-  /** Formato de progressão do exercício. */
-  exerciseKind?: 'mc' | 'typing' | 'active-production';
-}
-
 /** Intervalos Leitner (dias) por box 1..5. */
 export const LEITNER_DAYS = [1, 2, 4, 8, 16];
 

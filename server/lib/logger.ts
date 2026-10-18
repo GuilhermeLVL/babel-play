@@ -53,6 +53,12 @@ export interface LogFields {
      do servidor, o mesmo do Langfuse) — nunca o id do Supabase — e a mediana do dia para comparação. */
   usuario?: string
   medianaUsd?: number
+  /* Ação de operador (`server/routes/admin.ts`): QUEM mexeu (`usuario`, pseudônimo) em QUEM (`alvo`, pseudônimo) e o que
+     mudou. Papel, situação e plano são rótulos fixos do serviço, nunca dado de usuário. */
+  alvo?: string
+  papel?: string
+  situacao?: string
+  plano?: string
 }
 
 const ALLOWED = new Set([
@@ -80,6 +86,10 @@ const ALLOWED = new Set([
   'habilitada',
   'usuario',
   'medianaUsd',
+  'alvo',
+  'papel',
+  'situacao',
+  'plano',
 ])
 
 /**

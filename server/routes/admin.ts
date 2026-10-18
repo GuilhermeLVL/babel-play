@@ -18,6 +18,7 @@ import { lerUltimosErros } from '../lib/diarioDeErros'
 import { definirFlag, ErroDeFlag, listarFlagsCruas } from '../lib/flags'
 import { log } from '../lib/logger'
 import { estadoDoOrcamento } from '../lib/orcamentoDeIa'
+import { pseudonimoDoUsuario } from '../lib/pseudonimoDeUsuario'
 import { requireRole } from '../lib/rbac'
 import { modoDeReconciliacao, reconciliarArmazenamento } from '../lib/storageQuota'
 import { idParamSchema, parseOr400 } from '../validation'
@@ -99,6 +100,13 @@ adminRouter.patch('/users/:id', requireRole('admin'), async (req, res) => {
   }
   if (parsed.data.role) await usersRepo.setRole(target, parsed.data.role)
   if (parsed.data.status) await usersRepo.setStatus(target, parsed.data.status)
+  log('info', {
+    event: 'admin_usuario_alterado',
+    usuario: await pseudonimoDoUsuario(req.userId),
+    alvo: await pseudonimoDoUsuario(target),
+    papel: parsed.data.role,
+    situacao: parsed.data.status,
+  })
   res.json(await usersRepo.get(target))
 })
 
@@ -128,6 +136,12 @@ adminRouter.patch('/users/:id/plan', requireRole('admin'), async (req, res) => {
     res.status(404).json({ error: 'usuário não encontrado' })
     return
   }
+  log('info', {
+    event: 'admin_plano_concedido',
+    usuario: await pseudonimoDoUsuario(req.userId),
+    alvo: await pseudonimoDoUsuario(target),
+    plano: parsed.data.plan,
+  })
   res.json(await subscriptionsRepo.upsert(target, concessaoDoOperador(parsed.data.plan)))
 })
 

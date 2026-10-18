@@ -70,6 +70,8 @@ describe('cabeçalhos de hardening', () => {
     expect(relatorio).toContain("'wasm-unsafe-eval'")
     expect(relatorio).toContain('worker-src')
     expect(relatorio).toContain("object-src 'none'")
+    // Não vale em Report-Only (o navegador avisa no console); fica só na versão que bloqueia.
+    expect(relatorio).not.toContain('upgrade-insecure-requests')
   })
 
   /* Fase 6: o header que sai de verdade não pode ter `https:` solto em `connect-src` — era o

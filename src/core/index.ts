@@ -18,7 +18,7 @@ export * from './learning/xp'
 /* Reexporte NOMEADO, e não `export *`: `cefrWordlist` também declara `CefrLevel` e `NIVEIS`, que
    já vêm de `contract` e de `trilha`. Um `export *` criaria ambiguidade no barril e o TypeScript
    recusaria, melhor escolher aqui do que renomear tipos que meia dúzia de arquivos já importa. */
-export { coberturaDaWordlist, escalaDe, type NivelCefr, nivelCefr, type ProcedenciaCefr } from './learning/cefrWordlist'
+export { escalaDe } from './learning/cefrWordlist'
 
 /* Vocabulario compartilhado das notas de Anki (estado, filtro, cursor de paginacao): cliente,
    schema Zod e repositorio passam a ler a MESMA definicao — os tres discordavam (achado A21). */
@@ -28,10 +28,7 @@ export * from './gateway/budget'
 export * from './gateway/gateway'
 export * from './gateway/llm-types'
 export * from './gateway/profile'
-export {
-cursorDeNotas,   type EstadoDeNotaAnki,   ESTADOS_DE_NOTA_ANKI, type FiltroDeNotaAnki,
-FILTROS_DE_NOTA_ANKI, lerCursorDeNotas,
-} from './learning/contract'
+export { type EstadoDeNotaAnki, type FiltroDeNotaAnki } from './learning/contract'
 export * from './learning/fillers'
 export * from './learning/keywords'
 export * from './learning/memoriaDeItens'

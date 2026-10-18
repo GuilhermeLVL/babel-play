@@ -246,7 +246,12 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
         reportOnly: process.env.NODE_ENV !== 'production',
         /* Fase 6: `connect-src` deixou de ser `https:` — a lista, e o porquê de cada host, está
            em `server/http/csp.ts`. */
-        directives: { ...diretivasDeCsp() },
+        /* `upgrade-insecure-requests` (default do helmet) não vale em Report-Only e o navegador avisa
+           em todo console; só a versão que bloqueia (produção) a leva. `null` a remove do default. */
+        directives: {
+          ...diretivasDeCsp(),
+          ...(process.env.NODE_ENV !== 'production' ? { 'upgrade-insecure-requests': null } : {}),
+        },
       },
       // COEP (e o DIP) saem de `isolamentoDeOrigem`, abaixo, que tem modo próprio (CROSS_ORIGIN_ISOLATION).
       crossOriginEmbedderPolicy: false,

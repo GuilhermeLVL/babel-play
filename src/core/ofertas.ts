@@ -154,6 +154,38 @@ export const GATILHOS_FUNCIONAIS: readonly GatilhoDeOferta[] = Object.freeze([
     intervaloMinHoras: 24,
     planos: [PLANO_DO_TESTE],
   },
+  /* O FIM DO TESTE POR USO: o teste acaba nos 14 dias OU na franquia de nuvem (`FRANQUIA_DO_TESTE`, 3 h), o que vier
+     primeiro. A autoridade é `GET /api/me/uso`, que já traz o teto do teste: ≥ 80% (`uso_perto`) e 100% (`uso_acabou`).
+     No lugar de `cota_proxima`/`fim_de_cota`, que falam do MÊS do plano ("volta no dia 1º"), o que não é verdade
+     para quem testa. Informativo, sem contagem regressiva nem pressão: diz o fato, o que segue funcionando e a saída. */
+  {
+    id: 'funcional_fim_do_teste_uso_perto',
+    momento: 'fim_do_teste',
+    fase: 'uso_perto',
+    componente: 'banner',
+    titulo: 'A nuvem do seu teste está quase no fim',
+    texto:
+      'Você já usou quase toda a nuvem do teste. Depois dela a legenda segue no aparelho, sem limite, e nada é cobrado. Se quiser continuar na nuvem, veja os planos.',
+    cta: 'Ver planos',
+    maxPorDia: 1,
+    maxPorSemana: 1,
+    intervaloMinHoras: 24,
+    planos: [PLANO_DO_TESTE],
+  },
+  {
+    id: 'funcional_fim_do_teste_uso_acabou',
+    momento: 'fim_do_teste',
+    fase: 'uso_acabou',
+    componente: 'banner',
+    titulo: 'A nuvem do seu teste chegou ao fim',
+    texto:
+      'A legenda segue no aparelho, sem limite, e nada é cobrado sozinho. Se quiser voltar à nuvem, veja os planos.',
+    cta: 'Ver planos',
+    maxPorDia: 1,
+    maxPorSemana: 2,
+    intervaloMinHoras: 24,
+    planos: [PLANO_DO_TESTE],
+  },
 ] satisfies GatilhoDeOferta[]);
 
 /** Ids dos gatilhos embutidos — o servidor os aceita como rótulo de métrica sem consultar a flag. */

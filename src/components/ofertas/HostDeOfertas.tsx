@@ -22,7 +22,7 @@ import {
   EVENTO_OFERTA,
   EVENTO_PEDIR_CONTA,
 } from '../../lib/ofertas/eventos';
-import { faseDoTesteAgora } from '../../lib/ofertas/fimDoTeste';
+import { faseDeUsoDoTeste, faseDoTesteAgora } from '../../lib/ofertas/fimDoTeste';
 import {
   iniciarSessaoDeUso,
   lerHistorico,
@@ -207,7 +207,10 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
       // Quem pode testar (o Grátis com conta): uma pergunta por hora no máximo, com cache.
       if (planoDaOferta() === 'free') void verificarTeste();
       void verificarCota().then((estado) => {
-        if (estado === 'perto') dispararOferta('cota_proxima', { origem: 'consumo' });
+        /* Quem está no TESTE tem o aviso do fim do teste por USO (a nuvem dele é uma franquia, não o mês do plano). */
+        const faseDeUso = faseDeUsoDoTeste(estado);
+        if (faseDeUso) dispararOferta('fim_do_teste', { origem: 'consumo', fase: faseDeUso });
+        else if (estado === 'perto') dispararOferta('cota_proxima', { origem: 'consumo' });
         else if (estado === 'esgotada') dispararOferta('fim_de_cota', { origem: 'consumo' });
       });
     };

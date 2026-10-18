@@ -73,7 +73,7 @@ import {
   vozDoModelo,
 } from '../provedoresDeVoz'
 import type { Provedor } from '../registroDeProvedores'
-import { recusaContadorIndisponivel, recusaUsoJustoDoDia } from '../reservaDeNuvem'
+import { recusaContadorIndisponivel, recusaPeloTetoDaConta, recusaUsoJustoDoDia } from '../reservaDeNuvem'
 import {
   codigoDeIdioma,
   nomeDoProvedor,
@@ -374,6 +374,8 @@ async function sintetizar(
   try {
     /* 8) A COTA, depois da admissão (recusa da admissão não toca o contador) e antes do provedor. */
     try {
+      const noTeto = await recusaPeloTetoDaConta(ctx.userId, plano.plan)
+      if (noTeto) return decidir(noTeto)
       const cota = await reservarCaracteresDeVoz(ctx.userId, caracteres)
       if (cota.cabe === false) {
         if (cota.recusa === 'dia') return decidir(await recusaUsoJustoDoDia(ctx.userId))

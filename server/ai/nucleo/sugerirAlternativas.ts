@@ -165,7 +165,7 @@ async function sugerir(
   let reserva: ReservaDeLlm | null = null
   const t0 = Date.now()
   try {
-    const reservada = await reservarLlm(ctx.userId, estimativa, ctx.modo)
+    const reservada = await reservarLlm(ctx.userId, estimativa, ctx.modo, ctx.entitlements.plan)
     if (!(reservada instanceof ReservaDeLlm)) return decidir(reservada) // 402 de cota ou 503 do contador
     reserva = reservada
 

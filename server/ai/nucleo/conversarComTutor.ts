@@ -175,7 +175,7 @@ async function conversar(
       if (admitida && admitida.ok === false && !selfHost) return decidir(recusaNuvemOcupada(admitida.recusa))
       if (admitida?.ok === true) admissao = admitida.admissao
       if (admissao) {
-        const reservada = await reservarLlm(ctx.userId, estimativa, ctx.modo)
+        const reservada = await reservarLlm(ctx.userId, estimativa, ctx.modo, ctx.entitlements.plan)
         if (!(reservada instanceof ReservaDeLlm)) return decidir(reservada) // 402 de cota ou 503 do contador
         reserva = reservada
         const { entregue, ultimaFalha } = await percorrerCascata(

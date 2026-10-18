@@ -19,6 +19,7 @@
 import { segundosAteVirarODia } from '../../src/core/learning/economia'
 import { CODIGO_USO_JUSTO_DO_DIA } from '../../src/core/usoJusto'
 import type { UserId } from '../lib/authContext'
+import { CODIGO_TETO_USD_DA_CONTA, conferirTetoUsdDaConta } from '../lib/tetoUsdDaConta'
 import {
   acertarTokensDeLlm,
   ContadorIndisponivel,
@@ -69,6 +70,32 @@ export async function recusaUsoJustoDoDia(userId: UserId): Promise<RecusaDeIa> {
   )
 }
 
+/**
+ * O TETO EM DÓLAR DA CONTA (planos pagos) foi atingido: 402 `teto_usd_da_conta`. O cliente cai no
+ * aparelho e o aviso é funcional, nunca venda. `null` = pode seguir (sem teto no plano, ou abaixo dele).
+ * Só vale para a franquia do plano; o alívio tem o teto dele. Leitura que falha = contador indisponível.
+ */
+export async function recusaPeloTetoDaConta(
+  userId: UserId,
+  plano: string | undefined,
+  modo: ModoDaCota = 'plano',
+): Promise<RecusaDeIa | null> {
+  if (modo === 'alivio') return null
+  let v: Awaited<ReturnType<typeof conferirTetoUsdDaConta>>
+  try {
+    v = await conferirTetoUsdDaConta(userId, plano)
+  } catch (err) {
+    throw new ContadorIndisponivel(err)
+  }
+  if (v.ok) return null
+  return recusaDeErro(
+    402,
+    'O limite de gasto de nuvem da sua conta neste mês foi atingido; a legenda segue no aparelho e a nuvem volta no dia 1º.',
+    CODIGO_TETO_USD_DA_CONTA,
+    { escopo: 'conta' },
+  )
+}
+
 export class ReservaDeLlm {
   private pendente = true
   constructor(
@@ -104,8 +131,12 @@ export async function reservarLlm(
   estimativaDeTokens: number,
   /** De que franquia sai a chamada: a do plano, ou a da nuvem de alívio do Grátis (A10). */
   modo: ModoDaCota = 'plano',
+  /** O plano da assinatura, para o teto em dólar da conta (desligado sem `TETO_USD_MES_<PLANO>`). */
+  plano?: string,
 ): Promise<ReservaDeLlm | RecusaDeIa> {
   try {
+    const noTeto = await recusaPeloTetoDaConta(userId, plano, modo)
+    if (noTeto) return noTeto
     if (!(await reserveManagedCall(userId, modo))) {
       if (modo === 'alivio') return recusaFranquiaDeAlivioEsgotada()
       return recusar(402, { error: 'limite mensal do plano atingido', code: 'quota_exceeded' })

@@ -20,6 +20,7 @@ const DIA = 86_400_000
 const estado = vi.hoisted(() => ({
   teste: null as { terminaEm: number } | null,
   plan: 'premium',
+  cota: null as 'perto' | 'esgotada' | null,
 }))
 
 vi.mock('../src/lib/flags', () => ({
@@ -31,14 +32,14 @@ vi.mock('../src/lib/ofertas/plano', () => ({
   planoDaOferta: () => 'premium',
   pessoaDaOferta: () => ({ protegido: false, podeTestar: false }),
 }))
-vi.mock('../src/lib/ofertas/cota', () => ({ verificarCota: async () => null }))
+vi.mock('../src/lib/ofertas/cota', () => ({ verificarCota: async () => estado.cota }))
 vi.mock('../src/lib/identidade', () => ({ estadoDeIdentidade: () => 'conta', estaAnonimo: () => false }))
 vi.mock('../src/lib/entitlements', async (original) => {
   const real = await original<typeof import('../src/lib/entitlements')>()
   return { ...real, getEntitlements: () => ({ ...real.getEntitlements(), plan: estado.plan, teste: estado.teste }) }
 })
 
-const { faseDoFimDoTeste, faseDoTesteAgora } = await import('../src/lib/ofertas/fimDoTeste')
+const { faseDeUsoDoTeste, faseDoFimDoTeste, faseDoTesteAgora } = await import('../src/lib/ofertas/fimDoTeste')
 const { default: HostDeOfertas } = await import('../src/components/ofertas/HostDeOfertas')
 const { dispararOferta } = await import('../src/lib/ofertas/eventos')
 const { consumirDestaqueEmPlanos } = await import('../src/lib/ofertas/destaque')
@@ -58,6 +59,7 @@ beforeEach(() => {
   _esquecerOfertas()
   sessionStorage.setItem('babel.ofertas.sessao', JSON.stringify({ inicio: Date.now() - 10 * 60_000, promocionais: 0 }))
   estado.teste = null
+  estado.cota = null
   estado.plan = 'premium'
 })
 afterEach(() => {
@@ -108,7 +110,7 @@ describe('o motor', () => {
 
   it('os textos embutidos dizem que nada é cobrado — e não vendem', () => {
     const doTeste = GATILHOS_FUNCIONAIS.filter((g) => g.momento === 'fim_do_teste')
-    expect(doTeste.map((g) => g.fase).sort()).toEqual(['d0', 'd3'])
+    expect(doTeste.map((g) => g.fase).sort()).toEqual(['d0', 'd3', 'uso_acabou', 'uso_perto'])
     for (const g of doTeste) {
       expect(String(g.texto)).toMatch(/nada é cobrado|sem cobrança/)
       expect(g.planos).toEqual(['premium'])
@@ -169,5 +171,66 @@ describe('o host', () => {
       vi.advanceTimersByTime(6_000)
     })
     expect(screen.queryByText(/Seu teste do Premium/)).toBeNull()
+  })
+})
+
+describe('o fim do teste por USO (a franquia de nuvem do teste)', () => {
+  it('a fase sai do estado da cota, só para quem está no teste', () => {
+    expect(faseDeUsoDoTeste('perto', true)).toBe('uso_perto')
+    expect(faseDeUsoDoTeste('esgotada', true)).toBe('uso_acabou')
+    expect(faseDeUsoDoTeste(null, true)).toBeNull()
+    // Quem não testa tem o aviso da cota do mês, não este.
+    expect(faseDeUsoDoTeste('perto', false)).toBeNull()
+    expect(faseDeUsoDoTeste('esgotada', false)).toBeNull()
+  })
+
+  it('os textos são honestos: dizem o que segue, que nada é cobrado, e não pressionam nem falam do mês', () => {
+    for (const fase of ['uso_perto', 'uso_acabou']) {
+      const g = GATILHOS_FUNCIONAIS.find((x) => x.momento === 'fim_do_teste' && x.fase === fase)!
+      const tudo = `${g.titulo} ${g.texto}`
+      expect(tudo).toMatch(/no aparelho/)
+      expect(tudo).toMatch(/nada é cobrado/)
+      expect(tudo).not.toMatch(/dia 1º|últim|só hoje|corra|perca|%/i)
+      expect(g.planos).toEqual(['premium'])
+    }
+  })
+
+  it('o host troca o aviso de cota do mês pelo do teste: 80% mostra "quase no fim"', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval'] })
+    estado.teste = { terminaEm: meioDia(9) }
+    estado.cota = 'perto'
+    render(<HostDeOfertas aoEntrar={() => {}} aoVerPlanos={() => {}} />)
+    await act(async () => {
+      vi.advanceTimersByTime(6_000)
+    })
+    expect(screen.getByText('A nuvem do seu teste está quase no fim')).toBeTruthy()
+    expect(screen.queryByText('Sua cota de IA de nuvem está perto do fim')).toBeNull()
+  })
+
+  it('cota esgotada no teste mostra "chegou ao fim" e não a promessa de voltar no dia 1º', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval'] })
+    estado.teste = { terminaEm: meioDia(9) }
+    estado.cota = 'esgotada'
+    const aoVerPlanos = vi.fn()
+    render(<HostDeOfertas aoEntrar={() => {}} aoVerPlanos={aoVerPlanos} />)
+    await act(async () => {
+      vi.advanceTimersByTime(6_000)
+    })
+    expect(screen.getByText('A nuvem do seu teste chegou ao fim')).toBeTruthy()
+    expect(screen.queryByText(/volta no dia 1º/)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Ver planos' }))
+    expect(aoVerPlanos).toHaveBeenCalledTimes(1)
+    expect(consumirDestaqueEmPlanos()).toBeNull()
+  })
+
+  it('quem paga o Premium (sem teste) com a cota perto não recebe o aviso do teste', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval'] })
+    estado.teste = null
+    estado.cota = 'perto'
+    render(<HostDeOfertas aoEntrar={() => {}} aoVerPlanos={() => {}} />)
+    await act(async () => {
+      vi.advanceTimersByTime(6_000)
+    })
+    expect(screen.queryByText(/nuvem do seu teste/)).toBeNull()
   })
 })

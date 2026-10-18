@@ -319,7 +319,7 @@ async function traduzirAdmitido(
   // N requisições simultâneas passarem pelo mesmo teto). A recusa (402/429/503) sai sem nada reservado.
   /* Quem pediu já foi embora (`cancelamento.ts`): nem reserva. */
   if (clienteDesistiu(ctx.sinal)) return decidir(recusaCancelada())
-  const reserva = await reservarLlm(ctx.userId, p.estimativa, ctx.modo)
+  const reserva = await reservarLlm(ctx.userId, p.estimativa, ctx.modo, ctx.entitlements.plan)
   if (!(reserva instanceof ReservaDeLlm)) return decidir(reserva)
 
   const t0 = Date.now()

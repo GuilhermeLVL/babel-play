@@ -49,7 +49,7 @@ que frequência, como mudar textos e gatilhos sem deploy, e como medir a convers
 | `conquista`            | ao **fechar** a celebração de uma conquista (`RecompensaDesbloqueada`) — nunca sobre ela                                                         | promocional |
 | `fim_de_sessao`        | depois de **salvar** uma captura; ao **sair** do Jogar depois de ter fechado ao menos uma rodada — nunca no meio nem sobre o resumo              | promocional |
 | `convidado_para_conta` | a Fase 7 (modo convidado) com `window.dispatchEvent(new CustomEvent('babel:oferta', { detail: { momento: 'convidado_para_conta', contexto } }))` | promocional |
-| `fim_do_teste`         | o host, a cada hora, para quem está no teste de 14 dias (o `teste` dos entitlements): D-3 e D0 (`fase`), só com os avisos embutidos              | funcional   |
+| `fim_do_teste`         | o host, a cada hora, para quem está no teste de 14 dias (o `teste` dos entitlements): D-3 e D0 (`fase`) e, pelo uso da franquia do teste, `uso_perto` (80%) e `uso_acabou` (`cota.ts`), só com os avisos embutidos            | funcional   |
 
 Qualquer tela pode disparar um momento com `dispararOferta(momento, contexto)`
 (`src/lib/ofertas/eventos.ts`) ou com o evento cru acima. Quem decide se algo aparece é sempre o

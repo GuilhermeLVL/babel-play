@@ -72,27 +72,49 @@ type Fase = keyof ContagemDeFila
 interface CartaoNoBaralho {
   fase: Fase
   vence: boolean
+  /** Base do idioma do cartão (`''` quando não tem). */
+  idioma: string
 }
 
-type Acumulado = BaralhoNoResumo & { recente: number }
+type Linha = ContagemDeFila & { total: number }
+type Acumulado = BaralhoNoResumo & { recente: number; langs: Map<string, Linha> }
+
+const linhaVazia = (): Linha => ({ total: 0, novas: 0, aprendendo: 0, revisar: 0 })
+
+function contar(l: Linha, c: CartaoNoBaralho) {
+  l.total += 1
+  if (c.vence) l[c.fase] += 1
+}
+
+/** Acumula o cartão na linha e na sua fatia de idioma (a fatia é o que o filtro de idioma da tela lê). */
+function contarNoIdioma(langs: Map<string, Linha>, c: CartaoNoBaralho) {
+  let l = langs.get(c.idioma)
+  if (!l) langs.set(c.idioma, (l = linhaVazia()))
+  contar(l, c)
+}
+
+/** `porIdioma` só quando a linha mistura idiomas: com um só, a linha já é a fatia. */
+const fatias = (langs: Map<string, Linha>): Pick<BaralhoNoResumo, 'porIdioma'> =>
+  langs.size > 1 ? { porIdioma: Object.fromEntries(langs) } : {}
 
 function somar(mapa: Map<string, Acumulado>, id: string, c: CartaoNoBaralho, quando = 0) {
   let b = mapa.get(id)
   if (!b) {
-    b = { id, total: 0, novas: 0, aprendendo: 0, revisar: 0, recente: 0 }
+    b = { id, total: 0, novas: 0, aprendendo: 0, revisar: 0, recente: 0, langs: new Map() }
     mapa.set(id, b)
   }
-  b.total += 1
-  if (c.vence) b[c.fase] += 1
+  contar(b, c)
+  contarNoIdioma(b.langs, c)
   if (quando > b.recente) b.recente = quando
 }
 
-const semRecente = ({ id, total, novas, aprendendo, revisar }: Acumulado): BaralhoNoResumo => ({
+const semRecente = ({ id, total, novas, aprendendo, revisar, langs }: Acumulado): BaralhoNoResumo => ({
   id,
   total,
   novas,
   aprendendo,
   revisar,
+  ...fatias(langs),
 })
 
 /** Os maiores primeiro; o id desempata, para a ordem não depender da ordem das linhas. */
@@ -164,7 +186,7 @@ export async function resumoDosCartoes(
     total += 1
     const fase: Fase = c.stability == null ? 'novas' : (c.reps ?? 0) < 2 ? 'aprendendo' : 'revisar'
     const vence = c.dueAt != null && c.dueAt <= agora
-    const cartao: CartaoNoBaralho = { fase, vence }
+    const cartao: CartaoNoBaralho = { fase, vence, idioma: c.idioma ?? '' }
     noBaralho.set(c.id, cartao)
 
     if (fase === 'revisar') fases[(c.stability as number) < ESTABILIDADE_MADURA ? 'jovens' : 'maduras'] += 1
@@ -182,7 +204,8 @@ export async function resumoDosCartoes(
 
   const anki = new Map<string, Acumulado>()
   const daTrilha = new Set<string>()
-  const trilha: ContagemDeFila & { total: number } = { total: 0, novas: 0, aprendendo: 0, revisar: 0 }
+  const trilha: Linha = linhaVazia()
+  const trilhaPorIdioma = new Map<string, Linha>()
   for (const o of origens) {
     const cartao = noBaralho.get(o.cardId)
     if (!cartao) continue
@@ -191,8 +214,8 @@ export async function resumoDosCartoes(
     } else if (!daTrilha.has(o.cardId)) {
       // A Trilha é uma só: o cartão conta uma vez, tenha quantas ocorrências (e idiomas) tiver.
       daTrilha.add(o.cardId)
-      trilha.total += 1
-      if (cartao.vence) trilha[cartao.fase] += 1
+      contar(trilha, cartao)
+      contarNoIdioma(trilhaPorIdioma, cartao)
     }
   }
 
@@ -251,7 +274,7 @@ export async function resumoDosCartoes(
       idiomas: [...idiomas.values()].sort(porTamanho).map(semRecente),
       sessoes: [...sessoes.values()].sort(porRecente).slice(0, MAXIMO_DE_SESSOES).map(semRecente),
       anki: [...anki.values()].sort(porTamanho).map(semRecente),
-      trilha: trilha.total ? trilha : null,
+      trilha: trilha.total ? { ...trilha, ...fatias(trilhaPorIdioma) } : null,
     },
   }
 }

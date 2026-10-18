@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { ContagensDeConteudo } from '../src/core/learning/contagensDeConteudo'
-import { ERROS_DE_DIFICIL, type ResumoDosCartoes } from '../src/core/learning/resumoDosCartoes'
+import { ERROS_DE_DIFICIL, linhaNoIdioma, type ResumoDosCartoes } from '../src/core/learning/resumoDosCartoes'
 import { hojeDosCartoes, semanaComTeto, semanaDeEstudo } from '../src/lib/cartoes/estadoDeHoje'
 import {
   type CartaoDaFonte,
@@ -122,6 +122,27 @@ describe('o resumo filtrado: o total e a fila de hoje da fonte', () => {
     expect(um).toEqual({ total: 422, fila: { novas: 5, aprendendo: 3, revisar: 18 }, porFase: true })
   })
 
+  it('regressão: sessão com dois idiomas conta as fases só do idioma do conteúdo (13 novas num baralho de 9)', () => {
+    const mista = {
+      id: 's1',
+      total: 13,
+      novas: 13,
+      aprendendo: 0,
+      revisar: 0,
+      porIdioma: {
+        en: { total: 9, novas: 9, aprendendo: 0, revisar: 0 },
+        es: { total: 4, novas: 4, aprendendo: 0, revisar: 0 },
+      },
+    }
+    const r = resumo({ baralhos: { idiomas: [], sessoes: [mista], anki: [], trilha: null } })
+    const k = contagens({ sessoes: [{ ...contagens().sessoes[0], palavras: 9, paraHoje: 9 }] })
+    const h = hojeDaFonte(r, { idioma: 'en', fonte: { tipo: 'sessao', id: 's1', nome: '' } }, k)
+    expect(h).toEqual({ total: 9, fila: { novas: 9, aprendendo: 0, revisar: 0 }, porFase: true })
+    expect(linhaNoIdioma(mista, 'es').novas).toBe(4)
+    expect(linhaNoIdioma(mista, 'fr')).toEqual({ total: 0, novas: 0, aprendendo: 0, revisar: 0 })
+    expect(linhaNoIdioma(mista, '')).toBe(mista)
+  })
+
   it('sessão, Anki e Trilha: as três fases do resumo e o total do catálogo', () => {
     const k = contagens()
     expect(hojeDaFonte(resumo(), { idioma: 'en', fonte: { tipo: 'sessao', id: 's1', nome: '' } }, k)).toEqual({
@@ -168,9 +189,9 @@ describe('o estado de Hoje com um conteúdo escolhido', () => {
 
   it('"vazio" e "primeiro" continuam sendo da conta', () => {
     expect(hojeDosCartoes({ ...conta, total: 0 }, opcoes, { novas: 0, aprendendo: 0, revisar: 0 }).estado).toBe('vazio')
-    expect(hojeDosCartoes({ ...conta, revisoesDeSempre: 0 }, opcoes, { novas: 9, aprendendo: 0, revisar: 0 }).estado).toBe(
-      'primeiro',
-    )
+    expect(
+      hojeDosCartoes({ ...conta, revisoesDeSempre: 0 }, opcoes, { novas: 9, aprendendo: 0, revisar: 0 }).estado,
+    ).toBe('primeiro')
   })
 })
 

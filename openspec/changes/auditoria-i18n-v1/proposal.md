@@ -18,7 +18,7 @@ solicitante, o **relatório sob auditoria** passa a ser o que o agente anterior 
 commitou:
 
 - `docs/i18n.md`
-- `docs/i18n-lacunas.md`
+- `docs/pesquisa/i18n-lacunas.md`
 - `docs/i18n-como-testar.md`
 - `docs/auditoria/trilha-multi-idioma-v1.md`
 - `openspec/changes/trilha-multi-idioma/tasks.md`
@@ -45,16 +45,16 @@ divergiram em 662 arquivos.
 
 ## As oito fases
 
-| fase | entrega | estado |
-|---|---|---|
-| 0 | baseline reproduzível — alegado × medido × delta | **concluída** |
-| 1 | verificação alegação por alegação, com veredito | **concluída** |
-| 2 | censo de cobertura por tela, incluindo superfícies esquecidas | **concluída** |
-| 3 | estresse por escrita e por idioma, com Playwright e captura de tela | **concluída** |
-| 4 | arquitetura contra o padrão da indústria (ICU, TMS, XLIFF, BCP-47) | **NÃO EXECUTADA** |
-| 5 | performance e custo, com projeção para 16 idiomas | **NÃO EXECUTADA** |
-| 6 | segurança, licenciamento (CC BY-SA do Wikcionário) e conformidade | **NÃO EXECUTADA** |
-| 7 | veredito, achados priorizados e sequência recomendada | **NÃO EXECUTADA** |
+| fase | entrega                                                             | estado            |
+| ---- | ------------------------------------------------------------------- | ----------------- |
+| 0    | baseline reproduzível — alegado × medido × delta                    | **concluída**     |
+| 1    | verificação alegação por alegação, com veredito                     | **concluída**     |
+| 2    | censo de cobertura por tela, incluindo superfícies esquecidas       | **concluída**     |
+| 3    | estresse por escrita e por idioma, com Playwright e captura de tela | **concluída**     |
+| 4    | arquitetura contra o padrão da indústria (ICU, TMS, XLIFF, BCP-47)  | **NÃO EXECUTADA** |
+| 5    | performance e custo, com projeção para 16 idiomas                   | **NÃO EXECUTADA** |
+| 6    | segurança, licenciamento (CC BY-SA do Wikcionário) e conformidade   | **NÃO EXECUTADA** |
+| 7    | veredito, achados priorizados e sequência recomendada               | **NÃO EXECUTADA** |
 
 ## O que ficou por fazer
 

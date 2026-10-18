@@ -149,7 +149,7 @@ casos. Antes da correção, 10 falhavam (a ABA com uma chamada só já passava);
   loopback.";
 - o erro do "Testar" também abre o guia.
 
-`docs/captura-audio.md`: a matriz foi corrigida (a Janela tem áudio do sistema no Chrome recente)
+`docs/pesquisa/captura-audio.md`: a matriz foi corrigida (a Janela tem áudio do sistema no Chrome recente)
 e ganhou a seção sobre o 5.1 e o `restrictOwnAudio`.
 
 **Custo da correção:** com o loopback por processo, **o som que toca dentro do Chrome não entra**

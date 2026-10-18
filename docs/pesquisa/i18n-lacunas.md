@@ -14,21 +14,21 @@ questão que não é técnica e é a mais cara de todas.
 **O problema.** Uma frase na tela precisa de um identificador para o catálogo de traduções. Há duas
 escolas, e a diferença decide o custo de tudo o mais.
 
-| | chave é o texto-fonte | chave é um símbolo |
-|---|---|---|
-| como se escreve | `t('Jogo da memória')` | `t('play.memory.title')` |
-| migrar uma tela | envolver a string | batizar cada frase e criar o `pt.json` |
-| tradução faltando | **mostra o português** | mostra `play.memory.title` ou vazio |
-| mudar a redação PT | **quebra a tradução dos outros idiomas** | não quebra nada |
-| quem usa | gettext — WordPress, GNOME, Django, Rails | i18next, react-intl, apps móveis |
+|                    | chave é o texto-fonte                     | chave é um símbolo                     |
+| ------------------ | ----------------------------------------- | -------------------------------------- |
+| como se escreve    | `t('Jogo da memória')`                    | `t('play.memory.title')`               |
+| migrar uma tela    | envolver a string                         | batizar cada frase e criar o `pt.json` |
+| tradução faltando  | **mostra o português**                    | mostra `play.memory.title` ou vazio    |
+| mudar a redação PT | **quebra a tradução dos outros idiomas**  | não quebra nada                        |
+| quem usa           | gettext — WordPress, GNOME, Django, Rails | i18next, react-intl, apps móveis       |
 
 **O que eu escolhi aqui e por quê.** Chave-texto. Com ~2.000 strings já escritas dentro do JSX, a
-chave simbólica exigiria batizar duas mil frases e revisar tudo *antes* de a primeira tela
+chave simbólica exigiria batizar duas mil frases e revisar tudo _antes_ de a primeira tela
 funcionar — e uma chave errada não quebra teste, só abre buraco na tela. Com o português como
 chave, o fallback é sempre legível e uma tela traduzida convive com dez que não são.
 
 **O que isso custa, e é real.** Mudar uma vírgula no português troca a chave e devolve aquela
-frase ao português em *todos* os idiomas. Com dois catálogos é gerenciável; com quinze, cada
+frase ao português em _todos_ os idiomas. Com dois catálogos é gerenciável; com quinze, cada
 ajuste de redação exige revisar quinze arquivos. `scripts/i18n/orfas.mjs` mostra o estrago, mas
 quem conserta é gente.
 
@@ -44,12 +44,12 @@ i18n`, `i18n key naming conventions`.
 "Uma ou muitas" é a regra do português, do inglês e do espanhol. Medido com `Intl.PluralRules` nos
 dezesseis idiomas que já têm trilha neste app:
 
-| formas | idiomas |
-|---:|---|
-| 1 | japonês, chinês, coreano |
-| 2 | português, inglês, espanhol, francês, alemão, italiano, holandês, sueco, turco, híndi |
-| 3 | russo, polonês, hebraico |
-| **6** | **árabe** — zero, um, dois, poucos, muitos, outro |
+| formas | idiomas                                                                               |
+| -----: | ------------------------------------------------------------------------------------- |
+|      1 | japonês, chinês, coreano                                                              |
+|      2 | português, inglês, espanhol, francês, alemão, italiano, holandês, sueco, turco, híndi |
+|      3 | russo, polonês, hebraico                                                              |
+|  **6** | **árabe** — zero, um, dois, poucos, muitos, outro                                     |
 
 **Seis dos dezesseis não cabem em duas formas.** O russo muda a palavra em 1, em 2–4 e em 5+, e
 volta à primeira forma no 21. Escrever `n === 1 ? 'palavra' : 'palavras'` é escolher errar.
@@ -111,7 +111,7 @@ formatting`.
 O que **não** funciona é frase montada por pedaços:
 
 ```ts
-'Web Speech indisponível: ' + erro.message + ', troque para o motor Whisper.'
+'Web Speech indisponível: ' + erro.message + ', troque para o motor Whisper.';
 ```
 
 O tradutor recebe dois fragmentos sem contexto e não pode reordenar. Medido aqui: **1.053 template
@@ -149,23 +149,23 @@ sustentar inglês e espanhol defensáveis; **não dá para prometer japonês ou 
 ler**. Eu escreveria algo plausível e possivelmente constrangedor — o mesmo risco que produziu
 `embarazo = embaraço` nas glosas, e ali havia dicionário conferindo.
 
-**Como a indústria resolve.** Um *Translation Management System* (TMS) no meio do caminho:
+**Como a indústria resolve.** Um _Translation Management System_ (TMS) no meio do caminho:
 
 ```
 código → extração → arquivos → TMS → tradutores → volta como PR → CI
 ```
 
-| ferramenta | modelo |
-|---|---|
-| **Weblate** | open source, self-host — combina com um app que já é self-host |
-| **Crowdin, Lokalise, Phrase, Transifex** | SaaS, integram com GitHub, têm contexto visual |
-| **Tolgee** | open source, edição direto na tela |
+| ferramenta                               | modelo                                                         |
+| ---------------------------------------- | -------------------------------------------------------------- |
+| **Weblate**                              | open source, self-host — combina com um app que já é self-host |
+| **Crowdin, Lokalise, Phrase, Transifex** | SaaS, integram com GitHub, têm contexto visual                 |
+| **Tolgee**                               | open source, edição direto na tela                             |
 
 **Quem faz a tradução, nos três modelos:**
 
 1. **Profissional** — US$ 0,08–0,20 por palavra. Para 2.000 strings (~15.000 palavras), algo como
    US$ 1.200–3.000 **por idioma**. Qualidade previsível.
-2. **Máquina + revisão humana** (*post-editing*, MTPE) — a máquina traduz, um humano revisa.
+2. **Máquina + revisão humana** (_post-editing_, MTPE) — a máquina traduz, um humano revisa.
    Bem mais barato, e é hoje o padrão de mercado.
 3. **Comunidade** — grátis, e é como Telegram e VLC fazem. Risco: qualidade desigual, idiomas
    abandonados pela metade, e você precisa de gente para revisar mesmo assim.
@@ -189,7 +189,7 @@ Existe resposta, e é mais barata do que parece.
   substantivo. Os TMS acima fazem isso automaticamente.
 - **Glossário e guia de estilo.** Como traduzir "trilha", "baralho", "cartão" — e o registro de
   voz. Sem isso, dez tradutores produzem dez vocabulários.
-- **LQA** (*Linguistic Quality Assurance*): revisão por um segundo nativo, por amostragem.
+- **LQA** (_Linguistic Quality Assurance_): revisão por um segundo nativo, por amostragem.
 
 **Para pesquisar:** `pseudolocalization`, `localization QA`, `translation glossary style guide`,
 `screenshot context translation`.
@@ -216,18 +216,18 @@ alemão entrega meia experiência — e a tela hoje ao menos **diz isso**, em ve
 
 ## Onde estamos, em números medidos
 
-| | quantidade | estado |
-|---|---:|---|
-| Strings traduzidas para inglês | 325 | feito |
-| Plural pelo CLDR | — | feito |
-| RTL (`lang`/`dir`) | — | feito |
-| Helpers de número e data | — | feitos, **57 pontos por migrar** |
-| Strings em tabelas de rótulo | ~300 | mecânico |
-| Strings espalhadas em JSX | ~1.100 | volume |
-| Plurais decididos no código | 78 | migrar para `tp()` |
-| Interpolações em template literal | 1.053 | migrar para `t(..., {})` |
-| Texto rico (frase com `<b>` dentro) | 20 diretos, ~688 no total | precisa de solução própria |
-| Idiomas com catálogo | 3 (en, es, ar parcial) | — |
+|                                     |                quantidade | estado                           |
+| ----------------------------------- | ------------------------: | -------------------------------- |
+| Strings traduzidas para inglês      |                       325 | feito                            |
+| Plural pelo CLDR                    |                         — | feito                            |
+| RTL (`lang`/`dir`)                  |                         — | feito                            |
+| Helpers de número e data            |                         — | feitos, **57 pontos por migrar** |
+| Strings em tabelas de rótulo        |                      ~300 | mecânico                         |
+| Strings espalhadas em JSX           |                    ~1.100 | volume                           |
+| Plurais decididos no código         |                        78 | migrar para `tp()`               |
+| Interpolações em template literal   |                     1.053 | migrar para `t(..., {})`         |
+| Texto rico (frase com `<b>` dentro) | 20 diretos, ~688 no total | precisa de solução própria       |
+| Idiomas com catálogo                |    3 (en, es, ar parcial) | —                                |
 
 ---
 

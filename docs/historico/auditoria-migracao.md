@@ -2,7 +2,7 @@
 
 > Relatório da auditoria que fundamenta a migração. Fontes: leitura direta de `../Tradutor` (Electron,
 > funcional) e `../babel-play` (protótipo web). Complemento de viabilidade em
-> [viabilidade-web-inferencia.md](viabilidade-web-inferencia.md).
+> [viabilidade-web-inferencia.md](../pesquisa/viabilidade-web-inferencia.md).
 
 ## 1. O produto
 
@@ -22,6 +22,7 @@ main, renderer (janela + overlay), preload, **sidecar de inferência** (utilityP
 sherpa), **helper de loopback** (node.exe puro — audify/WASAPI quebra dentro do Electron), **whisper-server.exe**.
 
 **Pipeline central (o que precisamos re-implementar):**
+
 - **Captura** — 2 trilhas normalizadas a 16 kHz mono PCM: **sistema (loopback)** via `audify`/WASAPI num
   helper Node; **microfone** no renderer via `getUserMedia` + `AudioWorklet` (downsampler).
 - **VAD** — **Silero VAD v5** (onnxruntime-node) em blocos de 512 amostras; degrada para energia/RMS.
@@ -74,26 +75,26 @@ hardcoded; Settings toggles inertes; Memory Vault/RAG mock. Obs.: `server.ts` us
 
 Legenda: ✅ portável · 🔧 adaptar · ☁️ precisa backend · ⛔ impossível no navegador.
 
-| Capacidade | Local (desktop) | Veredito | Abordagem web |
-|---|---|---|---|
-| Captura mic | getUserMedia + AudioWorklet | ✅ | Igual (já web-nativo) |
-| Loopback de sistema | audify/WASAPI (helper Node) | ⛔/🔧 | Sem equivalente; parcial via `getDisplayMedia({audio:true})` (aba/sistema) |
-| VAD | Silero (onnxruntime-node) | 🔧 | `@ricky0123/vad-web` (Silero/onnxruntime-web) |
-| STT | whisper.cpp (server local) | 🔧/☁️ | Web Speech (Chrome/Edge) → Transformers.js Whisper WebGPU → Groq (nuvem) |
-| Diarização | sherpa-onnx CAM++ | 🔧/☁️ | sherpa-wasm (pesado) / backend / heurística (mic=eu, aba=eles) |
-| Tradução | transformers.js + nuvem | ✅/🔧 | Chrome Translator API → MyMemory → Transformers.js (WASM) / LLM nuvem |
-| TTS | Piper + SAPI | 🔧+⛔ | `speechSynthesis` / Piper-WASM / nuvem. Virtual-mic = ⛔ |
-| Embeddings/memória | e5 + JSONL cifrado | 🔧/☁️ | Transformers.js + IndexedDB/OPFS (+WebCrypto); escala → pgvector/Supabase |
-| Orquestração/roteamento | TS no main | 🔧 | TS puro portável → Web Worker / backend; lógica reusada verbatim |
-| Reply/LLM/VLM | llmClient + broker | ☁️ | Backend proxy (chave) para Gemini/HF; direto p/ OpenAI/Anthropic/Groq |
-| Visão — captura | Windows Graphics Capture | 🔧 | `getDisplayMedia` (gesto por sessão) |
-| Visão — OCR | Windows OCR/Tesseract | ✅ | Tesseract.js (traineddata via CDN/OPFS) |
-| Overlay sobre jogo | Electron always-on-top | ⛔ | Sem overlay OS; painel in-page / extensão / Document PiP |
-| Hotkeys globais | globalShortcut | ⛔ | Só atalhos in-page com foco |
-| Storage de modelos | userData filesystem | 🔧/☁️ | Cache API/OPFS p/ transformers.js; GGUF grande → backend |
-| SRS/FSRS + exercícios | TS puro `shared/learning` | ✅ | **Totalmente portável**; persistir em SQLite/IndexedDB |
-| Reading | TS puro `shared/reading` | ✅/🔧 | Timing porta como está; narração via Web Speech/nuvem |
-| Config/segredos | electron-store + safeStorage | 🔧 | SQLite (tabela `secrets` cifrada) / IndexedDB |
+| Capacidade              | Local (desktop)              | Veredito | Abordagem web                                                              |
+| ----------------------- | ---------------------------- | -------- | -------------------------------------------------------------------------- |
+| Captura mic             | getUserMedia + AudioWorklet  | ✅       | Igual (já web-nativo)                                                      |
+| Loopback de sistema     | audify/WASAPI (helper Node)  | ⛔/🔧    | Sem equivalente; parcial via `getDisplayMedia({audio:true})` (aba/sistema) |
+| VAD                     | Silero (onnxruntime-node)    | 🔧       | `@ricky0123/vad-web` (Silero/onnxruntime-web)                              |
+| STT                     | whisper.cpp (server local)   | 🔧/☁️    | Web Speech (Chrome/Edge) → Transformers.js Whisper WebGPU → Groq (nuvem)   |
+| Diarização              | sherpa-onnx CAM++            | 🔧/☁️    | sherpa-wasm (pesado) / backend / heurística (mic=eu, aba=eles)             |
+| Tradução                | transformers.js + nuvem      | ✅/🔧    | Chrome Translator API → MyMemory → Transformers.js (WASM) / LLM nuvem      |
+| TTS                     | Piper + SAPI                 | 🔧+⛔    | `speechSynthesis` / Piper-WASM / nuvem. Virtual-mic = ⛔                   |
+| Embeddings/memória      | e5 + JSONL cifrado           | 🔧/☁️    | Transformers.js + IndexedDB/OPFS (+WebCrypto); escala → pgvector/Supabase  |
+| Orquestração/roteamento | TS no main                   | 🔧       | TS puro portável → Web Worker / backend; lógica reusada verbatim           |
+| Reply/LLM/VLM           | llmClient + broker           | ☁️       | Backend proxy (chave) para Gemini/HF; direto p/ OpenAI/Anthropic/Groq      |
+| Visão — captura         | Windows Graphics Capture     | 🔧       | `getDisplayMedia` (gesto por sessão)                                       |
+| Visão — OCR             | Windows OCR/Tesseract        | ✅       | Tesseract.js (traineddata via CDN/OPFS)                                    |
+| Overlay sobre jogo      | Electron always-on-top       | ⛔       | Sem overlay OS; painel in-page / extensão / Document PiP                   |
+| Hotkeys globais         | globalShortcut               | ⛔       | Só atalhos in-page com foco                                                |
+| Storage de modelos      | userData filesystem          | 🔧/☁️    | Cache API/OPFS p/ transformers.js; GGUF grande → backend                   |
+| SRS/FSRS + exercícios   | TS puro `shared/learning`    | ✅       | **Totalmente portável**; persistir em SQLite/IndexedDB                     |
+| Reading                 | TS puro `shared/reading`     | ✅/🔧    | Timing porta como está; narração via Web Speech/nuvem                      |
+| Config/segredos         | electron-store + safeStorage | 🔧       | SQLite (tabela `secrets` cifrada) / IndexedDB                              |
 
 ## 5. Blockers duros (impossíveis em navegador puro)
 

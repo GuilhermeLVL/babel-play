@@ -37,7 +37,7 @@ const REDES: Array<{ href: string; icone: LucideIcon; rotulo: string }> = [
  * DADOS ABERTOS — a atribuição que as licenças EXIGEM, dentro do app. O dicionário local (toque em
  * palavra, `lib/dicionarioLocal.ts`), as glosas da trilha e as frases dos jogos são redistribuídos
  * aqui; CC BY-SA e CC BY pedem crédito onde o dado aparece, não só no repositório. A lista dos
- * autores do Tatoeba, longa demais para a tela, fica em `FONTES.md`, que o último item abre.
+ * autores do Tatoeba, longa demais para a tela, fica em `docs/FONTES.md`, que o último item abre.
  */
 const DADOS_ABERTOS: Array<{ nome: string; licenca: string; uso: string; href: string }> = [
   {

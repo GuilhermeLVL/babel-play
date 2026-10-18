@@ -1,8 +1,18 @@
 # Estado do lançamento — o que vale hoje
 
-Atualizado em **2026-10-02**. Índice de uma página: cada linha aponta para a fonte e não a repete. Se
+Atualizado em **2026-10-18** (a seção 0 resume o que mudou desde 02/10; o resto segue como estava). Índice de uma página: cada linha aponta para a fonte e não a repete. Se
 este documento e o código divergirem, **o código vence** (`src/core/planos.ts`, `fly.toml`,
 `server/lib/config.ts`).
+
+## 0. O que mudou desde 02/10 (auditoria de 17–18/10/2026)
+
+- **IA:** a Groq está sem créditos; o registro `ops/ia-provedores.openrouter.json` usa **OpenRouter** (Whisper turbo para voz, Gemma para tradução; retenção zero). Nunca Gemini. Custos e planos por uso: [estrategia-comercial-e-custos-br.md](estrategia-comercial-e-custos-br.md); alternativas: [alternativas-de-custo-e-eficiencia.md](alternativas-de-custo-e-eficiencia.md).
+- **Teste:** acaba em 14 dias **ou** na franquia de uso (`FRANQUIA_DO_TESTE`); o aviso de fim por uso (80% e 100%) existe. **Teto em dólar por conta** nos planos pagos: estrutura pronta e **desligada** (`TETO_USD_MES_*` em [`.env.production.example`](../.env.production.example)); falta o dono escolher os números.
+- **Segurança fechada na auditoria:** bypass do 2FA por caixa da URL; bomba de `.docx`/PDF; nuvem só com data de nascimento declarada (`idade_nao_informada`); aceite do responsável confere o e-mail do convite; rastro das ações de admin; sessão encerrada ao excluir a conta. Os testes que provam isso estão em `tests/seguranca` e `tests/caracterizacao/menores-lacunas-fechadas.test.ts`.
+- **Tradução no aparelho:** Bergamot traduz X→inglês em 15 idiomas a partir do CDN (R2), com o opus-mt de reserva — **liga só quando o dono publica os modelos** ([LANCAMENTO.md §2, passo 8](LANCAMENTO.md)).
+- **Dependências:** atualizações seguras do dependabot aplicadas; majors e o motor local ficaram de fora de propósito (typescript 7, vite 8, vitest 5, onnxruntime-web, `@libsql/client`, `@huggingface/transformers` 4.3.1 — este quebra o teste de uma cópia só do `onnxruntime-web`).
+- **Branches:** o modo intérprete foi mesclado (quase tudo já estava na `main`); `feat/redesign-v3` e `feat/redesign-design-system-v3` **não** foram mescladas (de 11/09, 1.017 commits atrás, a `main` segue o desenho Quest).
+- **Ainda não provado:** login e pagamento reais (nunca rodaram em ambiente real), o deploy no Fly (nunca feito), os E2E com conta real e o intérprete num Chrome real com e sem o pacote de voz do inglês (item 8.6 de `modo-interprete`).
 
 ## 1. Decisões fixadas
 
@@ -16,7 +26,7 @@ este documento e o código divergirem, **o código vence** (`src/core/planos.ts`
 | Na tela: Grátis = "Tradução rápida ao vivo", Premium = "Tradução Nuance". Proibido "qualidade", "%", "mais precisa". | [change `planos-v2`](../openspec/changes/planos-v2/tasks.md) (C7) · [ofertas.md](ofertas.md)                                                                                             |
 | Pagamento: **Asaas**; quem concede o plano é o webhook, pelo valor pago. Pix Automático desligado.                   | [LANCAMENTO.md §6](LANCAMENTO.md) · [spec `pagamento-nunca-perdido`](../openspec/specs/pagamento-nunca-perdido/spec.md)                                                                  |
 | Infra: Fly.io GRU (1 máquina) + SQLite/Litestream → R2 + Supabase (login) + Cloudflare + Resend + Sentry.            | [LANCAMENTO.md](LANCAMENTO.md) · `fly.toml` · ADRs [0006](adr/0006-sqlite-numa-maquina-ate-o-gatilho-de-postgres.md), [0009](adr/0009-audio-no-r2-com-retencao-e-varredura-de-orfaos.md) |
-| IA: Groq principal, OpenRouter (retenção zero) de reserva, o aparelho como piso. **Nunca Gemini.**                   | [ADR 0008](adr/0008-groq-principal-com-reserva-e-degradacao-local.md) · [LANCAMENTO.md §5](LANCAMENTO.md)                                                                                |
+| IA: hoje **OpenRouter** (retenção zero; a Groq está sem créditos), o aparelho como piso. **Nunca Gemini.**           | [ADR 0008](adr/0008-groq-principal-com-reserva-e-degradacao-local.md) · [LANCAMENTO.md §5](LANCAMENTO.md)                                                                                |
 | Público: **todas as idades**, com perfil protegido para menores (não compra, não recebe oferta).                     | `public/privacidade.html`, `public/termos.html` · [monetizacao.md §3](monetizacao.md)                                                                                                    |
 | Custo fixo: **≈ R$ 199/mês** (sem Langfuse).                                                                         | [LANCAMENTO.md — Custo mensal](LANCAMENTO.md#custo-mensal) (a única fonte) · `scripts/custo/modelo.mjs`                                                                                  |
 

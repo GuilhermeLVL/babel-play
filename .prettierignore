@@ -25,3 +25,4 @@ src/index.css
 
 # Fontes dos protótipos de tela: código de protótipo, montado por montar.mjs; não formatar
 docs/prototipos/*-src
+docs/prototipos/_comum

@@ -31,7 +31,7 @@
  * (senão a peça ficaria pela metade: por exemplo, o véu do painel nasce transparente e é o JS que o
  * acende). Cada trecho adiado está na tabela abaixo, com o item da lista `fidelidade/` que o destrava.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -44,6 +44,11 @@ const origemDosPlanos = process.argv[3]
 const origemDasEnxutas = process.argv[4]
 const origemDosCartoes = process.argv[5]
 const origemDosEnxutos = process.argv[6]
+/** Lê um arquivo da pasta do protótipo; o que é idêntico entre os protótipos fica em `docs/prototipos/_comum`. */
+const lerDoPrototipo = (pasta, nome) => {
+  const local = join(pasta, nome)
+  return readFileSync(existsSync(local) ? local : join(pasta, '..', '_comum', nome), 'utf8')
+}
 const destino = join(dirname(fileURLToPath(import.meta.url)), '../../src/styles/polimento')
 
 /** Linhas a tirar de cada arquivo (1 = primeira, inclusivas). `adiado`: entra quando o item for portado. */
@@ -148,17 +153,21 @@ mkdirSync(destino, { recursive: true })
 const TODOS = [
   ...Object.entries(ARQUIVOS).map(([nome, cortes]) => [nome, cortes, origem]),
   ...(origemDosPlanos ? Object.entries(DA_SEGUNDA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDosPlanos]) : []),
-  ...(origemDasEnxutas ? Object.entries(DA_TERCEIRA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDasEnxutas]) : []),
+  ...(origemDasEnxutas
+    ? Object.entries(DA_TERCEIRA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDasEnxutas])
+    : []),
   ...(origemDosCartoes && !origemDosEnxutos
     ? Object.entries(DA_QUARTA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDosCartoes])
     : []),
   ...(origemDosEnxutos
     ? Object.entries(CARTOES_DA_QUINTA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDosEnxutos])
     : []),
-  ...(origemDosEnxutos ? Object.entries(DA_QUINTA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDosEnxutos]) : []),
+  ...(origemDosEnxutos
+    ? Object.entries(DA_QUINTA_PASTA).map(([nome, cortes]) => [nome, cortes, origemDosEnxutos])
+    : []),
 ]
 for (const [nome, cortes, pasta] of TODOS) {
-  const linhas = readFileSync(join(pasta, nome), 'utf8').replace(/\r\n/g, '\n').split('\n')
+  const linhas = lerDoPrototipo(pasta, nome).replace(/\r\n/g, '\n').split('\n')
   const fora = (n) => cortes.find((c) => n >= c.de && n <= c.ate)
   const corpo = []
   let ultimo = null
@@ -212,7 +221,7 @@ const DO_SELETOR = {
 }
 if (origemDosEnxutos) {
   for (const [nome, { de, cortes, so }] of Object.entries(DO_SELETOR)) {
-    const linhas = readFileSync(join(origemDosEnxutos, de), 'utf8').replace(/\r\n/g, '\n').split('\n')
+    const linhas = lerDoPrototipo(origemDosEnxutos, de).replace(/\r\n/g, '\n').split('\n')
     const corpo = []
     if (so) {
       for (const [a, b] of so) {

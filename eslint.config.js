@@ -46,6 +46,7 @@ export default tseslint.config(
       'data/**',
       '*.cjs',
       'docs/prototipos/*-src/**',
+      'docs/prototipos/_comum/**',
     ],
   },
   js.configs.recommended,

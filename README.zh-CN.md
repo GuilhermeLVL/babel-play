@@ -2,43 +2,60 @@
 
 # Babel Play
 
-**用你已经在看、在玩、在聊的内容学一门语言。**
-对电脑上的任何音频进行实时转写和翻译——全部**在浏览器内运行**——并转化为词汇游戏和间隔重复复习。
+**用你已经在看、在玩、在聊的内容来学语言。**
+为电脑上的任何音频提供实时字幕和翻译，**在你自己的设备上运行**，并转化为词汇游戏和间隔重复复习。
 
 [🇺🇸 English](README.md) · [🇧🇷 Português](README.pt-BR.md) · [🇨🇳 中文](README.zh-CN.md) · [🇫🇷 Français](README.fr.md) · [🇪🇸 Español](README.es.md)
 
 [![CI](https://github.com/GuilhermeLVL/babel-play/actions/workflows/ci.yml/badge.svg)](https://github.com/GuilhermeLVL/babel-play/actions/workflows/ci.yml)
-[![安全](https://github.com/GuilhermeLVL/babel-play/actions/workflows/seguranca.yml/badge.svg)](https://github.com/GuilhermeLVL/babel-play/actions/workflows/seguranca.yml)
-[![许可证: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Security](https://github.com/GuilhermeLVL/babel-play/actions/workflows/seguranca.yml/badge.svg)](https://github.com/GuilhermeLVL/babel-play/actions/workflows/seguranca.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node ≥ 22](https://img.shields.io/badge/node-%E2%89%A5%2022-339933?logo=node.js&logoColor=white)](package.json)
 
-<img src="docs/img/capturar.png" alt="采集界面：在浏览器中生成的双语字幕" width="900">
+<img src="docs/img/capturar.png" alt="实时采集界面：在浏览器中生成双语字幕" width="900">
 
 </div>
 
-> **演示：** 随公开部署一起上线。在此之前，三条命令即可在本地运行——无需任何 API 密钥。
+> **状态（2026-10-18）：** 发布前。计费、登录和 Fly.io 部署均已实现并通过测试，但尚未在真实环境中运行。[发布状态](docs/ESTADO-DO-LANCAMENTO.md)（葡萄牙语）是当前有效内容的唯一来源。
 
-## 试一试
+**目录：** [这是什么](#这是什么) · [如何运行](#如何运行) · [架构](#架构) · [套餐与云端 AI](#套餐与云端-ai) · [自托管](#自托管) · [部署](#部署) · [安全与隐私](#安全与隐私) · [参与贡献](#参与贡献) · [许可证](#许可证)
+
+## 这是什么
+
+- **实时字幕和翻译**：来源可以是浏览器标签页、系统音频（Windows loopback）或麦克风。悬浮字幕显示在视频或游戏之上。
+- **口译模式**：两个语言不通的人用一台设备面对面交谈；译文会被朗读出来（免费版使用设备自带语音，Premium 使用云端自然语音）。
+- **学习**：采用 FSRS-5 间隔重复，以及基于真实词表构建的 CEFR 路径，内容来自你听到的话。
+- **游戏**：九个用*你自己的*词汇生成的短游戏（记忆配对、找单词、听写、闪电对决、卡拉 OK 等）。答对的内容会计入复习。
+- **导入**：Anki 牌组、文档（`.txt`、`.pdf`、`.docx`）和字幕（`.srt`、`.vtt`、`.ass`），均在浏览器中读取。
+- **本地优先**：模型在设备上运行（通过 transformers.js 使用 WebGPU 的 Whisper，WASM 作为后备；Opus-MT；以及 Mozilla 的 Bergamot，用于快速的 X→英语翻译）。没有账号时，不会向服务器发送任何数据。
+- **可选云端**（OpenRouter，零数据留存，需明确同意）：在你需要时提供更高质量。
+- **未成年人保护档案**：不能购买、没有促销，且仅在声明出生日期后才使用云端 AI。
+
+## 如何运行
+
+需要 Node 22 或更高版本。
 
 ```bash
-npm install          # 同时把 ONNX Runtime / Silero VAD 的二进制文件复制到 public/
-cp .env.example .env # 设置 PORT；本地流水线不需要任何 API 密钥
-npm run dev          # → http://localhost:<PORT>   （请通过 localhost 打开：模型需要安全上下文）
+npm install          # 同时把 ONNX Runtime / Silero VAD 二进制文件复制到 public/
+cp .env.example .env # 设置 PORT；本地管线不需要 API 密钥
+npm run dev          # Express + Vite 在同一进程中 → http://localhost:<PORT>
 ```
 
-选择**不登录继续使用**：整个流水线在本地运行，**没有任何一个请求**到达服务器——这是实测的，不是承诺。
+请通过 `localhost` 打开（安全上下文，模型需要）。如果你的 `.env` 中有 `VITE_AUTH_REQUIRED=1`，请改用 `npm run dev:local`：它以关闭登录的方式启动同一应用，便于本地检查。在登录界面选择 **不登录继续** 即可使用完整的本地管线。
 
-## 功能
+| 命令                                | 作用                                                                     |
+| ----------------------------------- | ------------------------------------------------------------------------ |
+| `npm run dev` / `npm run dev:local` | 开发服务器（后者关闭登录）                                               |
+| `npm test`                          | 单元与集成测试（Vitest）                                                 |
+| `npm run test:e2e`                  | 端到端测试（Playwright）                                                 |
+| `npm run lint`                      | ESLint，不允许任何警告                                                   |
+| `npm run typecheck`                 | TypeScript（另有 `typecheck:core` 和 `typecheck:estrito`）               |
+| `npm run build`                     | 客户端包（`dist/`）和服务器包（`dist-server/`）                          |
+| `npm run vitrine`                   | 带模拟登录和模拟计费的完整公开模式（[docs/vitrine.md](docs/vitrine.md)） |
 
-| | |
-|---|---|
-| <img src="docs/img/hub.png" alt="首页" width="420"> | **首页** — 应用的三个方向（采集、练习、词汇）及各自的真实状态。等级、连续天数和 seeds 由实测事件推导，绝不手填。 |
-| <img src="docs/img/capturar.png" alt="采集" width="420"> | **采集** — 浏览器标签页、系统音频（Windows 环回，零配置）或麦克风。Whisper 在浏览器中转写（WebGPU，回退 WASM）；Opus-MT、Chrome Translator API 或云端 LLM 负责翻译，始终带有回退链。浮动字幕覆盖在视频或游戏之上。 |
-| <img src="docs/img/jogar.png" alt="游戏" width="420"> | **游戏** — 用*你自己*的词汇构建的九个小游戏（记忆、找词、拼写、闪电对决……），并基于真实词表提供 CEFR 路径。这里答对的内容会计入复习。 |
-| <img src="docs/img/sem-conta.png" alt="无账户模式" width="420"> | **无需账户** — 完整的本地流水线无需注册即可使用；需要持久化数据的页面显示邀请而非一堵墙，注册后浏览器中的内容会一次性迁移到账户。 |
+CI 运行的完整清单见 [CONTRIBUTING.md](CONTRIBUTING.md)（英文）。
 
-**账户是可选的。** 无账户时数据存于 IndexedDB；注册后一次性、幂等地迁移。有账户时由服务器决定套餐（免费版：全部本地/自带密钥；Premium：托管云端 AI）。
-
-## 工作原理
+## 架构
 
 ```mermaid
 flowchart LR
@@ -47,64 +64,76 @@ flowchart LR
     classDef cloud fill:#17171a,stroke:#8f887c,color:#c9c2b6,stroke-dasharray:5
     classDef out fill:#1f1f23,stroke:#9ad29a,color:#f4efe6
 
-    subgraph IN["🎧 音频输入"]
-        A1[浏览器标签页]:::src
-        A2[系统音频<br/><small>Windows 环回</small>]:::src
-        A3[麦克风]:::src
+    A["标签页 · 系统音频 · 麦克风"]:::src --> VAD["Silero VAD"]:::local
+    subgraph DEVICE["在设备上"]
+        VAD --> STT["Whisper<br/><small>WebGPU | WASM</small>"]:::local
+        STT --> MT["Bergamot → Opus-MT<br/><small>Chrome Translator API</small>"]:::local
+        DB[("IndexedDB<br/><small>无账号模式</small>")]:::local
     end
-
-    subgraph BROWSER["🧠 在浏览器内 — 数据不离开设备"]
-        VAD["Silero VAD<br/><small>AudioWorklet</small>"]:::local
-        STT["Whisper<br/><small>transformers.js · WebGPU | WASM</small>"]:::local
-        MT1["Opus-MT<br/><small>ONNX，本地</small>"]:::local
-        MT2["Chrome Translator API"]:::local
-        STORE[("IndexedDB<br/><small>无账户模式</small>")]:::local
-    end
-
-    subgraph CLOUD["☁️ 可选，按套餐"]
-        MT3["云端 LLM / STT<br/><small>仅登录后</small>"]:::cloud
-    end
-
-    subgraph OUT["📚 学习"]
-        CAP[实时字幕]:::out
-        VOC[词汇]:::out
-        GAMES[9 个游戏]:::out
-        SRS["FSRS-5 复习<br/><small>CEFR 路径</small>"]:::out
-    end
-
-    A1 & A2 & A3 --> VAD --> STT
-    STT --> MT1 -. 回退 .-> MT2 -. 回退 .-> MT3
-    STT --> CAP
-    MT1 & MT2 & MT3 --> CAP
-    CAP --> VOC --> GAMES --> SRS
-    VOC --> STORE
+    MT -. "可选，需同意" .-> CLOUD["云端 AI<br/><small>OpenRouter · 零留存</small>"]:::cloud
+    STT --> CAP["字幕"]:::out
+    MT --> CAP
+    CAP --> VOC["词汇"]:::out --> GAMES["游戏"]:::out --> SRS["FSRS 复习"]:::out
+    VOC --> DB
 ```
 
-- **唯一的 HTTP 漏斗**（`apiFetch`）：无账户时由内存服务器以与真实服务器相同的响应结构应答，UI 无法区分。
-- **身份 · 套餐 · 角色**是三个独立的轴；客户端只*显示*套餐，绝不决定套餐。
+代码按层划分：
 
-详见 [docs/arquitetura.md](docs/arquitetura.md)。
+| 路径              | 作用                                                                                                                           |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `src/core/`       | 纯领域逻辑（套餐、FSRS、游戏、经济、翻译规则）；不依赖 DOM，不访问网络                                                         |
+| `src/gateway/`    | 语音转文字与翻译的适配器、模型缓存、路由以及提供方之间的后备                                                                   |
+| `src/lib/`        | 客户端服务：采集、音频、语音、导入、认证                                                                                       |
+| `src/data/`       | 数据层。`apiFetch` 是**唯一的 HTTP 漏斗**；没有账号时，由 IndexedDB 之上的内存服务器（`src/data/efemero`）以相同的响应格式作答 |
+| `src/components/` | React 界面                                                                                                                     |
+| `server/`         | Express API：Supabase JWT、按用户隔离、速率限制、Zod 校验、libsql/SQLite（Drizzle）、计费、AI 路由                             |
 
-## 实测，而非承诺
+身份（匿名或已登录）、套餐和角色是相互独立的维度，套餐**只**由服务器决定；客户端仅负责展示。ast-grep 规则禁止在漏斗之外使用 `fetch('/api/…')`。更多内容见 [docs/arquitetura.md](docs/arquitetura.md)（历史文档）以及 [`openspec/specs/`](openspec/specs/) 中的现行规格。
 
-- **无账户模式：完整流程对 `/api` 的请求为 0**。
-- **对比度**：14 种主题/配色/档案组合中，低于 WCAG AA 的节点为 0；小于 24 px 的点击目标为 0。
-- **容量**（单进程，4 核）：约 300 req/s；增加集群 worker 反而*降低*吞吐（SQLite 只有一个写入者）。
-- **认证**：7 种伪造令牌向量被真实校验器拒绝，且阳性对照被接受。
-- 每次推送运行 1800+ 自动化测试。
+## 套餐与云端 AI
 
-## 尚未实现
+| 套餐        | 你得到什么                                                                                                                  |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **免费**    | 所有在设备上运行的功能（采集、本地模型、学习、游戏）。没有托管的云端 AI。                                                   |
+| **Premium** | 云端转写与翻译，按日和按月的合理使用额度，口译的自然语音。以无需绑卡的试用开始，14 天后或用完使用额度时结束，以先到者为准。 |
 
-- Opus-MT int8/fp16 在部分设备上失败；回退到下一个翻译器，而无账户时该翻译器可能不可用。
-- Windows 屏幕共享音频可能报 `NotReadableError`；请使用标签页或环回。
-- 无账户时玩的回合不会迁移到账户（会话、音频和卡片会迁移）。
-- 单写入者数据库：适合测试版，不适合规模化。
-- 尚未开放销售：计费（Asaas——免费版 + Premium，付费套餐由支付 webhook 授予）已实现并通过测试，但生产服务器尚未上线。
+云端 AI 通过 OpenRouter 调用，零数据留存，且仅在获得同意后使用。价格、额度及其背后的决定见 [docs/ESTADO-DO-LANCAMENTO.md](docs/ESTADO-DO-LANCAMENTO.md) 和 [docs/monetizacao.md](docs/monetizacao.md)。支付通过 Asaas，由支付 webhook 授予套餐。
 
-## 验证
+## 自托管
+
+使用 Docker（macOS 上可用 OrbStack）运行多用户公开模式：
 
 ```bash
-npm run typecheck && npm run typecheck:core && npm run lint && npm test && npm run build
+cp .env.docker.example .env.docker   # 填写 Supabase 的值
+docker compose --env-file .env.docker up -d --build
+curl -fsS http://localhost:3000/api/health
 ```
 
-[贡献](CONTRIBUTING.md) · [安全](SECURITY.md) · [MIT](LICENSE)
+HTTPS 由前置的反向代理负责（Caddy、Traefik、nginx）。详情见 [`docker-compose.yml`](docker-compose.yml) 和 [docs/deploy.md](docs/deploy.md)。
+
+## 部署
+
+生产目标是 Fly.io（GRU，一台机器，SQLite 由 Litestream 复制到 Cloudflare R2），使用 Supabase 登录，前置 Cloudflare，并配合 Resend 和 Sentry。所有者的分步指南是 [docs/LANCAMENTO.md](docs/LANCAMENTO.md)；运维见 [docs/runbook.md](docs/runbook.md)；预发布环境见 [docs/STAGING.md](docs/STAGING.md)。部署经由 `deploy.yml`，它只接受 CI 为绿色的提交。
+
+## 安全与隐私
+
+- 漏洞请私下报告；见 [SECURITY.md](SECURITY.md)。
+- LGPD 记录（数据处理登记与处理方）：[docs/lgpd/](docs/lgpd/)。
+- 无账号模式向 `/api` 发送**零**请求；用户输入的内容不会进入日志；音频仅按留存政策规定的时间保存。
+- CI 运行 SAST（Semgrep）、带具名例外清单的依赖审计、密钥扫描、对镜像的 Trivy 扫描以及 JWT 攻击探测。
+- 审计方法见 [docs/metodologia-de-auditoria.md](docs/metodologia-de-auditoria.md)；带日期的审计见 [docs/auditoria/](docs/auditoria/)。
+
+## 已知限制
+
+- Opus-MT int8/fp16 在部分设备上无法创建会话；应用会回退到下一个翻译器。
+- Windows 上共享屏幕的音频可能抛出 `NotReadableError`；请改用共享标签页或 loopback。
+- 单写入者数据库（SQLite）：测试阶段够用；扩容意味着更换数据库，见 [docs/escala.md](docs/escala.md)。
+- Bergamot 模型由一个 CDN 提供，所有者尚需发布；在此之前由 Opus-MT 承担翻译。
+
+## 参与贡献
+
+请阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 和[行为准则](CODE_OF_CONDUCT.md)。对现有系统行为的修改需通过 [OpenSpec](openspec/)（`/opsx:propose`）。预提交钩子（[Husky](.husky/pre-commit) + lint-staged）会对暂存内容进行格式化和 lint。全部文档的索引是 [docs/README.md](docs/README.md)；数据署名见 [docs/FONTES.md](docs/FONTES.md)（葡萄牙语）。
+
+## 许可证
+
+[MIT](LICENSE)。

@@ -3,7 +3,7 @@
 # Babel Play
 
 **Learn a language from what you already watch, play and talk about.**
-Live transcription and translation of any audio on your computer — running **inside your browser** — turned into vocabulary games and spaced repetition.
+Live captions and translation of any audio on your computer, running **on your own device**, turned into vocabulary games and spaced repetition.
 
 [🇺🇸 English](README.md) · [🇧🇷 Português](README.pt-BR.md) · [🇨🇳 中文](README.zh-CN.md) · [🇫🇷 Français](README.fr.md) · [🇪🇸 Español](README.es.md)
 
@@ -16,31 +16,46 @@ Live transcription and translation of any audio on your computer — running **i
 
 </div>
 
-> **Demo:** coming with the public deploy. Until then, run it locally in three commands — no API key needed.
+> **Status (2026-10-18):** pre-launch. Billing, login and the Fly.io deploy are implemented and tested but have not run in a real environment yet. See the [launch status](docs/ESTADO-DO-LANCAMENTO.md) (Portuguese), the single source for what holds today.
 
-## Try it
+**Contents:** [What it is](#what-it-is) · [Run it](#run-it) · [Architecture](#architecture) · [Plans and cloud AI](#plans-and-cloud-ai) · [Self-hosting](#self-hosting) · [Deploy](#deploy) · [Security and privacy](#security-and-privacy) · [Contributing](#contributing) · [License](#license)
+
+## What it is
+
+- **Live captions and translation** of a browser tab, the system audio (Windows loopback) or the microphone. Floating captions go over the video or game.
+- **Interpreter mode**: two people who do not share a language talk face to face on one device; the translation is read aloud (device voice on Free, natural cloud voice on Premium).
+- **Study** with FSRS-5 spaced repetition and a CEFR track built from real word lists, fed by what you heard.
+- **Games**: nine short games built from _your_ vocabulary (memory, word search, dictation, blitz duel, karaoke...). What you get right counts in the review.
+- **Import** Anki decks, documents (`.txt`, `.pdf`, `.docx`) and subtitles (`.srt`, `.vtt`, `.ass`), read in the browser.
+- **Local-first**: models run on the device (Whisper through transformers.js on WebGPU with a WASM fallback, Opus-MT, and Bergamot from Mozilla for fast X→English translation). Without an account, nothing is sent to the server.
+- **Optional cloud** (OpenRouter, zero data retention, with explicit consent) for higher quality when you ask for it.
+- **Protected profile for minors**: no purchases, no offers, and cloud AI only with a declared birth date.
+
+## Run it
+
+Requires Node 22 or newer.
 
 ```bash
 npm install          # also copies the ONNX Runtime / Silero VAD binaries into public/
 cp .env.example .env # set PORT; no API key is needed for the local pipeline
-npm run dev          # → http://localhost:<PORT>   (open via localhost: secure context for the models)
+npm run dev          # Express + Vite in one process → http://localhost:<PORT>
 ```
 
-Choose **Continue without an account**: the whole pipeline runs locally and **not a single
-request** reaches the server — that is measured, not promised (see [Measured, not claimed](#measured-not-claimed)).
+Open it through `localhost` (a secure context, required by the models). If your `.env` has `VITE_AUTH_REQUIRED=1`, use `npm run dev:local` instead: it starts the same app with login off, for local inspection. On the login screen, choose **Continue without an account** to use the whole local pipeline.
 
-## What it does
+| Command                             | What it does                                                                      |
+| ----------------------------------- | --------------------------------------------------------------------------------- |
+| `npm run dev` / `npm run dev:local` | development server (the second one with login off)                                |
+| `npm test`                          | unit and integration tests (Vitest)                                               |
+| `npm run test:e2e`                  | end-to-end tests (Playwright)                                                     |
+| `npm run lint`                      | ESLint, zero warnings allowed                                                     |
+| `npm run typecheck`                 | TypeScript (also `typecheck:core`, `typecheck:estrito`)                           |
+| `npm run build`                     | client bundle (`dist/`) and server bundle (`dist-server/`)                        |
+| `npm run vitrine`                   | full public mode with fake login and billing ([docs/vitrine.md](docs/vitrine.md)) |
 
-| | |
-|---|---|
-| <img src="docs/img/hub.png" alt="Home" width="420"> | **Home** — the three fronts of the app (capture, practice, vocabulary) with the real state of each: what is due, what is new, what was never played. Level, streak and seeds are derived from measured events, never typed in. |
-| <img src="docs/img/capturar.png" alt="Capture" width="420"> | **Capture** — a browser tab, the system audio (Windows loopback, no setup) or the microphone. Whisper transcribes in the browser (WebGPU, WASM fallback); Opus-MT, the Chrome Translator API or a cloud LLM translate, always with a fallback chain. Floating captions go over the video or game. |
-| <img src="docs/img/jogar.png" alt="Play" width="420"> | **Play** — nine short games built from *your* vocabulary (memory, word search, spelling, blitz duel…), with a CEFR track from real word lists. What you get right here counts in the review. |
-| <img src="docs/img/sem-conta.png" alt="No-account mode" width="420"> | **No account needed** — the whole local pipeline works without signing up; screens that persist data show an invitation instead of a wall, and what you did in the browser migrates to the account, once, when you sign up. |
+The full list CI runs is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-**Accounts are optional.** Without one, data lives in IndexedDB; sign up later and it migrates once, idempotently. With one, plans are decided by the server (Free: everything local/BYOK; Premium: managed cloud AI).
-
-## How it works
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -49,96 +64,76 @@ flowchart LR
     classDef cloud fill:#17171a,stroke:#8f887c,color:#c9c2b6,stroke-dasharray:5
     classDef out fill:#1f1f23,stroke:#9ad29a,color:#f4efe6
 
-    subgraph IN["🎧 Audio in"]
-        A1[Browser tab]:::src
-        A2[System audio<br/><small>Windows loopback</small>]:::src
-        A3[Microphone]:::src
+    A["Tab · system audio · microphone"]:::src --> VAD["Silero VAD"]:::local
+    subgraph DEVICE["On the device"]
+        VAD --> STT["Whisper<br/><small>WebGPU | WASM</small>"]:::local
+        STT --> MT["Bergamot → Opus-MT<br/><small>Chrome Translator API</small>"]:::local
+        DB[("IndexedDB<br/><small>no-account mode</small>")]:::local
     end
-
-    subgraph BROWSER["🧠 In the browser — no data leaves the device"]
-        VAD["Silero VAD<br/><small>AudioWorklet</small>"]:::local
-        STT["Whisper<br/><small>transformers.js · WebGPU | WASM</small>"]:::local
-        MT1["Opus-MT<br/><small>ONNX, local</small>"]:::local
-        MT2["Chrome Translator API"]:::local
-        STORE[("IndexedDB<br/><small>no-account mode</small>")]:::local
-    end
-
-    subgraph CLOUD["☁️ Optional, plan-gated"]
-        MT3["Cloud LLM / STT<br/><small>only signed in</small>"]:::cloud
-    end
-
-    subgraph OUT["📚 Learning"]
-        CAP[Live captions<br/>overlay]:::out
-        VOC[Vocabulary]:::out
-        GAMES[9 games]:::out
-        SRS["FSRS-5 review<br/><small>CEFR track</small>"]:::out
-    end
-
-    A1 & A2 & A3 --> VAD --> STT
-    STT --> MT1 -. fallback .-> MT2 -. fallback .-> MT3
-    STT --> CAP
-    MT1 & MT2 & MT3 --> CAP
-    CAP --> VOC --> GAMES --> SRS
-    VOC --> STORE
+    MT -. "optional, consent" .-> CLOUD["Cloud AI<br/><small>OpenRouter · zero retention</small>"]:::cloud
+    STT --> CAP["Captions"]:::out
+    MT --> CAP
+    CAP --> VOC["Vocabulary"]:::out --> GAMES["Games"]:::out --> SRS["FSRS review"]:::out
+    VOC --> DB
 ```
 
-### Three independent axes
+The code is split in layers:
 
-```mermaid
-flowchart TB
-    classDef c fill:#17171a,stroke:#8f887c,color:#f4efe6
-    classDef s fill:#1f1f23,stroke:#e85d36,color:#f4efe6
+| Path              | Role                                                                                                                                                                       |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/core/`       | pure domain logic (plans, FSRS, games, economy, translation rules); no DOM, no network                                                                                     |
+| `src/gateway/`    | adapters for speech-to-text and translation, model cache, routing and fallbacks between providers                                                                          |
+| `src/lib/`        | client services: capture, audio, voice, import, auth                                                                                                                       |
+| `src/data/`       | the data layer. `apiFetch` is the **single HTTP funnel**; without an account an in-memory server over IndexedDB (`src/data/efemero`) answers with the same response shapes |
+| `src/components/` | React UI                                                                                                                                                                   |
+| `server/`         | Express API: Supabase JWT, per-user isolation, rate limits, Zod validation, libsql/SQLite (Drizzle), billing, AI routing                                                   |
 
-    UI["UI · React"]:::c --> F["<b>apiFetch</b> — the single HTTP funnel<br/><small>src/data/api.ts</small>"]:::s
-    F -->|"identity = anonymous"| E["In-memory server over IndexedDB<br/><small>src/data/efemero · same response shapes</small>"]:::c
-    F -->|"identity = account | self-host"| API["Express API<br/><small>Supabase JWT · per-user isolation · rate limits · Zod</small>"]:::c
-    API --> DB[("libsql / SQLite<br/><small>Turso-ready</small>")]:::c
-    API --> PLAN["Plan &amp; role decided <b>only</b> here<br/><small>free · premium · self-host — user · admin · support</small>"]:::s
-```
+Identity (anonymous or account), plan and role are separate axes, and the plan is decided **only** on the server; the client just paints it. An ast-grep rule forbids `fetch('/api/…')` outside the funnel. More in [docs/arquitetura.md](docs/arquitetura.md) (historical) and in the living specs under [`openspec/specs/`](openspec/specs/).
 
-- **One HTTP funnel.** Every call goes through `apiFetch`. Without an account it is answered by an in-memory server with the same response shapes as the real one — the UI cannot tell the difference. An ast-grep rule forbids `fetch('/api/…')` anywhere else.
-- **Identity · plan · role** are separate axes; the client only *paints* the plan, never decides it.
-- Sign-up migrates local data once, idempotently (`origem_local_id` unique per user).
+## Plans and cloud AI
 
-Details in [docs/arquitetura.md](docs/arquitetura.md).
+| Plan        | What you get                                                                                                                                                                                               |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Free**    | Everything that runs on the device (capture, local models, study, games). No managed cloud AI.                                                                                                             |
+| **Premium** | Cloud transcription and translation with fair daily and monthly use, natural interpreter voice. Starts with a trial with no card that ends after 14 days or at the usage allowance, whichever comes first. |
 
-## Compatibility
+Cloud AI goes through OpenRouter with zero data retention and only after consent. Prices, quotas and the decisions behind them are in [docs/ESTADO-DO-LANCAMENTO.md](docs/ESTADO-DO-LANCAMENTO.md) and [docs/monetizacao.md](docs/monetizacao.md). Payment is handled by Asaas, and it is the payment webhook that grants the plan.
 
-| | |
-|---|---|
-| WebGPU | Chrome/Edge 113+, Safari 18+; Firefox falls back to WASM (slower, works) |
-| First load | ~40–80 MB of model weights from the Hugging Face Hub, cached by the browser |
-| System audio | Windows loopback via the local server (self-host), or tab/screen share anywhere |
-| WASM threads | cross-origin isolation is on by default (Chrome/Edge/Firefox; Safari stays single-thread); `CROSS_ORIGIN_ISOLATION=0` turns it off |
+## Self-hosting
 
-## Measured, not claimed
-
-Everything below comes from scripts in the repo; numbers are from a 2026-08 run.
-
-- **No-account mode: 0 requests to `/api`** across the full flow (probe with a counting `fetch`).
-- **Contrast**: 0 nodes below WCAG AA across 14 theme/scheme/profile combinations; 0 targets under 24 px.
-- **Capacity** (one process, 4-CPU cpuset, write-heavy load): ~300 req/s; adding cluster workers *reduces* throughput because SQLite has a single writer — scaling means changing the database, not adding processes.
-- **Auth**: 7 forged-token vectors (alg:none, algorithm confusion, wrong iss/aud, expiry…) rejected by the real verifier, and a positive control accepted.
-- 1,800+ automated tests; typecheck, lint, build and a dependency audit with a named allowlist on every push.
-
-## What doesn't work yet
-
-- Opus-MT int8/fp16 fails to build a session on some devices (ONNX Runtime `qdq_actions`); the app falls back to the next translator, which may be unavailable without an account.
-- Screen-share audio on Windows can raise `NotReadableError`; use tab share or the loopback route.
-- Game rounds played without an account are not migrated to the account (sessions, audio and cards are).
-- Single-writer database: fine for a beta, not for scale.
-- Sales are not open yet: billing (Asaas — Free + Premium, the paid plan is granted by the payment webhook) is implemented and tested, but the production server is not live. See the [launch status](docs/ESTADO-DO-LANCAMENTO.md) (Portuguese).
-
-## Verify
+Docker (OrbStack on macOS works) with the multi-user public mode:
 
 ```bash
-npm run typecheck && npm run typecheck:core && npm run lint && npm test && npm run build
+cp .env.docker.example .env.docker   # fill in the Supabase values
+docker compose --env-file .env.docker up -d --build
+curl -fsS http://localhost:3000/api/health
 ```
 
-## Docs
+HTTPS is up to the reverse proxy in front (Caddy, Traefik, nginx). Details in [`docker-compose.yml`](docker-compose.yml) and [docs/deploy.md](docs/deploy.md).
 
-[Architecture](docs/arquitetura.md) · [Deploy](docs/deploy.md) · [Regression checklist](docs/testes-regressao.md) · [Audit methodology](docs/metodologia-de-auditoria.md) · [Launch plan](docs/LANCAMENTO.md) · [Launch status](docs/ESTADO-DO-LANCAMENTO.md)
+## Deploy
 
-## Contributing · Security · License
+The production target is Fly.io (GRU, one machine, SQLite replicated by Litestream to Cloudflare R2), with Supabase for login, Cloudflare in front, Resend and Sentry. The owner's step-by-step is [docs/LANCAMENTO.md](docs/LANCAMENTO.md); operating it is [docs/runbook.md](docs/runbook.md); staging is [docs/STAGING.md](docs/STAGING.md). Deploys go through `deploy.yml`, which only accepts a commit with a green CI.
 
-[CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [MIT](LICENSE)
+## Security and privacy
+
+- Report vulnerabilities privately; see [SECURITY.md](SECURITY.md).
+- LGPD records (data processing register and processors): [docs/lgpd/](docs/lgpd/).
+- No-account mode sends **zero** requests to `/api`; nothing user-typed reaches the logs; audio is kept only as long as the retention policy says.
+- CI runs SAST (Semgrep), dependency audit with a named allowlist, secret scanning, Trivy on the image and a JWT attack probe.
+- The audit method is in [docs/metodologia-de-auditoria.md](docs/metodologia-de-auditoria.md); dated audits are in [docs/auditoria/](docs/auditoria/).
+
+## Known limits
+
+- Opus-MT int8/fp16 fails to build a session on some devices; the app falls back to the next translator.
+- Screen-share audio on Windows can raise `NotReadableError`; use tab share or the loopback route.
+- Single-writer database (SQLite): fine for a beta; scaling means changing the database, see [docs/escala.md](docs/escala.md).
+- Bergamot models are served from a CDN that the owner still has to publish; until then Opus-MT does the work.
+
+## Contributing
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md). Behavior changes in existing systems go through [OpenSpec](openspec/) (`/opsx:propose`). A pre-commit hook ([Husky](.husky/pre-commit) + lint-staged) formats and lints what is staged. The index of all documentation is [docs/README.md](docs/README.md); data attributions are in [docs/FONTES.md](docs/FONTES.md) (Portuguese).
+
+## License
+
+[MIT](LICENSE).

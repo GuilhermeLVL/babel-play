@@ -2,7 +2,7 @@
  * Contrato da capability `learning` — TIPOS agnósticos de plataforma, liftados do
  * app desktop (`../Tradutor/src/shared/learning/contract.ts`). O mapa de canais IPC
  * do Electron (`LEARNING_IPC`) foi DESCARTADO no lift (local-shaped; na web os
- * contratos viram rotas HTTP). Ver `docs/estrategia-reuso-web.md`.
+ * contratos viram rotas HTTP). Ver `docs/historico/estrategia-reuso-web.md`.
  */
 
 /* `CachedAnalysis` FOI REMOVIDO daqui junto com a tabela `analyses` (migração 0026).

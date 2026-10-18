@@ -49,23 +49,23 @@ Fonte: `server/db/schema.ts`. Toda tabela de domínio carrega `created_at`, `upd
 
 ### 1.1 Tabelas ligadas ao pedido
 
-| Tabela (schema.ts) | O que guarda | O que faz crescer | Tabela, bytes/linha (medido) | Com índices, bytes/linha (medido) |
-|---|---|---|---:|---:|
-| `sessions` (31-72) | título, tipo, idiomas, duração, contagem de palavras, `meta` em JSON | 1 por captura ou importação | ~410 | pequeno |
-| `utterances` (74-118) | uma fala: tempos, falante, texto, tradução, tradução polida, motor, confiança | ~360 por sessão de 30 min (hipótese: 1 fala a cada 5 s) | 411 | 568 |
-| `vocab_cards` (120-207) | palavra, verso, frase, idiomas, estado FSRS, CEFR, chave de dedup, contadores, dificuldade | 1 por palavra distinta por idioma | 387 | 940 |
-| `vocab_occurrences` (218-259) | cada vez que a palavra foi vista: cartão, quando, origem, frase | 1 por encontro (inclusive repetição) | 288 | 788 |
-| `review_logs` (261-287) | cada nota dada: cartão, quando, nota, estabilidade antes/depois, vencimento antes/depois, dias decorridos | 1 por revisão e 1 por item de jogo que grava nota | 187 | 353 |
-| `exercise_results` (301-372) | cada item de cada rodada: acerto, tentativas, ms, dica, origem, cartão, mais placar e combo da rodada repetidos | 1 por item jogado e 1 por cartão revisado | 216 | 605 |
-| `anki_decks` (830-847) | baralho importado | 1 por arquivo | pequeno | pequeno |
-| `anki_notes` (859-900) | nota Anki: todos os campos em JSON (`campos_brutos`) e também `frente`, `verso`, `exemplo` | 1 por nota do `.apkg` | 669 | 990 |
-| `anki_imports` (907-933) | diário de cada importação | 1 por importação | pequeno | pequeno |
-| `presencas` (506-519) | um dia aberto | 1 por dia de uso | pequeno | pequeno |
-| `seed_spends`, `seed_credits` (391-447) | gastos e créditos de Seeds (eventos) | 1 por compra, conquista, meta | pequeno | pequeno |
-| `versoes_de_dados` (migração 0032) | dois contadores por usuário, mantidos por gatilhos | 1 por usuário | fixo | fixo |
-| `rank` (971-993) | placar público, 1 linha por (jogo, apelido) | devagar | pequeno | pequeno |
-| `cache_de_traducao` (1089-1106) | frase curta já traduzida, por hash | podada em 30 dias | — | — |
-| `glossario` (1121-1135) | até 500 termos fixados por pessoa | devagar | — | — |
+| Tabela (schema.ts)                      | O que guarda                                                                                                    | O que faz crescer                                       | Tabela, bytes/linha (medido) | Com índices, bytes/linha (medido) |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ---------------------------: | --------------------------------: |
+| `sessions` (31-72)                      | título, tipo, idiomas, duração, contagem de palavras, `meta` em JSON                                            | 1 por captura ou importação                             |                         ~410 |                           pequeno |
+| `utterances` (74-118)                   | uma fala: tempos, falante, texto, tradução, tradução polida, motor, confiança                                   | ~360 por sessão de 30 min (hipótese: 1 fala a cada 5 s) |                          411 |                               568 |
+| `vocab_cards` (120-207)                 | palavra, verso, frase, idiomas, estado FSRS, CEFR, chave de dedup, contadores, dificuldade                      | 1 por palavra distinta por idioma                       |                          387 |                               940 |
+| `vocab_occurrences` (218-259)           | cada vez que a palavra foi vista: cartão, quando, origem, frase                                                 | 1 por encontro (inclusive repetição)                    |                          288 |                               788 |
+| `review_logs` (261-287)                 | cada nota dada: cartão, quando, nota, estabilidade antes/depois, vencimento antes/depois, dias decorridos       | 1 por revisão e 1 por item de jogo que grava nota       |                          187 |                               353 |
+| `exercise_results` (301-372)            | cada item de cada rodada: acerto, tentativas, ms, dica, origem, cartão, mais placar e combo da rodada repetidos | 1 por item jogado e 1 por cartão revisado               |                          216 |                               605 |
+| `anki_decks` (830-847)                  | baralho importado                                                                                               | 1 por arquivo                                           |                      pequeno |                           pequeno |
+| `anki_notes` (859-900)                  | nota Anki: todos os campos em JSON (`campos_brutos`) e também `frente`, `verso`, `exemplo`                      | 1 por nota do `.apkg`                                   |                          669 |                               990 |
+| `anki_imports` (907-933)                | diário de cada importação                                                                                       | 1 por importação                                        |                      pequeno |                           pequeno |
+| `presencas` (506-519)                   | um dia aberto                                                                                                   | 1 por dia de uso                                        |                      pequeno |                           pequeno |
+| `seed_spends`, `seed_credits` (391-447) | gastos e créditos de Seeds (eventos)                                                                            | 1 por compra, conquista, meta                           |                      pequeno |                           pequeno |
+| `versoes_de_dados` (migração 0032)      | dois contadores por usuário, mantidos por gatilhos                                                              | 1 por usuário                                           |                         fixo |                              fixo |
+| `rank` (971-993)                        | placar público, 1 linha por (jogo, apelido)                                                                     | devagar                                                 |                      pequeno |                           pequeno |
+| `cache_de_traducao` (1089-1106)         | frase curta já traduzida, por hash                                                                              | podada em 30 dias                                       |                            — |                                 — |
+| `glossario` (1121-1135)                 | até 500 termos fixados por pessoa                                                                               | devagar                                                 |                            — |                                 — |
 
 O que **não existe** como tabela: XP, nível, ofensiva, missões e conquistas (são calculados a cada carga a
 partir dos fatos; só os créditos e gastos são gravados); áudio e mídia (o áudio é arquivo no disco ou no R2,
@@ -77,15 +77,15 @@ schema.ts:935-950; o importador lê a mídia e não grava).
 Cenário pedido: 50 sessões de 30 min, 5.000 cartões, 1 ano de revisões. Hipóteses do sintético: 360 falas
 por sessão, 3 ocorrências por cartão, 60 revisões por dia, 3 rodadas de 8 itens por dia, 3.000 notas Anki.
 
-| Objeto | Linhas | Tabela (MB, medido) | Índices (MB, medido) | Total (MB) |
-|---|---:|---:|---:|---:|
-| `utterances` | 18.000 | 7,39 | 2,83 | 10,2 |
-| `vocab_occurrences` | 15.000 | 4,31 | 7,51 | 11,8 |
-| `review_logs` | 21.900 | 4,10 | 3,62 | 7,7 |
-| `exercise_results` | 8.760 | 1,90 | 3,41 | 5,3 |
-| `vocab_cards` | 5.000 | 1,94 | 2,76 | 4,7 |
-| `anki_notes` | 3.000 | 2,01 | 0,96 | 3,0 |
-| **Arquivo inteiro** | | | | **43,2** |
+| Objeto              | Linhas | Tabela (MB, medido) | Índices (MB, medido) | Total (MB) |
+| ------------------- | -----: | ------------------: | -------------------: | ---------: |
+| `utterances`        | 18.000 |                7,39 |                 2,83 |       10,2 |
+| `vocab_occurrences` | 15.000 |                4,31 |                 7,51 |       11,8 |
+| `review_logs`       | 21.900 |                4,10 |                 3,62 |        7,7 |
+| `exercise_results`  |  8.760 |                1,90 |                 3,41 |        5,3 |
+| `vocab_cards`       |  5.000 |                1,94 |                 2,76 |        4,7 |
+| `anki_notes`        |  3.000 |                2,01 |                 0,96 |        3,0 |
+| **Arquivo inteiro** |        |                     |                      |   **43,2** |
 
 Leituras do quadro:
 
@@ -100,16 +100,16 @@ Leituras do quadro:
 
 ### 1.3 Onde há texto repetido
 
-| Onde | O que se repete | Peso |
-|---|---|---|
-| `vocab_occurrences.sentence` (schema.ts:237) | A frase da fala é copiada em cada ocorrência. A coluna `utterance_id` existe para apontar para a fala, mas **nunca é preenchida**: os dois únicos pontos de escrita gravam `null` (`server/db/repositories/vocab.ts:555` e `:1451`). | ~75 bytes por ocorrência; ~1,1 MB dos 4,3 MB da tabela no sintético (estimativa sobre o medido) |
-| `vocab_cards.sentence` (schema.ts:129) | A primeira frase fica no cartão e também na primeira ocorrência. | ~75 bytes por cartão |
-| `anki_notes` (schema.ts:874-878) | `campos_brutos` guarda todos os campos em JSON, e `frente`, `verso`, `exemplo` guardam os mesmos textos de novo. Depois de ativada, a nota ainda vira `vocab_cards.word/back/sentence` e uma ocorrência com a frase: **o mesmo texto até quatro vezes**. | 669 bytes por nota, a maior linha do banco |
-| `exercise_results.score` e `.combo` (schema.ts:309-330) | Placar e combo da rodada repetidos em cada item (decisão documentada, por causa do recorde). | 2 números por linha; pouco |
-| `exercise_results.item_ref` (schema.ts:336) | A palavra em texto, além de `card_id`. | ~10 bytes por linha |
-| `utterances` | `source_lang`, `target_lang`, `speaker_name`, `engine`, `source` repetidos em cada fala (são da sessão ou do falante). | ~40 bytes por fala (estimativa) |
-| `utterances.traducao_polida` (schema.ts:103) | Segunda tradução ao lado da primeira; por desenho. | dobra o texto traduzido das falas polidas |
-| `sessions.meta` (schema.ts:45) | JSON livre. Já carregou capa em base64: 2 capas respondiam por 1.045 KiB (do código, `server/lib/capaDeSessao.ts:4-7`). Hoje o teto é 8 KB (`server/validation.ts:25`); linhas antigas podem ter capas grandes. | até 8 KB por sessão; legado maior |
+| Onde                                                    | O que se repete                                                                                                                                                                                                                                          | Peso                                                                                            |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `vocab_occurrences.sentence` (schema.ts:237)            | A frase da fala é copiada em cada ocorrência. A coluna `utterance_id` existe para apontar para a fala, mas **nunca é preenchida**: os dois únicos pontos de escrita gravam `null` (`server/db/repositories/vocab.ts:555` e `:1451`).                     | ~75 bytes por ocorrência; ~1,1 MB dos 4,3 MB da tabela no sintético (estimativa sobre o medido) |
+| `vocab_cards.sentence` (schema.ts:129)                  | A primeira frase fica no cartão e também na primeira ocorrência.                                                                                                                                                                                         | ~75 bytes por cartão                                                                            |
+| `anki_notes` (schema.ts:874-878)                        | `campos_brutos` guarda todos os campos em JSON, e `frente`, `verso`, `exemplo` guardam os mesmos textos de novo. Depois de ativada, a nota ainda vira `vocab_cards.word/back/sentence` e uma ocorrência com a frase: **o mesmo texto até quatro vezes**. | 669 bytes por nota, a maior linha do banco                                                      |
+| `exercise_results.score` e `.combo` (schema.ts:309-330) | Placar e combo da rodada repetidos em cada item (decisão documentada, por causa do recorde).                                                                                                                                                             | 2 números por linha; pouco                                                                      |
+| `exercise_results.item_ref` (schema.ts:336)             | A palavra em texto, além de `card_id`.                                                                                                                                                                                                                   | ~10 bytes por linha                                                                             |
+| `utterances`                                            | `source_lang`, `target_lang`, `speaker_name`, `engine`, `source` repetidos em cada fala (são da sessão ou do falante).                                                                                                                                   | ~40 bytes por fala (estimativa)                                                                 |
+| `utterances.traducao_polida` (schema.ts:103)            | Segunda tradução ao lado da primeira; por desenho.                                                                                                                                                                                                       | dobra o texto traduzido das falas polidas                                                       |
+| `sessions.meta` (schema.ts:45)                          | JSON livre. Já carregou capa em base64: 2 capas respondiam por 1.045 KiB (do código, `server/lib/capaDeSessao.ts:4-7`). Hoje o teto é 8 KB (`server/validation.ts:25`); linhas antigas podem ter capas grandes.                                          | até 8 KB por sessão; legado maior                                                               |
 
 A transcrição **não** é guardada inteira além das falas: não há coluna de transcrição na sessão. As
 análises da sessão não são persistidas (rodam no navegador a cada abertura).
@@ -118,13 +118,13 @@ análises da sessão não são persistidas (rodam no navegador a cada abertura).
 
 Índices que parecem **redundantes** (inferência pelo prefixo; confirmar com `EXPLAIN QUERY PLAN` antes de remover):
 
-| Índice | Por quê | Peso no sintético (medido) |
-|---|---|---:|
-| `idx_occ_user_card (user_id, card_id)` (schema.ts:241) | É prefixo exato de `idx_occ_probe (user_id, card_id, origin_kind, origin_ref)` (schema.ts:257). | 1,41 MB |
-| `idx_exercise_results_card_id (card_id)` (schema.ts:368) | Criado para a chave estrangeira; `idx_exercise_results_card` começa por `user_id`. Os dois ficam; avaliar se um índice `(card_id, user_id, created_at)` serve aos dois usos. | 0,45 MB |
-| `idx_vocab_session (user_id, session_id)` e `idx_vocab_session_id (session_id)` (schema.ts:187, 196) | Mesma situação. | 0,45 + 0,25 MB |
-| `idx_exercise_results_item_ref (item_ref)` (schema.ts:353) | Sem `user_id`: atravessa todos os usuários. As leituras por item são feitas por usuário. | 0,18 MB |
-| `idx_occ_utterance` (schema.ts:246) | Parcial sobre uma coluna sempre nula: vazio, não custa, mas é enfeite. | 0 |
+| Índice                                                                                               | Por quê                                                                                                                                                                      | Peso no sintético (medido) |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------: |
+| `idx_occ_user_card (user_id, card_id)` (schema.ts:241)                                               | É prefixo exato de `idx_occ_probe (user_id, card_id, origin_kind, origin_ref)` (schema.ts:257).                                                                              |                    1,41 MB |
+| `idx_exercise_results_card_id (card_id)` (schema.ts:368)                                             | Criado para a chave estrangeira; `idx_exercise_results_card` começa por `user_id`. Os dois ficam; avaliar se um índice `(card_id, user_id, created_at)` serve aos dois usos. |                    0,45 MB |
+| `idx_vocab_session (user_id, session_id)` e `idx_vocab_session_id (session_id)` (schema.ts:187, 196) | Mesma situação.                                                                                                                                                              |             0,45 + 0,25 MB |
+| `idx_exercise_results_item_ref (item_ref)` (schema.ts:353)                                           | Sem `user_id`: atravessa todos os usuários. As leituras por item são feitas por usuário.                                                                                     |                    0,18 MB |
+| `idx_occ_utterance` (schema.ts:246)                                                                  | Parcial sobre uma coluna sempre nula: vazio, não custa, mas é enfeite.                                                                                                       |                          0 |
 
 Índices que **faltam**: nenhum grave nas leituras por usuário (foram cobertos pelas migrações 0030 e 0034).
 O que falta é outra coisa: as consultas de métrica leem a tabela inteira do usuário, e índice não resolve isso
@@ -132,17 +132,17 @@ O que falta é outra coisa: as consultas de métrica leem a tabela inteira do us
 
 ### 1.5 Colunas mortas ou sem leitor
 
-| Coluna | Situação |
-|---|---|
-| `sessions.ended_at` (schema.ts:39) | Nenhuma referência em `server/` nem em `src/`. |
-| `utterances.status` (schema.ts:92) | Não é escrita por `montarLinhas` (`server/db/repositories/utterances.ts:49-68`). |
-| `vocab_cards.phonetics` (schema.ts:128) | Só é lida; o cliente a sobrescreve com vazio (`server/db/repositories/vocab.ts:238-242`). |
-| `vocab_occurrences.utterance_id` (schema.ts:238) | Sempre `null` (ver 1.3). |
-| `review_logs.prev_due`, `new_due` (schema.ts:273-274) | Escritas em `vocab.ts:1147-1148`, sem leitor. São deriváveis. |
+| Coluna                                                                            | Situação                                                                                            |
+| --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `sessions.ended_at` (schema.ts:39)                                                | Nenhuma referência em `server/` nem em `src/`.                                                      |
+| `utterances.status` (schema.ts:92)                                                | Não é escrita por `montarLinhas` (`server/db/repositories/utterances.ts:49-68`).                    |
+| `vocab_cards.phonetics` (schema.ts:128)                                           | Só é lida; o cliente a sobrescreve com vazio (`server/db/repositories/vocab.ts:238-242`).           |
+| `vocab_occurrences.utterance_id` (schema.ts:238)                                  | Sempre `null` (ver 1.3).                                                                            |
+| `review_logs.prev_due`, `new_due` (schema.ts:273-274)                             | Escritas em `vocab.ts:1147-1148`, sem leitor. São deriváveis.                                       |
 | `review_logs.prev_stability`, `new_stability`, `elapsed_days` (schema.ts:271-275) | Escritas e **não lidas por ninguém**. São valiosas (seção 4): é delas que sai a calibração do FSRS. |
-| `exercise_results.attempts`, `hinted` (schema.ts:338, 342) | Gravadas e sem leitor: acerto com dica conta igual a acerto limpo. |
-| `exercise_results.ms` (schema.ts:340) | Lida só para somar "minutos estudados". |
-| `vocab_cards.box` | Legado Leitner, mantido de propósito para reversão. |
+| `exercise_results.attempts`, `hinted` (schema.ts:338, 342)                        | Gravadas e sem leitor: acerto com dica conta igual a acerto limpo.                                  |
+| `exercise_results.ms` (schema.ts:340)                                             | Lida só para somar "minutos estudados".                                                             |
+| `vocab_cards.box`                                                                 | Legado Leitner, mantido de propósito para reversão.                                                 |
 
 ---
 
@@ -177,18 +177,18 @@ Limites dessa ligação:
 
 ### 2.3 Onde a chave erra (medido com a própria função)
 
-| Entrada A | Entrada B | Resultado |
-|---|---|---|
-| `がっこう` (escola) | `かっこう` (cuco) | mesma chave: o NFD separa a marca de sonorização e o filtro final a apaga |
-| `パパ` (papai) | `ハハ` | mesma chave |
-| `किताब` (hindi) | `कतब` | mesma chave: as vogais do devanágari são marcas e somem |
-| `กิน`, `ดี` (tailandês) | `กน`, `ด` | mesma chave: vogais e tons somem |
-| `мой` (russo) | `мои` | mesma chave |
-| `schön` / `schon`, `año` / `ano`, `avó` / `avô` | | mesma chave |
-| `ice cream` | `icecream` | mesma chave (espaço removido) |
-| `don't` | `dont` | mesma chave |
-| `Running` | `running` | mesma chave (correto) |
-| `run`, `runs`, `running`, `ran` | | quatro chaves (sem lema) |
+| Entrada A                                       | Entrada B         | Resultado                                                                 |
+| ----------------------------------------------- | ----------------- | ------------------------------------------------------------------------- |
+| `がっこう` (escola)                             | `かっこう` (cuco) | mesma chave: o NFD separa a marca de sonorização e o filtro final a apaga |
+| `パパ` (papai)                                  | `ハハ`            | mesma chave                                                               |
+| `किताब` (hindi)                                 | `कतब`             | mesma chave: as vogais do devanágari são marcas e somem                   |
+| `กิน`, `ดี` (tailandês)                         | `กน`, `ด`         | mesma chave: vogais e tons somem                                          |
+| `мой` (russo)                                   | `мои`             | mesma chave                                                               |
+| `schön` / `schon`, `año` / `ano`, `avó` / `avô` |                   | mesma chave                                                               |
+| `ice cream`                                     | `icecream`        | mesma chave (espaço removido)                                             |
+| `don't`                                         | `dont`            | mesma chave                                                               |
+| `Running`                                       | `running`         | mesma chave (correto)                                                     |
+| `run`, `runs`, `running`, `ran`                 |                   | quatro chaves (sem lema)                                                  |
 
 Consequência prática: no japonês, hindi, tailandês e russo, a segunda palavra que colidir **não vira cartão**;
 ela soma ocorrência no cartão da primeira e a pessoa nunca a estuda. O árabe e o hebraico perdem só os
@@ -231,14 +231,14 @@ O que **passa** hoje:
 
 ### 3.1 O que acontece ao apagar
 
-| Ação | O que acontece | Onde |
-|---|---|---|
-| Apagar sessão | O arquivo de áudio é removido e a cota devolvida; a sessão e as falas recebem `deleted_at`. Cartões, ocorrências e resultados de jogo daquela sessão **ficam**. | `server/routes/sessions.ts:658-684`, `sessions.ts:287-299` |
-| Apagar cartão | Cartão, ocorrências e revisões recebem `deleted_at`. `exercise_results` e `anki_notes.projected_card_id` não são tocados. | `vocab.ts:1253-1278` |
-| Desfazer revisão | A revisão recebe `deleted_at`. | `vocab.ts:1061-1098` |
-| Retomar captura | As falas são apagadas de verdade e inseridas de novo, com ids novos. | `sessions.ts:215-235`, `utterances.ts:125-127` |
-| Purgar baralho Anki | Notas, importações e baralho apagados de verdade. Os cartões projetados ficam. | `server/db/repositories/anki.ts:301-305` |
-| Excluir conta | Apagamento físico de todas as tabelas do titular, filhos antes dos pais. | `server/db/repositories/conta.ts:64-104`, `:296-312` |
+| Ação                | O que acontece                                                                                                                                                  | Onde                                                       |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Apagar sessão       | O arquivo de áudio é removido e a cota devolvida; a sessão e as falas recebem `deleted_at`. Cartões, ocorrências e resultados de jogo daquela sessão **ficam**. | `server/routes/sessions.ts:658-684`, `sessions.ts:287-299` |
+| Apagar cartão       | Cartão, ocorrências e revisões recebem `deleted_at`. `exercise_results` e `anki_notes.projected_card_id` não são tocados.                                       | `vocab.ts:1253-1278`                                       |
+| Desfazer revisão    | A revisão recebe `deleted_at`.                                                                                                                                  | `vocab.ts:1061-1098`                                       |
+| Retomar captura     | As falas são apagadas de verdade e inseridas de novo, com ids novos.                                                                                            | `sessions.ts:215-235`, `utterances.ts:125-127`             |
+| Purgar baralho Anki | Notas, importações e baralho apagados de verdade. Os cartões projetados ficam.                                                                                  | `server/db/repositories/anki.ts:301-305`                   |
+| Excluir conta       | Apagamento físico de todas as tabelas do titular, filhos antes dos pais.                                                                                        | `server/db/repositories/conta.ts:64-104`, `:296-312`       |
 
 **Nenhuma rotina remove linhas com `deleted_at`.** Elas continuam ocupando a tabela e todos os índices não
 parciais, para sempre.
@@ -247,14 +247,14 @@ parciais, para sempre.
 
 Todas dentro do próprio processo, com temporizador diário (`server.ts:390-444`):
 
-| Tarefa | O que faz | Onde |
-|---|---|---|
-| Snapshot diário | `VACUUM INTO` para um arquivo temporário, confere integridade, comprime e envia ao R2 | `server/operacao/snapshot.ts:125-140`, `:293` |
-| Retenção de áudio | Apaga o arquivo de áudio de sessões com mais de `AUDIO_RETENCAO_DIAS` (padrão 90); 0 desliga | `server/lib/retencaoDeAudio.ts:55-127` |
-| Limpeza de convidados | Remove convidados inativos há 30 dias e seus contadores | `server/lib/limpezaDeConvidados.ts:164` |
-| Poda das janelas diárias | Remove contadores de uso antigos | `server/lib/usageQuota.ts:101-115` |
-| Poda das marcas de teste | Remove marcas com mais de 730 dias | `server/lib/testePremium.ts:147-160` |
-| Poda do cache de tradução | Remove traduções com mais de 30 dias | `server/ai/cacheDeTraducao.ts:272-293` |
+| Tarefa                    | O que faz                                                                                    | Onde                                          |
+| ------------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Snapshot diário           | `VACUUM INTO` para um arquivo temporário, confere integridade, comprime e envia ao R2        | `server/operacao/snapshot.ts:125-140`, `:293` |
+| Retenção de áudio         | Apaga o arquivo de áudio de sessões com mais de `AUDIO_RETENCAO_DIAS` (padrão 90); 0 desliga | `server/lib/retencaoDeAudio.ts:55-127`        |
+| Limpeza de convidados     | Remove convidados inativos há 30 dias e seus contadores                                      | `server/lib/limpezaDeConvidados.ts:164`       |
+| Poda das janelas diárias  | Remove contadores de uso antigos                                                             | `server/lib/usageQuota.ts:101-115`            |
+| Poda das marcas de teste  | Remove marcas com mais de 730 dias                                                           | `server/lib/testePremium.ts:147-160`          |
+| Poda do cache de tradução | Remove traduções com mais de 30 dias                                                         | `server/ai/cacheDeTraducao.ts:272-293`        |
 
 ### 3.3 O que nunca é limpo
 
@@ -317,14 +317,14 @@ e depois, vencimento antes e depois, dias decorridos desde a revisão anterior.
 
 Não guarda, e faz falta:
 
-| Falta | Por que importa |
-|---|---|
-| **De onde veio a nota** (Revisão, ou qual jogo) | Uma nota de jogo (reconhecer entre 4 opções, com tempo) não mede a mesma coisa que lembrar do zero. Hoje as duas entram iguais no FSRS e no histórico. Sem a origem não dá para ajustar pesos só com as notas confiáveis, nem medir retenção por formato. |
-| **Formato do cartão** (lembrar, digitar, escolha) | Idem. O formato existe só no aparelho (`preferencias.ts:14`). |
-| **Tempo de resposta** | A Revisão não mede. Os jogos medem (`exercise_results.ms`), mas isso não vai para a revisão. |
-| **Dificuldade antes e depois** | Só a estabilidade é gravada. Para reproduzir ou auditar a agenda falta o outro número do estado. |
-| **Meta de retenção usada** e **versão dos pesos** | Sem isso, quando os pesos mudarem, o histórico antigo não diz com que régua foi agendado. |
-| **Fase do cartão** (novo, aprendendo, revisão, reaprendendo) | Os otimizadores separam a primeira revisão do dia das repetições no mesmo dia. Dá para derivar de `elapsed_days`, mas custa. |
+| Falta                                                        | Por que importa                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **De onde veio a nota** (Revisão, ou qual jogo)              | Uma nota de jogo (reconhecer entre 4 opções, com tempo) não mede a mesma coisa que lembrar do zero. Hoje as duas entram iguais no FSRS e no histórico. Sem a origem não dá para ajustar pesos só com as notas confiáveis, nem medir retenção por formato. |
+| **Formato do cartão** (lembrar, digitar, escolha)            | Idem. O formato existe só no aparelho (`preferencias.ts:14`).                                                                                                                                                                                             |
+| **Tempo de resposta**                                        | A Revisão não mede. Os jogos medem (`exercise_results.ms`), mas isso não vai para a revisão.                                                                                                                                                              |
+| **Dificuldade antes e depois**                               | Só a estabilidade é gravada. Para reproduzir ou auditar a agenda falta o outro número do estado.                                                                                                                                                          |
+| **Meta de retenção usada** e **versão dos pesos**            | Sem isso, quando os pesos mudarem, o histórico antigo não diz com que régua foi agendado.                                                                                                                                                                 |
+| **Fase do cartão** (novo, aprendendo, revisão, reaprendendo) | Os otimizadores separam a primeira revisão do dia das repetições no mesmo dia. Dá para derivar de `elapsed_days`, mas custa.                                                                                                                              |
 
 Efeito colateral a conhecer (inferência do código): cada item de jogo com `writesSrs` chama a mesma
 `review()` (`src/components/views/Play.tsx:1086-1093`). Três jogos seguidos com a mesma palavra geram três
@@ -382,14 +382,14 @@ tempo, número de alternativas, tentativas, vidas, pares, ajudas. **Não muda qu
 **(b) Faixa do cartão (`difficulty_score`, 0 a 1).** Média ponderada dos sinais que existirem
 (`src/core/learning/dificuldade.ts:140-201`):
 
-| Sinal | Peso | De onde |
-|---|---:|---|
-| Nível CEFR (só com procedência real) | 0,35 | `cefr_level`, `cefr_source` |
-| Familiaridade (ocorrências, satura em 8) | 0,25 | `occurrences` |
-| Desempenho nos jogos (com suavização) | 0,25 | `exercise_results` por `card_id` |
+| Sinal                                                  |     Peso | De onde                            |
+| ------------------------------------------------------ | -------: | ---------------------------------- |
+| Nível CEFR (só com procedência real)                   |     0,35 | `cefr_level`, `cefr_source`        |
+| Familiaridade (ocorrências, satura em 8)               |     0,25 | `occurrences`                      |
+| Desempenho nos jogos (com suavização)                  |     0,25 | `exercise_results` por `card_id`   |
 | Chance de esquecer agora (FSRS), cresce até 3 revisões | até 0,30 | `stability`, `last_review`, `reps` |
-| Tempo sem ver (satura em 90 dias) | 0,10 | `last_seen_at` |
-| Comprimento da palavra | 0,05 | `word` |
+| Tempo sem ver (satura em 90 dias)                      |     0,10 | `last_seen_at`                     |
+| Comprimento da palavra                                 |     0,05 | `word`                             |
 
 - As faixas são os terços do baralho da própria pessoa; com menos de 30 cartões ou pouca dispersão, cortes
   fixos 0,34 e 0,67 (`dificuldade.ts:115-127`).
@@ -430,16 +430,16 @@ rota do servidor existe e o cliente não o envia.
 Mapa em `gradeFor` (`grade.ts:26-82`). Gravam os 12 jogos com `writesSrs: true` quando o item tem `cardId`
 (`types.ts:154-186`). Não gravam: scramble, karaoke, escuta, ditado, conectores, cadavre.
 
-| Situação | Nota |
-|---|---|
-| Revelou ou desistiu | 1 |
-| Errou | 1 (caça-palavras: 2) |
-| Acertou com dica | 2 |
-| Blitz e tênis | 4 se respondeu em até 3 s, senão 3 |
-| Termo | 4 de primeira, 3 até 3 tentativas, senão 2 |
-| Choseong e koffer | 4 de primeira, senão 3 |
-| Memory | 3, 2 ou 1 conforme tentativas |
-| Demais | 3 de primeira, senão 2 |
+| Situação            | Nota                                       |
+| ------------------- | ------------------------------------------ |
+| Revelou ou desistiu | 1                                          |
+| Errou               | 1 (caça-palavras: 2)                       |
+| Acertou com dica    | 2                                          |
+| Blitz e tênis       | 4 se respondeu em até 3 s, senão 3         |
+| Termo               | 4 de primeira, 3 até 3 tentativas, senão 2 |
+| Choseong e koffer   | 4 de primeira, senão 3                     |
+| Memory              | 3, 2 ou 1 conforme tentativas              |
+| Demais              | 3 de primeira, senão 2                     |
 
 Cada nota vale **o mesmo que uma nota da Revisão**: mesma função, mesma tabela, sem marca de origem e sem peso.
 Cartão embutido da Trilha não tem id no banco e não gera revisão; só os errados viram cartão
@@ -490,14 +490,14 @@ cartão, não só os jogados; e uma função só, pura, que rode igual no servid
 
 ### 6.1 Como são calculadas
 
-| Rota | Números | Forma do cálculo |
-|---|---|---|
-| `GET /api/metrics/profile` (`server/routes/metrics.ts:72-100`) | sessões, palavras, baralho, revisões, acerto, tempo de fala, palavras por minuto, distribuição CEFR, 12 mais difíceis, acerto por jogo, estabilidade média, dias de prática, ofensiva, vence hoje, retenção média prevista | **Lê cinco tabelas inteiras do usuário** (sessões, cartões, revisões, falas com o texto, resultados) e soma em JavaScript (`metrics.ts:70-169`, `:191-449`) |
-| `GET /api/metrics/xp` (`:109-119`) | curva de XP por dia e semana | 4 consultas; `review_logs` e `exercise_results` inteiras (`metrics.ts:839-865`) |
-| `GET /api/metrics/temporada`, `/maestria`, `/missoes` | XP da janela, maestria por jogo, 3 missões | reusam as mesmas linhas; `exercise_results` inteira para maestria (`exerciseResults.ts:516-540`) |
-| `GET /api/vocab/resumo` (`server/routes/vocab.ts:152-177`) | tela Cartões: vence agora, fases, previsão de 31 dias, calendário de 84 dias, retenção de 7 e 30 dias e 8 semanas, botões usados | `vocab_cards` inteira (10 colunas) e revisões dos últimos 84 dias **já agrupadas por dia no SQL** (`resumoDosCartoes.ts:110-141`). É a única rota com janela de tempo |
-| `GET /api/exercises/historico` | histórico por item | todas as linhas com `item_ref`, dobradas em JS (`exerciseResults.ts:299-320`) |
-| `GET /api/exercises/results` | linhas cruas | teto padrão de 200 (`exerciseResults.ts:172`) |
+| Rota                                                           | Números                                                                                                                                                                                                                    | Forma do cálculo                                                                                                                                                      |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/metrics/profile` (`server/routes/metrics.ts:72-100`) | sessões, palavras, baralho, revisões, acerto, tempo de fala, palavras por minuto, distribuição CEFR, 12 mais difíceis, acerto por jogo, estabilidade média, dias de prática, ofensiva, vence hoje, retenção média prevista | **Lê cinco tabelas inteiras do usuário** (sessões, cartões, revisões, falas com o texto, resultados) e soma em JavaScript (`metrics.ts:70-169`, `:191-449`)           |
+| `GET /api/metrics/xp` (`:109-119`)                             | curva de XP por dia e semana                                                                                                                                                                                               | 4 consultas; `review_logs` e `exercise_results` inteiras (`metrics.ts:839-865`)                                                                                       |
+| `GET /api/metrics/temporada`, `/maestria`, `/missoes`          | XP da janela, maestria por jogo, 3 missões                                                                                                                                                                                 | reusam as mesmas linhas; `exercise_results` inteira para maestria (`exerciseResults.ts:516-540`)                                                                      |
+| `GET /api/vocab/resumo` (`server/routes/vocab.ts:152-177`)     | tela Cartões: vence agora, fases, previsão de 31 dias, calendário de 84 dias, retenção de 7 e 30 dias e 8 semanas, botões usados                                                                                           | `vocab_cards` inteira (10 colunas) e revisões dos últimos 84 dias **já agrupadas por dia no SQL** (`resumoDosCartoes.ts:110-141`). É a única rota com janela de tempo |
+| `GET /api/exercises/historico`                                 | histórico por item                                                                                                                                                                                                         | todas as linhas com `item_ref`, dobradas em JS (`exerciseResults.ts:299-320`)                                                                                         |
+| `GET /api/exercises/results`                                   | linhas cruas                                                                                                                                                                                                               | teto padrão de 200 (`exerciseResults.ts:172`)                                                                                                                         |
 
 **Cache.** Há um cache em memória por usuário, válido enquanto a "versão dos dados" não muda
 (`server/lib/cachePorVersao.ts`). A versão é um contador por usuário mantido por gatilhos em toda escrita
@@ -511,18 +511,18 @@ carga (`src/core/learning/xp.ts:114-150`, `src/lib/progress.ts:72-99`).
 
 **Custo** (medido no banco sintético do usuário pesado, driver local, sem o resto do servidor):
 
-| Consulta | Tempo (mediana de 7) |
-|---|---:|
-| Todas as falas do usuário (18.000 linhas) | 533 ms |
-| Baralho inteiro (5.000 cartões) | 222 ms |
-| Todos os resultados de jogo (8.760 linhas) | 197 ms |
-| Todas as revisões, linha a linha (21.900 linhas) | 125 ms |
-| As mesmas revisões agrupadas por dia no SQL | 34 ms |
-| Revisões dos últimos 30 dias (contagem) | 0,6 ms |
-| Vencidas agora (contagem) | 0,7 ms |
+| Consulta                                         | Tempo (mediana de 7) |
+| ------------------------------------------------ | -------------------: |
+| Todas as falas do usuário (18.000 linhas)        |               533 ms |
+| Baralho inteiro (5.000 cartões)                  |               222 ms |
+| Todos os resultados de jogo (8.760 linhas)       |               197 ms |
+| Todas as revisões, linha a linha (21.900 linhas) |               125 ms |
+| As mesmas revisões agrupadas por dia no SQL      |                34 ms |
+| Revisões dos últimos 30 dias (contagem)          |               0,6 ms |
+| Vencidas agora (contagem)                        |               0,7 ms |
 
 Medições do próprio projeto, menores porque usam a leitura compacta e bancos menores: perfil de 95 para 43 ms
-(`docs/auditoria-performance.md:73-74`); `/xp` de 52 a 67 ms com 5.000 + 5.000 linhas (`metrics.ts:817-818`);
+(`docs/auditoria/2026-08-27-desempenho-da-edicao-leve.md:73-74`); `/xp` de 52 a 67 ms com 5.000 + 5.000 linhas (`metrics.ts:817-818`);
 `/exercises/historico` 173 ms com 5.000 linhas (`server/routes/exercises.ts:25-26`).
 
 A lição dos dois quadros é a mesma: **ler por janela ou agregado custa quase nada; ler a vida inteira do
@@ -551,36 +551,36 @@ Inconsistências entre telas: "acerto" é nota 3 ou 4 no perfil (`metrics.ts:279
 
 ### 6.3 Métricas reconhecidas: o que já dá e o que pede dado novo
 
-| Métrica | Dá com os dados de hoje? | O que sustenta ou falta |
-|---|---|---|
-| Retenção real | **Já existe** | `review_logs.grade`, por janela |
-| Retenção real contra a prevista (calibração) | **Dá, ninguém calcula** | `prev_stability`, `elapsed_days`, `grade` já gravados |
-| Palavras maduras e velocidade de aquisição (maduras por semana) | **Dá** | `review_logs.new_stability` e `reviewed_at`: a primeira vez que cruza 21 dias |
-| Palavras conhecidas por nível CEFR | **Dá, só em inglês** | lista CEFR de 2.784 palavras; `fluenciaDoBaralho` já faz no cliente |
-| Palavras conhecidas por faixa de frequência | **Dá nos 15 idiomas da Trilha**, em 6 faixas | as listas são por faixa, não trazem a posição exata; falta a posição por palavra para curvas finas |
-| Cobertura de um texto ou vídeo pelo vocabulário conhecido | **Dá como aproximação** | `utterances.source_text` e o baralho; `src/core/harness/palavrasConhecidas.ts` já responde "ele sabe esta palavra?" (cartão maduro, lista abaixo do nível, palavras funcionais). Sem lema, subestima |
-| Tempo de resposta | **Só nos jogos** | `exercise_results.ms`; a Revisão não mede |
-| Acerto por formato | **Só por jogo** | falta o formato do cartão na Revisão e o nível do jogo |
-| Carga futura de revisão | **Existe, simples** | conta `due_at`; não simula revisões futuras nem novas |
-| Tamanho estimado do vocabulário | **Não** | pede teste amostral ou posição de frequência por palavra |
-| Curva de esquecimento da pessoa | **Dá** | mesmas colunas da calibração |
-| Tempo de estudo real | **Parcial** | soma de `ms` dos jogos; a Revisão não conta |
+| Métrica                                                         | Dá com os dados de hoje?                     | O que sustenta ou falta                                                                                                                                                                              |
+| --------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Retenção real                                                   | **Já existe**                                | `review_logs.grade`, por janela                                                                                                                                                                      |
+| Retenção real contra a prevista (calibração)                    | **Dá, ninguém calcula**                      | `prev_stability`, `elapsed_days`, `grade` já gravados                                                                                                                                                |
+| Palavras maduras e velocidade de aquisição (maduras por semana) | **Dá**                                       | `review_logs.new_stability` e `reviewed_at`: a primeira vez que cruza 21 dias                                                                                                                        |
+| Palavras conhecidas por nível CEFR                              | **Dá, só em inglês**                         | lista CEFR de 2.784 palavras; `fluenciaDoBaralho` já faz no cliente                                                                                                                                  |
+| Palavras conhecidas por faixa de frequência                     | **Dá nos 15 idiomas da Trilha**, em 6 faixas | as listas são por faixa, não trazem a posição exata; falta a posição por palavra para curvas finas                                                                                                   |
+| Cobertura de um texto ou vídeo pelo vocabulário conhecido       | **Dá como aproximação**                      | `utterances.source_text` e o baralho; `src/core/harness/palavrasConhecidas.ts` já responde "ele sabe esta palavra?" (cartão maduro, lista abaixo do nível, palavras funcionais). Sem lema, subestima |
+| Tempo de resposta                                               | **Só nos jogos**                             | `exercise_results.ms`; a Revisão não mede                                                                                                                                                            |
+| Acerto por formato                                              | **Só por jogo**                              | falta o formato do cartão na Revisão e o nível do jogo                                                                                                                                               |
+| Carga futura de revisão                                         | **Existe, simples**                          | conta `due_at`; não simula revisões futuras nem novas                                                                                                                                                |
+| Tamanho estimado do vocabulário                                 | **Não**                                      | pede teste amostral ou posição de frequência por palavra                                                                                                                                             |
+| Curva de esquecimento da pessoa                                 | **Dá**                                       | mesmas colunas da calibração                                                                                                                                                                         |
+| Tempo de estudo real                                            | **Parcial**                                  | soma de `ms` dos jogos; a Revisão não conta                                                                                                                                                          |
 
 ---
 
 ## 7. Listas de frequência, CEFR e lematizador
 
-| O quê | Onde | Tamanho | Idiomas |
-|---|---|---|---|
-| Lista por nível (palavra para nível) | `src/data/trilha/niveis/*.json` | 893 KB no total; 20 KB (en) a 122 KB (ko) | ar, de, en, es, fr, he, hi, it, ja, ko, nl, pl, ru, sv, tr, zh (16) |
-| Índice das listas | `src/data/trilha/indice.json` | 4 KB | idem |
-| Escala **CEFR de verdade** | CEFR-J 1.5 e Octanove C1/C2 (`src/data/trilha/FONTES.md`) | 2.784 palavras | **só inglês** |
-| Escala de **frequência** em 6 faixas | geradas por `scripts/trilha/gerar.mjs` | ~5.100 a 5.800 palavras por idioma | os outros 15 |
-| Consulta do nível | `src/core/learning/cefrWordlist.ts:100-114` | — | devolve `ausente` fora da lista; nos idiomas de frequência devolve `faixa`, não `level` |
-| Lematizador **na geração** das listas | `scripts/trilha/lexemes.mjs:317` (mapa forma para lema do Wikidata) | só em tempo de construção | — |
-| Regras de lema **em execução** | `src/core/texto/lemas.ts` | sufixos por idioma e ~60 irregulares do inglês | declara que não é lematizador; usada para achar o verbete no dicionário ao tocar |
-| "Ele sabe esta palavra?" | `src/core/harness/palavrasConhecidas.ts` | — | caderno maduro, lista abaixo do nível, palavras funcionais |
-| Palavras gramaticais para extração | `src/core/learning/keywords.ts:24-55` | — | só inglês e português |
+| O quê                                 | Onde                                                                | Tamanho                                        | Idiomas                                                                                 |
+| ------------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Lista por nível (palavra para nível)  | `src/data/trilha/niveis/*.json`                                     | 893 KB no total; 20 KB (en) a 122 KB (ko)      | ar, de, en, es, fr, he, hi, it, ja, ko, nl, pl, ru, sv, tr, zh (16)                     |
+| Índice das listas                     | `src/data/trilha/indice.json`                                       | 4 KB                                           | idem                                                                                    |
+| Escala **CEFR de verdade**            | CEFR-J 1.5 e Octanove C1/C2 (`src/data/trilha/FONTES.md`)           | 2.784 palavras                                 | **só inglês**                                                                           |
+| Escala de **frequência** em 6 faixas  | geradas por `scripts/trilha/gerar.mjs`                              | ~5.100 a 5.800 palavras por idioma             | os outros 15                                                                            |
+| Consulta do nível                     | `src/core/learning/cefrWordlist.ts:100-114`                         | —                                              | devolve `ausente` fora da lista; nos idiomas de frequência devolve `faixa`, não `level` |
+| Lematizador **na geração** das listas | `scripts/trilha/lexemes.mjs:317` (mapa forma para lema do Wikidata) | só em tempo de construção                      | —                                                                                       |
+| Regras de lema **em execução**        | `src/core/texto/lemas.ts`                                           | sufixos por idioma e ~60 irregulares do inglês | declara que não é lematizador; usada para achar o verbete no dicionário ao tocar        |
+| "Ele sabe esta palavra?"              | `src/core/harness/palavrasConhecidas.ts`                            | —                                              | caderno maduro, lista abaixo do nível, palavras funcionais                              |
+| Palavras gramaticais para extração    | `src/core/learning/keywords.ts:24-55`                               | —                                              | só inglês e português                                                                   |
 
 Observações:
 
@@ -620,22 +620,22 @@ em `src/core`, sem banco, que é como o FSRS e a dedup já estão.
 
 ## 9. Problemas, do maior ganho para o menor
 
-| # | Problema | O que custa | Tipo do número |
-|---:|---|---|---|
-| 1 | Chave de dedup junta palavras diferentes (japonês, hindi, tailandês, russo, alemão, espanhol, português) e não há lema | Palavras que nunca viram cartão; cartões duplicados por flexão; cobertura CEFR de 11,4% | colisões medidas; 11,4% do código |
-| 2 | Métricas releem a vida inteira do usuário a cada mudança | 125 a 533 ms por tabela no usuário pesado; cresce todo dia; o cache cai a cada revisão | medido (sintético) |
-| 3 | Índices são metade do banco; UUID em texto em toda chave | ~21 MB de 43 MB no usuário pesado | medido (sintético) |
-| 4 | `review_logs` e `exercise_results` crescem para sempre, linha a linha | 7,7 + 5,3 = 13 MB por ano no usuário pesado | medido (sintético) |
-| 5 | `vocab_occurrences`: frase copiada em cada linha, 6 índices, 1 deles redundante, `utterance_id` sempre nulo | 11,8 MB; ~1,1 MB só de frase copiada; 1,4 MB do índice redundante | medido e estimativa |
-| 6 | Linhas com `deleted_at` nunca saem; sem `VACUUM` nem `ANALYZE` | cresce com o uso; depende de quanto se apaga | não medido |
-| 7 | Anki: o mesmo texto guardado até 4 vezes (`campos_brutos`, `frente/verso/exemplo`, cartão, ocorrência) | 990 bytes por nota; 3 MB para 3.000 notas | medido (sintético) |
-| 8 | Notas de jogo entram no FSRS iguais às da Revisão, sem origem; a dificuldade do FSRS cai com repetição em jogos | agenda distorcida; histórico impróprio para ajustar pesos | inferência do código |
-| 9 | Sem seletor único: duas seleções que divergem, régua de memória em 3 lugares, Revisão à parte, dois "difíceis" | comportamento diferente por jogo e por modo (com conta, sem conta) | do código |
-| 10 | `difficulty_score` só existe para cartão já jogado; nível do jogo, `attempts`, `hinted` e `ms` não realimentam nada | dificuldade cega para a maior parte do baralho | do código |
-| 11 | Estatísticas calcula 90 dias a partir de no máximo 200 linhas | gráfico errado para quem joga muito | inferência do código, não testada |
-| 12 | `word_count` por espaço em idiomas sem espaço | palavras por minuto e XP de captura errados em ja, zh, th | do código |
-| 13 | Nomes próprios, alucinação de transcrição e formas flexionadas passam pela régua | cartões de lixo que ocupam fila de novas | do código |
-| 14 | Colunas mortas (`ended_at`, `utterances.status`, `phonetics`, `prev_due`, `new_due`) | poucos bytes; confunde quem lê | do código |
+|   # | Problema                                                                                                               | O que custa                                                                             | Tipo do número                    |
+| --: | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------- |
+|   1 | Chave de dedup junta palavras diferentes (japonês, hindi, tailandês, russo, alemão, espanhol, português) e não há lema | Palavras que nunca viram cartão; cartões duplicados por flexão; cobertura CEFR de 11,4% | colisões medidas; 11,4% do código |
+|   2 | Métricas releem a vida inteira do usuário a cada mudança                                                               | 125 a 533 ms por tabela no usuário pesado; cresce todo dia; o cache cai a cada revisão  | medido (sintético)                |
+|   3 | Índices são metade do banco; UUID em texto em toda chave                                                               | ~21 MB de 43 MB no usuário pesado                                                       | medido (sintético)                |
+|   4 | `review_logs` e `exercise_results` crescem para sempre, linha a linha                                                  | 7,7 + 5,3 = 13 MB por ano no usuário pesado                                             | medido (sintético)                |
+|   5 | `vocab_occurrences`: frase copiada em cada linha, 6 índices, 1 deles redundante, `utterance_id` sempre nulo            | 11,8 MB; ~1,1 MB só de frase copiada; 1,4 MB do índice redundante                       | medido e estimativa               |
+|   6 | Linhas com `deleted_at` nunca saem; sem `VACUUM` nem `ANALYZE`                                                         | cresce com o uso; depende de quanto se apaga                                            | não medido                        |
+|   7 | Anki: o mesmo texto guardado até 4 vezes (`campos_brutos`, `frente/verso/exemplo`, cartão, ocorrência)                 | 990 bytes por nota; 3 MB para 3.000 notas                                               | medido (sintético)                |
+|   8 | Notas de jogo entram no FSRS iguais às da Revisão, sem origem; a dificuldade do FSRS cai com repetição em jogos        | agenda distorcida; histórico impróprio para ajustar pesos                               | inferência do código              |
+|   9 | Sem seletor único: duas seleções que divergem, régua de memória em 3 lugares, Revisão à parte, dois "difíceis"         | comportamento diferente por jogo e por modo (com conta, sem conta)                      | do código                         |
+|  10 | `difficulty_score` só existe para cartão já jogado; nível do jogo, `attempts`, `hinted` e `ms` não realimentam nada    | dificuldade cega para a maior parte do baralho                                          | do código                         |
+|  11 | Estatísticas calcula 90 dias a partir de no máximo 200 linhas                                                          | gráfico errado para quem joga muito                                                     | inferência do código, não testada |
+|  12 | `word_count` por espaço em idiomas sem espaço                                                                          | palavras por minuto e XP de captura errados em ja, zh, th                               | do código                         |
+|  13 | Nomes próprios, alucinação de transcrição e formas flexionadas passam pela régua                                       | cartões de lixo que ocupam fila de novas                                                | do código                         |
+|  14 | Colunas mortas (`ended_at`, `utterances.status`, `phonetics`, `prev_due`, `new_due`)                                   | poucos bytes; confunde quem lê                                                          | do código                         |
 
 ---
 
@@ -643,24 +643,24 @@ em `src/core`, sem banco, que é como o FSRS e a dedup já estão.
 
 Esforço: P (até 2 dias), M (até 1 semana), G (mais de 1 semana). Risco de migração: o risco de mexer em dado gravado.
 
-| # | Oportunidade | Esforço | Risco de migração | O que destrava |
-|---:|---|:---:|---|---|
-| A | **Corrigir a chave de dedup**: trocar NFD por NFC mais remoção só de acento latino quando o idioma permite, manter marcas de outras escritas, manter o espaço como separador. | M | **Alto**: muda `norm_key` gravado; precisa de migração de dados com detecção de colisão e de cartões que hoje estão fundidos (esses não se separam sozinhos). Fazer com cópia e relatório antes. | Japonês, hindi, tailandês e russo utilizáveis; base para o dicionário |
-| B | **Dicionário único por idioma** (`lexemas`: idioma, lema, posição de frequência, nível, com chave inteira) e `vocab_cards.lexema_id`. Formas apontam para o lema usando o mapa do Wikidata que os scripts já geram. | G | Médio: tabela nova e coluna nova anulável; o preenchimento pode ser gradual. | Um cartão por lema (ou formas agrupadas), nível e frequência resolvidos uma vez, cobertura de texto, palavras conhecidas por faixa, filtro de "isto é palavra?" contra alucinação e nome próprio |
-| C | **Agregados diários** (`dias_do_usuario`: usuário, dia, revisões, lembradas, novas, maduras ganhas, itens de jogo, acertos, ms, XP). Atualizados na mesma transação da revisão e da rodada. | M | Baixo: tabela nova; preencher o passado com um `INSERT ... SELECT` único. | Perfil, XP, ofensiva, calendário e Estatísticas em uma leitura de até 365 linhas pequenas, em vez de cinco tabelas inteiras; corrige o problema 11; serve à edição estática como uma loja `dias` |
-| D | **Estado por item nos jogos** (`itens_de_jogo`: usuário, cartão ou referência, vezes, erros, erros seguidos, último acerto, tempo médio), atualizado a cada rodada. | M | Baixo: tabela nova derivada. | `historico` deixa de reler tudo (173 ms do código); memória por item sem depender da origem; base do seletor |
-| E | **Compactar o histórico antigo**: depois de N meses, trocar as linhas de `review_logs` por um resumo por cartão (lista compacta de dia e nota) e as de `exercise_results` pelos agregados C e D. | M | Médio: apaga linha; exige C e D antes e um backup conferido. Decidir N com o agente de pesquisa (o ajuste de pesos precisa do histórico por cartão, não do agregado). | 13 MB por ano por usuário pesado viram centenas de KB (estimativa) |
-| F | **Ocorrências enxutas**: preencher `utterance_id` e deixar de copiar a frase quando há fala; remover `idx_occ_user_card`; limitar a N ocorrências guardadas por cartão (o contador continua). | P a M | Baixo para o índice (confirmar com `EXPLAIN`); médio para a frase (as ocorrências antigas não têm a fala). | ~2,5 MB dos 11,8 MB (estimativa); salto da palavra para o instante do vídeo |
-| G | **Completar `review_logs`**: origem da nota, formato do cartão, tempo de resposta, dificuldade antes e depois, meta usada. Colunas anuláveis. | P | Baixo: `ALTER TABLE ADD COLUMN`. | Retenção por formato, tempo de resposta, histórico próprio para ajustar pesos; decidir peso das notas de jogo |
-| H | **Gravar o contexto da rodada**: nível do jogo, faixa, número de alternativas, em uma tabela de rodadas (uma linha por rodada, tirando `score` e `combo` de cada item). | P a M | Baixo se aditivo; médio se mover `score` e `combo`. | Acerto por formato; dificuldade do item comparável entre jogos |
-| I | **Seletor único** em `src/core`: uma função pura "quais itens, em que ordem, em que dificuldade", com entrada (candidatos com estado de memória, histórico por item, filtro, jogo, tamanho) e saída (itens com o motivo). Servidor e navegador chamam a mesma. A Revisão passa a usá-la. | G | Nenhum em dado; alto em comportamento (precisa de testes de paridade). | Fim das divergências; intercalação fácil e difícil; a mesma lógica com e sem conta |
-| J | **Dificuldade para todo cartão**: calcular `difficulty_score` na entrada do cartão e num lote preguiçoso, incluir `attempts`, `hinted`, `ms`; levar o cálculo ao modo sem conta. | M | Baixo: coluna já existe. | Modo Auto e filtro de faixa funcionam no baralho inteiro e na edição estática |
-| K | **Calibração do FSRS**: calcular retenção prevista contra real a partir de `prev_stability`, `elapsed_days`, `grade`. Só leitura. | P | Nenhum. | Saber se vale ajustar pesos antes de construir o ajuste; métrica honesta para mostrar ao usuário |
-| L | **Pesos do FSRS por usuário**: guardar os pesos, passá-los a `makeFsrs5`, ajuste em lote. | M a G | Baixo no dado; médio na agenda (mudar pesos remarca vencimentos). | Repetição espaçada ajustada à pessoa. Depende de G e K |
-| M | **Limpeza de verdade**: tarefa diária que apaga fisicamente linhas com `deleted_at` há mais de 30 dias (filhos antes dos pais), `PRAGMA optimize` diário, `VACUUM` raro e fora do pico. | P a M | Médio: apagamento físico; a janela de 30 dias é a rede de segurança. | Banco que não cresce com o que foi apagado; planejador com estatística |
-| N | **Anki enxuto**: guardar `campos_brutos` só para notas não ativadas, ou só os campos que não viraram `frente/verso/exemplo`. | P | Baixo, se a nota original não for mais necessária depois de projetada; confirmar com o dono. | ~1 MB por 3.000 notas (estimativa) |
-| O | **Chaves inteiras nas tabelas novas** (B, C, D, rodadas): não repetir UUID em texto onde não há necessidade de id gerado no cliente. | embutido | Nenhum (só nas novas). | Linhas de dezenas de bytes em vez de centenas |
-| P | **Contar palavras com o segmentador** no servidor (`Intl.Segmenter` existe no Node). | P | Baixo: recalcular `word_count` é opcional. | Palavras por minuto e XP corretos em ja, zh, th |
+|   # | Oportunidade                                                                                                                                                                                                                                                                             | Esforço  | Risco de migração                                                                                                                                                                                | O que destrava                                                                                                                                                                                   |
+| --: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+|   A | **Corrigir a chave de dedup**: trocar NFD por NFC mais remoção só de acento latino quando o idioma permite, manter marcas de outras escritas, manter o espaço como separador.                                                                                                            |    M     | **Alto**: muda `norm_key` gravado; precisa de migração de dados com detecção de colisão e de cartões que hoje estão fundidos (esses não se separam sozinhos). Fazer com cópia e relatório antes. | Japonês, hindi, tailandês e russo utilizáveis; base para o dicionário                                                                                                                            |
+|   B | **Dicionário único por idioma** (`lexemas`: idioma, lema, posição de frequência, nível, com chave inteira) e `vocab_cards.lexema_id`. Formas apontam para o lema usando o mapa do Wikidata que os scripts já geram.                                                                      |    G     | Médio: tabela nova e coluna nova anulável; o preenchimento pode ser gradual.                                                                                                                     | Um cartão por lema (ou formas agrupadas), nível e frequência resolvidos uma vez, cobertura de texto, palavras conhecidas por faixa, filtro de "isto é palavra?" contra alucinação e nome próprio |
+|   C | **Agregados diários** (`dias_do_usuario`: usuário, dia, revisões, lembradas, novas, maduras ganhas, itens de jogo, acertos, ms, XP). Atualizados na mesma transação da revisão e da rodada.                                                                                              |    M     | Baixo: tabela nova; preencher o passado com um `INSERT ... SELECT` único.                                                                                                                        | Perfil, XP, ofensiva, calendário e Estatísticas em uma leitura de até 365 linhas pequenas, em vez de cinco tabelas inteiras; corrige o problema 11; serve à edição estática como uma loja `dias` |
+|   D | **Estado por item nos jogos** (`itens_de_jogo`: usuário, cartão ou referência, vezes, erros, erros seguidos, último acerto, tempo médio), atualizado a cada rodada.                                                                                                                      |    M     | Baixo: tabela nova derivada.                                                                                                                                                                     | `historico` deixa de reler tudo (173 ms do código); memória por item sem depender da origem; base do seletor                                                                                     |
+|   E | **Compactar o histórico antigo**: depois de N meses, trocar as linhas de `review_logs` por um resumo por cartão (lista compacta de dia e nota) e as de `exercise_results` pelos agregados C e D.                                                                                         |    M     | Médio: apaga linha; exige C e D antes e um backup conferido. Decidir N com o agente de pesquisa (o ajuste de pesos precisa do histórico por cartão, não do agregado).                            | 13 MB por ano por usuário pesado viram centenas de KB (estimativa)                                                                                                                               |
+|   F | **Ocorrências enxutas**: preencher `utterance_id` e deixar de copiar a frase quando há fala; remover `idx_occ_user_card`; limitar a N ocorrências guardadas por cartão (o contador continua).                                                                                            |  P a M   | Baixo para o índice (confirmar com `EXPLAIN`); médio para a frase (as ocorrências antigas não têm a fala).                                                                                       | ~2,5 MB dos 11,8 MB (estimativa); salto da palavra para o instante do vídeo                                                                                                                      |
+|   G | **Completar `review_logs`**: origem da nota, formato do cartão, tempo de resposta, dificuldade antes e depois, meta usada. Colunas anuláveis.                                                                                                                                            |    P     | Baixo: `ALTER TABLE ADD COLUMN`.                                                                                                                                                                 | Retenção por formato, tempo de resposta, histórico próprio para ajustar pesos; decidir peso das notas de jogo                                                                                    |
+|   H | **Gravar o contexto da rodada**: nível do jogo, faixa, número de alternativas, em uma tabela de rodadas (uma linha por rodada, tirando `score` e `combo` de cada item).                                                                                                                  |  P a M   | Baixo se aditivo; médio se mover `score` e `combo`.                                                                                                                                              | Acerto por formato; dificuldade do item comparável entre jogos                                                                                                                                   |
+|   I | **Seletor único** em `src/core`: uma função pura "quais itens, em que ordem, em que dificuldade", com entrada (candidatos com estado de memória, histórico por item, filtro, jogo, tamanho) e saída (itens com o motivo). Servidor e navegador chamam a mesma. A Revisão passa a usá-la. |    G     | Nenhum em dado; alto em comportamento (precisa de testes de paridade).                                                                                                                           | Fim das divergências; intercalação fácil e difícil; a mesma lógica com e sem conta                                                                                                               |
+|   J | **Dificuldade para todo cartão**: calcular `difficulty_score` na entrada do cartão e num lote preguiçoso, incluir `attempts`, `hinted`, `ms`; levar o cálculo ao modo sem conta.                                                                                                         |    M     | Baixo: coluna já existe.                                                                                                                                                                         | Modo Auto e filtro de faixa funcionam no baralho inteiro e na edição estática                                                                                                                    |
+|   K | **Calibração do FSRS**: calcular retenção prevista contra real a partir de `prev_stability`, `elapsed_days`, `grade`. Só leitura.                                                                                                                                                        |    P     | Nenhum.                                                                                                                                                                                          | Saber se vale ajustar pesos antes de construir o ajuste; métrica honesta para mostrar ao usuário                                                                                                 |
+|   L | **Pesos do FSRS por usuário**: guardar os pesos, passá-los a `makeFsrs5`, ajuste em lote.                                                                                                                                                                                                |  M a G   | Baixo no dado; médio na agenda (mudar pesos remarca vencimentos).                                                                                                                                | Repetição espaçada ajustada à pessoa. Depende de G e K                                                                                                                                           |
+|   M | **Limpeza de verdade**: tarefa diária que apaga fisicamente linhas com `deleted_at` há mais de 30 dias (filhos antes dos pais), `PRAGMA optimize` diário, `VACUUM` raro e fora do pico.                                                                                                  |  P a M   | Médio: apagamento físico; a janela de 30 dias é a rede de segurança.                                                                                                                             | Banco que não cresce com o que foi apagado; planejador com estatística                                                                                                                           |
+|   N | **Anki enxuto**: guardar `campos_brutos` só para notas não ativadas, ou só os campos que não viraram `frente/verso/exemplo`.                                                                                                                                                             |    P     | Baixo, se a nota original não for mais necessária depois de projetada; confirmar com o dono.                                                                                                     | ~1 MB por 3.000 notas (estimativa)                                                                                                                                                               |
+|   O | **Chaves inteiras nas tabelas novas** (B, C, D, rodadas): não repetir UUID em texto onde não há necessidade de id gerado no cliente.                                                                                                                                                     | embutido | Nenhum (só nas novas).                                                                                                                                                                           | Linhas de dezenas de bytes em vez de centenas                                                                                                                                                    |
+|   P | **Contar palavras com o segmentador** no servidor (`Intl.Segmenter` existe no Node).                                                                                                                                                                                                     |    P     | Baixo: recalcular `word_count` é opcional.                                                                                                                                                       | Palavras por minuto e XP corretos em ja, zh, th                                                                                                                                                  |
 
 Ordem sugerida, pelo que cada passo destrava: **K e G** (baratos, só acrescentam e medem), **C e D**
 (tiram o peso das métricas e preparam a compactação), **M** (para o banco parar de reter o apagado),

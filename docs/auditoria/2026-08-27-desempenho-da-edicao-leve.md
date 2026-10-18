@@ -7,14 +7,14 @@ Pergunta do dono: "a aplicação está leve, rápida e performática?" Método: 
 
 O que o navegador baixa ao abrir o app, medido no grafo real de imports do `dist/`:
 
-| Recurso | Tamanho | Quando carrega |
-| --- | --- | --- |
-| `index-*.js` (entry) | 282 KB | boot |
-| `vendor-react` | 189 KB | boot (modulepreload) |
-| CSS | 164 KB | boot |
-| `en-*.js` (ícones lucide + bandeiras) | 237 KB | só com Play/Perfil/Analysis (lazy) |
-| `vendor-supabase` | 214 KB | NUNCA na leve (dynamic import atrás de gate, F0-08) |
-| workers (whisper/mt/speakerId) | ~1,5 MB | só quando a função é usada |
+| Recurso                               | Tamanho | Quando carrega                                      |
+| ------------------------------------- | ------- | --------------------------------------------------- |
+| `index-*.js` (entry)                  | 282 KB  | boot                                                |
+| `vendor-react`                        | 189 KB  | boot (modulepreload)                                |
+| CSS                                   | 164 KB  | boot                                                |
+| `en-*.js` (ícones lucide + bandeiras) | 237 KB  | só com Play/Perfil/Analysis (lazy)                  |
+| `vendor-supabase`                     | 214 KB  | NUNCA na leve (dynamic import atrás de gate, F0-08) |
+| workers (whisper/mt/speakerId)        | ~1,5 MB | só quando a função é usada                          |
 
 Veredito: **o grafo já está saudável.** O boot custa ~635 KB (pré-gzip); tudo pesado é lazy.
 O chunk `en-*` parecia um dicionário de inglês suspeito — é o bundle de ícones (license header
@@ -23,6 +23,7 @@ do lucide-react confirma), compartilhado pelas views lazy, e não entra no boot.
 ## 2. Custo de runtime encontrado e corrigido
 
 ### 2a. rAF eterno do ParticleCanvas com zero partículas
+
 Com ambiente desligado (perfil sênior, painel de leitura) e nenhuma rajada viva, o loop ficava
 limpando um canvas de viewport inteira a 60 fps para sempre — CPU/bateria por nada.
 **Fix:** o loop DORME quando `particles.length === 0` e a fila está vazia; o barramento
@@ -30,15 +31,18 @@ limpando um canvas de viewport inteira a 60 fps para sempre — CPU/bateria por 
 cochilo não matar a rajada nova. Com ambiente ligado nada muda (sempre há partícula viva).
 
 ### 2b. localStorage + JSON.parse por PARTÍCULA
+
 `emojisDoPack()` era chamado dentro do loop de spawn — dezenas de leituras síncronas por
 comemoração. **Fix:** lido uma vez por rajada (`packDaLoja`).
 
 ### 2c. localStorage a cada pointermove
+
 O rastro do mouse lia `babel.rastro` em todo movimento, antes do acelerador. **Fix:** o
 throttle de 45 ms vem primeiro; a leitura caiu para ≤22/s no pior caso (e zero em repouso? não —
 só quando o ponteiro se move, que é o gatilho do evento).
 
 ### 2d. Rajada invisível em aba estrangulada (bônus de correção)
+
 Partícula recém-nascida pagava o `dtReal` do quadro em que nasceu; com rAF a ~1 fps
 (aba sem foco/minimizada) uma faísca de 650 ms morria antes do primeiro desenho.
 **Fix:** flag `nova` — o primeiro quadro não desconta vida. Validado por pixel-diff no
@@ -68,13 +72,13 @@ com o servidor de dev sobre COPIA do banco real (2.818 cartoes), 15 repeticoes p
 
 ## Antes e depois
 
-| Medida | Antes | Depois | O que mudou |
-| --- | --- | --- | --- |
-| `GET /api/metrics/profile` | 95 ms p50 | **43 ms p50** | as cinco consultas do perfil pararam de fazer `SELECT *` |
-| Perfil por abertura da tela de Metricas | 2 chamadas (~190 ms) | **1 chamada (~43 ms)** | `Metrics` recebe o perfil do `App` em vez de buscar de novo |
-| `GET /api/vocab` por rodada | 1 por rodada (2,17 MB) | **0** | o baralho e costurado com o que `reviewCard`/`bulkAddCards` ja devolvem |
-| Aviso de import misto no build | 1 | **0** | `eventosDeJogo` importado de uma forma so |
-| Arranque (o que o `index.html` pede) | 211,9 KB gz | 211,8 KB gz | ver abaixo |
+| Medida                                  | Antes                  | Depois                 | O que mudou                                                             |
+| --------------------------------------- | ---------------------- | ---------------------- | ----------------------------------------------------------------------- |
+| `GET /api/metrics/profile`              | 95 ms p50              | **43 ms p50**          | as cinco consultas do perfil pararam de fazer `SELECT *`                |
+| Perfil por abertura da tela de Metricas | 2 chamadas (~190 ms)   | **1 chamada (~43 ms)** | `Metrics` recebe o perfil do `App` em vez de buscar de novo             |
+| `GET /api/vocab` por rodada             | 1 por rodada (2,17 MB) | **0**                  | o baralho e costurado com o que `reviewCard`/`bulkAddCards` ja devolvem |
+| Aviso de import misto no build          | 1                      | **0**                  | `eventosDeJogo` importado de uma forma so                               |
+| Arranque (o que o `index.html` pede)    | 211,9 KB gz            | 211,8 KB gz            | ver abaixo                                                              |
 
 ## O arranque: por que o alvo de 120 KB nao se aplica mais
 

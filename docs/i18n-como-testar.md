@@ -20,13 +20,13 @@ Se a porta 3100 estiver ocupada por outra sessão, use `PORT=3101 npx tsx server
 
 **Não precisa mexer em nada da sua conta.** Acrescente `?ui=<idioma>` a qualquer endereço:
 
-| endereço | o que você deve ver |
-|---|---|
+| endereço                     | o que você deve ver                                                                          |
+| ---------------------------- | -------------------------------------------------------------------------------------------- |
 | `localhost:3100/jogar?ui=en` | menu em **Home / Record audio / Practice**, jogos em **Memory game**, **Build the sentence** |
-| `localhost:3100/jogar?ui=es` | menu em **Inicio / Grabar audio / Jugar** |
-| `localhost:3100/jogar?ui=ar` | menu em **árabe** e a interface **espelhada** — menu à direita, texto alinhado à direita |
-| `localhost:3100/jogar?ui=xx` | tudo em `[Ĵögö dá mémóríá ····]` — o pseudo-idioma, explicado no §4 |
-| `localhost:3100/jogar` | volta ao português (o override não persiste) |
+| `localhost:3100/jogar?ui=es` | menu em **Inicio / Grabar audio / Jugar**                                                    |
+| `localhost:3100/jogar?ui=ar` | menu em **árabe** e a interface **espelhada** — menu à direita, texto alinhado à direita     |
+| `localhost:3100/jogar?ui=xx` | tudo em `[Ĵögö dá mémóríá ····]` — o pseudo-idioma, explicado no §4                          |
+| `localhost:3100/jogar`       | volta ao português (o override não persiste)                                                 |
 
 **O que confirma que funcionou:** o menu lateral muda de idioma. Se ele continuar em português, o
 catálogo não carregou — abra o DevTools (F12) → Network e procure por `i18n/en.json`.
@@ -55,17 +55,20 @@ incoerente de quem diz falar alemão e lê a tela em português.
 Com a interface em **inglês** (`?ui=en`):
 
 ### Tela de jogos (`/jogar`)
+
 - [ ] Menu lateral em inglês
 - [ ] Nomes dos jogos: **Memory game**, **Word search**, **Build the sentence**, **Quick challenge**
 - [ ] Descrições sob cada jogo em inglês
 - [ ] Os motivos de bloqueio ("this browser has no voice in…") em inglês
 
 ### Meu vocabulário (`/vocabulario` → botão "My words")
+
 - [ ] Cartões de métrica: **ACTIVE LEXICAL VOLUME**, **AVERAGE RETENTION RATE**, **REVIEWS DONE**
 - [ ] **Os números com vírgula: `2,733`** — não `2.733`. Este é o teste mais importante desta tela:
       em português são 2.733 palavras; um americano lendo "2.733" entende 2,733 (dois e pouco).
 
 ### Ajustes (`/ajustes`)
+
 - [ ] Rótulos das abas e dos campos em inglês
 - [ ] O nome dos idiomas na lista continua **no próprio idioma** (`Español`, `日本語`) — isso é
       intencional: na hora de escolher, a pessoa procura o próprio idioma escrito como ele é.
@@ -82,9 +85,10 @@ Com a interface em **inglês** (`?ui=en`):
 - [ ] Margens e espaçamentos trocam de lado (não ficam "colados" do lado errado)
 
 **Como conferir de verdade** (F12 → Console):
+
 ```js
-document.documentElement.dir   // deve ser "rtl"
-document.documentElement.lang  // deve ser "ar"
+document.documentElement.dir; // deve ser "rtl"
+document.documentElement.lang; // deve ser "ar"
 ```
 
 Só uma parte do árabe está traduzida (21 chaves) — o resto aparece em português. **Isso é o
@@ -106,9 +110,11 @@ do texto acentuado. É assim que se descobre o que falta migrar, sem ler o códi
 tabela estourando.
 
 Isso também roda sozinho:
+
 ```bash
 npx playwright test tests/e2e/pseudo-localizacao.e2e.ts
 ```
+
 Varre 5 telas e **falha** se algum texto de interface for cortado.
 
 ---
@@ -125,6 +131,7 @@ npx playwright test      # 20 testes de ponta a ponta, no navegador
 ```
 
 E as regras arquiteturais, que barram reincidência:
+
 ```bash
 ./node_modules/.bin/ast-grep test -c sgconfig.yml    # as regras funcionam
 ./node_modules/.bin/ast-grep scan -c sgconfig.yml src
@@ -139,9 +146,9 @@ que faltou para os 44 pontos não terem entrado em primeiro lugar.
 
 Seja honesto com o que você vai ver: **a maior parte do app continua em português.**
 
-| | estado |
-|---|---|
-| Menu, jogos, métricas, motivos de bloqueio, ajustes | traduzidos |
+|                                                           | estado           |
+| --------------------------------------------------------- | ---------------- |
+| Menu, jogos, métricas, motivos de bloqueio, ajustes       | traduzidos       |
 | O resto das telas (Análise, Captura, Biblioteca, Leitura) | **em português** |
 
 O número real: **~330 chaves traduzidas de ~2.000**.
@@ -151,4 +158,4 @@ uma frase sem tradução aparece em português — legível — em vez de sumir 
 que permite migrar uma tela por vez sem quebrar as outras.
 
 O que falta para completar não é engenharia: é **traduzir**, e a decisão de quem faz isso está
-documentada em [`i18n-lacunas.md`](./i18n-lacunas.md) §6.
+documentada em [`i18n-lacunas.md`](./pesquisa/i18n-lacunas.md) §6.

@@ -2,7 +2,7 @@
 
 > Viabilidade de rodar as capacidades de IA na web de forma **provider-agnóstica e free-first**, permitindo
 > defaults gratuitos/nativos, a **IA local do usuário** e **BYO-key** de nuvem. Pesquisa verificada em jul/2026
-> (Chrome estável v150). Complementa [auditoria-migracao.md](auditoria-migracao.md).
+> (Chrome estável v150). Complementa [auditoria-migracao.md](../historico/auditoria-migracao.md).
 
 ## Sumário executivo
 
@@ -24,32 +24,35 @@
 
 ## Matriz por capacidade (resumo)
 
-| Capac. | Tier 1 — Grátis/Navegador | Tier 2 — Local do usuário | Tier 3 — Nuvem BYO-key |
-|---|---|---|---|
-| **STT** | Web Speech API (Chrome/Edge; nuvem-Google por trás) · **Transformers.js Whisper WebGPU** (100% local) | whisper.cpp/faster-whisper local | **Groq whisper-large-v3-turbo** (free: ~2.000 req/dia, 7.200 s áudio/h) · OpenAI · Gemini |
-| **Tradução** | **Chrome Translator API** (on-device, streaming) · **MyMemory** (CORS, sem chave; 5k/50k chars-dia) · Transformers.js M2M/NLLB (WASM) | LibreTranslate self-host · LLM local | LLM (Gemini/OpenAI/Anthropic) |
-| **TTS** | `speechSynthesis` (vozes locais do SO) · Transformers.js TTS | Piper/Kokoro local | Gemini TTS · OpenAI TTS · ElevenLabs |
-| **Embeddings** | Transformers.js `gte-small`/MiniLM + `sqlite-vec`/cosseno | Ollama `/embeddings` (nomic) | OpenAI `text-embedding-3` · Gemini (HF exige proxy) |
-| **VAD** | **`@ricky0123/vad-web`** (Silero, mantido, v0.0.30) | — | — |
-| **OCR** | **Tesseract.js** (100+ idiomas, cache IndexedDB) | Ollama vision (Qwen2.5-VL) | Gemini/GPT/Claude Vision |
-| **VLM** | Transformers.js **Moondream2** (WebGPU) · Prompt API multimodal (atrás de flag) | Ollama (Qwen2.5-VL/llava/moondream) | Groq Llama-4 · Gemini/GPT/Claude Vision |
-| **LLM** | **WebLLM** (WebGPU, ~80% nativo) · **wllama** (WASM) · Chrome Prompt API (Gemini Nano) | Ollama/LM Studio (`OLLAMA_ORIGINS`) | Anthropic/OpenAI/Groq (direto) · **Gemini/HF (proxy)** · OpenRouter (`:free`) |
+| Capac.         | Tier 1 — Grátis/Navegador                                                                                                             | Tier 2 — Local do usuário            | Tier 3 — Nuvem BYO-key                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------- |
+| **STT**        | Web Speech API (Chrome/Edge; nuvem-Google por trás) · **Transformers.js Whisper WebGPU** (100% local)                                 | whisper.cpp/faster-whisper local     | **Groq whisper-large-v3-turbo** (free: ~2.000 req/dia, 7.200 s áudio/h) · OpenAI · Gemini |
+| **Tradução**   | **Chrome Translator API** (on-device, streaming) · **MyMemory** (CORS, sem chave; 5k/50k chars-dia) · Transformers.js M2M/NLLB (WASM) | LibreTranslate self-host · LLM local | LLM (Gemini/OpenAI/Anthropic)                                                             |
+| **TTS**        | `speechSynthesis` (vozes locais do SO) · Transformers.js TTS                                                                          | Piper/Kokoro local                   | Gemini TTS · OpenAI TTS · ElevenLabs                                                      |
+| **Embeddings** | Transformers.js `gte-small`/MiniLM + `sqlite-vec`/cosseno                                                                             | Ollama `/embeddings` (nomic)         | OpenAI `text-embedding-3` · Gemini (HF exige proxy)                                       |
+| **VAD**        | **`@ricky0123/vad-web`** (Silero, mantido, v0.0.30)                                                                                   | —                                    | —                                                                                         |
+| **OCR**        | **Tesseract.js** (100+ idiomas, cache IndexedDB)                                                                                      | Ollama vision (Qwen2.5-VL)           | Gemini/GPT/Claude Vision                                                                  |
+| **VLM**        | Transformers.js **Moondream2** (WebGPU) · Prompt API multimodal (atrás de flag)                                                       | Ollama (Qwen2.5-VL/llava/moondream)  | Groq Llama-4 · Gemini/GPT/Claude Vision                                                   |
+| **LLM**        | **WebLLM** (WebGPU, ~80% nativo) · **wllama** (WASM) · Chrome Prompt API (Gemini Nano)                                                | Ollama/LM Studio (`OLLAMA_ORIGINS`)  | Anthropic/OpenAI/Groq (direto) · **Gemini/HF (proxy)** · OpenRouter (`:free`)             |
 
 ## Stacks-padrão por Perfil
 
 ### Grátis/Web (sem chave; precisa funcionar para quem só abre a URL)
+
 STT Web Speech → Transformers.js Whisper (WebGPU) · MT Chrome Translator API → MyMemory · TTS `speechSynthesis`
 (voz local) · Embeddings Transformers.js `gte-small` + sqlite-vec · VAD `@ricky0123/vad-web` · OCR Tesseract.js ·
 VLM Moondream2 (WebGPU) · LLM Chrome Prompt API → **WebLLM**/wllama. **Sem backend** além de hosting estático;
 feature-detection em tudo (Chrome-desktop ≠ Firefox ≠ iOS Safari).
 
 ### Privado/Local (IA do próprio usuário)
+
 STT whisper local · MT LibreTranslate/LLM local · TTS Piper local · Embeddings Ollama `/embeddings` +
 sqlite-vec · VAD `@ricky0123/vad-web` · OCR Ollama-VLM/Tesseract.js · LLM Ollama/LM Studio (`OLLAMA_ORIGINS`
 = origem exata do app, nunca `*`). **Onboarding "Conectar sua IA local"** que detecta `localhost:11434/1234`,
 antecipa o prompt de Local Network Access do Chrome 142+ e dá instruções de `OLLAMA_ORIGINS` por SO.
 
 ### Qualidade/Nuvem (BYO-key)
+
 STT Groq whisper-turbo · MT/LLM/VLM/TTS via provider escolhido. **OpenAI/Anthropic/Groq: direto** (flag);
 **Gemini/HF: via proxy fino** (obrigatório). Chave BYO fica só no navegador (se direto) ou passa por request ao
 proxy sem persistir no server.

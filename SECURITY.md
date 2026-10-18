@@ -23,4 +23,7 @@ within 14 days for confirmed issues.
 
 CI runs SAST (Semgrep), a dependency audit with a named allowlist, secret scanning, Zod
 validation coverage checks and a JWT attack-vector probe. The methodology is described in
-`docs/metodologia-de-auditoria.md`.
+[`docs/metodologia-de-auditoria.md`](docs/metodologia-de-auditoria.md).
+
+Privacy and data-protection records (LGPD): `docs/lgpd/`. Cloud AI goes through OpenRouter with zero
+data retention and only after the user's consent; minors have a protected profile.

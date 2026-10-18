@@ -263,7 +263,7 @@ export default function SobreDoQuest({
               ))}
               <a
                 className="q-linha"
-                href={`${CRIADOR.github}/babel-play/blob/main/FONTES.md`}
+                href={`${CRIADOR.github}/babel-play/blob/main/docs/FONTES.md`}
                 target="_blank"
                 rel="noreferrer noopener"
               >

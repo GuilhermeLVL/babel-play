@@ -1,12 +1,12 @@
 ## 1. Medicao antes
 
-- [x] 1.1 `scripts/perf/medir-rotas.mjs`: tamanho por chunk (gzip, como viaja) e p50/p90 + bytes por rota. Linha de base e resultado em `docs/auditoria-performance.md`. **O proprio script foi corrigido no caminho:** a primeira versao chamava de "arranque" tudo que se chamasse `index*` ou `vendor-*` e somava o `vendor-supabase` (56 KB gz), que e carregado por `import()` atras de um gate — anunciava 392 KB para um arranque de 212. Agora ele le o `dist/index.html` e conta o que a pagina de fato pede. Numero inflado teria mandado otimizar o lugar errado.
+- [x] 1.1 `scripts/perf/medir-rotas.mjs`: tamanho por chunk (gzip, como viaja) e p50/p90 + bytes por rota. Linha de base e resultado em `docs/auditoria/2026-08-27-desempenho-da-edicao-leve.md`. **O proprio script foi corrigido no caminho:** a primeira versao chamava de "arranque" tudo que se chamasse `index*` ou `vendor-*` e somava o `vendor-supabase` (56 KB gz), que e carregado por `import()` atras de um gate — anunciava 392 KB para um arranque de 212. Agora ele le o `dist/index.html` e conta o que a pagina de fato pede. Numero inflado teria mandado otimizar o lugar errado.
 
 ## 2. Arranque
 
 - [x] 2.1 `src/lib/galeria/passe.ts` (um `export * from '@core'`) removido; a tela do Passe importa de `@core/passe`. **Sem efeito medivel no arranque**, e a razao esta registrada: o alvo real do achado A43 era o catalogo mestre (129 KB) dentro do chunk de entrada, e ele saiu de `main` com `linha-de-base-verde`. `core/index.ts` continua com os seus `export *` — sao modulos pequenos do nucleo, e removi-los sem numero que os acuse seria churn.
 - [x] 2.2 `eventosDeJogo` importado de UMA forma: `juice.ts` o importava estaticamente na linha 2 e dinamicamente na 240, "para nao criar ciclo" — ciclo que nao existe (`madge --circular`: nenhum) e que a propria linha 2 ja teria criado. O aviso do build sumiu e o modulo voltou a ser movivel entre chunks. **Nao feito:** `manualChunks` para `recharts`/`transformers` — os dois JA saem em chunks proprios sob demanda (`AreaChart` 103 KB gz, workers 155 KB gz), entao a regra so fixaria por escrito o que o Rollup ja faz.
-- [ ] 2.3 Arranque gzip < 120 KB. **Nao alcancado, e o alvo foi restabelecido com o numero:** 211,8 KB gz = app 125,8 + react 59,3 + CSS 26,8. O alvo de 120 KB foi calibrado com o catalogo de 129 KB dentro do chunk; sem ele, cortar o que resta e decidir o que sai da primeira pintura — trabalho de produto, nao de bundler. Registrado em `docs/auditoria-performance.md`.
+- [ ] 2.3 Arranque gzip < 120 KB. **Nao alcancado, e o alvo foi restabelecido com o numero:** 211,8 KB gz = app 125,8 + react 59,3 + CSS 26,8. O alvo de 120 KB foi calibrado com o catalogo de 129 KB dentro do chunk; sem ele, cortar o que resta e decidir o que sai da primeira pintura — trabalho de produto, nao de bundler. Registrado em `docs/auditoria/2026-08-27-desempenho-da-edicao-leve.md`.
 
 ## 3. Payloads
 
@@ -22,5 +22,5 @@
 
 ## 5. Medicao depois
 
-- [x] 5.1 Antes e depois em `docs/auditoria-performance.md`, com o comando para repetir.
+- [x] 5.1 Antes e depois em `docs/auditoria/2026-08-27-desempenho-da-edicao-leve.md`, com o comando para repetir.
 - [x] 5.2 `npm test` (2.855) e e2e (18/18) verdes. **Nao feito:** Lighthouse — ele mede LCP no navegador e as mudancas desta change sao de rede e de servidor (uma requisicao a menos, uma resposta 50 vezes menor por rodada); o numero do LCP nao as distingue do ruido de uma execucao para outra.

@@ -3,42 +3,59 @@
 # Babel Play
 
 **Aprende un idioma con lo que ya ves, juegas y conversas.**
-Transcripción y traducción en vivo de cualquier audio de tu computadora — ejecutándose **dentro del navegador** — convertidas en juegos de vocabulario y repetición espaciada.
+Subtítulos y traducción en vivo de cualquier audio de tu computadora, ejecutándose **en tu propio dispositivo**, convertidos en juegos de vocabulario y repetición espaciada.
 
 [🇺🇸 English](README.md) · [🇧🇷 Português](README.pt-BR.md) · [🇨🇳 中文](README.zh-CN.md) · [🇫🇷 Français](README.fr.md) · [🇪🇸 Español](README.es.md)
 
 [![CI](https://github.com/GuilhermeLVL/babel-play/actions/workflows/ci.yml/badge.svg)](https://github.com/GuilhermeLVL/babel-play/actions/workflows/ci.yml)
-[![Seguridad](https://github.com/GuilhermeLVL/babel-play/actions/workflows/seguranca.yml/badge.svg)](https://github.com/GuilhermeLVL/babel-play/actions/workflows/seguranca.yml)
-[![Licencia: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Security](https://github.com/GuilhermeLVL/babel-play/actions/workflows/seguranca.yml/badge.svg)](https://github.com/GuilhermeLVL/babel-play/actions/workflows/seguranca.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node ≥ 22](https://img.shields.io/badge/node-%E2%89%A5%2022-339933?logo=node.js&logoColor=white)](package.json)
 
-<img src="docs/img/capturar.png" alt="Pantalla de captura: subtítulos bilingües generados en el navegador" width="900">
+<img src="docs/img/capturar.png" alt="Pantalla de captura en vivo: subtítulos bilingües generados en el navegador" width="900">
 
 </div>
 
-> **Demo:** llega con el despliegue público. Mientras tanto, ejecútalo localmente en tres comandos — sin clave de API.
+> **Estado (18/10/2026):** prelanzamiento. El cobro, el inicio de sesión y el despliegue en Fly.io están implementados y probados, pero aún no se han ejecutado en un entorno real. El [estado del lanzamiento](docs/ESTADO-DO-LANCAMENTO.md) (en portugués) es la única fuente de lo que vale hoy.
 
-## Pruébalo
+**Contenido:** [Qué es](#qué-es) · [Cómo ejecutarlo](#cómo-ejecutarlo) · [Arquitectura](#arquitectura) · [Planes e IA en la nube](#planes-e-ia-en-la-nube) · [Autoalojamiento](#autoalojamiento) · [Despliegue](#despliegue) · [Seguridad y privacidad](#seguridad-y-privacidad) · [Contribuir](#contribuir) · [Licencia](#licencia)
+
+## Qué es
+
+- **Subtítulos y traducción en vivo** de una pestaña del navegador, del audio del sistema (loopback de Windows) o del micrófono. Los subtítulos flotantes se muestran sobre el video o el juego.
+- **Modo intérprete**: dos personas que no comparten idioma conversan cara a cara con un solo dispositivo; la traducción se lee en voz alta (voz del dispositivo en Gratis, voz natural de la nube en Premium).
+- **Estudio** con repetición espaciada FSRS-5 y una ruta CEFR construida con listas de palabras reales, alimentada por lo que escuchaste.
+- **Juegos**: nueve juegos cortos creados con _tu_ vocabulario (memoria, sopa de letras, dictado, duelo relámpago, karaoke...). Lo que aciertas cuenta en el repaso.
+- **Importación** de mazos Anki, documentos (`.txt`, `.pdf`, `.docx`) y subtítulos (`.srt`, `.vtt`, `.ass`), leídos en el navegador.
+- **Local-first**: los modelos se ejecutan en el dispositivo (Whisper con transformers.js sobre WebGPU con respaldo en WASM, Opus-MT y Bergamot, de Mozilla, para traducción rápida X→inglés). Sin cuenta, nada se envía al servidor.
+- **Nube opcional** (OpenRouter, retención cero de datos, con consentimiento explícito) para más calidad cuando lo pidas.
+- **Perfil protegido para menores**: sin compras, sin ofertas, y IA en la nube solo con fecha de nacimiento declarada.
+
+## Cómo ejecutarlo
+
+Requiere Node 22 o superior.
 
 ```bash
 npm install          # también copia los binarios de ONNX Runtime / Silero VAD a public/
-cp .env.example .env # define PORT; no hace falta ninguna clave de API para el pipeline local
-npm run dev          # → http://localhost:<PORT>   (abre vía localhost: contexto seguro para los modelos)
+cp .env.example .env # define PORT; el pipeline local no necesita clave de API
+npm run dev          # Express + Vite en un solo proceso → http://localhost:<PORT>
 ```
 
-Elige **Continuar sin cuenta**: todo el pipeline corre localmente y **ni una sola petición** llega al servidor — está medido, no prometido.
+Ábrelo desde `localhost` (contexto seguro, exigido por los modelos). Si tu `.env` tiene `VITE_AUTH_REQUIRED=1`, usa `npm run dev:local`: inicia la misma aplicación con el inicio de sesión desactivado, para inspección local. En la pantalla de acceso, elige **Continuar sin cuenta** para usar todo el pipeline local.
 
-## Qué hace
+| Comando                             | Qué hace                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `npm run dev` / `npm run dev:local` | servidor de desarrollo (el segundo con el inicio de sesión desactivado)                           |
+| `npm test`                          | pruebas unitarias y de integración (Vitest)                                                       |
+| `npm run test:e2e`                  | pruebas de extremo a extremo (Playwright)                                                         |
+| `npm run lint`                      | ESLint, sin ninguna advertencia permitida                                                         |
+| `npm run typecheck`                 | TypeScript (también `typecheck:core` y `typecheck:estrito`)                                       |
+| `npm run build`                     | bundle del cliente (`dist/`) y del servidor (`dist-server/`)                                      |
+| `npm run vitrine`                   | modo público completo con inicio de sesión y cobro simulados ([docs/vitrine.md](docs/vitrine.md)) |
 
-| | |
-|---|---|
-| <img src="docs/img/hub.png" alt="Inicio" width="420"> | **Inicio** — los tres frentes de la app (capturar, practicar, vocabulario) con el estado real de cada uno. Nivel, racha y seeds se derivan de eventos medidos, nunca se escriben a mano. |
-| <img src="docs/img/capturar.png" alt="Capturar" width="420"> | **Capturar** — una pestaña del navegador, el audio del sistema (loopback en Windows, sin configurar) o el micrófono. Whisper transcribe en el navegador (WebGPU, respaldo WASM); Opus-MT, la Translator API de Chrome o un LLM en la nube traducen, siempre con cadena de respaldo. Subtítulos flotantes sobre el video o el juego. |
-| <img src="docs/img/jogar.png" alt="Jugar" width="420"> | **Jugar** — nueve juegos cortos construidos con *tu* vocabulario (memoria, sopa de letras, deletreo, duelo relámpago…), con una ruta CEFR basada en listas reales. Lo que aciertas aquí cuenta en el repaso. |
-| <img src="docs/img/sem-conta.png" alt="Modo sin cuenta" width="420"> | **Sin cuenta** — todo el pipeline local funciona sin registrarse; las pantallas que persisten datos muestran una invitación en vez de un muro, y lo hecho en el navegador migra a la cuenta, una sola vez, al registrarte. |
+La lista completa que ejecuta la CI está en [CONTRIBUTING.md](CONTRIBUTING.md) (en inglés).
 
-**La cuenta es opcional.** Sin ella, los datos viven en IndexedDB; al registrarte, migran una sola vez, de forma idempotente. Con cuenta, el plan lo decide el servidor (Gratis: todo local/BYOK; Premium: IA en la nube gestionada).
-
-## Cómo funciona
+## Arquitectura
 
 ```mermaid
 flowchart LR
@@ -47,64 +64,76 @@ flowchart LR
     classDef cloud fill:#17171a,stroke:#8f887c,color:#c9c2b6,stroke-dasharray:5
     classDef out fill:#1f1f23,stroke:#9ad29a,color:#f4efe6
 
-    subgraph IN["🎧 Audio de entrada"]
-        A1[Pestaña del navegador]:::src
-        A2[Audio del sistema<br/><small>loopback en Windows</small>]:::src
-        A3[Micrófono]:::src
+    A["Pestaña · audio del sistema · micrófono"]:::src --> VAD["Silero VAD"]:::local
+    subgraph DEVICE["En el dispositivo"]
+        VAD --> STT["Whisper<br/><small>WebGPU | WASM</small>"]:::local
+        STT --> MT["Bergamot → Opus-MT<br/><small>Chrome Translator API</small>"]:::local
+        DB[("IndexedDB<br/><small>modo sin cuenta</small>")]:::local
     end
-
-    subgraph BROWSER["🧠 En el navegador — nada sale del dispositivo"]
-        VAD["Silero VAD<br/><small>AudioWorklet</small>"]:::local
-        STT["Whisper<br/><small>transformers.js · WebGPU | WASM</small>"]:::local
-        MT1["Opus-MT<br/><small>ONNX, local</small>"]:::local
-        MT2["Translator API de Chrome"]:::local
-        STORE[("IndexedDB<br/><small>modo sin cuenta</small>")]:::local
-    end
-
-    subgraph CLOUD["☁️ Opcional, según plan"]
-        MT3["LLM / STT en la nube<br/><small>solo con cuenta</small>"]:::cloud
-    end
-
-    subgraph OUT["📚 Aprendizaje"]
-        CAP[Subtítulos en vivo]:::out
-        VOC[Vocabulario]:::out
-        GAMES[9 juegos]:::out
-        SRS["Repaso FSRS-5<br/><small>ruta CEFR</small>"]:::out
-    end
-
-    A1 & A2 & A3 --> VAD --> STT
-    STT --> MT1 -. respaldo .-> MT2 -. respaldo .-> MT3
-    STT --> CAP
-    MT1 & MT2 & MT3 --> CAP
-    CAP --> VOC --> GAMES --> SRS
-    VOC --> STORE
+    MT -. "opcional, con consentimiento" .-> CLOUD["IA en la nube<br/><small>OpenRouter · retención cero</small>"]:::cloud
+    STT --> CAP["Subtítulos"]:::out
+    MT --> CAP
+    CAP --> VOC["Vocabulario"]:::out --> GAMES["Juegos"]:::out --> SRS["Repaso FSRS"]:::out
+    VOC --> DB
 ```
 
-- **Un solo embudo HTTP** (`apiFetch`): sin cuenta responde un servidor en memoria con las mismas formas que el servidor real; la UI no nota la diferencia.
-- **Identidad · plan · rol** son ejes separados; el cliente solo *pinta* el plan, nunca lo decide.
+El código se divide en capas:
 
-Detalles en [docs/arquitetura.md](docs/arquitetura.md).
+| Ruta              | Función                                                                                                                                                                         |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/core/`       | lógica de dominio pura (planes, FSRS, juegos, economía, reglas de traducción); sin DOM, sin red                                                                                 |
+| `src/gateway/`    | adaptadores de voz a texto y de traducción, caché de modelos, enrutamiento y respaldos entre proveedores                                                                        |
+| `src/lib/`        | servicios del cliente: captura, audio, voz, importación, autenticación                                                                                                          |
+| `src/data/`       | la capa de datos. `apiFetch` es el **embudo HTTP único**; sin cuenta, un servidor en memoria sobre IndexedDB (`src/data/efemero`) responde con los mismos formatos de respuesta |
+| `src/components/` | interfaz en React                                                                                                                                                               |
+| `server/`         | API Express: JWT de Supabase, aislamiento por usuario, límites de tasa, validación con Zod, libsql/SQLite (Drizzle), cobro, enrutamiento de IA                                  |
 
-## Medido, no prometido
+Identidad (anónima o con cuenta), plan y rol son ejes separados, y el plan lo decide **solo** el servidor; el cliente únicamente lo muestra. Una regla de ast-grep prohíbe `fetch('/api/…')` fuera del embudo. Más en [docs/arquitetura.md](docs/arquitetura.md) (histórico) y en las especificaciones vivas de [`openspec/specs/`](openspec/specs/).
 
-- **Modo sin cuenta: 0 peticiones a `/api`** en el flujo completo.
-- **Contraste**: 0 nodos por debajo de WCAG AA en 14 combinaciones; 0 objetivos menores de 24 px.
-- **Capacidad** (un proceso, 4 CPU): ~300 req/s; más workers *reducen* el rendimiento (SQLite tiene un único escritor).
-- **Auth**: 7 vectores de token falsificado rechazados por el verificador real, y un control positivo aceptado.
-- Más de 1.800 pruebas automatizadas en cada push.
+## Planes e IA en la nube
 
-## Lo que aún no funciona
+| Plan        | Qué recibes                                                                                                                                                                                                          |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Gratis**  | Todo lo que se ejecuta en el dispositivo (captura, modelos locales, estudio, juegos). Sin IA gestionada en la nube.                                                                                                  |
+| **Premium** | Transcripción y traducción en la nube con uso justo diario y mensual, voz natural en el intérprete. Empieza con una prueba sin tarjeta que termina a los 14 días o al agotar la cuota de uso, lo que ocurra primero. |
 
-- Opus-MT int8/fp16 falla en algunos dispositivos; cae al siguiente traductor, que puede no existir sin cuenta.
-- El audio de pantalla compartida en Windows puede dar `NotReadableError`; usa pestaña o loopback.
-- Las rondas jugadas sin cuenta no migran (sesiones, audio y tarjetas sí).
-- Base de datos de un solo escritor: sirve para una beta, no para escalar.
-- La venta aún no está abierta: el cobro (Asaas — Gratis + Premium, el plan de pago lo concede el webhook de pago) está implementado y probado, pero el servidor de producción todavía no está en línea.
+La IA en la nube pasa por OpenRouter con retención cero de datos y solo tras el consentimiento. Los precios, las cuotas y las decisiones detrás están en [docs/ESTADO-DO-LANCAMENTO.md](docs/ESTADO-DO-LANCAMENTO.md) y [docs/monetizacao.md](docs/monetizacao.md). El pago se hace con Asaas, y quien concede el plan es el webhook del pago.
 
-## Verificar
+## Autoalojamiento
+
+Docker (en macOS sirve OrbStack) con el modo público multiusuario:
 
 ```bash
-npm run typecheck && npm run typecheck:core && npm run lint && npm test && npm run build
+cp .env.docker.example .env.docker   # completa los valores de Supabase
+docker compose --env-file .env.docker up -d --build
+curl -fsS http://localhost:3000/api/health
 ```
 
-[Contribuir](CONTRIBUTING.md) · [Seguridad](SECURITY.md) · [MIT](LICENSE)
+El HTTPS corre por cuenta del proxy inverso al frente (Caddy, Traefik, nginx). Detalles en [`docker-compose.yml`](docker-compose.yml) y en [docs/deploy.md](docs/deploy.md).
+
+## Despliegue
+
+El destino de producción es Fly.io (GRU, una máquina, SQLite replicado por Litestream a Cloudflare R2), con Supabase para el inicio de sesión, Cloudflare al frente, Resend y Sentry. La guía paso a paso del propietario es [docs/LANCAMENTO.md](docs/LANCAMENTO.md); la operación es [docs/runbook.md](docs/runbook.md); el staging es [docs/STAGING.md](docs/STAGING.md). El despliegue pasa por `deploy.yml`, que solo acepta un commit con la CI en verde.
+
+## Seguridad y privacidad
+
+- Las vulnerabilidades se reportan en privado; consulta [SECURITY.md](SECURITY.md).
+- Registros de la LGPD (registro de operaciones de tratamiento y encargados): [docs/lgpd/](docs/lgpd/).
+- El modo sin cuenta envía **cero** solicitudes a `/api`; nada escrito por el usuario llega a los logs; el audio solo se conserva el tiempo que indica la política de retención.
+- La CI ejecuta SAST (Semgrep), auditoría de dependencias con lista de excepciones nombrada, escaneo de secretos, Trivy sobre la imagen y una sonda de ataques al JWT.
+- El método de auditoría está en [docs/metodologia-de-auditoria.md](docs/metodologia-de-auditoria.md); las auditorías fechadas están en [docs/auditoria/](docs/auditoria/).
+
+## Límites conocidos
+
+- Opus-MT int8/fp16 no logra crear la sesión en algunos dispositivos; la aplicación recurre al siguiente traductor.
+- El audio al compartir pantalla en Windows puede producir `NotReadableError`; usa compartir pestaña o el loopback.
+- Base de datos con un único escritor (SQLite): sirve para una beta; escalar significa cambiar de base de datos, ver [docs/escala.md](docs/escala.md).
+- Los modelos de Bergamot se sirven desde un CDN que el propietario aún debe publicar; hasta entonces, Opus-MT hace el trabajo.
+
+## Contribuir
+
+Lee [CONTRIBUTING.md](CONTRIBUTING.md) y el [Código de Conducta](CODE_OF_CONDUCT.md). Los cambios de comportamiento en sistemas existentes pasan por [OpenSpec](openspec/) (`/opsx:propose`). Un hook de pre-commit ([Husky](.husky/pre-commit) + lint-staged) formatea y ejecuta el lint sobre lo que está en el índice. El índice de toda la documentación es [docs/README.md](docs/README.md); las atribuciones de datos están en [docs/FONTES.md](docs/FONTES.md) (en portugués).
+
+## Licencia
+
+[MIT](LICENSE).

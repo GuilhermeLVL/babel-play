@@ -22,28 +22,28 @@ Partículas com intensidade editável, Sorte de Eventos) · **Packs de emoji (12
 
 ## Roadmap da galeria (por esforço: P = horas, M = 1-2 dias, G = semana+)
 
-| Item | Raridade sugerida | Esforço | Nota |
-| --- | --- | --- | --- |
-| Molduras de avatar (anel pixel, fogo, louros) | raro-épico | P | círculo decorado em volta do avatar do perfil |
-| Títulos/insígnias ("Poliglota", "Maratonista", "Caçador de Patos") | comum-lendário | P | ganhos por feito + exibidos no ranking |
-| Kits de SOM de acerto (8-bit, orquestra, lo-fi, taberna) | raro | M | trocar THEME_VOICES por kit equipado |
-| Fundos animados do app (chuva, neve, vagalumes, pétalas) | épico | M | camada ambient do ParticleCanvas com presets |
-| Trilhas de combo (a barra do Duelo com skin: lava, arco-íris, circuito) | raro | P | classe CSS por skin no anel/barra |
-| Animações de level-up alternativas (foguete, dragão de emojis, fogos) | épico | P | composições novas em eventosDeJogo |
-| Mascote reativo no canto (pato que comemora acertos) | lendário | G | sprite + estados; candidato à identidade da marca |
-| Temas sazonais (Halloween, Natal, Festa Junina) | épico | M | paletas + pack de emoji + evento raro temático |
-| Skins do teclado dos jogos (Termo/Ditado) | raro | P | classes no teclado virtual |
-| Efeito de entrada da sessão ("READY? GO!" arcade) | raro | P | overlay curto no início da captura/jogo |
-| Cursores animados (rastro de chama no próprio ponteiro) | lendário | M | sprite-sheet via CSS animation em data-URI |
-| Boosters temporários (2× Seeds por 1 hora) | consumível | M | cuidado: primeiro item consumível, muda a economia |
+| Item                                                                    | Raridade sugerida | Esforço | Nota                                               |
+| ----------------------------------------------------------------------- | ----------------- | ------- | -------------------------------------------------- |
+| Molduras de avatar (anel pixel, fogo, louros)                           | raro-épico        | P       | círculo decorado em volta do avatar do perfil      |
+| Títulos/insígnias ("Poliglota", "Maratonista", "Caçador de Patos")      | comum-lendário    | P       | ganhos por feito + exibidos no ranking             |
+| Kits de SOM de acerto (8-bit, orquestra, lo-fi, taberna)                | raro              | M       | trocar THEME_VOICES por kit equipado               |
+| Fundos animados do app (chuva, neve, vagalumes, pétalas)                | épico             | M       | camada ambient do ParticleCanvas com presets       |
+| Trilhas de combo (a barra do Duelo com skin: lava, arco-íris, circuito) | raro              | P       | classe CSS por skin no anel/barra                  |
+| Animações de level-up alternativas (foguete, dragão de emojis, fogos)   | épico             | P       | composições novas em eventosDeJogo                 |
+| Mascote reativo no canto (pato que comemora acertos)                    | lendário          | G       | sprite + estados; candidato à identidade da marca  |
+| Temas sazonais (Halloween, Natal, Festa Junina)                         | épico             | M       | paletas + pack de emoji + evento raro temático     |
+| Skins do teclado dos jogos (Termo/Ditado)                               | raro              | P       | classes no teclado virtual                         |
+| Efeito de entrada da sessão ("READY? GO!" arcade)                       | raro              | P       | overlay curto no início da captura/jogo            |
+| Cursores animados (rastro de chama no próprio ponteiro)                 | lendário          | M       | sprite-sheet via CSS animation em data-URI         |
+| Boosters temporários (2× Seeds por 1 hora)                              | consumível        | M       | cuidado: primeiro item consumível, muda a economia |
 
 ## Princípios que valem para tudo
 
 1. **Aprender nunca custa dinheiro.** Seeds e nível saem de estudo e constância, e não estão à
    venda — nenhuma quantia compra XP, Seeds, conquista ou posição na trilha grátis.
-   *(Revisado em 31/08: o princípio original dizia "nada custa dinheiro". Deixou de valer para o
+   _(Revisado em 31/08: o princípio original dizia "nada custa dinheiro". Deixou de valer para o
    cosmético premium — Passe de Temporada e Créditos, decisão do dono. O que a regra protege é o
-   que sempre importou: a progressão não se compra.)*
+   que sempre importou: a progressão não se compra.)_
 2. Todo item tem prévia REAL antes de comprar (o mouse, uma amostra de partícula, o mockup).
 3. Reversível sempre: equipar nunca tranca (a lição das posições do menu).
 4. Guardas de acessibilidade vencem cosmético: animações desligadas silenciam tudo.
@@ -69,15 +69,15 @@ Partículas com intensidade editável, Sorte de Eventos) · **Packs de emoji (12
 Cada capacidade virou item `tipo: 'galeria'` no catálogo e abre por nível OU Seeds (conquista onde
 for exclusivo). Mapa em `lib/galeria/acesso.ts`:
 
-| Nível | Abre |
-| --- | --- |
-| 1 | paletas Claro e Papel · 5 categorias de emoji (animais, comidas, natureza, rostos, símbolos) · packs prontos · 5 perfis livres |
-| 2 | paletas Pastel (50) · editor de pack (50) · emojis Patos & aves (40), Esportes (40) |
-| 3 | paletas Escuro (60) · cursor de qualquer emoji (100) · Festa (50), Música (50) |
-| 4 | Espaço (100), Transporte (100) · rastro forma × paleta por forma (= o rastro da Loja) |
-| 5 | paletas Néon (120) · Objetos (110), Bebidas (60) |
-| 7 | paletas Meia-noite (220) |
-| conquista | Corações (pack) · Bolinhas do rastro (Colecionador) · tema Aurora (Constante) |
+| Nível     | Abre                                                                                                                           |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 1         | paletas Claro e Papel · 5 categorias de emoji (animais, comidas, natureza, rostos, símbolos) · packs prontos · 5 perfis livres |
+| 2         | paletas Pastel (50) · editor de pack (50) · emojis Patos & aves (40), Esportes (40)                                            |
+| 3         | paletas Escuro (60) · cursor de qualquer emoji (100) · Festa (50), Música (50)                                                 |
+| 4         | Espaço (100), Transporte (100) · rastro forma × paleta por forma (= o rastro da Loja)                                          |
+| 5         | paletas Néon (120) · Objetos (110), Bebidas (60)                                                                               |
+| 7         | paletas Meia-noite (220)                                                                                                       |
+| conquista | Corações (pack) · Bolinhas do rastro (Colecionador) · tema Aurora (Constante)                                                  |
 
 O editor nunca esconde: mostra o cadeado, o motivo e "Obter · N Seeds". Presets trancados listam o
 que falta. Tela reorganizada: "Seu visual agora" + perfis + acordeão (uma peça por vez) com um
@@ -89,13 +89,13 @@ Mapeado antes de mexer: tema editável em 4 lugares (Estúdio, cluster morto, Lo
 paleta em 3 galerias que discordavam, som/animações/desempenho em 2, perfil/posição em 3, e dois
 furos de gate (Estúdio e galeria de paletas contornavam o nível). Depois:
 
-| Preferência | Único dono |
-| --- | --- |
-| tema, paleta, fonte, partículas, emojis, cursor, rastro, perfil de exibição, posição do menu, perfis | **Personalizar › Visual** |
-| cores livres e layout dos painéis | Estúdio (aberto SÓ pelo Visual, com o gate do nível/Loja) |
-| comprar/liberar | Personalizar › Loja (não equipa mais; "Liberado · usar no Visual") |
-| tamanho do texto, som, animações, desempenho, claro/escuro | barra de controles (sempre à vista) |
-| idioma, captura, motores, conta, dados | Ajustes (sem aparência) |
+| Preferência                                                                                          | Único dono                                                         |
+| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| tema, paleta, fonte, partículas, emojis, cursor, rastro, perfil de exibição, posição do menu, perfis | **Personalizar › Visual**                                          |
+| cores livres e layout dos painéis                                                                    | Estúdio (aberto SÓ pelo Visual, com o gate do nível/Loja)          |
+| comprar/liberar                                                                                      | Personalizar › Loja (não equipa mais; "Liberado · usar no Visual") |
+| tamanho do texto, som, animações, desempenho, claro/escuro                                           | barra de controles (sempre à vista)                                |
+| idioma, captura, motores, conta, dados                                                               | Ajustes (sem aparência)                                            |
 
 Removidos: popover de Aparência do cluster (170 linhas atrás de flag falsa), seções Aparência e
 Desempenho dos Ajustes, Modo/Tema/galeria do Estúdio, "Equipar" da Loja. Segurança: o atalho

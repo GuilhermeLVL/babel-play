@@ -21,13 +21,14 @@ Medido na Fase 3 de `openspec/audits/2026-09-07-coerencia.md` (build de producao
 ## Capabilities
 
 ### New Capabilities
+
 - `arranque-e-payloads-medidos`: o tamanho do arranque e das respostas das telas principais tem alvo numerico e script de medicao.
 
 ## Impact
 
 - `src/core/index.ts`, `src/lib/galeria/passe.ts`, `src/components/views/{Loja,Play,Metrics}.tsx`, `src/App.tsx`, `src/data/api.ts`, `src/lib/juice.ts`, `vite.config.ts`
 - `server/routes/vocab.ts` (`/resumo`), `server/db/repositories/{vocab,metrics}.ts`, `server/db/manutencao.ts`
-- Novo `scripts/perf/medir-rotas.mjs`; `docs/auditoria-performance.md` atualizado com os numeros
+- Novo `scripts/perf/medir-rotas.mjs`; `docs/auditoria/2026-08-27-desempenho-da-edicao-leve.md` atualizado com os numeros
 - Remove: re-exports do catalogo no barril; `fetchDeck` como fonte do lobby; segundo `fetchMetrics`
 
 ## Pronto quando

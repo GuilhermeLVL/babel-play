@@ -94,6 +94,12 @@ Use `127.0.0.1`, never `localhost` — on Windows the IPv6 attempt adds a phanto
 [`docs/runbook.md`](docs/runbook.md) — health vs readiness, reading the log, `/metrics`, shutdown,
 secret rotation, the rate-limit buckets and the known symptoms.
 
+## Documentation
+
+The index of everything under `docs/` is [`docs/README.md`](docs/README.md); the current launch state is
+[`docs/ESTADO-DO-LANCAMENTO.md`](docs/ESTADO-DO-LANCAMENTO.md). Data attributions live in
+[`docs/FONTES.md`](docs/FONTES.md).
+
 ## Code of conduct
 
 By participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).

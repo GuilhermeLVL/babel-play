@@ -83,6 +83,8 @@ desktop.ini
 !.vscode/extensions.json
 .idea/
 hub-leve.png
+# Capturas de tela soltas na raiz (as do README ficam em docs/img/)
+/*.png
 .playwright-mcp/
 
 # Áudio do corpus de avaliação (baixado por scripts/eval-fala/baixar-corpus.py) e cenários gerados.

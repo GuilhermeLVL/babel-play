@@ -13,7 +13,7 @@
 
 - [x] 2.1 Reescrever `Sobre.tsx` (FATOS, PILARES e o parágrafo que acusa o próprio modelo)
 - [x] 2.2 Remover "Nada aqui custa dinheiro" de `Loja.tsx` e `Conquistas.tsx`
-- [x] 2.3 Atualizar `docs/loja-roadmap.md` (o princípio "nada custa dinheiro" deixa de valer)
+- [x] 2.3 Atualizar `docs/pesquisa/loja-roadmap.md` (o princípio "nada custa dinheiro" deixa de valer)
 
 ## 3. Captura sem os três cartões
 

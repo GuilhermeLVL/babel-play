@@ -11,7 +11,13 @@ vi.mock('../src/gateway/modelManifest', () => ({ modeloDisponivel: async () => (
 
 import { usePreparoDoInicio } from '../src/lib/captura/usePreparoDoInicio'
 
-const opcoes = { modelos: [], langDoMic: 'pt-BR', sondarMic: false, gravando: false, parDoTradutor: ['pt', 'en'] as const }
+const opcoes = {
+  modelos: [],
+  langDoMic: 'pt-BR',
+  sondarMic: false,
+  gravando: false,
+  parDoTradutor: ['pt', 'en'] as const,
+}
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -32,5 +38,34 @@ describe('usePreparoDoInicio: tradutor nativo', () => {
     vi.unstubAllGlobals()
     const sem = renderHook(() => usePreparoDoInicio(opcoes))
     expect(sem.result.current.tradutorNativo).toBe(false)
+  })
+})
+
+/**
+ * O INTÉRPRETE FALA NOS DOIS SENTIDOS: a folha precisa saber se o navegador traduz os DOIS, senão
+ * o aviso de download zeraria o que a volta ainda baixa.
+ */
+describe('usePreparoDoInicio: os dois sentidos do intérprete', () => {
+  it('o navegador traduz um sentido e não o outro: só o nosso tradutor cobre a conversa', async () => {
+    const availability = vi.fn(async ({ sourceLanguage }: { sourceLanguage: string }) =>
+      sourceLanguage === 'pt' ? 'available' : 'downloadable',
+    )
+    vi.stubGlobal('Translator', { availability })
+    const { result } = renderHook(() => usePreparoDoInicio(opcoes))
+    await waitFor(() => expect(result.current.tradutorNativo).toBe(true))
+    await waitFor(() => expect(availability).toHaveBeenCalledWith({ sourceLanguage: 'en', targetLanguage: 'pt' }))
+    expect(result.current.tradutorNativoNosDois).toBe(false)
+  })
+
+  it('os dois sentidos disponíveis no navegador: nenhum tradutor nosso a baixar', async () => {
+    vi.stubGlobal('Translator', { availability: async () => 'available' })
+    const { result } = renderHook(() => usePreparoDoInicio(opcoes))
+    await waitFor(() => expect(result.current.tradutorNativoNosDois).toBe(true))
+  })
+
+  it('sem a API do tradutor: nenhum dos dois', async () => {
+    const { result } = renderHook(() => usePreparoDoInicio(opcoes))
+    await new Promise((r) => setTimeout(r, 0))
+    expect(result.current.tradutorNativoNosDois).toBe(false)
   })
 })

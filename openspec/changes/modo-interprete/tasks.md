@@ -142,6 +142,8 @@ O dono testou em produção: o português funcionou; tocando o outro lado e fala
 - [x] 8.4 O preparo na faixa do meio (`avisoDoPreparo.ts`). Teste: `tests/avisoDoPreparo.test.ts`.
 - [x] 8.5 O item "Intérprete" no menu, `/interprete` e a tela `PaginaDoInterprete`; na barra do celular,
       no lugar da Biblioteca. Testes: `tests/navDoInterprete.test.ts` e o e2e "pelo menu".
+- [x] 8.7 O download da folha do início do intérprete só zera quando o navegador traduz os DOIS sentidos
+      (`tradutorNativoNosDois` em `usePreparoDoInicio`). Teste: `tests/usePreparoDoInicio-tradutorNativo.test.tsx`.
 - [ ] 8.6 Conferir no aparelho do dono (Chrome com e sem o pacote de voz do inglês). O e2e não cobre: sob
       automação a sonda não pergunta ao navegador.
 

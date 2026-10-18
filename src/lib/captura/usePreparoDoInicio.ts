@@ -26,6 +26,8 @@ export interface PreparoDoInicio {
   podeInstalarPacote: boolean;
   permissao: PermissionState | null;
   tradutorNativo: boolean;
+  /** O navegador traduz o par nos DOIS sentidos (o intérprete): só então o nosso tradutor não baixa. */
+  tradutorNativoNosDois: boolean;
 }
 
 type ComInstalar = { install?: unknown };
@@ -45,19 +47,27 @@ export function usePreparoDoInicio(o: {
   const [permissao, setPermissao] = useState<PermissionState | null>(null);
   const chave = o.modelos.join('|');
   const [tradutorNativo, setTradutorNativo] = useState(false);
+  const [tradutorNativoInverso, setTradutorNativoInverso] = useState(false);
   const [deTradutor, paraTradutor] = o.parDoTradutor ?? ['', ''];
 
   useEffect(() => {
     setTradutorNativo(false);
+    setTradutorNativoInverso(false);
     const api = (globalThis as { Translator?: { availability?: (x: unknown) => Promise<string> } }).Translator;
     if (!deTradutor || !paraTradutor || typeof api?.availability !== 'function') return;
     const s = codigoDoTradutor(deTradutor);
     const t = codigoDoTradutor(paraTradutor);
     if (s === t) return;
     let vivo = true;
+    const pronto = (d: string) => d === 'available' || d === 'readily';
     void api
       .availability({ sourceLanguage: s, targetLanguage: t })
-      .then((d) => vivo && setTradutorNativo(d === 'available' || d === 'readily'))
+      .then((d) => vivo && setTradutorNativo(pronto(d)))
+      .catch(() => {});
+    // O sentido contrário (a fala do outro lado, no intérprete).
+    void api
+      .availability({ sourceLanguage: t, targetLanguage: s })
+      .then((d) => vivo && setTradutorNativoInverso(pronto(d)))
       .catch(() => {});
     return () => {
       vivo = false;
@@ -121,5 +131,12 @@ export function usePreparoDoInicio(o: {
 
   const g = globalThis as { SpeechRecognition?: ComInstalar; webkitSpeechRecognition?: ComInstalar };
   const podeInstalarPacote = typeof (g.SpeechRecognition ?? g.webkitSpeechRecognition)?.install === 'function';
-  return { completos, noAparelho, podeInstalarPacote, permissao, tradutorNativo };
+  return {
+    completos,
+    noAparelho,
+    podeInstalarPacote,
+    permissao,
+    tradutorNativo,
+    tradutorNativoNosDois: tradutorNativo && tradutorNativoInverso,
+  };
 }

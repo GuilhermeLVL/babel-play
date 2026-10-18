@@ -896,7 +896,7 @@ export async function dadosDasMissoes(
  * concordariam só enquanto ninguém mexesse numa delas.
  *
  * O que ficou aqui é o que só o servidor sabe fazer: LER as três tabelas. A fórmula é do core. */
-export type { BaldeDeXp, HistoricoDeXp, MarcoDeNivel, PontoDeXp } from '../../../src/core/learning/historicoDeXp'
+export type { BaldeDeXp, HistoricoDeXp } from '../../../src/core/learning/historicoDeXp'
 
 export async function computeXpHistory(
   userId: UserId,

@@ -40,7 +40,6 @@ export type ChaveDoArquivo = 'modelo' | 'lex' | 'vocab';
 
 /** Id do modelo no manifesto e no Cache Storage (as URLs sempre contêm `bergamot/<par>`). */
 export const idDoBergamot = (par: ParDoBergamot): string => `bergamot/${par}`;
-export const ID_DO_BERGAMOT_PT_EN = idDoBergamot('pt-en');
 
 export const VERSAO_DO_MOTOR: string = modelos.motor.versao;
 

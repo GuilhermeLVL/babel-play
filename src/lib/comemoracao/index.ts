@@ -50,10 +50,10 @@ import {
  * fica o som curto e o número, que são o retorno discreto e barato.
  */
 
-export { definirJogoEmCurso, equiparEfeito } from './efeitos';
-export type { EventoDeComemoracao, Intensidade } from './intensidade';
-export { EVENTO_DA_JOGADA, intensidadeDe } from './intensidade';
-export { ACERTOS, COMBOS, EFEITOS_PADRAO, type EfeitosEquipados, efeitosEquipados, FINALIZACOES } from './pacotes';
+export { definirJogoEmCurso } from './efeitos';
+export type { EventoDeComemoracao } from './intensidade';
+export { intensidadeDe } from './intensidade';
+export { EFEITOS_PADRAO, type EfeitosEquipados, FINALIZACOES } from './pacotes';
 
 /** Uma rajada do plano. Além de `kind`/`forma`, a receita equipada pode trazer origem, cor (token),
  *  contagem e gravidade — o que `emitBurst` já sabe sobrescrever na spec do `kind`. */

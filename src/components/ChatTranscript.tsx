@@ -115,14 +115,6 @@ interface ChatTranscriptProps {
   aoAbrirMenuDaFala?: (segment: ChatSegment, lang: string) => void;
 }
 
-/** Iniciais para o avatar ("Pessoa 2" → "P2", "Você" → "VO", "Maria Silva" → "MS"). */
-export function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (!parts.length) return '?';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
 /**
  * ESTADO VAZIO que ENSINA. Antes, esta área era um retângulo em branco de meia tela — o maior
  * elemento da interface não dizia nada. Agora ela explica, no vocabulário do perfil, o que vai

@@ -28,8 +28,3 @@ export function useAtalhosDasAlternativas(quantas: number, escolher: (indice: nu
     return () => window.removeEventListener('keydown', aoTeclar);
   }, [quantas, habilitado]);
 }
-
-/** A alternativa `i` do grupo `[data-tour=grupo]` dentro de `raiz` (para os efeitos que pedem o botão). */
-export function botaoDaAlternativa(raiz: ParentNode | null | undefined, grupo: string, i: number): HTMLButtonElement | null {
-  return (raiz ?? document).querySelectorAll<HTMLButtonElement>(`[data-tour="${grupo}"] button`)[i] ?? null;
-}

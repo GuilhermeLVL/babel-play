@@ -270,7 +270,6 @@ export const resumoDoPlano = (id: PlanoPago): string =>
 /* ---- O aparelho (`DISPS` e `GRATIS_NO_APARELHO`, `planos4.js:24-69`) ------------------------------- */
 
 export type Aparelho = 'pc' | 'fraco' | 'celular' | 'quest';
-export const APARELHOS: readonly Aparelho[] = ['pc', 'fraco', 'celular', 'quest'];
 
 /** O aparelho REAL, pelo perfil medido (`lib/dispositivo/perfil.ts`), nas quatro caixas do protótipo. */
 export function aparelhoAtual(): Aparelho {

@@ -74,11 +74,6 @@ export interface PlanoDeReparo {
 
 const palavras = (t: string | null | undefined) => (t ?? '').trim().split(/\s+/).filter(Boolean).length;
 
-/** Idioma do texto quando há evidência suficiente; `''` quando não há (nunca um chute). */
-export function idiomaComEvidencia(texto: string | null | undefined, opcoes: OpcoesDoReparo = {}): string {
-  return deteccaoComEvidencia(texto, opcoes)?.lang ?? '';
-}
-
 function deteccaoComEvidencia(
   texto: string | null | undefined,
   opcoes: OpcoesDoReparo,

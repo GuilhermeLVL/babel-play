@@ -16,8 +16,6 @@
 export const SAIDA = 'cubic-bezier(0.23, 1, 0.32, 1)';
 /** O que se desloca na tela de um lugar a outro: acelera e freia. */
 export const VAI_E_VEM = 'cubic-bezier(0.77, 0, 0.175, 1)';
-/** Painéis que sobem de baixo (a curva das folhas do iOS). */
-export const GAVETA = 'cubic-bezier(0.32, 0.72, 0, 1)';
 
 /**
  * A resposta ao degrau de uma mola subamortecida, amostrada em `pontos` passos, como `linear(...)`.

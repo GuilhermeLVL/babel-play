@@ -2,12 +2,13 @@
 // (captura.json + casca.json, tiradas com o Playwright em babel-play.pages.dev/?desenho=novo)
 // e da camada de polimento (polimento.css + prototipo.js + auditoria.html).
 // Uso: node docs/prototipos/polimento-movimento-src/montar.mjs
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const aqui = dirname(fileURLToPath(import.meta.url));
-const ler = (n) => readFileSync(join(aqui, n), 'utf8');
+// O que é idêntico entre os protótipos fica em ../_comum; o arquivo desta pasta, se houver, tem prioridade.
+const ler = (n) => readFileSync(existsSync(join(aqui, n)) ? join(aqui, n) : join(aqui, '..', '_comum', n), 'utf8');
 const cap = JSON.parse(ler('captura.json'));
 const casca = JSON.parse(ler('casca.json'));
 

@@ -42,4 +42,4 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
 - Os testes ignoram o `.env` (`tests/setup-db-isolada.ts` aponta o dotenv para um arquivo inexistente e
   usa banco isolado): variável nova precisa ser definida no próprio teste.
 - `git pull --rebase` antes de `git push`: há mais de uma frente de trabalho na `main`.
-- `docs/prototipos/*-src/` e `public/` ficam fora do lint.
+- `docs/prototipos/*-src/`, `docs/prototipos/_comum/` e `public/` ficam fora do lint.

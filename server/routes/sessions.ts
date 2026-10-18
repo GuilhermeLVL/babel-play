@@ -450,7 +450,7 @@ sessionsRouter.get('/:id/audio', async (req, res) => {
       start = m && m[1] ? parseInt(m[1], 10) : 0
       end = m && m[2] ? parseInt(m[2], 10) : size - 1
     }
-    if (!m || start >= size || end >= size || start > end) {
+    if (!m || (!m[1] && !m[2]) || start >= size || end >= size || start > end) {
       res.status(416).setHeader('Content-Range', `bytes */${size}`)
       res.end()
       return

@@ -44,13 +44,20 @@ afterAll(async () => {
 describe('limitador de falhas de auth', () => {
   it('200 requisições simultâneas autenticadas do mesmo IP: nenhum 429 e nenhuma escrita no contador', async () => {
     const token = await s.token('aluno-da-escola')
-    const respostas = await Promise.all(
-      Array.from({ length: 200 }, () =>
-        s.chamar('GET', '/api/me', {
-          headers: { authorization: `Bearer ${token}`, 'x-forwarded-for': IP_DA_ESCOLA },
-        }),
-      ),
-    )
+    /* Em 4 ondas de 50: 200 conexões de uma vez estouram o backlog do listen no macOS (somaxconn 128) e vêm
+       ECONNRESET, que não diz nada sobre o limitador. O ponto — 200 requisições do mesmo IP — continua. */
+    const respostas: Response[] = []
+    for (let onda = 0; onda < 4; onda++) {
+      respostas.push(
+        ...(await Promise.all(
+          Array.from({ length: 50 }, () =>
+            s.chamar('GET', '/api/me', {
+              headers: { authorization: `Bearer ${token}`, 'x-forwarded-for': IP_DA_ESCOLA },
+            }),
+          ),
+        )),
+      )
+    }
     const barradas = respostas.filter((r) => r.status === 429).length
     expect(barradas, 'sucesso não pode consumir o balde de falhas').toBe(0)
     expect(await linhasDoBaldeDeAuth(), 'sucesso não pode escrever no contador').toBe(0)

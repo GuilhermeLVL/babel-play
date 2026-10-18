@@ -72,6 +72,11 @@ export function useTato(): boolean {
   return useSyncExternalStore(assinar, tatoLigado, () => true);
 }
 
+/** O navegador só deixa vibrar depois de um gesto da pessoa; antes disso `navigator.vibrate` vira erro no console. */
+export function ativadoPeloUsuario(): boolean {
+  return typeof navigator === 'undefined' || (navigator.userActivation?.hasBeenActive ?? true);
+}
+
 /** O aparelho tem como vibrar pela página? (O iPhone não tem `navigator.vibrate`.) */
 export function aparelhoVibra(): boolean {
   if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return false;
@@ -80,7 +85,7 @@ export function aparelhoVibra(): boolean {
 
 /** Vibra o padrão do acontecimento. Não faz nada sem motor, sem toque ou com a chave desligada. */
 export function tato(tipo: Tato): boolean {
-  if (!aparelhoVibra() || !tatoLigado()) return false;
+  if (!aparelhoVibra() || !tatoLigado() || !ativadoPeloUsuario()) return false;
   const padrao = PADROES_DE_TATO[tipo];
   try {
     return navigator.vibrate(typeof padrao === 'number' ? padrao : [...padrao]);

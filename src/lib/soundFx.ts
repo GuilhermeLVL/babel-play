@@ -23,31 +23,31 @@ import type { ThemeType } from './appearance';
 
 export type SoundEvent =
   // ── Navegação e chrome
-  | 'click'        // botão genérico, o mais discreto de todos
-  | 'apontar'      // o ponteiro entrou num alvo (só no headset sem vibração): quase inaudível
-  | 'nav'          // trocou de tela ou de aba
-  | 'open'         // overlay abriu
-  | 'close'        // overlay fechou
+  | 'click' // botão genérico, o mais discreto de todos
+  | 'apontar' // o ponteiro entrou num alvo (só no headset sem vibração): quase inaudível
+  | 'nav' // trocou de tela ou de aba
+  | 'open' // overlay abriu
+  | 'close' // overlay fechou
   // ── Estado
-  | 'toggleOn'     // interruptor/checkbox ligou
-  | 'toggleOff'    // interruptor/checkbox desligou
-  | 'select'       // escolheu um item de uma lista
+  | 'toggleOn' // interruptor/checkbox ligou
+  | 'toggleOff' // interruptor/checkbox desligou
+  | 'select' // escolheu um item de uma lista
   // ── Conteúdo
-  | 'add'          // guardou algo (palavra no deck, mídia importada)
-  | 'remove'       // tirou algo
-  | 'speak'        // disparou áudio/TTS
+  | 'add' // guardou algo (palavra no deck, mídia importada)
+  | 'remove' // tirou algo
+  | 'speak' // disparou áudio/TTS
   // ── Resultado
-  | 'success'      // acertou / concluiu
-  | 'error'        // falhou
-  | 'combo'        // emendou acertos, entre o acerto comum e o subir de nível
-  | 'recordStart'  // começou a gravar
-  | 'recordStop'   // parou de gravar
-  | 'levelUp'      // subiu de nível, o único celebratório
+  | 'success' // acertou / concluiu
+  | 'error' // falhou
+  | 'combo' // emendou acertos, entre o acerto comum e o subir de nível
+  | 'recordStart' // começou a gravar
+  | 'recordStop' // parou de gravar
+  | 'levelUp' // subiu de nível, o único celebratório
   // ── Duelo relâmpago (jogo contra o tempo)
-  | 'tick'         // último segundos: um toque seco por segundo
-  | 'timeBonus'    // ganhou segundos de volta, deslizada para cima
-  | 'fever'        // entrou no modo fever, acorde cheio
-  | 'fanfarra';    // fim de rodada, arpejo maior; transpose sobe com as estrelas
+  | 'tick' // último segundos: um toque seco por segundo
+  | 'timeBonus' // ganhou segundos de volta, deslizada para cima
+  | 'fever' // entrou no modo fever, acorde cheio
+  | 'fanfarra'; // fim de rodada, arpejo maior; transpose sobe com as estrelas
 
 let audioCtx: AudioContext | null = null;
 let soundMuted = false;
@@ -61,7 +61,6 @@ export function setSoundMuted(muted: boolean) {
 export function somMudo(): boolean {
   return soundMuted;
 }
-
 
 /** Chamado de onde o tema é aplicado (lib/theme.ts). Sem isto o kit fica no padrão. */
 /** Voz do modo ARCADE: onda quadrada curta e aguda, o timbre 8-bits, independente do tema. */
@@ -77,6 +76,8 @@ export function setSoundTheme(theme: ThemeType) {
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
+  // Antes do primeiro gesto o navegador não deixa o áudio começar (e avisa no console a cada tentativa): fica mudo.
+  if (!audioCtx && navigator.userActivation && !navigator.userActivation.hasBeenActive) return null;
   if (!audioCtx) {
     const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
     if (AudioCtxClass) audioCtx = new AudioCtxClass();
@@ -107,32 +108,32 @@ export interface ThemeVoice {
  */
 const THEME_VOICES: Record<ThemeType, ThemeVoice> = {
   // Atelier quente, terracotta: triangular, registro médio, decaimento generoso.
-  babel:  { wave: 'triangle', root: -9,  decay: 1,    gain: 1,    errorWave: 'sawtooth' },
+  babel: { wave: 'triangle', root: -9, decay: 1, gain: 1, errorWave: 'sawtooth' },
   // Índigo elegante e geométrico: senoide limpa, precisa, sem sobra.
-  linear: { wave: 'sine',     root: 0,   decay: 0.85, gain: 0.95, errorWave: 'square' },
+  linear: { wave: 'sine', root: 0, decay: 0.85, gain: 0.95, errorWave: 'square' },
   // Monocromático, cantos retos: blip curtíssimo e agudo, quase um clique de hardware.
-  vercel: { wave: 'square',   root: 12,  decay: 0.3,  gain: 0.75, errorWave: 'square' },
+  vercel: { wave: 'square', root: 12, decay: 0.3, gain: 0.75, errorWave: 'square' },
   // Everforest orgânico, arredondado: triangular grave, ressoando.
-  mochi:  { wave: 'triangle', root: -7,  decay: 1.7,  gain: 1.05, errorWave: 'triangle' },
+  mochi: { wave: 'triangle', root: -7, decay: 1.7, gain: 1.05, errorWave: 'triangle' },
   // Aurora (exclusivo de conquista): senoide etérea, grave, cauda longa — o som de uma noite polar.
-  aurora: { wave: 'sine',     root: -5,  decay: 2.1,  gain: 0.9,  errorWave: 'triangle' },
+  aurora: { wave: 'sine', root: -5, decay: 2.1, gain: 0.9, errorWave: 'triangle' },
   // Carvão sóbrio, tipográfico: senoide grave e discreta. Presente, nunca chamativa.
-  notion: { wave: 'sine',     root: -14, decay: 0.9,  gain: 0.7,  errorWave: 'sine' },
+  notion: { wave: 'sine', root: -14, decay: 0.9, gain: 0.7, errorWave: 'sine' },
   // Escolha do usuário: neutro, para não brigar com paleta nenhuma.
   // Instrument Premium: senoide limpa, registro grave, decaimento generoso (resonante); erro macio.
-  premium: { wave: 'sine',    root: -5,  decay: 1.1,  gain: 0.9,  errorWave: 'triangle' },
-  custom: { wave: 'sine',     root: 0,   decay: 0.9,  gain: 0.95, errorWave: 'square' },
+  premium: { wave: 'sine', root: -5, decay: 1.1, gain: 0.9, errorWave: 'triangle' },
+  custom: { wave: 'sine', root: 0, decay: 0.9, gain: 0.95, errorWave: 'square' },
   /* ── Temas completos (recompensas v2, onda 4): cada um traz o seu pacote de sons. ── */
   // Rádio: válvula quente — triangular grave com cauda, erro chiado de estática.
-  radio:  { wave: 'triangle', root: -12, decay: 1.4,  gain: 0.95, errorWave: 'sawtooth' },
+  radio: { wave: 'triangle', root: -12, decay: 1.4, gain: 0.95, errorWave: 'sawtooth' },
   // Papel e tinta: lápis no papel — curto, seco, registro médio; erro macio.
-  papel:  { wave: 'sine',     root: -2,  decay: 0.55, gain: 0.8,  errorWave: 'triangle' },
+  papel: { wave: 'sine', root: -2, decay: 0.55, gain: 0.8, errorWave: 'triangle' },
   // Neon noturno: sintetizador de pista — dente de serra agudo e brilhante.
-  neon:   { wave: 'sawtooth', root: 5,   decay: 0.7,  gain: 0.55, errorWave: 'square' },
+  neon: { wave: 'sawtooth', root: 5, decay: 0.7, gain: 0.55, errorWave: 'square' },
   // Fliperama: chip de 8 bits — quadrada aguda e cortada.
-  fliperama: { wave: 'square', root: 9,  decay: 0.35, gain: 0.6,  errorWave: 'sawtooth' },
+  fliperama: { wave: 'square', root: 9, decay: 0.35, gain: 0.6, errorWave: 'sawtooth' },
   // Jardim: sino de vento — senoide aguda que ressoa.
-  jardim: { wave: 'sine',     root: 3,   decay: 1.8,  gain: 0.95, errorWave: 'triangle' },
+  jardim: { wave: 'sine', root: 3, decay: 1.8, gain: 0.95, errorWave: 'triangle' },
   // Observatório: coro distante — triangular grave, cauda muito longa.
   observatorio: { wave: 'triangle', root: -8, decay: 2.3, gain: 0.85, errorWave: 'sine' },
   // Água: gota caindo — senoide aguda, curta e redonda; erro abafado, como som debaixo d'água.
@@ -172,37 +173,37 @@ interface EventShape {
  * Assim o usuário aprende o vocabulário sem nunca pensar nele: qualquer coisa que suba é ganho.
  */
 export const EVENTS: Record<SoundEvent, EventShape> = {
-  click:       { steps: [0],              dur: 0.04, stagger: 0,     gain: 0.5, slide: 0.7 },
+  click: { steps: [0], dur: 0.04, stagger: 0, gain: 0.5, slide: 0.7 },
   /* Toca a cada alvo por onde o ponteiro passa: um quarto do volume do `click`, e mais curto. */
-  apontar:     { steps: [12],             dur: 0.02, stagger: 0,     gain: 0.14 },
-  nav:         { steps: [0, 7],           dur: 0.05, stagger: 0.03,  gain: 0.62 },
-  open:        { steps: [-7, 0],          dur: 0.07, stagger: 0.035, gain: 0.6 },
-  close:       { steps: [0, -7],          dur: 0.065, stagger: 0.03, gain: 0.55 },
+  apontar: { steps: [12], dur: 0.02, stagger: 0, gain: 0.14 },
+  nav: { steps: [0, 7], dur: 0.05, stagger: 0.03, gain: 0.62 },
+  open: { steps: [-7, 0], dur: 0.07, stagger: 0.035, gain: 0.6 },
+  close: { steps: [0, -7], dur: 0.065, stagger: 0.03, gain: 0.55 },
 
-  toggleOn:    { steps: [0, 5],           dur: 0.045, stagger: 0.028, gain: 0.6 },
-  toggleOff:   { steps: [5, 0],           dur: 0.045, stagger: 0.028, gain: 0.52 },
-  select:      { steps: [4],              dur: 0.045, stagger: 0,     gain: 0.55 },
+  toggleOn: { steps: [0, 5], dur: 0.045, stagger: 0.028, gain: 0.6 },
+  toggleOff: { steps: [5, 0], dur: 0.045, stagger: 0.028, gain: 0.52 },
+  select: { steps: [4], dur: 0.045, stagger: 0, gain: 0.55 },
 
-  add:         { steps: [0, 4, 9],        dur: 0.06, stagger: 0.035, gain: 0.7 },
-  remove:      { steps: [9, 2],           dur: 0.06, stagger: 0.04,  gain: 0.6 },
-  speak:       { steps: [7],              dur: 0.05, stagger: 0,     gain: 0.5, slide: 1.3 },
+  add: { steps: [0, 4, 9], dur: 0.06, stagger: 0.035, gain: 0.7 },
+  remove: { steps: [9, 2], dur: 0.06, stagger: 0.04, gain: 0.6 },
+  speak: { steps: [7], dur: 0.05, stagger: 0, gain: 0.5, slide: 1.3 },
 
-  success:     { steps: [0, 7, 12],       dur: 0.15, stagger: 0.05,  gain: 1 },
-  error:       { steps: [-10, -14],       dur: 0.12, stagger: 0.06,  gain: 0.62, harsh: true },
+  success: { steps: [0, 7, 12], dur: 0.15, stagger: 0.05, gain: 1 },
+  error: { steps: [-10, -14], dur: 0.12, stagger: 0.06, gain: 0.62, harsh: true },
   /* Emendar acertos tocava `select` — uma nota só, o MESMO som de escolher item numa lista. O
      gesto de ganho da casa é subir, então o combo sobe (0 → +4 → +7); fica mais curto e mais
      baixo que `success` porque acontece DURANTE a sequência e não pode competir com o acerto. */
-  combo:       { steps: [0, 4, 7],        dur: 0.055, stagger: 0.03, gain: 0.75 },
-  recordStart: { steps: [-5, 2, 7],       dur: 0.09, stagger: 0.05,  gain: 0.85 },
-  recordStop:  { steps: [7, 2, -5],       dur: 0.09, stagger: 0.05,  gain: 0.85 },
-  levelUp:     { steps: [0, 7, 12, 19],   dur: 0.2,  stagger: 0.07,  gain: 1.1 },
+  combo: { steps: [0, 4, 7], dur: 0.055, stagger: 0.03, gain: 0.75 },
+  recordStart: { steps: [-5, 2, 7], dur: 0.09, stagger: 0.05, gain: 0.85 },
+  recordStop: { steps: [7, 2, -5], dur: 0.09, stagger: 0.05, gain: 0.85 },
+  levelUp: { steps: [0, 7, 12, 19], dur: 0.2, stagger: 0.07, gain: 1.1 },
 
   // Duelo relâmpago. `tick` é o mais baixo: toca todo segundo no fim. `timeBonus` desliza para
   // cima (ganho). `fever` é o único acorde de quatro notas fora do levelUp — é raro de propósito.
-  tick:        { steps: [0],              dur: 0.03, stagger: 0,     gain: 0.4,  harsh: true },
-  timeBonus:   { steps: [7],              dur: 0.12, stagger: 0,     gain: 0.7,  slide: 1.5 },
-  fever:       { steps: [0, 4, 7, 12],    dur: 0.22, stagger: 0.04,  gain: 1 },
-  fanfarra:    { steps: [0, 4, 7, 12, 16], dur: 0.16, stagger: 0.09, gain: 1 },
+  tick: { steps: [0], dur: 0.03, stagger: 0, gain: 0.4, harsh: true },
+  timeBonus: { steps: [7], dur: 0.12, stagger: 0, gain: 0.7, slide: 1.5 },
+  fever: { steps: [0, 4, 7, 12], dur: 0.22, stagger: 0.04, gain: 1 },
+  fanfarra: { steps: [0, 4, 7, 12, 16], dur: 0.16, stagger: 0.09, gain: 1 },
 };
 
 /** Volume-mestre do kit. Um número, para calibrar tudo de uma vez. */
@@ -280,8 +281,14 @@ export function playGeneric(event: SoundEvent): void {
  */
 export function play(event: SoundEvent, opts: { transpose?: number } = {}): void {
   /* A camada de polimento responde por este evento com o som do protótipo: o kit não toca por cima. */
-  if (desvio?.(event)) { cancelPendingGeneric(); return; }
-  if (soundMuted) { cancelPendingGeneric(); return; }
+  if (desvio?.(event)) {
+    cancelPendingGeneric();
+    return;
+  }
+  if (soundMuted) {
+    cancelPendingGeneric();
+    return;
+  }
 
   // Um som pedido diretamente é sempre mais específico que o `click` que o delegado agendou.
   // (Menos o `apontar`: passar por cima do vizinho logo depois de clicar não cala o clique.)

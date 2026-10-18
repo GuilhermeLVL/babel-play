@@ -118,6 +118,9 @@ function interpretarTrustProxy(valor: string): boolean | number | string {
 
 export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   const app = express()
+  /* `/API/admin` e `/api/admin` são rotas DIFERENTES: as listas de rota (segundo fator, teto de corpo, origem, convidado)
+     comparam o texto da URL, e o roteamento sem caixa do Express deixava a variante em maiúsculas passar por elas. */
+  app.set('case sensitive routing', true)
 
   /**
    * TRUST PROXY — e por que ele NÃO liga sozinho (Fase 4 da rodada de saneamento).

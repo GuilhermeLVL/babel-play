@@ -25,6 +25,7 @@
  */
 import { type Request, type Response, Router } from 'express'
 
+import { REGISTRO_DE_MOTORES } from '../../src/core/harness/registroDeMotores'
 import { observarCaptura, type RelatorioDeCaptura } from '../http/metricas'
 
 /** Itens por lista. Um lote é de uma sessão de captura, e 200 falas é mais que uma hora de conversa. */
@@ -38,7 +39,14 @@ const MAX_FALLBACKS = 20
 
 const MOTOR = /^[a-z0-9-]{1,40}$/
 
-const motorSaneado = (v: unknown): string => (typeof v === 'string' && MOTOR.test(v) ? v : 'outro')
+/* Só motores CONHECIDOS viram rótulo: a rota é pública, e `[a-z0-9-]{1,40}` aceitava 36^40 nomes — cada um uma série nova
+   no registro do prom-client. Id de motor e id de adaptador do registro; o resto cai em `outro`. */
+const MOTORES_CONHECIDOS: ReadonlySet<string> = new Set(
+  REGISTRO_DE_MOTORES.flatMap((m) => [m.id, m.adapterId]).filter((id): id is string => !!id),
+)
+
+const motorSaneado = (v: unknown): string =>
+  typeof v === 'string' && MOTOR.test(v) && MOTORES_CONHECIDOS.has(v) ? v : 'outro'
 
 const grampear = (n: number, max: number): number => Math.min(max, Math.max(0, n))
 

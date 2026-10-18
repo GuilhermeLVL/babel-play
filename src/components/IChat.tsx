@@ -283,24 +283,12 @@ export default function IChat({
   }, [aviso]);
 
   /* ── Rastro da tela: toda troca de tela entra na conversa atual (aberta ou não). ── */
-  const avisadas = useRef(new Set<ViewType>());
   const primeiraTela = useRef(true);
   useEffect(() => {
     naAtual((c) => rastrear(c, 'tela', nome));
-    // Aviso do iChat: nome da tela, não o id; uma vez por tela, e nunca no Início.
-    if (primeiraTela.current) {
-      primeiraTela.current = false;
-      return;
-    }
-    if (!isOpen && !avisadas.current.has(activeView) && activeView !== 'hub') {
-      avisadas.current.add(activeView);
-      avisar(
-        <>
-          {t('iChat sintonizado com:')} <b>{nome}</b>
-        </>,
-        true,
-      );
-    }
+    /* Sem aviso ao navegar: o toast "iChat sintonizado com…" aparecia no topo a cada tela e cobria o título e as ações
+       do cabeçalho (auditoria visual de 17/10/2026). O rastro da tela segue entrando na conversa. */
+    if (primeiraTela.current) primeiraTela.current = false;
     // Só a troca de TELA dispara: abrir/fechar o chat não é navegação.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeView]);

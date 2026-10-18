@@ -30,7 +30,10 @@ import { envelopeDeErro } from './respostaDeErro'
  * - `/api/ai/credentials` que escreve (guardar/remover chave de API BYOK);
  * - `/api/admin/*` inteiro (operações entre contas).
  */
-export function ehRotaSensivel(metodo: string, caminho: string): boolean {
+export function ehRotaSensivel(metodo: string, caminhoBruto: string): boolean {
+  /* O Express roteia sem diferenciar maiúsculas (`/API/admin` chega ao router admin) e `req.baseUrl` guarda a caixa
+     da URL: comparar o texto cru deixava `DELETE /API/me` fora da lista e pulava o segundo fator. */
+  const caminho = caminhoBruto.toLowerCase()
   const escreve = metodo !== 'GET' && metodo !== 'HEAD' && metodo !== 'OPTIONS'
   if (caminho.startsWith('/api/billing/') && !caminho.startsWith('/api/billing/webhook/')) return escreve
   if (caminho === '/api/me' || caminho === '/api/me/') return metodo === 'DELETE'

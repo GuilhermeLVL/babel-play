@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { mkdtemp, rm,writeFile } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { zstdDecompressSync } from 'node:zlib'
@@ -106,12 +106,32 @@ export interface LeituraAnki {
  * imensa maioria dos acentos) já cai na decodificação NUMÉRICA genérica abaixo.
  */
 const ENTIDADES_NOMEADAS: Record<string, string> = {
-  nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"',
-  rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“',
-  mdash: '—', ndash: '–', hellip: '…',
-  eacute: 'é', egrave: 'è', agrave: 'à', ecirc: 'ê', ccedil: 'ç',
-  ouml: 'ö', uuml: 'ü', auml: 'ä', szlig: 'ß', ntilde: 'ñ',
-  aacute: 'á', iacute: 'í', oacute: 'ó', uacute: 'ú',
+  nbsp: ' ',
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  rsquo: '’',
+  lsquo: '‘',
+  rdquo: '”',
+  ldquo: '“',
+  mdash: '—',
+  ndash: '–',
+  hellip: '…',
+  eacute: 'é',
+  egrave: 'è',
+  agrave: 'à',
+  ecirc: 'ê',
+  ccedil: 'ç',
+  ouml: 'ö',
+  uuml: 'ü',
+  auml: 'ä',
+  szlig: 'ß',
+  ntilde: 'ñ',
+  aacute: 'á',
+  iacute: 'í',
+  oacute: 'ó',
+  uacute: 'ú',
 }
 
 /**
@@ -167,9 +187,7 @@ export function limparCampo(bruto: string): string {
    * de nomeadas (ver `ENTIDADES_NOMEADAS`); ela sozinha já cobre as seis entidades que o código
    * tratava antes uma a uma.
    */
-  return decodificarEntidadesDoCampo(semTagsNemLacunas)
-    .replace(/\s+/g, ' ')
-    .trim()
+  return decodificarEntidadesDoCampo(semTagsNemLacunas).replace(/\s+/g, ' ').trim()
 }
 
 /** Desfaz as entidades HTML mais comuns num nome de arquivo de mídia. */
@@ -255,12 +273,13 @@ function limparELacunas(bruto: string): { texto: string; lacunas: Lacuna[] } {
  * para frente/verso diferentes, então são estruturas distintas de verdade.
  */
 export function hashDaEstrutura(campos: string[]): string {
-  const normalizados = (campos ?? []).map(c =>
+  const normalizados = (campos ?? []).map((c) =>
     (c ?? '')
-      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
       .toLowerCase()
       .trim()
-      .replace(/[\s_-]+/g, ' ')
+      .replace(/[\s_-]+/g, ' '),
   )
   return createHash('sha256').update(normalizados.join('|'), 'utf8').digest('hex').slice(0, 16)
 }
@@ -277,7 +296,7 @@ export const TETO_DE_NOTAS = 50_000
 /** Qual campo é a frase de exemplo? Pelo NOME, quando o baralho nomeia os campos. */
 function indiceDoExemplo(campos: string[]): number {
   const alvo = /(example|exemplo|sentence|frase|context|contexto|usage)/i
-  return campos.findIndex(c => alvo.test(c))
+  return campos.findIndex((c) => alvo.test(c))
 }
 
 /**
@@ -318,14 +337,14 @@ export const PADRAO_VERSO: RegExp[] = [
  * `Meaning` e `Sound_Meaning`, casar por conteúdo primeiro poria um marcador de som no verso.
  */
 export function indicePorNome(campos: string[], padroes: RegExp[]): number {
-  const limpos = campos.map(c => (c ?? '').trim())
+  const limpos = campos.map((c) => (c ?? '').trim())
   for (const padrao of padroes) {
-    const exato = limpos.findIndex(c => padrao.test(c))
+    const exato = limpos.findIndex((c) => padrao.test(c))
     if (exato >= 0) return exato
   }
   for (const padrao of padroes) {
     const solto = new RegExp(padrao.source.replace(/^\^|\$$/g, ''), 'i')
-    const i = limpos.findIndex(c => solto.test(c))
+    const i = limpos.findIndex((c) => solto.test(c))
     if (i >= 0) return i
   }
   return -1
@@ -375,10 +394,16 @@ function abrirFluxo(arquivo: JSZip.JSZipObject): FluxoDaEntrada {
  * arquivo e um zip malicioso mente. Ele serve para recusar CEDO e barato; o que garante é a
  * contagem durante o fluxo, que não tem como ser falsificada.
  */
-export async function descompactarComTeto(arquivo: JSZip.JSZipObject, nome: string): Promise<Buffer> {
+export async function descompactarComTeto(
+  arquivo: JSZip.JSZipObject,
+  nome: string,
+  teto: number = TETO_DE_EXPANSAO,
+): Promise<Buffer> {
   const declarado = (arquivo as unknown as { _data?: { uncompressedSize?: number } })._data?.uncompressedSize
-  if (typeof declarado === 'number' && declarado > TETO_DE_EXPANSAO) {
-    throw new Error(`${nome} declara ${Math.round(declarado / 1048576)} MB descompactados; o teto é ${TETO_DE_EXPANSAO / 1048576} MB`)
+  if (typeof declarado === 'number' && declarado > teto) {
+    throw new Error(
+      `${nome} declara ${Math.round(declarado / 1048576)} MB descompactados; o teto é ${teto / 1048576} MB`,
+    )
   }
 
   const fluxo = abrirFluxo(arquivo)
@@ -391,18 +416,20 @@ export async function descompactarComTeto(arquivo: JSZip.JSZipObject, nome: stri
       .on('data', (pedaco: Uint8Array) => {
         if (abortado) return
         total += pedaco.length
-        if (total > TETO_DE_EXPANSAO) {
+        if (total > teto) {
           abortado = true
           // Solta o que já foi acumulado antes de rejeitar — sem isto, o pico de memória que
           // estamos evitando aconteceria mesmo assim, só que na hora do erro.
           pedacos.length = 0
-          reject(new Error(`${nome} passou de ${TETO_DE_EXPANSAO / 1048576} MB ao descompactar; arquivo recusado`))
+          reject(new Error(`${nome} passou de ${teto / 1048576} MB ao descompactar; arquivo recusado`))
           return
         }
         pedacos.push(Buffer.from(pedaco))
       })
       .on('error', reject)
-      .on('end', () => { if (!abortado) resolve(Buffer.concat(pedacos)) })
+      .on('end', () => {
+        if (!abortado) resolve(Buffer.concat(pedacos))
+      })
       .resume()
   })
 }
@@ -411,7 +438,7 @@ export async function descompactarComTeto(arquivo: JSZip.JSZipObject, nome: stri
 async function extrairColecao(apkg: Buffer): Promise<{ db: Buffer; formato: string; temMidia: boolean; zip: JSZip }> {
   const zip = await JSZip.loadAsync(apkg)
   const nomes = Object.keys(zip.files)
-  const temMidia = nomes.some(n => /^\d+$/.test(n))
+  const temMidia = nomes.some((n) => /^\d+$/.test(n))
 
   // Ordem de preferência: o mais novo primeiro, porque é o que traz o baralho completo.
   for (const nome of ['collection.anki21b', 'collection.anki21', 'collection.anki2']) {
@@ -472,7 +499,9 @@ export async function lerApkg(apkg: Buffer): Promise<LeituraAnki> {
         lista[Number(linha.ord)] = String(linha.name ?? '')
         camposPorModelo.set(mid, lista)
       }
-    } catch { /* baralho antigo: a tabela não existe */ }
+    } catch {
+      /* baralho antigo: a tabela não existe */
+    }
 
     // Formato antigo: JSON em `col.models`.
     if (!camposPorModelo.size) {
@@ -487,7 +516,9 @@ export async function lerApkg(apkg: Buffer): Promise<LeituraAnki> {
             camposPorModelo.set(mid, lista)
           }
         }
-      } catch { /* sem nomes: cai no posicional */ }
+      } catch {
+        /* sem nomes: cai no posicional */
+      }
     }
 
     // ── Nome do note type, por modelo ───────────────────────────────────
@@ -495,7 +526,9 @@ export async function lerApkg(apkg: Buffer): Promise<LeituraAnki> {
     try {
       const r = await cliente.execute('SELECT id, name FROM notetypes')
       for (const linha of r.rows) nomePorModelo.set(String(linha.id), String(linha.name ?? ''))
-    } catch { /* baralho antigo: a tabela não existe */ }
+    } catch {
+      /* baralho antigo: a tabela não existe */
+    }
     if (!nomePorModelo.size) {
       try {
         const r = await cliente.execute('SELECT models FROM col LIMIT 1')
@@ -504,7 +537,9 @@ export async function lerApkg(apkg: Buffer): Promise<LeituraAnki> {
           const modelos = JSON.parse(bruto) as Record<string, { name?: string }>
           for (const [mid, m] of Object.entries(modelos)) nomePorModelo.set(mid, String(m.name ?? ''))
         }
-      } catch { /* sem nome: nota fica sem notetype */ }
+      } catch {
+        /* sem nome: nota fica sem notetype */
+      }
     }
 
     /* O ESQUEMA NOVO às vezes guarda a hierarquia do baralho com `\x1f` em vez de `::` — os dois
@@ -517,16 +552,21 @@ export async function lerApkg(apkg: Buffer): Promise<LeituraAnki> {
     try {
       const r = await cliente.execute('SELECT id, name FROM decks')
       for (const linha of r.rows) nomePorBaralho.set(String(linha.id), normalizarNomeBaralho(String(linha.name ?? '')))
-    } catch { /* baralho antigo: a tabela não existe */ }
+    } catch {
+      /* baralho antigo: a tabela não existe */
+    }
     if (!nomePorBaralho.size) {
       try {
         const r = await cliente.execute('SELECT decks FROM col LIMIT 1')
         const bruto = String(r.rows[0]?.decks ?? '')
         if (bruto) {
           const decks = JSON.parse(bruto) as Record<string, { name?: string }>
-          for (const [did, d] of Object.entries(decks)) nomePorBaralho.set(did, normalizarNomeBaralho(String(d.name ?? '')))
+          for (const [did, d] of Object.entries(decks))
+            nomePorBaralho.set(did, normalizarNomeBaralho(String(d.name ?? '')))
         }
-      } catch { /* sem nome: nota fica sem baralho */ }
+      } catch {
+        /* sem nome: nota fica sem baralho */
+      }
     }
 
     /* Nota → baralho pelo PRIMEIRO cartão (menor `ord`): a mesma nota pode ter cartões em decks
@@ -538,7 +578,9 @@ export async function lerApkg(apkg: Buffer): Promise<LeituraAnki> {
         const nid = String(linha.nid)
         if (!baralhoIdPorNota.has(nid)) baralhoIdPorNota.set(nid, String(linha.did))
       }
-    } catch { /* sem cards: notas ficam sem baralho */ }
+    } catch {
+      /* sem cards: notas ficam sem baralho */
+    }
 
     // ── As notas, com TETO — sem isto um baralho de centenas de milhares de notas carrega tudo
     // de uma vez em memória (ver `TETO_DE_NOTAS`). O count separado é o que permite avisar
@@ -556,16 +598,18 @@ export async function lerApkg(apkg: Buffer): Promise<LeituraAnki> {
        tem; geradores caseiros nem sempre). Sem esta rede, o import inteiro morreria com
        "no such column: guid" — um erro que não diz nada a quem só quer subir um baralho. Sem guid,
        a nota sai com identidade vazia e quem grava decide o que fazer (hoje, derivar do conteúdo). */
-    const r = await cliente.execute({
-      sql: 'SELECT id, guid, mid, flds, tags FROM notes LIMIT ?',
-      args: [TETO_DE_NOTAS],
-    }).catch(async (e: unknown) => {
-      if (!/no such column: guid/i.test(String(e))) throw e
-      return cliente.execute({
-        sql: "SELECT id, '' AS guid, mid, flds, tags FROM notes LIMIT ?",
+    const r = await cliente
+      .execute({
+        sql: 'SELECT id, guid, mid, flds, tags FROM notes LIMIT ?',
         args: [TETO_DE_NOTAS],
       })
-    })
+      .catch(async (e: unknown) => {
+        if (!/no such column: guid/i.test(String(e))) throw e
+        return cliente.execute({
+          sql: "SELECT id, '' AS guid, mid, flds, tags FROM notes LIMIT ?",
+          args: [TETO_DE_NOTAS],
+        })
+      })
     const notas: NotaAnki[] = []
     let descartadas = 0
     let camposVistos: string[] = []
@@ -587,8 +631,8 @@ export async function lerApkg(apkg: Buffer): Promise<LeituraAnki> {
       const midia = sons.length || imagens.length ? { sons, imagens } : undefined
 
       // Cloze resolvido ANTES de limpar (ver `limparELacunas`), campo a campo.
-      const camposLimpos = partes.map(p => limparELacunas(p ?? ''))
-      const lacunasDaNota = camposLimpos.flatMap(c => c.lacunas).sort((a, b) => a.ordinal - b.ordinal)
+      const camposLimpos = partes.map((p) => limparELacunas(p ?? ''))
+      const lacunasDaNota = camposLimpos.flatMap((c) => c.lacunas).sort((a, b) => a.ordinal - b.ordinal)
 
       /* Pelo NOME quando o baralho os nomeia; posicional quando não (ver `indicePorNome`). O
          índice só vale se o campo tiver conteúdo depois de limpo — um `Meaning` vazio não é
@@ -600,10 +644,13 @@ export async function lerApkg(apkg: Buffer): Promise<LeituraAnki> {
       const frente = porNomeOuPosicao(PADRAO_FRENTE, 0)
       const verso = porNomeOuPosicao(PADRAO_VERSO, 1)
       // Sem frente OU sem verso não há cartão: um dos dois lados seria inventado.
-      if (!frente || !verso) { descartadas++; continue }
+      if (!frente || !verso) {
+        descartadas++
+        continue
+      }
 
       const iExemplo = indiceDoExemplo(nomes)
-      const cru = iExemplo >= 0 ? camposLimpos[iExemplo]?.texto ?? '' : camposLimpos[2]?.texto ?? ''
+      const cru = iExemplo >= 0 ? (camposLimpos[iExemplo]?.texto ?? '') : (camposLimpos[2]?.texto ?? '')
       /* O exemplo não pode ser a própria palavra nem a própria tradução: onde o posicional cai em
          cima de um dos dois, a frase "de contexto" seria a resposta repetida. */
       const exemplo = cru && cru !== frente && cru !== verso ? cru : ''
@@ -619,14 +666,18 @@ export async function lerApkg(apkg: Buffer): Promise<LeituraAnki> {
          BRUTO, não o limpo: a limpeza é uma decisão nossa e precisa poder ser refeita. Campo sem
          nome (baralho antigo, sem `fields`) entra pela posição, que é a identidade que ele tem. */
       const camposBrutos: Record<string, string> = {}
-      partes.forEach((valor, i) => { camposBrutos[nomes[i] || `campo${i}`] = valor ?? '' })
+      partes.forEach((valor, i) => {
+        camposBrutos[nomes[i] || `campo${i}`] = valor ?? ''
+      })
 
       notas.push({
         guid: String(linha.guid ?? ''),
         frente,
         verso,
         exemplo: exemplo || undefined,
-        tags: String(linha.tags ?? '').split(/\s+/).filter(Boolean),
+        tags: String(linha.tags ?? '')
+          .split(/\s+/)
+          .filter(Boolean),
         camposBrutos,
         midia,
         lacunas: lacunasDaNota.length ? lacunasDaNota : undefined,
@@ -649,7 +700,9 @@ export async function lerApkg(apkg: Buffer): Promise<LeituraAnki> {
     }
   } finally {
     cliente.close()
-    await rm(dir, { recursive: true, force: true }).catch(() => { /* temporário: some com o SO */ })
+    await rm(dir, { recursive: true, force: true }).catch(() => {
+      /* temporário: some com o SO */
+    })
   }
 }
 
@@ -709,7 +762,12 @@ function lerVarint(buf: Buffer, offset: number): { valor: number; proximo: numbe
 }
 
 /** Decodifica uma `MediaEntry` (bytes de uma entrada da lista `entries`). */
-function decodificarMediaEntry(buf: Buffer): { nome: string; bytes?: number; sha1?: string; legacyZipFilename?: number } {
+function decodificarMediaEntry(buf: Buffer): {
+  nome: string
+  bytes?: number
+  sha1?: string
+  legacyZipFilename?: number
+} {
   let i = 0
   let nome = ''
   let bytesTam: number | undefined
@@ -747,7 +805,9 @@ function decodificarMediaEntry(buf: Buffer): { nome: string; bytes?: number; sha
 }
 
 /** Decodifica a mensagem raiz `MediaEntries` (campo 1 repetido = `entries`). */
-function decodificarMediaEntries(buf: Buffer): Array<{ nome: string; bytes?: number; sha1?: string; legacyZipFilename?: number }> {
+function decodificarMediaEntries(
+  buf: Buffer,
+): Array<{ nome: string; bytes?: number; sha1?: string; legacyZipFilename?: number }> {
   const entradas: Array<{ nome: string; bytes?: number; sha1?: string; legacyZipFilename?: number }> = []
   let i = 0
   while (i < buf.length) {
@@ -874,8 +934,17 @@ export function indiceInversoDeMidia(mapa: Map<string, EntradaDeMidia>): Map<str
  * nenhuma na amostra, a resposta honesta é 'desconhecido', não um palpite.
  */
 export type EscritaDominante =
-  | 'latino' | 'cjk' | 'kana' | 'hangul' | 'cirilico' | 'arabe' | 'hebraico' | 'grego'
-  | 'devanagari' | 'thai' | 'desconhecido'
+  | 'latino'
+  | 'cjk'
+  | 'kana'
+  | 'hangul'
+  | 'cirilico'
+  | 'arabe'
+  | 'hebraico'
+  | 'grego'
+  | 'devanagari'
+  | 'thai'
+  | 'desconhecido'
 
 /* Ordem de checagem importa: kana ANTES de han, porque uma frente japonesa mistura os dois
    (漢字 + かな) e cada caractere só é contado numa faixa — checar han primeiro classificaria
@@ -922,29 +991,38 @@ export function escritaDominante(amostras: string[]): EscritaDominante {
 }
 
 export function lerTextoAnki(texto: string): LeituraAnki {
-  const linhas = (texto ?? '').split(/\r?\n/).filter(l => l.trim() && !l.startsWith('#'))
+  const linhas = (texto ?? '').split(/\r?\n/).filter((l) => l.trim() && !l.startsWith('#'))
   if (!linhas.length) return { notas: [], formato: 'texto', campos: [], descartadas: 0, temMidia: false }
 
   const candidatos = ['\t', ';', ','] as const
-  const sep = candidatos.find(s => linhas[0].includes(s)) ?? '\t'
+  const sep = candidatos.find((s) => linhas[0].includes(s)) ?? '\t'
 
   const notas: NotaAnki[] = []
   let descartadas = 0
   let campos: string[] = []
 
   linhas.forEach((linha, i) => {
-    const partes = linha.split(sep).map(p => limparCampo(p.replace(/^"|"$/g, '')))
+    const partes = linha.split(sep).map((p) => limparCampo(p.replace(/^"|"$/g, '')))
     // Cabeçalho: primeira linha cujos dois primeiros campos parecem rótulos, não conteúdo.
     if (i === 0 && /^(front|frente|word|palavra|term)$/i.test(partes[0] ?? '')) {
       campos = partes.filter(Boolean)
       return
     }
     const [frente, verso, exemplo] = partes
-    if (!frente || !verso) { descartadas++; return }
+    if (!frente || !verso) {
+      descartadas++
+      return
+    }
     /* Texto puro não tem identidade estável: quem gerou o arquivo não guardou id nenhum. Guid
        vazio é a resposta honesta — quem grava decide o que fazer com isso (hoje, sintetizar). */
     notas.push({ guid: '', frente, verso, exemplo: exemplo || undefined, tags: [] })
   })
 
-  return { notas, formato: `texto (separado por ${sep === '\t' ? 'tabulação' : sep})`, campos, descartadas, temMidia: false }
+  return {
+    notas,
+    formato: `texto (separado por ${sep === '\t' ? 'tabulação' : sep})`,
+    campos,
+    descartadas,
+    temMidia: false,
+  }
 }

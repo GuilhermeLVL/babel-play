@@ -58,17 +58,17 @@ describe('validarRelatorioDeCaptura (o contrato do corpo)', () => {
       ...valido(),
       motorStt: 'Whisper Local!',
       motorMt: 'x'.repeat(41),
-      fallbacks: { 'groq-stt': 1, '<script>': 3 },
+      fallbacks: { 'groq-whisper': 1, '<script>': 3, 'motor-inventado': 1 },
     })!
     expect(r.motorStt).toBe('outro')
     expect(r.motorMt).toBe('outro')
-    expect(r.fallbacks).toEqual({ 'groq-stt': 1, outro: 3 })
+    expect(r.fallbacks).toEqual({ 'groq-whisper': 1, outro: 4 })
   })
 
   it('contadores negativos ou fracionários não viram série estranha', () => {
-    const r = validarRelatorioDeCaptura({ ...valido(), descartesAlucinacao: -3, fallbacks: { a: 2.7 } })!
+    const r = validarRelatorioDeCaptura({ ...valido(), descartesAlucinacao: -3, fallbacks: { 'groq-whisper': 2.7 } })!
     expect(r.descartesAlucinacao).toBe(0)
-    expect(r.fallbacks).toEqual({ a: 2 })
+    expect(r.fallbacks).toEqual({ 'groq-whisper': 2 })
   })
 })
 

@@ -162,7 +162,7 @@ export async function apiFetch(input: string, init?: ApiInit): Promise<Response>
   if (res.status === 401 && authRequired && supabase) {
     const { data } = await supabase.auth.refreshSession()
     if (data?.session) res = await send()
-    if (res.status === 401) await supabase.auth.signOut()
+    if (res.status === 401) await supabase.auth.signOut({ scope: 'local' }) // só este aparelho: um 401 transitório não derruba os outros
   }
   // P0-7b: o servidor diz a versão em toda resposta `/api`; diferente da do bundle, avisa (uma vez).
   conferirVersaoDoServidor(res.headers?.get?.(CABECALHO_DA_VERSAO) ?? null)

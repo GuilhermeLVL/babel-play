@@ -18,7 +18,7 @@
  */
 import { EVENTO_DA_JOGADA } from '../comemoracao/intensidade';
 import { novoEstadoDaInclinacao, passoDaInclinacao, pedirLicencaDoSensor } from '../dispositivo/inclinacao';
-import { tatoLigado } from '../dispositivo/tato';
+import { ativadoPeloUsuario, tatoLigado } from '../dispositivo/tato';
 import { desviarKit, play, somMudo, type SoundEvent } from '../soundFx';
 import { anima, MOLA_SUAVE, polido, reduz } from './base';
 import { moverPonteiro } from './ponteiro';
@@ -313,7 +313,7 @@ export function sentir(nome: Sentido, antigo?: SoundEvent): void {
     }
   }
   const padrao = TATO[nome];
-  if (tatoLigado() && padrao !== undefined && !reduz()) {
+  if (tatoLigado() && padrao !== undefined && !reduz() && ativadoPeloUsuario()) {
     try {
       if (typeof navigator.vibrate === 'function') navigator.vibrate(typeof padrao === 'number' ? padrao : [...padrao]);
       else if (nome !== 'toque' && nome !== 'fala') document.querySelector<HTMLElement>('.px-tato-ios')?.click();
@@ -328,7 +328,7 @@ export function sentir(nome: Sentido, antigo?: SoundEvent): void {
  * `telas2.js:114, 221, 467, 607`): as mesmas, atrás do interruptor de vibração do app.
  */
 export function vibrar(padrao: number | number[]): void {
-  if (!tatoLigado()) return;
+  if (!tatoLigado() || !ativadoPeloUsuario()) return;
   try {
     navigator.vibrate?.(padrao);
   } catch {

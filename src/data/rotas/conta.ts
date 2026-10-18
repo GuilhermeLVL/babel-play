@@ -11,6 +11,7 @@
  *
  * Rotas: GET `/api/me/exportar`, DELETE `/api/me`.
  */
+import { supabase } from '../../lib/supabase'
 import { apiFetch } from '../funil'
 
 /** O que o servidor devolve ao excluir a conta: o relatório por tabela e o que NÃO deu certo. */
@@ -63,7 +64,10 @@ export async function excluirConta(): Promise<ResultadoDaExclusao> {
       timeoutMs: 60_000,
     })
     const corpo = (await res.json().catch(() => ({}))) as Partial<ResultadoDaExclusao>
-    return { ...corpo, ok: res.ok && corpo.ok !== false }
+    const ok = res.ok && corpo.ok !== false
+    /* A conta sumiu: o token ainda vale até expirar e qualquer chamada recriaria uma linha vazia. Encerra a sessão aqui. */
+    if (ok && supabase) await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined)
+    return { ...corpo, ok }
   } catch (err) {
     return { ok: false, error: String((err as Error)?.message || err) }
   }

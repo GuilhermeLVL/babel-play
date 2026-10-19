@@ -9,15 +9,16 @@
  * Aqui o contrato fica explícito no nome do arquivo: NADA daqui é chamável por rota.
  * Chamado apenas por `startServer()` (server.ts).
  */
-import { mkdirSync, readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 import { eq, sql } from 'drizzle-orm'
-import { migrate } from 'drizzle-orm/libsql/migrator'
+import { migrate as migrarNode } from 'drizzle-orm/node-postgres/migrator'
+import { migrate as migrarPglite } from 'drizzle-orm/pglite/migrator'
 
 import { migrateLeitnerToFsrs } from '../../src/core/learning/scheduler'
-import { client, db } from './db'
-import { emLotes, type InstrucaoDeBatch, tuplaDeBatch } from './lotes'
+import { bancoEmbutido, db, emLote, linhas } from './db'
+import { emLotes } from './lotes'
 import { toState } from './repositories/vocab'
 import { vocabCards } from './schema'
 
@@ -30,19 +31,15 @@ import { vocabCards } from './schema'
  * na imagem de produção. Agora o próprio boot as aplica.
  *
  * A pasta é resolvível por env (`MIGRATIONS_DIR`) porque o caminho relativo depende de
- * onde o processo roda: `server/db/migrations` a partir do repo em dev, e o mesmo caminho
+ * onde o processo roda: `server/db/migrations-pg` a partir do repo em dev, e o mesmo caminho
  * copiado para dentro da imagem em produção.
  */
 export async function aplicarMigrations(): Promise<void> {
-  const url = process.env.DATABASE_URL ?? 'file:./data/babel.db'
-  if (url.startsWith('file:')) {
-    // O libsql não cria o diretório do arquivo; num volume novo ele não existe.
-    mkdirSync(dirname(url.replace(/^file:/, '')), { recursive: true })
-  }
-  const migrationsFolder = process.env.MIGRATIONS_DIR ?? join(process.cwd(), 'server', 'db', 'migrations')
+  const migrationsFolder = process.env.MIGRATIONS_DIR ?? join(process.cwd(), 'server', 'db', 'migrations-pg')
 
   try {
-    await migrate(db, { migrationsFolder })
+    if (bancoEmbutido) await migrarPglite(db as Parameters<typeof migrarPglite>[0], { migrationsFolder })
+    else await migrarNode(db as Parameters<typeof migrarNode>[0], { migrationsFolder })
   } catch (err) {
     // P1-N1: "não CONSIGO migrar" e "não PRECISO migrar" eram tratados igual, e o boot
     // matava o processo nos dois casos. Uma réplica apontada para um banco já migrado, sem
@@ -68,8 +65,8 @@ export async function aplicarMigrations(): Promise<void> {
  * `sessions` de sobra e ainda assim não consegue atender — a coluna que o código novo lê não
  * existe. Esse é o modo de falha real de um deploy contínuo, e `SELECT 1` não o vê.
  *
- * A CONTA É JOURNAL x APLICADAS. O drizzle guarda em `__drizzle_migrations` uma linha por
- * migração já rodada, e `migrations/meta/_journal.json` lista as que o código traz. Iguais em
+ * A CONTA É JOURNAL x APLICADAS. O drizzle guarda em `drizzle.__drizzle_migrations` uma linha por
+ * migração já rodada, e `migrations-pg/meta/_journal.json` lista as que o código traz. Iguais em
  * número, o banco está na versão deste binário.
  *
  * O CASO EM QUE ELA NÃO SABE, e por que isso NÃO reprova a instância: `aplicarMigrations()` já
@@ -83,7 +80,7 @@ export type VeredictoDasMigracoes = 'aplicadas' | 'atrasadas' | 'desconhecida'
 export async function migracoesAplicadas(): Promise<VeredictoDasMigracoes> {
   let esperadas: number
   try {
-    const pasta = process.env.MIGRATIONS_DIR ?? join(process.cwd(), 'server', 'db', 'migrations')
+    const pasta = process.env.MIGRATIONS_DIR ?? join(process.cwd(), 'server', 'db', 'migrations-pg')
     const journal = JSON.parse(readFileSync(join(pasta, 'meta', '_journal.json'), 'utf8')) as {
       entries?: unknown[]
     }
@@ -95,8 +92,8 @@ export async function migracoesAplicadas(): Promise<VeredictoDasMigracoes> {
   }
 
   try {
-    const r = await client.execute('SELECT count(*) AS n FROM __drizzle_migrations')
-    const n = Number(r.rows[0]?.n ?? -1)
+    const r = await db.execute(sql`select count(*) as n from drizzle.__drizzle_migrations`)
+    const n = Number(linhas<{ n: number }>(r)[0]?.n ?? -1)
     return n >= esperadas ? 'aplicadas' : 'atrasadas'
   } catch {
     /* A tabela só não existe em banco NUNCA migrado — e aí o journal tem entradas e o banco tem
@@ -109,8 +106,8 @@ export async function migracoesAplicadas(): Promise<VeredictoDasMigracoes> {
 /** O schema já existe neste banco? Usado para decidir se a falha de migração é fatal. */
 export async function schemaPresente(): Promise<boolean> {
   try {
-    const r = await client.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='sessions' LIMIT 1")
-    return r.rows.length > 0
+    const r = await db.execute(sql`select to_regclass('public.sessions') is not null as ok`)
+    return linhas<{ ok: boolean }>(r)[0]?.ok === true
   } catch {
     return false // banco inacessível: não dá para afirmar que está pronto
   }
@@ -133,7 +130,7 @@ export async function schemaPresente(): Promise<boolean> {
  */
 const TETO_DA_MIGRACAO_LEITNER = 5_000
 
-/** Instruções por `db.batch` (uma transação cada) ao gravar os migrados. */
+/** Instruções por `emLote` (uma transação cada) ao gravar os migrados. */
 const LOTE_DA_MIGRACAO_LEITNER = 1_000
 
 export async function migrarLeitnerParaFsrs(): Promise<number> {
@@ -159,7 +156,7 @@ export async function migrarLeitnerParaFsrs(): Promise<number> {
        boot voltava a varrer o acervo inteiro (504 ms em 453.000 cartões para achar zero). */
     .where(sql`${vocabCards.deletedAt} is null and ${vocabCards.stability} is null and ${vocabCards.box} > 1`)
     .limit(TETO_DA_MIGRACAO_LEITNER)
-  const atualizacoes: InstrucaoDeBatch[] = []
+  const atualizacoes: PromiseLike<unknown>[] = []
   for (const card of candidatos) {
     const antes = toState(card)
     const depois = migrateLeitnerToFsrs(antes, now)
@@ -179,7 +176,7 @@ export async function migrarLeitnerParaFsrs(): Promise<number> {
     )
   }
   /* EM LOTE, e não um `await` por cartão: eram até 5.000 idas ao banco em série no boot, cada uma
-     um commit próprio. Um `db.batch` é uma transação na mesma conexão (ver `emTransacao` em db.ts). */
-  for (const lote of emLotes(atualizacoes, LOTE_DA_MIGRACAO_LEITNER)) await db.batch(tuplaDeBatch(lote))
+     um commit próprio. Um `emLote` é uma transação numa conexão só, instruções em sequência (ver db.ts). */
+  for (const lote of emLotes(atualizacoes, LOTE_DA_MIGRACAO_LEITNER)) await emLote(() => lote)
   return atualizacoes.length
 }

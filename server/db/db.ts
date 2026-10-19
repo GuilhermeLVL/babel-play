@@ -1,147 +1,159 @@
 /**
- * Conexão do banco (libsql/SQLite). Instância única do Drizzle.
- * Troca para Postgres/Supabase = trocar este arquivo (createClient/driver);
- * o schema e os repositories não mudam.
+ * Conexão do banco (Postgres). Instância única do Drizzle, com dois drivers escolhidos pela
+ * `DATABASE_URL`:
+ *
+ *  - `pglite:<caminho>` / `pglite://memory`: Postgres embutido (WASM), sem servidor. Dev local e testes.
+ *  - `postgres://…` / `postgresql://…`: Postgres de verdade via `pg` (Supabase, Hyperdrive etc.).
+ *
+ * O schema e os repositories são os mesmos nos dois; só este arquivo conhece a diferença.
  */
 import 'dotenv/config'
 
 import { mkdirSync } from 'node:fs'
-import { dirname } from 'node:path'
 
-import { createClient } from '@libsql/client'
-import { drizzle } from 'drizzle-orm/libsql'
+import { PGlite } from '@electric-sql/pglite'
+import { sql } from 'drizzle-orm'
+import { drizzle as drizzleNode, type NodePgDatabase } from 'drizzle-orm/node-postgres'
+import { drizzle as drizzlePglite, type PgliteDatabase } from 'drizzle-orm/pglite'
+import { Pool } from 'pg'
 
 import { medirConsultas } from './observadorDeConsultas'
 import * as schema from './schema'
 
-const url = process.env.DATABASE_URL ?? 'file:./data/babel.db'
+export const urlDoBanco: string = process.env.DATABASE_URL ?? 'pglite:./data/pg'
 
-/**
- * Arquivo local (`file:`) ou banco REMOTO libsql (`libsql://…` / `https://…`, ex.: Turso).
- * O driver é o mesmo; o que muda é o token e os PRAGMAs — WAL, synchronous e busy_timeout são
- * decisões do processo do SQLite, e num banco remoto quem as toma é o servidor deles. Aplicá-los
- * lá ou falha ou não faz nada; o boot não pode depender disso.
- */
-export const bancoLocal = url.startsWith('file:')
+/** Banco embutido (PGlite) ou servidor Postgres remoto. */
+export const bancoEmbutido: boolean = urlDoBanco.startsWith('pglite:')
 
-// libsql não cria o diretório do arquivo — garantimos aqui p/ o dev nunca falhar.
-if (bancoLocal) {
-  mkdirSync(dirname(url.replace(/^file:/, '')), { recursive: true })
+const emMemoria = urlDoBanco === 'pglite://memory'
+const ehPostgres = /^postgres(ql)?:\/\//.test(urlDoBanco)
+
+if (!bancoEmbutido && !ehPostgres) {
+  throw new Error('Erro de configuração: DATABASE_URL deve começar com pglite: ou postgres:')
 }
 
-export const client = createClient(bancoLocal ? { url } : { url, authToken: process.env.DATABASE_AUTH_TOKEN })
+/** Texto SQL da instrução, venha ela como string ou como `{ text }` (config do `pg`). */
+const textoDe = (q: unknown): string | { sql: string } =>
+  typeof q === 'string' ? q : { sql: String((q as { text?: string } | undefined)?.text ?? '') }
 
-/* MEDIÇÃO (Fase 5 de prontidão): escritas/s e duração por tipo, para o gatilho do ADR 0006. Embrulha
-   os dois métodos que o Drizzle usa fora de transação; sem observador registrado (métricas
-   desligadas), o custo é um `if`. Ver `observadorDeConsultas.ts`. */
-client.execute = medirConsultas(client.execute.bind(client) as typeof client.execute, (stmt) => [
-  stmt as string | { sql: string },
-]) as typeof client.execute
-client.batch = medirConsultas(
-  client.batch.bind(client) as typeof client.batch,
-  (stmts) => stmts as Array<string | { sql: string }>,
-) as typeof client.batch
+/* MEDIÇÃO (Fase 5 de prontidão): escritas/s e duração por tipo, para o gatilho do ADR 0006. Embrulha o
+   método `query` do driver antes de passá-lo ao Drizzle; sem observador registrado (métricas desligadas),
+   o custo é um `if`. Consultas dentro de `transaction()` rodam numa conexão/objeto próprio e não passam
+   por aqui. Ver `observadorDeConsultas.ts`. */
+function medir<T extends { query: (...args: never[]) => Promise<unknown> }>(alvo: T): void {
+  const original = alvo.query.bind(alvo) as (...args: unknown[]) => Promise<unknown>
+  alvo.query = medirConsultas(original, (q: unknown) => [textoDe(q)]) as unknown as T['query']
+}
 
-/**
- * PRAGMAs de concorrência (auditoria P0-2). O default do SQLite é `journal_mode=delete`
- * com `busy_timeout=0`: o escritor toma lock EXCLUSIVO do arquivo e qualquer concorrente
- * leva SQLITE_BUSY na hora, sem esperar. Medido em scripts/audit/diag-wal.mjs:
- *
- *   2 processos → 21,5% das escritas falhavam   · com WAL + busy_timeout: 0%
- *   3 processos → 28,9% falhavam                · com WAL + busy_timeout: 0%
- *   1 processo  → 300 inserts em 894ms          · com WAL + NORMAL:      33ms
- *
- *  - WAL: leitores e UM escritor avançam em paralelo (o default serializa tudo).
- *  - busy_timeout: quem perde a corrida ESPERA até 5s em vez de falhar imediatamente.
- *  - synchronous=NORMAL: seguro sob WAL (não perde dado em crash de processo, só num
- *    corte de energia da máquina) e é o que remove o fsync por commit.
- *  - foreign_keys: o SQLite ignora FK por padrão — ligamos para as constraints valerem.
- *
- * ATENÇÃO ao alcance: isto resolve MÚLTIPLOS PROCESSOS NA MESMA MÁQUINA (deploy sem
- * downtime, modo cluster). NÃO habilita réplicas em hosts diferentes — WAL exige memória
- * compartilhada e não funciona sobre NFS/SMB. Para multi-host, só Postgres.
- *
- * `journal_mode` é persistente no arquivo; os demais são por conexão.
- */
-/**
- * Aplica (ou REAPLICA) os PRAGMAs. Exportada porque eles são POR CONEXÃO e o libsql
- * descarta a conexão ao terminar uma transação — medido em
- * `scripts/audit/v2-diag-pragma-tx.mjs`:
- *
- *   depois de aplicar     busy_timeout = 5000
- *   DENTRO da transação   busy_timeout = 5000
- *   DEPOIS da transação   busy_timeout = 0     ← a conexão volta aos defaults
- *
- * Sem reaplicar, a primeira transação do processo desligaria silenciosamente o
- * `busy_timeout` de TODAS as queries seguintes — reintroduzindo o P0-2. Ver `emTransacao`.
- *
- * @returns o `journal_mode` EFETIVO — que pode não ser 'wal'.
- */
-export async function aplicarPragmas(): Promise<{ journalMode: string }> {
-  // Banco remoto: o servidor libsql gerencia journal/sync; só a FK é por conexão e vale pedir.
-  if (!bancoLocal) {
-    await client.execute('PRAGMA foreign_keys = ON').catch(() => {})
-    return { journalMode: 'remoto' }
+let pglite: PGlite | undefined
+let pool: Pool | undefined
+
+type DriverDb = PgliteDatabase<typeof schema> | NodePgDatabase<typeof schema>
+
+function abrir(): DriverDb {
+  if (bancoEmbutido) {
+    if (emMemoria) {
+      pglite = new PGlite()
+    } else {
+      const caminho = urlDoBanco.replace(/^pglite:/, '')
+      mkdirSync(caminho, { recursive: true })
+      pglite = new PGlite(caminho)
+    }
+    medir(pglite)
+    return drizzlePglite(pglite, { schema })
   }
-  // Ordem importa: WAL primeiro, para os demais valerem sobre o modo novo.
-  const r = await client.execute('PRAGMA journal_mode = WAL')
-  await client.execute('PRAGMA busy_timeout = 5000')
-  await client.execute('PRAGMA synchronous = NORMAL')
-  await client.execute('PRAGMA foreign_keys = ON')
-  return { journalMode: String(Object.values(r.rows[0] ?? {})[0] ?? '').toLowerCase() }
+  pool = new Pool({ connectionString: urlDoBanco, max: 5 })
+  medir(pool)
+  return drizzleNode(pool, { schema })
 }
+
+/**
+ * `db` tipado como a união dos dois drivers: é a forma que deixa `db.select()/insert()/execute()/
+ * transaction()` chamáveis sem cast nos repositories (as duas variantes compartilham a API do `PgDatabase`).
+ */
+export const db: DB = abrir()
+export type DB = DriverDb
+
+/** `db` ou uma transação — quem escreve em duas etapas aceita os dois (P1-N3). */
+export type ExecutorDb = DB | Parameters<Parameters<DB['transaction']>[0]>[0]
 
 export const dbReady: Promise<void> = (async () => {
-  const { journalMode } = await aplicarPragmas()
-  // P1-N4: `PRAGMA journal_mode` DEVOLVE o modo resultante e não lança quando não pega —
-  // em NFS/SMB ele volta 'delete' silenciosamente e a aplicação subiria achando que está
-  // protegida contra a contenção entre processos. Denunciar é o mínimo.
-  if (journalMode === 'remoto') {
-    console.log('[db] banco remoto (libsql): journal e sync gerenciados pelo servidor do banco')
-  } else if (journalMode !== 'wal') {
-    console.error(
-      `[db] ATENÇÃO: journal_mode ficou '${journalMode}', não 'wal'. A proteção contra ` +
-        'SQLITE_BUSY entre processos NÃO está ativa (WAL exige memória compartilhada e não ' +
-        'funciona sobre NFS/SMB). Rode um processo só, ou migre para Postgres.',
-    )
-  }
+  await db.execute(sql`select 1`)
+  console.log(
+    `[db] banco ${bancoEmbutido ? `pglite (${emMemoria ? 'memória' : urlDoBanco.replace(/^pglite:/, '')})` : 'postgres'}`,
+  )
 })()
 
 // Falha aqui não deve derrubar o import (o boot reporta via dbReady); mas não pode
 // virar unhandled rejection e matar o processo.
 dbReady.catch((err) => {
-  console.error('[db] falha ao aplicar PRAGMAs de concorrência:', String(err).slice(0, 160))
+  console.error('[db] falha ao conectar ao banco:', String(err).slice(0, 160))
 })
 
-export const db = drizzle(client, { schema })
-export type DB = typeof db
-
-/** `db` ou uma transação — quem escreve em duas etapas aceita os dois (P1-N3). */
-export type ExecutorDb = DB | Parameters<Parameters<DB['transaction']>[0]>[0]
+/**
+ * Roda `fn` numa transação. Qualquer erro lançado desfaz tudo. Atenção: no Postgres, um erro de SQL
+ * dentro da transação a deixa ABORTADA mesmo que o `catch` o engula — o COMMIT seguinte falha.
+ */
+export async function emTransacao<T>(fn: (tx: ExecutorDb) => Promise<T>): Promise<T> {
+  return (db as PgliteDatabase<typeof schema>).transaction(
+    fn as Parameters<PgliteDatabase<typeof schema>['transaction']>[0],
+  ) as Promise<T>
+}
 
 /**
- * Roda `fn` numa transação e REAPLICA os PRAGMAs depois — sempre, inclusive em erro.
- *
- * ⚠ PREFIRA `db.batch([...])` quando as instruções são conhecidas de antemão. Medido em
- * `scripts/audit/v2-diag-batch.mjs`:
- *
- *   batch (mesma conexão)              150× em  38ms · pragmas preservados
- *   transaction + reaplicar pragmas    150× em 345ms · pragmas resetados
- *
- * `transaction()` do libsql roda em conexão NOVA, que nasce com `busy_timeout=0` e
- * `synchronous=FULL` — ou seja, fsync por commit, exatamente o que o WAL tinha eliminado.
- * Introduzir transações no caminho quente derrubou a escrita de 878 para 216 req/s.
- *
- * Use este wrapper só quando precisar de lógica condicional entre as instruções (ler algo e
- * decidir a próxima escrita) — aí o `batch` não serve e o custo é inevitável.
+ * Roda instruções EM SEQUÊNCIA numa só transação e devolve os resultados na ordem (substitui `db.batch`).
+ * Cada item é uma função que dispara a instrução — nunca `Promise.all`: a transação usa uma conexão só e
+ * instruções concorrentes nela se embaralhariam.
  */
-export async function emTransacao<T>(
-  fn: (tx: Parameters<Parameters<DB['transaction']>[0]>[0]) => Promise<T>,
+export async function emLote<T extends readonly unknown[]>(
+  montar: (tx: ExecutorDb) => { [K in keyof T]: PromiseLike<T[K]> | (() => Promise<T[K]>) },
 ): Promise<T> {
-  try {
-    return await db.transaction(fn)
-  } finally {
-    // Best-effort: se o banco caiu, a reaplicação falha junto — e o erro original é o que importa.
-    await aplicarPragmas().catch(() => {})
-  }
+  return emTransacao(async (tx) => {
+    const itens = montar(tx) as ReadonlyArray<PromiseLike<unknown> | (() => Promise<unknown>)>
+    const resultados: unknown[] = []
+    for (const item of itens) resultados.push(await (typeof item === 'function' ? item() : item))
+    return resultados as unknown as T
+  })
+}
+
+/** Linhas modificadas por um INSERT/UPDATE/DELETE: `rowCount` (pg) ou `affectedRows` (PGlite). */
+export function linhasAfetadas(r: unknown): number {
+  const x = r as { rowCount?: number | null; affectedRows?: number | null } | null | undefined
+  return x?.rowCount ?? x?.affectedRows ?? 0
+}
+
+/* OIDs do Postgres cujo valor o `pg`/PGlite pode devolver como string: int8 (20), numeric (1700). */
+const OIDS_NUMERICOS = new Set([20, 1700])
+
+/**
+ * Linhas de um resultado de `db.execute`. `count(*)`/`sum()` chegam como string (int8/numeric); usando o
+ * `fields` do resultado, convertemos para `number` quando o valor é seguro (inteiro seguro ou decimal finito).
+ * Sem metadado, devolve como veio.
+ */
+export function linhas<T>(r: unknown): T[] {
+  const x = r as { rows?: Record<string, unknown>[]; fields?: Array<{ name: string; dataTypeID: number }> } | undefined
+  const rows = x?.rows ?? []
+  const numericos = (x?.fields ?? []).filter((f) => OIDS_NUMERICOS.has(f.dataTypeID)).map((f) => f.name)
+  if (numericos.length === 0) return rows as T[]
+  return rows.map((linha) => {
+    const copia = { ...linha }
+    for (const nome of numericos) {
+      const v = copia[nome]
+      if (typeof v !== 'string' || v.trim() === '') continue
+      const n = Number(v)
+      if (Number.isFinite(n) && (!/^-?\d+$/.test(v) || Number.isSafeInteger(n))) copia[nome] = n
+    }
+    return copia
+  }) as T[]
+}
+
+let fechado: Promise<void> | undefined
+
+/** Encerra o driver. Idempotente: chamadas seguintes devolvem o mesmo fechamento. */
+export function fecharBanco(): Promise<void> {
+  fechado ??= (async () => {
+    if (pool) await pool.end()
+    else if (pglite) await pglite.close()
+  })()
+  return fechado
 }

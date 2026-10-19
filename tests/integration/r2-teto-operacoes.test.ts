@@ -343,18 +343,62 @@ describe('jobs internos com o teto batido (via sem teto)', () => {
     expect(await ops('b', mes)).toBe(TETO_DAS_ROTAS + 1)
   })
 
-  it('a retenção com B no teto mede e apaga o áudio vencido', async () => {
+  it('a retenção com A e B no teto mede, apaga e devolve a cota do áudio vencido', async () => {
     const { limparAudiosVencidos } = await h.load<any>('../../server/lib/retencaoDeAudio')
+    const { db } = await h.load<any>('../../server/db/db')
+    const schema = await h.load<any>('../../server/db/schema')
+    const { eq } = await import('drizzle-orm')
+    process.env.AUTH_REQUIRED = '1'
     const u = asUserId('r2ops-retencao')
-    const id = (await sessions.create(u, { title: 'r2', kind: 'audio' })).id as string
-    await sessions.setAudio(u, id, `${id}.webm`, 'audio/webm')
-    await fixarOps('b', new Date().toISOString().slice(0, 7), TETO_DAS_ROTAS)
+    const ids: string[] = []
+    for (let i = 0; i < 2; i++) {
+      const id = (await sessions.create(u, { title: 'r2', kind: 'audio' })).id as string
+      await sessions.setAudio(u, id, `${id}.webm`, 'audio/webm')
+      // Só estas duas são "vencidas": as outras sessões do arquivo nasceram agora.
+      await db
+        .update(schema.sessions)
+        .set({ createdAt: 1_000 + i })
+        .where(eq(schema.sessions.id, id))
+      ids.push(id)
+    }
+    await quota.ajustarArmazenamento(u, 8) // o HEAD falso responde 4 bytes por objeto
+    const mes = new Date().toISOString().slice(0, 7)
+    await fixarOps('a', mes, TETO_DAS_ROTAS)
+    await fixarOps('b', mes, TETO_DAS_ROTAS)
     chamadas.length = 0
-    const r = await limparAudiosVencidos({ dias: 1, agora: Date.now() + 10 * 86_400_000 })
-    // Outras sessões do arquivo (nome inválido, falha de rede) caem em `falhas`; a que importa saiu.
-    expect(r.removidos).toBeGreaterThanOrEqual(1)
-    expect(JSON.parse((await sessions.get(u, id)).meta).audioFile ?? null).toBeNull()
-    expect(chamadas.some((c) => c.metodo === 'DELETE' && c.url.includes(id))).toBe(true)
+
+    const r = await limparAudiosVencidos({ dias: 1 })
+
+    expect(r).toEqual({ removidos: 2, bytes: 8, falhas: 0 })
+    expect(await quota.usoDeArmazenamento(u)).toBe(0) // liberarArmazenamento foi chamado
+    for (const id of ids) {
+      expect(JSON.parse((await sessions.get(u, id)).meta).audioFile ?? null).toBeNull()
+      expect(chamadas.some((c) => c.metodo === 'DELETE' && c.url.includes(id))).toBe(true)
+    }
+  })
+
+  it('excluir a conta (DELETE /api/me) com A e B no teto responde 2xx e apaga os objetos (LGPD)', async () => {
+    delete process.env.AUTH_REQUIRED // sem auth não há vínculo de login a remover
+    const { meRouter } = await h.load<any>('../../server/routes/me')
+    const u = asUserId('r2ops-exclui-conta')
+    const ids: string[] = []
+    for (let i = 0; i < 2; i++) {
+      const id = (await sessions.create(u, { title: 'r2', kind: 'audio' })).id as string
+      await sessions.setAudio(u, id, `${id}.webm`, 'audio/webm')
+      ids.push(id)
+    }
+    const mes = new Date().toISOString().slice(0, 7)
+    await fixarOps('a', mes, TETO_DAS_ROTAS)
+    await fixarOps('b', mes, TETO_DAS_ROTAS)
+    chamadas.length = 0
+    const res = fakeRes()
+    await meRouter.stack
+      .find((l: any) => l.route?.path === '/' && l.route?.methods?.delete)
+      .route.stack.at(-1)
+      .handle({ userId: u, body: { confirmar: true }, path: '/' }, res)
+    expect(res.statusCode).toBeGreaterThanOrEqual(200)
+    expect(res.statusCode).toBeLessThan(300)
+    for (const id of ids) expect(chamadas.some((c) => c.metodo === 'DELETE' && c.url.includes(id))).toBe(true)
   })
 })
 

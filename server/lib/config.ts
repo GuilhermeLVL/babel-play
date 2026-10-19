@@ -279,7 +279,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      '1 liga o job do snapshot diário do banco. No Postgres ele só registra `indisponível neste banco; backup por pg_dump no CI` (server/operacao/snapshot.ts)',
+      '1 liga o job do snapshot diário do banco. No Postgres ele só registra que NÃO há backup automático neste build (backup: `scripts/backup.mjs`; com Supabase, também os backups gerenciados; o pg_dump semanal no CI é da Fase 2) (server/operacao/snapshot.ts)',
   },
   {
     nome: 'BACKUP_HEARTBEAT_URL',

@@ -75,7 +75,8 @@ container mais o `AUTH_REQUIRED=1`, não o bind.
       o índice único, então rodar por cima de um banco antigo é seguro.
 - [ ] **Backup do banco.** Com `postgres://`, `node scripts/backup.mjs` roda `pg_dump` e confere com
       `pg_restore --list`. Com `pglite:<dir>` (dev), copia o diretório e só vale com o servidor parado.
-      Litestream e snapshot diário saíram do servidor (ADR 0014); o `pg_dump` semanal no CI é da Fase 2.
+      Litestream e snapshot diário saíram do servidor (ADR 0014): NÃO há backup automático neste build
+      (no Supabase, conte também com os backups gerenciados); o `pg_dump` semanal no CI é da Fase 2.
 - [ ] **Tetos por plano** (`PREMIUM_*` — `PREMIUM_MONTHLY_STT_SECONDS`, `PREMIUM_DAILY_STT_SECONDS` e as
       demais do inventário em `server/lib/config.ts`; defaults em `src/core/planos.ts`. As antigas
       `PRO_*`/`ESSENCIAL_*` NÃO são mais lidas: passe o valor para a `PREMIUM_*` correspondente) coerentes com o

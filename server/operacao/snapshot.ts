@@ -4,11 +4,12 @@
  * No SQLite este módulo fazia `VACUUM INTO` → `PRAGMA integrity_check` → gzip → PUT no R2, num
  * processo filho para não prender o event loop. Nada disso tem sentido no Postgres: não há arquivo
  * único para copiar (o PGlite guarda um diretório de dados, o Postgres remoto nem está nesta
- * máquina), e o backup passa a ser `pg_dump` agendado no CI, fora do servidor.
+ * máquina), e o backup passa a ser `pg_dump`, fora do servidor.
  *
- * A FORMA PÚBLICA FICA, para o agendador do `server.ts` e a CLI de operação continuarem compilando
- * e respondendo: com `BACKUP_DIARIO=1`, o job diário ainda roda, mas só REGISTRA que o snapshot está
- * indisponível neste banco e devolve sem erro. Não pinga o heartbeat nem conta sucesso na métrica:
+ * NÃO HÁ BACKUP AUTOMÁTICO NESTE BUILD. A FORMA PÚBLICA FICA, para o agendador do `server.ts` e a
+ * CLI de operação continuarem compilando e respondendo: com `BACKUP_DIARIO=1`, o job diário ainda
+ * roda, mas só REGISTRA que não há backup automático (e o que usar no lugar) e devolve sem erro.
+ * O `pg_dump` semanal agendado no CI é item da Fase 2; até lá ele não existe, e o aviso não o promete. Não pinga o heartbeat nem conta sucesso na métrica:
  * o heartbeat diz "há um backup conferido", e aqui não há.
  *
  * A VOLTA FICA: `restaurarSnapshot` e `verificarBanco` leem os snapshots SQLITE que já estão no R2
@@ -26,8 +27,11 @@ import { createClient } from '@libsql/client'
 import { type Armazenamento, armazenamentoS3, type ConfigS3 } from '../lib/armazenamento'
 import { log } from '../lib/logger'
 
-/** O que o job registra no lugar do snapshot. */
-export const SNAPSHOT_INDISPONIVEL = 'indisponível neste banco; backup por pg_dump no CI'
+/** O que o job registra no lugar do snapshot: não há backup automático, e o que usar no lugar. */
+export const SNAPSHOT_INDISPONIVEL =
+  'sem backup automático neste build: com pglite:, `node scripts/backup.mjs` com o servidor parado; ' +
+  'com postgres:// (Supabase), os backups gerenciados do provedor e `node scripts/backup.mjs`; ' +
+  'o pg_dump semanal no CI é da Fase 2'
 
 const PREFIXO_PADRAO = 'backups/diario/'
 

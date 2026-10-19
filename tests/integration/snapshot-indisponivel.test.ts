@@ -1,8 +1,8 @@
 /**
  * O SNAPSHOT DIÁRIO NO POSTGRES: o job continua agendado, mas só registra que está indisponível.
  *
- * O `VACUUM INTO` saiu com o SQLite (ver `server/operacao/snapshot.ts`); o backup passa a ser
- * `pg_dump` no CI. O que este arquivo prova é o que sobrou de comportamento: o job não lança, não
+ * O `VACUUM INTO` saiu com o SQLite (ver `server/operacao/snapshot.ts`) e NÃO há backup automático
+ * neste build (o `pg_dump` semanal no CI é da Fase 2): o aviso diz isso e o que usar. O que este arquivo prova é o que sobrou de comportamento: o job não lança, não
  * pinga o heartbeat (que significa "há backup conferido") e o agendador segue tratando sucesso e
  * falha como antes; e a VOLTA dos snapshots SQLite que já estão no R2 (os de antes da migração)
  * continua funcionando: GET → gunzip → arquivo novo → `integrity_check` e contagens. Os testes do
@@ -92,6 +92,11 @@ describe('snapshot diário no Postgres', () => {
       const escrito = [...saida.mock.calls, ...saidaLog.mock.calls].flat().join(' ')
       expect(escrito).toContain('backup_diario_indisponivel')
       expect(escrito).toContain(SNAPSHOT_INDISPONIVEL)
+      /* O aviso não promete um backup que não existe, e diz o que usar no lugar. */
+      expect(SNAPSHOT_INDISPONIVEL).toMatch(/sem backup automático/)
+      expect(SNAPSHOT_INDISPONIVEL).toContain('scripts/backup.mjs')
+      expect(SNAPSHOT_INDISPONIVEL).toMatch(/Fase 2/)
+      expect(SNAPSHOT_INDISPONIVEL).not.toMatch(/backup por pg_dump no CI/)
     } finally {
       saida.mockRestore()
       saidaLog.mockRestore()

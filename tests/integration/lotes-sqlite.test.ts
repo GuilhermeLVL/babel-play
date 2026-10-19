@@ -14,6 +14,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
+import { clienteSql } from '../harness/clienteSql'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
@@ -31,7 +32,9 @@ beforeAll(async () => {
   ;({ utterancesRepo } = await h.load('../../server/db/repositories/utterances'))
   ;({ ankiRepo } = await h.load('../../server/db/repositories/anki'))
   ;({ vocabRepo } = await h.load('../../server/db/repositories/vocab'))
-  ;({ db, client } = await h.load('../../server/db/db'))
+  const modDb: any = await h.load('../../server/db/db')
+  db = modDb.db
+  client = clienteSql(modDb)
   ;({ vocabCards } = await h.load('../../server/db/schema'))
 }, 60_000)
 

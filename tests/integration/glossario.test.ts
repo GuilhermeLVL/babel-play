@@ -17,6 +17,7 @@ import { esquecerDisjuntores } from '../../server/ai/disjuntor'
 import { esquecerGlossarioEmMemoria, MAX_ENTRADAS_DO_GLOSSARIO, normalizarTermo } from '../../server/ai/glossario'
 import { esquecerRegistro } from '../../server/ai/registroDeProvedores'
 import { asUserId } from '../../server/lib/authContext'
+import { clienteSql } from '../harness/clienteSql'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 import { PLANO_PAGO } from '../harness/planoPago'
 
@@ -69,7 +70,7 @@ beforeAll(async () => {
   ;({ contaRepo: conta } = await h.load<any>('../../server/db/repositories/conta'))
   ;({ mtTranslateProxy } = await h.load<any>('../../server/ai/mtProxy'))
   cache = await h.load<any>('../../server/ai/cacheDeTraducao')
-  ;({ client } = await h.load<any>('../../server/db/db'))
+  client = clienteSql(await h.load<any>('../../server/db/db'))
   const { subscriptionsRepo } = await h.load<any>('../../server/db/repositories/subscriptions')
   await subscriptionsRepo.upsert(ANA, { plan: PLANO_PAGO, status: 'active' })
 })

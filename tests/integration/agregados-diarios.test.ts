@@ -22,6 +22,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { makeFsrs5, retrievability } from '../../src/core/learning/scheduler'
 import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
+import { clienteSql } from '../harness/clienteSql'
 import { AGORA, semearRico } from './_semeaduraRica'
 
 const DIA = 86_400_000
@@ -68,7 +69,9 @@ describe('medir, agregar e limpar', () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(AGORA)
     s = await subirApp({ modo: 'self-host' })
-    ;({ db, client } = await s.load('../../server/db/db'))
+    const modDb: any = await s.load('../../server/db/db')
+    db = modDb.db
+    client = clienteSql(modDb)
     t = await s.load('../../server/db/schema')
     U = (await s.load('../../server/lib/authContext')).asUserId
     ;({ vocabRepo } = await s.load('../../server/db/repositories/vocab'))

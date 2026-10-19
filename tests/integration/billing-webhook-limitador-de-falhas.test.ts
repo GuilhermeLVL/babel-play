@@ -12,6 +12,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
+import { clienteSql } from '../harness/clienteSql'
 
 let s: AppDeTeste
 const salvo: Record<string, string | undefined> = {}
@@ -25,7 +26,7 @@ const IP_DO_ASAAS = '198.51.100.50'
 const evento = (id: string) => ({ id, event: 'PAYMENT_CREATED', payment: { id: `pay_${id}` } })
 
 async function falhasContadas(): Promise<number> {
-  const { client } = await s.load('../../server/db/db')
+  const client = clienteSql(await s.load<any>('../../server/db/db'))
   const r = await client.execute(
     `select coalesce(sum(count), 0) as n from usage_counters where metric = 'ratelimit:auth'`,
   )

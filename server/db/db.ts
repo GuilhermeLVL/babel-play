@@ -16,7 +16,7 @@ import { sql } from 'drizzle-orm'
 import { drizzle as drizzleNode } from 'drizzle-orm/node-postgres'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 import { drizzle as drizzlePglite } from 'drizzle-orm/pglite'
-import { Pool } from 'pg'
+import { Pool, types } from 'pg'
 
 import { medirConsultas, registrarMedidorDeTamanho } from './observadorDeConsultas'
 import * as schema from './schema'
@@ -102,6 +102,20 @@ function medirClientesDoPool(p: Pool): void {
   }
 }
 
+/* OIDs do Postgres cujo valor o `pg`/PGlite pode devolver como string: int8 (20), numeric (1700). */
+const OIDS_NUMERICOS = [20, 1700]
+
+/**
+ * int8/numeric em texto → `number` quando cabe sem perder nada (inteiro seguro ou decimal finito);
+ * senão o texto como veio (int8 acima de 2^53 continua string, sem arredondar). Regra única do
+ * parser do `pg` (abaixo) e de `linhas()`.
+ */
+function numeroDoBanco(v: string): number | string {
+  if (v.trim() === '') return v
+  const n = Number(v)
+  return Number.isFinite(n) && (!/^-?\d+$/.test(v) || Number.isSafeInteger(n)) ? n : v
+}
+
 let pglite: PGlite | undefined
 let pool: Pool | undefined
 let soltarTrava: (() => void) | undefined
@@ -121,6 +135,12 @@ function abrir(): DB {
     medirTransacoesDoPglite(pglite)
     return drizzlePglite(pglite, { schema })
   }
+  /* INT8 CHEGA COMO STRING NO `pg` e como number no PGlite: `min(occurred_at)` virava "1712345678901" na
+     API de produção e `new Date()` do cliente lançava RangeError. O parser vale para o `pg` do PROCESSO
+     (`types.setTypeParser` é global): o `types` por pool existe, mas o Drizzle passa o seu `types` por
+     consulta (datas), que cai no parser GLOBAL para os demais OIDs e passaria por cima do do pool.
+     Só roda neste ramo: um processo com PGlite não muda o `pg` de ninguém. */
+  for (const oid of OIDS_NUMERICOS) types.setTypeParser(oid, numeroDoBanco)
   pool = new Pool({ connectionString: urlDoBanco, max: 5 })
   // Sem handler, a queda de uma conexão OCIOSA vira 'error' não tratado e derruba o processo.
   pool.on('error', (err) => {
@@ -194,18 +214,16 @@ export function linhasAfetadas(r: unknown): number {
   return x?.rowCount ?? x?.affectedRows ?? 0
 }
 
-/* OIDs do Postgres cujo valor o `pg`/PGlite pode devolver como string: int8 (20), numeric (1700). */
-const OIDS_NUMERICOS = new Set([20, 1700])
-
 /**
- * Linhas de um resultado de `db.execute`. `count(*)`/`sum()` chegam como string (int8/numeric); usando o
- * `fields` do resultado, convertemos para `number` quando o valor é seguro (inteiro seguro ou decimal finito).
- * Sem metadado, devolve como veio; int8 fora do intervalo seguro (string ou `bigint`) fica como está, sem perder precisão.
+ * Linhas de um resultado de `db.execute`. `count(*)`/`sum()` podem chegar como string (int8/numeric); usando o
+ * `fields` do resultado, convertemos para `number` quando o valor é seguro (`numeroDoBanco`, a mesma regra do
+ * parser do `pg`). Sem metadado, devolve como veio; int8 fora do intervalo seguro (string ou `bigint`) fica como
+ * está, sem perder precisão.
  */
 export function linhas<T>(r: unknown): T[] {
   const x = r as { rows?: Record<string, unknown>[]; fields?: Array<{ name: string; dataTypeID: number }> } | undefined
   const rows = x?.rows ?? []
-  const numericos = (x?.fields ?? []).filter((f) => OIDS_NUMERICOS.has(f.dataTypeID)).map((f) => f.name)
+  const numericos = (x?.fields ?? []).filter((f) => OIDS_NUMERICOS.includes(f.dataTypeID)).map((f) => f.name)
   if (numericos.length === 0) return rows as T[]
   return rows.map((linha) => {
     const copia = { ...linha }
@@ -215,9 +233,7 @@ export function linhas<T>(r: unknown): T[] {
         if (Number.isSafeInteger(Number(v))) copia[nome] = Number(v)
         continue
       }
-      if (typeof v !== 'string' || v.trim() === '') continue
-      const n = Number(v)
-      if (Number.isFinite(n) && (!/^-?\d+$/.test(v) || Number.isSafeInteger(n))) copia[nome] = n
+      if (typeof v === 'string') copia[nome] = numeroDoBanco(v)
     }
     return copia
   }) as T[]

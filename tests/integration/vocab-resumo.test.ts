@@ -12,6 +12,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import type { ResumoDosCartoes } from '../../src/core/learning/resumoDosCartoes'
 import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
+import { type ContadorDeConsultas, contarConsultas } from '../harness/contadorDeConsultas'
 import { semearRico } from './_semeaduraRica'
 
 const DIA = 86_400_000
@@ -30,7 +31,7 @@ describe('GET /api/vocab/resumo', () => {
   let a: string
   let b: string
   let rico: string
-  let instrucoes: string[] = []
+  let contador: ContadorDeConsultas
 
   async function ler(token: string, inicio: number = HOJE): Promise<ResumoDosCartoes> {
     const r = await s.get(rota(inicio), token)
@@ -183,18 +184,9 @@ describe('GET /api/vocab/resumo', () => {
 
     await semearRico(s, RICO)
 
-    const { client } = await s.load('../../server/db/db')
-    const execute = client.execute.bind(client)
-    const batch = client.batch.bind(client)
-    const texto = (x: unknown) => (typeof x === 'string' ? x : ((x as { sql?: string }).sql ?? ''))
-    client.execute = ((...p: Parameters<typeof execute>) => {
-      instrucoes.push(texto(p[0]))
-      return execute(...p)
-    }) as typeof client.execute
-    client.batch = ((...p: Parameters<typeof batch>) => {
-      for (const x of p[0] as unknown[]) instrucoes.push(texto(x))
-      return batch(...p)
-    }) as typeof client.batch
+    /* Pelo observador do `db.ts` e pelas transações do PGlite (`contadorDeConsultas.ts`): o que era
+       embrulhar `client.execute`/`client.batch` do libsql. */
+    contador = await contarConsultas(s.load)
   }, 60_000)
 
   afterAll(async () => {
@@ -377,11 +369,14 @@ describe('GET /api/vocab/resumo', () => {
   })
 
   it('conta semeada grande: as somas fecham, o corpo é pequeno e são poucas consultas', async () => {
-    instrucoes = []
+    contador.zerar()
     const res = await s.get(rota(), rico)
     expect(res.status).toBe(200)
     const corpo = await res.text()
-    const consultas = dasTabelasDoResumo(instrucoes)
+    /* As AVULSAS: se as marcas dos agregados estão atrás do bruto, a leitura reconstrói antes de somar,
+       numa transação com a trava do usuário — que o contador do libsql também não via (era uma
+       transação interativa). O que se mede aqui é a leitura do resumo. */
+    const consultas = dasTabelasDoResumo(contador.avulsas)
     const r = JSON.parse(corpo) as ResumoDosCartoes
     expect(r.total + r.suspensas).toBeGreaterThan(100)
     expect(r.fases.novas + r.fases.aprendendo + r.fases.jovens + r.fases.maduras).toBe(r.total)
@@ -398,9 +393,9 @@ describe('GET /api/vocab/resumo', () => {
        um `count(*)` em `review_logs` (eram a quarta) e vêm dos agregados diários (migração 0053):
        uma consulta para conferir as marcas e uma para somar. */
     expect(consultas).toHaveLength(3)
-    expect(instrucoes.filter((x) => /\bagregados_diarios\b/.test(x))).toHaveLength(1)
-    expect(instrucoes.filter((x) => /\bestado_dos_agregados\b/.test(x))).toHaveLength(1)
-    expect(instrucoes.filter((x) => x.includes('versoes_de_dados'))).toHaveLength(1)
+    expect(contador.avulsas.filter((x) => /\bagregados_diarios\b/.test(x))).toHaveLength(1)
+    expect(contador.avulsas.filter((x) => /\bestado_dos_agregados\b/.test(x))).toHaveLength(1)
+    expect(contador.avulsas.filter((x) => x.includes('versoes_de_dados'))).toHaveLength(1)
   })
 
   describe('validação', () => {
@@ -439,12 +434,12 @@ describe('GET /api/vocab/resumo', () => {
 
     it('com If-None-Match igual: 304, sem corpo e sem ler tabela nenhuma do resumo', async () => {
       vi.setSystemTime(AGORA + 20_000)
-      instrucoes = []
+      contador.zerar()
       const r = await s.chamar('GET', rota(), { token: a, headers: { 'if-none-match': etag } })
       expect(r.status).toBe(304)
       expect(await r.text()).toBe('')
-      expect(dasTabelasDoResumo(instrucoes)).toEqual([])
-      expect(instrucoes.filter((x) => x.includes('versoes_de_dados'))).toHaveLength(1)
+      expect(dasTabelasDoResumo(contador.instrucoes)).toEqual([])
+      expect(contador.instrucoes.filter((x) => x.includes('versoes_de_dados'))).toHaveLength(1)
     })
 
     it('outro começo de dia não casa com o ETag', async () => {

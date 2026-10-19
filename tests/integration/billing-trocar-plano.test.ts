@@ -222,7 +222,8 @@ describe('alterarValorDaAssinatura (server/lib/asaas.ts)', () => {
 })
 
 describe('a migração 0050', () => {
-  const sql = readFileSync(path.join('server', 'db', 'migrations', '0050_troca_de_plano.sql'), 'utf8')
+  /* Da cadeia SQLite legada; no Postgres as duas colunas já nascem na baseline (o segundo caso é o que vale lá). */
+  const sql = readFileSync(path.join('server', 'db', 'migrations-sqlite', '0050_troca_de_plano.sql'), 'utf8')
 
   it('só acrescenta as duas colunas da intenção de troca, e traz a reversão escrita', () => {
     const comandos = sql.replace(/--[^\n]*/g, '')

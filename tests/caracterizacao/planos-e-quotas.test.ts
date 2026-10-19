@@ -8,6 +8,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { PLAN_MATRIX } from '../../src/core/planos'
+import { clienteSql } from '../harness/clienteSql'
 import { type AppDeTeste, resposta, subirApp } from './_app'
 
 /* Toda chave que resolveria um provedor de nuvem — inclusive o atalho da reserva (OPENROUTER_API_KEY)
@@ -143,7 +144,7 @@ describe('planos e quotas (modo publico)', () => {
   })
 
   it('matriz v2: a linha ANTIGA (pro) ainda no banco é lida como premium', async () => {
-    const { client } = await s.load('../../server/db/db')
+    const client = clienteSql(await s.load('../../server/db/db'))
     await client.execute({ sql: "UPDATE subscriptions SET plan = 'pro' WHERE user_id = ?", args: [A] })
     expect((await (await s.get('/api/me/entitlements', tokenA)).json()).plan).toBe('premium')
     await client.execute({ sql: "UPDATE subscriptions SET plan = 'premium' WHERE user_id = ?", args: [A] })

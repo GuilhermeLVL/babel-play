@@ -3,6 +3,7 @@
   "forma": {
     "arquivosDeMidia": [],
     "dados": {
+      "agregadosDiarios": [],
       "ankiDecks": [],
       "ankiImports": [],
       "ankiNotes": [],
@@ -11,6 +12,8 @@
       "creditPurchases": [],
       "creditSpends": [],
       "estadoDaConta": [],
+      "estadoDosAgregados": [],
+      "estadoPorItem": [],
       "exerciseResults": [],
       "glossario": [],
       "idadesDeclaradas": [],
@@ -27,6 +30,7 @@
       "usageCounters": [],
       "userInterests": [],
       "utterances": [],
+      "versoesDeDados": [],
       "vinculosDeResponsavel": [],
       "vocabCards": [],
       "vocabOccurrences": []

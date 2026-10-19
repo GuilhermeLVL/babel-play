@@ -11,19 +11,24 @@
  *
  * Como em `planos-v2-migracao`: o banco nasce migrado, as linhas "antigas" são escritas DEPOIS, à mão,
  * e os UPDATEs da migração são reaplicados sobre elas. Reaplicar é idempotente.
+ *
+ * Postgres (Fase 1): a migração é da cadeia SQLITE legada e roda sobre ela (`sqliteLegado.ts`). O
+ * Postgres nasce no estado final, e o último bloco confere que as sementes dele são as mesmas.
  */
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { clienteSql } from '../harness/clienteSql'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
+import { abrirSqliteLegado, PASTA_SQLITE_LEGADO, type SqliteLegado } from '../harness/sqliteLegado'
 
 type Cliente = {
   execute: (q: string | { sql: string; args: unknown[] }) => Promise<{ rows: Array<Record<string, unknown>> }>
 }
 
-const MIGRACAO = path.join('server', 'db', 'migrations', '0049_planos_v3.sql')
+const MIGRACAO = path.join(PASTA_SQLITE_LEGADO, '0049_planos_v3.sql')
 const updatesDaMigracao = () =>
   readFileSync(MIGRACAO, 'utf8')
     .split(/-->\s*statement-breakpoint/)
@@ -31,13 +36,18 @@ const updatesDaMigracao = () =>
     .filter((c) => /^UPDATE\b/i.test(c))
 
 let h: EphemeralDb
+let legado: SqliteLegado
 let client: Cliente
 
 beforeAll(async () => {
+  /* O harness do Postgres só carrega os módulos do servidor (os schemas de flags e ofertas); o dado
+     migrado é o do SQLite legado, que é onde esta migração existe (ver `sqliteLegado.ts`). */
   h = await setupEphemeralDb()
-  client = ((await h.load('../../server/db/db')) as { client: Cliente }).client
+  legado = await abrirSqliteLegado()
+  client = legado.client as unknown as Cliente
 })
 afterAll(async () => {
+  legado.fechar()
   await h.cleanup()
 })
 
@@ -222,5 +232,19 @@ describe('a reversão escrita desfaz a migração', () => {
     // E a migração volta a valer por cima (ida e volta).
     await reaplicar()
     expect((await lerFlag('voz_natural')).regras.planos.sort()).toEqual(['aovivo', 'premium', 'selfhost'])
+  })
+})
+
+describe('as sementes no Postgres (baseline 0001) chegam ao mesmo estado final', () => {
+  const lerFlagPg = async (chave: string) => {
+    const pg = clienteSql(await h.load('../../server/db/db'))
+    const l = (await pg.execute({ sql: 'SELECT regras, payload FROM flags WHERE chave = ?', args: [chave] })).rows[0]
+    return { regras: JSON.parse(String(l.regras)), payload: l.payload === null ? null : JSON.parse(String(l.payload)) }
+  }
+
+  it('voz_natural, nuvem_gratuita_alivio, venda e ofertas como na cadeia SQLite', async () => {
+    for (const chave of ['voz_natural', 'nuvem_gratuita_alivio', 'venda_planos_v3', 'stt_ao_vivo', 'oferta_planos']) {
+      expect(await lerFlagPg(chave), chave).toEqual(await lerFlag(chave))
+    }
   })
 })

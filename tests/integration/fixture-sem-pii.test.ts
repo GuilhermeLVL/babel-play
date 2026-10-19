@@ -18,7 +18,7 @@ import { type Client, createClient } from '@libsql/client'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 const FIXTURE = path.resolve(process.cwd(), 'tests', 'fixtures', 'banco-estado-atual.db')
-const JOURNAL = path.resolve(process.cwd(), 'server', 'db', 'migrations', 'meta', '_journal.json')
+const JOURNAL = path.resolve(process.cwd(), 'server', 'db', 'migrations-sqlite', 'meta', '_journal.json')
 
 /* Repetidos de `scripts/db/fixture-anonimizada.mjs`: o script executa ao ser importado, entao nao
    da para importar so as constantes sem regerar a fixture. */
@@ -70,7 +70,7 @@ describe('fixture do estado atual — forma do arquivo', () => {
 
   it('carrega o diario de migrations da foto (ate a 0028) — o estado de producao no dia do deploy', async () => {
     /* A foto foi refeita na Fase 4 com a 0028 aplicada. Migration nova NAO refaz a foto: ela e o estado sobre o
-       qual a migration nova precisa se aplicar (ver `migracoes-sobre-estado-atual.test.ts`). */
+       qual a migration nova precisava se aplicar (o teste que a usava, `migracoes-sobre-estado-atual`, saiu com o SQLite). */
     const ENTRADAS_NA_FOTO = 29
     const journal = JSON.parse(readFileSync(JOURNAL, 'utf8')) as { entries: Array<{ when: number }> }
     expect(await contar('__drizzle_migrations')).toBe(ENTRADAS_NA_FOTO)

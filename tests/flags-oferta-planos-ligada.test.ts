@@ -1,56 +1,33 @@
 /**
- * A FLAG `oferta_planos` NASCE LIGADA (migração 0039, decisão do dono de 29/09): banco novo e banco
- * existente terminam iguais — flag ligada, com gatilhos para os seis momentos — e o convidado segue
+ * A FLAG `oferta_planos` NASCE LIGADA (migração 0039 do SQLite, hoje semente da 0001 do Postgres;
+ * decisão do dono de 29/09): banco novo e banco existente terminam iguais — flag ligada, com gatilhos para os seis momentos — e o convidado segue
  * desligado (`modo_convidado`, `nuvem_convidado`). O que o operador já mexeu não é sobrescrito.
  *
  * E o motor, com o payload SEMEADO (não um de teste): o Grátis que esbarra num recurso de nuvem
  * (402 com `entitlement`) vê `modelo_premium`, e as regras antichateação continuam valendo.
  */
-import { readFileSync } from 'node:fs'
-import path from 'node:path'
-
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import type { ConfigDeOfertas } from '../src/core/ofertas'
 import { momentoDaRecusa } from '../src/lib/ofertas/eventos'
 import { decidirOferta, type EntradaDoMotor, HISTORICO_VAZIO, INICIO_SEM_OFERTA_MS } from '../src/lib/ofertas/motor'
+import { clienteSql } from './harness/clienteSql'
 import { type EphemeralDb, setupEphemeralDb } from './harness/ephemeralDb'
+import { sementesDeFlags } from './harness/sementesPg'
 
-type Cliente = { execute: (q: string) => Promise<{ rows: Array<Record<string, unknown>> }> }
-
-const MIGRACAO = path.join('server', 'db', 'migrations', '0039_oferta_planos_ligada.sql')
-const comandosDaMigracao = () =>
-  readFileSync(MIGRACAO, 'utf8')
-    .split(/-->\s*statement-breakpoint/)
-    .map((c) => c.trim())
-    .filter((c) => c.replace(/--[^\n]*/g, '').trim())
-
-/* A 0041 (matriz v2) roda DEPOIS da 0039 e tira o `essencial` dos gatilhos da semente: reaplicar a
-   0039 sozinha devolveria o nome antigo, então a sequência reaplicada é 0039 → os UPDATEs da 0041. */
-const MIGRACAO_V2 = path.join('server', 'db', 'migrations', '0041_planos_v2.sql')
-const updatesDaV2 = () =>
-  readFileSync(MIGRACAO_V2, 'utf8')
-    .split(/-->\s*statement-breakpoint/)
-    .map((c) => c.replace(/--[^\n]*/g, '').trim())
-    .filter((c) => /^UPDATE\b/i.test(c))
-/* E a 0045 (C8) troca os textos pelos da matriz v2: a sequência inteira é 0039 → 0041 → 0045. */
-const MIGRACAO_OFERTAS_V2 = path.join('server', 'db', 'migrations', '0045_ofertas_v2.sql')
-const updatesDasOfertasV2 = () =>
-  readFileSync(MIGRACAO_OFERTAS_V2, 'utf8')
-    .split(/-->\s*statement-breakpoint/)
-    .map((c) => c.replace(/^\s*--[^\n]*$/gm, '').trim())
-    .filter((c) => /^UPDATE\b/i.test(c))
+/* No Postgres a cadeia 0039 → 0041 → 0045 virou o estado final semeado pela 0001 (`sementesPg.ts`):
+   reaplicar é rodar de novo aquelas sementes. */
 const reaplicar = async () => {
-  for (const c of [...comandosDaMigracao(), ...updatesDaV2(), ...updatesDasOfertasV2()]) await client.execute(c)
+  for (const c of sementesDeFlags()) await client.execute(c)
 }
 
 let h: EphemeralDb
-let client: Cliente
+let client: ReturnType<typeof clienteSql>
 let config: ConfigDeOfertas
 
 beforeAll(async () => {
   h = await setupEphemeralDb()
-  client = ((await h.load('../../server/db/db')) as { client: Cliente }).client
+  client = clienteSql(await h.load('../../server/db/db'))
 })
 afterAll(async () => {
   await h.cleanup()
@@ -62,7 +39,7 @@ const linha = async (chave: string) =>
 describe('a semente no banco', () => {
   it('oferta_planos ligada, com gatilhos para os seis momentos, e o payload passa no schema', async () => {
     const l = await linha('oferta_planos')
-    expect(Number(l.habilitada)).toBe(1)
+    expect(l.habilitada).toBe(true)
     const { ofertasSchema } = (await h.load('../../server/lib/ofertas')) as typeof import('../server/lib/ofertas')
     const r = ofertasSchema.safeParse(JSON.parse(String(l.payload)))
     expect(r.success, JSON.stringify(r.error?.issues)).toBe(true)
@@ -73,8 +50,8 @@ describe('a semente no banco', () => {
   })
 
   it('o convidado segue desligado', async () => {
-    expect(Number((await linha('modo_convidado')).habilitada)).toBe(0)
-    expect(Number((await linha('nuvem_convidado')).habilitada)).toBe(0)
+    expect((await linha('modo_convidado')).habilitada).toBe(false)
+    expect((await linha('nuvem_convidado')).habilitada).toBe(false)
   })
 
   it('a avaliação entrega a flag ligada, com payload, ao Grátis', async () => {
@@ -90,11 +67,11 @@ describe('a semente no banco', () => {
     expect(await linha('oferta_planos')).toEqual(antes)
 
     await client.execute(
-      `UPDATE flags SET habilitada = 0, payload = '{"gatilhos":[]}', atualizado_por = 'admin-1' WHERE chave = 'oferta_planos'`,
+      `UPDATE flags SET habilitada = false, payload = '{"gatilhos":[]}', atualizado_por = 'admin-1' WHERE chave = 'oferta_planos'`,
     )
     await reaplicar()
     const depois = await linha('oferta_planos')
-    expect(Number(depois.habilitada)).toBe(0)
+    expect(depois.habilitada).toBe(false)
     expect(depois.payload).toBe('{"gatilhos":[]}')
     expect(depois.atualizado_por).toBe('admin-1')
   })

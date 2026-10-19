@@ -4,33 +4,43 @@
  * O achado foi MEDIDO, não inferido: um erro real do drizzle passado por `erroDeRota` devolvia
  * `Failed query: insert into "sessions" ("id", "created_at", …` — tabela mais 12 das 15 colunas.
  * E o truncamento em 200 caracteres descartava justamente a causa (`no such table`), que fica no
- * fim da mensagem. Ver `audit/evidence/fase-11/vazamento-de-erro.json`.
+ * fim da mensagem. Ver `audit/evidence/fase-11/vazamento-de-erro.json`. (No Postgres a causa é
+ * `relation "sessions" does not exist`, SQLSTATE 42P01.)
  *
  * Este teste exercita o caminho REAL — erro genuíno do driver, função real, rota Express com o
  * mesmo padrão dos ~20 handlers — e afirma as duas metades do conserto:
  *   1. o cliente não recebe schema;
  *   2. o servidor não PERDE a causa (senão o conserto seria só cegar quem opera).
  */
-import { mkdtempSync, rmSync } from 'node:fs'
 import type { AddressInfo } from 'node:net'
-import { tmpdir } from 'node:os'
-import path from 'node:path'
 
 import express from 'express'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
-const dir = mkdtempSync(path.join(tmpdir(), 'f11-02-'))
-process.env.DATABASE_URL = 'file:' + path.join(dir, 'vazamento.db').split(path.sep).join('/')
+/* Banco embutido em memória e SEM migrar: o insert falha no driver por falta da tabela. */
+process.env.DATABASE_URL = 'pglite://memory'
 
-const { db } = await import('../../server/db/db')
+const { db, fecharBanco } = await import('../../server/db/db')
 const { sessions } = await import('../../server/db/schema')
 const { erroDeRota } = await import('../../server/lib/erroDeRota')
 
 /** As colunas reais de `sessions` — server/db/schema.ts:31-43 mais o bloco `meta`. */
 const COLUNAS = [
-  'id', 'created_at', 'updated_at', 'user_id', 'deleted_at', 'title', 'kind',
-  'started_at', 'ended_at', 'source_lang', 'target_lang', 'duration_ms',
-  'word_count', 'status', 'meta',
+  'id',
+  'created_at',
+  'updated_at',
+  'user_id',
+  'deleted_at',
+  'title',
+  'kind',
+  'started_at',
+  'ended_at',
+  'source_lang',
+  'target_lang',
+  'duration_ms',
+  'word_count',
+  'status',
+  'meta',
 ]
 
 let erroReal: unknown = null
@@ -43,7 +53,11 @@ beforeAll(async () => {
   // Um `new Error('Failed query: …')` fabricado mediria a nossa imitação da mensagem, não ela.
   try {
     await db.insert(sessions).values({
-      id: 'f11-02', createdAt: Date.now(), updatedAt: Date.now(), title: 't', kind: 'live',
+      id: 'f11-02',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      title: 't',
+      kind: 'live',
     })
   } catch (e) {
     erroReal = e
@@ -67,12 +81,16 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await fechar?.()
-  try { rmSync(dir, { recursive: true, force: true }) } catch { /* OneDrive/AV pode segurar */ }
+  await fecharBanco()
 })
 
 /** O que o cliente lê depois de desserializar — é sobre isto que as asserções decidem. */
 const entregue = (): string => {
-  try { return String(JSON.parse(corpo)?.error ?? '') } catch { return corpo }
+  try {
+    return String(JSON.parse(corpo)?.error ?? '')
+  } catch {
+    return corpo
+  }
 }
 
 describe('F11-02 · o corpo da resposta', () => {
@@ -107,7 +125,7 @@ describe('F11-02 · o outro lado do conserto — o servidor não perde a causa',
       erroDeRota(erroReal, { event: 'teste_f11_02_log', route: 'POST /api/sessions' })
       const texto = espiao.mock.calls.map((c) => c.map(String).join(' ')).join('\n')
       // É o que faltava ANTES do P1-6: o servidor guardar o que o cliente não pode ver.
-      expect(texto).toMatch(/no such table|SQLITE/i)
+      expect(texto).toMatch(/relation "sessions" does not exist|42P01/i)
       expect(texto).toMatch(/Failed query/i)
     } finally {
       espiao.mockRestore()

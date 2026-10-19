@@ -18,6 +18,7 @@ process.env.TZ = 'America/Sao_Paulo'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
+import { type ContadorDeConsultas, contarConsultas } from '../harness/contadorDeConsultas'
 import { PLANO_PAGO } from '../harness/planoPago'
 import { semearRico } from './_semeaduraRica'
 
@@ -32,20 +33,23 @@ describe('rotas pequenas: uma leitura por tabela', () => {
   let s: AppDeTeste
   let pagante: string
   let gratis: string
-  let instrucoes: string[] = []
+  let contador: ContadorDeConsultas
 
   async function medir(f: () => Promise<Response>): Promise<{ r: Response; sql: string[] }> {
-    instrucoes = []
+    contador.zerar()
     const r = await f()
     await r.clone().arrayBuffer()
     /* DIAG_CONSULTAS=1 imprime o que cada chamada custou: é de onde saem os números do relatório. */
     if (process.env.DIAG_CONSULTAS === '1') {
       const tabela = (x: string) => /(?:from|into|update)\s+"?([a-z_]+)"?/i.exec(x)?.[1] ?? '?'
       const porTabela: Record<string, number> = {}
-      for (const x of instrucoes) porTabela[tabela(x)] = (porTabela[tabela(x)] ?? 0) + 1
-      console.log(`[consultas] ${new URL(r.url).pathname} ${r.status}: ${instrucoes.length}`, JSON.stringify(porTabela))
+      for (const x of contador.instrucoes) porTabela[tabela(x)] = (porTabela[tabela(x)] ?? 0) + 1
+      console.log(
+        `[consultas] ${new URL(r.url).pathname} ${r.status}: ${contador.instrucoes.length}`,
+        JSON.stringify(porTabela),
+      )
     }
-    return { r, sql: instrucoes }
+    return { r, sql: contador.instrucoes }
   }
   const leituras = (sql: string[], tabela: string) =>
     sql.filter((x) => /^\s*select/i.test(x) && x.includes(`"${tabela}"`)).length
@@ -88,18 +92,9 @@ describe('rotas pequenas: uma leitura por tabela', () => {
     await usageCountersRepo.increment(asUserId(GRATIS), quota.METRIC_MANAGED, mes, 7)
     await semearRico(s, PAGANTE)
 
-    const { client } = await s.load('../../server/db/db')
-    const execute = client.execute.bind(client)
-    const batch = client.batch.bind(client)
-    const texto = (x: unknown) => (typeof x === 'string' ? x : ((x as { sql?: string }).sql ?? ''))
-    client.execute = ((...a: Parameters<typeof execute>) => {
-      instrucoes.push(texto(a[0]))
-      return execute(...a)
-    }) as typeof client.execute
-    client.batch = ((...a: Parameters<typeof batch>) => {
-      for (const x of a[0] as unknown[]) instrucoes.push(texto(x))
-      return batch(...a)
-    }) as typeof client.batch
+    /* Pelo observador do `db.ts` e pelas transações do PGlite (`contadorDeConsultas.ts`): o que era
+       embrulhar `client.execute`/`client.batch` do libsql. */
+    contador = await contarConsultas(s.load)
   }, 60_000)
 
   afterAll(async () => {

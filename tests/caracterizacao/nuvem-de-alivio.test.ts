@@ -15,6 +15,7 @@
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { clienteSql } from '../harness/clienteSql'
 import { type AppDeTeste, subirApp } from './_app'
 
 const CHAVES = [
@@ -122,7 +123,7 @@ beforeAll(async () => {
   flags = await s.load('../../server/lib/flags')
   ;({ usageCountersRepo: counters } = await s.load('../../server/db/repositories/usageCounters'))
   ;({ gastoDeIaRepo: gastoDeIa } = await s.load('../../server/db/repositories/gastoDeIa'))
-  ;({ client } = await s.load('../../server/db/db'))
+  client = clienteSql(await s.load('../../server/db/db'))
   quota = await s.load('../../server/lib/usageQuota')
   alivio = await s.load('../../server/lib/nuvemDeAlivio')
   admissao = await s.load('../../server/ai/admissao')

@@ -20,6 +20,8 @@ process.env.TZ = 'America/Sao_Paulo'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
+import { clienteSql } from '../harness/clienteSql'
+import { type ContadorDeConsultas, contarConsultas } from '../harness/contadorDeConsultas'
 import { AGORA, type Semeado, semearRico } from './_semeaduraRica'
 
 const DONO = 'local-owner'
@@ -32,14 +34,14 @@ const json = (v: unknown) =>
 describe('rotas caras: equivalência, invalidação e custo', () => {
   let s: AppDeTeste
   let semeado: Semeado
-  let consultas = 0
+  let contador: ContadorDeConsultas
 
   /** Uma chamada HTTP e quantas consultas ao banco ela custou. */
   async function medir(f: () => Promise<Response>): Promise<{ r: Response; n: number }> {
-    const antes = consultas
+    const antes = contador.idas
     const r = await f()
     await r.clone().arrayBuffer()
-    return { r, n: consultas - antes }
+    return { r, n: contador.idas - antes }
   }
 
   beforeAll(async () => {
@@ -50,19 +52,9 @@ describe('rotas caras: equivalência, invalidação e custo', () => {
     const { settingsRepo } = await s.load('../../server/db/repositories/settings')
     const { asUserId } = await s.load('../../server/lib/authContext')
     await settingsRepo.ensure(asUserId(DONO))
-    /* CONTADOR DE CONSULTAS: toda leitura e escrita do drizzle passa por `client.execute` (ou
-       `batch`). Envolver o método do cliente conta o que cada request custa ao banco. */
-    const { client } = await s.load('../../server/db/db')
-    const execute = client.execute.bind(client)
-    const batch = client.batch.bind(client)
-    client.execute = ((...a: Parameters<typeof execute>) => {
-      consultas++
-      return execute(...a)
-    }) as typeof client.execute
-    client.batch = ((...a: Parameters<typeof batch>) => {
-      consultas++
-      return batch(...a)
-    }) as typeof client.batch
+    /* CONTADOR DE CONSULTAS: uma ida por consulta avulsa e uma por transação (o `batch` de antes),
+       pelo observador do `db.ts` e pelo `transaction` do PGlite (`contadorDeConsultas.ts`). */
+    contador = await contarConsultas(s.load)
   }, 60_000)
 
   afterAll(async () => {
@@ -175,7 +167,7 @@ describe('rotas caras: equivalência, invalidação e custo', () => {
     })
 
     it('uma escrita FORA dos repositórios (SQL cru numa ocorrência) também invalida', async () => {
-      const { client } = await s.load('../../server/db/db')
+      const client = clienteSql(await s.load('../../server/db/db'))
       await client.execute({
         sql: `INSERT INTO vocab_occurrences (id, created_at, updated_at, user_id, card_id, occurred_at, origin_kind, origin_ref)
               VALUES ('occ-cru', 1, 1, ?, ?, 1, 'trilha', 'en')`,

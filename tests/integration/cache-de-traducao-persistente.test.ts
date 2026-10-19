@@ -25,6 +25,7 @@ import {
 } from '../../server/ai/cacheDeTraducao'
 import { esquecerDisjuntores } from '../../server/ai/disjuntor'
 import { asUserId } from '../../server/lib/authContext'
+import { clienteSql } from '../harness/clienteSql'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 describe('a chave: normalização e a regra sem contexto', () => {
@@ -58,12 +59,18 @@ describe('a chave: normalização e a regra sem contexto', () => {
 
   it('a versão do prompt entra na chave: prompt novo não herda tradução do antigo', () => {
     const base = { texto: 'hello', tgt: 'pt', falada: false, modelo: 'm' }
-    expect(chaveDeTraducao({ ...base, versaoDoPrompt: 'v1' })).not.toBe(chaveDeTraducao({ ...base, versaoDoPrompt: 'v2' }))
+    expect(chaveDeTraducao({ ...base, versaoDoPrompt: 'v1' })).not.toBe(
+      chaveDeTraducao({ ...base, versaoDoPrompt: 'v2' }),
+    )
   })
 
   it('só vai ao disco: texto ≤ 12 palavras, fala ≤ 4, e nada que pareça dado pessoal', () => {
-    expect(podePersistir({ texto: 'one two three four five six seven eight nine ten eleven twelve', falada: false })).toBe(true)
-    expect(podePersistir({ texto: 'one two three four five six seven eight nine ten eleven twelve 13', falada: false })).toBe(false)
+    expect(
+      podePersistir({ texto: 'one two three four five six seven eight nine ten eleven twelve', falada: false }),
+    ).toBe(true)
+    expect(
+      podePersistir({ texto: 'one two three four five six seven eight nine ten eleven twelve 13', falada: false }),
+    ).toBe(false)
     expect(podePersistir({ texto: 'see you later', falada: true })).toBe(true)
     expect(podePersistir({ texto: 'see you later my friend', falada: true })).toBe(false)
     expect(podePersistir({ texto: 'call me at 99887766', falada: false })).toBe(false)
@@ -107,7 +114,7 @@ beforeAll(async () => {
   ;({ cacheDeTraducaoRepo: repo } = (await h.load('../../server/db/repositories/cacheDeTraducao')) as any)
   ;({ subscriptionsRepo: subs } = (await h.load('../../server/db/repositories/subscriptions')) as any)
   ;({ usageCountersRepo: counters } = (await h.load('../../server/db/repositories/usageCounters')) as any)
-  ;({ client } = (await h.load('../../server/db/db')) as any)
+  client = clienteSql(await h.load('../../server/db/db'))
 })
 afterAll(async () => {
   delete process.env.AUTH_REQUIRED
@@ -169,12 +176,22 @@ describe('L2 em SQLite na rota', () => {
     process.env.GROQ_API_KEY = 'chave'
     const u = await comPlano('l2-fala')
     const c = contarChamadas('Beleza.')
-    await mtTranslateProxy({ userId: u, body: { text: 'Okay', tgt: 'pt', falada: true, contexto: ['x'] }, requestId: 'r' }, mockRes())
-    await mtTranslateProxy({ userId: u, body: { text: 'okay.', tgt: 'pt', falada: true, contexto: ['y', 'z'] }, requestId: 'r' }, mockRes())
+    await mtTranslateProxy(
+      { userId: u, body: { text: 'Okay', tgt: 'pt', falada: true, contexto: ['x'] }, requestId: 'r' },
+      mockRes(),
+    )
+    await mtTranslateProxy(
+      { userId: u, body: { text: 'okay.', tgt: 'pt', falada: true, contexto: ['y', 'z'] }, requestId: 'r' },
+      mockRes(),
+    )
     expect(c.n).toBe(1)
 
     await mtTranslateProxy(
-      { userId: u, body: { text: 'I will call you tomorrow', tgt: 'pt', falada: true, contexto: ['x'] }, requestId: 'r' },
+      {
+        userId: u,
+        body: { text: 'I will call you tomorrow', tgt: 'pt', falada: true, contexto: ['x'] },
+        requestId: 'r',
+      },
       mockRes(),
     )
     expect(c.n).toBe(2)
@@ -194,8 +211,16 @@ describe('L2 em SQLite na rota', () => {
     process.env.GROQ_API_KEY = 'chave'
     const u = await comPlano('usuario-que-nao-pode-aparecer')
     contarChamadas('Bom dia.')
-    await mtTranslateProxy({ userId: u, body: { text: 'Good morning', src: 'en', tgt: 'pt' }, requestId: 'r' }, mockRes())
-    const colunas = (await client.execute('PRAGMA table_info(cache_de_traducao)')).rows.map((r: any) => r.name)
+    await mtTranslateProxy(
+      { userId: u, body: { text: 'Good morning', src: 'en', tgt: 'pt' }, requestId: 'r' },
+      mockRes(),
+    )
+    const colunas = (
+      await client.execute(
+        "SELECT column_name AS name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'cache_de_traducao'",
+      )
+    ).rows.map((r: any) => r.name)
+    expect(colunas.length, 'a tabela tem colunas (a consulta não veio vazia)').toBeGreaterThan(3)
     expect(colunas.some((n: string) => /user|usuario|titular|ip/i.test(n))).toBe(false)
     const [linha] = await linhas()
     const tudo = JSON.stringify(linha)

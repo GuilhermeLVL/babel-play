@@ -8,6 +8,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { FLAG_RECOMPENSAS_V2 } from '../src/core/flags'
 import { definirEstadoDasFlags } from '../src/lib/flagsCache'
 import { recompensasV2Ligadas } from '../src/lib/recompensasV2'
+import { clienteSql } from './harness/clienteSql'
 import { type EphemeralDb, setupEphemeralDb } from './harness/ephemeralDb'
 
 describe('no servidor', () => {
@@ -20,7 +21,7 @@ describe('no servidor', () => {
   })
 
   it('a migração semeia a flag desligada, e a avaliação devolve booleano false', async () => {
-    const { client } = (await h.load('../../server/db/db')) as { client: { execute: (q: string) => Promise<{ rows: Array<Record<string, unknown>> }> } }
+    const client = clienteSql(await h.load('../../server/db/db'))
     const { rows } = await client.execute(`SELECT chave, habilitada FROM flags WHERE chave = '${FLAG_RECOMPENSAS_V2}'`)
     expect(rows).toHaveLength(1)
     expect(Number(rows[0].habilitada)).toBe(0)

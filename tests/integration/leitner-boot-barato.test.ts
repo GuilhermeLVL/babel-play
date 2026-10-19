@@ -12,31 +12,34 @@
  *
  * Os dois testes abaixo cobram as duas coisas: o plano da consulta dos candidatos usa o índice
  * parcial `idx_vocab_leitner_pendente` (migração 0035), e N candidatos custam UMA leitura e UM batch.
+ *
+ * Postgres (Fase 1): o batch é uma transação (`emLote`), contada como uma ida por
+ * `contadorDeConsultas.ts`; o plano é o `EXPLAIN (FORMAT JSON)` com `enable_seqscan = off` (com a
+ * tabela pequena o planejador prefere varrer; a pergunta é se o índice parcial SERVE à consulta).
  */
 import { randomUUID } from 'node:crypto'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
+import { clienteSql } from '../harness/clienteSql'
+import { contarConsultas } from '../harness/contadorDeConsultas'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const DONO = asUserId('leitner-boot')
 
 let h: EphemeralDb
-let db: any, client: any, vocabCards: any, migrarLeitnerParaFsrs: () => Promise<number>
-let registrarObservadorDeConsultas: (fn: ((o: { instrucoes: string[] }) => void) | undefined) => void
+let db: any, client: ReturnType<typeof clienteSql>, vocabCards: any, migrarLeitnerParaFsrs: () => Promise<number>
 
 beforeAll(async () => {
   h = await setupEphemeralDb()
-  ;({ db, client } = await h.load<{ db: any; client: any }>('../../server/db/db'))
+  const mod = await h.load<any>('../../server/db/db')
+  db = mod.db
+  client = clienteSql(mod)
   ;({ vocabCards } = await h.load<{ vocabCards: any }>('../../server/db/schema'))
   ;({ migrarLeitnerParaFsrs } = await h.load<{ migrarLeitnerParaFsrs: any }>('../../server/db/manutencao'))
-  ;({ registrarObservadorDeConsultas } = await h.load<{ registrarObservadorDeConsultas: any }>(
-    '../../server/db/observadorDeConsultas',
-  ))
 })
 afterAll(async () => {
-  registrarObservadorDeConsultas(undefined)
   await h.cleanup()
 })
 
@@ -58,38 +61,60 @@ async function inserirLeitner(n: number) {
   await db.insert(vocabCards).values(linhas)
 }
 
-/** Grava cada chamada ao banco (execute ou batch) feita durante `fn`. */
-async function observar(fn: () => Promise<unknown>): Promise<string[][]> {
-  const chamadas: string[][] = []
-  registrarObservadorDeConsultas((o) => chamadas.push(o.instrucoes))
+/** Grava as idas ao banco (consulta avulsa ou transação) e as instruções feitas durante `fn`. */
+async function observar(fn: () => Promise<unknown>): Promise<{ idas: number; instrucoes: string[] }> {
+  const contador = await contarConsultas(h.load)
   try {
     await fn()
+    return { idas: contador.idas, instrucoes: [...contador.instrucoes] }
   } finally {
-    registrarObservadorDeConsultas(undefined)
+    contador.parar()
   }
-  return chamadas
 }
 
 describe('migração Leitner→FSRS do boot', () => {
   it('N candidatos custam uma leitura e um batch, não N idas ao banco', async () => {
     await inserirLeitner(40)
     let migrados = 0
-    const chamadas = await observar(async () => {
+    const { idas, instrucoes } = await observar(async () => {
       migrados = await migrarLeitnerParaFsrs()
     })
     expect(migrados).toBe(40)
-    expect(chamadas.length, chamadas.map((c) => c[0]?.slice(0, 40)).join('\n')).toBeLessThanOrEqual(2)
+    expect(idas, instrucoes.map((c) => c.slice(0, 40)).join('\n')).toBeLessThanOrEqual(2)
+    // E as 40 atualizações foram de fato para o banco, dentro da transação.
+    expect(instrucoes.filter((x) => /^\s*update\b/i.test(x))).toHaveLength(40)
     const r = await client.execute('SELECT count(*) AS n FROM vocab_cards WHERE stability IS NULL AND box > 1')
     expect(Number(r.rows[0].n)).toBe(0)
   })
 
   it('a consulta dos candidatos usa o índice parcial, sem varrer vocab_cards', async () => {
-    const chamadas = await observar(() => migrarLeitnerParaFsrs())
-    const leitura = chamadas.flat().find((s) => /^\s*select\b/i.test(s))
+    const { instrucoes } = await observar(() => migrarLeitnerParaFsrs())
+    const leitura = instrucoes.find((s) => /^\s*select\b/i.test(s))
     expect(leitura).toBeDefined()
-    const params = (leitura!.match(/\?/g) ?? []).map(() => null)
-    const plano = await client.execute({ sql: `EXPLAIN QUERY PLAN ${leitura}`, args: params })
-    const detalhes = plano.rows.map((l: any) => String(l.detail))
-    expect(detalhes.join(' / ')).toMatch(/USING (COVERING )?INDEX idx_vocab_leitner_pendente/)
+    // O único parâmetro é o teto (`limit $1`).
+    const comValores = leitura!.replace(/\$\d+/g, '5000')
+    await client.execute('SET enable_seqscan = off')
+    let json: unknown
+    try {
+      json = (await client.execute(`EXPLAIN (FORMAT JSON) ${comValores}`)).rows[0]['QUERY PLAN']
+    } finally {
+      await client.execute('SET enable_seqscan = on')
+    }
+    type No = { 'Node Type': string; 'Index Name'?: string; Plans?: No[] }
+    const nos = (n: No): No[] => [n, ...(n.Plans ?? []).flatMap(nos)]
+    const plano = nos(((typeof json === 'string' ? JSON.parse(json) : json) as Array<{ Plan: No }>)[0].Plan)
+    const desc = plano.map((n) => `${n['Node Type']} ${n['Index Name'] ?? ''}`).join(' / ')
+    expect(
+      plano.some((n) => n['Node Type'] === 'Seq Scan'),
+      desc,
+    ).toBe(false)
+    expect(
+      plano.some(
+        (n) =>
+          /^(Index Scan|Index Only Scan|Bitmap Index Scan)$/.test(n['Node Type']) &&
+          n['Index Name'] === 'idx_vocab_leitner_pendente',
+      ),
+      desc,
+    ).toBe(true)
   })
 })

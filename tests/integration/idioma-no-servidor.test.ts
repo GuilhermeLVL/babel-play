@@ -15,16 +15,23 @@
  *    caso encontrado no banco real: alvo igual ao idioma da própria pessoa (resíduo de gravação
  *    automática) contra um idioma estrangeiro escolhido na tela de jogos.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import path from 'node:path'
+
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
+import { abrirSqliteLegado, PASTA_SQLITE_LEGADO } from '../harness/sqliteLegado'
 
 let h: EphemeralDb
 const U = asUserId('idioma-u1')
 
-beforeAll(async () => { h = await setupEphemeralDb() })
-afterAll(async () => { await h?.cleanup?.() })
+beforeAll(async () => {
+  h = await setupEphemeralDb()
+})
+afterAll(async () => {
+  await h?.cleanup?.()
+})
 
 describe('nível CEFR no servidor, por idioma do cartão', () => {
   it('cartão em inglês recebe nível da wordlist; em espanhol, a faixa de frequência', async () => {
@@ -66,11 +73,21 @@ describe('nível CEFR no servidor, por idioma do cartão', () => {
 })
 
 describe('migração 0023 — um campo só para o idioma-alvo', () => {
-  /** Aplica o SQL da migração numa cópia isolada, sobre linhas montadas à mão. */
+  /**
+   * Aplica o SQL da migração numa cópia isolada, sobre linhas montadas à mão. A 0023 é da cadeia
+   * SQLITE legada (`json_extract`, `json_remove`): roda num SQLite migrado por ela (`sqliteLegado.ts`).
+   */
   async function aplicar(linhas: Array<{ id: string; target: string | null; ui: unknown }>) {
-    const { client } = (await h.load('../../server/db/db')) as any
+    const legado = await abrirSqliteLegado()
+    try {
+      return await aplicarEm(legado.client, linhas)
+    } finally {
+      legado.fechar()
+    }
+  }
+  async function aplicarEm(client: any, linhas: Array<{ id: string; target: string | null; ui: unknown }>) {
     const { readFileSync } = await import('node:fs')
-    const sqlBruto = readFileSync('./server/db/migrations/0023_um_idioma_alvo_so.sql', 'utf8')
+    const sqlBruto = readFileSync(path.join(PASTA_SQLITE_LEGADO, '0023_um_idioma_alvo_so.sql'), 'utf8')
 
     for (const l of linhas) {
       await client.execute({
@@ -79,7 +96,11 @@ describe('migração 0023 — um campo só para o idioma-alvo', () => {
       })
     }
     for (const stmt of sqlBruto.split('--> statement-breakpoint')) {
-      const limpo = stmt.split('\n').filter((x) => !x.trim().startsWith('--')).join('\n').trim()
+      const limpo = stmt
+        .split('\n')
+        .filter((x) => !x.trim().startsWith('--'))
+        .join('\n')
+        .trim()
       if (limpo) await client.execute(limpo.replace(/;\s*$/, ''))
     }
     const lidas = await client.execute(

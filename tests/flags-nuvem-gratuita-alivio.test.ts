@@ -5,6 +5,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { FLAG_NUVEM_GRATUITA_ALIVIO } from '../src/core/nuvemDeAlivio'
+import { clienteSql } from './harness/clienteSql'
 import { type EphemeralDb, setupEphemeralDb } from './harness/ephemeralDb'
 
 describe('flag nuvem_gratuita_alivio no servidor', () => {
@@ -17,9 +18,7 @@ describe('flag nuvem_gratuita_alivio no servidor', () => {
   })
 
   it('a migração semeia a flag desligada, com a regra de planos só no free', async () => {
-    const { client } = (await h.load('../../server/db/db')) as {
-      client: { execute: (q: string) => Promise<{ rows: Array<Record<string, unknown>> }> }
-    }
+    const client = clienteSql(await h.load('../../server/db/db'))
     const { rows } = await client.execute(
       `SELECT habilitada, regras FROM flags WHERE chave = '${FLAG_NUVEM_GRATUITA_ALIVIO}'`,
     )

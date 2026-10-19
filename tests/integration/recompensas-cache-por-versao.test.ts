@@ -22,6 +22,8 @@ process.env.TZ = 'America/Sao_Paulo'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
+import { clienteSql } from '../harness/clienteSql'
+import { type ContadorDeConsultas, contarConsultas } from '../harness/contadorDeConsultas'
 import { type Semeado, semearRico } from './_semeaduraRica'
 
 const DONO = 'local-owner'
@@ -38,15 +40,15 @@ const TABELAS_DO_HISTORICO = /exercise_results|review_logs|vocab_cards|utterance
 describe('rotas das recompensas: equivalência, custo e invalidação', () => {
   let s: AppDeTeste
   let semeado: Semeado
-  let instrucoes: string[] = []
+  let contador: ContadorDeConsultas
 
   /** Uma chamada HTTP e o SQL que ela mandou ao banco. */
   async function medir(caminho: string): Promise<{ corpo: unknown; sql: string[] }> {
-    instrucoes = []
+    contador.zerar()
     const r = await s.get(caminho)
     expect(r.status).toBe(200)
     const corpo = await r.json()
-    return { corpo, sql: instrucoes }
+    return { corpo, sql: contador.instrucoes }
   }
   const ler = async (caminho: string) => (await medir(caminho)).corpo
 
@@ -71,18 +73,9 @@ describe('rotas das recompensas: equivalência, custo e invalidação', () => {
     s = await subirApp({ modo: 'self-host' })
     semeado = await semearRico(s, DONO)
     expect((await rodada('r-hoje-1', 'blitz', 10)).status).toBe(200)
-    const { client } = await s.load('../../server/db/db')
-    const execute = client.execute.bind(client)
-    const batch = client.batch.bind(client)
-    const texto = (x: unknown) => (typeof x === 'string' ? x : ((x as { sql?: string }).sql ?? ''))
-    client.execute = ((...a: Parameters<typeof execute>) => {
-      instrucoes.push(texto(a[0]))
-      return execute(...a)
-    }) as typeof client.execute
-    client.batch = ((...a: Parameters<typeof batch>) => {
-      for (const x of a[0] as unknown[]) instrucoes.push(texto(x))
-      return batch(...a)
-    }) as typeof client.batch
+    /* Pelo observador do `db.ts` e pelas transações do PGlite (`contadorDeConsultas.ts`): o que era
+       embrulhar `client.execute`/`client.batch` do libsql. */
+    contador = await contarConsultas(s.load)
   }, 60_000)
 
   afterAll(async () => {
@@ -128,11 +121,11 @@ describe('rotas das recompensas: equivalência, custo e invalidação', () => {
       const etag = r.headers.get('etag') ?? ''
       await r.arrayBuffer()
       expect(etag).toMatch(/^W\/"historico-/)
-      instrucoes = []
+      contador.zerar()
       const r304 = await s.chamar('GET', '/api/exercises/historico', { headers: { 'if-none-match': etag } })
       expect(r304.status).toBe(304)
       expect(await r304.text()).toBe('')
-      expect(instrucoes.length).toBeLessThanOrEqual(1)
+      expect(contador.instrucoes.length).toBeLessThanOrEqual(1)
       /* O filtro faz parte do ETag: a resposta de uma fonte não revalida a de outra. */
       const outra = await s.chamar('GET', '/api/exercises/historico?origem=baralho', {
         headers: { 'if-none-match': etag },
@@ -171,7 +164,7 @@ describe('rotas das recompensas: equivalência, custo e invalidação', () => {
 
     it('uma escrita FORA dos repositórios (SQL cru) também invalida', async () => {
       const antes = (await ler('/api/exercises/historico')) as Array<{ itemRef: string }>
-      const { client } = await s.load('../../server/db/db')
+      const client = clienteSql(await s.load('../../server/db/db'))
       await client.execute({
         sql: `INSERT INTO exercise_results (id, created_at, updated_at, user_id, kind, correct, exercise_kind, round_id, item_ref, origem)
               VALUES ('cru-1', ?, ?, ?, 'drill', 1, 'termo', 'r-cru', 'item-cru', 'baralho')`,

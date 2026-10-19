@@ -10,6 +10,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { clienteSql } from '../harness/clienteSql'
 import { type AppDeTeste, semear, subirApp } from './_app'
 
 describe('calibração do FSRS no admin (modo público)', () => {
@@ -79,7 +80,7 @@ describe('calibração do FSRS no admin (modo público)', () => {
   })
 
   it('usuário sem revisão: tudo vazio, sem erro; e a leitura não gravou nada', async () => {
-    const { client } = await s.load('../../server/db/db')
+    const client = clienteSql(await s.load('../../server/db/db'))
     const antes = Number((await client.execute('SELECT count(*) AS n FROM review_logs')).rows[0].n)
     const c = (await (await s.get('/api/admin/calibracao/cal-admin', admin)).json()) as {
       historico: number

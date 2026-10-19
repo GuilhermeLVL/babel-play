@@ -14,6 +14,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
+import { clienteSql } from '../harness/clienteSql'
 
 let s: AppDeTeste
 let trustProxyAnterior: string | undefined
@@ -24,7 +25,7 @@ const IP_VIZINHO = '198.51.100.30'
 
 /** Linhas do balde de auth no banco — o limitador novo só pode escrever quando há 401. */
 async function linhasDoBaldeDeAuth(): Promise<number> {
-  const { client } = await s.load('../../server/db/db')
+  const client = clienteSql(await s.load('../../server/db/db'))
   const r = await client.execute(`select count(*) as n from usage_counters where metric = 'ratelimit:auth'`)
   return Number(r.rows[0]?.n ?? 0)
 }

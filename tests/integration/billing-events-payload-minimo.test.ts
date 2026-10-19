@@ -11,6 +11,9 @@
  *  2. O reprocessamento do admin (`POST /api/admin/billing/reprocessar/:id`) continua funcionando
  *     com o payload reduzido.
  *  3. A migração 0047 limpa as linhas ANTIGAS com a mesma lista de campos, e é reexecutável.
+ *
+ * Postgres (Fase 1): a 0047 é da cadeia SQLITE legada e roda sobre ela (`sqliteLegado.ts`); a linha
+ * limpa segue para o Postgres como a cópia de dados a levaria, e é lá que o reprocessamento roda.
  */
 import { readFileSync } from 'node:fs'
 import type { Server } from 'node:http'
@@ -21,19 +24,25 @@ import express from 'express'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
+import { clienteSql } from '../harness/clienteSql'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
+import { abrirSqliteLegado, PASTA_SQLITE_LEGADO, type SqliteLegado } from '../harness/sqliteLegado'
 
 let h: EphemeralDb
 let asaasWebhookRouter: any
 let eventos: any
 let reduzirPayload: (bruto: unknown) => unknown
 let credits: any
+/** O SQLite legado, onde a 0047 roda. */
 let client: any
+let legado: SqliteLegado
+/** O Postgres do servidor, onde o reprocessamento roda. */
+let pg: ReturnType<typeof clienteSql>
 let server: Server
 let base: string
 
 const SEGREDO = 'segredo-webhook-payload'
-const MIGRACAO = path.resolve(process.cwd(), 'server', 'db', 'migrations', '0047_billing_events_payload_minimo.sql')
+const MIGRACAO = path.join(PASTA_SQLITE_LEGADO, '0047_billing_events_payload_minimo.sql')
 
 /** O corpo como o Asaas o manda — com tudo o que NÃO deve ficar guardado. */
 const corpoDoAsaas = (id: string, paymentId: string, userId: string) => ({
@@ -108,7 +117,9 @@ beforeAll(async () => {
     '../../server/db/repositories/billingEvents',
   )) as any)
   ;({ creditsRepo: credits } = (await h.load('../../server/db/repositories/credits')) as any)
-  ;({ client } = (await h.load('../../server/db/db')) as any)
+  pg = clienteSql(await h.load('../../server/db/db'))
+  legado = await abrirSqliteLegado()
+  client = legado.client
 
   const { adminRouter } = (await h.load('../../server/routes/admin')) as any
   const { usersRepo } = (await h.load('../../server/db/repositories/users')) as any
@@ -130,6 +141,7 @@ afterAll(async () => {
   await new Promise<void>((resolve) => server.close(() => resolve()))
   delete process.env.AUTH_REQUIRED
   delete process.env.ASAAS_WEBHOOK_TOKEN
+  legado.fechar()
   await h.cleanup()
 })
 
@@ -322,6 +334,12 @@ describe('migração 0047 — limpa as linhas antigas', () => {
       args: [Date.now(), JSON.stringify(bruto)],
     })
     for (const sql of instrucoes()) await client.execute(sql)
+    // A linha limpa vai ao Postgres como a cópia de dados a levaria.
+    await pg.execute({
+      sql: `INSERT INTO billing_events (id, created_at, provider, event, user_id, provider_ref, estado, motivo, payload)
+            VALUES ('evt_antigo_rep', ?, 'asaas', 'PAYMENT_CONFIRMED', 'u-antigo-rep', 'pay_antigo_rep', 'nao-aplicado', 'avulso-desconhecido', ?)`,
+      args: [Date.now(), await payloadDe('evt_antigo_rep')],
+    })
 
     await credits.registrarCompra(u, {
       sku: 'c100',

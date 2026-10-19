@@ -1,105 +1,255 @@
 /**
  * O `schema.ts` É O BANCO QUE AS MIGRATIONS PRODUZEM — e o último snapshot do drizzle concorda com os dois.
  *
- * Auditoria de prontidão, Fase 6. As migrations 0023 e 0025–0030 foram escritas à mão e entraram sem
- * snapshot; o `drizzle-kit generate` passou a comparar o `schema.ts` com o snapshot da 0024 e a
- * propor sete migrations de diferença já aplicadas. Pior: nada conferia se o `schema.ts` (que o
- * código usa para montar as queries) descrevia o banco de verdade. Este teste confere as duas coisas:
+ * Auditoria de prontidão, Fase 6. No SQLite, migrations escritas à mão entraram sem snapshot e o
+ * `drizzle-kit generate` passou a propor sete migrations de diferença já aplicadas; pior, nada
+ * conferia se o `schema.ts` (que o código usa para montar as queries) descrevia o banco de verdade.
+ * Este teste confere as duas coisas, agora no Postgres:
  *
- *   1. aplica TODAS as migrations num banco vazio em memória e pede ao drizzle-kit
- *      (`pushSQLiteSchema`, introspecção do banco vivo) o diff até o `schema.ts`. Tem que ser vazio.
- *      Foi assim que apareceu o `rank.combo DEFAULT 0` que existia no banco e faltava no schema;
- *   2. o snapshot da ÚLTIMA migration existe e não difere do `schema.ts` — é exatamente a conta que
- *      o `drizzle-kit generate` faz. Diferente de vazio = o próximo `db:generate` produziria SQL
- *      falso (ou travaria num prompt de renomeação no CI).
- *
- * DUAS LIMITAÇÕES CONHECIDAS da introspecção do drizzle-kit para SQLite, tratadas por nome e com
- * conferência própria (e não por lista de exceção cega):
- *   - índice PARCIAL (`WHERE deleted_at IS NULL`): a introspecção não lê o `WHERE`, então o diff
- *     sempre propõe `DROP INDEX x` + `CREATE INDEX x ... WHERE`. Aceito SÓ se o índice do banco
- *     também tiver `WHERE` (conferido no `sqlite_master`);
- *   - coluna GERADA (`GENERATED ALWAYS AS`): a introspecção não lê a expressão, e o diff propõe
- *     `DROP COLUMN` + `ADD ... GENERATED`. Aceito SÓ se a coluna do banco for gerada de fato
- *     (`hidden` 2 ou 3 no `table_xinfo`).
+ *   1. o banco migrado do zero (`migrations-pg`, o PGlite do harness) é o que o `schema.ts`
+ *      descreve, lido do CATÁLOGO (`information_schema.columns`, `pg_index`, `pg_constraint`):
+ *      as mesmas tabelas; em cada uma, as mesmas colunas com o mesmo tipo, a mesma nulidade, o
+ *      mesmo default e a mesma coluna gerada; os mesmos índices, com a mesma unicidade, as mesmas
+ *      colunas na mesma ordem e o mesmo predicado dos índices parciais; as mesmas FKs.
+ *      (No SQLite era a introspecção do drizzle-kit, `pushSQLiteSchema`; o `pushSchema` do Postgres
+ *      não roda sobre o PGlite com esta versão do drizzle-orm — falha ao passar parâmetros —, e
+ *      ler o catálogo direto também tira as duas exceções que a introspecção do SQLite exigia:
+ *      o predicado do índice parcial e a expressão da coluna gerada são conferidos de verdade.)
+ *   2. o snapshot mais recente do drizzle não difere do `schema.ts` — a conta que o
+ *      `drizzle-kit generate` faz. Diferente de vazio = o próximo `db:generate` produziria SQL falso.
+ *      As migrations depois dele (0001 gatilhos e sementes, 0002 segurança do Supabase) são SQL
+ *      próprio, sem tabela nem coluna: o mesmo snapshot vale para elas.
  */
 import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { createClient } from '@libsql/client'
-import { drizzle } from 'drizzle-orm/libsql'
-import { migrate } from 'drizzle-orm/libsql/migrator'
-import { describe, expect, it } from 'vitest'
+import { is, SQL } from 'drizzle-orm'
+import { getTableConfig, PgDialect, PgTable } from 'drizzle-orm/pg-core'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import * as schema from '../../server/db/schema'
+import { chavesEstrangeiras } from '../harness/catalogoPg'
+import { clienteSql } from '../harness/clienteSql'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
-const PASTA = path.resolve(__dirname, '..', '..', 'server', 'db', 'migrations')
+const PASTA = path.resolve(__dirname, '..', '..', 'server', 'db', 'migrations-pg')
 
-describe('schema.ts × migrations × snapshot do drizzle', () => {
-  it('o banco migrado do zero é o que o schema.ts descreve (introspecção pelo drizzle-kit)', async () => {
-    const { pushSQLiteSchema } = await import('drizzle-kit/api')
-    const cliente = createClient({ url: 'file::memory:' })
-    const db = drizzle(cliente)
-    await migrate(db, { migrationsFolder: PASTA })
+let h: EphemeralDb
+let c: ReturnType<typeof clienteSql>
+beforeAll(async () => {
+  h = await setupEphemeralDb()
+  c = clienteSql(await h.load('../../server/db/db'))
+})
+afterAll(async () => {
+  await h.cleanup()
+})
 
-    const { statementsToExecute } = await pushSQLiteSchema(schema as Record<string, unknown>, db as never)
-    /* Tabelas que vivem FORA do schema.ts de propósito, como `__drizzle_migrations`: contabilidade
-       interna mantida por gatilho (`versoes_de_dados`, migração 0032 — fora para não entrar no export
-       LGPD). O drizzle só as veria como "sobrando" e mandaria apagar. */
-    /* E os agregados da migração 0053 (`agregados_diarios`, `estado_dos_agregados`, `estado_por_item`):
-       derivados do bruto, reconstruíveis, mantidos pelo repositório e conferidos por gatilho. */
-    const FORA_DO_SCHEMA = ['versoes_de_dados', 'agregados_diarios', 'estado_dos_agregados', 'estado_por_item']
-    let resto = statementsToExecute.filter((s) => !FORA_DO_SCHEMA.some((t) => s.includes('`' + t + '`')))
+const dialeto = new PgDialect()
+const tabelas = (Object.values(schema) as unknown[]).filter((v): v is PgTable => is(v, PgTable))
 
-    // Índice parcial: DROP INDEX `x` + CREATE ... INDEX `x` ... WHERE — só se o banco também tem WHERE.
-    for (const drop of statementsToExecute) {
-      const m = /^DROP INDEX `([^`]+)`;?$/.exec(drop.trim())
-      if (!m) continue
-      const create = resto.find((s) => new RegExp(`^CREATE (UNIQUE )?INDEX \`${m[1]}\` .* WHERE `, 's').test(s))
-      if (!create) continue
-      const noBanco = await cliente.execute({
-        sql: "SELECT sql FROM sqlite_master WHERE type='index' AND name=?",
-        args: [m[1]],
-      })
-      const sqlDoBanco = String(noBanco.rows[0]?.sql ?? '')
-      expect(sqlDoBanco, `o índice ${m[1]} é parcial no schema.ts e não no banco`).toMatch(/\bWHERE\b/i)
-      resto = resto.filter((s) => s !== drop && s !== create)
-    }
+/** SQL do drizzle → texto, com os parâmetros inline (só aparecem literais nos predicados). */
+function textoDe(s: SQL): string {
+  const q = dialeto.sqlToQuery(s)
+  return q.sql.replace(/\$(\d+)/g, (_, i) => {
+    const v = q.params[Number(i) - 1]
+    return typeof v === 'number' ? String(v) : `'${String(v)}'`
+  })
+}
 
-    // Coluna gerada: DROP COLUMN + ADD ... GENERATED — só se a coluna do banco é gerada de fato.
-    for (const drop of statementsToExecute) {
-      const m = /^ALTER TABLE `([^`]+)` DROP COLUMN `([^`]+)`;?$/.exec(drop.trim())
-      if (!m) continue
-      const add = resto.find(
-        (s) => s.startsWith(`ALTER TABLE \`${m[1]}\` ADD \`${m[2]}\``) && /GENERATED ALWAYS AS/.test(s),
+/**
+ * Normaliza uma expressão para comparar o que o drizzle escreve com o que o Postgres devolve em
+ * `pg_get_indexdef`/`column_default`: sem aspas, sem o prefixo de tabela, sem parênteses e sem os
+ * casts que o Postgres acrescenta (`'x'::text`), minúsculas e espaços colapsados.
+ */
+function normalizar(expr: string, tabela: string): string {
+  return expr
+    .replace(new RegExp(`"?${tabela}"?\\.`, 'g'), '')
+    .replace(/::[a-z ]+(\[\])?/gi, '')
+    .replace(/["()]/g, '')
+    .replace(/\s*,\s*/g, ',')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+}
+
+/** Tipo do Postgres como o `information_schema` o escreve, a partir do tipo SQL do drizzle. */
+function tipoDoCatalogo(sqlType: string): string {
+  const t = sqlType.toLowerCase()
+  if (t === 'bigint') return 'bigint'
+  if (t === 'integer') return 'integer'
+  if (t === 'double precision') return 'double precision'
+  if (t === 'boolean') return 'boolean'
+  if (t === 'text') return 'text'
+  if (t === 'jsonb') return 'jsonb'
+  return t
+}
+
+describe('schema.ts × banco migrado (catálogo do Postgres)', () => {
+  it('as mesmas tabelas no schema `public`', async () => {
+    const noBanco = (
+      await c.execute(
+        "SELECT table_name AS t FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' ORDER BY 1",
       )
-      if (!add) continue
-      const info = await cliente.execute(`PRAGMA table_xinfo(${m[1]})`)
-      const coluna = info.rows.find((r) => r.name === m[2])
-      expect([2, 3], `${m[1]}.${m[2]} é gerada no schema.ts e não no banco`).toContain(Number(coluna?.hidden))
-      resto = resto.filter((s) => s !== drop && s !== add)
+    ).rows.map((r) => String(r.t))
+    const noSchema = tabelas.map((t) => getTableConfig(t).name).sort()
+    expect(noSchema.length).toBeGreaterThan(30)
+    expect(noBanco).toEqual(noSchema)
+  })
+
+  it('cada tabela tem as mesmas colunas: tipo, nulidade, default e coluna gerada', async () => {
+    const divergencias: string[] = []
+    for (const tabela of tabelas) {
+      const cfg = getTableConfig(tabela)
+      const linhas = (
+        await c.execute({
+          sql: `SELECT column_name, data_type, is_nullable, column_default, is_generated, generation_expression
+                  FROM information_schema.columns WHERE table_schema = 'public' AND table_name = ?`,
+          args: [cfg.name],
+        })
+      ).rows
+      const doBanco = new Map(linhas.map((l) => [String(l.column_name), l]))
+      const nomesDoSchema = cfg.columns.map((col) => col.name).sort()
+      const nomesDoBanco = [...doBanco.keys()].sort()
+      if (JSON.stringify(nomesDoSchema) !== JSON.stringify(nomesDoBanco)) {
+        divergencias.push(`${cfg.name}: colunas schema=${nomesDoSchema.join(',')} banco=${nomesDoBanco.join(',')}`)
+        continue
+      }
+      for (const col of cfg.columns) {
+        const l = doBanco.get(col.name)!
+        const onde = `${cfg.name}.${col.name}`
+        if (String(l.data_type) !== tipoDoCatalogo(col.getSQLType())) {
+          divergencias.push(`${onde}: tipo schema=${col.getSQLType()} banco=${l.data_type}`)
+        }
+        /* Chave primária é NOT NULL no banco mesmo sem `.notNull()` no schema. */
+        const notNullNoSchema = col.notNull || col.primary
+        if (notNullNoSchema !== (l.is_nullable === 'NO')) {
+          divergencias.push(`${onde}: NOT NULL schema=${notNullNoSchema} banco=${l.is_nullable === 'NO'}`)
+        }
+        const gerada = (col as unknown as { generated?: { as: SQL | (() => SQL) } }).generated
+        if (!!gerada !== (l.is_generated === 'ALWAYS')) {
+          divergencias.push(`${onde}: gerada schema=${!!gerada} banco=${l.is_generated}`)
+        } else if (gerada) {
+          const expr = typeof gerada.as === 'function' ? gerada.as() : gerada.as
+          const doSchema = normalizar(is(expr, SQL) ? textoDe(expr) : String(expr), cfg.name)
+          if (doSchema !== normalizar(String(l.generation_expression), cfg.name)) {
+            divergencias.push(`${onde}: expressão gerada schema="${doSchema}" banco="${l.generation_expression}"`)
+          }
+        }
+        /* Default SQL (o `$defaultFn` é do JS e não chega ao banco). */
+        const temDefaultSql = col.default !== undefined
+        if (!gerada && temDefaultSql !== (l.column_default !== null)) {
+          divergencias.push(`${onde}: default schema=${String(col.default)} banco=${String(l.column_default)}`)
+        }
+      }
     }
+    expect(divergencias, 'o schema.ts diverge do banco que as migrations produzem').toEqual([])
+  })
 
-    cliente.close()
-    expect(resto, 'o schema.ts diverge do banco que as migrations produzem').toEqual([])
-  }, 60_000)
+  it('os mesmos índices: unicidade, colunas na ordem e predicado dos parciais', async () => {
+    const divergencias: string[] = []
+    for (const tabela of tabelas) {
+      const cfg = getTableConfig(tabela)
+      const linhas = (
+        await c.execute({
+          sql: `SELECT i.relname AS nome, x.indisunique AS unico, x.indisprimary AS primario,
+                       pg_get_expr(x.indpred, x.indrelid) AS predicado,
+                       array_to_string(ARRAY(SELECT pg_get_indexdef(x.indexrelid, k, true)
+                                               FROM generate_series(1, x.indnkeyatts) k ORDER BY k), '|') AS colunas
+                  FROM pg_index x
+                  JOIN pg_class t ON t.oid = x.indrelid
+                  JOIN pg_class i ON i.oid = x.indexrelid
+                  JOIN pg_namespace ns ON ns.oid = t.relnamespace
+                 WHERE ns.nspname = 'public' AND t.relname = ?`,
+          args: [cfg.name],
+        })
+      ).rows.filter((l) => l.primario !== true)
+      const doBanco = new Map(linhas.map((l) => [String(l.nome), l]))
 
-  it('o snapshot da última migration existe e não difere do schema.ts (o que o `drizzle-kit generate` compara)', async () => {
-    const { generateSQLiteDrizzleJson, generateSQLiteMigration } = await import('drizzle-kit/api')
+      type Esperado = { nome: string; unico: boolean; colunas: string[]; predicado: string | null }
+      const esperados: Esperado[] = [
+        ...cfg.indexes.map((i) => ({
+          nome: i.config.name!,
+          unico: !!i.config.unique,
+          colunas: i.config.columns.map((col) =>
+            'name' in col && typeof col.name === 'string'
+              ? col.name
+              : normalizar(textoDe(col as unknown as SQL), cfg.name),
+          ),
+          predicado: i.config.where ? normalizar(textoDe(i.config.where), cfg.name) : null,
+        })),
+        ...cfg.uniqueConstraints.map((u) => ({
+          nome: u.getName(),
+          unico: true,
+          colunas: u.columns.map((col) => col.name),
+          predicado: null,
+        })),
+      ]
+      const nomesEsperados = esperados.map((e) => e.nome).sort()
+      const nomesDoBanco = [...doBanco.keys()].sort()
+      if (JSON.stringify(nomesEsperados) !== JSON.stringify(nomesDoBanco)) {
+        divergencias.push(`${cfg.name}: índices schema=${nomesEsperados.join(',')} banco=${nomesDoBanco.join(',')}`)
+        continue
+      }
+      for (const e of esperados) {
+        const l = doBanco.get(e.nome)!
+        if (e.unico !== (l.unico === true)) divergencias.push(`${e.nome}: único schema=${e.unico} banco=${l.unico}`)
+        const colunasDoBanco = String(l.colunas)
+          .split('|')
+          .map((x) => normalizar(x, cfg.name))
+        if (JSON.stringify(e.colunas.map((x) => normalizar(x, cfg.name))) !== JSON.stringify(colunasDoBanco)) {
+          divergencias.push(`${e.nome}: colunas schema=${e.colunas.join(',')} banco=${colunasDoBanco.join(',')}`)
+        }
+        const predicadoDoBanco = l.predicado === null ? null : normalizar(String(l.predicado), cfg.name)
+        if (e.predicado !== predicadoDoBanco) {
+          divergencias.push(`${e.nome}: predicado schema="${e.predicado}" banco="${predicadoDoBanco}"`)
+        }
+      }
+    }
+    expect(divergencias, 'os índices do schema.ts divergem dos do banco').toEqual([])
+  })
+
+  it('as mesmas chaves estrangeiras', async () => {
+    const doSchema = tabelas
+      .flatMap((t) => {
+        const cfg = getTableConfig(t)
+        return cfg.foreignKeys.map((fk) => {
+          const r = fk.reference()
+          return `${cfg.name}(${r.columns.map((x) => x.name).join(',')})→${getTableConfig(r.foreignTable).name}(${r.foreignColumns.map((x) => x.name).join(',')})`
+        })
+      })
+      .sort()
+    const doBanco = (await chavesEstrangeiras(c))
+      .map((fk) => `${fk.tabela}(${fk.colunas.join(',')})→${fk.pai}(${fk.colunasDoPai.join(',')})`)
+      .sort()
+    expect(doSchema.length).toBeGreaterThan(0)
+    expect(doBanco).toEqual(doSchema)
+  })
+})
+
+describe('schema.ts × snapshot do drizzle', () => {
+  it('o snapshot mais recente existe e não difere do schema.ts (o que o `drizzle-kit generate` compara)', async () => {
+    const { generateDrizzleJson, generateMigration } = await import('drizzle-kit/api')
     const journal = JSON.parse(readFileSync(path.join(PASTA, 'meta', '_journal.json'), 'utf8')) as {
       entries: { tag: string }[]
     }
-    const ultima = journal.entries[journal.entries.length - 1].tag.slice(0, 4)
     const snapshots = readdirSync(path.join(PASTA, 'meta'))
       .filter((n) => /^\d{4}_snapshot\.json$/.test(n))
       .sort()
-    expect(
-      snapshots.at(-1),
-      'falta o snapshot da última migration: rode `npx tsx scripts/migracoes/snapshot-do-schema.ts`',
-    ).toBe(`${ultima}_snapshot.json`)
+    expect(snapshots.length, 'falta snapshot do drizzle em migrations-pg/meta').toBeGreaterThan(0)
+    const ultimo = snapshots.at(-1)!
+    /* As migrations depois do último snapshot não podem mexer em tabela ou coluna: se mexessem, o
+       snapshot estaria velho e o `generate` proporia de novo o que elas já fizeram. */
+    const depois = journal.entries.map((e) => e.tag).filter((tag) => tag.slice(0, 4) > ultimo.slice(0, 4))
+    for (const tag of depois) {
+      const sql = readFileSync(path.join(PASTA, `${tag}.sql`), 'utf8').replace(/--[^\n]*/g, '')
+      expect(sql, `${tag} muda o schema sem snapshot`).not.toMatch(
+        /\b(CREATE\s+TABLE|ALTER\s+TABLE\s+\S+\s+(ADD|DROP|ALTER)\s+COLUMN|CREATE\s+(UNIQUE\s+)?INDEX|DROP\s+(TABLE|INDEX))\b/i,
+      )
+    }
 
-    const anterior = JSON.parse(readFileSync(path.join(PASTA, 'meta', `${ultima}_snapshot.json`), 'utf8'))
-    const atual = await generateSQLiteDrizzleJson(schema as Record<string, unknown>, anterior.id)
-    const sql = await generateSQLiteMigration(anterior, atual)
+    const anterior = JSON.parse(readFileSync(path.join(PASTA, 'meta', ultimo), 'utf8'))
+    const atual = generateDrizzleJson(schema as Record<string, unknown>, anterior.id)
+    const sql = await generateMigration(anterior, atual)
     expect(
       sql,
       'o `drizzle-kit generate` produziria esta migration: o snapshot está velho ou o schema.ts mudou sem migration',

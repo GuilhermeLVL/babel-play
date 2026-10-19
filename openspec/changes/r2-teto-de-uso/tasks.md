@@ -21,4 +21,4 @@
 
 - [x] 4.1 Log `r2_teto_alerta_80` (uma vez por processo e janela) e `r2_teto_recusa`; gauge `r2_uso_fracao{recurso}` em `server/http/metricas.ts`, com teste
 - [x] 4.2 `docs/deploy.md`: seção "Teto do R2" (variáveis, reversão, Budget Alert de US$ 1 no painel da Cloudflare)
-- [ ] 4.3 `npm run typecheck`, `npm run lint`, `npm test`, `npx knip` verdes
+- [x] 4.3 `npm run typecheck`, `npm run lint`, `npm test`, `npx knip` verdes

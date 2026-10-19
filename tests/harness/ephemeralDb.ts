@@ -11,7 +11,8 @@
  * import dinâmico dos repos/proxies já apontados para o banco efêmero.
  *
  * O módulo `db` fica em cache por worker do vitest: um segundo `setupEphemeralDb()` no mesmo arquivo
- * reaproveita o MESMO banco em memória (as migrações são idempotentes, os dados persistem).
+ * reaproveita o MESMO banco em memória (as migrações são idempotentes, os dados persistem). E, depois de
+ * `cleanup()`, esse banco está FECHADO e não reabre: use UM harness por arquivo de teste.
  *
  * Uso (num arquivo *.test.ts que NÃO importe estaticamente nada de server/db):
  *

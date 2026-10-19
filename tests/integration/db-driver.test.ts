@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { registrarObservadorDeConsultas } from '../../server/db/observadorDeConsultas'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 type Modulo = typeof import('../../server/db/db')
@@ -87,5 +88,35 @@ describe('driver do banco (PGlite embutido)', () => {
   it('linhas converte count(*) para number', async () => {
     const [r] = m.linhas<{ n: unknown }>(await m.db.execute(sql`select count(*) as n from flags`))
     expect(typeof r.n).toBe('number')
+  })
+
+  it('emLote com atualizações ligadas ao tx é atômico (tudo ou nada)', async () => {
+    await inserirFlag(m.db, 'atomica-a')
+    await inserirFlag(m.db, 'atomica-b')
+    await expect(
+      m.emLote((tx) => [
+        () => tx.execute(sql`update flags set descricao = 'x' where chave = 'atomica-a'`),
+        () => tx.execute(sql`update flags set descricao = 'x' where chave = 'atomica-b'`),
+        () => tx.execute(sql`update flags set chave = null where chave = 'atomica-b'`),
+      ]),
+    ).rejects.toThrow()
+    const r = m.linhas<{ n: number }>(
+      await m.db.execute(sql`select count(*)::int as n from flags where chave like 'atomica-%' and descricao = 'x'`),
+    )
+    expect(r[0].n).toBe(0)
+  })
+
+  it('o observador de consultas recebe a instrução e a duração', async () => {
+    const recebidas: Array<{ instrucoes: string[]; segundos: number }> = []
+    registrarObservadorDeConsultas((o) => recebidas.push(o))
+    try {
+      await m.db.execute(sql`select 1`)
+    } finally {
+      registrarObservadorDeConsultas(undefined)
+    }
+    const o = recebidas.find((x) => x.instrucoes.some((i) => i.includes('select 1')))
+    expect(o).toBeDefined()
+    expect(typeof o?.segundos).toBe('number')
+    expect(o?.segundos).toBeGreaterThan(0)
   })
 })

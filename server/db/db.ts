@@ -25,7 +25,8 @@ export const urlDoBanco: string = process.env.DATABASE_URL ?? 'pglite:./data/pg'
 /** Banco embutido (PGlite) ou servidor Postgres remoto. */
 export const bancoEmbutido: boolean = urlDoBanco.startsWith('pglite:')
 
-const emMemoria = urlDoBanco === 'pglite://memory'
+/* `pglite:memory` (sem `//`) também é memória: do contrário criaria um diretório chamado "memory". */
+const emMemoria = urlDoBanco === 'pglite://memory' || urlDoBanco === 'pglite:memory'
 const ehPostgres = /^postgres(ql)?:\/\//.test(urlDoBanco)
 
 if (!bancoEmbutido && !ehPostgres) {
@@ -63,6 +64,10 @@ function abrir(): DriverDb {
     return drizzlePglite(pglite, { schema })
   }
   pool = new Pool({ connectionString: urlDoBanco, max: 5 })
+  // Sem handler, a queda de uma conexão OCIOSA vira 'error' não tratado e derruba o processo.
+  pool.on('error', (err) => {
+    console.error('[db] erro em conexão ociosa do pool:', String(err?.message ?? err).slice(0, 160))
+  })
   medir(pool)
   return drizzleNode(pool, { schema })
 }
@@ -102,16 +107,16 @@ export async function emTransacao<T>(fn: (tx: ExecutorDb) => Promise<T>): Promis
 
 /**
  * Roda instruções EM SEQUÊNCIA numa só transação e devolve os resultados na ordem (substitui `db.batch`).
- * Cada item é uma função que dispara a instrução — nunca `Promise.all`: a transação usa uma conexão só e
- * instruções concorrentes nela se embaralhariam.
+ * Cada item é uma função que dispara a instrução (só funções: um builder pronto já nasceria ligado a `db`, fora da
+ * transação) — e nunca `Promise.all`: a transação usa uma conexão só e instruções concorrentes nela se embaralhariam.
+ * Monte as instruções a partir do `tx` recebido, nunca de `db`.
  */
 export async function emLote<T extends readonly unknown[]>(
-  montar: (tx: ExecutorDb) => { [K in keyof T]: PromiseLike<T[K]> | (() => Promise<T[K]>) },
+  montar: (tx: ExecutorDb) => { [K in keyof T]: () => Promise<T[K]> },
 ): Promise<T> {
   return emTransacao(async (tx) => {
-    const itens = montar(tx) as ReadonlyArray<PromiseLike<unknown> | (() => Promise<unknown>)>
     const resultados: unknown[] = []
-    for (const item of itens) resultados.push(await (typeof item === 'function' ? item() : item))
+    for (const instrucao of montar(tx) as ReadonlyArray<() => Promise<unknown>>) resultados.push(await instrucao())
     return resultados as unknown as T
   })
 }
@@ -128,7 +133,7 @@ const OIDS_NUMERICOS = new Set([20, 1700])
 /**
  * Linhas de um resultado de `db.execute`. `count(*)`/`sum()` chegam como string (int8/numeric); usando o
  * `fields` do resultado, convertemos para `number` quando o valor é seguro (inteiro seguro ou decimal finito).
- * Sem metadado, devolve como veio.
+ * Sem metadado, devolve como veio; int8 fora do intervalo seguro (string ou `bigint`) fica como está, sem perder precisão.
  */
 export function linhas<T>(r: unknown): T[] {
   const x = r as { rows?: Record<string, unknown>[]; fields?: Array<{ name: string; dataTypeID: number }> } | undefined
@@ -139,6 +144,10 @@ export function linhas<T>(r: unknown): T[] {
     const copia = { ...linha }
     for (const nome of numericos) {
       const v = copia[nome]
+      if (typeof v === 'bigint') {
+        if (Number.isSafeInteger(Number(v))) copia[nome] = Number(v)
+        continue
+      }
       if (typeof v !== 'string' || v.trim() === '') continue
       const n = Number(v)
       if (Number.isFinite(n) && (!/^-?\d+$/.test(v) || Number.isSafeInteger(n))) copia[nome] = n

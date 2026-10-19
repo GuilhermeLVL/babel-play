@@ -150,33 +150,31 @@ export async function migrarLeitnerParaFsrs(): Promise<number> {
     .from(vocabCards)
     /* `box > 1` na CONSULTA, e não só no laço: as cartas novas são a maioria de um acervo em
        crescimento e eram lidas inteiras a cada boot para serem descartadas linha a linha.
-       PREDICADO LITERAL, e não `gt(box, 1)` (que vira `box > ?`): é o texto do índice parcial
-       `idx_vocab_leitner_pendente` (migração 0035), e o SQLite só usa um índice parcial quando
-       consegue PROVAR o WHERE dele a partir do da consulta — com um parâmetro, não consegue, e o
-       boot voltava a varrer o acervo inteiro (504 ms em 453.000 cartões para achar zero). */
+       PREDICADO LITERAL, e não `gt(box, 1)` (que vira `box > $n`): é o texto do índice parcial
+       `idx_vocab_leitner_pendente`, e o Postgres só usa um índice parcial quando consegue PROVAR o WHERE
+       dele a partir do da consulta — com um parâmetro, pode não conseguir e voltar a varrer o acervo. */
     .where(sql`${vocabCards.deletedAt} is null and ${vocabCards.stability} is null and ${vocabCards.box} > 1`)
     .limit(TETO_DA_MIGRACAO_LEITNER)
-  const atualizacoes: PromiseLike<unknown>[] = []
+  const atualizacoes: Array<{ id: string; set: Partial<typeof vocabCards.$inferInsert> }> = []
   for (const card of candidatos) {
     const antes = toState(card)
     const depois = migrateLeitnerToFsrs(antes, now)
     if (depois.stability === antes.stability) continue // box<=1: nada a migrar
-    atualizacoes.push(
-      db
-        .update(vocabCards)
-        .set({
-          stability: depois.stability ?? null,
-          difficulty: depois.difficulty ?? null,
-          reps: depois.reps ?? null,
-          lapses: depois.lapses ?? null,
-          lastReview: depois.lastReview ?? null,
-          updatedAt: now,
-        })
-        .where(eq(vocabCards.id, card.id)),
-    )
+    atualizacoes.push({
+      id: card.id,
+      set: {
+        stability: depois.stability ?? null,
+        difficulty: depois.difficulty ?? null,
+        reps: depois.reps ?? null,
+        lapses: depois.lapses ?? null,
+        lastReview: depois.lastReview ?? null,
+        updatedAt: now,
+      },
+    })
   }
   /* EM LOTE, e não um `await` por cartão: eram até 5.000 idas ao banco em série no boot, cada uma
      um commit próprio. Um `emLote` é uma transação numa conexão só, instruções em sequência (ver db.ts). */
-  for (const lote of emLotes(atualizacoes, LOTE_DA_MIGRACAO_LEITNER)) await emLote(() => lote)
+  for (const lote of emLotes(atualizacoes, LOTE_DA_MIGRACAO_LEITNER))
+    await emLote((tx) => lote.map((u) => () => tx.update(vocabCards).set(u.set).where(eq(vocabCards.id, u.id))))
   return atualizacoes.length
 }

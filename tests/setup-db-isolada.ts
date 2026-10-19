@@ -2,16 +2,16 @@
  * ISOLAMENTO DO BANCO NOS TESTES — roda ANTES de qualquer import de `server/db/db`.
  *
  * Por que existe: `.env` não define `DATABASE_URL`, então `server/db/db.ts` cai no default
- * `file:./data/babel.db` — O BANCO REAL DO DESENVOLVEDOR. Qualquer teste que importe `db`
+ * `pglite:./data/pg` — O BANCO REAL DO DESENVOLVEDOR. Qualquer teste que importe `db`
  * sem o harness efêmero ter definido a variável antes acerta os dados de verdade.
  *
  * Não é hipótese: aconteceu. Um teste de migração chamou `aplicarMigrations()` sobre uma
  * instância de `db` já ligada ao caminho default e aplicou a migração 0006 no banco real.
  * Não houve perda (a migração só recria índices), mas podia ter havido.
  *
- * Este setup aponta o default para um arquivo descartável. O harness efêmero continua
- * criando o seu próprio por teste; isto é a rede embaixo — se alguém esquecer o harness,
- * o estrago fica num diretório temporário em vez do banco do usuário.
+ * Este setup aponta o default para um PGlite em memória (`pglite://memory`). O harness efêmero
+ * continua configurando o seu por teste; isto é a rede embaixo — se alguém esquecer o harness,
+ * o estrago morre com o processo em vez de cair no banco do usuário.
  */
 import { tmpdir } from 'node:os'
 import path from 'node:path'

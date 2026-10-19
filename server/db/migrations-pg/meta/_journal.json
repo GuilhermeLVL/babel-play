@@ -5,15 +5,22 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1792423934181,
+      "when": 1792424342933,
       "tag": "0000_baseline",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1792423935181,
+      "when": 1792424343933,
       "tag": "0001_triggers_e_flags",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792424344933,
+      "tag": "0002_seguranca_supabase",
       "breakpoints": true
     }
   ]

@@ -1,3 +1,31 @@
+CREATE TABLE "agregados_diarios" (
+	"user_id" text NOT NULL,
+	"idioma" text DEFAULT '' NOT NULL,
+	"dia" bigint NOT NULL,
+	"revisoes" bigint DEFAULT 0 NOT NULL,
+	"acertos" bigint DEFAULT 0 NOT NULL,
+	"revisoes_vivas" bigint DEFAULT 0 NOT NULL,
+	"nota1" bigint DEFAULT 0 NOT NULL,
+	"nota2" bigint DEFAULT 0 NOT NULL,
+	"nota3" bigint DEFAULT 0 NOT NULL,
+	"nota4" bigint DEFAULT 0 NOT NULL,
+	"novas" bigint DEFAULT 0 NOT NULL,
+	"tempo_revisao_ms" bigint DEFAULT 0 NOT NULL,
+	"com_previsao" bigint DEFAULT 0 NOT NULL,
+	"soma_prevista" double precision DEFAULT 0 NOT NULL,
+	"lembradas_com_previsao" bigint DEFAULT 0 NOT NULL,
+	"itens_de_jogo" bigint DEFAULT 0 NOT NULL,
+	"itens_certos" bigint DEFAULT 0 NOT NULL,
+	"itens_drill" bigint DEFAULT 0 NOT NULL,
+	"itens_drill_certos" bigint DEFAULT 0 NOT NULL,
+	"tempo_jogo_ms" bigint DEFAULT 0 NOT NULL,
+	"rodadas" bigint DEFAULT 0 NOT NULL,
+	"revisoes_purgadas" bigint DEFAULT 0 NOT NULL,
+	"acertos_purgados" bigint DEFAULT 0 NOT NULL,
+	"atualizado_em" bigint DEFAULT 0 NOT NULL,
+	CONSTRAINT "agregados_diarios_user_id_idioma_dia_pk" PRIMARY KEY("user_id","idioma","dia")
+);
+--> statement-breakpoint
 CREATE TABLE "anki_decks" (
 	"id" text PRIMARY KEY NOT NULL,
 	"created_at" bigint NOT NULL,
@@ -123,6 +151,25 @@ CREATE TABLE "estado_da_conta" (
 	"fuso_desde" bigint,
 	"aviso_reembolso_em" bigint,
 	"atualizado_em" bigint NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "estado_dos_agregados" (
+	"user_id" text PRIMARY KEY NOT NULL,
+	"fuso" text NOT NULL,
+	"marca_bruto" bigint DEFAULT 0 NOT NULL,
+	"marca_vista" bigint DEFAULT 0 NOT NULL,
+	"reconstruido_em" bigint DEFAULT 0 NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "estado_por_item" (
+	"user_id" text NOT NULL,
+	"card_id" text NOT NULL,
+	"jogo" text NOT NULL,
+	"acertos" bigint DEFAULT 0 NOT NULL,
+	"erros" bigint DEFAULT 0 NOT NULL,
+	"ultimo_resultado" bigint,
+	"ultimo_em" bigint DEFAULT 0 NOT NULL,
+	CONSTRAINT "estado_por_item_user_id_card_id_jogo_pk" PRIMARY KEY("user_id","card_id","jogo")
 );
 --> statement-breakpoint
 CREATE TABLE "exercise_results" (
@@ -396,6 +443,12 @@ CREATE TABLE "utterances" (
 	"polimento_modelo" text,
 	"polimento_versao" text,
 	"polido_em" bigint
+);
+--> statement-breakpoint
+CREATE TABLE "versoes_de_dados" (
+	"user_id" text PRIMARY KEY NOT NULL,
+	"vocab" bigint DEFAULT 0 NOT NULL,
+	"atividade" bigint DEFAULT 0 NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "vinculos_de_responsavel" (

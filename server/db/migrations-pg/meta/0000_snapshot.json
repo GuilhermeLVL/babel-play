@@ -1,9 +1,197 @@
 {
-  "id": "9fd47a97-e96a-4d93-9baf-9452e8a80029",
+  "id": "c3709c61-f5d5-4d7e-b384-88d482995cf2",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.agregados_diarios": {
+      "name": "agregados_diarios",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "idioma": {
+          "name": "idioma",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "dia": {
+          "name": "dia",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revisoes": {
+          "name": "revisoes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "acertos": {
+          "name": "acertos",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "revisoes_vivas": {
+          "name": "revisoes_vivas",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "nota1": {
+          "name": "nota1",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "nota2": {
+          "name": "nota2",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "nota3": {
+          "name": "nota3",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "nota4": {
+          "name": "nota4",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "novas": {
+          "name": "novas",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "tempo_revisao_ms": {
+          "name": "tempo_revisao_ms",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "com_previsao": {
+          "name": "com_previsao",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "soma_prevista": {
+          "name": "soma_prevista",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "lembradas_com_previsao": {
+          "name": "lembradas_com_previsao",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "itens_de_jogo": {
+          "name": "itens_de_jogo",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "itens_certos": {
+          "name": "itens_certos",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "itens_drill": {
+          "name": "itens_drill",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "itens_drill_certos": {
+          "name": "itens_drill_certos",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "tempo_jogo_ms": {
+          "name": "tempo_jogo_ms",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "rodadas": {
+          "name": "rodadas",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "revisoes_purgadas": {
+          "name": "revisoes_purgadas",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "acertos_purgados": {
+          "name": "acertos_purgados",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "atualizado_em": {
+          "name": "atualizado_em",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "agregados_diarios_user_id_idioma_dia_pk": {
+          "name": "agregados_diarios_user_id_idioma_dia_pk",
+          "columns": [
+            "user_id",
+            "idioma",
+            "dia"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.anki_decks": {
       "name": "anki_decks",
       "schema": "",
@@ -255,8 +443,12 @@
           "name": "anki_imports_deck_id_anki_decks_id_fk",
           "tableFrom": "anki_imports",
           "tableTo": "anki_decks",
-          "columnsFrom": ["deck_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "deck_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -473,8 +665,12 @@
           "name": "anki_notes_deck_id_anki_decks_id_fk",
           "tableFrom": "anki_notes",
           "tableTo": "anki_decks",
-          "columnsFrom": ["deck_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "deck_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -482,8 +678,12 @@
           "name": "anki_notes_projected_card_id_vocab_cards_id_fk",
           "tableFrom": "anki_notes",
           "tableTo": "vocab_cards",
-          "columnsFrom": ["projected_card_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "projected_card_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1033,6 +1233,119 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.estado_dos_agregados": {
+      "name": "estado_dos_agregados",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "fuso": {
+          "name": "fuso",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "marca_bruto": {
+          "name": "marca_bruto",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "marca_vista": {
+          "name": "marca_vista",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "reconstruido_em": {
+          "name": "reconstruido_em",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.estado_por_item": {
+      "name": "estado_por_item",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "card_id": {
+          "name": "card_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jogo": {
+          "name": "jogo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "acertos": {
+          "name": "acertos",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "erros": {
+          "name": "erros",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "ultimo_resultado": {
+          "name": "ultimo_resultado",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ultimo_em": {
+          "name": "ultimo_em",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "estado_por_item_user_id_card_id_jogo_pk": {
+          "name": "estado_por_item_user_id_card_id_jogo_pk",
+          "columns": [
+            "user_id",
+            "card_id",
+            "jogo"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.exercise_results": {
       "name": "exercise_results",
       "schema": "",
@@ -1302,8 +1615,12 @@
           "name": "exercise_results_session_id_sessions_id_fk",
           "tableFrom": "exercise_results",
           "tableTo": "sessions",
-          "columnsFrom": ["session_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1311,8 +1628,12 @@
           "name": "exercise_results_card_id_vocab_cards_id_fk",
           "tableFrom": "exercise_results",
           "tableTo": "vocab_cards",
-          "columnsFrom": ["card_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "card_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1799,8 +2120,12 @@
           "name": "provider_credentials_secret_ref_secrets_ref_fk",
           "tableFrom": "provider_credentials",
           "tableTo": "secrets",
-          "columnsFrom": ["secret_ref"],
-          "columnsTo": ["ref"],
+          "columnsFrom": [
+            "secret_ref"
+          ],
+          "columnsTo": [
+            "ref"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2109,8 +2434,12 @@
           "name": "review_logs_card_id_vocab_cards_id_fk",
           "tableFrom": "review_logs",
           "tableTo": "vocab_cards",
-          "columnsFrom": ["card_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "card_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2760,7 +3089,9 @@
         "uq_subscriptions_user": {
           "name": "uq_subscriptions_user",
           "nullsNotDistinct": false,
-          "columns": ["user_id"]
+          "columns": [
+            "user_id"
+          ]
         }
       },
       "policies": {},
@@ -2881,7 +3212,11 @@
         "uq_usage_user_metric_window": {
           "name": "uq_usage_user_metric_window",
           "nullsNotDistinct": false,
-          "columns": ["user_id", "metric", "window"]
+          "columns": [
+            "user_id",
+            "metric",
+            "window"
+          ]
         }
       },
       "policies": {},
@@ -3249,12 +3584,49 @@
           "name": "utterances_session_id_sessions_id_fk",
           "tableFrom": "utterances",
           "tableTo": "sessions",
-          "columnsFrom": ["session_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.versoes_de_dados": {
+      "name": "versoes_de_dados",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "vocab": {
+          "name": "vocab",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "atividade": {
+          "name": "atividade",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -3842,8 +4214,12 @@
           "name": "vocab_cards_session_id_sessions_id_fk",
           "tableFrom": "vocab_cards",
           "tableTo": "sessions",
-          "columnsFrom": ["session_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4081,8 +4457,12 @@
           "name": "vocab_occurrences_card_id_vocab_cards_id_fk",
           "tableFrom": "vocab_occurrences",
           "tableTo": "vocab_cards",
-          "columnsFrom": ["card_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "card_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4090,8 +4470,12 @@
           "name": "vocab_occurrences_utterance_id_utterances_id_fk",
           "tableFrom": "vocab_occurrences",
           "tableTo": "utterances",
-          "columnsFrom": ["utterance_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "utterance_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }

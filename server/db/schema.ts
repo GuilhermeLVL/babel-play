@@ -17,7 +17,17 @@
  * lote precisar ser reordenado — `RESTRICT` recusa mesmo assim.
  */
 import { sql } from 'drizzle-orm'
-import { bigint, boolean, doublePrecision, index, pgTable, text, unique, uniqueIndex } from 'drizzle-orm/pg-core'
+import {
+  bigint,
+  boolean,
+  doublePrecision,
+  index,
+  pgTable,
+  primaryKey,
+  text,
+  unique,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core'
 
 /** Colunas comuns a toda tabela de domínio (sync-ready). */
 const meta = {
@@ -1204,4 +1214,73 @@ export const marcasDeTeste = pgTable(
     criadoEm: bigint('criado_em', { mode: 'number' }).notNull(),
   },
   (t) => [index('idx_marcas_de_teste_criado').on(t.criadoEm)],
+)
+
+/*
+ * CONTABILIDADE INTERNA (não é dado do titular a exportar): tabelas que nasceram só em migração SQL
+ * (0032 e 0053 do SQLite) e agora são declaradas aqui para o drizzle-kit gerar o baseline Postgres.
+ * Os gatilhos que as mantêm vivem à mão em `migrations-pg/0001_triggers_e_flags.sql`.
+ */
+
+/** Contadores por usuário que dizem se o vocabulário/atividade mudou (mantidos por gatilhos `versao_*`). */
+export const versoesDeDados = pgTable('versoes_de_dados', {
+  userId: text('user_id').primaryKey(),
+  vocab: bigint('vocab', { mode: 'number' }).notNull().default(0),
+  atividade: bigint('atividade', { mode: 'number' }).notNull().default(0),
+})
+
+/** Uma linha por (usuário, idioma, dia local): agregados derivados de review_logs e exercise_results. */
+export const agregadosDiarios = pgTable(
+  'agregados_diarios',
+  {
+    userId: text('user_id').notNull(),
+    idioma: text('idioma').notNull().default(''),
+    dia: bigint('dia', { mode: 'number' }).notNull(),
+    revisoes: bigint('revisoes', { mode: 'number' }).notNull().default(0),
+    acertos: bigint('acertos', { mode: 'number' }).notNull().default(0),
+    revisoesVivas: bigint('revisoes_vivas', { mode: 'number' }).notNull().default(0),
+    nota1: bigint('nota1', { mode: 'number' }).notNull().default(0),
+    nota2: bigint('nota2', { mode: 'number' }).notNull().default(0),
+    nota3: bigint('nota3', { mode: 'number' }).notNull().default(0),
+    nota4: bigint('nota4', { mode: 'number' }).notNull().default(0),
+    novas: bigint('novas', { mode: 'number' }).notNull().default(0),
+    tempoRevisaoMs: bigint('tempo_revisao_ms', { mode: 'number' }).notNull().default(0),
+    comPrevisao: bigint('com_previsao', { mode: 'number' }).notNull().default(0),
+    somaPrevista: doublePrecision('soma_prevista').notNull().default(0),
+    lembradasComPrevisao: bigint('lembradas_com_previsao', { mode: 'number' }).notNull().default(0),
+    itensDeJogo: bigint('itens_de_jogo', { mode: 'number' }).notNull().default(0),
+    itensCertos: bigint('itens_certos', { mode: 'number' }).notNull().default(0),
+    itensDrill: bigint('itens_drill', { mode: 'number' }).notNull().default(0),
+    itensDrillCertos: bigint('itens_drill_certos', { mode: 'number' }).notNull().default(0),
+    tempoJogoMs: bigint('tempo_jogo_ms', { mode: 'number' }).notNull().default(0),
+    rodadas: bigint('rodadas', { mode: 'number' }).notNull().default(0),
+    revisoesPurgadas: bigint('revisoes_purgadas', { mode: 'number' }).notNull().default(0),
+    acertosPurgados: bigint('acertos_purgados', { mode: 'number' }).notNull().default(0),
+    atualizadoEm: bigint('atualizado_em', { mode: 'number' }).notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.idioma, t.dia] })],
+)
+
+/** Uma linha por usuário: fuso dos dias contados e marcas que dizem se os agregados acompanham o bruto. */
+export const estadoDosAgregados = pgTable('estado_dos_agregados', {
+  userId: text('user_id').primaryKey(),
+  fuso: text('fuso').notNull(),
+  marcaBruto: bigint('marca_bruto', { mode: 'number' }).notNull().default(0),
+  marcaVista: bigint('marca_vista', { mode: 'number' }).notNull().default(0),
+  reconstruidoEm: bigint('reconstruido_em', { mode: 'number' }).notNull().default(0),
+})
+
+/** Uma linha por (usuário, cartão, jogo): acertos, erros e o último resultado. */
+export const estadoPorItem = pgTable(
+  'estado_por_item',
+  {
+    userId: text('user_id').notNull(),
+    cardId: text('card_id').notNull(),
+    jogo: text('jogo').notNull(),
+    acertos: bigint('acertos', { mode: 'number' }).notNull().default(0),
+    erros: bigint('erros', { mode: 'number' }).notNull().default(0),
+    ultimoResultado: bigint('ultimo_resultado', { mode: 'number' }),
+    ultimoEm: bigint('ultimo_em', { mode: 'number' }).notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.cardId, t.jogo] })],
 )

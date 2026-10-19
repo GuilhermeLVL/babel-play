@@ -5,16 +5,17 @@
  * palavras soltas, um baralho do Anki com uma palavra que também foi capturada ("Juntar a cena") e uma
  * palavra com 8 erros (a linha "não está entrando").
  *
- *     PORT=4340 DATABASE_URL=file:<tmp>/revisao.db AUDIO_DIR=<tmp>/audio node scripts/subir-dev.mjs
- *     node scripts/polimento/semear-revisao.mjs --base=http://localhost:4340 --db=<tmp>/revisao.db [--zerar]
+ *     PORT=4340 DATABASE_URL=postgres://… AUDIO_DIR=<tmp>/audio node scripts/subir-dev.mjs
+ *     node scripts/polimento/semear-revisao.mjs --base=http://localhost:4340 --db=postgres://… [--zerar]
  *
- * NUNCA aponte para `data/babel.db`: o script recusa. Tudo entra pelas rotas de verdade; só o passado
+ * `--db` é a MESMA `DATABASE_URL` do servidor e precisa ser `postgres://` (PGlite não aceita dois processos).
+ * NUNCA aponte para o banco de desenvolvimento ou de produção. Tudo entra pelas rotas de verdade; só o passado
  * (vencimento, estabilidade, erros) é escrito direto no banco de teste, como em `semear-cartoes.mjs`.
  * O áudio é um tom gerado aqui (WAV de 70 s): serve para o trecho tocar, não para ser ouvido.
  */
 import { readFile } from 'node:fs/promises'
 
-import Database from 'libsql'
+import { abrirBanco } from './_banco.mjs'
 
 const arg = (n, d) => {
   const a = process.argv.find((x) => x.startsWith(`--${n}=`))
@@ -22,8 +23,8 @@ const arg = (n, d) => {
 }
 const BASE = arg('base', 'http://localhost:4340')
 const ARQUIVO = arg('db', '')
-if (!ARQUIVO || /data[\\/]babel\.db$/i.test(ARQUIVO)) {
-  console.error('uso: node scripts/polimento/semear-revisao.mjs --base=<url> --db=<arquivo de TESTE>')
+if (!ARQUIVO) {
+  console.error('uso: node scripts/polimento/semear-revisao.mjs --base=<url> --db=<postgres:// de TESTE>')
   process.exit(2)
 }
 
@@ -64,8 +65,10 @@ function tom(segundos) {
 /* `--zerar`: esvazia os cartões, as sessões e as revisões do banco de teste antes de semear (os
    roteiros que percorrem a sessão até o fim dão notas, e o seguinte precisa da fila cheia de novo). */
 if (process.argv.includes('--zerar')) {
-  const limpo = new Database(ARQUIVO)
-  limpo.exec('PRAGMA foreign_keys = OFF')
+  const limpo = await abrirBanco(
+    ARQUIVO,
+    'uso: node scripts/polimento/semear-revisao.mjs --base=<url> --db=<postgres:// de TESTE>',
+  )
   for (const tabela of [
     'review_logs',
     'exercise_results',
@@ -80,8 +83,8 @@ if (process.argv.includes('--zerar')) {
     'utterances',
     'sessions',
   ])
-    limpo.exec(`DELETE FROM ${tabela}`)
-  limpo.close()
+    await limpo.consultar(`DELETE FROM ${tabela}`)
+  await limpo.fechar()
 }
 
 await json('/api/settings', 'PUT', { ui: { onboarded: true, providerMode: 'local', credentialId: null } })
@@ -239,22 +242,27 @@ await json('/api/vocab/bulk-add', 'POST', {
 })
 
 /* O passado, direto no banco de teste: tudo vence agora; "complain" abre a fila e "thorough" tem 8 erros. */
-const db = new Database(ARQUIVO)
-const agora = Date.now()
-const cartoes = db
-  .prepare('SELECT id, word FROM vocab_cards WHERE deleted_at IS NULL AND due_at IS NOT NULL ORDER BY word')
-  .all()
-const gravar = db.prepare(
-  'UPDATE vocab_cards SET due_at = ?, stability = ?, difficulty = ?, reps = ?, lapses = ?, last_review = ?, updated_at = ? WHERE id = ?',
+const db = await abrirBanco(
+  ARQUIVO,
+  'uso: node scripts/polimento/semear-revisao.mjs --base=<url> --db=<postgres:// de TESTE>',
 )
+const agora = Date.now()
+const cartoes = await db.consultar(
+  'SELECT id, word FROM vocab_cards WHERE deleted_at IS NULL AND due_at IS NOT NULL ORDER BY word',
+)
+const gravar = (...p) =>
+  db.consultar(
+    'UPDATE vocab_cards SET due_at = ?, stability = ?, difficulty = ?, reps = ?, lapses = ?, last_review = ?, updated_at = ? WHERE id = ?',
+    p,
+  )
 const ORDEM = ['complain', 'thorough', 'put off', 'dashboard', 'nap', 'walk through', 'commute']
-db.exec('BEGIN')
-cartoes.forEach((c, i) => {
+await db.consultar('BEGIN')
+for (const [i, c] of cartoes.entries()) {
   const lugar = ORDEM.indexOf(c.word)
   const due = agora - (lugar >= 0 ? (ORDEM.length - lugar) * 3_600_000 * 24 : 3_600_000 + i * 60_000)
-  if (c.word === 'towel' || c.word === 'shelf') return // novas: ficam como a rota gravou
-  gravar.run(due, 4 + i, 5, 3, c.word === 'thorough' ? 7 : i % 2, agora - 3 * 86_400_000, agora, c.id)
-})
-db.exec('COMMIT')
-db.close()
+  if (c.word === 'towel' || c.word === 'shelf') continue // novas: ficam como a rota gravou
+  await gravar(due, 4 + i, 5, 3, c.word === 'thorough' ? 7 : i % 2, agora - 3 * 86_400_000, agora, c.id)
+}
+await db.consultar('COMMIT')
+await db.fechar()
 console.log(`${cartoes.length} cartões prontos para a revisão`)

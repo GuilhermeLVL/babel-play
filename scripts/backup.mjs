@@ -37,6 +37,8 @@ import { cp, mkdir, readdir, rm, stat } from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
 
+import { montarPgDump } from './db/comando-pg-dump.mjs'
+
 const RAIZ = path.resolve(import.meta.dirname, '..')
 const arg = (n, d) => {
   const a = process.argv.find((x) => x.startsWith(`--${n}=`))
@@ -97,8 +99,8 @@ const t0 = Date.now()
 console.log(`[backup] destino: ${path.relative(RAIZ, pasta)}`)
 
 /** Roda um utilitário do cliente do Postgres sem repetir a URL (tem senha) em nenhuma mensagem. */
-function rodarCliente(programa, args) {
-  const r = spawnSync(programa, args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+function rodarCliente(programa, args, env = process.env) {
+  const r = spawnSync(programa, args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env })
   if (r.error?.code === 'ENOENT') {
     console.error(
       `[backup] FALHOU: ${programa} não está no PATH. Instale o cliente do Postgres (postgresql-client) e rode de novo.`,
@@ -122,7 +124,9 @@ function rodarCliente(programa, args) {
 let arquivoBanco
 if (ehPostgres) {
   arquivoBanco = path.join(pasta, 'babel.dump')
-  rodarCliente('pg_dump', ['--format=custom', `--file=${arquivoBanco}`, `--dbname=${urlBanco}`])
+  // A senha segue no ambiente (PGPASSWORD), nunca no argv.
+  const { programa, args, env } = montarPgDump(urlBanco, arquivoBanco)
+  rodarCliente(programa, args, env)
   console.log('[backup] pg_dump concluído')
 } else {
   arquivoBanco = path.join(pasta, 'pg')

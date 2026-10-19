@@ -30,7 +30,9 @@ const arg = (n, d) => {
 const bundle = arg('bundle', '')
 const banco = arg('db', '')
 if (!bundle || !banco) {
-  console.error('uso: node scripts/perf/escala/upload-memoria.mjs --bundle=<server.cjs> --db=<cópia.db>')
+  console.error(
+    'uso: node scripts/perf/escala/upload-memoria.mjs --bundle=<server.cjs> --db=<cópia do diretório do pglite>',
+  )
   process.exit(2)
 }
 const porta = Number(arg('porta', 3150))
@@ -62,7 +64,7 @@ const filho = spawn(
       TRUST_PROXY: '1',
       PORT: String(porta),
       HOST: '127.0.0.1',
-      DATABASE_URL: `file:${path.resolve(banco).replace(/\\/g, '/')}`,
+      DATABASE_URL: `pglite:${path.resolve(banco).replace(/\\/g, '/')}`,
       AUDIO_DIR: audioDir,
       BACKUP_DIARIO: '0',
       SECRET_KEY: randomBytes(32).toString('hex'), // exigido em produção (server/crypto.ts); descartável

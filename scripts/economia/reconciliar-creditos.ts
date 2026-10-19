@@ -24,92 +24,97 @@
  * Uso:
  *   npx tsx scripts/economia/reconciliar-creditos.ts                 # só relata (padrão)
  *   npx tsx scripts/economia/reconciliar-creditos.ts --aplicar       # escreve
- *   DATABASE_URL=file:./copia.db npx tsx ... --aplicar               # contra outro banco
+ *   DATABASE_URL=postgres://… npx tsx ... --aplicar               # contra outro banco
  *
  * SEM `--aplicar` ELE NÃO ESCREVE NADA. O padrão é o relatório porque a decisão de mexer em saldo
  * é de quem opera, não de quem roda o script por engano.
  */
-import { createClient } from '@libsql/client'
-import { valorDoCredito, ehRecusa } from '../../src/core/economiaAutoridade'
+import { sql } from 'drizzle-orm';
 
-const aplicar = process.argv.includes('--aplicar')
-const url = process.env.DATABASE_URL ?? 'file:./data/babel.db'
-const cliente = createClient({ url })
+import { ehRecusa, valorDoCredito } from '../../src/core/economiaAutoridade';
+import { bancoEmbutido, db, linhas as linhasDe, urlDoBanco } from '../../server/db/db';
+
+const aplicar = process.argv.includes('--aplicar');
+// O banco é o do app (`DATABASE_URL`; padrão `pglite:./data/pg`). Com o PGlite, pare o servidor antes de rodar.
 
 interface Linha {
-  id: string
-  user_id: string
-  credito_id: string
-  amount: number
-  xp: number
-  reason: string | null
+  id: string;
+  user_id: string;
+  credito_id: string;
+  amount: number;
+  xp: number;
+  reason: string | null;
 }
 
-const n = (x: unknown) => Number(x ?? 0)
+const n = (x: unknown) => Number(x ?? 0);
 
 async function main() {
-  const { rows } = await cliente.execute(
-    'select id, user_id, credito_id, amount, xp, reason from seed_credits where deleted_at is null order by credito_id',
-  )
-  const linhas = rows as unknown as Linha[]
+  const linhas = linhasDe<Linha>(
+    await db.execute(
+      sql`select id, user_id, credito_id, amount, xp, reason from seed_credits where deleted_at is null order by credito_id`,
+    ),
+  );
 
-  const remover: Array<{ linha: Linha; motivo: string }> = []
-  const corrigir: Array<{ linha: Linha; seeds: number; xp: number; reason: string }> = []
-  let intactas = 0
+  const remover: Array<{ linha: Linha; motivo: string }> = [];
+  const corrigir: Array<{ linha: Linha; seeds: number; xp: number; reason: string }> = [];
+  let intactas = 0;
 
   for (const l of linhas) {
-    const v = valorDoCredito(l.credito_id)
+    const v = valorDoCredito(l.credito_id);
     if (ehRecusa(v)) {
-      remover.push({ linha: l, motivo: v.erro })
-      continue
+      remover.push({ linha: l, motivo: v.erro });
+      continue;
     }
     if (n(l.amount) !== v.seeds || n(l.xp) !== v.xp || l.reason !== v.reason) {
-      corrigir.push({ linha: l, seeds: v.seeds, xp: v.xp, reason: v.reason })
-      continue
+      corrigir.push({ linha: l, seeds: v.seeds, xp: v.xp, reason: v.reason });
+      continue;
     }
-    intactas++
+    intactas++;
   }
 
-  const somaDe = (xs: Linha[]) => xs.reduce((t, l) => t + n(l.amount), 0)
-  const antes = somaDe(linhas)
-  const depois = antes
-    - somaDe(remover.map((r) => r.linha))
-    - corrigir.reduce((t, c) => t + n(c.linha.amount) - c.seeds, 0)
+  const somaDe = (xs: Linha[]) => xs.reduce((t, l) => t + n(l.amount), 0);
+  const antes = somaDe(linhas);
+  const depois =
+    antes - somaDe(remover.map((r) => r.linha)) - corrigir.reduce((t, c) => t + n(c.linha.amount) - c.seeds, 0);
 
-  console.log(`\nbanco: ${url}`)
-  console.log(`modo:  ${aplicar ? 'APLICAR (escreve)' : 'relatório (não escreve)'}\n`)
-  console.log(`linhas vivas:      ${linhas.length}`)
-  console.log(`  já corretas:     ${intactas}`)
-  console.log(`  a corrigir:      ${corrigir.length}`)
-  console.log(`  a soft-deletar:  ${remover.length}`)
-  console.log(`\nSeeds creditadas:  ${antes} → ${depois}  (${depois - antes >= 0 ? '+' : ''}${depois - antes})\n`)
+  console.log(`\nbanco: ${bancoEmbutido ? urlDoBanco : 'postgres'}`);
+  console.log(`modo:  ${aplicar ? 'APLICAR (escreve)' : 'relatório (não escreve)'}\n`);
+  console.log(`linhas vivas:      ${linhas.length}`);
+  console.log(`  já corretas:     ${intactas}`);
+  console.log(`  a corrigir:      ${corrigir.length}`);
+  console.log(`  a soft-deletar:  ${remover.length}`);
+  console.log(`\nSeeds creditadas:  ${antes} → ${depois}  (${depois - antes >= 0 ? '+' : ''}${depois - antes})\n`);
 
   for (const { linha, motivo } of remover) {
-    console.log(`  fora  ${linha.credito_id.padEnd(34)} ${String(linha.amount).padStart(6)}  ${motivo}`)
+    console.log(`  fora  ${linha.credito_id.padEnd(34)} ${String(linha.amount).padStart(6)}  ${motivo}`);
   }
   for (const c of corrigir) {
-    console.log(`  ajus  ${c.linha.credito_id.padEnd(34)} ${String(c.linha.amount).padStart(6)} → ${String(c.seeds).padStart(5)}`)
+    console.log(
+      `  ajus  ${c.linha.credito_id.padEnd(34)} ${String(c.linha.amount).padStart(6)} → ${String(c.seeds).padStart(5)}`,
+    );
   }
 
   if (!aplicar) {
-    console.log('\n(nada foi escrito — repita com --aplicar)')
-    return
+    console.log('\n(nada foi escrito — repita com --aplicar)');
+    return;
   }
 
-  const agora = Date.now()
+  const agora = Date.now();
   for (const { linha } of remover) {
-    await cliente.execute({
-      sql: 'update seed_credits set deleted_at = ?, updated_at = ? where id = ?',
-      args: [agora, agora, linha.id],
-    })
+    await db.execute(sql`update seed_credits set deleted_at = ${agora}, updated_at = ${agora} where id = ${linha.id}`);
   }
   for (const c of corrigir) {
-    await cliente.execute({
-      sql: 'update seed_credits set amount = ?, xp = ?, reason = ?, updated_at = ? where id = ?',
-      args: [c.seeds, c.xp, c.reason, agora, c.linha.id],
-    })
+    await db.execute(
+      sql`update seed_credits set amount = ${c.seeds}, xp = ${c.xp}, reason = ${c.reason}, updated_at = ${agora} where id = ${c.linha.id}`,
+    );
   }
-  console.log(`\naplicado: ${remover.length} soft-deletadas, ${corrigir.length} corrigidas.`)
+  console.log(`\naplicado: ${remover.length} soft-deletadas, ${corrigir.length} corrigidas.`);
 }
 
-main().then(() => process.exit(0), (e) => { console.error(e); process.exit(1) })
+main().then(
+  () => process.exit(0),
+  (e) => {
+    console.error(e);
+    process.exit(1);
+  },
+);

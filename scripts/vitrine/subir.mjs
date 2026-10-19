@@ -75,7 +75,7 @@ const ambienteDoApp = {
   VITE_AUTH_REQUIRED: '1',
   VITE_SUPABASE_URL: SUPABASE,
   VITE_SUPABASE_ANON_KEY: 'anon-vitrine',
-  DATABASE_URL: `file:./${PASTA.replaceAll('\\', '/')}/vitrine.db`,
+  DATABASE_URL: `pglite:./${PASTA.replaceAll('\\', '/')}/pg`,
   ASAAS_BASE_URL: `${ASAAS}/v3`,
   ASAAS_API_KEY: 'chave-da-vitrine',
   ASAAS_WEBHOOK_TOKEN: tokenDoWebhook,

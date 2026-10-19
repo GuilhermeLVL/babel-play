@@ -43,7 +43,7 @@ import { randomBytes } from 'node:crypto'
 import { createServer } from 'node:http'
 import {
   appendFileSync,
-  copyFileSync,
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -91,7 +91,7 @@ if (!existsSync(bundle)) {
 mkdirSync(tmp, { recursive: true })
 
 // ── banco preparado (uma vez) ────────────────────────────────────────────────────────────────
-const bancoBase = path.join(tmp, `base-p${PESADOS}-m${MEDIOS}.db`)
+const bancoBase = path.join(tmp, `base-p${PESADOS}-m${MEDIOS}-pg`)
 if (!existsSync(bancoBase) || flag('repreparar')) {
   const p = await preparar({ db: bancoBase, pesados: PESADOS, medios: MEDIOS })
   console.log(`# banco preparado: ${JSON.stringify(p)}`)
@@ -146,7 +146,7 @@ const provedor = await subirProvedorFalso({
 // ── servidor ─────────────────────────────────────────────────────────────────────────────────
 let filhoAtual = null
 async function subirServidor(banco, sonda, rotulo = '') {
-  const audioDir = path.join(tmp, `audio-${path.basename(banco, '.db')}`)
+  const audioDir = path.join(tmp, `audio-${path.basename(banco)}`)
   mkdirSync(audioDir, { recursive: true })
   const env = {
     PATH: process.env.PATH,
@@ -157,7 +157,7 @@ async function subirServidor(banco, sonda, rotulo = '') {
     NODE_ENV: 'production',
     PORT: String(porta),
     HOST: '127.0.0.1',
-    DATABASE_URL: `file:${banco.replace(/\\/g, '/')}`,
+    DATABASE_URL: `pglite:${banco.replace(/\\/g, '/')}`,
     AUDIO_DIR: audioDir,
     BACKUP_DIARIO: '0',
     SECRET_KEY: randomBytes(32).toString('hex'),
@@ -243,9 +243,9 @@ const cpuDaMaquina = () =>
   )
 
 async function rodarNivel(vus) {
-  const banco = path.join(tmp, `nivel-${vus}${mesmoIp ? '-mesmo-ip' : ''}.db`)
-  for (const s of ['', '-wal', '-shm']) if (existsSync(banco + s)) rmSync(banco + s)
-  copyFileSync(bancoBase, banco)
+  const banco = path.join(tmp, `nivel-${vus}${mesmoIp ? '-mesmo-ip' : ''}-pg`)
+  if (existsSync(banco)) rmSync(banco, { recursive: true, force: true })
+  cpSync(bancoBase, banco, { recursive: true })
   const sonda = path.join(tmp, `sonda-${vus}${mesmoIp ? '-mesmo-ip' : ''}.jsonl`)
   if (existsSync(sonda)) rmSync(sonda)
   const rotulo = `nivel-${vus}${mesmoIp ? '-mesmo-ip' : ''}`

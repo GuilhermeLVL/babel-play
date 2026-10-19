@@ -113,7 +113,7 @@ async function principal() {
       NODE_ENV: 'production',
       PORT: String(porta),
       HOST: '127.0.0.1',
-      DATABASE_URL: `file:${path.join(tmp, 'babel.db').replace(/\\/g, '/')}`,
+      DATABASE_URL: `pglite:${path.join(tmp, 'pg').replace(/\\/g, '/')}`,
       AUDIO_DIR: path.join(tmp, 'audio'),
       BACKUP_DIARIO: '0',
       SECRET_KEY: randomBytes(32).toString('hex'),

@@ -6,13 +6,16 @@
  * POR QUE ISTO EXISTE, SE JÁ HÁ TESTE. `tests/integration/economia-atomica.test.ts` cobre o
  * MECANISMO: dez gastos simultâneos chamando o handler direto, com o teto dentro do INSERT. O que
  * ele não cobre é a pilha inteira — `express.json`, o limitador contando no banco, o pool do
- * libsql, e (quando `CLUSTER_WORKERS>1`) mais de um PROCESSO decidindo sobre a mesma conta. Foi
+ * driver, e (quando `CLUSTER_WORKERS>1`) mais de um PROCESSO decidindo sobre a mesma conta. Foi
  * exatamente essa diferença que produziu o achado P1-3 da auditoria: um teto que valia no teste e
  * virava "teto × número de réplicas" em produção.
  *
- *   node scripts/perf/concorrencia.mjs --db=<copia.db> [--porta=3105] [--gastos=40] [--ondas=10] [--workers=1]
+ *   node scripts/perf/concorrencia.mjs --db=<diretório do pglite | postgres://…> [--porta=3105] [--gastos=40] [--ondas=10] [--workers=1]
  *
  * Use SEMPRE uma cópia do banco: a rota grava de verdade em `seed_credits` e `seed_spends`.
+ *
+ * PGlite é de um processo só: com ele `--workers` tem de ser 1 e as linhas de `seed_spends` são contadas
+ * com o servidor PARADO (antes de subir e depois de parar). Vários processos exigem `postgres://`.
  *
  * O QUE REPROVA:
  *   1. saldo final NEGATIVO — o teto falhou;
@@ -22,8 +25,10 @@
  * Um 402 `saldo_insuficiente` NÃO reprova: é o teto funcionando, e é o resultado esperado da
  * maioria das requisições quando o saldo paga só algumas.
  */
-import { execFileSync, spawn } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { openSync } from 'node:fs'
+
+import { contarLinhas, ehPostgres, urlDoBanco } from './contar-linhas.mjs'
 
 const arg = (nome, padrao) => {
   const a = process.argv.find((x) => x.startsWith(`--${nome}=`))
@@ -31,7 +36,9 @@ const arg = (nome, padrao) => {
 }
 const db = arg('db', '')
 if (!db) {
-  console.error('uso: node scripts/perf/concorrencia.mjs --db=<copia.db> [--porta=] [--gastos=] [--workers=]')
+  console.error(
+    'uso: node scripts/perf/concorrencia.mjs --db=<diretório do pglite | postgres://…> [--porta=] [--gastos=] [--workers=]',
+  )
   process.exit(2)
 }
 const porta = arg('porta', '3105')
@@ -57,20 +64,24 @@ const base = `http://127.0.0.1:${porta}`
 
 const env = {
   ...process.env,
-  DATABASE_URL: `file:${db}`,
+  DATABASE_URL: urlDoBanco(db),
   PORT: porta,
   HOST: '127.0.0.1',
   AUTH_REQUIRED: '0',
   CLUSTER_WORKERS: workers,
 }
 
-const sql = (q) => execFileSync('sqlite3', [db, q], { encoding: 'utf8' }).trim()
+if (!ehPostgres(db) && Number(workers) > 1) {
+  console.error('--workers>1 exige --db=postgres://… (o PGlite é de um processo só)')
+  process.exit(2)
+}
+const gastosAntes = await contarLinhas(db, 'seed_spends')
 const dormir = (ms) => new Promise((r) => setTimeout(r, ms))
 
 /* A saida do servidor VAI PARA UM ARQUIVO, e nao para `ignore`. Com `ignore`, uma queda do
    processo no meio da rajada aparecia so como `ECONNREFUSED` no cliente — sem causa, sem stack,
    sem como distinguir "caiu" de "recusou conexao". */
-const logDoServidor = process.env.LOG_DO_SERVIDOR || `${db}.servidor.log`
+const logDoServidor = process.env.LOG_DO_SERVIDOR || `${ehPostgres(db) ? 'concorrencia' : db}.servidor.log`
 const saida = openSync(logDoServidor, 'w')
 const filho = spawn('node', ['dist-server/server.cjs'], { env, stdio: ['ignore', saida, saida] })
 
@@ -126,7 +137,6 @@ try {
   if (subiu < 0) throw new Error('o servidor não respondeu /api/health em 60 s')
 
   const gastasAntes = await seedsGastas()
-  const gastosAntes = Number(sql('SELECT COUNT(*) FROM seed_spends;') || 0)
 
   /* `pular-rodada` e o motivo mais simples do catalogo (`src/core/economiaAutoridade.ts:69`) e o
      unico com preco fixo em constante — os de loja dependem do item. Preco errado nao mede
@@ -165,7 +175,10 @@ try {
   const recusados = respostas.filter((r) => r.status === 402).length
 
   const gastasDepois = await seedsGastas()
-  const gastosDepois = Number(sql('SELECT COUNT(*) FROM seed_spends;') || 0)
+  // Para o servidor antes de contar: o PGlite não admite dois processos no mesmo diretório.
+  filho.kill('SIGTERM')
+  await new Promise((resolve) => (filho.exitCode === null ? filho.once('exit', resolve) : resolve()))
+  const gastosDepois = await contarLinhas(db, 'seed_spends')
   const gravados = gastosDepois - gastosAntes
 
   console.log(`\n| medida | valor |`)

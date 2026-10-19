@@ -4,10 +4,11 @@
  * (`cartoes.js:66-136`): duas sessões com cartões, palavras soltas em dois idiomas, um baralho do Anki
  * e 12 semanas de revisões.
  *
- *     PORT=3203 DATABASE_URL=file:<tmp>/cartoes.db AUDIO_DIR=<tmp>/audio node scripts/subir-dev.mjs
- *     node scripts/polimento/semear-cartoes.mjs --base=http://localhost:3203 --db=<tmp>/cartoes.db [--estado=normal]
+ *     PORT=3203 DATABASE_URL=postgres://… AUDIO_DIR=<tmp>/audio node scripts/subir-dev.mjs
+ *     node scripts/polimento/semear-cartoes.mjs --base=http://localhost:3203 --db=postgres://… [--estado=normal]
  *
- * NUNCA aponte para `data/babel.db`: o script recusa. Os cartões e as sessões entram pelas rotas de
+ * `--db` é a MESMA `DATABASE_URL` do servidor e precisa ser `postgres://` (PGlite não aceita dois processos).
+ * NUNCA aponte para o banco de desenvolvimento ou de produção. Os cartões e as sessões entram pelas rotas de
  * verdade (as mesmas das fixtures dos e2e); só o PASSADO (datas de vencimento, estabilidade e o
  * histórico de revisões) é escrito direto no banco, porque nenhuma rota grava revisão com data antiga.
  *
@@ -16,7 +17,7 @@
  */
 import { readFile } from 'node:fs/promises'
 
-import Database from 'libsql'
+import { abrirBanco } from './_banco.mjs'
 
 const arg = (n, d) => {
   const a = process.argv.find((x) => x.startsWith(`--${n}=`))
@@ -25,8 +26,10 @@ const arg = (n, d) => {
 const BASE = arg('base', 'http://localhost:3203')
 const ARQUIVO = arg('db', '')
 const ESTADO = arg('estado', 'normal')
-if (!ARQUIVO || /data[\\/]babel\.db$/i.test(ARQUIVO)) {
-  console.error('uso: node scripts/polimento/semear-cartoes.mjs --base=<url> --db=<arquivo de TESTE> [--estado=...]')
+if (!ARQUIVO) {
+  console.error(
+    'uso: node scripts/polimento/semear-cartoes.mjs --base=<url> --db=<postgres:// de TESTE> [--estado=...]',
+  )
   process.exit(2)
 }
 
@@ -142,31 +145,36 @@ if (ESTADO === 'primeiro') {
 /* O PASSADO, direto no banco de teste. Um gerador fixo, para o desenho não mudar a cada semeadura. */
 let semente = 7
 const sorteio = () => ((semente = (semente * 9301 + 49297) % 233280), semente / 233280)
-const db = new Database(ARQUIVO)
+const db = await abrirBanco(
+  ARQUIVO,
+  'uso: node scripts/polimento/semear-cartoes.mjs --base=<url> --db=<postgres:// de TESTE>',
+)
 const agora = Date.now()
 const hoje = new Date(agora)
 hoje.setHours(0, 0, 0, 0)
 const inicioDoDia = hoje.getTime()
-const cartoes = db
-  .prepare(
-    'SELECT id, user_id AS userId FROM vocab_cards WHERE deleted_at IS NULL AND due_at IS NOT NULL ORDER BY word',
+const cartoes = await db.consultar(
+  'SELECT id, user_id AS "userId" FROM vocab_cards WHERE deleted_at IS NULL AND due_at IS NOT NULL ORDER BY word',
+)
+const gravarCartao = (...p) =>
+  db.consultar(
+    'UPDATE vocab_cards SET due_at = ?, stability = ?, difficulty = ?, reps = ?, lapses = ?, last_review = ?, updated_at = ? WHERE id = ?',
+    p,
   )
-  .all()
-const gravarCartao = db.prepare(
-  'UPDATE vocab_cards SET due_at = ?, stability = ?, difficulty = ?, reps = ?, lapses = ?, last_review = ?, updated_at = ? WHERE id = ?',
-)
-const gravarRevisao = db.prepare(
-  'INSERT INTO review_logs (id, created_at, updated_at, user_id, card_id, reviewed_at, grade, prev_stability, new_stability, prev_due, new_due, elapsed_days) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-)
+const gravarRevisao = (...p) =>
+  db.consultar(
+    'INSERT INTO review_logs (id, created_at, updated_at, user_id, card_id, reviewed_at, grade, prev_stability, new_stability, prev_due, new_due, elapsed_days) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    p,
+  )
 /* Quantos vencem agora. A pilha não precisa de outro banco: basta baixar os limites da rodada no navegador
    (`revisao.novasPorDia`, `revisao.revisoesPorDia`), como os roteiros `cartoes-hoje-pilha*.json` fazem. */
 const novasAgora = ESTADO === 'feito' ? 0 : 5
 const aprendendoAgora = ESTADO === 'feito' ? 0 : 3
 const revisarAgora = ESTADO === 'feito' ? 0 : 9
 let n = 0
-db.exec('BEGIN')
-cartoes.forEach((c, i) => {
-  if (i < novasAgora) return // nova: fica como a rota gravou (vence agora, sem estabilidade)
+await db.consultar('BEGIN')
+for (const [i, c] of cartoes.entries()) {
+  if (i < novasAgora) continue // nova: fica como a rota gravou (vence agora, sem estabilidade)
   const aprendendo = i < novasAgora + 3
   const vence = aprendendo ? i < novasAgora + aprendendoAgora : i < novasAgora + 3 + revisarAgora
   const estabilidade = aprendendo ? 0.6 + sorteio() : 2 + Math.floor(sorteio() * 40)
@@ -176,7 +184,7 @@ cartoes.forEach((c, i) => {
     ? agora - Math.floor(sorteio() * 2 * DIA) - 60_000
     : inicioDoDia + (1 + Math.floor(sorteio() * 28)) * DIA + 9 * 3_600_000
   const ultima = agora - (1 + Math.floor(sorteio() * 6)) * DIA
-  gravarCartao.run(due, estabilidade, 3 + sorteio() * 5, repeticoes, lapsos, ultima, agora, c.id)
+  await gravarCartao(due, estabilidade, 3 + sorteio() * 5, repeticoes, lapsos, ultima, agora, c.id)
   /* O histórico: revisões espalhadas pelas 12 semanas, mais densas nas últimas; "Errei" em 1 de 9. */
   const quantas = aprendendo ? 1 : 6 + Math.floor(sorteio() * 10)
   for (let k = 0; k < quantas; k++) {
@@ -184,9 +192,9 @@ cartoes.forEach((c, i) => {
     const quando = inicioDoDia - atras * DIA + Math.floor(sorteio() * 14 * 3_600_000) + 7 * 3_600_000
     const r = sorteio()
     const nota = r < 0.11 ? 1 : r < 0.2 ? 2 : r < 0.88 ? 3 : 4
-    gravarRevisao.run(`sem-${++n}`, quando, quando, c.userId, c.id, quando, nota, 1, estabilidade, quando, due, 1)
+    await gravarRevisao(`sem-${++n}`, quando, quando, c.userId, c.id, quando, nota, 1, estabilidade, quando, due, 1)
   }
-})
-db.exec('COMMIT')
-db.close()
+}
+await db.consultar('COMMIT')
+await db.fechar()
 console.log(`${cartoes.length} cartões com passado, ${n} revisões (${ESTADO})`)

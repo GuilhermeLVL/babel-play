@@ -45,7 +45,7 @@ const saida = path.resolve(arg('saida', path.join(os.tmpdir(), `frontend-${Date.
 const base = `http://127.0.0.1:${porta}`
 mkdirSync(saida, { recursive: true })
 
-const banco = path.join(saida, 'frontend.db')
+const banco = path.join(saida, 'frontend-pg')
 if (!existsSync(banco)) console.log(`# banco: ${JSON.stringify(await preparar({ db: banco, pesados: 0, medios: 0 }))}`)
 
 const filho = spawn(process.execPath, [path.join(SERVIDA, 'dist-server/server.cjs')], {
@@ -58,8 +58,8 @@ const filho = spawn(process.execPath, [path.join(SERVIDA, 'dist-server/server.cj
     NODE_ENV: 'production',
     PORT: String(porta),
     HOST: '127.0.0.1',
-    DATABASE_URL: `file:${banco.replace(/\\/g, '/')}`,
-    MIGRATIONS_DIR: path.join(RAIZ, 'server/db/migrations'),
+    DATABASE_URL: `pglite:${banco.replace(/\\/g, '/')}`,
+    MIGRATIONS_DIR: path.join(RAIZ, 'server/db/migrations-pg'),
     AUDIO_DIR: path.join(saida, 'audio'),
     BACKUP_DIARIO: '0',
     SECRET_KEY: randomBytes(32).toString('hex'),

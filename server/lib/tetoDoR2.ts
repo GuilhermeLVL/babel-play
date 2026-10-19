@@ -38,17 +38,24 @@ const PADRAO_MB = 9216
 const PADRAO_OPS_A = 900_000
 const PADRAO_OPS_B = 9_000_000
 
-function lerVariavel(nome: string, valor: string | undefined, padrao: number): number {
+const erroDeConfiguracao = (nome: string, bruto: string) =>
+  new Error(`Erro de configuração: ${nome} deve ser um inteiro ≥ 0 ou "ilimitado" (veio "${bruto.slice(0, 40)}")`)
+
+/**
+ * Inteiro SEGURO (`Number.isSafeInteger`), não só dígitos: um valor gigante vira float impreciso, estoura
+ * o bigint no SQL do contador e a operação passaria sem teto nenhum.
+ */
+function lerVariavel(nome: string, valor: string | undefined, padrao: number, fator = 1): number {
   const bruto = valor?.trim()
   if (!bruto) return padrao
   if (bruto === 'ilimitado') return Infinity
-  if (/^\d+$/.test(bruto)) return Number(bruto)
-  throw new Error(`Erro de configuração: ${nome} deve ser um inteiro ≥ 0 ou "ilimitado" (veio "${bruto.slice(0, 40)}")`)
+  if (/^\d+$/.test(bruto) && Number.isSafeInteger(Number(bruto) * fator)) return Number(bruto)
+  throw erroDeConfiguracao(nome, bruto)
 }
 
 /** Os três tetos do ambiente. Lança em valor inválido (erro de configuração). */
 export function lerTetoDoR2(env: NodeJS.ProcessEnv = process.env): TetoDoR2 {
-  const mb = lerVariavel('R2_TETO_MB', env.R2_TETO_MB, PADRAO_MB)
+  const mb = lerVariavel('R2_TETO_MB', env.R2_TETO_MB, PADRAO_MB, MB)
   return {
     bytes: Number.isFinite(mb) ? mb * MB : Infinity,
     opsA: lerVariavel('R2_TETO_OPS_A_MES', env.R2_TETO_OPS_A_MES, PADRAO_OPS_A),

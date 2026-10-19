@@ -68,6 +68,19 @@ describe('lerTetoDoR2: R2_TETO_OPS_B_MES', () => {
   })
 })
 
+describe('lerTetoDoR2: inteiro grande demais', () => {
+  it('acima de Number.MAX_SAFE_INTEGER é erro de configuração (estouraria o bigint no SQL e passaria sem teto)', () => {
+    const gigante = '9'.repeat(30)
+    expect(() => lerTetoDoR2({ R2_TETO_OPS_A_MES: gigante })).toThrow(/R2_TETO_OPS_A_MES/)
+    expect(() => lerTetoDoR2({ R2_TETO_OPS_B_MES: '9007199254740993' })).toThrow(/R2_TETO_OPS_B_MES/)
+    expect(() => lerTetoDoR2({ R2_TETO_MB: gigante })).toThrow(/R2_TETO_MB/)
+    expect(lerTetoDoR2({ R2_TETO_OPS_A_MES: String(Number.MAX_SAFE_INTEGER) }).opsA).toBe(Number.MAX_SAFE_INTEGER)
+  })
+  it('R2_TETO_MB cujo valor em bytes passaria do inteiro seguro também é erro', () => {
+    expect(() => lerTetoDoR2({ R2_TETO_MB: String(2 ** 40) })).toThrow(/R2_TETO_MB/)
+  })
+})
+
 describe('as variáveis estão declaradas', () => {
   it('em server/lib/config.ts e no .env.production.example', async () => {
     const { VARIAVEIS } = await import('../server/lib/config')

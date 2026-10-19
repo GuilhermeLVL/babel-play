@@ -6,21 +6,25 @@
  * O caso do PGlite está em `db-driver.test.ts`. Este só roda com `TESTE_POSTGRES_URL`.
  */
 import { sql } from 'drizzle-orm'
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+
+import { abrirBancoDeTeste } from '../harness/bancoDeTeste'
+import type { EphemeralDb } from '../harness/ephemeralDb'
 
 const URL_PG = process.env.TESTE_POSTGRES_URL
 
 describe('medição das transações no pg', () => {
+  let h: EphemeralDb | undefined
+  beforeAll(async () => {
+    if (URL_PG) h = await abrirBancoDeTeste({ migrar: false })
+  })
   afterAll(async () => {
-    if (!URL_PG) return
-    const { fecharBanco } = await import('../../server/db/db')
-    await fecharBanco()
+    await h?.cleanup()
   })
 
   it.skipIf(!URL_PG)(
     'lote contado, sem BEGIN/COMMIT, e sem contagem dupla depois do release (exige TESTE_POSTGRES_URL)',
     async () => {
-      process.env.DATABASE_URL = URL_PG
       const m = await import('../../server/db/db')
       const { registrarObservadorDeConsultas } = await import('../../server/db/observadorDeConsultas')
       const vistas: string[] = []

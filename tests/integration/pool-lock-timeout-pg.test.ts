@@ -9,20 +9,23 @@ import { randomUUID } from 'node:crypto'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { abrirBancoDeTeste } from '../harness/bancoDeTeste'
+import type { EphemeralDb } from '../harness/ephemeralDb'
+
 const URL_PG = process.env.TESTE_POSTGRES_URL
 
 let m: typeof import('../../server/db/db')
+let h: EphemeralDb | undefined
 
 beforeAll(async () => {
   if (!URL_PG) return
-  process.env.DATABASE_URL = URL_PG
-  process.env.DB_LOCK_TIMEOUT_MS = '500'
+  h = await abrirBancoDeTeste({ env: { DB_LOCK_TIMEOUT_MS: '500' }, migrar: false })
   m = await import('../../server/db/db')
 })
 
 afterAll(async () => {
   delete process.env.DB_LOCK_TIMEOUT_MS
-  if (URL_PG) await m.fecharBanco()
+  await h?.cleanup()
 })
 
 const codigoDe = (e: unknown): unknown =>

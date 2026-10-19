@@ -15,20 +15,8 @@ import { randomUUID } from 'node:crypto'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
-
-const URL_PG = process.env.TESTE_POSTGRES_URL
-
-async function abrirBanco(): Promise<EphemeralDb> {
-  if (!URL_PG) return setupEphemeralDb()
-  process.env.DATABASE_URL = URL_PG
-  const { db, fecharBanco } = await import('../../server/db/db')
-  const { migrate } = await import('drizzle-orm/node-postgres/migrator')
-  await migrate(db as Parameters<typeof migrate>[0], {
-    migrationsFolder: process.env.MIGRATIONS_DIR ?? './server/db/migrations-pg',
-  })
-  return { load: (spec) => import(spec), cleanup: fecharBanco }
-}
+import { abrirBancoDeTeste } from '../harness/bancoDeTeste'
+import type { EphemeralDb } from '../harness/ephemeralDb'
 
 /* Várias compras ao mesmo tempo (mais do que as 5 conexões do pool) e algumas rodadas: no Postgres
    real, sem a trava, a corrida aparece quase sempre já na primeira. */
@@ -40,7 +28,7 @@ let creditsRepo: any
 let seedSpendsRepo: any
 
 beforeAll(async () => {
-  h = await abrirBanco()
+  h = await abrirBancoDeTeste()
   ;({ creditsRepo } = await h.load('../../server/db/repositories/credits'))
   ;({ seedSpendsRepo } = await h.load('../../server/db/repositories/seedSpends'))
 }, 60_000)

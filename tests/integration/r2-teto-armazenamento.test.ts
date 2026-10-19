@@ -19,23 +19,12 @@ import path from 'node:path'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
+import { abrirBancoDeTeste } from '../harness/bancoDeTeste'
+import type { EphemeralDb } from '../harness/ephemeralDb'
 
-const URL_PG = process.env.TESTE_POSTGRES_URL
 const MB = 1024 * 1024
 const PREFIXO = `r2teto-${randomUUID().slice(0, 8)}`
 const ENCHIMENTO = `${PREFIXO}-enchimento`
-
-async function abrirBanco(): Promise<EphemeralDb> {
-  if (!URL_PG) return setupEphemeralDb()
-  process.env.DATABASE_URL = URL_PG
-  const { db, fecharBanco } = await import('../../server/db/db')
-  const { migrate } = await import('drizzle-orm/node-postgres/migrator')
-  await migrate(db as Parameters<typeof migrate>[0], {
-    migrationsFolder: process.env.MIGRATIONS_DIR ?? './server/db/migrations-pg',
-  })
-  return { load: (spec) => import(spec), cleanup: fecharBanco }
-}
 
 const S3 = {
   S3_ENDPOINT: 'http://r2-falso.invalid',
@@ -73,7 +62,7 @@ beforeAll(async () => {
   process.env.AUDIO_DIR = mkdtempSync(path.join(tmpdir(), 'babel-r2-teto-'))
   ligarS3()
   vi.stubGlobal('fetch', fetchFalso)
-  h = await abrirBanco()
+  h = await abrirBancoDeTeste()
   quota = await h.load('../../server/lib/storageQuota')
   ;({ sessionsRouter: router } = await h.load('../../server/routes/sessions'))
   ;({ sessionsRepo: sessions } = await h.load('../../server/db/repositories/sessions'))

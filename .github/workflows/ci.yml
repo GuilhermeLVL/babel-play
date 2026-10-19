@@ -27,6 +27,7 @@ env:
 #   e2e (5 fatias)      um job por viewport; celular e desktop em duas fatias (`--shard`)
 #   e2e-estatica (4)    um job por viewport × duas fatias
 #   e2e-publico, migracoes, carga, imagem-construir → imagem e restauracao-litestream
+#   postgres-real       os testes que só rodam com TESTE_POSTGRES_URL, contra um postgres:17 de serviço
 # O `deploy.yml` cobra a CONCLUSÃO da execução inteira (`conclusion == success`), não o nome de um
 # job: uma fatia vermelha reprova a execução como o `verify` reprovava.
 jobs:
@@ -347,6 +348,60 @@ jobs:
           name: vitest-resultado
           path: vitest-resultado.json
           if-no-files-found: ignore
+
+  # O DRIVER `pg` DE VERDADE (revisão final da Fase 1, I4). A suíte das fatias roda no PGlite; os testes
+  # que exigem um Postgres de verdade (duas transações ao mesmo tempo, vários processos no mesmo banco,
+  # int8 do `pg`, lock_timeout) se pulam sem `TESTE_POSTGRES_URL` — e nenhum job a definia, então o
+  # driver de produção nunca rodava no CI. Aqui um `postgres:17` de serviço e SÓ esses arquivos, na
+  # lista explícita abaixo; o passo "Lista completa" reprova se surgir arquivo novo com a variável e
+  # ele não entrar aqui. A suíte de integração INTEIRA sobre o Postgres de verdade é da Fase 2.
+  postgres-real:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: babel
+          POSTGRES_PASSWORD: babel-ci
+          POSTGRES_DB: babel_teste
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U babel -d babel_teste"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      # Senha descartável de um contêiner de serviço que só existe neste job; não é segredo.
+      TESTE_POSTGRES_URL: postgres://babel:babel-ci@localhost:5432/babel_teste
+      ARQUIVOS: >-
+        tests/integration/agregados-concorrentes.test.ts
+        tests/integration/cluster.test.ts
+        tests/integration/desligamento-gracioso.test.ts
+        tests/integration/gasto-concorrente.test.ts
+        tests/integration/int8-no-pg.test.ts
+        tests/integration/limpeza-analyze.test.ts
+        tests/integration/medicao-de-transacao-pg.test.ts
+        tests/integration/pool-lock-timeout-pg.test.ts
+        tests/integration/rodada-e-glossario-concorrentes.test.ts
+        tests/integration/teto-de-erros-entre-instancias.test.ts
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Lista completa (todo teste com TESTE_POSTGRES_URL está em ARQUIVOS)
+        run: |
+          achados=$(grep -rl TESTE_POSTGRES_URL tests --include='*.test.ts' | sort)
+          esperados=$(printf '%s\n' $ARQUIVOS | sort)
+          diff <(echo "$achados") <(echo "$esperados")
+      - run: npm ci
+        timeout-minutes: 5
+      - name: Testes contra o Postgres de verdade
+        timeout-minutes: 10
+        run: npx vitest run $ARQUIVOS --maxWorkers=2
 
   # E2E PRINCIPAL, UM JOB POR VIEWPORT. Os três projetos rodavam em série no `verify` (~33 min:
   # celular 12, tablet 7, desktop 13). Cada fatia sobe o SEU servidor e o SEU banco vazio, então o

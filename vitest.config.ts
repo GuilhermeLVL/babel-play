@@ -22,6 +22,13 @@ export default defineConfig({
      */
     testTimeout: 20_000,
     hookTimeout: 20_000,
+    /*
+     * TETO DE WORKERS FORA DO CI (19/10/2026). O padrão do vitest usa quase todos os núcleos; duas
+     * suítes em paralelo (worktrees) somadas a processos órfãos levaram a máquina do desenvolvedor a
+     * carga 35 em 15 núcleos e 11 GB de swap. Metade dos núcleos deixa folga para o editor, o
+     * servidor de dev e uma segunda suíte. No CI cada fatia roda sozinha no runner e fica no padrão.
+     */
+    maxWorkers: process.env.CI ? undefined : '50%',
     /* Padrão `node`: os testes puros não precisam de DOM e pagariam o custo do jsdom à toa. Quem
        precisa declara `// @vitest-environment jsdom` no topo do arquivo. */
     environment: 'node',

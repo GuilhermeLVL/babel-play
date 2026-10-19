@@ -38,6 +38,7 @@
     "typecheck:core": "tsc -p src/core/tsconfig.json",
     "typecheck:estrito": "tsc -p tsconfig.estrito.json --noEmit",
     "test": "vitest run",
+    "limpar": "node scripts/limpar-processos.mjs",
     "test:unit": "vitest run",
     "test:cov": "vitest run --coverage",
     "test:e2e": "playwright test",

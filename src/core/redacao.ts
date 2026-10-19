@@ -12,7 +12,11 @@
  *                  'params: 2,transcricao-do-usuario-meu-cpf-e-123.456.789-00'
  *
  * O driver do libsql sozinho NÃO faz isso — `LibsqlError` traz só `SQLITE_CONSTRAINT: UNIQUE
- * constraint failed: t.texto`, sem valor nenhum (confirmado no mesmo teste). Quem anexa é o
+ * constraint failed: t.texto`, sem valor nenhum (confirmado no mesmo teste). NO POSTGRES (desde a
+ * Fase 1, `pg`/PGlite) ISSO NÃO VALE MAIS: o próprio driver repete o valor recusado na mensagem —
+ * `invalid input syntax for type bigint: "<valor>"`, e o `detail` de violação de unicidade traz
+ * `Key (coluna)=(<valor>)`. Esse valor NÃO passa pelo corte do item 1; a defesa é a validação de
+ * entrada (zod `.int()` e afins nas rotas), que impede o valor malformado de chegar ao SQL. Quem anexa é o
  * drizzle, que escreve `message`, `stack` E uma propriedade `params` com TODOS os valores
  * vinculados. Ou seja: toda escrita que falha — salvar transcrição, gravar cartão, guardar
  * credencial — despejava o conteúdo do usuário no `error` do log, atravessando a allowlist por

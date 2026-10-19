@@ -1,8 +1,10 @@
 # ADR 0006 — Manter SQLite numa máquina até o gatilho medido, e então migrar para Postgres
 
 - **Data:** 2026-09-25
-- **Estado:** proposto
+- **Estado:** substituído pelo ADR 0014
 - **Change OpenSpec:** `prontidao-producao`
+
+> Substituído em 2026-10-19 pelo [ADR 0014](0014-postgres-agora-pelo-cloudflare.md): a migração para o Postgres começou sem esperar o gatilho. Corpo mantido como registro histórico.
 
 ## Contexto
 

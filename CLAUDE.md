@@ -2,7 +2,7 @@
 
 App web para aprender idioma com o que a pessoa já assiste e conversa: transcrição e tradução ao vivo de
 áudio (rodando no navegador quando possível) viram jogos de vocabulário e repetição espaçada. Atende
-menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servidor Express, SQLite/libsql.
+menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servidor Express, Postgres (PGlite em dev/testes, `pg` em produção).
 
 ## Mapa de camadas
 
@@ -12,7 +12,7 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
 - `src/components/`: telas e peças de UI. `src/styles/`: CSS. `src/hooks/`: hooks compartilhados.
 - `src/lib/`: utilitários de app (áudio, dispositivo, polimento, captura, auth). Pode usar core e gateway.
 - `src/data/`: acesso a dados e clientes das rotas da API (`src/data/rotas/`), trilha de conteúdo.
-- `server/`: Express (`routes/`, `ai/` com proxies e núcleo de IA, `db/` com migrações Drizzle, `lib/`).
+- `server/`: Express (`routes/`, `ai/` com proxies e núcleo de IA, `db/` com migrações Drizzle em `migrations-pg/`, `lib/`).
   `server/lib/config.ts` lista as variáveis de ambiente; `.env.production.example` é o modelo de produção.
 - `tests/` (vitest e e2e Playwright), `scripts/` (operação, perf, i18n), `ops/` (provedores, alertas), `docs/`, `openspec/`.
 
@@ -23,6 +23,7 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
 - `npm run lint`: ESLint com `--max-warnings 0` (também ordena imports; use `npx eslint --fix`).
 - `npm test`: `vitest run` (um arquivo: `npx vitest run tests/<arquivo>`).
 - `npm run build`: Vite + bundle do servidor. `npx knip`: exports e arquivos sem uso.
+- `npm run limpar`: encerra processos órfãos deixados por testes (hook `SessionEnd`; skill `/limpar-processos`).
 - Gerenciador: npm (`package-lock.json`).
 
 ## Convenções
@@ -41,5 +42,7 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
   foi escolhido (`src/lib/langConfig.ts`): trocar um muda o outro.
 - Os testes ignoram o `.env` (`tests/setup-db-isolada.ts` aponta o dotenv para um arquivo inexistente e
   usa banco isolado): variável nova precisa ser definida no próprio teste.
+- `data/pg/` é o banco de dev (PGlite); os testes usam `pglite://memory`. PGlite aceita um processo por
+  diretório. Testes de concorrência/multiprocesso só rodam com `TESTE_POSTGRES_URL` (Postgres real).
 - `git pull --rebase` antes de `git push`: há mais de uma frente de trabalho na `main`.
 - `docs/prototipos/*-src/`, `docs/prototipos/_comum/` e `public/` ficam fora do lint.

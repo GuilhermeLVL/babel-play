@@ -86,7 +86,7 @@ The code is split in layers:
 | `src/lib/`        | client services: capture, audio, voice, import, auth                                                                                                                       |
 | `src/data/`       | the data layer. `apiFetch` is the **single HTTP funnel**; without an account an in-memory server over IndexedDB (`src/data/efemero`) answers with the same response shapes |
 | `src/components/` | React UI                                                                                                                                                                   |
-| `server/`         | Express API: Supabase JWT, per-user isolation, rate limits, Zod validation, libsql/SQLite (Drizzle), billing, AI routing                                                   |
+| `server/`         | Express API: Supabase JWT, per-user isolation, rate limits, Zod validation, Postgres (Drizzle; PGlite in dev/tests, `pg` in production), billing, AI routing               |
 
 Identity (anonymous or account), plan and role are separate axes, and the plan is decided **only** on the server; the client just paints it. An ast-grep rule forbids `fetch('/api/…')` outside the funnel. More in [docs/arquitetura.md](docs/arquitetura.md) (historical) and in the living specs under [`openspec/specs/`](openspec/specs/).
 
@@ -113,7 +113,7 @@ HTTPS is up to the reverse proxy in front (Caddy, Traefik, nginx). Details in [`
 
 ## Deploy
 
-The production target is Fly.io (GRU, one machine, SQLite replicated by Litestream to Cloudflare R2), with Supabase for login, Cloudflare in front, Resend and Sentry. The owner's step-by-step is [docs/LANCAMENTO.md](docs/LANCAMENTO.md); operating it is [docs/runbook.md](docs/runbook.md); staging is [docs/STAGING.md](docs/STAGING.md). Deploys go through `deploy.yml`, which only accepts a commit with a green CI.
+The production target is Fly.io (GRU, one machine; the server now speaks Postgres, the Litestream/SQLite setup is legacy until the next migration phases, see [ADR 0014](docs/adr/0014-postgres-agora-pelo-cloudflare.md)), with Supabase for login, Cloudflare in front, Resend and Sentry. The owner's step-by-step is [docs/LANCAMENTO.md](docs/LANCAMENTO.md); operating it is [docs/runbook.md](docs/runbook.md); staging is [docs/STAGING.md](docs/STAGING.md). Deploys go through `deploy.yml`, which only accepts a commit with a green CI.
 
 ## Security and privacy
 
@@ -127,7 +127,7 @@ The production target is Fly.io (GRU, one machine, SQLite replicated by Litestre
 
 - Opus-MT int8/fp16 fails to build a session on some devices; the app falls back to the next translator.
 - Screen-share audio on Windows can raise `NotReadableError`; use tab share or the loopback route.
-- Single-writer database (SQLite): fine for a beta; scaling means changing the database, see [docs/escala.md](docs/escala.md).
+- Dev/test database is PGlite (one process per directory); production needs Postgres, see [docs/escala.md](docs/escala.md).
 - Bergamot models are served from a CDN that the owner still has to publish; until then Opus-MT does the work.
 
 ## Contributing

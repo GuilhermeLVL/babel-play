@@ -1,5 +1,8 @@
 # Critérios de escala — quando e como crescer (Fase 5 de prontidão, 25/09/2026)
 
+> **Desde a Fase 1 (ADR 0014)** o servidor fala Postgres e o ADR 0006 foi substituído; os trechos sobre SQLite
+> numa máquina descrevem o Fly atual. Com PGlite o boot recusa `REPLICAS>1` e `CLUSTER_WORKERS>1`.
+
 Este documento responde **"a métrica X disparou; qual é o próximo passo, quanto custa e qual o comando?"**.
 Os limiares vêm das medições da Fase 2 (`openspec/audits/2026-09-25-prontidao/fase2-escala.md`) e do
 ADR 0006 (`docs/adr/0006-sqlite-numa-maquina-ate-o-gatilho-de-postgres.md`). As métricas estão em

@@ -77,6 +77,11 @@ Os erros de aplicação (Sentry) não são alerta de página: são revisados tod
 
 ### 0.2 Restaurar o banco
 
+> **Desde a Fase 1 (ADR 0014)** o banco é Postgres. Com `postgres://`, restaure um dump do `scripts/backup.mjs`
+> com `pg_restore --clean --if-exists -d "$DATABASE_URL" <arquivo>` (ou o PITR do Supabase). Com `pglite:<dir>`
+> (dev), pare o servidor e copie de volta o diretório do backup. Litestream e snapshot diário não existem mais
+> no servidor (`SNAPSHOT_INDISPONIVEL`); o roteiro A/B abaixo vale só para o Fly legado até a Fase 2.
+
 Há duas fontes, as duas no R2:
 
 **A. Litestream (réplica contínua, perda de ~10 s).** Para perda da máquina ou do volume.
@@ -436,8 +441,8 @@ existir **em silêncio**.
 ## 8. Banco
 
 ```bash
-sqlite3 <banco> 'PRAGMA integrity_check;'      # esperado: ok
-sqlite3 <banco> 'PRAGMA foreign_key_check;'    # esperado: vazio
+# SQLite legado (Fly): sqlite3 <banco> 'PRAGMA integrity_check;' (ok) e 'PRAGMA foreign_key_check;' (vazio)
+# Postgres: pg_restore --list <dump>; /api/health devolve banco: 'postgres' (ou 'pglite' em dev)
 node scripts/backup.mjs                        # cópia consistente
 ```
 

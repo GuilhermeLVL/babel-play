@@ -67,7 +67,7 @@ flowchart TB
         RG["/api/tutor/chat\nGroq → OpenRouter (Ollama só self-host)"]
     end
 
-    DB[("SQLite (Drizzle/libsql)\nsessions · utterances · cards\nreview_logs · settings · secrets")]
+    DB[("Postgres (Drizzle; PGlite em dev, pg em produção)\nsessions · utterances · cards\nreview_logs · settings · secrets")]
 
     YT["yt-dlp (binário externo)"]
     CLOUD["Nuvem: Groq · OpenRouter · MyMemory\nWiktionary · Openverse · HF CDN"]
@@ -251,5 +251,5 @@ revisão, vocabulário e perfil mostram um convite inline (`src/components/conta
 best-effort, cartões deduplicados, e só então apaga o local. Repetir não duplica.
 
 **Escala**: um processo atende ~300 req/s de escrita; mais workers de cluster pioram (escritor
-único do SQLite). Como o anônimo não escreve no servidor, o beta roda em free tier; escalar de
+único do PGlite, que aceita um processo por diretório). Como o anônimo não escreve no servidor, o beta roda em free tier; escalar de
 verdade é trocar o banco (Postgres), não somar processos.

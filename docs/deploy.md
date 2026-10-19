@@ -1,5 +1,9 @@
 # Deploy — modo público multi-usuário
 
+> **Banco desde a Fase 1 (ADR 0014):** o servidor fala Postgres (PGlite em dev/testes, `pg` em produção). Os trechos
+> abaixo sobre SQLite, WAL, `VACUUM INTO`, snapshot e Litestream descrevem o deploy atual no Fly e ficam
+> pendentes para as fases seguintes; onde conflitarem com esta nota, vale esta nota.
+
 Container genérico (Docker), sem amarra a fornecedor: roda em VPS, Fly, Railway, Render,
 Coolify ou Kubernetes. Os números e limites citados aqui vêm de `docs/audit/04-scalability.md`.
 
@@ -49,7 +53,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 ### Definidas na imagem
 
-`DATABASE_URL=file:/data/babel.db` · `AUDIO_DIR=/data/audio` · `HOST=0.0.0.0` · `PORT=3000`
+`DATABASE_URL=file:/data/babel.db` (o `Dockerfile` ainda define isto; o preflight de produção recusa `file:`, então defina `DATABASE_URL=postgres://...`) · `AUDIO_DIR=/data/audio` · `HOST=0.0.0.0` · `PORT=3000`
 · `NODE_ENV=production`. (`AUTH_REQUIRED=1` vem do `docker-compose.yml` e do `fly.toml`; com
 `NODE_ENV=production` e sem valor ela já liga.)
 
@@ -69,9 +73,9 @@ container mais o `AUTH_REQUIRED=1`, não o bind.
 - [x] **Migrations** — o boot aplica sozinho, antes do seed, e falha o processo se não conseguir
       (sem schema o app não serve nada). Idempotente. A `0005` deduplica `settings` antes de criar
       o índice único, então rodar por cima de um banco antigo é seguro.
-- [ ] **Backup do SQLite.** Em WAL há três arquivos (`.db`, `.db-wal`, `.db-shm`) — copiar só o
-      `.db` com o app rodando dá backup **corrompido**. Use o Litestream + snapshot diário (§Backup)
-      ou, à mão, `node scripts/backup.mjs` (que faz `VACUUM INTO` e confere).
+- [ ] **Backup do banco.** Com `postgres://`, `node scripts/backup.mjs` roda `pg_dump` e confere com
+      `pg_restore --list`. Com `pglite:<dir>` (dev), copia o diretório e só vale com o servidor parado.
+      Litestream e snapshot diário saíram do servidor (ADR 0014); o `pg_dump` semanal no CI é da Fase 2.
 - [ ] **Tetos por plano** (`PREMIUM_*` — `PREMIUM_MONTHLY_STT_SECONDS`, `PREMIUM_DAILY_STT_SECONDS` e as
       demais do inventário em `server/lib/config.ts`; defaults em `src/core/planos.ts`. As antigas
       `PRO_*`/`ESSENCIAL_*` NÃO são mais lidas: passe o valor para a `PREMIUM_*` correspondente) coerentes com o
@@ -100,13 +104,28 @@ concorrentemente → 0% de falha (era 50% antes do WAL). Serve para deploy sem d
 
 **Réplicas em HOSTS distintos: ainda não.** Dois motivos:
 
-1. WAL exige memória compartilhada — não funciona sobre NFS/SMB. Multi-host exige **Postgres**
-   (`server/db/db.ts` é o único arquivo a trocar; schema e repositories são portáveis).
+1. O PGlite aceita um processo por diretório (o boot recusa `REPLICAS>1`/`CLUSTER_WORKERS>1`). Multi-host
+   exige o **Postgres** de produção (`postgres://`), que o servidor já fala desde a Fase 1.
 2. `AUDIO_DIR` num volume compartilhado resolve o áudio entre réplicas do mesmo storage;
    hosts sem storage comum exigem **object store** (S3/R2).
 
 O rate-limit **já** é compartilhado entre réplicas (contador no banco, não no heap) e chaveado
 por tenant, então esse não é mais um bloqueio.
+
+## Migrar os dados do SQLite para o Postgres
+
+Com o servidor antigo **parado** (a leitura da origem não é um snapshot), e `DATABASE_URL` apontando o destino:
+
+```bash
+npx tsx scripts/migracao/sqlite-para-postgres.ts --origem file:./data/babel.db
+```
+
+Copia em lotes de 500 com os triggers desligados (`DISABLE TRIGGER USER`) numa só transação e confere a paridade
+por checksum sha256 de cada tabela (`scripts/migracao/paridade.ts`). A tabela `flags` da origem vence a do destino.
+Sai com código 1 se qualquer tabela divergir. Para repetir sobre um destino não vazio, use `--continuar`.
+
+Ainda pendentes para as próximas fases: `ENV DATABASE_URL=file:` do `Dockerfile`, `iniciar-container.sh`,
+`litestream.yml`, `fly.toml` e os jobs de CI `restauracao-litestream` e `imagem-construir`.
 
 ## Tamanho da imagem — 847 MB (medido)
 
@@ -166,8 +185,8 @@ Dentro da imagem o script também existe: `node scripts/backup.mjs --sem-midia -
 
 **O que ele faz que um `cp` não faz:**
 
-1. **`VACUUM INTO`, não cópia de arquivo.** Sob WAL o banco são três arquivos e copiar só o `.db`
-   com o app rodando produz backup corrompido ou defasado.
+1. **`pg_dump`, não cópia de arquivo.** Com `postgres://` o próprio Postgres entrega um instantâneo
+   consistente; com `pglite:<dir>` a cópia do diretório só é consistente com o servidor parado.
 2. **Verifica antes de dar por feito** — abre a cópia, roda `PRAGMA integrity_check` e confere as
    contagens contra a origem. Sai com código != 0 se algo não fechar, que é o que faz um agendador
    avisar.
@@ -300,7 +319,7 @@ escritas com 3 processos), rate limit contado no banco e não no heap, e áudio 
 worker existir — o que elimina a contenção de lock no boot que hoje depende de restart do
 orquestrador.
 
-**Aborta se o WAL não pegar.** `PRAGMA journal_mode = WAL` não lança quando falha: sobre NFS/SMB
+**Aborta se o WAL não pegar (histórico, SQLite; não vale mais).** `PRAGMA journal_mode = WAL` não lança quando falha: sobre NFS/SMB
 devolve `delete` e segue. Sem WAL, medido, 3 processos perdem 28,9 % das escritas. Em modo cluster
 isso vira falha dura no boot, não aviso no log.
 

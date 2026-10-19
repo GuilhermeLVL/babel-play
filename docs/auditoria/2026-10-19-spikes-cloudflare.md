@@ -171,3 +171,7 @@ verificado, origem rede doméstica em São Paulo, cinco `select 1` por via.
   medição final (Worker + Hyperdrive) fica para quando houver token da Cloudflare na sessão.
 - O host do pooler deste projeto é `aws-1-sa-east-1` (não `aws-0`); o painel "Connect" mostra o certo.
 - `options -c …` continua honrado só na conexão direta (ver S6 parcial).
+- **Testes de Postgres real contra São Paulo:** os 11 arquivos com `TESTE_POSTGRES_URL` passam (32 testes,
+  1 pulado por ser só-PGlite), com `--maxWorkers=2`, inclusive o de 5 rodadas concorrentes que estourava o
+  `lock_timeout` a 130 ms. As duas falhas da primeira rodada eram corrida do harness (dois arquivos migrando
+  o mesmo banco ao mesmo tempo); corrigido com um banco descartável por arquivo (`tests/harness/bancoDeTeste.ts`).

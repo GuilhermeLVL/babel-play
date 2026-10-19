@@ -9,6 +9,7 @@ import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import {
+  A_PARTIR_DE,
   conferirContratoSozinho,
   conferirJournal,
   conferirMigracao,
@@ -71,8 +72,8 @@ describe('conferirContratoSozinho — contrato vem num diff só dele', () => {
     expect(
       conferirContratoSozinho(
         [
-          'server/db/migrations/0031_remove_x.sql',
-          'server/db/migrations/meta/0031_snapshot.json',
+          'server/db/migrations-pg/0031_remove_x.sql',
+          'server/db/migrations-pg/meta/0031_snapshot.json',
           'server/db/schema.ts',
           'docs/runbook.md',
         ],
@@ -82,7 +83,7 @@ describe('conferirContratoSozinho — contrato vem num diff só dele', () => {
   })
   it('reprova quando código de servidor ou cliente veio junto', () => {
     const erros = conferirContratoSozinho(
-      ['server/db/migrations/0031_remove_x.sql', 'server/routes/vocab.ts', 'src/App.tsx'],
+      ['server/db/migrations-pg/0031_remove_x.sql', 'server/routes/vocab.ts', 'src/App.tsx'],
       contratos,
     )
     expect(erros[0]).toMatch(/server\/routes\/vocab\.ts, src\/App\.tsx/)
@@ -106,20 +107,23 @@ describe('conferirJournal e a pasta inteira', () => {
   it('as migrations do repositório passam hoje', () => {
     const r = conferirPasta()
     expect(r.erros).toEqual([])
-    expect(r.conferidas).toBeGreaterThanOrEqual(1)
+    /* A cadeia do Postgres nasceu na 0000 (baseline): toda migration a partir de `A_PARTIR_DE` é
+       conferida, e as de antes (a baseline) não. Na cadeia SQLite este número passava de 1. */
+    expect(r.total).toBeGreaterThanOrEqual(A_PARTIR_DE)
+    expect(r.conferidas).toBe(r.total - A_PARTIR_DE)
   })
 
-  it('numa pasta com migration nova destrutiva, reprova; migrations antigas (< 0030) não são cobradas', () => {
+  it('numa pasta com migration nova destrutiva, reprova; migrations antigas (< 0003, a baseline) não são cobradas', () => {
     dir = mkdtempSync(path.join(tmpdir(), 'migracoes-'))
     mkdirSync(path.join(dir, 'meta'))
-    writeFileSync(path.join(dir, '0026_antiga.sql'), 'DROP TABLE velha;')
-    writeFileSync(path.join(dir, '0031_nova.sql'), `${REV}ALTER TABLE t DROP COLUMN c;`)
+    writeFileSync(path.join(dir, '0002_antiga.sql'), 'DROP TABLE velha;')
+    writeFileSync(path.join(dir, '0003_nova.sql'), `${REV}ALTER TABLE t DROP COLUMN c;`)
     writeFileSync(
       path.join(dir, 'meta', '_journal.json'),
-      JSON.stringify({ entries: [{ tag: '0026_antiga' }, { tag: '0031_nova' }] }),
+      JSON.stringify({ entries: [{ tag: '0002_antiga' }, { tag: '0003_nova' }] }),
     )
     const r = conferirPasta(dir)
     expect(r.erros).toHaveLength(1)
-    expect(r.erros[0]).toMatch(/^0031_nova\.sql: DROP COLUMN/)
+    expect(r.erros[0]).toMatch(/^0003_nova\.sql: DROP COLUMN/)
   })
 })

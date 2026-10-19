@@ -7,12 +7,12 @@
  * Uma imagem anterior sobre um banco migrado só funciona se a migration nova tiver apenas
  * ACRESCENTADO (expand). Por isso a regra da casa, agora cobrada:
  *
- *   1. EXPAND por padrão. Migration nova (número >= 0030) não pode ter `DROP TABLE`, `DROP COLUMN`,
+ *   1. EXPAND por padrão. Migration nova (número >= 0003 na cadeia do Postgres) não pode ter `DROP TABLE`, `DROP COLUMN`,
  *      `RENAME` (tabela ou coluna) nem `ALTER ... NOT NULL` sem `DEFAULT` — tudo isso quebra a
  *      versão anterior do código, que é exatamente a que o rollback põe de volta no ar.
  *   2. CONTRACT só com marcador explícito: uma linha `-- CONTRATO: <justificativa>` na migration.
  *      E ela vem SOZINHA: no mesmo diff não pode haver mudança de código de servidor/cliente
- *      (fora `server/db/schema.ts`, que precisa acompanhar a migration, e `server/db/migrations/`).
+ *      (fora `server/db/schema.ts`, que precisa acompanhar a migration, e `server/db/migrations-pg/`).
  *      O código que parou de usar a coluna foi num deploy ANTERIOR; este só remove o que já não é lido.
  *      A conferência de "sozinha" usa `git diff` contra `--base` — sem base resolvível (push de
  *      branch nova, clone raso), só o marcador é cobrado, com aviso.
@@ -28,10 +28,21 @@ import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-/** A partir desta migration as regras valem. As anteriores são história (0026 remove tabela órfã). */
-export const A_PARTIR_DE = 30
+/**
+ * A partir desta migration as regras valem. As anteriores são história: 0000–0002 são a baseline da
+ * migração para o Postgres (o estado final da cadeia SQLite, que está em `server/db/migrations-sqlite/`
+ * e foi conferida por este portão a partir da 0030 dela).
+ */
+export const A_PARTIR_DE = 3
 
-const PASTA_PADRAO = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'server', 'db', 'migrations')
+const PASTA_PADRAO = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+  'server',
+  'db',
+  'migrations-pg',
+)
 
 /** Remove comentários `-- …` (até o fim da linha) e `/* … *\/`, para que o texto explicativo não conte como SQL. */
 export function semComentarios(sql) {
@@ -98,13 +109,13 @@ export function conferirMigracao(nome, sql) {
  */
 export function conferirContratoSozinho(arquivosMudados, migracoesComContrato) {
   const contratosNoDiff = migracoesComContrato.filter((m) =>
-    arquivosMudados.some((a) => a.replace(/\\/g, '/').endsWith(`server/db/migrations/${m}`)),
+    arquivosMudados.some((a) => a.replace(/\\/g, '/').endsWith(`server/db/migrations-pg/${m}`)),
   )
   if (!contratosNoDiff.length) return []
   const codigo = arquivosMudados
     .map((a) => a.replace(/\\/g, '/'))
     .filter((a) => /^(src\/|server\/|server\.ts$)/.test(a))
-    .filter((a) => !a.startsWith('server/db/migrations/') && a !== 'server/db/schema.ts')
+    .filter((a) => !a.startsWith('server/db/migrations-pg/') && a !== 'server/db/schema.ts')
   if (!codigo.length) return []
   return [
     `${contratosNoDiff.join(', ')}: migration de CONTRATO não pode vir com mudança de código no mesmo diff — ` +

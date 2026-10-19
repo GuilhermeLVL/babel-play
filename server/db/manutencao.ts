@@ -9,7 +9,7 @@
  * Aqui o contrato fica explícito no nome do arquivo: NADA daqui é chamável por rota.
  * Chamado apenas por `startServer()` (server.ts).
  */
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { eq, sql } from 'drizzle-orm'
@@ -37,25 +37,29 @@ import { vocabCards } from './schema'
 export async function aplicarMigrations(): Promise<void> {
   const migrationsFolder = process.env.MIGRATIONS_DIR ?? join(process.cwd(), 'server', 'db', 'migrations-pg')
 
-  try {
-    if (bancoEmbutido) await migrarPglite(db as Parameters<typeof migrarPglite>[0], { migrationsFolder })
-    else await migrarNode(db as Parameters<typeof migrarNode>[0], { migrationsFolder })
-    // Estatística para o planejador no PGlite, que não tem autoanalyze (ver `analisarBancoEmbutido`).
-    await analisarBancoEmbutido()
-  } catch (err) {
-    // P1-N1: "não CONSIGO migrar" e "não PRECISO migrar" eram tratados igual, e o boot
-    // matava o processo nos dois casos. Uma réplica apontada para um banco já migrado, sem
-    // a pasta no disco, entrava em crash-loop — justamente a topologia "um nó migra, os
-    // outros servem". Se o schema já está lá, seguir é o certo; só falhar se não estiver.
+  /* P1-N1: "não CONSIGO migrar" e "não PRECISO migrar" eram tratados igual, e o boot matava o
+     processo nos dois casos. Uma réplica apontada para um banco já migrado, sem a pasta no disco,
+     entrava em crash-loop — justamente a topologia "um nó migra, os outros servem". Se o schema já
+     está lá, seguir é o certo; só falhar se não estiver.
+
+     SÓ A PASTA AUSENTE cai nesse caminho (revisão final da Fase 1, M3). Antes o `catch` pegava
+     QUALQUER erro, e uma migração com SQL quebrado num banco que já tinha `sessions` virava um aviso:
+     o boot seguia com o schema pela metade. O teste é o mesmo do migrator do Drizzle (o journal). */
+  if (!existsSync(join(migrationsFolder, 'meta', '_journal.json'))) {
     if (await schemaPresente()) {
       console.warn(
-        `[db] migrations não aplicadas (${String((err as Error)?.message || err).slice(0, 120)}), ` +
+        `[db] migrations não aplicadas (pasta ${migrationsFolder} sem meta/_journal.json), ` +
           'mas o schema já está presente — seguindo. Defina MIGRATIONS_DIR se esta instância deve migrar.',
       )
       return
     }
-    throw err
+    throw new Error(`migrations ausentes em ${migrationsFolder} (meta/_journal.json) e o banco não tem schema`)
   }
+
+  if (bancoEmbutido) await migrarPglite(db as Parameters<typeof migrarPglite>[0], { migrationsFolder })
+  else await migrarNode(db as Parameters<typeof migrarNode>[0], { migrationsFolder })
+  // Estatística para o planejador no PGlite, que não tem autoanalyze (ver `analisarBancoEmbutido`).
+  await analisarBancoEmbutido()
 }
 
 /**

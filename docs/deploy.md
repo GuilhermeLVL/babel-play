@@ -261,6 +261,32 @@ poda dependências de cliente e um SDK de 20 MB no runtime iria contra isso.
 erro contra um transporte falso. A primeira subida com credenciais de verdade precisa ser
 verificada à mão.
 
+### Teto do R2
+
+A Cloudflare **não bloqueia** o uso do R2 quando o nível gratuito acaba (10 GB guardados, 1 milhão de
+operações de classe A e 10 milhões de classe B por mês): ela cobra e avisa depois. O app trava do
+lado dele, só quando o armazenamento é o S3 (`server/lib/tetoDoR2.ts`,
+`openspec/changes/r2-teto-de-uso`):
+
+| Variável            | Padrão (90 % do grátis) | O que acontece no teto                                            |
+| ------------------- | ----------------------- | ----------------------------------------------------------------- |
+| `R2_TETO_MB`        | `9216`                  | upload novo recebe `507` neutro; a retenção continua apagando     |
+| `R2_TETO_OPS_A_MES` | `900000`                | gravar (PUT) recusa e a rota responde `503`; remover sempre passa |
+| `R2_TETO_OPS_B_MES` | `9000000`               | ler o áudio (GET/HEAD) responde `503`                             |
+
+- O total guardado é a soma dos contadores de cota (`usage_counters`, `storage_bytes`); as
+  operações contam em `usage_counters` com `user_id = '__r2__'`, `r2_ops_a`/`r2_ops_b`, janela
+  `AAAA-MM` em UTC.
+- A 80 % de qualquer teto sai `r2_teto_alerta_80` (uma vez por processo e janela; vai aos destinos
+  externos de alerta) e o gauge `r2_uso_fracao{recurso}` no `/metrics`. Cada recusa loga
+  `r2_teto_recusa`.
+- **Reverter ou ajustar** é só variável + reinício: `ilimitado` desliga o teto, `0` fecha tudo (kill
+  switch), um número muda o teto. Valor inválido aborta o boot.
+- **Passo do ambiente (painel da Cloudflare, não é código):** criar um _Budget Alert_ de US$ 1 para o
+  R2 na área de cobrança da conta (o caminho exato no painel pode mudar; confira ao criar). É a rede de baixo se o contador do app divergir
+  do uso real (upload fora do app, outro bucket na mesma conta, readiness do `/api/ready`, que não
+  conta).
+
 ## Mais de uma instancia (`REPLICAS`)
 
 Com `pglite:` o boot recusa `REPLICAS>1`; com `postgres://` o banco deixa de ser o limite (o áudio segue valendo, abaixo).

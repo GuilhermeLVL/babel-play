@@ -136,6 +136,8 @@ const sinks: SinkDeErro[] = []
  *     seguidas PARAM a fila do Asaas — nenhum pagamento concede plano até alguém reativá-la. Quem
  *     martela o token errado de fora para no limitador da rota (30 falhas por janela), o que segura o
  *     ruído.
+ *   - `r2_teto_alerta_80`: 80% de um teto do R2 (armazenamento ou operações do mês). Sai uma vez por
+ *     processo e janela (`server/lib/tetoDoR2.ts`); a 100% o upload/leitura é recusado.
  * O resto dos `warn` fica no stdout: mandar todos viraria ruído e gastaria a cota do Sentry.
  */
 export const AVISOS_QUE_ALERTAM: ReadonlySet<string> = new Set([
@@ -146,6 +148,7 @@ export const AVISOS_QUE_ALERTAM: ReadonlySet<string> = new Set([
   'ia_provedor_limite',
   'ia_sem_reserva',
   'billing_webhook_token_invalido',
+  'r2_teto_alerta_80',
 ])
 
 /** Registra um destino externo para eventos `error`. Devolve como desregistrar. */

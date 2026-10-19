@@ -139,6 +139,7 @@ interface Estado {
   backupFalhas: Counter<never>
   backupUltimoSucesso: Gauge<never>
   backupBytes: Gauge<never>
+  r2UsoFracao: Gauge<'recurso'>
 }
 
 let estado: Estado | undefined
@@ -352,6 +353,11 @@ function metricas(): Estado {
     backupBytes: new Gauge({
       name: 'backup_ultimo_tamanho_bytes',
       help: 'Tamanho (bytes, comprimido) do último snapshot diário bem-sucedido.',
+    }),
+    r2UsoFracao: new Gauge({
+      name: 'r2_uso_fracao',
+      help: 'Fração usada de cada teto do R2 (recurso=armazenamento|ops_a|ops_b), na última operação vista por ESTE processo. 1 = no teto (server/lib/tetoDoR2.ts).',
+      labelNames: ['recurso'] as const,
     }),
   }
   histogramaDoEventLoop()
@@ -575,6 +581,11 @@ export function observarBackup(r: { ok: true; bytes: number } | { ok: false }): 
     estado.backupUltimoSucesso.set(Math.floor(Date.now() / 1000))
     estado.backupBytes.set(r.bytes)
   } else estado.backupFalhas.inc()
+}
+
+export function medirUsoDoR2(recurso: 'armazenamento' | 'ops_a' | 'ops_b', fracao: number): void {
+  if (!estado) return
+  estado.r2UsoFracao.set({ recurso }, fracao)
 }
 
 /** Quem sabe ler o saldo da admissão (`server/ai/admissao.ts`) se registra aqui — sem import circular. */

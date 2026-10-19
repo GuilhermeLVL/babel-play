@@ -28,7 +28,7 @@ import type { UserId } from './authContext'
 import { getPlanForUser } from './entitlements'
 import { log } from './logger'
 import { type EnvelopeDeErro, envelopeDeErro } from './respostaDeErro'
-import { lerTetoDoR2 } from './tetoDoR2'
+import { lerTetoDoR2, observarUsoDoR2, registrarRecusaDoR2 } from './tetoDoR2'
 
 export const METRIC_STORAGE = 'storage_bytes'
 export const WINDOW_STORAGE = 'total'
@@ -180,13 +180,18 @@ async function reservaComTetoDaConta(
   cap: number,
   teto: number,
 ): Promise<'ok' | 'usuario' | 'conta'> {
-  return emTransacao(async (tx) => {
+  const { resultado, soma } = await emTransacao(async (tx) => {
     await travarUsuario(tx, userId)
     await travarGlobal(tx, TRAVA_DO_TETO_DA_CONTA)
     const soma = await somaDaConta(tx)
-    if (soma + bytes > teto) return 'conta'
-    return (await reservaAtomica(userId, bytes, cap, tx)) ? 'ok' : 'usuario'
+    if (soma + bytes > teto) return { resultado: 'conta' as const, soma }
+    const ok = await reservaAtomica(userId, bytes, cap, tx)
+    return ok ? { resultado: 'ok' as const, soma: soma + bytes } : { resultado: 'usuario' as const, soma }
   })
+  // Aviso e métrica FORA da transação: log não segura trava.
+  if (resultado === 'conta') registrarRecusaDoR2('armazenamento', teto)
+  observarUsoDoR2('armazenamento', soma, teto, WINDOW_STORAGE)
+  return resultado
 }
 
 /** Bytes guardados somando todos os usuários (o contador de cada um, metric `storage_bytes`). */

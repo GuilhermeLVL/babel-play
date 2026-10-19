@@ -16,8 +16,9 @@ import { randomUUID } from 'node:crypto'
 
 import { sql } from 'drizzle-orm'
 
-import { db, linhasAfetadas } from '../db/db'
+import { db } from '../db/db'
 import { usageCounters } from '../db/schema'
+import { medirUsoDoR2 } from '../http/metricas'
 import type { Armazenamento } from './armazenamento'
 import { log } from './logger'
 import { type EnvelopeDeErro, envelopeDeErro } from './respostaDeErro'
@@ -55,6 +56,38 @@ export function lerTetoDoR2(env: NodeJS.ProcessEnv = process.env): TetoDoR2 {
   }
 }
 
+/* ─────────────────────────── aviso e métrica ─────────────────────────── */
+
+type RecursoDoR2 = 'armazenamento' | 'ops_a' | 'ops_b'
+
+/** `recurso:janela` que já avisou neste processo (decisão 5: uma vez por processo e por janela). */
+const avisados = new Set<string>()
+
+/**
+ * Registra o uso de um teto: o gauge `r2_uso_fracao{recurso}` sempre; o log `r2_teto_alerta_80` ao
+ * cruzar 80 %, uma vez por processo e por janela (`total` no armazenamento, `YYYY-MM` nas operações).
+ */
+export function observarUsoDoR2(recurso: RecursoDoR2, usado: number, teto: number, janela: string): void {
+  if (!Number.isFinite(teto) || teto <= 0) return
+  const fracao = usado / teto
+  medirUsoDoR2(recurso, fracao)
+  const chave = `${recurso}:${janela}`
+  if (fracao < 0.8 || avisados.has(chave)) return
+  avisados.add(chave)
+  log('warn', {
+    event: 'r2_teto_alerta_80',
+    recurso,
+    usado,
+    teto,
+    error: `R2 em ${Math.round(fracao * 100)}% do teto de ${recurso} (${janela})`,
+  })
+}
+
+/** Log de cada recusa por teto do R2. */
+export function registrarRecusaDoR2(recurso: RecursoDoR2, teto: number): void {
+  log('warn', { event: 'r2_teto_recusa', recurso, teto })
+}
+
 /* ─────────────────────────── operações por mês ─────────────────────────── */
 
 /** O contador das operações é da CONTA, não de uma pessoa: um `userId` fixo que nenhum login gera. */
@@ -74,10 +107,10 @@ export class ErroDeTetoDoR2 extends Error {
  * `usageCountersRepo.reserve`): o `setWhere` só soma enquanto há folga, e quem perde não afeta linha.
  * `forcar` conta mesmo sem folga (o `remover`). Teto infinito conta sem condição.
  */
-async function contarOperacao(classe: 'a' | 'b', janela: string, teto: number, forcar = false): Promise<boolean> {
+async function contarOperacao(classe: 'a' | 'b', janela: string, teto: number, forcar = false): Promise<number | null> {
   const sem = !forcar && Number.isFinite(teto)
   // O INSERT (primeira operação do mês) não passa pelo `setWhere`: teto < 1 recusa antes.
-  if (sem && teto < 1) return false
+  if (sem && teto < 1) return null
   const agora = Date.now()
   const linhasContadas = await db
     .insert(usageCounters)
@@ -95,7 +128,8 @@ async function contarOperacao(classe: 'a' | 'b', janela: string, teto: number, f
       set: { count: sql`${usageCounters.count} + 1`, updatedAt: agora },
       ...(sem ? { setWhere: sql`${usageCounters.count} < ${teto}` } : {}),
     })
-  return linhasAfetadas(linhasContadas) > 0
+    .returning({ count: usageCounters.count })
+  return linhasContadas[0]?.count ?? null
 }
 
 export interface DependenciasDoTeto {
@@ -120,15 +154,21 @@ export function comTetoDeOperacoes(store: Armazenamento, deps: DependenciasDoTet
 
   const passar = async (classe: 'a' | 'b', forcar = false): Promise<void> => {
     const teto = classe === 'a' ? tetos.opsA : tetos.opsB
-    let passou: boolean
+    const recurso = classe === 'a' ? 'ops_a' : 'ops_b'
+    const janela = relogio().toISOString().slice(0, 7)
+    let contado: number | null
     try {
-      passou = await contarOperacao(classe, relogio().toISOString().slice(0, 7), teto, forcar)
+      contado = await contarOperacao(classe, janela, teto, forcar)
     } catch (err) {
       log('error', { event: 'r2_teto_contagem_falhou', error: String((err as Error)?.message ?? err).slice(0, 120) })
       return
     }
-    if (passou || forcar) return
-    log('warn', { event: 'r2_teto_recusa', recurso: `ops_${classe}`, teto })
+    if (contado !== null) {
+      observarUsoDoR2(recurso, contado, teto, janela)
+      return
+    }
+    medirUsoDoR2(recurso, 1)
+    registrarRecusaDoR2(recurso, teto)
     throw new ErroDeTetoDoR2(classe)
   }
 

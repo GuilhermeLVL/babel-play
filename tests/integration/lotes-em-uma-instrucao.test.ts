@@ -177,6 +177,10 @@ describe('lotes em uma instrução', () => {
     const c = porPalavra.get('cadeira')
     expect(c.id).not.toBe(idC)
     expect([c.back, c.occurrences]).toEqual(['chair', 1])
+    const orm = await h.load<any>('drizzle-orm')
+    const [apagado] = await db.select().from(schema.vocabCards).where(orm.eq(schema.vocabCards.id, idC))
+    expect(apagado.back).toBe('apagado')
+    expect(apagado.deletedAt).not.toBeNull()
     const d = porPalavra.get('lampada')
     expect([d.back, d.sentence, d.occurrences]).toEqual(['lamp', 'primeira frase', 3])
     const e = porPalavra.get('mesa')
@@ -246,6 +250,66 @@ describe('lotes em uma instrução', () => {
     await expect(
       lotes.atualizarEmLotes(db, flags, [{ chave: chaves[0], habilitada: true }], { chave: 'chave', tamanho: 40_000 }),
     ).rejects.toThrow(/parâmetros/)
+  }, 60_000)
+
+  it('recalcular a dificuldade toma a trava do usuário e faz um UPDATE só', async () => {
+    const u = `lote-dific-${randomUUID()}`
+    const ids = await semearCartoes(
+      u,
+      Array.from({ length: 300 }, (_, i) => ({ word: palavra('dific', i), back: 'x' })),
+    )
+    const contador = contarInstrucoes()
+    let n: number
+    try {
+      n = await vocabRepo.recalcularDificuldade(u, ids)
+    } finally {
+      contador.parar()
+    }
+    expect(n).toBe(300)
+    const trava = contador.lista.findIndex((s) => /pg_advisory_xact_lock/i.test(s))
+    const updates = contador.lista.filter((s) => /^\s*update\s+"?vocab_cards"?/i.test(s))
+    // 4 colunas por linha (id, score, carimbo, updated_at): 300 cartões cabem em ceil(300 / tamanhoDoLote(4)) = 1.
+    expect(updates).toHaveLength(Math.ceil(300 / lotes.tamanhoDoLote(4)))
+    expect(trava).toBeGreaterThanOrEqual(0)
+    expect(trava).toBeLessThan(contador.lista.findIndex((s) => /^\s*update\s+"?vocab_cards"?/i.test(s)))
+    const cartoes = await vocabRepo.list(u)
+    expect(cartoes.every((c: any) => typeof c.difficultyScore === 'number')).toBe(true)
+  }, 60_000)
+
+  it('recalcular a dificuldade e revisar do mesmo usuário ao mesmo tempo, 5 vezes: sem deadlock', async () => {
+    const u = `lote-dific-conc-${randomUUID()}`
+    const ids = await semearCartoes(
+      u,
+      Array.from({ length: 200 }, (_, i) => ({ word: palavra('conc', i), back: 'x' })),
+    )
+    for (let i = 0; i < 5; i++) {
+      // A revisão trava o SEU cartão e depois sobe a linha de versão do usuário; o UPDATE em lote faz o
+      // contrário (todos os cartões, depois os gatilhos). Sem a trava do usuário primeiro: 40P01.
+      const [n] = await Promise.all([
+        vocabRepo.recalcularDificuldade(u, ids),
+        ...ids.slice(-4).map((id) => vocabRepo.review(u, id, 3)),
+      ])
+      expect(n).toBe(200)
+    }
+  }, 60_000)
+
+  it('atualizarEmLotes com a chave repetida: vale a última, e conta uma linha', async () => {
+    const { flags } = schema
+    const { eq } = await h.load<any>('drizzle-orm')
+    const chave = `lote-rep-${randomUUID()}`
+    await lotes.inserirEmLotes(db, flags, [{ chave, habilitada: false, atualizadoEm: 1 }])
+    const r = await lotes.atualizarEmLotes(
+      db,
+      flags,
+      [
+        { chave, habilitada: true, atualizadoEm: 10 },
+        { chave, habilitada: false, atualizadoEm: 20 },
+      ],
+      { chave: 'chave' },
+    )
+    expect(r).toEqual({ instrucoes: 1, linhas: 1 })
+    const [l] = await db.select().from(flags).where(eq(flags.chave, chave))
+    expect([l.habilitada, l.atualizadoEm]).toEqual([false, 20])
   }, 60_000)
 
   it('rodada de 40 itens: o estado por item vai numa instrução e soma como antes', async () => {

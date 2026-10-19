@@ -802,8 +802,14 @@ export const vocabRepo = {
       })
       return { id: c.id, difficultyScore: d.score, difficultyAt: agora, updatedAt: agora }
     })
-    // Um `UPDATE … FROM (VALUES …)` por fatia, e não um UPDATE por cartão (uma ida ao banco por cartão).
-    await atualizarEmLotes(db, vocabCards, dificuldades, { chave: 'id' })
+    /* Um `UPDATE … FROM (VALUES …)` por fatia, e não um UPDATE por cartão (uma ida ao banco por cartão). A
+       TRAVA DO USUÁRIO PRIMEIRO, como em `relabel`: isto roda solto depois da rodada (`routes/exercises.ts`)
+       e cruzaria com uma revisão do mesmo usuário — ela trava o seu cartão e sobe a linha de versão; o UPDATE
+       em lote trava os cartões e os gatilhos sobem a mesma linha, na ordem oposta (40P01). */
+    await emTransacao(async (tx) => {
+      await travarUsuario(tx, userId)
+      return atualizarEmLotes(tx, vocabCards, dificuldades, { chave: 'id', onde: eq(vocabCards.userId, userId) })
+    })
     return cartoes.length
   },
 

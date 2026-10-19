@@ -10,11 +10,11 @@
  *
  * FOREIGN KEY (F0-04): as 10 relações reais são declaradas com `.references()`. Todas SEM
  * `onDelete` — ou seja, `NO ACTION`, o default do Postgres. A remoção do app é SOFT (`deleted_at`),
- * então o único DELETE físico é `contaRepo.excluir`, que apaga a árvore inteira num `db.batch`
- * com os filhos antes dos pais. `CASCADE` faria um erro num repositório apagar a árvore em
- * silêncio; `SET NULL` apagaria a procedência. `NO ACTION` (e não `RESTRICT`) porque é o único
- * que admite ser adiado para o fim da transação (`SET CONSTRAINTS ... DEFERRED`) se algum dia um
- * lote precisar ser reordenado — `RESTRICT` recusa mesmo assim.
+ * então o único DELETE físico é `contaRepo.excluir`, que apaga a árvore inteira num lote
+ * (`rodarLote`, uma transação) com os filhos antes dos pais. `CASCADE` faria um erro num
+ * repositório apagar a árvore em silêncio; `SET NULL` apagaria a procedência. `NO ACTION` (e não
+ * `RESTRICT`) porque é o único que admite ser adiado para o fim da transação (`SET CONSTRAINTS ...
+ * DEFERRED`) se algum dia um lote precisar ser reordenado — `RESTRICT` recusa mesmo assim.
  */
 import { sql } from 'drizzle-orm'
 import {

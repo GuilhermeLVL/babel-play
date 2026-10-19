@@ -12,7 +12,7 @@ import { eq, getTableColumns, inArray, is, sql } from 'drizzle-orm'
 import { PgTable } from 'drizzle-orm/pg-core'
 
 import type { UserId } from '../../lib/authContext'
-import { db } from '../db'
+import { db, travarUsuario } from '../db'
 import { type InstrucaoDeBatch, rodarLote } from '../lotes'
 import * as schema from '../schema'
 import {
@@ -55,7 +55,7 @@ import { agregadosRepo } from './agregados'
  * Toda tabela com `user_id` do titular. `secrets` e `users` são tratadas à parte (chave própria).
  *
  * A ORDEM É FILHO ANTES DE PAI, e agora ela é obrigatória: com as FOREIGN KEY declaradas (F0-04),
- * o DELETE de `sessions` antes do de `utterances` viola a constraint e o `batch` inteiro sobe erro.
+ * o DELETE de `sessions` antes do de `utterances` viola a constraint e o lote inteiro sobe erro.
  * `memoryEmbeddings` saiu da lista junto com a tabela (F1-05), e `analyses`, `profiles`,
  * `ankiMedia` e `ankiNoteMedia` saíram pelo mesmo motivo na 0026.
  *
@@ -74,7 +74,7 @@ const TABELAS_DO_TITULAR: ReadonlyArray<readonly [string, any]> = [
   ['utterances', utterances],
   /* O ACERVO ANKI ENTRA AQUI, E ANTES DE `vocabCards` — não é ordem alfabética, é a FOREIGN KEY.
      `anki_notes.projected_card_id` referencia `vocab_cards`, e com `foreign_keys = ON` apagar o
-     cartão antes da nota derruba o `batch` INTEIRO: o pedido de exclusão falharia com erro de
+     cartão antes da nota derruba o lote INTEIRO: o pedido de exclusão falharia com erro de
      constraint, e a promessa da LGPD viraria a mesma promessa não cumprida que este arquivo
      existe para consertar. Esquecer as três tabelas seria pior ainda em silêncio — o baralho
      importado (com o conteúdo que a pessoa escolheu trazer) sobreviveria ao pedido de eliminação. */
@@ -163,7 +163,11 @@ function chavesDoTitular(nome: string, userId: UserId): string[] {
 }
 
 export interface ExportacaoDaConta {
-  /** Versão do formato do arquivo. Muda quando a forma do JSON mudar. */
+  /**
+   * Versão do formato do arquivo. Muda quando a forma do JSON mudar. As quatro tabelas derivadas
+   * (`versoesDeDados`, `agregadosDiarios`, `estadoPorItem`, `estadoDosAgregados`) entraram na
+   * migração para o Postgres SEM subir o formato: é acréscimo de chaves, quem lia o formato 1 segue lendo.
+   */
   formato: number
   exportadoEm: number
   userId: string
@@ -316,7 +320,7 @@ export const contaRepo = {
 
     /* AS VERSÕES DOS DADOS (migração 0032) — contabilidade interna, fora do schema e do relatório,
        mas com o id do titular. Vem DEPOIS das tabelas acima porque os gatilhos delas recriam a
-       linha a cada DELETE; apagada aqui, no mesmo batch, não sobra nada com o id da pessoa. */
+       linha a cada DELETE; apagada aqui, no mesmo lote, não sobra nada com o id da pessoa. */
     instrucoes.push((tx) => tx.execute(sql`DELETE FROM versoes_de_dados WHERE user_id = ${userId}`))
     /* OS AGREGADOS DIÁRIOS E O ESTADO POR ITEM (migração 0053) — a mesma situação: contabilidade
        derivada, fora do schema, com o id do titular. Depois das tabelas brutas, pelo mesmo motivo
@@ -327,7 +331,9 @@ export const contaRepo = {
     linhasPorTabela.users = conta.length
     if (conta.length) instrucoes.push((tx) => tx.delete(users).where(eq(users.id, userId)))
 
-    if (instrucoes.length) await rodarLote(instrucoes)
+    /* A trava do usuário primeiro: uma revisão ou rodada simultânea (que toma a mesma trava) não
+       recria agregados nem versões depois dos DELETEs deste lote. */
+    await rodarLote([(tx) => travarUsuario(tx, userId), ...instrucoes])
 
     return {
       linhasPorTabela,

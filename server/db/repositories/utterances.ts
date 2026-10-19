@@ -77,7 +77,7 @@ export const utterancesRepo = {
    * É uma LISTA de instruções, e não uma só, por causa do teto de 32.766 variáveis do SQLite:
    * cada fala são 17 variáveis, e o schema aceita 5.000 falas — uma instrução única passava do
    * teto a partir de 1.928 falas e a sessão inteira era recusada. Os lotes vão todos no MESMO
-   * batch do chamador, então a atomicidade continua a da sessão inteira.
+   * lote (transação) do chamador, então a atomicidade continua a da sessão inteira.
    */
   stmtInsertMany(userId: UserId, sessionId: string, items: NewUtterance[], preservadas?: PolidasPreservadas) {
     const lote = tamanhoDoLoteDeInsert(utterances)
@@ -90,7 +90,7 @@ export const utterancesRepo = {
 
   /**
    * As polidas da sessão (ou de uma faixa de `idx`) que devem sobreviver à troca das falas — ver
-   * `PolidasPreservadas`. Lida ANTES do batch que apaga e insere.
+   * `PolidasPreservadas`. Lida ANTES do lote que apaga e insere.
    */
   async polidasParaPreservar(
     userId: UserId,
@@ -123,7 +123,7 @@ export const utterancesRepo = {
     return mapa
   },
 
-  /** MONTA o delete das falas de uma sessão, para compor um batch atômico. */
+  /** MONTA o delete das falas de uma sessão, para compor um lote atômico. */
   stmtDeleteForSession(userId: UserId, sessionId: string): InstrucaoDeBatch {
     return (tx) => tx.delete(utterances).where(and(eq(utterances.sessionId, sessionId), eq(utterances.userId, userId)))
   },
@@ -240,7 +240,7 @@ export const utterancesRepo = {
    *     que já foi polido não muda (o polimento é idempotente);
    *   - o texto e a tradução ainda são os que foram ao modelo: uma correção feita enquanto o bloco
    *     estava no provedor não recebe uma polida do texto velho.
-   * Um `db.batch` só (uma ida ao banco, atômico). Devolve os ids das falas que de fato gravou.
+   * Um lote só (`rodarLote`, uma transação: atômico). Devolve os ids das falas que de fato gravou.
    */
   async gravarPolimento(
     userId: UserId,

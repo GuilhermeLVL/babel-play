@@ -471,7 +471,7 @@ export const ankiRepo = {
       .where(and(...cond))
     const alvo = candidatas.filter((c) => !presentes.has(c.guid))
     if (!alvo.length) return 0
-    // Um batch só (atômico): ou o baralho inteiro reflete o arquivo novo, ou nada muda. As duas
+    // Um lote só (atômico): ou o baralho inteiro reflete o arquivo novo, ou nada muda. As duas
     // variáveis fixas são as do SET (`estado`, `updated_at`).
     await rodarLote(
       emLotes(

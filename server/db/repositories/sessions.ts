@@ -227,7 +227,7 @@ export const sessionsRepo = {
     const apagar = utterancesRepo.stmtDeleteForSession(userId, id)
     // D5: a fala que volta igual mantém a tradução polida (polir de novo cobraria outra vez).
     const preservadas = await utterancesRepo.polidasParaPreservar(userId, id)
-    const inserir = utterancesRepo.stmtInsertMany(userId, id, utts, preservadas) // lotes; todos no mesmo batch
+    const inserir = utterancesRepo.stmtInsertMany(userId, id, utts, preservadas) // lotes; todos na mesma transação
     const contar: InstrucaoDeBatch = (tx) =>
       tx
         .update(sessions)
@@ -240,8 +240,8 @@ export const sessionsRepo = {
   /**
    * ACRESCENTA UM LOTE de falas (a captura longa salva em pedaços; `appendUtterancesSchema`).
    *
-   * Idempotente por FAIXA: as falas vivas com `idx` entre o menor e o maior do lote saem no mesmo
-   * batch em que o lote entra. Repetir um lote que caiu no meio substitui o trecho em vez de
+   * Idempotente por FAIXA: as falas vivas com `idx` entre o menor e o maior do lote saem na mesma
+   * transação em que o lote entra. Repetir um lote que caiu no meio substitui o trecho em vez de
    * duplicá-lo. A contagem acompanha pela diferença (palavras que saem, palavras que entram), sem
    * reler a sessão inteira — uma aula longa tem milhares de falas.
    */

@@ -68,7 +68,7 @@ export const credentialsRepo = {
    *
    * F3-04: o soft delete agora PROPAGA para `secrets`, que ganhou `deleted_at`. Antes a chave
    * cifrada seguia viva e resolvível indefinidamente depois de o usuário remover a credencial.
-   * Os dois UPDATEs vão num `batch` — remover a credencial e deixar o segredo ativo seria o pior
+   * Os dois UPDATEs vão num lote (`rodarLote`) — remover a credencial e deixar o segredo ativo seria o pior
    * dos dois estados.
    */
   async remove(userId: UserId, id: string): Promise<boolean> {

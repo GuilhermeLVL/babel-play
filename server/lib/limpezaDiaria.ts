@@ -79,6 +79,14 @@ export interface RelatorioDaLimpeza {
 
 const afetadas = (r: unknown) => linhasAfetadas(r)
 
+/** SQLSTATE do erro do driver (o drizzle o embrulha em `cause`). */
+const codigoSql = (err: unknown): string | undefined => {
+  const e = err as { code?: string; cause?: { code?: string } } | null | undefined
+  return e?.cause?.code ?? e?.code
+}
+/** Deadlock (40P01) ou falha de serialização (40001): vale tentar de novo. */
+const transitorio = (err: unknown) => ['40P01', '40001'].includes(codigoSql(err) ?? '')
+
 /** Tudo de UM usuário, numa transação que toma a trava consultiva do usuário no começo. */
 async function limparUsuario(userId: UserId, corte: number, agora: number) {
   const fuso = await agregadosRepo.fusoGravado(userId)
@@ -170,22 +178,28 @@ export async function limparBanco(
     UNION SELECT user_id FROM review_logs WHERE deleted_at IS NOT NULL AND deleted_at < ${corte} AND user_id IS NOT NULL`),
   )
 
-  try {
-    for (const { user_id } of donos) {
-      /* Um usuário por transação: a trava do usuário é solta entre um e outro. */
-      const u = await limparUsuario(user_id as UserId, corte, agora)
-      if (u.mexeu) r.usuarios += 1
-      r.sessoes += u.sessoes
-      r.falas += u.falas
-      r.cartoes += u.cartoes
-      r.ocorrencias += u.ocorrencias
-      r.revisoes += u.revisoes
+  for (const { user_id } of donos) {
+    /* Um usuário por transação: a trava do usuário é solta entre um e outro. Deadlock ou falha de
+       serialização (transitórios no Postgres) repetem ESTE usuário uma vez; se insistir, ele fica para
+       a passada de amanhã e a de hoje segue. Qualquer outro erro interrompe a passada, como antes. */
+    let u: Awaited<ReturnType<typeof limparUsuario>> | null = null
+    for (let tentativa = 0; tentativa < 2 && !u; tentativa++) {
+      try {
+        u = await limparUsuario(user_id as UserId, corte, agora)
+      } catch (err) {
+        if (!transitorio(err)) throw err
+        if (tentativa === 1) {
+          log('warn', { event: 'limpeza_usuario_adiado', error: codigoSql(err) })
+        }
+      }
     }
-  } finally {
-    // PRAGMAs não existem no Postgres; sem efeito. Tarefa 6 remove de vez.
-    if (!bancoEmbutido) {
-      /* Tarefa 6 remove de vez */
-    }
+    if (!u) continue
+    if (u.mexeu) r.usuarios += 1
+    r.sessoes += u.sessoes
+    r.falas += u.falas
+    r.cartoes += u.cartoes
+    r.ocorrencias += u.ocorrencias
+    r.revisoes += u.revisoes
   }
 
   /* A conferência dos agregados: quem ficou com as marcas diferentes (escrita por fora dos

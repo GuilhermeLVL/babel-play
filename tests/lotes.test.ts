@@ -7,12 +7,12 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { emLotes, LIMITE_DE_VARIAVEIS_SQLITE, tamanhoDoLote, VARIAVEIS_POR_INSTRUCAO } from '../server/db/lotes'
+import { emLotes, LIMITE_DE_PARAMETROS_POSTGRES, tamanhoDoLote, VARIAVEIS_POR_INSTRUCAO } from '../server/db/lotes'
 
 describe('tamanhoDoLote', () => {
   it('cabe no teto do libsql com margem', () => {
-    expect(LIMITE_DE_VARIAVEIS_SQLITE).toBe(32_766)
-    expect(VARIAVEIS_POR_INSTRUCAO).toBeLessThan(LIMITE_DE_VARIAVEIS_SQLITE)
+    expect(LIMITE_DE_PARAMETROS_POSTGRES).toBe(65_535)
+    expect(VARIAVEIS_POR_INSTRUCAO).toBeLessThan(LIMITE_DE_PARAMETROS_POSTGRES)
   })
 
   it('divide o orçamento pelo número de variáveis por item', () => {
@@ -28,7 +28,7 @@ describe('tamanhoDoLote', () => {
   it('o pior caso de um lote cheio nunca passa do teto', () => {
     for (const colunas of [1, 2, 3, 7, 17, 24, 100]) {
       for (const fixas of [0, 1, 3]) {
-        expect(tamanhoDoLote(colunas, fixas) * colunas + fixas).toBeLessThanOrEqual(LIMITE_DE_VARIAVEIS_SQLITE)
+        expect(tamanhoDoLote(colunas, fixas) * colunas + fixas).toBeLessThanOrEqual(LIMITE_DE_PARAMETROS_POSTGRES)
       }
     }
   })

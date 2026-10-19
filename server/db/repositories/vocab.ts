@@ -318,7 +318,7 @@ export const vocabRepo = {
       lerCompacto<Omit<CartaoParaCliente, 'phonetics' | 'addedAt'>>(COLUNAS_COMPACTAS_DO_CARTAO, {
         tabela: 'vocab_cards',
         onde: sql`user_id = ${userId} AND deleted_at IS NULL`,
-        ordem: 'added_at DESC',
+        ordem: 'added_at DESC NULLS LAST',
       }),
       lerCompacto<{ cardId: string }>([['cardId', 'card_id', 'texto']], {
         tabela: 'vocab_occurrences',
@@ -992,15 +992,19 @@ export const vocabRepo = {
       cond.push(sql`(${sql.join(faixas, sql` OR `)})`)
     }
 
+    /* NULLS LAST nas colunas que aceitam nulo: o Postgres põe os nulos PRIMEIRO no DESC (o SQLite
+       os punha por último), e com o `limit` abaixo a rodada "em dificuldade" se enchia de cartões
+       novos sem nota. */
     const ordem =
       estrategia === 'recentes'
-        ? desc(vocabCards.lastSeenAt)
+        ? sql`${vocabCards.lastSeenAt} DESC NULLS LAST`
         : estrategia === 'frequentes'
           ? desc(vocabCards.occurrences)
           : estrategia === 'em-dificuldade'
-            ? desc(vocabCards.difficultyScore)
-            : // Equilibrado mantém a prioridade do FSRS: vencido primeiro, como desempate.
-              sql`${vocabCards.dueAt} ASC`
+            ? sql`${vocabCards.difficultyScore} DESC NULLS LAST`
+            : // Equilibrado mantém a prioridade do FSRS: vencido primeiro, como desempate. NULLS FIRST
+              // como o SQLite fazia no ASC (no Postgres o padrão do ASC é NULLS LAST).
+              sql`${vocabCards.dueAt} ASC NULLS FIRST`
 
     const cartoes = await db
       .select()
@@ -1119,7 +1123,8 @@ export const vocabRepo = {
       .select(COLUNAS_DA_REVISAO_AGREGAVEL)
       .from(reviewLogs)
       .where(and(eq(reviewLogs.userId, userId), eq(reviewLogs.cardId, id), isNull(reviewLogs.deletedAt)))
-      .orderBy(desc(reviewLogs.reviewedAt))
+      // `reviewed_at` aceita nulo: NULLS LAST, senão a "última" seria uma revisão sem data.
+      .orderBy(sql`${reviewLogs.reviewedAt} DESC NULLS LAST`)
       .limit(1)
     /* A revisão desfeita sai também dos agregados do dia, no mesmo lote (migração 0053). */
     const fuso = ultimo ? await agregadosRepo.fusoGravado(userId) : ''

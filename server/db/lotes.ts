@@ -1,11 +1,10 @@
 /**
- * LOTES contra o teto de variáveis do SQLite.
+ * LOTES contra o teto de parâmetros por instrução.
  *
- * O libsql compila o SQLite com `MAX_VARIABLE_NUMBER = 32766`: uma instrução com mais `?` do que
- * isso é recusada INTEIRA com "too many SQL variables". Não é um limite teórico — o schema aceita
- * 5.000 falas por sessão e o INSERT de falas usa 17 variáveis por linha, então a partir de 1.928
- * falas a sessão toda era recusada (P1 da auditoria de prontidão). Com o `inArray` e o `NOT IN`
- * do import Anki (até 50.000 notas) acontecia o mesmo a partir de ~32 mil.
+ * O protocolo do Postgres numera os parâmetros com 16 bits: uma instrução com mais de 65.535 (`$n`)
+ * é recusada INTEIRA. Não é um limite teórico — o schema aceita 5.000 falas por sessão (17
+ * parâmetros por linha) e o import Anki até 50.000 notas num `inArray`. (No SQLite/libsql o teto era
+ * 32.766, e foi ali que o defeito apareceu: P1 da auditoria de prontidão.)
  *
  * Toda lista que vem do usuário e vira variável de SQL passa por aqui. O tamanho do lote é
  * CALCULADO pelo número de variáveis por item, não fixado a olho: uma coluna nova na tabela não
@@ -15,12 +14,12 @@ import { getTableColumns, type Table } from 'drizzle-orm'
 
 import { emLote, type ExecutorDb } from './db'
 
-/** Teto do SQLite embutido no libsql (`SQLITE_MAX_VARIABLE_NUMBER`). */
-export const LIMITE_DE_VARIAVEIS_SQLITE = 32_766
+/** Teto de parâmetros de UMA instrução no Postgres (índice de parâmetro em 16 bits). */
+export const LIMITE_DE_PARAMETROS_POSTGRES = 65_535
 
 /**
- * Orçamento por instrução, com margem sobre o teto: sobra espaço para as variáveis fixas que o
- * chamador esqueça de declarar e para um banco remoto (libsql/Turso) compilado com teto menor.
+ * Orçamento por instrução, com folga larga sobre o teto: sobra espaço para os parâmetros fixos que o
+ * chamador esqueça de declarar, e a instrução não fica gigante (o valor é o mesmo da era SQLite).
  */
 export const VARIAVEIS_POR_INSTRUCAO = 30_000
 

@@ -10,10 +10,10 @@ import { CachePorVersao } from '../../lib/cachePorVersao'
 import { db, linhasAfetadas, travarUsuario } from '../db'
 import { emLotes, rodarLote, tamanhoDoLote } from '../lotes'
 import { exerciseResults, sessions, vocabCards } from '../schema'
-
-const COLUNAS_DE_RESULTADO = getTableColumns(exerciseResults)
 import { agregadosRepo, baseDoIdioma } from './agregados'
 import { versoesRepo } from './versoes'
+
+const COLUNAS_DE_RESULTADO = getTableColumns(exerciseResults)
 
 export type ExerciseResult = typeof exerciseResults.$inferSelect
 

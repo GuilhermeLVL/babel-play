@@ -80,3 +80,24 @@ describe('listarPagina: cursor na ordem decrescente', () => {
     expect(new Set(paginada).size).toBe(palavras.length)
   })
 })
+
+describe('selecionarParaJogo: em-dificuldade com cartões sem nota', () => {
+  it('a rodada traz os cartões com nota de dificuldade, não os novos sem nota', async () => {
+    const u = asUserId('sel-em-dificuldade')
+    const comNota = ['harbor', 'glacier', 'meadow']
+    const semNota = ['pencil', 'window', 'garden', 'river', 'forest']
+    const { cards } = await vocabRepo.bulkAdd(
+      u,
+      [...comNota, ...semNota].map((word) => ({ word, srcLang: 'en', back: `sentido de ${word}` })),
+    )
+    expect(cards).toHaveLength(8)
+    const nota: Record<string, number> = { harbor: 0.9, glacier: 0.7, meadow: 0.5 }
+    for (const c of cards) {
+      if (c.word in nota) {
+        await db.execute(sql`UPDATE vocab_cards SET difficulty_score = ${nota[c.word]} WHERE id = ${c.id}`)
+      }
+    }
+    const r = await vocabRepo.selecionarParaJogo(u, { estrategia: 'em-dificuldade', limite: 3 })
+    expect(r.itens.map((i: { word: string }) => i.word)).toEqual(['harbor', 'glacier', 'meadow'])
+  })
+})

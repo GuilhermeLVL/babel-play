@@ -18,12 +18,13 @@ export interface OrigemCompacta {
   tabela: string
   onde: SQL
   distinta?: boolean
-  /** Ex.: `'added_at DESC'`. Só identificadores e ASC/DESC. */
+  /** Ex.: `'added_at DESC NULLS LAST'`. Só identificadores, ASC/DESC e NULLS FIRST/LAST. */
   ordem?: string
 }
 
 const IDENTIFICADOR = /^[a-z_][a-z0-9_]*$/
-const ORDEM = /^[a-z_][a-z0-9_]*( (ASC|DESC))?(, [a-z_][a-z0-9_]*( (ASC|DESC))?)*$/
+const ORDEM =
+  /^[a-z_][a-z0-9_]*( (ASC|DESC)( NULLS (FIRST|LAST))?)?(, [a-z_][a-z0-9_]*( (ASC|DESC)( NULLS (FIRST|LAST))?)?)*$/
 
 /** `SELECT [DISTINCT] <colunas> FROM <tabela> WHERE <onde> [ORDER BY <ordem>]`, com as chaves pedidas. */
 export async function lerCompacto<T>(colunas: readonly ColunaCompacta[], de: OrigemCompacta): Promise<T[]> {

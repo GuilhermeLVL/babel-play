@@ -384,6 +384,41 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'raiz dos dados persistentes',
   },
   {
+    nome: 'DB_CONNECT_TIMEOUT_MS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'prazo em ms para o `pg.Pool` abrir uma conexão nova (ou esperar uma livre) com `DATABASE_URL=postgres://` (padrão 5.000). Sem prazo, um Postgres inalcançável pendurava `/api/health` e `/api/ready` em vez de responder 503. Inteiro positivo; outro valor ABORTA o boot (server/db/configDoPool.ts)',
+  },
+  {
+    nome: 'DB_IDLE_TX_TIMEOUT_MS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '`idle_in_transaction_session_timeout` da sessão no Postgres, em ms (padrão 60.000): transação aberta e parada é encerrada pelo servidor e solta as travas. Só `postgres://`. Inteiro positivo; outro valor ABORTA o boot (server/db/configDoPool.ts)',
+  },
+  {
+    nome: 'DB_LOCK_TIMEOUT_MS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '`lock_timeout` da sessão no Postgres, em ms (padrão 10.000): esperar trava de linha ou a trava do usuário (`travarUsuario`) além disso falha com SQLSTATE 55P03 em vez de prender a conexão. Só `postgres://`. Inteiro positivo; outro valor ABORTA o boot (server/db/configDoPool.ts)',
+  },
+  {
+    nome: 'DB_POOL_MAX',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'conexões do `pg.Pool` por processo com `postgres://` (padrão 5). Conte processos × este número contra o limite do Postgres/pooler (Supabase: o do plano). Inteiro positivo; outro valor ABORTA o boot (server/db/configDoPool.ts)',
+  },
+  {
+    nome: 'DB_STATEMENT_TIMEOUT_MS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '`statement_timeout` da sessão no Postgres, em ms (padrão 30.000): uma instrução que passe disso é cancelada pelo servidor. Só `postgres://`. Inteiro positivo; outro valor ABORTA o boot (server/db/configDoPool.ts)',
+  },
+  {
     nome: 'DEEPINFRA_API_KEY',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',

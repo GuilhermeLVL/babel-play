@@ -18,6 +18,7 @@ import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 import { drizzle as drizzlePglite } from 'drizzle-orm/pglite'
 import { Pool, types } from 'pg'
 
+import { configDoPool } from './configDoPool'
 import { medirConsultas, registrarMedidorDeTamanho } from './observadorDeConsultas'
 import * as schema from './schema'
 import { ehBancoEmbutido, ehBancoEmMemoria, URL_PADRAO_DO_BANCO } from './tipoDoBanco'
@@ -141,7 +142,7 @@ function abrir(): DB {
      consulta (datas), que cai no parser GLOBAL para os demais OIDs e passaria por cima do do pool.
      Só roda neste ramo: um processo com PGlite não muda o `pg` de ninguém. */
   for (const oid of OIDS_NUMERICOS) types.setTypeParser(oid, numeroDoBanco)
-  pool = new Pool({ connectionString: urlDoBanco, max: 5 })
+  pool = new Pool({ connectionString: urlDoBanco, ...configDoPool() })
   // Sem handler, a queda de uma conexão OCIOSA vira 'error' não tratado e derruba o processo.
   pool.on('error', (err) => {
     console.error('[db] erro em conexão ociosa do pool:', String(err?.message ?? err).slice(0, 160))

@@ -11,7 +11,7 @@ import { defineConfig, devices } from '@playwright/test'
  * (`tests/e2e-publico/_supabase-falso.mjs`): sem segredo no CI e sem rede externa.
  *
  * Dois servidores: o Supabase falso e o app em modo dev (Vite em middleware) com o login LIGADO e
- * apontado para ele. Banco próprio (`data/e2e-publico.db`), porta própria (3127).
+ * apontado para ele. Banco próprio (diretório PGlite `data/e2e-publico`), porta própria (3127).
  */
 const PORTA = Number(process.env.PORTA_E2E_PUBLICO || 3127)
 const SUPABASE = `http://127.0.0.1:${process.env.SUPABASE_FALSO_PORTA || 54399}`
@@ -51,7 +51,7 @@ export default defineConfig({
         VITE_AUTH_REQUIRED: '1',
         VITE_SUPABASE_URL: SUPABASE,
         VITE_SUPABASE_ANON_KEY: 'anon-e2e',
-        DATABASE_URL: process.env.DATABASE_URL_E2E_PUBLICO || 'file:./data/e2e-publico.db',
+        DATABASE_URL: process.env.DATABASE_URL_E2E_PUBLICO || 'pglite:./data/e2e-publico',
         VITE_CACHE_DIR: process.env.VITE_CACHE_DIR_E2E_PUBLICO || '',
       },
     },

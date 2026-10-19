@@ -18,7 +18,7 @@ import { and, eq, isNull } from 'drizzle-orm'
 
 import { chaveDedup } from '../../src/core/texto/palavra'
 import { planejarReparoDeIdioma, planoVazio } from '../../src/core/texto/reparoDeIdioma'
-import { db } from '../db/db'
+import { db, type ExecutorDb, travarUsuario } from '../db/db'
 import { type InstrucaoDeBatch, rodarLote } from '../db/lotes'
 import { sessions, utterances, vocabCards } from '../db/schema'
 
@@ -98,7 +98,13 @@ async function repararUsuario(userId: string | null, aplicar: boolean): Promise<
         .where(eq(vocabCards.id, t.id)),
     )
   }
-  if (aplicar && instrucoes.length) await rodarLote(instrucoes)
+  /* A mesma trava por usuário dos lotes de vocab.ts: com o servidor de pé, uma rodada de exercício
+     deste usuário toma as linhas de versão/agregados na ordem inversa e o Postgres aborta um dos
+     dois (40P01). */
+  if (aplicar && instrucoes.length) {
+    const trava = userId === null ? [] : [(tx: ExecutorDb) => travarUsuario(tx, userId)]
+    await rodarLote([...trava, ...instrucoes])
+  }
   return r
 }
 

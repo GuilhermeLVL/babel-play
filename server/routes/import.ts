@@ -467,6 +467,9 @@ importRouter.post('/youtube', async (req, res) => {
   // Bytes reservados que ainda não têm arquivo correspondente — todo caminho que não entrega
   // áudio precisa devolvê-los, senão uma falha do yt-dlp consome a cota sem gravar nada.
   let reservaPendente = 0
+  // Para desfazer o import quando o PUT no R2 é recusado pelo teto (ver o `catch`).
+  let sessaoCriada: string | null = null
+  let localBaixado: string | null = null
   const corpo = parseOr400(importUrlSchema, req.body, res)
   if (!corpo) return
 
@@ -557,6 +560,7 @@ importRouter.post('/youtube', async (req, res) => {
       { kind: 'video', title: info.title, sourceLang, status: 'ready', durationMs: info.durationMs },
       utts,
     )
+    sessaoCriada = session.id
 
     /*
      * O yt-dlp é um SUBPROCESSO: ele só sabe escrever em disco, então baixa sempre local. Com
@@ -565,6 +569,7 @@ importRouter.post('/youtube', async (req, res) => {
      */
     const audio = await downloadAudio(url, session.id, AUDIO_DIR)
     const local = path.join(AUDIO_DIR, audio.file)
+    localBaixado = local
     const bytes = tamanhoNoDisco(local)
 
     if (armazenamentoDeMidia.tipo !== 'arquivos') {
@@ -590,6 +595,10 @@ importRouter.post('/youtube', async (req, res) => {
     if (reservaPendente) await liberarArmazenamento(req.userId, reservaPendente)
     const teto = respostaDoTetoDoR2(err)
     if (teto) {
+      /* Recusado pelo teto do R2 DEPOIS de criar a sessão e baixar o áudio: sem desfazer, sobravam uma
+         sessão sem áudio na biblioteca e o arquivo inteiro em `AUDIO_DIR`. */
+      if (localBaixado) await rm(localBaixado, { force: true }).catch(() => {})
+      if (sessaoCriada) await sessionsRepo.remove(req.userId, sessaoCriada).catch(() => {})
       res.status(teto.status).json(teto.body)
       return
     }

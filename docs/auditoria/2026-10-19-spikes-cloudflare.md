@@ -138,3 +138,17 @@ Conclusões:
 - `pg` lê `sslrootcert`/`sslmode=verify-full` da própria URL (`pg-connection-string`), então
   `DATABASE_URL=postgres://…?sslmode=verify-full&sslrootcert=/caminho/supabase-ca.crt` deve servir ao driver
   sem código novo (a confirmar com os testes de `TESTE_POSTGRES_URL`).
+
+**Testes de Postgres real contra o Supabase (mesmo dia).** Os 11 arquivos que exigem `TESTE_POSTGRES_URL`
+rodaram contra o projeto em us-east-1 pela conexão direta com `sslmode=verify-full&sslrootcert=…`
+(nenhum código novo): 8 arquivos verdes (22 testes), inclusive int8, medição em transação, ANALYZE,
+trava do PGlite, prazos do pool e as migrations `0000`–`0002` aplicadas no banco `postgres` do projeto
+(38 tabelas, RLS e REVOKE executados com os papéis `anon`/`authenticated` reais). Os 3 arquivos
+vermelhos falharam por **latência**, não por lógica: `gasto-concorrente` e `r2-teto-armazenamento`
+estouraram o `hookTimeout` de 20 s aplicando as migrations num banco descartável a 130 ms por ida;
+`rodada-e-glossario-concorrentes` (reetiquetar + rodada + revisar do mesmo usuário, 5×) caiu em
+`55P03` (`lock_timeout` de 10 s): um lote de centenas de instruções segura a trava do usuário por
+dezenas de segundos quando cada instrução custa uma ida à rede. É a prova empírica de que os lotes
+multi-VALUES (`emLote` hoje = 1 ida por instrução) são o **primeiro item da Fase 2**, antes de qualquer
+medição com Hyperdrive; e que os testes de concorrência precisam de `hookTimeout`/`lock_timeout`
+maiores quando apontados a um banco remoto.

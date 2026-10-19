@@ -319,7 +319,8 @@ billingRouter.post('/gastar', async (req, res) => {
         return
       }
     }
-    /* `conferirSaldo` faz o SQLite avaliar `compras pagas - gastos >= amount` DENTRO do INSERT.
+    /* `conferirSaldo` faz o banco avaliar `compras pagas - gastos >= amount` DENTRO do INSERT, sob
+       a trava consultiva do usuário.
        A conferência acima continua, e não é redundante: ela é quem sabe dizer quanto falta. Esta
        é quem garante que duas compras simultâneas não passem as duas. */
     const { jaExistia, linha, recusadoPorSaldo } = await creditsRepo.debitar(

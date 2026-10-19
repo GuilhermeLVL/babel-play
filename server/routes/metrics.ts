@@ -140,11 +140,9 @@ metricsRouter.get('/xp', async (req, res) => {
  * compra ainda NÃO foi cobrada: sem essa guarda, quem gastou as últimas 40 Seeds veria o retry da
  * própria compra ser recusado por saldo insuficiente.
  *
- * CORRIDA CONHECIDA: duas compras DIFERENTES em voo ao mesmo tempo podem passar as duas pela
- * conferência e estourar o saldo em uma delas. Fechar isso exigiria rodar `computeProfile` inteiro
- * dentro de transação — conexão nova, `synchronous=FULL`, fsync por commit (ver `emTransacao` em
- * `db.ts`) — e o ganho seria impedir um item além da conta, contra o que a rota permitia antes:
- * qualquer item por 1 Seed. O ledger continua íntegro e auditável nos dois casos.
+ * DUAS COMPRAS DIFERENTES EM VOO passam as duas por esta conferência antecipada, mas não pelo
+ * débito: `seedSpendsRepo.debitar` cobra o teto dentro do INSERT, sob a trava consultiva do usuário
+ * (`gasto-concorrente.test.ts`). A que perder a corrida recebe o mesmo 402.
  */
 metricsRouter.post('/seeds/gastar', async (req, res) => {
   const payload = parseOr400(seedSpendSchema, req.body, res)

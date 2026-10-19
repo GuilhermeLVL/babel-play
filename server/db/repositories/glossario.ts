@@ -3,16 +3,16 @@
  * que é uma entrada válida, quais vão a um pedido, o saneamento contra injeção) mora em
  * `server/ai/glossario.ts`; aqui só há listar, gravar e apagar, sempre pelo DONO.
  *
- * O TETO DE 500 é cobrado DENTRO do INSERT (`INSERT … SELECT … WHERE (SELECT COUNT(*) …) < 500`): o
- * SQLite serializa as escritas, então dois pedidos simultâneos não passam juntos pelo teto, como
- * passariam num "conta, depois grava" em dois comandos.
+ * O TETO DE 500 é cobrado DENTRO do INSERT (`INSERT … SELECT … WHERE (SELECT COUNT(*) …) < 500`), numa
+ * transação que começa pela trava consultiva do usuário: dois pedidos simultâneos não passam juntos
+ * pelo teto, como passariam num "conta, depois grava" em dois comandos.
  */
 import { randomUUID } from 'node:crypto'
 
 import { and, desc, eq, sql } from 'drizzle-orm'
 
 import type { UserId } from '../../lib/authContext'
-import { db, linhasAfetadas } from '../db'
+import { db, emTransacao, linhasAfetadas, travarUsuario } from '../db'
 import { glossario } from '../schema'
 
 const afetadas = (r: unknown) => linhasAfetadas(r)
@@ -83,27 +83,35 @@ export const glossarioRepo = {
    * e o teto não conta de novo. Termo novo com o glossário cheio: `{ ok: false, motivo: 'cheio' }`.
    */
   async gravar(userId: UserId, e: NovaEntrada, teto: number, agora = Date.now()): Promise<ResultadoDaGravacao> {
-    const atualizada = await db
-      .update(glossario)
-      .set({ termo: e.termo, traducao: e.traducao, atualizadoEm: agora })
-      .where(
-        and(
-          eq(glossario.userId, userId),
-          eq(glossario.origem, e.origem),
-          eq(glossario.destino, e.destino),
-          eq(glossario.termoNorm, e.termoNorm),
-        ),
-      )
-    if (afetadas(atualizada) === 0) {
-      const id = randomUUID()
-      const inserida = await db.execute(sql`
+    const id = randomUUID()
+    /* Trava do usuário primeiro: no Postgres, dois pedidos simultâneos em READ COMMITTED passariam
+       juntos pelo `COUNT(*) < teto` (um não vê a linha do outro antes do COMMIT). O WHERE fica como
+       segunda defesa. A releitura (`acharPelaChave`, em `db`) vem DEPOIS da transação. */
+    const { atualizou, inseriu } = await emTransacao(async (tx) => {
+      await travarUsuario(tx, userId)
+      const atualizada = await tx
+        .update(glossario)
+        .set({ termo: e.termo, traducao: e.traducao, atualizadoEm: agora })
+        .where(
+          and(
+            eq(glossario.userId, userId),
+            eq(glossario.origem, e.origem),
+            eq(glossario.destino, e.destino),
+            eq(glossario.termoNorm, e.termoNorm),
+          ),
+        )
+      if (afetadas(atualizada) > 0) return { atualizou: true, inseriu: false }
+      const inserida = await tx.execute(sql`
         INSERT INTO ${glossario} (id, user_id, origem, destino, termo, termo_norm, traducao, criado_em, atualizado_em)
         SELECT ${id}, ${userId}, ${e.origem}, ${e.destino}, ${e.termo}, ${e.termoNorm}, ${e.traducao}, ${agora}, ${agora}
         WHERE (SELECT COUNT(*) FROM ${glossario} WHERE user_id = ${userId}) < ${teto}
         ON CONFLICT (user_id, origem, destino, termo_norm) DO UPDATE SET
           termo = excluded.termo, traducao = excluded.traducao, atualizado_em = excluded.atualizado_em
       `)
-      if (afetadas(inserida) === 0) return { ok: false, motivo: 'cheio' }
+      return { atualizou: false, inseriu: afetadas(inserida) > 0 }
+    })
+    if (!atualizou) {
+      if (!inseriu) return { ok: false, motivo: 'cheio' }
       const entrada = await acharPelaChave(userId, e)
       if (entrada) return { ok: true, entrada, nova: entrada.id === id }
       return { ok: false, motivo: 'cheio' }

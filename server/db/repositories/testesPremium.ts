@@ -5,7 +5,7 @@
  * (`testes_premium`). Marca sem teste gastaria o teste de alguém sem dar nada; teste sem marca deixaria
  * apagar a conta e recomeçar. Por isso o início é uma TRANSAÇÃO — uma das poucas do projeto, e cabe
  * aqui: é lógica condicional (a marca já existe?) num caminho frio, um toque por pessoa na vida da
- * conta (`db.ts` explica por que o caminho quente usa `batch`).
+ * conta.
  *
  * A MARCA É A TRAVA: o INSERT com a PK da marca e `DO NOTHING` decide e grava numa instrução — duas
  * contas com o mesmo e-mail tocando ao mesmo tempo, só uma ganha.
@@ -13,7 +13,7 @@
 import { eq, lt } from 'drizzle-orm'
 
 import type { UserId } from '../../lib/authContext'
-import { db, emTransacao, linhasAfetadas } from '../db'
+import { db, emTransacao, linhasAfetadas, travarUsuario } from '../db'
 import { marcasDeTeste, testesPremium } from '../schema'
 
 export type TestePremium = typeof testesPremium.$inferSelect
@@ -44,6 +44,9 @@ export const testesPremiumRepo = {
   /** Começa o teste: a marca e o teste da conta, os dois ou nenhum. */
   async iniciar(userId: UserId, marca: string, inicio: number, fim: number): Promise<InicioDoTeste> {
     return emTransacao(async (tx) => {
+      /* Trava do usuário: dois toques simultâneos da MESMA conta não passam os dois pelo "já existe?"
+         (o segundo veria a marca do primeiro e responderia `marca_usada` em vez de `ja_existia`). */
+      await travarUsuario(tx, userId)
       const existente = await tx.select().from(testesPremium).where(eq(testesPremium.userId, userId)).limit(1)
       if (existente[0]) return { tipo: 'ja_existia', teste: existente[0] }
       const marcou = await tx

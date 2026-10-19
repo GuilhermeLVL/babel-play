@@ -5,7 +5,7 @@ import { and, asc, desc, eq, isNull, like, sql, sum } from 'drizzle-orm'
 import type { SkuDeCredito } from '../../../src/core/creditos'
 import { type CompraPremium, resolverPremium } from '../../../src/core/reembolso'
 import type { UserId } from '../../lib/authContext'
-import { db, linhasAfetadas } from '../db'
+import { db, emTransacao, linhasAfetadas, travarUsuario } from '../db'
 import { creditPurchases, creditSpends } from '../schema'
 
 /**
@@ -124,9 +124,9 @@ export const creditsRepo = {
    * inclusive na trava de saldo.
    *
    * Aqui a trava é ainda mais direta que a das Seeds: o saldo de Créditos é `compras pagas −
-   * gastos`, e as DUAS metades são tabelas. O SQLite calcula a subtração dentro do próprio INSERT,
-   * sem precisar de um teto vindo de fora. É a moeda que custou dinheiro: ela não pode ficar
-   * negativa nem por um instante entre duas requisições.
+   * gastos`, e as DUAS metades são tabelas. O banco calcula a subtração dentro do próprio INSERT,
+   * sem precisar de um teto vindo de fora, sob a trava consultiva do usuário. É a moeda que custou
+   * dinheiro: ela não pode ficar negativa nem por um instante entre duas requisições.
    */
   async debitar(
     userId: UserId,
@@ -152,7 +152,12 @@ export const creditsRepo = {
         VALUES (${row.id}, ${row.createdAt}, ${row.updatedAt}, ${row.userId}, ${row.spendId}, ${row.amount}, ${row.reason}, ${row.ref})
         ON CONFLICT (user_id, spend_id) WHERE deleted_at IS NULL DO NOTHING
       `)
-        : await db.execute(sql`
+        : /* No Postgres, dois gastos em voo em READ COMMITTED não veem a linha um do outro e
+             passariam os dois pela condição: a trava do usuário serializa, e o WHERE do saldo
+             fica como segunda defesa (gasto-concorrente.test.ts). */
+          await emTransacao(async (tx) => {
+            await travarUsuario(tx, userId)
+            return tx.execute(sql`
         INSERT INTO ${creditSpends} (id, created_at, updated_at, user_id, spend_id, amount, reason, ref)
         SELECT ${row.id}, ${row.createdAt}, ${row.updatedAt}, ${row.userId}, ${row.spendId}, ${row.amount}, ${row.reason}, ${row.ref}
         WHERE (
@@ -164,6 +169,7 @@ export const creditsRepo = {
         ) >= ${row.amount}
         ON CONFLICT (user_id, spend_id) WHERE deleted_at IS NULL DO NOTHING
       `)
+          })
     const naoInseriu = linhasAfetadas(r) === 0
     const rows = await db
       .select()

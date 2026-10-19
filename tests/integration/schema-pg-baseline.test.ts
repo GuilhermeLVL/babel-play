@@ -8,7 +8,7 @@ import { describe, it } from 'vitest'
  * para não violar a regra de import sem uso).
  */
 describe('baseline do schema Postgres', () => {
-  it.todo('o baseline cria as 38 tabelas, os 25 triggers e semeia as 10 flags')
+  it.todo('o baseline cria as 38 tabelas, os 25 triggers, a RLS em todas e semeia as 10 flags')
   /*
    * const h = await setupEphemeralDb()
    * const { db } = await h.load<typeof import('../../server/db/db')>('../../server/db/db')

@@ -282,8 +282,12 @@ lado dele, só quando o armazenamento é o S3 (`server/lib/tetoDoR2.ts`,
   `r2_teto_recusa`.
 - Exclusão de conta, apagar sessão, retenção e reconciliação usam a via sem teto (`semTeto`): contam,
   mas nunca são recusadas.
-- **Reverter ou ajustar** é só variável + reinício: `ilimitado` desliga o teto, `0` fecha tudo (kill
-  switch), um número muda o teto. Valor inválido aborta o boot.
+- **Reverter ou ajustar** é só variável: `ilimitado` desliga o teto, `0` fecha tudo (kill switch), um
+  número muda o teto. `R2_TETO_MB` é relido a cada reserva; os dois tetos de operações são lidos no
+  boot e só mudam com reinício. Valor inválido aborta o boot.
+- **A reconciliação não tem teto de B.** Ela usa a via `semTeto` (um HEAD por arquivo de cada usuário
+  varrido): conta no `r2_ops_b`, mas nunca é recusada. Um cron de `POST /api/admin/armazenamento/reconciliar`
+  frequente consome classe B da conta inteira; espace-o (diário basta).
 - **Passo do ambiente (painel da Cloudflare, não é código):** criar um _Budget Alert_ de US$ 1 para o
   R2 na área de cobrança da conta (o caminho exato no painel pode mudar; confira ao criar). É a rede de baixo se o contador do app divergir
   do uso real (upload fora do app, outro bucket na mesma conta, readiness do `/api/ready`, que não

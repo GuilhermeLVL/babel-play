@@ -87,5 +87,15 @@ etc. e reiniciar.
   (decisão 5) avisa antes; o próximo passo é um teto por usuário em `usage_counters`, conferido antes
   do contador `__r2__`.
 
+- **Contar em lotes quando o tráfego crescer.** Hoje é um UPDATE por operação. O plano: cada processo
+  reserva N operações de uma vez (`count + N <= teto`, numa instrução) e as consome em memória,
+  reservando o próximo lote quando acabar; o que sobrar no fim do mês ou do processo é a margem
+  perdida (no máximo N por processo).
+- **`ajustarArmazenamento` não confere o teto da conta.** A correção da estimativa do YouTube soma o
+  delta sem teto; o estouro é de no máximo um upload, dentro da margem de 10 %. Fora desta rodada.
+- **Gauge na recusa por armazenamento.** Na recusa pela conta o gauge `r2_uso_fracao{armazenamento}`
+  mostra a soma antes do upload recusado (abaixo de 1), enquanto nas operações a recusa marca 1.
+  Uniformizar fica fora desta rodada.
+
 - Quando houver token de leitura da Cloudflare, cruzar o contador com a Analytics (job diário) e
   registrar divergência > 5 % como aviso.

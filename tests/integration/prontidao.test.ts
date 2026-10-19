@@ -151,8 +151,10 @@ describe('GET /api/health continua sendo a outra pergunta', () => {
     const corpo = (await r.json()) as Record<string, unknown>
     // As chaves congeladas no snapshot de caracterização. `migracoes` e `armazenamento` NÃO entram
     // aqui: quem consome o health decide reiniciar, e isso não é motivo para reiniciar. `versao`
-    // (P0-7b) entrou como campo informativo: diz qual build está no ar, e não decide nada.
-    expect(Object.keys(corpo).sort()).toEqual(['at', 'boot', 'db', 'status', 'versao'])
+    // (P0-7b) entrou como campo informativo: diz qual build está no ar, e não decide nada. `banco`
+    // (Fase 1 do Postgres) também: diz se é o PGlite embutido ou um Postgres, no lugar do
+    // `journal_mode` que se conferia no SQLite.
+    expect(Object.keys(corpo).sort()).toEqual(['at', 'banco', 'boot', 'db', 'status', 'versao'])
   })
 })
 

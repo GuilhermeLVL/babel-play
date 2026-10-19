@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm'
 import type { Request, Response } from 'express'
 
-import { db } from '../db/db'
+import { bancoEmbutido, db } from '../db/db'
 import { migracoesAplicadas } from '../db/manutencao'
 import { contarDependenciaDegradada } from '../http/metricas'
 import { armazenamentoDoAmbiente, configDoS3 } from '../lib/armazenamento'
@@ -24,7 +24,13 @@ import { versaoDoApp } from '../lib/versao'
  * A ÚNICA ADIÇÃO depois disso é `versao` (P0-7b, auditoria de prontidão): um campo novo, sem mudar
  * nenhum dos existentes — o `HEALTHCHECK` e o `uptime.yml` leem o status HTTP e ignoram o resto.
  * Serve para quem opera confirmar, pelo domínio público, qual build está no ar depois de um deploy.
+ *
+ * E `banco: 'pglite' | 'postgres'` (Fase 1 da migração para o Postgres): o TIPO do banco, nunca a URL.
+ * Substitui o que se conferia no SQLite pelo `journal_mode`; diz se o processo subiu no PGlite
+ * embutido (uma máquina só) ou num Postgres de verdade.
  */
+const tipoDeBanco: 'pglite' | 'postgres' = bancoEmbutido ? 'pglite' : 'postgres'
+
 export async function healthHandler(_req: Request, res: Response): Promise<void> {
   const boot = await bootStatus()
   const bootPayload = boot.ok
@@ -38,10 +44,17 @@ export async function healthHandler(_req: Request, res: Response): Promise<void>
     // Sondar uma tabela real custa o mesmo e detecta o caso.
     await db.execute(sql`SELECT 1 FROM sessions LIMIT 1`)
     if (!boot.ok) {
-      res.status(503).json({ status: 'degraded', db: 'up', ...bootPayload, versao: versaoDoApp(), at: Date.now() })
+      res.status(503).json({
+        status: 'degraded',
+        db: 'up',
+        banco: tipoDeBanco,
+        ...bootPayload,
+        versao: versaoDoApp(),
+        at: Date.now(),
+      })
       return
     }
-    res.json({ status: 'ok', db: 'up', ...bootPayload, versao: versaoDoApp(), at: Date.now() })
+    res.json({ status: 'ok', db: 'up', banco: tipoDeBanco, ...bootPayload, versao: versaoDoApp(), at: Date.now() })
   } catch (err) {
     // Detalhe do erro só no log do servidor — a resposta não vaza caminho/driver do banco.
     // `db: 'down'` cobre os dois casos (inacessível e schema quebrado); distinguir na
@@ -54,7 +67,7 @@ export async function healthHandler(_req: Request, res: Response): Promise<void>
       status: 503,
       error: String(err).slice(0, 300),
     })
-    res.status(503).json({ status: 'degraded', db: 'down', ...bootPayload, versao: versaoDoApp() })
+    res.status(503).json({ status: 'degraded', db: 'down', banco: tipoDeBanco, ...bootPayload, versao: versaoDoApp() })
   }
 }
 

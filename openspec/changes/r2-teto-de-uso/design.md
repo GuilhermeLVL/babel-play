@@ -37,6 +37,11 @@ deps)` em `server/lib/tetoDoR2.ts` intercepta cada método do `Armazenamento` S3
    aplica o embrulho só quando o adaptador é S3. Uma leitura recusada responde `503` na rota de
    áudio (já existe tratamento de erro de armazenamento; mapear o código).
    Alternativa rejeitada: contar só em memória (perde no reinício, não vale entre instâncias).
+   **Contador indisponível** (falha ao gravar no banco): classe A (`gravar`/`gravarDeArquivo`) falha
+   FECHADA com `ErroDeTetoDoR2` de código `R2_TETO_INDISPONIVEL` (a rota responde `503` e devolve a
+   reserva de cota); classe B e `remover` seguem abertos (a reprodução de áudio e a exclusão não caem
+   por falha do contador). O aviso `r2_teto_contagem_falhou` é `warn`, no máximo um por minuto por
+   processo.
 4. **Semântica das variáveis** (declaradas em `config.ts`, `exigencia: 'opcional'`,
    `criticidade: 'degrada-capacidade'`):
    - `R2_TETO_MB`: ausente → `9216`; número ≥ 1 → teto em MB; `0` → recusa todo upload novo (kill

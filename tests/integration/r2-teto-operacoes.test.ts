@@ -380,4 +380,25 @@ describe('contador do R2 indisponível', () => {
     avisos.mockRestore()
     erros.mockRestore()
   })
+  it('contador indisponível: gravar recusa (falha fechada, 503 indisponível); ler e remover passam', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { store, feitas } = storeFalso()
+    const s = teto.comTetoDeOperacoes(store, {
+      tetos: { bytes: Infinity, opsA: 100, opsB: 100 },
+      contar: contadorQuebrado,
+    })
+    const erro = await s.gravar('x', Buffer.from('a'), 'audio/webm').catch((e: unknown) => e)
+    expect(erro).toBeInstanceOf(teto.ErroDeTetoDoR2)
+    expect((erro as { codigo: string }).codigo).toBe('R2_TETO_INDISPONIVEL')
+    await expect(s.gravarDeArquivo('x', '/tmp/nada', 'audio/webm')).rejects.toBeInstanceOf(teto.ErroDeTetoDoR2)
+    expect(teto.respostaDoTetoDoR2(erro)).toMatchObject({ status: 503, body: { code: 'r2_teto_indisponivel' } })
+
+    await s.ler('x')
+    await s.lerFaixa('x', 0, 0)
+    await s.tamanho('x')
+    await s.remover('x')
+    await teto.semTeto(s).gravar('x', Buffer.from('a'), 'audio/webm') // a via sem teto nunca recusa
+    expect(feitas).toEqual(['ler', 'lerFaixa', 'tamanho', 'remover', 'gravar'])
+    vi.restoreAllMocks()
+  })
 })

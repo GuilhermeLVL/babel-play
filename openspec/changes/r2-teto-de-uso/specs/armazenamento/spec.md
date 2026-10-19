@@ -63,6 +63,13 @@ gramática `0`/`ilimitado`/inválido de `R2_TETO_MB` SHALL valer.
 - **WHEN** a reconciliação da cota encontra um erro do store que não é nome inválido nem objeto ausente
 - **THEN** ela lança e o contador do usuário não muda (nada de subcontagem)
 
+#### Scenario: contador indisponível
+
+- **WHEN** o contador de operações não pode ser gravado (banco indisponível)
+- **THEN** `gravar`/`gravarDeArquivo` são recusados com `ErroDeTetoDoR2` (a rota responde `503`);
+  `ler`, `lerFaixa`, `tamanho` e `remover` passam; o aviso `r2_teto_contagem_falhou` sai como `warn`,
+  no máximo uma vez por minuto
+
 #### Scenario: virada de mês
 
 - **WHEN** o contador de outubro está no teto e a primeira operação de novembro (UTC) chega

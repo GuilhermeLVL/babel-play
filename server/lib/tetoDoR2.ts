@@ -95,10 +95,19 @@ const USUARIO_DO_R2 = '__r2__'
 
 /** Operação recusada pelo teto mensal do R2. As rotas respondem 503 (`respostaDoTetoDoR2`). */
 export class ErroDeTetoDoR2 extends Error {
-  readonly codigo = 'R2_TETO_OPS'
-  constructor(readonly classe: 'a' | 'b') {
-    super(`teto mensal de operações de classe ${classe.toUpperCase()} do R2 atingido`)
+  /** `R2_TETO_OPS` = teto do mês atingido; `R2_TETO_INDISPONIVEL` = o contador não pôde ser gravado. */
+  readonly codigo: 'R2_TETO_OPS' | 'R2_TETO_INDISPONIVEL'
+  constructor(
+    readonly classe: 'a' | 'b',
+    motivo: 'teto' | 'indisponivel' = 'teto',
+  ) {
+    super(
+      motivo === 'teto'
+        ? `teto mensal de operações de classe ${classe.toUpperCase()} do R2 atingido`
+        : `contador de operações do R2 indisponível (classe ${classe.toUpperCase()})`,
+    )
     this.name = 'ErroDeTetoDoR2'
+    this.codigo = motivo === 'teto' ? 'R2_TETO_OPS' : 'R2_TETO_INDISPONIVEL'
   }
 }
 
@@ -173,8 +182,9 @@ export function esquecerAvisoDeContagem(): void {
  * recusa. As rotas de usuário (ler o áudio, upload) ficam no embrulho — um cliente em laço não soma
  * HEADs além do teto.
  *
- * Falha ao contar (banco fora) deixa a operação passar, com log: o contador é uma trava de orçamento,
- * e o banco fora já derruba o upload pela cota por usuário, que degrada fechada.
+ * Falha ao contar (banco fora): classe A (`gravar`/`gravarDeArquivo`) falha FECHADA com
+ * `ErroDeTetoDoR2` de código `R2_TETO_INDISPONIVEL` (a rota responde 503 e devolve a reserva de cota);
+ * classe B e `remover` passam, com aviso limitado a um por minuto.
  */
 export function comTetoDeOperacoes(store: Armazenamento, deps: DependenciasDoTeto = {}): Armazenamento {
   const tetos = deps.tetos ?? lerTetoDoR2()
@@ -190,6 +200,10 @@ export function comTetoDeOperacoes(store: Armazenamento, deps: DependenciasDoTet
       contado = await contar(classe, janela, teto, forcar)
     } catch (err) {
       avisarContagemFalhou(err)
+      /* Classe A (gravar) falha FECHADA: sem contador não há como saber se a conta está no teto, e
+         gravar é o que cria custo novo. Classe B e `remover` seguem abertos — a reprodução de áudio e
+         a exclusão não caem por falha do contador. */
+      if (classe === 'a' && !forcar) throw new ErroDeTetoDoR2('a', 'indisponivel')
       return
     }
     if (contado !== null) {
@@ -232,6 +246,12 @@ export function semTeto(store: Armazenamento): Armazenamento {
 /** A resposta HTTP de um `ErroDeTetoDoR2` (503 no envelope); `null` para qualquer outro erro. */
 export function respostaDoTetoDoR2(err: unknown): { status: number; body: EnvelopeDeErro } | null {
   if (!(err instanceof ErroDeTetoDoR2)) return null
+  if (err.codigo === 'R2_TETO_INDISPONIVEL') {
+    return {
+      status: 503,
+      body: envelopeDeErro('não foi possível gravar o áudio agora; tente de novo em instantes', 'r2_teto_indisponivel'),
+    }
+  }
   return {
     status: 503,
     body: envelopeDeErro('o serviço de áudio está no limite de uso deste mês; tente mais tarde', 'r2_teto_operacoes'),

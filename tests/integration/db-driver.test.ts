@@ -119,4 +119,24 @@ describe('driver do banco (PGlite embutido)', () => {
     expect(typeof o?.segundos).toBe('number')
     expect(o?.segundos).toBeGreaterThan(0)
   })
+
+  it('instruções dentro de emTransacao e de emLote também chegam ao observador', async () => {
+    const recebidas: string[] = []
+    registrarObservadorDeConsultas((o) => recebidas.push(...o.instrucoes))
+    try {
+      await m.emTransacao(async (tx) => {
+        await tx.execute(sql`select 'dentro-da-transacao' as x`)
+      })
+      await m.emLote((tx) => [
+        () => tx.execute(sql`select 'dentro-do-lote-1' as x`),
+        () => tx.execute(sql`select 'dentro-do-lote-2' as x`),
+      ])
+    } finally {
+      registrarObservadorDeConsultas(undefined)
+    }
+    expect(recebidas.filter((i) => i.includes('dentro-da-transacao'))).toHaveLength(1)
+    expect(recebidas.filter((i) => i.includes('dentro-do-lote-'))).toHaveLength(2)
+    // O controle da transação não é trabalho da aplicação e não entra.
+    expect(recebidas.filter((i) => /^\s*(begin|commit|rollback)\b/i.test(i))).toEqual([])
+  })
 })

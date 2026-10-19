@@ -70,18 +70,21 @@ describe('event loop: histograma de verdade, e ele VÊ o travamento', () => {
 
 describe('banco: escritas e leituras contadas no driver', () => {
   it('um INSERT conta em db_escritas_total; um SELECT em db_leituras_total; com duração por tipo', async () => {
-    const client = clienteSql(await h.load('../../server/db/db'))
+    const mod = await h.load<typeof import('../../server/db/db')>('../../server/db/db')
+    const { sql } = await import('drizzle-orm')
+    const client = clienteSql(mod)
     const antes = await scrape()
     const escritas0 = valor(antes, 'db_escritas_total') ?? 0
     const leituras0 = valor(antes, 'db_leituras_total') ?? 0
 
-    /* No SQLite o segundo INSERT e o `SELECT 1` iam num `client.batch`, que o gancho também media. No
-       Postgres o lote é uma transação (`emLote`), e transação fica fora do gancho (ver `db.ts`): as
-       mesmas cinco instruções vão avulsas, que é o que o gancho conta. */
+    /* O segundo INSERT e o `SELECT 1` vão num LOTE de verdade (`emLote`, o que era o `client.batch` do
+       SQLite): as instruções de dentro da transação contam como as avulsas (ver `db.ts`). */
     await client.execute('CREATE TABLE IF NOT EXISTS _medir (x INTEGER)')
     await client.execute({ sql: 'INSERT INTO _medir (x) VALUES (?)', args: [1] })
-    await client.execute({ sql: 'INSERT INTO _medir (x) VALUES (?)', args: [2] })
-    await client.execute('SELECT 1')
+    await mod.emLote((tx) => [
+      () => tx.execute(sql`INSERT INTO _medir (x) VALUES (${2})`),
+      () => tx.execute(sql`SELECT 1`),
+    ])
     await client.execute('SELECT count(*) FROM _medir')
 
     const depois = await scrape()

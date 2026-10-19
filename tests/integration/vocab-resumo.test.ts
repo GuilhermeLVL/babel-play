@@ -369,14 +369,18 @@ describe('GET /api/vocab/resumo', () => {
   })
 
   it('conta semeada grande: as somas fecham, o corpo é pequeno e são poucas consultas', async () => {
+    /* A PRIMEIRA leitura de uma conta semeada por fora dos repositórios reconstrói os agregados (as
+       marcas estão atrás do bruto) numa transação — que o contador agora enxerga, e que o do libsql não
+       via (era uma transação interativa). Ela vem antes da medição, e confere que reconstruiu; o que se
+       mede é a leitura de regime, a que a tela faz toda vez. */
+    contador.zerar()
+    expect((await s.get(rota(), rico)).status).toBe(200)
+    expect(contador.instrucoes.some((x) => /INSERT INTO estado_dos_agregados/i.test(x))).toBe(true)
     contador.zerar()
     const res = await s.get(rota(), rico)
     expect(res.status).toBe(200)
     const corpo = await res.text()
-    /* As AVULSAS: se as marcas dos agregados estão atrás do bruto, a leitura reconstrói antes de somar,
-       numa transação com a trava do usuário — que o contador do libsql também não via (era uma
-       transação interativa). O que se mede aqui é a leitura do resumo. */
-    const consultas = dasTabelasDoResumo(contador.avulsas)
+    const consultas = dasTabelasDoResumo(contador.instrucoes)
     const r = JSON.parse(corpo) as ResumoDosCartoes
     expect(r.total + r.suspensas).toBeGreaterThan(100)
     expect(r.fases.novas + r.fases.aprendendo + r.fases.jovens + r.fases.maduras).toBe(r.total)
@@ -393,9 +397,9 @@ describe('GET /api/vocab/resumo', () => {
        um `count(*)` em `review_logs` (eram a quarta) e vêm dos agregados diários (migração 0053):
        uma consulta para conferir as marcas e uma para somar. */
     expect(consultas).toHaveLength(3)
-    expect(contador.avulsas.filter((x) => /\bagregados_diarios\b/.test(x))).toHaveLength(1)
-    expect(contador.avulsas.filter((x) => /\bestado_dos_agregados\b/.test(x))).toHaveLength(1)
-    expect(contador.avulsas.filter((x) => x.includes('versoes_de_dados'))).toHaveLength(1)
+    expect(contador.instrucoes.filter((x) => /\bagregados_diarios\b/.test(x))).toHaveLength(1)
+    expect(contador.instrucoes.filter((x) => /\bestado_dos_agregados\b/.test(x))).toHaveLength(1)
+    expect(contador.instrucoes.filter((x) => x.includes('versoes_de_dados'))).toHaveLength(1)
   })
 
   describe('validação', () => {

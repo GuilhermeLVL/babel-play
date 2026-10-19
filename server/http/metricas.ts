@@ -298,17 +298,17 @@ function metricas(): Estado {
        por consulta. É o número do gatilho do ADR 0006 (escritas/s sustentadas). */
     dbDuracao: new Histogram({
       name: 'db_consulta_duracao_segundos',
-      help: 'Duração de cada consulta no driver do banco, por tipo (leitura|escrita). Transações (emTransacao/emLote) ficam de fora.',
+      help: 'Duração de cada consulta no driver do banco, por tipo (leitura|escrita), avulsa ou dentro de emTransacao/emLote (BEGIN/COMMIT não contam).',
       labelNames: ['tipo'] as const,
       buckets: [0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5],
     }),
     dbEscritas: new Counter({
       name: 'db_escritas_total',
-      help: 'Instruções de ESCRITA (INSERT/UPDATE/DELETE/REPLACE/DDL) enviadas ao banco fora de transação. O gatilho do ADR 0006 é rate() disto > 50/s no pico.',
+      help: 'Instruções de ESCRITA (INSERT/UPDATE/DELETE/REPLACE/DDL) enviadas ao banco, avulsas ou dentro de transação. O gatilho do ADR 0006 é rate() disto > 50/s no pico.',
     }),
     dbLeituras: new Counter({
       name: 'db_leituras_total',
-      help: 'Instruções de LEITURA (SELECT/WITH) enviadas ao banco fora de transação.',
+      help: 'Instruções de LEITURA (SELECT/WITH) enviadas ao banco, avulsas ou dentro de transação.',
     }),
     /* O CUSTO POR PLANO. O mesmo número que soma no orçamento (`registrarGastoDeIa`), agora com o
        plano de quem gastou — é o que diz se o Essencial se paga. Rótulo da allowlist `PLANOS`. */

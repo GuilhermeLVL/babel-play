@@ -2,7 +2,7 @@
  * O GANCHO DE MEDIÇÃO DO BANCO (Fase 5 de prontidão, 25/09/2026).
  *
  * `db.ts` embrulha o `query` do driver (PGlite ou `pg`) e chama o observador com as instruções e a
- * duração — só o que roda FORA de transação; `server/http/metricas.ts` registra o observador quando as métricas estão ligadas. Módulo
+ * duração — avulsa ou dentro de `emTransacao`/`emLote`; `server/http/metricas.ts` registra o observador quando as métricas estão ligadas. Módulo
  * próprio, sem dependência nenhuma, porque os dois lados não podem se importar: `metricas.ts`
  * importando `db.ts` abriria o banco em quem só quer contar requisições, e `db.ts` importando
  * `metricas.ts` puxaria o prom-client para todo script que só lê o banco.

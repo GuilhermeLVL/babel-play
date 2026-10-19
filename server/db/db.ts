@@ -40,16 +40,65 @@ const textoDe = (q: unknown): string | { sql: string } =>
 
 /* MEDIÇÃO (Fase 5 de prontidão): escritas/s e duração por tipo, para o gatilho do ADR 0006. Embrulha o
    método `query` do driver antes de passá-lo ao Drizzle; sem observador registrado (métricas desligadas),
-   o custo é um `if`. Consultas dentro de `transaction()` rodam numa conexão/objeto próprio e não passam
-   por aqui. Ver `observadorDeConsultas.ts`. */
+   o custo é um `if`. Ver `observadorDeConsultas.ts`.
+
+   AS TRANSAÇÕES TAMBÉM SÃO MEDIDAS. `emTransacao`/`emLote` (o que era o `batch` do SQLite, e que o gancho
+   medía) rodam num objeto próprio do driver: no PGlite, o `tx` que `pglite.transaction` entrega; no `pg`,
+   o cliente que `pool.connect()` empresta ao Drizzle. Os dois são embrulhados abaixo, e cada instrução de
+   dentro conta como uma avulsa conta. O controle da transação (`BEGIN`/`COMMIT`/`ROLLBACK`/`SAVEPOINT`,
+   que o Drizzle manda pelo cliente no `pg`) fica de fora: não é trabalho da aplicação. */
+type Consultar = (...args: unknown[]) => Promise<unknown>
+const CONTROLE_DE_TRANSACAO = /^\s*(begin|commit|rollback|savepoint|release|start\s+transaction)\b/i
+
+function medida(original: Consultar): Consultar {
+  const medido = medirConsultas(original, (q: unknown) => [textoDe(q)])
+  return (...args: unknown[]) => {
+    const t = textoDe(args[0])
+    return CONTROLE_DE_TRANSACAO.test(typeof t === 'string' ? t : t.sql) ? original(...args) : medido(...args)
+  }
+}
+
 function medir<T extends { query: (...args: never[]) => Promise<unknown> }>(alvo: T): void {
-  const original = alvo.query.bind(alvo) as (...args: unknown[]) => Promise<unknown>
-  alvo.query = medirConsultas(original, (q: unknown) => [textoDe(q)]) as unknown as T['query']
+  const original = alvo.query.bind(alvo) as Consultar
+  alvo.query = medida(original) as unknown as T['query']
   /* O tamanho do banco pelo `query` ORIGINAL: a sonda de métrica não conta como leitura da aplicação. */
   registrarMedidorDeTamanho(async () => {
     const r = (await original('select pg_database_size(current_database()) as n')) as { rows?: Array<{ n: unknown }> }
     return Number(r.rows?.[0]?.n ?? 0)
   })
+}
+
+/** PGlite: o `tx` de cada transação ganha o mesmo embrulho no `query`. */
+function medirTransacoesDoPglite(p: PGlite): void {
+  const original = p.transaction.bind(p) as (fn: (tx: { query: Consultar }) => Promise<unknown>) => Promise<unknown>
+  ;(p as unknown as { transaction: typeof original }).transaction = (fn) =>
+    original((tx) => {
+      tx.query = medida(tx.query.bind(tx))
+      return fn(tx)
+    })
+}
+
+/**
+ * `pg`: o cliente que `pool.connect()` empresta (é o que o Drizzle usa dentro de `db.transaction`) ganha
+ * o embrulho até ser devolvido. Só na forma de PROMESSA (`await pool.connect()`): a forma de callback é a
+ * que o próprio `pool.query` usa por dentro, e essa consulta já é medida pelo embrulho do `pool.query`.
+ */
+function medirClientesDoPool(p: Pool): void {
+  const conectar = p.connect.bind(p) as (...args: unknown[]) => unknown
+  ;(p as unknown as { connect: (...args: unknown[]) => unknown }).connect = (...args: unknown[]) => {
+    if (args.length > 0) return conectar(...args)
+    return (conectar() as Promise<{ query: Consultar; release: (...a: unknown[]) => unknown }>).then((cliente) => {
+      const consultaOriginal = cliente.query
+      const devolverOriginal = cliente.release
+      cliente.query = medida(consultaOriginal.bind(cliente))
+      cliente.release = (...a: unknown[]) => {
+        cliente.query = consultaOriginal
+        cliente.release = devolverOriginal
+        return devolverOriginal.apply(cliente, a)
+      }
+      return cliente
+    })
+  }
 }
 
 let pglite: PGlite | undefined
@@ -65,6 +114,7 @@ function abrir(): DB {
       pglite = new PGlite(caminho)
     }
     medir(pglite)
+    medirTransacoesDoPglite(pglite)
     return drizzlePglite(pglite, { schema })
   }
   pool = new Pool({ connectionString: urlDoBanco, max: 5 })
@@ -73,6 +123,7 @@ function abrir(): DB {
     console.error('[db] erro em conexão ociosa do pool:', String(err?.message ?? err).slice(0, 160))
   })
   medir(pool)
+  medirClientesDoPool(pool)
   return drizzleNode(pool, { schema })
 }
 

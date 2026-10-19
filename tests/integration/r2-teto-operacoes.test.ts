@@ -251,6 +251,7 @@ function fakeRes() {
   r.status = (c: number) => ((r.statusCode = c), r)
   r.json = (b: any) => ((r.body = b), r)
   r.setHeader = (k: string, v: unknown) => void (r.headers[k] = v)
+  r.removeHeader = (k: string) => void delete r.headers[k]
   r.end = () => r
   return r
 }
@@ -268,6 +269,24 @@ describe('rotas com o teto de operações batido', () => {
     expect(res.body).toMatchObject({ code: 'r2_teto_operacoes' })
     expect(typeof res.body.error).toBe('string')
     expect(chamadas).toEqual([]) // nem o HEAD nem o GET chegam ao R2
+  })
+
+  it('HEAD passa e a faixa é recusada: o 503 sai sem os cabeçalhos de áudio herdados', async () => {
+    const u = asUserId('r2ops-leitor-faixa')
+    const id = (await sessions.create(u, { title: 'r2', kind: 'audio' })).id as string
+    await sessions.setAudio(u, id, `${id}.webm`, 'audio/webm')
+    await fixarOps('b', new Date().toISOString().slice(0, 7), TETO_DAS_ROTAS - 1) // cabe só o HEAD
+    chamadas.length = 0
+    const res = fakeRes()
+    await handlerDe('/:id/audio', 'get')(
+      { userId: u, params: { id }, headers: { range: 'bytes=0-1' }, path: `/${id}/audio` },
+      res,
+    )
+    expect(chamadas.map((c) => c.metodo)).toEqual(['HEAD'])
+    expect(res.statusCode).toBe(503)
+    expect(res.body).toMatchObject({ code: 'r2_teto_operacoes' })
+    for (const k of ['Content-Type', 'Content-Range', 'Content-Length', 'Accept-Ranges'])
+      expect(res.headers[k], k).toBeUndefined()
   })
 
   it('upload com a classe A batida responde 503 e devolve a reserva de cota', async () => {

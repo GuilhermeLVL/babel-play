@@ -482,6 +482,8 @@ sessionsRouter.get('/:id/audio', async (req, res) => {
   } catch (err) {
     const teto = respostaDoTetoDoR2(err)
     if (teto && !res.headersSent) {
+      // Os cabeçalhos do ÁUDIO já estavam postos (tipo, faixa, tamanho): o JSON de erro não os herda.
+      for (const k of ['Content-Type', 'Content-Range', 'Content-Length', 'Accept-Ranges']) res.removeHeader(k)
       res.status(teto.status).json(teto.body)
       return
     }

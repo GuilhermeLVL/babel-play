@@ -59,6 +59,11 @@ export interface LogFields {
   papel?: string
   situacao?: string
   plano?: string
+  /* Teto do R2 (`server/lib/tetoDoR2.ts`): o recurso (`armazenamento|ops_a|ops_b`), o uso e o teto.
+     Números da conta inteira, sem nada do usuário. */
+  recurso?: string
+  usado?: number
+  teto?: number
 }
 
 const ALLOWED = new Set([
@@ -90,6 +95,10 @@ const ALLOWED = new Set([
   'papel',
   'situacao',
   'plano',
+  // Teto do R2 (server/lib/tetoDoR2.ts): o recurso (`armazenamento|ops_a|ops_b`) e os dois números.
+  'recurso',
+  'usado',
+  'teto',
 ])
 
 /**

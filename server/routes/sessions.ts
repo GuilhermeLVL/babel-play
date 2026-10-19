@@ -22,6 +22,7 @@ import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
 import { envelopeDeErro } from '../lib/respostaDeErro'
 import { ajustarArmazenamento, corpoDeRecusa, liberarArmazenamento, reservarArmazenamento } from '../lib/storageQuota'
+import { respostaDoTetoDoR2 } from '../lib/tetoDoR2'
 import { detectarAudio, FORMATOS_DE_AUDIO_ACEITOS } from '../lib/tipoDeArquivo'
 import {
   appendUtterancesSchema,
@@ -388,6 +389,12 @@ sessionsRouter.post('/:id/audio', vagaDeCorpoGrande(), async (req, res) => {
         : {}),
     })
   } catch (err) {
+    // Teto mensal de operações do R2 (`server/lib/tetoDoR2.ts`): o serviço, não o pedido, está no limite.
+    const teto = respostaDoTetoDoR2(err)
+    if (teto) {
+      res.status(teto.status).json(teto.body)
+      return
+    }
     res.status(500).json({
       error: erroDeRota(err, {
         status: 500,
@@ -431,7 +438,15 @@ sessionsRouter.get('/:id/audio', async (req, res) => {
     res.status(400).json({ error: 'caminho de áudio inválido' })
     return
   }
-  const size = await armazenamentoDeMidia.tamanho(nome)
+  let size: number | null
+  try {
+    size = await armazenamentoDeMidia.tamanho(nome)
+  } catch (err) {
+    const teto = respostaDoTetoDoR2(err)
+    if (!teto) throw err
+    res.status(teto.status).json(teto.body)
+    return
+  }
   if (size === null) {
     res.status(404).json({ error: 'arquivo ausente' })
     return
@@ -465,6 +480,11 @@ sessionsRouter.get('/:id/audio', async (req, res) => {
   try {
     ;(await armazenamentoDeMidia.lerFaixa(nome, start, end)).pipe(res)
   } catch (err) {
+    const teto = respostaDoTetoDoR2(err)
+    if (teto && !res.headersSent) {
+      res.status(teto.status).json(teto.body)
+      return
+    }
     log('error', {
       event: 'audio_leitura_falhou',
       route: req.path,

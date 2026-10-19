@@ -4,6 +4,8 @@ import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/
 import path from 'node:path'
 import { Readable } from 'node:stream'
 
+import { comTetoDeOperacoes, lerTetoDoR2 } from './tetoDoR2'
+
 /**
  * Seam de armazenamento de mídia (F5-02).
  *
@@ -326,5 +328,10 @@ export function armazenamentoDoAmbiente(dirPadrao: string, env: NodeJS.ProcessEn
      "existe armazenamento EXTERNO configurado?" — sem receber um diretório de fallback que ele não
      tem e não usaria. Duas cópias da regra das quatro variáveis divergiriam no dia em que a quinta
      aparecesse. */
-  return cfg ? armazenamentoS3(cfg) : armazenamentoDeArquivos(dirPadrao)
+  /* O TETO DO R2 só embrulha o S3 (`openspec/changes/r2-teto-de-uso`): no disco não há operação
+     cobrada. Os tetos são lidos AQUI, na criação — valor inválido lança no import das rotas, que é o
+     boot. */
+  return cfg
+    ? comTetoDeOperacoes(armazenamentoS3(cfg), { tetos: lerTetoDoR2(env) })
+    : armazenamentoDeArquivos(dirPadrao)
 }

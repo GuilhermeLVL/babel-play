@@ -44,6 +44,7 @@ import {
   reservarArmazenamento,
   tamanhoNoDisco,
 } from '../lib/storageQuota'
+import { respostaDoTetoDoR2 } from '../lib/tetoDoR2'
 // F11-04: schemas de corpo e de cabeçalho das rotas de importação.
 import { ankiExportSchema, importUrlSchema, parseOr400, uploadHeadersSchema } from '../validation'
 import { armazenamentoDeMidia, AUDIO_DIR } from './sessions'
@@ -587,6 +588,11 @@ importRouter.post('/youtube', async (req, res) => {
     })
   } catch (err) {
     if (reservaPendente) await liberarArmazenamento(req.userId, reservaPendente)
+    const teto = respostaDoTetoDoR2(err)
+    if (teto) {
+      res.status(teto.status).json(teto.body)
+      return
+    }
     res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'import_route_error' }) })
   }
 })

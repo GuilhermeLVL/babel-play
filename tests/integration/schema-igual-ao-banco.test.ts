@@ -9,7 +9,7 @@
  *   1. o banco migrado do zero (`migrations-pg`, o PGlite do harness) é o que o `schema.ts`
  *      descreve, lido do CATÁLOGO (`information_schema.columns`, `pg_index`, `pg_constraint`):
  *      as mesmas tabelas; em cada uma, as mesmas colunas com o mesmo tipo, a mesma nulidade, o
- *      mesmo default e a mesma coluna gerada; os mesmos índices, com a mesma unicidade, as mesmas
+ *      mesmo VALOR de default e a mesma coluna gerada; os mesmos índices, com a mesma unicidade, as mesmas
  *      colunas na mesma ordem e o mesmo predicado dos índices parciais; as mesmas FKs.
  *      (No SQLite era a introspecção do drizzle-kit, `pushSQLiteSchema`; o `pushSchema` do Postgres
  *      não roda sobre o PGlite com esta versão do drizzle-orm — falha ao passar parâmetros —, e
@@ -84,6 +84,82 @@ function tipoDoCatalogo(sqlType: string): string {
   return t
 }
 
+/**
+ * Um default como o `column_default` o escreve, sem os casts que o Postgres acrescenta (`'x'::text`,
+ * `'{}'::text`) e sem os parênteses de expressão. Maiúsculas e o conteúdo das aspas ficam: `'Active'`
+ * e `'active'` são defaults diferentes.
+ */
+const normalizarDefault = (x: string): string =>
+  x
+    .replace(/::[a-z ]+(\[\])?/gi, '')
+    .replace(/^\((.*)\)$/, '$1')
+    .trim()
+
+/**
+ * O default do drizzle no mesmo formato: número e booleano como estão, texto entre aspas simples (com
+ * a aspa interna dobrada), SQL renderizado. `null` = sem default SQL.
+ */
+function defaultDoSchema(v: unknown): string | null {
+  if (v === undefined || v === null) return null
+  if (is(v, SQL)) return normalizarDefault(textoDe(v))
+  if (typeof v === 'string') return `'${v.replace(/'/g, "''")}'`
+  return String(v)
+}
+
+/**
+ * As divergências entre as colunas de cada tabela do drizzle e as do banco: nomes, tipo, nulidade,
+ * coluna gerada (com a expressão) e o VALOR do default.
+ */
+async function divergenciasDeColunas(tabelasConferidas: PgTable[]): Promise<string[]> {
+  const divergencias: string[] = []
+  for (const tabela of tabelasConferidas) {
+    const cfg = getTableConfig(tabela)
+    const linhas = (
+      await c.execute({
+        sql: `SELECT column_name, data_type, is_nullable, column_default, is_generated, generation_expression
+                FROM information_schema.columns WHERE table_schema = 'public' AND table_name = ?`,
+        args: [cfg.name],
+      })
+    ).rows
+    const doBanco = new Map(linhas.map((l) => [String(l.column_name), l]))
+    const nomesDoSchema = cfg.columns.map((col) => col.name).sort()
+    const nomesDoBanco = [...doBanco.keys()].sort()
+    if (JSON.stringify(nomesDoSchema) !== JSON.stringify(nomesDoBanco)) {
+      divergencias.push(`${cfg.name}: colunas schema=${nomesDoSchema.join(',')} banco=${nomesDoBanco.join(',')}`)
+      continue
+    }
+    for (const col of cfg.columns) {
+      const l = doBanco.get(col.name)!
+      const onde = `${cfg.name}.${col.name}`
+      if (String(l.data_type) !== tipoDoCatalogo(col.getSQLType())) {
+        divergencias.push(`${onde}: tipo schema=${col.getSQLType()} banco=${l.data_type}`)
+      }
+      /* Chave primária é NOT NULL no banco mesmo sem `.notNull()` no schema. */
+      const notNullNoSchema = col.notNull || col.primary
+      if (notNullNoSchema !== (l.is_nullable === 'NO')) {
+        divergencias.push(`${onde}: NOT NULL schema=${notNullNoSchema} banco=${l.is_nullable === 'NO'}`)
+      }
+      const gerada = (col as unknown as { generated?: { as: SQL | (() => SQL) } }).generated
+      if (!!gerada !== (l.is_generated === 'ALWAYS')) {
+        divergencias.push(`${onde}: gerada schema=${!!gerada} banco=${l.is_generated}`)
+      } else if (gerada) {
+        const expr = typeof gerada.as === 'function' ? gerada.as() : gerada.as
+        const doSchema = normalizar(is(expr, SQL) ? textoDe(expr) : String(expr), cfg.name)
+        if (doSchema !== normalizar(String(l.generation_expression), cfg.name)) {
+          divergencias.push(`${onde}: expressão gerada schema="${doSchema}" banco="${l.generation_expression}"`)
+        }
+      }
+      /* Default SQL, comparado pelo VALOR (o `$defaultFn` é do JS e não chega ao banco). */
+      if (!gerada) {
+        const doSchema = defaultDoSchema(col.default)
+        const doBanco = l.column_default === null ? null : normalizarDefault(String(l.column_default))
+        if (doSchema !== doBanco) divergencias.push(`${onde}: default schema=${doSchema} banco=${doBanco}`)
+      }
+    }
+  }
+  return divergencias
+}
+
 describe('schema.ts × banco migrado (catálogo do Postgres)', () => {
   it('as mesmas tabelas no schema `public`', async () => {
     const noBanco = (
@@ -96,53 +172,29 @@ describe('schema.ts × banco migrado (catálogo do Postgres)', () => {
     expect(noBanco).toEqual(noSchema)
   })
 
-  it('cada tabela tem as mesmas colunas: tipo, nulidade, default e coluna gerada', async () => {
-    const divergencias: string[] = []
-    for (const tabela of tabelas) {
-      const cfg = getTableConfig(tabela)
-      const linhas = (
-        await c.execute({
-          sql: `SELECT column_name, data_type, is_nullable, column_default, is_generated, generation_expression
-                  FROM information_schema.columns WHERE table_schema = 'public' AND table_name = ?`,
-          args: [cfg.name],
-        })
-      ).rows
-      const doBanco = new Map(linhas.map((l) => [String(l.column_name), l]))
-      const nomesDoSchema = cfg.columns.map((col) => col.name).sort()
-      const nomesDoBanco = [...doBanco.keys()].sort()
-      if (JSON.stringify(nomesDoSchema) !== JSON.stringify(nomesDoBanco)) {
-        divergencias.push(`${cfg.name}: colunas schema=${nomesDoSchema.join(',')} banco=${nomesDoBanco.join(',')}`)
-        continue
-      }
-      for (const col of cfg.columns) {
-        const l = doBanco.get(col.name)!
-        const onde = `${cfg.name}.${col.name}`
-        if (String(l.data_type) !== tipoDoCatalogo(col.getSQLType())) {
-          divergencias.push(`${onde}: tipo schema=${col.getSQLType()} banco=${l.data_type}`)
-        }
-        /* Chave primária é NOT NULL no banco mesmo sem `.notNull()` no schema. */
-        const notNullNoSchema = col.notNull || col.primary
-        if (notNullNoSchema !== (l.is_nullable === 'NO')) {
-          divergencias.push(`${onde}: NOT NULL schema=${notNullNoSchema} banco=${l.is_nullable === 'NO'}`)
-        }
-        const gerada = (col as unknown as { generated?: { as: SQL | (() => SQL) } }).generated
-        if (!!gerada !== (l.is_generated === 'ALWAYS')) {
-          divergencias.push(`${onde}: gerada schema=${!!gerada} banco=${l.is_generated}`)
-        } else if (gerada) {
-          const expr = typeof gerada.as === 'function' ? gerada.as() : gerada.as
-          const doSchema = normalizar(is(expr, SQL) ? textoDe(expr) : String(expr), cfg.name)
-          if (doSchema !== normalizar(String(l.generation_expression), cfg.name)) {
-            divergencias.push(`${onde}: expressão gerada schema="${doSchema}" banco="${l.generation_expression}"`)
-          }
-        }
-        /* Default SQL (o `$defaultFn` é do JS e não chega ao banco). */
-        const temDefaultSql = col.default !== undefined
-        if (!gerada && temDefaultSql !== (l.column_default !== null)) {
-          divergencias.push(`${onde}: default schema=${String(col.default)} banco=${String(l.column_default)}`)
-        }
-      }
-    }
+  it('cada tabela tem as mesmas colunas: tipo, nulidade, default (o valor) e coluna gerada', async () => {
+    const divergencias = await divergenciasDeColunas(tabelas)
     expect(divergencias, 'o schema.ts diverge do banco que as migrations produzem').toEqual([])
+  })
+
+  it('a comparação de default pega o VALOR: DEFAULT 0 no schema × DEFAULT 1 no banco (e texto com outra caixa)', async () => {
+    const { bigint, pgTable, text } = await import('drizzle-orm/pg-core')
+    const brinquedo = pgTable('_brinquedo_default', {
+      n: bigint('n', { mode: 'number' }).notNull().default(0),
+      estado: text('estado').notNull().default('active'),
+      igual: text('igual').notNull().default("d'água"),
+    })
+    await c.execute(
+      "CREATE TABLE _brinquedo_default (n bigint NOT NULL DEFAULT 1, estado text NOT NULL DEFAULT 'Active', igual text NOT NULL DEFAULT 'd''água')",
+    )
+    try {
+      expect((await divergenciasDeColunas([brinquedo])).sort()).toEqual([
+        "_brinquedo_default.estado: default schema='active' banco='Active'",
+        '_brinquedo_default.n: default schema=0 banco=1',
+      ])
+    } finally {
+      await c.execute('DROP TABLE _brinquedo_default')
+    }
   })
 
   it('os mesmos índices: unicidade, colunas na ordem e predicado dos parciais', async () => {

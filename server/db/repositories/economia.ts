@@ -72,7 +72,7 @@ export const economiaRepo = {
         xp: sum(seedCredits.xp),
         metas: sql<
           string | null
-        >`group_concat(case when ${seedCredits.creditoId} like 'meta:%' then substr(${seedCredits.creditoId}, 6) end)`,
+        >`string_agg(case when ${seedCredits.creditoId} like 'meta:%' then substr(${seedCredits.creditoId}, 6) end, ',' order by ${seedCredits.creditoId})`,
       })
       .from(seedCredits)
       .where(and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt)))

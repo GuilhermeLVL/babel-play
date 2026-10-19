@@ -208,7 +208,7 @@ export async function liberarArmazenamento(userId: UserId, bytes: number): Promi
   try {
     await db
       .update(usageCounters)
-      .set({ count: sql`max(0, ${usageCounters.count} - ${b})`, updatedAt: Date.now() })
+      .set({ count: sql`GREATEST(0, ${usageCounters.count} - ${b})`, updatedAt: Date.now() })
       .where(
         and(
           eq(usageCounters.userId, userId),

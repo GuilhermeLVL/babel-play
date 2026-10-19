@@ -66,7 +66,9 @@ const COLUNA: Record<keyof ContadoresDoDia, string> = {
   rodadas: 'rodadas',
 }
 const COLUNAS_SQL = CONTADORES_DO_DIA.map((k) => COLUNA[k]).join(', ')
-const SOMA_SQL = CONTADORES_DO_DIA.map((k) => `${COLUNA[k]} = ${COLUNA[k]} + excluded.${COLUNA[k]}`).join(', ')
+const SOMA_SQL = CONTADORES_DO_DIA.map(
+  (k) => `${COLUNA[k]} = agregados_diarios.${COLUNA[k]} + excluded.${COLUNA[k]}`,
+).join(', ')
 
 /** A base do idioma de um cartão, como a coluna gerada `src_lang_base` a calcula. */
 export function baseDoIdioma(srcLang: string | null | undefined): string {
@@ -85,7 +87,7 @@ async function fusoGravado(userId: UserId): Promise<string> {
  * junto sem ler antes.
  */
 function somarCelulas(userId: UserId, celulas: CelulaDoDia[], agora: number, seExiste?: SQL): InstrucaoDeBatch[] {
-  const condicao = seExiste ? sql`EXISTS (${seExiste})` : sql`1`
+  const condicao = seExiste ? sql`EXISTS (${seExiste})` : sql`TRUE`
   return celulas.map((c) =>
     db.execute(sql`
       INSERT INTO agregados_diarios (user_id, idioma, dia, ${sql.raw(COLUNAS_SQL)}, atualizado_em)
@@ -101,7 +103,7 @@ function somarCelulas(userId: UserId, celulas: CelulaDoDia[], agora: number, seE
 
 /** "Estas `n` linhas brutas eu já contei": o par do gatilho que soma em `marca_bruto`. */
 function marcarVistas(userId: UserId, n: number, seExiste?: SQL): InstrucaoDeBatch {
-  const condicao = seExiste ? sql`EXISTS (${seExiste})` : sql`1`
+  const condicao = seExiste ? sql`EXISTS (${seExiste})` : sql`TRUE`
   return db.execute(
     sql`UPDATE estado_dos_agregados SET marca_vista = marca_vista + ${n} WHERE user_id = ${userId} AND ${condicao}`,
   )
@@ -212,10 +214,10 @@ export const agregadosRepo = {
             SELECT ${userId}, ${i.cardId}, ${rodada.jogo}, ${certo}, ${1 - certo}, ${certo}, ${rodada.em}
             WHERE EXISTS (${seExiste})
             ON CONFLICT (user_id, card_id, jogo) DO UPDATE SET
-              acertos = acertos + excluded.acertos,
-              erros = erros + excluded.erros,
-              ultimo_resultado = CASE WHEN excluded.ultimo_em >= ultimo_em THEN excluded.ultimo_resultado ELSE ultimo_resultado END,
-              ultimo_em = max(ultimo_em, excluded.ultimo_em)
+              acertos = estado_por_item.acertos + excluded.acertos,
+              erros = estado_por_item.erros + excluded.erros,
+              ultimo_resultado = CASE WHEN excluded.ultimo_em >= estado_por_item.ultimo_em THEN excluded.ultimo_resultado ELSE estado_por_item.ultimo_resultado END,
+              ultimo_em = GREATEST(estado_por_item.ultimo_em, excluded.ultimo_em)
           `),
         )
       }
@@ -401,7 +403,7 @@ export async function gruposDeRevisoes(tx: Tx | DB, userId: UserId, onde?: SQL):
            count(r.retencao_prevista) AS com,
            coalesce(sum(r.retencao_prevista), 0) AS soma
     FROM review_logs r LEFT JOIN vocab_cards c ON c.id = r.card_id
-    WHERE r.user_id = ${userId} AND ${onde ?? sql`1`}
+    WHERE r.user_id = ${userId} AND ${onde ?? sql`TRUE`}
     GROUP BY 1, 2, 3, 4, 5`),
   )
   return linhas.map((l) => ({
@@ -435,7 +437,7 @@ export async function reconstruirNaTransacao(
     await tx.execute(sql`
     SELECT CAST(e.created_at / ${QUARTO_DE_HORA} AS INTEGER) AS q,
            coalesce(c.src_lang_base, '') AS idioma,
-           coalesce(e.kind = 'drill', 0) AS drill,
+           coalesce((e.kind = 'drill')::int, 0) AS drill,
            count(*) AS n,
            coalesce(sum(CASE WHEN e.correct > 0 THEN 1 ELSE 0 END), 0) AS certos,
            coalesce(sum(e.ms), 0) AS ms
@@ -514,15 +516,14 @@ export async function reconstruirNaTransacao(
       )}`)
   }
 
-  /* O estado por item, inteiro em SQL. `correct` sem agregação vem da linha do `max(created_at)`
-     (regra do SQLite para consulta com um único max): é o resultado mais recente. */
+  /* O estado por item, inteiro em SQL. o último resultado é o da linha mais recente (`created_at` maior). */
   await tx.execute(sql`DELETE FROM estado_por_item WHERE user_id = ${userId}`)
   await tx.execute(sql`
     INSERT INTO estado_por_item (user_id, card_id, jogo, acertos, erros, ultimo_resultado, ultimo_em)
     SELECT ${userId}, card_id, exercise_kind,
            sum(CASE WHEN correct > 0 THEN 1 ELSE 0 END),
            sum(CASE WHEN correct > 0 THEN 0 ELSE 1 END),
-           CASE WHEN correct > 0 THEN 1 ELSE 0 END,
+           (array_agg(CASE WHEN correct > 0 THEN 1 ELSE 0 END ORDER BY created_at DESC, id DESC))[1],
            max(created_at)
     FROM exercise_results
     WHERE user_id = ${userId} AND deleted_at IS NULL AND card_id IS NOT NULL
@@ -532,7 +533,7 @@ export async function reconstruirNaTransacao(
   await tx.execute(sql`
     INSERT INTO estado_dos_agregados (user_id, fuso, marca_bruto, marca_vista, reconstruido_em)
     VALUES (${userId}, ${fuso}, 0, 0, ${agora})
-    ON CONFLICT (user_id) DO UPDATE SET fuso = excluded.fuso, marca_vista = marca_bruto,
+    ON CONFLICT (user_id) DO UPDATE SET fuso = excluded.fuso, marca_vista = estado_dos_agregados.marca_bruto,
       reconstruido_em = excluded.reconstruido_em`)
   return { celulas: linhas.size }
 }
@@ -555,7 +556,7 @@ export async function preencherAgregadosPendentes(
     SELECT user_id FROM (
       SELECT DISTINCT user_id FROM review_logs WHERE user_id IS NOT NULL
       UNION SELECT DISTINCT user_id FROM exercise_results WHERE user_id IS NOT NULL
-    ) WHERE user_id NOT IN (SELECT user_id FROM estado_dos_agregados) LIMIT ${maximo + 1}`),
+    ) AS u WHERE user_id NOT IN (SELECT user_id FROM estado_dos_agregados) LIMIT ${maximo + 1}`),
   )
   let preenchidos = 0
   for (const p of pendentes.slice(0, maximo)) {

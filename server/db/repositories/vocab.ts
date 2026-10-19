@@ -636,7 +636,7 @@ export const vocabRepo = {
     if (opts.busca?.trim()) {
       // Busca em palavra E tradução: procurar "alavanc" tem de achar tanto "leverage" quanto o verso.
       const q = `%${opts.busca.trim().toLowerCase()}%`
-      cond.push(sql`(lower(${vocabCards.word}) LIKE ${q} OR lower(COALESCE(${vocabCards.back},'')) LIKE ${q})`)
+      cond.push(sql`(${vocabCards.word} ILIKE ${q} OR COALESCE(${vocabCards.back},'') ILIKE ${q})`)
     }
     if (opts.niveis?.length) {
       // 'ausente' é um filtro legítimo: "o que eu tenho sem nível" é uma pergunta real.
@@ -670,7 +670,7 @@ export const vocabRepo = {
       cond.push(
         crescente
           ? sql`(${coluna} > ${valor} OR (${coluna} = ${valor} AND ${vocabCards.id} > ${id}))`
-          : sql`(${coluna} < ${valor} OR (${coluna} IS ${valor} AND ${vocabCards.id} > ${id}))`,
+          : sql`(${coluna} < ${valor} OR (${coluna} IS NOT DISTINCT FROM ${valor} AND ${vocabCards.id} > ${id}))`,
       )
     }
 

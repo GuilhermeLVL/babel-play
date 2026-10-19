@@ -73,7 +73,7 @@ export async function contagensDeConteudo(
     ),
     db
       .execute(
-        sql`SELECT id, title AS nome, kind AS tipo, created_at AS quando, duration_ms AS duracaoMs
+        sql`SELECT id, title AS nome, kind AS tipo, created_at AS quando, duration_ms AS "duracaoMs"
           FROM sessions WHERE user_id = ${userId} AND deleted_at IS NULL`,
       )
       .then((r) =>

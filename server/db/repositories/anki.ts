@@ -509,9 +509,7 @@ export const ankiRepo = {
     else if (opts.estado) cond.push(eq(ankiNotes.estado, opts.estado))
     if (opts.busca?.trim()) {
       const q = `%${opts.busca.trim().toLowerCase()}%`
-      cond.push(
-        sql`(lower(COALESCE(${ankiNotes.frente},'')) LIKE ${q} OR lower(COALESCE(${ankiNotes.verso},'')) LIKE ${q})`,
-      )
+      cond.push(sql`(COALESCE(${ankiNotes.frente},'') ILIKE ${q} OR COALESCE(${ankiNotes.verso},'') ILIKE ${q})`)
     }
     const cursor = lerCursorDeNotas(opts.cursor)
     if (cursor) {

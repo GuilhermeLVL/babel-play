@@ -69,7 +69,7 @@ export const cacheDeTraducaoRepo = {
   async apagarExcedentes(maxLinhas: number): Promise<number> {
     const r = await db.execute(sql`
       DELETE FROM cache_de_traducao WHERE chave IN (
-        SELECT chave FROM cache_de_traducao ORDER BY usado_em DESC LIMIT -1 OFFSET ${maxLinhas}
+        SELECT chave FROM cache_de_traducao ORDER BY usado_em DESC OFFSET ${maxLinhas}
       )
     `)
     return afetadas(r)

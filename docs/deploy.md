@@ -1,7 +1,7 @@
 # Deploy — modo público multi-usuário
 
 > **Banco desde a Fase 1 (ADR 0014):** o servidor fala Postgres (PGlite em dev/testes, `pg` em produção). Os trechos
-> abaixo sobre SQLite, WAL, `VACUUM INTO`, snapshot e Litestream descrevem o deploy atual no Fly e ficam
+> abaixo sobre SQLite, réplicas/cluster, WAL, `VACUUM INTO`, snapshot e Litestream descrevem o deploy atual no Fly e ficam
 > pendentes para as fases seguintes; onde conflitarem com esta nota, vale esta nota.
 
 Container genérico (Docker), sem amarra a fornecedor: roda em VPS, Fly, Railway, Render,
@@ -100,7 +100,8 @@ Não é limitação da imagem; é `server.ts` decidindo pela flag.
 ## Escalar
 
 **Réplicas na MESMA máquina, mesmo volume: funciona.** Medido: 2 processos escrevendo
-concorrentemente → 0% de falha (era 50% antes do WAL). Serve para deploy sem downtime.
+concorrentemente → 0% de falha (era 50% antes do WAL). Medição histórica, em SQLite: com PGlite o boot recusa
+`REPLICAS>1` e `CLUSTER_WORKERS>1`; com `postgres://` réplicas e cluster são o caminho normal.
 
 **Réplicas em HOSTS distintos: ainda não.** Dois motivos:
 
@@ -178,7 +179,7 @@ npm run backup                     # banco + mídia, verificado, guardando 7 có
 npm run backup -- --manter=14      # quantas cópias guardar
 npm run backup -- --sem-midia      # só o banco (use se a mídia já vai para object storage)
 npm run backup -- --destino=/backup
-node dist-server/operacao.cjs verificar --arquivo=backups/<pasta>/babel.db   # confere uma cópia
+pg_restore --list backups/<pasta>/babel.dump                                  # confere um dump (postgres://)
 ```
 
 Dentro da imagem o script também existe: `node scripts/backup.mjs --sem-midia --destino=/data/backups`.
@@ -187,8 +188,8 @@ Dentro da imagem o script também existe: `node scripts/backup.mjs --sem-midia -
 
 1. **`pg_dump`, não cópia de arquivo.** Com `postgres://` o próprio Postgres entrega um instantâneo
    consistente; com `pglite:<dir>` a cópia do diretório só é consistente com o servidor parado.
-2. **Verifica antes de dar por feito** — abre a cópia, roda `PRAGMA integrity_check` e confere as
-   contagens contra a origem. Sai com código != 0 se algo não fechar, que é o que faz um agendador
+2. **Verifica antes de dar por feito** — com `postgres://` lista o `babel.dump` com `pg_restore --list`;
+   com `pglite:` exige que o diretório `pg` copiado tenha conteúdo. Sai com código != 0 se algo não fechar, que é o que faz um agendador
    avisar.
 3. **Inclui a mídia.** `data/audio` pesa 33× o banco; um backup só do banco restaura ponteiros para
    arquivos que não existem mais.
@@ -260,6 +261,8 @@ verificada à mão.
 
 ## Mais de uma instancia (`REPLICAS`)
 
+Com `pglite:` o boot recusa `REPLICAS>1`; com `postgres://` o banco deixa de ser o limite (o áudio segue valendo, abaixo).
+
 Duas maquinas atras de um balanceador nao sao dois processos na mesma maquina, e a diferenca
 importa: o audio gravado por uma **nao existe no disco da outra**. O mesmo pedido responde 200 ou
 404 conforme quem atendeu — medido, com a mensagem "arquivo ausente".
@@ -311,7 +314,7 @@ latência crescendo linear a partir de 2 VUs — saturação de processo único,
 concorrência, `/api/sessions` responde em 7 ms e `/api/metrics/profile` em 37 ms. Índice não
 resolve fila.
 
-**As três barreiras já caíram e estão medidas:** WAL + `busy_timeout` (0 % de falha em 14.220
+**As três barreiras já caíram e estão medidas (histórico, em SQLite; hoje o cluster só passa com `postgres://`, o PGlite o recusa):** WAL + `busy_timeout` (0 % de falha em 14.220
 escritas com 3 processos), rate limit contado no banco e não no heap, e áudio fora do `cwd`
 (`AUDIO_DIR`).
 

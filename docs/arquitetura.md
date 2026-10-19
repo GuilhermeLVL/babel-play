@@ -250,6 +250,6 @@ revisão, vocabulário e perfil mostram um convite inline (`src/components/conta
 `origemLocalId` (índice parcial único por usuário; o servidor devolve `jaExistia`), áudio
 best-effort, cartões deduplicados, e só então apaga o local. Repetir não duplica.
 
-**Escala**: um processo atende ~300 req/s de escrita; mais workers de cluster pioram (escritor
-único do PGlite, que aceita um processo por diretório). Como o anônimo não escreve no servidor, o beta roda em free tier; escalar de
-verdade é trocar o banco (Postgres), não somar processos.
+**Escala**: um processo atende ~300 req/s de escrita; mais workers de cluster pioravam (medido em SQLite,
+escritor único; histórico). Hoje o PGlite mantém o limite de um processo por diretório e o `pg` remove esse teto. Como o anônimo não escreve no servidor, o beta roda em free tier; escalar de
+verdade é usar o Postgres (`pg`), não somar processos com PGlite.

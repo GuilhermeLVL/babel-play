@@ -1,8 +1,8 @@
 ## 1. Variáveis e leitura do teto
 
-- [ ] 1.1 `server/lib/tetoDoR2.ts`: `lerTetoDoR2(env)` com a gramática ausente/número/`0`/`ilimitado`/inválido, para `R2_TETO_MB`, `R2_TETO_OPS_A_MES`, `R2_TETO_OPS_B_MES`
-- [ ] 1.2 Declarar as três variáveis em `server/lib/config.ts` (opcional, degrada-capacidade, `paraQue` com os padrões) e comentadas em `.env.production.example`
-- [ ] 1.3 Testes unitários dos cinco casos por variável (`tests/teto-do-r2.test.ts`)
+- [x] 1.1 `server/lib/tetoDoR2.ts`: `lerTetoDoR2(env)` com a gramática ausente/número/`0`/`ilimitado`/inválido, para `R2_TETO_MB`, `R2_TETO_OPS_A_MES`, `R2_TETO_OPS_B_MES`
+- [x] 1.2 Declarar as três variáveis em `server/lib/config.ts` (opcional, degrada-capacidade, `paraQue` com os padrões) e comentadas em `.env.production.example`
+- [x] 1.3 Testes unitários dos cinco casos por variável (`tests/teto-do-r2.test.ts`)
 
 ## 2. Teto global de armazenamento
 

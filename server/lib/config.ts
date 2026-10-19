@@ -768,6 +768,27 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
   },
   { nome: 'PORT', exigencia: 'opcional', criticidade: 'degrada-capacidade', paraQue: 'porta de escuta' },
   {
+    nome: 'R2_TETO_MB',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'teto de bytes GUARDADOS no R2 somando a conta inteira, em MB (server/lib/tetoDoR2.ts). Só vale com S3_* configurado. A 80% sai r2_teto_alerta_80; acima do teto o upload novo recebe 507 e a retenção segue apagando. Ausente: 9216 (90% dos 10 GB grátis). 0 recusa todo upload novo; `ilimitado` desliga. Outro valor ABORTA o boot',
+  },
+  {
+    nome: 'R2_TETO_OPS_A_MES',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'teto de operações de classe A do R2 (PUT/DELETE) no mês UTC, contadas no adaptador S3 (server/lib/tetoDoR2.ts). No teto, gravar recusa (o áudio responde 503); remover sempre passa. Ausente: 900000 (90% do grátis). 0 fecha a gravação; `ilimitado` desliga. Outro valor ABORTA o boot',
+  },
+  {
+    nome: 'R2_TETO_OPS_B_MES',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'teto de operações de classe B do R2 (GET/HEAD) no mês UTC, contadas no adaptador S3 (server/lib/tetoDoR2.ts). No teto, ler o áudio responde 503. Ausente: 9000000 (90% do grátis). 0 fecha a leitura; `ilimitado` desliga. Outro valor ABORTA o boot',
+  },
+  {
     nome: 'REPLICAS',
     exigencia: 'opcional',
     criticidade: 'impede-servico',

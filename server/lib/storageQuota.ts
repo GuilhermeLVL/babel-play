@@ -23,7 +23,7 @@ import { definicaoDoPlano, type PlanoEfetivo } from '../../src/core/planos'
 import { db, emTransacao, type ExecutorDb, linhas, linhasAfetadas, travarGlobal, travarUsuario } from '../db/db'
 import { sessionsRepo } from '../db/repositories/sessions'
 import { usageCounters } from '../db/schema'
-import { armazenamentoDoAmbiente, configDoS3 } from './armazenamento'
+import { armazenamentoDoAmbiente, configDoS3, NomeDeArquivoInvalido } from './armazenamento'
 import type { UserId } from './authContext'
 import { getPlanForUser } from './entitlements'
 import { log } from './logger'
@@ -103,11 +103,14 @@ export async function somarBytesEmDisco(userId: UserId, audioDir = diretorioDeAu
       continue
     }
     if (typeof nome !== 'string' || !nome) continue
-    // S-14: nome que escaparia do diretório lança no store e não entra na conta.
+    /* S-14: nome que escaparia do diretório lança no store e não entra na conta. Objeto ausente já
+       volta `null`. QUALQUER OUTRA falha (rede, R2) sobe: somar 0 gravaria subcontagem na
+       reconciliação, e a pessoa ganharia cota que não tem. */
     try {
       total += (await store.tamanho(nome)) ?? 0
-    } catch {
-      continue
+    } catch (err) {
+      if (err instanceof NomeDeArquivoInvalido) continue
+      throw err
     }
   }
   return total

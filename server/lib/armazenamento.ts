@@ -51,12 +51,18 @@ export interface Armazenamento {
 
 /* ─────────────────────────── filesystem ─────────────────────────── */
 
+/**
+ * Nome de arquivo/objeto recusado (S-14). Classe própria para quem SOMA tamanhos (a reconciliação da
+ * cota) poder pular só este caso e deixar qualquer outra falha do store subir.
+ */
+export class NomeDeArquivoInvalido extends Error {}
+
 /** Recusa nome que escape do diretório (S-14). */
 export function resolverDentroDe(base: string, nome: string): string {
   const raiz = path.resolve(base)
   const alvo = path.resolve(raiz, nome)
   if (alvo !== raiz && !alvo.startsWith(raiz + path.sep)) {
-    throw new Error('caminho fora do diretório permitido')
+    throw new NomeDeArquivoInvalido('caminho fora do diretório permitido')
   }
   return alvo
 }
@@ -200,7 +206,7 @@ export function armazenamentoS3(
 ): Armazenamento {
   const prazoBase = opcoes.prazoMs ?? PRAZO_BASE_MS
   const urlDe = (nome: string) => {
-    if (nome.includes('..') || nome.startsWith('/')) throw new Error('nome de objeto inválido')
+    if (nome.includes('..') || nome.startsWith('/')) throw new NomeDeArquivoInvalido('nome de objeto inválido')
     return new URL(`/${cfg.bucket}/${encodeURIComponent(nome)}`, cfg.endpoint)
   }
 

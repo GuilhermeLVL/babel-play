@@ -12,9 +12,10 @@
 
 ## 3. Teto mensal de operações
 
-- [x] 3.1 `comTetoDeOperacoes(store)` em `server/lib/tetoDoR2.ts`: classifica A/B, incrementa `usage_counters` (`__r2__`, `r2_ops_a`/`r2_ops_b`, `YYYY-MM` UTC) com `ON CONFLICT DO UPDATE`, recusa `gravar`/`gravarDeArquivo` por A e `ler`/`lerFaixa`/`tamanho` por B; `remover` sempre passa
+- [x] 3.1 `comTetoDeOperacoes(store)` em `server/lib/tetoDoR2.ts`: classifica A/B, incrementa `usage_counters` (`__r2__`, `r2_ops_a`/`r2_ops_b`, `YYYY-MM` UTC) com `ON CONFLICT DO UPDATE`, recusa `gravar`/`gravarDeArquivo` por A e `ler`/`lerFaixa` por B; `remover` e `tamanho` contam e sempre passam
 - [x] 3.2 `armazenamentoDoAmbiente` aplica o embrulho só no S3; rota de áudio mapeia `ErroDeTetoDoR2` para `503`
-- [x] 3.3 Testes: contagem por classe, virada de mês, recusa no teto, `remover` passa com A batido, disco não conta
+- [x] 3.3 Testes: contagem por classe, virada de mês, recusa no teto, `remover` passa com A batido, `tamanho` passa com B batido, disco não conta
+- [x] 3.4 `somarBytesEmDisco` só pula `NomeDeArquivoInvalido`; outra falha do store aborta a reconciliação (teste)
 
 ## 4. Observabilidade e docs
 

@@ -38,6 +38,7 @@ const chamadas: Array<{ metodo: string; url: string }> = []
 const fetchFalso = vi.fn(async (url: string, init?: RequestInit) => {
   const metodo = init?.method ?? 'GET'
   chamadas.push({ metodo, url })
+  if (url.includes('falha-de-rede')) throw new TypeError('fetch failed')
   if (metodo === 'HEAD') return new Response(null, { status: 200, headers: { 'content-length': '4' } })
   if (metodo === 'GET') return new Response(new Uint8Array([1, 2, 3, 4]), { status: 200 })
   return new Response(null, { status: 200 })
@@ -153,7 +154,7 @@ describe('comTetoDeOperacoes: recusa no teto', () => {
     expect(await ops('a', '2101-03')).toBe(11)
   })
 
-  it('classe B batida recusa ler, lerFaixa e tamanho', async () => {
+  it('classe B batida recusa ler e lerFaixa; tamanho responde e conta (exclusão e reconciliação dependem dele)', async () => {
     const { store, feitas } = storeFalso()
     await fixarOps('b', '2101-04', 3)
     const s = teto.comTetoDeOperacoes(store, {
@@ -162,8 +163,13 @@ describe('comTetoDeOperacoes: recusa no teto', () => {
     })
     await expect(s.ler('x')).rejects.toBeInstanceOf(teto.ErroDeTetoDoR2)
     await expect(s.lerFaixa('x', 0, 1)).rejects.toBeInstanceOf(teto.ErroDeTetoDoR2)
-    await expect(s.tamanho('x')).rejects.toBeInstanceOf(teto.ErroDeTetoDoR2)
     expect(feitas).toEqual([])
+    expect(await ops('b', '2101-04')).toBe(3)
+
+    expect(await s.tamanho('x')).toBe(1)
+    expect(feitas).toEqual(['tamanho'])
+    expect(await ops('b', '2101-04')).toBe(4)
+    await expect(s.ler('x')).rejects.toBeInstanceOf(teto.ErroDeTetoDoR2)
   })
 
   it('teto 0 fecha a classe mesmo sem contador no mês', async () => {
@@ -251,7 +257,8 @@ describe('rotas com o teto de operações batido', () => {
     expect(res.statusCode).toBe(503)
     expect(res.body).toMatchObject({ code: 'r2_teto_operacoes' })
     expect(typeof res.body.error).toBe('string')
-    expect(chamadas).toEqual([]) // nada chegou ao R2
+    // O HEAD (`tamanho`) passa sempre; a leitura do áudio (GET) não chega ao R2.
+    expect(chamadas.filter((c) => c.metodo === 'GET')).toEqual([])
   })
 
   it('upload com a classe A batida responde 503 e devolve a reserva de cota', async () => {
@@ -272,5 +279,33 @@ describe('rotas com o teto de operações batido', () => {
     expect(res.body).toMatchObject({ code: 'r2_teto_operacoes' })
     expect(chamadas.filter((c) => c.metodo === 'PUT')).toEqual([])
     expect(await quota.usoDeArmazenamento(u)).toBe(0)
+  })
+})
+
+describe('reconciliação da cota com o store falhando', () => {
+  it('erro do store (não é nome inválido nem objeto ausente) ABORTA a reconciliação, sem gravar subcontagem', async () => {
+    process.env.AUTH_REQUIRED = '1'
+    const u = asUserId('r2ops-reconcilia-falha')
+    const a = (await sessions.create(u, { title: 'r2', kind: 'audio' })).id as string
+    const b = (await sessions.create(u, { title: 'r2', kind: 'audio' })).id as string
+    await sessions.setAudio(u, a, `${a}.webm`, 'audio/webm')
+    await sessions.setAudio(u, b, `${b}-falha-de-rede.webm`, 'audio/webm')
+    await quota.ajustarArmazenamento(u, 999)
+
+    await expect(quota.reconciliarArmazenamento(u)).rejects.toThrow(/fetch failed/)
+    expect(await quota.usoDeArmazenamento(u)).toBe(999)
+  })
+
+  it('nome inválido continua fora da conta, e o resto é somado', async () => {
+    process.env.AUTH_REQUIRED = '1'
+    const u = asUserId('r2ops-reconcilia-nome')
+    const a = (await sessions.create(u, { title: 'r2', kind: 'audio' })).id as string
+    const b = (await sessions.create(u, { title: 'r2', kind: 'audio' })).id as string
+    await sessions.setAudio(u, a, `${a}.webm`, 'audio/webm')
+    await sessions.setAudio(u, b, '../fora.webm', 'audio/webm')
+    await quota.ajustarArmazenamento(u, 999)
+
+    expect(await quota.reconciliarArmazenamento(u)).toBe(4) // o HEAD falso responde 4 bytes
+    expect(await quota.usoDeArmazenamento(u)).toBe(4)
   })
 })

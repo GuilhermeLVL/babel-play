@@ -34,14 +34,27 @@ configuração no boot.
 O adaptador S3 SHALL contar cada operação por classe (A: `gravar`, `gravarDeArquivo`, `remover`;
 B: `ler`, `lerFaixa`, `tamanho`) num contador mensal (`usage_counters`, `__r2__`, metric
 `r2_ops_a`/`r2_ops_b`, window `YYYY-MM` em UTC) e SHALL recusar `gravar`/`gravarDeArquivo` quando
-o contador A atingir `R2_TETO_OPS_A_MES` (padrão 900 000) e `ler`/`lerFaixa`/`tamanho` quando o
-contador B atingir `R2_TETO_OPS_B_MES` (padrão 9 000 000). `remover` SHALL sempre passar. A mesma
+o contador A atingir `R2_TETO_OPS_A_MES` (padrão 900 000) e `ler`/`lerFaixa` quando o
+contador B atingir `R2_TETO_OPS_B_MES` (padrão 9 000 000). `remover` e `tamanho` SHALL ser contados
+e SHALL sempre passar (a exclusão de conta, a retenção e a reconciliação da cota dependem deles); a
+reconciliação SHALL abortar, sem gravar, quando o store falhar por outro motivo que não nome inválido
+ou objeto ausente. A mesma
 gramática `0`/`ilimitado`/inválido de `R2_TETO_MB` SHALL valer.
 
 #### Scenario: gravação com o teto de classe A batido
 
 - **WHEN** o contador `r2_ops_a` do mês vale o teto e chega um `gravar`
 - **THEN** o adaptador lança `ErroDeTetoDoR2` e a rota responde `503`; `remover` no mesmo estado é executado
+
+#### Scenario: tamanho com o teto de classe B batido
+
+- **WHEN** o contador `r2_ops_b` do mês vale o teto e chegam um `tamanho` e um `ler`
+- **THEN** o `tamanho` responde e o contador sobe; o `ler` lança `ErroDeTetoDoR2`
+
+#### Scenario: reconciliação com o store falhando
+
+- **WHEN** a reconciliação da cota encontra um erro do store que não é nome inválido nem objeto ausente
+- **THEN** ela lança e o contador do usuário não muda (nada de subcontagem)
 
 #### Scenario: virada de mês
 

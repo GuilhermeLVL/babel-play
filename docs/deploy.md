@@ -272,7 +272,7 @@ lado dele, só quando o armazenamento é o S3 (`server/lib/tetoDoR2.ts`,
 | ------------------- | ----------------------- | ----------------------------------------------------------------- |
 | `R2_TETO_MB`        | `9216`                  | upload novo recebe `507` neutro; a retenção continua apagando     |
 | `R2_TETO_OPS_A_MES` | `900000`                | gravar (PUT) recusa e a rota responde `503`; remover sempre passa |
-| `R2_TETO_OPS_B_MES` | `9000000`               | ler o áudio (GET/HEAD) responde `503`                             |
+| `R2_TETO_OPS_B_MES` | `9000000`               | ler o áudio (GET) responde `503`; `tamanho` (HEAD) sempre passa   |
 
 - O total guardado é a soma dos contadores de cota (`usage_counters`, `storage_bytes`); as
   operações contam em `usage_counters` com `user_id = '__r2__'`, `r2_ops_a`/`r2_ops_b`, janela

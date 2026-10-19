@@ -16,9 +16,9 @@ import { type Grade, makeFsrs5, metaDeRetencao, type SchedulingState } from '../
 import { chaveDedup as chaveDedupDoNucleo } from '../../../src/core/texto/palavra'
 import type { UserId } from '../../lib/authContext'
 import { garantirNiveis } from '../../lib/niveisDaTrilha'
-import { db, linhasAfetadas } from '../db'
+import { db, type ExecutorDb, linhasAfetadas, travarUsuario } from '../db'
 import { type ColunaCompacta, lerCompacto } from '../leituraCompacta'
-import { tuplaDeBatch } from '../lotes'
+import { type InstrucaoDeBatch, rodarLote } from '../lotes'
 import { ankiDecks, ankiNotes, reviewLogs, sessions, vocabCards, vocabOccurrences } from '../schema'
 import { agregadosRepo } from './agregados'
 import { exerciseResultsRepo } from './exerciseResults'
@@ -277,7 +277,7 @@ const CHAVES_FORA_DO_BARALHO = new Set(['phonetics', 'addedAt'])
 const COLUNAS_COMPACTAS_DO_CARTAO: ColunaCompacta[] = Object.entries(COLUNAS_DO_CARTAO)
   .filter(([chave]) => !CHAVES_FORA_DO_BARALHO.has(chave))
   .map(([chave, coluna]) =>
-    coluna.columnType === 'SQLiteText' ? ([chave, coluna.name, 'texto'] as const) : ([chave, coluna.name] as const),
+    coluna.columnType === 'PgText' ? ([chave, coluna.name, 'texto'] as const) : ([chave, coluna.name] as const),
   )
 
 /** O teto de "adiar" um cartão (`patch.adiarAte`). */
@@ -536,32 +536,32 @@ export const vocabRepo = {
        `occurrences + 1` acontece no banco, não em read-modify-write no JS — é o que torna duas
        gravações simultâneas somarem em vez de uma sobrescrever a outra. */
     const repetidas: string[] = []
-    /* Um `db.batch` com todos os upserts (até 500, o teto do schema) em vez de um `await` por
-       cartão: uma ida ao banco e atômico — ou o lote inteiro entra, ou nada. A ordem é a do
-       lote, então a contagem de repetidas dentro dele continua somando em sequência. */
-    await db.batch(
-      tuplaDeBatch(
-        rows.map((row) =>
-          db
-            .insert(vocabCards)
-            .values(row)
-            .onConflictDoUpdate({
-              target: [vocabCards.userId, vocabCards.normKey],
-              /* O índice é PARCIAL (`where deleted_at is null`), e o SQLite exige que o alvo do
+    /* Um lote (`rodarLote`, uma transação) com todos os upserts (até 500, o teto do schema):
+       atômico — ou o lote inteiro entra, ou nada. A ordem é a do lote, então a contagem de
+       repetidas dentro dele continua somando em sequência. */
+    await rodarLote(
+      rows.map(
+        (row): InstrucaoDeBatch =>
+          (tx) =>
+            tx
+              .insert(vocabCards)
+              .values(row)
+              .onConflictDoUpdate({
+                target: [vocabCards.userId, vocabCards.normKey],
+                /* O índice é PARCIAL (`where deleted_at is null`), e o SQLite exige que o alvo do
            ON CONFLICT repita o mesmo predicado — sem isto ele não reconhece o índice e responde
            SQLITE_ERROR. Não é detalhe de estilo: é o que faz o upsert existir. */
-              targetWhere: sql`${vocabCards.deletedAt} IS NULL`,
-              set: {
-                occurrences: sql`${vocabCards.occurrences} + 1`,
-                lastSeenAt: now,
-                updatedAt: now,
-                // Preenche buracos sem sobrescrever o que já é bom: tradução e frase só entram se faltarem.
-                back: sql`COALESCE(NULLIF(${vocabCards.back}, ''), ${row.back ?? null})`,
-                sentence: sql`COALESCE(NULLIF(${vocabCards.sentence}, ''), ${row.sentence ?? null})`,
-              },
-              setWhere: sql`${vocabCards.deletedAt} IS NULL`,
-            }),
-        ),
+                targetWhere: sql`${vocabCards.deletedAt} IS NULL`,
+                set: {
+                  occurrences: sql`${vocabCards.occurrences} + 1`,
+                  lastSeenAt: now,
+                  updatedAt: now,
+                  // Preenche buracos sem sobrescrever o que já é bom: tradução e frase só entram se faltarem.
+                  back: sql`COALESCE(NULLIF(${vocabCards.back}, ''), ${row.back ?? null})`,
+                  sentence: sql`COALESCE(NULLIF(${vocabCards.sentence}, ''), ${row.sentence ?? null})`,
+                },
+                setWhere: sql`${vocabCards.deletedAt} IS NULL`,
+              }),
       ),
     )
 
@@ -670,7 +670,11 @@ export const vocabRepo = {
       cond.push(
         crescente
           ? sql`(${coluna} > ${valor} OR (${coluna} = ${valor} AND ${vocabCards.id} > ${id}))`
-          : sql`(${coluna} < ${valor} OR (${coluna} IS NOT DISTINCT FROM ${valor} AND ${vocabCards.id} > ${id}))`,
+          : /* Decrescente com NULLS LAST (como o SQLite fazia): depois de um valor vêm os menores e os
+               nulos; depois de um nulo, só os nulos de id maior. */
+            valor === null
+            ? sql`(${coluna} IS NULL AND ${vocabCards.id} > ${id})`
+            : sql`(${coluna} < ${valor} OR ${coluna} IS NULL OR (${coluna} = ${valor} AND ${vocabCards.id} > ${id}))`,
       )
     }
 
@@ -683,7 +687,7 @@ export const vocabRepo = {
       .select()
       .from(vocabCards)
       .where(where)
-      .orderBy(crescente ? coluna : desc(coluna), vocabCards.id)
+      .orderBy(crescente ? coluna : sql`${coluna} DESC NULLS LAST`, vocabCards.id)
       .limit(limite + 1)
 
     const temMais = itens.length > limite
@@ -780,12 +784,12 @@ export const vocabRepo = {
         tentativas: desempenho[c.id]?.tentativas ?? 0,
         agora,
       })
-      return {
-        sql: 'UPDATE vocab_cards SET difficulty_score = ?, difficulty_at = ?, updated_at = ? WHERE id = ?',
-        args: [d.score, agora, agora, c.id],
-      }
+      return (tx: ExecutorDb) =>
+        tx.execute(
+          sql`UPDATE vocab_cards SET difficulty_score = ${d.score}, difficulty_at = ${agora}, updated_at = ${agora} WHERE id = ${c.id}`,
+        )
     })
-    for (let i = 0; i < stmts.length; i += 200) await db.$client.batch(stmts.slice(i, i + 200), 'write')
+    for (let i = 0; i < stmts.length; i += 200) await rodarLote(stmts.slice(i, i + 200))
     return cartoes.length
   },
 
@@ -1119,21 +1123,24 @@ export const vocabRepo = {
       .limit(1)
     /* A revisão desfeita sai também dos agregados do dia, no mesmo lote (migração 0053). */
     const fuso = ultimo ? await agregadosRepo.fusoGravado(userId) : ''
-    await db.batch([
-      db
-        .update(vocabCards)
-        .set({ ...antes, updatedAt: now })
-        .where(and(eq(vocabCards.id, id), eq(vocabCards.userId, userId))),
+    await rodarLote([
+      (tx: ExecutorDb) => travarUsuario(tx, userId), // a mesma trava da reconstrução dos agregados
+      (tx: ExecutorDb) =>
+        tx
+          .update(vocabCards)
+          .set({ ...antes, updatedAt: now })
+          .where(and(eq(vocabCards.id, id), eq(vocabCards.userId, userId))),
       ...(ultimo
         ? [
-            db
-              .update(reviewLogs)
-              .set({ deletedAt: now, updatedAt: now })
-              .where(and(eq(reviewLogs.id, ultimo.id), eq(reviewLogs.userId, userId))),
+            (tx: ExecutorDb) =>
+              tx
+                .update(reviewLogs)
+                .set({ deletedAt: now, updatedAt: now })
+                .where(and(eq(reviewLogs.id, ultimo.id), eq(reviewLogs.userId, userId))),
             ...agregadosRepo.instrucoesDaRevisaoDesfeita(userId, fuso, [revisaoAgregavel(ultimo, card.srcLang)], now),
           ]
         : []),
-    ] as unknown as Parameters<typeof db.batch>[0])
+    ])
     return this.get(userId, id)
   },
 
@@ -1159,7 +1166,7 @@ export const vocabRepo = {
    * mostrado e quanto tempo a pessoa levou. Nada dele entra no agendamento, que continua função de
    * (estado anterior, nota, agora, meta). A retenção prevista é calculada aqui, do estado ANTERIOR.
    *
-   * O cartão, o log e os agregados do dia vão num `db.batch` só (uma transação): eram duas escritas
+   * O cartão, o log e os agregados do dia vão num lote só (`rodarLote`, uma transação): eram duas escritas
    * soltas, e uma falha entre elas deixava o cartão reagendado sem a revisão no histórico.
    */
   async review(
@@ -1178,39 +1185,42 @@ export const vocabRepo = {
     const respostaMs = tempoDeRespostaGravavel(registro.respostaMs)
     const fuso = await agregadosRepo.fusoGravado(userId)
 
-    await db.batch([
-      db
-        .update(vocabCards)
-        .set({
-          box: next.box,
-          dueAt: next.dueAt,
-          stability: next.stability ?? null,
-          difficulty: next.difficulty ?? null,
-          reps: next.reps ?? null,
-          lapses: next.lapses ?? null,
-          lastReview: next.lastReview ?? null,
+    await rodarLote([
+      (tx: ExecutorDb) => travarUsuario(tx, userId), // a mesma trava da reconstrução dos agregados
+      (tx: ExecutorDb) =>
+        tx
+          .update(vocabCards)
+          .set({
+            box: next.box,
+            dueAt: next.dueAt,
+            stability: next.stability ?? null,
+            difficulty: next.difficulty ?? null,
+            reps: next.reps ?? null,
+            lapses: next.lapses ?? null,
+            lastReview: next.lastReview ?? null,
+            updatedAt: now,
+          })
+          .where(and(eq(vocabCards.id, id), eq(vocabCards.userId, userId))),
+      (tx: ExecutorDb) =>
+        tx.insert(reviewLogs).values({
+          id: randomUUID(),
+          createdAt: now,
           updatedAt: now,
-        })
-        .where(and(eq(vocabCards.id, id), eq(vocabCards.userId, userId))),
-      db.insert(reviewLogs).values({
-        id: randomUUID(),
-        createdAt: now,
-        updatedAt: now,
-        userId,
-        cardId: id,
-        reviewedAt: now,
-        grade,
-        prevStability: prev.stability ?? null,
-        newStability: next.stability ?? null,
-        prevDue: prev.dueAt,
-        newDue: next.dueAt,
-        elapsedDays: prev.lastReview ? (now - prev.lastReview) / 86_400_000 : 0,
-        origem: registro.origem ?? null,
-        formato: registro.formato ?? null,
-        respostaMs,
-        metaRetencao: metaDeRetencao(retencao),
-        retencaoPrevista,
-      }),
+          userId,
+          cardId: id,
+          reviewedAt: now,
+          grade,
+          prevStability: prev.stability ?? null,
+          newStability: next.stability ?? null,
+          prevDue: prev.dueAt,
+          newDue: next.dueAt,
+          elapsedDays: prev.lastReview ? (now - prev.lastReview) / 86_400_000 : 0,
+          origem: registro.origem ?? null,
+          formato: registro.formato ?? null,
+          respostaMs,
+          metaRetencao: metaDeRetencao(retencao),
+          retencaoPrevista,
+        }),
       ...agregadosRepo.instrucoesDaRevisao(userId, fuso, {
         em: now,
         srcLang: card.srcLang,
@@ -1219,7 +1229,7 @@ export const vocabRepo = {
         respostaMs,
         retencaoPrevista,
       }),
-    ] as unknown as Parameters<typeof db.batch>[0])
+    ])
 
     const updated = await this.get(userId, id)
     if (!updated) throw new Error('falha ao reler card')
@@ -1269,7 +1279,7 @@ export const vocabRepo = {
       : []
     const donoDaChave = new Map<string | null, string>(ocupadas.map((o) => [o.normKey, o.id]))
     // Era um UPDATE por item num laço — até 5.000 idas ao banco por requisição (15 s medidos no
-    // teto). Agora é UM `db.batch`: uma ida só e atômico. Cada UPDATE é pela chave primária.
+    // teto). Agora é UM lote (`rodarLote`, uma transação): atômico. Cada UPDATE é pela chave primária.
     const instrucoes = validos
       .filter((it) => {
         const k = chaveNova.get(it.id)
@@ -1280,15 +1290,17 @@ export const vocabRepo = {
         donoDaChave.set(k, it.id)
         return true
       })
-      .map((it) =>
-        db
-          .update(vocabCards)
-          .set({ srcLang: it.srcLang, tgtLang: it.tgtLang, normKey: chaveNova.get(it.id)!, updatedAt: now })
-          .where(and(eq(vocabCards.id, it.id), eq(vocabCards.userId, userId))),
+      .map(
+        (it): InstrucaoDeBatch =>
+          (tx) =>
+            tx
+              .update(vocabCards)
+              .set({ srcLang: it.srcLang, tgtLang: it.tgtLang, normKey: chaveNova.get(it.id)!, updatedAt: now })
+              .where(and(eq(vocabCards.id, it.id), eq(vocabCards.userId, userId))),
       )
     if (!instrucoes.length) return 0
-    const resultados = await db.batch(tuplaDeBatch(instrucoes))
-    return resultados.reduce((n, r) => n + linhasAfetadas(r), 0)
+    const resultados = await rodarLote(instrucoes)
+    return resultados.reduce<number>((n, r) => n + linhasAfetadas(r), 0)
   },
 
   /**
@@ -1344,28 +1356,36 @@ export const vocabRepo = {
       .from(reviewLogs)
       .where(and(eq(reviewLogs.cardId, id), eq(reviewLogs.userId, userId), isNull(reviewLogs.deletedAt)))
     const fuso = vivas.length ? await agregadosRepo.fusoGravado(userId) : ''
-    await db.batch([
+    await rodarLote([
+      (tx: ExecutorDb) => travarUsuario(tx, userId), // a mesma trava da reconstrução dos agregados
       ...agregadosRepo.instrucoesDaRevisaoDesfeita(
         userId,
         fuso,
         vivas.map((r) => revisaoAgregavel(r, alvo[0].srcLang)),
         now,
       ),
-      db
-        .update(vocabCards)
-        .set({ deletedAt: now, updatedAt: now })
-        .where(and(eq(vocabCards.id, id), eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt))),
-      db
-        .update(vocabOccurrences)
-        .set({ deletedAt: now, updatedAt: now })
-        .where(
-          and(eq(vocabOccurrences.cardId, id), eq(vocabOccurrences.userId, userId), isNull(vocabOccurrences.deletedAt)),
-        ),
-      db
-        .update(reviewLogs)
-        .set({ deletedAt: now, updatedAt: now })
-        .where(and(eq(reviewLogs.cardId, id), eq(reviewLogs.userId, userId), isNull(reviewLogs.deletedAt))),
-    ] as unknown as Parameters<typeof db.batch>[0])
+      (tx: ExecutorDb) =>
+        tx
+          .update(vocabCards)
+          .set({ deletedAt: now, updatedAt: now })
+          .where(and(eq(vocabCards.id, id), eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt))),
+      (tx: ExecutorDb) =>
+        tx
+          .update(vocabOccurrences)
+          .set({ deletedAt: now, updatedAt: now })
+          .where(
+            and(
+              eq(vocabOccurrences.cardId, id),
+              eq(vocabOccurrences.userId, userId),
+              isNull(vocabOccurrences.deletedAt),
+            ),
+          ),
+      (tx: ExecutorDb) =>
+        tx
+          .update(reviewLogs)
+          .set({ deletedAt: now, updatedAt: now })
+          .where(and(eq(reviewLogs.cardId, id), eq(reviewLogs.userId, userId), isNull(reviewLogs.deletedAt))),
+    ])
     return true
   },
 

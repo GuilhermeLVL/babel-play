@@ -4,7 +4,8 @@ import { and, eq, isNull } from 'drizzle-orm'
 
 import { decryptSecret, encryptSecret } from '../../crypto'
 import type { UserId } from '../../lib/authContext'
-import { db, linhasAfetadas } from '../db'
+import { db, type ExecutorDb, linhasAfetadas } from '../db'
+import { rodarLote } from '../lotes'
 import { providerCredentials, secrets } from '../schema'
 
 export type Credential = typeof providerCredentials.$inferSelect
@@ -85,27 +86,29 @@ export const credentialsRepo = {
       .limit(1)
     if (!alvo.length) return false
 
-    const apagarCredencial = db
-      .update(providerCredentials)
-      .set({ deletedAt: now, updatedAt: now })
-      .where(
-        and(
-          eq(providerCredentials.id, id),
-          eq(providerCredentials.userId, userId),
-          isNull(providerCredentials.deletedAt),
-        ),
-      )
+    const apagarCredencial = (tx: ExecutorDb) =>
+      tx
+        .update(providerCredentials)
+        .set({ deletedAt: now, updatedAt: now })
+        .where(
+          and(
+            eq(providerCredentials.id, id),
+            eq(providerCredentials.userId, userId),
+            isNull(providerCredentials.deletedAt),
+          ),
+        )
     const ref = alvo[0].secretRef
     if (!ref) {
-      const r = await apagarCredencial
+      const r = await apagarCredencial(db)
       return linhasAfetadas(r) > 0
     }
-    await db.batch([
+    await rodarLote([
       apagarCredencial,
-      db
-        .update(secrets)
-        .set({ deletedAt: now, updatedAt: now })
-        .where(and(eq(secrets.ref, ref), isNull(secrets.deletedAt))),
+      (tx) =>
+        tx
+          .update(secrets)
+          .set({ deletedAt: now, updatedAt: now })
+          .where(and(eq(secrets.ref, ref), isNull(secrets.deletedAt))),
     ])
     return true
   },

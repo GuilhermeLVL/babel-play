@@ -9,8 +9,10 @@
  *   estado_por_item       (usuário, cartão, jogo) → acertos, erros, último resultado.
  *
  * QUEM ESCREVE. Os repositórios que gravam o bruto pedem aqui as instruções e as põem no MESMO
- * `db.batch` (uma transação): `instrucoesDaRevisao`, `instrucoesDaRevisaoDesfeita`,
+ * lote (`rodarLote`, uma transação): `instrucoesDaRevisao`, `instrucoesDaRevisaoDesfeita`,
  * `instrucoesDaRodada`. Cada lote termina somando em `marca_vista` quantas linhas brutas escreveu.
+ * Esses lotes começam pela trava consultiva do usuário (`travarUsuario`), a mesma da reconstrução:
+ * no Postgres, sem ela, lote e reconstrução simultâneos se travavam (deadlock) ou perdiam revisão.
  *
  * QUEM GARANTE. Os gatilhos da 0053 somam em `marca_bruto` a cada linha escrita no bruto, por
  * qualquer caminho. `garantir()` compara as marcas (e o fuso, quando quem lê depende do dia): se
@@ -18,8 +20,8 @@
  * antes de devolver. Quem lê chama `garantir` e depois lê; não existe leitura de agregado velho.
  *
  * A RECONSTRUÇÃO é idempotente: apaga as células do usuário e grava as recontadas, numa transação
- * que toma a trava de escrita logo no começo (`immediate`), para nenhuma revisão entrar entre a
- * leitura do bruto e a gravação. A única coisa preservada são as `*_purgadas` (ver a migração).
+ * que toma a trava consultiva do usuário logo no começo (`travarUsuario`), para duas reconstruções
+ * não se cruzarem. A única coisa preservada são as `*_purgadas` (ver a migração).
  * O dia é `diaNumeroNoFuso` no fuso GRAVADO do usuário, o mesmo da ofensiva e das missões.
  */
 import { type SQL, sql } from 'drizzle-orm'
@@ -36,11 +38,11 @@ import {
 } from '../../../src/core/learning/agregados'
 import { diaNumeroNoFuso, FUSO_PADRAO, fusoOuPadrao } from '../../../src/core/learning/economia'
 import type { UserId } from '../../lib/authContext'
-import { bancoEmbutido, type DB, db, linhas as linhasDe } from '../db'
+import { type DB, db, emTransacao, type ExecutorDb, linhas as linhasDe, travarUsuario } from '../db'
 import { emLotes, type InstrucaoDeBatch } from '../lotes'
 import { estadoDaContaRepo } from './estadoDaConta'
 
-type Tx = Parameters<Parameters<DB['transaction']>[0]>[0]
+type Tx = ExecutorDb
 
 const QUARTO_DE_HORA = 900_000
 
@@ -88,8 +90,9 @@ async function fusoGravado(userId: UserId): Promise<string> {
  */
 function somarCelulas(userId: UserId, celulas: CelulaDoDia[], agora: number, seExiste?: SQL): InstrucaoDeBatch[] {
   const condicao = seExiste ? sql`EXISTS (${seExiste})` : sql`TRUE`
-  return celulas.map((c) =>
-    db.execute(sql`
+  return celulas.map(
+    (c) => (tx) =>
+      tx.execute(sql`
       INSERT INTO agregados_diarios (user_id, idioma, dia, ${sql.raw(COLUNAS_SQL)}, atualizado_em)
       SELECT ${userId}, ${c.idioma}, ${c.dia}, ${sql.join(
         CONTADORES_DO_DIA.map((k) => sql`${c[k]}`),
@@ -104,9 +107,10 @@ function somarCelulas(userId: UserId, celulas: CelulaDoDia[], agora: number, seE
 /** "Estas `n` linhas brutas eu já contei": o par do gatilho que soma em `marca_bruto`. */
 function marcarVistas(userId: UserId, n: number, seExiste?: SQL): InstrucaoDeBatch {
   const condicao = seExiste ? sql`EXISTS (${seExiste})` : sql`TRUE`
-  return db.execute(
-    sql`UPDATE estado_dos_agregados SET marca_vista = marca_vista + ${n} WHERE user_id = ${userId} AND ${condicao}`,
-  )
+  return (tx) =>
+    tx.execute(
+      sql`UPDATE estado_dos_agregados SET marca_vista = marca_vista + ${n} WHERE user_id = ${userId} AND ${condicao}`,
+    )
 }
 
 /** Uma revisão no que os agregados enxergam dela. */
@@ -208,8 +212,8 @@ export const agregadosRepo = {
       for (const i of rodada.itens) {
         if (!i.cardId || i.correct == null) continue
         const certo = i.correct > 0 ? 1 : 0
-        instrucoes.push(
-          db.execute(sql`
+        instrucoes.push((tx) =>
+          tx.execute(sql`
             INSERT INTO estado_por_item (user_id, card_id, jogo, acertos, erros, ultimo_resultado, ultimo_em)
             SELECT ${userId}, ${i.cardId}, ${rodada.jogo}, ${certo}, ${1 - certo}, ${certo}, ${rodada.em}
             WHERE EXISTS (${seExiste})
@@ -255,30 +259,16 @@ export const agregadosRepo = {
 
   /**
    * Reconta do bruto os agregados e o estado por item de UM usuário. Idempotente. Sem `fuso`, usa o
-   * gravado. A trava de escrita é tomada no começo; se outro escritor estiver no meio de uma
-   * transação, tenta de novo (a conexão da transação nasce sem `busy_timeout`, ver `db.ts`).
+   * gravado. A primeira instrução da transação é a trava consultiva do usuário: duas reconstruções
+   * (ou reconstrução e limpeza diária) do mesmo usuário rodam uma depois da outra, sem retry.
    */
   async reconstruir(userId: UserId, fuso?: string): Promise<{ celulas: number }> {
     const f = fuso ?? (await fusoGravado(userId))
     const agora = Date.now()
-    let ultimoErro: unknown
-    for (let tentativa = 0; tentativa < 8; tentativa++) {
-      try {
-        try {
-          return await db.transaction((tx) => reconstruirNaTransacao(tx, userId, f, agora), { behavior: 'immediate' })
-        } finally {
-          // PRAGMAs não existem no Postgres; sem efeito. Tarefa 6 remove de vez.
-          if (!bancoEmbutido) {
-            /* Tarefa 6 remove de vez */
-          }
-        }
-      } catch (err) {
-        ultimoErro = err
-        if (!/SQLITE_BUSY|database is locked/i.test(String((err as Error)?.message ?? err))) throw err
-        await new Promise((r) => setTimeout(r, 40 * (tentativa + 1)))
-      }
-    }
-    throw ultimoErro
+    return emTransacao(async (tx) => {
+      await travarUsuario(tx, userId)
+      return reconstruirNaTransacao(tx, userId, f, agora)
+    })
   },
 
   /** O total de revisões que continuam no histórico: o "de sempre" da Memória dos Cartões. */
@@ -364,9 +354,9 @@ export const agregadosRepo = {
   /** As instruções que tiram do banco tudo o que estas tabelas guardam de um usuário (exclusão de conta). */
   instrucoesDeExclusao(userId: UserId): InstrucaoDeBatch[] {
     return [
-      db.execute(sql`DELETE FROM agregados_diarios WHERE user_id = ${userId}`),
-      db.execute(sql`DELETE FROM estado_por_item WHERE user_id = ${userId}`),
-      db.execute(sql`DELETE FROM estado_dos_agregados WHERE user_id = ${userId}`),
+      (tx) => tx.execute(sql`DELETE FROM agregados_diarios WHERE user_id = ${userId}`),
+      (tx) => tx.execute(sql`DELETE FROM estado_por_item WHERE user_id = ${userId}`),
+      (tx) => tx.execute(sql`DELETE FROM estado_dos_agregados WHERE user_id = ${userId}`),
     ]
   },
 }
@@ -420,7 +410,7 @@ export async function gruposDeRevisoes(tx: Tx | DB, userId: UserId, onde?: SQL):
 }
 
 /**
- * A reconstrução, dentro de uma transação que já tem a trava de escrita. Exportada para a limpeza
+ * A reconstrução, dentro de uma transação que já tem a trava do usuário. Exportada para a limpeza
  * diária, que apaga o bruto e reconta no MESMO passo, entregando as revisões que acabou de apagar.
  */
 export async function reconstruirNaTransacao(
@@ -431,6 +421,12 @@ export async function reconstruirNaTransacao(
   purgadasNovas: PurgadasDaCelula[] = [],
 ): Promise<{ celulas: number }> {
   const diaDe = (em: number) => diaNumeroNoFuso(em, fuso)
+
+  /* Trava a linha de estado ANTES de ler o bruto: os gatilhos de quem grava revisão/rodada sobem
+     `marca_bruto` nesta linha, então um escritor concorrente espera esta transação terminar (ou ela
+     espera o dele) e nenhuma linha bruta entra entre a leitura e a gravação sem ser contada. No
+     SQLite isso vinha do escritor único. */
+  await tx.execute(sql`SELECT 1 FROM estado_dos_agregados WHERE user_id = ${userId} FOR UPDATE`)
 
   const revisoes = await gruposDeRevisoes(tx, userId)
   const itens = linhasDe<{ q: number; idioma: string; drill: number; n: number; certos: number; ms: number }>(

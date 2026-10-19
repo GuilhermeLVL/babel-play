@@ -19,9 +19,9 @@ import {
   emLotes,
   type InstrucaoDeBatch,
   INSTRUCOES_POR_BATCH,
+  rodarLote,
   tamanhoDoLote,
   tamanhoDoLoteDeInsert,
-  tuplaDeBatch,
 } from '../lotes'
 import { ankiDecks, ankiImports, ankiNotes } from '../schema'
 
@@ -323,10 +323,10 @@ export const ankiRepo = {
    * LOTES (P1 da auditoria de prontidão): o `inArray(guid)` com a lista inteira passava do teto de
    * 32.766 variáveis do SQLite a partir de ~32 mil notas, e o import aceita 50.000. E cada nota era
    * uma ida ao banco — 30 mil notas levavam 48 s. Agora a leitura vai em lotes de guids, as notas
-   * novas entram em INSERT multi-VALUES e as alteradas em UPDATEs agrupados em `db.batch`.
+   * novas entram em INSERT multi-VALUES e as alteradas em UPDATEs agrupados em lotes (`rodarLote`).
    *
-   * A escrita NÃO é uma transação única de propósito: um batch de 50 mil instruções seguraria o
-   * lock de escrita por segundos, e os outros processos esperam só 5 s (`busy_timeout`). O que
+   * A escrita NÃO é uma transação única de propósito: uma transação de 50 mil instruções seguraria
+   * as travas de linha por segundos. O que
    * torna uma interrupção no meio inofensiva é a idempotência por `(deckId, guid)`: reimportar
    * completa o que faltou, sem duplicar.
    */
@@ -407,8 +407,8 @@ export const ankiRepo = {
         continue
       }
 
-      alteracoes.push(
-        db
+      alteracoes.push((tx) =>
+        tx
           .update(ankiNotes)
           .set({
             updatedAt: now,
@@ -432,10 +432,14 @@ export const ankiRepo = {
     }
 
     const instrucoes: InstrucaoDeBatch[] = [
-      ...emLotes(linhasNovas, tamanhoDoLoteDeInsert(ankiNotes)).map((linhas) => db.insert(ankiNotes).values(linhas)),
+      ...emLotes(linhasNovas, tamanhoDoLoteDeInsert(ankiNotes)).map(
+        (linhas): InstrucaoDeBatch =>
+          (tx) =>
+            tx.insert(ankiNotes).values(linhas),
+      ),
       ...alteracoes,
     ]
-    for (const bloco of emLotes(instrucoes, INSTRUCOES_POR_BATCH)) await db.batch(tuplaDeBatch(bloco))
+    for (const bloco of emLotes(instrucoes, INSTRUCOES_POR_BATCH)) await rodarLote(bloco)
 
     return { novas, atualizadas, iguais, ids }
   },
@@ -469,14 +473,17 @@ export const ankiRepo = {
     if (!alvo.length) return 0
     // Um batch só (atômico): ou o baralho inteiro reflete o arquivo novo, ou nada muda. As duas
     // variáveis fixas são as do SET (`estado`, `updated_at`).
-    await db.batch(
-      tuplaDeBatch(
-        emLotes(
-          alvo.map((a) => a.id),
-          tamanhoDoLote(1, 2),
-        ).map((lote) =>
-          db.update(ankiNotes).set({ estado: 'ausente_no_arquivo', updatedAt: now }).where(inArray(ankiNotes.id, lote)),
-        ),
+    await rodarLote(
+      emLotes(
+        alvo.map((a) => a.id),
+        tamanhoDoLote(1, 2),
+      ).map(
+        (lote): InstrucaoDeBatch =>
+          (tx) =>
+            tx
+              .update(ankiNotes)
+              .set({ estado: 'ausente_no_arquivo', updatedAt: now })
+              .where(inArray(ankiNotes.id, lote)),
       ),
     )
     return alvo.length

@@ -7,6 +7,7 @@ import { and, asc, eq, gte, inArray, like, lt, or } from 'drizzle-orm'
 
 import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
+import { rodarLote } from '../lotes'
 import { convidados, usageCounters } from '../schema'
 
 export type LinhaDeConvidado = typeof convidados.$inferSelect
@@ -68,11 +69,12 @@ export const convidadosRepo = {
     if (userIds.length === 0) return
     const chaves = [...userIds, ...userIds.map((u) => `u:${u}`)]
     const dosIds = inArray(usageCounters.userId, chaves)
-    await db.batch([
-      db
-        .delete(usageCounters)
-        .where(opts.janelaMenorQue ? and(dosIds, lt(usageCounters.window, opts.janelaMenorQue)) : dosIds),
-      db.delete(convidados).where(inArray(convidados.userId, userIds)),
+    await rodarLote([
+      (tx) =>
+        tx
+          .delete(usageCounters)
+          .where(opts.janelaMenorQue ? and(dosIds, lt(usageCounters.window, opts.janelaMenorQue)) : dosIds),
+      (tx) => tx.delete(convidados).where(inArray(convidados.userId, userIds)),
     ])
   },
 

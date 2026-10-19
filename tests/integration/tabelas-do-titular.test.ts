@@ -9,9 +9,9 @@
  * Este teste lê o SCHEMA, não uma lista: uma migration que criar tabela nova com `user_id` sem
  * atualizar a ordem de exclusão falha aqui, citando o nome.
  */
-import { getTableColumns, getTableName,is } from 'drizzle-orm'
-import { SQLiteTable } from 'drizzle-orm/sqlite-core'
-import { describe, expect,it } from 'vitest'
+import { getTableColumns, getTableName, is } from 'drizzle-orm'
+import { PgTable } from 'drizzle-orm/pg-core'
+import { describe, expect, it } from 'vitest'
 
 import { NOMES_DAS_TABELAS_DO_TITULAR, TABELAS_TRATADAS_A_PARTE } from '../../server/db/repositories/conta'
 import * as schema from '../../server/db/schema'
@@ -19,8 +19,8 @@ import * as schema from '../../server/db/schema'
 /** Tabelas com `user_id` no schema, pelo nome da exportação (a chave do módulo). */
 function tabelasComUserIdNoSchema(): string[] {
   return Object.entries(schema)
-    .filter(([, v]) => is(v, SQLiteTable))
-    .filter(([, t]) => 'userId' in getTableColumns(t as SQLiteTable))
+    .filter(([, v]) => is(v, PgTable))
+    .filter(([, t]) => 'userId' in getTableColumns(t as PgTable))
     .map(([nome]) => nome)
     .sort()
 }

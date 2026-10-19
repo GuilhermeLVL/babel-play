@@ -13,8 +13,9 @@ import { mkdirSync } from 'node:fs'
 
 import { PGlite } from '@electric-sql/pglite'
 import { sql } from 'drizzle-orm'
-import { drizzle as drizzleNode, type NodePgDatabase } from 'drizzle-orm/node-postgres'
-import { drizzle as drizzlePglite, type PgliteDatabase } from 'drizzle-orm/pglite'
+import { drizzle as drizzleNode } from 'drizzle-orm/node-postgres'
+import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
+import { drizzle as drizzlePglite } from 'drizzle-orm/pglite'
 import { Pool } from 'pg'
 
 import { medirConsultas } from './observadorDeConsultas'
@@ -49,9 +50,7 @@ function medir<T extends { query: (...args: never[]) => Promise<unknown> }>(alvo
 let pglite: PGlite | undefined
 let pool: Pool | undefined
 
-type DriverDb = PgliteDatabase<typeof schema> | NodePgDatabase<typeof schema>
-
-function abrir(): DriverDb {
+function abrir(): DB {
   if (bancoEmbutido) {
     if (emMemoria) {
       pglite = new PGlite()
@@ -73,11 +72,12 @@ function abrir(): DriverDb {
 }
 
 /**
- * `db` tipado como a união dos dois drivers: é a forma que deixa `db.select()/insert()/execute()/
- * transaction()` chamáveis sem cast nos repositories (as duas variantes compartilham a API do `PgDatabase`).
+ * `db` tipado como a base comum dos dois drivers (`PgDatabase`): `select()/insert()/execute()/transaction()`
+ * e `.returning({...})` chamáveis sem cast nos repositories. (Uma união dos dois tipos quebrava assinaturas
+ * sobrecarregadas como `returning`.)
  */
+export type DB = PgDatabase<PgQueryResultHKT, typeof schema>
 export const db: DB = abrir()
-export type DB = DriverDb
 
 /** `db` ou uma transação — quem escreve em duas etapas aceita os dois (P1-N3). */
 export type ExecutorDb = DB | Parameters<Parameters<DB['transaction']>[0]>[0]
@@ -100,9 +100,7 @@ dbReady.catch((err) => {
  * dentro da transação a deixa ABORTADA mesmo que o `catch` o engula — o COMMIT seguinte falha.
  */
 export async function emTransacao<T>(fn: (tx: ExecutorDb) => Promise<T>): Promise<T> {
-  return (db as PgliteDatabase<typeof schema>).transaction(
-    fn as Parameters<PgliteDatabase<typeof schema>['transaction']>[0],
-  ) as Promise<T>
+  return db.transaction(fn)
 }
 
 /**
@@ -119,6 +117,15 @@ export async function emLote<T extends readonly unknown[]>(
     for (const instrucao of montar(tx) as ReadonlyArray<() => Promise<unknown>>) resultados.push(await instrucao())
     return resultados as unknown as T
   })
+}
+
+/**
+ * Trava consultiva do usuário até o fim da transação (`pg_advisory_xact_lock`). Deve ser a PRIMEIRA
+ * instrução de `emTransacao`: serializa, por usuário, o que no SQLite vinha do escritor único (saldo,
+ * teto, reconstrução). Fora de transação a trava se soltaria na hora — não chame com `db`.
+ */
+export async function travarUsuario(tx: ExecutorDb, userId: string): Promise<void> {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${userId}))`)
 }
 
 /** Linhas modificadas por um INSERT/UPDATE/DELETE: `rowCount` (pg) ou `affectedRows` (PGlite). */

@@ -47,7 +47,7 @@ import { sql } from 'drizzle-orm'
 
 import { agregarPorDia } from '../../src/core/learning/agregados'
 import { diaNumeroNoFuso } from '../../src/core/learning/economia'
-import { bancoEmbutido, db, linhas, linhasAfetadas } from '../db/db'
+import { bancoEmbutido, db, emTransacao, linhas, linhasAfetadas, travarUsuario } from '../db/db'
 import {
   agregadosRepo,
   gruposDeRevisoes,
@@ -78,66 +78,63 @@ export interface RelatorioDaLimpeza {
 }
 
 const afetadas = (r: unknown) => linhasAfetadas(r)
-const ocupado = (err: unknown) => /SQLITE_BUSY|database is locked/i.test(String((err as Error)?.message ?? err))
 
-/** Tudo de UM usuário, numa transação que toma a trava de escrita no começo. */
+/** Tudo de UM usuário, numa transação que toma a trava consultiva do usuário no começo. */
 async function limparUsuario(userId: UserId, corte: number, agora: number) {
   const fuso = await agregadosRepo.fusoGravado(userId)
-  return db.transaction(
-    async (tx) => {
-      /* Os cartões que saem: apagados antes do corte e sem nota do Anki apontando para eles. */
-      const cartoes = sql`(SELECT c.id FROM vocab_cards c
+  return emTransacao(async (tx) => {
+    await travarUsuario(tx, userId)
+    /* Os cartões que saem: apagados antes do corte e sem nota do Anki apontando para eles. */
+    const cartoes = sql`(SELECT c.id FROM vocab_cards c
         WHERE c.user_id = ${userId} AND c.deleted_at IS NOT NULL AND c.deleted_at < ${corte}
           AND NOT EXISTS (SELECT 1 FROM anki_notes n WHERE n.projected_card_id = c.id))`
 
-      /* Antes de apagar: as revisões que saem viram `*_purgadas` nos agregados (ver o cabeçalho). */
-      const revisoesQueSaem = sql`((r.deleted_at IS NOT NULL AND r.deleted_at < ${corte}) OR r.card_id IN ${cartoes})`
-      const purgadas: PurgadasDaCelula[] = agregarPorDia(
-        { revisoes: await gruposDeRevisoes(tx, userId, revisoesQueSaem) },
-        (em) => diaNumeroNoFuso(em, fuso),
-      ).map((c) => ({ idioma: c.idioma, dia: c.dia, revisoes: c.revisoes, acertos: c.acertos }))
+    /* Antes de apagar: as revisões que saem viram `*_purgadas` nos agregados (ver o cabeçalho). */
+    const revisoesQueSaem = sql`((r.deleted_at IS NOT NULL AND r.deleted_at < ${corte}) OR r.card_id IN ${cartoes})`
+    const purgadas: PurgadasDaCelula[] = agregarPorDia(
+      { revisoes: await gruposDeRevisoes(tx, userId, revisoesQueSaem) },
+      (em) => diaNumeroNoFuso(em, fuso),
+    ).map((c) => ({ idioma: c.idioma, dia: c.dia, revisoes: c.revisoes, acertos: c.acertos }))
 
-      const revisoes = afetadas(
-        await tx.execute(sql`DELETE FROM review_logs AS r WHERE r.user_id = ${userId} AND ${revisoesQueSaem}`),
-      )
-      const ocorrencias = afetadas(
-        await tx.execute(sql`DELETE FROM vocab_occurrences WHERE user_id = ${userId}
+    const revisoes = afetadas(
+      await tx.execute(sql`DELETE FROM review_logs AS r WHERE r.user_id = ${userId} AND ${revisoesQueSaem}`),
+    )
+    const ocorrencias = afetadas(
+      await tx.execute(sql`DELETE FROM vocab_occurrences WHERE user_id = ${userId}
           AND ((deleted_at IS NOT NULL AND deleted_at < ${corte}) OR card_id IN ${cartoes})`),
-      )
-      let soltos = afetadas(
-        await tx.execute(
-          sql`UPDATE exercise_results SET card_id = NULL WHERE user_id = ${userId} AND card_id IN ${cartoes}`,
-        ),
-      )
-      const nCartoes = afetadas(await tx.execute(sql`DELETE FROM vocab_cards WHERE id IN ${cartoes}`))
+    )
+    let soltos = afetadas(
+      await tx.execute(
+        sql`UPDATE exercise_results SET card_id = NULL WHERE user_id = ${userId} AND card_id IN ${cartoes}`,
+      ),
+    )
+    const nCartoes = afetadas(await tx.execute(sql`DELETE FROM vocab_cards WHERE id IN ${cartoes}`))
 
-      /* As sessões que saem: apagadas antes do corte e sem cartão que ainda as cite (depois de os
+    /* As sessões que saem: apagadas antes do corte e sem cartão que ainda as cite (depois de os
          cartões acima terem saído). */
-      const sessoes = sql`(SELECT s.id FROM sessions s
+    const sessoes = sql`(SELECT s.id FROM sessions s
         WHERE s.user_id = ${userId} AND s.deleted_at IS NOT NULL AND s.deleted_at < ${corte}
           AND NOT EXISTS (SELECT 1 FROM vocab_cards c WHERE c.session_id = s.id))`
-      const falasQueSaem = sql`(SELECT u.id FROM utterances u WHERE u.user_id = ${userId}
+    const falasQueSaem = sql`(SELECT u.id FROM utterances u WHERE u.user_id = ${userId}
         AND ((u.deleted_at IS NOT NULL AND u.deleted_at < ${corte}) OR u.session_id IN ${sessoes}))`
+    await tx.execute(
+      sql`UPDATE vocab_occurrences SET utterance_id = NULL WHERE user_id = ${userId} AND utterance_id IN ${falasQueSaem}`,
+    )
+    const falas = afetadas(await tx.execute(sql`DELETE FROM utterances WHERE id IN ${falasQueSaem}`))
+    soltos += afetadas(
       await tx.execute(
-        sql`UPDATE vocab_occurrences SET utterance_id = NULL WHERE user_id = ${userId} AND utterance_id IN ${falasQueSaem}`,
-      )
-      const falas = afetadas(await tx.execute(sql`DELETE FROM utterances WHERE id IN ${falasQueSaem}`))
-      soltos += afetadas(
-        await tx.execute(
-          sql`UPDATE exercise_results SET session_id = NULL WHERE user_id = ${userId} AND session_id IN ${sessoes}`,
-        ),
-      )
-      const nSessoes = afetadas(await tx.execute(sql`DELETE FROM sessions WHERE id IN ${sessoes}`))
+        sql`UPDATE exercise_results SET session_id = NULL WHERE user_id = ${userId} AND session_id IN ${sessoes}`,
+      ),
+    )
+    const nSessoes = afetadas(await tx.execute(sql`DELETE FROM sessions WHERE id IN ${sessoes}`))
 
-      /* Os agregados acompanham no mesmo passo: recontados do bruto que ficou, mais as purgadas. Só
+    /* Os agregados acompanham no mesmo passo: recontados do bruto que ficou, mais as purgadas. Só
          se algo saiu: quem só tem linha que fica de propósito (cartão do Anki, sessão com cartão)
          aparece na lista todo dia, e não precisa ser recontado todo dia. */
-      const mexeu = revisoes + ocorrencias + nCartoes + falas + nSessoes + soltos > 0
-      if (mexeu) await reconstruirNaTransacao(tx, userId, fuso, agora, purgadas)
-      return { mexeu, sessoes: nSessoes, falas, cartoes: nCartoes, ocorrencias, revisoes }
-    },
-    { behavior: 'immediate' },
-  )
+    const mexeu = revisoes + ocorrencias + nCartoes + falas + nSessoes + soltos > 0
+    if (mexeu) await reconstruirNaTransacao(tx, userId, fuso, agora, purgadas)
+    return { mexeu, sessoes: nSessoes, falas, cartoes: nCartoes, ocorrencias, revisoes }
+  })
 }
 
 /**
@@ -175,23 +172,14 @@ export async function limparBanco(
 
   try {
     for (const { user_id } of donos) {
-      /* Um usuário por transação: a trava de escrita é solta entre um e outro. Banco ocupado numa
-         tentativa não derruba a passada; quem ficou para trás entra na de amanhã. */
-      for (let tentativa = 0; tentativa < 6; tentativa++) {
-        try {
-          const u = await limparUsuario(user_id as UserId, corte, agora)
-          if (u.mexeu) r.usuarios += 1
-          r.sessoes += u.sessoes
-          r.falas += u.falas
-          r.cartoes += u.cartoes
-          r.ocorrencias += u.ocorrencias
-          r.revisoes += u.revisoes
-          break
-        } catch (err) {
-          if (!ocupado(err)) throw err
-          await new Promise((ok) => setTimeout(ok, 50 * (tentativa + 1)))
-        }
-      }
+      /* Um usuário por transação: a trava do usuário é solta entre um e outro. */
+      const u = await limparUsuario(user_id as UserId, corte, agora)
+      if (u.mexeu) r.usuarios += 1
+      r.sessoes += u.sessoes
+      r.falas += u.falas
+      r.cartoes += u.cartoes
+      r.ocorrencias += u.ocorrencias
+      r.revisoes += u.revisoes
     }
   } finally {
     // PRAGMAs não existem no Postgres; sem efeito. Tarefa 6 remove de vez.

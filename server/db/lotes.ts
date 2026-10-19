@@ -13,7 +13,7 @@
  */
 import { getTableColumns, type Table } from 'drizzle-orm'
 
-import type { DB } from './db'
+import { emLote, type ExecutorDb } from './db'
 
 /** Teto do SQLite embutido no libsql (`SQLITE_MAX_VARIABLE_NUMBER`). */
 export const LIMITE_DE_VARIAVEIS_SQLITE = 32_766
@@ -58,21 +58,23 @@ export function emLotes<T>(itens: readonly T[], tamanho: number): T[][] {
 }
 
 /**
- * Quantas INSTRUÇÕES vão num `db.batch` quando o lote não precisa ser atômico como um todo (import
- * grande). Cada batch local é uma transação: um batch gigante seguraria o lock de escrita por
- * segundos, e o `busy_timeout` dos outros processos é de 5 s. Lotes deste tamanho mantêm cada
- * transação curta sem voltar a uma ida ao banco por item.
+ * Quantas INSTRUÇÕES vão numa transação quando o lote não precisa ser atômico como um todo (import
+ * grande). Uma transação gigante seguraria travas de linha por segundos; lotes deste tamanho mantêm
+ * cada transação curta sem voltar a uma transação por item.
  */
 export const INSTRUCOES_POR_BATCH = 500
 
-/** Uma instrução aceita por `db.batch`. */
-export type InstrucaoDeBatch = Parameters<DB['batch']>[0][number]
+/**
+ * Uma instrução de lote: MONTA e dispara a consulta sobre o executor recebido (o `tx` do `emLote`).
+ * É função, e não builder pronto, porque um builder montado sobre `db` rodaria fora da transação.
+ */
+export type InstrucaoDeBatch = (tx: ExecutorDb) => Promise<unknown>
 
 /**
- * `db.batch` exige tupla NÃO vazia no tipo. Quem monta a lista dinamicamente confere o
- * `length` antes e passa por aqui — em vez de espalhar o mesmo cast pelos repositórios.
+ * Roda as instruções em sequência numa só transação (`emLote`) e devolve os resultados na ordem.
+ * Lista vazia é recusada, como antes: quem monta a lista dinamicamente confere o `length` antes.
  */
-export function tuplaDeBatch(instrucoes: InstrucaoDeBatch[]): [InstrucaoDeBatch, ...InstrucaoDeBatch[]] {
+export async function rodarLote(instrucoes: readonly InstrucaoDeBatch[]): Promise<unknown[]> {
   if (!instrucoes.length) throw new Error('batch vazio')
-  return instrucoes as [InstrucaoDeBatch, ...InstrucaoDeBatch[]]
+  return emLote<unknown[]>((tx) => instrucoes.map((i) => () => i(tx)))
 }

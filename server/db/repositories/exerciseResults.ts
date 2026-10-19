@@ -1,15 +1,17 @@
 import { randomUUID } from 'node:crypto'
 
-import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, max, type SQL, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, getTableColumns, gte, inArray, isNotNull, isNull, max, type SQL, sql } from 'drizzle-orm'
 
 import type { LinhaDeMaestria } from '../../../src/core/maestria'
 import { MINIGAME_IDS } from '../../../src/core/minigames/revelavel'
 import { inicioDaRodada } from '../../../src/core/missoes'
 import type { UserId } from '../../lib/authContext'
 import { CachePorVersao } from '../../lib/cachePorVersao'
-import { db, linhasAfetadas } from '../db'
-import { emLotes, tamanhoDoLote } from '../lotes'
+import { db, linhasAfetadas, travarUsuario } from '../db'
+import { emLotes, rodarLote, tamanhoDoLote } from '../lotes'
 import { exerciseResults, sessions, vocabCards } from '../schema'
+
+const COLUNAS_DE_RESULTADO = getTableColumns(exerciseResults)
 import { agregadosRepo, baseDoIdioma } from './agregados'
 import { versoesRepo } from './versoes'
 
@@ -496,14 +498,44 @@ ${opts.origem ?? ''}`
     /* UMA RODADA, UMA VEZ, por (usuário, `roundId`) — revisão de 27/09 (P1). O retry do cliente
        (rede instável no fim da rodada) regravava as linhas, e os acertos contavam em dobro: Seeds,
        XP da conta e XP de temporada, que somam estas linhas. A conferência mora DENTRO do INSERT
-       (`INSERT … SELECT … WHERE NOT EXISTS`): um comando só é atômico no SQLite, então dois envios
-       simultâneos não passam os dois por uma leitura prévia. Sem índice único porque a rodada tem
-       N linhas — é a existência de QUALQUER linha da rodada que a torna repetida.
+       (`INSERT … SELECT … WHERE NOT EXISTS`). No Postgres, dois envios simultâneos em READ COMMITTED
+       passariam os dois pelo NOT EXISTS (um não vê a linha ainda não confirmada do outro): por isso o
+       lote começa pela trava consultiva do usuário, e o NOT EXISTS fica como segunda defesa. Sem
+       índice único porque a rodada tem N linhas — é a existência de QUALQUER linha da rodada que a
+       torna repetida.
        Um INSERT multi-VALUES: ou entra a rodada toda, ou não entra nada. */
+    /* No Postgres, o tipo de cada coluna de um `VALUES` solto vem dos parâmetros (texto, se nada
+       disser o contrário): cada valor leva o CAST para o tipo da coluna da tabela. */
+    const tipo = (chave: keyof typeof COLUNAS_DE_RESULTADO) => sql.raw(COLUNAS_DE_RESULTADO[chave].getSQLType())
+    const ordem = [
+      'id',
+      'createdAt',
+      'updatedAt',
+      'userId',
+      'sessionId',
+      'kind',
+      'correct',
+      'score',
+      'combo',
+      'exerciseKind',
+      'roundId',
+      'itemRef',
+      'attempts',
+      'ms',
+      'hinted',
+      'origem',
+      'cardId',
+      'nivel',
+      'fonte',
+      'fonteRef',
+    ] as const
     const colunas = sql.join(
       linhas.map(
         (l) =>
-          sql`(${l.id}, ${l.createdAt}, ${l.updatedAt}, ${l.userId}, ${l.sessionId}, ${l.kind}, ${l.correct}, ${l.score}, ${l.combo}, ${l.exerciseKind}, ${l.roundId}, ${l.itemRef}, ${l.attempts}, ${l.ms}, ${l.hinted}, ${l.origem}, ${l.cardId}, ${l.nivel}, ${l.fonte}, ${l.fonteRef})`,
+          sql`(${sql.join(
+            ordem.map((k) => sql`CAST(${l[k]} AS ${tipo(k)})`),
+            sql`, `,
+          )})`,
       ),
       sql`, `,
     )
@@ -511,8 +543,10 @@ ${opts.origem ?? ''}`
        gravação inseriu a rodada: a condição é a existência da primeira linha, cujo id acabou de ser
        sorteado aqui. Na rodada repetida o INSERT não insere nada e nada soma. */
     const fuso = await agregadosRepo.fusoGravado(userId)
-    const [r] = await db.batch([
-      db.execute(sql`
+    const [, r] = await rodarLote([
+      (tx) => travarUsuario(tx, userId),
+      (tx) =>
+        tx.execute(sql`
         INSERT INTO ${exerciseResults}
           (id, created_at, updated_at, user_id, session_id, kind, correct, score, combo, exercise_kind, round_id, item_ref, attempts, ms, hinted, origem, card_id, nivel, fonte, fonte_ref)
         SELECT * FROM (VALUES ${colunas})
@@ -538,7 +572,7 @@ ${opts.origem ?? ''}`
         },
         sql`SELECT 1 FROM exercise_results WHERE id = ${linhas[0].id}`,
       ),
-    ] as unknown as Parameters<typeof db.batch>[0])
+    ])
     const gravados = linhasAfetadas(r)
     return { gravados, roundId: rodada.roundId, jaExistia: gravados === 0 }
   },

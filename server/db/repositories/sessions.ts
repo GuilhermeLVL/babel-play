@@ -3,7 +3,9 @@ import { randomUUID } from 'node:crypto'
 import { and, asc, desc, eq, gte, isNull, like, lt, lte } from 'drizzle-orm'
 
 import type { UserId } from '../../lib/authContext'
+import { cadeiaDeCausas } from '../../lib/cadeiaDeCausas'
 import { db } from '../db'
+import { type InstrucaoDeBatch, rodarLote } from '../lotes'
 import { sessions, utterances as tabelaDeFalas } from '../schema'
 import { type NewUtterance, type Utterance, utterancesRepo } from './utterances'
 
@@ -116,31 +118,29 @@ export const sessionsRepo = {
     const wordCount =
       input.wordCount ?? utts.reduce((n, u) => n + (u.sourceText ? u.sourceText.trim().split(/\s+/).length : 0), 0)
 
-    const inserirSessao = db.insert(sessions).values({
-      id,
-      createdAt: now,
-      updatedAt: now,
-      userId,
-      startedAt: now,
-      status: input.status ?? 'draft',
-      title: input.title ?? null,
-      kind: input.kind ?? null,
-      sourceLang: input.sourceLang ?? null,
-      targetLang: input.targetLang ?? null,
-      durationMs: input.durationMs ?? null,
-      wordCount,
-      meta: input.meta != null ? JSON.stringify(input.meta) : null,
-      origemLocalId: input.origemLocalId ?? null,
-    })
+    const inserirSessao: InstrucaoDeBatch = (tx) =>
+      tx.insert(sessions).values({
+        id,
+        createdAt: now,
+        updatedAt: now,
+        userId,
+        startedAt: now,
+        status: input.status ?? 'draft',
+        title: input.title ?? null,
+        kind: input.kind ?? null,
+        sourceLang: input.sourceLang ?? null,
+        targetLang: input.targetLang ?? null,
+        durationMs: input.durationMs ?? null,
+        wordCount,
+        meta: input.meta != null ? JSON.stringify(input.meta) : null,
+        origemLocalId: input.origemLocalId ?? null,
+      })
     const inserirFalas = utterancesRepo.stmtInsertMany(userId, id, utts)
 
-    // `batch` e não `transaction`: o batch roda na MESMA conexão (preserva os PRAGMAs) e é
-    // 9× mais rápido — `transaction()` do libsql abre conexão nova com synchronous=FULL, ou
-    // seja fsync por commit. Medido em scripts/audit/v2-diag-batch.mjs. Atomicidade idêntica:
-    // uma instrução que falha desfaz as anteriores.
-    // As falas vêm em LOTES (teto de variáveis do SQLite — ver `stmtInsertMany`), todos no mesmo
-    // batch: um lote que falha desfaz a sessão e os lotes anteriores.
-    await db.batch([inserirSessao, ...inserirFalas])
+    // Um lote só (uma transação): uma instrução que falha desfaz as anteriores. As falas vêm em
+    // LOTES (teto de variáveis — ver `stmtInsertMany`), todos na mesma transação: um lote que
+    // falha desfaz a sessão e os lotes anteriores.
+    await rodarLote([inserirSessao, ...inserirFalas])
 
     const created = await this.get(userId, id)
     if (!created) throw new Error('falha ao criar sessão')
@@ -177,7 +177,9 @@ export const sessionsRepo = {
     try {
       return { session: await this.createWithUtterances(userId, input, utts), jaExistia: false }
     } catch (err) {
-      if (input.origemLocalId && /UNIQUE|uq_sessions_user_origem_local/i.test(String((err as Error)?.message ?? err))) {
+      /* O drizzle põe "Failed query: …" na mensagem; o nome do índice e o "duplicate key" do Postgres
+         vêm na `cause`. */
+      if (input.origemLocalId && /UNIQUE|duplicate key|uq_sessions_user_origem_local/i.test(cadeiaDeCausas(err))) {
         const ja = await this.findByOrigemLocal(userId, input.origemLocalId)
         if (ja) return { session: ja, jaExistia: true }
       }
@@ -226,11 +228,12 @@ export const sessionsRepo = {
     // D5: a fala que volta igual mantém a tradução polida (polir de novo cobraria outra vez).
     const preservadas = await utterancesRepo.polidasParaPreservar(userId, id)
     const inserir = utterancesRepo.stmtInsertMany(userId, id, utts, preservadas) // lotes; todos no mesmo batch
-    const contar = db
-      .update(sessions)
-      .set({ wordCount, updatedAt: Date.now() })
-      .where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
-    await db.batch([apagar, ...inserir, contar])
+    const contar: InstrucaoDeBatch = (tx) =>
+      tx
+        .update(sessions)
+        .set({ wordCount, updatedAt: Date.now() })
+        .where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
+    await rodarLote([apagar, ...inserir, contar])
     return this.get(userId, id)
   },
 
@@ -262,15 +265,16 @@ export const sessionsRepo = {
         saem.reduce((n, u) => n + palavras(u.sourceText), 0) +
         utts.reduce((n, u) => n + palavras(u.sourceText), 0),
     )
-    const apagar = db.delete(tabelaDeFalas).where(naFaixa)
+    const apagar: InstrucaoDeBatch = (tx) => tx.delete(tabelaDeFalas).where(naFaixa)
     // D5: o lote repetido não apaga a tradução polida das falas que voltam iguais.
     const preservadas = await utterancesRepo.polidasParaPreservar(userId, id, { de, ate })
     const inserir = utterancesRepo.stmtInsertMany(userId, id, utts, preservadas)
-    const contar = db
-      .update(sessions)
-      .set({ wordCount, updatedAt: Date.now() })
-      .where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
-    await db.batch([apagar, ...inserir, contar])
+    const contar: InstrucaoDeBatch = (tx) =>
+      tx
+        .update(sessions)
+        .set({ wordCount, updatedAt: Date.now() })
+        .where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
+    await rodarLote([apagar, ...inserir, contar])
     return this.get(userId, id)
   },
 
@@ -288,11 +292,12 @@ export const sessionsRepo = {
     const now = Date.now()
     const alvo = await this.get(userId, id)
     if (!alvo) return false
-    await db.batch([
-      db
-        .update(sessions)
-        .set({ deletedAt: now, updatedAt: now })
-        .where(and(eq(sessions.id, id), eq(sessions.userId, userId))),
+    await rodarLote([
+      (tx) =>
+        tx
+          .update(sessions)
+          .set({ deletedAt: now, updatedAt: now })
+          .where(and(eq(sessions.id, id), eq(sessions.userId, userId))),
       utterancesRepo.stmtSoftDeleteForSession(userId, id, now),
     ])
     return true

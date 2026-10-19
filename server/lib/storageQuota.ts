@@ -318,7 +318,8 @@ function horasDeReconciliacao(): number {
  */
 export async function reivindicarJanela(userId: UserId, horas: number): Promise<boolean> {
   const agora = Date.now()
-  const limite = agora - horas * 3_600_000
+  // Inteiro: `updated_at` é bigint e o Postgres recusa um parâmetro fracionário (horas como 0,5).
+  const limite = Math.floor(agora - horas * 3_600_000)
   const criado = await db
     .insert(usageCounters)
     .values({

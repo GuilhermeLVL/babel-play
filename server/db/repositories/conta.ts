@@ -13,8 +13,10 @@ import { PgTable } from 'drizzle-orm/pg-core'
 
 import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
+import { type InstrucaoDeBatch, rodarLote } from '../lotes'
 import * as schema from '../schema'
 import {
+  agregadosDiarios,
   ankiDecks,
   ankiImports,
   ankiNotes,
@@ -23,6 +25,8 @@ import {
   creditPurchases,
   creditSpends,
   estadoDaConta,
+  estadoDosAgregados,
+  estadoPorItem,
   exerciseResults,
   glossario,
   idadesDeclaradas,
@@ -40,6 +44,7 @@ import {
   userInterests,
   users,
   utterances,
+  versoesDeDados,
   vinculosDeResponsavel,
   vocabCards,
   vocabOccurrences,
@@ -110,6 +115,14 @@ const TABELAS_DO_TITULAR: ReadonlyArray<readonly [string, any]> = [
      (`marcas_de_teste`, o HMAC do e-mail) NÃO entra aqui de propósito: não tem `user_id` e existe
      para sobreviver à exclusão — senão apagar e recriar a conta renovaria o teste. Ver o schema. */
   ['testesPremium', testesPremium],
+  /* A contabilidade derivada (versões dos dados, agregados diários e estado por item): sem FOREIGN
+     KEY para ninguém, mas com o id do titular. Por ÚLTIMO, depois das tabelas brutas, porque os
+     gatilhos delas mexem nestas a cada DELETE. Os DELETEs incondicionais em `excluir` (depois do
+     laço) pegam a linha que um gatilho recriar no meio do lote. */
+  ['versoesDeDados', versoesDeDados],
+  ['agregadosDiarios', agregadosDiarios],
+  ['estadoPorItem', estadoPorItem],
+  ['estadoDosAgregados', estadoDosAgregados],
 ]
 
 /** Os nomes, para o teste de invariante e para quem precise listar sem tocar nas tabelas. */
@@ -148,8 +161,6 @@ conferirCobertura()
 function chavesDoTitular(nome: string, userId: UserId): string[] {
   return nome === 'usageCounters' ? [userId, `u:${userId}`] : [userId]
 }
-
-type Instrucao = Parameters<typeof db.batch>[0][number]
 
 export interface ExportacaoDaConta {
   /** Versão do formato do arquivo. Muda quando a forma do JSON mudar. */
@@ -279,8 +290,8 @@ export const contaRepo = {
    * de eliminação (LGPD art. 18, VI) isso é a mesma promessa não cumprida do P1-9 — confirmar o
    * que não aconteceu.
    *
-   * As refs de segredo são coletadas ANTES, e tudo vai num `batch` (atômico, mesma conexão — ver
-   * `db.ts`), com os filhos antes dos pais para não esbarrar nas FOREIGN KEY.
+   * As refs de segredo são coletadas ANTES, e tudo vai num lote (`rodarLote`: uma transação, em
+   * sequência), com os filhos antes dos pais para não esbarrar nas FOREIGN KEY.
    *
    * A contagem é feita por SELECT antes do DELETE, e não pelo `rowsAffected` do driver, pelo mesmo
    * motivo de `backfillNullOwner`: o relatório do que foi apagado não pode depender do driver.
@@ -288,35 +299,35 @@ export const contaRepo = {
   async excluir(userId: UserId): Promise<RelatorioDeExclusao> {
     const refs = await refsDeSegredo(userId)
     const linhasPorTabela: Record<string, number> = {}
-    const instrucoes: Instrucao[] = []
+    const instrucoes: InstrucaoDeBatch[] = []
 
     for (const [nome, tabela] of TABELAS_DO_TITULAR) {
       const chaves = chavesDoTitular(nome, userId)
       const linhas = await db.select({ dono: tabela.userId }).from(tabela).where(inArray(tabela.userId, chaves))
       linhasPorTabela[nome] = linhas.length
-      if (linhas.length) instrucoes.push(db.delete(tabela).where(inArray(tabela.userId, chaves)))
+      if (linhas.length) instrucoes.push((tx) => tx.delete(tabela).where(inArray(tabela.userId, chaves)))
     }
 
     const segredos = refs.length
       ? await db.select({ ref: secrets.ref }).from(secrets).where(inArray(secrets.ref, refs))
       : []
     linhasPorTabela.secrets = segredos.length
-    if (segredos.length) instrucoes.push(db.delete(secrets).where(inArray(secrets.ref, refs)))
+    if (segredos.length) instrucoes.push((tx) => tx.delete(secrets).where(inArray(secrets.ref, refs)))
 
     /* AS VERSÕES DOS DADOS (migração 0032) — contabilidade interna, fora do schema e do relatório,
        mas com o id do titular. Vem DEPOIS das tabelas acima porque os gatilhos delas recriam a
        linha a cada DELETE; apagada aqui, no mesmo batch, não sobra nada com o id da pessoa. */
-    instrucoes.push(db.execute(sql`DELETE FROM versoes_de_dados WHERE user_id = ${userId}`))
+    instrucoes.push((tx) => tx.execute(sql`DELETE FROM versoes_de_dados WHERE user_id = ${userId}`))
     /* OS AGREGADOS DIÁRIOS E O ESTADO POR ITEM (migração 0053) — a mesma situação: contabilidade
        derivada, fora do schema, com o id do titular. Depois das tabelas brutas, pelo mesmo motivo
        (os gatilhos de `review_logs` e `exercise_results` mexem em `estado_dos_agregados`). */
-    instrucoes.push(...(agregadosRepo.instrucoesDeExclusao(userId) as Instrucao[]))
+    instrucoes.push(...agregadosRepo.instrucoesDeExclusao(userId))
 
     const conta = await db.select({ id: users.id }).from(users).where(eq(users.id, userId))
     linhasPorTabela.users = conta.length
-    if (conta.length) instrucoes.push(db.delete(users).where(eq(users.id, userId)))
+    if (conta.length) instrucoes.push((tx) => tx.delete(users).where(eq(users.id, userId)))
 
-    if (instrucoes.length) await db.batch(instrucoes as [Instrucao, ...Instrucao[]])
+    if (instrucoes.length) await rodarLote(instrucoes)
 
     return {
       linhasPorTabela,

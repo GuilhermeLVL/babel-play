@@ -4,7 +4,7 @@ import { and, asc, eq, gte, isNotNull, isNull, lte } from 'drizzle-orm'
 
 import type { UserId } from '../../lib/authContext'
 import { db, type ExecutorDb, linhasAfetadas } from '../db'
-import { emLotes, tamanhoDoLoteDeInsert, tuplaDeBatch } from '../lotes'
+import { emLotes, type InstrucaoDeBatch, rodarLote, tamanhoDoLoteDeInsert } from '../lotes'
 import { utterances } from '../schema'
 
 export type Utterance = typeof utterances.$inferSelect
@@ -71,7 +71,7 @@ function montarLinhas(
 // Marco 1: toda função exige `userId` (parâmetro branded) — o TS impede esquecer de escopar.
 export const utterancesRepo = {
   /**
-   * MONTA os inserts das falas sem executá-los — para o chamador juntar num `db.batch()`
+   * MONTA os inserts das falas sem executá-los — para o chamador juntar num lote (`rodarLote`)
    * atômico (P1-N3). Devolve lista vazia quando não há nada a inserir.
    *
    * É uma LISTA de instruções, e não uma só, por causa do teto de 32.766 variáveis do SQLite:
@@ -81,8 +81,10 @@ export const utterancesRepo = {
    */
   stmtInsertMany(userId: UserId, sessionId: string, items: NewUtterance[], preservadas?: PolidasPreservadas) {
     const lote = tamanhoDoLoteDeInsert(utterances)
-    return emLotes(montarLinhas(userId, sessionId, items, preservadas), lote).map((linhas) =>
-      db.insert(utterances).values(linhas),
+    return emLotes(montarLinhas(userId, sessionId, items, preservadas), lote).map(
+      (linhas): InstrucaoDeBatch =>
+        (tx) =>
+          tx.insert(utterances).values(linhas),
     )
   },
 
@@ -122,16 +124,17 @@ export const utterancesRepo = {
   },
 
   /** MONTA o delete das falas de uma sessão, para compor um batch atômico. */
-  stmtDeleteForSession(userId: UserId, sessionId: string) {
-    return db.delete(utterances).where(and(eq(utterances.sessionId, sessionId), eq(utterances.userId, userId)))
+  stmtDeleteForSession(userId: UserId, sessionId: string): InstrucaoDeBatch {
+    return (tx) => tx.delete(utterances).where(and(eq(utterances.sessionId, sessionId), eq(utterances.userId, userId)))
   },
 
   /** MONTA a propagação do soft delete da sessão para as falas dela (F3-04). */
-  stmtSoftDeleteForSession(userId: UserId, sessionId: string, now: number) {
-    return db
-      .update(utterances)
-      .set({ deletedAt: now, updatedAt: now })
-      .where(and(eq(utterances.sessionId, sessionId), eq(utterances.userId, userId), isNull(utterances.deletedAt)))
+  stmtSoftDeleteForSession(userId: UserId, sessionId: string, now: number): InstrucaoDeBatch {
+    return (tx) =>
+      tx
+        .update(utterances)
+        .set({ deletedAt: now, updatedAt: now })
+        .where(and(eq(utterances.sessionId, sessionId), eq(utterances.userId, userId), isNull(utterances.deletedAt)))
   },
 
   /**
@@ -170,19 +173,21 @@ export const utterancesRepo = {
   async relabel(userId: UserId, items: Array<{ id: string; sourceLang: string; targetLang: string }>): Promise<number> {
     const now = Date.now()
     // Era um UPDATE por item num laço — até 5.000 idas ao banco por requisição. Agora é UM
-    // `db.batch`: uma ida só e atômico (ou reetiqueta tudo, ou nada). Cada UPDATE é pela chave
-    // primária, então a transação é curta mesmo no teto do schema.
+    // lote (`rodarLote`): uma transação, atômico (ou reetiqueta tudo, ou nada). Cada UPDATE é pela
+    // chave primária, então a transação é curta mesmo no teto do schema.
     const instrucoes = items
       .filter((it) => it?.id && it.sourceLang && it.targetLang)
-      .map((it) =>
-        db
-          .update(utterances)
-          .set({ sourceLang: it.sourceLang, targetLang: it.targetLang, updatedAt: now })
-          .where(and(eq(utterances.id, it.id), eq(utterances.userId, userId))),
+      .map(
+        (it): InstrucaoDeBatch =>
+          (tx) =>
+            tx
+              .update(utterances)
+              .set({ sourceLang: it.sourceLang, targetLang: it.targetLang, updatedAt: now })
+              .where(and(eq(utterances.id, it.id), eq(utterances.userId, userId))),
       )
     if (!instrucoes.length) return 0
-    const resultados = await db.batch(tuplaDeBatch(instrucoes))
-    return resultados.reduce((n, r) => n + linhasAfetadas(r), 0)
+    const resultados = await rodarLote(instrucoes)
+    return resultados.reduce<number>((n, r) => n + linhasAfetadas(r), 0)
   },
 
   /** Troca TODAS as falas da sessão pelas novas (fluxo "retomar captura"). */
@@ -243,31 +248,33 @@ export const utterancesRepo = {
     itens: ReadonlyArray<{ id: string; sourceText: string | null; translatedText: string | null; polida: string }>,
     procedencia: { modelo: string; versao: string; em: number },
   ): Promise<string[]> {
-    const instrucoes = itens.map((it) =>
-      db
-        .update(utterances)
-        .set({
-          traducaoPolida: it.polida,
-          polimentoModelo: procedencia.modelo,
-          polimentoVersao: procedencia.versao,
-          polidoEm: procedencia.em,
-          updatedAt: procedencia.em,
-        })
-        .where(
-          and(
-            eq(utterances.id, it.id),
-            eq(utterances.userId, userId),
-            eq(utterances.sessionId, sessionId),
-            isNull(utterances.traducaoPolida),
-            it.sourceText === null ? isNull(utterances.sourceText) : eq(utterances.sourceText, it.sourceText),
-            it.translatedText === null
-              ? isNull(utterances.translatedText)
-              : eq(utterances.translatedText, it.translatedText),
-          ),
-        ),
+    const instrucoes = itens.map(
+      (it): InstrucaoDeBatch =>
+        (tx) =>
+          tx
+            .update(utterances)
+            .set({
+              traducaoPolida: it.polida,
+              polimentoModelo: procedencia.modelo,
+              polimentoVersao: procedencia.versao,
+              polidoEm: procedencia.em,
+              updatedAt: procedencia.em,
+            })
+            .where(
+              and(
+                eq(utterances.id, it.id),
+                eq(utterances.userId, userId),
+                eq(utterances.sessionId, sessionId),
+                isNull(utterances.traducaoPolida),
+                it.sourceText === null ? isNull(utterances.sourceText) : eq(utterances.sourceText, it.sourceText),
+                it.translatedText === null
+                  ? isNull(utterances.translatedText)
+                  : eq(utterances.translatedText, it.translatedText),
+              ),
+            ),
     )
     if (!instrucoes.length) return []
-    const resultados = await db.batch(tuplaDeBatch(instrucoes))
+    const resultados = await rodarLote(instrucoes)
     return itens.filter((_, i) => linhasAfetadas(resultados[i]) > 0).map((it) => it.id)
   },
 }

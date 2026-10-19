@@ -23,17 +23,21 @@ export const PASTA_SQLITE_LEGADO = path.resolve(process.cwd(), 'server', 'db', '
 
 export interface SqliteLegado {
   client: Client
+  /** A URL `file:` do arquivo, para quem precise abrir uma segunda conexão (a cópia para o Postgres). */
+  url: string
   fechar: () => void
 }
 
 /** Um SQLite novo com TODA a cadeia legada aplicada. `fechar()` apaga o arquivo. */
 export async function abrirSqliteLegado(): Promise<SqliteLegado> {
   const dir = mkdtempSync(path.join(tmpdir(), 'babel-sqlite-legado-'))
-  const client = createClient({ url: 'file:' + path.join(dir, 'legado.db').split(path.sep).join('/') })
+  const url = 'file:' + path.join(dir, 'legado.db').split(path.sep).join('/')
+  const client = createClient({ url })
   await client.execute('PRAGMA foreign_keys = ON')
   await migrate(drizzle(client), { migrationsFolder: PASTA_SQLITE_LEGADO })
   return {
     client,
+    url,
     fechar() {
       client.close()
       try {

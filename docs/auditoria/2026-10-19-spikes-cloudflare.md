@@ -113,3 +113,28 @@ workflow inexistente.
   falhou na primeira corrida num diretório PGlite recém-criado (1,8 min) e passou na segunda
   (31 s). Medir o custo do primeiro boot do PGlite (initdb + migrations + ANALYZE) e o tempo de
   espera do teste antes de usá-lo como portão.
+
+## S6 (parcial): conexão real com o Supabase, projeto em us-east-1 (medido em 2026-10-19)
+
+Sonda em Node com `pg`, TLS **verificado** com a CA própria do Supabase (`prod-ca-2021.crt`, download no
+painel; sem ela as três vias falham no handshake e não se deve desligar a verificação). Origem: rede
+doméstica em São Paulo. Cinco `select 1` por via, depois da conexão.
+
+| Via                                          | Conexão         | `select 1` (ms) | `options -c statement_timeout…`           |
+| -------------------------------------------- | --------------- | --------------- | ----------------------------------------- |
+| direta `db.<ref>.supabase.co:5432` (só IPv6) | ~1 050 ms       | 136–205         | **honrado** (30 s / 10 s)                 |
+| pooler sessão `aws-0-us-east-1.pooler…:5432` | ~1 000–1 200 ms | 138–235         | **ignorado em silêncio** (fica 2 min / 0) |
+| pooler transação `…:6543`                    | ~850–900 ms     | 130–243         | **ignorado em silêncio**                  |
+
+Conclusões:
+
+- 130–240 ms por ida de São Paulo a us-east-1 é a mesma ordem do D1 (S1). O projeto de produção
+  **tem** de ficar em South America (São Paulo); este projeto serve só para validar driver e migrations.
+- O Supavisor não recusa `options`, só ignora: os prazos de sessão da Fase 1 (`DB_STATEMENT_TIMEOUT_MS`
+  etc.) só valem pela conexão direta. Pelo pooler, a saída é `ALTER ROLE postgres SET statement_timeout = …`
+  (uma vez, no banco) ou `SET` após conectar (em modo transação só `SET LOCAL` dentro da transação).
+  Item obrigatório da Fase 2 antes do corte.
+- Padrão do papel `postgres` no Supabase: `statement_timeout = 2min`, `lock_timeout = 0`.
+- `pg` lê `sslrootcert`/`sslmode=verify-full` da própria URL (`pg-connection-string`), então
+  `DATABASE_URL=postgres://…?sslmode=verify-full&sslrootcert=/caminho/supabase-ca.crt` deve servir ao driver
+  sem código novo (a confirmar com os testes de `TESTE_POSTGRES_URL`).

@@ -22,6 +22,7 @@ const RAIZ = path.resolve(__dirname, '..')
 function completo(): Record<string, string> {
   return {
     NODE_ENV: 'production',
+    DATABASE_URL: `postgres://babel:${aleatorio(8)}@db.interno:5432/babel`,
     SECRET_KEY: aleatorio(),
     ORIGEM_SEGREDO: aleatorio(),
     TRUST_PROXY: '2',
@@ -84,6 +85,20 @@ describe('conferirProducao: o arquivo completo', () => {
 })
 
 describe('conferirProducao: o que BLOQUEIA', () => {
+  it('DATABASE_URL ausente, pglite: ou file: (produção exige postgres://)', () => {
+    const { DATABASE_URL: _fora, ...semUrl } = completo()
+    expect(nivelDe(conferirProducao(semUrl), 'DATABASE_URL')).toEqual(['BLOQUEIA'])
+    for (const url of ['pglite:./data/pg', 'file:/data/babel.db']) {
+      const achados = conferirProducao({ ...completo(), DATABASE_URL: url })
+      expect(nivelDe(achados, 'DATABASE_URL')).toEqual(['BLOQUEIA'])
+      expect(achados.find((a) => a.nome === 'DATABASE_URL')?.texto).toMatch(/postgres:\/\//)
+      expect(JSON.stringify(achados)).not.toContain(url)
+    }
+    expect(nivelDe(conferirProducao({ ...completo(), DATABASE_URL: 'postgresql://u:p@h/db' }), 'DATABASE_URL')).toEqual(
+      ['OK'],
+    )
+  })
+
   it('SECRET_KEY ausente ou curta', () => {
     const sem = completo()
     delete sem.SECRET_KEY
@@ -284,6 +299,17 @@ describe('o comando (npm run preflight -- <arquivo>)', () => {
     expect(r.stdout).toMatch(/\[BLOQUEIA\] SECRET_KEY/)
     expect(r.stdout).toMatch(/NÃO SUBA/)
     expect(r.stdout + r.stderr).not.toContain('curta-demais-123')
+  })
+
+  it('DATABASE_URL pglite: sai 1 pelo nome, sem repetir a senha de um postgres://', () => {
+    const v = { ...completo(), DATABASE_URL: 'pglite:./data/pg' }
+    const r = rodar(arquivo('pglite.env', v))
+    expect(r.status).toBe(1)
+    expect(r.stdout).toMatch(/\[BLOQUEIA\] DATABASE_URL/)
+    const bom = completo()
+    const ok = rodar(arquivo('pg.env', bom))
+    expect(ok.status, ok.stdout + ok.stderr).toBe(0)
+    expect(ok.stdout + ok.stderr).not.toContain(bom.DATABASE_URL)
   })
 
   it('caminho DENTRO do repositório: recusa (sai 2) sem sequer abrir o arquivo', () => {

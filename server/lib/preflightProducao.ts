@@ -120,6 +120,16 @@ export function conferirProducao(arquivo: NodeJS.ProcessEnv): Achado[] {
     avisa(nome, 'exigida neste modo e ausente: a capacidade correspondente fica desligada')
   }
 
+  /* ─────────── banco ─────────── */
+  if (/^postgres(ql)?:\/\/\S+/i.test((env.DATABASE_URL ?? '').trim())) {
+    ok('DATABASE_URL', 'aponta para um Postgres')
+  } else {
+    bloqueia(
+      'DATABASE_URL',
+      'produção exige postgres:// (ausente, ou com pglite:/file:, que são só de desenvolvimento): o banco embutido não é o de produção',
+    )
+  }
+
   /* ─────────── segredos ─────────── */
   if (preenchida(env, 'SECRET_KEY')) {
     if (env.SECRET_KEY!.trim().length < TAMANHO_MINIMO_DA_SECRET_KEY) {

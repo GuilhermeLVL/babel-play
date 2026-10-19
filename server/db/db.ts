@@ -209,6 +209,16 @@ export async function travarUsuario(tx: ExecutorDb, userId: string): Promise<voi
   await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${userId}))`)
 }
 
+/**
+ * Trava consultiva GLOBAL, nomeada (ex.: o teto da conta no R2), até o fim da transação. Tome-a DEPOIS
+ * de `travarUsuario` — uma ordem só, para duas transações nunca esperarem uma pela outra em cruz. Usa a
+ * forma de DUAS chaves int4, que no Postgres é outro espaço de travas: não colide com a de usuário
+ * (`hashtext(userId)`, chave única int8), mesmo que um userId tenha o mesmo nome.
+ */
+export async function travarGlobal(tx: ExecutorDb, nome: string): Promise<void> {
+  await tx.execute(sql`select pg_advisory_xact_lock(0, hashtext(${nome}))`)
+}
+
 /** Linhas modificadas por um INSERT/UPDATE/DELETE: `rowCount` (pg) ou `affectedRows` (PGlite). */
 export function linhasAfetadas(r: unknown): number {
   const x = r as { rowCount?: number | null; affectedRows?: number | null } | null | undefined

@@ -20,7 +20,7 @@ import path from 'node:path'
 import { and, eq, lte, sql } from 'drizzle-orm'
 
 import { definicaoDoPlano, type PlanoEfetivo } from '../../src/core/planos'
-import { db, linhasAfetadas } from '../db/db'
+import { db, emTransacao, type ExecutorDb, linhas, linhasAfetadas, travarGlobal, travarUsuario } from '../db/db'
 import { sessionsRepo } from '../db/repositories/sessions'
 import { usageCounters } from '../db/schema'
 import { armazenamentoDoAmbiente, configDoS3 } from './armazenamento'
@@ -28,6 +28,7 @@ import type { UserId } from './authContext'
 import { getPlanForUser } from './entitlements'
 import { log } from './logger'
 import { type EnvelopeDeErro, envelopeDeErro } from './respostaDeErro'
+import { lerTetoDoR2 } from './tetoDoR2'
 
 export const METRIC_STORAGE = 'storage_bytes'
 export const WINDOW_STORAGE = 'total'
@@ -50,8 +51,11 @@ export interface ResultadoDeCota {
   ok: boolean
   capBytes: number
   usadoBytes: number
-  /** 'cheio' = teto atingido; 'indisponivel' = não deu para decidir (degradou fechado). */
-  motivo?: 'cheio' | 'indisponivel'
+  /**
+   * 'usuario' = o teto do plano da pessoa; 'conta' = o teto global do R2 (`R2_TETO_MB`), que não é
+   * culpa dela; 'indisponivel' = não deu para decidir (degradou fechado).
+   */
+  motivo?: 'usuario' | 'conta' | 'indisponivel'
 }
 
 /** Espelha `AUDIO_DIR` de server/routes/sessions.ts, lido em CHAMADA — importá-lo criaria ciclo. */
@@ -135,9 +139,9 @@ async function semearSeAusente(userId: UserId): Promise<number> {
 }
 
 /** Decide e contabiliza numa instrução só: quem perde a corrida não afeta linha nenhuma. */
-async function reservaAtomica(userId: UserId, bytes: number, cap: number): Promise<boolean> {
+async function reservaAtomica(userId: UserId, bytes: number, cap: number, ex: ExecutorDb = db): Promise<boolean> {
   const now = Date.now()
-  const r = await db
+  const r = await ex
     .insert(usageCounters)
     .values({
       id: randomUUID(),
@@ -154,6 +158,43 @@ async function reservaAtomica(userId: UserId, bytes: number, cap: number): Promi
       setWhere: sql`${usageCounters.count} + ${bytes} <= ${cap}`,
     })
   return linhasAfetadas(r) > 0
+}
+
+/** Nome da trava consultiva global do teto da conta no R2 (`travarGlobal`). */
+const TRAVA_DO_TETO_DA_CONTA = 'r2-teto-armazenamento'
+
+/** Teto da CONTA em bytes: só com o adaptador S3 (no disco a folga do volume é quem protege). */
+function tetoDaConta(): number {
+  return configDoS3() ? lerTetoDoR2().bytes : Infinity
+}
+
+/**
+ * Reserva com o TETO DA CONTA (decisão 2 de `openspec/changes/r2-teto-de-uso`). Ler a soma da conta e
+ * depois reservar é read-then-write: dois uploads de usuários diferentes leriam a mesma soma e passariam
+ * juntos pelo teto. Por isso a soma e a reserva vão numa transação com a trava do usuário e, depois
+ * dela, a trava GLOBAL — quem chega segundo espera e já lê a soma com a reserva do primeiro.
+ */
+async function reservaComTetoDaConta(
+  userId: UserId,
+  bytes: number,
+  cap: number,
+  teto: number,
+): Promise<'ok' | 'usuario' | 'conta'> {
+  return emTransacao(async (tx) => {
+    await travarUsuario(tx, userId)
+    await travarGlobal(tx, TRAVA_DO_TETO_DA_CONTA)
+    const soma = await somaDaConta(tx)
+    if (soma + bytes > teto) return 'conta'
+    return (await reservaAtomica(userId, bytes, cap, tx)) ? 'ok' : 'usuario'
+  })
+}
+
+/** Bytes guardados somando todos os usuários (o contador de cada um, metric `storage_bytes`). */
+async function somaDaConta(ex: ExecutorDb): Promise<number> {
+  const r = await ex.execute(
+    sql`select coalesce(sum(${usageCounters.count}), 0)::bigint as total from ${usageCounters} where ${usageCounters.metric} = ${METRIC_STORAGE} and ${usageCounters.window} = ${WINDOW_STORAGE}`,
+  )
+  return Number(linhas<{ total: number | string }>(r)[0]?.total ?? 0)
 }
 
 /**
@@ -190,11 +231,18 @@ export async function reservarArmazenamento(userId: UserId, bytes: number): Prom
       if (b < 0) await liberarArmazenamento(userId, -b)
       return { ok: true, capBytes: cap, usadoBytes: (await lerUso(userId)) ?? 0 }
     }
+    const teto = tetoDaConta()
     const usado = await semearSeAusente(userId)
     // Guarda do caminho de INSERT (linha ausente), que não passa pelo `setWhere`.
-    if (b > cap) return { ok: false, capBytes: cap, usadoBytes: usado, motivo: 'cheio' }
-    if (await reservaAtomica(userId, b, cap)) return { ok: true, capBytes: cap, usadoBytes: usado + b }
-    return { ok: false, capBytes: cap, usadoBytes: (await lerUso(userId)) ?? usado, motivo: 'cheio' }
+    if (b > cap) return { ok: false, capBytes: cap, usadoBytes: usado, motivo: 'usuario' }
+    const r = Number.isFinite(teto)
+      ? await reservaComTetoDaConta(userId, b, cap, teto)
+      : (await reservaAtomica(userId, b, cap))
+        ? 'ok'
+        : 'usuario'
+    if (r === 'ok') return { ok: true, capBytes: cap, usadoBytes: usado + b }
+    if (r === 'conta') return { ok: false, capBytes: cap, usadoBytes: usado, motivo: 'conta' }
+    return { ok: false, capBytes: cap, usadoBytes: (await lerUso(userId)) ?? usado, motivo: 'usuario' }
   } catch (err) {
     log('error', { event: 'storage_quota_failed_closed', error: String((err as Error)?.message || err).slice(0, 120) })
     return { ok: false, capBytes: 0, usadoBytes: 0, motivo: 'indisponivel' }
@@ -402,6 +450,13 @@ export function corpoDeRecusa(r: ResultadoDeCota): { status: number; body: Envel
     return {
       status: 503,
       body: envelopeDeErro('não foi possível verificar a cota de armazenamento agora', 'storage_quota_unavailable'),
+    }
+  }
+  if (r.motivo === 'conta') {
+    // Neutra de propósito: não é culpa da pessoa e não revela números da conta.
+    return {
+      status: 507,
+      body: envelopeDeErro('o serviço está no limite de armazenamento; tente mais tarde', 'r2_teto_armazenamento'),
     }
   }
   const mb = (b: number) => Math.round((b / MB) * 10) / 10

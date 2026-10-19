@@ -384,6 +384,7 @@ jobs:
         tests/integration/limpeza-analyze.test.ts
         tests/integration/medicao-de-transacao-pg.test.ts
         tests/integration/pool-lock-timeout-pg.test.ts
+        tests/integration/r2-teto-armazenamento.test.ts
         tests/integration/rodada-e-glossario-concorrentes.test.ts
         tests/integration/teto-de-erros-entre-instancias.test.ts
     steps:

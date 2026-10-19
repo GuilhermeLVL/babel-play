@@ -6,9 +6,9 @@
 
 ## 2. Teto global de armazenamento
 
-- [ ] 2.1 `reservarArmazenamento` confere `SUM(storage_bytes/total) + bytes > teto` na mesma transação com trava; `ResultadoDeCota.motivo: 'usuario' | 'conta'`
-- [ ] 2.2 `corpoDeRecusa` devolve `507` com mensagem neutra quando `motivo = 'conta'`; `0` recusa tudo; `ilimitado` nunca recusa; só vale com adaptador S3
-- [ ] 2.3 Testes de integração em `tests/integration/r2-teto-armazenamento.test.ts`: abaixo/acima do teto, dois uploads simultâneos no limite (um passa), `0`, `ilimitado`, disco sem S3 ignora o teto
+- [x] 2.1 `reservarArmazenamento` confere `SUM(storage_bytes/total) + bytes > teto` na mesma transação com trava; `ResultadoDeCota.motivo: 'usuario' | 'conta'`
+- [x] 2.2 `corpoDeRecusa` devolve `507` com mensagem neutra quando `motivo = 'conta'`; `0` recusa tudo; `ilimitado` nunca recusa; só vale com adaptador S3
+- [x] 2.3 Testes de integração em `tests/integration/r2-teto-armazenamento.test.ts`: abaixo/acima do teto, dois uploads simultâneos no limite (um passa), `0`, `ilimitado`, disco sem S3 ignora o teto
 
 ## 3. Teto mensal de operações
 

@@ -272,7 +272,7 @@ lado dele, só quando o armazenamento é o S3 (`server/lib/tetoDoR2.ts`,
 | ------------------- | ----------------------- | ----------------------------------------------------------------- |
 | `R2_TETO_MB`        | `9216`                  | upload novo recebe `507` neutro; a retenção continua apagando     |
 | `R2_TETO_OPS_A_MES` | `900000`                | gravar (PUT) recusa e a rota responde `503`; remover sempre passa |
-| `R2_TETO_OPS_B_MES` | `9000000`               | ler o áudio (GET) responde `503`; `tamanho` (HEAD) sempre passa   |
+| `R2_TETO_OPS_B_MES` | `9000000`               | ler o áudio (GET/HEAD) responde `503`                             |
 
 - O total guardado é a soma dos contadores de cota (`usage_counters`, `storage_bytes`); as
   operações contam em `usage_counters` com `user_id = '__r2__'`, `r2_ops_a`/`r2_ops_b`, janela
@@ -280,6 +280,8 @@ lado dele, só quando o armazenamento é o S3 (`server/lib/tetoDoR2.ts`,
 - A 80 % de qualquer teto sai `r2_teto_alerta_80` (uma vez por processo e janela; vai aos destinos
   externos de alerta) e o gauge `r2_uso_fracao{recurso}` no `/metrics`. Cada recusa loga
   `r2_teto_recusa`.
+- Exclusão de conta, apagar sessão, retenção e reconciliação usam a via sem teto (`semTeto`): contam,
+  mas nunca são recusadas.
 - **Reverter ou ajustar** é só variável + reinício: `ilimitado` desliga o teto, `0` fecha tudo (kill
   switch), um número muda o teto. Valor inválido aborta o boot.
 - **Passo do ambiente (painel da Cloudflare, não é código):** criar um _Budget Alert_ de US$ 1 para o

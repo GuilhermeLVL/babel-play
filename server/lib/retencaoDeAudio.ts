@@ -27,6 +27,7 @@ import { armazenamentoDoAmbiente } from './armazenamento'
 import { asUserId } from './authContext'
 import { log } from './logger'
 import { diretorioDeAudio, liberarArmazenamento } from './storageQuota'
+import { semTeto } from './tetoDoR2'
 
 const DIA_MS = 86_400_000
 /** Sessões por consulta. A varredura repete o lote enquanto ele vier cheio e produtivo. */
@@ -59,7 +60,8 @@ export async function limparAudiosVencidos(o: {
 }): Promise<ResultadoDaLimpeza> {
   const r: ResultadoDaLimpeza = { removidos: 0, bytes: 0, falhas: 0 }
   if (!(o.dias > 0)) return r
-  const store = o.store ?? armazenamentoDoAmbiente(path.resolve(diretorioDeAudio()))
+  // Sem teto: a retenção apaga e mede mesmo com o teto mensal do R2 batido (`tetoDoR2.ts`).
+  const store = o.store ?? semTeto(armazenamentoDoAmbiente(path.resolve(diretorioDeAudio())))
   const limite = (o.agora ?? Date.now()) - o.dias * DIA_MS
 
   /* O laço termina de dois jeitos: lote incompleto (acabou) ou lote em que NADA saiu (só sobraram

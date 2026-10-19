@@ -32,6 +32,7 @@ import { resumoDoAlivio } from '../lib/nuvemDeAlivio'
 import { portaoDaNuvem } from '../lib/orcamentoDeIa'
 import { responderErro } from '../lib/respostaDeErro'
 import { capDeArmazenamento, reconciliarSeVencido, usoDeArmazenamento } from '../lib/storageQuota'
+import { semTeto } from '../lib/tetoDoR2'
 import {
   capForPlan,
   capSegundosAoVivoParaPlano,
@@ -353,7 +354,7 @@ meRouter.delete('/', async (req, res) => {
     for (const nome of arquivos) {
       try {
         // O store já ignora "objeto não existe"; chegar ao catch é falha real.
-        await armazenamentoDeMidia.remover(nome)
+        await semTeto(armazenamentoDeMidia).remover(nome) // exclusão do titular: nunca barrada pelo teto
         apagados++
       } catch (err) {
         falhas.push({ arquivo: nome, erro: String((err as Error)?.message || err).slice(0, 160) })

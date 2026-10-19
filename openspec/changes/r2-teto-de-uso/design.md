@@ -49,11 +49,13 @@ deps)` em `server/lib/tetoDoR2.ts` intercepta cada método do `Armazenamento` S3
    `r2_teto_alerta_80` com `{ recurso, usado, teto }` e gauge `r2_uso_fracao{recurso}` em
    `server/http/metricas.ts`. Ao recusar: log `r2_teto_recusa` com o recurso.
 6. **Retenção, exclusão e reconciliação nunca são bloqueadas**: `remover` conta como classe A e
-   `tamanho` como classe B, mas os dois **sempre passam**, com o teto batido ou não. Apagar reduz o
-   problema, e o `tamanho` (HEAD) está no caminho da exclusão de conta (LGPD), da retenção e da
-   reconciliação da cota (`somarBytesEmDisco`): recusá-lo travaria a exclusão do titular e faria a
-   reconciliação somar 0 e gravar subcontagem. Só `gravar`/`gravarDeArquivo` são recusados por A e
-   só `ler`/`lerFaixa` por B. Complemento: `somarBytesEmDisco` só pula nome inválido
+   **sempre passa** (apagar reduz o problema). Nas rotas de usuário, `tamanho` recusa como
+   `ler`/`lerFaixa` (fail-closed: a rota de áudio faz HEAD antes do GET, e um cliente em laço somaria
+   HEADs além do teto). Os jobs internos que precisam medir ou apagar independentemente do teto usam a
+   via **`semTeto(store)`** (referência guardada num `Symbol` no embrulho; store que não é embrulho
+   volta como veio): exclusão de conta/LGPD (`me.ts`), apagar sessão (`DELETE /api/sessions/:id`),
+   `retencaoDeAudio.ts` e `somarBytesEmDisco`/reconciliação. Pela via sem teto as operações AINDA
+   contam (o número reflete o R2), só não recusam. Complemento: `somarBytesEmDisco` só pula nome inválido
    (`NomeDeArquivoInvalido`); qualquer outra falha do store sobe e a reconciliação aborta sem gravar.
 7. **Cloudflare:** Budget Alert de US$ 1 criado pelo dono no painel (não há token com permissão de
    Notificações nesta sessão). Documentado em `docs/deploy.md` como passo de ambiente.

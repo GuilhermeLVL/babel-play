@@ -22,7 +22,7 @@ import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
 import { envelopeDeErro } from '../lib/respostaDeErro'
 import { ajustarArmazenamento, corpoDeRecusa, liberarArmazenamento, reservarArmazenamento } from '../lib/storageQuota'
-import { respostaDoTetoDoR2 } from '../lib/tetoDoR2'
+import { respostaDoTetoDoR2, semTeto } from '../lib/tetoDoR2'
 import { detectarAudio, FORMATOS_DE_AUDIO_ACEITOS } from '../lib/tipoDeArquivo'
 import {
   appendUtterancesSchema,
@@ -693,8 +693,10 @@ sessionsRouter.delete('/:id', async (req, res) => {
         // O store já ignora "objeto não existe" — chegar ao catch é falha real
         // (permissão, lock do antivírus/OneDrive) ou caminho inválido.
         const nome = String(meta.audioFile)
-        const bytes = (await armazenamentoDeMidia.tamanho(nome)) ?? 0
-        await armazenamentoDeMidia.remover(nome)
+        // Apagar não passa pelo teto do R2 (`semTeto`): o HEAD que mede a cota a devolver também não.
+        const store = semTeto(armazenamentoDeMidia)
+        const bytes = (await store.tamanho(nome)) ?? 0
+        await store.remover(nome)
         await liberarArmazenamento(req.userId, bytes) // F4-03: só libera cota se o arquivo saiu
       } catch (err) {
         audioErro = String((err as Error)?.message || err).slice(0, 160)

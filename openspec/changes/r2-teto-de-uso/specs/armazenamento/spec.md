@@ -35,8 +35,9 @@ O adaptador S3 SHALL contar cada operação por classe (A: `gravar`, `gravarDeAr
 B: `ler`, `lerFaixa`, `tamanho`) num contador mensal (`usage_counters`, `__r2__`, metric
 `r2_ops_a`/`r2_ops_b`, window `YYYY-MM` em UTC) e SHALL recusar `gravar`/`gravarDeArquivo` quando
 o contador A atingir `R2_TETO_OPS_A_MES` (padrão 900 000) e `ler`/`lerFaixa` quando o
-contador B atingir `R2_TETO_OPS_B_MES` (padrão 9 000 000). `remover` e `tamanho` SHALL ser contados
-e SHALL sempre passar (a exclusão de conta, a retenção e a reconciliação da cota dependem deles); a
+contador B atingir `R2_TETO_OPS_B_MES` (padrão 9 000 000), inclusive `tamanho` pedido por rota de
+usuário. `remover` SHALL sempre passar. Os jobs internos (exclusão de conta, apagar sessão, retenção,
+reconciliação da cota) SHALL usar a via sem teto, que conta e nunca recusa. A
 reconciliação SHALL abortar, sem gravar, quando o store falhar por outro motivo que não nome inválido
 ou objeto ausente. A mesma
 gramática `0`/`ilimitado`/inválido de `R2_TETO_MB` SHALL valer.
@@ -46,10 +47,16 @@ gramática `0`/`ilimitado`/inválido de `R2_TETO_MB` SHALL valer.
 - **WHEN** o contador `r2_ops_a` do mês vale o teto e chega um `gravar`
 - **THEN** o adaptador lança `ErroDeTetoDoR2` e a rota responde `503`; `remover` no mesmo estado é executado
 
-#### Scenario: tamanho com o teto de classe B batido
+#### Scenario: B no teto, tamanho por rota de usuário e pela via sem teto
 
-- **WHEN** o contador `r2_ops_b` do mês vale o teto e chegam um `tamanho` e um `ler`
-- **THEN** o `tamanho` responde e o contador sobe; o `ler` lança `ErroDeTetoDoR2`
+- **WHEN** o contador `r2_ops_b` do mês vale o teto e chega um `tamanho`
+- **THEN** pela rota de usuário ele lança `ErroDeTetoDoR2` (a rota de áudio responde `503`); pela via
+  sem teto (`semTeto`) ele responde e o contador sobe
+
+#### Scenario: jobs internos com o teto batido
+
+- **WHEN** os contadores A e B do mês estão no teto e a pessoa apaga uma sessão (ou a retenção roda)
+- **THEN** o objeto é medido e apagado e a cota é devolvida
 
 #### Scenario: reconciliação com o store falhando
 

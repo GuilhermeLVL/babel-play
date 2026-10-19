@@ -154,7 +154,7 @@ describe('comTetoDeOperacoes: recusa no teto', () => {
     expect(await ops('a', '2101-03')).toBe(11)
   })
 
-  it('classe B batida recusa ler e lerFaixa; tamanho responde e conta (exclusão e reconciliação dependem dele)', async () => {
+  it('classe B batida: por rota de usuário, ler, lerFaixa e tamanho recusam; pela via sem teto, respondem e contam', async () => {
     const { store, feitas } = storeFalso()
     await fixarOps('b', '2101-04', 3)
     const s = teto.comTetoDeOperacoes(store, {
@@ -163,13 +163,23 @@ describe('comTetoDeOperacoes: recusa no teto', () => {
     })
     await expect(s.ler('x')).rejects.toBeInstanceOf(teto.ErroDeTetoDoR2)
     await expect(s.lerFaixa('x', 0, 1)).rejects.toBeInstanceOf(teto.ErroDeTetoDoR2)
+    await expect(s.tamanho('x')).rejects.toBeInstanceOf(teto.ErroDeTetoDoR2)
     expect(feitas).toEqual([])
     expect(await ops('b', '2101-04')).toBe(3)
 
-    expect(await s.tamanho('x')).toBe(1)
-    expect(feitas).toEqual(['tamanho'])
-    expect(await ops('b', '2101-04')).toBe(4)
-    await expect(s.ler('x')).rejects.toBeInstanceOf(teto.ErroDeTetoDoR2)
+    // Jobs internos (exclusão, retenção, reconciliação) medem e apagam independentemente do teto.
+    const livre = teto.semTeto(s)
+    expect(livre.tipo).toBe('s3')
+    expect(await livre.tamanho('x')).toBe(1)
+    await livre.ler('x')
+    expect(feitas).toEqual(['tamanho', 'ler'])
+    expect(await ops('b', '2101-04')).toBe(5) // ainda conta: o número reflete o R2
+    await expect(s.tamanho('x')).rejects.toBeInstanceOf(teto.ErroDeTetoDoR2)
+  })
+
+  it('semTeto de um store que não é embrulho devolve ele mesmo', () => {
+    const { store } = storeFalso()
+    expect(teto.semTeto(store)).toBe(store)
   })
 
   it('teto 0 fecha a classe mesmo sem contador no mês', async () => {
@@ -257,8 +267,7 @@ describe('rotas com o teto de operações batido', () => {
     expect(res.statusCode).toBe(503)
     expect(res.body).toMatchObject({ code: 'r2_teto_operacoes' })
     expect(typeof res.body.error).toBe('string')
-    // O HEAD (`tamanho`) passa sempre; a leitura do áudio (GET) não chega ao R2.
-    expect(chamadas.filter((c) => c.metodo === 'GET')).toEqual([])
+    expect(chamadas).toEqual([]) // nem o HEAD nem o GET chegam ao R2
   })
 
   it('upload com a classe A batida responde 503 e devolve a reserva de cota', async () => {
@@ -296,8 +305,9 @@ describe('reconciliação da cota com o store falhando', () => {
     expect(await quota.usoDeArmazenamento(u)).toBe(999)
   })
 
-  it('nome inválido continua fora da conta, e o resto é somado', async () => {
+  it('nome inválido continua fora da conta, e o resto é somado — mesmo com a classe B no teto', async () => {
     process.env.AUTH_REQUIRED = '1'
+    await fixarOps('b', new Date().toISOString().slice(0, 7), TETO_DAS_ROTAS)
     const u = asUserId('r2ops-reconcilia-nome')
     const a = (await sessions.create(u, { title: 'r2', kind: 'audio' })).id as string
     const b = (await sessions.create(u, { title: 'r2', kind: 'audio' })).id as string
@@ -307,5 +317,43 @@ describe('reconciliação da cota com o store falhando', () => {
 
     expect(await quota.reconciliarArmazenamento(u)).toBe(4) // o HEAD falso responde 4 bytes
     expect(await quota.usoDeArmazenamento(u)).toBe(4)
+  })
+})
+
+describe('jobs internos com o teto batido (via sem teto)', () => {
+  it('apagar a sessão (DELETE) com A e B no teto apaga o objeto e devolve a cota', async () => {
+    process.env.AUTH_REQUIRED = '1'
+    process.env.FREE_STORAGE_MB = '100'
+    const u = asUserId('r2ops-apaga-sessao')
+    const id = (await sessions.create(u, { title: 'r2', kind: 'audio' })).id as string
+    await sessions.setAudio(u, id, `${id}.webm`, 'audio/webm')
+    await quota.ajustarArmazenamento(u, 4)
+    const mes = new Date().toISOString().slice(0, 7)
+    await fixarOps('a', mes, TETO_DAS_ROTAS)
+    await fixarOps('b', mes, TETO_DAS_ROTAS)
+    chamadas.length = 0
+    const res = fakeRes()
+    await router.stack
+      .find((l: any) => l.route?.path === '/:id' && l.route?.methods?.delete)
+      .route.stack.at(-1)
+      .handle({ userId: u, params: { id }, path: `/${id}` }, res)
+    expect(res.statusCode).toBe(200)
+    expect(chamadas.map((c) => c.metodo)).toEqual(['HEAD', 'DELETE'])
+    expect(await quota.usoDeArmazenamento(u)).toBe(0)
+    expect(await ops('b', mes)).toBe(TETO_DAS_ROTAS + 1)
+  })
+
+  it('a retenção com B no teto mede e apaga o áudio vencido', async () => {
+    const { limparAudiosVencidos } = await h.load<any>('../../server/lib/retencaoDeAudio')
+    const u = asUserId('r2ops-retencao')
+    const id = (await sessions.create(u, { title: 'r2', kind: 'audio' })).id as string
+    await sessions.setAudio(u, id, `${id}.webm`, 'audio/webm')
+    await fixarOps('b', new Date().toISOString().slice(0, 7), TETO_DAS_ROTAS)
+    chamadas.length = 0
+    const r = await limparAudiosVencidos({ dias: 1, agora: Date.now() + 10 * 86_400_000 })
+    // Outras sessões do arquivo (nome inválido, falha de rede) caem em `falhas`; a que importa saiu.
+    expect(r.removidos).toBeGreaterThanOrEqual(1)
+    expect(JSON.parse((await sessions.get(u, id)).meta).audioFile ?? null).toBeNull()
+    expect(chamadas.some((c) => c.metodo === 'DELETE' && c.url.includes(id))).toBe(true)
   })
 })

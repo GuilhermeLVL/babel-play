@@ -142,10 +142,13 @@ export interface DependenciasDoTeto {
 /**
  * Embrulha o adaptador S3 contando cada operação por classe (decisão 3 do design):
  * A = `gravar`, `gravarDeArquivo`, `remover`; B = `ler`, `lerFaixa`, `tamanho`. `sondar` (a readiness)
- * passa sem contar. No teto, `gravar`/`gravarDeArquivo`/`ler`/`lerFaixa` lançam `ErroDeTetoDoR2`.
- * `remover` e `tamanho` CONTAM mas SEMPRE passam (decisão 6): apagar reduz o problema, e a exclusão de
- * conta (LGPD), a retenção e a reconciliação da cota dependem do `tamanho` — bloqueá-lo travaria a
- * exclusão do titular e faria a reconciliação gravar subcontagem.
+ * passa sem contar. No teto, `gravar`/`gravarDeArquivo` (A) e `ler`/`lerFaixa`/`tamanho` (B) lançam
+ * `ErroDeTetoDoR2`; `remover` SEMPRE passa (decisão 6): apagar reduz o problema.
+ *
+ * Jobs internos que precisam medir ou apagar independentemente do teto (exclusão de conta/LGPD,
+ * apagar sessão, retenção, reconciliação da cota) usam `semTeto(store)`: a mesma contagem, sem
+ * recusa. As rotas de usuário (ler o áudio, upload) ficam no embrulho — um cliente em laço não soma
+ * HEADs além do teto.
  *
  * Falha ao contar (banco fora) deixa a operação passar, com log: o contador é uma trava de orçamento,
  * e o banco fora já derruba o upload pela cota por usuário, que degrada fechada.
@@ -174,18 +177,32 @@ export function comTetoDeOperacoes(store: Armazenamento, deps: DependenciasDoTet
     throw new ErroDeTetoDoR2(classe)
   }
 
-  return {
+  /** O mesmo adaptador; `livre` conta tudo e não recusa nada (a via de `semTeto`). */
+  const montar = (livre: boolean): Armazenamento => ({
     tipo: store.tipo,
-    gravar: async (nome, bytes, contentType) => (await passar('a'), store.gravar(nome, bytes, contentType)),
+    gravar: async (nome, bytes, contentType) => (await passar('a', livre), store.gravar(nome, bytes, contentType)),
     gravarDeArquivo: async (nome, caminho, contentType) => (
-      await passar('a'), store.gravarDeArquivo(nome, caminho, contentType)
+      await passar('a', livre), store.gravarDeArquivo(nome, caminho, contentType)
     ),
     remover: async (nome) => (await passar('a', true), store.remover(nome)),
-    ler: async (nome) => (await passar('b'), store.ler(nome)),
-    lerFaixa: async (nome, inicio, fim) => (await passar('b'), store.lerFaixa(nome, inicio, fim)),
-    tamanho: async (nome) => (await passar('b', true), store.tamanho(nome)),
+    ler: async (nome) => (await passar('b', livre), store.ler(nome)),
+    lerFaixa: async (nome, inicio, fim) => (await passar('b', livre), store.lerFaixa(nome, inicio, fim)),
+    tamanho: async (nome) => (await passar('b', livre), store.tamanho(nome)),
     sondar: () => store.sondar(),
-  }
+  })
+  return Object.assign(montar(false), { [VIA_SEM_TETO]: montar(true) })
+}
+
+const VIA_SEM_TETO = Symbol('r2.semTeto')
+
+/**
+ * A via SEM TETO de um adaptador embrulhado por `comTetoDeOperacoes`: as operações continuam contando
+ * (o número reflete o R2), só não recusam. Só para jobs internos que precisam medir ou apagar
+ * independentemente do teto — nunca numa rota que atende pedido de usuário. Store que não é embrulho
+ * (disco) volta como veio.
+ */
+export function semTeto(store: Armazenamento): Armazenamento {
+  return (store as Armazenamento & { [VIA_SEM_TETO]?: Armazenamento })[VIA_SEM_TETO] ?? store
 }
 
 /** A resposta HTTP de um `ErroDeTetoDoR2` (503 no envelope); `null` para qualquer outro erro. */

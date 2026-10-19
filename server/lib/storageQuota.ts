@@ -28,7 +28,7 @@ import type { UserId } from './authContext'
 import { getPlanForUser } from './entitlements'
 import { log } from './logger'
 import { type EnvelopeDeErro, envelopeDeErro } from './respostaDeErro'
-import { lerTetoDoR2, observarUsoDoR2, registrarRecusaDoR2 } from './tetoDoR2'
+import { lerTetoDoR2, observarUsoDoR2, registrarRecusaDoR2, semTeto } from './tetoDoR2'
 
 export const METRIC_STORAGE = 'storage_bytes'
 export const WINDOW_STORAGE = 'total'
@@ -93,7 +93,8 @@ async function lerUso(userId: UserId): Promise<number | null> {
  * e não importado de `routes/sessions`, porque aquele módulo importa ESTE (ciclo).
  */
 export async function somarBytesEmDisco(userId: UserId, audioDir = diretorioDeAudio()): Promise<number> {
-  const store = armazenamentoDoAmbiente(path.resolve(audioDir))
+  // Sem teto: medir para a cota não pode depender do teto mensal do R2 (subcontagem burlaria a cota).
+  const store = semTeto(armazenamentoDoAmbiente(path.resolve(audioDir)))
   let total = 0
   for (const s of await sessionsRepo.list(userId)) {
     let nome: unknown

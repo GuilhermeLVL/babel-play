@@ -29,19 +29,21 @@
  * XP de ninguém 30 dias depois, elas vão para `revisoes_purgadas`/`acertos_purgados` dos agregados
  * diários, na mesma transação, e o perfil as soma (`agregadosRepo.revisoesDoPerfil`).
  *
- * DEPOIS: confere os agregados de quem ficou com as marcas diferentes. (No SQLite a passada
- * terminava com `PRAGMA optimize` e, opcionalmente, o checkpoint do WAL; no Postgres o autovacuum
- * cuida das estatísticas e não há WAL de aplicação para dobrar.)
+ * DEPOIS: confere os agregados de quem ficou com as marcas diferentes e, NO BANCO EMBUTIDO, roda
+ * `ANALYZE` (`analisarBancoEmbutido`): o PGlite é de usuário único, sem autovacuum nem autoanalyze, e
+ * a estatística do planejador só existe se alguém a pedir — era o papel do `PRAGMA optimize` no SQLite.
+ * No Postgres de produção o autovacuum do servidor cuida disso, e a limpeza não roda ANALYZE. (O
+ * checkpoint do WAL, que a passada fazia no SQLite, não tem equivalente.)
  *
- * O ARQUIVO NÃO ENCOLHE: `DELETE` deixa as tuplas mortas para o autovacuum, que devolve o espaço
- * à própria tabela para as próximas escritas. Encolher pede `VACUUM FULL`, que reescreve a tabela
+ * O ARQUIVO NÃO ENCOLHE: `DELETE` deixa as tuplas mortas para o VACUUM (o autovacuum, no Postgres
+ * de produção), que devolve o espaço à própria tabela para as próximas escritas. Encolher pede `VACUUM FULL`, que reescreve a tabela
  * com trava exclusiva e não é feito aqui.
  */
 import { sql } from 'drizzle-orm'
 
 import { agregarPorDia } from '../../src/core/learning/agregados'
 import { diaNumeroNoFuso } from '../../src/core/learning/economia'
-import { db, emTransacao, linhas, linhasAfetadas, travarUsuario } from '../db/db'
+import { analisarBancoEmbutido, db, emTransacao, linhas, linhasAfetadas, travarUsuario } from '../db/db'
 import {
   agregadosRepo,
   gruposDeRevisoes,
@@ -195,6 +197,9 @@ export async function limparBanco(o: { agora?: number; dias?: number } = {}): Pr
     await agregadosRepo.reconstruir(user_id as UserId)
     r.agregadosRecontados += 1
   }
+
+  // Estatística para o planejador no PGlite, que não tem autoanalyze; no `pg` não faz nada.
+  await analisarBancoEmbutido()
 
   log('info', { event: 'limpeza_diaria', ...r })
   return r

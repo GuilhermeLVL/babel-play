@@ -20,14 +20,14 @@ import { Pool } from 'pg'
 
 import { medirConsultas, registrarMedidorDeTamanho } from './observadorDeConsultas'
 import * as schema from './schema'
+import { ehBancoEmbutido, ehBancoEmMemoria, URL_PADRAO_DO_BANCO } from './tipoDoBanco'
 
-export const urlDoBanco: string = process.env.DATABASE_URL ?? 'pglite:./data/pg'
+export const urlDoBanco: string = process.env.DATABASE_URL ?? URL_PADRAO_DO_BANCO
 
 /** Banco embutido (PGlite) ou servidor Postgres remoto. */
-export const bancoEmbutido: boolean = urlDoBanco.startsWith('pglite:')
+export const bancoEmbutido: boolean = ehBancoEmbutido(urlDoBanco)
 
-/* `pglite:memory` (sem `//`) também é memória: do contrário criaria um diretório chamado "memory". */
-const emMemoria = urlDoBanco === 'pglite://memory' || urlDoBanco === 'pglite:memory'
+const emMemoria = ehBancoEmMemoria(urlDoBanco)
 const ehPostgres = /^postgres(ql)?:\/\//.test(urlDoBanco)
 
 if (!bancoEmbutido && !ehPostgres) {
@@ -217,6 +217,19 @@ export function linhas<T>(r: unknown): T[] {
     }
     return copia
   }) as T[]
+}
+
+/**
+ * `ANALYZE` SÓ NO BANCO EMBUTIDO. O PGlite roda em modo de usuário único: não há autovacuum nem
+ * autoanalyze, e sem estatística o planejador estima `rows=1` em tudo — medido com 20 mil cartões, o
+ * seletor de jogo levava 5 a 7 s em três casos (`scripts/medicao-filtro/medir.ts`). É o que o
+ * `PRAGMA optimize` fazia no SQLite. No `pg` de produção quem cuida disso é o autovacuum do servidor,
+ * e um ANALYZE manual da aplicação só competiria com ele: lá não roda. Devolve se rodou.
+ */
+export async function analisarBancoEmbutido(): Promise<boolean> {
+  if (!bancoEmbutido) return false
+  await db.execute(sql`ANALYZE`)
+  return true
 }
 
 let fechado: Promise<void> | undefined

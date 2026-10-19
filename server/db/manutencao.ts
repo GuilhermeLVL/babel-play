@@ -17,7 +17,7 @@ import { migrate as migrarNode } from 'drizzle-orm/node-postgres/migrator'
 import { migrate as migrarPglite } from 'drizzle-orm/pglite/migrator'
 
 import { migrateLeitnerToFsrs } from '../../src/core/learning/scheduler'
-import { bancoEmbutido, db, emLote, linhas } from './db'
+import { analisarBancoEmbutido, bancoEmbutido, db, emLote, linhas } from './db'
 import { emLotes } from './lotes'
 import { toState } from './repositories/vocab'
 import { vocabCards } from './schema'
@@ -40,6 +40,8 @@ export async function aplicarMigrations(): Promise<void> {
   try {
     if (bancoEmbutido) await migrarPglite(db as Parameters<typeof migrarPglite>[0], { migrationsFolder })
     else await migrarNode(db as Parameters<typeof migrarNode>[0], { migrationsFolder })
+    // Estatística para o planejador no PGlite, que não tem autoanalyze (ver `analisarBancoEmbutido`).
+    await analisarBancoEmbutido()
   } catch (err) {
     // P1-N1: "não CONSIGO migrar" e "não PRECISO migrar" eram tratados igual, e o boot
     // matava o processo nos dois casos. Uma réplica apontada para um banco já migrado, sem

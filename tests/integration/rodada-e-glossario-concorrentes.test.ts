@@ -2,7 +2,10 @@
  * OS OUTROS DOIS SITES SOB A TRAVA DO USUÁRIO, provados com pedidos em voo ao mesmo tempo:
  *
  *  - a mesma rodada (`roundId`) enviada 8 vezes: só uma grava, e as linhas contam uma vez só;
- *  - o glossário a uma entrada do teto: 8 termos novos simultâneos e o total fica exatamente no teto.
+ *  - o glossário a uma entrada do teto: 8 termos novos simultâneos e o total fica exatamente no teto;
+ *  - a reetiquetagem de idioma (`relabel`) e uma rodada do MESMO usuário ao mesmo tempo, 5 vezes, sem
+ *    deadlock (40P01): os gatilhos tomam as travas de linha em ordens opostas, e só a trava do usuário
+ *    como primeira instrução dos dois lotes os serializa (revisão final da Fase 1, M2).
  *
  * Mesmo esquema de `gasto-concorrente.test.ts`: PGlite por padrão (uma conexão, serializa de
  * qualquer jeito) e, com `TESTE_POSTGRES_URL=postgres://…`, um Postgres real com pool de 5, onde a
@@ -32,11 +35,13 @@ const EM_VOO = 8
 let h: EphemeralDb
 let exerciseResultsRepo: any
 let glossarioRepo: any
+let vocabRepo: any
 
 beforeAll(async () => {
   h = await abrirBanco()
   ;({ exerciseResultsRepo } = await h.load('../../server/db/repositories/exerciseResults'))
   ;({ glossarioRepo } = await h.load('../../server/db/repositories/glossario'))
+  ;({ vocabRepo } = await h.load('../../server/db/repositories/vocab'))
 }, 60_000)
 
 afterAll(async () => {
@@ -82,5 +87,40 @@ describe('rodada e glossário concorrentes', () => {
     )
     expect(resultados.filter((r: any) => r.ok)).toHaveLength(1)
     expect(await glossarioRepo.contar(userId)).toBe(teto)
+  }, 60_000)
+
+  it('reetiquetar idioma, gravar rodada e revisar do mesmo usuário ao mesmo tempo, 5 vezes: sem deadlock', async () => {
+    const userId = `relabel-conc-${randomUUID()}`
+    // Só letras: a captura descarta "palavra" com dígito. 26 × 8 = 208 cartões.
+    const letra = (n: number) => String.fromCharCode(97 + n)
+    const palavras = Array.from({ length: 208 }, (_, i) => `palavra${letra(Math.floor(i / 26))}${letra(i % 26)}`)
+    const { cards } = await vocabRepo.bulkAdd(
+      userId,
+      palavras.map((word) => ({ word, srcLang: 'en', tgtLang: 'pt', back: `tradução de ${word}` })),
+    )
+    expect(cards.length).toBeGreaterThan(200) // a captura pode recusar alguma (ex.: palavra vetada)
+    for (let i = 0; i < 5; i++) {
+      // Alterna o idioma: só a troca de fato dispara o gatilho `marca_vocab_cards_idioma`.
+      const idioma = i % 2 === 0 ? 'de' : 'en'
+      const [reetiquetados, rodada] = await Promise.all([
+        vocabRepo.relabel(
+          userId,
+          cards.map((c: any) => ({ id: c.id, srcLang: idioma, tgtLang: 'pt' })),
+        ),
+        exerciseResultsRepo.addRodada(userId, {
+          roundId: `r-${randomUUID()}`,
+          exerciseKind: 'memory',
+          origem: 'baralho',
+          score: 10,
+          itens: cards
+            .slice(-40)
+            .map((c: any) => ({ itemRef: c.word, cardId: c.id, correct: 1, attempts: 1, kind: 'srs' })),
+        }),
+        // A revisão trava o cartão e depois sobe a marca do usuário: a ordem oposta à da reetiquetagem.
+        ...cards.slice(-4).map((c: any) => vocabRepo.review(userId, c.id, 3)),
+      ])
+      expect(reetiquetados).toBe(cards.length)
+      expect(rodada.gravados).toBeGreaterThan(0)
+    }
   }, 60_000)
 })

@@ -1306,7 +1306,12 @@ export const vocabRepo = {
               .where(and(eq(vocabCards.id, it.id), eq(vocabCards.userId, userId))),
       )
     if (!instrucoes.length) return 0
-    const resultados = await rodarLote(instrucoes)
+    /* A TRAVA DO USUÁRIO PRIMEIRO, como nos outros lotes deste arquivo (revisão final da Fase 1, M2). Cada
+       UPDATE trava o cartão e os gatilhos (`marca_*`, `versao_*`) sobem as linhas do usuário; uma revisão ou
+       rodada do mesmo usuário trava o SEU cartão e as mesmas linhas na ordem oposta → 40P01 (reproduzido em
+       `rodada-e-glossario-concorrentes.test.ts`). Com a trava, as duas transações se enfileiram. A linha
+       da trava não tem `rowCount` e soma 0 na contagem abaixo. */
+    const resultados = await rodarLote([(tx: ExecutorDb) => travarUsuario(tx, userId), ...instrucoes])
     return resultados.reduce<number>((n, r) => n + linhasAfetadas(r), 0)
   },
 

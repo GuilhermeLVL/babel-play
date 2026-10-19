@@ -125,6 +125,10 @@ export function valoresTipados(
   linhas: readonly Record<string, unknown>[],
 ): SQL {
   const colunas = chaves.map((k) => colunaDe(tabela, k))
+  /* `serial`/`smallserial`/`bigserial` são atalho de DDL (inteiro + sequência), não tipo: `CAST(x AS serial)`
+     não existe e a instrução inteira seria recusada. Nenhuma tabela usa hoje; se usar, falha aqui, alto. */
+  const serial = colunas.find((c) => /serial$/i.test(c.getSQLType()))
+  if (serial) throw new Error(`coluna ${serial.name} é ${serial.getSQLType()}: sem CAST possível no VALUES`)
   return sql.join(
     linhas.map(
       (l) =>

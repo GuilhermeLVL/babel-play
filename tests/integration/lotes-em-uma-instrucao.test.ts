@@ -246,6 +246,11 @@ describe('lotes em uma instrução', () => {
       .where(inArray(flags.chave, [chaves[0]]))
     expect([a.habilitada, a.atualizadoEm, a.descricao]).toEqual([true, 5, ''])
 
+    // `serial` é atalho de DDL, não tipo: CAST impossível, e o helper recusa alto em vez de mandar SQL inválido.
+    const { pgTable, serial } = await h.load<any>('drizzle-orm/pg-core')
+    const comSerial = pgTable('com_serial', { id: serial('id') })
+    expect(() => lotes.valoresTipados(comSerial, ['id'], [{ id: 1 }])).toThrow(/serial/)
+
     // O teto de parâmetros vale também para um `tamanho` pedido à mão.
     await expect(
       lotes.atualizarEmLotes(db, flags, [{ chave: chaves[0], habilitada: true }], { chave: 'chave', tamanho: 40_000 }),

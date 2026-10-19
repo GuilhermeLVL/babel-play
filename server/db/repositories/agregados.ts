@@ -101,7 +101,14 @@ function somarCelulas(userId: UserId, celulas: CelulaDoDia[], agora: number, seE
       SELECT * FROM (VALUES ${valoresTipados(
         agregadosDiarios,
         chaves,
-        fatia.map((c) => ({ ...c, userId, atualizadoEm: agora })),
+        // `?? 0` explícito: um contador ausente viraria NULL, e `coluna + NULL` apagaria a soma da célula.
+        fatia.map((c) => ({
+          ...Object.fromEntries(CONTADORES_DO_DIA.map((k) => [k, c[k] ?? 0])),
+          userId,
+          idioma: c.idioma,
+          dia: c.dia,
+          atualizadoEm: agora,
+        })),
       )}) AS v
       WHERE ${condicao}
       ON CONFLICT (user_id, idioma, dia) DO UPDATE SET ${sql.raw(SOMA_SQL)}, atualizado_em = excluded.atualizado_em

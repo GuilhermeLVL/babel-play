@@ -427,7 +427,7 @@ describe('contador do R2 indisponível', () => {
   }
 
   it('falha ao contar é warn (não vai ao Sentry como erro) e sai no máximo uma vez por minuto', async () => {
-    teto.esquecerAvisoDeContagem()
+    // A janela do aviso é do processo: este é o PRIMEIRO caso do arquivo em que a contagem falha.
     const avisos = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const erros = vi.spyOn(console, 'error').mockImplementation(() => {})
     const s = teto.comTetoDeOperacoes(storeFalso().store, {

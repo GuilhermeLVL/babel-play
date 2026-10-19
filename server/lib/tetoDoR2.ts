@@ -173,11 +173,6 @@ function avisarContagemFalhou(err: unknown): void {
   log('warn', { event: 'r2_teto_contagem_falhou', error: String((err as Error)?.message ?? err).slice(0, 120) })
 }
 
-/** Só para os testes: esquece a janela do aviso de contagem. */
-export function esquecerAvisoDeContagem(): void {
-  ultimoAvisoDeContagem = 0
-}
-
 /**
  * Embrulha o adaptador S3 contando cada operação por classe (decisão 3 do design):
  * A = `gravar`, `gravarDeArquivo`, `remover`; B = `ler`, `lerFaixa`, `tamanho`. `sondar` (a readiness)

@@ -1,6 +1,12 @@
 # Migração do servidor para Cloudflare sem perder latência nem qualidade
 
-Status: em revisão · Data: 2026-10-19 · Autor: Guilherme (com pesquisa e spikes do assistente)
+Status: **aprovado (opção C)** em 2026-10-19 · Data: 2026-10-19 · Autor: Guilherme (com pesquisa e spikes do assistente)
+
+**Decisão do dono (19/10/2026):** centralizar em dois fornecedores já contratados, Cloudflare (servidor, site,
+arquivos, cron, DNS, WAF) e Supabase (Auth + Postgres em São Paulo), aceitando o esforço maior em troca de
+escalabilidade e de planos pagos que resolvem gargalos (compute do Supabase, réplicas de leitura, PITR). A opção B
+(Turso) sai da mesa; a Fase 1 (SQLite→Postgres) começa já, porque vale em qualquer variante de C, inclusive se
+o servidor tiver de ficar no Fly por um tempo.
 
 Complementa `docs/auditoria/2026-10-19-spikes-cloudflare.md` (medições) e substitui o plano em fases anterior
 (Pages + Worker + D1), que o spike S1 reprovou. Nada aqui altera a `main` nem o deploy no Fly.
@@ -67,6 +73,17 @@ ordem de preferência é:
 
 O que muda a recomendação: Turso não liberar São Paulo no plano Free/Developer; latência Turso > 15 ms por
 consulta; Hyperdrive sem pool na América do Sul; o dono rejeitar um terceiro fornecedor (aí é C ou A).
+
+**Após a decisão por C**, o S6 passa a medir três caminhos do Worker (placement `aws:sa-east-1`) ao Postgres em
+sa-east-1: (1) Hyperdrive sobre a conexão Direct; (2) Hyperdrive sobre o Supavisor em modo sessão (IPv4); (3) sem
+Hyperdrive, `pg` direto no Supavisor em modo sessão (3 idas de handshake por requisição, ~15 ms, depois ~5 ms por
+consulta). Qualquer um com p50 ≤ 5 ms por consulta e rota de 7 consultas ≤ 130 ms de ponta a ponta aprova o G0.
+Se os três falharem, o servidor fica no Fly em GRU falando com o mesmo Postgres (ainda dois fornecedores, mais o
+Fly) até a Cloudflare ter pool ou DO na América do Sul.
+
+Escala com C: Supabase Pro inclui compute Micro (US$ 10 de crédito); Small US$ 15, Medium US$ 60 etc. (até 64
+núcleos), disco a US$ 0,125/GB além dos 8 GB, réplicas de leitura e PITR (US$ 100/mês) como add-ons. Workers
+escala sozinho (10 M requisições e 30 M CPU-ms inclusos; excedente US$ 0,30/M e US$ 0,02/M CPU-ms); R2 sem egress.
 
 ## Design (alvo B; as diferenças de C estão marcadas)
 

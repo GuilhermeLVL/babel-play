@@ -16,9 +16,9 @@ import { type Grade, makeFsrs5, metaDeRetencao, type SchedulingState } from '../
 import { chaveDedup as chaveDedupDoNucleo } from '../../../src/core/texto/palavra'
 import type { UserId } from '../../lib/authContext'
 import { garantirNiveis } from '../../lib/niveisDaTrilha'
-import { db, type ExecutorDb, linhasAfetadas, travarUsuario } from '../db'
+import { db, emTransacao, type ExecutorDb, travarUsuario } from '../db'
 import { type ColunaCompacta, lerCompacto } from '../leituraCompacta'
-import { type InstrucaoDeBatch, rodarLote } from '../lotes'
+import { atualizarEmLotes, inserirEmLotes, rodarLote, tamanhoDoLoteDeInsert } from '../lotes'
 import { ankiDecks, ankiNotes, reviewLogs, sessions, vocabCards, vocabOccurrences } from '../schema'
 import { agregadosRepo } from './agregados'
 import { exerciseResultsRepo } from './exerciseResults'
@@ -535,37 +535,51 @@ export const vocabRepo = {
     })
 
     /* UPSERT: palavra nova entra; palavra repetida INCREMENTA `occurrences` e move `last_seen_at`.
-       `occurrences + 1` acontece no banco, não em read-modify-write no JS — é o que torna duas
-       gravações simultâneas somarem em vez de uma sobrescrever a outra. */
+       `occurrences + excluded.occurrences` acontece no banco, não em read-modify-write no JS — é o que torna
+       duas gravações simultâneas somarem em vez de uma sobrescrever a outra. */
     const repetidas: string[] = []
-    /* Um lote (`rodarLote`, uma transação) com todos os upserts (até 500, o teto do schema):
-       atômico — ou o lote inteiro entra, ou nada. A ordem é a do lote, então a contagem de
-       repetidas dentro dele continua somando em sequência. */
-    await rodarLote(
-      rows.map(
-        (row): InstrucaoDeBatch =>
-          (tx) =>
-            tx
-              .insert(vocabCards)
-              .values(row)
-              .onConflictDoUpdate({
-                target: [vocabCards.userId, vocabCards.normKey],
-                /* O índice é PARCIAL (`where deleted_at is null`), e o SQLite exige que o alvo do
-           ON CONFLICT repita o mesmo predicado — sem isto ele não reconhece o índice e responde
-           SQLITE_ERROR. Não é detalhe de estilo: é o que faz o upsert existir. */
-                targetWhere: sql`${vocabCards.deletedAt} IS NULL`,
-                set: {
-                  occurrences: sql`${vocabCards.occurrences} + 1`,
-                  lastSeenAt: now,
-                  updatedAt: now,
-                  // Preenche buracos sem sobrescrever o que já é bom: tradução e frase só entram se faltarem.
-                  back: sql`COALESCE(NULLIF(${vocabCards.back}, ''), ${row.back ?? null})`,
-                  sentence: sql`COALESCE(NULLIF(${vocabCards.sentence}, ''), ${row.sentence ?? null})`,
-                },
-                setWhere: sql`${vocabCards.deletedAt} IS NULL`,
-              }),
-      ),
-    )
+    /* UMA INSTRUÇÃO (Fase 2): era um upsert por linha num lote — uma ida ao banco por cartão. Num INSERT só,
+       duas linhas com a mesma chave não podem tocar a mesma linha (`cannot affect row a second time`), então
+       a repetição DENTRO do lote é juntada aqui com o mesmo resultado que os upserts em sequência davam:
+       a primeira linha vale para o que só o INSERT grava, `occurrences` conta todas, e verso/frase seguem
+       `COALESCE(NULLIF(atual, ''), nova)` aplicado em ordem (`preencher`). */
+    const preencher = (atual: string | null | undefined, nova: string | null | undefined) =>
+      atual != null && atual !== '' ? atual : (nova ?? null)
+    const agrupadas = new Map<string, (typeof rows)[number]>()
+    for (const row of rows) {
+      const ja = agrupadas.get(row.normKey!)
+      if (!ja) {
+        agrupadas.set(row.normKey!, { ...row })
+        continue
+      }
+      ja.occurrences = (ja.occurrences ?? 1) + 1
+      ja.back = preencher(ja.back, row.back)
+      ja.sentence = preencher(ja.sentence, row.sentence)
+    }
+    const unicas = [...agrupadas.values()]
+    const upsert = (tx: ExecutorDb) =>
+      inserirEmLotes(tx, vocabCards, unicas, {
+        conflito: {
+          alvo: [vocabCards.userId, vocabCards.normKey],
+          /* O índice é PARCIAL (`where deleted_at is null`), e o alvo do ON CONFLICT repete o mesmo
+             predicado — sem isto o banco não reconhece o índice como árbitro do conflito. Não é detalhe
+             de estilo: é o que faz o upsert existir. */
+          alvoOnde: sql`${vocabCards.deletedAt} IS NULL`,
+          atualizar: {
+            occurrences: sql`${vocabCards.occurrences} + excluded.occurrences`,
+            lastSeenAt: now,
+            updatedAt: now,
+            // Preenche buracos sem sobrescrever o que já é bom: tradução e frase só entram se faltarem.
+            back: sql`COALESCE(NULLIF(${vocabCards.back}, ''), excluded.back)`,
+            sentence: sql`COALESCE(NULLIF(${vocabCards.sentence}, ''), excluded.sentence)`,
+          },
+          atualizarOnde: sql`${vocabCards.deletedAt} IS NULL`,
+        },
+      })
+    /* Atômico — ou o lote inteiro entra, ou nada: até o teto do schema (500) é uma instrução, atômica por
+       si; acima do que cabe numa, uma transação junta as fatias. */
+    if (unicas.length <= tamanhoDoLoteDeInsert(vocabCards)) await upsert(db)
+    else await emTransacao(upsert)
 
     // Releitura pela CHAVE, não pelo id gerado: num conflito, o id que vale é o do cartão que já existia.
     const chaves = rows.map((r) => r.normKey!)
@@ -771,7 +785,7 @@ export const vocabRepo = {
       cartoes.map((c) => c.id),
     )
 
-    const stmts = cartoes.map((c) => {
+    const dificuldades = cartoes.map((c) => {
       const d = calcularDificuldade({
         word: c.word,
         cefrLevel: c.cefrLevel,
@@ -786,12 +800,10 @@ export const vocabRepo = {
         tentativas: desempenho[c.id]?.tentativas ?? 0,
         agora,
       })
-      return (tx: ExecutorDb) =>
-        tx.execute(
-          sql`UPDATE vocab_cards SET difficulty_score = ${d.score}, difficulty_at = ${agora}, updated_at = ${agora} WHERE id = ${c.id}`,
-        )
+      return { id: c.id, difficultyScore: d.score, difficultyAt: agora, updatedAt: agora }
     })
-    for (let i = 0; i < stmts.length; i += 200) await rodarLote(stmts.slice(i, i + 200))
+    // Um `UPDATE … FROM (VALUES …)` por fatia, e não um UPDATE por cartão (uma ida ao banco por cartão).
+    await atualizarEmLotes(db, vocabCards, dificuldades, { chave: 'id' })
     return cartoes.length
   },
 
@@ -1285,9 +1297,10 @@ export const vocabRepo = {
           )
       : []
     const donoDaChave = new Map<string | null, string>(ocupadas.map((o) => [o.normKey, o.id]))
-    // Era um UPDATE por item num laço — até 5.000 idas ao banco por requisição (15 s medidos no
-    // teto). Agora é UM lote (`rodarLote`, uma transação): atômico. Cada UPDATE é pela chave primária.
-    const instrucoes = validos
+    // Era um UPDATE por item num laço — até 5.000 idas ao banco por requisição (15 s medidos no teto) — e
+    // depois um UPDATE por item num lote (uma ida por item). Agora é UM `UPDATE … FROM (VALUES …)` por fatia,
+    // numa transação: atômico, e pela chave primária com o `user_id` na condição.
+    const alvos = validos
       .filter((it) => {
         const k = chaveNova.get(it.id)
         if (!k) return false
@@ -1297,22 +1310,23 @@ export const vocabRepo = {
         donoDaChave.set(k, it.id)
         return true
       })
-      .map(
-        (it): InstrucaoDeBatch =>
-          (tx) =>
-            tx
-              .update(vocabCards)
-              .set({ srcLang: it.srcLang, tgtLang: it.tgtLang, normKey: chaveNova.get(it.id)!, updatedAt: now })
-              .where(and(eq(vocabCards.id, it.id), eq(vocabCards.userId, userId))),
-      )
-    if (!instrucoes.length) return 0
-    /* A TRAVA DO USUÁRIO PRIMEIRO, como nos outros lotes deste arquivo (revisão final da Fase 1, M2). Cada
-       UPDATE trava o cartão e os gatilhos (`marca_*`, `versao_*`) sobem as linhas do usuário; uma revisão ou
+      .map((it) => ({
+        id: it.id,
+        srcLang: it.srcLang,
+        tgtLang: it.tgtLang,
+        normKey: chaveNova.get(it.id)!,
+        updatedAt: now,
+      }))
+    if (!alvos.length) return 0
+    /* A TRAVA DO USUÁRIO PRIMEIRO, como nos outros lotes deste arquivo (revisão final da Fase 1, M2). O UPDATE
+       trava os cartões e os gatilhos (`marca_*`, `versao_*`) sobem as linhas do usuário; uma revisão ou
        rodada do mesmo usuário trava o SEU cartão e as mesmas linhas na ordem oposta → 40P01 (reproduzido em
-       `rodada-e-glossario-concorrentes.test.ts`). Com a trava, as duas transações se enfileiram. A linha
-       da trava não tem `rowCount` e soma 0 na contagem abaixo. */
-    const resultados = await rodarLote([(tx: ExecutorDb) => travarUsuario(tx, userId), ...instrucoes])
-    return resultados.reduce<number>((n, r) => n + linhasAfetadas(r), 0)
+       `rodada-e-glossario-concorrentes.test.ts`). Com a trava, as duas transações se enfileiram. */
+    const { linhas: reetiquetados } = await emTransacao(async (tx) => {
+      await travarUsuario(tx, userId)
+      return atualizarEmLotes(tx, vocabCards, alvos, { chave: 'id', onde: eq(vocabCards.userId, userId) })
+    })
+    return reetiquetados
   },
 
   /**

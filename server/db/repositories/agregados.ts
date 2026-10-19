@@ -39,7 +39,8 @@ import {
 import { diaNumeroNoFuso, FUSO_PADRAO, fusoOuPadrao } from '../../../src/core/learning/economia'
 import type { UserId } from '../../lib/authContext'
 import { type DB, db, emTransacao, type ExecutorDb, linhas as linhasDe, travarUsuario } from '../db'
-import { emLotes, type InstrucaoDeBatch } from '../lotes'
+import { emLotes, type InstrucaoDeBatch, tamanhoDoLote, valoresTipados } from '../lotes'
+import { agregadosDiarios, estadoPorItem } from '../schema'
 import { estadoDaContaRepo } from './estadoDaConta'
 
 type Tx = ExecutorDb
@@ -90,14 +91,18 @@ async function fusoGravado(userId: UserId): Promise<string> {
  */
 function somarCelulas(userId: UserId, celulas: CelulaDoDia[], agora: number, seExiste?: SQL): InstrucaoDeBatch[] {
   const condicao = seExiste ? sql`EXISTS (${seExiste})` : sql`TRUE`
-  return celulas.map(
-    (c) => (tx) =>
+  /* Todas as células numa instrução (multi-VALUES; Fase 2), e não uma ida ao banco por célula. As células
+     já vêm uma por (idioma, dia) de `agregarPorDia`: nenhuma linha do VALUES colide com outra no ON CONFLICT. */
+  const chaves = ['userId', 'idioma', 'dia', ...CONTADORES_DO_DIA, 'atualizadoEm']
+  return emLotes(celulas, tamanhoDoLote(chaves.length)).map(
+    (fatia) => (tx) =>
       tx.execute(sql`
       INSERT INTO agregados_diarios (user_id, idioma, dia, ${sql.raw(COLUNAS_SQL)}, atualizado_em)
-      SELECT ${userId}, ${c.idioma}, ${c.dia}, ${sql.join(
-        CONTADORES_DO_DIA.map((k) => sql`${c[k]}`),
-        sql`, `,
-      )}, ${agora}
+      SELECT * FROM (VALUES ${valoresTipados(
+        agregadosDiarios,
+        chaves,
+        fatia.map((c) => ({ ...c, userId, atualizadoEm: agora })),
+      )}) AS v
       WHERE ${condicao}
       ON CONFLICT (user_id, idioma, dia) DO UPDATE SET ${sql.raw(SOMA_SQL)}, atualizado_em = excluded.atualizado_em
     `),
@@ -209,13 +214,33 @@ export const agregadosRepo = {
     const celulas = agregarPorDia({ itens, rodadas }, (em) => diaNumeroNoFuso(em, fuso))
     const instrucoes = somarCelulas(userId, celulas, rodada.em, seExiste)
     if (rodada.jogo) {
+      /* O estado por item numa instrução (multi-VALUES; Fase 2), e não uma por item. O mesmo cartão duas
+         vezes na rodada não pode virar duas linhas do mesmo INSERT (`cannot affect row a second time`):
+         junta aqui, somando acertos e erros, e o último resultado é o do ÚLTIMO item — o que os upserts
+         em sequência davam, já que todos têm o mesmo `ultimo_em`. */
+      const porCartao = new Map<string, { acertos: number; erros: number; ultimoResultado: number }>()
       for (const i of rodada.itens) {
         if (!i.cardId || i.correct == null) continue
         const certo = i.correct > 0 ? 1 : 0
+        const e = porCartao.get(i.cardId) ?? { acertos: 0, erros: 0, ultimoResultado: certo }
+        e.acertos += certo
+        e.erros += 1 - certo
+        e.ultimoResultado = certo
+        porCartao.set(i.cardId, e)
+      }
+      const linhas = [...porCartao].map(([cardId, e]) => ({
+        userId,
+        cardId,
+        jogo: rodada.jogo,
+        ...e,
+        ultimoEm: rodada.em,
+      }))
+      const chaves = ['userId', 'cardId', 'jogo', 'acertos', 'erros', 'ultimoResultado', 'ultimoEm']
+      for (const fatia of emLotes(linhas, tamanhoDoLote(chaves.length))) {
         instrucoes.push((tx) =>
           tx.execute(sql`
             INSERT INTO estado_por_item (user_id, card_id, jogo, acertos, erros, ultimo_resultado, ultimo_em)
-            SELECT ${userId}, ${i.cardId}, ${rodada.jogo}, ${certo}, ${1 - certo}, ${certo}, ${rodada.em}
+            SELECT * FROM (VALUES ${valoresTipados(estadoPorItem, chaves, fatia)}) AS v
             WHERE EXISTS (${seExiste})
             ON CONFLICT (user_id, card_id, jogo) DO UPDATE SET
               acertos = estado_por_item.acertos + excluded.acertos,

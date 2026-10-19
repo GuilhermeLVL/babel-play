@@ -152,3 +152,22 @@ dezenas de segundos quando cada instrução custa uma ida à rede. É a prova em
 multi-VALUES (`emLote` hoje = 1 ida por instrução) são o **primeiro item da Fase 2**, antes de qualquer
 medição com Hyperdrive; e que os testes de concorrência precisam de `hookTimeout`/`lock_timeout`
 maiores quando apontados a um banco remoto.
+
+## S6: latência real para o projeto Supabase em São Paulo (medido em 2026-10-19)
+
+Projeto novo `bqfjvcfjkyeehizydqfw`, região confirmada **sa-east-1** pelo IPv6 do host direto contra o
+`ip-ranges.json` da AWS (a opção "Americas" do painel é uma região geral e resolve para a Virgínia; a
+região certa está em "Specific regions → South America (São Paulo)"). Mesma sonda do S6 parcial, TLS
+verificado, origem rede doméstica em São Paulo, cinco `select 1` por via.
+
+| Via                                                             | Conexão    | `select 1` (ms) |
+| --------------------------------------------------------------- | ---------- | --------------- |
+| direta `db.<ref>.supabase.co:5432` (IPv6)                       | 125–155 ms | 15–21           |
+| pooler sessão `aws-1-sa-east-1.pooler.supabase.com:5432` (IPv4) | ~380 ms    | 18              |
+| pooler transação `…:6543`                                       | ~115 ms    | 17–20           |
+
+- De 130–240 ms (us-east-1) para 15–21 ms: a rota de 7 consultas cai de ~1,1 s para ~120 ms já de
+  uma rede doméstica. Do PoP da Cloudflare em GRU para a AWS sa-east-1 a ida tende a ser menor; a
+  medição final (Worker + Hyperdrive) fica para quando houver token da Cloudflare na sessão.
+- O host do pooler deste projeto é `aws-1-sa-east-1` (não `aws-0`); o painel "Connect" mostra o certo.
+- `options -c …` continua honrado só na conexão direta (ver S6 parcial).

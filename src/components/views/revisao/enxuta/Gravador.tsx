@@ -126,7 +126,9 @@ const Gravador = forwardRef<
     audio: null as HTMLAudioElement | null,
     reconhecedor: null as Reconhecedor | null,
     ouvido: '',
-    apertou: 0,
+    /* -Infinity = nenhum toque ainda. Era 0, e aí `performance.now() - 0 < 700` descartava um clique
+       legítimo nos primeiros 700 ms de vida da página (e do jsdom nos testes, dependendo da carga). */
+    apertou: -Infinity,
     soltouCedo: false,
     urlsDeFora: [] as string[],
   });
@@ -169,7 +171,10 @@ const Gravador = forwardRef<
       if (trilhaO.current && raiz.current) {
         varrerOnda(raiz.current, trilhaO.current, durO);
         await Promise.all([
-          Promise.race([ouvirOriginal ? ouvirOriginal().catch(() => undefined) : Promise.resolve(), pausa(durO + 2200)]),
+          Promise.race([
+            ouvirOriginal ? ouvirOriginal().catch(() => undefined) : Promise.resolve(),
+            pausa(durO + 2200),
+          ]),
           pausa(durO),
         ]);
         if (vez !== s.vez || !s.vivo) return;
@@ -338,7 +343,6 @@ const Gravador = forwardRef<
       s.soltouCedo = false;
       parar();
     }
-     
   }, [idioma, irPara, parar, temPalpite, terminar]);
 
   useImperativeHandle(
@@ -423,7 +427,7 @@ const Gravador = forwardRef<
         const s = g.current;
         if (!b || b.disabled) return;
         if (s.fase === 'gravando') {
-          s.apertou = 0;
+          s.apertou = -Infinity;
           return;
         }
         s.apertou = performance.now();
@@ -533,7 +537,9 @@ const Gravador = forwardRef<
           <>
             <p>
               <Ear aria-hidden />
-              <span>{t('O palpite vem do reconhecimento de fala do navegador, que precisa ouvir enquanto você grava.')}</span>
+              <span>
+                {t('O palpite vem do reconhecimento de fala do navegador, que precisa ouvir enquanto você grava.')}
+              </span>
             </p>
             <small>
               {t(

@@ -50,3 +50,66 @@ Worker no edge do Rio (`colo GIG`) chamando D1; cliente em casa, 25 amostras por
 **Conclusão G0 (parcial):** a migração "como está" fica de 5 a 10 vezes mais lenta. Só funciona se toda rota for reescrita para fazer **no máximo uma ida ao banco** (batch ou DO), o que é parte da Fase 1 e aumenta o risco e o esforço. Mesmo assim, a latência mínima fica em ~250 ms por requisição contra ~100 a 130 ms do Fly em São Paulo.
 
 Recursos de teste (Worker `spike-lat`, bancos `spike-lat-auto` e `spike-lat-weur`) foram **apagados** ao fim.
+
+## Fase 1 concluída: SQLite → Postgres (2026-10-19, branch `cloudflare/migracao`)
+
+Plano: `docs/superpowers/plans/2026-10-19-fase1-postgres.md` (10 tarefas, cada uma com implementador e
+revisor próprios, mais revisão final da branch inteira). Decisão: ADR 0014. A `main` e o deploy no Fly
+não mudaram.
+
+**O que entrou.** Schema Drizzle em `pg-core` (38 tabelas), migrations em `server/db/migrations-pg/`
+(baseline, 25 gatilhos + 10 flags, RLS + REVOKE para o Supabase), driver único em `server/db/db.ts`
+(PGlite em dev/testes, `pg` em produção, prazos e tamanho do pool pelo ambiente, parser de int8),
+trava consultiva por usuário em todo padrão "ler saldo e escrever", trava de diretório do PGlite,
+`ANALYZE` no PGlite, scripts e ambiente de dev em PGlite, `pg_dump` com credenciais fora do argv,
+preflight de produção exigindo `postgres://`, CLI de migração de dados com paridade por checksum,
+job de CI com Postgres 17 real, `npm run limpar` para processos órfãos.
+
+**Testes.** Antes (main 163fa82c): 915 arquivos, 11 785 testes. Depois (17497c5c): 928 arquivos,
+11 839 testes, 4 pulados (só os que exigem `TESTE_POSTGRES_URL` ou dois processos). Apagados com
+justificativa no commit 7b41c39f: `db-pragmas`, `pragmas-transacao`, `snapshot-processo-filho`,
+`rollback-por-backup`, `migracoes-sobre-estado-atual` (assunto deixou de existir) e
+`snapshot-e-restauracao` (virou `snapshot-indisponivel`); `migrations-replica` e
+`replica-sem-estado-local` foram adaptados, não apagados. 23 arquivos novos, entre eles os de
+concorrência real (`gasto-concorrente`, `agregados-concorrentes`, `rodada-e-glossario-concorrentes`),
+validados contra Postgres 17 em contêiner. Dois defeitos reais fora do banco apareceram no caminho e
+foram corrigidos: o clique no microfone da revisão era descartado nos primeiros 700 ms da página
+(`Gravador.tsx`) e o `--zerar` do semeador apagava na ordem errada das FKs.
+
+**Paridade de dados.** `npx tsx scripts/migracao/sqlite-para-postgres.ts --origem file:<cópia de
+data/babel.db>` para `pglite:<tmp>`: 38/38 tabelas com checksum igual, sha1 do original inalterado,
+reexecução recusada sem `--continuar`. A leitura da origem não é snapshot: o servidor antigo precisa
+estar parado.
+
+**E2E (Playwright, servidor em PGlite temporário).** `desktop-1280`: 75 passaram, 24 pulados, 0
+falhas. `mobile-375`: 73/5/21 na primeira corrida (durante a suíte completa e um contêiner Postgres
+na mesma máquina); os 4 arquivos que falharam passaram na repetição com a máquina folgada, exceto
+um caso do modo intérprete, que oscila (ver nota abaixo). A `main` no mesmo viewport deu 78/0/21.
+Nenhum erro de servidor ou de banco nos logs; todas as falhas são "elemento não encontrado" na tela.
+
+**Revisão final da branch (opus).** 0 críticos, 5 importantes, todos corrigidos na mesma branch:
+int8 chegava como string no `pg` (quebrava `NotaDeContagem`), PGlite sem trava de diretório (perda
+de escrita reproduzida), pool sem prazos, CI sem Postgres real, mensagem de backup prometendo um
+workflow inexistente.
+
+**Pendências para a Fase 2 (antes do S6/G1).**
+
+- Lotes com uma ida ao banco por instrução (`emLote`; até 5 000 no reetiquetar): virar
+  INSERT/UPDATE multi-VALUES antes de medir com Hyperdrive, senão o p95 ≤ 250 ms da spec não fecha.
+- `options -c statement_timeout…` pode ser recusado pelo Supavisor em modo transação: chave de
+  ambiente para desligar ou `ALTER ROLE … SET`; documentar que os prazos valem também para
+  migrations e para a CLI de migração de dados.
+- Workflow semanal de `pg_dump` (schemas `public` e `drizzle`) para o R2: hoje não há backup
+  automático neste build.
+- Modo "toda a integração contra Postgres real" no harness (`postgresDescartavel` já existe); o job
+  `postgres-real` roda só os arquivos gated.
+- Ensaio da migração sobre uma cópia do SQLite de produção do Fly: procurar fração em coluna INTEGER
+  (`typeof(col)='real'`) antes, porque isso derruba a carga.
+- Bordas da trava do PGlite (retomada simultânea de trava velha; dois contêineres pid 1 no mesmo
+  volume; `backup.mjs` copiar sem checar a trava) — só self-host, produção recusa `pglite:`.
+- Rate limit fora do banco, `db` por requisição (`AsyncLocalStorage`) para o cliente do Hyperdrive,
+  `Dockerfile`/`fly.toml`/`litestream.yml`/CI do Fly aposentados.
+- E2E do modo intérprete no celular oscila entre corridas (sem erro de servidor): o mesmo arquivo
+  falhou na primeira corrida num diretório PGlite recém-criado (1,8 min) e passou na segunda
+  (31 s). Medir o custo do primeiro boot do PGlite (initdb + migrations + ANALYZE) e o tempo de
+  espera do teste antes de usá-lo como portão.

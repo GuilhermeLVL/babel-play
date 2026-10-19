@@ -4,13 +4,13 @@ Branch `cloudflare/migracao`. Plano: `~/.claude/plans/acabei-de-testar-a-nested-
 
 ## Resultado até agora
 
-| Spike                                | Estado                       | Resultado                                                                                                                         |
-| ------------------------------------ | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| S2 Express em Workers                | **parcial, local (workerd)** | Ver abaixo                                                                                                                        |
-| S4 zstd no Node 22                   | **parcial**                  | `zlib.zstdDecompressSync` existe no Node 22.15+ (e no 24.22 local). O Docker estava desligado, então não rodei no `node:22-slim`. |
-| S1 Latência do D1 a partir do Brasil | **pendente**                 | Exige conta Cloudflare (`wrangler login`).                                                                                        |
-| S3 Container com Litestream          | **pendente**                 | Exige conta Cloudflare.                                                                                                           |
-| S5 Bundle e arquivos                 | **pendente**                 |                                                                                                                                   |
+| Spike                                | Estado                       | Resultado                                                                                                                                    |
+| ------------------------------------ | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| S2 Express em Workers                | **parcial, local (workerd)** | Ver abaixo                                                                                                                                   |
+| S4 zstd no Node 22                   | **parcial**                  | `zlib.zstdDecompressSync` existe no Node 22.15+ (e no 24.22 local). O Docker estava desligado, então não rodei no `node:22-slim`.            |
+| S1 Latência do D1 a partir do Brasil | **pendente**                 | Exige conta Cloudflare (`wrangler login`).                                                                                                   |
+| S3 Container com Litestream          | **pendente**                 | Exige conta Cloudflare.                                                                                                                      |
+| S5 Bundle e arquivos                 | **feito, local**             | Ver abaixo: servidor cabe num Worker (4,8 MB bruto / 1,4 MB gzip); nenhum arquivo de `dist/` passa de 25 MiB, mas um fica a 0,4 % do limite. |
 
 ## S2 em detalhe (workerd local, `nodejs_compat`, wrangler 4.151.1)
 
@@ -24,6 +24,12 @@ Branch `cloudflare/migracao`. Plano: `~/.claude/plans/acabei-de-testar-a-nested-
 - S1 e S3 precisam de login: `! npx wrangler login` (ou `wrangler deploy --temporary`, conta de preview temporária, a validar se cria D1).
 - S5: medir o bundle do Worker e os arquivos de `dist/` contra o limite de 25 MiB do Pages.
 - Portão G0 só depois de S1.
+
+## S5: tamanho do bundle e dos arquivos estáticos (medido em 2026-10-19)
+
+- `server/http/app.ts` empacotado com esbuild (`--packages=bundle`, minificado, sem `node:*`, libsql, jsdom e prom-client): **4,8 MB bruto, 1,4 MB gzip**. Cabe com folga no limite do Worker (64 MiB descomprimido, Free e Paid, doc de 12/10/2026). Maiores pedaços: código do app 2,0 MB, `undici` 518 KiB, `pdfjs-dist` 482 KiB, `iconv-lite` 478 KiB, `zod` 445 KiB.
+- `dist/` tem 1.025 arquivos e 186 MB. **Nenhum passa de 25 MiB**, mas `ort-wasm-simd-threaded.jsep.wasm` tem 26.101.073 bytes contra o limite de 26.214.400 (0,4 % de folga): qualquer atualização do onnxruntime pode estourar. Os outros grandes: `ort-wasm-simd-threaded.asyncify` 23,6 MB e o Bergamot pt-en 22,7 MB (já previsto para o R2).
+- Recomendação: servir os `.wasm` do onnxruntime e os modelos pelo R2 (com `Cache-Control` longo), não pelo Pages/Static Assets.
 
 ## S1: latência do D1 a partir do Brasil (medido em 2026-10-19)
 

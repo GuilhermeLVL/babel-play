@@ -9,7 +9,7 @@
  * (mesma exceção documentada em `tenancy.ts`); um filtro por `user_id` já as preserva.
  */
 import { eq, getTableColumns, inArray, is, sql } from 'drizzle-orm'
-import { SQLiteTable } from 'drizzle-orm/sqlite-core'
+import { PgTable } from 'drizzle-orm/pg-core'
 
 import type { UserId } from '../../lib/authContext'
 import { db } from '../db'
@@ -129,8 +129,8 @@ export const TABELAS_TRATADAS_A_PARTE: readonly string[] = ['secrets']
  */
 function conferirCobertura(): void {
   const noSchema = Object.entries(schema)
-    .filter(([, v]) => is(v, SQLiteTable))
-    .filter(([, t]) => 'userId' in getTableColumns(t as SQLiteTable))
+    .filter(([, v]) => is(v, PgTable))
+    .filter(([, t]) => 'userId' in getTableColumns(t as PgTable))
     .map(([nome]) => nome)
   const faltando = noSchema.filter(
     (n) => !NOMES_DAS_TABELAS_DO_TITULAR.includes(n) && !TABELAS_TRATADAS_A_PARTE.includes(n),

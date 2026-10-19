@@ -31,7 +31,7 @@ process.env.DOTENV_CONFIG_PATH ??= path.join(dir, 'sem-env-no-teste')
 process.env.DOTENV_CONFIG_QUIET ??= 'true'
 
 // Migrations também: sem isto um teste poderia migrar a partir de um caminho inesperado.
-process.env.MIGRATIONS_DIR ??= path.resolve(process.cwd(), 'server', 'db', 'migrations')
+process.env.MIGRATIONS_DIR ??= path.resolve(process.cwd(), 'server', 'db', 'migrations-pg')
 
 afterAll(() => {
   try {

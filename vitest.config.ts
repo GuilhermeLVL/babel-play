@@ -46,7 +46,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**', 'server/**', 'server.ts'],
-      exclude: ['src/**/*.d.ts', 'src/data/trilha/niveis/**', 'server/db/migrations/**'],
+      exclude: ['src/**/*.d.ts', 'src/data/trilha/niveis/**', 'server/db/migrations-*/**'],
       reporter: ['text-summary', 'json', 'json-summary', 'lcov'],
       reportsDirectory: 'coverage',
       /*

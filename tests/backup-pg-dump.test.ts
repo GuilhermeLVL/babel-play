@@ -13,6 +13,11 @@ describe('montarPgDump', () => {
     expect(args).toContain('--file=/tmp/x.dump')
   })
 
+  it('copia só os schemas da aplicação (public e drizzle), nunca os do Supabase', () => {
+    const { args } = montarPgDump(url, '/tmp/x.dump', {})
+    expect(args.filter((a) => a.startsWith('--schema='))).toEqual(['--schema=public', '--schema=drizzle'])
+  })
+
   it('entrega as credenciais pelo ambiente, decodificadas', () => {
     const { env } = montarPgDump(url, '/tmp/x.dump', { PATH: '/bin', PGUSER: 'outro' })
     expect(env).toMatchObject({

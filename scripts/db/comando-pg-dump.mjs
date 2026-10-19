@@ -22,5 +22,12 @@ export function montarPgDump(urlBanco, arquivo, ambienteBase = process.env) {
   if (banco) env.PGDATABASE = banco
   const sslmode = u.searchParams.get('sslmode')
   if (sslmode) env.PGSSLMODE = sslmode
-  return { programa: 'pg_dump', args: ['--format=custom', `--file=${arquivo}`], env }
+  /* SÓ OS SCHEMAS DA APLICAÇÃO: `public` (as tabelas) e `drizzle` (o registro das migrações). No Supabase o
+     banco tem também `auth`, `storage`, `realtime`… do provedor, que não são nossos de copiar nem — com
+     `pg_restore --clean` — de apagar e recriar. */
+  return {
+    programa: 'pg_dump',
+    args: ['--format=custom', '--schema=public', '--schema=drizzle', `--file=${arquivo}`],
+    env,
+  }
 }

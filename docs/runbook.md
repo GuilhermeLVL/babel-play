@@ -78,8 +78,17 @@ Os erros de aplicação (Sentry) não são alerta de página: são revisados tod
 ### 0.2 Restaurar o banco
 
 > **Desde a Fase 1 (ADR 0014)** o banco é Postgres. Com `postgres://`, restaure um dump do `scripts/backup.mjs`
-> com `pg_restore --clean --if-exists -d "$DATABASE_URL" <arquivo>` (ou o PITR do Supabase). Com `pglite:<dir>`
-> (dev), pare o servidor e copie de volta o diretório do backup. Litestream e snapshot diário não existem mais
+> (ou use o PITR do Supabase) com as credenciais no AMBIENTE (`PG*` do libpq, como `scripts/db/comando-pg-dump.mjs`),
+> nunca no argv — a linha de comando aparece em `ps` e no log do host — e só os schemas da aplicação: `--clean`
+> sem `--schema` apagaria e recriaria também `auth`, `storage` e os demais schemas do Supabase.
+>
+> ```bash
+> export PGHOST=<host> PGPORT=5432 PGUSER=<usuario> PGDATABASE=<banco> PGSSLMODE=require
+> read -rs PGPASSWORD && export PGPASSWORD   # digitada, fora do histórico
+> pg_restore --clean --if-exists --schema=public --schema=drizzle -d "$PGDATABASE" <arquivo>
+> ```
+>
+> Com `pglite:<dir>` (dev), pare o servidor e copie de volta o diretório do backup. Litestream e snapshot diário não existem mais
 > no servidor (`SNAPSHOT_INDISPONIVEL`); o roteiro A/B abaixo vale só para o Fly legado até a Fase 2.
 
 Há duas fontes, as duas no R2:

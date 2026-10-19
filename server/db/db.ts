@@ -18,7 +18,7 @@ import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 import { drizzle as drizzlePglite } from 'drizzle-orm/pglite'
 import { Pool } from 'pg'
 
-import { medirConsultas } from './observadorDeConsultas'
+import { medirConsultas, registrarMedidorDeTamanho } from './observadorDeConsultas'
 import * as schema from './schema'
 
 export const urlDoBanco: string = process.env.DATABASE_URL ?? 'pglite:./data/pg'
@@ -45,6 +45,11 @@ const textoDe = (q: unknown): string | { sql: string } =>
 function medir<T extends { query: (...args: never[]) => Promise<unknown> }>(alvo: T): void {
   const original = alvo.query.bind(alvo) as (...args: unknown[]) => Promise<unknown>
   alvo.query = medirConsultas(original, (q: unknown) => [textoDe(q)]) as unknown as T['query']
+  /* O tamanho do banco pelo `query` ORIGINAL: a sonda de métrica não conta como leitura da aplicação. */
+  registrarMedidorDeTamanho(async () => {
+    const r = (await original('select pg_database_size(current_database()) as n')) as { rows?: Array<{ n: unknown }> }
+    return Number(r.rows?.[0]?.n ?? 0)
+  })
 }
 
 let pglite: PGlite | undefined

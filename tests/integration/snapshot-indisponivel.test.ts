@@ -1,14 +1,18 @@
 /**
- * Fase 5 — o snapshot diário vai para um "R2" e VOLTA íntegro num diretório limpo.
+ * O SNAPSHOT DIÁRIO NO POSTGRES: o job continua agendado, mas só registra que está indisponível.
  *
- * Backup que nunca foi restaurado não é backup. Este teste faz o caminho inteiro contra um S3 FALSO
- * de verdade (HTTP, recebendo o PUT assinado do `armazenamentoS3`): banco com dados → `VACUUM INTO`
- * → gzip → PUT; depois GET → gunzip → arquivo novo → `PRAGMA integrity_check` e contagens iguais.
+ * O `VACUUM INTO` saiu com o SQLite (ver `server/operacao/snapshot.ts`); o backup passa a ser
+ * `pg_dump` no CI. O que este arquivo prova é o que sobrou de comportamento: o job não lança, não
+ * pinga o heartbeat (que significa "há backup conferido") e o agendador segue tratando sucesso e
+ * falha como antes; e a VOLTA dos snapshots SQLite que já estão no R2 (os de antes da migração)
+ * continua funcionando: GET → gunzip → arquivo novo → `integrity_check` e contagens. Os testes do
+ * agendador e da restauração vieram de `snapshot-e-restauracao.test.ts`, apagado com o `VACUUM INTO`.
  */
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import type { Server } from 'node:http'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { gzipSync } from 'node:zlib'
 
 import { createClient } from '@libsql/client'
 import express from 'express'
@@ -20,22 +24,19 @@ import {
   fazerSnapshot,
   msAteAProxima,
   restaurarSnapshot,
+  SNAPSHOT_INDISPONIVEL,
 } from '../../server/operacao/snapshot'
 
 let dir: string
 let servidor: Server
 let endpoint: string
 const objetos = new Map<string, Buffer>()
-const assinados: string[] = []
 
+/* Um "R2" falso de verdade (HTTP, recebendo o GET assinado do `armazenamentoS3`) com UM snapshot
+   SQLite do dia 2026-09-24, feito como o job antigo fazia: um arquivo `.db` comprimido. */
 beforeAll(async () => {
-  dir = mkdtempSync(path.join(tmpdir(), 'snapshot-'))
+  dir = mkdtempSync(path.join(tmpdir(), 'snapshot-legado-'))
   const s3 = express()
-  s3.put('/*', express.raw({ type: () => true, limit: '50mb' }), (req, res) => {
-    assinados.push(String(req.header('authorization') ?? ''))
-    objetos.set(decodeURIComponent(req.path), req.body as Buffer)
-    res.status(200).end()
-  })
   s3.get('/*', (req, res) => {
     const o = objetos.get(decodeURIComponent(req.path))
     if (!o) {
@@ -50,15 +51,15 @@ beforeAll(async () => {
   const addr = servidor.address()
   endpoint = `http://127.0.0.1:${typeof addr === 'object' && addr ? addr.port : 0}`
 
-  // Um banco com as tabelas que a verificação conta, e dados.
-  const banco = createClient({ url: `file:${path.join(dir, 'vivo.db').replace(/\\/g, '/')}` })
-  await banco.execute('PRAGMA journal_mode = WAL')
+  const arquivo = path.join(dir, 'antigo.db')
+  const banco = createClient({ url: `file:${arquivo.replace(/\\/g, '/')}` })
   await banco.execute('CREATE TABLE sessions (id TEXT PRIMARY KEY, titulo TEXT)')
   await banco.execute('CREATE TABLE users (id TEXT PRIMARY KEY)')
   for (let i = 0; i < 250; i++)
     await banco.execute({ sql: 'INSERT INTO sessions VALUES (?, ?)', args: [`s${i}`, `sessão ${i}`] })
   await banco.execute("INSERT INTO users VALUES ('u1')")
   banco.close()
+  objetos.set('/backups-babel/backups/diario/2026-09-24.db.gz', gzipSync(readFileSync(arquivo)))
 })
 
 afterAll(async () => {
@@ -82,29 +83,33 @@ const destino = () => {
   return d
 }
 
-describe('snapshot diário → R2 → restauração', () => {
+describe('snapshot diário no Postgres', () => {
+  it('o job registra a indisponibilidade e devolve null, sem lançar', async () => {
+    const saida = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const saidaLog = vi.spyOn(console, 'log').mockImplementation(() => {})
+    try {
+      await expect(fazerSnapshot()).resolves.toBeNull()
+      const escrito = [...saida.mock.calls, ...saidaLog.mock.calls].flat().join(' ')
+      expect(escrito).toContain('backup_diario_indisponivel')
+      expect(escrito).toContain(SNAPSHOT_INDISPONIVEL)
+    } finally {
+      saida.mockRestore()
+      saidaLog.mockRestore()
+    }
+  })
+
   it('destinoDoBackup exige as credenciais e prefere BACKUP_S3_BUCKET', () => {
-    expect(destinoDoBackup({} as NodeJS.ProcessEnv)).toBeNull()
-    expect(destino().cfg.bucket).toBe('backups-babel')
+    expect(destinoDoBackup({})).toBeNull()
+    const base = { S3_ENDPOINT: 'https://r2', S3_ACCESS_KEY_ID: 'k', S3_SECRET_ACCESS_KEY: 's' }
+    expect(destinoDoBackup({ ...base, S3_BUCKET: 'midia' })?.cfg.bucket).toBe('midia')
+    expect(destinoDoBackup({ ...base, S3_BUCKET: 'midia', BACKUP_S3_BUCKET: 'backups' })?.cfg.bucket).toBe('backups')
   })
+})
 
-  it('envia o snapshot do dia, comprimido e assinado', async () => {
-    const r = await fazerSnapshot({
-      urlDoBanco: `file:${path.join(dir, 'vivo.db').replace(/\\/g, '/')}`,
-      dirTemporario: dir,
-      destino: destino(),
-      agora: new Date('2026-09-24T06:00:00Z'),
-    })
-    expect(r.chave).toBe('backups/diario/2026-09-24.db.gz')
-    expect(r.verificacao.ok).toBe(true)
-    expect(objetos.has('/backups-babel/backups/diario/2026-09-24.db.gz')).toBe(true)
-    expect(assinados.at(-1)).toMatch(/^AWS4-HMAC-SHA256 Credential=chave\//)
-  })
-
+describe('a volta de um snapshot SQLite do R2', () => {
   it('restaura num arquivo NOVO, e a cópia passa no integrity_check com as mesmas contagens', async () => {
     const saida = path.join(dir, 'limpo', 'restaurado.db')
-    rmSync(path.dirname(saida), { recursive: true, force: true })
-    await import('node:fs').then((fs) => fs.mkdirSync(path.dirname(saida), { recursive: true }))
+    mkdirSync(path.dirname(saida), { recursive: true })
     const v = await restaurarSnapshot({ destino: destino(), dia: '2026-09-24', arquivoSaida: saida })
     expect(v.ok).toBe(true)
     expect(v.integridade).toBe('ok')
@@ -114,7 +119,7 @@ describe('snapshot diário → R2 → restauração', () => {
 
   it('recusa restaurar por cima de um arquivo que já existe', async () => {
     await expect(
-      restaurarSnapshot({ destino: destino(), dia: '2026-09-24', arquivoSaida: path.join(dir, 'vivo.db') }),
+      restaurarSnapshot({ destino: destino(), dia: '2026-09-24', arquivoSaida: path.join(dir, 'antigo.db') }),
     ).rejects.toThrow(/já existe/)
   })
 
@@ -133,7 +138,7 @@ describe('agendador', () => {
     expect(msAteAProxima(5, agora)).toBe(23 * 3600_000)
   })
 
-  it('sucesso → heartbeat; falha → sem heartbeat', async () => {
+  it('sucesso → heartbeat; falha → sem heartbeat; indisponível (null) → sem heartbeat nem métrica', async () => {
     vi.useFakeTimers()
     try {
       const buscar = vi.fn(async () => new Response('ok')) as unknown as typeof fetch
@@ -158,6 +163,22 @@ describe('agendador', () => {
       expect(falha).toHaveBeenCalledTimes(1)
       expect(buscar2).not.toHaveBeenCalled()
       parar2()
+
+      const buscar3 = vi.fn(async () => new Response('ok')) as unknown as typeof fetch
+      const observar = vi.fn()
+      const nada = vi.fn(async () => null)
+      const parar3 = agendarSnapshotDiario({
+        horaUtc: 0,
+        executar: nada,
+        heartbeatUrl: 'https://hb.exemplo/abc',
+        buscar: buscar3,
+        observar,
+      })
+      await vi.advanceTimersByTimeAsync(24 * 3600_000 + 1000)
+      expect(nada).toHaveBeenCalledTimes(1)
+      expect(buscar3).not.toHaveBeenCalled()
+      expect(observar).not.toHaveBeenCalled()
+      parar3()
     } finally {
       vi.useRealTimers()
     }

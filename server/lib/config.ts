@@ -279,7 +279,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      '1 liga o snapshot diário do banco (VACUUM INTO + integrity_check + gzip) enviado ao R2 em `backups/diario/AAAA-MM-DD.db.gz` (server/operacao/snapshot.ts). Exige as `S3_*`',
+      '1 liga o job do snapshot diário do banco. No Postgres ele só registra `indisponível neste banco; backup por pg_dump no CI` (server/operacao/snapshot.ts)',
   },
   {
     nome: 'BACKUP_HEARTBEAT_URL',
@@ -371,16 +371,11 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'isolamento de origem (SharedArrayBuffer → WASM com threads na inferência local), LIGADO por padrão: ausente ou `1` = COOP same-origin + COEP credentialless + Document-Isolation-Policy; `dip` = só o DIP (Chromium; para quando um iframe de terceiro não aceitar COEP); `0` desliga (server/http/isolamento.ts)',
   },
   {
-    nome: 'DATABASE_AUTH_TOKEN',
-    exigencia: 'opcional',
-    criticidade: 'degrada-capacidade',
-    paraQue: 'token do banco libsql REMOTO (Turso); ignorado com arquivo local',
-  },
-  {
     nome: 'DATABASE_URL',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
-    paraQue: 'URL do libsql; sem ela, arquivo local em DATA_DIR',
+    paraQue:
+      'URL do banco: `pglite:<diretório>` (Postgres embutido, uma máquina só), `pglite://memory` ou `postgres://…`; sem ela, `pglite:./data/pg` (server/db/db.ts)',
   },
   {
     nome: 'DATA_DIR',
@@ -598,18 +593,11 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'chave secreta do projeto Langfuse (par da LANGFUSE_PUBLIC_KEY)',
   },
   {
-    nome: 'LIMPEZA_CHECKPOINT',
-    exigencia: 'opcional',
-    criticidade: 'degrada-capacidade',
-    paraQue:
-      '`1` faz a limpeza diária terminar com `PRAGMA wal_checkpoint(TRUNCATE)`. Desligado por padrão: com o Litestream replicando, quem faz o checkpoint do WAL é ele, e um checkpoint manual pode obrigá-lo a recomeçar a réplica com uma cópia inteira. Ligue só onde NÃO há Litestream (dev, self-host) (server/lib/limpezaDiaria.ts)',
-  },
-  {
     nome: 'LIMPEZA_DIARIA',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      '`1` liga a limpeza diária do banco: o apagamento físico do que foi apagado há mais de `LIMPEZA_RETENCAO_DIAS`, a conferência dos agregados diários e o `PRAGMA optimize`. Sem ela, desligada: apagar de vez não tem volta, e ligar é ato do dono, depois de um backup (server/lib/limpezaDiaria.ts)',
+      '`1` liga a limpeza diária do banco: o apagamento físico do que foi apagado há mais de `LIMPEZA_RETENCAO_DIAS`, e a conferência dos agregados diários. Sem ela, desligada: apagar de vez não tem volta, e ligar é ato do dono, depois de um backup (server/lib/limpezaDiaria.ts)',
   },
   {
     nome: 'LIMPEZA_RETENCAO_DIAS',
@@ -1180,11 +1168,6 @@ export function diasAteApagarDeVez(env: NodeJS.ProcessEnv = process.env): number
     quem liga é o dono, depois de um backup. Em teste ela nunca agenda. */
 export function limpezaDiariaLigada(env: NodeJS.ProcessEnv = process.env): boolean {
   return env.LIMPEZA_DIARIA?.trim() === '1' && env.NODE_ENV !== 'test'
-}
-
-/** O checkpoint manual do WAL no fim da limpeza: só com `LIMPEZA_CHECKPOINT=1` (ver o inventário). */
-export function checkpointNaLimpeza(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env.LIMPEZA_CHECKPOINT?.trim() === '1'
 }
 
 /** O modelo de STT gerenciado quando `STT_MODEL` não diz outro (medido: docs/auditoria/eval/bancada-2026-09.md). */

@@ -22,6 +22,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { makeFsrs5, retrievability } from '../../src/core/learning/scheduler'
 import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
+import { orfaos } from '../harness/catalogoPg'
 import { clienteSql } from '../harness/clienteSql'
 import { AGORA, semearRico } from './_semeaduraRica'
 
@@ -647,10 +648,8 @@ describe('medir, agregar e limpar', () => {
       const { limparBanco } = await s.load('../../server/lib/limpezaDiaria')
       /* Só o usuário X tem linha velha o bastante neste ponto? Não: Y também. A passada pega os dois,
          e o caso seguinte confere Y contra o que se espera dele, linha a linha. */
-      const r = await limparBanco({ agora: AGORA, dias: 30, checkpoint: false })
+      const r = await limparBanco({ agora: AGORA, dias: 30 })
       expect(r.usuarios).toBeGreaterThanOrEqual(2)
-      expect(r.otimizado).toBe(true)
-      expect(r.checkpoint).toBeNull()
 
       expect(await ids('sessions', X)).toEqual(['x-ses-com-cartao', 'x-ses-recente', 'x-ses-viva'])
       // As falas da sessão que fica (por ter cartão) saem: estavam apagadas há 40 dias, e são o que pesa.
@@ -674,7 +673,7 @@ describe('medir, agregar e limpar', () => {
         item_ref: 'palavra',
       })
       // Nenhuma chave estrangeira ficou apontando para o vazio.
-      expect(await linhas('PRAGMA foreign_key_check')).toEqual([])
+      expect(await orfaos(client)).toEqual([])
     })
 
     it('o outro usuário teve exatamente o mesmo tratamento, e nada dele saiu além do prazo', async () => {
@@ -691,7 +690,7 @@ describe('medir, agregar e limpar', () => {
       await agregadosRepo.reconstruir(U(Z))
       const estadoAntes = await agregadosRepo.estado(U(Z))
       const { limparBanco } = await s.load('../../server/lib/limpezaDiaria')
-      const r = await limparBanco({ agora: AGORA, dias: 30, checkpoint: false })
+      const r = await limparBanco({ agora: AGORA, dias: 30 })
       // X e Y já foram limpos na passada anterior: agora não há ninguém.
       expect(r).toMatchObject({ usuarios: 0, sessoes: 0, falas: 0, cartoes: 0, ocorrencias: 0, revisoes: 0 })
       expect(await ids('vocab_cards', Z)).toEqual(['z-card'])
@@ -717,27 +716,23 @@ describe('medir, agregar e limpar', () => {
 
     it('com prazo menor, o que tinha 10 dias também sai; o cartão do Anki e a sessão com cartão continuam', async () => {
       const { limparBanco } = await s.load('../../server/lib/limpezaDiaria')
-      const r = await limparBanco({ agora: AGORA, dias: 5, checkpoint: true })
+      const r = await limparBanco({ agora: AGORA, dias: 5 })
       expect(r.usuarios).toBeGreaterThanOrEqual(2)
-      // Pedido o checkpoint: feito (ou ocupado), nunca "não pedido".
-      expect(r.checkpoint).not.toBeNull()
       expect(await ids('sessions', X)).toEqual(['x-ses-com-cartao', 'x-ses-viva'])
       expect(await ids('vocab_cards', X)).toEqual(['x-card-do-anki', 'x-card-vivo'])
       expect(await ids('review_logs', X)).toEqual(['x-rev-viva'])
-      expect(await linhas('PRAGMA foreign_key_check')).toEqual([])
+      expect(await orfaos(client)).toEqual([])
       expect((await metricas.computeProfile(U(X))).reviews).toBe(reviewsAntes)
     })
 
     it('o prazo vem do ambiente, e valor inválido cai nos 30 dias', async () => {
-      const { diasAteApagarDeVez, limpezaDiariaLigada, checkpointNaLimpeza } = await s.load('../../server/lib/config')
+      const { diasAteApagarDeVez, limpezaDiariaLigada } = await s.load('../../server/lib/config')
       expect(diasAteApagarDeVez({})).toBe(30)
       expect(diasAteApagarDeVez({ LIMPEZA_RETENCAO_DIAS: '45' })).toBe(45)
       for (const ruim of ['0', '-3', '2.5', 'abc']) expect(diasAteApagarDeVez({ LIMPEZA_RETENCAO_DIAS: ruim })).toBe(30)
       expect(limpezaDiariaLigada({})).toBe(false)
       expect(limpezaDiariaLigada({ LIMPEZA_DIARIA: '1' })).toBe(true)
       expect(limpezaDiariaLigada({ LIMPEZA_DIARIA: '1', NODE_ENV: 'test' })).toBe(false)
-      expect(checkpointNaLimpeza({})).toBe(false)
-      expect(checkpointNaLimpeza({ LIMPEZA_CHECKPOINT: '1' })).toBe(true)
     })
   })
 })

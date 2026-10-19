@@ -29,25 +29,19 @@
  * XP de ninguém 30 dias depois, elas vão para `revisoes_purgadas`/`acertos_purgados` dos agregados
  * diários, na mesma transação, e o perfil as soma (`agregadosRepo.revisoesDoPerfil`).
  *
- * DEPOIS: confere os agregados de quem ficou com as marcas diferentes, roda `PRAGMA optimize` (dá
- * estatística ao planejador, que nunca teve) e, só com `LIMPEZA_CHECKPOINT=1`, o checkpoint do WAL
- * com truncamento.
+ * DEPOIS: confere os agregados de quem ficou com as marcas diferentes. (No SQLite a passada
+ * terminava com `PRAGMA optimize` e, opcionalmente, o checkpoint do WAL; no Postgres o autovacuum
+ * cuida das estatísticas e não há WAL de aplicação para dobrar.)
  *
- * O CHECKPOINT É OPCIONAL E NASCE DESLIGADO. Em produção quem cuida do WAL é o Litestream
- * (`litestream.yml`): ele faz os próprios checkpoints e precisa ver todos os quadros do WAL antes
- * de eles serem dobrados no arquivo. Um checkpoint com truncamento feito pela aplicação pode
- * passar na frente dele e obrigá-lo a recomeçar a réplica com uma cópia inteira do banco. Não há
- * como provar daqui que isso não acontece na versão em uso (0.5.17), então o padrão é não fazer.
- *
- * O ARQUIVO NÃO ENCOLHE: `DELETE` devolve as páginas à lista de livres do próprio arquivo, que as
- * reaproveita nas próximas escritas. Encolher pede `VACUUM`, que reescreve o banco inteiro com a
- * trava de escrita e não é feito aqui.
+ * O ARQUIVO NÃO ENCOLHE: `DELETE` deixa as tuplas mortas para o autovacuum, que devolve o espaço
+ * à própria tabela para as próximas escritas. Encolher pede `VACUUM FULL`, que reescreve a tabela
+ * com trava exclusiva e não é feito aqui.
  */
 import { sql } from 'drizzle-orm'
 
 import { agregarPorDia } from '../../src/core/learning/agregados'
 import { diaNumeroNoFuso } from '../../src/core/learning/economia'
-import { bancoEmbutido, db, emTransacao, linhas, linhasAfetadas, travarUsuario } from '../db/db'
+import { db, emTransacao, linhas, linhasAfetadas, travarUsuario } from '../db/db'
 import {
   agregadosRepo,
   gruposDeRevisoes,
@@ -72,9 +66,6 @@ export interface RelatorioDaLimpeza {
   revisoes: number
   /** Usuários cujos agregados estavam atrás do bruto e foram recontados. */
   agregadosRecontados: number
-  otimizado: boolean
-  /** `null` = checkpoint não pedido; `false` = pedido e ocupado (ou falhou); `true` = feito. */
-  checkpoint: boolean | null
 }
 
 const afetadas = (r: unknown) => linhasAfetadas(r)
@@ -145,13 +136,8 @@ async function limparUsuario(userId: UserId, corte: number, agora: number) {
   })
 }
 
-/**
- * Uma passada da limpeza. `dias` e `checkpoint` vêm do ambiente quando ausentes
- * (`LIMPEZA_RETENCAO_DIAS`, `LIMPEZA_CHECKPOINT`).
- */
-export async function limparBanco(
-  o: { agora?: number; dias?: number; checkpoint?: boolean } = {},
-): Promise<RelatorioDaLimpeza> {
+/** Uma passada da limpeza. `dias` vem do ambiente quando ausente (`LIMPEZA_RETENCAO_DIAS`). */
+export async function limparBanco(o: { agora?: number; dias?: number } = {}): Promise<RelatorioDaLimpeza> {
   const agora = o.agora ?? Date.now()
   const corte = agora - (o.dias ?? diasAteApagarDeVez()) * DIA_MS
   const r: RelatorioDaLimpeza = {
@@ -163,8 +149,6 @@ export async function limparBanco(
     ocorrencias: 0,
     revisoes: 0,
     agregadosRecontados: 0,
-    otimizado: false,
-    checkpoint: null,
   }
 
   /* Quem tem o que apagar. Os cinco índices parciais `idx_*_apagadas` (migração 0053) respondem
@@ -210,11 +194,6 @@ export async function limparBanco(
   for (const { user_id } of atrasados) {
     await agregadosRepo.reconstruir(user_id as UserId)
     r.agregadosRecontados += 1
-  }
-
-  // PRAGMA optimize e wal_checkpoint não existem no Postgres. Tarefa 6 remove de vez.
-  if (!bancoEmbutido) {
-    /* Tarefa 6 remove de vez */
   }
 
   log('info', { event: 'limpeza_diaria', ...r })

@@ -42,7 +42,7 @@ import { registrarDesligamento } from './server/lib/desligamento'
 /* `diretorioGravavel` morava aqui e o `crypto.ts` tinha a sua propria versao divergente — a chave
    de segredos ia parar no disco efemero do conteiner enquanto o diario ia para o volume. Uma
    resposta so, em `server/lib/diretorios.ts` (auditoria de 2026-09-07, achado A34). */
-import { diretorioGravavel, erroDeMultiReplica } from './server/lib/diretorios'
+import { diretorioGravavel, erroDeClusterComBancoEmbutido, erroDeMultiReplica } from './server/lib/diretorios'
 import { erroGlobal } from './server/lib/erroGlobal'
 import { log } from './server/lib/logger'
 
@@ -221,7 +221,7 @@ async function startServer({ prepararDados = true } = {}) {
      mudaria o comportamento de quem já opera assim; o `IA_PROVEDORES` é onde a recusa vale. */
   for (const aviso of avisosDoRegistroDeIa()) log('warn', { event: 'ia_provedor_sem_zdr', error: aviso })
 
-  // P0-2: garante que WAL/busy_timeout já valem ANTES de qualquer escrita (inclusive o seed).
+  // P0-2: o banco responde ANTES de qualquer escrita (inclusive o seed).
   await dbReady
 
   // Migrations ANTES de tudo. Sem isto, um deploy limpo entra em crash-loop: o volume começa
@@ -391,40 +391,21 @@ async function startServer({ prepararDados = true } = {}) {
     }
   }
 
-  /* SNAPSHOT DIÁRIO NO R2 (Fase 5) — só no processo que prepara os dados (o primário, no cluster):
-     N processos fariam N cópias do mesmo banco na mesma hora. AGENDADO aqui, EXECUTADO num processo
-     filho. O porquê de ser nesta máquina, e não num cron externo, e de ser num filho, está em
-     `server/operacao/snapshot.ts`. */
+  /* SNAPSHOT DIÁRIO (Fase 5) — só no processo que prepara os dados (o primário, no cluster). Aposentado
+     na migração para o Postgres: ver `server/operacao/snapshot.ts`. */
   const backup = prepararDados ? configDoBackupDiario() : null
   if (backup) {
-    const { agendarSnapshotDiario, destinoDoBackup, fazerSnapshotEmProcessoFilho, resolverCliDeOperacao } =
-      await import('./server/operacao/snapshot')
+    /* No Postgres o job só registra que o snapshot está indisponível (o backup é `pg_dump` no CI);
+       ele continua agendado para o `BACKUP_DIARIO=1` de quem já o tinha ligado deixar rastro no log. */
+    const { agendarSnapshotDiario, fazerSnapshot, SNAPSHOT_INDISPONIVEL } = await import('./server/operacao/snapshot')
     const { observarBackup } = await import('./server/http/metricas')
-    const destino = destinoDoBackup()
-    const urlDoBanco = process.env.DATABASE_URL ?? 'file:./data/babel.db'
-    /* A CLI que o filho roda é resolvida AGORA, no boot: faltando o `operacao.cjs` na imagem, o
-       aviso sai no deploy, e não às 3h da manhã num log que ninguém lê. */
-    let cli: ReturnType<typeof resolverCliDeOperacao> | null = null
-    try {
-      cli = resolverCliDeOperacao()
-    } catch (err) {
-      console.error(`[backup] ${(err as Error).message} — snapshot diário DESLIGADO`)
-    }
-    if (!destino || !urlDoBanco.startsWith('file:')) {
-      console.error('[backup] BACKUP_DIARIO=1 mas faltam as S3_* ou o banco não é arquivo — snapshot diário DESLIGADO')
-    } else if (cli) {
-      const cliDoFilho = cli
-      agendarSnapshotDiario({
-        horaUtc: backup.horaUtc,
-        heartbeatUrl: backup.heartbeatUrl,
-        /* Num PROCESSO FILHO (a CLI de operação): o `VACUUM INTO` e o `integrity_check` do driver
-           síncrono prendiam o event loop por segundos — 3,7 s com 46 MB, 34 s com 479 MB — e o
-           health check do Fly desiste em 5 s. Ver `fazerSnapshotEmProcessoFilho`. */
-        executar: () => fazerSnapshotEmProcessoFilho({ urlDoBanco, cli: cliDoFilho }),
-        observar: observarBackup,
-      })
-      console.log(`[backup] snapshot diário às ${backup.horaUtc}h UTC para ${destino.cfg.bucket}/${destino.prefixo}`)
-    }
+    agendarSnapshotDiario({
+      horaUtc: backup.horaUtc,
+      heartbeatUrl: backup.heartbeatUrl,
+      executar: fazerSnapshot,
+      observar: observarBackup,
+    })
+    console.warn(`[backup] BACKUP_DIARIO=1: snapshot ${SNAPSHOT_INDISPONIVEL}`)
   }
 
   /* RETENÇÃO DO ÁUDIO DE SESSÃO (`AUDIO_RETENCAO_DIAS`, padrão 90 dias; 0 = para sempre) — no mesmo
@@ -472,9 +453,8 @@ async function startServer({ prepararDados = true } = {}) {
   }
 
   /* LIMPEZA DIÁRIA DO BANCO: apaga de vez o que foi apagado há mais de `LIMPEZA_RETENCAO_DIAS`
-     (padrão 30), confere os agregados diários e roda `PRAGMA optimize`. Mesmo processo e mesmo
-     motivo das limpezas acima. `LIMPEZA_DIARIA=0` desliga; em teste não agenda. O checkpoint do WAL
-     só com `LIMPEZA_CHECKPOINT=1` (com Litestream, não ligar). Ver `server/lib/limpezaDiaria.ts`. */
+     (padrão 30) e confere os agregados diários. Mesmo processo e mesmo motivo das limpezas acima.
+     `LIMPEZA_DIARIA=0` desliga; em teste não agenda. Ver `server/lib/limpezaDiaria.ts`. */
   if (prepararDados && limpezaDiariaLigada()) {
     const { agendarLimpezaDiaria } = await import('./server/lib/limpezaDiaria')
     agendarLimpezaDiaria()
@@ -501,9 +481,9 @@ async function startServer({ prepararDados = true } = {}) {
  * de 2 VUs: saturação de processo único, não consulta lenta (sem concorrência, `/api/sessions`
  * responde em 7 ms). Índice não resolve fila; mais processo resolve.
  *
- * As três barreiras que impediam isso já caíram e estão medidas: WAL + `busy_timeout`
- * (0% de falha em 14.220 escritas com 3 processos), rate limit contado no banco
- * (`rateLimitStore.ts`, `localKeys: false`) e áudio fora do `cwd` (`AUDIO_DIR`).
+ * Exige Postgres remoto (`DATABASE_URL=postgres://…`): o PGlite embutido é de processo único e a
+ * trava `erroDeClusterComBancoEmbutido` recusa o boot. As outras barreiras já caíram: rate limit
+ * contado no banco (`rateLimitStore.ts`, `localKeys: false`) e áudio fora do `cwd` (`AUDIO_DIR`).
  *
  * Só o primário migra: os workers são forkados DEPOIS de `startServer()` do primário terminar, o
  * que elimina a contenção de lock no boot que hoje depende de restart do orquestrador.
@@ -539,32 +519,18 @@ async function iniciar() {
     console.warn('   WASAPI e por processo, e /api/audio/loopback/* recusa neste modo.')
   }
 
+  /* O PGlite é de processo único: com o banco embutido, o cluster não sobe (ver a trava). */
+  const clusterComBancoEmbutido = erroDeClusterComBancoEmbutido()
+  if (clusterComBancoEmbutido) {
+    console.error(`[boot] ABORTADO: ${clusterComBancoEmbutido}`)
+    process.exit(1)
+  }
+
   const { default: cluster } = await import('node:cluster')
   const { availableParallelism } = await import('node:os')
   const workers = Math.min(pedidos, availableParallelism())
 
   if (cluster.isPrimary) {
-    /*
-     * WAL É PRÉ-REQUISITO, e a falha dele é silenciosa por natureza.
-     *
-     * `PRAGMA journal_mode = WAL` não lança quando não pega: sobre NFS/SMB ele devolve 'delete' e
-     * segue. Medido sem WAL: 21,5% das escritas falhando com 2 processos, 28,9% com 3. Em modo
-     * cluster isso significaria N processos subindo "saudáveis" e perdendo um quarto das escritas
-     * com o aviso perdido no log — então aqui é falha dura, não aviso.
-     */
-    const { db, linhas } = await import('./server/db/db')
-    const { sql } = await import('drizzle-orm')
-    const modo = String(
-      Object.values(linhas<Record<string, unknown>>(await db.execute(sql`PRAGMA journal_mode`))[0] ?? {})[0] ?? '',
-    ).toLowerCase()
-    if (modo !== 'wal') {
-      console.error(`[cluster] ABORTADO: journal_mode é '${modo}', não 'wal'.`)
-      console.error('   Sem WAL, múltiplos processos perdem ~25% das escritas. WAL exige memória')
-      console.error('   compartilhada e NÃO funciona sobre NFS/SMB — use volume local, ou rode com')
-      console.error('   um processo só (sem CLUSTER_WORKERS).')
-      process.exit(1)
-    }
-
     /*
      * O primário sobe o servidor INTEIRO primeiro — é isso que garante migrations aplicadas
      * uma vez só, antes de qualquer worker existir. Ele também atende, então não há processo

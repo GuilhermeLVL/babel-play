@@ -46,7 +46,7 @@ describe('limpeza diária com erro transitório', () => {
     const original = agregadosRepo.fusoGravado.bind(agregadosRepo)
     const spy = vi.spyOn(agregadosRepo, 'fusoGravado')
     spy.mockRejectedValueOnce(erroPg('40P01')).mockImplementation(original)
-    const r = await limparBanco({ agora: AGORA, dias: 30, checkpoint: false })
+    const r = await limparBanco({ agora: AGORA, dias: 30 })
     spy.mockRestore()
     expect(r.cartoes).toBe(1)
     expect(r.usuarios).toBe(1)
@@ -59,7 +59,7 @@ describe('limpeza diária com erro transitório', () => {
     const spy = vi
       .spyOn(agregadosRepo, 'fusoGravado')
       .mockImplementation((u: string) => (u === 'limp-t2' ? Promise.reject(erroPg('40001')) : original(u)))
-    const r = await limparBanco({ agora: AGORA, dias: 30, checkpoint: false })
+    const r = await limparBanco({ agora: AGORA, dias: 30 })
     spy.mockRestore()
     expect(r.cartoes).toBe(1) // só o de limp-t3
     const [{ n }] = (await db.execute(sql`SELECT count(*)::int AS n FROM vocab_cards WHERE id = 'limp-t2-card'`)).rows
@@ -68,7 +68,7 @@ describe('limpeza diária com erro transitório', () => {
 
   it('erro que não é transitório interrompe a passada', async () => {
     const spy = vi.spyOn(agregadosRepo, 'fusoGravado').mockRejectedValue(erroPg('23505'))
-    await expect(limparBanco({ agora: AGORA, dias: 30, checkpoint: false })).rejects.toThrow()
+    await expect(limparBanco({ agora: AGORA, dias: 30 })).rejects.toThrow()
     spy.mockRestore()
   })
 })

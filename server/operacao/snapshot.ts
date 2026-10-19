@@ -1,61 +1,38 @@
 /**
- * SNAPSHOT DIÁRIO DO BANCO NO R2, E A VOLTA DELE (Fase 5 do lançamento).
+ * SNAPSHOT DIÁRIO DO BANCO — APOSENTADO NA MIGRAÇÃO PARA O POSTGRES (Fase 1).
  *
- * O Litestream (ver `Dockerfile` e `litestream.yml`) replica o WAL para o R2 continuamente — é a
- * defesa contra perder a máquina, com perda máxima de segundos. Este é o SEGUNDO cinto, e existe
- * por um motivo diferente: o Litestream copia fielmente o que acontece no banco, INCLUSIVE o erro.
- * Um `DELETE` sem `WHERE` ou uma migração ruim chega à réplica em um segundo. O snapshot diário é
- * uma fotografia independente, com um arquivo por dia, que nenhum processo reescreve depois.
+ * No SQLite este módulo fazia `VACUUM INTO` → `PRAGMA integrity_check` → gzip → PUT no R2, num
+ * processo filho para não prender o event loop. Nada disso tem sentido no Postgres: não há arquivo
+ * único para copiar (o PGlite guarda um diretório de dados, o Postgres remoto nem está nesta
+ * máquina), e o backup passa a ser `pg_dump` agendado no CI, fora do servidor.
  *
- * POR QUE NA MESMA MÁQUINA, e não num cron do Fly ou do GitHub Actions: o volume `/data` do Fly
- * monta em UMA máquina só. Uma máquina agendada separada não enxerga o banco, e uma rota admin
- * chamada pelo Actions abriria uma porta HTTP que dispara trabalho pesado. Aqui o próprio servidor
- * (sempre ligado: `min_machines_running = 1`) AGENDA o snapshot uma vez por dia. O alarme de quando
- * ele NÃO roda — processo morto, timer perdido — é externo: o ping do `BACKUP_HEARTBEAT_URL`
- * (UptimeRobot heartbeat) que só acontece depois de um envio conferido.
+ * A FORMA PÚBLICA FICA, para o agendador do `server.ts` e a CLI de operação continuarem compilando
+ * e respondendo: com `BACKUP_DIARIO=1`, o job diário ainda roda, mas só REGISTRA que o snapshot está
+ * indisponível neste banco e devolve sem erro. Não pinga o heartbeat nem conta sucesso na métrica:
+ * o heartbeat diz "há um backup conferido", e aqui não há.
  *
- * MAS NUM PROCESSO FILHO, e não no event loop de quem atende (auditoria de prontidão, Fase 2 §2.4).
- * O driver do libsql é SÍNCRONO: `VACUUM INTO` e `integrity_check` param o laço inteiro, e o
- * `gzipSync(level 9)` do arquivo lido com `readFile` somava mais. Medido em 25/09: 3,7 s de bloqueio
- * contínuo com 46 MB, 20,1 s com 191 MB, 34,3 s com 479 MB — e o health check do Fly tem timeout de
- * 5 s. Agora o servidor chama `fazerSnapshotEmProcessoFilho`, que dá `fork` na CLI de operação
- * (`cli.ts` em dev, `dist-server/operacao.cjs` em produção) e só espera a mensagem de conclusão. O
- * filho tem conexão própria ao banco, comprime em STREAMING (gzip nível 6, sem o arquivo inteiro na
- * memória) e envia o `.gz` ao R2 lendo do disco (`enviarArquivoAoS3`).
- *
- * As três garantias do `scripts/backup.mjs` valem aqui também: `VACUUM INTO` e não cópia de
- * arquivo (sob WAL são três arquivos), `PRAGMA integrity_check` ANTES de considerar feito, e falha
- * alta — `log('error', { event: 'backup_diario_falhou' })`, que o diário e o Sentry recebem.
+ * A VOLTA FICA: `restaurarSnapshot` e `verificarBanco` leem os snapshots SQLITE que já estão no R2
+ * (`backups/diario/AAAA-MM-DD.db.gz`), feitos antes da migração. São arquivos de terceiro para este
+ * servidor, como o `.apkg` do Anki, e é com eles que se volta ao estado anterior à cópia para o
+ * Postgres (`.github/workflows/restauracao-drill.yml`, `docs/runbook.md`). Nunca tocam o banco vivo.
  */
-import { fork } from 'node:child_process'
-import { createReadStream, createWriteStream, existsSync } from 'node:fs'
-import { rm, stat } from 'node:fs/promises'
-import { setPriority } from 'node:os'
-import path from 'node:path'
+import { createWriteStream, existsSync } from 'node:fs'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
-import { createGunzip, createGzip } from 'node:zlib'
+import { createGunzip } from 'node:zlib'
 
 import { createClient } from '@libsql/client'
 
-import { type Armazenamento, armazenamentoS3, type ConfigS3, enviarArquivoAoS3 } from '../lib/armazenamento'
+import { type Armazenamento, armazenamentoS3, type ConfigS3 } from '../lib/armazenamento'
 import { log } from '../lib/logger'
 
-/** Tabelas que a verificação conta — as mesmas de `scripts/backup.mjs`. */
-const TABELAS = [
-  'sessions',
-  'utterances',
-  'vocab_cards',
-  'vocab_occurrences',
-  'review_logs',
-  'exercise_results',
-  'users',
-]
+/** O que o job registra no lugar do snapshot. */
+export const SNAPSHOT_INDISPONIVEL = 'indisponível neste banco; backup por pg_dump no CI'
 
-export const PREFIXO_PADRAO = 'backups/diario/'
+const PREFIXO_PADRAO = 'backups/diario/'
 
 /**
- * Para onde vão os snapshots: `BACKUP_S3_BUCKET`, ou o mesmo bucket da mídia (`S3_BUCKET`), com as
+ * Para onde iam os snapshots: `BACKUP_S3_BUCKET`, ou o mesmo bucket da mídia (`S3_BUCKET`), com as
  * credenciais `S3_*`. `null` quando falta alguma peça — aí o agendador nem liga.
  */
 export function destinoDoBackup(env: NodeJS.ProcessEnv = process.env): { cfg: ConfigS3; prefixo: string } | null {
@@ -73,10 +50,16 @@ export function destinoDoBackup(env: NodeJS.ProcessEnv = process.env): { cfg: Co
   }
 }
 
-/** `2026-09-24` — o nome do objeto do dia. */
-export function nomeDoDia(agora: Date): string {
-  return agora.toISOString().slice(0, 10)
-}
+/** Tabelas que a verificação conta — as mesmas de `scripts/backup.mjs`. */
+const TABELAS = [
+  'sessions',
+  'utterances',
+  'vocab_cards',
+  'vocab_occurrences',
+  'review_logs',
+  'exercise_results',
+  'users',
+]
 
 export interface Verificacao {
   ok: boolean
@@ -84,7 +67,7 @@ export interface Verificacao {
   contagens: Record<string, number | null>
 }
 
-/** Abre um arquivo de banco, roda `PRAGMA integrity_check` e conta as tabelas principais. */
+/** Abre um arquivo SQLite (um snapshot restaurado), roda `PRAGMA integrity_check` e conta as tabelas principais. */
 export async function verificarBanco(arquivo: string): Promise<Verificacao> {
   const cliente = createClient({ url: `file:${arquivo.replace(/\\/g, '/')}` })
   try {
@@ -104,58 +87,7 @@ export async function verificarBanco(arquivo: string): Promise<Verificacao> {
   }
 }
 
-export interface OpcoesDoSnapshot {
-  /** URL libsql do banco de origem (`file:/data/babel.db`). */
-  urlDoBanco: string
-  /** Onde o `VACUUM INTO` escreve a cópia temporária. Precisa estar no MESMO volume, com espaço. */
-  dirTemporario: string
-  destino: { cfg: ConfigS3; prefixo: string }
-  agora?: Date
-  /**
-   * Quem envia o `.gz` já pronto no disco. Injetável para a medição (um destino falso); o padrão é
-   * o PUT em streaming de `enviarArquivoAoS3`.
-   */
-  enviar?: (chave: string, arquivoGz: string) => Promise<void>
-}
-
-/** Nível do gzip. 6 e não 9: medido em 25/09, o 9 custa ~2× o tempo por ~2% de arquivo a menos. */
-const NIVEL_DO_GZIP = 6
-
-/**
- * `VACUUM INTO` → `integrity_check` → gzip (streaming) → PUT `<prefixo><AAAA-MM-DD>.db.gz`. Lança
- * em qualquer falha; as cópias temporárias são apagadas nos dois caminhos.
- *
- * TRABALHO PESADO E SÍNCRONO: quem atende requisições NÃO chama isto direto — chama
- * `fazerSnapshotEmProcessoFilho`, abaixo. Aqui é o corpo do processo filho (e da CLI manual).
- */
-export async function fazerSnapshot(
-  o: OpcoesDoSnapshot,
-): Promise<{ chave: string; bytes: number; verificacao: Verificacao }> {
-  const agora = o.agora ?? new Date()
-  const temporario = path.join(o.dirTemporario, `.snapshot-${agora.getTime()}.db`)
-  const comprimido = `${temporario}.gz`
-  const origem = createClient({ url: o.urlDoBanco })
-  try {
-    if (existsSync(temporario)) await rm(temporario, { force: true })
-    await origem.execute(`VACUUM INTO '${temporario.replace(/\\/g, '/').replace(/'/g, "''")}'`)
-    const verificacao = await verificarBanco(temporario)
-    if (!verificacao.ok) throw new Error(`integrity_check da cópia devolveu "${verificacao.integridade}"`)
-    /* Em STREAMING, de arquivo para arquivo: a memória fica no tamanho do buffer do zlib, e não
-       em +1× o banco (o `readFile` + `gzipSync` de antes). */
-    await pipeline(createReadStream(temporario), createGzip({ level: NIVEL_DO_GZIP }), createWriteStream(comprimido))
-    const bytes = (await stat(comprimido)).size
-    const chave = `${o.destino.prefixo}${nomeDoDia(agora)}.db.gz`
-    if (o.enviar) await o.enviar(chave, comprimido)
-    else await enviarArquivoAoS3(o.destino.cfg, chave, comprimido, 'application/gzip')
-    return { chave, bytes, verificacao }
-  } finally {
-    origem.close()
-    await rm(temporario, { force: true }).catch(() => {})
-    await rm(comprimido, { force: true }).catch(() => {})
-  }
-}
-
-/** Baixa o snapshot de um dia, descomprime em `arquivoSaida` e confere. Não toca o banco vivo. */
+/** Baixa o snapshot SQLite de um dia, descomprime em `arquivoSaida` e confere. Não toca o banco vivo. */
 export async function restaurarSnapshot(o: {
   destino: { cfg: ConfigS3; prefixo: string }
   dia: string
@@ -171,109 +103,13 @@ export async function restaurarSnapshot(o: {
   return verificarBanco(o.arquivoSaida)
 }
 
-/* ─────────────────────── o processo filho ─────────────────────── */
+/** Um snapshot enviado (`chave` no bucket, `bytes` comprimidos) ou `null`: nada foi feito. */
+export type ResultadoDoSnapshot = { chave: string; bytes: number } | null
 
-/** O que o servidor dá `fork`: o módulo da CLI de operação e os argumentos do Node para ele. */
-export interface CliDeOperacao {
-  modulo: string
-  execArgv: string[]
-}
-
-/**
- * Onde está a CLI de operação, nos dois jeitos de o servidor rodar:
- *
- *   produção — `node dist-server/server.cjs`: o `npm run build` gera `dist-server/operacao.cjs` AO
- *              LADO (package.json), e o Dockerfile copia a pasta inteira. Sem carregador.
- *   dev      — `tsx server.ts`: o fonte `server/operacao/cli.ts`, relativo ao `server.ts`. O filho
- *              precisa do carregador do tsx: herda o do pai (o `tsx` põe `--import …/loader.mjs` no
- *              `execArgv`) ou, se o pai não o tem (vitest), recebe `--import tsx`.
- *
- * Pelo `process.argv[1]` (o script principal) e não por `import.meta.url`/`__dirname`: o servidor é
- * ESM em dev e CJS no bundle, e cada formato só tem um dos dois. O `argv[1]` vale nos dois.
- */
-export function resolverCliDeOperacao(
-  o: { principal?: string; execArgv?: string[]; existe?: (arquivo: string) => boolean } = {},
-): CliDeOperacao {
-  const principal = path.resolve(o.principal ?? process.argv[1] ?? '')
-  const execArgvDoPai = o.execArgv ?? process.execArgv
-  const existe = o.existe ?? existsSync
-  const pasta = path.dirname(principal)
-  if (principal.endsWith('.cjs')) {
-    const bundle = path.join(pasta, 'operacao.cjs')
-    if (existe(bundle)) return { modulo: bundle, execArgv: [] }
-    throw new Error(`CLI de operação não encontrada: ${bundle} (falta o npm run build?)`)
-  }
-  const fonte = path.join(pasta, 'server', 'operacao', 'cli.ts')
-  if (!existe(fonte)) throw new Error(`CLI de operação não encontrada: ${fonte}`)
-  const comTsx = execArgvDoPai.some((a) => a.includes('tsx'))
-  return { modulo: fonte, execArgv: comTsx ? [...execArgvDoPai] : ['--import', 'tsx'] }
-}
-
-/** A mensagem que o filho manda ao pai pelo canal IPC do `fork` (ver `cli.ts`). */
-export type MensagemDoSnapshot =
-  | { tipo: 'snapshot_ok'; chave: string; bytes: number; integridade: string }
-  | { tipo: 'snapshot_falhou'; erro: string }
-
-/** Teto de um snapshot. O de 479 MB levou 69 s dentro do processo; 30 min é folga para disco lento. */
-const LIMITE_DO_FILHO_MS = 30 * 60_000
-
-/**
- * O snapshot diário, FORA do event loop de quem atende: `fork` da CLI de operação com o comando
- * `snapshot`, e espera a mensagem de conclusão. O filho herda o ambiente (as `S3_*`) com o
- * `DATABASE_URL` do banco a copiar; o stdout/stderr dele vai para o log do servidor.
- *
- * Prioridade de CPU mais baixa (`nice` 10): numa `shared-cpu-1x` o filho disputa o mesmo núcleo, e
- * quem tem de ganhar a disputa é quem atende. Sem permissão para isso, segue sem.
- *
- * Lança quando o filho falha (com a causa que ele mandou), sai sem mensagem, ou passa do limite —
- * aí ele é morto, para um snapshot preso não acumular processos dia após dia.
- */
-export function fazerSnapshotEmProcessoFilho(o: {
-  urlDoBanco: string
-  cli?: CliDeOperacao
-  env?: NodeJS.ProcessEnv
-  limiteMs?: number
-}): Promise<{ chave: string; bytes: number }> {
-  const limite = o.limiteMs ?? LIMITE_DO_FILHO_MS
-  return new Promise((resolver, rejeitar) => {
-    const cli = o.cli ?? resolverCliDeOperacao()
-    const filho = fork(cli.modulo, ['snapshot'], {
-      execArgv: cli.execArgv,
-      env: { ...(o.env ?? process.env), DATABASE_URL: o.urlDoBanco },
-      stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
-    })
-    try {
-      if (filho.pid) setPriority(filho.pid, 10)
-    } catch {
-      /* sem permissão para mudar a prioridade: roda na mesma, só disputa mais o núcleo */
-    }
-    let mensagem: MensagemDoSnapshot | undefined
-    let motivo: string | undefined
-    const relogio = setTimeout(() => {
-      motivo = `o snapshot passou de ${Math.round(limite / 1000)} s e foi interrompido`
-      filho.kill('SIGKILL')
-    }, limite)
-    relogio.unref?.()
-    filho.on('message', (m: MensagemDoSnapshot) => {
-      if (m?.tipo === 'snapshot_ok' || m?.tipo === 'snapshot_falhou') mensagem = m
-    })
-    filho.once('error', (err) => {
-      motivo ??= `não foi possível iniciar o processo do snapshot: ${err.message}`
-    })
-    filho.once('exit', (codigo, sinal) => {
-      clearTimeout(relogio)
-      if (codigo === 0 && mensagem?.tipo === 'snapshot_ok') {
-        resolver({ chave: mensagem.chave, bytes: mensagem.bytes })
-        return
-      }
-      const causa =
-        motivo ??
-        (mensagem?.tipo === 'snapshot_falhou'
-          ? mensagem.erro
-          : `o processo do snapshot saiu com ${codigo ?? sinal} sem avisar o resultado`)
-      rejeitar(new Error(causa))
-    })
-  })
+/** O job diário: registra a indisponibilidade e devolve `null`, sem lançar. */
+export async function fazerSnapshot(): Promise<ResultadoDoSnapshot> {
+  log('warn', { event: 'backup_diario_indisponivel', error: SNAPSHOT_INDISPONIVEL })
+  return null
 }
 
 /** Quanto falta, em ms, para a próxima `horaUtc:00` — sempre no futuro (nunca zero). */
@@ -284,15 +120,15 @@ export function msAteAProxima(horaUtc: number, agora: Date = new Date()): number
 }
 
 /**
- * Liga o snapshot diário. Devolve como desligar (o teste usa; o servidor não precisa).
+ * Liga o job diário. Devolve como desligar.
  *
- * Os temporizadores levam `unref()`: um backup agendado nunca pode ser o motivo de o processo não
- * terminar num SIGTERM. O heartbeat só é chamado DEPOIS de um envio conferido; falha dele é aviso,
- * não erro — o snapshot existe, quem falhou foi o alarme.
+ * Os temporizadores levam `unref()`: um job agendado nunca pode ser o motivo de o processo não
+ * terminar num SIGTERM. O heartbeat só é chamado DEPOIS de um envio conferido (`executar` devolveu
+ * um resultado); `null` não é sucesso e não pinga nada. Falha do heartbeat é aviso, não erro.
  */
 export function agendarSnapshotDiario(o: {
   horaUtc: number
-  executar: () => Promise<{ chave: string; bytes: number }>
+  executar: () => Promise<ResultadoDoSnapshot>
   heartbeatUrl?: string
   buscar?: typeof fetch
   /** Métricas do backup (`observarBackup` de server/http/metricas.ts) — injetado para a CLI não puxar o prom-client. */
@@ -303,6 +139,7 @@ export function agendarSnapshotDiario(o: {
   const rodar = async () => {
     try {
       const r = await o.executar()
+      if (!r) return
       log('info', { event: 'backup_diario_ok', route: r.chave, total: r.bytes })
       o.observar?.({ ok: true, bytes: r.bytes })
       if (o.heartbeatUrl) {

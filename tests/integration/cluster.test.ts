@@ -12,12 +12,15 @@
  *  1. com `CLUSTER_WORKERS=3`, sobem TRÊS processos servindo a mesma porta — contados por PID
  *     distinto nas respostas, não pela mensagem que o próprio servidor imprime;
  *  2. sem a variável, sobe UM só — o modo cluster não é o padrão;
- *  3. o primário ABORTA quando o banco não está em WAL, em vez de forkar N processos que
- *      perderiam escrita em silêncio.
+ *  3. o primário ABORTA quando o banco é o PGlite embutido, em vez de forkar N processos que não
+ *     dividiriam o banco.
  *
- * O terceiro é o mais importante e o menos óbvio: com `journal_mode` diferente de `wal`, o SQLite
- * serializa escritor único e vários processos passam a competir por lock. Subir "saudável" nessa
- * condição é pior do que não subir.
+ * Postgres (Fase 1): no SQLite a terceira guarda era o WAL (sem ele, vários processos perdiam
+ * escrita). O PGlite é de PROCESSO ÚNICO — o diretório de dados abre num processo só —, então o
+ * cluster exige Postgres remoto, e o boot recusa `CLUSTER_WORKERS > 1` com banco embutido. O caso
+ * (1) sobe três processos sobre o mesmo banco: só roda com `TESTE_POSTGRES_URL` (um Postgres de
+ * verdade, num banco novo criado e apagado pelo caso). Sem ele, fica `skip` com o motivo: o modo
+ * cluster sai na Fase 2 (Cloudflare). Os casos (2) e (3) rodam sempre.
  */
 import { type ChildProcess, spawn } from 'node:child_process'
 import { mkdtempSync, rmSync } from 'node:fs'
@@ -26,11 +29,14 @@ import path from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { bancoPostgresDescartavel, URL_POSTGRES_DE_TESTE } from '../harness/postgresDescartavel'
+
 const RAIZ = path.resolve(import.meta.dirname, '..', '..')
 const vivos: ChildProcess[] = []
 const temporarios: string[] = []
+const bancosPg: Array<() => Promise<void>> = []
 
-afterEach(() => {
+afterEach(async () => {
   for (const p of vivos.splice(0)) {
     try {
       p.kill('SIGKILL')
@@ -45,6 +51,7 @@ afterEach(() => {
       /* ignora */
     }
   }
+  for (const apagar of bancosPg.splice(0)) await apagar()
 })
 
 /**
@@ -109,6 +116,8 @@ function subirServidor(env: Record<string, string>, prazoMs = 60_000, pronto = /
       // desligar a auth por engano num deploy.
       AUTH_REQUIRED: '0',
       SELF_HOST: '1', // instalação pessoal declarada (GAP-003 aceita sem login só assim)
+      // Banco embutido num diretório próprio por padrão; o caso do cluster passa um Postgres.
+      DATABASE_URL: `pglite:${path.join(dados, 'pg').split(path.sep).join('/')}`,
       ...env,
     },
   })
@@ -169,39 +178,40 @@ describe('F6-01 — modo cluster', () => {
     expect(saida()).not.toMatch(/\[cluster\]/)
   }, 90_000)
 
-  it('com CLUSTER_WORKERS=3, o primário anuncia 3 processos na mesma porta', async () => {
-    const { porta, saida } = await subirServidor({ CLUSTER_WORKERS: '3' }, 60_000, /\[cluster\] \d+ processos|ABORTADO/)
-    /* O anúncio do cluster sai logo depois dos `fork()`; o "rodando em" sai no retorno do `listen`, uma
+  it.skipIf(!URL_POSTGRES_DE_TESTE)(
+    'com CLUSTER_WORKERS=3, o primário anuncia 3 processos na mesma porta (exige TESTE_POSTGRES_URL: PGlite é de processo único; o cluster sai na Fase 2)',
+    async () => {
+      const pg = await bancoPostgresDescartavel(URL_POSTGRES_DE_TESTE!)
+      bancosPg.push(pg.apagar)
+      const { porta, saida } = await subirServidor(
+        { CLUSTER_WORKERS: '3', DATABASE_URL: pg.url },
+        60_000,
+        /\[cluster\] \d+ processos|ABORTADO/,
+      )
+      /* O anúncio do cluster sai logo depois dos `fork()`; o "rodando em" sai no retorno do `listen`, uma
        volta do laço de eventos depois. Conferir na hora era corrida (falhou na CI em 11/10/2026). */
-    await expect.poll(() => saida(), { timeout: 15_000 }).toMatch(/rodando em/)
-    // `Math.min(pedidos, availableParallelism())` — numa máquina de 1 núcleo o número cai, e o
-    // teste não pode exigir 3 onde o hardware não dá. Exigir >= 2 é o que prova que forkou.
-    const anuncio = /\[cluster\] (\d+) processos/.exec(saida())
-    expect(anuncio, `esperava o anúncio do cluster; saída: ${saida().slice(-400)}`).not.toBeNull()
-    expect(Number(anuncio![1])).toBeGreaterThanOrEqual(2)
+      await expect.poll(() => saida(), { timeout: 15_000 }).toMatch(/rodando em/)
+      // `Math.min(pedidos, availableParallelism())` — numa máquina de 1 núcleo o número cai, e o
+      // teste não pode exigir 3 onde o hardware não dá. Exigir >= 2 é o que prova que forkou.
+      const anuncio = /\[cluster\] (\d+) processos/.exec(saida())
+      expect(anuncio, `esperava o anúncio do cluster; saída: ${saida().slice(-400)}`).not.toBeNull()
+      expect(Number(anuncio![1])).toBeGreaterThanOrEqual(2)
 
-    // E a porta atende de verdade — forkar sem servir não vale.
-    const r = await fetch(`http://127.0.0.1:${porta}/api/health`)
-    expect(r.status).toBe(200)
-    void pidsQueAtenderam
+      // E a porta atende de verdade — forkar sem servir não vale.
+      const r = await fetch(`http://127.0.0.1:${porta}/api/health`)
+      expect(r.status).toBe(200)
+      void pidsQueAtenderam
+    },
+    90_000,
+  )
+
+  /* A GUARDA DO BANCO EMBUTIDO, observada disparando (no SQLite era a do WAL, que nunca pôde ser
+     forçada por fora e ficava como lacuna declarada). Sai com 1, antes de forkar, e diz o motivo. */
+  it('com CLUSTER_WORKERS=3 e o PGlite embutido, o boot ABORTA antes de forkar, com o motivo', async () => {
+    // Sem `ABORTADO` no `pronto`: a espera termina na SAÍDA do processo (código 1) ou se ele subir.
+    const { saida, codigo } = await subirServidor({ CLUSTER_WORKERS: '3' }, 60_000, /rodando em/)
+    expect(codigo, saida().slice(-400)).toBe(1)
+    expect(saida()).toMatch(/\[boot\] ABORTADO: CLUSTER_WORKERS=3 com banco local embutido/)
+    expect(saida()).not.toMatch(/rodando em|\[cluster\] \d+ processos/)
   }, 90_000)
-
-  /**
-   * O CAMINHO DE ABORTO POR WAL CONTINUA SEM COBERTURA, e isto está escrito aqui em vez de
-   * disfarçado num teste que passa.
-   *
-   * A primeira versão deste bloco subia o servidor com `SQLITE_JOURNAL_MODE=delete` e, se o
-   * aborto não acontecesse, caía num `expect(saida()).toMatch(/rodando em/)` e retornava — ou
-   * seja, PASSAVA sem exercitar nada. Medido depois: essa variável não é lida em lugar nenhum do
-   * servidor. O teste verde não descrevia nada.
-   *
-   * A razão de fundo é que o modo é difícil de forçar por fora: `aplicarPragmas()` roda no boot e
-   * define `journal_mode=wal` antes de o primário conferir, então a condição do aborto só ocorre
-   * quando o próprio SQLite recusa o WAL — tipicamente banco em sistema de arquivos de rede. Isso
-   * não é reproduzível nesta máquina sem montar um volume remoto.
-   *
-   * Fica declarado como lacuna: a guarda existe em `server.ts` e foi lida, mas não foi OBSERVADA
-   * disparando. `it.skip` mantém a lacuna visível no relatório da suíte em vez de sumir dela.
-   */
-  it.skip('ABORTA quando o banco não está em WAL (não reproduzível sem FS de rede — lacuna declarada)', () => {})
 })

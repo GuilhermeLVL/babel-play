@@ -3,36 +3,39 @@
  *
  * O achado: `grep -rn "SIGTERM\|SIGINT\|process.on(" server server.ts` devolvia ZERO em
  * 2026-09-09. Sem handler, o sinal aplica o padrão do Node — morrer na hora —, então um
- * `docker stop` durante um `POST /api/sessions` deixava o cliente sem resposta e o WAL sem
- * checkpoint. Ver `server/lib/desligamento.ts` para a ordem dos passos e o porquê de cada um.
+ * `docker stop` durante um `POST /api/sessions` deixava o cliente sem resposta e o banco sem
+ * fechar. Ver `server/lib/desligamento.ts` para a ordem dos passos e o porquê de cada um.
  *
  * O QUE ESTE ARQUIVO PROVA, sem inferir nada do código:
  *
  *  1. a escrita EM CURSO terminou — a resposta 200 chega DEPOIS do instante em que o sinal foi
  *     mandado, e a sessão gravada está no banco com as suas falas todas;
  *  2. o processo saiu com 0;
- *  3. `PRAGMA integrity_check` devolve `ok` no arquivo que sobrou.
+ *  3. o diretório do banco que sobrou reabre e tem a sessão inteira.
  *
- * O BANCO É UMA CÓPIA de `data/babel.db` — nunca o original. Copiar em vez de criar um vazio é
- * deliberado: um banco de 11 MB com o schema todo migrado é o que faz o `integrity_check` dizer
- * alguma coisa, e é o formato que o checkpoint precisa dobrar de verdade.
+ * Postgres (Fase 1): o banco é um diretório PGlite novo (`pglite:<dir>`), migrado pelo próprio boot.
+ * O PGlite é de processo único: o teste só abre o diretório DEPOIS de o filho sair. As afirmações
+ * sobre o WAL do SQLite (`-wal` dobrado no `.db`, `integrity_check`) saíram com ele. O caso do
+ * cluster sobe vários processos sobre o mesmo banco: só roda com `TESTE_POSTGRES_URL`.
  */
 import { type ChildProcess, spawn } from 'node:child_process'
-import { copyFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync } from 'node:fs'
 import { request } from 'node:http'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { createClient } from '@libsql/client'
+import { PGlite } from '@electric-sql/pglite'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { desligarComGraca, TETO_DE_DRENO_PADRAO_MS, tetoDeDreno } from '../../server/lib/desligamento'
+import { bancoPostgresDescartavel, URL_POSTGRES_DE_TESTE } from '../harness/postgresDescartavel'
 
 const RAIZ = path.resolve(import.meta.dirname, '..', '..')
 const vivos: ChildProcess[] = []
 const temporarios: string[] = []
+const bancosPg: Array<() => Promise<void>> = []
 
-afterEach(() => {
+afterEach(async () => {
   for (const p of vivos.splice(0)) {
     try {
       p.kill('SIGKILL')
@@ -47,6 +50,7 @@ afterEach(() => {
       /* OneDrive segura */
     }
   }
+  for (const apagar of bancosPg.splice(0)) await apagar()
 })
 
 /** Mesma razão de `tests/integration/cluster.test.ts`: faixa por PID, para duas execuções não brigarem. */
@@ -56,6 +60,7 @@ const portaLivre = () => proximaPorta++
 interface Servidor {
   filho: ChildProcess
   porta: number
+  /** Diretório do PGlite (vazio quando o banco é o Postgres de `TESTE_POSTGRES_URL`). */
   dbPath: string
   saida: () => string
   /** Resolve com o código de saída do processo. */
@@ -63,19 +68,17 @@ interface Servidor {
 }
 
 /**
- * Sobe `tests/harness/servidorComSinal.ts` (que importa o `server.ts` inteiro) sobre uma CÓPIA do
- * banco, e só devolve quando ele anunciou que está atendendo.
+ * Sobe `tests/harness/servidorComSinal.ts` (que importa o `server.ts` inteiro) sobre um banco novo
+ * (um diretório PGlite, ou `databaseUrl` quando dado), e só devolve quando ele anunciou que está atendendo.
  *
  * `shell: false` e `NODE_ENV=production` pelas mesmas razões medidas em `cluster.test.ts`: com
  * shell, `kill()` mata o invólucro e deixa o servidor órfão na porta; em desenvolvimento o Vite
  * abriria o WebSocket de HMR numa porta fixa.
  */
-async function subirServidor(extra: Record<string, string> = {}): Promise<Servidor> {
+async function subirServidor(extra: Record<string, string> = {}, databaseUrl?: string): Promise<Servidor> {
   const dados = mkdtempSync(path.join(tmpdir(), 'desligamento-'))
   temporarios.push(dados)
-  const dbPath = path.join(dados, 'babel.db')
-  const original = path.join(RAIZ, 'data', 'babel.db')
-  if (existsSync(original)) copyFileSync(original, dbPath)
+  const dbPath = databaseUrl ? '' : path.join(dados, 'pg')
 
   const porta = portaLivre()
   const filho = spawn(
@@ -94,7 +97,7 @@ async function subirServidor(extra: Record<string, string> = {}): Promise<Servid
         PORT: String(porta),
         HOST: '127.0.0.1',
         DATA_DIR: dados,
-        DATABASE_URL: `file:${dbPath.replace(/\\/g, '/')}`,
+        DATABASE_URL: databaseUrl ?? `pglite:${dbPath.replace(/\\/g, '/')}`,
         AUTH_REQUIRED: '0',
         SELF_HOST: '1', // instalação pessoal declarada (GAP-003 aceita sem login só assim)
         // O diário em disco não é o assunto aqui, e ligá-lo só acrescentaria I/O ao dreno.
@@ -221,19 +224,17 @@ describe('SIGTERM no meio de uma escrita', () => {
     expect(codigo, `esperava saída limpa; saída do processo:\n${s.saida().slice(-800)}`).toBe(0)
     expect(s.saida()).toMatch(/\[desligamento\] SIGTERM: conexões drenadas/)
 
-    // O banco que sobrou: íntegro, e com a sessão inteira dentro.
-    const cliente = createClient({ url: `file:${s.dbPath.replace(/\\/g, '/')}` })
+    /* O banco que sobrou, aberto só agora que o filho saiu (o PGlite é de processo único): reabre,
+       e com a sessão inteira dentro. */
+    const banco = new PGlite(s.dbPath)
     try {
-      const integridade = await cliente.execute('PRAGMA integrity_check')
-      expect(String(Object.values(integridade.rows[0] ?? {})[0])).toBe('ok')
-
-      const falas = await cliente.execute({
-        sql: 'SELECT COUNT(*) AS n FROM utterances WHERE session_id = ?',
-        args: [String(corpo.id)],
-      })
+      const falas = await banco.query<{ n: number }>(
+        'SELECT COUNT(*)::int AS n FROM utterances WHERE session_id = $1',
+        [String(corpo.id)],
+      )
       expect(Number(falas.rows[0]?.n), 'a escrita em curso terminou INTEIRA, não pela metade').toBe(1_500)
     } finally {
-      cliente.close()
+      await banco.close()
     }
   }, 180_000)
 
@@ -249,51 +250,59 @@ describe('SIGTERM no meio de uma escrita', () => {
    * prova nas duas plataformas é o que depende do nosso código: os workers vão embora e NÃO são
    * refeitos, e o primário sai com 0.
    */
-  it('no cluster, o primário repassa o sinal e PARA de respawnar', async () => {
-    const s = await subirServidor({ CLUSTER_WORKERS: '3' })
-    /* O ANÚNCIO DO CLUSTER VEM DEPOIS DO "rodando em", não junto. O primário imprime "rodando em" no
+  /* O PGlite é de processo único (o cluster com ele é recusado no boot; ver `cluster.test.ts`): com
+     `TESTE_POSTGRES_URL`, os workers dividem um banco Postgres novo, criado e apagado por este caso. */
+  it.skipIf(!URL_POSTGRES_DE_TESTE)(
+    'no cluster, o primário repassa o sinal e PARA de respawnar (exige TESTE_POSTGRES_URL: PGlite é de processo único; o cluster sai na Fase 2)',
+    async () => {
+      const pg = await bancoPostgresDescartavel(URL_POSTGRES_DE_TESTE!)
+      bancosPg.push(pg.apagar)
+      const s = await subirServidor({ CLUSTER_WORKERS: '3' }, pg.url)
+      /* O ANÚNCIO DO CLUSTER VEM DEPOIS DO "rodando em", não junto. O primário imprime "rodando em" no
        callback do `listen`, mas o `startServer()` ainda termina o boot (agendamentos por `import()`
        dinâmico: retenção, convidados, poda do cache de tradução…) antes de o `iniciar()` forkar os
        workers e imprimir "[cluster] N processos". Cada agendamento novo alarga essa janela — a poda
        do cache (migração 0038) bastou para a CI, com cobertura ligada, ler a saída no meio dela
        (28/09). Esperar pela linha, com o mesmo teto do boot, é o que o teste quer dizer. */
-    const t0 = Date.now()
-    while (!/\[cluster\] \d+ processos/.test(s.saida()) && Date.now() - t0 < 30_000) {
-      await new Promise((r) => setTimeout(r, 100))
-    }
-    expect(
-      s.saida(),
-      `esperava o anúncio do cluster; saída:
+      const t0 = Date.now()
+      while (!/\[cluster\] \d+ processos/.test(s.saida()) && Date.now() - t0 < 30_000) {
+        await new Promise((r) => setTimeout(r, 100))
+      }
+      expect(
+        s.saida(),
+        `esperava o anúncio do cluster; saída:
 ${s.saida().slice(-500)}`,
-    ).toMatch(/\[cluster\] \d+ processos/)
+      ).toMatch(/\[cluster\] \d+ processos/)
 
-    expect((await fetch(`http://127.0.0.1:${s.porta}/api/health`)).status).toBe(200)
+      expect((await fetch(`http://127.0.0.1:${s.porta}/api/health`)).status).toBe(200)
 
-    mandarSigterm(s)
-    expect(
-      await s.aoSair,
-      `saída:
+      mandarSigterm(s)
+      expect(
+        await s.aoSair,
+        `saída:
 ${s.saida().slice(-800)}`,
-    ).toBe(0)
-    expect(s.saida(), 'refazer worker durante o desligamento deixa órfão segurando a porta').not.toMatch(
-      /saiu \(.*\); refazendo/,
-    )
+      ).toBe(0)
+      expect(s.saida(), 'refazer worker durante o desligamento deixa órfão segurando a porta').not.toMatch(
+        /saiu \(.*\); refazendo/,
+      )
 
-    /* A PROVA QUE IMPORTA é a porta, não a linha de log: se algum worker tivesse sido refeito —
+      /* A PROVA QUE IMPORTA é a porta, não a linha de log: se algum worker tivesse sido refeito —
        ou simplesmente não tivesse recebido o repasse do sinal —, ele continuaria atendendo aqui
        depois de o primário sair, e o `docker stop` seguinte encontraria o container "não
        terminando". Uma tentativa de conexão recusada é o que diz que não sobrou ninguém. */
-    let aindaAtende = true
-    for (let i = 0; i < 20 && aindaAtende; i++) {
-      try {
-        await fetch(`http://127.0.0.1:${s.porta}/api/health`)
-      } catch {
-        aindaAtende = false
+      let aindaAtende = true
+      for (let i = 0; i < 20 && aindaAtende; i++) {
+        try {
+          await fetch(`http://127.0.0.1:${s.porta}/api/health`)
+        } catch {
+          aindaAtende = false
+        }
+        if (aindaAtende) await new Promise((r) => setTimeout(r, 100))
       }
-      if (aindaAtende) await new Promise((r) => setTimeout(r, 100))
-    }
-    expect(aindaAtende, 'sobrou processo atendendo na porta depois de o primário sair').toBe(false)
-  }, 120_000)
+      expect(aindaAtende, 'sobrou processo atendendo na porta depois de o primário sair').toBe(false)
+    },
+    120_000,
+  )
 
   it('SIGINT (o Ctrl+C do desenvolvedor) segue o mesmo caminho', async () => {
     const s = await subirServidor()
@@ -310,7 +319,7 @@ ${s.saida().slice(-800)}`,
  * O caminho do teto estourado é o que NÃO dá para forçar com um servidor de verdade sem pendurar o
  * teste por 10 s: seria preciso uma requisição que não termina nunca. Um dublê de `http.Server`
  * cujo `close()` nunca chama de volta é exatamente essa condição, sem o relógio de parede — e o
- * que está sendo verificado (o código de saída 1 e o checkpoint ACONTECER mesmo assim) é código
+ * que está sendo verificado (o código de saída 1 e o banco FECHAR mesmo assim) é código
  * deste módulo, não do Express.
  */
 describe('teto do dreno', () => {
@@ -331,7 +340,7 @@ describe('teto do dreno', () => {
       },
     })
     expect(codigo, 'requisição abandonada precisa aparecer no código de saída').toBe(1)
-    expect(encerrou, 'o checkpoint do WAL acontece ANTES de sair, mesmo com o teto estourado').toBe(true)
+    expect(encerrou, 'o banco é fechado ANTES de sair, mesmo com o teto estourado').toBe(true)
   })
 
   it('dreno que termina sai com 0, e a ordem é: repassar o sinal → drenar → encerrar o banco', async () => {

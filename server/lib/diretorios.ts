@@ -10,7 +10,8 @@
  * A ordem é a mesma de sempre, agora num lugar só:
  *
  *  1. `DATA_DIR`, quando declarado — é a resposta explícita e vence tudo.
- *  2. O diretório do próprio banco (`DATABASE_URL=file:…`). É o sinal mais confiável disponível:
+ *  2. O pai do diretório do próprio banco (`DATABASE_URL=pglite:<dir>`; `pglite:./data/pg` → `./data`).
+ *     É o sinal mais confiável disponível:
  *     se o banco escreve ali, o resto também escreve, e os dois viajam juntos quando alguém move
  *     o volume. O `docker-compose.yml` deste projeto passa exatamente isso e não passa `DATA_DIR`.
  *  3. O pai de `AUDIO_DIR`, pelo mesmo raciocínio.
@@ -18,10 +19,20 @@
  */
 import path from 'node:path'
 
+const bancoEmMemoria = (url: string) => url === 'pglite://memory' || url === 'pglite:memory'
+
+/**
+ * O banco é o PGlite embutido (o padrão sem `DATABASE_URL`)? Mesma regra de `server/db/db.ts`, repetida
+ * aqui porque importar aquele módulo ABRE o banco, e as travas de boot rodam antes disso.
+ */
+function bancoEmbutidoNoAmbiente(): boolean {
+  return (process.env.DATABASE_URL ?? 'pglite:').startsWith('pglite:')
+}
+
 export function diretorioGravavel(): string {
   if (process.env.DATA_DIR) return process.env.DATA_DIR
   const url = process.env.DATABASE_URL ?? ''
-  if (url.startsWith('file:')) return path.dirname(url.slice('file:'.length))
+  if (url.startsWith('pglite:') && !bancoEmMemoria(url)) return path.dirname(url.slice('pglite:'.length))
   if (process.env.AUDIO_DIR) return path.dirname(process.env.AUDIO_DIR)
   return 'data'
 }
@@ -71,15 +82,32 @@ export function erroDeMultiReplica(): string | null {
       'ARMAZENAMENTO_COMPARTILHADO=1 se as réplicas montam o MESMO volume.'
     )
   /* O BANCO TAMBÉM PRECISA SER UM SÓ (ADR 0006, auditoria de prontidão). Até aqui a trava só olhava o
-     áudio: `REPLICAS=2` com S3 passava no boot, e cada máquina subia com o SEU arquivo SQLite — dois
-     bancos divergentes, com rate limit, cotas e orçamento valendo por máquina. Banco em arquivo local
-     serve a uma máquina só; várias exigem banco remoto (`DATABASE_URL` libsql/Postgres). */
-  if ((process.env.DATABASE_URL ?? 'file:').startsWith('file:')) {
+     áudio: `REPLICAS=2` com S3 passava no boot, e cada máquina subia com o SEU banco local — dois
+     bancos divergentes, com rate limit, cotas e orçamento valendo por máquina. O PGlite embutido
+     serve a uma máquina só; várias exigem Postgres remoto (`DATABASE_URL=postgres://…`). */
+  if (bancoEmbutidoNoAmbiente()) {
     return (
-      `REPLICAS=${replicas} com banco em arquivo local (DATABASE_URL=file:…). Cada réplica teria o seu ` +
-      'SQLite: dados, cotas e rate limit divergiriam entre máquinas. Use um banco remoto ou uma réplica só ' +
+      `REPLICAS=${replicas} com banco local embutido (DATABASE_URL=pglite:…). Cada réplica teria o seu ` +
+      'banco: dados, cotas e rate limit divergiriam entre máquinas. Use um Postgres remoto ou uma réplica só ' +
       '(docs/adr/0006-sqlite-numa-maquina-ate-o-gatilho-de-postgres.md).'
     )
   }
   return null
+}
+
+/**
+ * A recusa de subir em modo cluster (`CLUSTER_WORKERS > 1`) com o banco embutido.
+ *
+ * O PGlite é de PROCESSO ÚNICO: o diretório de dados é aberto por um processo só, e um segundo
+ * processo no mesmo diretório corrompe o banco ou não abre. No SQLite o cluster funcionava por
+ * causa do WAL; aqui não há equivalente. Vários processos exigem Postgres remoto.
+ */
+export function erroDeClusterComBancoEmbutido(): string | null {
+  const workers = Number(process.env.CLUSTER_WORKERS || 0)
+  if (!Number.isFinite(workers) || workers <= 1 || !bancoEmbutidoNoAmbiente()) return null
+  return (
+    `CLUSTER_WORKERS=${Math.floor(workers)} com banco local embutido (DATABASE_URL=pglite:…). O PGlite abre ` +
+    'o diretório de dados num processo só: os workers não dividiriam o banco. Use um Postgres remoto ' +
+    '(DATABASE_URL=postgres://…) ou um processo só (sem CLUSTER_WORKERS).'
+  )
 }

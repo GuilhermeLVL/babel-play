@@ -58,7 +58,6 @@
  */
 import cluster from 'node:cluster'
 import { timingSafeEqual } from 'node:crypto'
-import { statSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
 import { type IntervalHistogram, monitorEventLoopDelay } from 'node:perf_hooks'
 
@@ -69,7 +68,7 @@ import { normalizarPlano } from '../../src/core/planos'
 import { cacheDeTraducao } from '../ai/cacheDeTraducao'
 import { contagemDosDisjuntores } from '../ai/disjuntor'
 import { rotulosDoRegistro } from '../ai/registroDeProvedores'
-import { registrarObservadorDeConsultas, type TipoDeConsulta } from '../db/observadorDeConsultas'
+import { registrarObservadorDeConsultas, tamanhoDoBanco, type TipoDeConsulta } from '../db/observadorDeConsultas'
 import { tokenDeMetricas } from '../lib/config'
 import { log } from '../lib/logger'
 
@@ -294,22 +293,22 @@ function metricas(): Estado {
       help: 'Os mesmos eventos do funil de ofertas, por plano atual, plano sugerido e variante (A/B). Anônimo.',
       labelNames: ['evento', 'plano_atual', 'plano_sugerido', 'variante'] as const,
     }),
-    /* O BANCO, medido no cliente libsql (`server/db/observadorDeConsultas.ts`). `tipo` é
+    /* O BANCO, medido no driver (`server/db/observadorDeConsultas.ts`). `tipo` é
        `leitura`|`escrita`, decidido pela primeira palavra do SQL — nunca o SQL, que seria uma série
        por consulta. É o número do gatilho do ADR 0006 (escritas/s sustentadas). */
     dbDuracao: new Histogram({
       name: 'db_consulta_duracao_segundos',
-      help: 'Duração de cada execute/batch no cliente libsql, por tipo (leitura|escrita). Transações (emTransacao) ficam de fora.',
+      help: 'Duração de cada consulta no driver do banco, por tipo (leitura|escrita). Transações (emTransacao/emLote) ficam de fora.',
       labelNames: ['tipo'] as const,
       buckets: [0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5],
     }),
     dbEscritas: new Counter({
       name: 'db_escritas_total',
-      help: 'Instruções de ESCRITA (INSERT/UPDATE/DELETE/REPLACE/DDL) enviadas ao SQLite. O gatilho do ADR 0006 é rate() disto > 50/s no pico.',
+      help: 'Instruções de ESCRITA (INSERT/UPDATE/DELETE/REPLACE/DDL) enviadas ao banco fora de transação. O gatilho do ADR 0006 é rate() disto > 50/s no pico.',
     }),
     dbLeituras: new Counter({
       name: 'db_leituras_total',
-      help: 'Instruções de LEITURA (SELECT/WITH/PRAGMA) enviadas ao SQLite.',
+      help: 'Instruções de LEITURA (SELECT/WITH) enviadas ao banco fora de transação.',
     }),
     /* O CUSTO POR PLANO. O mesmo número que soma no orçamento (`registrarGastoDeIa`), agora com o
        plano de quem gastou — é o que diz se o Essencial se paga. Rótulo da allowlist `PLANOS`. */
@@ -455,22 +454,6 @@ export function registrarLeitorDeUploads(fn: () => { emVoo: number; limite: numb
   leitorDeUploads = fn
 }
 
-/** O arquivo do SQLite (e o WAL), quando o banco é local. Remoto: sem série. */
-function tamanhoDoBanco(): number | undefined {
-  const url = process.env.DATABASE_URL ?? 'file:./data/babel.db'
-  if (!url.startsWith('file:')) return undefined
-  const arquivo = url.slice('file:'.length)
-  let total = 0
-  for (const sufixo of ['', '-wal']) {
-    try {
-      total += statSync(arquivo + sufixo).size
-    } catch {
-      /* sem WAL (ou sem banco ainda): conta o que existe */
-    }
-  }
-  return total
-}
-
 /** Uma leitura do gasto por scrape, compartilhada pelos dois gauges que dependem dela. */
 let gastoEmVoo: Promise<GastoParaMetricas | undefined> | undefined
 function lerGastoUmaVez(): Promise<GastoParaMetricas | undefined> {
@@ -542,9 +525,9 @@ function registrarMedidoresLidosNoScrape(): void {
   })
   new Gauge({
     name: 'db_tamanho_bytes',
-    help: 'Tamanho do arquivo do SQLite + WAL, em bytes. O gatilho do ADR 0006 é 5 GB.',
-    collect() {
-      const t = tamanhoDoBanco()
+    help: 'Tamanho do banco (pg_database_size), em bytes. O gatilho do ADR 0006 é 5 GB.',
+    async collect() {
+      const t = await tamanhoDoBanco()
       if (t !== undefined) this.set(t)
     },
   })

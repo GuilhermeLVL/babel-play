@@ -10,13 +10,10 @@
  *   - uma requisição em curso morria sem resposta — o cliente vê "conexão fechada", que é
  *     indistinguível de erro de rede, e no `POST /api/sessions` isso significa não saber se a
  *     sessão gravada existe ou não;
- *   - o WAL do SQLite ficava por checkpointar. Não é perda de dado (o WAL é o registro durável),
- *     mas o arquivo `-wal` sobrevive ao processo e o próximo boot paga a recuperação; num volume
- *     que é restaurado por CÓPIA DE ARQUIVO — que é o que `scripts/backup.mjs` faz —, levar o
- *     `.db` sem o `-wal` ao lado perde tudo o que só estava no WAL. Medido nesta árvore sobre uma
- *     cópia de `data/babel.db`: gravar uma sessão de 1.500 falas deixa **659.232 bytes** em
- *     `babel.db-wal`; o `PRAGMA wal_checkpoint(TRUNCATE)` do desligamento dobra isso no `.db`
- *     (11.665.408 → 12.251.136 bytes) e zera o `-wal`.
+ *   - o banco ficava aberto: no PGlite (Postgres embutido em arquivo) o fechamento é o que grava
+ *     o estado em disco de forma limpa, e no Postgres remoto o pool largava as conexões penduradas
+ *     até o servidor do outro lado expirá-las. (No SQLite, que este arquivo atendia antes da
+ *     migração para o Postgres, era o checkpoint do WAL; saiu com ele.)
  *
  * A ORDEM AQUI É A CORREÇÃO, e cada passo existe por um motivo distinto:
  *
@@ -25,8 +22,8 @@
  *      desligamento: o primário sai e deixa filhos recém-forkados órfãos segurando a porta.
  *   2. `server.close()` — para de ACEITAR conexão nova; as em curso seguem até terminar. É o
  *      inverso do que se espera do nome, e é exatamente o que se quer aqui.
- *   3. checkpoint e fechamento do banco — nesta ordem, porque o fechamento do banco derruba a
- *      conexão e não sobra por onde mandar o PRAGMA depois.
+ *   3. fechamento do banco (`fecharBanco()`) — por último, porque as requisições em curso ainda
+ *      podem precisar dele até o dreno terminar.
  *
  * O PASSO QUE NÃO EXISTE AQUI, e por quê: `server.closeIdleConnections()`. O manual de qualquer
  * desligamento gracioso manda chamá-lo, porque historicamente uma conexão keep-alive OCIOSA (sem
@@ -47,7 +44,7 @@
  * duas resolvem o mesmo passo 3, com a diferença de derrubarem ativamente a conexão ociosa em vez
  * de esperar — coisa que o Node passou a oferecer nativamente em 18.2 com
  * `closeIdleConnections()`. Trazer dependência para um método que já existe na plataforma seria
- * pagar supply chain por nada; e o resto (o repasse ao cluster, o checkpoint do WAL) nenhuma das
+ * pagar supply chain por nada; e o resto (o repasse ao cluster, o fechamento do banco) nenhuma das
  * duas faz.
  */
 
@@ -61,7 +58,7 @@ export interface ServidorDrenavel {
  *
  * 10 s é o mesmo prazo que o `docker stop` dá por padrão entre o SIGTERM e o SIGKILL — escolher
  * mais seria escrever um teto que o ambiente não deixa cumprir, e a conta ficaria pior: o SIGKILL
- * chegaria ANTES do checkpoint, que é o passo que só este código faz. Quem opera com uma janela
+ * chegaria ANTES do fechamento do banco, que é o passo que só este código faz. Quem opera com uma janela
  * diferente (`terminationGracePeriodSeconds` no Kubernetes, `docker stop -t`) ajusta por
  * `DESLIGAMENTO_TIMEOUT_MS`.
  */
@@ -110,25 +107,14 @@ export async function drenar(servidor: ServidorDrenavel, tetoMs: number): Promis
 }
 
 /**
- * Checkpoint do WAL e fechamento do cliente libsql.
+ * Fechamento do banco (`fecharBanco()`: `pglite.close()` ou `pool.end()`).
  *
  * Import DINÂMICO de propósito: este módulo é carregado pelo bootstrap antes de o banco existir em
  * alguns caminhos (o `server.ts` aborta por configuração incoerente antes do `dbReady`), e um
  * import estático abriria a conexão só por estar no topo do arquivo.
- *
- * `TRUNCATE` e não `PASSIVE`: o passivo desiste quando há leitor ativo e devolve `busy` sem
- * reclamar — justamente o caso de um desligamento com requisições terminando. O truncate espera e
- * zera o arquivo `-wal`, que é o que faz um backup por cópia do `.db` ficar completo.
- *
- * Banco REMOTO não leva PRAGMA: journal e checkpoint são decisão do servidor libsql do outro lado
- * (a mesma regra que `server/db/db.ts:71` já aplica).
  */
 async function encerrarBancoPadrao(): Promise<void> {
-  const { bancoEmbutido, fecharBanco } = await import('../db/db')
-  // Checkpoint do WAL é PRAGMA do SQLite; Tarefa 6 remove de vez.
-  if (!bancoEmbutido) {
-    /* Tarefa 6 remove de vez */
-  }
+  const { fecharBanco } = await import('../db/db')
   try {
     await fecharBanco()
   } catch {

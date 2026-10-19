@@ -10,22 +10,29 @@
  * POR QUE DOIS PROCESSOS DE VERDADE, e não dois `criarApp()` no mesmo teste: dentro de um worker do
  * vitest o módulo `server/db/db` é um só, e duas montagens compartilhariam TUDO — inclusive um
  * `Map` de heap. Um teste assim passaria com o defeito presente, que é a pior espécie de verde.
- * Aqui são dois `node` separados, com `DATABASE_URL` apontando para o mesmo arquivo, cada um com o
+ * Aqui são dois `node` separados, com `DATABASE_URL` apontando para o mesmo banco, cada um com o
  * seu diário em disco — e a prova é a soma das linhas dos dois diários.
+ *
+ * Postgres (Fase 1): o PGlite é de processo único, e dois processos não abrem o mesmo diretório.
+ * Tirar o segundo processo deixaria o teste verde sem provar nada; por isso ele só roda com
+ * `TESTE_POSTGRES_URL` (um Postgres de verdade), num banco novo criado e apagado por ele.
  */
 import { type ChildProcess, spawn } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { createClient } from '@libsql/client'
+import { Client } from 'pg'
 import { afterEach, describe, expect, it } from 'vitest'
+
+import { bancoPostgresDescartavel, URL_POSTGRES_DE_TESTE } from '../harness/postgresDescartavel'
 
 const RAIZ = path.resolve(import.meta.dirname, '..', '..')
 const vivos: ChildProcess[] = []
 const temporarios: string[] = []
+const bancosPg: Array<() => Promise<void>> = []
 
-afterEach(() => {
+afterEach(async () => {
   for (const p of vivos.splice(0)) {
     try {
       p.kill('SIGKILL')
@@ -40,6 +47,7 @@ afterEach(() => {
       /* OneDrive segura */
     }
   }
+  for (const apagar of bancosPg.splice(0)) await apagar()
 })
 
 /** Faixa por PID, como em `cluster.test.ts`: duas execuções não podem disputar a mesma porta. */
@@ -110,48 +118,52 @@ async function reportar(porta: number, id: string): Promise<number> {
 }
 
 describe('teto de relatórios de erro, com duas instâncias sobre o MESMO banco', () => {
-  it('as duas somam no mesmo contador: 16 relatórios, no máximo 10 no diário', async () => {
-    const banco = mkdtempSync(path.join(tmpdir(), 'banco-comum-'))
-    temporarios.push(banco)
-    const url = `file:${path.join(banco, 'comum.db').split(path.sep).join('/')}`
-    const dirA = path.join(banco, 'erros-a')
-    const dirB = path.join(banco, 'erros-b')
-    mkdirSync(dirA, { recursive: true })
-    mkdirSync(dirB, { recursive: true })
+  it.skipIf(!URL_POSTGRES_DE_TESTE)(
+    'as duas somam no mesmo contador: 16 relatórios, no máximo 10 no diário (exige TESTE_POSTGRES_URL: PGlite é de processo único)',
+    async () => {
+      const pg = await bancoPostgresDescartavel(URL_POSTGRES_DE_TESTE!)
+      bancosPg.push(pg.apagar)
+      const url = pg.url
+      const banco = mkdtempSync(path.join(tmpdir(), 'banco-comum-'))
+      temporarios.push(banco)
+      const dirA = path.join(banco, 'erros-a')
+      const dirB = path.join(banco, 'erros-b')
+      mkdirSync(dirA, { recursive: true })
+      mkdirSync(dirB, { recursive: true })
 
-    /* Em SÉRIE, e não em paralelo: as duas aplicam migrations no boot, e o ponto do teste é o teto,
-       não a contenção de lock (que `server/db/db.ts` já resolve com WAL + busy_timeout). */
-    const a = await subirInstancia(url, dirA)
-    const b = await subirInstancia(url, dirB)
+      /* Em SÉRIE, e não em paralelo: as duas aplicam migrations no boot, e o ponto do teste é o teto,
+       não a contenção de migração no boot. */
+      const a = await subirInstancia(url, dirA)
+      const b = await subirInstancia(url, dirB)
 
-    const MARCA = 'e-duas-instancias'
-    for (let i = 0; i < 8; i++) {
+      const MARCA = 'e-duas-instancias'
+      for (let i = 0; i < 8; i++) {
+        expect(
+          await reportar(a.porta, `${MARCA}-a${i}`),
+          'a resposta é sempre 202 — o cliente não reage a reporte recusado',
+        ).toBe(202)
+        expect(await reportar(b.porta, `${MARCA}-b${i}`)).toBe(202)
+      }
+
+      const logadas = linhasDoDiario([dirA, dirB], MARCA)
       expect(
-        await reportar(a.porta, `${MARCA}-a${i}`),
-        'a resposta é sempre 202 — o cliente não reage a reporte recusado',
-      ).toBe(202)
-      expect(await reportar(b.porta, `${MARCA}-b${i}`)).toBe(202)
-    }
+        logadas,
+        `16 relatórios entraram; com o Map por processo o diário receberia todos os 16 (8 em cada instância). Recebeu ${logadas}`,
+      ).toBeLessThanOrEqual(10)
+      expect(logadas, 'e o teto não pode ser tão apertado que ninguém seja ouvido').toBeGreaterThan(0)
 
-    const logadas = linhasDoDiario([dirA, dirB], MARCA)
-    expect(
-      logadas,
-      `16 relatórios entraram; com o Map por processo o diário receberia todos os 16 (8 em cada instância). Recebeu ${logadas}`,
-    ).toBeLessThanOrEqual(10)
-    expect(logadas, 'e o teto não pode ser tão apertado que ninguém seja ouvido').toBeGreaterThan(0)
-
-    /* E o contador é UM só, no banco: as 16 requisições estão no mesmo balde, independentemente de
+      /* E o contador é UM só, no banco: as 16 requisições estão no mesmo balde, independentemente de
        qual instância as atendeu. É a diferença entre "o teto foi respeitado por sorte" e "as duas
        instâncias contam juntas". */
-    const cliente = createClient({ url })
-    try {
-      const r = await cliente.execute({
-        sql: "SELECT SUM(count) AS n FROM usage_counters WHERE metric = 'ratelimit:erros'",
-        args: [],
-      })
-      expect(Number(r.rows[0]?.n), 'as 16 chamadas caíram no mesmo contador compartilhado').toBe(16)
-    } finally {
-      cliente.close()
-    }
-  }, 240_000)
+      const cliente = new Client({ connectionString: url })
+      await cliente.connect()
+      try {
+        const r = await cliente.query("SELECT SUM(count) AS n FROM usage_counters WHERE metric = 'ratelimit:erros'")
+        expect(Number(r.rows[0]?.n), 'as 16 chamadas caíram no mesmo contador compartilhado').toBe(16)
+      } finally {
+        await cliente.end()
+      }
+    },
+    240_000,
+  )
 })

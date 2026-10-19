@@ -19,20 +19,17 @@
  */
 import path from 'node:path'
 
-const bancoEmMemoria = (url: string) => url === 'pglite://memory' || url === 'pglite:memory'
+import { ehBancoEmbutido, ehBancoEmMemoria, URL_PADRAO_DO_BANCO } from '../db/tipoDoBanco'
 
-/**
- * O banco é o PGlite embutido (o padrão sem `DATABASE_URL`)? Mesma regra de `server/db/db.ts`, repetida
- * aqui porque importar aquele módulo ABRE o banco, e as travas de boot rodam antes disso.
- */
+/** O banco é o PGlite embutido (o padrão sem `DATABASE_URL`)? A regra é a de `server/db/tipoDoBanco.ts`. */
 function bancoEmbutidoNoAmbiente(): boolean {
-  return (process.env.DATABASE_URL ?? 'pglite:').startsWith('pglite:')
+  return ehBancoEmbutido(process.env.DATABASE_URL ?? URL_PADRAO_DO_BANCO)
 }
 
 export function diretorioGravavel(): string {
   if (process.env.DATA_DIR) return process.env.DATA_DIR
   const url = process.env.DATABASE_URL ?? ''
-  if (url.startsWith('pglite:') && !bancoEmMemoria(url)) return path.dirname(url.slice('pglite:'.length))
+  if (ehBancoEmbutido(url) && !ehBancoEmMemoria(url)) return path.dirname(url.slice('pglite:'.length))
   if (process.env.AUDIO_DIR) return path.dirname(process.env.AUDIO_DIR)
   return 'data'
 }

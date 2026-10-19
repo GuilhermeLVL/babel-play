@@ -303,7 +303,14 @@ export async function semear(s: AppDeTeste, userId: string) {
     { word: 'garden', srcLang: 'en', back: 'jardim', sentence: 'A small garden.' },
     { word: 'bridge', srcLang: 'en', back: 'ponte', sentence: 'Cross the bridge.' },
   ])
-  const cartoes = await vocabRepo.list(U)
+  /* A ORDEM DOS QUATRO É FIXADA AQUI, e não pela lista: eles nascem no mesmo milissegundo, sem
+     `added_at`, e a lista desempata por `id` (um uuid sorteado). Os testes usam `cartoes[0..3]` com
+     a ordem que o SQLite devolvia — o último inserido primeiro —, e o snapshot de cada um depende
+     de qual cartão é (`harvest` não tem nível CEFR; os outros três têm). */
+  const ORDEM_DA_SEMENTE = ['bridge', 'garden', 'water', 'harvest']
+  const cartoes = (await vocabRepo.list(U)).sort(
+    (a: { word: string }, b: { word: string }) => ORDEM_DA_SEMENTE.indexOf(a.word) - ORDEM_DA_SEMENTE.indexOf(b.word),
+  )
   const sessao = await sessionsRepo.createWithUtterances(
     U,
     { title: 'Sessão semeada', kind: 'live', sourceLang: 'en', targetLang: 'pt', status: 'done', durationMs: 60_000 },

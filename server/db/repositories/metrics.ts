@@ -118,7 +118,10 @@ async function lerAtividade(userId: UserId) {
         ['cefrLevel', 'cefr_level', 'texto'],
         ['cefrConfidence', 'cefr_confidence'],
       ],
-      { tabela: 'vocab_cards', onde: sql`user_id = ${userId} AND deleted_at IS NULL` },
+      /* `ORDER BY id`: as somas de ponto flutuante abaixo dependem da ordem. No Postgres a ordem sem
+         ORDER BY é a do heap, e cada UPDATE (uma revisão) muda o cartão de lugar — o mesmo perfil saía
+         com o último dígito diferente entre duas leituras. O SQLite devolvia pela ordem de inserção. */
+      { tabela: 'vocab_cards', onde: sql`user_id = ${userId} AND deleted_at IS NULL`, ordem: 'id' },
     ),
     /* SÓ AS COLUNAS QUE ESTA FUNÇÃO LÊ (auditoria de 2026-09-07, seção 5). Era `SELECT *`, e em
        `utterances` isso trazia o transcrito INTEIRO (`source_text` e `translated_text`) para contar

@@ -318,7 +318,9 @@ export const vocabRepo = {
       lerCompacto<Omit<CartaoParaCliente, 'phonetics' | 'addedAt'>>(COLUNAS_COMPACTAS_DO_CARTAO, {
         tabela: 'vocab_cards',
         onde: sql`user_id = ${userId} AND deleted_at IS NULL`,
-        ordem: 'added_at DESC NULLS LAST',
+        /* `id DESC` desempata: no Postgres a ordem do empate (vários `added_at` nulos ou iguais) não é
+           definida e pode mudar entre duas leituras; o SQLite a fixava pela ordem do índice. */
+        ordem: 'added_at DESC NULLS LAST, id DESC',
       }),
       lerCompacto<{ cardId: string }>([['cardId', 'card_id', 'texto']], {
         tabela: 'vocab_occurrences',

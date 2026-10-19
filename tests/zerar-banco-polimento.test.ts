@@ -10,7 +10,6 @@ import { drizzle } from 'drizzle-orm/pglite'
 import { migrate } from 'drizzle-orm/pglite/migrator'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-// @ts-expect-error módulo .mjs de scripts, sem tipos
 import { TABELAS_A_ZERAR, zerarBanco } from '../scripts/polimento/zerar-banco.mjs'
 
 let pg: PGlite

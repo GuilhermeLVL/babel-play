@@ -106,7 +106,8 @@ concorrentemente → 0% de falha (era 50% antes do WAL). Medição histórica, e
 
 **Réplicas em HOSTS distintos: ainda não.** Dois motivos:
 
-1. O PGlite aceita um processo por diretório (o boot recusa `REPLICAS>1`/`CLUSTER_WORKERS>1`). Multi-host
+1. O PGlite aceita um processo por diretório (o boot recusa `REPLICAS>1`/`CLUSTER_WORKERS>1`, e um segundo
+   processo no mesmo diretório é recusado pela trava `<dir>/.babel-lock`; a de um pid morto é sobrescrita). Multi-host
    exige o **Postgres** de produção (`postgres://`), que o servidor já fala desde a Fase 1.
 2. `AUDIO_DIR` num volume compartilhado resolve o áudio entre réplicas do mesmo storage;
    hosts sem storage comum exigem **object store** (S3/R2).

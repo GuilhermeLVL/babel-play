@@ -21,6 +21,7 @@ import { Pool } from 'pg'
 import { medirConsultas, registrarMedidorDeTamanho } from './observadorDeConsultas'
 import * as schema from './schema'
 import { ehBancoEmbutido, ehBancoEmMemoria, URL_PADRAO_DO_BANCO } from './tipoDoBanco'
+import { travarDiretorio } from './travaDoPglite'
 
 export const urlDoBanco: string = process.env.DATABASE_URL ?? URL_PADRAO_DO_BANCO
 
@@ -103,6 +104,7 @@ function medirClientesDoPool(p: Pool): void {
 
 let pglite: PGlite | undefined
 let pool: Pool | undefined
+let soltarTrava: (() => void) | undefined
 
 function abrir(): DB {
   if (bancoEmbutido) {
@@ -111,6 +113,8 @@ function abrir(): DB {
     } else {
       const caminho = urlDoBanco.replace(/^pglite:/, '')
       mkdirSync(caminho, { recursive: true })
+      // Um processo por diretório: o PGlite não trava, e dois perdem escritas em silêncio (travaDoPglite.ts).
+      soltarTrava = travarDiretorio(caminho)
       pglite = new PGlite(caminho)
     }
     medir(pglite)
@@ -237,8 +241,12 @@ let fechado: Promise<void> | undefined
 /** Encerra o driver. Idempotente: chamadas seguintes devolvem o mesmo fechamento. */
 export function fecharBanco(): Promise<void> {
   fechado ??= (async () => {
-    if (pool) await pool.end()
-    else if (pglite) await pglite.close()
+    try {
+      if (pool) await pool.end()
+      else if (pglite) await pglite.close()
+    } finally {
+      soltarTrava?.()
+    }
   })()
   return fechado
 }

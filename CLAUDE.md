@@ -44,5 +44,7 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
   usa banco isolado): variável nova precisa ser definida no próprio teste.
 - `data/pg/` é o banco de dev (PGlite); os testes usam `pglite://memory`. PGlite aceita um processo por
   diretório. Testes de concorrência/multiprocesso só rodam com `TESTE_POSTGRES_URL` (Postgres real).
+- `pglite:<dir>` é de um processo só: `db.ts` grava `<dir>/.babel-lock` e recusa um segundo processo vivo
+  (trava de pid morto é sobrescrita). Script que abre o diretório com `new PGlite()` direto não passa pela trava.
 - `git pull --rebase` antes de `git push`: há mais de uma frente de trabalho na `main`.
 - `docs/prototipos/*-src/`, `docs/prototipos/_comum/` e `public/` ficam fora do lint.

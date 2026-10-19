@@ -95,8 +95,10 @@ export function erroDeMultiReplica(): string | null {
 /**
  * A recusa de subir em modo cluster (`CLUSTER_WORKERS > 1`) com o banco embutido.
  *
- * O PGlite é de PROCESSO ÚNICO: o diretório de dados é aberto por um processo só, e um segundo
- * processo no mesmo diretório corrompe o banco ou não abre. No SQLite o cluster funcionava por
+ * O PGlite é de PROCESSO ÚNICO: o diretório de dados é aberto por um processo só. Ele mesmo não
+ * trava o diretório — um segundo processo abria e as escritas de um apagavam as do outro em
+ * silêncio —, e por isso `db.ts` o trava (`<dir>/.babel-lock`, `server/db/travaDoPglite.ts`): o
+ * segundo processo agora é recusado no import. Esta recusa vem antes e diz o porquê. No SQLite o cluster funcionava por
  * causa do WAL; aqui não há equivalente. Vários processos exigem Postgres remoto.
  */
 export function erroDeClusterComBancoEmbutido(): string | null {

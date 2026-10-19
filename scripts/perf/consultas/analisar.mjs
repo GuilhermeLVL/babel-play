@@ -1,17 +1,18 @@
 #!/usr/bin/env node
 /**
- * INVENTÁRIO DE CONSULTAS — agrega o que `coletor.cjs` gravou e roda `EXPLAIN QUERY PLAN` em cada
+ * INVENTÁRIO DE CONSULTAS — agrega o que `coletor.cjs` gravou e roda `EXPLAIN (FORMAT JSON)` em cada
  * consulta sobre um banco semeado realista (auditoria de performance do backend, 26/09/2026).
  *
- *   node scripts/perf/consultas/analisar.mjs --dir=<pasta do coletor>[,<outra>] --db=<banco semeado.db>
+ *   node scripts/perf/consultas/analisar.mjs --dir=<pasta do coletor>[,<outra>] --db=<diretório do pglite | postgres://…>
  *        [--saida=inventario.json] [--md=inventario.md] [--grande=10000] [--linhas=100]
  *
- * O banco é aberto SOMENTE LEITURA (o EXPLAIN não executa a consulta). Os parâmetros `?` são ligados
- * a NULL: o plano do SQLite é escolhido na preparação e não depende dos valores (sem STAT4).
+ * O banco só recebe `EXPLAIN (GENERIC_PLAN, FORMAT JSON)`, que não executa a consulta: os parâmetros
+ * (`?` do coletor, reescritos para `$n`) ficam sem valor e o plano é o genérico. Com PGlite, o servidor
+ * precisa estar parado (um processo por diretório). O plano vira linhas `SCAN t` / `SEARCH t USING i` / `SORT`.
  *
  * SINAIS por consulta:
- *   SCAN        varredura de tabela (ou de índice inteiro) numa tabela com mais de `--grande` linhas
- *   TEMP        `USE TEMP B-TREE` (ordenação/agrupamento sem índice)
+ *   SCAN        varredura sequencial (`Seq Scan`) numa tabela com mais de `--grande` linhas
+ *   SORT        nó `Sort` no plano (ordenação sem índice que a entregue já ordenada)
  *   SEM_LIMIT   SELECT sem LIMIT que devolveu mais de `--linhas` linhas numa execução observada — cresce
  *               com o acervo do usuário
  *   N+1         a mesma consulta executada 3+ vezes numa mesma requisição (coluna "repetições máx.")
@@ -22,7 +23,7 @@
 import { readdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
 
-import Database from 'libsql'
+import { abrirAlvo } from '../contar-linhas.mjs'
 
 const arg = (n, d) => process.argv.find((x) => x.startsWith(`--${n}=`))?.slice(n.length + 3) ?? d
 const dirs = arg('dir', '').split(',').filter(Boolean)
@@ -30,7 +31,9 @@ const banco = arg('db', '')
 const GRANDE = Number(arg('grande', 10000))
 const LINHAS = Number(arg('linhas', 100))
 if (!dirs.length) {
-  console.error('uso: node scripts/perf/consultas/analisar.mjs --dir=<pasta> --db=<banco.db> [--md=x.md]')
+  console.error(
+    'uso: node scripts/perf/consultas/analisar.mjs --dir=<pasta> --db=<diretório do pglite | postgres://…> [--md=x.md]',
+  )
   process.exit(2)
 }
 
@@ -98,29 +101,42 @@ const r2 = (x) => (x === null ? null : Math.round(x * 100) / 100)
 const EXPLICAVEL = /^\s*(select|with|update|delete|insert)\b/i
 const tamanhos = new Map()
 let db = null
-if (banco && existsSync(banco)) {
-  db = new Database(banco, { readonly: true })
-  for (const { name } of db.prepare(`select name from sqlite_master where type='table'`).all())
-    tamanhos.set(name, db.prepare(`select count(*) n from "${name}"`).get().n)
+if (banco && (/^postgres(ql)?:\/\//i.test(banco) || existsSync(banco))) {
+  db = await abrirAlvo(banco)
+  for (const { tabela } of await db.consultar(
+    `select table_name as tabela from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE'`,
+  ))
+    tamanhos.set(tabela, (await db.consultar(`select count(*)::int as n from "${tabela}"`))[0].n)
 }
-/** Conta os `?` fora de literais — para ligar NULL em cada um. */
-const parametros = (sql) => {
+/** `?` fora de literais → `$1, $2…` (o coletor guarda o SQL com `?`; o Postgres só fala `$n`). */
+const comParametrosNumerados = (sql) => {
   let n = 0
   let aspas = false
+  let saida = ''
   for (const c of sql) {
     if (c === "'") aspas = !aspas
-    else if (c === '?' && !aspas) n++
+    saida += c === '?' && !aspas ? `$${++n}` : c
   }
-  return n
+  return saida
 }
-function explicar(e) {
+/** Árvore do `EXPLAIN (FORMAT JSON)` → linhas no estilo `SCAN t` / `SEARCH t USING i` / `SORT`. */
+function planoEmLinhas(no, saida = []) {
+  const tipo = no['Node Type']
+  if (tipo === 'Seq Scan') saida.push(`SCAN ${no['Relation Name']}`)
+  else if (/Index (Only )?Scan|Bitmap Heap Scan/.test(tipo))
+    saida.push(`SEARCH ${no['Relation Name']}${no['Index Name'] ? ` USING ${no['Index Name']}` : ''}`)
+  else if (tipo === 'Sort' || tipo === 'Incremental Sort') saida.push(`SORT (${(no['Sort Key'] ?? []).join(', ')})`)
+  for (const filho of no.Plans ?? []) planoEmLinhas(filho, saida)
+  return saida
+}
+async function explicar(e) {
   if (!db) return null
   const sql = (e.exemplo ?? e.sql.replace(/in \(\?…\)/g, 'in (?)')).trim()
   if (!EXPLICAVEL.test(sql) || /values \(…\)/.test(sql)) return null
   try {
-    const st = db.prepare(`EXPLAIN QUERY PLAN ${sql}`)
-    const linhas = st.all(Array(parametros(sql)).fill(null))
-    return linhas.map((l) => l.detail)
+    const [linha] = await db.consultar(`EXPLAIN (GENERIC_PLAN, FORMAT JSON) ${comParametrosNumerados(sql)}`)
+    const plano = linha['QUERY PLAN']
+    return planoEmLinhas((typeof plano === 'string' ? JSON.parse(plano) : plano)[0].Plan)
   } catch (err) {
     return [`(EXPLAIN falhou: ${String(err.message ?? err).slice(0, 120)})`]
   }
@@ -132,16 +148,17 @@ const sinais = (e, plano) => {
     for (const d of plano) {
       const t = tabelaDoScan(d)
       if (t && (tamanhos.get(t) ?? 0) > GRANDE) s.push(`SCAN ${t} (${tamanhos.get(t)} linhas)`)
-      if (/USE TEMP B-TREE/.test(d)) s.push(d.replace('USE ', ''))
+      if (/^SORT/.test(d)) s.push(d)
     }
   if (/^\s*select\b/i.test(e.sql) && !/\blimit\b/i.test(e.sql) && e.linhasMax > LINHAS)
     s.push(`SEM_LIMIT (até ${e.linhasMax} linhas)`)
   return s
 }
 
-const consultas = [...porSql.values()].map((e) => {
-  const plano = explicar(e)
-  return {
+const consultas = []
+for (const e of porSql.values()) {
+  const plano = await explicar(e)
+  consultas.push({
     sql: e.sql,
     n: e.n,
     msTotal: r2(e.ms),
@@ -154,8 +171,8 @@ const consultas = [...porSql.values()].map((e) => {
     rotas: [...e.rotas].sort(),
     plano,
     sinais: sinais(e, plano),
-  }
-})
+  })
+}
 consultas.sort((a, b) => b.msTotal - a.msTotal)
 const rotas = [...porRota.values()]
   .map((r) => ({
@@ -190,7 +207,7 @@ const md = []
 md.push(`# Inventário de consultas (${resultado.em})`, '')
 md.push(`Fontes: ${dirs.join(', ')} · banco do EXPLAIN: ${banco || '—'}`, '')
 md.push(`${resultado.totalExecucoes} execuções, ${resultado.distintas} consultas distintas.`, '')
-md.push('## Consultas com sinal (SCAN grande, TEMP B-TREE, sem LIMIT)', '')
+md.push('## Consultas com sinal (SCAN grande, SORT, sem LIMIT)', '')
 md.push('| # | n | ms total | p95 ms | linhas máx | sinais | rotas | SQL |', '|---:|---:|---:|---:|---:|---|---|---|')
 consultas
   .filter((c) => c.sinais.length)
@@ -220,4 +237,4 @@ for (const r of rotas)
 const mdSaida = arg('md', '')
 if (mdSaida) writeFileSync(mdSaida, md.join('\n') + '\n')
 else console.log(md.join('\n'))
-db?.close()
+await db?.fechar()

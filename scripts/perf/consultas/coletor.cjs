@@ -7,6 +7,11 @@
  *   node -r ./scripts/perf/consultas/coletor.cjs dist-server/server.cjs              # servidor sob carga
  *   NODE_OPTIONS="-r ./scripts/perf/consultas/coletor.cjs" npx vitest run ...        # suíte de testes
  *
+ * ATENÇÃO: SÓ FUNCIONA COM O DRIVER LIBSQL (`DATABASE_URL=file:…`), que o app deixou de usar (agora
+ * PGlite/`pg`). O gancho novo (`registrarObservadorDeConsultas`, server/db/observadorDeConsultas.ts) vive
+ * DENTRO do bundle do servidor e não é alcançável por um `-r` pré-carregado; por isso o coletor recusa
+ * subir com PGlite/Postgres em vez de coletar zero em silêncio.
+ *
  * Com `COLETOR_DIR` definido, embrulha o driver SÍNCRONO `libsql` (o mesmo módulo que o
  * `@libsql/client` carrega para `file:`) e mede CADA instrução no ponto em que ela ocupa o event loop:
  *   - `Database#prepare` (o `@libsql/client` prepara a instrução de novo em TODA execução — sem cache);
@@ -26,6 +31,10 @@
  */
 'use strict';
 const dir = process.env.COLETOR_DIR;
+if (dir && !/^file:/.test(process.env.DATABASE_URL ?? '')) {
+  console.error('[coletor] COLETOR_DIR definido, mas o banco não é libsql (file:). O coletor mede só o driver libsql e coletaria zero. Desligue o coletor.');
+  process.exit(2);
+}
 if (dir) {
   const { writeFileSync, mkdirSync } = require('node:fs');
   const path = require('node:path');

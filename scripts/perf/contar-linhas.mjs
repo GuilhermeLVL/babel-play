@@ -16,22 +16,29 @@ export const ehPostgres = (db) => /^postgres(ql)?:\/\//i.test(db)
 /** O valor de `DATABASE_URL` que o servidor filho deve receber para este `--db`. */
 export const urlDoBanco = (db) => (ehPostgres(db) ? db : `pglite:${path.resolve(db).replace(/\\/g, '/')}`)
 
-export async function contarLinhas(db, tabela) {
-  if (!/^\w+$/.test(tabela)) throw new Error(`nome de tabela inválido: ${tabela}`)
-  const consulta = `select count(*)::int as n from ${tabela}`
+/**
+ * Abre o alvo (`--db`: diretório do PGlite ou URL `postgres://`) e devolve `{ consultar, fechar }`.
+ * `consultar(sql, params)` aceita `$1…` e devolve as linhas.
+ */
+export async function abrirAlvo(db) {
   if (ehPostgres(db)) {
     const cliente = new pg.Client({ connectionString: db })
     await cliente.connect()
-    try {
-      return (await cliente.query(consulta)).rows[0].n
-    } finally {
-      await cliente.end()
+    return {
+      consultar: async (sql, params = []) => (await cliente.query(sql, params)).rows,
+      fechar: () => cliente.end(),
     }
   }
   const banco = new PGlite(path.resolve(db))
+  return { consultar: async (sql, params = []) => (await banco.query(sql, params)).rows, fechar: () => banco.close() }
+}
+
+export async function contarLinhas(db, tabela) {
+  if (!/^\w+$/.test(tabela)) throw new Error(`nome de tabela inválido: ${tabela}`)
+  const alvo = await abrirAlvo(db)
   try {
-    return (await banco.query(consulta)).rows[0].n
+    return (await alvo.consultar(`select count(*)::int as n from ${tabela}`))[0].n
   } finally {
-    await banco.close()
+    await alvo.fechar()
   }
 }

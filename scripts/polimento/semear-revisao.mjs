@@ -16,6 +16,7 @@
 import { readFile } from 'node:fs/promises'
 
 import { abrirBanco } from './_banco.mjs'
+import { zerarBanco } from './zerar-banco.mjs'
 
 const arg = (n, d) => {
   const a = process.argv.find((x) => x.startsWith(`--${n}=`))
@@ -69,21 +70,7 @@ if (process.argv.includes('--zerar')) {
     ARQUIVO,
     'uso: node scripts/polimento/semear-revisao.mjs --base=<url> --db=<postgres:// de TESTE>',
   )
-  for (const tabela of [
-    'review_logs',
-    'exercise_results',
-    'estado_por_item',
-    'agregados_diarios',
-    'estado_dos_agregados',
-    'vocab_occurrences',
-    'anki_notes',
-    'anki_decks',
-    'anki_imports',
-    'vocab_cards',
-    'utterances',
-    'sessions',
-  ])
-    await limpo.consultar(`DELETE FROM ${tabela}`)
+  await zerarBanco(limpo)
   await limpo.fechar()
 }
 

@@ -82,6 +82,12 @@ const tmp = path.resolve(arg('tmp', '') || mkdtempSync(path.join(os.tmpdir(), 's
 const saida = arg('saida', '')
 const slo = carregarSlo(arg('slo', undefined) || undefined)
 const coletorDir = arg('coletor-dir', '') && path.resolve(arg('coletor-dir', ''))
+if (coletorDir) {
+  console.error(
+    '--coletor-dir não é suportado: o coletor mede só o driver libsql (file:) e o banco do app agora é PGlite/Postgres. Rode sem ele.',
+  )
+  process.exit(2)
+}
 const cpuProfDir = arg('cpu-prof-dir', '') && path.resolve(arg('cpu-prof-dir', ''))
 
 if (!existsSync(bundle)) {

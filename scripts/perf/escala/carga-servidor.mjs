@@ -65,6 +65,12 @@ const rotas = arg('rotas', 'abertura,settings,vocab,profile,sessions,review,gast
 const mesmoIp = flag('mesmo-ip')
 const saida = arg('saida', '')
 const coletorDir = arg('coletor-dir', '') && path.resolve(arg('coletor-dir', ''))
+if (coletorDir) {
+  console.error(
+    '--coletor-dir não é suportado: o coletor mede só o driver libsql (file:) e o banco do app agora é PGlite/Postgres. Rode sem ele.',
+  )
+  process.exit(2)
+}
 const RAIZ = path.resolve(import.meta.dirname, '..', '..', '..')
 const tmp = path.dirname(path.resolve(banco))
 const sonda = path.join(tmp, `sonda-${modo}-${porta}.jsonl`)

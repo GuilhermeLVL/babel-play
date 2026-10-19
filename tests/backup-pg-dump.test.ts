@@ -30,4 +30,26 @@ describe('montarPgDump', () => {
     const { env } = montarPgDump('postgresql://u:s@h/db', '/tmp/x.dump', { PGSSLMODE: 'disable' })
     expect(env.PGSSLMODE).toBeUndefined()
   })
+
+  it('URL inválida: erro de mensagem fixa, sem a URL (nem a senha)', () => {
+    let erro: Error | undefined
+    try {
+      montarPgDump('postgres://u:senha-secreta@[host-quebrado/db', '/tmp/x.dump', {})
+    } catch (e) {
+      erro = e as Error
+    }
+    expect(erro?.message).toMatch(/não é uma URL válida/)
+    expect(String(erro?.stack) + String(erro?.message)).not.toContain('senha-secreta')
+  })
+
+  it('host IPv6 sai sem colchetes', () => {
+    const { env } = montarPgDump('postgres://u:s@[::1]:5433/db', '/tmp/x.dump', {})
+    expect(env.PGHOST).toBe('::1')
+    expect(env.PGPORT).toBe('5433')
+  })
+
+  it('URL sem porta não define PGPORT (nem herda a do pai)', () => {
+    const { env } = montarPgDump('postgres://u:s@h/db', '/tmp/x.dump', { PGPORT: '9999' })
+    expect(env.PGPORT).toBeUndefined()
+  })
 })

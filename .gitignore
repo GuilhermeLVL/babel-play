@@ -35,7 +35,7 @@ id_ed25519*
 # Motor e modelos do Bergamot (scripts/baixar-modelos-bergamot.mjs; o build os garante, com sha256)
 /public/modelos/
 
-# ── Banco local (SQLite) e dados — SÓ o diretório do root (não src/data/) ───
+# ── Banco local (PGlite em data/pg, SQLite legado) e dados — SÓ o diretório do root (não src/data/) ───
 /data/
 *.db
 *.db-journal

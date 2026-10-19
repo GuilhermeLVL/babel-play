@@ -41,6 +41,8 @@ const filho = spawn(process.execPath, ['node_modules/tsx/dist/cli.mjs', 'server.
     VITE_SUPABASE_ANON_KEY: '',
     AUTH_REQUIRED: '0',
     NODE_ENV: 'development',
+    // Banco embutido (PGlite) em ./data/pg, sem Postgres instalado. Quem já exportou outra URL a mantém.
+    DATABASE_URL: process.env.DATABASE_URL || 'pglite:./data/pg',
   },
   // `inherit`: os logs do servidor saem no seu terminal, sem arquivo intermediário.
   stdio: 'inherit',

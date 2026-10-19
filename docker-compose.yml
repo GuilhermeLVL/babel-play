@@ -34,15 +34,18 @@ services:
       # linear a partir de 2 VUs: saturação de processo único. Vazio ou 1 = um processo só.
       # Suba junto o `memory` abaixo: cada worker é um heap Node inteiro.
       CLUSTER_WORKERS: '${CLUSTER_WORKERS:-1}'
+      # Postgres do serviço `postgres` abaixo, para exercitar o driver `pg` de verdade. Em produção
+      # a DATABASE_URL do .env.docker (um Postgres gerenciado) tem precedência. A senha é só de teste local.
+      DATABASE_URL: ${DATABASE_URL:-postgres://babel:babel-local@postgres:5432/babel}
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       # Só no loopback do host: quem publica na internet é o proxy reverso.
       - '127.0.0.1:3000:3000'
     volumes:
-      # SQLite + áudios das sessões. SEM isto o dado morre a cada `docker compose up`.
-      #
-      # Com MAIS DE UMA RÉPLICA, todas precisam do MESMO volume: o WAL destrava
-      # múltiplos processos na mesma máquina, mas NÃO funciona sobre NFS/SMB —
-      # réplicas em hosts distintos exigem Postgres (ver docs/audit/04-scalability.md).
+      # Áudios das sessões. SEM isto o dado morre a cada `docker compose up`. O banco mora no
+      # volume do serviço `postgres`.
       - babel-data:/data
     # /api/ready, e nao /api/health — ver o bloco do HEALTHCHECK no Dockerfile. Quem le este
     # estado (depends_on: service_healthy, Swarm, proxy reverso) decide ROTEAR, nao reiniciar: e
@@ -66,5 +69,23 @@ services:
         limits:
           memory: 1g
 
+  # Postgres 17, o mesmo major do PGlite de desenvolvimento. Serve para testar o driver `pg` de
+  # verdade; em produção use um Postgres gerenciado e aponte DATABASE_URL para ele.
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: babel
+      POSTGRES_PASSWORD: babel-local
+      POSTGRES_DB: babel
+    volumes:
+      - babel-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U babel -d babel']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   babel-data:
+  babel-pg:

@@ -15,7 +15,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { and, desc, eq, gt, isNotNull, isNull, ne, sql } from 'drizzle-orm'
 
 import type { UserId } from '../../lib/authContext'
-import { db } from '../db'
+import { db, linhasAfetadas } from '../db'
 import { idadesDeclaradas, users, vinculosDeResponsavel } from '../schema'
 
 export type Vinculo = typeof vinculosDeResponsavel.$inferSelect
@@ -135,7 +135,7 @@ export const vinculosRepo = {
           gt(vinculosDeResponsavel.expiraEm, agora),
         ),
       )
-    return r.rowsAffected > 0
+    return linhasAfetadas(r) > 0
   },
 
   /** O vínculo ACEITO e vivo do menor (o mais recente). */

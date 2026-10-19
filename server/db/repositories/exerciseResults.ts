@@ -7,7 +7,7 @@ import { MINIGAME_IDS } from '../../../src/core/minigames/revelavel'
 import { inicioDaRodada } from '../../../src/core/missoes'
 import type { UserId } from '../../lib/authContext'
 import { CachePorVersao } from '../../lib/cachePorVersao'
-import { db } from '../db'
+import { db, linhasAfetadas } from '../db'
 import { emLotes, tamanhoDoLote } from '../lotes'
 import { exerciseResults, sessions, vocabCards } from '../schema'
 import { agregadosRepo, baseDoIdioma } from './agregados'
@@ -512,7 +512,7 @@ ${opts.origem ?? ''}`
        sorteado aqui. Na rodada repetida o INSERT não insere nada e nada soma. */
     const fuso = await agregadosRepo.fusoGravado(userId)
     const [r] = await db.batch([
-      db.run(sql`
+      db.execute(sql`
         INSERT INTO ${exerciseResults}
           (id, created_at, updated_at, user_id, session_id, kind, correct, score, combo, exercise_kind, round_id, item_ref, attempts, ms, hinted, origem, card_id, nivel, fonte, fonte_ref)
         SELECT * FROM (VALUES ${colunas})
@@ -539,7 +539,7 @@ ${opts.origem ?? ''}`
         sql`SELECT 1 FROM exercise_results WHERE id = ${linhas[0].id}`,
       ),
     ] as unknown as Parameters<typeof db.batch>[0])
-    const gravados = Number((r as { rowsAffected?: number }).rowsAffected ?? 0)
+    const gravados = linhasAfetadas(r)
     return { gravados, roundId: rodada.roundId, jaExistia: gravados === 0 }
   },
 

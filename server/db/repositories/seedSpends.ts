@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { and, desc, eq, isNull, like, sql, sum } from 'drizzle-orm'
 
 import type { UserId } from '../../lib/authContext'
-import { db } from '../db'
+import { db, linhasAfetadas } from '../db'
 import { seedSpends } from '../schema'
 
 export type SeedSpend = typeof seedSpends.$inferSelect
@@ -89,12 +89,12 @@ export const seedSpendsRepo = {
     const teto = opts.tetoDeGasto
     const r =
       teto === undefined
-        ? await db.run(sql`
+        ? await db.execute(sql`
         INSERT INTO ${seedSpends} (id, created_at, updated_at, user_id, spend_id, amount, reason, ref)
         VALUES (${row.id}, ${row.createdAt}, ${row.updatedAt}, ${row.userId}, ${row.spendId}, ${row.amount}, ${row.reason}, ${row.ref})
         ON CONFLICT (user_id, spend_id) WHERE deleted_at IS NULL DO NOTHING
       `)
-        : await db.run(sql`
+        : await db.execute(sql`
         INSERT INTO ${seedSpends} (id, created_at, updated_at, user_id, spend_id, amount, reason, ref)
         SELECT ${row.id}, ${row.createdAt}, ${row.updatedAt}, ${row.userId}, ${row.spendId}, ${row.amount}, ${row.reason}, ${row.ref}
         WHERE (
@@ -106,7 +106,7 @@ export const seedSpendsRepo = {
 
     /* 0 linhas afetadas agora tem DUAS causas: já existia (viva), ou o teto barrou. Quem
        distingue é a releitura abaixo — a linha existe no primeiro caso e não no segundo. */
-    const naoInseriu = Number((r as { rowsAffected?: number }).rowsAffected ?? 0) === 0
+    const naoInseriu = linhasAfetadas(r) === 0
     // P2-N2: este SELECT não filtrava `deletedAt` enquanto `totalGasto()` filtrava. Um gasto
     // soft-deletado devolvia `jaExistia: true` (não cobrava de novo) E não contava no saldo —
     // ou seja, a compra saía de graça. As duas queries precisam concordar sobre o que existe.

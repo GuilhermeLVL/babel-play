@@ -23,7 +23,7 @@ import {
   type SessaoParaContar,
 } from '../../../src/core/learning/contagensDeConteudo'
 import type { UserId } from '../../lib/authContext'
-import { db } from '../db'
+import { db, linhas } from '../db'
 import { type ColunaCompacta, lerCompacto } from '../leituraCompacta'
 
 const COLUNAS_DO_CARTAO: ColunaCompacta[] = [
@@ -42,8 +42,10 @@ const COLUNAS_DO_CARTAO: ColunaCompacta[] = [
  * (`anki_decks` não tem gatilho). Uma consulta pelo índice da conta; entra na versão do ETag.
  */
 export async function versaoDosBaralhos(userId: UserId): Promise<string> {
-  const [l] = await db.all<{ n: number | null; m: number | null }>(
-    sql`SELECT count(*) AS n, max(updated_at) AS m FROM anki_decks WHERE user_id = ${userId} AND deleted_at IS NULL`,
+  const [l] = linhas<{ n: number | null; m: number | null }>(
+    await db.execute(
+      sql`SELECT count(*) AS n, max(updated_at) AS m FROM anki_decks WHERE user_id = ${userId} AND deleted_at IS NULL`,
+    ),
   )
   return `${Number(l?.n ?? 0)}.${Number(l?.m ?? 0)}`
 }
@@ -69,13 +71,25 @@ export async function contagensDeConteudo(
         distinta: true,
       },
     ),
-    db.all<{ id: string; nome: string | null; tipo: string | null; quando: number | null; duracaoMs: number | null }>(
-      sql`SELECT id, title AS nome, kind AS tipo, created_at AS quando, duration_ms AS duracaoMs
+    db
+      .execute(
+        sql`SELECT id, title AS nome, kind AS tipo, created_at AS quando, duration_ms AS duracaoMs
           FROM sessions WHERE user_id = ${userId} AND deleted_at IS NULL`,
-    ),
-    db.all<{ id: string; nome: string | null; quando: number | null }>(
-      sql`SELECT id, nome, created_at AS quando FROM anki_decks WHERE user_id = ${userId} AND deleted_at IS NULL`,
-    ),
+      )
+      .then((r) =>
+        linhas<{
+          id: string
+          nome: string | null
+          tipo: string | null
+          quando: number | null
+          duracaoMs: number | null
+        }>(r),
+      ),
+    db
+      .execute(
+        sql`SELECT id, nome, created_at AS quando FROM anki_decks WHERE user_id = ${userId} AND deleted_at IS NULL`,
+      )
+      .then((r) => linhas<{ id: string; nome: string | null; quando: number | null }>(r)),
   ])
   return contarConteudo({
     cartoes,

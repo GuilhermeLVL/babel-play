@@ -17,7 +17,7 @@
 import { sql } from 'drizzle-orm'
 
 import type { UserId } from '../../lib/authContext'
-import { db } from '../db'
+import { db, linhas } from '../db'
 
 export interface VersoesDoUsuario {
   vocab: number
@@ -28,8 +28,8 @@ export const versoesRepo = {
   async de(userId: UserId): Promise<VersoesDoUsuario> {
     /* `all`, e não `get`: com SQL cru e nenhuma linha, o `get` do drizzle 0.45/libsql tenta mapear
        `undefined` e lança — e "nenhuma linha" é o caso normal de quem ainda não escreveu nada. */
-    const [linha] = await db.all<{ vocab: number | null; atividade: number | null }>(
-      sql`SELECT vocab, atividade FROM versoes_de_dados WHERE user_id = ${userId}`,
+    const [linha] = linhas<{ vocab: number | null; atividade: number | null }>(
+      await db.execute(sql`SELECT vocab, atividade FROM versoes_de_dados WHERE user_id = ${userId}`),
     )
     return { vocab: Number(linha?.vocab ?? 0), atividade: Number(linha?.atividade ?? 0) }
   },

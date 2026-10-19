@@ -47,7 +47,7 @@ import { sql } from 'drizzle-orm'
 
 import { agregarPorDia } from '../../src/core/learning/agregados'
 import { diaNumeroNoFuso } from '../../src/core/learning/economia'
-import { aplicarPragmas, bancoLocal, client, db } from '../db/db'
+import { bancoEmbutido, db, linhas, linhasAfetadas } from '../db/db'
 import {
   agregadosRepo,
   gruposDeRevisoes,
@@ -55,7 +55,7 @@ import {
   reconstruirNaTransacao,
 } from '../db/repositories/agregados'
 import type { UserId } from './authContext'
-import { checkpointNaLimpeza, diasAteApagarDeVez } from './config'
+import { diasAteApagarDeVez } from './config'
 import { log } from './logger'
 
 const DIA_MS = 86_400_000
@@ -77,7 +77,7 @@ export interface RelatorioDaLimpeza {
   checkpoint: boolean | null
 }
 
-const afetadas = (r: unknown) => Number((r as { rowsAffected?: number }).rowsAffected ?? 0)
+const afetadas = (r: unknown) => linhasAfetadas(r)
 const ocupado = (err: unknown) => /SQLITE_BUSY|database is locked/i.test(String((err as Error)?.message ?? err))
 
 /** Tudo de UM usuário, numa transação que toma a trava de escrita no começo. */
@@ -98,18 +98,18 @@ async function limparUsuario(userId: UserId, corte: number, agora: number) {
       ).map((c) => ({ idioma: c.idioma, dia: c.dia, revisoes: c.revisoes, acertos: c.acertos }))
 
       const revisoes = afetadas(
-        await tx.run(sql`DELETE FROM review_logs AS r WHERE r.user_id = ${userId} AND ${revisoesQueSaem}`),
+        await tx.execute(sql`DELETE FROM review_logs AS r WHERE r.user_id = ${userId} AND ${revisoesQueSaem}`),
       )
       const ocorrencias = afetadas(
-        await tx.run(sql`DELETE FROM vocab_occurrences WHERE user_id = ${userId}
+        await tx.execute(sql`DELETE FROM vocab_occurrences WHERE user_id = ${userId}
           AND ((deleted_at IS NOT NULL AND deleted_at < ${corte}) OR card_id IN ${cartoes})`),
       )
       let soltos = afetadas(
-        await tx.run(
+        await tx.execute(
           sql`UPDATE exercise_results SET card_id = NULL WHERE user_id = ${userId} AND card_id IN ${cartoes}`,
         ),
       )
-      const nCartoes = afetadas(await tx.run(sql`DELETE FROM vocab_cards WHERE id IN ${cartoes}`))
+      const nCartoes = afetadas(await tx.execute(sql`DELETE FROM vocab_cards WHERE id IN ${cartoes}`))
 
       /* As sessões que saem: apagadas antes do corte e sem cartão que ainda as cite (depois de os
          cartões acima terem saído). */
@@ -118,16 +118,16 @@ async function limparUsuario(userId: UserId, corte: number, agora: number) {
           AND NOT EXISTS (SELECT 1 FROM vocab_cards c WHERE c.session_id = s.id))`
       const falasQueSaem = sql`(SELECT u.id FROM utterances u WHERE u.user_id = ${userId}
         AND ((u.deleted_at IS NOT NULL AND u.deleted_at < ${corte}) OR u.session_id IN ${sessoes}))`
-      await tx.run(
+      await tx.execute(
         sql`UPDATE vocab_occurrences SET utterance_id = NULL WHERE user_id = ${userId} AND utterance_id IN ${falasQueSaem}`,
       )
-      const falas = afetadas(await tx.run(sql`DELETE FROM utterances WHERE id IN ${falasQueSaem}`))
+      const falas = afetadas(await tx.execute(sql`DELETE FROM utterances WHERE id IN ${falasQueSaem}`))
       soltos += afetadas(
-        await tx.run(
+        await tx.execute(
           sql`UPDATE exercise_results SET session_id = NULL WHERE user_id = ${userId} AND session_id IN ${sessoes}`,
         ),
       )
-      const nSessoes = afetadas(await tx.run(sql`DELETE FROM sessions WHERE id IN ${sessoes}`))
+      const nSessoes = afetadas(await tx.execute(sql`DELETE FROM sessions WHERE id IN ${sessoes}`))
 
       /* Os agregados acompanham no mesmo passo: recontados do bruto que ficou, mais as purgadas. Só
          se algo saiu: quem só tem linha que fica de propósito (cartão do Anki, sessão com cartão)
@@ -164,12 +164,14 @@ export async function limparBanco(
 
   /* Quem tem o que apagar. Os cinco índices parciais `idx_*_apagadas` (migração 0053) respondem
      sem varrer as tabelas. Linha sem dono (`user_id` nulo) não entra: o arranque as carimba. */
-  const donos = await db.all<{ user_id: string }>(sql`
+  const donos = linhas<{ user_id: string }>(
+    await db.execute(sql`
     SELECT user_id FROM sessions WHERE deleted_at IS NOT NULL AND deleted_at < ${corte} AND user_id IS NOT NULL
     UNION SELECT user_id FROM utterances WHERE deleted_at IS NOT NULL AND deleted_at < ${corte} AND user_id IS NOT NULL
     UNION SELECT user_id FROM vocab_cards WHERE deleted_at IS NOT NULL AND deleted_at < ${corte} AND user_id IS NOT NULL
     UNION SELECT user_id FROM vocab_occurrences WHERE deleted_at IS NOT NULL AND deleted_at < ${corte} AND user_id IS NOT NULL
-    UNION SELECT user_id FROM review_logs WHERE deleted_at IS NOT NULL AND deleted_at < ${corte} AND user_id IS NOT NULL`)
+    UNION SELECT user_id FROM review_logs WHERE deleted_at IS NOT NULL AND deleted_at < ${corte} AND user_id IS NOT NULL`),
+  )
 
   try {
     for (const { user_id } of donos) {
@@ -192,37 +194,25 @@ export async function limparBanco(
       }
     }
   } finally {
-    // As transações rodam em conexão nova e devolvem a principal sem os PRAGMAs (ver `emTransacao`).
-    await aplicarPragmas().catch(() => {})
+    // PRAGMAs não existem no Postgres; sem efeito. Tarefa 6 remove de vez.
+    if (!bancoEmbutido) {
+      /* Tarefa 6 remove de vez */
+    }
   }
 
   /* A conferência dos agregados: quem ficou com as marcas diferentes (escrita por fora dos
      repositórios) é recontado agora, e não na próxima leitura da pessoa. */
-  const atrasados = await db.all<{ user_id: string }>(
-    sql`SELECT user_id FROM estado_dos_agregados WHERE marca_bruto <> marca_vista LIMIT 500`,
+  const atrasados = linhas<{ user_id: string }>(
+    await db.execute(sql`SELECT user_id FROM estado_dos_agregados WHERE marca_bruto <> marca_vista LIMIT 500`),
   )
   for (const { user_id } of atrasados) {
     await agregadosRepo.reconstruir(user_id as UserId)
     r.agregadosRecontados += 1
   }
 
-  if (bancoLocal) {
-    try {
-      await client.execute('PRAGMA optimize')
-      r.otimizado = true
-    } catch (err) {
-      log('warn', { event: 'limpeza_diaria_optimize_falhou', error: String(err).slice(0, 160) })
-    }
-    if (o.checkpoint ?? checkpointNaLimpeza()) {
-      try {
-        const c = await client.execute('PRAGMA wal_checkpoint(TRUNCATE)')
-        // A primeira coluna é `busy`: 1 quando um leitor (ou o replicador) segurou o checkpoint.
-        r.checkpoint = Number(Object.values(c.rows[0] ?? {})[0] ?? 1) === 0
-      } catch (err) {
-        r.checkpoint = false
-        log('warn', { event: 'limpeza_diaria_checkpoint_falhou', error: String(err).slice(0, 160) })
-      }
-    }
+  // PRAGMA optimize e wal_checkpoint não existem no Postgres. Tarefa 6 remove de vez.
+  if (!bancoEmbutido) {
+    /* Tarefa 6 remove de vez */
   }
 
   log('info', { event: 'limpeza_diaria', ...r })

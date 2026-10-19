@@ -16,7 +16,7 @@ import { type Grade, makeFsrs5, metaDeRetencao, type SchedulingState } from '../
 import { chaveDedup as chaveDedupDoNucleo } from '../../../src/core/texto/palavra'
 import type { UserId } from '../../lib/authContext'
 import { garantirNiveis } from '../../lib/niveisDaTrilha'
-import { db } from '../db'
+import { db, linhasAfetadas } from '../db'
 import { type ColunaCompacta, lerCompacto } from '../leituraCompacta'
 import { tuplaDeBatch } from '../lotes'
 import { ankiDecks, ankiNotes, reviewLogs, sessions, vocabCards, vocabOccurrences } from '../schema'
@@ -1288,7 +1288,7 @@ export const vocabRepo = {
       )
     if (!instrucoes.length) return 0
     const resultados = await db.batch(tuplaDeBatch(instrucoes))
-    return resultados.reduce((n, r) => n + Number((r as { rowsAffected?: number }).rowsAffected ?? 0), 0)
+    return resultados.reduce((n, r) => n + linhasAfetadas(r), 0)
   },
 
   /**
@@ -1305,7 +1305,8 @@ export const vocabRepo = {
     /* ADIAR não é revisar: muda só quando o cartão volta a vencer (no máximo daqui a um ano). Nada
        entra em `review_logs`, então XP, acerto e ofensiva não se mexem, e o "desfazer" é outro adiar
        com a data de antes. */
-    if (typeof patch.adiarAte === 'number') set.dueAt = Math.min(Math.max(0, Math.round(patch.adiarAte)), agora + UM_ANO_MS)
+    if (typeof patch.adiarAte === 'number')
+      set.dueAt = Math.min(Math.max(0, Math.round(patch.adiarAte)), agora + UM_ANO_MS)
     if (typeof patch.back === 'string') set.back = patch.back.trim() || null
     if (typeof patch.inDeck === 'boolean') set.inDeck = patch.inDeck ? 1 : 0
     if (typeof patch.sentence === 'string') set.sentence = patch.sentence.trim() || null

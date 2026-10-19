@@ -8,10 +8,10 @@
  */
 import { and, eq, gt, lt, sql } from 'drizzle-orm'
 
-import { db } from '../db'
+import { db, linhasAfetadas } from '../db'
 import { cacheDeTraducaoPersistente as tabela } from '../schema'
 
-const afetadas = (r: unknown) => Number((r as { rowsAffected?: number }).rowsAffected ?? 0)
+const afetadas = (r: unknown) => linhasAfetadas(r)
 
 export interface LinhaDoCacheDeTraducao {
   chave: string
@@ -67,7 +67,7 @@ export const cacheDeTraducaoRepo = {
 
   /** Acima de `maxLinhas`, apaga as MENOS usadas recentemente. Devolve quantas saíram. */
   async apagarExcedentes(maxLinhas: number): Promise<number> {
-    const r = await db.run(sql`
+    const r = await db.execute(sql`
       DELETE FROM cache_de_traducao WHERE chave IN (
         SELECT chave FROM cache_de_traducao ORDER BY usado_em DESC LIMIT -1 OFFSET ${maxLinhas}
       )

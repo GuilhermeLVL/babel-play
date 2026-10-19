@@ -144,13 +144,13 @@ describe('F4 — dificuldade materializada e seleção com proveniência', () =>
        foi recalculada, sem nenhum leitor no cliente (ver `COLUNAS_DO_CARTAO` em
        server/db/repositories/vocab.ts). A pergunta do teste continua a mesma; o que muda e que
        ela e feita a coluna, que e onde o carimbo mora. */
-    const { client } = await import('../../server/db/db')
-    const carimbos = await client.execute({
-      sql: 'select difficulty_at from vocab_cards where user_id = ? and deleted_at is null',
-      args: [String(u)],
-    })
-    expect(carimbos.rows.length).toBe(deck.length)
-    expect(carimbos.rows.every((r: any) => Number(r.difficulty_at) > 0)).toBe(true)
+    const { db, linhas } = await import('../../server/db/db')
+    const { sql } = await import('drizzle-orm')
+    const carimbos = linhas<any>(
+      await db.execute(sql`select difficulty_at from vocab_cards where user_id = ${String(u)} and deleted_at is null`),
+    )
+    expect(carimbos.length).toBe(deck.length)
+    expect(carimbos.every((r: any) => Number(r.difficulty_at) > 0)).toBe(true)
   })
 
   it('cada item selecionado carrega PROVENIÊNCIA completa', async () => {

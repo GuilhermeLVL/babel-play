@@ -13,7 +13,7 @@
 import { eq, lt } from 'drizzle-orm'
 
 import type { UserId } from '../../lib/authContext'
-import { db, emTransacao } from '../db'
+import { db, emTransacao, linhasAfetadas } from '../db'
 import { marcasDeTeste, testesPremium } from '../schema'
 
 export type TestePremium = typeof testesPremium.$inferSelect
@@ -50,7 +50,7 @@ export const testesPremiumRepo = {
         .insert(marcasDeTeste)
         .values({ marca, criadoEm: inicio })
         .onConflictDoNothing({ target: marcasDeTeste.marca })
-      if (marcou.rowsAffected === 0) return { tipo: 'marca_usada' }
+      if (linhasAfetadas(marcou) === 0) return { tipo: 'marca_usada' }
       const teste = { userId, iniciadoEm: inicio, terminaEm: fim }
       await tx.insert(testesPremium).values(teste)
       return { tipo: 'iniciado', teste }
@@ -60,6 +60,6 @@ export const testesPremiumRepo = {
   /** A retenção da marca: apaga as criadas antes de `antesDe`. Devolve quantas saíram. */
   async podarMarcas(antesDe: number): Promise<number> {
     const r = await db.delete(marcasDeTeste).where(lt(marcasDeTeste.criadoEm, antesDe))
-    return r.rowsAffected
+    return linhasAfetadas(r)
   },
 }

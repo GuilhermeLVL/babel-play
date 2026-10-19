@@ -5,7 +5,7 @@ import { and, asc, desc, eq, isNull, like, sql, sum } from 'drizzle-orm'
 import type { SkuDeCredito } from '../../../src/core/creditos'
 import { type CompraPremium, resolverPremium } from '../../../src/core/reembolso'
 import type { UserId } from '../../lib/authContext'
-import { db } from '../db'
+import { db, linhasAfetadas } from '../db'
 import { creditPurchases, creditSpends } from '../schema'
 
 /**
@@ -67,14 +67,19 @@ export const creditsRepo = {
    */
   async confirmarPagamento(providerPaymentId: string) {
     const agora = Date.now()
-    await db.update(creditPurchases)
+    await db
+      .update(creditPurchases)
       .set({ status: 'pago', paidAt: agora, updatedAt: agora })
-      .where(and(
-        eq(creditPurchases.providerPaymentId, providerPaymentId),
-        eq(creditPurchases.status, 'pendente'),
-        isNull(creditPurchases.deletedAt),
-      ))
-    const rows = await db.select().from(creditPurchases)
+      .where(
+        and(
+          eq(creditPurchases.providerPaymentId, providerPaymentId),
+          eq(creditPurchases.status, 'pendente'),
+          isNull(creditPurchases.deletedAt),
+        ),
+      )
+    const rows = await db
+      .select()
+      .from(creditPurchases)
       .where(and(eq(creditPurchases.providerPaymentId, providerPaymentId), isNull(creditPurchases.deletedAt)))
       .limit(1)
     return rows[0] ?? null
@@ -83,20 +88,27 @@ export const creditsRepo = {
   /** Estorno: a compra deixa de conceder. Evento inverso, nunca DELETE. */
   async cancelarCompra(providerPaymentId: string) {
     const agora = Date.now()
-    await db.update(creditPurchases)
+    await db
+      .update(creditPurchases)
       .set({ status: 'cancelado', updatedAt: agora })
       .where(and(eq(creditPurchases.providerPaymentId, providerPaymentId), isNull(creditPurchases.deletedAt)))
   },
 
   /** Só compras PAGAS entram no saldo — pendente e cancelada valem zero. */
   async totalComprado(userId: UserId): Promise<number> {
-    const r = await db.select({ total: sum(creditPurchases.creditos) }).from(creditPurchases)
-      .where(and(eq(creditPurchases.userId, userId), eq(creditPurchases.status, 'pago'), isNull(creditPurchases.deletedAt)))
+    const r = await db
+      .select({ total: sum(creditPurchases.creditos) })
+      .from(creditPurchases)
+      .where(
+        and(eq(creditPurchases.userId, userId), eq(creditPurchases.status, 'pago'), isNull(creditPurchases.deletedAt)),
+      )
     return Number(r[0]?.total ?? 0)
   },
 
   async totalGasto(userId: UserId): Promise<number> {
-    const r = await db.select({ total: sum(creditSpends.amount) }).from(creditSpends)
+    const r = await db
+      .select({ total: sum(creditSpends.amount) })
+      .from(creditSpends)
       .where(and(eq(creditSpends.userId, userId), isNull(creditSpends.deletedAt)))
     return Number(r[0]?.total ?? 0)
   },
@@ -123,16 +135,24 @@ export const creditsRepo = {
   ): Promise<{ linha: CreditSpend | null; jaExistia: boolean; recusadoPorSaldo: boolean }> {
     const agora = Date.now()
     const row = {
-      id: randomUUID(), createdAt: agora, updatedAt: agora, userId, deletedAt: null,
-      spendId: input.spendId, amount: input.amount, reason: input.reason, ref: input.ref ?? null,
+      id: randomUUID(),
+      createdAt: agora,
+      updatedAt: agora,
+      userId,
+      deletedAt: null,
+      spendId: input.spendId,
+      amount: input.amount,
+      reason: input.reason,
+      ref: input.ref ?? null,
     }
-    const r = opts.conferirSaldo !== true
-      ? await db.run(sql`
+    const r =
+      opts.conferirSaldo !== true
+        ? await db.execute(sql`
         INSERT INTO ${creditSpends} (id, created_at, updated_at, user_id, spend_id, amount, reason, ref)
         VALUES (${row.id}, ${row.createdAt}, ${row.updatedAt}, ${row.userId}, ${row.spendId}, ${row.amount}, ${row.reason}, ${row.ref})
         ON CONFLICT (user_id, spend_id) WHERE deleted_at IS NULL DO NOTHING
       `)
-      : await db.run(sql`
+        : await db.execute(sql`
         INSERT INTO ${creditSpends} (id, created_at, updated_at, user_id, spend_id, amount, reason, ref)
         SELECT ${row.id}, ${row.createdAt}, ${row.updatedAt}, ${row.userId}, ${row.spendId}, ${row.amount}, ${row.reason}, ${row.ref}
         WHERE (
@@ -144,9 +164,13 @@ export const creditsRepo = {
         ) >= ${row.amount}
         ON CONFLICT (user_id, spend_id) WHERE deleted_at IS NULL DO NOTHING
       `)
-    const naoInseriu = Number((r as { rowsAffected?: number }).rowsAffected ?? 0) === 0
-    const rows = await db.select().from(creditSpends)
-      .where(and(eq(creditSpends.spendId, input.spendId), eq(creditSpends.userId, userId), isNull(creditSpends.deletedAt)))
+    const naoInseriu = linhasAfetadas(r) === 0
+    const rows = await db
+      .select()
+      .from(creditSpends)
+      .where(
+        and(eq(creditSpends.spendId, input.spendId), eq(creditSpends.userId, userId), isNull(creditSpends.deletedAt)),
+      )
       .limit(1)
     if (!rows[0]) {
       if (naoInseriu && opts.conferirSaldo === true) return { linha: null, jaExistia: false, recusadoPorSaldo: true }
@@ -169,19 +193,21 @@ export const creditsRepo = {
    */
   async registrarConcessao(userId: UserId, input: { concessaoId: string; creditos: number }) {
     const agora = Date.now()
-    const r = await db.run(sql`
+    const r = await db.execute(sql`
       INSERT INTO ${creditPurchases}
         (id, created_at, updated_at, user_id, sku, creditos, valor_centavos, provider, provider_payment_id, status, paid_at)
       VALUES
         (${randomUUID()}, ${agora}, ${agora}, ${userId}, 'concessao', ${input.creditos}, 0, 'interno', ${input.concessaoId}, 'pago', ${agora})
       ON CONFLICT (provider_payment_id) WHERE deleted_at IS NULL DO NOTHING
     `)
-    return { jaExistia: Number((r as { rowsAffected?: number }).rowsAffected ?? 0) === 0 }
+    return { jaExistia: linhasAfetadas(r) === 0 }
   },
 
   /** Este gasto já foi cobrado? Mesma razão do gêmeo de Seeds: o reenvio não pode pedir saldo. */
   async jaGastou(userId: UserId, spendId: string): Promise<boolean> {
-    const r = await db.select({ id: creditSpends.id }).from(creditSpends)
+    const r = await db
+      .select({ id: creditSpends.id })
+      .from(creditSpends)
       .where(and(eq(creditSpends.spendId, spendId), eq(creditSpends.userId, userId), isNull(creditSpends.deletedAt)))
       .limit(1)
     return r.length > 0
@@ -238,16 +264,19 @@ export const creditsRepo = {
     const linhas = await db
       .select({ id: creditSpends.id, reason: creditSpends.reason, amount: creditSpends.amount })
       .from(creditSpends)
-      .where(and(eq(creditSpends.userId, userId), isNull(creditSpends.deletedAt), like(creditSpends.reason, 'premium:%')))
+      .where(
+        and(eq(creditSpends.userId, userId), isNull(creditSpends.deletedAt), like(creditSpends.reason, 'premium:%')),
+      )
       .orderBy(asc(creditSpends.createdAt), asc(creditSpends.id))
     return linhas
       .map((l) => ({ id: l.id, itemId: l.reason.slice('premium:'.length), creditos: Number(l.amount ?? 0) }))
       .filter((c) => !!c.itemId)
   },
 
-
   async comprasDoUsuario(userId: UserId, limite = 20) {
-    return db.select().from(creditPurchases)
+    return db
+      .select()
+      .from(creditPurchases)
       .where(and(eq(creditPurchases.userId, userId), isNull(creditPurchases.deletedAt)))
       .orderBy(desc(creditPurchases.createdAt))
       .limit(limite)

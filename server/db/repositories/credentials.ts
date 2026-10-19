@@ -4,7 +4,7 @@ import { and, eq, isNull } from 'drizzle-orm'
 
 import { decryptSecret, encryptSecret } from '../../crypto'
 import type { UserId } from '../../lib/authContext'
-import { db } from '../db'
+import { db, linhasAfetadas } from '../db'
 import { providerCredentials, secrets } from '../schema'
 
 export type Credential = typeof providerCredentials.$inferSelect
@@ -98,7 +98,7 @@ export const credentialsRepo = {
     const ref = alvo[0].secretRef
     if (!ref) {
       const r = await apagarCredencial
-      return Number((r as { rowsAffected?: number }).rowsAffected ?? 0) > 0
+      return linhasAfetadas(r) > 0
     }
     await db.batch([
       apagarCredencial,

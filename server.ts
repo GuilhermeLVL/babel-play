@@ -552,9 +552,11 @@ async function iniciar() {
      * cluster isso significaria N processos subindo "saudáveis" e perdendo um quarto das escritas
      * com o aviso perdido no log — então aqui é falha dura, não aviso.
      */
-    const { db } = await import('./server/db/db')
+    const { db, linhas } = await import('./server/db/db')
     const { sql } = await import('drizzle-orm')
-    const modo = String(Object.values((await db.get(sql`PRAGMA journal_mode`)) ?? {})[0] ?? '').toLowerCase()
+    const modo = String(
+      Object.values(linhas<Record<string, unknown>>(await db.execute(sql`PRAGMA journal_mode`))[0] ?? {})[0] ?? '',
+    ).toLowerCase()
     if (modo !== 'wal') {
       console.error(`[cluster] ABORTADO: journal_mode é '${modo}', não 'wal'.`)
       console.error('   Sem WAL, múltiplos processos perdem ~25% das escritas. WAL exige memória')

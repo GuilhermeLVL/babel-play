@@ -25,7 +25,7 @@
  *      desligamento: o primário sai e deixa filhos recém-forkados órfãos segurando a porta.
  *   2. `server.close()` — para de ACEITAR conexão nova; as em curso seguem até terminar. É o
  *      inverso do que se espera do nome, e é exatamente o que se quer aqui.
- *   3. checkpoint e fechamento do banco — nesta ordem, porque o `client.close()` derruba a
+ *   3. checkpoint e fechamento do banco — nesta ordem, porque o fechamento do banco derruba a
  *      conexão e não sobra por onde mandar o PRAGMA depois.
  *
  * O PASSO QUE NÃO EXISTE AQUI, e por quê: `server.closeIdleConnections()`. O manual de qualquer
@@ -124,17 +124,13 @@ export async function drenar(servidor: ServidorDrenavel, tetoMs: number): Promis
  * (a mesma regra que `server/db/db.ts:71` já aplica).
  */
 async function encerrarBancoPadrao(): Promise<void> {
-  const { client, bancoLocal } = await import('../db/db')
-  if (bancoLocal) {
-    try {
-      await client.execute('PRAGMA wal_checkpoint(TRUNCATE)')
-    } catch (err) {
-      // Falhar o checkpoint não impede o resto: o WAL continua durável, só não foi dobrado no .db.
-      console.error('[desligamento] checkpoint do WAL falhou:', String(err).slice(0, 160))
-    }
+  const { bancoEmbutido, fecharBanco } = await import('../db/db')
+  // Checkpoint do WAL é PRAGMA do SQLite; Tarefa 6 remove de vez.
+  if (!bancoEmbutido) {
+    /* Tarefa 6 remove de vez */
   }
   try {
-    ;(client as { close?: () => void }).close?.()
+    await fecharBanco()
   } catch {
     /* já fechado */
   }

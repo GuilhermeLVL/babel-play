@@ -306,7 +306,7 @@ export const contaRepo = {
     /* AS VERSÕES DOS DADOS (migração 0032) — contabilidade interna, fora do schema e do relatório,
        mas com o id do titular. Vem DEPOIS das tabelas acima porque os gatilhos delas recriam a
        linha a cada DELETE; apagada aqui, no mesmo batch, não sobra nada com o id da pessoa. */
-    instrucoes.push(db.run(sql`DELETE FROM versoes_de_dados WHERE user_id = ${userId}`))
+    instrucoes.push(db.execute(sql`DELETE FROM versoes_de_dados WHERE user_id = ${userId}`))
     /* OS AGREGADOS DIÁRIOS E O ESTADO POR ITEM (migração 0053) — a mesma situação: contabilidade
        derivada, fora do schema, com o id do titular. Depois das tabelas brutas, pelo mesmo motivo
        (os gatilhos de `review_logs` e `exercise_results` mexem em `estado_dos_agregados`). */

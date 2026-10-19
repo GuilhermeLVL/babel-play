@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { and, asc, eq, gte, isNotNull, isNull, lte } from 'drizzle-orm'
 
 import type { UserId } from '../../lib/authContext'
-import { db, type ExecutorDb } from '../db'
+import { db, type ExecutorDb, linhasAfetadas } from '../db'
 import { emLotes, tamanhoDoLoteDeInsert, tuplaDeBatch } from '../lotes'
 import { utterances } from '../schema'
 
@@ -182,7 +182,7 @@ export const utterancesRepo = {
       )
     if (!instrucoes.length) return 0
     const resultados = await db.batch(tuplaDeBatch(instrucoes))
-    return resultados.reduce((n, r) => n + Number((r as { rowsAffected?: number }).rowsAffected ?? 0), 0)
+    return resultados.reduce((n, r) => n + linhasAfetadas(r), 0)
   },
 
   /** Troca TODAS as falas da sessão pelas novas (fluxo "retomar captura"). */
@@ -268,9 +268,7 @@ export const utterancesRepo = {
     )
     if (!instrucoes.length) return []
     const resultados = await db.batch(tuplaDeBatch(instrucoes))
-    return itens
-      .filter((_, i) => Number((resultados[i] as { rowsAffected?: number }).rowsAffected ?? 0) > 0)
-      .map((it) => it.id)
+    return itens.filter((_, i) => linhasAfetadas(resultados[i]) > 0).map((it) => it.id)
   },
 }
 

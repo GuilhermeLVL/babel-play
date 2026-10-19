@@ -36,7 +36,7 @@ export async function healthHandler(_req: Request, res: Response): Promise<void>
     // re-auditoria: com a tabela `sessions` ausente, toda escrita devolvia 400 e o health
     // respondia 200 — o orquestrador manteria a réplica quebrada no balanceador.
     // Sondar uma tabela real custa o mesmo e detecta o caso.
-    await db.run(sql`SELECT 1 FROM sessions LIMIT 1`)
+    await db.execute(sql`SELECT 1 FROM sessions LIMIT 1`)
     if (!boot.ok) {
       res.status(503).json({ status: 'degraded', db: 'up', ...bootPayload, versao: versaoDoApp(), at: Date.now() })
       return
@@ -159,7 +159,7 @@ async function avaliarProntidao(): Promise<Veredicto> {
        do `healthHandler` acima.
        Tabela REAL e não `SELECT 1` puro: medido em P1-N2, `SELECT 1` passa com o schema inteiro
        faltando, e a probe manteria no balanceador uma réplica que devolve 400 em toda escrita. */
-    await db.run(sql`SELECT 1 FROM sessions LIMIT 1`)
+    await db.execute(sql`SELECT 1 FROM sessions LIMIT 1`)
     banco = 'up'
   } catch (err) {
     log('error', { event: 'ready_db_indisponivel', route: '/api/ready', status: 503, error: String(err).slice(0, 300) })

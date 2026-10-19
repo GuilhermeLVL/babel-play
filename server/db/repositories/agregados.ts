@@ -36,7 +36,7 @@ import {
 } from '../../../src/core/learning/agregados'
 import { diaNumeroNoFuso, FUSO_PADRAO, fusoOuPadrao } from '../../../src/core/learning/economia'
 import type { UserId } from '../../lib/authContext'
-import { aplicarPragmas, type DB, db } from '../db'
+import { bancoEmbutido, type DB, db, linhas as linhasDe } from '../db'
 import { emLotes, type InstrucaoDeBatch } from '../lotes'
 import { estadoDaContaRepo } from './estadoDaConta'
 
@@ -87,7 +87,7 @@ async function fusoGravado(userId: UserId): Promise<string> {
 function somarCelulas(userId: UserId, celulas: CelulaDoDia[], agora: number, seExiste?: SQL): InstrucaoDeBatch[] {
   const condicao = seExiste ? sql`EXISTS (${seExiste})` : sql`1`
   return celulas.map((c) =>
-    db.run(sql`
+    db.execute(sql`
       INSERT INTO agregados_diarios (user_id, idioma, dia, ${sql.raw(COLUNAS_SQL)}, atualizado_em)
       SELECT ${userId}, ${c.idioma}, ${c.dia}, ${sql.join(
         CONTADORES_DO_DIA.map((k) => sql`${c[k]}`),
@@ -102,7 +102,7 @@ function somarCelulas(userId: UserId, celulas: CelulaDoDia[], agora: number, seE
 /** "Estas `n` linhas brutas eu já contei": o par do gatilho que soma em `marca_bruto`. */
 function marcarVistas(userId: UserId, n: number, seExiste?: SQL): InstrucaoDeBatch {
   const condicao = seExiste ? sql`EXISTS (${seExiste})` : sql`1`
-  return db.run(
+  return db.execute(
     sql`UPDATE estado_dos_agregados SET marca_vista = marca_vista + ${n} WHERE user_id = ${userId} AND ${condicao}`,
   )
 }
@@ -207,7 +207,7 @@ export const agregadosRepo = {
         if (!i.cardId || i.correct == null) continue
         const certo = i.correct > 0 ? 1 : 0
         instrucoes.push(
-          db.run(sql`
+          db.execute(sql`
             INSERT INTO estado_por_item (user_id, card_id, jogo, acertos, erros, ultimo_resultado, ultimo_em)
             SELECT ${userId}, ${i.cardId}, ${rodada.jogo}, ${certo}, ${1 - certo}, ${certo}, ${rodada.em}
             WHERE EXISTS (${seExiste})
@@ -225,8 +225,10 @@ export const agregadosRepo = {
   },
 
   async estado(userId: UserId): Promise<EstadoDosAgregados | null> {
-    const [l] = await db.all<{ fuso: string; marca_bruto: number; marca_vista: number; reconstruido_em: number }>(
-      sql`SELECT fuso, marca_bruto, marca_vista, reconstruido_em FROM estado_dos_agregados WHERE user_id = ${userId}`,
+    const [l] = linhasDe<{ fuso: string; marca_bruto: number; marca_vista: number; reconstruido_em: number }>(
+      await db.execute(
+        sql`SELECT fuso, marca_bruto, marca_vista, reconstruido_em FROM estado_dos_agregados WHERE user_id = ${userId}`,
+      ),
     )
     if (!l) return null
     return {
@@ -263,8 +265,10 @@ export const agregadosRepo = {
         try {
           return await db.transaction((tx) => reconstruirNaTransacao(tx, userId, f, agora), { behavior: 'immediate' })
         } finally {
-          // A transação roda em conexão nova e devolve a principal sem os PRAGMAs (ver `emTransacao`).
-          await aplicarPragmas().catch(() => {})
+          // PRAGMAs não existem no Postgres; sem efeito. Tarefa 6 remove de vez.
+          if (!bancoEmbutido) {
+            /* Tarefa 6 remove de vez */
+          }
         }
       } catch (err) {
         ultimoErro = err
@@ -278,8 +282,8 @@ export const agregadosRepo = {
   /** O total de revisões que continuam no histórico: o "de sempre" da Memória dos Cartões. */
   async revisoesVivas(userId: UserId): Promise<number> {
     await this.garantir(userId)
-    const [l] = await db.all<{ n: number | null }>(
-      sql`SELECT sum(revisoes_vivas) AS n FROM agregados_diarios WHERE user_id = ${userId}`,
+    const [l] = linhasDe<{ n: number | null }>(
+      await db.execute(sql`SELECT sum(revisoes_vivas) AS n FROM agregados_diarios WHERE user_id = ${userId}`),
     )
     return Number(l?.n ?? 0)
   },
@@ -290,9 +294,11 @@ export const agregadosRepo = {
    */
   async revisoesDoPerfil(userId: UserId, fuso: string): Promise<{ revisoes: number; acertos: number; dias: number[] }> {
     await this.garantir(userId, fuso)
-    const linhas = await db.all<{ dia: number; n: number; a: number }>(sql`
+    const linhas = linhasDe<{ dia: number; n: number; a: number }>(
+      await db.execute(sql`
       SELECT dia, sum(revisoes + revisoes_purgadas) AS n, sum(acertos + acertos_purgados) AS a
-      FROM agregados_diarios WHERE user_id = ${userId} GROUP BY dia`)
+      FROM agregados_diarios WHERE user_id = ${userId} GROUP BY dia`),
+    )
     let revisoes = 0
     let acertos = 0
     const dias: number[] = []
@@ -307,9 +313,11 @@ export const agregadosRepo = {
 
   /** As células de um usuário, por (idioma, dia). Para teste, operação e as métricas que vierem. */
   async celulas(userId: UserId): Promise<Array<CelulaDoDia & { revisoesPurgadas: number; acertosPurgados: number }>> {
-    const linhas = await db.all<Record<string, number | string>>(
-      sql`SELECT idioma, dia, ${sql.raw(COLUNAS_SQL)}, revisoes_purgadas, acertos_purgados
+    const linhas = linhasDe<Record<string, number | string>>(
+      await db.execute(
+        sql`SELECT idioma, dia, ${sql.raw(COLUNAS_SQL)}, revisoes_purgadas, acertos_purgados
           FROM agregados_diarios WHERE user_id = ${userId} ORDER BY idioma, dia`,
+      ),
     )
     return linhas.map((l) => {
       const c = { idioma: String(l.idioma), dia: Number(l.dia) } as CelulaDoDia & {
@@ -330,15 +338,17 @@ export const agregadosRepo = {
   ): Promise<
     Array<{ jogo: string; acertos: number; erros: number; ultimoResultado: number | null; ultimoEm: number }>
   > {
-    const linhas = await db.all<{
+    const linhas = linhasDe<{
       jogo: string
       acertos: number
       erros: number
       ultimo_resultado: number | null
       ultimo_em: number
     }>(
-      sql`SELECT jogo, acertos, erros, ultimo_resultado, ultimo_em FROM estado_por_item
+      await db.execute(
+        sql`SELECT jogo, acertos, erros, ultimo_resultado, ultimo_em FROM estado_por_item
           WHERE user_id = ${userId} AND card_id = ${cardId} ORDER BY jogo`,
+      ),
     )
     return linhas.map((l) => ({
       jogo: l.jogo,
@@ -352,9 +362,9 @@ export const agregadosRepo = {
   /** As instruções que tiram do banco tudo o que estas tabelas guardam de um usuário (exclusão de conta). */
   instrucoesDeExclusao(userId: UserId): InstrucaoDeBatch[] {
     return [
-      db.run(sql`DELETE FROM agregados_diarios WHERE user_id = ${userId}`),
-      db.run(sql`DELETE FROM estado_por_item WHERE user_id = ${userId}`),
-      db.run(sql`DELETE FROM estado_dos_agregados WHERE user_id = ${userId}`),
+      db.execute(sql`DELETE FROM agregados_diarios WHERE user_id = ${userId}`),
+      db.execute(sql`DELETE FROM estado_por_item WHERE user_id = ${userId}`),
+      db.execute(sql`DELETE FROM estado_dos_agregados WHERE user_id = ${userId}`),
     ]
   },
 }
@@ -369,7 +379,7 @@ export interface PurgadasDaCelula {
 
 /** As revisões de um usuário agrupadas para a conta do core; `onde` recorta (a limpeza usa). */
 export async function gruposDeRevisoes(tx: Tx | DB, userId: UserId, onde?: SQL): Promise<GrupoDeRevisoes[]> {
-  const linhas = await tx.all<{
+  const linhas = linhasDe<{
     q: number
     idioma: string
     grade: number | null
@@ -379,7 +389,8 @@ export async function gruposDeRevisoes(tx: Tx | DB, userId: UserId, onde?: SQL):
     ms: number
     com: number
     soma: number
-  }>(sql`
+  }>(
+    await tx.execute(sql`
     SELECT CAST(coalesce(r.reviewed_at, r.created_at) / ${QUARTO_DE_HORA} AS INTEGER) AS q,
            coalesce(c.src_lang_base, '') AS idioma,
            r.grade AS grade,
@@ -391,7 +402,8 @@ export async function gruposDeRevisoes(tx: Tx | DB, userId: UserId, onde?: SQL):
            coalesce(sum(r.retencao_prevista), 0) AS soma
     FROM review_logs r LEFT JOIN vocab_cards c ON c.id = r.card_id
     WHERE r.user_id = ${userId} AND ${onde ?? sql`1`}
-    GROUP BY 1, 2, 3, 4, 5`)
+    GROUP BY 1, 2, 3, 4, 5`),
+  )
   return linhas.map((l) => ({
     em: Number(l.q) * QUARTO_DE_HORA,
     idioma: l.idioma,
@@ -419,7 +431,8 @@ export async function reconstruirNaTransacao(
   const diaDe = (em: number) => diaNumeroNoFuso(em, fuso)
 
   const revisoes = await gruposDeRevisoes(tx, userId)
-  const itens = await tx.all<{ q: number; idioma: string; drill: number; n: number; certos: number; ms: number }>(sql`
+  const itens = linhasDe<{ q: number; idioma: string; drill: number; n: number; certos: number; ms: number }>(
+    await tx.execute(sql`
     SELECT CAST(e.created_at / ${QUARTO_DE_HORA} AS INTEGER) AS q,
            coalesce(c.src_lang_base, '') AS idioma,
            coalesce(e.kind = 'drill', 0) AS drill,
@@ -428,12 +441,15 @@ export async function reconstruirNaTransacao(
            coalesce(sum(e.ms), 0) AS ms
     FROM exercise_results e LEFT JOIN vocab_cards c ON c.id = e.card_id
     WHERE e.user_id = ${userId} AND e.deleted_at IS NULL
-    GROUP BY 1, 2, 3`)
-  const rodadas = await tx.all<{ em: number; idioma: string }>(sql`
+    GROUP BY 1, 2, 3`),
+  )
+  const rodadas = linhasDe<{ em: number; idioma: string }>(
+    await tx.execute(sql`
     SELECT min(e.created_at) AS em, min(coalesce(c.src_lang_base, '')) AS idioma
     FROM exercise_results e LEFT JOIN vocab_cards c ON c.id = e.card_id
     WHERE e.user_id = ${userId} AND e.deleted_at IS NULL AND e.round_id IS NOT NULL
-    GROUP BY e.round_id`)
+    GROUP BY e.round_id`),
+  )
 
   const celulas = agregarPorDia(
     {
@@ -461,9 +477,11 @@ export async function reconstruirNaTransacao(
       atual.acertos += p.acertos
     } else purgadas.set(chave, { ...p })
   }
-  const antigas = await tx.all<{ idioma: string; dia: number; r: number; a: number }>(sql`
+  const antigas = linhasDe<{ idioma: string; dia: number; r: number; a: number }>(
+    await tx.execute(sql`
     SELECT idioma, dia, revisoes_purgadas AS r, acertos_purgados AS a FROM agregados_diarios
-    WHERE user_id = ${userId} AND (revisoes_purgadas <> 0 OR acertos_purgados <> 0)`)
+    WHERE user_id = ${userId} AND (revisoes_purgadas <> 0 OR acertos_purgados <> 0)`),
+  )
   for (const l of antigas) {
     somarPurgada({ idioma: l.idioma, dia: Number(l.dia), revisoes: Number(l.r), acertos: Number(l.a) })
   }
@@ -478,10 +496,10 @@ export async function reconstruirNaTransacao(
     else linhas.set(chave, { c: null, idioma: p.idioma, dia: p.dia, p })
   }
 
-  await tx.run(sql`DELETE FROM agregados_diarios WHERE user_id = ${userId}`)
+  await tx.execute(sql`DELETE FROM agregados_diarios WHERE user_id = ${userId}`)
   /* 3 de chave + os contadores + 2 purgadas + 1 carimbo, por linha. */
   for (const lote of emLotes([...linhas.values()], 200)) {
-    await tx.run(sql`
+    await tx.execute(sql`
       INSERT INTO agregados_diarios
         (user_id, idioma, dia, ${sql.raw(COLUNAS_SQL)}, revisoes_purgadas, acertos_purgados, atualizado_em)
       VALUES ${sql.join(
@@ -498,8 +516,8 @@ export async function reconstruirNaTransacao(
 
   /* O estado por item, inteiro em SQL. `correct` sem agregação vem da linha do `max(created_at)`
      (regra do SQLite para consulta com um único max): é o resultado mais recente. */
-  await tx.run(sql`DELETE FROM estado_por_item WHERE user_id = ${userId}`)
-  await tx.run(sql`
+  await tx.execute(sql`DELETE FROM estado_por_item WHERE user_id = ${userId}`)
+  await tx.execute(sql`
     INSERT INTO estado_por_item (user_id, card_id, jogo, acertos, erros, ultimo_resultado, ultimo_em)
     SELECT ${userId}, card_id, exercise_kind,
            sum(CASE WHEN correct > 0 THEN 1 ELSE 0 END),
@@ -511,7 +529,7 @@ export async function reconstruirNaTransacao(
       AND exercise_kind IS NOT NULL AND correct IS NOT NULL
     GROUP BY card_id, exercise_kind`)
 
-  await tx.run(sql`
+  await tx.execute(sql`
     INSERT INTO estado_dos_agregados (user_id, fuso, marca_bruto, marca_vista, reconstruido_em)
     VALUES (${userId}, ${fuso}, 0, 0, ${agora})
     ON CONFLICT (user_id) DO UPDATE SET fuso = excluded.fuso, marca_vista = marca_bruto,
@@ -532,11 +550,13 @@ export async function preencherAgregadosPendentes(
   const prazo = Date.now() + (o.tetoMs ?? 15_000)
   /* Quem tem bruto e não tem estado. `users` não serve de lista: o dono do self-host pode não ter
      linha lá, e conta sem atividade não precisa de célula nenhuma. */
-  const pendentes = await db.all<{ user_id: string }>(sql`
+  const pendentes = linhasDe<{ user_id: string }>(
+    await db.execute(sql`
     SELECT user_id FROM (
       SELECT DISTINCT user_id FROM review_logs WHERE user_id IS NOT NULL
       UNION SELECT DISTINCT user_id FROM exercise_results WHERE user_id IS NOT NULL
-    ) WHERE user_id NOT IN (SELECT user_id FROM estado_dos_agregados) LIMIT ${maximo + 1}`)
+    ) WHERE user_id NOT IN (SELECT user_id FROM estado_dos_agregados) LIMIT ${maximo + 1}`),
+  )
   let preenchidos = 0
   for (const p of pendentes.slice(0, maximo)) {
     if (Date.now() > prazo) return { preenchidos, restam: true }

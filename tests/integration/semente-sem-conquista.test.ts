@@ -137,7 +137,7 @@ describe('semente de demonstração × "Primeira captura"', () => {
   it('banco semeado ANTES da correção: a demonstração antiga é reconhecida na próxima subida', async () => {
     const { seedIfEmpty, LOCAL_OWNER, sessionsRepo, db, sql, ctx } = await carregar()
     // A semente antiga não marcava nada: é o estado de quem já tinha o banco criado.
-    await db.run(sql`UPDATE sessions SET origem_local_id = NULL WHERE title = 'Reunião de Alinhamento (Q3) — demo'`)
+    await db.execute(sql`UPDATE sessions SET origem_local_id = NULL WHERE title = 'Reunião de Alinhamento (Q3) — demo'`)
     const todas = (await sessionsRepo.list(LOCAL_OWNER)).length
     expect((await ctx()).metricas.sessions, 'sem a marca, a demonstração contava').toBe(todas)
 

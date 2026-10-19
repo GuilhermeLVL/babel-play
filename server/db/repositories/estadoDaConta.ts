@@ -6,10 +6,10 @@
 import { eq, sql } from 'drizzle-orm'
 
 import type { UserId } from '../../lib/authContext'
-import { db } from '../db'
+import { db, linhasAfetadas } from '../db'
 import { estadoDaConta } from '../schema'
 
-const afetadas = (r: unknown) => Number((r as { rowsAffected?: number }).rowsAffected ?? 0)
+const afetadas = (r: unknown) => linhasAfetadas(r)
 
 export const estadoDaContaRepo = {
   /** O fuso gravado (ou nada): `decidirFuso` decide o que vale. */
@@ -24,7 +24,7 @@ export const estadoDaContaRepo = {
 
   /** Grava o fuso — só se não havia fuso ou se a carência já venceu. `true` se gravou. */
   async gravarFuso(userId: UserId, fuso: string, desde: number, carenciaMs: number): Promise<boolean> {
-    const r = await db.run(sql`
+    const r = await db.execute(sql`
       INSERT INTO ${estadoDaConta} (user_id, fuso, fuso_desde, atualizado_em)
       VALUES (${userId}, ${fuso}, ${desde}, ${desde})
       ON CONFLICT (user_id) DO UPDATE SET fuso = excluded.fuso, fuso_desde = excluded.fuso_desde,
@@ -37,7 +37,7 @@ export const estadoDaContaRepo = {
 
   /** Marca o aviso do reembolso como entregue — UMA vez por conta. `true` só para quem marcou. */
   async marcarAvisoDeReembolso(userId: UserId, agora: number): Promise<boolean> {
-    const r = await db.run(sql`
+    const r = await db.execute(sql`
       INSERT INTO ${estadoDaConta} (user_id, aviso_reembolso_em, atualizado_em)
       VALUES (${userId}, ${agora}, ${agora})
       ON CONFLICT (user_id) DO UPDATE SET aviso_reembolso_em = excluded.aviso_reembolso_em,

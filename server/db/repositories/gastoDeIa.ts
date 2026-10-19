@@ -4,7 +4,7 @@
  */
 import { and, eq, isNull, sql } from 'drizzle-orm'
 
-import { db } from '../db'
+import { db, linhasAfetadas } from '../db'
 import { gastoDeIa } from '../schema'
 
 export interface GastoDoMes {
@@ -52,7 +52,7 @@ export const gastoDeIaRepo = {
       .update(gastoDeIa)
       .set({ alerta80Em: Date.now() })
       .where(and(eq(gastoDeIa.mes, mes), isNull(gastoDeIa.alerta80Em)))
-    return r.rowsAffected > 0
+    return linhasAfetadas(r) > 0
   },
 
   /** Marca o esgotamento (100%). Mesma regra: `true` uma vez por mês. */
@@ -61,7 +61,7 @@ export const gastoDeIaRepo = {
       .update(gastoDeIa)
       .set({ esgotadoEm: Date.now() })
       .where(and(eq(gastoDeIa.mes, mes), isNull(gastoDeIa.esgotadoEm)))
-    return r.rowsAffected > 0
+    return linhasAfetadas(r) > 0
   },
 
   /** Só para testes e para o operador recomeçar um mês de ensaio. */

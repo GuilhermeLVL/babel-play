@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { and, eq, isNull, like, sql, sum } from 'drizzle-orm'
 
 import type { UserId } from '../../lib/authContext'
-import { db } from '../db'
+import { db, linhasAfetadas } from '../db'
 import { presencas, seedCredits } from '../schema'
 
 /**
@@ -33,12 +33,12 @@ export const economiaRepo = {
       xp: Math.max(0, Math.round(input.xp)),
       reason: input.reason,
     }
-    const r = await db.run(sql`
+    const r = await db.execute(sql`
       INSERT INTO ${seedCredits} (id, created_at, updated_at, user_id, credito_id, amount, xp, reason)
       VALUES (${row.id}, ${row.createdAt}, ${row.updatedAt}, ${row.userId}, ${row.creditoId}, ${row.amount}, ${row.xp}, ${row.reason})
       ON CONFLICT (user_id, credito_id) WHERE deleted_at IS NULL DO NOTHING
     `)
-    return { jaExistia: Number((r as { rowsAffected?: number }).rowsAffected ?? 0) === 0 }
+    return { jaExistia: linhasAfetadas(r) === 0 }
   },
 
   /** O crédito já foi lançado? O reenvio responde `jaExistia` antes de qualquer conferência. */
@@ -70,7 +70,9 @@ export const economiaRepo = {
       .select({
         seeds: sum(seedCredits.amount),
         xp: sum(seedCredits.xp),
-        metas: sql<string | null>`group_concat(case when ${seedCredits.creditoId} like 'meta:%' then substr(${seedCredits.creditoId}, 6) end)`,
+        metas: sql<
+          string | null
+        >`group_concat(case when ${seedCredits.creditoId} like 'meta:%' then substr(${seedCredits.creditoId}, 6) end)`,
       })
       .from(seedCredits)
       .where(and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt)))
@@ -143,7 +145,9 @@ export const economiaRepo = {
     const rows = await db
       .select({ creditoId: seedCredits.creditoId, amount: seedCredits.amount })
       .from(seedCredits)
-      .where(and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt), like(seedCredits.creditoId, 'reembolso:%')))
+      .where(
+        and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt), like(seedCredits.creditoId, 'reembolso:%')),
+      )
     return rows.map((r) => ({ creditoId: r.creditoId, amount: Number(r.amount ?? 0) }))
   },
 
@@ -152,7 +156,9 @@ export const economiaRepo = {
     const rows = await db
       .select({ creditoId: seedCredits.creditoId })
       .from(seedCredits)
-      .where(and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt), like(seedCredits.creditoId, 'maestria:%')))
+      .where(
+        and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt), like(seedCredits.creditoId, 'maestria:%')),
+      )
     return rows.map((r) => r.creditoId).sort()
   },
 
@@ -170,18 +176,20 @@ export const economiaRepo = {
     const rows = await db
       .select({ creditoId: seedCredits.creditoId })
       .from(seedCredits)
-      .where(and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt), like(seedCredits.creditoId, 'temporada:%')))
+      .where(
+        and(eq(seedCredits.userId, userId), isNull(seedCredits.deletedAt), like(seedCredits.creditoId, 'temporada:%')),
+      )
     return rows.map((r) => r.creditoId).sort()
   },
 
   async registrarPresenca(userId: UserId, dia: number): Promise<{ jaExistia: boolean }> {
     const now = Date.now()
-    const r = await db.run(sql`
+    const r = await db.execute(sql`
       INSERT INTO ${presencas} (id, created_at, updated_at, user_id, dia)
       VALUES (${randomUUID()}, ${now}, ${now}, ${userId}, ${dia})
       ON CONFLICT (user_id, dia) WHERE deleted_at IS NULL DO NOTHING
     `)
-    return { jaExistia: Number((r as { rowsAffected?: number }).rowsAffected ?? 0) === 0 }
+    return { jaExistia: linhasAfetadas(r) === 0 }
   },
 
   /** Todos os dias de presença vivos — entrada de `sequencias`/`marcosDeSequencia`. */

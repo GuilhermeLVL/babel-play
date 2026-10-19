@@ -32,7 +32,7 @@ import {
   type ResumoDosCartoes,
 } from '../../../src/core/learning/resumoDosCartoes'
 import type { UserId } from '../../lib/authContext'
-import { db } from '../db'
+import { db, linhas } from '../db'
 import { type ColunaCompacta, lerCompacto } from '../leituraCompacta'
 import { agregadosRepo } from './agregados'
 
@@ -158,13 +158,17 @@ export async function resumoDosCartoes(
        é escrito em dois ramos (em vez de `coalesce(...) >= ?`) para `idx_review_user`
        (user_id, reviewed_at) servir aos dois. O CAST trunca o quociente; o filtro garante que ele
        não é negativo, então truncar é o piso. */
-    db.all<{ dia: number; nota: number | null; n: number }>(sql`
+    db
+      .execute(
+        sql`
       SELECT CAST((coalesce(reviewed_at, created_at) - ${inicioDoCalendario}) / ${DIA} AS INTEGER) AS dia,
              grade AS nota, count(*) AS n
       FROM review_logs
       WHERE user_id = ${userId} AND deleted_at IS NULL
         AND (reviewed_at >= ${inicioDoCalendario} OR (reviewed_at IS NULL AND created_at >= ${inicioDoCalendario}))
-      GROUP BY 1, 2`),
+      GROUP BY 1, 2`,
+      )
+      .then((r) => linhas<{ dia: number; nota: number | null; n: number }>(r)),
   ])
 
   const hoje: ContagemDeFila = { novas: 0, aprendendo: 0, revisar: 0 }

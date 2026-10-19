@@ -20,7 +20,7 @@ import path from 'node:path'
 import { and, eq, lte, sql } from 'drizzle-orm'
 
 import { definicaoDoPlano, type PlanoEfetivo } from '../../src/core/planos'
-import { db } from '../db/db'
+import { db, linhasAfetadas } from '../db/db'
 import { sessionsRepo } from '../db/repositories/sessions'
 import { usageCounters } from '../db/schema'
 import { armazenamentoDoAmbiente, configDoS3 } from './armazenamento'
@@ -153,7 +153,7 @@ async function reservaAtomica(userId: UserId, bytes: number, cap: number): Promi
       set: { count: sql`${usageCounters.count} + ${bytes}`, updatedAt: now },
       setWhere: sql`${usageCounters.count} + ${bytes} <= ${cap}`,
     })
-  return r.rowsAffected > 0
+  return linhasAfetadas(r) > 0
 }
 
 /**
@@ -331,7 +331,7 @@ export async function reivindicarJanela(userId: UserId, horas: number): Promise<
       count: 0,
     })
     .onConflictDoNothing({ target: [usageCounters.userId, usageCounters.metric, usageCounters.window] })
-  if (Number((criado as { rowsAffected?: number })?.rowsAffected ?? 0) > 0) return true
+  if (linhasAfetadas(criado) > 0) return true
 
   const marcado = await db
     .update(usageCounters)
@@ -344,7 +344,7 @@ export async function reivindicarJanela(userId: UserId, horas: number): Promise<
         lte(usageCounters.updatedAt, limite),
       ),
     )
-  return Number((marcado as { rowsAffected?: number })?.rowsAffected ?? 0) > 0
+  return linhasAfetadas(marcado) > 0
 }
 
 /**

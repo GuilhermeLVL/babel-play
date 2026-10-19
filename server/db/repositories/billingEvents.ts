@@ -19,7 +19,7 @@
  */
 import { and, eq } from 'drizzle-orm'
 
-import { db } from '../db'
+import { db, linhasAfetadas } from '../db'
 import { billingEvents } from '../schema'
 
 export type EstadoDoEventoDeBilling = 'aplicado' | 'nao-aplicado' | 'ignorado'
@@ -37,12 +37,33 @@ export type EstadoDoEventoDeBilling = 'aplicado' | 'nao-aplicado' | 'ignorado'
  */
 const CAMPOS_DO_EVENTO = ['id', 'event', 'dateCreated'] as const
 const CAMPOS_DO_PAGAMENTO = [
-  'id', 'subscription', 'installment', 'installmentNumber', 'externalReference',
-  'value', 'netValue', 'status', 'billingType', 'deleted',
-  'dueDate', 'originalDueDate', 'paymentDate', 'clientPaymentDate', 'confirmedDate', 'dateCreated',
+  'id',
+  'subscription',
+  'installment',
+  'installmentNumber',
+  'externalReference',
+  'value',
+  'netValue',
+  'status',
+  'billingType',
+  'deleted',
+  'dueDate',
+  'originalDueDate',
+  'paymentDate',
+  'clientPaymentDate',
+  'confirmedDate',
+  'dateCreated',
 ] as const
 const CAMPOS_DA_ASSINATURA = [
-  'id', 'externalReference', 'value', 'status', 'cycle', 'billingType', 'deleted', 'nextDueDate', 'dateCreated',
+  'id',
+  'externalReference',
+  'value',
+  'status',
+  'cycle',
+  'billingType',
+  'deleted',
+  'nextDueDate',
+  'dateCreated',
 ] as const
 
 /** Texto maior que isto não é id, status nem data — não entra. */
@@ -83,7 +104,11 @@ export function reduzirPayload(bruto: unknown): Record<string, unknown> | null {
 export const billingEventsRepo = {
   /** @returns `true` se o evento é NOVO (e foi marcado); `false` se já tinha sido processado. */
   async marcarSeNovo(
-    id: string, provider: string, event: string, userId: string | null, providerRef: string | null,
+    id: string,
+    provider: string,
+    event: string,
+    userId: string | null,
+    providerRef: string | null,
     payload: unknown = null,
   ): Promise<boolean> {
     // GAP-017: só os campos permitidos chegam ao banco, venha o payload de onde vier.
@@ -91,13 +116,19 @@ export const billingEventsRepo = {
     const r = await db
       .insert(billingEvents)
       .values({
-        id, createdAt: Date.now(), provider, event, userId, providerRef,
+        id,
+        createdAt: Date.now(),
+        provider,
+        event,
+        userId,
+        providerRef,
         // Nasce `aplicado` por compatibilidade com as linhas antigas; o resultado real vem logo depois.
-        estado: 'aplicado', motivo: null,
+        estado: 'aplicado',
+        motivo: null,
         payload: reduzido ? JSON.stringify(reduzido) : null,
       })
       .onConflictDoNothing({ target: billingEvents.id })
-    return r.rowsAffected > 0
+    return linhasAfetadas(r) > 0
   },
 
   /** Grava o que aconteceu com o evento. Chamado sempre, inclusive quando aplicou sem ressalva. */
@@ -112,11 +143,19 @@ export const billingEventsRepo = {
 
   /** Os que deveriam ter tido efeito e não tiveram — a fila de revisão do administrador. */
   async listarPendentes() {
-    return db.select({
-      id: billingEvents.id, createdAt: billingEvents.createdAt, provider: billingEvents.provider,
-      event: billingEvents.event, userId: billingEvents.userId, providerRef: billingEvents.providerRef,
-      motivo: billingEvents.motivo,
-    }).from(billingEvents).where(eq(billingEvents.estado, 'nao-aplicado')).orderBy(billingEvents.createdAt)
+    return db
+      .select({
+        id: billingEvents.id,
+        createdAt: billingEvents.createdAt,
+        provider: billingEvents.provider,
+        event: billingEvents.event,
+        userId: billingEvents.userId,
+        providerRef: billingEvents.providerRef,
+        motivo: billingEvents.motivo,
+      })
+      .from(billingEvents)
+      .where(eq(billingEvents.estado, 'nao-aplicado'))
+      .orderBy(billingEvents.createdAt)
   },
 
   /**
@@ -125,10 +164,16 @@ export const billingEventsRepo = {
    * manual pendente se perderia junto.
    */
   async estornosPendentesDoUsuario(userId: string) {
-    return db.select({ id: billingEvents.id }).from(billingEvents).where(and(
-      eq(billingEvents.userId, userId), eq(billingEvents.estado, 'nao-aplicado'),
-      eq(billingEvents.event, 'ESTORNO_ARREPENDIMENTO'),
-    ))
+    return db
+      .select({ id: billingEvents.id })
+      .from(billingEvents)
+      .where(
+        and(
+          eq(billingEvents.userId, userId),
+          eq(billingEvents.estado, 'nao-aplicado'),
+          eq(billingEvents.event, 'ESTORNO_ARREPENDIMENTO'),
+        ),
+      )
   },
 
   /**

@@ -12,10 +12,10 @@ import { randomUUID } from 'node:crypto'
 import { and, desc, eq, sql } from 'drizzle-orm'
 
 import type { UserId } from '../../lib/authContext'
-import { db } from '../db'
+import { db, linhasAfetadas } from '../db'
 import { glossario } from '../schema'
 
-const afetadas = (r: unknown) => Number((r as { rowsAffected?: number }).rowsAffected ?? 0)
+const afetadas = (r: unknown) => linhasAfetadas(r)
 
 export interface EntradaDoGlossario {
   id: string
@@ -96,7 +96,7 @@ export const glossarioRepo = {
       )
     if (afetadas(atualizada) === 0) {
       const id = randomUUID()
-      const inserida = await db.run(sql`
+      const inserida = await db.execute(sql`
         INSERT INTO ${glossario} (id, user_id, origem, destino, termo, termo_norm, traducao, criado_em, atualizado_em)
         SELECT ${id}, ${userId}, ${e.origem}, ${e.destino}, ${e.termo}, ${e.termoNorm}, ${e.traducao}, ${agora}, ${agora}
         WHERE (SELECT COUNT(*) FROM ${glossario} WHERE user_id = ${userId}) < ${teto}

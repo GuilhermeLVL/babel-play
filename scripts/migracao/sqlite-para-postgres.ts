@@ -17,21 +17,29 @@
  *    gatilhos internos das FOREIGN KEYs, o que exige superusuário (o Supabase recusa) e deixaria entrar
  *    linha órfã. Sem ser dono da tabela, o `ALTER` falha e a carga não acontece — nunca carrega com
  *    gatilho ligado.
- *  - Idempotente: `ON CONFLICT DO NOTHING`. Exceção: `flags`, onde a ORIGEM VENCE (`DO UPDATE`) — a
- *    migração do Postgres semeia as flags, e a escolha do operador no banco antigo tem de sobreviver.
+ *  - Idempotente: `ON CONFLICT (<chave primária>) DO NOTHING`. O alvo é a PK, e só ela: colisão num índice
+ *    único SECUNDÁRIO (`uq_settings_user`, `uq_vocab_user_norm`…) é dado que não cabe no destino, e tem de
+ *    derrubar a carga com o nome da tabela em vez de a linha sumir em silêncio. Exceção: `flags`, onde a
+ *    ORIGEM VENCE (`DO UPDATE`) — a migração do Postgres semeia as flags, e a escolha do operador no banco
+ *    antigo tem de sobreviver. Pelo mesmo motivo a paridade de `flags` é origem ⊆ destino: as chaves que só
+ *    a semente do Postgres tem saem em `extrasNoDestino`, sem derrubar o `ok`.
  *  - Coluna gerada (`vocab_cards.src_lang_base`) não é inserida, mas entra no checksum dos dois lados:
  *    prova que o Postgres calcula o mesmo que o SQLite calculava.
  *  - Tabela ou coluna da origem sem lugar no schema aborta antes de copiar (seria perda silenciosa).
+ *  - A origem só é lida (SELECT), mas o `@libsql/client` não aceita `?mode=ro`: o arquivo é conferido com
+ *    `existsSync` antes (senão o libsql criaria um banco vazio) e o recomendado é rodar sobre uma CÓPIA.
+ *    A leitura não é um snapshot: o servidor antigo tem de estar parado.
  *
  * CLI: `npx tsx scripts/migracao/sqlite-para-postgres.ts --origem file:./data/babel.db [--continuar]`.
  * O destino é a `DATABASE_URL` (as migrations do Postgres são aplicadas antes). Recusa rodar se o destino
  * já tiver usuários, a menos que venha `--continuar` (reexecução idempotente). Sai com 1 se não estiver ok.
  */
-import { pathToFileURL } from 'node:url';
+import { existsSync } from 'node:fs';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { type Client, createClient } from '@libsql/client';
 import { getTableColumns, is, sql } from 'drizzle-orm';
-import { getTableConfig, PgTable } from 'drizzle-orm/pg-core';
+import { getTableConfig, type PgColumn, PgTable } from 'drizzle-orm/pg-core';
 
 import type { DB } from '../../server/db/db';
 import * as schema from '../../server/db/schema';
@@ -45,6 +53,8 @@ export interface Relatorio {
     checksumOrigem: string;
     checksumDestino: string;
     ok: boolean;
+    /** Só em `flags`: chaves que o destino tem e a origem não (a semente do Postgres). Informativo. */
+    extrasNoDestino?: string[];
   }>;
   ok: boolean;
 }
@@ -63,9 +73,18 @@ interface Tabela {
   /** Nome SQL → propriedade do Drizzle, só das colunas inseríveis (sem a gerada). */
   inseriveis: Array<{ nome: string; chave: string; booleana: boolean }>;
   chavePrimaria: string[];
+  /** As colunas da PK como objetos do Drizzle: o alvo do `ON CONFLICT`. */
+  alvo: PgColumn[];
 }
 
-/** As tabelas do schema, pais antes de filhos (FOREIGN KEY), desempate pela ordem do schema. */
+/** A tabela onde a origem vence e a paridade é origem ⊆ destino (ver o cabeçalho). */
+const TABELA_DE_FLAGS = 'flags';
+
+/**
+ * As tabelas do schema, pais antes de filhos (FOREIGN KEY). Dentro de uma mesma onda, a ordem é a de
+ * `Object.values` do namespace ESM do schema — alfabética pelo nome EXPORTADO (`agregadosDiarios`,
+ * `ankiDecks`…), não a ordem de declaração no arquivo.
+ */
 function tabelasEmOrdem(): Tabela[] {
   const todas = (Object.values(schema) as unknown[])
     .filter((v): v is PgTable => is(v, PgTable))
@@ -74,6 +93,8 @@ function tabelasEmOrdem(): Tabela[] {
       const chaves = Object.entries(getTableColumns(tabela));
       const pais = new Set(cfg.foreignKeys.map((fk) => getTableConfig(fk.reference().foreignTable).name));
       pais.delete(cfg.name);
+      const pk = cfg.primaryKeys[0]?.columns ?? cfg.columns.filter((c) => c.primary);
+      if (pk.length === 0) throw new Error(`migração: ${cfg.name} não tem chave primária no schema`);
       return {
         pais,
         t: {
@@ -83,8 +104,8 @@ function tabelasEmOrdem(): Tabela[] {
           inseriveis: chaves
             .filter(([, c]) => !c.generated)
             .map(([chave, c]) => ({ nome: c.name, chave, booleana: c.columnType === 'PgBoolean' })),
-          chavePrimaria:
-            cfg.primaryKeys[0]?.columns.map((c) => c.name) ?? cfg.columns.filter((c) => c.primary).map((c) => c.name),
+          chavePrimaria: pk.map((c) => c.name),
+          alvo: pk,
         } satisfies Tabela,
       };
     });
@@ -159,17 +180,15 @@ async function inserir(tx: DB, t: Tabela, linhasDaOrigem: Record<string, unknown
     const valores = linhasDaOrigem.slice(i, i + lote).map((l) => paraInsercao(t, l));
     const insercao = tx.insert(t.tabela).values(valores);
     try {
-      if (t.nome === 'flags') {
+      if (t.nome === TABELA_DE_FLAGS) {
         const set = Object.fromEntries(
           t.inseriveis
             .filter((c) => !t.chavePrimaria.includes(c.nome))
             .map((c) => [c.chave, sql.raw(`excluded.${aspas(c.nome)}`)]),
         );
-        const colunas = getTableColumns(t.tabela);
-        const pk = t.inseriveis.filter((c) => t.chavePrimaria.includes(c.nome)).map((c) => colunas[c.chave]);
-        await insercao.onConflictDoUpdate({ target: pk, set });
+        await insercao.onConflictDoUpdate({ target: t.alvo, set });
       } else {
-        await insercao.onConflictDoNothing();
+        await insercao.onConflictDoNothing({ target: t.alvo });
       }
     } catch (err) {
       throw new Error(`migração: falha ao inserir em ${t.nome} (lote a partir da linha ${i}): ${motivo(err)}`, {
@@ -186,15 +205,23 @@ export async function migrarSqliteParaPostgres(opts: {
 }): Promise<Relatorio> {
   const tamanhoDoLote = opts.tamanhoDoLote ?? 500;
   const tabelas = tabelasEmOrdem();
+  if (!opts.origem.startsWith('file:')) throw new Error('migração: a origem tem de ser um arquivo (file:…)');
+  const arquivo = opts.origem.startsWith('file://') ? fileURLToPath(opts.origem) : opts.origem.slice('file:'.length);
+  // Sem isto o libsql criaria um banco VAZIO no caminho errado, e a "cópia" sairia ok com zero linhas.
+  if (!existsSync(arquivo)) throw new Error(`migração: a origem não existe: ${arquivo}`);
   const origem = createClient({ url: opts.origem });
-  const daOrigem = new Map<string, { linhas: number; checksum: string }>();
+  const daOrigem = new Map<string, { linhas: number; checksum: string; chaves?: Set<string> }>();
   try {
     await conferirOrigem(origem, tabelas);
     await opts.destino.transaction(async (tx) => {
       for (const t of tabelas) await tx.execute(sql.raw(`ALTER TABLE ${aspas(t.nome)} DISABLE TRIGGER USER`));
       for (const t of tabelas) {
         const lidas = await lerOrigem(origem, t);
-        daOrigem.set(t.nome, { linhas: lidas.length, checksum: checksumDaTabela(lidas, t.chavePrimaria) });
+        daOrigem.set(t.nome, {
+          linhas: lidas.length,
+          checksum: checksumDaTabela(lidas, t.chavePrimaria),
+          chaves: t.nome === TABELA_DE_FLAGS ? new Set(lidas.map((l) => String(l[t.chavePrimaria[0]]))) : undefined,
+        });
         await inserir(tx as DB, t, lidas, tamanhoDoLote);
       }
       for (const t of tabelas) await tx.execute(sql.raw(`ALTER TABLE ${aspas(t.nome)} ENABLE TRIGGER USER`));
@@ -207,10 +234,19 @@ export async function migrarSqliteParaPostgres(opts: {
   const { linhas } = await import('../../server/db/db');
   const relatorio: Relatorio = { tabelas: [], ok: true };
   for (const t of tabelas) {
-    const noDestino = linhas<Record<string, unknown>>(
+    const lidas = linhas<Record<string, unknown>>(
       await opts.destino.execute(sql.raw(`SELECT ${t.colunas.map(aspas).join(', ')} FROM ${aspas(t.nome)}`)),
     );
     const o = daOrigem.get(t.nome)!;
+    // `flags`: compara só as chaves que a origem tem; as outras são a semente do Postgres (informativo).
+    const chaveDe = (l: Record<string, unknown>) => String(l[t.chavePrimaria[0]]);
+    const noDestino = o.chaves ? lidas.filter((l) => o.chaves!.has(chaveDe(l))) : lidas;
+    const extras = o.chaves
+      ? lidas
+          .filter((l) => !o.chaves!.has(chaveDe(l)))
+          .map(chaveDe)
+          .sort()
+      : undefined;
     const checksumDestino = checksumDaTabela(noDestino, t.chavePrimaria);
     const ok = o.linhas === noDestino.length && o.checksum === checksumDestino;
     relatorio.tabelas.push({
@@ -220,6 +256,7 @@ export async function migrarSqliteParaPostgres(opts: {
       checksumOrigem: o.checksum,
       checksumDestino,
       ok,
+      ...(extras ? { extrasNoDestino: extras } : {}),
     });
     relatorio.ok &&= ok;
   }
@@ -244,6 +281,9 @@ async function principal(argv: string[]): Promise<number> {
       );
       return 2;
     }
+    console.warn(
+      '[migracao] a leitura da origem NÃO é um snapshot: o servidor antigo tem de estar PARADO durante a cópia.',
+    );
     const r = await migrarSqliteParaPostgres({ origem, destino: db });
     console.table(
       r.tabelas.map((t) => ({

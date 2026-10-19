@@ -5,6 +5,10 @@
  * pela cadeia do Postgres. Os gatilhos do SQLite rodam na semeadura, então as tabelas derivadas
  * (`versoes_de_dados`, `agregados_diarios`, `estado_por_item`, `estado_dos_agregados`) também têm linhas.
  */
+import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+
 import { is, sql } from 'drizzle-orm'
 import { getTableConfig, PgTable } from 'drizzle-orm/pg-core'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -21,7 +25,9 @@ const T0 = 1_790_000_000_000
 /** Um SQLite legado com 3 usuários: sessões, falas, cartões, ocorrências, revisões, resultados, Anki,
  *  credencial com segredo e flags mexidas pelo operador. Floats com dízima, texto com acento, emoji,
  *  aspas e quebra de linha, nulos e uma linha soft-deletada: o que costuma divergir numa cópia. */
-async function criarSqliteSemeado(opts: { orfa?: boolean } = {}): Promise<SqliteLegado> {
+async function criarSqliteSemeado(
+  opts: { orfa?: boolean; colisao?: boolean; semFlag?: string } = {},
+): Promise<SqliteLegado> {
   const legado = await abrirSqliteLegado()
   const c = legado.client
   const ex = (q: string, args: Array<string | number | null> = []) => c.execute({ sql: q, args })
@@ -205,6 +211,23 @@ async function criarSqliteSemeado(opts: { orfa?: boolean } = {}): Promise<Sqlite
   ])
   await ex(`UPDATE flags SET habilitada = 0, atualizado_por = 'admin-1' WHERE chave = 'oferta_planos'`)
 
+  if (opts.semFlag) await ex('DELETE FROM flags WHERE chave = ?', [opts.semFlag])
+  if (opts.orfa || opts.colisao) {
+    // Uma linha nova numa tabela da 1ª onda (sem pai): se a carga falhar, ela NÃO pode ficar no destino.
+    await ex(`INSERT INTO users (id, created_at, updated_at, role, status) VALUES ('user-9', ?, ?, 'user', 'active')`, [
+      T0,
+      T0,
+    ])
+  }
+  if (opts.colisao) {
+    // PK diferente, mesma chave de um índice único secundário (`uq_settings_user`): no SQLite o índice é
+    // derrubado para a linha entrar; no Postgres ela tem de derrubar a carga, não sumir em silêncio.
+    await ex('DROP INDEX IF EXISTS uq_settings_user')
+    await ex(`INSERT INTO settings (id, created_at, updated_at, user_id, ui) VALUES ('set-1b', ?, ?, 'user-1', '{}')`, [
+      T0,
+      T0,
+    ])
+  }
   if (opts.orfa) {
     // Uma fala apontando para uma sessão que não existe: o Postgres recusa pela FOREIGN KEY.
     await ex('PRAGMA foreign_keys = OFF')
@@ -289,6 +312,57 @@ describe('migração SQLite → Postgres', () => {
     for (const t of r.tabelas) expect(t.checksumDestino, t.nome).toBe(t.checksumOrigem)
   })
 
+  it('flags: a paridade é origem ⊆ destino, e a flag que só o Postgres semeou aparece como extra', async () => {
+    const semUma = await criarSqliteSemeado({ semFlag: 'stt_ao_vivo' })
+    try {
+      const r = await mig.migrarSqliteParaPostgres({ origem: semUma.url, destino: mdb.db })
+      const flags = r.tabelas.find((t) => t.nome === 'flags')!
+      expect(flags.ok).toBe(true)
+      expect(flags.checksumDestino).toBe(flags.checksumOrigem)
+      expect(flags.extrasNoDestino).toEqual(['stt_ao_vivo'])
+      expect(r.ok).toBe(true)
+    } finally {
+      semUma.fechar()
+    }
+  })
+
+  it('flags: a flag alterada no destino volta ao valor da origem na reexecução', async () => {
+    await mdb.db.execute(sql`update flags set habilitada = false, atualizado_por = 'outro' where chave = 'anuncios'`)
+    const r = await mig.migrarSqliteParaPostgres({ origem: origem.url, destino: mdb.db })
+    expect(r.tabelas.find((t) => t.nome === 'flags')).toMatchObject({ ok: true, extrasNoDestino: [] })
+    const anuncios = mdb.linhas<{ habilitada: boolean; atualizado_por: string }>(
+      await mdb.db.execute(sql`select habilitada, atualizado_por from flags where chave = 'anuncios'`),
+    )[0]
+    expect(anuncios).toEqual({ habilitada: true, atualizado_por: 'admin-1' })
+  })
+
+  it('colisão num índice único secundário derruba a carga inteira, com o nome da tabela', async () => {
+    const comColisao = await criarSqliteSemeado({ colisao: true })
+    try {
+      await expect(mig.migrarSqliteParaPostgres({ origem: comColisao.url, destino: mdb.db })).rejects.toThrow(
+        /settings/,
+      )
+      expect(await contar(sql`select count(*)::int as n from users where id = 'user-9'`)).toBe(0)
+      expect(await contar(sql`select count(*)::int as n from settings where id = 'set-1b'`)).toBe(0)
+      expect(await gatilhosDesligados()).toBe(0)
+    } finally {
+      comColisao.fechar()
+    }
+  })
+
+  it('origem inexistente lança erro claro e não cria arquivo', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'babel-origem-'))
+    const arquivo = path.join(dir, 'nao-existe.db')
+    try {
+      await expect(
+        mig.migrarSqliteParaPostgres({ origem: 'file:' + arquivo.split(path.sep).join('/'), destino: mdb.db }),
+      ).rejects.toThrow(/não existe/)
+      expect(existsSync(arquivo)).toBe(false)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
   it('uma linha alterada no destino aparece no relatório como divergência da tabela', async () => {
     // `users` não tem gatilho: a alteração fica só nela (numa tabela bruta, o gatilho mexeria também em `versoes_de_dados`).
     await mdb.db.execute(sql`update users set bio = 'linha 1\nlinha 2 ' where id = 'user-1'`)
@@ -304,6 +378,7 @@ describe('migração SQLite → Postgres', () => {
       const antes = await contar(sql`select count(*)::int as n from utterances`)
       await expect(mig.migrarSqliteParaPostgres({ origem: comOrfa.url, destino: mdb.db })).rejects.toThrow(/utterances/)
       expect(await contar(sql`select count(*)::int as n from utterances`)).toBe(antes)
+      expect(await contar(sql`select count(*)::int as n from users where id = 'user-9'`)).toBe(0)
       expect(await gatilhosDesligados()).toBe(0)
     } finally {
       comOrfa.fechar()

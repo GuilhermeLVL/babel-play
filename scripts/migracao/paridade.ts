@@ -9,6 +9,8 @@
  *  - `bigint` (int8 fora do intervalo seguro): decimal;
  *  - `boolean`: `0`/`1` — que é como o SQLite guarda, então `true` e `1` dão o mesmo texto;
  *  - `null`/`undefined`: `null`; texto como veio.
+ * Consequência: o checksum NÃO distingue o texto "7" do número 7 (nem `true` de 1). Não importa aqui porque
+ * o tipo de cada coluna é fixo pelo schema dos dois lados, mas não use esta função para comparar tipos.
  * As linhas são ordenadas pela chave primária (composta: na ordem das colunas) e cada uma é serializada
  * com as chaves em ordem alfabética, para a ordem de leitura e a ordem das colunas não importarem.
  */

@@ -357,3 +357,27 @@ describe('jobs internos com o teto batido (via sem teto)', () => {
     expect(chamadas.some((c) => c.metodo === 'DELETE' && c.url.includes(id))).toBe(true)
   })
 })
+
+describe('contador do R2 indisponível', () => {
+  const contadorQuebrado = async () => {
+    throw new Error('conexão recusada')
+  }
+
+  it('falha ao contar é warn (não vai ao Sentry como erro) e sai no máximo uma vez por minuto', async () => {
+    teto.esquecerAvisoDeContagem()
+    const avisos = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const erros = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const s = teto.comTetoDeOperacoes(storeFalso().store, {
+      tetos: { bytes: Infinity, opsA: 100, opsB: 100 },
+      contar: contadorQuebrado,
+    })
+    await s.ler('x')
+    await s.ler('x')
+    const doEvento = (espiao: typeof avisos) =>
+      espiao.mock.calls.filter((c) => String(c[0]).includes('"r2_teto_contagem_falhou"'))
+    expect(doEvento(avisos)).toHaveLength(1)
+    expect(doEvento(erros)).toHaveLength(0)
+    avisos.mockRestore()
+    erros.mockRestore()
+  })
+})

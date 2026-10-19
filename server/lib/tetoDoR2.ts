@@ -137,6 +137,29 @@ export interface DependenciasDoTeto {
   tetos?: TetoDoR2
   /** Relógio (o teste da virada de mês o injeta). */
   agora?: () => Date
+  /** Quem conta no banco (o teste injeta um que falha, para o caminho do contador indisponível). */
+  contar?: typeof contarOperacao
+}
+
+/** Último aviso de contagem que falhou (epoch ms) — no máximo um por minuto por processo. */
+let ultimoAvisoDeContagem = 0
+const JANELA_DO_AVISO_DE_CONTAGEM_MS = 60_000
+
+/**
+ * Falha ao gravar o contador: `warn`, não `error` (todo `error` vai aos destinos externos, e com o banco
+ * instável e o `<audio>` lendo faixas seria um evento externo por operação), e no máximo um por minuto
+ * — o mesmo molde de `ia_provedor_limite`.
+ */
+function avisarContagemFalhou(err: unknown): void {
+  const agora = Date.now()
+  if (agora - ultimoAvisoDeContagem < JANELA_DO_AVISO_DE_CONTAGEM_MS) return
+  ultimoAvisoDeContagem = agora
+  log('warn', { event: 'r2_teto_contagem_falhou', error: String((err as Error)?.message ?? err).slice(0, 120) })
+}
+
+/** Só para os testes: esquece a janela do aviso de contagem. */
+export function esquecerAvisoDeContagem(): void {
+  ultimoAvisoDeContagem = 0
 }
 
 /**
@@ -156,6 +179,7 @@ export interface DependenciasDoTeto {
 export function comTetoDeOperacoes(store: Armazenamento, deps: DependenciasDoTeto = {}): Armazenamento {
   const tetos = deps.tetos ?? lerTetoDoR2()
   const relogio = deps.agora ?? (() => new Date())
+  const contar = deps.contar ?? contarOperacao
 
   const passar = async (classe: 'a' | 'b', forcar = false): Promise<void> => {
     const teto = classe === 'a' ? tetos.opsA : tetos.opsB
@@ -163,9 +187,9 @@ export function comTetoDeOperacoes(store: Armazenamento, deps: DependenciasDoTet
     const janela = relogio().toISOString().slice(0, 7)
     let contado: number | null
     try {
-      contado = await contarOperacao(classe, janela, teto, forcar)
+      contado = await contar(classe, janela, teto, forcar)
     } catch (err) {
-      log('error', { event: 'r2_teto_contagem_falhou', error: String((err as Error)?.message ?? err).slice(0, 120) })
+      avisarContagemFalhou(err)
       return
     }
     if (contado !== null) {

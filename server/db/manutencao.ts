@@ -17,7 +17,7 @@ import { migrate as migrarNode } from 'drizzle-orm/node-postgres/migrator'
 import { migrate as migrarPglite } from 'drizzle-orm/pglite/migrator'
 
 import { migrateLeitnerToFsrs } from '../../src/core/learning/scheduler'
-import { analisarBancoEmbutido, bancoEmbutido, db, emLote, linhas } from './db'
+import { analisarBancoEmbutido, bancoEmbutido, comConexaoDeMigracao, db, emLote, linhas } from './db'
 import { emLotes } from './lotes'
 import { toState } from './repositories/vocab'
 import { vocabCards } from './schema'
@@ -56,8 +56,11 @@ export async function aplicarMigrations(): Promise<void> {
     throw new Error(`migrations ausentes em ${migrationsFolder} (meta/_journal.json) e o banco não tem schema`)
   }
 
-  if (bancoEmbutido) await migrarPglite(db as Parameters<typeof migrarPglite>[0], { migrationsFolder })
-  else await migrarNode(db as Parameters<typeof migrarNode>[0], { migrationsFolder })
+  /* `statement_timeout = 0` na conexão das migrations: o papel do banco tem 30 s (migration 0004). */
+  await comConexaoDeMigracao(async (dbm) => {
+    if (bancoEmbutido()) await migrarPglite(dbm as Parameters<typeof migrarPglite>[0], { migrationsFolder })
+    else await migrarNode(dbm as Parameters<typeof migrarNode>[0], { migrationsFolder })
+  })
   // Estatística para o planejador no PGlite, que não tem autoanalyze (ver `analisarBancoEmbutido`).
   await analisarBancoEmbutido()
 }

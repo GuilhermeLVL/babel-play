@@ -14,10 +14,11 @@
 > tokens, por minuto e por dia), o bloqueio do 429 e as vagas em voo por usuário moram agora na tabela
 > `admissao_de_ia` (migração `0005`, `server/db/repositories/admissaoDeIa.ts`), reservados numa instrução atômica
 > (`INSERT … ON CONFLICT DO UPDATE … WHERE usado + custo <= teto`), sem Durable Object
-> (`docs/specs/2026-10-19-migracao-cloudflare.md`). Muda a semântica do minuto: **janela fixa** UTC em vez do
-> reabastecimento contínuo (a recusa espera o minuto virar; na borda, até 2× o rpm em 60 s corridos). Na memória
-> fica só um cache de recusa de até 1 s por instância. Vaga em voo parada há mais de 10 min é ignorada (isolate que
-> caiu). Prioridade por plano, `Retry-After` e o resto da decisão continuam valendo.
+> (`docs/specs/2026-10-19-migracao-cloudflare.md`). O minuto segue **token bucket contínuo**, com o reabastecimento
+> calculado na própria instrução (`usado` e `atualizado_em` por balde); o dia segue janela fixa UTC. Na memória fica
+> só um cache de recusa de até 1 s por instância, conferido antes até da vaga em voo. Vaga em voo parada além do
+> prazo do tipo (STT e voz 2 min, LLM 5 min) é ignorada (isolate que caiu). O 429 do provedor fecha o balde até o
+> `Retry-After` mas não zera mais o saldo. Prioridade por plano, `Retry-After` e o resto da decisão continuam valendo.
 
 ## Contexto
 

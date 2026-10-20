@@ -148,24 +148,16 @@ describe('balde por provedor e modelo (unidade)', () => {
     expect(adm.planoDeAdmissao('premium', false, true)).toBe('gratis')
   })
 
-  /* Fase 2, tarefa 8: o balde mora no banco, em JANELAS FIXAS de minuto — a recusa espera o minuto virar
-     (antes, reabastecimento contínuo: 1 pedido a cada 3 s). */
-  it('volta no minuto seguinte, e a recusa diz quanto esperar', async () => {
+  it('reabastece com o tempo, e a recusa diz quanto esperar', async () => {
     process.env.IA_ADMISSAO_STT_RPM = '20'
     const t0 = Date.UTC(2026, 8, 25, 12)
     for (let i = 0; i < 20; i++)
       await adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'm', plano: 'premium', agora: t0 })
-    const recusa = await adm.admitirNoBalde({
-      tipo: 'stt',
-      provedor: 'groq',
-      modelo: 'm',
-      plano: 'premium',
-      agora: t0 + 15_000,
-    })
+    const recusa = await adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'm', plano: 'premium', agora: t0 })
     expect(recusa.ok).toBe(false)
-    expect(recusa.recusa).toEqual({ motivo: 'minuto', retryAfterS: 45 }) // até o minuto virar
+    expect(recusa.recusa).toEqual({ motivo: 'minuto', retryAfterS: 3 }) // 1 pedido a cada 3 s
     expect(
-      (await adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'm', plano: 'premium', agora: t0 + 60_000 }))
+      (await adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'm', plano: 'premium', agora: t0 + 3_000 }))
         .ok,
     ).toBe(true)
   })
@@ -195,7 +187,7 @@ describe('balde por provedor e modelo (unidade)', () => {
     expect((await pedir('premium', 20_000)).ok).toBe(true)
   })
 
-  it('429 do provedor zera o saldo e fecha o balde até o Retry-After', async () => {
+  it('429 do provedor fecha o balde até o Retry-After', async () => {
     const t0 = Date.UTC(2026, 8, 25, 12)
     await adm.registrarLimiteNaAdmissao('stt', 'groq', 'm', 7, t0)
     const r = await adm.admitirNoBalde({

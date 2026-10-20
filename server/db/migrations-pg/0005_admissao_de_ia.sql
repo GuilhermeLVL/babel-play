@@ -7,7 +7,7 @@
 CREATE TABLE "admissao_de_ia" (
 	"chave" text NOT NULL,
 	"janela" text NOT NULL,
-	"usado" bigint DEFAULT 0 NOT NULL,
+	"usado" double precision DEFAULT 0 NOT NULL,
 	"em_voo" bigint DEFAULT 0 NOT NULL,
 	"bloqueado_ate" bigint DEFAULT 0 NOT NULL,
 	"atualizado_em" bigint NOT NULL,

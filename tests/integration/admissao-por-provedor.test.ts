@@ -108,10 +108,10 @@ describe('tokens por minuto (tpm) — o balde de tokens', async () => {
     expect(r.ok).toBe(false)
     if (r.ok === false) {
       expect(r.recusa.motivo).toBe('tokens_minuto')
-      // Janela FIXA do minuto (Fase 2, tarefa 8): a espera é até o minuto virar, não o reabastecimento contínuo.
-      expect(r.recusa.retryAfterS).toBe(60)
+      // Faltam 200 tokens a 1.000/min: 12 s.
+      expect(r.recusa.retryAfterS).toBe(12)
     }
-    expect((await pedir(T0 + 60_000)).ok).toBe(true)
+    expect((await pedir(T0 + 12_000)).ok).toBe(true)
   })
 
   it('o acerto pelo uso REAL devolve ao balde de tokens o que a estimativa superestimou', async () => {

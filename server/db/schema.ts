@@ -1301,8 +1301,9 @@ export const travas = pgTable('travas', {
  * memória do processo, compartilhado entre instâncias (isolates do Worker, réplicas). Uma linha por chave e
  * janela, reservada numa instrução só (`admissaoDeIaRepo.reservar`):
  *
- *  - `bucket:<provedor>:<modelo>:<tipo>` (pedidos) e `tokens:<provedor>:<modelo>:<tipo>` (tokens), na janela do
- *    minuto UTC (`YYYY-MM-DDTHH:MM`) ou do dia UTC (`YYYY-MM-DD`): `usado` é o que foi reservado nela;
+ *  - `bucket:<provedor>:<modelo>:<tipo>` (pedidos) e `tokens:<provedor>:<modelo>:<tipo>` (tokens), na janela
+ *    `min` (token bucket do minuto: `usado` no instante `atualizado_em`, reabastecido preguiçosamente por quem
+ *    reserva) ou do dia UTC (`YYYY-MM-DD`, janela fixa): `usado` é o que foi reservado nela;
  *  - `bucket:…` na janela `bloqueio`: `bloqueado_ate` é o fim do `Retry-After` do 429 do provedor;
  *  - `voo:<userId>:<tipo>` na janela `total`: `em_voo` são as chamadas do usuário em andamento.
  *
@@ -1314,7 +1315,8 @@ export const admissaoDeIa = pgTable(
   {
     chave: text('chave').notNull(),
     janela: text('janela').notNull(),
-    usado: bigint('usado', { mode: 'number' }).notNull().default(0),
+    /* Fracionário: o balde do minuto escorre continuamente (limite / 60.000 por ms). */
+    usado: doublePrecision('usado').notNull().default(0),
     emVoo: bigint('em_voo', { mode: 'number' }).notNull().default(0),
     bloqueadoAte: bigint('bloqueado_ate', { mode: 'number' }).notNull().default(0),
     atualizadoEm: bigint('atualizado_em', { mode: 'number' }).notNull(),

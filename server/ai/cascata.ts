@@ -14,6 +14,7 @@ import {
   ocuparVaga,
   type PlanoDeAdmissao,
   type Recusa,
+  recusaEmCacheDeTodas,
   registrarLimiteNaAdmissao,
   type TicketDeBalde,
 } from './admissao'
@@ -99,6 +100,12 @@ export async function admitirCascata(
   provedores: Provedor[],
   p: { userId: string; plano: PlanoDeAdmissao; tokens: number },
 ): Promise<{ ok: true; admissao: AdmissaoDaCascata } | { ok: false; recusa: Recusa }> {
+  /* A rajada contra baldes já recusados nesta instância não vai ao banco — nem para a vaga em voo. */
+  const doCache = recusaEmCacheDeTodas('llm', provedores.map(alvoDaPerna), p.plano)
+  if (doCache) {
+    contarAdmissaoRecusada(doCache.motivo, p.plano)
+    return { ok: false, recusa: doCache }
+  }
   const liberar = await ocuparVaga(p.userId, 'llm')
   if (!liberar) {
     contarAdmissaoRecusada('em_voo', p.plano)

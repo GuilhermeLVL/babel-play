@@ -4,7 +4,8 @@
  * num Worker cada isolate teria a própria cópia, e a soma passaria do limite da conta no provedor.
  *
  * A reserva é UMA instrução (`INSERT … ON CONFLICT DO UPDATE … WHERE usado + custo <= teto`): duas
- * conexões disputando a mesma janela nunca passam do teto. A prova de concorrência de verdade só vale
+ * conexões disputando a mesma janela nunca passam do teto. O minuto é token bucket com reabastecimento
+ * contínuo na própria instrução; o dia, janela fixa UTC. A prova de concorrência de verdade só vale
  * num Postgres (`TESTE_POSTGRES_URL`): o PGlite tem uma conexão só e serializa de qualquer jeito. O
  * resto (forma, janelas, vaga em voo, 429, poda, contagem de instruções) roda nos dois.
  */
@@ -40,6 +41,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await adm.esquecerAdmissao()
   for (const e of ['IA_ADMISSAO_STT_RPM', 'IA_ADMISSAO_STT_RPD', 'IA_EM_VOO_STT', 'IA_EM_VOO_LLM']) process.env[e] = ''
+  process.env.IA_ADMISSAO_STT_RPM = '20' // o padrão, explícito: os casos contam com ele
 })
 
 async function linha(chave: string, janela: string) {
@@ -119,6 +121,39 @@ describe('repositório admissao_de_ia', () => {
     expect((await linha('junta', 'min')).usado).toBe(50)
   })
 
+  it.runIf(URL_PG)('reserva parcial numa corrida é desfeita (determinístico, conexão B segura o dia)', async () => {
+    const { Client } = await import('pg')
+    await repo.admissaoDeIaRepo.reservar({ chave: 'parc', janela: 'min', custo: 10, teto: 100, agora: T0 })
+    await repo.admissaoDeIaRepo.reservar({ chave: 'parc', janela: 'dia', custo: 40, teto: 50, agora: T0 })
+    const b = new Client({ connectionString: m.urlDoBanco() })
+    await b.connect()
+    try {
+      await b.query('BEGIN')
+      await b.query("UPDATE admissao_de_ia SET usado = 50 WHERE chave = 'parc' AND janela = 'dia'")
+      // A conferência prévia ainda vê o dia em 40 (B não confirmou): o minuto é reservado e o dia espera B.
+      let resolvida = false
+      const reserva = repo.admissaoDeIaRepo
+        .reservarJuntas(
+          [
+            { chave: 'parc', janela: 'min', custo: 10, teto: 100 },
+            { chave: 'parc', janela: 'dia', custo: 10, teto: 50 },
+          ],
+          { agora: T0 },
+        )
+        .finally(() => (resolvida = true))
+      await new Promise((r) => setTimeout(r, 300))
+      expect(resolvida).toBe(false)
+      await b.query('COMMIT')
+      const r = await reserva
+      expect(r.ok).toBe(false)
+      if (r.ok === false) expect(r.recusadas).toEqual([1])
+      expect((await linha('parc', 'min')).usado).toBe(10) // desfeita: volta ao valor anterior
+      expect((await linha('parc', 'dia')).usado).toBe(50)
+    } finally {
+      await b.end()
+    }
+  })
+
   it('podar apaga as janelas antigas e mantém as recentes', async () => {
     await repo.admissaoDeIaRepo.reservar({
       chave: 'velha',
@@ -154,21 +189,36 @@ describe('admissão sobre o banco', () => {
   const stt = (agora: number, plano: 'premium' | 'gratis' = 'premium') =>
     adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'm', plano, agora })
 
-  it('a janela do minuto e a do dia são independentes (e a recusa do dia não ocupa o minuto)', async () => {
+  it('reabastece no meio do minuto: 15 s depois de esvaziar, cabem 5 de 20', async () => {
+    for (let i = 0; i < 20; i++) expect((await stt(T0)).ok).toBe(true)
+    let n = 0
+    while ((await stt(T0 + 15_000)).ok) n++
+    expect(n).toBe(5)
+  })
+
+  it('sem pico de 2× na virada do minuto: esvaziado às :59, às :00,5 ainda não cabe nenhum', async () => {
+    const t = T0 + 59_000
+    for (let i = 0; i < 20; i++) expect((await stt(t)).ok).toBe(true)
+    const r = await stt(T0 + MIN + 500)
+    expect(r.ok === false && r.recusa).toEqual({ motivo: 'minuto', retryAfterS: 2 }) // 1,5 s escorreu; falta 1,5 s
+  })
+
+  it('o balde do minuto e a janela do dia são independentes (e a recusa do dia não ocupa o minuto)', async () => {
     process.env.IA_ADMISSAO_STT_RPM = '2'
     process.env.IA_ADMISSAO_STT_RPD = '3'
     expect((await stt(T0)).ok).toBe(true)
     expect((await stt(T0 + 1_000)).ok).toBe(true)
     const doMinuto = await stt(T0 + 2_000)
     expect(doMinuto.ok === false && doMinuto.recusa.motivo).toBe('minuto')
-    // A recusa diz quanto falta para o minuto virar (janela fixa).
-    expect(doMinuto.ok === false && doMinuto.recusa.retryAfterS).toBe(58)
+    // 2 rpm = 1 pedido a cada 30 s; 2 s já escorreram de um balde cheio desde o 1º pedido.
+    expect(doMinuto.ok === false && doMinuto.recusa.retryAfterS).toBe(28)
 
-    expect((await stt(T0 + MIN)).ok).toBe(true) // minuto novo, 3º do dia
+    expect((await stt(T0 + MIN)).ok).toBe(true) // o balde do minuto escorreu; 3º do dia
+    const minutoAntes = await linha('bucket:groq:m:stt', 'min')
     const doDia = await stt(T0 + MIN + 2_000)
     expect(doDia.ok === false && doDia.recusa.motivo).toBe('dia')
-    // A recusa do dia não reserva nada no minuto: só a fala admitida conta.
-    expect((await linha('bucket:groq:m:stt', '2026-10-19T12:01')).usado).toBe(1)
+    // A recusa do dia não reserva nada no minuto.
+    expect(await linha('bucket:groq:m:stt', 'min')).toEqual(minutoAntes)
     expect((await linha('bucket:groq:m:stt', '2026-10-19')).usado).toBe(3)
   })
 
@@ -178,6 +228,14 @@ describe('admissão sobre o banco', () => {
     const r = await stt(T0 + 1_000)
     expect(r.ok === false && r.recusa).toEqual({ motivo: 'provedor_limitou', retryAfterS: 6 })
     expect((await stt(T0 + 7_000)).ok).toBe(true)
+  })
+
+  it('o bloqueio do 429 vale mesmo com o balde do minuto já reabastecido', async () => {
+    for (let i = 0; i < 20; i++) await stt(T0)
+    await adm.registrarLimiteNaAdmissao('stt', 'groq', 'm', 120, T0)
+    const r = await stt(T0 + 90_000) // o minuto já encheu de novo; o provedor pediu 120 s
+    expect(r.ok === false && r.recusa).toEqual({ motivo: 'provedor_limitou', retryAfterS: 30 })
+    expect((await stt(T0 + 120_000)).ok).toBe(true)
   })
 
   it('a vaga em voo volta a 0 depois de liberar', async () => {
@@ -193,11 +251,16 @@ describe('admissão sobre o banco', () => {
     expect((await linha('voo:u-voo:llm', 'total')).em_voo).toBe(0)
   })
 
-  it('vaga em voo parada há mais de 10 min é ignorada (isolate que caiu não trava ninguém)', async () => {
+  it('vaga em voo parada além do prazo do tipo é ignorada (STT 2 min, LLM 5 min)', async () => {
     process.env.IA_EM_VOO_STT = '1'
-    expect(await adm.ocuparVaga('u-caiu', 'stt', T0)).not.toBeNull() // nunca liberada
-    expect(await adm.ocuparVaga('u-caiu', 'stt', T0 + 5 * MIN)).toBeNull()
-    expect(await adm.ocuparVaga('u-caiu', 'stt', T0 + 10 * MIN + 1)).not.toBeNull()
+    process.env.IA_EM_VOO_LLM = '1'
+    expect(repo.VOO_PARADO_MS).toEqual({ stt: 2 * MIN, tts: 2 * MIN, llm: 5 * MIN })
+    expect(await adm.ocuparVaga('u-caiu', 'stt', T0)).not.toBeNull() // nunca liberadas
+    expect(await adm.ocuparVaga('u-caiu', 'llm', T0)).not.toBeNull()
+    expect(await adm.ocuparVaga('u-caiu', 'stt', T0 + MIN)).toBeNull()
+    expect(await adm.ocuparVaga('u-caiu', 'stt', T0 + 2 * MIN + 1)).not.toBeNull()
+    expect(await adm.ocuparVaga('u-caiu', 'llm', T0 + 2 * MIN + 1)).toBeNull()
+    expect(await adm.ocuparVaga('u-caiu', 'llm', T0 + 5 * MIN + 1)).not.toBeNull()
     expect((await linha('voo:u-caiu:stt', 'total')).em_voo).toBe(1)
   })
 
@@ -206,7 +269,7 @@ describe('admissão sobre o banco', () => {
     const primeiro = await stt(T0)
     expect(primeiro.ok).toBe(true)
     expect((await stt(T0 + 100)).ok).toBe(false)
-    const cache = await linha('bucket:groq:m:stt', '2026-10-19T12:00')
+    const cache = await linha('bucket:groq:m:stt', 'min')
     expect(cache.usado).toBe(1)
     // Outra instância liberou no banco: esta só enxerga depois que a recusa em cache expira (≤ 1 s).
     await m.db.execute(sql`UPDATE admissao_de_ia SET usado = 0 WHERE chave = 'bucket:groq:m:stt'`)
@@ -240,6 +303,30 @@ describe.skipIf(URL_PG)('instruções por admissão (PGlite)', () => {
       await vaga?.()
     } finally {
       contador.parar()
+    }
+  })
+
+  it('a fala recusada em rajada não vai ao banco: o cache é conferido antes da vaga em voo', async () => {
+    process.env.IA_ADMISSAO_STT_RPM = '1'
+    const { admitirStt, encerrarAdmissaoDoStt } =
+      await h.load<typeof import('../../server/ai/cascataDeStt')>('../../server/ai/cascataDeStt')
+    const pernas = [{ base: 'http://203.0.113.20/v1', model: 'rajada', rotulo: 'groq', apiKey: 'k' }] as any
+    const primeira = await admitirStt(pernas, { userId: 'u-r1', plano: 'premium' })
+    expect(primeira.ok).toBe(true)
+    const contador = await contarConsultas(h.load)
+    try {
+      contador.zerar()
+      const doBanco = await admitirStt(pernas, { userId: 'u-r2', plano: 'premium' })
+      expect(doBanco.ok).toBe(false)
+      expect(contador.instrucoes).toHaveLength(3) // vaga, balde (recusa), soltar a vaga
+
+      contador.zerar()
+      const doCache = await admitirStt(pernas, { userId: 'u-r3', plano: 'premium' })
+      expect(doCache.ok === false && doCache.recusa.motivo).toBe('minuto')
+      expect(contador.instrucoes).toHaveLength(0)
+    } finally {
+      contador.parar()
+      if (primeira.ok === true) await encerrarAdmissaoDoStt(primeira.admissao)
     }
   })
 })

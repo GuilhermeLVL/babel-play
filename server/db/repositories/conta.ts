@@ -50,7 +50,7 @@ import {
   vocabCards,
   vocabOccurrences,
 } from '../schema'
-import { chaveDeVoo } from './admissaoDeIa'
+import { chaveDeVoo, TIPOS_DE_IA } from './admissaoDeIa'
 import { agregadosRepo } from './agregados'
 
 /**
@@ -343,7 +343,7 @@ export const contaRepo = {
     instrucoes.push((tx) => tx.execute(sql`DELETE FROM travas WHERE chave = ${`u:${userId}`}`))
     /* AS VAGAS EM VOO DA ADMISSÃO DE IA (`voo:<id>:<tipo>` em `admissao_de_ia`): contador sem conteúdo, mas
        com o id da pessoa na chave. Chaves exatas, sem LIKE (um `%` ou `_` no id não alcança outra conta). */
-    const voos = (['stt', 'llm', 'tts'] as const).map((tipo) => chaveDeVoo(userId, tipo))
+    const voos = TIPOS_DE_IA.map((tipo) => chaveDeVoo(userId, tipo))
     instrucoes.push((tx) => tx.delete(admissaoDeIa).where(inArray(admissaoDeIa.chave, voos)))
 
     /* A trava do usuário primeiro: uma revisão ou rodada simultânea (que toma a mesma trava) não

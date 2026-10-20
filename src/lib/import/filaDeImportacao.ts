@@ -11,10 +11,11 @@
  */
 import { useSyncExternalStore } from 'react';
 
-import { createSession, importDocument, importWeb, importYoutube, uploadSessionAudio } from '../../data/api';
+import { createSession, importWeb, importYoutube, uploadSessionAudio } from '../../data/api';
 import type { OfflineProgress } from '../../gateway/offlineTranscribe';
 import { fetchLangConfig } from '../langConfig';
 import { buildDocumentSession, transcribeImportedAudio } from './buildSession';
+import { extrairDocumento } from './extrairDocumento';
 import { formatoDaLegenda, TAMANHO_MAXIMO_DA_LEGENDA_BYTES, textoDaLegenda } from './legendas';
 
 export type FonteDeImportacao = 'youtube' | 'doc' | 'web' | 'local' | 'texto';
@@ -110,9 +111,9 @@ async function executar(item: ItemDaFila): Promise<string> {
       const { recording } = await buildDocumentSession({ title: e.arquivo.name.replace(/\.[^.]+$/, ''), text: texto });
       return recording.id;
     }
-    const doc = await importDocument(e.arquivo);
+    const doc = await extrairDocumento(e.arquivo);
     passo(55, 'Extraindo o texto…');
-    const { recording } = await buildDocumentSession({ title: doc.title, text: doc.text, langHint: doc.lang });
+    const { recording } = await buildDocumentSession({ title: doc.title, text: doc.text });
     return recording.id;
   }
   if (e.fonte === 'texto') {

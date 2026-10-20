@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { createClient } from '@libsql/client'
-import JSZip from 'jszip'
+import { zipSync } from 'fflate'
 import { describe, expect, it } from 'vitest'
 
 import { hashDaEstrutura } from '../server/import/identidadeDaNota'
@@ -78,9 +78,7 @@ async function montarApkgModerno(opts: OpcoesApkg): Promise<Buffer> {
     }
 
     const db = await readFile(caminho)
-    const zip = new JSZip()
-    zip.file('collection.anki21', db)
-    return await zip.generateAsync({ type: 'nodebuffer' })
+    return Buffer.from(zipSync({ 'collection.anki21': new Uint8Array(db) }))
   } finally {
     try {
       cliente.close()

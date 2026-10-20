@@ -50,19 +50,3 @@ export async function importWeb(url: string): Promise<ImportTextResult> {
   if (!res.ok) throw new Error((data as { error?: string })?.error || 'falha ao importar a página')
   return data as ImportTextResult
 }
-
-export async function importDocument(file: File): Promise<ImportTextResult> {
-  const res = await apiFetch('/api/import/document', {
-    timeoutMs: IMPORT_TIMEOUT_MS, // documento até 30MB (PDF/DOCX)
-    method: 'POST',
-    // Corpo binário cru + nome no header (mesmo padrão do upload de áudio; sem multer no servidor).
-    headers: {
-      'Content-Type': file.type || 'application/octet-stream',
-      'X-Filename': encodeURIComponent(file.name),
-    },
-    body: file,
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error((data as { error?: string })?.error || 'falha ao importar o documento')
-  return data as ImportTextResult
-}

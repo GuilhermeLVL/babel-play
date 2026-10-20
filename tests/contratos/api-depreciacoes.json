@@ -18,6 +18,12 @@
       "depreciadaEm": "0.1.0",
       "motivo": "o .apkg passou a ser lido no navegador (fflate + fzstd + sql.js) e as notas seguem em lotes; a rota binária e o leitor Node saíram (Fase 3 da migração para o Worker)",
       "substituta": "POST /api/anki/imports, /api/anki/imports/:id/notas e /api/anki/imports/:id/fechar"
+    },
+    {
+      "rota": "POST /api/import/document",
+      "depreciadaEm": "0.1.0",
+      "motivo": "PDF e DOCX passaram a ser lidos no navegador (pdfjs + mammoth, com teto de expansão do zip); a rota e o extrator Node saíram (Fase 3 da migração para o Worker)",
+      "substituta": "extrairDocumento (src/lib/import/extrairDocumento.ts), local"
     }
   ]
 }

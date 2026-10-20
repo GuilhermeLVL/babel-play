@@ -23,8 +23,6 @@ const SEM_CARACTERIZACAO = {
     'coberta por `tests/integration/metricas-prometheus.test.ts` (11 casos sobre o `criarApp()` real: formato de exposicao, ordem de montagem, cardinalidade da label de rota) e `metricas-token.test.ts`. Nao aparece aqui como "com teste" por limite deste script: ele so reconhece chamada de teste que comece por `/api/`, e a rota de operacao mora na RAIZ por convencao do Prometheus',
   'POST /api/import/web':
     'busca de página externa (SSRF); coberto por `tests/integration/audit-s13-image-url.test.ts` e `server/import/web.ts` tem teste próprio de redirecionamento',
-  'POST /api/import/document':
-    'PDF/DOCX exige fixtures binárias; o parser tem teste unitário (`f4-04-tipo-por-conteudo`)',
   'GET /api/audio/loopback/stream':
     'dispositivo da máquina (WASAPI); só existe no self-host e o 403 do modo público está em auth-e-conta',
   'POST /api/billing/comprar':

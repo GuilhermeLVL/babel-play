@@ -103,8 +103,10 @@ describe('bundle do Worker', () => {
     expect(dentro).toEqual([])
   })
 
-  it('@libsql/client não entra no bundle do Worker', () => {
-    const dentro = Object.keys(meta.inputs).filter((p) => p.includes('node_modules/@libsql/'))
+  it('@libsql/client e jszip não entram no bundle do Worker', () => {
+    const dentro = Object.keys(meta.inputs).filter(
+      (p) => p.includes('node_modules/@libsql/') || p.includes('node_modules/jszip/'),
+    )
     expect(dentro).toEqual([])
   })
 

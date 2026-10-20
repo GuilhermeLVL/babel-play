@@ -56,8 +56,6 @@
     "@electric-sql/pglite": "./server/stubs/pglite.ts",
     "jsdom": "./server/stubs/jsdom.ts",
     "@mozilla/readability": "./server/stubs/readability.ts",
-    "mammoth": "./server/stubs/mammoth.ts",
-    "pdfjs-dist/legacy/build/pdf.mjs": "./server/stubs/pdfjs.ts",
     "loopback-capture": "./server/stubs/loopbackCapture.ts",
     "dotenv/config": "./server/stubs/vazio.ts",
     "drizzle-orm/node-postgres/migrator": "./server/stubs/migrador.ts",

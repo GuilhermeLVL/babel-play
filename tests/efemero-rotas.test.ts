@@ -17,7 +17,6 @@ import { fecharStore } from '../src/data/efemero/store'
 const ACOES: Array<[string, string]> = [
   ['POST', '/api/import/youtube'],
   ['POST', '/api/import/web'],
-  ['POST', '/api/import/document'],
   ['POST', '/api/ai/credentials'],
   ['POST', '/api/ai/providers/test'],
   ['POST', '/api/tutor/chat'],

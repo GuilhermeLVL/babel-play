@@ -94,7 +94,6 @@
     "POST /api/billing/webhook/asaas",
     "POST /api/erros-do-cliente",
     "POST /api/exercises/rodada",
-    "POST /api/import/document",
     "POST /api/import/web",
     "POST /api/import/youtube",
     "POST /api/me/responsavel/convite",

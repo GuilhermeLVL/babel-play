@@ -103,7 +103,6 @@
     "idb": "^8.0.4",
     "jose": "^6.2.12",
     "jsdom": "^29.1.1",
-    "jszip": "^3.10.2",
     "loopback-capture": "^2.0.0",
     "lucide-react": "^0.546.0",
     "mammoth": "^1.13.0",

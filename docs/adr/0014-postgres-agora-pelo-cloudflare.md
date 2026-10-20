@@ -66,6 +66,8 @@ triggers, latência de rede em cada consulta (a validar no spike S6), e um diale
 - **`/api/health`** devolve `banco: 'pglite' | 'postgres'` no lugar de `journal_mode`.
 - **`@libsql/client`** fica só para importar `.apkg` (Anki) e para ler SQLite legado (anonimização de fixtures,
   snapshots antigos).
+- **Travas de linha, não advisory locks:** `travarUsuario`/`travarGlobal` travam uma linha da tabela `travas`
+  (migração 0003) até o fim da transação, porque o Hyperdrive (pool por transação) não suporta advisory locks.
 - **Testes de concorrência e multiprocesso** rodam num Postgres real apenas com `TESTE_POSTGRES_URL`
   (o `docker-compose.yml` tem um serviço `postgres:17`); sem a variável, são pulados com motivo.
 - **Pendente nas fases seguintes:** `Dockerfile`, `iniciar-container.sh`, `litestream.yml`, `fly.toml`, jobs de CI

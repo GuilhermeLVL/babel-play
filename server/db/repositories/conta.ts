@@ -131,9 +131,11 @@ export const NOMES_DAS_TABELAS_DO_TITULAR: readonly string[] = TABELAS_DO_TITULA
 /**
  * Tabelas com `user_id` que a exclusão trata FORA do laço, com chave própria: `secrets` é
  * alcançada pela `secret_ref` das credenciais E pelo `user_id` (ver `refsDeSegredo`), e apagada
- * depois de `providerCredentials` por causa da FOREIGN KEY.
+ * depois de `providerCredentials` por causa da FOREIGN KEY. `travas` (sem `user_id`: a chave é
+ * `u:<userId>`) não sai na exclusão — apagá-la no meio de uma transação que a segura não traz nada; a
+ * limpeza diária (`limpezaDiaria.ts`) poda as chaves de quem não existe mais em `users`.
  */
-export const TABELAS_TRATADAS_A_PARTE: readonly string[] = ['secrets']
+export const TABELAS_TRATADAS_A_PARTE: readonly string[] = ['secrets', 'travas']
 
 /**
  * Falha ALTO no carregamento se o schema tiver tabela com `user_id` fora da lista. Melhor um

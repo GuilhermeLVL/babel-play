@@ -201,22 +201,44 @@ export async function emLote<T extends readonly unknown[]>(
 }
 
 /**
- * Trava consultiva do usuário até o fim da transação (`pg_advisory_xact_lock`). Deve ser a PRIMEIRA
- * instrução de `emTransacao`: serializa, por usuário, o que no SQLite vinha do escritor único (saldo,
- * teto, reconstrução). Fora de transação a trava se soltaria na hora — não chame com `db`.
+ * Trava a LINHA `chave` da tabela `travas` até o fim da transação, numa instrução só (uma ida ao banco):
+ *
+ *  - linha nova: o INSERT a cria e a transação que a criou a segura; quem chegar depois com a mesma chave
+ *    espera esse COMMIT na checagem do índice único e então cai no ON CONFLICT;
+ *  - linha existente: o `ON CONFLICT DO UPDATE` trava a linha como um UPDATE (espera quem a segura).
+ *
+ * O UPDATE regrava `criado_em` com o próprio valor (coluna sem índice: atualização HOT, sem mexer no índice).
+ * Duas instruções (`ON CONFLICT DO NOTHING` e depois `SELECT … FOR UPDATE`) teriam um buraco: se a linha
+ * fosse apagada entre as duas, o SELECT não acharia nada e voltaria SEM trava; o UPSERT, nesse caso,
+ * insere de novo. A espera obedece ao `lock_timeout` da sessão (55P03), como a trava consultiva obedecia.
+ *
+ * Por que não advisory lock (trava consultiva): o Hyperdrive (pool por transação) não suporta travas consultivas;
+ * trava de linha vive e morre com a transação, que é o que o pool por transação preserva.
  */
-export async function travarUsuario(tx: ExecutorDb, userId: string): Promise<void> {
-  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${userId}))`)
+async function travarChave(tx: ExecutorDb, chave: string): Promise<void> {
+  await tx.execute(
+    sql`INSERT INTO travas (chave, criado_em) VALUES (${chave}, ${Date.now()})
+      ON CONFLICT (chave) DO UPDATE SET criado_em = travas.criado_em`,
+  )
 }
 
 /**
- * Trava consultiva GLOBAL, nomeada (ex.: o teto da conta no R2), até o fim da transação. Tome-a DEPOIS
- * de `travarUsuario` — uma ordem só, para duas transações nunca esperarem uma pela outra em cruz. Usa a
- * forma de DUAS chaves int4, que no Postgres é outro espaço de travas: não colide com a de usuário
- * (`hashtext(userId)`, chave única int8), mesmo que um userId tenha o mesmo nome.
+ * Trava do usuário até o fim da transação (linha `u:<userId>` em `travas`). Deve ser a PRIMEIRA instrução
+ * de `emTransacao`: serializa, por usuário, o que no SQLite vinha do escritor único (saldo, teto,
+ * reconstrução). Não depende de o usuário existir em `users`. Fora de transação a trava se soltaria na
+ * hora — não chame com `db`.
+ */
+export async function travarUsuario(tx: ExecutorDb, userId: string): Promise<void> {
+  await travarChave(tx, `u:${userId}`)
+}
+
+/**
+ * Trava GLOBAL, nomeada (ex.: o teto da conta no R2), até o fim da transação (linha `g:<nome>`). Tome-a
+ * DEPOIS de `travarUsuario` — uma ordem só, para duas transações nunca esperarem uma pela outra em cruz.
+ * O prefixo separa os espaços: `g:x` não colide com a trava do usuário `x` (`u:x`).
  */
 export async function travarGlobal(tx: ExecutorDb, nome: string): Promise<void> {
-  await tx.execute(sql`select pg_advisory_xact_lock(0, hashtext(${nome}))`)
+  await travarChave(tx, `g:${nome}`)
 }
 
 /** Linhas modificadas por um INSERT/UPDATE/DELETE: `rowCount` (pg) ou `affectedRows` (PGlite). */

@@ -68,6 +68,8 @@ export interface RelatorioDaLimpeza {
   revisoes: number
   /** Usuários cujos agregados estavam atrás do bruto e foram recontados. */
   agregadosRecontados: number
+  /** Chaves `u:` da tabela `travas` de quem não existe mais em `users`, podadas. */
+  travasPodadas: number
 }
 
 const afetadas = (r: unknown) => linhasAfetadas(r)
@@ -151,6 +153,7 @@ export async function limparBanco(o: { agora?: number; dias?: number } = {}): Pr
     ocorrencias: 0,
     revisoes: 0,
     agregadosRecontados: 0,
+    travasPodadas: 0,
   }
 
   /* Quem tem o que apagar. Os cinco índices parciais `idx_*_apagadas` (migração 0053) respondem
@@ -197,6 +200,16 @@ export async function limparBanco(o: { agora?: number; dias?: number } = {}): Pr
     await agregadosRepo.reconstruir(user_id as UserId)
     r.agregadosRecontados += 1
   }
+
+  /* As travas de linha (`travas`, ver `travarUsuario`) de quem não existe mais em `users`: um DELETE só,
+     com teto por passada. `SKIP LOCKED` pula a linha que uma transação está segurando agora (sem esperar
+     por ela nem cair no `lock_timeout`); a chave podada de quem ainda usa o app volta na próxima trava. */
+  r.travasPodadas = afetadas(
+    await db.execute(sql`DELETE FROM travas WHERE chave IN (
+      SELECT t.chave FROM travas t
+      WHERE t.chave LIKE 'u:%' AND NOT EXISTS (SELECT 1 FROM users u WHERE u.id = substr(t.chave, 3))
+      LIMIT 5000 FOR UPDATE SKIP LOCKED)`),
+  )
 
   // Estatística para o planejador no PGlite, que não tem autoanalyze; no `pg` não faz nada.
   await analisarBancoEmbutido()

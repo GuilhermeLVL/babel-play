@@ -1,6 +1,6 @@
 /**
  * `lock_timeout` NO SERVIDOR (revisão final da Fase 1, I3): uma transação esperando a trava do usuário
- * (`travarUsuario`, `pg_advisory_xact_lock`) que outra segura desiste com SQLSTATE 55P03 no prazo de
+ * (`travarUsuario`, a linha `u:<id>` da tabela `travas`) que outra segura desiste com SQLSTATE 55P03 no prazo de
  * `DB_LOCK_TIMEOUT_MS`, em vez de prender a conexão do pool sem limite.
  *
  * Só roda com `TESTE_POSTGRES_URL` (o PGlite tem uma conexão só: não há duas transações ao mesmo tempo).
@@ -19,7 +19,8 @@ let h: EphemeralDb | undefined
 
 beforeAll(async () => {
   if (!URL_PG) return
-  h = await abrirBancoDeTeste({ env: { DB_LOCK_TIMEOUT_MS: '500' }, migrar: false })
+  // Migra: a trava do usuário é uma linha da tabela `travas` (antes, advisory lock dispensava schema).
+  h = await abrirBancoDeTeste({ env: { DB_LOCK_TIMEOUT_MS: '500' } })
   m = await import('../../server/db/db')
 })
 

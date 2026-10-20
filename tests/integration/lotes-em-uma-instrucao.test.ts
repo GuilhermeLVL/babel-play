@@ -116,7 +116,7 @@ describe('lotes em uma instrução', () => {
 
     expect(n).toBe(5000)
     expect(contador.lista.length).toBeLessThanOrEqual(12)
-    const trava = contador.lista.findIndex((s) => /pg_advisory_xact_lock/i.test(s))
+    const trava = contador.lista.findIndex((s) => /^\s*insert\s+into\s+travas\b/i.test(s))
     const update = contador.lista.findIndex((s) => /^\s*update\s+"?vocab_cards"?/i.test(s))
     expect(trava).toBeGreaterThanOrEqual(0)
     expect(update).toBeGreaterThan(trava) // a trava vem antes de qualquer UPDATE de cartão
@@ -271,7 +271,7 @@ describe('lotes em uma instrução', () => {
       contador.parar()
     }
     expect(n).toBe(300)
-    const trava = contador.lista.findIndex((s) => /pg_advisory_xact_lock/i.test(s))
+    const trava = contador.lista.findIndex((s) => /^\s*insert\s+into\s+travas\b/i.test(s))
     const updates = contador.lista.filter((s) => /^\s*update\s+"?vocab_cards"?/i.test(s))
     // 4 colunas por linha (id, score, carimbo, updated_at): 300 cartões cabem em ceil(300 / tamanhoDoLote(4)) = 1.
     expect(updates).toHaveLength(Math.ceil(300 / lotes.tamanhoDoLote(4)))

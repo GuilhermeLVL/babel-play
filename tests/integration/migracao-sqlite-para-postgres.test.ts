@@ -299,9 +299,12 @@ describe('migração SQLite → Postgres', () => {
     const doSchema = Object.values(schema)
       .filter((v) => is(v, PgTable))
       .map((t) => getTableConfig(t as PgTable).name)
+      .filter((nome) => !mig.TABELAS_SO_DO_POSTGRES.has(nome))
       .sort()
     expect(doSchema.length).toBeGreaterThanOrEqual(38)
     expect(r.tabelas.map((t) => t.nome).sort()).toEqual(doSchema)
+    // A única fora da cópia, por um motivo escrito: as travas de linha não são dado e o SQLite não as tem.
+    expect([...mig.TABELAS_SO_DO_POSTGRES]).toEqual(['travas'])
   })
 
   it('a segunda execução é idempotente (ON CONFLICT DO NOTHING) e o relatório continua ok', async () => {

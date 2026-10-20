@@ -8,7 +8,7 @@
  *  - `connectionTimeoutMillis` (DB_CONNECT_TIMEOUT_MS, 5 s): abrir conexão nova;
  *  - `idleTimeoutMillis` (30 s, fixo): conexão ociosa volta ao servidor;
  *  - `statement_timeout` (DB_STATEMENT_TIMEOUT_MS, 30 s): uma instrução;
- *  - `lock_timeout` (DB_LOCK_TIMEOUT_MS, 10 s): esperar trava (de linha ou `pg_advisory_xact_lock`) —
+ *  - `lock_timeout` (DB_LOCK_TIMEOUT_MS, 10 s): esperar trava de linha (inclusive as de `travas`) —
  *    estoura com SQLSTATE 55P03;
  *  - `idle_in_transaction_session_timeout` (DB_IDLE_TX_TIMEOUT_MS, 60 s): transação aberta e parada.
  *

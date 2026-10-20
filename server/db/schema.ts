@@ -1284,3 +1284,14 @@ export const estadoPorItem = pgTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.cardId, t.jogo] })],
 )
+
+/**
+ * Travas de linha por transação (`travarUsuario`/`travarGlobal` em `db.ts`): uma linha por chave, `u:<userId>`
+ * ou `g:<nome>`, travada pelo `INSERT … ON CONFLICT DO UPDATE` até o fim da transação. Substitui o
+ * advisory lock (trava consultiva), que o Hyperdrive (pool por transação) não suporta. Sem dado além da chave; a
+ * limpeza diária poda as `u:` de quem não existe mais em `users`.
+ */
+export const travas = pgTable('travas', {
+  chave: text('chave').primaryKey(),
+  criadoEm: bigint('criado_em', { mode: 'number' }).notNull(),
+})

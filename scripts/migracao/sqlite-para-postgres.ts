@@ -65,6 +65,12 @@ const TETO_DE_PARAMETROS = 60_000;
 /** Tabelas que a cadeia legada do SQLite cria e que não são dado (o diário das migrations). */
 const TABELAS_DE_CONTROLE = new Set(['__drizzle_migrations']);
 
+/**
+ * Tabelas do schema que só existem no Postgres e não guardam dado a migrar: `travas` (as travas de linha de
+ * `travarUsuario`/`travarGlobal`, que nascem sob demanda). O SQLite nunca as teve; ficam fora da cópia.
+ */
+export const TABELAS_SO_DO_POSTGRES: ReadonlySet<string> = new Set(['travas']);
+
 interface Tabela {
   nome: string;
   tabela: PgTable;
@@ -88,6 +94,7 @@ const TABELA_DE_FLAGS = 'flags';
 function tabelasEmOrdem(): Tabela[] {
   const todas = (Object.values(schema) as unknown[])
     .filter((v): v is PgTable => is(v, PgTable))
+    .filter((tabela) => !TABELAS_SO_DO_POSTGRES.has(getTableConfig(tabela).name))
     .map((tabela) => {
       const cfg = getTableConfig(tabela);
       const chaves = Object.entries(getTableColumns(tabela));

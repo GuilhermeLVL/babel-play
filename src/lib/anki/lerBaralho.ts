@@ -24,6 +24,8 @@ export async function lerBaralhoNoNavegador(
         else if (m.tipo === 'ok') resolve(m.leitura);
         else reject(new Error(m.mensagem));
       };
+      // Resposta que não sobreviveu à cópia entre threads (structured clone): sem isto a promessa ficaria pendente.
+      worker.onmessageerror = () => reject(new Error('não consegui receber a leitura do baralho'));
       worker.onerror = (evento) => {
         evento.preventDefault();
         reject(new Error(evento.message || 'o leitor de .apkg parou de responder'));

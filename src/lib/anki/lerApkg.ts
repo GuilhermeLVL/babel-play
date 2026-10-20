@@ -62,20 +62,34 @@ export async function lerApkg(
   if (!formato) throw new Error('não encontrei a coleção dentro do .apkg (collection.anki2/21/21b)');
   const temMidia = zip.nomes.some((n) => /^\d+$/.test(n));
 
-  let bytes = zip.entradas.get(formato)!;
-  zip.entradas.clear();
-  if (formato === 'collection.anki21b') {
-    avisar({ etapa: 'descomprimindo' });
-    bytes = descomprimirZstd(bytes, formato, teto);
-  }
-
-  const SQL = await deps.abrirSqlite();
-  const db = new SQL.Database(bytes);
+  const db = await abrirColecao(zip.entradas, formato, teto, deps.abrirSqlite, avisar);
   try {
     return lerColecao(db, formato, temMidia, avisar);
   } finally {
     db.close();
   }
+}
+
+/**
+ * Abre a coleção no `sql.js` (e esvazia `entradas`). Os bytes ficam presos ao escopo desta função de propósito: o `sql.js` copia
+ * tudo para a memória do WASM, e assim a nossa cópia fica inalcançável antes das consultas, em vez de
+ * dobrar o pico de memória durante a leitura inteira.
+ */
+async function abrirColecao(
+  entradas: Map<string, Uint8Array>,
+  formato: string,
+  teto: number,
+  abrirSqlite: AbrirSqlite,
+  avisar: (p: ProgressoDaLeitura) => void,
+): Promise<Database> {
+  let bytes = entradas.get(formato)!;
+  entradas.clear();
+  if (formato === 'collection.anki21b') {
+    avisar({ etapa: 'descomprimindo' });
+    bytes = descomprimirZstd(bytes, formato, teto);
+  }
+  const SQL = await abrirSqlite();
+  return new SQL.Database(bytes);
 }
 
 /** Zstd em fluxo, contando a saída contra o teto (o segundo estágio — ver o cabeçalho). */

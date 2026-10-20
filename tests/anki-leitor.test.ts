@@ -114,7 +114,7 @@ describe('zstd e tetos', () => {
     const frame = new Uint8Array(zlib.zstdCompressSync(new Uint8Array(1024 * 1024)))
     const promessa = ler(apkg({ 'collection.anki21b': frame }), 512 * 1024)
     await expect(promessa).rejects.toBeInstanceOf(ExpansaoAcimaDoTeto)
-    await expect(promessa).rejects.toThrow('collection.anki21b passou de 1 MB ao descompactar; arquivo recusado')
+    await expect(promessa).rejects.toThrow('collection.anki21b passou de 512 KB ao descompactar; arquivo recusado')
   })
 
   it('o teto também vale no estágio do zip', async () => {

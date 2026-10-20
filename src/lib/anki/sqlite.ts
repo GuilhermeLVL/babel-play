@@ -7,7 +7,8 @@
  * em Node, com o `.wasm` achado em `node_modules`.
  */
 import type { SqlJsStatic } from 'sql.js';
-import wasmUrl from 'sql.js/dist/sql-wasm.wasm?url';
+// Com a condição `browser` o Vite resolve `sql.js` para `sql-wasm-browser.js`, que pede este `.wasm`.
+import wasmUrl from 'sql.js/dist/sql-wasm-browser.wasm?url';
 
 export type AbrirSqlite = () => Promise<SqlJsStatic>;
 

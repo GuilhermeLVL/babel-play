@@ -21,6 +21,7 @@ const RAIZ = join(__dirname, '..', '..')
 interface Ambiente {
   name?: string
   workers_dev?: boolean
+  preview_urls?: boolean
   hyperdrive?: { binding: string; id: string; localConnectionString?: string }[]
   triggers?: { crons?: string[] }
   vars?: Record<string, string>
@@ -78,5 +79,19 @@ describe('wrangler.jsonc', () => {
     expect(staging?.workers_dev).toBe(true)
     expect(config.workers_dev).toBe(false)
     expect(staging?.define).toEqual(config.define)
+  })
+
+  /* `erroDeAsaasSandboxEmProducao` aborta o boot quando a base do Asaas é sandbox (ou falta) sem
+     `ASAAS_SANDBOX=1`: a produção declara a base real; só o staging declara o sandbox. */
+  it('Asaas: produção com a base real e sem ASAAS_SANDBOX; staging com o sandbox declarado', () => {
+    expect(config.vars?.ASAAS_BASE_URL).toBe('https://api.asaas.com/v3')
+    expect(config.vars).not.toHaveProperty('ASAAS_SANDBOX')
+    expect(config.env?.staging?.vars?.ASAAS_SANDBOX).toBe('1')
+    expect(config.env?.staging?.vars?.ASAAS_BASE_URL).toMatch(/sandbox/)
+  })
+
+  it('preview_urls ligado no topo (portão antes do tráfego) e workers.dev desligado na produção', () => {
+    expect(config.preview_urls).toBe(true)
+    expect(config.workers_dev).toBe(false)
   })
 })

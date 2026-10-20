@@ -72,10 +72,15 @@ export function registrarFalhaDeBoot(passo: string, err: unknown): void {
  */
 export function registrarSucessoDeBoot(passo: string): void {
   falhas.delete(passo)
-  void db
-    .delete(bootFalhas)
-    .where(sql`${bootFalhas.passo} = ${passo}`)
-    .catch((e) => log('warn', { event: 'boot_status_clear_failed', error: String(e).slice(0, 120) }))
+  /* Mesmo `try` de `registrarFalhaDeBoot`: no portão do Worker o `db` lança de forma síncrona. */
+  try {
+    void db
+      .delete(bootFalhas)
+      .where(sql`${bootFalhas.passo} = ${passo}`)
+      .catch((e) => log('warn', { event: 'boot_status_clear_failed', error: String(e).slice(0, 120) }))
+  } catch (e) {
+    log('warn', { event: 'boot_status_clear_failed', error: String(e).slice(0, 120) })
+  }
 }
 
 /**

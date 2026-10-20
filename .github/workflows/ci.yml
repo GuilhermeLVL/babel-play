@@ -450,6 +450,8 @@ jobs:
           cache: npm
       - run: npm ci
         timeout-minutes: 5
+      # Sem build do Vite de propósito (job rápido): o `worker:build` cria o `dist/` vazio que o dry-run do
+      # wrangler exige (`assets.directory`); a fumaça testa só /api/*.
       - name: Bundle do Worker (tamanho e allowlist)
         run: npm run worker:build
       - name: Testes do Worker

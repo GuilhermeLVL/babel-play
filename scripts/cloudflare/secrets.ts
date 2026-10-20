@@ -65,11 +65,12 @@ const conhecidas = new Set(VARIAVEIS.map((v) => v.nome));
 const desconhecidas = Object.keys(objeto).filter((k) => !conhecidas.has(k));
 const vazias = Object.keys(objeto).filter((k) => !preenchida(k) && !ausentes.includes(k));
 
-if (vazias.length)
-  console.warn(`[secrets] AVISO: chaves com valor vazio (o wrangler as recusaria): ${vazias.join(', ')}`);
 if (desconhecidas.length)
   console.warn(`[secrets] AVISO: chaves que o config.ts não conhece: ${desconhecidas.join(', ')}`);
 if (ausentes.length) falhar(`obrigatórias ausentes ou vazias em ${arquivo}: ${ausentes.join(', ')}`);
+/* Vazio não é "sem valor": o wrangler o recusaria no meio do envio (ou gravaria um secret em branco). Quem
+   não tem o valor tira a chave do arquivo. */
+if (vazias.length) falhar(`chaves com valor vazio em ${arquivo} (preencha ou remova): ${vazias.join(', ')}`);
 
 console.log(`[secrets] ${Object.keys(objeto).length} chaves em ${arquivo}; obrigatórias ok.`);
 if (dry) {

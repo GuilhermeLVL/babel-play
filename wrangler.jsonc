@@ -14,6 +14,10 @@
   // httpServerHandler também (spike S7).
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
+  // URL de preview por versão (e o alias "fumaca" do deploy-worker.yml): é o PORTÃO ANTES DO TRÁFEGO — a
+  // fumaça roda nela antes do `versions deploy`. Herdado pelo staging. O `AUTH_REQUIRED=1` protege a API
+  // nessa URL também; o dono pode desligar (aí a fumaça de preview da produção reprova o deploy).
+  "preview_urls": true,
   // Perto do Supabase de São Paulo (spike S7: aceito e medido).
   "placement": { "region": "aws:sa-east-1" },
   "observability": { "enabled": true },
@@ -74,10 +78,12 @@
     "__VERSAO_DO_PACOTE__": "\"0.1.0\"",
   },
 
-  // Só o que é público. O Worker é sempre o modo hospedado (JWT do Supabase).
+  // Só o que é público. O Worker é sempre o modo hospedado (JWT do Supabase). A base do Asaas é a REAL:
+  // sem ela, com ASAAS_API_KEY, o cliente cai no sandbox e o boot aborta (erroDeAsaasSandboxEmProducao).
   "vars": {
     "NODE_ENV": "production",
     "AUTH_REQUIRED": "1",
+    "ASAAS_BASE_URL": "https://api.asaas.com/v3",
   },
 
   // Staging (Fase 4, T5): `npx wrangler deploy -c wrangler.jsonc --env staging`, em
@@ -105,7 +111,13 @@
         "process.env.NODE_ENV": "\"production\"",
         "__VERSAO_DO_PACOTE__": "\"0.1.0\"",
       },
-      "vars": { "NODE_ENV": "production", "AUTH_REQUIRED": "1" },
+      // O staging fala com o sandbox do Asaas e o DECLARA (ASAAS_SANDBOX=1); sem a declaração o boot aborta.
+      "vars": {
+        "NODE_ENV": "production",
+        "AUTH_REQUIRED": "1",
+        "ASAAS_BASE_URL": "https://api-sandbox.asaas.com/v3",
+        "ASAAS_SANDBOX": "1",
+      },
     },
   },
 }

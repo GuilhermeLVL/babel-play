@@ -1,8 +1,12 @@
 /**
  * `.secrets.example.json` (modelo do `wrangler secret bulk`) lista só NOMES e precisa bater com o que
  * `server/lib/config.ts` declara como obrigatório (`producao`/`modo-publico`) ou `impede-servico`.
+ * E o `scripts/cloudflare/secrets.ts` recusa chave com valor vazio (o wrangler a recusaria no meio do envio).
  */
-import { readFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
@@ -14,4 +18,25 @@ describe('.secrets.example.json', () => {
     expect(Object.keys(exemplo).sort()).toEqual(nomesDosSecretsObrigatorios())
     expect(Object.values(exemplo).every((v) => v === '')).toBe(true)
   })
+})
+
+describe('scripts/cloudflare/secrets.ts', () => {
+  it('valor vazio é recusado (exit 1, com o nome), não enviado', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'secrets-'))
+    try {
+      const arquivo = join(dir, 'secrets.json')
+      const dados = Object.fromEntries(nomesDosSecretsObrigatorios().map((n) => [n, 'VALOR-SECRETO-XYZ']))
+      writeFileSync(arquivo, JSON.stringify({ ...dados, RESEND_API_KEY: '  ' }))
+      const r = spawnSync(
+        process.execPath,
+        ['--import', 'tsx', 'scripts/cloudflare/secrets.ts', 'staging', '--dry-run', '--arquivo', arquivo],
+        { encoding: 'utf8' },
+      )
+      expect(r.status).toBe(1)
+      expect(r.stderr).toContain('RESEND_API_KEY')
+      expect(r.stdout + r.stderr).not.toContain('VALOR-SECRETO-XYZ')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  }, 30_000)
 })

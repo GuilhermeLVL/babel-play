@@ -23,7 +23,7 @@
  */
 import { FRANQUIA_DE_ALIVIO, PLAN_MATRIX } from '../../src/core/planos'
 import { authRequired } from './auth'
-import { registrarFalhaDeBoot } from './bootStatus'
+import { registrarFalhaDeBoot, registrarSucessoDeBoot } from './bootStatus'
 import { log } from './logger'
 import { ehWorker } from './runtime'
 
@@ -1057,7 +1057,12 @@ export function verificarConfiguracaoNoBoot(): ResultadoDaConferencia {
   const r = conferirConfiguracao()
   if (!r.ok) {
     registrarFalhaDeBoot('configuracao', `variáveis CRÍTICAS ausentes: ${r.faltandoCriticas.join(', ')}`)
-  } else if (r.faltando.length) {
+    return r
+  }
+  /* Nenhuma crítica ausente: apaga a falha `configuracao` de um boot anterior (memória e `boot_falhas`),
+     senão a variável corrigida deixaria o health em `degraded` para sempre. */
+  registrarSucessoDeBoot('configuracao')
+  if (r.faltando.length) {
     /* Visível, mas sem derrubar a saúde: são capacidades que se declaram indisponíveis sozinhas. */
     log('warn', { event: 'config_capacidade_degradada', error: `ausentes: ${r.faltando.join(', ')}` })
   }

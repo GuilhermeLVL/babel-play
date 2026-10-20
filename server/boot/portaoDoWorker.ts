@@ -24,7 +24,12 @@ export function conferirBootDoWorker(): Achado[] | null {
   for (const a of achados) log('warn', { event: 'boot_aviso', error: a.texto })
   /* Uma vez por isolate (o `liberado` guarda): o que o `server.ts` faz no boot do Node. Também registra a falha
      de boot `configuracao`, que é o que faz `/api/health` responder `degraded` com a variável crítica ausente. */
-  relatarConfiguracao()
+  /* Relatar é diagnóstico: se ele mesmo quebrar, o isolate serve assim mesmo — senão toda `/api/*` viraria 500. */
+  try {
+    relatarConfiguracao()
+  } catch (e) {
+    log('error', { event: 'configuracao_falhou', error: String((e as Error)?.message ?? e).slice(0, 200) })
+  }
   liberado = true
   return null
 }

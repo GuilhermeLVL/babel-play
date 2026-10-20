@@ -184,15 +184,28 @@ middleware `compression` é montado só no Node; no Worker quem comprime é a bo
 ## Secrets do Worker
 
 Os secrets do Worker vão por script, nunca à mão e nunca versionados. A lista vem de `server/lib/config.ts`
-(obrigatórias em produção/modo público e as `impede-servico`; `REPLICAS` e `ASAAS_SANDBOX` são `vars` do
-wrangler, não secrets). O modelo, só com nomes, é `.secrets.example.json`.
+(obrigatórias em produção/modo público e as `impede-servico`). `REPLICAS` e `ASAAS_SANDBOX` não são secrets:
+`ASAAS_SANDBOX=1` e a `ASAAS_BASE_URL` do sandbox (`https://api-sandbox.asaas.com/v3`) estão nos `vars` do
+`env.staging`; a produção declara só a `ASAAS_BASE_URL` real (`https://api.asaas.com/v3`, `vars` do topo). Sem
+isso, com `ASAAS_API_KEY`, o boot aborta (`erroDeAsaasSandboxEmProducao`). O modelo, só com nomes, é
+`.secrets.example.json`.
 
 1. `cp .secrets.example.json .secrets.<ambiente>.json` (`staging` ou `production`) e preencha os valores. O `.gitignore`
    ignora `.secrets.*.json`; **nunca** faça commit dele.
-2. `npx tsx scripts/cloudflare/secrets.ts <ambiente> --dry-run`: confere o arquivo (obrigatórias ausentes dão erro;
-   chaves desconhecidas ou vazias, aviso) sem enviar nada e sem imprimir valores. Sem o arquivo, lista os nomes esperados.
+2. `npx tsx scripts/cloudflare/secrets.ts <ambiente> --dry-run`: confere o arquivo (obrigatórias ausentes e
+   chaves com valor vazio dão erro, com os nomes; chaves desconhecidas, aviso) sem enviar nada e sem imprimir
+   valores. Quem não tem o valor tira a chave do arquivo. Sem o arquivo, lista os nomes esperados.
 3. `npx tsx scripts/cloudflare/secrets.ts <ambiente>`: o mesmo, e depois `wrangler secret bulk -c wrangler.jsonc`
    (com `--env staging` no staging).
+
+Depois de um `wrangler versions upload` que ainda não foi implantado, o comando para mexer em secrets é
+`npx wrangler versions secret bulk <arquivo> -c wrangler.jsonc [--env staging]` (cria versão nova com eles; o
+`secret bulk` implantaria direto).
+
+**Recomendadas** (fora do `.secrets.example.json`, que só tem as obrigatórias e é conferido por teste; sem elas a
+capacidade correspondente se declara indisponível): `ASAAS_API_KEY` (a `ASAAS_BASE_URL` é `var`), `RESEND_API_KEY`
+e `EMAIL_REMETENTE`, `SENTRY_DSN`, `APP_URL`, as chaves de IA dos provedores declarados, `IA_PROVEDORES`, as
+`LLM_*` e as `AI_BUDGET_*`. A lista comentada está no `.env.production.example`.
 
 Depois do deploy, o primeiro boot de cada isolate registra a configuração (evento `configuracao`) e, se faltar
 variável crítica, `/api/health` responde `degraded` com `bootErros: ['configuracao']` (os nomes ficam no log).
@@ -266,7 +279,7 @@ o bundle do staging sai byte a byte igual ao da produção. Na ordem:
    "Secrets do Worker").
 3. Deploy: `npx wrangler deploy -c wrangler.jsonc --env staging --var GIT_SHA:$(git rev-parse HEAD)` (Fase 4, T9).
    Antes, `npx wrangler deploy --dry-run -c wrangler.jsonc --env staging --outdir /tmp/x` lista os bindings
-   (HYPERDRIVE, MIDIA, ASSETS) sem publicar.
+   (HYPERDRIVE, MIDIA, METRICAS, ASSETS e os `vars`) sem publicar.
 
 O banco local vem da `localConnectionString` do `wrangler.jsonc` (porta 5433); a variável
 `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` tem precedência sobre ela. `wrangler dev --remote`
@@ -307,10 +320,19 @@ imprime o log do wrangler.
 
 ## Publicar o Worker (CI)
 
+**Primeiro deploy de cada ambiente: manual.** `wrangler versions upload` não cria o Worker ("You cannot upload a
+new version of a Worker that does not yet exist"). Uma vez por ambiente, nesta ordem:
+
+1. `npx wrangler deploy -c wrangler.jsonc` (produção) ou `… --env staging`, com o build do Vite já feito: cria o
+   Worker e aplica `workers_dev`, `preview_urls` e os crons;
+2. os secrets (`scripts/cloudflare/secrets.ts`, seção "Secrets do Worker");
+3. daí em diante, o workflow.
+
 `.github/workflows/deploy-worker.yml` (manual: Actions → deploy-worker → Run workflow; inputs `ambiente`
 `staging|production` e `ref` opcional) publica por **versões** do Cloudflare, com fumaça e rollback:
 
-1. confere os secrets/vars do Environment (reprova dizendo o NOME que falta);
+1. confere os secrets/vars do Environment (reprova dizendo o NOME que falta) e se o Worker já existe
+   (`wrangler deployments list`; não existindo, reprova com o comando do primeiro deploy, antes de migrar);
 2. `npm run build` com os `VITE_*` do Environment;
 3. `npm run db:migrate` (o Worker nunca migra; é a conexão de sessão do Supabase, TLS `verify-full`);
 4. `wrangler versions upload` (versão SEM tráfego) com `--var GIT_SHA:<sha>` e `--preview-alias fumaca`; o id da
@@ -318,7 +340,10 @@ imprime o log do wrangler.
 5. `scripts/cloudflare/fumaca-remota.mjs <preview> <sha>`: `/api/ready` 200 (10 tentativas, 3 s) e
    `/api/health` com `status: ok` e `versao` terminando em `+<sha7>`;
 6. `wrangler versions deploy <id>@100% -y` e a mesma fumaça na URL final (`vars.URL_DO_WORKER`);
-7. se algo falhar DEPOIS de o passo 6 começar: `wrangler rollback` para o deploy anterior (o job fica vermelho).
+7. `wrangler triggers deploy`: versões não levam crons, rotas nem `workers_dev`/`preview_urls` ("Changes to
+   triggers … must be applied with `wrangler triggers deploy`"); é este passo que aplica mudança de cron ou rota;
+8. se a fumaça final falhar: `wrangler rollback` para o deploy anterior (o job fica vermelho). Falha só no
+   passo 7 não desfaz a versão (ela passou na fumaça): reexecute o comando.
 
 **Quem pode publicar qual ref.** O input `ref` é livre; o portão é o Environment: configure a política de
 ramos de deploy (só `main`/tags de release) e revisores obrigatórios no `production`. O workflow publica o SHA
@@ -326,10 +351,11 @@ efetivamente baixado (`git rev-parse HEAD`), e é ele que vai em `GIT_SHA` e na 
 
 Falha antes do passo 6 não mexe no tráfego (a versão fica no histórico, sem receber requisições). Um deploy por
 ambiente de cada vez (`concurrency`). Rollback só roda se o `versions deploy` teve sucesso e a fumaça final
-falhou; se o próprio deploy falhou, o tráfego não mudou e o job só avisa. **Produção não tem URL de preview**
-(`workers_dev: false`, sem `preview_urls`): o passo 5 só avisa e o portão de produção é a fumaça final + rollback
-(a versão nova recebe tráfego real por instantes). Ligar `preview_urls: true` no `wrangler.jsonc` criaria um
-portão antes do tráfego; a decisão fica com o dono.
+falhou; se o próprio deploy falhou, o tráfego não mudou e o job só avisa. **Portão antes do tráfego:** o
+`wrangler.jsonc` liga `preview_urls: true` no topo (o staging herda); a produção continua fora do workers.dev
+(`workers_dev: false`) para o tráfego. A URL de preview é protegida pelo `AUTH_REQUIRED=1` como qualquer outra.
+Na produção, sem URL de preview o passo 5 REPROVA (no staging, só avisa). O dono pode desligar `preview_urls`; aí o
+portão volta a ser só a fumaça final + rollback, e o passo 5 da produção precisa deixar de exigir a URL.
 
 **GitHub Environments** (Settings → Environments → `staging` e `production`; nada disso mora no repositório):
 
@@ -585,7 +611,8 @@ node scripts/cloudflare/r2.mjs --origens https://frasy.com.br,https://frasy-stag
 
 O `cors set` sobrescreve a política inteira: passe em `--origens` TODAS as origens que buscam do bucket (padrão: as três
 acima). Localização: o wrangler 4.151 só oferece `weur|eeur|apac|wnam|enam|oc` (não há América do Sul); os buckets
-nasceram sem dica e a Cloudflare os pôs em **ENAM** (20/10/2026). Conferir:
+nasceram sem dica e a Cloudflare os pôs em **ENAM** (EUA, leste; 20/10/2026): áudio, anexos e backups ficam nos
+EUA, e o `docs/lgpd/operadores.md` lista a Cloudflare R2 (EUA) como operador por isso. Conferir:
 
 ```bash
 npx wrangler r2 bucket list
@@ -702,254 +729,3 @@ por **instâncias** (`REPLICAS`, veja acima). Consequências: a captura de loopb
 por dia (a leitura em `GET /api/admin/erros` continua juntando também os arquivos por PID antigos).
 A medição que motivou o modo (F6-01: vazão plana, saturação de processo único) segue válida como
 argumento para subir mais instâncias.
-
-## Escalar
-
-**Réplicas na MESMA máquina, mesmo volume: funciona.** Medido: 2 processos escrevendo
-concorrentemente → 0% de falha (era 50% antes do WAL). Medição histórica, em SQLite: com PGlite o boot recusa
-`REPLICAS>1`; com `postgres://` as réplicas são o caminho normal (o cluster foi aposentado).
-
-**Réplicas em HOSTS distintos: ainda não.** Dois motivos:
-
-1. O PGlite aceita um processo por diretório (o boot recusa `REPLICAS>1`, e um segundo
-   processo no mesmo diretório é recusado pela trava `<dir>/.babel-lock`; a de um pid morto é sobrescrita). Multi-host
-   exige o **Postgres** de produção (`postgres://`), que o servidor já fala desde a Fase 1.
-2. `AUDIO_DIR` num volume compartilhado resolve o áudio entre réplicas do mesmo storage;
-   hosts sem storage comum exigem **object store** (S3/R2).
-
-O rate-limit **já** é compartilhado entre réplicas (contador no banco, não no heap) e chaveado
-por tenant, então esse não é mais um bloqueio.
-
-## Migrar os dados do SQLite para o Postgres
-
-Com o servidor antigo **parado** (a leitura da origem não é um snapshot), e `DATABASE_URL` apontando o destino:
-
-```bash
-npx tsx scripts/migracao/sqlite-para-postgres.ts --origem file:./data/babel.db
-```
-
-Copia em lotes de 500 com os triggers desligados (`DISABLE TRIGGER USER`) numa só transação e confere a paridade
-por checksum sha256 de cada tabela (`scripts/migracao/paridade.ts`). A tabela `flags` da origem vence a do destino.
-Sai com código 1 se qualquer tabela divergir. Para repetir sobre um destino não vazio, use `--continuar`.
-
-Ainda pendentes para as próximas fases: `ENV DATABASE_URL=file:` do `Dockerfile`, `iniciar-container.sh`,
-`litestream.yml`, `fly.toml` e os jobs de CI `restauracao-litestream` e `imagem-construir`.
-
-## Tamanho da imagem — 847 MB (medido)
-
-A imagem saiu de **4,08 GB** para **847 MB** com duas mudanças, ambas verificadas subindo o container:
-
-1. **Não fazer `chown -R` em `/app`.** O chown recursivo reescreve cada arquivo, e o Docker grava
-   a árvore inteira de novo numa camada nova — sozinho, isso custava ~1,3 GB. O app só LÊ de `/app`;
-   só `/data` precisa pertencer ao usuário `node`.
-2. **Podar as dependências de CLIENTE do runtime.** O Vite já as embutiu em `dist/` no estágio de
-   build e o servidor nunca as carrega. Medido dentro da imagem: `onnxruntime-node` 513 MB,
-   `@ricky0123` (VAD) 138 MB, `onnxruntime-web` 130 MB, `tesseract.js-core` 44 MB, `lucide-react`
-   44 MB, `country-flag-icons` 22 MB.
-
-O servidor exige estes pacotes em runtime (lista da imagem Fly; desde a Fase 3 `jsdom`, `jszip`, `mammoth`,
-`pdfjs-dist` e `@libsql/client` NÃO são mais carregados pelo servidor — Anki, PDF e DOCX são lidos no navegador
-e a página web usa `linkedom`; a lista abaixo ainda não foi reconferida dentro de uma imagem nova):
-
-```
-@mozilla/readability  dotenv  drizzle-orm  express  express-rate-limit  helmet  jose
-linkedom  pg  zod
-```
-
-Se você adicionar uma dependência de servidor nova, confira se ela não cai na lista de poda do
-Dockerfile — o sintoma seria `Cannot find module` no boot, que o healthcheck pega na hora.
-
-## Verificar a imagem
-
-```bash
-docker compose --env-file .env.docker build
-docker compose --env-file .env.docker up -d
-curl -fsS localhost:3000/api/health          # {"status":"ok","db":"up","boot":"ok",...}
-curl -s -o /dev/null -w "%{http_code}\n" localhost:3000/api/sessions   # 401 = auth ativa
-docker compose logs app | tail -20
-```
-
-O log **não** deve conter o aviso `AUTH_REQUIRED desligada`. Se contiver, o modo público
-não subiu e todas as rotas estão tratando qualquer request como o dono local.
-
-Verificado nesta máquina, com volume zerado (`down -v`): a imagem constrói, o container fica
-`healthy`, `/api/health` responde `{"status":"ok","db":"up","boot":"ok"}`, `/api/sessions` sem
-token responde 401, a SPA é servida, e o log não tem nenhum erro.
-
-## Backup automatizado
-
-`npm run backup` fecha o achado **F5-01** da auditoria: o procedimento de restore já era correto e
-estava provado, mas o backup em si não acontecia — o mais recente tinha 6,5 dias, com 822 linhas e
-688 arquivos de mídia sem cópia nenhuma.
-
-```bash
-npm run backup                     # banco + mídia, verificado, guardando 7 cópias
-npm run backup -- --manter=14      # quantas cópias guardar
-npm run backup -- --sem-midia      # só o banco (use se a mídia já vai para object storage)
-npm run backup -- --destino=/backup
-pg_restore --list backups/<pasta>/babel.dump                                  # confere um dump (postgres://)
-```
-
-Dentro da imagem o script também existe: `node scripts/backup.mjs --sem-midia --destino=/data/backups`.
-
-**O que ele faz que um `cp` não faz:**
-
-1. **`pg_dump`, não cópia de arquivo.** Com `postgres://` o próprio Postgres entrega um instantâneo
-   consistente; com `pglite:<dir>` a cópia do diretório só é consistente com o servidor parado.
-2. **Verifica antes de dar por feito** — com `postgres://` lista o `babel.dump` com `pg_restore --list`;
-   com `pglite:` exige que o diretório `pg` copiado tenha conteúdo. Sai com código != 0 se algo não fechar, que é o que faz um agendador
-   avisar.
-3. **Inclui a mídia.** `data/audio` pesa 33× o banco; um backup só do banco restaura ponteiros para
-   arquivos que não existem mais.
-
-### Backup em produção (Fase 5): Litestream + snapshot diário, os dois no R2
-
-1. **Litestream, contínuo.** Com `LITESTREAM_BUCKET`, `LITESTREAM_ENDPOINT`,
-   `LITESTREAM_ACCESS_KEY_ID` e `LITESTREAM_SECRET_ACCESS_KEY`, o entrypoint sobe o Node como filho
-   do `litestream replicate` (config em `litestream.yml`, versão e sha256 fixados no `Dockerfile`):
-   cada escrita chega ao R2 em ~10 s (`sync-interval`). Num volume vazio, o boot restaura sozinho
-   (`-if-db-not-exists -if-replica-exists`). O CI prova isso a cada push (job `restauracao-litestream`).
-2. **Snapshot diário, independente** (aposentado na migração para o Postgres; `BACKUP_DIARIO` é legado, ver "Jobs periódicos"). `BACKUP_DIARIO=1` fazia o processo primário rodar, às
-   `BACKUP_HORA_UTC`, `VACUUM INTO` + `integrity_check` + gzip e enviar
-   `backups/diario/AAAA-MM-DD.db.gz` ao `BACKUP_S3_BUCKET` (ou `S3_BUCKET`). Ele existe porque o
-   Litestream copia o ERRO também: um `DELETE` sem `WHERE` chega à réplica em um segundo, e a foto de
-   ontem não muda. Dentro do processo, e não num cron externo, porque o volume do Fly monta numa
-   máquina só (o porquê completo em `server/operacao/snapshot.ts`).
-3. **Alarme.** Depois de cada snapshot enviado E conferido, o servidor chama
-   `BACKUP_HEARTBEAT_URL` (heartbeat do UptimeRobot, que avisa quando a chamada não vem em 25 h).
-   A falha vira `log('error', { event: 'backup_diario_falhou' })`, que chega ao Sentry.
-
-Restaurar (os dois caminhos): [`docs/runbook.md`](runbook.md), "Restaurar o banco".
-
-### Agendar fora do Fly (self-host)
-
-No host, com `cron` (diário às 3h, log em arquivo):
-
-```cron
-0 3 * * * cd /caminho/do/app && /usr/bin/node scripts/backup.mjs >> /var/log/babel-backup.log 2>&1
-```
-
-Dentro do container, com um sidecar no `docker-compose.yml` (mesma imagem do `app`; o `entrypoint`
-troca o servidor pelo laço de backup):
-
-```yaml
-backup:
-  build: .
-  entrypoint:
-    ['sh', '-c', 'while true; do node scripts/backup.mjs --destino=/backup; sleep 86400; done']
-  volumes: [babel-data:/data, ./backups:/backup]
-  depends_on: [app]
-```
-
-**Sem monitorar o código de saída, isto não é backup — é uma pasta.** Em produção quem fecha o
-ciclo é o heartbeat acima; aqui, alerte quando `scripts/backup.mjs` sair diferente de zero.
-
-## Mídia em object storage
-
-A mídia é 33× o banco (176,9 MB vs 5,3 MB por usuário; ~173 GB projetados para 1.000). O ADR 001
-decidiu object storage; `server/lib/armazenamento.ts` é o único ponto que precisa saber disso.
-
-```bash
-S3_ENDPOINT=https://<conta>.r2.cloudflarestorage.com
-S3_BUCKET=frasy-midia
-S3_ACCESS_KEY_ID=...
-S3_SECRET_ACCESS_KEY=...
-S3_REGION=auto
-```
-
-As quatro primeiras precisam estar presentes. **Configuração pela metade cai para filesystem** em
-vez de falhar no primeiro upload em produção.
-
-Compatível com qualquer S3 (R2, S3, MinIO). A assinatura é SigV4 própria, sem SDK — o Dockerfile
-poda dependências de cliente e um SDK de 20 MB no runtime iria contra isso.
-
-**Não testado contra bucket real** — os testes cobrem a assinatura, o contrato e os códigos de
-erro contra um transporte falso. A primeira subida com credenciais de verdade precisa ser
-verificada à mão.
-
-### Binding R2 × S3 × disco (Fase 2)
-
-A escolha é uma só (`armazenamentoDoAmbiente`): **binding R2** (o `R2Bucket` do Worker, ligado pelo
-ponto de entrada com `ligarBucketDoR2`, `server/lib/armazenamentoR2.ts`) → **S3** (as quatro `S3_*`) →
-**disco** (`AUDIO_DIR`). No Worker não há disco: o upload de `POST /api/sessions/:id/audio` vai do
-request para o bucket em stream (`receberCorpo(...).paraStream()` + `gravarDeStream`), em multipart de
-5 MiB por parte com `abort` em qualquer erro; a cota é reservada antes e devolvida em falha, e o corpo
-`chunked` reserva o teto (120 MB) e devolve a diferença no fim. No Node nada muda (temporário em
-`AUDIO_DIR/.recebendo` + `rename`, ou PUT em stream no S3). O S3 também aceita stream, em multipart
-assinado parte a parte (cada parte de 5 MiB tem o seu sha256; nada de `UNSIGNED-PAYLOAD`). **Limite
-de corpo da zona:** no Worker o request passa antes pelo limite do plano da zona da Cloudflare (100 MB
-no Free/Pro), abaixo dos 120 MB do app — áudio entre 100 e 120 MB é recusado pela borda (413 da
-Cloudflare) antes de chegar à rota. Os limites do app ficam como estão; subir o plano ou baixar o teto
-é decisão de produto. A folga do volume (`statfs`) só vale com disco, e o teto do R2 abaixo embrulha o
-binding do mesmo jeito que o S3 (HEAD conta classe B).
-
-### Teto do R2
-
-A Cloudflare **não bloqueia** o uso do R2 quando o nível gratuito acaba (10 GB guardados, 1 milhão de
-operações de classe A e 10 milhões de classe B por mês): ela cobra e avisa depois. O app trava do
-lado dele, só quando o armazenamento é o R2 — binding ou S3 (`server/lib/tetoDoR2.ts`,
-`openspec/changes/r2-teto-de-uso`):
-
-| Variável            | Padrão (90 % do grátis) | O que acontece no teto                                            |
-| ------------------- | ----------------------- | ----------------------------------------------------------------- |
-| `R2_TETO_MB`        | `9216`                  | upload novo recebe `507` neutro; a retenção continua apagando     |
-| `R2_TETO_OPS_A_MES` | `900000`                | gravar (PUT) recusa e a rota responde `503`; remover sempre passa |
-| `R2_TETO_OPS_B_MES` | `9000000`               | ler o áudio (GET/HEAD) responde `503`                             |
-
-- O total guardado é a soma dos contadores de cota (`usage_counters`, `storage_bytes`); as
-  operações contam em `usage_counters` com `user_id = '__r2__'`, `r2_ops_a`/`r2_ops_b`, janela
-  `AAAA-MM` em UTC.
-- A 80 % de qualquer teto sai `r2_teto_alerta_80` (uma vez por processo e janela; vai aos destinos
-  externos de alerta) e o gauge `r2_uso_fracao{recurso}` no `/metrics`. Cada recusa loga
-  `r2_teto_recusa`.
-- Exclusão de conta, apagar sessão, retenção e reconciliação usam a via sem teto (`semTeto`): contam,
-  mas nunca são recusadas.
-- **Reverter ou ajustar** é só variável: `ilimitado` desliga o teto, `0` fecha tudo (kill switch), um
-  número muda o teto. `R2_TETO_MB` é relido a cada reserva; os dois tetos de operações são lidos no
-  boot e só mudam com reinício. Valor inválido aborta o boot.
-- **A reconciliação não tem teto de B.** Ela usa a via `semTeto` (um HEAD por arquivo de cada usuário
-  varrido): conta no `r2_ops_b`, mas nunca é recusada. Um cron de `POST /api/admin/armazenamento/reconciliar`
-  frequente consome classe B da conta inteira; espace-o (diário basta).
-- **Passo do ambiente (painel da Cloudflare, não é código):** criar um _Budget Alert_ de US$ 1 para o
-  R2 na área de cobrança da conta (o caminho exato no painel pode mudar; confira ao criar). É a rede de baixo se o contador do app divergir
-  do uso real (upload fora do app, outro bucket na mesma conta, readiness do `/api/ready`, que não
-  conta).
-
-## Mais de uma instancia (`REPLICAS`)
-
-Com `pglite:` o boot recusa `REPLICAS>1`; com `postgres://` o banco deixa de ser o limite (o áudio segue valendo, abaixo).
-
-Duas maquinas atras de um balanceador nao sao dois processos na mesma maquina, e a diferenca
-importa: o audio gravado por uma **nao existe no disco da outra**. O mesmo pedido responde 200 ou
-404 conforme quem atendeu — medido, com a mensagem "arquivo ausente".
-
-O servidor nao tem como descobrir quantas instancias existem, entao quem opera declara e o boot
-verifica:
-
-```bash
-REPLICAS=2                      # instancias independentes (nao processos)
-# e uma das duas coisas abaixo:
-#  a) as quatro S3_* da secao acima, ou
-#  b) ARMAZENAMENTO_COMPARTILHADO=1   # as replicas montam o MESMO volume
-```
-
-Com `REPLICAS>1` e nenhuma das duas, **o boot recusa subir**, com a mensagem dizendo o porque.
-E de proposito: servir dado que some conforme o balanceador e pior que nao servir.
-
-O que mais atravessa as instancias, e ja resolvido:
-
-- **A chave dos segredos** (`secret.key`) vive em `DATA_DIR` (ou no diretorio do banco), nao no
-  `cwd` do processo. Em producao, defina `SECRET_KEY` no ambiente — e obrigatorio la, e e o unico
-  jeito de duas maquinas com discos separados lerem as mesmas credenciais cifradas.
-- **O estado do boot** e uma linha em `boot_falhas`, no banco. Antes ficava na memoria do processo
-  e `/api/health` alternava entre `ok` e `degraded` conforme a replica sorteada.
-- **A reconciliacao de armazenamento** reivindica a janela antes de varrer, entao duas requisicoes
-  simultaneas nao varrem duas vezes. Em deploy grande, prefira tirar a varredura do caminho de
-  quem usa o app:
-
-```bash
-STORAGE_RECONCILE_MODE=job
-# o job `reconciliarArmazenamento` do registro roda de hora em hora (ver "Jobs periódicos");
-# para todo mundo de uma vez, com um token de admin:
-#   curl -X POST https://<host>/api/admin/armazenamento/reconciliar
-```

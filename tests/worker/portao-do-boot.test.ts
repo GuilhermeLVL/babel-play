@@ -105,4 +105,31 @@ describe('portão de boot do Worker', () => {
     espia.mockRestore()
     expect(eventos.filter((e) => e === 'configuracao')).toHaveLength(1)
   })
+
+  it('relatarConfiguracao que lança não vira 500 em toda /api/*: loga e libera o isolate', async () => {
+    process.env.SECRET_KEY = 'a'.repeat(64)
+    vi.doMock('../../server/boot/validar', async (original) => ({
+      ...(await original<typeof import('../../server/boot/validar')>()),
+      relatarConfiguracao: () => {
+        throw new Error('relatório quebrou')
+      },
+    }))
+    const eventos: string[] = []
+    const espia = vi.spyOn(console, 'error').mockImplementation((l: unknown) => {
+      try {
+        eventos.push(JSON.parse(String(l)).event)
+      } catch {
+        /* linha que não é do logger */
+      }
+    })
+    try {
+      const { conferirBootDoWorker } = await carregar()
+      expect(conferirBootDoWorker()).toBeNull()
+      expect(conferirBootDoWorker()).toBeNull()
+    } finally {
+      espia.mockRestore()
+      vi.doUnmock('../../server/boot/validar')
+    }
+    expect(eventos.filter((e) => e === 'configuracao_falhou')).toHaveLength(1)
+  })
 })

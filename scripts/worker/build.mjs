@@ -11,7 +11,7 @@
  * `node:fs`/`node:child_process` fora de `server/stubs/`.
  */
 import { spawnSync } from 'node:child_process'
-import { readFileSync, rmSync, statSync } from 'node:fs'
+import { mkdirSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
@@ -21,6 +21,9 @@ const SAIDA = join(RAIZ, 'dist-worker')
 const WRANGLER = join(RAIZ, 'node_modules', 'wrangler', 'bin', 'wrangler.js')
 
 rmSync(SAIDA, { recursive: true, force: true })
+// O dry-run exige que `assets.directory` (dist/) EXISTA, não o conteúdo: num checkout limpo (o job `worker` do CI
+// não roda o Vite) ele ainda não existe e o wrangler recusa. Criar vazio não apaga um build que já esteja lá.
+mkdirSync(join(RAIZ, 'dist'), { recursive: true })
 const r = spawnSync(
   process.execPath,
   [

@@ -10,7 +10,7 @@
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 let h: EphemeralDb
 let erroDeRota: any
@@ -23,13 +23,24 @@ beforeAll(async () => {
   boot = await h.load('../../server/lib/bootStatus')
   ;({ healthHandler: health } = await h.load('../../server/routes/health'))
 })
-afterAll(async () => { await h.cleanup() })
-afterEach(async () => { await boot.resetBootStatus(); vi.restoreAllMocks() })
+afterAll(async () => {
+  await h.cleanup()
+})
+afterEach(async () => {
+  await boot.resetBootStatus()
+  vi.restoreAllMocks()
+})
 
 function fakeRes() {
   const r: any = { statusCode: 200, body: undefined }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    return r
+  }
   return r
 }
 
@@ -43,7 +54,9 @@ describe('erroDeRota — P1-6', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     // Imita o formato do drizzle: o prefixo come os 200 chars e a causa fica no fim.
     const causa = 'SQLITE_BUSY: database is locked'
-    erroDeRota(new Error(`Failed query: insert into "sessions" (${'"col", '.repeat(40)}) — ${causa}`), { event: 'teste' })
+    erroDeRota(new Error(`Failed query: insert into "sessions" (${'"col", '.repeat(40)}) — ${causa}`), {
+      event: 'teste',
+    })
 
     const logado = spy.mock.calls.map((c) => c.join(' ')).join('\n')
     expect(logado).toContain(causa)
@@ -52,7 +65,9 @@ describe('erroDeRota — P1-6', () => {
   it('a mensagem truncada NÃO contém a causa (é por isso que o log importa)', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const causa = 'SQLITE_BUSY: database is locked'
-    const msg = erroDeRota(new Error(`Failed query: insert into "sessions" (${'"col", '.repeat(40)}) — ${causa}`), { event: 'teste' })
+    const msg = erroDeRota(new Error(`Failed query: insert into "sessions" (${'"col", '.repeat(40)}) — ${causa}`), {
+      event: 'teste',
+    })
     expect(msg).not.toContain(causa)
   })
 })
@@ -115,5 +130,32 @@ describe('bootStatus + /api/health — P2-5', () => {
     const res = fakeRes()
     await health({} as any, res)
     expect(JSON.stringify(res.body)).not.toContain('SEGREDO')
+  })
+
+  /**
+   * A falha `configuracao` também se desfaz (revisão final da Fase 4): sem isto, uma variável crítica
+   * corrigida deixava a linha em `boot_falhas` e o health em `degraded` até alguém apagar à mão.
+   */
+  it('configuração crítica ausente e depois corrigida: health volta a ok', async () => {
+    const { conferirConfiguracao, verificarConfiguracaoNoBoot } = await h.load<any>('../../server/lib/config')
+    const antes = { ...process.env }
+    try {
+      process.env.AUTH_REQUIRED = '1'
+      const criticas: string[] = conferirConfiguracao().faltandoCriticas
+      expect(criticas.length).toBeGreaterThan(0)
+      verificarConfiguracaoNoBoot()
+      expect((await boot.bootStatus()).erros.map((e: any) => e.passo)).toContain('configuracao')
+
+      for (const n of criticas) process.env[n] = 'x'
+      expect(verificarConfiguracaoNoBoot().ok).toBe(true)
+      await new Promise((r) => setTimeout(r, 20))
+      boot.esquecerEmMemoria()
+      const res = fakeRes()
+      await health({} as any, res)
+      expect(res.body.boot).toBe('ok')
+    } finally {
+      for (const k of Object.keys(process.env)) if (!(k in antes)) delete process.env[k]
+      Object.assign(process.env, antes)
+    }
   })
 })

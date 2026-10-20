@@ -22,7 +22,7 @@
     "browser-ai"
   ],
   "engines": {
-    "node": ">=22"
+    "node": ">=22.3"
   },
   "type": "module",
   "scripts": {

@@ -675,38 +675,10 @@ STORAGE_RECONCILE_MODE=job
 #   curl -X POST https://<host>/api/admin/armazenamento/reconciliar
 ```
 
-## Modo cluster
+## Modo cluster (removido em 20/10/2026)
 
-`CLUSTER_WORKERS=N` sobe N processos compartilhando a mesma porta. Vazio ou `1` = um processo,
-que é o comportamento de sempre. Sao processos do MESMO host, com o MESMO disco — para maquinas
-diferentes, veja `REPLICAS` acima.
-
-Duas coisas mudam em cluster: a **captura de loopback do servidor** (`/api/audio/loopback/*`)
-recusa, porque o mutex do dispositivo WASAPI e por processo e N processos teriam N mutexes
-independentes brigando pelo mesmo hardware; e o **diario de erros** passa a ter um arquivo por
-processo (`AAAA-MM-DD.<pid>.jsonl`), com a poda a cargo so do primario. A leitura em
-`GET /api/admin/erros` junta todos os arquivos do dia.
-
-**Por que existe (F6-01).** A carga contra o container mediu vazão **plana** (~100 req/s) com a
-latência crescendo linear a partir de 2 VUs — saturação de processo único, não consulta lenta: sem
-concorrência, `/api/sessions` responde em 7 ms e `/api/metrics/profile` em 37 ms. Índice não
-resolve fila.
-
-**As três barreiras já caíram e estão medidas (histórico, em SQLite; hoje o cluster só passa com `postgres://`, o PGlite o recusa):** WAL + `busy_timeout` (0 % de falha em 14.220
-escritas com 3 processos), rate limit contado no banco e não no heap, e áudio fora do `cwd`
-(`AUDIO_DIR`).
-
-**Só o primário prepara os dados.** Migrations, seed e backfill rodam uma vez, antes de qualquer
-worker existir — o que elimina a contenção de lock no boot que hoje depende de restart do
-orquestrador.
-
-**Aborta se o WAL não pegar (histórico, SQLite; não vale mais).** `PRAGMA journal_mode = WAL` não lança quando falha: sobre NFS/SMB
-devolve `delete` e segue. Sem WAL, medido, 3 processos perdem 28,9 % das escritas. Em modo cluster
-isso vira falha dura no boot, não aviso no log.
-
-**Suba a memória junto.** Cada worker é um heap Node inteiro; `deploy.resources.limits.memory: 1g`
-foi dimensionado para um processo.
-
-```bash
-CLUSTER_WORKERS=4 docker compose --env-file .env.docker up -d
-```
+`CLUSTER_WORKERS` e o `node:cluster` saíram do servidor na Fase 2 da migração para o Cloudflare: o
+PGlite aceita um processo por diretório, e com `postgres://` a escala é por instâncias (`REPLICAS`,
+acima) ou pelo Worker, não por processos no mesmo host. Definir `CLUSTER_WORKERS` hoje não tem
+efeito. O histórico das medições (vazão plana a ~100 req/s por processo, barreiras do WAL) ficou
+em `docs/escala.md` e no ADR 0014.

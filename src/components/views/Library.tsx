@@ -276,7 +276,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
     }
   };
 
-  // ── Importação (YouTube · Documento · Link web · Áudio local · Colar texto) ──
+  // ── Importação (Documento · Link web · Áudio local · Colar texto) ──
   // Toda importação vira uma SESSÃO no formato canônico e passa pela fila "Importando".
   const [importSource, setImportSource] = useState<FonteDeImportacao | null>(null);
   const [importUrl, setImportUrl] = useState('');
@@ -920,7 +920,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
                         { id: 'all', rotulo: 'Tudo', contagem: items.length },
                         {
                           id: 'video',
-                          rotulo: 'YouTube',
+                          rotulo: t('Vídeo'),
                           icone: <Youtube aria-hidden />,
                           contagem: items.filter((r) => r.type === 'video').length,
                         },

@@ -88,16 +88,16 @@ describe('entitlements do cliente', () => {
   it('resposta fora da forma ou erro de rede mantém o último valor conhecido', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => resposta({ plan: 'pro', managedCloudLlm: true })),
+      vi.fn(async () => resposta({ plan: 'pro', sttAoVivo: true })),
     )
     await carregarEntitlements()
-    expect(getEntitlements().managedCloudLlm).toBe(true)
+    expect(getEntitlements().sttAoVivo).toBe(true)
 
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => resposta({ error: 'x' }, 500)),
     )
-    expect((await carregarEntitlements()).managedCloudLlm).toBe(true)
+    expect((await carregarEntitlements()).sttAoVivo).toBe(true)
 
     vi.stubGlobal(
       'fetch',
@@ -105,7 +105,7 @@ describe('entitlements do cliente', () => {
         throw new Error('rede')
       }),
     )
-    expect((await carregarEntitlements()).managedCloudLlm).toBe(true)
+    expect((await carregarEntitlements()).sttAoVivo).toBe(true)
 
     /* CONTRATO NOVO (mudança planos-essencial): plano desconhecido NÃO descarta mais a resposta.
        O comportamento antigo jogava fora as flags VERDADEIRAS que vieram junto — um cliente antigo
@@ -113,18 +113,18 @@ describe('entitlements do cliente', () => {
        (`free`); as flags do servidor valem, porque a autoridade é ele. */
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => resposta({ plan: 'deus', managedCloudLlm: true })),
+      vi.fn(async () => resposta({ plan: 'deus', sttAoVivo: true })),
     )
     const comPlanoDesconhecido = await carregarEntitlements()
     expect(comPlanoDesconhecido.plan).toBe('free')
-    expect(comPlanoDesconhecido.managedCloudLlm).toBe(true)
+    expect(comPlanoDesconhecido.sttAoVivo).toBe(true)
   })
 
   it('cache durável sobrevive ao recarregar o módulo, mas só se tiver a forma certa', async () => {
-    localStorage.setItem('babel.entitlements', JSON.stringify({ plan: 'pro', managedCloudLlm: true }))
+    localStorage.setItem('babel.entitlements', JSON.stringify({ plan: 'pro', sttAoVivo: true }))
     limparEntitlements() // limpa memória E disco — então o próximo get volta ao default
     expect(getEntitlements().plan).toBe('free')
-    localStorage.setItem('babel.entitlements', '{"plan":"pro","managedCloudLlm":true}')
+    localStorage.setItem('babel.entitlements', '{"plan":"pro","sttAoVivo":true}')
     vi.resetModules()
     vi.doMock('../src/lib/supabase', () => ({
       supabase: null,
@@ -133,10 +133,10 @@ describe('entitlements do cliente', () => {
       getAccessToken: async () => null,
     }))
     const fresco = await import('../src/lib/entitlements')
-    expect(fresco.getEntitlements().managedCloudLlm).toBe(true)
+    expect(fresco.getEntitlements().sttAoVivo).toBe(true)
     localStorage.setItem('babel.entitlements', 'não é json')
     vi.resetModules()
     const quebrado = await import('../src/lib/entitlements')
-    expect(quebrado.getEntitlements().managedCloudLlm).toBe(false)
+    expect(quebrado.getEntitlements().sttAoVivo).toBe(false)
   })
 })

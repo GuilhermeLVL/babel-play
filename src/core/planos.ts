@@ -275,9 +275,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
     precoMensalBrl: 19.9,
     precoAnualBrl: 149.9,
     flagsDeVenda: [],
-    /* A nuvem por trechos POR PADRÃO onde compensa. YouTube fica de fora: no modo hospedado a
-       importação responde 403 (o yt-dlp roda no servidor; só o self-host a libera) — vender o que a
-       rota recusa seria cobrar por uma promessa. `largerModels` vem do Pro (quem pagava por ele não
+    /* A nuvem por trechos POR PADRÃO onde compensa. A importação do YouTube foi removida (a rota
+       responde 410), então nenhum plano a vende. `largerModels` vem do Pro (quem pagava por ele não
        perde nada); `LLM_MODEL_GRANDE` continua ausente por padrão, e o modelo mais forte chega pelo
        nível `nuance` (B3/D1). É o plano do TESTE de 14 dias (`PLANO_DO_TESTE`). */
     entitlements: {

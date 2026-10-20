@@ -199,6 +199,10 @@ curl "localhost:8787/cdn-cgi/local/scheduled?cron=17+3+*+*+*"   # dispara o cron
 docker stop pg-worker
 ```
 
+**E2E contra o Worker:** `E2E_RUNTIME=worker BASE_URL=http://localhost:8787 npm run test:e2e` (com os
+assets do `npm run build` em `dist/`). Com `E2E_RUNTIME=worker`, as suítes que dependem da importação de
+Anki pulam: ela é Node-only até a Fase 3 (503 `indisponivel_neste_runtime`). Ver `tests/e2e/README.md`.
+
 O `worker:dev` e a fumaça sobem com `CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false`: sem isso o wrangler carrega
 o `.env` do repositório como vars, e as chaves reais de desenvolvimento entrariam no isolate. Os segredos
 locais do Worker moram SÓ no `.dev.vars`.
@@ -231,7 +235,13 @@ usaria o Hyperdrive de verdade (`babel-sp`) e exige `CLOUDFLARE_API_TOKEN`/`CLOU
 
 **Por requisição** o `worker.ts` liga o R2 (`ligarBucketDoR2(env.MIDIA)`), abre um `pg.Client` pelo Hyperdrive
 dentro de `comExecutor` e um `comContextoDoWorker` cujo `waitUntil` anota cada promessa; o `Client` só fecha
-depois que o corpo da resposta saiu inteiro e todo `waitUntil` assentou. Fora desse escopo, `db` lança no
+depois que o corpo da resposta saiu inteiro e todo `waitUntil` assentou (`server/lib/escopoDaRequisicao.ts`).
+O handler de cada rota entra nessa lista (`capturarAssincrono`): o `finally` que devolve a vaga de IA ou
+estorna a cota roda DEPOIS da resposta e ainda usa o banco. E o `fechar()` do executor espera o trabalho em
+voo (consultas e a fila de transações) até 20 s antes do `end()`; estourou, fecha e loga
+`executor_fechou_ocupado`. Upload cancelado no meio: o `worker.ts` percebe a fonte do corpo falhar e encerra o
+escopo (sem isso o `Client` ficava aberto). Promessa de uma requisição nunca é esperada por outra (os
+single-flight de flags, ready, Langfuse e métricas não dividem promessa no Worker). Fora desse escopo, `db` lança no
 Worker ("db fora de comExecutor") em vez de abrir um Pool por isolate. O `scheduled` faz o mesmo em volta de
 `executarJobsDoCron(controller.cron)`. Os `vars`/secrets chegam em `process.env` pelo `nodejs_compat` (data
 de compatibilidade 2026-09-01). Cron: as 7 expressões do registro estão em `triggers.crons` (plano Workers

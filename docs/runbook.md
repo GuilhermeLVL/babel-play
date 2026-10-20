@@ -474,6 +474,15 @@ Conferir pelo caminho real: abra uma conexão nova pelo pooler e rode `SHOW stat
 papel é `postgres` (pelo pooler, `postgres.<ref>`); a Supavisor reaproveita servidor, então o valor aparece
 na sessão nova do cliente.
 
+**`fillfactor` da `travas` no projeto de São Paulo.** A tabela `travas` do projeto Supabase de São Paulo foi
+criada ANTES de o `fillfactor = 50` entrar na migration `0003` (o journal já marca a 0003 como aplicada, então
+o `ALTER` não roda de novo). Aplique à mão, uma vez, e confira:
+
+```sql
+ALTER TABLE travas SET (fillfactor = 50);
+SELECT reloptions FROM pg_class WHERE relname = 'travas';   -- {fillfactor=50}
+```
+
 Nunca aponte um script de medição para `data/babel.db`: todos eles escrevem de verdade. Use cópia.
 
 ---

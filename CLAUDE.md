@@ -14,7 +14,9 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
 - `src/data/`: acesso a dados e clientes das rotas da API (`src/data/rotas/`), trilha de conteúdo.
 - `server/`: Express (`routes/`, `ai/` com proxies e núcleo de IA, `db/` com migrações Drizzle em `migrations-pg/`, `lib/`).
   `server/lib/config.ts` lista as variáveis de ambiente; `.env.production.example` é o modelo de produção.
-  `server/boot/`: passos do boot Node que o `server.ts` orquestra (validar, preparar, jobs, cluster); nenhum módulo lê env ou disco ao ser importado.
+  `server/boot/`: passos do boot que o `server.ts` orquestra (validar, preparar, jobs) e o portão do Worker; nenhum módulo lê env ou disco ao ser importado.
+- `worker.ts`: ponto de entrada do Cloudflare Worker (o par do `server.ts`): `/api/*` pelo mesmo Express, resto pelos assets, cron.
+  `wrangler.jsonc` configura o Worker; o `wrangler.toml` é o projeto Pages da edição estática, então SEMPRE `-c wrangler.jsonc`.
 - `tests/` (vitest e e2e Playwright), `scripts/` (operação, perf, i18n), `ops/` (provedores, alertas), `docs/`, `openspec/`.
 
 ## Comandos
@@ -24,6 +26,8 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
 - `npm run lint`: ESLint com `--max-warnings 0` (também ordena imports; use `npx eslint --fix`).
 - `npm test`: `vitest run` (um arquivo: `npx vitest run tests/<arquivo>`).
 - `npm run build`: Vite + bundle do servidor. `npx knip`: exports e arquivos sem uso.
+- `npm run worker:dev`: o app no `wrangler dev` local. `npm run worker:build`: bundle do Worker + tamanho.
+  `npm run fumaca:worker` (ou `WRANGLER_FUMACA=1`): fumaça do Worker com Postgres em Docker. Ver `docs/deploy.md`.
 - `npm run limpar`: encerra processos órfãos deixados por testes (hook `SessionEnd`; skill `/limpar-processos`).
 - Gerenciador: npm (`package-lock.json`).
 
@@ -41,6 +45,9 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
 
 - `ui.captureSourceLang` (idioma da pessoa) também define o idioma da interface enquanto `ui.uiLang` não
   foi escolhido (`src/lib/langConfig.ts`): trocar um muda o outro.
+- No Worker, trabalho depois da resposta (o `finally` que estorna, envio de telemetria) tem de passar por
+  `emSegundoPlano` ou pelo executor da requisição (`capturarAssincrono` já registra o handler): promessa solta
+  morre, e o `Client` fecha. E nenhuma promessa criada numa requisição pode ser esperada por outra.
 - Os testes ignoram o `.env` (`tests/setup-db-isolada.ts` aponta o dotenv para um arquivo inexistente e
   usa banco isolado): variável nova precisa ser definida no próprio teste.
 - `data/pg/` é o banco de dev (PGlite); os testes usam `pglite://memory`. PGlite aceita um processo por

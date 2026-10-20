@@ -121,7 +121,7 @@ export async function importarBaralhoAnki(
     formato: leitura.formato,
     nomeNoArquivo: leitura.baralhos?.[0] ?? null,
     baralhos: leitura.baralhos?.slice(0, 200),
-    campos: leitura.campos,
+    campos: leitura.campos.slice(0, TETOS_DA_NOTA.campos).map((c) => c.slice(0, TETOS_DA_NOTA.nomeDeCampo)),
     totalNoArquivo: leitura.totalNoArquivo ?? notas.length,
     truncado: leitura.truncado ?? false,
     idiomaOrigem: idioma || null,

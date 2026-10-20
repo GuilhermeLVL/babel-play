@@ -727,7 +727,7 @@ export const abrirImportAnkiSchema = z
     formato: z.string().max(80),
     nomeNoArquivo: z.string().max(400).nullable().optional(),
     baralhos: z.array(z.string().max(400)).max(200).optional(),
-    campos: z.array(z.string().max(200)).max(50),
+    campos: z.array(z.string().max(T.nomeDeCampo)).max(T.campos),
     totalNoArquivo: z.number().int().min(0),
     truncado: z.boolean(),
     idiomaOrigem: idiomaDoBaralho.nullable().optional(),

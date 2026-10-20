@@ -24,7 +24,7 @@ describe('/api/health — tipo de banco', () => {
     const r = await s.get('/api/health')
     expect(r.status).toBe(200)
     const corpo = (await r.json()) as Record<string, unknown>
-    expect(corpo.banco).toBe('pglite')
+    expect(corpo.banco).toBe(process.env.BANCO_DE_TESTE === 'postgres' ? 'postgres' : 'pglite')
     expect(corpo).not.toHaveProperty('journal_mode')
   })
 

@@ -12,6 +12,13 @@
  *
  * Só para o PGlite do harness. Um contador por arquivo; `parar()` desfaz os dois ganchos.
  */
+/**
+ * Com `BANCO_DE_TESTE=postgres` (job `postgres-real`) o banco não é o PGlite embutido e o contador não existe:
+ * os arquivos que contam idas ao banco se pulam (`describe.skipIf(SO_PGLITE)`). A contagem vale no PGlite, que roda
+ * a suíte comum; no Postgres de verdade ela não mudaria de resultado, só de instrumento.
+ */
+export const SO_PGLITE = process.env.BANCO_DE_TESTE === 'postgres'
+
 type Carregar = (spec: string) => Promise<any>
 
 export interface ContadorDeConsultas {

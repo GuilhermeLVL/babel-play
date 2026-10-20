@@ -354,10 +354,17 @@ jobs:
   # int8 do `pg`, lock_timeout) se pulam sem `TESTE_POSTGRES_URL` — e nenhum job a definia, então o
   # driver de produção nunca rodava no CI. Aqui um `postgres:17` de serviço e SÓ esses arquivos, na
   # lista explícita abaixo; o passo "Lista completa" reprova se surgir arquivo novo com a variável e
-  # ele não entrar aqui. A suíte de integração INTEIRA sobre o Postgres de verdade é da Fase 2.
+  # ele não entrar aqui.
+  #
+  # A SUÍTE DE INTEGRAÇÃO INTEIRA SOBRE O POSTGRES DE VERDADE (Fase 2, Task 13). Com `BANCO_DE_TESTE=postgres`,
+  # o `setupEphemeralDb()` (usado por ~230 arquivos, direto ou por `tests/caracterizacao/_app.ts`) cria um
+  # banco descartável neste Postgres, por arquivo, em vez de abrir o PGlite. Então rodam `tests/integration` e
+  # `tests/caracterizacao` inteiras, mais `ARQUIVOS` (que continua documentando quais arquivos exigem o Postgres
+  # de verdade e dependem de `TESTE_POSTGRES_URL`). Fora dessa lista só se pulam os arquivos que contam idas
+  # ao banco pelo PGlite embutido (`SO_PGLITE`, em `tests/harness/contadorDeConsultas.ts`); cada um tem o motivo.
   postgres-real:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 40
     services:
       postgres:
         image: postgres:17
@@ -375,8 +382,10 @@ jobs:
     env:
       # Senha descartável de um contêiner de serviço que só existe neste job; não é segredo.
       TESTE_POSTGRES_URL: postgres://babel:babel-ci@localhost:5432/babel_teste
+      BANCO_DE_TESTE: postgres
       ARQUIVOS: >-
         tests/integration/admissao-no-banco.test.ts
+        tests/integration/banco-de-teste-postgres.test.ts
         tests/integration/agregados-concorrentes.test.ts
         tests/integration/db-por-requisicao.test.ts
         tests/integration/gasto-concorrente.test.ts
@@ -405,9 +414,9 @@ jobs:
           diff <(echo "$achados") <(echo "$esperados")
       - run: npm ci
         timeout-minutes: 5
-      - name: Testes contra o Postgres de verdade
-        timeout-minutes: 10
-        run: npx vitest run $ARQUIVOS --maxWorkers=2
+      - name: Integração e caracterização inteiras contra o Postgres de verdade
+        timeout-minutes: 30
+        run: npx vitest run tests/integration tests/caracterizacao $ARQUIVOS --maxWorkers=2
 
   # E2E PRINCIPAL, UM JOB POR VIEWPORT. Os três projetos rodavam em série no `verify` (~33 min:
   # celular 12, tablet 7, desktop 13). Cada fatia sobe o SEU servidor e o SEU banco vazio, então o

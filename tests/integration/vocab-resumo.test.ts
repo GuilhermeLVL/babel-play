@@ -12,7 +12,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import type { ResumoDosCartoes } from '../../src/core/learning/resumoDosCartoes'
 import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
-import { type ContadorDeConsultas, contarConsultas } from '../harness/contadorDeConsultas'
+import { type ContadorDeConsultas, contarConsultas, SO_PGLITE } from '../harness/contadorDeConsultas'
 import { semearRico } from './_semeaduraRica'
 
 const DIA = 86_400_000
@@ -26,7 +26,7 @@ const B = 'resumo-b'
 const RICO = 'resumo-rico'
 const rota = (inicio: number = HOJE) => `/api/vocab/resumo?inicioDoDia=${inicio}`
 
-describe('GET /api/vocab/resumo', () => {
+describe.skipIf(SO_PGLITE)('GET /api/vocab/resumo', () => {
   let s: AppDeTeste
   let a: string
   let b: string

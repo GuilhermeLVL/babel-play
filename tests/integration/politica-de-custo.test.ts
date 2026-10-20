@@ -211,9 +211,9 @@ async function forcarGasto(periodo: string, variavel: string, fracao: number) {
 }
 const orcamentoEm = (fracao: number) => forcarGasto(mes(), 'AI_BUDGET_USD_MONTH', fracao)
 /** Esvazia o balde do modelo da nuance até sobrar `sobra` de 10 pedidos. */
-function baldeDaNuanceCom(sobra: number) {
+async function baldeDaNuanceCom(sobra: number) {
   for (let i = 0; i < 10 - sobra; i++)
-    admitirNoBalde({
+    await admitirNoBalde({
       tipo: 'llm',
       provedor: 'deepinfra',
       modelo: 'openai/gpt-oss-120b',
@@ -278,7 +278,7 @@ describe('a degradação na rota, com o orçamento forçado', () => {
 
   it('70% com o balde da nuance abaixo de 20%: o barato, com 75% da saída (ele não raciocina)', async () => {
     await orcamentoEm(0.7)
-    baldeDaNuanceCom(1)
+    await baldeDaNuanceCom(1)
     const chamadas = provedorFalso()
     const res = await traduzir('good night')
     expect(res.statusCode).toBe(200)

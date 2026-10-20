@@ -18,7 +18,7 @@ process.env.TZ = 'America/Sao_Paulo'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
-import { type ContadorDeConsultas, contarConsultas } from '../harness/contadorDeConsultas'
+import { type ContadorDeConsultas, contarConsultas, SO_PGLITE } from '../harness/contadorDeConsultas'
 import { PLANO_PAGO } from '../harness/planoPago'
 import { semearRico } from './_semeaduraRica'
 
@@ -29,7 +29,7 @@ const GRATIS = 'consultas-gratis'
 const json = (v: unknown) => `${JSON.stringify(v, null, 2)}\n`
 const foto = (nome: string) => `../__snapshots__/consultas-repetidas/${nome}.json`
 
-describe('rotas pequenas: uma leitura por tabela', () => {
+describe.skipIf(SO_PGLITE)('rotas pequenas: uma leitura por tabela', () => {
   let s: AppDeTeste
   let pagante: string
   let gratis: string

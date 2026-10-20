@@ -17,7 +17,7 @@ import { connect } from 'node:net'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
 import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
@@ -223,7 +223,8 @@ describe('upload sem disco: stream direto para o R2 do binding', () => {
     expect(r.status).toBe(500)
     expect(bucket.contar('abort')).toBe(1)
     expect(bucket.contar('complete')).toBe(0)
-    expect(await uso('duda')).toBe(antes)
+    // O estorno roda no `finally` da rota, DEPOIS de a resposta sair: num Postgres de verdade chega alguns ms depois.
+    await vi.waitFor(async () => expect(await uso('duda')).toBe(antes))
   })
 
   /**
@@ -323,7 +324,7 @@ describe('upload sem disco: stream direto para o R2 do binding', () => {
       expect(bucket.contar('uploadPart')).toBe(2)
       expect(bucket.contar('abort')).toBe(1)
       expect(bucket.contar('complete')).toBe(0)
-      expect(await uso('gil')).toBe(antes)
+      await vi.waitFor(async () => expect(await uso('gil')).toBe(antes))
     } finally {
       await usageCountersRepo.reset(r2, 'r2_ops_a', janela)
     }

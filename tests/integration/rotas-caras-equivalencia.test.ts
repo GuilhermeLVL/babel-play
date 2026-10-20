@@ -21,7 +21,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
 import { clienteSql } from '../harness/clienteSql'
-import { type ContadorDeConsultas, contarConsultas } from '../harness/contadorDeConsultas'
+import { type ContadorDeConsultas, contarConsultas, SO_PGLITE } from '../harness/contadorDeConsultas'
 import { AGORA, type Semeado, semearRico } from './_semeaduraRica'
 
 const DONO = 'local-owner'
@@ -31,7 +31,7 @@ const DONO = 'local-owner'
 const json = (v: unknown) =>
   `${JSON.stringify(v, (_k, x: unknown) => (typeof x === 'number' && !Number.isInteger(x) ? Number(x.toPrecision(12)) : x), 2)}\n`
 
-describe('rotas caras: equivalência, invalidação e custo', () => {
+describe.skipIf(SO_PGLITE)('rotas caras: equivalência, invalidação e custo', () => {
   let s: AppDeTeste
   let semeado: Semeado
   let contador: ContadorDeConsultas

@@ -23,7 +23,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
 import { clienteSql } from '../harness/clienteSql'
-import { type ContadorDeConsultas, contarConsultas } from '../harness/contadorDeConsultas'
+import { type ContadorDeConsultas, contarConsultas, SO_PGLITE } from '../harness/contadorDeConsultas'
 import { type Semeado, semearRico } from './_semeaduraRica'
 
 const DONO = 'local-owner'
@@ -37,7 +37,7 @@ const foto = (nome: string) => `../__snapshots__/recompensas-cache/${nome}.json`
 /** As tabelas grandes: o que uma leitura quente não pode tocar. */
 const TABELAS_DO_HISTORICO = /exercise_results|review_logs|vocab_cards|utterances|"sessions"/
 
-describe('rotas das recompensas: equivalência, custo e invalidação', () => {
+describe.skipIf(SO_PGLITE)('rotas das recompensas: equivalência, custo e invalidação', () => {
   let s: AppDeTeste
   let semeado: Semeado
   let contador: ContadorDeConsultas

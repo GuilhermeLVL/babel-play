@@ -23,7 +23,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
 import { clienteSql } from '../harness/clienteSql'
-import { contarConsultas } from '../harness/contadorDeConsultas'
+import { contarConsultas, SO_PGLITE } from '../harness/contadorDeConsultas'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const DONO = asUserId('leitner-boot')
@@ -72,7 +72,7 @@ async function observar(fn: () => Promise<unknown>): Promise<{ idas: number; ins
   }
 }
 
-describe('migração Leitner→FSRS do boot', () => {
+describe.skipIf(SO_PGLITE)('migração Leitner→FSRS do boot', () => {
   it('N candidatos custam uma leitura e um batch, não N idas ao banco', async () => {
     await inserirLeitner(40)
     let migrados = 0

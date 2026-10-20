@@ -156,7 +156,7 @@ async function conversar(
       const estimativa = estimarTokens(tamanhoDoPrompt(prep.messages), prep.maxTokens)
       /* B4: a política de custo — o degrau mais barato primeiro a 70% (pagante, balde baixo) e a 90%
          (todos), com a saída dos modelos sem raciocínio a 75% (`politicaDeCusto.ts`). */
-      const custo = aplicarPoliticaDeCusto({
+      const custo = await aplicarPoliticaDeCusto({
         pernas: provedores,
         nivel,
         fracaoDoOrcamento: portao.fracaoDoOrcamento ?? 0,
@@ -170,7 +170,7 @@ async function conversar(
       const faixa = planoDeAdmissao(plano.plan, ctx.modo === 'alivio', ctx.emTeste)
       const admitida =
         provedores.length > 0 && portao.ok
-          ? admitirCascata(custo.pernas, { userId: ctx.userId, plano: faixa, tokens: estimativa })
+          ? await admitirCascata(custo.pernas, { userId: ctx.userId, plano: faixa, tokens: estimativa })
           : null
       if (admitida && admitida.ok === false && !selfHost) return decidir(recusaNuvemOcupada(admitida.recusa))
       if (admitida?.ok === true) admissao = admitida.admissao
@@ -224,7 +224,10 @@ async function conversar(
     log('error', { event: 'tutor_erro', error: erroDeRota(error, { event: 'tutor_erro' }), requestId: ctx.requestId })
     return decidir(recusaDeErro(502, 'tutor indisponível', 'provedor_indisponivel'))
   } finally {
-    encerrarAdmissao(admissao)
-    await reserva?.estornar()
+    try {
+      await encerrarAdmissao(admissao)
+    } finally {
+      await reserva?.estornar()
+    }
   }
 }

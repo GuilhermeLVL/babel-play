@@ -72,7 +72,7 @@ export interface AdmissaoDaCascata {
   /** Índice da perna admitida já na entrada. */
   indice: number
   ticket: TicketDeBalde
-  liberar: () => void
+  liberar: () => Promise<void>
   /** A cascata chegou a rodar? Se não, o pedido volta ao balde em `encerrarAdmissao`. */
   usada: boolean
 }
@@ -95,11 +95,11 @@ export function alvoDaPerna(prov: Provedor): {
   }
 }
 
-export function admitirCascata(
+export async function admitirCascata(
   provedores: Provedor[],
   p: { userId: string; plano: PlanoDeAdmissao; tokens: number },
-): { ok: true; admissao: AdmissaoDaCascata } | { ok: false; recusa: Recusa } {
-  const liberar = ocuparVaga(p.userId, 'llm')
+): Promise<{ ok: true; admissao: AdmissaoDaCascata } | { ok: false; recusa: Recusa }> {
+  const liberar = await ocuparVaga(p.userId, 'llm')
   if (!liberar) {
     contarAdmissaoRecusada('em_voo', p.plano)
     return { ok: false, recusa: { motivo: 'em_voo', retryAfterS: 1 } }
@@ -107,12 +107,15 @@ export function admitirCascata(
   let recusa: Recusa | null = null
   for (let i = 0; i < provedores.length; i++) {
     const prov = provedores[i]
-    const r = admitirNoBalde({
+    const r = await admitirNoBalde({
       tipo: 'llm',
       ...alvoDaPerna(prov),
       plano: p.plano,
       tokens: p.tokens,
       silenciosa: true,
+    }).catch(async (erro: unknown) => {
+      await liberar()
+      throw erro
     })
     if (r.ok === true) {
       return {
@@ -123,18 +126,25 @@ export function admitirCascata(
     // A espera que vale é a MENOR: a primeira perna que voltar atende.
     if (!recusa || r.recusa.retryAfterS < recusa.retryAfterS) recusa = r.recusa
   }
-  liberar()
+  await liberar()
   const final = recusa ?? { motivo: 'minuto' as const, retryAfterS: 1 }
   contarAdmissaoRecusada(final.motivo, p.plano)
   return { ok: false, recusa: final }
 }
 
-/** Fecha a admissão: solta a vaga e, se a cascata nem rodou, devolve o pedido ao balde. Idempotente. */
-export function encerrarAdmissao(a: AdmissaoDaCascata | null | undefined): void {
+/**
+ * Fecha a admissão: solta a vaga e, se a cascata nem rodou, devolve o pedido ao balde. Idempotente.
+ * A vaga sai mesmo que a devolução falhe (chame num `finally`).
+ */
+export async function encerrarAdmissao(a: AdmissaoDaCascata | null | undefined): Promise<void> {
   if (!a) return
-  if (!a.usada) a.ticket.devolver()
+  const devolver = !a.usada
   a.usada = true
-  a.liberar()
+  try {
+    if (devolver) await a.ticket.devolver()
+  } finally {
+    await a.liberar()
+  }
 }
 
 /**
@@ -183,7 +193,7 @@ export async function percorrerCascata(
     const prov = provedores[i]
     /* QUEM PEDIU DESISTIU: nenhuma perna a mais é chamada. Se nenhuma foi, o pedido volta ao balde. */
     if (clienteDesistiu(pedido.sinal)) {
-      if (adm && chamadas === 0) adm.ticket.devolver()
+      if (adm && chamadas === 0) await adm.ticket.devolver()
       return { entregue: null, ultimaFalha: 'cancelado por quem pediu', cancelado: true }
     }
     /* A ADMISSÃO DA PERNA (ADR 0007). Antes da perna admitida na entrada: estava sem saldo, pula.
@@ -197,7 +207,7 @@ export async function percorrerCascata(
       }
       if (i === adm.indice) ticket = adm.ticket
       else {
-        const r = admitirNoBalde({ tipo: 'llm', ...alvoDaPerna(prov), plano: adm.plano, tokens: adm.tokens })
+        const r = await admitirNoBalde({ tipo: 'llm', ...alvoDaPerna(prov), plano: adm.plano, tokens: adm.tokens })
         if (r.ok === false) {
           ultimaFalha = `sem saldo na admissão para ${prov.rotulo} (${prov.model})`
           continue
@@ -209,7 +219,7 @@ export async function percorrerCascata(
        timeout dele antes de chegar à reserva. Aberto, a perna é pulada sem abrir socket. */
     const chave = chaveDoProvedor(prov)
     if (!disjuntorPermite(chave)) {
-      ticket?.devolver() // o provedor não foi chamado: o pedido volta ao balde
+      await ticket?.devolver() // o provedor não foi chamado: o pedido volta ao balde
       ultimaFalha = `disjuntor aberto para ${prov.rotulo} (${prov.model})`
       log('warn', {
         event: `${contexto.evento}_provedor_em_disjuntor`,
@@ -257,7 +267,7 @@ export async function percorrerCascata(
     if (r.status === 429) {
       registrarLimiteDoProvedor(provedor, prov.model)
       /* O 429 do provedor fecha o balde até o `Retry-After` dele: a próxima fala nem tenta. */
-      const espera = registrarLimiteNaAdmissao(
+      const espera = await registrarLimiteNaAdmissao(
         'llm',
         provedor,
         prov.model,
@@ -269,7 +279,7 @@ export async function percorrerCascata(
       esperaDoLimite = Math.min(esperaDoLimite, espera)
     }
     /* Os tokens do dia saem da estimativa para o REAL; perna que falhou não gerou tokens. */
-    ticket?.acertarTokens(r.ok ? (r.tokensEntrada ?? 0) + (r.tokensSaida ?? 0) : 0)
+    await ticket?.acertarTokens(r.ok ? (r.tokensEntrada ?? 0) + (r.tokensSaida ?? 0) : 0)
     /* UMA GERAÇÃO POR PERNA, inclusive a que falhou — é assim que o fallback aparece no painel. O
        custo é o `custoUsd` acima, o mesmo do orçamento e da métrica. O texto só entra quando o
        rastro permite (dev, `LANGFUSE_CONTEUDO=1`); em produção nem é montado. */

@@ -101,7 +101,7 @@ afterAll(async () => {
     else process.env[k] = v
   }
 })
-beforeEach(() => {
+beforeEach(async () => {
   chamadas = []
   responder = () => completacao('resposta padrão')
   for (const k of Object.keys(ENV_RESERVA)) delete process.env[k]
@@ -112,7 +112,7 @@ beforeEach(() => {
   esquecerDisjuntores()
   /* A admissão de IA (ADR 0007) também é estado de processo: o 429 encenado num caso fecha o balde
      do modelo até o `Retry-After`, e o caso seguinte receberia `nuvem_ocupada` sem chamar ninguém. */
-  esquecerAdmissao()
+  await esquecerAdmissao()
 })
 
 /* O cache de tradução (Fase 2 do lançamento) é do processo: sem esvaziar, a frase repetida de um

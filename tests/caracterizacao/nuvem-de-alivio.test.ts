@@ -156,7 +156,7 @@ afterAll(async () => {
 })
 beforeEach(async () => {
   chamadasAoProvedor = 0
-  admissao.esquecerAdmissao()
+  await admissao.esquecerAdmissao()
   await cache.esvaziarCacheDeTraducao()
   await ligar(true)
 })

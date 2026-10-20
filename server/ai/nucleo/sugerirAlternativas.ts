@@ -146,7 +146,7 @@ async function sugerir(
   const maxTokens = ALTERNATIVAS.maxTokens
   const estimativa = estimarTokens(tamanhoDoPrompt(messages), maxTokens)
 
-  const custo = aplicarPoliticaDeCusto({
+  const custo = await aplicarPoliticaDeCusto({
     pernas,
     nivel,
     fracaoDoOrcamento: portao.fracaoDoOrcamento ?? 0,
@@ -155,7 +155,7 @@ async function sugerir(
   })
   if (custo.degradacao !== 'nenhuma') rastro.anotar({ degradacao: custo.degradacao })
 
-  const admitida = admitirCascata(custo.pernas, {
+  const admitida = await admitirCascata(custo.pernas, {
     userId: ctx.userId,
     plano: planoDeAdmissao(plano.plan, ctx.modo === 'alivio', ctx.emTeste),
     tokens: estimativa,
@@ -222,8 +222,11 @@ async function sugerir(
       recusar(502, { error: `falha nas outras formas: ${erroDeRota(err, { event: 'mt_alternativas_erro' })}` }),
     )
   } finally {
-    encerrarAdmissao(admitida.admissao)
-    // Todo caminho que NÃO consumiu devolve chamada e tokens.
-    await reserva?.estornar()
+    try {
+      await encerrarAdmissao(admitida.admissao)
+    } finally {
+      // Todo caminho que NÃO consumiu devolve chamada e tokens.
+      await reserva?.estornar()
+    }
   }
 }

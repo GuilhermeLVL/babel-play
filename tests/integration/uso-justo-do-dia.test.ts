@@ -81,9 +81,9 @@ afterAll(async () => {
   delete process.env.AUTH_REQUIRED
   await h.cleanup()
 })
-beforeEach(() => {
+beforeEach(async () => {
   esvaziarCacheDeTraducao()
-  adm.esquecerAdmissao()
+  await adm.esquecerAdmissao()
   // IP público literal: `assertPublicUrl` resolve DNS de verdade, e o provedor não é assunto aqui.
   process.env.GROQ_BASE_URL = 'http://203.0.113.20/v1'
 })

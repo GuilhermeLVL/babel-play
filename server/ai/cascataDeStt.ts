@@ -211,7 +211,7 @@ export interface AdmissaoDoStt {
   /** A perna cujo balde já tem o pedido. */
   perna: Provedor
   ticket: TicketDeBalde
-  liberar: () => void
+  liberar: () => Promise<void>
   /** A perna da porta chegou a ser chamada? Se não, o pedido volta ao balde no encerramento. */
   chamada: boolean
   encerrada: boolean
@@ -221,18 +221,23 @@ export interface AdmissaoDoStt {
  * VAGA EM VOO + a primeira perna (na ordem do registro) com saldo. Perna sem saldo é pulada, como no
  * LLM (`admitirCascata`); a recusa conta UMA vez, com a menor espera entre as pernas.
  */
-export function admitirStt(
+export async function admitirStt(
   pernas: Provedor[],
   p: { userId: string; plano: PlanoDeAdmissao },
-): { ok: true; admissao: AdmissaoDoStt } | { ok: false; recusa: Recusa } {
-  const liberar = ocuparVaga(p.userId, 'stt')
+): Promise<{ ok: true; admissao: AdmissaoDoStt } | { ok: false; recusa: Recusa }> {
+  const liberar = await ocuparVaga(p.userId, 'stt')
   if (!liberar) {
     contarAdmissaoRecusada('em_voo', p.plano)
     return { ok: false, recusa: { motivo: 'em_voo', retryAfterS: 1 } }
   }
   let recusa: Recusa | null = null
   for (const perna of pernas) {
-    const r = admitirNoBalde({ tipo: 'stt', ...alvoDaPerna(perna), plano: p.plano, silenciosa: true })
+    const r = await admitirNoBalde({ tipo: 'stt', ...alvoDaPerna(perna), plano: p.plano, silenciosa: true }).catch(
+      async (erro: unknown) => {
+        await liberar()
+        throw erro
+      },
+    )
     if (r.ok === true) {
       return {
         ok: true,
@@ -241,18 +246,24 @@ export function admitirStt(
     }
     if (!recusa || r.recusa.retryAfterS < recusa.retryAfterS) recusa = r.recusa
   }
-  liberar()
+  await liberar()
   const final = recusa ?? { motivo: 'minuto' as const, retryAfterS: 1 }
   contarAdmissaoRecusada(final.motivo, p.plano)
   return { ok: false, recusa: final }
 }
 
-/** Solta a vaga e, se a perna da porta não foi chamada, devolve o pedido ao balde. Idempotente. */
-export function encerrarAdmissaoDoStt(a: AdmissaoDoStt | null | undefined): void {
+/**
+ * Solta a vaga e, se a perna da porta não foi chamada, devolve o pedido ao balde. Idempotente. A vaga
+ * sai mesmo que a devolução falhe.
+ */
+export async function encerrarAdmissaoDoStt(a: AdmissaoDoStt | null | undefined): Promise<void> {
   if (!a || a.encerrada) return
   a.encerrada = true
-  if (!a.chamada) a.ticket.devolver()
-  a.liberar()
+  try {
+    if (!a.chamada) await a.ticket.devolver()
+  } finally {
+    await a.liberar()
+  }
 }
 
 /* ─────────────────────────── percorrer ─────────────────────────── */
@@ -338,7 +349,7 @@ export async function percorrerCascataDeStt(
        sem saldo, pula sem abrir socket. */
     let ticket: TicketDeBalde | null = null
     if (adm && perna !== adm.perna) {
-      const r = admitirNoBalde({ tipo: 'stt', ...alvoDaPerna(perna), plano: adm.plano })
+      const r = await admitirNoBalde({ tipo: 'stt', ...alvoDaPerna(perna), plano: adm.plano })
       if (r.ok === false) {
         if (!semSaldo || r.recusa.retryAfterS < semSaldo.retryAfterS) semSaldo = r.recusa
         continue
@@ -349,7 +360,7 @@ export async function percorrerCascataDeStt(
     /* O DISJUNTOR ANTES DA CHAMADA, só na chave do DONO: aberto, a perna é pulada sem socket. */
     const chave = ctx.byok ? null : chaveDoProvedor(perna)
     if (chave && !disjuntorPermite(chave)) {
-      ticket?.devolver()
+      await ticket?.devolver()
       pulouPorDisjuntor = true
       log('warn', {
         event: 'stt_provedor_em_disjuntor',
@@ -365,7 +376,7 @@ export async function percorrerCascataDeStt(
     try {
       await assertPublicUrl(perna.base)
     } catch (erro) {
-      ticket?.devolver()
+      await ticket?.devolver()
       ultima = { tipo: 'excecao', erro }
       continue
     }
@@ -378,7 +389,7 @@ export async function percorrerCascataDeStt(
        e só com saldo no balde para o repique — a retentativa também é um pedido contra a conta. */
     for (let n = 1; ultimaPerna && n <= RETENTATIVAS_DE_STT && t.r && t.r.status >= 500 && t.r.status < 600; n++) {
       if (adm) {
-        const repique = admitirNoBalde({ tipo: 'stt', ...alvoDaPerna(perna), plano: adm.plano })
+        const repique = await admitirNoBalde({ tipo: 'stt', ...alvoDaPerna(perna), plano: adm.plano })
         if (repique.ok === false) break
       }
       if (chave && !disjuntorPermite(chave)) break
@@ -424,7 +435,7 @@ export async function percorrerCascataDeStt(
       const doProvedor = segundosDoRetryAfter(r.headers?.get?.('retry-after'))
       const espera = ctx.byok
         ? (doProvedor ?? 1)
-        : registrarLimiteNaAdmissao('stt', provedor, perna.model, doProvedor, Date.now(), alvoDaPerna(perna))
+        : await registrarLimiteNaAdmissao('stt', provedor, perna.model, doProvedor, Date.now(), alvoDaPerna(perna))
       await r.text().catch(() => '')
       limitadas += 1
       menorEspera = Math.min(menorEspera, espera)

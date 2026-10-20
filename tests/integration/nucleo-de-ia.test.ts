@@ -132,10 +132,10 @@ beforeEach(async () => {
   process.env.DEEPINFRA_API_KEY = 'chave-falsa'
   await cache.esvaziarCacheDeTraducao()
 })
-afterEach(() => {
+afterEach(async () => {
   vi.unstubAllGlobals()
   esquecerDisjuntores()
-  esquecerAdmissao()
+  await esquecerAdmissao()
   esquecerRegistro()
 })
 

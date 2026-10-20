@@ -16,27 +16,44 @@
  * As faixas continuam valendo sobre o que foi declarado: a reserva do Pro, a metade do convidado e
  * os 20% de cima do alívio (A10) — 80% de qualquer balde é de quem paga.
  */
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { admitirNoBalde, esquecerAdmissao, fracaoDoBalde, registrarLimiteNaAdmissao } from '../../server/ai/admissao'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const T0 = Date.UTC(2026, 8, 29, 12)
 const ENVS = ['IA_ADMISSAO_LLM_RPM', 'IA_ADMISSAO_LLM_RPD', 'IA_ADMISSAO_LLM_TPD', 'IA_ADMISSAO_RESERVA_PRO']
 
-beforeEach(() => {
-  for (const e of ENVS) process.env[e] = ''
-  esquecerAdmissao()
+/* Desde a Fase 2 (tarefa 8) os baldes moram no banco (`admissao_de_ia`): o módulo vem do harness, já
+   ligado a um PGlite migrado, e cada consulta ao balde é assíncrona. */
+let h: EphemeralDb
+let admitirNoBalde: typeof import('../../server/ai/admissao').admitirNoBalde
+let esquecerAdmissao: typeof import('../../server/ai/admissao').esquecerAdmissao
+let fracaoDoBalde: typeof import('../../server/ai/admissao').fracaoDoBalde
+let registrarLimiteNaAdmissao: typeof import('../../server/ai/admissao').registrarLimiteNaAdmissao
+
+beforeAll(async () => {
+  h = await setupEphemeralDb()
+  ;({ admitirNoBalde, esquecerAdmissao, fracaoDoBalde, registrarLimiteNaAdmissao } =
+    await h.load<typeof import('../../server/ai/admissao')>('../../server/ai/admissao'))
 })
-afterEach(() => {
+afterAll(async () => {
+  await h.cleanup()
+})
+beforeEach(async () => {
   for (const e of ENVS) process.env[e] = ''
-  esquecerAdmissao()
+  await esquecerAdmissao()
+})
+afterEach(async () => {
+  for (const e of ENVS) process.env[e] = ''
+  await esquecerAdmissao()
 })
 
 /** Quantos pedidos o plano consegue no mesmo instante. */
-function contar(p: Record<string, unknown>, plano = 'premium', tokens = 0): number {
+async function contar(p: Record<string, unknown>, plano = 'premium', tokens = 0): Promise<number> {
   let n = 0
   while (
-    admitirNoBalde({ tipo: 'llm', provedor: 'deepinfra', modelo: 'm', plano, tokens, agora: T0, ...p } as any).ok
+    (await admitirNoBalde({ tipo: 'llm', provedor: 'deepinfra', modelo: 'm', plano, tokens, agora: T0, ...p } as any))
+      .ok
   ) {
     n++
     if (n > 10_000) break
@@ -44,60 +61,60 @@ function contar(p: Record<string, unknown>, plano = 'premium', tokens = 0): numb
   return n
 }
 
-describe('limites declarados no MODELO', () => {
-  it('o rpm declarado é a capacidade do balde — não o das IA_ADMISSAO_*', () => {
+describe('limites declarados no MODELO', async () => {
+  it('o rpm declarado é a capacidade do balde — não o das IA_ADMISSAO_*', async () => {
     process.env.IA_ADMISSAO_LLM_RPM = '30'
-    expect(contar({ limites: { rpm: 120 } })).toBe(120)
+    expect(await contar({ limites: { rpm: 120 } })).toBe(120)
   })
 
-  it('sem limites declarados, valem as IA_ADMISSAO_* (o legado)', () => {
+  it('sem limites declarados, valem as IA_ADMISSAO_* (o legado)', async () => {
     process.env.IA_ADMISSAO_LLM_RPM = '7'
-    expect(contar({})).toBe(7)
+    expect(await contar({})).toBe(7)
   })
 
-  it('dimensão não declarada é sem teto nela: só rpd declarado não herda o rpm da Groq', () => {
+  it('dimensão não declarada é sem teto nela: só rpd declarado não herda o rpm da Groq', async () => {
     process.env.IA_ADMISSAO_LLM_RPM = '2'
-    expect(contar({ limites: { rpd: 50 } })).toBe(50)
+    expect(await contar({ limites: { rpd: 50 } })).toBe(50)
   })
 
-  it('rpd declarado fecha o dia', () => {
+  it('rpd declarado fecha o dia', async () => {
     const lim = { rpm: 100, rpd: 3 }
     const pedir = () =>
       admitirNoBalde({ tipo: 'llm', provedor: 'x', modelo: 'd', plano: 'premium', limites: lim, agora: T0 })
-    expect([pedir().ok, pedir().ok, pedir().ok]).toEqual([true, true, true])
-    const r = pedir()
+    expect([(await pedir()).ok, (await pedir()).ok, (await pedir()).ok]).toEqual([true, true, true])
+    const r = await pedir()
     expect(r.ok).toBe(false)
     if (r.ok === false) expect(r.recusa.motivo).toBe('dia')
   })
 
   /* Matriz v2: três faixas. O Premium usa o balde inteiro; o grátis (e o convidado) para na metade;
      o alívio do Grátis só nos 20% de cima (a reserva de 80% dos pagantes). */
-  it('as faixas valem sobre o declarado: grátis para na metade, alívio só nos 20% de cima', () => {
+  it('as faixas valem sobre o declarado: grátis para na metade, alívio só nos 20% de cima', async () => {
     const lim = { rpm: 10 }
-    expect(contar({ limites: lim, modelo: 'a' }, 'premium')).toBe(10)
-    expect(contar({ limites: lim, modelo: 'b' }, 'gratis')).toBe(5)
-    expect(contar({ limites: lim, modelo: 'c' }, 'alivio')).toBe(2)
+    expect(await contar({ limites: lim, modelo: 'a' }, 'premium')).toBe(10)
+    expect(await contar({ limites: lim, modelo: 'b' }, 'gratis')).toBe(5)
+    expect(await contar({ limites: lim, modelo: 'c' }, 'alivio')).toBe(2)
   })
 })
 
-describe('tokens por minuto (tpm) — o balde de tokens', () => {
-  it('pedidos de 400 tokens num tpm de 1.000: dois passam, o terceiro espera', () => {
+describe('tokens por minuto (tpm) — o balde de tokens', async () => {
+  it('pedidos de 400 tokens num tpm de 1.000: dois passam, o terceiro espera', async () => {
     const lim = { rpm: 100, tpm: 1000 }
     const pedir = (agora = T0) =>
       admitirNoBalde({ tipo: 'llm', provedor: 'x', modelo: 'm', plano: 'premium', tokens: 400, limites: lim, agora })
-    expect(pedir().ok).toBe(true)
-    expect(pedir().ok).toBe(true)
-    const r = pedir()
+    expect((await pedir()).ok).toBe(true)
+    expect((await pedir()).ok).toBe(true)
+    const r = await pedir()
     expect(r.ok).toBe(false)
     if (r.ok === false) {
       expect(r.recusa.motivo).toBe('tokens_minuto')
-      // Faltam 200 tokens a 1.000/min: 12 s.
-      expect(r.recusa.retryAfterS).toBe(12)
+      // Janela FIXA do minuto (Fase 2, tarefa 8): a espera é até o minuto virar, não o reabastecimento contínuo.
+      expect(r.recusa.retryAfterS).toBe(60)
     }
-    expect(pedir(T0 + 12_000).ok).toBe(true)
+    expect((await pedir(T0 + 60_000)).ok).toBe(true)
   })
 
-  it('o acerto pelo uso REAL devolve ao balde de tokens o que a estimativa superestimou', () => {
+  it('o acerto pelo uso REAL devolve ao balde de tokens o que a estimativa superestimou', async () => {
     const lim = { tpm: 1000 }
     const pedir = () =>
       admitirNoBalde({
@@ -109,15 +126,15 @@ describe('tokens por minuto (tpm) — o balde de tokens', () => {
         limites: lim,
         agora: T0,
       })
-    const a = pedir()
+    const a = await pedir()
     expect(a.ok).toBe(true)
-    expect(pedir().ok).toBe(false)
-    if (a.ok) a.ticket.acertarTokens(100)
-    expect(pedir().ok).toBe(true)
+    expect((await pedir()).ok).toBe(false)
+    if (a.ok) await a.ticket.acertarTokens(100)
+    expect((await pedir()).ok).toBe(true)
   })
 
-  it('um pedido maior que o balde inteiro passa com o balde cheio (senão nunca passaria)', () => {
-    const r = admitirNoBalde({
+  it('um pedido maior que o balde inteiro passa com o balde cheio (senão nunca passaria)', async () => {
+    const r = await admitirNoBalde({
       tipo: 'llm',
       provedor: 'x',
       modelo: 'm',
@@ -129,7 +146,7 @@ describe('tokens por minuto (tpm) — o balde de tokens', () => {
     expect(r.ok).toBe(true)
   })
 
-  it('ticket devolvido repõe os tokens', () => {
+  it('ticket devolvido repõe os tokens', async () => {
     const lim = { tpm: 1000 }
     const pedir = () =>
       admitirNoBalde({
@@ -141,15 +158,15 @@ describe('tokens por minuto (tpm) — o balde de tokens', () => {
         limites: lim,
         agora: T0,
       })
-    const a = pedir()
-    expect(pedir().ok).toBe(false)
-    if (a.ok) a.ticket.devolver()
-    expect(pedir().ok).toBe(true)
+    const a = await pedir()
+    expect((await pedir()).ok).toBe(false)
+    if (a.ok) await a.ticket.devolver()
+    expect((await pedir()).ok).toBe(true)
   })
 })
 
-describe('limites do PROVEDOR: um balde só para os modelos dele', () => {
-  it('rpm 4 da conta, dois modelos: 4 pedidos no total, não 4 por modelo', () => {
+describe('limites do PROVEDOR: um balde só para os modelos dele', async () => {
+  it('rpm 4 da conta, dois modelos: 4 pedidos no total, não 4 por modelo', async () => {
     const lim = { rpm: 4 }
     const pedir = (modelo: string) =>
       admitirNoBalde({
@@ -161,39 +178,47 @@ describe('limites do PROVEDOR: um balde só para os modelos dele', () => {
         compartilhado: true,
         agora: T0,
       })
-    const oks = ['a', 'b', 'a', 'b', 'a', 'b'].map((m) => pedir(m).ok)
+    const oks: boolean[] = []
+    for (const m of ['a', 'b', 'a', 'b', 'a', 'b']) oks.push((await pedir(m)).ok)
     expect(oks).toEqual([true, true, true, true, false, false])
   })
 
-  it('o 429 do provedor fecha o balde da conta para todos os modelos dele', () => {
+  it('o 429 do provedor fecha o balde da conta para todos os modelos dele', async () => {
     const alvo = { limites: { rpm: 60 }, compartilhado: true }
-    registrarLimiteNaAdmissao('llm', 'cf', 'a', 5, T0, alvo)
-    const r = admitirNoBalde({ tipo: 'llm', provedor: 'cf', modelo: 'b', plano: 'premium', ...alvo, agora: T0 + 1000 })
+    await registrarLimiteNaAdmissao('llm', 'cf', 'a', 5, T0, alvo)
+    const r = await admitirNoBalde({
+      tipo: 'llm',
+      provedor: 'cf',
+      modelo: 'b',
+      plano: 'premium',
+      ...alvo,
+      agora: T0 + 1000,
+    })
     expect(r.ok).toBe(false)
     if (r.ok === false) expect(r.recusa.motivo).toBe('provedor_limitou')
   })
 })
 
-describe('fracaoDoBalde — quanto sobra, para a política de custo (B4)', () => {
-  it('balde novo está cheio; consumido, a fração cai; fechado pelo 429, zero', () => {
+describe('fracaoDoBalde — quanto sobra, para a política de custo (B4)', async () => {
+  it('balde novo está cheio; consumido, a fração cai; fechado pelo 429, zero', async () => {
     const alvo = { tipo: 'llm' as const, provedor: 'x', modelo: 'm', limites: { rpm: 10 } }
-    expect(fracaoDoBalde({ ...alvo, agora: T0 })).toBe(1)
-    for (let i = 0; i < 9; i++) admitirNoBalde({ ...alvo, plano: 'premium', agora: T0 })
-    expect(fracaoDoBalde({ ...alvo, agora: T0 })).toBeCloseTo(0.1, 5)
-    registrarLimiteNaAdmissao('llm', 'x', 'm', 5, T0, { limites: alvo.limites })
-    expect(fracaoDoBalde({ ...alvo, agora: T0 + 1000 })).toBe(0)
+    expect(await fracaoDoBalde({ ...alvo, agora: T0 })).toBe(1)
+    for (let i = 0; i < 9; i++) await admitirNoBalde({ ...alvo, plano: 'premium', agora: T0 })
+    expect(await fracaoDoBalde({ ...alvo, agora: T0 })).toBeCloseTo(0.1, 5)
+    await registrarLimiteNaAdmissao('llm', 'x', 'm', 5, T0, { limites: alvo.limites })
+    expect(await fracaoDoBalde({ ...alvo, agora: T0 + 1000 })).toBe(0)
   })
 
-  it('a menor das dimensões manda: pedidos sobrando e tokens do minuto no fim', () => {
+  it('a menor das dimensões manda: pedidos sobrando e tokens do minuto no fim', async () => {
     const alvo = { tipo: 'llm' as const, provedor: 'x', modelo: 't', limites: { rpm: 100, tpm: 1000 } }
-    admitirNoBalde({ ...alvo, plano: 'premium', tokens: 900, agora: T0 })
-    expect(fracaoDoBalde({ ...alvo, agora: T0 })).toBeCloseTo(0.1, 5)
+    await admitirNoBalde({ ...alvo, plano: 'premium', tokens: 900, agora: T0 })
+    expect(await fracaoDoBalde({ ...alvo, agora: T0 })).toBeCloseTo(0.1, 5)
   })
 
-  it('sem teto nenhum, a fração é 1 (não há o que esgotar)', () => {
+  it('sem teto nenhum, a fração é 1 (não há o que esgotar)', async () => {
     process.env.IA_ADMISSAO_LLM_RPM = '0'
     process.env.IA_ADMISSAO_LLM_RPD = '0'
     process.env.IA_ADMISSAO_LLM_TPD = '0'
-    expect(fracaoDoBalde({ tipo: 'llm', provedor: 'x', modelo: 'livre', agora: T0 })).toBe(1)
+    expect(await fracaoDoBalde({ tipo: 'llm', provedor: 'x', modelo: 'livre', agora: T0 })).toBe(1)
   })
 })

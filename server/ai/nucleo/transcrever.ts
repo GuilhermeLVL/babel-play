@@ -82,8 +82,8 @@ export interface PortaGerenciadaDoStt {
 export type PortaDoStt = { byok: true } | PortaGerenciadaDoStt
 
 /** Solta a vaga em voo e, se a perna da porta não foi chamada, devolve o pedido ao balde. Idempotente. */
-export function fecharPortaDoStt(p: PortaDoStt): void {
-  encerrarAdmissaoDoStt(p.byok === true ? undefined : p.admissao)
+export async function fecharPortaDoStt(p: PortaDoStt): Promise<void> {
+  await encerrarAdmissaoDoStt(p.byok === true ? undefined : p.admissao)
 }
 
 /**
@@ -114,7 +114,7 @@ export async function admitirTranscricao(
     return recusar(501, { error: 'STT de nuvem não configurado: defina GROQ_API_KEY no servidor (.env)' })
   // O teste de 14 dias (C6) tem o Premium nos entitlements, mas entra na faixa grátis.
   const faixa = planoDeAdmissao(plano.plan, alivio, ctx.emTeste)
-  const admissao = admitirStt(pernas, { userId: ctx.userId, plano: faixa })
+  const admissao = await admitirStt(pernas, { userId: ctx.userId, plano: faixa })
   if (admissao.ok === false) return recusaNuvemOcupada(admissao.recusa)
   return {
     ok: true,
@@ -417,11 +417,14 @@ async function transcreverComAPorta(
     if (err instanceof ContadorIndisponivel) return decidir(recusaContadorIndisponivel())
     return decidir(recusar(502, { error: erroDeRota(err, { status: 502, event: 'stt_route_error' }) }))
   } finally {
-    fecharPortaDoStt(porta)
-    // As duas reservas caem juntas: cobrar segundos por uma transcrição que não aconteceu é o
-    // mesmo defeito que cobrar a chamada.
-    if (reservaPendente) await refundManagedCall(userId, modo)
-    if (segundosReservados > 0) await estornarSegundosDeStt(userId, segundosReservados, modo, diaDaReserva)
+    try {
+      await fecharPortaDoStt(porta)
+    } finally {
+      // As duas reservas caem juntas: cobrar segundos por uma transcrição que não aconteceu é o
+      // mesmo defeito que cobrar a chamada.
+      if (reservaPendente) await refundManagedCall(userId, modo)
+      if (segundosReservados > 0) await estornarSegundosDeStt(userId, segundosReservados, modo, diaDaReserva)
+    }
   }
 }
 

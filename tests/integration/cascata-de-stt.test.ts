@@ -344,10 +344,10 @@ describe('POST /api/ai/stt — a cascata', () => {
     /* '' e não `delete`: o dotenv repõe a variável apagada a partir do .env de quem roda. */
     for (const e of ENVS) process.env[e] = ''
   })
-  afterEach(() => {
+  afterEach(async () => {
     vi.unstubAllGlobals()
     vi.useRealTimers()
-    esquecerAdmissao()
+    await esquecerAdmissao()
     esquecerDisjuntores()
     esquecerRegistro()
   })
@@ -380,7 +380,7 @@ describe('POST /api/ai/stt — a cascata', () => {
     registro(REG_GROQ, REG_POR_SEGUNDO) // a porta admite a Groq (1ª do registro); o clipe curto vai para a outra
     provedores({ '203.0.113.21': OK_OPENAI, '203.0.113.20': OK_OPENAI })
     await stt(reqStt(wavPcm(2)), mockRes())
-    expect(fracaoDoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'whisper-large-v3-turbo' })).toBe(1)
+    expect(await fracaoDoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'whisper-large-v3-turbo' })).toBe(1)
   })
 
   it('429 na primeira: a próxima atende — e a que limitou fica fechada até o Retry-After', async () => {

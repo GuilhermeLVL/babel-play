@@ -131,11 +131,11 @@ beforeEach(async () => {
   await flags.definirFlag('voz_natural', { habilitada: true }, 'teste')
   esvaziarCacheDeVoz()
 })
-afterEach(() => {
+afterEach(async () => {
   forja.semVoz = false
   vi.unstubAllGlobals()
   esquecerDisjuntores()
-  esquecerAdmissao()
+  await esquecerAdmissao()
   esquecerRegistro()
 })
 

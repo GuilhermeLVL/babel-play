@@ -75,7 +75,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await h.cleanup()
 })
-beforeEach(() => {
+beforeEach(async () => {
   process.env.AUTH_REQUIRED = '1'
   process.env.GROQ_API_KEY = 'chave-stt'
   // IP público literal: `assertPublicUrl` resolve DNS de verdade, e api.groq.com não é assunto aqui.
@@ -95,7 +95,7 @@ beforeEach(() => {
     chamadasAoProvedor++
     return resposta()
   })
-  adm.esquecerAdmissao()
+  await adm.esquecerAdmissao()
   disj.esquecerDisjuntores()
 })
 afterEach(() => {
@@ -113,25 +113,26 @@ async function assinante(id: string) {
 }
 
 describe('balde por provedor e modelo (unidade)', () => {
-  it('Premium alcança o balde inteiro; quem não paga para na metade; o alívio do Grátis nos 20% de cima', () => {
+  it('Premium alcança o balde inteiro; quem não paga para na metade; o alívio do Grátis nos 20% de cima', async () => {
     process.env.IA_ADMISSAO_STT_RPM = '20'
     const agora = Date.UTC(2026, 8, 25, 12)
-    const contar = (plano: string, modelo: string) => {
+    const contar = async (plano: string, modelo: string) => {
       let n = 0
-      while (adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo, plano, agora }).ok) n++
+      while ((await adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo, plano, agora })).ok) n++
       return n
     }
-    expect(contar('premium', 'm-premium')).toBe(20)
-    expect(contar('gratis', 'm-gratis')).toBe(10)
-    expect(contar('alivio', 'm-alivio')).toBe(4)
+    expect(await contar('premium', 'm-premium')).toBe(20)
+    expect(await contar('gratis', 'm-gratis')).toBe(10)
+    expect(await contar('alivio', 'm-alivio')).toBe(4)
   })
 
-  it('a reserva dos pagantes só pesa quando passa do piso da faixa gratuita', () => {
+  it('a reserva dos pagantes só pesa quando passa do piso da faixa gratuita', async () => {
     process.env.IA_ADMISSAO_STT_RPM = '20'
     process.env.IA_ADMISSAO_RESERVA_PRO = '0.7'
     const agora = Date.UTC(2026, 8, 25, 12)
     let n = 0
-    while (adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'm-res', plano: 'gratis', agora }).ok) n++
+    while ((await adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'm-res', plano: 'gratis', agora })).ok)
+      n++
     expect(n).toBe(6)
   })
 
@@ -147,55 +148,67 @@ describe('balde por provedor e modelo (unidade)', () => {
     expect(adm.planoDeAdmissao('premium', false, true)).toBe('gratis')
   })
 
-  it('reabastece com o tempo, e a recusa diz quanto esperar', () => {
+  /* Fase 2, tarefa 8: o balde mora no banco, em JANELAS FIXAS de minuto — a recusa espera o minuto virar
+     (antes, reabastecimento contínuo: 1 pedido a cada 3 s). */
+  it('volta no minuto seguinte, e a recusa diz quanto esperar', async () => {
     process.env.IA_ADMISSAO_STT_RPM = '20'
     const t0 = Date.UTC(2026, 8, 25, 12)
     for (let i = 0; i < 20; i++)
-      adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'm', plano: 'premium', agora: t0 })
-    const recusa = adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'm', plano: 'premium', agora: t0 })
+      await adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'm', plano: 'premium', agora: t0 })
+    const recusa = await adm.admitirNoBalde({
+      tipo: 'stt',
+      provedor: 'groq',
+      modelo: 'm',
+      plano: 'premium',
+      agora: t0 + 15_000,
+    })
     expect(recusa.ok).toBe(false)
-    expect(recusa.recusa).toEqual({ motivo: 'minuto', retryAfterS: 3 }) // 1 pedido a cada 3 s
+    expect(recusa.recusa).toEqual({ motivo: 'minuto', retryAfterS: 45 }) // até o minuto virar
     expect(
-      adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'm', plano: 'premium', agora: t0 + 3_000 }).ok,
+      (await adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'm', plano: 'premium', agora: t0 + 60_000 }))
+        .ok,
     ).toBe(true)
   })
 
-  it('ticket devolvido põe o pedido de volta (recusa nossa não gasta o limite do provedor)', () => {
+  it('ticket devolvido põe o pedido de volta (recusa nossa não gasta o limite do provedor)', async () => {
     process.env.IA_ADMISSAO_STT_RPM = '1'
     const t0 = Date.UTC(2026, 8, 25, 12)
-    const r = adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'm', plano: 'premium', agora: t0 })
-    expect(adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'm', plano: 'premium', agora: t0 }).ok).toBe(
-      false,
-    )
-    r.ticket.devolver()
-    r.ticket.devolver() // idempotente
-    expect(adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'm', plano: 'premium', agora: t0 }).ok).toBe(
-      true,
-    )
-    expect(adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'm', plano: 'premium', agora: t0 }).ok).toBe(
-      false,
-    )
+    const pedir = async () =>
+      (await adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'm', plano: 'premium', agora: t0 })).ok
+    const r = await adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'm', plano: 'premium', agora: t0 })
+    expect(await pedir()).toBe(false)
+    await r.ticket.devolver()
+    await r.ticket.devolver() // idempotente
+    expect(await pedir()).toBe(true)
+    expect(await pedir()).toBe(false)
   })
 
-  it('teto diário de tokens do LLM, com a reserva dos pagantes', () => {
+  it('teto diário de tokens do LLM, com a reserva dos pagantes', async () => {
     const t0 = Date.UTC(2026, 8, 25, 12)
     const pedir = (plano: string, tokens: number) =>
       adm.admitirNoBalde({ tipo: 'llm', provedor: 'groq', modelo: 'gpt', plano, tokens, agora: t0 })
-    expect(pedir('gratis', 90_000).ok).toBe(true)
-    const r = pedir('gratis', 20_000) // 110K > 50% de 200K
+    expect((await pedir('gratis', 90_000)).ok).toBe(true)
+    const r = await pedir('gratis', 20_000) // 110K > 50% de 200K
     expect(r.ok).toBe(false)
     expect(r.recusa.motivo).toBe('tokens_dia')
     expect(r.recusa.retryAfterS).toBe(12 * 3600) // até a meia-noite UTC
-    expect(pedir('premium', 20_000).ok).toBe(true)
+    expect((await pedir('premium', 20_000)).ok).toBe(true)
   })
 
-  it('429 do provedor zera o saldo e fecha o balde até o Retry-After', () => {
+  it('429 do provedor zera o saldo e fecha o balde até o Retry-After', async () => {
     const t0 = Date.UTC(2026, 8, 25, 12)
-    adm.registrarLimiteNaAdmissao('stt', 'groq', 'm', 7, t0)
-    const r = adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'm', plano: 'premium', agora: t0 + 1_000 })
+    await adm.registrarLimiteNaAdmissao('stt', 'groq', 'm', 7, t0)
+    const r = await adm.admitirNoBalde({
+      tipo: 'stt',
+      provedor: 'groq',
+      modelo: 'm',
+      plano: 'premium',
+      agora: t0 + 1_000,
+    })
     expect(r.recusa).toEqual({ motivo: 'provedor_limitou', retryAfterS: 6 })
     expect(
-      adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'm', plano: 'premium', agora: t0 + 7_000 }).ok,
+      (await adm.admitirNoBalde({ tipo: 'stt', provedor: 'groq', modelo: 'm', plano: 'premium', agora: t0 + 7_000 }))
+        .ok,
     ).toBe(true)
   })
 

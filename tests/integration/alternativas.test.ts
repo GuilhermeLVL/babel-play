@@ -128,11 +128,11 @@ beforeEach(() => {
   process.env.DEEPINFRA_API_KEY = 'chave-deepinfra-falsa'
   esquecerGlossarioEmMemoria()
 })
-afterEach(() => {
+afterEach(async () => {
   forja.semNuance = false
   vi.unstubAllGlobals()
   esquecerDisjuntores()
-  esquecerAdmissao()
+  await esquecerAdmissao()
   esquecerRegistro()
 })
 

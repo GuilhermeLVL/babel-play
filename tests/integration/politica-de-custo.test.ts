@@ -255,9 +255,9 @@ describe('a degradação na rota, com o orçamento forçado', () => {
     process.env.GROQ_API_KEY = 'chave-groq-falsa'
     await cache.esvaziarCacheDeTraducao()
   })
-  afterEach(() => {
+  afterEach(async () => {
     vi.unstubAllGlobals()
-    esquecerAdmissao()
+    await esquecerAdmissao()
     esquecerDisjuntores()
     esquecerRegistro()
   })

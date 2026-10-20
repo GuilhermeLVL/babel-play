@@ -242,28 +242,33 @@ interface AdmissaoDaVoz {
   plano: PlanoDeAdmissao
   perna: Provedor
   ticket: TicketDeBalde
-  liberar: () => void
+  liberar: () => Promise<void>
   chamada: boolean
 }
 
 /** Vaga em voo + o balde da primeira perna (na ordem do registro) com saldo — como o STT. */
-function admitirVoz(
+async function admitirVoz(
   pernas: Provedor[],
   p: { userId: string; plano: PlanoDeAdmissao },
-): { ok: true; admissao: AdmissaoDaVoz } | { ok: false; recusa: Recusa } {
-  const liberar = ocuparVaga(p.userId, 'tts')
+): Promise<{ ok: true; admissao: AdmissaoDaVoz } | { ok: false; recusa: Recusa }> {
+  const liberar = await ocuparVaga(p.userId, 'tts')
   if (!liberar) {
     contarAdmissaoRecusada('em_voo', p.plano)
     return { ok: false, recusa: { motivo: 'em_voo', retryAfterS: 1 } }
   }
   let recusa: Recusa | null = null
   for (const perna of pernas) {
-    const r = admitirNoBalde({ tipo: 'tts', ...alvoDaPerna(perna), plano: p.plano, silenciosa: true })
+    const r = await admitirNoBalde({ tipo: 'tts', ...alvoDaPerna(perna), plano: p.plano, silenciosa: true }).catch(
+      async (erro: unknown) => {
+        await liberar()
+        throw erro
+      },
+    )
     if (r.ok === true)
       return { ok: true, admissao: { plano: p.plano, perna, ticket: r.ticket, liberar, chamada: false } }
     if (!recusa || r.recusa.retryAfterS < recusa.retryAfterS) recusa = r.recusa
   }
-  liberar()
+  await liberar()
   const final = recusa ?? { motivo: 'minuto' as const, retryAfterS: 1 }
   contarAdmissaoRecusada(final.motivo, p.plano)
   return { ok: false, recusa: final }
@@ -361,7 +366,7 @@ async function sintetizar(
   if (!portao.ok) return decidir(recusaPortaoFechado(portao))
 
   /* 7) A ADMISSÃO — o teste de 14 dias do Premium entra como grátis (C6). */
-  const admitida = admitirVoz(pernas, {
+  const admitida = await admitirVoz(pernas, {
     userId: ctx.userId,
     plano: planoDeAdmissao(plano.plan, ctx.modo === 'alivio', ctx.emTeste),
   })
@@ -448,10 +453,16 @@ async function sintetizar(
   } catch (err) {
     return decidir(recusar(502, { error: `falha na voz natural: ${erroDeRota(err, { event: 'tts_erro' })}` }))
   } finally {
-    if (!adm.chamada) adm.ticket.devolver()
-    adm.liberar()
-    /* Todo caminho que não entregou devolve os caracteres — a pessoa não paga pela voz que não ouviu. */
-    if (reservou && !entregou) await estornarCaracteresDeVoz(ctx.userId, caracteres, reservaDoDia)
+    try {
+      if (!adm.chamada) await adm.ticket.devolver()
+    } finally {
+      try {
+        await adm.liberar()
+      } finally {
+        /* Todo caminho que não entregou devolve os caracteres — a pessoa não paga pela voz que não ouviu. */
+        if (reservou && !entregou) await estornarCaracteresDeVoz(ctx.userId, caracteres, reservaDoDia)
+      }
+    }
   }
 }
 
@@ -483,7 +494,7 @@ async function percorrerPernasDaVoz(
     if (clienteDesistiu(sinal)) return { ok: false, falha: 'cancelado' }
     let ticket: TicketDeBalde | null = null
     if (perna !== adm.perna) {
-      const r = admitirNoBalde({ tipo: 'tts', ...alvoDaPerna(perna), plano: adm.plano })
+      const r = await admitirNoBalde({ tipo: 'tts', ...alvoDaPerna(perna), plano: adm.plano })
       if (r.ok === false) {
         if (!semSaldo || r.recusa.retryAfterS < semSaldo.retryAfterS) semSaldo = r.recusa
         continue
@@ -492,7 +503,7 @@ async function percorrerPernasDaVoz(
     }
     const disjuntor = chaveDoProvedor(perna)
     if (!disjuntorPermite(disjuntor)) {
-      ticket?.devolver()
+      await ticket?.devolver()
       pulouPorDisjuntor = true
       log('warn', { event: 'tts_provedor_em_disjuntor', route: ROTA, provider: perna.rotulo, requestId })
       continue
@@ -543,7 +554,7 @@ async function percorrerPernasDaVoz(
     const corpo = await resposta.text().catch(() => '')
     if (resposta.status === 429) {
       registrarLimiteDoProvedor(provedor, perna.model)
-      const espera = registrarLimiteNaAdmissao(
+      const espera = await registrarLimiteNaAdmissao(
         'tts',
         provedor,
         perna.model,

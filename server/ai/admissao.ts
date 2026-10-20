@@ -36,11 +36,18 @@
  * Tudo é consultado ANTES de reservar a cota do usuário e ANTES de chamar o provedor. Recusa é 429
  * `nuvem_ocupada` com `Retry-After` em segundos.
  *
- * ESTADO POR PROCESSO, e isso tem limite declarado: com mais de uma réplica cada uma teria o seu
- * bucket e a soma passaria do limite da conta. O ADR 0007 registra a troca por estado compartilhado
- * junto com o gatilho do ADR 0006 — até lá a trava de boot mantém uma réplica só.
+ * ESTADO NO BANCO (Fase 2, tarefa 8; ADR 0007 revisto). Os baldes, o bloqueio do 429 e as vagas em voo
+ * moram na tabela `admissao_de_ia` (`server/db/repositories/admissaoDeIa.ts`), reservados numa instrução
+ * atômica: com várias instâncias (isolates do Worker, réplicas) a soma nunca passa do limite da conta.
+ * Duas consequências de desenho:
+ *   · o minuto é uma JANELA FIXA (UTC, `YYYY-MM-DDTHH:MM`), e não mais o reabastecimento contínuo: é a
+ *     simplificação de praxe de um limitador em banco (uma linha por janela, sem relógio por balde). A
+ *     recusa espera até o minuto virar; na borda, até 2× o rpm pode passar em 60 s corridos;
+ *   · a memória do processo guarda só o que não decide admissão: os limites em vigor de cada balde, o
+ *     último saldo visto (gauge) e um CACHE DE RECUSA de até 1 s (`recusasRecentes`).
  */
 import { ehPlanoPago, normalizarPlano } from '../../src/core/planos'
+import { admissaoDeIaRepo, type Reserva } from '../db/repositories/admissaoDeIa'
 import { contarAdmissaoRecusada, registrarLeitorDeSaldo } from '../http/metricas'
 import { configDeAdmissao } from '../lib/config'
 import type { LimitesDeclarados } from './registroDeProvedores'
@@ -108,30 +115,49 @@ export interface AlvoDoBalde {
   compartilhado?: boolean
 }
 
+/**
+ * O QUE ESTA INSTÂNCIA SABE de um balde — nunca o saldo que admite (esse é do banco): as chaves, os
+ * limites em vigor e o último `usado` do minuto que ela viu (só para o gauge de `/metrics`).
+ */
 interface Balde {
-  tipo: TipoDeIa
   provedor: string
   modelo: string
+  /** Pedidos (minuto, dia) e o bloqueio do 429. */
+  chave: string
+  /** Tokens (minuto, dia). */
+  chaveDeTokens: string
   lim: LimitesDoBalde
   /** Os limites vieram do registro? Então quem pergunta sem eles (o gauge, um repique) não os troca pelos do env. */
   declarado: boolean
-  /** Pedidos disponíveis no minuto (fracionário: o reabastecimento é contínuo). */
-  saldo: number
-  /** Tokens disponíveis no minuto (`tpm`); pode ficar negativo depois de um pedido maior que a estimativa. */
-  saldoDeTokens: number
-  atualizadoEm: number
-  /** Dia UTC dos contadores diários. */
-  dia: string
-  pedidosHoje: number
-  tokensHoje: number
-  /** O provedor mandou parar até aqui (429 com `Retry-After`). */
-  bloqueadoAte: number
+  /** Último `usado` de pedidos visto no minuto `janelaVista` (gauge). */
+  usadoVisto: number
+  janelaVista: string
 }
 
 const baldes = new Map<string, Balde>()
-const emVoo = new Map<string, number>()
+
+/**
+ * CACHE DE RECUSA (por instância). Depois de uma recusa do banco, o mesmo balde e plano é recusado aqui,
+ * sem ir ao banco, por até `CACHE_DE_RECUSA_MS` — e nunca depois de a janela que recusou virar (`ate`).
+ * Numa rajada contra um balde vazio, cada isolate vai ao banco no máximo uma vez por segundo. O custo:
+ * uma vaga aberta por outra instância (ticket devolvido lá) demora até 1 s para ser vista aqui. Um ticket
+ * devolvido NESTA instância apaga a recusa do balde na hora.
+ */
+const CACHE_DE_RECUSA_MS = 1_000
+/** `ate`: fim do cache; `reabre`: quando a janela (ou o bloqueio) que recusou abre de novo. */
+const recusasRecentes = new Map<string, { em: number; ate: number; reabre: number; motivo: MotivoDeRecusa }>()
 
 const diaUtc = (agora: number) => new Date(agora).toISOString().slice(0, 10)
+/** A janela FIXA do minuto UTC: `YYYY-MM-DDTHH:MM`. */
+const minutoUtc = (agora: number) => new Date(agora).toISOString().slice(0, 16)
+const inicioDoProximoMinuto = (agora: number) => Math.floor(agora / 60_000) * 60_000 + 60_000
+function inicioDoProximoDia(agora: number): number {
+  const d = new Date(agora)
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1)
+}
+
+/** Folga de ponto flutuante no teto: 20 × (1 − 0,8) dá 3,999…, e o 4º pedido do alívio tem de caber. */
+const FOLGA = 1e-9
 
 /**
  * Os limites do balde: os DECLARADOS na perna, dimensão a dimensão (ausente = sem teto), ou, sem
@@ -151,29 +177,22 @@ function limitesDe(tipo: TipoDeIa, declarados?: LimitesDeclarados): LimitesDoBal
   return { rpm: l.rpm, tpm: 0, rpd: l.rpd, tpd: l.tpd }
 }
 
-/** A chave do balde: por modelo, ou `*` quando os limites são da conta no provedor. */
-const chaveDoBalde = (tipo: TipoDeIa, provedor: string, modelo: string, alvo: AlvoDoBalde) =>
-  `${tipo}·${provedor}·${alvo.compartilhado && alvo.limites ? '*' : modelo}`
-
-/** O balde do par provedor + modelo, já reabastecido até `agora` e com o dia virado. */
-function baldeDe(tipo: TipoDeIa, provedor: string, modelo: string, agora: number, alvo: AlvoDoBalde = {}): Balde {
-  const chave = chaveDoBalde(tipo, provedor, modelo, alvo)
+/** O balde do par provedor + modelo (`*` quando os limites são da conta no provedor), com os limites de agora. */
+function baldeDe(tipo: TipoDeIa, provedor: string, modelo: string, alvo: AlvoDoBalde = {}): Balde {
+  const doBalde = alvo.compartilhado && alvo.limites ? '*' : modelo
+  const chave = `bucket:${provedor}:${doBalde}:${tipo}`
   const lim = limitesDe(tipo, alvo.limites)
   let b = baldes.get(chave)
   if (!b) {
     b = {
-      tipo,
       provedor,
-      modelo: alvo.compartilhado && alvo.limites ? '*' : modelo,
+      modelo: doBalde,
+      chave,
+      chaveDeTokens: `tokens:${provedor}:${doBalde}:${tipo}`,
       lim,
       declarado: Boolean(alvo.limites),
-      saldo: lim.rpm,
-      saldoDeTokens: lim.tpm,
-      atualizadoEm: agora,
-      dia: diaUtc(agora),
-      pedidosHoje: 0,
-      tokensHoje: 0,
-      bloqueadoAte: 0,
+      usadoVisto: 0,
+      janelaVista: '',
     }
     baldes.set(chave, b)
     return b
@@ -184,62 +203,61 @@ function baldeDe(tipo: TipoDeIa, provedor: string, modelo: string, agora: number
     b.lim = lim
     b.declarado = Boolean(alvo.limites)
   }
-  reabastecer(b, agora)
   return b
 }
 
-/** Reabastece o minuto até `agora` (contínuo, sem passar do teto) e vira o dia UTC. */
-function reabastecer(b: Balde, agora: number): void {
-  const { rpm, tpm } = b.lim
-  const decorrido = Math.max(0, agora - b.atualizadoEm)
-  if (rpm > 0) b.saldo = Math.min(rpm, b.saldo + (decorrido * rpm) / 60_000)
-  if (tpm > 0) b.saldoDeTokens = Math.min(tpm, b.saldoDeTokens + (decorrido * tpm) / 60_000)
-  b.atualizadoEm = agora
-  const hoje = diaUtc(agora)
-  if (b.dia !== hoje) {
-    b.dia = hoje
-    b.pedidosHoje = 0
-    b.tokensHoje = 0
-  }
+/** Anota o `usado` de pedidos do minuto que esta instância viu (gauge). */
+function verUsado(b: Balde, janela: string, usado: number): void {
+  b.janelaVista = janela
+  b.usadoVisto = usado
 }
 
-/** Segundos até a meia-noite UTC — quando os tetos diários da Groq voltam. */
-function segundosAteVirarODia(agora: number): number {
-  const d = new Date(agora)
-  const amanha = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1)
-  return Math.max(1, Math.ceil((amanha - agora) / 1000))
+/** Esquece as recusas em cache de um balde (todas as faixas): ele acabou de ganhar folga nesta instância. */
+function esquecerRecusasDo(b: Balde): void {
+  for (const k of recusasRecentes.keys()) if (k.startsWith(`${b.chave}|`)) recusasRecentes.delete(k)
 }
 
 /**
  * O pedido admitido no BALDE de um modelo. Quem admitiu é dono dele: se o provedor NÃO for chamado
  * (cota do usuário recusou, áudio ilegível), `devolver()` põe o pedido de volta — recusa nossa não
- * pode gastar o limite do provedor.
+ * pode gastar o limite do provedor. Guarda as JANELAS em que reservou: devolver e acertar mexem nelas,
+ * mesmo que o minuto já tenha virado.
  */
 export class TicketDeBalde {
   private devolvido = false
   constructor(
     private readonly balde: Balde,
+    private readonly reservas: Reserva[],
+    private readonly minuto: string,
+    private readonly dia: string,
     private tokens: number,
   ) {}
 
-  devolver(): void {
+  async devolver(): Promise<void> {
     if (this.devolvido) return
     this.devolvido = true
-    const lim = this.balde.lim
-    if (lim.rpm > 0) this.balde.saldo = Math.min(lim.rpm, this.balde.saldo + 1)
-    if (lim.tpm > 0) this.balde.saldoDeTokens = Math.min(lim.tpm, this.balde.saldoDeTokens + this.tokens)
-    this.balde.pedidosHoje = Math.max(0, this.balde.pedidosHoje - 1)
-    this.balde.tokensHoje = Math.max(0, this.balde.tokensHoje - this.tokens)
+    esquecerRecusasDo(this.balde)
+    const desfazer = this.reservas.map((r) => ({
+      chave: r.chave,
+      janela: r.janela,
+      delta: -Math.round(r.custo),
+    }))
     this.tokens = 0
+    await admissaoDeIaRepo.ajustar(desfazer)
   }
 
-  /** O provedor respondeu: os tokens do dia (e do minuto) passam da estimativa para o uso REAL. */
-  acertarTokens(reais: number): void {
+  /** O provedor respondeu: os tokens do minuto e do dia passam da estimativa para o uso REAL. */
+  async acertarTokens(reais: number): Promise<void> {
     if (this.devolvido || !Number.isFinite(reais) || reais < 0) return
-    this.balde.tokensHoje = Math.max(0, this.balde.tokensHoje + reais - this.tokens)
-    const lim = this.balde.lim
-    if (lim.tpm > 0) this.balde.saldoDeTokens = Math.min(lim.tpm, this.balde.saldoDeTokens + this.tokens - reais)
-    this.tokens = reais
+    const delta = Math.round(reais) - this.tokens
+    this.tokens = Math.round(reais)
+    if (delta < 0) esquecerRecusasDo(this.balde) // a estimativa sobrou: o balde ganhou folga aqui
+    const { tpm, tpd } = this.balde.lim
+    const ajustes = [
+      ...(tpm > 0 ? [{ chave: this.balde.chaveDeTokens, janela: this.minuto, delta }] : []),
+      ...(tpd > 0 ? [{ chave: this.balde.chaveDeTokens, janela: this.dia, delta }] : []),
+    ]
+    await admissaoDeIaRepo.ajustar(ajustes)
   }
 }
 
@@ -256,93 +274,151 @@ interface PedidoDeAdmissao extends AlvoDoBalde {
 }
 
 /**
- * Consulta e CONSOME o balde. Não mexe na vaga em voo (`ocuparVaga`):
- * a perna de reserva da cascata é admitida no balde DELA, na hora de ser chamada.
+ * Consulta e CONSOME o balde, no banco, numa instrução (`admissaoDeIaRepo.reservarJuntas`): o bloqueio
+ * do 429 e cada dimensão com teto — pedidos e tokens do minuto, pedidos e tokens do dia —, tudo ou nada.
+ * O LIMIAR DO PLANO vira o teto da reserva: a faixa alcança `limite × (1 − piso)`. Não mexe na vaga em
+ * voo (`ocuparVaga`): a perna de reserva da cascata é admitida no balde DELA, na hora de ser chamada.
  */
-export function admitirNoBalde(
+export async function admitirNoBalde(
   p: PedidoDeAdmissao,
-): { ok: true; ticket: TicketDeBalde } | { ok: false; recusa: Recusa } {
+): Promise<{ ok: true; ticket: TicketDeBalde } | { ok: false; recusa: Recusa }> {
   const agora = p.agora ?? Date.now()
   const cfg = configDeAdmissao()
   const piso = pisoDoPlano(p.plano, cfg.reservaDosPagantes)
   const tokens = Math.max(0, Math.round(p.tokens ?? 0))
-  const b = baldeDe(p.tipo, p.provedor, p.modelo, agora, p)
+  const b = baldeDe(p.tipo, p.provedor, p.modelo, p)
   const lim = b.lim
 
   const recusar = (motivo: MotivoDeRecusa, retryAfterS: number) => {
     if (!p.silenciosa) contarAdmissaoRecusada(motivo, p.plano)
-    return { ok: false as const, recusa: { motivo, retryAfterS: Math.max(1, Math.ceil(retryAfterS)) } }
-  }
-
-  if (agora < b.bloqueadoAte) return recusar('provedor_limitou', (b.bloqueadoAte - agora) / 1000)
-  if (lim.rpm > 0) {
-    /* O LIMIAR DO PLANO: sobra, depois deste pedido, pelo menos a parte que o plano não alcança. */
-    const intocavel = lim.rpm * piso
-    if (b.saldo - 1 < intocavel - 1e-9) {
-      return recusar('minuto', ((intocavel + 1 - b.saldo) / lim.rpm) * 60)
+    return {
+      ok: false as const,
+      recusa: { motivo, retryAfterS: Math.max(1, Math.ceil(retryAfterS)) },
     }
   }
+
+  const chaveDoCache = `${b.chave}|${p.plano}`
+  const emCache = recusasRecentes.get(chaveDoCache)
+  if (emCache && agora >= emCache.em && agora < emCache.ate) {
+    return recusar(emCache.motivo, (emCache.reabre - agora) / 1000)
+  }
+  if (emCache) recusasRecentes.delete(chaveDoCache)
+
+  const minuto = minutoUtc(agora)
+  const dia = diaUtc(agora)
+  const fracao = 1 - piso
+  const itens: Array<Reserva & { motivo: MotivoDeRecusa }> = []
+  if (lim.rpm > 0)
+    itens.push({
+      chave: b.chave,
+      janela: minuto,
+      custo: 1,
+      teto: lim.rpm * fracao + FOLGA,
+      motivo: 'minuto',
+    })
   if (lim.tpm > 0 && tokens > 0) {
-    /* O MESMO LIMIAR, em tokens por minuto. Um pedido maior que a parte do plano conta como a parte
-       inteira — senão ele nunca passaria, nem com o balde cheio; o excesso fica devendo (saldo
-       negativo) e segura os próximos até reabastecer. */
-    const intocavel = lim.tpm * piso
-    const precisa = Math.min(tokens, lim.tpm - intocavel)
-    if (b.saldoDeTokens - precisa < intocavel - 1e-9) {
-      return recusar('tokens_minuto', ((intocavel + precisa - b.saldoDeTokens) / lim.tpm) * 60)
-    }
+    /* Um pedido maior que a parte do plano conta como a parte inteira — senão ele nunca passaria, nem
+       com a janela vazia; o excesso fica devendo (`usado` acima do teto) e segura os próximos. */
+    const teto = lim.tpm * fracao
+    itens.push({
+      chave: b.chaveDeTokens,
+      janela: minuto,
+      custo: tokens,
+      exigido: Math.min(tokens, teto),
+      teto: teto + FOLGA,
+      motivo: 'tokens_minuto',
+    })
   }
-  if (lim.rpd > 0 && b.pedidosHoje + 1 > lim.rpd * (1 - piso)) return recusar('dia', segundosAteVirarODia(agora))
-  if (lim.tpd > 0 && tokens > 0 && b.tokensHoje + tokens > lim.tpd * (1 - piso)) {
-    return recusar('tokens_dia', segundosAteVirarODia(agora))
+  if (lim.rpd > 0)
+    itens.push({
+      chave: b.chave,
+      janela: dia,
+      custo: 1,
+      teto: lim.rpd * fracao + FOLGA,
+      motivo: 'dia',
+    })
+  if (lim.tpd > 0 && tokens > 0) {
+    itens.push({
+      chave: b.chaveDeTokens,
+      janela: dia,
+      custo: tokens,
+      teto: lim.tpd * fracao + FOLGA,
+      motivo: 'tokens_dia',
+    })
   }
 
-  if (lim.rpm > 0) b.saldo -= 1
-  if (lim.tpm > 0) b.saldoDeTokens -= tokens
-  b.pedidosHoje += 1
-  b.tokensHoje += tokens
-  return { ok: true, ticket: new TicketDeBalde(b, tokens) }
+  const r = await admissaoDeIaRepo.reservarJuntas(
+    itens.map(({ motivo: _m, ...reserva }) => reserva),
+    { agora, bloqueio: b.chave },
+  )
+  const iMinuto = itens.findIndex((i) => i.motivo === 'minuto')
+  if (iMinuto >= 0) verUsado(b, minuto, r.usados[iMinuto] ?? 0)
+  if (r.ok === true) return { ok: true, ticket: new TicketDeBalde(b, itens, minuto, dia, tokens) }
+  return recusarPeloBanco(r)
+
+  function recusarPeloBanco(n: { bloqueadoAte?: number; recusadas: number[] }) {
+    let motivo: MotivoDeRecusa
+    let reabre: number
+    if (n.bloqueadoAte) {
+      motivo = 'provedor_limitou'
+      reabre = n.bloqueadoAte
+    } else {
+      motivo = itens[n.recusadas[0]]?.motivo ?? 'minuto'
+      reabre = motivo === 'dia' || motivo === 'tokens_dia' ? inicioDoProximoDia(agora) : inicioDoProximoMinuto(agora)
+    }
+    recusasRecentes.set(chaveDoCache, { em: agora, ate: Math.min(agora + CACHE_DE_RECUSA_MS, reabre), reabre, motivo })
+    return recusar(motivo, (reabre - agora) / 1000)
+  }
 }
 
 /**
  * QUANTO SOBRA NO BALDE, de 0 a 1 — a "demanda" da política de custo (`politicaDeCusto.ts`, B4): a
  * menor das dimensões com teto (pedidos e tokens do minuto, pedidos e tokens do dia). Fechado pelo
- * 429 do provedor, zero; sem teto nenhum, 1. Só LÊ: não consome nem conta recusa.
+ * 429 do provedor, zero; sem teto nenhum, 1. Só LÊ (uma instrução): não consome nem conta recusa.
  */
-export function fracaoDoBalde(
-  p: AlvoDoBalde & { tipo: TipoDeIa; provedor: string; modelo: string; agora?: number },
-): number {
+export async function fracaoDoBalde(
+  p: AlvoDoBalde & {
+    tipo: TipoDeIa
+    provedor: string
+    modelo: string
+    agora?: number
+  },
+): Promise<number> {
   const agora = p.agora ?? Date.now()
-  const b = baldeDe(p.tipo, p.provedor, p.modelo, agora, p)
-  if (agora < b.bloqueadoAte) return 0
+  const b = baldeDe(p.tipo, p.provedor, p.modelo, p)
   const { rpm, tpm, rpd, tpd } = b.lim
-  const fracoes = [
-    rpm > 0 ? b.saldo / rpm : 1,
-    tpm > 0 ? b.saldoDeTokens / tpm : 1,
-    rpd > 0 ? 1 - b.pedidosHoje / rpd : 1,
-    tpd > 0 ? 1 - b.tokensHoje / tpd : 1,
-  ]
+  const minuto = minutoUtc(agora)
+  const dia = diaUtc(agora)
+  const dimensoes = [
+    { limite: rpm, chave: b.chave, janela: minuto },
+    { limite: tpm, chave: b.chaveDeTokens, janela: minuto },
+    { limite: rpd, chave: b.chave, janela: dia },
+    { limite: tpd, chave: b.chaveDeTokens, janela: dia },
+  ].filter((d) => d.limite > 0)
+  const lido = await admissaoDeIaRepo.ler(dimensoes, b.chave, agora)
+  if (lido.bloqueadoAte) return 0
+  const fracoes = dimensoes.map((d, i) => 1 - lido.usados[i] / d.limite)
   return Math.max(0, Math.min(1, ...fracoes))
 }
 
 /**
- * Ocupa uma vaga EM VOO do usuário. Devolve a função que a libera (idempotente), ou `null` quando
- * ele já está no teto — 1 STT, 2 LLM e 1 voz natural por padrão.
+ * Ocupa uma vaga EM VOO do usuário, no banco (uma instrução). Devolve a função que a libera
+ * (idempotente; chame num `finally`), ou `null` quando ele já está no teto — 1 STT, 2 LLM e 1 voz
+ * natural por padrão. Vaga parada há mais de 10 min (isolate que caiu sem soltar) não conta.
  */
-export function ocuparVaga(userId: string, tipo: TipoDeIa): (() => void) | null {
+export async function ocuparVaga(
+  userId: string,
+  tipo: TipoDeIa,
+  agora = Date.now(),
+): Promise<(() => Promise<void>) | null> {
   const cfg = configDeAdmissao()
   const teto = tipo === 'stt' ? cfg.emVooStt : tipo === 'tts' ? cfg.emVooTts : cfg.emVooLlm
-  const chave = `${tipo}:${userId}`
-  const atuais = emVoo.get(chave) ?? 0
-  if (atuais >= teto) return null
-  emVoo.set(chave, atuais + 1)
+  if (!(await admissaoDeIaRepo.entrarEmVoo(userId, tipo, teto, agora))) return null
   let liberada = false
-  return () => {
+  return async () => {
     if (liberada) return
     liberada = true
-    const n = (emVoo.get(chave) ?? 1) - 1
-    if (n <= 0) emVoo.delete(chave)
-    else emVoo.set(chave, n)
+    await admissaoDeIaRepo.sairDeVoo(userId, tipo)
   }
 }
 
@@ -359,38 +435,48 @@ export function segundosDoRetryAfter(valor: string | null | undefined, agora = D
 }
 
 /**
- * O PROVEDOR RESPONDEU 429: o saldo vai a zero e o balde fica fechado até o `Retry-After` dele.
- * Sem o cabeçalho, fecha pelo tempo de reabastecer UM pedido — o mínimo que faz sentido esperar.
+ * O PROVEDOR RESPONDEU 429: o balde fica fechado, no banco (para todas as instâncias), até o
+ * `Retry-After` dele. Sem o cabeçalho, fecha pelo tempo de UM pedido no ritmo do minuto — o mínimo
+ * que faz sentido esperar. Devolve a espera em segundos.
  */
-export function registrarLimiteNaAdmissao(
+export async function registrarLimiteNaAdmissao(
   tipo: TipoDeIa,
   provedor: string,
   modelo: string,
   retryAfterS?: number,
   agora = Date.now(),
   alvo: AlvoDoBalde = {},
-): number {
-  const b = baldeDe(tipo, provedor, modelo, agora, alvo)
+): Promise<number> {
+  const b = baldeDe(tipo, provedor, modelo, alvo)
   const lim = b.lim
   const espera = retryAfterS ?? (lim.rpm > 0 ? Math.ceil(60 / lim.rpm) : 5)
-  b.saldo = 0
-  if (lim.tpm > 0) b.saldoDeTokens = Math.min(b.saldoDeTokens, 0)
-  b.bloqueadoAte = Math.max(b.bloqueadoAte, agora + espera * 1000)
+  verUsado(b, minutoUtc(agora), lim.rpm)
+  await admissaoDeIaRepo.bloquearAte(b.chave, agora + espera * 1000, agora)
   return Math.max(1, espera)
 }
 
-/** O saldo atual de cada balde (reabastecido até agora) — para o gauge de `/metrics`. */
+/**
+ * O saldo do minuto de cada balde QUE ESTA INSTÂNCIA VIU (o último `usado` que o banco lhe devolveu) —
+ * para o gauge de `/metrics`. É a visão local: outra instância pode ter gastado depois. Minuto virado:
+ * o balde volta cheio.
+ */
 export function saldosDaAdmissao(agora = Date.now()): Array<{ provedor: string; modelo: string; saldo: number }> {
+  const minuto = minutoUtc(agora)
   return [...baldes.values()].map((b) => {
-    reabastecer(b, agora)
-    return { provedor: b.provedor, modelo: b.modelo, saldo: Math.floor(b.saldo * 100) / 100 }
+    const usado = b.janelaVista === minuto ? b.usadoVisto : 0
+    return {
+      provedor: b.provedor,
+      modelo: b.modelo,
+      saldo: Math.max(0, b.lim.rpm - usado),
+    }
   })
 }
 
 registrarLeitorDeSaldo(() => saldosDaAdmissao())
 
-/** Só para os testes: esquece baldes e vagas. */
-export function esquecerAdmissao(): void {
+/** Só para os testes: esquece baldes, recusas em cache e os contadores no banco. */
+export async function esquecerAdmissao(): Promise<void> {
   baldes.clear()
-  emVoo.clear()
+  recusasRecentes.clear()
+  await admissaoDeIaRepo.esquecerTudo()
 }

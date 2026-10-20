@@ -314,7 +314,7 @@ async function polirPendentes(
   const maxTokens = POLIMENTO.maxTokens
   const estimativa = estimarTokens(tamanhoDoPrompt(messages), maxTokens)
 
-  const custo = aplicarPoliticaDeCusto({
+  const custo = await aplicarPoliticaDeCusto({
     pernas,
     nivel,
     fracaoDoOrcamento: portao.fracaoDoOrcamento ?? 0,
@@ -323,7 +323,7 @@ async function polirPendentes(
   })
   if (custo.degradacao !== 'nenhuma') rastro.anotar({ degradacao: custo.degradacao })
 
-  const admitida = admitirCascata(custo.pernas, {
+  const admitida = await admitirCascata(custo.pernas, {
     userId: ctx.userId,
     // O teste de 14 dias (C6) tem a Nuance nos entitlements, mas entra na faixa grátis da admissão.
     plano: planoDeAdmissao(plano.plan, ctx.modo === 'alivio', ctx.emTeste),
@@ -415,8 +415,11 @@ async function polirPendentes(
   } catch (err) {
     return decidir(recusar(502, { error: `falha no polimento: ${erroDeRota(err, { event: 'mt_polimento_erro' })}` }))
   } finally {
-    encerrarAdmissao(admitida.admissao)
-    // Todo caminho que NÃO consumiu devolve chamada e tokens.
-    await reserva?.estornar()
+    try {
+      await encerrarAdmissao(admitida.admissao)
+    } finally {
+      // Todo caminho que NÃO consumiu devolve chamada e tokens.
+      await reserva?.estornar()
+    }
   }
 }

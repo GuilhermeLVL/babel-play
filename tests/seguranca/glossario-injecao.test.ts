@@ -200,10 +200,10 @@ describe('na rota: o prompt que sai para o provedor', () => {
     esquecerGlossarioEmMemoria()
     await esvaziarCache()
   })
-  afterEach(() => {
+  afterEach(async () => {
     vi.unstubAllGlobals()
     esquecerDisjuntores()
-    esquecerAdmissao()
+    await esquecerAdmissao()
     esquecerRegistro()
   })
 

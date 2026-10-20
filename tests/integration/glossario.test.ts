@@ -85,10 +85,10 @@ beforeEach(async () => {
   esquecerGlossarioEmMemoria()
   await cache.esvaziarCacheDeTraducao()
 })
-afterEach(() => {
+afterEach(async () => {
   vi.unstubAllGlobals()
   esquecerDisjuntores()
-  esquecerAdmissao()
+  await esquecerAdmissao()
   esquecerRegistro()
 })
 

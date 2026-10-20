@@ -184,10 +184,10 @@ beforeEach(async () => {
   esvaziarCacheDeTraducao()
   esvaziarCacheDeVoz()
 })
-afterEach(() => {
+afterEach(async () => {
   vi.unstubAllGlobals()
   esquecerDisjuntores()
-  esquecerAdmissao()
+  await esquecerAdmissao()
   esquecerRegistro()
 })
 

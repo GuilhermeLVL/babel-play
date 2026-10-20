@@ -63,14 +63,14 @@ afterAll(async () => {
   for (const e of ENVS) delete process.env[e]
   await h.cleanup()
 })
-afterEach(() => {
+afterEach(async () => {
   vi.unstubAllGlobals()
   for (const e of ENVS) delete process.env[e]
   process.env.AUTH_REQUIRED = '1'
   esquecerDisjuntores()
   /* A admissão de IA (ADR 0007) é estado de processo como o disjuntor: um 429 encenado fecha o
      balde do modelo, e os casos somados passariam do limite por minuto. Zerada entre casos. */
-  esquecerAdmissao()
+  await esquecerAdmissao()
 })
 
 function primarioGroq() {

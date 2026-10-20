@@ -97,9 +97,9 @@ beforeEach(async () => {
   await cache.esvaziarCacheDeTraducao()
   await ligarNuvem(false)
 })
-afterEach(() => {
+afterEach(async () => {
   vi.restoreAllMocks()
-  admissao.esquecerAdmissao()
+  await admissao.esquecerAdmissao()
   delete process.env.GROQ_API_KEY
   delete process.env.CONVIDADOS_POR_IP_DIA
   delete process.env.CONVIDADO_IP_USD_DIA

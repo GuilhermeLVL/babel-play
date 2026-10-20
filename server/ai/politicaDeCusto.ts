@@ -107,7 +107,7 @@ export function decidirCusto(p: PedidoDeCusto): DecisaoDeCusto {
  * A POLÍTICA APLICADA a uma cascata de LLM: lê o balde do primeiro provedor só quando a regra dos
  * 70% pode depender dele, decide e conta a degradação (`ia_degradacao_de_custo_total`).
  */
-export function aplicarPoliticaDeCusto(p: Omit<PedidoDeCusto, 'fracaoDoPrimeiroBalde'>): DecisaoDeCusto {
+export async function aplicarPoliticaDeCusto(p: Omit<PedidoDeCusto, 'fracaoDoPrimeiroBalde'>): Promise<DecisaoDeCusto> {
   const limiar = LIMIARES_POR_NIVEL[p.nivel]
   const primeiro = p.pernas[0]
   const precisaDoBalde =
@@ -116,7 +116,7 @@ export function aplicarPoliticaDeCusto(p: Omit<PedidoDeCusto, 'fracaoDoPrimeiroB
     p.fracaoDoOrcamento >= limiar.condicional &&
     p.fracaoDoOrcamento < limiar.total
   const fracaoDoPrimeiroBalde = precisaDoBalde
-    ? fracaoDoBalde({
+    ? await fracaoDoBalde({
         tipo: 'llm',
         provedor: nomeDoProvedor(primeiro.base),
         modelo: primeiro.model,

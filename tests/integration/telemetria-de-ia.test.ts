@@ -124,7 +124,7 @@ beforeEach(async () => {
   const { esquecerAdmissao } = await h.load<any>('../../server/ai/admissao')
   /* A admissão de IA (ADR 0007) é estado de processo como o disjuntor: um 429 encenado fecha o
      balde do modelo, e os casos somados passariam do limite por minuto. Zerada entre casos. */
-  esquecerAdmissao()
+  await esquecerAdmissao()
 })
 afterEach(() => {
   vi.unstubAllGlobals()

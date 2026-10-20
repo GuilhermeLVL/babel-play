@@ -152,6 +152,21 @@ describe('importarBaralhoAnki — orquestração', () => {
     expect(lotes.reduce((s, l) => s + l.corpo.notas.length, 0)).toBe(600)
   })
 
+  it('mede BYTES em UTF-8: texto multibyte gera mais lotes e nenhum passa de 3 MiB', async () => {
+    const notas = (bruto: string) =>
+      Array.from({ length: 600 }, (_, i) => ({ ...nota(i), camposBrutos: { Front: bruto } }))
+    const tamanhos = async (bruto: string) => {
+      lerMock.mockResolvedValue(leitura(notas(bruto)))
+      const chamadas = servidor()
+      await importarBaralhoAnki(arquivo, 'en', 'pt')
+      return chamadas.filter((c) => c.url.endsWith('/notas')).map((c) => c.corpo.notas)
+    }
+    const ascii = await tamanhos('a'.repeat(5_000))
+    const cjk = await tamanhos('あ'.repeat(5_000))
+    expect(cjk.length).toBeGreaterThan(ascii.length)
+    for (const l of cjk) expect(new TextEncoder().encode(JSON.stringify(l)).length).toBeLessThanOrEqual(BYTES_POR_LOTE)
+  })
+
   it('429 com Retry-After: espera e repete o MESMO lote uma vez', async () => {
     vi.useFakeTimers()
     lerMock.mockResolvedValue(leitura([nota(1), nota(2)]))

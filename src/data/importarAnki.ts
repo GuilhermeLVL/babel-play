@@ -47,6 +47,7 @@ export interface ImportAnkiResposta {
 export const LOTE = 500;
 export const BYTES_POR_LOTE = 3 * 1024 * 1024;
 
+const codificador = new TextEncoder();
 const AMOSTRA_DO_IDIOMA = 200;
 const AMOSTRA_DA_TELA = 4;
 const ESPERA_PADRAO_S = 5;
@@ -67,7 +68,7 @@ function fatiar(notas: NotaAnki[]): NotaAnki[][] {
   let atual: NotaAnki[] = [];
   let bytes = 2; // os colchetes do array
   for (const n of notas) {
-    const tamanho = JSON.stringify(notaParaOFio(n)).length + 1; // + a vírgula
+    const tamanho = codificador.encode(JSON.stringify(notaParaOFio(n))).length + 1; // BYTES em UTF-8 (o teto do corpo é em bytes) + a vírgula
     if (atual.length > 0 && (atual.length >= LOTE || bytes + tamanho > BYTES_POR_LOTE)) {
       lotes.push(atual);
       atual = [];
@@ -125,7 +126,7 @@ export async function importarBaralhoAnki(
     truncado: leitura.truncado ?? false,
     idiomaOrigem: idioma || null,
     idiomaAlvo: idiomaNativo || null,
-    amostra: notas.slice(0, AMOSTRA_DO_IDIOMA).map((n) => ({ frente: n.frente, verso: n.verso })),
+    amostra: notas.slice(0, AMOSTRA_DO_IDIOMA).map((n) => ({ frente: n.frente.slice(0, 2000), verso: n.verso.slice(0, 2000) })),
   });
 
   let feitas = 0;

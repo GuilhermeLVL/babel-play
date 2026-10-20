@@ -381,6 +381,7 @@ jobs:
         tests/integration/desligamento-gracioso.test.ts
         tests/integration/gasto-concorrente.test.ts
         tests/integration/int8-no-pg.test.ts
+        tests/integration/jobs-idempotentes.test.ts
         tests/integration/limpeza-analyze.test.ts
         tests/integration/medicao-de-transacao-pg.test.ts
         tests/integration/pool-lock-timeout-pg.test.ts

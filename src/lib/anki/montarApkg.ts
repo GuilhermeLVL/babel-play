@@ -1,10 +1,6 @@
-import { createHash, randomUUID } from 'node:crypto'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { strToU8, zipSync } from 'fflate';
 
-import { createClient } from '@libsql/client'
-import JSZip from 'jszip'
+import type { AbrirSqlite } from './sqlite';
 
 /**
  * ESCREVER UM `.apkg` QUE O ANKI ACEITE.
@@ -25,15 +21,15 @@ import JSZip from 'jszip'
  */
 
 export interface CartaoParaExportar {
-  frente: string
-  verso: string
-  exemplo?: string
+  frente: string;
+  verso: string;
+  exemplo?: string;
 }
 
 /**
  * CAMPO DO ANKI E HTML — e por isso ele sai escapado daqui.
  *
- * `limparCampo` (server/import/anki.ts) tira as tags do campo na IMPORTACAO, mas decodifica as
+ * `limparCampo` (src/core/anki.ts) tira as tags do campo na IMPORTACAO, mas decodifica as
  * entidades DEPOIS, de proposito: `&lt;div&gt;` numa nota e texto que o autor quis mostrar, e
  * decodificar antes o faria ser confundido com uma tag e apagado. A consequencia, medida em
  * 2026-09-09: `&lt;script&gt;alert(1)&lt;/script&gt;` entra como entidade e sai de `limparCampo`
@@ -54,24 +50,28 @@ export interface CartaoParaExportar {
  * duplicata na reimportacao.
  */
 function escaparHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 /** Separador de campos de uma nota do Anki. */
-const SEP = '\x1f'
+const SEP = '\x1f';
 
 /** Identificadores fixos do baralho e do modelo que criamos. Estáveis para reimportar por cima. */
-const ID_MODELO = 1740000000000
-const ID_BARALHO = 1740000000001
+const ID_MODELO = 1740000000000;
+const ID_BARALHO = 1740000000001;
 
 /**
  * `csum` do Anki: os 8 primeiros dígitos hexadecimais do SHA-1 do PRIMEIRO campo, como inteiro.
  * É o que ele usa para detectar duplicatas na importação — sem isso, reimportar o mesmo baralho
  * criaria tudo de novo em vez de reconhecer o que já existe.
+ *
+ * No navegador não há `node:crypto`: o SHA-1 vem do Web Crypto (`crypto.subtle.digest`), que é
+ * assíncrono mas dá o mesmo resumo — por isso os checksums são calculados antes de abrir o banco.
  */
-function checksum(primeiroCampo: string): number {
-  const hex = createHash('sha1').update(primeiroCampo, 'utf8').digest('hex').slice(0, 8)
-  return parseInt(hex, 16)
+async function checksum(primeiroCampo: string): Promise<number> {
+  const resumo = new Uint8Array(await crypto.subtle.digest('SHA-1', strToU8(primeiroCampo)));
+  const hex = Array.from(resumo.slice(0, 4), (b) => b.toString(16).padStart(2, '0')).join('');
+  return parseInt(hex, 16);
 }
 
 /** O modelo de nota: três campos e um cartão só (frente → verso). */
@@ -111,7 +111,7 @@ function modeloJson(nome: string) {
       vers: [],
       tags: [],
     },
-  }
+  };
 }
 
 function baralhoJson(nome: string) {
@@ -133,7 +133,7 @@ function baralhoJson(nome: string) {
       extendNew: 10,
       extendRev: 50,
     },
-  }
+  };
 }
 
 const CONF_PADRAO = {
@@ -150,7 +150,7 @@ const CONF_PADRAO = {
   dueCounts: true,
   curModel: String(ID_MODELO),
   collapseTime: 1200,
-}
+};
 
 const DCONF_PADRAO = {
   '1': {
@@ -167,6 +167,22 @@ const DCONF_PADRAO = {
     lapse: { delays: [10], leechAction: 0, leechFails: 8, minInt: 1, mult: 0 },
     dyn: false,
   },
+};
+
+/** Limites que a rota do servidor impunha (`ankiExportSchema`); agora valem aqui, antes de qualquer trabalho. */
+const MAX_CARTOES = 5_000;
+const MAX_CAMPO = 2_000;
+const MAX_NOME = 120;
+
+function validar(cartoes: CartaoParaExportar[], nome: string): void {
+  if (cartoes.length < 1) throw new Error('escolha ao menos um cartão para exportar');
+  if (cartoes.length > MAX_CARTOES) throw new Error('no máximo 5.000 cartões por baralho exportado');
+  if (nome.length > MAX_NOME) throw new Error('o nome do baralho pode ter no máximo 120 caracteres');
+  for (const c of cartoes) {
+    for (const campo of [c.frente, c.verso, c.exemplo ?? '']) {
+      if (campo.length > MAX_CAMPO) throw new Error('cada campo do cartão pode ter no máximo 2.000 caracteres');
+    }
+  }
 }
 
 /**
@@ -176,15 +192,24 @@ const DCONF_PADRAO = {
  * NOSSO leitor (que lê `.apkg` reais do AnkiWeb corretamente — há fixture de teste para isso),
  * mas não foi testado contra uma instalação do Anki de verdade. Se ele recusar, a exportação em
  * texto continua sendo o caminho garantido, e a tela oferece os dois.
+ *
+ * Roda no navegador: o SQLite é o `sql.js` em memória (`db.export()` entrega os bytes do arquivo) e
+ * o ZIP é do `fflate`. `abrirSqlite` vem por injeção para os testes usarem o mesmo `sql.js` em Node.
  */
-export async function montarApkg(cartoes: CartaoParaExportar[], nomeDoBaralho: string): Promise<Buffer> {
-  const dir = await mkdtemp(join(tmpdir(), 'babel-apkg-'))
-  const caminho = join(dir, 'collection.anki2')
-  const cliente = createClient({ url: `file:${caminho}` })
+export async function montarApkg(
+  cartoes: CartaoParaExportar[],
+  nomeDoBaralho: string,
+  abrirSqlite: AbrirSqlite,
+): Promise<Uint8Array> {
+  validar(cartoes, nomeDoBaralho);
+  const nome = nomeDoBaralho || 'Babel Play';
+  const somas = await Promise.all(cartoes.map((c) => checksum(c.frente)));
 
+  const SQL = await abrirSqlite();
+  const db = new SQL.Database();
   try {
     // Esquema 11 — o legado, lido por qualquer versão.
-    await cliente.executeMultiple(`
+    db.run(`
       CREATE TABLE col (id integer primary key, crt integer not null, mod integer not null,
         scm integer not null, ver integer not null, dty integer not null, usn integer not null,
         ls integer not null, conf text not null, models text not null, decks text not null,
@@ -206,68 +231,54 @@ export async function montarApkg(cartoes: CartaoParaExportar[], nomeDoBaralho: s
       CREATE INDEX ix_cards_nid on cards (nid);
       CREATE INDEX ix_cards_sched on cards (did, queue, due);
       CREATE INDEX ix_notes_csum on notes (csum);
-    `)
+    `);
 
-    const agora = Date.now()
-    const agoraSeg = Math.floor(agora / 1000)
+    const agora = Date.now();
+    const agoraSeg = Math.floor(agora / 1000);
     // `crt` é a meia-noite do dia da criação: é a partir dele que o Anki conta os dias.
-    const criacao = Math.floor(new Date(new Date().setHours(0, 0, 0, 0)).getTime() / 1000)
+    const criacao = Math.floor(new Date(new Date().setHours(0, 0, 0, 0)).getTime() / 1000);
 
-    await cliente.execute({
-      sql: 'INSERT INTO col VALUES (1,?,?,?,11,0,-1,0,?,?,?,?,?)',
-      args: [
-        criacao,
-        agora,
-        agora,
-        JSON.stringify(CONF_PADRAO),
-        JSON.stringify(modeloJson(nomeDoBaralho)),
-        JSON.stringify(baralhoJson(nomeDoBaralho)),
-        JSON.stringify(DCONF_PADRAO),
-        '{}',
-      ],
-    })
+    db.run('INSERT INTO col VALUES (1,?,?,?,11,0,-1,0,?,?,?,?,?)', [
+      criacao,
+      agora,
+      agora,
+      JSON.stringify(CONF_PADRAO),
+      JSON.stringify(modeloJson(nome)),
+      JSON.stringify(baralhoJson(nome)),
+      JSON.stringify(DCONF_PADRAO),
+      '{}',
+    ]);
 
     // Ids precisam ser únicos e crescentes: o Anki usa o id da nota como carimbo de tempo.
-    let id = agora
-    for (const c of cartoes) {
-      const idNota = id++
-      const campos = [c.frente, c.verso, c.exemplo ?? ''].map(escaparHtml).join(SEP)
-      await cliente.execute({
-        sql: 'INSERT INTO notes VALUES (?,?,?,?,-1,?,?,?,?,0,?)',
-        args: [
-          idNota,
-          randomUUID().slice(0, 10),
-          ID_MODELO,
-          agoraSeg,
-          '',
-          campos,
-          escaparHtml(c.frente),
-          checksum(c.frente),
-          '',
-        ],
-      })
+    let id = agora;
+    for (const [i, c] of cartoes.entries()) {
+      const idNota = id++;
+      const campos = [c.frente, c.verso, c.exemplo ?? ''].map(escaparHtml).join(SEP);
+      db.run('INSERT INTO notes VALUES (?,?,?,?,-1,?,?,?,?,0,?)', [
+        idNota,
+        crypto.randomUUID().slice(0, 10),
+        ID_MODELO,
+        agoraSeg,
+        '',
+        campos,
+        escaparHtml(c.frente),
+        somas[i],
+        '',
+      ]);
       // type 0 / queue 0 = cartão NOVO. Sem histórico, como explicado no cabeçalho.
-      await cliente.execute({
-        sql: 'INSERT INTO cards VALUES (?,?,?,0,?,-1,0,0,?,0,0,0,0,0,0,0,0,?)',
-        args: [id++, idNota, ID_BARALHO, agoraSeg, cartoes.indexOf(c) + 1, ''],
-      })
+      db.run('INSERT INTO cards VALUES (?,?,?,0,?,-1,0,0,?,0,0,0,0,0,0,0,0,?)', [
+        id++,
+        idNota,
+        ID_BARALHO,
+        agoraSeg,
+        i + 1,
+        '',
+      ]);
     }
 
-    cliente.close()
-    const db = await readFile(caminho)
-
-    const zip = new JSZip()
-    zip.file('collection.anki2', db)
-    zip.file('media', '{}') // sem mídia — o mapa vazio é obrigatório mesmo assim
-    return await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' })
+    // sem mídia — o mapa vazio é obrigatório mesmo assim
+    return zipSync({ 'collection.anki2': db.export(), media: strToU8('{}') });
   } finally {
-    try {
-      cliente.close()
-    } catch {
-      /* já fechado */
-    }
-    await rm(dir, { recursive: true, force: true }).catch(() => {
-      /* temporário */
-    })
+    db.close();
   }
 }

@@ -663,31 +663,6 @@ export const metricsXpQuerySchema = z
   })
   .strip()
 
-/**
- * Exportação de baralho: o handler cortava em 5.000/120 depois de já ter o array inteiro na mão.
- *
- * A forma do cartão espelha `CartaoParaExportar` (server/import/ankiExport.ts:26) — o typecheck
- * denunciou a primeira versão, que aceitava `Record<string, unknown>` e teria empurrado objetos
- * sem `frente`/`verso` para dentro do gerador do `.apkg`.
- */
-export const ankiExportSchema = z
-  .object({
-    cartoes: z
-      .array(
-        z
-          .object({
-            frente: z.string().max(2_000),
-            verso: z.string().max(2_000),
-            exemplo: z.string().max(2_000).optional(),
-          })
-          .strip(),
-      )
-      .min(1)
-      .max(5_000),
-    nome: z.string().max(120).optional(),
-  })
-  .strip()
-
 /** Importação por URL (YouTube e web). O `assertPublicUrl` continua sendo a guarda de SSRF. */
 export const importUrlSchema = z
   .object({

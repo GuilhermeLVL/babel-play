@@ -29,7 +29,6 @@ export const LIMITE_GRANDE = '5mb'
  *
  * - `/api/sessions`: `POST /` e `PUT /:id/utterances` levam até 5.000 falas (`validation.ts`).
  * - `/api/vocab/bulk-add`: até 500 cartões com frase de exemplo.
- * - `/api/import/anki/export`: até 5.000 cartões para montar o `.apkg`.
  * - `/api/ai` e `/api/tutor`: prompts de tradução e do tutor com contexto da sessão.
  * - `/api/anki/imports`: um lote da importação do Anki em lotes leva até 500 notas, cada uma com os
  *   campos brutos (HTML) do baralho (`lotesDeNotasSchema` em `validation.ts`).
@@ -37,7 +36,6 @@ export const LIMITE_GRANDE = '5mb'
 export const ROTAS_DE_CORPO_GRANDE: readonly string[] = [
   '/api/sessions',
   '/api/vocab/bulk-add',
-  '/api/import/anki/export',
   '/api/ai',
   '/api/tutor',
   '/api/anki/imports',

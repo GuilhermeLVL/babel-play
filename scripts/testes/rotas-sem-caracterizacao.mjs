@@ -25,7 +25,6 @@ const SEM_CARACTERIZACAO = {
     'busca de página externa (SSRF); coberto por `tests/integration/audit-s13-image-url.test.ts` e `server/import/web.ts` tem teste próprio de redirecionamento',
   'POST /api/import/document':
     'PDF/DOCX exige fixtures binárias; `.txt` está coberto pela importação Anki e o parser tem teste unitário (`f4-04-tipo-por-conteudo`)',
-  'POST /api/import/anki/export': 'exportação inversa; coberta por `tests/integration/anki-rotas.test.ts`',
   'GET /api/audio/loopback/stream':
     'dispositivo da máquina (WASAPI); só existe no self-host e o 403 do modo público está em auth-e-conta',
   'POST /api/billing/comprar':

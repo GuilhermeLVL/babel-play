@@ -35,7 +35,6 @@ const NODE_FS_PERMITIDO = new Set([
   'server/db/manutencao.ts',
   'server/db/travaDoPglite.ts',
   'server/import/anki.ts',
-  'server/import/ankiExport.ts',
   'server/lib/armazenamento.ts',
   'server/lib/armazenamentoR2.ts',
   'server/lib/corpoRecebido.ts',

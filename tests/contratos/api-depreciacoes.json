@@ -6,6 +6,12 @@
       "depreciadaEm": "0.1.0",
       "motivo": "o Passe de 100 casas saiu (recompensas v2, onda 5); a trilha paga é a de assinante da temporada, que não entrega Créditos. A rota responde { creditado: 0 } até poder sumir",
       "substituta": "GET /api/metrics/temporada"
+    },
+    {
+      "rota": "POST /api/import/anki/export",
+      "depreciadaEm": "0.1.0",
+      "motivo": "o .apkg passou a ser montado no navegador (sql.js + fflate, Fase 3 da migração para o Worker); nenhum cliente chama a rota",
+      "substituta": "montarApkg (src/lib/anki/montarApkg.ts), local"
     }
   ]
 }

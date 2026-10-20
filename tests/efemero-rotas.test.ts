@@ -19,7 +19,6 @@ const ACOES: Array<[string, string]> = [
   ['POST', '/api/import/web'],
   ['POST', '/api/import/document'],
   ['POST', '/api/import/anki'],
-  ['POST', '/api/import/anki/export'],
   ['POST', '/api/ai/credentials'],
   ['POST', '/api/ai/providers/test'],
   ['POST', '/api/tutor/chat'],

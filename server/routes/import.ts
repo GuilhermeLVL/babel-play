@@ -7,7 +7,6 @@
  *  - POST /web      { url }            → extrai o artigo (cliente monta a sessão-documento)
  *  - POST /document (corpo binário)    → extrai o texto do arquivo (cliente monta a sessão-documento)
  *  - POST /anki     (corpo binário)    → lê um baralho .apkg/.txt e devolve as notas (NÃO grava)
- *  - POST /anki/export { cartoes }     → devolve um .apkg pronto para o Anki
  */
 import { type Request, type Response, Router } from 'express'
 
@@ -16,7 +15,6 @@ import { avaliarCartao } from '../../src/core/learning/quality'
 import { ankiRepo } from '../db/repositories/anki'
 import { vocabRepo } from '../db/repositories/vocab'
 import { lerApkg } from '../import/anki'
-import { montarApkg } from '../import/ankiExport'
 import { extractDocument } from '../import/document'
 import { guidDaNota, hashDaEstrutura } from '../import/identidadeDaNota'
 import { extractArticle } from '../import/web'
@@ -32,7 +30,7 @@ import { erroDeRota } from '../lib/erroDeRota'
 import { envelopeDeErro, responderErro } from '../lib/respostaDeErro'
 import { ehWorker } from '../lib/runtime'
 // F11-04: schemas de corpo e de cabeçalho das rotas de importação.
-import { ankiExportSchema, importUrlSchema, parseOr400, uploadHeadersSchema } from '../validation'
+import { importUrlSchema, parseOr400, uploadHeadersSchema } from '../validation'
 
 export const importRouter = Router()
 
@@ -72,27 +70,6 @@ function nomeDoCabecalho(valor: string | undefined, padrao: string): string {
  */
 /* A identidade da nota (`guidDaNota`) e o hash da estrutura moram em `server/import/identidadeDaNota.ts`,
    compartilhados com o protocolo em lotes (`server/routes/ankiImports.ts`). */
-
-/**
- * Gera um `.apkg` a partir dos cartões enviados.
- *
- * Fica no servidor porque montar um SQLite exige sistema de arquivos — e porque é o mesmo driver
- * (`@libsql/client`) que o app já usa, em vez de trazer uma segunda implementação de SQLite só
- * para o navegador.
- */
-importRouter.post('/anki/export', async (req, res) => {
-  const body = parseOr400(ankiExportSchema, req.body, res)
-  if (!body) return
-  try {
-    const nome = body.nome || 'Babel Play'
-    const apkg = await montarApkg(body.cartoes, nome)
-    res.setHeader('Content-Type', 'application/octet-stream')
-    res.setHeader('Content-Disposition', `attachment; filename="${nome.replace(/[^\w.-]/g, '_')}.apkg"`)
-    res.send(apkg)
-  } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'import_route_error' }) })
-  }
-})
 
 /**
  * O ESTOURO DE TAMANHO PRECISA DIZER O QUE HOUVE.

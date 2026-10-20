@@ -95,7 +95,6 @@
     "POST /api/erros-do-cliente",
     "POST /api/exercises/rodada",
     "POST /api/import/anki",
-    "POST /api/import/anki/export",
     "POST /api/import/document",
     "POST /api/import/web",
     "POST /api/import/youtube",

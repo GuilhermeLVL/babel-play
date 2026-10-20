@@ -122,3 +122,49 @@ describe('a ordem de montagem no servidor real', () => {
     expect(comp).toBeLessThan(primeiroRouter)
   })
 })
+
+/**
+ * NO WORKER A COMPRESSÃO É DA BORDA (Task 11 da Fase 2). A Cloudflare já comprime a resposta na
+ * borda (gzip/brotli conforme o cliente); o middleware `compression` lá só gastaria CPU do isolate
+ * — que é o que se paga — e ainda trocaria o `content-length` por `chunked`. O `criarApp()` real é
+ * montado nos dois modos (gancho `BABEL_RUNTIME=worker`) e a MESMA resposta grande é pedida com
+ * `accept-encoding: gzip`: no Node volta comprimida, no Worker volta crua.
+ */
+describe('compressão só no Node', () => {
+  const guarda = process.env.BABEL_RUNTIME
+
+  async function encodingDoCriarApp(): Promise<string | null> {
+    const { criarApp } = await import('../../server/http/app')
+    const app = criarApp()
+    app.get('/carga-grande', (_req, res) => {
+      res.json(CARGA)
+    })
+    const s = await new Promise<Server>((r) => {
+      const x = app.listen(0, '127.0.0.1', () => r(x))
+    })
+    try {
+      const a = s.address()
+      const p = typeof a === 'object' && a ? a.port : 0
+      const res = await fetch(`http://127.0.0.1:${p}/carga-grande`, { headers: { 'accept-encoding': 'gzip' } })
+      await res.arrayBuffer()
+      return res.headers.get('content-encoding')
+    } finally {
+      await new Promise<void>((r) => s.close(() => r()))
+    }
+  }
+
+  afterAll(() => {
+    if (guarda === undefined) delete process.env.BABEL_RUNTIME
+    else process.env.BABEL_RUNTIME = guarda
+  })
+
+  it('no Node o criarApp() comprime', async () => {
+    delete process.env.BABEL_RUNTIME
+    expect(await encodingDoCriarApp()).toBe('gzip')
+  })
+
+  it('no Worker (BABEL_RUNTIME=worker) o middleware não está montado', async () => {
+    process.env.BABEL_RUNTIME = 'worker'
+    expect(await encodingDoCriarApp()).toBeNull()
+  })
+})

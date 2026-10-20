@@ -57,6 +57,7 @@ import {
 } from '../lib/rateLimitStore'
 import { requestIdMiddleware } from '../lib/requestId'
 import { responderErro } from '../lib/respostaDeErro'
+import { ehWorker } from '../lib/runtime'
 import { CABECALHO_DA_VERSAO, versaoDoApp } from '../lib/versao'
 import { adminRouter } from '../routes/admin'
 import { aiRouter } from '../routes/ai'
@@ -220,7 +221,10 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   // só se os routers viessem antes — o que manda é estar ANTES de quem escreve o corpo. Daqui ele
   // alcança tanto as rotas `/api/*` quanto os estáticos servidos mais abaixo.
   // `tests/integration/compressao-http.test.ts` trava essa ordem.
-  app.use(compression())
+  //
+  // SÓ NO NODE (Fase 2): no Worker quem comprime é a borda da Cloudflare, e o middleware só gastaria
+  // CPU do isolate (a que se paga) para comprimir o que a borda recomprimiria.
+  if (!ehWorker()) app.use(compression())
 
   /**
    * Headers de segurança (achado da auditoria: nenhum header de hardening).

@@ -7,6 +7,8 @@
  *  - POST   /decks/:id/desativar      → arquiva as notas do baralho, sem apagar nada
  *  - DELETE /decks/:id                → purga física (exige `confirmar: true`)
  *  - GET    /imports/:id              → progresso de um import (ledger)
+ *  - POST   /imports, /imports/:id/notas, /imports/:id/fechar → importação em lotes
+ *                                       (`server/routes/ankiImports.ts`)
  *
  * TODAS escopadas por `req.userId` — o acervo é privado do importador (decisão jurídica do G0,
  * `design.md` §5.7). Um baralho de outro usuário responde 404 em vez de 403 com dado dentro: o
@@ -18,7 +20,8 @@ import { Router } from 'express'
 import { ankiRepo } from '../db/repositories/anki'
 import { vocabRepo } from '../db/repositories/vocab'
 import { erroDeRota } from '../lib/erroDeRota'
-import { ankiAtivarSchema, ankiNotasQuerySchema, ankiPurgarSchema,idParamSchema, parseOr400 } from '../validation'
+import { ankiAtivarSchema, ankiNotasQuerySchema, ankiPurgarSchema, idParamSchema, parseOr400 } from '../validation'
+import { ankiImportsRouter } from './ankiImports'
 
 export const ankiRouter = Router()
 
@@ -36,7 +39,11 @@ ankiRouter.get('/decks', async (req, res) => {
   try {
     res.json(await ankiRepo.listarBaralhos(req.userId))
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }),
+      })
   }
 })
 
@@ -46,7 +53,10 @@ ankiRouter.get('/decks/:id/notas', async (req, res) => {
   const q = parseOr400(ankiNotasQuerySchema, req.query, res)
   if (!q) return
   try {
-    if (!(await deckDoUsuario(req.userId, p.id))) { res.status(404).json({ error: 'baralho não encontrado' }); return }
+    if (!(await deckDoUsuario(req.userId, p.id))) {
+      res.status(404).json({ error: 'baralho não encontrado' })
+      return
+    }
     const r = await ankiRepo.listarNotas(req.userId, p.id, {
       limite: q.limite,
       cursor: q.cursor ?? null,
@@ -55,7 +65,11 @@ ankiRouter.get('/decks/:id/notas', async (req, res) => {
     })
     res.json(r)
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }),
+      })
   }
 })
 
@@ -66,13 +80,21 @@ ankiRouter.post('/decks/:id/ativar', async (req, res) => {
   const body = parseOr400(ankiAtivarSchema, req.body, res)
   if (!body) return
   try {
-    if (!(await deckDoUsuario(req.userId, p.id))) { res.status(404).json({ error: 'baralho não encontrado' }); return }
-    const r = body.limite !== undefined
-      ? await vocabRepo.ativarLote(req.userId, p.id, body.limite)
-      : await vocabRepo.ativarLote(req.userId, p.id)
+    if (!(await deckDoUsuario(req.userId, p.id))) {
+      res.status(404).json({ error: 'baralho não encontrado' })
+      return
+    }
+    const r =
+      body.limite !== undefined
+        ? await vocabRepo.ativarLote(req.userId, p.id, body.limite)
+        : await vocabRepo.ativarLote(req.userId, p.id)
     res.json(r)
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }),
+      })
   }
 })
 
@@ -81,11 +103,18 @@ ankiRouter.post('/decks/:id/desativar', async (req, res) => {
   const p = parseOr400(idParamSchema, req.params, res)
   if (!p) return
   try {
-    if (!(await deckDoUsuario(req.userId, p.id))) { res.status(404).json({ error: 'baralho não encontrado' }); return }
+    if (!(await deckDoUsuario(req.userId, p.id))) {
+      res.status(404).json({ error: 'baralho não encontrado' })
+      return
+    }
     await ankiRepo.desativarBaralho(req.userId, p.id)
     res.json({ ok: true })
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }),
+      })
   }
 })
 
@@ -100,13 +129,20 @@ ankiRouter.delete('/decks/:id', async (req, res) => {
   const body = parseOr400(ankiPurgarSchema, req.body, res)
   if (!body) return
   try {
-    if (!(await deckDoUsuario(req.userId, p.id))) { res.status(404).json({ error: 'baralho não encontrado' }); return }
+    if (!(await deckDoUsuario(req.userId, p.id))) {
+      res.status(404).json({ error: 'baralho não encontrado' })
+      return
+    }
     const antes = await ankiRepo.listarNotas(req.userId, p.id, { limite: 1 })
     const notasApagadas = antes.total
     await ankiRepo.purgarBaralho(req.userId, p.id)
     res.json({ ok: true, notasApagadas })
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }),
+      })
   }
 })
 
@@ -115,9 +151,21 @@ ankiRouter.get('/imports/:id', async (req, res) => {
   if (!p) return
   try {
     const r = await ankiRepo.lerImport(req.userId, p.id)
-    if (!r) { res.status(404).json({ error: 'import não encontrado' }); return }
+    if (!r) {
+      res.status(404).json({ error: 'import não encontrado' })
+      return
+    }
     res.json(r)
   } catch (err) {
-    res.status(400).json({ error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(400)
+      .json({
+        error: erroDeRota(err, { status: 400, event: 'anki_route_error', route: req.path, requestId: req.requestId }),
+      })
   }
 })
+
+/* A importação em lotes num router próprio, sob os mesmos middlewares deste (conta obrigatória e
+   conta liberada, montados em `server/http/app.ts`). Fora do `expensiveLimiter`: um import de 50.000
+   notas são 100 lotes, e o teto dele é o da própria rota (500 por lote, 50.000 por import). */
+ankiRouter.use(ankiImportsRouter)

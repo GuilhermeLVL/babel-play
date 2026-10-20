@@ -6,7 +6,8 @@ import { createClient } from '@libsql/client'
 import JSZip from 'jszip'
 import { describe, expect, it } from 'vitest'
 
-import { hashDaEstrutura, lerApkg } from '../server/import/anki'
+import { lerApkg } from '../server/import/anki'
+import { hashDaEstrutura } from '../server/import/identidadeDaNota'
 import { extrairCloze, extrairMidia, TETO_DE_NOTAS } from '../src/core/anki'
 
 /**

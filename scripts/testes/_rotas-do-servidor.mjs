@@ -30,6 +30,8 @@ export const PREFIXOS = {
   'server/routes/import.ts': '/api/import',
   'server/routes/vocab.ts': '/api/vocab',
   'server/routes/anki.ts': '/api/anki',
+  /* A importação em lotes (Fase 3 da migração): router próprio, pendurado no `ankiRouter`. */
+  'server/routes/ankiImports.ts': '/api/anki',
   'server/routes/metrics.ts': '/api/metrics',
   'server/routes/exercises.ts': '/api/exercises',
   'server/routes/settings.ts': '/api/settings',

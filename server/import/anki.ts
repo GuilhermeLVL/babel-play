@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -40,27 +39,6 @@ export { lerTextoAnki, limparCampo } from '../../src/core/anki'
 
 /** Separador de campos de uma nota do Anki. */
 const SEP = '\x1f'
-
-/**
- * HASH DA ESTRUTURA do note type — reconhece "já vi este tipo de nota antes" para reaplicar um
- * mapeamento de campos salvo, sem depender do NOME do modelo (que a pessoa pode ter renomeado).
- *
- * Normaliza antes de gerar o hash: minúsculas, sem acento, espaços/hífen/underscore colapsados —
- * senão `Front-Text` e `front_text` (mesmo campo, grafias diferentes) virariam tipos "novos" a
- * cada exportação. A ORDEM entra no hash de propósito: campos iguais em ordem diferente mapeiam
- * para frente/verso diferentes, então são estruturas distintas de verdade.
- */
-export function hashDaEstrutura(campos: string[]): string {
-  const normalizados = (campos ?? []).map((c) =>
-    (c ?? '')
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .toLowerCase()
-      .trim()
-      .replace(/[\s_-]+/g, ' '),
-  )
-  return createHash('sha256').update(normalizados.join('|'), 'utf8').digest('hex').slice(0, 16)
-}
 
 /**
  * TETO DE EXPANSÃO — o conserto do achado F4-01 da auditoria (P0).

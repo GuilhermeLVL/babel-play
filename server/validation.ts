@@ -755,6 +755,83 @@ export const ankiPurgarSchema = z
   })
   .strip()
 
+/* ══════════════════ Fase 3 da migração · importação do Anki EM LOTES (`/api/anki/imports`) ══════════════════
+ *
+ * O navegador lê o `.apkg` e manda as notas; estes schemas são o teto de cada pedaço do protocolo
+ * (abrir, um lote, fechar). O CONTEÚDO de cada nota ainda passa pela limpeza, identidade e régua do
+ * servidor na rota (`server/routes/ankiImports.ts`) — o schema só garante forma e tamanho.
+ */
+
+/** A mesma regra do cabeçalho `x-src-lang`/`x-tgt-lang` de `uploadHeadersSchema`. */
+const idiomaDoBaralho = z.string().regex(/^[A-Za-z-]{2,20}$/)
+
+/** `POST /api/anki/imports` — o que o leitor do navegador sabe do arquivo antes do primeiro lote. */
+export const abrirImportAnkiSchema = z
+  .object({
+    arquivo: z.string().min(1).max(400),
+    bytes: z.number().int().min(0),
+    formato: z.string().max(80),
+    nomeNoArquivo: z.string().max(400).nullable().optional(),
+    baralhos: z.array(z.string().max(400)).max(200).optional(),
+    campos: z.array(z.string().max(200)).max(50),
+    totalNoArquivo: z.number().int().min(0),
+    truncado: z.boolean(),
+    idiomaOrigem: idiomaDoBaralho.nullable().optional(),
+    idiomaAlvo: idiomaDoBaralho.nullable().optional(),
+    /** Até 200 notas para conferir o idioma (S11) e detectar baralho monolíngue. */
+    amostra: z.array(z.object({ frente: z.string().max(2_000), verso: z.string().max(2_000) }).strip()).max(200),
+  })
+  .strip()
+
+/** Teto de campos de uma nota — o mesmo de `campos` (nomes do note type). */
+const MAX_CAMPOS_DA_NOTA = 50
+
+/** Uma nota como o leitor do navegador a monta (`NotaAnki` de `src/core/anki`). */
+export const notaRecebidaSchema = z
+  .object({
+    guid: z.string().max(64).optional(),
+    notetype: z.string().max(200).nullable().optional(),
+    campos: z.array(z.string().max(200)).max(MAX_CAMPOS_DA_NOTA),
+    /* Por NOME do campo e ainda com HTML: sustenta remapear sem reimportar. Nomes livres (um baralho
+       pode ter `campo7`), por isso `record` com teto de chaves em vez de lista fechada. */
+    camposBrutos: z
+      .record(z.string().max(200), z.string().max(20_000))
+      .refine((c) => Object.keys(c).length <= MAX_CAMPOS_DA_NOTA, {
+        message: `no máximo ${MAX_CAMPOS_DA_NOTA} campos por nota`,
+      }),
+    frente: z.string().min(1).max(2_000),
+    verso: z.string().min(1).max(2_000),
+    exemplo: z.string().max(4_000).optional(),
+    tags: z.array(z.string().max(200)).max(100),
+    midia: z
+      .object({
+        sons: z.array(z.string().max(400)).max(100),
+        imagens: z.array(z.string().max(400)).max(100),
+      })
+      .strip()
+      .optional(),
+    lacunas: z
+      .array(
+        z
+          .object({
+            ordinal: z.number().int().min(0),
+            resposta: z.string().max(2_000),
+            dica: z.string().max(2_000).optional(),
+          })
+          .strip(),
+      )
+      .max(100)
+      .optional(),
+  })
+  .strip()
+
+/** `POST /api/anki/imports/:id/notas` — um lote. 500 notas cabem com folga no `LIMITE_GRANDE` (5 MB). */
+export const lotesDeNotasSchema = z
+  .object({
+    notas: z.array(notaRecebidaSchema).min(1).max(500),
+  })
+  .strip()
+
 /* ══════════════════ Fase 4 · fronteira dos PROXIES DE IA (`/api/ai`) ══════════════════
  *
  * ACHADO: os três proxies de IA eram a maior superfície sem schema do servidor. O corpo de

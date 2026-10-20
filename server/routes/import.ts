@@ -9,17 +9,16 @@
  *  - POST /anki     (corpo binário)    → lê um baralho .apkg/.txt e devolve as notas (NÃO grava)
  *  - POST /anki/export { cartoes }     → devolve um .apkg pronto para o Anki
  */
-import { createHash } from 'node:crypto'
-
 import { type Request, type Response, Router } from 'express'
 
 import { decidirIdiomaOrigem, lerTextoAnki, versoEhDefinicao } from '../../src/core/anki'
 import { avaliarCartao } from '../../src/core/learning/quality'
 import { ankiRepo } from '../db/repositories/anki'
 import { vocabRepo } from '../db/repositories/vocab'
-import { hashDaEstrutura, lerApkg } from '../import/anki'
+import { lerApkg } from '../import/anki'
 import { montarApkg } from '../import/ankiExport'
 import { extractDocument } from '../import/document'
+import { guidDaNota, hashDaEstrutura } from '../import/identidadeDaNota'
 import { extractArticle } from '../import/web'
 import {
   CorpoGrandeDemais,
@@ -71,30 +70,8 @@ function nomeDoCabecalho(valor: string | undefined, padrao: string): string {
  * cartão jogável. A régua de qualidade (`avaliarCartao`, perfil `'curado'`) roda aqui por nota; o
  * que não serve fica no acervo com `motivoDescarte` gravado, não é descartado do banco.
  */
-/**
- * A IDENTIDADE DA NOTA — de onde vem, e por que a diferença importa.
- *
- * O `.apkg` traz `notes.guid`, o id estável do Anki: o mesmo entre exportações e entre máquinas. É
- * ele que faz um reimport ATUALIZAR a nota em vez de criar outra, inclusive quando o autor do
- * baralho corrigiu uma tradução. Esse é o caso que importa, e é justamente onde uma chave derivada
- * do conteúdo falha: o conteúdo mudou, a chave mudou, e a nota corrigida entraria como uma segunda
- * nota, ao lado da antiga.
- *
- * Arquivo de TEXTO (`.txt/.csv/.tsv`) não tem identidade nenhuma — quem o gerou não guardou id. Aí
- * sim resta derivar do conteúdo, e a limitação é real e declarada: editar a linha cria uma nota
- * nova. Preferimos isso a inventar um id que fingiria uma estabilidade que o formato não tem.
- */
-function guidDaNota(n: { guid?: string; notetype?: string | null; frente: string; verso: string }): string {
-  if (n.guid) return n.guid
-  return guidDerivadoDoConteudo(n)
-}
-
-function guidDerivadoDoConteudo(n: { notetype?: string | null; frente: string; verso: string }): string {
-  return createHash('sha256')
-    .update(`${n.notetype ?? ''}\x1f${n.frente}\x1f${n.verso}`, 'utf8')
-    .digest('hex')
-    .slice(0, 32)
-}
+/* A identidade da nota (`guidDaNota`) e o hash da estrutura moram em `server/import/identidadeDaNota.ts`,
+   compartilhados com o protocolo em lotes (`server/routes/ankiImports.ts`). */
 
 /**
  * Gera um `.apkg` a partir dos cartões enviados.

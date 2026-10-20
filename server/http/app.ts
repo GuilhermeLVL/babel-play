@@ -117,6 +117,15 @@ function interpretarTrustProxy(valor: string): boolean | number | string {
   return valor
 }
 
+/**
+ * `POST /api/anki/imports/:id/notas` — o lote da importação do Anki, isento do `writeLimiter` (ver lá).
+ * Pelo caminho COMPLETO (`baseUrl + path`): o limitador é montado sobre uma lista de prefixos, e dentro
+ * dele `req.path` é relativo ao prefixo que casou.
+ */
+function ehLoteDaImportacaoAnki(req: express.Request): boolean {
+  return req.method === 'POST' && /^\/api\/anki\/imports\/[^/]+\/notas\/?$/.test(req.baseUrl + req.path)
+}
+
 export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   const app = express()
   /* `/API/admin` e `/api/admin` são rotas DIFERENTES: as listas de rota (segundo fator, teto de corpo, origem, convidado)
@@ -306,7 +315,11 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
     store: createDbRateLimitStore(METRIC_RATELIMIT_ESCRITA),
     // GET e HEAD não alocam corpo; limitá-los penalizaria a navegação sem fechar o vetor. A
     // leitura tem teto próprio, em memória: `limitadorDeLeitura` (auditoria de 2026-09-26).
-    skip: (req) => req.method === 'GET' || req.method === 'HEAD',
+    // O LOTE DA IMPORTAÇÃO DO ANKI também fica de fora: um import de 50.000 notas são 100 lotes
+    // mandados em sequência em menos de um minuto, e 120/min o cortaria no meio. A rota tem teto
+    // próprio — 500 notas por lote, 50.000 por import, corpo sob `LIMITE_GRANDE` — e só aceita lote
+    // de um import aberto pela própria conta (abrir e fechar continuam contando aqui).
+    skip: (req) => req.method === 'GET' || req.method === 'HEAD' || ehLoteDaImportacaoAnki(req),
   })
   /* A marca de verbos é o que a matriz rota × guarda lê para não contar este limitador em GET
      (`server/lib/limitesDeLeitura.ts`). Separada da declaração porque

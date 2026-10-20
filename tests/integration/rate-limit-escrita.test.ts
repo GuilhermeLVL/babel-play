@@ -14,7 +14,9 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+
+import { type AppDeTeste, subirApp } from '../caracterizacao/_app'
 
 const servidor = readFileSync(path.resolve(import.meta.dirname, '..', '..', 'server', 'http', 'app.ts'), 'utf8')
 
@@ -78,4 +80,73 @@ describe('F4-02 — rate limit cobre as rotas de escrita', () => {
     const trecho = servidor.slice(servidor.indexOf('F4-02: as rotas de escrita'))
     expect(trecho.slice(0, 200)).toContain('if (authRequired())')
   })
+})
+
+/**
+ * O LOTE DA IMPORTAÇÃO DO ANKI FICA FORA DO `writeLimiter` (Fase 3 da migração, Task 3).
+ *
+ * Um import de 50.000 notas são 100 lotes de 500, mandados em sequência pelo navegador em bem menos
+ * de um minuto — 120 escritas por minuto o cortariam no meio. A rota tem teto próprio (500 por lote,
+ * 50.000 por import, corpo sob `LIMITE_GRANDE`). Este caso sobe o app de verdade em modo público e
+ * mede: 130 lotes passam, e os lotes não gastam o balde — a outra escrita da mesma conta ainda tem
+ * os 120 inteiros e só então leva 429.
+ */
+describe('writeLimiter × lote da importação do Anki', () => {
+  let s: AppDeTeste
+  beforeAll(async () => {
+    s = await subirApp({ modo: 'publico', adultoPorPadrao: true })
+  }, 60_000)
+  afterAll(async () => {
+    await s?.encerrar()
+  })
+
+  it('130 POSTs em /api/anki/imports/:id/notas não recebem 429; outra rota de escrita recebe', async () => {
+    /* O balde é o MINUTO DO RELÓGIO (`rateLimitStore.ts`): perto da virada, espera o próximo — o
+       teste mede o teto, não a sorte do relógio (mesmo cuidado de `limites-de-leitura.test.ts`). */
+    const resta = 60_000 - (Date.now() % 60_000)
+    if (resta < 40_000) await new Promise((r) => setTimeout(r, resta + 50))
+
+    const token = await s.token('quem-importa-em-lotes')
+    const abrir = await s.post(
+      '/api/anki/imports',
+      {
+        arquivo: 'grande.apkg',
+        bytes: 1,
+        formato: 'collection.anki21b',
+        campos: ['Front', 'Back'],
+        totalNoArquivo: 130,
+        truncado: false,
+        amostra: [],
+      },
+      token,
+    )
+    expect(abrir.status).toBe(200)
+    const { importId, deckId } = (await abrir.json()) as { importId: string; deckId: string }
+
+    const statusDosLotes = new Set<number>()
+    for (let i = 0; i < 130; i++) {
+      const r = await s.post(
+        `/api/anki/imports/${importId}/notas`,
+        {
+          notas: [
+            { guid: `g-${i}`, campos: [], camposBrutos: {}, frente: `palavra${i}`, verso: `tradução${i}`, tags: [] },
+          ],
+        },
+        token,
+      )
+      await r.arrayBuffer()
+      statusDosLotes.add(r.status)
+    }
+    expect([...statusDosLotes]).toEqual([200])
+
+    // A outra escrita da mesma conta: o balde estava intacto (só o `abrir` contou) e acaba em 429.
+    let primeiro429 = 0
+    for (let i = 0; i < 130 && !primeiro429; i++) {
+      const r = await s.post(`/api/anki/decks/${deckId}/desativar`, {}, token)
+      await r.arrayBuffer()
+      if (r.status === 429) primeiro429 = i + 1
+    }
+    expect(primeiro429, 'a outra rota de escrita nunca foi barrada').toBeGreaterThan(0)
+    expect(primeiro429, 'os lotes gastaram o balde da escrita').toBeGreaterThanOrEqual(119)
+  }, 120_000)
 })

@@ -61,6 +61,7 @@ import {
   purgarNaTransacao,
   reconstruirNaTransacao,
 } from '../db/repositories/agregados'
+import { ankiRepo } from '../db/repositories/anki'
 import type { UserId } from './authContext'
 import { diasAteApagarDeVez } from './config'
 import { log } from './logger'
@@ -83,6 +84,8 @@ export interface RelatorioDaLimpeza {
   travasPodadas: number
   /** Linhas da admissão de IA (`admissao_de_ia`) sem uso há mais de 2 dias, podadas. */
   admissaoPodada: number
+  /** Imports do Anki em lotes abertos há mais de 24 h (o navegador não concluiu), fechados como `falhou`. */
+  importsAbandonados: number
   /** Lotes (transações curtas) que a passada usou. */
   lotes: number
   /** O teto de lotes acabou antes do fim: o resto sai na passada seguinte. */
@@ -282,6 +285,7 @@ export async function limparBanco(
     agregadosRecontados: 0,
     travasPodadas: 0,
     admissaoPodada: 0,
+    importsAbandonados: 0,
     lotes: 0,
     incompleta: false,
   }
@@ -360,6 +364,10 @@ export async function limparBanco(
   /* A admissão de IA (`admissao_de_ia`): janelas de minuto e dia passadas, bloqueios vencidos e vagas em
      voo paradas. Dois dias de folga: a janela do dia UTC corrente nunca sai. */
   r.admissaoPodada = await admissaoDeIaRepo.podar(agora - 2 * DIA_MS)
+
+  /* Imports do Anki em lotes que o navegador abriu e não fechou (aba fechada no meio): 24 h é folga
+     larga sobre o maior import (100 lotes), e o ledger para de dizer "gravando" para sempre. */
+  r.importsAbandonados = await ankiRepo.marcarImportsAbandonados(agora - DIA_MS)
 
   // Estatística para o planejador no PGlite, que não tem autoanalyze; no `pg` não faz nada.
   await analisarBancoEmbutido()

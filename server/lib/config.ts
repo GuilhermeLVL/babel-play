@@ -983,6 +983,24 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
   },
 ]
 
+/**
+ * Os nomes que o operador PRECISA entregar como secret: exigidos em produção/modo público ou que, ausentes,
+ * impedem o serviço. É a lista do `.secrets.example.json` e do `scripts/cloudflare/secrets.ts`.
+ * (O config.ts não marca "recomendada": `.env.production.example` é prosa, então ela fica de fora.)
+ * `REPLICAS` e `ASAAS_SANDBOX` impedem o serviço mas NÃO são secrets: são `vars` do wrangler (o sandbox só
+ * existe no staging; em produção ele é justamente o que o boot recusa).
+ */
+const NAO_SECRETAS = new Set(['REPLICAS', 'ASAAS_SANDBOX'])
+export function nomesDosSecretsObrigatorios(): string[] {
+  return VARIAVEIS.filter(
+    (v) =>
+      !NAO_SECRETAS.has(v.nome) &&
+      (v.exigencia === 'producao' || v.exigencia === 'modo-publico' || v.criticidade === 'impede-servico'),
+  )
+    .map((v) => v.nome)
+    .sort()
+}
+
 export interface ResultadoDaConferencia {
   ok: boolean
   modoPublico: boolean

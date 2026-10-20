@@ -6,7 +6,7 @@
  * secret corrigido (`wrangler secret put`) passa a valer sem esperar o isolate reciclar.
  */
 import { log } from '../lib/logger'
-import { type Achado, validarBoot } from './validar'
+import { type Achado, relatarConfiguracao, validarBoot } from './validar'
 
 let liberado = false
 
@@ -22,6 +22,9 @@ export function conferirBootDoWorker(): Achado[] | null {
     return abortam
   }
   for (const a of achados) log('warn', { event: 'boot_aviso', error: a.texto })
+  /* Uma vez por isolate (o `liberado` guarda): o que o `server.ts` faz no boot do Node. Também registra a falha
+     de boot `configuracao`, que é o que faz `/api/health` responder `degraded` com a variável crítica ausente. */
+  relatarConfiguracao()
   liberado = true
   return null
 }

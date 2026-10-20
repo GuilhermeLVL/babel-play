@@ -176,6 +176,23 @@ ou do ambiente; o Ollama local é justamente loopback), Asaas (`server/lib/asaas
 `emSegundoPlano`. **Compressão:** o
 middleware `compression` é montado só no Node; no Worker quem comprime é a borda.
 
+## Secrets do Worker
+
+Os secrets do Worker vão por script, nunca à mão e nunca versionados. A lista vem de `server/lib/config.ts`
+(obrigatórias em produção/modo público e as `impede-servico`; `REPLICAS` e `ASAAS_SANDBOX` são `vars` do
+wrangler, não secrets). O modelo, só com nomes, é `.secrets.example.json`.
+
+1. `cp .secrets.example.json .secrets.<ambiente>.json` (`staging` ou `production`) e preencha os valores. O `.gitignore`
+   ignora `.secrets.*.json`; **nunca** faça commit dele.
+2. `npx tsx scripts/cloudflare/secrets.ts <ambiente> --dry-run`: confere o arquivo (obrigatórias ausentes dão erro;
+   chaves desconhecidas ou vazias, aviso) sem enviar nada e sem imprimir valores. Sem o arquivo, lista os nomes esperados.
+3. `npx tsx scripts/cloudflare/secrets.ts <ambiente>`: o mesmo, e depois `wrangler secret bulk -c wrangler.jsonc`
+   (com `--env staging` no staging).
+
+Depois do deploy, o primeiro boot de cada isolate registra a configuração (evento `configuracao`) e, se faltar
+variável crítica, `/api/health` responde `degraded` com `bootErros: ['configuracao']` (os nomes ficam no log).
+`npx tsx scripts/cloudflare/secrets.ts --exemplo` regenera o modelo; `tests/secrets-example.test.ts` impede que ele fique para trás.
+
 ## Worker em desenvolvimento
 
 O app inteiro roda como Cloudflare Worker: `worker.ts` (ponto de entrada) + `wrangler.jsonc`. **Sempre com

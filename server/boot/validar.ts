@@ -108,29 +108,34 @@ export function relatarConfiguracao(): void {
    */
   if (configuracao.modoPublico) {
     const mecanismo = mecanismoDe()
-    console.log(`[auth] verificacao de token por: ${mecanismo}`)
+    log('info', { event: 'configuracao', error: `[auth] verificacao de token por: ${mecanismo}` })
     if (mecanismo === 'jwks-assimetrico' && process.env.SUPABASE_JWT_SECRET) {
-      console.warn(
-        '[auth] AVISO: SUPABASE_JWT_SECRET esta definido mas NAO e usado — com SUPABASE_URL a verificacao e pelo JWKS assimetrico. Remova o segredo do ambiente.',
-      )
+      log('warn', {
+        event: 'configuracao',
+        error:
+          '[auth] AVISO: SUPABASE_JWT_SECRET esta definido mas NAO e usado — com SUPABASE_URL a verificacao e pelo JWKS assimetrico. Remova o segredo do ambiente.',
+      })
     }
   }
   if (configuracao.ok) {
     const aviso = configuracao.faltando.length
       ? ` (${configuracao.faltando.length} de capacidade ausente(s): ${configuracao.faltando.join(', ')})`
       : ''
-    console.log(
-      `[config] ${configuracao.declaradas} variáveis declaradas; nenhuma CRÍTICA ausente (modo ${configuracao.modoPublico ? 'público' : 'self-host'})${aviso}.`,
-    )
+    log('info', {
+      event: 'configuracao',
+      total: configuracao.declaradas,
+      error: `[config] ${configuracao.declaradas} variáveis declaradas; nenhuma CRÍTICA ausente (modo ${configuracao.modoPublico ? 'público' : 'self-host'})${aviso}.`,
+    })
   } else {
-    console.error(
-      `[config] CRÍTICAS ausentes no modo ${configuracao.modoPublico ? 'público' : 'self-host'}: ${configuracao.faltandoCriticas.join(', ')} — /api/health responderá degraded.`,
-    )
+    log('error', {
+      event: 'configuracao',
+      error: `[config] CRÍTICAS ausentes no modo ${configuracao.modoPublico ? 'público' : 'self-host'}: ${configuracao.faltandoCriticas.join(', ')} — /api/health responderá degraded.`,
+    })
   }
   /* O convite ao responsável (Fase 4): em produção, sem o Resend, nenhum menor de 16 libera a conta.
      AVISA e segue — o resto do app serve, e quem abre só para adultos pode subir assim. */
   const conviteSemEmail = avisoDeConviteSemEmail()
-  if (conviteSemEmail) console.warn(`[convite] AVISO: ${conviteSemEmail}`)
+  if (conviteSemEmail) log('warn', { event: 'configuracao', error: `[convite] AVISO: ${conviteSemEmail}` })
   /* ADR 0008: produção sem reserva de IA avisa no boot — e o aviso vai ao Sentry (`AVISOS_QUE_ALERTAM`),
      porque a reserva fora do ar só aparece de outro jeito no dia em que o primário cair. */
   const semReserva = avisoDeIaSemReserva()

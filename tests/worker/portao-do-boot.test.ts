@@ -8,7 +8,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { dubleDoR2 } from '../harness/workers/r2Duble'
 
-const CHAVES = ['BABEL_RUNTIME', 'NODE_ENV', 'AUTH_REQUIRED', 'SECRET_KEY', 'IA_PROVEDORES', 'IA_PROVEDORES_ARQUIVO']
+const CHAVES = [
+  'SUPABASE_URL',
+  'BABEL_RUNTIME',
+  'NODE_ENV',
+  'AUTH_REQUIRED',
+  'SECRET_KEY',
+  'IA_PROVEDORES',
+  'IA_PROVEDORES_ARQUIVO',
+]
 const antes: Record<string, string | undefined> = {}
 
 beforeEach(() => {
@@ -61,5 +69,40 @@ describe('portão de boot do Worker', () => {
         ?.map((a) => a.texto)
         .join(' '),
     ).toMatch(/IA_PROVEDORES_ARQUIVO não vale no Worker/)
+  })
+
+  it('variável impede-servico ausente no Worker → /api/health boot degraded com o nome dela', async () => {
+    process.env.SECRET_KEY = 'a'.repeat(64)
+    delete process.env.SUPABASE_URL
+    const { conferirBootDoWorker } = await carregar()
+    expect(conferirBootDoWorker()).toBeNull() // falta de configuração não derruba: degrada
+    const { healthHandler } = await import('../../server/routes/health')
+    let corpo: Record<string, unknown> = {}
+    const res = {
+      status: () => res,
+      json: (c: Record<string, unknown>) => {
+        corpo = c
+      },
+    }
+    await healthHandler({} as never, res as never)
+    expect(corpo.boot).toBe('degraded')
+    expect(corpo.bootErros).toContain('configuracao')
+  })
+
+  it('relatarConfiguracao roda uma vez por isolate', async () => {
+    process.env.SECRET_KEY = 'a'.repeat(64)
+    const eventos: string[] = []
+    const espia = vi.spyOn(console, 'log').mockImplementation((l: unknown) => {
+      try {
+        eventos.push(JSON.parse(String(l)).event)
+      } catch {
+        /* linha que não é do logger */
+      }
+    })
+    const { conferirBootDoWorker } = await carregar()
+    expect(conferirBootDoWorker()).toBeNull()
+    expect(conferirBootDoWorker()).toBeNull()
+    espia.mockRestore()
+    expect(eventos.filter((e) => e === 'configuracao')).toHaveLength(1)
   })
 })

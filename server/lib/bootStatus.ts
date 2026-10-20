@@ -51,11 +51,17 @@ export function registrarFalhaDeBoot(passo: string, err: unknown): void {
   const em = Date.now()
   falhas.set(passo, { passo, em })
   log('error', { event: 'boot_step_failed', error: `${passo}: ${String(err).slice(0, 120)}` })
-  void db
-    .insert(bootFalhas)
-    .values({ passo, em, instancia: instancia() })
-    .onConflictDoUpdate({ target: bootFalhas.passo, set: { em, instancia: instancia() } })
-    .catch((e) => log('warn', { event: 'boot_status_persist_failed', error: String(e).slice(0, 120) }))
+  /* No Worker o portão roda FORA de `comExecutor`, e o `db` lança de forma síncrona (`BancoIndisponivel`):
+     sem este `try`, registrar a falha derrubaria o próprio boot. O espelho acima já vale para este isolate. */
+  try {
+    void db
+      .insert(bootFalhas)
+      .values({ passo, em, instancia: instancia() })
+      .onConflictDoUpdate({ target: bootFalhas.passo, set: { em, instancia: instancia() } })
+      .catch((e) => log('warn', { event: 'boot_status_persist_failed', error: String(e).slice(0, 120) }))
+  } catch (e) {
+    log('warn', { event: 'boot_status_persist_failed', error: String(e).slice(0, 120) })
+  }
 }
 
 /**
@@ -105,5 +111,9 @@ export function esquecerEmMemoria(): void {
 /** Só para os testes: zera o acumulado (memória e banco) entre casos. */
 export async function resetBootStatus(): Promise<void> {
   falhas.clear()
-  try { await db.delete(bootFalhas) } catch { /* banco pode nem existir no teste */ }
+  try {
+    await db.delete(bootFalhas)
+  } catch {
+    /* banco pode nem existir no teste */
+  }
 }

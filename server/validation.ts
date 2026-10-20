@@ -670,28 +670,6 @@ export const importUrlSchema = z
   })
   .strip()
 
-/**
- * Cabeçalhos dos uploads brutos. `x-filename` nunca vira caminho (o nome do arquivo é gerado pelo
- * servidor a partir do id da sessão — S-14), mas vira TÍTULO e chega ao banco.
- */
-export const uploadHeadersSchema = z
-  .object({
-    'x-filename': z.string().max(400).optional(),
-    'content-type': z.string().max(200).optional(),
-    /* O IDIOMA DO BARALHO vem por cabeçalho porque o `.apkg` não o declara de forma confiável — quem
-     sabe é a tela, que já tem o idioma praticado e o nativo. Sem isto o cartão importado nasce sem
-     `srcLang`, a triagem o marca `idioma-incerto` e o baralho inteiro fica fora das rodadas. */
-    'x-src-lang': z
-      .string()
-      .regex(/^[A-Za-z-]{2,20}$/)
-      .optional(),
-    'x-tgt-lang': z
-      .string()
-      .regex(/^[A-Za-z-]{2,20}$/)
-      .optional(),
-  })
-  .strip()
-
 /* ══════════════════ motor-anki-acervo — schemas das rotas do acervo (`/api/anki`) ══════════════════
  *
  * Diferença deliberada do `bulkAddCardsSchema` (achado citado no brief): ali a validação é do LOTE
@@ -737,7 +715,7 @@ export const ankiPurgarSchema = z
  * servidor na rota (`server/routes/ankiImports.ts`) — o schema só garante forma e tamanho.
  */
 
-/** A mesma regra do cabeçalho `x-src-lang`/`x-tgt-lang` de `uploadHeadersSchema`. */
+/** Código de idioma como o cliente manda (`en`, `pt-BR`): o mesmo formato dos antigos cabeçalhos `x-src-lang`. */
 const idiomaDoBaralho = z.string().regex(/^[A-Za-z-]{2,20}$/)
 
 /** `POST /api/anki/imports` — o que o leitor do navegador sabe do arquivo antes do primeiro lote. */

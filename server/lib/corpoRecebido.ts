@@ -12,9 +12,7 @@
  * nada, e é a contagem que segura esse caso.
  */
 import { createWriteStream } from 'node:fs'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { rm } from 'node:fs/promises'
 import { Readable } from 'node:stream'
 
 /** O corpo passou do teto. A rota responde 413. */
@@ -298,28 +296,5 @@ function leitorDoCorpo(fonte: Readable, limite: number) {
         })
       }
     },
-  }
-}
-
-/**
- * PARA OS PARSERS QUE EXIGEM BUFFER (o pdf/docx do documento): o corpo passa
- * pelo disco e volta como UM Buffer do tamanho exato.
- *
- * Não tira o corpo da memória — o parser precisa dele inteiro —, mas corta o pico pela metade: o
- * `express.raw` guardava a lista de pedaços E o `Buffer.concat` deles ao mesmo tempo (2× o corpo),
- * e aqui só existe o Buffer final. Com o semáforo, esse 1× também deixa de se multiplicar.
- */
-export async function lerCorpoViaArquivo(req: { body?: unknown }, limite: number): Promise<Buffer> {
-  if (Buffer.isBuffer(req.body)) {
-    if (req.body.length > limite) throw new CorpoGrandeDemais(limite)
-    return req.body
-  }
-  const dir = await mkdtemp(join(tmpdir(), 'babel-corpo-'))
-  try {
-    const caminho = join(dir, 'corpo')
-    const { bytes } = await receberCorpoEmArquivo(fonteDoCorpo(req), caminho, limite)
-    return bytes ? await readFile(caminho) : Buffer.alloc(0)
-  } finally {
-    await rm(dir, { recursive: true, force: true })
   }
 }

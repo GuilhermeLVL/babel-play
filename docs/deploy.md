@@ -112,6 +112,44 @@ mesmos parsers de int8/numeric, prazos e gancho de medição do Pool. Dentro do 
 fila (duas em paralelo não embaralham `BEGIN`/`COMMIT`); uma `db.transaction` de dentro de outra rejeita (use
 `tx.transaction`); e uma consulta avulsa em `db` disparada em paralelo a uma transação aberta cai dentro dela.
 
+## Jobs periódicos (Node × Worker)
+
+Os trabalhos periódicos moram num registro só, `server/jobs/registro.ts`, e passam todos por
+`executarJob` (`server/jobs/executar.ts`): confere a condição, toma a **lease** do job, roda, loga
+`job_inicio` / `job_fim` (com `latencyMs` e o `resumo` numérico) / `job_pulado` / `job_falhou` e solta a lease.
+No **Node**, o processo que prepara os dados agenda cada job com `setTimeout` (`server/boot/jobs.ts`): a
+primeira passada alguns minutos depois do boot e as seguintes no intervalo da tabela. No **Worker**, o
+`scheduled` dos Cron Triggers chama `executarJobsDoCron(controller.cron)`, que roda os jobs daquela expressão
+(Task 12 liga; `triggers.crons` sai desta tabela).
+
+| Job                        | Cron (UTC)   | Node: 1ª passada / intervalo | Condição                              | Teto por passada                    |
+| -------------------------- | ------------ | ---------------------------- | ------------------------------------- | ----------------------------------- |
+| `retencaoDeAudio`          | `5 3 * * *`  | 5 min / 24 h                 | `AUDIO_RETENCAO_DIAS` > 0 (padrão 90) | 50 lotes de 200 sessões             |
+| `limpezaDeConvidados`      | `7 3 * * *`  | 7 min / 24 h                 | modo público (`authRequired()`)       | 20 lotes de 100 convidados          |
+| `podaDoCacheDeTraducao`    | `11 3 * * *` | 11 min / 24 h                | sempre                                | 2 instruções (vencidas, excedentes) |
+| `podaDasMarcasDeTeste`     | `13 3 * * *` | 13 min / 24 h                | modo público                          | 1 instrução                         |
+| `podaDasJanelasDiarias`    | `17 3 * * *` | 17 min / 24 h                | modo público                          | 1 instrução por métrica             |
+| `limpezaDiaria`            | `23 3 * * *` | 17 min / 24 h                | `LIMPEZA_DIARIA=1` (e fora de teste)  | 200 lotes de 500 linhas             |
+| `reconciliarArmazenamento` | `19 * * * *` | 19 min / 1 h                 | `STORAGE_RECONCILE_MODE=job`          | 200 usuários                        |
+
+O minuto do cron repete o atraso do Node, para a ordem ser a mesma; a `limpezaDiaria` vai para `:23` no
+cron para não coincidir com a poda das janelas. O snapshot diário (`BACKUP_DIARIO`) foi aposentado na
+migração para o Postgres e saiu do registro: a variável é legado, e ligada só gera um aviso no boot.
+
+**A lease.** Cada passada toma a linha `g:job:<nome>` da tabela `travas` numa instrução só, em autocommit
+(`INSERT … ON CONFLICT DO UPDATE … WHERE criado_em < agora − 15 min RETURNING`). Quem não recebe a linha
+de volta é `job_pulado` (outra passada está rodando: dois isolates do mesmo cron, ou dois processos Node).
+No fim, a linha sai — só se ainda for desta passada. Uma passada que morreu no meio deixa a linha, que vence
+em 15 min (o teto de duração de um Cron Trigger): a próxima roda normalmente. Não é uma transação aberta
+durante o job (`travarGlobal`), porque um job longo seguraria uma conexão do Hyperdrive e uma transação no
+Postgres por minutos. Os jobs são idempotentes de qualquer forma; a lease tira o trabalho em dobro.
+
+**Rodar um job à mão.** No Node, com o mesmo `.env` do servidor: `npm run job` lista os jobs (com cron e se a
+condição vale) e `npm run job -- <nome>` roda um (sai 0 em `ok`/`pulado`, 1 em `falhou`). No Worker (Task 12),
+em `wrangler dev`: `curl "http://localhost:8787/cdn-cgi/local/scheduled?cron=23+3+*+*+*"` dispara o
+`scheduled` com aquela expressão. `POST /api/admin/armazenamento/reconciliar` continua reconciliando todo
+mundo de uma vez, pelo mesmo `reconciliarVencidos` do job.
+
 ## O que fica desativado por design
 
 No modo público, duas capacidades locais respondem **403 mesmo com token válido** — elas
@@ -230,7 +268,7 @@ Dentro da imagem o script também existe: `node scripts/backup.mjs --sem-midia -
    do `litestream replicate` (config em `litestream.yml`, versão e sha256 fixados no `Dockerfile`):
    cada escrita chega ao R2 em ~10 s (`sync-interval`). Num volume vazio, o boot restaura sozinho
    (`-if-db-not-exists -if-replica-exists`). O CI prova isso a cada push (job `restauracao-litestream`).
-2. **Snapshot diário, independente.** `BACKUP_DIARIO=1` faz o processo primário rodar, às
+2. **Snapshot diário, independente** (aposentado na migração para o Postgres; `BACKUP_DIARIO` é legado, ver "Jobs periódicos"). `BACKUP_DIARIO=1` fazia o processo primário rodar, às
    `BACKUP_HORA_UTC`, `VACUUM INTO` + `integrity_check` + gzip e enviar
    `backups/diario/AAAA-MM-DD.db.gz` ao `BACKUP_S3_BUCKET` (ou `S3_BUCKET`). Ele existe porque o
    Litestream copia o ERRO também: um `DELETE` sem `WHERE` chega à réplica em um segundo, e a foto de
@@ -370,7 +408,8 @@ O que mais atravessa as instancias, e ja resolvido:
 
 ```bash
 STORAGE_RECONCILE_MODE=job
-# e um cron chamando, com um token de admin:
+# o job `reconciliarArmazenamento` do registro roda de hora em hora (ver "Jobs periódicos");
+# para todo mundo de uma vez, com um token de admin:
 #   curl -X POST https://<host>/api/admin/armazenamento/reconciliar
 ```
 

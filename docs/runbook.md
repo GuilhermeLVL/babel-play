@@ -373,6 +373,8 @@ serviço "não morrer".
 Medido em 2026-09-09, sobre uma cópia do banco real: o dreno leva **1–3 ms**; o `-wal` de 659.232
 bytes é dobrado no `.db` pelo checkpoint e zerado.
 
+**Jobs periódicos** (limpezas, podas, reconciliação): `npm run job` lista, `npm run job -- <nome>` roda um à mão; um job "preso" (`job_pulado` com `situacao: em_andamento` sem passada rodando) se resolve sozinho em 15 min, quando a lease em `travas` (`g:job:<nome>`) vence. Tabela e mecanismo em [`docs/deploy.md`](deploy.md), "Jobs periódicos".
+
 ### Se o processo morrer de morte matada (`kill -9`, OOM)
 
 Medido: `health` volta a `200` em **~1,6 s** com supervisor (`restart: unless-stopped`), e o teste

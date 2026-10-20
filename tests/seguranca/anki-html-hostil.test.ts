@@ -21,7 +21,10 @@
  * O elo que faltava era o ÚLTIMO. `notes.flds` do `.apkg` exportado é renderizado como HTML pelo
  * Anki, que é um webview: um baralho hostil importado e reexportado levava a carga para fora do
  * nosso domínio, onde a nossa política de escape não vale mais. `escaparHtml` em
- * `server/import/ankiExport.ts` fecha esse ponto, e a última seção aqui é quem cobra.
+ * `server/import/ankiExport.ts` fecha esse ponto, e é o que este arquivo cobra.
+ *
+ * A LEITURA (o sanitizador e o baralho hostil pelo leitor) mudou para `tests/anki-leitor.test.ts`, que
+ * exercita o leitor do navegador (`src/lib/anki/lerApkg.ts`). Aqui ficou só a exportação.
  */
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -31,7 +34,7 @@ import { createClient } from '@libsql/client'
 import JSZip from 'jszip'
 import { describe, expect, it } from 'vitest'
 
-import { lerApkg, lerTextoAnki, limparCampo } from '../../server/import/anki'
+import { lerApkg } from '../../server/import/anki'
 import { montarApkg } from '../../server/import/ankiExport'
 
 const SEP = '\x1f'
@@ -130,95 +133,6 @@ async function camposDoApkg(apkg: Buffer): Promise<string[][]> {
     })
   }
 }
-
-describe('limparCampo: o que ele garante', () => {
-  for (const { nome, bruto } of TAGS) {
-    it(`${nome}: nenhuma tag sobrevive`, () => {
-      const limpo = limparCampo(bruto)
-      expect(limpo, `sobrou tag em: ${limpo}`).not.toMatch(TAG_VIVA)
-    })
-  }
-
-  it('o texto legítimo em volta da carga é preservado', () => {
-    // Se o sanitizador "resolvesse" apagando o campo, o baralho sumia e ninguém reclamaria pelo
-    // motivo certo. A palavra tem que continuar lá — é ela que vira cartão.
-    for (const { nome, bruto } of CARGAS) {
-      expect(limparCampo(bruto), nome).toContain('casa')
-    }
-  })
-})
-
-describe('limparCampo: o que ele NÃO garante, e por quê', () => {
-  /**
-   * Caracterização deliberada. A ordem (tags primeiro, entidades depois) está explicada em
-   * `server/import/anki.ts` e é ela que preserva `&lt;div&gt;` como texto. Inverter para "fechar"
-   * este caso corromperia conteúdo legítimo de baralho — e não fecharia nada, porque quem segura
-   * a marcação é o sink, não o sanitizador.
-   */
-  for (const { nome, bruto } of ENTIDADES) {
-    it(`${nome}: a entidade vira marcação viva — inerte aqui, contida na exportação`, () => {
-      expect(limparCampo(bruto)).toMatch(TAG_VIVA)
-    })
-  }
-
-  it('a decodificação é de UMA passada: entidade dupla não vira tag', () => {
-    // `&amp;lt;` é o autor escrevendo `&lt;` como texto. Uma segunda passada o transformaria em
-    // `<`, e aí sim o sanitizador estaria fabricando marcação que o arquivo não tinha.
-    expect(limparCampo('&amp;lt;script&amp;gt;casa')).toBe('&lt;script&gt;casa')
-  })
-})
-
-describe('o arquivo inteiro: um .apkg hostil pelo leitor de verdade', () => {
-  it('nenhuma frente ou verso escrito como TAG sai do leitor com tag', async () => {
-    const apkg = await apkgCom(TAGS.map((c) => ({ frente: c.bruto, verso: `verso ${c.bruto}` })))
-    const r = await lerApkg(apkg)
-
-    expect(r.notas.length, 'o baralho hostil deveria ser lido, não recusado').toBe(TAGS.length)
-    for (const n of r.notas) {
-      expect(n.frente, `frente: ${n.frente}`).not.toMatch(TAG_VIVA)
-      expect(n.verso, `verso: ${n.verso}`).not.toMatch(TAG_VIVA)
-    }
-  })
-
-  /**
-   * `camposBrutos` guarda o campo ÍNTEGRO de propósito — é o que permite refazer o mapeamento sem
-   * pedir o arquivo de novo (`server/db/schema.ts:652`). Ele guarda a carga, então quem o consome
-   * tem que ser um lugar que escapa. Hoje é a tela (React) e mais nada: a projeção para cartão
-   * jogável (`vocabRepo.projetarDoAnki`, chamada por `ativarLote`) usa `frente`/`verso`, que já
-   * passaram por `limparCampo`.
-   */
-  it('caracterização: camposBrutos guarda o HTML original, e o mapeamento depende disso', async () => {
-    const apkg = await apkgCom([{ frente: '<b>casa</b>', verso: 'house' }])
-    const r = await lerApkg(apkg)
-    expect(r.notas[0].camposBrutos?.Front).toBe('<b>casa</b>')
-    expect(r.notas[0].frente).toBe('casa')
-  })
-
-  /**
-   * Caracterização: o NOME do baralho não passa por `limparCampo`, e não precisa. Ele tem dois
-   * sinks, os dois seguros: a tela (React escapa) e o `Content-Disposition` da exportação, onde
-   * `import.ts:221` reduz o nome a `[\w.-]` — o que também fecha injeção de cabeçalho por CRLF.
-   * O nome também vai para o JSON de baralhos do `.apkg`, que o Anki mostra como texto.
-   */
-  it('caracterização: o nome do baralho chega íntegro, e os dois sinks dele escapam', async () => {
-    const hostil = '<img src=x onerror=alert(1)>meu deck'
-    const r = await lerApkg(await apkgCom([{ frente: 'casa', verso: 'house' }], hostil))
-    expect(r.baralhos?.[0]).toBe(hostil)
-    // O mesmo saneamento de `import.ts:221`, sobre o mesmo valor: nem tag, nem CR, nem LF, nem
-    // aspas para fechar o `filename="..."`.
-    const paraCabecalho = `${hostil}\r\nX-Injetado: 1`.replace(/[^\w.-]/g, '_')
-    expect(paraCabecalho).not.toMatch(/[\r\n"<>]/)
-  })
-
-  it('a importação por TEXTO tem o mesmo piso', () => {
-    const linhas = TAGS.map((c) => `${c.bruto}\t verso`).join('\n')
-    const r = lerTextoAnki(linhas)
-    expect(r.notas.length).toBeGreaterThan(0)
-    for (const n of r.notas) {
-      expect(n.frente, `frente: ${n.frente}`).not.toMatch(TAG_VIVA)
-    }
-  })
-})
 
 describe('a saída: o .apkg que a pessoa abre no Anki', () => {
   /**

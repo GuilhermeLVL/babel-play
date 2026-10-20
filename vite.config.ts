@@ -210,8 +210,11 @@ export default defineConfig(({ mode }) => {
       // servidor frio a descobria com a sessão no ar, re-otimizava e RECARREGAVA a página (o relógio
       // voltava a 00:00 e a sessão sumia; na CI, a 1ª tentativa de `captura-no-celular.e2e.ts:236`).
       // `tests/viteDepsDosWorkers.test.ts` cobra esta lista.
-      include: ['@ricky0123/vad-web', 'onnxruntime-web', 'onnxruntime-web/wasm'],
-      exclude: ['@huggingface/transformers'],
+      // `fflate`, `fzstd` e `sql.js` (CJS: precisa do pré-bundle para o `default`) só o leitor de `.apkg`
+      // importa (`leitorDeApkg.worker.ts`). O `.wasm?url` do `sql.js` é asset, não dependência a otimizar:
+      // vai no `exclude` só para a varredura de `tests/viteDepsDosWorkers.test.ts` saber que é de propósito.
+      include: ['@ricky0123/vad-web', 'onnxruntime-web', 'onnxruntime-web/wasm', 'fflate', 'fzstd', 'sql.js'],
+      exclude: ['@huggingface/transformers', 'sql.js/dist/sql-wasm.wasm?url'],
     },
     server: {
       /* WORKTREE COM `node_modules` EM JUNÇÃO: o Vite resolve a junção para a pasta de verdade, que

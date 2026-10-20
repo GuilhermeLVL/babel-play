@@ -175,7 +175,17 @@ export function receberCorpoEmArquivo(fonte: Readable, destino: string, limite: 
  */
 export interface CorpoAReceber {
   paraArquivo(destino: string): Promise<CorpoRecebido>
-  paraStream(): Promise<{ cabeca: Buffer; fluxo: AsyncIterable<Buffer>; recebidos: () => number }>
+  paraStream(): Promise<{
+    cabeca: Buffer
+    fluxo: AsyncIterable<Buffer>
+    recebidos: () => number
+    /**
+     * Solta o request: tira os ouvintes do leitor (que PAUSAVAM a cada pedaço) e o deixa correr. Chame
+     * em toda saída do ramo de stream — sem isto, o `descartarRestoDoCorpo` de uma recusa travava no
+     * primeiro pedaço e a conexão ficava presa até o prazo do descarte. Idempotente.
+     */
+    largar: () => void
+  }>
 }
 
 export function receberCorpo(req: { body?: unknown }, opcoes: { limite: number }): CorpoAReceber {
@@ -204,6 +214,7 @@ export function receberCorpo(req: { body?: unknown }, opcoes: { limite: number }
         cabeca: Buffer.concat(lidos).subarray(0, TAMANHO_DA_CABECA),
         fluxo: fluxo(),
         recebidos: () => leitor.bytes(),
+        largar: () => leitor.largar(),
       }
     },
   }
@@ -267,6 +278,14 @@ function leitorDoCorpo(fonte: Readable, limite: number) {
 
   return {
     bytes: () => bytes,
+    largar() {
+      soltar()
+      fila.length = 0
+      // Encerra a leitura para quem ainda puxar; o que chegar depois corre sem ouvinte (é descartado).
+      if (!erro && !fim) erro = new CorpoInterrompido()
+      if (!fonte.readableEnded) fonte.resume()
+      sinalizar()
+    },
     async proximo(): Promise<Buffer | null> {
       for (;;) {
         if (erro) throw erro

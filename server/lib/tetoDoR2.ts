@@ -180,9 +180,9 @@ function avisarContagemFalhou(err: unknown): void {
  * as gravações (A) e `ler`/`lerFaixa`/`tamanho` (B) lançam `ErroDeTetoDoR2`; `remover` SEMPRE passa
  * (decisão 6): apagar reduz o problema.
  *
- * `gravarDeStream` conta UMA operação A, como as outras gravações: o multipart de um upload grande são
- * várias no R2 (criar + uma por parte de 5 MiB + completar — 26 para 120 MB). Fica SUBCONTADO de
- * propósito por ora (o contador soma 1 por chamada); o painel da Cloudflare é a fonte da fatura.
+ * `gravarDeStream` conta como o R2 cobra: 1 no `put` único, ou 1 + partes + 1 no multipart (create, cada
+ * parte de 5 MiB, complete — 26 para 120 MB; o abort é grátis). A contagem vem do back-end, pelo
+ * `aoOperar`; o teto estourando no meio aborta o multipart.
  *
  * Jobs internos que precisam medir ou apagar independentemente do teto (exclusão de conta/LGPD,
  * apagar sessão, retenção, reconciliação da cota) usam `semTeto(store)`: a mesma contagem, sem
@@ -229,9 +229,15 @@ export function comTetoDeOperacoes(store: Armazenamento, deps: DependenciasDoTet
     gravarDeArquivo: async (nome, caminho, contentType) => (
       await passar('a', livre), store.gravarDeArquivo(nome, caminho, contentType)
     ),
-    gravarDeStream: async (nome, fluxo, contentType, tamanho) => (
-      await passar('a', livre), store.gravarDeStream(nome, fluxo, contentType, tamanho)
-    ),
+    /* Sem contagem na entrada: o back-end chama `aoOperar` antes de cada operação cobrada (o `put`, ou
+       create + cada parte + complete), e é ali que o teto conta e recusa — no meio, o multipart aborta. */
+    gravarDeStream: (nome, fluxo, contentType, tamanho, opcoes) =>
+      store.gravarDeStream(nome, fluxo, contentType, tamanho, {
+        aoOperar: async () => {
+          await passar('a', livre)
+          await opcoes?.aoOperar?.()
+        },
+      }),
     remover: async (nome) => (await passar('a', true), store.remover(nome)),
     ler: async (nome) => (await passar('b', livre), store.ler(nome)),
     lerFaixa: async (nome, inicio, fim) => (await passar('b', livre), store.lerFaixa(nome, inicio, fim)),

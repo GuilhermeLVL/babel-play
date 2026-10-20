@@ -21,7 +21,9 @@
 import { createReadStream } from 'node:fs'
 import { Readable } from 'node:stream'
 
-import { type Armazenamento, emPartes, NomeDeArquivoInvalido } from './armazenamento'
+import type { Armazenamento } from './armazenamento'
+import { emPartes, NomeDeArquivoInvalido } from './fluxoDeBytes'
+import { log } from './logger'
 import { temDisco } from './runtime'
 
 /** Tamanho de cada parte do multipart (o mínimo do R2 para as que não são a última). */
@@ -74,6 +76,14 @@ let bucketLigado: BucketR2 | null = null
 
 /** Liga (ou desliga, com `null`) o binding R2 que `armazenamentoDoAmbiente` passa a preferir. */
 export function ligarBucketDoR2(bucket: BucketR2 | null): void {
+  /* Religar com OUTRO bucket é suspeito (o binding é um só na vida do isolate) e quem já memoizou o
+     store (as rotas de sessões) continua no antigo: avisa, não troca em silêncio. */
+  if (bucket && bucketLigado && bucket !== bucketLigado) {
+    log('warn', {
+      event: 'r2_binding_religado',
+      error: 'binding R2 religado com outro bucket; stores já criados seguem no anterior',
+    })
+  }
   bucketLigado = bucket
 }
 
@@ -91,8 +101,10 @@ function chaveValida(nome: string): string {
 export function armazenamentoR2(bucket: BucketR2): Armazenamento {
   const meta = (contentType: string): OpcoesDeGravacaoR2 => ({ httpMetadata: { contentType } })
 
-  const gravarDeStream: Armazenamento['gravarDeStream'] = async (nome, fluxo, contentType) => {
+  const gravarDeStream: Armazenamento['gravarDeStream'] = async (nome, fluxo, contentType, _tamanho, opcoes) => {
     const chave = chaveValida(nome)
+    // Antes de CADA operação cobrada (put, create, parte, complete): é onde o teto do R2 conta e recusa.
+    const operar = async () => opcoes?.aoOperar?.()
     let upload: UploadMultipartR2 | null = null
     const enviadas: ParteEnviadaR2[] = []
     try {
@@ -100,17 +112,22 @@ export function armazenamentoR2(bucket: BucketR2): Armazenamento {
         if (!upload) {
           // A primeira parte não encheu: o corpo inteiro cabe nela, e um `put` basta.
           if (parte.length < TAMANHO_DA_PARTE) {
+            await operar()
             await bucket.put(chave, parte, meta(contentType))
             return
           }
+          await operar()
           upload = await bucket.createMultipartUpload(chave, meta(contentType))
         }
+        await operar()
         enviadas.push(await upload.uploadPart(enviadas.length + 1, parte))
       }
       if (!upload) {
+        await operar()
         await bucket.put(chave, new Uint8Array(0), meta(contentType))
         return
       }
+      await operar()
       await upload.complete(enviadas)
     } catch (err) {
       // O erro que importa é o original; uma falha do `abort` só iria escondê-lo.

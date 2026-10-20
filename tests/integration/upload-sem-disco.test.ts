@@ -13,6 +13,7 @@
  */
 import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs'
 import { type ClientRequest, request } from 'node:http'
+import { connect } from 'node:net'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -86,7 +87,7 @@ describe('upload sem disco: stream direto para o R2 do binding', () => {
     ;({ ligarBucketDoR2 } = await s.load('../../server/lib/armazenamentoR2'))
     bucket = bucketDoCaso()
     ligarBucketDoR2(bucket)
-    for (const u of ['ana', 'bia', 'caio', 'duda']) tokens[u] = await s.token(`sem-disco-${u}`)
+    for (const u of ['ana', 'bia', 'caio', 'duda', 'edu', 'fabi', 'gil']) tokens[u] = await s.token(`sem-disco-${u}`)
   }, 60_000)
 
   afterAll(async () => {
@@ -223,5 +224,108 @@ describe('upload sem disco: stream direto para o R2 do binding', () => {
     expect(bucket.contar('abort')).toBe(1)
     expect(bucket.contar('complete')).toBe(0)
     expect(await uso('duda')).toBe(antes)
+  })
+
+  /**
+   * Envia o corpo INTEIRO por um socket cru (respeitando o `drain`) e devolve o status e quanto levou até
+   * a última escrita passar. Socket cru, e não `http.request`: o cliente HTTP do Node para de escrever
+   * quando a resposta chega antes do fim do corpo, e aí não daria para ver se o SERVIDOR drena.
+   */
+  async function enviarCru(caminho: string, u: string, partes: Buffer[], chunked = false) {
+    const base = new URL(s.base)
+    const sock = connect(Number(base.port), base.hostname)
+    await new Promise((r) => sock.once('connect', r))
+    let resposta = ''
+    sock.on('data', (d) => (resposta += d.toString('latin1')))
+    sock.on('error', () => {})
+    let fechou = false
+    sock.once('close', () => (fechou = true))
+    const t0 = Date.now()
+    const total = partes.reduce((n, p) => n + p.length, 0)
+    sock.write(
+      `POST ${caminho} HTTP/1.1\r\nHost: ${base.host}\r\nAuthorization: Bearer ${tokens[u]}\r\n` +
+        `Content-Type: audio/webm\r\n` +
+        (chunked ? 'Transfer-Encoding: chunked\r\n\r\n' : `Content-Length: ${total}\r\n\r\n`),
+    )
+    const escrever = async (b: Buffer | string) => {
+      if (!sock.write(b)) {
+        await new Promise<void>((r) => {
+          const soltar = () => {
+            sock.off('drain', soltar).off('close', soltar)
+            r()
+          }
+          sock.once('drain', soltar).once('close', soltar)
+        })
+      }
+    }
+    for (const p of partes) {
+      if (chunked) await escrever(`${p.length.toString(16)}\r\n`)
+      await escrever(p)
+      if (chunked) await escrever('\r\n')
+    }
+    if (chunked) await escrever('0\r\n\r\n')
+    const ms = Date.now() - t0
+    // Socket fechado antes do fim do corpo também "termina rápido" — mas aí o corpo não foi drenado.
+    const fechouAntes = fechou
+    for (let i = 0; i < 50 && !/^HTTP\/1\.1 \d+/.test(resposta); i++) await new Promise((r) => setTimeout(r, 20))
+    sock.destroy()
+    return { status: Number(/^HTTP\/1\.1 (\d+)/.exec(resposta)?.[1] ?? 0), ms, fechouAntes }
+  }
+
+  /* RECUSA COM O CORPO CHEGANDO: o resto é descartado e a conexão termina já, não no prazo de 10 s do
+     descarte. Antes, o leitor do stream continuava pausando o request a cada pedaço e o descarte travava. */
+  it('tipo inválido com alguns MB chegando → 400 e o corpo drenado em < 2 s', async () => {
+    const id = await novaSessao('edu')
+    const lixo = Buffer.alloc(MB, 0x50)
+    const { status, ms, fechouAntes } = await enviarCru(`/api/sessions/${id}/audio`, 'edu', Array(8).fill(lixo))
+    expect(status).toBe(400)
+    expect(ms).toBeLessThan(2000)
+    expect(fechouAntes).toBe(false)
+  })
+
+  it('cota recusando o chunked (507) com o corpo chegando → resposta e corpo drenado em < 2 s', async () => {
+    const id = await novaSessao('fabi')
+    const antes = process.env.FREE_STORAGE_MB
+    process.env.FREE_STORAGE_MB = '100' // o chunked reserva 120 MB: passa do plano
+    try {
+      const pedaco = Buffer.alloc(MB, 0x33)
+      const { status, ms, fechouAntes } = await enviarCru(
+        `/api/sessions/${id}/audio`,
+        'fabi',
+        [CABECA_WEBM, ...Array(8).fill(pedaco)],
+        true,
+      )
+      expect(status).toBe(507)
+      expect(ms).toBeLessThan(2000)
+      expect(fechouAntes).toBe(false)
+      expect(bucket.chamadas.filter((c) => c.op !== 'head')).toEqual([])
+    } finally {
+      process.env.FREE_STORAGE_MB = antes
+    }
+  })
+
+  it('teto mensal de operações A estourando na parte 3 → 503, abort, cota devolvida', async () => {
+    const { usageCountersRepo } = await s.load('../../server/db/repositories/usageCounters')
+    const r2 = asUserId('__r2__')
+    const janela = new Date().toISOString().slice(0, 7)
+    await usageCountersRepo.reset(r2, 'r2_ops_a', janela)
+    await usageCountersRepo.increment(r2, 'r2_ops_a', janela, 900_000 - 3) // create, parte 1 e 2 cabem
+    try {
+      const id = await novaSessao('gil')
+      const antes = await uso('gil')
+      const r = await s.chamar('POST', `/api/sessions/${id}/audio`, {
+        token: tokens.gil,
+        raw: Buffer.concat([CABECA_WEBM, Buffer.alloc(12 * MB, 0x66)]),
+        headers: { 'content-type': 'audio/webm' },
+      })
+      expect(r.status).toBe(503)
+      expect(((await r.json()) as { code: string }).code).toBe('r2_teto_operacoes')
+      expect(bucket.contar('uploadPart')).toBe(2)
+      expect(bucket.contar('abort')).toBe(1)
+      expect(bucket.contar('complete')).toBe(0)
+      expect(await uso('gil')).toBe(antes)
+    } finally {
+      await usageCountersRepo.reset(r2, 'r2_ops_a', janela)
+    }
   })
 })

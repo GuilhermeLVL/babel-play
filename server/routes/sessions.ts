@@ -315,7 +315,7 @@ sessionsRouter.post('/:id/audio', vagaDeCorpoGrande(), async (req, res) => {
      */
     const anterior = String(readMeta(session.meta).audioFile || '')
     const bytesAnteriores = anterior ? ((await armazenamentoDeMidia().tamanho(anterior)) ?? 0) : 0
-    const reservar = async (bytes: number): Promise<boolean> => {
+    const reservar = async (bytes: number, antesDeDescartar?: () => void): Promise<boolean> => {
       const cota = await reservarArmazenamento(req.userId, bytes - bytesAnteriores)
       if (cota.ok) {
         // Sem teto (self-host) nada foi contabilizado, e o estorno do `finally` não pode inventar conta.
@@ -325,6 +325,7 @@ sessionsRouter.post('/:id/audio', vagaDeCorpoGrande(), async (req, res) => {
       }
       const r = corpoDeRecusa(cota)
       log('warn', { event: 'storage_quota_denied', route: req.path, status: r.status, requestId: req.requestId })
+      antesDeDescartar?.()
       descartarRestoDoCorpo(req)
       res.status(r.status).json(r.body)
       return false
@@ -362,8 +363,11 @@ sessionsRouter.post('/:id/audio', vagaDeCorpoGrande(), async (req, res) => {
     }
 
     if (!temDisco()) {
+      /* Toda saída deste ramo SOLTA o leitor do corpo (`largar`) antes do descarte: os ouvintes dele pausam
+         o request a cada pedaço, e com eles registrados o `descartarRestoDoCorpo` travava até o prazo. */
+      let corpo: Awaited<ReturnType<ReturnType<typeof receberCorpo>['paraStream']>> | undefined
       try {
-        const corpo = await receberCorpo(req, { limite: LIMITE_DO_AUDIO }).paraStream()
+        corpo = await receberCorpo(req, { limite: LIMITE_DO_AUDIO }).paraStream()
         if (!corpo.cabeca.length) {
           res.status(400).json({ error: 'corpo de áudio vazio' })
           return
@@ -371,6 +375,7 @@ sessionsRouter.post('/:id/audio', vagaDeCorpoGrande(), async (req, res) => {
         const detectado = detectarAudio(corpo.cabeca)
         if (!detectado) {
           log('warn', { event: 'audio_upload_tipo_invalido', route: req.path, status: 400, requestId: req.requestId })
+          corpo.largar()
           descartarRestoDoCorpo(req)
           res.status(400).json({
             error: `o conteúdo enviado não é um áudio reconhecido (${FORMATOS_DE_AUDIO_ACEITOS})`,
@@ -381,7 +386,9 @@ sessionsRouter.post('/:id/audio', vagaDeCorpoGrande(), async (req, res) => {
         const file = `${p.id}.${detectado.ext}`
         // `chunked`: o objeto estará no bucket antes de o tamanho existir — reserva o teto e acerta no fim.
         const reservadoPara = declarado ?? LIMITE_DO_AUDIO
-        if (declarado === null && !(await reservar(reservadoPara))) return
+        // Na recusa, `reservar` descarta o resto: o leitor é solto antes, senão ele pausaria o descarte.
+        const solto = corpo
+        if (declarado === null && !(await reservar(reservadoPara, () => solto.largar()))) return
         await armazenamentoDeMidia().gravarDeStream(file, corpo.fluxo, detectado.mime, declarado ?? undefined)
         const bytes = corpo.recebidos()
         if (contabiliza && bytes !== reservadoPara) {
@@ -399,9 +406,12 @@ sessionsRouter.post('/:id/audio', vagaDeCorpoGrande(), async (req, res) => {
           log('info', { event: 'audio_upload_interrompido', route: req.path, requestId: req.requestId })
           return
         }
-        // O bucket falhou com o corpo ainda chegando: descarta o resto para a resposta de erro chegar.
+        // O bucket (ou o teto) falhou com o corpo ainda chegando: descarta o resto para a resposta chegar.
+        corpo?.largar()
         descartarRestoDoCorpo(req)
         throw err
+      } finally {
+        corpo?.largar()
       }
       return
     }

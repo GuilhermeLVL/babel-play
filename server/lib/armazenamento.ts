@@ -6,63 +6,12 @@ import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
 import { armazenamentoR2, bucketDoR2Ligado, type BucketR2 } from './armazenamentoR2'
+import { emPartes, type FluxoDeBytes, iterarBytes, NomeDeArquivoInvalido } from './fluxoDeBytes'
+import { temDisco } from './runtime'
 import { comTetoDeOperacoes, lerTetoDoR2 } from './tetoDoR2'
 
-/**
- * Bytes em stream, venham do Node (`Readable`, gerador) ou da web (`ReadableStream`, o corpo do request
- * num Worker).
- */
-export type FluxoDeBytes = AsyncIterable<Uint8Array> | ReadableStream<Uint8Array>
-
-/** Itera qualquer `FluxoDeBytes`. O `ReadableStream` vai pelo leitor (o iterador assíncrono dele não é garantido em todo runtime). */
-async function* iterarBytes(fluxo: FluxoDeBytes): AsyncGenerator<Uint8Array> {
-  if (typeof (fluxo as ReadableStream).getReader !== 'function') {
-    yield* fluxo as AsyncIterable<Uint8Array>
-    return
-  }
-  const leitor = (fluxo as ReadableStream<Uint8Array>).getReader()
-  let acabou = false
-  try {
-    for (;;) {
-      const { done, value } = await leitor.read()
-      if (done) {
-        acabou = true
-        return
-      }
-      yield value
-    }
-  } finally {
-    // Saída antecipada (erro de quem consome): o stream é cancelado em vez de ficar preso.
-    if (!acabou) await leitor.cancel().catch(() => {})
-  }
-}
-
-/**
- * Corta um fluxo em partes de EXATAMENTE `tamanho` bytes, menos a última (que pode ser menor e não sai
- * vazia). É a forma que o multipart pede (R2 e S3: partes uniformes, a última livre). Só uma parte
- * existe na memória por vez.
- */
-export async function* emPartes(fluxo: FluxoDeBytes, tamanho: number): AsyncGenerator<Buffer> {
-  let pedacos: Buffer[] = []
-  let juntos = 0
-  for await (const p of iterarBytes(fluxo)) {
-    let resto = Buffer.from(p.buffer, p.byteOffset, p.byteLength)
-    while (juntos + resto.length >= tamanho) {
-      const falta = tamanho - juntos
-      pedacos.push(resto.subarray(0, falta))
-      yield Buffer.concat(pedacos, tamanho)
-      pedacos = []
-      juntos = 0
-      resto = resto.subarray(falta)
-    }
-    if (resto.length) {
-      // Cópia: quem produziu o pedaço (o gerador do teste, o socket) pode reaproveitar o buffer.
-      pedacos.push(Buffer.from(resto))
-      juntos += resto.length
-    }
-  }
-  if (juntos) yield Buffer.concat(pedacos, juntos)
-}
+/* Reexportado: quem soma tamanhos (`storageQuota`) e os testes o importam daqui desde S-14. */
+export { NomeDeArquivoInvalido }
 
 /**
  * Seam de armazenamento de mídia (F5-02).
@@ -70,6 +19,10 @@ export async function* emPartes(fluxo: FluxoDeBytes, tamanho: number): AsyncGene
  * A mídia é 33× o banco (176,9 MB vs 5,3 MB por usuário; ~173 GB projetados para 1.000).
  * O ADR 001 decidiu object storage — este é o único ponto que precisa saber disso.
  */
+export interface OpcoesDeGravacaoEmStream {
+  aoOperar?: () => Promise<void>
+}
+
 export interface Armazenamento {
   readonly tipo: 'arquivos' | 's3' | 'r2'
   gravar(nome: string, bytes: Buffer, contentType: string): Promise<void>
@@ -82,8 +35,18 @@ export interface Armazenamento {
    * próprio fluxo (cliente caiu, corpo acima do teto) sobe como veio, para a rota responder por ele.
    *
    * `tamanho` é só uma dica de quem sabe o tamanho (o `Content-Length`); nenhum back-end depende dela.
+   *
+   * `aoOperar` é chamado ANTES de cada operação cobrada no bucket (o `put`; ou o create, cada parte e o
+   * complete do multipart — o abort é grátis; no disco, uma vez). É por onde o teto do R2 conta o
+   * multipart como ele é cobrado (1 + partes + 1). Se ele lançar no meio, o multipart é abortado.
    */
-  gravarDeStream(nome: string, fluxo: FluxoDeBytes, contentType: string, tamanho?: number): Promise<void>
+  gravarDeStream(
+    nome: string,
+    fluxo: FluxoDeBytes,
+    contentType: string,
+    tamanho?: number,
+    opcoes?: OpcoesDeGravacaoEmStream,
+  ): Promise<void>
   /**
    * Grava a partir de um ARQUIVO LOCAL, sem carregá-lo na memória (fase 2 de prontidão, §2.3).
    *
@@ -120,12 +83,6 @@ export interface Armazenamento {
 
 /* ─────────────────────────── filesystem ─────────────────────────── */
 
-/**
- * Nome de arquivo/objeto recusado (S-14). Classe própria para quem SOMA tamanhos (a reconciliação da
- * cota) poder pular só este caso e deixar qualquer outra falha do store subir.
- */
-export class NomeDeArquivoInvalido extends Error {}
-
 /** Recusa nome que escape do diretório (S-14). */
 export function resolverDentroDe(base: string, nome: string): string {
   const raiz = path.resolve(base)
@@ -154,9 +111,10 @@ export function armazenamentoDeArquivos(dir: string): Armazenamento {
         await copyFile(caminho, alvo)
       }
     },
-    async gravarDeStream(nome, fluxo) {
+    async gravarDeStream(nome, fluxo, _contentType, _tamanho, opcoes) {
       const alvo = resolverDentroDe(dir, nome)
-      await mkdir(dir, { recursive: true })
+      await opcoes?.aoOperar?.()
+      await mkdir(path.dirname(alvo), { recursive: true })
       const temporario = `${alvo}.${randomUUID()}.parcial`
       try {
         await pipeline(Readable.from(iterarBytes(fluxo)), createWriteStream(temporario, { flags: 'wx' }))
@@ -370,22 +328,26 @@ export function armazenamentoS3(
      * integridade nem depender de `chunked` (que o R2 recusa sem `Content-Length`). Abaixo de 5 MiB é
      * um PUT só. Funciona sem disco, então serve também a um Worker configurado só com `S3_*`.
      */
-    async gravarDeStream(nome, fluxo, contentType) {
+    async gravarDeStream(nome, fluxo, contentType, _tamanho, opcoes) {
       urlDe(nome)
+      const operar = async () => opcoes?.aoOperar?.()
       let uploadId: string | null = null
       const etags: string[] = []
       try {
         for await (const parte of emPartes(fluxo, TAMANHO_DA_PARTE_S3)) {
           if (!uploadId) {
             if (parte.length < TAMANHO_DA_PARTE_S3) {
+              await operar()
               await s3.gravar(nome, parte, contentType)
               return
             }
+            await operar()
             const r = await chamar('POST', nome, { consulta: { uploads: '' }, contentType })
             const id = r.ok ? /<UploadId>([^<]+)<\/UploadId>/.exec(await r.text())?.[1] : undefined
             if (!id) throw new Error(`s3 POST uploads ${r.status}`)
             uploadId = id
           }
+          await operar()
           const r = await chamar('PUT', nome, {
             corpo: parte,
             consulta: { partNumber: String(etags.length + 1), uploadId },
@@ -396,6 +358,7 @@ export function armazenamentoS3(
           etags.push(etag)
         }
         if (!uploadId) {
+          await operar()
           await s3.gravar(nome, Buffer.alloc(0), contentType)
           return
         }
@@ -403,6 +366,7 @@ export function armazenamentoS3(
           '<CompleteMultipartUpload>' +
           etags.map((e, i) => `<Part><PartNumber>${i + 1}</PartNumber><ETag>${e}</ETag></Part>`).join('') +
           '</CompleteMultipartUpload>'
+        await operar()
         const r = await chamar('POST', nome, { corpo: xml, consulta: { uploadId } })
         // O S3 pode responder 200 com `<Error>` no corpo do complete.
         if (!r.ok || (await r.text()).includes('<Error>')) throw new Error(`s3 POST complete ${r.status}`)
@@ -497,7 +461,13 @@ export function armazenamentoDoAmbiente(
      cobrada. Os tetos são lidos AQUI, na criação — valor inválido lança, e quem cria no boot é
      `server/boot/validar.ts`. */
   if (r2) return comTetoDeOperacoes(armazenamentoR2(r2), { tetos: lerTetoDoR2(env) })
-  return cfg
-    ? comTetoDeOperacoes(armazenamentoS3(cfg), { tetos: lerTetoDoR2(env) })
-    : armazenamentoDeArquivos(dirPadrao)
+  if (cfg) return comTetoDeOperacoes(armazenamentoS3(cfg), { tetos: lerTetoDoR2(env) })
+  /* Sem disco (Worker) o "padrão" de arquivos não existe: falhar AQUI, com o que configurar, em vez de
+     um ENOENT/EROFS no primeiro upload. */
+  if (!temDisco()) {
+    throw new Error(
+      'armazenamento de mídia indisponível: sem disco e sem binding R2 (ligarBucketDoR2) nem S3_* configurado',
+    )
+  }
+  return armazenamentoDeArquivos(dirPadrao)
 }

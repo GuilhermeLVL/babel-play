@@ -20,7 +20,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { Readable } from 'node:stream'
 
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import {
   armazenamentoDeArquivos,
@@ -30,7 +30,7 @@ import {
 } from '../../server/lib/armazenamento'
 import { armazenamentoR2, ligarBucketDoR2 } from '../../server/lib/armazenamentoR2'
 import { temDisco } from '../../server/lib/runtime'
-import { comTetoDeOperacoes, semTeto } from '../../server/lib/tetoDoR2'
+import { comTetoDeOperacoes, ErroDeTetoDoR2, semTeto } from '../../server/lib/tetoDoR2'
 import { dubleDoR2 } from '../harness/workers/r2Duble'
 
 const MiB = 1024 * 1024
@@ -197,6 +197,78 @@ describe('teto do R2 embrulhando o binding', () => {
     await expect(s.tamanho('t.webm')).rejects.toThrow(/classe B/)
     expect(b.contar('head')).toBe(0)
   })
+
+  /* O multipart custa 1 + partes + 1 operações A no R2 (create, cada uploadPart, complete; o abort é
+     grátis): o teto conta cada uma, pelo `aoOperar` que o embrulho passa ao back-end. */
+  const contadorA = (teto = Infinity) => {
+    let n = 0
+    const contar = async (classe: 'a' | 'b') => {
+      if (classe !== 'a') return 1
+      if (n >= teto) return null
+      return ++n
+    }
+    return { contar: contar as never, contadas: () => n }
+  }
+
+  it('120 MB simulado → 26 operações A contadas (create + 24 partes + complete)', async () => {
+    const c = contadorA()
+    const b = dubleDoR2({ soTamanhos: true })
+    const s = comTetoDeOperacoes(armazenamentoR2(b), {
+      tetos: { bytes: Infinity, opsA: 1e9, opsB: 1e9 },
+      contar: c.contar,
+    })
+    await s.gravarDeStream('g.webm', gerado(120), 'audio/webm')
+    expect(c.contadas()).toBe(26)
+    expect(b.contar('uploadPart')).toBe(24)
+  }, 60_000)
+
+  it('put único (< 5 MiB) → 1 operação A', async () => {
+    const c = contadorA()
+    const s = comTetoDeOperacoes(armazenamentoR2(dubleDoR2()), {
+      tetos: { bytes: Infinity, opsA: 1e9, opsB: 1e9 },
+      contar: c.contar,
+    })
+    await s.gravarDeStream('p.webm', gerado(2), 'audio/webm')
+    expect(c.contadas()).toBe(1)
+  })
+
+  it('teto que estoura na parte 3 → ErroDeTetoDoR2 (R2_TETO_OPS), abort, sem a parte 3', async () => {
+    const c = contadorA(3) // create, parte 1, parte 2 passam; a parte 3 é recusada
+    const b = dubleDoR2({ soTamanhos: true })
+    const s = comTetoDeOperacoes(armazenamentoR2(b), {
+      tetos: { bytes: Infinity, opsA: 1e9, opsB: 1e9 },
+      contar: c.contar,
+    })
+    const erro = await s.gravarDeStream('t.webm', gerado(30), 'audio/webm').catch((e: unknown) => e)
+    expect(erro).toBeInstanceOf(ErroDeTetoDoR2)
+    expect((erro as ErroDeTetoDoR2).codigo).toBe('R2_TETO_OPS')
+    expect(b.contar('uploadPart')).toBe(2)
+    expect(b.contar('abort')).toBe(1)
+    expect(b.contar('complete')).toBe(0)
+  })
+
+  it('S3 também conta por operação: 12 MiB → 5 (uploads + 3 partes + complete)', async () => {
+    const c = contadorA()
+    const buscar = (async (u: string, init: RequestInit) => {
+      const url = new URL(u)
+      if (url.searchParams.has('uploads')) return new Response('<UploadId>u1</UploadId>')
+      if (url.searchParams.has('partNumber')) return new Response(null, { headers: { etag: '"e"' } })
+      return new Response(null, { status: init.method === 'DELETE' ? 204 : 200 })
+    }) as unknown as typeof fetch
+    const cfg = {
+      endpoint: 'https://s3.falso',
+      bucket: 'midia',
+      regiao: 'auto',
+      accessKeyId: 'k',
+      secretAccessKey: 's',
+    }
+    const s = comTetoDeOperacoes(armazenamentoS3(cfg, buscar), {
+      tetos: { bytes: Infinity, opsA: 1e9, opsB: 1e9 },
+      contar: c.contar,
+    })
+    await s.gravarDeStream('s.webm', gerado(12), 'audio/webm')
+    expect(c.contadas()).toBe(5)
+  })
 })
 
 describe('armazenamentoDoAmbiente: binding > S3 > disco', () => {
@@ -221,6 +293,34 @@ describe('armazenamentoDoAmbiente: binding > S3 > disco', () => {
   it('sem binding: S3 com as quatro variáveis; sem elas, disco', () => {
     expect(armazenamentoDoAmbiente(dir, S3).tipo).toBe('s3')
     expect(armazenamentoDoAmbiente(dir, {}).tipo).toBe('arquivos')
+  })
+
+  it('sem disco, sem binding e sem S3: erro claro em vez de cair num disco que não existe', () => {
+    const antes = process.env.BABEL_SEM_DISCO
+    process.env.BABEL_SEM_DISCO = '1'
+    try {
+      expect(() => armazenamentoDoAmbiente(dir, {})).toThrow(/sem disco.*binding R2.*S3_/)
+      expect(armazenamentoDoAmbiente(dir, S3).tipo).toBe('s3')
+      expect(armazenamentoDoAmbiente(dir, {}, { r2: dubleDoR2() }).tipo).toBe('r2')
+    } finally {
+      if (antes === undefined) delete process.env.BABEL_SEM_DISCO
+      else process.env.BABEL_SEM_DISCO = antes
+    }
+  })
+
+  it('religar o binding com OUTRO bucket avisa no log; o mesmo de novo, não', () => {
+    const aviso = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      const b1 = dubleDoR2()
+      ligarBucketDoR2(b1)
+      ligarBucketDoR2(b1)
+      expect(aviso).not.toHaveBeenCalled()
+      ligarBucketDoR2(dubleDoR2())
+      expect(aviso).toHaveBeenCalledTimes(1)
+      expect(String(aviso.mock.calls[0][0])).toContain('r2_binding_religado')
+    } finally {
+      aviso.mockRestore()
+    }
   })
 })
 

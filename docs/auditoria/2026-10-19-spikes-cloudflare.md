@@ -294,3 +294,76 @@ cada transação que trava (ou `alter role … set lock_timeout`, que vale para 
    por ida, então o Hyperdrive acrescenta ~3–5 ms por consulta.
 
 `spike-s7` apagado ao fim das duas rodadas; a CA e o `babel-sp` ficam (produção).
+
+## Fase 2 concluída: runtime em Cloudflare Workers (2026-10-20, branch `cloudflare/migracao`)
+
+Plano: `docs/superpowers/plans/2026-10-19-fase2-workers.md` (14 tarefas, cada uma com implementador e
+revisor próprios, mais revisão final da branch). Nada foi implantado: a `main`, o Fly e o domínio não
+mudaram. O que existe é o mesmo servidor Express rodando num Worker **local** (`wrangler dev`) contra
+Postgres, com tudo que a produção vai exigir já provado por teste ou fumaça.
+
+**O que entrou (52 commits sobre o plano).**
+
+- Hyperdrive `babel-sp` criado apontando para o Supabase em sa-east-1 pela conexão direta IPv6, TLS
+  `verify-full` com a CA própria do Supabase; medido do Worker em GRU com `placement.region
+aws:sa-east-1`: 2–3 ms por ida, `select 1` p50 6–11 ms, rota de 7 consultas ~60 ms aquecida (S7).
+- Banco pronto para pool por transação: travas de linha (`travas`) no lugar de advisory locks; prazos
+  de sessão no papel do banco (`ALTER ROLE`, migration 0004) porque pooler e Hyperdrive ignoram
+  `options`; lotes de INSERT/UPDATE em uma instrução (reetiquetar 5 000 cartões: 5 003 → 4
+  instruções); um `pg.Client` por requisição via `AsyncLocalStorage`, com fila de transações e
+  fechamento só depois do trabalho pós-resposta.
+- Admissão de IA no banco (migration 0005): token bucket com reabastecimento contínuo numa única
+  instrução atômica, vagas em voo com prazo por tipo, bloqueio por `Retry-After` do provedor; 20
+  reservas paralelas contra teto de 10 → exatamente 10 passam, em dois executores reais.
+- Armazenamento sem disco: R2 por binding com upload em stream multipart (abort em erro), cota sem
+  `statfs`, teto do R2 cobrado por operação (inclusive cada parte).
+- Boot preguiçoso: nenhum módulo lê ambiente ou disco ao ser importado (teste com preload que vigia
+  `process.env`); `server.ts` de 590 para 157 linhas; migrations fora do boot.
+- Registro único de 7 jobs com lease de 15 min (dois `scheduled` simultâneos → efeito único), limpeza
+  diária em lotes curtos com ajuste incremental dos agregados.
+- Aposentados: `node:cluster`, porta 9091, yt-dlp (`POST /api/import/youtube` → 410); `prom-client`
+  atrás de fachada só no Node.
+- Worker: `worker.ts` + `wrangler.jsonc` (nodejs_compat, Hyperdrive, R2, 7 crons, assets SPA,
+  placement, observability), bundle 5,7 MB / 1,3 MB gzip com stubs para o que é só Node; `fetchSeguro`
+  com SSRF por DoH no Worker e `node:dns` no Node; `emSegundoPlano` → `ctx.waitUntil`; travas de
+  produção provadas no Worker (`NODE_ENV`, `validarBoot` por isolate, IP do cliente por
+  `CF-Connecting-IP`, `.env` fora do `wrangler dev`, `IA_PROVEDORES_ARQUIVO` recusado).
+- CI: job `postgres-real` roda TODA a integração e caracterização em Postgres 17; workflow semanal de
+  `pg_dump` para o R2 (sem bucket ainda; falha com clareza).
+
+**Portão (HEAD da fase).**
+| Verificação | Resultado |
+|---|---|
+| typecheck, lint, build (Vite + Node), knip | ok (knip só com achados pré-existentes) |
+| `npm test` (PGlite) | 12 096 testes, 0 falhas |
+| integração + caracterização em Postgres 17 | 271 arquivos, 0 falhas |
+| bundle do Worker | 5 697 KB bruto, 1 339 KB gzip, 786 módulos |
+| fumaça em `wrangler dev` | 7/7: health, JWT, upload + Range 206, cron, estorno pós-resposta, 10 requisições paralelas + upload cancelado (0 conexões abertas ao fim), `/api` 404 |
+| E2E no Node | desktop 75/0, mobile 78/0 (sem regressão) |
+| E2E no Worker local | 69 passaram; 4 falhas explicadas (import de Anki é Node-only até a Fase 3; 1 subpixel intermitente); com `E2E_RUNTIME=worker` as suítes de Anki são puladas |
+| revisão final (opus) | 1 crítico (limpeza pós-resposta cortada pelo fechamento do cliente) e 2 importantes, todos corrigidos e re-revisados |
+
+**Decisões registradas na fase** (rulings do plano e do ledger): travas de linha; cache do Hyperdrive
+desligado; cliente por requisição; rate limit continua no banco; Sentry/Langfuse com clientes próprios
+
+- `waitUntil`; importação pesada Node-only até a Fase 3 (503 no Worker); `prom-client` só no Node;
+  migrations na CI; TLS `verify-full`; prazos no papel do banco; `flags` da origem vencem na migração
+  de dados; CSP bloqueante dos estáticos fica para a Fase 4.
+
+**Pendências para as Fases 3–5 (antes do G1).**
+
+- Fase 3: importação de Anki/PDF/DOCX no navegador (hoje 503 no Worker); tirar o botão e o
+  entitlement do YouTube; tratar o 410 no cliente.
+- Fase 4: `_headers` com CSP bloqueante para os estáticos; bucket `babel-midia` e `babel-backups` com
+  lifecycle (8 semanas); Hyperdrive próprio do staging; secrets no Cloudflare; `relatarConfiguracao()`
+  no portão do Worker (sem ela o `/api/health` não acusa `degraded`); cache de DoH por isolate;
+  Analytics Engine no lugar dos contadores em memória; medir `scrypt` frio por isolate, p95 da
+  admissão (2–3 idas por fala) e o ritmo de uploads grandes pelo stream intermediário; segundo
+  Hyperdrive com cache se a medição pedir; confirmar o plano Workers Paid (7 crons > 5 do grátis).
+- Fase 5: ensaio da migração de dados sobre uma cópia do SQLite de produção (procurar fração em
+  coluna INTEGER antes); k6 Fly × Cloudflare; drill de restauração do `pg_dump`.
+- Dívidas menores conhecidas (ledger): handler pendurado segura o cliente até ~30 s (teto próprio
+  para a lista de `waitUntil` é melhoria opcional); laço de espera do executor com `setTimeout(0)`
+  (trocar por 5 ms); teste de prontidão no Node não prova sonda única sozinho; `acertarTokens` em linha antiga subconta; `Retry-After`
+  usa só a primeira recusa; comentários antigos de CLUSTER_WORKERS/yt-dlp; `fillfactor` da `travas`
+  aplicado à mão no projeto de São Paulo.

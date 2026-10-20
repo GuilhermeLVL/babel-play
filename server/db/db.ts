@@ -18,7 +18,7 @@ import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 import { drizzle as drizzlePglite } from 'drizzle-orm/pglite'
 import { Client, Pool, types } from 'pg'
 
-import { temDisco } from '../lib/runtime'
+import { ehWorker, temDisco } from '../lib/runtime'
 import { configDoPool } from './configDoPool'
 import { executorAtual } from './executor'
 import { medirConsultas, registrarMedidorDeTamanho } from './observadorDeConsultas'
@@ -37,8 +37,8 @@ import { travarDiretorio } from './travaDoPglite'
 export class BancoIndisponivel extends Error {
   readonly status = 503
   readonly code = 'banco_indisponivel'
-  constructor() {
-    super('banco indisponível: DATABASE_URL ausente e sem disco para o PGlite embutido')
+  constructor(mensagem = 'banco indisponível: DATABASE_URL ausente e sem disco para o PGlite embutido') {
+    super(mensagem)
     this.name = 'BancoIndisponivel'
   }
 }
@@ -203,6 +203,10 @@ let instancia: DB | undefined
 /** `fecharBanco()` já rodou: o banco do Node não (re)abre mais — uma instância aberta depois nunca seria fechada. */
 let encerrado = false
 function aberto(): DB {
+  /* No Worker não há banco do processo: o banco é o `Client` da requisição (`worker.ts` abre `comExecutor`).
+     Um timer ou ouvinte fora do escopo cairia aqui e abriria um Pool por isolate — falha alto em vez disso
+     (503 `banco_indisponivel` pelo `erroGlobal`, como a falta de `DATABASE_URL`). */
+  if (ehWorker()) throw new BancoIndisponivel('db fora de comExecutor: no Worker o banco é o Client da requisição')
   if (!instancia && encerrado) throw new Error('banco do processo já fechado (fecharBanco)')
   instancia ??= abrir()
   return instancia

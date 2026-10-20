@@ -17,7 +17,10 @@
  */
 import { createHash, randomBytes } from 'node:crypto'
 
-const EPOCA = randomBytes(4).toString('hex')
+/* No primeiro uso, não no import: o Worker proíbe gerar aleatório no escopo global (o isolate nem sobe).
+   No Worker a época é do ISOLATE — outro isolate emite outro ETag e a revalidação vira 200 (nunca um 304 errado). */
+let epoca: string | undefined
+const EPOCA = () => (epoca ??= randomBytes(4).toString('hex'))
 
 const resumo = (texto: string) => createHash('sha256').update(texto).digest('base64url').slice(0, 12)
 
@@ -27,7 +30,7 @@ const resumo = (texto: string) => createHash('sha256').update(texto).digest('bas
  */
 export function etagPorVersao(nome: string, userId: string, versao: number | string, variante = ''): string {
   const sufixo = variante ? `-${resumo(variante)}` : ''
-  return `W/"${nome}-${EPOCA}-${resumo(userId)}-${versao}${sufixo}"`
+  return `W/"${nome}-${EPOCA()}-${resumo(userId)}-${versao}${sufixo}"`
 }
 
 /** If-None-Match casa? Comparação FRACA (RFC 9110 §13.1.2): o `W/` não conta, `*` casa com tudo. */

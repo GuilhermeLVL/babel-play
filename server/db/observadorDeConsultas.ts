@@ -7,7 +7,7 @@
  * importando `db.ts` abriria o banco em quem só quer contar requisições, e `db.ts` importando
  * `metricas.ts` puxaria o prom-client para todo script que só lê o banco.
  *
- * CUSTO com o observador desligado (o padrão): um `if`. Ligado: um `hrtime` e uma regex na primeira
+ * CUSTO com o observador desligado (o padrão): um `if`. Ligado: um `performance.now()` e uma regex na primeira
  * palavra do SQL por instrução — nada perto do custo da própria consulta (1,26 ms fixos por request).
  */
 export type TipoDeConsulta = 'leitura' | 'escrita'
@@ -55,10 +55,11 @@ export function medirConsultas<A extends unknown[], R>(
   return function medida(this: unknown, ...args: A): Promise<R> {
     const obs = observador
     if (!obs) return original.apply(this, args)
-    const inicio = process.hrtime.bigint()
+    /* `performance.now()`, não `process.hrtime`: existe igual no Node e no Worker (onde só avança depois de I/O). */
+    const inicio = performance.now()
     const registrar = () => {
       try {
-        obs({ instrucoes: instrucoesDe(...args).map(sqlDe), segundos: Number(process.hrtime.bigint() - inicio) / 1e9 })
+        obs({ instrucoes: instrucoesDe(...args).map(sqlDe), segundos: (performance.now() - inicio) / 1e3 })
       } catch {
         /* telemetria quebrada não derruba a consulta que ela observa */
       }

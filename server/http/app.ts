@@ -570,8 +570,9 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   app.use('/api/billing', capturarAssincrono(billingRouter))
   // Áudio do sistema via WASAPI loopback do PRÓPRIO servidor local (Windows) — a rota sem
   // fricção para capturar o que o computador toca; o navegador só consome o PCM.
-  // Capacidade local: no modo público (AUTH_REQUIRED) ela some (403), mesmo autenticado.
-  if (authRequired()) {
+  // Capacidade local: no modo público (AUTH_REQUIRED) ela some (403), mesmo autenticado. No Worker também:
+  // não há dispositivo de som no isolate (o `loopback-capture` é stub no bundle de lá).
+  if (authRequired() || ehWorker()) {
     app.use('/api/audio', (_req, res) =>
       res.status(403).json({ error: 'captura de áudio do sistema indisponível no modo hospedado' }),
     )

@@ -31,10 +31,20 @@ import {
 import { vagaDeCorpoGrande } from '../lib/corposGrandes'
 import { erroDeRota } from '../lib/erroDeRota'
 import { envelopeDeErro, responderErro } from '../lib/respostaDeErro'
+import { ehWorker } from '../lib/runtime'
 // F11-04: schemas de corpo e de cabeçalho das rotas de importação.
 import { ankiExportSchema, importUrlSchema, parseOr400, uploadHeadersSchema } from '../validation'
 
 export const importRouter = Router()
+
+/* IMPORTAÇÃO PESADA SÓ NO NODE até a Fase 3 (decisão 6 do plano da Fase 2): Anki, PDF/DOCX e link web
+   precisam de disco temporário, jsdom, pdfjs e mammoth, que no bundle do Worker são stubs. Lá estas rotas
+   respondem 503 `indisponivel_neste_runtime` antes de ler o corpo. */
+importRouter.use(['/anki', '/document', '/web'], (req, res, next) => {
+  if (!ehWorker()) return next()
+  descartarRestoDoCorpo(req)
+  responderErro(res, 503, 'importação indisponível neste servidor', 'indisponivel_neste_runtime')
+})
 
 /** O nome do arquivo vem codificado no cabeçalho; um `%` malformado é 400 do cliente, não um 500 nosso. */
 function nomeDoCabecalho(valor: string | undefined, padrao: string): string {

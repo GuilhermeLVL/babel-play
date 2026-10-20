@@ -50,14 +50,16 @@ export async function abrirClienteDoHyperdrive(connectionString: string): Promis
   ligarParsersNumericos()
   const { max: _max, idleTimeoutMillis: _ociosa, ...daConexao } = configDoPool()
   const cliente = new Client({ connectionString, ...daConexao })
+  let fechado: Promise<void> | undefined
   // Sem handler, a queda da conexão vira 'error' não tratado e derruba o isolate sem contexto.
   cliente.on('error', (err) => {
+    /* No workerd, o `end()` faz o socket emitir "This socket has been closed": fechar não é erro. */
+    if (fechado) return
     console.error('[db] erro na conexão da requisição:', String(err?.message ?? err).slice(0, 160))
   })
   await cliente.connect()
   cliente.query = medida(cliente.query.bind(cliente) as (...a: unknown[]) => Promise<unknown>) as typeof cliente.query
   const d = drizzle(cliente, { schema })
   transacoesEmFila(d)
-  let fechado: Promise<void> | undefined
   return { db: d, fechar: () => (fechado ??= cliente.end()) }
 }

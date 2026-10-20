@@ -325,12 +325,13 @@ A imagem saiu de **4,08 GB** para **847 MB** com duas mudanças, ambas verificad
    `@ricky0123` (VAD) 138 MB, `onnxruntime-web` 130 MB, `tesseract.js-core` 44 MB, `lucide-react`
    44 MB, `country-flag-icons` 22 MB.
 
-O servidor exige 14 pacotes em runtime, e todos foram verificados DENTRO da imagem podada
-(`require.resolve` dos 13 estáticos + `import()` do `pdfjs-dist`):
+O servidor exige estes pacotes em runtime (lista da imagem Fly; desde a Fase 3 `jsdom`, `jszip`, `mammoth`,
+`pdfjs-dist` e `@libsql/client` NÃO são mais carregados pelo servidor — Anki, PDF e DOCX são lidos no navegador
+e a página web usa `linkedom`; a lista abaixo ainda não foi reconferida dentro de uma imagem nova):
 
 ```
-@google/genai  @libsql/client  @mozilla/readability  dotenv  drizzle-orm  express
-express-rate-limit  helmet  jose  jsdom  jszip  mammoth  zod  +  pdfjs-dist (dinâmico)
+@mozilla/readability  dotenv  drizzle-orm  express  express-rate-limit  helmet  jose
+linkedom  pg  zod
 ```
 
 Se você adicionar uma dependência de servidor nova, confira se ela não cai na lista de poda do
@@ -608,12 +609,13 @@ A imagem saiu de **4,08 GB** para **847 MB** com duas mudanças, ambas verificad
    `@ricky0123` (VAD) 138 MB, `onnxruntime-web` 130 MB, `tesseract.js-core` 44 MB, `lucide-react`
    44 MB, `country-flag-icons` 22 MB.
 
-O servidor exige 14 pacotes em runtime, e todos foram verificados DENTRO da imagem podada
-(`require.resolve` dos 13 estáticos + `import()` do `pdfjs-dist`):
+O servidor exige estes pacotes em runtime (lista da imagem Fly; desde a Fase 3 `jsdom`, `jszip`, `mammoth`,
+`pdfjs-dist` e `@libsql/client` NÃO são mais carregados pelo servidor — Anki, PDF e DOCX são lidos no navegador
+e a página web usa `linkedom`; a lista abaixo ainda não foi reconferida dentro de uma imagem nova):
 
 ```
-@google/genai  @libsql/client  @mozilla/readability  dotenv  drizzle-orm  express
-express-rate-limit  helmet  jose  jsdom  jszip  mammoth  zod  +  pdfjs-dist (dinâmico)
+@mozilla/readability  dotenv  drizzle-orm  express  express-rate-limit  helmet  jose
+linkedom  pg  zod
 ```
 
 Se você adicionar uma dependência de servidor nova, confira se ela não cai na lista de poda do

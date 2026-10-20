@@ -367,3 +367,87 @@ desligado; cliente por requisição; rate limit continua no banco; Sentry/Langfu
   (trocar por 5 ms); teste de prontidão no Node não prova sonda única sozinho; `acertarTokens` em linha antiga subconta; `Retry-After`
   usa só a primeira recusa; comentários antigos de CLUSTER_WORKERS/yt-dlp; `fillfactor` da `travas`
   aplicado à mão no projeto de São Paulo.
+
+## Fase 3 concluída: importação no navegador e página web sem jsdom (2026-10-20, branch `cloudflare/migracao`)
+
+Plano: `docs/superpowers/plans/2026-10-20-fase3-importacao.md` (10 tarefas, implementador + revisor por tarefa,
+ledger SDD). Nada implantado: `main`, Fly e domínio intactos. O servidor deixou de receber arquivos pesados:
+o `.apkg`, o PDF e o DOCX são lidos no navegador e só o resultado viaja (notas em lotes, ou texto que já vira
+sessão-documento no cliente). A única importação que continua no servidor é a página web (CORS + anti-SSRF),
+agora sem `jsdom`, rodando também no Worker. A guarda `503 indisponivel_neste_runtime` da Fase 2 saiu.
+
+**O que entrou.**
+
+- `src/core/anki/` (puro): limpeza de campo, mídia/cloze, mapeamento de campos por nome, leitor de `.txt/.csv`,
+  escrita dominante e decisão de idioma (S11) — o mesmo código no navegador e no servidor.
+- Leitor de `.apkg` no navegador (`src/lib/anki/`): zip em streaming com teto contado nos bytes inflados
+  (`fflate`, sem confiar no cabeçalho, entradas de mídia descartadas sem inflar), zstd em streaming (`fzstd`,
+  frames sem tamanho declarado), `sql.js` (wasm de 685 KB carregado só na importação), num Web Worker; teto
+  somado de 300 MB entre as coleções; `temMidia` informado, mídia não importada (código do mapa de mídia
+  apagado: não tinha chamador).
+- Protocolo em lotes `POST /api/anki/imports` → `/:id/notas` (≤ 500 notas, ≤ 3 MiB em UTF-8, em sequência) →
+  `/:id/fechar`, com o mesmo envelope de resposta da rota antiga. O servidor **reaplica** `limparCampo`, deriva
+  `guid`/`estruturaHash` (`server/import/identidadeDaNota.ts`) e a régua `avaliarCartao`; teto de 50 000 notas
+  por import reservado por `UPDATE` condicional (sem TOCTOU); um import aberto por baralho (o anterior vira
+  `falhou: substituído`); `fechar` sem lote → `400 import_vazio`; imports abandonados viram `falhou` na
+  limpeza diária (24 h); balde próprio de 200 lotes/min fora do limitador de escrita; `import_id` carimbado
+  também nas notas iguais para `marcarAusentesForaDoImport` ser um `UPDATE` só.
+- Cliente: `importarBaralhoAnki` orquestra leitura → abrir → lotes → fechar com progresso na tela
+  ("Enviando 1.500 de 3.600 notas…"), repete um lote uma vez em 429 (`Retry-After`).
+- Exportação `.apkg` também no navegador (`sql.js` + `fflate`, mesmo esquema 11, SHA-1 do `csum` por Web
+  Crypto); rota `/api/import/anki/export` removida.
+- PDF/DOCX no navegador (`src/lib/import/extrairDocumento.ts`): `pdfjs-dist` com o worker próprio,
+  `mammoth` build de browser, bomba de DOCX barrada antes do mammoth por `medirExpansaoDoZip`, tetos de hoje
+  (30 MB, 500 páginas, 5 M caracteres, 20/40 MB de expansão). Rotas `/api/import/document` e
+  `/api/import/anki` removidas (sem período de depreciação: nada em produção; registradas em
+  `tests/contratos/api-depreciacoes.json`).
+- Página web: `linkedom` + `@mozilla/readability` (`baseURI` definido à mão), charset pelo `Content-Type` ou
+  `<meta charset>` nos primeiros 2 048 bytes (`TextDecoder`), tetos e SSRF intactos. Provada no `wrangler dev`:
+  Wikipédia "Língua portuguesa" → 200, 69 142 caracteres, 473 ms.
+- YouTube fora do cliente e dos planos (`youtubeImport` removido das matrizes; rota segue 410).
+- Servidor sem `jsdom` (só devDependency para o vitest), `jszip`, `mammoth`, `pdfjs-dist`, `@libsql/client`
+  (fica no `package.json` só para os scripts de migração/snapshot da Fase 5) nem stubs deles.
+
+**Critério de aceite da spec (`.apkg` de 200 MB ≤ 60 s).** `scripts/perf/anki-200mb.ts` gera um `.apkg` sintético
+de 196 MB (`collection.anki21b` com 20 000 notas + 2 000 mídias de 100 KB) e mede o leitor em Node: 0,46 s.
+No navegador (Chromium via Playwright, MacBook do dono, `npm run dev:local`): **4,4 s** da escolha do arquivo
+até o passo 1 da tela — leitura no Web Worker + 40 lotes enviados e gravados (20 000 novas) — e 0,1 s para
+fechar. Nenhuma requisição além dos lotes.
+
+**Portão (HEAD da fase).**
+| Verificação | Resultado |
+|---|---|
+| typecheck, lint, build (Vite), knip | ok (knip só com achados pré-existentes; 6 exports mortos novos removidos) |
+| `npm test` (PGlite) | 12 127 testes, 0 falhas (1 flake de concorrência em `nuvemDoSite-cotas`, 3/3 isolado, arquivo não tocado) |
+| integração + caracterização em Postgres 17 (cluster novo) | 272 arquivos, 2 172 testes, 0 falhas — depois de ampliar o retry da migration 0004 para `unique_violation` (corrida do `ALTER ROLE` num cluster recém-criado, R12) |
+| bundle do Worker | 5,95 MB bruto, 1,41 MB gzip (era 5,38 / 1,27: `linkedom` + readability entram; jsdom/mammoth/pdfjs/jszip/libsql fora) |
+| assets do Vite | `sql-wasm-browser` 685 KB (336 KB gzip) + worker do leitor 24 KB, `pdf.worker` 1,26 MB e `mammoth` 305 KB só sob demanda |
+| fumaça em `wrangler dev` | 7/7, agora com `POST /api/import/web` real (Wikipédia → 200, 69 142 caracteres, 736 ms) |
+| E2E no Node (3 larguras) | 245 passaram, 0 falhas reais (10 falhas da 1ª rodada eram o deck de 20 000 notas do benchmark deixado no banco de dev; purgado e reexecutado) |
+| E2E no Worker local (`E2E_RUNTIME=worker`, SPA sem login, `--var AUTH_REQUIRED:0 SELF_HOST:1`) | 204 passaram, 0 falhas (93 pulos condicionais, os mesmos do Node); as suítes de Anki rodam no Worker — na Fase 2 pulavam |
+| benchmark 196 MB | Node 0,46 s; navegador 4,4 s (ver acima) |
+
+**Decisões registradas (R1–R11 do plano/ledger).** Protocolo em três passos; identidade da nota é do servidor;
+rotas antigas removidas (sem compatibilidade); mapa de mídia não portado; exportação no navegador; PDF no
+thread principal com o worker do pdfjs; nota inválida → 400; `linkedom` nos dois runtimes (HTMLRewriter
+descartado depois da prova); depreciação de rota não se aplica antes do lançamento; limpeza dupla
+(navegador + servidor) faz texto LITERAL `<b>` (vindo de `&lt;b&gt;`) perder a tag — aceito e documentado na
+caracterização.
+
+**Revisão final da branch (opus) e rodada única de correção.** Sem crítico. O achado importante: o schema do
+lote recusava saídas legítimas do leitor (verso > 2 000, campo bruto > 20 KB, > 100 tags) e o import morria pela
+metade — corrigido com os tetos numa fonte única (`src/core/anki/tetos.ts`, `TETOS_DA_NOTA`), limites ampliados
+(verso/exemplo 4 000, campo bruto 50 000, 60 campos, 200 tags) e CORTE no cliente (`notaParaOFio`), com o servidor
+continuando a recusar acima (defesa); teste de propriedade leitor → fio → schema. Também: guid repetido dentro do
+lote vira `iguais` em vez de 500; `fechar` reivindica o estado com `UPDATE … WHERE estado = 'gravando'` (dois
+`fechar` em paralelo → um 200, um 409; `ativarLote` uma vez); teste de que leitura inválida não abre import;
+comentário do Dockerfile.
+
+**Limitações conhecidas.** Charsets legados do `TextDecoder` não foram exercitados no `workerd` (só UTF-8 na
+fumaça); `.apkg` exportado não foi testado num Anki real (limitação antiga); `semearBaralhoAnki` e
+`scripts/polimento/_anki.mjs` duplicam as 4 notas da fixture; `somarPorMotivo` lê-soma-grava (só estatística);
+dois `abrir` simultâneos no mesmo baralho podem se anular (caso de aba dupla, cliente recebe 409); o estágio zstd
+do `.anki21b` junta os pedaços numa cópia (até 2× a coleção descomprimida no pico, antes da cópia do `sql.js`) —
+num celular com coleção perto do teto de 300 MB a aba pode cair; pré-alocar pelo tamanho do frame quando
+declarado e um teto menor no mobile ficam como melhoria; a conta não tem cota de armazenamento do acervo Anki
+(só tetos por lote/import) — avaliar na Fase 4/5 junto com o orçamento do banco.

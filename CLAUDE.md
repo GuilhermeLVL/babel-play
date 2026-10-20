@@ -11,6 +11,8 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
 - `src/gateway/`: adaptadores (motores locais, provedores, perfis de capacidade) que implementam o core.
 - `src/components/`: telas e peças de UI. `src/styles/`: CSS. `src/hooks/`: hooks compartilhados.
 - `src/lib/`: utilitários de app (áudio, dispositivo, polimento, captura, auth). Pode usar core e gateway.
+  `src/lib/anki/`: leitura do `.apkg` no navegador (zip com teto, zstd, `sql.js` num Web Worker) e exportação;
+  `src/lib/import/`: PDF/DOCX/legendas viram texto no navegador. O leitor puro do Anki fica em `src/core/anki/`.
 - `src/data/`: acesso a dados e clientes das rotas da API (`src/data/rotas/`), trilha de conteúdo.
 - `server/`: Express (`routes/`, `ai/` com proxies e núcleo de IA, `db/` com migrações Drizzle em `migrations-pg/`, `lib/`).
   `server/lib/config.ts` lista as variáveis de ambiente; `.env.production.example` é o modelo de produção.
@@ -18,6 +20,7 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
 - `worker.ts`: ponto de entrada do Cloudflare Worker (o par do `server.ts`): `/api/*` pelo mesmo Express, resto pelos assets, cron.
   `wrangler.jsonc` configura o Worker; o `wrangler.toml` é o projeto Pages da edição estática, então SEMPRE `-c wrangler.jsonc`.
 - `tests/` (vitest e e2e Playwright), `scripts/` (operação, perf, i18n), `ops/` (provedores, alertas), `docs/`, `openspec/`.
+  `tests/harness/lerApkgNode.ts` lê um `.apkg` em Node com o mesmo leitor do navegador (testes e scripts).
 
 ## Comandos
 
@@ -54,5 +57,9 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
   diretório. Testes de concorrência/multiprocesso só rodam com `TESTE_POSTGRES_URL` (Postgres real).
 - `pglite:<dir>` é de um processo só: `db.ts` grava `<dir>/.babel-lock` e recusa um segundo processo vivo
   (trava de pid morto é sobrescrita). Script que abre o diretório com `new PGlite()` direto não passa pela trava.
+- Importação pesada roda no NAVEGADOR: o servidor nunca recebe o `.apkg`/PDF/DOCX, só notas em lotes
+  (`server/routes/ankiImports.ts`: abrir → notas → fechar) ou texto, e reaplica limpeza, identidade (guid/hash)
+  e régua de qualidade — o cliente não é confiável. A página web (`/api/import/web`) é a única importação do
+  servidor (CORS + anti-SSRF), com `linkedom`, e roda também no Worker.
 - `git pull --rebase` antes de `git push`: há mais de uma frente de trabalho na `main`.
 - `docs/prototipos/*-src/`, `docs/prototipos/_comum/` e `public/` ficam fora do lint.

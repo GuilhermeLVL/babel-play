@@ -29,7 +29,7 @@ embutido no bundle do cliente.
 
 | Variável                                       | Onde é usada                                                                                     | Se faltar                                             |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
-| `SECRET_KEY`                                   | cifra os segredos BYOK em repouso                                                                | **o boot ABORTA** (`server/crypto.ts`)                |
+| `SECRET_KEY`                                   | cifra os segredos BYOK em repouso                                                                | **o boot ABORTA** (`server/boot/validar.ts`)          |
 | `SUPABASE_URL`                                 | JWKS assimétrico (ES256) que verifica o JWT, e o `iss` exigido                                   | nenhum token valida → 401 em tudo                     |
 | `SUPABASE_SERVICE_ROLE_KEY`                    | Admin API: exclusão de conta (LGPD art. 18, VI) e o 2FA exigido nas rotas sensíveis              | exclusão não desfaz o login; o AAL2 não é cobrado     |
 | `TRUST_PROXY`                                  | quantos proxies há na frente (`1` atrás de Caddy/Nginx, `2` Cloudflare → Fly, `false` sem proxy) | **o boot ABORTA** com `NODE_ENV=production` (GAP-004) |
@@ -72,7 +72,9 @@ container mais o `AUTH_REQUIRED=1`, não o bind.
 - [ ] **Volume montado.** Sem `babel-data:/data`, banco e áudios morrem a cada `up`.
 - [x] **Migrations** — o boot aplica sozinho, antes do seed, e falha o processo se não conseguir
       (sem schema o app não serve nada). Idempotente. A `0005` deduplica `settings` antes de criar
-      o índice único, então rodar por cima de um banco antigo é seguro.
+      o índice único, então rodar por cima de um banco antigo é seguro. Ordem do boot (`server.ts`, passos em
+      `server/boot/`): travas (`validar.ts`) → diário/Sentry → banco → migrations (com `statement_timeout = 0`),
+      seed e backfills (`preparar.ts`) → `listen` → agendamentos diários (`jobs.ts`).
 - [ ] **Backup do banco.** Com `postgres://`, `node scripts/backup.mjs` roda `pg_dump` e confere com
       `pg_restore --list`. Com `pglite:<dir>` (dev), copia o diretório e só vale com o servidor parado.
       Litestream e snapshot diário saíram do servidor (ADR 0014): NÃO há backup automático neste build

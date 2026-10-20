@@ -456,7 +456,7 @@ node scripts/backup.mjs                        # cópia consistente
 ```
 
 Restaurar é **restaurar backup e subir** — não há migração reversa. As migrações são aplicadas no
-boot; se a pasta não estiver no disco, `/api/ready` responde `desconhecida` para esse item e **não**
+boot (`server/boot/preparar.ts`, numa conexão própria com `statement_timeout = 0`); se a pasta não estiver no disco, `/api/ready` responde `desconhecida` para esse item e **não**
 reprova, porque é a topologia legítima de uma imagem que já subiu migrada.
 
 **Prazos de sessão no papel do banco** (migration `0004`; o pooler e o Hyperdrive ignoram o `options` do pool):

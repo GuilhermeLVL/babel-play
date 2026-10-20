@@ -14,6 +14,7 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
 - `src/data/`: acesso a dados e clientes das rotas da API (`src/data/rotas/`), trilha de conteúdo.
 - `server/`: Express (`routes/`, `ai/` com proxies e núcleo de IA, `db/` com migrações Drizzle em `migrations-pg/`, `lib/`).
   `server/lib/config.ts` lista as variáveis de ambiente; `.env.production.example` é o modelo de produção.
+  `server/boot/`: passos do boot Node que o `server.ts` orquestra (validar, preparar, jobs, cluster); nenhum módulo lê env ou disco ao ser importado.
 - `tests/` (vitest e e2e Playwright), `scripts/` (operação, perf, i18n), `ops/` (provedores, alertas), `docs/`, `openspec/`.
 
 ## Comandos

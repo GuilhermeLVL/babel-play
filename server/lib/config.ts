@@ -25,6 +25,7 @@ import { FRANQUIA_DE_ALIVIO, PLAN_MATRIX } from '../../src/core/planos'
 import { authRequired } from './auth'
 import { registrarFalhaDeBoot } from './bootStatus'
 import { log } from './logger'
+import { ehWorker } from './runtime'
 
 /** Quando uma variável é obrigatória. */
 type Exigencia =
@@ -1118,6 +1119,9 @@ export function erroDeAsaasSandboxEmProducao(env: NodeJS.ProcessEnv = process.en
  */
 export function erroDeTrustProxyEmProducao(env: NodeJS.ProcessEnv = process.env): string | null {
   if (env.NODE_ENV !== 'production') return null
+  /* No Worker a postura é FIXA, não declarada: o `worker.ts` reescreve o `X-Forwarded-For` com o
+     `CF-Connecting-IP` e o app confia num salto só (`server/http/app.ts`). `TRUST_PROXY` lá é ignorada. */
+  if (ehWorker()) return null
   if (env.TRUST_PROXY?.trim()) return null
   return (
     'TRUST_PROXY é obrigatória em produção (NODE_ENV=production): declare quantos proxies há na frente ' +

@@ -148,7 +148,10 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
    * `false`, `loopback`, ou uma lista de sub-redes confiáveis. Ausente, nada é confiado.
    */
   const trustProxy = process.env.TRUST_PROXY?.trim()
-  if (trustProxy) app.set('trust proxy', interpretarTrustProxy(trustProxy))
+  /* NO WORKER a postura é fixa: o `worker.ts` APAGA o `X-Forwarded-For` que o cliente mandou e põe nele só o
+     `CF-Connecting-IP` da borda. Confiar num salto lê exatamente esse valor; `TRUST_PROXY` não vale lá. */
+  if (ehWorker()) app.set('trust proxy', 1)
+  else if (trustProxy) app.set('trust proxy', interpretarTrustProxy(trustProxy))
 
   /* PARSER DE QUERY SIMPLES (auditoria de segurança 2026-09-26). O padrão do Express 4 é o
      "extended", que passa TODA query string pelo `qs` — antes do auth, em toda requisição — e o

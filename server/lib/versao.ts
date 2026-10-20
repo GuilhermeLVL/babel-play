@@ -25,6 +25,8 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
+import { ehWorker } from './runtime'
+
 type Ambiente = Record<string, string | undefined>
 
 const SHA = /^[0-9a-f]{7,40}$/i
@@ -46,8 +48,13 @@ export function lerVersaoDoBuild(dist: string): string | null {
   }
 }
 
+/* No bundle do Worker, a versão do `package.json` entra por `define` do `wrangler.jsonc` (não há disco). */
+declare const __VERSAO_DO_PACOTE__: string | undefined
+
 /** Versão do `package.json` na raiz do processo (em produção, `/app/package.json` do Dockerfile). */
 function versaoDoPacote(): string {
+  if (typeof __VERSAO_DO_PACOTE__ === 'string') return __VERSAO_DO_PACOTE__
+  if (ehWorker()) return '0.0.0'
   try {
     const pkg = JSON.parse(readFileSync(path.join(process.cwd(), 'package.json'), 'utf8')) as { version?: unknown }
     return typeof pkg.version === 'string' ? pkg.version : '0.0.0'
@@ -61,7 +68,9 @@ let calculada: string | null = null
 /** A versão deste processo — calculada uma vez (o disco e o ambiente não mudam depois do boot). */
 export function versaoDoApp(): string {
   if (calculada) return calculada
-  const doBuild = process.env.NODE_ENV === 'production' ? lerVersaoDoBuild(path.join(process.cwd(), 'dist')) : null
+  /* No Worker não há `dist/` em disco: a versão vem do `define` + `GIT_SHA` (var do deploy). */
+  const doBuild =
+    process.env.NODE_ENV === 'production' && !ehWorker() ? lerVersaoDoBuild(path.join(process.cwd(), 'dist')) : null
   calculada = doBuild ?? montarVersao(versaoDoPacote(), process.env)
   return calculada
 }

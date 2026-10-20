@@ -199,6 +199,32 @@ curl "localhost:8787/cdn-cgi/local/scheduled?cron=17+3+*+*+*"   # dispara o cron
 docker stop pg-worker
 ```
 
+O `worker:dev` e a fumaça sobem com `CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false`: sem isso o wrangler carrega
+o `.env` do repositório como vars, e as chaves reais de desenvolvimento entrariam no isolate. Os segredos
+locais do Worker moram SÓ no `.dev.vars`.
+
+**Sempre produção.** O `define` do `wrangler.jsonc` fixa o literal `process.env.NODE_ENV` em `"production"`
+(o wrangler, sozinho, poria `"development"` no `dev`), e `vars.NODE_ENV` + `fixarModo()` no `worker.ts` põem o
+mesmo valor no `process.env` do runtime, que é o que `config.ts`, o registro de IA e o Langfuse leem. Vale no
+`dev`, no deploy e no staging: as travas de produção (SECRET_KEY, retenção zero da IA, sandbox do Asaas,
+`/metrics` com token, Langfuse sem conteúdo) nunca ficam abertas no Worker. Por isso o `.dev.vars` local
+precisa do que a produção exige (no mínimo `SECRET_KEY` e `SUPABASE_URL`).
+
+**Travas de boot.** `validarBoot()` roda na primeira requisição do isolate (`server/boot/portaoDoWorker.ts`).
+Com achado que aborta, toda `/api/*` responde `503 boot_falhou`, o log traz `boot_falhou` com o motivo, e a
+conferência se repete a cada requisição até passar (um `wrangler secret put` corrige sem reciclar o isolate).
+`IA_PROVEDORES_ARQUIVO` não vale no Worker (não há disco): o registro de IA vai inteiro em `IA_PROVEDORES`.
+
+**IP do cliente.** O `worker.ts` apaga o `X-Forwarded-For` (e `X-Real-IP`/`Forwarded`) que o cliente mandou e
+põe nele só o `CF-Connecting-IP` da borda; no Worker o app confia em exatamente um salto, e `TRUST_PROXY` é
+ignorada (a trava "TRUST_PROXY obrigatória em produção" não vale lá). Os baldes do limitador ficam por IP real.
+
+**Versão.** `define.__VERSAO_DO_PACOTE__` (conferido contra o `package.json` por `tests/worker/wrangler.test.ts`;
+um `release` que muda a versão precisa mudar os dois) e o sha por `GIT_SHA` como var no deploy
+(`--var GIT_SHA:$(git rev-parse HEAD)`). `/metrics` responde 404 no Worker.
+
+**Staging: bloqueado** até existir um Hyperdrive próprio (outro banco); o `env.staging` é só esqueleto.
+
 O banco local vem da `localConnectionString` do `wrangler.jsonc` (porta 5433); a variável
 `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` tem precedência sobre ela. `wrangler dev --remote`
 usaria o Hyperdrive de verdade (`babel-sp`) e exige `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID`.
@@ -226,7 +252,10 @@ quebra no workerd) vem do `overrides` do `package.json`, para Node e Worker.
 **Fumaça** (`npm run fumaca:worker`, ou `WRANGLER_FUMACA=1 npx vitest run tests/worker/fumaca.test.ts`): sobe
 um Postgres 17 próprio (`pg-worker-fumaca`, porta 5434), migra, gera uma chave ES256 servida num JWKS local no
 papel do Supabase, sobe o `wrangler dev` e confere health (`banco: 'postgres'`), JWT → `/api/me`, upload de
-1 MB + leitura com `Range` (206) e um cron; derruba tudo no fim. `--verboso` imprime o log do wrangler.
+1 MB + leitura com `Range` (206) e um cron; também a CSP de produção, a versão, `/metrics` 404, os baldes do
+limitador por `CF-Connecting-IP` (um `X-Forwarded-For` forjado é ignorado) e, num segundo `wrangler dev` com
+`METRICS_ENABLED=1` sem token, o `503 boot_falhou`. Derruba tudo no fim, inclusive no Ctrl-C. `--verboso`
+imprime o log do wrangler.
 
 ## O que fica desativado por design
 

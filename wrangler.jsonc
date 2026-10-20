@@ -39,7 +39,7 @@
     "directory": "dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"],
+    "run_worker_first": ["/api/*", "/metrics"],
   },
 
   // Uma expressão por job de server/jobs/registro.ts (7 distintas: plano Workers Paid). No plano Free
@@ -64,20 +64,32 @@
     "drizzle-orm/pglite/migrator": "./server/stubs/migrador.ts",
   },
 
-  // Só o que é público. O Worker é sempre o modo hospedado (JWT do Supabase). NODE_ENV não entra: o
-  // wrangler o define no bundle (development no `dev`, production no `deploy`).
+  // O Worker é SEMPRE produção, também no `wrangler dev` e no staging: sem isto o wrangler troca o literal
+  // `process.env.NODE_ENV` por "development" no `dev`, e as travas de produção (SECRET_KEY, retenção zero
+  // da IA, sandbox do Asaas, /metrics sem token, Langfuse sem conteúdo) ficariam abertas. O `worker.ts`
+  // copia o mesmo valor para o process.env do runtime (`fixarModo`).
+  // __VERSAO_DO_PACOTE__: a versão do package.json (não há disco no Worker); tests/worker/wrangler.test.ts
+  // confere que as duas batem. O sha entra por `GIT_SHA` como var no deploy.
+  "define": {
+    "process.env.NODE_ENV": "\"production\"",
+    "__VERSAO_DO_PACOTE__": "\"0.1.0\"",
+  },
+
+  // Só o que é público. O Worker é sempre o modo hospedado (JWT do Supabase).
   "vars": {
+    "NODE_ENV": "production",
     "AUTH_REQUIRED": "1",
   },
 
   // Esqueleto do staging (Fase 4): bindings NÃO são herdados, cada ambiente declara os seus.
-  // O Hyperdrive de staging (outro banco) ainda não existe; até lá o staging não tem banco.
+  // BLOQUEADO: o Hyperdrive de staging (outro banco) ainda não existe, e sem ele toda /api/* responde 503.
+  // Não implantar o staging antes disso. Staging também é produção para as travas (NODE_ENV production).
   "env": {
     "staging": {
       "name": "babel-play-staging",
       "r2_buckets": [{ "binding": "MIDIA", "bucket_name": "babel-midia-staging" }],
       "triggers": { "crons": [] },
-      "vars": { "AUTH_REQUIRED": "1" },
+      "vars": { "NODE_ENV": "production", "AUTH_REQUIRED": "1" },
     },
   },
 }

@@ -32,7 +32,7 @@
     "build:estatica": "node scripts/build-estatica.mjs",
     "start": "node dist-server/server.cjs",
     "worker:build": "node scripts/worker/build.mjs",
-    "worker:dev": "wrangler dev -c wrangler.jsonc --env=\"\"",
+    "worker:dev": "CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false wrangler dev -c wrangler.jsonc --env=\"\"",
     "fumaca:worker": "node scripts/worker/fumaca.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",

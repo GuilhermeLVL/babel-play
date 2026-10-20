@@ -1,0 +1,65 @@
+/**
+ * AS TRAVAS DE BOOT NO WORKER (`server/boot/portaoDoWorker.ts`). No Worker não há processo para encerrar:
+ * enquanto `validarBoot()` tiver achado que aborta, o `worker.ts` responde 503 `boot_falhou` em toda `/api/*`
+ * e confere de novo na requisição seguinte. Aqui, com o Node no papel do Worker (`BABEL_RUNTIME=worker`):
+ * `SECRET_KEY` ausente em produção trava, nenhuma chave é derivada, e o conserto vale sem reciclar o isolate.
+ */
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { dubleDoR2 } from '../harness/workers/r2Duble'
+
+const CHAVES = ['BABEL_RUNTIME', 'NODE_ENV', 'AUTH_REQUIRED', 'SECRET_KEY', 'IA_PROVEDORES', 'IA_PROVEDORES_ARQUIVO']
+const antes: Record<string, string | undefined> = {}
+
+beforeEach(() => {
+  for (const k of CHAVES) antes[k] = process.env[k]
+  vi.resetModules()
+  process.env.BABEL_RUNTIME = 'worker'
+  process.env.NODE_ENV = 'production'
+  process.env.AUTH_REQUIRED = '1'
+  delete process.env.SECRET_KEY
+  delete process.env.IA_PROVEDORES
+  delete process.env.IA_PROVEDORES_ARQUIVO
+})
+
+afterEach(async () => {
+  const { ligarBucketDoR2 } = await import('../../server/lib/armazenamentoR2')
+  ligarBucketDoR2(null)
+  for (const k of CHAVES) {
+    if (antes[k] === undefined) delete process.env[k]
+    else process.env[k] = antes[k]
+  }
+})
+
+async function carregar() {
+  const { ligarBucketDoR2 } = await import('../../server/lib/armazenamentoR2')
+  ligarBucketDoR2(dubleDoR2())
+  const { conferirBootDoWorker } = await import('../../server/boot/portaoDoWorker')
+  const { obterChave } = await import('../../server/crypto')
+  return { conferirBootDoWorker, obterChave }
+}
+
+describe('portão de boot do Worker', () => {
+  it('SECRET_KEY ausente em produção: trava, não deriva chave e passa quando a chave chega', async () => {
+    const { conferirBootDoWorker, obterChave } = await carregar()
+    const achados = conferirBootDoWorker()
+    expect(achados?.map((a) => a.texto).join(' ')).toMatch(/SECRET_KEY ausente em produção/)
+    expect(() => obterChave()).toThrow(/SECRET_KEY/) // o fracasso não deixou chave nenhuma guardada
+    expect(conferirBootDoWorker()).not.toBeNull() // e não foi memoizado como "passou"
+
+    process.env.SECRET_KEY = 'a'.repeat(64)
+    expect(conferirBootDoWorker()).toBeNull()
+    expect(obterChave()).toHaveLength(32)
+  })
+
+  it('IA_PROVEDORES_ARQUIVO no Worker trava com o motivo (não há disco; só IA_PROVEDORES)', async () => {
+    process.env.SECRET_KEY = 'a'.repeat(64)
+    process.env.IA_PROVEDORES_ARQUIVO = 'ops/ia-provedores.json'
+    const { conferirBootDoWorker } = await carregar()
+    expect(
+      conferirBootDoWorker()
+        ?.map((a) => a.texto)
+        .join(' '),
+    ).toMatch(/IA_PROVEDORES_ARQUIVO não vale no Worker/)
+  })
+})

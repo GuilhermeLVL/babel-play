@@ -15,6 +15,16 @@
  *   4. o `Client` só fecha depois que o corpo da resposta terminou de sair E todo `waitUntil` anotado
  *      assentou — o trabalho em segundo plano ainda consulta o banco.
  *
+ * O MODO: o Worker é SEMPRE produção. O `define` do `wrangler.jsonc` fixa o literal `process.env.NODE_ENV` em
+ * `"production"` (também no `wrangler dev`), e `fixarModo()` copia o mesmo valor para o `process.env` do
+ * runtime, que é o que lê quem recebe `env = process.env` por parâmetro (`config.ts`, registro de IA,
+ * Langfuse). Sem isso as travas de produção ficariam abertas: o wrangler só troca o literal.
+ *
+ * O BOOT: as travas de `validarBoot()` rodam na primeira requisição do isolate e, enquanto alguma abortar, a
+ * cada requisição (`server/boot/portaoDoWorker.ts`): toda `/api/*` responde 503 `boot_falhou` até passar.
+ *
+ * O IP: o `X-Forwarded-For` do cliente é apagado e substituído pelo `CF-Connecting-IP` (`ipDaBorda.ts`).
+ *
  * O AMBIENTE: com `nodejs_compat` e data de compatibilidade ≥ 2025-04-01 os `vars`/secrets já chegam em
  * `process.env` (confirmado no spike S7); nada é copiado à mão. As MIGRAÇÕES não rodam aqui (são do deploy):
  * a primeira requisição de cada isolate confere `schemaPresente()` e, sem schema, responde 503
@@ -24,10 +34,12 @@ import { createServer } from 'node:http'
 
 import { httpServerHandler } from 'cloudflare:node'
 
+import { conferirBootDoWorker } from './server/boot/portaoDoWorker'
 import { abrirClienteDoHyperdrive } from './server/db/clientePorRequisicao'
 import { comExecutor, type Executor } from './server/db/executor'
 import { schemaPresente } from './server/db/manutencao'
 import { criarApp } from './server/http/app'
+import { comIpDaBorda } from './server/http/ipDaBorda'
 import { executarJobsDoCron } from './server/jobs/executar'
 import { type BucketR2, ligarBucketDoR2 } from './server/lib/armazenamentoR2'
 import { erroGlobal } from './server/lib/erroGlobal'
@@ -65,6 +77,11 @@ function express(): ReturnType<typeof httpServerHandler> {
     doExpress = httpServerHandler({ port: PORTA_INTERNA })
   }
   return doExpress
+}
+
+/** O runtime concorda com o literal embutido pelo `define` (sempre `production`; ver o topo). */
+function fixarModo(): void {
+  process.env['NODE' + '_ENV'] = process.env.NODE_ENV
 }
 
 const json = (status: number, corpo: unknown) =>
@@ -136,18 +153,27 @@ async function noEscopo<T>(env: Env, ctx: Contexto, fn: () => Promise<[T, Promis
 
 export default {
   async fetch(request: Request, env: Env, ctx: Contexto): Promise<Response> {
+    fixarModo()
     const { pathname } = new URL(request.url)
+    /* `/metrics` é só do Node (prom-client); aqui é um 404 explícito, não o `index.html` da SPA. */
+    if (pathname === '/metrics') return json(404, { error: 'rota inexistente', code: 'rota_inexistente' })
     if (!pathname.startsWith('/api/')) return env.ASSETS.fetch(request)
+    ligarBucketDoR2(env.MIDIA) // antes do portão: o armazenamento de mídia é uma das travas
+    if (conferirBootDoWorker()) {
+      return json(503, { error: 'servidor mal configurado (ver o log: boot_falhou)', code: 'boot_falhou' })
+    }
     try {
       return await noEscopo(env, ctx, async () => {
         if (!schemaConferido) {
-          if (!(await schemaPresente())) {
+          /* `schemaPresente` já devolve `false` quando o banco falha; o `catch` é para o que escapar dele. */
+          const presente = await schemaPresente().catch(() => false)
+          if (!presente) {
             const r = indisponivel('banco sem schema: rode as migrações (npm run db:migrate) antes de servir')
             return [r, Promise.resolve()]
           }
           schemaConferido = true
         }
-        return acompanharCorpo(await express().fetch(request, env, ctx))
+        return acompanharCorpo(await express().fetch(comIpDaBorda(request), env, ctx))
       })
     } catch (err) {
       /* O que escapa daqui veio de fora do Express (o `erroGlobal` responde o resto): abrir o `Client` ou
@@ -162,6 +188,12 @@ export default {
   },
 
   async scheduled(controller: ControladorDoCron, env: Env, ctx: Contexto): Promise<void> {
+    fixarModo()
+    ligarBucketDoR2(env.MIDIA)
+    if (conferirBootDoWorker()) {
+      log('error', { event: 'cron_falhou', route: controller.cron, error: 'boot_falhou' })
+      return
+    }
     ctx.waitUntil(
       noEscopo(env, ctx, async () => [await executarJobsDoCron(controller.cron), Promise.resolve()]).then(
         (resultados) => log('info', { event: 'cron_fim', route: controller.cron, total: resultados.length }),

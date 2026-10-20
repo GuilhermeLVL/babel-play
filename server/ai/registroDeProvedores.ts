@@ -65,6 +65,7 @@ import { z } from 'zod'
 import { NIVEIS_DA_TRADUCAO, niveisAtendidos, type NivelDaTraducao } from '../../src/core/nivelDeTraducao'
 import { type PrecoDeModelo, sttGerenciadoDoEnv } from '../lib/config'
 import { log } from '../lib/logger'
+import { ehWorker } from '../lib/runtime'
 import {
   ehBaseDoOpenRouter,
   PROVEDORES_DO_GOOGLE_NO_OPENROUTER,
@@ -559,6 +560,13 @@ function lerRegistro(env: NodeJS.ProcessEnv): Leitura {
     return { ok: true, registro: legado }
   }
   if (inline && arquivo) return { ok: false, erro: 'declare IA_PROVEDORES OU IA_PROVEDORES_ARQUIVO, não as duas' }
+  /* No Worker não há disco: o arquivo seria lido do sistema de arquivos virtual e viria vazio ou de outro lugar. */
+  if (arquivo && ehWorker()) {
+    return {
+      ok: false,
+      erro: 'IA_PROVEDORES_ARQUIVO não vale no Worker (não há disco): declare o JSON em IA_PROVEDORES',
+    }
+  }
 
   let texto: string
   try {

@@ -20,7 +20,7 @@
  */
 import { spawn, spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { createServer as criarServidorTcp } from 'node:net'
 import { tmpdir } from 'node:os'
@@ -36,6 +36,7 @@ const URL_PG = `postgres://postgres:teste@localhost:${PORTA_PG}/postgres`
 const CRON = '17 3 * * *'
 const JOB_DO_CRON = 'podaDasJanelasDiarias'
 const MB = 1024 * 1024
+const VERSAO = JSON.parse(readFileSync(join(RAIZ, 'package.json'), 'utf8')).version
 
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms))
 const passo = (msg) => console.log(`· ${msg}`)
@@ -111,7 +112,10 @@ async function subirJwks() {
   return { servidor, url, token }
 }
 
-function subirWrangler(porta, supabaseUrl, persistir) {
+/** Instâncias do wrangler vivas, para a limpeza (fim normal, falha ou Ctrl-C). */
+const vivos = []
+
+function subirWrangler(porta, supabaseUrl, persistir, varsExtras = []) {
   let saida = ''
   const filho = spawn(
     process.execPath,
@@ -132,6 +136,7 @@ function subirWrangler(porta, supabaseUrl, persistir) {
       `SUPABASE_URL:${supabaseUrl}`,
       '--var',
       `SECRET_KEY:${randomBytes(32).toString('hex')}`,
+      ...varsExtras.flatMap((v) => ['--var', v]),
     ],
     {
       cwd: RAIZ,
@@ -139,6 +144,8 @@ function subirWrangler(porta, supabaseUrl, persistir) {
       env: {
         ...process.env,
         CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE: URL_PG,
+        /* Sem isto o wrangler carrega o `.env` do repositório como vars: chaves reais dentro do isolate. */
+        CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: 'false',
         WRANGLER_SEND_METRICS: 'false',
         NO_COLOR: '1',
         FORCE_COLOR: '0',
@@ -147,7 +154,31 @@ function subirWrangler(porta, supabaseUrl, persistir) {
   )
   filho.stdout.on('data', (d) => (saida += d))
   filho.stderr.on('data', (d) => (saida += d))
-  return { filho, saida: () => saida }
+  const w = { filho, saida: () => saida }
+  vivos.push(w)
+  return w
+}
+
+async function derrubar(w) {
+  if (w.filho.exitCode !== null) return
+  try {
+    process.kill(-w.filho.pid, 'SIGTERM')
+  } catch {
+    /* já saiu */
+  }
+  for (let i = 0; i < 20 && w.filho.exitCode === null; i++) await esperar(250)
+  if (w.filho.exitCode === null) {
+    try {
+      process.kill(-w.filho.pid, 'SIGKILL')
+    } catch {
+      /* já saiu */
+    }
+  }
+}
+
+/** O Postgres de teste responde por `docker exec` (o mesmo container da fumaça). */
+function consultar(sql) {
+  return rodar('docker', ['exec', CONTAINER, 'psql', '-U', 'postgres', '-tAc', sql]).trim()
 }
 
 async function esperarPronto(w) {
@@ -168,7 +199,18 @@ async function verificacoes(base, w, token) {
   const h = await fetch(`${base}/api/health`)
   const corpoH = await h.json()
   confere(h.status === 200 && corpoH.banco === 'postgres', `health: ${h.status} ${JSON.stringify(corpoH)}`)
-  console.log(`✔ 1/4 GET /api/health → 200, banco=${corpoH.banco}`)
+  /* Modo produção no LITERAL (o `define` do wrangler.jsonc): a CSP bloqueia em vez de só relatar. */
+  confere(
+    h.headers.get('content-security-policy') && !h.headers.get('content-security-policy-report-only'),
+    'a CSP do Worker deveria bloquear (NODE_ENV=production embutido), veio Report-Only',
+  )
+  /* A versão vem do `define` (não há disco no Worker). */
+  confere(corpoH.versao === VERSAO, `versão no Worker: ${corpoH.versao}, package.json: ${VERSAO}`)
+  const metricas = await fetch(`${base}/metrics`)
+  confere(metricas.status === 404, `/metrics no Worker deveria ser 404, veio ${metricas.status}`)
+  console.log(
+    `✔ 1/4 GET /api/health → 200, banco=${corpoH.banco}, versão ${corpoH.versao}, CSP de produção; /metrics → 404`,
+  )
 
   // 2. JWT ES256 → /api/me
   const sub = `fumaca-${randomBytes(4).toString('hex')}`
@@ -176,6 +218,24 @@ async function verificacoes(base, w, token) {
   const auth = { authorization: `Bearer ${jwt}` }
   const semToken = await fetch(`${base}/api/me`)
   confere(semToken.status === 401, `/api/me sem token deveria ser 401, veio ${semToken.status}`)
+  /* O IP do cliente é o `CF-Connecting-IP`; um `X-Forwarded-For` forjado não muda a chave do balde. O
+     limitador de falhas soma o 401 depois da resposta (pelo `waitUntil`). */
+  const sem = (h) => fetch(`${base}/api/me`, { headers: h }).then((r) => r.status)
+  await sem({ 'cf-connecting-ip': '203.0.113.1' })
+  await sem({ 'cf-connecting-ip': '203.0.113.2' })
+  await sem({ 'cf-connecting-ip': '203.0.113.1', 'x-forwarded-for': '198.51.100.9' })
+  const baldes = () =>
+    consultar("select user_id || '=' || count from usage_counters where metric = 'ratelimit:auth' order by 1")
+  let vistos = ''
+  for (let i = 0; i < 20; i++) {
+    vistos = baldes()
+    if (vistos.includes('ip:203.0.113.1=2') && vistos.includes('ip:203.0.113.2=1')) break
+    await esperar(250)
+  }
+  confere(
+    vistos.includes('ip:203.0.113.1=2') && vistos.includes('ip:203.0.113.2=1') && !vistos.includes('198.51.100.9'),
+    `baldes do limitador por IP: ${vistos.replace(/\n/g, ', ')}`,
+  )
   const me = await fetch(`${base}/api/me`, { headers: auth })
   confere(me.status === 200, `/api/me: ${me.status} ${(await me.text()).slice(0, 300)}`)
   const idade = await fetch(`${base}/api/me/idade`, {
@@ -195,7 +255,9 @@ async function verificacoes(base, w, token) {
     web.status === 503 && corpoWeb.code === 'indisponivel_neste_runtime',
     `POST /api/import/web no Worker: ${web.status} ${JSON.stringify(corpoWeb)}`,
   )
-  console.log('✔ 2/4 JWT ES256 (JWKS local) → GET /api/me 200 (sem token: 401; import web: 503 no runtime)')
+  console.log(
+    '✔ 2/4 JWT ES256 (JWKS local) → GET /api/me 200 (sem token: 401, balde por CF-Connecting-IP, X-Forwarded-For forjado ignorado; import web: 503 no runtime)',
+  )
 
   // 3. sessão + upload de 1 MB + Range
   const s = await fetch(`${base}/api/sessions`, {
@@ -240,9 +302,46 @@ async function verificacoes(base, w, token) {
   console.log(`✔ 4/4 cron "${CRON}" → 200; log: ${linha.trim().slice(0, 200)}`)
 }
 
+/**
+ * As travas de produção leem o NODE_ENV do RUNTIME (`env.NODE_ENV` com `env = process.env`), não o literal.
+ * Um segundo `wrangler dev` com `METRICS_ENABLED=1` e sem `METRICS_TOKEN` tem de recusar servir (503
+ * `boot_falhou`): prova o `fixarModo()` e o portão de boot de uma vez.
+ */
+async function travasDeProducao(supabaseUrl, persistir) {
+  const porta = await portaLivre()
+  const w = subirWrangler(porta, supabaseUrl, persistir, ['METRICS_ENABLED:1'])
+  await esperarPronto(w)
+  const r = await fetch(`http://127.0.0.1:${porta}/api/health`)
+  const corpo = await r.json()
+  confere(
+    r.status === 503 && corpo.code === 'boot_falhou',
+    `boot sem METRICS_TOKEN: ${r.status} ${JSON.stringify(corpo)}`,
+  )
+  for (let i = 0; i < 20 && !/boot_falhou.*METRICS_TOKEN/.test(w.saida()); i++) await esperar(250)
+  confere(/boot_falhou.*METRICS_TOKEN/.test(w.saida()), `o log não trouxe boot_falhou:\n${w.saida().slice(-2000)}`)
+  await derrubar(w)
+  console.log('✔ travas de produção no runtime: METRICS_ENABLED=1 sem token → 503 boot_falhou')
+}
+
+let jwks
+let persistir
+
+async function limpar() {
+  for (const w of vivos) await derrubar(w)
+  jwks?.servidor.close()
+  spawnSync('docker', ['rm', '-f', CONTAINER], { stdio: 'ignore' })
+  if (persistir) rmSync(persistir, { recursive: true, force: true })
+}
+
+for (const sinal of ['SIGINT', 'SIGTERM']) {
+  process.once(sinal, () => {
+    console.error(`✘ interrompido (${sinal}): derrubando o wrangler e o container`)
+    limpar().finally(() => process.exit(130))
+  })
+}
+
 async function principal() {
-  const persistir = mkdtempSync(join(tmpdir(), 'babel-fumaca-worker-'))
-  let jwks
+  persistir = mkdtempSync(join(tmpdir(), 'babel-fumaca-worker-'))
   let w
   try {
     passo(`Postgres 17 em Docker (${CONTAINER}, porta ${PORTA_PG})`)
@@ -255,31 +354,16 @@ async function principal() {
     w = subirWrangler(porta, jwks.url, persistir)
     await esperarPronto(w)
     await verificacoes(`http://127.0.0.1:${porta}`, w, jwks.token)
-    console.log('fumaça do Worker: 4/4')
     if (process.argv.includes('--verboso')) console.log(`--- saída do wrangler ---\n${w.saida()}`)
+    await derrubar(w)
+    await travasDeProducao(jwks.url, persistir)
+    console.log('fumaça do Worker: 4/4')
   } catch (err) {
     console.error(`✘ ${err.message}`)
     if (w) console.error(`--- saída do wrangler (fim) ---\n${w.saida().slice(-4000)}`)
     process.exitCode = 1
   } finally {
-    if (w && w.filho.exitCode === null) {
-      try {
-        process.kill(-w.filho.pid, 'SIGTERM')
-      } catch {
-        /* já saiu */
-      }
-      for (let i = 0; i < 20 && w.filho.exitCode === null; i++) await esperar(250)
-      if (w.filho.exitCode === null) {
-        try {
-          process.kill(-w.filho.pid, 'SIGKILL')
-        } catch {
-          /* já saiu */
-        }
-      }
-    }
-    jwks?.servidor.close()
-    spawnSync('docker', ['rm', '-f', CONTAINER], { stdio: 'ignore' })
-    rmSync(persistir, { recursive: true, force: true })
+    await limpar()
   }
 }
 

@@ -1199,7 +1199,7 @@ export const testesPremium = pgTable('testes_premium', {
 /**
  * A MARCA DO TESTE (C6, migração 0043) — o que impede apagar a conta e criar outra para ganhar mais
  * 14 dias. `marca` é o HMAC-SHA256 do e-mail NORMALIZADO com a chave de hash do servidor
- * (`CHAVE_DE_HASH`, `server/lib/testePremium.ts`): não guarda o e-mail, não volta a ele sem o
+ * (`obterChaveDeHash()`, `server/lib/testePremium.ts`): não guarda o e-mail, não volta a ele sem o
  * segredo, e NÃO tem `user_id` — por isso sobrevive à exclusão da conta, que é exatamente o objetivo.
  *
  * É dado PSEUDONIMIZADO (LGPD art. 13 §4º: continua dado pessoal para quem tem a chave), tratado por

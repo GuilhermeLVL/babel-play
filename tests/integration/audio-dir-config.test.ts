@@ -28,7 +28,7 @@ afterEach(() => {
  */
 async function carregar() {
   vi.resetModules()
-  return await import('../../server/routes/sessions') as any
+  return (await import('../../server/routes/sessions')) as any
 }
 
 describe('AUDIO_DIR', () => {
@@ -43,7 +43,8 @@ describe('AUDIO_DIR', () => {
 
   it('a contenção de path continua valendo sobre o diretório configurado', async () => {
     process.env.AUDIO_DIR = path.join(path.sep, 'mnt', 'compartilhado', 'audio')
-    const { resolveInAudioDir, AUDIO_DIR } = await carregar()
+    const { resolveInAudioDir, audioDir } = await carregar()
+    const AUDIO_DIR = audioDir()
 
     expect(resolveInAudioDir('abc.webm')).toBe(path.join(AUDIO_DIR, 'abc.webm'))
     expect(() => resolveInAudioDir('../fora.webm')).toThrow()

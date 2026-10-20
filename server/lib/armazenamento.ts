@@ -335,8 +335,8 @@ export function armazenamentoDoAmbiente(dirPadrao: string, env: NodeJS.ProcessEn
      tem e não usaria. Duas cópias da regra das quatro variáveis divergiriam no dia em que a quinta
      aparecesse. */
   /* O TETO DO R2 só embrulha o S3 (`openspec/changes/r2-teto-de-uso`): no disco não há operação
-     cobrada. Os tetos são lidos AQUI, na criação — valor inválido lança no import das rotas, que é o
-     boot. */
+     cobrada. Os tetos são lidos AQUI, na criação — valor inválido lança, e quem cria no boot é
+     `server/boot/validar.ts`. */
   return cfg
     ? comTetoDeOperacoes(armazenamentoS3(cfg), { tetos: lerTetoDoR2(env) })
     : armazenamentoDeArquivos(dirPadrao)

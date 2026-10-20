@@ -5,11 +5,11 @@
  * exige um JWT válido (HS256 e, via chave injetável, ES256). Tokens são assinados/verificados
  * localmente com jose — nenhuma rede, nenhum Supabase real.
  */
-import { generateKeyPair,SignJWT } from 'jose'
-import { afterEach,beforeEach, describe, expect, it } from 'vitest'
+import { generateKeyPair, SignJWT } from 'jose'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { authMiddleware,authRequired, createVerifier, makeAuthMiddleware } from '../../server/lib/auth'
-import { LOCAL_OWNER } from '../../server/lib/authContext'
+import { authMiddleware, authRequired, createVerifier, makeAuthMiddleware } from '../../server/lib/auth'
+import { donoLocal } from '../../server/lib/authContext'
 
 const SECRET = 'segredo-de-teste-hs256-marco1-nunca-real'
 const encSecret = new TextEncoder().encode(SECRET)
@@ -28,7 +28,10 @@ const ISS = `${URL_SUPABASE}/auth/v1`
 async function signHS(opts: { sub?: string | null; aud?: string; exp?: string } = {}): Promise<string> {
   let t = new SignJWT({}).setProtectedHeader({ alg: 'HS256' }).setIssuedAt()
   if (opts.sub !== null) t = t.setSubject(opts.sub ?? 'user-A')
-  t = t.setAudience(opts.aud ?? 'authenticated').setIssuer(ISS).setExpirationTime(opts.exp ?? '1h')
+  t = t
+    .setAudience(opts.aud ?? 'authenticated')
+    .setIssuer(ISS)
+    .setExpirationTime(opts.exp ?? '1h')
   return t.sign(encSecret)
 }
 
@@ -37,13 +40,21 @@ function mkReq(authHeader?: string): any {
 }
 function mkRes(): any {
   const r: any = { statusCode: 200, _json: null }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (o: unknown) => { r._json = o; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (o: unknown) => {
+    r._json = o
+    return r
+  }
   return r
 }
 async function run(mw: any, req: any, res: any): Promise<boolean> {
   let nexted = false
-  await mw(req, res, () => { nexted = true })
+  await mw(req, res, () => {
+    nexted = true
+  })
   return nexted
 }
 
@@ -72,8 +83,10 @@ describe('authRequired() — a flag de modo', () => {
     expect(authRequired()).toBe(false)
   })
   it('=1 liga, =0 desliga', () => {
-    process.env.AUTH_REQUIRED = '1'; expect(authRequired()).toBe(true)
-    process.env.AUTH_REQUIRED = '0'; expect(authRequired()).toBe(false)
+    process.env.AUTH_REQUIRED = '1'
+    expect(authRequired()).toBe(true)
+    process.env.AUTH_REQUIRED = '0'
+    expect(authRequired()).toBe(false)
   })
   it('em produção liga por padrão (evita subir aberto)', () => {
     process.env.NODE_ENV = 'production'
@@ -83,16 +96,20 @@ describe('authRequired() — a flag de modo', () => {
 
 describe('modo aberto (self-host) — sem token, vira LOCAL_OWNER', () => {
   it('atribui LOCAL_OWNER e chama next(), sem exigir token', async () => {
-    const mw = makeAuthMiddleware(async () => { throw new Error('não deve verificar em modo aberto') })
+    const mw = makeAuthMiddleware(async () => {
+      throw new Error('não deve verificar em modo aberto')
+    })
     const req = mkReq()
     const nexted = await run(mw, req, mkRes())
     expect(nexted).toBe(true)
-    expect(req.userId).toBe(LOCAL_OWNER)
+    expect(req.userId).toBe(donoLocal())
   })
 })
 
 describe('modo público (AUTH_REQUIRED=1)', () => {
-  beforeEach(() => { process.env.AUTH_REQUIRED = '1' })
+  beforeEach(() => {
+    process.env.AUTH_REQUIRED = '1'
+  })
   // Deploy BEM configurado: segredo compartilhado E origem declarada.
   const verifier = () => createVerifier({ jwtSecret: SECRET, supabaseUrl: URL_SUPABASE })
 
@@ -165,8 +182,13 @@ describe('modo público (AUTH_REQUIRED=1)', () => {
 
   it('chave ASSIMÉTRICA injetável (ES256) verifica offline', async () => {
     const { publicKey, privateKey } = await generateKeyPair('ES256')
-    const token = await new SignJWT({}).setProtectedHeader({ alg: 'ES256' })
-      .setSubject('user-ES').setAudience('authenticated').setIssuedAt().setExpirationTime('1h').sign(privateKey)
+    const token = await new SignJWT({})
+      .setProtectedHeader({ alg: 'ES256' })
+      .setSubject('user-ES')
+      .setAudience('authenticated')
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      .sign(privateKey)
     const verify = createVerifier({ key: publicKey, supabaseUrl: '' })
     expect(await verify(token)).toBe('user-ES')
   })
@@ -179,7 +201,7 @@ describe('instância padrão de produção (authMiddleware exportado)', () => {
     const req = mkReq()
     const nexted = await run(authMiddleware, req, mkRes())
     expect(nexted).toBe(true)
-    expect(req.userId).toBe(LOCAL_OWNER)
+    expect(req.userId).toBe(donoLocal())
   })
   it('modo público sem token → 401', async () => {
     process.env.AUTH_REQUIRED = '1'

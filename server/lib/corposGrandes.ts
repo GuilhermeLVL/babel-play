@@ -47,7 +47,7 @@ function inteiroPositivo(bruto: string | undefined, padrao: number): number {
   return Number.isInteger(n) && n > 0 ? n : padrao
 }
 
-/** Lidos UMA vez, no carregamento do módulo; inválido ou ausente cai no padrão (1 e 2). */
+/** Lidos UMA vez, no primeiro uso do semáforo; inválido ou ausente cai no padrão (1 e 2). */
 export function limitesDeCorposGrandes(env: NodeJS.ProcessEnv = process.env): LimitesDeCorpos {
   return {
     porUsuario: inteiroPositivo(env.UPLOADS_GRANDES_POR_USUARIO, PADRAO.porUsuario),
@@ -87,12 +87,27 @@ export function criarSemaforoDeCorpos(limites: LimitesDeCorpos): SemaforoDeCorpo
   }
 }
 
-/** O semáforo do processo — um só para todas as rotas de corpo grande. */
-const limitesDoProcesso = limitesDeCorposGrandes()
-export const semaforoDeCorposGrandes = criarSemaforoDeCorpos(limitesDoProcesso)
+/* O semáforo do processo — um só para todas as rotas de corpo grande. Criado no primeiro uso, e não no
+   import (Fase 2, boot preguiçoso): os limites vêm do ambiente, que num Worker não existe no carregamento. */
+let limitesDoProcesso: LimitesDeCorpos | undefined
+let semaforoDoProcesso: SemaforoDeCorpos | undefined
+
+/** O semáforo do processo, criado (com os limites do ambiente) na primeira chamada. */
+export function semaforoDeCorposGrandes(): SemaforoDeCorpos {
+  semaforoDoProcesso ??= criarSemaforoDeCorpos(limitesDoProcessoAtual())
+  return semaforoDoProcesso
+}
+
+function limitesDoProcessoAtual(): LimitesDeCorpos {
+  limitesDoProcesso ??= limitesDeCorposGrandes()
+  return limitesDoProcesso
+}
 
 /* Métricas `uploads_grandes_em_voo`/`_limite`, lidas no scrape (o alerta "no teto" compara as duas). */
-registrarLeitorDeUploads(() => ({ emVoo: semaforoDeCorposGrandes.emVoo(), limite: limitesDoProcesso.porProcesso }))
+registrarLeitorDeUploads(() => ({
+  emVoo: semaforoDeCorposGrandes().emVoo(),
+  limite: limitesDoProcessoAtual().porProcesso,
+}))
 
 /** Segundos sugeridos ao cliente antes de tentar de novo. Um upload grande leva dezenas de segundos. */
 export const ESPERA_SUGERIDA_S = 15
@@ -102,9 +117,9 @@ export const ESPERA_SUGERIDA_S = 15
  * (`close` dispara no fim normal E quando o cliente desiste — os dois casos em que a vaga precisa
  * voltar). Monte-o ANTES de qualquer parser de corpo da rota.
  */
-export function vagaDeCorpoGrande(semaforo: SemaforoDeCorpos = semaforoDeCorposGrandes) {
+export function vagaDeCorpoGrande(semaforo?: SemaforoDeCorpos) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const vaga = semaforo.adquirir(String(req.userId))
+    const vaga = (semaforo ?? semaforoDeCorposGrandes()).adquirir(String(req.userId))
     if (!vaga.ok) {
       const { motivo } = vaga as VagaRecusada
       contarUploadRecusado(motivo)

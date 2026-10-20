@@ -29,9 +29,9 @@ beforeAll(async () => {
   audioDir = mkdtempSync(path.join(tmpdir(), 'babel-range-'))
   process.env.AUDIO_DIR = audioDir
   s = await subirApp({ modo: 'self-host' })
-  const { LOCAL_OWNER } = await s.load('../../server/lib/authContext')
+  const { donoLocal } = await s.load('../../server/lib/authContext')
   const { sessionsRepo } = await s.load('../../server/db/repositories/sessions')
-  const dono = LOCAL_OWNER
+  const dono = donoLocal()
   const sessao = await sessionsRepo.create(dono, { title: 'range', kind: 'audio' })
   const arquivo = `${sessao.id}.webm`
   writeFileSync(path.join(audioDir, arquivo), AUDIO)

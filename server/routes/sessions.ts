@@ -56,7 +56,7 @@ export const sessionsRouter = Router()
 /**
  * Resolve o diretorio de audio a partir do ambiente. PURA, e isso conserta um teste instavel.
  *
- * `AUDIO_DIR` continua sendo resolvida UMA vez no carregamento do modulo (logo abaixo) — esse e o
+ * `AUDIO_DIR` continua sendo resolvida UMA vez por processo (`audioDir()`, logo abaixo) — esse e o
  * padrao correto e nao mudou. O que mudou e existir uma forma de verificar a REGRA sem reimportar
  * o modulo: `tests/integration/audio-dir-config.test.ts` usava `vi.resetModules()` + `await
  * import(...)`, e este modulo puxa a pilha inteira do banco. Sob carga da maquina, a importacao
@@ -68,14 +68,25 @@ export function resolverAudioDir(env: NodeJS.ProcessEnv = process.env): string {
   return env.AUDIO_DIR ? path.resolve(env.AUDIO_DIR) : path.join(process.cwd(), 'data', 'audio')
 }
 
-export const AUDIO_DIR = resolverAudioDir()
+/* Resolvidos no PRIMEIRO USO e memoizados (Fase 2, boot preguiçoso): num Worker o ambiente não existe
+   no carregamento do módulo. O valor continua um só por processo, como era a const de módulo. */
+let audioDirResolvido: string | undefined
+let armazenamento: ReturnType<typeof armazenamentoDoAmbiente> | undefined
+
+export function audioDir(): string {
+  audioDirResolvido ??= resolverAudioDir()
+  return audioDirResolvido
+}
 
 /**
  * F5-02 — a mídia passa a sair por UM seam. O filesystem continua sendo o padrão; com as quatro
  * `S3_*` no ambiente, as MESMAS chamadas vão para object storage sem tocar nas rotas.
  * Exportado porque `me.ts` apaga a mídia do titular pelo mesmo store (uma instância só).
  */
-export const armazenamentoDeMidia = armazenamentoDoAmbiente(AUDIO_DIR)
+export function armazenamentoDeMidia(): ReturnType<typeof armazenamentoDoAmbiente> {
+  armazenamento ??= armazenamentoDoAmbiente(audioDir())
+  return armazenamento
+}
 
 /**
  * S-14: resolve um nome de arquivo DENTRO de `AUDIO_DIR` e recusa qualquer coisa que ESCAPE do
@@ -86,7 +97,7 @@ export const armazenamentoDeMidia = armazenamentoDoAmbiente(AUDIO_DIR)
  * store, e é o que distingue "nome inválido" (400) de "objeto ausente" (404).
  */
 export function resolveInAudioDir(name: string): string {
-  const base = path.resolve(AUDIO_DIR)
+  const base = path.resolve(audioDir())
   const resolved = path.resolve(base, name)
   if (resolved !== base && !resolved.startsWith(base + path.sep)) {
     throw new Error('caminho de áudio fora do diretório permitido')
@@ -235,7 +246,7 @@ export const LIMITE_DO_AUDIO = 120 * 1024 * 1024
  * final por `rename` (mesmo volume, sem cópia). O ponto no nome separa a pasta dos áudios, e nada
  * nela é referenciado por sessão — a reconciliação de cota soma só o que o `meta` aponta.
  */
-const DIR_DE_RECEPCAO = path.join(AUDIO_DIR, '.recebendo')
+const dirDeRecepcao = (): string => path.join(audioDir(), '.recebendo')
 
 /** O que o `express.raw` aceitava. Outro tipo continua sendo "corpo vazio", como antes. */
 function ehCorpoDeAudio(headers: Record<string, string | string[] | undefined>): boolean {
@@ -295,7 +306,7 @@ sessionsRouter.post('/:id/audio', vagaDeCorpoGrande(), async (req, res) => {
      * de o corpo sequer ser lido. Reupload conta só o DELTA: o arquivo é sobrescrito, não somado.
      */
     const anterior = String(readMeta(session.meta).audioFile || '')
-    const bytesAnteriores = anterior ? ((await armazenamentoDeMidia.tamanho(anterior)) ?? 0) : 0
+    const bytesAnteriores = anterior ? ((await armazenamentoDeMidia().tamanho(anterior)) ?? 0) : 0
     const reservar = async (bytes: number): Promise<boolean> => {
       const cota = await reservarArmazenamento(req.userId, bytes - bytesAnteriores)
       if (cota.ok) {
@@ -312,8 +323,8 @@ sessionsRouter.post('/:id/audio', vagaDeCorpoGrande(), async (req, res) => {
     }
     if (declarado !== null && !(await reservar(declarado))) return
 
-    await mkdir(DIR_DE_RECEPCAO, { recursive: true })
-    temporario = path.join(DIR_DE_RECEPCAO, `${p.id}.${randomUUID()}.parcial`)
+    await mkdir(dirDeRecepcao(), { recursive: true })
+    temporario = path.join(dirDeRecepcao(), `${p.id}.${randomUUID()}.parcial`)
     let recebido: Awaited<ReturnType<typeof receberCorpoEmArquivo>>
     try {
       recebido = await receberCorpoEmArquivo(fonteDoCorpo(req), temporario, LIMITE_DO_AUDIO)
@@ -361,7 +372,7 @@ sessionsRouter.post('/:id/audio', vagaDeCorpoGrande(), async (req, res) => {
       reservado += recebido.bytes - declarado
     }
 
-    await armazenamentoDeMidia.gravarDeArquivo(file, temporario, contentType)
+    await armazenamentoDeMidia().gravarDeArquivo(file, temporario, contentType)
     /**
      * O ARQUIVO ANTIGO QUE NAO SAIU E DITO, nao engolido (auditoria de 2026-09-07, achado A29).
      *
@@ -373,7 +384,7 @@ sessionsRouter.post('/:id/audio', vagaDeCorpoGrande(), async (req, res) => {
     let orfaoNaoRemovido: string | null = null
     if (anterior && anterior !== file) {
       try {
-        await armazenamentoDeMidia.remover(anterior)
+        await armazenamentoDeMidia().remover(anterior)
       } catch (err) {
         orfaoNaoRemovido = String((err as Error)?.message ?? err).slice(0, 160)
         log('warn', { event: 'audio_anterior_nao_removido', route: req.path, error: orfaoNaoRemovido })
@@ -440,7 +451,7 @@ sessionsRouter.get('/:id/audio', async (req, res) => {
   }
   let size: number | null
   try {
-    size = await armazenamentoDeMidia.tamanho(nome)
+    size = await armazenamentoDeMidia().tamanho(nome)
   } catch (err) {
     const teto = respostaDoTetoDoR2(err)
     if (!teto) throw err
@@ -478,7 +489,7 @@ sessionsRouter.get('/:id/audio', async (req, res) => {
   res.setHeader('Content-Type', type)
 
   try {
-    ;(await armazenamentoDeMidia.lerFaixa(nome, start, end)).pipe(res)
+    ;(await armazenamentoDeMidia().lerFaixa(nome, start, end)).pipe(res)
   } catch (err) {
     const teto = respostaDoTetoDoR2(err)
     if (teto && !res.headersSent) {
@@ -696,7 +707,7 @@ sessionsRouter.delete('/:id', async (req, res) => {
         // (permissão, lock do antivírus/OneDrive) ou caminho inválido.
         const nome = String(meta.audioFile)
         // Apagar não passa pelo teto do R2 (`semTeto`): o HEAD que mede a cota a devolver também não.
-        const store = semTeto(armazenamentoDeMidia)
+        const store = semTeto(armazenamentoDeMidia())
         const bytes = (await store.tamanho(nome)) ?? 0
         await store.remover(nome)
         await liberarArmazenamento(req.userId, bytes) // F4-03: só libera cota se o arquivo saiu

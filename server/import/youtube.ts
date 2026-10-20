@@ -18,9 +18,14 @@ import path from 'node:path'
 import { baseLang as baseLangDoCodigo } from '../../src/core/texto/idioma'
 
 // Nome do binário (sobrescrevível por env, p/ quem instala o yt-dlp fora do PATH).
-const YTDLP = process.env.YTDLP_PATH || 'yt-dlp'
+// Lido na chamada, não no import (Fase 2, boot preguiçoso).
+const ytdlp = (): string => process.env.YTDLP_PATH || 'yt-dlp'
 
-export interface Cue { startMs: number; endMs: number; text: string }
+export interface Cue {
+  startMs: number
+  endMs: number
+  text: string
+}
 type TrackMap = Record<string, Array<{ ext: string; url: string }>>
 export interface YtInfo {
   id: string
@@ -31,22 +36,36 @@ export interface YtInfo {
   autoCaptions: TrackMap
 }
 
-interface RunResult { code: number; stdout: string; stderr: string }
+interface RunResult {
+  code: number
+  stdout: string
+  stderr: string
+}
 
 /** Roda o yt-dlp com args em ARRAY (sem shell — a URL do usuário nunca é interpolada). */
 function runYtDlp(args: string[], { timeoutMs = 120_000 } = {}): Promise<RunResult> {
   return new Promise((resolve, reject) => {
-    const child = spawn(YTDLP, args, { windowsHide: true })
+    const child = spawn(ytdlp(), args, { windowsHide: true })
     let stdout = ''
     let stderr = ''
     const timer = setTimeout(() => {
       child.kill()
       reject(new Error('yt-dlp expirou (timeout)'))
     }, timeoutMs)
-    child.stdout.on('data', (d) => { stdout += d.toString() })
-    child.stderr.on('data', (d) => { stderr += d.toString() })
-    child.on('error', (err) => { clearTimeout(timer); reject(err) })
-    child.on('close', (code) => { clearTimeout(timer); resolve({ code: code ?? -1, stdout, stderr }) })
+    child.stdout.on('data', (d) => {
+      stdout += d.toString()
+    })
+    child.stderr.on('data', (d) => {
+      stderr += d.toString()
+    })
+    child.on('error', (err) => {
+      clearTimeout(timer)
+      reject(err)
+    })
+    child.on('close', (code) => {
+      clearTimeout(timer)
+      resolve({ code: code ?? -1, stdout, stderr })
+    })
   })
 }
 
@@ -99,7 +118,11 @@ function parseJson3(text: string): Cue[] {
     if (!e.segs) continue
     const t = e.tStartMs ?? 0
     const dur = e.dDurationMs ?? 0
-    const txt = e.segs.map((s: any) => s.utf8 ?? '').join('').replace(/\s+/g, ' ').trim()
+    const txt = e.segs
+      .map((s: any) => s.utf8 ?? '')
+      .join('')
+      .replace(/\s+/g, ' ')
+      .trim()
     if (txt) out.push({ startMs: t, endMs: t + dur, text: txt })
   }
   return out
@@ -140,7 +163,7 @@ function parseVtt(text: string): Cue[] {
  */
 export async function fetchCaptions(
   info: YtInfo,
-  preferLang?: string
+  preferLang?: string,
 ): Promise<{ cues: Cue[]; kind: 'manual' | 'auto'; lang: string } | null> {
   const tryMap = async (map: TrackMap, kind: 'manual' | 'auto') => {
     const langKey = pickLangKey(Object.keys(map), preferLang || info.lang)
@@ -173,26 +196,26 @@ export async function fetchCaptions(
 export async function downloadAudio(
   url: string,
   id: string,
-  dir: string
+  dir: string,
 ): Promise<{ file: string; contentType: string }> {
   await mkdir(dir, { recursive: true })
   const outTemplate = path.join(dir, `${id}.%(ext)s`)
   const r = await runYtDlp(
     ['-f', 'bestaudio[ext=m4a]/bestaudio/best', '--no-playlist', '--no-warnings', '-o', outTemplate, url],
-    { timeoutMs: 300_000 }
+    { timeoutMs: 300_000 },
   )
   if (r.code !== 0) throw new Error('yt-dlp falhou ao baixar o áudio: ' + r.stderr.slice(-300))
   const produced = (await readdir(dir)).filter((f) => f.startsWith(id + '.'))
-  const file =
-    produced.find((f) => f.endsWith('.m4a')) ||
-    produced.find((f) => f.endsWith('.webm')) ||
-    produced[0]
+  const file = produced.find((f) => f.endsWith('.m4a')) || produced.find((f) => f.endsWith('.webm')) || produced[0]
   if (!file) throw new Error('áudio baixado não foi encontrado no disco')
   const ext = file.split('.').pop()!.toLowerCase()
   const contentType =
-    ext === 'm4a' || ext === 'mp4' ? 'audio/mp4'
-    : ext === 'webm' ? 'audio/webm'
-    : ext === 'ogg' || ext === 'opus' ? 'audio/ogg'
-    : 'audio/mpeg'
+    ext === 'm4a' || ext === 'mp4'
+      ? 'audio/mp4'
+      : ext === 'webm'
+        ? 'audio/webm'
+        : ext === 'ogg' || ext === 'opus'
+          ? 'audio/ogg'
+          : 'audio/mpeg'
   return { file, contentType }
 }

@@ -97,6 +97,21 @@ export function erroGlobal(err: unknown, req: Request, res: Response, _next: Nex
       )
     return
   }
+  /* BANCO SEM CONFIGURAÇÃO NÃO É ERRO INTERNO (Fase 2, boot preguiçoso). Sem `DATABASE_URL` num runtime
+     sem disco (Worker), o primeiro acesso a `db` lança `BancoIndisponivel` (`server/db/db.ts`): 503
+     `banco_indisponivel`, como uma probe com o banco fora do ar. Reconhecido pelo `code`, e não por
+     `instanceof`, para não importar o módulo do banco aqui. */
+  if ((err as { code?: unknown })?.code === 'banco_indisponivel') {
+    log('error', { event: 'banco_indisponivel', route: req.path, status: 503, requestId: req.requestId })
+    if (res.headersSent) {
+      res.end()
+      return
+    }
+    res
+      .status(503)
+      .json(envelopeDeErro('banco indisponível', 'banco_indisponivel', { requestId: req.requestId ?? null }))
+    return
+  }
   const causa = cadeiaDeCausas(err, ' <- ')
   log('error', {
     event: 'erro_nao_tratado',

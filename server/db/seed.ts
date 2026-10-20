@@ -16,7 +16,7 @@
  */
 import { and, eq } from 'drizzle-orm'
 
-import { LOCAL_OWNER } from '../lib/authContext'
+import { donoLocal } from '../lib/authContext'
 import { log } from '../lib/logger'
 import { db } from './db'
 import { ORIGEM_DA_DEMONSTRACAO, type Session, sessionsRepo } from './repositories/sessions'
@@ -26,14 +26,14 @@ const TITULO_DA_DEMONSTRACAO = 'Reunião de Alinhamento (Q3) — demo'
 
 export async function seedIfEmpty(): Promise<void> {
   // Seed de demonstração pertence ao dono local (Marco 1). Idempotente: se ele já tem sessões, sai.
-  const existing = await sessionsRepo.list(LOCAL_OWNER)
+  const existing = await sessionsRepo.list(donoLocal())
   if (existing.length > 0) {
     await reconhecerDemonstracaoAntiga(existing)
     return
   }
 
   await sessionsRepo.createWithUtterances(
-    LOCAL_OWNER,
+    donoLocal(),
     {
       title: TITULO_DA_DEMONSTRACAO,
       kind: 'audio',
@@ -87,7 +87,7 @@ async function reconhecerDemonstracaoAntiga(existentes: Session[]): Promise<void
     await db
       .update(sessions)
       .set({ origemLocalId: ORIGEM_DA_DEMONSTRACAO })
-      .where(and(eq(sessions.id, antiga.id), eq(sessions.userId, LOCAL_OWNER)))
+      .where(and(eq(sessions.id, antiga.id), eq(sessions.userId, donoLocal())))
   } catch (err) {
     log('warn', { event: 'semente.demonstracao_antiga_sem_marca', error: String((err as Error)?.message ?? err) })
   }

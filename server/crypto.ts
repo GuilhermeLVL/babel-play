@@ -77,21 +77,34 @@ function resolveRawKey(): string {
   }
 }
 
-const KEY = scryptSync(resolveRawKey(), 'babel-play-web:secrets', 32)
+/* PREGUIÇOSA (Fase 2, boot preguiçoso): nenhuma leitura de env ou disco, nenhum `scryptSync`, no import.
+   Num Worker o módulo é carregado antes de haver ambiente; aqui a chave nasce no primeiro uso e fica
+   memoizada no processo (ou isolate). Em produção, sem `SECRET_KEY`, o primeiro uso lança como antes. */
+let chave: Buffer | undefined
+let chaveDeHash: string | undefined
+
+/** A chave de cifra (AES-256-GCM), derivada no primeiro uso. */
+export function obterChave(): Buffer {
+  chave ??= scryptSync(resolveRawKey(), 'babel-play-web:secrets', 32)
+  return chave
+}
 
 /**
  * CHAVE DERIVADA PARA HASH — não para cifra.
  *
- * Sal diferente do da `KEY` de propósito: quem obtiver este valor não obtém a chave que decifra
+ * Sal diferente do da chave de cifra (`obterChave`) de propósito: quem obtiver este valor não obtém a chave que decifra
  * os segredos guardados. Existe para dar a um hash de uso interno algo que não esteja no
  * código-fonte — hoje, o hash da origem de um envio ao ranking (`repositories/rank.ts`), que
  * substituiu o IP em claro que a versão Cloudflare gravava.
  */
-export const CHAVE_DE_HASH: string = scryptSync(resolveRawKey(), 'babel-play-web:hash', 32).toString('hex')
+export function obterChaveDeHash(): string {
+  chaveDeHash ??= scryptSync(resolveRawKey(), 'babel-play-web:hash', 32).toString('hex')
+  return chaveDeHash
+}
 
 export function encryptSecret(plain: string): string {
   const iv = randomBytes(12)
-  const cipher = createCipheriv('aes-256-gcm', KEY, iv)
+  const cipher = createCipheriv('aes-256-gcm', obterChave(), iv)
   const enc = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()])
   const tag = cipher.getAuthTag()
   return [iv.toString('base64'), tag.toString('base64'), enc.toString('base64')].join('.')
@@ -119,5 +132,5 @@ function decryptWith(key: Buffer, ivB: string, tagB: string, encB: string): stri
 export function decryptSecret(blob: string): string {
   const [ivB, tagB, encB] = blob.split('.')
   if (!ivB || !tagB || !encB) throw new Error('segredo malformado')
-  return decryptWith(KEY, ivB, tagB, encB)
+  return decryptWith(obterChave(), ivB, tagB, encB)
 }

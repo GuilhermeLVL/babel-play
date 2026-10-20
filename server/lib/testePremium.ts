@@ -69,7 +69,7 @@ export function normalizarEmailDaMarca(email: string): string | null {
 let chaveDeHash: string | null = null
 async function chave(): Promise<string> {
   // Import tardio, como em `convidado.ts`: carregar este módulo não decide quando a chave é lida.
-  chaveDeHash ??= (await import('../crypto')).CHAVE_DE_HASH
+  chaveDeHash ??= (await import('../crypto')).obterChaveDeHash()
   return chaveDeHash
 }
 

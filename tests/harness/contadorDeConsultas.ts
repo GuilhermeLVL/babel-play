@@ -25,7 +25,7 @@ export interface ContadorDeConsultas {
 export async function contarConsultas(carregar: Carregar): Promise<ContadorDeConsultas> {
   const { db, bancoEmbutido } = await carregar('../../server/db/db')
   const { registrarObservadorDeConsultas } = await carregar('../../server/db/observadorDeConsultas')
-  if (!bancoEmbutido) throw new Error('contarConsultas: só para o PGlite do harness')
+  if (!bancoEmbutido()) throw new Error('contarConsultas: só para o PGlite do harness')
 
   /* Transações abertas agora. O PGlite serializa: uma consulta avulsa espera a transação terminar, então
      o que o observador vê com uma transação aberta é instrução DE DENTRO dela. */

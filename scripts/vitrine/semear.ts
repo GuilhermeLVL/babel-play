@@ -307,7 +307,7 @@ async function registrarNoAsaas(corpo: unknown): Promise<void> {
 
 async function principal(): Promise<void> {
   const contas = JSON.parse(readFileSync(path.join(import.meta.dirname, 'contas.json'), 'utf8')) as Conta[];
-  await dbReady;
+  await dbReady();
   await aplicarMigrations();
 
   const noAsaas = {

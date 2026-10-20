@@ -17,7 +17,7 @@ beforeAll(async () => {
   process.env.DATABASE_URL = 'postgres://u:p@10.255.255.1:5432/x'
   process.env.DB_CONNECT_TIMEOUT_MS = '500'
   m = await import('../../server/db/db')
-  m.dbReady.catch(() => {})
+  m.dbReady().catch(() => {})
   health = await import('../../server/routes/health')
 }, 30_000)
 

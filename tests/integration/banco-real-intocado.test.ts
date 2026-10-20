@@ -23,9 +23,9 @@ describe('isolamento do banco na suíte', () => {
   it('o módulo db resolvido usa esse banco, não o default', async () => {
     const { bancoEmbutido, db, urlDoBanco } = await import('../../server/db/db')
     const { sql } = await import('drizzle-orm')
-    expect(urlDoBanco).toBe(process.env.DATABASE_URL)
-    expect(urlDoBanco).not.toBe('pglite:./data/pg')
-    expect(bancoEmbutido).toBe(true)
+    expect(urlDoBanco()).toBe(process.env.DATABASE_URL)
+    expect(urlDoBanco()).not.toBe('pglite:./data/pg')
+    expect(bancoEmbutido()).toBe(true)
     // `execute` no banco descartável funciona; o que importa é que não é o real.
     await expect(db.execute(sql`SELECT 1`)).resolves.toBeTruthy()
   })

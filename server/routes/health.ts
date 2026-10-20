@@ -29,7 +29,8 @@ import { versaoDoApp } from '../lib/versao'
  * Substitui o que se conferia no SQLite pelo `journal_mode`; diz se o processo subiu no PGlite
  * embutido (uma máquina só) ou num Postgres de verdade.
  */
-const tipoDeBanco: 'pglite' | 'postgres' = bancoEmbutido ? 'pglite' : 'postgres'
+/* Na chamada, não no import (Fase 2, boot preguiçoso): o tipo depende da `DATABASE_URL`. */
+const tipoDeBanco = (): 'pglite' | 'postgres' => (bancoEmbutido() ? 'pglite' : 'postgres')
 
 export async function healthHandler(_req: Request, res: Response): Promise<void> {
   const boot = await bootStatus()
@@ -47,14 +48,14 @@ export async function healthHandler(_req: Request, res: Response): Promise<void>
       res.status(503).json({
         status: 'degraded',
         db: 'up',
-        banco: tipoDeBanco,
+        banco: tipoDeBanco(),
         ...bootPayload,
         versao: versaoDoApp(),
         at: Date.now(),
       })
       return
     }
-    res.json({ status: 'ok', db: 'up', banco: tipoDeBanco, ...bootPayload, versao: versaoDoApp(), at: Date.now() })
+    res.json({ status: 'ok', db: 'up', banco: tipoDeBanco(), ...bootPayload, versao: versaoDoApp(), at: Date.now() })
   } catch (err) {
     // Detalhe do erro só no log do servidor — a resposta não vaza caminho/driver do banco.
     // `db: 'down'` cobre os dois casos (inacessível e schema quebrado); distinguir na
@@ -67,7 +68,9 @@ export async function healthHandler(_req: Request, res: Response): Promise<void>
       status: 503,
       error: String(err).slice(0, 300),
     })
-    res.status(503).json({ status: 'degraded', db: 'down', banco: tipoDeBanco, ...bootPayload, versao: versaoDoApp() })
+    res
+      .status(503)
+      .json({ status: 'degraded', db: 'down', banco: tipoDeBanco(), ...bootPayload, versao: versaoDoApp() })
   }
 }
 

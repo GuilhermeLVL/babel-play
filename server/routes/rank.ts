@@ -21,8 +21,8 @@
 import { Router } from 'express'
 
 import { MINIGAME_IDS } from '../../src/core/minigames/revelavel'
-import { CHAVE_DE_HASH } from '../crypto'
-import { hashDaOrigem, rankRepo, sanearApelido, TETO_DE_COMBO,TETO_DE_PONTOS } from '../db/repositories/rank'
+import { obterChaveDeHash } from '../crypto'
+import { hashDaOrigem, rankRepo, sanearApelido, TETO_DE_COMBO, TETO_DE_PONTOS } from '../db/repositories/rank'
 import { erroDeRota } from '../lib/erroDeRota'
 import { responderErro } from '../lib/respostaDeErro'
 
@@ -47,7 +47,11 @@ rankRouter.get('/:jogo', async (req, res) => {
     const limite = Math.min(LIMITE_MAXIMO, Math.max(1, Number.isFinite(pedido) ? Math.floor(pedido) : LIMITE_PADRAO))
     res.json({ linhas: await rankRepo.topo(jogo, limite) })
   } catch (err) {
-    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'rank_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(500)
+      .json({
+        error: erroDeRota(err, { status: 500, event: 'rank_route_error', route: req.path, requestId: req.requestId }),
+      })
   }
 })
 
@@ -79,7 +83,7 @@ rankRouter.post('/:jogo', async (req, res) => {
     }
 
     const agora = Date.now()
-    const ipHash = hashDaOrigem(req.ip ?? 'desconhecido', CHAVE_DE_HASH)
+    const ipHash = hashDaOrigem(req.ip ?? 'desconhecido', obterChaveDeHash())
     if (await rankRepo.enviouRecentemente(ipHash, agora)) {
       responderErro(res, 429, 'aguarde um minuto entre envios', 'envio_muito_frequente')
       return
@@ -87,6 +91,10 @@ rankRouter.post('/:jogo', async (req, res) => {
 
     res.json(await rankRepo.registrar({ jogo, apelido, pontos, combo, ipHash, agora }))
   } catch (err) {
-    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'rank_route_error', route: req.path, requestId: req.requestId }) })
+    res
+      .status(500)
+      .json({
+        error: erroDeRota(err, { status: 500, event: 'rank_route_error', route: req.path, requestId: req.requestId }),
+      })
   }
 })

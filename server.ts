@@ -1,12 +1,12 @@
 /**
- * BOOTSTRAP DO PROCESSO — e só ele.
+ * BOOTSTRAP DO PROCESSO NODE — só orquestração.
  *
- * Este arquivo tinha 703 linhas e era o arquivo-deus do servidor: montava o Express, servia a rota
- * de negócio do tutor (então `/api/gemini/chat`) e subia o processo. A Fase 3 da rodada de saneamento separou as
- * três responsabilidades. A MONTAGEM vive em `server/http/app.ts` (`criarApp()`), a ROTA vive em
- * `server/routes/tutor.ts` (antes `gemini.ts`), e o que sobra aqui é o que só um processo faz: carregar o `.env`,
- * conferir a configuração, aplicar migrations, escolher entre Vite e estático, escutar numa porta
- * e, quando pedido, forkar o cluster.
+ * A Fase 3 da rodada de saneamento tirou daqui a MONTAGEM (`server/http/app.ts`, `criarApp()`) e a
+ * rota do tutor (`server/routes/tutor.ts`). A Fase 2 da migração para o Cloudflare tirou o resto
+ * para `server/boot/`: as travas de boot (`validar.ts`, que devolve achados — quem encerra o processo
+ * é este arquivo), o diário de erros, as migrations e os backfills (`preparar.ts`), os agendamentos
+ * diários (`jobs.ts`) e o modo cluster (`cluster.ts`). Sobra o que só um processo faz: carregar o
+ * `.env`, chamar cada passo na ordem, escolher entre Vite e estático, escutar numa porta e desligar.
  *
  * O `erroGlobal` é montado AQUI, e não em `criarApp()`, porque o Express escolhe o handler de erro
  * pela POSIÇÃO: ele precisa vir depois do middleware do Vite / do estático, que só existem neste
@@ -15,34 +15,17 @@
 import dotenv from 'dotenv'
 import path from 'path'
 
-import { avisoDeIaSemReserva } from './server/ai/provedores'
-import { avisosDoRegistroDeIa, erroDoRegistroDeIa } from './server/ai/registroDeProvedores'
+import { iniciar, repassarSinalAosWorkers } from './server/boot/cluster'
+import { agendarJobsNoNode } from './server/boot/jobs'
+import { ligarRegistroDeErros, prepararDados as prepararOsDados } from './server/boot/preparar'
+import { relatarConfiguracao, validarBoot } from './server/boot/validar'
 import { dbReady } from './server/db/db'
-import { seedIfEmpty } from './server/db/seed'
 import { criarApp } from './server/http/app'
 import { montarSpa } from './server/http/estaticos'
 import { aplicarTemposLimite } from './server/http/temposLimite'
-import { authRequired, erroDeAuthEmProducao, mecanismoDe } from './server/lib/auth'
-import { registrarFalhaDeBoot, registrarSucessoDeBoot } from './server/lib/bootStatus'
-import {
-  avisoDeConviteSemEmail,
-  configDoBackupDiario,
-  configDoSentry,
-  diasAteApagarDeVez,
-  diasDeRetencaoDeAudio,
-  erroDeAsaasSandboxEmProducao,
-  erroDeMetricasEmProducao,
-  erroDeTrustProxyEmProducao,
-  limpezaDiariaLigada,
-  metricasHabilitadas,
-  portaInternaDeMetricas,
-  verificarConfiguracaoNoBoot,
-} from './server/lib/config'
+import { authRequired } from './server/lib/auth'
+import { metricasHabilitadas, portaInternaDeMetricas } from './server/lib/config'
 import { registrarDesligamento } from './server/lib/desligamento'
-/* `diretorioGravavel` morava aqui e o `crypto.ts` tinha a sua propria versao divergente — a chave
-   de segredos ia parar no disco efemero do conteiner enquanto o diario ia para o volume. Uma
-   resposta so, em `server/lib/diretorios.ts` (auditoria de 2026-09-07, achado A34). */
-import { diretorioGravavel, erroDeClusterComBancoEmbutido, erroDeMultiReplica } from './server/lib/diretorios'
 import { erroGlobal } from './server/lib/erroGlobal'
 import { log } from './server/lib/logger'
 
@@ -55,247 +38,38 @@ const app = criarApp()
 // A mensagem de erro de EADDRINUSE manda "definir PORT no .env" — então honre-a.
 const PORT = Number(process.env.PORT) || 3000
 
-// Configure Vite middleware in development or serve static assets in production
 /**
  * `prepararDados: false` é o modo WORKER do cluster: migrations, seed e backfill já foram feitos
  * pelo primário antes de forkar. Repetir não seria só desperdício — seria exatamente a contenção
  * de lock no boot que o modo cluster existe para eliminar.
  */
-
 async function startServer({ prepararDados = true } = {}) {
-  /*
-   * MULTI-REPLICA PRECISA SER DECLARADA, E COERENTE (auditoria de 2026-09-07, achado A34).
-   *
-   * O servidor guarda arquivo de audio no disco local. Com duas instancias atras de um balanceador
-   * e sem armazenamento compartilhado, o audio gravado por uma NAO existe na outra: o mesmo pedido
-   * responde 200 ou 404 conforme quem atendeu — medido, com a mensagem "arquivo ausente". Isso nao
-   * da para descobrir sozinho (o processo nao sabe quantas replicas existem), entao quem opera
-   * declara `REPLICAS` e o boot verifica a coerencia. Falha DURA: subir assim e servir dados que
-   * somem de forma intermitente, que e pior que nao subir.
-   */
-  const incoerencia = erroDeMultiReplica()
-  if (incoerencia) {
-    console.error(`[boot] ABORTADO: ${incoerencia}`)
-    process.exit(1)
-  }
-  /* GAP-003 (auditoria 2026-09-13): em produção, auth desligada é fail-open — aborta o boot em vez
-     de só avisar (o warning permanece, mais abaixo, para o caso legítimo self-host/local). */
-  const authInsegura = erroDeAuthEmProducao()
-  if (authInsegura) {
-    console.error(`[boot] ABORTADO: ${authInsegura}`)
-    process.exit(1)
-  }
-  /* GAP-004: em produção, quantos proxies há na frente é decisão declarada — errar para qualquer
-     lado desliga o limitador por IP em silêncio (ver `erroDeTrustProxyEmProducao`). */
-  const proxyIndeclarado = erroDeTrustProxyEmProducao()
-  if (proxyIndeclarado) {
-    console.error(`[boot] ABORTADO: ${proxyIndeclarado}`)
-    process.exit(1)
-  }
-  /* GAP-013 (auditoria 2026-09-13): em produção, /metrics ligado sem token é scrape aberto. */
-  const metricasInseguras = erroDeMetricasEmProducao()
-  if (metricasInseguras) {
-    console.error(`[boot] ABORTADO: ${metricasInseguras}`)
-    process.exit(1)
-  }
-  /* Correção de alto valor 3 (auditoria de 15/10/2026): o sandbox do Asaas em produção, sem o
-     `ASAAS_SANDBOX=1` que só o staging declara, é Premium de graça com o cartão de teste. Aborta como
-     as travas acima; o `log('error')` deixa o evento no formato que o coletor de logs procura. */
-  const sandboxEmProducao = erroDeAsaasSandboxEmProducao()
-  if (sandboxEmProducao) {
-    log('error', { event: 'asaas_sandbox_em_producao', error: sandboxEmProducao })
-    console.error(`[boot] ABORTADO: ${sandboxEmProducao}`)
-    process.exit(1)
-  }
-  /* B1 da Fase B: o registro de provedores de IA (`IA_PROVEDORES`) inválido — Gemini, OpenRouter sem
-     retenção zero, provedor sem `retencao: "zdr"` em produção, segredo no JSON. Em produção o boot
-     ABORTA, como as travas acima: subir recusando a nuvem em silêncio é descobrir no primeiro
-     assinante. Fora de produção a nuvem fica FECHADA (nenhuma perna) e o motivo vai para o log. */
-  const registroDeIaInvalido = erroDoRegistroDeIa()
-  if (registroDeIaInvalido) {
-    if (process.env.NODE_ENV === 'production') {
-      console.error(`[boot] ABORTADO: ${registroDeIaInvalido}`)
-      process.exit(1)
+  /* As travas de boot (multi-réplica, auth, proxy, métricas, sandbox do Asaas, registro de IA): um
+     achado `aborta` encerra o processo aqui; um `avisa` só vai para o stderr. Ver `server/boot/validar.ts`. */
+  for (const achado of validarBoot()) {
+    if (achado.nivel === 'avisa') {
+      console.error(achado.texto)
+      continue
     }
-    console.error(`[ia] ${registroDeIaInvalido} — a IA de nuvem fica DESLIGADA até corrigir.`)
+    if (achado.evento) log('error', { event: achado.evento, error: achado.texto })
+    console.error(`[boot] ABORTADO: ${achado.texto}`)
+    process.exit(1)
   }
-  /*
-   * DIÁRIO DE ERROS — achado F5-04, a parte que não depende de escolher fornecedor.
-   *
-   * Ligado ANTES de tudo, inclusive das migrations: se o boot falhar, é justamente o erro do boot
-   * que precisa sobreviver. O stdout de um container é volátil — `docker logs` guarda o que a
-   * política do daemon deixar e um restart leva o resto — então "ninguém lê o stdout" muitas vezes
-   * é, mais precisamente, "já não há stdout para ler".
-   *
-   * `ERROS_DIR=off` desliga, para quem tiver um coletor de verdade e não quiser a cópia em disco.
-   * O que isto NÃO faz continua valendo e está escrito em `diarioDeErros.ts`: não alerta ninguém.
-   */
-  const dirDeErros = process.env.ERROS_DIR ?? path.join(diretorioGravavel(), 'erros')
-  if (dirDeErros !== 'off') {
-    try {
-      const { diarioEmArquivo } = await import('./server/lib/diarioDeErros')
-      const { registrarSinkDeErro } = await import('./server/lib/logger')
-      /* PODA SO NO PRIMARIO. `prepararDados` e o que ja distingue os dois papeis do cluster: o
-         primario migra, faz seed e agora tambem cuida do volume. Antes, N workers varriam o mesmo
-         diretorio uma vez por dia cada um (achado A61). Cada processo escreve no proprio arquivo,
-         e a leitura junta todos. */
-      registrarSinkDeErro(diarioEmArquivo({ dir: dirDeErros, podarAqui: prepararDados }))
-      console.log(`[erros] diário em ${dirDeErros}`)
-    } catch (err) {
-      /*
-       * Degradação, não falha: o servidor serve sem o diário. Mas a mensagem precisa nomear o
-       * caminho, e essa lição foi cara — a primeira versão usava `DATA_DIR || "data"`, um caminho
-       * RELATIVO ao cwd, e dentro do container o `/app` pertence ao root enquanto o processo roda
-       * como `node`. O diário morria com EACCES exatamente no ambiente para o qual foi escrito, e
-       * a mensagem não dizia onde ele tinha tentado escrever. Uma observabilidade que se desliga
-       * em produção e não conta onde falhou é pior do que não tê-la: dá a sensação de cobertura.
-       */
-      console.error(`[erros] diário em disco INDISPONÍVEL em ${dirDeErros}; seguindo só com stdout:`, err)
-    }
-  }
-
-  /* SENTRY (Fase 5): mais um destino para o `log('error')` já saneado — nada além da linha do
-     diário sai daqui (ver `server/lib/sentry.ts`). Ligado antes das migrações pelo mesmo motivo do
-     diário: o erro do boot é o que mais precisa chegar a alguém. */
-  const sentry = configDoSentry()
-  if (sentry) {
-    const { sinkDoSentry } = await import('./server/lib/sentry')
-    const { registrarSinkDeErro } = await import('./server/lib/logger')
-    const sink = sinkDoSentry(sentry)
-    if (sink) {
-      registrarSinkDeErro(sink)
-      console.log(`[sentry] erros do servidor vão para o Sentry (ambiente ${sentry.ambiente ?? '—'})`)
-    } else {
-      console.warn('[sentry] SENTRY_DSN inválido — seguindo sem Sentry')
-    }
-  }
-
-  /*
-   * CONFERÊNCIA DA CONFIGURAÇÃO — achado F14-02.
-   *
-   * Roda ANTES do banco de propósito: é a checagem mais barata que existe e a que evita o pior
-   * modo de falha do modo público — subir "saudável" sem `SUPABASE_SERVICE_ROLE_KEY` e só
-   * descobrir no meio de uma exclusão de conta que o vínculo de login não pode ser desfeito.
-   *
-   * NÃO derruba o processo. Uma réplica que não sobe não diz nada a ninguém e o orquestrador só vê
-   * reinício em laço; registrando, `/api/health` responde `degraded` com o NOME do passo, que é o
-   * que uma probe enxerga. Mesma decisão do P2-5.
-   */
-  const configuracao = verificarConfiguracaoNoBoot()
-  /*
-   * DIZER qual mecanismo autentica — achado F15-01 (fechado em 2026-08-26: o JWKS assimetrico
-   * tem precedencia; o segredo compartilhado so vale sem SUPABASE_URL). Se as duas variaveis
-   * existem, o segredo esta presente e INERTE — e o operador precisa saber, porque segredo
-   * inerte em .env e material de vazamento sem funcao.
-   */
-  if (configuracao.modoPublico) {
-    const mecanismo = mecanismoDe()
-    console.log(`[auth] verificacao de token por: ${mecanismo}`)
-    if (mecanismo === 'jwks-assimetrico' && process.env.SUPABASE_JWT_SECRET) {
-      console.warn(
-        '[auth] AVISO: SUPABASE_JWT_SECRET esta definido mas NAO e usado — com SUPABASE_URL a verificacao e pelo JWKS assimetrico. Remova o segredo do ambiente.',
-      )
-    }
-  }
-  if (configuracao.ok) {
-    const aviso = configuracao.faltando.length
-      ? ` (${configuracao.faltando.length} de capacidade ausente(s): ${configuracao.faltando.join(', ')})`
-      : ''
-    console.log(
-      `[config] ${configuracao.declaradas} variáveis declaradas; nenhuma CRÍTICA ausente (modo ${configuracao.modoPublico ? 'público' : 'self-host'})${aviso}.`,
-    )
-  } else {
-    console.error(
-      `[config] CRÍTICAS ausentes no modo ${configuracao.modoPublico ? 'público' : 'self-host'}: ${configuracao.faltandoCriticas.join(', ')} — /api/health responderá degraded.`,
-    )
-  }
-  /* O convite ao responsável (Fase 4): em produção, sem o Resend, nenhum menor de 16 libera a conta.
-     AVISA e segue — o resto do app serve, e quem abre só para adultos pode subir assim. */
-  const conviteSemEmail = avisoDeConviteSemEmail()
-  if (conviteSemEmail) console.warn(`[convite] AVISO: ${conviteSemEmail}`)
-  /* ADR 0008: produção sem reserva de IA avisa no boot — e o aviso vai ao Sentry (`AVISOS_QUE_ALERTAM`),
-     porque a reserva fora do ar só aparece de outro jeito no dia em que o primário cair. */
-  const semReserva = avisoDeIaSemReserva()
-  if (semReserva) log('warn', { event: 'ia_sem_reserva', error: semReserva })
-  /* O legado sem retenção zero declarada (base fora da Groq/OpenRouter) avisa em produção — recusar
-     mudaria o comportamento de quem já opera assim; o `IA_PROVEDORES` é onde a recusa vale. */
-  for (const aviso of avisosDoRegistroDeIa()) log('warn', { event: 'ia_provedor_sem_zdr', error: aviso })
+  /* Diário de erros e Sentry ANTES de tudo, inclusive das migrations: o erro do boot é o que mais
+     precisa sobreviver. A poda do diário só no primário. */
+  await ligarRegistroDeErros(prepararDados)
+  relatarConfiguracao()
 
   // P0-2: o banco responde ANTES de qualquer escrita (inclusive o seed).
-  await dbReady
+  await dbReady()
 
-  // Migrations ANTES de tudo. Sem isto, um deploy limpo entra em crash-loop: o volume começa
-  // vazio e o `seedIfEmpty()` abaixo estoura com "no such table: sessions". Idempotente —
-  // num banco já migrado não faz nada.
-  //
-  // Falha aqui é FATAL de propósito: sem schema o app não serve nada, e um crash-loop com
-  // mensagem clara é melhor sinal do que subir e devolver 500 em toda rota. O restart do
-  // orquestrador também resolve sozinho a contenção transitória de lock entre réplicas.
+  /* Migrations (falha FATAL: sem schema o app não serve nada), seed do self-host e backfills
+     idempotentes. Ver `server/boot/preparar.ts`. */
   if (prepararDados) {
     try {
-      const { aplicarMigrations } = await import('./server/db/manutencao')
-      await aplicarMigrations()
-    } catch (err) {
-      console.error('[db] FALHA AO APLICAR MIGRATIONS — o app não pode servir sem schema:', err)
+      await prepararOsDados()
+    } catch {
       process.exit(1)
-    }
-
-    /*
-     * SEED DE DEMONSTRACAO SO EM SELF-HOST (achado A61).
-     *
-     * `seedIfEmpty` cria uma sessao e cartoes de exemplo para o LOCAL_OWNER em toda base vazia —
-     * inclusive num deploy PUBLICO, onde nao existe "dono local": os dados de demonstracao ficavam
-     * pendurados num usuario que ninguem usa, e apareceriam para quem quer que recebesse aquele id.
-     * Em modo publico a base nova esta certa vazia.
-     */
-    if (!authRequired()) {
-      await seedIfEmpty()
-    }
-  }
-  if (prepararDados) {
-    // M-04: migra cartões Leitner → FSRS no boot (idempotente; nas próximas execuções migra 0).
-    try {
-      // P3-1: a migração vive em `db/manutencao` (atravessa tenants), não no barrel das rotas.
-      const { migrarLeitnerParaFsrs } = await import('./server/db/manutencao')
-      const migrados = await migrarLeitnerParaFsrs()
-      if (migrados > 0) console.log(`[db] ${migrados} cartão(ões) Leitner migrado(s) para FSRS (M-04)`)
-      // Passo que deu certo APAGA a falha anterior: sem isto, uma falha transitória deixaria a
-      // instância em 503 para sempre — e uma probe que mente para baixo é ignorada como a que
-      // mente para cima.
-      registrarSucessoDeBoot('migracao-fsrs')
-    } catch (err) {
-      // P2-5: seguir subindo é a escolha certa (a migração é idempotente e roda de novo no
-      // próximo boot), mas o /api/health precisa DENUNCIAR que os dados estão incompletos.
-      console.warn('[db] migração Leitner→FSRS falhou (segue sem migrar):', (err as Error)?.message || err)
-      registrarFalhaDeBoot('migracao-fsrs', err)
-    }
-    // Marco 1: carimba linhas legadas (user_id NULL) com o dono local, para o scoping por usuário
-    // (Commits 3+) não esconder os dados atuais. Idempotente (nas próximas execuções carimba 0).
-    try {
-      const { backfillNullOwner } = await import('./server/db/repositories/tenancy')
-      const { LOCAL_OWNER } = await import('./server/lib/authContext')
-      const carimbados = await backfillNullOwner(LOCAL_OWNER)
-      if (carimbados > 0) console.log(`[db] ${carimbados} linha(s) legada(s) atribuída(s) ao dono local (Marco 1)`)
-      registrarSucessoDeBoot('backfill-tenancy')
-    } catch (err) {
-      // P2-5: linhas com user_id NULL continuam invisíveis ao dono — isso PRECISA aparecer.
-      console.warn('[db] backfill de tenancy falhou (segue sem carimbar):', (err as Error)?.message || err)
-      registrarFalhaDeBoot('backfill-tenancy', err)
-    }
-    /* AGREGADOS DIÁRIOS (migração 0053): conta o passado de quem ainda não tem agregados. Depois do
-       backfill acima, para as linhas legadas já terem dono. Idempotente, um usuário por transação,
-       com teto de usuários e de tempo. Falha aqui NÃO marca o boot: quem ficou sem agregados é
-       contado na primeira leitura (`agregadosRepo.garantir`), então nenhuma rota depende deste passo. */
-    try {
-      const { preencherAgregadosPendentes } = await import('./server/db/repositories/agregados')
-      const { preenchidos, restam } = await preencherAgregadosPendentes()
-      if (preenchidos > 0 || restam) {
-        console.log(
-          `[db] agregados diários contados para ${preenchidos} usuário(s)${restam ? ' (restam outros: entram na primeira leitura de cada um)' : ''}`,
-        )
-      }
-    } catch (err) {
-      console.warn('[db] agregados diários não preenchidos no arranque (segue):', (err as Error)?.message || err)
     }
   }
   if (process.env.NODE_ENV !== 'production') {
@@ -318,66 +92,39 @@ async function startServer({ prepararDados = true } = {}) {
     console.log('Serving static assets from dist/ in production.')
   }
 
-  /*
-   * ERROR HANDLER GLOBAL — achado D7. Montado por ÚLTIMO, de propósito: o Express escolhe o
-   * handler de erro pela POSIÇÃO, e qualquer coisa registrada depois dele nunca seria alcançada.
-   *
-   * Sem isto, uma rejeição de handler `async` no Express 4 não vira 500 — vira request
-   * PENDURADO. E há rotas sem `try/catch` (`sessions.ts:151`, todo o `admin.ts`).
-   */
+  /* ERROR HANDLER GLOBAL — achado D7. Montado por ÚLTIMO, de propósito: o Express escolhe o handler
+     de erro pela POSIÇÃO, e qualquer coisa registrada depois dele nunca seria alcançada. Sem isto,
+     uma rejeição de handler `async` no Express 4 vira request PENDURADO, não 500. */
   app.use(erroGlobal)
 
-  // BIND SEGURO (achado da auditoria): por padrão só 127.0.0.1 — sem auth em nenhuma rota,
-  // escutar em 0.0.0.0 entregava TODAS as rotas (inclusive o stream do áudio do sistema e as
-  // credenciais) para qualquer dispositivo da rede local. Expor na LAN é decisão explícita:
-  // HOST=0.0.0.0 no .env — e o log avisa o que isso significa.
+  // BIND SEGURO (achado da auditoria): por padrão só 127.0.0.1. Expor na LAN é decisão explícita
+  // (HOST=0.0.0.0 no .env) — e, com a auth desligada, o log avisa o que isso significa.
   const HOST = process.env.HOST || '127.0.0.1'
   if (HOST !== '127.0.0.1' && HOST !== 'localhost' && !authRequired()) {
-    // O aviso só vale quando a auth está DESLIGADA. Antes ele era incondicional e dizia
-    // "EXPOSTO ... SEM autenticação" mesmo com AUTH_REQUIRED=1 — ou seja, todo container
-    // (que PRECISA de HOST=0.0.0.0 para receber tráfego) imprimia, a cada boot, uma
-    // afirmação falsa sobre a própria postura de segurança.
     console.warn(`⚠  HOST=${HOST}: o app está EXPOSTO à rede local SEM autenticação —`)
     console.warn('   qualquer dispositivo da rede acessa suas sessões, credenciais e o áudio do sistema.')
   }
-  // Marco 1: aviso do modo de auth. Desligada = todo request é o dono local (sem login),
-  // correto para uso local/self-host. Para deploy PÚBLICO, defina AUTH_REQUIRED=1.
+  // Marco 1: auth desligada = todo request é o dono local (sem login), correto para local/self-host.
   if (!authRequired()) {
     console.warn('⚠  AUTH_REQUIRED desligada: sem login; todo request é tratado como o dono local.')
     console.warn('   Correto para local/self-host. Deploy público EXIGE AUTH_REQUIRED=1.')
   }
   const server = app.listen(PORT, HOST, () => {
-    // Anuncia LOCALHOST, não 0.0.0.0. Só localhost/127.0.0.1/HTTPS são "contexto seguro", e o
-    // Cache Storage — onde o Whisper/opus-mt guardam os pesos baixados — SÓ existe em contexto
-    // seguro. Abrir por 0.0.0.0 ou por um IP de rede desliga o cache e o modelo re-baixa a cada
-    // captura. Além disso, o cache é particionado por PORTA: mantenha a porta fixa (PORT no .env)
-    // para não re-baixar o modelo a cada troca de porta.
+    // Anuncia LOCALHOST, não 0.0.0.0: só localhost/HTTPS é "contexto seguro", e o Cache Storage onde
+    // o Whisper/opus-mt guardam os pesos SÓ existe nele (e é particionado por PORTA).
     console.log(`Babel Play rodando em  ->  http://localhost:${PORT}`)
     console.log(`   (abra sempre por http://localhost:${PORT} — por 0.0.0.0/IP o modelo local re-baixa toda vez)`)
   })
-  /*
-   * DESLIGAMENTO GRACIOSO (Fase 5) — registrado LOGO APÓS o `listen`, e não antes.
-   *
-   * Antes do `listen` não há o que drenar, e um SIGTERM que chegasse durante as migrations
-   * encontraria um handler que chama `server.close()` num servidor que ainda não escuta. O que a
-   * ordem custa: um sinal recebido durante o boot (antes desta linha) continua matando o processo
-   * na hora — e está certo que seja assim, porque nesse intervalo não há requisição de ninguém
-   * para preservar, só migração idempotente que o próximo boot refaz.
-   *
-   * `repassarSinalAosWorkers` é o gancho do primário do cluster; fora do cluster ele é nulo. Ver
-   * `iniciar()`, mais abaixo, para o porquê de o respawn precisar ser desligado junto.
-   */
-  registrarDesligamento({ servidor: server, antes: () => repassarSinalAosWorkers?.() })
+  /* DESLIGAMENTO GRACIOSO (Fase 5) — registrado LOGO APÓS o `listen`: antes dele não há o que drenar.
+     `repassarSinalAosWorkers` é o gancho do primário do cluster; fora do cluster não faz nada. */
+  registrarDesligamento({ servidor: server, antes: () => repassarSinalAosWorkers() })
 
   /* TEMPOS LIMITE (auditoria de 10/10/2026, A6): o socket ocioso vive mais que os 60 s do proxy do
-     Fly, para quem fecha a conexão parada ser o proxy e não o servidor por baixo dele. Nenhum dos
-     três mede a duração da resposta: SSE, importação e transcrição longa não são tocados. O porquê
-     de cada número está em `server/http/temposLimite.ts`. */
+     Fly. O porquê de cada número está em `server/http/temposLimite.ts`. */
   aplicarTemposLimite(server)
 
-  /* MÉTRICAS NA PORTA INTERNA (Fase 5 de prontidão) — o alvo do `[metrics]` do fly.toml, sem token,
-     numa porta que o proxy do Fly não publica. Só no processo que prepara os dados (o primário, no
-     cluster): um listener por processo brigaria pela porta, e o scrape precisa de UM endereço. */
+  /* MÉTRICAS NA PORTA INTERNA (Fase 5 de prontidão) — sem token, numa porta que o proxy do Fly não
+     publica. Só no processo que prepara os dados: o scrape precisa de UM endereço. */
   const portaDeMetricas = prepararDados && metricasHabilitadas() ? portaInternaDeMetricas() : undefined
   if (portaDeMetricas !== undefined) {
     const { iniciarServidorDeMetricas } = await import('./server/http/metricas')
@@ -385,81 +132,14 @@ async function startServer({ prepararDados = true } = {}) {
       await iniciarServidorDeMetricas(portaDeMetricas)
       console.log(`[metrics] /metrics na porta interna ${portaDeMetricas} (sem token; não publicada)`)
     } catch (err) {
-      /* Métrica quebrada não derruba o serviço que ela observa: o app segue, e o alerta de
-         ausência de scrape (`absent(up)`) é quem avisa. */
+      /* Métrica quebrada não derruba o serviço que ela observa: o alerta `absent(up)` é quem avisa. */
       console.error(`[metrics] porta interna ${portaDeMetricas} indisponível: ${String(err).slice(0, 160)}`)
     }
   }
 
-  /* SNAPSHOT DIÁRIO (Fase 5) — só no processo que prepara os dados (o primário, no cluster). Aposentado
-     na migração para o Postgres: ver `server/operacao/snapshot.ts`. */
-  const backup = prepararDados ? configDoBackupDiario() : null
-  if (backup) {
-    /* No Postgres o job só registra que o snapshot está indisponível (o backup é `pg_dump` no CI);
-       ele continua agendado para o `BACKUP_DIARIO=1` de quem já o tinha ligado deixar rastro no log. */
-    const { agendarSnapshotDiario, fazerSnapshot, SNAPSHOT_INDISPONIVEL } = await import('./server/operacao/snapshot')
-    const { observarBackup } = await import('./server/http/metricas')
-    agendarSnapshotDiario({
-      horaUtc: backup.horaUtc,
-      heartbeatUrl: backup.heartbeatUrl,
-      executar: fazerSnapshot,
-      observar: observarBackup,
-    })
-    console.warn(`[backup] BACKUP_DIARIO=1: snapshot ${SNAPSHOT_INDISPONIVEL}`)
-  }
-
-  /* RETENÇÃO DO ÁUDIO DE SESSÃO (`AUDIO_RETENCAO_DIAS`, padrão 90 dias; 0 = para sempre) — no mesmo
-     processo e pelo mesmo motivo do snapshot acima: uma varredura por deploy, não uma por worker.
-     O porquê da política e o que a limpeza apaga estão em `server/lib/retencaoDeAudio.ts`. */
-  const diasDeRetencao = prepararDados ? diasDeRetencaoDeAudio() : 0
-  if (diasDeRetencao > 0) {
-    const { agendarLimpezaDeAudio } = await import('./server/lib/retencaoDeAudio')
-    agendarLimpezaDeAudio({ dias: diasDeRetencao })
-    console.log(`[retenção] áudio de sessão apagado após ${diasDeRetencao} dias (limpeza diária)`)
-  }
-
-  /* EXPIRAÇÃO DOS CONVIDADOS (Fase 7): convidado sem nuvem há 30 dias perde contadores e o usuário
-     anônimo no Supabase. Mesmo processo e mesmo motivo da retenção acima. Só no modo público — no
-     self-host não há convidado. Ver `server/lib/limpezaDeConvidados.ts`. */
-  if (prepararDados && authRequired()) {
-    const { agendarLimpezaDeConvidados } = await import('./server/lib/limpezaDeConvidados')
-    agendarLimpezaDeConvidados()
-    console.log('[convidados] inativos há 30 dias removidos (limpeza diária)')
-  }
-
-  /* A PODA DAS JANELAS DIÁRIAS do uso justo (C9, item 9.3): os contadores `AAAA-MM-DD` com mais de
-     três dias saem. Mesmo processo e mesmo motivo das limpezas acima; só no modo público, o único com
-     teto no dia. Ver `podarJanelasDiarias` em `server/lib/usageQuota.ts`. */
-  if (prepararDados && authRequired()) {
-    const { agendarPodaDasJanelasDiarias } = await import('./server/lib/usageQuota')
-    agendarPodaDasJanelasDiarias()
-    console.log('[uso justo] janelas diárias com mais de 3 dias removidas (poda diária)')
-  }
-
-  /* RETENÇÃO DA MARCA DO TESTE DO PREMIUM (C6): o HMAC do e-mail sai 730 dias depois do teste (LGPD
-     art. 15 — sem finalidade depois disso). Mesmo processo e mesmo motivo das limpezas acima; só no
-     modo público, o único em que há teste. Ver `server/lib/testePremium.ts`. */
-  if (prepararDados && authRequired()) {
-    const { agendarPodaDasMarcasDeTeste } = await import('./server/lib/testePremium')
-    agendarPodaDasMarcasDeTeste()
-  }
-
-  /* PODA DO CACHE DE TRADUÇÃO PERSISTENTE (L2, migração 0038): vencidas em 30 dias e, acima do teto,
-     as menos usadas. Mesmo processo e mesmo motivo das limpezas acima; vale no self-host também,
-     porque o cache existe onde houver chave de LLM. Ver `server/ai/cacheDeTraducao.ts`. */
-  if (prepararDados) {
-    const { agendarPodaDoCacheDeTraducao } = await import('./server/ai/cacheDeTraducao')
-    agendarPodaDoCacheDeTraducao()
-  }
-
-  /* LIMPEZA DIÁRIA DO BANCO: apaga de vez o que foi apagado há mais de `LIMPEZA_RETENCAO_DIAS`
-     (padrão 30) e confere os agregados diários. Mesmo processo e mesmo motivo das limpezas acima.
-     `LIMPEZA_DIARIA=0` desliga; em teste não agenda. Ver `server/lib/limpezaDiaria.ts`. */
-  if (prepararDados && limpezaDiariaLigada()) {
-    const { agendarLimpezaDiaria } = await import('./server/lib/limpezaDiaria')
-    agendarLimpezaDiaria()
-    console.log(`[limpeza] linhas apagadas há mais de ${diasAteApagarDeVez()} dias saem de vez (limpeza diária)`)
-  }
+  /* Os agendamentos diários (backup, retenções, podas, limpeza): só no processo que prepara os dados
+     — uma varredura por deploy, não uma por worker. Ver `server/boot/jobs.ts`. */
+  if (prepararDados) await agendarJobsNoNode()
 
   server.on('error', (err: NodeJS.ErrnoException) => {
     if (err.code === 'EADDRINUSE') {
@@ -474,117 +154,4 @@ async function startServer({ prepararDados = true } = {}) {
   })
 }
 
-/**
- * MODO CLUSTER (F6-01) — opt-in por `CLUSTER_WORKERS`.
- *
- * A carga mediu vazão PLANA (~100 req/s) e latência crescendo linear com a concorrência a partir
- * de 2 VUs: saturação de processo único, não consulta lenta (sem concorrência, `/api/sessions`
- * responde em 7 ms). Índice não resolve fila; mais processo resolve.
- *
- * Exige Postgres remoto (`DATABASE_URL=postgres://…`): o PGlite embutido é de processo único e a
- * trava `erroDeClusterComBancoEmbutido` recusa o boot. As outras barreiras já caíram: rate limit
- * contado no banco (`rateLimitStore.ts`, `localKeys: false`) e áudio fora do `cwd` (`AUDIO_DIR`).
- *
- * Só o primário migra: os workers são forkados DEPOIS de `startServer()` do primário terminar, o
- * que elimina a contenção de lock no boot que hoje depende de restart do orquestrador.
- */
-/**
- * O QUE O PRIMÁRIO FAZ AO RECEBER O SINAL — nulo fora do cluster.
- *
- * Vive no escopo do módulo porque quem registra o handler é o `startServer()` (que não sabe nada
- * de cluster) e quem sabe quais workers existem é o `iniciar()`, que roda DEPOIS. Uma variável
- * lida no momento do sinal resolve as duas metades sem `startServer()` ganhar um parâmetro sobre
- * um modo que ele não conhece.
- */
-let repassarSinalAosWorkers: (() => void) | null = null
-
-async function iniciar() {
-  const pedidos = Number(process.env.CLUSTER_WORKERS || 0)
-  if (!Number.isFinite(pedidos) || pedidos <= 1) {
-    await startServer()
-    return
-  }
-
-  /*
-   * CAPTURA DE LOOPBACK NAO SOBREVIVE AO CLUSTER (achado A61).
-   *
-   * O dispositivo WASAPI e um recurso unico do SISTEMA, e a exclusao que protege ele
-   * (`LoopbackExclusion`, em `server/audio/loopback.ts`) e um contador em memoria de UM processo.
-   * Com N processos, N exclusoes independentes acham que tem o dispositivo: duas capturas
-   * simultaneas passam pelo mutex e brigam pelo hardware. Declarar a incompatibilidade e melhor
-   * que descobri-la como audio cortado em producao.
-   */
-  if (process.platform === 'win32') {
-    console.warn('[cluster] captura de loopback do servidor desligada: o mutex do dispositivo')
-    console.warn('   WASAPI e por processo, e /api/audio/loopback/* recusa neste modo.')
-  }
-
-  /* O PGlite é de processo único: com o banco embutido, o cluster não sobe (ver a trava). */
-  const clusterComBancoEmbutido = erroDeClusterComBancoEmbutido()
-  if (clusterComBancoEmbutido) {
-    console.error(`[boot] ABORTADO: ${clusterComBancoEmbutido}`)
-    process.exit(1)
-  }
-
-  const { default: cluster } = await import('node:cluster')
-  const { availableParallelism } = await import('node:os')
-  const workers = Math.min(pedidos, availableParallelism())
-
-  if (cluster.isPrimary) {
-    /*
-     * O primário sobe o servidor INTEIRO primeiro — é isso que garante migrations aplicadas
-     * uma vez só, antes de qualquer worker existir. Ele também atende, então não há processo
-     * ocioso.
-     */
-    await startServer()
-    /*
-     * O RESPAWN PRECISA SABER QUE ESTAMOS DESLIGANDO (Fase 5).
-     *
-     * O `cluster.on('exit')` abaixo refazia QUALQUER worker que morresse — que é o comportamento
-     * certo para queda acidental e o errado para desligamento: no SIGTERM os workers terminam de
-     * propósito, e cada um deles era refeito enquanto o primário drenava. O resultado é um
-     * processo recém-forkado, sem sinal nenhum recebido, segurando a porta depois de o primário
-     * sair; para o orquestrador o container "não termina".
-     *
-     * A trava é uma variável simples, e não um `removeAllListeners`, porque o handler também
-     * precisa continuar imprimindo a saída de cada worker durante o desligamento — quem opera quer
-     * ver os N processos indo embora, não silêncio.
-     */
-    let desligandoOCluster = false
-    repassarSinalAosWorkers = () => {
-      desligandoOCluster = true
-      /* O sinal chega ao primário e a MAIS NINGUÉM quando vem de um `docker stop` (SIGTERM para o
-         PID 1) ou de um `kill` avulso: só o Ctrl+C do terminal alcança o grupo inteiro. Repassar é
-         o que faz cada worker rodar o seu próprio dreno em vez de morrer no SIGKILL seguinte. */
-      for (const worker of Object.values(cluster.workers ?? {})) {
-        try {
-          worker?.process.kill('SIGTERM')
-        } catch {
-          /* já morreu */
-        }
-      }
-    }
-    for (let i = 1; i < workers; i++) cluster.fork()
-    cluster.on('exit', (worker, code, signal) => {
-      if (desligandoOCluster) {
-        console.log(
-          `[cluster] worker ${worker.process.pid} saiu (${signal || code}) durante o desligamento; NÃO refazendo`,
-        )
-        return
-      }
-      console.error(`[cluster] worker ${worker.process.pid} saiu (${signal || code}); refazendo`)
-      cluster.fork()
-    })
-    console.log(`[cluster] ${workers} processos (1 primário + ${workers - 1} workers)`)
-    return
-  }
-
-  /*
-   * Worker: NÃO migra e NÃO faz seed — o primário já fez, e repetir seria contenção de lock
-   * pelo caminho que o cluster existe para eliminar. `cluster` compartilha o listener, então
-   * o `app.listen` na mesma porta é o comportamento correto, não um EADDRINUSE.
-   */
-  await startServer({ prepararDados: false })
-}
-
-iniciar()
+iniciar(startServer)

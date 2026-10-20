@@ -42,7 +42,7 @@ const agora = () => Date.now()
 beforeAll(async () => {
   h = await setupEphemeralDb()
   const mod = (await h.load('../../server/db/db')) as any
-  await mod.dbReady
+  await mod.dbReady()
   client = clienteSql(mod)
   schema = await h.load('../../server/db/schema')
   ;({ sessionsRepo } = await h.load('../../server/db/repositories/sessions'))

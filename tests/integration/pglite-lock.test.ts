@@ -95,7 +95,7 @@ describe('db.ts com pglite:<dir>', () => {
     const dir = pastaNova()
     process.env.DATABASE_URL = `pglite:${dir}`
     const m = await import('../../server/db/db')
-    await m.dbReady
+    await m.dbReady()
     expect(trava(dir).pid).toBe(process.pid)
 
     /* O segundo processo de verdade: tsx importando db.ts sobre o mesmo diretório. */
@@ -104,7 +104,7 @@ describe('db.ts com pglite:<dir>', () => {
       [
         path.join(RAIZ, 'node_modules', 'tsx', 'dist', 'cli.mjs'),
         '-e',
-        "import('./server/db/db.ts').then((m) => m.dbReady).then(() => { console.log('ABRIU'); process.exit(0) })",
+        "import('./server/db/db.ts').then((m) => m.dbReady()).then(() => { console.log('ABRIU'); process.exit(0) })",
       ],
       {
         cwd: RAIZ,

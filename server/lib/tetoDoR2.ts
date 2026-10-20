@@ -10,7 +10,7 @@
  *
  * Gramática das três: ausente → padrão (90 % do grátis); inteiro ≥ 1 → o teto; `0` → fecha (kill
  * switch); `ilimitado` → sem teto. Qualquer outro valor é erro de configuração e derruba o boot (o
- * adaptador S3 lê os tetos ao ser criado, no import das rotas).
+ * adaptador S3 lê os tetos ao ser criado, e o boot o cria: `server/boot/validar.ts`).
  */
 import { randomUUID } from 'node:crypto'
 

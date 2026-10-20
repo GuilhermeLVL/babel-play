@@ -41,7 +41,7 @@ import {
 import { flagsRepo, type LinhaDeFlag } from '../db/repositories/flags'
 import { estadoDaAbertura } from './abertura'
 import { authRequired } from './auth'
-import { asUserId, LOCAL_OWNER } from './authContext'
+import { asUserId, donoLocal } from './authContext'
 import { getPlanForUser } from './entitlements'
 import { log } from './logger'
 import { FORMATO_DE_IDIOMA, ofertasSchema } from './ofertas'
@@ -181,7 +181,7 @@ async function planoDoContexto(userId: string | undefined): Promise<PlanoDaFlag>
  * resolve o token por conta própria, porque roda antes do `authMiddleware`).
  */
 export async function contextoDoRequest(req: Request, userId?: string | null): Promise<ContextoDaFlag> {
-  const quem = userId ?? req.userId ?? (authRequired() ? undefined : LOCAL_OWNER)
+  const quem = userId ?? req.userId ?? (authRequired() ? undefined : donoLocal())
   const instalacao = req.header(CABECALHO_DA_INSTALACAO)?.trim()
   const idioma = req.header(CABECALHO_DO_IDIOMA)?.trim()
   const versao = req.header(CABECALHO_DA_VERSAO_DO_CLIENTE)?.trim()

@@ -32,7 +32,9 @@ const PRIMEIRA_PALAVRA = CONQUISTAS.find((c) => c.id === 'primeira-palavra')!
 describe('semente de demonstração × "Primeira palavra"', () => {
   it('banco novo semeado: caderno vazio e a conquista não está cumprida; a primeira palavra real cumpre', async () => {
     const { seedIfEmpty } = await h.load<typeof import('../../server/db/seed')>('../../server/db/seed')
-    const { LOCAL_OWNER } = await h.load<typeof import('../../server/lib/authContext')>('../../server/lib/authContext')
+    const LOCAL_OWNER = (
+      await h.load<typeof import('../../server/lib/authContext')>('../../server/lib/authContext')
+    ).donoLocal()
     const { computeProfile } = await h.load<typeof import('../../server/db/repositories/metrics')>(
       '../../server/db/repositories/metrics',
     )
@@ -81,7 +83,9 @@ const POLIGLOTA = CONQUISTAS.find((c) => c.id === 'poliglota')!
 describe('semente de demonstração × "Primeira captura"', () => {
   async function carregar() {
     const { seedIfEmpty } = await h.load<typeof import('../../server/db/seed')>('../../server/db/seed')
-    const { LOCAL_OWNER } = await h.load<typeof import('../../server/lib/authContext')>('../../server/lib/authContext')
+    const LOCAL_OWNER = (
+      await h.load<typeof import('../../server/lib/authContext')>('../../server/lib/authContext')
+    ).donoLocal()
     const { computeProfile } = await h.load<typeof import('../../server/db/repositories/metrics')>(
       '../../server/db/repositories/metrics',
     )

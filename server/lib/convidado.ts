@@ -83,7 +83,7 @@ export function _definirRelogio(fn: (() => number) | null): void {
 let chaveDeHash: string | null = null
 async function chave(): Promise<string> {
   // Import tardio, como em `telemetriaDeIa.ts`: carregar este módulo não decide quando a chave é lida.
-  chaveDeHash ??= (await import('../crypto')).CHAVE_DE_HASH
+  chaveDeHash ??= (await import('../crypto')).obterChaveDeHash()
   return chaveDeHash
 }
 

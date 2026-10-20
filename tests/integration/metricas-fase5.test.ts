@@ -169,7 +169,7 @@ describe('estado de agora: disjuntor, uploads, cache', () => {
 
   it('uploads em voo, o teto do processo e as recusas por motivo', async () => {
     const c = await h.load<typeof import('../../server/lib/corposGrandes')>('../../server/lib/corposGrandes')
-    const vaga = c.semaforoDeCorposGrandes.adquirir('usuario-a')
+    const vaga = c.semaforoDeCorposGrandes().adquirir('usuario-a')
     const corpo = await scrape()
     expect(valor(corpo, 'uploads_grandes_em_voo')).toBe(1)
     expect(valor(corpo, 'uploads_grandes_limite')).toBeGreaterThanOrEqual(1)

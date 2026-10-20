@@ -47,7 +47,7 @@ import {
 import { respostaDoTetoDoR2 } from '../lib/tetoDoR2'
 // F11-04: schemas de corpo e de cabeçalho das rotas de importação.
 import { ankiExportSchema, importUrlSchema, parseOr400, uploadHeadersSchema } from '../validation'
-import { armazenamentoDeMidia, AUDIO_DIR } from './sessions'
+import { armazenamentoDeMidia, audioDir } from './sessions'
 
 export const importRouter = Router()
 
@@ -567,14 +567,14 @@ importRouter.post('/youtube', async (req, res) => {
      * `S3_*` configurado, o store das sessões não é o disco — e sem o passo abaixo o áudio ficaria
      * em `AUDIO_DIR` enquanto o `GET /:id/audio` o procuraria no bucket, dando 404.
      */
-    const audio = await downloadAudio(url, session.id, AUDIO_DIR)
-    const local = path.join(AUDIO_DIR, audio.file)
+    const audio = await downloadAudio(url, session.id, audioDir())
+    const local = path.join(audioDir(), audio.file)
     localBaixado = local
     const bytes = tamanhoNoDisco(local)
 
-    if (armazenamentoDeMidia.tipo !== 'arquivos') {
+    if (armazenamentoDeMidia().tipo !== 'arquivos') {
       // Em stream: o áudio baixado não passa inteiro pela memória a caminho do bucket (ADR 0009).
-      await armazenamentoDeMidia.gravarDeArquivo(audio.file, local, audio.contentType)
+      await armazenamentoDeMidia().gravarDeArquivo(audio.file, local, audio.contentType)
       await rm(local, { force: true })
     }
 

@@ -77,7 +77,7 @@ async function main() {
   const depois =
     antes - somaDe(remover.map((r) => r.linha)) - corrigir.reduce((t, c) => t + n(c.linha.amount) - c.seeds, 0);
 
-  console.log(`\nbanco: ${bancoEmbutido ? urlDoBanco : 'postgres'}`);
+  console.log(`\nbanco: ${bancoEmbutido() ? urlDoBanco() : 'postgres'}`);
   console.log(`modo:  ${aplicar ? 'APLICAR (escreve)' : 'relatório (não escreve)'}\n`);
   console.log(`linhas vivas:      ${linhas.length}`);
   console.log(`  já corretas:     ${intactas}`);

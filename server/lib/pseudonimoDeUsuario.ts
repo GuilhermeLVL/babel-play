@@ -18,11 +18,11 @@ import { pseudonimo } from './langfuse'
  */
 let sal: Buffer | undefined
 export async function salDoPseudonimo(): Promise<Buffer> {
-  /* Import DINÂMICO: `server/crypto.ts` resolve a SECRET_KEY no carregamento, e este módulo é
-     importado pela cascata — carregá-lo não pode ser o que decide quando a chave é lida. */
+  /* Import DINÂMICO: `server/crypto.ts` resolvia a SECRET_KEY no carregamento (hoje, no primeiro uso), e
+     este módulo é importado pela cascata — carregá-lo não pode ser o que decide quando a chave é lida. */
   if (!sal) {
-    const { CHAVE_DE_HASH } = await import('../crypto')
-    sal = createHmac('sha256', CHAVE_DE_HASH).update('babel-play-web:langfuse:usuario:v1').digest()
+    const { obterChaveDeHash } = await import('../crypto')
+    sal = createHmac('sha256', obterChaveDeHash()).update('babel-play-web:langfuse:usuario:v1').digest()
   }
   return sal
 }

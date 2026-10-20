@@ -16,24 +16,51 @@ import { sql } from 'drizzle-orm'
 import { drizzle as drizzleNode } from 'drizzle-orm/node-postgres'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 import { drizzle as drizzlePglite } from 'drizzle-orm/pglite'
-import { Pool, types } from 'pg'
+import { Client, Pool, types } from 'pg'
 
+import { temDisco } from '../lib/runtime'
 import { configDoPool } from './configDoPool'
 import { medirConsultas, registrarMedidorDeTamanho } from './observadorDeConsultas'
 import * as schema from './schema'
 import { ehBancoEmbutido, ehBancoEmMemoria, URL_PADRAO_DO_BANCO } from './tipoDoBanco'
 import { travarDiretorio } from './travaDoPglite'
 
-export const urlDoBanco: string = process.env.DATABASE_URL ?? URL_PADRAO_DO_BANCO
+/**
+ * BANCO PREGUIÇOSO (Fase 2, boot preguiçoso). Importar este módulo não lê ambiente nem abre nada: a
+ * `DATABASE_URL` é lida, e o driver aberto, no PRIMEIRO acesso a `db`. Num Worker o módulo é carregado
+ * antes de haver ambiente; no Node, `server.ts` carrega o `.env` antes do primeiro acesso.
+ *
+ * Sem `DATABASE_URL` e sem disco (Worker), não há PGlite possível: o acesso lança `BancoIndisponivel`,
+ * que o `erroGlobal` responde como 503 `banco_indisponivel` — falta de configuração, não erro interno.
+ */
+export class BancoIndisponivel extends Error {
+  readonly status = 503
+  readonly code = 'banco_indisponivel'
+  constructor() {
+    super('banco indisponível: DATABASE_URL ausente e sem disco para o PGlite embutido')
+    this.name = 'BancoIndisponivel'
+  }
+}
 
-/** Banco embutido (PGlite) ou servidor Postgres remoto. */
-export const bancoEmbutido: boolean = ehBancoEmbutido(urlDoBanco)
+/** A URL com que o banco foi aberto; antes da abertura, `undefined`. */
+let urlEmUso: string | undefined
 
-const emMemoria = ehBancoEmMemoria(urlDoBanco)
-const ehPostgres = /^postgres(ql)?:\/\//.test(urlDoBanco)
+/** A URL do banco: a que está em uso ou, antes de abrir, a do ambiente (lida agora, nunca no import). */
+export function urlDoBanco(): string {
+  if (urlEmUso) return urlEmUso
+  const doAmbiente = process.env.DATABASE_URL
+  if (doAmbiente) return doAmbiente
+  if (!temDisco()) throw new BancoIndisponivel()
+  return URL_PADRAO_DO_BANCO
+}
 
-if (!bancoEmbutido && !ehPostgres) {
-  throw new Error('Erro de configuração: DATABASE_URL deve começar com pglite: ou postgres:')
+/** Banco embutido (PGlite) ou servidor Postgres remoto. Sem banco configurável (Worker sem URL): `false`. */
+export function bancoEmbutido(): boolean {
+  try {
+    return ehBancoEmbutido(urlDoBanco())
+  } catch {
+    return false
+  }
 }
 
 /** Texto SQL da instrução, venha ela como string ou como `{ text }` (config do `pg`). */
@@ -122,11 +149,17 @@ let pool: Pool | undefined
 let soltarTrava: (() => void) | undefined
 
 function abrir(): DB {
-  if (bancoEmbutido) {
-    if (emMemoria) {
+  const url = urlDoBanco()
+  const embutido = ehBancoEmbutido(url)
+  if (!embutido && !/^postgres(ql)?:\/\//.test(url)) {
+    throw new Error('Erro de configuração: DATABASE_URL deve começar com pglite: ou postgres:')
+  }
+  urlEmUso = url
+  if (embutido) {
+    if (ehBancoEmMemoria(url)) {
       pglite = new PGlite()
     } else {
-      const caminho = urlDoBanco.replace(/^pglite:/, '')
+      const caminho = url.replace(/^pglite:/, '')
       mkdirSync(caminho, { recursive: true })
       // Um processo por diretório: o PGlite não trava, e dois perdem escritas em silêncio (travaDoPglite.ts).
       soltarTrava = travarDiretorio(caminho)
@@ -142,7 +175,7 @@ function abrir(): DB {
      consulta (datas), que cai no parser GLOBAL para os demais OIDs e passaria por cima do do pool.
      Só roda neste ramo: um processo com PGlite não muda o `pg` de ninguém. */
   for (const oid of OIDS_NUMERICOS) types.setTypeParser(oid, numeroDoBanco)
-  pool = new Pool({ connectionString: urlDoBanco, ...configDoPool() })
+  pool = new Pool({ connectionString: url, ...configDoPool() })
   // Sem handler, a queda de uma conexão OCIOSA vira 'error' não tratado e derruba o processo.
   pool.on('error', (err) => {
     console.error('[db] erro em conexão ociosa do pool:', String(err?.message ?? err).slice(0, 160))
@@ -158,23 +191,79 @@ function abrir(): DB {
  * sobrecarregadas como `returning`.)
  */
 export type DB = PgDatabase<PgQueryResultHKT, typeof schema>
-export const db: DB = abrir()
+
+let instancia: DB | undefined
+function aberto(): DB {
+  instancia ??= abrir()
+  return instancia
+}
+
+/**
+ * O `db` de sempre, aberto no primeiro acesso: um Proxy que repassa cada propriedade à instância real
+ * (métodos ligados a ela). Quem importa `db` continua escrevendo `db.select()`, `db.transaction()`…
+ */
+export const db: DB = new Proxy({} as DB, {
+  get(_alvo, prop) {
+    const real = aberto()
+    const valor: unknown = Reflect.get(real, prop, real)
+    return typeof valor === 'function' ? (valor as (...a: unknown[]) => unknown).bind(real) : valor
+  },
+  has: (_alvo, prop) => Reflect.has(aberto(), prop),
+  getPrototypeOf: () => Reflect.getPrototypeOf(aberto()),
+})
 
 /** `db` ou uma transação — quem escreve em duas etapas aceita os dois (P1-N3). */
 export type ExecutorDb = DB | Parameters<Parameters<DB['transaction']>[0]>[0]
 
-export const dbReady: Promise<void> = (async () => {
-  await db.execute(sql`select 1`)
-  console.log(
-    `[db] banco ${bancoEmbutido ? `pglite (${emMemoria ? 'memória' : urlDoBanco.replace(/^pglite:/, '')})` : 'postgres'}`,
-  )
-})()
+let pronto: Promise<void> | undefined
 
-// Falha aqui não deve derrubar o import (o boot reporta via dbReady); mas não pode
-// virar unhandled rejection e matar o processo.
-dbReady.catch((err) => {
-  console.error('[db] falha ao conectar ao banco:', String(err).slice(0, 160))
-})
+/** Abre o banco (se ainda não aberto) e confirma que responde. Memoizado: todos esperam a mesma sonda. */
+export function dbReady(): Promise<void> {
+  if (pronto) return pronto
+  pronto = (async () => {
+    await db.execute(sql`select 1`)
+    const url = urlDoBanco()
+    console.log(
+      `[db] banco ${bancoEmbutido() ? `pglite (${ehBancoEmMemoria(url) ? 'memória' : url.replace(/^pglite:/, '')})` : 'postgres'}`,
+    )
+  })()
+  // Falha aqui é reportada a quem espera `dbReady()` (o boot); mas não pode virar unhandled
+  // rejection e matar o processo quando ninguém espera.
+  pronto.catch((err) => {
+    console.error('[db] falha ao conectar ao banco:', String(err).slice(0, 160))
+  })
+  return pronto
+}
+
+/**
+ * Roda `fn` (as migrations) com `statement_timeout = 0` na conexão que as aplica.
+ *
+ * A migration 0004 dá ao PAPEL do banco um `statement_timeout` de 30 s, e o pool manda o mesmo prazo no
+ * `options`: uma migração longa (índice numa tabela grande, backfill) estouraria no meio. No `pg`, um
+ * `Client` PRÓPRIO, uma sessão só (o migrator do Drizzle usa a mesma conexão para a transação), que
+ * fecha no fim e não devolve ao pool uma conexão sem prazo. No PGlite (uma conexão só, a do app), o
+ * prazo anterior volta ao fim.
+ */
+export async function comConexaoDeMigracao<T>(fn: (dbm: DB) => Promise<T>): Promise<T> {
+  if (bancoEmbutido()) {
+    const anterior = linhas<{ v: string }>(await db.execute(sql`select current_setting('statement_timeout') as v`))[0]
+    await db.execute(sql`SET statement_timeout = 0`)
+    try {
+      return await fn(db)
+    } finally {
+      await db.execute(sql`select set_config('statement_timeout', ${anterior?.v ?? '0'}, false)`)
+    }
+  }
+  const { max: _max, idleTimeoutMillis: _ociosa, ...daConexao } = configDoPool()
+  const cliente = new Client({ connectionString: urlDoBanco(), ...daConexao })
+  await cliente.connect()
+  try {
+    await cliente.query('SET statement_timeout = 0')
+    return await fn(drizzleNode(cliente, { schema }))
+  } finally {
+    await cliente.end()
+  }
+}
 
 /**
  * Roda `fn` numa transação. Qualquer erro lançado desfaz tudo. Atenção: no Postgres, um erro de SQL
@@ -280,7 +369,7 @@ export function linhas<T>(r: unknown): T[] {
  * e um ANALYZE manual da aplicação só competiria com ele: lá não roda. Devolve se rodou.
  */
 export async function analisarBancoEmbutido(): Promise<boolean> {
-  if (!bancoEmbutido) return false
+  if (!bancoEmbutido()) return false
   await db.execute(sql`ANALYZE`)
   return true
 }

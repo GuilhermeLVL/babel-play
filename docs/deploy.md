@@ -99,6 +99,19 @@ portas 5432 e 6543) e o Hyperdrive **o ignoram** (medido em 19/10/2026). Atrás 
 é honrado; para mudar o prazo atrás de pooler, altere o papel (docs/runbook.md §8). Sem privilégio para
 `ALTER ROLE`, a migration avisa (`NOTICE`) e segue: defina à mão.
 
+## Executor por requisição (Node × Worker)
+
+Todo repository importa o mesmo `db` (`server/db/db.ts`), que é um Proxy: a cada acesso ele resolve para o
+**executor da requisição**, se houver, ou para a instância única do processo. No **Node** não há executor:
+`db` é o `pg.Pool` (ou o PGlite) aberto no primeiro acesso, e `fecharBanco()` o encerra no desligamento. No
+**Worker** não há pool global — o pool é do Hyperdrive —, e cada requisição roda dentro de
+`comExecutor(await abrirClienteDoHyperdrive(env.HYPERDRIVE.connectionString), …)` (`server/db/executor.ts`,
+`server/db/clientePorRequisicao.ts`): um `pg.Client` aberto no começo e fechado (`fechar()`) no fim, com os
+mesmos parsers de int8/numeric, prazos e gancho de medição do Pool. Dentro do escopo, `db.*`, `emTransacao`,
+`emLote` e `travar*` usam esse `Client`. Diferenças de uma conexão só: as transações da requisição entram em
+fila (duas em paralelo não embaralham `BEGIN`/`COMMIT`); uma `db.transaction` de dentro de outra rejeita (use
+`tx.transaction`); e uma consulta avulsa em `db` disparada em paralelo a uma transação aberta cai dentro dela.
+
 ## O que fica desativado por design
 
 No modo público, duas capacidades locais respondem **403 mesmo com token válido** — elas

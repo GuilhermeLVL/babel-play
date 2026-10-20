@@ -378,10 +378,10 @@ function painel(desenho = 'novo') {
     .join('')
 
   return pagina(
-    'Vitrine do Babel Play',
+    'Vitrine do Frasy',
     `<main>
       <header style="display:grid;gap:8px">
-        <h1>Vitrine do Babel Play</h1>
+        <h1>Vitrine do Frasy</h1>
         <p>O app completo rodando nesta máquina, com login e cobrança de mentira. Cada conta abaixo está num estado diferente de plano; um clique entra nela. Nada aqui fala com Supabase, Asaas ou e-mail de verdade.</p>
         <p>Desenho: ${desenho === 'novo' ? '<b>novo</b> · <a href="/?desenho=antigo">trocar para o antigo</a>' : '<b>antigo</b> · <a href="/">trocar para o novo</a>'}. Vale para o próximo Entrar.</p>
         <div class="aviso">App em <a href="${escapar(APP)}" target="babel-vitrine">${escapar(APP)}</a>. Clique em Entrar e, com a conta aberta, no segundo botão para ir direto à tela do rótulo. Para trocar de conta, entre em outra: a sessão anterior é substituída. Criar conta pela tela de login também funciona (qualquer e-mail, sem confirmação).</div>
@@ -398,10 +398,10 @@ function painel(desenho = 'novo') {
 function fatura(p, mensagem) {
   const paga = p.status === 'CONFIRMED' || p.status === 'RECEIVED'
   const descricao = p.subscription
-    ? 'Assinatura do Babel Play'
+    ? 'Assinatura do Frasy'
     : p.installment
-      ? 'Babel Play anual em 12x no cartão'
-      : 'Compra avulsa no Babel Play'
+      ? 'Frasy anual em 12x no cartão'
+      : 'Compra avulsa no Frasy'
   return pagina(
     'Fatura de mentira',
     `<div class="cartao">
@@ -410,7 +410,7 @@ function fatura(p, mensagem) {
       ${mensagem ? `<div class="aviso">${escapar(mensagem)}</div>` : ''}
       ${
         paga
-          ? '<p>Paga. Pode fechar esta aba: o Babel Play já foi avisado.</p>'
+          ? '<p>Paga. Pode fechar esta aba: o Frasy já foi avisado.</p>'
           : p.status === 'PENDING'
             ? `<form method="post" action="/fatura/${escapar(p.id)}/pagar"><button class="pri" style="width:100%;padding:12px">Pagar com cartão de teste</button></form>
                <p>Nenhum dinheiro existe aqui. O botão confirma a cobrança e manda ao app o mesmo aviso que o Asaas mandaria.</p>`

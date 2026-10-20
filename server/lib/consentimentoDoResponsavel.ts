@@ -12,11 +12,11 @@
  *
  * PENDENTE DE ADVOGADO: redação final e o escopo exato do art. 24 do ECA Digital.
  */
-export const VERSAO_DO_CONSENTIMENTO = 'v1-2026-09-24'
+export const VERSAO_DO_CONSENTIMENTO = 'v2-2026-10-20'
 
 export const TEXTO_DO_VINCULO = [
   'Declaro que sou pai, mãe ou responsável legal pela pessoa que me convidou, que tem entre 12 e 15 anos,',
-  'e aceito vincular a conta dela à minha no Babel Play.',
+  'e aceito vincular a conta dela à minha no Frasy.',
   'Entendo que: a conta dela funciona no perfil protegido (sem ranking público, sem pressão por sequência de dias,',
   'sem compras feitas por ela e com a IA restrita ao ensino de idiomas); os dados de estudo dela (sessões gravadas,',
   'palavras e progresso) passam a ser guardados no servidor para sincronizar entre aparelhos;',
@@ -26,7 +26,7 @@ export const TEXTO_DO_VINCULO = [
 
 export const TEXTO_DO_CONSENTIMENTO_MENOR_12 = [
   'CONSENTIMENTO ESPECÍFICO (LGPD, art. 14, § 1º). Declaro que sou pai, mãe ou responsável legal pela criança',
-  'que me convidou, que tem menos de 12 anos, e AUTORIZO, de forma específica e destacada, o Babel Play a tratar',
+  'que me convidou, que tem menos de 12 anos, e AUTORIZO, de forma específica e destacada, o Frasy a tratar',
   'os dados pessoais dela estritamente para o ensino de idiomas: a conta (e-mail e data de nascimento), as sessões',
   'que ela gravar (áudio, transcrição e tradução), as palavras e o progresso de estudo.',
   'Os dados não são usados para publicidade nem para criar perfil de comportamento, não são vendidos',

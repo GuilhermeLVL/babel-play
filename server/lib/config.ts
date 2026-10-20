@@ -453,7 +453,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'remetente do e-mail do convite ao responsável, no formato `Babel Play <nao-responda@dominio>`; o domínio precisa estar verificado no Resend (SPF/DKIM). Só vale junto com `RESEND_API_KEY`',
+      'remetente do e-mail do convite ao responsável, no formato `Frasy <nao-responda@dominio>`; o domínio precisa estar verificado no Resend (SPF/DKIM). Só vale junto com `RESEND_API_KEY`',
   },
   {
     nome: 'ERROS_DIR',

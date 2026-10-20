@@ -1,4 +1,4 @@
-# Babel Play
+# Frasy
 
 App web para aprender idioma com o que a pessoa já assiste e conversa: transcrição e tradução ao vivo de
 áudio (rodando no navegador quando possível) viram jogos de vocabulário e repetição espaçada. Atende

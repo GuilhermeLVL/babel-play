@@ -146,7 +146,7 @@ LLM_RESERVA_MODEL=openai/gpt-oss-120b
 AI_BUDGET_USD_MONTH=5
 AI_BUDGET_USD_DAY=1
 RESEND_API_KEY=troque-cole-aqui
-EMAIL_REMETENTE=Babel Play <nao-responda@SEU-DOMINIO.com.br>
+EMAIL_REMETENTE=Frasy <nao-responda@SEU-DOMINIO.com.br>
 SENTRY_DSN=troque-cole-aqui
 ```
 

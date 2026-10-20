@@ -65,14 +65,14 @@ export interface SeloDaFala {
 const ETIQUETA: Record<OndeDoSelo, string> = {
   aparelho: 'No aparelho',
   navegador: 'Pelo navegador',
-  nuvem: 'Nuvem do Babel',
+  nuvem: 'Nuvem do Frasy',
 };
 
 /** Antes da primeira fala: o que VAI acontecer, sem afirmar que aconteceu. */
 const ETIQUETA_PREVISTA: Record<OndeDoSelo, string> = {
   aparelho: 'Vai rodar no aparelho',
   navegador: 'Vai pelo navegador',
-  nuvem: 'Vai pela Nuvem do Babel',
+  nuvem: 'Vai pela Nuvem do Frasy',
 };
 
 const DETALHE: Record<OndeDoSelo, string> = {

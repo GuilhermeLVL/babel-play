@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * MODELO DE CUSTO DO BABEL PLAY — matriz v2 (Grátis + Premium; change `planos-v2`, ADR 0011).
+ * MODELO DE CUSTO DO FRASY — matriz v2 (Grátis + Premium; change `planos-v2`, ADR 0011).
  *
  * Node puro, sem dependências. Rodar da raiz do repositório:
  *

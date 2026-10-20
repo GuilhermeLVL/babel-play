@@ -10,10 +10,23 @@ import { baixarCaptura, nomeDoArquivo, textoDaCaptura } from '../src/lib/captura
 import type { RascunhoDaCaptura } from '../src/lib/captura/rascunhoDaCaptura'
 
 const R: RascunhoDaCaptura = {
-  origemLocalId: 'captura-x', resumeId: null, titulo: 'Aula de sexta', capa: '', durationMs: 65_000,
-  sourceLang: 'en', targetLang: 'pt-BR', parConfigurado: { sourceLang: 'pt-BR', targetLang: 'en' },
+  origemLocalId: 'captura-x',
+  resumeId: null,
+  titulo: 'Aula de sexta',
+  capa: '',
+  durationMs: 65_000,
+  sourceLang: 'en',
+  targetLang: 'pt-BR',
+  parConfigurado: { sourceLang: 'pt-BR', targetLang: 'en' },
   utterances: [
-    { idx: 0, source: 'system', speakerName: 'Outros', sourceText: 'Good morning', translatedText: 'Bom dia', tStartMs: 0 },
+    {
+      idx: 0,
+      source: 'system',
+      speakerName: 'Outros',
+      sourceText: 'Good morning',
+      translatedText: 'Bom dia',
+      tStartMs: 0,
+    },
     { idx: 1, source: 'mic', speakerName: 'Você', sourceText: 'Hi', translatedText: '', tStartMs: 61_000 },
   ],
   criadoEm: Date.UTC(2026, 8, 28, 12, 0),
@@ -32,7 +45,7 @@ describe('textoDaCaptura', () => {
 
 describe('nomeDoArquivo', () => {
   it('sem caractere que o sistema de arquivos recusa', () => {
-    expect(nomeDoArquivo({ ...R, titulo: 'a/b:c*?' }, 'txt')).toMatch(/^babel-play-a-b-c-2026-09-28\.txt$/)
+    expect(nomeDoArquivo({ ...R, titulo: 'a/b:c*?' }, 'txt')).toMatch(/^frasy-a-b-c-2026-09-28\.txt$/)
   })
 })
 
@@ -45,6 +58,6 @@ describe('baixarCaptura', () => {
     URL.createObjectURL = vi.fn(() => 'blob:x')
     URL.revokeObjectURL = vi.fn()
     baixarCaptura(R, new Blob(['a'], { type: 'audio/ogg; codecs=opus' }))
-    expect(cliques).toEqual(['babel-play-aula-de-sexta-2026-09-28.txt', 'babel-play-aula-de-sexta-2026-09-28.ogg'])
+    expect(cliques).toEqual(['frasy-aula-de-sexta-2026-09-28.txt', 'frasy-aula-de-sexta-2026-09-28.ogg'])
   })
 })

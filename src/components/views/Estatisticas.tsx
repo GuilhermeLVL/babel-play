@@ -427,7 +427,7 @@ export default function Estatisticas({ metrics, onChangeView }: EstatisticasProp
     const blob = new Blob([linhas.map((l) => l.join(',')).join('\n')], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'babel-play-estatisticas.csv';
+    a.download = 'frasy-estatisticas.csv';
     document.body.appendChild(a);
     a.click();
     a.remove();

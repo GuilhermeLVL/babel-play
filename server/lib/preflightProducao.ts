@@ -334,7 +334,7 @@ export function conferirProducao(arquivo: NodeJS.ProcessEnv): Achado[] {
       `faltam: ${faltam(env, ['RESEND_API_KEY', 'EMAIL_REMETENTE'])} — o convite ao responsável não sai por e-mail: nenhum menor de 16 anos consegue liberar a conta`,
     )
   } else if (!env.EMAIL_REMETENTE!.includes('@')) {
-    avisa('EMAIL_REMETENTE', 'sem "@": o formato é `Babel Play <nao-responda@dominio>`')
+    avisa('EMAIL_REMETENTE', 'sem "@": o formato é `Frasy <nao-responda@dominio>`')
   } else {
     ok('RESEND_API_KEY, EMAIL_REMETENTE', 'presentes')
   }

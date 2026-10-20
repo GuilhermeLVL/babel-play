@@ -1,4 +1,4 @@
-# Runbook — operar o Babel Play em produção
+# Runbook — operar o Frasy em produção
 
 Este documento responde perguntas de **plantão**: o serviço está de pé? por que caiu? o que faço
 agora? Ele não substitui [`docs/deploy.md`](deploy.md), que explica como **subir** e o que cada
@@ -50,7 +50,7 @@ O que cada chave faz, exatamente (as três ficam no inventário `server/lib/conf
 - Página de status do UptimeRobot: incidente aberto com uma frase ("tradução por IA indisponível;
   transcrição local funciona") — sem culpar ninguém, sem prometer hora.
 - **Incidente com dado pessoal** (vazamento, acesso indevido, perda): isto é um incidente de
-  segurança da LGPD (art. 48). O Babel Play é **agente de pequeno porte** (Res. CD/ANPD 2/2022), e a
+  segurança da LGPD (art. 48). O Frasy é **agente de pequeno porte** (Res. CD/ANPD 2/2022), e a
   Res. CD/ANPD 15/2024 dá a ele prazo **em dobro: 6 dias úteis** a partir de quando se soube do
   incidente para comunicar a ANPD (formulário no site da ANPD) e os titulares afetados — quando o
   incidente puder causar risco ou dano relevante. Na dúvida, comunique. A comunicação diz: o que
@@ -449,7 +449,7 @@ node scripts/backup.mjs                        # cópia consistente
 ```
 
 **Exercício de restauração do dump semanal (Postgres).** Uma vez por trimestre: baixe o `semanal/AAAA-MM-DD.dump` mais
-recente do bucket `babel-backups`, crie um banco VAZIO (nunca o de produção), restaure com
+recente do bucket `frasy-backups`, crie um banco VAZIO (nunca o de produção), restaure com
 `pg_restore --no-owner --schema=public --schema=drizzle` (credenciais por `PG*`, passo a passo em `docs/deploy.md`,
 "Backup semanal do Postgres no R2"), compare `select count(*)` das tabelas grandes e de `drizzle.__drizzle_migrations`
 com o banco vivo e apague o banco do exercício (ele guarda dados pessoais). Se o último dump tiver mais de 8 dias, o

@@ -639,7 +639,7 @@ export default function Checkout({
           <p className="qc-nota">
             <Lock aria-hidden />
             {t(
-              'O número do cartão você digita na página segura do Asaas, que abre quando você continuar. O Babel Play não vê nem guarda esses dados.',
+              'O número do cartão você digita na página segura do Asaas, que abre quando você continuar. O Frasy não vê nem guarda esses dados.',
             )}
           </p>
         </div>
@@ -771,7 +771,7 @@ export default function Checkout({
               <IconeDoResumo aria-hidden />
             </span>
             <div>
-              <b>Babel Play {P}</b>
+              <b>Frasy {P}</b>
               <small>{daForma.titulo}</small>
             </div>
           </div>

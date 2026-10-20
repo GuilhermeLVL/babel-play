@@ -1,7 +1,7 @@
 # BACKUP SEMANAL DO POSTGRES PARA O R2 (Fase 2, Task 13; pendência de CI da Fase 1)
 #
 # Toda segunda às 06:00 UTC (e sob demanda): `pg_dump --format=custom --schema=public --schema=drizzle` do
-# Supabase, enviado ao bucket `babel-backups` do R2 em `semanal/AAAA-MM-DD.dump`, conferido com
+# Supabase, enviado ao bucket `frasy-backups` do R2 em `semanal/AAAA-MM-DD.dump`, conferido com
 # `pg_restore --list` e lido de volta do R2 (sha256). É a cópia FORA do Supabase: os backups gerenciados dele
 # moram no mesmo provedor do banco. Só os schemas da aplicação (`public` e `drizzle`), não os do Supabase.
 #
@@ -21,11 +21,11 @@
 #   SUPABASE_DB_NAME        postgres
 #   SUPABASE_CA_PEM         certificado da CA do Supabase (Dashboard → Database → SSL), PEM
 #   R2_S3_ENDPOINT          https://<conta>.r2.cloudflarestorage.com
-#   R2_S3_ACCESS_KEY_ID     token R2 com escrita no bucket babel-backups (S3 API)
+#   R2_S3_ACCESS_KEY_ID     token R2 com escrita no bucket frasy-backups (S3 API)
 #   R2_S3_SECRET_ACCESS_KEY
 # Falta qualquer um: o primeiro passo REPROVA dizendo o nome (nunca o valor). Não existe caminho "verde sem backup".
 #
-# RETENÇÃO: 8 semanas, por regra de lifecycle do bucket (`wrangler r2 bucket lifecycle add babel-backups`),
+# RETENÇÃO: 8 semanas, por regra de lifecycle do bucket (`wrangler r2 bucket lifecycle add frasy-backups`),
 # criada na Fase 4 junto com o bucket, que ainda não existe. Até lá este workflow falha no envio, com clareza.
 # RESTAURAR: docs/deploy.md ("Backup semanal") e docs/runbook.md §8.
 name: Backup semanal do Postgres

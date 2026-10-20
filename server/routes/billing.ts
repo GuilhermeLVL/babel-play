@@ -248,7 +248,7 @@ billingRouter.post('/comprar', async (req, res) => {
       destino,
       clienteId,
       centavosParaReais(pacote.precoCentavos),
-      `Babel Play — ${pacote.nome}`,
+      `Frasy — ${pacote.nome}`,
     )
     await creditsRepo.registrarCompra(destino, {
       sku: pacote.sku as import('../db/repositories/credits').SkuDeCredito,
@@ -423,7 +423,7 @@ billingRouter.post('/assinar', async (req, res) => {
     }
     const clienteId =
       atual?.providerCustomerId ?? (await criarCliente(destino, dados.nome, dados.cpfCnpj, dados.email)).id
-    const descricao = `Babel Play ${PLAN_MATRIX[plano].rotulo}${ciclo === 'anual' ? ' anual' : ''}`
+    const descricao = `Frasy ${PLAN_MATRIX[plano].rotulo}${ciclo === 'anual' ? ' anual' : ''}`
 
     /* A COBRANÇA NO ASAAS: a assinatura recorrente (mensal ou `YEARLY`) ou o parcelamento do 12x no
        cartão. Cada uma devolve o link da 1ª fatura por um caminho — e a linha guarda SÓ o id do fluxo
@@ -488,7 +488,7 @@ const cancelarTrocaSchema = trocarSchema.pick({ paraUsuario: true })
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/
 
 /** O nome da assinatura no Asaas (a fatura do pagador), o mesmo de `/assinar` no mensal. */
-const descricaoDoMensal = (plano: PlanoPago): string => `Babel Play ${PLAN_MATRIX[plano].rotulo}`
+const descricaoDoMensal = (plano: PlanoPago): string => `Frasy ${PLAN_MATRIX[plano].rotulo}`
 
 /** A mensalidade de um plano pago. Todo plano pago tem uma (`ehPlanoPago`); o `throw` é só o tipo. */
 function mensalidadeDe(plano: PlanoPago): number {

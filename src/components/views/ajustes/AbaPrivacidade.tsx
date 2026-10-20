@@ -198,7 +198,7 @@ export default function AbaPrivacidade() {
             </button>
             <a
               className="q-ctl"
-              href={`mailto:${CRIADOR.contatoDePrivacidade}?subject=${encodeURIComponent('Encarregado de dados · Babel Play')}`}
+              href={`mailto:${CRIADOR.contatoDePrivacidade}?subject=${encodeURIComponent('Encarregado de dados · Frasy')}`}
             >
               <Mail aria-hidden /> {t('Falar com o encarregado de dados')}
             </a>

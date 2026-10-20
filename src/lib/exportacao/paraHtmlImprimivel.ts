@@ -57,7 +57,7 @@ const CSS = `
 @page { size: A4; margin: 18mm 16mm 20mm;
   @top-left { content: string(titulo); font: 9pt sans-serif; color: #666; }
   @bottom-right { content: counter(page) " / " counter(pages); font: 9pt sans-serif; color: #666; }
-  @bottom-left { content: "Babel Play"; font: 9pt sans-serif; color: #666; } }
+  @bottom-left { content: "Frasy"; font: 9pt sans-serif; color: #666; } }
 * { box-sizing: border-box; }
 html { color: #1d1d1b; background: #fff; }
 body { margin: 0; font: 10.5pt/1.5 system-ui, "Segoe UI", "Noto Sans", "Noto Sans Arabic", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif; }
@@ -88,7 +88,7 @@ export function paraHtmlImprimivel(m: ModeloDoRelatorio): string {
   const c = m.cabecalho;
   const b: string[] = [
     `<h1>${esc(m.titulo)}</h1>`,
-    `<p class="sub">${esc(t('Relatório da sessão'))} · Babel Play · ${esc(m.geradoEm)}</p>`,
+    `<p class="sub">${esc(t('Relatório da sessão'))} · Frasy · ${esc(m.geradoEm)}</p>`,
   ];
 
   if (s.cabecalho)

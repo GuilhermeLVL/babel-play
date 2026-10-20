@@ -380,7 +380,7 @@ describe('a marca segue o selo da fala', () => {
 
   it('com a nuvem prevista: a marca, o tom e o nível marcado são os da nuvem', () => {
     render(<Tela ambiente={{ capacidades: COM_NUVEM }} selo={seloDaFala(PREVISTO_NA_NUVEM)} />)
-    expect(marcas()[0].textContent).toBe('Vai pela Nuvem do Babel · o áudio vai para o nosso servidor')
+    expect(marcas()[0].textContent).toBe('Vai pela Nuvem do Frasy · o áudio vai para o nosso servidor')
     expect(marcas()[0].dataset.tom).toBe('nuvem')
     expect(nivel('Precisão').getAttribute('aria-checked')).toBe('true')
     expect(nivel('No aparelho').getAttribute('aria-checked')).toBe('false')
@@ -389,7 +389,7 @@ describe('a marca segue o selo da fala', () => {
   it('REGRA DE OURO: previsto o aparelho, a fala saiu → a tela nunca diz "No aparelho"', () => {
     render(<Tela ambiente={{ capacidades: COM_NUVEM }} selo={seloDaFala(PREVISTO_NO_APARELHO, 'groq-whisper')} />)
     for (const m of marcas()) {
-      expect(m.textContent).toBe('Nuvem do Babel · o áudio vai para o nosso servidor')
+      expect(m.textContent).toBe('Nuvem do Frasy · o áudio vai para o nosso servidor')
       expect(m.textContent).not.toContain('No aparelho')
       expect(m.dataset.tom).toBe('alerta') // a rota mudou sozinha
     }
@@ -401,7 +401,7 @@ describe('a marca segue o selo da fala', () => {
     const { rerender } = render(
       <Tela ambiente={{ capacidades: COM_NUVEM }} selo={seloDaFala(PREVISTO_NA_NUVEM, 'groq-whisper')} />,
     )
-    expect(marcas()[0].textContent).toBe('Nuvem do Babel · o áudio vai para o nosso servidor')
+    expect(marcas()[0].textContent).toBe('Nuvem do Frasy · o áudio vai para o nosso servidor')
     rerender(<Tela ambiente={{ capacidades: COM_NUVEM }} selo={seloDaFala(PREVISTO_NA_NUVEM, 'whisper-local')} />)
     // A nuvem foi tentada antes: a etiqueta diz onde foi transcrita, e o detalhe não promete que o áudio ficou.
     expect(marcas()[0].textContent).toBe('No aparelho · transcrita aqui, depois de tentar a nuvem')
@@ -425,7 +425,7 @@ describe('a folha "Como isto funciona"', () => {
     render(<Tela ambiente={{ capacidades: COM_NUVEM }} selo={seloDaFala(PREVISTO_NA_NUVEM, 'groq-whisper')} />)
     const como = abrir()
     const agora = within(como.getByTestId('nivel-de-agora'))
-    expect(agora.getByText('Agora: Nuvem do Babel')).toBeTruthy()
+    expect(agora.getByText('Agora: Nuvem do Frasy')).toBeTruthy()
     expect(agora.getByText('A nuvem está disponível na sua conta e erra menos.')).toBeTruthy()
   })
 

@@ -106,10 +106,10 @@ export default function ExportarVocabulario({
       try {
         const blob = await exportarApkg(
           saem.map((c) => ({ frente: c.word, verso: c.translation, exemplo: frase ? c.sentence : undefined })),
-          `Babel Play ${nomeDoIdioma}`.trim(),
+          `Frasy ${nomeDoIdioma}`.trim(),
         );
         baixar(blob, `babel-${idioma || 'deck'}-${data}.apkg`);
-        toast.ok(`Baixando “${`Babel Play ${nomeDoIdioma}`.trim()}.apkg”: abra com o Anki`);
+        toast.ok(`Baixando “${`Frasy ${nomeDoIdioma}`.trim()}.apkg”: abra com o Anki`);
         aoFechar();
       } catch (e) {
         toast.error(`Não consegui gerar o .apkg: ${(e as Error).message}`);

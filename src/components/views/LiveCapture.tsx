@@ -3742,8 +3742,8 @@ export default function LiveCapture({
                   </p>
                   <ol className="list-decimal ms-5 space-y-1">
                     <li>
-                      Abrir o Babel Play no <b className="text-ink">Chrome ou no Edge</b>, que compartilham o som da aba
-                      e da tela;
+                      Abrir o Frasy no <b className="text-ink">Chrome ou no Edge</b>, que compartilham o som da aba e da
+                      tela;
                     </li>
                     <li>
                       Usar o <b className="text-ink">microfone</b>, deixando o som do vídeo sair pelo alto-falante.

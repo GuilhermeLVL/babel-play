@@ -1057,7 +1057,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
               </h2>
               <p className="q-d">
                 {selfhost
-                  ? t('É o Babel Play rodando no seu próprio computador. Ali tudo fica liberado e não há cota.')
+                  ? t('É o Frasy rodando no seu próprio computador. Ali tudo fica liberado e não há cota.')
                   : testando
                     ? `${tp(diasQueFaltam, 'O teste termina em {n} dia.', 'O teste termina em {n} dias.')} ${t(
                         'Depois dele a conta volta ao Grátis sozinha e nada é cobrado. A legenda no aparelho continua sem limite.',

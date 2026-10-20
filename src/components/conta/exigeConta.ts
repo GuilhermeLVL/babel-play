@@ -97,7 +97,7 @@ export function motivoDoGate(origem: string): string {
         'A inteligência artificial de nuvem depende do servidor, que esta edição de demonstração não tem. A transcrição e a tradução locais continuam livres.',
       );
     return t(
-      'Isto depende do servidor, que esta edição de demonstração não tem. Na versão completa do Babel Play funciona.',
+      'Isto depende do servidor, que esta edição de demonstração não tem. Na versão completa do Frasy funciona.',
     );
   }
   const c = CONVITE[origem];

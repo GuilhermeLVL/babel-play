@@ -1,5 +1,5 @@
 /**
- * Núcleo isomórfico do Babel Play (TS puro, sem DOM/Node/react).
+ * Núcleo isomórfico do Frasy (TS puro, sem DOM/Node/react).
  * Módulos liftados verbatim do app desktop (`../Tradutor`) — ver `docs/historico/estrategia-reuso-web.md`.
  */
 

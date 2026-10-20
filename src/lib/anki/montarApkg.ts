@@ -121,7 +121,7 @@ function baralhoJson(nome: string) {
       name: nome,
       mod: Math.floor(Date.now() / 1000),
       usn: -1,
-      desc: 'Exportado do Babel Play',
+      desc: 'Exportado do Frasy',
       dyn: 0,
       collapsed: false,
       browserCollapsed: false,
@@ -202,7 +202,7 @@ export async function montarApkg(
   abrirSqlite: AbrirSqlite,
 ): Promise<Uint8Array> {
   validar(cartoes, nomeDoBaralho);
-  const nome = nomeDoBaralho || 'Babel Play';
+  const nome = nomeDoBaralho || 'Frasy';
   const somas = await Promise.all(cartoes.map((c) => checksum(c.frente)));
 
   const SQL = await abrirSqlite();

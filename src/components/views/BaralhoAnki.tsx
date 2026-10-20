@@ -121,8 +121,8 @@ export default function BaralhoAnki({
   const [progresso, setProgresso] = useState<ProgressoDaImportacao | null>(null);
   /** Gerando o `.apkg` para levar — separado de `enviando` (importar), que muda a aba "Trazer". */
   const [gerando, setGerando] = useState(false);
-  // "Babel Play inglês" (protótipo): o nome do idioma, não o código.
-  const nomePadrao = `Babel Play ${idioma ? langLabelNaUI(idioma).toLowerCase() : ''}`.trim();
+  // "Frasy inglês" (protótipo): o nome do idioma, não o código.
+  const nomePadrao = `Frasy ${idioma ? langLabelNaUI(idioma).toLowerCase() : ''}`.trim();
   const [nomeExp, setNomeExp] = useState(nomePadrao);
   const [incluirFrase, setIncluirFrase] = useState(true);
   const [nomeArquivo, setNomeArquivo] = useState('');

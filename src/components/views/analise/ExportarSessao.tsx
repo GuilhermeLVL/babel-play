@@ -334,7 +334,7 @@ export default function ExportarSessao({
         vocabCards
           .filter((c) => (c.translation ?? '').trim())
           .map((c) => ({ frente: c.word, verso: c.translation ?? '', exemplo: c.sentence })),
-        `Babel Play · ${recording.title}`,
+        `Frasy · ${recording.title}`,
       );
       baixar(blob, `babel-sessao-${recording.id}.apkg`);
       toast.ok(t('Flashcards para Anki: download iniciado'));

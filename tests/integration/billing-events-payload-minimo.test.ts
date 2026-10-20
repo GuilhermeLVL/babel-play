@@ -59,7 +59,7 @@ const corpoDoAsaas = (id: string, paymentId: string, userId: string) => ({
     installment: undefined,
     value: 9.9,
     netValue: 9.41,
-    description: 'Babel Play — 100 créditos para Fulano de Tal',
+    description: 'Frasy — 100 créditos para Fulano de Tal',
     billingType: 'CREDIT_CARD',
     status: 'CONFIRMED',
     dueDate: '2026-10-04',

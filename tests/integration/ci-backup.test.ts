@@ -22,8 +22,8 @@ describe('workflow backup-pg-dump', () => {
     expect(texto).toContain('IPv6')
   })
 
-  it('envia ao bucket babel-backups em semanal/AAAA-MM-DD.dump e confere com pg_restore --list', () => {
-    expect(texto).toContain('babel-backups')
+  it('envia ao bucket frasy-backups em semanal/AAAA-MM-DD.dump e confere com pg_restore --list', () => {
+    expect(texto).toContain('frasy-backups')
     expect(texto).toContain('semanal/')
     expect(texto).toContain('pg_restore --list')
   })

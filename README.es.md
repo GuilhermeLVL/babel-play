@@ -1,6 +1,6 @@
 <div align="center">
 
-# Babel Play
+# Frasy
 
 **Aprende un idioma con lo que ya ves, juegas y conversas.**
 Subtítulos y traducción en vivo de cualquier audio de tu computadora, ejecutándose **en tu propio dispositivo**, convertidos en juegos de vocabulario y repetición espaciada.

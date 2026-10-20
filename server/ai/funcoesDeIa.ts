@@ -111,7 +111,7 @@ export const ehPerfil = (v: unknown): v is AgeProfileType =>
  * assistente geral: sem elas, "escreva meu TCC" custaria o mesmo que "o que é leverage?".
  */
 export function sistemaDoTutor(perfil: AgeProfileType): string {
-  return `Você é o iChat, o tutor de idiomas dentro do app Babel Play.
+  return `Você é o iChat, o tutor de idiomas dentro do app Frasy.
 Ajude o usuário a estudar idiomas com base no material que ele tem aberto (quando houver, ele vem numa mensagem separada).
 
 Escopo e limites:

@@ -1,6 +1,6 @@
 # Lançamento — o passo a passo do dono
 
-Este é o roteiro para colocar o Babel Play no ar pela primeira vez, na arquitetura aprovada em
+Este é o roteiro para colocar o Frasy no ar pela primeira vez, na arquitetura aprovada em
 24/09/2026: **Fly.io (GRU)**, SQLite no volume com **Litestream** para o **Cloudflare R2**, **Supabase Pro**
 só para o login, **Cloudflare** na frente, **Resend**, **Sentry** e **UptimeRobot**; IA com **Groq** e
 **OpenRouter** de reserva; cobrança pelo **Asaas**.
@@ -57,7 +57,7 @@ de custo por assinante está em `scripts/custo/modelo.mjs` (`node scripts/custo/
 
 ## 1. Domínio (Registro.br) — 10 min
 
-1. registro.br → registrar `babelplay.com.br` (ou o nome escolhido) com o **CNPJ** da empresa (o
+1. registro.br → registrar `frasy.com.br` (ou o nome escolhido) com o **CNPJ** da empresa (o
    contador abre a ME no Simples; MEI não pode ter SaaS).
 2. Ainda **não** mude os servidores DNS — isso é no passo 2.
 
@@ -70,13 +70,13 @@ de custo por assinante está em `scripts/custo/modelo.mjs` (`node scripts/custo/
    (max-age 6 meses, sem _preload_ no começo); _Minimum TLS_ 1.2.
 4. **R2** → ativar (pede cartão; os primeiros 10 GB são grátis). Criar **quatro buckets**, todos
    com _location hint_ **South America** se oferecido:
-   - `babel-midia` — áudios das sessões (privado);
+   - `frasy-midia` — áudios das sessões (privado);
    - `babel-litestream` — réplica contínua do banco (privado);
-   - `babel-backups` — snapshots diários (privado) → _Settings → Object lifecycle rules_ →
+   - `frasy-backups` — snapshots diários (privado) → _Settings → Object lifecycle rules_ →
      **apagar objetos com mais de 30 dias**;
-   - `babel-modelos` — pesos dos modelos (**público**: _Settings → Custom Domains_ →
+   - `frasy-modelos` — pesos dos modelos (**público**: _Settings → Custom Domains_ →
      `modelos.<domínio>`).
-5. No bucket `babel-modelos` → _Settings → CORS policy_:
+5. No bucket `frasy-modelos` → _Settings → CORS policy_:
    ```json
    [
      {
@@ -98,7 +98,7 @@ de custo por assinante está em `scripts/custo/modelo.mjs` (`node scripts/custo/
    confere o sha256 de cada peso e sobe):
    ```bash
    S3_ENDPOINT=https://<conta>.r2.cloudflarestorage.com S3_ACCESS_KEY_ID=<token modelos> \
-   S3_SECRET_ACCESS_KEY=<segredo> npx tsx scripts/modelos/publicar-no-r2.ts --bucket=babel-modelos
+   S3_SECRET_ACCESS_KEY=<segredo> npx tsx scripts/modelos/publicar-no-r2.ts --bucket=frasy-modelos
    ```
 8. Publicar os modelos do **Bergamot** (tradução X→inglês no aparelho: 16 idiomas, ~450 MB no bucket, ~30–45 MB
    por idioma para quem usa — contra ~113 MB do opus-mt). Mesmo bucket e mesmas credenciais; baixa do bucket da
@@ -106,7 +106,7 @@ de custo por assinante está em `scripts/custo/modelo.mjs` (`node scripts/custo/
    `bergamot/<par>/<execução>/<arquivo>`:
    ```bash
    S3_ENDPOINT=https://<conta>.r2.cloudflarestorage.com S3_ACCESS_KEY_ID=<token modelos> \
-   S3_SECRET_ACCESS_KEY=<segredo> npx tsx scripts/modelos/publicar-bergamot-no-r2.ts --bucket=babel-modelos
+   S3_SECRET_ACCESS_KEY=<segredo> npx tsx scripts/modelos/publicar-bergamot-no-r2.ts --bucket=frasy-modelos
    ```
    Depois, no build (variável do environment no GitHub, passo 3 da §8): `VITE_BERGAMOT_MODELOS_URL=https://modelos.<domínio>`
    (a raiz do bucket, **sem** sufixo). Sem a variável o app segue como antes: só pt→en, embutido no `dist`; com ela,
@@ -151,12 +151,12 @@ de custo por assinante está em `scripts/custo/modelo.mjs` (`node scripts/custo/
 3. **API Keys** → chave com permissão **Sending access** (só envio), restrita ao domínio. Guarde-a:
    vai para o Supabase (passo 4) e para o Fly (`RESEND_API_KEY`, passo 8).
 4. No Supabase → **Authentication → SMTP Settings** → _Enable custom SMTP_: host `smtp.resend.com`,
-   porta 465, usuário `resend`, senha = a chave, remetente `nao-responda@<domínio>`, nome "Babel Play".
+   porta 465, usuário `resend`, senha = a chave, remetente `nao-responda@<domínio>`, nome "Frasy".
 5. **O convite ao responsável** (Fase 4: conta de menor de 16 anos fica sem nuvem até o responsável
    aceitar) sai pela **API HTTP** do Resend — `POST https://api.resend.com/emails`, em
    `server/lib/conviteDoResponsavel.ts` —, não pelo SMTP do Supabase, que só manda os modelos de login.
    Precisa de duas variáveis no Fly: `RESEND_API_KEY` (a chave do passo 3) e
-   `EMAIL_REMETENTE="Babel Play <nao-responda@<domínio>>"`, mais `APP_URL=https://<domínio>`, que
+   `EMAIL_REMETENTE="Frasy <nao-responda@<domínio>>"`, mais `APP_URL=https://<domínio>`, que
    torna o link absoluto. Sem as duas, o convite só é registrado no log e o boot mostra
    `[convite] AVISO: ... nenhuma conta de menor de 16 anos consegue liberar a nuvem`.
    Como o envio se comporta:
@@ -293,14 +293,14 @@ https://<domínio>/api/health` (liga o `uptime.yml`, o segundo par de olhos, que
      SECRET_KEY=... ORIGEM_SEGREDO=... \
      SUPABASE_URL=https://<projeto>.supabase.co SUPABASE_SERVICE_ROLE_KEY=... \
      ASAAS_BASE_URL=https://api.asaas.com/v3 ASAAS_API_KEY=... ASAAS_WEBHOOK_TOKEN=... \
-     S3_ENDPOINT=... S3_BUCKET=babel-midia S3_ACCESS_KEY_ID=... S3_SECRET_ACCESS_KEY=... \
-     BACKUP_S3_BUCKET=babel-backups BACKUP_HEARTBEAT_URL=... \
+     S3_ENDPOINT=... S3_BUCKET=frasy-midia S3_ACCESS_KEY_ID=... S3_SECRET_ACCESS_KEY=... \
+     BACKUP_S3_BUCKET=frasy-backups BACKUP_HEARTBEAT_URL=... \
      LITESTREAM_BUCKET=babel-litestream LITESTREAM_ENDPOINT=... \
      LITESTREAM_ACCESS_KEY_ID=... LITESTREAM_SECRET_ACCESS_KEY=... \
      LLM_BASE_URL=https://api.groq.com/openai/v1 LLM_API_KEY=... LLM_MODEL=openai/gpt-oss-120b \
      LLM_RESERVA_BASE_URL=https://openrouter.ai/api/v1 LLM_RESERVA_API_KEY=... LLM_RESERVA_MODEL=openai/gpt-oss-120b \
      AI_BUDGET_USD_MONTH=40 APP_URL=https://<domínio> SENTRY_DSN=... \
-     RESEND_API_KEY=... EMAIL_REMETENTE="Babel Play <nao-responda@<domínio>>"
+     RESEND_API_KEY=... EMAIL_REMETENTE="Frasy <nao-responda@<domínio>>"
    ```
    Gere `SECRET_KEY` e `ORIGEM_SEGREDO` com
    `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` e guarde **as duas no
@@ -347,13 +347,13 @@ https://<domínio>/api/health` (liga o `uptime.yml`, o segundo par de olhos, que
 - [ ] `https://<domínio>/api/ready` responde 200; `https://babel-play.fly.dev/` responde 403.
 - [ ] Criar uma conta de teste, confirmar o e-mail (chega pelo Resend), entrar, **ativar o 2FA** em
       Ajustes → Conta, sair e entrar de novo (o app pede o código).
-- [ ] Gravar uma sessão curta: o áudio aparece no bucket `babel-midia`.
+- [ ] Gravar uma sessão curta: o áudio aparece no bucket `frasy-midia`.
 - [ ] **Threads do WASM**: no Chrome ou no Firefox, console da página → `crossOriginIsolated` dá
       `true` (`curl -sI https://<domínio>/` mostra `cross-origin-embedder-policy: credentialless` e
       `document-isolation-policy`). Se algum recurso de terceiro parar de carregar por causa do COEP,
       `CROSS_ORIGIN_ISOLATION=dip` (no `[env]` do `fly.toml`, ou `fly secrets set` para valer sem
       novo deploy) mantém as threads no Chrome/Edge; `0` desliga.
-- [ ] No dia seguinte: `backups/diario/<data>.db.gz` no `babel-backups`, heartbeat verde no UptimeRobot.
+- [ ] No dia seguinte: `backups/diario/<data>.db.gz` no `frasy-backups`, heartbeat verde no UptimeRobot.
 - [ ] **Restaurar o Litestream** num arquivo à parte (runbook §0.2-A) e anotar a data no runbook.
 - [ ] Rodar o **ZAP Baseline** (Actions → _ZAP Baseline (staging)_ com a URL do staging) e triar.
 - [ ] **Cobrança real de R$ 5** no seu cartão pelo fluxo do app, conferir o plano liberado pelo

@@ -1,9 +1,9 @@
 ---
 name: custo-de-ia
-description: Use ao mexer em provedores ou modelos de IA, planos, cotas, teste grátis, orçamento, preço ou roteamento do Babel Play. Aplica as regras de custo, privacidade e qualidade do projeto e dá os comandos para medir antes de afirmar. Palavras-chave - custo, OpenRouter, Groq, modelo, cota, plano, teste, orçamento, STT, tradução, retenção zero.
+description: Use ao mexer em provedores ou modelos de IA, planos, cotas, teste grátis, orçamento, preço ou roteamento do Frasy. Aplica as regras de custo, privacidade e qualidade do projeto e dá os comandos para medir antes de afirmar. Palavras-chave - custo, OpenRouter, Groq, modelo, cota, plano, teste, orçamento, STT, tradução, retenção zero.
 ---
 
-# Custo de IA do Babel Play
+# Custo de IA do Frasy
 
 O produto precisa ser **acessível, dar lucro e ser eficiente**. O grátis custa zero (roda no aparelho); a nuvem é a amostra de qualidade que vende a assinatura. Antes de mudar qualquer coisa que gaste dinheiro, siga isto.
 

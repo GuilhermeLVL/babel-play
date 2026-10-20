@@ -271,14 +271,14 @@ describe('o chip de estado segue o selo da fala (enxuto.js:49-65)', () => {
       <CapturaDoPrototipo {...base} temFalas niveis={niveisDe({ selo, ambiente: { capacidades: COM_NUVEM } })} />
     )
     const { rerender } = render(com(seloDaFala(PREVISTO_NA_NUVEM, 'groq-whisper')))
-    expect(chip().textContent).toBe('Nuvem do Babel · o áudio vai para o nosso servidor')
+    expect(chip().textContent).toBe('Nuvem do Frasy · o áudio vai para o nosso servidor')
     expect(chip().dataset.tom).toBe('nuvem')
     rerender(com(seloDaFala(PREVISTO_NA_NUVEM, 'whisper-local')))
     expect(chip().textContent).toBe('No aparelho · transcrita aqui, depois de tentar a nuvem')
     expect(chip().dataset.tom).toBe('alerta')
     /* Previsto o aparelho, atendeu a nuvem: o chip diz a nuvem. */
     rerender(com(seloDaFala(PREVISTO_NO_APARELHO, 'groq-whisper')))
-    expect(chip().textContent).toContain('Nuvem do Babel')
+    expect(chip().textContent).toContain('Nuvem do Frasy')
     expect(chip().textContent).not.toMatch(/no aparelho/i)
   })
 
@@ -294,7 +294,7 @@ describe('o chip de estado segue o selo da fala (enxuto.js:49-65)', () => {
       />,
     )
     expect(await screen.findByText(/restam 13 h 30 neste mês/)).toBeTruthy()
-    expect(chip().querySelector('b')?.textContent).toBe('Vai pela Nuvem do Babel')
+    expect(chip().querySelector('b')?.textContent).toBe('Vai pela Nuvem do Frasy')
   })
 
   it('sem selo (nada a afirmar) o chip continua sendo a porta da folha', () => {
@@ -382,7 +382,7 @@ describe('estadoDoChip (puro)', () => {
       resto: 'nada está sendo ouvido',
     })
     /* Pausada só existe gravando: parada, o chip volta ao selo. */
-    expect(estadoDoChip({ ...parado, selo, medidores: [], pausada: true }, t).forte).toBe('Nuvem do Babel')
+    expect(estadoDoChip({ ...parado, selo, medidores: [], pausada: true }, t).forte).toBe('Nuvem do Frasy')
   })
 })
 

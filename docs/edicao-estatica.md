@@ -1,6 +1,6 @@
 # Edição estática (Cloudflare Pages)
 
-A edição estática é o Babel Play publicado **só como arquivos**, sem o servidor Node: é o que roda
+A edição estática é o Frasy publicado **só como arquivos**, sem o servidor Node: é o que roda
 em <https://babel-play.pages.dev/>. Tudo acontece no navegador — transcrição e tradução locais
 (Whisper/Moonshine + Opus-MT via WebGPU/WASM), jogos, repetição espaçada — e os dados ficam no
 IndexedDB do próprio navegador (`babel-local`).

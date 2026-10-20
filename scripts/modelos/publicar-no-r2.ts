@@ -3,8 +3,8 @@
  *
  *   S3_ENDPOINT=https://<conta>.r2.cloudflarestorage.com \
  *   S3_ACCESS_KEY_ID=... S3_SECRET_ACCESS_KEY=... \
- *   npx tsx scripts/modelos/publicar-no-r2.ts --bucket=babel-modelos            # publica
- *   npx tsx scripts/modelos/publicar-no-r2.ts --bucket=babel-modelos --seco     # só lista
+ *   npx tsx scripts/modelos/publicar-no-r2.ts --bucket=frasy-modelos            # publica
+ *   npx tsx scripts/modelos/publicar-no-r2.ts --bucket=frasy-modelos --seco     # só lista
  *   npx tsx scripts/modelos/publicar-no-r2.ts --bucket=... --modelo=onnx-community/whisper-tiny
  *
  * Para cada modelo de `src/gateway/revisoesDosModelos.ts`:

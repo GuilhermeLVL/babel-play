@@ -3,8 +3,8 @@
  *
  *   S3_ENDPOINT=https://<conta>.r2.cloudflarestorage.com \
  *   S3_ACCESS_KEY_ID=... S3_SECRET_ACCESS_KEY=... \
- *   npx tsx scripts/modelos/publicar-bergamot-no-r2.ts --bucket=babel-modelos            # publica
- *   npx tsx scripts/modelos/publicar-bergamot-no-r2.ts --bucket=babel-modelos --seco     # só lista
+ *   npx tsx scripts/modelos/publicar-bergamot-no-r2.ts --bucket=frasy-modelos            # publica
+ *   npx tsx scripts/modelos/publicar-bergamot-no-r2.ts --bucket=frasy-modelos --seco     # só lista
  *   npx tsx scripts/modelos/publicar-bergamot-no-r2.ts --bucket=... --pares=ja-en,zh-en
  *
  * Para cada par de `src/gateway/adapters/modelosDoBergamot.json`: baixa os três `.gz` do bucket da Mozilla

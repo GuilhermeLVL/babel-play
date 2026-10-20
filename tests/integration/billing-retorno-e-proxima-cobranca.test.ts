@@ -32,7 +32,7 @@ describe('criarAssinatura — callback de volta ao app', () => {
 
   async function corpoEnviado(): Promise<any> {
     const f = vi.spyOn(globalThis, 'fetch').mockResolvedValue(json({ id: 'sub_1' }))
-    await asaas.criarAssinatura(asUserId('u-cb'), 'cus_1', 19.9, 'Babel Play Pro')
+    await asaas.criarAssinatura(asUserId('u-cb'), 'cus_1', 19.9, 'Frasy Pro')
     return JSON.parse(String(f.mock.calls[0][1]?.body))
   }
 
@@ -58,7 +58,7 @@ describe('criarAssinatura — callback de volta ao app', () => {
       .spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(json({ errors: [{ description: 'domínio não cadastrado' }] }, 400))
       .mockResolvedValueOnce(json({ id: 'sub_2' }))
-    const a = await asaas.criarAssinatura(asUserId('u-cb'), 'cus_1', 19.9, 'Babel Play Pro')
+    const a = await asaas.criarAssinatura(asUserId('u-cb'), 'cus_1', 19.9, 'Frasy Pro')
     expect(a.id).toBe('sub_2')
     expect(f).toHaveBeenCalledTimes(2)
     expect(JSON.parse(String(f.mock.calls[0][1]?.body)).callback).toBeDefined()

@@ -911,7 +911,7 @@ export async function startSystemAudioCapture(
       if (navegadorSemAudioDaTela(globalThis.navigator?.userAgent ?? '')) {
         vlog('SEM faixa de áudio ✗ (navegador sem áudio de tela)');
         const err = new Error(
-          'Este navegador não compartilha o som da tela nem da aba. Abra o Babel Play no Chrome ou no Edge para capturar o som do computador, ou use só o microfone.',
+          'Este navegador não compartilha o som da tela nem da aba. Abra o Frasy no Chrome ou no Edge para capturar o som do computador, ou use só o microfone.',
         ) as Error & { code?: string };
         err.code = 'NAVEGADOR_SEM_AUDIO_DA_TELA';
         throw err;

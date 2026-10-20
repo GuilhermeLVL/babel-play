@@ -301,7 +301,7 @@ function acaoDoBloqueio(bloqueios: readonly MotivoDaRota[], oferecerPlanos: bool
 
 /**
  * A EXPLICAÇÃO de cada motivo: a frase em português É a chave do catálogo (como o `t()` do app). Diz
- * só o porquê; ONDE roda é a etiqueta do selo ("No aparelho", "Pelo navegador", "Nuvem do Babel").
+ * só o porquê; ONDE roda é a etiqueta do selo ("No aparelho", "Pelo navegador", "Nuvem do Frasy").
  * Os catálogos de `public/i18n` ainda não têm estas entradas: elas entram com a tela (etapa 5).
  */
 const EXPLICACOES: Record<MotivoDaRota, string> = {

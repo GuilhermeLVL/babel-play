@@ -124,8 +124,8 @@ function SemSenhaNaConta({ aoFechar }: { aoFechar: () => void }) {
   return (
     <Dialogo icone={Info} titulo="Conta entrou com o Google" aoFechar={aoFechar}>
       <p className="sub">
-        Esta conta não tem senha do Babel Play: o e-mail e o acesso são os da sua conta Google. Para criar uma senha,
-        saia e use “Esqueci minha senha” na tela de entrada.
+        Esta conta não tem senha do Frasy: o e-mail e o acesso são os da sua conta Google. Para criar uma senha, saia e
+        use “Esqueci minha senha” na tela de entrada.
       </p>
     </Dialogo>
   );

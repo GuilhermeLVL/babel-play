@@ -104,8 +104,8 @@ export function DialogoPagamento({
           </p>
         )}
         <p className="nota-seg">
-          <Lock aria-hidden /> O cartão é digitado só na página do processador de pagamento. O Babel Play não vê nem
-          guarda esses dados.{' '}
+          <Lock aria-hidden /> O cartão é digitado só na página do processador de pagamento. O Frasy não vê nem guarda
+          esses dados.{' '}
           {conta.estado === 'falhou' && aberta ? 'A cobrança pendente se resolve pagando a fatura em aberto.' : ''}
         </p>
       </div>

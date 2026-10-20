@@ -336,7 +336,7 @@ describe('o que a primeira versão da casca tinha deixado de fora (auditoria de 
     rerender(
       <InicioDoQuest onChangeView={() => {}} recordings={[]} progress={progresso} metrics={null} ageProfile="senior" />,
     )
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Bem-vindo ao Babel Play')
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Bem-vindo ao Frasy')
   })
 
   const trilho = (extra: Record<string, unknown> = {}) => {

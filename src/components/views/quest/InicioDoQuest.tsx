@@ -214,7 +214,7 @@ export default function InicioDoQuest({
             {ageProfile === 'kids'
               ? t('Pronto para os desafios?')
               : ageProfile === 'senior'
-                ? t('Bem-vindo ao Babel Play')
+                ? t('Bem-vindo ao Frasy')
                 : t('O que vamos fazer?')}
           </h1>
         </div>

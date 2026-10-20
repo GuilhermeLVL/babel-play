@@ -30,7 +30,7 @@ describe('Onboarding — o diálogo em seis passos', () => {
 
   it('começa no passo 1 de 6 e "Continuar" anda', () => {
     render(<Onboarding onComplete={vi.fn()} />)
-    expect(screen.getByRole('dialog', { name: 'Babel Play' })).toBeTruthy()
+    expect(screen.getByRole('dialog', { name: 'Frasy' })).toBeTruthy()
     expect(screen.getByText('1 de 6')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /Continuar/ }))
     expect(screen.getByText('2 de 6')).toBeTruthy()

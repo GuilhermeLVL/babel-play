@@ -4,7 +4,7 @@
  *   npx tsx scripts/backup/enviar-ao-r2.ts <arquivo.dump> <chave-no-bucket>
  *
  * Lê `R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`, `R2_S3_SECRET_ACCESS_KEY` e `R2_S3_BUCKET` (padrão
- * `babel-backups`). Faltando qualquer uma, sai com 1 e diz o NOME da que falta (nunca o valor). Depois do
+ * `frasy-backups`). Faltando qualquer uma, sai com 1 e diz o NOME da que falta (nunca o valor). Depois do
  * envio lê o objeto de volta e compara o sha256: um PUT que "deu certo" mas gravou outra coisa reprova.
  */
 import { createHash } from 'node:crypto';
@@ -26,7 +26,7 @@ if (faltando.length > 0) {
 
 const s3 = armazenamentoS3({
   endpoint: process.env.R2_S3_ENDPOINT as string,
-  bucket: process.env.R2_S3_BUCKET || 'babel-backups',
+  bucket: process.env.R2_S3_BUCKET || 'frasy-backups',
   regiao: 'auto',
   accessKeyId: process.env.R2_S3_ACCESS_KEY_ID as string,
   secretAccessKey: process.env.R2_S3_SECRET_ACCESS_KEY as string,

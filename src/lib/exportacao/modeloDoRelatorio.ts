@@ -149,7 +149,7 @@ export interface ModeloDoRelatorio {
   secoes: Record<SecaoId, boolean>;
   titulo: string;
   geradoEm: string;
-  /** `babel-play-<título-limpo>-<AAAA-MM-DD>` sem extensão. */
+  /** `frasy-<título-limpo>-<AAAA-MM-DD>` sem extensão. */
   nomeDoArquivo: string;
   cabecalho: {
     tipo: string;
@@ -215,7 +215,7 @@ export function titulolimpo(titulo: string): string {
 }
 
 export function nomeDoArquivo(titulo: string, quando: Date): string {
-  return `babel-play-${titulolimpo(titulo)}-${isoLocal(quando)}`;
+  return `frasy-${titulolimpo(titulo)}-${isoLocal(quando)}`;
 }
 
 const rotuloDoTipo = (tipo: 'audio' | 'video' | 'document') =>

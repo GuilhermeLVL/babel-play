@@ -87,7 +87,7 @@ function entrada(p: Partial<EntradaDoRelatorio> = {}): EntradaDoRelatorio {
 describe('nome do arquivo', () => {
   it('tira acento e símbolo, mantém a data', () => {
     expect(titulolimpo('Reunião de alinhamento: 3º trimestre!')).toBe('reuniao-de-alinhamento-3º-trimestre')
-    expect(nomeDoArquivo('Aula', new Date(2026, 0, 5))).toBe('babel-play-aula-2026-01-05')
+    expect(nomeDoArquivo('Aula', new Date(2026, 0, 5))).toBe('frasy-aula-2026-01-05')
   })
   it('mantém árabe e CJK; título vazio vira "sessao"', () => {
     expect(titulolimpo('محادثة 日本語')).toBe('محادثة-日本語')

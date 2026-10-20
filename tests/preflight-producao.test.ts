@@ -38,7 +38,7 @@ function completo(): Record<string, string> {
     SIGNUP_ENABLED: '0',
     CHECKOUT_ENABLED: '0',
     S3_ENDPOINT: 'https://conta.r2.cloudflarestorage.com',
-    S3_BUCKET: 'babel-midia',
+    S3_BUCKET: 'frasy-midia',
     S3_ACCESS_KEY_ID: aleatorio(8),
     S3_SECRET_ACCESS_KEY: aleatorio(),
     BACKUP_DIARIO: '1',
@@ -57,9 +57,9 @@ function completo(): Record<string, string> {
     AI_BUDGET_USD_MONTH: '40',
     AI_BUDGET_USD_DAY: '3',
     RESEND_API_KEY: aleatorio(),
-    EMAIL_REMETENTE: 'Babel Play <nao-responda@babelplay.com.br>',
+    EMAIL_REMETENTE: 'Frasy <nao-responda@frasy.com.br>',
     SENTRY_DSN: 'https://chave@o1.ingest.sentry.io/1',
-    APP_URL: 'https://babelplay.com.br',
+    APP_URL: 'https://frasy.com.br',
   }
 }
 

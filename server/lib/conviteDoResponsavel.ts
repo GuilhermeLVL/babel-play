@@ -91,8 +91,8 @@ const dataPtBr = (ms: number): string =>
 export function montarEmailDoConvite(msg: MensagemDeConvite): { assunto: string; texto: string; html: string } {
   const quem = msg.quemConvidou?.trim()
   const pedido = quem
-    ? `${quem} (nome informado na conta) pediu para vincular a conta dele(a) no Babel Play à sua, como responsável.`
-    : 'Uma pessoa com menos de 16 anos pediu para vincular a conta dela no Babel Play à sua, como responsável.'
+    ? `${quem} (nome informado na conta) pediu para vincular a conta dele(a) no Frasy à sua, como responsável.`
+    : 'Uma pessoa com menos de 16 anos pediu para vincular a conta dela no Frasy à sua, como responsável.'
   const autoriza = [
     'confirma que é o pai, a mãe ou o responsável legal;',
     'liga a conta dele(a) à sua: os estudos passam a ser guardados na nuvem, e você pode acompanhar e pagar pela conta;',
@@ -106,9 +106,9 @@ export function montarEmailDoConvite(msg: MensagemDeConvite): { assunto: string;
   const recusar =
     'Se você não reconhece este pedido ou não quer autorizar, ignore este e-mail: nada é vinculado sem o seu aceite, e o link expira sozinho.'
   const contexto =
-    'O Babel Play é um app de estudo de idiomas. Pela lei (ECA Digital e LGPD), a conta de quem tem menos de 16 anos só guarda dados na nuvem depois que um responsável aceita o vínculo.'
+    'O Frasy é um app de estudo de idiomas. Pela lei (ECA Digital e LGPD), a conta de quem tem menos de 16 anos só guarda dados na nuvem depois que um responsável aceita o vínculo.'
   const comoAceitar = 'Para aceitar, abra o link abaixo e entre com a sua própria conta de adulto (ou crie uma):'
-  const rodape = 'Babel Play — mensagem automática, não responda.'
+  const rodape = 'Frasy — mensagem automática, não responda.'
 
   const texto = [
     'Olá,',
@@ -147,8 +147,8 @@ export function montarEmailDoConvite(msg: MensagemDeConvite): { assunto: string;
   ].join('')
 
   const assunto = msg.exigeConsentimentoEspecifico
-    ? 'Pedido de autorização de responsável no Babel Play'
-    : 'Pedido de vínculo com responsável no Babel Play'
+    ? 'Pedido de autorização de responsável no Frasy'
+    : 'Pedido de vínculo com responsável no Frasy'
   return { assunto, texto, html }
 }
 

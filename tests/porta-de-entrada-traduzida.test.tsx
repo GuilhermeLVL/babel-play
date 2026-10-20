@@ -78,7 +78,7 @@ const PSEUDO = JSON.parse(readFileSync(join(__dirname, '..', 'public', 'i18n', '
 const px = (frase: string) => PSEUDO[frase] ?? `(sem pseudo) ${frase}`
 
 /** Marca não se traduz. */
-const NAO_SE_TRADUZ = new Set(['Babel Play'])
+const NAO_SE_TRADUZ = new Set(['Frasy'])
 /** O pseudo acentua toda vogal minúscula; sobrou uma, a frase não passou por `t()`. */
 const VOGAL_LIMPA = /[aeiou]/
 

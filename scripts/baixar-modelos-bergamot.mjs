@@ -113,7 +113,7 @@ export function colaComoModulo(fonte, versao = CONFIG.motor.versao) {
  * the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
  * \`worker/bergamot-translator-worker.js\` de ${CONFIG.motor.pacote}@${versao} (${CONFIG.motor.fonte}),
- * embrulhado como módulo ES pelo Babel Play (scripts/baixar-modelos-bergamot.mjs). Única mudança no
+ * embrulhado como módulo ES pelo Frasy (scripts/baixar-modelos-bergamot.mjs). Única mudança no
  * código original: \`global_object\` passou de \`this\` a \`globalThis\` (em módulo o código é estrito, e o
  * \`this\` de uma chamada solta é \`undefined\`). O código-fonte do .wasm ao lado:
  * ${CONFIG.motor.fonte} (tag v${versao}).
@@ -214,7 +214,7 @@ function leiaMe(config) {
   const pares = Object.entries(config.pares)
     .map(([par, p]) => `  - ${par}: ${config.origem}${p.caminhoNaOrigem} (execução ${p.execucao})`)
     .join('\n')
-  return `Bergamot no Babel Play — motor e modelos de tradução no aparelho (gerado por scripts/baixar-modelos-bergamot.mjs)
+  return `Bergamot no Frasy — motor e modelos de tradução no aparelho (gerado por scripts/baixar-modelos-bergamot.mjs)
 
 Motor: ${config.motor.pacote}@${config.motor.versao}, ${config.motor.licenca}. Código-fonte: ${config.motor.fonte}
 Modelos: Mozilla translations (${config.registro}), ${config.licencaDosModelos}. Arquivos originais:

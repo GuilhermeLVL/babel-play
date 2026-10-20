@@ -27,7 +27,7 @@ async function fetchPublicHtml(rawUrl: string): Promise<{ res: globalThis.Respon
     const res = await fetchSeguro(current, {
       headers: {
         // Alguns sites bloqueiam sem UA de navegador; identificamos honestamente o app.
-        'user-agent': 'Mozilla/5.0 (compatible; BabelPlay/0.1; +https://localhost) article-import',
+        'user-agent': 'Mozilla/5.0 (compatible; Frasy/0.1; +https://localhost) article-import',
         accept: 'text/html,application/xhtml+xml',
       },
       redirect: 'manual',

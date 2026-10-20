@@ -30,7 +30,7 @@ async function frasesSemPseudo(page: Page) {
   return page.evaluate(() => {
     // O pseudo acentua toda vogal minúscula; vogal limpa = frase que não passou por `t()`.
     const VOGAL_LIMPA = /[aeiou]/
-    const MARCA = new Set(['Babel Play'])
+    const MARCA = new Set(['Frasy'])
     const achadas = new Set<string>()
     const anda = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
     for (let n = anda.nextNode(); n; n = anda.nextNode()) {

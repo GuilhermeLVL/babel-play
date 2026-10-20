@@ -7,7 +7,7 @@
 Container genérico (Docker), sem amarra a fornecedor: roda em VPS, Fly, Railway, Render,
 Coolify ou Kubernetes. Os números e limites citados aqui vêm de `docs/audit/04-scalability.md`.
 
-**A produção do Babel Play roda no Fly.io (região GRU)** — `fly.toml`, `.env.production.example`
+**A produção do Frasy roda no Fly.io (região GRU)** — `fly.toml`, `.env.production.example`
 e o passo a passo do dono em [`docs/LANCAMENTO.md`](LANCAMENTO.md). Este documento cobre a imagem
 em si e o `docker compose` de quem hospeda por conta própria.
 
@@ -384,16 +384,16 @@ Dentro da imagem o script também existe: `node scripts/backup.mjs --sem-midia -
 
 `.github/workflows/backup-pg-dump.yml` roda toda segunda às 06:00 UTC (e em Actions → "Backup semanal do Postgres" →
 Run workflow): `pg_dump --format=custom --schema=public --schema=drizzle` do Supabase (via `scripts/backup.mjs`),
-`pg_restore --list` no arquivo, envio ao bucket `babel-backups` do R2 em **`semanal/AAAA-MM-DD.dump`** e leitura de
+`pg_restore --list` no arquivo, envio ao bucket `frasy-backups` do R2 em **`semanal/AAAA-MM-DD.dump`** e leitura de
 volta com conferência de sha256. Sem algum secret o primeiro passo reprova dizendo o nome; nunca fica verde sem backup.
 
 - **Secrets do repositório:** `SUPABASE_DB_HOST`, `SUPABASE_DB_USER`, `SUPABASE_DB_PASSWORD`, `SUPABASE_DB_NAME`,
   `SUPABASE_CA_PEM` (CA do Supabase; o TLS é `verify-full`), `R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`,
-  `R2_S3_SECRET_ACCESS_KEY` (token R2 com escrita em `babel-backups`).
+  `R2_S3_SECRET_ACCESS_KEY` (token R2 com escrita em `frasy-backups`).
 - **Host:** o direto do Supabase é só IPv6 e o runner do GitHub não tem IPv6. Use o pooler de sessão
   (`aws-1-sa-east-1.pooler.supabase.com`, porta 5432, usuário `postgres.<ref>`); o `pg_dump` funciona nele.
 - **Retenção (pendente, Fase 4):** o bucket ainda não existe. Ao criá-lo, ligar a regra de 8 semanas:
-  `wrangler r2 bucket lifecycle add babel-backups --name semanal --prefix semanal/ --expire-days 56`. Até lá o envio falha.
+  `wrangler r2 bucket lifecycle add frasy-backups --name semanal --prefix semanal/ --expire-days 56`. Até lá o envio falha.
 - **Restaurar** num banco novo (credenciais por `PG*`, nunca na linha de comando):
 
 ```bash
@@ -452,7 +452,7 @@ decidiu object storage; `server/lib/armazenamento.ts` é o único ponto que prec
 
 ```bash
 S3_ENDPOINT=https://<conta>.r2.cloudflarestorage.com
-S3_BUCKET=babel-midia
+S3_BUCKET=frasy-midia
 S3_ACCESS_KEY_ID=...
 S3_SECRET_ACCESS_KEY=...
 S3_REGION=auto
@@ -713,7 +713,7 @@ decidiu object storage; `server/lib/armazenamento.ts` é o único ponto que prec
 
 ```bash
 S3_ENDPOINT=https://<conta>.r2.cloudflarestorage.com
-S3_BUCKET=babel-midia
+S3_BUCKET=frasy-midia
 S3_ACCESS_KEY_ID=...
 S3_SECRET_ACCESS_KEY=...
 S3_REGION=auto

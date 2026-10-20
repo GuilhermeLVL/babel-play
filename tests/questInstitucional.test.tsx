@@ -53,7 +53,7 @@ describe('Sobre no Quest', () => {
     const { container } = render(<Sobre />)
     expect(container.querySelector('.q-palco.q-inst')).not.toBeNull()
     expect(container.querySelector('.tela')).toBeNull()
-    expect(screen.getByRole('heading', { level: 1, name: 'Sobre o Babel Play' })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 1, name: 'Sobre o Frasy' })).toBeTruthy()
     expect(screen.getAllByRole('tab').map((a) => a.textContent)).toEqual([
       'Quem faz',
       'A história',

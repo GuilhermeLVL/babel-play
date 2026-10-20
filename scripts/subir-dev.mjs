@@ -23,7 +23,7 @@ import { spawn } from 'node:child_process'
 
 const PORTA = process.env.PORT || '3100'
 
-console.log(`\n  Babel Play — modo local, sem login`)
+console.log(`\n  Frasy — modo local, sem login`)
 console.log(`  http://localhost:${PORTA}`)
 console.log(`  Ctrl+C para encerrar. Mantenha este terminal aberto.\n`)
 

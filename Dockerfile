@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #
-# Imagem de produção do Babel Play (modo PÚBLICO multi-usuário).
+# Imagem de produção do Frasy (modo PÚBLICO multi-usuário).
 #
 # Base debian-slim, não alpine: `sharp` e `onnxruntime-node` (do cluster
 # @huggingface/transformers) trazem binários nativos glibc que quebram em musl.

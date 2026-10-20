@@ -7,7 +7,7 @@
 // `wrangler secret put` (produção) ou `.dev.vars` (local, fora do git). Ver docs/deploy.md.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "babel-play",
+  "name": "frasy",
   "main": "worker.ts",
   "compatibility_date": "2026-09-01",
   // Com a data ≥ 2025-04-01, os vars/secrets já vêm em process.env; node:fs, AsyncLocalStorage e
@@ -31,7 +31,7 @@
   ],
 
   // Áudio das sessões e anexos (server/lib/armazenamentoR2.ts).
-  "r2_buckets": [{ "binding": "MIDIA", "bucket_name": "babel-midia" }],
+  "r2_buckets": [{ "binding": "MIDIA", "bucket_name": "frasy-midia" }],
 
   // O build do Vite. /api/* passa pelo Worker; o resto é estático, e caminho desconhecido cai no
   // index.html (SPA).
@@ -82,8 +82,8 @@
   // Não implantar o staging antes disso. Staging também é produção para as travas (NODE_ENV production).
   "env": {
     "staging": {
-      "name": "babel-play-staging",
-      "r2_buckets": [{ "binding": "MIDIA", "bucket_name": "babel-midia-staging" }],
+      "name": "frasy-staging",
+      "r2_buckets": [{ "binding": "MIDIA", "bucket_name": "frasy-midia-staging" }],
       "triggers": { "crons": [] },
       "vars": { "NODE_ENV": "production", "AUTH_REQUIRED": "1" },
     },

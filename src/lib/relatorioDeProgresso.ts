@@ -26,20 +26,32 @@ const min = (ms: number) => Math.round(ms / 60_000);
 export function gerarRelatorioDeProgresso(m: AppMetrics, cartoes: ReadonlyArray<VocabCard> = []): string {
   const linhas: string[] = [];
   const data = dataDaUI(new Date());
-  linhas.push(t('RELATÓRIO DE ESTUDO — Babel Play · {data}', { data }));
+  linhas.push(t('RELATÓRIO DE ESTUDO — Frasy · {data}', { data }));
   linhas.push('');
 
   linhas.push(t('== Vocabulário =='));
-  linhas.push(t('Palavras no deck: {total} ({novas} novas, {prontas} prontas para revisar)', {
-    total: numero(m.deckSize), novas: numero(m.newCards), prontas: numero(m.dueToday),
-  }));
-  linhas.push(m.reviews > 0
-    ? t('Revisões feitas: {n} · acerto {pct}%', { n: numero(m.reviews), pct: Math.round((m.correctReviews / m.reviews) * 100) })
-    : t('Revisões feitas: {n}', { n: numero(m.reviews) }));
+  linhas.push(
+    t('Palavras no deck: {total} ({novas} novas, {prontas} prontas para revisar)', {
+      total: numero(m.deckSize),
+      novas: numero(m.newCards),
+      prontas: numero(m.dueToday),
+    }),
+  );
+  linhas.push(
+    m.reviews > 0
+      ? t('Revisões feitas: {n} · acerto {pct}%', {
+          n: numero(m.reviews),
+          pct: Math.round((m.correctReviews / m.reviews) * 100),
+        })
+      : t('Revisões feitas: {n}', { n: numero(m.reviews) }),
+  );
   if (m.avgRetentionConfidence > 0) {
-    linhas.push(t('Retenção média estimada: {pct}% (confiança {conf}%)', {
-      pct: Math.round(m.avgRetention * 100), conf: Math.round(m.avgRetentionConfidence * 100),
-    }));
+    linhas.push(
+      t('Retenção média estimada: {pct}% (confiança {conf}%)', {
+        pct: Math.round(m.avgRetention * 100),
+        conf: Math.round(m.avgRetentionConfidence * 100),
+      }),
+    );
   } else {
     linhas.push(t('Retenção: sem base ainda — nenhum cartão revisado o bastante.'));
   }
@@ -48,14 +60,18 @@ export function gerarRelatorioDeProgresso(m: AppMetrics, cartoes: ReadonlyArray<
   linhas.push(t('== Tempo com o idioma =='));
   const ativo = min(m.speakingMs);
   const passivo = min(m.listeningMs ?? 0);
-  linhas.push(m.wpm > 0
-    ? t('Falando (sua voz): {min} min · ritmo {wpm} palavras/min', { min: numero(ativo), wpm: numero(m.wpm) })
-    : t('Falando (sua voz): {min} min', { min: numero(ativo) }));
+  linhas.push(
+    m.wpm > 0
+      ? t('Falando (sua voz): {min} min · ritmo {wpm} palavras/min', { min: numero(ativo), wpm: numero(m.wpm) })
+      : t('Falando (sua voz): {min} min', { min: numero(ativo) }),
+  );
   linhas.push(t('Ouvindo (áudio de terceiros): {min} min', { min: numero(passivo) }));
   if (ativo + passivo > 0) {
-    linhas.push(t('Proporção ativa: {pct}% do tempo total', {
-      pct: Math.round((ativo / Math.max(1, ativo + passivo)) * 100),
-    }));
+    linhas.push(
+      t('Proporção ativa: {pct}% do tempo total', {
+        pct: Math.round((ativo / Math.max(1, ativo + passivo)) * 100),
+      }),
+    );
   }
   linhas.push('');
 
@@ -65,11 +81,14 @@ export function gerarRelatorioDeProgresso(m: AppMetrics, cartoes: ReadonlyArray<
     linhas.push(t('Nenhuma com base suficiente (entra no ranking quem tem 2+ revisões e erros).'));
   } else {
     for (const p of dificeis.slice(0, 8)) {
-      linhas.push(`- ${p.word}: ` + t('{lapsos}, {pct}% de erro em {revisoes} revisões', {
-        lapsos: tp(p.lapses, '{n} esquecimento', '{n} esquecimentos'),
-        pct: Math.round(p.fracaoDeErro * 100),
-        revisoes: numero(p.revisoes),
-      }));
+      linhas.push(
+        `- ${p.word}: ` +
+          t('{lapsos}, {pct}% de erro em {revisoes} revisões', {
+            lapsos: tp(p.lapses, '{n} esquecimento', '{n} esquecimentos'),
+            pct: Math.round(p.fracaoDeErro * 100),
+            revisoes: numero(p.revisoes),
+          }),
+      );
     }
   }
   linhas.push('');
@@ -77,7 +96,8 @@ export function gerarRelatorioDeProgresso(m: AppMetrics, cartoes: ReadonlyArray<
   const porEx = m.acertoPorExercicio ?? [];
   if (porEx.length > 0) {
     linhas.push(t('== Acerto por tipo de exercício (pior primeiro) =='));
-    for (const e of porEx) linhas.push(`- ${e.kind}: ` + t('{pct}% em {n} itens', { pct: e.acerto, n: numero(e.total) }));
+    for (const e of porEx)
+      linhas.push(`- ${e.kind}: ` + t('{pct}% em {n} itens', { pct: e.acerto, n: numero(e.total) }));
     linhas.push('');
   }
 
@@ -92,8 +112,9 @@ export function gerarRelatorioDeProgresso(m: AppMetrics, cartoes: ReadonlyArray<
   }
 
   linhas.push(
-    tp(m.streakDays, 'Ofensiva: {n} dia', 'Ofensiva: {n} dias')
-    + ' · ' + t('gerado pelo Babel Play a partir dos seus dados reais (nada estimado por IA).'),
+    tp(m.streakDays, 'Ofensiva: {n} dia', 'Ofensiva: {n} dias') +
+      ' · ' +
+      t('gerado pelo Frasy a partir dos seus dados reais (nada estimado por IA).'),
   );
   return linhas.join('\n');
 }
@@ -104,7 +125,7 @@ export function baixarRelatorio(m: AppMetrics, cartoes: ReadonlyArray<VocabCard>
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `babel-play-relatorio-${new Date().toISOString().slice(0, 10)}.txt`;
+  a.download = `frasy-relatorio-${new Date().toISOString().slice(0, 10)}.txt`;
   a.click();
   URL.revokeObjectURL(url);
 }

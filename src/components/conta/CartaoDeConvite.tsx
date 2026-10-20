@@ -32,7 +32,7 @@ export default function CartaoDeConvite({ view, onEntrar, onVoltar }: CartaoDeCo
           icone={<Lock className="w-7 h-7" aria-hidden />}
           titulo={t('Disponível na versão completa')}
           explicacao={t(
-            'Esta é a edição de demonstração do Babel Play: roda inteira no seu navegador, sem servidor. Esta parte depende de um servidor, e por isso só existe na versão completa.',
+            'Esta é a edição de demonstração do Frasy: roda inteira no seu navegador, sem servidor. Esta parte depende de um servidor, e por isso só existe na versão completa.',
           )}
           acao={appCompleto ? { rotulo: t('Criar conta na versão completa'), href: appCompleto } : voltar}
           acaoSecundaria={appCompleto ? voltar : undefined}

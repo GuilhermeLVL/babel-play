@@ -120,7 +120,7 @@ beforeEach(() => {
     },
   })
   nuance.apagarDoGlossario.mockResolvedValue({ ok: true, valor: true })
-  dados.prepararCopia.mockResolvedValue({ blob: new Blob(['{}']), nome: 'babel-play.json' })
+  dados.prepararCopia.mockResolvedValue({ blob: new Blob(['{}']), nome: 'frasy.json' })
 })
 afterEach(() => {
   cleanup()
@@ -285,7 +285,7 @@ describe('Ajustes no Quest: Notificações', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Segunda' }))
     expect((prefs.atual as Preferencias).semanal.dia).toBe('segunda')
     fireEvent.click(screen.getByRole('button', { name: /Ver exemplo/ }))
-    expect(await screen.findByRole('dialog', { name: 'Sua semana no Babel Play' })).toBeTruthy()
+    expect(await screen.findByRole('dialog', { name: 'Sua semana no Frasy' })).toBeTruthy()
   })
 })
 

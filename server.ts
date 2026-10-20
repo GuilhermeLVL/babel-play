@@ -104,7 +104,7 @@ async function startServer() {
   const server = app.listen(PORT, HOST, () => {
     // Anuncia LOCALHOST, não 0.0.0.0: só localhost/HTTPS é "contexto seguro", e o Cache Storage onde
     // o Whisper/opus-mt guardam os pesos SÓ existe nele (e é particionado por PORTA).
-    console.log(`Babel Play rodando em  ->  http://localhost:${PORT}`)
+    console.log(`Frasy rodando em  ->  http://localhost:${PORT}`)
     console.log(`   (abra sempre por http://localhost:${PORT} — por 0.0.0.0/IP o modelo local re-baixa toda vez)`)
   })
   /* DESLIGAMENTO GRACIOSO (Fase 5) — registrado LOGO APÓS o `listen`: antes dele não há o que drenar. */

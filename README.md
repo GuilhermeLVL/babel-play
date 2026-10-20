@@ -1,6 +1,6 @@
 <div align="center">
 
-# Babel Play
+# Frasy
 
 **Learn a language from what you already watch, play and talk about.**
 Live captions and translation of any audio on your computer, running **on your own device**, turned into vocabulary games and spaced repetition.

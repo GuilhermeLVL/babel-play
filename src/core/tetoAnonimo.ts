@@ -80,8 +80,8 @@ export function motivoDoTeto(recurso: RecursoLimitado, opcoes: OpcoesDoTeto = {}
   const teto = tetoAnonimoDa(opcoes);
   if (opcoes.edicaoEstatica) {
     return recurso === 'sessoes'
-      ? `Esta é a edição de demonstração: ela guarda até ${teto.sessoes} gravações neste navegador. A versão completa do Babel Play não tem esse limite.`
-      : `Esta é a edição de demonstração: o caderno vai até ${teto.palavras} palavras neste navegador. A versão completa do Babel Play não tem esse limite.`;
+      ? `Esta é a edição de demonstração: ela guarda até ${teto.sessoes} gravações neste navegador. A versão completa do Frasy não tem esse limite.`
+      : `Esta é a edição de demonstração: o caderno vai até ${teto.palavras} palavras neste navegador. A versão completa do Frasy não tem esse limite.`;
   }
   return recurso === 'sessoes'
     ? `Sem conta dá para guardar ${teto.sessoes} gravações neste navegador. Crie uma conta e elas ficam guardadas — e as que já estão aqui sobem junto.`

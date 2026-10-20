@@ -306,7 +306,7 @@ describe('O aceite do responsável no Quest', () => {
     nomeDoMenor: 'Bia',
     faixa: '0-11',
     exigeConsentimentoEspecifico: true,
-    textoDoConsentimento: 'Autorizo o Babel Play a guardar os dados de estudo.',
+    textoDoConsentimento: 'Autorizo o Frasy a guardar os dados de estudo.',
     versao: 'v3',
     expiraEm: Date.now() + 1000,
   }
@@ -319,7 +319,7 @@ describe('O aceite do responsável no Quest', () => {
     expect(container.querySelector('.qen.qen-uma')).not.toBeNull()
     expect(screen.getByRole('status').textContent).toMatch(/Carregando o convite/)
 
-    expect(await screen.findByText('Autorizo o Babel Play a guardar os dados de estudo.')).toBeTruthy()
+    expect(await screen.findByText('Autorizo o Frasy a guardar os dados de estudo.')).toBeTruthy()
     expect(screen.getByRole('heading', { level: 1, name: 'Pedido de vínculo de responsável' })).toBeTruthy()
     expect(screen.getAllByRole('checkbox')).toHaveLength(2)
 

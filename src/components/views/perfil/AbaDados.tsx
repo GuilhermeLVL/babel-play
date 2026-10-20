@@ -69,10 +69,10 @@ export function exportacaoEmCsv(json: unknown): string {
 export async function prepararCopia(formato: 'json' | 'csv'): Promise<{ blob: Blob; nome: string } | null> {
   const blob = await exportarConta();
   if (!blob) return null;
-  if (formato === 'json') return { blob, nome: 'babel-play-dados.json' };
+  if (formato === 'json') return { blob, nome: 'frasy-dados.json' };
   try {
     const csv = exportacaoEmCsv(JSON.parse(await blob.text()));
-    return { blob: new Blob([csv], { type: 'text/csv;charset=utf-8' }), nome: 'babel-play-dados.csv' };
+    return { blob: new Blob([csv], { type: 'text/csv;charset=utf-8' }), nome: 'frasy-dados.csv' };
   } catch {
     return null;
   }

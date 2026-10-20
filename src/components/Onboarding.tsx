@@ -69,7 +69,7 @@ const DO_PASSO: Record<Passo, { icone: LucideIcon; sob: string; titulo: string; 
   welcome: {
     icone: AudioLines,
     sob: 'Bem-vindo',
-    titulo: 'Babel Play',
+    titulo: 'Frasy',
     desc: 'Aprenda idiomas com o que você já assiste. O app ouve o som do computador, transcreve, traduz e transforma tudo em jogo e revisão.',
     cena: 'ondas',
   },

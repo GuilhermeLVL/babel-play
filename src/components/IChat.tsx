@@ -715,7 +715,7 @@ export default function IChat({
       try {
         const blob = await exportarApkg(
           saem.map((c) => ({ frente: c.word, verso: c.translation, exemplo: c.sentence })),
-          'Babel Play',
+          'Frasy',
         );
         baixar(blob, `babel-ichat-${new Date().toISOString().slice(0, 10)}.apkg`);
         avisar(`${t('Baralho do Anki exportado:')} ${saem.length} ${t('cartões')}`);

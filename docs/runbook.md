@@ -456,7 +456,10 @@ node scripts/backup.mjs                        # cópia consistente
 ```
 
 Restaurar é **restaurar backup e subir** — não há migração reversa. As migrações são aplicadas no
-boot (`server/boot/preparar.ts`, numa conexão própria com `statement_timeout = 0`); se a pasta não estiver no disco, `/api/ready` responde `desconhecida` para esse item e **não**
+boot (`server/boot/preparar.ts`) com `statement_timeout = 0`: no `pg`, numa conexão própria; no PGlite, na mesma
+conexão do app, com o prazo restaurado no fim. A `DATABASE_URL` de quem migra precisa ser conexão direta ou pooler
+em modo sessão (5432): um pooler em modo transação (Supavisor na 6543) perde o `SET`, e o boot recusa migrar
+com "migrations exigem conexão direta ou pooler em modo sessão". Se a pasta não estiver no disco, `/api/ready` responde `desconhecida` para esse item e **não**
 reprova, porque é a topologia legítima de uma imagem que já subiu migrada.
 
 **Prazos de sessão no papel do banco** (migration `0004`; o pooler e o Hyperdrive ignoram o `options` do pool):

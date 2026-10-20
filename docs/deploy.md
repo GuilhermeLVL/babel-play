@@ -74,7 +74,9 @@ container mais o `AUTH_REQUIRED=1`, não o bind.
       (sem schema o app não serve nada). Idempotente. A `0005` deduplica `settings` antes de criar
       o índice único, então rodar por cima de um banco antigo é seguro. Ordem do boot (`server.ts`, passos em
       `server/boot/`): travas (`validar.ts`) → diário/Sentry → banco → migrations (com `statement_timeout = 0`),
-      seed e backfills (`preparar.ts`) → `listen` → agendamentos diários (`jobs.ts`).
+      seed e backfills (`preparar.ts`) → `listen` → agendamentos diários (`jobs.ts`). Quem migra precisa de
+      conexão direta ou pooler em modo sessão (5432): com o Supavisor em modo transação (6543) o boot recusa
+      ("migrations exigem conexão direta ou pooler em modo sessão").
 - [ ] **Backup do banco.** Com `postgres://`, `node scripts/backup.mjs` roda `pg_dump` e confere com
       `pg_restore --list`. Com `pglite:<dir>` (dev), copia o diretório e só vale com o servidor parado.
       Litestream e snapshot diário saíram do servidor (ADR 0014): NÃO há backup automático neste build

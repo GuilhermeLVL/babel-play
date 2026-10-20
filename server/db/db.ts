@@ -22,7 +22,7 @@ import { temDisco } from '../lib/runtime'
 import { configDoPool } from './configDoPool'
 import { medirConsultas, registrarMedidorDeTamanho } from './observadorDeConsultas'
 import * as schema from './schema'
-import { ehBancoEmbutido, ehBancoEmMemoria, URL_PADRAO_DO_BANCO } from './tipoDoBanco'
+import { ehBancoEmbutido, ehBancoEmMemoria, recusaDeUrlDeMigracao, URL_PADRAO_DO_BANCO } from './tipoDoBanco'
 import { travarDiretorio } from './travaDoPglite'
 
 /**
@@ -210,6 +210,17 @@ export const db: DB = new Proxy({} as DB, {
   },
   has: (_alvo, prop) => Reflect.has(aberto(), prop),
   getPrototypeOf: () => Reflect.getPrototypeOf(aberto()),
+  /* Atribuir (ou `vi.spyOn`) no Proxy cairia num objeto vazio que ninguém lê: falha alto em vez de sumir. */
+  set: (_alvo, prop) => {
+    throw new TypeError(
+      `db é só leitura (tentou definir "${String(prop)}"); use o executor (db/tx) ou um dublê do módulo`,
+    )
+  },
+  defineProperty: (_alvo, prop) => {
+    throw new TypeError(
+      `db é só leitura (tentou definir "${String(prop)}"); use o executor (db/tx) ou um dublê do módulo`,
+    )
+  },
 })
 
 /** `db` ou uma transação — quem escreve em duas etapas aceita os dois (P1-N3). */
@@ -254,8 +265,16 @@ export async function comConexaoDeMigracao<T>(fn: (dbm: DB) => Promise<T>): Prom
       await db.execute(sql`select set_config('statement_timeout', ${anterior?.v ?? '0'}, false)`)
     }
   }
+  /* Pooler em modo transação perderia o `SET` abaixo: recusa com o motivo (`recusaDeUrlDeMigracao`). */
+  const url = urlDoBanco()
+  const recusa = recusaDeUrlDeMigracao(url)
+  if (recusa) throw new Error(recusa)
   const { max: _max, idleTimeoutMillis: _ociosa, ...daConexao } = configDoPool()
-  const cliente = new Client({ connectionString: urlDoBanco(), ...daConexao })
+  const cliente = new Client({ connectionString: url, ...daConexao })
+  // Sem handler, a queda da conexão no meio das migrations vira 'error' não tratado e derruba o processo sem contexto.
+  cliente.on('error', (err) => {
+    console.error('[db] erro na conexão das migrations:', String(err?.message ?? err).slice(0, 160))
+  })
   await cliente.connect()
   try {
     await cliente.query('SET statement_timeout = 0')

@@ -26,7 +26,13 @@ vi.mock('../../server/ai/ssrf', async (original) => {
   return { ...real, assertPublicUrl: vi.fn(async () => {}) }
 })
 
-import { despachanteSeguro, ehDestinoBloqueado, fetchSeguro, lookupSoPublico } from '../../server/ai/ssrf'
+import {
+  despachanteSeguro,
+  ehDestinoBloqueado,
+  esquecerCacheDeDoh,
+  fetchSeguro,
+  lookupSoPublico,
+} from '../../server/ai/ssrf'
 import { extractArticle } from '../../server/import/web'
 
 let alvo: Server
@@ -138,8 +144,10 @@ describe('Worker (BABEL_RUNTIME=worker): fetchSeguro confere por DoH a cada cone
 
   beforeEach(() => {
     process.env.BABEL_RUNTIME = 'worker'
+    esquecerCacheDeDoh()
   })
   afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
     if (guarda === undefined) delete process.env.BABEL_RUNTIME
     else process.env.BABEL_RUNTIME = guarda
@@ -197,6 +205,60 @@ describe('Worker (BABEL_RUNTIME=worker): fetchSeguro confere por DoH a cada cone
     )
     await expect(extractArticle('http://publico.exemplo/artigo')).rejects.toSatisfy(ehDestinoBloqueado)
     expect(alvosConectados).toEqual(['http://publico.exemplo/artigo'])
+  })
+
+  /* CACHE DE DoH POR ISOLATE (Fase 4, T7): só resolução bem-sucedida e toda pública, por 60 s. */
+  /** Quantas consultas DoH (A e AAAA contam separadas) o dublê recebeu para `nome`. */
+  function consultasDoh(nome: string): number {
+    const f = globalThis.fetch as unknown as ReturnType<typeof vi.fn>
+    return f.mock.calls.filter((c) => {
+      const u = new URL(String(c[0]))
+      return u.pathname === '/dns-query' && u.searchParams.get('name') === nome
+    }).length
+  }
+
+  it('cache: o mesmo host público dentro do TTL consulta o DoH uma vez só', async () => {
+    dublê({ 'cache.exemplo': ['93.184.216.34'] })
+    await fetchSeguro('https://cache.exemplo/a', {})
+    await fetchSeguro('https://cache.exemplo/b', {})
+    expect(consultasDoh('cache.exemplo')).toBe(2) // A + AAAA, da primeira vez só
+    expect(alvosConectados).toEqual(['https://cache.exemplo/a', 'https://cache.exemplo/b'])
+  })
+
+  it('cache: resposta privada nunca é guardada — a próxima consulta vai ao DoH e, pública, passa', async () => {
+    const dns: Record<string, string[]> = { 'vira.exemplo': ['10.0.0.7'] }
+    dublê(dns)
+    await expect(fetchSeguro('https://vira.exemplo/', {})).rejects.toSatisfy(ehDestinoBloqueado)
+    expect(consultasDoh('vira.exemplo')).toBe(2)
+    dns['vira.exemplo'] = ['93.184.216.34']
+    const r = await fetchSeguro('https://vira.exemplo/', {})
+    expect(r.status).toBe(200)
+    expect(consultasDoh('vira.exemplo')).toBe(4)
+    expect(alvosConectados).toEqual(['https://vira.exemplo/'])
+  })
+
+  it('cache: entrada vencida (61 s) consulta de novo e, se agora privada, recusa', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    const dns: Record<string, string[]> = { 'rebind-lento.exemplo': ['93.184.216.34'] }
+    dublê(dns)
+    await fetchSeguro('https://rebind-lento.exemplo/', {})
+    dns['rebind-lento.exemplo'] = ['127.0.0.1']
+    vi.advanceTimersByTime(61_000)
+    await expect(fetchSeguro('https://rebind-lento.exemplo/', {})).rejects.toSatisfy(ehDestinoBloqueado)
+    expect(consultasDoh('rebind-lento.exemplo')).toBe(4)
+    expect(alvosConectados).toEqual(['https://rebind-lento.exemplo/'])
+  })
+
+  it('cache: no máximo 512 hosts — o 513º tira o mais antigo', async () => {
+    const dns: Record<string, string[]> = {}
+    for (let i = 1; i <= 513; i++) dns[`h${i}.exemplo`] = ['93.184.216.34']
+    dublê(dns)
+    for (let i = 1; i <= 513; i++) await fetchSeguro(`https://h${i}.exemplo/`, {})
+    expect(consultasDoh('h1.exemplo')).toBe(2)
+    await fetchSeguro('https://h2.exemplo/', {})
+    expect(consultasDoh('h2.exemplo'), 'o segundo mais antigo continua no cache').toBe(2)
+    await fetchSeguro('https://h1.exemplo/', {})
+    expect(consultasDoh('h1.exemplo'), 'o mais antigo saiu e foi consultado de novo').toBe(4)
   })
 })
 

@@ -223,6 +223,10 @@ export type InitSeguro = RequestInit & { dispatcher: typeof despachanteSeguro }
 
 const DOH = 'https://cloudflare-dns.com/dns-query'
 const TIMEOUT_DO_DOH_MS = 5_000
+const TTL_DO_DOH_MS = 60_000
+const MAX_NO_CACHE_DE_DOH = 512
+/** Resoluções públicas por host, deste isolate (no Node fica vazio: lá quem confere é o `lookup`). */
+const cacheDeDoh = new Map<string, { ips: string[]; expiraEm: number }>()
 
 /** As respostas de UM tipo (`A` = 1, `AAAA` = 28) para o nome. NXDOMAIN → lista vazia; outra falha lança. */
 async function consultarDoh(host: string, tipo: 'A' | 'AAAA'): Promise<string[]> {
@@ -250,14 +254,31 @@ async function consultarDoh(host: string, tipo: 'A' | 'AAAA'): Promise<string[]>
  * roda imediatamente antes de cada conexão (`fetchSeguro`, a cada salto de redirect) para a janela
  * ser a menor possível; e a saída do Worker é a rede pública da Cloudflare, sem rede privada nem porta
  * interna do próprio servidor do outro lado.
+ *
+ * CACHE POR ISOLATE (`cacheDeDoh`): uma resolução bem-sucedida e TODA pública vale `TTL_DO_DOH_MS` (60 s),
+ * para a importação não pagar duas consultas DoH a cada salto. Resultado privado, NXDOMAIN e erro nunca
+ * são guardados (a próxima chamada consulta de novo); entrada vencida consulta de novo e, se agora for
+ * privada, recusa. Isso alarga a janela residual para no máximo 60 s num host que era público na primeira
+ * vista — ver `docs/deploy.md`.
  */
 async function resolverSeguro(host: string): Promise<string[]> {
+  const guardado = cacheDeDoh.get(host)
+  if (guardado && guardado.expiraEm > Date.now()) return guardado.ips
+  cacheDeDoh.delete(host)
   const [a, aaaa] = await Promise.all([consultarDoh(host, 'A'), consultarDoh(host, 'AAAA')])
   const enderecos = [...a, ...aaaa]
   if (enderecos.length === 0) throw Object.assign(new Error('host não encontrado (DNS)'), { code: 'ENOTFOUND' })
   // Sem o IP na mensagem: o que o chamador precisa saber é que o destino não é permitido.
   if (enderecos.some((e) => isPrivateIp(e))) throw new DestinoBloqueado('host resolve para IP interno (SSRF)')
+  /* Só chega aqui o que é todo público. Cheio: sai o mais antigo inserido (o `Map` guarda a ordem). */
+  if (cacheDeDoh.size >= MAX_NO_CACHE_DE_DOH) cacheDeDoh.delete(cacheDeDoh.keys().next().value as string)
+  cacheDeDoh.set(host, { ips: enderecos, expiraEm: Date.now() + TTL_DO_DOH_MS })
   return enderecos
+}
+
+/** Para testes: esvazia o cache de DoH. */
+export function esquecerCacheDeDoh(): void {
+  cacheDeDoh.clear()
 }
 
 /**

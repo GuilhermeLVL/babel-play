@@ -166,7 +166,12 @@ antes de conectar, com a mesma lista de bloqueio e o mesmo `DestinoBloqueado`. *
 o `fetch` resolve o nome de novo pelo resolvedor da Cloudflare, e um domínio com TTL 0 pode trocar a
 resposta entre as duas consultas — não há `lookup` de socket para fechá-la como no Node. Ela fica pequena
 (conferência imediatamente antes de cada conexão e de cada salto) e o que está do outro lado é a rede
-pública da Cloudflare, sem rede privada nem porta interna do servidor para alcançar. Em `fetchSeguro`, no
+pública da Cloudflare, sem rede privada nem porta interna do servidor para alcançar. **Cache de DoH:** cada
+isolate guarda por 60 s (até 512 hosts) só a resolução bem-sucedida e toda pública; resultado privado,
+NXDOMAIN e erro nunca são guardados, e a entrada vencida consulta de novo (e recusa se agora for privada).
+Isso alarga a janela para no máximo 60 s num host que era público na primeira vista — aceitável porque o
+próprio resolvedor do Worker também guarda respostas, a importação só busca páginas públicas, e um
+resultado privado nunca é reaproveitado. Em `fetchSeguro`, no
 Node, IP literal, esquema e `localhost`/`*.localhost` são recusados antes de conectar (o `lookup` do socket
 só confere nome). **Isentos de `fetchSeguro`** (destino fixo do operador, nunca escolhido pelo usuário):
 provedores do registro e Ollama local em `server/ai/llmClient.ts` (endereço vem de `ops/ia-provedores*.json`

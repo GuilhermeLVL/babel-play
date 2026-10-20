@@ -15,7 +15,6 @@ import {
   Link as LinkIcon,
   Loader,
   Loader2,
-  Lock,
   Mic,
   MoreVertical,
   Package,
@@ -37,7 +36,6 @@ import { createSession, deleteSession, fetchSessions, patchSessionMeta, updateSe
 import { escolherConteudo, mudarIdiomaDoConteudo, useConteudo } from '../../lib/conteudo/loja';
 import { useContagensDeConteudo } from '../../lib/conteudo/useContagens';
 import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
-import { getEntitlements, onPlanChange } from '../../lib/entitlements';
 import { idiomaDaInterface, numero } from '../../lib/i18n';
 import { t } from '../../lib/i18n';
 import {
@@ -91,13 +89,6 @@ const JANELA_DE_DESFAZER_MS = 8000;
 
 const FONTES: Array<{ key: FonteDeImportacao; Icone: typeof Youtube; label: string; sub: string; hint: string }> = [
   {
-    key: 'youtube',
-    Icone: Youtube,
-    label: 'Link do YouTube',
-    sub: 'Legenda ou transcrição local',
-    hint: 'Usa a legenda do vídeo quando existe (rápido, com tempos reais). Sem legenda, transcreve o áudio no navegador.',
-  },
-  {
     key: 'doc',
     Icone: FileText,
     label: 'Documento ou legenda',
@@ -143,9 +134,6 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
   // A lista é paginada (`BibliotecaDoQuest`). A tela completa só abre para o formulário de "Importar".
   const [telaCompleta, setTelaCompleta] = useState(false);
   const [showImport, setShowImport] = useState(false);
-  // Entitlements do plano ativo (self-host = tudo liberado). Reage à troca em Configurações.
-  const [entitlements, setEntitlements] = useState(() => getEntitlements());
-  useEffect(() => onPlanChange(() => setEntitlements(getEntitlements())), []);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState<'all' | 'video' | 'audio' | 'document'>('all');
   // Painel "Filtros": só sobre campos que existem de verdade em `Recording`. Tags não entram:
@@ -294,7 +282,6 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
   const [importUrl, setImportUrl] = useState('');
   const [importTexto, setImportTexto] = useState('');
   const [importArquivo, setImportArquivo] = useState<File | null>(null);
-  const youtubeTravado = !entitlements.youtubeImport;
 
   /** O "Importar" do Quest abriu a tela de sempre só para o formulário: desistir devolve a tela do Quest. */
   const importarDoQuest = useRef(false);
@@ -325,10 +312,10 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
   };
 
   const entradaAtual = (): Entrada | null => {
-    if (importSource === 'youtube' || importSource === 'web') {
+    if (importSource === 'web') {
       const url = importUrl.trim();
       if (!url) return null;
-      return importSource === 'youtube' ? { fonte: 'youtube', url } : { fonte: 'web', url };
+      return { fonte: 'web', url };
     }
     if (importSource === 'doc' || importSource === 'local') {
       if (!importArquivo) return null;
@@ -421,7 +408,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
   );
   const tipoDaCapa = (t: Recording['type']) => (t === 'video' ? 'youtube' : t === 'document' ? 'docs' : 'audio');
   const IconeDaMidia = (t: Recording['type']) => (t === 'video' ? Youtube : t === 'document' ? FileText : FileAudio);
-  const podeImportar = !!entradaAtual() && !(importSource === 'youtube' && youtubeTravado);
+  const podeImportar = !!entradaAtual();
 
   const escolherArquivo = (f: File | undefined | null) => {
     if (f) setImportArquivo(f);
@@ -607,7 +594,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
               </div>
               <p className="mut" style={{ fontSize: 13, margin: '6px 0 16px', maxWidth: '72ch' }}>
                 <T
-                  txt="Vídeo do YouTube, documento, artigo da web ou áudio local: vira uma sessão com transcrição e vocabulário. O idioma é <b>detectado do conteúdo</b>, nunca inventado."
+                  txt="Documento, artigo da web ou áudio local: vira uma sessão com transcrição e vocabulário. O idioma é <b>detectado do conteúdo</b>, nunca inventado."
                   tags={{ b: <b style={{ color: 'var(--ink)' }} /> }}
                 />
               </p>
@@ -626,17 +613,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
                   >
                     <IconeEmBloco icone={f.Icone} />
                     <span style={{ flex: 1, minWidth: 0 }}>
-                      <b>
-                        {f.label}
-                        {f.key === 'youtube' && youtubeTravado && (
-                          <>
-                            {' '}
-                            <span className="badge warn" style={{ marginLeft: 4 }}>
-                              {t('Self-host')}
-                            </span>
-                          </>
-                        )}
-                      </b>
+                      <b>{f.label}</b>
                       <small>{f.sub}</small>
                     </span>
                     <span
@@ -656,17 +633,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
 
               {importSource && (
                 <div className="linha entra" style={{ gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
-                  {importSource === 'youtube' && youtubeTravado ? (
-                    <div className="aviso-info" style={{ flex: 1 }}>
-                      <Lock aria-hidden />
-                      <span>
-                        <T
-                          txt="Importar do YouTube só existe no <b>self-host</b>: o download roda no servidor de quem hospeda. Aqui, toque o vídeo e use Capturar com o áudio do sistema."
-                          tags={{ b: <b style={{ color: 'var(--ink)' }} /> }}
-                        />
-                      </span>
-                    </div>
-                  ) : importSource === 'youtube' || importSource === 'web' ? (
+                  {importSource === 'web' ? (
                     <>
                       <label className="busca">
                         <LinkIcon aria-hidden />

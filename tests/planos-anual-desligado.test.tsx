@@ -68,7 +68,6 @@ function montarMocks(o: { anual?: boolean; status?: unknown; plano?: string } = 
     const real = (await original()) as typeof import('../src/lib/entitlements')
     const ents = {
       plan: o.plano ?? 'free',
-      youtubeImport: false,
       managedCloudStt: false,
       managedCloudLlm: false,
       largerModels: false,

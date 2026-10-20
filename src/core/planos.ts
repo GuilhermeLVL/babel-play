@@ -107,8 +107,6 @@ export const NIVEIS_DE_VOZ = ['aparelho', 'basica', 'boa'] as const;
 export type NivelDeVoz = (typeof NIVEIS_DE_VOZ)[number];
 
 export interface EntitlementsDoPlano {
-  /** Importação de YouTube (yt-dlp roda no servidor — custo/infra de quem hospeda). */
-  youtubeImport: boolean;
   /** STT de nuvem com a chave do DONO do serviço. BYOK é sempre livre, em qualquer plano. */
   managedCloudStt: boolean;
   /** Tradução/LLM de nuvem com a chave do dono. */
@@ -215,7 +213,6 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
     precoAnualBrl: null,
     flagsDeVenda: [],
     entitlements: {
-      youtubeImport: false,
       managedCloudStt: false,
       managedCloudLlm: false,
       largerModels: false,
@@ -250,7 +247,6 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
        Fala com a voz do aparelho e o intérprete é por toque. `largerModels` fica de fora: além dos
        modelos locais maiores ele liga o `LLM_MODEL_GRANDE` do registro legado, que é custo de nuvem. */
     entitlements: {
-      youtubeImport: false,
       managedCloudStt: true,
       managedCloudLlm: true,
       largerModels: false,
@@ -285,7 +281,6 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
        perde nada); `LLM_MODEL_GRANDE` continua ausente por padrão, e o modelo mais forte chega pelo
        nível `nuance` (B3/D1). É o plano do TESTE de 14 dias (`PLANO_DO_TESTE`). */
     entitlements: {
-      youtubeImport: false,
       managedCloudStt: true,
       managedCloudLlm: true,
       largerModels: true,
@@ -332,7 +327,6 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
     /* Tudo do Premium, MAIS o texto durante a fala (`sttAoVivo`) e a voz neural boa. Até a medição de
        custo escolher as vozes, a "boa" e a "básica" saem do mesmo provedor (§11, item 10). */
     entitlements: {
-      youtubeImport: false,
       managedCloudStt: true,
       managedCloudLlm: true,
       largerModels: true,
@@ -365,7 +359,6 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
     flagsDeVenda: [],
     // A chave de IA é do próprio dono da instância: não há custo nosso, nada a gatear.
     entitlements: {
-      youtubeImport: true,
       managedCloudStt: true,
       managedCloudLlm: true,
       largerModels: true,
@@ -417,7 +410,6 @@ export const PLANO_CONVIDADO: DefinicaoDePlano = {
   precoAnualBrl: null,
   flagsDeVenda: [],
   entitlements: {
-    youtubeImport: false,
     managedCloudStt: true,
     managedCloudLlm: true,
     largerModels: false,
@@ -450,7 +442,6 @@ export const PLANO_CONVIDADO: DefinicaoDePlano = {
  * `EntitlementsDoPlano` não compila sem dizer aqui como é "fechado".
  */
 export const ENTITLEMENTS_FECHADOS: Readonly<EntitlementsDoPlano> = Object.freeze({
-  youtubeImport: false,
   managedCloudStt: false,
   managedCloudLlm: false,
   largerModels: false,

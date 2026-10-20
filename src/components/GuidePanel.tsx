@@ -32,7 +32,7 @@ const FLUXOS: Array<{ icone: LucideIcon; titulo: string; passos: string }> = [
   {
     icone: Plus,
     titulo: 'Importar conteúdo',
-    passos: 'Biblioteca → Importar: YouTube, PDF, artigo da web ou áudio viram sessão.',
+    passos: 'Biblioteca → Importar: PDF, artigo da web ou áudio viram sessão.',
   },
   {
     icone: PictureInPicture2,

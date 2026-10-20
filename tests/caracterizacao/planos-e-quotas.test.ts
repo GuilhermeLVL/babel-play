@@ -127,7 +127,6 @@ describe('planos e quotas (modo publico)', () => {
       managedCloudLlm: true,
       managedCloudStt: true,
       // Fase 2 do lançamento: YouTube só no self-host (no hospedado a rota responde 403).
-      youtubeImport: false,
       largerModels: true,
       // Matriz v2: os entitlements novos chegam ao cliente pela mesma rota.
       traducaoNuance: true,

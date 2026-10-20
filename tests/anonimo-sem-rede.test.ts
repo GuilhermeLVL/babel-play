@@ -224,11 +224,10 @@ describe('anônimo sem rede', () => {
     const e = await carregarEntitlements()
     expect(e.plan).toBe('anonimo')
     expect(e.managedCloudStt).toBe(false)
-    expect(e.youtubeImport).toBe(false)
   })
 
   it('o que exige conta responde "conta necessária" — e ainda assim nada vai à rede', async () => {
-    await expect(api.importYoutube('https://youtu.be/x')).rejects.toThrow(/conta/)
+    await expect(api.importWeb('https://exemplo.com/artigo')).rejects.toThrow(/conta/)
     expect(await api.searchImages('cat')).toEqual([])
     expect(await api.listCredentials()).toEqual([])
   })

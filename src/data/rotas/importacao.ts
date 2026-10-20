@@ -5,32 +5,12 @@
  * são finos: só falam com as rotas de import e propagam o erro do servidor (mensagem honesta na UI).
  *
  * NÃO HÁ ESPELHO deste arquivo em `src/data/efemero/rotas/` — e a ausência é a informação: importar
- * exige o servidor (yt-dlp, busca de página com CORS e SSRF, extração de PDF/DOCX). O motivo está
+ * uma página exige o servidor (busca com CORS e SSRF). PDF, DOCX e Anki são lidos no navegador. O motivo está
  * escrito em `tests/contratos/rotas-espelhadas.test.ts`, que o cobra.
  *
- * Rotas: POST `/api/import/youtube`, POST `/api/import/web`, POST `/api/import/document`.
+ * Rota: POST `/api/import/web`.
  */
 import { apiFetch, IMPORT_TIMEOUT_MS } from '../funil'
-
-export interface ImportYoutubeResult {
-  id: string
-  /** true = vídeo SEM legenda → o cliente transcreve o áudio baixado com o Whisper local. */
-  needsClientStt: boolean
-  sourceLang?: string
-  captionKind: 'manual' | 'auto' | null
-}
-
-export async function importYoutube(url: string): Promise<ImportYoutubeResult> {
-  const res = await apiFetch('/api/import/youtube', {
-    timeoutMs: IMPORT_TIMEOUT_MS, // yt-dlp: até 300s no servidor
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url }),
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error((data as { error?: string })?.error || 'falha ao importar do YouTube')
-  return data as ImportYoutubeResult
-}
 
 /** Resultado da extração de TEXTO (web/documento) — o cliente monta a sessão-documento. */
 export interface ImportTextResult {

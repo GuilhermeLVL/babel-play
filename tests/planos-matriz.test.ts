@@ -159,7 +159,7 @@ describe('a matriz v3', () => {
       interpreteAutomatico: false,
     })
     const tudo = getEntitlements('selfhost')
-    expect(tudo.traducaoNuance && tudo.vozNatural && tudo.interpreteAutomatico && tudo.youtubeImport).toBe(true)
+    expect(tudo.traducaoNuance && tudo.vozNatural && tudo.interpreteAutomatico).toBe(true)
   })
 
   /* Cada plano contém o de baixo: é o que deixa a migração 0049 pôr o Ao Vivo em toda regra que cita
@@ -234,11 +234,6 @@ describe('a matriz v3', () => {
     for (const p of PLANOS_PAGOS) {
       expect(PLAN_MATRIX[p].quotas.armazenamentoMb, p).toBe(PLAN_MATRIX.free.quotas.armazenamentoMb)
     }
-  })
-
-  it('YouTube não é vendido: no modo hospedado a rota responde 403', () => {
-    for (const p of PLANOS_PAGOS) expect(getEntitlements(p).youtubeImport, p).toBe(false)
-    expect(getEntitlements('selfhost').youtubeImport).toBe(true)
   })
 
   it('a nuvem de alívio do Grátis fica como está enquanto os anúncios não existem', async () => {

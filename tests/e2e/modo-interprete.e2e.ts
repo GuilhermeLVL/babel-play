@@ -369,7 +369,6 @@ test.describe('Modo intérprete no computador (Premium, voz natural)', () => {
       r.fulfill({
         json: {
           plan: 'premium',
-          youtubeImport: true,
           managedCloudStt: true,
           managedCloudLlm: true,
           largerModels: true,

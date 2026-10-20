@@ -20,7 +20,6 @@ const SENHA = 'senha-e2e-123'
 
 export const ENTITLEMENTS_PREMIUM = {
   plan: 'premium',
-  youtubeImport: false,
   managedCloudStt: true,
   managedCloudLlm: true,
   largerModels: true,

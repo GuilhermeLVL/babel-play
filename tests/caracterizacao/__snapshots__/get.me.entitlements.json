@@ -16,7 +16,6 @@
     "sttAoVivo": "boolean",
     "teste": "null",
     "traducaoNuance": "boolean",
-    "vozNatural": "boolean",
-    "youtubeImport": "boolean"
+    "vozNatural": "boolean"
   }
 }

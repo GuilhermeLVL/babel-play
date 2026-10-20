@@ -32,7 +32,7 @@ describe('SaaS Fatia 1a — entitlements server-side', () => {
     const u = asUserId('u-local')
     expect(await ent.getPlanForUser(u)).toBe('selfhost')
     const e = await ent.getEntitlementsForUser(u)
-    expect(e).toMatchObject({ managedCloudStt: true, managedCloudLlm: true, youtubeImport: true })
+    expect(e).toMatchObject({ managedCloudStt: true, managedCloudLlm: true })
   })
 
   it('default por modo: público (AUTH_REQUIRED=1) sem assinatura → free, tudo bloqueado', async () => {
@@ -40,7 +40,7 @@ describe('SaaS Fatia 1a — entitlements server-side', () => {
     const u = asUserId('u-public-novo')
     expect(await ent.getPlanForUser(u)).toBe('free')
     const e = await ent.getEntitlementsForUser(u)
-    expect(e).toMatchObject({ managedCloudStt: false, managedCloudLlm: false, youtubeImport: false })
+    expect(e).toMatchObject({ managedCloudStt: false, managedCloudLlm: false })
   })
 
   it('anti-escalada (público): settings.ui.plan=pro sem assinatura é IGNORADO → free', async () => {

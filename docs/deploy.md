@@ -328,6 +328,10 @@ new version of a Worker that does not yet exist"). Uma vez por ambiente, nesta o
 2. os secrets (`scripts/cloudflare/secrets.ts`, seção "Secrets do Worker");
 3. daí em diante, o workflow.
 
+Ao apontar o Worker para um banco que já serviu um servidor Node, apague a linha `configuracao` de
+`boot_falhas` (`DELETE FROM boot_falhas WHERE passo = 'configuracao'`): o Worker só espelha esse passo em memória
+e uma linha antiga deixaria o `/api/health` em `degraded`.
+
 `.github/workflows/deploy-worker.yml` (manual: Actions → deploy-worker → Run workflow; inputs `ambiente`
 `staging|production` e `ref` opcional) publica por **versões** do Cloudflare, com fumaça e rollback:
 

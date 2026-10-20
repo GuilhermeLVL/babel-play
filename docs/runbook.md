@@ -333,8 +333,8 @@ curl -s -H "Authorization: Bearer $METRICS_TOKEN" https://<host>/metrics | head 
 listener próprio, sem token. Esse listener não existe mais (`METRICS_PORTA_INTERNA` é ignorada): o
 `/metrics` mora sempre na porta do app, e em produção `METRICS_ENABLED=1` **exige** `METRICS_TOKEN`
 (o boot aborta sem). Um raspador que manda `Authorization: Bearer` (agente próprio, Grafana Alloy) é o
-caminho; o `[metrics]` do `fly.toml` está marcado como legado e sai na Fase 4 junto com o Fly. Num
-Worker, o backend de métricas é um no-op (Analytics Engine é a Fase 4). Os dados do painel do Fly
+caminho; o `[metrics]` do `fly.toml` está marcado como legado e sai na Fase 5 junto com o Fly. Num
+Worker, o `/metrics` não existe: as 6 famílias de métricas vão para o Analytics Engine (seção 3.1, Fase 4). Os dados do painel do Fly
 (`ops/dashboards/babel-play.json`) e as regras de `ops/alertas/regras.yml` seguem valendo para quem raspa.
 
 **Cada instância tem o seu `/metrics`** (o cluster saiu; escala-se por instâncias). O header

@@ -20,6 +20,8 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
 - `worker.ts`: ponto de entrada do Cloudflare Worker (o par do `server.ts`): `/api/*` pelo mesmo Express, resto pelos assets, cron.
   `wrangler.jsonc` configura o Worker; o `wrangler.toml` é o projeto Pages da edição estática, então SEMPRE `-c wrangler.jsonc`.
 - `tests/` (vitest e e2e Playwright), `scripts/` (operação, perf, i18n), `ops/` (provedores, alertas), `docs/`, `openspec/`.
+  `scripts/cloudflare/`: infra reproduzível (buckets R2, Hyperdrive de staging, secrets do Worker — nunca commitar `.secrets.*.json`).
+  `scripts/vite/cabecalhos.ts` GERA o `dist/_headers` no build (CSP bloqueante = `diretivasDeCsp(env)` do Express); não existe mais `public/_headers`.
   `tests/harness/lerApkgNode.ts` lê um `.apkg` em Node com o mesmo leitor do navegador (testes e scripts).
 
 ## Comandos

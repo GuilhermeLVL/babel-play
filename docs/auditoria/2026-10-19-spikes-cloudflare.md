@@ -451,3 +451,84 @@ do `.anki21b` junta os pedaços numa cópia (até 2× a coleção descomprimida 
 num celular com coleção perto do teto de 300 MB a aba pode cair; pré-alocar pelo tamanho do frame quando
 declarado e um teto menor no mobile ficam como melhoria; a conta não tem cota de armazenamento do acervo Anki
 (só tetos por lote/import) — avaliar na Fase 4/5 junto com o orçamento do banco.
+
+## Fase 4 (Tasks 1–8) concluída: entrega na Cloudflare e nome Frasy (2026-10-20, branch `cloudflare/migracao`)
+
+Plano: `docs/superpowers/plans/2026-10-20-fase4-entrega-e-frasy.md` (10 tarefas; a Task 9 — deploy de staging
+e medições — espera a autorização do dono para publicar; a Task 10 é esta seção e o portão). Nada publicado:
+`main`, Fly e o Worker antigo `babel-play` (edição estática) intactos. O que foi CRIADO na conta Cloudflare e no
+Supabase é reversível e sem custo: buckets, Hyperdrive de staging e um banco vazio.
+
+**O que entrou.**
+
+- **Frasy.** O produto chama-se Frasy em tudo que a pessoa vê (UI, 12 chaves i18n + "Nuvem do Frasy", e-mails,
+  descrições do Asaas, nomes de arquivo exportado `frasy-…`, `.apkg`, User-Agent, páginas jurídicas só o nome,
+  consentimento do responsável `v2-2026-10-20`, docs vivos, `.env.production.example` com `frasy.com.br`) e no
+  que nasce na Cloudflare (Worker `frasy`/`frasy-staging`, buckets `frasy-*`). Identificadores internos
+  (`babel.*` no navegador, sais criptográficos, bancos, Fly, Pages, repo, Sentry/Langfuse) não mudaram.
+- **CSP bloqueante nos estáticos.** `scripts/vite/cabecalhos.ts` gera `dist/_headers` no build com a MESMA
+  política do Express (`diretivasDeCsp(env)` + `serializarCsp`), COOP/COEP/DIP e as regras de cache;
+  `public/_headers` (Report-Only) deixou de existir; a edição estática usa o mesmo arquivo.
+- **R2.** `scripts/cloudflare/r2.mjs` (idempotente) criou `frasy-midia`, `frasy-midia-staging`,
+  `frasy-backups` (lifecycle `semanal/` 56 dias) e `frasy-modelos` (CORS GET/HEAD); todos em ENAM (o R2 não tem
+  dica de localização na América do Sul). `VITE_ORT_WASM_URL` passa a alimentar `wasmPaths` do ONNX e a CSP
+  (`connect-src`, `script-src`, `worker-src`); a troca efetiva para o R2 espera o domínio.
+- **Secrets e saúde.** `scripts/cloudflare/secrets.ts <amb>` faz `wrangler secret bulk` de `.secrets.<amb>.json`
+  (gitignored; `.secrets.example.json` com os nomes obrigatórios, teste de drift); `relatarConfiguracao()` roda
+  uma vez por isolate no portão do Worker, e `/api/health` responde `degraded` (passo `configuracao`; os nomes
+  vão ao log) quando falta variável crítica.
+- **Staging real.** Banco `frasy_staging` criado e migrado no projeto Supabase de SP + Hyperdrive
+  `frasy-staging-sp` (`4c4526a6…`, criado pela API para a senha não passar por argv); `env.staging` publicável
+  (`define` repetido — não é herdado; teste de igualdade; `workers_dev: true` só no staging).
+- **CI.** `deploy-worker.yml` (manual, por Environment): build com `VITE_*`, `db:migrate` com CA, `wrangler
+versions upload` → fumaça no preview → `versions deploy` 100 % → fumaça final → `rollback` só se o deploy
+  passou e a fumaça final falhou; SHA do commit realmente baixado. Job `worker` no `ci.yml` (bundle, `tests/worker`,
+  fumaça com Postgres de serviço). `lighthouse.yml` mede uma URL.
+- **DoH com cache por isolate** (60 s, 512 hosts, só resultados todos públicos; fail-closed intacto).
+- **Analytics Engine** (`METRICAS` → `frasy_metricas`/`_staging`): 6 famílias (requisição, admissão recusada,
+  custo por plano, R2, provedor de IA, job), nunca lança, sem promessa solta; SQL no runbook.
+
+**Portão (HEAD das Tasks 1–8).**
+| Verificação | Resultado |
+|---|---|
+| typecheck, lint, i18n (2 órfãs pré-existentes) | ok |
+| `npm test` (PGlite) | 12 177 testes, 0 falhas |
+| integração + caracterização em Postgres 17 (cluster novo) | 272 arquivos, 2 174 testes, 0 falhas |
+| bundle do Worker + `tests/worker` | 5 964 KB bruto; 44 testes |
+| fumaça em `wrangler dev` | 7/7 (rodada na T8) |
+| E2E no Node (3 viewports) | 202 ok, 0 falhas (2 casos reexecutados após falha ambiental concorrente com a correção) |
+| knip | só achados pré-existentes |
+| revisão final (opus, T1–T8) + re-revisão da correção (sonnet) | 0 crítico; 4 Important e 6 minors corrigidos em 926a90bf; re-revisão aprovada com 3 minors (2 aplicados no commit das docs, 1 cosmético) |
+
+**Correção da revisão final (commit 926a90bf).** Quatro Important fechados: o `worker:build`/dry-run cria o `dist/`
+quando falta (o job `worker` do CI e `tests/worker/bundle.test.ts` rodam em runner limpo); o `deploy-worker.yml`
+pré-checa se o Worker existe (o primeiro deploy de cada ambiente é manual, `wrangler deploy`, documentado em
+`docs/deploy.md`) e roda `wrangler triggers deploy` depois da fumaça, porque `versions deploy` não aplica crons;
+`ASAAS_SANDBOX=1` no staging e `ASAAS_BASE_URL` em produção no `wrangler.jsonc` (sem isso o boot dava 503);
+`preview_urls: true` no topo (R12) com fumaça da preview obrigatória em produção. Minors: `relatarConfiguracao`
+sob try/catch no portão; o passo `configuracao` é limpo com `registrarSucessoDeBoot` quando a config valida (no
+Worker só o espelho em memória, porque o `db` não existe fora de `comExecutor`); o script de secrets rejeita
+valores vazios; docs (METRICAS, residência ENAM em `docs/lgpd/operadores.md`, secrets recomendadas). Ressalvas
+aceitas: o rollback automático só dispara quando a fumaça final falha (falha isolada no `triggers deploy` fica
+para o operador, que vê o passo vermelho); o pré-check de Worker inexistente casa a saída do wrangler por regex e
+só será provado no primeiro deploy real.
+
+**Decisões (R1–R12).** `_headers` gerado no build; modelos/WASM por variável, R2 quando houver domínio; staging no
+mesmo projeto Supabase com banco próprio; publicação por versões; secrets por script; Analytics Engine com
+subconjunto; cache de DoH; rename sem identificadores internos; medições no staging real (T9); R11: o staging
+divide o Supabase Auth com a produção (mesmo emissor de JWT) — antes do LANÇAMENTO, projeto Supabase separado
+para o staging ou lista de permitidos.
+
+**Depende do dono.** Autorizar o deploy de staging (T9: `frasy-staging.guigui-cruzeiro.workers.dev`, Free, sem
+crons); assinar Workers Paid antes da produção (7 crons); colocar a zona `frasy.com.br` na Cloudflare (hoje não há
+zona na conta) e então domínio do Worker, `APP_URL`/`VITE_PUBLIC_URL`, bucket público de modelos, Supabase
+(Site URL/Redirects), Asaas (webhook), Resend (SPF/DKIM), Turnstile; GitHub Environments `staging`/`production`
+com `CLOUDFLARE_API_TOKEN` (Workers Scripts/Versions), `CLOUDFLARE_ACCOUNT_ID`, `DATABASE_URL_MIGRACAO`,
+`SUPABASE_CA_PEM`, `VITE_*`; chaves S3 do R2 para o backup e para publicar os modelos; apagar o Worker antigo
+`babel-play` quando quiser; decidir `preview_urls` em produção.
+
+**Dívidas menores registradas (ledger).** "nuvem do Babel" em 9 comentários; `localhost:3100` no CORS de
+produção do bucket de modelos; lifecycle comparado só por nome; chaves desconhecidas enviadas pelo script de
+secrets; `boot_falhas` não é escrita no Worker (só espelho por isolate); migração do staging sem fallback ao
+pooler; `rotuloFechado` em fornecedor/modelo do ponto `provedor`; teste ponta a ponta do middleware de métricas;
+cópia do array do cache de DoH.

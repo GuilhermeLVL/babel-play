@@ -95,7 +95,7 @@ jobs:
         run: |
           env_args=(); [ "$AMBIENTE" = "production" ] || env_args=(--env "$AMBIENTE")
           if ! saida=$(npx wrangler deployments list -c wrangler.jsonc "${env_args[@]}" 2>&1); then
-            if printf '%s' "$saida" | grep -qiE 'does not exist|not found|10007'; then
+            if printf '%s' "$saida" | grep -qiE 'does not (yet )?exist|workers\.api\.error\.script_not_found|10007'; then
               [ "$AMBIENTE" = "production" ] && cmd="npx wrangler deploy -c wrangler.jsonc" \
                 || cmd="npx wrangler deploy -c wrangler.jsonc --env $AMBIENTE"
               echo "::error::o Worker de '$AMBIENTE' ainda não existe: o primeiro deploy é manual (\`$cmd\`), depois os secrets; ver docs/deploy.md"

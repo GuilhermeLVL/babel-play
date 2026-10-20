@@ -244,7 +244,7 @@ async function consultarDoh(host: string, tipo: 'A' | 'AAAA'): Promise<string[]>
  * `lookupSoPublico`, sem `node:dns`. Fail-closed: DoH fora do ar, status de erro ou resposta que não é
  * IP também recusam.
  *
- * JANELA RESIDUAL (documentada em `docs/arquitetura.md`): o `fetch` do Worker resolve o nome DE NOVO,
+ * JANELA RESIDUAL (documentada em `docs/deploy.md`): o `fetch` do Worker resolve o nome DE NOVO,
  * pelo resolvedor da Cloudflare, e um domínio com TTL 0 pode responder diferente entre as duas
  * consultas — no Worker não há `lookup` de socket para fechar essa janela como no Node. A conferência
  * roda imediatamente antes de cada conexão (`fetchSeguro`, a cada salto de redirect) para a janela

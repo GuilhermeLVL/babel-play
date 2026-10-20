@@ -150,6 +150,25 @@ em `wrangler dev`: `curl "http://localhost:8787/cdn-cgi/local/scheduled?cron=23+
 `scheduled` com aquela expressão. `POST /api/admin/armazenamento/reconciliar` continua reconciliando todo
 mundo de uma vez, pelo mesmo `reconciliarVencidos` do job.
 
+## Segundo plano, SSRF e compressão (Node × Worker)
+
+**Trabalho depois da resposta** (envelope do Sentry, lote do Langfuse, recálculo de dificuldade depois da
+rodada, poda do limitador) passa por `emSegundoPlano(p)` (`server/lib/runtime.ts`). No **Worker**, uma
+promessa solta morre com o fim da requisição: dentro de `comContextoDoWorker(ctx, fn)` — que o `worker.ts`
+abre em volta de cada requisição (Task 12) — a promessa vai para `ctx.waitUntil`; o Langfuse lá não tem
+`setInterval` e descarrega a cada envio, também pelo `waitUntil`. No **Node** só não espera, e o relógio do
+Langfuse segue igual. Nos dois, falha vira o log `segundo_plano_falhou`, nunca rejeição solta.
+**SSRF:** todo `fetch` para destino escolhido pelo usuário passa por `fetchSeguro` (`server/ai/ssrf.ts`), que
+nunca segue redirect (quem segue, a importação de página, confere cada salto). No Node o IP é conferido no
+`lookup` do socket (`despachanteSeguro`, `node:dns` + `undici`, carregados no primeiro uso). No Worker não
+há nenhum dos dois: o nome é resolvido por DNS-over-HTTPS (`cloudflare-dns.com`, A e AAAA) imediatamente
+antes de conectar, com a mesma lista de bloqueio e o mesmo `DestinoBloqueado`. **Janela residual no Worker:**
+o `fetch` resolve o nome de novo pelo resolvedor da Cloudflare, e um domínio com TTL 0 pode trocar a
+resposta entre as duas consultas — não há `lookup` de socket para fechá-la como no Node. Ela fica pequena
+(conferência imediatamente antes de cada conexão e de cada salto) e o que está do outro lado é a rede
+pública da Cloudflare, sem rede privada nem porta interna do servidor para alcançar. **Compressão:** o
+middleware `compression` é montado só no Node; no Worker quem comprime é a borda.
+
 ## O que fica desativado por design
 
 No modo público, uma capacidade local responde **403 mesmo com token válido** — ela

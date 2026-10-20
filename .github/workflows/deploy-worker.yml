@@ -53,9 +53,15 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       WRANGLER_SEND_METRICS: 'false'
     steps:
+      # QUEM PODE PUBLICAR QUAL REF é decidido pelo Environment (política de ramos de deploy + revisores
+      # obrigatórios; ver docs/deploy.md), não por este input. O SHA publicado é o do que foi baixado.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ inputs.ref }}
+      - name: SHA efetivamente baixado
+        run: |
+          echo "SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "SHA7=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_ENV"
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
@@ -104,10 +110,10 @@ jobs:
           SUPABASE_CA_PEM: ${{ secrets.SUPABASE_CA_PEM }}
         run: |
           set -euo pipefail
+          trap 'rm -f "$RUNNER_TEMP/supabase-ca.pem"' EXIT
           ( umask 077; printf '%s\n' "$SUPABASE_CA_PEM" > "$RUNNER_TEMP/supabase-ca.pem" )
           export NODE_EXTRA_CA_CERTS="$RUNNER_TEMP/supabase-ca.pem"
           npm run db:migrate
-          rm -f "$RUNNER_TEMP/supabase-ca.pem"
 
       # Sobe a versão SEM tráfego. `GIT_SHA` vira a versão servida em /api/health (`0.1.0+<sha7>`); o alias
       # "fumaca" dá uma URL de preview estável para testar antes de virar o tráfego. A saída estruturada do
@@ -116,13 +122,12 @@ jobs:
       - name: Subir a versão (sem tráfego)
         id: subir
         env:
-          SHA: ${{ github.sha }}
           WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-saida.ndjson
         run: |
           set -euo pipefail
           env_args=(); [ "$AMBIENTE" = "production" ] || env_args=(--env "$AMBIENTE")
           npx wrangler versions upload -c wrangler.jsonc "${env_args[@]}" \
-            --var "GIT_SHA:$SHA" --preview-alias fumaca --message "${SHA::7} $AMBIENTE"
+            --var "GIT_SHA:$SHA" --preview-alias fumaca --message "$SHA7 $AMBIENTE"
           node -e '
             const l = require("fs").readFileSync(process.env.WRANGLER_OUTPUT_FILE_PATH, "utf8").split("\n").filter(Boolean)
               .map((x) => JSON.parse(x)).find((e) => e.type === "version-upload")
@@ -135,7 +140,6 @@ jobs:
       - name: Fumaça na versão em preview
         env:
           PREVIEW: ${{ steps.subir.outputs.preview }}
-          SHA: ${{ github.sha }}
         run: |
           if [ -z "$PREVIEW" ]; then
             echo "::warning::sem URL de preview (preview_urls desligado neste ambiente): fumaça de preview ignorada"
@@ -148,23 +152,24 @@ jobs:
         id: implantar
         env:
           VERSAO: ${{ steps.subir.outputs.versao }}
-          SHA: ${{ github.sha }}
         run: |
           env_args=(); [ "$AMBIENTE" = "production" ] || env_args=(--env "$AMBIENTE")
           npx wrangler versions deploy "$VERSAO@100%" -y -c wrangler.jsonc "${env_args[@]}" \
-            --message "${SHA::7} $AMBIENTE"
+            --message "$SHA7 $AMBIENTE"
 
       - name: Fumaça na URL final
         env:
           URL_DO_WORKER: ${{ vars.URL_DO_WORKER }}
-          SHA: ${{ github.sha }}
         run: node scripts/cloudflare/fumaca-remota.mjs "$URL_DO_WORKER" "$SHA"
 
-      # Só depois de o deploy ter rodado (aprovado ou não): volta ao deploy anterior. O job continua vermelho.
-      - name: Rollback (a fumaça falhou)
-        if: ${{ failure() && steps.implantar.outcome != 'skipped' }}
-        env:
-          SHA: ${{ github.sha }}
+      # Rollback só quando o 100% FOI aplicado e algo depois (a fumaça final) falhou: volta ao deploy anterior.
+      - name: Rollback (a fumaça final falhou)
+        if: ${{ failure() && steps.implantar.outcome == 'success' }}
         run: |
           env_args=(); [ "$AMBIENTE" = "production" ] || env_args=(--env "$AMBIENTE")
-          npx wrangler rollback -c wrangler.jsonc "${env_args[@]}" --message "fumaça falhou em ${SHA::7}" -y
+          npx wrangler rollback -c wrangler.jsonc "${env_args[@]}" --message "fumaça falhou em $SHA7" -y
+
+      # Se o próprio `versions deploy` falhou, o tráfego não mudou: não há o que desfazer.
+      - name: Deploy falhou sem mudar tráfego
+        if: ${{ failure() && steps.implantar.outcome == 'failure' }}
+        run: echo "deploy falhou sem mudar tráfego; nada a desfazer"

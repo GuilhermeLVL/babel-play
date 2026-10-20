@@ -315,9 +315,16 @@ imprime o log do wrangler.
 6. `wrangler versions deploy <id>@100% -y` e a mesma fumaça na URL final (`vars.URL_DO_WORKER`);
 7. se algo falhar DEPOIS de o passo 6 começar: `wrangler rollback` para o deploy anterior (o job fica vermelho).
 
+**Quem pode publicar qual ref.** O input `ref` é livre; o portão é o Environment: configure a política de
+ramos de deploy (só `main`/tags de release) e revisores obrigatórios no `production`. O workflow publica o SHA
+efetivamente baixado (`git rev-parse HEAD`), e é ele que vai em `GIT_SHA` e na fumaça.
+
 Falha antes do passo 6 não mexe no tráfego (a versão fica no histórico, sem receber requisições). Um deploy por
-ambiente de cada vez (`concurrency`). Sem URL de preview (`preview_urls` desligado, o caso da produção com
-`workers_dev: false`), o passo 5 só avisa e a proteção fica no passo 6 + rollback.
+ambiente de cada vez (`concurrency`). Rollback só roda se o `versions deploy` teve sucesso e a fumaça final
+falhou; se o próprio deploy falhou, o tráfego não mudou e o job só avisa. **Produção não tem URL de preview**
+(`workers_dev: false`, sem `preview_urls`): o passo 5 só avisa e o portão de produção é a fumaça final + rollback
+(a versão nova recebe tráfego real por instantes). Ligar `preview_urls: true` no `wrangler.jsonc` criaria um
+portão antes do tráfego; a decisão fica com o dono.
 
 **GitHub Environments** (Settings → Environments → `staging` e `production`; nada disso mora no repositório):
 

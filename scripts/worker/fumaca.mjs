@@ -461,12 +461,15 @@ async function verificacoes(base, w, token) {
   const depoisDoCancelado = await fetch(`${base}/api/me`, { headers: auth })
   confere(depoisDoCancelado.status === 200, `GET /api/me depois do cancelado: ${depoisDoCancelado.status}`)
   let novas = conexoesNoLog() - conexoesAntes
-  for (let i = 0; i < 20 && novas < N + 1; i++) {
+  for (let i = 0; i < 20 && novas < (URL_EXTERNA ? N : N + 1); i++) {
     await esperar(250)
     novas = conexoesNoLog() - conexoesAntes
   }
   /* N paralelos + o cancelado + o de depois: uma conexão por requisição (sem pool no isolate). */
-  confere(novas >= N + 1, `conexões novas no Postgres: ${novas}, esperava ≥ ${N + 1} (uma por requisição)`)
+  /* No modo externo o contador é `pg_stat_database.sessions` (estatística atrasada, mais as sessões do `psql`
+     do script): a margem é de ±1, então ali basta N. No Docker, o log do container é exato (N + 1). */
+  const minimo = URL_EXTERNA ? N : N + 1
+  confere(novas >= minimo, `conexões novas no Postgres: ${novas}, esperava ≥ ${minimo} (uma por requisição)`)
   let abertas = abertasDoWorker()
   for (let i = 0; i < 100 && abertas > 0; i++) {
     await esperar(250)

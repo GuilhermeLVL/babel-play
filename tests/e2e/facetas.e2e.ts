@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { semearBaralhoAnki, semearCartoes } from './_fixtures'
+import { MOTIVO_ANKI_SO_NO_NODE, NO_WORKER, semearBaralhoAnki, semearCartoes } from './_fixtures'
 import {
   abrirOrganizar,
   chipDaFonte,
@@ -30,6 +30,8 @@ import {
  */
 
 const CHAVE_FILTRO = 'babel.filtro_da_pratica'
+
+test.skip(NO_WORKER, MOTIVO_ANKI_SO_NO_NODE)
 
 test.beforeAll(async () => {
   await semearCartoes()

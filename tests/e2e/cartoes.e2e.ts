@@ -2,6 +2,8 @@ import { expect, type Page, test } from '@playwright/test'
 
 import {
   conteudoPadraoNoServidor,
+  MOTIVO_ANKI_SO_NO_NODE,
+  NO_WORKER,
   semearCartoes,
   semearCartoesNovosNaSessao,
   semearSessaoComCartoes,
@@ -267,6 +269,7 @@ test.describe('Cartões: trazer do Anki', () => {
   test('o .apkg entra pela folha Trazer e levar, o relatório diz o que veio, e o baralho já vem escolhido', async ({
     page,
   }) => {
+    test.skip(NO_WORKER, MOTIVO_ANKI_SO_NO_NODE)
     test.slow()
     const baralhos = async () => {
       const r = await page.request.get('/api/anki/decks')

@@ -13,6 +13,13 @@
 
 export const BASE = process.env.BASE_URL || 'http://localhost:3100'
 
+/**
+ * `E2E_RUNTIME=worker`: a suíte roda contra o Worker (`wrangler dev`). Lá a importação de Anki responde 503
+ * `indisponivel_neste_runtime` até a Fase 3, e as suítes/casos que dependem dela pulam com o motivo.
+ */
+export const NO_WORKER = process.env.E2E_RUNTIME === 'worker'
+export const MOTIVO_ANKI_SO_NO_NODE = 'importação de Anki é Node-only até a Fase 3 (503 indisponivel_neste_runtime)'
+
 export interface CartaoSemente {
   word: string
   back: string

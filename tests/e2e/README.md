@@ -41,6 +41,12 @@ que precisam de um baralho do Anki importam o `.apkg` de exemplo (`tests/fixture
 `POST /api/import/anki`. Criar o mesmo estado pela interface amarraria cada suíte ao formulário de
 outra tela.
 
+**Contra o Worker (`E2E_RUNTIME=worker`).** Apontando `BASE_URL` para um `wrangler dev` (ver `docs/deploy.md`,
+"Worker em desenvolvimento"), defina `E2E_RUNTIME=worker`: lá a importação de Anki responde 503
+`indisponivel_neste_runtime` até a Fase 3, e `baralhos.e2e.ts`, `facetas.e2e.ts` (as duas semeiam o
+baralho pela importação) e o caso "o .apkg entra pela folha Trazer" de `cartoes.e2e.ts` pulam com esse
+motivo (`NO_WORKER` em `_fixtures.ts`). As asserções não mudam; no Node (sem a variável) tudo roda.
+
 **Rótulos.** Os seletores seguem os rótulos acessíveis atuais (desenho de 09/10/2026, o único): o
 painel da fonte ("O que você vai praticar") abre pelo chip **"Trocar: …"** do cabeçalho do lobby, a
 importação pelo botão **"Trazer do Anki"** e a tela de baralhos por **"Gerenciar baralhos"**, os

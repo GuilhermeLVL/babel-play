@@ -175,3 +175,77 @@ verificado, origem rede doméstica em São Paulo, cinco `select 1` por via.
   1 pulado por ser só-PGlite), com `--maxWorkers=2`, inclusive o de 5 rodadas concorrentes que estourava o
   `lock_timeout` a 130 ms. As duas falhas da primeira rodada eram corrida do harness (dois arquivos migrando
   o mesmo banco ao mesmo tempo); corrigido com um banco descartável por arquivo (`tests/harness/bancoDeTeste.ts`).
+
+## S7: Worker em produção na Cloudflare, rede até o Supabase SP, runtime e placement (medido em 2026-10-19)
+
+Worker de sonda `spike-s7` (`scripts/spikes/s7-hyperdrive/`), wrangler 4.151.2, `compatibility_date`
+2026-09-01 + `nodejs_compat`, publicado em `workers.dev`, chamado de São Paulo (rede doméstica) e apagado
+ao fim (`wrangler deployments list` → `10007 This Worker does not exist`; URL → 404). Resultados brutos em
+`scripts/spikes/s7-hyperdrive/resultados/`.
+
+**Bloqueio: o Hyperdrive não foi criado.** A Supabase assina o Postgres (host direto e pooler) com a
+própria CA (`Supabase Root 2021 CA`, conferido com `openssl s_client -starttls postgres`), então
+`verify-full` exige subir `data/supabase-ca.crt` como CA na conta, e nenhum dos dois tokens tem essa
+permissão. A API recusa `sslmode verify-full` sem `ca_certificate_id` (`code 2007`). Não criei config com
+`sslmode require` (TLS sem verificação). Sem Hyperdrive, `/select1`, `/rota7` e `/trava` não rodaram; mediu-se
+a rede do Worker até a origem (TCP + `SSLRequest` do Postgres, sem credencial), o runtime e o placement.
+
+### Permissões observadas dos tokens (`.env`)
+
+| Comando                                                     | `CLOUDFLARE_API_TOKEN`   | `CLOUDFLARE_API_TOKEN_2` |
+| ----------------------------------------------------------- | ------------------------ | ------------------------ |
+| `user/tokens/verify`                                        | ativo (token de usuário) | ativo (token de usuário) |
+| `wrangler cert list` (mTLS/CA, leitura)                     | 10000                    | ok                       |
+| `wrangler cert upload certificate-authority`                | **10000**                | **10000**                |
+| `wrangler hyperdrive list`                                  | ok (vazio)               | ok (vazio)               |
+| `wrangler hyperdrive create` (chegou à validação, `2007`)   | ok                       | 10000                    |
+| `wrangler deploy` / `delete` / `deployments list` (Workers) | ok                       | não testado              |
+| API `workers/scripts/<n>/settings` (leitura)                | ok                       | não testado              |
+
+Falta a algum dos tokens a permissão de conta **"SSL and Certificates: Edit"** (endpoint
+`/accounts/<id>/mtls_certificates`). O ideal é dá-la ao token 1, que já tem Workers e Hyperdrive.
+
+### Rede do Worker até a Supabase SP (`/rede`, 3 chamadas, ms)
+
+Ida = escrever o `SSLRequest` e ler o `S` (uma ida e volta inteira à origem); 10 amostras no pooler e 3 no
+host direto por chamada. `request.cf.colo` = **GIG** (Rio; é o PoP de entrada da minha rede, não onde o
+Worker roda com placement).
+
+| Configuração                      | pooler: conexão p50/p95 | pooler: ida p50/p95 | direto IPv6: conexão p50 | direto IPv6: ida p50/p95 |
+| --------------------------------- | ----------------------- | ------------------- | ------------------------ | ------------------------ |
+| `placement.region: aws:sa-east-1` | 5–8 / 7–16              | **2–3 / 4–5**       | 4–12                     | 4–6 / 4–7                |
+| sem placement (roda em GIG)       | 11–13 / 15–16           | 10–11 / 12–13       | 11–95                    | 10–11 / 10–13            |
+
+### Runtime (`/runtime`, idêntico nas 3 chamadas)
+
+- `typeof process.env.SPIKE_VAR` = `"string"`: `process.env` vem populado com os `vars` só com a compat
+  date 2026-09-01 + `nodejs_compat` (sem flag extra).
+- `crypto.scryptSync('a','b',16)` funciona (`87c5081bda438d4970b5384aa840b362`, igual ao Node);
+  `zlib.zstdDecompressSync` existe e faz a ida e volta de `zstdCompressSync`.
+- `navigator.userAgent` = `"Cloudflare-Workers"`; `typeof httpServerHandler` (`cloudflare:node`) = `"function"`.
+- **Express 4 via `httpServerHandler`:** quebra com o `iconv-lite` 0.4.24 do repositório
+  (`require_streams(...) is not a function`, carregado por `body-parser`/`raw-body`); com `alias` para
+  `iconv-lite@0.7.0` funciona: `/express/api/health` → 200 `{"ok":true}`, `/express/API/health` → 404.
+- Bundle do spike (Express + pg): 1,39 MB / 350 KB gzip; startup 15 ms.
+
+### As seis decisões
+
+1. **(a) Origem do Hyperdrive:** não decidida (Hyperdrive não criado). Evidência parcial: o runtime de
+   Workers alcança o host direto `db.<ref>.supabase.co` (só IPv6) sem erro, a 4–6 ms; o pooler a 2–3 ms.
+   Ao destravar a CA, tentar o direto primeiro (é o que honra `options -c …`, ver S6) e cair para o pooler
+   sessão se o Hyperdrive recusar IPv6.
+2. **(b) Advisory xact lock via Hyperdrive:** **não medido.** Tratar como "não serializa": a Task 3
+   (travas por linha) é obrigatória até o `/trava` rodar.
+3. **(c) `process.env` populado:** **sim**, com compat date 2026-09-01 + `nodejs_compat`; não precisa de
+   `nodejs_compat_populate_process_env`.
+4. **(d) `scryptSync` e `zstdDecompressSync`:** **existem e funcionam** no workerd de produção.
+5. **(e) `placement.region = "aws:sa-east-1"`:** **aceito** pelo `wrangler deploy`; a API mostra
+   `placement: {mode: "targeted", target: [13]}` e a ida à Supabase cai de ~10–11 ms (GIG) para ~2–3 ms.
+   Manter em produção.
+6. **(f) Latência p50/p95 via Hyperdrive:** **não medida.** Piso de rede do Worker com placement: 2–3 ms
+   p50, ≤5 ms p95 por ida. Se o Hyperdrive somar pouco (o pool fica perto da origem), o critério do spec
+   (p50 ≤ 10 ms/consulta, p95 ≤ 250 ms na rota de 7 consultas) tem folga; a confirmação depende do item 1.
+
+**Pendência do dono:** dar "SSL and Certificates: Edit" ao `CLOUDFLARE_API_TOKEN` (ou subir a CA pelo
+painel: SSL/TLS → Client/CA certificates) e reexecutar o S7 com o binding `HYPERDRIVE` descomentado; o
+`scripts/spikes/s7-hyperdrive/README.md` tem os comandos.

@@ -1,0 +1,11 @@
+{
+  "typeof process.env.SPIKE_VAR": "string",
+  "env.SPIKE_VAR (binding)": "x",
+  "typeof crypto.scryptSync": "function",
+  "scryptSync(a,b,16)": "87c5081bda438d4970b5384aa840b362",
+  "typeof zlib.zstdDecompressSync": "function",
+  "zstd ida e volta": "babel",
+  "navigator.userAgent": "Cloudflare-Workers",
+  "colo": "GIG",
+  "typeof httpServerHandler": "function"
+}

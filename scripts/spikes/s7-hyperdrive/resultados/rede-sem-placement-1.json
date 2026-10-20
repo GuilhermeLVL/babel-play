@@ -1,0 +1,35 @@
+{
+  "colo": "GIG",
+  "pooler": {
+    "host": "aws-1-sa-east-1.pooler.supabase.com",
+    "conexaoMs": [10, 10, 12, 11, 11, 11, 13, 11, 15, 15],
+    "idaSslRequestMs": [9, 8, 10, 11, 10, 10, 10, 10, 13, 13],
+    "conexao": {
+      "p50": 11,
+      "p95": 15,
+      "total": 119
+    },
+    "ida": {
+      "p50": 10,
+      "p95": 13,
+      "total": 104
+    },
+    "erros": []
+  },
+  "direto": {
+    "host": "db.bqfjvcfjkyeehizydqfw.supabase.co",
+    "conexaoMs": [19, 25, 16],
+    "idaSslRequestMs": [11, 9, 13],
+    "conexao": {
+      "p50": 19,
+      "p95": 25,
+      "total": 60
+    },
+    "ida": {
+      "p50": 11,
+      "p95": 13,
+      "total": 33
+    },
+    "erros": []
+  }
+}

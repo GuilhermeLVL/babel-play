@@ -26,6 +26,7 @@ interface Ambiente {
   vars?: Record<string, string>
   define?: Record<string, string>
   r2_buckets?: { binding: string; bucket_name: string }[]
+  analytics_engine_datasets?: { binding: string; dataset: string }[]
 }
 interface Config extends Ambiente {
   env?: Record<string, Ambiente>
@@ -56,6 +57,13 @@ describe('wrangler.jsonc', () => {
   it('a mídia vai para frasy-midia (produção) e frasy-midia-staging (staging), no binding MIDIA', () => {
     expect(config.r2_buckets).toEqual([{ binding: 'MIDIA', bucket_name: 'frasy-midia' }])
     expect(config.env?.staging?.r2_buckets).toEqual([{ binding: 'MIDIA', bucket_name: 'frasy-midia-staging' }])
+  })
+
+  it('o Analytics Engine está ligado no binding METRICAS, com dataset próprio no staging', () => {
+    expect(config.analytics_engine_datasets).toEqual([{ binding: 'METRICAS', dataset: 'frasy_metricas' }])
+    expect(config.env?.staging?.analytics_engine_datasets).toEqual([
+      { binding: 'METRICAS', dataset: 'frasy_metricas_staging' },
+    ])
   })
 
   it('o staging tem Hyperdrive próprio, nenhum cron, workers.dev e o mesmo define do topo', () => {

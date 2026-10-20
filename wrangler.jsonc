@@ -33,6 +33,9 @@
   // Áudio das sessões e anexos (server/lib/armazenamentoR2.ts).
   "r2_buckets": [{ "binding": "MIDIA", "bucket_name": "frasy-midia" }],
 
+  // Métricas do Worker (server/http/metricasDoAnalyticsEngine.ts); o esquema está em docs/runbook.md.
+  "analytics_engine_datasets": [{ "binding": "METRICAS", "dataset": "frasy_metricas" }],
+
   // O build do Vite. /api/* passa pelo Worker; o resto é estático, e caminho desconhecido cai no
   // index.html (SPA).
   "assets": {
@@ -96,6 +99,7 @@
         },
       ],
       "r2_buckets": [{ "binding": "MIDIA", "bucket_name": "frasy-midia-staging" }],
+      "analytics_engine_datasets": [{ "binding": "METRICAS", "dataset": "frasy_metricas_staging" }],
       "triggers": { "crons": [] },
       "define": {
         "process.env.NODE_ENV": "\"production\"",

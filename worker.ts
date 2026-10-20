@@ -44,6 +44,7 @@ import { schemaPresente } from './server/db/manutencao'
 import { criarApp } from './server/http/app'
 import { comIpDaBorda } from './server/http/ipDaBorda'
 import { executarJobsDoCron } from './server/jobs/executar'
+import { ligarAnalyticsEngine, type BindingDeMetricas } from './server/http/metricasDoAnalyticsEngine'
 import { type BucketR2, ligarBucketDoR2 } from './server/lib/armazenamentoR2'
 import { erroGlobal } from './server/lib/erroGlobal'
 import { rodarNoEscopoDaRequisicao } from './server/lib/escopoDaRequisicao'
@@ -53,6 +54,8 @@ import { log } from './server/lib/logger'
 interface Env {
   HYPERDRIVE: { connectionString: string }
   MIDIA: BucketR2
+  /** Analytics Engine (`frasy_metricas`). Opcional: sem ele (dev local, testes) as métricas do Worker não saem. */
+  METRICAS?: BindingDeMetricas
   ASSETS: { fetch(request: Request): Promise<Response> }
 }
 
@@ -170,6 +173,7 @@ export default {
     /* `/api` sem barra também é da API: um 404 JSON como qualquer caminho desconhecido dela, não a SPA. */
     if (pathname === '/api') return json(404, { error: 'rota inexistente', code: 'rota_inexistente' })
     if (!pathname.startsWith('/api/')) return env.ASSETS.fetch(request)
+    ligarAnalyticsEngine(env.METRICAS)
     ligarBucketDoR2(env.MIDIA) // antes do portão: o armazenamento de mídia é uma das travas
     if (conferirBootDoWorker()) {
       return json(503, { error: 'servidor mal configurado (ver o log: boot_falhou)', code: 'boot_falhou' })
@@ -205,6 +209,7 @@ export default {
 
   async scheduled(controller: ControladorDoCron, env: Env, ctx: Contexto): Promise<void> {
     fixarModo()
+    ligarAnalyticsEngine(env.METRICAS)
     ligarBucketDoR2(env.MIDIA)
     if (conferirBootDoWorker()) {
       log('error', { event: 'cron_falhou', route: controller.cron, error: 'boot_falhou' })

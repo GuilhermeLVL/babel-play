@@ -25,6 +25,7 @@
 import { sql } from 'drizzle-orm'
 
 import { db, linhas } from '../db/db'
+import { observarJob } from '../http/metricas'
 import { log } from '../lib/logger'
 import { type Job, JOBS } from './registro'
 
@@ -104,10 +105,12 @@ export async function executarJob(nome: string, o: OpcoesDoExecutor = {}): Promi
     const resumo = resumoNumerico(await job.rodar({ agora: o.agora ?? Date.now(), env }))
     const ms = Date.now() - inicio
     log('info', { event: 'job_fim', job: nome, latencyMs: ms, resumo })
+    observarJob(nome, ms, 'ok')
     return { nome, estado: 'ok', resumo, ms }
   } catch (err) {
     const ms = Date.now() - inicio
     log('error', { event: 'job_falhou', job: nome, latencyMs: ms, error: mensagem(err) })
+    observarJob(nome, ms, 'falhou')
     return { nome, estado: 'falhou', ms }
   } finally {
     await soltarLease(nome, carimbo)

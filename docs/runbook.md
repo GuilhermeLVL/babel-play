@@ -343,6 +343,66 @@ Worker, o backend de métricas é um no-op (Analytics Engine é a Fase 4). Os da
 A label de rota é o **padrão** (`/api/sessions/:id`), nunca o caminho pedido, e o que não casou rota
 cai num balde `desconhecida`. É o que impede um scanner de porta de criar mil séries temporais.
 
+### 3.1 Métricas do Worker: Analytics Engine
+
+No Worker não há `/metrics` (404). Seis famílias saem como pontos de dados para o dataset `frasy_metricas`
+(`frasy_metricas_staging` no staging), binding `METRICAS`, gravados por `server/http/metricasDoAnalyticsEngine.ts`.
+Sem o binding (dev local, testes) nada é gravado. Falha do binding vira um único `analytics_engine_falhou`
+(`warn`) por isolate. Blobs e índice são cortados em 96 bytes; um número não finito derruba o ponto.
+
+`blob1` é sempre a família; o `index1` é a chave de amostragem; `double1..` são as medidas.
+
+| Família             | blob2                                       | blob3            | blob4      | blob5  | double1       | double2                       | index1   |
+| ------------------- | ------------------------------------------- | ---------------- | ---------- | ------ | ------------- | ----------------------------- | -------- |
+| `requisicao`        | rota (padrão)                               | método           | status     |        | ms            |                               | rota     |
+| `admissao_recusada` | motivo                                      | plano            |            |        | 1             |                               | motivo   |
+| `custo_por_plano`   | plano                                       |                  |            |        | custo (USD)   |                               | plano    |
+| `r2`                | recurso (`armazenamento`, `ops_a`, `ops_b`) |                  |            |        | fração de uso |                               | recurso  |
+| `provedor`          | provedor                                    | função           | fornecedor | modelo | ms            | custo (USD, 0 se não cobrado) | provedor |
+| `job`               | nome                                        | `ok` ou `falhou` |            |        | ms            |                               | nome     |
+
+Consultas pela API SQL (`POST https://api.cloudflare.com/client/v4/accounts/<conta>/analytics_engine/sql`,
+token com "Account Analytics: Read"; o corpo é o SQL). Some `_sample_interval` para corrigir a amostragem:
+
+```sql
+-- requisicao: p95 de latência e taxa de 5xx por rota, última hora
+SELECT blob2 AS rota, SUM(_sample_interval) AS n,
+       quantileWeighted(0.95)(double1, _sample_interval) AS p95_ms,
+       SUM(IF(blob4 LIKE '5%', _sample_interval, 0)) / SUM(_sample_interval) AS taxa_5xx
+FROM frasy_metricas WHERE blob1 = 'requisicao' AND timestamp > NOW() - INTERVAL '1' HOUR
+GROUP BY rota ORDER BY n DESC LIMIT 20
+
+-- admissao_recusada: recusas por motivo e plano, 24 h
+SELECT blob2 AS motivo, blob3 AS plano, SUM(_sample_interval * double1) AS recusas
+FROM frasy_metricas WHERE blob1 = 'admissao_recusada' AND timestamp > NOW() - INTERVAL '1' DAY
+GROUP BY motivo, plano ORDER BY recusas DESC
+
+-- custo_por_plano: gasto de IA por plano, 24 h
+SELECT blob2 AS plano, SUM(_sample_interval * double1) AS custo_usd
+FROM frasy_metricas WHERE blob1 = 'custo_por_plano' AND timestamp > NOW() - INTERVAL '1' DAY
+GROUP BY plano ORDER BY custo_usd DESC
+
+-- r2: último uso medido de cada recurso (fração do teto gratuito), 6 h
+SELECT blob2 AS recurso, argMax(double1, timestamp) AS fracao
+FROM frasy_metricas WHERE blob1 = 'r2' AND timestamp > NOW() - INTERVAL '6' HOUR
+GROUP BY recurso
+
+-- provedor: latência média, custo e volume por provedor/função/fornecedor, 24 h
+SELECT blob2 AS provedor, blob3 AS funcao, blob4 AS fornecedor,
+       SUM(_sample_interval) AS chamadas,
+       SUM(_sample_interval * double1) / SUM(_sample_interval) AS ms_medio,
+       SUM(_sample_interval * double2) AS custo_usd
+FROM frasy_metricas WHERE blob1 = 'provedor' AND timestamp > NOW() - INTERVAL '1' DAY
+GROUP BY provedor, funcao, fornecedor ORDER BY custo_usd DESC
+
+-- job: execuções, falhas e duração média por job, 7 dias
+SELECT blob2 AS job, SUM(_sample_interval) AS execucoes,
+       SUM(IF(blob3 = 'falhou', _sample_interval, 0)) AS falhas,
+       SUM(_sample_interval * double1) / SUM(_sample_interval) AS ms_medio
+FROM frasy_metricas WHERE blob1 = 'job' AND timestamp > NOW() - INTERVAL '7' DAY
+GROUP BY job ORDER BY falhas DESC
+```
+
 ---
 
 ## 4. Reiniciar, atualizar e parar

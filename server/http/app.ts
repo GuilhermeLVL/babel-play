@@ -211,8 +211,10 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
    * anti-força-bruta e do `writeLimiter` de `/api/*`: um scraper não tem JWT de ninguém, e um
    * scrape a cada 15 s consumindo cota de rate limit derrubaria a própria observabilidade.
    */
+  /* No Worker o middleware roda sempre: ele grava o ponto `requisicao` no Analytics Engine (no-op sem o
+     binding); só o `/metrics` (Prometheus) depende de `METRICS_ENABLED`. */
+  if (metricasHabilitadas() || ehWorker()) app.use(middlewareDeMetricas())
   if (metricasHabilitadas()) {
-    app.use(middlewareDeMetricas())
     /* Sem `capturarAssincrono`: ele embrulha um ROUTER (`server/lib/erroGlobal.ts:35`), e isto é um
        handler solto no app — o mesmo caso de `/api/health` logo abaixo. O handler trata a própria
        falha e devolve 500; telemetria que derruba o request que observa é pior que telemetria

@@ -60,6 +60,7 @@ import { registrarObservadorDeConsultas, tamanhoDoBanco, type TipoDeConsulta } f
 import { tokenDeMetricas } from '../lib/config'
 import { log } from '../lib/logger'
 import { ehWorker } from '../lib/runtime'
+import { gravarPonto } from './metricasDoAnalyticsEngine'
 
 /** Rótulo único de tudo que não casou rota — o teto de cardinalidade do lado de fora. */
 export const ROTA_DESCONHECIDA = 'desconhecida'
@@ -616,7 +617,9 @@ function rotuloDoPlano(plano: string | undefined): string {
 
 /** Custo de uma chamada paga pelo serviço, pelo plano de quem pediu. */
 export function contarCustoPorPlano(plano: string | undefined, custoUsd: number): void {
-  if (!estado || !Number.isFinite(custoUsd) || custoUsd <= 0) return
+  if (!Number.isFinite(custoUsd) || custoUsd <= 0) return
+  if (ehWorker()) gravarPonto('custo_por_plano', [rotuloDoPlano(plano)], [custoUsd], rotuloDoPlano(plano))
+  if (!estado) return
   estado.iaCustoPorPlano.inc({ plano: rotuloDoPlano(plano) }, custoUsd)
 }
 
@@ -653,6 +656,7 @@ export function observarBackup(r: { ok: true; bytes: number } | { ok: false }): 
 }
 
 export function medirUsoDoR2(recurso: 'armazenamento' | 'ops_a' | 'ops_b', fracao: number): void {
+  if (ehWorker()) gravarPonto('r2', [recurso], [fracao], recurso)
   if (!estado) return
   estado.r2UsoFracao.set({ recurso }, fracao)
 }
@@ -665,6 +669,7 @@ export function registrarLeitorDeSaldo(fn: () => Array<{ provedor: string; model
 
 /** Uma recusa da admissão de IA. `motivo` e `plano` são rótulos fixos do código. */
 export function contarAdmissaoRecusada(motivo: string, plano: string): void {
+  if (ehWorker()) gravarPonto('admissao_recusada', [motivo, plano], [1], motivo)
   if (!estado) return
   estado.admissaoRecusada.inc({ motivo, plano })
 }
@@ -701,6 +706,14 @@ export function observarChamadaDeProvedor(o: {
   fornecedor?: string
   modelo?: string
 }): void {
+  if (ehWorker()) {
+    gravarPonto(
+      'provedor',
+      [o.provedor, o.funcao, o.fornecedor ?? '', o.modelo ?? ''],
+      [o.ms, o.custoUsd !== undefined && Number.isFinite(o.custoUsd) && o.custoUsd > 0 ? o.custoUsd : 0],
+      o.provedor,
+    )
+  }
   if (!estado) return
   const conhecidos = rotulosDoRegistro()
   const labels = {
@@ -713,6 +726,17 @@ export function observarChamadaDeProvedor(o: {
   if (o.custoUsd !== undefined && Number.isFinite(o.custoUsd) && o.custoUsd > 0)
     estado.provedorCusto.inc(labels, o.custoUsd)
 }
+
+/**
+ * Um job do cron terminou (`server/jobs/executar.ts`). Só o Worker tem destino (o ponto `job` do Analytics
+ * Engine); no Node o `job_fim`/`job_falhou` do log já dizem tudo e não há série Prometheus para isso.
+ */
+export function observarJob(nome: string, ms: number, resultado: 'ok' | 'falhou'): void {
+  if (ehWorker()) gravarPonto('job', [nome, resultado], [ms], nome)
+}
+
+/* As demais funções `contar*`/`observar*` ficam sem efeito no Worker de propósito: só as 6 famílias do R6
+   (requisicao, admissao_recusada, custo_por_plano, r2, provedor, job) viram pontos do Analytics Engine. */
 
 /** Um 429 do provedor. Rótulos fixos do código ou do env — ver o bloco da métrica. */
 export function contarLimiteDoProvedor(provedor: string, modelo: string): void {
@@ -801,11 +825,13 @@ export function padraoDaRota(req: Request): string {
 export function middlewareDeMetricas(): RequestHandler {
   const m = metricas()
   return function medir(req: Request, res: Response, next: NextFunction): void {
-    const inicio = process.hrtime.bigint()
+    const inicio = performance.now()
     res.on('finish', () => {
-      const segundos = Number(process.hrtime.bigint() - inicio) / 1e9
+      const ms = performance.now() - inicio
+      const segundos = ms / 1000
       const route = padraoDaRota(req)
       const status = String(res.statusCode)
+      if (ehWorker()) gravarPonto('requisicao', [route, req.method, status], [ms], route)
       const labels = { method: req.method, route, status }
       m.duracao.observe(labels, segundos)
       if (res.statusCode >= 400) m.errosHttp.inc(labels)

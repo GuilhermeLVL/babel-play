@@ -376,18 +376,24 @@ jobs:
       # Senha descartável de um contêiner de serviço que só existe neste job; não é segredo.
       TESTE_POSTGRES_URL: postgres://babel:babel-ci@localhost:5432/babel_teste
       ARQUIVOS: >-
+        tests/integration/admissao-no-banco.test.ts
         tests/integration/agregados-concorrentes.test.ts
         tests/integration/cluster.test.ts
+        tests/integration/db-por-requisicao.test.ts
         tests/integration/desligamento-gracioso.test.ts
         tests/integration/gasto-concorrente.test.ts
         tests/integration/int8-no-pg.test.ts
         tests/integration/jobs-idempotentes.test.ts
         tests/integration/limpeza-analyze.test.ts
+        tests/integration/lotes-em-uma-instrucao.test.ts
         tests/integration/medicao-de-transacao-pg.test.ts
+        tests/integration/migracoes-sem-prazo.test.ts
         tests/integration/pool-lock-timeout-pg.test.ts
+        tests/integration/prazos-do-papel.test.ts
         tests/integration/r2-teto-armazenamento.test.ts
         tests/integration/rodada-e-glossario-concorrentes.test.ts
         tests/integration/teto-de-erros-entre-instancias.test.ts
+        tests/integration/travas-de-linha.test.ts
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4

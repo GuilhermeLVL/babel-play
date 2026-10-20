@@ -1,0 +1,119 @@
+# BACKUP SEMANAL DO POSTGRES PARA O R2 (Fase 2, Task 13; pendência de CI da Fase 1)
+#
+# Toda segunda às 06:00 UTC (e sob demanda): `pg_dump --format=custom --schema=public --schema=drizzle` do
+# Supabase, enviado ao bucket `babel-backups` do R2 em `semanal/AAAA-MM-DD.dump`, conferido com
+# `pg_restore --list` e lido de volta do R2 (sha256). É a cópia FORA do Supabase: os backups gerenciados dele
+# moram no mesmo provedor do banco. Só os schemas da aplicação (`public` e `drizzle`), não os do Supabase.
+#
+# POOLER, NÃO O HOST DIRETO. O host direto do Supabase (`db.<ref>.supabase.co`) só responde em IPv6, e os
+# runners hospedados do GitHub não têm IPv6. Use no secret SUPABASE_DB_HOST o pooler em MODO SESSÃO:
+# `aws-1-sa-east-1.pooler.supabase.com` (porta 5432) e em SUPABASE_DB_USER o `postgres.<ref>`. O `pg_dump`
+# funciona pelo pooler de sessão (a 6543, em modo transação, não: ele precisa de sessão).
+#
+# TLS VERIFICADO: PGSSLMODE=verify-full (vai como `?sslmode=verify-full` na URL que o `backup.mjs` lê) com a
+# CA do Supabase no secret SUPABASE_CA_PEM, gravada num arquivo 600 (PGSSLROOTCERT). Sem a CA, falha: nunca
+# cai para `require`/`prefer`.
+#
+# SEGREDOS (Settings → Secrets and variables → Actions), criados pelo dono. Nenhum valor mora neste arquivo:
+#   SUPABASE_DB_HOST        host do pooler de sessão (ver acima)
+#   SUPABASE_DB_USER        postgres.<ref>
+#   SUPABASE_DB_PASSWORD    senha do banco
+#   SUPABASE_DB_NAME        postgres
+#   SUPABASE_CA_PEM         certificado da CA do Supabase (Dashboard → Database → SSL), PEM
+#   R2_S3_ENDPOINT          https://<conta>.r2.cloudflarestorage.com
+#   R2_S3_ACCESS_KEY_ID     token R2 com escrita no bucket babel-backups (S3 API)
+#   R2_S3_SECRET_ACCESS_KEY
+# Falta qualquer um: o primeiro passo REPROVA dizendo o nome (nunca o valor). Não existe caminho "verde sem backup".
+#
+# RETENÇÃO: 8 semanas, por regra de lifecycle do bucket (`wrangler r2 bucket lifecycle add babel-backups`),
+# criada na Fase 4 junto com o bucket, que ainda não existe. Até lá este workflow falha no envio, com clareza.
+# RESTAURAR: docs/deploy.md ("Backup semanal") e docs/runbook.md §8.
+name: Backup semanal do Postgres
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup-pg-dump
+  cancel-in-progress: false
+
+# O `npm ci` do onnxruntime-node baixa binários de CUDA do nuget.org; o runner não tem GPU (ver ci.yml).
+env:
+  ONNXRUNTIME_NODE_INSTALL: skip
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Segredos presentes
+        env:
+          SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_DB_NAME: ${{ secrets.SUPABASE_DB_NAME }}
+          SUPABASE_CA_PEM: ${{ secrets.SUPABASE_CA_PEM }}
+          R2_S3_ENDPOINT: ${{ secrets.R2_S3_ENDPOINT }}
+          R2_S3_ACCESS_KEY_ID: ${{ secrets.R2_S3_ACCESS_KEY_ID }}
+          R2_S3_SECRET_ACCESS_KEY: ${{ secrets.R2_S3_SECRET_ACCESS_KEY }}
+        run: |
+          faltando=""
+          for n in SUPABASE_DB_HOST SUPABASE_DB_USER SUPABASE_DB_PASSWORD SUPABASE_DB_NAME SUPABASE_CA_PEM \
+                   R2_S3_ENDPOINT R2_S3_ACCESS_KEY_ID R2_S3_SECRET_ACCESS_KEY; do
+            [ -n "${!n}" ] || faltando="$faltando $n"
+          done
+          if [ -n "$faltando" ]; then
+            echo "::error::Backup NÃO feito: faltam os secrets:$faltando (ver o cabeçalho do workflow)"
+            exit 1
+          fi
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        timeout-minutes: 5
+      # O cliente tem que ser da versão 17 (o `pg_dump` recusa servidor MAIS NOVO que ele). O runner traz o 16;
+      # o script `apt.postgresql.org.sh` (já instalado no runner) liga o repositório oficial PGDG.
+      - name: Cliente do Postgres 17 (PGDG)
+        run: |
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y --no-install-recommends postgresql-client-17
+          echo /usr/lib/postgresql/17/bin >> "$GITHUB_PATH"
+      - name: pg_dump --schema=public --schema=drizzle e envio ao R2
+        env:
+          SUPABASE_DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_DB_NAME: ${{ secrets.SUPABASE_DB_NAME }}
+          SUPABASE_CA_PEM: ${{ secrets.SUPABASE_CA_PEM }}
+          R2_S3_ENDPOINT: ${{ secrets.R2_S3_ENDPOINT }}
+          R2_S3_ACCESS_KEY_ID: ${{ secrets.R2_S3_ACCESS_KEY_ID }}
+          R2_S3_SECRET_ACCESS_KEY: ${{ secrets.R2_S3_SECRET_ACCESS_KEY }}
+        run: |
+          set -euo pipefail
+          # A CA vai para um arquivo só do dono; o libpq lê por PGSSLROOTCERT.
+          ( umask 077; printf '%s\n' "$SUPABASE_CA_PEM" > "$RUNNER_TEMP/supabase-ca.pem" )
+          export PGSSLROOTCERT="$RUNNER_TEMP/supabase-ca.pem"
+          # PGSSLMODE=verify-full: o `backup.mjs` lê o modo do `?sslmode=` da URL e o repassa ao pg_dump.
+          # A URL só existe nesta variável de ambiente (usuário e senha com encodeURIComponent); o
+          # `backup.mjs` a tira do argv e das mensagens de erro.
+          DATABASE_URL=$(node -e '
+            const e = process.env, c = encodeURIComponent
+            console.log(`postgres://${c(e.SUPABASE_DB_USER)}:${c(e.SUPABASE_DB_PASSWORD)}@${e.SUPABASE_DB_HOST}:5432/${c(e.SUPABASE_DB_NAME)}?sslmode=verify-full`)
+          ')
+          export DATABASE_URL
+          echo "::add-mask::$DATABASE_URL"
+          node scripts/backup.mjs --sem-midia --manter=1 --destino="$RUNNER_TEMP/backups"
+          dump=$(find "$RUNNER_TEMP/backups" -name babel.dump | head -n 1)
+          test -s "$dump"
+          pg_restore --list "$dump" | grep -c 'TABLE DATA'
+          dia=$(date -u +%F)
+          npx tsx scripts/backup/enviar-ao-r2.ts "$dump" "semanal/$dia.dump"
+          rm -f "$RUNNER_TEMP/supabase-ca.pem"
+          rm -rf "$RUNNER_TEMP/backups"

@@ -448,6 +448,13 @@ existir **em silêncio**.
 node scripts/backup.mjs                        # cópia consistente
 ```
 
+**Exercício de restauração do dump semanal (Postgres).** Uma vez por trimestre: baixe o `semanal/AAAA-MM-DD.dump` mais
+recente do bucket `babel-backups`, crie um banco VAZIO (nunca o de produção), restaure com
+`pg_restore --no-owner --schema=public --schema=drizzle` (credenciais por `PG*`, passo a passo em `docs/deploy.md`,
+"Backup semanal do Postgres no R2"), compare `select count(*)` das tabelas grandes e de `drizzle.__drizzle_migrations`
+com o banco vivo e apague o banco do exercício (ele guarda dados pessoais). Se o último dump tiver mais de 8 dias, o
+workflow `backup-pg-dump.yml` falhou: veja a execução em Actions antes de qualquer outra coisa.
+
 Restaurar é **restaurar backup e subir** — não há migração reversa. As migrações são aplicadas no
 boot (`server/boot/preparar.ts`) com `statement_timeout = 0`: no `pg`, numa conexão própria; no PGlite, na mesma
 conexão do app, com o prazo restaurado no fim. A `DATABASE_URL` de quem migra precisa ser conexão direta ou pooler

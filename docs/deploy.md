@@ -80,7 +80,7 @@ container mais o `AUTH_REQUIRED=1`, não o bind.
 - [ ] **Backup do banco.** Com `postgres://`, `node scripts/backup.mjs` roda `pg_dump` e confere com
       `pg_restore --list`. Com `pglite:<dir>` (dev), copia o diretório e só vale com o servidor parado.
       Litestream e snapshot diário saíram do servidor (ADR 0014): NÃO há backup automático neste build
-      (no Supabase, conte também com os backups gerenciados); o `pg_dump` semanal no CI é da Fase 2.
+      (no Supabase, conte também com os backups gerenciados); o `pg_dump` semanal no CI está em "Backup semanal do Postgres no R2", abaixo.
 - [ ] **Tetos por plano** (`PREMIUM_*` — `PREMIUM_MONTHLY_STT_SECONDS`, `PREMIUM_DAILY_STT_SECONDS` e as
       demais do inventário em `server/lib/config.ts`; defaults em `src/core/planos.ts`. As antigas
       `PRO_*`/`ESSENCIAL_*` NÃO são mais lidas: passe o valor para a `PREMIUM_*` correspondente) coerentes com o
@@ -369,6 +369,29 @@ Dentro da imagem o script também existe: `node scripts/backup.mjs --sem-midia -
    avisar.
 3. **Inclui a mídia.** `data/audio` pesa 33× o banco; um backup só do banco restaura ponteiros para
    arquivos que não existem mais.
+
+### Backup semanal do Postgres no R2 (Fase 2, Task 13)
+
+`.github/workflows/backup-pg-dump.yml` roda toda segunda às 06:00 UTC (e em Actions → "Backup semanal do Postgres" →
+Run workflow): `pg_dump --format=custom --schema=public --schema=drizzle` do Supabase (via `scripts/backup.mjs`),
+`pg_restore --list` no arquivo, envio ao bucket `babel-backups` do R2 em **`semanal/AAAA-MM-DD.dump`** e leitura de
+volta com conferência de sha256. Sem algum secret o primeiro passo reprova dizendo o nome; nunca fica verde sem backup.
+
+- **Secrets do repositório:** `SUPABASE_DB_HOST`, `SUPABASE_DB_USER`, `SUPABASE_DB_PASSWORD`, `SUPABASE_DB_NAME`,
+  `SUPABASE_CA_PEM` (CA do Supabase; o TLS é `verify-full`), `R2_S3_ENDPOINT`, `R2_S3_ACCESS_KEY_ID`,
+  `R2_S3_SECRET_ACCESS_KEY` (token R2 com escrita em `babel-backups`).
+- **Host:** o direto do Supabase é só IPv6 e o runner do GitHub não tem IPv6. Use o pooler de sessão
+  (`aws-1-sa-east-1.pooler.supabase.com`, porta 5432, usuário `postgres.<ref>`); o `pg_dump` funciona nele.
+- **Retenção (pendente, Fase 4):** o bucket ainda não existe. Ao criá-lo, ligar a regra de 8 semanas:
+  `wrangler r2 bucket lifecycle add babel-backups --name semanal --prefix semanal/ --expire-days 56`. Até lá o envio falha.
+- **Restaurar** num banco novo (credenciais por `PG*`, nunca na linha de comando):
+
+```bash
+# baixe semanal/AAAA-MM-DD.dump do R2 (dashboard ou aws s3 cp --endpoint-url $R2_S3_ENDPOINT), então:
+export PGHOST=… PGPORT=5432 PGUSER=… PGPASSWORD=… PGDATABASE=postgres_novo PGSSLMODE=verify-full PGSSLROOTCERT=ca.pem
+pg_restore --list AAAA-MM-DD.dump | head                 # abre e lista
+pg_restore --no-owner --schema=public --schema=drizzle --dbname="$PGDATABASE" AAAA-MM-DD.dump
+```
 
 ### Backup em produção (Fase 5): Litestream + snapshot diário, os dois no R2
 

@@ -210,21 +210,8 @@ describe('estado de agora: disjuntor, uploads, cache', () => {
   })
 })
 
-describe('a porta INTERNA de métricas (o alvo do [metrics] do Fly)', () => {
-  it('responde /metrics SEM token — mesmo com METRICS_TOKEN definida — e 404 no resto', async () => {
-    fixar('METRICS_TOKEN', 'segredo-que-o-fly-nao-manda')
-    const srv = await m.iniciarServidorDeMetricas(0, '127.0.0.1')
-    try {
-      const addr = srv.address()
-      const base = `http://127.0.0.1:${typeof addr === 'object' && addr ? addr.port : 0}`
-      const r = await fetch(`${base}/metrics`)
-      expect(r.status).toBe(200)
-      expect(r.headers.get('x-metrics-processo')).toMatch(/^(primario|worker):\d+$/)
-      expect(await r.text()).toContain('# TYPE http_request_duration_seconds histogram')
-      expect((await fetch(`${base}/api/health`)).status).toBe(404)
-      expect((await fetch(`${base}/metrics`, { method: 'POST' })).status).toBe(404)
-    } finally {
-      await new Promise<void>((r) => srv.close(() => r()))
-    }
+describe('a porta INTERNA de métricas (aposentada na Task 10 da Fase 2)', () => {
+  it('o listener próprio não existe mais: o scrape é o GET /metrics do app, com token em produção', () => {
+    expect('iniciarServidorDeMetricas' in m).toBe(false)
   })
 })

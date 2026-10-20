@@ -222,15 +222,11 @@ describe('fly.toml — a coleta gerenciada do Fly', () => {
     return fim === -1 ? resto : resto.slice(0, fim)
   }
 
-  it('tem [metrics] em /metrics numa porta que o app serve (METRICS_PORTA_INTERNA) com METRICS_ENABLED=1', () => {
-    const fonte = toml()
-    const metrics = secao(fonte, /^\[metrics\]\s*$/m)
-    expect(metrics, 'sem bloco [metrics]').toBeDefined()
-    const porta = /port\s*=\s*(\d+)/.exec(metrics!)?.[1]
-    expect(/path\s*=\s*"\/metrics"/.test(metrics!)).toBe(true)
-    const env = secao(fonte, /^\[env\]\s*$/m)!
-    expect(env).toMatch(new RegExp(`METRICS_PORTA_INTERNA\\s*=\\s*"${porta}"`))
-    expect(env).toMatch(/METRICS_ENABLED\s*=\s*"1"/)
+  it('está marcado como LEGADO e a porta [metrics] não é mais servida pelo app (METRICS_PORTA_INTERNA saiu)', () => {
+    const bruto = readFileSync('fly.toml', 'utf8')
+    expect(bruto, 'fly.toml deve dizer que é legado (aposentado na Fase 4)').toMatch(/#.*legado/i)
+    expect(readFileSync('server/lib/config.ts', 'utf8')).not.toContain("nome: 'METRICS_PORTA_INTERNA'")
+    expect(readFileSync('server/http/metricas.ts', 'utf8')).not.toContain('iniciarServidorDeMetricas')
   })
 
   it('a porta de métricas NÃO está publicada (nem no [http_service], nem em [[services]])', () => {

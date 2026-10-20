@@ -1,3 +1,7 @@
+# LEGADO (Fase 2 da migração para o Cloudflare): este arquivo é retirado na Fase 4. A porta 9091
+# (`METRICS_PORTA_INTERNA` e o bloco `[metrics]` abaixo) NÃO é mais servida pelo app, e `METRICS_ENABLED=1`
+# em produção agora exige `METRICS_TOKEN`. Não use este arquivo para um deploy novo.
+#
 # Babel Play no Fly.io — região GRU (São Paulo). Passo a passo completo em docs/LANCAMENTO.md.
 #
 # UMA máquina (shared-cpu, 1 GB) com UM volume em /data: o SQLite mora no volume e o Litestream o

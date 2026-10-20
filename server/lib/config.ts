@@ -706,13 +706,6 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       '1 MONTA `GET /metrics` (Prometheus, na raiz — não confundir com `/api/metrics`, que é a rota de negócio). Ausente, a rota não existe e responde 404 como qualquer caminho desconhecido: um 403 confirmaria a existência do endpoint a quem sonda',
   },
   {
-    nome: 'METRICS_PORTA_INTERNA',
-    exigencia: 'opcional',
-    criticidade: 'degrada-capacidade',
-    paraQue:
-      'porta de um listener SÓ de métricas (`GET /metrics`, sem token), para o raspador gerenciado do Fly (`[metrics]` do fly.toml), que não manda `Authorization`. Definida, o `/metrics` SAI da porta pública. Só use numa porta que não esteja publicada (fora de `[http_service]`/`[[services]]`)',
-  },
-  {
     nome: 'METRICS_TOKEN',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -1081,18 +1074,9 @@ export function tokenDeMetricas(env: NodeJS.ProcessEnv = process.env): string | 
  * fechada) exigir token é fricção sem ameaça. Retorna a mensagem de aborto de boot, ou `null` se ok.
  */
 export function erroDeMetricasEmProducao(env: NodeJS.ProcessEnv = process.env): string | null {
-  const porta = portaInternaDeMetricas(env)
-  if (env.METRICS_PORTA_INTERNA?.trim() && porta === undefined) {
-    return 'METRICS_PORTA_INTERNA não é uma porta válida (1–65535).'
-  }
-  if (porta !== undefined && String(porta) === (env.PORT?.trim() || '3000')) {
-    /* A mesma porta do app seria justamente a porta PÚBLICA — o scrape sem token ficaria na internet. */
-    return 'METRICS_PORTA_INTERNA não pode ser a mesma porta do app (PORT): o /metrics sem token ficaria público.'
-  }
-  /* Com a porta interna, o `/metrics` nem é montado na porta pública — o token deixa de ser a
-     única barreira e passa a ser desnecessário (o raspador do Fly não o manda). */
-  if (env.NODE_ENV === 'production' && metricasHabilitadas(env) && porta === undefined && !tokenDeMetricas(env)) {
-    return 'METRICS_ENABLED=1 em produção exige METRICS_TOKEN (ou METRICS_PORTA_INTERNA): recusando expor /metrics sem autenticação.'
+  /* Sem a porta interna (aposentada na Task 10 da Fase 2), o `/metrics` mora sempre na porta do app. */
+  if (env.NODE_ENV === 'production' && metricasHabilitadas(env) && !tokenDeMetricas(env)) {
+    return 'METRICS_ENABLED=1 em produção exige METRICS_TOKEN: recusando expor /metrics sem autenticação.'
   }
   return null
 }
@@ -1118,24 +1102,6 @@ export function erroDeAsaasSandboxEmProducao(env: NodeJS.ProcessEnv = process.en
   if (env.NODE_ENV !== 'production' || !env.ASAAS_API_KEY?.trim()) return null
   if (!baseDoAsaasEhSandbox(env) || env.ASAAS_SANDBOX?.trim() === '1') return null
   return 'o Asaas aponta para o SANDBOX com NODE_ENV=production (ASAAS_BASE_URL ausente ou de sandbox): qualquer um assinaria com o cartão de teste. Produção: ASAAS_BASE_URL=https://api.asaas.com/v3. Staging: declare ASAAS_SANDBOX=1.'
-}
-
-/**
- * A porta do listener SÓ de métricas, ou `undefined` (Fase 5 de prontidão, 25/09/2026).
- *
- * POR QUE EXISTE. O Fly raspa o `[metrics]` do `fly.toml` a cada 15 s com o Prometheus gerenciado
- * dele, e a documentação (fly.io/docs/monitoring/metrics, consultada em 25/09/2026) não oferece
- * NENHUM campo de autenticação: só `port` e `path`. Com o `/metrics` na porta pública, isso
- * obrigaria a escolher entre scrape aberto na internet (GAP-013) e nenhum scrape. A saída é a que a
- * própria doc sugere: uma porta que o Fly raspa por dentro da VM e que NÃO está publicada — o proxy
- * do Fly só encaminha as portas de `[http_service]`/`[[services]]`, então esta não tem rota de fora.
- * O token continua valendo para quem raspa pela porta pública (self-host com agente próprio).
- */
-export function portaInternaDeMetricas(env: NodeJS.ProcessEnv = process.env): number | undefined {
-  const bruto = env.METRICS_PORTA_INTERNA?.trim()
-  if (!bruto) return undefined
-  const n = Number(bruto)
-  return Number.isInteger(n) && n > 0 && n < 65536 ? n : undefined
 }
 
 /**

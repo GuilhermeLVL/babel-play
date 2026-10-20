@@ -328,22 +328,17 @@ jogo, atrás do auth).
 curl -s -H "Authorization: Bearer $METRICS_TOKEN" https://<host>/metrics | head -40
 ```
 
-**No Fly (desde a Fase 5 de prontidão, 25/09/2026)** o `/metrics` NÃO está na porta pública: o
-`fly.toml` liga `METRICS_ENABLED=1` + `METRICS_PORTA_INTERNA=9091`, e o bloco `[metrics]` manda o
-Prometheus gerenciado do Fly raspar essa porta a cada 15 s. O raspador do Fly não manda token (a
-doc só tem `port` e `path`), e a 9091 não é publicada — só se alcança por dentro da VM. Para olhar
-na mão: `fly ssh console --app babel-play -C "wget -qO- http://127.0.0.1:9091/metrics" | head -40`.
-Os dados ficam ~15 dias em `https://api.fly.io/prometheus/<org>/` e o painel é o
-[fly-metrics.net](https://fly-metrics.net) (Grafana gerenciado): importe `ops/dashboards/babel-play.json`.
-As regras de alerta estão em `ops/alertas/regras.yml`, e o que cada uma pede está no §13.
+**Porta interna 9091 (aposentada, Task 10 da Fase 2).** Até então o `fly.toml` ligava
+`METRICS_PORTA_INTERNA=9091` e o bloco `[metrics]` mandava o Prometheus gerenciado do Fly raspar um
+listener próprio, sem token. Esse listener não existe mais (`METRICS_PORTA_INTERNA` é ignorada): o
+`/metrics` mora sempre na porta do app, e em produção `METRICS_ENABLED=1` **exige** `METRICS_TOKEN`
+(o boot aborta sem). Um raspador que manda `Authorization: Bearer` (agente próprio, Grafana Alloy) é o
+caminho; o `[metrics]` do `fly.toml` está marcado como legado e sai na Fase 4 junto com o Fly. Num
+Worker, o backend de métricas é um no-op (Analytics Engine é a Fase 4). Os dados do painel do Fly
+(`ops/dashboards/babel-play.json`) e as regras de `ops/alertas/regras.yml` seguem valendo para quem raspa.
 
-**Em cluster, o `/metrics` da porta pública responde os números DO PROCESSO que atendeu o scrape**, e diz qual foi
-(header `x-metrics-processo` e métrica `processo_info`). Não há agregação, e isso é decisão
-registrada: o agregador do `prom-client` só enxerga os workers, e aqui o primário também atende —
-com `CLUSTER_WORKERS=4` a resposta "agregada" omitiria ~1/4 do tráfego em silêncio. Se os seus
-gráficos oscilarem entre patamares, é o scrape alternando de processo. A porta interna
-(`METRICS_PORTA_INTERNA`) é esse listener próprio: sobe só no primário, então o scrape é sempre do
-mesmo processo — e mostra só ele (o aviso no corpo diz isso).
+**Cada instância tem o seu `/metrics`** (o cluster saiu; escala-se por instâncias). O header
+`x-metrics-processo` e a métrica `processo_info` dizem qual respondeu; some por `sum(...)`.
 
 A label de rota é o **padrão** (`/api/sessions/:id`), nunca o caminho pedido, e o que não casou rota
 cai num balde `desconhecida`. É o que impede um scanner de porta de criar mil séries temporais.
@@ -504,7 +499,7 @@ req/s no banco já engordado. Comparar corridas sobre bancos de tamanhos diferen
 | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | `/api/ready` em 503 e `/api/health` em 200                      | banco inalcançável, migração pendente ou boot incompleto (S3 recusando dá `200` + `degradado`, não 503)                       | ler o corpo do `ready`, que nomeia o item                                             |
 | `429` em massa de uma origem só                                 | balde de autenticação estourado (§7)                                                                                          | conferir `TRUST_PROXY`; a janela é de 15 min                                          |
-| gráficos de `/metrics` oscilando entre patamares                | scrape alternando de processo em cluster (§3)                                                                                 | ler `x-metrics-processo`                                                              |
+| gráficos de `/metrics` oscilando entre patamares                | scrape alternando de instância (§3)                                                                                           | ler `x-metrics-processo`                                                              |
 | tradução lenta e depois instantânea falhando                    | disjuntor abriu (§5)                                                                                                          | ver o log do provedor; a reserva assume                                               |
 | `SQLITE_ERROR: too many SQL variables` ao salvar sessão         | **defeito conhecido**: o schema aceita 5.000 falas e o repositório grava tudo num `batch` só. Medido: 1.500 passam, 2.000 não | quebrar a sessão em partes menores; o conserto está registrado no relatório da Fase 5 |
 | `ECONNREFUSED` disparando centenas de conexões novas de uma vez | limite do **cliente**, não do servidor (medido: com o pool quente o mesmo servidor atende 300 simultâneas)                    | mandar em ondas                                                                       |
@@ -594,9 +589,8 @@ alerta apagado; se a regra está errada, corrija o `regras.yml` (com teste) em v
 ### 13.5 `BabelMetricasAusentes` — nenhum scrape há 10 min (aviso)
 
 - **Significa:** sem métricas, nenhum outro alerta daqui dispara. A máquina está fora, o
-  `METRICS_ENABLED`/`METRICS_PORTA_INTERNA` saiu do `[env]` ou o `[metrics]` do `fly.toml` mudou.
-- **Primeira ação:** `fly status`; `fly ssh console -C "wget -qO- http://127.0.0.1:9091/metrics"`; no
-  boot, a linha `[metrics] /metrics na porta interna 9091`.
+  `METRICS_ENABLED` saiu do ambiente, o token do raspador não confere ou o alvo do raspador mudou (a 9091 foi aposentada).
+- **Primeira ação:** `fly status`; `curl -s -H "Authorization: Bearer $METRICS_TOKEN" https://<host>/metrics | head`.
 - **Silenciar:** durante manutenção planejada com a máquina parada.
 
 <a id="alerta-provedor-429"></a>

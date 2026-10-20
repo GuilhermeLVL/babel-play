@@ -5,12 +5,8 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import {
-  erroDeMetricasEmProducao,
-  limiaresDeGastoPorUsuario,
-  orcamentoDiarioDeIaUsd,
-  portaInternaDeMetricas,
-} from '../server/lib/config'
+import * as config from '../server/lib/config'
+import { erroDeMetricasEmProducao, limiaresDeGastoPorUsuario, orcamentoDiarioDeIaUsd } from '../server/lib/config'
 
 const env = (o: Record<string, string>) => o as unknown as NodeJS.ProcessEnv
 
@@ -32,33 +28,29 @@ describe('GAP-013 — /metrics fail-closed em produção', () => {
 })
 
 /*
- * Fase 5 de prontidão (25/09/2026): o raspador gerenciado do Fly (`[metrics]` do fly.toml) NÃO manda
- * `Authorization` — a doc só tem `port` e `path`. `METRICS_PORTA_INTERNA` tira o `/metrics` da porta
- * pública e o serve numa porta não publicada; aí o token deixa de ser exigido.
+ * A porta interna de métricas (`METRICS_PORTA_INTERNA`, 9091) saiu na Task 10 da Fase 2: era o alvo do
+ * `[metrics]` do Fly, que não manda `Authorization`. Sem ela, NADA dispensa o token em produção — o
+ * fail-closed acima vale inclusive para quem ainda tem a variável no ambiente.
  */
-describe('METRICS_PORTA_INTERNA — o scrape do Fly sem token, fora da porta pública', () => {
-  it('produção + porta interna, sem token → ok (o /metrics público nem é montado)', () => {
+describe('METRICS_PORTA_INTERNA aposentada — não abre exceção no fail-closed', () => {
+  it('produção + METRICS_ENABLED=1 + porta interna herdada, SEM token → aborta (antes: ok)', () => {
     expect(
       erroDeMetricasEmProducao(env({ NODE_ENV: 'production', METRICS_ENABLED: '1', METRICS_PORTA_INTERNA: '9091' })),
-    ).toBeNull()
-  })
-  it('porta interna igual à do app → aborta (o scrape sem token ficaria público)', () => {
-    expect(
-      erroDeMetricasEmProducao(
-        env({ NODE_ENV: 'production', METRICS_ENABLED: '1', METRICS_PORTA_INTERNA: '3000', PORT: '3000' }),
-      ),
-    ).toMatch(/mesma porta/)
+    ).toMatch(/METRICS_TOKEN/)
     expect(
       erroDeMetricasEmProducao(env({ NODE_ENV: 'production', METRICS_ENABLED: '1', METRICS_PORTA_INTERNA: '3000' })),
-    ).toMatch(/mesma porta/)
+    ).toMatch(/METRICS_TOKEN/)
   })
-  it('porta inválida → aborta em vez de cair silenciosamente no scrape público', () => {
-    expect(erroDeMetricasEmProducao(env({ METRICS_ENABLED: '1', METRICS_PORTA_INTERNA: 'noventa' }))).toMatch(
-      /porta válida/,
-    )
-    expect(portaInternaDeMetricas(env({ METRICS_PORTA_INTERNA: '70000' }))).toBeUndefined()
-    expect(portaInternaDeMetricas(env({ METRICS_PORTA_INTERNA: ' 9091 ' }))).toBe(9091)
-    expect(portaInternaDeMetricas(env({}))).toBeUndefined()
+  it('com token, a porta herdada é irrelevante (ok)', () => {
+    expect(
+      erroDeMetricasEmProducao(
+        env({ NODE_ENV: 'production', METRICS_ENABLED: '1', METRICS_TOKEN: 'seg', METRICS_PORTA_INTERNA: '9091' }),
+      ),
+    ).toBeNull()
+  })
+  it('a porta inválida deixa de ser lida (antes abortava): o helper e o aborto por porta não existem mais', () => {
+    expect(erroDeMetricasEmProducao(env({ METRICS_ENABLED: '1', METRICS_PORTA_INTERNA: 'noventa' }))).toBeNull()
+    expect('portaInternaDeMetricas' in config).toBe(false)
   })
 })
 

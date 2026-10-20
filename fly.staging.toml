@@ -1,3 +1,7 @@
+# LEGADO (Fase 2 da migração para o Cloudflare): este arquivo é retirado na Fase 4. A porta 9091
+# (`METRICS_PORTA_INTERNA` e o bloco `[metrics]` abaixo) NÃO é mais servida pelo app, e `METRICS_ENABLED=1`
+# em produção agora exige `METRICS_TOKEN`. Não use este arquivo para um deploy novo.
+#
 # Babel Play no Fly.io — STAGING, sem domínio próprio (docs/STAGING.md, "Sem domínio próprio").
 #
 # Cópia do `fly.toml` da produção com quatro diferenças, todas porque aqui NÃO há Cloudflare na frente e

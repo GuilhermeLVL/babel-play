@@ -23,32 +23,13 @@
  * fecha a porta de vez, recusando qualquer padrão fora do alfabeto de rota.
  *
  * ─────────────────────────────────────────────────────────────────────────────────────────
- * CLUSTER — E POR QUE `AggregatorRegistry` FICOU DE FORA (decisão, não esquecimento).
+ * UM PROCESSO POR REGISTRO (o modo cluster foi aposentado na Task 10 da Fase 2).
  *
- * `CLUSTER_WORKERS` faz `server.ts` forkar N processos, e o primário TAMBÉM atende (ele chama
- * `startServer()` e só depois forka — ver `server.ts:306`). Cada processo tem o seu heap, logo o
- * seu registro de métricas: o contador de um não enxerga o do outro.
- *
- * `prom-client` oferece `AggregatorRegistry.clusterMetrics()` para isso, e ele foi RECUSADO aqui
- * depois de ler a implementação (`node_modules/prom-client/lib/cluster.js:70`): o laço pede as
- * métricas para `cluster.workers` — e SÓ para eles. O processo primário não está nessa lista.
- * Num deploy com `CLUSTER_WORKERS=4`, o primário atende ~1/4 do tráfego, e a resposta "agregada"
- * omitiria essa fatia sem dizer nada. Também não dá para concatenar os dois textos: o formato de
- * exposição do Prometheus recusa `# HELP`/`# TYPE` repetidos para a mesma família, então
- * `clusterMetrics()` + `register.metrics()` produz um scrape inválido, não um scrape somado.
- *
- * Entre um número agregado que mente por omissão e um número parcial que se declara parcial, a
- * casa fica com o segundo. O que este arquivo faz:
- *
- *   - responde SEMPRE com o registro DESTE processo;
- *   - diz qual processo respondeu, no header `x-metrics-processo` (papel + pid) e na métrica
- *     `processo_info`, que é o que permite ao operador perceber que os scrapes estão alternando;
- *   - emite um comentário no topo do corpo quando há mais de um processo, para quem lê o scrape
- *     na mão não interpretar um número parcial como total.
- *
- * O CONSERTO DE VERDADE é dar ao `/metrics` um listener próprio, ligado só no primário, para o
- * scrape nunca cair num worker — e isso é uma linha em `server.ts`, que esta fase não toca. Fica
- * registrado como o próximo passo, e não disfarçado de resolvido.
+ * Antes, `CLUSTER_WORKERS` fazia o servidor forkar N processos, cada um com o seu registro, e o
+ * `AggregatorRegistry` do `prom-client` foi recusado (ele só enxerga os workers, não o primário).
+ * Hoje escala-se por INSTÂNCIAS: cada uma tem o seu `/metrics` e o Prometheus soma por `sum(...)`.
+ * O header `x-metrics-processo` e a métrica `processo_info` continuam dizendo QUEM respondeu
+ * (papel fixo `primario` + pid) — os alertas e o painel de `ops/` dependem de `processo_info`.
  *
  * ─────────────────────────────────────────────────────────────────────────────────────────
  * O REGISTRO É O GLOBAL do `prom-client`, e não um `new Registry()`. Motivo único: `collectDefaultMetrics`
@@ -56,9 +37,7 @@
  * espelhar tudo. Como o módulo cria as métricas UMA vez (guardadas em `estado`), o risco clássico
  * do registro global — registrar o mesmo nome duas vezes e lançar — não existe aqui.
  */
-import cluster from 'node:cluster'
 import { timingSafeEqual } from 'node:crypto'
-import { createServer, type Server } from 'node:http'
 import { type IntervalHistogram, monitorEventLoopDelay } from 'node:perf_hooks'
 
 import type { NextFunction, Request, RequestHandler, Response } from 'express'
@@ -155,14 +134,13 @@ function metricas(): Estado {
   if (estado) return estado
   collectDefaultMetrics()
 
-  /* `processo_info` é o que torna o cluster LEGÍVEL a partir do próprio scrape: papel e pid do
-     processo que respondeu. Cardinalidade de 1 série por processo vivo, que é o mínimo possível
-     para a informação existir. */
+  /* `processo_info`: pid do processo que respondeu ao scrape (o papel é sempre `primario` desde que o
+     cluster saiu; o rótulo fica porque alertas e painel de `ops/` o usam). 1 série por processo vivo. */
   new Gauge({
     name: 'processo_info',
-    help: 'Marca o processo que respondeu ao scrape (papel=primario|worker). Ver o bloco de cluster em server/http/metricas.ts.',
+    help: 'Marca o processo que respondeu ao scrape (papel fixo: primario).',
     labelNames: ['papel', 'pid'] as const,
-  }).set({ papel: cluster.isPrimary ? 'primario' : 'worker', pid: String(process.pid) }, 1)
+  }).set({ papel: 'primario', pid: String(process.pid) }, 1)
 
   estado = {
     duracao: new Histogram({
@@ -819,65 +797,9 @@ export function handlerDeMetricas(): RequestHandler {
   }
 }
 
-/** O corpo do scrape e o processo que respondeu — o mesmo para a porta pública e a interna. */
+/** O corpo do scrape e o processo que respondeu. */
 async function scrape(): Promise<{ corpo: string; processo: string }> {
-  const corpo = await register.metrics()
-  const irmaos = cluster.isPrimary ? Object.keys(cluster.workers ?? {}).length : 1
-  const papel = cluster.isPrimary ? 'primario' : 'worker'
-  /* O aviso vai no CORPO, e não só no header: quem lê um scrape na mão (curl) não vê header, e
-     é exatamente essa pessoa que corre o risco de somar errado. Linha de comentário é válida no
-     formato de exposição e o Prometheus a ignora. */
-  const aviso =
-    irmaos > 0 || !cluster.isPrimary
-      ? `# ATENCAO: numeros deste processo (${papel}:${process.pid}), nao do cluster inteiro. Ver server/http/metricas.ts.\n`
-      : ''
-  return { corpo: aviso + corpo, processo: `${papel}:${process.pid}` }
-}
-
-/**
- * O LISTENER SÓ DE MÉTRICAS — `METRICS_PORTA_INTERNA` (Fase 5 de prontidão, 25/09/2026).
- *
- * É o alvo do `[metrics]` do `fly.toml`. O Prometheus gerenciado do Fly raspa essa porta por dentro
- * da VM a cada 15 s e não sabe mandar `Authorization` (a doc só tem `port` e `path`), então aqui NÃO
- * há token. O que protege é a porta não estar publicada: o proxy do Fly só encaminha as portas de
- * `[http_service]`/`[[services]]` — conferido por `tests/integration/fly-metricas.test.ts`.
- *
- * `node:http` cru, e não Express: é UMA rota, sem corpo, sem auth — e fica fora de todo o pipeline
- * do app (inclusive do `middlewareDeMetricas`, para o próprio scrape não virar série). Só no
- * processo primário (ver `server.ts`): com cluster, é o que acaba com o "scrape alternando de
- * processo" descrito no topo deste arquivo, ao preço de mostrar só o primário — declarado no corpo.
- */
-export function iniciarServidorDeMetricas(porta: number, host = '0.0.0.0'): Promise<Server> {
-  metricas()
-  const servidor = createServer((req, res) => {
-    const caminho = (req.url ?? '').split('?')[0]
-    if (req.method !== 'GET' || caminho !== '/metrics') {
-      res.statusCode = 404
-      res.end()
-      return
-    }
-    scrape().then(
-      ({ corpo, processo }) => {
-        res.setHeader('x-metrics-processo', processo)
-        res.setHeader('content-type', register.contentType)
-        res.end(corpo)
-      },
-      (err: unknown) => {
-        log('error', { event: 'metrics_falhou', route: '/metrics', status: 500, error: String(err).slice(0, 300) })
-        res.statusCode = 500
-        res.end()
-      },
-    )
-  })
-  return new Promise((resolve, reject) => {
-    servidor.once('error', reject)
-    servidor.listen(porta, host, () => {
-      servidor.off('error', reject)
-      /* Não segura o processo vivo no desligamento: quem drena é o servidor do app. */
-      servidor.unref()
-      resolve(servidor)
-    })
-  })
+  return { corpo: await register.metrics(), processo: `primario:${process.pid}` }
 }
 
 /** Só para os testes: esquece as métricas registradas entre casos. */

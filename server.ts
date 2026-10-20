@@ -23,7 +23,6 @@ import { criarApp } from './server/http/app'
 import { montarSpa } from './server/http/estaticos'
 import { aplicarTemposLimite } from './server/http/temposLimite'
 import { authRequired } from './server/lib/auth'
-import { metricasHabilitadas, portaInternaDeMetricas } from './server/lib/config'
 import { registrarDesligamento } from './server/lib/desligamento'
 import { erroGlobal } from './server/lib/erroGlobal'
 import { log } from './server/lib/logger'
@@ -114,20 +113,6 @@ async function startServer() {
   /* TEMPOS LIMITE (auditoria de 10/10/2026, A6): o socket ocioso vive mais que os 60 s do proxy do
      Fly. O porquê de cada número está em `server/http/temposLimite.ts`. */
   aplicarTemposLimite(server)
-
-  /* MÉTRICAS NA PORTA INTERNA (Fase 5 de prontidão) — sem token, numa porta que o proxy do Fly não
-     publica. */
-  const portaDeMetricas = metricasHabilitadas() ? portaInternaDeMetricas() : undefined
-  if (portaDeMetricas !== undefined) {
-    const { iniciarServidorDeMetricas } = await import('./server/http/metricas')
-    try {
-      await iniciarServidorDeMetricas(portaDeMetricas)
-      console.log(`[metrics] /metrics na porta interna ${portaDeMetricas} (sem token; não publicada)`)
-    } catch (err) {
-      /* Métrica quebrada não derruba o serviço que ela observa: o alerta `absent(up)` é quem avisa. */
-      console.error(`[metrics] porta interna ${portaDeMetricas} indisponível: ${String(err).slice(0, 160)}`)
-    }
-  }
 
   /* Os agendamentos diários (backup, retenções, podas, limpeza). Ver `server/boot/jobs.ts`. */
   await agendarJobsNoNode()

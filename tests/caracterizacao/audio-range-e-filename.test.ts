@@ -5,9 +5,9 @@
  *    `<audio>`. `bytes=-N` são os N ÚLTIMOS bytes (antes era lido como `0-N`); faixa invertida
  *    (`9-2`), fora do arquivo e lixo respondem 416 com `Content-Range: bytes * /tamanho`;
  *    `bytes=0-` é o arquivo inteiro em 206.
- * 2. `POST /api/import/document` com `x-filename` malformado em percent-encoding
- *    (`%E0%A4%A`): o `decodeURIComponent` lança URIError, e isso não pode virar 500. O nome cai
- *    no padrão.
+ * (O caso 2, `x-filename` malformado em `POST /api/import/document`, saiu na Fase 3: a rota foi
+ * removida — PDF/DOCX são extraídos no navegador — e nenhuma rota do servidor decodifica mais
+ * `x-filename` com `decodeURIComponent`.)
  */
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -100,34 +100,6 @@ describe('GET /api/sessions/:id/audio com Range', () => {
     const r = await audio(range)
     expect(r.status).toBe(416)
     expect(r.headers.get('content-range')).toBe('bytes */16')
-    await r.arrayBuffer()
-  })
-})
-
-describe('POST /api/import/document com x-filename malformado', () => {
-  const enviar = (nome: string) =>
-    s.chamar('POST', '/api/import/document', {
-      raw: 'Olá, mundo. Um texto qualquer para extrair.',
-      headers: { 'content-type': 'text/plain', 'x-filename': nome },
-    })
-
-  it('%E0%A4%A (percent-encoding truncado): não é 500; o nome cai no padrão', async () => {
-    const r = await enviar('%E0%A4%A')
-    expect(r.status, await r.clone().text()).toBeLessThan(500)
-    await r.arrayBuffer()
-  })
-
-  it('outros malformados também não derrubam a rota', async () => {
-    for (const nome of ['%', '%zz', '100%.txt', '%C0%AF']) {
-      const r = await enviar(nome)
-      expect(r.status, nome).toBeLessThan(500)
-      await r.arrayBuffer()
-    }
-  })
-
-  it('controle: nome bem formado com percent-encoding continua decodificando (.txt, 200)', async () => {
-    const r = await enviar(encodeURIComponent('relatório final.txt'))
-    expect(r.status, await r.clone().text()).toBe(200)
     await r.arrayBuffer()
   })
 })

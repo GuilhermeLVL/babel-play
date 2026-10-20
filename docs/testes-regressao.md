@@ -46,7 +46,7 @@ Esperado: balão "Sistema / Outros" com transcrição + tradução; decode ~470m
 ## 6. Importação
 
 - `POST /api/import/web` `{url}` → título+texto (✅ example.com).
-- `POST /api/import/document` binário + header `x-filename` → texto (✅ .txt).
+- `POST /api/import/document`: removida na Fase 3 (PDF/DOCX extraídos no navegador, `src/lib/import/extrairDocumento.ts`).
 - YouTube: aposentado (Task 10 da Fase 2) — `POST /api/import/youtube` responde 410 `rota_removida`; ver `tests/integration/import-youtube-removida.test.ts`.
 
 ## 7. iChat

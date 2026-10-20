@@ -4,6 +4,7 @@
  *    mais nunca roda nada; uma a menos deixa um job sem disparo, em silêncio.
  *  - `define.__VERSAO_DO_PACOTE__` = a versão do `package.json` (no Worker não há disco para lê-la).
  *  - o Worker é sempre produção: `define` do literal e `vars.NODE_ENV`, no topo e no staging.
+ *  - os buckets de mídia são os que `scripts/cloudflare/r2.mjs` cria (`frasy-midia`, `frasy-midia-staging`).
  */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -19,6 +20,7 @@ interface Ambiente {
   triggers?: { crons?: string[] }
   vars?: Record<string, string>
   define?: Record<string, string>
+  r2_buckets?: { binding: string; bucket_name: string }[]
 }
 interface Config extends Ambiente {
   env?: Record<string, Ambiente>
@@ -44,5 +46,10 @@ describe('wrangler.jsonc', () => {
     expect(config.define?.['process.env.NODE_ENV']).toBe('"production"')
     expect(config.vars?.NODE_ENV).toBe('production')
     expect(config.env?.staging?.vars?.NODE_ENV).toBe('production')
+  })
+
+  it('a mídia vai para frasy-midia (produção) e frasy-midia-staging (staging), no binding MIDIA', () => {
+    expect(config.r2_buckets).toEqual([{ binding: 'MIDIA', bucket_name: 'frasy-midia' }])
+    expect(config.env?.staging?.r2_buckets).toEqual([{ binding: 'MIDIA', bucket_name: 'frasy-midia-staging' }])
   })
 })

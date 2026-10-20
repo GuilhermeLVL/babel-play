@@ -6,6 +6,14 @@
  *   npx tsx scripts/modelos/publicar-no-r2.ts --bucket=frasy-modelos            # publica
  *   npx tsx scripts/modelos/publicar-no-r2.ts --bucket=frasy-modelos --seco     # só lista
  *   npx tsx scripts/modelos/publicar-no-r2.ts --bucket=... --modelo=onnx-community/whisper-tiny
+ *   npx tsx scripts/modelos/publicar-no-r2.ts --prefixo=ort/1.26.0 [--dir=public] [--seco]
+ *
+ * `--bucket` tem padrão `frasy-modelos` (criado por `scripts/cloudflare/r2.mjs`).
+ *
+ * Com `--prefixo`, em vez dos pesos sobe o RUNTIME do ONNX: os `ort-wasm-*.{wasm,mjs}` de `--dir` (padrão
+ * `public/`, onde `scripts/copiar-assets-runtime.mjs` os põe) em `<prefixo>/<arquivo>`, com `Content-Type`
+ * certo (`application/wasm`, `text/javascript`) e `immutable`. O prefixo leva a versão do `onnxruntime-web`:
+ * versão nova, caminho novo. Depois, no build: `VITE_ORT_WASM_URL=https://<domínio do bucket>/<prefixo>/`.
  *
  * Para cada modelo de `src/gateway/revisoesDosModelos.ts`:
  *   1. lista os arquivos do repositório NO COMMIT fixado (API do Hub, `tree/<sha>`);
@@ -22,6 +30,8 @@
  * app — ver `docs/LANCAMENTO.md`. Depois, no build: `VITE_SELF_HOST_MODELS=https://<domínio do bucket>`.
  */
 import { createHash } from 'node:crypto';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { assinarSigV4, type ConfigS3 } from '../../server/lib/armazenamento';
@@ -51,8 +61,29 @@ interface ArquivoDoHub {
   lfs?: { oid: string; size: number };
 }
 
-const tipoDe = (c: string) =>
-  c.endsWith('.json') ? 'application/json' : c.endsWith('.txt') ? 'text/plain' : 'application/octet-stream';
+export const tipoDe = (c: string) =>
+  c.endsWith('.json')
+    ? 'application/json'
+    : c.endsWith('.txt')
+      ? 'text/plain'
+      : c.endsWith('.wasm')
+        ? 'application/wasm'
+        : c.endsWith('.mjs') || c.endsWith('.js')
+          ? 'text/javascript'
+          : 'application/octet-stream';
+
+/** Os arquivos do runtime do ONNX que o app serve (`ort-wasm-*.wasm`/`.mjs`), em ordem. */
+export function arquivosDoRuntime(nomes: string[]): string[] {
+  return nomes.filter((n) => /^ort-wasm-.*\.(wasm|mjs)$/.test(n)).sort();
+}
+
+/** `ort/1.26.0` → `ort/1.26.0` (sem barras nas pontas); vazio ou com `..` é recusado. */
+export function prefixoValido(p: string): string {
+  const limpo = p.replace(/^\/+|\/+$/g, '');
+  if (!limpo || limpo.split('/').some((s) => s === '' || s === '.' || s === '..'))
+    throw new Error(`--prefixo inválido: "${p}" (ex.: ort/1.26.0)`);
+  return limpo;
+}
 
 async function listar(modelo: string, sha: string): Promise<ArquivoDoHub[]> {
   const r = await fetch(`https://huggingface.co/api/models/${modelo}/tree/${sha}?recursive=true`);
@@ -74,12 +105,13 @@ async function chamarS3(cfg: ConfigS3, metodo: string, chave: string, corpo: Buf
 async function principal() {
   const arg = (n: string) => process.argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3);
   const seco = process.argv.includes('--seco');
-  const bucket = arg('bucket');
+  const bucket = arg('bucket') ?? 'frasy-modelos';
   const so = arg('modelo');
+  const prefixo = arg('prefixo');
   const { S3_ENDPOINT, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_REGION } = process.env;
   if (!bucket || (!seco && (!S3_ENDPOINT || !S3_ACCESS_KEY_ID || !S3_SECRET_ACCESS_KEY))) {
     console.error(
-      'uso: S3_ENDPOINT=… S3_ACCESS_KEY_ID=… S3_SECRET_ACCESS_KEY=… npx tsx scripts/modelos/publicar-no-r2.ts --bucket=<nome> [--seco] [--modelo=<id>]',
+      'uso: S3_ENDPOINT=… S3_ACCESS_KEY_ID=… S3_SECRET_ACCESS_KEY=… npx tsx scripts/modelos/publicar-no-r2.ts [--bucket=frasy-modelos] [--seco] [--modelo=<id> | --prefixo=ort/<versão> [--dir=public]]',
     );
     process.exit(2);
   }
@@ -94,6 +126,37 @@ async function principal() {
   let enviados = 0;
   let pulados = 0;
   let bytes = 0;
+
+  if (prefixo !== undefined) {
+    const base = prefixoValido(prefixo);
+    const dir = arg('dir') ?? 'public';
+    const nomes = arquivosDoRuntime(readdirSync(dir));
+    if (!nomes.length)
+      throw new Error(`nenhum ort-wasm-*.{wasm,mjs} em ${dir} (rode scripts/copiar-assets-runtime.mjs)`);
+    console.log(`[ort] ${nomes.length} arquivo(s) de ${dir} → ${bucket}/${base}/`);
+    for (const nome of nomes) {
+      const corpo = readFileSync(join(dir, nome));
+      const chave = `${base}/${nome}`;
+      if (seco) {
+        console.log(`  ${chave} (${tipoDe(nome)}, ${(corpo.length / 1048576).toFixed(1)} MB)`);
+        continue;
+      }
+      const existente = await chamarS3(cfg, 'HEAD', chave);
+      if (existente.ok && Number(existente.headers.get('content-length')) === corpo.length) {
+        pulados += 1;
+        continue;
+      }
+      const put = await chamarS3(cfg, 'PUT', chave, corpo, tipoDe(nome));
+      if (!put.ok) throw new Error(`PUT ${chave}: HTTP ${put.status} ${(await put.text()).slice(0, 200)}`);
+      enviados += 1;
+      bytes += corpo.length;
+      console.log(`  ↑ ${chave} (${(corpo.length / 1048576).toFixed(1)} MB)`);
+    }
+    if (!seco)
+      console.log(`[ort] ${enviados} enviado(s), ${pulados} já estavam lá, ${(bytes / 1048576).toFixed(0)} MB`);
+    return;
+  }
+
   for (const [modelo, sha] of Object.entries(REVISOES_DOS_MODELOS)) {
     if (so && so !== modelo) continue;
     const arquivos = await listar(modelo, sha);

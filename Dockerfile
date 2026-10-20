@@ -44,6 +44,8 @@ ARG VITE_PUBLIC_URL
 ARG VITE_SELF_HOST_MODELS
 # A9b (opcional): os modelos do Bergamot num R2/CDN com CORS; sem ela, do próprio domínio.
 ARG VITE_BERGAMOT_MODELOS_URL
+# Fase 4 (opcional): o runtime do ONNX (`ort-wasm-*`) num R2/CDN; sem ela, de `/` (src/gateway/baseDoWasm.ts).
+ARG VITE_ORT_WASM_URL
 ARG VITE_SENTRY_DSN
 # Fase 7 (opcional): a chave PÚBLICA do Cloudflare Turnstile — o captcha do convidado com nuvem.
 ARG VITE_TURNSTILE_SITE_KEY
@@ -59,6 +61,7 @@ ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
     VITE_PUBLIC_URL=$VITE_PUBLIC_URL \
     VITE_SELF_HOST_MODELS=$VITE_SELF_HOST_MODELS \
     VITE_BERGAMOT_MODELOS_URL=$VITE_BERGAMOT_MODELOS_URL \
+    VITE_ORT_WASM_URL=$VITE_ORT_WASM_URL \
     VITE_SENTRY_DSN=$VITE_SENTRY_DSN \
     VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY
 # P0-7b: o commit entra na VERSÃO do app (`0.1.0+<sha7>`) já no build — o `vite.config.ts` a
@@ -183,12 +186,15 @@ ARG VITE_SUPABASE_URL
 ARG VITE_SELF_HOST_MODELS
 # A9b (opcional): os modelos do Bergamot num R2/CDN com CORS; sem ela, do próprio domínio.
 ARG VITE_BERGAMOT_MODELOS_URL
+# Fase 4 (opcional): o runtime do ONNX (`ort-wasm-*`) num R2/CDN; sem ela, de `/` (src/gateway/baseDoWasm.ts).
+ARG VITE_ORT_WASM_URL
 ARG VITE_SENTRY_DSN
 ARG VITE_TURNSTILE_SITE_KEY
 ARG VERSAO
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
     VITE_SELF_HOST_MODELS=$VITE_SELF_HOST_MODELS \
     VITE_BERGAMOT_MODELOS_URL=$VITE_BERGAMOT_MODELOS_URL \
+    VITE_ORT_WASM_URL=$VITE_ORT_WASM_URL \
     VITE_SENTRY_DSN=$VITE_SENTRY_DSN \
     VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY \
     SENTRY_RELEASE=$VERSAO

@@ -11,6 +11,7 @@
  */
 import * as ort from 'onnxruntime-web/wasm';
 
+import { baseDoWasm } from '../baseDoWasm';
 import type { MensagemDoWorker, MensagemParaOWorker } from './fimDeFala';
 import { BINS_MEL, featuresDoSmartTurn, QUADROS_MEL } from './melDoSmartTurn';
 
@@ -19,7 +20,7 @@ let sessao: ort.InferenceSession | null = null;
 const responder = (m: MensagemDoWorker): void => (self as unknown as Worker).postMessage(m);
 
 async function carregar(url: string): Promise<void> {
-  ort.env.wasm.wasmPaths = '/';
+  ort.env.wasm.wasmPaths = baseDoWasm();
   ort.env.wasm.numThreads = 1;
   const resposta = await fetch(url);
   if (!resposta.ok) throw new Error(`modelo de turno: HTTP ${resposta.status}`);

@@ -52,6 +52,17 @@ describe('diretivasDeCsp', () => {
     )
   })
 
+  it('o runtime do ONNX num R2 (VITE_ORT_WASM_URL) entra em connect-src, script-src e worker-src', () => {
+    const d = diretivasDeCsp(env({ VITE_ORT_WASM_URL: 'https://r2.exemplo.dev/ort/1.26.0/' }))
+    expect(d.connectSrc).toContain('https://r2.exemplo.dev')
+    expect(d.scriptSrc).toContain('https://r2.exemplo.dev')
+    expect(d.workerSrc).toContain('https://r2.exemplo.dev')
+    // Sem a variável, script-src e worker-src seguem sem origem de fora.
+    const base = diretivasDeCsp(env({}))
+    expect(base.scriptSrc).toEqual(["'self'", "'wasm-unsafe-eval'", 'blob:'])
+    expect(base.workerSrc).toEqual(["'self'", 'blob:'])
+  })
+
   it('VITE_SELF_HOST_MODELS=1 (mesmo domínio) não acrescenta host', () => {
     const base = diretivasDeCsp(env({})).connectSrc
     expect(diretivasDeCsp(env({ VITE_SELF_HOST_MODELS: '1' })).connectSrc).toEqual(base)

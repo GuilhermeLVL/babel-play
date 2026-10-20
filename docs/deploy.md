@@ -392,8 +392,8 @@ volta com conferência de sha256. Sem algum secret o primeiro passo reprova dize
   `R2_S3_SECRET_ACCESS_KEY` (token R2 com escrita em `frasy-backups`).
 - **Host:** o direto do Supabase é só IPv6 e o runner do GitHub não tem IPv6. Use o pooler de sessão
   (`aws-1-sa-east-1.pooler.supabase.com`, porta 5432, usuário `postgres.<ref>`); o `pg_dump` funciona nele.
-- **Retenção (pendente, Fase 4):** o bucket ainda não existe. Ao criá-lo, ligar a regra de 8 semanas:
-  `wrangler r2 bucket lifecycle add frasy-backups --name semanal --prefix semanal/ --expire-days 56`. Até lá o envio falha.
+- **Retenção:** 8 semanas. A regra `semanal` (`semanal/` expira em 56 dias) é ligada no `frasy-backups` por
+  `scripts/cloudflare/r2.mjs` (ver "R2: criar/conferir buckets").
 - **Restaurar** num banco novo (credenciais por `PG*`, nunca na linha de comando):
 
 ```bash
@@ -467,6 +467,47 @@ poda dependências de cliente e um SDK de 20 MB no runtime iria contra isso.
 **Não testado contra bucket real** — os testes cobrem a assinatura, o contrato e os códigos de
 erro contra um transporte falso. A primeira subida com credenciais de verdade precisa ser
 verificada à mão.
+
+### R2: criar/conferir buckets
+
+`scripts/cloudflare/r2.mjs` (idempotente; usa o wrangler do `node_modules` com o `CLOUDFLARE_API_TOKEN` do `.env`):
+
+```bash
+set -a; source .env; set +a
+node scripts/cloudflare/r2.mjs --dry-run      # o plano, sem tocar em nada
+node scripts/cloudflare/r2.mjs                # cria o que falta e imprime a tabela final
+node scripts/cloudflare/r2.mjs --origens https://frasy.com.br,https://frasy-staging.guigui-cruzeiro.workers.dev,http://localhost:3100
+```
+
+| Bucket                | Para quê                                                               | Configuração                                  |
+| --------------------- | ---------------------------------------------------------------------- | --------------------------------------------- |
+| `frasy-midia`         | áudio e anexos da produção (binding `MIDIA` do `wrangler.jsonc`)       | —                                             |
+| `frasy-midia-staging` | o mesmo, do `env.staging`                                              | —                                             |
+| `frasy-backups`       | `pg_dump` semanal (`scripts/backup/enviar-ao-r2.ts`)                   | lifecycle `semanal`: `semanal/` 56 dias       |
+| `frasy-modelos`       | pesos, Bergamot e runtime do ONNX (`scripts/modelos/publicar-*-r2.ts`) | CORS GET/HEAD para `--origens`, max-age 86400 |
+
+O `cors set` sobrescreve a política inteira: passe em `--origens` TODAS as origens que buscam do bucket (padrão: as três
+acima). Localização: o wrangler 4.151 só oferece `weur|eeur|apac|wnam|enam|oc` (não há América do Sul); os buckets
+nasceram sem dica e a Cloudflare os pôs em **ENAM** (20/10/2026). Conferir:
+
+```bash
+npx wrangler r2 bucket list
+npx wrangler r2 bucket lifecycle list frasy-backups
+npx wrangler r2 bucket cors list frasy-modelos
+```
+
+**Runtime do ONNX no R2 (`VITE_ORT_WASM_URL`).** Por padrão o `ort-wasm-simd-threaded*.{wasm,mjs}` sai de `/` (os assets).
+Para servi-lo do bucket (o `.jsep.wasm` tem ~25 MB, no limite de arquivo dos assets do Worker), publique com a versão do
+`onnxruntime-web` no caminho e aponte o build para lá:
+
+```bash
+S3_ENDPOINT=https://<conta>.r2.cloudflarestorage.com S3_ACCESS_KEY_ID=<token modelos> S3_SECRET_ACCESS_KEY=<segredo> \
+  npx tsx scripts/modelos/publicar-no-r2.ts --prefixo=ort/1.26.0          # --seco lista sem enviar; --dir=public é o padrão
+VITE_ORT_WASM_URL=https://modelos.frasy.com.br/ort/1.26.0/ npm run build  # a CSP abre a origem em connect/script/worker-src
+```
+
+A troca efetiva espera o domínio público do bucket (`r2.dev` não é para produção). Valor inválido (sem `https://`, ou
+`http://` fora de localhost) derruba o carregamento com `VITE_ORT_WASM_URL inválida: …` (`src/gateway/baseDoWasm.ts`).
 
 ### Binding R2 × S3 × disco (Fase 2)
 

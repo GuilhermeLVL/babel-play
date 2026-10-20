@@ -30,6 +30,7 @@
  * quatro. Medido na bancada: 2,0 GB de RAM somando os processos do Chrome, com o modelo carregado.
  */
 import { filtrarAlucinacao } from '../alucinacao';
+import { baseDoWasm } from '../baseDoWasm';
 import { gravarManifesto, type ManifestoDeModelo } from '../modelManifest';
 import { FilaSerial, type SinalDeCancelamento } from './filaDoWorker';
 import { criarRastreadorDeProgresso, rotuloDeBytes } from './modelProgress';
@@ -404,11 +405,12 @@ const TETO_DE_THREADS = 4;
 
 /**
  * O `onnxruntime-web` de `node_modules`, por `import()`: só é avaliado quando alguém manda carregar.
- * O `.wasm` e o loader vêm de `/` (o que o app já serve para o VAD), nunca de CDN.
+ * O `.wasm` e o loader vêm de `baseDoWasm()`: `/` (o que o app já serve para o VAD) ou o R2 de `VITE_ORT_WASM_URL`,
+ * nunca do jsDelivr.
  */
 async function abrirRuntime(threads: number): Promise<RuntimeDoParakeet> {
   const ort = await import('onnxruntime-web/wasm');
-  ort.env.wasm.wasmPaths = '/';
+  ort.env.wasm.wasmPaths = baseDoWasm();
   ort.env.wasm.numThreads = Math.max(1, Math.min(TETO_DE_THREADS, Math.floor(threads) || 1));
   return {
     criarSessao: (bytes) =>

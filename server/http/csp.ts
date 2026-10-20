@@ -29,6 +29,9 @@
  *                                               código, vem sempre do próprio domínio: `script-src`
  *                                               não muda)
  *   VITE_SENTRY_DSN                             o envio de erro do navegador
+ *   VITE_ORT_WASM_URL                           o runtime do ONNX (`ort-wasm-*.{wasm,mjs}`) num R2/CDN
+ *                                               (`src/gateway/baseDoWasm.ts`). ESTE é código: entra
+ *                                               também em `script-src` e `worker-src` (ver abaixo)
  *
  *   VITE_TURNSTILE_SITE_KEY (quando existe)     o captcha do Cloudflare Turnstile no convidado com
  *                                               nuvem (Fase 7): script, frame e conexão em
@@ -106,15 +109,24 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env): DiretivasD
     origemDe(env.VITE_SENTRY_DSN),
   ].filter((o): o is string => o !== null)
 
+  /* O runtime do ONNX fora do domínio (`VITE_ORT_WASM_URL`). O `onnxruntime-web` 1.26
+     (`importWasmModule` em `dist/ort.wasm.mjs`) carrega o `ort-wasm-simd-threaded.mjs` assim: com UMA
+     thread, `import()` direto da URL de outra origem (precisa de `script-src`); com várias, `fetch`
+     (`connect-src`) e `import()` do `blob:`. O `.wasm` vem por `fetch`. `worker-src` cobre as threads do
+     Emscripten quando o loader é servido de lá. Sem a variável, nada entra (o padrão é `/`). */
+  const runtimeDoOnnx = [origemDe(env.VITE_ORT_WASM_URL)].filter((o): o is string => o !== null)
+
   /* Fase 7: o captcha do convidado só entra na CSP quando a chave pública existe no deploy. */
   const turnstile = env.VITE_TURNSTILE_SITE_KEY?.trim() ? [HOST_DO_TURNSTILE] : []
 
-  const conexoes = [...new Set(["'self'", 'blob:', 'data:', ...CONEXOES_FIXAS, ...doDeploy, ...turnstile])]
+  const conexoes = [
+    ...new Set(["'self'", 'blob:', 'data:', ...CONEXOES_FIXAS, ...doDeploy, ...runtimeDoOnnx, ...turnstile]),
+  ]
 
   return {
     defaultSrc: ["'self'"],
-    scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'blob:', ...turnstile],
-    workerSrc: ["'self'", 'blob:'],
+    scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'blob:', ...runtimeDoOnnx, ...turnstile],
+    workerSrc: ["'self'", 'blob:', ...runtimeDoOnnx],
     connectSrc: conexoes,
     imgSrc: ["'self'", 'https:', 'data:', 'blob:'],
     mediaSrc: ["'self'", 'blob:', 'data:'],

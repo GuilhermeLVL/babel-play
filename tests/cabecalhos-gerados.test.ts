@@ -52,6 +52,15 @@ describe('gerarHeaders', () => {
     expect(dir('connect-src')).toContain('https://modelos.exemplo.dev')
   })
 
+  it('VITE_ORT_WASM_URL abre a origem do runtime do ONNX em connect-src, script-src e worker-src', () => {
+    const csp = bloco(gerarHeaders(env({ VITE_ORT_WASM_URL: 'https://modelos.frasy.com.br/ort/' }), BASE), '/*')
+    const linha = csp.split('\n').find((l) => l.startsWith('Content-Security-Policy:'))!
+    const dir = (nome: string) => linha.split(/;\s*/).find((d) => d.includes(nome + ' ')) ?? ''
+    for (const nome of ['connect-src', 'script-src', 'worker-src'])
+      expect(dir(nome), nome).toContain('https://modelos.frasy.com.br')
+    expect(dir('connect-src')).not.toContain('/ort/')
+  })
+
   it('sem variáveis, a política é a mínima do app (self, wasm-unsafe-eval, blob:, jsdelivr, huggingface…)', () => {
     const csp = bloco(gerarHeaders(env({}), BASE), '/*')
     expect(csp).toContain("default-src 'self'")

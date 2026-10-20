@@ -68,29 +68,21 @@ de custo por assinante está em `scripts/custo/modelo.mjs` (`node scripts/custo/
    "Active" (minutos a algumas horas).
 3. **SSL/TLS** → modo **Full (strict)**; **Edge Certificates** → _Always Use HTTPS_ e _HSTS_
    (max-age 6 meses, sem _preload_ no começo); _Minimum TLS_ 1.2.
-4. **R2** → ativar (pede cartão; os primeiros 10 GB são grátis). Criar **quatro buckets**, todos
-   com _location hint_ **South America** se oferecido:
-   - `frasy-midia` — áudios das sessões (privado);
-   - `babel-litestream` — réplica contínua do banco (privado);
-   - `frasy-backups` — snapshots diários (privado) → _Settings → Object lifecycle rules_ →
-     **apagar objetos com mais de 30 dias**;
-   - `frasy-modelos` — pesos dos modelos (**público**: _Settings → Custom Domains_ →
-     `modelos.<domínio>`).
-5. No bucket `frasy-modelos` → _Settings → CORS policy_:
-   ```json
-   [
-     {
-       "AllowedOrigins": ["https://<domínio>", "https://www.<domínio>"],
-       "AllowedMethods": ["GET", "HEAD"],
-       "AllowedHeaders": ["*"],
-       "MaxAgeSeconds": 86400
-     }
-   ]
+4. **R2** → ativar (pede cartão; os primeiros 10 GB são grátis). Os buckets, a retenção e o CORS saem de um script
+   idempotente (o token `CLOUDFLARE_API_TOKEN` do `.env`; detalhes em `docs/deploy.md`, "R2: criar/conferir buckets"):
+   ```bash
+   set -a; source .env; set +a
+   node scripts/cloudflare/r2.mjs --dry-run   # o plano
+   node scripts/cloudflare/r2.mjs --origens https://<domínio>,https://www.<domínio>,https://frasy-staging.guigui-cruzeiro.workers.dev
    ```
-   (O app sai com isolamento de origem ligado — COEP `credentialless` + Document-Isolation-Policy —
-   para o WASM ter threads. Os pesos são baixados por `fetch` com CORS, então esta política de CORS é
-   tudo o que o bucket precisa: `Cross-Origin-Resource-Policy` não é exigido. Sem o CORS, os modelos
-   locais não carregam.)
+   Cria `frasy-midia`, `frasy-midia-staging`, `frasy-backups` (regra `semanal`: `semanal/` expira em 56 dias) e
+   `frasy-modelos` (CORS GET/HEAD para as `--origens`, max-age 86400). Não há _location hint_ de América do Sul no
+   wrangler: os buckets ficam onde a Cloudflare escolher (ENAM). O `babel-litestream` (só no caminho Fly + Litestream)
+   continua manual.
+5. No bucket `frasy-modelos` → _Settings → Custom Domains_ → `modelos.<domínio>` (**público**). O app sai com
+   isolamento de origem ligado — COEP `credentialless` + Document-Isolation-Policy — para o WASM ter threads. Os pesos
+   são baixados por `fetch` com CORS, então o CORS do passo 4 é tudo o que o bucket precisa:
+   `Cross-Origin-Resource-Policy` não é exigido. Sem o CORS, os modelos locais não carregam.
 6. **R2 → Manage API tokens** → criar **três tokens** "Object Read & Write", cada um restrito a UM
    bucket: `midia` (+ `backups`), `litestream`, `modelos`. Anotar _Access Key ID_, _Secret_ e o
    endpoint `https://<conta>.r2.cloudflarestorage.com`.
@@ -112,6 +104,8 @@ de custo por assinante está em `scripts/custo/modelo.mjs` (`node scripts/custo/
    (a raiz do bucket, **sem** sufixo). Sem a variável o app segue como antes: só pt→en, embutido no `dist`; com ela,
    ja/ko/zh/es/fr/de/it/ru/ar/cs/fi/hu/nl/pl/th→inglês (e `X→pt` pelo inglês, nos que o opus-mt já cobria) passam a
    usar o Bergamot, com o opus-mt de reserva. Rode `--seco` antes para ver a lista sem enviar nada.
+   (Opcional) O runtime do ONNX no mesmo bucket: `npx tsx scripts/modelos/publicar-no-r2.ts --prefixo=ort/1.26.0`
+   (mesmas credenciais) e, no build, `VITE_ORT_WASM_URL=https://modelos.<domínio>/ort/1.26.0/`. Sem ela, sai de `/`.
 9. A WAF, a regra de rate limit e o cabeçalho de origem ficam para o passo 9 (precisam do app no ar).
 
 ## 3. Supabase Pro (login) — 30 min

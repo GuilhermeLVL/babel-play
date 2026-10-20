@@ -20,6 +20,7 @@ import { Client, Pool, types } from 'pg'
 
 import { temDisco } from '../lib/runtime'
 import { configDoPool } from './configDoPool'
+import { executorAtual } from './executor'
 import { medirConsultas, registrarMedidorDeTamanho } from './observadorDeConsultas'
 import * as schema from './schema'
 import { ehBancoEmbutido, ehBancoEmMemoria, recusaDeUrlDeMigracao, URL_PADRAO_DO_BANCO } from './tipoDoBanco'
@@ -79,7 +80,8 @@ const textoDe = (q: unknown): string | { sql: string } =>
 type Consultar = (...args: unknown[]) => Promise<unknown>
 const CONTROLE_DE_TRANSACAO = /^\s*(begin|commit|rollback|savepoint|release|start\s+transaction)\b/i
 
-function medida(original: Consultar): Consultar {
+/** O `query` do driver embrulhado pela medição (exportado para o `Client` por requisição). */
+export function medida(original: Consultar): Consultar {
   const medido = medirConsultas(original, (q: unknown) => [textoDe(q)])
   return (...args: unknown[]) => {
     const t = textoDe(args[0])
@@ -144,6 +146,11 @@ function numeroDoBanco(v: string): number | string {
   return Number.isFinite(n) && (!/^-?\d+$/.test(v) || Number.isSafeInteger(n)) ? n : v
 }
 
+/** Liga o parser de int8/numeric no `pg` do processo (global, idempotente): o `Pool` do Node e o `Client` por requisição. */
+export function ligarParsersNumericos(): void {
+  for (const oid of OIDS_NUMERICOS) types.setTypeParser(oid, numeroDoBanco)
+}
+
 let pglite: PGlite | undefined
 let pool: Pool | undefined
 let soltarTrava: (() => void) | undefined
@@ -174,7 +181,7 @@ function abrir(): DB {
      (`types.setTypeParser` é global): o `types` por pool existe, mas o Drizzle passa o seu `types` por
      consulta (datas), que cai no parser GLOBAL para os demais OIDs e passaria por cima do do pool.
      Só roda neste ramo: um processo com PGlite não muda o `pg` de ninguém. */
-  for (const oid of OIDS_NUMERICOS) types.setTypeParser(oid, numeroDoBanco)
+  ligarParsersNumericos()
   pool = new Pool({ connectionString: url, ...configDoPool() })
   // Sem handler, a queda de uma conexão OCIOSA vira 'error' não tratado e derruba o processo.
   pool.on('error', (err) => {
@@ -193,23 +200,30 @@ function abrir(): DB {
 export type DB = PgDatabase<PgQueryResultHKT, typeof schema>
 
 let instancia: DB | undefined
+/** `fecharBanco()` já rodou: o banco do Node não (re)abre mais — uma instância aberta depois nunca seria fechada. */
+let encerrado = false
 function aberto(): DB {
+  if (!instancia && encerrado) throw new Error('banco do processo já fechado (fecharBanco)')
   instancia ??= abrir()
   return instancia
 }
 
+/** O banco desta chamada: o executor da requisição (`comExecutor`, Worker) ou, fora dele, o do Node. */
+const atual = (): DB => executorAtual()?.db ?? aberto()
+
 /**
- * O `db` de sempre, aberto no primeiro acesso: um Proxy que repassa cada propriedade à instância real
- * (métodos ligados a ela). Quem importa `db` continua escrevendo `db.select()`, `db.transaction()`…
+ * O `db` de sempre, aberto no primeiro acesso: um Proxy que repassa cada propriedade ao banco ATUAL
+ * (métodos ligados a ele). Dentro de `comExecutor` (`executor.ts`) é o `Client` da requisição; fora, a
+ * instância única do Node. Quem importa `db` continua escrevendo `db.select()`, `db.transaction()`…
  */
 export const db: DB = new Proxy({} as DB, {
   get(_alvo, prop) {
-    const real = aberto()
+    const real = atual()
     const valor: unknown = Reflect.get(real, prop, real)
     return typeof valor === 'function' ? (valor as (...a: unknown[]) => unknown).bind(real) : valor
   },
-  has: (_alvo, prop) => Reflect.has(aberto(), prop),
-  getPrototypeOf: () => Reflect.getPrototypeOf(aberto()),
+  has: (_alvo, prop) => Reflect.has(atual(), prop),
+  getPrototypeOf: () => Reflect.getPrototypeOf(atual()),
   /* Atribuir (ou `vi.spyOn`) no Proxy cairia num objeto vazio que ninguém lê: falha alto em vez de sumir. */
   set: (_alvo, prop) => {
     throw new TypeError(
@@ -228,8 +242,12 @@ export type ExecutorDb = DB | Parameters<Parameters<DB['transaction']>[0]>[0]
 
 let pronto: Promise<void> | undefined
 
-/** Abre o banco (se ainda não aberto) e confirma que responde. Memoizado: todos esperam a mesma sonda. */
+/**
+ * Abre o banco (se ainda não aberto) e confirma que responde. Memoizado: todos esperam a mesma sonda.
+ * Dentro de `comExecutor` resolve na hora: o executor já conectou ao ser aberto.
+ */
 export function dbReady(): Promise<void> {
+  if (executorAtual()) return Promise.resolve()
   if (pronto) return pronto
   pronto = (async () => {
     await db.execute(sql`select 1`)
@@ -395,8 +413,12 @@ export async function analisarBancoEmbutido(): Promise<boolean> {
 
 let fechado: Promise<void> | undefined
 
-/** Encerra o driver. Idempotente: chamadas seguintes devolvem o mesmo fechamento. */
+/**
+ * Encerra o driver do NODE (o executor de uma requisição se fecha pelo próprio `fechar()`). Idempotente:
+ * chamadas seguintes devolvem o mesmo fechamento. Chamado antes do primeiro acesso, impede a abertura.
+ */
 export function fecharBanco(): Promise<void> {
+  encerrado = true
   fechado ??= (async () => {
     try {
       if (pool) await pool.end()

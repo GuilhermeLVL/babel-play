@@ -112,7 +112,11 @@ export async function migracoesAplicadas(): Promise<VeredictoDasMigracoes> {
   }
 }
 
-/** O schema já existe neste banco? Usado para decidir se a falha de migração é fatal. */
+/**
+ * O schema já existe neste banco? Usado para decidir se a falha de migração é fatal e, no Worker, na
+ * primeira requisição do isolate: dentro de `comExecutor` a pergunta vai ao `Client` da requisição (`db`
+ * resolve para o executor do escopo).
+ */
 export async function schemaPresente(): Promise<boolean> {
   try {
     const r = await db.execute(sql`select to_regclass('public.sessions') is not null as ok`)

@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { diretivasDeCsp } from '../../server/http/csp'
+import { diretivasDeCsp, serializarCsp } from '../../server/http/csp'
 
 const env = (e: Record<string, string>) => e as unknown as NodeJS.ProcessEnv
 
@@ -87,5 +87,17 @@ describe('diretivasDeCsp', () => {
     expect(d.frameAncestors).toEqual(["'self'"])
     expect(d.baseUri).toEqual(["'self'"])
     expect(d.formAction).toEqual(["'self'"])
+  })
+})
+
+describe('serializarCsp', () => {
+  it('sai bloqueante e com as mesmas diretivas que o helmet emitiria', () => {
+    const e = env({ VITE_TURNSTILE_SITE_KEY: 'x' })
+    const d = diretivasDeCsp(e)
+    const texto = serializarCsp(d)
+    expect(texto).not.toMatch(/report-only/i)
+    const nomes = texto.split('; ').map((x) => x.split(' ')[0])
+    const esperados = Object.keys(d).map((k) => k.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase()))
+    expect(nomes).toEqual(esperados)
   })
 })

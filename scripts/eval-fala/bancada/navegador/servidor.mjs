@@ -7,7 +7,7 @@
  *   /dados/…          BANCADA_DIR/navegador (as falas e os manifestos de `preparar-audio.py`)
  *   /modelos/…        BANCADA_DIR/cache/modelos (os ONNX do Parakeet, baixados pelo `rodar.mjs`)
  *
- * Isolamento de origem igual ao da produção (`public/_headers`): COOP same-origin + COEP
+ * Isolamento de origem igual ao da produção (`scripts/vite/_headers.base` (gera `dist/_headers`)): COOP same-origin + COEP
  * credentialless — é o que liga o SharedArrayBuffer e as threads do WASM do ONNX Runtime.
  */
 import { createReadStream, existsSync, statSync } from 'node:fs'

@@ -3,7 +3,7 @@
  *
  * Sem `crossOriginIsolated` não há `SharedArrayBuffer`, e o WASM do ONNX Runtime (Whisper, opus-mt,
  * WeSpeaker) roda em UMA thread: o orçamento do A3 (`src/lib/dispositivo/orcamentoDeThreads.ts`)
- * devolve 1 para todo motor. A edição estática já saía isolada (`public/_headers`); a edição com
+ * devolve 1 para todo motor. A edição estática já saía isolada (`scripts/vite/_headers.base` (gera `dist/_headers`)); a edição com
  * servidor só isolava com `CROSS_ORIGIN_ISOLATION=1`, e o Fly nunca a definiu — o grátis rodava
  * com uma thread justamente onde mais pesa.
  *

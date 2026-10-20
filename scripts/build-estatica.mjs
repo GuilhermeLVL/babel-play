@@ -60,7 +60,7 @@ function arquivos(dir, fora = []) {
 const problemas = []
 if (!existsSync(join(DIST, 'index.html'))) problemas.push('dist/index.html não existe')
 const headers = join(DIST, '_headers')
-if (!existsSync(headers)) problemas.push('dist/_headers não saiu no build (vem de public/_headers)')
+if (!existsSync(headers)) problemas.push('dist/_headers não saiu no build (gerado por scripts/vite/cabecalhos.ts)')
 else {
   const h = readFileSync(headers, 'utf8')
   if (!/Cross-Origin-Embedder-Policy:\s*credentialless/.test(h)) problemas.push('dist/_headers sem COEP credentialless')

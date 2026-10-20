@@ -82,7 +82,7 @@ entra como operador, com DPA, e não como "dado anônimo fora da LGPD".
 
 **Google Fonts — RESOLVIDO (03/10/2026):** as fontes da interface passaram a ser servidas pelo próprio site (pacotes
 `@fontsource`, subsets latin e latin-ext, emitidos em `/assets`). O `index.html` não pede mais nada a
-`fonts.googleapis.com`/`fonts.gstatic.com`, e a CSP (`server/http/csp.ts` e `public/_headers`) fecha `font-src` em
+`fonts.googleapis.com`/`fonts.gstatic.com`, e a CSP (`server/http/csp.ts`, que também gera o `dist/_headers`) fecha `font-src` em
 `'self'`. Nenhum IP ou user-agent de visitante vai ao Google por causa das fontes; a linha saiu da tabela e a
 política de privacidade não precisa citá-lo. `tests/fontes-no-html.test.ts` impede a volta.
 

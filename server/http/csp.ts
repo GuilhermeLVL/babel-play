@@ -129,3 +129,15 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env): DiretivasD
     ...(turnstile.length ? { frameSrc: ["'self'", ...turnstile] } : {}),
   }
 }
+
+/**
+ * A política como texto de cabeçalho (`default-src 'self'; script-src ...`), para quem não passa pelo
+ * `helmet`: o `dist/_headers` das edições estáticas (`scripts/vite/cabecalhos.ts`). Mesma fonte, mesmas
+ * diretivas, na ordem de `diretivasDeCsp`. Sem `upgrade-insecure-requests`: é o helmet que o acrescenta.
+ */
+export function serializarCsp(d: DiretivasDeCsp): string {
+  return Object.entries(d)
+    .filter((par): par is [string, string[]] => Array.isArray(par[1]))
+    .map(([nome, valores]) => [nome.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase()), ...valores].join(' '))
+    .join('; ')
+}

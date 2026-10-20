@@ -1,0 +1,59 @@
+# Cloudflare Pages — cabeçalhos do site estático.
+#
+# Cross-origin isolation liga `SharedArrayBuffer` e, com ele, as THREADS do WASM do ONNX Runtime
+# (sem isto o Whisper roda em 1 thread). `credentialless` em vez de `require-corp`: os pesos vêm
+# do Hugging Face Hub por fetch com CORS, e `require-corp` exigiria CORP em cada resposta deles.
+# Se algum recurso externo parar de carregar sob COEP, a saída é remover estas duas linhas —
+# o app funciona sem elas, só mais lento.
+#
+# PERMISSIONS-POLICY. O app usa o microfone e a captura de tela/aba (o áudio do sistema), sempre na
+# própria origem: ficam ditos. O que ele NÃO usa fica desligado, para um script injetado não ter o
+# que pedir. Só nomes que o Chromium conhece: nome desconhecido vira erro no console, e a suíte da
+# edição estática falha com erro no console. O que não está na lista segue o padrão do navegador
+# (tela acesa, área de transferência, controle do headset, WebXR, isolamento de origem: tudo `self`).
+#
+# CSP BLOQUEANTE, GERADA. Este arquivo é só o MODELO: `scripts/vite/cabecalhos.ts` (plugin do Vite,
+# `closeBundle`) grava `dist/_headers` com a regra `/*` (os cabeçalhos de segurança abaixo mais o
+# `Content-Security-Policy` e o isolamento COOP/COEP/Document-Isolation-Policy), o bloco de
+# `/diagnostico-audio.html` e, depois, as regras de cache daqui, sem alteração. `public/_headers` não
+# existe mais.
+#
+# A CSP é a MESMA do Express: `diretivasDeCsp(env)` de `server/http/csp.ts`, serializada por
+# `serializarCsp`. As origens que dependem do deploy (Supabase, Sentry, bucket R2 dos modelos,
+# Turnstile) entram pelas variáveis do BUILD; a edição estática as deixa vazias
+# (`scripts/build-estatica.mjs`) e sai com a política mínima. As funções `/quest/*` são a própria
+# origem (`'self'`). Não leva `upgrade-insecure-requests`: o helmet o acrescenta no Express, e os
+# assets já saem só por HTTPS. A justificativa de cada origem está em `server/http/csp.ts`.
+#
+# `/diagnostico-audio.html` é uma página avulsa de diagnóstico, com o script em linha: o `!` (sintaxe
+# do Workers Static Assets) tira dela o `Content-Security-Policy` que vem de `/*`.
+
+/ort-wasm-*
+  Cache-Control: public, max-age=31536000, immutable
+/silero_vad_*
+  Cache-Control: public, max-age=31536000, immutable
+# O modelo de fim de fala (Smart Turn v3.2, 8 MB): a versão está no nome do arquivo, então não muda sob o mesmo caminho.
+/smart-turn/*
+  Cache-Control: public, max-age=31536000, immutable
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+# Bergamot (A9b, `scripts/baixar-modelos-bergamot.mjs`): o motor em `motor-<versão>/` e o modelo em
+# `<par>/<execução de treino>/` — o caminho muda quando o conteúdo muda. O `.gz` vai como está (o
+# worker descomprime); o LEIA-ME da pasta fica no padrão.
+/modelos/bergamot/motor-*
+  Cache-Control: public, max-age=31536000, immutable
+/modelos/bergamot/pt-en/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# A trilha e as glosas saíram do bundle (`src/data` -> `public/`) quando passaram de 6,4 MB: o
+# usuário baixa um idioma só, e embutir dezesseis pesava build e deploy sem que ninguém baixasse
+# mais nada. O preço é que estes nomes NÃO têm hash, então `immutable` serviria dado velho depois
+# de uma regeração. Um dia de cache com revalidação: rápido no uso normal, e uma trilha corrigida
+# chega no dia seguinte sem ninguém limpar cache.
+/trilha/*
+  Cache-Control: public, max-age=86400, must-revalidate
+/glosas/*
+  Cache-Control: public, max-age=86400, must-revalidate
+# A semente da memória de tradução (Tatoeba) também mora em `public/` sem hash: mesma regra.
+/semente-traducao/*
+  Cache-Control: public, max-age=86400, must-revalidate

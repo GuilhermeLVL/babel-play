@@ -6,7 +6,7 @@
  * Agora as famílias de base saem de `src/styles/fontes/base.css` (pacotes `@fontsource`, subsets
  * latin e latin-ext) e as de tema/skin carregam sob demanda (`src/lib/fontesDosTemas.ts`).
  */
-import { existsSync, readdirSync,readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
@@ -15,11 +15,11 @@ import { FONTES_POR_FONTE, FONTES_POR_TEMA } from '../src/lib/fontesDosTemas'
 
 const HTML = readFileSync('index.html', 'utf8')
 const CSS = readFileSync('src/index.css', 'utf8')
-const HEADERS = readFileSync('public/_headers', 'utf8')
+const HEADERS = readFileSync('scripts/vite/_headers.base', 'utf8')
 const GOOGLE = /fonts\.(googleapis|gstatic)\.com/
 
 describe('sem Google Fonts', () => {
-  it('index.html e public/_headers não citam as origens do Google Fonts', () => {
+  it('index.html e o modelo do _headers não citam as origens do Google Fonts', () => {
     expect(HTML).not.toMatch(GOOGLE)
     expect(HEADERS).not.toMatch(GOOGLE)
   })
@@ -60,7 +60,8 @@ describe('as fontes de base e as de tema existem no próprio site', () => {
   it('cada pacote de tema/skin tem o seu CSS, e as famílias de base não se repetem neles', () => {
     const usados = new Set([...Object.values(FONTES_POR_TEMA), ...Object.values(FONTES_POR_FONTE)].flat())
     for (const p of usados) expect(existsSync(`src/styles/fontes/${p}.css`), p).toBe(true)
-    for (const p of usados) expect(readFileSync(`src/styles/fontes/${p}.css`, 'utf8')).not.toContain("font-family: 'Inter'")
+    for (const p of usados)
+      expect(readFileSync(`src/styles/fontes/${p}.css`, 'utf8')).not.toContain("font-family: 'Inter'")
   })
 })
 
@@ -75,6 +76,9 @@ describe('preload das fontes críticas', () => {
       d: asset('assets/orbitron-latin-wght-normal-Q.woff2'),
       e: { type: 'chunk' as const, fileName: 'assets/inter-latin-wght-normal-X.woff2' },
     })
-    expect(achados).toEqual(['assets/inter-latin-wght-normal-Dx4kXJAl.woff2', 'assets/archivo-latin-wght-normal-AbC123.woff2'])
+    expect(achados).toEqual([
+      'assets/inter-latin-wght-normal-Dx4kXJAl.woff2',
+      'assets/archivo-latin-wght-normal-AbC123.woff2',
+    ])
   })
 })

@@ -8,6 +8,7 @@ import os from 'os'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 
 import { bergamotNoPublic } from './scripts/baixar-modelos-bergamot.mjs'
+import { cabecalhosDoDeploy } from './scripts/vite/cabecalhos'
 import { preCarregarEfemeroNaEdicaoEstatica } from './scripts/vite/preCarregarEfemero'
 import { preCarregarFontes } from './scripts/vite/preCarregarFontes'
 import { precomprimir } from './scripts/vite/precomprimir'
@@ -145,6 +146,8 @@ export default defineConfig(({ mode }) => {
       preCarregarEfemeroNaEdicaoEstatica(env.VITE_EDICAO_ESTATICA === '1' || process.env.VITE_EDICAO_ESTATICA === '1'),
       preCarregarFontes(),
       precomprimir(),
+      // `dist/_headers` com a CSP bloqueante do Express; depois do `precomprimir` para não virar `.br`/`.gz`.
+      cabecalhosDoDeploy(env),
     ],
     resolve: {
       alias: {

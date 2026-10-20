@@ -13,7 +13,7 @@
  * `public/modelos/bergamot/<par>/<execução>/`. O `.gz` do modelo tem 22,7 MB — abaixo do teto de
  * 25 MiB por arquivo do Cloudflare Pages —, e é servido como está: o worker descomprime com
  * `DecompressionStream`. Nada disto é versionado (`.gitignore`); o caminho tem o id da execução de
- * treino, então o cache pode ser `immutable` (`public/_headers`, `server/http/estaticos.ts`).
+ * treino, então o cache pode ser `immutable` (`scripts/vite/_headers.base` (gera `dist/_headers`), `server/http/estaticos.ts`).
  *
  * O MOTOR vem do pacote instalado (`@browsermt/bergamot-translator`, MPL-2.0), conferido pelo
  * sha256 contra o medido na bancada: o `.wasm` é copiado; a cola do Emscripten

@@ -14,11 +14,11 @@
  *
  *   /assets/*            1 ano + `immutable` — o nome muda quando o conteúdo muda
  *   ort-wasm-*, silero_* 1 ano + `immutable` — versionados pelo pacote; mesmo tratamento do
- *                        `public/_headers` da edição estática
+ *                        `scripts/vite/_headers.base` (gera `dist/_headers`) da edição estática
  *   /modelos/bergamot/…  1 ano + `immutable` — o motor mora em `motor-<versão>/` e o modelo em
  *                        `<par>/<execução de treino>/` (`scripts/baixar-modelos-bergamot.mjs`): o
  *                        caminho muda quando o conteúdo muda. O LEIA-ME da pasta, não.
- *   /trilha/*, /glosas/* 1 dia com revalidação — dado sem hash no nome (ver `public/_headers`)
+ *   /trilha/*, /glosas/* 1 dia com revalidação — dado sem hash no nome (ver `scripts/vite/_headers.base` (gera `dist/_headers`))
  *   index.html           `no-cache` — sempre revalida, é ele que diz quais chunks valem
  *   o resto              padrão do Express (revalida por ETag)
  *

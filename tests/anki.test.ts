@@ -1,9 +1,10 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 
-import { describe, expect,it } from 'vitest';
+import { describe, expect, it } from 'vitest'
 
-import { escritaDominante,lerApkg, lerTextoAnki, limparCampo } from '../server/import/anki';
+import { lerApkg } from '../server/import/anki'
+import { escritaDominante, lerTextoAnki, limparCampo } from '../src/core/anki'
 
 /**
  * O LEITOR DE BARALHOS DO ANKI.
@@ -14,133 +15,133 @@ import { escritaDominante,lerApkg, lerTextoAnki, limparCampo } from '../server/i
  * teste com objeto falso não pegaria isso.
  */
 
-const FIXTURES = join(__dirname, 'fixtures');
+const FIXTURES = join(__dirname, 'fixtures')
 
 describe('limpeza dos campos', () => {
   it('tira o HTML que o Anki guarda dentro do campo', () => {
-    expect(limparCampo('<b>light</b>')).toBe('light');
-    expect(limparCampo('  spaced   out  ')).toBe('spaced out');
-  });
+    expect(limparCampo('<b>light</b>')).toBe('light')
+    expect(limparCampo('  spaced   out  ')).toBe('spaced out')
+  })
 
   it('quebra de linha vira ESPAÇO, não emenda as palavras', () => {
     // Sem isto, "luz<br>claridade" viraria "luzclaridade" — uma palavra que não existe.
-    expect(limparCampo('luz<br>claridade')).toBe('luz claridade');
-    expect(limparCampo('<div>um</div><div>dois</div>')).toBe('um dois');
-  });
+    expect(limparCampo('luz<br>claridade')).toBe('luz claridade')
+    expect(limparCampo('<div>um</div><div>dois</div>')).toBe('um dois')
+  })
 
   it('marcador de mídia some: o arquivo não é importado, então o rótulo só atrapalha', () => {
-    expect(limparCampo('house [sound:house.mp3]')).toBe('house');
-    expect(limparCampo('<img src="x.png"> casa')).toBe('casa');
-  });
+    expect(limparCampo('house [sound:house.mp3]')).toBe('house')
+    expect(limparCampo('<img src="x.png"> casa')).toBe('casa')
+  })
 
   it('desfaz as entidades HTML', () => {
-    expect(limparCampo('a &amp; b')).toBe('a & b');
-    expect(limparCampo('&quot;oi&quot;')).toBe('"oi"');
-  });
+    expect(limparCampo('a &amp; b')).toBe('a & b')
+    expect(limparCampo('&quot;oi&quot;')).toBe('"oi"')
+  })
 
   // S10 (auditoria): antes só 6 entidades nomeadas eram desfeitas — o resto (numéricas, e nomeadas
   // comuns de deck como acentos) sobrevivia cru no meio da palavra.
   it('desfaz entidades NUMÉRICAS genéricas (decimal e hex)', () => {
-    expect(limparCampo("it&#39;s")).toBe("it's");
-    expect(limparCampo('caf&#xe9;')).toBe('café');
-    expect(limparCampo('caf&#233;')).toBe('café');
-  });
+    expect(limparCampo('it&#39;s')).toBe("it's")
+    expect(limparCampo('caf&#xe9;')).toBe('café')
+    expect(limparCampo('caf&#233;')).toBe('café')
+  })
 
   it('desfaz entidades NOMEADAS comuns de deck (acentos, aspas tipográficas, travessão)', () => {
-    expect(limparCampo('caf&eacute;')).toBe('café');
-    expect(limparCampo('fran&ccedil;ais')).toBe('français');
-    expect(limparCampo('it&rsquo;s')).toBe('it’s');
-    expect(limparCampo('a&mdash;b')).toBe('a—b');
-  });
+    expect(limparCampo('caf&eacute;')).toBe('café')
+    expect(limparCampo('fran&ccedil;ais')).toBe('français')
+    expect(limparCampo('it&rsquo;s')).toBe('it’s')
+    expect(limparCampo('a&mdash;b')).toBe('a—b')
+  })
 
   it('não confunde HTML ESCAPADO (texto literal) com uma tag de verdade', () => {
     // "&lt;div&gt;" é o baralho mostrando o texto "<div>" de propósito — não uma tag real. Se a
     // entidade decodificasse ANTES da remoção de tags, o "<div>" resultante seria comido pelo
     // regex de tag, corrompendo o conteúdo.
-    expect(limparCampo('escreva &lt;div&gt; em html')).toBe('escreva <div> em html');
-  });
+    expect(limparCampo('escreva &lt;div&gt; em html')).toBe('escreva <div> em html')
+  })
 
   // S10: furigana `漢字[かんじ]` vira `漢字`, mas um colchete de definição comum sobrevive.
   it('remove furigana (colchete IMEDIATAMENTE após Han/Hiragana/Katakana)', () => {
-    expect(limparCampo('漢字[かんじ]')).toBe('漢字');
-    expect(limparCampo('今日[きょう]は忙しい[いそがしい]です')).toBe('今日は忙しいです');
-  });
+    expect(limparCampo('漢字[かんじ]')).toBe('漢字')
+    expect(limparCampo('今日[きょう]は忙しい[いそがしい]です')).toBe('今日は忙しいです')
+  })
 
   it('NÃO remove colchete de definição que não segue caractere CJK/kana', () => {
-    expect(limparCampo('run [informal]')).toBe('run [informal]');
-    expect(limparCampo('to run [away]')).toBe('to run [away]');
-  });
-});
+    expect(limparCampo('run [informal]')).toBe('run [informal]')
+    expect(limparCampo('to run [away]')).toBe('to run [away]')
+  })
+})
 
 // S11 (auditoria): a base do conserto de "idioma carimbado às cegas" — conta escrita por faixa
 // Unicode sobre uma amostra e decide por maioria (>50% das letras).
 describe('escritaDominante', () => {
   it('reconhece latino, cjk, kana, hangul, cirílico, árabe, hebraico e grego', () => {
-    expect(escritaDominante(['hello world', 'café'])).toBe('latino');
-    expect(escritaDominante(['你好世界'])).toBe('cjk');
-    expect(escritaDominante(['こんにちは', 'ひらがな'])).toBe('kana');
-    expect(escritaDominante(['안녕하세요'])).toBe('hangul');
-    expect(escritaDominante(['привет мир'])).toBe('cirilico');
-    expect(escritaDominante(['مرحبا بالعالم'])).toBe('arabe');
-    expect(escritaDominante(['שלום עולם'])).toBe('hebraico');
-    expect(escritaDominante(['γειά σου κόσμε'])).toBe('grego');
-  });
+    expect(escritaDominante(['hello world', 'café'])).toBe('latino')
+    expect(escritaDominante(['你好世界'])).toBe('cjk')
+    expect(escritaDominante(['こんにちは', 'ひらがな'])).toBe('kana')
+    expect(escritaDominante(['안녕하세요'])).toBe('hangul')
+    expect(escritaDominante(['привет мир'])).toBe('cirilico')
+    expect(escritaDominante(['مرحبا بالعالم'])).toBe('arabe')
+    expect(escritaDominante(['שלום עולם'])).toBe('hebraico')
+    expect(escritaDominante(['γειά σου κόσμε'])).toBe('grego')
+  })
 
   it('mistura de kana + han (japonês real) ainda dá "kana" — o sinal mais forte de ja', () => {
-    expect(escritaDominante(['私は日本語を勉強しています'])).toBe('kana');
-  });
+    expect(escritaDominante(['私は日本語を勉強しています'])).toBe('kana')
+  })
 
   it('sem letra nenhuma na amostra → desconhecido, não um palpite', () => {
-    expect(escritaDominante(['123', '!!!', '   '])).toBe('desconhecido');
-    expect(escritaDominante([])).toBe('desconhecido');
-  });
+    expect(escritaDominante(['123', '!!!', '   '])).toBe('desconhecido')
+    expect(escritaDominante([])).toBe('desconhecido')
+  })
 
   it('escrita minoritária (<=50%) não vence — maioria de verdade decide', () => {
     // 3 letras latinas vs 2 cirílicas: latino é maioria.
-    expect(escritaDominante(['abc', 'юё'])).toBe('latino');
-  });
-});
+    expect(escritaDominante(['abc', 'юё'])).toBe('latino')
+  })
+})
 
 describe('.apkg antigo (SQLite cru, campos no JSON de col.models)', () => {
   it('lê as notas e reconhece os nomes dos campos', async () => {
-    const buf = await readFile(join(FIXTURES, 'baralho-antigo.apkg'));
-    const r = await lerApkg(buf);
-    expect(r.formato).toBe('collection.anki2');
-    expect(r.campos).toEqual(['Front', 'Back', 'Example']);
-    expect(r.notas.map(n => n.frente)).toEqual(['house', 'water', 'bread', 'light']);
-    expect(r.notas[0]).toMatchObject({ frente: 'house', verso: 'casa', exemplo: 'I live in a big house.' });
-  });
+    const buf = await readFile(join(FIXTURES, 'baralho-antigo.apkg'))
+    const r = await lerApkg(buf)
+    expect(r.formato).toBe('collection.anki2')
+    expect(r.campos).toEqual(['Front', 'Back', 'Example'])
+    expect(r.notas.map((n) => n.frente)).toEqual(['house', 'water', 'bread', 'light'])
+    expect(r.notas[0]).toMatchObject({ frente: 'house', verso: 'casa', exemplo: 'I live in a big house.' })
+  })
 
   it('descarta a nota sem frente em vez de inventar um lado', async () => {
-    const r = await lerApkg(await readFile(join(FIXTURES, 'baralho-antigo.apkg')));
-    expect(r.descartadas).toBe(1);
-  });
+    const r = await lerApkg(await readFile(join(FIXTURES, 'baralho-antigo.apkg')))
+    expect(r.descartadas).toBe(1)
+  })
 
   it('traz as tags do baralho', async () => {
-    const r = await lerApkg(await readFile(join(FIXTURES, 'baralho-antigo.apkg')));
-    expect(r.notas[0].tags).toEqual(['tag1']);
-  });
-});
+    const r = await lerApkg(await readFile(join(FIXTURES, 'baralho-antigo.apkg')))
+    expect(r.notas[0].tags).toEqual(['tag1'])
+  })
+})
 
 describe('.apkg moderno (zstd + tabelas notetypes/fields)', () => {
   it('descomprime o zstd e lê as notas — é o formato do AnkiWeb hoje', async () => {
-    const buf = await readFile(join(FIXTURES, 'baralho-moderno.apkg'));
-    const r = await lerApkg(buf);
-    expect(r.formato).toBe('collection.anki21b');
-    expect(r.notas.map(n => n.frente)).toEqual(['house', 'water', 'bread', 'light']);
-  });
+    const buf = await readFile(join(FIXTURES, 'baralho-moderno.apkg'))
+    const r = await lerApkg(buf)
+    expect(r.formato).toBe('collection.anki21b')
+    expect(r.notas.map((n) => n.frente)).toEqual(['house', 'water', 'bread', 'light'])
+  })
 
   it('pega os nomes dos campos nas TABELAS quando o JSON de models está vazio', async () => {
-    const r = await lerApkg(await readFile(join(FIXTURES, 'baralho-moderno.apkg')));
-    expect(r.campos).toEqual(['Frente', 'Verso', 'Frase']);
-  });
+    const r = await lerApkg(await readFile(join(FIXTURES, 'baralho-moderno.apkg')))
+    expect(r.campos).toEqual(['Frente', 'Verso', 'Frase'])
+  })
 
   it('o HTML do campo é limpo também aqui', async () => {
-    const r = await lerApkg(await readFile(join(FIXTURES, 'baralho-moderno.apkg')));
-    const luz = r.notas.find(n => n.frente === 'light');
-    expect(luz?.verso).toBe('luz claridade');
-  });
-});
+    const r = await lerApkg(await readFile(join(FIXTURES, 'baralho-moderno.apkg')))
+    const luz = r.notas.find((n) => n.frente === 'light')
+    expect(luz?.verso).toBe('luz claridade')
+  })
+})
 
 describe('acentuação vinda de arquivo EXTERNO', () => {
   /**
@@ -149,101 +150,111 @@ describe('acentuação vinda de arquivo EXTERNO', () => {
    * que é justamente onde acento é a regra e não a exceção.
    */
   it.each(['baralho-antigo.apkg', 'baralho-moderno.apkg'])('%s preserva acento', async (nome) => {
-    const r = await lerApkg(await readFile(join(FIXTURES, nome)));
-    const versos = r.notas.map(n => n.verso);
-    expect(versos).toContain('água');
-    expect(versos).toContain('pão');
+    const r = await lerApkg(await readFile(join(FIXTURES, nome)))
+    const versos = r.notas.map((n) => n.verso)
+    expect(versos).toContain('água')
+    expect(versos).toContain('pão')
     // A assinatura da leitura errada: os bytes UTF-8 vistos como Latin-1.
-    expect(versos.join(' ')).not.toContain('Ã');
-  });
-});
+    expect(versos.join(' ')).not.toContain('Ã')
+  })
+})
 
 describe('arquivo inválido', () => {
   it('diz o que está errado em vez de estourar sem explicação', async () => {
-    await expect(lerApkg(Buffer.from('isto não é um zip'))).rejects.toThrow();
-  });
-});
+    await expect(lerApkg(Buffer.from('isto não é um zip'))).rejects.toThrow()
+  })
+})
 
 describe('texto do Anki (.txt/.csv)', () => {
   it('lê o padrão do Anki: separado por tabulação', () => {
-    const r = lerTextoAnki('house\tcasa\tI live here.\nwater\trágua');
-    expect(r.notas).toHaveLength(2);
-    expect(r.notas[0]).toMatchObject({ frente: 'house', verso: 'casa', exemplo: 'I live here.' });
-  });
+    const r = lerTextoAnki('house\tcasa\tI live here.\nwater\trágua')
+    expect(r.notas).toHaveLength(2)
+    expect(r.notas[0]).toMatchObject({ frente: 'house', verso: 'casa', exemplo: 'I live here.' })
+  })
 
   it('aceita ponto-e-vírgula e vírgula, que é o que sai de planilha', () => {
-    expect(lerTextoAnki('house;casa').notas[0].verso).toBe('casa');
-    expect(lerTextoAnki('house,casa').notas[0].verso).toBe('casa');
-  });
+    expect(lerTextoAnki('house;casa').notas[0].verso).toBe('casa')
+    expect(lerTextoAnki('house,casa').notas[0].verso).toBe('casa')
+  })
 
   it('reconhece o cabeçalho e não o transforma em cartão', () => {
-    const r = lerTextoAnki('Front\tBack\nhouse\tcasa');
-    expect(r.campos).toEqual(['Front', 'Back']);
-    expect(r.notas).toHaveLength(1);
-  });
+    const r = lerTextoAnki('Front\tBack\nhouse\tcasa')
+    expect(r.campos).toEqual(['Front', 'Back'])
+    expect(r.notas).toHaveLength(1)
+  })
 
   it('linha sem verso é descartada e CONTADA — silêncio aqui seria perda invisível', () => {
-    const r = lerTextoAnki('house\tcasa\nsozinha\n\nwater\tágua');
-    expect(r.notas).toHaveLength(2);
-    expect(r.descartadas).toBe(1);
-  });
+    const r = lerTextoAnki('house\tcasa\nsozinha\n\nwater\tágua')
+    expect(r.notas).toHaveLength(2)
+    expect(r.descartadas).toBe(1)
+  })
 
   it('ignora comentário e linha vazia', () => {
-    const r = lerTextoAnki('#separator:tab\n#html:true\n\nhouse\tcasa');
-    expect(r.notas).toHaveLength(1);
-  });
-});
+    const r = lerTextoAnki('#separator:tab\n#html:true\n\nhouse\tcasa')
+    expect(r.notas).toHaveLength(1)
+  })
+})
 
 describe('exportar .apkg (ida e volta)', () => {
   it('o arquivo gerado é lido de volta pelo NOSSO leitor, com os campos no lugar', async () => {
     // Este é o teste mais forte que dá para fazer sem instalar o Anki: o leitor aqui já prova
     // que entende `.apkg` de verdade (as fixtures acima são SQLite + ZIP reais, um deles zstd),
     // então relê-lo verifica zip, esquema, tabelas e a ordem dos campos de uma vez.
-    const { montarApkg } = await import('../server/import/ankiExport');
-    const apkg = await montarApkg([
-      { frente: 'house', verso: 'casa', exemplo: 'I live in a big house.' },
-      { frente: 'water', verso: 'água' },
-    ], 'Teste');
+    const { montarApkg } = await import('../server/import/ankiExport')
+    const apkg = await montarApkg(
+      [
+        { frente: 'house', verso: 'casa', exemplo: 'I live in a big house.' },
+        { frente: 'water', verso: 'água' },
+      ],
+      'Teste',
+    )
 
-    const lido = await lerApkg(apkg);
-    expect(lido.formato).toBe('collection.anki2');
-    expect(lido.campos).toEqual(['Frente', 'Verso', 'Frase']);
-    expect(lido.notas.map(n => `${n.frente}=${n.verso}`)).toEqual(['house=casa', 'water=água']);
-    expect(lido.notas[0].exemplo).toBe('I live in a big house.');
-    expect(lido.descartadas).toBe(0);
-  });
+    const lido = await lerApkg(apkg)
+    expect(lido.formato).toBe('collection.anki2')
+    expect(lido.campos).toEqual(['Frente', 'Verso', 'Frase'])
+    expect(lido.notas.map((n) => `${n.frente}=${n.verso}`)).toEqual(['house=casa', 'water=água'])
+    expect(lido.notas[0].exemplo).toBe('I live in a big house.')
+    expect(lido.descartadas).toBe(0)
+  })
 
   it('cada nota ganha um cartão — sem isso o Anki importa e não mostra nada', async () => {
-    const { montarApkg } = await import('../server/import/ankiExport');
-    const JSZip = (await import('jszip')).default;
-    const { createClient } = await import('@libsql/client');
-    const { mkdtemp, writeFile, rm } = await import('node:fs/promises');
-    const { tmpdir } = await import('node:os');
+    const { montarApkg } = await import('../server/import/ankiExport')
+    const JSZip = (await import('jszip')).default
+    const { createClient } = await import('@libsql/client')
+    const { mkdtemp, writeFile, rm } = await import('node:fs/promises')
+    const { tmpdir } = await import('node:os')
 
-    const apkg = await montarApkg([
-      { frente: 'a', verso: 'b' }, { frente: 'c', verso: 'd' }, { frente: 'e', verso: 'f' },
-    ], 'X');
-    const zip = await JSZip.loadAsync(apkg);
-    expect(Object.keys(zip.files).sort()).toEqual(['collection.anki2', 'media']);
+    const apkg = await montarApkg(
+      [
+        { frente: 'a', verso: 'b' },
+        { frente: 'c', verso: 'd' },
+        { frente: 'e', verso: 'f' },
+      ],
+      'X',
+    )
+    const zip = await JSZip.loadAsync(apkg)
+    expect(Object.keys(zip.files).sort()).toEqual(['collection.anki2', 'media'])
 
-    const dir = await mkdtemp(join(tmpdir(), 'apkg-teste-'));
-    const caminho = join(dir, 'c.anki2');
-    await writeFile(caminho, Buffer.from(await zip.file('collection.anki2')!.async('uint8array')));
-    const cli = createClient({ url: `file:${caminho}` });
-    const notas = await cli.execute('SELECT COUNT(*) n FROM notes');
-    const cartoes = await cli.execute('SELECT COUNT(*) n FROM cards');
-    const col = await cli.execute('SELECT ver, models, decks FROM col');
-    cli.close();
+    const dir = await mkdtemp(join(tmpdir(), 'apkg-teste-'))
+    const caminho = join(dir, 'c.anki2')
+    await writeFile(caminho, Buffer.from(await zip.file('collection.anki2')!.async('uint8array')))
+    const cli = createClient({ url: `file:${caminho}` })
+    const notas = await cli.execute('SELECT COUNT(*) n FROM notes')
+    const cartoes = await cli.execute('SELECT COUNT(*) n FROM cards')
+    const col = await cli.execute('SELECT ver, models, decks FROM col')
+    cli.close()
     // No Windows o handle do SQLite não é liberado no mesmo instante do `close()`, e apagar
     // levanta EBUSY. É lixo de teste em pasta temporária — o SO recolhe. Falhar aqui esconderia
     // o que este teste realmente mede.
-    await rm(dir, { recursive: true, force: true }).catch(() => { /* o SO limpa */ });
+    await rm(dir, { recursive: true, force: true }).catch(() => {
+      /* o SO limpa */
+    })
 
-    expect(Number(notas.rows[0].n)).toBe(3);
-    expect(Number(cartoes.rows[0].n)).toBe(3);
+    expect(Number(notas.rows[0].n)).toBe(3)
+    expect(Number(cartoes.rows[0].n)).toBe(3)
     // Esquema 11 (o legado) de propósito: é lido por qualquer versão do Anki.
-    expect(Number(col.rows[0].ver)).toBe(11);
-    expect(String(col.rows[0].models)).toContain('Frente');
-    expect(String(col.rows[0].decks)).toContain('X');
-  });
-});
+    expect(Number(col.rows[0].ver)).toBe(11)
+    expect(String(col.rows[0].models)).toContain('Frente')
+    expect(String(col.rows[0].decks)).toContain('X')
+  })
+})

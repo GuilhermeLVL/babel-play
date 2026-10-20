@@ -13,11 +13,11 @@ import { createHash } from 'node:crypto'
 
 import { type Request, type Response, Router } from 'express'
 
-import { vazaResposta } from '../../src/core/learning/pistaDeJogo'
+import { decidirIdiomaOrigem, lerTextoAnki, versoEhDefinicao } from '../../src/core/anki'
 import { avaliarCartao } from '../../src/core/learning/quality'
 import { ankiRepo } from '../db/repositories/anki'
 import { vocabRepo } from '../db/repositories/vocab'
-import { contagemDeEscritas, type EscritaDominante, escritaDominante, lerApkg, lerTextoAnki } from '../import/anki'
+import { hashDaEstrutura, lerApkg } from '../import/anki'
 import { montarApkg } from '../import/ankiExport'
 import { extractDocument } from '../import/document'
 import { extractArticle } from '../import/web'
@@ -96,128 +96,6 @@ function guidDerivadoDoConteudo(n: { notetype?: string | null; frente: string; v
     .slice(0, 32)
 }
 
-/**
- * CÓDIGOS DE IDIOMA DE ESCRITA LATINA reconhecidos no `X-Src-Lang` — a lista dos que a tela do
- * lobby oferece hoje e cuja escrita nativa É o alfabeto latino. Não precisa ser exaustiva: o pior
- * caso de faltar um código aqui é o mesmo de hoje (carimba sem checar), não um dado novo.
- */
-const LANGS_ESCRITA_LATINA = new Set([
-  'en',
-  'pt',
-  'es',
-  'fr',
-  'de',
-  'it',
-  'nl',
-  'sv',
-  'no',
-  'nb',
-  'nn',
-  'da',
-  'fi',
-  'pl',
-  'cs',
-  'sk',
-  'hu',
-  'ro',
-  'hr',
-  'tr',
-  'id',
-  'vi',
-  'af',
-  'ca',
-  'et',
-  'lv',
-  'lt',
-  'sl',
-  'is',
-])
-
-/** ESCRITAS que o `escritaDominante` pode devolver e que NÃO são latinas. */
-const ESCRITAS_NAO_LATINAS = new Set<EscritaDominante>([
-  'cjk',
-  'kana',
-  'hangul',
-  'cirilico',
-  'arabe',
-  'hebraico',
-  'grego',
-  'devanagari',
-  'thai',
-])
-
-/**
- * DECIDE se carimba `idiomaOrigem` do cabeçalho — ou recusa, honestamente, quando o cabeçalho e a
- * escrita real do baralho se contradizem (ver S11 no comentário de topo da rota `/anki`).
- *
- * SEM CONFLITO (a maioria dos casos: baralho de inglês com lobby em inglês) → o cabeçalho vale,
- * exatamente como antes.
- *
- * COM CONFLITO, só DUAS escritas dão um idioma INEQUÍVOCO para carimbar no lugar do cabeçalho:
- * kana → 'ja' e hangul → 'ko' (nenhuma outra língua viva usa essas escritas como principal).
- * `cjk` puro (sem kana — pode ser chinês) e `cirilico`/`arabe`/`hebraico`/`grego` (cada um serve
- * VÁRIAS línguas — cirílico é ru/uk/bg/sr/…, por exemplo) são ambíguos: carimbar um palpite seria
- * trocar "errado por carimbo alheio" por "errado por palpite nosso", igualmente ruim. A resposta
- * honesta ali é `null` — o cartão cai em 'idioma-incerto' na triagem, o que é dito na tela via
- * `avisoIdioma`, em vez de mentir silenciosamente como o comportamento antigo.
- */
-function versoEhDefinicao(notas: Array<{ frente: string; verso?: string | null }>): boolean {
-  const comVerso = notas.filter((n) => (n.verso ?? '').trim())
-  if (comVerso.length < 5) return false
-  const repetem = comVerso.filter((n) => vazaResposta(n.verso ?? '', n.frente)).length
-  return repetem / comVerso.length >= 0.7
-}
-
-function decidirIdiomaOrigem(
-  cabecalho: string | null,
-  frentes: string[],
-): { idiomaOrigem: string | null; avisoIdioma?: string } {
-  if (!cabecalho) return { idiomaOrigem: null }
-
-  const escrita = escritaDominante(frentes)
-  if (escrita === 'desconhecido') return { idiomaOrigem: cabecalho } // amostra sem letra: nada para contradizer
-
-  const codigoBase = cabecalho.split('-')[0].toLowerCase()
-  const headerEhLatino = LANGS_ESCRITA_LATINA.has(codigoBase)
-  const conteudoEhLatino = escrita === 'latino'
-  const conteudoEhNaoLatino = ESCRITAS_NAO_LATINAS.has(escrita)
-
-  const conflito = (headerEhLatino && conteudoEhNaoLatino) || (!headerEhLatino && conteudoEhLatino)
-  if (!conflito) return { idiomaOrigem: cabecalho }
-
-  /* A DOMINÂNCIA é o critério errado para o japonês, e é justamente o caso-bandeira do defeito:
-     um baralho de vocabulário japonês típico (Core 2k, Kaishi) é majoritariamente KANJI, com kana
-     minoritário — pela dominância cairia em `cjk` ambíguo e o baralho inteiro ficaria sem idioma.
-     Mas kana é assinatura EXCLUSIVA do japonês: chinês nunca o mistura. Então a PRESENÇA de kana
-     (com um piso mínimo contra ruído — uma citação solta num deck chinês) decide 'ja' mesmo com
-     Han dominante; o mesmo vale para hangul → 'ko' (coreano mistura Han, chinês não mistura
-     hangul). Só o que sobra sem nenhuma dessas assinaturas fica ambíguo de verdade. */
-  const { contagem, totalDeLetras } = contagemDeEscritas(frentes)
-  /* O piso tem duas pernas com papéis diferentes: o RELATIVO (2%) protege amostras grandes — uma
-     citação japonesa solta num deck chinês de 200 frentes fica em ~0,4% e não dispara — e o
-     ABSOLUTO (2) protege amostras pequenas, onde 2% de 14 letras arredondaria para zero e qualquer
-     ruído de um caractere decidiria o idioma do baralho. */
-  const presenca = (e: string) => (contagem[e] ?? 0) >= Math.max(2, totalDeLetras * 0.02)
-  if (escrita === 'kana' || (escrita === 'cjk' && presenca('kana'))) {
-    return {
-      idiomaOrigem: 'ja',
-      avisoIdioma: `o cabeçalho dizia "${cabecalho}", mas o baralho é escrito em japonês (kanji + kana) — idioma corrigido para "ja".`,
-    }
-  }
-  if (escrita === 'hangul' || (escrita === 'cjk' && presenca('hangul'))) {
-    return {
-      idiomaOrigem: 'ko',
-      avisoIdioma: `o cabeçalho dizia "${cabecalho}", mas o baralho é escrito em coreano — idioma corrigido para "ko".`,
-    }
-  }
-
-  return {
-    idiomaOrigem: null,
-    avisoIdioma:
-      `o cabeçalho dizia "${cabecalho}", mas o conteúdo do baralho é predominantemente ${escrita} — ` +
-      'como esse script serve mais de um idioma, o idioma do baralho ficou em branco em vez de arriscar um palpite errado.',
-  }
-}
 /**
  * Gera um `.apkg` a partir dos cartões enviados.
  *
@@ -361,7 +239,7 @@ importRouter.post('/anki', vagaDeCorpoGrande(), async (req: Request, res: Respon
       return {
         guid: guidDaNota(n),
         notetype: n.notetype ?? null,
-        estruturaHash: n.estruturaHash ?? null,
+        estruturaHash: n.campos?.length ? hashDaEstrutura(n.campos) : null,
         /* OS CAMPOS ORIGINAIS, por nome — é o que sustenta "trocar o mapeamento sem reimportar".
            Guardar aqui só mídia e lacunas, como esta linha fazia, jogava fora exatamente o que a
            reclassificação precisa ler: o valor bruto de cada campo do baralho. Sem eles, corrigir
@@ -432,7 +310,7 @@ importRouter.post('/anki', vagaDeCorpoGrande(), async (req: Request, res: Respon
       },
       campos: r.campos,
       notetype: r.notas[0]?.notetype ?? null,
-      estruturaHash: r.notas[0]?.estruturaHash ?? null,
+      estruturaHash: r.notas[0]?.campos?.length ? hashDaEstrutura(r.notas[0].campos) : null,
       baralhos: r.baralhos,
       formato: r.formato,
       truncado: r.truncado,

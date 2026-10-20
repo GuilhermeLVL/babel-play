@@ -7,6 +7,13 @@ import { zstdDecompressSync } from 'node:zlib'
 import { createClient } from '@libsql/client'
 import JSZip from 'jszip'
 
+import { type LeituraAnki, montarNota, type NotaAnki, TETO_DE_NOTAS } from '../../src/core/anki'
+
+/* Reexportado só até a Task 6 (o leitor passa a viver no navegador): quem ainda importa daqui
+   (scripts, testes de segurança) segue funcionando sem mudar o caminho. */
+export type { Lacuna, LeituraAnki, NotaAnki, RefsDeMidia } from '../../src/core/anki'
+export { lerTextoAnki, limparCampo } from '../../src/core/anki'
+
 /**
  * LER UM BARALHO DO ANKI.
  *
@@ -34,235 +41,6 @@ import JSZip from 'jszip'
 /** Separador de campos de uma nota do Anki. */
 const SEP = '\x1f'
 
-/** Referências de mídia que um campo cita — o ARQUIVO não é importado, só o nome sobrevive. */
-export interface RefsDeMidia {
-  sons: string[]
-  imagens: string[]
-}
-
-/** Uma lacuna de cloze (`{{c1::resposta::dica}}`) — um ordinal vira um cartão no Anki. */
-export interface Lacuna {
-  ordinal: number
-  resposta: string
-  dica?: string
-}
-
-export interface NotaAnki {
-  /** Id ESTÁVEL da nota no Anki (`notes.guid`) — é o que faz reimportar atualizar em vez de
-   *  duplicar. Vazio nas leituras de texto (`.txt/.csv/.tsv`), que não têm identidade própria. */
-  guid: string
-  /** Todos os campos da nota, por NOME e ainda BRUTOS (com HTML). É o que permite refazer o
-   *  mapeamento depois sem pedir o arquivo de novo. */
-  camposBrutos?: Record<string, string>
-  frente: string
-  verso: string
-  /** Frase de exemplo, quando o baralho tiver um campo com essa cara. */
-  exemplo?: string
-  tags: string[]
-  /** Refs de mídia agregadas de TODOS os campos da nota, sem duplicatas, na ordem de aparição. */
-  midia?: RefsDeMidia
-  /** Lacunas de cloze agregadas de todos os campos, ordenadas por ordinal. */
-  lacunas?: Lacuna[]
-  /** Nome do baralho de origem (primeiro cartão da nota), hierarquia com `::`. */
-  baralho?: string
-  /** Nome do note type (modelo) da nota. */
-  notetype?: string
-  /** sha256[:16] dos nomes de campo normalizados, na ordem — reconhece "já vi este tipo". */
-  estruturaHash?: string
-}
-
-export interface LeituraAnki {
-  notas: NotaAnki[]
-  /** Nome do arquivo interno que foi lido — a tela mostra, é a procedência. */
-  formato: string
-  /** Nomes dos campos como estavam no baralho, para a tela poder dizer o que virou o quê. */
-  campos: string[]
-  /** Notas descartadas na leitura (frente vazia, sem verso). */
-  descartadas: number
-  /** O baralho tinha mídia? Não importamos, e é preciso dizer. */
-  temMidia: boolean
-  /** Nomes de baralho distintos encontrados, ordenados. */
-  baralhos?: string[]
-  /** true quando o arquivo tem mais notas que `TETO_DE_NOTAS` — a leitura foi cortada. */
-  truncado?: boolean
-  /** `SELECT count(*)` real de `notes`, mesmo quando a leitura foi cortada. */
-  totalNoArquivo?: number
-  /**
-   * Mapa numérico-no-zip → entrada de mídia, quando o `.apkg` tem mídia (`temMidia`). Quem
-   * precisa resolver a referência de UMA nota (nome real, de `NotaAnki.midia`) usa
-   * `indiceInversoDeMidia` sobre este mapa. `undefined` quando não há arquivo `media` no zip.
-   */
-  mapaDeMidia?: Map<string, EntradaDeMidia>
-}
-
-/**
- * ENTIDADES NOMEADAS COMUNS DE DECK (S10) — tabela PEQUENA e deliberada, não uma lib inteira.
- *
- * `limparCampo` só desfazia `&nbsp; &amp; &lt; &gt; &quot; &#39;` — as seis que apareciam nos
- * decks de teste. Qualquer baralho exportado de uma ferramenta que escapa acento (comum em CSV/
- * Anki-desktop antigo em certas locales) sobrevivia com `&eacute;`, `&rsquo;` etc. no meio da
- * palavra, e a régua de qualidade reprovava por ruído — de novo, culpando o dado pelo nosso
- * descuido. A lista é a de entidades NOMEADAS que decks de idioma realmente usam; o resto (a
- * imensa maioria dos acentos) já cai na decodificação NUMÉRICA genérica abaixo.
- */
-const ENTIDADES_NOMEADAS: Record<string, string> = {
-  nbsp: ' ',
-  amp: '&',
-  lt: '<',
-  gt: '>',
-  quot: '"',
-  rsquo: '’',
-  lsquo: '‘',
-  rdquo: '”',
-  ldquo: '“',
-  mdash: '—',
-  ndash: '–',
-  hellip: '…',
-  eacute: 'é',
-  egrave: 'è',
-  agrave: 'à',
-  ecirc: 'ê',
-  ccedil: 'ç',
-  ouml: 'ö',
-  uuml: 'ü',
-  auml: 'ä',
-  szlig: 'ß',
-  ntilde: 'ñ',
-  aacute: 'á',
-  iacute: 'í',
-  oacute: 'ó',
-  uacute: 'ú',
-}
-
-/**
- * Decodifica entidades HTML de um campo: NUMÉRICAS (`&#39;`, `&#x27;`) de forma genérica, mais a
- * tabela pequena de NOMEADAS acima — inclusive as seis que `limparCampo` tratava uma a uma antes
- * (`nbsp amp lt gt quot #39`), agora cobertas por esta função só.
- */
-function decodificarEntidadesDoCampo(s: string): string {
-  return s
-    .replace(/&#x([0-9a-f]+);/gi, (_all, hex: string) => String.fromCodePoint(parseInt(hex, 16)))
-    .replace(/&#(\d+);/g, (_all, dec: string) => String.fromCodePoint(parseInt(dec, 10)))
-    .replace(/&([a-z]+);/gi, (all, nome: string) => ENTIDADES_NOMEADAS[nome.toLowerCase()] ?? all)
-}
-
-/**
- * Limpa o HTML que o Anki guarda no campo.
- *
- * Os campos vêm com marcação de verdade (`<b>`, `<br>`, `<div>`, `[sound:...]`, `<img>`). Jogar
- * isso num cartão de vocabulário produziria uma "palavra" com tags no meio — e a régua de
- * qualidade depois a reprovaria por ruído, o que seria culpar o dado pelo nosso descuido.
- */
-export function limparCampo(bruto: string): string {
-  const semTagsNemLacunas = (bruto ?? '')
-    // Referências de mídia viram nada: não importamos os arquivos, então o marcador só atrapalha.
-    .replace(/\[sound:[^\]]*\]/gi, ' ')
-    .replace(/<img[^>]*>/gi, ' ')
-    // Quebras viram espaço ANTES de as tags sumirem, senão "luz<br>claridade" vira "luzclaridade".
-    .replace(/<br\s*\/?>/gi, ' ')
-    .replace(/<\/(div|p|li|tr)>/gi, ' ')
-    .replace(/<[^>]+>/g, '')
-    /*
-     * FURIGANA (S10): `漢字[かんじ]` é a notação padrão de decks de japonês — o Anki a exibe com
-     * ruby text, mas em texto puro os colchetes sobram. `漢字[かんじ]` precisa virar `漢字`.
-     *
-     * A REGRA PRECISA DE ESCOPO: um colchete comum, tipo definição informal `"[informal]"` ou
-     * gramática `"to run [away]"`, NÃO é furigana e não pode ser comido — cortaria conteúdo
-     * legítimo do baralho. O que distingue os dois casos é o caractere IMEDIATAMENTE ANTES do `[`:
-     * furigana sempre segue um caractere Han/Hiragana/Katakana (a "palavra base" que a leitura
-     * anota); colchete de definição segue espaço, letra latina ou pontuação. Por isso o `$1` no
-     * replace: o caractere-gatilho é capturado e devolvido, só o `[...]` some.
-     *
-     * Roda DEPOIS de `[sound:...]` já ter sido tratado acima — senão um som citado logo após um
-     * caractere CJK (`猫[sound:cat.mp3]`) seria mordido por este regex também.
-     */
-    .replace(/([\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}])\[[^\]]*\]/gu, '$1')
-
-  /*
-   * ENTIDADES POR ÚLTIMO, depois das tags terem sumido — não antes. Se `&lt;div&gt;` (HTML
-   * ESCAPADO, texto literal que a nota queria mostrar) fosse decodificado ANTES da remoção de
-   * tags, o `<div>` resultante seria confundido com uma tag de verdade e apagado pelo
-   * `.replace(/<[^>]+>/g, '')` acima — corrompendo conteúdo que o próprio Anki preservava como
-   * texto. `decodificarEntidadesDoCampo` cobre as numéricas (`&#39;`, `&#x27;`) e a tabela pequena
-   * de nomeadas (ver `ENTIDADES_NOMEADAS`); ela sozinha já cobre as seis entidades que o código
-   * tratava antes uma a uma.
-   */
-  return decodificarEntidadesDoCampo(semTagsNemLacunas).replace(/\s+/g, ' ').trim()
-}
-
-/** Desfaz as entidades HTML mais comuns num nome de arquivo de mídia. */
-function decodificarEntidades(s: string): string {
-  return s
-    .replace(/&amp;/gi, '&')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-}
-
-/**
- * EXTRAI as referências de mídia ANTES de `limparCampo` apagar o marcador.
- *
- * O DEFEITO QUE ISTO CONSERTA: `limparCampo` some com `[sound:x.mp3]` e `<img src=...>` porque o
- * ARQUIVO não é importado — mas o NOME sobrevivia em lugar nenhum. Um baralho de pronúncia que só
- * tem áudio nos campos (frente = palavra, verso = tradução, som só no campo `Audio`) perdia essa
- * referência silenciosamente: a nota virava texto puro sem ninguém saber que existia um arquivo.
- *
- * `<img>` aceita aspas simples, duplas e sem aspas — os três são HTML válido, e o Anki gera os
- * três dependendo da versão/plugin que escreveu o campo.
- */
-export function extrairMidia(bruto: string): RefsDeMidia {
-  const texto = bruto ?? ''
-  const sons: string[] = []
-  const imagens: string[] = []
-
-  const reSom = /\[sound:([^\]]+)\]/gi
-  let m: RegExpExecArray | null
-  while ((m = reSom.exec(texto))) {
-    const nome = decodificarEntidades(m[1].trim())
-    if (nome && !sons.includes(nome)) sons.push(nome)
-  }
-
-  const reImg = /<img[^>]*\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>/gi
-  while ((m = reImg.exec(texto))) {
-    const nome = decodificarEntidades((m[1] ?? m[2] ?? m[3] ?? '').trim())
-    if (nome && !imagens.includes(nome)) imagens.push(nome)
-  }
-
-  return { sons, imagens }
-}
-
-/**
- * EXTRAI as lacunas de cloze e devolve o texto com elas substituídas pela resposta.
- *
- * `{{c1::resposta}}` ou `{{c1::resposta::dica}}` — a dica é o SEGUNDO `::`, não qualquer `::` no
- * meio da resposta, daí procurar só o primeiro `indexOf('::')` dentro do conteúdo já isolado por
- * `}}`, em vez de um regex com dois grupos opcionais (que teria uma ambiguidade de mínimo/máximo
- * bem mais fácil de acertar errado do que este split direto).
- *
- * SE ISTO NÃO RODASSE antes de `limparCampo`, `{{c1::...}}` cru vazaria para a tela: o campo
- * limpo hoje só tira HTML e `[sound:]`/`<img>`, não marcação de cloze.
- */
-export function extrairCloze(bruto: string): { texto: string; lacunas: Lacuna[] } {
-  const lacunas: Lacuna[] = []
-  const re = /\{\{c(\d+)::([\s\S]*?)\}\}/g
-  const texto = (bruto ?? '').replace(re, (_all, ord: string, conteudo: string) => {
-    const i = conteudo.indexOf('::')
-    const resposta = i >= 0 ? conteudo.slice(0, i) : conteudo
-    const dica = i >= 0 ? conteudo.slice(i + 2) : undefined
-    lacunas.push({ ordinal: Number(ord), resposta, dica })
-    return resposta
-  })
-  lacunas.sort((a, b) => a.ordinal - b.ordinal)
-  return { texto, lacunas }
-}
-
-/** Limpa o campo já COM as lacunas de cloze resolvidas — a ordem importa (ver `extrairCloze`). */
-function limparELacunas(bruto: string): { texto: string; lacunas: Lacuna[] } {
-  const { texto, lacunas } = extrairCloze(bruto ?? '')
-  return { texto: limparCampo(texto), lacunas }
-}
-
 /**
  * HASH DA ESTRUTURA do note type — reconhece "já vi este tipo de nota antes" para reaplicar um
  * mapeamento de campos salvo, sem depender do NOME do modelo (que a pessoa pode ter renomeado).
@@ -282,72 +60,6 @@ export function hashDaEstrutura(campos: string[]): string {
       .replace(/[\s_-]+/g, ' '),
   )
   return createHash('sha256').update(normalizados.join('|'), 'utf8').digest('hex').slice(0, 16)
-}
-
-/**
- * TETO DE NOTAS lidas de um único `.apkg` — o conserto para o baralho de 300k notas que hoje
- * carrega tudo em memória de uma vez porque `SELECT ... FROM notes` não tem LIMIT.
- *
- * 50 mil é folgado para todo baralho de idioma real (o maior do AnkiWeb fica na casa dos
- * milhares) e ainda cabe num array em memória sem risco de repetir o F4-01 por outra porta.
- */
-export const TETO_DE_NOTAS = 50_000
-
-/** Qual campo é a frase de exemplo? Pelo NOME, quando o baralho nomeia os campos. */
-function indiceDoExemplo(campos: string[]): number {
-  const alvo = /(example|exemplo|sentence|frase|context|contexto|usage)/i
-  return campos.findIndex((c) => alvo.test(c))
-}
-
-/**
- * QUAL CAMPO É A PALAVRA E QUAL É O SENTIDO — pelo NOME, e não pela posição.
- *
- * O DEFEITO QUE ISTO CONSERTA, medido com o baralho "4000 Essential English Words" do AnkiWeb
- * (3.871 notas): a frente vinha de `flds[0]` e o verso de `flds[1]`, fixos. Naquele baralho os
- * dois primeiros campos do tipo de nota principal são `№` e `IMG` — um número de ordem e uma tag
- * `<img>`. Depois de `limparCampo` a imagem vira string vazia, o par nasce sem verso, e as 3.871
- * notas caíam todas no `descartadas++`: o importador dizia "0 notas lidas" sobre um baralho
- * perfeitamente válido, e não havia como a pessoa descobrir por quê.
- *
- * O parser JÁ LIA os nomes dos campos (`camposPorModelo`) e já os usava para achar o exemplo —
- * só nunca os usou para os dois campos que decidem se a nota existe. Era a peça que estava na
- * mesa e não tinha sido ligada.
- *
- * A PRIORIDADE É POR PADRÃO, não por posição no baralho: `Word` vence `Front` quando o baralho
- * tem os dois, porque `Word` é o conteúdo e `Front` costuma ser o template do cartão. Isso exige
- * varrer os padrões em ordem — um `findIndex` sozinho varreria o ARRAY e devolveria o que viesse
- * primeiro nele, que é o contrário do pretendido (foi o que um teste pegou).
- *
- * Sem nomes reconhecíveis, volta ao posicional — que é o certo para o baralho de dois campos sem
- * nome, ainda o caso mais comum.
- */
-export const PADRAO_FRENTE: RegExp[] = [
-  /^(word|palavra|term|termo|expression|expressão|vocab\w*|english|inglês)$/i,
-  /^(front|frente|question|pergunta)$/i,
-]
-export const PADRAO_VERSO: RegExp[] = [
-  /^(meaning|significado|sentido|definition|definição|translation|tradução|portuguese|português)$/i,
-  /^(back|verso|answer|resposta)$/i,
-]
-
-/**
- * Acha o campo pelo nome: TODOS os padrões por igualdade primeiro, e só então por conter.
- *
- * A igualdade vem antes porque `Sound_Meaning` CONTÉM "meaning" e é um ÁUDIO: num baralho com
- * `Meaning` e `Sound_Meaning`, casar por conteúdo primeiro poria um marcador de som no verso.
- */
-export function indicePorNome(campos: string[], padroes: RegExp[]): number {
-  const limpos = campos.map((c) => (c ?? '').trim())
-  for (const padrao of padroes) {
-    const exato = limpos.findIndex((c) => padrao.test(c))
-    if (exato >= 0) return exato
-  }
-  for (const padrao of padroes) {
-    const solto = new RegExp(padrao.source.replace(/^\^|\$$/g, ''), 'i')
-    const i = limpos.findIndex((c) => solto.test(c))
-    if (i >= 0) return i
-  }
-  return -1
 }
 
 /**
@@ -477,10 +189,7 @@ async function extrairColecao(apkg: Buffer): Promise<{ db: Buffer; formato: stri
  * em caso de erro.
  */
 export async function lerApkg(apkg: Buffer): Promise<LeituraAnki> {
-  const { db, formato, temMidia, zip } = await extrairColecao(apkg)
-  // Lido aqui, junto com a coleção, para devolver tudo numa leitura só — quem ativa uma nota
-  // depois não precisa reabrir o zip para achar o mapa.
-  const mapaDeMidia = temMidia ? await lerMapaDeMidia(zip) : undefined
+  const { db, formato, temMidia } = await extrairColecao(apkg)
   const dir = await mkdtemp(join(tmpdir(), 'babel-anki-'))
   const caminho = join(dir, 'collection.sqlite')
   await writeFile(caminho, db)
@@ -616,75 +325,26 @@ export async function lerApkg(apkg: Buffer): Promise<LeituraAnki> {
     const baralhosVistos = new Set<string>()
 
     for (const linha of r.rows) {
-      const partes = String(linha.flds ?? '').split(SEP)
       const nomes = camposPorModelo.get(String(linha.mid)) ?? []
       if (nomes.length && !camposVistos.length) camposVistos = nomes.filter(Boolean)
 
-      // Mídia é extraída do campo BRUTO — depois de `limparCampo` a referência já não existe.
-      const sons: string[] = []
-      const imagens: string[] = []
-      for (const parte of partes) {
-        const m = extrairMidia(parte ?? '')
-        for (const s of m.sons) if (!sons.includes(s)) sons.push(s)
-        for (const im of m.imagens) if (!imagens.includes(im)) imagens.push(im)
-      }
-      const midia = sons.length || imagens.length ? { sons, imagens } : undefined
+      const baralhoId = baralhoIdPorNota.get(String(linha.id))
+      const baralho = baralhoId ? nomePorBaralho.get(baralhoId) : undefined
 
-      // Cloze resolvido ANTES de limpar (ver `limparELacunas`), campo a campo.
-      const camposLimpos = partes.map((p) => limparELacunas(p ?? ''))
-      const lacunasDaNota = camposLimpos.flatMap((c) => c.lacunas).sort((a, b) => a.ordinal - b.ordinal)
-
-      /* Pelo NOME quando o baralho os nomeia; posicional quando não (ver `indicePorNome`). O
-         índice só vale se o campo tiver conteúdo depois de limpo — um `Meaning` vazio não é
-         melhor que o `flds[1]` que ele substituiria. */
-      const porNomeOuPosicao = (padroes: RegExp[], posicao: number) => {
-        const i = indicePorNome(nomes, padroes)
-        return (i >= 0 ? camposLimpos[i]?.texto : '') || camposLimpos[posicao]?.texto || ''
-      }
-      const frente = porNomeOuPosicao(PADRAO_FRENTE, 0)
-      const verso = porNomeOuPosicao(PADRAO_VERSO, 1)
-      // Sem frente OU sem verso não há cartão: um dos dois lados seria inventado.
-      if (!frente || !verso) {
+      const nota = montarNota({
+        guid: String(linha.guid ?? ''),
+        flds: String(linha.flds ?? ''),
+        tags: String(linha.tags ?? ''),
+        nomesDosCampos: nomes,
+        notetype: nomePorModelo.get(String(linha.mid)),
+        baralho,
+      })
+      if (!nota) {
         descartadas++
         continue
       }
-
-      const iExemplo = indiceDoExemplo(nomes)
-      const cru = iExemplo >= 0 ? (camposLimpos[iExemplo]?.texto ?? '') : (camposLimpos[2]?.texto ?? '')
-      /* O exemplo não pode ser a própria palavra nem a própria tradução: onde o posicional cai em
-         cima de um dos dois, a frase "de contexto" seria a resposta repetida. */
-      const exemplo = cru && cru !== frente && cru !== verso ? cru : ''
-
-      const baralhoId = baralhoIdPorNota.get(String(linha.id))
-      const baralho = baralhoId ? nomePorBaralho.get(baralhoId) : undefined
       if (baralho) baralhosVistos.add(baralho)
-
-      /* OS CAMPOS ORIGINAIS, POR NOME — a promessa de "reclassificar sem reimportar" mora aqui.
-         Quem só guardasse frente/verso/exemplo estaria jogando fora o resto da nota (leitura,
-         pitch accent, frequência, o campo que o mapeamento automático não reconheceu), e trocar o
-         mapeamento depois exigiria o arquivo de novo — 214 MB, no baralho que medimos. Guardamos o
-         BRUTO, não o limpo: a limpeza é uma decisão nossa e precisa poder ser refeita. Campo sem
-         nome (baralho antigo, sem `fields`) entra pela posição, que é a identidade que ele tem. */
-      const camposBrutos: Record<string, string> = {}
-      partes.forEach((valor, i) => {
-        camposBrutos[nomes[i] || `campo${i}`] = valor ?? ''
-      })
-
-      notas.push({
-        guid: String(linha.guid ?? ''),
-        frente,
-        verso,
-        exemplo: exemplo || undefined,
-        tags: String(linha.tags ?? '')
-          .split(/\s+/)
-          .filter(Boolean),
-        camposBrutos,
-        midia,
-        lacunas: lacunasDaNota.length ? lacunasDaNota : undefined,
-        baralho,
-        notetype: nomePorModelo.get(String(linha.mid)) || undefined,
-        estruturaHash: nomes.length ? hashDaEstrutura(nomes) : undefined,
-      })
+      notas.push(nota)
     }
 
     return {
@@ -696,7 +356,6 @@ export async function lerApkg(apkg: Buffer): Promise<LeituraAnki> {
       baralhos: baralhosVistos.size ? [...baralhosVistos].sort() : undefined,
       truncado,
       totalNoArquivo,
-      mapaDeMidia,
     }
   } finally {
     cliente.close()
@@ -706,13 +365,6 @@ export async function lerApkg(apkg: Buffer): Promise<LeituraAnki> {
   }
 }
 
-/**
- * Lê o formato TEXTO que o Anki exporta e importa nativamente.
- *
- * Vale a pena aceitar porque é o que sai de planilha, e porque quem já tem um baralho em CSV não
- * precisa abrir o Anki só para converter. Separador detectado por frequência: tabulação primeiro
- * (é o padrão do Anki), depois ponto-e-vírgula, depois vírgula.
- */
 /* ═══════════════════════════ MÍDIA (motor-anki-midia) ═══════════════════════════ */
 
 /**
@@ -915,114 +567,4 @@ export function indiceInversoDeMidia(mapa: Map<string, EntradaDeMidia>): Map<str
   const inverso = new Map<string, string>()
   for (const [numerico, entrada] of mapa) inverso.set(entrada.nome, numerico)
   return inverso
-}
-
-/* ═══════════════════════════ IDIOMA (S11 — motor-anki-acervo) ═══════════════════════════ */
-
-/**
- * ESCRITA DOMINANTE de uma amostra de texto — a base do conserto do S11.
- *
- * O CENÁRIO QUE ISTO EVITA: a rota de import grava `idiomaOrigem` a partir do cabeçalho
- * `X-Src-Lang`, que o CLIENTE preenche com o idioma do LOBBY (a tela que a pessoa está usando),
- * não com o idioma do baralho. Importar um deck JAPONÊS com o lobby em inglês carimbava
- * `srcLang='en'` em milhares de cartões, silenciosamente — envenenando o filtro de idioma para
- * sempre, porque nada nessa cadeia jamais olhava o CONTEÚDO do baralho para conferir.
- *
- * Aqui a conferência: conta caracteres por FAIXA UNICODE (script) sobre uma amostra de frentes, e
- * decide a escrita dominante por MAIORIA das letras (>50%) — não da amostra inteira, porque
- * dígitos/pontuação/espaço não dizem nada sobre o idioma e diluiriam a contagem à toa. Sem letra
- * nenhuma na amostra, a resposta honesta é 'desconhecido', não um palpite.
- */
-export type EscritaDominante =
-  | 'latino'
-  | 'cjk'
-  | 'kana'
-  | 'hangul'
-  | 'cirilico'
-  | 'arabe'
-  | 'hebraico'
-  | 'grego'
-  | 'devanagari'
-  | 'thai'
-  | 'desconhecido'
-
-/* Ordem de checagem importa: kana ANTES de han, porque uma frente japonesa mistura os dois
-   (漢字 + かな) e cada caractere só é contado numa faixa — checar han primeiro classificaria
-   caracteres kana como han incorretamente só se as faixas se sobrepusessem (não se sobrepõem,
-   mas a ordem abaixo documenta a intenção de qualquer forma: kana é o sinal mais forte de 'ja'). */
-const FAIXAS: Array<{ escrita: Exclude<EscritaDominante, 'desconhecido'>; regex: RegExp }> = [
-  { escrita: 'kana', regex: /[\p{Script=Hiragana}\p{Script=Katakana}]/u },
-  { escrita: 'hangul', regex: /\p{Script=Hangul}/u },
-  { escrita: 'cjk', regex: /\p{Script=Han}/u },
-  { escrita: 'cirilico', regex: /\p{Script=Cyrillic}/u },
-  { escrita: 'arabe', regex: /\p{Script=Arabic}/u },
-  { escrita: 'hebraico', regex: /\p{Script=Hebrew}/u },
-  { escrita: 'grego', regex: /\p{Script=Greek}/u },
-  { escrita: 'devanagari', regex: /\p{Script=Devanagari}/u },
-  { escrita: 'thai', regex: /\p{Script=Thai}/u },
-  { escrita: 'latino', regex: /\p{Script=Latin}/u },
-]
-
-/**
- * Contagem de LETRAS por escrita numa amostra — a matéria-prima de `escritaDominante` e da
- * decisão de idioma da rota de import. Exposta separada porque a DOMINÂNCIA não basta para
- * japonês: um baralho de vocabulário típico é majoritariamente kanji (Han) com kana minoritário,
- * e só a contagem bruta permite a regra "presença de kana prova japonês" (ver a rota).
- */
-export function contagemDeEscritas(amostras: string[]): { contagem: Record<string, number>; totalDeLetras: number } {
-  const contagem: Record<string, number> = {}
-  let totalDeLetras = 0
-  for (const linha of amostras) {
-    for (const ch of linha ?? '') {
-      const faixa = FAIXAS.find((f) => f.regex.test(ch))
-      if (!faixa) continue // dígito, pontuação, espaço, emoji — não é letra de nenhuma escrita
-      contagem[faixa.escrita] = (contagem[faixa.escrita] ?? 0) + 1
-      totalDeLetras++
-    }
-  }
-  return { contagem, totalDeLetras }
-}
-
-export function escritaDominante(amostras: string[]): EscritaDominante {
-  const { contagem, totalDeLetras } = contagemDeEscritas(amostras)
-  if (!totalDeLetras) return 'desconhecido'
-  const [escritaTop, qtd] = Object.entries(contagem).sort((a, b) => b[1] - a[1])[0]
-  return qtd / totalDeLetras > 0.5 ? (escritaTop as EscritaDominante) : 'desconhecido'
-}
-
-export function lerTextoAnki(texto: string): LeituraAnki {
-  const linhas = (texto ?? '').split(/\r?\n/).filter((l) => l.trim() && !l.startsWith('#'))
-  if (!linhas.length) return { notas: [], formato: 'texto', campos: [], descartadas: 0, temMidia: false }
-
-  const candidatos = ['\t', ';', ','] as const
-  const sep = candidatos.find((s) => linhas[0].includes(s)) ?? '\t'
-
-  const notas: NotaAnki[] = []
-  let descartadas = 0
-  let campos: string[] = []
-
-  linhas.forEach((linha, i) => {
-    const partes = linha.split(sep).map((p) => limparCampo(p.replace(/^"|"$/g, '')))
-    // Cabeçalho: primeira linha cujos dois primeiros campos parecem rótulos, não conteúdo.
-    if (i === 0 && /^(front|frente|word|palavra|term)$/i.test(partes[0] ?? '')) {
-      campos = partes.filter(Boolean)
-      return
-    }
-    const [frente, verso, exemplo] = partes
-    if (!frente || !verso) {
-      descartadas++
-      return
-    }
-    /* Texto puro não tem identidade estável: quem gerou o arquivo não guardou id nenhum. Guid
-       vazio é a resposta honesta — quem grava decide o que fazer com isso (hoje, sintetizar). */
-    notas.push({ guid: '', frente, verso, exemplo: exemplo || undefined, tags: [] })
-  })
-
-  return {
-    notas,
-    formato: `texto (separado por ${sep === '\t' ? 'tabulação' : sep})`,
-    campos,
-    descartadas,
-    temMidia: false,
-  }
 }

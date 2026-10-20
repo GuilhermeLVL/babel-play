@@ -540,10 +540,9 @@ const fechamentos = new Set<Promise<void>>()
 
 export function registrarFechamento(p: Promise<void>): void {
   fechamentos.add(p)
-  void p.finally(() => fechamentos.delete(p))
   /* No Worker o fechamento corre DEPOIS da resposta: sem o `waitUntil`, o rastro morreria antes do
-     `enviar`. No Node é inofensivo (só não espera). */
-  emSegundoPlano(p)
+     `enviar`. No Node só não espera — e a rejeição, se houver, vai para o log em vez de ficar solta. */
+  emSegundoPlano(p.finally(() => fechamentos.delete(p)))
 }
 
 export async function aguardarRastrosPendentes(): Promise<void> {

@@ -33,6 +33,7 @@ import { usageCountersRepo } from '../db/repositories/usageCounters'
 import { asUserId } from './authContext'
 import { chaveDoRequest } from './rateLimitStore'
 import { responderErro } from './respostaDeErro'
+import { emSegundoPlano, noContextoAtual } from './runtime'
 
 interface OpcoesDoLimitadorDeFalhas {
   /** Métrica do balde em `usage_counters` (um balde por limitador — achado A27). */
@@ -54,10 +55,10 @@ export function criarLimitadorDeFalhas(o: OpcoesDoLimitadorDeFalhas): RequestHan
   const balde = (t: number) => `rl:${numeroDoBalde(t)}`
 
   /** Poda baldes vencidos de vez em quando — só roda quando há falha, que é quando há o que podar. */
-  function podarSePreciso(agora: number): void {
+  async function podarSePreciso(agora: number): Promise<void> {
     if (agora < podarEm) return
     podarEm = agora + 5 * o.janelaMs
-    usageCountersRepo.prune(o.metric, balde(agora - o.janelaMs)).catch(() => {
+    await usageCountersRepo.prune(o.metric, balde(agora - o.janelaMs)).catch(() => {
       /* poda é best-effort */
     })
   }
@@ -82,16 +83,22 @@ export function criarLimitadorDeFalhas(o: OpcoesDoLimitadorDeFalhas): RequestHan
 
         /* A escrita só existe no caminho da falha. O balde é o da ENTRADA: uma requisição que
            atravessa a virada da janela conta na janela em que foi admitida. */
-        res.on('finish', () => {
-          if (!o.falhou(req, res)) return
-          usageCountersRepo
-            .increment(chave, o.metric, janela)
-            .then(() => podarSePreciso(Date.now()))
-            .catch(() => {
-              /* Contar falha é defesa, não caminho crítico: um erro de banco aqui não pode virar
-                 exceção não tratada depois de a resposta já ter saído. */
-            })
-        })
+        res.on(
+          'finish',
+          /* Depois da resposta: no Worker, contagem e poda só sobrevivem pelo `waitUntil` da requisição. */
+          noContextoAtual(() => {
+            if (!o.falhou(req, res)) return
+            emSegundoPlano(
+              usageCountersRepo
+                .increment(chave, o.metric, janela)
+                .then(() => podarSePreciso(Date.now()))
+                .catch(() => {
+                  /* Contar falha é defesa, não caminho crítico: um erro de banco aqui não pode virar
+                     exceção não tratada depois de a resposta já ter saído. */
+                }),
+            )
+          }),
+        )
         next()
       })
       .catch(next)

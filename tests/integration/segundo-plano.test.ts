@@ -11,6 +11,7 @@
  *  2. Worker: dentro do contexto, a promessa chega ao `waitUntil` do dublê, que a espera sem rejeitar;
  *  3. a rota de rodada (`POST /api/exercises/rodada`) entrega o recálculo ao `waitUntil`.
  */
+import { EventEmitter } from 'node:events'
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 
@@ -28,6 +29,23 @@ vi.mock('../../server/db/repositories/vocab', () => ({
 }))
 vi.mock('../../server/db/repositories/versoes', () => ({ versoesRepo: {} }))
 
+const fecharPorta = vi.fn<(porta: unknown) => Promise<void>>()
+vi.mock('../../server/ai/nucleo/transcrever', () => ({
+  admitirTranscricao: vi.fn(),
+  fecharPortaDoStt: (porta: unknown) => fecharPorta(porta),
+  transcrever: vi.fn(),
+}))
+
+const contadores = vi.hoisted(() => ({
+  get: vi.fn(async () => 0),
+  increment: vi.fn(async () => 1),
+  incrementAndGet: vi.fn(async () => 1),
+  prune: vi.fn(async () => undefined),
+}))
+vi.mock('../../server/db/repositories/usageCounters', () => ({ usageCountersRepo: contadores }))
+
+import { portaDoStt } from '../../server/ai/sttProxy'
+import { criarLimitadorDeFalhas } from '../../server/lib/limitadorDeFalhas'
 import { comContextoDoWorker, emSegundoPlano } from '../../server/lib/runtime'
 import { exercisesRouter } from '../../server/routes/exercises'
 
@@ -234,5 +252,88 @@ describe('telemetria depois da resposta no Worker', () => {
     soltar()
     await Promise.all(entregues)
     await aguardarRastrosPendentes()
+  })
+})
+
+describe('emSegundoPlano é robusto', () => {
+  it('aceita um thenable que não é Promise e um waitUntil que lança', async () => {
+    const espiao = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const thenable = { then: (ok: (v: number) => void) => ok(1) } as unknown as Promise<number>
+    expect(() =>
+      comContextoDoWorker(
+        {
+          waitUntil: () => {
+            throw new Error('contexto já encerrado')
+          },
+        },
+        () => emSegundoPlano(thenable),
+      ),
+    ).not.toThrow()
+    await new Promise((r) => setTimeout(r, 5))
+    expect(linhasDoLog(espiao).some((l) => l.event === 'segundo_plano_falhou')).toBe(true)
+  })
+})
+
+/**
+ * O QUE ACONTECE NUM EVENTO DA RESPOSTA (`close`, `finish`). O ouvinte é registrado DENTRO da requisição,
+ * mas o evento é emitido depois, de fora da cadeia assíncrona dela (o socket que fechou). Os testes emitem
+ * o evento FORA do `comContextoDoWorker`, como acontece de verdade: só um ouvinte amarrado ao contexto da
+ * requisição ainda acha o `waitUntil`.
+ */
+describe('trabalho disparado por evento da resposta, no Worker', () => {
+  it('STT: o cliente abortou → a devolução de cota e vaga vai para o waitUntil', async () => {
+    process.env.BABEL_RUNTIME = 'worker'
+    let soltar!: () => void
+    fecharPorta.mockImplementation(() => new Promise<void>((ok) => (soltar = ok)))
+    const entregues: Promise<unknown>[] = []
+    const res = new EventEmitter() as EventEmitter & Record<string, unknown>
+    const req = { header: (n: string) => (n === 'x-credential-id' ? 'cred-1' : undefined) }
+    const next = vi.fn()
+
+    await comContextoDoWorker({ waitUntil: (p) => void entregues.push(p) }, () =>
+      portaDoStt(req as never, res as never, next),
+    )
+    expect(next).toHaveBeenCalled()
+    expect(entregues).toHaveLength(0)
+
+    res.emit('close') // o cliente abortou: fora do contexto, como o socket emite
+    expect(fecharPorta).toHaveBeenCalledWith({ byok: true })
+    expect(entregues, 'a devolução não foi entregue ao waitUntil').toHaveLength(1)
+    let terminou = false
+    void entregues[0].then(() => (terminou = true))
+    await new Promise((r) => setTimeout(r, 5))
+    expect(terminou).toBe(false)
+    soltar()
+    await entregues[0]
+    expect(terminou).toBe(true)
+  })
+
+  it('limitador de falhas: a contagem da falha e a poda vão para o waitUntil', async () => {
+    process.env.BABEL_RUNTIME = 'worker'
+    const mw = criarLimitadorDeFalhas({
+      metric: 'teste_falhas',
+      janelaMs: 60_000,
+      teto: 10,
+      falhou: () => true,
+      code: 'muitas_falhas',
+      mensagem: 'muitas falhas',
+    } as never)
+    let soltar!: () => void
+    contadores.increment.mockImplementationOnce(() => new Promise((ok) => (soltar = () => ok(1))))
+    const entregues: Promise<unknown>[] = []
+    const res = new EventEmitter() as EventEmitter & Record<string, unknown>
+    const req = { ip: '203.0.113.9', headers: {}, header: () => undefined }
+
+    await new Promise<void>((ok) =>
+      comContextoDoWorker({ waitUntil: (p) => void entregues.push(p) }, () =>
+        mw(req as never, res as never, () => ok()),
+      ),
+    )
+    res.emit('finish') // a resposta saiu: fora do contexto
+    expect(entregues, 'a contagem da falha não foi entregue ao waitUntil').toHaveLength(1)
+    soltar()
+    await entregues[0]
+    expect(contadores.increment).toHaveBeenCalled()
+    expect(contadores.prune, 'a poda roda dentro da mesma tarefa de fundo').toHaveBeenCalled()
   })
 })

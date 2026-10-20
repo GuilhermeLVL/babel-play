@@ -59,13 +59,26 @@ export function comContextoDoWorker<T>(ctx: ContextoDoWorker, fn: () => T): T {
  * Nos dois casos a falha vai para o log (`segundo_plano_falhou`, só a mensagem, que o logger redige)
  * e NUNCA vira exceção nem rejeição não tratada — nem a do `waitUntil`.
  */
-export function emSegundoPlano(p: Promise<unknown>): void {
-  const seguro = p.then(
-    () => undefined,
-    (err: unknown) => {
-      log('error', { event: 'segundo_plano_falhou', error: String((err as Error)?.message ?? err).slice(0, 300) })
-    },
-  )
+export function emSegundoPlano(p: PromiseLike<unknown>): void {
+  const falhou = (err: unknown) =>
+    log('error', { event: 'segundo_plano_falhou', error: String((err as Error)?.message ?? err).slice(0, 300) })
+  /* `Promise.resolve`: um thenable qualquer (ou uma promessa de outro realm) vira promessa de verdade. */
+  const seguro = Promise.resolve(p).then(() => undefined, falhou)
   const ctx = alsDoWorker?.getStore()
-  if (ctx) ctx.waitUntil(seguro)
+  if (!ctx) return
+  try {
+    ctx.waitUntil(seguro)
+  } catch (err) {
+    /* `waitUntil` fora de hora (contexto já encerrado) não derruba quem chamou: a tarefa segue solta. */
+    falhou(err)
+  }
+}
+
+/**
+ * Amarra `fn` ao contexto da requisição ATUAL. Para ouvintes de evento da resposta (`close`, `finish`): o
+ * ouvinte é registrado dentro da requisição, mas o evento é emitido depois, de fora da cadeia assíncrona
+ * dela (o socket que fechou), e lá `emSegundoPlano` não acharia o `waitUntil`.
+ */
+export function noContextoAtual<A extends unknown[], R>(fn: (...args: A) => R): (...args: A) => R {
+  return AsyncLocalStorage.bind(fn)
 }

@@ -16,6 +16,7 @@ import { abrirPortaGratuita } from '../lib/convidado'
 import { getEntitlements } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
+import { emSegundoPlano, noContextoAtual } from '../lib/runtime'
 import { ContadorIndisponivel } from '../lib/usageQuota'
 import { sinalDoCliente } from './cancelamento'
 import {
@@ -81,12 +82,18 @@ export async function portaDoStt(req: Request, res: Response, next: NextFunction
     const porta = await abrirPortaDoStt(req, res)
     if (!porta) return
     portas.set(req, porta)
-    res.on('close', () => {
-      // Fora de qualquer `await`: a falha ao soltar a vaga não pode virar rejeição sem dono.
-      fecharPortaDoStt(porta).catch((err: unknown) =>
-        log('warn', { event: 'stt_vaga_nao_solta', error: String((err as Error)?.message ?? err).slice(0, 160) }),
-      )
-    })
+    res.on(
+      'close',
+      noContextoAtual(() => {
+        // Fora de qualquer `await`: a falha ao soltar a vaga não pode virar rejeição sem dono. Depois da resposta
+        // (inclusive no aborto do cliente): no Worker, só o `waitUntil` mantém viva a devolução de cota e vaga.
+        emSegundoPlano(
+          fecharPortaDoStt(porta).catch((err: unknown) =>
+            log('warn', { event: 'stt_vaga_nao_solta', error: String((err as Error)?.message ?? err).slice(0, 160) }),
+          ),
+        )
+      }),
+    )
     next()
   } catch (err) {
     responderFalha(res, err)

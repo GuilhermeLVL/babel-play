@@ -224,7 +224,15 @@ ankiImportsRouter.post('/imports/:id/fechar', async (req, res) => {
        de `TETO_DE_NOTAS` notas; o leitor só manda as primeiras) as notas além do corte também viram
        `ausente_no_arquivo` — a mesma semântica da rota antiga, que só via as notas lidas. Nada é
        apagado: um reimport que as traga as devolve ao estado de antes. */
-    await ankiRepo.marcarAusentesForaDoImport(req.userId, imp.deckId, imp.id)
+    try {
+      await ankiRepo.marcarAusentesForaDoImport(req.userId, imp.deckId, imp.id)
+    } catch (err) {
+      /* A reivindicação acima já marcou `concluido`; se a marcação de ausentes falhar, o import voltaria
+         a aparecer fechado sem os ausentes marcados e um novo `fechar` receberia 409. Devolve o estado
+         para `gravando` (reabre a trava) e relança: o cliente vê 500 e pode fechar de novo. */
+      await ankiRepo.atualizarImport(imp.id, { estado: 'gravando' }).catch(() => {})
+      throw err
+    }
 
     /**
      * FALHA NA ATIVACAO NAO VIRA "ZERO ATIVADAS" (auditoria de 2026-09-07, achado A29) — o mesmo

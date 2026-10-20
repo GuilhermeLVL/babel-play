@@ -11,7 +11,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { assertPublicUrl, ehDestinoBloqueado } from '../../server/ai/ssrf'
+import { assertPublicUrl, ehDestinoBloqueado, fetchSeguro } from '../../server/ai/ssrf'
 
 const DEVE_BLOQUEAR: Array<[string, string]> = [
   ['http://127.0.0.1:11434', 'loopback IPv4'],
@@ -110,9 +110,9 @@ describe('Worker (BABEL_RUNTIME=worker) — resolução por DoH, mesma lista de 
   })
 
   it('DoH devolvendo só IP público → permite (e quem resolve é o DoH, não o DNS do sistema)', async () => {
-    /* `localhost` no DNS do sistema é 127.0.0.1 e seria recusado: passar aqui prova que o Worker não usa `node:dns`. */
-    vi.stubGlobal('fetch', dublêDoDoh({ localhost: { A: ['93.184.216.34'], AAAA: ['2606:2800:220:1::1'] } }))
-    await expect(assertPublicUrl('https://localhost/')).resolves.toBeUndefined()
+    /* `localtest.me` no DNS público é 127.0.0.1 e seria recusado: passar aqui prova que o Worker não usa `node:dns`. */
+    vi.stubGlobal('fetch', dublêDoDoh({ 'localtest.me': { A: ['93.184.216.34'], AAAA: ['2606:2800:220:1::1'] } }))
+    await expect(assertPublicUrl('https://localtest.me/')).resolves.toBeUndefined()
   })
 
   it('nome que não existe (NXDOMAIN) → recusa, sem conectar', async () => {
@@ -126,5 +126,67 @@ describe('Worker (BABEL_RUNTIME=worker) — resolução por DoH, mesma lista de 
       vi.fn(async () => new Response('', { status: 503 })),
     )
     await expect(assertPublicUrl('https://alvo.exemplo/')).rejects.toThrow()
+  })
+})
+
+/**
+ * `localhost` E SEUS SUBDOMÍNIOS são recusados PELO NOME (RFC 6761: `*.localhost` é loopback por definição),
+ * nos dois runtimes e sem consultar DNS — no Worker o DoH público não resolveria `localhost` para loopback,
+ * e o nome nunca é um destino legítimo do proxy.
+ */
+describe('localhost pelo nome, nos dois runtimes', () => {
+  const guarda = process.env.BABEL_RUNTIME
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    if (guarda === undefined) delete process.env.BABEL_RUNTIME
+    else process.env.BABEL_RUNTIME = guarda
+  })
+
+  for (const runtime of ['node', 'worker'] as const) {
+    it.each(['http://localhost/', 'http://LOCALHOST:9091/metrics', 'http://api.localhost/', 'http://localhost./'])(
+      `${runtime}: recusa %s sem consultar DNS`,
+      async (url) => {
+        if (runtime === 'worker') process.env.BABEL_RUNTIME = 'worker'
+        else delete process.env.BABEL_RUNTIME
+        const f = vi.fn(async () => Response.json({ Status: 0, Answer: [{ type: 1, data: '93.184.216.34' }] }))
+        vi.stubGlobal('fetch', f)
+        await expect(assertPublicUrl(url)).rejects.toSatisfy(ehDestinoBloqueado)
+        await expect(fetchSeguro(url, {})).rejects.toSatisfy(ehDestinoBloqueado)
+        expect(f).not.toHaveBeenCalled()
+      },
+    )
+  }
+})
+
+/**
+ * NO NODE, `fetchSeguro` CONFERE IP LITERAL SOZINHO (fix round 1 da Task 11). O `lookup` do despachante só roda
+ * para NOME: com `http://127.0.0.1:9091/` não há resolução, e o socket conectaria direto. A conferência
+ * síncrona de dentro do `fetchSeguro` recusa antes de conectar — mesmo para quem não chamou `assertPublicUrl`.
+ */
+describe('Node: fetchSeguro recusa IP literal interno sem depender de assertPublicUrl', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it.each([
+    'http://127.0.0.1/',
+    'http://127.0.0.1:9091/metrics',
+    'http://[::1]/',
+    'http://169.254.169.254/latest/meta-data/',
+    'http://[::ffff:127.0.0.1]/',
+    'http://10.0.0.7/',
+    'file:///etc/passwd',
+    'data:text/plain,oi',
+  ])('recusa %s sem conectar', async (url) => {
+    const f = vi.fn(async () => new Response('não devia chegar aqui'))
+    vi.stubGlobal('fetch', f)
+    await expect(fetchSeguro(url, {})).rejects.toSatisfy(ehDestinoBloqueado)
+    expect(f).not.toHaveBeenCalled()
+  })
+
+  it('IP literal público segue para o fetch com o despachante', async () => {
+    const f = vi.fn(async () => new Response('ok'))
+    vi.stubGlobal('fetch', f)
+    const r = await fetchSeguro('https://1.1.1.1/', {})
+    expect(r.status).toBe(200)
+    expect(f).toHaveBeenCalledTimes(1)
   })
 })

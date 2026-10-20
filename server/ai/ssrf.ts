@@ -265,7 +265,8 @@ async function resolverSeguro(host: string): Promise<string[]> {
  * própria, importação de página). Nunca segue redirect: o 3xx volta para quem chamou, e quem segue (a
  * importação de página) chama de novo — cada salto é conferido.
  *
- * - Node: o `despachanteSeguro` confere o IP no `lookup` do socket (a resolução conferida é a conectada).
+ * - Node: `conferirSemDns` (IP literal, esquema, nome bloqueado) e o `despachanteSeguro`, que confere o IP
+ *   do NOME no `lookup` do socket (a resolução conferida é a conectada).
  * - Worker: `assertPublicUrl` (DoH + lista de bloqueio) imediatamente antes de conectar; o `dispatcher`
  *   sai do `init` — o `fetch` do Worker não tem `undici`.
  */
@@ -275,11 +276,20 @@ export async function fetchSeguro(url: string, init: RequestInit & { dispatcher?
     const { dispatcher: _semDespachante, ...semDespachante } = init
     return await fetch(url, { ...semDespachante, redirect: 'manual' })
   }
+  /* IP literal, esquema e nome bloqueado ANTES de conectar: o `lookup` do despachante só roda para nome. */
+  conferirSemDns(url)
   return await fetch(url, { ...init, redirect: 'manual', dispatcher: despachanteSeguro } as InitSeguro)
 }
 
-/** Lança se a URL não for pública/segura para o proxy chamar. */
-export async function assertPublicUrl(raw: string): Promise<void> {
+/**
+ * A parte da guarda que NÃO precisa de DNS: URL válida, esquema http(s), host bloqueado pelo nome
+ * (`metadata.google.internal`, `localhost` e `*.localhost`) e IP literal interno. Síncrona, para o
+ * `fetchSeguro` do Node rodá-la antes de conectar — o `lookup` do socket só confere NOME, e um IP literal
+ * (`http://127.0.0.1:9091/`) conectaria direto sem passar por ele.
+ *
+ * Devolve o NOME a resolver, ou `null` quando o host já é um IP literal público.
+ */
+function conferirSemDns(raw: string): string | null {
   let u: URL
   try {
     u = new URL(raw)
@@ -291,11 +301,21 @@ export async function assertPublicUrl(raw: string): Promise<void> {
   }
   const host = u.hostname.replace(/^\[|\]$/g, '')
   if (BLOCKED_HOSTNAMES.has(host.toLowerCase())) throw new DestinoBloqueado('host bloqueado')
+  /* RFC 6761: `localhost` e `*.localhost` são loopback por definição. Pelo nome, nos dois runtimes: no
+     Worker o DoH público não diria que é loopback. */
+  if (/^(.*\.)?localhost\.?$/i.test(host)) throw new DestinoBloqueado('host bloqueado')
 
   if (isIP(host)) {
     if (isPrivateIp(host)) throw new DestinoBloqueado('IP interno bloqueado (SSRF)')
-    return
+    return null
   }
+  return host
+}
+
+/** Lança se a URL não for pública/segura para o proxy chamar. */
+export async function assertPublicUrl(raw: string): Promise<void> {
+  const host = conferirSemDns(raw)
+  if (host === null) return
   if (ehWorker()) {
     await resolverSeguro(host)
     return

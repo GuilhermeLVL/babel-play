@@ -17,12 +17,12 @@ import { randomUUID } from 'node:crypto'
 import { statfsSync, statSync } from 'node:fs'
 import path from 'node:path'
 
-import { and, eq, lte, sql } from 'drizzle-orm'
+import { and, eq, isNull, lte, or, sql } from 'drizzle-orm'
 
 import { definicaoDoPlano, type PlanoEfetivo } from '../../src/core/planos'
 import { db, emTransacao, type ExecutorDb, linhas, linhasAfetadas, travarGlobal, travarUsuario } from '../db/db'
 import { sessionsRepo } from '../db/repositories/sessions'
-import { usageCounters } from '../db/schema'
+import { usageCounters, users } from '../db/schema'
 import { armazenamentoDoAmbiente, armazenamentoExterno, NomeDeArquivoInvalido } from './armazenamento'
 import type { UserId } from './authContext'
 import { getPlanForUser } from './entitlements'
@@ -357,6 +357,54 @@ function horasDeReconciliacao(): number {
   if (bruto === undefined || bruto === '') return 24
   const n = Number(bruto)
   return Number.isFinite(n) && n >= 0 ? n : 24
+}
+
+/**
+ * A RECONCILIAÇÃO EM LOTE (`STORAGE_RECONCILE_MODE=job`): os até `limite` usuários cujo contador está
+ * mais velho que `horas` (ou nem existe), do mais velho para o mais novo, reconciliados em sequência.
+ * Quem chama: o job `reconciliarArmazenamento` do registro (com teto por passada; o que sobrar sai na
+ * seguinte) e `POST /api/admin/armazenamento/reconciliar` (todo mundo, `horas: 0`).
+ *
+ * Sequencial de propósito: é trabalho de limpeza, e paralelizar `stat`/`HEAD` sobre o mesmo disco ou
+ * balde só antecipa a contenção que o modo `job` existe para evitar. A falha de um usuário é logada e
+ * a varredura segue.
+ */
+export async function reconciliarVencidos(o: { limite: number; horas?: number; audioDir?: string }): Promise<{
+  candidatos: number
+  reconciliados: number
+  falhas: number
+  porUsuario: Array<{ userId: string; bytes: number }>
+}> {
+  const horas = o.horas ?? (horasDeReconciliacao() || 24)
+  const corte = Math.floor(Date.now() - horas * 3_600_000)
+  const candidatos = await db
+    .select({ id: users.id })
+    .from(users)
+    .leftJoin(
+      usageCounters,
+      and(
+        eq(usageCounters.userId, users.id),
+        eq(usageCounters.metric, METRIC_STORAGE),
+        eq(usageCounters.window, WINDOW_STORAGE),
+      ),
+    )
+    .where(or(isNull(usageCounters.updatedAt), lte(usageCounters.updatedAt, corte)))
+    .orderBy(sql`${usageCounters.updatedAt} ASC NULLS FIRST`, users.id)
+    .limit(o.limite)
+  const porUsuario: Array<{ userId: string; bytes: number }> = []
+  let falhas = 0
+  for (const { id } of candidatos) {
+    try {
+      porUsuario.push({ userId: id, bytes: await reconciliarArmazenamento(id as UserId, o.audioDir) })
+    } catch (err) {
+      falhas++
+      log('warn', {
+        event: 'storage_reconcile_job_failed',
+        error: String((err as Error)?.message ?? err).slice(0, 120),
+      })
+    }
+  }
+  return { candidatos: candidatos.length, reconciliados: porUsuario.length, falhas, porUsuario }
 }
 
 /**

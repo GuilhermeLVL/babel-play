@@ -17,7 +17,7 @@
  * (`responsavel`), para não gastar o teste da própria conta dele: um teste por responsável para as
  * contas vinculadas a ele (o e-mail do menor não chega ao servidor nesse pedido).
  *
- * RETENÇÃO DA MARCA: 730 dias, com poda diária (`agendarPodaDasMarcasDeTeste`). Depois disso a mesma
+ * RETENÇÃO DA MARCA: 730 dias, com poda diária (job `podaDasMarcasDeTeste`). Depois disso a mesma
  * pessoa pode testar de novo — dois anos cobrem o abuso que a marca existe para impedir, e guardar
  * mais seria guardar sem finalidade (LGPD art. 15). Documentado em `docs/lgpd/ropa.csv` (T12).
  *
@@ -30,7 +30,6 @@ import { DIAS_DO_TESTE_PREMIUM } from '../../src/core/planos'
 import { type TestePremium, testesPremiumRepo } from '../db/repositories/testesPremium'
 import type { UserId } from './authContext'
 import { memoDoRequest } from './contextoDeConvidado'
-import { log } from './logger'
 
 const DIA_MS = 86_400_000
 
@@ -146,31 +145,4 @@ export async function situacaoDoTeste(
 /** A retenção: apaga as marcas com mais de `DIAS_DE_RETENCAO_DA_MARCA` dias. Devolve quantas saíram. */
 export async function podarMarcasDeTeste(agora = Date.now()): Promise<number> {
   return testesPremiumRepo.podarMarcas(agora - DIAS_DE_RETENCAO_DA_MARCA * DIA_MS)
-}
-
-/**
- * Liga a poda diária — o mesmo padrão da limpeza de convidados e da poda do cache de tradução: no
- * processo que prepara os dados, temporizador com `unref()`, primeira passada minutos depois do boot.
- * Devolve como desligar.
- */
-export function agendarPodaDasMarcasDeTeste(o: { atrasoInicialMs?: number; intervaloMs?: number } = {}): () => void {
-  let relogio: NodeJS.Timeout | undefined
-  const rodar = async () => {
-    try {
-      const n = await podarMarcasDeTeste()
-      if (n > 0) log('info', { event: 'teste_premium_marcas_podadas', total: n })
-    } catch (err) {
-      log('error', { event: 'teste_premium_poda_erro', error: String(err).slice(0, 160) })
-    }
-  }
-  const armar = (ms: number) => {
-    relogio = setTimeout(() => {
-      void rodar().finally(() => armar(o.intervaloMs ?? DIA_MS))
-    }, ms)
-    relogio.unref?.()
-  }
-  armar(o.atrasoInicialMs ?? 13 * 60_000)
-  return () => {
-    if (relogio) clearTimeout(relogio)
-  }
 }

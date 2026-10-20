@@ -63,6 +63,7 @@
     "vitrine": "node scripts/vitrine/subir.mjs",
     "backup": "node scripts/backup.mjs",
     "preflight": "node scripts/preflight-producao.mjs",
+    "job": "tsx scripts/job.mjs",
     "prepare": "husky"
   },
   "dependencies": {

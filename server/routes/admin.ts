@@ -20,7 +20,7 @@ import { log } from '../lib/logger'
 import { estadoDoOrcamento } from '../lib/orcamentoDeIa'
 import { pseudonimoDoUsuario } from '../lib/pseudonimoDeUsuario'
 import { requireRole } from '../lib/rbac'
-import { modoDeReconciliacao, reconciliarArmazenamento } from '../lib/storageQuota'
+import { modoDeReconciliacao, reconciliarVencidos } from '../lib/storageQuota'
 import { idParamSchema, parseOr400 } from '../validation'
 
 export const adminRouter = Router()
@@ -163,16 +163,14 @@ adminRouter.patch('/users/:id/plan', requireRole('admin'), async (req, res) => {
  * antecipa a contenção que a mudança existe para evitar.
  */
 adminRouter.post('/armazenamento/reconciliar', requireRole('admin'), async (_req, res) => {
-  const usuarios = await usersRepo.list()
-  const porUsuario: Array<{ userId: string; bytes: number }> = []
-  for (const u of usuarios) {
-    try {
-      porUsuario.push({ userId: u.id, bytes: await reconciliarArmazenamento(asUserId(u.id)) })
-    } catch (err) {
-      log('warn', { event: 'storage_reconcile_job_failed', error: `${u.id}: ${String(err).slice(0, 120)}` })
-    }
-  }
-  res.json({ modo: modoDeReconciliacao(), reconciliados: porUsuario.length, total: usuarios.length, porUsuario })
+  // Todo mundo (`horas: 0`: qualquer contador conta como vencido), pelo mesmo caminho do job do registro.
+  const r = await reconciliarVencidos({ limite: Number.MAX_SAFE_INTEGER, horas: 0 })
+  res.json({
+    modo: modoDeReconciliacao(),
+    reconciliados: r.reconciliados,
+    total: r.candidatos,
+    porUsuario: r.porUsuario,
+  })
 })
 
 adminRouter.get('/erros', requireRole('admin'), (req, res) => {

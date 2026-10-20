@@ -1,79 +1,46 @@
 /**
- * OS SETE AGENDAMENTOS DIÁRIOS DO NODE — saíram do `server.ts` sem mudar de comportamento.
+ * OS JOBS NO NODE — agendados a partir do registro único (`server/jobs/registro.ts`), o mesmo que o
+ * `scheduled` do Worker lê. Cada job é um `setTimeout` encadeado, com `unref()` (um job nunca é o motivo
+ * de o processo não sair num SIGTERM): primeira passada `node.atrasoInicialMs` depois do boot (subir é o
+ * momento em que o banco mais trabalha) e as seguintes a cada `node.intervaloMs` — os mesmos atrasos e
+ * a mesma cadência dos agendadores que cada módulo tinha antes do registro.
  *
- * Cada um é um `setTimeout` encadeado no processo. Só o processo que prepara os dados os agenda (o
- * primário, no cluster): uma varredura por deploy, não uma por worker. Num Worker não há processo
- * vivo entre requisições; lá estes trabalhos viram Cron Trigger (Fase 2, mais adiante).
+ * Só o processo que prepara os dados os agenda (o primário, no cluster): uma varredura por deploy, não
+ * uma por worker. E, mesmo que dois processos agendassem, a lease de `executarJob` faz a passada rodar
+ * uma vez. Job com `condicao` falsa no boot não é agendado (era o `if` de cada bloco aqui); a condição é
+ * conferida de novo a cada passada.
  */
-import { authRequired } from '../lib/auth'
-import { configDoBackupDiario, diasAteApagarDeVez, diasDeRetencaoDeAudio, limpezaDiariaLigada } from '../lib/config'
+import { JOBS } from '../jobs/registro'
+import { configDoBackupDiario } from '../lib/config'
 
 export async function agendarJobsNoNode(): Promise<void> {
-  /* SNAPSHOT DIÁRIO (Fase 5) — só no processo que prepara os dados (o primário, no cluster). Aposentado
-     na migração para o Postgres: ver `server/operacao/snapshot.ts`. */
-  const backup = configDoBackupDiario()
-  if (backup) {
-    /* No Postgres o job só registra que o snapshot está indisponível (o backup é `pg_dump` no CI);
-       ele continua agendado para o `BACKUP_DIARIO=1` de quem já o tinha ligado deixar rastro no log. */
-    const { agendarSnapshotDiario, fazerSnapshot, SNAPSHOT_INDISPONIVEL } = await import('../operacao/snapshot')
-    const { observarBackup } = await import('../http/metricas')
-    agendarSnapshotDiario({
-      horaUtc: backup.horaUtc,
-      heartbeatUrl: backup.heartbeatUrl,
-      executar: fazerSnapshot,
-      observar: observarBackup,
-    })
-    console.warn(`[backup] BACKUP_DIARIO=1: snapshot ${SNAPSHOT_INDISPONIVEL}`)
+  /* O SNAPSHOT DIÁRIO (`BACKUP_DIARIO=1`) foi aposentado na migração para o Postgres (o backup é
+     `pg_dump` no CI; ver `server/operacao/snapshot.ts`) e saiu do registro. A variável fica como
+     legado: quem a tinha ligado vê o aviso no boot. */
+  if (configDoBackupDiario()) {
+    console.warn(
+      '[backup] BACKUP_DIARIO=1 é legado: o snapshot diário foi aposentado (o backup do Postgres é pg_dump no CI)',
+    )
   }
 
-  /* RETENÇÃO DO ÁUDIO DE SESSÃO (`AUDIO_RETENCAO_DIAS`, padrão 90 dias; 0 = para sempre) — no mesmo
-     processo e pelo mesmo motivo do snapshot acima: uma varredura por deploy, não uma por worker.
-     O porquê da política e o que a limpeza apaga estão em `server/lib/retencaoDeAudio.ts`. */
-  const diasDeRetencao = diasDeRetencaoDeAudio()
-  if (diasDeRetencao > 0) {
-    const { agendarLimpezaDeAudio } = await import('../lib/retencaoDeAudio')
-    agendarLimpezaDeAudio({ dias: diasDeRetencao })
-    console.log(`[retenção] áudio de sessão apagado após ${diasDeRetencao} dias (limpeza diária)`)
-  }
-
-  /* EXPIRAÇÃO DOS CONVIDADOS (Fase 7): convidado sem nuvem há 30 dias perde contadores e o usuário
-     anônimo no Supabase. Mesmo processo e mesmo motivo da retenção acima. Só no modo público — no
-     self-host não há convidado. Ver `server/lib/limpezaDeConvidados.ts`. */
-  if (authRequired()) {
-    const { agendarLimpezaDeConvidados } = await import('../lib/limpezaDeConvidados')
-    agendarLimpezaDeConvidados()
-    console.log('[convidados] inativos há 30 dias removidos (limpeza diária)')
-  }
-
-  /* A PODA DAS JANELAS DIÁRIAS do uso justo (C9, item 9.3): os contadores `AAAA-MM-DD` com mais de
-     três dias saem. Mesmo processo e mesmo motivo das limpezas acima; só no modo público, o único com
-     teto no dia. Ver `podarJanelasDiarias` em `server/lib/usageQuota.ts`. */
-  if (authRequired()) {
-    const { agendarPodaDasJanelasDiarias } = await import('../lib/usageQuota')
-    agendarPodaDasJanelasDiarias()
-    console.log('[uso justo] janelas diárias com mais de 3 dias removidas (poda diária)')
-  }
-
-  /* RETENÇÃO DA MARCA DO TESTE DO PREMIUM (C6): o HMAC do e-mail sai 730 dias depois do teste (LGPD
-     art. 15 — sem finalidade depois disso). Mesmo processo e mesmo motivo das limpezas acima; só no
-     modo público, o único em que há teste. Ver `server/lib/testePremium.ts`. */
-  if (authRequired()) {
-    const { agendarPodaDasMarcasDeTeste } = await import('../lib/testePremium')
-    agendarPodaDasMarcasDeTeste()
-  }
-
-  /* PODA DO CACHE DE TRADUÇÃO PERSISTENTE (L2, migração 0038): vencidas em 30 dias e, acima do teto,
-     as menos usadas. Mesmo processo e mesmo motivo das limpezas acima; vale no self-host também,
-     porque o cache existe onde houver chave de LLM. Ver `server/ai/cacheDeTraducao.ts`. */
-  const { agendarPodaDoCacheDeTraducao } = await import('../ai/cacheDeTraducao')
-  agendarPodaDoCacheDeTraducao()
-
-  /* LIMPEZA DIÁRIA DO BANCO: apaga de vez o que foi apagado há mais de `LIMPEZA_RETENCAO_DIAS`
-     (padrão 30) e confere os agregados diários. Mesmo processo e mesmo motivo das limpezas acima.
-     `LIMPEZA_DIARIA=0` desliga; em teste não agenda. Ver `server/lib/limpezaDiaria.ts`. */
-  if (limpezaDiariaLigada()) {
-    const { agendarLimpezaDiaria } = await import('../lib/limpezaDiaria')
-    agendarLimpezaDiaria()
-    console.log(`[limpeza] linhas apagadas há mais de ${diasAteApagarDeVez()} dias saem de vez (limpeza diária)`)
+  const { executarJob } = await import('../jobs/executar')
+  for (const job of JOBS) {
+    if (job.condicao && !job.condicao(process.env)) continue
+    const armar = (ms: number) => {
+      const relogio = setTimeout(() => {
+        // `executarJob` não lança por falha do job (loga `job_falhou`); o `catch` é para o que sobrar.
+        void executarJob(job.nome)
+          .catch((err: unknown) =>
+            console.error(`[jobs] ${job.nome}:`, String((err as Error)?.message ?? err).slice(0, 300)),
+          )
+          .finally(() => armar(job.node.intervaloMs))
+      }, ms)
+      relogio.unref?.()
+    }
+    armar(job.node.atrasoInicialMs)
+    console.log(
+      `[jobs] ${job.nome}: primeira passada em ${Math.round(job.node.atrasoInicialMs / 60_000)} min, ` +
+        `depois a cada ${Math.round(job.node.intervaloMs / 3_600_000)} h`,
+    )
   }
 }

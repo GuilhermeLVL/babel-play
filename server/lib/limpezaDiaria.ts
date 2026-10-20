@@ -7,7 +7,9 @@
  * de `LIMPEZA_RETENCAO_DIAS` (padrão 30) sai de vez. Os 30 dias são a janela em que um engano ainda
  * pode ser desfeito à mão por quem opera o banco.
  *
- * O QUE SAI, por usuário, numa transação só (ou sai tudo daquele usuário, ou nada):
+ * O QUE SAI, por usuário, EM LOTES de até 500 linhas, cada lote numa transação curta com a trava do
+ * usuário (Fase 2, Task 9: nenhuma transação fica aberta enquanto o usuário inteiro é apagado; o teto de
+ * lotes por passada deixa o resto para a passada seguinte, e cada lote é idempotente):
  *   · revisões desfeitas e revisões de cartão apagado;
  *   · ocorrências apagadas;
  *   · cartões apagados, com TODAS as ocorrências e revisões deles. `exercise_results.card_id` vira
@@ -27,7 +29,7 @@
  * AS REVISÕES APAGADAS CONTINUAM CONTANDO NO PERFIL. O perfil sempre contou a revisão desfeita e a
  * de cartão apagado em `reviews`, no XP e nos dias de prática. Para o apagamento físico não tirar
  * XP de ninguém 30 dias depois, elas vão para `revisoes_purgadas`/`acertos_purgados` dos agregados
- * diários, na mesma transação, e o perfil as soma (`agregadosRepo.revisoesDoPerfil`).
+ * diários, na mesma transação do lote que as apaga, e o perfil as soma (`agregadosRepo.revisoesDoPerfil`).
  *
  * DEPOIS: confere os agregados de quem ficou com as marcas diferentes e, NO BANCO EMBUTIDO, roda
  * `ANALYZE` (`analisarBancoEmbutido`): o PGlite é de usuário único, sem autovacuum nem autoanalyze, e
@@ -43,7 +45,15 @@ import { sql } from 'drizzle-orm'
 
 import { agregarPorDia } from '../../src/core/learning/agregados'
 import { diaNumeroNoFuso } from '../../src/core/learning/economia'
-import { analisarBancoEmbutido, db, emTransacao, linhas, linhasAfetadas, travarUsuario } from '../db/db'
+import {
+  analisarBancoEmbutido,
+  db,
+  emTransacao,
+  type ExecutorDb,
+  linhas,
+  linhasAfetadas,
+  travarUsuario,
+} from '../db/db'
 import { admissaoDeIaRepo } from '../db/repositories/admissaoDeIa'
 import {
   agregadosRepo,
@@ -73,6 +83,10 @@ export interface RelatorioDaLimpeza {
   travasPodadas: number
   /** Linhas da admissão de IA (`admissao_de_ia`) sem uso há mais de 2 dias, podadas. */
   admissaoPodada: number
+  /** Lotes (transações curtas) que a passada usou. */
+  lotes: number
+  /** O teto de lotes acabou antes do fim: o resto sai na passada seguinte. */
+  incompleta: boolean
 }
 
 const afetadas = (r: unknown) => linhasAfetadas(r)
@@ -85,66 +99,173 @@ const codigoSql = (err: unknown): string | undefined => {
 /** Deadlock (40P01) ou falha de serialização (40001): vale tentar de novo. */
 const transitorio = (err: unknown) => ['40P01', '40001'].includes(codigoSql(err) ?? '')
 
-/** Tudo de UM usuário, numa transação que toma a trava do usuário no começo. */
-async function limparUsuario(userId: UserId, corte: number, agora: number) {
+/** Linhas por lote: cada lote é uma transação curta (trava do usuário + uma instrução de apagar). */
+const LOTE = 500
+/** Teto de lotes por passada (somando todos os usuários): o que sobrar sai na passada seguinte. */
+const MAX_LOTES = 200
+
+/** O que a passada leva de um usuário para o outro: os totais e o orçamento de lotes. */
+interface Andamento {
+  lote: number
+  lotesRestantes: number
+  lotes: number
+  sessoes: number
+  falas: number
+  cartoes: number
+  ocorrencias: number
+  revisoes: number
+}
+
+/**
+ * Tudo de UM usuário, EM LOTES. Cada lote é uma transação curta que toma a trava do usuário, escolhe
+ * até `lote` linhas de UM passo e as apaga (ou solta) numa instrução; entre um lote e outro nenhuma
+ * transação fica aberta. Os passos vão na ordem das dependências e cada um só começa quando o anterior
+ * se esgotou: revisões e ocorrências antes dos cartões, falas antes das sessões. Cada lote é idempotente
+ * (as consultas recalculam o que sai), então um lote que falhou, ou uma passada que bateu no teto de
+ * lotes, recomeça de onde parou na próxima vez. Devolve `false` se o teto acabou antes deste usuário.
+ */
+async function limparUsuario(userId: UserId, corte: number, agora: number, a: Andamento): Promise<boolean> {
   const fuso = await agregadosRepo.fusoGravado(userId)
-  return emTransacao(async (tx) => {
-    await travarUsuario(tx, userId)
-    /* Os cartões que saem: apagados antes do corte e sem nota do Anki apontando para eles. */
-    const cartoes = sql`(SELECT c.id FROM vocab_cards c
-        WHERE c.user_id = ${userId} AND c.deleted_at IS NOT NULL AND c.deleted_at < ${corte}
-          AND NOT EXISTS (SELECT 1 FROM anki_notes n WHERE n.projected_card_id = c.id))`
+  /* Os cartões que saem: apagados antes do corte e sem nota do Anki apontando para eles. */
+  const cartoes = sql`(SELECT c.id FROM vocab_cards c
+      WHERE c.user_id = ${userId} AND c.deleted_at IS NOT NULL AND c.deleted_at < ${corte}
+        AND NOT EXISTS (SELECT 1 FROM anki_notes n WHERE n.projected_card_id = c.id))`
+  /* As sessões que saem: apagadas antes do corte e sem cartão que ainda as cite (depois de os cartões
+     acima terem saído — por isso os passos das sessões vêm depois do dos cartões). */
+  const sessoes = sql`(SELECT s.id FROM sessions s
+      WHERE s.user_id = ${userId} AND s.deleted_at IS NOT NULL AND s.deleted_at < ${corte}
+        AND NOT EXISTS (SELECT 1 FROM vocab_cards c WHERE c.session_id = s.id))`
+  const falasQueSaem = sql`(SELECT u.id FROM utterances u WHERE u.user_id = ${userId}
+      AND ((u.deleted_at IS NOT NULL AND u.deleted_at < ${corte}) OR u.session_id IN ${sessoes}))`
+  const n = a.lote
 
-    /* Antes de apagar: as revisões que saem viram `*_purgadas` nos agregados (ver o cabeçalho). */
-    const revisoesQueSaem = sql`((r.deleted_at IS NOT NULL AND r.deleted_at < ${corte}) OR r.card_id IN ${cartoes})`
-    const purgadas: PurgadasDaCelula[] = agregarPorDia(
-      { revisoes: await gruposDeRevisoes(tx, userId, revisoesQueSaem) },
-      (em) => diaNumeroNoFuso(em, fuso),
-    ).map((c) => ({ idioma: c.idioma, dia: c.dia, revisoes: c.revisoes, acertos: c.acertos }))
+  /* Os passos. Cada um é UMA instrução sobre no máximo `n` linhas, e devolve quantas mexeu. */
+  type Passo = { conta?: 'ocorrencias' | 'cartoes' | 'falas' | 'sessoes'; fazer: (tx: ExecutorDb) => Promise<number> }
+  const passos: Passo[] = [
+    {
+      conta: 'ocorrencias',
+      fazer: async (tx) =>
+        afetadas(
+          await tx.execute(sql`DELETE FROM vocab_occurrences WHERE id IN (SELECT o.id FROM vocab_occurrences o
+            WHERE o.user_id = ${userId}
+              AND ((o.deleted_at IS NOT NULL AND o.deleted_at < ${corte}) OR o.card_id IN ${cartoes}) LIMIT ${n})`),
+        ),
+    },
+    {
+      fazer: async (tx) =>
+        afetadas(
+          await tx.execute(sql`UPDATE exercise_results SET card_id = NULL WHERE id IN (SELECT e.id FROM exercise_results e
+            WHERE e.user_id = ${userId} AND e.card_id IN ${cartoes} LIMIT ${n})`),
+        ),
+    },
+    {
+      conta: 'cartoes',
+      fazer: async (tx) =>
+        afetadas(
+          await tx.execute(sql`DELETE FROM vocab_cards WHERE id IN (SELECT id FROM ${cartoes} AS x LIMIT ${n})`),
+        ),
+    },
+    {
+      fazer: async (tx) =>
+        afetadas(
+          await tx.execute(sql`UPDATE vocab_occurrences SET utterance_id = NULL WHERE id IN (SELECT o.id FROM vocab_occurrences o
+            WHERE o.user_id = ${userId} AND o.utterance_id IN ${falasQueSaem} LIMIT ${n})`),
+        ),
+    },
+    {
+      conta: 'falas',
+      fazer: async (tx) =>
+        afetadas(
+          await tx.execute(sql`DELETE FROM utterances WHERE id IN (SELECT id FROM ${falasQueSaem} AS x LIMIT ${n})`),
+        ),
+    },
+    {
+      fazer: async (tx) =>
+        afetadas(
+          await tx.execute(sql`UPDATE exercise_results SET session_id = NULL WHERE id IN (SELECT e.id FROM exercise_results e
+            WHERE e.user_id = ${userId} AND e.session_id IN ${sessoes} LIMIT ${n})`),
+        ),
+    },
+    {
+      conta: 'sessoes',
+      fazer: async (tx) =>
+        afetadas(await tx.execute(sql`DELETE FROM sessions WHERE id IN (SELECT id FROM ${sessoes} AS x LIMIT ${n})`)),
+    },
+  ]
 
-    const revisoes = afetadas(
-      await tx.execute(sql`DELETE FROM review_logs AS r WHERE r.user_id = ${userId} AND ${revisoesQueSaem}`),
-    )
-    const ocorrencias = afetadas(
-      await tx.execute(sql`DELETE FROM vocab_occurrences WHERE user_id = ${userId}
-          AND ((deleted_at IS NOT NULL AND deleted_at < ${corte}) OR card_id IN ${cartoes})`),
-    )
-    let soltos = afetadas(
-      await tx.execute(
-        sql`UPDATE exercise_results SET card_id = NULL WHERE user_id = ${userId} AND card_id IN ${cartoes}`,
-      ),
-    )
-    const nCartoes = afetadas(await tx.execute(sql`DELETE FROM vocab_cards WHERE id IN ${cartoes}`))
+  /** Um lote numa transação curta com a trava do usuário. `false` quando o orçamento acabou. */
+  const umLote = async <T>(fn: (tx: ExecutorDb) => Promise<T>): Promise<{ r: T } | null> => {
+    if (a.lotesRestantes <= 0) return null
+    a.lotesRestantes -= 1
+    a.lotes += 1
+    return {
+      r: await emTransacao(async (tx) => {
+        await travarUsuario(tx, userId)
+        return fn(tx)
+      }),
+    }
+  }
 
-    /* As sessões que saem: apagadas antes do corte e sem cartão que ainda as cite (depois de os
-         cartões acima terem saído). */
-    const sessoes = sql`(SELECT s.id FROM sessions s
-        WHERE s.user_id = ${userId} AND s.deleted_at IS NOT NULL AND s.deleted_at < ${corte}
-          AND NOT EXISTS (SELECT 1 FROM vocab_cards c WHERE c.session_id = s.id))`
-    const falasQueSaem = sql`(SELECT u.id FROM utterances u WHERE u.user_id = ${userId}
-        AND ((u.deleted_at IS NOT NULL AND u.deleted_at < ${corte}) OR u.session_id IN ${sessoes}))`
-    await tx.execute(
-      sql`UPDATE vocab_occurrences SET utterance_id = NULL WHERE user_id = ${userId} AND utterance_id IN ${falasQueSaem}`,
-    )
-    const falas = afetadas(await tx.execute(sql`DELETE FROM utterances WHERE id IN ${falasQueSaem}`))
-    soltos += afetadas(
-      await tx.execute(
-        sql`UPDATE exercise_results SET session_id = NULL WHERE user_id = ${userId} AND session_id IN ${sessoes}`,
-      ),
-    )
-    const nSessoes = afetadas(await tx.execute(sql`DELETE FROM sessions WHERE id IN ${sessoes}`))
+  /* 1. As revisões que saem, com as purgadas: cada lote soma as suas aos agregados (ver o cabeçalho) e
+        reconstrói na MESMA transação, para o perfil nunca ver uma revisão que saiu do bruto sem ter
+        entrado em `*_purgadas`. */
+  const revisoesQueSaem = sql`((r.deleted_at IS NOT NULL AND r.deleted_at < ${corte}) OR r.card_id IN ${cartoes})`
+  for (;;) {
+    const feito = await umLote(async (tx) => {
+      const ids = linhas<{ id: string }>(
+        await tx.execute(
+          sql`SELECT r.id FROM review_logs r WHERE r.user_id = ${userId} AND ${revisoesQueSaem} LIMIT ${n}`,
+        ),
+      ).map((l) => l.id)
+      if (ids.length === 0) return 0
+      const doLote = sql`r.id IN (${sql.join(
+        ids.map((id) => sql`${id}`),
+        sql`, `,
+      )})`
+      const purgadas: PurgadasDaCelula[] = agregarPorDia(
+        { revisoes: await gruposDeRevisoes(tx, userId, doLote) },
+        (em) => diaNumeroNoFuso(em, fuso),
+      ).map((c) => ({ idioma: c.idioma, dia: c.dia, revisoes: c.revisoes, acertos: c.acertos }))
+      const apagadas = afetadas(
+        await tx.execute(sql`DELETE FROM review_logs AS r WHERE r.user_id = ${userId} AND ${doLote}`),
+      )
+      await reconstruirNaTransacao(tx, userId, fuso, agora, purgadas)
+      return apagadas
+    })
+    if (!feito) return false
+    a.revisoes += feito.r
+    if (feito.r < n) break
+  }
 
-    /* Os agregados acompanham no mesmo passo: recontados do bruto que ficou, mais as purgadas. Só
-         se algo saiu: quem só tem linha que fica de propósito (cartão do Anki, sessão com cartão)
-         aparece na lista todo dia, e não precisa ser recontado todo dia. */
-    const mexeu = revisoes + ocorrencias + nCartoes + falas + nSessoes + soltos > 0
-    if (mexeu) await reconstruirNaTransacao(tx, userId, fuso, agora, purgadas)
-    return { mexeu, sessoes: nSessoes, falas, cartoes: nCartoes, ocorrencias, revisoes }
-  })
+  /* 2. O resto, passo a passo. */
+  let mexeu = false
+  for (const passo of passos) {
+    for (;;) {
+      const feito = await umLote(passo.fazer)
+      if (!feito) return false
+      if (feito.r > 0) mexeu = true
+      if (passo.conta) a[passo.conta] += feito.r
+      if (feito.r < n) break
+    }
+  }
+
+  /* 3. Os agregados acompanham: recontados do bruto que ficou (as purgadas já estão lá). Só se algo
+        saiu: quem só tem linha que fica de propósito (cartão do Anki, sessão com cartão) aparece na
+        lista todo dia, e não precisa ser recontado todo dia. Se a passada morrer antes daqui, os
+        gatilhos de `exercise_results` já subiram `marca_bruto` e a conferência recontará. */
+  if (mexeu) {
+    await emTransacao(async (tx) => {
+      await travarUsuario(tx, userId)
+      await reconstruirNaTransacao(tx, userId, fuso, agora)
+    })
+  }
+  return true
 }
 
 /** Uma passada da limpeza. `dias` vem do ambiente quando ausente (`LIMPEZA_RETENCAO_DIAS`). */
-export async function limparBanco(o: { agora?: number; dias?: number } = {}): Promise<RelatorioDaLimpeza> {
+export async function limparBanco(
+  o: { agora?: number; dias?: number; lote?: number; maxLotes?: number } = {},
+): Promise<RelatorioDaLimpeza> {
   const agora = o.agora ?? Date.now()
   const corte = agora - (o.dias ?? diasAteApagarDeVez()) * DIA_MS
   const r: RelatorioDaLimpeza = {
@@ -158,6 +279,8 @@ export async function limparBanco(o: { agora?: number; dias?: number } = {}): Pr
     agregadosRecontados: 0,
     travasPodadas: 0,
     admissaoPodada: 0,
+    lotes: 0,
+    incompleta: false,
   }
 
   /* Quem tem o que apagar. Os cinco índices parciais `idx_*_apagadas` (migração 0053) respondem
@@ -171,14 +294,25 @@ export async function limparBanco(o: { agora?: number; dias?: number } = {}): Pr
     UNION SELECT user_id FROM review_logs WHERE deleted_at IS NOT NULL AND deleted_at < ${corte} AND user_id IS NOT NULL`),
   )
 
+  const a: Andamento = {
+    lote: o.lote ?? LOTE,
+    lotesRestantes: o.maxLotes ?? MAX_LOTES,
+    lotes: 0,
+    sessoes: 0,
+    falas: 0,
+    cartoes: 0,
+    ocorrencias: 0,
+    revisoes: 0,
+  }
   for (const { user_id } of donos) {
-    /* Um usuário por transação: a trava do usuário é solta entre um e outro. Deadlock ou falha de
-       serialização (transitórios no Postgres) repetem ESTE usuário uma vez; se insistir, ele fica para
-       a passada de amanhã e a de hoje segue. Qualquer outro erro interrompe a passada, como antes. */
-    let u: Awaited<ReturnType<typeof limparUsuario>> | null = null
-    for (let tentativa = 0; tentativa < 2 && !u; tentativa++) {
+    /* Deadlock ou falha de serialização (transitórios no Postgres) repetem ESTE usuário uma vez — os lotes
+       que já saíram ficam, e a repetição segue do lote que falhou; se insistir, ele fica para a passada de
+       amanhã e a de hoje segue. Qualquer outro erro interrompe a passada, como antes. */
+    const antes = a.sessoes + a.falas + a.cartoes + a.ocorrencias + a.revisoes
+    let terminou: boolean | null = null
+    for (let tentativa = 0; tentativa < 2 && terminou === null; tentativa++) {
       try {
-        u = await limparUsuario(user_id as UserId, corte, agora)
+        terminou = await limparUsuario(user_id as UserId, corte, agora, a)
       } catch (err) {
         if (!transitorio(err)) throw err
         if (tentativa === 1) {
@@ -186,14 +320,19 @@ export async function limparBanco(o: { agora?: number; dias?: number } = {}): Pr
         }
       }
     }
-    if (!u) continue
-    if (u.mexeu) r.usuarios += 1
-    r.sessoes += u.sessoes
-    r.falas += u.falas
-    r.cartoes += u.cartoes
-    r.ocorrencias += u.ocorrencias
-    r.revisoes += u.revisoes
+    if (a.sessoes + a.falas + a.cartoes + a.ocorrencias + a.revisoes > antes) r.usuarios += 1
+    if (terminou === false) {
+      // O teto de lotes acabou: o resto (deste e dos próximos usuários) sai na passada seguinte.
+      r.incompleta = true
+      break
+    }
   }
+  r.sessoes = a.sessoes
+  r.falas = a.falas
+  r.cartoes = a.cartoes
+  r.ocorrencias = a.ocorrencias
+  r.revisoes = a.revisoes
+  r.lotes = a.lotes
 
   /* A conferência dos agregados: quem ficou com as marcas diferentes (escrita por fora dos
      repositórios) é recontado agora, e não na próxima leitura da pessoa. */
@@ -224,30 +363,4 @@ export async function limparBanco(o: { agora?: number; dias?: number } = {}): Pr
 
   log('info', { event: 'limpeza_diaria', ...r })
   return r
-}
-
-/**
- * Liga a limpeza diária: o mesmo padrão das outras (`agendarPodaDoCacheDeTraducao`,
- * `agendarLimpezaDeConvidados`). No processo que prepara os dados, temporizador com `unref()`,
- * primeira passada minutos depois do arranque. Devolve como desligar.
- */
-export function agendarLimpezaDiaria(o: { atrasoInicialMs?: number; intervaloMs?: number } = {}): () => void {
-  let relogio: NodeJS.Timeout | undefined
-  const rodar = async () => {
-    try {
-      await limparBanco()
-    } catch (err) {
-      log('error', { event: 'limpeza_diaria_erro', error: String((err as Error)?.message ?? err).slice(0, 200) })
-    }
-  }
-  const armar = (ms: number) => {
-    relogio = setTimeout(() => {
-      void rodar().finally(() => armar(o.intervaloMs ?? DIA_MS))
-    }, ms)
-    relogio.unref?.()
-  }
-  armar(o.atrasoInicialMs ?? 17 * 60_000)
-  return () => {
-    if (relogio) clearTimeout(relogio)
-  }
 }

@@ -159,25 +159,3 @@ export async function limparConvidadosInativos(o: Opcoes = {}): Promise<Resultad
   }
   return r
 }
-
-/** Liga a limpeza diária. Devolve como desligar. */
-export function agendarLimpezaDeConvidados(o: { atrasoInicialMs?: number; intervaloMs?: number } = {}): () => void {
-  let relogio: NodeJS.Timeout | undefined
-  const rodar = async () => {
-    try {
-      await limparConvidadosInativos()
-    } catch (err) {
-      log('error', { event: 'convidados_limpeza_erro', error: String((err as Error)?.message ?? err).slice(0, 300) })
-    }
-  }
-  const armar = (ms: number) => {
-    relogio = setTimeout(() => {
-      void rodar().finally(() => armar(o.intervaloMs ?? DIA_MS))
-    }, ms)
-    relogio.unref?.()
-  }
-  armar(o.atrasoInicialMs ?? 7 * 60_000)
-  return () => {
-    if (relogio) clearTimeout(relogio)
-  }
-}

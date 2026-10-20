@@ -66,6 +66,10 @@ export interface LogFields {
   teto?: number
   /* Boot que falhou (`server/boot/preparar.ts`): o NOME do passo (`migrations`, `seed`, `iniciar`), rótulo fixo. */
   etapa?: string
+  /* Jobs (`server/jobs/executar.ts`): o NOME do job (rótulo fixo do registro) e o resumo da passada, só com
+     números e booleanos (o executor descarta o resto: nada de id de usuário). */
+  job?: string
+  resumo?: Record<string, number | boolean>
 }
 
 const ALLOWED = new Set([
@@ -103,6 +107,9 @@ const ALLOWED = new Set([
   'teto',
   // Boot que falhou (server/boot/preparar.ts): o nome do passo.
   'etapa',
+  // Jobs (server/jobs/executar.ts): o nome do job e o resumo numérico da passada.
+  'job',
+  'resumo',
 ])
 
 /**

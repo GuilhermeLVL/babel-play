@@ -109,32 +109,6 @@ export async function podarJanelasDiarias(agora = Date.now()): Promise<void> {
   for (const metrica of METRICAS_DO_DIA) await usageCountersRepo.prune(metrica, corte)
 }
 
-/**
- * Liga a poda diária — o mesmo padrão da limpeza de convidados e da poda das marcas do teste: no
- * processo que prepara os dados, temporizador com `unref()`, primeira passada minutos depois do boot.
- * Devolve como desligar.
- */
-export function agendarPodaDasJanelasDiarias(o: { atrasoInicialMs?: number; intervaloMs?: number } = {}): () => void {
-  let relogio: NodeJS.Timeout | undefined
-  const rodar = async () => {
-    try {
-      await podarJanelasDiarias()
-    } catch (err) {
-      log('error', { event: 'uso_justo_poda_erro', error: String((err as Error)?.message || err).slice(0, 160) })
-    }
-  }
-  const armar = (ms: number) => {
-    relogio = setTimeout(() => {
-      void rodar().finally(() => armar(o.intervaloMs ?? DIA_MS))
-    }, ms)
-    relogio.unref?.()
-  }
-  armar(o.atrasoInicialMs ?? 17 * 60_000)
-  return () => {
-    if (relogio) clearTimeout(relogio)
-  }
-}
-
 /** Qual teto recusou: o do MÊS (402 `quota_exceeded`) ou o do DIA (429 `uso_justo_do_dia`). */
 export type RecusaDaCota = 'mes' | 'dia'
 

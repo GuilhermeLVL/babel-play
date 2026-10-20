@@ -575,6 +575,10 @@ export function contarUploadRecusado(motivo: 'usuario' | 'processo'): void {
   estado.uploadsRecusados.inc({ motivo })
 }
 
+/**
+ * @public — legado: o snapshot diário (`BACKUP_DIARIO`) foi aposentado e saiu do registro de jobs
+ * (Fase 2, Task 9), então ninguém mais observa; fica enquanto as séries do backup existirem no painel.
+ */
 export function observarBackup(r: { ok: true; bytes: number } | { ok: false }): void {
   if (!estado) return
   if (r.ok) {

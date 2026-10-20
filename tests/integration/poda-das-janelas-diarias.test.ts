@@ -50,12 +50,11 @@ describe('podarJanelasDiarias', () => {
     expect(await repo.get(u, cota.METRIC_STT_SEGUNDOS, '2026-10')).toBe(100)
   })
 
-  it('a poda agendada roda e devolve como desligar', async () => {
+  it('a poda roda como job do registro (`podaDasJanelasDiarias`)', async () => {
     const u = asUserId('premium-2')
     await repo.increment(u, cota.METRIC_STT_SEGUNDOS_DIA, '2000-01-01', 5)
-    const desligar = cota.agendarPodaDasJanelasDiarias({ atrasoInicialMs: 0 })
-    await new Promise((r) => setTimeout(r, 200))
-    desligar()
+    const { executarJob } = await h.load<any>('../../server/jobs/executar')
+    expect((await executarJob('podaDasJanelasDiarias', { env: { AUTH_REQUIRED: '1' } })).estado).toBe('ok')
     expect(await repo.get(u, cota.METRIC_STT_SEGUNDOS_DIA, '2000-01-01')).toBe(0)
   })
 })

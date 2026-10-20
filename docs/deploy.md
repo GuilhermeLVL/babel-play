@@ -288,11 +288,27 @@ poda dependências de cliente e um SDK de 20 MB no runtime iria contra isso.
 erro contra um transporte falso. A primeira subida com credenciais de verdade precisa ser
 verificada à mão.
 
+### Binding R2 × S3 × disco (Fase 2)
+
+A escolha é uma só (`armazenamentoDoAmbiente`): **binding R2** (o `R2Bucket` do Worker, ligado pelo
+ponto de entrada com `ligarBucketDoR2`, `server/lib/armazenamentoR2.ts`) → **S3** (as quatro `S3_*`) →
+**disco** (`AUDIO_DIR`). No Worker não há disco: o upload de `POST /api/sessions/:id/audio` vai do
+request para o bucket em stream (`receberCorpo(...).paraStream()` + `gravarDeStream`), em multipart de
+5 MiB por parte com `abort` em qualquer erro; a cota é reservada antes e devolvida em falha, e o corpo
+`chunked` reserva o teto (120 MB) e devolve a diferença no fim. No Node nada muda (temporário em
+`AUDIO_DIR/.recebendo` + `rename`, ou PUT em stream no S3). O S3 também aceita stream, em multipart
+assinado parte a parte (cada parte de 5 MiB tem o seu sha256; nada de `UNSIGNED-PAYLOAD`). **Limite
+de corpo da zona:** no Worker o request passa antes pelo limite do plano da zona da Cloudflare (100 MB
+no Free/Pro), abaixo dos 120 MB do app — áudio entre 100 e 120 MB é recusado pela borda (413 da
+Cloudflare) antes de chegar à rota. Os limites do app ficam como estão; subir o plano ou baixar o teto
+é decisão de produto. A folga do volume (`statfs`) só vale com disco, e o teto do R2 abaixo embrulha o
+binding do mesmo jeito que o S3 (HEAD conta classe B).
+
 ### Teto do R2
 
 A Cloudflare **não bloqueia** o uso do R2 quando o nível gratuito acaba (10 GB guardados, 1 milhão de
 operações de classe A e 10 milhões de classe B por mês): ela cobra e avisa depois. O app trava do
-lado dele, só quando o armazenamento é o S3 (`server/lib/tetoDoR2.ts`,
+lado dele, só quando o armazenamento é o R2 — binding ou S3 (`server/lib/tetoDoR2.ts`,
 `openspec/changes/r2-teto-de-uso`):
 
 | Variável            | Padrão (90 % do grátis) | O que acontece no teto                                            |

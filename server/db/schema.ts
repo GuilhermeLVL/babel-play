@@ -1295,3 +1295,29 @@ export const travas = pgTable('travas', {
   chave: text('chave').primaryKey(),
   criadoEm: bigint('criado_em', { mode: 'number' }).notNull(),
 })
+
+/**
+ * Contadores da ADMISSÃO DE IA (`server/ai/admissao.ts`, ADR 0007 revisto na Fase 2): o estado que era da
+ * memória do processo, compartilhado entre instâncias (isolates do Worker, réplicas). Uma linha por chave e
+ * janela, reservada numa instrução só (`admissaoDeIaRepo.reservar`):
+ *
+ *  - `bucket:<provedor>:<modelo>:<tipo>` (pedidos) e `tokens:<provedor>:<modelo>:<tipo>` (tokens), na janela do
+ *    minuto UTC (`YYYY-MM-DDTHH:MM`) ou do dia UTC (`YYYY-MM-DD`): `usado` é o que foi reservado nela;
+ *  - `bucket:…` na janela `bloqueio`: `bloqueado_ate` é o fim do `Retry-After` do 429 do provedor;
+ *  - `voo:<userId>:<tipo>` na janela `total`: `em_voo` são as chamadas do usuário em andamento.
+ *
+ * Sem `user_id`: a vaga em voo leva o id na chave e sai na exclusão de conta. A limpeza diária poda o que não
+ * foi tocado há 2 dias.
+ */
+export const admissaoDeIa = pgTable(
+  'admissao_de_ia',
+  {
+    chave: text('chave').notNull(),
+    janela: text('janela').notNull(),
+    usado: bigint('usado', { mode: 'number' }).notNull().default(0),
+    emVoo: bigint('em_voo', { mode: 'number' }).notNull().default(0),
+    bloqueadoAte: bigint('bloqueado_ate', { mode: 'number' }).notNull().default(0),
+    atualizadoEm: bigint('atualizado_em', { mode: 'number' }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.chave, t.janela] })],
+)

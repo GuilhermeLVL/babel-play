@@ -116,16 +116,14 @@ async function semear(id: string): Promise<Semeado> {
   await db
     .insert(schema.vocabCards)
     .values({ id: `card-${id}`, ...meta, word: `palavra-${id}`, normKey: `en|palavra-${id}`, occurrences: 1 })
-  await db
-    .insert(schema.vocabOccurrences)
-    .values({
-      id: `occ-${id}`,
-      ...meta,
-      cardId: `card-${id}`,
-      occurredAt: now,
-      originKind: 'sessao',
-      originRef: sessao.id,
-    })
+  await db.insert(schema.vocabOccurrences).values({
+    id: `occ-${id}`,
+    ...meta,
+    cardId: `card-${id}`,
+    occurredAt: now,
+    originKind: 'sessao',
+    originRef: sessao.id,
+  })
   await db
     .insert(schema.reviewLogs)
     .values({ id: `rev-${id}`, ...meta, cardId: `card-${id}`, reviewedAt: now, grade: 3 })
@@ -175,16 +173,18 @@ async function semear(id: string): Promise<Semeado> {
   await db.insert(schema.presencas).values({ id: `pr-${id}`, ...meta, dia: 20700 })
   // A trava do usuário (`u:<id>` em `travas`), como deixa qualquer escrita que a toma (gasto, revisão…).
   await db.insert(schema.travas).values({ chave: `u:user-${id}`, criadoEm: now })
+  // A vaga em voo da admissão de IA (`voo:<id>:<tipo>` em `admissao_de_ia`), deixada por um isolate que caiu.
   await db
-    .insert(schema.billingEvents)
-    .values({
-      id: `evt-${id}`,
-      createdAt: now,
-      provider: 'asaas',
-      event: 'PAYMENT_CONFIRMED',
-      userId: `user-${id}`,
-      providerRef: `pay-${id}`,
-    })
+    .insert(schema.admissaoDeIa)
+    .values({ chave: `voo:user-${id}:stt`, janela: 'total', emVoo: 1, atualizadoEm: now })
+  await db.insert(schema.billingEvents).values({
+    id: `evt-${id}`,
+    createdAt: now,
+    provider: 'asaas',
+    event: 'PAYMENT_CONFIRMED',
+    userId: `user-${id}`,
+    providerRef: `pay-${id}`,
+  })
 
   return { u, sessaoId: sessao.id, arquivo, credId: cred.id }
 }
@@ -235,6 +235,13 @@ async function linhasDe(userId: UserId): Promise<Record<string, number>> {
       .select({ chave: schema.travas.chave })
       .from(schema.travas)
       .where(eq(schema.travas.chave, `u:${userId}`))
+  ).length
+  // A vaga em voo do titular (`voo:<id>:<tipo>` em `admissao_de_ia`): leva o id, sai na exclusão.
+  out.admissaoDeIa = (
+    await db
+      .select({ chave: schema.admissaoDeIa.chave })
+      .from(schema.admissaoDeIa)
+      .where(eq(schema.admissaoDeIa.chave, `voo:${userId}:stt`))
   ).length
   return out
 }

@@ -16,6 +16,7 @@ import { db, travarUsuario } from '../db'
 import { type InstrucaoDeBatch, rodarLote } from '../lotes'
 import * as schema from '../schema'
 import {
+  admissaoDeIa,
   agregadosDiarios,
   ankiDecks,
   ankiImports,
@@ -49,6 +50,7 @@ import {
   vocabCards,
   vocabOccurrences,
 } from '../schema'
+import { chaveDeVoo } from './admissaoDeIa'
 import { agregadosRepo } from './agregados'
 
 /**
@@ -135,8 +137,10 @@ export const NOMES_DAS_TABELAS_DO_TITULAR: readonly string[] = TABELAS_DO_TITULA
  * `u:<userId>`): está aqui só como DOCUMENTAÇÃO — `conferirCobertura` olha apenas tabelas com `user_id`
  * e não é afetada por ela. A exclusão a apaga por último, com chave própria (ver `excluir`); a limpeza
  * diária (`limpezaDiaria.ts`) poda as chaves `u:` que sobrarem de quem não existe mais em `users`.
+ * `admissao_de_ia` também não tem `user_id`: a vaga em voo leva o id na chave (`voo:<id>:<tipo>`) e sai
+ * na exclusão, com chave própria; o resto da tabela (baldes por provedor) não é de ninguém.
  */
-export const TABELAS_TRATADAS_A_PARTE: readonly string[] = ['secrets', 'travas']
+export const TABELAS_TRATADAS_A_PARTE: readonly string[] = ['secrets', 'travas', 'admissao_de_ia']
 
 /**
  * Falha ALTO no carregamento se o schema tiver tabela com `user_id` fora da lista. Melhor um
@@ -337,6 +341,10 @@ export const contaRepo = {
        leva o id da pessoa. Apagar a linha que esta transação segura é legítimo; quem estiver esperando por
        ela refaz a inserção depois do COMMIT, sem erro. A poda da limpeza diária fica como rede. */
     instrucoes.push((tx) => tx.execute(sql`DELETE FROM travas WHERE chave = ${`u:${userId}`}`))
+    /* AS VAGAS EM VOO DA ADMISSÃO DE IA (`voo:<id>:<tipo>` em `admissao_de_ia`): contador sem conteúdo, mas
+       com o id da pessoa na chave. Chaves exatas, sem LIKE (um `%` ou `_` no id não alcança outra conta). */
+    const voos = (['stt', 'llm', 'tts'] as const).map((tipo) => chaveDeVoo(userId, tipo))
+    instrucoes.push((tx) => tx.delete(admissaoDeIa).where(inArray(admissaoDeIa.chave, voos)))
 
     /* A trava do usuário primeiro: uma revisão ou rodada simultânea (que toma a mesma trava) não
        recria agregados nem versões depois dos DELETEs deste lote. */

@@ -67,9 +67,10 @@ const TABELAS_DE_CONTROLE = new Set(['__drizzle_migrations']);
 
 /**
  * Tabelas do schema que só existem no Postgres e não guardam dado a migrar: `travas` (as travas de linha de
- * `travarUsuario`/`travarGlobal`, que nascem sob demanda). O SQLite nunca as teve; ficam fora da cópia.
+ * `travarUsuario`/`travarGlobal`, que nascem sob demanda) e `admissao_de_ia` (os contadores da admissão de IA,
+ * que viviam na memória do processo). O SQLite nunca as teve; ficam fora da cópia.
  */
-export const TABELAS_SO_DO_POSTGRES: ReadonlySet<string> = new Set(['travas']);
+export const TABELAS_SO_DO_POSTGRES: ReadonlySet<string> = new Set(['travas', 'admissao_de_ia']);
 
 interface Tabela {
   nome: string;

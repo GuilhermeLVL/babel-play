@@ -36,6 +36,13 @@
       "when": 1792453551730,
       "tag": "0004_prazos_do_papel",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792462628836,
+      "tag": "0005_admissao_de_ia",
+      "breakpoints": true
     }
   ]
 }

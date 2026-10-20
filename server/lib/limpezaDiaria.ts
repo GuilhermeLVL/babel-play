@@ -44,6 +44,7 @@ import { sql } from 'drizzle-orm'
 import { agregarPorDia } from '../../src/core/learning/agregados'
 import { diaNumeroNoFuso } from '../../src/core/learning/economia'
 import { analisarBancoEmbutido, db, emTransacao, linhas, linhasAfetadas, travarUsuario } from '../db/db'
+import { admissaoDeIaRepo } from '../db/repositories/admissaoDeIa'
 import {
   agregadosRepo,
   gruposDeRevisoes,
@@ -70,6 +71,8 @@ export interface RelatorioDaLimpeza {
   agregadosRecontados: number
   /** Chaves `u:` da tabela `travas` de quem não existe mais em `users`, podadas. */
   travasPodadas: number
+  /** Linhas da admissão de IA (`admissao_de_ia`) sem uso há mais de 2 dias, podadas. */
+  admissaoPodada: number
 }
 
 const afetadas = (r: unknown) => linhasAfetadas(r)
@@ -154,6 +157,7 @@ export async function limparBanco(o: { agora?: number; dias?: number } = {}): Pr
     revisoes: 0,
     agregadosRecontados: 0,
     travasPodadas: 0,
+    admissaoPodada: 0,
   }
 
   /* Quem tem o que apagar. Os cinco índices parciais `idx_*_apagadas` (migração 0053) respondem
@@ -210,6 +214,10 @@ export async function limparBanco(o: { agora?: number; dias?: number } = {}): Pr
       WHERE t.chave LIKE 'u:%' AND NOT EXISTS (SELECT 1 FROM users u WHERE u.id = substr(t.chave, 3))
       LIMIT 5000 FOR UPDATE SKIP LOCKED)`),
   )
+
+  /* A admissão de IA (`admissao_de_ia`): janelas de minuto e dia passadas, bloqueios vencidos e vagas em
+     voo paradas. Dois dias de folga: a janela do dia UTC corrente nunca sai. */
+  r.admissaoPodada = await admissaoDeIaRepo.podar(agora - 2 * DIA_MS)
 
   // Estatística para o planejador no PGlite, que não tem autoanalyze; no `pg` não faz nada.
   await analisarBancoEmbutido()

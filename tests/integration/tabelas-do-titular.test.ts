@@ -31,9 +31,10 @@ describe('tabelas do titular', () => {
     const cobertas = [...NOMES_DAS_TABELAS_DO_TITULAR, ...TABELAS_TRATADAS_A_PARTE]
     const faltando = noSchema.filter((n) => !cobertas.includes(n))
     expect(faltando, `tabelas com user_id fora de TABELAS_DO_TITULAR: ${faltando.join(', ')}`).toEqual([])
-    // Só duas tratadas à parte, cada uma por um motivo escrito: `secrets` (chave própria + FK) e
-    // `travas` (sem `user_id`; chave `u:<id>`, apagada por último na exclusão e podada pela limpeza diária).
-    expect(TABELAS_TRATADAS_A_PARTE).toEqual(['secrets', 'travas'])
+    // Só três tratadas à parte, cada uma por um motivo escrito: `secrets` (chave própria + FK),
+    // `travas` (sem `user_id`; chave `u:<id>`, apagada por último na exclusão e podada pela limpeza diária) e
+    // `admissao_de_ia` (sem `user_id`; vaga em voo `voo:<id>:<tipo>`, apagada na exclusão, podada em 2 dias).
+    expect(TABELAS_TRATADAS_A_PARTE).toEqual(['secrets', 'travas', 'admissao_de_ia'])
   })
 
   it('a lista não cita tabela que não existe ou não tem user_id', () => {

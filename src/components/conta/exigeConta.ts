@@ -102,8 +102,6 @@ export function motivoDoGate(origem: string): string {
   }
   const c = CONVITE[origem];
   if (c) return t(c.titulo) + '.';
-  if (origem.includes('/api/import/youtube'))
-    return t('Importar do YouTube só existe no self-host: o download roda no servidor de quem hospeda.');
   if (origem.includes('/api/import/')) return t('Importar conteúdo para a biblioteca precisa de conta.');
   if (origem.includes('/api/ai/') || origem.includes('/api/tutor/'))
     return t(

@@ -6,7 +6,7 @@
 -- REVERSÃO: ALTER ROLE <papel> RESET statement_timeout; … RESET lock_timeout; … RESET idle_in_transaction_session_timeout;
 -- CONCORRÊNCIA: o papel é do CLUSTER, não do banco. Dois bancos do mesmo cluster migrando ao mesmo tempo (os testes
 -- com um banco por arquivo, `--maxWorkers=2`) fazem `ALTER ROLE` do mesmo papel juntos, e o segundo cai em
--- `XX000 tuple concurrently updated`. Trava consultiva não serve (é por banco). Então: se o papel já tem os três
+-- `XX000 tuple concurrently updated` (ou `23505` se o papel ainda não tinha nenhuma). Trava consultiva não serve (é por banco). Então: se o papel já tem os três
 -- valores, nada a fazer; senão, até 10 tentativas com espera crescente, e só esse erro é repetido.
 DO $$
 DECLARE
@@ -22,12 +22,17 @@ BEGIN
       EXECUTE format('ALTER ROLE %I SET lock_timeout = ''10s''', current_user);
       EXECUTE format('ALTER ROLE %I SET idle_in_transaction_session_timeout = ''60s''', current_user);
       EXIT;
-    EXCEPTION WHEN SQLSTATE 'XX000' THEN
-      IF SQLERRM LIKE '%tuple concurrently updated%' AND i < 10 THEN
-        PERFORM pg_sleep(0.05 * i);
-      ELSE
-        RAISE;
-      END IF;
+    EXCEPTION
+      -- Duas formas da MESMA corrida: `XX000 tuple concurrently updated` quando o papel já tinha
+      -- configuração e os dois atualizam a linha; `23505` (unique_violation em pg_db_role_setting)
+      -- quando o papel NÃO tinha nenhuma e os dois inserem a primeira — o caso de um cluster
+      -- recém-criado (CI, Docker de teste). Ambas se resolvem repetindo.
+      WHEN SQLSTATE 'XX000' OR unique_violation THEN
+        IF (SQLERRM LIKE '%tuple concurrently updated%' OR SQLSTATE = '23505') AND i < 10 THEN
+          PERFORM pg_sleep(0.05 * i);
+        ELSE
+          RAISE;
+        END IF;
     END;
   END LOOP;
 EXCEPTION WHEN insufficient_privilege THEN

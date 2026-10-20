@@ -128,15 +128,41 @@ async function trava(env: Env) {
   } finally {
     await c.end();
   }
-  let forUpdate;
+  let forUpdate, upsert;
   try {
     forUpdate = await duasTransacoes(env, "select 1 from s7_travas where chave = 'x' for update");
+    // forma adotada pela Tarefa 3 (travas por linha): upsert que trava a linha até o commit
+    upsert = await duasTransacoes(
+      env,
+      "insert into s7_travas (chave) values ('x') on conflict (chave) do update set chave = excluded.chave",
+    );
   } finally {
     const { c: c2 } = await novoCliente(env);
     await c2.query('drop table if exists s7_travas');
     await c2.end();
   }
-  return { advisory, forUpdate };
+  return { advisory, forUpdate, upsert };
+}
+
+// O que chega à sessão pelo Hyperdrive (o pool do app define lock_timeout via options; aqui não há options).
+async function lockTimeout(env: Env) {
+  const { c, connectMs } = await novoCliente(env);
+  try {
+    const r = await c.query(
+      "select current_setting('lock_timeout') as lock_timeout, current_setting('statement_timeout') as statement_timeout, current_setting('idle_in_transaction_session_timeout') as idle_tx, current_user, inet_server_addr()::text as servidor, version()",
+    );
+    // tenta definir na sessão e reler: mostra se SET sobrevive entre consultas do mesmo Client
+    await c.query("set lock_timeout = '10s'");
+    const r2 = await c.query("select current_setting('lock_timeout') as lock_timeout_apos_set");
+    // dentro de transação, SET LOCAL vale até o commit (o Hyperdrive prende a conexão de origem na transação)
+    await c.query('begin');
+    await c.query("set local lock_timeout = '10s'");
+    const r3 = await c.query("select current_setting('lock_timeout') as lock_timeout_set_local_na_tx");
+    await c.query('commit');
+    return { connectMs, ...r.rows[0], ...r2.rows[0], ...r3.rows[0] };
+  } finally {
+    await c.end();
+  }
 }
 
 // RTT de rede do PoP até a origem sem credencial: abre TCP e manda o SSLRequest do protocolo Postgres
@@ -234,6 +260,8 @@ export default {
           return json({ colo, ...(await rota7(env)) });
         case '/trava':
           return json({ colo, ...(await trava(env)) });
+        case '/lock_timeout':
+          return json({ colo, ...(await lockTimeout(env)) });
         case '/rede': {
           const ref = 'bqfjvcfjkyeehizydqfw';
           const [pooler, direto] = await Promise.all([
@@ -245,7 +273,10 @@ export default {
         case '/runtime':
           return json(await runtime(env, req));
         default:
-          return json({ rotas: ['/select1', '/rota7', '/trava', '/rede', '/runtime', '/express/api/health'] }, 404);
+          return json(
+            { rotas: ['/select1', '/rota7', '/trava', '/rede', '/runtime', '/lock_timeout', '/express/api/health'] },
+            404,
+          );
       }
     } catch (e) {
       return json({ colo, erro: (e as Error).message, stack: (e as Error).stack }, 500);

@@ -1,5 +1,4 @@
 // Spike S7 (descartável). Deploy: `npx wrangler deploy -c scripts/spikes/s7-hyperdrive/wrangler.jsonc`.
-// O binding HYPERDRIVE fica comentado: nenhum dos dois tokens pôde subir a CA da Supabase (ver README.md).
 {
   "$schema": "../../../node_modules/wrangler/config-schema.json",
   "name": "spike-s7",
@@ -11,5 +10,6 @@
   // Express 4 puxa iconv-lite 0.4 (quebra no workerd); 0.7 instalado só aqui com `npm i --no-save`.
   "alias": { "iconv-lite": "./node_modules/iconv-lite" },
   "placement": { "region": "aws:sa-east-1" },
-  // "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<id de babel-sp>" }],
+  // babel-sp: origem direta db.<ref>.supabase.co (IPv6), verify-full com a CA supabase-2021, cache desligado
+  "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "731fd033ab814021963c4faea04fdd20" }],
 }

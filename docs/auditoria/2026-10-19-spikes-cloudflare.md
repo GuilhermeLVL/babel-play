@@ -183,27 +183,35 @@ Worker de sonda `spike-s7` (`scripts/spikes/s7-hyperdrive/`), wrangler 4.151.2, 
 ao fim (`wrangler deployments list` → `10007 This Worker does not exist`; URL → 404). Resultados brutos em
 `scripts/spikes/s7-hyperdrive/resultados/`.
 
-**Bloqueio: o Hyperdrive não foi criado.** A Supabase assina o Postgres (host direto e pooler) com a
-própria CA (`Supabase Root 2021 CA`, conferido com `openssl s_client -starttls postgres`), então
-`verify-full` exige subir `data/supabase-ca.crt` como CA na conta, e nenhum dos dois tokens tem essa
-permissão. A API recusa `sslmode verify-full` sem `ca_certificate_id` (`code 2007`). Não criei config com
-`sslmode require` (TLS sem verificação). Sem Hyperdrive, `/select1`, `/rota7` e `/trava` não rodaram; mediu-se
-a rede do Worker até a origem (TCP + `SSLRequest` do Postgres, sem credencial), o runtime e o placement.
+**Hyperdrive de produção criado (2.ª rodada, depois que o dono deu "SSL and Certificates: Edit" ao token 1).**
+A Supabase assina o Postgres (host direto e pooler) com a própria CA (`Supabase Root 2021 CA`, conferido com
+`openssl s_client -starttls postgres`), então `verify-full` exige subir `data/supabase-ca.crt` como CA na
+conta; a API recusa `verify-full` sem `ca_certificate_id` (`code 2007`). Recursos mantidos (ids não são
+segredo):
+
+- CA `supabase-2021`: **`011bac50-d7ab-4034-b878-ff0a5d5c3cf5`** (expira em 26/04/2031).
+- Hyperdrive `babel-sp`: **`731fd033ab814021963c4faea04fdd20`**, origem `db.bqfjvcfjkyeehizydqfw.supabase.co:5432`
+  (direta, IPv6), usuário `postgres`, `sslmode verify-full` com a CA acima, cache desligado,
+  `origin_connection_limit` 20.
+
+Na 1.ª rodada (sem a permissão) mediu-se só a rede do Worker até a origem (TCP + `SSLRequest`), o runtime e
+o placement; a 2.ª rodada mediu `/select1`, `/rota7`, `/trava` e `/lock_timeout` pelo Hyperdrive.
 
 ### Permissões observadas dos tokens (`.env`)
 
-| Comando                                                     | `CLOUDFLARE_API_TOKEN`   | `CLOUDFLARE_API_TOKEN_2` |
-| ----------------------------------------------------------- | ------------------------ | ------------------------ |
-| `user/tokens/verify`                                        | ativo (token de usuário) | ativo (token de usuário) |
-| `wrangler cert list` (mTLS/CA, leitura)                     | 10000                    | ok                       |
-| `wrangler cert upload certificate-authority`                | **10000**                | **10000**                |
-| `wrangler hyperdrive list`                                  | ok (vazio)               | ok (vazio)               |
-| `wrangler hyperdrive create` (chegou à validação, `2007`)   | ok                       | 10000                    |
-| `wrangler deploy` / `delete` / `deployments list` (Workers) | ok                       | não testado              |
-| API `workers/scripts/<n>/settings` (leitura)                | ok                       | não testado              |
+| Comando                                                     | `CLOUDFLARE_API_TOKEN`      | `CLOUDFLARE_API_TOKEN_2` |
+| ----------------------------------------------------------- | --------------------------- | ------------------------ |
+| `user/tokens/verify`                                        | ativo (token de usuário)    | ativo (token de usuário) |
+| `wrangler cert list` (mTLS/CA, leitura)                     | 10000                       | ok                       |
+| `wrangler cert upload certificate-authority`                | 10000 → ok após a permissão | **10000**                |
+| `wrangler hyperdrive list`                                  | ok (vazio)                  | ok (vazio)               |
+| `wrangler hyperdrive create` (chegou à validação, `2007`)   | ok                          | 10000                    |
+| `wrangler deploy` / `delete` / `deployments list` (Workers) | ok                          | não testado              |
+| API `workers/scripts/<n>/settings` (leitura)                | ok                          | não testado              |
 
-Falta a algum dos tokens a permissão de conta **"SSL and Certificates: Edit"** (endpoint
-`/accounts/<id>/mtls_certificates`). O ideal é dá-la ao token 1, que já tem Workers e Hyperdrive.
+Na 1.ª rodada faltava aos dois a permissão de conta **"SSL and Certificates: Edit"** (endpoint
+`/accounts/<id>/mtls_certificates`); o dono a deu ao token 1, que passou a fazer tudo o que o S7 precisa
+(CA, Hyperdrive, Workers). O token 2 continua só lendo certificados.
 
 ### Rede do Worker até a Supabase SP (`/rede`, 3 chamadas, ms)
 
@@ -215,6 +223,43 @@ Worker roda com placement).
 | --------------------------------- | ----------------------- | ------------------- | ------------------------ | ------------------------ |
 | `placement.region: aws:sa-east-1` | 5–8 / 7–16              | **2–3 / 4–5**       | 4–12                     | 4–6 / 4–7                |
 | sem placement (roda em GIG)       | 11–13 / 15–16           | 10–11 / 12–13       | 11–95                    | 10–11 / 10–13            |
+
+### Pelo Hyperdrive `babel-sp` (Worker com placement `aws:sa-east-1`, 3 chamadas por rota, ms)
+
+Um `pg.Client` (pg 8.23.1) por request com `env.HYPERDRIVE.connectionString`; `colo` = GIG nas 12 chamadas.
+
+| Rota                       | Chamada  | conexão | p50 por consulta | p95 por consulta | total da rota |
+| -------------------------- | -------- | ------- | ---------------- | ---------------- | ------------- |
+| `/select1` (25×`select 1`) | 1        | 6       | 6                | 10               | 200           |
+|                            | 2        | 4       | 6                | 10               | 202           |
+|                            | 3        | 7       | 11               | 19               | 299           |
+| `/rota7` (7 consultas)     | 1 (fria) | 3       | 24               | 89               | 226           |
+|                            | 2        | 8       | 8                | 12               | 58            |
+|                            | 3        | 15      | 8                | 13               | 62            |
+
+`/rota7`: `count(*) users`, `sessions limit 5`, `vocab_cards where user_id=$1 limit 20`, `now()`, `flags`,
+`count(*) utterances`, `select 1`; sem erros. Em `/select1` aparece um pico isolado de 43–48 ms em 2 das 3
+chamadas. **Critério do spec** (p50 ≤ 10 ms/consulta, p95 ≤ 250 ms na rota de 7): atendido em 5 de 6
+medidas; a 3.ª de `/select1` deu p50 11 ms (1 ms acima), e a rota de 7 inteira ficou em 58–226 ms
+(a de 226 ms é a primeira, com o pool frio).
+
+**Travas (`/trava`, duas conexões concorrentes, cada uma `begin; <trava>; pg_sleep(1); commit`)** — as três
+formas **serializaram nas 3 chamadas**, sem erro: a segunda obtém a trava 1 021–1 032 ms depois da primeira e a
+rota leva ~2,06–2,10 s.
+
+| Forma                                                                              | serializou | espera da 2.ª |
+| ---------------------------------------------------------------------------------- | ---------- | ------------- |
+| `pg_advisory_xact_lock(hashtext('s7'))`                                            | 3/3        | 1 022–1 032   |
+| `select 1 from s7_travas where chave='x' for update`                               | 3/3        | 1 024–1 032   |
+| `insert into s7_travas … on conflict (chave) do update set chave = excluded.chave` | 3/3        | 1 021–1 024   |
+
+**`lock_timeout` pelo Hyperdrive (`/lock_timeout`, 3/3 iguais):** a sessão chega com `lock_timeout = 0`
+(sem limite), `statement_timeout = 2min`, `idle_in_transaction_session_timeout = 0`, usuário `postgres`,
+servidor `2600:1f1e:b2a:a301::761f` (IPv6, PostgreSQL 17.11). Um `SET lock_timeout = '10s'` fora de
+transação **não persiste** na consulta seguinte (relida = `0`: o Hyperdrive multiplexa por transação);
+`SET LOCAL lock_timeout = '10s'` dentro de `begin … commit` vale (`10s`). Consequência: o `options -c
+lock_timeout=…` da string de conexão do app não serve com Hyperdrive; o limite tem de ir em `SET LOCAL` em
+cada transação que trava (ou `alter role … set lock_timeout`, que vale para toda conexão nova do papel).
 
 ### Runtime (`/runtime`, idêntico nas 3 chamadas)
 
@@ -230,22 +275,22 @@ Worker roda com placement).
 
 ### As seis decisões
 
-1. **(a) Origem do Hyperdrive:** não decidida (Hyperdrive não criado). Evidência parcial: o runtime de
-   Workers alcança o host direto `db.<ref>.supabase.co` (só IPv6) sem erro, a 4–6 ms; o pooler a 2–3 ms.
-   Ao destravar a CA, tentar o direto primeiro (é o que honra `options -c …`, ver S6) e cair para o pooler
-   sessão se o Hyperdrive recusar IPv6.
-2. **(b) Advisory xact lock via Hyperdrive:** **não medido.** Tratar como "não serializa": a Task 3
-   (travas por linha) é obrigatória até o `/trava` rodar.
+1. **(a) Origem do Hyperdrive:** **host direto `db.<ref>.supabase.co:5432` (IPv6), usuário `postgres`.**
+   O `hyperdrive create` validou a conexão e as consultas chegaram a um servidor IPv6; o pooler sessão não
+   precisou ser tentado (não há erro do outro caminho a registrar). O pooler fica como plano B se o direto
+   der problema.
+2. **(b) Advisory xact lock via Hyperdrive:** **serializa** (3/3), sem erro, assim como `for update` e o upsert
+   `on conflict … do update` da Task 3. A Task 3 continua pela regra 1, mas vira baixo risco. Atenção ao
+   `lock_timeout`: chega `0` e só `SET LOCAL` dentro da transação vale.
 3. **(c) `process.env` populado:** **sim**, com compat date 2026-09-01 + `nodejs_compat`; não precisa de
    `nodejs_compat_populate_process_env`.
 4. **(d) `scryptSync` e `zstdDecompressSync`:** **existem e funcionam** no workerd de produção.
 5. **(e) `placement.region = "aws:sa-east-1"`:** **aceito** pelo `wrangler deploy`; a API mostra
    `placement: {mode: "targeted", target: [13]}` e a ida à Supabase cai de ~10–11 ms (GIG) para ~2–3 ms.
    Manter em produção.
-6. **(f) Latência p50/p95 via Hyperdrive:** **não medida.** Piso de rede do Worker com placement: 2–3 ms
-   p50, ≤5 ms p95 por ida. Se o Hyperdrive somar pouco (o pool fica perto da origem), o critério do spec
-   (p50 ≤ 10 ms/consulta, p95 ≤ 250 ms na rota de 7 consultas) tem folga; a confirmação depende do item 1.
+6. **(f) Latência p50/p95 via Hyperdrive:** `select 1` com p50 6–11 ms e p95 10–19 ms; rota de 7 consultas
+   com p50 8 ms e p95 12–13 ms (aquecida; 24/89 ms fria), 58–226 ms no total. **Atende ao critério** (p50 ≤ 10,
+   p95 ≤ 250 na rota de 7), exceto um p50 de 11 ms em 1 de 3 rodadas de `select 1`. Piso de rede: 2–3 ms
+   por ida, então o Hyperdrive acrescenta ~3–5 ms por consulta.
 
-**Pendência do dono:** dar "SSL and Certificates: Edit" ao `CLOUDFLARE_API_TOKEN` (ou subir a CA pelo
-painel: SSL/TLS → Client/CA certificates) e reexecutar o S7 com o binding `HYPERDRIVE` descomentado; o
-`scripts/spikes/s7-hyperdrive/README.md` tem os comandos.
+`spike-s7` apagado ao fim das duas rodadas; a CA e o `babel-sp` ficam (produção).

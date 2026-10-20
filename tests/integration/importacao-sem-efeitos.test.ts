@@ -4,7 +4,8 @@
  * Num Cloudflare Worker não há `process.env` preenchido, disco nem banco no momento em que o módulo é
  * carregado: um módulo que lê ambiente ou disco ao ser importado quebra todo isolate. A regra que este
  * teste trava: importar `server/http/app.ts` (e tudo o que ele puxa) num processo com o ambiente
- * reduzido ao `PATH` e o `cwd` num diretório vazio não lança e não cria arquivo nenhum. O banco, a
+ * reduzido ao `PATH` e o `cwd` num diretório vazio não lança, não lê `process.env` (preload
+ * `tests/harness/vigiarEnv.mjs`) e não cria arquivo nenhum. O banco, a
  * chave de segredos e o diretório de áudio só existem no primeiro uso.
  *
  * E a segunda metade: `criarApp()` monta e uma rota PÚBLICA que não toca o banco (`/api/abertura`)
@@ -27,6 +28,8 @@ const RAIZ = path.resolve(__dirname, '..', '..')
 const LOADER_DO_TSX = pathToFileURL(path.join(RAIZ, 'node_modules', 'tsx', 'dist', 'loader.mjs')).href
 const APP = pathToFileURL(path.join(RAIZ, 'server', 'http', 'app.ts')).href
 const ERRO_GLOBAL = pathToFileURL(path.join(RAIZ, 'server', 'lib', 'erroGlobal.ts')).href
+/* Preload que embrulha `process.env` e guarda quem leu (ver o arquivo para a regra de "leitura do app"). */
+const VIGIA_DO_ENV = pathToFileURL(path.join(RAIZ, 'tests', 'harness', 'vigiarEnv.mjs')).href
 
 const pastas: string[] = []
 function pastaVazia(): string {
@@ -38,8 +41,9 @@ afterEach(() => {
   for (const dir of pastas.splice(0)) rmSync(dir, { recursive: true, force: true })
 })
 
-function rodar(dir: string, codigo: string) {
-  return spawnSync(process.execPath, ['--import', LOADER_DO_TSX, '--input-type=module', '-e', codigo], {
+function rodar(dir: string, codigo: string, preloads: string[] = []) {
+  const imports = [...preloads, LOADER_DO_TSX].flatMap((p) => ['--import', p])
+  return spawnSync(process.execPath, [...imports, '--input-type=module', '-e', codigo], {
     cwd: dir,
     /* Só o PATH: nenhuma `DATABASE_URL`, `DATA_DIR`, `AUDIO_DIR`, `SECRET_KEY` ou `NODE_ENV`. O
        `TSX_TSCONFIG_PATH` é do carregador (os apelidos `@core/*` do `tsconfig.json`), não do app: com o
@@ -51,11 +55,18 @@ function rodar(dir: string, codigo: string) {
 }
 
 describe('importação sem efeitos', () => {
-  it('importar server/http/app.ts com env vazio e cwd vazio não lança e não cria arquivo', () => {
+  it('importar server/http/app.ts com env vazio e cwd vazio não lança, não lê env e não cria arquivo', () => {
     const dir = pastaVazia()
+    /* Sai com 2 e a lista se algum módulo do app (`server/`, `src/`, `server.ts`) leu `process.env` durante
+       o import. Leituras de bibliotecas em `node_modules` (inclusive o `dotenv`) passam. */
     const r = rodar(
       dir,
-      `import(${JSON.stringify(APP)}).then(() => process.exit(0), (e) => { console.error(e); process.exit(1) })`,
+      `import(${JSON.stringify(APP)}).then(() => {
+        const leituras = globalThis.__leiturasDeEnvDoApp()
+        if (leituras.length) { console.error('LEITURAS DE ENV NO IMPORT:\\n' + leituras.join('\\n---\\n')); process.exit(2) }
+        process.exit(0)
+      }, (e) => { console.error(e); process.exit(1) })`,
+      [VIGIA_DO_ENV],
     )
     expect(r.status, `${r.stdout}\n${r.stderr}`).toBe(0)
     expect(readdirSync(dir)).toEqual([])

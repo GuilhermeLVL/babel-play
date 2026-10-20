@@ -4,10 +4,32 @@
 -- confere). Idempotente. Sem privilégio (papel que não pode alterar a si mesmo), avisa e segue: defina à mão
 -- (docs/runbook.md). Vale a partir da PRÓXIMA sessão de cada papel.
 -- REVERSÃO: ALTER ROLE <papel> RESET statement_timeout; … RESET lock_timeout; … RESET idle_in_transaction_session_timeout;
-DO $$ BEGIN
-  EXECUTE format('ALTER ROLE %I SET statement_timeout = ''30s''', current_user);
-  EXECUTE format('ALTER ROLE %I SET lock_timeout = ''10s''', current_user);
-  EXECUTE format('ALTER ROLE %I SET idle_in_transaction_session_timeout = ''60s''', current_user);
+-- CONCORRÊNCIA: o papel é do CLUSTER, não do banco. Dois bancos do mesmo cluster migrando ao mesmo tempo (os testes
+-- com um banco por arquivo, `--maxWorkers=2`) fazem `ALTER ROLE` do mesmo papel juntos, e o segundo cai em
+-- `XX000 tuple concurrently updated`. Trava consultiva não serve (é por banco). Então: se o papel já tem os três
+-- valores, nada a fazer; senão, até 10 tentativas com espera crescente, e só esse erro é repetido.
+DO $$
+DECLARE
+  esperado text[] := ARRAY['statement_timeout=30s', 'lock_timeout=10s', 'idle_in_transaction_session_timeout=60s'];
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_db_role_setting s JOIN pg_roles r ON r.oid = s.setrole
+             WHERE r.rolname = current_user AND s.setdatabase = 0 AND s.setconfig @> esperado) THEN
+    RETURN;
+  END IF;
+  FOR i IN 1..10 LOOP
+    BEGIN
+      EXECUTE format('ALTER ROLE %I SET statement_timeout = ''30s''', current_user);
+      EXECUTE format('ALTER ROLE %I SET lock_timeout = ''10s''', current_user);
+      EXECUTE format('ALTER ROLE %I SET idle_in_transaction_session_timeout = ''60s''', current_user);
+      EXIT;
+    EXCEPTION WHEN SQLSTATE 'XX000' THEN
+      IF SQLERRM LIKE '%tuple concurrently updated%' AND i < 10 THEN
+        PERFORM pg_sleep(0.05 * i);
+      ELSE
+        RAISE;
+      END IF;
+    END;
+  END LOOP;
 EXCEPTION WHEN insufficient_privilege THEN
   RAISE NOTICE 'sem privilégio: defina os prazos no papel manualmente (docs/runbook.md)';
 END $$;

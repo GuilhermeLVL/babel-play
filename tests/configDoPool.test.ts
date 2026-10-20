@@ -76,4 +76,13 @@ describe('configDoPool', () => {
     expect(sql).toContain(`SET lock_timeout = ${s(PRAZOS_PADRAO_MS.lock)}`)
     expect(sql).toContain(`SET idle_in_transaction_session_timeout = ${s(PRAZOS_PADRAO_MS.ociosaEmTx)}`)
   })
+
+  it('a migration 0004 repete o ALTER ROLE em `tuple concurrently updated` (dois bancos do mesmo cluster, mesmo papel)', () => {
+    const sql = readFileSync('server/db/migrations-pg/0004_prazos_do_papel.sql', 'utf8')
+    expect(sql).toMatch(/FOR i IN 1\.\.10 LOOP/)
+    expect(sql).toContain(`WHEN SQLSTATE 'XX000' THEN`)
+    expect(sql).toContain(`SQLERRM LIKE '%tuple concurrently updated%' AND i < 10`)
+    expect(sql).toMatch(/PERFORM pg_sleep\(0\.05 \* i\)/)
+    expect(sql).toContain('WHEN insufficient_privilege THEN') // o caso sem privilégio continua avisando e seguindo
+  })
 })

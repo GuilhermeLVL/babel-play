@@ -1,5 +1,10 @@
 # Staging — subir e conferir, na ordem
 
+> **Cloudflare (Fase 4):** o staging passou a ser o Worker `frasy-staging` na Cloudflare
+> (`https://frasy-staging.guigui-cruzeiro.workers.dev`, banco `frasy_staging` pelo Hyperdrive
+> `frasy-staging-sp`), que substitui o staging no Fly descrito abaixo. A ordem está em
+> [`deploy.md`](deploy.md), seção "Staging". O roteiro do Fly fica como referência.
+
 O roteiro enxuto para você subir o **staging** com as contas que já tem (Fly.io, Cloudflare/R2 e
 domínio, Supabase com projeto criado, **Asaas sandbox**) e rodar as conferências da seção 10 do
 [`LANCAMENTO.md`](LANCAMENTO.md). Este arquivo só dá a **ordem** e o que cada etapa prova; o "como

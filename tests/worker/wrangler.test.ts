@@ -5,6 +5,8 @@
  *  - `define.__VERSAO_DO_PACOTE__` = a versão do `package.json` (no Worker não há disco para lê-la).
  *  - o Worker é sempre produção: `define` do literal e `vars.NODE_ENV`, no topo e no staging.
  *  - os buckets de mídia são os que `scripts/cloudflare/r2.mjs` cria (`frasy-midia`, `frasy-midia-staging`).
+ *  - o staging é publicável: Hyperdrive próprio (`scripts/cloudflare/hyperdrive-staging.mjs`), sem cron, no
+ *    workers.dev, e com o `define` do topo (o wrangler não herda `define` nos ambientes).
  */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -17,6 +19,9 @@ import { JOBS } from '../../server/jobs/registro'
 const RAIZ = join(__dirname, '..', '..')
 
 interface Ambiente {
+  name?: string
+  workers_dev?: boolean
+  hyperdrive?: { binding: string; id: string; localConnectionString?: string }[]
   triggers?: { crons?: string[] }
   vars?: Record<string, string>
   define?: Record<string, string>
@@ -51,5 +56,19 @@ describe('wrangler.jsonc', () => {
   it('a mídia vai para frasy-midia (produção) e frasy-midia-staging (staging), no binding MIDIA', () => {
     expect(config.r2_buckets).toEqual([{ binding: 'MIDIA', bucket_name: 'frasy-midia' }])
     expect(config.env?.staging?.r2_buckets).toEqual([{ binding: 'MIDIA', bucket_name: 'frasy-midia-staging' }])
+  })
+
+  it('o staging tem Hyperdrive próprio, nenhum cron, workers.dev e o mesmo define do topo', () => {
+    const staging = config.env?.staging
+    expect(staging?.name).toBe('frasy-staging')
+    expect(staging?.hyperdrive).toHaveLength(1)
+    expect(staging?.hyperdrive?.[0].binding).toBe('HYPERDRIVE')
+    expect(staging?.hyperdrive?.[0].id).toMatch(/^[0-9a-f]{32}$/)
+    expect(staging?.hyperdrive?.[0].id).not.toBe(config.hyperdrive?.[0].id)
+    expect(staging?.triggers?.crons).toEqual([])
+    expect(staging?.r2_buckets?.[0].bucket_name).toBe('frasy-midia-staging')
+    expect(staging?.workers_dev).toBe(true)
+    expect(config.workers_dev).toBe(false)
+    expect(staging?.define).toEqual(config.define)
   })
 })

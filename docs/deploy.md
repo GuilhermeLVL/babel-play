@@ -244,7 +244,24 @@ ignorada (a trava "TRUST_PROXY obrigatória em produção" não vale lá). Os ba
 um `release` que muda a versão precisa mudar os dois) e o sha por `GIT_SHA` como var no deploy
 (`--var GIT_SHA:$(git rev-parse HEAD)`). `/metrics` responde 404 no Worker.
 
-**Staging: bloqueado** até existir um Hyperdrive próprio (outro banco); o `env.staging` é só esqueleto.
+**Staging** (Fase 4, T5): o `env.staging` do `wrangler.jsonc` é publicável. Worker `frasy-staging` em
+`https://frasy-staging.guigui-cruzeiro.workers.dev` (`workers_dev: true`; a produção fica fora do workers.dev),
+banco `frasy_staging` no MESMO Supabase SP da produção (o banco `postgres` da produção não é tocado), pelo
+Hyperdrive `frasy-staging-sp` (mesmo perfil do `babel-sp`: verify-full com a CA supabase-2021, cache desligado,
+20 conexões de origem), bucket `frasy-midia-staging` e **nenhum cron**. Bindings, `vars` e `define` não são
+herdados pelos ambientes, por isso o `env.staging` repete o `define` (`tests/worker/wrangler.test.ts` confere);
+o bundle do staging sai byte a byte igual ao da produção. Na ordem:
+
+1. `set -a; source .env; set +a; node scripts/cloudflare/hyperdrive-staging.mjs` (`--dry-run` mostra o plano;
+   `--sem-migrar` pula as migrações). Idempotente: cria o banco se faltar (conexão direta; sem IPv6, o pooler
+   de sessão), cria o Hyperdrive se faltar (pela API, com a senha no corpo da requisição e não em argv),
+   roda `npm run db:migrate` contra `frasy_staging` e imprime o bloco `hyperdrive` para o `env.staging`.
+   Nunca imprime a senha.
+2. Secrets do staging: `.secrets.staging.json` e `npx tsx scripts/cloudflare/secrets.ts staging` (seção
+   "Secrets do Worker").
+3. Deploy: `npx wrangler deploy -c wrangler.jsonc --env staging --var GIT_SHA:$(git rev-parse HEAD)` (Fase 4, T9).
+   Antes, `npx wrangler deploy --dry-run -c wrangler.jsonc --env staging --outdir /tmp/x` lista os bindings
+   (HYPERDRIVE, MIDIA, ASSETS) sem publicar.
 
 O banco local vem da `localConnectionString` do `wrangler.jsonc` (porta 5433); a variável
 `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` tem precedência sobre ela. `wrangler dev --remote`

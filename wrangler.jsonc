@@ -77,14 +77,30 @@
     "AUTH_REQUIRED": "1",
   },
 
-  // Esqueleto do staging (Fase 4): bindings NÃO são herdados, cada ambiente declara os seus.
-  // BLOQUEADO: o Hyperdrive de staging (outro banco) ainda não existe, e sem ele toda /api/* responde 503.
-  // Não implantar o staging antes disso. Staging também é produção para as travas (NODE_ENV production).
+  // Staging (Fase 4, T5): `npx wrangler deploy -c wrangler.jsonc --env staging`, em
+  // https://frasy-staging.guigui-cruzeiro.workers.dev. Bindings e `vars` NÃO são herdados (cada ambiente
+  // declara os seus), e o `define` também não (o wrangler avisa): ele se repete aqui, igual ao do topo
+  // (tests/worker/wrangler.test.ts confere). `main`, `compatibility_*`, `placement`, `observability`,
+  // `assets` e `alias` são herdados (conferido no `wrangler deploy --dry-run --env staging`). O banco é o `frasy_staging` no mesmo
+  // Supabase SP, pelo Hyperdrive `frasy-staging-sp` (scripts/cloudflare/hyperdrive-staging.mjs); sem cron.
+  // Staging também é produção para as travas (NODE_ENV production).
   "env": {
     "staging": {
       "name": "frasy-staging",
+      "workers_dev": true,
+      "hyperdrive": [
+        {
+          "binding": "HYPERDRIVE",
+          "id": "4c4526a6e2ad4f8a9aff3a8bcbc2f763",
+          "localConnectionString": "postgres://postgres:teste@localhost:5433/postgres",
+        },
+      ],
       "r2_buckets": [{ "binding": "MIDIA", "bucket_name": "frasy-midia-staging" }],
       "triggers": { "crons": [] },
+      "define": {
+        "process.env.NODE_ENV": "\"production\"",
+        "__VERSAO_DO_PACOTE__": "\"0.1.0\"",
+      },
       "vars": { "NODE_ENV": "production", "AUTH_REQUIRED": "1" },
     },
   },

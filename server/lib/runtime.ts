@@ -5,8 +5,14 @@
  * Quem precisa saber se há disco, ou se está num isolate, pergunta AQUI, na hora de usar.
  */
 
-/** Num Worker, `navigator.userAgent` é exatamente `Cloudflare-Workers`. No Node é `Node.js/<versão>`. */
+/**
+ * Num Worker, `navigator.userAgent` é exatamente `Cloudflare-Workers`. No Node é `Node.js/<versão>`.
+ *
+ * `BABEL_RUNTIME=worker` é o GANCHO DE TESTE (como `BABEL_SEM_DISCO`): faz o Node responder como o Worker, para
+ * provar que a fachada de métricas não carrega o `prom-client` ali. Lido a cada chamada, nunca no import.
+ */
 export function ehWorker(): boolean {
+  if (process.env.BABEL_RUNTIME === 'worker') return true
   return (globalThis as { navigator?: { userAgent?: string } }).navigator?.userAgent === 'Cloudflare-Workers'
 }
 

@@ -275,6 +275,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: '1 liga o modo público, 0 desliga; sem valor, liga só em produção',
   },
   {
+    nome: 'BABEL_RUNTIME',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'só para TESTE: `worker` faz o Node responder como o Worker em `ehWorker()` (server/lib/runtime.ts) — a fachada de métricas usa o backend vazio e não carrega o prom-client. Nunca em produção',
+  },
+  {
     nome: 'BABEL_SEM_DISCO',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',

@@ -32,16 +32,25 @@
  * (papel fixo `primario` + pid) — os alertas e o painel de `ops/` dependem de `processo_info`.
  *
  * ─────────────────────────────────────────────────────────────────────────────────────────
+ * FACHADA COM BACKEND POR RUNTIME (Task 10 da Fase 2). Esta API (`contar*`, `observar*`, `registrarLeitor*`,
+ * `middlewareDeMetricas`, `handlerDeMetricas`) é a de sempre; o que mudou é quem conta:
+ *
+ *   - Node: o `prom-client`, carregado PREGUIÇOSAMENTE no primeiro uso (`carregarProm`) — nunca no import
+ *     deste módulo. `collectDefaultMetrics` e `monitorEventLoopDelay` só existem aqui;
+ *   - Worker (`ehWorker()`): um backend vazio, que só soma num `Map` em memória (`contagensEmMemoria`).
+ *     O `prom-client` nem é carregado (ele usa `node:cluster`/`perf_hooks`). Analytics Engine é a Fase 4.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────────────────
  * O REGISTRO É O GLOBAL do `prom-client`, e não um `new Registry()`. Motivo único: `collectDefaultMetrics`
  * e um eventual agregador só enxergam o global, e um registro paralelo obrigaria a lembrar de
  * espelhar tudo. Como o módulo cria as métricas UMA vez (guardadas em `estado`), o risco clássico
  * do registro global — registrar o mesmo nome duas vezes e lançar — não existe aqui.
  */
 import { timingSafeEqual } from 'node:crypto'
-import { type IntervalHistogram, monitorEventLoopDelay } from 'node:perf_hooks'
+import type { IntervalHistogram } from 'node:perf_hooks'
 
 import type { NextFunction, Request, RequestHandler, Response } from 'express'
-import { collectDefaultMetrics, Counter, Gauge, Histogram, register } from 'prom-client'
+import type { Counter, Gauge, Histogram } from 'prom-client'
 
 import { normalizarPlano } from '../../src/core/planos'
 import { cacheDeTraducao } from '../ai/cacheDeTraducao'
@@ -50,6 +59,7 @@ import { rotulosDoRegistro } from '../ai/registroDeProvedores'
 import { registrarObservadorDeConsultas, tamanhoDoBanco, type TipoDeConsulta } from '../db/observadorDeConsultas'
 import { tokenDeMetricas } from '../lib/config'
 import { log } from '../lib/logger'
+import { ehWorker } from '../lib/runtime'
 
 /** Rótulo único de tudo que não casou rota — o teto de cardinalidade do lado de fora. */
 export const ROTA_DESCONHECIDA = 'desconhecida'
@@ -123,8 +133,72 @@ interface Estado {
 
 let estado: Estado | undefined
 
+type PromClient = typeof import('prom-client')
+let promCarregado: PromClient | undefined
+
 /**
- * Cria as métricas uma vez só.
+ * O `prom-client`, carregado na PRIMEIRA vez que o backend do Node precisa dele. Síncrono de propósito
+ * (`require`): os ganchos `contar*` são síncronos e o `estado` precisa existir ao fim de `metricas()`.
+ * Num ESM puro (tsx, vitest) `require` não existe e vem do `createRequire` a partir do `cwd` (sem `import.meta`, que o bundle CJS do servidor não suporta); no bundle CJS ele já existe.
+ */
+function carregarProm(): PromClient {
+  if (promCarregado) return promCarregado
+  const exigir: (id: string) => unknown =
+    typeof require === 'function'
+      ? require
+      : (process.getBuiltinModule('node:module').createRequire(`${process.cwd()}/package.json`) as (
+          id: string,
+        ) => unknown)
+  promCarregado = exigir('prom-client') as PromClient
+  return promCarregado
+}
+
+/* ─────────────── o backend do Worker: nada além de somar num Map ─────────────── */
+
+const contagensDoWorker = new Map<string, number>()
+
+/**
+ * As contagens do backend sem `prom-client` (Worker). Chave: `<métrica>` — a soma de tudo que entrou,
+ * sem rótulos (a cardinalidade fica para o Analytics Engine, Fase 4). Vazio no Node.
+ *
+ * @public — para `/api/health` (se vier a reportar) e para o teste da fachada.
+ */
+export function contagensEmMemoria(): ReadonlyMap<string, number> {
+  return contagensDoWorker
+}
+
+/** Uma métrica que aceita qualquer chamada de contador, medidor ou histograma e soma o valor no `Map`. */
+function metricaSemBackend(nome: string) {
+  const somar = (valor: number) => {
+    if (Number.isFinite(valor)) contagensDoWorker.set(nome, (contagensDoWorker.get(nome) ?? 0) + valor)
+  }
+  /* `inc(rotulos, n)` | `inc(n)` | `inc()`; `observe(rotulos, v)` | `observe(v)`; `set(...)` é o último valor. */
+  const ultimo = (a: unknown, b: unknown): number | undefined =>
+    typeof b === 'number' ? b : typeof a === 'number' ? a : undefined
+  return {
+    inc: (a?: unknown, b?: unknown) => somar(ultimo(a, b) ?? 1),
+    observe: (a?: unknown, b?: unknown) => somar(ultimo(a, b) ?? 0),
+    set: (a?: unknown, b?: unknown) => {
+      const v = ultimo(a, b)
+      if (v !== undefined && Number.isFinite(v)) contagensDoWorker.set(nome, v)
+    },
+    reset: () => contagensDoWorker.delete(nome),
+  }
+}
+
+function estadoSemBackend(): Estado {
+  /* Todo campo do `Estado` é uma `metricaSemBackend` com o nome do próprio campo: o Proxy evita repetir 30 linhas. */
+  const campos = new Map<string | symbol, ReturnType<typeof metricaSemBackend>>()
+  return new Proxy({} as Estado, {
+    get(_alvo, campo) {
+      if (!campos.has(campo)) campos.set(campo, metricaSemBackend(String(campo)))
+      return campos.get(campo)
+    },
+  })
+}
+
+/**
+ * Cria as métricas uma vez só — no backend do runtime em que o código está.
  *
  * Preguiçoso de propósito: com `METRICS_ENABLED` desligado — que é o default — nada é registrado
  * e `collectDefaultMetrics` não liga o seu timer. Observabilidade que custa mesmo desligada é a
@@ -132,6 +206,12 @@ let estado: Estado | undefined
  */
 function metricas(): Estado {
   if (estado) return estado
+  estado = ehWorker() ? estadoSemBackend() : criarEstadoProm()
+  return estado
+}
+
+function criarEstadoProm(): Estado {
+  const { collectDefaultMetrics, Counter, Gauge, Histogram } = carregarProm()
   collectDefaultMetrics()
 
   /* `processo_info`: pid do processo que respondeu ao scrape (o papel é sempre `primario` desde que o
@@ -375,6 +455,8 @@ const BALDES_DO_LOOP = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10,
 let monitorDoLoop: IntervalHistogram | undefined
 
 function histogramaDoEventLoop(): void {
+  const { Histogram } = carregarProm()
+  const { monitorEventLoopDelay } = process.getBuiltinModule('node:perf_hooks')
   monitorDoLoop = monitorEventLoopDelay({ resolution: RESOLUCAO_DO_LOOP_MS })
   monitorDoLoop.enable()
   new Histogram({
@@ -449,6 +531,7 @@ function lerGastoUmaVez(): Promise<GastoParaMetricas | undefined> {
 }
 
 function registrarMedidoresLidosNoScrape(): void {
+  const { Gauge } = carregarProm()
   new Gauge({
     name: 'ia_gasto_usd',
     help: 'Gasto ESTIMADO de IA de nuvem no período corrente (dia UTC | mês), em US$, lido de gasto_de_ia no scrape.',
@@ -784,9 +867,9 @@ export function handlerDeMetricas(): RequestHandler {
        penduraria o request no Express 4 em vez de virar resposta. E o 500 é do endpoint de
        métricas, não do serviço — coletor quebrado não pode derrubar o que ele observa. */
     try {
-      const { corpo, processo } = await scrape()
+      const { corpo, processo, tipo } = await scrape()
       res.setHeader('x-metrics-processo', processo)
-      res.setHeader('content-type', register.contentType)
+      res.setHeader('content-type', tipo)
       /* `res.end` e não `res.send`: `send` com valor dinâmico é o que a regra `resposta-crua`
          (audit/rules/ast-grep) marca, e aqui o corpo é texto puro já com content-type declarado. */
       res.end(corpo)
@@ -798,13 +881,23 @@ export function handlerDeMetricas(): RequestHandler {
 }
 
 /** O corpo do scrape e o processo que respondeu. */
-async function scrape(): Promise<{ corpo: string; processo: string }> {
-  return { corpo: await register.metrics(), processo: `primario:${process.pid}` }
+async function scrape(): Promise<{ corpo: string; processo: string; tipo: string }> {
+  if (ehWorker()) {
+    const linhas = [...contagensDoWorker].map(([nome, v]) => `# ${nome} ${v}`)
+    return {
+      corpo: ['# sem backend Prometheus neste runtime (Worker); Analytics Engine é a Fase 4', ...linhas, ''].join('\n'),
+      processo: 'worker',
+      tipo: 'text/plain; charset=utf-8',
+    }
+  }
+  const { register } = carregarProm()
+  return { corpo: await register.metrics(), processo: `primario:${process.pid}`, tipo: register.contentType }
 }
 
 /** Só para os testes: esquece as métricas registradas entre casos. */
 export function esquecerMetricas(): void {
-  register.clear()
+  promCarregado?.register.clear()
+  contagensDoWorker.clear()
   monitorDoLoop?.disable()
   monitorDoLoop = undefined
   registrarObservadorDeConsultas(undefined)

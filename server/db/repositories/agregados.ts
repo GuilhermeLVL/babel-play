@@ -442,6 +442,45 @@ export async function gruposDeRevisoes(tx: Tx | DB, userId: UserId, onde?: SQL):
 }
 
 /**
+ * O AJUSTE INCREMENTAL da limpeza diária, por lote de revisões apagadas de vez (na mesma transação curta
+ * que as apaga, com a trava do usuário): `celulas` são as células DESSAS revisões (`agregarPorDia` sobre
+ * `gruposDeRevisoes` do lote, antes do DELETE). Cada contador da célula sai do agregado e as revisões e
+ * acertos entram em `revisoes_purgadas`/`acertos_purgados` — o que a reconstrução completa faria, sem
+ * recontar o usuário inteiro a cada lote. `apagadas` (linhas de `review_logs` que saíram) sobe
+ * `marca_vista` junto com o `marca_bruto` que o gatilho do DELETE subiu: o leitor não reconta à toa.
+ * Célula ausente (agregado nunca montado) nasce com os contadores negativos e as purgadas; a reconstrução
+ * completa do fim do usuário reconta os contadores do bruto e preserva as purgadas.
+ */
+export async function purgarNaTransacao(
+  tx: Tx,
+  userId: UserId,
+  celulas: CelulaDoDia[],
+  apagadas: number,
+  agora: number,
+): Promise<void> {
+  for (const lote of emLotes(celulas, 200)) {
+    await tx.execute(sql`
+      INSERT INTO agregados_diarios
+        (user_id, idioma, dia, ${sql.raw(COLUNAS_SQL)}, revisoes_purgadas, acertos_purgados, atualizado_em)
+      VALUES ${sql.join(
+        lote.map(
+          (c) =>
+            sql`(${userId}, ${c.idioma}, ${c.dia}, ${sql.join(
+              CONTADORES_DO_DIA.map((k) => sql`${-(c[k] ?? 0)}`),
+              sql`, `,
+            )}, ${c.revisoes}, ${c.acertos}, ${agora})`,
+        ),
+        sql`, `,
+      )}
+      ON CONFLICT (user_id, idioma, dia) DO UPDATE SET ${sql.raw(SOMA_SQL)},
+        revisoes_purgadas = agregados_diarios.revisoes_purgadas + excluded.revisoes_purgadas,
+        acertos_purgados = agregados_diarios.acertos_purgados + excluded.acertos_purgados,
+        atualizado_em = excluded.atualizado_em`)
+  }
+  if (apagadas > 0) await marcarVistas(userId, apagadas)(tx)
+}
+
+/**
  * A reconstrução, dentro de uma transação que já tem a trava do usuário. Exportada para a limpeza
  * diária, que apaga o bruto e reconta no MESMO passo, entregando as revisões que acabou de apagar.
  */

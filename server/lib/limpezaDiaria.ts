@@ -58,7 +58,7 @@ import { admissaoDeIaRepo } from '../db/repositories/admissaoDeIa'
 import {
   agregadosRepo,
   gruposDeRevisoes,
-  type PurgadasDaCelula,
+  purgarNaTransacao,
   reconstruirNaTransacao,
 } from '../db/repositories/agregados'
 import type { UserId } from './authContext'
@@ -122,7 +122,9 @@ interface Andamento {
  * transação fica aberta. Os passos vão na ordem das dependências e cada um só começa quando o anterior
  * se esgotou: revisões e ocorrências antes dos cartões, falas antes das sessões. Cada lote é idempotente
  * (as consultas recalculam o que sai), então um lote que falhou, ou uma passada que bateu no teto de
- * lotes, recomeça de onde parou na próxima vez. Devolve `false` se o teto acabou antes deste usuário.
+ * lotes, recomeça de onde parou na próxima vez. A trava do usuário é solta a cada lote (entre passos
+ * também): uma escrita do próprio usuário pode entrar entre dois lotes, e o lote seguinte recalcula o que
+ * sai. Devolve `false` se o teto acabou antes deste usuário.
  */
 async function limparUsuario(userId: UserId, corte: number, agora: number, a: Andamento): Promise<boolean> {
   const fuso = await agregadosRepo.fusoGravado(userId)
@@ -193,22 +195,24 @@ async function limparUsuario(userId: UserId, corte: number, agora: number, a: An
     },
   ]
 
-  /** Um lote numa transação curta com a trava do usuário. `false` quando o orçamento acabou. */
+  /** Um lote numa transação curta com a trava do usuário. `null` quando o orçamento acabou. O lote só
+      gasta orçamento depois do COMMIT: o que falhou (e é repetido no 40P01/40001) não conta duas vezes. */
   const umLote = async <T>(fn: (tx: ExecutorDb) => Promise<T>): Promise<{ r: T } | null> => {
     if (a.lotesRestantes <= 0) return null
+    const r = await emTransacao(async (tx) => {
+      await travarUsuario(tx, userId)
+      return fn(tx)
+    })
     a.lotesRestantes -= 1
     a.lotes += 1
-    return {
-      r: await emTransacao(async (tx) => {
-        await travarUsuario(tx, userId)
-        return fn(tx)
-      }),
-    }
+    return { r }
   }
 
-  /* 1. As revisões que saem, com as purgadas: cada lote soma as suas aos agregados (ver o cabeçalho) e
-        reconstrói na MESMA transação, para o perfil nunca ver uma revisão que saiu do bruto sem ter
-        entrado em `*_purgadas`. */
+  /* 1. As revisões que saem, com as purgadas: cada lote tira as suas dos contadores e as soma em
+        `*_purgadas` (ver o cabeçalho) na MESMA transação, incrementalmente (`purgarNaTransacao`, só as
+        células do lote), para o perfil nunca ver uma revisão que saiu do bruto sem ter entrado em
+        `*_purgadas`. A reconstrução completa é UMA, no fim do usuário (passo 3). */
+  let mexeu = false
   const revisoesQueSaem = sql`((r.deleted_at IS NOT NULL AND r.deleted_at < ${corte}) OR r.card_id IN ${cartoes})`
   for (;;) {
     const feito = await umLote(async (tx) => {
@@ -222,23 +226,22 @@ async function limparUsuario(userId: UserId, corte: number, agora: number, a: An
         ids.map((id) => sql`${id}`),
         sql`, `,
       )})`
-      const purgadas: PurgadasDaCelula[] = agregarPorDia(
-        { revisoes: await gruposDeRevisoes(tx, userId, doLote) },
-        (em) => diaNumeroNoFuso(em, fuso),
-      ).map((c) => ({ idioma: c.idioma, dia: c.dia, revisoes: c.revisoes, acertos: c.acertos }))
+      const celulas = agregarPorDia({ revisoes: await gruposDeRevisoes(tx, userId, doLote) }, (em) =>
+        diaNumeroNoFuso(em, fuso),
+      )
       const apagadas = afetadas(
         await tx.execute(sql`DELETE FROM review_logs AS r WHERE r.user_id = ${userId} AND ${doLote}`),
       )
-      await reconstruirNaTransacao(tx, userId, fuso, agora, purgadas)
+      await purgarNaTransacao(tx, userId, celulas, apagadas, agora)
       return apagadas
     })
     if (!feito) return false
     a.revisoes += feito.r
+    if (feito.r > 0) mexeu = true
     if (feito.r < n) break
   }
 
   /* 2. O resto, passo a passo. */
-  let mexeu = false
   for (const passo of passos) {
     for (;;) {
       const feito = await umLote(passo.fazer)
@@ -249,8 +252,8 @@ async function limparUsuario(userId: UserId, corte: number, agora: number, a: An
     }
   }
 
-  /* 3. Os agregados acompanham: recontados do bruto que ficou (as purgadas já estão lá). Só se algo
-        saiu: quem só tem linha que fica de propósito (cartão do Anki, sessão com cartão) aparece na
+  /* 3. Os agregados acompanham: UMA reconstrução completa, do bruto que ficou (as purgadas já estão lá,
+        somadas lote a lote no passo 1). Só se algo saiu: quem só tem linha que fica de propósito (cartão do Anki, sessão com cartão) aparece na
         lista todo dia, e não precisa ser recontado todo dia. Se a passada morrer antes daqui, os
         gatilhos de `exercise_results` já subiram `marca_bruto` e a conferência recontará. */
   if (mexeu) {

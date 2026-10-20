@@ -132,7 +132,7 @@ primeira passada alguns minutos depois do boot e as seguintes no intervalo da ta
 | `limpezaDiaria`            | `23 3 * * *` | 17 min / 24 h                | `LIMPEZA_DIARIA=1` (e fora de teste)  | 200 lotes de 500 linhas             |
 | `reconciliarArmazenamento` | `19 * * * *` | 19 min / 1 h                 | `STORAGE_RECONCILE_MODE=job`          | 200 usuários                        |
 
-O minuto do cron repete o atraso do Node, para a ordem ser a mesma; a `limpezaDiaria` vai para `:23` no
+A reconciliação é a única horária: ela cobre todo usuário a cada `STORAGE_RECONCILE_HOURS` (padrão 24 h), e com teto de 200 usuários por passada uma vez por dia só daria conta de 200 usuários por dia; de hora em hora são até 4.800, em passadas curtas (cada uma faz `stat`/`HEAD` por arquivo) espalhadas pelo dia. O minuto do cron repete o atraso do Node, para a ordem ser a mesma; a `limpezaDiaria` vai para `:23` no
 cron para não coincidir com a poda das janelas. O snapshot diário (`BACKUP_DIARIO`) foi aposentado na
 migração para o Postgres e saiu do registro: a variável é legado, e ligada só gera um aviso no boot.
 

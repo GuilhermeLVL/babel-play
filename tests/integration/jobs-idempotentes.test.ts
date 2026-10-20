@@ -306,12 +306,19 @@ describe('limpeza diária em lotes', () => {
     expect(lotesDeRevisao.length).toBeGreaterThanOrEqual(3) // 7 revisões em lotes de 3
     expect(segmentos.length).toBeGreaterThanOrEqual(r.lotes)
     expect(r.lotes).toBeGreaterThanOrEqual(10)
+
+    /* Os lotes de revisão ajustam os agregados incrementalmente; a reconstrução COMPLETA do usuário (que
+       apaga e regrava `agregados_diarios` inteiro) é uma só, no fim. */
+    const reconstrucoes = vistas.filter((s) => /^\s*delete\s+from\s+agregados_diarios\s+where\s+user_id/i.test(s))
+    expect(reconstrucoes).toHaveLength(1)
   })
 
   it('o perfil não perde revisão: as purgadas em lotes somam o mesmo que de uma vez', async () => {
     const { agregadosRepo } = await h.load<any>('../../server/db/repositories/agregados')
     const celulas = await agregadosRepo.celulas('lotes-u1')
     expect(celulas.reduce((n: number, c: any) => n + c.revisoesPurgadas, 0)).toBe(7)
+    await agregadosRepo.reconstruir('lotes-u1')
+    expect(await agregadosRepo.celulas('lotes-u1')).toEqual(celulas)
   })
 
   it('teto de lotes por passada: para no meio e a passada seguinte retoma de onde parou', async () => {
@@ -320,9 +327,18 @@ describe('limpeza diária em lotes', () => {
     const { limparBanco } = await h.load<typeof import('../../server/lib/limpezaDiaria')>(
       '../../server/lib/limpezaDiaria',
     )
+    const { agregadosRepo } = await h.load<any>('../../server/db/repositories/agregados')
+    await agregadosRepo.reconstruir(u)
     const r1 = await limparBanco({ agora: AGORA, dias: 30, lote: 3, maxLotes: 2 })
     expect(r1).toMatchObject({ revisoes: 6, lotes: 2, incompleta: true })
     expect(await conta('review_logs', u)).toBe(1)
+    /* Parou no meio, SEM a reconstrução do fim: o ajuste incremental dos dois lotes já deixou os agregados
+       iguais aos de uma reconstrução completa, com as 6 revisões em `revisoes_purgadas`. */
+    const incrementais = await agregadosRepo.celulas(u)
+    expect(incrementais.reduce((n: number, c: any) => n + c.revisoesPurgadas, 0)).toBe(6)
+    expect((await agregadosRepo.estado(u)).marcaBruto).toBe((await agregadosRepo.estado(u)).marcaVista)
+    await agregadosRepo.reconstruir(u)
+    expect(await agregadosRepo.celulas(u)).toEqual(incrementais)
     const r2 = await limparBanco({ agora: AGORA, dias: 30, lote: 3 })
     expect(r2).toMatchObject({ revisoes: 1, ocorrencias: 5, cartoes: 4, sessoes: 3, falas: 9, incompleta: false })
     for (const tabela of ['review_logs', 'vocab_occurrences', 'utterances', 'sessions'])

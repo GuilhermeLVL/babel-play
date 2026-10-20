@@ -42,18 +42,18 @@ robusto a mudanças de API do AnkiWeb. Guarde o arquivo baixado na pasta do corp
 Cada um cobre uma característica diferente do baralho real — leia o critério antes de escolher
 quais baixar; não é preciso baixar todos para um primeiro corpus.
 
-| sharedId | nome | critério |
-|---|---|---|
-| `2141233552` | Japonês Core 2k | áudio, formato antigo (`collection.anki2`) |
-| `2112246396` | Japonês 29.883 notas | GRANDE — mede tempo/memória em escala |
-| `748570187` | KanjiDamage | note type customizado (campos fora do padrão Word/Meaning) |
-| `2062595919` | Inglês/árabe subs2srs-like | 3.234 áudios + 4.688 imagens — mídia pesada |
-| `216385733` | Chinês tradicional | licença Apache 2.0 declarada — seguro para citar |
-| `2037470492` | Russo 3.000 | cirílico, só-texto |
-| `1429416700` | Árabe 15.346 | RTL, grande |
-| `2109889812` | Ultimate Geography | imagem-palavra, open-source |
-| `1218229865` | (cloze-pesado) | muitos cartões cloze — testa o filtro de HTML/marcação |
-| `1081958254` | HSK1 | áudio + imagem juntos |
+| sharedId     | nome                       | critério                                                   |
+| ------------ | -------------------------- | ---------------------------------------------------------- |
+| `2141233552` | Japonês Core 2k            | áudio, formato antigo (`collection.anki2`)                 |
+| `2112246396` | Japonês 29.883 notas       | GRANDE — mede tempo/memória em escala                      |
+| `748570187`  | KanjiDamage                | note type customizado (campos fora do padrão Word/Meaning) |
+| `2062595919` | Inglês/árabe subs2srs-like | 3.234 áudios + 4.688 imagens — mídia pesada                |
+| `216385733`  | Chinês tradicional         | licença Apache 2.0 declarada — seguro para citar           |
+| `2037470492` | Russo 3.000                | cirílico, só-texto                                         |
+| `1429416700` | Árabe 15.346               | RTL, grande                                                |
+| `2109889812` | Ultimate Geography         | imagem-palavra, open-source                                |
+| `1218229865` | (cloze-pesado)             | muitos cartões cloze — testa o filtro de HTML/marcação     |
+| `1081958254` | HSK1                       | áudio + imagem juntos                                      |
 
 Baixe pela URL `https://ankiweb.net/shared/info/<sharedId>`.
 
@@ -100,7 +100,7 @@ o processo tentando.
 O Anki exporta notas como texto (tabulação, ponto-e-vírgula ou vírgula como separador) pelo menu
 `Notes > Export Notes... > Notes in Plain Text`. Alternativa sem abrir o Anki: qualquer planilha
 de vocabulário (palavra, tradução, frase) salva como `.txt` separado por tabulação já serve —
-é exatamente o formato que `lerTextoAnki` (`server/import/anki.ts`) lê.
+é exatamente o formato que `lerTextoAnki` (`src/core/anki`) lê.
 
 Exemplo mínimo (`texto-exportado.txt`, separado por tabulação):
 

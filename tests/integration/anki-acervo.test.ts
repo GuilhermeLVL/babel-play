@@ -5,10 +5,10 @@
  * jogável. Estes testes cobrem a garantia central: reimportar nunca duplica e nunca apaga —
  * "sumiu do arquivo" é um ESTADO (`ausente_no_arquivo`), não uma deleção.
  */
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const U = asUserId('anki-user')
 
@@ -95,7 +95,7 @@ describe('gravarNotas — upsert por (deckId, guid)', () => {
   })
 })
 
-describe('marcarAusentes — nota some do arquivo, nunca é apagada', () => {
+describe('marcarAusentesForaDoImport — nota some do arquivo, nunca é apagada', () => {
   it('nota fora da lista de guids presentes vira ausente_no_arquivo, e continua no banco', async () => {
     const { deck, imp } = await criarDeckEImport(U, '-ausente')
     await ankiRepo.gravarNotas(U, deck.id, imp.id, [
@@ -103,7 +103,10 @@ describe('marcarAusentes — nota some do arquivo, nunca é apagada', () => {
       { guid: 'g2', frente: 'churn' },
     ])
 
-    const n = await ankiRepo.marcarAusentes(U, deck.id, ['g1']) // só g1 continua no arquivo
+    // 2º import: só g1 continua no arquivo (g2 fica com o carimbo do import anterior).
+    const imp2 = await ankiRepo.criarImport(U, { deckId: deck.id, arquivo: 'reimport.txt' })
+    await ankiRepo.gravarNotas(U, deck.id, imp2.id, [{ guid: 'g1', frente: 'ledger' }])
+    const n = await ankiRepo.marcarAusentesForaDoImport(U, deck.id, imp2.id)
     expect(n).toBe(1)
 
     const pagina = await ankiRepo.listarNotas(U, deck.id, {})
@@ -117,12 +120,14 @@ describe('marcarAusentes — nota some do arquivo, nunca é apagada', () => {
   it('nota que REAPARECE num reimport sai de ausente_no_arquivo', async () => {
     const { deck, imp } = await criarDeckEImport(U, '-reaparece')
     await ankiRepo.gravarNotas(U, deck.id, imp.id, [{ guid: 'g1', frente: 'ledger' }])
-    await ankiRepo.marcarAusentes(U, deck.id, []) // arquivo reenviado sem nenhuma nota reconhecida
+    // arquivo reenviado sem nenhuma nota reconhecida
+    const imp2 = await ankiRepo.criarImport(U, { deckId: deck.id, arquivo: 'vazio.txt' })
+    await ankiRepo.marcarAusentesForaDoImport(U, deck.id, imp2.id)
     let pagina = await ankiRepo.listarNotas(U, deck.id, {})
     expect(pagina.itens[0].estado).toBe('ausente_no_arquivo')
 
     // O Anki devolveu a nota no import seguinte.
-    await ankiRepo.gravarNotas(U, deck.id, imp.id, [{ guid: 'g1', frente: 'ledger' }])
+    await ankiRepo.gravarNotas(U, deck.id, imp2.id, [{ guid: 'g1', frente: 'ledger' }])
     pagina = await ankiRepo.listarNotas(U, deck.id, {})
     expect(pagina.itens[0].estado).not.toBe('ausente_no_arquivo')
   })
@@ -220,7 +225,14 @@ describe('listarBaralhos — contagens', () => {
       { guid: 'g3', frente: 'c' },
       { guid: 'g4', frente: 'd', motivoDescarte: 'pista-ruim' },
     ])
-    await ankiRepo.marcarAusentes(U, deck.id, ['g1', 'g2', 'g4']) // g3 some do arquivo
+    // 2º import: g3 some do arquivo (as outras são regravadas e levam o carimbo novo).
+    const imp2 = await ankiRepo.criarImport(U, { deckId: deck.id, arquivo: 'reimport.txt' })
+    await ankiRepo.gravarNotas(U, deck.id, imp2.id, [
+      { guid: 'g1', frente: 'a' },
+      { guid: 'g2', frente: 'b' },
+      { guid: 'g4', frente: 'd', motivoDescarte: 'pista-ruim' },
+    ])
+    await ankiRepo.marcarAusentesForaDoImport(U, deck.id, imp2.id)
 
     const decks = await ankiRepo.listarBaralhos(U)
     const d = decks.find((x: any) => x.id === deck.id)

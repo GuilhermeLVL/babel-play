@@ -6,9 +6,9 @@ import { createClient } from '@libsql/client'
 import JSZip from 'jszip'
 import { describe, expect, it } from 'vitest'
 
-import { lerApkg } from '../server/import/anki'
 import { hashDaEstrutura } from '../server/import/identidadeDaNota'
 import { extrairCloze, extrairMidia, TETO_DE_NOTAS } from '../src/core/anki'
+import { lerApkg } from './harness/lerApkgNode'
 
 /**
  * OS INCREMENTOS 1-5: mídia preservada, cloze, nome de baralho/notetype, hash de estrutura e

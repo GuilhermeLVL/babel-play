@@ -6,7 +6,7 @@
  *  - POST /imports/:id/notas      → grava um lote de até 500 notas
  *  - POST /imports/:id/fechar     → marca as ausentes, conclui e ativa o primeiro lote jogável
  *
- * POR QUE EM LOTES. A rota binária (`POST /api/import/anki`) precisa de disco temporário e de um
+ * POR QUE EM LOTES. A antiga rota binária (`POST /api/import/anki`, removida) precisava de disco temporário e de um
  * SQLite no servidor para abrir o `.apkg`, coisas que o Worker não tem. Agora quem lê o arquivo é o
  * navegador (`src/lib/anki/lerApkg.ts`), e o servidor só recebe as notas, em pedaços que cabem no
  * teto de corpo (`LIMITE_GRANDE`).
@@ -66,7 +66,10 @@ ankiImportsRouter.post('/imports', async (req, res) => {
     const amostra = body.amostra.map((a) => ({ frente: limparCampo(a.frente), verso: limparCampo(a.verso) }))
 
     /* S11: o idioma declarado vem do LOBBY, não do arquivo; `decidirIdiomaOrigem` o confere contra a
-       escrita real das frentes antes de carimbar (ver o comentário longo em `server/routes/import.ts`). */
+       escrita real das frentes antes de carimbar: importar um baralho japonês com o lobby em inglês carimbava
+       `srcLang='en'` em milhares de cartões, e um cartão rotulado com o idioma errado nunca mais aparece
+       certo no filtro. Sem idioma nenhum o cartão vira `idioma-incerto` na triagem; por isso o idioma
+       declarado precisa chegar aqui. */
     const idioma = decidirIdiomaOrigem(
       body.idiomaOrigem ?? null,
       amostra.map((a) => a.frente),

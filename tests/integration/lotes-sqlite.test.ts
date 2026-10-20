@@ -167,18 +167,18 @@ describe('import Anki com 40.000 notas (camada de repositório)', () => {
       tags: 'core',
     }))
 
-  it('grava 40.000, marca ausentes, e a 2ª importação é idempotente', async () => {
+  it('grava 40.000, marca ausentes pelo carimbo, e a 2ª importação é idempotente', async () => {
     const u = asUserId('lotes-anki')
     const deck = await ankiRepo.criarOuAcharDeck(u, { nome: 'Grande', arquivoOrigem: 'grande.apkg' })
     const imp = await ankiRepo.criarImport(u, { deckId: deck.id, arquivo: 'grande.apkg' })
 
+    // Cada rodada é um IMPORT novo: o que não é regravado nele fica com o carimbo velho e vira ausente.
+    const novoImport = () => ankiRepo.criarImport(u, { deckId: deck.id, arquivo: 'grande.apkg' })
+    const ausentesDe = (importId: string) => ankiRepo.marcarAusentesForaDoImport(u, deck.id, importId)
+
     const t0 = performance.now()
     const r1 = await ankiRepo.gravarNotas(u, deck.id, imp.id, notas('v1'))
-    const ausentes1 = await ankiRepo.marcarAusentes(
-      u,
-      deck.id,
-      notas('v1').map((n) => n.guid),
-    )
+    const ausentes1 = await ausentesDe(imp.id)
     const t1 = performance.now()
     console.log(`[lotes] 1ª importação de ${N} notas: ${Math.round(t1 - t0)} ms`)
 
@@ -189,13 +189,10 @@ describe('import Anki com 40.000 notas (camada de repositório)', () => {
     expect(await contar('SELECT COUNT(*) FROM anki_notes WHERE deck_id = ?', [deck.id])).toBe(N)
 
     // 2ª importação do MESMO arquivo: nada novo, nada atualizado, mesmos ids, na mesma ordem.
+    const imp2 = await novoImport()
     const t2 = performance.now()
-    const r2 = await ankiRepo.gravarNotas(u, deck.id, imp.id, notas('v1'))
-    const ausentes2 = await ankiRepo.marcarAusentes(
-      u,
-      deck.id,
-      notas('v1').map((n) => n.guid),
-    )
+    const r2 = await ankiRepo.gravarNotas(u, deck.id, imp2.id, notas('v1'))
+    const ausentes2 = await ausentesDe(imp2.id)
     console.log(`[lotes] 2ª importação (idempotente) de ${N} notas: ${Math.round(performance.now() - t2)} ms`)
     expect(r2).toMatchObject({ novas: 0, atualizadas: 0, iguais: N })
     expect(r2.ids).toEqual(r1.ids)
@@ -207,12 +204,9 @@ describe('import Anki com 40.000 notas (camada de repositório)', () => {
     const v2 = notas('v2')
       .slice(0, N - 1_000)
       .map((n, i) => (i % 2 ? n : { ...n, verso: v1[i].verso }))
-    const r3 = await ankiRepo.gravarNotas(u, deck.id, imp.id, v2)
-    const ausentes3 = await ankiRepo.marcarAusentes(
-      u,
-      deck.id,
-      v2.map((n) => n.guid),
-    )
+    const imp3 = await novoImport()
+    const r3 = await ankiRepo.gravarNotas(u, deck.id, imp3.id, v2)
+    const ausentes3 = await ausentesDe(imp3.id)
     expect(r3).toMatchObject({ novas: 0, atualizadas: (N - 1_000) / 2, iguais: (N - 1_000) / 2 })
     expect(ausentes3).toBe(1_000)
     expect(
@@ -220,14 +214,9 @@ describe('import Anki com 40.000 notas (camada de repositório)', () => {
     ).toBe(1_000)
 
     // Reaparecem: saem de `ausente_no_arquivo` e a contagem de ausentes volta a zero.
-    await ankiRepo.gravarNotas(u, deck.id, imp.id, notas('v2'))
-    expect(
-      await ankiRepo.marcarAusentes(
-        u,
-        deck.id,
-        notas('v2').map((n) => n.guid),
-      ),
-    ).toBe(0)
+    const imp4 = await novoImport()
+    await ankiRepo.gravarNotas(u, deck.id, imp4.id, notas('v2'))
+    expect(await ausentesDe(imp4.id)).toBe(0)
     expect(
       await contar("SELECT COUNT(*) FROM anki_notes WHERE deck_id = ? AND estado = 'ausente_no_arquivo'", [deck.id]),
     ).toBe(0)

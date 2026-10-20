@@ -471,58 +471,13 @@ export const ankiRepo = {
   },
 
   /**
-   * Notas do baralho cujo `guid` NÃO está em `guidsPresentes` (o arquivo mais recente) viram
-   * `ausente_no_arquivo`. NUNCA deleta — é assim que "esse cartão sumiu do Anki" vira estado
-   * inspecionável em vez de perda silenciosa. Notas já `ausente_no_arquivo` não são retocadas
-   * (idempotente); notas com `guid` presente também não, mesmo que já estejam marcadas — só as
-   * que estão fora da lista mudam.
-   */
-  async marcarAusentes(userId: UserId, deckId: string, guidsPresentes: string[]): Promise<number> {
-    const now = Date.now()
-    const cond = [
-      eq(ankiNotes.deckId, deckId),
-      eq(ankiNotes.userId, userId),
-      isNull(ankiNotes.deletedAt),
-      sql`${ankiNotes.estado} != 'ausente_no_arquivo'`,
-    ]
-    /* MARCAR-E-VARRER em vez de `NOT IN (lista)`: a lista é o arquivo inteiro (até 50.000 guids)
-       e passava do teto de 32.766 variáveis do SQLite. As candidatas são as notas DESTE baralho
-       — conjunto que o banco já delimita pelo índice `(deck_id, estado)` — e a diferença contra
-       o arquivo é feita aqui, num Set. Mesma semântica, inclusive para lista vazia (todas as
-       candidatas somem), que o `NOT IN ()` nem aceitava. */
-    const presentes = new Set(guidsPresentes)
-    const candidatas = await db
-      .select({ id: ankiNotes.id, guid: ankiNotes.guid })
-      .from(ankiNotes)
-      .where(and(...cond))
-    const alvo = candidatas.filter((c) => !presentes.has(c.guid))
-    if (!alvo.length) return 0
-    // Um lote só (atômico): ou o baralho inteiro reflete o arquivo novo, ou nada muda. As duas
-    // variáveis fixas são as do SET (`estado`, `updated_at`).
-    await rodarLote(
-      emLotes(
-        alvo.map((a) => a.id),
-        tamanhoDoLote(1, 2),
-      ).map(
-        (lote): InstrucaoDeBatch =>
-          (tx) =>
-            tx
-              .update(ankiNotes)
-              .set({ estado: 'ausente_no_arquivo', updatedAt: now })
-              .where(inArray(ankiNotes.id, lote)),
-      ),
-    )
-    return alvo.length
-  },
-
-  /**
-   * AUSENTES PELO CARIMBO — o par de `marcarAusentes` para a importação em lotes.
+   * AUSENTES PELO CARIMBO.
    *
    * No protocolo em lotes o servidor nunca tem a lista inteira de guids do arquivo na mão (ela chega
    * em até 100 requisições), mas cada nota que veio NESTE import ficou com `import_id = importId`
    * (`gravarNotas` carimba novas, atualizadas e iguais). Então "não veio no arquivo" é "o carimbo é
    * de outro import, ou não há carimbo" — um UPDATE só, sem lista nenhuma em memória nem variável
-   * por nota. Mesma semântica de `marcarAusentes`: nunca apaga, e quem já está ausente não é
+   * por nota. `ausente_no_arquivo` é estado inspecionável, não perda silenciosa: nunca apaga, e quem já está ausente não é
    * retocado. Devolve quantas notas mudaram.
    */
   async marcarAusentesForaDoImport(userId: UserId, deckId: string, importId: string): Promise<number> {

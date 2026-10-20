@@ -34,7 +34,7 @@ import { fecharAFolhaDe, FolhaDeCartoes, LinhasDeMenu } from './pecas';
  * (`components/conteudo/CatalogoDeConteudo.tsx`), e o baralho novo já vira o conteúdo escolhido.
  *
  * O QUE O APP FAZ HOJE, dito como é (e por isso os passos não são os do protótipo ao pé da letra):
- *  · ler o arquivo JÁ GUARDA as notas no baralho (`POST /api/import/anki` grava ao ler); nenhuma vira
+ *  · ler o arquivo JÁ GUARDA as notas no baralho (o protocolo em lotes, `/api/anki/imports`, grava ao fechar); nenhuma vira
  *    cartão até a pessoa ativar. Não existe "ensaio sem gravar";
  *  · a agenda e o histórico do Anki NÃO vêm (o dono ainda não decidiu essa importação): não há a escolha
  *    "com a agenda | do zero", e o passo 1 diz que a agenda recomeça aqui;

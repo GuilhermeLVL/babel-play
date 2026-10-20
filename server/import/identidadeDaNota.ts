@@ -1,8 +1,7 @@
 /**
  * IDENTIDADE DE UMA NOTA DO ANKI no acervo: o `guid` que faz um reimport atualizar em vez de duplicar,
- * e o hash da estrutura do note type. Fica num módulo próprio porque os dois caminhos de importação o
- * usam — a rota binária antiga (`POST /api/import/anki`, até a Task 6 da Fase 3) e o protocolo em lotes
- * (`server/routes/ankiImports.ts`) — e o servidor tem de calcular a identidade do MESMO jeito nos dois.
+ * e o hash da estrutura do note type. Fica num módulo próprio porque o protocolo em lotes
+ * (`server/routes/ankiImports.ts`) a usa, e a identidade tem de ser calculada do MESMO jeito em todo import.
  */
 import { createHash } from 'node:crypto'
 

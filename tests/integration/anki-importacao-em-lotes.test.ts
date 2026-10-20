@@ -4,7 +4,7 @@
  *
  * O navegador lê o `.apkg` e manda as notas em lotes; o servidor reaplica a limpeza, a identidade e a
  * régua de qualidade em cada nota (nunca confia no cliente) e grava o acervo. O envelope do `fechar` é
- * o MESMO da rota binária antiga (`POST /api/import/anki`), para a tela não mudar de contrato.
+ * o MESMO da rota binária antiga (`POST /api/import/anki`, removida), para a tela não mudar de contrato.
  *
  * Por HTTP, no modo self-host (toda requisição é o dono local): o "outro usuário" do caso de 404 é
  * semeado direto pelo repositório.

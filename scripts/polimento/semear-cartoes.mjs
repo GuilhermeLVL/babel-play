@@ -15,8 +15,7 @@
  * `--estado`: `normal` (padrão: há o que vence agora), `feito` (nada vence), `primeiro` (cartões sem
  * nenhuma revisão) ou `vazio` (só marca o tour como visto).
  */
-import { readFile } from 'node:fs/promises'
-
+import { semearBaralhoModerno } from './_anki.mjs'
 import { abrirBanco } from './_banco.mjs'
 
 const arg = (n, d) => {
@@ -129,13 +128,7 @@ for (const s of SESSOES) {
 await json('/api/vocab/bulk-add', 'POST', {
   cards: SOLTAS.map(([word, back, sentence]) => ({ word, back, sentence, srcLang: 'en', tgtLang: 'pt-BR' })),
 })
-const apkg = await readFile('tests/fixtures/baralho-moderno.apkg')
-const imp = await fetch(`${BASE}/api/import/anki`, {
-  method: 'POST',
-  headers: { 'content-type': 'application/octet-stream', 'x-filename': 'baralho-moderno.apkg', 'x-src-lang': 'en' },
-  body: new Uint8Array(apkg),
-})
-if (!imp.ok) throw new Error(`POST /api/import/anki devolveu ${imp.status}`)
+await semearBaralhoModerno(BASE)
 
 if (ESTADO === 'primeiro') {
   console.log('cartões semeados, nenhuma revisão')

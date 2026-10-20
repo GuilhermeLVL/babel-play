@@ -1,8 +1,8 @@
 /**
- * LER UM `.apkg` NO NAVEGADOR — o par de `server/import/anki.ts` (`lerApkg`), com as MESMAS consultas e
- * fallbacks, trocando o motor: zip por `fflate` (com teto, `zipComTeto.ts`), zstd por `fzstd` e SQLite por
+ * LER UM `.apkg` NO NAVEGADOR — o que antes era o leitor do servidor (removido na Fase 3), com as consultas e
+ * fallbacks de sempre, em outro motor: zip por `fflate` (com teto, `zipComTeto.ts`), zstd por `fzstd` e SQLite por
  * `sql.js`. Por que a leitura tem tantas voltas (três formatos de coleção, nomes de campo em dois lugares)
- * está no cabeçalho daquele arquivo.
+ * está nos comentários de `lerColecao`, abaixo.
  *
  * OS DOIS ESTÁGIOS DO TETO. O `collection.anki21b` é zstd DENTRO do zip: o teto do zip limita o payload
  * comprimido, não o SQLite. Zstd chega a razões maiores que deflate, então a saída do zstd é contada de

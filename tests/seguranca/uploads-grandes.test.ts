@@ -302,32 +302,4 @@ describe('uploads grandes: semáforo, streaming e teto (ADR 0009)', () => {
     expect(g.status).toBe(200)
     expect(Buffer.from(await g.arrayBuffer()).equals(audio)).toBe(true)
   })
-
-  it('import Anki divide o semáforo: com um áudio em voo, o mesmo usuário recebe 429', async () => {
-    const id = await novaSessao('fabi')
-    const a = abrirUpload(`/api/sessions/${id}/audio`, 'fabi', { 'content-length': String(CABECA_WEBM.length + 10) })
-    a.req.write(CABECA_WEBM)
-    await esperar(200)
-    const r = await s.chamar('POST', '/api/import/anki', {
-      token: tokens.fabi,
-      raw: Buffer.from('casa\thouse\n', 'utf8'),
-      headers: { 'x-filename': 'b.txt' },
-    })
-    expect(r.status).toBe(429)
-    a.req.end(Buffer.alloc(10, 1))
-    expect((await a.resposta).status).toBe(200)
-  })
-
-  it('import Anki com Content-Length acima de 200 MB → 413 com a explicação, sem ler o corpo', async () => {
-    const a = abrirUpload('/api/import/anki', 'gil', {
-      'content-length': String(250 * MB),
-      'content-type': 'application/octet-stream',
-      'x-filename': 'grande.apkg',
-    })
-    a.req.write(Buffer.alloc(1024))
-    const r = await a.resposta
-    a.req.destroy()
-    expect(r.status).toBe(413)
-    expect(JSON.parse(r.corpo).error).toMatch(/SEM mídia/)
-  })
 })

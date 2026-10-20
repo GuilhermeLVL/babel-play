@@ -302,7 +302,7 @@ function leitorDoCorpo(fonte: Readable, limite: number) {
 }
 
 /**
- * PARA OS PARSERS QUE EXIGEM BUFFER (o JSZip do `.apkg`, o pdf/docx do documento): o corpo passa
+ * PARA OS PARSERS QUE EXIGEM BUFFER (o pdf/docx do documento): o corpo passa
  * pelo disco e volta como UM Buffer do tamanho exato.
  *
  * Não tira o corpo da memória — o parser precisa dele inteiro —, mas corta o pico pela metade: o

@@ -5,7 +5,7 @@
  * `POST /api/sessions/:id/audio` levaram o RSS a 1.011 MB. Tirar o corpo da memória (ver
  * `corpoRecebido.ts`) resolve o custo POR upload; este módulo resolve QUANTOS existem ao mesmo
  * tempo. Mesmo em streaming, cada corpo grande ocupa disco temporário, banda e uma conexão por
- * minutos — e o import Anki ainda precisa do `.apkg` inteiro na memória (o JSZip lê de Buffer).
+ * minutos.
  *
  * A vaga é pedida ANTES de ler um byte do corpo: recusar depois de ler seria pagar o custo que o
  * semáforo existe para evitar. Excedente recebe 429 com `Retry-After` e código `upload_ocupado`.

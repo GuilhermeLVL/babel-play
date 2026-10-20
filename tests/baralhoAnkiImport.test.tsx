@@ -2,7 +2,7 @@
 /**
  * BaralhoAnki — o fluxo de importação mudou de "ler depois gravar" para "a rota já grava".
  *
- * `POST /api/import/anki` hoje devolve o RESULTADO da importação (baralho + notas já gravados no
+ * O protocolo em lotes (`/api/anki/imports`) hoje devolve o RESULTADO da importação (baralho + notas já gravados no
  * acervo), não uma prévia para confirmar. Estes testes prendem o que a tela precisa dizer com
  * isso: o saldo do acervo (novas/atualizadas/iguais/descartadas), que NADA foi para a fila de
  * estudo ainda, que ativar é um passo separado e explícito, que o botão de ativar não aparece

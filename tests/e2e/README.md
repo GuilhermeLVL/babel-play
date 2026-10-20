@@ -37,15 +37,13 @@ na máquina de quem a escreveu e nunca na CI.
 
 **Fixtures por API, não pela tela** (`_fixtures.ts`): as suítes que precisam de baralho, rodada ou
 saldo semeiam por `POST /api/vocab/bulk-add` e `POST /api/exercises/rodada` no `beforeAll`, e as
-que precisam de um baralho do Anki importam o `.apkg` de exemplo (`tests/fixtures/`) por
-`POST /api/import/anki`. Criar o mesmo estado pela interface amarraria cada suíte ao formulário de
+que precisam de um baralho do Anki mandam quatro notas de exemplo pelo protocolo em lotes
+(`POST /api/anki/imports`: abrir, notas, fechar). Criar o mesmo estado pela interface amarraria cada suíte ao formulário de
 outra tela.
 
-**Contra o Worker (`E2E_RUNTIME=worker`).** Apontando `BASE_URL` para um `wrangler dev` (ver `docs/deploy.md`,
-"Worker em desenvolvimento"), defina `E2E_RUNTIME=worker`: lá a importação de Anki responde 503
-`indisponivel_neste_runtime` até a Fase 3, e `baralhos.e2e.ts`, `facetas.e2e.ts` (as duas semeiam o
-baralho pela importação) e o caso "o .apkg entra pela folha Trazer" de `cartoes.e2e.ts` pulam com esse
-motivo (`NO_WORKER` em `_fixtures.ts`). As asserções não mudam; no Node (sem a variável) tudo roda.
+**Contra o Worker.** Apontando `BASE_URL` para um `wrangler dev` (ver `docs/deploy.md`, "Worker em desenvolvimento"),
+as suítes rodam como no Node: a importação de Anki funciona nos dois runtimes (o navegador lê o `.apkg` e o
+servidor só recebe as notas em lotes), então nenhuma pula por causa dela.
 
 **Rótulos.** Os seletores seguem os rótulos acessíveis atuais (desenho de 09/10/2026, o único): o
 painel da fonte ("O que você vai praticar") abre pelo chip **"Trocar: …"** do cabeçalho do lobby, a

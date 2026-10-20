@@ -7,18 +7,14 @@
  * `POST /api/vocab/bulk-add` e a mesma que a importacao usa, e o servidor deduplica por
  * (palavra, idioma) — semear duas vezes (um projeto por viewport) nao duplica nada.
  *
+ * A importacao de Anki funciona nos dois runtimes (o navegador le o `.apkg`; o servidor so recebe as notas em
+ * lotes), entao nenhuma suite pula por causa dela, nem contra o Worker.
+ *
  * `fetch` do Node, e nao `page.request`: o `beforeAll` do Playwright nao tem `page`, e o servidor
  * ja esta de pe quando os testes comecam (ordem do `webServer` + `globalSetup`).
  */
 
 export const BASE = process.env.BASE_URL || 'http://localhost:3100'
-
-/**
- * `E2E_RUNTIME=worker`: a suíte roda contra o Worker (`wrangler dev`). Lá a importação de Anki responde 503
- * `indisponivel_neste_runtime` até a Fase 3, e as suítes/casos que dependem dela pulam com o motivo.
- */
-export const NO_WORKER = process.env.E2E_RUNTIME === 'worker'
-export const MOTIVO_ANKI_SO_NO_NODE = 'importação de Anki é Node-only até a Fase 3 (503 indisponivel_neste_runtime)'
 
 export interface CartaoSemente {
   word: string
@@ -305,13 +301,43 @@ export interface BaralhoNoServidor {
 }
 
 /**
+ * As quatro notas de `tests/fixtures/baralho-moderno.apkg`, como o leitor do navegador as entrega (campos
+ * `Frente`/`Verso`/`Frase`, em ingles). Copiadas aqui, e nao lidas do `.apkg`, porque quem le o arquivo agora e
+ * o navegador: o `fetch` do Node nao tem o leitor.
+ */
+const NOTAS_DE_EXEMPLO = [
+  {
+    guid: 'h0',
+    frente: 'house',
+    verso: 'casa',
+    exemplo: 'I live in a big house.',
+    bruto: ['house', 'casa', 'I live in a big house.'],
+  },
+  {
+    guid: 'h1',
+    frente: 'water',
+    verso: 'água',
+    exemplo: 'A glass of water, please.',
+    bruto: ['water', 'água', 'A glass of water, please.'],
+  },
+  { guid: 'h2', frente: 'bread', verso: 'pão', bruto: ['bread', 'pão', ''] },
+  { guid: 'h3', frente: 'light', verso: 'luz claridade', bruto: ['<b>light</b>', 'luz<br>claridade', ''] },
+].map(({ bruto, ...nota }) => ({
+  ...nota,
+  notetype: 'Basic',
+  campos: ['Frente', 'Verso', 'Frase'],
+  camposBrutos: { Frente: bruto[0], Verso: bruto[1], Frase: bruto[2] },
+  tags: [] as string[],
+}))
+
+/**
  * UM BARALHO DO ANKI NO SERVIDOR, para as suites que dependem de haver um (`baralhos`, `facetas`).
  *
  * Num banco novo — o da CI e o do servidor proprio desta suite — nao ha baralho nenhum, e os casos
  * "condicionais a haver baralho" pulavam SEMPRE: cobertura que se acreditava ter e nunca rodava.
- * Aqui entra o `.apkg` de exemplo do repositorio (`tests/fixtures/baralho-moderno.apkg`, quatro notas
- * em ingles) pela MESMA rota que a tela de importacao usa (`POST /api/import/anki`, corpo cru, nome no
- * cabecalho). A rota ja ativa as notas. Idempotente: se o servidor ja tem baralho, devolve o que ha.
+ * Aqui entram quatro notas em ingles (as de `tests/fixtures/baralho-moderno.apkg`) pelo MESMO protocolo que a
+ * tela de importacao usa (`POST /api/anki/imports`: abrir, notas, fechar). O `fechar` ja ativa as notas.
+ * Idempotente: se o servidor ja tem baralho, devolve o que ha.
  */
 export async function semearBaralhoAnki(): Promise<BaralhoNoServidor[]> {
   const listar = async () => {
@@ -321,18 +347,28 @@ export async function semearBaralhoAnki(): Promise<BaralhoNoServidor[]> {
   }
   const antes = await listar()
   if (antes.some((b) => b.ativas > 0)) return antes
-  const { readFile } = await import('node:fs/promises')
-  const arquivo = await readFile('tests/fixtures/baralho-moderno.apkg')
-  const r = await fetch(`${BASE}/api/import/anki`, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/octet-stream',
-      'x-filename': 'baralho-moderno.apkg',
-      'x-src-lang': 'en',
-    },
-    body: new Uint8Array(arquivo),
+  const enviar = async (caminho: string, corpo: unknown) => {
+    const r = await fetch(`${BASE}${caminho}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(corpo),
+    })
+    if (!r.ok) throw new Error(`POST ${caminho} devolveu ${r.status}: ${(await r.text()).slice(0, 200)}`)
+    return (await r.json()) as { importId: string }
+  }
+  const { importId } = await enviar('/api/anki/imports', {
+    arquivo: 'baralho-moderno.apkg',
+    bytes: 1024,
+    formato: 'collection.anki21b',
+    nomeNoArquivo: null,
+    campos: ['Frente', 'Verso', 'Frase'],
+    totalNoArquivo: NOTAS_DE_EXEMPLO.length,
+    truncado: false,
+    idiomaOrigem: 'en',
+    amostra: NOTAS_DE_EXEMPLO.map((n) => ({ frente: n.frente, verso: n.verso })),
   })
-  if (!r.ok) throw new Error(`POST /api/import/anki devolveu ${r.status}: ${(await r.text()).slice(0, 200)}`)
+  await enviar(`/api/anki/imports/${importId}/notas`, { notas: NOTAS_DE_EXEMPLO })
+  await enviar(`/api/anki/imports/${importId}/fechar`, {})
   const depois = await listar()
   if (!depois.some((b) => b.ativas > 0)) throw new Error('o baralho de exemplo entrou sem nenhuma nota ativada')
   return depois

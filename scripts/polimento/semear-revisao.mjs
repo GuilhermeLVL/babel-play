@@ -13,8 +13,7 @@
  * (vencimento, estabilidade, erros) é escrito direto no banco de teste, como em `semear-cartoes.mjs`.
  * O áudio é um tom gerado aqui (WAV de 70 s): serve para o trecho tocar, não para ser ouvido.
  */
-import { readFile } from 'node:fs/promises'
-
+import { semearBaralhoModerno } from './_anki.mjs'
 import { abrirBanco } from './_banco.mjs'
 import { zerarBanco } from './zerar-banco.mjs'
 
@@ -203,13 +202,7 @@ async function sessao(titulo, falas, comAudio) {
 }
 
 /* O Anki primeiro: "put off" e as outras palavras do baralho entram sem sessão. */
-const apkg = await readFile('tests/fixtures/baralho-moderno.apkg')
-const imp = await fetch(`${BASE}/api/import/anki`, {
-  method: 'POST',
-  headers: { 'content-type': 'application/octet-stream', 'x-filename': 'baralho-moderno.apkg', 'x-src-lang': 'en' },
-  body: new Uint8Array(apkg),
-})
-if (!imp.ok) throw new Error(`POST /api/import/anki devolveu ${imp.status}`)
+await semearBaralhoModerno(BASE)
 /* Uma palavra colada à mão que DEPOIS aparece numa captura: o convite "Juntar a cena". */
 await json('/api/vocab/bulk-add', 'POST', {
   cards: [

@@ -44,7 +44,7 @@ import GerenciarBaralhos from './BaralhosAnki';
  * app que só aceita entrada prende; poder levar embora é o que torna a escolha de ficar uma
  * escolha de verdade.
  *
- * A IMPORTAÇÃO GRAVA O ACERVO DE UMA VEZ — a rota `/api/import/anki` já lê, aplica a régua de
+ * A IMPORTAÇÃO GRAVA O ACERVO DE UMA VEZ — o protocolo em lotes (`/api/anki/imports`) aplica a régua de
  * qualidade e grava o baralho, as notas e o ledger de import no servidor; quando a resposta
  * chega, a importação JÁ aconteceu. O que esta tela decide depois é outra coisa: quantas dessas
  * notas viram cartão jogável AGORA. Um baralho de 3.600 notas não pode despejar 3.600 cartões

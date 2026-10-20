@@ -7,7 +7,71 @@
 import JSZip from 'jszip'
 import mammoth from 'mammoth'
 
-import { descompactarComTeto } from './anki'
+/** O fluxo de leitura por pedaços do JSZip, na forma mínima que usamos. */
+interface FluxoDaEntrada {
+  on(evento: 'data', fn: (pedaco: Uint8Array) => void): FluxoDaEntrada
+  on(evento: 'error', fn: (erro: Error) => void): FluxoDaEntrada
+  on(evento: 'end', fn: () => void): FluxoDaEntrada
+  resume(): void
+}
+
+/**
+ * `internalStream` EXISTE no JSZip 3 e é o único jeito de ler a entrada em PEDAÇOS — mas não está
+ * nos tipos publicados. O cast fica isolado aqui, num ponto só, em vez de espalhar `any` pelo
+ * corpo da função. E a checagem em runtime não é cerimônia: se uma versão futura remover o
+ * método, isto denuncia com mensagem legível em vez de estourar "is not a function" — e, mais
+ * importante, RECUSA o arquivo em vez de cair silenciosamente num caminho sem teto.
+ */
+function abrirFluxo(arquivo: JSZip.JSZipObject): FluxoDaEntrada {
+  const bruto = arquivo as unknown as { internalStream?: (tipo: 'uint8array') => FluxoDaEntrada }
+  if (typeof bruto.internalStream !== 'function') {
+    throw new Error('esta versão do JSZip não expõe internalStream; o teto de expansão não pode ser garantido')
+  }
+  return bruto.internalStream('uint8array')
+}
+
+/**
+ * Descompacta UMA entrada com teto, contando os bytes conforme eles saem.
+ *
+ * NÃO CONFIA NO CABEÇALHO. O `uncompressedSize` declarado no ZIP é escrito por quem gerou o
+ * arquivo e um zip malicioso mente. Ele serve para recusar CEDO e barato; o que garante é a
+ * contagem durante o fluxo, que não tem como ser falsificada.
+ */
+async function descompactarComTeto(arquivo: JSZip.JSZipObject, nome: string, teto: number): Promise<Buffer> {
+  const declarado = (arquivo as unknown as { _data?: { uncompressedSize?: number } })._data?.uncompressedSize
+  if (typeof declarado === 'number' && declarado > teto) {
+    throw new Error(
+      `${nome} declara ${Math.round(declarado / 1048576)} MB descompactados; o teto é ${teto / 1048576} MB`,
+    )
+  }
+
+  const fluxo = abrirFluxo(arquivo)
+
+  return new Promise<Buffer>((resolve, reject) => {
+    const pedacos: Buffer[] = []
+    let total = 0
+    let abortado = false
+    fluxo
+      .on('data', (pedaco: Uint8Array) => {
+        if (abortado) return
+        total += pedaco.length
+        if (total > teto) {
+          abortado = true
+          // Solta o que já foi acumulado antes de rejeitar — sem isto, o pico de memória que
+          // estamos evitando aconteceria mesmo assim, só que na hora do erro.
+          pedacos.length = 0
+          reject(new Error(`${nome} passou de ${teto / 1048576} MB ao descompactar; arquivo recusado`))
+          return
+        }
+        pedacos.push(Buffer.from(pedaco))
+      })
+      .on('error', reject)
+      .on('end', () => {
+        if (!abortado) resolve(Buffer.concat(pedacos))
+      })
+      .resume()
+  })
+}
 
 /** Teto de expansão de um .docx (por entrada e no total): um texto de verdade não chega perto; o container tem 1 GB. */
 const TETO_DO_DOCX_POR_ENTRADA = 20 * 1024 * 1024

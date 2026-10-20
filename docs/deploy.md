@@ -199,9 +199,9 @@ curl "localhost:8787/cdn-cgi/local/scheduled?cron=17+3+*+*+*"   # dispara o cron
 docker stop pg-worker
 ```
 
-**E2E contra o Worker:** `E2E_RUNTIME=worker BASE_URL=http://localhost:8787 npm run test:e2e` (com os
-assets do `npm run build` em `dist/`). Com `E2E_RUNTIME=worker`, as suítes que dependem da importação de
-Anki pulam: ela é Node-only até a Fase 3 (503 `indisponivel_neste_runtime`). Ver `tests/e2e/README.md`.
+**E2E contra o Worker:** `BASE_URL=http://localhost:8787 npm run test:e2e` (com os assets do `npm run build` em
+`dist/`). A importação de Anki roda nos dois runtimes (o navegador lê o `.apkg` e o servidor recebe as notas em
+lotes), então nenhuma suíte pula por causa dela. Ver `tests/e2e/README.md`.
 
 O `worker:dev` e a fumaça sobem com `CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false`: sem isso o wrangler carrega
 o `.env` do repositório como vars, e as chaves reais de desenvolvimento entrariam no isolate. Os segredos

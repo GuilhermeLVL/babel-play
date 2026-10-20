@@ -38,7 +38,7 @@ const SO_COM_CONTA: Record<string, string> = {
     'gateway de IA: transcrição, tradução e LLM dependem de chave, cota e plano do servidor. A credencial é cifrada lá, nunca no navegador',
   '/api/tutor': 'o tutor depende da chave, da cota e do orçamento de IA do servidor',
   '/api/import':
-    'importar exige o servidor: yt-dlp, busca de página (CORS e SSRF), extração de PDF/DOCX e um .apkg de dezenas de MB',
+    'importar exige conta e o servidor (busca de página com CORS e SSRF, extração de documento); a leitura do .apkg é no navegador',
   '/api/anki': 'o acervo Anki nasce da importação, que não existe sem conta',
   '/api/images': 'proxy de imagens: o cliente já cai direto no Openverse quando ele falha',
   '/api/me': 'a conta é justamente o que não existe aqui — inclusive a cota e a exportação',

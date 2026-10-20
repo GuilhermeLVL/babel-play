@@ -34,7 +34,6 @@ const NODE_FS_PERMITIDO = new Set([
   'server/db/db.ts',
   'server/db/manutencao.ts',
   'server/db/travaDoPglite.ts',
-  'server/import/anki.ts',
   'server/lib/armazenamento.ts',
   'server/lib/armazenamentoR2.ts',
   'server/lib/corpoRecebido.ts',
@@ -101,6 +100,11 @@ describe('bundle do Worker', () => {
 
   it.each(SO_NO_NODE)('%s fica fora (só o stub entra)', (pacote) => {
     const dentro = Object.keys(meta.inputs).filter((p) => p.includes(`node_modules/${pacote}/`))
+    expect(dentro).toEqual([])
+  })
+
+  it('@libsql/client não entra no bundle do Worker', () => {
+    const dentro = Object.keys(meta.inputs).filter((p) => p.includes('node_modules/@libsql/'))
     expect(dentro).toEqual([])
   })
 

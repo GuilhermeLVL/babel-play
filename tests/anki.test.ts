@@ -3,8 +3,8 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { lerApkg } from '../server/import/anki'
 import { escritaDominante, lerTextoAnki, limparCampo } from '../src/core/anki'
+import { lerApkg } from './harness/lerApkgNode'
 
 /**
  * O LEITOR DE BARALHOS DO ANKI.

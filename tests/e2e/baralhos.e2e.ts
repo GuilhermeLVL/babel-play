@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { MOTIVO_ANKI_SO_NO_NODE, NO_WORKER, semearBaralhoAnki } from './_fixtures'
+import { semearBaralhoAnki } from './_fixtures'
 import {
   abrirOrganizar,
   abrirSeletor,
@@ -23,8 +23,6 @@ import {
  * O BARALHO VEM DA FIXTURE (`semearBaralhoAnki`): num banco novo não há nenhum, e a parte que depende
  * de haver um ("Gerenciar", o saldo, "Jogar só com este") pulava sempre. Agora ela roda.
  */
-
-test.skip(NO_WORKER, MOTIVO_ANKI_SO_NO_NODE)
 
 test.beforeAll(async () => {
   await semearBaralhoAnki()

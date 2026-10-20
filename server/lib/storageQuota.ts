@@ -14,7 +14,7 @@
  * reescreve o contador a partir do disco quando se quiser conferir.
  */
 import { randomUUID } from 'node:crypto'
-import { statfsSync, statSync } from 'node:fs'
+import { statfsSync } from 'node:fs'
 import path from 'node:path'
 
 import { and, eq, isNull, lte, or, sql } from 'drizzle-orm'
@@ -62,15 +62,6 @@ export interface ResultadoDeCota {
 /** Espelha `AUDIO_DIR` de server/routes/sessions.ts, lido em CHAMADA — importá-lo criaria ciclo. */
 export function diretorioDeAudio(): string {
   return process.env.AUDIO_DIR ? path.resolve(process.env.AUDIO_DIR) : path.join(process.cwd(), 'data', 'audio')
-}
-
-/** Tamanho de um arquivo, 0 se ele não existe. */
-export function tamanhoNoDisco(caminho: string): number {
-  try {
-    return statSync(caminho).size
-  } catch {
-    return 0
-  }
 }
 
 async function lerUso(userId: UserId): Promise<number | null> {
@@ -495,12 +486,6 @@ export async function reconciliarSeVencido(userId: UserId, audioDir = diretorioD
     log('warn', { event: 'storage_reconcile_failed', error: String((err as Error)?.message || err).slice(0, 120) })
     return (await lerUso(userId).catch(() => 0)) ?? 0
   }
-}
-
-/** O yt-dlp não informa o tamanho antes de baixar: 16 KB/s (~128 kbps), piso de 1 MB. */
-export function estimarBytesDeAudio(durationMs?: number | null): number {
-  const s = Number(durationMs) > 0 ? Number(durationMs) / 1000 : 0
-  return Math.max(MB, Math.ceil(s * 16 * 1024))
 }
 
 /** Resposta HTTP da recusa, igual nas duas rotas que gravam arquivo. */

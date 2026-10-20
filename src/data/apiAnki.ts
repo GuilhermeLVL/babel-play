@@ -12,7 +12,8 @@
  */
 import type { EstadoDeNotaAnki, FiltroDeNotaAnki } from '@core'
 
-import { apiFetch } from './api'
+import type { NotaAnki } from '../core/anki'
+import { apiFetch, IMPORT_TIMEOUT_MS, lerErro } from './api'
 
 // ───────────────────────────── tipos do contrato ─────────────────────────────
 
@@ -139,4 +140,104 @@ export async function purgarBaralho(deckId: string): Promise<{ notasApagadas: nu
   })
   if (!res.ok) throw new Error(`não consegui apagar o baralho (HTTP ${res.status})`)
   return (await res.json()) as { ok: true; notasApagadas: number }
+}
+
+
+// ───────────────────────────── importação em lotes (`/api/anki/imports`) ─────────────────────────────
+// Espelha `abrirImportAnkiSchema` / `notaRecebidaSchema` de `server/validation.ts`. Quem lê o arquivo é o
+// navegador; o servidor recebe as notas em lotes (abrir → notas × N → fechar).
+
+export interface AberturaDeImport {
+  arquivo: string
+  bytes: number
+  formato: string
+  nomeNoArquivo?: string | null
+  baralhos?: string[]
+  campos: string[]
+  totalNoArquivo: number
+  truncado: boolean
+  idiomaOrigem?: string | null
+  idiomaAlvo?: string | null
+  /** Até 200 notas para o servidor conferir o idioma e detectar baralho monolíngue. */
+  amostra: Array<{ frente: string; verso: string }>
+}
+
+export interface ImportAberto {
+  importId: string
+  deckId: string
+  idiomaOrigem: string | null
+  /** Só quando o idioma declarado e a escrita da amostra se contradisseram. */
+  avisoIdioma?: string
+}
+
+export interface ResumoDoLote {
+  novas: number
+  atualizadas: number
+  iguais: number
+  descartadas: number
+  porMotivo: Record<string, number>
+}
+
+export interface FechamentoDeImport {
+  importId: string
+  deckId: string
+  resumo: ResumoDoLote & { ativadas: number; notas: number }
+  /** A primeira leva não virou cartão jogável; o import em si NÃO foi desfeito. */
+  erroDeAtivacao?: string
+  code?: string
+}
+
+/** 429 do limitador de lotes: `segundos` vem do `Retry-After` (ou `null` se o cabeçalho faltou). */
+export class LimiteDeLotes extends Error {
+  constructor(
+    mensagem: string,
+    readonly segundos: number | null,
+  ) {
+    super(mensagem)
+    this.name = 'LimiteDeLotes'
+  }
+}
+
+async function jsonOuErro<T>(res: Response, padrao: string): Promise<T> {
+  if (res.ok) return (await res.json()) as T
+  const e = await lerErro(res)
+  const mensagem = e.error || padrao
+  if (res.status === 429) {
+    const s = Number(res.headers?.get?.('Retry-After'))
+    throw new LimiteDeLotes(mensagem, Number.isFinite(s) && s > 0 ? s : null)
+  }
+  throw new Error(mensagem)
+}
+
+/** A nota como o schema do servidor a quer: `campos` e `camposBrutos` obrigatórios, `guid` só quando há. */
+export function notaParaOFio(n: NotaAnki): Record<string, unknown> {
+  const { guid, campos, camposBrutos, baralho: _baralho, ...resto } = n
+  return { ...resto, ...(guid ? { guid } : {}), campos: campos ?? [], camposBrutos: camposBrutos ?? {} }
+}
+
+const comoJson = (corpo: unknown): RequestInit => ({
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(corpo),
+})
+
+export async function abrirImportAnki(dados: AberturaDeImport): Promise<ImportAberto> {
+  const res = await apiFetch('/api/anki/imports', { ...comoJson(dados), timeoutMs: IMPORT_TIMEOUT_MS })
+  return jsonOuErro<ImportAberto>(res, 'não consegui abrir a importação')
+}
+
+export async function enviarNotasDoImport(importId: string, notas: NotaAnki[]): Promise<ResumoDoLote> {
+  const res = await apiFetch(`/api/anki/imports/${encodeURIComponent(importId)}/notas`, {
+    ...comoJson({ notas: notas.map(notaParaOFio) }),
+    timeoutMs: IMPORT_TIMEOUT_MS,
+  })
+  return jsonOuErro<ResumoDoLote>(res, 'não consegui enviar as notas')
+}
+
+export async function fecharImportAnki(importId: string): Promise<FechamentoDeImport> {
+  const res = await apiFetch(`/api/anki/imports/${encodeURIComponent(importId)}/fechar`, {
+    method: 'POST',
+    timeoutMs: IMPORT_TIMEOUT_MS,
+  })
+  return jsonOuErro<FechamentoDeImport>(res, 'não consegui concluir a importação')
 }

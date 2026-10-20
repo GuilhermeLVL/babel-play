@@ -24,13 +24,16 @@ vi.mock('../src/data/apiAnki', () => ({
   ativarNotasDoBaralho: vi.fn(),
 }))
 
-import BaralhoAnki from '../src/components/views/BaralhoAnki'
-import * as api from '../src/data/api'
-import * as apiAnki from '../src/data/apiAnki'
+vi.mock('../src/data/importarAnki', () => ({
+  importarBaralhoAnki: vi.fn(),
+}))
 
-const mocks = api as unknown as {
-  apiFetch: ReturnType<typeof vi.fn>
-  exportarApkg: ReturnType<typeof vi.fn>
+import BaralhoAnki from '../src/components/views/BaralhoAnki'
+import * as apiAnki from '../src/data/apiAnki'
+import * as importar from '../src/data/importarAnki'
+
+const mocksImport = importar as unknown as {
+  importarBaralhoAnki: ReturnType<typeof vi.fn>
 }
 const mocksAnki = apiAnki as unknown as {
   ativarNotasDoBaralho: ReturnType<typeof vi.fn>
@@ -57,10 +60,6 @@ function respostaImport(overrides: Record<string, unknown> = {}) {
     amostra: [{ frente: 'apple', verso: 'maçã', exemplo: null }],
     ...overrides,
   }
-}
-
-function jsonResponse(body: unknown, ok = true) {
-  return { ok, status: ok ? 200 : 400, json: async () => body }
 }
 
 function props(over: Record<string, unknown> = {}) {
@@ -101,7 +100,7 @@ describe('BaralhoAnki — o voltar diz para onde volta', () => {
 
 describe('BaralhoAnki — importar', () => {
   it('mostra o saldo do acervo (novas/atualizadas/iguais/descartadas) depois de importar', async () => {
-    mocks.apiFetch.mockResolvedValue(jsonResponse(respostaImport()))
+    mocksImport.importarBaralhoAnki.mockResolvedValue(respostaImport())
     render(<BaralhoAnki {...props()} />)
 
     escolherArquivo()
@@ -115,7 +114,7 @@ describe('BaralhoAnki — importar', () => {
   })
 
   it('deixa explícito que nada foi para a fila de estudo ainda', async () => {
-    mocks.apiFetch.mockResolvedValue(jsonResponse(respostaImport()))
+    mocksImport.importarBaralhoAnki.mockResolvedValue(respostaImport())
     render(<BaralhoAnki {...props()} />)
 
     escolherArquivo()
@@ -124,7 +123,7 @@ describe('BaralhoAnki — importar', () => {
   })
 
   it('o botão de ativar chama a API e mostra o resultado, avisando das restantes', async () => {
-    mocks.apiFetch.mockResolvedValue(jsonResponse(respostaImport()))
+    mocksImport.importarBaralhoAnki.mockResolvedValue(respostaImport())
     mocksAnki.ativarNotasDoBaralho.mockResolvedValue({ ativadas: 275, restantes: 25 })
     render(<BaralhoAnki {...props()} />)
 
@@ -139,19 +138,17 @@ describe('BaralhoAnki — importar', () => {
   })
 
   it('quando não há nada ativável (tudo descartado) o botão não aparece', async () => {
-    mocks.apiFetch.mockResolvedValue(
-      jsonResponse(
-        respostaImport({
-          resumo: {
-            notas: 10,
-            novas: 0,
-            atualizadas: 0,
-            iguais: 0,
-            descartadas: 10,
-            porMotivo: { 'palavra-curta': 10 },
-          },
-        }),
-      ),
+    mocksImport.importarBaralhoAnki.mockResolvedValue(
+      respostaImport({
+        resumo: {
+          notas: 10,
+          novas: 0,
+          atualizadas: 0,
+          iguais: 0,
+          descartadas: 10,
+          porMotivo: { 'palavra-curta': 10 },
+        },
+      }),
     )
     render(<BaralhoAnki {...props()} />)
 
@@ -162,8 +159,27 @@ describe('BaralhoAnki — importar', () => {
     expect(screen.getByText(/Nenhuma nota deste baralho passou pela régua/)).toBeTruthy()
   })
 
+  it('mostra o progresso do envio enquanto a importação roda', async () => {
+    let terminar: (r: unknown) => void = () => {}
+    mocksImport.importarBaralhoAnki.mockImplementation(
+      (_a: File, _i: string, _n: string, aoProgredir?: (p: unknown) => void) => {
+        aoProgredir?.({ etapa: 'enviando', feitas: 1500, total: 3600 })
+        return new Promise((resolve) => {
+          terminar = resolve
+        })
+      },
+    )
+    render(<BaralhoAnki {...props()} />)
+
+    escolherArquivo()
+
+    await waitFor(() => expect(screen.getByText(/1\.500 de 3\.600/)).toBeTruthy())
+    terminar(respostaImport())
+    await waitFor(() => expect(screen.getByText('260')).toBeTruthy())
+  })
+
   it('erro na importação aparece como erro, não como "0 notas"', async () => {
-    mocks.apiFetch.mockResolvedValue(jsonResponse({ error: 'zip corrompido' }, false))
+    mocksImport.importarBaralhoAnki.mockRejectedValue(new Error('zip corrompido'))
     render(<BaralhoAnki {...props()} />)
 
     escolherArquivo()
@@ -174,14 +190,12 @@ describe('BaralhoAnki — importar', () => {
   })
 
   it('diz quando o arquivo foi truncado (mais notas do que o teto de leitura)', async () => {
-    mocks.apiFetch.mockResolvedValue(
-      jsonResponse(
-        respostaImport({
-          truncado: true,
-          totalNoArquivo: 60000,
-          resumo: { notas: 50000, novas: 50000, atualizadas: 0, iguais: 0, descartadas: 0, porMotivo: {} },
-        }),
-      ),
+    mocksImport.importarBaralhoAnki.mockResolvedValue(
+      respostaImport({
+        truncado: true,
+        totalNoArquivo: 60000,
+        resumo: { notas: 50000, novas: 50000, atualizadas: 0, iguais: 0, descartadas: 0, porMotivo: {} },
+      }),
     )
     render(<BaralhoAnki {...props()} />)
 

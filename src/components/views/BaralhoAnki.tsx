@@ -23,7 +23,7 @@ import {
   listarBaralhosAnki,
   type ResultadoAtivar,
 } from '../../data/apiAnki';
-import { type ImportAnkiResposta, importarBaralhoAnki, soAColecao } from '../../data/importarAnki';
+import { type ImportAnkiResposta, importarBaralhoAnki, type ProgressoDaImportacao } from '../../data/importarAnki';
 import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
 import { numero, t } from '../../lib/i18n';
 import { langLabelNaUI } from '../../lib/languages';
@@ -118,6 +118,7 @@ export default function BaralhoAnki({
     void recarregarBaralhos();
   }, [recarregarBaralhos]);
   const [enviando, setEnviando] = useState(false);
+  const [progresso, setProgresso] = useState<ProgressoDaImportacao | null>(null);
   /** Gerando o `.apkg` para levar — separado de `enviando` (importar), que muda a aba "Trazer". */
   const [gerando, setGerando] = useState(false);
   // "Babel Play inglês" (protótipo): o nome do idioma, não o código.
@@ -139,9 +140,10 @@ export default function BaralhoAnki({
     setAtivacao(null);
     setErroAtivar(null);
     setNomeArquivo(arquivo.name);
+    setProgresso(null);
     setEnviando(true);
     try {
-      const resp = await importarBaralhoAnki(await soAColecao(arquivo), idioma, idiomaNativo);
+      const resp = await importarBaralhoAnki(arquivo, idioma, idiomaNativo, setProgresso);
       setResultado(resp);
       void recarregarBaralhos();
       await onImportou();
@@ -321,8 +323,16 @@ export default function BaralhoAnki({
               <i style={{ animationDelay: '.2s' }} />
               <i style={{ animationDelay: '.4s' }} />
             </span>
-            <span role="status">
-              Lendo <b>{nomeArquivo}</b>…
+            <span role="status" data-testid="anki-progresso">
+              {progresso?.etapa === 'enviando'
+                ? t('Enviando {feitas} de {total} notas…', {
+                    feitas: numero(progresso.feitas),
+                    total: numero(progresso.total),
+                  })
+                : progresso?.etapa === 'concluindo'
+                  ? t('Concluindo…')
+                  : t('Lendo o arquivo…')}{' '}
+              <b>{nomeArquivo}</b>
             </span>
           </div>
           <div className="barra" style={{ marginTop: 14 }}>

@@ -18,7 +18,7 @@ import {
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
 
 import { ativarNotasDoBaralho, purgarBaralho } from '../../../data/apiAnki';
-import { type ImportAnkiResposta, importarBaralhoAnki, soAColecao } from '../../../data/importarAnki';
+import { type ImportAnkiResposta, importarBaralhoAnki, type ProgressoDaImportacao } from '../../../data/importarAnki';
 import { numero, t, tp } from '../../../lib/i18n';
 import { polido, reduz } from '../../../lib/polimento/base';
 import { confete } from '../../../lib/polimento/planos';
@@ -106,6 +106,7 @@ export function FluxoDoAnki({
   const [erro, setErro] = useState<string | null>(null);
   const [ativar, setAtivar] = useState(ATIVAR_DE_INICIO);
   const [ocupado, setOcupado] = useState(false);
+  const [progresso, setProgresso] = useState<ProgressoDaImportacao | null>(null);
   /** `null` no passo 1; no passo 2, quantas viraram cartão. */
   const [ativadas, setAtivadas] = useState<number | null>(null);
   const [escolhido, setEscolhido] = useState(false);
@@ -124,7 +125,7 @@ export function FluxoDoAnki({
     if (leitura.current?.de !== de)
       leitura.current = {
         de,
-        pedido: soAColecao(arquivo).then((colecao) => importarBaralhoAnki(colecao, idioma, idiomaNativo)),
+        pedido: importarBaralhoAnki(arquivo, idioma, idiomaNativo, setProgresso),
       };
     const pedido = leitura.current.pedido;
     void (async () => {
@@ -263,7 +264,16 @@ export function FluxoDoAnki({
             <span className="q-ic">
               <Upload aria-hidden />
             </span>
-            <h2>{t('Lendo {nome}…', { nome })}</h2>
+            <h2>
+              {progresso?.etapa === 'enviando'
+                ? t('Enviando {feitas} de {total} notas…', {
+                    feitas: numero(progresso.feitas),
+                    total: numero(progresso.total),
+                  })
+                : progresso?.etapa === 'concluindo'
+                  ? t('Concluindo…')
+                  : t('Lendo {nome}…', { nome })}
+            </h2>
             <p>{t('Baralho grande leva alguns segundos.')}</p>
           </div>
         )}

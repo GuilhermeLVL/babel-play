@@ -120,7 +120,7 @@ Os trabalhos periódicos moram num registro só, `server/jobs/registro.ts`, e pa
 No **Node**, o processo que prepara os dados agenda cada job com `setTimeout` (`server/boot/jobs.ts`): a
 primeira passada alguns minutos depois do boot e as seguintes no intervalo da tabela. No **Worker**, o
 `scheduled` dos Cron Triggers chama `executarJobsDoCron(controller.cron)`, que roda os jobs daquela expressão
-(Task 12 liga; `triggers.crons` sai desta tabela).
+(`worker.ts`; `triggers.crons` do `wrangler.jsonc` sai desta tabela).
 
 | Job                        | Cron (UTC)   | Node: 1ª passada / intervalo | Condição                              | Teto por passada                    |
 | -------------------------- | ------------ | ---------------------------- | ------------------------------------- | ----------------------------------- |
@@ -145,8 +145,8 @@ durante o job (`travarGlobal`), porque um job longo seguraria uma conexão do Hy
 Postgres por minutos. Os jobs são idempotentes de qualquer forma; a lease tira o trabalho em dobro.
 
 **Rodar um job à mão.** No Node, com o mesmo `.env` do servidor: `npm run job` lista os jobs (com cron e se a
-condição vale) e `npm run job -- <nome>` roda um (sai 0 em `ok`/`pulado`, 1 em `falhou`). No Worker (Task 12),
-em `wrangler dev`: `curl "http://localhost:8787/cdn-cgi/local/scheduled?cron=23+3+*+*+*"` dispara o
+condição vale) e `npm run job -- <nome>` roda um (sai 0 em `ok`/`pulado`, 1 em `falhou`). No Worker,
+em `wrangler dev` (ver "Worker em desenvolvimento"): `curl "http://localhost:8787/cdn-cgi/local/scheduled?cron=23+3+*+*+*"` dispara o
 `scheduled` com aquela expressão. `POST /api/admin/armazenamento/reconciliar` continua reconciliando todo
 mundo de uma vez, pelo mesmo `reconciliarVencidos` do job.
 
@@ -175,6 +175,58 @@ ou do ambiente; o Ollama local é justamente loopback), Asaas (`server/lib/asaas
 (DSN do ambiente) e Langfuse (`LANGFUSE_BASE_URL`). Para eles, o que ainda precisa de `waitUntil` passa por
 `emSegundoPlano`. **Compressão:** o
 middleware `compression` é montado só no Node; no Worker quem comprime é a borda.
+
+## Worker em desenvolvimento
+
+O app inteiro roda como Cloudflare Worker: `worker.ts` (ponto de entrada) + `wrangler.jsonc`. **Sempre com
+`-c wrangler.jsonc`**: o `wrangler.toml` ao lado é o projeto Pages da edição estática (`functions/quest/*`) e
+é o que o wrangler acha sozinho. Localmente nada precisa de credencial da Cloudflare: o Miniflare simula o R2
+(`MIDIA`) e os assets (`dist/`, o build do Vite), e o Hyperdrive vai direto a um Postgres local.
+
+```bash
+# 1. Postgres 17 de teste, migrado (o Worker NÃO migra: confere o schema e responde 503 se faltar)
+docker run --rm -d --name pg-worker -e POSTGRES_PASSWORD=teste -p 5433:5432 postgres:17
+DATABASE_URL=postgres://postgres:teste@localhost:5433/postgres npm run db:migrate
+
+# 2. segredos locais em .dev.vars (fora do git; nunca versionar)
+#    SECRET_KEY=<64 hex aleatórios>          (openssl rand -hex 32)
+#    SUPABASE_URL=https://<projeto>.supabase.co   (o JWKS do login; AUTH_REQUIRED=1 já vem do wrangler.jsonc)
+
+# 3. subir (http://localhost:8787); /api/* vai ao Express, o resto aos assets (SPA)
+npm run worker:dev
+curl -s localhost:8787/api/health            # {"status":"ok","db":"up","banco":"postgres",…}
+curl "localhost:8787/cdn-cgi/local/scheduled?cron=17+3+*+*+*"   # dispara o cron daquela expressão
+docker stop pg-worker
+```
+
+O banco local vem da `localConnectionString` do `wrangler.jsonc` (porta 5433); a variável
+`CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` tem precedência sobre ela. `wrangler dev --remote`
+usaria o Hyperdrive de verdade (`babel-sp`) e exige `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID`.
+
+**Por requisição** o `worker.ts` liga o R2 (`ligarBucketDoR2(env.MIDIA)`), abre um `pg.Client` pelo Hyperdrive
+dentro de `comExecutor` e um `comContextoDoWorker` cujo `waitUntil` anota cada promessa; o `Client` só fecha
+depois que o corpo da resposta saiu inteiro e todo `waitUntil` assentou. Fora desse escopo, `db` lança no
+Worker ("db fora de comExecutor") em vez de abrir um Pool por isolate. O `scheduled` faz o mesmo em volta de
+`executarJobsDoCron(controller.cron)`. Os `vars`/secrets chegam em `process.env` pelo `nodejs_compat` (data
+de compatibilidade 2026-09-01). Cron: as 7 expressões do registro estão em `triggers.crons` (plano Workers
+Paid; no Free, com teto de 5, os diários das 03h teriam de virar uma expressão só).
+
+**Bundle** (`npm run worker:build`): o próprio wrangler empacota (`deploy --dry-run`, os mesmos `alias` do
+`dev`) em `dist-worker/`, com relatório de tamanho e de quem importa `node:fs`. Medido em 20/10/2026: 5,7 MB
+bruto, 1,3 MB gzip. `tests/worker/bundle.test.ts` trava o teto de 10 MB e a lista de importadores.
+
+**Só no Node** (no bundle do Worker viram stubs de `server/stubs/`, que lançam se forem usados):
+`@electric-sql/pglite` (o banco do Worker é o `Client` da requisição), os migradores do Drizzle (migração é do
+deploy), `jsdom` + `@mozilla/readability` (importação de link), `pdfjs-dist` + `mammoth` (importação de
+documento), `loopback-capture` (`/api/audio` responde 403 no Worker) e `dotenv/config`. `prom-client` e
+`undici` nem entram: são carregados por `createRequire` só no ramo do Node. A importação de Anki, documento e
+link responde `503 indisponivel_neste_runtime` no Worker até a Fase 3. O `iconv-lite` 0.7 (o 0.4 do Express
+quebra no workerd) vem do `overrides` do `package.json`, para Node e Worker.
+
+**Fumaça** (`npm run fumaca:worker`, ou `WRANGLER_FUMACA=1 npx vitest run tests/worker/fumaca.test.ts`): sobe
+um Postgres 17 próprio (`pg-worker-fumaca`, porta 5434), migra, gera uma chave ES256 servida num JWKS local no
+papel do Supabase, sobe o `wrangler dev` e confere health (`banco: 'postgres'`), JWT → `/api/me`, upload de
+1 MB + leitura com `Range` (206) e um cron; derruba tudo no fim. `--verboso` imprime o log do wrangler.
 
 ## O que fica desativado por design
 

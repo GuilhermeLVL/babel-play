@@ -118,7 +118,7 @@ export async function executarJob(nome: string, o: OpcoesDoExecutor = {}): Promi
  * Roda, em sequência, todos os jobs cuja expressão é `cron` — o que o `scheduled` do Worker recebe em
  * `controller.cron`. Expressão sem job: nada roda.
  *
- * @public — a Task 12 (`worker.ts`, `scheduled`) é quem chama; por ora, só os testes.
+ * Quem chama é o `scheduled` de `worker.ts` (e os testes).
  */
 export async function executarJobsDoCron(cron: string, o: OpcoesDoExecutor = {}): Promise<ResultadoDoJob[]> {
   const resultados: ResultadoDoJob[] = []

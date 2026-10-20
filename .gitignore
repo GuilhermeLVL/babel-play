@@ -120,3 +120,9 @@ vitest-resultado.json
 # Cache do Python (bancadas de fala e Blender)
 __pycache__/
 *.pyc
+
+# ── Worker (Fase 2): estado local do wrangler, bundle e segredos locais ─────
+.wrangler/
+dist-worker/
+.dev.vars
+.dev.vars.*

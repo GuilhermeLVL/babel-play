@@ -31,6 +31,9 @@
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist-server/server.cjs && esbuild server/operacao/cli.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist-server/operacao.cjs",
     "build:estatica": "node scripts/build-estatica.mjs",
     "start": "node dist-server/server.cjs",
+    "worker:build": "node scripts/worker/build.mjs",
+    "worker:dev": "wrangler dev -c wrangler.jsonc --env=\"\"",
+    "fumaca:worker": "node scripts/worker/fumaca.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "ia:validar": "tsx scripts/ia/validar-registro.ts",
@@ -43,7 +46,7 @@
     "test:cov": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "lint": "eslint src server server.ts tests --max-warnings 0",
+    "lint": "eslint src server server.ts worker.ts tests --max-warnings 0",
     "formato": "prettier --check .",
     "formato:corrigir": "prettier --write .",
     "morto:arquivos": "knip --include files,dependencies,unlisted --no-progress",
@@ -151,7 +154,8 @@
     "typescript": "~5.8.2",
     "typescript-eslint": "^8.71.2",
     "vite": "^6.2.3",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "wrangler": "^4.151.3"
   },
   "overrides": {
     "@ricky0123/vad-web": {
@@ -165,7 +169,8 @@
     },
     "@esbuild-kit/core-utils": {
       "esbuild": "^0.25.0"
-    }
+    },
+    "iconv-lite": "0.7.0"
   },
   "lint-staged": {
     "*.{ts,tsx,mjs,js}": [

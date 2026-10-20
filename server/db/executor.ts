@@ -24,7 +24,7 @@ const als = new AsyncLocalStorage<Executor>()
 /**
  * Roda `fn` com `executor` como o banco de todo `db.*`, `emTransacao`, `emLote` e `travar*` de dentro.
  *
- * @public — por ora só os testes chamam; a Task 12 (`worker.ts`) liga por requisição.
+ * `worker.ts` abre um por requisição (e por disparo do cron); os testes também.
  */
 export function comExecutor<T>(executor: Executor, fn: () => T): T {
   return als.run(executor, fn)

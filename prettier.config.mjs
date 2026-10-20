@@ -28,6 +28,7 @@ export default {
       files: [
         'server/**/*.ts',
         'server.ts',
+        'worker.ts',
         'tests/**/*.ts',
         'tests/**/*.tsx',
         'scripts/**/*.mjs',

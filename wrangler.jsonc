@@ -1,0 +1,83 @@
+// O app inteiro como Cloudflare Worker (Fase 2, Task 12): `worker.ts` serve /api/* pelo Express e o resto
+// pelos assets do build do Vite. SEMPRE com `-c wrangler.jsonc`: o `wrangler.toml` ao lado é o projeto
+// Pages da edição estática (functions/quest/*) e é o que o wrangler acha sozinho.
+//   npm run worker:dev    (local: Miniflare simula R2 e assets; Hyperdrive vai ao Postgres local)
+//   npm run worker:build  (bundle + relatório de tamanho em dist-worker/)
+// Nada de segredo aqui: só ids (que não são segredos) e `vars` públicos. Os secrets vão por
+// `wrangler secret put` (produção) ou `.dev.vars` (local, fora do git). Ver docs/deploy.md.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "babel-play",
+  "main": "worker.ts",
+  "compatibility_date": "2026-09-01",
+  // Com a data ≥ 2025-04-01, os vars/secrets já vêm em process.env; node:fs, AsyncLocalStorage e
+  // httpServerHandler também (spike S7).
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  // Perto do Supabase de São Paulo (spike S7: aceito e medido).
+  "placement": { "region": "aws:sa-east-1" },
+  "observability": { "enabled": true },
+
+  // babel-sp: origem direta no Supabase SP, verify-full com a CA supabase-2021, cache desligado.
+  // Local: o `wrangler dev` usa a localConnectionString (ou a variável
+  // CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE, que tem precedência) — o Postgres 17 de
+  // teste em Docker na porta 5433 (senha de teste, não é segredo).
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "731fd033ab814021963c4faea04fdd20",
+      "localConnectionString": "postgres://postgres:teste@localhost:5433/postgres",
+    },
+  ],
+
+  // Áudio das sessões e anexos (server/lib/armazenamentoR2.ts).
+  "r2_buckets": [{ "binding": "MIDIA", "bucket_name": "babel-midia" }],
+
+  // O build do Vite. /api/* passa pelo Worker; o resto é estático, e caminho desconhecido cai no
+  // index.html (SPA).
+  "assets": {
+    "directory": "dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"],
+  },
+
+  // Uma expressão por job de server/jobs/registro.ts (7 distintas: plano Workers Paid). No plano Free
+  // (teto de 5), agrupar os diários das 03h numa expressão só — executarJobsDoCron roda em sequência.
+  // Local: GET /cdn-cgi/local/scheduled?cron=<expressão>.
+  "triggers": {
+    "crons": ["5 3 * * *", "7 3 * * *", "11 3 * * *", "13 3 * * *", "17 3 * * *", "23 3 * * *", "19 * * * *"],
+  },
+
+  // O que só existe no Node fica fora do bundle: cada pacote vira um stub que lança se for usado
+  // (server/stubs/). scripts/worker/build.mjs e tests/worker/bundle.test.ts conferem o resultado.
+  // O iconv-lite 0.7 (o 0.4 do Express quebra no workerd) vem do `overrides` do package.json.
+  "alias": {
+    "@electric-sql/pglite": "./server/stubs/pglite.ts",
+    "jsdom": "./server/stubs/jsdom.ts",
+    "@mozilla/readability": "./server/stubs/readability.ts",
+    "mammoth": "./server/stubs/mammoth.ts",
+    "pdfjs-dist/legacy/build/pdf.mjs": "./server/stubs/pdfjs.ts",
+    "loopback-capture": "./server/stubs/loopbackCapture.ts",
+    "dotenv/config": "./server/stubs/vazio.ts",
+    "drizzle-orm/node-postgres/migrator": "./server/stubs/migrador.ts",
+    "drizzle-orm/pglite/migrator": "./server/stubs/migrador.ts",
+  },
+
+  // Só o que é público. O Worker é sempre o modo hospedado (JWT do Supabase). NODE_ENV não entra: o
+  // wrangler o define no bundle (development no `dev`, production no `deploy`).
+  "vars": {
+    "AUTH_REQUIRED": "1",
+  },
+
+  // Esqueleto do staging (Fase 4): bindings NÃO são herdados, cada ambiente declara os seus.
+  // O Hyperdrive de staging (outro banco) ainda não existe; até lá o staging não tem banco.
+  "env": {
+    "staging": {
+      "name": "babel-play-staging",
+      "r2_buckets": [{ "binding": "MIDIA", "bucket_name": "babel-midia-staging" }],
+      "triggers": { "crons": [] },
+      "vars": { "AUTH_REQUIRED": "1" },
+    },
+  },
+}

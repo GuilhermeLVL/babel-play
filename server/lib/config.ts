@@ -956,6 +956,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'base de onde o navegador baixa os modelos do Bergamot (tradução pt→en no aparelho, A9b). Ausente: os modelos saem do PRÓPRIO domínio (o build os baixa com sha256 conferido). Com ela, a CSP libera a origem em `connect-src`',
   },
   {
+    nome: 'VITE_ORT_WASM_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'base pública de onde o navegador carrega o runtime WASM do ONNX (`ort-wasm-*`, até 26 MB; Fase 4, bucket R2 `frasy-modelos`). Ausente: sai do PRÓPRIO domínio. Com ela, a CSP libera a origem em `connect-src`, `script-src` e `worker-src` (o ORT faz `import()` do `.mjs`)',
+  },
+  {
     nome: 'VITE_SELF_HOST_MODELS',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',

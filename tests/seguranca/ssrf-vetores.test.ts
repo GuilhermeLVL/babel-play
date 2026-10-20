@@ -9,7 +9,7 @@
  *
  * Vetores por IP literal de propósito: sem DNS, o teste é hermético (não depende de rede).
  */
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { assertPublicUrl, ehDestinoBloqueado } from '../../server/ai/ssrf'
 
@@ -36,5 +36,95 @@ describe('GAP-002 — guard anti-SSRF cobre IPv4-mapped e faixas internas', () =
 
   it.each(DEVE_PERMITIR)('permite %s (%s)', async (url) => {
     await expect(assertPublicUrl(url)).resolves.toBeUndefined()
+  })
+})
+
+/**
+ * O MESMO GUARD NO WORKER (Task 11 da Fase 2). Lá não há `node:dns`: o nome é resolvido por DNS-over-HTTPS
+ * (`https://cloudflare-dns.com/dns-query`, `accept: application/dns-json`), e TODO endereço da resposta
+ * passa pela mesma lista de bloqueio. O gancho `BABEL_RUNTIME=worker` faz o Node responder como o Worker;
+ * o `fetch` global é um dublê que responde como o DoH.
+ */
+describe('Worker (BABEL_RUNTIME=worker) — resolução por DoH, mesma lista de bloqueio', () => {
+  const guarda = process.env.BABEL_RUNTIME
+  type Respostas = Record<string, { A?: string[]; AAAA?: string[]; Status?: number }>
+  let consultas: string[] = []
+
+  /** Dublê do DoH: responde às consultas `?name=&type=` com o mapa dado; qualquer outro destino é erro. */
+  function dublêDoDoh(respostas: Respostas) {
+    consultas = []
+    return vi.fn(async (entrada: string | URL | Request, init?: RequestInit) => {
+      const url = new URL(String(entrada instanceof Request ? entrada.url : entrada))
+      if (url.origin + url.pathname !== 'https://cloudflare-dns.com/dns-query') {
+        throw new Error(`o guard não devia conectar em ${url.href}`)
+      }
+      expect(new Headers(init?.headers).get('accept')).toBe('application/dns-json')
+      const nome = url.searchParams.get('name') ?? ''
+      const tipo = url.searchParams.get('type') as 'A' | 'AAAA'
+      consultas.push(`${nome}/${tipo}`)
+      const r = respostas[nome]
+      const Answer = (r?.[tipo] ?? []).map((data) => ({ name: nome, type: tipo === 'A' ? 1 : 28, TTL: 30, data }))
+      return Response.json({ Status: r ? (r.Status ?? 0) : 3, Answer })
+    })
+  }
+
+  beforeEach(() => {
+    process.env.BABEL_RUNTIME = 'worker'
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    if (guarda === undefined) delete process.env.BABEL_RUNTIME
+    else process.env.BABEL_RUNTIME = guarda
+  })
+
+  it.each(DEVE_BLOQUEAR)('bloqueia %s (%s) sem consultar DNS', async (url) => {
+    const f = dublêDoDoh({})
+    vi.stubGlobal('fetch', f)
+    await expect(assertPublicUrl(url)).rejects.toSatisfy(ehDestinoBloqueado)
+    expect(f).not.toHaveBeenCalled()
+  })
+
+  it.each(DEVE_PERMITIR)('permite %s (%s)', async (url) => {
+    vi.stubGlobal('fetch', dublêDoDoh({}))
+    await expect(assertPublicUrl(url)).resolves.toBeUndefined()
+  })
+
+  it.each<[string, Respostas[string]]>([
+    ['loopback', { A: ['127.0.0.1'] }],
+    ['metadata', { A: ['169.254.169.254'] }],
+    ['privado 10/8', { A: ['10.0.0.7'] }],
+    ['privado 172.16/12', { A: ['172.20.1.1'] }],
+    ['privado 192.168/16', { A: ['192.168.0.10'] }],
+    ['CGNAT', { A: ['100.64.0.1'] }],
+    ['0.0.0.0', { A: ['0.0.0.0'] }],
+    ['IPv6 loopback', { AAAA: ['::1'] }],
+    ['ULA fc00::/7 (rede privada do Fly)', { AAAA: ['fdaa:0:1::3'] }],
+    ['link-local IPv6', { AAAA: ['fe80::1'] }],
+    ['um público E um privado', { A: ['93.184.216.34', '10.1.2.3'] }],
+    ['público no A, loopback mapeado no AAAA', { A: ['93.184.216.34'], AAAA: ['::ffff:127.0.0.1'] }],
+    ['resposta que não é IP', { A: ['nao-e-ip'] }],
+  ])('DoH devolvendo %s → recusa', async (_rotulo, resposta) => {
+    vi.stubGlobal('fetch', dublêDoDoh({ 'alvo.exemplo': resposta }))
+    await expect(assertPublicUrl('https://alvo.exemplo/v1')).rejects.toSatisfy(ehDestinoBloqueado)
+    expect(consultas.sort()).toEqual(['alvo.exemplo/A', 'alvo.exemplo/AAAA'])
+  })
+
+  it('DoH devolvendo só IP público → permite (e quem resolve é o DoH, não o DNS do sistema)', async () => {
+    /* `localhost` no DNS do sistema é 127.0.0.1 e seria recusado: passar aqui prova que o Worker não usa `node:dns`. */
+    vi.stubGlobal('fetch', dublêDoDoh({ localhost: { A: ['93.184.216.34'], AAAA: ['2606:2800:220:1::1'] } }))
+    await expect(assertPublicUrl('https://localhost/')).resolves.toBeUndefined()
+  })
+
+  it('nome que não existe (NXDOMAIN) → recusa, sem conectar', async () => {
+    vi.stubGlobal('fetch', dublêDoDoh({}))
+    await expect(assertPublicUrl('https://nao-existe.exemplo/')).rejects.toThrow()
+  })
+
+  it('DoH fora do ar → recusa (fail-closed)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('', { status: 503 })),
+    )
+    await expect(assertPublicUrl('https://alvo.exemplo/')).rejects.toThrow()
   })
 })

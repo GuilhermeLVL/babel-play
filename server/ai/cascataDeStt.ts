@@ -59,7 +59,7 @@ import { chaveDoProvedor, disjuntorPermite, esperaDaRetentativa, registrarFalha,
 import { ehBaseDoOpenRouter, parametrosDoProvedor } from './parametrosDoProvedor'
 import type { Provedor } from './provedores'
 import { endpointDaTranscricao, pernasDaFuncao } from './registroDeProvedores'
-import { assertPublicUrl, despachanteSeguro, type InitSeguro } from './ssrf'
+import { assertPublicUrl, despachanteSeguro, fetchSeguro, type InitSeguro } from './ssrf'
 import { nomeDoProvedor, type RastroDeIa, registrarLimiteDoProvedor, statusDaTentativa } from './telemetriaDeIa'
 
 /** O teto de UMA tentativa ao provedor — o de sempre do STT. */
@@ -499,7 +499,7 @@ async function tentativaComDisjuntor(
       formato,
       sinal: ctx.sinal,
     })
-    return fetch(p.url, p.init)
+    return fetchSeguro(p.url, p.init)
   }
   try {
     let r = await enviar('verbose_json')

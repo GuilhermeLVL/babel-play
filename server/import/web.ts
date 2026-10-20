@@ -8,7 +8,7 @@
 import { Readability } from '@mozilla/readability'
 import { JSDOM } from 'jsdom'
 
-import { assertPublicUrl, despachanteSeguro, type InitSeguro } from '../ai/ssrf'
+import { assertPublicUrl, despachanteSeguro, fetchSeguro, type InitSeguro } from '../ai/ssrf'
 
 // Teto do HTML aceito (anti-DoS do jsdom/Readability com páginas-bomba).
 const MAX_HTML_BYTES = 4 * 1024 * 1024
@@ -24,7 +24,7 @@ async function fetchPublicHtml(rawUrl: string): Promise<{ res: globalThis.Respon
   let current = rawUrl
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     await assertPublicUrl(current)
-    const res = await fetch(current, {
+    const res = await fetchSeguro(current, {
       headers: {
         // Alguns sites bloqueiam sem UA de navegador; identificamos honestamente o app.
         'user-agent': 'Mozilla/5.0 (compatible; BabelPlay/0.1; +https://localhost) article-import',

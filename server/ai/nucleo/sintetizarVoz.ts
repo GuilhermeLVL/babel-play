@@ -75,6 +75,7 @@ import {
 } from '../provedoresDeVoz'
 import type { Provedor } from '../registroDeProvedores'
 import { recusaContadorIndisponivel, recusaPeloTetoDaConta, recusaUsoJustoDoDia } from '../reservaDeNuvem'
+import { fetchSeguro } from '../ssrf'
 import {
   codigoDeIdioma,
   nomeDoProvedor,
@@ -522,7 +523,7 @@ async function percorrerPernasDaVoz(
     let resposta: globalThis.Response
     try {
       const { url, init } = montarPedidoDeVoz(perna, pedido, sinal)
-      resposta = await fetch(url, init)
+      resposta = await fetchSeguro(url, init)
     } catch (erro) {
       /* Quem abortou foi o cliente, não o relógio: não é falha do provedor (o disjuntor não conta). */
       if (clienteDesistiu(sinal)) {

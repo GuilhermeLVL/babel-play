@@ -6,12 +6,20 @@
  *
  * Nota: a IA local do usuário (Ollama/LM Studio) é chamada pelo CLIENTE, não por
  * este proxy — logo bloquear localhost aqui não a afeta; são caminhos distintos.
+ *
+ * DOIS RUNTIMES, UMA PORTA (Fase 2): todo `fetch` para destino do usuário passa por `fetchSeguro`.
+ * No Node, o nome é resolvido por `node:dns` e o IP é conferido de novo no `lookup` do socket
+ * (`despachanteSeguro`, `undici`). No Worker não há nenhum dos dois: o nome é resolvido por
+ * DNS-over-HTTPS (`resolverSeguro`) imediatamente antes de conectar. A lista de bloqueio
+ * (`isPrivateIp`) e o erro (`DestinoBloqueado`) são os mesmos nos dois. `node:dns` e `undici` são
+ * carregados só no Node, na primeira vez que alguém precisa deles — nunca no import.
  */
-import { lookup as lookupComCallback, type LookupAddress } from 'node:dns'
-import { lookup } from 'node:dns/promises'
+import type { LookupAddress } from 'node:dns'
 import { isIP } from 'node:net'
 
-import { Agent } from 'undici'
+import type { Agent, Dispatcher } from 'undici'
+
+import { ehWorker } from '../lib/runtime'
 
 const BLOCKED_HOSTNAMES = new Set(['metadata.google.internal'])
 
@@ -154,10 +162,11 @@ export function lookupSoPublico(
   opcoes: { all?: boolean; family?: number | string },
   callback: CallbackDeLookup,
 ): void {
-  lookupComCallback(
-    hostname,
-    { ...opcoes, all: true } as never,
-    (err: NodeJS.ErrnoException | null, lista: unknown) => {
+  /* Lido NA CHAMADA, e não no import: o Worker não tem `node:dns`, e o DNS falso da suíte de carga
+     (`scripts/perf/suite/dns-falso.cjs`) troca a propriedade do módulo depois do boot. */
+  process
+    .getBuiltinModule('node:dns')
+    .lookup(hostname, { ...opcoes, all: true } as never, (err: NodeJS.ErrnoException | null, lista: unknown) => {
       if (err) return callback(err, '')
       const enderecos = lista as LookupAddress[]
       if (enderecos.length === 0) return callback(new DestinoBloqueado('host sem endereço'), '')
@@ -166,8 +175,7 @@ export function lookupSoPublico(
       }
       if (opcoes.all) return callback(null, enderecos)
       return callback(null, enderecos[0].address, enderecos[0].family)
-    },
-  )
+    })
 }
 
 /**
@@ -179,13 +187,96 @@ export function lookupSoPublico(
  * Um IP LITERAL não passa pelo `lookup` — e é por isso que a guarda de nome continua obrigatória:
  * é ela que recusa `http://127.0.0.1/` antes de qualquer conexão.
  */
-export const despachanteSeguro = new Agent({ connect: { lookup: lookupSoPublico as never } })
+export const despachanteSeguro = {
+  /* O `Agent` nasce no primeiro pedido, não no import: no Worker o `undici` não existe (e nem é usado —
+     `fetchSeguro` tira o `dispatcher` lá). O `fetch` do Node só chama `dispatch` no despachante. */
+  dispatch: (opcoes: Dispatcher.DispatchOptions, tratador: Dispatcher.DispatchHandler): boolean =>
+    agenteSeguro().dispatch(opcoes, tratador),
+  close: (): Promise<void> => agente?.close() ?? Promise.resolve(),
+  destroy: (): Promise<void> => agente?.destroy() ?? Promise.resolve(),
+}
+
+let agente: Agent | undefined
+
+function agenteSeguro(): Agent {
+  if (agente) return agente
+  /* `require` síncrono, como o `prom-client` em `server/http/metricas.ts`: no ESM (tsx, vitest) vem do
+     `createRequire`; no bundle CJS do servidor ele já existe. */
+  const exigir: (id: string) => unknown =
+    typeof require === 'function'
+      ? require
+      : (process.getBuiltinModule('node:module').createRequire(`${process.cwd()}/package.json`) as (
+          id: string,
+        ) => unknown)
+  const { Agent: AgenteDoUndici } = exigir('undici') as typeof import('undici')
+  agente = new AgenteDoUndici({ connect: { lookup: lookupSoPublico as never } })
+  return agente
+}
 
 /**
  * O `RequestInit` do `fetch` global com o `dispatcher` — o tipo do DOM não o declara, e o `undici`
- * do Node aceita. Usar como `fetch(url, { ..., dispatcher: despachanteSeguro } as InitSeguro)`.
+ * do Node aceita. Usar como `fetchSeguro(url, { ..., dispatcher: despachanteSeguro } as InitSeguro)`.
  */
 export type InitSeguro = RequestInit & { dispatcher: typeof despachanteSeguro }
+
+/* ───────────────────────── Worker: resolução por DNS-over-HTTPS ───────────────────────── */
+
+const DOH = 'https://cloudflare-dns.com/dns-query'
+const TIMEOUT_DO_DOH_MS = 5_000
+
+/** As respostas de UM tipo (`A` = 1, `AAAA` = 28) para o nome. NXDOMAIN → lista vazia; outra falha lança. */
+async function consultarDoh(host: string, tipo: 'A' | 'AAAA'): Promise<string[]> {
+  const r = await fetch(`${DOH}?name=${encodeURIComponent(host)}&type=${tipo}`, {
+    headers: { accept: 'application/dns-json' },
+    signal: AbortSignal.timeout(TIMEOUT_DO_DOH_MS),
+  })
+  if (!r.ok) throw new Error(`resolução DNS falhou (DoH HTTP ${r.status})`)
+  const j = (await r.json()) as { Status?: number; Answer?: Array<{ type?: number; data?: unknown }> }
+  if (j.Status === 3) return [] // NXDOMAIN
+  if (j.Status !== 0) throw new Error(`resolução DNS falhou (DoH status ${String(j.Status)})`)
+  const codigo = tipo === 'A' ? 1 : 28
+  /* CNAME (5) vem na mesma resposta, antes dos endereços finais: só os endereços contam. */
+  return (j.Answer ?? []).filter((a) => a.type === codigo).map((a) => String(a.data))
+}
+
+/**
+ * Resolve o nome por DoH (A e AAAA) e recusa se QUALQUER endereço for interno — a regra do
+ * `lookupSoPublico`, sem `node:dns`. Fail-closed: DoH fora do ar, status de erro ou resposta que não é
+ * IP também recusam.
+ *
+ * JANELA RESIDUAL (documentada em `docs/arquitetura.md`): o `fetch` do Worker resolve o nome DE NOVO,
+ * pelo resolvedor da Cloudflare, e um domínio com TTL 0 pode responder diferente entre as duas
+ * consultas — no Worker não há `lookup` de socket para fechar essa janela como no Node. A conferência
+ * roda imediatamente antes de cada conexão (`fetchSeguro`, a cada salto de redirect) para a janela
+ * ser a menor possível; e a saída do Worker é a rede pública da Cloudflare, sem rede privada nem porta
+ * interna do próprio servidor do outro lado.
+ */
+async function resolverSeguro(host: string): Promise<string[]> {
+  const [a, aaaa] = await Promise.all([consultarDoh(host, 'A'), consultarDoh(host, 'AAAA')])
+  const enderecos = [...a, ...aaaa]
+  if (enderecos.length === 0) throw Object.assign(new Error('host não encontrado (DNS)'), { code: 'ENOTFOUND' })
+  // Sem o IP na mensagem: o que o chamador precisa saber é que o destino não é permitido.
+  if (enderecos.some((e) => isPrivateIp(e))) throw new DestinoBloqueado('host resolve para IP interno (SSRF)')
+  return enderecos
+}
+
+/**
+ * O `fetch` de TODO destino escolhido pelo usuário (BYOK, teste de provedor, STT e voz com credencial
+ * própria, importação de página). Nunca segue redirect: o 3xx volta para quem chamou, e quem segue (a
+ * importação de página) chama de novo — cada salto é conferido.
+ *
+ * - Node: o `despachanteSeguro` confere o IP no `lookup` do socket (a resolução conferida é a conectada).
+ * - Worker: `assertPublicUrl` (DoH + lista de bloqueio) imediatamente antes de conectar; o `dispatcher`
+ *   sai do `init` — o `fetch` do Worker não tem `undici`.
+ */
+export async function fetchSeguro(url: string, init: RequestInit & { dispatcher?: unknown } = {}): Promise<Response> {
+  if (ehWorker()) {
+    await assertPublicUrl(url)
+    const { dispatcher: _semDespachante, ...semDespachante } = init
+    return await fetch(url, { ...semDespachante, redirect: 'manual' })
+  }
+  return await fetch(url, { ...init, redirect: 'manual', dispatcher: despachanteSeguro } as InitSeguro)
+}
 
 /** Lança se a URL não for pública/segura para o proxy chamar. */
 export async function assertPublicUrl(raw: string): Promise<void> {
@@ -205,7 +296,12 @@ export async function assertPublicUrl(raw: string): Promise<void> {
     if (isPrivateIp(host)) throw new DestinoBloqueado('IP interno bloqueado (SSRF)')
     return
   }
-  const resolved = await lookup(host, { all: true })
+  if (ehWorker()) {
+    await resolverSeguro(host)
+    return
+  }
+  /* Na chamada, não no import: ver `lookupSoPublico`. */
+  const resolved = await process.getBuiltinModule('node:dns/promises').lookup(host, { all: true })
   for (const r of resolved) {
     // Sem o IP na mensagem: o que o chamador precisa saber é que o destino não é permitido.
     if (isPrivateIp(r.address)) throw new DestinoBloqueado('host resolve para IP interno (SSRF)')

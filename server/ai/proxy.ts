@@ -15,7 +15,7 @@ import { erroDeRota } from '../lib/erroDeRota'
 import { log } from '../lib/logger'
 import { responderErro } from '../lib/respostaDeErro'
 import { llmChatCompletionsSchema, parseOr400, providerTestSchema } from '../validation'
-import { assertPublicUrl, despachanteSeguro, ehDestinoBloqueado, type InitSeguro } from './ssrf'
+import { assertPublicUrl, despachanteSeguro, ehDestinoBloqueado, fetchSeguro, type InitSeguro } from './ssrf'
 import { abrirRastro, type RastroDeIa, registrarLimiteDoProvedor, statusDaTentativa } from './telemetriaDeIa'
 
 /** A-04: teto de tempo do proxy de LLM (era a ÚNICA rota de IA sem timeout). */
@@ -73,7 +73,7 @@ async function encaminharChat(req: Request, res: Response, rastro: RastroDeIa): 
 
     const endpoint = baseUrl.replace(/\/+$/, '') + '/chat/completions'
     const inicio = Date.now()
-    const upstream = await fetch(endpoint, {
+    const upstream = await fetchSeguro(endpoint, {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
@@ -143,7 +143,7 @@ export async function providerTest(req: Request, res: Response): Promise<void> {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
     if (apiKey) headers['Authorization'] = 'Bearer ' + apiKey
     const t0 = Date.now()
-    const r = await fetch(baseUrl.replace(/\/+$/, '') + '/chat/completions', {
+    const r = await fetchSeguro(baseUrl.replace(/\/+$/, '') + '/chat/completions', {
       method: 'POST',
       headers,
       body: JSON.stringify({ model, max_tokens: 8, messages: [{ role: 'user', content: 'ping' }] }),

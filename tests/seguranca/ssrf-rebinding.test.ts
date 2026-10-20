@@ -17,7 +17,7 @@
 import { readFileSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
 
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../server/ai/ssrf', async (original) => {
   const real = await original<typeof import('../../server/ai/ssrf')>()
@@ -26,7 +26,7 @@ vi.mock('../../server/ai/ssrf', async (original) => {
   return { ...real, assertPublicUrl: vi.fn(async () => {}) }
 })
 
-import { despachanteSeguro, ehDestinoBloqueado, lookupSoPublico } from '../../server/ai/ssrf'
+import { despachanteSeguro, ehDestinoBloqueado, fetchSeguro, lookupSoPublico } from '../../server/ai/ssrf'
 import { extractArticle } from '../../server/import/web'
 
 let alvo: Server
@@ -98,4 +98,121 @@ describe('todo fetch para URL escolhida pelo usuário usa o despachante', () => 
   it('server/ai/sttProxy.ts não chama provedor por conta própria (a cascata do STT chama)', () => {
     expect(readFileSync('server/ai/sttProxy.ts', 'utf8')).not.toMatch(/\bfetch\(/)
   })
+})
+
+/**
+ * NO WORKER NÃO HÁ `node:dns` NEM `undici.Agent` (Task 11 da Fase 2), e o `lookup` do socket não existe
+ * para conferir o IP na conexão. `fetchSeguro` é a mesma porta para os dois runtimes: no Node ela põe o
+ * `despachanteSeguro` (acima); no Worker ela resolve o nome por DoH IMEDIATAMENTE antes de conectar,
+ * passa TODO endereço pela lista de bloqueio, e nunca segue redirect — quem segue (a importação de
+ * página) chama `fetchSeguro` de novo a cada salto, e cada salto é conferido de novo.
+ *
+ * Aqui a guarda de NOME exportada continua enganada (o `vi.mock` do topo): o que barra é a conferência
+ * de dentro do `fetchSeguro`, que não passa pelo export.
+ */
+describe('Worker (BABEL_RUNTIME=worker): fetchSeguro confere por DoH a cada conexão', () => {
+  const guarda = process.env.BABEL_RUNTIME
+  let alvosConectados: string[] = []
+
+  /** `fetch` global dublê: o DoH responde pelo mapa; os outros destinos são registrados e respondidos por `alvo`. */
+  function dublê(dns: Record<string, string[]>, alvo: (url: string) => Response = () => new Response('ok')) {
+    alvosConectados = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (entrada: string | URL | Request) => {
+        const url = new URL(String(entrada instanceof Request ? entrada.url : entrada))
+        if (url.origin + url.pathname === 'https://cloudflare-dns.com/dns-query') {
+          const nome = url.searchParams.get('name') ?? ''
+          const tipo = url.searchParams.get('type')
+          const ips = (dns[nome] ?? []).filter((ip) => (tipo === 'AAAA') === ip.includes(':'))
+          return Response.json({
+            Status: dns[nome] ? 0 : 3,
+            Answer: ips.map((data) => ({ name: nome, type: tipo === 'AAAA' ? 28 : 1, TTL: 0, data })),
+          })
+        }
+        alvosConectados.push(url.href)
+        return alvo(url.href)
+      }),
+    )
+  }
+
+  beforeEach(() => {
+    process.env.BABEL_RUNTIME = 'worker'
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    if (guarda === undefined) delete process.env.BABEL_RUNTIME
+    else process.env.BABEL_RUNTIME = guarda
+  })
+
+  it('DoH devolvendo IP privado → recusa, e o destino nunca é buscado', async () => {
+    dublê({ 'rebind.exemplo': ['127.0.0.1'] })
+    const erro = await fetchSeguro('http://rebind.exemplo/segredo', { redirect: 'manual' }).then(
+      () => null,
+      (e: unknown) => e,
+    )
+    expect(ehDestinoBloqueado(erro), 'a recusa tem de ser a guarda de SSRF').toBe(true)
+    expect(alvosConectados).toEqual([])
+  })
+
+  it('IP literal privado → recusa sem consultar DNS', async () => {
+    dublê({})
+    await expect(fetchSeguro('http://169.254.169.254/latest/meta-data/', {})).rejects.toSatisfy(ehDestinoBloqueado)
+    expect(alvosConectados).toEqual([])
+  })
+
+  it('DoH devolvendo IP público → busca, sem seguir redirect e sem `dispatcher` (o Worker não tem undici)', async () => {
+    dublê({ 'api.exemplo': ['93.184.216.34'] })
+    const f = globalThis.fetch as unknown as ReturnType<typeof vi.fn>
+    const r = await fetchSeguro('https://api.exemplo/v1/chat', {
+      method: 'POST',
+      dispatcher: despachanteSeguro,
+    } as never)
+    expect(r.status).toBe(200)
+    expect(alvosConectados).toEqual(['https://api.exemplo/v1/chat'])
+    const init = f.mock.calls.find((c) => String(c[0]).startsWith('https://api.exemplo'))?.[1] as Record<
+      string,
+      unknown
+    >
+    expect(init.redirect).toBe('manual')
+    expect(init.method).toBe('POST')
+    expect('dispatcher' in init).toBe(false)
+  })
+
+  it('importação de página: 302 de um host público para IP privado → recusa no salto, sem buscar o alvo', async () => {
+    dublê({ 'publico.exemplo': ['93.184.216.34'] }, (url) =>
+      url.startsWith('http://publico.exemplo')
+        ? new Response(null, { status: 302, headers: { location: 'http://169.254.169.254/latest/meta-data/' } })
+        : new Response('<html><body><article><p>metadados da nuvem</p></article></body></html>'),
+    )
+    await expect(extractArticle('http://publico.exemplo/artigo')).rejects.toSatisfy(ehDestinoBloqueado)
+    expect(alvosConectados).toEqual(['http://publico.exemplo/artigo'])
+  })
+
+  it('importação de página: 302 para um NOME que o DoH resolve para a rede privada → recusa', async () => {
+    dublê({ 'publico.exemplo': ['93.184.216.34'], 'interno.exemplo': ['fdaa:0:1::3'] }, (url) =>
+      url.startsWith('http://publico.exemplo')
+        ? new Response(null, { status: 302, headers: { location: 'http://interno.exemplo/' } })
+        : new Response('<html><body><article><p>interno</p></article></body></html>'),
+    )
+    await expect(extractArticle('http://publico.exemplo/artigo')).rejects.toSatisfy(ehDestinoBloqueado)
+    expect(alvosConectados).toEqual(['http://publico.exemplo/artigo'])
+  })
+})
+
+describe('todo fetch para URL do usuário passa por fetchSeguro', () => {
+  /* Estrutural, como o bloco acima: no Worker o `dispatcher` não existe, e só o `fetchSeguro` confere o IP.
+     Um `fetch(` cru ao lado de um `despachanteSeguro` seria um destino do usuário sem guarda no Worker. */
+  for (const arquivo of [
+    'server/ai/proxy.ts',
+    'server/ai/cascataDeStt.ts',
+    'server/import/web.ts',
+    'server/ai/nucleo/sintetizarVoz.ts',
+  ]) {
+    it(arquivo, () => {
+      const fonte = readFileSync(arquivo, 'utf8').replace(/^\s*(\/\/|\*).*$/gm, '')
+      expect(fonte.match(/\bfetchSeguro\(/g)?.length ?? 0).toBeGreaterThan(0)
+      expect(fonte, '`fetch(` cru para destino do usuário').not.toMatch(/(?<![\w.])fetch\(/)
+    })
+  }
 })

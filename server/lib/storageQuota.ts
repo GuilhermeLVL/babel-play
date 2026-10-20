@@ -164,7 +164,7 @@ async function reservaAtomica(userId: UserId, bytes: number, cap: number, ex: Ex
   return linhasAfetadas(r) > 0
 }
 
-/** Nome da trava consultiva global do teto da conta no R2 (`travarGlobal`). */
+/** Nome da trava global do teto da conta no R2 (`travarGlobal`). */
 const TRAVA_DO_TETO_DA_CONTA = 'r2-teto-armazenamento'
 
 /** Teto da CONTA em bytes: só com o adaptador S3 (no disco a folga do volume é quem protege). */

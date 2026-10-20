@@ -125,7 +125,7 @@ export const creditsRepo = {
    *
    * Aqui a trava é ainda mais direta que a das Seeds: o saldo de Créditos é `compras pagas −
    * gastos`, e as DUAS metades são tabelas. O banco calcula a subtração dentro do próprio INSERT,
-   * sem precisar de um teto vindo de fora, sob a trava consultiva do usuário. É a moeda que custou
+   * sem precisar de um teto vindo de fora, sob a trava do usuário. É a moeda que custou
    * dinheiro: ela não pode ficar negativa nem por um instante entre duas requisições.
    */
   async debitar(

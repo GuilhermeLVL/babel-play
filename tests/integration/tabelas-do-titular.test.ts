@@ -32,7 +32,7 @@ describe('tabelas do titular', () => {
     const faltando = noSchema.filter((n) => !cobertas.includes(n))
     expect(faltando, `tabelas com user_id fora de TABELAS_DO_TITULAR: ${faltando.join(', ')}`).toEqual([])
     // Só duas tratadas à parte, cada uma por um motivo escrito: `secrets` (chave própria + FK) e
-    // `travas` (chave `u:<id>`, podada pela limpeza diária, não pela exclusão).
+    // `travas` (sem `user_id`; chave `u:<id>`, apagada por último na exclusão e podada pela limpeza diária).
     expect(TABELAS_TRATADAS_A_PARTE).toEqual(['secrets', 'travas'])
   })
 

@@ -4,7 +4,7 @@
  * `server/ai/glossario.ts`; aqui só há listar, gravar e apagar, sempre pelo DONO.
  *
  * O TETO DE 500 é cobrado DENTRO do INSERT (`INSERT … SELECT … WHERE (SELECT COUNT(*) …) < 500`), numa
- * transação que começa pela trava consultiva do usuário: dois pedidos simultâneos não passam juntos
+ * transação que começa pela trava do usuário: dois pedidos simultâneos não passam juntos
  * pelo teto, como passariam num "conta, depois grava" em dois comandos.
  */
 import { randomUUID } from 'node:crypto'

@@ -11,7 +11,7 @@
  * QUEM ESCREVE. Os repositórios que gravam o bruto pedem aqui as instruções e as põem no MESMO
  * lote (`rodarLote`, uma transação): `instrucoesDaRevisao`, `instrucoesDaRevisaoDesfeita`,
  * `instrucoesDaRodada`. Cada lote termina somando em `marca_vista` quantas linhas brutas escreveu.
- * Esses lotes começam pela trava consultiva do usuário (`travarUsuario`), a mesma da reconstrução:
+ * Esses lotes começam pela trava do usuário (`travarUsuario`), a mesma da reconstrução:
  * no Postgres, sem ela, lote e reconstrução simultâneos se travavam (deadlock) ou perdiam revisão.
  *
  * QUEM GARANTE. Os gatilhos da 0053 somam em `marca_bruto` a cada linha escrita no bruto, por
@@ -20,7 +20,7 @@
  * antes de devolver. Quem lê chama `garantir` e depois lê; não existe leitura de agregado velho.
  *
  * A RECONSTRUÇÃO é idempotente: apaga as células do usuário e grava as recontadas, numa transação
- * que toma a trava consultiva do usuário logo no começo (`travarUsuario`), para duas reconstruções
+ * que toma a trava do usuário logo no começo (`travarUsuario`), para duas reconstruções
  * não se cruzarem. A única coisa preservada são as `*_purgadas` (ver a migração).
  * O dia é `diaNumeroNoFuso` no fuso GRAVADO do usuário, o mesmo da ofensiva e das missões.
  */
@@ -291,7 +291,7 @@ export const agregadosRepo = {
 
   /**
    * Reconta do bruto os agregados e o estado por item de UM usuário. Idempotente. Sem `fuso`, usa o
-   * gravado. A primeira instrução da transação é a trava consultiva do usuário: duas reconstruções
+   * gravado. A primeira instrução da transação é a trava do usuário: duas reconstruções
    * (ou reconstrução e limpeza diária) do mesmo usuário rodam uma depois da outra, sem retry.
    */
   async reconstruir(userId: UserId, fuso?: string): Promise<{ celulas: number }> {

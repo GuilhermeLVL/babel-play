@@ -500,7 +500,7 @@ ${opts.origem ?? ''}`
        XP da conta e XP de temporada, que somam estas linhas. A conferência mora DENTRO do INSERT
        (`INSERT … SELECT … WHERE NOT EXISTS`). No Postgres, dois envios simultâneos em READ COMMITTED
        passariam os dois pelo NOT EXISTS (um não vê a linha ainda não confirmada do outro): por isso o
-       lote começa pela trava consultiva do usuário, e o NOT EXISTS fica como segunda defesa. Sem
+       lote começa pela trava do usuário, e o NOT EXISTS fica como segunda defesa. Sem
        índice único porque a rodada tem N linhas — é a existência de QUALQUER linha da rodada que a
        torna repetida.
        Um INSERT multi-VALUES: ou entra a rodada toda, ou não entra nada. */

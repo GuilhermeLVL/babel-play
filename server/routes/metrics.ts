@@ -141,7 +141,7 @@ metricsRouter.get('/xp', async (req, res) => {
  * própria compra ser recusado por saldo insuficiente.
  *
  * DUAS COMPRAS DIFERENTES EM VOO passam as duas por esta conferência antecipada, mas não pelo
- * débito: `seedSpendsRepo.debitar` cobra o teto dentro do INSERT, sob a trava consultiva do usuário
+ * débito: `seedSpendsRepo.debitar` cobra o teto dentro do INSERT, sob a trava do usuário
  * (`gasto-concorrente.test.ts`). A que perder a corrida recebe o mesmo 402.
  */
 metricsRouter.post('/seeds/gastar', async (req, res) => {

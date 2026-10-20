@@ -82,7 +82,7 @@ const codigoSql = (err: unknown): string | undefined => {
 /** Deadlock (40P01) ou falha de serialização (40001): vale tentar de novo. */
 const transitorio = (err: unknown) => ['40P01', '40001'].includes(codigoSql(err) ?? '')
 
-/** Tudo de UM usuário, numa transação que toma a trava consultiva do usuário no começo. */
+/** Tudo de UM usuário, numa transação que toma a trava do usuário no começo. */
 async function limparUsuario(userId: UserId, corte: number, agora: number) {
   const fuso = await agregadosRepo.fusoGravado(userId)
   return emTransacao(async (tx) => {

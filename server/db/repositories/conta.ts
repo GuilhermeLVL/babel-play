@@ -131,9 +131,10 @@ export const NOMES_DAS_TABELAS_DO_TITULAR: readonly string[] = TABELAS_DO_TITULA
 /**
  * Tabelas com `user_id` que a exclusão trata FORA do laço, com chave própria: `secrets` é
  * alcançada pela `secret_ref` das credenciais E pelo `user_id` (ver `refsDeSegredo`), e apagada
- * depois de `providerCredentials` por causa da FOREIGN KEY. `travas` (sem `user_id`: a chave é
- * `u:<userId>`) não sai na exclusão — apagá-la no meio de uma transação que a segura não traz nada; a
- * limpeza diária (`limpezaDiaria.ts`) poda as chaves de quem não existe mais em `users`.
+ * depois de `providerCredentials` por causa da FOREIGN KEY. `travas` não tem `user_id` (a chave é
+ * `u:<userId>`): está aqui só como DOCUMENTAÇÃO — `conferirCobertura` olha apenas tabelas com `user_id`
+ * e não é afetada por ela. A exclusão a apaga por último, com chave própria (ver `excluir`); a limpeza
+ * diária (`limpezaDiaria.ts`) poda as chaves `u:` que sobrarem de quem não existe mais em `users`.
  */
 export const TABELAS_TRATADAS_A_PARTE: readonly string[] = ['secrets', 'travas']
 
@@ -332,6 +333,10 @@ export const contaRepo = {
     const conta = await db.select({ id: users.id }).from(users).where(eq(users.id, userId))
     linhasPorTabela.users = conta.length
     if (conta.length) instrucoes.push((tx) => tx.delete(users).where(eq(users.id, userId)))
+    /* A TRAVA DO USUÁRIO (`u:<id>` em `travas`), por ÚLTIMO: o próprio lote a cria/trava no começo, e ela
+       leva o id da pessoa. Apagar a linha que esta transação segura é legítimo; quem estiver esperando por
+       ela refaz a inserção depois do COMMIT, sem erro. A poda da limpeza diária fica como rede. */
+    instrucoes.push((tx) => tx.execute(sql`DELETE FROM travas WHERE chave = ${`u:${userId}`}`))
 
     /* A trava do usuário primeiro: uma revisão ou rodada simultânea (que toma a mesma trava) não
        recria agregados nem versões depois dos DELETEs deste lote. */

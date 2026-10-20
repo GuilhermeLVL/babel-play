@@ -49,8 +49,11 @@ async function chaves(prefixo: string): Promise<string[]> {
 }
 
 /**
- * Duas transações na MESMA trava: a primeira trava, segura `SEGURA_MS` e anota o instante logo antes do
- * COMMIT; a segunda começa só depois de a primeira travar e anota o instante em que a trava dela voltou.
+ * Duas transações na MESMA trava: a primeira trava, segura `SEGURA_MS` e anota o instante do FIM DO CORPO
+ * (o COMMIT vem logo depois, então o instante real do COMMIT é um pouco MAIOR — a asserção
+ * `entradaDaSegunda >= fimDaPrimeira` é, portanto, mais fraca que "depois do COMMIT", mas o `SEGURA_MS`
+ * a separa de "sem espera nenhuma"); a segunda começa só depois de a primeira travar e anota o instante
+ * em que a trava dela voltou.
  */
 async function ordem(travar: (tx: Parameters<Parameters<typeof m.emTransacao>[0]>[0]) => Promise<void>) {
   let travou!: () => void
@@ -174,6 +177,20 @@ describe('travas de linha', () => {
     await primeira
     expect(codigoDe(erro)).toBe('55P03')
   })
+
+  it.skipIf(!URL_PG)(
+    'quem segura a trava apaga a linha (exclusão de conta): quem esperava entra sem erro',
+    async () => {
+      const userId = `apagada-${randomUUID()}`
+      await m.emTransacao((tx) => m.travarUsuario(tx, userId)) // a linha passa a existir
+      const r = await ordem(async (tx) => {
+        await m.travarUsuario(tx, userId)
+        // As duas apagam a linha que travaram; a segunda, ao acordar sem linha, a reinsere e trava de novo.
+        await tx.execute(sql`DELETE FROM travas WHERE chave = ${`u:${userId}`}`)
+      })
+      expect(r.entradaDaSegunda).toBeGreaterThanOrEqual(r.fimDaPrimeira)
+    },
+  )
 
   it('a limpeza diária poda u:<id> de quem não existe mais e mantém o resto', async () => {
     const vivo = `vivo-${randomUUID()}`

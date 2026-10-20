@@ -13,28 +13,39 @@
  *  4. excluir A não encosta em B — nem nas linhas, nem no segredo, nem no áudio no disco;
  *  5. falha ao apagar o arquivo de mídia é REPORTADA, não engolida (mesmo contrato do P1-9).
  */
-import { existsSync,mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { afterAll,beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { asUserId, type UserId } from '../../server/lib/authContext'
-import { type EphemeralDb,setupEphemeralDb } from '../harness/ephemeralDb'
+import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
 const SEGREDO = (id: string) => `sk-CHAVE-DO-${id}-nunca-real-00000`
 
 /** As tabelas que a exclusão precisa alcançar, com a coluna que liga a linha ao titular. */
 const TABELAS: [string, string][] = [
-  ['sessions', 'userId'], ['utterances', 'userId'], ['vocabCards', 'userId'],
-  ['vocabOccurrences', 'userId'], ['reviewLogs', 'userId'], ['exerciseResults', 'userId'],
+  ['sessions', 'userId'],
+  ['utterances', 'userId'],
+  ['vocabCards', 'userId'],
+  ['vocabOccurrences', 'userId'],
+  ['reviewLogs', 'userId'],
+  ['exerciseResults', 'userId'],
   ['settings', 'userId'],
-  ['userInterests', 'userId'], ['providerCredentials', 'userId'],
-  ['seedSpends', 'userId'], ['subscriptions', 'userId'], ['usageCounters', 'userId'],
-  ['ankiDecks', 'userId'], ['ankiImports', 'userId'], ['ankiNotes', 'userId'],
+  ['userInterests', 'userId'],
+  ['providerCredentials', 'userId'],
+  ['seedSpends', 'userId'],
+  ['subscriptions', 'userId'],
+  ['usageCounters', 'userId'],
+  ['ankiDecks', 'userId'],
+  ['ankiImports', 'userId'],
+  ['ankiNotes', 'userId'],
   /* As seis que a auditoria de 2026-09-07 (A06) achou fora da exclusão: dado do titular que
      sobrevivia a DELETE /api/me e não aparecia na exportação. */
-  ['seedCredits', 'userId'], ['creditPurchases', 'userId'], ['creditSpends', 'userId'],
+  ['seedCredits', 'userId'],
+  ['creditPurchases', 'userId'],
+  ['creditSpends', 'userId'],
   ['presencas', 'userId'],
   ['billingEvents', 'userId'],
 ]
@@ -52,7 +63,12 @@ let settingsRepo: any
 let subscriptionsRepo: any
 let usersRepo: any
 
-interface Semeado { u: UserId; sessaoId: string; arquivo: string; credId: string }
+interface Semeado {
+  u: UserId
+  sessaoId: string
+  arquivo: string
+  credId: string
+}
 const semeados: Record<string, Semeado> = {}
 
 beforeAll(async () => {
@@ -97,28 +113,78 @@ async function semear(id: string): Promise<Semeado> {
   await subscriptionsRepo.upsert(u, { plan: 'pro', status: 'active' })
   const cred = await credentialsRepo.create(u, { label: `cred-${id}`, kind: 'openai', secret: SEGREDO(id) })
 
-  await db.insert(schema.vocabCards).values({ id: `card-${id}`, ...meta, word: `palavra-${id}`, normKey: `en|palavra-${id}`, occurrences: 1 })
-  await db.insert(schema.vocabOccurrences).values({ id: `occ-${id}`, ...meta, cardId: `card-${id}`, occurredAt: now, originKind: 'sessao', originRef: sessao.id })
-  await db.insert(schema.reviewLogs).values({ id: `rev-${id}`, ...meta, cardId: `card-${id}`, reviewedAt: now, grade: 3 })
-  await db.insert(schema.exerciseResults).values({ id: `ex-${id}`, ...meta, kind: 'quiz', correct: 1, exerciseKind: 'blitz' })
+  await db
+    .insert(schema.vocabCards)
+    .values({ id: `card-${id}`, ...meta, word: `palavra-${id}`, normKey: `en|palavra-${id}`, occurrences: 1 })
+  await db
+    .insert(schema.vocabOccurrences)
+    .values({
+      id: `occ-${id}`,
+      ...meta,
+      cardId: `card-${id}`,
+      occurredAt: now,
+      originKind: 'sessao',
+      originRef: sessao.id,
+    })
+  await db
+    .insert(schema.reviewLogs)
+    .values({ id: `rev-${id}`, ...meta, cardId: `card-${id}`, reviewedAt: now, grade: 3 })
+  await db
+    .insert(schema.exerciseResults)
+    .values({ id: `ex-${id}`, ...meta, kind: 'quiz', correct: 1, exerciseKind: 'blitz' })
   /* Acervo Anki: o baralho vem ANTES da nota (FK), e a nota aponta para o cartão de vocabulário —
      é essa aresta que faz a exclusão falhar se `anki_notes` for apagada depois de `vocab_cards`. */
-  await db.insert(schema.ankiDecks).values({ id: `deck-${id}`, ...meta, nome: `baralho-${id}`, arquivoOrigem: `${id}.apkg` })
-  await db.insert(schema.ankiImports).values({ id: `imp-${id}`, ...meta, deckId: `deck-${id}`, arquivo: `${id}.apkg`, estado: 'concluido' })
+  await db
+    .insert(schema.ankiDecks)
+    .values({ id: `deck-${id}`, ...meta, nome: `baralho-${id}`, arquivoOrigem: `${id}.apkg` })
+  await db
+    .insert(schema.ankiImports)
+    .values({ id: `imp-${id}`, ...meta, deckId: `deck-${id}`, arquivo: `${id}.apkg`, estado: 'concluido' })
   await db.insert(schema.ankiNotes).values({
-    id: `nota-${id}`, ...meta, deckId: `deck-${id}`, guid: `guid-${id}`, frente: `palavra-${id}`,
-    verso: `traducao-${id}`, camposBrutos: '{"Word":"x"}', estado: 'ativa', projectedCardId: `card-${id}`, importId: `imp-${id}`,
+    id: `nota-${id}`,
+    ...meta,
+    deckId: `deck-${id}`,
+    guid: `guid-${id}`,
+    frente: `palavra-${id}`,
+    verso: `traducao-${id}`,
+    camposBrutos: '{"Word":"x"}',
+    estado: 'ativa',
+    projectedCardId: `card-${id}`,
+    importId: `imp-${id}`,
   })
-  await db.insert(schema.seedSpends).values({ id: `sp-${id}`, ...meta, spendId: `sp-${id}`, amount: 5, reason: 'pular-rodada' })
-  await db.insert(schema.usageCounters).values({ id: `uc-${id}`, ...meta, metric: 'llm_tokens', window: '2026-08', count: 10 })
+  await db
+    .insert(schema.seedSpends)
+    .values({ id: `sp-${id}`, ...meta, spendId: `sp-${id}`, amount: 5, reason: 'pular-rodada' })
+  await db
+    .insert(schema.usageCounters)
+    .values({ id: `uc-${id}`, ...meta, metric: 'llm_tokens', window: '2026-08', count: 10 })
   /* O rate limit grava com `user_id = 'u:<id>'` (rateLimitStore.ts) — fora do `WHERE user_id = ?`
      comum. É a sétima forma de dado do titular que ficava para trás. */
-  await db.insert(schema.usageCounters).values({ id: `rl-${id}`, ...meta, userId: `u:user-${id}`, metric: 'ratelimit', window: 'rl:1', count: 3 })
-  await db.insert(schema.seedCredits).values({ id: `sc-${id}`, ...meta, creditoId: `conquista-${id}`, amount: 25, xp: 30, reason: `conquista:${id}` })
-  await db.insert(schema.creditPurchases).values({ id: `cp-${id}`, ...meta, sku: 'c100', creditos: 100, valorCentavos: 990, status: 'pago' })
-  await db.insert(schema.creditSpends).values({ id: `cs-${id}`, ...meta, spendId: `cs-${id}`, amount: 10, reason: 'premium:dourada-1' })
+  await db
+    .insert(schema.usageCounters)
+    .values({ id: `rl-${id}`, ...meta, userId: `u:user-${id}`, metric: 'ratelimit', window: 'rl:1', count: 3 })
+  await db
+    .insert(schema.seedCredits)
+    .values({ id: `sc-${id}`, ...meta, creditoId: `conquista-${id}`, amount: 25, xp: 30, reason: `conquista:${id}` })
+  await db
+    .insert(schema.creditPurchases)
+    .values({ id: `cp-${id}`, ...meta, sku: 'c100', creditos: 100, valorCentavos: 990, status: 'pago' })
+  await db
+    .insert(schema.creditSpends)
+    .values({ id: `cs-${id}`, ...meta, spendId: `cs-${id}`, amount: 10, reason: 'premium:dourada-1' })
   await db.insert(schema.presencas).values({ id: `pr-${id}`, ...meta, dia: 20700 })
-  await db.insert(schema.billingEvents).values({ id: `evt-${id}`, createdAt: now, provider: 'asaas', event: 'PAYMENT_CONFIRMED', userId: `user-${id}`, providerRef: `pay-${id}` })
+  // A trava do usuário (`u:<id>` em `travas`), como deixa qualquer escrita que a toma (gasto, revisão…).
+  await db.insert(schema.travas).values({ chave: `u:user-${id}`, criadoEm: now })
+  await db
+    .insert(schema.billingEvents)
+    .values({
+      id: `evt-${id}`,
+      createdAt: now,
+      provider: 'asaas',
+      event: 'PAYMENT_CONFIRMED',
+      userId: `user-${id}`,
+      providerRef: `pay-${id}`,
+    })
 
   return { u, sessaoId: sessao.id, arquivo, credId: cred.id }
 }
@@ -131,8 +197,14 @@ function handler(metodo: 'get' | 'delete', caminho: string) {
 }
 function fakeRes() {
   const r: any = { statusCode: 200, body: undefined }
-  r.status = (c: number) => { r.statusCode = c; return r }
-  r.json = (b: any) => { r.body = b; return r }
+  r.status = (c: number) => {
+    r.statusCode = c
+    return r
+  }
+  r.json = (b: any) => {
+    r.body = b
+    return r
+  }
   r.setHeader = () => r
   return r
 }
@@ -151,13 +223,26 @@ async function linhasDe(userId: UserId): Promise<Record<string, number>> {
   }
   out.users = (await db.select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.id, userId))).length
   // As linhas de rate limit (`u:<id>`) contam como dado do titular.
-  out.rateLimit = (await db.select({ id: schema.usageCounters.id }).from(schema.usageCounters)
-    .where(eq(schema.usageCounters.userId, `u:${userId}`))).length
+  out.rateLimit = (
+    await db
+      .select({ id: schema.usageCounters.id })
+      .from(schema.usageCounters)
+      .where(eq(schema.usageCounters.userId, `u:${userId}`))
+  ).length
+  // A trava do titular (`u:<id>` em `travas`): a própria exclusão a cria ao travar, e tem de apagá-la.
+  out.travas = (
+    await db
+      .select({ chave: schema.travas.chave })
+      .from(schema.travas)
+      .where(eq(schema.travas.chave, `u:${userId}`))
+  ).length
   return out
 }
 
 async function segredoExiste(ref: string): Promise<boolean> {
-  return (await db.select({ ref: schema.secrets.ref }).from(schema.secrets).where(eq(schema.secrets.ref, ref))).length > 0
+  return (
+    (await db.select({ ref: schema.secrets.ref }).from(schema.secrets).where(eq(schema.secrets.ref, ref))).length > 0
+  )
 }
 
 describe('F5-03 — GET /api/me/exportar', () => {
@@ -252,7 +337,6 @@ describe('F5-03 — DELETE /api/me', () => {
      `profiles` foi removida pela migração 0026, órfã e vazia. Os perfis de IA são código
      (`src/gateway/profiles.ts`), e `settings.active_profile_id` guarda o id do escolhido sem FK
      nenhuma — não há mais linha global que uma exclusão possa levar junto. */
-
 
   /**
    * Falha REAL, sem mock: `rm` sem `recursive` sobre um DIRETÓRIO lança ERR_FS_EISDIR — o mesmo

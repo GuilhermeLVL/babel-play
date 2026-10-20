@@ -8,6 +8,10 @@ CREATE TABLE "travas" (
 	"criado_em" bigint NOT NULL
 );
 --> statement-breakpoint
+-- Cada trava tomada regrava a linha (ON CONFLICT DO UPDATE): espaço livre na página deixa a nova versão no
+-- mesmo bloco (atualização HOT), o que importa na linha quente `g:` (teto global).
+ALTER TABLE "travas" SET (fillfactor = 50);
+--> statement-breakpoint
 ALTER TABLE "travas" ENABLE ROW LEVEL SECURITY;
 --> statement-breakpoint
 DO $$ BEGIN

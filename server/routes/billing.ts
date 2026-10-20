@@ -320,7 +320,7 @@ billingRouter.post('/gastar', async (req, res) => {
       }
     }
     /* `conferirSaldo` faz o banco avaliar `compras pagas - gastos >= amount` DENTRO do INSERT, sob
-       a trava consultiva do usuário.
+       a trava do usuário.
        A conferência acima continua, e não é redundante: ela é quem sabe dizer quanto falta. Esta
        é quem garante que duas compras simultâneas não passem as duas. */
     const { jaExistia, linha, recusadoPorSaldo } = await creditsRepo.debitar(

@@ -23,11 +23,12 @@ import { definicaoDoPlano, type PlanoEfetivo } from '../../src/core/planos'
 import { db, emTransacao, type ExecutorDb, linhas, linhasAfetadas, travarGlobal, travarUsuario } from '../db/db'
 import { sessionsRepo } from '../db/repositories/sessions'
 import { usageCounters } from '../db/schema'
-import { armazenamentoDoAmbiente, configDoS3, NomeDeArquivoInvalido } from './armazenamento'
+import { armazenamentoDoAmbiente, armazenamentoExterno, NomeDeArquivoInvalido } from './armazenamento'
 import type { UserId } from './authContext'
 import { getPlanForUser } from './entitlements'
 import { log } from './logger'
 import { type EnvelopeDeErro, envelopeDeErro } from './respostaDeErro'
+import { temDisco } from './runtime'
 import { lerTetoDoR2, observarUsoDoR2, registrarRecusaDoR2, semTeto } from './tetoDoR2'
 
 export const METRIC_STORAGE = 'storage_bytes'
@@ -167,9 +168,9 @@ async function reservaAtomica(userId: UserId, bytes: number, cap: number, ex: Ex
 /** Nome da trava global do teto da conta no R2 (`travarGlobal`). */
 const TRAVA_DO_TETO_DA_CONTA = 'r2-teto-armazenamento'
 
-/** Teto da CONTA em bytes: só com o adaptador S3 (no disco a folga do volume é quem protege). */
+/** Teto da CONTA em bytes: só com o R2 (binding ou S3; no disco a folga do volume é quem protege). */
 function tetoDaConta(): number {
-  return configDoS3() ? lerTetoDoR2().bytes : Infinity
+  return armazenamentoExterno() ? lerTetoDoR2().bytes : Infinity
 }
 
 /**
@@ -213,12 +214,13 @@ async function somaDaConta(ex: ExecutorDb): Promise<number> {
 /**
  * FOLGA DO VOLUME. Sem S3 o áudio mora no MESMO volume do banco, e o teto é por conta: várias contas
  * dentro do teto enchem o disco e derrubam o SQLite junto. Abaixo desta folga o upload é recusado
- * (`indisponivel`) e o resto do app segue. Com S3, ou sem `AUDIO_DIR` legível, não se aplica.
+ * (`indisponivel`) e o resto do app segue. Com S3 ou o binding R2, sem disco (Worker: não há `statfs`), ou
+ * sem `AUDIO_DIR` legível, não se aplica.
  */
 const FOLGA_MINIMA_DO_VOLUME = 200 * 1024 * 1024
 
 export function volumeSemFolga(bytes: number, env: NodeJS.ProcessEnv = process.env): boolean {
-  if (configDoS3(env) || !env.AUDIO_DIR) return false
+  if (!temDisco() || armazenamentoExterno(env) || !env.AUDIO_DIR) return false
   try {
     const s = statfsSync(env.AUDIO_DIR)
     return s.bavail * s.bsize - bytes < FOLGA_MINIMA_DO_VOLUME

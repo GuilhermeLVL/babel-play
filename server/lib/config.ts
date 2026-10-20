@@ -275,6 +275,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: '1 liga o modo público, 0 desliga; sem valor, liga só em produção',
   },
   {
+    nome: 'BABEL_SEM_DISCO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'só para TESTE: `1` faz o Node responder como o Worker em `temDisco()` (server/lib/runtime.ts) — upload em stream para o R2, sem temporário em disco. Nunca em produção',
+  },
+  {
     nome: 'BACKUP_DIARIO',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',

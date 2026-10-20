@@ -20,6 +20,7 @@
 import path from 'node:path'
 
 import { ehBancoEmbutido, ehBancoEmMemoria, URL_PADRAO_DO_BANCO } from '../db/tipoDoBanco'
+import { bucketDoR2Ligado } from './armazenamentoR2'
 
 /** O banco é o PGlite embutido (o padrão sem `DATABASE_URL`)? A regra é a de `server/db/tipoDoBanco.ts`. */
 function bancoEmbutidoNoAmbiente(): boolean {
@@ -49,9 +50,10 @@ export function replicasDeclaradas(): number {
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : 1
 }
 
-/** O armazenamento é alcançável por todas as réplicas? S3 configurado, ou declaração explícita. */
+/** O armazenamento é alcançável por todas as réplicas? Binding R2, S3 configurado, ou declaração explícita. */
 export function armazenamentoCompartilhado(): boolean {
   if (process.env.ARMAZENAMENTO_COMPARTILHADO === '1') return true
+  if (bucketDoR2Ligado()) return true
   // As quatro que `server/lib/armazenamento.ts:184` exige para ligar o seam de S3. Menos que isso
   // e o S3 nao esta ativo, entao dizer que o armazenamento e compartilhado seria falso.
   return !!(

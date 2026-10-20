@@ -1,10 +1,68 @@
-import { createHash, createHmac } from 'node:crypto'
-import { createReadStream } from 'node:fs'
+import { createHash, createHmac, randomUUID } from 'node:crypto'
+import { createReadStream, createWriteStream } from 'node:fs'
 import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { Readable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 
+import { armazenamentoR2, bucketDoR2Ligado, type BucketR2 } from './armazenamentoR2'
 import { comTetoDeOperacoes, lerTetoDoR2 } from './tetoDoR2'
+
+/**
+ * Bytes em stream, venham do Node (`Readable`, gerador) ou da web (`ReadableStream`, o corpo do request
+ * num Worker).
+ */
+export type FluxoDeBytes = AsyncIterable<Uint8Array> | ReadableStream<Uint8Array>
+
+/** Itera qualquer `FluxoDeBytes`. O `ReadableStream` vai pelo leitor (o iterador assíncrono dele não é garantido em todo runtime). */
+async function* iterarBytes(fluxo: FluxoDeBytes): AsyncGenerator<Uint8Array> {
+  if (typeof (fluxo as ReadableStream).getReader !== 'function') {
+    yield* fluxo as AsyncIterable<Uint8Array>
+    return
+  }
+  const leitor = (fluxo as ReadableStream<Uint8Array>).getReader()
+  let acabou = false
+  try {
+    for (;;) {
+      const { done, value } = await leitor.read()
+      if (done) {
+        acabou = true
+        return
+      }
+      yield value
+    }
+  } finally {
+    // Saída antecipada (erro de quem consome): o stream é cancelado em vez de ficar preso.
+    if (!acabou) await leitor.cancel().catch(() => {})
+  }
+}
+
+/**
+ * Corta um fluxo em partes de EXATAMENTE `tamanho` bytes, menos a última (que pode ser menor e não sai
+ * vazia). É a forma que o multipart pede (R2 e S3: partes uniformes, a última livre). Só uma parte
+ * existe na memória por vez.
+ */
+export async function* emPartes(fluxo: FluxoDeBytes, tamanho: number): AsyncGenerator<Buffer> {
+  let pedacos: Buffer[] = []
+  let juntos = 0
+  for await (const p of iterarBytes(fluxo)) {
+    let resto = Buffer.from(p.buffer, p.byteOffset, p.byteLength)
+    while (juntos + resto.length >= tamanho) {
+      const falta = tamanho - juntos
+      pedacos.push(resto.subarray(0, falta))
+      yield Buffer.concat(pedacos, tamanho)
+      pedacos = []
+      juntos = 0
+      resto = resto.subarray(falta)
+    }
+    if (resto.length) {
+      // Cópia: quem produziu o pedaço (o gerador do teste, o socket) pode reaproveitar o buffer.
+      pedacos.push(Buffer.from(resto))
+      juntos += resto.length
+    }
+  }
+  if (juntos) yield Buffer.concat(pedacos, juntos)
+}
 
 /**
  * Seam de armazenamento de mídia (F5-02).
@@ -13,12 +71,23 @@ import { comTetoDeOperacoes, lerTetoDoR2 } from './tetoDoR2'
  * O ADR 001 decidiu object storage — este é o único ponto que precisa saber disso.
  */
 export interface Armazenamento {
-  readonly tipo: 'arquivos' | 's3'
+  readonly tipo: 'arquivos' | 's3' | 'r2'
   gravar(nome: string, bytes: Buffer, contentType: string): Promise<void>
+  /**
+   * Grava a partir de um STREAM, sem disco e sem o corpo inteiro na memória (Fase 2, Task 7). É o
+   * caminho do upload num Worker: o corpo do request segue direto para o bucket.
+   *
+   * Disco: temporário ao lado do alvo + `rename` (um erro no meio não deixa nada). S3 e R2: abaixo de
+   * 5 MiB um PUT só; acima, multipart em partes de 5 MiB, com `abort` em qualquer erro. O erro do
+   * próprio fluxo (cliente caiu, corpo acima do teto) sobe como veio, para a rota responder por ele.
+   *
+   * `tamanho` é só uma dica de quem sabe o tamanho (o `Content-Length`); nenhum back-end depende dela.
+   */
+  gravarDeStream(nome: string, fluxo: FluxoDeBytes, contentType: string, tamanho?: number): Promise<void>
   /**
    * Grava a partir de um ARQUIVO LOCAL, sem carregá-lo na memória (fase 2 de prontidão, §2.3).
    *
-   * É o caminho dos uploads grandes: o corpo já foi para o disco em pedaços (`corpoEmArquivo.ts`),
+   * É o caminho dos uploads grandes: o corpo já foi para o disco em pedaços (`corpoRecebido.ts`),
    * e daqui ele segue em stream. No filesystem o arquivo é MOVIDO (mesmo volume: `rename`, sem
    * cópia); no S3 ele é lido duas vezes em stream (hash do SigV4, depois o PUT). Em qualquer caso
    * quem chamou continua dono de apagar `caminho` — `rm({ force: true })` cobre o arquivo movido.
@@ -83,6 +152,18 @@ export function armazenamentoDeArquivos(dir: string): Armazenamento {
         // Volumes diferentes (temporário fora do `AUDIO_DIR`): copia. Qualquer outro erro sobe.
         if ((err as NodeJS.ErrnoException)?.code !== 'EXDEV') throw err
         await copyFile(caminho, alvo)
+      }
+    },
+    async gravarDeStream(nome, fluxo) {
+      const alvo = resolverDentroDe(dir, nome)
+      await mkdir(dir, { recursive: true })
+      const temporario = `${alvo}.${randomUUID()}.parcial`
+      try {
+        await pipeline(Readable.from(iterarBytes(fluxo)), createWriteStream(temporario, { flags: 'wx' }))
+        await rename(temporario, alvo)
+      } catch (err) {
+        await rm(temporario, { force: true })
+        throw err
       }
     },
     ler: (nome) => readFile(resolverDentroDe(dir, nome)),
@@ -198,6 +279,8 @@ export function assinarSigV4(opts: {
 const PRAZO_BASE_MS = 30_000
 const MS_POR_MB_ENVIADO = 1_000
 const prazoDoPut = (base: number, bytes: number) => base + Math.ceil(bytes / (1024 * 1024)) * MS_POR_MB_ENVIADO
+/** Parte do multipart do S3 (o mínimo para as que não são a última; o mesmo do binding). */
+const TAMANHO_DA_PARTE_S3 = 5 * 1024 * 1024
 
 export function armazenamentoS3(
   cfg: ConfigS3,
@@ -220,10 +303,19 @@ export function armazenamentoS3(
       contentType?: string
       // Cabeçalhos NÃO assinados (SigV4 só exige os que estão em `SignedHeaders`) — hoje só `range`.
       extras?: Record<string, string>
+      /**
+       * Query string do multipart (`uploads`, `partNumber`, `uploadId`). As chaves vêm já em ordem
+       * alfabética — a requisição canônica do SigV4 usa `url.searchParams` como está. A codificação do
+       * `URLSearchParams` coincide com a do SigV4 para os caracteres de um `uploadId` (`+`, `/`, `=`).
+       */
+      consulta?: Record<string, string>
       prazoMs?: number
     } = {},
   ) => {
     const url = urlDe(nome)
+    for (const [k, v] of Object.entries(o.consulta ?? {}).sort(([a], [b]) => (a < b ? -1 : 1))) {
+      url.searchParams.set(k, v)
+    }
     const corpo = o.corpo ?? ''
     const headers = assinarSigV4({
       metodo,
@@ -254,7 +346,7 @@ export function armazenamentoS3(
     }
   }
 
-  return {
+  const s3: Armazenamento = {
     tipo: 's3',
     async gravar(nome, bytes, contentType) {
       const r = await chamar('PUT', nome, { corpo: bytes, contentType, prazoMs: prazoDoPut(prazoBase, bytes.length) })
@@ -270,6 +362,54 @@ export function armazenamentoS3(
         prazoMs: prazoDoPut(prazoBase, size),
       })
       if (!r.ok) throw new Error(`s3 PUT ${r.status}`)
+    },
+    /**
+     * STREAM NO S3 — decisão (Task 7): MULTIPART ASSINADO PARTE A PARTE, e não `UNSIGNED-PAYLOAD`.
+     * Cada parte de 5 MiB já está na memória (é o que o multipart exige de qualquer jeito), então o
+     * sha256 dela sai de graça e a assinatura continua cobrindo o corpo — nada de afrouxar a
+     * integridade nem depender de `chunked` (que o R2 recusa sem `Content-Length`). Abaixo de 5 MiB é
+     * um PUT só. Funciona sem disco, então serve também a um Worker configurado só com `S3_*`.
+     */
+    async gravarDeStream(nome, fluxo, contentType) {
+      urlDe(nome)
+      let uploadId: string | null = null
+      const etags: string[] = []
+      try {
+        for await (const parte of emPartes(fluxo, TAMANHO_DA_PARTE_S3)) {
+          if (!uploadId) {
+            if (parte.length < TAMANHO_DA_PARTE_S3) {
+              await s3.gravar(nome, parte, contentType)
+              return
+            }
+            const r = await chamar('POST', nome, { consulta: { uploads: '' }, contentType })
+            const id = r.ok ? /<UploadId>([^<]+)<\/UploadId>/.exec(await r.text())?.[1] : undefined
+            if (!id) throw new Error(`s3 POST uploads ${r.status}`)
+            uploadId = id
+          }
+          const r = await chamar('PUT', nome, {
+            corpo: parte,
+            consulta: { partNumber: String(etags.length + 1), uploadId },
+            prazoMs: prazoDoPut(prazoBase, parte.length),
+          })
+          const etag = r.headers.get('etag')
+          if (!r.ok || !etag) throw new Error(`s3 PUT parte ${r.status}`)
+          etags.push(etag)
+        }
+        if (!uploadId) {
+          await s3.gravar(nome, Buffer.alloc(0), contentType)
+          return
+        }
+        const xml =
+          '<CompleteMultipartUpload>' +
+          etags.map((e, i) => `<Part><PartNumber>${i + 1}</PartNumber><ETag>${e}</ETag></Part>`).join('') +
+          '</CompleteMultipartUpload>'
+        const r = await chamar('POST', nome, { corpo: xml, consulta: { uploadId } })
+        // O S3 pode responder 200 com `<Error>` no corpo do complete.
+        if (!r.ok || (await r.text()).includes('<Error>')) throw new Error(`s3 POST complete ${r.status}`)
+      } catch (err) {
+        if (uploadId) await chamar('DELETE', nome, { consulta: { uploadId } }).catch(() => {})
+        throw err
+      }
     },
     async ler(nome) {
       const r = await chamar('GET', nome)
@@ -308,6 +448,7 @@ export function armazenamentoS3(
       return Number.isFinite(n) ? n : null
     },
   }
+  return s3
 }
 
 /* ─────────────────────────── escolha ─────────────────────────── */
@@ -328,15 +469,34 @@ export function configDoS3(env: NodeJS.ProcessEnv = process.env): ConfigS3 | nul
   }
 }
 
-export function armazenamentoDoAmbiente(dirPadrao: string, env: NodeJS.ProcessEnv = process.env): Armazenamento {
+/**
+ * Há armazenamento EXTERNO (alcançável por todas as instâncias): o binding R2 ligado pelo `worker.ts`
+ * ou o S3 com as quatro variáveis. É a pergunta da readiness, da cota (teto da conta, folga do volume)
+ * e da trava de multi-réplica — uma regra só.
+ */
+export function armazenamentoExterno(env: NodeJS.ProcessEnv = process.env): boolean {
+  return !!bucketDoR2Ligado() || !!configDoS3(env)
+}
+
+/**
+ * Qual armazenamento vale: o BINDING R2 (passado em `r2`, ou ligado pelo ponto de entrada do Worker),
+ * depois o S3 (quatro variáveis), depois o disco em `dirPadrao`.
+ */
+export function armazenamentoDoAmbiente(
+  dirPadrao: string,
+  env: NodeJS.ProcessEnv = process.env,
+  opcoes: { r2?: BucketR2 | null } = {},
+): Armazenamento {
+  const r2 = opcoes.r2 ?? bucketDoR2Ligado()
   const cfg = configDoS3(env)
   /* A DECISÃO saiu daqui para `configDoS3` porque o `GET /api/ready` precisa da mesma pergunta —
      "existe armazenamento EXTERNO configurado?" — sem receber um diretório de fallback que ele não
      tem e não usaria. Duas cópias da regra das quatro variáveis divergiriam no dia em que a quinta
      aparecesse. */
-  /* O TETO DO R2 só embrulha o S3 (`openspec/changes/r2-teto-de-uso`): no disco não há operação
+  /* O TETO DO R2 embrulha o binding e o S3 (`openspec/changes/r2-teto-de-uso`): no disco não há operação
      cobrada. Os tetos são lidos AQUI, na criação — valor inválido lança, e quem cria no boot é
      `server/boot/validar.ts`. */
+  if (r2) return comTetoDeOperacoes(armazenamentoR2(r2), { tetos: lerTetoDoR2(env) })
   return cfg
     ? comTetoDeOperacoes(armazenamentoS3(cfg), { tetos: lerTetoDoR2(env) })
     : armazenamentoDeArquivos(dirPadrao)

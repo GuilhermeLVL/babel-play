@@ -10,9 +10,15 @@ export function ehWorker(): boolean {
   return (globalThis as { navigator?: { userAgent?: string } }).navigator?.userAgent === 'Cloudflare-Workers'
 }
 
-/** Há sistema de arquivos gravável (PGlite em diretório, `secret.key`, áudio em disco)? Por ora: só fora do Worker. */
+/**
+ * Há sistema de arquivos gravável (PGlite em diretório, `secret.key`, áudio em disco)? Por ora: só fora do Worker.
+ *
+ * `BABEL_SEM_DISCO=1` é o GANCHO DE TESTE: faz o Node responder como o Worker, para os testes exercitarem
+ * o caminho sem disco (upload em stream para o R2) sem `workerd`. Lido a cada chamada, nunca no import.
+ */
 export function temDisco(): boolean {
-  return !ehWorker()
+  if (ehWorker()) return false
+  return process.env.BABEL_SEM_DISCO !== '1'
 }
 
 /**

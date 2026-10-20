@@ -31,7 +31,7 @@ import {
   descartarRestoDoCorpo,
   lerCorpoViaArquivo,
   tamanhoDeclarado,
-} from '../lib/corpoEmArquivo'
+} from '../lib/corpoRecebido'
 import { vagaDeCorpoGrande } from '../lib/corposGrandes'
 import { hasEntitlement } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'

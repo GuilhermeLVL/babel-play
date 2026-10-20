@@ -174,10 +174,15 @@ function avisarContagemFalhou(err: unknown): void {
 }
 
 /**
- * Embrulha o adaptador S3 contando cada operação por classe (decisão 3 do design):
- * A = `gravar`, `gravarDeArquivo`, `remover`; B = `ler`, `lerFaixa`, `tamanho`. `sondar` (a readiness)
- * passa sem contar. No teto, `gravar`/`gravarDeArquivo` (A) e `ler`/`lerFaixa`/`tamanho` (B) lançam
- * `ErroDeTetoDoR2`; `remover` SEMPRE passa (decisão 6): apagar reduz o problema.
+ * Embrulha o adaptador S3 — ou o R2 por binding (Fase 2, Task 7), com a mesma contagem — contando cada
+ * operação por classe (decisão 3 do design): A = `gravar`, `gravarDeArquivo`, `gravarDeStream`,
+ * `remover`; B = `ler`, `lerFaixa`, `tamanho` (o HEAD). `sondar` (a readiness) passa sem contar. No teto,
+ * as gravações (A) e `ler`/`lerFaixa`/`tamanho` (B) lançam `ErroDeTetoDoR2`; `remover` SEMPRE passa
+ * (decisão 6): apagar reduz o problema.
+ *
+ * `gravarDeStream` conta UMA operação A, como as outras gravações: o multipart de um upload grande são
+ * várias no R2 (criar + uma por parte de 5 MiB + completar — 26 para 120 MB). Fica SUBCONTADO de
+ * propósito por ora (o contador soma 1 por chamada); o painel da Cloudflare é a fonte da fatura.
  *
  * Jobs internos que precisam medir ou apagar independentemente do teto (exclusão de conta/LGPD,
  * apagar sessão, retenção, reconciliação da cota) usam `semTeto(store)`: a mesma contagem, sem
@@ -223,6 +228,9 @@ export function comTetoDeOperacoes(store: Armazenamento, deps: DependenciasDoTet
     gravar: async (nome, bytes, contentType) => (await passar('a', livre), store.gravar(nome, bytes, contentType)),
     gravarDeArquivo: async (nome, caminho, contentType) => (
       await passar('a', livre), store.gravarDeArquivo(nome, caminho, contentType)
+    ),
+    gravarDeStream: async (nome, fluxo, contentType, tamanho) => (
+      await passar('a', livre), store.gravarDeStream(nome, fluxo, contentType, tamanho)
     ),
     remover: async (nome) => (await passar('a', true), store.remover(nome)),
     ler: async (nome) => (await passar('b', livre), store.ler(nome)),

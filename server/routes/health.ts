@@ -4,7 +4,7 @@ import type { Request, Response } from 'express'
 import { bancoEmbutido, db } from '../db/db'
 import { migracoesAplicadas } from '../db/manutencao'
 import { contarDependenciaDegradada } from '../http/metricas'
-import { armazenamentoDoAmbiente, configDoS3 } from '../lib/armazenamento'
+import { armazenamentoDoAmbiente, armazenamentoExterno } from '../lib/armazenamento'
 import { bootStatus } from '../lib/bootStatus'
 import { log } from '../lib/logger'
 import { versaoDoApp } from '../lib/versao'
@@ -186,10 +186,10 @@ async function avaliarProntidao(): Promise<Veredicto> {
   const migracoes = banco === 'up' ? await migracoesAplicadas() : 'desconhecida'
 
   let armazenamento: 'nao-configurado' | 'ok' | 'indisponivel' = 'nao-configurado'
-  if (configDoS3()) {
+  if (armazenamentoExterno()) {
     try {
-      /* O diretório passado é irrelevante e não é usado: com S3 configurado, `armazenamentoDoAmbiente`
-         nunca cai no ramo de arquivos. Passá-lo mesmo assim evita duplicar aqui a montagem do
+      /* O diretório passado é irrelevante e não é usado: com o binding R2 ou o S3 configurado,
+         `armazenamentoDoAmbiente` nunca cai no ramo de arquivos. Passá-lo mesmo assim evita duplicar aqui a montagem do
          cliente S3 — a regra de qual armazenamento vale mora num lugar só. */
       await armazenamentoDoAmbiente('').sondar()
       armazenamento = 'ok'

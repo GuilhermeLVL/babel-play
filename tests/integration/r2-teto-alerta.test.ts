@@ -78,6 +78,7 @@ function storeFalso() {
     tipo: 's3' as const,
     gravar: async () => {},
     gravarDeArquivo: async () => {},
+    gravarDeStream: async () => {},
     ler: async () => Buffer.from('x'),
     lerFaixa: async () => Readable.from(Buffer.from('x')),
     remover: async () => {},

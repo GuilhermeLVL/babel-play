@@ -1,6 +1,7 @@
 /**
- * RECEPÇÃO DE CORPO EM ARQUIVO — o corpo do request vai para o disco em pedaços, sem nunca existir
- * inteiro na memória (fase 2 de prontidão, §2.3; ADR 0009: "proibido `express.raw` acima de 5 MB").
+ * RECEPÇÃO DE CORPO — o corpo do request vai para o disco em pedaços (Node), ou segue em stream para o
+ * bucket (Worker, sem disco: `receberCorpo(...).paraStream()`), sem nunca existir inteiro na memória
+ * (fase 2 de prontidão, §2.3; ADR 0009: "proibido `express.raw` acima de 5 MB").
  *
  * Por que não `pipeline(req, arquivo)`: no erro, o `pipeline` DESTRÓI todos os streams, e destruir o
  * `IncomingMessage` derruba o socket — aí o 413 que explica o estouro nunca chega ao cliente. Aqui o
@@ -155,6 +156,130 @@ export function receberCorpoEmArquivo(fonte: Readable, destino: string, limite: 
     fonte.once('error', aoErro)
     fonte.resume()
   })
+}
+
+/**
+ * O CORPO RECEBIDO, com os dois destinos possíveis (Fase 2, Task 7). Quem chama escolhe UM:
+ *
+ *  - `paraArquivo(destino)`: o caminho de sempre no Node (`receberCorpoEmArquivo`), sem mudança nenhuma;
+ *  - `paraStream()`: sem disco (Worker). Lê só o começo do corpo — os bytes da `cabeca`, para detectar o
+ *    tipo ANTES de escolher o nome e tocar o bucket — e devolve um `fluxo` que repete esse começo e
+ *    segue com o resto, sob demanda (quem consome dita o ritmo: o request fica pausado entre um pedaço
+ *    e outro). O teto vale pela CONTAGEM: passou de `limite`, o `fluxo` lança `CorpoGrandeDemais`; o
+ *    cliente sumiu, `CorpoInterrompido`. Nos dois casos o request fica PAUSADO, não destruído — como no
+ *    arquivo, para o 413 ainda chegar (`descartarRestoDoCorpo`).
+ *
+ * O semáforo de corpos grandes (`vagaDeCorpoGrande`) continua na frente das duas. No Worker ele vale por
+ * ISOLATE, não pela conta: cada isolate tem o seu contador (e cada um tem a sua memória, que é o que ele
+ * protege).
+ */
+export interface CorpoAReceber {
+  paraArquivo(destino: string): Promise<CorpoRecebido>
+  paraStream(): Promise<{ cabeca: Buffer; fluxo: AsyncIterable<Buffer>; recebidos: () => number }>
+}
+
+export function receberCorpo(req: { body?: unknown }, opcoes: { limite: number }): CorpoAReceber {
+  const { limite } = opcoes
+  return {
+    paraArquivo: (destino) => receberCorpoEmArquivo(fonteDoCorpo(req), destino, limite),
+    async paraStream() {
+      const leitor = leitorDoCorpo(fonteDoCorpo(req), limite)
+      const lidos: Buffer[] = []
+      let naCabeca = 0
+      while (naCabeca < TAMANHO_DA_CABECA) {
+        const p = await leitor.proximo()
+        if (!p) break
+        lidos.push(p)
+        naCabeca += p.length
+      }
+      async function* fluxo(): AsyncGenerator<Buffer> {
+        yield* lidos.splice(0)
+        for (;;) {
+          const p = await leitor.proximo()
+          if (!p) return
+          yield p
+        }
+      }
+      return {
+        cabeca: Buffer.concat(lidos).subarray(0, TAMANHO_DA_CABECA),
+        fluxo: fluxo(),
+        recebidos: () => leitor.bytes(),
+      }
+    },
+  }
+}
+
+/**
+ * Leitura PUXADA do request: cada `proximo()` solta o request até chegar UM pedaço e o pausa de novo.
+ * Sem `for await (… of req)` de propósito: sair de um `for await` (o erro de quem consome, o teto)
+ * DESTRÓI o stream, e com ele o socket — o 413 não chegaria.
+ */
+function leitorDoCorpo(fonte: Readable, limite: number) {
+  const fila: Buffer[] = []
+  let bytes = 0
+  let fim = false
+  let erro: Error | null = null
+  let acordar: (() => void) | null = null
+
+  const soltar = () => {
+    fonte.off('data', aoDado)
+    fonte.off('end', aoFim)
+    fonte.off('close', aoFechar)
+    fonte.off('error', aoErro)
+  }
+  const sinalizar = () => {
+    const a = acordar
+    acordar = null
+    a?.()
+  }
+  const falhar = (err: Error) => {
+    if (erro || fim) return
+    erro = err
+    soltar()
+    fonte.pause()
+    sinalizar()
+  }
+  const aoDado = (pedaco: Buffer) => {
+    bytes += pedaco.length
+    if (bytes > limite) {
+      falhar(new CorpoGrandeDemais(limite))
+      return
+    }
+    fila.push(pedaco)
+    fonte.pause()
+    sinalizar()
+  }
+  const aoFim = () => {
+    fim = true
+    soltar()
+    sinalizar()
+  }
+  const aoFechar = () => {
+    if (!fim) falhar(new CorpoInterrompido())
+  }
+  const aoErro = () => falhar(new CorpoInterrompido())
+
+  fonte.on('data', aoDado)
+  fonte.once('end', aoFim)
+  fonte.once('close', aoFechar)
+  fonte.once('error', aoErro)
+  fonte.pause()
+
+  return {
+    bytes: () => bytes,
+    async proximo(): Promise<Buffer | null> {
+      for (;;) {
+        if (erro) throw erro
+        const p = fila.shift()
+        if (p) return p
+        if (fim) return null
+        await new Promise<void>((r) => {
+          acordar = r
+          fonte.resume()
+        })
+      }
+    },
+  }
 }
 
 /**

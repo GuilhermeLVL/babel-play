@@ -3,7 +3,7 @@
  *
  * O medido que motivou: numa VM de 1 GB, 4 uploads simultâneos de 120 MB em
  * `POST /api/sessions/:id/audio` levaram o RSS a 1.011 MB. Tirar o corpo da memória (ver
- * `corpoEmArquivo.ts`) resolve o custo POR upload; este módulo resolve QUANTOS existem ao mesmo
+ * `corpoRecebido.ts`) resolve o custo POR upload; este módulo resolve QUANTOS existem ao mesmo
  * tempo. Mesmo em streaming, cada corpo grande ocupa disco temporário, banda e uma conexão por
  * minutos — e o import Anki ainda precisa do `.apkg` inteiro na memória (o JSZip lê de Buffer).
  *
@@ -16,7 +16,7 @@
 import type { NextFunction, Request, Response } from 'express'
 
 import { contarUploadRecusado, registrarLeitorDeUploads } from '../http/metricas'
-import { descartarRestoDoCorpo } from './corpoEmArquivo'
+import { descartarRestoDoCorpo } from './corpoRecebido'
 import { envelopeDeErro } from './respostaDeErro'
 
 export interface LimitesDeCorpos {

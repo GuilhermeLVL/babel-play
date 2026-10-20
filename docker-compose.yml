@@ -25,9 +25,9 @@ services:
     env_file: .env.docker
     environment:
       # Modo público: exige JWT do Supabase em toda rota /api.
-      # Também DESLIGA por design as capacidades locais — POST /api/import/youtube
-      # e /api/audio/* respondem 403 mesmo autenticado (rodam yt-dlp e WASAPI no
-      # servidor; não existem num deploy hospedado).
+      # Também DESLIGA por design as capacidades locais — /api/audio/* responde 403
+      # mesmo autenticado (roda WASAPI no servidor; não existe num deploy hospedado).
+      # POST /api/import/youtube foi aposentada (410 em qualquer modo).
       AUTH_REQUIRED: '1'
       NODE_ENV: production
       # Postgres do serviço `postgres` abaixo, para exercitar o driver `pg` de verdade. Em produção

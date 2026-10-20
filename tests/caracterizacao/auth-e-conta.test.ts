@@ -108,9 +108,11 @@ describe('modo publico (AUTH_REQUIRED=1, JWT ES256)', () => {
     expect(r.status).toBe(403)
   })
 
-  it('/api/audio e /api/import/youtube nao existem no modo hospedado (403)', async () => {
+  it('/api/audio nao existe no modo hospedado (403) e /api/import/youtube foi aposentada (410)', async () => {
     const t = await s.token('usuario-a')
     expect((await s.get('/api/audio/loopback/support', t)).status).toBe(403)
-    expect((await s.post('/api/import/youtube', { url: 'https://youtu.be/x' }, t)).status).toBe(403)
+    const yt = await s.post('/api/import/youtube', { url: 'https://youtu.be/x' }, t)
+    expect(yt.status).toBe(410)
+    expect(((await yt.json()) as { code?: string }).code).toBe('rota_removida')
   })
 })

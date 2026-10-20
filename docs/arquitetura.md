@@ -69,7 +69,7 @@ flowchart TB
 
     DB[("Postgres (Drizzle; PGlite em dev, pg em produção)\nsessions · utterances · cards\nreview_logs · settings · secrets")]
 
-    YT["yt-dlp (binário externo)"]
+    YT["yt-dlp (aposentado)"]
     CLOUD["Nuvem: Groq · OpenRouter · MyMemory\nWiktionary · Openverse · HF CDN"]
 
     Hub & LC & Lib & Ana & Met & Set & IChat --> API

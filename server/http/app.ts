@@ -543,15 +543,9 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
 
   // Dados (Fase 2) — sessões/transcrições + vocabulário/SRS (FSRS persistido).
   app.use('/api/sessions', capturarAssincrono(sessionsRouter))
-  // Importação (Fase nova) — YouTube (yt-dlp: áudio + legenda) · documento (.txt/.pdf/.docx) · link web.
+  // Importação (Fase nova) — documento (.txt/.pdf/.docx) · link web · Anki.
   // Produz sessões no formato canônico → reaproveita Análise/vocabulário/exercícios.
-  // A importação de YouTube roda yt-dlp NO SERVIDOR (capacidade local perigosa): no modo público
-  // ela é bloqueada mesmo autenticado; só existe no self-host. O guard vem ANTES do router.
-  if (authRequired()) {
-    app.post('/api/import/youtube', (_req, res) =>
-      res.status(403).json({ error: 'importação de YouTube indisponível no modo hospedado' }),
-    )
-  }
+  // O YouTube (yt-dlp) saiu na Task 10 da Fase 2: `POST /api/import/youtube` responde 410 no próprio router.
   app.use('/api/import', capturarAssincrono(importRouter))
   app.use('/api/vocab', capturarAssincrono(vocabRouter))
   // Acervo Anki (motor-anki-acervo) — decks/notas/ativação, escopado por userId (auth já resolvido acima).

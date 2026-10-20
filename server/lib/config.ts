@@ -973,12 +973,6 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue:
       'chave PÚBLICA do Cloudflare Turnstile: o convidado passa pelo captcha antes de o Supabase criar o usuário anônimo (Fase 7). Com ela a CSP libera challenges.cloudflare.com; sem ela o captcha fica desligado',
   },
-  {
-    nome: 'YTDLP_PATH',
-    exigencia: 'opcional',
-    criticidade: 'degrada-capacidade',
-    paraQue: 'binário do yt-dlp para importação do YouTube; ausente, a capacidade se declara indisponível',
-  },
 ]
 
 export interface ResultadoDaConferencia {

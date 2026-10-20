@@ -3,28 +3,24 @@
  * canônico (sessions + utterances [+ áudio]), então todo o downstream (Análise, vocabulário,
  * exercícios, player sincronizado) funciona sem tela nova.
  *
- *  - POST /youtube  { url }            → baixa áudio + legenda (ou marca needsClientStt p/ o Whisper)
+ *  - POST /youtube                     → 410 rota_removida (o yt-dlp saiu; ver o comentário da rota)
  *  - POST /web      { url }            → extrai o artigo (cliente monta a sessão-documento)
  *  - POST /document (corpo binário)    → extrai o texto do arquivo (cliente monta a sessão-documento)
  *  - POST /anki     (corpo binário)    → lê um baralho .apkg/.txt e devolve as notas (NÃO grava)
  *  - POST /anki/export { cartoes }     → devolve um .apkg pronto para o Anki
  */
 import { createHash } from 'node:crypto'
-import { rm } from 'node:fs/promises'
-import path from 'node:path'
 
 import { type Request, type Response, Router } from 'express'
 
 import { vazaResposta } from '../../src/core/learning/pistaDeJogo'
 import { avaliarCartao } from '../../src/core/learning/quality'
 import { ankiRepo } from '../db/repositories/anki'
-import { sessionsRepo } from '../db/repositories/sessions'
 import { vocabRepo } from '../db/repositories/vocab'
 import { contagemDeEscritas, type EscritaDominante, escritaDominante, lerApkg, lerTextoAnki } from '../import/anki'
 import { montarApkg } from '../import/ankiExport'
 import { extractDocument } from '../import/document'
 import { extractArticle } from '../import/web'
-import { downloadAudio, fetchCaptions, hasYtDlp, resolveYouTube } from '../import/youtube'
 import {
   CorpoGrandeDemais,
   CorpoInterrompido,
@@ -33,21 +29,10 @@ import {
   tamanhoDeclarado,
 } from '../lib/corpoRecebido'
 import { vagaDeCorpoGrande } from '../lib/corposGrandes'
-import { hasEntitlement } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
-import { envelopeDeErro } from '../lib/respostaDeErro'
-import {
-  ajustarArmazenamento,
-  corpoDeRecusa,
-  estimarBytesDeAudio,
-  liberarArmazenamento,
-  reservarArmazenamento,
-  tamanhoNoDisco,
-} from '../lib/storageQuota'
-import { respostaDoTetoDoR2 } from '../lib/tetoDoR2'
+import { envelopeDeErro, responderErro } from '../lib/respostaDeErro'
 // F11-04: schemas de corpo e de cabeçalho das rotas de importação.
 import { ankiExportSchema, importUrlSchema, parseOr400, uploadHeadersSchema } from '../validation'
-import { armazenamentoDeMidia, audioDir } from './sessions'
 
 export const importRouter = Router()
 
@@ -459,151 +444,13 @@ importRouter.post('/anki', vagaDeCorpoGrande(), async (req: Request, res: Respon
   }
 })
 
-const isYouTube = (u: string) =>
-  /^(https?:\/\/)?(www\.|m\.)?(youtube\.com\/(watch\?|shorts\/|live\/)|youtu\.be\/)/i.test(u)
-
-// YouTube: legenda-primeiro (timestamps reais) + download do áudio; sem legenda → Whisper no cliente.
-importRouter.post('/youtube', async (req, res) => {
-  // Bytes reservados que ainda não têm arquivo correspondente — todo caminho que não entrega
-  // áudio precisa devolvê-los, senão uma falha do yt-dlp consome a cota sem gravar nada.
-  let reservaPendente = 0
-  // Para desfazer o import quando o PUT no R2 é recusado pelo teto (ver o `catch`).
-  let sessaoCriada: string | null = null
-  let localBaixado: string | null = null
-  const corpo = parseOr400(importUrlSchema, req.body, res)
-  if (!corpo) return
-
-  /**
-   * O GATE QUE SÓ EXISTIA NO CLIENTE (auditoria de 01/09).
-   *
-   * `Library.tsx:621` desenhava o selo "Pro" e recusava o clique — e esta rota não checava
-   * entitlement nenhum. Quem chamasse direto importava do YouTube no plano Grátis, e o download
-   * roda no NOSSO servidor (yt-dlp): é custo real, não cosmético. `managedCloudStt` e
-   * `managedCloudLlm` já eram conferidos aqui do lado; este ficou de fora.
-   *
-   * FAIL-CLOSED como os irmãos: erro ao checar o plano vira 502, nunca "passa direto".
-   */
-  try {
-    if (!(await hasEntitlement(req.userId, 'youtubeImport'))) {
-      res
-        .status(402)
-        .json({ error: 'importar do YouTube só está disponível no self-host', entitlement: 'youtubeImport' })
-      return
-    }
-  } catch (err) {
-    res.status(502).json({
-      error: erroDeRota(err, {
-        status: 502,
-        event: 'import_entitlement_error',
-        route: req.path,
-        requestId: req.requestId,
-      }),
-    })
-    return
-  }
-
-  try {
-    const url = corpo.url.trim()
-    if (!isYouTube(url)) {
-      res.status(400).json({ error: 'Informe um link de vídeo do YouTube.' })
-      return
-    }
-    if (!(await hasYtDlp())) {
-      res.status(501).json({
-        error:
-          'yt-dlp não encontrado. Instale o yt-dlp e coloque-o no PATH (ou defina a variável de ambiente YTDLP_PATH) para importar do YouTube.',
-      })
-      return
-    }
-
-    const info = await resolveYouTube(url)
-
-    /*
-     * F4-03: reserva ANTES de baixar. O yt-dlp não informa o tamanho de antemão, então a reserva é
-     * uma ESTIMATIVA pela duração, ajustada para o tamanho REAL logo após o download. Sem cota, o
-     * arquivo não chega a existir — nem gastamos a banda.
-     */
-    const estimativa = estimarBytesDeAudio(info.durationMs)
-    const cota = await reservarArmazenamento(req.userId, estimativa)
-    if (!cota.ok) {
-      const r = corpoDeRecusa(cota)
-      res.status(r.status).json(r.body)
-      return
-    }
-    reservaPendente = estimativa
-
-    // P2-6: "não tem legenda" (null) e "falhou ao buscar a legenda" (throw) são coisas
-    // diferentes. O segundo caso é reportado como `captionErro` em vez de virar silenciosamente
-    // uma sessão vazia com `needsClientStt` — o usuário saberia por que precisa transcrever.
-    let caps: Awaited<ReturnType<typeof fetchCaptions>> = null
-    let captionErro: string | null = null
-    try {
-      caps = await fetchCaptions(info)
-    } catch (err) {
-      captionErro = erroDeRota(err, { event: 'import_route_error' })
-    }
-    const sourceLang = caps?.lang || info.lang || undefined
-    const utts = caps
-      ? caps.cues.map((c, i) => ({
-          idx: i,
-          source: 'tab',
-          sourceLang,
-          sourceText: c.text,
-          tStartMs: c.startMs,
-          tEndMs: c.endMs,
-          engine: `youtube-caption-${caps.kind}`, // selo de procedência (manual | auto)
-        }))
-      : []
-
-    const session = await sessionsRepo.createWithUtterances(
-      req.userId,
-      { kind: 'video', title: info.title, sourceLang, status: 'ready', durationMs: info.durationMs },
-      utts,
-    )
-    sessaoCriada = session.id
-
-    /*
-     * O yt-dlp é um SUBPROCESSO: ele só sabe escrever em disco, então baixa sempre local. Com
-     * `S3_*` configurado, o store das sessões não é o disco — e sem o passo abaixo o áudio ficaria
-     * em `AUDIO_DIR` enquanto o `GET /:id/audio` o procuraria no bucket, dando 404.
-     */
-    const audio = await downloadAudio(url, session.id, audioDir())
-    const local = path.join(audioDir(), audio.file)
-    localBaixado = local
-    const bytes = tamanhoNoDisco(local)
-
-    if (armazenamentoDeMidia().tipo !== 'arquivos') {
-      // Em stream: o áudio baixado não passa inteiro pela memória a caminho do bucket (ADR 0009).
-      await armazenamentoDeMidia().gravarDeArquivo(audio.file, local, audio.contentType)
-      await rm(local, { force: true })
-    }
-
-    // O arquivo existe: a estimativa vira o tamanho medido e a reserva deixa de ser pendente.
-    await ajustarArmazenamento(req.userId, bytes - estimativa)
-    reservaPendente = 0
-    await sessionsRepo.setAudio(req.userId, session.id, audio.file, audio.contentType)
-
-    res.json({
-      id: session.id,
-      needsClientStt: !caps,
-      sourceLang,
-      captionKind: caps?.kind ?? null,
-      // null = o vídeo não tem legenda; string = tinha, mas a busca falhou (vale repetir).
-      captionErro,
-    })
-  } catch (err) {
-    if (reservaPendente) await liberarArmazenamento(req.userId, reservaPendente)
-    const teto = respostaDoTetoDoR2(err)
-    if (teto) {
-      /* Recusado pelo teto do R2 DEPOIS de criar a sessão e baixar o áudio: sem desfazer, sobravam uma
-         sessão sem áudio na biblioteca e o arquivo inteiro em `AUDIO_DIR`. */
-      if (localBaixado) await rm(localBaixado, { force: true }).catch(() => {})
-      if (sessaoCriada) await sessionsRepo.remove(req.userId, sessaoCriada).catch(() => {})
-      res.status(teto.status).json(teto.body)
-      return
-    }
-    res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'import_route_error' }) })
-  }
+/**
+ * YouTube: APOSENTADO (Task 10 da Fase 2). Rodava o yt-dlp como subprocesso no servidor, o que não existe
+ * num Worker (e já respondia 403 em produção). A rota fica registrada para quem ainda a chama receber uma
+ * resposta explícita — 410, não um 404 que parece defeito —, sem validar corpo nem checar plano.
+ */
+importRouter.post('/youtube', (_req, res) => {
+  responderErro(res, 410, 'a importação de vídeos do YouTube foi removida', 'rota_removida')
 })
 
 // Artigo web: servidor busca o HTML e devolve o texto principal (o cliente monta a sessão).

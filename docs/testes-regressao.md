@@ -47,7 +47,7 @@ Esperado: balão "Sistema / Outros" com transcrição + tradução; decode ~470m
 
 - `POST /api/import/web` `{url}` → título+texto (✅ example.com).
 - `POST /api/import/document` binário + header `x-filename` → texto (✅ .txt).
-- YouTube: requer `yt-dlp` (instalado nesta máquina via winget; caminho em `YTDLP_PATH` no `.env`).
+- YouTube: aposentado (Task 10 da Fase 2) — `POST /api/import/youtube` responde 410 `rota_removida`; ver `tests/integration/import-youtube-removida.test.ts`.
 
 ## 7. iChat
 

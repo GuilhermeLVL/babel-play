@@ -152,11 +152,13 @@ mundo de uma vez, pelo mesmo `reconciliarVencidos` do job.
 
 ## O que fica desativado por design
 
-No modo público, duas capacidades locais respondem **403 mesmo com token válido** — elas
-executam coisas no servidor que só fazem sentido no self-host:
+No modo público, uma capacidade local responde **403 mesmo com token válido** — ela
+executa coisas no servidor que só fazem sentido no self-host:
 
-- `POST /api/import/youtube` — roda `yt-dlp` como subprocesso.
 - `/api/audio/*` — captura WASAPI loopback (Windows).
+
+`POST /api/import/youtube` (que rodava `yt-dlp` como subprocesso) foi **aposentada na Task 10 da Fase 2**:
+responde `410 { code: "rota_removida" }` em qualquer modo, e `YTDLP_PATH` não é mais lida.
 
 Sem token elas devolvem **401**, não 403: o `authMiddleware` roda antes do guard. Os dois
 códigos significam "indisponível aqui" — o 403 é o que você vê depois de autenticar.

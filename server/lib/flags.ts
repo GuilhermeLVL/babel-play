@@ -45,6 +45,7 @@ import { asUserId, donoLocal } from './authContext'
 import { getPlanForUser } from './entitlements'
 import { log } from './logger'
 import { FORMATO_DE_IDIOMA, ofertasSchema } from './ofertas'
+import { ehWorker } from './runtime'
 import { versaoDoApp } from './versao'
 
 export const TTL_DO_CACHE_MS = 30_000
@@ -139,20 +140,24 @@ export function definicaoDaLinha(l: LinhaDeFlag): DefinicaoDeFlag {
 let cache: { em: number; defs: DefinicaoDeFlag[] } | null = null
 let emVoo: Promise<DefinicaoDeFlag[]> | null = null
 
-/** As definições, do cache (30 s) ou do banco. */
+/**
+ * As definições, do cache (30 s) ou do banco. No Node, leituras simultâneas dividem a consulta (`emVoo`). No
+ * Worker, não: uma promessa criada numa requisição não pode ser esperada por outra (o workerd não a resolve
+ * entre requisições, e a consulta é do `Client` da que a criou) — cada uma vai ao banco; o cache vale igual.
+ */
 export async function definicoesDasFlags(agora = Date.now()): Promise<DefinicaoDeFlag[]> {
   if (cache && agora - cache.em < TTL_DO_CACHE_MS) return cache.defs
-  if (emVoo) return emVoo
-  emVoo = flagsRepo
-    .listar()
-    .then((linhas) => {
+  const carregar = () =>
+    flagsRepo.listar().then((linhas) => {
       const defs = linhas.map(definicaoDaLinha)
       cache = { em: Date.now(), defs }
       return defs
     })
-    .finally(() => {
-      emVoo = null
-    })
+  if (ehWorker()) return carregar()
+  if (emVoo) return emVoo
+  emVoo = carregar().finally(() => {
+    emVoo = null
+  })
   return emVoo
 }
 

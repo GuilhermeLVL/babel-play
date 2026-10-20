@@ -520,10 +520,14 @@ export function registrarLeitorDeUploads(fn: () => { emVoo: number; limite: numb
   leitorDeUploads = fn
 }
 
-/** Uma leitura do gasto por scrape, compartilhada pelos dois gauges que dependem dela. */
+/**
+ * Uma leitura do gasto por scrape, compartilhada pelos dois gauges que dependem dela. No Worker (onde o
+ * `/metrics` nem existe), nada é compartilhado: promessa de uma requisição não pode ser esperada por outra.
+ */
 let gastoEmVoo: Promise<GastoParaMetricas | undefined> | undefined
 function lerGastoUmaVez(): Promise<GastoParaMetricas | undefined> {
   if (!leitorDeGasto) return Promise.resolve(undefined)
+  if (ehWorker()) return leitorDeGasto().catch(() => undefined)
   gastoEmVoo ??= leitorDeGasto()
     .catch(() => undefined) // banco fora: sem série; a regra `absent()` é quem avisa
     .finally(() => setImmediate(() => (gastoEmVoo = undefined)))

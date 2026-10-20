@@ -7,6 +7,7 @@ import { contarDependenciaDegradada } from '../http/metricas'
 import { armazenamentoDoAmbiente, armazenamentoExterno } from '../lib/armazenamento'
 import { bootStatus } from '../lib/bootStatus'
 import { log } from '../lib/logger'
+import { ehWorker } from '../lib/runtime'
 import { versaoDoApp } from '../lib/versao'
 
 /**
@@ -155,10 +156,15 @@ export function esquecerVereditoDeProntidao(): void {
 
 export async function readyHandler(_req: Request, res: Response): Promise<void> {
   if (!guardado || guardado.ate <= Date.now()) {
-    emVoo ??= avaliarProntidao().finally(() => {
-      emVoo = null
-    })
-    guardado = await emVoo
+    /* No Worker, o `emVoo` não é dividido: uma promessa criada numa requisição não pode ser esperada por
+       outra (o workerd não a resolve entre requisições). Cada uma avalia; o veredicto guardado vale igual. */
+    if (ehWorker()) guardado = await avaliarProntidao()
+    else {
+      emVoo ??= avaliarProntidao().finally(() => {
+        emVoo = null
+      })
+      guardado = await emVoo
+    }
   }
   res.status(guardado.codigo).json(guardado.corpo)
 }

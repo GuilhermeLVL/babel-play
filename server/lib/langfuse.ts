@@ -444,23 +444,30 @@ export class ClienteLangfuse {
     while (this.emCurso) await this.emCurso
   }
 
-  /** Esvazia a fila, em lotes. Nunca lança. Chamadas concorrentes esperam a mesma. */
+  /**
+   * Esvazia a fila, em lotes. Nunca lança. No Node, chamadas concorrentes esperam a mesma. No Worker, não: uma
+   * promessa criada numa requisição não pode ser esperada por outra (o workerd não a resolve entre
+   * requisições) — cada chamada esvazia o que achar (o `splice` é síncrono: nenhum lote sai duas vezes).
+   */
   async descarregar(): Promise<void> {
+    if (ehWorker()) return await this.esvaziar()
     if (this.emCurso) return await this.emCurso
     if (this.fila.length === 0) return
-    this.emCurso = (async () => {
-      try {
-        while (this.fila.length > 0) {
-          const lote = this.fila.splice(0, this.lote)
-          await Promise.all([this.gravarArquivo(lote), this.mandar(lote)])
-        }
-      } catch {
-        /* idem */
-      } finally {
-        this.emCurso = undefined
-      }
-    })()
+    this.emCurso = this.esvaziar().finally(() => {
+      this.emCurso = undefined
+    })
     return await this.emCurso
+  }
+
+  private async esvaziar(): Promise<void> {
+    try {
+      while (this.fila.length > 0) {
+        const lote = this.fila.splice(0, this.lote)
+        await Promise.all([this.gravarArquivo(lote), this.mandar(lote)])
+      }
+    } catch {
+      /* idem */
+    }
   }
 
   private async gravarArquivo(lote: EventoNaFila[]): Promise<void> {

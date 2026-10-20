@@ -144,6 +144,45 @@ describe('GET /api/ready com o R2 configurado', () => {
   })
 })
 
+/* No Worker, uma promessa criada numa requisição não pode ser esperada por outra (o workerd não resolve
+   promessa entre requisições): lá o `emVoo` não é compartilhado. O veredicto guardado (dado puro) segue valendo. */
+describe('veredicto do ready: chamadas simultâneas', () => {
+  async function duasSimultaneas() {
+    const { readyHandler } = await s.load<typeof import('../../server/routes/health')>('../../server/routes/health')
+    const resposta = () => {
+      const r = {
+        corpo: undefined as unknown,
+        status: () => r,
+        json: (c: unknown) => void (r.corpo = c),
+      }
+      return r
+    }
+    const [a, b] = [resposta(), resposta()]
+    await Promise.all([readyHandler({} as never, a as never), readyHandler({} as never, b as never)])
+    return [a.corpo, b.corpo]
+  }
+
+  it('no Node, as duas esperam a MESMA avaliação (uma sonda só)', async () => {
+    const [a, b] = await duasSimultaneas()
+    expect(a).toBeDefined()
+    expect(a).toBe(b)
+  })
+
+  it('no Worker, cada uma faz a sua avaliação (nenhuma promessa atravessa requisições)', async () => {
+    const erros = vi.spyOn(console, 'error').mockImplementation(() => {})
+    process.env.BABEL_RUNTIME = 'worker'
+    try {
+      const [a, b] = await duasSimultaneas()
+      expect(a).toBeDefined()
+      expect(b).toBeDefined()
+      expect(a).not.toBe(b)
+    } finally {
+      delete process.env.BABEL_RUNTIME
+      erros.mockRestore()
+    }
+  })
+})
+
 describe('GET /api/health continua sendo a outra pergunta', () => {
   it('200 e público, com o contrato de sempre', async () => {
     const r = await s.get('/api/health')

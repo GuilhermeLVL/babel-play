@@ -4,6 +4,9 @@
  * Regra da Fase 2 (boot preguiçoso): nenhum módulo do servidor lê ambiente ou disco ao ser importado.
  * Quem precisa saber se há disco, ou se está num isolate, pergunta AQUI, na hora de usar.
  */
+import { AsyncLocalStorage } from 'node:async_hooks'
+
+import { log } from './logger'
 
 /**
  * Num Worker, `navigator.userAgent` é exatamente `Cloudflare-Workers`. No Node é `Node.js/<versão>`.
@@ -27,15 +30,42 @@ export function temDisco(): boolean {
   return process.env.BABEL_SEM_DISCO !== '1'
 }
 
+/** O pedaço do `ExecutionContext` do Worker que interessa aqui. */
+export interface ContextoDoWorker {
+  waitUntil(p: Promise<unknown>): void
+}
+
+/* Criado no primeiro uso, nunca no import (regra do boot preguiçoso). O `AsyncLocalStorage` existe no
+   Worker com `nodejs_compat` — é o mesmo que `server/db/executor.ts` usa para o executor por requisição. */
+let alsDoWorker: AsyncLocalStorage<ContextoDoWorker> | undefined
+const als = (): AsyncLocalStorage<ContextoDoWorker> => (alsDoWorker ??= new AsyncLocalStorage<ContextoDoWorker>())
+
 /**
- * Trabalho que segue depois da resposta, sem segurar quem pediu. No Node basta não esperar a promessa —
- * mas a falha precisa ir para o log, nunca virar rejeição não tratada. A Task 11 completa o lado do
- * Worker (`ctx.waitUntil`), onde uma promessa solta morre com o fim da requisição.
+ * Roda `fn` com o `ctx` da requisição do Worker à mão de `emSegundoPlano`. Quem abre é o `worker.ts`
+ * (Task 12), em volta de cada `fetch`/`scheduled`; o contexto segue a cadeia assíncrona de `fn`.
+ */
+export function comContextoDoWorker<T>(ctx: ContextoDoWorker, fn: () => T): T {
+  return als().run(ctx, fn)
+}
+
+/**
+ * Trabalho que segue depois da resposta, sem segurar quem pediu (envelope do Sentry, lote do Langfuse,
+ * recálculo de dificuldade depois da rodada).
  *
- * @public — ainda sem chamador: a Task 11 liga os primeiros.
+ * - Dentro de `comContextoDoWorker`: vai para o `ctx.waitUntil` — num Worker, uma promessa solta morre
+ *   com o fim da requisição, e o `waitUntil` é o que a mantém viva até terminar.
+ * - Fora dele (o Node de sempre, timers, testes): só não espera.
+ *
+ * Nos dois casos a falha vai para o log (`segundo_plano_falhou`, só a mensagem, que o logger redige)
+ * e NUNCA vira exceção nem rejeição não tratada — nem a do `waitUntil`.
  */
 export function emSegundoPlano(p: Promise<unknown>): void {
-  void p.catch((err: unknown) => {
-    console.error('[segundo-plano] tarefa falhou:', String((err as Error)?.message ?? err).slice(0, 300))
-  })
+  const seguro = p.then(
+    () => undefined,
+    (err: unknown) => {
+      log('error', { event: 'segundo_plano_falhou', error: String((err as Error)?.message ?? err).slice(0, 300) })
+    },
+  )
+  const ctx = alsDoWorker?.getStore()
+  if (ctx) ctx.waitUntil(seguro)
 }

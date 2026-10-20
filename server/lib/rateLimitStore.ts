@@ -19,6 +19,7 @@ import { ipKeyGenerator } from 'express-rate-limit'
 
 import { usageCountersRepo } from '../db/repositories/usageCounters'
 import { asUserId } from './authContext'
+import { emSegundoPlano } from './runtime'
 
 /**
  * UMA METRICA POR LIMITADOR, e nao uma so para todos (auditoria de 2026-09-07, achado A27).
@@ -111,7 +112,8 @@ export function createDbRateLimitStore(metric: string = METRIC_RATELIMIT) {
     async increment(key: string) {
       const w = balde()
       const totalHits = await usageCountersRepo.incrementAndGet(asUserId(key), metric, w)
-      void podarSePreciso()
+      /* No Worker a poda solta morreria com o fim da requisição: `emSegundoPlano` a entrega ao `waitUntil`. */
+      emSegundoPlano(podarSePreciso())
       // Fim do balde atual = início do próximo.
       const resetTime = new Date((Math.floor(Date.now() / windowMs) + 1) * windowMs)
       return { totalHits, resetTime }

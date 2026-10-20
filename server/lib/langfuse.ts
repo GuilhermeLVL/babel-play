@@ -51,6 +51,8 @@
 import { createHmac, randomBytes } from 'node:crypto'
 import { appendFile } from 'node:fs/promises'
 
+import { ehWorker, emSegundoPlano } from './runtime'
+
 /** Resultado de UMA tentativa contra o provedor — o que o painel agrupa como "status". */
 export type StatusDaChamada =
   | 'ok'
@@ -393,7 +395,10 @@ export class ClienteLangfuse {
     this.teto = Math.max(1, o.filaMaxima ?? FILA_PADRAO)
     this.timeoutMs = o.timeoutMs ?? TIMEOUT_PADRAO_MS
     const intervalo = o.intervaloMs ?? INTERVALO_PADRAO_MS
-    if (this.ligado && intervalo > 0) {
+    /* NO WORKER NÃO HÁ RELÓGIO: o isolate não sobrevive entre requisições de forma confiável, e um
+       `setInterval` lá não descarrega nada. Cada `enviar` descarrega pelo `emSegundoPlano` (o
+       `ctx.waitUntil` da requisição) — ver `enviar`. */
+    if (this.ligado && intervalo > 0 && !ehWorker()) {
       this.relogio = setInterval(() => void this.descarregar(), intervalo)
       /* `unref`: o relógio da telemetria nunca é o motivo de o processo continuar vivo. */
       this.relogio.unref?.()
@@ -418,7 +423,8 @@ export class ClienteLangfuse {
         }
         this.enfileirar({ tipo: 'generation-create', corpo })
       }
-      if (this.fila.length >= this.lote) void this.descarregar()
+      if (ehWorker()) emSegundoPlano(this.descarregar())
+      else if (this.fila.length >= this.lote) void this.descarregar()
     } catch {
       /* telemetria quebrada não derruba o request que ela observa */
     }
@@ -535,6 +541,9 @@ const fechamentos = new Set<Promise<void>>()
 export function registrarFechamento(p: Promise<void>): void {
   fechamentos.add(p)
   void p.finally(() => fechamentos.delete(p))
+  /* No Worker o fechamento corre DEPOIS da resposta: sem o `waitUntil`, o rastro morreria antes do
+     `enviar`. No Node é inofensivo (só não espera). */
+  emSegundoPlano(p)
 }
 
 export async function aguardarRastrosPendentes(): Promise<void> {

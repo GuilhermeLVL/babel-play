@@ -64,6 +64,11 @@ export function registrarFalhaDeBoot(passo: string, err: unknown): void {
   }
 }
 
+function tabelaAindaNaoExiste(e: unknown): boolean {
+  const causa = (e as { cause?: { code?: string } } | undefined)?.cause
+  return causa?.code === '42P01' || /relation "boot_falhas" does not exist/i.test(String(e))
+}
+
 /**
  * Marca um passo como bem-sucedido, apagando a falha anterior se houver.
  *
@@ -77,7 +82,12 @@ export function registrarSucessoDeBoot(passo: string): void {
     void db
       .delete(bootFalhas)
       .where(sql`${bootFalhas.passo} = ${passo}`)
-      .catch((e) => log('warn', { event: 'boot_status_clear_failed', error: String(e).slice(0, 120) }))
+      .catch((e) => {
+        /* `configuracao` é conferida ANTES das migrations (server.ts): num banco novo a tabela ainda não
+           existe (42P01) e não há linha antiga a apagar — silêncio, não aviso a cada boot. */
+        if (tabelaAindaNaoExiste(e)) return
+        log('warn', { event: 'boot_status_clear_failed', error: String(e).slice(0, 120) })
+      })
   } catch (e) {
     log('warn', { event: 'boot_status_clear_failed', error: String(e).slice(0, 120) })
   }

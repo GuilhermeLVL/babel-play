@@ -16,26 +16,36 @@ import { drizzle } from 'drizzle-orm/pglite'
 
 import { abrirClienteDoHyperdrive } from '../../../server/db/clientePorRequisicao'
 import type { DB } from '../../../server/db/db'
-import type { Executor } from '../../../server/db/executor'
+import { criarAtividade, type Executor } from '../../../server/db/executor'
 import * as schema from '../../../server/db/schema'
 
 export interface DubleDoHyperdrive {
   /** O que `env.HYPERDRIVE.connectionString` entregaria; `undefined` no modo PGlite. */
   connectionString: string | undefined
   /** Um executor novo (um `Client`, ou um PGlite) por chamada. */
-  abrir: () => Promise<Executor>
+  abrir: (opcoes?: { tetoDaEsperaMs?: number }) => Promise<Executor>
 }
 
 export function dubleDoHyperdrive(urlDoBanco: string): DubleDoHyperdrive {
   if (/^postgres(ql)?:\/\//.test(urlDoBanco)) {
-    return { connectionString: urlDoBanco, abrir: () => abrirClienteDoHyperdrive(urlDoBanco) }
+    return { connectionString: urlDoBanco, abrir: (opcoes) => abrirClienteDoHyperdrive(urlDoBanco, opcoes) }
   }
   return {
     connectionString: undefined,
-    abrir: async () => {
+    /* O mesmo contador de trabalho em voo do `Client` (`criarAtividade`): o `fechar()` espera ocioso e,
+       depois dele, consulta e transação rejeitam com o motivo. */
+    abrir: async (opcoes) => {
       const p = new PGlite()
       await p.waitReady
-      return { db: drizzle(p, { schema }) as unknown as DB, fechar: () => p.close() }
+      const atividade = criarAtividade(() => p.close(), opcoes?.tetoDaEsperaMs)
+      const query = p.query.bind(p)
+      const transaction = p.transaction.bind(p)
+      const exec = p.exec.bind(p)
+      p.query = ((...a: Parameters<typeof query>) => atividade.rastrear(() => query(...a))) as typeof p.query
+      p.exec = ((...a: Parameters<typeof exec>) => atividade.rastrear(() => exec(...a))) as typeof p.exec
+      p.transaction = ((...a: Parameters<typeof transaction>) =>
+        atividade.rastrear(() => transaction(...a))) as typeof p.transaction
+      return { db: drizzle(p, { schema }) as unknown as DB, fechar: () => atividade.fechar() }
     },
   }
 }

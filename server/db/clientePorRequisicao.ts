@@ -17,6 +17,9 @@
  * O que a fila NÃO cobre: uma consulta avulsa em `db` disparada em paralelo a uma transação aberta na
  * mesma requisição entra na conexão no meio da transação (e é desfeita com ela). No Pool ela iria por
  * outra conexão.
+ *
+ * O FECHAR ESPERA O TRABALHO EM VOO (revisão final, C1): consultas e a fila de transações passam por
+ * `criarAtividade` (`executor.ts`), e o `fechar()` só chama o `end()` com a conexão ociosa (ou no teto).
  */
 import { AsyncLocalStorage } from 'node:async_hooks'
 
@@ -25,13 +28,14 @@ import { Client } from 'pg'
 
 import { configDoPool } from './configDoPool'
 import { type DB, ligarParsersNumericos, medida } from './db'
-import type { Executor } from './executor'
+import { type Atividade, criarAtividade, type Executor } from './executor'
 import * as schema from './schema'
 
 /** Qual executor tem uma transação aberta nesta cadeia assíncrona (para recusar a aninhada). */
 const transacaoAberta = new AsyncLocalStorage<DB>()
 
-function transacoesEmFila(d: DB): void {
+/** A fila conta como trabalho em voo desde a entrada (`atividade.rastrear`): o `fechar()` espera a vez dela. */
+function transacoesEmFila(d: DB, atividade: Atividade): void {
   const original = d.transaction.bind(d)
   let fila: Promise<unknown> = Promise.resolve()
   ;(d as { transaction: typeof original }).transaction = ((fn, config) => {
@@ -40,26 +44,35 @@ function transacoesEmFila(d: DB): void {
         new Error('transação aninhada no mesmo Client da requisição: use tx.transaction (savepoint) ou rode fora'),
       )
     }
-    const vez = fila.then(() => original((tx) => transacaoAberta.run(d, () => fn(tx)), config))
+    const vez = atividade.rastrear(() =>
+      fila.then(() => original((tx) => transacaoAberta.run(d, () => fn(tx)), config)),
+    )
     fila = vez.catch(() => {})
     return vez
   }) as typeof original
 }
 
-export async function abrirClienteDoHyperdrive(connectionString: string): Promise<Executor> {
+/** `tetoDaEsperaMs`: quanto o `fechar()` espera o trabalho em voo (padrão `TETO_DA_ESPERA_AO_FECHAR_MS`). */
+export async function abrirClienteDoHyperdrive(
+  connectionString: string,
+  opcoes: { tetoDaEsperaMs?: number } = {},
+): Promise<Executor> {
   ligarParsersNumericos()
   const { max: _max, idleTimeoutMillis: _ociosa, ...daConexao } = configDoPool()
   const cliente = new Client({ connectionString, ...daConexao })
-  let fechado: Promise<void> | undefined
+  const atividade = criarAtividade(() => cliente.end(), opcoes.tetoDaEsperaMs)
   // Sem handler, a queda da conexão vira 'error' não tratado e derruba o isolate sem contexto.
   cliente.on('error', (err) => {
     /* No workerd, o `end()` faz o socket emitir "This socket has been closed": fechar não é erro. */
-    if (fechado) return
+    if (atividade.encerrado()) return
     console.error('[db] erro na conexão da requisição:', String(err?.message ?? err).slice(0, 160))
   })
   await cliente.connect()
-  cliente.query = medida(cliente.query.bind(cliente) as (...a: unknown[]) => Promise<unknown>) as typeof cliente.query
+  /* Toda consulta (as de dentro das transações também: numa conexão só o Drizzle usa o próprio `Client`)
+     conta como trabalho em voo, e depois do `fechar()` rejeita com o motivo. */
+  const medido = medida(cliente.query.bind(cliente) as (...a: unknown[]) => Promise<unknown>)
+  cliente.query = ((...a: unknown[]) => atividade.rastrear(() => medido(...a))) as typeof cliente.query
   const d = drizzle(cliente, { schema })
-  transacoesEmFila(d)
-  return { db: d, fechar: () => (fechado ??= cliente.end()) }
+  transacoesEmFila(d, atividade)
+  return { db: d, fechar: () => atividade.fechar() }
 }

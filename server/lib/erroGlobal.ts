@@ -25,6 +25,7 @@ import type { NextFunction, Request, Response, Router } from 'express'
 import { cadeiaDeCausas } from './cadeiaDeCausas'
 import { log } from './logger'
 import { envelopeDeErro } from './respostaDeErro'
+import { ehWorker, emSegundoPlano } from './runtime'
 
 /**
  * Embrulha um router para que rejeição de handler `async` vire `next(err)`.
@@ -48,6 +49,11 @@ export function capturarAssincrono(router: Router): Router {
           // `Promise.resolve` cobre tanto `async function` quanto retorno de thenable.
           if (r && typeof (r as Promise<unknown>).catch === 'function') {
             ;(r as Promise<unknown>).catch(next)
+            /* NO WORKER, O HANDLER INTEIRO SEGURA A REQUISIÇÃO (revisão final da Fase 2, C1). As rotas
+               respondem e só depois, no `finally`, devolvem a vaga de IA ou estornam a cota; a promessa de
+               uma `async function` só assenta depois do `finally`. No `waitUntil` (via `emSegundoPlano`),
+               ela mantém o `Client` da requisição aberto até lá. A rejeição já foi para o `next` acima. */
+            if (ehWorker()) emSegundoPlano((r as Promise<unknown>).then(undefined, () => undefined))
           }
         } catch (err) {
           next(err)

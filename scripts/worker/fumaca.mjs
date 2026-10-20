@@ -9,11 +9,18 @@
  *   - R2 e assets simulados pelo Miniflare, com estado num diretório temporário (`--persist-to`);
  *   - um JWKS local (chave ES256 gerada agora) no papel do Supabase: SUPABASE_URL aponta para ele.
  *
- * As quatro verificações:
+ * As sete verificações:
  *   1. GET /api/health → 200 com `banco: 'postgres'`;
  *   2. JWT ES256 → GET /api/me 200 (e a idade adulta declarada, para as rotas de nuvem);
  *   3. POST /api/sessions + POST /api/sessions/:id/audio (1 MB) → 2xx; GET …/audio com Range → 206, 100 bytes;
- *   4. GET /cdn-cgi/local/scheduled?cron=17 3 * * * → 200 e a linha `job_fim` da poda das janelas no log.
+ *   4. GET /cdn-cgi/local/scheduled?cron=17 3 * * * → 200 e a linha `job_fim` da poda das janelas no log;
+ *   5. ESTORNO DEPOIS DA RESPOSTA (C1): uploads de 64 KB e 2 MB que não são áudio são recusados e só depois, no
+ *      `finally` da rota, devolvem a cota reservada — o contador de armazenamento tem de voltar ao valor
+ *      de antes (o `Client` não pode fechar antes do estorno);
+ *   6. CONCORRÊNCIA NO ISOLATE (I1): 10 GET /api/me em paralelo, cada um com um usuário, mais um upload
+ *      cancelado no meio do corpo → todos 200, nenhum 500; cada requisição abriu a SUA conexão (o log do
+ *      Postgres conta as conexões novas) e, no fim, nenhuma ficou aberta;
+ *   7. GET /api (sem barra) → 404 JSON, não a SPA.
  *
  * `--verboso` imprime a saída inteira do wrangler no fim. Sai com código ≠ 0 em qualquer falha. Encerra o wrangler (o grupo de processos inteiro) e o container
  * no fim, dando certo ou não.
@@ -72,6 +79,9 @@ async function subirPostgres() {
     '-p',
     `${PORTA_PG}:5432`,
     'postgres:17',
+    /* Cada conexão nova aparece no log do container: é como a verificação 6 conta os `Client`s. */
+    '-c',
+    'log_connections=on',
   ])
   for (let i = 0; i < 60; i++) {
     /* `pg_isready` responde antes do fim do initdb (que reinicia o servidor): duas respostas seguidas. */
@@ -209,7 +219,7 @@ async function verificacoes(base, w, token) {
   const metricas = await fetch(`${base}/metrics`)
   confere(metricas.status === 404, `/metrics no Worker deveria ser 404, veio ${metricas.status}`)
   console.log(
-    `✔ 1/4 GET /api/health → 200, banco=${corpoH.banco}, versão ${corpoH.versao}, CSP de produção; /metrics → 404`,
+    `✔ 1/7 GET /api/health → 200, banco=${corpoH.banco}, versão ${corpoH.versao}, CSP de produção; /metrics → 404`,
   )
 
   // 2. JWT ES256 → /api/me
@@ -256,7 +266,7 @@ async function verificacoes(base, w, token) {
     `POST /api/import/web no Worker: ${web.status} ${JSON.stringify(corpoWeb)}`,
   )
   console.log(
-    '✔ 2/4 JWT ES256 (JWKS local) → GET /api/me 200 (sem token: 401, balde por CF-Connecting-IP, X-Forwarded-For forjado ignorado; import web: 503 no runtime)',
+    '✔ 2/7 JWT ES256 (JWKS local) → GET /api/me 200 (sem token: 401, balde por CF-Connecting-IP, X-Forwarded-For forjado ignorado; import web: 503 no runtime)',
   )
 
   // 3. sessão + upload de 1 MB + Range
@@ -283,7 +293,7 @@ async function verificacoes(base, w, token) {
     `Range devolveu ${pedaco.length} bytes diferentes`,
   )
   console.log(
-    `✔ 3/4 POST /api/sessions + upload de 1 MB → ${up.status}; GET …/audio Range bytes=0-99 → 206 (100 bytes iguais)`,
+    `✔ 3/7 POST /api/sessions + upload de 1 MB → ${up.status}; GET …/audio Range bytes=0-99 → 206 (100 bytes iguais)`,
   )
 
   // 4. cron
@@ -299,7 +309,146 @@ async function verificacoes(base, w, token) {
   for (let i = 0; i < 40 && !linhaDoJob(); i++) await esperar(250)
   const linha = linhaDoJob()
   confere(linha, `o log não trouxe job_fim de ${JOB_DO_CRON}:\n${w.saida().slice(antes).slice(-2000)}`)
-  console.log(`✔ 4/4 cron "${CRON}" → 200; log: ${linha.trim().slice(0, 200)}`)
+  console.log(`✔ 4/7 cron "${CRON}" → 200; log: ${linha.trim().slice(0, 200)}`)
+
+  // 5. estorno da cota depois da resposta (C1)
+  const usoDeArmazenamento = () =>
+    Number(
+      consultar(
+        `select coalesce(sum(count), 0) from usage_counters where user_id = '${sub}' and metric = 'storage_bytes'`,
+      ),
+    )
+  const usoAntes = usoDeArmazenamento()
+  confere(usoAntes >= MB, `o contador de armazenamento deveria ter o 1 MB da verificação 3, tem ${usoAntes}`)
+  const s2 = await fetch(`${base}/api/sessions`, {
+    method: 'POST',
+    headers: { ...auth, 'content-type': 'application/json' },
+    body: JSON.stringify({ title: 'fumaça: estorno', kind: 'audio' }),
+  })
+  confere(s2.ok, `POST /api/sessions (estorno): ${s2.status}`)
+  const { id: id2 } = await s2.json()
+  /* Duas vezes: 64 KB (a rota responde 400 e o corpo já chegou inteiro) e 2 MB (a rota responde sem ler o
+     resto; o proxy local do wrangler troca a resposta por "Network connection lost", e o `finally` corre com o
+     corpo ainda chegando — foi assim que o estorno se perdia antes do C1). Nos dois, a reserva volta. */
+  const estornos = []
+  for (const tamanho of [64 * 1024, 2 * MB]) {
+    const tiposInvalidos = () => (w.saida().match(/audio_upload_tipo_invalido/g) ?? []).length
+    const vistosAntes = tiposInvalidos()
+    const naoAudio = await fetch(`${base}/api/sessions/${id2}/audio`, {
+      method: 'POST',
+      headers: { ...auth, 'content-type': 'audio/webm' },
+      body: Buffer.alloc(tamanho, 0x41),
+    })
+    const corpoNaoAudio = await naoAudio.text()
+    if (tamanho < MB) {
+      confere(
+        naoAudio.status === 400 && JSON.parse(corpoNaoAudio).code === 'audio_content_invalid',
+        `upload que não é áudio: ${naoAudio.status} ${corpoNaoAudio.slice(0, 300)}`,
+      )
+    } else {
+      confere(!naoAudio.ok, `upload de 2 MB que não é áudio deveria falhar, veio ${naoAudio.status}`)
+      for (let i = 0; i < 20 && tiposInvalidos() === vistosAntes; i++) await esperar(250)
+      confere(tiposInvalidos() > vistosAntes, 'a rota não recusou o upload de 2 MB (audio_upload_tipo_invalido)')
+    }
+    let usoDepois = usoDeArmazenamento()
+    for (let i = 0; i < 20 && usoDepois !== usoAntes; i++) {
+      await esperar(250)
+      usoDepois = usoDeArmazenamento()
+    }
+    confere(
+      usoDepois === usoAntes,
+      `o estorno do finally não entrou: armazenamento ${usoAntes} antes, ${usoDepois} depois (reserva de ${tamanho} bytes presa)\n${w
+        .saida()
+        .split('\n')
+        .filter((l) => /storage_release_failed|fechad|worker_fechar/.test(l))
+        .join('\n')
+        .slice(-1500)}`,
+    )
+    estornos.push(`${tamanho / 1024} KB → ${naoAudio.status}`)
+  }
+  /* O contador sozinho não basta: com o `end()` do `pg` no meio, o UPDATE às vezes chega ao servidor e o
+     cliente registra a falha mesmo assim. O estorno tem de ter terminado DE VERDADE, sem erro. */
+  const falhas = w
+    .saida()
+    .split('\n')
+    .filter((l) => /storage_release_failed|storage_adjust_failed|executor_fechou_ocupado/.test(l))
+  confere(falhas.length === 0, `o estorno falhou no Worker:\n${falhas.join('\n').slice(-1500)}`)
+  console.log(
+    `✔ 5/7 uploads que não são áudio (${estornos.join(', ')}); o estorno do finally (depois da resposta) devolveu a reserva: ${usoAntes} bytes, como antes`,
+  )
+
+  // 6. concorrência no isolate (I1)
+  const conexoesNoLog = () =>
+    (spawnSync('docker', ['logs', CONTAINER], { encoding: 'utf8' }).stderr.match(/connection authorized/g) ?? []).length
+  const abertasDoWorker = () =>
+    Number(
+      consultar(
+        "select count(*) from pg_stat_activity where backend_type = 'client backend' and pid <> pg_backend_pid() and coalesce(application_name, '') <> 'psql'",
+      ),
+    )
+  const conexoesAntes = conexoesNoLog()
+  const N = 10
+  /* Um upload em `chunked` que manda o começo do corpo e é cancelado no meio. */
+  const cancelador = new globalThis.AbortController()
+  const corpoQueTrava = new globalThis.ReadableStream({
+    start(c) {
+      c.enqueue(new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, ...randomBytes(64 * 1024)]))
+    },
+  })
+  const cancelado = fetch(`${base}/api/sessions/${id2}/audio`, {
+    method: 'POST',
+    headers: { ...auth, 'content-type': 'audio/webm' },
+    body: corpoQueTrava,
+    duplex: 'half',
+    signal: cancelador.signal,
+  }).then(
+    (r) => `respondeu ${r.status}`,
+    (err) => err.name,
+  )
+  const tokens = await Promise.all(Array.from({ length: N }, (_, i) => token(`${sub}-par-${i}`)))
+  setTimeout(() => cancelador.abort(), 300)
+  const paralelos = await Promise.all(
+    tokens.map((t) => fetch(`${base}/api/me`, { headers: { authorization: `Bearer ${t}` } }).then((r) => r.status)),
+  )
+  const fimDoCancelado = await cancelado
+  confere(
+    paralelos.every((st) => st === 200),
+    `GET /api/me em paralelo: ${paralelos.join(', ')}`,
+  )
+  confere(fimDoCancelado === 'AbortError', `o upload cancelado deveria abortar no cliente, veio: ${fimDoCancelado}`)
+  const depoisDoCancelado = await fetch(`${base}/api/me`, { headers: auth })
+  confere(depoisDoCancelado.status === 200, `GET /api/me depois do cancelado: ${depoisDoCancelado.status}`)
+  let novas = conexoesNoLog() - conexoesAntes
+  for (let i = 0; i < 20 && novas < N + 1; i++) {
+    await esperar(250)
+    novas = conexoesNoLog() - conexoesAntes
+  }
+  /* N paralelos + o cancelado + o de depois: uma conexão por requisição (sem pool no isolate). */
+  confere(novas >= N + 1, `conexões novas no Postgres: ${novas}, esperava ≥ ${N + 1} (uma por requisição)`)
+  let abertas = abertasDoWorker()
+  for (let i = 0; i < 100 && abertas > 0; i++) {
+    await esperar(250)
+    abertas = abertasDoWorker()
+  }
+  confere(
+    abertas === 0,
+    `conexões do Worker ainda abertas 25 s depois: ${abertas}\n${consultar(
+      "select pid, state, now() - backend_start, left(query, 120) from pg_stat_activity where backend_type = 'client backend' and pid <> pg_backend_pid()",
+    )}`,
+  )
+  confere(!/"status":500|erro_interno|worker_requisicao_falhou/.test(w.saida()), 'algum 500 no log do Worker')
+  console.log(
+    `✔ 6/7 ${N} GET /api/me em paralelo (usuários distintos) → todos 200; upload cancelado → ${fimDoCancelado}; ${novas} conexões novas (uma por requisição), 0 abertas no fim; nenhum 500`,
+  )
+
+  // 7. /api sem barra
+  const raiz = await fetch(`${base}/api`)
+  const corpoRaiz = await raiz.text()
+  confere(
+    raiz.status === 404 && JSON.parse(corpoRaiz).code === 'rota_inexistente',
+    `GET /api: ${raiz.status} ${corpoRaiz.slice(0, 200)}`,
+  )
+  console.log('✔ 7/7 GET /api → 404 JSON (rota_inexistente)')
 }
 
 /**
@@ -357,7 +506,7 @@ async function principal() {
     if (process.argv.includes('--verboso')) console.log(`--- saída do wrangler ---\n${w.saida()}`)
     await derrubar(w)
     await travasDeProducao(jwks.url, persistir)
-    console.log('fumaça do Worker: 4/4')
+    console.log('fumaça do Worker: 7/7')
   } catch (err) {
     console.error(`✘ ${err.message}`)
     if (w) console.error(`--- saída do wrangler (fim) ---\n${w.saida().slice(-4000)}`)

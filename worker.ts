@@ -7,13 +7,16 @@
  *   cron     → `executarJobsDoCron(controller.cron)` (o registro em `server/jobs/registro.ts`).
  *
  * POR REQUISIÇÃO (e por disparo do cron), nesta ordem:
- *   1. `ligarBucketDoR2(env.MIDIA)` — idempotente; antes de qualquer rota (o store de sessões memoiza).
+ *   1. `ligarBucketDoR2(env.MIDIA)` — idempotente; antes do portão do boot e de qualquer rota (o store de
+ *      sessões memoiza). O app Express é montado FORA dos escopos abaixo (`express()`).
  *   2. um `pg.Client` pelo Hyperdrive (`abrirClienteDoHyperdrive`) dentro de `comExecutor`: todo `db.*` de
  *      dentro usa ESTA conexão. Fora do escopo, `db` lança no Worker (`aberto()` em `server/db/db.ts`).
  *   3. `comContextoDoWorker` com um `waitUntil` que ANOTA cada promessa (e a repassa ao `ctx`): o
  *      `emSegundoPlano` de dentro segue vivo depois da resposta.
  *   4. o `Client` só fecha depois que o corpo da resposta terminou de sair E todo `waitUntil` anotado
- *      assentou — o trabalho em segundo plano ainda consulta o banco.
+ *      assentou — o trabalho em segundo plano ainda consulta o banco. O handler de cada rota entra nessa
+ *      lista (`capturarAssincrono`, por causa do `finally` que estorna depois da resposta), e o `fechar()`
+ *      ainda espera o trabalho em voo do executor. Os passos 2–4: `server/lib/escopoDaRequisicao.ts`.
  *
  * O MODO: o Worker é SEMPRE produção. O `define` do `wrangler.jsonc` fixa o literal `process.env.NODE_ENV` em
  * `"production"` (também no `wrangler dev`), e `fixarModo()` copia o mesmo valor para o `process.env` do
@@ -36,15 +39,15 @@ import { httpServerHandler } from 'cloudflare:node'
 
 import { conferirBootDoWorker } from './server/boot/portaoDoWorker'
 import { abrirClienteDoHyperdrive } from './server/db/clientePorRequisicao'
-import { comExecutor, type Executor } from './server/db/executor'
+import type { Executor } from './server/db/executor'
 import { schemaPresente } from './server/db/manutencao'
 import { criarApp } from './server/http/app'
 import { comIpDaBorda } from './server/http/ipDaBorda'
 import { executarJobsDoCron } from './server/jobs/executar'
 import { type BucketR2, ligarBucketDoR2 } from './server/lib/armazenamentoR2'
 import { erroGlobal } from './server/lib/erroGlobal'
+import { rodarNoEscopoDaRequisicao } from './server/lib/escopoDaRequisicao'
 import { log } from './server/lib/logger'
-import { comContextoDoWorker } from './server/lib/runtime'
 
 /** Os bindings do `wrangler.jsonc` (tipados à mão: ver `cloudflare.d.ts`). */
 interface Env {
@@ -111,44 +114,51 @@ function acompanharCorpo(r: Response): [Response, Promise<void>] {
 }
 
 /**
- * Abre o escopo da requisição (R2, `Client`, `waitUntil`) e roda `fn` dentro. `fn` devolve o resultado e
- * a promessa de "terminou de verdade" (o corpo da resposta, no `fetch`); o `Client` fecha depois dela e de
- * todo `waitUntil` anotado.
+ * O CLIENTE DESISTIU NO MEIO DO CORPO (upload cancelado, aba fechada)? A rota que perde o corpo volta sem
+ * responder (`CorpoInterrompido`: não há a quem), e o `fetch` do Express nunca resolveria — o escopo não
+ * fecharia e o `Client` ficaria aberto. O corpo passa por um leitor que distingue a FONTE falhar (o cliente
+ * caiu: `desistiu` resolve) de quem lê parar (a rota recusou e cancelou a leitura: nada muda). O handler
+ * segue até o fim pelo `waitUntil` (`capturarAssincrono`), estornos incluídos.
+ */
+function vigiarCorpo(request: Request): [Request, Promise<Response>] {
+  const nunca = new Promise<Response>(() => {})
+  if (!request.body) return [request, nunca]
+  const fonte = request.body.getReader()
+  let avisar!: () => void
+  const desistiu = new Promise<Response>((ok) => {
+    avisar = () => ok(json(499, { error: 'o cliente desistiu da requisição', code: 'cliente_desistiu' }))
+  })
+  const corpo = new ReadableStream<Uint8Array>({
+    async pull(c) {
+      let lido: Awaited<ReturnType<typeof fonte.read>>
+      try {
+        lido = await fonte.read()
+      } catch (err) {
+        avisar()
+        c.error(err)
+        return
+      }
+      if (lido.done) c.close()
+      else c.enqueue(lido.value)
+    },
+    cancel: (motivo) => fonte.cancel(motivo),
+  })
+  return [new Request(request, { body: corpo }), desistiu]
+}
+
+/**
+ * Abre o `Client` e roda `fn` no escopo da requisição (`rodarNoEscopoDaRequisicao`: `waitUntil` anotado,
+ * executor, e o `Client` fechando só depois do corpo, de todo `waitUntil` e do trabalho em voo). O
+ * bucket do R2 já foi ligado por quem chama, antes do portão do boot.
  */
 async function noEscopo<T>(env: Env, ctx: Contexto, fn: () => Promise<[T, Promise<void>]>): Promise<T> {
-  ligarBucketDoR2(env.MIDIA)
   let executor: Executor
   try {
     executor = await abrirClienteDoHyperdrive(env.HYPERDRIVE.connectionString)
   } catch (err) {
     throw new BancoInacessivel(err)
   }
-  const pendentes: Promise<unknown>[] = []
-  const contexto: Contexto = {
-    waitUntil(p) {
-      pendentes.push(p)
-      ctx.waitUntil(p)
-    },
-  }
-  let terminou: Promise<void> = Promise.resolve()
-  try {
-    const [resultado, fim] = await comContextoDoWorker(contexto, () => comExecutor(executor, fn))
-    terminou = fim
-    return resultado
-  } finally {
-    ctx.waitUntil(
-      (async () => {
-        await terminou
-        /* Um `waitUntil` pode chegar enquanto os outros assentam (o `finish` da resposta, um lote do
-           Langfuse): espera até a lista parar de crescer. */
-        for (let vistos = -1; vistos !== pendentes.length; ) {
-          vistos = pendentes.length
-          await Promise.allSettled(pendentes)
-        }
-        await executor.fechar()
-      })().catch((err) => log('error', { event: 'worker_fechar_cliente_falhou', error: mensagem(err) })),
-    )
-  }
+  return rodarNoEscopoDaRequisicao(executor, ctx, fn)
 }
 
 export default {
@@ -157,12 +167,17 @@ export default {
     const { pathname } = new URL(request.url)
     /* `/metrics` é só do Node (prom-client); aqui é um 404 explícito, não o `index.html` da SPA. */
     if (pathname === '/metrics') return json(404, { error: 'rota inexistente', code: 'rota_inexistente' })
+    /* `/api` sem barra também é da API: um 404 JSON como qualquer caminho desconhecido dela, não a SPA. */
+    if (pathname === '/api') return json(404, { error: 'rota inexistente', code: 'rota_inexistente' })
     if (!pathname.startsWith('/api/')) return env.ASSETS.fetch(request)
     ligarBucketDoR2(env.MIDIA) // antes do portão: o armazenamento de mídia é uma das travas
     if (conferirBootDoWorker()) {
       return json(503, { error: 'servidor mal configurado (ver o log: boot_falhou)', code: 'boot_falhou' })
     }
     try {
+      /* O app é montado (e o `http.Server` escuta) FORA de qualquer escopo de requisição: nada do que ele
+         guarda pode nascer amarrado ao `AsyncLocalStorage` (executor, `waitUntil`) da primeira. */
+      const app = express()
       return await noEscopo(env, ctx, async () => {
         if (!schemaConferido) {
           /* `schemaPresente` já devolve `false` quando o banco falha; o `catch` é para o que escapar dele. */
@@ -173,7 +188,8 @@ export default {
           }
           schemaConferido = true
         }
-        return acompanharCorpo(await express().fetch(comIpDaBorda(request), env, ctx))
+        const [pedido, desistiu] = vigiarCorpo(comIpDaBorda(request))
+        return acompanharCorpo(await Promise.race([app.fetch(pedido, env, ctx), desistiu]))
       })
     } catch (err) {
       /* O que escapa daqui veio de fora do Express (o `erroGlobal` responde o resto): abrir o `Client` ou

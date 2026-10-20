@@ -39,7 +39,7 @@
     "directory": "dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/metrics"],
+    "run_worker_first": ["/api", "/api/*", "/metrics"],
   },
 
   // Uma expressão por job de server/jobs/registro.ts (7 distintas: plano Workers Paid). No plano Free

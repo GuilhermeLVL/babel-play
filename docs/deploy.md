@@ -85,6 +85,16 @@ container mais o `AUTH_REQUIRED=1`, não o bind.
 - [ ] **`/api/health` no monitor externo.** Ele reporta banco **e** boot: um passo de migração
       que falhou deixa a probe em 503 em vez de o app subir mudo.
 
+## Prazos de sessão do banco (`statement_timeout`, `lock_timeout`, `idle_in_transaction_session_timeout`)
+
+A fonte de verdade é o **papel do banco**: a migration `0004_prazos_do_papel` roda `ALTER ROLE <papel> SET …`
+(30 s, 10 s, 60 s) uma vez, e toda sessão daquele papel nasce com eles, por qualquer caminho. O
+`options: -c …` que o `pg.Pool` manda na abertura é cinto e suspensório: o pooler do Supabase (Supavisor,
+portas 5432 e 6543) e o Hyperdrive **o ignoram** (medido em 19/10/2026). Atrás de pooler, defina
+`DB_SESSION_OPTIONS=0` para não mandar o que não é honrado. `DB_*_TIMEOUT_MS` só tem efeito onde o `options`
+é honrado; para mudar o prazo atrás de pooler, altere o papel (docs/runbook.md §8). Sem privilégio para
+`ALTER ROLE`, a migration avisa (`NOTICE`) e segue: defina à mão.
+
 ## O que fica desativado por design
 
 No modo público, duas capacidades locais respondem **403 mesmo com token válido** — elas

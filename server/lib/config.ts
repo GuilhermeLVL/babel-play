@@ -412,6 +412,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'conexões do `pg.Pool` por processo com `postgres://` (padrão 5). Conte processos × este número contra o limite do Postgres/pooler (Supabase: o do plano). Inteiro positivo; outro valor ABORTA o boot (server/db/configDoPool.ts)',
   },
   {
+    nome: 'DB_SESSION_OPTIONS',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      '`0` deixa de mandar `options: -c …` (prazos de sessão) na abertura da conexão `postgres://`; ausente ou `1` manda. Pooler do Supabase e Hyperdrive ignoram o `options`: ali os prazos vêm do papel do banco (migration 0004). Outro valor ABORTA o boot (server/db/configDoPool.ts)',
+  },
+  {
     nome: 'DB_STATEMENT_TIMEOUT_MS',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',

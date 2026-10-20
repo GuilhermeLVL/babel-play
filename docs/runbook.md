@@ -459,6 +459,18 @@ Restaurar é **restaurar backup e subir** — não há migração reversa. As mi
 boot; se a pasta não estiver no disco, `/api/ready` responde `desconhecida` para esse item e **não**
 reprova, porque é a topologia legítima de uma imagem que já subiu migrada.
 
+**Prazos de sessão no papel do banco** (migration `0004`; o pooler e o Hyperdrive ignoram o `options` do pool):
+
+```sql
+SELECT rolconfig FROM pg_roles WHERE rolname = current_user;   -- {statement_timeout=30s,lock_timeout=10s,…}
+ALTER ROLE postgres SET statement_timeout = '45s';             -- vale nas sessões NOVAS (as abertas não mudam)
+ALTER ROLE postgres RESET statement_timeout;                   -- volta ao padrão do servidor
+```
+
+Conferir pelo caminho real: abra uma conexão nova pelo pooler e rode `SHOW statement_timeout;`. No Supabase o
+papel é `postgres` (pelo pooler, `postgres.<ref>`); a Supavisor reaproveita servidor, então o valor aparece
+na sessão nova do cliente.
+
 Nunca aponte um script de medição para `data/babel.db`: todos eles escrevem de verdade. Use cópia.
 
 ---

@@ -30,10 +30,6 @@ services:
       # servidor; não existem num deploy hospedado).
       AUTH_REQUIRED: '1'
       NODE_ENV: production
-      # F6-01 — modo cluster. A carga mediu vazão PLANA (~100 req/s) com a latência crescendo
-      # linear a partir de 2 VUs: saturação de processo único. Vazio ou 1 = um processo só.
-      # Suba junto o `memory` abaixo: cada worker é um heap Node inteiro.
-      CLUSTER_WORKERS: '${CLUSTER_WORKERS:-1}'
       # Postgres do serviço `postgres` abaixo, para exercitar o driver `pg` de verdade. Em produção
       # a DATABASE_URL do .env.docker (um Postgres gerenciado) tem precedência. A senha é só de teste local.
       DATABASE_URL: ${DATABASE_URL:-postgres://babel:babel-local@postgres:5432/babel}

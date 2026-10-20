@@ -337,12 +337,6 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'token do Workers AI (só a permissão "Workers AI"), lido quando um provedor de IA_PROVEDORES declara "chave": "CLOUDFLARE_API_TOKEN". Ausente, a perna não existe',
   },
   {
-    nome: 'CLUSTER_WORKERS',
-    exigencia: 'opcional',
-    criticidade: 'degrada-capacidade',
-    paraQue: 'nº de processos do cluster; sem ela, processo único (ver F6-01)',
-  },
-  {
     nome: 'CONVIDADOS_POR_IP_DIA',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',

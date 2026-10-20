@@ -50,7 +50,7 @@ afterEach(async () => {
   for (const apagar of bancosPg.splice(0)) await apagar()
 })
 
-/** Faixa por PID, como em `cluster.test.ts`: duas execuções não podem disputar a mesma porta. */
+/** Faixa por PID: duas execuções não podem disputar a mesma porta. */
 let proximaPorta = 26_000 + (process.pid % 12_000)
 
 /** Sobe uma instância apontada para `url` e só devolve quando ela está atendendo. */

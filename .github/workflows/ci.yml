@@ -378,9 +378,7 @@ jobs:
       ARQUIVOS: >-
         tests/integration/admissao-no-banco.test.ts
         tests/integration/agregados-concorrentes.test.ts
-        tests/integration/cluster.test.ts
         tests/integration/db-por-requisicao.test.ts
-        tests/integration/desligamento-gracioso.test.ts
         tests/integration/gasto-concorrente.test.ts
         tests/integration/int8-no-pg.test.ts
         tests/integration/jobs-idempotentes.test.ts

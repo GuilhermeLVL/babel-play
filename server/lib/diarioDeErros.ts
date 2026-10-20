@@ -34,21 +34,6 @@ const DIAS_PADRAO = 14
 const diaDe = (agora: Date) => agora.toISOString().slice(0, 10)
 const doDia = (agora: Date) => `${diaDe(agora)}.jsonl`
 
-/**
- * O ARQUIVO QUE ESTE PROCESSO ESCREVE.
- *
- * Em cluster, N processos abriam o MESMO `.jsonl` e cada um mantinha o seu contador de poda: N
- * escritores no mesmo arquivo e N varreduras do diretorio por dia (auditoria de 2026-09-07, achado
- * A61). `appendFileSync` e atomico o bastante para linhas curtas, mas nao ha por que apostar nisso
- * — um arquivo por processo remove a aposta e ainda diz qual worker registrou o que.
- *
- * Fora do cluster o nome nao muda: quem ja tem diario continua com os mesmos arquivos.
- */
-function arquivoDoProcesso(agora: Date): string {
-  const emCluster = Number(process.env.CLUSTER_WORKERS || 0) > 1
-  return emCluster ? `${diaDe(agora)}.${process.pid}.jsonl` : doDia(agora)
-}
-
 /** Todos os arquivos de um dia, de todos os processos. */
 function arquivosDoDia(dir: string, agora: Date): string[] {
   const prefixo = diaDe(agora)
@@ -80,7 +65,9 @@ function podar(dir: string, manter: number, agoraMs: number): void {
       const alvo = path.join(dir, nome)
       if (statSync(alvo).mtimeMs < limite) unlinkSync(alvo)
     }
-  } catch { /* espaço em disco não é motivo para derrubar o caminho de erro */ }
+  } catch {
+    /* espaço em disco não é motivo para derrubar o caminho de erro */
+  }
 }
 
 export interface OpcoesDoDiario {
@@ -102,7 +89,12 @@ export interface OpcoesDoDiario {
 /** O diretório do sink ATIVO — preenchido por `diarioEmArquivo`, lido por `lerUltimosErros`. */
 let dirAtivo: string | null = null
 
-export function diarioEmArquivo({ dir, manter = DIAS_PADRAO, agora = () => new Date(), podarAqui = true }: OpcoesDoDiario): SinkDeErro {
+export function diarioEmArquivo({
+  dir,
+  manter = DIAS_PADRAO,
+  agora = () => new Date(),
+  podarAqui = true,
+}: OpcoesDoDiario): SinkDeErro {
   mkdirSync(dir, { recursive: true })
   dirAtivo = dir // registrado = legível: é o que permite GET /api/admin/erros sem re-resolver o caminho
   let ultimaPodaEm = ''
@@ -115,7 +107,7 @@ export function diarioEmArquivo({ dir, manter = DIAS_PADRAO, agora = () => new D
         ultimaPodaEm = marca
         podar(dir, manter, hoje.getTime())
       }
-      appendFileSync(path.join(dir, arquivoDoProcesso(hoje)), `${JSON.stringify(evento)}\n`, 'utf8')
+      appendFileSync(path.join(dir, doDia(hoje)), `${JSON.stringify(evento)}\n`, 'utf8')
     } catch {
       /*
        * Engolido pelo mesmo motivo que o logger engole sink que lança: um diário que não consegue
@@ -136,7 +128,10 @@ export function diarioEmArquivo({ dir, manter = DIAS_PADRAO, agora = () => new D
  * Linha ilegível vira `{ bruto }` em vez de sumir: diário de erros que esconde erro do próprio
  * formato seria a piada errada.
  */
-export function lerUltimosErros(limite = 100, agora: () => Date = () => new Date()): { dir: string | null; erros: unknown[] } {
+export function lerUltimosErros(
+  limite = 100,
+  agora: () => Date = () => new Date(),
+): { dir: string | null; erros: unknown[] } {
   if (!dirAtivo) return { dir: null, erros: [] }
   const hoje = agora()
   const ontem = new Date(hoje.getTime() - 86_400_000)
@@ -149,9 +144,15 @@ export function lerUltimosErros(limite = 100, agora: () => Date = () => new Date
         const texto = readFileSync(arquivo, 'utf8')
         for (const l of texto.split('\n')) {
           if (!l.trim()) continue
-          try { linhas.push(JSON.parse(l)) } catch { linhas.push({ bruto: l.slice(0, 300) }) }
+          try {
+            linhas.push(JSON.parse(l))
+          } catch {
+            linhas.push({ bruto: l.slice(0, 300) })
+          }
         }
-      } catch { /* arquivo pode ter sido podado entre a listagem e a leitura */ }
+      } catch {
+        /* arquivo pode ter sido podado entre a listagem e a leitura */
+      }
     }
   }
   return { dir: dirAtivo, erros: linhas.slice(-limite).reverse() }

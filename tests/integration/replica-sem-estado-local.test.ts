@@ -171,24 +171,18 @@ describe('topologia declarada', () => {
     expect((await diretorios()).erroDeMultiReplica()).toContain('banco local embutido')
   })
 
-  it('cluster (CLUSTER_WORKERS > 1) com banco embutido é recusado; com Postgres remoto, ou um processo só, sobe', async () => {
+  it('o modo cluster saiu (Fase 2): CLUSTER_WORKERS não é mais lido, e a recusa por réplicas continua só no REPLICAS', async () => {
     process.env.CLUSTER_WORKERS = '3'
     process.env.DATABASE_URL = 'pglite:/data/pg'
-    const erro = (await diretorios()).erroDeClusterComBancoEmbutido()
-    expect(erro).toContain('CLUSTER_WORKERS=3')
-    expect(erro).toContain('banco local embutido')
+    const d = await diretorios()
+    expect('erroDeClusterComBancoEmbutido' in d, 'a trava do cluster deveria ter saído com ele').toBe(false)
+    /* Vários processos no mesmo host deixaram de existir: só REPLICAS declara mais de uma instância. */
+    expect(d.replicasDeclaradas()).toBe(1)
+    expect(d.erroDeMultiReplica()).toBeNull()
 
-    delete process.env.DATABASE_URL // o padrão também é o banco embutido
-    expect((await diretorios()).erroDeClusterComBancoEmbutido()).toContain('banco local embutido')
-
-    process.env.DATABASE_URL = 'postgres://banco-remoto.exemplo/babel'
-    expect((await diretorios()).erroDeClusterComBancoEmbutido()).toBeNull()
-
-    process.env.DATABASE_URL = 'pglite:/data/pg'
-    process.env.CLUSTER_WORKERS = '1'
-    expect((await diretorios()).erroDeClusterComBancoEmbutido()).toBeNull()
+    process.env.REPLICAS = '2'
+    expect((await diretorios()).erroDeMultiReplica()).toContain('REPLICAS=2')
     delete process.env.CLUSTER_WORKERS
-    expect((await diretorios()).erroDeClusterComBancoEmbutido()).toBeNull()
   })
 
   it('S3 pela metade não conta como compartilhado — o seam só liga com as quatro', async () => {

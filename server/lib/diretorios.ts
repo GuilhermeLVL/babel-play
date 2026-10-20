@@ -42,8 +42,8 @@ export function diretorioGravavel(): string {
  * — e adivinhar errado é pior que perguntar: um servidor que se acha sozinho guarda estado local e
  * responde diferente conforme a réplica que atendeu. Então quem opera declara, e o boot verifica.
  *
- * `CLUSTER_WORKERS` é outra coisa e continua sendo: são processos do MESMO host, com o MESMO
- * disco. Vários processos não exigem armazenamento compartilhado; várias máquinas exigem.
+ * O modo cluster (vários processos no mesmo host) saiu na Task 10 da Fase 2: o PGlite é de processo
+ * único e, com Postgres, escala-se por instâncias — que é o que `REPLICAS` declara.
  */
 export function replicasDeclaradas(): number {
   const n = Number(process.env.REPLICAS)
@@ -92,23 +92,4 @@ export function erroDeMultiReplica(): string | null {
     )
   }
   return null
-}
-
-/**
- * A recusa de subir em modo cluster (`CLUSTER_WORKERS > 1`) com o banco embutido.
- *
- * O PGlite é de PROCESSO ÚNICO: o diretório de dados é aberto por um processo só. Ele mesmo não
- * trava o diretório — um segundo processo abria e as escritas de um apagavam as do outro em
- * silêncio —, e por isso `db.ts` o trava (`<dir>/.babel-lock`, `server/db/travaDoPglite.ts`): o
- * segundo processo agora é recusado no import. Esta recusa vem antes e diz o porquê. No SQLite o cluster funcionava por
- * causa do WAL; aqui não há equivalente. Vários processos exigem Postgres remoto.
- */
-export function erroDeClusterComBancoEmbutido(): string | null {
-  const workers = Number(process.env.CLUSTER_WORKERS || 0)
-  if (!Number.isFinite(workers) || workers <= 1 || !bancoEmbutidoNoAmbiente()) return null
-  return (
-    `CLUSTER_WORKERS=${Math.floor(workers)} com banco local embutido (DATABASE_URL=pglite:…). O PGlite abre ` +
-    'o diretório de dados num processo só: os workers não dividiriam o banco. Use um Postgres remoto ' +
-    '(DATABASE_URL=postgres://…) ou um processo só (sem CLUSTER_WORKERS).'
-  )
 }

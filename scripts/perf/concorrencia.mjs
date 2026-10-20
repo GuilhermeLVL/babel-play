@@ -6,16 +6,16 @@
  * POR QUE ISTO EXISTE, SE JÁ HÁ TESTE. `tests/integration/economia-atomica.test.ts` cobre o
  * MECANISMO: dez gastos simultâneos chamando o handler direto, com o teto dentro do INSERT. O que
  * ele não cobre é a pilha inteira — `express.json`, o limitador contando no banco, o pool do
- * driver, e (quando `CLUSTER_WORKERS>1`) mais de um PROCESSO decidindo sobre a mesma conta. Foi
+ * driver, e (com várias instâncias) mais de um PROCESSO decidindo sobre a mesma conta. Foi
  * exatamente essa diferença que produziu o achado P1-3 da auditoria: um teto que valia no teste e
  * virava "teto × número de réplicas" em produção.
  *
- *   node scripts/perf/concorrencia.mjs --db=<diretório do pglite | postgres://…> [--porta=3105] [--gastos=40] [--ondas=10] [--workers=1]
+ *   node scripts/perf/concorrencia.mjs --db=<diretório do pglite | postgres://…> [--porta=3105] [--gastos=40] [--ondas=10]
  *
  * Use SEMPRE uma cópia do banco: a rota grava de verdade em `seed_credits` e `seed_spends`.
  *
- * PGlite é de um processo só: com ele `--workers` tem de ser 1 e as linhas de `seed_spends` são contadas
- * com o servidor PARADO (antes de subir e depois de parar). Vários processos exigem `postgres://`.
+ * PGlite é de um processo só: as linhas de `seed_spends` são contadas com o servidor PARADO (antes de
+ * subir e depois de parar). O modo cluster (`--workers`) foi aposentado na Task 10 da Fase 2.
  *
  * O QUE REPROVA:
  *   1. saldo final NEGATIVO — o teto falhou;
@@ -37,7 +37,7 @@ const arg = (nome, padrao) => {
 const db = arg('db', '')
 if (!db) {
   console.error(
-    'uso: node scripts/perf/concorrencia.mjs --db=<diretório do pglite | postgres://…> [--porta=] [--gastos=] [--workers=]',
+    'uso: node scripts/perf/concorrencia.mjs --db=<diretório do pglite | postgres://…> [--porta=] [--gastos=]',
   )
   process.exit(2)
 }
@@ -59,7 +59,6 @@ const gastos = Number(arg('gastos', 40))
  * `--gastos` acima de ~100 mede o `fetch` do Node, nao o servidor.
  */
 const ondas = Number(arg('ondas', 10))
-const workers = arg('workers', '1')
 const base = `http://127.0.0.1:${porta}`
 
 const env = {
@@ -68,13 +67,8 @@ const env = {
   PORT: porta,
   HOST: '127.0.0.1',
   AUTH_REQUIRED: '0',
-  CLUSTER_WORKERS: workers,
 }
 
-if (!ehPostgres(db) && Number(workers) > 1) {
-  console.error('--workers>1 exige --db=postgres://… (o PGlite é de um processo só)')
-  process.exit(2)
-}
 const gastosAntes = await contarLinhas(db, 'seed_spends')
 const dormir = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -144,7 +138,7 @@ try {
   const razao = process.env.RAZAO_DE_GASTO || 'pular-rodada'
   const preco = Number(process.env.PRECO_DO_ITEM || 40)
 
-  console.log(`# concorrencia — ${base}, ${ondas} ondas de ${gastos} gastos simultaneos, CLUSTER_WORKERS=${workers}`)
+  console.log(`# concorrencia — ${base}, ${ondas} ondas de ${gastos} gastos simultaneos`)
   console.log(`# subiu em ${subiu} ms; seedsGastas antes: ${gastasAntes}; linhas em seed_spends: ${gastosAntes}`)
 
   /* TODAS DE UMA VEZ, e não em série: o defeito que se procura só aparece quando duas conferências

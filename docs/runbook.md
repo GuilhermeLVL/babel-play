@@ -366,10 +366,6 @@ docker stop babel-play          # SIGTERM, drena, checkpoint, sai 0
 docker compose up -d --build    # atualizar
 ```
 
-Em cluster, o primário **repassa o sinal aos workers e para de refazê-los**. Antes disso, o
-`cluster.on('exit')` refazia qualquer worker — inclusive durante o desligamento, o que fazia o
-serviço "não morrer".
-
 Medido em 2026-09-09, sobre uma cópia do banco real: o dreno leva **1–3 ms**; o `-wal` de 659.232
 bytes é dobrado no `.db` pelo checkpoint e zerado.
 

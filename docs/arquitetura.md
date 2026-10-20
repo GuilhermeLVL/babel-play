@@ -19,7 +19,7 @@ src/
     efemero/       o espelho do servidor sobre IndexedDB — é o que faz o modo sem conta existir
   lib/{captura,analise,estado,jogos}/   o que saiu dos arquivos-deus
   components/      telas
-server.ts          bootstrap: dotenv, config conferida, `iniciar()`/cluster (345 linhas; eram 703)
+server.ts          bootstrap: dotenv, config conferida, `startServer()` (o cluster foi aposentado)
 server/
   http/app.ts      `criarApp()` — a ordem de montagem, que é parte do comportamento
   http/metricas.ts `/metrics`

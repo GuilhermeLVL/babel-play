@@ -4,8 +4,8 @@
  * A Fase 3 da rodada de saneamento tirou daqui a MONTAGEM (`server/http/app.ts`, `criarApp()`) e a
  * rota do tutor (`server/routes/tutor.ts`). A Fase 2 da migração para o Cloudflare tirou o resto
  * para `server/boot/`: as travas de boot (`validar.ts`, que devolve achados — quem encerra o processo
- * é este arquivo), o diário de erros, as migrations e os backfills (`preparar.ts`), os agendamentos
- * diários (`jobs.ts`) e o modo cluster (`cluster.ts`). Sobra o que só um processo faz: carregar o
+ * é este arquivo), o diário de erros, as migrations e os backfills (`preparar.ts`), e os agendamentos
+ * diários (`jobs.ts`). O modo cluster saiu na Task 10 (escala-se por instâncias sobre Postgres). Sobra o que só um processo faz: carregar o
  * `.env`, chamar cada passo na ordem, escolher entre Vite e estático, escutar numa porta e desligar.
  *
  * O `erroGlobal` é montado AQUI, e não em `criarApp()`, porque o Express escolhe o handler de erro
@@ -15,7 +15,6 @@
 import dotenv from 'dotenv'
 import path from 'path'
 
-import { iniciar, repassarSinalAosWorkers } from './server/boot/cluster'
 import { agendarJobsNoNode } from './server/boot/jobs'
 import { ligarRegistroDeErros, logarFalhaDoBoot, prepararDados as prepararOsDados } from './server/boot/preparar'
 import { relatarConfiguracao, validarBoot } from './server/boot/validar'
@@ -38,12 +37,7 @@ const app = criarApp()
 // A mensagem de erro de EADDRINUSE manda "definir PORT no .env" — então honre-a.
 const PORT = Number(process.env.PORT) || 3000
 
-/**
- * `prepararDados: false` é o modo WORKER do cluster: migrations, seed e backfill já foram feitos
- * pelo primário antes de forkar. Repetir não seria só desperdício — seria exatamente a contenção
- * de lock no boot que o modo cluster existe para eliminar.
- */
-async function startServer({ prepararDados = true } = {}) {
+async function startServer() {
   /* As travas de boot (multi-réplica, auth, proxy, métricas, sandbox do Asaas, registro de IA): um
      achado `aborta` encerra o processo aqui; um `avisa` só vai para o stderr. Ver `server/boot/validar.ts`. */
   for (const achado of validarBoot()) {
@@ -57,7 +51,7 @@ async function startServer({ prepararDados = true } = {}) {
   }
   /* Diário de erros e Sentry ANTES de tudo, inclusive das migrations: o erro do boot é o que mais
      precisa sobreviver. A poda do diário só no primário. */
-  await ligarRegistroDeErros(prepararDados)
+  await ligarRegistroDeErros(true)
   relatarConfiguracao()
 
   // P0-2: o banco responde ANTES de qualquer escrita (inclusive o seed).
@@ -65,13 +59,11 @@ async function startServer({ prepararDados = true } = {}) {
 
   /* Migrations (falha FATAL: sem schema o app não serve nada), seed do self-host e backfills
      idempotentes. Ver `server/boot/preparar.ts`. */
-  if (prepararDados) {
-    try {
-      await prepararOsDados()
-    } catch {
-      // `prepararDados` já registrou `boot_falhou` com a etapa.
-      process.exit(1)
-    }
+  try {
+    await prepararOsDados()
+  } catch {
+    // `prepararDados` já registrou `boot_falhou` com a etapa.
+    process.exit(1)
   }
   if (process.env.NODE_ENV !== 'production') {
     // Import DINÂMICO, e não estático no topo: `vite` é devDependency, e o esbuild com
@@ -116,17 +108,16 @@ async function startServer({ prepararDados = true } = {}) {
     console.log(`Babel Play rodando em  ->  http://localhost:${PORT}`)
     console.log(`   (abra sempre por http://localhost:${PORT} — por 0.0.0.0/IP o modelo local re-baixa toda vez)`)
   })
-  /* DESLIGAMENTO GRACIOSO (Fase 5) — registrado LOGO APÓS o `listen`: antes dele não há o que drenar.
-     `repassarSinalAosWorkers` é o gancho do primário do cluster; fora do cluster não faz nada. */
-  registrarDesligamento({ servidor: server, antes: () => repassarSinalAosWorkers() })
+  /* DESLIGAMENTO GRACIOSO (Fase 5) — registrado LOGO APÓS o `listen`: antes dele não há o que drenar. */
+  registrarDesligamento({ servidor: server })
 
   /* TEMPOS LIMITE (auditoria de 10/10/2026, A6): o socket ocioso vive mais que os 60 s do proxy do
      Fly. O porquê de cada número está em `server/http/temposLimite.ts`. */
   aplicarTemposLimite(server)
 
   /* MÉTRICAS NA PORTA INTERNA (Fase 5 de prontidão) — sem token, numa porta que o proxy do Fly não
-     publica. Só no processo que prepara os dados: o scrape precisa de UM endereço. */
-  const portaDeMetricas = prepararDados && metricasHabilitadas() ? portaInternaDeMetricas() : undefined
+     publica. */
+  const portaDeMetricas = metricasHabilitadas() ? portaInternaDeMetricas() : undefined
   if (portaDeMetricas !== undefined) {
     const { iniciarServidorDeMetricas } = await import('./server/http/metricas')
     try {
@@ -138,9 +129,8 @@ async function startServer({ prepararDados = true } = {}) {
     }
   }
 
-  /* Os agendamentos diários (backup, retenções, podas, limpeza): só no processo que prepara os dados
-     — uma varredura por deploy, não uma por worker. Ver `server/boot/jobs.ts`. */
-  if (prepararDados) await agendarJobsNoNode()
+  /* Os agendamentos diários (backup, retenções, podas, limpeza). Ver `server/boot/jobs.ts`. */
+  await agendarJobsNoNode()
 
   server.on('error', (err: NodeJS.ErrnoException) => {
     if (err.code === 'EADDRINUSE') {
@@ -157,7 +147,7 @@ async function startServer({ prepararDados = true } = {}) {
 
 /* Qualquer outra falha do boot (banco que não abre, Vite que não sobe…) também deixa a linha `boot_falhou`
    antes de encerrar, em vez de uma rejeição não tratada sem evento. */
-iniciar(startServer).catch((err: unknown) => {
+startServer().catch((err: unknown) => {
   logarFalhaDoBoot('iniciar', err)
   console.error('[boot] falhou:', err)
   process.exit(1)

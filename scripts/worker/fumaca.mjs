@@ -254,19 +254,39 @@ async function verificacoes(base, w, token) {
     body: JSON.stringify({ nascimento: '1990-01-01' }),
   })
   confere(idade.status === 200, `PUT /api/me/idade: ${idade.status} ${(await idade.text()).slice(0, 300)}`)
-  /* `ehWorker()` de verdade no workerd: a importação pesada responde 503 só lá (no Node seria 400/200). */
-  const web = await fetch(`${base}/api/import/web`, {
-    method: 'POST',
-    headers: { ...auth, 'content-type': 'application/json' },
-    body: JSON.stringify({ url: 'https://example.com/' }),
-  })
-  const corpoWeb = await web.json()
-  confere(
-    web.status === 503 && corpoWeb.code === 'indisponivel_neste_runtime',
-    `POST /api/import/web no Worker: ${web.status} ${JSON.stringify(corpoWeb)}`,
-  )
+  /* Importação de página no workerd (R8): linkedom + Readability + DoH, contra uma página pública real. Sem
+     rede, avisa e segue (a fumaça não depende da internet). */
+  let resumoWeb = 'import web: ignorado (sem rede)'
+  const t0 = Date.now()
+  let web = null
+  try {
+    web = await fetch(`${base}/api/import/web`, {
+      method: 'POST',
+      headers: { ...auth, 'content-type': 'application/json' },
+      body: JSON.stringify({ url: 'https://pt.wikipedia.org/wiki/L%C3%ADngua_portuguesa' }),
+      signal: globalThis.AbortSignal.timeout(60_000),
+    })
+  } catch (e) {
+    console.warn(`⚠ POST /api/import/web: erro de rede (${e?.message ?? e}); verificação ignorada`)
+  }
+  if (web) {
+    const corpoWeb = await web.json().catch(() => ({}))
+    const erroDeRede =
+      web.status === 400 && /fetch failed|ENOTFOUND|EAI_AGAIN|ECONN|rede|network|DoH/i.test(corpoWeb.error ?? '')
+    if (erroDeRede) {
+      console.warn(`⚠ POST /api/import/web: rede indisponível no Worker (${corpoWeb.error}); verificação ignorada`)
+    } else {
+      confere(
+        web.status === 200 && (corpoWeb.text?.length ?? 0) > 2_000 && /portuguesa/i.test(corpoWeb.title ?? ''),
+        `POST /api/import/web no Worker: ${web.status} ${JSON.stringify(corpoWeb).slice(0, 300)}`,
+      )
+      resumoWeb = `import web: 200, ${corpoWeb.text.length} caracteres, "${corpoWeb.title}", ${Date.now() - t0} ms`
+    }
+  }
   console.log(
-    '✔ 2/7 JWT ES256 (JWKS local) → GET /api/me 200 (sem token: 401, balde por CF-Connecting-IP, X-Forwarded-For forjado ignorado; import web: 503 no runtime)',
+    '✔ 2/7 JWT ES256 (JWKS local) → GET /api/me 200 (sem token: 401, balde por CF-Connecting-IP, X-Forwarded-For forjado ignorado; ' +
+      resumoWeb +
+      ')',
   )
 
   // 3. sessão + upload de 1 MB + Range

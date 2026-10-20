@@ -253,10 +253,9 @@ bruto, 1,3 MB gzip. `tests/worker/bundle.test.ts` trava o teto de 10 MB e a list
 
 **Só no Node** (no bundle do Worker viram stubs de `server/stubs/`, que lançam se forem usados):
 `@electric-sql/pglite` (o banco do Worker é o `Client` da requisição), os migradores do Drizzle (migração é do
-deploy), `jsdom` + `@mozilla/readability` (importação de link), `pdfjs-dist` + `mammoth` (importação de
-documento), `loopback-capture` (`/api/audio` responde 403 no Worker) e `dotenv/config`. `prom-client` e
-`undici` nem entram: são carregados por `createRequire` só no ramo do Node. A importação de Anki, documento e
-link responde `503 indisponivel_neste_runtime` no Worker até a Fase 3. O `iconv-lite` 0.7 (o 0.4 do Express
+deploy), `jsdom` (só testes) e `pdfjs-dist` + `mammoth` (lidos no navegador, não entram no servidor), `loopback-capture` (`/api/audio` responde 403 no Worker) e `dotenv/config`. `prom-client` e
+`undici` nem entram: são carregados por `createRequire` só no ramo do Node. A importação de link roda no Worker
+(`linkedom` + `@mozilla/readability`, charset decodificado à mão; provada na fumaça contra a Wikipédia). O `iconv-lite` 0.7 (o 0.4 do Express
 quebra no workerd) vem do `overrides` do `package.json`, para Node e Worker.
 
 **Fumaça** (`npm run fumaca:worker`, ou `WRANGLER_FUMACA=1 npx vitest run tests/worker/fumaca.test.ts`): sobe

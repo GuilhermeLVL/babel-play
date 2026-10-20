@@ -54,8 +54,6 @@
   // O iconv-lite 0.7 (o 0.4 do Express quebra no workerd) vem do `overrides` do package.json.
   "alias": {
     "@electric-sql/pglite": "./server/stubs/pglite.ts",
-    "jsdom": "./server/stubs/jsdom.ts",
-    "@mozilla/readability": "./server/stubs/readability.ts",
     "loopback-capture": "./server/stubs/loopbackCapture.ts",
     "dotenv/config": "./server/stubs/vazio.ts",
     "drizzle-orm/node-postgres/migrator": "./server/stubs/migrador.ts",

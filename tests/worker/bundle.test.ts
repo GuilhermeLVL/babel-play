@@ -6,7 +6,7 @@
  *
  *  - o tamanho bruto (≤ 10 MB: o teto do plano pago é sobre o comprimido, mas um bundle bruto acima disso já
  *    significa que algum WASM ou dependência do Node entrou);
- *  - os pacotes que só existem no Node (PGlite, jsdom, Readability, prom-client, loopback-capture, pdfjs,
+ *  - os pacotes que só existem no Node (PGlite, jsdom, prom-client, loopback-capture, pdfjs,
  *    mammoth, undici) chegam SÓ como stubs de `server/stubs/`;
  *  - `node:child_process` não é importado por ninguém fora dos stubs;
  *  - `node:fs` (que o workerd tem, virtual, com `nodejs_compat`: importar não quebra; o que não pode é o
@@ -63,7 +63,6 @@ const NODE_FS_EM_DEPENDENCIA = new Set([
 const SO_NO_NODE = [
   '@electric-sql/pglite',
   'jsdom',
-  '@mozilla/readability',
   'prom-client',
   'loopback-capture',
   'pdfjs-dist',
@@ -101,6 +100,12 @@ describe('bundle do Worker', () => {
   it.each(SO_NO_NODE)('%s fica fora (só o stub entra)', (pacote) => {
     const dentro = Object.keys(meta.inputs).filter((p) => p.includes(`node_modules/${pacote}/`))
     expect(dentro).toEqual([])
+  })
+
+  it('linkedom e @mozilla/readability entram no bundle do Worker', () => {
+    const entradas = Object.keys(meta.inputs)
+    expect(entradas.some((p) => p.includes('node_modules/linkedom/'))).toBe(true)
+    expect(entradas.some((p) => p.includes('node_modules/@mozilla/readability/'))).toBe(true)
   })
 
   it('@libsql/client e jszip não entram no bundle do Worker', () => {

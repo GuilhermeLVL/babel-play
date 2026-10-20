@@ -11,22 +11,12 @@
 import { Router } from 'express'
 
 import { extractArticle } from '../import/web'
-import { descartarRestoDoCorpo } from '../lib/corpoRecebido'
 import { erroDeRota } from '../lib/erroDeRota'
 import { responderErro } from '../lib/respostaDeErro'
-import { ehWorker } from '../lib/runtime'
 // F11-04: schemas de corpo e de cabeçalho das rotas de importação.
 import { importUrlSchema, parseOr400 } from '../validation'
 
 export const importRouter = Router()
-
-/* LINK WEB SÓ NO NODE: precisa de jsdom e Readability, que no bundle do Worker são stubs. Lá a rota
-   responde 503 `indisponivel_neste_runtime` antes de ler o corpo. O Anki, o PDF e o DOCX são lidos no navegador. */
-importRouter.use('/web', (req, res, next) => {
-  if (!ehWorker()) return next()
-  descartarRestoDoCorpo(req)
-  responderErro(res, 503, 'importação indisponível neste servidor', 'indisponivel_neste_runtime')
-})
 
 /**
  * YouTube: APOSENTADO (Task 10 da Fase 2). Rodava o yt-dlp como subprocesso no servidor, o que não existe

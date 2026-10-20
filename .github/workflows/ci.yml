@@ -418,6 +418,48 @@ jobs:
         timeout-minutes: 30
         run: npx vitest run tests/integration tests/caracterizacao $ARQUIVOS --maxWorkers=2
 
+  # O WORKER (Fase 4, T6): o bundle do Cloudflare Worker, os testes de `tests/worker` e a fumaça do app inteiro
+  # no `wrangler dev` (workerd local, sem credencial da Cloudflare). O Postgres vem do `services:` (porta 5434,
+  # a que o script usa) via FUMACA_PG_URL: sem `docker run` aqui. Só pula quando a mudança é SÓ documentação
+  # (o mesmo filtro `e2e` do `mudancas`); teste e código rodam sempre. O `psql` da fumaça já vem no runner.
+  worker:
+    needs: mudancas
+    if: needs.mudancas.outputs.e2e == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          # Senha descartável de um contêiner de serviço que só existe neste job; não é segredo.
+          POSTGRES_PASSWORD: teste
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      FUMACA_PG_URL: postgres://postgres:teste@localhost:5434/postgres
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        timeout-minutes: 5
+      - name: Bundle do Worker (tamanho e allowlist)
+        run: npm run worker:build
+      - name: Testes do Worker
+        run: npx vitest run tests/worker
+      - name: Fumaça do Worker no wrangler dev
+        timeout-minutes: 10
+        env:
+          WRANGLER_FUMACA: '1'
+        run: npm run fumaca:worker
+
   # E2E PRINCIPAL, UM JOB POR VIEWPORT. Os três projetos rodavam em série no `verify` (~33 min:
   # celular 12, tablet 7, desktop 13). Cada fatia sobe o SEU servidor e o SEU banco vazio, então o
   # `workers: 1` do playwright.config.ts continua valendo dentro dela (o motivo dele é o banco

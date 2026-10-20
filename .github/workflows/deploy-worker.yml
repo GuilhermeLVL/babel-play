@@ -1,0 +1,170 @@
+# PUBLICAR O WORKER (Fase 4, T6) — MANUAL, por versões do Cloudflare e com rollback automático.
+#
+# Fluxo: build do front → migrações do banco → `wrangler versions upload` (versão nova SEM tráfego, com
+# `GIT_SHA` e o alias de preview "fumaca") → fumaça na URL de preview → `wrangler versions deploy @100%` →
+# fumaça na URL final → se qualquer passo depois do deploy falhar, `wrangler rollback`.
+# O Worker nunca roda migração; quem migra é o passo "Migrações" (antes do upload, com a conexão de sessão).
+#
+# GITHUB ENVIRONMENT (um por ambiente: `staging` e `production`; Settings → Environments). Nenhum valor mora aqui:
+#   secrets  CLOUDFLARE_API_TOKEN   token com Workers Scripts:Edit (cobre versions upload/deploy/rollback)
+#            CLOUDFLARE_ACCOUNT_ID
+#            DATABASE_URL_MIGRACAO  URL do pooler de SESSÃO do Supabase, com `?sslmode=verify-full`
+#            SUPABASE_CA_PEM        CA do Supabase (PEM); o passo grava num arquivo e aponta NODE_EXTRA_CA_CERTS
+#   vars     URL_DO_WORKER          URL final do ambiente (ex.: https://frasy-staging.guigui-cruzeiro.workers.dev)
+#            VITE_PUBLIC_URL, VITE_ORT_WASM_URL, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (pública),
+#            VITE_SELF_HOST_MODELS, VITE_SENTRY_DSN, VITE_TURNSTILE_SITE_KEY, VITE_LOGIN_GOOGLE,
+#            VITE_DESENHO_NOVO_PADRAO, VITE_BERGAMOT_MODELOS_URL
+# Os secrets do Worker em si (SECRET_KEY, chaves de IA…) NÃO passam por aqui: `scripts/cloudflare/secrets.ts`.
+# Passo a passo, tabela e alternativa manual: docs/deploy.md ("Publicar o Worker (CI)").
+name: deploy-worker
+
+on:
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        description: 'Ambiente (GitHub Environment e env do wrangler.jsonc)'
+        type: choice
+        options: [staging, production]
+        default: staging
+      ref:
+        description: 'Ramo, tag ou SHA a publicar (vazio: o ref escolhido no disparo)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+env:
+  ONNXRUNTIME_NODE_INSTALL: skip
+
+# Um deploy por ambiente de cada vez; o segundo espera (não cancela um deploy no meio).
+concurrency:
+  group: deploy-worker-${{ inputs.ambiente }}
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: ${{ inputs.ambiente }}
+    env:
+      AMBIENTE: ${{ inputs.ambiente }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        timeout-minutes: 5
+
+      # Falta de configuração reprova AQUI, dizendo o nome (nunca o valor), antes de tocar no banco ou no Worker.
+      - name: Conferir secrets e variáveis do Environment
+        env:
+          DATABASE_URL_MIGRACAO: ${{ secrets.DATABASE_URL_MIGRACAO }}
+          SUPABASE_CA_PEM: ${{ secrets.SUPABASE_CA_PEM }}
+          URL_DO_WORKER: ${{ vars.URL_DO_WORKER }}
+          VITE_PUBLIC_URL: ${{ vars.VITE_PUBLIC_URL }}
+        run: |
+          faltando=""
+          for n in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID DATABASE_URL_MIGRACAO SUPABASE_CA_PEM URL_DO_WORKER VITE_PUBLIC_URL; do
+            [ -n "${!n}" ] || faltando="$faltando $n"
+          done
+          if [ -n "$faltando" ]; then
+            echo "::error::Faltam no Environment '$AMBIENTE':$faltando (ver o cabeçalho do workflow)"
+            exit 1
+          fi
+
+      # Os VITE_* entram no bundle do front (assets servidos pelo Worker). Os valores vêm do Environment.
+      - name: Build (front + bundle)
+        env:
+          VITE_PUBLIC_URL: ${{ vars.VITE_PUBLIC_URL }}
+          VITE_ORT_WASM_URL: ${{ vars.VITE_ORT_WASM_URL }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_SELF_HOST_MODELS: ${{ vars.VITE_SELF_HOST_MODELS }}
+          VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+          VITE_LOGIN_GOOGLE: ${{ vars.VITE_LOGIN_GOOGLE }}
+          VITE_DESENHO_NOVO_PADRAO: ${{ vars.VITE_DESENHO_NOVO_PADRAO }}
+          VITE_BERGAMOT_MODELOS_URL: ${{ vars.VITE_BERGAMOT_MODELOS_URL }}
+        run: npm run build
+
+      # Migrações antes da versão nova existir (o schema é aditivo; o Worker antigo continua servindo). A conexão
+      # é a de sessão do Supabase; a CA vai para um arquivo só do dono e o Node a confia (NODE_EXTRA_CA_CERTS),
+      # então `sslmode=verify-full` na URL funciona. Nunca cai para `require`.
+      - name: Migrações do banco
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_MIGRACAO }}
+          SUPABASE_CA_PEM: ${{ secrets.SUPABASE_CA_PEM }}
+        run: |
+          set -euo pipefail
+          ( umask 077; printf '%s\n' "$SUPABASE_CA_PEM" > "$RUNNER_TEMP/supabase-ca.pem" )
+          export NODE_EXTRA_CA_CERTS="$RUNNER_TEMP/supabase-ca.pem"
+          npm run db:migrate
+          rm -f "$RUNNER_TEMP/supabase-ca.pem"
+
+      # Sobe a versão SEM tráfego. `GIT_SHA` vira a versão servida em /api/health (`0.1.0+<sha7>`); o alias
+      # "fumaca" dá uma URL de preview estável para testar antes de virar o tráfego. A saída estruturada do
+      # wrangler (WRANGLER_OUTPUT_FILE_PATH, uma linha JSON por evento) fornece o id da versão e a URL, sem
+      # depender do texto do terminal.
+      - name: Subir a versão (sem tráfego)
+        id: subir
+        env:
+          SHA: ${{ github.sha }}
+          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-saida.ndjson
+        run: |
+          set -euo pipefail
+          env_args=(); [ "$AMBIENTE" = "production" ] || env_args=(--env "$AMBIENTE")
+          npx wrangler versions upload -c wrangler.jsonc "${env_args[@]}" \
+            --var "GIT_SHA:$SHA" --preview-alias fumaca --message "${SHA::7} $AMBIENTE"
+          node -e '
+            const l = require("fs").readFileSync(process.env.WRANGLER_OUTPUT_FILE_PATH, "utf8").split("\n").filter(Boolean)
+              .map((x) => JSON.parse(x)).find((e) => e.type === "version-upload")
+            if (!l?.version_id) { console.error("::error::o wrangler não informou o id da versão"); process.exit(1) }
+            const out = process.env.GITHUB_OUTPUT
+            require("fs").appendFileSync(out, `versao=${l.version_id}\npreview=${l.preview_alias_url || l.preview_url || ""}\n`)
+          '
+
+      # Fumaça na URL de preview: a versão nova, ainda sem tráfego, tem de estar pronta e ser deste commit.
+      - name: Fumaça na versão em preview
+        env:
+          PREVIEW: ${{ steps.subir.outputs.preview }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [ -z "$PREVIEW" ]; then
+            echo "::warning::sem URL de preview (preview_urls desligado neste ambiente): fumaça de preview ignorada"
+            exit 0
+          fi
+          node scripts/cloudflare/fumaca-remota.mjs "$PREVIEW" "$SHA"
+
+      # Vira 100% do tráfego para a versão que passou na fumaça. Daqui em diante, falha = rollback.
+      - name: Promover a versão (100% do tráfego)
+        id: implantar
+        env:
+          VERSAO: ${{ steps.subir.outputs.versao }}
+          SHA: ${{ github.sha }}
+        run: |
+          env_args=(); [ "$AMBIENTE" = "production" ] || env_args=(--env "$AMBIENTE")
+          npx wrangler versions deploy "$VERSAO@100%" -y -c wrangler.jsonc "${env_args[@]}" \
+            --message "${SHA::7} $AMBIENTE"
+
+      - name: Fumaça na URL final
+        env:
+          URL_DO_WORKER: ${{ vars.URL_DO_WORKER }}
+          SHA: ${{ github.sha }}
+        run: node scripts/cloudflare/fumaca-remota.mjs "$URL_DO_WORKER" "$SHA"
+
+      # Só depois de o deploy ter rodado (aprovado ou não): volta ao deploy anterior. O job continua vermelho.
+      - name: Rollback (a fumaça falhou)
+        if: ${{ failure() && steps.implantar.outcome != 'skipped' }}
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          env_args=(); [ "$AMBIENTE" = "production" ] || env_args=(--env "$AMBIENTE")
+          npx wrangler rollback -c wrangler.jsonc "${env_args[@]}" --message "fumaça falhou em ${SHA::7}" -y

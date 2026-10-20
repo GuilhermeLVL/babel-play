@@ -9,6 +9,8 @@
  *   - R2 e assets simulados pelo Miniflare, com estado num diretório temporário (`--persist-to`);
  *   - um JWKS local (chave ES256 gerada agora) no papel do Supabase: SUPABASE_URL aponta para ele.
  *
+ * `FUMACA_PG_URL=postgres://…` usa um Postgres existente no lugar do Docker (job `worker` do ci.yml).
+ *
  * As sete verificações:
  *   1. GET /api/health → 200 com `banco: 'postgres'`;
  *   2. JWT ES256 → GET /api/me 200 (e a idade adulta declarada, para as rotas de nuvem);
@@ -39,7 +41,10 @@ import { exportJWK, generateKeyPair, SignJWT } from 'jose'
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const CONTAINER = 'pg-worker-fumaca'
 const PORTA_PG = 5434
-const URL_PG = `postgres://postgres:teste@localhost:${PORTA_PG}/postgres`
+/* `FUMACA_PG_URL`: Postgres já de pé (o `services:` do CI). Sem Docker aqui: o script não sobe nem remove nada,
+   e consulta com o `psql` do PATH (o runner do GitHub traz). Sem a variável, o container acima. */
+const URL_EXTERNA = process.env.FUMACA_PG_URL || ''
+const URL_PG = URL_EXTERNA || `postgres://postgres:teste@localhost:${PORTA_PG}/postgres`
 const CRON = '17 3 * * *'
 const JOB_DO_CRON = 'podaDasJanelasDiarias'
 const MB = 1024 * 1024
@@ -186,9 +191,26 @@ async function derrubar(w) {
   }
 }
 
-/** O Postgres de teste responde por `docker exec` (o mesmo container da fumaça). */
+/** Quantos `psql` do próprio script já terminaram (cada um é uma sessão no contador do modo externo). */
+let psqlConcluidos = 0
+
+/** O Postgres de teste responde por `docker exec` (o mesmo container da fumaça) ou, no modo externo, por `psql`. */
 function consultar(sql) {
-  return rodar('docker', ['exec', CONTAINER, 'psql', '-U', 'postgres', '-tAc', sql]).trim()
+  if (!URL_EXTERNA) return rodar('docker', ['exec', CONTAINER, 'psql', '-U', 'postgres', '-tAc', sql]).trim()
+  const saida = rodar('psql', [URL_EXTERNA, '-tAc', sql]).trim()
+  psqlConcluidos++
+  return saida
+}
+
+/** Conexões já aceitas pelo Postgres: o log do container (Docker) ou, no modo externo, `pg_stat_database.sessions`
+    menos as sessões do próprio `psql` do script. */
+function conexoesAceitas() {
+  if (URL_EXTERNA) {
+    const proprias = psqlConcluidos
+    return Number(consultar('select sessions from pg_stat_database where datname = current_database()')) - proprias
+  }
+  return (spawnSync('docker', ['logs', CONTAINER], { encoding: 'utf8' }).stderr.match(/connection authorized/g) ?? [])
+    .length
 }
 
 async function esperarPronto(w) {
@@ -399,8 +421,7 @@ async function verificacoes(base, w, token) {
   )
 
   // 6. concorrência no isolate (I1)
-  const conexoesNoLog = () =>
-    (spawnSync('docker', ['logs', CONTAINER], { encoding: 'utf8' }).stderr.match(/connection authorized/g) ?? []).length
+  const conexoesNoLog = conexoesAceitas
   const abertasDoWorker = () =>
     Number(
       consultar(
@@ -499,7 +520,7 @@ let persistir
 async function limpar() {
   for (const w of vivos) await derrubar(w)
   jwks?.servidor.close()
-  spawnSync('docker', ['rm', '-f', CONTAINER], { stdio: 'ignore' })
+  if (!URL_EXTERNA) spawnSync('docker', ['rm', '-f', CONTAINER], { stdio: 'ignore' })
   if (persistir) rmSync(persistir, { recursive: true, force: true })
 }
 
@@ -514,8 +535,11 @@ async function principal() {
   persistir = mkdtempSync(join(tmpdir(), 'babel-fumaca-worker-'))
   let w
   try {
-    passo(`Postgres 17 em Docker (${CONTAINER}, porta ${PORTA_PG})`)
-    await subirPostgres()
+    if (URL_EXTERNA) passo('Postgres externo (FUMACA_PG_URL)')
+    else {
+      passo(`Postgres 17 em Docker (${CONTAINER}, porta ${PORTA_PG})`)
+      await subirPostgres()
+    }
     passo('migrações (npm run db:migrate)')
     rodar('npx', ['tsx', 'server/db/migrate.ts'], { env: { ...process.env, DATABASE_URL: URL_PG } })
     jwks = await subirJwks()

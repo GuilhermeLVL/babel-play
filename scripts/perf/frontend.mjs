@@ -42,52 +42,60 @@ const porta = Number(arg('porta', 3180))
 // `--raiz`: pasta com `dist/` e `dist-server/` a servir (padrão: o repositório) — p.ex. uma cópia do build de antes.
 const SERVIDA = path.resolve(arg('raiz', RAIZ))
 const saida = path.resolve(arg('saida', path.join(os.tmpdir(), `frontend-${Date.now()}`)))
-const base = `http://127.0.0.1:${porta}`
+// `--url=https://…`: mede uma URL JÁ PUBLICADA (ex.: o Worker de staging) em vez de subir o servidor local. Sem
+// banco, sem servidor e sem o PUT de configurações (a URL remota exige login; mede-se só o que é público).
+const remoto = arg('url', '').replace(/\/+$/, '')
+const base = remoto || `http://127.0.0.1:${porta}`
 mkdirSync(saida, { recursive: true })
 
-const banco = path.join(saida, 'frontend-pg')
-if (!existsSync(banco)) console.log(`# banco: ${JSON.stringify(await preparar({ db: banco, pesados: 0, medios: 0 }))}`)
+if (remoto) {
+  console.log(`# medindo a URL publicada ${base}; saída em ${saida}`)
+} else {
+  const banco = path.join(saida, 'frontend-pg')
+  if (!existsSync(banco))
+    console.log(`# banco: ${JSON.stringify(await preparar({ db: banco, pesados: 0, medios: 0 }))}`)
 
-const filho = spawn(process.execPath, [path.join(SERVIDA, 'dist-server/server.cjs')], {
-  cwd: SERVIDA,
-  env: {
-    PATH: process.env.PATH,
-    SystemRoot: process.env.SystemRoot,
-    TEMP: process.env.TEMP,
-    TMP: process.env.TMP,
-    NODE_ENV: 'production',
-    PORT: String(porta),
-    HOST: '127.0.0.1',
-    DATABASE_URL: `pglite:${banco.replace(/\\/g, '/')}`,
-    MIGRATIONS_DIR: path.join(RAIZ, 'server/db/migrations-pg'),
-    AUDIO_DIR: path.join(saida, 'audio'),
-    BACKUP_DIARIO: '0',
-    SECRET_KEY: randomBytes(32).toString('hex'),
-    AUTH_REQUIRED: '0',
-    SELF_HOST: '1',
-    TRUST_PROXY: 'false',
-    LOG_LEVEL: 'error',
-  },
-  stdio: ['ignore', 'pipe', 'pipe'],
-})
-let morreu = null
-filho.on('exit', (c, s) => (morreu = { c, s }))
-process.on('exit', () => !morreu && filho.kill()) // só o processo que este script iniciou
-for (let t0 = Date.now(); ; ) {
-  if (morreu) throw new Error(`servidor morreu no boot: ${JSON.stringify(morreu)}`)
-  try {
-    if ((await fetch(`${base}/api/ready`, { signal: AbortSignal.timeout(2000) })).ok) break
-  } catch {}
-  if (Date.now() - t0 > 90_000) throw new Error('servidor não ficou pronto em 90 s')
-  await new Promise((r) => setTimeout(r, 300))
+  const filho = spawn(process.execPath, [path.join(SERVIDA, 'dist-server/server.cjs')], {
+    cwd: SERVIDA,
+    env: {
+      PATH: process.env.PATH,
+      SystemRoot: process.env.SystemRoot,
+      TEMP: process.env.TEMP,
+      TMP: process.env.TMP,
+      NODE_ENV: 'production',
+      PORT: String(porta),
+      HOST: '127.0.0.1',
+      DATABASE_URL: `pglite:${banco.replace(/\\/g, '/')}`,
+      MIGRATIONS_DIR: path.join(RAIZ, 'server/db/migrations-pg'),
+      AUDIO_DIR: path.join(saida, 'audio'),
+      BACKUP_DIARIO: '0',
+      SECRET_KEY: randomBytes(32).toString('hex'),
+      AUTH_REQUIRED: '0',
+      SELF_HOST: '1',
+      TRUST_PROXY: 'false',
+      LOG_LEVEL: 'error',
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  let morreu = null
+  filho.on('exit', (c, s) => (morreu = { c, s }))
+  process.on('exit', () => !morreu && filho.kill()) // só o processo que este script iniciou
+  for (let t0 = Date.now(); ; ) {
+    if (morreu) throw new Error(`servidor morreu no boot: ${JSON.stringify(morreu)}`)
+    try {
+      if ((await fetch(`${base}/api/ready`, { signal: AbortSignal.timeout(2000) })).ok) break
+    } catch {}
+    if (Date.now() - t0 > 90_000) throw new Error('servidor não ficou pronto em 90 s')
+    await new Promise((r) => setTimeout(r, 300))
+  }
+  const r = await fetch(`${base}/api/settings`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ ui: { onboarded: true, providerMode: 'local', credentialId: null } }),
+  })
+  if (!r.ok) throw new Error(`PUT /api/settings ${r.status}`)
+  console.log(`# servidor de produção PID ${filho.pid} em ${base}; saída em ${saida}`)
 }
-const r = await fetch(`${base}/api/settings`, {
-  method: 'PUT',
-  headers: { 'content-type': 'application/json' },
-  body: JSON.stringify({ ui: { onboarded: true, providerMode: 'local', credentialId: null } }),
-})
-if (!r.ok) throw new Error(`PUT /api/settings ${r.status}`)
-console.log(`# servidor de produção PID ${filho.pid} em ${base}; saída em ${saida}`)
 
 const nomeDaRota = (r) => (r === '/' ? 'inicio' : r.replace(/^\//, '').replace(/\//g, '-'))
 

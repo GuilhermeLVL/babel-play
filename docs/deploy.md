@@ -300,6 +300,57 @@ limitador por `CF-Connecting-IP` (um `X-Forwarded-For` forjado é ignorado) e, n
 `METRICS_ENABLED=1` sem token, o `503 boot_falhou`. Derruba tudo no fim, inclusive no Ctrl-C. `--verboso`
 imprime o log do wrangler.
 
+## Publicar o Worker (CI)
+
+`.github/workflows/deploy-worker.yml` (manual: Actions → deploy-worker → Run workflow; inputs `ambiente`
+`staging|production` e `ref` opcional) publica por **versões** do Cloudflare, com fumaça e rollback:
+
+1. confere os secrets/vars do Environment (reprova dizendo o NOME que falta);
+2. `npm run build` com os `VITE_*` do Environment;
+3. `npm run db:migrate` (o Worker nunca migra; é a conexão de sessão do Supabase, TLS `verify-full`);
+4. `wrangler versions upload` (versão SEM tráfego) com `--var GIT_SHA:<sha>` e `--preview-alias fumaca`; o id da
+   versão e a URL de preview saem do `WRANGLER_OUTPUT_FILE_PATH` (evento `version-upload`);
+5. `scripts/cloudflare/fumaca-remota.mjs <preview> <sha>`: `/api/ready` 200 (10 tentativas, 3 s) e
+   `/api/health` com `status: ok` e `versao` terminando em `+<sha7>`;
+6. `wrangler versions deploy <id>@100% -y` e a mesma fumaça na URL final (`vars.URL_DO_WORKER`);
+7. se algo falhar DEPOIS de o passo 6 começar: `wrangler rollback` para o deploy anterior (o job fica vermelho).
+
+Falha antes do passo 6 não mexe no tráfego (a versão fica no histórico, sem receber requisições). Um deploy por
+ambiente de cada vez (`concurrency`). Sem URL de preview (`preview_urls` desligado, o caso da produção com
+`workers_dev: false`), o passo 5 só avisa e a proteção fica no passo 6 + rollback.
+
+**GitHub Environments** (Settings → Environments → `staging` e `production`; nada disso mora no repositório):
+
+| Nome                                                                                                                                                                                               | Tipo   | Conteúdo                                                                                                                                                                                                                 |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `CLOUDFLARE_API_TOKEN`                                                                                                                                                                             | secret | token com _Workers Scripts: Edit_ (cobre upload, deploy e rollback de versões)                                                                                                                                           |
+| `CLOUDFLARE_ACCOUNT_ID`                                                                                                                                                                            | secret | id da conta                                                                                                                                                                                                              |
+| `DATABASE_URL_MIGRACAO`                                                                                                                                                                            | secret | pooler de **sessão** do Supabase com `?sslmode=verify-full` (a 6543, em modo transação, não serve)                                                                                                                       |
+| `SUPABASE_CA_PEM`                                                                                                                                                                                  | secret | CA do Supabase (PEM). O runner não tem a CA: o passo grava num arquivo `600` e usa `NODE_EXTRA_CA_CERTS`, como o `backup-pg-dump.yml` faz com o `PGSSLROOTCERT`; sem ela, `verify-full` falha (nunca cai para `require`) |
+| `URL_DO_WORKER`                                                                                                                                                                                    | var    | URL final (staging: `https://frasy-staging.guigui-cruzeiro.workers.dev`; a produção entra com o domínio)                                                                                                                 |
+| `VITE_PUBLIC_URL`, `VITE_ORT_WASM_URL`                                                                                                                                                             | var    | canônica/og e base do WASM (R2)                                                                                                                                                                                          |
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SELF_HOST_MODELS`, `VITE_SENTRY_DSN`, `VITE_TURNSTILE_SITE_KEY`, `VITE_LOGIN_GOOGLE`, `VITE_DESENHO_NOVO_PADRAO`, `VITE_BERGAMOT_MODELOS_URL` | var    | os mesmos do build do Fly (`implantar-ambiente.yml`); todos públicos                                                                                                                                                     |
+
+Os secrets do Worker (`SECRET_KEY`, chaves de IA…) continuam por `scripts/cloudflare/secrets.ts`, não pelo CI.
+
+**Fumaça no CI.** O job `worker` do `ci.yml` roda `npm run worker:build`, `tests/worker` e a fumaça do
+`wrangler dev` com o Postgres do `services:` (`FUMACA_PG_URL`, porta 5434; sem Docker no script, com o `psql` do
+runner). Localmente o script continua subindo o seu Postgres em Docker quando `FUMACA_PG_URL` não existe.
+
+**Alternativa manual** (sem CI; `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` no ambiente, build já feito):
+
+```sh
+sha=$(git rev-parse HEAD)
+npx wrangler versions upload -c wrangler.jsonc --env staging --var GIT_SHA:$sha --preview-alias fumaca  # anote o Version ID
+node scripts/cloudflare/fumaca-remota.mjs <url-de-preview> $sha
+npx wrangler versions deploy <version-id>@100% -y -c wrangler.jsonc --env staging
+node scripts/cloudflare/fumaca-remota.mjs https://frasy-staging.guigui-cruzeiro.workers.dev $sha
+npx wrangler rollback -c wrangler.jsonc --env staging --message "motivo" -y   # se precisar voltar
+```
+
+Para a produção, tire o `--env staging`. O Lighthouse manual (`lighthouse.yml`) aceita o input `url` para medir
+uma versão publicada (sem servidor local e sem o onboarding pré-marcado).
+
 ## O que fica desativado por design
 
 No modo público, uma capacidade local responde **403 mesmo com token válido** — ela

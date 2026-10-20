@@ -2,6 +2,8 @@
 # × N execuções, ~10 min) e o número de um runner compartilhado é ruidoso demais para ser portão.
 # O portão barato do frontend é o orçamento do bundle, no job `carga` do ci.yml.
 #
+# Com o input `url` (ex.: o Worker de staging), mede ESSA URL e não sobe nada local. Vazio: o caminho abaixo.
+#
 # Sobe o servidor de PRODUÇÃO (dist-server/server.cjs, NODE_ENV=production) e mede /, /capturar,
 # /jogar e /planos: Lighthouse 13 (mobile e desktop, mediana por scripts/perf/resumir-lighthouse.mjs)
 # e LCP/CLS/INP aproximado no Playwright. Os JSON vão como artefato.
@@ -14,6 +16,10 @@ on:
         description: 'Execuções por rota e preset (mediana)'
         required: false
         default: '3'
+      url:
+        description: 'URL já publicada para medir (vazio: sobe o servidor Node local)'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -35,13 +41,18 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run build
+      - name: Build (só no caminho local)
+        if: ${{ github.event.inputs.url == '' }}
+        run: npm run build
       - name: Navegador do Playwright
         run: npx playwright install --with-deps chromium
       - name: Lighthouse + Core Web Vitals
         env:
           EXECUCOES: ${{ github.event.inputs.execucoes }}
-        run: node scripts/perf/frontend.mjs --execucoes="${EXECUCOES:-3}" --saida=lighthouse-resultado
+          URL_MEDIDA: ${{ github.event.inputs.url }}
+        run: |
+          # Com URL: mede a publicada (sem servidor local); sem: o servidor de produção do `dist-server`.
+          node scripts/perf/frontend.mjs --execucoes="${EXECUCOES:-3}" --saida=lighthouse-resultado ${URL_MEDIDA:+--url="$URL_MEDIDA"}
       - name: Mediana por rota e preset
         if: always()
         run: node scripts/perf/resumir-lighthouse.mjs lighthouse-resultado --md >> "$GITHUB_STEP_SUMMARY"

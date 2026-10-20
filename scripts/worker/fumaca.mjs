@@ -257,31 +257,32 @@ async function verificacoes(base, w, token) {
   /* Importação de página no workerd (R8): linkedom + Readability + DoH, contra uma página pública real. Sem
      rede, avisa e segue (a fumaça não depende da internet). */
   let resumoWeb = 'import web: ignorado (sem rede)'
-  const t0 = Date.now()
-  let web = null
+  const PAGINA = 'https://pt.wikipedia.org/wiki/L%C3%ADngua_portuguesa'
+  /* A rede é conferida AQUI, pelo próprio script, antes de chamar o Worker: se este processo não alcança a
+     Wikipédia, a verificação é ignorada com aviso. Depois disso, qualquer resposta diferente de 200 é FALHA
+     — uma regex sobre a mensagem do 400 (a versão anterior) mascarava regressão real: "rede"/"DoH" são
+     substrings das mensagens da própria guarda anti-SSRF e de um resolvedor quebrado no Worker. */
+  let temRede = true
   try {
-    web = await fetch(`${base}/api/import/web`, {
+    await fetch(PAGINA, { method: 'HEAD', signal: globalThis.AbortSignal.timeout(10_000) })
+  } catch (e) {
+    temRede = false
+    console.warn(`⚠ POST /api/import/web: sem rede para ${PAGINA} (${e?.message ?? e}); verificação ignorada`)
+  }
+  if (temRede) {
+    const t0 = Date.now()
+    const web = await fetch(`${base}/api/import/web`, {
       method: 'POST',
       headers: { ...auth, 'content-type': 'application/json' },
-      body: JSON.stringify({ url: 'https://pt.wikipedia.org/wiki/L%C3%ADngua_portuguesa' }),
+      body: JSON.stringify({ url: PAGINA }),
       signal: globalThis.AbortSignal.timeout(60_000),
     })
-  } catch (e) {
-    console.warn(`⚠ POST /api/import/web: erro de rede (${e?.message ?? e}); verificação ignorada`)
-  }
-  if (web) {
     const corpoWeb = await web.json().catch(() => ({}))
-    const erroDeRede =
-      web.status === 400 && /fetch failed|ENOTFOUND|EAI_AGAIN|ECONN|rede|network|DoH/i.test(corpoWeb.error ?? '')
-    if (erroDeRede) {
-      console.warn(`⚠ POST /api/import/web: rede indisponível no Worker (${corpoWeb.error}); verificação ignorada`)
-    } else {
-      confere(
-        web.status === 200 && (corpoWeb.text?.length ?? 0) > 2_000 && /portuguesa/i.test(corpoWeb.title ?? ''),
-        `POST /api/import/web no Worker: ${web.status} ${JSON.stringify(corpoWeb).slice(0, 300)}`,
-      )
-      resumoWeb = `import web: 200, ${corpoWeb.text.length} caracteres, "${corpoWeb.title}", ${Date.now() - t0} ms`
-    }
+    confere(
+      web.status === 200 && (corpoWeb.text?.length ?? 0) > 2_000 && /portuguesa/i.test(corpoWeb.title ?? ''),
+      `POST /api/import/web no Worker: ${web.status} ${JSON.stringify(corpoWeb).slice(0, 300)}`,
+    )
+    resumoWeb = `import web: 200, ${corpoWeb.text.length} caracteres, "${corpoWeb.title}", ${Date.now() - t0} ms`
   }
   console.log(
     '✔ 2/7 JWT ES256 (JWKS local) → GET /api/me 200 (sem token: 401, balde por CF-Connecting-IP, X-Forwarded-For forjado ignorado; ' +

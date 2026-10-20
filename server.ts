@@ -17,7 +17,7 @@ import path from 'path'
 
 import { iniciar, repassarSinalAosWorkers } from './server/boot/cluster'
 import { agendarJobsNoNode } from './server/boot/jobs'
-import { ligarRegistroDeErros, prepararDados as prepararOsDados } from './server/boot/preparar'
+import { ligarRegistroDeErros, logarFalhaDoBoot, prepararDados as prepararOsDados } from './server/boot/preparar'
 import { relatarConfiguracao, validarBoot } from './server/boot/validar'
 import { dbReady } from './server/db/db'
 import { criarApp } from './server/http/app'
@@ -69,6 +69,7 @@ async function startServer({ prepararDados = true } = {}) {
     try {
       await prepararOsDados()
     } catch {
+      // `prepararDados` já registrou `boot_falhou` com a etapa.
       process.exit(1)
     }
   }
@@ -154,4 +155,10 @@ async function startServer({ prepararDados = true } = {}) {
   })
 }
 
-iniciar(startServer)
+/* Qualquer outra falha do boot (banco que não abre, Vite que não sobe…) também deixa a linha `boot_falhou`
+   antes de encerrar, em vez de uma rejeição não tratada sem evento. */
+iniciar(startServer).catch((err: unknown) => {
+  logarFalhaDoBoot('iniciar', err)
+  console.error('[boot] falhou:', err)
+  process.exit(1)
+})

@@ -64,6 +64,8 @@ export interface LogFields {
   recurso?: string
   usado?: number
   teto?: number
+  /* Boot que falhou (`server/boot/preparar.ts`): o NOME do passo (`migrations`, `seed`, `iniciar`), rótulo fixo. */
+  etapa?: string
 }
 
 const ALLOWED = new Set([
@@ -99,6 +101,8 @@ const ALLOWED = new Set([
   'recurso',
   'usado',
   'teto',
+  // Boot que falhou (server/boot/preparar.ts): o nome do passo.
+  'etapa',
 ])
 
 /**

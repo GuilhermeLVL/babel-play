@@ -12,6 +12,7 @@ import { authRequired } from '../lib/auth'
 import { registrarFalhaDeBoot, registrarSucessoDeBoot } from '../lib/bootStatus'
 import { configDoSentry } from '../lib/config'
 import { diretorioGravavel } from '../lib/diretorios'
+import { log } from '../lib/logger'
 
 /** Destinos do `log('error')`: o diário em disco e, se configurado, o Sentry. `podarAqui` só no primário. */
 export async function ligarRegistroDeErros(podarAqui: boolean): Promise<void> {
@@ -68,6 +69,14 @@ export async function ligarRegistroDeErros(podarAqui: boolean): Promise<void> {
 }
 
 /**
+ * A linha de um boot que vai encerrar o processo: o evento `boot_falhou` e o NOME do passo, no formato
+ * que o diário e o Sentry recebem (o `console.error` ao lado não chega a eles). Quem encerra é o chamador.
+ */
+export function logarFalhaDoBoot(etapa: string, err: unknown): void {
+  log('error', { event: 'boot_falhou', etapa, error: String((err as Error)?.message ?? err).slice(0, 300) })
+}
+
+/**
  * Migrations, seed e backfills. LANÇA se as migrations (ou o seed) falharem — quem chama encerra o processo:
  * sem schema o app não serve nada. Os outros passos registram a falha no `/api/health` e seguem.
  */
@@ -84,6 +93,7 @@ export async function prepararDados(): Promise<void> {
     await aplicarMigrations()
   } catch (err) {
     console.error('[db] FALHA AO APLICAR MIGRATIONS — o app não pode servir sem schema:', err)
+    logarFalhaDoBoot('migrations', err)
     throw err
   }
 
@@ -96,7 +106,12 @@ export async function prepararDados(): Promise<void> {
    * Em modo publico a base nova esta certa vazia.
    */
   if (!authRequired()) {
-    await seedIfEmpty()
+    try {
+      await seedIfEmpty()
+    } catch (err) {
+      logarFalhaDoBoot('seed', err)
+      throw err
+    }
   }
 
   // M-04: migra cartões Leitner → FSRS no boot (idempotente; nas próximas execuções migra 0).

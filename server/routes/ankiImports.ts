@@ -84,6 +84,8 @@ ankiImportsRouter.post('/imports', async (req, res) => {
     })
     const imp = await ankiRepo.criarImport(req.userId, { deckId: deck.id, arquivo: body.arquivo, bytes: body.bytes })
     await ankiRepo.atualizarImport(imp.id, { estado: 'gravando' })
+    // Um import aberto por baralho: o anterior ainda aberto (aba velha, envio interrompido) sai.
+    await ankiRepo.marcarSubstituidos(req.userId, deck.id, imp.id)
 
     res.json({
       importId: imp.id,
@@ -105,10 +107,6 @@ ankiImportsRouter.post('/imports/:id/notas', async (req, res) => {
   try {
     const imp = await importAberto(req, res, p.id)
     if (!imp) return
-    if (imp.notasLidas + body.notas.length > TETO_DE_NOTAS) {
-      responderErro(res, 400, `um import aceita no máximo ${TETO_DE_NOTAS} notas`, 'teto_de_notas')
-      return
-    }
 
     /* O LOTE INTEIRO É CONFERIDO ANTES DE GRAVAR: uma nota que fica vazia depois de limpar (só HTML,
        só mídia) recusa o lote todo com o índice dela, e nada dele entra — o cliente que mandou uma
@@ -148,11 +146,29 @@ ankiImportsRouter.post('/imports/:id/notas', async (req, res) => {
       })
     }
 
-    const r = await ankiRepo.gravarNotas(req.userId, imp.deckId, imp.id, notasParaGravar)
+    /* O TETO É RESERVADO ANTES DE GRAVAR, numa instrução atômica (`reservarNotasDoImport`): conferir
+       `imp.notasLidas` aqui e somar depois deixava lotes paralelos furarem o teto juntos. Só depois
+       de a nota inteira ser válida, para um lote recusado não gastar espaço. */
+    const reserva = await ankiRepo.reservarNotasDoImport(req.userId, imp.id, notasParaGravar.length, TETO_DE_NOTAS)
+    if (reserva === 'inexistente') return responderErro(res, 404, 'import não encontrado', 'import_nao_encontrado')
+    if (reserva === 'fechado') return responderErro(res, 409, 'este import já foi fechado', 'import_fechado')
+    if (reserva === 'teto') {
+      return responderErro(res, 400, `um import aceita no máximo ${TETO_DE_NOTAS} notas`, 'teto_de_notas')
+    }
+
+    let r: Awaited<ReturnType<typeof ankiRepo.gravarNotas>>
+    try {
+      r = await ankiRepo.gravarNotas(req.userId, imp.deckId, imp.id, notasParaGravar)
+    } catch (err) {
+      /* A reserva já foi somada e não volta: o import fecha como `falhou` (como a rota antiga fazia),
+         e o que já entrou fica — reimportar completa, sem duplicar, pelo guid. */
+      const msg = erroDeRota(err, { event: 'anki_import_error', route: req.path, requestId: req.requestId })
+      await ankiRepo.atualizarImport(imp.id, { estado: 'falhou', erro: msg }).catch(() => {})
+      return responderErro(res, 500, msg, 'erro_interno')
+    }
     const descartadas = Object.values(porMotivo).reduce((a, b) => a + b, 0)
-    // Incrementos: cada lote soma o que gravou (ver `atualizarImport`).
+    // Incrementos: cada lote soma o que gravou (ver `atualizarImport`). `notasLidas` já foi somado na reserva.
     await ankiRepo.atualizarImport(imp.id, {
-      notasLidas: notasParaGravar.length,
       notasNovas: r.novas,
       notasAtualizadas: r.atualizadas,
       notasDescartadas: descartadas,
@@ -171,7 +187,18 @@ ankiImportsRouter.post('/imports/:id/fechar', async (req, res) => {
   try {
     const imp = await importAberto(req, res, p.id)
     if (!imp) return
+    /* Fechar sem nenhum lote marcaria o baralho INTEIRO como ausente do arquivo: é cliente com
+       defeito, não arquivo vazio (o leitor recusa arquivo sem notas antes de abrir). O import fica
+       aberto, e nada no baralho muda. */
+    if (imp.notasLidas === 0) {
+      responderErro(res, 400, 'nenhuma nota foi enviada neste import', 'import_vazio')
+      return
+    }
 
+    /* AUSENTES: nota do baralho que não veio em nenhum lote deste import. Num arquivo TRUNCADO (mais
+       de `TETO_DE_NOTAS` notas; o leitor só manda as primeiras) as notas além do corte também viram
+       `ausente_no_arquivo` — a mesma semântica da rota antiga, que só via as notas lidas. Nada é
+       apagado: um reimport que as traga as devolve ao estado de antes. */
     await ankiRepo.marcarAusentesForaDoImport(req.userId, imp.deckId, imp.id)
     await ankiRepo.atualizarImport(imp.id, { estado: 'concluido' })
 

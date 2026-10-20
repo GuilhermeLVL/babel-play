@@ -825,7 +825,12 @@ export const notaRecebidaSchema = z
   })
   .strip()
 
-/** `POST /api/anki/imports/:id/notas` — um lote. 500 notas cabem com folga no `LIMITE_GRANDE` (5 MB). */
+/**
+ * `POST /api/anki/imports/:id/notas` — um lote de até 500 notas. O PIOR CASO deste schema (500 notas
+ * com 50 campos brutos de 20.000 caracteres) passa MUITO de 5 MB: o teto real do corpo é o
+ * `LIMITE_GRANDE` do parser (`server/http/limitesDeCorpo.ts`), e um lote acima dele recebe 413 antes
+ * de chegar aqui. Por isso o cliente fatia o lote também por BYTES, não só por contagem.
+ */
 export const lotesDeNotasSchema = z
   .object({
     notas: z.array(notaRecebidaSchema).min(1).max(500),

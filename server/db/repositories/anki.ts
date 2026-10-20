@@ -559,6 +559,63 @@ export const ankiRepo = {
   },
 
   /**
+   * RESERVA o espaço de um lote no teto do import, ANTES de gravar — numa instrução só.
+   *
+   * Ler `notas_lidas`, conferir o teto e somar depois de gravar deixava uma janela: lotes disparados
+   * em paralelo liam todos o mesmo contador e furavam o teto juntos (TOCTOU, revisão de segurança da
+   * Task 3). Aqui a conferência e a soma são o MESMO `UPDATE` condicional, e o banco serializa as
+   * linhas: de três lotes de 500 contra 49.000 lidas, exatamente dois cabem. Zero linhas afetadas diz
+   * que algo barrou, e a releitura diz o quê (import sumiu, fechou, ou não cabe).
+   *
+   * A reserva não é devolvida se a gravação falhar depois: a rota fecha o import como `falhou`, e o
+   * contador de um import morto não conta mais nada.
+   */
+  async reservarNotasDoImport(
+    userId: UserId,
+    importId: string,
+    n: number,
+    teto: number,
+  ): Promise<'ok' | 'inexistente' | 'fechado' | 'teto'> {
+    const r = await db
+      .update(ankiImports)
+      .set({ notasLidas: sql`${ankiImports.notasLidas} + ${n}`, updatedAt: Date.now() })
+      .where(
+        and(
+          eq(ankiImports.id, importId),
+          eq(ankiImports.userId, userId),
+          eq(ankiImports.estado, 'gravando'),
+          sql`${ankiImports.notasLidas} + ${n} <= ${teto}`,
+        ),
+      )
+    if (linhasAfetadas(r) > 0) return 'ok'
+    const imp = await ankiRepo.lerImport(userId, importId)
+    if (!imp) return 'inexistente'
+    return imp.estado !== 'gravando' ? 'fechado' : 'teto'
+  },
+
+  /**
+   * UM IMPORT ABERTO POR BARALHO. Abrir um import novo fecha como `falhou` os outros ainda abertos
+   * (`lendo`/`gravando`) do mesmo baralho e da mesma conta: dois imports abertos no mesmo deck se
+   * atropelariam no carimbo `import_id` das notas, e o `fechar` de um marcaria ausentes as notas que
+   * só o outro trouxe. O mais novo é o que a pessoa está fazendo agora; lote ou `fechar` atrasado do
+   * antigo recebe 409 `import_fechado`. Devolve quantos foram fechados.
+   */
+  async marcarSubstituidos(userId: UserId, deckId: string, exceto: string): Promise<number> {
+    const r = await db
+      .update(ankiImports)
+      .set({ estado: 'falhou', erro: 'substituído por um import mais novo', updatedAt: Date.now() })
+      .where(
+        and(
+          eq(ankiImports.userId, userId),
+          eq(ankiImports.deckId, deckId),
+          inArray(ankiImports.estado, ['lendo', 'gravando']),
+          sql`${ankiImports.id} <> ${exceto}`,
+        ),
+      )
+    return linhasAfetadas(r)
+  },
+
+  /**
    * IMPORTS ABANDONADOS. Na importação em lotes quem conduz é o navegador: se a aba fecha no meio, o
    * import fica `lendo`/`gravando` para sempre e a tela de progresso (`GET /imports/:id`) mostraria
    * "gravando" eternamente. A limpeza diária fecha como `falhou` o que foi aberto antes de `corte`.

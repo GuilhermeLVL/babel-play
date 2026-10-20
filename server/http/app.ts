@@ -53,6 +53,7 @@ import {
   METRIC_RATELIMIT_CARO,
   METRIC_RATELIMIT_ESCRITA,
   METRIC_RATELIMIT_FLAGS,
+  METRIC_RATELIMIT_LOTE_ANKI,
   METRIC_RATELIMIT_TELEMETRIA,
 } from '../lib/rateLimitStore'
 import { requestIdMiddleware } from '../lib/requestId'
@@ -316,15 +317,33 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
     // GET e HEAD não alocam corpo; limitá-los penalizaria a navegação sem fechar o vetor. A
     // leitura tem teto próprio, em memória: `limitadorDeLeitura` (auditoria de 2026-09-26).
     // O LOTE DA IMPORTAÇÃO DO ANKI também fica de fora: um import de 50.000 notas são 100 lotes
-    // mandados em sequência em menos de um minuto, e 120/min o cortaria no meio. A rota tem teto
-    // próprio — 500 notas por lote, 50.000 por import, corpo sob `LIMITE_GRANDE` — e só aceita lote
-    // de um import aberto pela própria conta (abrir e fechar continuam contando aqui).
+    // mandados em sequência em menos de um minuto, e 120/min o cortaria no meio. Ele conta no
+    // balde PRÓPRIO (`loteDeImportLimiter`, abaixo), além dos tetos da rota — 500 notas por lote,
+    // 50.000 por import, corpo sob `LIMITE_GRANDE`, só import aberto pela própria conta (abrir e
+    // fechar continuam contando aqui).
     skip: (req) => req.method === 'GET' || req.method === 'HEAD' || ehLoteDaImportacaoAnki(req),
   })
   /* A marca de verbos é o que a matriz rota × guarda lê para não contar este limitador em GET
      (`server/lib/limitesDeLeitura.ts`). Separada da declaração porque
      `tests/integration/rate-limit-escrita.test.ts` lê a forma `const writeLimiter = rateLimit({`. */
   marcarVerbos(writeLimiter, 'escrita')
+
+  /**
+   * O BALDE DO LOTE DA IMPORTAÇÃO DO ANKI (`POST /api/anki/imports/:id/notas`), que o `writeLimiter`
+   * pula. 200 por minuto e por usuário: o dobro do maior import (100 lotes), de modo que nenhum import
+   * legítimo é cortado, e um laço de lotes não fica sem teto. Balde próprio pelo mesmo A27 — os lotes
+   * não gastam a escrita da pessoa, e a escrita não gasta os lotes. Só em modo público, como o de cima.
+   */
+  const loteDeImportLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: 200,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: chaveDoRequest,
+    store: createDbRateLimitStore(METRIC_RATELIMIT_LOTE_ANKI),
+    skip: (req) => !ehLoteDaImportacaoAnki(req),
+  })
+  marcarVerbos(loteDeImportLimiter, 'escrita')
 
   /* ISOLAMENTO DE ORIGEM, LIGADO DE FÁBRICA (A8). Dá `SharedArrayBuffer` e, com ele, as threads do
      WASM do Whisper/opus-mt — sem isto o orçamento do A3 põe todo motor em 1 thread. Era opt-in
@@ -547,6 +566,7 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
       ],
       writeLimiter,
     )
+    app.use('/api/anki/imports', loteDeImportLimiter)
 
     /* TETOS DE LEITURA (auditoria de segurança 2026-09-26). O `writeLimiter` pula GET por desenho,
        e nenhuma leitura autenticada tinha teto — inclusive as que montam a conta inteira em memória

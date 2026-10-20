@@ -58,6 +58,12 @@ export const METRIC_RATELIMIT_TELEMETRIA = 'ratelimit:telemetria'
  * porque a rota fica antes do auth: o cliente lê ao abrir, ao focar a aba e a cada poucos minutos.
  */
 export const METRIC_RATELIMIT_FLAGS = 'ratelimit:flags'
+/**
+ * O balde do LOTE da importação do Anki (`POST /api/anki/imports/:id/notas`, Fase 3 da migração).
+ * Próprio pelo mesmo A27: os lotes ficam fora do `writeLimiter` (100 lotes de um import cortariam a
+ * escrita da pessoa), mas não ficam sem teto.
+ */
+export const METRIC_RATELIMIT_LOTE_ANKI = 'ratelimit:lote-anki'
 /* Auditoria de segurança 2026-09-26 (`server/lib/limitesDeLeitura.ts`): a exportação da conta lê
    as 17 tabelas do titular em memória, e a busca de imagens faz uma chamada de SAÍDA por pedido.
    Baldes próprios, no banco, pelo mesmo motivo do A27. */

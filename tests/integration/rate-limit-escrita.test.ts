@@ -86,10 +86,11 @@ describe('F4-02 — rate limit cobre as rotas de escrita', () => {
  * O LOTE DA IMPORTAÇÃO DO ANKI FICA FORA DO `writeLimiter` (Fase 3 da migração, Task 3).
  *
  * Um import de 50.000 notas são 100 lotes de 500, mandados em sequência pelo navegador em bem menos
- * de um minuto — 120 escritas por minuto o cortariam no meio. A rota tem teto próprio (500 por lote,
- * 50.000 por import, corpo sob `LIMITE_GRANDE`). Este caso sobe o app de verdade em modo público e
- * mede: 130 lotes passam, e os lotes não gastam o balde — a outra escrita da mesma conta ainda tem
- * os 120 inteiros e só então leva 429.
+ * de um minuto — 120 escritas por minuto o cortariam no meio. Ele conta num balde PRÓPRIO
+ * (`loteDeImportLimiter`, 200/min), além dos tetos da rota (500 por lote, 50.000 por import, corpo sob
+ * `LIMITE_GRANDE`). Este caso sobe o app de verdade em modo público e mede: 200 lotes passam, o 201º
+ * leva 429, e os lotes não gastam o balde da escrita — a outra escrita da mesma conta ainda tem os
+ * 120 inteiros e só então leva 429.
  */
 describe('writeLimiter × lote da importação do Anki', () => {
   let s: AppDeTeste
@@ -100,7 +101,7 @@ describe('writeLimiter × lote da importação do Anki', () => {
     await s?.encerrar()
   })
 
-  it('130 POSTs em /api/anki/imports/:id/notas não recebem 429; outra rota de escrita recebe', async () => {
+  it('200 POSTs em /api/anki/imports/:id/notas passam e o 201º leva 429 do balde próprio; a escrita segue intacta', async () => {
     /* O balde é o MINUTO DO RELÓGIO (`rateLimitStore.ts`): perto da virada, espera o próximo — o
        teste mede o teto, não a sorte do relógio (mesmo cuidado de `limites-de-leitura.test.ts`). */
     const resta = 60_000 - (Date.now() % 60_000)
@@ -114,7 +115,7 @@ describe('writeLimiter × lote da importação do Anki', () => {
         bytes: 1,
         formato: 'collection.anki21b',
         campos: ['Front', 'Back'],
-        totalNoArquivo: 130,
+        totalNoArquivo: 201,
         truncado: false,
         amostra: [],
       },
@@ -123,8 +124,9 @@ describe('writeLimiter × lote da importação do Anki', () => {
     expect(abrir.status).toBe(200)
     const { importId, deckId } = (await abrir.json()) as { importId: string; deckId: string }
 
-    const statusDosLotes = new Set<number>()
-    for (let i = 0; i < 130; i++) {
+    // 201 lotes: os 200 primeiros passam (o `writeLimiter` não os conta); o 201º bate no balde PRÓPRIO.
+    const statusDosLotes: number[] = []
+    for (let i = 0; i < 201; i++) {
       const r = await s.post(
         `/api/anki/imports/${importId}/notas`,
         {
@@ -135,11 +137,13 @@ describe('writeLimiter × lote da importação do Anki', () => {
         token,
       )
       await r.arrayBuffer()
-      statusDosLotes.add(r.status)
+      statusDosLotes.push(r.status)
     }
-    expect([...statusDosLotes]).toEqual([200])
+    expect(new Set(statusDosLotes.slice(0, 200))).toEqual(new Set([200]))
+    expect(statusDosLotes[200], 'o lote não tem teto nenhum').toBe(429)
 
     // A outra escrita da mesma conta: o balde estava intacto (só o `abrir` contou) e acaba em 429.
+    // E o balde dos lotes esgotado não a afeta: são baldes separados.
     let primeiro429 = 0
     for (let i = 0; i < 130 && !primeiro429; i++) {
       const r = await s.post(`/api/anki/decks/${deckId}/desativar`, {}, token)

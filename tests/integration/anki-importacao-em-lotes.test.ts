@@ -281,6 +281,54 @@ describe('protocolo em lotes', () => {
     expect(outra.deckId).toBe(velho.deckId)
     expect(outra.corpo.resumo).toMatchObject({ notas: 1, iguais: 1, novas: 0 })
   })
+
+  it('teto atômico: 3 lotes de 500 em paralelo contra 49.000 lidas → exatamente 2 aceitos e 1 teto_de_notas', async () => {
+    const { importId, deckId } = await abrirOk('teto-paralelo.apkg', [nota('a', 'b')])
+    await ankiRepo.atualizarImport(importId, { notasLidas: 49_000 })
+    const lote = (k: number) =>
+      Array.from({ length: 500 }, (_, i) => nota(`palavra${k}x${i}`, `tradução${k}x${i}`, { guid: `g-par-${k}-${i}` }))
+    const respostas = await Promise.all([0, 1, 2].map((k) => enviar(importId, lote(k))))
+    const status = respostas.map((r) => r.status).sort()
+    expect(status).toEqual([200, 200, 400])
+    const recusado = respostas.find((r) => r.status === 400)!
+    expect((await recusado.json()).code).toBe('teto_de_notas')
+
+    // Os dois contadores no banco: o reservado (notas_lidas) e o gravado (notas_novas e o acervo).
+    const imp = await ankiRepo.lerImport(DONO(), importId)
+    expect(imp.notasLidas).toBe(50_000)
+    expect(imp.notasNovas).toBe(1_000)
+    expect((await ankiRepo.listarNotas(DONO(), deckId, { limite: 1 })).total).toBe(1_000)
+  })
+
+  it('abrir um import novo no mesmo baralho fecha o anterior: lote no antigo → 409; o novo fecha normalmente', async () => {
+    const notas = [nota('cloud', 'nuvem', { guid: 'g-cloud' })]
+    const a = await abrirOk('substituido.apkg', notas)
+    const b = await abrirOk('substituido.apkg', notas)
+    expect(b.deckId).toBe(a.deckId)
+    const tarde = await enviar(a.importId, notas)
+    expect(tarde.status).toBe(409)
+    expect((await tarde.json()).code).toBe('import_fechado')
+    const antigo = await ankiRepo.lerImport(DONO(), a.importId)
+    expect(antigo.estado).toBe('falhou')
+    expect(antigo.erro).toBe('substituído por um import mais novo')
+    expect((await fechar(a.importId)).status).toBe(409)
+
+    expect((await enviar(b.importId, notas)).status).toBe(200)
+    const f = await fechar(b.importId)
+    expect(f.status).toBe(200)
+    expect((await f.json()).resumo).toMatchObject({ notas: 1, novas: 1 })
+  })
+
+  it('fechar sem nenhum lote → 400 import_vazio e nada vira ausente', async () => {
+    const notas = [nota('stone', 'pedra', { guid: 'g-stone' })]
+    const { deckId } = await importar('vazio-no-fechar.apkg', [notas])
+    const { importId } = await abrirOk('vazio-no-fechar.apkg', notas)
+    const r = await fechar(importId)
+    expect(r.status).toBe(400)
+    expect((await r.json()).code).toBe('import_vazio')
+    expect((await notasDoDeck(deckId)).map((n) => n.estado)).not.toContain('ausente_no_arquivo')
+    expect((await ankiRepo.lerImport(DONO(), importId)).estado).toBe('gravando')
+  })
 })
 
 /** Porte dos 5 casos S11 de `tests/integration/anki-rotas.test.ts` para o `abrir`. */

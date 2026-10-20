@@ -674,11 +674,3 @@ STORAGE_RECONCILE_MODE=job
 # para todo mundo de uma vez, com um token de admin:
 #   curl -X POST https://<host>/api/admin/armazenamento/reconciliar
 ```
-
-## Modo cluster (removido em 20/10/2026)
-
-`CLUSTER_WORKERS` e o `node:cluster` saíram do servidor na Fase 2 da migração para o Cloudflare: o
-PGlite aceita um processo por diretório, e com `postgres://` a escala é por instâncias (`REPLICAS`,
-acima) ou pelo Worker, não por processos no mesmo host. Definir `CLUSTER_WORKERS` hoje não tem
-efeito. O histórico das medições (vazão plana a ~100 req/s por processo, barreiras do WAL) ficou
-em `docs/escala.md` e no ADR 0014.

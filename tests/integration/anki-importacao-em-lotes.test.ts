@@ -319,6 +319,41 @@ describe('protocolo em lotes', () => {
     expect((await f.json()).resumo).toMatchObject({ notas: 1, novas: 1 })
   })
 
+  it('guid repetido no MESMO lote (duas notas iguais sem guid) → 200, iguais: 1, uma linha só', async () => {
+    const repetidas = [nota('lamp', 'lâmpada'), nota('lamp', 'lâmpada')]
+    const { importId, deckId } = await abrirOk('repetidas.apkg', repetidas)
+    const r = await enviar(importId, repetidas)
+    expect(r.status).toBe(200)
+    expect(await r.json()).toMatchObject({ novas: 1, iguais: 1 })
+    expect(await notasDoDeck(deckId)).toHaveLength(1)
+    // A repetida não entra na reserva do teto.
+    expect((await ankiRepo.lerImport(DONO(), importId)).notasLidas).toBe(1)
+    const f = await fechar(importId)
+    expect(f.status).toBe(200)
+  })
+
+  it('dois fechar em paralelo → exatamente um 200 e um 409; a ativação acontece uma vez só', async () => {
+    const pares: Array<[string, string]> = [
+      ['seed', 'semente'],
+      ['leaf', 'folha'],
+      ['root', 'raiz'],
+      ['bark', 'casca'],
+      ['branch', 'galho'],
+    ]
+    const notas = pares.map(([f, v]) => nota(f, v, { guid: `g-par-fechar-${f}` }))
+    const { importId, deckId } = await abrirOk('fechar-paralelo.apkg', notas)
+    expect((await enviar(importId, notas)).status).toBe(200)
+    const respostas = await Promise.all([fechar(importId), fechar(importId)])
+    expect(respostas.map((r) => r.status).sort()).toEqual([200, 409])
+    const ok = await respostas.find((r) => r.status === 200)!.json()
+    const recusado = await respostas.find((r) => r.status === 409)!.json()
+    expect(recusado.code).toBe('import_fechado')
+    expect(ok.resumo.ativadas).toBe(5)
+    const ativas = (await notasDoDeck(deckId)).filter((n) => n.estado === 'ativa')
+    expect(ativas).toHaveLength(5)
+    expect((await ankiRepo.lerImport(DONO(), importId)).estado).toBe('concluido')
+  })
+
   it('fechar sem nenhum lote → 400 import_vazio e nada vira ausente', async () => {
     const notas = [nota('stone', 'pedra', { guid: 'g-stone' })]
     const { deckId } = await importar('vazio-no-fechar.apkg', [notas])

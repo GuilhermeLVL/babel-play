@@ -9,7 +9,7 @@
  * `importarBaralhoAnki` resolve, a importação JÁ aconteceu. O que a tela
  * decide depois é quantas dessas notas viram cartão agora (`ativarNotasDoBaralho`, `apiAnki.ts`).
  */
-import type { NotaAnki } from '../core/anki';
+import { type NotaAnki, TETOS_DA_NOTA } from '../core/anki';
 import { lerBaralhoNoNavegador } from '../lib/anki/lerBaralho';
 import { abrirImportAnki, enviarNotasDoImport, fecharImportAnki, LimiteDeLotes, notaParaOFio } from './apiAnki';
 
@@ -126,7 +126,11 @@ export async function importarBaralhoAnki(
     truncado: leitura.truncado ?? false,
     idiomaOrigem: idioma || null,
     idiomaAlvo: idiomaNativo || null,
-    amostra: notas.slice(0, AMOSTRA_DO_IDIOMA).map((n) => ({ frente: n.frente.slice(0, 2000), verso: n.verso.slice(0, 2000) })),
+    amostra: notas.slice(0, AMOSTRA_DO_IDIOMA).map((n) => ({
+      // Os mesmos tetos de frente/verso do lote (`TETOS_DA_NOTA`), para a abertura nunca voltar 400.
+      frente: n.frente.slice(0, TETOS_DA_NOTA.frente),
+      verso: n.verso.slice(0, TETOS_DA_NOTA.verso),
+    })),
   });
 
   let feitas = 0;

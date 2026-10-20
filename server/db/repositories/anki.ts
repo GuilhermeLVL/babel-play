@@ -514,6 +514,19 @@ export const ankiRepo = {
   },
 
   /**
+   * REIVINDICA o fechamento do import: `gravando` → `concluido` num `UPDATE` condicional só. Devolve se
+   * ESTA chamada trocou o estado — dois `fechar` em paralelo não passam juntos (o banco serializa a
+   * linha), e só quem reivindicou marca as ausentes e ativa o lote.
+   */
+  async reivindicarFechamento(userId: UserId, importId: string): Promise<boolean> {
+    const r = await db
+      .update(ankiImports)
+      .set({ estado: 'concluido', updatedAt: Date.now() })
+      .where(and(eq(ankiImports.id, importId), eq(ankiImports.userId, userId), eq(ankiImports.estado, 'gravando')))
+    return linhasAfetadas(r) > 0
+  },
+
+  /**
    * RESERVA o espaço de um lote no teto do import, ANTES de gravar — numa instrução só.
    *
    * Ler `notas_lidas`, conferir o teto e somar depois de gravar deixava uma janela: lotes disparados

@@ -114,7 +114,6 @@ ankiImportsRouter.post('/imports/:id/notas', async (req, res) => {
     /* O LOTE INTEIRO É CONFERIDO ANTES DE GRAVAR: uma nota que fica vazia depois de limpar (só HTML,
        só mídia) recusa o lote todo com o índice dela, e nada dele entra — o cliente que mandou uma
        nota assim leu o arquivo errado, e gravar metade esconderia isso. */
-    const porMotivo: Record<string, number> = {}
     const notasParaGravar: NotaParaGravar[] = []
     for (const [indice, n] of body.notas.entries()) {
       const frente = limparCampo(n.frente)
@@ -132,7 +131,6 @@ ankiImportsRouter.post('/imports/:id/notas', async (req, res) => {
         { origem: 'curado' },
       )
       const motivoDescarte = veredito.serve ? null : (veredito.motivo ?? 'descartada')
-      if (motivoDescarte) porMotivo[motivoDescarte] = (porMotivo[motivoDescarte] ?? 0) + 1
 
       notasParaGravar.push({
         // Derivado do conteúdo LIMPO quando não há guid: estável entre dois imports do mesmo arquivo.
@@ -149,10 +147,26 @@ ankiImportsRouter.post('/imports/:id/notas', async (req, res) => {
       })
     }
 
+    /* GUID REPETIDO NO MESMO LOTE (duas notas idênticas sem guid, ou um arquivo com guid duplicado)
+       batia no índice único de `anki_notes` no meio do INSERT: 500 e import `falhou`. A última vence,
+       como num reimport, e cada repetida descartada conta como `iguais` na resposta deste lote — sem
+       entrar na reserva do teto, porque não vira linha nenhuma. */
+    const porGuid = new Map<string, NotaParaGravar>()
+    for (const n of notasParaGravar) {
+      porGuid.delete(n.guid)
+      porGuid.set(n.guid, n)
+    }
+    const repetidas = notasParaGravar.length - porGuid.size
+    const unicas = [...porGuid.values()]
+    const porMotivo: Record<string, number> = {}
+    for (const n of unicas) {
+      if (n.motivoDescarte) porMotivo[n.motivoDescarte] = (porMotivo[n.motivoDescarte] ?? 0) + 1
+    }
+
     /* O TETO É RESERVADO ANTES DE GRAVAR, numa instrução atômica (`reservarNotasDoImport`): conferir
        `imp.notasLidas` aqui e somar depois deixava lotes paralelos furarem o teto juntos. Só depois
        de a nota inteira ser válida, para um lote recusado não gastar espaço. */
-    const reserva = await ankiRepo.reservarNotasDoImport(req.userId, imp.id, notasParaGravar.length, TETO_DE_NOTAS)
+    const reserva = await ankiRepo.reservarNotasDoImport(req.userId, imp.id, unicas.length, TETO_DE_NOTAS)
     if (reserva === 'inexistente') return responderErro(res, 404, 'import não encontrado', 'import_nao_encontrado')
     if (reserva === 'fechado') return responderErro(res, 409, 'este import já foi fechado', 'import_fechado')
     if (reserva === 'teto') {
@@ -161,7 +175,7 @@ ankiImportsRouter.post('/imports/:id/notas', async (req, res) => {
 
     let r: Awaited<ReturnType<typeof ankiRepo.gravarNotas>>
     try {
-      r = await ankiRepo.gravarNotas(req.userId, imp.deckId, imp.id, notasParaGravar)
+      r = await ankiRepo.gravarNotas(req.userId, imp.deckId, imp.id, unicas)
     } catch (err) {
       /* A reserva já foi somada e não volta: o import fecha como `falhou` (como a rota antiga fazia),
          e o que já entrou fica — reimportar completa, sem duplicar, pelo guid. */
@@ -178,7 +192,7 @@ ankiImportsRouter.post('/imports/:id/notas', async (req, res) => {
     })
     if (descartadas) await ankiRepo.somarPorMotivo(imp.id, porMotivo)
 
-    res.json({ novas: r.novas, atualizadas: r.atualizadas, iguais: r.iguais, descartadas, porMotivo })
+    res.json({ novas: r.novas, atualizadas: r.atualizadas, iguais: r.iguais + repetidas, descartadas, porMotivo })
   } catch (err) {
     falhaInterna(req, res, err)
   }
@@ -198,12 +212,19 @@ ankiImportsRouter.post('/imports/:id/fechar', async (req, res) => {
       return
     }
 
+    /* O FECHAMENTO É REIVINDICADO ANTES DE QUALQUER EFEITO: um `UPDATE ... WHERE estado = 'gravando'`
+       atômico. Dois `fechar` em paralelo passavam juntos pelo `importAberto` e ativavam o lote duas
+       vezes; agora só quem trocou o estado segue, e o outro recebe 409. */
+    if (!(await ankiRepo.reivindicarFechamento(req.userId, imp.id))) {
+      responderErro(res, 409, 'este import já foi fechado', 'import_fechado')
+      return
+    }
+
     /* AUSENTES: nota do baralho que não veio em nenhum lote deste import. Num arquivo TRUNCADO (mais
        de `TETO_DE_NOTAS` notas; o leitor só manda as primeiras) as notas além do corte também viram
        `ausente_no_arquivo` — a mesma semântica da rota antiga, que só via as notas lidas. Nada é
        apagado: um reimport que as traga as devolve ao estado de antes. */
     await ankiRepo.marcarAusentesForaDoImport(req.userId, imp.deckId, imp.id)
-    await ankiRepo.atualizarImport(imp.id, { estado: 'concluido' })
 
     /**
      * FALHA NA ATIVACAO NAO VIRA "ZERO ATIVADAS" (auditoria de 2026-09-07, achado A29) — o mesmo

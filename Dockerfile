@@ -118,10 +118,11 @@ COPY package.json package-lock.json ./
 # da imagem: onnxruntime-node 513M, @ricky0123 (VAD) 138M, onnxruntime-web 130M,
 # tesseract.js-core 44M, lucide-react 44M, country-flag-icons 22M.
 #
-# O bundle do servidor exige, de fato: @libsql/client @mozilla/readability
-# dotenv drizzle-orm express express-rate-limit helmet jose jsdom jszip mammoth zod
-# (estáticos) + pdfjs-dist (dinâmico, import de documento). Nenhum dos removidos aparece
-# nessa lista — e o boot do container é o teste: sem eles, ele sobe saudável.
+# O bundle do servidor exige, de fato: @mozilla/readability dotenv drizzle-orm
+# express express-rate-limit helmet jose linkedom pg zod. Desde a Fase 3 da
+# migração o Anki (.apkg), o PDF e o DOCX são lidos no NAVEGADOR, então jszip, mammoth e
+# pdfjs-dist não são mais do servidor. Nenhum dos removidos aparece nessa lista — e o boot
+# do container é o teste: sem eles, ele sobe saudável.
 # `--ignore-scripts`, e SEM ele a imagem NAO CONSTROI. Achado da validacao final da rodada de
 # saneamento (2026-09-09), e o defeito e ANTERIOR a ela — esta em `main` desde o primeiro commit
 # publico: o `postinstall` do `package.json` chama `scripts/copiar-assets-runtime.mjs`, e este

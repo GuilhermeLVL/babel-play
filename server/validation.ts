@@ -7,6 +7,7 @@
 import type { Response } from 'express'
 import { z } from 'zod'
 
+import { TETOS_DA_NOTA as T } from '../src/core/anki/tetos'
 import { FILTROS_DE_NOTA_ANKI } from '../src/core/learning/contract'
 import { subtipoDeCapaAceito } from './lib/capaDeSessao'
 
@@ -732,34 +733,36 @@ export const abrirImportAnkiSchema = z
     idiomaOrigem: idiomaDoBaralho.nullable().optional(),
     idiomaAlvo: idiomaDoBaralho.nullable().optional(),
     /** Até 200 notas para conferir o idioma (S11) e detectar baralho monolíngue. */
-    amostra: z.array(z.object({ frente: z.string().max(2_000), verso: z.string().max(2_000) }).strip()).max(200),
+    amostra: z.array(z.object({ frente: z.string().max(T.frente), verso: z.string().max(T.verso) }).strip()).max(200),
   })
   .strip()
 
-/** Teto de campos de uma nota — o mesmo de `campos` (nomes do note type). */
-const MAX_CAMPOS_DA_NOTA = 50
-
-/** Uma nota como o leitor do navegador a monta (`NotaAnki` de `src/core/anki`). */
+/**
+ * Uma nota como o leitor do navegador a monta (`NotaAnki` de `src/core/anki`). Os tetos vêm de
+ * `TETOS_DA_NOTA` (`src/core/anki/tetos.ts`), a mesma fonte em que `notaParaOFio` corta no cliente:
+ * o cliente corta para o import nunca morrer por tamanho, e o servidor continua RECUSANDO acima deles
+ * porque o cliente não é confiável.
+ */
 export const notaRecebidaSchema = z
   .object({
-    guid: z.string().max(64).optional(),
-    notetype: z.string().max(200).nullable().optional(),
-    campos: z.array(z.string().max(200)).max(MAX_CAMPOS_DA_NOTA),
+    guid: z.string().max(T.guid).optional(),
+    notetype: z.string().max(T.notetype).nullable().optional(),
+    campos: z.array(z.string().max(T.nomeDeCampo)).max(T.campos),
     /* Por NOME do campo e ainda com HTML: sustenta remapear sem reimportar. Nomes livres (um baralho
        pode ter `campo7`), por isso `record` com teto de chaves em vez de lista fechada. */
     camposBrutos: z
-      .record(z.string().max(200), z.string().max(20_000))
-      .refine((c) => Object.keys(c).length <= MAX_CAMPOS_DA_NOTA, {
-        message: `no máximo ${MAX_CAMPOS_DA_NOTA} campos por nota`,
+      .record(z.string().max(T.nomeDeCampo), z.string().max(T.campoBruto))
+      .refine((c) => Object.keys(c).length <= T.chavesDeCamposBrutos, {
+        message: `no máximo ${T.chavesDeCamposBrutos} campos por nota`,
       }),
-    frente: z.string().min(1).max(2_000),
-    verso: z.string().min(1).max(2_000),
-    exemplo: z.string().max(4_000).optional(),
-    tags: z.array(z.string().max(200)).max(100),
+    frente: z.string().min(1).max(T.frente),
+    verso: z.string().min(1).max(T.verso),
+    exemplo: z.string().max(T.exemplo).optional(),
+    tags: z.array(z.string().max(T.tag)).max(T.tags),
     midia: z
       .object({
-        sons: z.array(z.string().max(400)).max(100),
-        imagens: z.array(z.string().max(400)).max(100),
+        sons: z.array(z.string().max(T.nomeDeMidia)).max(T.midia),
+        imagens: z.array(z.string().max(T.nomeDeMidia)).max(T.midia),
       })
       .strip()
       .optional(),
@@ -768,19 +771,19 @@ export const notaRecebidaSchema = z
         z
           .object({
             ordinal: z.number().int().min(0),
-            resposta: z.string().max(2_000),
-            dica: z.string().max(2_000).optional(),
+            resposta: z.string().max(T.lacuna),
+            dica: z.string().max(T.lacuna).optional(),
           })
           .strip(),
       )
-      .max(100)
+      .max(T.lacunas)
       .optional(),
   })
   .strip()
 
 /**
  * `POST /api/anki/imports/:id/notas` — um lote de até 500 notas. O PIOR CASO deste schema (500 notas
- * com 50 campos brutos de 20.000 caracteres) passa MUITO de 5 MB: o teto real do corpo é o
+ * com 60 campos brutos de 50.000 caracteres) passa MUITO de 5 MB: o teto real do corpo é o
  * `LIMITE_GRANDE` do parser (`server/http/limitesDeCorpo.ts`), e um lote acima dele recebe 413 antes
  * de chegar aqui. Por isso o cliente fatia o lote também por BYTES, não só por contagem.
  */

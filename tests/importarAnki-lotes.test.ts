@@ -193,6 +193,16 @@ describe('importarBaralhoAnki — orquestração', () => {
     expect(chamadas.some((c) => c.url.endsWith('/fechar'))).toBe(false)
   })
 
+  it('leitura que falha nunca abre import: rejeita com a mensagem do leitor e não chama a API', async () => {
+    lerMock.mockRejectedValue(new Error('não consegui abrir este .apkg (não é um zip válido)'))
+    const chamadas = servidor()
+    await expect(importarBaralhoAnki(arquivo, 'en', 'pt')).rejects.toThrow(
+      'não consegui abrir este .apkg (não é um zip válido)',
+    )
+    expect(chamadas.some((c) => c.url.startsWith('/api/anki/imports'))).toBe(false)
+    expect(apiFetchMock).not.toHaveBeenCalled()
+  })
+
   it('erro de lote lança a mensagem do servidor', async () => {
     lerMock.mockResolvedValue(leitura([nota(1)]))
     servidor(() => json({ error: 'este import já foi fechado', code: 'import_fechado' }, 409))

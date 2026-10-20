@@ -12,7 +12,7 @@
  */
 import type { EstadoDeNotaAnki, FiltroDeNotaAnki } from '@core'
 
-import type { NotaAnki } from '../core/anki'
+import { type NotaAnki, TETOS_DA_NOTA as TETOS } from '../core/anki'
 import { apiFetch, IMPORT_TIMEOUT_MS, lerErro } from './api'
 
 // ───────────────────────────── tipos do contrato ─────────────────────────────
@@ -209,10 +209,54 @@ async function jsonOuErro<T>(res: Response, padrao: string): Promise<T> {
   throw new Error(mensagem)
 }
 
-/** A nota como o schema do servidor a quer: `campos` e `camposBrutos` obrigatórios, `guid` só quando há. */
+/** Marca de corte de um campo bruto — conta DENTRO do teto, para o valor final caber nele. */
+const MARCA_DE_CORTE = '…[cortado]'
+
+function cortarBruto(valor: string): string {
+  return valor.length <= TETOS.campoBruto ? valor : valor.slice(0, TETOS.campoBruto - MARCA_DE_CORTE.length) + MARCA_DE_CORTE
+}
+
+/**
+ * A nota como o schema do servidor a quer: `campos` e `camposBrutos` obrigatórios, `guid` só quando há.
+ *
+ * O CLIENTE CORTA NOS TETOS (`TETOS_DA_NOTA`, a mesma fonte do `notaRecebidaSchema`): `montarNota`
+ * nunca corta, e um baralho real tem verso de 2.600 caracteres ou campo bruto de 21 KB. Sem o corte o
+ * lote voltava 400 e o import morria no meio, preso em `gravando` — a importação nunca pode morrer
+ * por tamanho. O servidor continua RECUSANDO acima dos tetos porque o cliente não é confiável.
+ */
 export function notaParaOFio(n: NotaAnki): Record<string, unknown> {
-  const { guid, campos, camposBrutos, baralho: _baralho, ...resto } = n
-  return { ...resto, ...(guid ? { guid } : {}), campos: campos ?? [], camposBrutos: camposBrutos ?? {} }
+  const camposBrutos: Record<string, string> = {}
+  for (const [nome, valor] of Object.entries(n.camposBrutos ?? {}).slice(0, TETOS.chavesDeCamposBrutos)) {
+    camposBrutos[nome.slice(0, TETOS.nomeDeCampo)] = cortarBruto(valor ?? '')
+  }
+  const guid = n.guid ? n.guid.slice(0, TETOS.guid) : ''
+  return {
+    ...(guid ? { guid } : {}),
+    ...(n.notetype !== undefined ? { notetype: n.notetype.slice(0, TETOS.notetype) } : {}),
+    campos: (n.campos ?? []).slice(0, TETOS.campos).map((c) => c.slice(0, TETOS.nomeDeCampo)),
+    camposBrutos,
+    frente: n.frente.slice(0, TETOS.frente),
+    verso: n.verso.slice(0, TETOS.verso),
+    ...(n.exemplo !== undefined ? { exemplo: n.exemplo.slice(0, TETOS.exemplo) } : {}),
+    tags: n.tags.slice(0, TETOS.tags).map((t) => t.slice(0, TETOS.tag)),
+    ...(n.midia
+      ? {
+          midia: {
+            sons: n.midia.sons.slice(0, TETOS.midia).map((m) => m.slice(0, TETOS.nomeDeMidia)),
+            imagens: n.midia.imagens.slice(0, TETOS.midia).map((m) => m.slice(0, TETOS.nomeDeMidia)),
+          },
+        }
+      : {}),
+    ...(n.lacunas
+      ? {
+          lacunas: n.lacunas.slice(0, TETOS.lacunas).map((l) => ({
+            ordinal: l.ordinal,
+            resposta: l.resposta.slice(0, TETOS.lacuna),
+            ...(l.dica !== undefined ? { dica: l.dica.slice(0, TETOS.lacuna) } : {}),
+          })),
+        }
+      : {}),
+  }
 }
 
 const comoJson = (corpo: unknown): RequestInit => ({

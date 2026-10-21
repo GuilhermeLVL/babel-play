@@ -16,6 +16,8 @@
  * opus-mt baixam ARQUIVOS DIFERENTES, e a versão antiga classificava tudo isso como "em cache".
  */
 
+import { comPoliticaDoHub } from './semReferer';
+
 const PREFIXO = 'babel.modelManifest.';
 
 export interface ArquivoDoModelo {
@@ -65,7 +67,8 @@ export async function consultarRevisao(modelId: string, buscar: Buscar = fetch):
   try {
     const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     const t = ctl ? setTimeout(() => ctl.abort(), 8000) : null;
-    const r = await buscar(`https://huggingface.co/api/models/${modelId}`, ctl ? { signal: ctl.signal } : undefined);
+    const url = `https://huggingface.co/api/models/${modelId}`;
+    const r = await buscar(url, comPoliticaDoHub(url, ctl ? { signal: ctl.signal } : undefined));
     if (t) clearTimeout(t);
     if (!r.ok) return null;
     const j = (await r.json()) as { sha?: unknown; lastModified?: unknown };

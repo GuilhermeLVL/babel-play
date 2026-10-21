@@ -52,6 +52,7 @@ import {
 } from '../../gateway/capture/systemAudio';
 import { expectedModelIds } from '../../gateway/modelCache';
 import { ContextoDoStt } from '../../gateway/promptDeStt';
+import { comPoliticaDoHub } from '../../gateway/semReferer';
 import {
   getSttQuality,
   MODEL_DOWNLOAD_MEDIDO,
@@ -1430,7 +1431,7 @@ export default function LiveCapture({
 
     const loadPcm = async (input?: Float32Array | 'jfk'): Promise<Float32Array> => {
       if (input instanceof Float32Array) return input;
-      const buf = await (await fetch(JFK_URL)).arrayBuffer();
+      const buf = await (await fetch(JFK_URL, comPoliticaDoHub(JFK_URL))).arrayBuffer();
       const ac = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       const decoded = await ac.decodeAudioData(buf);
       await ac.close();

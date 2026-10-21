@@ -22,6 +22,7 @@ import { noCelular } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { idiomaDaInterface, numero, t, tp } from '../../../../lib/i18n';
 import { type ComoRedesenhar, redesenharBib } from '../../../../lib/polimento/biblioteca';
 import type { Recording } from '../../../../types';
+import AncoraNoCelular from '../../../anuncios/AncoraNoCelular';
 import EspacoDeAnuncio from '../../../anuncios/EspacoDeAnuncio';
 import { CabecalhoComFicha } from '../../../conteudo/FichaDeConteudo';
 
@@ -352,6 +353,9 @@ export default function BibliotecaDoQuest({
             {t('Limpar a busca')}
           </button>
         </div>
+        {/* A FAIXA ÂNCORA DO CELULAR (flag `anuncios`): só nesta tela da Biblioteca, a única sem a gravação
+            escolhida presa ao pé com o "Abrir" (a faixa ficaria colada nele; spec, "Identificação e saída"). */}
+        <AncoraNoCelular />
       </div>
     );
   }

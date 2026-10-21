@@ -14,7 +14,12 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { EspacoDeAnuncio as Espaco, FormatoDeAnuncio } from '../src/core/anuncios/politicaDeAnuncio'
+import {
+  type EspacoDeAnuncio as Espaco,
+  ESPACOS_DE_ANUNCIO,
+  FORMATO_DO_ESPACO,
+  type FormatoDeAnuncio,
+} from '../src/core/anuncios/politicaDeAnuncio'
 import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
 
 const DIA = 24 * 60 * 60_000
@@ -248,10 +253,14 @@ describe('a demonstração (só em desenvolvimento, pela chave local)', () => {
     expect(el?.textContent).toMatch(/Patrocinado · exemplo|Anúncio premiado · exemplo|Ver anúncio/)
   })
 
-  it('espaço que não está encaixado no app não tem desenho', async () => {
+  it('os quinze espaços do protótipo têm desenho, cada um marcado com o próprio `data-ad`', async () => {
     await comDemonstracao()
-    const { container } = render(<EspacoDeAnuncio espaco="ancora" formato="nativo" />)
-    expect(container.innerHTML).toBe('')
+    for (const espaco of ESPACOS_DE_ANUNCIO) {
+      const { container, unmount } = render(<EspacoDeAnuncio espaco={espaco} formato={FORMATO_DO_ESPACO[espaco]} />)
+      const alvo = container.querySelector(`[data-ad="${espaco}"]`) ?? document.querySelector(`[data-ad="${espaco}"]`)
+      expect(alvo, espaco).not.toBeNull()
+      unmount()
+    }
   })
 
   it('não pede rede e não põe script, quadro nem imagem na página', async () => {

@@ -212,6 +212,7 @@ import LegendasFlutuantes, { type LegendaAoVivo } from './captura/LegendasFlutua
 import ModeloNoDispositivo, { type ModeloDaCaptura } from './captura/ModeloNoDispositivo';
 import ModoDesempenho from './captura/ModoDesempenho';
 import NuvemDoQuest from './captura/NuvemDoQuest';
+import NuvemPremiadaNaCaptura from './captura/NuvemPremiadaNaCaptura';
 import EncerrarNoQuest from './captura/quest/EncerrarNoQuest';
 import HistoricoDoPrototipo from './captura/quest/HistoricoDoPrototipo';
 import ResumoDaSessaoNoQuest from './captura/quest/ResumoDaSessaoNoQuest';
@@ -2992,6 +2993,8 @@ export default function LiveCapture({
             <AvisoDeNuvemSemConsentimento />
             {nuvemDoQuestExiste() && <NuvemDoQuest gravando={isRecording} aoVivo={noQuest} />}
             {faixaDaNuvemDeAlivio}
+            {/* "Ganhe 30 min de nuvem" (premiado, flag `anuncios`): só com a captura parada e o alívio disponível. */}
+            {!isRecording && !abrindoCaptura && <NuvemPremiadaNaCaptura />}
             {tradutorLocalFalhou && (
               <AvisoDoTradutorLocal
                 aoAutorizar={() => {

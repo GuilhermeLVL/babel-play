@@ -83,6 +83,20 @@ describe('a página de anúncios fora do app', () => {
     expect(gerarConfig(env({ VITE_ANUNCIOS_REDE_CONTA: '12; alert(1)' }))).toContain('"rede":""')
   })
 
+  it('R38: o deploy-worker.yml passa VITE_ANUNCIOS_DEMONSTRACAO só do Environment, e só no staging (nunca um "1" fixo)', () => {
+    const yml = readFileSync('.github/workflows/deploy-worker.yml', 'utf8')
+    const linhas = yml.split('\n').filter((l) => /^\s*VITE_ANUNCIOS_DEMONSTRACAO\s*:/.test(l))
+    expect(linhas).toHaveLength(1)
+    expect(linhas[0].trim()).toBe(
+      "VITE_ANUNCIOS_DEMONSTRACAO: ${{ inputs.ambiente == 'staging' && vars.VITE_ANUNCIOS_DEMONSTRACAO || '' }}",
+    )
+    expect(yml).not.toMatch(/VITE_ANUNCIOS_DEMONSTRACAO\s*[:=]\s*['"]?1/)
+    /* Nenhum arquivo de configuração do repositório a define: só o Environment `staging` do GitHub. */
+    for (const arquivo of ['.env.production.example', 'wrangler.jsonc', 'wrangler.toml', 'vite.config.ts'])
+      if (existsSync(arquivo))
+        expect(readFileSync(arquivo, 'utf8'), arquivo).not.toContain('VITE_ANUNCIOS_DEMONSTRACAO')
+  })
+
   it('construir() grava espaco.html, espaco.js, config.js e _headers', () => {
     const destino = mkdtempSync(join(tmpdir(), 'anuncios-'))
     temporarios.push(destino)

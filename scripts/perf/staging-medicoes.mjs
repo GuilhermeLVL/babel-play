@@ -18,8 +18,9 @@
  */
 import { randomBytes, randomFillSync } from 'node:crypto'
 
+import { apagarUsuario, chamar, entrar, json, prepararUsuario, trecho } from './_supabase-usuario.mjs'
+
 const EMAIL = 'medicoes-staging@frasy-teste.dev'
-const TEMPO_LIMITE_MS = 10_000
 const TEMPO_UPLOAD_MS = 10 * 60_000
 /* 100 MB decimais: o limite de corpo da zona da Cloudflare (planos Free/Pro) é 100 MB, e o teto do app
    (`LIMITE_DO_AUDIO` em server/routes/sessions.ts) é 120 MiB, então 100_000_000 bytes passa nos dois. */
@@ -32,8 +33,6 @@ const env = (nome) => {
   return v
 }
 
-const sinal = (ms = TEMPO_LIMITE_MS) => globalThis.AbortSignal.timeout(ms)
-const agora = () => performance.now()
 const ms = (n) => `${Math.round(n)} ms`
 
 function percentil(valores, p) {
@@ -42,72 +41,6 @@ function percentil(valores, p) {
 }
 
 const mediana = (valores) => percentil(valores, 0.5)
-
-/** Primeiros caracteres de um corpo de erro, sem quebras (nunca o token: só respostas do servidor). */
-const trecho = (t) => String(t).replace(/\s+/g, ' ').slice(0, 160)
-
-/** Uma requisição cronometrada; erro de rede/timeout vira status 0. */
-async function chamar(url, init = {}, limiteMs = TEMPO_LIMITE_MS) {
-  const t0 = agora()
-  try {
-    const r = await fetch(url, { ...init, signal: sinal(limiteMs) })
-    const corpo = await r.text()
-    return { status: r.status, corpo, dt: agora() - t0, ray: r.headers.get('cf-ray') }
-  } catch (e) {
-    return { status: 0, corpo: String(e?.message ?? e), dt: agora() - t0, ray: null }
-  }
-}
-
-const json = (t) => {
-  try {
-    return JSON.parse(t)
-  } catch {
-    return null
-  }
-}
-
-/* ───────────────────────── Supabase: usuário de teste ───────────────────────── */
-
-function cabecalhosAdmin(chaveAdmin) {
-  return { apikey: chaveAdmin, Authorization: `Bearer ${chaveAdmin}`, 'content-type': 'application/json' }
-}
-
-/** Cria o usuário (ou, se já existe, reaproveita e troca a senha). Devolve o id. */
-async function prepararUsuario(supa, chaveAdmin, senha) {
-  const h = cabecalhosAdmin(chaveAdmin)
-  const criar = await chamar(`${supa}/auth/v1/admin/users`, {
-    method: 'POST',
-    headers: h,
-    body: JSON.stringify({ email: EMAIL, password: senha, email_confirm: true }),
-  })
-  if (criar.status >= 200 && criar.status < 300) return json(criar.corpo)?.id
-  const jaExiste = (criar.status === 422 || criar.status === 400) && /already|registered|exists/i.test(criar.corpo)
-  if (!jaExiste) throw new Error(`criar usuário: ${criar.status} ${trecho(criar.corpo)}`)
-
-  const lista = await chamar(`${supa}/auth/v1/admin/users?page=1&per_page=1000`, { headers: h })
-  if (lista.status !== 200) throw new Error(`listar usuários: ${lista.status} ${trecho(lista.corpo)}`)
-  const achado = (json(lista.corpo)?.users ?? []).find((u) => u.email === EMAIL)
-  if (!achado?.id) throw new Error('usuário de teste já existe mas não apareceu na 1ª página da listagem')
-  const troca = await chamar(`${supa}/auth/v1/admin/users/${achado.id}`, {
-    method: 'PUT',
-    headers: h,
-    body: JSON.stringify({ password: senha, email_confirm: true }),
-  })
-  if (troca.status !== 200) throw new Error(`atualizar senha: ${troca.status} ${trecho(troca.corpo)}`)
-  return achado.id
-}
-
-async function entrar(supa, chaveAnon, senha) {
-  const r = await chamar(`${supa}/auth/v1/token?grant_type=password`, {
-    method: 'POST',
-    headers: { apikey: chaveAnon, 'content-type': 'application/json' },
-    body: JSON.stringify({ email: EMAIL, password: senha }),
-  })
-  const token = json(r.corpo)?.access_token
-  if (r.status !== 200 || !token)
-    throw new Error(`login: ${r.status} ${r.status === 200 ? 'sem access_token' : trecho(r.corpo)}`)
-  return token
-}
 
 /* ───────────────────────── Medições ───────────────────────── */
 
@@ -216,9 +149,9 @@ async function principal() {
   let userId = null
 
   try {
-    userId = await prepararUsuario(supa, admin, senha)
+    userId = await prepararUsuario(supa, admin, EMAIL, senha)
     if (!userId) throw new Error('Supabase não devolveu o id do usuário de teste')
-    const token = await entrar(supa, anon, senha)
+    const token = await entrar(supa, anon, EMAIL, senha)
     const auth = { Authorization: `Bearer ${token}` }
 
     // Maioridade: PUT /api/me/idade { nascimento: 'AAAA-MM-DD' } (server/routes/me.ts); repetir a mesma data é aceito.
@@ -306,12 +239,8 @@ async function principal() {
     falhas.push(e.message)
   } finally {
     if (userId) {
-      const d = await chamar(`${supa}/auth/v1/admin/users/${userId}`, {
-        method: 'DELETE',
-        headers: cabecalhosAdmin(admin),
-      })
-      if (d.status < 200 || d.status >= 300)
-        console.error(`aviso: não consegui apagar o usuário de teste (${d.status})`)
+      const st = await apagarUsuario(supa, admin, userId)
+      if (st < 200 || st >= 300) console.error(`aviso: não consegui apagar o usuário de teste (${st})`)
     }
   }
 

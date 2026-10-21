@@ -29,6 +29,20 @@
  * medido, 108 req/s numa cópia limpa contra 59 req/s no banco já engordado. Comparar duas corridas
  * sobre bancos de tamanhos diferentes não compara nada.
  *
+ * CONTRA O STAGING (Cloudflare Worker com `AUTH_REQUIRED=1`): toda `/api/*` exige `Authorization: Bearer <JWT>`.
+ * Um usuário só bateria no limitador de escrita por usuário (429) e a latência seria a do limitador, então
+ * `TOKENS` é uma lista separada por vírgula e cada VU usa `TOKENS[__VU % n]`. `VUS` (padrão 50) escala os
+ * `stages` mantendo a forma (40% -> 100% -> 100% -> 0). Os 429 são contados à parte (`erros_429`) e não
+ * reprovam; o 5xx continua sendo a única falha dura. Nada de token no terminal:
+ *
+ *   node scripts/perf/staging-usuarios.mjs --n 10 --saida $ESC/k6.env     # cria usuários, grava BASE/TOKENS/VUS
+ *   docker run --rm -i --env-file $ESC/k6.env -e RODADAS=5 -v $ESC:/out grafana/k6 run \
+ *     --summary-export=/out/k6-staging.json - < scripts/perf/carga.k6.js
+ *   node scripts/perf/staging-usuarios.mjs --apagar --n 10; rm $ESC/k6.env
+ *
+ * As thresholds `{rota:...}` de me, para-jogo, resultados, xp e health abaixo existem só para o k6 EXPORTAR
+ * as sub-métricas por rota no resumo (limites generosos, sem sentido de catraca); as demais seguem iguais.
+ *
  * `127.0.0.1` e nunca `localhost`: no Windows a resolução tenta IPv6 primeiro e some ~200 ms
  * fantasma em cada requisição (medido, e documentado em `scripts/perf/medir-rotas.mjs`).
  */
@@ -40,6 +54,10 @@ const BASE = __ENV.BASE || 'http://127.0.0.1:3101';
 const CARTAO = __ENV.CARTAO || '';
 /** Quantas rodadas cada usuário virtual joga por iteração — o comprimento da sessão típica. */
 const RODADAS = Number(__ENV.RODADAS || 10);
+/** Usuários virtuais de pico; os `stages` escalam em proporção (padrão 50, o perfil original). */
+const VUS = Number(__ENV.VUS || 50);
+/** JWTs do staging (um por usuário de carga). Vazio = self-host sem login, como sempre foi. */
+const TOKENS = (__ENV.TOKENS || '').split(',').filter(Boolean);
 
 /**
  * OS LIMIARES SÃO O TESTE, e eles são uma CATRACA — não um desejo.
@@ -71,9 +89,9 @@ const RODADAS = Number(__ENV.RODADAS || 10);
  */
 export const options = {
   stages: [
-    { duration: '30s', target: 20 },
-    { duration: '1m', target: 50 },
-    { duration: '30s', target: 50 },
+    { duration: '30s', target: Math.round(VUS * 0.4) },
+    { duration: '1m', target: VUS },
+    { duration: '30s', target: VUS },
     { duration: '30s', target: 0 },
   ],
   thresholds: {
@@ -84,36 +102,50 @@ export const options = {
     'http_req_duration{rota:perfil}': ['p(95)<1900'],
     'http_req_duration{rota:rodada}': ['p(95)<550'],
     'http_req_duration{rota:review}': ['p(95)<1500'],
+    // Só para exportar as sub-métricas por rota no resumo (limites frouxos, não são catraca).
+    'http_req_duration{rota:me}': ['p(95)<60000'],
+    'http_req_duration{rota:para-jogo}': ['p(95)<60000'],
+    'http_req_duration{rota:xp}': ['p(95)<60000'],
+    'http_req_duration{rota:resultados}': ['p(95)<60000'],
+    'http_req_duration{rota:health}': ['p(95)<60000'],
     // Erro de servidor não tem orçamento: um único 5xx reprova a corrida.
     erros_5xx: ['count==0'],
   },
 };
 
 const erros5xx = new Counter('erros_5xx');
+const erros429 = new Counter('erros_429');
 const jornada = new Trend('jornada_completa_ms', true);
 
 /** Marca 5xx separado de 4xx: um 429 sob 50 VUs é o limitador funcionando, não defeito. */
 function conferir(res, nome) {
   if (res.status >= 500) erros5xx.add(1, { rota: nome });
+  if (res.status === 429) erros429.add(1, { rota: nome });
   return check(res, { [`${nome} não é 5xx`]: (r) => r.status < 500 });
 }
 
-const json = { headers: { 'content-type': 'application/json' } };
+/** Cabeçalhos do VU: com `TOKENS`, `Authorization: Bearer` do usuário `__VU % n`; sem, como no self-host. */
+function cabecalhos(extra) {
+  const h = { ...(extra || {}) };
+  if (TOKENS.length) h.Authorization = `Bearer ${TOKENS[__VU % TOKENS.length]}`;
+  return h;
+}
 
 export default function () {
   const t0 = Date.now();
 
-  conferir(http.get(`${BASE}/api/health`, { tags: { rota: 'health' } }), 'health');
-  conferir(http.get(`${BASE}/api/me`, { tags: { rota: 'me' } }), 'me');
+  conferir(http.get(`${BASE}/api/health`, { headers: cabecalhos(), tags: { rota: 'health' } }), 'health');
+  conferir(http.get(`${BASE}/api/me`, { headers: cabecalhos(), tags: { rota: 'me' } }), 'me');
 
   // O lobby: o baralho de jogo e o perfil (a tela que a auditoria mediu em 11 consultas).
   conferir(
     http.get(`${BASE}/api/vocab/para-jogo?fonte=baralho&limite=40&estrategia=equilibrado`, {
+      headers: cabecalhos(),
       tags: { rota: 'para-jogo' },
     }),
     'para-jogo',
   );
-  conferir(http.get(`${BASE}/api/metrics/profile`, { tags: { rota: 'perfil' } }), 'perfil');
+  conferir(http.get(`${BASE}/api/metrics/profile`, { headers: cabecalhos(), tags: { rota: 'perfil' } }), 'perfil');
 
   for (let i = 0; i < RODADAS; i++) {
     const corpo = JSON.stringify({
@@ -140,13 +172,19 @@ export default function () {
         },
       ],
     });
-    conferir(http.post(`${BASE}/api/exercises/rodada`, corpo, { ...json, tags: { rota: 'rodada' } }), 'rodada');
+    conferir(
+      http.post(`${BASE}/api/exercises/rodada`, corpo, {
+        headers: cabecalhos({ 'content-type': 'application/json' }),
+        tags: { rota: 'rodada' },
+      }),
+      'rodada',
+    );
   }
 
   if (CARTAO) {
     conferir(
       http.post(`${BASE}/api/vocab/${CARTAO}/review`, JSON.stringify({ grade: 3 }), {
-        ...json,
+        headers: cabecalhos({ 'content-type': 'application/json' }),
         tags: { rota: 'review' },
       }),
       'review',
@@ -154,8 +192,11 @@ export default function () {
   }
 
   // Estatísticas ao fim da sessão, como a tela faz.
-  conferir(http.get(`${BASE}/api/metrics/xp`, { tags: { rota: 'xp' } }), 'xp');
-  conferir(http.get(`${BASE}/api/exercises/results?limite=20`, { tags: { rota: 'resultados' } }), 'resultados');
+  conferir(http.get(`${BASE}/api/metrics/xp`, { headers: cabecalhos(), tags: { rota: 'xp' } }), 'xp');
+  conferir(
+    http.get(`${BASE}/api/exercises/results?limite=20`, { headers: cabecalhos(), tags: { rota: 'resultados' } }),
+    'resultados',
+  );
 
   jornada.add(Date.now() - t0);
 

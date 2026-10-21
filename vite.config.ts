@@ -121,10 +121,24 @@ function versaoNoBuild(versao: string): Plugin {
   }
 }
 
+/**
+ * O sha do commit no build da CI, quando o passo do build não recebe `GIT_SHA` (o `deploy-worker.yml`
+ * só o passa ao Worker, como var). Sem isto o bundle dizia `0.1.0` e o Worker `0.1.0+<sha>`. O
+ * checkout da CI é o mesmo commit publicado, então o `HEAD` dá o mesmo sha que o Worker recebe.
+ */
+function shaDoCheckoutNaCi(): string | undefined {
+  if (!process.env.CI || process.env.GIT_SHA?.trim()) return undefined
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: __dirname, encoding: 'utf8' }).trim()
+  } catch {
+    return undefined
+  }
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_')
   const pacote = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8')) as { version: string }
-  const versao = montarVersao(pacote.version, process.env)
+  const versao = montarVersao(pacote.version, { ...process.env, GIT_SHA: process.env.GIT_SHA || shaDoCheckoutNaCi() })
   return {
     define: { __APP_VERSION__: JSON.stringify(versao) },
     // Cache de pré-bundle (optimizeDeps/esbuild) FORA do OneDrive: sobre a pasta sincronizada

@@ -50,3 +50,12 @@ export function cancelarLiberacaoDosModelos(): boolean {
   relogio = null;
   return true;
 }
+
+/**
+ * Ao SAIR da captura: no aparelho de pouca memória (móvel, Quest e todo navegador sem
+ * `crossOriginIsolated`, como o Safari no Mac) solta os modelos na hora; no resto, 90 s depois.
+ */
+export function liberarAoSairDaCaptura(perfil: Pick<PerfilDoDispositivo, 'poucaMemoria'>, liberar: () => void): void {
+  if (perfil.poucaMemoria) liberar();
+  else liberarModelosDepois(liberar);
+}

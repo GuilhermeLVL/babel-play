@@ -13,9 +13,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   cancelarLiberacaoDosModelos,
   LIBERAR_MODELOS_APOS_MS,
+  liberarAoSairDaCaptura,
   liberarModelosDepois,
   umModeloDeCadaVez,
 } from '../src/lib/captura/memoriaDosModelos'
+import { classificarDispositivo, type SinaisDoDispositivo } from '../src/lib/dispositivo/perfil'
 
 const perfil = (tipo: string, memoriaGb: number | null, poucaMemoria = false) =>
   ({ tipo, poucaMemoria, sinais: { memoriaGb } }) as never
@@ -74,5 +76,49 @@ describe('liberarModelosDepois', () => {
     expect(segunda).not.toHaveBeenCalled()
     vi.advanceTimersByTime(30_000)
     expect(segunda).toHaveBeenCalledTimes(1)
+  })
+})
+
+/* Correção F do diagnóstico do Safari (22/10/2026): no Safari do Mac (sem `crossOriginIsolated`, WASM em
+   1 thread) a aba caía ao sair da Capturar com os workers vivos. Sem isolamento conta como pouca
+   memória, e os workers do STT e do tradutor são encerrados NA HORA ao sair. */
+describe('liberarAoSairDaCaptura', () => {
+  const macComSafari: SinaisDoDispositivo = {
+    userAgent:
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15',
+    nucleos: 8,
+    memoriaGb: null,
+    isolado: false,
+    capturaDeTela: true,
+    ponteiroGrosso: false,
+    toques: 0,
+    temXr: false,
+    economiaDeDados: false,
+    tipoDeRede: null,
+    movimentoReduzido: false,
+    memoriaDaAbaMb: null,
+    webGpu: true,
+  }
+
+  afterEach(() => {
+    cancelarLiberacaoDosModelos()
+    vi.useRealTimers()
+  })
+
+  it('Safari no Mac (sem isolamento): solta os modelos na hora, sem agendar', () => {
+    vi.useFakeTimers()
+    const liberar = vi.fn()
+    liberarAoSairDaCaptura(classificarDispositivo(macComSafari), liberar)
+    expect(liberar).toHaveBeenCalledTimes(1)
+    expect(cancelarLiberacaoDosModelos()).toBe(false)
+  })
+
+  it('desktop isolado (Chrome): agenda para 90 s depois', () => {
+    vi.useFakeTimers()
+    const liberar = vi.fn()
+    liberarAoSairDaCaptura(classificarDispositivo({ ...macComSafari, isolado: true, memoriaGb: 8 }), liberar)
+    expect(liberar).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(LIBERAR_MODELOS_APOS_MS)
+    expect(liberar).toHaveBeenCalledTimes(1)
   })
 })

@@ -34,13 +34,22 @@
  * `useMetricas` relê o saldo, como depois de qualquer crédito), e toda recompensa vai em
  * `babel:recompensa-anuncio` (`detail` = o `PremiadoConcluido`; o `tema-24h` leva o `ateEm`, que não tem campo
  * nas preferências). A tela confirma o que veio.
+ *
+ * OS PREMIADOS QUE O SERVIDOR NÃO ABRE (R39): fora de `ESPACOS_PREMIADOS_ATIVOS` (`nuvem-30`, `tema-24h`,
+ * `ajuda-premiada`, enquanto não ganham a recompensa de verdade) o espaço não desenha nada — o `iniciar` seria
+ * recusado (400 `espaco_inativo`) e a pessoa veria um botão que não leva a lugar nenhum. A demonstração continua
+ * desenhando os lugares (o fluxo dela é só no cliente).
+ *
+ * O INTERSTICIAL E A ÂNCORA são nativos com saída: o topo ganha "Fechar" (`aoFechar`), o intersticial cobre a tela
+ * e a âncora fica presa ao pé; quadro vazio ou recusado também chama `aoFechar`, para ninguém ficar parado na
+ * frente de um anúncio que não veio.
  */
 import '../../../styles/anunciosDaRede.css';
 
 import { type RefObject, useEffect, useRef, useState } from 'react';
 
 import type { EspacoDeAnuncio, FormatoDeAnuncio } from '../../../core/anuncios/politicaDeAnuncio';
-import { ehEspacoPremiado } from '../../../core/anuncios/premiado';
+import { ehEspacoPremiado, ESPACOS_PREMIADOS_ATIVOS } from '../../../core/anuncios/premiado';
 import { DURACAO_MINIMA_DA_EXIBICAO_MS } from '../../../core/planos';
 import type { PremiadoConcluido } from '../../../data/rotas/anuncios';
 import { t } from '../../i18n';
@@ -192,28 +201,43 @@ function textoDaRecompensa(c: PremiadoConcluido): string {
   }
 }
 
-function Topo({ aoSemAnuncios }: { aoSemAnuncios: () => void }) {
+function Topo({ aoSemAnuncios, aoFechar }: { aoSemAnuncios: () => void; aoFechar?: () => void }) {
   return (
     <span className="anuncio-rede-topo">
       <span className="anuncio-rede-rotulo">{t('Patrocinado')}</span>
       <button type="button" className="anuncio-rede-sem" onClick={aoSemAnuncios}>
         {t('Sem anúncios')}
       </button>
+      {aoFechar && (
+        <button type="button" className="anuncio-rede-sem anuncio-rede-x" onClick={aoFechar}>
+          {t('Fechar')}
+        </button>
+      )}
     </span>
   );
 }
 
-function Nativo({ cfg, espaco, formato, aoSemAnuncios }: PropsDoEspacoDeAnuncio & { cfg: ConfigDoIframe }) {
+/** O tamanho do quadro: a âncora é uma faixa baixa; o resto, o retângulo médio. */
+const TAMANHO: Partial<Record<EspacoDeAnuncio, [number, number]>> = { ancora: [320, 50] };
+
+function Nativo({ cfg, espaco, formato, aoSemAnuncios, aoFechar }: PropsDoEspacoDeAnuncio & { cfg: ConfigDoIframe }) {
   const quadro = useRef<HTMLIFrameElement | null>(null);
   const [vazio, setVazio] = useState(false);
   const recusado = useQuadroRecusado(cfg.origem);
   useMensagensDoQuadro(cfg.origem, quadro, (evento) => {
     if (evento === 'vazio') setVazio(true);
   });
-  if (vazio || recusado) return null;
+  const sumiu = vazio || recusado;
+  const fechar = useRef(aoFechar);
+  fechar.current = aoFechar;
+  useEffect(() => {
+    if (sumiu) fechar.current?.();
+  }, [sumiu]);
+  if (sumiu) return null;
+  const [largura, altura] = TAMANHO[espaco] ?? [300, 250];
   return (
     <aside className="anuncio-rede" data-ad={espaco} aria-label={t('Anúncio')}>
-      <Topo aoSemAnuncios={aoSemAnuncios} />
+      <Topo aoSemAnuncios={aoSemAnuncios} aoFechar={aoFechar} />
       <iframe
         ref={quadro}
         {...CREDENTIALLESS}
@@ -221,8 +245,8 @@ function Nativo({ cfg, espaco, formato, aoSemAnuncios }: PropsDoEspacoDeAnuncio 
         className="anuncio-rede-quadro"
         src={enderecoDoEspaco(cfg, espaco, formato)}
         title={t('Anúncio')}
-        width={300}
-        height={250}
+        width={largura}
+        height={altura}
         loading="lazy"
         referrerPolicy="strict-origin-when-cross-origin"
       />
@@ -335,6 +359,9 @@ function EspacoPorIframe(props: PropsDoEspacoDeAnuncio & { cfg: ConfigDoIframe }
   /* Defesa: a política já exigiu os dois, mas sem eles nada vai à rede, nunca. */
   if (perfilProtegido() || !lerPreferencias().consentimentos.anuncios) return null;
   if (!suportaCredentialless()) return null;
+  /* R39: premiado que o servidor ainda não abre não aparece no provedor real. */
+  if (props.formato === 'premiado' && !(ESPACOS_PREMIADOS_ATIVOS as readonly string[]).includes(props.espaco))
+    return null;
   return props.formato === 'premiado' ? <Premiado {...props} /> : <Nativo {...props} />;
 }
 

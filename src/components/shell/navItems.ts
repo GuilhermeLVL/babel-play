@@ -97,8 +97,8 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     // Estatísticas (protótipo aprovado, 23/09/2026): o primeiro do grupo "Mais".
     id: 'estatisticas',
     icon: ChartColumn,
-    short: 'Estatísticas',
-    labels: { kids: 'Meu progresso', pro: 'Estatísticas', senior: 'Estatísticas' },
+    short: 'Progresso',
+    labels: { kids: 'Meu progresso', pro: 'Progresso', senior: 'Meu progresso' },
   },
   {
     // A vitrine da progressão: desbloqueios por nível e compras com Seeds.

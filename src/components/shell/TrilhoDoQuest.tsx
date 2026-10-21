@@ -25,7 +25,6 @@ import {
   Settings,
   Sparkles,
   Sun,
-  Target,
   UserRound,
   Vibrate,
   VibrateOff,
@@ -35,6 +34,7 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
+import { PLAN_MATRIX } from '../../core/planos';
 import { tetoAnonimoDa } from '../../core/tetoAnonimo';
 import { ehAdmin } from '../../lib/admin';
 import * as auth from '../../lib/auth';
@@ -49,7 +49,7 @@ import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
 import { instalarRespostaAoApontar } from '../../lib/dispositivo/respostaAoApontar';
 import { noHeadset } from '../../lib/dispositivo/telaNovaDoQuest';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
-import { getEntitlements } from '../../lib/entitlements';
+import { getEntitlements, onPlanChange } from '../../lib/entitlements';
 import { useFlag } from '../../lib/flags';
 import { t, tp } from '../../lib/i18n';
 import { aoMudarIdentidade, estaAnonimo } from '../../lib/identidade';
@@ -58,14 +58,7 @@ import { instalarOrigemDoToque } from '../../lib/movimento/revelar';
 import { marcarLida, marcarTodasLidas, naoLidas, quando } from '../../lib/notificacoes';
 import { instalarAgua } from '../../lib/polimento/agua';
 import { instalarPolimento } from '../../lib/polimento/base';
-import {
-  instalarCelular,
-  lembrarPratica,
-  NO_MAIS_NO_CELULAR,
-  PRATICAR,
-  ultimaPratica,
-  useBarraDeCinco,
-} from '../../lib/polimento/celular';
+import { instalarCelular, NO_MAIS_NO_CELULAR, useBarraDeCinco } from '../../lib/polimento/celular';
 import { instalarCursor } from '../../lib/polimento/cursor';
 import { instalarDialogos } from '../../lib/polimento/dialogos';
 import { instalarFolhas } from '../../lib/polimento/folha';
@@ -84,12 +77,21 @@ import { type AgeProfileType, ITEM_ADMIN, NAV_ITEMS, navLabel } from './navItems
 import { MarcaBabel } from './ShellBits';
 
 /**
- * OS DESTINOS DO TRILHO: os seis da navegação A do protótipo dos cartões (`CT_NAV.a.itens`,
- * `cartoes3.js:14`), os mesmos para todo mundo. O conteúdo da pessoa (Biblioteca, Cartões) sobe para o
- * trilho; o acessório (Estatísticas, Personalizar) desce para o "Mais" (decisão do dono, 10/10/2026).
- * Antes eram Início, Capturar, Intérprete, Jogar, Estatísticas e Personalizar (`ROTAS`, `prototipo.js:87`).
+ * OS DESTINOS DO TRILHO NO COMPUTADOR (R40, 22/10/2026): oito, por prioridade de uso. O que se faz com o
+ * app (Início, Capturar, Intérprete, Cartões, Jogar), o que a pessoa guarda (Biblioteca) e o que mostra o
+ * quanto ela evoluiu e o que ela paga (Progresso, Planos). Personalizar, Ajustes e o resto ficam no "Mais".
  */
-const NO_TRILHO: ViewType[] = ['hub', 'capture', 'interprete', 'library', 'cartoes', 'play'];
+const NO_TRILHO: ViewType[] = ['hub', 'capture', 'interprete', 'cartoes', 'play', 'library', 'estatisticas', 'planos'];
+
+/** NO CELULAR (barra de cinco) o trilho é Início, Capturar, Cartões, Jogar e o "Mais" (R40). */
+const NO_TRILHO_NO_CELULAR: ViewType[] = ['hub', 'capture', 'cartoes', 'play'];
+
+/** O estado do plano que o item "Planos" do trilho diz em texto pequeno: o teste, ou o nome do plano. */
+const estadoDoPlano = (): string => {
+  const { plan } = getEntitlements();
+  if (plan === 'free' || plan === 'anonimo') return t('Grátis · teste 14 dias');
+  return t(PLAN_MATRIX[plan].rotulo);
+};
 
 /** A ordem dos ladrilhos do "Mais" (`CT_NAV.a.mais`, `cartoes3.js:14`): o perfil e a ajuda entram no meio. */
 const ANTES_DO_PERFIL: ViewType[] = ['estatisticas', 'loja', 'settings'];
@@ -183,16 +185,14 @@ export default function TrilhoDoQuest({
      aparelho: a barra de cinco destinos (`celular.css:57-62`) conta os botões pela posição, e sem ele o
      "Mais" seria o sétimo, o que ela esconde. Na barra ele não aparece (a busca fica no "Mais"); no
      tablet acima de 720 px ele fica no pé do trilho, sem a tecla do atalho. */
-  const buscaNoTrilho = !!aoBuscar && (temTeclado || !headset);
-  /* A BARRA DE CINCO DESTINOS (janela até 720 px, com a camada ligada): Início, Praticar, Capturar,
-     Intérprete, Mais (`CT_NAV.b.cel`, `cartoes3.js:15`; decisão do dono: o Intérprete não sai da barra).
-     A Biblioteca sai da barra e vira o primeiro ladrilho do "Mais" (`ctArrumarMais`, `cartoes3.js:103`),
-     e o destaque dela vai para o botão "Mais" (`marcarTrilho`, `cartoes3.js:73-75`). O quinto botão, o
-     dos Cartões, vira o "Praticar": abre a última das duas telas (Cartões ou Jogar) e fica marcado nas
-     duas (`cartoes3.js:72, 87`). O Jogar, sexto, some da barra (`cartoes.css:322-323`). */
+  /* A BARRA DE CINCO DESTINOS (janela até 720 px, com a camada ligada): Início, Cartões, Capturar, Jogar e
+     Mais (R40). Nela só estes botões existem no DOM (a ordem visual, com Capturar no centro, é do CSS por
+     posição: `celular.css`); Intérprete, Biblioteca, Progresso e Planos moram no "Mais" e em cartões do
+     Início, e a busca fica no "Mais". */
   const cinco = useBarraDeCinco();
-  const noMaisNoCelular = (id: ViewType) => cinco && (NO_MAIS_NO_CELULAR as readonly ViewType[]).includes(id);
-  const ehDePraticar = (id: ViewType) => (PRATICAR as readonly ViewType[]).includes(id);
+  const buscaNoTrilho = !cinco && !!aoBuscar && (temTeclado || !headset);
+  const [planoDito, setPlanoDito] = useState(estadoDoPlano);
+  useEffect(() => onPlanChange(() => setPlanoDito(estadoDoPlano())), []);
   /* Quem escolhe a posição dos botões na barra é o CSS do protótipo, pela variante da navegação. */
   useEffect(() => {
     document.documentElement.dataset.ctNav = 'b';
@@ -200,10 +200,6 @@ export default function TrilhoDoQuest({
       delete document.documentElement.dataset.ctNav;
     };
   }, []);
-  /* A última das duas telas de praticar: é para ela que o "Praticar" leva. */
-  useEffect(() => {
-    if (activeView === 'cartoes' || activeView === 'play') lembrarPratica(activeView);
-  }, [activeView]);
   /* QUEM EU SOU: o que o menu da conta de sempre dizia (`MenuDaConta.tsx`): nome e e-mail, ou o estado
      real quando não há e-mail, e o aviso do convidado com os tetos. */
   const { perfil } = usePerfil();
@@ -261,21 +257,29 @@ export default function TrilhoDoQuest({
      carga baixava 916 kB em vez de 484 em segundo plano; os outros descem no toque. */
   const destinosDoMenu = NO_TRILHO.filter((id) => (id === 'capture' || id === 'play') && baixa(id)).join(' ');
   useEffect(() => precarregarNoOcioso(destinosDoMenu.split(' ').filter(Boolean)), [destinosDoMenu]);
-  const noTrilho = NO_TRILHO;
+  /* R42: item do trilho não leva o marcador "Pede conta" (como a Biblioteca); o cadeado fica na própria tela
+     e no ladrilho do "Mais" no celular. */
+  const noTrilho = cinco ? NO_TRILHO_NO_CELULAR : NO_TRILHO;
   const principais = noTrilho.map((id) => NAV_ITEMS.find((i) => i.id === id)).filter((i) => !!i);
   const foraDosSeis = NAV_ITEMS.filter((i) => !noTrilho.includes(i.id));
   /* OS LADRILHOS DO "MAIS", na ordem do protótipo (`CT_NAV.a.mais`, `cartoes3.js:14`): Estatísticas,
      Personalizar, Ajustes; depois o perfil e a ajuda (fixos, abaixo); por fim Sobre e o que mais houver. */
   const outros = [
-    /* Só na barra de cinco: a Biblioteca, que ela não mostra, na frente (`maisCel`, `cartoes3.js:103`). */
+    /* Só na barra de cinco: Intérprete e Biblioteca, que ela não mostra, na frente (`maisCel`, R40). */
     ...(cinco ? NO_MAIS_NO_CELULAR.map((id) => NAV_ITEMS.find((i) => i.id === id)).filter((i) => !!i) : []),
     ...ANTES_DO_PERFIL.map((id) => foraDosSeis.find((i) => i.id === id)).filter((i) => !!i),
   ];
   const depoisDaAjuda = [
-    ...foraDosSeis.filter((i) => !ANTES_DO_PERFIL.includes(i.id)),
+    /* Planos não repete aqui: está no trilho (computador) e na faixa "Planos e Premium" logo abaixo. */
+    ...foraDosSeis.filter(
+      (i) =>
+        !ANTES_DO_PERFIL.includes(i.id) &&
+        i.id !== 'planos' &&
+        !(NO_MAIS_NO_CELULAR as readonly ViewType[]).includes(i.id),
+    ),
     ...(ehAdmin(perfil) ? [ITEM_ADMIN] : []),
   ];
-  const foraDoTrilho = !noTrilho.includes(activeView) || noMaisNoCelular(activeView);
+  const foraDoTrilho = !noTrilho.includes(activeView);
   /** Um ladrilho de destino do "Mais". Sem conta, o destino que só abriria o convite diz isso antes do toque. */
   const ladrilho = (item: (typeof NAV_ITEMS)[number]) => {
     const Icone = item.icon;
@@ -331,34 +335,33 @@ export default function TrilhoDoQuest({
       <nav className="q-trilho" data-shell="trilho-do-quest" aria-label={t('Navegação principal')}>
         <MarcaBabel className="q-logo" />
         {principais.map((item) => {
-          /* NA BARRA DE CINCO o botão dos Cartões é o "Praticar" (`ctDestino`, `cartoes3.js:29`): um
-             destino só para as duas telas, com o alvo no lugar das camadas. */
-          const praticar = cinco && item.id === 'cartoes';
-          const Icone = praticar ? Target : item.icon;
-          const rotulo = praticar ? t('Praticar') : navLabel(item, ageProfile, true);
-          /* O Jogar da barra de cinco está escondido atrás do "Praticar": não marca nem é achado. */
-          const escondido = noMaisNoCelular(item.id) || (cinco && item.id === 'play');
-          const marcado = praticar ? ehDePraticar(activeView) : activeView === item.id && !escondido;
+          const Icone = item.icon;
+          const rotulo = navLabel(item, ageProfile, true);
+          const marcado = activeView === item.id;
+          const comEstado = item.id === 'planos' && !cinco;
           return (
             <button
               key={item.id}
               type="button"
               className="q-item"
-              /* A camada de polimento acha o destino por aqui (a pílula responde no toque). Na barra de
-                 cinco, a Biblioteca escondida não é achada: o toque no ladrilho dela marca o "Mais", como
-                 `marcarTrilho` do protótipo faz no celular; e o "Praticar" responde também pelo Jogar. */
-              data-px-rota={escondido ? undefined : item.id}
-              data-px-tambem={praticar ? 'play' : undefined}
-              onClick={() => ir(praticar ? ultimaPratica() : item.id)}
+              /* A camada de polimento acha o destino por aqui (a pílula responde no toque). */
+              data-px-rota={item.id}
+              onClick={() => ir(item.id)}
               /* O pedaço da tela é pedido já no toque (e no foco do teclado), antes de o clique terminar. */
-              onPointerDown={() => pedir(praticar ? ultimaPratica() : item.id)}
-              onFocus={() => pedir(praticar ? ultimaPratica() : item.id, true)}
+              onPointerDown={() => pedir(item.id)}
+              onFocus={() => pedir(item.id, true)}
               aria-current={marcado ? 'page' : undefined}
               /* O nome não depende do rótulo visível: na barra do celular o de Capturar some (`display: none`). */
               aria-label={rotulo}
+              aria-describedby={comEstado ? 'q-estado-do-plano' : undefined}
             >
               <Icone aria-hidden />
               <span>{rotulo}</span>
+              {comEstado && (
+                <small className="q-estado" id="q-estado-do-plano">
+                  {planoDito}
+                </small>
+              )}
               {/* O número do dia: some quando está em dia (`ctSelo`, `cartoes3.js:61-65`). */}
               {item.id === 'cartoes' && !!cartoesHoje && cartoesHoje > 0 && (
                 <i

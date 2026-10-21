@@ -22,9 +22,9 @@ import { expect, type Page, test } from '@playwright/test'
  * DESENHO NOVO (09/10/2026). A captura abre pronta, com "Iniciar captura" na faixa de baixo
  * (`iniciar-captura`); gravando, o botão vira "Encerrar" (`encerrar-captura`, o antigo "Parar
  * captura"). O menu é o trilho de ícones (a barra de cinco destinos no celular): cada destino é
- * `.q-item[data-px-rota=<view>]` — menos o Jogar no celular, que desde 10/10/2026 mora atrás do
- * "Praticar" da barra (`irAoJogarPeloMenu`). Já na captura pronta, tocar de novo em Capturar no menu COMEÇA a
- * gravar — por isso o teste só toca nele vindo de outra tela.
+ * `.q-item[data-px-rota=<view>]`, inclusive o Jogar no celular, que desde 22/10/2026 (R40) tem botão
+ * próprio na barra de cinco (`irAoJogarPeloMenu`). Já na captura pronta, tocar de novo em Capturar no menu
+ * COMEÇA a gravar — por isso o teste só toca nele vindo de outra tela.
  */
 const PASTA = process.env.SCREENSHOTS_ESTATICA || path.join('test-results', 'estatica', 'fim-da-captura')
 mkdirSync(PASTA, { recursive: true })
@@ -151,19 +151,11 @@ test.beforeEach(async ({ page }) => {
 const doMenu = (page: Page, view: 'play' | 'capture') => page.locator(`.q-trilho .q-item[data-px-rota="${view}"]`)
 
 /**
- * Vai ao Jogar pelo menu. No trilho (computador) o Jogar tem botão próprio; na barra de cinco do celular
- * (navegação de 10/10/2026) ele mora atrás do "Praticar", que abre a última das duas telas de praticar
- * (os Cartões, num navegador novo), e a aba "Jogos" do alto da tela leva ao Jogar.
+ * Vai ao Jogar pelo menu. No trilho (computador) e na barra de cinco do celular (R40: Início, Cartões,
+ * Capturar, Jogar, Mais) o Jogar tem botão próprio.
  */
 async function irAoJogarPeloMenu(page: Page) {
-  if ((page.viewportSize()?.width ?? 1280) > 720) {
-    await doMenu(page, 'play').click()
-  } else {
-    await page.locator('.q-trilho .q-item[data-px-tambem="play"]').click()
-    await expect(page).toHaveURL(/\/(cartoes|jogar)/, { timeout: 10_000 })
-    if (!/\/jogar/.test(new URL(page.url()).pathname))
-      await page.getByTestId('abas-de-praticar').getByRole('tab', { name: 'Jogos' }).click()
-  }
+  await doMenu(page, 'play').click()
   await expect(page).toHaveURL(/\/jogar/, { timeout: 10_000 })
 }
 

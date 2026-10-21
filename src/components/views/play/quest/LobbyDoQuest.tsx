@@ -78,6 +78,12 @@ interface LobbyDoQuestProps<J extends JogoDoLobby> {
   avisosDoEstado?: readonly AvisoDoEstado[];
   /** A faixa de anúncio do Grátis, logo abaixo dos avisos (`fxFaixaDeAnuncio()`); nada nos planos pagos. */
   anuncio?: ReactNode;
+  /**
+   * A miniatura de jogo patrocinada (espaço `jogar-miniatura`): entra na grade no 8º lugar, o fim da segunda
+   * fileira, e só quando há pelo menos oito jogos que abrem (`PLANTIO.jogar`, `anuncios.js:156-168`). Nunca na
+   * primeira fileira.
+   */
+  miniatura?: ReactNode;
   /** "Ver o que serve": o catálogo aberto para o jogo, com o que não serve marcado (`data-fx-para`). */
   aoVerOQueServe?: (jogo: J, falta: string) => void;
   /** "Trocar o conteúdo": o catálogo, quando são muitos os jogos que não abrem. */
@@ -213,6 +219,7 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
   ficha,
   avisosDoEstado = [],
   anuncio,
+  miniatura,
   aoVerOQueServe,
   aoTrocarConteudo,
   notaDoBloqueio,
@@ -868,7 +875,14 @@ export default function LobbyDoQuest<J extends JogoDoLobby>({
         aria-labelledby={aoTrocarCategoria ? `aba-${categoria}` : undefined}
       >
         {abrem.length > 0 ? (
-          <div className="q-grade g4">{abrem.map(cartao)}</div>
+          <div className="q-grade g4">
+            {abrem.map((tile, i) => (
+              <React.Fragment key={tile.jogo.chave}>
+                {i === 7 && miniatura}
+                {cartao(tile)}
+              </React.Fragment>
+            ))}
+          </div>
         ) : (
           <div className="q-vazio">
             <span className="q-ic" aria-hidden>

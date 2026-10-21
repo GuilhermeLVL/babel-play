@@ -32,6 +32,7 @@
 import { filtrarAlucinacao } from '../alucinacao';
 import { baseDoWasm } from '../baseDoWasm';
 import { gravarManifesto, type ManifestoDeModelo } from '../modelManifest';
+import { comPoliticaDoHub } from '../semReferer';
 import { FilaSerial, type SinalDeCancelamento } from './filaDoWorker';
 import { criarRastreadorDeProgresso, rotuloDeBytes } from './modelProgress';
 import type { ArquivoDaCargaDoParakeet, PlanoDeCargaDoParakeet } from './parakeetArquivos';
@@ -425,7 +426,7 @@ async function abrirRuntime(threads: number): Promise<RuntimeDoParakeet> {
 declare const WorkerGlobalScope: unknown;
 if (typeof WorkerGlobalScope !== 'undefined' && typeof self !== 'undefined') {
   const worker = criarWorkerDoParakeet({
-    buscar: (url) => fetch(url),
+    buscar: (url) => fetch(url, comPoliticaDoHub(url)),
     abrirCache: async () => (typeof caches === 'undefined' ? null : caches.open('transformers-cache')),
     abrirRuntime,
     enviar: (m) => self.postMessage(m),

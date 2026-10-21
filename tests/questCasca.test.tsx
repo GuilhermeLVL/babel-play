@@ -66,16 +66,18 @@ describe('TrilhoDoQuest', () => {
     return { ir, ...r }
   }
 
-  it('os seis destinos da navegação A (cartoes3.js:14) e "Mais", com o destino atual marcado', () => {
+  it('os oito destinos por prioridade (R40) e "Mais", com o destino atual marcado', () => {
     const { container } = montar('play')
     const itens = [...container.querySelectorAll('.q-trilho .q-item')]
-    expect(itens.map((i) => i.textContent)).toEqual([
+    expect(itens.map((i) => i.querySelector('span')?.textContent)).toEqual([
       'Início',
       'Capturar',
       'Intérprete',
-      'Biblioteca',
       'Cartões',
       'Jogar',
+      'Biblioteca',
+      'Progresso',
+      'Planos',
       'Mais',
     ])
     expect(container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Jogar')
@@ -123,15 +125,17 @@ describe('TrilhoDoQuest', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
     const painel = screen.getByRole('dialog')
     expect(painel.textContent).toContain('Ajustes')
-    /* O conteúdo subiu para o trilho; o acessório desceu para cá (decisão do dono, 10/10/2026). */
-    expect(painel.textContent).toContain('Estatísticas')
+    /* Progresso e Planos subiram para o trilho (R40): o "Mais" não os repete como ladrilho. */
     expect(painel.textContent).toContain('Personalizar')
+    const nomes = [...painel.querySelectorAll('.q-grade .q-tile b')].map((b) => b.textContent)
+    expect(nomes).not.toContain('Progresso')
+    expect(nomes).not.toContain('Planos')
     expect(painel.textContent).not.toContain('Biblioteca')
     expect(painel.textContent).not.toContain('Vocabulário')
     expect(painel.textContent).toContain('Diagnóstico do aparelho')
     /* A ordem do protótipo (`CT_NAV.a.mais`, cartoes3.js:14): Sobre vem depois do perfil e da ajuda. */
     const ladrilhos = [...painel.querySelectorAll('.q-grade .q-tile b')].map((b) => b.textContent)
-    expect(ladrilhos.slice(0, 5)).toEqual(['Estatísticas', 'Personalizar', 'Ajustes', 'Seu perfil', 'Ajuda e suporte'])
+    expect(ladrilhos.slice(0, 4)).toEqual(['Personalizar', 'Ajustes', 'Seu perfil', 'Ajuda e suporte'])
     expect(ladrilhos.indexOf('Sobre')).toBeGreaterThan(ladrilhos.indexOf('Ajuda e suporte'))
     fireEvent.click(screen.getByRole('button', { name: 'Ajustes' }))
     expect(ir).toHaveBeenCalledWith('settings')
@@ -151,13 +155,58 @@ describe('TrilhoDoQuest', () => {
         toggleSound={() => {}}
       />,
     )
-    const itens = [...container.querySelectorAll('.q-trilho .q-item')].map((i) => i.textContent)
-    expect(itens).toEqual(['Início', 'Capturar', 'Intérprete', 'Biblioteca', 'Cartões', 'Jogar', 'Mais'])
+    const itens = [...container.querySelectorAll('.q-trilho .q-item')].map((i) => i.querySelector('span')?.textContent)
+    expect(itens).toEqual([
+      'Início',
+      'Capturar',
+      'Intérprete',
+      'Cartões',
+      'Jogar',
+      'Biblioteca',
+      'Progresso',
+      'Planos',
+      'Mais',
+    ])
     fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
-    const estatisticas = [...screen.getByRole('dialog').querySelectorAll('.q-tile')].find((x) =>
-      x.textContent?.includes('Estatísticas'),
+    const tiles = [...screen.getByRole('dialog').querySelectorAll('.q-tile')]
+    expect(tiles.some((x) => x.textContent?.includes('Progresso'))).toBe(false)
+    const perfil = [...screen.getByRole('dialog').querySelectorAll('.q-tile')].find((x) =>
+      x.textContent?.includes('Seu perfil'),
     )
-    expect(estatisticas?.querySelector('.q-pede-conta')).toBeTruthy()
+    expect(perfil?.querySelector('.q-pede-conta')).toBeTruthy()
+  })
+
+  it('no celular, sem conta, o ladrilho de Progresso no "Mais" diz que pede conta (R42: o trilho não leva o marcador)', () => {
+    const antes = window.matchMedia
+    window.matchMedia = ((q: string) => ({
+      matches: true,
+      media: q,
+      addEventListener() {},
+      removeEventListener() {},
+    })) as never
+    document.documentElement.dataset.px = 'on'
+    try {
+      render(
+        <TrilhoDoQuest
+          activeView="hub"
+          onChangeView={() => {}}
+          ageProfile="pro"
+          semConta
+          darkMode={false}
+          toggleDarkMode={() => {}}
+          soundEnabled
+          toggleSound={() => {}}
+        />,
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
+      const progresso = [...screen.getByRole('dialog').querySelectorAll('.q-tile')].find((x) =>
+        x.textContent?.includes('Progresso'),
+      )
+      expect(progresso?.querySelector('.q-pede-conta')).toBeTruthy()
+    } finally {
+      window.matchMedia = antes
+      delete document.documentElement.dataset.px
+    }
   })
 
   it('numa tela que só existe no "Mais", é o "Mais" que fica marcado', () => {
@@ -192,6 +241,18 @@ describe('InicioDoQuest', () => {
     expect(ir).toHaveBeenLastCalledWith('capture')
     fireEvent.click(screen.getByRole('button', { name: /Continuar: Aula 7/ }))
     expect(ir).toHaveBeenLastCalledWith('analysis', { id: 'a' })
+  })
+
+  it('no celular o Início traz a Biblioteca (que a barra de cinco não tem); no computador não', () => {
+    const desenhar = () =>
+      render(<InicioDoQuest onChangeView={vi.fn()} recordings={[]} progress={EMPTY_PROGRESS} metrics={metricas(1)} />)
+    aparelho.tipo = 'celular-bom'
+    const celular = desenhar()
+    expect(screen.getByTestId('biblioteca-no-inicio').textContent).toContain('Biblioteca')
+    celular.unmount()
+    aparelho.tipo = 'desktop-com-gpu'
+    desenhar()
+    expect(screen.queryByTestId('biblioteca-no-inicio')).toBeNull()
   })
 
   it('o ladrilho diz o estado dos cartões: nenhum, primeiras palavras, em dia, e a forma enquanto carrega', () => {
@@ -542,16 +603,18 @@ describe('a casca no computador com o desenho novo', () => {
     return { ir, aoBuscar, ...r }
   }
 
-  it('os mesmos seis destinos, e a busca no próprio trilho com o atalho à vista', () => {
+  it('os mesmos oito destinos, e a busca no próprio trilho com o atalho à vista', () => {
     const { container, aoBuscar } = montar()
     const itens = [...container.querySelectorAll('.q-trilho .q-item')]
     expect(itens.map((i) => i.querySelector('span')?.textContent)).toEqual([
       'Início',
       'Capturar',
       'Intérprete',
-      'Biblioteca',
       'Cartões',
       'Jogar',
+      'Biblioteca',
+      'Progresso',
+      'Planos',
       'Buscar',
       'Mais',
     ])
@@ -572,7 +635,7 @@ describe('a casca no computador com o desenho novo', () => {
     expect(screen.queryByTestId('vibracao-do-quest')).toBeNull()
     expect(painel.textContent).not.toContain('Vibração')
     expect(painel.textContent).not.toContain('Diagnóstico do aparelho')
-    for (const destino of ['Estatísticas', 'Personalizar', 'Sobre', 'Ajustes', 'Seu perfil', 'Ajuda e suporte'])
+    for (const destino of ['Personalizar', 'Sobre', 'Ajustes', 'Seu perfil', 'Ajuda e suporte'])
       expect(painel.textContent).toContain(destino)
     expect(painel.textContent).toMatch(/Tema (claro|escuro)/)
     expect(painel.textContent).toContain('Som dos toques: ligado')

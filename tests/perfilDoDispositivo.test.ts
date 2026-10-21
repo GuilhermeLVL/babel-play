@@ -8,6 +8,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { routeStt, WHISPER_MODELS } from '../src/gateway/sttRouter'
 import {
   classificarDispositivo,
   dispositivoDaRota,
@@ -168,6 +169,54 @@ describe('classificarDispositivo — os cinco perfis', () => {
 describe('threads do WASM', () => {
   it('sem isolamento (sem SharedArrayBuffer) = 1 thread, em qualquer perfil', () => {
     expect(classificarDispositivo({ ...desktop, isolado: false }).threadsWasm).toBe(1)
+  })
+
+  /* Correção F do diagnóstico do Safari (22/10/2026): o Safari 26 do Mac tem adaptador WebGPU e
+     getDisplayMedia, então era `desktop-com-gpu` e ganhava o Whisper small (589 MB) — numa thread só
+     (o WebKit não implementa `COEP: credentialless`, logo sem `crossOriginIsolated`). Medido: 4,2 GB no
+     processo da página e queda da aba ao sair da Capturar. Sem isolamento: nada de small, e os modelos
+     saem da memória na hora ao sair da captura (o caminho do `poucaMemoria`). */
+  it('desktop com GPU SEM isolamento (Safari 26 no Mac): não permite o small e conta como pouca memória', () => {
+    const p = classificarDispositivo({ ...desktop, isolado: false, memoriaGb: null, memoriaDaAbaMb: null })
+    expect(p.tipo).toBe('desktop-com-gpu')
+    expect(p.permiteSmall).toBe(false)
+    expect(p.poucaMemoria).toBe(true)
+    expect(p.motivos).toContain('sem crossOriginIsolated (WASM em 1 thread)')
+  })
+
+  it('na rota: o Safari do Mac com a GPU provada pela sonda fica no base, nunca no small', () => {
+    const p = classificarDispositivo({ ...desktop, isolado: false, memoriaGb: null })
+    const r = routeStt({
+      contentLang: 'pt',
+      autoDetect: false,
+      quality: 'accurate',
+      hasWebGpu: true,
+      cloudAvailable: false,
+      profileId: 'free-web',
+      dispositivo: { ...dispositivoDaRota(p), adaptadorReal: true },
+    })
+    expect(r.localModel).toBe(WHISPER_MODELS.base)
+  })
+
+  /* Correção E: o Safari tem getDisplayMedia mas nunca entrega o som da aba/tela. Com o som do computador
+     como fonte padrão, todo primeiro Iniciar no Mac passava pelo aviso "Este navegador não captura o som
+     da tela". No Safari (e no Firefox) a captura nasce com o microfone. */
+  it('Safari e Firefox no computador: sem som do sistema como fonte (o microfone é a fonte padrão)', () => {
+    const safariMac =
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15'
+    const firefox = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0'
+    for (const userAgent of [safariMac, firefox]) {
+      const p = classificarDispositivo({ ...desktop, userAgent, isolado: false })
+      expect(p.tipo).toBe('desktop-com-gpu')
+      expect(p.capturaDoSistema).toBe(false)
+    }
+    expect(classificarDispositivo(desktop).capturaDoSistema).toBe(true)
+  })
+
+  it('desktop com GPU e isolado segue com o small e sem pouca memória', () => {
+    const p = classificarDispositivo(desktop)
+    expect(p.permiteSmall).toBe(true)
+    expect(p.poucaMemoria).toBe(false)
   })
 
   it('isolado: até 4 em qualquer perfil (o teto 2 no celular fraco não se sustentou na medição)', () => {

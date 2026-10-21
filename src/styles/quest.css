@@ -103,6 +103,13 @@ html[data-quest-novo='true'][data-theme='babel']:not(.dark) {
 .q-item.q-busca-botao + .q-mais-botao {
   margin-top: 0;
 }
+.q-item .q-estado {
+  max-width: 92px;
+  font: 600 11px/1.15 var(--font-body, inherit);
+  color: var(--ink-muted);
+  text-align: center;
+  text-wrap: balance;
+}
 .q-item .q-tecla {
   font: 700 14px/1 var(--font-mono, monospace);
   color: var(--ink-muted);

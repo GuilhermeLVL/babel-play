@@ -3468,6 +3468,8 @@ export default function Play({
              nunca em perfil protegido, no headset, sem rede ou sem consentimento, e só com a flag `anuncios`
              ligada. Negado (ou sem provedor, o estado de fábrica) não entra nada, e a grade sobe. */
           anuncio={<EspacoDeAnuncio espaco="jogar-faixa" formato="nativo" />}
+          /* A miniatura patrocinada, no 8º lugar da grade (`anuncios.js:156-168`): mesma régua da faixa. */
+          miniatura={<EspacoDeAnuncio espaco="jogar-miniatura" formato="nativo" />}
           aoVerOQueServe={verOQueServe}
           aoTrocarConteudo={() => controleDoSeletor.current?.abrir()}
           notaDoBloqueio={notaDoJogo}

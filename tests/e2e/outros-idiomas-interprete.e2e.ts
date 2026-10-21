@@ -1,6 +1,6 @@
 import { devices, expect, type Page, test } from '@playwright/test'
 
-import { assentar, clicarRobusto, semCapturaDeTela, trilho } from './_helpers'
+import { assentar, clicarRobusto, irAoInterpretePeloMenu, semCapturaDeTela } from './_helpers'
 
 /**
  * O INTÉRPRETE EM OUTROS IDIOMAS (auditoria de 10/10/2026, `docs/auditoria/2026-10-10-outros-idiomas.md`).
@@ -203,8 +203,7 @@ async function abrirPeloMenu(page: Page) {
   await page.goto('/')
   await expect(page.getByRole('main')).toBeVisible()
   await assentar(page)
-  await clicarRobusto(page, trilho(page).getByRole('button', { name: /^Intérprete/ }))
-  await expect(page).toHaveURL(/\/interprete$/)
+  await irAoInterpretePeloMenu(page)
   await expect(pronta(page)).toBeVisible({ timeout: 15_000 })
 }
 

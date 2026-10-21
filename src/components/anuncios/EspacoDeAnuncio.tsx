@@ -8,7 +8,7 @@ import {
 } from '../../core/anuncios/politicaDeAnuncio';
 import { concluirPremiado, type PremiadoConcluido } from '../../data/rotas/anuncios';
 import { ligarProvedorDeAnuncios } from '../../lib/anuncios/ligar';
-import { montarPedidoDeAnuncio } from '../../lib/anuncios/pedido';
+import { marcarIntersticial, montarPedidoDeAnuncio } from '../../lib/anuncios/pedido';
 import { assinarProvedorDeAnuncios, type ProvedorDeAnuncios, provedorDeAnuncios } from '../../lib/anuncios/provedor';
 import { onPlanChange } from '../../lib/entitlements';
 import { useFlag } from '../../lib/flags';
@@ -38,15 +38,17 @@ import { ligarDemonstracaoDeAnuncios } from './demonstracao/ligar';
  * O espaço volta a perguntar quando muda o que a política
  * lê: a flag, o plano, o perfil, o consentimento, a rede e o fim de uma rodada.
  *
- * A DEMONSTRAÇÃO (só em desenvolvimento): com `localStorage['babel.px.anunciosDeProva'] = '1'` o
- * provedor de demonstração é carregado e desenha "Patrocinado · exemplo" nos lugares do protótipo.
- * Ver `lib/anuncios/pedido.ts` e `demonstracao/ligar.ts`.
+ * A DEMONSTRAÇÃO (em desenvolvimento, com `localStorage['babel.px.anunciosDeProva'] = '1'`, e no build com
+ * `VITE_ANUNCIOS_DEMONSTRACAO=1`, o staging; R38): o provedor de demonstração é carregado e desenha
+ * "Patrocinado · exemplo" nos lugares do protótipo. Ver `lib/anuncios/pedido.ts` e `demonstracao/ligar.ts`.
  */
 interface EspacoDeAnuncioProps {
   espaco: Espaco;
   formato: FormatoDeAnuncio;
   /** A porta "Sem anúncios" de todo anúncio. Ausente, leva à tela de Planos. */
   aoSemAnuncios?: () => void;
+  /** O intersticial e a âncora: a pessoa fechou, ou o anúncio não veio (`PropsDoEspacoDeAnuncio.aoFechar`). */
+  aoFechar?: () => void;
 }
 
 /** O evento que `lib/flags.ts` dispara quando as flags mudam. */
@@ -69,11 +71,13 @@ export default function EspacoDeAnuncio(props: EspacoDeAnuncioProps) {
   const provedor = useSyncExternalStore(assinarProvedorDeAnuncios, provedorDeAnuncios, semProvedor);
   /* O real só é pedido com a flag `anuncios` LIGADA (desligada, nem o módulo nem o CSS dele são baixados) e num
      build com a origem de anúncios. A flag é lida do CACHE (`flagsCache`, sem pedir à rede: o estado de fábrica
-     não pode pedir nada a mais) e de novo quando as flags mudam. A demonstração, só em desenvolvimento. */
+     não pode pedir nada a mais) e de novo quando as flags mudam. A demonstração, só em desenvolvimento e no build
+     de demonstração: a condição é a mesma, LITERAL, de `demonstracao/ligar.ts` (R38). */
   useEffect(() => {
     const tentar = () => {
       void (flagLigada(FLAG_ANUNCIOS) ? ligarProvedorDeAnuncios() : Promise.resolve(false)).then((ligou) => {
-        if (!ligou) void ligarDemonstracaoDeAnuncios();
+        if (!ligou && (import.meta.env.DEV || import.meta.env.VITE_ANUNCIOS_DEMONSTRACAO === '1'))
+          void ligarDemonstracaoDeAnuncios();
       });
     };
     tentar();
@@ -97,6 +101,7 @@ function EspacoComProvedor({
   espaco,
   formato,
   aoSemAnuncios = irAosPlanos,
+  aoFechar,
 }: EspacoDeAnuncioProps & { provedor: ProvedorDeAnuncios }) {
   /* A flag e o consentimento são lidos por `montarPedidoDeAnuncio`; os dois ganchos só fazem o espaço
      perguntar de novo quando eles mudam. */
@@ -124,7 +129,16 @@ function EspacoComProvedor({
     };
   }, []);
 
-  const decisao = podeMostrar(montarPedidoDeAnuncio(espaco, formato));
+  /* O INTERSTICIAL decide UMA vez, ao abrir, e grava a hora em que apareceu (`babel.anuncios.ultimoIntersticial`,
+     que a política lê para o próximo): perguntar de novo com ele aberto negaria pelo próprio intervalo e o
+     fecharia no meio. */
+  const [doIntersticial] = useState(() =>
+    formato === 'intersticial' ? podeMostrar(montarPedidoDeAnuncio(espaco, formato)) : null,
+  );
+  useEffect(() => {
+    if (doIntersticial?.pode) marcarIntersticial();
+  }, [doIntersticial]);
+  const decisao = doIntersticial ?? podeMostrar(montarPedidoDeAnuncio(espaco, formato));
   const querConvite = !!provedor.pedeConsentimento && decisao.motivo === 'sem_consentimento' && !jaRespondeu();
   const convidando = useConvite(querConvite);
   if (!decisao.pode) {
@@ -137,6 +151,7 @@ function EspacoComProvedor({
       formato={formato}
       aoSemAnuncios={aoSemAnuncios}
       aoRecompensar={formato === 'premiado' ? recompensar : undefined}
+      aoFechar={aoFechar}
     />
   );
 }

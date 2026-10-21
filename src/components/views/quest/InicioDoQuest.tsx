@@ -8,6 +8,7 @@ import {
   Headphones,
   Languages,
   Layers,
+  Library,
   ListChecks,
   Mic,
   Snowflake,
@@ -273,6 +274,22 @@ export default function InicioDoQuest({
           <b>{t('Jogar')}</b>
           <span className="q-d">{t('Jogos com as palavras das suas sessões.')}</span>
         </button>
+        {/* NO CELULAR a barra tem cinco botões (R40): a Biblioteca não tem porta nela, e o Início a traz.
+            (O Intérprete é o "Conversar", acima.) */}
+        {noCelular() && (
+          <button
+            type="button"
+            className="q-tile"
+            onClick={() => onChangeView('library')}
+            data-testid="biblioteca-no-inicio"
+          >
+            <span className="q-ic">
+              <Library aria-hidden />
+            </span>
+            <b>{t('Biblioteca')}</b>
+            <span className="q-d">{t('Suas gravações, vídeos e documentos.')}</span>
+          </button>
+        )}
       </div>
 
       {/* O PROGRESSO numa linha só: nível, XP até o próximo e Seeds. Toca, abre as Estatísticas.

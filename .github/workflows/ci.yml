@@ -26,9 +26,9 @@ env:
 #   unidade (2 fatias)  vitest com cobertura, `--shard`; `unidade-cobertura` junta e cobra o piso
 #   e2e (5 fatias)      um job por viewport; celular e desktop em duas fatias (`--shard`)
 #   e2e-estatica (4)    um job por viewport × duas fatias
-#   e2e-publico, migracoes, carga, imagem-construir → imagem e restauracao-litestream
+#   e2e-publico, migracoes, carga, imagem-construir → imagem
 #   postgres-real       os testes que só rodam com TESTE_POSTGRES_URL, contra um postgres:17 de serviço
-# O `deploy.yml` cobra a CONCLUSÃO da execução inteira (`conclusion == success`), não o nome de um
+# O `deploy-worker.yml` cobra a CONCLUSÃO da execução inteira (`conclusion == success`), não o nome de um
 # job: uma fatia vermelha reprova a execução como o `verify` reprovava.
 jobs:
   # O QUE MUDOU DESDE A ÚLTIMA EXECUÇÃO VERDE DESTE RAMO. Serve só para NÃO gastar: mudança só de
@@ -708,16 +708,15 @@ jobs:
           path: test-results/
           if-no-files-found: ignore
 
-  # A IMAGEM, CONSTRUÍDA UMA VEZ. Os jobs `imagem` e `restauracao-litestream` faziam cada um o seu
-  # `docker build` (~2,3 min cada) da mesma imagem; agora este job constrói, e os dois recebem o
-  # arquivo da imagem como artefato (`docker load`) — a que a varredura examina é a mesma que restaura.
+  # A IMAGEM DO SELF-HOST, CONSTRUÍDA UMA VEZ. Este job constrói e o job `imagem` recebe o arquivo
+  # da imagem como artefato (`docker load`) — a que a varredura examina é a mesma que sobe no teste.
+  # A produção é o Worker (`deploy-worker.yml`); a imagem existe para quem hospeda por conta própria.
   #
-  # CACHE DE CAMADAS (buildx, `type=gha`, `mode=max` para guardar também os estágios `build` e
-  # `litestream`, que não vão na imagem final): num ramo, as camadas caras que não mudaram — os dois
-  # `npm ci` (chave: o `package-lock.json`), a compilação do Litestream (chave: os ARG fixados), o
-  # `apt-get upgrade` — vêm do cache, e só o que depende do código é refeito.
+  # CACHE DE CAMADAS (buildx, `type=gha`, `mode=max` para guardar também o estágio `build`, que não
+  # vai na imagem final): num ramo, as camadas caras que não mudaram — os dois `npm ci` (chave: o
+  # `package-lock.json`) e o `apt-get upgrade` — vêm do cache, e só o que depende do código é refeito.
   # NA `main` O CACHE NÃO É LIDO (`no-cache`): a construção é do zero, como era. Camada em cache não
-  # refaz o `apt-get upgrade` nem a conferência do commit do Litestream, e é da `main` que sai a
+  # refaz o `apt-get upgrade`, e é da `main` que sai a
   # produção — lá nada pode ser dado por conferido. A `main` ainda GRAVA o cache, que os ramos leem.
   #
   # Roda sempre na `main`; num ramo, só quando muda algo que entra na imagem (`mudancas`).
@@ -747,7 +746,7 @@ jobs:
           cache-to: type=gha,scope=imagem,mode=max
           no-cache: ${{ github.ref == 'refs/heads/main' }}
           provenance: false
-      - name: Artefato da imagem (para os dois jobs de baixo)
+      - name: Artefato da imagem (para o job de baixo)
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: imagem-docker
@@ -756,14 +755,30 @@ jobs:
           compression-level: 1
           if-no-files-found: error
 
-  # A IMAGEM DE PRODUÇÃO (Fase 5). Constrói o Dockerfile de verdade e sobe o container como o Fly
-  # sobe: NODE_ENV=production, AUTH_REQUIRED=1, TRUST_PROXY declarada. Depois confere o que só a
-  # imagem pode provar: /api/ready 200, a API fechada sem token, os cabeçalhos de cache e de CSP da
-  # SPA, e o desligamento gracioso (docker stop sai com 0).
+  # A IMAGEM DO SELF-HOST. Sobe o container do Dockerfile como um self-host sobe: NODE_ENV=production,
+  # AUTH_REQUIRED=1, TRUST_PROXY declarada e o Postgres por DATABASE_URL (um `postgres:17` de serviço,
+  # como no `postgres-real`). O container roda com `--network host` e alcança o serviço pela porta
+  # publicada. Confere o que só a imagem pode provar: o boot aplica as migrações, /api/ready 200, a
+  # API fechada sem token, os cabeçalhos de cache e de CSP da SPA, e o desligamento gracioso
+  # (docker stop sai com 0).
   imagem:
     needs: imagem-construir
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: babel
+          POSTGRES_PASSWORD: babel-ci
+          POSTGRES_DB: babel_imagem
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U babel -d babel_imagem"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Imagem construída no job de cima
@@ -773,13 +788,13 @@ jobs:
           path: ${{ runner.temp }}
       - name: docker load
         run: docker load --input "$RUNNER_TEMP/babel-play-ci.tar"
-      - name: Litestream fixado está na imagem
-        run: docker run --rm --entrypoint litestream babel-play:ci version
       - name: Fumaça do container
         timeout-minutes: 5
         run: |
-          docker run -d --name app -p 3000:3000 \
-            -e SECRET_KEY=chave-de-ci-com-mais-de-32-caracteres-xx \
+          # Chave gerada na hora, nunca um literal versionado (`hkdf:<64 hex>` deriva por HKDF).
+          docker run -d --name app --network host \
+            -e SECRET_KEY="hkdf:$(openssl rand -hex 32)" \
+            -e DATABASE_URL=postgres://babel:babel-ci@127.0.0.1:5432/babel_imagem \
             -e SUPABASE_URL=https://ci-exemplo.supabase.co \
             -e AUTH_REQUIRED=1 -e TRUST_PROXY=false -e NODE_ENV=production \
             babel-play:ci
@@ -802,7 +817,7 @@ jobs:
           docker stop -t 30 app
           test "$(docker inspect -f '{{.State.ExitCode}}' app)" = "0"
       # VARREDURA DA IMAGEM (Fase 6 da prontidão). O `npm audit` do job de cima vê as dependências do
-      # package.json; a imagem tem mais: o Debian de base, o Node, o binário do Litestream. Trivy em
+      # package.json; a imagem tem mais: o Debian de base e o Node. Trivy em
       # cima da imagem que acabou de ser construída, reprovando só HIGH/CRITICAL COM correção
       # disponível (`ignore-unfixed`): CVE sem fix não tem ação possível e só ensinaria a ignorar o
       # passo. Severidade abaixo de HIGH não reprova — sai no relatório.
@@ -850,74 +865,3 @@ jobs:
             trivy-imagem.json
             sbom-imagem.cdx.json
           if-no-files-found: ignore
-
-  # RESTAURAÇÃO DO LITESTREAM, DE VERDADE (Fase 5). Um MinIO faz o papel do R2: o container grava,
-  # replica e para; um SEGUNDO container, com volume VAZIO, restaura sozinho no boot (entrypoint) e o
-  # dado precisa estar lá, com integrity_check ok. Backup que nunca foi restaurado não é backup.
-  # A imagem é a do `imagem-construir` (antes este job construía a sua, sem VITE_PUBLIC_URL e sem
-  # VERSAO — argumentos que a restauração não usa).
-  restauracao-litestream:
-    needs: imagem-construir
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      AWS_ACCESS_KEY_ID: minio-ci
-      AWS_SECRET_ACCESS_KEY: minio-ci-segredo
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: Imagem construída no job de cima
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          name: imagem-docker
-          path: ${{ runner.temp }}
-      - name: docker load
-        run: docker load --input "$RUNNER_TEMP/babel-play-ci.tar"
-      # A imagem `minio/minio` saiu do Docker Hub (o pull passou a responder "repository does not
-      # exist", 30/09/2026). A `bitnamilegacy/minio` é o mesmo servidor MinIO, congelada — para um
-      # dublê de R2 no CI isso basta —, FIXADA pelo digest: se sumir ou mudar, o pull falha em vez de
-      # rodar outra coisa. A Bitnami sobe com o próprio entrypoint (sem `server /data`), lê as
-      # mesmas MINIO_ROOT_* e demora mais no primeiro boot: daí 60 s de espera, não 30.
-      - name: MinIO no lugar do R2
-        timeout-minutes: 5
-        run: |
-          docker network create rede
-          docker run -d --name minio --network rede -p 9000:9000 \
-            -e MINIO_ROOT_USER=$AWS_ACCESS_KEY_ID -e MINIO_ROOT_PASSWORD=$AWS_SECRET_ACCESS_KEY \
-            bitnamilegacy/minio:2025.7.23-debian-12-r5@sha256:6dabb4a2088c9a79908de3bc05f4586c23ad2182c8908e7e3acbf61c1467fb20
-          for i in $(seq 1 60); do curl -sf http://127.0.0.1:9000/minio/health/live && break; sleep 1; done
-          curl -sf http://127.0.0.1:9000/minio/health/live || { docker logs minio | tail -30; exit 1; }
-          aws --endpoint-url http://127.0.0.1:9000 s3 mb s3://litestream-ci
-      - name: Primeiro container grava e replica
-        timeout-minutes: 5
-        run: |
-          comum="-e SECRET_KEY=chave-de-ci-com-mais-de-32-caracteres-xx -e SUPABASE_URL=https://ci-exemplo.supabase.co \
-                 -e AUTH_REQUIRED=1 -e TRUST_PROXY=false -e NODE_ENV=production \
-                 -e LITESTREAM_BUCKET=litestream-ci -e LITESTREAM_ENDPOINT=http://minio:9000 \
-                 -e LITESTREAM_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e LITESTREAM_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
-          echo "comum=$comum" >> "$GITHUB_ENV"
-          docker run -d --name um --network rede -v dados-um:/data $comum babel-play:ci
-          for i in $(seq 1 60); do docker exec um node -e "fetch('http://127.0.0.1:3000/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" && break; sleep 2; done
-          docker exec -e MARCA="$GITHUB_SHA" um node -e "
-            const { createClient } = require('@libsql/client');
-            const c = createClient({ url: 'file:/data/babel.db' });
-            (async () => {
-              await c.execute('CREATE TABLE IF NOT EXISTS marca_ci (valor TEXT)');
-              await c.execute({ sql: 'INSERT INTO marca_ci VALUES (?)', args: [process.env.MARCA] });
-              c.close();
-            })();"
-          sleep 10
-          docker stop -t 30 um
-          docker logs um | tail -20
-          aws --endpoint-url http://127.0.0.1:9000 s3 ls --recursive s3://litestream-ci | head
-      - name: Segundo container, volume vazio, restaura sozinho
-        timeout-minutes: 5
-        run: |
-          docker run -d --name dois --network rede -v dados-dois:/data $comum babel-play:ci
-          for i in $(seq 1 60); do docker exec dois node -e "fetch('http://127.0.0.1:3000/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" && break; sleep 2; done
-          docker logs dois | head -20
-          docker exec dois node dist-server/operacao.cjs verificar --arquivo=/data/babel.db
-          valor=$(docker exec dois node -e "
-            const { createClient } = require('@libsql/client');
-            createClient({ url: 'file:/data/babel.db' }).execute('SELECT valor FROM marca_ci').then(r => console.log(r.rows[0].valor));")
-          echo "restaurado: $valor"
-          test "$valor" = "$GITHUB_SHA"

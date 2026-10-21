@@ -78,28 +78,6 @@ RUN test -n "$VITE_SUPABASE_URL" && test -n "$VITE_SUPABASE_ANON_KEY" || \
 # Produz dist/ (SPA) e dist-server/server.cjs (servidor empacotado, deps externas).
 RUN npm run build
 
-# ─── litestream ───────────────────────────────────────────────────────────────
-# O Litestream (github.com/benbjohnson/litestream) COMPILADO DA FONTE, no commit FIXADO da release.
-# Até 09/10/2026 vinha o binário oficial conferido por sha256. A 0.5.17 é a última release e foi
-# compilada com Go 1.25.14 e golang.org/x/net 0.55, os dois com falhas HIGH corrigidas depois
-# (net/http, HTTP/2 e crypto/tls: negação de serviço) justamente no caminho que usamos, o cliente
-# HTTPS da réplica S3. Não dava para aceitar o risco sem prova de que não é alcançável; compilar com
-# o Go e o x/net corrigidos resolve de verdade. O commit conferido derruba o build se a tag mudar.
-# Quando sair release nova com isso, dá para voltar ao binário oficial.
-FROM golang:1.26-bookworm AS litestream
-ARG LITESTREAM_VERSAO=0.5.17
-ARG LITESTREAM_COMMIT=ccd326c175b583b5e82893a6078f06dcef5fba3f
-ARG X_NET_VERSAO=v0.60.0
-ENV CGO_ENABLED=0 GOFLAGS=-trimpath
-RUN set -eu; \
-    git clone --depth 1 --branch "v${LITESTREAM_VERSAO}" https://github.com/benbjohnson/litestream /src; \
-    cd /src; \
-    test "$(git rev-parse HEAD)" = "$LITESTREAM_COMMIT"; \
-    go get "golang.org/x/net@${X_NET_VERSAO}"; \
-    go mod tidy; \
-    go build -ldflags "-s -w -X main.Version=${LITESTREAM_VERSAO}" -o /usr/local/bin/litestream ./cmd/litestream; \
-    /usr/local/bin/litestream version
-
 # ─── runtime ──────────────────────────────────────────────────────────────────
 FROM node:22-slim AS runtime
 WORKDIR /app
@@ -166,19 +144,11 @@ RUN npm ci --omit=dev --ignore-scripts \
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/dist-server ./dist-server
 # Os .sql das migrations NÃO entram no bundle do esbuild — são lidos do disco em runtime.
-# Sem esta linha o boot falha com "no such table: sessions" num volume novo.
-COPY --from=build /app/server/db/migrations ./server/db/migrations
+# Sem esta linha o boot não aplica o esquema do Postgres (cadeia Drizzle em migrations-pg).
+COPY --from=build /app/server/db/migrations-pg ./server/db/migrations-pg
 
-# Fase 5 — operação do banco DENTRO da imagem (antes, `scripts/backup.mjs` ficava fora dela e o
-# backup só rodava onde houvesse o repositório):
-#   - `scripts/backup.mjs` só importa `@libsql/client`, que é dependência de produção e fica acima;
-#   - `dist-server/operacao.cjs` (snapshot / restaurar-snapshot / verificar) já veio com o
-#     `dist-server` do build;
-#   - o Litestream, a configuração dele e o entrypoint que decide se ele entra.
+# Operação do banco dentro da imagem: `dist-server/operacao.cjs` já veio com o `dist-server` do build.
 COPY --from=build /app/scripts/backup.mjs ./scripts/backup.mjs
-COPY --from=litestream /usr/local/bin/litestream /usr/local/bin/litestream
-COPY litestream.yml /etc/litestream.yml
-COPY --chmod=0755 scripts/iniciar-container.sh /usr/local/bin/iniciar-container.sh
 
 # O que a CSP do servidor precisa enxergar das VITE_* (server/http/csp.ts) e a versão que o
 # Sentry mostra. Repetidas aqui porque ARG não atravessa estágio sozinho.
@@ -199,15 +169,11 @@ ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
     VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY \
     SENTRY_RELEASE=$VERSAO
 
-# Diretório do banco e dos áudios. Em produção AMBOS devem ser volume — ver
-# docker-compose.yml. Sem volume, o dado morre com o container.
-#
-# `chown` SÓ em /data. A versão anterior fazia `chown -R node:node /data /app` e a imagem
-# saía com 4,08GB: o chown recursivo reescreve cada arquivo de /app, e o Docker grava a
-# árvore inteira DE NOVO numa camada nova. O app só LÊ de /app — não precisa ser dono.
+# O banco é um Postgres externo: passe `DATABASE_URL=postgres://…` ao subir o container (ver
+# docker-compose.yml, que traz um `postgres:17`). A imagem não guarda estado nem leva volume; os
+# áudios das sessões vão para o S3/R2 quando configurado, senão para o AUDIO_DIR abaixo.
 RUN mkdir -p /data/audio && chown -R node:node /data
-ENV DATABASE_URL=file:/data/babel.db \
-    AUDIO_DIR=/data/audio
+ENV AUDIO_DIR=/data/audio
 
 # Dentro do container o bind PRECISA ser 0.0.0.0 — o default do app é 127.0.0.1
 # (decisão de segurança para uso local) e por ele nada entraria de fora.
@@ -236,7 +202,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 USER node
-# Com as LITESTREAM_* no ambiente: restaura o banco do R2 se o volume estiver vazio e sobe o Node
-# como filho do `litestream replicate` (que repassa o SIGTERM). Sem elas: `node` direto, como antes.
-# Ver scripts/iniciar-container.sh.
-ENTRYPOINT ["/usr/local/bin/iniciar-container.sh"]
+CMD ["node", "dist-server/server.cjs"]

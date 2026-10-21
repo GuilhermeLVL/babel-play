@@ -52,6 +52,13 @@ describe('criarAssinatura — callback de volta ao app', () => {
     },
   )
 
+  it('manda User-Agent: o Asaas recusa pedido sem ele, e o fetch do Worker não põe um sozinho', async () => {
+    const f = vi.spyOn(globalThis, 'fetch').mockResolvedValue(json({ id: 'sub_ua' }))
+    await asaas.criarAssinatura(asUserId('u-cb'), 'cus_1', 9.9, 'Frasy Essencial')
+    const cabecalhos = f.mock.calls[0][1]?.headers as Record<string, string>
+    expect(cabecalhos['User-Agent']).toMatch(/\S/)
+  })
+
   it('Asaas recusa o callback (400): cria de novo sem ele, e a venda não se perde', async () => {
     process.env.APP_URL = 'https://babel.exemplo.com.br'
     const f = vi

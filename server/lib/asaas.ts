@@ -36,6 +36,9 @@ async function chamar<T>(caminho: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: {
       'Content-Type': 'application/json',
+      /* O Asaas RECUSA pedido sem User-Agent (400 `user_agent_not_informed`). O fetch do Node manda um
+         sozinho; o do Cloudflare Worker, não — no staging, todo `/assinar` caía em 502 (21/10/2026). */
+      'User-Agent': 'Frasy-Servidor',
       // O nome do header é do Asaas; o valor NUNCA aparece em log (o logger tem allowlist).
       access_token: chave,
       ...(init?.headers ?? {}),

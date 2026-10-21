@@ -281,6 +281,18 @@ export async function irAoJogarPeloMenu(page: Page) {
 }
 
 /**
+ * VAI AO INTÉRPRETE PELO MENU: no trilho (computador e tablet) ele tem botão próprio; na barra de cinco
+ * do celular ele não cabe e é o primeiro ladrilho do "Mais" (R40).
+ */
+export async function irAoInterpretePeloMenu(page: Page) {
+  const botao = naBarraDeCinco(page)
+    ? (await abrirMais(page)).getByRole('button', { name: /^Intérprete/ })
+    : trilho(page).getByRole('button', { name: /^Intérprete/ })
+  await clicarRobusto(page, botao)
+  await expect(page).toHaveURL(/\/interprete$/, { timeout: 10_000 })
+}
+
+/**
  * O CELULAR DE VERDADE NÃO TEM `getDisplayMedia`. O `devices['Pixel 7']` do Playwright muda a tela, o
  * toque e o user agent, mas o Chromium por baixo continua com a captura de tela do desktop — e a
  * captura então se comportava como no computador, escondendo do e2e justamente o caminho que falhou

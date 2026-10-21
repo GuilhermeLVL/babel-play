@@ -147,6 +147,8 @@ describe('Planos: só aparece o que está à venda', () => {
   })
 
   it('o Premium sem o Essencial à vista diz "Tudo do Grátis" e herda a Nuance; horas e preço são da matriz', async () => {
+    /* A voz neural só entra no cartão com a flag `voz_natural` ligada. */
+    definirEstadoDasFlags({ voz_natural: { ligada: true } })
     await abrir()
     const premium = cartaoDe('premium')
     expect(premium.querySelector('.px-preco b')!.textContent).toBe(mensal('premium'))
@@ -223,6 +225,7 @@ describe('Planos: os números vêm da matriz', () => {
     /* No computador com placa o recomendado é o Essencial: o Premium mostra o rótulo dele. */
     aparelho.tipo = 'desktop-com-gpu'
     servidor.rotas['/api/billing/status'] = TODOS_A_VENDA
+    definirEstadoDasFlags({ voz_natural: { ligada: true } })
     await abrir()
     for (const id of ['essencial', 'premium', 'aovivo'] as const)
       expect(cartaoDe(id).querySelector('.px-preco b')!.textContent, id).toBe(mensal(id))

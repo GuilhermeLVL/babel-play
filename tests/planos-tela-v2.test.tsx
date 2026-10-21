@@ -127,6 +127,9 @@ describe('as duas colunas', () => {
 
   it('Premium: a Nuance com outras formas, formal ou informal, as horas de nuvem, o intérprete automático e a voz neural', async () => {
     montarMocks()
+    /* A voz neural só entra no cartão com a flag `voz_natural` ligada. */
+    /* (módulo importado de novo, pois os módulos são reiniciados a cada teste) */
+    ;(await import('../src/lib/flagsCache')).definirEstadoDasFlags({ voz_natural: { ligada: true } })
     await abrirPlanos()
     const texto = cartao('premium').textContent ?? ''
     expect(texto).toContain('Tradução Nuance')

@@ -17,6 +17,3 @@ export interface PremioDeExemplo {
   premio: string;
   marca: MarcaDeExemplo;
 }
-
-/** Premiados por dia (`LIMITE_PREMIADOS`, `anuncios.js:21`). Na demonstração só enfeita a nota da folha. */
-export const LIMITE_DE_PREMIADOS = 5;

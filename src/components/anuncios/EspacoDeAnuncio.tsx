@@ -6,6 +6,7 @@ import {
   type FormatoDeAnuncio,
   podeMostrar,
 } from '../../core/anuncios/politicaDeAnuncio';
+import { concluirPremiado, type PremiadoConcluido } from '../../data/rotas/anuncios';
 import { montarPedidoDeAnuncio } from '../../lib/anuncios/pedido';
 import { assinarProvedorDeAnuncios, type ProvedorDeAnuncios, provedorDeAnuncios } from '../../lib/anuncios/provedor';
 import { onPlanChange } from '../../lib/entitlements';
@@ -42,6 +43,17 @@ interface EspacoDeAnuncioProps {
 
 const irAosPlanos = () => navegarPara({ view: 'planos' });
 const semProvedor = () => null;
+
+/**
+ * O fim de um premiado: o servidor credita (`concluirPremiado`) e o que ele creditou volta ao provedor; a recusa
+ * rejeita com o `code` dele.
+ */
+async function recompensar(exibicaoId: string): Promise<PremiadoConcluido> {
+  const r = await concluirPremiado(exibicaoId);
+  if (r.ok === false) throw new Error(r.code ?? r.error);
+  const { ok: _ok, ...concluido } = r;
+  return concluido;
+}
 
 export default function EspacoDeAnuncio(props: EspacoDeAnuncioProps) {
   const provedor = useSyncExternalStore(assinarProvedorDeAnuncios, provedorDeAnuncios, semProvedor);
@@ -84,5 +96,12 @@ function EspacoComProvedor({
 
   if (!podeMostrar(montarPedidoDeAnuncio(espaco, formato)).pode) return null;
   const Desenho = provedor.Espaco;
-  return <Desenho espaco={espaco} formato={formato} aoSemAnuncios={aoSemAnuncios} />;
+  return (
+    <Desenho
+      espaco={espaco}
+      formato={formato}
+      aoSemAnuncios={aoSemAnuncios}
+      aoRecompensar={formato === 'premiado' ? recompensar : undefined}
+    />
+  );
 }

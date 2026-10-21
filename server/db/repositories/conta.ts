@@ -21,6 +21,7 @@ import {
   ankiDecks,
   ankiImports,
   ankiNotes,
+  anunciosPremiados,
   billingEvents,
   convidados,
   creditPurchases,
@@ -117,6 +118,8 @@ const TABELAS_DO_TITULAR: ReadonlyArray<readonly [string, any]> = [
      (`marcas_de_teste`, o HMAC do e-mail) NÃO entra aqui de propósito: não tem `user_id` e existe
      para sobreviver à exclusão — senão apagar e recriar a conta renovaria o teste. Ver o schema. */
   ['testesPremium', testesPremium],
+  /* As exibições do anúncio premiado (migração 0006): os tetos do dia e o bônus de nuvem do mês. */
+  ['anunciosPremiados', anunciosPremiados],
   /* A contabilidade derivada (versões dos dados, agregados diários e estado por item): sem FOREIGN
      KEY para ninguém, mas com o id do titular. Por ÚLTIMO, depois das tabelas brutas, porque os
      gatilhos delas mexem nestas a cada DELETE. Os DELETEs incondicionais em `excluir` (depois do

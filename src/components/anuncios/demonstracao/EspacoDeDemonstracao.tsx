@@ -7,10 +7,11 @@ import { ArrowRight, BookmarkPlus, BookOpen, Check, GraduationCap, Play, Sprout 
 import { type ReactNode, useLayoutEffect, useRef, useState } from 'react';
 
 import type { EspacoDeAnuncio } from '../../../core/anuncios/politicaDeAnuncio';
+import { LIMITE_DE_PREMIADOS_POR_DIA } from '../../../core/planos';
 import type { PropsDoEspacoDeAnuncio } from '../../../lib/anuncios/provedor';
 import { toast } from '../../Toast';
 import FluxoDoPremiado from './FluxoDoPremiado';
-import { LIMITE_DE_PREMIADOS, type MarcaDeExemplo, type PremioDeExemplo } from './tipos';
+import type { MarcaDeExemplo, PremioDeExemplo } from './tipos';
 
 /**
  * O PROVEDOR DE DEMONSTRAÇÃO — desenha os espaços de anúncio como o protótipo aprovado os desenha
@@ -225,8 +226,8 @@ function usePremiado(premio: PremioDeExemplo, aoSemAnuncios: () => void) {
   const [aberto, setAberto] = useState(false);
   const [feito, setFeito] = useState(false);
   const pedir = () => {
-    if (vistos >= LIMITE_DE_PREMIADOS) {
-      toast.info(`Você já viu os ${LIMITE_DE_PREMIADOS} anúncios premiados de hoje. Amanhã tem mais.`);
+    if (vistos >= LIMITE_DE_PREMIADOS_POR_DIA) {
+      toast.info(`Você já viu os ${LIMITE_DE_PREMIADOS_POR_DIA} anúncios premiados de hoje. Amanhã tem mais.`);
       return;
     }
     setAberto(true);

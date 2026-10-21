@@ -28,6 +28,7 @@ import {
 } from '../../src/core/planos'
 import { usageCountersRepo } from '../db/repositories/usageCounters'
 import type { UserId } from './authContext'
+import { segundosDeBonusDoAlivio } from './bonusDeNuvemDoPremiado'
 import { memoDoRequest } from './contextoDeConvidado'
 import { getPlanForUser, resolverPlano } from './entitlements'
 import { fusoGravado } from './fusoDoUsuario'
@@ -367,11 +368,12 @@ export async function reservarSegundosDeStt(
       return cabe ? { cabe: true, dia: null } : { cabe: false, recusa: 'mes' }
     }
     if (modo === 'alivio') {
+      /* A franquia do mês mais os 30 min de cada anúncio premiado `nuvem-30` concluído no mês. */
       const cabe = await usageCountersRepo.reserve(
         userId,
         METRICA.segundos.alivio,
         currentWindow(),
-        FRANQUIA_DE_ALIVIO.sttSegundosMes,
+        FRANQUIA_DE_ALIVIO.sttSegundosMes + (await segundosDeBonusDoAlivio(userId)),
         segundos,
       )
       return cabe ? { cabe: true, dia: null } : { cabe: false, recusa: 'mes' }

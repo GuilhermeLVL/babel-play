@@ -303,9 +303,9 @@ describe('migração SQLite → Postgres', () => {
       .sort()
     expect(doSchema.length).toBeGreaterThanOrEqual(38)
     expect(r.tabelas.map((t) => t.nome).sort()).toEqual(doSchema)
-    // Fora da cópia, por um motivo escrito: travas de linha e contadores da admissão de IA não são dado e o
-    // SQLite não os tem.
-    expect([...mig.TABELAS_SO_DO_POSTGRES]).toEqual(['travas', 'admissao_de_ia'])
+    // Fora da cópia, por um motivo escrito: travas de linha e contadores da admissão de IA não são dado, as
+    // exibições do anúncio premiado nasceram depois da migração, e o SQLite não tem nenhuma das três.
+    expect([...mig.TABELAS_SO_DO_POSTGRES]).toEqual(['travas', 'admissao_de_ia', 'anuncios_premiados'])
   })
 
   it('a segunda execução é idempotente (ON CONFLICT DO NOTHING) e o relatório continua ok', async () => {

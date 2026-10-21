@@ -43,6 +43,13 @@
       "when": 1792462628836,
       "tag": "0005_admissao_de_ia",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792597390350,
+      "tag": "0006_anuncios_premiados",
+      "breakpoints": true
     }
   ]
 }

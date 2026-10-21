@@ -7,6 +7,7 @@ import { distribuirThreads } from '../../lib/dispositivo/orcamentoDeThreads';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import { temAdaptadorWebGpu } from '../adaptadorWebGpu';
 import type { AvisoDeDegradacaoDoStt, SttFinal, SttProvider } from '../capabilities';
+import { pareceErroDeRede } from '../erroDeRede';
 import { gravarManifesto, MENSAGEM_DO_MANIFESTO } from '../modelManifest';
 import { WHISPER_MODELS } from '../sttRouter';
 import { criarWatchdogDeEstagnacao } from './modelProgress';
@@ -375,8 +376,10 @@ export class WhisperLocalStt implements SttProvider {
           }
 
           /* ERRO NA CARGA. No WebGPU, a saída é o WASM (e o modelo que cabe nele), sem deixar a
-             preparação cair: "no available backend found" no headless era captura sem legenda. */
-          if (this.deviceDaCarga === 'webgpu') {
+             preparação cair: "no available backend found" no headless era captura sem legenda.
+             Falha de REDE não é falta de GPU ("Load failed" no Safari): rejeita a preparação, e a
+             tela mostra "Não foi possível preparar o modelo · Tentar de novo" (`erroDeRede.ts`). */
+          if (this.deviceDaCarga === 'webgpu' && !pareceErroDeRede(String(message || ''))) {
             this.recarregarEmWasm('sem-gpu', String(message));
             break;
           }

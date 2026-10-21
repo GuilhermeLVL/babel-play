@@ -104,6 +104,11 @@ export interface ContextoDosPlanos {
   visiveis: readonly PlanoDaTela[];
   /** A flag `anuncios` existe e está ligada (decisão 13). */
   comAnuncios: boolean;
+  /**
+   * A flag `voz_natural` está ligada. Desligada, a voz neural não existe para ninguém: nem o cartão nem a
+   * comparação a prometem (o plano a teria na matriz, mas a flag não a entrega).
+   */
+  vozNatural?: boolean;
 }
 
 /* ---- Os cartões (`PLANOS`, `planos4.js:71-112`) ----------------------------------------------------- */
@@ -182,7 +187,9 @@ function itensProprios(id: PlanoDaTela, c: ContextoDosPlanos): Item[] {
             },
           ]
         : []),
-      ...(e.nivelDeVoz === 'basica' ? [{ tema: 'voz', texto: t('Voz neural básica no intérprete') }] : []),
+      ...(c.vozNatural && e.nivelDeVoz === 'basica'
+        ? [{ tema: 'voz', texto: t('Voz neural básica no intérprete') }]
+        : []),
     ];
   return [
     ...(e.sttAoVivo
@@ -194,7 +201,7 @@ function itensProprios(id: PlanoDaTela, c: ContextoDosPlanos): Item[] {
           },
         ]
       : []),
-    ...(e.nivelDeVoz === 'boa' ? [{ tema: 'voz', texto: t('Voz neural boa no intérprete') }] : []),
+    ...(c.vozNatural && e.nivelDeVoz === 'boa' ? [{ tema: 'voz', texto: t('Voz neural boa no intérprete') }] : []),
   ];
 }
 
@@ -410,7 +417,8 @@ export function linhasDaComparacao(c: ContextoDosPlanos): [string, Celula[]][] {
       t('Intérprete'),
       por((id) => (definicao(id).entitlements.interpreteAutomatico ? t('automático') : t('cada um toca o seu lado'))),
     ],
-    [t('Voz do intérprete'), por((id) => voz[definicao(id).entitlements.nivelDeVoz])],
+    /* Sem a flag `voz_natural` todos falam com a voz do aparelho: a linha não diz nada de diferente. */
+    c.vozNatural && [t('Voz do intérprete'), por((id) => voz[definicao(id).entitlements.nivelDeVoz])],
     [t('Jogos, vocabulário e revisão'), por(() => 1)],
   ];
   return linhas.filter((l): l is [string, Celula[]] => !!l && l[1].some((v) => v !== 0));

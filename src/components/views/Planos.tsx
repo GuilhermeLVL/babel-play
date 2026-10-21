@@ -26,6 +26,7 @@ import {
   PLANO_DO_TESTE,
   planosAVenda,
 } from '../../core/planos';
+import { FLAG_VOZ_NATURAL } from '../../core/vozNatural';
 import {
   brl,
   carregarFaturas,
@@ -265,6 +266,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
      cache de flags. Com tudo desligado sobra o que nunca teve chave: o Premium. */
   const vendaV3 = useFlag(FLAG_VENDA_PLANOS_V3);
   const aoVivoExiste = useFlag(FLAG_STT_AO_VIVO);
+  const vozNatural = useFlag(FLAG_VOZ_NATURAL);
   const anunciosLigados = useFlag('anuncios');
   const comAnuncios = anunciosLigados || prova.anuncios;
   const aVenda: readonly PlanoPago[] =
@@ -457,7 +459,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
     fimDoTeste === null ? diasDoTeste : Math.max(1, Math.ceil((fimDoTeste - Date.now()) / 86_400_000));
 
   /* ── O QUE A TELA MOSTRA (`planos4.js:594-683`) ───────────────────────────────────────────────── */
-  const contexto: ContextoDosPlanos = { visiveis, comAnuncios };
+  const contexto: ContextoDosPlanos = { visiveis, comAnuncios, vozNatural };
   const nota = notaDoAparelho(aparelho, contexto);
   const IconeDoAparelho = nota.icone;
   const temAnual = (id: PlanoDaTela): boolean => id !== 'gratis' && PLAN_MATRIX[id].precoAnualBrl !== null;

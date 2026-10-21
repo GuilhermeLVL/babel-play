@@ -1,0 +1,151 @@
+# EXERCÍCIO DE RESTAURAÇÃO DO DUMP DO POSTGRES (Fase 5, Task 6)
+#
+# UMA VEZ POR MÊS, sob demanda (Actions -> "Exercício de restauração do Postgres" -> Run workflow), e anote a
+# data e o resultado em docs/runbook.md §8. Baixa o `semanal/*.dump` mais recente do bucket `frasy-backups`
+# (ou a chave dada em `arquivo`), restaura num `postgres:17` de serviço, VAZIO e descartável do próprio
+# runner, e confere que há tabelas e que `drizzle.__drizzle_migrations` tem ao menos uma linha. Sem banco vivo
+# para comparar, o passo prova que o dump ABRE e RESTAURA; a comparação contagem a contagem com a origem é o
+# uso local do mesmo script (docs/deploy.md, "Exercício de restauração").
+#
+# SÓ RODA DEPOIS QUE O DONO CRIAR o Environment `restauracao` (Settings -> Environments) com chaves S3 do R2
+# SOMENTE DE LEITURA no bucket `frasy-backups`. Nenhum valor mora neste arquivo:
+#   secrets  R2_S3_ENDPOINT                   https://<conta>.r2.cloudflarestorage.com
+#            R2_LEITURA_ACCESS_KEY_ID         token R2 só de leitura (Object Read) em frasy-backups
+#            R2_LEITURA_SECRET_ACCESS_KEY
+#   variável BACKUP_BUCKET                    frasy-backups
+# Falta qualquer um: o primeiro passo REPROVA dizendo o nome (nunca o valor).
+#
+# PRIVACIDADE: o dump tem dados pessoais. Ele fica só no disco do runner (apagado ao fim), NUNCA vira
+# artefato do Actions, e o resumo traz só contagens. O banco do exercício é apagado em qualquer desfecho.
+name: Exercício de restauração do Postgres
+
+on:
+  workflow_dispatch:
+    inputs:
+      arquivo:
+        description: 'Chave do dump no R2 (ex.: semanal/2026-10-19.dump). Vazio = o semanal/*.dump mais recente'
+        required: false
+        default: ''
+        type: string
+      idade_maxima_dias:
+        description: 'Reprova se o dump tiver mais dias que isto (o backup semanal deveria ter no máximo 7)'
+        required: false
+        default: '8'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: restauracao-drill
+  cancel-in-progress: false
+
+# O script só usa módulos `node:` e programas do cliente do Postgres: não há `npm ci`.
+env:
+  ONNXRUNTIME_NODE_INSTALL: skip
+
+jobs:
+  restaurar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: restauracao
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: babel
+          POSTGRES_PASSWORD: babel-ci
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U babel -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      # Senha descartável de um contêiner de serviço que só existe neste job; não é segredo.
+      DESTINO: postgres://babel:babel-ci@localhost:5432/drill
+      AWS_DEFAULT_REGION: auto
+    steps:
+      - name: Segredos presentes
+        env:
+          R2_S3_ENDPOINT: ${{ secrets.R2_S3_ENDPOINT }}
+          R2_LEITURA_ACCESS_KEY_ID: ${{ secrets.R2_LEITURA_ACCESS_KEY_ID }}
+          R2_LEITURA_SECRET_ACCESS_KEY: ${{ secrets.R2_LEITURA_SECRET_ACCESS_KEY }}
+          BACKUP_BUCKET: ${{ vars.BACKUP_BUCKET }}
+        run: |
+          faltando=""
+          for n in R2_S3_ENDPOINT R2_LEITURA_ACCESS_KEY_ID R2_LEITURA_SECRET_ACCESS_KEY BACKUP_BUCKET; do
+            [ -n "${!n}" ] || faltando="$faltando $n"
+          done
+          if [ -n "$faltando" ]; then
+            echo "::error::Exercício NÃO feito: faltam no Environment restauracao:$faltando (ver o cabeçalho do workflow)"
+            exit 1
+          fi
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      # O cliente tem que ser da versão 17 (o `pg_restore` do 16 recusa um dump gerado pelo 17).
+      - name: Cliente do Postgres 17 (PGDG)
+        run: |
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y --no-install-recommends postgresql-client-17
+          echo /usr/lib/postgresql/17/bin >> "$GITHUB_PATH"
+      - name: Escolher e baixar o dump do R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_LEITURA_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_LEITURA_SECRET_ACCESS_KEY }}
+          R2_S3_ENDPOINT: ${{ secrets.R2_S3_ENDPOINT }}
+          BACKUP_BUCKET: ${{ vars.BACKUP_BUCKET }}
+          ARQUIVO: ${{ inputs.arquivo }}
+          IDADE_MAXIMA_DIAS: ${{ inputs.idade_maxima_dias }}
+        run: |
+          set -euo pipefail
+          chave="$ARQUIVO"
+          if [ -z "$chave" ]; then
+            chave=$(aws s3api list-objects-v2 --endpoint-url "$R2_S3_ENDPOINT" --bucket "$BACKUP_BUCKET" \
+              --prefix semanal/ --query 'sort_by(Contents[?ends_with(Key, `.dump`)], &LastModified)[-1].Key' --output text)
+          fi
+          if [ -z "$chave" ] || [ "$chave" = "None" ]; then
+            echo "::error::Nenhum semanal/*.dump no bucket: o backup semanal não está enviando"
+            exit 1
+          fi
+          modificado=$(aws s3api head-object --endpoint-url "$R2_S3_ENDPOINT" --bucket "$BACKUP_BUCKET" \
+            --key "$chave" --query 'LastModified' --output text)
+          idade=$(( ( $(date -u +%s) - $(date -u -d "$modificado" +%s) ) / 86400 ))
+          echo "Dump: $chave (${idade} dia(s))"
+          if [ "$idade" -gt "$IDADE_MAXIMA_DIAS" ]; then
+            echo "::error::O dump $chave tem $idade dia(s), acima do limite de $IDADE_MAXIMA_DIAS: o backup semanal falhou, veja backup-pg-dump.yml"
+            exit 1
+          fi
+          aws s3 cp --endpoint-url "$R2_S3_ENDPOINT" "s3://$BACKUP_BUCKET/$chave" "$RUNNER_TEMP/restaurar.dump"
+          test -s "$RUNNER_TEMP/restaurar.dump"
+          echo "DUMP_CHAVE=$chave" >> "$GITHUB_ENV"
+      - name: Criar o banco do exercício (vazio)
+        env:
+          PGHOST: localhost
+          PGUSER: babel
+          PGPASSWORD: babel-ci
+        run: createdb drill
+      - name: Restaurar e contar
+        run: |
+          set -euo pipefail
+          node scripts/backup/drill-restauracao.mjs --dump "$RUNNER_TEMP/restaurar.dump" --destino "$DESTINO" | tee "$RUNNER_TEMP/contagens.md"
+          {
+            echo "## Exercício de restauração"
+            echo
+            echo "Dump: \`$DUMP_CHAVE\`. Só contagens de linhas (nenhum dado pessoal)."
+            echo
+            cat "$RUNNER_TEMP/contagens.md"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Apagar o banco e o dump do exercício
+        if: always()
+        env:
+          PGHOST: localhost
+          PGUSER: babel
+          PGPASSWORD: babel-ci
+        run: |
+          dropdb --if-exists drill || true
+          rm -f "$RUNNER_TEMP/restaurar.dump" "$RUNNER_TEMP/contagens.md"

@@ -442,6 +442,11 @@ recente do bucket `frasy-backups`, crie um banco VAZIO (nunca o de produção), 
 com o banco vivo e apague o banco do exercício (ele guarda dados pessoais). Se o último dump tiver mais de 8 dias, o
 workflow `backup-pg-dump.yml` falhou: veja a execução em Actions antes de qualquer outra coisa.
 
+Dois atalhos, ambos em `docs/deploy.md` ("Exercício de restauração"): `node scripts/backup/drill-restauracao.mjs`
+(local; faz o dump da origem, restaura num banco vazio e compara as contagens) e o workflow manual
+`restauracao-drill.yml` (restaura o último dump do R2 num Postgres descartável do runner; só roda depois que o dono
+criar o Environment `restauracao` com chaves S3 de leitura). Registre aqui a data e o resultado de cada exercício.
+
 Restaurar é **restaurar backup e subir** — não há migração reversa. As migrações são aplicadas no
 boot (`server/boot/preparar.ts`) com `statement_timeout = 0`: no `pg`, numa conexão própria; no PGlite, na mesma
 conexão do app, com o prazo restaurado no fim. A `DATABASE_URL` de quem migra precisa ser conexão direta ou pooler

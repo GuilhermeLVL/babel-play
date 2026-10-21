@@ -539,6 +539,31 @@ pg_restore --list AAAA-MM-DD.dump | head                 # abre e lista
 pg_restore --no-owner --schema=public --schema=drizzle --dbname="$PGDATABASE" AAAA-MM-DD.dump
 ```
 
+#### Exercício de restauração
+
+Um backup que nunca foi restaurado não é backup. Dois caminhos, uma vez por mês (anote em `docs/runbook.md` §8):
+
+- **Local, contra o banco vivo (compara contagens).** `scripts/backup/drill-restauracao.mjs` faz o `pg_dump` da origem
+  (ou usa `--dump <arquivo>`), restaura num banco VAZIO e compara `count(*)` de todas as tabelas de `public` mais
+  `drizzle.__drizzle_migrations`; imprime a tabela Markdown (só contagens) e sai 1 se divergir. Recusa (saída 2) destino
+  que já tenha tabela em `public`. Precisa do cliente 17 (`pg_dump`, `pg_restore`, `psql`) no PATH:
+
+```bash
+docker run -d --name pg-drill -e POSTGRES_PASSWORD=teste -p 5433:5432 postgres:17
+docker exec pg-drill createdb -U postgres drill
+export PGSSLROOTCERT=data/supabase-ca.crt        # a URL da origem usa sslmode=verify-full
+node scripts/backup/drill-restauracao.mjs --origem "$URL_DO_STAGING" --destino postgres://postgres:teste@localhost:5433/drill
+docker rm -f pg-drill                            # o banco do exercício tem dados pessoais
+```
+
+- **No GitHub, contra o dump do R2 (sem origem).** `.github/workflows/restauracao-drill.yml` (Actions →
+  "Exercício de restauração do Postgres" → Run workflow; `arquivo` vazio = o `semanal/*.dump` mais recente,
+  `idade_maxima_dias` = 8) baixa o dump com chaves S3 só de leitura, restaura num `postgres:17` de serviço, exige
+  tabelas e `__drizzle_migrations` ≥ 1, escreve as contagens no resumo da execução e apaga o banco (`if: always()`).
+  Nunca sobe o dump como artefato. **Só roda depois que o dono criar o Environment `restauracao`** com os secrets
+  `R2_S3_ENDPOINT`, `R2_LEITURA_ACCESS_KEY_ID`, `R2_LEITURA_SECRET_ACCESS_KEY` (token R2 só de leitura em
+  `frasy-backups`) e a variável `BACKUP_BUCKET` (`frasy-backups`).
+
 ### Backup em produção
 
 O backup de produção é o **`pg_dump` semanal no R2** (seção anterior) mais os backups gerenciados do Supabase. A

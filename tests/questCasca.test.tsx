@@ -168,10 +168,45 @@ describe('TrilhoDoQuest', () => {
       'Mais',
     ])
     fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
+    const tiles = [...screen.getByRole('dialog').querySelectorAll('.q-tile')]
+    expect(tiles.some((x) => x.textContent?.includes('Progresso'))).toBe(false)
     const perfil = [...screen.getByRole('dialog').querySelectorAll('.q-tile')].find((x) =>
       x.textContent?.includes('Seu perfil'),
     )
     expect(perfil?.querySelector('.q-pede-conta')).toBeTruthy()
+  })
+
+  it('no celular, sem conta, o ladrilho de Progresso no "Mais" diz que pede conta (R42: o trilho não leva o marcador)', () => {
+    const antes = window.matchMedia
+    window.matchMedia = ((q: string) => ({
+      matches: true,
+      media: q,
+      addEventListener() {},
+      removeEventListener() {},
+    })) as never
+    document.documentElement.dataset.px = 'on'
+    try {
+      render(
+        <TrilhoDoQuest
+          activeView="hub"
+          onChangeView={() => {}}
+          ageProfile="pro"
+          semConta
+          darkMode={false}
+          toggleDarkMode={() => {}}
+          soundEnabled
+          toggleSound={() => {}}
+        />,
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
+      const progresso = [...screen.getByRole('dialog').querySelectorAll('.q-tile')].find((x) =>
+        x.textContent?.includes('Progresso'),
+      )
+      expect(progresso?.querySelector('.q-pede-conta')).toBeTruthy()
+    } finally {
+      window.matchMedia = antes
+      delete document.documentElement.dataset.px
+    }
   })
 
   it('numa tela que só existe no "Mais", é o "Mais" que fica marcado', () => {

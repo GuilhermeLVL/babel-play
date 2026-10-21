@@ -25,8 +25,7 @@ import {
  *
  * O que este arquivo prende, na ordem em que a pessoa encontra:
  *  1. A PORTA. No computador e no tablet, o item "Cartões" do trilho; e no celular também (barra de
- *     cinco, R40); lá as telas Cartões e Jogar têm as abas "Cartões" e "Jogos" no alto, e a última usada
- *     fica guardada em `localStorage['babel.praticar']`.
+ *     cinco, R40); lá as telas Cartões e Jogar têm as abas "Cartões" e "Jogos" no alto.
  *  2. A ABA "HOJE" diz quantos cartões há para agora, e a rodada começa e termina na própria tela: o
  *     voltar da revisão devolve a `/cartoes`.
  *  3. TRAZER um `.apkg` pela folha "Trazer e levar" do "…": o que vem e o que não vem, ativar, o
@@ -82,8 +81,6 @@ async function abrirCatalogo(page: Page) {
   return catalogo
 }
 
-const ultimaPratica = (page: Page) => page.evaluate(() => localStorage.getItem('babel.praticar'))
-
 test.describe('Cartões: a porta', () => {
   test('o ladrilho do Início e o menu levam aos Cartões; no celular, também as abas do alto', async ({ page }) => {
     test.slow()
@@ -118,7 +115,6 @@ test.describe('Cartões: a porta', () => {
       await expect(nav.getByRole('button', { name: 'Praticar', exact: true })).toHaveCount(0)
       const abas = abasDePraticar(page)
       await expect(abas.getByRole('tab', { name: 'Cartões' })).toHaveAttribute('aria-selected', 'true')
-      expect(await ultimaPratica(page)).toBe('cartoes')
 
       await clicarRobusto(page, abas.getByRole('tab', { name: 'Jogos' }))
       await expect(page).toHaveURL(/\/jogar/)
@@ -133,12 +129,10 @@ test.describe('Cartões: a porta', () => {
       }).toPass({ timeout: 20_000 })
       const jogar = nav.getByRole('button', { name: 'Jogar', exact: true })
       await expect(jogar, 'o Jogar fica marcado na própria tela').toHaveAttribute('aria-current', 'page')
-      await expect.poll(() => ultimaPratica(page)).toBe('play')
 
       await fecharSobreposicoes(page)
       await clicarRobusto(page, abasDePraticar(page).getByRole('tab', { name: 'Cartões' }))
       await expect(page).toHaveURL(/\/cartoes$/)
-      await expect.poll(() => ultimaPratica(page)).toBe('cartoes')
     }
 
     // A tela, por qualquer das portas: um h1, a ficha de conteúdo, a aba "Hoje" escolhida, as duas abas e o "…".

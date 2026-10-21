@@ -58,7 +58,7 @@ import { instalarOrigemDoToque } from '../../lib/movimento/revelar';
 import { marcarLida, marcarTodasLidas, naoLidas, quando } from '../../lib/notificacoes';
 import { instalarAgua } from '../../lib/polimento/agua';
 import { instalarPolimento } from '../../lib/polimento/base';
-import { instalarCelular, lembrarPratica, NO_MAIS_NO_CELULAR, useBarraDeCinco } from '../../lib/polimento/celular';
+import { instalarCelular, NO_MAIS_NO_CELULAR, useBarraDeCinco } from '../../lib/polimento/celular';
 import { instalarCursor } from '../../lib/polimento/cursor';
 import { instalarDialogos } from '../../lib/polimento/dialogos';
 import { instalarFolhas } from '../../lib/polimento/folha';
@@ -200,10 +200,6 @@ export default function TrilhoDoQuest({
       delete document.documentElement.dataset.ctNav;
     };
   }, []);
-  /* A última das duas telas de praticar (Cartões ou Jogar) fica guardada para quem a lê. */
-  useEffect(() => {
-    if (activeView === 'cartoes' || activeView === 'play') lembrarPratica(activeView);
-  }, [activeView]);
   /* QUEM EU SOU: o que o menu da conta de sempre dizia (`MenuDaConta.tsx`): nome e e-mail, ou o estado
      real quando não há e-mail, e o aviso do convidado com os tetos. */
   const { perfil } = usePerfil();
@@ -261,6 +257,8 @@ export default function TrilhoDoQuest({
      carga baixava 916 kB em vez de 484 em segundo plano; os outros descem no toque. */
   const destinosDoMenu = NO_TRILHO.filter((id) => (id === 'capture' || id === 'play') && baixa(id)).join(' ');
   useEffect(() => precarregarNoOcioso(destinosDoMenu.split(' ').filter(Boolean)), [destinosDoMenu]);
+  /* R42: item do trilho não leva o marcador "Pede conta" (como a Biblioteca); o cadeado fica na própria tela
+     e no ladrilho do "Mais" no celular. */
   const noTrilho = cinco ? NO_TRILHO_NO_CELULAR : NO_TRILHO;
   const principais = noTrilho.map((id) => NAV_ITEMS.find((i) => i.id === id)).filter((i) => !!i);
   const foraDosSeis = NAV_ITEMS.filter((i) => !noTrilho.includes(i.id));

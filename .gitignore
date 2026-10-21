@@ -132,3 +132,4 @@ dist-anuncios/
 # Secrets do Worker (T4): só o modelo .example é versionado
 .secrets.*.json
 !.secrets.example.json
+.superpowers/

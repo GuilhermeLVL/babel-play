@@ -48,19 +48,6 @@ export function useBarraDeCinco(): boolean {
  */
 export const NO_MAIS_NO_CELULAR = ['interprete', 'library'] as const;
 
-/** As duas telas de praticar: a última aberta fica guardada (`CT.praticar`, `cartoes3.js:87`). */
-type TelaDePraticar = 'cartoes' | 'play';
-
-const CHAVE_DE_PRATICAR = 'babel.praticar';
-
-export function lembrarPratica(tela: TelaDePraticar): void {
-  try {
-    localStorage.setItem(CHAVE_DE_PRATICAR, tela);
-  } catch {
-    /* sem armazenamento: a próxima visita começa pelos Cartões */
-  }
-}
-
 const ROLAGEM = '.q-palco, .rolagem';
 
 /**

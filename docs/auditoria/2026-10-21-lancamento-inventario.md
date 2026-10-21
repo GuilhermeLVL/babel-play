@@ -237,3 +237,11 @@ que chegaram depois de as contas serem apagadas): o `DELETE` delas foi negado ao
 
 **Visto de passagem (fora do escopo):** o aviso "Nova versão disponível" aparece na primeira visita de todo
 navegador limpo ao staging (já anotado pela Task 6).
+
+### Dívidas reveladas pelas provas de cobrança (21/10/2026)
+
+- **Checkout que falha depois de criar o cliente no Asaas duplica o cliente**: o 1º `/assinar` do Essencial deu 502 intermitente após o cliente ser criado, e a linha local só é gravada no sucesso; repetir o checkout cria um 2º cliente. Corrigir: gravar/reusar o `customerId` pelo e-mail ou `externalReference` antes de criar a cobrança.
+- **Espera do checkout na tela**: o webhook do Asaas chegou entre ~3 s e ~2,5 min; a tela precisa esperar (ou consultar `/api/billing/status`) por pelo menos 3 min antes de dizer que algo deu errado.
+- **Estorno pelo painel não cancela a assinatura**: `PAYMENT_REFUNDED` revoga o plano, mas a assinatura segue ACTIVE no Asaas e cobraria de novo; decidir se o webhook cancela a assinatura no estorno ou se o runbook manda cancelar à mão.
+- **Pagamento "recebido em dinheiro"** (`RECEIVED_IN_CASH`) não concede plano (só `CONFIRMED`/`RECEIVED`): registrar no runbook para o operador não usar esse botão.
+- 32 linhas `ignorado` das sondagens ficaram em `billing_events` do staging (inofensivas; apagar só com decisão do dono).

@@ -24,9 +24,9 @@ import {
  * Memória saem do "…" (a Memória é tela de dentro, com voltar).
  *
  * O que este arquivo prende, na ordem em que a pessoa encontra:
- *  1. A PORTA. No computador e no tablet, o item "Cartões" do trilho; no celular, o "Praticar" da barra
- *     de cinco, que abre a última das duas telas de praticar (Cartões de início, guardado em
- *     `localStorage['babel.praticar']`) e tem as abas "Cartões" e "Jogos" no alto das duas.
+ *  1. A PORTA. No computador e no tablet, o item "Cartões" do trilho; e no celular também (barra de
+ *     cinco, R40); lá as telas Cartões e Jogar têm as abas "Cartões" e "Jogos" no alto, e a última usada
+ *     fica guardada em `localStorage['babel.praticar']`.
  *  2. A ABA "HOJE" diz quantos cartões há para agora, e a rodada começa e termina na própria tela: o
  *     voltar da revisão devolve a `/cartoes`.
  *  3. TRAZER um `.apkg` pela folha "Trazer e levar" do "…": o que vem e o que não vem, ativar, o
@@ -85,9 +85,7 @@ async function abrirCatalogo(page: Page) {
 const ultimaPratica = (page: Page) => page.evaluate(() => localStorage.getItem('babel.praticar'))
 
 test.describe('Cartões: a porta', () => {
-  test('o ladrilho do Início e o menu levam aos Cartões; no celular, "Praticar" e as abas do alto', async ({
-    page,
-  }) => {
+  test('o ladrilho do Início e o menu levam aos Cartões; no celular, também as abas do alto', async ({ page }) => {
     test.slow()
     await abrirTela(page, '/')
 
@@ -107,23 +105,17 @@ test.describe('Cartões: a porta', () => {
     await expect(page).toHaveURL(/\/$/)
     await assentar(page)
 
+    /* O item próprio no trilho, em toda largura (R40: na barra de cinco também). As abas de praticar só
+       existem na barra de cinco, e a última tela usada fica guardada. */
+    const item = nav.getByRole('button', { name: 'Cartões', exact: true })
+    await expect(item).toBeVisible()
+    await clicarRobusto(page, item)
+    await expect(page).toHaveURL(/\/cartoes$/)
+    await expect(item).toHaveAttribute('aria-current', 'page')
     if (!naBarraDeCinco(page)) {
-      // COMPUTADOR E TABLET: o item próprio no trilho, e nenhuma aba de praticar.
-      const item = nav.getByRole('button', { name: 'Cartões', exact: true })
-      await expect(item).toBeVisible()
-      await clicarRobusto(page, item)
-      await expect(page).toHaveURL(/\/cartoes$/)
-      await expect(item).toHaveAttribute('aria-current', 'page')
       await expect(abasDePraticar(page)).toHaveCount(0)
     } else {
-      /* CELULAR: o "Praticar" abre os Cartões (navegador novo, a última tela ainda é a de início) e
-         fica marcado; as abas do alto levam aos Jogos e de volta, e a escolha fica guardada. */
-      const praticar = nav.getByRole('button', { name: 'Praticar', exact: true })
-      await expect(nav.getByRole('button', { name: 'Cartões', exact: true })).toBeHidden()
-      await expect(nav.getByRole('button', { name: 'Jogar', exact: true })).toBeHidden()
-      await clicarRobusto(page, praticar)
-      await expect(page).toHaveURL(/\/cartoes$/)
-      await expect(praticar).toHaveAttribute('aria-current', 'page')
+      await expect(nav.getByRole('button', { name: 'Praticar', exact: true })).toHaveCount(0)
       const abas = abasDePraticar(page)
       await expect(abas.getByRole('tab', { name: 'Cartões' })).toHaveAttribute('aria-selected', 'true')
       expect(await ultimaPratica(page)).toBe('cartoes')
@@ -139,14 +131,9 @@ test.describe('Cartões: a porta', () => {
           { timeout: 1500 },
         )
       }).toPass({ timeout: 20_000 })
-      await expect(praticar, 'o "Praticar" fica marcado também no Jogar').toHaveAttribute('aria-current', 'page')
+      const jogar = nav.getByRole('button', { name: 'Jogar', exact: true })
+      await expect(jogar, 'o Jogar fica marcado na própria tela').toHaveAttribute('aria-current', 'page')
       await expect.poll(() => ultimaPratica(page)).toBe('play')
-
-      /* A ÚLTIMA TELA USADA: saindo para o Início, o "Praticar" volta ao Jogar, e não aos Cartões. */
-      await clicarRobusto(page, nav.getByRole('button', { name: /^(Início|Página Inicial)$/ }))
-      await expect(page).toHaveURL(/\/$/)
-      await clicarRobusto(page, praticar)
-      await expect(page).toHaveURL(/\/jogar/)
 
       await fecharSobreposicoes(page)
       await clicarRobusto(page, abasDePraticar(page).getByRole('tab', { name: 'Cartões' }))

@@ -42,34 +42,22 @@ export function useBarraDeCinco(): boolean {
 }
 
 /**
- * O destino do trilho que a barra de cinco não mostra e que passa a morar no começo do "Mais"
- * (`maisCel`, `cartoes3.js:14-15`). Desde a navegação de 10/10/2026 o trilho é Início, Capturar,
- * Intérprete, Biblioteca, Cartões, Jogar, e a barra é Início, Praticar, Capturar, Intérprete, Mais:
- * a Biblioteca sai da barra; Cartões e Jogar ficam atrás do "Praticar" (`PRATICAR`, abaixo).
- * Estatísticas e Personalizar já moram no "Mais" em todo aparelho.
+ * Os destinos do trilho do computador que a barra de cinco não mostra e que passam a morar no começo do
+ * "Mais" (`maisCel`, `cartoes3.js:14-15`; R40, 22/10/2026). O trilho do computador tem oito destinos; a
+ * barra é Início, Cartões, Capturar, Jogar e Mais. Progresso, Personalizar e Ajustes já moram no "Mais".
  */
-export const NO_MAIS_NO_CELULAR = ['library'] as const;
+export const NO_MAIS_NO_CELULAR = ['interprete', 'library'] as const;
 
-/** As duas telas atrás do "Praticar" da barra de cinco (`cartoes3.js:72, 93-96`). */
-export const PRATICAR = ['cartoes', 'play'] as const;
-export type TelaDePraticar = (typeof PRATICAR)[number];
+/** As duas telas de praticar: a última aberta fica guardada (`CT.praticar`, `cartoes3.js:87`). */
+type TelaDePraticar = 'cartoes' | 'play';
 
 const CHAVE_DE_PRATICAR = 'babel.praticar';
-
-/** A última das duas que a pessoa abriu: é a que o "Praticar" abre (`CT.praticar`, `cartoes3.js:87`). */
-export function ultimaPratica(): TelaDePraticar {
-  try {
-    return localStorage.getItem(CHAVE_DE_PRATICAR) === 'play' ? 'play' : 'cartoes';
-  } catch {
-    return 'cartoes';
-  }
-}
 
 export function lembrarPratica(tela: TelaDePraticar): void {
   try {
     localStorage.setItem(CHAVE_DE_PRATICAR, tela);
   } catch {
-    /* sem armazenamento: o "Praticar" abre os Cartões */
+    /* sem armazenamento: a próxima visita começa pelos Cartões */
   }
 }
 

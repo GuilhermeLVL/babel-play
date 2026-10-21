@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { irAoJogarPeloMenu, naBarraDeCinco, trilho } from './_helpers'
+import { irAoJogarPeloMenu, trilho } from './_helpers'
 
 /** O item de navegação, seja ele um link ou um botão, em qualquer das redações por perfil. */
 const porNome = (page: import('@playwright/test').Page, nome: RegExp) =>
@@ -27,10 +27,10 @@ test('a casca do app carrega e a navegação principal aparece', async ({ page }
 
   // A navegação real (nav/rail) expõe os itens como links/botões com role de navegação.
   await expect(porNome(page, /^(Início|Página Inicial)$/)).toBeVisible()
-  /* "Jogar" no trilho (ou "Praticar", no perfil sênior). Na barra de cinco do celular o destino é o
-     "Praticar", e o botão do Jogar existe no DOM escondido pelo CSS da barra — daí o nome exato lá. */
-  const jogar = naBarraDeCinco(page) ? 'Praticar' : /^(Jogar|Praticar)$/
-  await expect(trilho(page).getByRole('button', { name: jogar, exact: true })).toBeVisible()
+  /* "Jogar" no trilho (ou "Praticar", no perfil sênior), em toda largura: desde a R40 a barra de cinco do
+     celular tem o Jogar como botão próprio. */
+  const jogar = /^(Jogar|Praticar)$/
+  await expect(trilho(page).getByRole('button', { name: jogar })).toBeVisible()
 })
 
 test('a navegação leva até a tela de jogos (Praticar) e ela renderiza', async ({ page }) => {
@@ -41,9 +41,7 @@ test('a navegação leva até a tela de jogos (Praticar) e ela renderiza', async
      `clicarRobusto` (dentro de `irAoJogarPeloMenu`) fecha as sobreposições e tenta de novo — o mesmo
      laço das outras suítes.
 
-     DESDE A NAVEGAÇÃO DE 10/10/2026 o caminho depende da largura: no trilho o Jogar tem botão próprio;
-     na barra de cinco do celular ele mora atrás do "Praticar", que abre os Cartões na primeira vez, e
-     a aba "Jogos" do alto da tela leva ao Jogar. */
+     DESDE A R40 (22/10/2026) o Jogar tem botão próprio no trilho e na barra de cinco do celular. */
   await expect(trilho(page)).toBeVisible()
   await irAoJogarPeloMenu(page)
 

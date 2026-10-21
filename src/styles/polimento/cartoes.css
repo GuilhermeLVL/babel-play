@@ -323,8 +323,6 @@ html[data-quest-novo='true'] .ct-fim > .q-faixa { margin-top: auto; }
   html[data-px='on'][data-ct-nav='a'] .q-trilho > .q-item:nth-of-type(5) { display: grid; order: 2; }
   html[data-px='on'][data-ct-nav='a'] .q-trilho > .q-item:nth-of-type(6) { display: grid; order: 4; }
   html[data-px='on'][data-ct-nav='a'] .q-trilho > .q-item:is(:nth-of-type(3), :nth-of-type(4)) { display: none; }
-  html[data-px='on'][data-ct-nav='b'] .q-trilho > .q-item:nth-of-type(5) { display: grid; order: 2; }
-  html[data-px='on'][data-ct-nav='b'] .q-trilho > .q-item:is(:nth-of-type(4), :nth-of-type(6)) { display: none; }
   html[data-px='on'] .q-trilho .ct-selo-do-dia { top: 0; right: 10%; min-width: 18px; height: 18px; font-size: 11px; }
   html[data-px='on'] .q-casca.ct-em-estudo .q-trilho { transform: translateY(150%); }
   html[data-px='on'] .q-casca.ct-em-estudo .q-palco { padding-bottom: 24px; }

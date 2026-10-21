@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 /**
  * O DESENHO NOVO NO CELULAR (08/10/2026) — a versão de celular do protótipo de polimento:
- *   · a barra flutuante de cinco destinos (`celular.css:57-62` e `cartoes.css:322-323` contam os botões
- *     pela posição: o trilho precisa ter os oito do protótipo, com o "Mais" em oitavo);
- *   · desde a navegação de 10/10/2026 a barra é Início, Praticar, Capturar, Intérprete, Mais
- *     (`CT_NAV.b.cel`, `cartoes3.js:15`): o quinto botão vira o "Praticar" (Cartões e Jogar), a
- *     Biblioteca vira o primeiro ladrilho do "Mais" e o destaque dela vai para o "Mais";
+ *   · a barra flutuante de cinco destinos (`celular.css` conta os botões pela posição: no celular o DOM
+ *     tem só Início, Capturar, Cartões, Jogar e o "Mais" em quinto);
+ *   · desde a R40 (22/10/2026) a barra é Início, Cartões, Capturar, Jogar, Mais: Intérprete e Biblioteca
+ *     viram os primeiros ladrilhos do "Mais" (e cartão no Início), Progresso e Planos também moram lá, e
+ *     o destaque deles vai para o "Mais";
  *   · a barra some ao rolar e volta ao subir, no fim e em toda troca de tela (`sentidos.js:279-304`);
  *   · o "Mais" sobe de baixo e fecha arrastado (`prototipo.js:428-469, 502-509, 546-549`).
  * Os números são os do protótipo: se um mudar, o teste acusa.
@@ -96,62 +96,56 @@ const montar = (activeView = 'hub', extra: Record<string, unknown> = {}) => {
 const botoes = (c: HTMLElement) => [...c.querySelectorAll<HTMLElement>('.q-trilho > button.q-item')]
 
 describe('a barra de cinco destinos', () => {
-  it('o trilho tem os oito botões do protótipo, na ordem que `celular.css` conta, com o "Mais" em oitavo', () => {
+  it('o trilho do celular tem cinco botões, na ordem do DOM que `celular.css` conta, com o "Mais" em quinto', () => {
     const { container } = montar()
     expect(botoes(container).map((b) => b.querySelector('span')?.textContent)).toEqual([
       'Início',
       'Capturar',
-      'Intérprete',
-      'Biblioteca',
-      'Praticar',
+      'Cartões',
       'Jogar',
-      'Buscar',
       'Mais',
     ])
-    expect(botoes(container)[7].classList.contains('q-mais-botao')).toBe(true)
-    /* Quem escolhe os cinco da barra é o CSS do protótipo, pela variante da navegação (`cartoes.css:322-323`). */
+    expect(botoes(container)[4].classList.contains('q-mais-botao')).toBe(true)
+    expect(screen.queryByRole('button', { name: 'Praticar' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Planos' })).toBeNull()
     expect(document.documentElement.dataset.ctNav).toBe('b')
   })
 
-  it('o "Praticar" abre a última das duas telas (Cartões de início) e fica marcado nas duas', async () => {
-    const primeiro = montar()
-    fireEvent.click(screen.getByRole('button', { name: 'Praticar' }))
-    expect(primeiro.ir).toHaveBeenLastCalledWith('cartoes')
-    primeiro.unmount()
-
-    for (const tela of ['cartoes', 'play']) {
+  it('Cartões e Jogar são botões próprios, cada um marcado na sua tela', async () => {
+    for (const [tela, nome] of [
+      ['cartoes', 'Cartões'],
+      ['play', 'Jogar'],
+    ]) {
       const { container, ir, unmount } = montar(tela)
       await act(vez)
       const marcados = [...container.querySelectorAll('.q-item[aria-current="page"]')]
       expect(
         marcados.map((b) => b.querySelector('span')?.textContent),
         tela,
-      ).toEqual(['Praticar'])
-      /* Estar na tela a faz a última: é para ela que o botão volta. */
-      fireEvent.click(screen.getByRole('button', { name: 'Praticar' }))
+      ).toEqual([nome])
+      fireEvent.click(screen.getByRole('button', { name: nome }))
       expect(ir).toHaveBeenLastCalledWith(tela)
       unmount()
     }
   })
 
-  it('o "Praticar" leva o número do dia dos cartões', () => {
+  it('o botão dos Cartões leva o número do dia', () => {
     const { container } = montar('hub', { cartoesHoje: 17 })
-    expect(botoes(container)[4].querySelector('.ct-selo-do-dia')?.textContent).toBe('17')
+    expect(botoes(container)[2].querySelector('.ct-selo-do-dia')?.textContent).toBe('17')
   })
 
-  it('a busca do trilho, no celular, não fala de teclado: sem tecla, sem atalho, e abre a busca', () => {
+  it('a busca, no celular, não está no trilho: fica no "Mais", sem fala de teclado', () => {
     const { aoBuscar } = montar()
-    const busca = screen.getByTestId('busca-no-trilho')
-    expect(busca.querySelector('.q-tecla')).toBeNull()
+    expect(screen.queryByTestId('busca-no-trilho')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
+    const busca = screen.getByRole('button', { name: 'Buscar' })
     expect(busca.hasAttribute('aria-keyshortcuts')).toBe(false)
-    expect(busca.hasAttribute('title')).toBe(false)
-    expect(busca.getAttribute('aria-label')).toBe('Buscar')
     fireEvent.click(busca)
     expect(aoBuscar).toHaveBeenCalledTimes(1)
   })
 
-  it('na Biblioteca (fora da barra), em Estatísticas e em Personalizar o destaque é do "Mais"', async () => {
-    for (const tela of ['library', 'estatisticas', 'loja']) {
+  it('no Intérprete, na Biblioteca, no Progresso, em Planos e em Personalizar (fora da barra) o destaque é do "Mais"', async () => {
+    for (const tela of ['interprete', 'library', 'estatisticas', 'planos', 'loja']) {
       const { container, unmount } = montar(tela)
       /* A marca da camada (`data-px`) chega com o trilho montado: a barra de cinco acompanha. */
       await act(vez)
@@ -164,33 +158,25 @@ describe('a barra de cinco destinos', () => {
     }
   })
 
-  it('os destinos escondidos não são achados pela camada; o "Praticar" responde por Cartões e por Jogar', () => {
+  it('cada botão do trilho do celular é achado pela camada pela própria rota', () => {
     const { container } = montar()
-    expect(botoes(container).map((b) => b.dataset.pxRota ?? null)).toEqual([
-      'hub',
-      'capture',
-      'interprete',
-      null,
-      'cartoes',
-      null,
-      null,
-      null,
-    ])
-    expect(botoes(container)[4].dataset.pxTambem).toBe('play')
+    expect(botoes(container).map((b) => b.dataset.pxRota ?? null)).toEqual(['hub', 'capture', 'cartoes', 'play', null])
   })
 
-  it('o "Mais" começa com a Biblioteca, depois Estatísticas e Personalizar, e o toque leva à tela', () => {
+  it('o "Mais" começa com Intérprete e Biblioteca, depois Progresso e Personalizar, sem Planos; o toque leva à tela', () => {
     const { ir } = montar()
     fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
     const ladrilhos = [...screen.getByRole('dialog').querySelectorAll('.q-grade .q-tile b')].map((b) => b.textContent)
-    expect(ladrilhos.slice(0, 3)).toEqual(['Biblioteca', 'Estatísticas', 'Personalizar'])
+    expect(ladrilhos.slice(0, 4)).toEqual(['Intérprete', 'Biblioteca', 'Progresso', 'Personalizar'])
     expect(ladrilhos.filter((r) => r === 'Biblioteca')).toHaveLength(1)
     expect(ladrilhos).not.toContain('Jogar')
+    expect(ladrilhos).not.toContain('Planos')
+    expect(screen.getByTestId('planos-no-mais')).toBeTruthy()
     fireEvent.click(screen.getByRole('dialog').querySelector('.q-grade .q-tile')!)
-    expect(ir).toHaveBeenLastCalledWith('library')
+    expect(ir).toHaveBeenLastCalledWith('interprete')
   })
 
-  it('acima de 720 px (o tablet) vale o trilho de seis: Biblioteca e Cartões no trilho, sem "Praticar"', () => {
+  it('acima de 720 px (o tablet) vale o trilho de oito: Biblioteca, Progresso e Planos no trilho e fora do "Mais"', () => {
     estreita = false
     const { container } = montar('library')
     expect(barraDeCinco()).toBe(false)
@@ -198,14 +184,13 @@ describe('a barra de cinco destinos', () => {
     expect(
       botoes(container)
         .map((b) => b.dataset.pxRota ?? null)
-        .slice(0, 6),
-    ).toEqual(['hub', 'capture', 'interprete', 'library', 'cartoes', 'play'])
-    expect(botoes(container)[4].querySelector('span')?.textContent).toBe('Cartões')
-    expect(botoes(container)[4].dataset.pxTambem).toBeUndefined()
+        .slice(0, 8),
+    ).toEqual(['hub', 'capture', 'interprete', 'cartoes', 'play', 'library', 'estatisticas', 'planos'])
     fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
     const ladrilhos = [...screen.getByRole('dialog').querySelectorAll('.q-grade .q-tile b')].map((b) => b.textContent)
-    expect(ladrilhos).not.toContain('Biblioteca')
-    expect(ladrilhos.slice(0, 2)).toEqual(['Estatísticas', 'Personalizar'])
+    for (const repetido of ['Biblioteca', 'Intérprete', 'Progresso', 'Planos'])
+      expect(ladrilhos).not.toContain(repetido)
+    expect(ladrilhos.slice(0, 2)).toEqual(['Personalizar', 'Ajustes'])
   })
 
   it('girar o aparelho troca de uma para a outra sem recarregar', () => {
@@ -223,7 +208,7 @@ describe('a barra de cinco destinos', () => {
     await act(vez)
     expect(document.documentElement.dataset.px).toBe('off')
     expect(container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Biblioteca')
-    expect(botoes(container)[4].querySelector('span')?.textContent).toBe('Cartões')
+    expect(botoes(container)[3].querySelector('span')?.textContent).toBe('Cartões')
   })
 })
 

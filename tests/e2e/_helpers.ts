@@ -3,14 +3,13 @@ import { expect, type Locator, type Page } from '@playwright/test'
 /**
  * O QUE AS SUÍTES DIVIDEM, no desenho que virou o único (09/10/2026).
  *
- * A casca é o trilho de ícones (`nav.q-trilho`): Início, Capturar, Intérprete, Biblioteca, Cartões,
- * Jogar, Buscar e "Mais" (navegação de 10/10/2026). Abaixo de 720 px ele vira uma barra de cinco
- * destinos (Início, Praticar, Capturar, Intérprete, Mais): "Praticar" abre a última das duas telas
- * de praticar (Cartões de início, `localStorage['babel.praticar']`), e no alto das duas há as abas
- * `abas-de-praticar` ("Cartões" e "Jogos") para ir de uma à outra; o Jogar não tem botão próprio na
- * barra, e a Biblioteca vira o primeiro ladrilho do "Mais". O painel "Mais" (`.q-mais`, o diálogo
- * "Mais destinos") traz, em todo aparelho, Estatísticas, Personalizar, Ajustes, o perfil, a ajuda,
- * Sobre e Planos — e, no pé, o tema claro/escuro, o som dos toques e o Modo desempenho. O
+ * A casca é o trilho de ícones (`nav.q-trilho`): Início, Capturar, Intérprete, Cartões, Jogar,
+ * Biblioteca, Progresso, Planos, Buscar e "Mais" (R40, 22/10/2026). Abaixo de 720 px ele vira uma barra
+ * de cinco destinos (Início, Cartões, Capturar, Jogar, Mais); no alto das duas telas de praticar há as
+ * abas `abas-de-praticar` ("Cartões" e "Jogos"), e Intérprete e Biblioteca viram os primeiros ladrilhos
+ * do "Mais" (e cartões no Início). O painel "Mais" (`.q-mais`, o diálogo "Mais destinos") traz
+ * Personalizar, Ajustes, o perfil, a ajuda, Sobre (no celular, também Progresso) e a faixa "Planos e
+ * Premium" — e, no pé, o tema claro/escuro, o som dos toques e o Modo desempenho. O
  * Vocabulário deixou de ser destino: é a aba "Palavras" da tela Cartões (`/cartoes/palavras`).
  *
  * O Jogar abre no lobby (`data-testid="lobby-do-quest"`), direto: a sala da primeira visita saiu em
@@ -274,19 +273,10 @@ export async function abrirMais(page: Page): Promise<Locator> {
 
 /**
  * VAI AO JOGAR PELO MENU, como a pessoa vai em cada largura: no trilho (computador e tablet) o Jogar
- * tem botão próprio; na barra de cinco do celular ele mora atrás do "Praticar", que abre a última das
- * duas telas de praticar — e, se abrir os Cartões, a aba "Jogos" do alto leva ao Jogar.
+ * tem botão próprio, e na barra de cinco do celular também (R40: Início, Cartões, Capturar, Jogar, Mais).
  */
 export async function irAoJogarPeloMenu(page: Page) {
-  if (!naBarraDeCinco(page)) {
-    await clicarRobusto(page, trilho(page).locator('.q-item[data-px-rota="play"]'))
-  } else {
-    await clicarRobusto(page, trilho(page).getByRole('button', { name: 'Praticar', exact: true }))
-    await expect(page).toHaveURL(/\/(cartoes|jogar)/, { timeout: 10_000 })
-    if (!/\/jogar/.test(new URL(page.url()).pathname)) {
-      await clicarRobusto(page, abasDePraticar(page).getByRole('tab', { name: 'Jogos' }))
-    }
-  }
+  await clicarRobusto(page, trilho(page).locator('.q-item[data-px-rota="play"]'))
   await expect(page).toHaveURL(/\/jogar/, { timeout: 10_000 })
 }
 

@@ -10,7 +10,7 @@
  *   3. `NODE_ENV=production` sem `SECRET_KEY` → aborta com instrução clara, em vez de
  *      cifrar com chave adivinhável.
  */
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto'
+import { createCipheriv, createDecipheriv, hkdfSync, randomBytes, scryptSync } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -77,15 +77,36 @@ function resolveRawKey(): string {
   }
 }
 
-/* PREGUIÇOSA (Fase 2, boot preguiçoso): nenhuma leitura de env ou disco, nenhum `scryptSync`, no import.
+/**
+ * Deriva uma chave de 32 bytes de `SECRET_KEY`. Função pura (sem env, sem disco, sem memo).
+ *
+ * - `hkdf:<64 hex>`: HKDF-SHA256 sobre os 32 bytes aleatórios; custa microssegundos. Caminho
+ *   recomendado no Worker, onde o scrypt custava 90–160 ms de CPU por isolate novo (medido na Fase 4).
+ *   Valor malformado LANÇA: nunca cai no scrypt, senão um erro de digitação trocaria a chave em silêncio.
+ * - qualquer outro valor: scrypt, byte a byte como sempre foi (quem já cifrou segredos não é afetado).
+ */
+export function derivarChave(raw: string, info: 'babel-play-web:secrets' | 'babel-play-web:hash'): Buffer {
+  if (raw.startsWith('hkdf:')) {
+    const hex = raw.slice('hkdf:'.length)
+    if (!/^[0-9a-f]{64}$/i.test(hex)) {
+      throw new Error('SECRET_KEY com prefixo hkdf: precisa de 64 caracteres hexadecimais (openssl rand -hex 32)')
+    }
+    return Buffer.from(hkdfSync('sha256', Buffer.from(hex, 'hex'), '', info, 32))
+  }
+  return scryptSync(raw, info, 32)
+}
+
+/* PREGUIÇOSA (Fase 2, boot preguiçoso): nenhuma leitura de env ou disco, nenhuma derivação, no import.
    Num Worker o módulo é carregado antes de haver ambiente; aqui a chave nasce no primeiro uso e fica
-   memoizada no processo (ou isolate). Em produção, sem `SECRET_KEY`, o primeiro uso lança como antes. */
+   memoizada no processo (ou isolate). Preguiça importa porque o scrypt custa 90–160 ms de CPU por isolate
+   no Worker (Fase 4); com `SECRET_KEY=hkdf:<64 hex>` a derivação cai para microssegundos.
+   Em produção, sem `SECRET_KEY`, o primeiro uso lança como antes. */
 let chave: Buffer | undefined
 let chaveDeHash: string | undefined
 
 /** A chave de cifra (AES-256-GCM), derivada no primeiro uso. */
 export function obterChave(): Buffer {
-  chave ??= scryptSync(resolveRawKey(), 'babel-play-web:secrets', 32)
+  chave ??= derivarChave(resolveRawKey(), 'babel-play-web:secrets')
   return chave
 }
 
@@ -98,7 +119,7 @@ export function obterChave(): Buffer {
  * substituiu o IP em claro que a versão Cloudflare gravava.
  */
 export function obterChaveDeHash(): string {
-  chaveDeHash ??= scryptSync(resolveRawKey(), 'babel-play-web:hash', 32).toString('hex')
+  chaveDeHash ??= derivarChave(resolveRawKey(), 'babel-play-web:hash').toString('hex')
   return chaveDeHash
 }
 

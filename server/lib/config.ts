@@ -845,7 +845,8 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     nome: 'SECRET_KEY',
     exigencia: 'producao',
     criticidade: 'impede-servico',
-    paraQue: 'cifra os segredos de credencial de IA guardados no banco (server/crypto.ts)',
+    paraQue:
+      'cifra os segredos de credencial de IA guardados no banco (server/crypto.ts); no Worker use `hkdf:` + 64 hex: dispensa o scrypt de 90–160 ms por isolate',
   },
   {
     nome: 'SELF_HOST',

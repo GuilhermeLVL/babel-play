@@ -51,6 +51,15 @@ Gerar a `SECRET_KEY`:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
+No Worker, prefira o formato `hkdf:` (64 hex): a chave é derivada por HKDF em microssegundos, sem o
+scrypt de 90–160 ms de CPU por isolate novo. Um `hkdf:` malformado derruba o boot (não cai no scrypt).
+
+```bash
+echo "hkdf:$(openssl rand -hex 32)"
+```
+
+Trocar a `SECRET_KEY` (ou o formato dela) invalida os segredos já cifrados na tabela `secrets`.
+
 ### Definidas na imagem
 
 `DATABASE_URL=file:/data/babel.db` (o `Dockerfile` ainda define isto; o preflight de produção recusa `file:`, então defina `DATABASE_URL=postgres://...`) · `AUDIO_DIR=/data/audio` · `HOST=0.0.0.0` · `PORT=3000`
@@ -224,7 +233,7 @@ docker run --rm -d --name pg-worker -e POSTGRES_PASSWORD=teste -p 5433:5432 post
 DATABASE_URL=postgres://postgres:teste@localhost:5433/postgres npm run db:migrate
 
 # 2. segredos locais em .dev.vars (fora do git; nunca versionar)
-#    SECRET_KEY=<64 hex aleatórios>          (openssl rand -hex 32)
+#    SECRET_KEY=hkdf:<64 hex aleatórios>     (echo "hkdf:$(openssl rand -hex 32)")
 #    SUPABASE_URL=https://<projeto>.supabase.co   (o JWKS do login; AUTH_REQUIRED=1 já vem do wrangler.jsonc)
 
 # 3. subir (http://localhost:8787); /api/* vai ao Express, o resto aos assets (SPA)

@@ -25,7 +25,7 @@
  *     `escala/sonda-processo.cjs` (CPU, RSS, event loop) e `dns-falso.cjs` (ver o arquivo).
  *
  * CADA NÍVEL: N VUs (`cenarios.mjs`), cada um com o PRÓPRIO usuário e token e — salvo `--mesmo-ip`
- * (o cenário "escola") — o próprio IP em X-Forwarded-For (TRUST_PROXY=1, como atrás do Fly).
+ * (o cenário "escola") — o próprio IP em X-Forwarded-For (TRUST_PROXY=1, como atrás de um proxy).
  * Entram escalonados ao longo de `--rampa` s; o que conta é a janela de `--duracao` s DEPOIS da rampa.
  *
  * MEDE por classe e por etapa: p50/p95/p99, req/s, % de erro (5xx, socket, timeout, 4xx
@@ -165,7 +165,6 @@ async function subirServidor(banco, sonda, rotulo = '') {
     HOST: '127.0.0.1',
     DATABASE_URL: `pglite:${banco.replace(/\\/g, '/')}`,
     AUDIO_DIR: audioDir,
-    BACKUP_DIARIO: '0',
     SECRET_KEY: randomBytes(32).toString('hex'),
     TRUST_PROXY: '1',
     LOG_LEVEL: 'error',

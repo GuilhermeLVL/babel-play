@@ -199,15 +199,6 @@ describe('estado de agora: disjuntor, uploads, cache', () => {
     expect(valor(corpo, 'ia_cache_traducao_nivel_total{nivel="l2",resultado="acerto"}')).toBe(1)
     expect(valor(corpo, 'ia_cache_traducao_nivel_total{nivel="l2",resultado="falta"}')).toBe(2)
   })
-
-  it('backup: último sucesso, tamanho e falhas', async () => {
-    m.observarBackup({ ok: true, bytes: 1234 })
-    m.observarBackup({ ok: false })
-    const corpo = await scrape()
-    expect(valor(corpo, 'backup_ultimo_sucesso_timestamp_segundos')).toBeGreaterThan(1_700_000_000)
-    expect(valor(corpo, 'backup_ultimo_tamanho_bytes')).toBe(1234)
-    expect(valor(corpo, 'backup_falhas_total')).toBe(1)
-  })
 })
 
 describe('a porta INTERNA de métricas (aposentada na Task 10 da Fase 2)', () => {

@@ -290,33 +290,6 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'só para TESTE: `1` faz o Node responder como o Worker em `temDisco()` (server/lib/runtime.ts) — upload em stream para o R2, sem temporário em disco. Nunca em produção',
   },
   {
-    nome: 'BACKUP_DIARIO',
-    exigencia: 'opcional',
-    criticidade: 'degrada-capacidade',
-    paraQue:
-      '1 liga o job do snapshot diário do banco. No Postgres ele só registra que NÃO há backup automático neste build (backup: `scripts/backup.mjs`; com Supabase, também os backups gerenciados; o pg_dump semanal no CI é da Fase 2) (server/operacao/snapshot.ts)',
-  },
-  {
-    nome: 'BACKUP_HEARTBEAT_URL',
-    exigencia: 'opcional',
-    criticidade: 'degrada-capacidade',
-    paraQue:
-      'URL chamada (GET) só depois de um snapshot diário enviado E conferido — o heartbeat do UptimeRobot alerta quando ela deixa de ser chamada',
-  },
-  {
-    nome: 'BACKUP_HORA_UTC',
-    exigencia: 'opcional',
-    criticidade: 'degrada-capacidade',
-    paraQue: 'hora UTC (0–23) do snapshot diário; sem ela, 6 (03h em Brasília, o vale do tráfego)',
-  },
-  {
-    nome: 'BACKUP_S3_BUCKET',
-    exigencia: 'opcional',
-    criticidade: 'degrada-capacidade',
-    paraQue:
-      'bucket dos snapshots diários; sem ela, o mesmo `S3_BUCKET` da mídia. Um bucket próprio deixa a regra de retenção (30 dias) separada da mídia',
-  },
-  {
     nome: 'CEREBRAS_API_KEY',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
@@ -506,7 +479,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'quanto o servidor HTTP mantem um socket ocioso, em ms (padrao 65.000: acima dos 60 s do proxy do Fly, para quem fecha a conexao parada ser o proxy). O tempo dos cabecalhos e derivado: este valor + 1 s. Ver server/http/temposLimite.ts',
+      'quanto o servidor HTTP mantem um socket ocioso, em ms (padrao 65.000: acima dos 60 s presumidos para o proxy da frente, para quem fecha a conexao parada ser o proxy). O tempo dos cabecalhos e derivado: este valor + 1 s. Ver server/http/temposLimite.ts',
   },
   {
     nome: 'HTTP_REQUEST_TIMEOUT_MS',
@@ -759,7 +732,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'segredo que o Cloudflare injeta no cabeçalho `x-origem-segredo` (Transform Rule). Definido, requisição sem ele é recusada com 403 — fecha o acesso direto a `<app>.fly.dev`, que pularia o WAF e forjaria o `X-Forwarded-For`. `/api/health` e `/api/ready` ficam de fora (as sondas do Fly não passam pelo Cloudflare)',
+      'segredo que o Cloudflare injeta no cabeçalho `x-origem-segredo` (Transform Rule). Definido, requisição sem ele é recusada com 403 — fecha o acesso direto ao endereço de origem, que pularia o WAF e forjaria o `X-Forwarded-For`. `/api/health` e `/api/ready` ficam de fora (as sondas de saúde do orquestrador não passam pelo Cloudflare)',
   },
   {
     nome: 'POOL_GRATUITO_FRACAO_RECEITA',
@@ -931,7 +904,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'em quantos saltos de proxy reverso confiar para resolver `req.ip` (`1`, `true`, `false`, `loopback` ou lista de sub-redes). OBRIGATÓRIA com NODE_ENV=production — o boot aborta sem ela (GAP-004); Cloudflare → Fly.io são 2 saltos. Ausente fora de produção, o Express não confia em `X-Forwarded-For` — atrás de proxy isso faz TODA origem virar a mesma chave do limitador e da trava do ranking; ligada sem proxy à frente, o cliente escolhe a própria chave e o limitador deixa de existir',
+      'em quantos saltos de proxy reverso confiar para resolver `req.ip` (`1`, `true`, `false`, `loopback` ou lista de sub-redes). OBRIGATÓRIA com NODE_ENV=production — o boot aborta sem ela (GAP-004); Cloudflare → Worker: 1; Cloudflare → Caddy/Nginx → Node: 2. Ausente fora de produção, o Express não confia em `X-Forwarded-For` — atrás de proxy isso faz TODA origem virar a mesma chave do limitador e da trava do ranking; ligada sem proxy à frente, o cliente escolhe a própria chave e o limitador deixa de existir',
   },
   /* As três `VITE_*` abaixo são de BUILD (o Vite as embute no bundle). O servidor as lê só para a
      CSP enxergar os mesmos hosts que o bundle chama; o `Dockerfile` as repete como `ENV` do runtime. */
@@ -1156,7 +1129,7 @@ export function erroDeTrustProxyEmProducao(env: NodeJS.ProcessEnv = process.env)
   if (env.TRUST_PROXY?.trim()) return null
   return (
     'TRUST_PROXY é obrigatória em produção (NODE_ENV=production): declare quantos proxies há na frente ' +
-    '(ex.: 2 para Cloudflare → Fly.io, 1 para um Caddy/Nginx) ou TRUST_PROXY=false se o app recebe a ' +
+    '(ex.: 1 para o Worker atrás do Cloudflare ou para um Caddy/Nginx; 2 para Cloudflare → Nginx → Node) ou TRUST_PROXY=false se o app recebe a ' +
     'conexão direto. Sem ela, o limitador por IP enxerga todo mundo como o proxy.'
   )
 }
@@ -1165,7 +1138,7 @@ export function erroDeTrustProxyEmProducao(env: NodeJS.ProcessEnv = process.env)
  * O segredo que o proxy da frente (Cloudflare) injeta em toda requisição, ou `undefined`.
  *
  * Existe porque `TRUST_PROXY` confia no `X-Forwarded-For` montado pela cadeia da frente — e quem
- * chega DIRETO no endereço do Fly (`<app>.fly.dev`), pulando o Cloudflare, monta o cabeçalho que
+ * chega DIRETO no endereço de origem, pulando o Cloudflare, monta o cabeçalho que
  * quiser. Com o segredo definido, requisição sem ele é recusada (ver `server/http/origemProtegida.ts`).
  */
 export function segredoDeOrigem(env: NodeJS.ProcessEnv = process.env): string | undefined {
@@ -1184,21 +1157,6 @@ export function configDoSentry(
     ambiente: env.SENTRY_ENVIRONMENT?.trim() || env.NODE_ENV || undefined,
     release: env.SENTRY_RELEASE?.trim() || undefined,
   }
-}
-
-/**
- * O snapshot diário está ligado? Devolve a hora UTC e o heartbeat, ou `null`.
- *
- * `'1'` exato, pelo mesmo motivo de `metricasHabilitadas`: `BACKUP_DIARIO=0` é como se DESLIGA.
- * Hora fora de 0–23 cai no padrão em vez de virar um temporizador de horas negativas.
- */
-export function configDoBackupDiario(
-  env: NodeJS.ProcessEnv = process.env,
-): { horaUtc: number; heartbeatUrl?: string } | null {
-  if (env.BACKUP_DIARIO !== '1') return null
-  const hora = Number(env.BACKUP_HORA_UTC)
-  const heartbeatUrl = env.BACKUP_HEARTBEAT_URL?.trim() || undefined
-  return { horaUtc: Number.isInteger(hora) && hora >= 0 && hora <= 23 ? hora : 6, heartbeatUrl }
 }
 
 /**
@@ -1537,7 +1495,7 @@ export function cadastroLigado(env: NodeJS.ProcessEnv = process.env): boolean {
  * o MVP sobe só com o mensal até o jurídico validar os Termos §3–§4.
  *
  * FAIL-SAFE (auditoria de 15/10/2026, B4): ausente, vazia ou qualquer valor que não seja `1` = FECHADO.
- * Antes ausente era aberto, e esquecer a variável no `fly secrets` punha à venda, de uma vez, o anual
+ * Antes ausente era aberto, e esquecer a variável nos secrets do host punha à venda, de uma vez, o anual
  * com os Termos ainda não validados. Ao contrário de `CHECKOUT_ENABLED`/`SIGNUP_ENABLED` (emergência:
  * nascer fechadas seria um lançamento que não vende sem ninguém saber por quê), abrir o anual é um ato
  * deliberado. Só fecha a VENDA: quem já tem o anual segue com ele, e o webhook continua concedendo o ano

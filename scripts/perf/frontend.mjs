@@ -68,7 +68,6 @@ if (remoto) {
       DATABASE_URL: `pglite:${banco.replace(/\\/g, '/')}`,
       MIGRATIONS_DIR: path.join(RAIZ, 'server/db/migrations-pg'),
       AUDIO_DIR: path.join(saida, 'audio'),
-      BACKUP_DIARIO: '0',
       SECRET_KEY: randomBytes(32).toString('hex'),
       AUTH_REQUIRED: '0',
       SELF_HOST: '1',

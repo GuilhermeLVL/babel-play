@@ -186,7 +186,7 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   })
 
   /* ORIGEM PROTEGIDA (GAP-004): com `ORIGEM_SEGREDO`, só quem passou pelo Cloudflare entra — o acesso
-     direto a `<app>.fly.dev` pularia o WAF e forjaria o `X-Forwarded-For` em que o `TRUST_PROXY`
+     direto ao endereço de origem pularia o WAF e forjaria o `X-Forwarded-For` em que o `TRUST_PROXY`
      confia. Ver `server/http/origemProtegida.ts`. */
   const segredo = segredoDeOrigem()
   if (segredo) app.use(exigirOrigem(segredo))

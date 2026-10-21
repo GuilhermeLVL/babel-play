@@ -41,12 +41,6 @@ function completo(): Record<string, string> {
     S3_BUCKET: 'frasy-midia',
     S3_ACCESS_KEY_ID: aleatorio(8),
     S3_SECRET_ACCESS_KEY: aleatorio(),
-    BACKUP_DIARIO: '1',
-    BACKUP_HEARTBEAT_URL: 'https://heartbeat.exemplo-real.io/abc'.replace('exemplo-real', 'monitor'),
-    LITESTREAM_BUCKET: 'babel-replica',
-    LITESTREAM_ENDPOINT: 'https://conta.r2.cloudflarestorage.com',
-    LITESTREAM_ACCESS_KEY_ID: aleatorio(8),
-    LITESTREAM_SECRET_ACCESS_KEY: aleatorio(),
     LLM_API_KEY: aleatorio(),
     LLM_BASE_URL: 'https://api.provedor.io/v1',
     LLM_MODEL: 'modelo-a',
@@ -216,16 +210,15 @@ describe('conferirProducao: o que AVISA', () => {
     expect(resumir(aberto).podeSubir).toBe(true)
   })
 
-  it('capacidades ausentes: S3, Litestream, LLM, reserva, orçamento, e-mail, Sentry, captcha', () => {
+  it('capacidades ausentes: S3, LLM, reserva, orçamento, e-mail, Sentry, captcha', () => {
     const v = completo()
     for (const n of Object.keys(v)) {
-      if (/^(S3_|LITESTREAM_|LLM_|AI_BUDGET_|RESEND_|EMAIL_|SENTRY_|VITE_TURNSTILE|GROQ_)/.test(n)) delete v[n]
+      if (/^(S3_|LLM_|AI_BUDGET_|RESEND_|EMAIL_|SENTRY_|VITE_TURNSTILE|GROQ_)/.test(n)) delete v[n]
     }
     const a = conferirProducao(v)
     expect(resumir(a).podeSubir).toBe(true)
     for (const nome of [
       'S3_*',
-      'LITESTREAM_*',
       'LLM_*',
       'LLM_RESERVA_*',
       'AI_BUDGET_USD_MONTH',

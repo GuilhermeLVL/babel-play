@@ -106,7 +106,7 @@ export async function healthHandler(_req: Request, res: Response): Promise<void>
  *   boot           — um passo de boot falho já degrada o `health`; aqui ele também impede o ready,
  *                    porque `backfill-tenancy` incompleto significa servir dados incompletos.
  *   armazenamento  — SÓ quando há S3/R2 configurado, e ele NÃO REPROVA (ADR 0009). Com uma máquina
- *                    só, o R2 fora do ar tirava o serviço INTEIRO do roteamento do Fly — "o áudio
+ *                    só, o R2 fora do ar tirava o serviço INTEIRO do roteamento — "o áudio
  *                    não grava" virava "o site caiu". É dependência degradável, como a IA: o upload
  *                    responde 503 sozinho e o resto do app segue. O ready continua 200, o corpo diz
  *                    `status: 'degradado'` + `armazenamento: 'indisponivel'`, e o operador fica
@@ -133,7 +133,7 @@ export async function healthHandler(_req: Request, res: Response): Promise<void>
  * `VALIDADE_DO_VEREDICTO_MS` limita as sondas a uma por janela, venha quantas chamadas vierem, e o
  * `emVoo` junta as chamadas simultâneas numa sonda só.
  *
- * 5 s não muda nada para quem decide: o Fly sonda a cada 15 s (`fly.toml`), então toda sonda
+ * 5 s não muda nada para quem decide: um orquestrador sonda a cada ~15 s, então toda sonda
  * dele continua vendo um veredicto novo. Não é rate limit por IP de propósito: atrás de proxy sem
  * `TRUST_PROXY` todo mundo divide um balde, e um 429 aqui TIRARIA a máquina do balanceador.
  */
@@ -201,7 +201,7 @@ async function avaliarProntidao(): Promise<Veredicto> {
       armazenamento = 'ok'
     } catch (err) {
       /* `warn` e não `error`: é degradação PREVISTA, com resposta própria na rota de upload — não
-         é queda. Um `error` aqui iria ao Sentry a cada sonda do Fly (a cada poucos segundos). */
+         é queda. Um `error` aqui iria ao Sentry a cada sonda de saúde (a cada poucos segundos). */
       log('warn', {
         event: 'ready_armazenamento_indisponivel',
         route: '/api/ready',

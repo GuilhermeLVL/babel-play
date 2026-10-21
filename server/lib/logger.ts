@@ -137,7 +137,6 @@ const sinks: SinkDeErro[] = []
  * e, além deles, só estes avisos — que não são falha, são o aviso ANTES da falha:
  *   - `ia_orcamento_alerta_80`: 80% do orçamento mensal de IA gasto (server/lib/orcamentoDeIa.ts);
  *     a 100% sai `ia_orcamento_esgotado`, que já é `error`;
- *   - `backup_heartbeat_falhou`: o snapshot diário foi feito, mas o alarme externo não soube;
  *   - `ia_provedor_limite`: o provedor de IA respondeu 429 — a camada contratada não aguenta o
  *     tráfego. Já sai no máximo uma vez por minuto por provedor (`server/ai/telemetriaDeIa.ts`);
  *   - `ia_sem_reserva`: produção subiu com a IA de nuvem sem reserva (ADR 0008). Sai uma vez por
@@ -155,7 +154,6 @@ export const AVISOS_QUE_ALERTAM: ReadonlySet<string> = new Set([
   'ia_orcamento_alerta_80',
   'ia_orcamento_diario_alerta_80',
   'ia_gasto_anomalo_usuario',
-  'backup_heartbeat_falhou',
   'ia_provedor_limite',
   'ia_sem_reserva',
   'billing_webhook_token_invalido',

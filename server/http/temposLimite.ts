@@ -3,8 +3,8 @@
  * era a recomendação 4 da Fase 4, `fase4-carga.md` §8, aberta desde 25/09).
  *
  * O `server.ts` só chamava `app.listen`, então valiam os padrões do Node 22+: `keepAliveTimeout`
- * de 5 s, `headersTimeout` de 60 s, `requestTimeout` de 300 s. O primeiro é o defeito: o proxy do
- * Fly reaproveita as conexões com a máquina e só as fecha depois de 60 s sem tráfego. Com 5 s do
+ * de 5 s, `headersTimeout` de 60 s, `requestTimeout` de 300 s. O primeiro é o defeito: o proxy da
+ * frente reaproveita as conexões com a máquina e só as fecha depois de 60 s sem tráfego. Com 5 s do
  * nosso lado, o servidor fecha um socket parado no mesmo instante em que o proxy manda nele a
  * requisição seguinte, e ela vira erro de conexão (502 esporádico, repetição do cliente). A suíte
  * de carga viu de 8 a 149 repetições por minuto.
@@ -27,16 +27,16 @@
  * COM O DESLIGAMENTO GRACIOSO (`server/lib/desligamento.ts`): `server.close()` derruba as conexões
  * ociosas na hora (Node 19+), então um ocioso de 65 s não segura o dreno. Medido lá: 2 ms.
  *
- * O VALOR DO PROXY: os 60 s vêm de resposta da equipe do Fly no fórum ("60s is our timeout for
- * connections", community.fly.io/t/2373), e não da referência do `fly.toml`, que não diz o padrão.
+ * O VALOR DO PROXY: os 60 s eram o ocioso do proxy do Fly (resposta da equipe no fórum); é um
+ * palpite conservador para qualquer proxy na frente (Caddy, Nginx, ELB têm padrões próprios).
  * Por isso os dois números são ajustáveis por variável de ambiente, sem deploy de código.
  */
 import type { Server } from 'node:http'
 
-/** O ocioso do proxy do Fly: fecha a conexão que passa 60 s sem enviar nem receber. */
-export const OCIOSO_DO_PROXY_DO_FLY_MS = 60_000
+/** O ocioso presumido do proxy da frente: fecha a conexão que passa 60 s sem enviar nem receber. */
+export const OCIOSO_DO_PROXY_MS = 60_000
 
-const KEEP_ALIVE_PADRAO_MS = OCIOSO_DO_PROXY_DO_FLY_MS + 5_000
+const KEEP_ALIVE_PADRAO_MS = OCIOSO_DO_PROXY_MS + 5_000
 const FOLGA_DOS_CABECALHOS_MS = 1_000
 const PEDIDO_INTEIRO_PADRAO_MS = 300_000
 

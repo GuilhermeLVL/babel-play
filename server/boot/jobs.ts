@@ -11,18 +11,8 @@
  * conferida de novo a cada passada.
  */
 import { JOBS } from '../jobs/registro'
-import { configDoBackupDiario } from '../lib/config'
 
 export async function agendarJobsNoNode(): Promise<void> {
-  /* O SNAPSHOT DIÁRIO (`BACKUP_DIARIO=1`) foi aposentado na migração para o Postgres (o backup é
-     `pg_dump` no CI; ver `server/operacao/snapshot.ts`) e saiu do registro. A variável fica como
-     legado: quem a tinha ligado vê o aviso no boot. */
-  if (configDoBackupDiario()) {
-    console.warn(
-      '[backup] BACKUP_DIARIO=1 é legado: o snapshot diário foi aposentado (o backup do Postgres é pg_dump no CI)',
-    )
-  }
-
   const { executarJob } = await import('../jobs/executar')
   for (const job of JOBS) {
     if (job.condicao && !job.condicao(process.env)) continue

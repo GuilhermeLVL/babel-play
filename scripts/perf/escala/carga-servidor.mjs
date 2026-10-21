@@ -15,7 +15,7 @@
  *
  * O bundle é o MESMO comando de build do package.json (`esbuild server.ts --bundle --platform=node
  * --format=cjs --packages=external`), gerado fora do repositório; roda com NODE_ENV=production, que
- * é como o Fly roda (sem o middleware do Vite, que inflaria RSS e CPU).
+ * é como o servidor roda em produção (sem o middleware do Vite, que inflaria RSS e CPU).
  *
  * MODOS
  *   selfhost  AUTH_REQUIRED=0 + SELF_HOST=1: todo request vira `local-owner` (o perfil "mega" do
@@ -24,7 +24,7 @@
  *             novo) é servido em porta+1 e SUPABASE_URL aponta para ele: o `authMiddleware` de
  *             produção verifica cada token de verdade. Cada requisição usa o token de um usuário do
  *             pool (u-p-* nas leituras, u-l-* nas escritas) e, salvo `--mesmo-ip`, um
- *             X-Forwarded-For próprio por conexão (TRUST_PROXY=1), como atrás do proxy do Fly.
+ *             X-Forwarded-For próprio por conexão (TRUST_PROXY=1), como atrás de um proxy.
  *
  * MEDIDAS por rota × conexões: req/s, p50/p95/p99 (de CADA resposta, não do histograma resumido do
  * autocannon, que não tem p95), erros de socket/timeout, distribuição de status, e — pela sonda
@@ -148,7 +148,6 @@ const env = {
   HOST: '127.0.0.1',
   DATABASE_URL: `pglite:${path.resolve(banco).replace(/\\/g, '/')}`,
   AUDIO_DIR: audioDir,
-  BACKUP_DIARIO: '0',
   SECRET_KEY: randomBytes(32).toString('hex'), // exigido em produção (server/crypto.ts); descartável
   TRUST_PROXY: '1',
   LOG_LEVEL: 'error',

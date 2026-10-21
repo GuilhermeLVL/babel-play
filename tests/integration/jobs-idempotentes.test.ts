@@ -80,7 +80,7 @@ describe('o registro', () => {
         'reconciliarArmazenamento',
       ]),
     )
-    expect(nomes).not.toContain('snapshotDiario') // aposentado (BACKUP_DIARIO fica como legado)
+    expect(nomes).not.toContain('snapshotDiario') // aposentado: o backup é pg_dump no CI
     for (const j of reg.JOBS) {
       expect(j.cron.split(' '), j.nome).toHaveLength(5)
       expect(j.node.atrasoInicialMs, j.nome).toBeGreaterThan(0)

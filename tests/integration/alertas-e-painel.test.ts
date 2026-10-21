@@ -7,10 +7,6 @@
  * Este teste fecha essa porta: toda métrica citada em `ops/alertas/regras.yml` e em
  * `ops/dashboards/babel-play.json` tem de existir em `metricas.ts`, nas métricas padrão do
  * prom-client, ou na lista (explícita) das embutidas do Fly.
- *
- * E o `fly.toml`: o `[metrics]` raspa uma porta SEM token (o raspador do Fly não manda header). Isso
- * só é seguro enquanto essa porta não for publicada — o teste cobra que ela não esteja em
- * `[http_service]` nem em `[[services]]`, e que o app realmente sirva as métricas nela.
  */
 import { readFileSync } from 'node:fs'
 
@@ -184,7 +180,7 @@ describe('ops/dashboards/babel-play.json', () => {
     expect(faltando).toEqual([])
   })
 
-  it('tem os painéis pedidos: req/s, latência por rota, erros, event loop, memória/CPU, IA, custo, uploads, backup', () => {
+  it('tem os painéis pedidos: req/s, latência por rota, erros, event loop, memória/CPU, IA, custo, uploads', () => {
     const exprs = painel()
       .panels.flatMap((p) => p.targets ?? [])
       .map((t) => t.expr)
@@ -204,41 +200,7 @@ describe('ops/dashboards/babel-play.json', () => {
       'ia_gasto_usd',
       'ia_custo_usd_total',
       'uploads_grandes_em_voo',
-      'backup_ultimo_sucesso_timestamp_segundos',
     ])
       expect(exprs, m).toContain(m)
-  })
-})
-
-describe('fly.toml — a coleta gerenciada do Fly', () => {
-  const toml = () => readFileSync('fly.toml', 'utf8').replace(/#.*$/gm, '')
-
-  /** O corpo de uma seção `[nome]` até a próxima seção. */
-  const secao = (fonte: string, cabecalho: RegExp): string | undefined => {
-    const m = cabecalho.exec(fonte)
-    if (!m) return undefined
-    const resto = fonte.slice(m.index + m[0].length)
-    const fim = resto.search(/^\s*\[/m)
-    return fim === -1 ? resto : resto.slice(0, fim)
-  }
-
-  it('está marcado como LEGADO e a porta [metrics] não é mais servida pelo app (METRICS_PORTA_INTERNA saiu)', () => {
-    const bruto = readFileSync('fly.toml', 'utf8')
-    expect(bruto, 'fly.toml deve dizer que é legado (aposentado na Fase 4)').toMatch(/#.*legado/i)
-    expect(readFileSync('server/lib/config.ts', 'utf8')).not.toContain("nome: 'METRICS_PORTA_INTERNA'")
-    expect(readFileSync('server/http/metricas.ts', 'utf8')).not.toContain('iniciarServidorDeMetricas')
-  })
-
-  it('a porta de métricas NÃO está publicada (nem no [http_service], nem em [[services]])', () => {
-    const fonte = toml()
-    const porta = /port\s*=\s*(\d+)/.exec(secao(fonte, /^\[metrics\]\s*$/m)!)?.[1]
-    const http = secao(fonte, /^\[http_service\]\s*$/m)!
-    expect(/internal_port\s*=\s*(\d+)/.exec(http)?.[1]).not.toBe(porta)
-    for (const m of fonte.matchAll(/^\[\[services\]\]\s*$/gm)) {
-      const corpo = fonte.slice(m.index! + m[0].length).split(/^\s*\[\[?(?!services\.)/m)[0]
-      expect(/internal_port\s*=\s*(\d+)/.exec(corpo)?.[1], 'a porta de métricas publicada num [[services]]').not.toBe(
-        porta,
-      )
-    }
   })
 })

@@ -1188,7 +1188,7 @@
     },
     {
       "type": "row",
-      "title": "Uploads e backup",
+      "title": "Uploads",
       "id": 32,
       "collapsed": false,
       "gridPos": {
@@ -1286,7 +1286,7 @@
     },
     {
       "type": "timeseries",
-      "title": "Backup e dependências",
+      "title": "Dependências",
       "id": 35,
       "datasource": {
         "type": "prometheus",
@@ -1316,27 +1316,9 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "(time() - max(backup_ultimo_sucesso_timestamp_segundos)) / 3600",
-          "legendFormat": "horas desde o último snapshot",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(increase(backup_falhas_total[1d]))",
-          "legendFormat": "falhas em 24 h",
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
           "expr": "sum(increase(ready_dependencia_degradada_total[1h]))",
           "legendFormat": "sondas do ready degradadas (1 h)",
-          "refId": "C"
+          "refId": "A"
         }
       ]
     }

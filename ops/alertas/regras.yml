@@ -59,7 +59,7 @@ groups:
           severity: pagina
         annotations:
           summary: 'Event loop com p99 de atraso acima de 500 ms'
-          description: 'p99 do atraso em {{ $value | humanizeDuration }}: algo síncrono (consulta cara, snapshot, JSON gigante) está travando TODOS os usuários ao mesmo tempo.'
+          description: 'p99 do atraso em {{ $value | humanizeDuration }}: algo síncrono (consulta cara, JSON gigante) está travando TODOS os usuários ao mesmo tempo.'
           runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-event-loop'
 
       - alert: BabelReadyDegradado
@@ -68,7 +68,7 @@ groups:
           severity: aviso
         annotations:
           summary: '/api/ready respondendo degradado (armazenamento S3/R2 fora)'
-          description: 'O ready segue 200 (ADR 0009), mas o áudio novo não grava e o backup atrasa. {{ $value }} sondas degradadas em 10 min.'
+          description: 'O ready segue 200 (ADR 0009), mas o áudio novo não grava. {{ $value }} sondas degradadas em 10 min.'
           runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-ready-degradado'
 
       - alert: BabelMetricasAusentes
@@ -179,15 +179,6 @@ groups:
           description: 'RSS em {{ $value | humanize1024 }}B. Acima de 1 GB o OOM do Fly mata a única máquina.'
           runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-memoria'
 
-      - alert: BabelBackupFalhou
-        expr: sum(increase(backup_falhas_total[1d])) > 0
-        labels:
-          severity: aviso
-        annotations:
-          summary: 'O snapshot diário do banco falhou nas últimas 24 h'
-          description: 'O Litestream segue replicando, mas o snapshot é o que cobre erro LÓGICO. O heartbeat do UptimeRobot também vai reclamar.'
-          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-backup'
-
   # GATILHOS DE ESCALA — não são incidente: são o aviso a 70% dos limiares de docs/escala.md, para a
   # decisão ser tomada na semana e não no dia em que quebra.
   - name: babel-play-escala
@@ -219,5 +210,5 @@ groups:
           severity: planejamento
         annotations:
           summary: 'Banco SQLite acima de 3,5 GB (70% do gatilho de 5 GB do ADR 0006)'
-          description: 'Volume com teto de 10 GB e snapshot diário proporcional ao banco: planeje o Postgres.'
+          description: 'Volume com teto de 10 GB e crescimento do banco: planeje o Postgres.'
           runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-escala'

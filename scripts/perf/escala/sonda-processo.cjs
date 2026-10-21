@@ -6,7 +6,7 @@
  *
  * A cada `SONDA_MS` (padrão 250 ms) grava uma linha JSON em `SONDA_ARQUIVO` com:
  *   t      epoch ms
- *   rss    bytes residentes (o que o OOM killer do Fly conta)
+ *   rss    bytes residentes (o que o OOM killer conta)
  *   heap   heapUsed · ext external · ab arrayBuffers (onde os corpos de upload moram)
  *   cpu    % de UM núcleo no intervalo ((user+system) / parede) — >100% = threads do libuv/zlib
  *   loopP99 / loopMax  atraso do event loop no intervalo (ms), `monitorEventLoopDelay` a 1 ms

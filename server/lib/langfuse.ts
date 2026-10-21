@@ -150,7 +150,7 @@ export function opcoesDoAmbiente(
   if (pediuConteudo && producao) {
     /* RECUSA, não aviso. O público inclui menores (LGPD art. 14): a fala de uma criança mandada a
        um terceiro "só para depurar" é exatamente o tratamento que a política de privacidade diz que
-       não fazemos. Uma variável esquecida no painel do Fly não pode mudar isso. */
+       não fazemos. Uma variável esquecida no painel do host não pode mudar isso. */
     avisar(
       JSON.stringify({
         ts: Date.now(),

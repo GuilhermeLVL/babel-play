@@ -66,7 +66,6 @@ const filho = spawn(
       HOST: '127.0.0.1',
       DATABASE_URL: `pglite:${path.resolve(banco).replace(/\\/g, '/')}`,
       AUDIO_DIR: audioDir,
-      BACKUP_DIARIO: '0',
       SECRET_KEY: randomBytes(32).toString('hex'), // exigido em produção (server/crypto.ts); descartável
       LOG_LEVEL: 'error',
       SONDA_ARQUIVO: sonda,

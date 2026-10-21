@@ -7,7 +7,7 @@
  *
  * O FORMATO é o do semver com metadado de build: `0.1.0` (o `package.json`) e, quando o commit é
  * conhecido, `0.1.0+35bc2d6`. O sha vem de `GIT_SHA` ou, na falta dele, de `SENTRY_RELEASE` — que o
- * `Dockerfile` já preenche com o commit (`--build-arg VERSAO="$GITHUB_SHA"` no `deploy.yml`). Valor
+ * `Dockerfile` já preenche com o commit (`--build-arg VERSAO="$GITHUB_SHA"` no workflow de deploy). Valor
  * que não tem cara de sha é descartado: um `SENTRY_RELEASE=babel-play@1.2` não pode virar parte da
  * versão que o cliente compara byte a byte.
  *

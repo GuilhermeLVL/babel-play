@@ -139,7 +139,7 @@ export function conferirProducao(arquivo: NodeJS.ProcessEnv): Achado[] {
     }
   }
   if (!preenchida(env, 'ORIGEM_SEGREDO')) {
-    avisa('ORIGEM_SEGREDO', 'ausente: quem chega direto no endereço do Fly pula a Cloudflare e escolhe o próprio IP')
+    avisa('ORIGEM_SEGREDO', 'ausente: quem chega direto ao endereço de origem pula a Cloudflare e escolhe o próprio IP')
   } else if (env.ORIGEM_SEGREDO!.trim().length < TAMANHO_MINIMO_DO_SEGREDO_DE_ORIGEM) {
     avisa('ORIGEM_SEGREDO', 'curto demais: use 32 caracteres aleatórios ou mais')
   } else {
@@ -252,33 +252,13 @@ export function conferirProducao(arquivo: NodeJS.ProcessEnv): Achado[] {
     ok('ANUAL_ENABLED', 'FECHADO (ausente ou diferente de 1): só o mensal e o teste de 14 dias à venda, como no MVP')
   }
 
-  /* ─────────── mídia e backup ─────────── */
+  /* ─────────── mídia ─────────── */
   const s3 = ['S3_ENDPOINT', 'S3_BUCKET', 'S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'] as const
   const estadoS3 = estadoDoGrupo(env, s3)
-  if (estadoS3 === 'completo') ok('S3_*', 'as quatro presentes (áudio e backups fora do disco da máquina)')
+  if (estadoS3 === 'completo') ok('S3_*', 'as quatro presentes (áudio fora do disco da máquina)')
   else if (estadoS3 === 'vazio') {
-    avisa('S3_*', 'ausentes: o áudio fica no disco da máquina e some junto com ela; sem R2 não há backup diário')
+    avisa('S3_*', 'ausentes: o áudio fica no disco da máquina e some junto com ela')
   } else avisa('S3_*', `incompletas (faltam: ${faltam(env, s3)}): o S3 não liga e cai no disco local`)
-  if (env.BACKUP_DIARIO === '1') {
-    if (estadoS3 !== 'completo')
-      avisa('BACKUP_DIARIO', 'ligado, mas sem as S3_* completas: o snapshot não tem para onde ir')
-    else ok('BACKUP_DIARIO', 'ligado')
-    if (!preenchida(env, 'BACKUP_HEARTBEAT_URL')) {
-      avisa('BACKUP_HEARTBEAT_URL', 'ausente: nada alerta se o snapshot diário parar de acontecer')
-    }
-  } else {
-    avisa('BACKUP_DIARIO', 'desligado (diferente de 1): sem snapshot diário do banco')
-  }
-  const litestream = [
-    'LITESTREAM_BUCKET',
-    'LITESTREAM_ENDPOINT',
-    'LITESTREAM_ACCESS_KEY_ID',
-    'LITESTREAM_SECRET_ACCESS_KEY',
-  ] as const
-  const estadoLs = estadoDoGrupo(env, litestream)
-  if (estadoLs === 'completo') ok('LITESTREAM_*', 'as quatro presentes (réplica contínua do banco)')
-  else if (estadoLs === 'vazio') avisa('LITESTREAM_*', 'ausentes: sem a réplica contínua do banco')
-  else avisa('LITESTREAM_*', `incompletas (faltam: ${faltam(env, litestream)}): a réplica contínua não liga`)
 
   /* ─────────── IA de nuvem ─────────── */
   const temRegistro = preenchida(env, 'IA_PROVEDORES') || preenchida(env, 'IA_PROVEDORES_ARQUIVO')

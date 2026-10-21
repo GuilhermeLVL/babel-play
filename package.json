@@ -86,7 +86,6 @@
     "@fontsource/rajdhani": "5.3.0",
     "@fontsource/silkscreen": "5.3.0",
     "@huggingface/transformers": "^4.2.0",
-    "@libsql/client": "^0.17.4",
     "@mozilla/readability": "^0.6.0",
     "@ricky0123/vad-web": "^0.0.30",
     "@supabase/supabase-js": "^2.118.0",
@@ -120,6 +119,7 @@
   "devDependencies": {
     "@ast-grep/cli": "0.45.1",
     "@eslint/js": "^10.0.1",
+    "@libsql/client": "^0.17.4",
     "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/dom": "^10.4.2",

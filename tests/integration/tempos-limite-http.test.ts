@@ -19,7 +19,7 @@ import type { AddressInfo } from 'node:net'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { aplicarTemposLimite, OCIOSO_DO_PROXY_DO_FLY_MS, temposLimiteHttp } from '../../server/http/temposLimite'
+import { aplicarTemposLimite, OCIOSO_DO_PROXY_MS, temposLimiteHttp } from '../../server/http/temposLimite'
 
 describe('tempos limite do servidor HTTP', () => {
   const abertos: http.Server[] = []
@@ -32,8 +32,8 @@ describe('tempos limite do servidor HTTP', () => {
 
   it('o padrão deixa o socket ocioso viver mais que o proxy, e os cabeçalhos mais que o ocioso', () => {
     const t = temposLimiteHttp({})
-    expect(OCIOSO_DO_PROXY_DO_FLY_MS).toBe(60_000)
-    expect(t.keepAliveTimeout).toBeGreaterThan(OCIOSO_DO_PROXY_DO_FLY_MS)
+    expect(OCIOSO_DO_PROXY_MS).toBe(60_000)
+    expect(t.keepAliveTimeout).toBeGreaterThan(OCIOSO_DO_PROXY_MS)
     expect(t.headersTimeout).toBeGreaterThan(t.keepAliveTimeout)
     /* O Node recusa `headersTimeout` acima de `requestTimeout`, e o corpo de um upload de 25 MB
        numa rede ruim leva minutos: o teto do pedido inteiro fica em minutos, não em segundos. */

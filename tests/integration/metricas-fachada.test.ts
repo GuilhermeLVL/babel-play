@@ -59,7 +59,6 @@ describe('fachada de métricas no Worker (BABEL_RUNTIME=worker)', () => {
       m.contarDependenciaDegradada('armazenamento')
       m.contarDescartesDoStt('sem_fala', 2)
       m.medirUsoDoR2('ops_a', 0.5)
-      m.observarBackup({ ok: true, bytes: 10 })
       m.observarChamadaDeProvedor({ provedor: 'groq', funcao: 'stt', ms: 120, custoUsd: 0.001 })
       m.observarCaptura({
         sttFinalMs: [100],

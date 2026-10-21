@@ -150,7 +150,7 @@ type CallbackDeLookup = (
  *
  * `assertPublicUrl` resolve o nome e confere — e o `fetch` resolvia o nome DE NOVO para conectar.
  * Entre as duas respostas, um domínio com TTL 0 troca o IP público pelo 127.0.0.1, pela rede
- * privada do Fly (`fdaa::/16`, coberta por `fc00::/7`) ou pela porta interna de métricas: a guarda
+ * privada interna (por exemplo IPv6 ULA, `fc00::/7`) ou pela porta interna de métricas: a guarda
  * aprova um endereço e a conexão vai para outro. Aqui a conferência e a conexão usam a MESMA
  * resolução, então não há janela entre elas.
  *

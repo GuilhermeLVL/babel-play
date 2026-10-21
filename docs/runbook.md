@@ -747,16 +747,6 @@ alerta apagado; se a regra está errada, corrija o `regras.yml` (com teste) em v
   (`fly scale memory 2048`).
 - **Silenciar:** não; ajuste o limiar se a VM mudar de tamanho.
 
-<a id="alerta-backup"></a>
-
-### 13.13 `BabelBackupFalhou` — o snapshot diário falhou (aviso)
-
-- **Significa:** a foto diária do banco (erro lógico) não foi feita. O Litestream (perda física)
-  segue à parte.
-- **Primeira ação:** `fly logs` com `backup_diario_falhou`; rodar à mão
-  `node dist-server/operacao.cjs snapshot` pelo `fly ssh console` e conferir no R2.
-- **Silenciar:** não; resolva no mesmo dia (são 30 dias de fotos, e um buraco não se recupera).
-
 <a id="alerta-escala"></a>
 
 ### 13.14 `BabelEscala*` — gatilhos de escala a 70 % (planejamento)

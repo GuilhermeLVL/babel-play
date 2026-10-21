@@ -23,7 +23,7 @@ const TEMPO_LIMITE_MS = 10_000
 const TEMPO_UPLOAD_MS = 10 * 60_000
 /* 100 MB decimais: o limite de corpo da zona da Cloudflare (planos Free/Pro) é 100 MB, e o teto do app
    (`LIMITE_DO_AUDIO` em server/routes/sessions.ts) é 120 MiB, então 100_000_000 bytes passa nos dois. */
-const BYTES_UPLOAD = 100_000_000
+const BYTES_UPLOAD = Number(process.env.BYTES_UPLOAD || 100_000_000) // menor numa rede lenta (a tabela diz quanto foi)
 const PAGINA_WIKI = 'https://pt.wikipedia.org/wiki/L%C3%ADngua_portuguesa'
 
 const env = (nome) => {

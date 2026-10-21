@@ -95,3 +95,13 @@ describe('wrangler.jsonc', () => {
     expect(config.workers_dev).toBe(false)
   })
 })
+
+describe('deploy-worker.yml', () => {
+  /* O build do front no workflow precisa de VITE_AUTH_REQUIRED=1 fixo: o Worker é sempre o modo público, e sem
+     a variável o front sai em self-host (sem porta de login, "Você está no Premium") — visto no staging em 21/10/2026. */
+  it('o build do front fixa VITE_AUTH_REQUIRED=1', () => {
+    const yml = readFileSync(join(RAIZ, '.github/workflows/deploy-worker.yml'), 'utf8')
+    const build = yml.slice(yml.indexOf('name: Build (front + bundle)'), yml.indexOf('run: npm run build'))
+    expect(build).toMatch(/VITE_AUTH_REQUIRED: '1'/)
+  })
+})

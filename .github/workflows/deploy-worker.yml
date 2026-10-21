@@ -109,8 +109,11 @@ jobs:
           fi
 
       # Os VITE_* entram no bundle do front (assets servidos pelo Worker). Os valores vêm do Environment.
+      # VITE_AUTH_REQUIRED=1 é fixo: o Worker é sempre o modo público (AUTH_REQUIRED=1 nos `vars`); sem ele o front
+      # sai em self-host, sem porta de login, e "Você está no Premium" (foi o que o staging mostrou em 21/10/2026).
       - name: Build (front + bundle)
         env:
+          VITE_AUTH_REQUIRED: '1'
           VITE_PUBLIC_URL: ${{ vars.VITE_PUBLIC_URL }}
           VITE_ORT_WASM_URL: ${{ vars.VITE_ORT_WASM_URL }}
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}

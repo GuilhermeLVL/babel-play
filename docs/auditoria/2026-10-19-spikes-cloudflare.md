@@ -519,13 +519,20 @@ subconjunto; cache de DoH; rename sem identificadores internos; medições no st
 divide o Supabase Auth com a produção (mesmo emissor de JWT) — antes do LANÇAMENTO, projeto Supabase separado
 para o staging ou lista de permitidos.
 
-**Depende do dono.** Autorizar o deploy de staging (T9: `frasy-staging.guigui-cruzeiro.workers.dev`, Free, sem
-crons); assinar Workers Paid antes da produção (7 crons); colocar a zona `frasy.com.br` na Cloudflare (hoje não há
-zona na conta) e então domínio do Worker, `APP_URL`/`VITE_PUBLIC_URL`, bucket público de modelos, Supabase
-(Site URL/Redirects), Asaas (webhook), Resend (SPF/DKIM), Turnstile; GitHub Environments `staging`/`production`
-com `CLOUDFLARE_API_TOKEN` (Workers Scripts/Versions), `CLOUDFLARE_ACCOUNT_ID`, `DATABASE_URL_MIGRACAO`,
-`SUPABASE_CA_PEM`, `VITE_*`; chaves S3 do R2 para o backup e para publicar os modelos; apagar o Worker antigo
-`babel-play` quando quiser; decidir `preview_urls` em produção.
+**Task 9 concluída (21/10/2026).** Staging publicado em `https://frasy-staging.guigui-cruzeiro.workers.dev` pelo
+`deploy-worker.yml` (3 runs verdes por versões), com Analytics Engine ativado pelo dono e o GitHub Environment
+`staging` configurado. Achados que só o staging real mostrou e já corrigidos: o front saía em self-host (faltava
+`VITE_AUTH_REQUIRED=1` no build do workflow), HSTS ausente nos estáticos, `aria-label` do toast fora do `t()`;
+deploy manual de rede doméstica inviável (~120 MB de assets) → o workflow faz o primeiro deploy e o build gera
+`dist/.assetsignore`. Medições, ZAP (0 FAIL) e Lighthouse em `2026-10-20-fase4-staging.md`; scrypt frio
+(90–160 ms de CPU por isolate novo) e admissão p95 ficam para a Fase 5.
+
+**Depende do dono.** Assinar Workers Paid antes da produção (7 crons); colocar a zona `frasy.com.br` na Cloudflare
+(hoje não há zona na conta) e então domínio do Worker, `APP_URL`/`VITE_PUBLIC_URL`, bucket público de modelos,
+Supabase (Site URL/Redirects), Asaas (webhook), Resend (SPF/DKIM), Turnstile; GitHub Environment `production`
+(o `staging` já existe) com `CLOUDFLARE_API_TOKEN` (Workers Scripts/Versions), `CLOUDFLARE_ACCOUNT_ID`,
+`DATABASE_URL_MIGRACAO`, `SUPABASE_CA_PEM`, `VITE_*`; chaves S3 do R2 para o backup e para publicar os modelos;
+apagar o Worker antigo `babel-play` quando quiser; decidir `preview_urls` em produção.
 
 **Dívidas menores registradas (ledger).** "nuvem do Babel" em 9 comentários; `localhost:3100` no CORS de
 produção do bucket de modelos; lifecycle comparado só por nome; chaves desconhecidas enviadas pelo script de

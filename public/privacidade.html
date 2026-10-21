@@ -23,12 +23,15 @@
 <main>
   <p class="kicker">Frasy</p>
   <h1>Política de Privacidade</h1>
-  <p class="muted"><strong>Versão para revisão jurídica</strong> — 17 de outubro de 2026.</p>
+  <p class="muted"><strong>Versão para revisão jurídica</strong> — 21 de outubro de 2026.</p>
 
   <p>O Frasy foi desenhado para processar o máximo possível <strong>no seu próprio
   navegador</strong>. Ainda assim, algumas funções usam serviços de nuvem — de tradução, de
   transcrição e de IA. Esta página diz, com honestidade, o que roda localmente, o que sai do seu
   dispositivo, para <em>quem</em> vai, e como você controla, exporta ou apaga tudo.</p>
+
+  <p><strong>Quem é o responsável pelos seus dados (controlador):</strong> [DONO: razão social],
+  CNPJ [DONO: CNPJ]. Contato para assuntos de privacidade: [DONO: contato].</p>
 
   <h2>Crianças e adolescentes</h2>
   <p>O Frasy é aberto a todas as idades. Com conta, pedimos a <strong>data de nascimento</strong>
@@ -82,11 +85,16 @@
       traduzir é enviado ao serviço MyMemory</strong> (terceiro).</li>
     <li><strong>IA de nuvem (transcrição/tradução gerenciadas e o tutor iChat)</strong>: no Premium
       (e no teste de 14 dias), na nuvem do Grátis para aparelho fraco e no tutor, os trechos enviados são processados por provedores de inferência contratados
-      por nós — hoje por meio da <strong>OpenRouter</strong>, que encaminha cada pedido só a provedores que se
+      por nós — hoje por meio da <strong>OpenRouter</strong> e da <strong>Groq</strong>. A OpenRouter encaminha cada pedido só a provedores que se
       comprometem a <strong>não guardar</strong> o que recebem nem usá-lo para treinar modelos (retenção zero, exigida
       em cada chamada) — apenas para gerar a resposta daquela chamada. Os modelos de transcrição, tradução e tutor são
       abertos (Whisper, Gemma e Llama) e a OpenRouter escolhe, entre os provedores que cumprem essa exigência, quem
-      atende. O provedor em uso aparece no selo de procedência dentro do app.</li>
+      atende. Os provedores que hoje podem atender por trás da OpenRouter são <strong>DeepInfra, Groq, Together, Cloudflare e
+      Parasail</strong>. O provedor em uso aparece no selo de procedência dentro do app.</li>
+    <li><strong>Voz natural do intérprete</strong>: só quando esse recurso estiver ligado e você o usar, o
+      <strong>texto</strong> da tradução de cada fala (não o seu áudio) é enviado ao <strong>DeepInfra</strong> ou ao
+      <strong>Workers AI da Cloudflare</strong> para virar voz. Não guardamos o áudio gerado além de um cache
+      de poucos minutos na memória do servidor, sem ligação com quem pediu.</li>
     <li><strong>Imagens</strong>: a busca de imagens usa o <strong>Openverse</strong>; o termo
       buscado é enviado a esse serviço.</li>
   </ul>
@@ -151,16 +159,43 @@
   <p>Além dos serviços de nuvem de IA acima, usamos estes fornecedores para o app funcionar. Cada um
   recebe só o necessário para a sua função:</p>
   <ul>
-    <li><strong>Fly.io</strong>: hospeda o nosso servidor e o banco de dados, com a máquina e o volume
-      em <strong>São Paulo</strong>. A empresa fica nos Estados Unidos.</li>
+    <li><strong>Cloudflare Workers</strong> (o app) e <strong>Supabase</strong> (o banco de dados e o login):
+      o servidor do Frasy roda nos Workers da Cloudflare e guarda os dados no banco do Supabase, na região de
+      <strong>São Paulo</strong>. As duas empresas ficam fora do Brasil.</li>
     <li><strong>Cloudflare</strong>: DNS, proteção contra abuso (firewall) e entrega do site, o que
       inclui o seu endereço IP e os cabeçalhos da requisição na borda; o armazenamento (R2) do
       <strong>áudio gravado das sessões</strong> e das <strong>cópias de segurança</strong>; e o
       <strong>Turnstile</strong>, o captcha do modo convidado com nuvem.</li>
     <li><strong>Resend</strong>: envia os e-mails de confirmação e de recuperação de senha do login e o
       convite ao responsável, e por isso recebe o e-mail de quem os recebe e o conteúdo da mensagem.</li>
+    <li><strong>UptimeRobot</strong>: confere de tempos em tempos se o serviço está no ar. Não recebe dado
+      pessoal de ninguém.</li>
     <li><strong>Sentry</strong>: recebe os relatórios de erro descritos acima (mensagem técnica, a tela
       onde ocorreu e o identificador da requisição), nunca o que você falou ou digitou.</li>
+  </ul>
+
+  <h2>Transferência para fora do Brasil</h2>
+  <p>Quase todos os fornecedores acima ficam fora do Brasil, então seus dados podem ser tratados no
+  exterior. Isso só acontece para executar a função que você usa, e cada fornecedor trata os dados
+  apenas segundo as nossas instruções, por contrato.</p>
+  <!-- DONO: cláusulas-padrão da ANPD após os DPAs -->
+  <p>[DONO: afirmar aqui que os contratos trazem as cláusulas-padrão da ANPD (Resolução CD/ANPD nº 19/2024),
+  só depois de os DPAs de cada fornecedor estarem aceitos.]</p>
+
+  <h2>Anúncios</h2>
+  <p>Hoje o Frasy <strong>não mostra anúncios</strong>. Se um dia mostrar, a gente avisa antes, no app, e
+  as regras abaixo já valem:</p>
+  <ul>
+    <li><strong>Nunca para menores de 18 anos</strong> nem para quem está no perfil protegido (inclusive
+      quem usa sem conta, porque não sabemos a idade).</li>
+    <li><strong>Nunca sem o seu consentimento.</strong> Você escolhe, e pode mudar de ideia quando quiser
+      em Ajustes.</li>
+    <li><strong>Sem anúncio personalizado.</strong> Não usamos o que você estuda, fala ou digita, nem
+      perfil de comportamento, para escolher anúncio.</li>
+    <li><strong>Sempre dá para dizer não.</strong> Há a opção &ldquo;Sem anúncios&rdquo; e o plano pago
+      não os mostra.</li>
+    <li><strong>Anúncio com recompensa é sempre uma escolha</strong> sua: você assiste se quiser, em troca
+      de um benefício, e nada é tirado de quem não quiser.</li>
   </ul>
 
   <h2>O que NÃO fazemos</h2>
@@ -169,7 +204,7 @@
       nenhum pixel. A única medição é a técnica da IA de nuvem descrita acima — custo, tempo e
       falhas de cada chamada, com pseudônimo e sem o conteúdo —, e ela não é usada para montar perfil
       de ninguém.</li>
-    <li><strong>Não vendemos</strong> seus dados nem os compartilhamos para publicidade. Os terceiros
+    <li><strong>Não vendemos</strong> seus dados nem os compartilhamos para publicidade personalizada. Os terceiros
       listados acima recebem apenas o necessário para executar a função que você acionou.</li>
   </ul>
 

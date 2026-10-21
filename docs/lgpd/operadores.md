@@ -68,8 +68,7 @@ leva só texto, modelo, formato e idioma.
 cita o Gemini** nem fala em "maiores de 18 anos": descreve o perfil protegido dos menores de 18, o vínculo
 com o responsável abaixo de 16 e o consentimento específico abaixo de 12, e nomeia Supabase, Groq,
 OpenRouter (reserva, retenção zero), Asaas e Langfuse. Desde 17/10/2026 nomeia também **Cloudflare/R2,
-Resend e Sentry** (seção "Quem hospeda e trata os dados em nosso nome"), mas ainda cita o antigo servidor (a hospedagem anterior à migração, que nunca recebeu dados e saiu desta tabela, ADR 0015): `public/privacidade.html` precisa trocá-lo por Cloudflare Workers e Supabase (banco). **Ainda não nomeia** a
-DeepInfra/Workers AI (voz), que depende de a flag `voz_natural` e a nuvem do Quest ligarem. **Também falta,
+Resend e Sentry** (seção "Quem hospeda e trata os dados em nosso nome"), e, desde 21/10/2026, **troca o antigo servidor (ADR 0015) por Cloudflare Workers e Supabase**, nomeia Groq, os suboperadores atrás da OpenRouter (DeepInfra, Groq, Together, Cloudflare, Parasail), a voz natural (DeepInfra/Workers AI, só com a flag `voz_natural` ligada), o UptimeRobot e traz a seção "Anúncios" (espelho de `src/core/anuncios/politicaDeAnuncio.ts`). `tests/politica-de-privacidade.test.ts` garante que cada operador desta tabela aparece na política. **Também falta,
 e só o dono resolve:** a razão social e o CNPJ do controlador, o contato que não seja um e-mail pessoal e o
 parágrafo da transferência internacional (LGPD art. 33), que só pode afirmar as cláusulas-padrão da ANPD
 depois de os DPAs desta tabela estarem aceitos.

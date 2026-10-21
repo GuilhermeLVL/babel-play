@@ -89,10 +89,14 @@ de custo por assinante está em `scripts/custo/modelo.mjs` (`node scripts/custo/
    S3_ENDPOINT=https://<conta>.r2.cloudflarestorage.com S3_ACCESS_KEY_ID=<token modelos> \
    S3_SECRET_ACCESS_KEY=<segredo> npx tsx scripts/modelos/publicar-no-r2.ts --bucket=frasy-modelos
    ```
-8. Publicar os modelos do **Bergamot** (tradução X→inglês no aparelho: 16 idiomas, ~450 MB no bucket, ~30–45 MB
-   por idioma para quem usa — contra ~113 MB do opus-mt). Mesmo bucket e mesmas credenciais; baixa do bucket da
-   Mozilla, confere o sha256 de cada arquivo contra `src/gateway/adapters/modelosDoBergamot.json` e sobe em
-   `bergamot/<par>/<execução>/<arquivo>`:
+8. Publicar os modelos do **Bergamot** (tradução X→inglês no aparelho: 15 idiomas, ~423 MB no bucket, ~30–45 MB
+   por idioma para quem usa — contra ~113 MB do opus-mt). Suba **pelo runner do GitHub** (a rede doméstica não
+   aguenta 423 MB): Actions → **publicar-modelos** → `ambiente` (staging|production) e `pares` (`all` ou `ja-en,zh-en`),
+   ou `gh workflow run publicar-modelos.yml --field ambiente=production`. Usa só o `CLOUDFLARE_API_TOKEN` e o
+   `CLOUDFLARE_ACCOUNT_ID` do Environment (sem chaves S3): baixa do bucket da Mozilla, confere o sha256 contra
+   `src/gateway/adapters/modelosDoBergamot.json` e sobe em `bergamot/<par>/<execução>/<arquivo>` no `frasy-modelos`.
+   Em produção, o bucket precisa do **domínio próprio** `modelos.<domínio>` (r2.dev tem limite de taxa; ver
+   `docs/deploy.md`, "Modelos no R2"). Alternativa com chaves S3, de uma máquina com banda:
    ```bash
    S3_ENDPOINT=https://<conta>.r2.cloudflarestorage.com S3_ACCESS_KEY_ID=<token modelos> \
    S3_SECRET_ACCESS_KEY=<segredo> npx tsx scripts/modelos/publicar-bergamot-no-r2.ts --bucket=frasy-modelos

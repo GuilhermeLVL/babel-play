@@ -707,6 +707,19 @@ VITE_ORT_WASM_URL=https://modelos.frasy.com.br/ort/1.26.0/ npm run build  # a CS
 A troca efetiva espera o domínio público do bucket (`r2.dev` não é para produção). Valor inválido (sem `https://`, ou
 `http://` fora de localhost) derruba o carregamento com `VITE_ORT_WASM_URL inválida: …` (`src/gateway/baseDoWasm.ts`).
 
+### Modelos no R2
+
+Os modelos do Bergamot (15 pares X→en, ~423 MB) sobem pelo workflow `publicar-modelos` (manual; inputs `ambiente` e
+`pares`, padrão `all`): o runner baixa da Mozilla, confere o sha256 e faz `wrangler r2 object put --remote` no bucket
+`frasy-modelos` (`scripts/modelos/publicar-bergamot-no-r2.ts --via=wrangler`), só com o token da Cloudflare do
+Environment. O CORS do bucket (GET/HEAD para as origens do app) vem de `scripts/cloudflare/r2.mjs`.
+
+- **Staging:** URL pública do r2.dev (`wrangler r2 bucket dev-url enable frasy-modelos`):
+  `https://pub-e3b1825500e2432d831539425d18ec1a.r2.dev`. É o valor de `VITE_BERGAMOT_MODELOS_URL` no Environment
+  `staging` (a raiz do bucket, sem sufixo); vale a partir do próximo build/deploy do Worker.
+- **Produção:** domínio próprio `modelos.<domínio>` ligado ao bucket (`wrangler r2 bucket domain add`), não o r2.dev,
+  que tem limite de taxa e não é para produção. O mesmo vale para `VITE_ORT_WASM_URL` (abaixo).
+
 ### Binding R2 × S3 × disco (Fase 2)
 
 A escolha é uma só (`armazenamentoDoAmbiente`): **binding R2** (o `R2Bucket` do Worker, ligado pelo

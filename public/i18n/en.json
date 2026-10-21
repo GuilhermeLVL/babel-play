@@ -4762,5 +4762,21 @@
   "Suas {n} palavras já são cartões (somando todos os idiomas).": {
     "one": "Your {n} word is already a card (across all languages).",
     "other": "Your {n} words are already cards (across all languages)."
-  }
+  },
+  "Patrocinado": "Sponsored",
+  "Anúncio": "Ad",
+  "Ver um anúncio e ganhar a recompensa": "Watch an ad and get the reward",
+  "Nenhum anúncio disponível agora. Tente mais tarde.": "No ad available right now. Try again later.",
+  "Não consegui registrar a sua resposta. Verifique a conexão e tente de novo.": "I couldn't save your answer. Check your connection and try again.",
+  "Anúncios no plano Grátis": "Ads on the Free plan",
+  "Para o plano Grátis continuar grátis, mostramos alguns anúncios em lugares fixos do app, sempre com a marca \"Patrocinado\". Nunca durante uma gravação, uma rodada de jogo ou o intérprete.": "To keep the Free plan free, we show a few ads in fixed places in the app, always marked \"Sponsored\". Never during a recording, a game round or the interpreter.",
+  "Os anúncios não são personalizados: não usamos o que você estuda nem o seu histórico para escolhê-los, e o Google recebe a marcação de público infantil.": "The ads are not personalized: we don't use what you study or your history to choose them, and Google receives the child-directed tag.",
+  "O que é coletado": "What is collected",
+  "A rede de anúncios do Google recebe o endereço de internet do seu aparelho, o navegador e o idioma, só para mostrar e contar o anúncio. Não enviamos seu nome, seu e-mail nem o que você estuda.": "Google's ad network receives your device's internet address, the browser and the language, only to show and count the ad. We don't send your name, your email or what you study.",
+  "Anúncio com recompensa só se você escolher ver. Você pode mudar esta resposta quando quiser em Ajustes → Privacidade, e os planos pagos não têm anúncios.": "Rewarded ads only if you choose to watch. You can change this answer anytime in Settings → Privacy, and the paid plans have no ads.",
+  "Aceitar": "Accept",
+  "No plano Grátis, alguns lugares do app podem mostrar anúncios não personalizados.": "On the Free plan, some places in the app may show non-personalized ads.",
+  "Você aceitou ver anúncios no plano Grátis.": "You agreed to see ads on the Free plan.",
+  "Você não aceitou anúncios.": "You haven't accepted ads.",
+  "Sem a sua resposta \"Aceitar\", nenhum anúncio aparece.": "Without your \"Accept\", no ad appears."
 }

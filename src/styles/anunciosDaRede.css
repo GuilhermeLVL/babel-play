@@ -1,0 +1,79 @@
+/* O ESPAÇO DO PROVEDOR REAL (`src/lib/anuncios/provedores/iframe.tsx`, ruling R32): o quadro da página de
+   anúncios, o rótulo "Patrocinado" e a porta "Sem anúncios". Só carrega com o provedor, isto é, só num
+   build com `VITE_ANUNCIOS_ORIGEM`; os espaços em si só aparecem com a flag e o consentimento. */
+.anuncio-rede {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 12px auto;
+  max-width: 100%;
+}
+.anuncio-rede-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  width: min(300px, 100%);
+}
+.anuncio-rede-rotulo {
+  font: 700 11.5px/1.2 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.anuncio-rede-sem {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  padding: 6px 0;
+  font: 600 12.5px/1.2 var(--font-body, inherit);
+  color: var(--ink-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.anuncio-rede-sem:focus-visible,
+.anuncio-rede-ver:focus-visible {
+  outline: 2px solid var(--q-acento, var(--accent));
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+.anuncio-rede-quadro {
+  border: 0;
+  width: 300px;
+  max-width: 100%;
+  height: 250px;
+  border-radius: 12px;
+  background: transparent;
+}
+.anuncio-rede-ver {
+  cursor: pointer;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--ink-muted) 40%, transparent);
+  background: transparent;
+  color: inherit;
+  font: 600 14px/1.2 var(--font-body, inherit);
+}
+.anuncio-rede-aviso {
+  color: var(--ink-muted);
+  font-size: 12.5px;
+}
+/* O premiado ocupa a tela: o formato premiado do GPT desenha a sobreposição dentro do quadro. */
+.anuncio-rede-premiado {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  background: rgb(0 0 0 / 0.72);
+}
+.anuncio-rede-premiado iframe {
+  flex: 1;
+  border: 0;
+  width: 100%;
+}
+.anuncio-rede-premiado .anuncio-rede-fechar {
+  align-self: flex-end;
+  margin: 8px;
+}

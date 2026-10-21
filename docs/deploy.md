@@ -406,6 +406,31 @@ npx wrangler rollback -c wrangler.jsonc --env staging --message "motivo" -y   # 
 Para a produção, tire o `--env staging`. O Lighthouse manual (`lighthouse.yml`) aceita o input `url` para medir
 uma versão publicada (sem servidor local e sem o onboarding pré-marcado).
 
+## Anúncios
+
+Desligados por padrão (flag `anuncios`, `docs/flags.md`). Desenho do ruling R32
+(`docs/pesquisa/2026-10-21-rede-de-anuncios.md`): o GPT do Google não suporta COEP e só aceita CSP por nonce,
+então os anúncios rodam numa **origem própria** e o app os embute por `<iframe credentialless>`.
+
+- **Página de anúncios:** `public/anuncios/espaco.html` + `espaco.js` (sem bundler). Só carrega o GPT com
+  `consentimento=1` na query; liga `childDirectedTreatment`, `underAgeOfConsent`, `restrictDataProcessing` e
+  `nonPersonalizedAds` antes de qualquer bloco; nunca `setPublisherProvidedId`. O premiado avisa o app por
+  `postMessage` (`recompensa`/`fechou`/`vazio`, só para a origem `app=`).
+- **Cabeçalhos dela:** bloco `/anuncios/*` do `dist/_headers` (gerado por `scripts/vite/cabecalhos.ts`): tira
+  COOP/COEP/DIP e a CSP do app e põe a CSP larga da página (`cspDaPaginaDeAnuncios`, com `'unsafe-inline'`
+  e os hosts do Google — **só ali**). `frame-ancestors` = a própria origem e a de `APP_URL` do build.
+- **CSP do app:** com `ANUNCIOS_ORIGEM` (var/secret do Worker) **e** a flag ligada, o Worker sobrepõe o
+  `Content-Security-Policy` dos documentos HTML e põe a origem em `frame-src` (nada em `script-src`). A flag é
+  lida uma vez por isolate a cada 60 s (até 60 s de `frame-src` aberto depois de desligar). Por isso o
+  `run_worker_first` do `wrangler.jsonc` é `/*` menos os estáticos pesados e `/anuncios/*`.
+- **Build:** `VITE_ANUNCIOS_ORIGEM` (a mesma origem) e `VITE_ANUNCIOS_REDE_CONTA` (código da rede no Ad
+  Manager) registram o provedor real (`src/lib/anuncios/ligar.ts`); sem as duas, nada entra no navegador.
+- **Staging:** a origem pode ser o próprio Worker (`ANUNCIOS_ORIGEM=https://frasy-staging…workers.dev`); em
+  produção, `https://ads.<domínio>` (outro domínio personalizado apontando para o mesmo Worker serve).
+- **Limitações:** Firefox não tem `credentialless` (sem anúncio, aceito). A recompensa do premiado não tem
+  verificação do Google na web: o servidor credita por exibição com teto (Task 5). O Express (Node) não
+  serve a página sem isolamento nem sobrepõe a CSP: anúncios só no Worker.
+
 ## O que fica desativado por design
 
 No modo público, uma capacidade local responde **403 mesmo com token válido** — ela

@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 import { gerarHeaders } from '../scripts/vite/cabecalhos'
-import { diretivasDeCsp, serializarCsp } from '../server/http/csp'
+import { cspDaPaginaDeAnuncios, diretivasDeCsp, serializarCsp } from '../server/http/csp'
 
 const BASE = readFileSync('scripts/vite/_headers.base', 'utf8')
 const env = (e: Record<string, string>) => e as unknown as NodeJS.ProcessEnv
@@ -93,6 +93,30 @@ describe('gerarHeaders', () => {
 
   it('diagnostico-audio.html fica sem CSP', () => {
     expect(bloco(gerarHeaders(env({}), BASE), '/diagnostico-audio.html')).toBe('! Content-Security-Policy')
+  })
+
+  /* Ruling R32: a página de anúncios roda o GPT do Google, que não suporta COEP nem a CSP do app. Ela
+     é servida SEM isolamento e com a CSP larga dela, que só vale ali. */
+  it('/anuncios/* sai sem COOP/COEP/DIP e com a CSP própria da página de anúncios', () => {
+    const e = env({ APP_URL: 'https://frasy.com.br' })
+    const h = gerarHeaders(e, BASE)
+    const b = bloco(h, '/anuncios/*')
+    for (const nome of [
+      'Cross-Origin-Opener-Policy',
+      'Cross-Origin-Embedder-Policy',
+      'Document-Isolation-Policy',
+      'Content-Security-Policy',
+    ])
+      expect(b).toContain(`! ${nome}`)
+    expect(b).toContain(`Content-Security-Policy: ${cspDaPaginaDeAnuncios(e)}`)
+    expect(b).not.toMatch(/X-Frame-Options/i)
+    // o bloco vem DEPOIS do `/*`: no Static Assets o `!` de uma regra posterior apaga o que a anterior pôs
+    expect(h.indexOf('\n/anuncios/*')).toBeGreaterThan(h.indexOf('/*\n'))
+    // a CSP do app (/*) continua sem nenhum host do Google
+    expect(bloco(h, '/*')).not.toMatch(/doubleclick|googlesyndication/)
+    // o Referrer-Policy do /* (strict-origin-when-cross-origin) continua valendo ali
+    expect(b).not.toMatch(/Referrer-Policy/)
+    expect(bloco(h, '/*')).toContain('Referrer-Policy: strict-origin-when-cross-origin')
   })
 
   it('não existe Content-Security-Policy-Report-Only', () => {

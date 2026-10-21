@@ -1,13 +1,14 @@
 /**
- * O PROVEDOR DE ANÚNCIOS — quem DESENHA um espaço. Injetável, e nesta etapa NÃO EXISTE o de produção.
+ * O PROVEDOR DE ANÚNCIOS — quem DESENHA um espaço. Injetável.
  *
  * `EspacoDeAnuncio` decide SE (a política pura) e pergunta aqui QUEM desenha. Sem provedor registrado
  * ele não renderiza nada e não pede nada à rede: é o estado de fábrica, com a flag ligada ou não.
  *
- * O único provedor que existe é o de DEMONSTRAÇÃO (`components/anuncios/demonstracao`), só em
- * desenvolvimento, para o dono ver os lugares: cartões "Patrocinado · exemplo", sem anunciante real,
- * sem script de terceiro e sem rede. Um provedor de produção (uma rede de anúncios) entra por aqui
- * quando o dono escolher a rede, e traz junto o ajuste da CSP por configuração (`design.md` §7).
+ * Dois provedores existem: o de DEMONSTRAÇÃO (`components/anuncios/demonstracao`), só em
+ * desenvolvimento, com cartões "Patrocinado · exemplo" sem rede; e o REAL (`provedores/iframe.tsx`,
+ * ruling R32), registrado por `ligar.ts` só quando o build tem `VITE_ANUNCIOS_ORIGEM`: um
+ * `<iframe credentialless>` para a página de anúncios na origem própria. A CSP do app só abre o
+ * `frame-src` dessa origem com a flag ligada (`server/http/csp.ts`).
  *
  * FOLHA: não importa nada do app além dos tipos da política.
  */
@@ -20,13 +21,22 @@ export interface PropsDoEspacoDeAnuncio {
   formato: FormatoDeAnuncio;
   /** A porta "Sem anúncios": leva aos planos. Todo anúncio tem uma ao lado (spec, "Identificação e saída"). */
   aoSemAnuncios: () => void;
+  /** O premiado terminou com recompensa (a página de anúncios avisou). Quem credita é o servidor. */
+  aoRecompensar?: (exibicaoId: string) => void;
 }
 
 export interface ProvedorDeAnuncios {
-  /** Nome curto, para diagnóstico (`demonstracao`). */
+  /** Nome curto, para diagnóstico (`demonstracao`, `iframe`). */
   id: string;
   /** Desenha UM espaço. Só é montado depois de a política dizer que pode. */
   Espaco: ComponentType<PropsDoEspacoDeAnuncio>;
+  /** Este navegador consegue desenhar? Ausente = sim. `false` vale como "sem provedor": nada aparece. */
+  disponivel?: () => boolean;
+  /**
+   * O provedor REAL pede o consentimento no primeiro espaço elegível (`ConsentimentoDeAnuncios`) a quem
+   * nunca respondeu. A demonstração e os de teste não pedem.
+   */
+  pedeConsentimento?: boolean;
 }
 
 let atual: ProvedorDeAnuncios | null = null;

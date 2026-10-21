@@ -96,7 +96,25 @@ function origemDe(valor: string | undefined): string | null {
   }
 }
 
-export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env): DiretivasDeCsp {
+/**
+ * A ORIGEM DE ANÚNCIOS (`ANUNCIOS_ORIGEM`, ruling R32): de onde o app embute a página de anúncios por
+ * `<iframe credentialless>`. Só a origem; só `https` (ou `http` em localhost, para o `worker:dev`).
+ * Inválida ou ausente = `null`, e nada muda na CSP.
+ */
+export function origemDosAnuncios(env: NodeJS.ProcessEnv = process.env): string | null {
+  const o = origemDe(env.ANUNCIOS_ORIGEM)
+  if (!o) return null
+  const u = new URL(o)
+  if (u.protocol === 'https:' || u.hostname === 'localhost' || u.hostname === '127.0.0.1') return o
+  return null
+}
+
+export interface OpcoesDaCsp {
+  /** A flag `anuncios` está ligada (quem lê é o chamador: o Worker, com cache de 60 s). */
+  anuncios?: boolean
+}
+
+export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: OpcoesDaCsp = {}): DiretivasDeCsp {
   const doDeploy = [
     origemDe(env.SUPABASE_URL),
     origemDe(env.VITE_SUPABASE_URL),
@@ -123,6 +141,11 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env): DiretivasD
     ...new Set(["'self'", 'blob:', 'data:', ...CONEXOES_FIXAS, ...doDeploy, ...runtimeDoOnnx, ...turnstile]),
   ]
 
+  /* R32: com a flag ligada E a origem configurada, a página de anúncios entra SÓ em `frame-src`. Nada em
+     `script-src`: o GPT roda lá, nunca no documento do app. */
+  const anuncios = opcoes.anuncios ? [origemDosAnuncios(env)].filter((o): o is string => o !== null) : []
+  const quadros = [...turnstile, ...anuncios]
+
   return {
     defaultSrc: ["'self'"],
     scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'blob:', ...runtimeDoOnnx, ...turnstile],
@@ -138,8 +161,66 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env): DiretivasD
     frameAncestors: ["'self'"],
     baseUri: ["'self'"],
     formAction: ["'self'"],
-    ...(turnstile.length ? { frameSrc: ["'self'", ...turnstile] } : {}),
+    ...(quadros.length ? { frameSrc: ["'self'", ...quadros] } : {}),
   }
+}
+
+/**
+ * A SOBREPOSIÇÃO DO WORKER (ruling R31): a CSP do `_headers` é fixa no build; com os anúncios ligados o
+ * Worker acrescenta a origem de anúncios em `frame-src` do cabeçalho que veio do `ASSETS` — e só ali.
+ * Sem `frame-src`, cria `frame-src 'self' <origem>` (antes valia o `default-src 'self'`). Idempotente.
+ */
+export function cspComAnuncios(cabecalho: string, origem: string): string {
+  const diretivas = cabecalho
+    .split(';')
+    .map((d) => d.trim())
+    .filter(Boolean)
+  const i = diretivas.findIndex((d) => d.split(/\s+/)[0].toLowerCase() === 'frame-src')
+  if (i < 0) return [...diretivas, `frame-src 'self' ${origem}`].join('; ')
+  const valores = diretivas[i].split(/\s+/)
+  if (!valores.includes(origem)) diretivas[i] = [...valores, origem].join(' ')
+  return diretivas.join('; ')
+}
+
+/**
+ * Os hosts do Google que a página de anúncios usa (pesquisa `docs/pesquisa/2026-10-21-rede-de-anuncios.md`
+ * §4). O Google NÃO garante lista de hosts (só CSP por nonce): esta lista precisa ser conferida no console
+ * da página de bancada (Task 6) e pode mudar sem aviso. Vale só na origem de anúncios.
+ */
+const HOSTS_DO_GOOGLE = [
+  'https://securepubads.g.doubleclick.net',
+  'https://pagead2.googlesyndication.com',
+  'https://tpc.googlesyndication.com',
+  'https://googleads.g.doubleclick.net',
+  'https://www.googletagservices.com',
+  'https://ep1.adtrafficquality.google',
+  'https://adservice.google.com',
+  'https://www.google.com',
+]
+
+/**
+ * A CSP DA PÁGINA DE ANÚNCIOS (`/anuncios/*`, ruling R32) — LARGA, e só naquela origem.
+ *
+ * `'unsafe-inline'` em `script-src` é aceito AQUI, e só aqui: o GPT injeta scripts em linha e o Google só
+ * documenta CSP por nonce (que exigiria HTML gerado por requisição). A página não tem dado do app nem
+ * sessão (o iframe é `credentialless`, sem cookies), e o app a enxerga só por `postMessage` com a origem
+ * conferida. `frame-src`/`img-src` em `https:` porque os criativos vêm de CDNs de anunciantes.
+ * `frame-ancestors`: a própria origem e a do app (`APP_URL`, quando o build a tem).
+ */
+export function cspDaPaginaDeAnuncios(env: NodeJS.ProcessEnv = process.env): string {
+  const app = origemDe(env.APP_URL)
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'unsafe-inline' ${HOSTS_DO_GOOGLE.join(' ')}`,
+    `connect-src 'self' ${HOSTS_DO_GOOGLE.join(' ')} https://*.doubleclick.net https://*.googlesyndication.com https://*.google.com https://*.adtrafficquality.google`,
+    "img-src 'self' https: data:",
+    'frame-src https:',
+    "style-src 'self' 'unsafe-inline'",
+    "object-src 'none'",
+    "base-uri 'none'",
+    "form-action 'none'",
+    ['frame-ancestors', "'self'", ...(app ? [app] : [])].join(' '),
+  ].join('; ')
 }
 
 /**

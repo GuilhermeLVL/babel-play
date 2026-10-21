@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { CRIADOR } from '../../../lib/criador';
 import { t } from '../../../lib/i18n';
 import { type Consentimento, mudarConsentimento, salvarPreferencias, usePreferencias } from '../../../lib/preferencias';
+import AnunciosNosAjustes from '../../anuncios/AnunciosNosAjustes';
 import { toast } from '../../Toast';
 import { baixarArquivo, prepararCopia } from '../perfil/AbaDados';
 import DialogoLegal from '../sobre/DialogoLegal';
@@ -114,6 +115,9 @@ export default function AbaPrivacidade() {
         </div>
         <p className="q-aju-nota">{t('Cada mudança fica registrada com data, para você e para nós.')}</p>
       </section>
+
+      {/* Só com a flag `anuncios` ligada e fora do perfil protegido; desligada, nada muda aqui. */}
+      <AnunciosNosAjustes />
 
       <section className="q-secao">
         <header>

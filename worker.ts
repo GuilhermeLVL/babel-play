@@ -2,8 +2,10 @@
  * PONTO DE ENTRADA DO WORKER (Fase 2, Task 12). O par do `server.ts` (Node): o mesmo `criarApp()`, servido
  * pelo `httpServerHandler` do `cloudflare:node` (`nodejs_compat`). Configuração em `wrangler.jsonc`.
  *
- *   /api/*   → Express. Todo o resto → `env.ASSETS` (o build do Vite; SPA cai no `index.html`). Com
- *              `run_worker_first: ["/api/*"]` o resto nem chega aqui, salvo o fallback da SPA.
+ *   /api/*   → Express. Todo o resto → `env.ASSETS` (o build do Vite; SPA cai no `index.html`). O
+ *              `run_worker_first` traz para cá a API e os DOCUMENTOS (`/*`, menos os estáticos pesados e
+ *              `/anuncios/*`): é aqui que a CSP dos anúncios é sobreposta quando a flag está ligada
+ *              (`servirEstatico`, rulings R31/R32). Os estáticos pesados vão direto ao Static Assets.
  *   cron     → `executarJobsDoCron(controller.cron)` (o registro em `server/jobs/registro.ts`).
  *
  * POR REQUISIÇÃO (e por disparo do cron), nesta ordem:
@@ -41,7 +43,11 @@ import { conferirBootDoWorker } from './server/boot/portaoDoWorker'
 import { abrirClienteDoHyperdrive } from './server/db/clientePorRequisicao'
 import type { Executor } from './server/db/executor'
 import { schemaPresente } from './server/db/manutencao'
+import { FLAG_ANUNCIOS } from './src/core/anuncios/politicaDeAnuncio'
+import { anunciosLigadosNoIsolate } from './server/http/anunciosNoWorker'
 import { criarApp } from './server/http/app'
+import { cspComAnuncios, origemDosAnuncios } from './server/http/csp'
+import { definicoesDasFlags } from './server/lib/flags'
 import { comIpDaBorda } from './server/http/ipDaBorda'
 import { executarJobsDoCron } from './server/jobs/executar'
 import { ligarAnalyticsEngine, type BindingDeMetricas } from './server/http/metricasDoAnalyticsEngine'
@@ -164,6 +170,35 @@ async function noEscopo<T>(env: Env, ctx: Contexto, fn: () => Promise<[T, Promis
   return rodarNoEscopoDaRequisicao(executor, ctx, fn)
 }
 
+/** A flag `anuncios` no banco (a linha habilitada), por um `Client` do Hyperdrive aberto só para isso. */
+async function lerFlagDosAnuncios(env: Env, ctx: Contexto): Promise<boolean> {
+  ligarBucketDoR2(env.MIDIA) // antes do portão, como na API
+  if (conferirBootDoWorker()) return false
+  return noEscopo(env, ctx, async () => {
+    const def = (await definicoesDasFlags()).find((d) => d.chave === FLAG_ANUNCIOS)
+    return [def?.habilitada === true, Promise.resolve()]
+  })
+}
+
+/**
+ * O ESTÁTICO (rulings R31 e R32). Sai do `ASSETS` como está (com os cabeçalhos do `_headers`), salvo um
+ * caso: documento HTML, `ANUNCIOS_ORIGEM` configurada e a flag `anuncios` ligada — aí a origem de anúncios
+ * entra em `frame-src` da CSP (`cspComAnuncios`), e só ali. Sem a origem a flag nem é lida. A própria
+ * página de anúncios (`/anuncios/*`) tem a CSP dela e não é tocada.
+ */
+async function servirEstatico(request: Request, pathname: string, env: Env, ctx: Contexto): Promise<Response> {
+  const resposta = await env.ASSETS.fetch(request)
+  const origem = origemDosAnuncios(process.env)
+  if (!origem || pathname.startsWith('/anuncios/')) return resposta
+  if (!(resposta.headers.get('content-type') ?? '').toLowerCase().includes('text/html')) return resposta
+  const csp = resposta.headers.get('content-security-policy')
+  if (!csp) return resposta
+  if (!(await anunciosLigadosNoIsolate(() => lerFlagDosAnuncios(env, ctx)))) return resposta
+  const r = new Response(resposta.body, resposta)
+  r.headers.set('content-security-policy', cspComAnuncios(csp, origem))
+  return r
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: Contexto): Promise<Response> {
     fixarModo()
@@ -176,7 +211,7 @@ export default {
     if (/^\/api(\/|$)/i.test(pathname) && (pathname === '/api' || !pathname.startsWith('/api/'))) {
       return json(404, { error: 'rota inexistente', code: 'rota_inexistente' })
     }
-    if (!pathname.startsWith('/api/')) return env.ASSETS.fetch(request)
+    if (!pathname.startsWith('/api/')) return servirEstatico(request, pathname, env, ctx)
     ligarAnalyticsEngine(env.METRICAS)
     ligarBucketDoR2(env.MIDIA) // antes do portão: o armazenamento de mídia é uma das travas
     if (conferirBootDoWorker()) {

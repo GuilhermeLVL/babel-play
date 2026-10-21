@@ -90,6 +90,18 @@ describe('wrangler.jsonc', () => {
     expect(config.env?.staging?.vars?.ASAAS_BASE_URL).toMatch(/sandbox/)
   })
 
+  /* Ruling R31: para a CSP dos anúncios ser sobreposta, os documentos HTML (inclusive o fallback da SPA)
+     passam pelo Worker; o que é pesado e nunca é HTML vai direto ao Static Assets, e a página de anúncios
+     também (os cabeçalhos dela vêm do `_headers`). */
+  it('run_worker_first: a API, /metrics e os documentos; fora os estáticos pesados e /anuncios/*', () => {
+    const lista = (config as { assets?: { run_worker_first?: string[] } }).assets?.run_worker_first ?? []
+    // `/*` cobre /api, /api/* e /metrics (o wrangler recusa a lista com os três redundantes)
+    expect(lista).toContain('/*')
+    expect(lista.filter((p) => /^!\/(api|metrics)/i.test(p))).toEqual([])
+    for (const p of ['!/assets/*', '!/anuncios/*', '!/i18n/*', '!/trilha/*', '!/glosas/*'])
+      expect(lista, p).toContain(p)
+  })
+
   it('preview_urls ligado no topo (portão antes do tráfego) e workers.dev desligado na produção', () => {
     expect(config.preview_urls).toBe(true)
     expect(config.workers_dev).toBe(false)

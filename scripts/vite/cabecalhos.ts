@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import type { Plugin } from 'vite';
 
-import { diretivasDeCsp, serializarCsp } from '../../server/http/csp';
+import { cspDaPaginaDeAnuncios, diretivasDeCsp, serializarCsp } from '../../server/http/csp';
 
 /** Onde o modelo começa a parte que NÃO é gerada: as regras de cache. */
 const INICIO_DO_CACHE = '/ort-wasm-*';
@@ -11,7 +11,7 @@ const INICIO_DO_CACHE = '/ort-wasm-*';
 /**
  * O conteúdo do `dist/_headers`: o cabeçalho de comentários do `base` (`scripts/vite/_headers.base`), a
  * regra `/*` (segurança, isolamento e a CSP bloqueante de `diretivasDeCsp(env)`), o bloco de
- * `/diagnostico-audio.html` sem CSP e as regras de cache do `base`, sem alteração.
+ * `/diagnostico-audio.html` sem CSP, o bloco de `/anuncios/*` (sem isolamento, CSP própria) e as regras de cache do `base`, sem alteração.
  *
  * Os valores do isolamento são os de `server/http/isolamento.ts` (modo completo); a CSP é a MESMA do
  * Express, de `server/http/csp.ts`.
@@ -34,7 +34,18 @@ export function gerarHeaders(env: NodeJS.ProcessEnv, base: string): string {
     `  Content-Security-Policy: ${serializarCsp(diretivasDeCsp(env))}`,
   ].join('\n');
   const diagnostico = ['/diagnostico-audio.html', '  ! Content-Security-Policy'].join('\n');
-  return `${comentarios}${global}\n\n${diagnostico}\n\n${cache}`;
+  /* A página de anúncios (ruling R32): o GPT do Google não suporta COEP nem a CSP do app. Sem isolamento
+     e com a CSP larga dela (`cspDaPaginaDeAnuncios`). Vem DEPOIS do `/*`: o Static Assets aplica as regras
+     na ordem, e o `!` desta apaga o que a global pôs antes de pôr a CSP própria. */
+  const anuncios = [
+    '/anuncios/*',
+    '  ! Cross-Origin-Opener-Policy',
+    '  ! Cross-Origin-Embedder-Policy',
+    '  ! Document-Isolation-Policy',
+    '  ! Content-Security-Policy',
+    `  Content-Security-Policy: ${cspDaPaginaDeAnuncios(env)}`,
+  ].join('\n');
+  return `${comentarios}${global}\n\n${diagnostico}\n\n${anuncios}\n\n${cache}`;
 }
 
 /** Grava `dist/_headers` ao fim do build, com a CSP das variáveis do próprio build. */

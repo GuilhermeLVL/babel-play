@@ -40,13 +40,29 @@
   // Métricas do Worker (server/http/metricasDoAnalyticsEngine.ts); o esquema está em docs/runbook.md.
   "analytics_engine_datasets": [{ "binding": "METRICAS", "dataset": "frasy_metricas" }],
 
-  // O build do Vite. /api/* passa pelo Worker; o resto é estático, e caminho desconhecido cai no
-  // index.html (SPA).
+  // O build do Vite. Tudo passa pelo Worker (`/*`: a API, /metrics e os documentos); caminho desconhecido cai no index.html (SPA). Os
+  // DOCUMENTOS também passam (`/*`): com a flag `anuncios` ligada e ANUNCIOS_ORIGEM configurada, o Worker
+  // acrescenta a origem de anúncios em `frame-src` da CSP (rulings R31/R32; sem isso só o build mudaria a
+  // CSP). Os `!` mandam direto ao Static Assets o que nunca é documento e pesa (cache imutável, modelos,
+  // catálogos) e a página de anúncios, cujos cabeçalhos vêm do `_headers` (bloco /anuncios/*).
   "assets": {
     "directory": "dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api", "/api/*", "/metrics"],
+    "run_worker_first": [
+      "/*",
+      "!/assets/*",
+      "!/anuncios/*",
+      "!/i18n/*",
+      "!/trilha/*",
+      "!/glosas/*",
+      "!/semente-traducao/*",
+      "!/smart-turn/*",
+      "!/modelos/*",
+      "!/models/*",
+      "!/ort-wasm-*",
+      "!/silero_vad_*",
+    ],
   },
 
   // Uma expressão por job de server/jobs/registro.ts (7 distintas: plano Workers Paid). No plano Free

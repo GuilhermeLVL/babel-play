@@ -4,6 +4,8 @@
  *
  *   node scripts/backup/drill-restauracao.mjs --origem <URL> --destino <URL vazia> [--dump <arq>] [--manter]
  *   node scripts/backup/drill-restauracao.mjs --dump <arq> --destino <URL vazia>            (sem origem)
+ * RECOMENDADO: passe as URLs pelo ambiente (`DRILL_ORIGEM`, `DRILL_DESTINO`), usadas quando a flag falta: URL
+ * com senha no argv aparece em `ps` e no histórico do shell.
  *
  * - Com `--origem` e sem `--dump`: faz o `pg_dump` da origem (mesmo comando do backup semanal).
  * - Com `--origem`: compara `count(*)` de todas as tabelas de `public` + `drizzle.__drizzle_migrations`.
@@ -72,6 +74,9 @@ function main() {
       manter: { type: 'boolean' },
     },
   })
+  // Preferir o ambiente: URL com senha no argv aparece em `ps` e no histórico do shell.
+  values.origem ??= process.env.DRILL_ORIGEM || undefined
+  values.destino ??= process.env.DRILL_DESTINO || undefined
   if (!values.destino || (!values.origem && !values.dump)) {
     throw new ErroDeUso(
       'uso: drill-restauracao.mjs --destino <URL vazia> (--origem <URL> | --dump <arq>) [--dump <arq>] [--manter]',
@@ -81,10 +86,11 @@ function main() {
   const envOrigem = values.origem ? ambienteDe(values.origem) : null
 
   // Destino primeiro: se não estiver vazio, nada mais acontece (nem o dump da origem).
-  const existentes = Number(psql(envDestino, "select count(*) from pg_tables where schemaname = 'public'"))
-  if (existentes > 0) {
+  // Estrito: só o texto exato `0` libera. Saída vazia ou estranha (NaN) NÃO pode passar por "vazio".
+  const existentes = psql(envDestino, "select count(*) from pg_tables where schemaname = 'public'").trim()
+  if (existentes !== '0') {
     throw new ErroDeUso(
-      `destino recusado: já tem ${existentes} tabela(s) em public. Use um banco VAZIO (nunca o de produção)`,
+      `destino recusado: ${/^\d+$/.test(existentes) ? `já tem ${existentes} tabela(s) em public` : 'não consegui confirmar que public está vazio'}. Use um banco VAZIO (nunca o de produção)`,
     )
   }
 
@@ -107,7 +113,7 @@ function main() {
     console.error('pg_restore no destino…')
     // O dump por `--schema` não leva o CREATE SCHEMA do `drizzle`; o `public` já vem no banco novo.
     psql(envDestino, 'create schema if not exists drizzle')
-    // Sem `--no-privileges`: os GRANT do Supabase citam papéis (anon, service_role…) que não existem num Postgres novo.
+    // `--no-privileges` porque os GRANT do Supabase citam papéis (anon, service_role…) que não existem num Postgres novo.
     rodar(
       'pg_restore',
       [
@@ -146,6 +152,11 @@ function main() {
 try {
   process.exitCode = main()
 } catch (e) {
-  console.error(e instanceof ErroDeUso ? e.message : `falha: ${e.message}`)
-  process.exitCode = e instanceof ErroDeUso ? 2 : 1
+  // Opção desconhecida (`--help`…) é erro de uso, não falha do exercício.
+  const uso =
+    e instanceof ErroDeUso ||
+    e?.code === 'ERR_PARSE_ARGS_UNKNOWN_OPTION' ||
+    e?.code === 'ERR_PARSE_ARGS_INVALID_OPTION_VALUE'
+  console.error(uso ? e.message : `falha: ${e.message}`)
+  process.exitCode = uso ? 2 : 1
 }

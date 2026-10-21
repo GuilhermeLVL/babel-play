@@ -103,10 +103,11 @@ jobs:
           IDADE_MAXIMA_DIAS: ${{ inputs.idade_maxima_dias }}
         run: |
           set -euo pipefail
+          [[ "$IDADE_MAXIMA_DIAS" =~ ^[0-9]+$ ]] || { echo "::error::idade_maxima_dias inválida (esperado inteiro)"; exit 1; }
           chave="$ARQUIVO"
           if [ -z "$chave" ]; then
             chave=$(aws s3api list-objects-v2 --endpoint-url "$R2_S3_ENDPOINT" --bucket "$BACKUP_BUCKET" \
-              --prefix semanal/ --query 'sort_by(Contents[?ends_with(Key, `.dump`)], &LastModified)[-1].Key' --output text)
+              --prefix semanal/ --query 'sort_by(Contents[?ends_with(Key, `.dump`)] || `[]`, &LastModified)[-1].Key' --output text)
           fi
           if [ -z "$chave" ] || [ "$chave" = "None" ]; then
             echo "::error::Nenhum semanal/*.dump no bucket: o backup semanal não está enviando"

@@ -552,7 +552,9 @@ Um backup que nunca foi restaurado não é backup. Dois caminhos, uma vez por m�
 docker run -d --name pg-drill -e POSTGRES_PASSWORD=teste -p 5433:5432 postgres:17
 docker exec pg-drill createdb -U postgres drill
 export PGSSLROOTCERT=data/supabase-ca.crt        # a URL da origem usa sslmode=verify-full
-node scripts/backup/drill-restauracao.mjs --origem "$URL_DO_STAGING" --destino postgres://postgres:teste@localhost:5433/drill
+# URLs pelo AMBIENTE, não pela flag: senha no argv aparece em `ps` e no histórico do shell
+export DRILL_ORIGEM="$URL_DO_STAGING" DRILL_DESTINO=postgres://postgres:teste@localhost:5433/drill
+node scripts/backup/drill-restauracao.mjs
 docker rm -f pg-drill                            # o banco do exercício tem dados pessoais
 ```
 

@@ -100,7 +100,7 @@ import {
   transcricaoNoNavegadorAntesDeGravar,
   useMotorComIdiomaEscolhido,
 } from '../../lib/captura/legendaSemBaixar';
-import { cancelarLiberacaoDosModelos, liberarModelosDepois } from '../../lib/captura/memoriaDosModelos';
+import { cancelarLiberacaoDosModelos, liberarAoSairDaCaptura } from '../../lib/captura/memoriaDosModelos';
 import { type EscolhaDoMic, webSpeechBipaAoReligar } from '../../lib/captura/motorDoMicrofone';
 import { preparoConcluido } from '../../lib/captura/pacotesNativos';
 // Vocabulário dentro da captura: examinar a palavra, fichar no deck, mandar praticar.
@@ -207,6 +207,7 @@ import FolhasDoPrototipo from './captura/celular/FolhasDoPrototipo';
 import EncerrarSessao from './captura/EncerrarSessao';
 import { AjudaNoPainel } from './captura/enxuta/pecas';
 import EscolhaDoMicrofone from './captura/EscolhaDoMicrofone';
+import GuiaDoAudioDaTela from './captura/GuiaDoAudioDaTela';
 import IdiomasDaSessao, { type Lado } from './captura/IdiomasDaSessao';
 import LegendaFlutuanteDoPrototipo from './captura/legendas/LegendaFlutuanteDoPrototipo';
 import LegendasFlutuantes, { type LegendaAoVivo } from './captura/LegendasFlutuantes';
@@ -663,8 +664,13 @@ export default function LiveCapture({
   /* A FONTE NO QUEST: "Som do headset" compartilha a visão com o áudio; "Microfone" capta a voz, sem
      compartilhar nada; "Os dois" faz as duas coisas (conversa sobre um vídeo, aula com perguntas). */
   const [fonteDoQuest] = useState(lerFonteDoQuest);
+  /* "Usar o microfone" no guia do navegador que não entrega o som da tela (Safari, Firefox): o som do
+     computador sai desta sessão da tela, e a captura segue só pelo microfone. */
+  const [somDaTelaDispensado, setSomDaTelaDispensado] = useState(false);
   const systemEnabled: boolean =
-    perfilDoAparelho.capturaDoSistema && !(perfilDoAparelho.tipo === 'quest' && fonteDoQuest === 'mic');
+    perfilDoAparelho.capturaDoSistema &&
+    !(perfilDoAparelho.tipo === 'quest' && fonteDoQuest === 'mic') &&
+    !somDaTelaDispensado;
   // COMO capturar o áudio do sistema: 'display' = compartilhar aba/tela (getDisplayMedia; zero
   // setup, mas o áudio de TELA sofre a limitação NotReadableError no Windows) ou 'loopback' =
   // dispositivo de entrada de loopback (Stereo Mix / VB-Cable via getUserMedia; à prova de falhas,
@@ -856,8 +862,7 @@ export default function LiveCapture({
         gateway.stt.liberarModelo();
         gateway.mt.liberarModelos();
       };
-      if (perfilDoAparelhoRef.current.poucaMemoria) liberar();
-      else liberarModelosDepois(liberar);
+      liberarAoSairDaCaptura(perfilDoAparelhoRef.current, liberar);
     };
   }, [gateway]);
 
@@ -2567,6 +2572,28 @@ export default function LiveCapture({
     }
     comecarCaptura();
   };
+  /**
+   * "USAR O MICROFONE" no guia do navegador que não entrega o som da tela (correção E do diagnóstico do
+   * Safari): dispensa o som do computador, liga o microfone e começa por ele. O contexto de áudio abre
+   * aqui, dentro do toque (no iPhone o criado depois pode ficar mudo); o Iniciar vem no render seguinte,
+   * quando `systemEnabled` e `micEnabled` já dizem "só o microfone".
+   */
+  const iniciarPeloMicrofoneRef = useRef(false);
+  const usarMicrofoneNoLugarDaTela = () => {
+    setGuiaDeAudio(null);
+    setSomDaTelaDispensado(true);
+    setMicEnabled(true);
+    setCaptureScenario(cenarioDasFontes(true, false));
+    if (isRecordingRef.current) return; // o microfone já segue gravando: só sai o som da tela
+    abrirContextoDoClique();
+    iniciarPeloMicrofoneRef.current = true;
+  };
+  useEffect(() => {
+    if (!iniciarPeloMicrofoneRef.current || systemEnabled || !micEnabled) return;
+    iniciarPeloMicrofoneRef.current = false;
+    iniciarCaptura();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando as fontes viram "só o microfone"
+  }, [systemEnabled, micEnabled]);
   /* O MODO INTÉRPRETE: a sessão começa sem abrir nada (o microfone abre no toque de um lado, dentro
      da tela) e só com o microfone — o som do computador não entra. O relógio liga já: não há fonte
      que avise a abertura antes do primeiro toque. */
@@ -3705,126 +3732,29 @@ export default function LiveCapture({
       {/* FIXED FOCUS FULLSCREEN OVERLAY */}
       {/* GUIA DO COMPARTILHAMENTO SEM ÁUDIO — o caminho de volta, não só o aviso. */}
       {guiaDeAudio && (
-        <div
-          className="fixed inset-0 z-50 bg-ink/40 backdrop-blur-sm flex items-center justify-center p-4"
-          role="dialog"
-          aria-label="Como compartilhar com áudio"
-        >
-          <div className="card-panel bg-surface w-full max-w-md p-6">
-            <h2 className="font-display font-extrabold text-lg text-ink mb-2">
-              {guiaDeAudio === 'AUDIO_DA_TELA_INDISPONIVEL'
-                ? 'O Windows não liberou o áudio'
-                : guiaDeAudio === 'NAVEGADOR_SEM_AUDIO_DA_TELA'
-                  ? 'Este navegador não captura o som da tela'
-                  : guiaDeAudio === 'JANELA_SEM_AUDIO'
-                    ? 'A janela veio sem áudio'
-                    : 'Faltou marcar o áudio'}
-            </h2>
-            <div className="text-[13.5px] text-ink-muted leading-relaxed space-y-2">
-              {guiaDeAudio === 'AUDIO_DA_TELA_INDISPONIVEL' ? (
-                <>
-                  <p>
-                    O Windows recusou o áudio desta janela/tela (acontece com a saída de som em 5.1/7.1). Dois caminhos
-                    funcionam:
-                  </p>
-                  <ol className="list-decimal ms-5 space-y-1">
-                    <li>
-                      <b className="text-ink">Aba do Chrome</b>: escolha a aba e deixe &quot;Compartilhar áudio da
-                      guia&quot; ligado;
-                    </li>
-                    <li>
-                      <b className="text-ink">Dispositivo de loopback</b> (Stereo Mix / VB-Cable): pega Discord, jogos e
-                      o computador inteiro.
-                    </li>
-                  </ol>
-                </>
-              ) : guiaDeAudio === 'NAVEGADOR_SEM_AUDIO_DA_TELA' ? (
-                <>
-                  <p>
-                    O Firefox e o Safari não entregam o som de uma aba ou tela, então marcar o áudio não resolve. Dois
-                    caminhos funcionam:
-                  </p>
-                  <ol className="list-decimal ms-5 space-y-1">
-                    <li>
-                      Abrir o Frasy no <b className="text-ink">Chrome ou no Edge</b>, que compartilham o som da aba e da
-                      tela;
-                    </li>
-                    <li>
-                      Usar o <b className="text-ink">microfone</b>, deixando o som do vídeo sair pelo alto-falante.
-                    </li>
-                  </ol>
-                </>
-              ) : guiaDeAudio === 'JANELA_SEM_AUDIO' ? (
-                <>
-                  <p>A janela foi compartilhada sem o áudio. Para jogos e apps fora do navegador:</p>
-                  <ol className="list-decimal ms-5 space-y-1">
-                    <li>
-                      Clique em <b className="text-ink">Escolher de novo</b>;
-                    </li>
-                    <li>
-                      Escolha a janela (ou a <b className="text-ink">Tela inteira</b>);
-                    </li>
-                    <li>
-                      Ative <b className="text-ink">&quot;Compartilhar áudio do sistema&quot;</b> (canto inferior).
-                    </li>
-                  </ol>
-                </>
-              ) : (
-                <>
-                  <p>Você compartilhou, mas sem áudio. Repita a escolha e:</p>
-                  <ol className="list-decimal ms-5 space-y-1">
-                    <li>
-                      Numa <b className="text-ink">aba</b>: marque "Compartilhar áudio da guia";
-                    </li>
-                    <li>
-                      Na <b className="text-ink">Tela inteira</b>: marque "Também compartilhar o áudio do sistema".
-                    </li>
-                  </ol>
-                </>
-              )}
-            </div>
-            <div className="flex items-center justify-end gap-2 mt-5">
-              <button
-                onClick={() => setGuiaDeAudio(null)}
-                className="px-4 py-2 rounded-xl border border-border-subtle text-[13px] font-bold text-ink-muted hover:text-ink cursor-pointer"
-              >
-                {guiaDeAudio === 'NAVEGADOR_SEM_AUDIO_DA_TELA' ? 'Entendi' : 'Cancelar'}
-              </button>
-              {guiaDeAudio === 'AUDIO_DA_TELA_INDISPONIVEL' && (serverCaptureAvailable || loopbackDetected) && (
-                <button
-                  onClick={() => {
-                    // Troca a rota (persistida em settings.ui) e já abre por ela: a ref é lida ao abrir.
-                    const rota = serverCaptureAvailable ? 'server' : 'loopback';
-                    setGuiaDeAudio(null);
-                    setSystemSource(rota);
-                    systemSourceRef.current = rota;
-                    // Sem dispositivo escolhido a rota abriria o microfone padrão: pega o 1º loopback detectado.
-                    if (rota === 'loopback' && !loopbackDeviceIdRef.current && loopbackDevices[0]) {
-                      setLoopbackDeviceId(loopbackDevices[0].deviceId);
-                      loopbackDeviceIdRef.current = loopbackDevices[0].deviceId;
-                    }
-                    void handleStartSystemCapture();
-                  }}
-                  className="px-4 py-2 rounded-xl border border-border-subtle text-[13px] font-bold text-ink hover:border-accent cursor-pointer"
-                >
-                  Usar o loopback
-                </button>
-              )}
-              {/* Neste navegador escolher de novo não muda nada: o botão só existe onde repetir pode funcionar. */}
-              {guiaDeAudio !== 'NAVEGADOR_SEM_AUDIO_DA_TELA' && (
-                <button
-                  onClick={() => {
-                    setGuiaDeAudio(null);
-                    void handleStartSystemCapture();
-                  }}
-                  className="px-5 py-2 rounded-xl bg-accent hover:bg-accent-ink text-white text-[13px] font-bold shadow-btn cursor-pointer"
-                >
-                  {guiaDeAudio === 'AUDIO_DA_TELA_INDISPONIVEL' ? 'Escolher a aba' : 'Escolher de novo'}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <GuiaDoAudioDaTela
+          codigo={guiaDeAudio}
+          podeUsarLoopback={serverCaptureAvailable || loopbackDetected}
+          aoFechar={() => setGuiaDeAudio(null)}
+          aoUsarLoopback={() => {
+            // Troca a rota (persistida em settings.ui) e já abre por ela: a ref é lida ao abrir.
+            const rota = serverCaptureAvailable ? 'server' : 'loopback';
+            setGuiaDeAudio(null);
+            setSystemSource(rota);
+            systemSourceRef.current = rota;
+            // Sem dispositivo escolhido a rota abriria o microfone padrão: pega o 1º loopback detectado.
+            if (rota === 'loopback' && !loopbackDeviceIdRef.current && loopbackDevices[0]) {
+              setLoopbackDeviceId(loopbackDevices[0].deviceId);
+              loopbackDeviceIdRef.current = loopbackDevices[0].deviceId;
+            }
+            void handleStartSystemCapture();
+          }}
+          aoEscolherDeNovo={() => {
+            setGuiaDeAudio(null);
+            void handleStartSystemCapture();
+          }}
+          aoUsarMicrofone={usarMicrofoneNoLugarDaTela}
+        />
       )}
 
       {/* FOCO CHEIO — o `telaFoco()` do protótipo (C3): a conversa grande sobre o fundo escuro,

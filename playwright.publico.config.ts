@@ -15,6 +15,11 @@ import { defineConfig, devices } from '@playwright/test'
  */
 const PORTA = Number(process.env.PORTA_E2E_PUBLICO || 3127)
 const SUPABASE = `http://127.0.0.1:${process.env.SUPABASE_FALSO_PORTA || 54399}`
+/* A página de anúncios (Worker `frasy-anuncios`, R35) servida de outra origem, sem código da rede
+   (`tests/e2e-publico/_anuncios-estatico.mjs`). O provedor real só baixa com a flag `anuncios` ligada,
+   que nasce desligada: os outros e2e não a veem. */
+const PORTA_ANUNCIOS = Number(process.env.PORTA_ANUNCIOS_E2E || 3128)
+const ANUNCIOS = `http://127.0.0.1:${PORTA_ANUNCIOS}`
 
 export default defineConfig({
   testDir: './tests/e2e-publico',
@@ -38,6 +43,13 @@ export default defineConfig({
       timeout: 30_000,
     },
     {
+      command: 'node tests/e2e-publico/_anuncios-estatico.mjs',
+      url: `${ANUNCIOS}/espaco.html`,
+      reuseExistingServer: false,
+      timeout: 30_000,
+      env: { APP_URL: `http://localhost:${PORTA}`, PORTA_ANUNCIOS_E2E: String(PORTA_ANUNCIOS) },
+    },
+    {
       command: 'node node_modules/tsx/dist/cli.mjs server.ts',
       url: `http://localhost:${PORTA}/api/health`,
       reuseExistingServer: false,
@@ -53,6 +65,8 @@ export default defineConfig({
         VITE_SUPABASE_ANON_KEY: 'anon-e2e',
         DATABASE_URL: process.env.DATABASE_URL_E2E_PUBLICO || 'pglite:./data/e2e-publico',
         VITE_CACHE_DIR: process.env.VITE_CACHE_DIR_E2E_PUBLICO || '',
+        ANUNCIOS_ORIGEM: ANUNCIOS,
+        VITE_ANUNCIOS_ORIGEM: ANUNCIOS,
       },
     },
   ],

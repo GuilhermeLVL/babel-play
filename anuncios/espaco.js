@@ -54,8 +54,8 @@
   var valida =
     /^[a-z0-9-]{1,40}$/.test(espaco) &&
     (formato === 'nativo' || formato === 'premiado') &&
-    /^[0-9]{1,20}$/.test(rede) &&
     (formato !== 'premiado' || /^[A-Za-z0-9_-]{1,80}$/.test(exibicao));
+  var temRede = /^[0-9]{1,20}$/.test(rede);
 
   function avisar(evento) {
     var msg = { tipo: 'frasy:anuncio', evento: evento };
@@ -63,8 +63,12 @@
     window.parent.postMessage(msg, app);
   }
 
-  /* Sem consentimento (ou com a query fora da forma) nada da rede é pedido. */
-  if (!consentiu || !valida) {
+  /* Sem consentimento, sem o código da rede no build ou com a query fora da forma: nada da rede é pedido. Com a
+     query certa, o app ouve `vazio` e o espaço some (falha fechada). Sem rede, um aviso no console (Task 6). */
+  if (!consentiu || !valida || !temRede) {
+    if (valida && !temRede) {
+      window.console.warn('frasy-anuncios: sem código da rede no build (VITE_ANUNCIOS_REDE_CONTA); nada é pedido.');
+    }
     if (valida) avisar('vazio');
     return;
   }

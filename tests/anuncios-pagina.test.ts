@@ -117,6 +117,15 @@ describe('a página de anúncios', () => {
     expect(scriptsDoGpt()).toHaveLength(0)
   })
 
+  it('sem o código da rede no build (bancada do staging, Task 6): avisa no console, posta `vazio` e não carrega o GPT', () => {
+    const aviso = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    rodar('espaco=inicio-nativo&formato=nativo&consentimento=1', { rede: '', app: APP })
+    expect(scriptsDoGpt()).toHaveLength(0)
+    expect((window as unknown as Janela).googletag).toBeUndefined()
+    expect(aviso).toHaveBeenCalledWith(expect.stringContaining('sem código da rede'))
+    expect(postar).toHaveBeenCalledWith({ tipo: 'frasy:anuncio', evento: 'vazio' }, APP)
+  })
+
   it('com consentimento=1: a query sai do endereço, o GPT carrega uma vez, privacidade e SafeFrame antes do slot, sem PPID', () => {
     const g = gptFalso()
     ;(window as unknown as Janela).googletag = g.googletag

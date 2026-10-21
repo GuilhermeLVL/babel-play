@@ -14,9 +14,9 @@ plano em
   **anúncios prontos, mas a flag `anuncios` desligada** até o jurídico e a rede; produção sobe com
   `SIGNUP_ENABLED=0` e `CHECKOUT_ENABLED=0`, e `ANUAL_ENABLED` só depois do jurídico.
 - **Cobrança por plano provada** (change 8.3): [`tests/integration/billing-por-plano.test.ts`](../tests/integration/billing-por-plano.test.ts).
-- **Cobrança no sandbox (21/10/2026), parcial:** no Worker toda chamada ao Asaas caía em 400 por falta de `User-Agent`
-  (corrigido em `f1d347af`, falta o deploy do staging); webhook, idempotência, 12x (12 eventos) e estorno medidos no
-  sandbox ([inventário §9](auditoria/2026-10-21-lancamento-inventario.md#9-provado-no-staging-21102026)).
+- **Cobrança provada no sandbox (21/10/2026):** Essencial e Premium mensal, anual à vista e 12x (12 webhooks), arrependimento
+  e estorno pelo app no staging, depois da correção do `User-Agent` do Asaas no Worker (`f1d347af`); falta só a virada da
+  troca pelo pagamento novo ([inventário §9](auditoria/2026-10-21-lancamento-inventario.md#9-provado-no-staging-21102026)).
 - **Tela de Planos com 3–4 cartões** sem prometer Ao Vivo nem voz: `src/components/views/planos/quatroPlanos.ts`,
   `tests/planos-tela-v3.test.tsx`, `tests/e2e-publico/planos-v3.e2e.ts`.
 - **Anúncios implementados e desligados:** consentimento (`src/components/anuncios/ConsentimentoDeAnuncios.tsx`);

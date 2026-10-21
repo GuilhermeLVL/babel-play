@@ -3,7 +3,8 @@
  * anúncios estão ligados, o Worker sobrepõe o `Content-Security-Policy` dos documentos HTML
  * (`cspComAnuncios`, em `csp.ts`). Para não ir ao banco a cada navegação, o VALOR da flag fica guardado
  * por isolate durante 60 s (nunca a promessa: uma promessa de uma requisição não pode ser esperada por
- * outra no workerd). Custo aceito: até 60 s de CSP com o `frame-src` depois de desligar a flag.
+ * outra no workerd). Por isso a leitura NÃO é coalescida: com o cache vencido, requisições simultâneas do
+ * mesmo isolate vão cada uma ao banco (poucas, e só uma vez a cada 60 s). Custo aceito: até 60 s de CSP com o `frame-src` depois de desligar a flag.
  *
  * "Ligada" aqui é a linha estar habilitada (`habilitada`), não a avaliação por pessoa: a CSP só ABRE o
  * quadro da origem de anúncios; quem decide se um anúncio aparece é a política do cliente.

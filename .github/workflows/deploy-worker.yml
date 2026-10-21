@@ -19,8 +19,8 @@
 #            VITE_PUBLIC_URL, VITE_ORT_WASM_URL, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (pública),
 #            VITE_SELF_HOST_MODELS, VITE_SENTRY_DSN, VITE_TURNSTILE_SITE_KEY, VITE_LOGIN_GOOGLE,
 #            VITE_DESENHO_NOVO_PADRAO, VITE_BERGAMOT_MODELOS_URL
-#            VITE_ANUNCIOS_ORIGEM, VITE_ANUNCIOS_REDE_CONTA, APP_URL (opcionais: anúncios, ruling R32; o APP_URL
-#            entra no frame-ancestors da página de anúncios quando ela mora noutra origem)
+#            VITE_ANUNCIOS_ORIGEM (opcional: a origem do Worker de anúncios `frasy-anuncios`, R35; ele se publica
+#            à parte, ver docs/deploy.md "Anúncios")
 # Os secrets do Worker em si (SECRET_KEY, chaves de IA…) NÃO passam por aqui: `scripts/cloudflare/secrets.ts`.
 # Passo a passo, tabela e alternativa manual: docs/deploy.md ("Publicar o Worker (CI)").
 name: deploy-worker
@@ -127,8 +127,6 @@ jobs:
           VITE_DESENHO_NOVO_PADRAO: ${{ vars.VITE_DESENHO_NOVO_PADRAO }}
           VITE_BERGAMOT_MODELOS_URL: ${{ vars.VITE_BERGAMOT_MODELOS_URL }}
           VITE_ANUNCIOS_ORIGEM: ${{ vars.VITE_ANUNCIOS_ORIGEM }}
-          VITE_ANUNCIOS_REDE_CONTA: ${{ vars.VITE_ANUNCIOS_REDE_CONTA }}
-          APP_URL: ${{ vars.APP_URL }}
         run: npm run build
 
       # Migrações antes da versão nova existir (o schema é aditivo; o Worker antigo continua servindo). A conexão

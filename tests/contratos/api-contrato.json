@@ -83,6 +83,8 @@
     "POST /api/anki/imports",
     "POST /api/anki/imports/:id/fechar",
     "POST /api/anki/imports/:id/notas",
+    "POST /api/anuncios/premiado/concluir",
+    "POST /api/anuncios/premiado/iniciar",
     "POST /api/billing/assinar",
     "POST /api/billing/cancelar",
     "POST /api/billing/comprar",

@@ -44,7 +44,7 @@ const SO_COM_CONTA: Record<string, string> = {
   '/api/me': 'a conta é justamente o que não existe aqui — inclusive a cota e a exportação',
   '/api/billing': 'moeda comprada com dinheiro e assinatura: nascem e morrem no servidor',
   '/api/anuncios':
-    'o premiado (abrir a exibição e creditar com teto por pessoa e global) mora no servidor; sem conta não há anúncio (perfil protegido)',
+    'a recompensa do anúncio premiado é creditada pelo servidor, com tetos do dia somando todas as contas; sem conta o perfil é o protegido e não vê anúncio',
   '/api/erros-do-cliente': 'diário de erros do servidor; sem conta o erro fica no console',
   '/api/sessions/utterances/relabel': 'reetiquetagem em lote: escrita cruzada de sessões',
   '/api/vocab/relabel': 'idem, no acervo',

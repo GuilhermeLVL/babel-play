@@ -63,6 +63,7 @@ import { CABECALHO_DA_VERSAO, versaoDoApp } from '../lib/versao'
 import { adminRouter } from '../routes/admin'
 import { aiRouter } from '../routes/ai'
 import { ankiRouter } from '../routes/anki'
+import { anunciosRouter } from '../routes/anuncios'
 import { asaasWebhookRouter, billingRouter } from '../routes/billing'
 import { errosRouter } from '../routes/erros'
 import { exercisesRouter } from '../routes/exercises'
@@ -565,6 +566,7 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
         '/api/admin',
         '/api/audio',
         '/api/responsavel',
+        '/api/anuncios',
       ],
       writeLimiter,
     )
@@ -606,6 +608,8 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   app.use('/api/erros-do-cliente', capturarAssincrono(errosRouter))
   // E3 — assinar/cancelar (atrás do auth; a PROMOÇÃO do plano é só do webhook acima).
   app.use('/api/billing', capturarAssincrono(billingRouter))
+  // Anúncios — a recompensa do premiado, creditada pelo servidor (spec `anuncios-no-gratis`).
+  app.use('/api/anuncios', capturarAssincrono(anunciosRouter))
   // Áudio do sistema via WASAPI loopback do PRÓPRIO servidor local (Windows) — a rota sem
   // fricção para capturar o que o computador toca; o navegador só consome o PCM.
   // Capacidade local: no modo público (AUTH_REQUIRED) ela some (403), mesmo autenticado. No Worker também:

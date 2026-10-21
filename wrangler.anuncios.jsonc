@@ -1,0 +1,23 @@
+// O Worker de ANÚNCIOS `frasy-anuncios` (ruling R35): só assets, sem código, sem banco e sem bucket. Serve a
+// página de anúncios (`anuncios/` → `dist-anuncios/`, `npm run anuncios:build`) numa origem que nunca é a do
+// app, sem COOP/COEP/DIP e com a CSP própria (o `_headers` gerado). Publicar:
+//   npm run anuncios:build && npx wrangler deploy -c wrangler.anuncios.jsonc [--env staging]
+// Produção: domínio personalizado `ads.<domínio>` (passo do dono no painel). Ver docs/deploy.md, "Anúncios".
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "frasy-anuncios",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": false,
+  "assets": {
+    "directory": "dist-anuncios",
+    // `/espaco.html` sai como está (sem o redirecionamento para `/espaco`); o resto é 404.
+    "html_handling": "none",
+    "not_found_handling": "none",
+  },
+  "env": {
+    "staging": {
+      "name": "frasy-anuncios-staging",
+      "workers_dev": true,
+    },
+  },
+}

@@ -1,15 +1,18 @@
 // @vitest-environment jsdom
 /**
- * O PROVEDOR REAL DE ANÚNCIOS (Task 4 do estado 3, ruling R32): um `<iframe credentialless>` para a
- * página de anúncios na origem própria (`ANUNCIOS_ORIGEM`). O app nunca carrega script de rede de
- * anúncios: quem carrega o GPT é a página de lá, e só com `consentimento=1`.
+ * O PROVEDOR REAL DE ANÚNCIOS (Task 4 do estado 3, rulings R32 e R35): um `<iframe credentialless sandbox>`
+ * para a página de anúncios no Worker próprio (`VITE_ANUNCIOS_ORIGEM`, nunca a origem do app). O app nunca
+ * carrega script de rede de anúncios: quem carrega o GPT é a página de lá, e só com `consentimento=1`.
  *
  *  - sem consentimento → nenhum iframe e nenhum pedido de rede;
  *  - consentimento + flag → UM iframe `credentialless` com o `src` certo, "Patrocinado" e a porta
  *    "Sem anúncios";
  *  - perfil protegido → nada;
  *  - navegador sem `credentialless` (Firefox) → o provedor se declara indisponível e nada aparece;
- *  - mensagem de outra origem é ignorada; `recompensa` da origem de anúncios chama `aoRecompensar` UMA vez.
+ *  - mensagem de outra origem é ignorada; `recompensa` da origem de anúncios credita UMA vez
+ *    (`concluirPremiado`, o aperto de mão da Task 5) e mostra o resultado; a recusa mostra o motivo;
+ *  - a CSP do app recusou o quadro (`securitypolicyviolation` em `frame-src`) → o espaço some;
+ *  - flag desligada → o módulo do provedor nem é pedido (`ligarProvedorDeAnuncios` não roda).
  */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -44,8 +47,27 @@ vi.mock('../src/lib/preferencias', () => {
 vi.mock('../src/components/Toast', () => ({
   toast: { ok: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
-const iniciarPremiado = vi.hoisted(() => vi.fn(async () => ({ exibicaoId: 'exib-1' })))
-vi.mock('../src/data/rotas/anuncios', () => ({ iniciarPremiado, concluirPremiado: vi.fn(async () => undefined) }))
+type Resposta = { ok: true; exibicaoId: string } | { ok: false; status: number; error: string; code?: string }
+const iniciarPremiado = vi.hoisted(() =>
+  vi.fn(async (_e: string): Promise<Resposta> => ({ ok: true, exibicaoId: 'exib-1' })),
+)
+const concluirPremiado = vi.hoisted(() =>
+  vi.fn(
+    async (_id: string): Promise<Record<string, unknown>> => ({
+      ok: true,
+      tipo: 'seeds',
+      seeds: 10,
+      jaCreditado: false,
+      espaco: 'fim-premiado',
+    }),
+  ),
+)
+vi.mock('../src/data/rotas/anuncios', () => ({ iniciarPremiado, concluirPremiado }))
+const ligarSpy = vi.hoisted(() => vi.fn(async () => false))
+vi.mock('../src/lib/anuncios/ligar', async (original) => ({
+  ...(await original<typeof import('../src/lib/anuncios/ligar')>()),
+  ligarProvedorDeAnuncios: ligarSpy,
+}))
 
 const { default: EspacoDeAnuncio } = await import('../src/components/anuncios/EspacoDeAnuncio')
 const { registrarProvedorDeAnuncios } = await import('../src/lib/anuncios/provedor')
@@ -58,15 +80,18 @@ function quemPodeVer() {
   Object.assign(mundo, { flag: true, consentimento: true, contaCriadaEm: Date.now() - 10 * DIA })
 }
 
+const SANDBOX = 'allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox'
 const iframes = () => [...document.querySelectorAll('iframe')]
 
 beforeEach(() => {
   Object.assign(mundo, { flag: false, protegido: false, consentimento: false, contaCriadaEm: null })
   proto.credentialless = false // o Chrome expõe a propriedade; o Firefox não
-  registrarProvedorDeAnuncios(criarProvedorPorIframe({ origem: ORIGEM, rede: '1234567' }))
+  registrarProvedorDeAnuncios(criarProvedorPorIframe({ origem: ORIGEM }))
   rede = vi.fn(async () => new Response('{}', { status: 200 }))
   vi.stubGlobal('fetch', rede)
   iniciarPremiado.mockClear()
+  concluirPremiado.mockClear()
+  ligarSpy.mockClear()
   document.querySelectorAll('script').forEach((s) => s.remove())
 })
 afterEach(() => {
@@ -108,14 +133,17 @@ describe('o provedor real (iframe credentialless)', () => {
     expect(lista).toHaveLength(1)
     const f = lista[0]
     expect(f.hasAttribute('credentialless')).toBe(true)
+    expect(f.getAttribute('sandbox')).toBe(SANDBOX)
+    expect(f.getAttribute('sandbox')).not.toMatch(/top-navigation|allow-forms/)
     const src = new URL(f.getAttribute('src')!)
     expect(src.origin).toBe(ORIGEM)
-    expect(src.pathname).toBe('/anuncios/espaco.html')
+    expect(src.pathname).toBe('/espaco.html')
     expect(src.searchParams.get('espaco')).toBe('inicio-nativo')
     expect(src.searchParams.get('formato')).toBe('nativo')
     expect(src.searchParams.get('consentimento')).toBe('1')
-    expect(src.searchParams.get('app')).toBe(window.location.origin)
-    expect(src.searchParams.get('rede')).toBe('1234567')
+    // a rede e a origem do app são do build da página (R35), não da query
+    expect(src.searchParams.has('app')).toBe(false)
+    expect(src.searchParams.has('rede')).toBe(false)
     expect(src.searchParams.get('tema')).toMatch(/^(claro|escuro)$/)
     expect(src.searchParams.get('idioma')).toBeTruthy()
     expect(screen.getByText('Patrocinado')).toBeTruthy()
@@ -144,10 +172,59 @@ describe('o provedor real (iframe credentialless)', () => {
     expect(container.innerHTML).toBe('')
   })
 
+  it('flag desligada: o módulo do provedor real nem é pedido (sem chunk nem CSS)', async () => {
+    registrarProvedorDeAnuncios(null)
+    render(<EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" />)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(ligarSpy).not.toHaveBeenCalled()
+    mundo.flag = true
+    cleanup()
+    render(<EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" />)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(ligarSpy).toHaveBeenCalled()
+  })
+
+  it('a CSP do app recusou o quadro (frame-src): o espaço some', () => {
+    quemPodeVer()
+    const { container } = render(<EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" />)
+    expect(iframes()).toHaveLength(1)
+    const e = new Event('securitypolicyviolation') as Event & Record<string, string>
+    Object.assign(e, { violatedDirective: 'frame-src', blockedURI: `${ORIGEM}/espaco.html` })
+    act(() => {
+      document.dispatchEvent(e)
+    })
+    expect(container.innerHTML).toBe('')
+  })
+
+  it('violação de outra diretiva não esconde o espaço', () => {
+    quemPodeVer()
+    render(<EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" />)
+    const e = new Event('securitypolicyviolation') as Event & Record<string, string>
+    Object.assign(e, { violatedDirective: 'img-src', blockedURI: 'https://x.example/a.png' })
+    act(() => {
+      document.dispatchEvent(e)
+    })
+    expect(iframes()).toHaveLength(1)
+  })
+
+  it('o servidor recusa abrir a exibição: nenhum iframe e a tela diz o motivo', async () => {
+    quemPodeVer()
+    iniciarPremiado.mockResolvedValueOnce({ ok: false, status: 429, error: 'teto', code: 'teto_do_dia' })
+    render(<EspacoDeAnuncio espaco="fim-premiado" formato="premiado" />)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Ver um anúncio/ }))
+    })
+    expect(iframes()).toHaveLength(0)
+    expect(screen.getByRole('status').textContent).toMatch(/recompensas de anúncio de hoje/)
+  })
+
   it('o premiado é escolha: só o botão; o iframe só depois do clique, com a exibição do servidor', async () => {
     quemPodeVer()
-    const aoRecompensar = vi.fn()
-    render(<EspacoDeAnuncio espaco="fim-premiado" formato="premiado" aoRecompensar={aoRecompensar} />)
+    render(<EspacoDeAnuncio espaco="fim-premiado" formato="premiado" />)
     expect(iframes()).toHaveLength(0)
     expect(screen.getByText('Patrocinado')).toBeTruthy()
     await act(async () => {
@@ -156,14 +233,15 @@ describe('o provedor real (iframe credentialless)', () => {
     expect(iniciarPremiado).toHaveBeenCalledWith('fim-premiado')
     const [f] = iframes()
     expect(f.hasAttribute('credentialless')).toBe(true)
+    expect(f.getAttribute('sandbox')).toBe(SANDBOX)
     expect(new URL(f.src).searchParams.get('exibicao')).toBe('exib-1')
     expect(new URL(f.src).searchParams.get('formato')).toBe('premiado')
   })
 
   describe('as mensagens da página de anúncios', () => {
-    async function abrirPremiado(aoRecompensar: () => void) {
+    async function abrirPremiado() {
       quemPodeVer()
-      render(<EspacoDeAnuncio espaco="fim-premiado" formato="premiado" aoRecompensar={aoRecompensar} />)
+      render(<EspacoDeAnuncio espaco="fim-premiado" formato="premiado" />)
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: /Ver um anúncio/ }))
       })
@@ -175,35 +253,57 @@ describe('o provedor real (iframe credentialless)', () => {
       })
 
     it('de outra origem: ignorada', async () => {
-      const aoRecompensar = vi.fn()
-      const f = await abrirPremiado(aoRecompensar)
+      const f = await abrirPremiado()
       mandar(
         'https://malicioso.example',
         { tipo: 'frasy:anuncio', evento: 'recompensa', exibicaoId: 'exib-1' },
         f.contentWindow,
       )
-      expect(aoRecompensar).not.toHaveBeenCalled()
+      expect(concluirPremiado).not.toHaveBeenCalled()
     })
 
-    it('da origem de anúncios, recompensa: aoRecompensar UMA vez com a exibição', async () => {
-      const aoRecompensar = vi.fn()
-      const f = await abrirPremiado(aoRecompensar)
-      const msg = { tipo: 'frasy:anuncio', evento: 'recompensa', exibicaoId: 'exib-1' }
-      mandar(ORIGEM, msg, f.contentWindow)
-      mandar(ORIGEM, msg, f.contentWindow)
-      expect(aoRecompensar).toHaveBeenCalledTimes(1)
-      expect(aoRecompensar).toHaveBeenCalledWith('exib-1')
+    const recompensa = (f: HTMLIFrameElement) =>
+      act(async () => {
+        window.dispatchEvent(
+          new MessageEvent('message', {
+            origin: ORIGEM,
+            data: { tipo: 'frasy:anuncio', evento: 'recompensa', exibicaoId: 'exib-1' },
+            source: f.contentWindow,
+          }),
+        )
+      })
+
+    it('da origem de anúncios, recompensa: o servidor credita UMA vez com a exibição, e a tela diz', async () => {
+      const f = await abrirPremiado()
+      await recompensa(f)
+      await recompensa(f)
+      expect(concluirPremiado).toHaveBeenCalledTimes(1)
+      expect(concluirPremiado).toHaveBeenCalledWith('exib-1')
+      expect(screen.getByRole('status').textContent).toBe('Recompensa registrada.')
+    })
+
+    it('recusa do servidor (teto do dia): a tela diz o motivo', async () => {
+      concluirPremiado.mockResolvedValueOnce({ ok: false, status: 429, error: 'teto', code: 'teto_do_dia' })
+      const f = await abrirPremiado()
+      await recompensa(f)
+      expect(screen.getByRole('status').textContent).toMatch(/recompensas de anúncio de hoje/)
+    })
+
+    it('recusa do servidor (cedo demais): a tela diz o motivo', async () => {
+      concluirPremiado.mockResolvedValueOnce({ ok: false, status: 409, error: 'cedo', code: 'cedo_demais' })
+      const f = await abrirPremiado()
+      await recompensa(f)
+      expect(screen.getByRole('status').textContent).toMatch(/tempo mínimo/)
     })
 
     it('recompensa de outra exibição: ignorada', async () => {
-      const aoRecompensar = vi.fn()
-      const f = await abrirPremiado(aoRecompensar)
+      const f = await abrirPremiado()
       mandar(ORIGEM, { tipo: 'frasy:anuncio', evento: 'recompensa', exibicaoId: 'outra' }, f.contentWindow)
-      expect(aoRecompensar).not.toHaveBeenCalled()
+      expect(concluirPremiado).not.toHaveBeenCalled()
     })
 
     it('fechou: o iframe sai e o botão volta', async () => {
-      const f = await abrirPremiado(vi.fn())
+      const f = await abrirPremiado()
       mandar(ORIGEM, { tipo: 'frasy:anuncio', evento: 'fechou', exibicaoId: 'exib-1' }, f.contentWindow)
       expect(iframes()).toHaveLength(0)
       expect(screen.getByRole('button', { name: /Ver um anúncio/ })).toBeTruthy()
@@ -219,24 +319,22 @@ describe('o provedor real (iframe credentialless)', () => {
   })
 })
 
-describe('ligar.ts: o provedor real só existe num build com a origem e a rede', () => {
-  it('configDosAnuncios exige origem https (ou localhost) e rede numérica', async () => {
+describe('ligar.ts: o provedor real só existe num build com a origem de anúncios, e nunca a do app', () => {
+  it('configDosAnuncios exige origem https (ou localhost) e recusa a origem do próprio app (R35)', async () => {
     const { configDosAnuncios } = await import('../src/lib/anuncios/ligar')
-    expect(configDosAnuncios({})).toBeNull()
-    expect(configDosAnuncios({ VITE_ANUNCIOS_ORIGEM: ORIGEM })).toBeNull()
-    expect(
-      configDosAnuncios({ VITE_ANUNCIOS_ORIGEM: 'http://ads.frasy.com.br', VITE_ANUNCIOS_REDE_CONTA: '1' }),
-    ).toBeNull()
-    expect(configDosAnuncios({ VITE_ANUNCIOS_ORIGEM: ORIGEM, VITE_ANUNCIOS_REDE_CONTA: 'abc' })).toBeNull()
-    expect(configDosAnuncios({ VITE_ANUNCIOS_ORIGEM: `${ORIGEM}/x/`, VITE_ANUNCIOS_REDE_CONTA: '123' })).toEqual({
-      origem: ORIGEM,
-      rede: '123',
-    })
+    const app = 'https://frasy.com.br'
+    expect(configDosAnuncios({}, app)).toBeNull()
+    expect(configDosAnuncios({ VITE_ANUNCIOS_ORIGEM: 'http://ads.frasy.com.br' }, app)).toBeNull()
+    expect(configDosAnuncios({ VITE_ANUNCIOS_ORIGEM: `${ORIGEM}/x/` }, app)).toEqual({ origem: ORIGEM })
+    expect(configDosAnuncios({ VITE_ANUNCIOS_ORIGEM: 'https://frasy.com.br/anuncios/' }, app)).toBeNull()
+    // o padrão compara com a origem da página em que o app está
+    expect(configDosAnuncios({ VITE_ANUNCIOS_ORIGEM: window.location.origin })).toBeNull()
   })
 
-  it('sem as variáveis no build, nada é registrado', async () => {
+  it('sem a variável no build, nada é registrado', async () => {
     registrarProvedorDeAnuncios(null)
-    const { ligarProvedorDeAnuncios } = await import('../src/lib/anuncios/ligar')
+    const { ligarProvedorDeAnuncios } =
+      await vi.importActual<typeof import('../src/lib/anuncios/ligar')>('../src/lib/anuncios/ligar')
     const { provedorDeAnuncios } = await import('../src/lib/anuncios/provedor')
     expect(await ligarProvedorDeAnuncios()).toBe(false)
     expect(provedorDeAnuncios()).toBeNull()

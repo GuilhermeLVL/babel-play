@@ -1,38 +1,42 @@
 /**
- * O PROVEDOR REAL DE ANÚNCIOS (ruling R32) — um `<iframe credentialless>` para a página de anúncios na
- * ORIGEM PRÓPRIA (`VITE_ANUNCIOS_ORIGEM`, por exemplo `https://ads.frasy.com.br`).
+ * O PROVEDOR REAL DE ANÚNCIOS (rulings R32 e R35) — um `<iframe credentialless>` para a página de anúncios
+ * no WORKER PRÓPRIO `frasy-anuncios` (`VITE_ANUNCIOS_ORIGEM`, por exemplo `https://ads.frasy.com.br`), que
+ * nunca é a origem do app.
  *
  * Por que um quadro: o GPT do Google não suporta COEP e só aceita CSP por nonce, e o app vive isolado
- * (COOP/COEP/DIP) com CSP estreita. A página de anúncios (`public/anuncios/espaco.html`) roda lá, sem
- * isolamento e com a CSP dela; o app só abre `frame-src` para a origem, e só com a flag ligada. O app em
- * si NUNCA carrega script da rede.
+ * (COOP/COEP/DIP) com CSP estreita. A página de anúncios (`anuncios/espaco.html`) roda lá, sem isolamento e
+ * com a CSP dela; o app só abre `frame-src` para a origem, e só com a flag ligada. O app em si NUNCA carrega
+ * script da rede. O código da rede e a origem do app vêm do BUILD da página (`config.js`), não da query.
  *
  * `credentialless`: o quadro abre num contexto sem cookies, o que dispensa as regras do COEP. Navegador
- * sem o atributo (Firefox) = provedor indisponível (`disponivel()`), e o espaço não desenha nada.
+ * sem o atributo (Firefox) = provedor indisponível (`disponivel()`), e o espaço não desenha nada. O
+ * `sandbox` tira do quadro a navegação do topo e os formulários; scripts, a própria origem (o GPT precisa
+ * dela) e os pop-ups do clique no anúncio ficam.
  *
  * Só é montado depois da política (`podeMostrar`), que já exige a flag, o consentimento, a idade da conta
  * e o perfil não protegido. Por defesa, o espaço confere de novo o consentimento e a proteção antes de
- * desenhar o quadro: sem os dois, nada vai à rede.
+ * desenhar o quadro: sem os dois, nada vai à rede. Se a CSP do app recusar o quadro (`frame-src`, a
+ * sobreposição do Worker ainda não chegou), o espaço some.
  *
  * Mensagens: só as da origem de anúncios E do próprio quadro (`event.source`), no formato
  * `{ tipo: 'frasy:anuncio', evento, exibicaoId }`. `recompensa` vale uma vez por exibição, e só a
- * exibição que o servidor abriu (`iniciarPremiado`); quem credita é o servidor (`aoRecompensar`).
+ * exibição que o servidor abriu (`iniciarPremiado`); quem credita é o servidor (`aoRecompensar`, que
+ * resolve com o crédito ou rejeita com o `code` da recusa).
  */
 import '../../../styles/anunciosDaRede.css';
 
 import { type RefObject, useEffect, useRef, useState } from 'react';
 
 import type { EspacoDeAnuncio, FormatoDeAnuncio } from '../../../core/anuncios/politicaDeAnuncio';
+import { ehEspacoPremiado } from '../../../core/anuncios/premiado';
 import { t } from '../../i18n';
 import { lerPreferencias } from '../../preferencias';
 import { perfilProtegido } from '../../protecaoDoMenor';
 import type { PropsDoEspacoDeAnuncio, ProvedorDeAnuncios } from '../provedor';
 
 export interface ConfigDoIframe {
-  /** A origem da página de anúncios (só a origem). */
+  /** A origem do Worker de anúncios (só a origem; nunca a do app). */
   origem: string;
-  /** O código da rede no Ad Manager (`VITE_ANUNCIOS_REDE_CONTA`). */
-  rede: string;
 }
 
 /** O navegador sabe abrir quadro `credentialless`? (Chrome/Edge sim; Firefox não.) */
@@ -43,6 +47,9 @@ export function suportaCredentialless(): boolean {
 /* O React 19 trata `credentialless` como atributo booleano (string vazia ele descarta); o tipo do `iframe`
    ainda não o declara. O atributo precisa estar lá antes de o quadro navegar: o React o põe na criação. */
 const CREDENTIALLESS = { credentialless: true } as Record<string, boolean>;
+
+/** Sem navegação do topo nem formulário; o GPT precisa de scripts e da própria origem, o clique abre aba. */
+export const SANDBOX_DO_QUADRO = 'allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox';
 
 function tema(): 'claro' | 'escuro' {
   return typeof document !== 'undefined' && document.documentElement.classList.contains('dark') ? 'escuro' : 'claro';
@@ -59,14 +66,12 @@ export function enderecoDoEspaco(
   formato: FormatoDeAnuncio,
   exibicaoId?: string,
 ): string {
-  const u = new URL('/anuncios/espaco.html', cfg.origem);
+  const u = new URL('/espaco.html', cfg.origem);
   const q = u.searchParams;
   q.set('espaco', espaco);
   q.set('formato', formato);
   q.set('tema', tema());
   q.set('idioma', idioma());
-  q.set('app', window.location.origin);
-  q.set('rede', cfg.rede);
   q.set('consentimento', '1');
   if (exibicaoId) q.set('exibicao', exibicaoId);
   return u.toString();
@@ -96,6 +101,37 @@ function useMensagensDoQuadro(
   }, [origem, quadro]);
 }
 
+/** A CSP do app recusou o quadro da origem de anúncios? Então o espaço some (nada de moldura vazia). */
+function useQuadroRecusado(origem: string): boolean {
+  const [recusado, setRecusado] = useState(false);
+  useEffect(() => {
+    const ouvir = (e: SecurityPolicyViolationEvent) => {
+      if (!e.violatedDirective?.startsWith('frame-src')) return;
+      if (e.blockedURI && !e.blockedURI.startsWith(origem)) return;
+      setRecusado(true);
+    };
+    document.addEventListener('securitypolicyviolation', ouvir);
+    return () => document.removeEventListener('securitypolicyviolation', ouvir);
+  }, [origem]);
+  return recusado;
+}
+
+/** O texto de uma recusa do servidor, pelo `code` dele. */
+function textoDaRecusa(code: string | undefined): string {
+  switch (code) {
+    case 'teto_do_dia':
+      return t('Você já ganhou as recompensas de anúncio de hoje. Amanhã tem de novo.');
+    case 'cedo_demais':
+      return t('O anúncio fechou antes do tempo mínimo, então a recompensa não valeu desta vez.');
+    case 'exibicao_expirada':
+      return t('Este anúncio passou do prazo. Se quiser, abra outro.');
+    case 'exibicoes_pendentes':
+      return t('Há anúncios abertos demais agora. Tente de novo em alguns minutos.');
+    default:
+      return t('Nenhum anúncio disponível agora. Tente mais tarde.');
+  }
+}
+
 function Topo({ aoSemAnuncios }: { aoSemAnuncios: () => void }) {
   return (
     <span className="anuncio-rede-topo">
@@ -110,16 +146,18 @@ function Topo({ aoSemAnuncios }: { aoSemAnuncios: () => void }) {
 function Nativo({ cfg, espaco, formato, aoSemAnuncios }: PropsDoEspacoDeAnuncio & { cfg: ConfigDoIframe }) {
   const quadro = useRef<HTMLIFrameElement | null>(null);
   const [vazio, setVazio] = useState(false);
+  const recusado = useQuadroRecusado(cfg.origem);
   useMensagensDoQuadro(cfg.origem, quadro, (evento) => {
     if (evento === 'vazio') setVazio(true);
   });
-  if (vazio) return null;
+  if (vazio || recusado) return null;
   return (
     <aside className="anuncio-rede" data-ad={espaco} aria-label={t('Anúncio')}>
       <Topo aoSemAnuncios={aoSemAnuncios} />
       <iframe
         ref={quadro}
         {...CREDENTIALLESS}
+        sandbox={SANDBOX_DO_QUADRO}
         className="anuncio-rede-quadro"
         src={enderecoDoEspaco(cfg, espaco, formato)}
         title={t('Anúncio')}
@@ -132,7 +170,10 @@ function Nativo({ cfg, espaco, formato, aoSemAnuncios }: PropsDoEspacoDeAnuncio 
   );
 }
 
-type EstadoDoPremiado = 'escolha' | 'abrindo' | 'indisponivel' | { exibicaoId: string };
+type EstadoDoPremiado =
+  | { fase: 'escolha'; aviso?: string }
+  | { fase: 'abrindo' }
+  | { fase: 'aberto'; exibicaoId: string };
 
 function Premiado({
   cfg,
@@ -142,28 +183,40 @@ function Premiado({
   aoRecompensar,
 }: PropsDoEspacoDeAnuncio & { cfg: ConfigDoIframe }) {
   const quadro = useRef<HTMLIFrameElement | null>(null);
-  const [estado, setEstado] = useState<EstadoDoPremiado>('escolha');
+  const [estado, setEstado] = useState<EstadoDoPremiado>({ fase: 'escolha' });
   const recompensadas = useRef(new Set<string>());
-  const aberta = typeof estado === 'object' ? estado.exibicaoId : null;
+  const recusado = useQuadroRecusado(cfg.origem);
+  const aberta = estado.fase === 'aberto' ? estado.exibicaoId : null;
 
   useMensagensDoQuadro(cfg.origem, quadro, (evento, exibicaoId) => {
     if (!aberta) return;
     if (evento === 'recompensa') {
-      if (exibicaoId !== aberta || recompensadas.current.has(aberta)) return;
+      if (exibicaoId !== aberta || recompensadas.current.has(aberta) || !aoRecompensar) return;
       recompensadas.current.add(aberta);
-      aoRecompensar?.(aberta);
+      aoRecompensar(aberta).then(
+        () => setEstado({ fase: 'escolha', aviso: t('Recompensa registrada.') }),
+        (err: unknown) => setEstado({ fase: 'escolha', aviso: textoDaRecusa((err as Error)?.message) }),
+      );
       return;
     }
-    setEstado(evento === 'vazio' ? 'indisponivel' : 'escolha');
+    setEstado({ fase: 'escolha', aviso: evento === 'vazio' ? textoDaRecusa(undefined) : undefined });
   });
 
+  if (recusado) return null;
+
   const abrir = async () => {
-    setEstado('abrindo');
+    if (!ehEspacoPremiado(espaco)) {
+      setEstado({ fase: 'escolha', aviso: textoDaRecusa(undefined) });
+      return;
+    }
+    setEstado({ fase: 'abrindo' });
     try {
       const { iniciarPremiado } = await import('../../../data/rotas/anuncios');
-      setEstado(await iniciarPremiado(espaco));
+      const r = await iniciarPremiado(espaco);
+      if (r.ok === false) setEstado({ fase: 'escolha', aviso: textoDaRecusa(r.code) });
+      else setEstado({ fase: 'aberto', exibicaoId: r.exibicaoId });
     } catch {
-      setEstado('indisponivel');
+      setEstado({ fase: 'escolha', aviso: textoDaRecusa(undefined) });
     }
   };
 
@@ -172,25 +225,35 @@ function Premiado({
       <Topo aoSemAnuncios={aoSemAnuncios} />
       {aberta ? (
         <div className="anuncio-rede-premiado">
-          <button type="button" className="anuncio-rede-ver anuncio-rede-fechar" onClick={() => setEstado('escolha')}>
+          <button
+            type="button"
+            className="anuncio-rede-ver anuncio-rede-fechar"
+            onClick={() => setEstado({ fase: 'escolha' })}
+          >
             {t('Fechar')}
           </button>
           <iframe
             ref={quadro}
             {...CREDENTIALLESS}
+            sandbox={SANDBOX_DO_QUADRO}
             src={enderecoDoEspaco(cfg, espaco, formato, aberta)}
             title={t('Anúncio')}
             referrerPolicy="strict-origin-when-cross-origin"
           />
         </div>
       ) : (
-        <button type="button" className="anuncio-rede-ver" disabled={estado === 'abrindo'} onClick={() => void abrir()}>
+        <button
+          type="button"
+          className="anuncio-rede-ver"
+          disabled={estado.fase === 'abrindo'}
+          onClick={() => void abrir()}
+        >
           {t('Ver um anúncio e ganhar a recompensa')}
         </button>
       )}
-      {estado === 'indisponivel' && (
+      {estado.fase === 'escolha' && estado.aviso && (
         <small className="anuncio-rede-aviso" role="status">
-          {t('Nenhum anúncio disponível agora. Tente mais tarde.')}
+          {estado.aviso}
         </small>
       )}
     </aside>
@@ -204,7 +267,7 @@ function EspacoPorIframe(props: PropsDoEspacoDeAnuncio & { cfg: ConfigDoIframe }
   return props.formato === 'premiado' ? <Premiado {...props} /> : <Nativo {...props} />;
 }
 
-/** O provedor para uma origem de anúncios e uma rede. Quem o registra é `lib/anuncios/ligar.ts`. */
+/** O provedor para uma origem de anúncios. Quem o registra é `lib/anuncios/ligar.ts`. */
 export function criarProvedorPorIframe(cfg: ConfigDoIframe): ProvedorDeAnuncios {
   const Espaco = (props: PropsDoEspacoDeAnuncio) => <EspacoPorIframe cfg={cfg} {...props} />;
   return { id: 'iframe', Espaco, disponivel: suportaCredentialless, pedeConsentimento: true };

@@ -1640,5 +1640,10 @@
   "Você aceitou ver anúncios no plano Grátis.": "Aceptaste ver anuncios en el plan Gratis.",
   "Você não aceitou anúncios.": "No aceptaste anuncios.",
   "Sem a sua resposta \"Aceitar\", nenhum anúncio aparece.": "Sin tu respuesta \"Aceptar\", no aparece ningún anuncio.",
-  "Rever": "Revisar"
+  "Rever": "Revisar",
+  "Você já ganhou as recompensas de anúncio de hoje. Amanhã tem de novo.": "Ya ganaste las recompensas por anuncios de hoy. Mañana hay más.",
+  "O anúncio fechou antes do tempo mínimo, então a recompensa não valeu desta vez.": "El anuncio se cerró antes del tiempo mínimo, así que la recompensa no valió esta vez.",
+  "Este anúncio passou do prazo. Se quiser, abra outro.": "Este anuncio venció. Si quieres, abre otro.",
+  "Há anúncios abertos demais agora. Tente de novo em alguns minutos.": "Hay demasiados anuncios abiertos ahora. Inténtalo de nuevo en unos minutos.",
+  "Recompensa registrada.": "Recompensa registrada."
 }

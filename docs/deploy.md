@@ -408,28 +408,33 @@ uma versão publicada (sem servidor local e sem o onboarding pré-marcado).
 
 ## Anúncios
 
-Desligados por padrão (flag `anuncios`, `docs/flags.md`). Desenho do ruling R32
+Desligados por padrão (flag `anuncios`, `docs/flags.md`). Desenho dos rulings R32 e R35
 (`docs/pesquisa/2026-10-21-rede-de-anuncios.md`): o GPT do Google não suporta COEP e só aceita CSP por nonce,
-então os anúncios rodam numa **origem própria** e o app os embute por `<iframe credentialless>`.
+então a página de anúncios roda num **Worker próprio, `frasy-anuncios`**, numa origem que nunca é a do app, e o
+app a embute por `<iframe credentialless sandbox>`.
 
-- **Página de anúncios:** `public/anuncios/espaco.html` + `espaco.js` (sem bundler). Só carrega o GPT com
-  `consentimento=1` na query; liga `childDirectedTreatment`, `underAgeOfConsent`, `restrictDataProcessing` e
-  `nonPersonalizedAds` antes de qualquer bloco; nunca `setPublisherProvidedId`. O premiado avisa o app por
-  `postMessage` (`recompensa`/`fechou`/`vazio`, só para a origem `app=`).
-- **Cabeçalhos dela:** bloco `/anuncios/*` do `dist/_headers` (gerado por `scripts/vite/cabecalhos.ts`): tira
-  COOP/COEP/DIP e a CSP do app e põe a CSP larga da página (`cspDaPaginaDeAnuncios`, com `'unsafe-inline'`
-  e os hosts do Google — **só ali**). `frame-ancestors` = a própria origem e a de `APP_URL` do build.
-- **CSP do app:** com `ANUNCIOS_ORIGEM` (var/secret do Worker) **e** a flag ligada, o Worker sobrepõe o
-  `Content-Security-Policy` dos documentos HTML e põe a origem em `frame-src` (nada em `script-src`). A flag é
-  lida uma vez por isolate a cada 60 s (até 60 s de `frame-src` aberto depois de desligar). Por isso o
-  `run_worker_first` do `wrangler.jsonc` é `/*` menos os estáticos pesados e `/anuncios/*`.
-- **Build:** `VITE_ANUNCIOS_ORIGEM` (a mesma origem) e `VITE_ANUNCIOS_REDE_CONTA` (código da rede no Ad
-  Manager) registram o provedor real (`src/lib/anuncios/ligar.ts`); sem as duas, nada entra no navegador.
-- **Staging:** a origem pode ser o próprio Worker (`ANUNCIOS_ORIGEM=https://frasy-staging…workers.dev`); em
-  produção, `https://ads.<domínio>` (outro domínio personalizado apontando para o mesmo Worker serve).
+- **Página de anúncios:** `anuncios/espaco.html` + `espaco.js` (fora de `public/`: o `dist` do app nunca a
+  leva). `npm run anuncios:build` (`scripts/anuncios/build.mjs`) gera `dist-anuncios/` com `config.js` (o código
+  da rede `VITE_ANUNCIOS_REDE_CONTA` e a origem do app `APP_URL`, do BUILD, nunca da query) e `_headers` (sem
+  COOP/COEP/DIP, CSP larga com `'unsafe-inline'` e os hosts do Google, `frame-ancestors` só a origem de
+  `APP_URL`, sem ela `'none'`). A página só roda dentro de um quadro e fora da origem do app; só carrega o GPT
+  com `consentimento=1`; tira a query do endereço antes do GPT; liga `childDirectedTreatment`,
+  `underAgeOfConsent`, `restrictDataProcessing`, `nonPersonalizedAds` e o SafeFrame antes de qualquer bloco;
+  nunca `setPublisherProvidedId`. O premiado avisa o app por `postMessage` (`recompensa`/`fechou`/`vazio`).
+- **Publicar a página** (manual, passo do dono; o `deploy-worker.yml` não a publica):
+  `APP_URL=<origem do app> VITE_ANUNCIOS_REDE_CONTA=<código> npm run anuncios:build && npx wrangler deploy -c wrangler.anuncios.jsonc [--env staging]`.
+  Staging: `https://frasy-anuncios-staging.<conta>.workers.dev`. Produção: domínio personalizado
+  `https://ads.<domínio>` no painel da Cloudflare, apontando para o Worker `frasy-anuncios`.
+- **CSP do app:** com `ANUNCIOS_ORIGEM` (var do Worker do app) **e** a flag ligada, o Worker sobrepõe o
+  `Content-Security-Policy` dos documentos (`Sec-Fetch-Dest: document` ou HTML, inclusive o 304) e põe a
+  origem em `frame-src` (nada em `script-src`). A flag é lida uma vez por isolate a cada 60 s. Uma
+  `ANUNCIOS_ORIGEM` igual à origem do app é recusada. Por isso o `run_worker_first` do `wrangler.jsonc` é `/*`
+  menos os estáticos pesados.
+- **Build do app:** `VITE_ANUNCIOS_ORIGEM` (a mesma origem) registra o provedor real
+  (`src/lib/anuncios/ligar.ts`), e só com a flag ligada o módulo dele é baixado.
 - **Limitações:** Firefox não tem `credentialless` (sem anúncio, aceito). A recompensa do premiado não tem
   verificação do Google na web: o servidor credita por exibição com teto (Task 5). O Express (Node) não
-  serve a página sem isolamento nem sobrepõe a CSP: anúncios só no Worker.
+  sobrepõe a CSP: anúncios só com o Worker.
 
 ## O que fica desativado por design
 

@@ -1,0 +1,36 @@
+<!doctype html>
+<!--
+  A PÁGINA DE ANÚNCIOS DO FRASY (rulings R32 e R35). Mora no Worker PRÓPRIO `frasy-anuncios`
+  (`wrangler.anuncios.jsonc`), numa origem que nunca é a do app, e é embutida pelo app com
+  `<iframe credentialless sandbox>`. É a ÚNICA página que carrega o GPT do Google, e só quando a própria
+  query traz `consentimento=1`. Servida SEM COOP/COEP/DIP e com a CSP própria (`_headers` gerado por
+  `scripts/anuncios/build.mjs`). Sem bundler: `config.js` (gerado no build: rede e origem do app) e
+  `espaco.js`, ao lado.
+-->
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Patrocinado</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: transparent;
+      }
+      #espaco {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="espaco"></div>
+    <script src="/config.js"></script>
+    <script src="/espaco.js" defer></script>
+  </body>
+</html>

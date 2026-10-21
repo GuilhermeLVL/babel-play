@@ -521,6 +521,40 @@ export const FRANQUIA_DE_ALIVIO = {
 } as const;
 
 /**
+ * OS TETOS DO ANÚNCIO PREMIADO (spec `anuncios-no-gratis`, "Amostra de nuvem com teto global"). A recompensa
+ * é creditada pelo servidor (`server/routes/anuncios.ts`), e os dois tetos contam as exibições CONCLUÍDAS no
+ * dia UTC: o da pessoa (somando todos os espaços premiados) e o de todas as contas juntas — este segura o
+ * custo da amostra de nuvem (`nuvem-30`) e das Seeds num dia de pico. Atingido qualquer um, a exibição nem
+ * começa (429 `teto_do_dia`) e a captura segue no aparelho.
+ */
+export const LIMITE_DE_PREMIADOS_POR_DIA = 5;
+export const TETO_GLOBAL_DE_PREMIADOS_POR_DIA = 2_000;
+/**
+ * O `nuvem-30` tem custo de nuvem do nosso lado: dentro dos 5 do dia, no máximo 2 deles (1 h de nuvem por dia
+ * por pessoa), contados nas exibições desse espaço concluídas no dia UTC.
+ */
+export const LIMITE_DE_NUVEM_30_POR_DIA = 2;
+/**
+ * Exibições PENDENTES (iniciadas e não concluídas) por pessoa nos últimos 10 min: acima disto o `iniciar` recusa
+ * (429 `exibicoes_pendentes`). Sem ele, um laço abriria linhas sem fim, e cada uma poderia virar recompensa.
+ */
+export const LIMITE_DE_PREMIADOS_PENDENTES = 3;
+/**
+ * A DURAÇÃO MÍNIMA de uma exibição, por espaço premiado (R33): sem verificação servidor a servidor, concluir logo
+ * depois de iniciar seria forjar a recompensa. O premiado da web dura até 30 s; abaixo de 15 s entre o `iniciar` e
+ * o `concluir` o servidor recusa (409 `cedo_demais`).
+ */
+export const DURACAO_MINIMA_DA_EXIBICAO_MS: Readonly<
+  Record<'fim-premiado' | 'ajuda-premiada' | 'tema-24h' | 'nuvem-30' | 'loja-seeds', number>
+> = {
+  'fim-premiado': 15_000,
+  'ajuda-premiada': 15_000,
+  'tema-24h': 15_000,
+  'nuvem-30': 15_000,
+  'loja-seeds': 15_000,
+};
+
+/**
  * O TETO DO TESTE DE 14 DIAS, EM USO (não em tempo). O teste dá os recursos do Premium, mas a nuvem dele é uma AMOSTRA:
  * antes ele herdava as 20 h do mês inteiro (US$ 1,16 a US$ 1,76 por pessoa no teto, sem receita), e quem testa e some é
  * a maioria. Agora o teste acaba no que vier primeiro: os 14 dias ou este teto.

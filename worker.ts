@@ -183,14 +183,20 @@ async function lerFlagDosAnuncios(env: Env, ctx: Contexto): Promise<boolean> {
 /**
  * O ESTÁTICO (rulings R31 e R32). Sai do `ASSETS` como está (com os cabeçalhos do `_headers`), salvo um
  * caso: documento HTML, `ANUNCIOS_ORIGEM` configurada e a flag `anuncios` ligada — aí a origem de anúncios
- * entra em `frame-src` da CSP (`cspComAnuncios`), e só ali. Sem a origem a flag nem é lida. A própria
- * página de anúncios (`/anuncios/*`) tem a CSP dela e não é tocada.
+ * entra em `frame-src` da CSP (`cspComAnuncios`), e só ali. Sem a origem a flag nem é lida. A página de
+ * anúncios NÃO mora aqui (Worker `frasy-anuncios`, R35): `/anuncios/*` é um caminho qualquer da SPA, e uma
+ * `ANUNCIOS_ORIGEM` igual à origem do app é recusada (`origemDosAnuncios`).
  */
-async function servirEstatico(request: Request, pathname: string, env: Env, ctx: Contexto): Promise<Response> {
+async function servirEstatico(request: Request, env: Env, ctx: Contexto): Promise<Response> {
   const resposta = await env.ASSETS.fetch(request)
-  const origem = origemDosAnuncios(process.env)
-  if (!origem || pathname.startsWith('/anuncios/')) return resposta
-  if (!(resposta.headers.get('content-type') ?? '').toLowerCase().includes('text/html')) return resposta
+  const origem = origemDosAnuncios(process.env, new URL(request.url).origin)
+  if (!origem) return resposta
+  /* Documento = o navegador diz (`Sec-Fetch-Dest: document`, vale também para o 304 de revalidação, que vem
+     sem `content-type`) OU a resposta é HTML. */
+  const documento =
+    request.headers.get('sec-fetch-dest') === 'document' ||
+    (resposta.headers.get('content-type') ?? '').toLowerCase().includes('text/html')
+  if (!documento) return resposta
   const csp = resposta.headers.get('content-security-policy')
   if (!csp) return resposta
   if (!(await anunciosLigadosNoIsolate(() => lerFlagDosAnuncios(env, ctx)))) return resposta
@@ -211,7 +217,7 @@ export default {
     if (/^\/api(\/|$)/i.test(pathname) && (pathname === '/api' || !pathname.startsWith('/api/'))) {
       return json(404, { error: 'rota inexistente', code: 'rota_inexistente' })
     }
-    if (!pathname.startsWith('/api/')) return servirEstatico(request, pathname, env, ctx)
+    if (!pathname.startsWith('/api/')) return servirEstatico(request, env, ctx)
     ligarAnalyticsEngine(env.METRICAS)
     ligarBucketDoR2(env.MIDIA) // antes do portão: o armazenamento de mídia é uma das travas
     if (conferirBootDoWorker()) {

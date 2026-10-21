@@ -6,17 +6,12 @@
  * `frame-src` com essa origem — e só com a flag `anuncios` ligada. Nenhum host do Google entra em
  * `script-src` do app, nunca.
  *
- * A página de anúncios (`/anuncios/espaco.html`) tem a CSP larga dela, que vive só naquela origem.
+ * A página de anúncios mora no Worker próprio `frasy-anuncios` (R35), com a CSP larga dela
+ * (`tests/anuncios-worker-separado.test.ts`); aqui só a CSP do APP.
  */
 import { describe, expect, it } from 'vitest'
 
-import {
-  cspComAnuncios,
-  cspDaPaginaDeAnuncios,
-  diretivasDeCsp,
-  origemDosAnuncios,
-  serializarCsp,
-} from '../../server/http/csp'
+import { cspComAnuncios, diretivasDeCsp, origemDosAnuncios, serializarCsp } from '../../server/http/csp'
 
 const env = (e: Record<string, string>) => e as unknown as NodeJS.ProcessEnv
 const ORIGEM = 'https://ads.frasy.com.br'
@@ -35,6 +30,16 @@ describe('origemDosAnuncios', () => {
     expect(origemDosAnuncios(env({ ANUNCIOS_ORIGEM: 'http://ads.frasy.com.br' }))).toBeNull()
     expect(origemDosAnuncios(env({ ANUNCIOS_ORIGEM: 'nao-e-url' }))).toBeNull()
     expect(origemDosAnuncios(env({}))).toBeNull()
+  })
+
+  it('R35: a origem do próprio app é recusada (a da requisição ou a de APP_URL) — falha fechada', () => {
+    expect(origemDosAnuncios(env({ ANUNCIOS_ORIGEM: 'https://frasy.com.br' }), 'https://frasy.com.br')).toBeNull()
+    expect(
+      origemDosAnuncios(env({ ANUNCIOS_ORIGEM: 'https://frasy.com.br/x', APP_URL: 'https://frasy.com.br/' })),
+    ).toBeNull()
+    expect(
+      origemDosAnuncios(env({ ANUNCIOS_ORIGEM: ORIGEM, APP_URL: 'https://frasy.com.br' }), 'https://frasy.com.br'),
+    ).toBe(ORIGEM)
   })
 
   it('localhost em http vale (worker:dev)', () => {
@@ -88,26 +93,5 @@ describe('cspComAnuncios (a sobreposição do Worker)', () => {
     expect(diretiva(depois, 'frame-src')).toEqual(["'self'", 'https://challenges.cloudflare.com', ORIGEM])
     expect(cspComAnuncios(depois, ORIGEM)).toBe(depois)
     expect(diretiva(depois, 'script-src')).toEqual(diretiva(antes, 'script-src'))
-  })
-})
-
-describe('cspDaPaginaDeAnuncios (só na origem de anúncios)', () => {
-  const csp = cspDaPaginaDeAnuncios(env({}))
-
-  it('script-src: o próprio, o GPT e os hosts do Google da pesquisa, com unsafe-inline (documentado)', () => {
-    const s = diretiva(csp, 'script-src')!
-    expect(s).toContain("'self'")
-    expect(s).toContain('https://securepubads.g.doubleclick.net')
-    expect(s).toContain('https://pagead2.googlesyndication.com')
-    expect(s).toContain("'unsafe-inline'")
-    expect(s).not.toContain("'unsafe-eval'")
-  })
-
-  it('object-src none, base-uri none e frame-ancestors só self (mais APP_URL quando existe)', () => {
-    expect(diretiva(csp, 'object-src')).toEqual(["'none'"])
-    expect(diretiva(csp, 'base-uri')).toEqual(["'none'"])
-    expect(diretiva(csp, 'frame-ancestors')).toEqual(["'self'"])
-    const comApp = cspDaPaginaDeAnuncios(env({ APP_URL: 'https://frasy.com.br/' }))
-    expect(diretiva(comApp, 'frame-ancestors')).toEqual(["'self'", 'https://frasy.com.br'])
   })
 })

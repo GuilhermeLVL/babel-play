@@ -122,7 +122,7 @@ describe('a folha de consentimento', () => {
 describe('no primeiro espaço elegível', () => {
   function elegivelSemConsentimento() {
     Object.assign(mundo, { flag: true, consentimento: false, contaCriadaEm: Date.now() - 10 * DIA })
-    registrarProvedorDeAnuncios(criarProvedorPorIframe({ origem: 'https://ads.frasy.com.br', rede: '1' }))
+    registrarProvedorDeAnuncios(criarProvedorPorIframe({ origem: 'https://ads.frasy.com.br' }))
   }
 
   it('com o provedor real e a flag: o convite aparece em UM espaço só, sem iframe', async () => {

@@ -222,7 +222,7 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',
     paraQue:
-      'origem PRÓPRIA da página de anúncios (`https://ads.<domínio>`; no staging pode ser o próprio Worker), ruling R32. Com ela E a flag `anuncios` ligada, o Worker sobrepõe a CSP dos documentos HTML e põe a origem em `frame-src` (só ali; nada em `script-src`), lendo a flag uma vez por isolate a cada 60 s. Ausente: a CSP fica como no build e nenhum quadro de anúncio carrega. Tem de ser a mesma de `VITE_ANUNCIOS_ORIGEM`. As duas do BUILD (só o navegador as lê, por isso não estão neste inventário do servidor): `VITE_ANUNCIOS_ORIGEM` (a mesma origem) e `VITE_ANUNCIOS_REDE_CONTA` (o código da rede no Ad Manager, só dígitos); juntas registram o provedor real (`src/lib/anuncios/ligar.ts`), sem elas nada de anúncio entra no navegador',
+      'origem do Worker PRÓPRIO de anúncios `frasy-anuncios` (`https://ads.<domínio>`; no staging `https://frasy-anuncios-staging.<conta>.workers.dev`), rulings R32/R35 — NUNCA a origem do app (igual = recusada). Com ela E a flag `anuncios` ligada, o Worker do app sobrepõe a CSP dos documentos e põe a origem em `frame-src` (só ali; nada em `script-src`), lendo a flag uma vez por isolate a cada 60 s. Ausente: a CSP fica como no build e nenhum quadro de anúncio carrega. As do BUILD (só o navegador e a página de anúncios as leem, por isso não estão neste inventário do servidor): `VITE_ANUNCIOS_ORIGEM` (a mesma origem; registra o provedor real, `src/lib/anuncios/ligar.ts`) e `VITE_ANUNCIOS_REDE_CONTA` (o código da rede no Ad Manager, gravado no `config.js` da página por `scripts/anuncios/build.mjs`)',
   },
   {
     nome: 'APP_URL',

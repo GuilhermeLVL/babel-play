@@ -124,6 +124,8 @@ __pycache__/
 # ── Worker (Fase 2): estado local do wrangler, bundle e segredos locais ─────
 .wrangler/
 dist-worker/
+# O Worker de anúncios (R35): gerado por `npm run anuncios:build`.
+dist-anuncios/
 .dev.vars
 .dev.vars.*
 

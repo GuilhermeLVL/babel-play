@@ -6,11 +6,13 @@ import {
   type FormatoDeAnuncio,
   podeMostrar,
 } from '../../core/anuncios/politicaDeAnuncio';
+import { concluirPremiado, type PremiadoConcluido } from '../../data/rotas/anuncios';
 import { ligarProvedorDeAnuncios } from '../../lib/anuncios/ligar';
 import { montarPedidoDeAnuncio } from '../../lib/anuncios/pedido';
 import { assinarProvedorDeAnuncios, type ProvedorDeAnuncios, provedorDeAnuncios } from '../../lib/anuncios/provedor';
 import { onPlanChange } from '../../lib/entitlements';
 import { useFlag } from '../../lib/flags';
+import { flagLigada } from '../../lib/flagsCache';
 import { lerPreferencias, usePreferencias } from '../../lib/preferencias';
 import { aoMudarProtecao } from '../../lib/protecaoDoMenor';
 import { navegarPara } from '../../lib/rotas';
@@ -45,21 +47,38 @@ interface EspacoDeAnuncioProps {
   formato: FormatoDeAnuncio;
   /** A porta "Sem anúncios" de todo anúncio. Ausente, leva à tela de Planos. */
   aoSemAnuncios?: () => void;
-  /** O premiado terminou com recompensa: a exibição aberta pelo servidor (quem credita é ele). */
-  aoRecompensar?: (exibicaoId: string) => void;
 }
 
+/** O evento que `lib/flags.ts` dispara quando as flags mudam. */
+const EVENTO_DAS_FLAGS = 'babel_flags_changed';
 const irAosPlanos = () => navegarPara({ view: 'planos' });
 const semProvedor = () => null;
 
+/**
+ * O fim de um premiado: o servidor credita (`concluirPremiado`) e o que ele creditou volta ao provedor; a recusa
+ * rejeita com o `code` dele.
+ */
+async function recompensar(exibicaoId: string): Promise<PremiadoConcluido> {
+  const r = await concluirPremiado(exibicaoId);
+  if (r.ok === false) throw new Error(r.code ?? r.error);
+  const { ok: _ok, ...concluido } = r;
+  return concluido;
+}
+
 export default function EspacoDeAnuncio(props: EspacoDeAnuncioProps) {
   const provedor = useSyncExternalStore(assinarProvedorDeAnuncios, provedorDeAnuncios, semProvedor);
-  /* Só em desenvolvimento, e só com a chave: fora disso a função é vazia e não carrega nada. */
+  /* O real só é pedido com a flag `anuncios` LIGADA (desligada, nem o módulo nem o CSS dele são baixados) e num
+     build com a origem de anúncios. A flag é lida do CACHE (`flagsCache`, sem pedir à rede: o estado de fábrica
+     não pode pedir nada a mais) e de novo quando as flags mudam. A demonstração, só em desenvolvimento. */
   useEffect(() => {
-    /* O real só existe num build com a origem de anúncios; a demonstração, só em desenvolvimento. */
-    void ligarProvedorDeAnuncios().then((ligou) => {
-      if (!ligou) void ligarDemonstracaoDeAnuncios();
-    });
+    const tentar = () => {
+      void (flagLigada(FLAG_ANUNCIOS) ? ligarProvedorDeAnuncios() : Promise.resolve(false)).then((ligou) => {
+        if (!ligou) void ligarDemonstracaoDeAnuncios();
+      });
+    };
+    tentar();
+    window.addEventListener(EVENTO_DAS_FLAGS, tentar);
+    return () => window.removeEventListener(EVENTO_DAS_FLAGS, tentar);
   }, []);
   if (!provedor || provedor.disponivel?.() === false) return null;
   return <EspacoComProvedor provedor={provedor} {...props} />;
@@ -78,7 +97,6 @@ function EspacoComProvedor({
   espaco,
   formato,
   aoSemAnuncios = irAosPlanos,
-  aoRecompensar,
 }: EspacoDeAnuncioProps & { provedor: ProvedorDeAnuncios }) {
   /* A flag e o consentimento são lidos por `montarPedidoDeAnuncio`; os dois ganchos só fazem o espaço
      perguntar de novo quando eles mudam. */
@@ -113,7 +131,14 @@ function EspacoComProvedor({
     return convidando ? <ConsentimentoDeAnuncios /> : null;
   }
   const Desenho = provedor.Espaco;
-  return <Desenho espaco={espaco} formato={formato} aoSemAnuncios={aoSemAnuncios} aoRecompensar={aoRecompensar} />;
+  return (
+    <Desenho
+      espaco={espaco}
+      formato={formato}
+      aoSemAnuncios={aoSemAnuncios}
+      aoRecompensar={formato === 'premiado' ? recompensar : undefined}
+    />
+  );
 }
 
 /** Fica com o convite se ele estiver livre; solta ao deixar de querer ou ao desmontar. */

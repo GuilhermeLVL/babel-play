@@ -1761,5 +1761,10 @@
   "Você aceitou ver anúncios no plano Grátis.": "وافقت على مشاهدة الإعلانات في الخطة المجانية.",
   "Você não aceitou anúncios.": "لم توافق على الإعلانات.",
   "Sem a sua resposta \"Aceitar\", nenhum anúncio aparece.": "من دون إجابتك \"قبول\"، لا يظهر أي إعلان.",
-  "Rever": "مراجعة"
+  "Rever": "مراجعة",
+  "Você já ganhou as recompensas de anúncio de hoje. Amanhã tem de novo.": "لقد حصلت على مكافآت الإعلانات لهذا اليوم. ستتوفّر من جديد غدًا.",
+  "O anúncio fechou antes do tempo mínimo, então a recompensa não valeu desta vez.": "أُغلق الإعلان قبل الحد الأدنى من الوقت، لذا لم تُحتسب المكافأة هذه المرة.",
+  "Este anúncio passou do prazo. Se quiser, abra outro.": "انتهت مهلة هذا الإعلان. افتح إعلانًا آخر إن شئت.",
+  "Há anúncios abertos demais agora. Tente de novo em alguns minutos.": "هناك إعلانات مفتوحة كثيرة الآن. حاول مرة أخرى بعد بضع دقائق.",
+  "Recompensa registrada.": "تم تسجيل المكافأة."
 }

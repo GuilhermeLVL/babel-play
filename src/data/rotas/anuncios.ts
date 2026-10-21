@@ -1,32 +1,59 @@
 /**
- * O PREMIADO NO SERVIDOR — as chamadas (Task 5 do estado 3; versão mínima da Task 4, a reconciliar no merge).
+ * O ANÚNCIO PREMIADO — as chamadas da recompensa (`server/routes/anuncios.ts`, spec `anuncios-no-gratis`).
  *
- * Não existe verificação do Google no servidor (SSV) para anúncio premiado na web: o servidor abre uma
- * EXIBIÇÃO antes do anúncio (`iniciar`) e credita uma vez, com teto por pessoa e global, quando o app
- * avisa que a página de anúncios mandou `recompensa` (`concluir`). Só com conta.
+ * Um aperto de mão em dois passos, porque na web não há verificação servidor a servidor da rede de anúncios:
+ *   1. o provedor chama `iniciarPremiado(espaco)` ANTES de mostrar o premiado e guarda o `exibicaoId`;
+ *   2. a página do anúncio avisa o fim (por `postMessage`), e o espaço chama `concluirPremiado(exibicaoId)`
+ *      (`aoRecompensar` de `EspacoDeAnuncio`). O servidor credita uma vez só; repetir responde `jaCreditado`.
+ *
+ * SÓ EXISTEM COM CONTA: sem conta o perfil é o protegido e não vê anúncio (`tests/contratos/rotas-espelhadas.test.ts`
+ * registra o motivo). O erro volta com o `code` do servidor (`teto_do_dia`, `perfil_protegido`,
+ * `anuncios_desligados`, `exibicao_expirada`, `exibicao_desconhecida`).
  */
-import type { EspacoDeAnuncio } from '../../core/anuncios/politicaDeAnuncio';
-import { apiFetch, lerErro } from '../funil';
+import type { EspacoPremiado, RecompensaDoPremiado } from '../../core/anuncios/premiado'
+import { apiFetch, lerErro } from '../funil'
+import type { Falha } from './idade'
 
-/** Abre uma exibição do premiado. Lança se o servidor recusar (flag desligada, teto do dia, perfil protegido). */
-export async function iniciarPremiado(espaco: EspacoDeAnuncio): Promise<{ exibicaoId: string }> {
-  const r = await apiFetch('/api/anuncios/premiado/iniciar', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ espaco }),
-  });
-  if (!r.ok) throw new Error((await lerErro(r)).code ?? 'premiado_recusado');
-  const corpo = (await r.json()) as { exibicaoId?: unknown };
-  if (typeof corpo.exibicaoId !== 'string' || !corpo.exibicaoId) throw new Error('premiado_sem_exibicao');
-  return { exibicaoId: corpo.exibicaoId };
+/**
+ * O que o servidor creditou, achatado: `tipo` da recompensa (`seeds`, `nuvem`, `tema-24h`, `ajuda`) com os campos
+ * dela (`seeds`, `segundos`, `ateEm`), o espaço e se já tinha sido creditada antes (`jaCreditado`).
+ */
+export type PremiadoConcluido = RecompensaDoPremiado & { jaCreditado: boolean; espaco: EspacoPremiado }
+
+async function falha(r: Response): Promise<Falha> {
+  const e = await lerErro(r)
+  return { ok: false, status: e.status, error: e.error, code: e.code }
+}
+const semRede = (): Falha => ({ ok: false, status: 0, error: 'não consegui falar com o servidor' })
+
+/** Abre uma exibição premiada no servidor. Só depois de `ok` o provedor mostra o anúncio. */
+export async function iniciarPremiado(espaco: EspacoPremiado): Promise<{ ok: true; exibicaoId: string } | Falha> {
+  try {
+    const r = await apiFetch('/api/anuncios/premiado/iniciar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ espaco }),
+    })
+    if (!r.ok) return falha(r)
+    const { exibicaoId } = (await r.json()) as { exibicaoId: string }
+    return { ok: true, exibicaoId }
+  } catch {
+    return semRede()
+  }
 }
 
-/** Pede o crédito da exibição (idempotente no servidor). Lança se o servidor recusar. */
-export async function concluirPremiado(exibicaoId: string): Promise<void> {
-  const r = await apiFetch('/api/anuncios/premiado/concluir', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ exibicaoId }),
-  });
-  if (!r.ok) throw new Error((await lerErro(r)).code ?? 'premiado_recusado');
+/** Avisa o servidor que a exibição terminou; ele credita a recompensa (uma vez só). */
+export async function concluirPremiado(exibicaoId: string): Promise<({ ok: true } & PremiadoConcluido) | Falha> {
+  try {
+    const r = await apiFetch('/api/anuncios/premiado/concluir', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ exibicaoId }),
+    })
+    if (!r.ok) return falha(r)
+    const c = (await r.json()) as { jaCreditado: boolean; espaco: EspacoPremiado; recompensa: RecompensaDoPremiado }
+    return { ok: true, ...c.recompensa, jaCreditado: c.jaCreditado, espaco: c.espaco }
+  } catch {
+    return semRede()
+  }
 }

@@ -43,10 +43,10 @@ function html(): Response {
 let assetsFetch = vi.fn(async () => html())
 const ctx = { waitUntil: () => undefined }
 
-async function chamar(caminho: string) {
+async function chamar(caminho: string, headers: Record<string, string> = {}) {
   const { default: worker } = await import('../../worker')
   const env = { HYPERDRIVE: { connectionString: 'postgres://x' }, MIDIA: {} as never, ASSETS: { fetch: assetsFetch } }
-  return worker.fetch(new Request(`https://app.test${caminho}`), env, ctx)
+  return worker.fetch(new Request(`https://app.test${caminho}`, { headers }), env, ctx)
 }
 
 const frameSrc = (csp: string | null) =>
@@ -108,11 +108,40 @@ describe('CSP dos anúncios no Worker', () => {
     expect(r.headers.get('content-security-policy')).toBe(CSP)
   })
 
-  it('a página de anúncios (/anuncios/*) não é tocada', async () => {
+  /* R35: a página de anúncios não mora no app. `/anuncios/espaco.html` aqui é um caminho comum da SPA: sai o
+     `index.html` com a CSP DO APP (e, com a flag, só o `frame-src` a mais), nunca a CSP larga da página. */
+  it('/anuncios/espaco.html no Worker do app é caminho comum da SPA, com a CSP do app', async () => {
+    process.env.ANUNCIOS_ORIGEM = ORIGEM
+    const r = await chamar('/anuncios/espaco.html')
+    expect(assetsFetch).toHaveBeenCalledTimes(1)
+    expect(r.headers.get('content-security-policy')).toBe(CSP)
+    expect(r.headers.get('cross-origin-embedder-policy')).toBe('credentialless')
+    mundo.flag = true
+    const { _zerarCacheDosAnuncios } = await import('../../server/http/anunciosNoWorker')
+    _zerarCacheDosAnuncios()
+    const ligada = await chamar('/anuncios/espaco.html')
+    expect(scriptSrc(ligada.headers.get('content-security-policy'))).toBe(scriptSrc(CSP))
+    expect(frameSrc(ligada.headers.get('content-security-policy'))).toEqual(["'self'", ORIGEM])
+  })
+
+  it('R35: ANUNCIOS_ORIGEM igual à origem do app é recusada (CSP intacta, flag nem lida)', async () => {
+    process.env.ANUNCIOS_ORIGEM = 'https://app.test'
+    mundo.flag = true
+    const r = await chamar('/')
+    expect(r.headers.get('content-security-policy')).toBe(CSP)
+    expect(mundo.leituras).toBe(0)
+  })
+
+  it('documento pelo Sec-Fetch-Dest, mesmo sem content-type (o 304 da revalidação)', async () => {
     process.env.ANUNCIOS_ORIGEM = ORIGEM
     mundo.flag = true
-    const r = await chamar('/anuncios/espaco.html')
-    expect(r.headers.get('content-security-policy')).toBe(CSP)
+    assetsFetch = vi.fn(async () => new Response(null, { status: 304, headers: { 'content-security-policy': CSP } }))
+    const r = await chamar('/', { 'sec-fetch-dest': 'document' })
+    expect(r.status).toBe(304)
+    expect(frameSrc(r.headers.get('content-security-policy'))).toEqual(["'self'", ORIGEM])
+    // o mesmo 304 sem ser documento (um script revalidando) não é tocado
+    const s = await chamar('/sw.js', { 'sec-fetch-dest': 'script' })
+    expect(s.headers.get('content-security-policy')).toBe(CSP)
   })
 
   it('falha ao ler a flag: fica a CSP estreita', async () => {

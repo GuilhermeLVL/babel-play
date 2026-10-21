@@ -413,10 +413,14 @@ billingRouter.post('/assinar', async (req, res) => {
     // Reusa o cliente Asaas já criado numa tentativa anterior — recomeçar o checkout não duplica.
     const atual = await subscriptionsRepo.getActive(destino)
     if (jaPagaNoAsaas(atual)) {
+      /* O NOME DO PLANO QUE ESTÁ PAGO (planos v3): com três planos pagos, "já tem o Premium" mentia para
+         quem paga o Essencial ou o Ao Vivo. Linha com nome fora da matriz cai no genérico. */
+      const planoPago = normalizarPlano(atual?.plan)
+      const qual = ehPlanoPago(planoPago) ? `o ${PLAN_MATRIX[planoPago].rotulo}` : 'um plano'
       responderErro(
         res,
         409,
-        'esta conta já tem o Premium pago; para trocar de ciclo, use Planos → Sua assinatura',
+        `esta conta já tem ${qual} pago; para trocar de ciclo, use Planos → Sua assinatura`,
         'ja_assinante',
       )
       return

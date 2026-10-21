@@ -20,14 +20,32 @@ export type ResultadoDaConclusao =
   | { tipo: 'ja-creditada'; espaco: string; concluidoEm: number }
   | { tipo: 'desconhecida' }
   | { tipo: 'expirada' }
+  | { tipo: 'espaco-bloqueado' }
+  | { tipo: 'cedo-demais' }
   | { tipo: 'teto' }
 
 export interface TetosDaConclusao {
   /** A exibição credita só se for concluída antes de `iniciado_em + prazoMs`. */
   prazoMs: number
+  /** E só depois de `iniciado_em + duracaoMinimaMs(espaco)` (R33: concluir logo depois de iniciar é forjar). */
+  duracaoMinimaMs: (espaco: string) => number
   limitePorPessoa: number
   tetoGlobal: number
+  /** Tetos por pessoa de um espaço no dia (o `nuvem-30`). */
+  limitePorEspaco: Readonly<Record<string, number>>
+  /** Espaços que não podem ser creditados agora (o `nuvem-30` com a nuvem do Grátis desligada). */
+  espacosBloqueados: ReadonlySet<string>
 }
+
+/** As concluídas do dia UTC: da pessoa, de todas as contas e da pessoa naquele espaço. */
+function contagensDoDia(userId: UserId, dia: string, espaco: string) {
+  return sql`
+    SELECT count(*) FILTER (WHERE user_id = ${userId})::int AS pessoa,
+           count(*) FILTER (WHERE user_id = ${userId} AND espaco = ${espaco})::int AS do_espaco,
+           count(*)::int AS total
+    FROM anuncios_premiados WHERE dia = ${dia} AND concluido_em IS NOT NULL`
+}
+type LinhaDeContagem = { pessoa: number; do_espaco: number; total: number }
 
 /** `AAAA-MM-DD` UTC. */
 export const diaUtc = (agora: number): string => new Date(agora).toISOString().slice(0, 10)
@@ -39,14 +57,24 @@ function inicioDoMesAnterior(agora: number): string {
 }
 
 export const anunciosPremiadosRepo = {
-  /** As exibições CONCLUÍDAS no dia UTC: as da pessoa e as de todas as contas. */
-  async concluidasNoDia(userId: UserId, dia: string): Promise<{ daPessoa: number; global: number }> {
-    const r = linhas<{ pessoa: number; total: number }>(
+  /** As exibições CONCLUÍDAS no dia UTC: as da pessoa, as dela no `espaco` e as de todas as contas. */
+  async concluidasNoDia(
+    userId: UserId,
+    dia: string,
+    espaco: string,
+  ): Promise<{ daPessoa: number; doEspaco: number; global: number }> {
+    const [c] = linhas<LinhaDeContagem>(await db.execute(contagensDoDia(userId, dia, espaco)))
+    return { daPessoa: Number(c?.pessoa ?? 0), doEspaco: Number(c?.do_espaco ?? 0), global: Number(c?.total ?? 0) }
+  },
+
+  /** As exibições da pessoa ainda PENDENTES iniciadas desde `desde` (ms). */
+  async pendentesDesde(userId: UserId, desde: number): Promise<number> {
+    const [c] = linhas<{ n: number }>(
       await db.execute(sql`
-        SELECT count(*) FILTER (WHERE user_id = ${userId})::int AS pessoa, count(*)::int AS total
-        FROM anuncios_premiados WHERE dia = ${dia} AND concluido_em IS NOT NULL`),
+        SELECT count(*)::int AS n FROM anuncios_premiados
+        WHERE user_id = ${userId} AND concluido_em IS NULL AND iniciado_em >= ${desde}`),
     )
-    return { daPessoa: Number(r[0]?.pessoa ?? 0), global: Number(r[0]?.total ?? 0) }
+    return Number(c?.n ?? 0)
   },
 
   async iniciar(userId: UserId, exibicaoId: string, espaco: string, agora: number): Promise<void> {
@@ -56,8 +84,8 @@ export const anunciosPremiadosRepo = {
   },
 
   /**
-   * CONCLUI a exibição, uma vez só: a linha tem de ser desta conta, pendente, dentro do prazo, e os tetos do dia
-   * (contados nas concluídas por `dia`) têm de caber. Concluída antes → `ja-creditada` (quem chama não credita
+   * CONCLUI a exibição, uma vez só: a linha tem de ser desta conta, pendente, dentro do prazo, com a duração
+   * mínima cumprida, de um espaço não bloqueado, e os tetos do dia (contados nas concluídas por `dia`) têm de caber. Concluída antes → `ja-creditada` (quem chama não credita
    * de novo, ou reaplica um crédito idempotente).
    */
   async concluir(
@@ -78,14 +106,18 @@ export const anunciosPremiadosRepo = {
       if (!linha) return { tipo: 'desconhecida' }
       if (linha.concluido_em != null)
         return { tipo: 'ja-creditada', espaco: linha.espaco, concluidoEm: Number(linha.concluido_em) }
-      if (agora - Number(linha.iniciado_em) >= tetos.prazoMs) return { tipo: 'expirada' }
+      const decorrido = agora - Number(linha.iniciado_em)
+      if (decorrido >= tetos.prazoMs) return { tipo: 'expirada' }
+      if (tetos.espacosBloqueados.has(linha.espaco)) return { tipo: 'espaco-bloqueado' }
+      if (decorrido < tetos.duracaoMinimaMs(linha.espaco)) return { tipo: 'cedo-demais' }
 
-      const [c] = linhas<{ pessoa: number; total: number }>(
-        await tx.execute(sql`
-          SELECT count(*) FILTER (WHERE user_id = ${userId})::int AS pessoa, count(*)::int AS total
-          FROM anuncios_premiados WHERE dia = ${dia} AND concluido_em IS NOT NULL`),
-      )
-      if (Number(c?.pessoa ?? 0) >= tetos.limitePorPessoa || Number(c?.total ?? 0) >= tetos.tetoGlobal) {
+      const [c] = linhas<LinhaDeContagem>(await tx.execute(contagensDoDia(userId, dia, linha.espaco)))
+      const limiteDoEspaco = tetos.limitePorEspaco[linha.espaco] ?? Number.POSITIVE_INFINITY
+      if (
+        Number(c?.pessoa ?? 0) >= tetos.limitePorPessoa ||
+        Number(c?.total ?? 0) >= tetos.tetoGlobal ||
+        Number(c?.do_espaco ?? 0) >= limiteDoEspaco
+      ) {
         return { tipo: 'teto' }
       }
 

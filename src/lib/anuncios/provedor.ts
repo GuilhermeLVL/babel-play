@@ -9,11 +9,12 @@
  * sem script de terceiro e sem rede. Um provedor de produção (uma rede de anúncios) entra por aqui
  * quando o dono escolher a rede, e traz junto o ajuste da CSP por configuração (`design.md` §7).
  *
- * FOLHA: não importa nada do app além dos tipos da política.
+ * FOLHA: não importa nada do app além de TIPOS (a política e o `PremiadoConcluido` da rota do premiado).
  */
 import type { ComponentType } from 'react';
 
 import type { EspacoDeAnuncio, FormatoDeAnuncio } from '../../core/anuncios/politicaDeAnuncio';
+import type { PremiadoConcluido } from '../../data/rotas/anuncios';
 
 export interface PropsDoEspacoDeAnuncio {
   espaco: EspacoDeAnuncio;
@@ -23,10 +24,11 @@ export interface PropsDoEspacoDeAnuncio {
   /**
    * O fim de um PREMIADO: o provedor abriu a exibição com `iniciarPremiado(espaco)` (`data/rotas/anuncios.ts`)
    * antes de mostrar o anúncio e, quando a página dele avisa o fim, chama isto com o `exibicaoId`. Quem credita é
-   * o servidor, uma vez só; recusa (teto, prazo, perfil) rejeita a promessa com o `code` dele na mensagem.
-   * Ausente nos formatos que não são premiados.
+   * o servidor, uma vez só, e a promessa resolve com o que foi creditado (`PremiadoConcluido`: o `tipo`, o `ateEm`
+   * do tema, `jaCreditado`) para o provedor mostrar; recusa (teto, prazo, perfil) rejeita com o `code` dele na
+   * mensagem. Ausente nos formatos que não são premiados.
    */
-  aoRecompensar?: (exibicaoId: string) => Promise<void>;
+  aoRecompensar?: (exibicaoId: string) => Promise<PremiadoConcluido>;
 }
 
 export interface ProvedorDeAnuncios {

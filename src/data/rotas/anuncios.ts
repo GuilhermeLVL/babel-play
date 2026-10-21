@@ -14,12 +14,11 @@ import type { EspacoPremiado, RecompensaDoPremiado } from '../../core/anuncios/p
 import { apiFetch, lerErro } from '../funil'
 import type { Falha } from './idade'
 
-export interface PremiadoConcluido {
-  ok: true
-  jaCreditado: boolean
-  espaco: EspacoPremiado
-  recompensa: RecompensaDoPremiado
-}
+/**
+ * O que o servidor creditou, achatado: `tipo` da recompensa (`seeds`, `nuvem`, `tema-24h`, `ajuda`) com os campos
+ * dela (`seeds`, `segundos`, `ateEm`), o espaço e se já tinha sido creditada antes (`jaCreditado`).
+ */
+export type PremiadoConcluido = RecompensaDoPremiado & { jaCreditado: boolean; espaco: EspacoPremiado }
 
 async function falha(r: Response): Promise<Falha> {
   const e = await lerErro(r)
@@ -44,7 +43,7 @@ export async function iniciarPremiado(espaco: EspacoPremiado): Promise<{ ok: tru
 }
 
 /** Avisa o servidor que a exibição terminou; ele credita a recompensa (uma vez só). */
-export async function concluirPremiado(exibicaoId: string): Promise<PremiadoConcluido | Falha> {
+export async function concluirPremiado(exibicaoId: string): Promise<({ ok: true } & PremiadoConcluido) | Falha> {
   try {
     const r = await apiFetch('/api/anuncios/premiado/concluir', {
       method: 'POST',
@@ -52,7 +51,8 @@ export async function concluirPremiado(exibicaoId: string): Promise<PremiadoConc
       body: JSON.stringify({ exibicaoId }),
     })
     if (!r.ok) return falha(r)
-    return { ok: true, ...((await r.json()) as Omit<PremiadoConcluido, 'ok'>) }
+    const c = (await r.json()) as { jaCreditado: boolean; espaco: EspacoPremiado; recompensa: RecompensaDoPremiado }
+    return { ok: true, ...c.recompensa, jaCreditado: c.jaCreditado, espaco: c.espaco }
   } catch {
     return semRede()
   }

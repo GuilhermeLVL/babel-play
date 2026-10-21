@@ -1,7 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 
 import { podeMostrar } from '../../../core/anuncios/politicaDeAnuncio';
-import { demonstracaoDeAnuncios, montarPedidoDeAnuncio } from '../../../lib/anuncios/pedido';
+import { demonstracaoAtiva, montarPedidoDeAnuncio } from '../../../lib/anuncios/pedido';
 import { assinarProvedorDeAnuncios, provedorDeAnuncios } from '../../../lib/anuncios/provedor';
 import { consultarAlivio } from '../../../lib/nuvemDeAlivio/consulta';
 import EspacoDeAnuncio from '../../anuncios/EspacoDeAnuncio';
@@ -16,7 +16,8 @@ const semProvedor = () => null;
  * A recompensa soma 30 min à franquia da NUVEM DE ALÍVIO do mês (`server/lib/nuvemDeAlivio.ts`), então o cartão
  * só aparece quando o alívio está DISPONÍVEL para esta conta (`consultarAlivio()`: flag, Grátis, conta, pool e a
  * nuvem global abertos). Sem isso não há o que ganhar, e a spec manda a oferta sumir ("Amostra de nuvem com teto
- * global"). Na DEMONSTRAÇÃO o lugar aparece sem perguntar ao servidor: é para ver onde ele fica.
+ * global"). Com o provedor de DEMONSTRAÇÃO registrado o lugar aparece sem perguntar ao servidor (é para ver onde
+ * ele fica); com o provedor real, a pergunta vale sempre.
  *
  * Estado de fábrica: sem provedor, nada, e nenhuma pergunta à rede.
  */
@@ -25,7 +26,7 @@ export default function NuvemPremiadaNaCaptura() {
   const [disponivel, setDisponivel] = useState(false);
   useEffect(() => {
     if (!provedor) return;
-    if (demonstracaoDeAnuncios()) {
+    if (demonstracaoAtiva()) {
       setDisponivel(true);
       return;
     }

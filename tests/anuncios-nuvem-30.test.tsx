@@ -84,6 +84,30 @@ describe('nuvem-30 na captura', () => {
     expect(consultarAlivio).not.toHaveBeenCalled()
   })
 
+  it('build de demonstração com um provedor que NÃO é a demonstração: o alívio ainda é perguntado e manda', async () => {
+    vi.stubEnv('VITE_ANUNCIOS_DEMONSTRACAO', '1')
+    try {
+      mundo.alivio = { disponivel: false, restanteSegundos: 0 }
+      const c = await montar()
+      expect(consultarAlivio).toHaveBeenCalledTimes(1)
+      expect(c.innerHTML).toBe('')
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
+  it('com o provedor de demonstração: o lugar aparece sem perguntar ao servidor', async () => {
+    vi.stubEnv('VITE_ANUNCIOS_DEMONSTRACAO', '1')
+    registrarProvedorDeAnuncios({ ...PROVEDOR_FALSO, id: 'demonstracao' })
+    try {
+      const c = await montar()
+      expect(c.querySelector('[data-ad-falso="nuvem-30"]')).not.toBeNull()
+      expect(consultarAlivio).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
   it('estado de fábrica (sem provedor): nada, e nenhuma pergunta à rede', async () => {
     registrarProvedorDeAnuncios(null)
     mundo.alivio = { disponivel: true, restanteSegundos: 3600 }

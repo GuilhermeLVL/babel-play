@@ -15,6 +15,8 @@
  * anúncios), então para ver é preciso também `localStorage['babel.px.planoDeProva'] = 'free'` (a mesma
  * chave da bancada dos Planos). Perfil protegido, headset, edição estática e tela ocupada continuam
  * negando na demonstração. Fora do desenvolvimento a chave não é lida; sem a variável, o build não tem demonstração.
+ * As trocas valem SÓ com o provedor de demonstração registrado (`demonstracaoAtiva()`): com o provedor REAL (flag
+ * ligada e `VITE_ANUNCIOS_ORIGEM` no mesmo build), a flag, o consentimento e os três dias da conta valem de verdade.
  */
 import {
   type EspacoDeAnuncio,
@@ -34,6 +36,7 @@ import { lerPreferencias } from '../preferencias';
 import { perfilProtegido } from '../protecaoDoMenor';
 import { urlParaEstado } from '../rotas';
 import { capturaAtiva } from '../sessaoDeCaptura';
+import { provedorDeAnuncios } from './provedor';
 
 /** A mesma chave que a bancada dos Planos documenta (`lib/polimento/planos.ts`). */
 const CHAVE_DA_DEMONSTRACAO = 'babel.px.anunciosDeProva';
@@ -53,6 +56,14 @@ export function demonstracaoDeAnuncios(): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * A demonstração está pedida E é ela quem desenha? Só então a flag, o consentimento e a idade da conta viram dados.
+ * Com o provedor real registrado, nada disso é trocado: o consentimento e a regra dos três dias valem.
+ */
+export function demonstracaoAtiva(): boolean {
+  return demonstracaoDeAnuncios() && provedorDeAnuncios()?.id === 'demonstracao';
 }
 
 /** O que a tela está fazendo agora, lido na hora de decidir. */
@@ -97,7 +108,7 @@ export function montarPedidoDeAnuncio(
   formato: FormatoDeAnuncio | string,
 ): PedidoDeAnuncio {
   const agora = Date.now();
-  const demonstracao = demonstracaoDeAnuncios();
+  const demonstracao = demonstracaoAtiva();
   const e = getEntitlements();
   /* Na bancada (só em desenvolvimento) a tela pode ser vista como o Grátis a vê: `planoDeProva`. */
   const prova = provaDosPlanos();

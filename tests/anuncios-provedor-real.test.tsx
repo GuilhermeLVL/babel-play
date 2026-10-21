@@ -77,6 +77,8 @@ const { default: EspacoDeAnuncio } = await import('../src/components/anuncios/Es
 const { registrarProvedorDeAnuncios } = await import('../src/lib/anuncios/provedor')
 const { criarProvedorPorIframe } = await import('../src/lib/anuncios/provedores/iframe')
 const { ESPACOS_PREMIADOS_ATIVOS } = await import('../src/core/anuncios/premiado')
+const { podeMostrar } = await import('../src/core/anuncios/politicaDeAnuncio')
+const { demonstracaoDeAnuncios, montarPedidoDeAnuncio } = await import('../src/lib/anuncios/pedido')
 
 let rede: ReturnType<typeof vi.fn>
 const proto = HTMLIFrameElement.prototype as unknown as Record<string, unknown>
@@ -427,6 +429,42 @@ describe('o provedor real (iframe credentialless)', () => {
       mandar(ORIGEM, { tipo: 'frasy:anuncio', evento: 'vazio' }, f.contentWindow)
       expect(container.innerHTML).toBe('')
     })
+  })
+})
+
+describe('build com VITE_ANUNCIOS_DEMONSTRACAO=1 e o provedor REAL registrado: as trocas da demonstração não valem', () => {
+  beforeEach(() => vi.stubEnv('VITE_ANUNCIOS_DEMONSTRACAO', '1'))
+  afterEach(() => vi.unstubAllEnvs())
+
+  it('sem consentimento: a política diz sem_consentimento, e a folha de consentimento abre', async () => {
+    quemPodeVer()
+    mundo.consentimento = false
+    expect(demonstracaoDeAnuncios()).toBe(true)
+    expect(podeMostrar(montarPedidoDeAnuncio('inicio-nativo', 'nativo')).motivo).toBe('sem_consentimento')
+    const { container } = render(<EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" />)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(container.querySelector('.consentimento-de-anuncios')).not.toBeNull()
+    expect(iframes()).toHaveLength(0)
+  })
+
+  it('a regra dos três dias vale (conta de um dia: conta_nova)', () => {
+    quemPodeVer()
+    mundo.contaCriadaEm = Date.now() - DIA
+    expect(podeMostrar(montarPedidoDeAnuncio('inicio-nativo', 'nativo')).motivo).toBe('conta_nova')
+  })
+
+  it('flag desligada continua desligada', () => {
+    quemPodeVer()
+    mundo.flag = false
+    expect(podeMostrar(montarPedidoDeAnuncio('inicio-nativo', 'nativo')).motivo).toBe('flag_desligada')
+  })
+
+  it('com o provedor de DEMONSTRAÇÃO registrado, as trocas valem como antes (flag, idade e consentimento)', () => {
+    registrarProvedorDeAnuncios({ id: 'demonstracao', Espaco: () => null })
+    Object.assign(mundo, { flag: false, consentimento: false, contaCriadaEm: null })
+    expect(podeMostrar(montarPedidoDeAnuncio('inicio-nativo', 'nativo'))).toEqual({ pode: true, motivo: 'pode' })
   })
 })
 

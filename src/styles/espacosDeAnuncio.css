@@ -772,7 +772,7 @@ dialog.ad-video::backdrop {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px 14px;
-  margin: 8px 0 0;
+  margin: 12px 0 0; /* pelo menos 12 px da linha da trilha, que é um botão (spec: nunca colado a botão de ação) */
 }
 .ad-oferece-linha .ad-oferece {
   margin-left: 0;
@@ -853,7 +853,7 @@ html:not([data-px='on']) .ad-jogo .px-mini {
   justify-content: center;
   flex-wrap: wrap;
   gap: 8px 14px;
-  margin: 10px 0 0;
+  margin: 12px 0; /* pelo menos 12 px da fileira de ações abaixo (spec: nunca colado a botão de ação) */
 }
 
 /* e) Faixa âncora (só celular) */
@@ -920,6 +920,15 @@ html.dark .ad-ancora {
   min-height: 36px;
   padding: 0 14px;
   font-size: 14px;
+}
+/* app: a porta "Sem anúncios" também na âncora (spec, "Identificação e saída"), curta para caber na faixa */
+.ad-ancora .ad-sem {
+  flex: 0 1 auto;
+  max-width: 8.5em;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1.15;
+  white-space: normal;
 }
 .ad-ancora-x {
   all: unset;

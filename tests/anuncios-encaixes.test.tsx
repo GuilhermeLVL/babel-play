@@ -328,6 +328,7 @@ const TELAS: Array<{
       const ancora = raiz.querySelector('[data-ad="ancora"]')!
       expect(ancora.previousElementSibling?.classList.contains('ad-ancora-espaco')).toBe(true)
       expect(ancora.getAttribute('aria-label')).toBe('Anúncio')
+      expect(ancora.querySelector('button.ad-sem')?.textContent).toBe('Sem anúncios no Essencial')
     },
   },
   {
@@ -501,9 +502,12 @@ const ligarDemonstracao = async () => {
     expect(await ligarDemonstracaoDeAnuncios()).toBe(true)
   })
 }
-/** Um provedor de teste: desenha só uma marca com o nome do espaço. */
+/**
+ * Um provedor de teste: desenha só uma marca com o nome do espaço. Leva o id da demonstração porque as trocas do
+ * pedido (flag, consentimento, idade da conta) só valem com ela registrada; o desenho é o do teste.
+ */
 const PROVEDOR_FALSO = {
-  id: 'falso',
+  id: 'demonstracao',
   Espaco: ({ espaco }: { espaco: string }) => <i data-ad-falso={espaco} />,
 }
 
@@ -634,7 +638,7 @@ describe('o intersticial entre rodadas', () => {
 
   it('provedor que não desenha nada: a pessoa não fica presa, a rodada segue', async () => {
     pedirDemonstracao()
-    registrarProvedorDeAnuncios({ id: 'vazio', Espaco: () => null })
+    registrarProvedorDeAnuncios({ id: 'demonstracao', Espaco: () => null })
     const aoJogarDeNovo = vi.fn()
     const { raiz } = await fotografar(() => fimDaRodada(aoJogarDeNovo), true)
     await clicar(jogarDeNovo(raiz))

@@ -536,7 +536,7 @@ function LinhaNasEstatisticas({ aoSemAnuncios }: { aoSemAnuncios: () => void }) 
 }
 
 /** A faixa âncora do celular (`plantarAncora`, `anuncios.js:281-304`), com o respiro que ela pede no fim da tela. */
-function Ancora({ aoFechar }: { aoFechar?: () => void }) {
+function Ancora({ aoSemAnuncios, aoFechar }: { aoSemAnuncios: () => void; aoFechar?: () => void }) {
   const m = FONES;
   const Icone = m.icone;
   return (
@@ -553,6 +553,7 @@ function Ancora({ aoFechar }: { aoFechar?: () => void }) {
           </small>
         </span>
         <Cta m={m}>Ver</Cta>
+        <SemAnuncios aoSemAnuncios={aoSemAnuncios} />
         <button
           type="button"
           className="ad-ancora-x"
@@ -657,7 +658,7 @@ export default function EspacoDeDemonstracao({ espaco, aoSemAnuncios, aoFechar }
   if (espaco === 'jogar-miniatura') return <MiniaturaNoJogar aoSemAnuncios={aoSemAnuncios} />;
   if (espaco === 'loja-tema') return <TemaNaLoja aoSemAnuncios={aoSemAnuncios} />;
   if (espaco === 'estat-faixa') return <LinhaNasEstatisticas aoSemAnuncios={aoSemAnuncios} />;
-  if (espaco === 'ancora') return <Ancora aoFechar={aoFechar} />;
+  if (espaco === 'ancora') return <Ancora aoSemAnuncios={aoSemAnuncios} aoFechar={aoFechar} />;
   if (espaco === 'intersticial') return <Intersticial aoSemAnuncios={aoSemAnuncios} aoFechar={aoFechar} />;
   if (espaco === 'ajuda-premiada') return <AjudaNoFim aoSemAnuncios={aoSemAnuncios} />;
   if (espaco === 'tema-24h')

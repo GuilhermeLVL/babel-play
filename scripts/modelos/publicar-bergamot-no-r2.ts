@@ -49,6 +49,24 @@ export function todosOsPares(): Record<string, ParDoJson> {
   return { ...modelos.pares, ...modelos.paresDoCdn } as Record<string, ParDoJson>;
 }
 
+/**
+ * Resolve `--pares`: ausente, vazio ou `all` = todos; lista = só esses. Par desconhecido lança (com os conhecidos):
+ * um filtro que casa com nada nunca vira execução verde sem publicar.
+ */
+export function selecionarPares(valor?: string): string[] {
+  const todos = Object.keys(todosOsPares());
+  const pedidos = (valor ?? '')
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (pedidos.length === 0 || pedidos.includes('all')) return todos;
+  const desconhecidos = pedidos.filter((p) => !todos.includes(p));
+  if (desconhecidos.length > 0) {
+    throw new Error(`par(es) desconhecido(s): ${desconhecidos.join(', ')}. Conhecidos: ${todos.join(', ')}`);
+  }
+  return pedidos;
+}
+
 /** A chave no bucket — o layout que o app monta (`<base>/bergamot/<par>/<execução>/<arquivo>`). */
 export const chaveNoBucket = (par: string, execucao: string, nome: string): string =>
   `bergamot/${par}/${execucao}/${nome}`;
@@ -102,10 +120,13 @@ async function principal() {
   const arg = (n: string) => process.argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3);
   const seco = process.argv.includes('--seco');
   const bucket = arg('bucket');
-  const so = arg('pares')
-    ?.split(',')
-    .map((p) => p.trim())
-    .filter((p) => p && p !== 'all');
+  let selecionados: string[];
+  try {
+    selecionados = selecionarPares(arg('pares'));
+  } catch (err) {
+    console.error(`[bergamot] --pares: ${(err as Error).message}`);
+    process.exit(2);
+  }
   const viaWrangler = arg('via') === 'wrangler';
   if (arg('via') && !viaWrangler && arg('via') !== 's3') {
     console.error(`--via=${arg('via')}: use s3 ou wrangler`);
@@ -131,11 +152,25 @@ async function principal() {
   };
   const origem = modelos.origem.replace(/\/?$/, '/');
 
+  const pares = todosOsPares();
+  const objetos = selecionados.reduce((n, p) => n + Object.keys(pares[p].arquivos).length, 0);
+  if (objetos === 0) {
+    console.error('[bergamot] nenhum objeto selecionado: nada a publicar');
+    process.exit(1);
+  }
+  const mb = selecionados.reduce(
+    (n, p) => n + Object.values(pares[p].arquivos).reduce((m, a) => m + a.bytes, 0) / 1048576,
+    0,
+  );
+  console.log(
+    `[bergamot] ${selecionados.length} par(es), ${objetos} objeto(s), ${mb.toFixed(0)} MB: ${selecionados.join(', ')}`,
+  );
+
   let enviados = 0;
   let pulados = 0;
   let bytes = 0;
-  for (const [par, cfgDoPar] of Object.entries(todosOsPares())) {
-    if (so && !so.includes(par)) continue;
+  for (const par of selecionados) {
+    const cfgDoPar = pares[par];
     console.log(`[bergamot] ${par} (execução ${cfgDoPar.execucao})`);
     for (const a of Object.values(cfgDoPar.arquivos)) {
       const chave = chaveNoBucket(par, cfgDoPar.execucao, a.nome);

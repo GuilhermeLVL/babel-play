@@ -82,7 +82,7 @@ conferir com uso humano (dívida). A rota `review` ficou sem medição (precisa 
   (registrado em `docs/lgpd/operadores.md`); painel Grafana com "Tamanho do banco (SQLite + WAL)".
 - `Cross-Origin-Resource-Policy` nos estáticos (ZAP 90004, Fase 4).
 - `node:22-slim` do self-host não traz `pg_dump`/`pg_restore` (o `scripts/backup.mjs` não roda dentro da imagem).
-- Minors deferidos no ledger: teste de tempo do HKDF frágil; prefixo `HKDF:` em maiúsculas cai no scrypt;
+- Minors deferidos no ledger: teste de tempo do HKDF frágil; linha "Estado" duplicada no ADR 0006;
   `erros_429` sem sub-métrica por rota; `--apagar` do script de usuários só olha a 1ª página; `drill-restauracao`
   com `--dbname=undefined` se a URL não tiver banco.
 - O staging divide o Supabase Auth com a produção (R11): projeto separado antes do lançamento.

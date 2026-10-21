@@ -65,6 +65,9 @@ primeiras requisições depois de um deploy ou de um isolate novo; 90–160 ms d
 Paid (CPU por requisição até 30 s), mas supera o critério de 50 ms do plano. Opções para a Fase 5: baixar o custo
 do scrypt (`N`) mantendo o segredo com entropia alta, ou derivar a chave uma vez e guardá-la como secret.
 
+**Resolvido na Fase 5 (21/10/2026):** `SECRET_KEY=hkdf:<64 hex>` deriva por HKDF (0,1 ms); o boot de isolate novo
+caiu para 48–89 ms de CPU (p50 69). Ver `2026-10-21-fase5-portao-g1.md`.
+
 ## Dívidas registradas
 
 - Medir de uma rede decente (ou de um runner em sa-east-1): admissão p95, upload de 100 MB e o ganho do DoH no

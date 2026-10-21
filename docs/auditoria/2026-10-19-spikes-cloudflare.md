@@ -525,7 +525,16 @@ para o staging ou lista de permitidos.
 `VITE_AUTH_REQUIRED=1` no build do workflow), HSTS ausente nos estáticos, `aria-label` do toast fora do `t()`;
 deploy manual de rede doméstica inviável (~120 MB de assets) → o workflow faz o primeiro deploy e o build gera
 `dist/.assetsignore`. Medições, ZAP (0 FAIL) e Lighthouse em `2026-10-20-fase4-staging.md`; scrypt frio
-(90–160 ms de CPU por isolate novo) e admissão p95 ficam para a Fase 5.
+(90–160 ms de CPU por isolate novo) e admissão p95 ficaram para a Fase 5.
+
+## Fase 5 concluída: verificação, aposentadoria do Fly e portão G1 (2026-10-21)
+
+Relatório completo em `2026-10-21-fase5-portao-g1.md`. Em resumo: o Fly nunca foi implantado (R15), então a fase
+virou verificação contra o staging + remoção do mundo Fly/Litestream do repositório (ADR 0015); CI do ramo verde de
+ponta a ponta; `SECRET_KEY=hkdf:` tira o scrypt do boot (48–89 ms de CPU por isolate novo); drill de restauração do
+`pg_dump` provado contra o `frasy_staging`; ensaio da migração de dados com paridade total; k6 contra o staging com
+p95 < 250 ms nas rotas da spec, mas 16 % de 503 pelo teto de 10 ms de CPU do Workers Free (o plano Paid é pré-requisito
+da produção). O portão G1 fecha com o merge na `main`; o corte (primeiro deploy de produção) depende do dono.
 
 **Depende do dono.** Assinar Workers Paid antes da produção (7 crons); colocar a zona `frasy.com.br` na Cloudflare
 (hoje não há zona na conta) e então domínio do Worker, `APP_URL`/`VITE_PUBLIC_URL`, bucket público de modelos,

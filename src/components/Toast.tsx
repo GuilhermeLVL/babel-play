@@ -22,6 +22,7 @@ import type { LucideIcon } from 'lucide-react';
 import { VolumeX, X } from 'lucide-react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 
+import { t } from '../lib/i18n';
 import { useAviso } from '../lib/polimento/useAviso';
 import { play } from '../lib/soundFx';
 import { aoFaltarVoz } from '../lib/tts';
@@ -205,7 +206,7 @@ function AvisoAtual({ item }: { item: ToastItem | undefined }) {
               type="button"
               className="link"
               style={{ color: 'inherit', display: 'grid', placeItems: 'center' }}
-              aria-label="Fechar aviso"
+              aria-label={t('Fechar aviso')}
               onClick={() => dismissToast(item.id)}
             >
               <X size={14} aria-hidden />

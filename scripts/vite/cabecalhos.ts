@@ -27,6 +27,8 @@ export function gerarHeaders(env: NodeJS.ProcessEnv, base: string): string {
     '  Cross-Origin-Embedder-Policy: credentialless',
     '  Document-Isolation-Policy: isolate-and-credentialless',
     '  X-Content-Type-Options: nosniff',
+    // O mesmo HSTS que o helmet manda nas respostas da API (o ZAP apontou a ausência nos estáticos, 21/10/2026).
+    '  Strict-Transport-Security: max-age=31536000; includeSubDomains',
     '  Referrer-Policy: strict-origin-when-cross-origin',
     '  Permissions-Policy: microphone=(self), display-capture=(self), camera=(), geolocation=(), payment=(), usb=(), midi=()',
     `  Content-Security-Policy: ${serializarCsp(diretivasDeCsp(env))}`,

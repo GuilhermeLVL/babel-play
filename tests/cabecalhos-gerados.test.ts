@@ -77,6 +77,7 @@ describe('gerarHeaders', () => {
     expect(g).toContain('Cross-Origin-Embedder-Policy: credentialless')
     expect(g).toContain('Document-Isolation-Policy: isolate-and-credentialless')
     expect(g).toContain('X-Content-Type-Options: nosniff')
+    expect(g).toContain('Strict-Transport-Security: max-age=31536000; includeSubDomains')
     expect(g).toContain('Referrer-Policy: strict-origin-when-cross-origin')
     expect(g).toContain('Permissions-Policy: microphone=(self)')
   })

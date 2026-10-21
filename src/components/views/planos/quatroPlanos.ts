@@ -418,7 +418,7 @@ export function linhasDaComparacao(c: ContextoDosPlanos): [string, Celula[]][] {
       por((id) => (definicao(id).entitlements.interpreteAutomatico ? t('automático') : t('cada um toca o seu lado'))),
     ],
     /* Sem a flag `voz_natural` todos falam com a voz do aparelho: a linha não diz nada de diferente. */
-    c.vozNatural && [t('Voz do intérprete'), por((id) => voz[definicao(id).entitlements.nivelDeVoz])],
+    c.vozNatural === true && [t('Voz do intérprete'), por((id) => voz[definicao(id).entitlements.nivelDeVoz])],
     [t('Jogos, vocabulário e revisão'), por(() => 1)],
   ];
   return linhas.filter((l): l is [string, Celula[]] => !!l && l[1].some((v) => v !== 0));

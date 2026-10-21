@@ -42,7 +42,7 @@ Litestream, snapshot do SQLite, workflows de deploy) ficou sem função e só au
 
 - **Sem disco e sem cluster:** o Worker não guarda estado local; trabalho depois da resposta passa por
   `emSegundoPlano`. O modo cluster do Node fica só no self-host.
-- **Crons exigem Workers Paid** (US$ 5 por mês; são 7 expressões em `wrangler.jsonc`).
+- **Workers Paid é pré-requisito, por crons e por CPU.** Os crons exigem o Paid (US$ 5 por mês; são 7 expressões em `wrangler.jsonc`). Além disso, o plano Free limita a CPU a 10 ms por requisição: a carga do staging (Task 8) devolveu 16 % de `503` com corpo vazio (`exceededResources`). Sem o Paid o app não sustenta carga, e medição de carga no Free não vale.
 - **Limites de CPU por requisição** passam a ser o teto de escala (junto com conexões do Hyperdrive e do Supabase),
   no lugar da CPU da máquina.
 - **Operação nova:** `wrangler tail`, `scripts/cloudflare/` e o GitHub Environment por ambiente; a `SECRET_KEY` do

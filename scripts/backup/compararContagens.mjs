@@ -22,6 +22,15 @@ export function compararContagens(origem, restaurado) {
   return { ok: tabelas.length > 0 && divergentes.length === 0 && faltantes.length === 0, divergentes, faltantes }
 }
 
+/**
+ * O destino do drill está livre? Só o texto exato `0` (a contagem do `psql -A -t`, com espaço/quebra de
+ * linha em volta) libera. Saída vazia ou estranha (`NaN`, `00`, `3`) NÃO pode passar por "vazio".
+ * @param {string} saidaDoPsql
+ */
+export function destinoLivre(saidaDoPsql) {
+  return String(saidaDoPsql).trim() === '0'
+}
+
 /** Sem banco de origem (workflow): o restaurado precisa ter tabelas e ao menos uma migração registrada. */
 export function validarRestaurado(restaurado) {
   const motivos = []

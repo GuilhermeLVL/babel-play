@@ -7,6 +7,9 @@ Hyperdrive `frasy-staging-sp`, bucket `frasy-midia-staging`, Analytics Engine `f
 cron**. Como foi montado e os números medidos: [`docs/auditoria/2026-10-20-fase4-staging.md`](auditoria/2026-10-20-fase4-staging.md).
 A decisão de hospedagem está no [ADR 0015](adr/0015-cloudflare-workers-no-lugar-do-fly.md).
 
+> **Atenção, plano Free.** No plano Free, carga reprova por CPU (teto de 10 ms por requisição: `503` com corpo
+> vazio, `exceededResources`; 16 % das requisições na Task 8). Medições de carga só valem no Workers Paid.
+
 **Regra de ouro dos segredos.** Chave, token e senha **nunca** vão para o chat, para o repositório nem para um
 print. Eles ficam em `.secrets.staging.json` (ignorado pelo git) e seguem para o Worker pelo script abaixo.
 

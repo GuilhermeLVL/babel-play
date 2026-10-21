@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { compararContagens, tabelaMarkdown, validarRestaurado } from '../scripts/backup/compararContagens.mjs'
+import {
+  compararContagens,
+  destinoLivre,
+  tabelaMarkdown,
+  validarRestaurado,
+} from '../scripts/backup/compararContagens.mjs'
 
 describe('compararContagens', () => {
   it('contagens iguais: ok', () => {
@@ -52,5 +57,19 @@ describe('tabelaMarkdown', () => {
     const md = tabelaMarkdown(null, { a: 4 })
     expect(md).toContain('| a | 4 |')
     expect(md).not.toContain('Origem')
+  })
+})
+
+describe('destinoLivre (a recusa do drill)', () => {
+  it.each([
+    ['0', true],
+    ['0\n', true],
+    ['0 ', true],
+    ['', false],
+    ['NaN', false],
+    ['3', false],
+    ['00', false],
+  ])('%j -> %s', (saida, esperado) => {
+    expect(destinoLivre(saida)).toBe(esperado)
   })
 })

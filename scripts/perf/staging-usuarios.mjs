@@ -9,6 +9,9 @@
  *   # apagar os mesmos usuários (admin API); não toca em mais nada
  *   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/perf/staging-usuarios.mjs --apagar --n 10
  *
+ * ATENÇÃO: o staging compartilha o `auth.users` com a PRODUÇÃO (mesmo projeto Supabase). Os usuários
+ * `carga-<i>@frasy-teste.dev` ficam lá até o `--apagar`: não esqueça de rodá-lo ao fim da corrida.
+ *
  * Por usuário `carga-<i>@frasy-teste.dev`: cria no Supabase Auth (senha aleatória desta execução, nunca
  * gravada), declara a data de nascimento (`PUT /api/me/idade`, sem a qual a nuvem responde 403
  * `idade_nao_informada`) e faz login por senha para obter o JWT. Um usuário só bateria no limitador de
@@ -18,7 +21,8 @@
  * do Docker (`CHAVE=valor`, uma por linha).
  */
 import { randomBytes } from 'node:crypto'
-import { writeFileSync } from 'node:fs'
+import { chmodSync, writeFileSync } from 'node:fs'
+import { isAbsolute, relative, resolve, sep } from 'node:path'
 
 import { acharUsuario, apagarUsuario, chamar, entrar, prepararUsuario, trecho } from './_supabase-usuario.mjs'
 
@@ -44,6 +48,13 @@ function argumentos(argv) {
 
 async function criar({ n, saida }) {
   if (!saida) throw new Error('--saida <arquivo> é obrigatório ao criar')
+  // Tokens (JWT de usuários) não podem parar dentro do repositório, onde um `git add .` os versionaria.
+  const rel = relative(process.cwd(), resolve(saida))
+  if (!isAbsolute(rel) && rel !== '..' && !rel.startsWith(`..${sep}`)) {
+    throw new Error(
+      `--saida dentro do repositório (${saida}) recusada: use um caminho sob $TMPDIR (ex.: $TMPDIR/k6.env)`,
+    )
+  }
   const base = env('STAGING_URL').replace(/\/+$/, '')
   const supa = env('SUPABASE_URL').replace(/\/+$/, '')
   const anon = env('SUPABASE_ANON_KEY')
@@ -66,6 +77,7 @@ async function criar({ n, saida }) {
   }
   // Modo 0600 só vale se o arquivo for novo; o scratch do operador não deve conter um antigo.
   writeFileSync(saida, `BASE=${base}\nTOKENS=${tokens.join(',')}\nVUS=${n * 2}\n`, { mode: 0o600 })
+  chmodSync(saida, 0o600) // o `mode` acima não vale para um arquivo que já existia
   console.log(`${n} usuários prontos`)
 }
 

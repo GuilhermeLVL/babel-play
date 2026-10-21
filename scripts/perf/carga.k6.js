@@ -40,6 +40,9 @@
  *     --summary-export=/out/k6-staging.json - < scripts/perf/carga.k6.js
  *   node scripts/perf/staging-usuarios.mjs --apagar --n 10; rm $ESC/k6.env
  *
+ * ATENÇÃO: `http_req_failed: rate<0.01` CONTA o 429 como falha. Em corridas remotas, com o limitador por
+ * usuário, ele reprova mesmo com `erros_429` à parte; o veredito de erro é o 5xx. As thresholds ficam como estão.
+ *
  * As thresholds `{rota:...}` de me, para-jogo, resultados, xp e health abaixo existem só para o k6 EXPORTAR
  * as sub-métricas por rota no resumo (limites generosos, sem sentido de catraca); as demais seguem iguais.
  *

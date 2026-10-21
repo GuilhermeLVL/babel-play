@@ -86,7 +86,7 @@ function resolveRawKey(): string {
  * - qualquer outro valor: scrypt, byte a byte como sempre foi (quem já cifrou segredos não é afetado).
  */
 export function derivarChave(raw: string, info: 'babel-play-web:secrets' | 'babel-play-web:hash'): Buffer {
-  if (raw.startsWith('hkdf:')) {
+  if (/^hkdf:/i.test(raw)) {
     const hex = raw.slice('hkdf:'.length)
     if (!/^[0-9a-f]{64}$/i.test(hex)) {
       throw new Error('SECRET_KEY com prefixo hkdf: precisa de 64 caracteres hexadecimais (openssl rand -hex 32)')

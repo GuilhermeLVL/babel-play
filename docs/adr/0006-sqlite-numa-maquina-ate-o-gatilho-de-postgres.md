@@ -2,6 +2,7 @@
 
 - **Data:** 2026-09-25
 - **Estado:** substituído pelo ADR 0014
+- **Status:** Superado por ADR 0014 e ADR 0015 (2026-10-21)
 - **Change OpenSpec:** `prontidao-producao`
 
 > Substituído em 2026-10-19 pelo [ADR 0014](0014-postgres-agora-pelo-cloudflare.md): a migração para o Postgres começou sem esperar o gatilho. Corpo mantido como registro histórico.

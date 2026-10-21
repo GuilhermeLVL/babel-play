@@ -60,7 +60,7 @@ scrypt de 90–160 ms de CPU por isolate novo. Um `hkdf:` malformado derruba o b
 echo "hkdf:$(openssl rand -hex 32)"
 ```
 
-Trocar a `SECRET_KEY` (ou o formato dela) invalida os segredos já cifrados na tabela `secrets`.
+Trocar a `SECRET_KEY` (ou o formato dela) invalida os segredos já cifrados na tabela `secrets` e também muda a `obterChaveDeHash`: os pseudônimos do rank, dos convidados e a deduplicação do teste grátis deixam de casar com os antigos.
 
 ### Definidas na imagem
 

@@ -170,8 +170,12 @@ export default {
     const { pathname } = new URL(request.url)
     /* `/metrics` é só do Node (prom-client); aqui é um 404 explícito, não o `index.html` da SPA. */
     if (pathname === '/metrics') return json(404, { error: 'rota inexistente', code: 'rota_inexistente' })
-    /* `/api` sem barra também é da API: um 404 JSON como qualquer caminho desconhecido dela, não a SPA. */
-    if (pathname === '/api') return json(404, { error: 'rota inexistente', code: 'rota_inexistente' })
+    /* `/api` sem barra e `/API/...` (qualquer caixa) também são da API: o Express roteia com caixa
+       sensível e responde 404 JSON (`server/http/app.ts`); aqui o mesmo 404, e não a SPA do `ASSETS`
+       (que serviria o `index.html` com 200 num caminho que o Node nega; ruling R26). */
+    if (/^\/api(\/|$)/i.test(pathname) && (pathname === '/api' || !pathname.startsWith('/api/'))) {
+      return json(404, { error: 'rota inexistente', code: 'rota_inexistente' })
+    }
     if (!pathname.startsWith('/api/')) return env.ASSETS.fetch(request)
     ligarAnalyticsEngine(env.METRICAS)
     ligarBucketDoR2(env.MIDIA) // antes do portão: o armazenamento de mídia é uma das travas

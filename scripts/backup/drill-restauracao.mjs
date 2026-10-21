@@ -23,7 +23,7 @@ import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 
 import { montarPgDump } from '../db/comando-pg-dump.mjs'
-import { compararContagens, tabelaMarkdown, validarRestaurado } from './compararContagens.mjs'
+import { compararContagens, destinoLivre, tabelaMarkdown, validarRestaurado } from './compararContagens.mjs'
 
 class ErroDeUso extends Error {}
 
@@ -88,7 +88,7 @@ function main() {
   // Destino primeiro: se não estiver vazio, nada mais acontece (nem o dump da origem).
   // Estrito: só o texto exato `0` libera. Saída vazia ou estranha (NaN) NÃO pode passar por "vazio".
   const existentes = psql(envDestino, "select count(*) from pg_tables where schemaname = 'public'").trim()
-  if (existentes !== '0') {
+  if (!destinoLivre(existentes)) {
     throw new ErroDeUso(
       `destino recusado: ${/^\d+$/.test(existentes) ? `já tem ${existentes} tabela(s) em public` : 'não consegui confirmar que public está vazio'}. Use um banco VAZIO (nunca o de produção)`,
     )

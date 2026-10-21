@@ -60,6 +60,26 @@ describe('portão de boot do Worker', () => {
     expect(obterChave()).toHaveLength(32)
   })
 
+  it('SECRET_KEY=hkdf:abc (malformada): o portão aborta e a /api/* recebe o 503 boot_falhou', async () => {
+    process.env.SECRET_KEY = 'hkdf:abc'
+    const { conferirBootDoWorker } = await carregar()
+    const achados = conferirBootDoWorker()
+    expect(achados?.some((a) => a.nivel === 'aborta' && /hkdf/.test(a.texto))).toBe(true)
+    expect(conferirBootDoWorker()).not.toBeNull() // continua travado; não cai no scrypt
+
+    vi.doMock('cloudflare:node', () => ({ httpServerHandler: () => ({ fetch: vi.fn() }) })) // só existe no runtime
+    const { default: worker } = await import('../../worker')
+    const assets = vi.fn(async () => new Response('spa'))
+    const r = await worker.fetch(
+      new Request('https://app.test/api/me'),
+      { HYPERDRIVE: { connectionString: 'postgres://x' }, MIDIA: dubleDoR2(), ASSETS: { fetch: assets } },
+      { waitUntil: () => undefined },
+    )
+    expect(r.status).toBe(503)
+    expect(await r.json()).toMatchObject({ code: 'boot_falhou' })
+    expect(assets).not.toHaveBeenCalled()
+  })
+
   it('IA_PROVEDORES_ARQUIVO no Worker trava com o motivo (não há disco; só IA_PROVEDORES)', async () => {
     process.env.SECRET_KEY = 'a'.repeat(64)
     process.env.IA_PROVEDORES_ARQUIVO = 'ops/ia-provedores.json'

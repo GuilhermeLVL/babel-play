@@ -7,6 +7,12 @@ import { derivarChave } from '../server/crypto'
 const HEX = 'ab'.repeat(32)
 
 describe('derivarChave', () => {
+  it('o prefixo HKDF: vale em qualquer caixa e deriva a mesma chave que hkdf:', () => {
+    const minuscula = derivarChave(`hkdf:${HEX}`, 'babel-play-web:secrets')
+    expect(derivarChave(`HKDF:${HEX}`, 'babel-play-web:secrets').equals(minuscula)).toBe(true)
+    expect(() => derivarChave('HKDF:abc', 'babel-play-web:secrets')).toThrow(/hkdf/)
+  })
+
   it('hkdf:<64 hex> deriva por HKDF-SHA256 com o info como sal de uso', () => {
     const esperada = Buffer.from(hkdfSync('sha256', Buffer.from(HEX, 'hex'), '', 'babel-play-web:secrets', 32))
     expect(derivarChave(`hkdf:${HEX}`, 'babel-play-web:secrets').equals(esperada)).toBe(true)

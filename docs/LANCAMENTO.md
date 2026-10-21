@@ -276,7 +276,7 @@ O app é o Worker `frasy` (`wrangler.jsonc`), publicado pelo workflow `deploy-wo
 fumaça e rollback (detalhes em [`deploy.md`](deploy.md), "Publicar o Worker (CI)"). O staging já faz o mesmo
 caminho: [`STAGING.md`](STAGING.md).
 
-1. cloudflare.com → conta com **2FA** → plano **Workers Paid** (US$ 5/mês; sem ele os crons não existem). Ative o
+1. cloudflare.com → conta com **2FA** → plano **Workers Paid** (US$ 5/mês). Ele é pré-requisito por dois motivos: sem ele os crons não existem, **e** o plano Free corta a requisição em 10 ms de CPU. A carga do staging (Task 8) devolveu 16 % de `503` com corpo vazio, que é o `exceededResources` desse teto; no Paid o limite de CPU por requisição é bem maior. Ative o
    **Analytics Engine** no painel da conta (o `wrangler deploy` reprova sem ele, código 10089). O domínio
    (`frasy.com.br`) precisa estar como zona na mesma conta (passo 2).
 2. **Token de API** (Workers Scripts: Edit, mais o que o `scripts/cloudflare/` usar) e o **Account ID** da conta.

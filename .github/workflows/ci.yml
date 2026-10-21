@@ -6,7 +6,7 @@ on:
 
 # UMA EXECUÇÃO POR RAMO (11/10/2026). Dois commits seguidos rodavam a suíte inteira duas vezes, lado a
 # lado. Agora o commit novo cancela a execução do anterior no mesmo ramo — menos na `main`, onde toda
-# execução termina: é o `ci.yml` verde do SHA que o `deploy.yml` exige. O evento entra no grupo para o
+# execução termina: é o `ci.yml` verde do SHA que o `deploy-worker.yml` exige. O evento entra no grupo para o
 # push e o pull_request do mesmo ramo não se cancelarem um ao outro.
 concurrency:
   group: ci-${{ github.event_name }}-${{ github.ref }}

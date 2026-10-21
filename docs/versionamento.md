@@ -33,7 +33,7 @@ git push origin HEAD --follow-tags
 
 O script (`scripts/release.mjs`) não roda git e não cria tag: publicar é decisão de quem revisou o diff.
 Tag é `vX.Y.Z`, anotada, no commit do `chore(release)`. Imagens continuam etiquetadas pelo **sha** (o
-`deploy.yml` não depende da tag); a tag é o nome humano do sha.
+`deploy-worker.yml` não depende da tag); a tag é o nome humano do sha.
 
 ## 2. Compatibilidade da API
 

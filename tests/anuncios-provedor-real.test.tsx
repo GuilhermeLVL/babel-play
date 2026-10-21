@@ -11,6 +11,10 @@
  *  - navegador sem `credentialless` (Firefox) → o provedor se declara indisponível e nada aparece;
  *  - mensagem de outra origem é ignorada; `recompensa` da origem de anúncios credita UMA vez
  *    (`concluirPremiado`, o aperto de mão da Task 5) e mostra o resultado; a recusa mostra o motivo;
+ *  - a recompensa é APLICADA no cliente: Seeds disparam `babel:metricas-mudaram` (o saldo é relido), e toda
+ *    recompensa vai em `babel:recompensa-anuncio` (o `tema-24h` leva o `ateEm`); a tela confirma o que veio;
+ *  - o `concluir` espera os 15 s da duração mínima desde o `iniciar` (o GPT pode avisar antes) e, num 409
+ *    `cedo_demais`, tenta UMA vez de novo (relógios fingidos);
  *  - a CSP do app recusou o quadro (`securitypolicyviolation` em `frame-src`) → o espaço some;
  *  - flag desligada → o módulo do provedor nem é pedido (`ligarProvedorDeAnuncios` não roda).
  */
@@ -239,6 +243,18 @@ describe('o provedor real (iframe credentialless)', () => {
   })
 
   describe('as mensagens da página de anúncios', () => {
+    /* O `concluir` espera a duração mínima desde o `iniciar`: o relógio é fingido, e cada caso o avança. */
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+    })
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+    const avancar = (ms: number) =>
+      act(async () => {
+        await vi.advanceTimersByTimeAsync(ms)
+      })
+
     async function abrirPremiado() {
       quemPodeVer()
       render(<EspacoDeAnuncio espaco="fim-premiado" formato="premiado" />)
@@ -275,25 +291,119 @@ describe('o provedor real (iframe credentialless)', () => {
 
     it('da origem de anúncios, recompensa: o servidor credita UMA vez com a exibição, e a tela diz', async () => {
       const f = await abrirPremiado()
+      await avancar(15_000)
       await recompensa(f)
       await recompensa(f)
+      await avancar(0)
       expect(concluirPremiado).toHaveBeenCalledTimes(1)
       expect(concluirPremiado).toHaveBeenCalledWith('exib-1')
-      expect(screen.getByRole('status').textContent).toBe('Recompensa registrada.')
+      expect(screen.getByRole('status').textContent).toBe('Recompensa registrada: +10 Seeds.')
     })
 
     it('recusa do servidor (teto do dia): a tela diz o motivo', async () => {
       concluirPremiado.mockResolvedValueOnce({ ok: false, status: 429, error: 'teto', code: 'teto_do_dia' })
       const f = await abrirPremiado()
       await recompensa(f)
+      await avancar(15_000)
+      expect(concluirPremiado).toHaveBeenCalledTimes(1)
       expect(screen.getByRole('status').textContent).toMatch(/recompensas de anúncio de hoje/)
     })
 
-    it('recusa do servidor (cedo demais): a tela diz o motivo', async () => {
-      concluirPremiado.mockResolvedValueOnce({ ok: false, status: 409, error: 'cedo', code: 'cedo_demais' })
+    it('recusa do servidor (cedo demais) duas vezes: tenta UMA vez de novo e a tela diz o motivo', async () => {
+      const cedo = { ok: false, status: 409, error: 'cedo', code: 'cedo_demais' }
+      concluirPremiado.mockResolvedValueOnce(cedo).mockResolvedValueOnce(cedo)
       const f = await abrirPremiado()
       await recompensa(f)
+      await avancar(15_000)
+      expect(concluirPremiado).toHaveBeenCalledTimes(1)
+      await avancar(60_000)
+      expect(concluirPremiado).toHaveBeenCalledTimes(2)
       expect(screen.getByRole('status').textContent).toMatch(/tempo mínimo/)
+    })
+
+    describe('a espera da duração mínima (15 s desde o iniciar)', () => {
+      it('recompensa logo depois de abrir: o concluir só sai aos 15 s', async () => {
+        const f = await abrirPremiado()
+        await avancar(3_000)
+        await recompensa(f)
+        await avancar(11_999)
+        expect(concluirPremiado).not.toHaveBeenCalled()
+        await avancar(1)
+        expect(concluirPremiado).toHaveBeenCalledTimes(1)
+        expect(concluirPremiado).toHaveBeenCalledWith('exib-1')
+      })
+
+      it('recompensa depois dos 15 s: o concluir sai na hora', async () => {
+        const f = await abrirPremiado()
+        await avancar(20_000)
+        await recompensa(f)
+        await avancar(0)
+        expect(concluirPremiado).toHaveBeenCalledTimes(1)
+      })
+
+      it('409 cedo_demais (o relógio do servidor discordou): uma nova tentativa depois, que credita', async () => {
+        concluirPremiado.mockResolvedValueOnce({ ok: false, status: 409, error: 'cedo', code: 'cedo_demais' })
+        const f = await abrirPremiado()
+        await recompensa(f)
+        await avancar(15_000)
+        expect(concluirPremiado).toHaveBeenCalledTimes(1)
+        await avancar(999)
+        expect(concluirPremiado).toHaveBeenCalledTimes(1)
+        await avancar(1)
+        expect(concluirPremiado).toHaveBeenCalledTimes(2)
+        expect(screen.getByRole('status').textContent).toBe('Recompensa registrada: +10 Seeds.')
+      })
+    })
+
+    describe('a recompensa é aplicada no cliente', () => {
+      function ouvir(nome: string) {
+        const eventos: CustomEvent[] = []
+        const f = (e: Event) => eventos.push(e as CustomEvent)
+        window.addEventListener(nome, f)
+        return { eventos, parar: () => window.removeEventListener(nome, f) }
+      }
+
+      it('Seeds: o saldo é relido (babel:metricas-mudaram) e a recompensa vai no evento', async () => {
+        const metricas = ouvir('babel:metricas-mudaram')
+        const recompensaDoAnuncio = ouvir('babel:recompensa-anuncio')
+        try {
+          const f = await abrirPremiado()
+          await recompensa(f)
+          expect(metricas.eventos).toHaveLength(0)
+          await avancar(15_000)
+          expect(metricas.eventos).toHaveLength(1)
+          expect(recompensaDoAnuncio.eventos).toHaveLength(1)
+          expect(recompensaDoAnuncio.eventos[0].detail).toMatchObject({ tipo: 'seeds', seeds: 10 })
+        } finally {
+          metricas.parar()
+          recompensaDoAnuncio.parar()
+        }
+      })
+
+      it('tema-24h: o evento leva o ateEm, as Seeds não são relidas, e a tela confirma', async () => {
+        const ateEm = Date.now() + 24 * 3600_000
+        concluirPremiado.mockResolvedValueOnce({
+          ok: true,
+          tipo: 'tema-24h',
+          ateEm,
+          jaCreditado: false,
+          espaco: 'tema-24h',
+        })
+        const metricas = ouvir('babel:metricas-mudaram')
+        const recompensaDoAnuncio = ouvir('babel:recompensa-anuncio')
+        try {
+          const f = await abrirPremiado()
+          await recompensa(f)
+          await avancar(15_000)
+          expect(recompensaDoAnuncio.eventos).toHaveLength(1)
+          expect(recompensaDoAnuncio.eventos[0].detail).toMatchObject({ tipo: 'tema-24h', ateEm })
+          expect(metricas.eventos).toHaveLength(0)
+          expect(screen.getByRole('status').textContent).toBe('Tema liberado por 24 horas.')
+        } finally {
+          metricas.parar()
+          recompensaDoAnuncio.parar()
+        }
+      })
     })
 
     it('recompensa de outra exibição: ignorada', async () => {

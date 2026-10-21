@@ -4783,5 +4783,8 @@
   "O anúncio fechou antes do tempo mínimo, então a recompensa não valeu desta vez.": "The ad closed before the minimum time, so the reward did not count this time.",
   "Este anúncio passou do prazo. Se quiser, abra outro.": "This ad has expired. Open another one if you like.",
   "Há anúncios abertos demais agora. Tente de novo em alguns minutos.": "Too many ads are open right now. Try again in a few minutes.",
-  "Recompensa registrada.": "Reward recorded."
+  "Recompensa registrada.": "Reward recorded.",
+  "Recompensa registrada: +{n} Seeds.": "Reward recorded: +{n} Seeds.",
+  "Tema liberado por 24 horas.": "Theme unlocked for 24 hours.",
+  "Recompensa registrada: +{n} min de nuvem neste mês.": "Reward recorded: +{n} min of cloud this month."
 }

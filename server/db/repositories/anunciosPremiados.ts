@@ -20,9 +20,11 @@ export type ResultadoDaConclusao =
   | { tipo: 'ja-creditada'; espaco: string; concluidoEm: number }
   | { tipo: 'desconhecida' }
   | { tipo: 'expirada' }
+  | { tipo: 'espaco-inativo' }
   | { tipo: 'espaco-bloqueado' }
   | { tipo: 'cedo-demais' }
   | { tipo: 'teto' }
+  | { tipo: 'teto-do-mes' }
 
 export interface TetosDaConclusao {
   /** A exibição credita só se for concluída antes de `iniciado_em + prazoMs`. */
@@ -33,19 +35,29 @@ export interface TetosDaConclusao {
   tetoGlobal: number
   /** Tetos por pessoa de um espaço no dia (o `nuvem-30`). */
   limitePorEspaco: Readonly<Record<string, number>>
+  /** Tetos por pessoa de um espaço no mês UTC (o `nuvem-30`). Conferidos antes dos do dia. */
+  limitePorEspacoNoMes: Readonly<Record<string, number>>
+  /** Espaços que a interface não monta: nunca concluem (`ESPACOS_PREMIADOS_ATIVOS`). */
+  espacoAtivo: (espaco: string) => boolean
   /** Espaços que não podem ser creditados agora (o `nuvem-30` com a nuvem do Grátis desligada). */
   espacosBloqueados: ReadonlySet<string>
 }
 
-/** As concluídas do dia UTC: da pessoa, de todas as contas e da pessoa naquele espaço. */
+/**
+ * As concluídas do dia UTC: da pessoa, de todas as contas e da pessoa naquele espaço; e as da pessoa naquele
+ * espaço no MÊS UTC até o dia (o `dia` é `AAAA-MM-DD`, então o mês começa em `AAAA-MM-01`).
+ */
 function contagensDoDia(userId: UserId, dia: string, espaco: string) {
   return sql`
     SELECT count(*) FILTER (WHERE user_id = ${userId})::int AS pessoa,
            count(*) FILTER (WHERE user_id = ${userId} AND espaco = ${espaco})::int AS do_espaco,
-           count(*)::int AS total
+           count(*)::int AS total,
+           (SELECT count(*) FROM anuncios_premiados
+            WHERE user_id = ${userId} AND espaco = ${espaco} AND concluido_em IS NOT NULL
+              AND dia >= ${`${dia.slice(0, 7)}-01`} AND dia <= ${dia})::int AS do_espaco_no_mes
     FROM anuncios_premiados WHERE dia = ${dia} AND concluido_em IS NOT NULL`
 }
-type LinhaDeContagem = { pessoa: number; do_espaco: number; total: number }
+type LinhaDeContagem = { pessoa: number; do_espaco: number; total: number; do_espaco_no_mes: number }
 
 /** `AAAA-MM-DD` UTC. */
 export const diaUtc = (agora: number): string => new Date(agora).toISOString().slice(0, 10)
@@ -57,14 +69,22 @@ function inicioDoMesAnterior(agora: number): string {
 }
 
 export const anunciosPremiadosRepo = {
-  /** As exibições CONCLUÍDAS no dia UTC: as da pessoa, as dela no `espaco` e as de todas as contas. */
+  /**
+   * As exibições CONCLUÍDAS no dia UTC: as da pessoa, as dela no `espaco` e as de todas as contas; e as dela no
+   * `espaco` no mês UTC até o dia (`doEspacoNoMes`).
+   */
   async concluidasNoDia(
     userId: UserId,
     dia: string,
     espaco: string,
-  ): Promise<{ daPessoa: number; doEspaco: number; global: number }> {
+  ): Promise<{ daPessoa: number; doEspaco: number; global: number; doEspacoNoMes: number }> {
     const [c] = linhas<LinhaDeContagem>(await db.execute(contagensDoDia(userId, dia, espaco)))
-    return { daPessoa: Number(c?.pessoa ?? 0), doEspaco: Number(c?.do_espaco ?? 0), global: Number(c?.total ?? 0) }
+    return {
+      daPessoa: Number(c?.pessoa ?? 0),
+      doEspaco: Number(c?.do_espaco ?? 0),
+      global: Number(c?.total ?? 0),
+      doEspacoNoMes: Number(c?.do_espaco_no_mes ?? 0),
+    }
   },
 
   /** As exibições da pessoa ainda PENDENTES iniciadas desde `desde` (ms). */
@@ -84,9 +104,10 @@ export const anunciosPremiadosRepo = {
   },
 
   /**
-   * CONCLUI a exibição, uma vez só: a linha tem de ser desta conta, pendente, dentro do prazo, com a duração
-   * mínima cumprida, de um espaço não bloqueado, e os tetos do dia (contados nas concluídas por `dia`) têm de caber. Concluída antes → `ja-creditada` (quem chama não credita
-   * de novo, ou reaplica um crédito idempotente).
+   * CONCLUI a exibição, uma vez só: a linha tem de ser desta conta, de um espaço ativo, pendente, dentro do
+   * prazo, com a duração mínima cumprida, de um espaço não bloqueado, e os tetos do mês e do dia (contados nas
+   * concluídas por `dia`) têm de caber. Concluída antes → `ja-creditada` (quem chama não credita de novo, ou
+   * reaplica um crédito idempotente).
    */
   async concluir(
     userId: UserId,
@@ -104,6 +125,7 @@ export const anunciosPremiadosRepo = {
           WHERE user_id = ${userId} AND exibicao_id = ${exibicaoId}`),
       )
       if (!linha) return { tipo: 'desconhecida' }
+      if (!tetos.espacoAtivo(linha.espaco)) return { tipo: 'espaco-inativo' }
       if (linha.concluido_em != null)
         return { tipo: 'ja-creditada', espaco: linha.espaco, concluidoEm: Number(linha.concluido_em) }
       const decorrido = agora - Number(linha.iniciado_em)
@@ -113,6 +135,8 @@ export const anunciosPremiadosRepo = {
 
       const [c] = linhas<LinhaDeContagem>(await tx.execute(contagensDoDia(userId, dia, linha.espaco)))
       const limiteDoEspaco = tetos.limitePorEspaco[linha.espaco] ?? Number.POSITIVE_INFINITY
+      const limiteDoMes = tetos.limitePorEspacoNoMes[linha.espaco] ?? Number.POSITIVE_INFINITY
+      if (Number(c?.do_espaco_no_mes ?? 0) >= limiteDoMes) return { tipo: 'teto-do-mes' }
       if (
         Number(c?.pessoa ?? 0) >= tetos.limitePorPessoa ||
         Number(c?.total ?? 0) >= tetos.tetoGlobal ||

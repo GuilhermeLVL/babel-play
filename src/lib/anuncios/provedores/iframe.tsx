@@ -22,6 +22,18 @@
  * `{ tipo: 'frasy:anuncio', evento, exibicaoId }`. `recompensa` vale uma vez por exibição, e só a
  * exibição que o servidor abriu (`iniciarPremiado`); quem credita é o servidor (`aoRecompensar`, que
  * resolve com o crédito ou rejeita com o `code` da recusa).
+ *
+ * A ESPERA DA DURAÇÃO MÍNIMA: o servidor recusa concluir antes de `DURACAO_MINIMA_DA_EXIBICAO_MS` (15 s) desde o
+ * `iniciar` (409 `cedo_demais`, R33), e o GPT pode avisar a recompensa antes disso. Então o `concluir` só sai em
+ * `iniciadoEm + 15 s` (o `iniciadoEm` é o relógio daqui quando o `iniciar` respondeu, depois do do servidor) e,
+ * se mesmo assim vier `cedo_demais` (relógios discordando), tenta UMA vez de novo depois do que faltar (no mínimo
+ * `FOLGA_DA_NOVA_TENTATIVA_MS`). Fechar o quadro ou sair da tela no meio da espera não cancela: o anúncio já foi
+ * visto até o fim.
+ *
+ * A RECOMPENSA É APLICADA AQUI (`aplicarRecompensa`): Seeds disparam `babel:metricas-mudaram` (o
+ * `useMetricas` relê o saldo, como depois de qualquer crédito), e toda recompensa vai em
+ * `babel:recompensa-anuncio` (`detail` = o `PremiadoConcluido`; o `tema-24h` leva o `ateEm`, que não tem campo
+ * nas preferências). A tela confirma o que veio.
  */
 import '../../../styles/anunciosDaRede.css';
 
@@ -29,6 +41,8 @@ import { type RefObject, useEffect, useRef, useState } from 'react';
 
 import type { EspacoDeAnuncio, FormatoDeAnuncio } from '../../../core/anuncios/politicaDeAnuncio';
 import { ehEspacoPremiado } from '../../../core/anuncios/premiado';
+import { DURACAO_MINIMA_DA_EXIBICAO_MS } from '../../../core/planos';
+import type { PremiadoConcluido } from '../../../data/rotas/anuncios';
 import { t } from '../../i18n';
 import { lerPreferencias } from '../../preferencias';
 import { perfilProtegido } from '../../protecaoDoMenor';
@@ -132,6 +146,52 @@ function textoDaRecusa(code: string | undefined): string {
   }
 }
 
+/** Na nova tentativa depois de um `cedo_demais`, espera pelo menos isto. */
+const FOLGA_DA_NOVA_TENTATIVA_MS = 1_000;
+
+const esperar = (ms: number) => (ms > 0 ? new Promise<void>((r) => setTimeout(r, ms)) : Promise.resolve());
+
+/**
+ * Conclui no tempo do servidor: espera `iniciadoEm + minimoMs` e, num `cedo_demais`, tenta uma vez de novo depois
+ * do que faltar (no mínimo a folga). Qualquer outra recusa, ou a segunda, rejeita.
+ */
+async function concluirNoTempo(
+  aoRecompensar: (exibicaoId: string) => Promise<PremiadoConcluido>,
+  exibicaoId: string,
+  iniciadoEm: number,
+  minimoMs: number,
+): Promise<PremiadoConcluido> {
+  await esperar(iniciadoEm + minimoMs - Date.now());
+  try {
+    return await aoRecompensar(exibicaoId);
+  } catch (err) {
+    if ((err as Error)?.message !== 'cedo_demais') throw err;
+    await esperar(Math.max(iniciadoEm + minimoMs - Date.now(), FOLGA_DA_NOVA_TENTATIVA_MS));
+    return aoRecompensar(exibicaoId);
+  }
+}
+
+/** Aplica no app o que o servidor creditou: o saldo de Seeds é relido, e a recompensa é anunciada. */
+function aplicarRecompensa(c: PremiadoConcluido): void {
+  if (typeof window === 'undefined') return;
+  if (c.tipo === 'seeds') window.dispatchEvent(new CustomEvent('babel:metricas-mudaram'));
+  window.dispatchEvent(new CustomEvent('babel:recompensa-anuncio', { detail: c }));
+}
+
+/** A confirmação curta do que veio. */
+function textoDaRecompensa(c: PremiadoConcluido): string {
+  switch (c.tipo) {
+    case 'seeds':
+      return t('Recompensa registrada: +{n} Seeds.', { n: c.seeds });
+    case 'tema-24h':
+      return t('Tema liberado por 24 horas.');
+    case 'nuvem':
+      return t('Recompensa registrada: +{n} min de nuvem neste mês.', { n: Math.round(c.segundos / 60) });
+    default:
+      return t('Recompensa registrada.');
+  }
+}
+
 function Topo({ aoSemAnuncios }: { aoSemAnuncios: () => void }) {
   return (
     <span className="anuncio-rede-topo">
@@ -173,7 +233,8 @@ function Nativo({ cfg, espaco, formato, aoSemAnuncios }: PropsDoEspacoDeAnuncio 
 type EstadoDoPremiado =
   | { fase: 'escolha'; aviso?: string }
   | { fase: 'abrindo' }
-  | { fase: 'aberto'; exibicaoId: string };
+  /** `iniciadoEm`: quando o `iniciar` respondeu (relógio daqui); `minimoMs`: a duração mínima do espaço. */
+  | { fase: 'aberto'; exibicaoId: string; iniciadoEm: number; minimoMs: number };
 
 function Premiado({
   cfg,
@@ -189,12 +250,16 @@ function Premiado({
   const aberta = estado.fase === 'aberto' ? estado.exibicaoId : null;
 
   useMensagensDoQuadro(cfg.origem, quadro, (evento, exibicaoId) => {
-    if (!aberta) return;
+    if (estado.fase !== 'aberto') return;
     if (evento === 'recompensa') {
-      if (exibicaoId !== aberta || recompensadas.current.has(aberta) || !aoRecompensar) return;
-      recompensadas.current.add(aberta);
-      aoRecompensar(aberta).then(
-        () => setEstado({ fase: 'escolha', aviso: t('Recompensa registrada.') }),
+      const id = estado.exibicaoId;
+      if (exibicaoId !== id || recompensadas.current.has(id) || !aoRecompensar) return;
+      recompensadas.current.add(id);
+      concluirNoTempo(aoRecompensar, id, estado.iniciadoEm, estado.minimoMs).then(
+        (c) => {
+          aplicarRecompensa(c);
+          setEstado({ fase: 'escolha', aviso: textoDaRecompensa(c) });
+        },
         (err: unknown) => setEstado({ fase: 'escolha', aviso: textoDaRecusa((err as Error)?.message) }),
       );
       return;
@@ -214,7 +279,13 @@ function Premiado({
       const { iniciarPremiado } = await import('../../../data/rotas/anuncios');
       const r = await iniciarPremiado(espaco);
       if (r.ok === false) setEstado({ fase: 'escolha', aviso: textoDaRecusa(r.code) });
-      else setEstado({ fase: 'aberto', exibicaoId: r.exibicaoId });
+      else
+        setEstado({
+          fase: 'aberto',
+          exibicaoId: r.exibicaoId,
+          iniciadoEm: Date.now(),
+          minimoMs: DURACAO_MINIMA_DA_EXIBICAO_MS[espaco],
+        });
     } catch {
       setEstado({ fase: 'escolha', aviso: textoDaRecusa(undefined) });
     }

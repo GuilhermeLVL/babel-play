@@ -20,6 +20,14 @@ export type EspacoPremiado = 'fim-premiado' | 'ajuda-premiada' | 'tema-24h' | 'n
 export const ehEspacoPremiado = (v: unknown): v is EspacoPremiado =>
   typeof v === 'string' && (ESPACOS_PREMIADOS as readonly string[]).includes(v);
 
+/**
+ * Os espaços premiados que a interface MONTA hoje (o fim da rodada e a Loja). Só eles abrem e concluem exibição
+ * no servidor (`server/routes/anuncios.ts`: os outros → 400 `espaco_inativo`). Os demais (`nuvem-30`,
+ * `tema-24h`, `ajuda-premiada`) entram aqui quando ganharem tela — o `nuvem-30` já tem teto do mês
+ * (`LIMITE_DE_NUVEM_30_POR_MES` em `src/core/planos.ts`).
+ */
+export const ESPACOS_PREMIADOS_ATIVOS = ['fim-premiado', 'loja-seeds'] as const satisfies readonly EspacoPremiado[];
+
 /** Uma exibição só credita se for concluída até este prazo depois de iniciada. */
 export const PRAZO_DA_EXIBICAO_MS = 10 * 60_000;
 /** Os segundos de nuvem do `nuvem-30`. */

@@ -535,6 +535,11 @@ export const TETO_GLOBAL_DE_PREMIADOS_POR_DIA = 2_000;
  */
 export const LIMITE_DE_NUVEM_30_POR_DIA = 2;
 /**
+ * E no MÊS UTC: no máximo 10 `nuvem-30` concluídos por pessoa (10 × 30 min = 5 h de nuvem a mais no mês), para o
+ * dia a dia não virar 2 por dia × 31 = 31 h. Atingido, o `iniciar` e o `concluir` recusam (429 `teto_do_mes`).
+ */
+export const LIMITE_DE_NUVEM_30_POR_MES = 10;
+/**
  * Exibições PENDENTES (iniciadas e não concluídas) por pessoa nos últimos 10 min: acima disto o `iniciar` recusa
  * (429 `exibicoes_pendentes`). Sem ele, um laço abriria linhas sem fim, e cada uma poderia virar recompensa.
  */

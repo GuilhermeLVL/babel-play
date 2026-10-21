@@ -1766,5 +1766,8 @@
   "O anúncio fechou antes do tempo mínimo, então a recompensa não valeu desta vez.": "أُغلق الإعلان قبل الحد الأدنى من الوقت، لذا لم تُحتسب المكافأة هذه المرة.",
   "Este anúncio passou do prazo. Se quiser, abra outro.": "انتهت مهلة هذا الإعلان. افتح إعلانًا آخر إن شئت.",
   "Há anúncios abertos demais agora. Tente de novo em alguns minutos.": "هناك إعلانات مفتوحة كثيرة الآن. حاول مرة أخرى بعد بضع دقائق.",
-  "Recompensa registrada.": "تم تسجيل المكافأة."
+  "Recompensa registrada.": "تم تسجيل المكافأة.",
+  "Recompensa registrada: +{n} Seeds.": "تم تسجيل المكافأة: +{n} Seeds.",
+  "Tema liberado por 24 horas.": "تم فتح السمة لمدة 24 ساعة.",
+  "Recompensa registrada: +{n} min de nuvem neste mês.": "تم تسجيل المكافأة: +{n} دقيقة من السحابة هذا الشهر."
 }

@@ -18,7 +18,14 @@
  *  - perfil protegido (menor ou idade não declarada) → 403 `perfil_protegido`, nas duas pontas;
  *  - flag `anuncios` desligada → 404 `anuncios_desligados`, nas duas pontas;
  *  - `exibicaoId` desconhecido ou de outra conta → 404;
- *  - `nuvem-30` soma 30 min à franquia de nuvem do mês: aparece em `GET /api/me/uso` e vale na reserva.
+ *  - `nuvem-30` soma 30 min à franquia de nuvem do mês: aparece em `GET /api/me/uso` e vale na reserva;
+ *  - só os espaços ATIVOS (`ESPACOS_PREMIADOS_ATIVOS`: `fim-premiado` e `loja-seeds`, os que a interface monta)
+ *    abrem e concluem exibição; os outros → 400 `espaco_inativo`, nas duas pontas. Os casos dos espaços ainda
+ *    inativos ligam a lista inteira com `definirEspacosAtivosParaTestes` (exportada pela rota, recusada em
+ *    produção), e a lista volta ao padrão antes de cada caso;
+ *  - `nuvem-30`: no máximo 10 por pessoa no mês UTC (5 h) → 429 `teto_do_mes`, nas duas pontas;
+ *  - conta com menos de 3 dias (ou sem linha em `users`) → 403 `conta_nova` no `iniciar`. Por isso o
+ *    `tokenAdulto` daqui provisiona a conta com 4 dias de idade.
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
@@ -30,6 +37,8 @@ let flags: any
 let economia: any
 let quota: any
 let planos: any
+let rota: any
+let premiado: any
 let client: { execute: (q: string | { sql: string; args?: unknown[] }) => Promise<{ rows: any[] }> }
 
 const hoje = () => new Date().toISOString().slice(0, 10)
@@ -41,6 +50,28 @@ function nascidoHa(anos: number): string {
   d.setUTCFullYear(d.getUTCFullYear() - anos)
   return d.toISOString().slice(0, 10)
 }
+
+const DIA_MS = 86_400_000
+
+/** Provisiona a conta `sub` criada há `dias` dias (a recompensa exige 3). */
+async function contaCriadaHa(sub: string, dias: number): Promise<void> {
+  const em = Date.now() - dias * DIA_MS
+  await client.execute({
+    sql: `INSERT INTO users (id, created_at, updated_at, role, status) VALUES (?, ?, ?, 'user', 'active')
+          ON CONFLICT (id) DO UPDATE SET created_at = excluded.created_at`,
+    args: [sub, em, em],
+  })
+}
+
+/** Adulto declarado, com conta de 4 dias: passa da porta `conta_nova`. */
+async function tokenAdulto(sub: string): Promise<string> {
+  const t = await s.tokenAdulto(sub)
+  await contaCriadaHa(sub, 4)
+  return t
+}
+
+/** Liga todos os espaços premiados (os casos de `tema-24h`, `ajuda-premiada` e `nuvem-30`). */
+const ativarTodosOsEspacos = () => rota.definirEspacosAtivosParaTestes(premiado.ESPACOS_PREMIADOS)
 
 const iniciar = (token: string, espaco: string) => s.post('/api/anuncios/premiado/iniciar', { espaco }, token)
 const concluir = (token: string, exibicaoId: string) => s.post('/api/anuncios/premiado/concluir', { exibicaoId }, token)
@@ -81,6 +112,8 @@ beforeAll(async () => {
   ;({ economiaRepo: economia } = await s.load('../../server/db/repositories/economia'))
   quota = await s.load('../../server/lib/usageQuota')
   planos = await s.load('../../src/core/planos')
+  rota = await s.load('../../server/routes/anuncios')
+  premiado = await s.load('../../src/core/anuncios/premiado')
   client = clienteSql(await s.load('../../server/db/db'))
 })
 afterAll(async () => {
@@ -89,6 +122,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await ligarAnuncios(true)
   await ligarAlivio(true)
+  rota.definirEspacosAtivosParaTestes(null)
 })
 afterEach(async () => {
   /* O teto global é do app inteiro: cada caso começa do zero. */
@@ -100,6 +134,7 @@ describe('os tetos ficam em src/core/planos.ts', () => {
     expect(planos.LIMITE_DE_PREMIADOS_POR_DIA).toBe(5)
     expect(planos.TETO_GLOBAL_DE_PREMIADOS_POR_DIA).toBe(2000)
     expect(planos.LIMITE_DE_NUVEM_30_POR_DIA).toBe(2)
+    expect(planos.LIMITE_DE_NUVEM_30_POR_MES).toBe(10)
     expect(planos.LIMITE_DE_PREMIADOS_PENDENTES).toBe(3)
     expect(planos.DURACAO_MINIMA_DA_EXIBICAO_MS).toEqual({
       'fim-premiado': 15_000,
@@ -113,7 +148,7 @@ describe('os tetos ficam em src/core/planos.ts', () => {
 
 describe('flag anuncios desligada', () => {
   it('iniciar e concluir respondem 404 anuncios_desligados, e nada é gravado', async () => {
-    const t = await s.tokenAdulto('ad-flag-off')
+    const t = await tokenAdulto('ad-flag-off')
     const id = await exibicao(t, 'loja-seeds')
     await ligarAnuncios(false)
     const r = await iniciar(t, 'loja-seeds')
@@ -147,7 +182,7 @@ describe('perfil protegido nunca chega à recompensa', () => {
   })
 
   it('concluir também confere: uma exibição de quem virou protegido não credita', async () => {
-    const t = await s.tokenAdulto('ad-virou-menor')
+    const t = await tokenAdulto('ad-virou-menor')
     const id = await exibicao(t, 'loja-seeds')
     await client.execute(`DELETE FROM idades_declaradas WHERE user_id = 'ad-virou-menor'`)
     const r = await concluir(t, id)
@@ -159,14 +194,14 @@ describe('perfil protegido nunca chega à recompensa', () => {
 
 describe('o pedido', () => {
   it('espaço que não é premiado (ou inexistente) é 400', async () => {
-    const t = await s.tokenAdulto('ad-espaco')
+    const t = await tokenAdulto('ad-espaco')
     expect((await iniciar(t, 'inicio-nativo')).status).toBe(400)
     expect((await iniciar(t, 'nao-existe')).status).toBe(400)
   })
 
   it('exibicaoId desconhecido ou de outra conta é 404, e nada é creditado', async () => {
-    const a = await s.tokenAdulto('ad-dono')
-    const b = await s.tokenAdulto('ad-outro')
+    const a = await tokenAdulto('ad-dono')
+    const b = await tokenAdulto('ad-outro')
     const id = await exibicao(a, 'loja-seeds')
     const r = await concluir(b, id)
     expect(r.status).toBe(404)
@@ -180,7 +215,7 @@ describe('o pedido', () => {
 
 describe('idempotência', () => {
   it('Seeds: a primeira conclusão credita, a segunda responde jaCreditado sem creditar de novo', async () => {
-    const t = await s.tokenAdulto('ad-seeds')
+    const t = await tokenAdulto('ad-seeds')
     const id = await exibicao(t, 'loja-seeds')
     const r = await concluir(t, id)
     expect(r.status).toBe(200)
@@ -195,7 +230,7 @@ describe('idempotência', () => {
   })
 
   it('duas conclusões AO MESMO TEMPO creditam uma vez só', async () => {
-    const t = await s.tokenAdulto('ad-corrida')
+    const t = await tokenAdulto('ad-corrida')
     const id = await exibicao(t, 'fim-premiado')
     const rs = await Promise.all([concluir(t, id), concluir(t, id), concluir(t, id)])
     const corpos = await Promise.all(rs.map((r) => r.json()))
@@ -205,7 +240,8 @@ describe('idempotência', () => {
   })
 
   it('tema-24h devolve a liberação com o fim; ajuda-premiada, a ajuda da rodada (sem Seeds)', async () => {
-    const t = await s.tokenAdulto('ad-tema')
+    ativarTodosOsEspacos()
+    const t = await tokenAdulto('ad-tema')
     const antes = Date.now()
     const r = await concluir(t, await exibicao(t, 'tema-24h'))
     const corpo = await r.json()
@@ -219,7 +255,7 @@ describe('idempotência', () => {
 
 describe('prazo de 10 minutos', () => {
   it('exibição iniciada há mais de 10 min não credita (410), e continua não creditando', async () => {
-    const t = await s.tokenAdulto('ad-prazo')
+    const t = await tokenAdulto('ad-prazo')
     const id = await exibicao(t, 'loja-seeds')
     await client.execute({
       sql: 'UPDATE anuncios_premiados SET iniciado_em = ? WHERE exibicao_id = ?',
@@ -233,7 +269,7 @@ describe('prazo de 10 minutos', () => {
   })
 
   it('dentro do prazo (9 min) credita', async () => {
-    const t = await s.tokenAdulto('ad-prazo-ok')
+    const t = await tokenAdulto('ad-prazo-ok')
     const id = await exibicao(t, 'loja-seeds')
     await client.execute({
       sql: 'UPDATE anuncios_premiados SET iniciado_em = ? WHERE exibicao_id = ?',
@@ -246,19 +282,19 @@ describe('prazo de 10 minutos', () => {
 
 describe('teto por pessoa (5 por dia UTC, contado na conclusão)', () => {
   it('a sexta exibição não começa: 429 teto_do_dia', async () => {
-    const t = await s.tokenAdulto('ad-teto')
+    const t = await tokenAdulto('ad-teto')
     for (let i = 0; i < 5; i++) expect((await concluir(t, await exibicao(t, 'fim-premiado'))).status).toBe(200)
     const r = await iniciar(t, 'fim-premiado')
     expect(r.status).toBe(429)
     expect((await r.json()).code).toBe('teto_do_dia')
     expect(await seedsDe('ad-teto')).toBe(50)
     /* O teto é da pessoa: outra conta continua. */
-    const outra = await s.tokenAdulto('ad-teto-outra')
+    const outra = await tokenAdulto('ad-teto-outra')
     expect((await iniciar(outra, 'fim-premiado')).status).toBe(200)
   })
 
   it('iniciadas antes do teto não furam: a conclusão também confere', async () => {
-    const t = await s.tokenAdulto('ad-teto-pendentes')
+    const t = await tokenAdulto('ad-teto-pendentes')
     for (let i = 0; i < 3; i++) expect((await concluir(t, await exibicao(t, 'fim-premiado'))).status).toBe(200)
     /* 3 pendentes (o máximo), abertas com 3 concluídas: só cabem mais 2. */
     const ids: string[] = []
@@ -271,7 +307,7 @@ describe('teto por pessoa (5 por dia UTC, contado na conclusão)', () => {
   })
 
   it('o dia de ontem não conta no teto de hoje', async () => {
-    const t = await s.tokenAdulto('ad-ontem')
+    const t = await tokenAdulto('ad-ontem')
     for (let i = 0; i < 5; i++) await concluir(t, await exibicao(t, 'fim-premiado'))
     expect((await iniciar(t, 'fim-premiado')).status).toBe(429)
     await client.execute({
@@ -291,14 +327,14 @@ describe('teto global (2.000 por dia UTC)', () => {
             FROM generate_series(1, 2000) AS g`,
       args: [hoje(), agora, agora],
     })
-    const t = await s.tokenAdulto('ad-global')
+    const t = await tokenAdulto('ad-global')
     const r = await iniciar(t, 'loja-seeds')
     expect(r.status).toBe(429)
     expect((await r.json()).code).toBe('teto_do_dia')
   })
 
   it('uma pendente iniciada antes do teto cheio não credita depois dele', async () => {
-    const t = await s.tokenAdulto('ad-global-pendente')
+    const t = await tokenAdulto('ad-global-pendente')
     const id = await exibicao(t, 'loja-seeds')
     const agora = Date.now()
     await client.execute({
@@ -314,8 +350,10 @@ describe('teto global (2.000 por dia UTC)', () => {
 })
 
 describe('nuvem-30: 30 min de nuvem somados à franquia do mês', () => {
+  beforeEach(() => ativarTodosOsEspacos())
+
   it('aparece em GET /api/me/uso e vale na reserva de segundos', async () => {
-    const t = await s.tokenAdulto('ad-nuvem')
+    const t = await tokenAdulto('ad-nuvem')
     const uso0 = await (await s.get('/api/me/uso', t)).json()
     const teto0 = uso0.alivio.segundosDeAudio.teto
     expect(teto0).toBe(planos.FRANQUIA_DE_ALIVIO.sttSegundosMes)
@@ -339,7 +377,7 @@ describe('nuvem-30: 30 min de nuvem somados à franquia do mês', () => {
   })
 
   it('exibição de nuvem iniciada e não concluída não soma nada', async () => {
-    const t = await s.tokenAdulto('ad-nuvem-pendente')
+    const t = await tokenAdulto('ad-nuvem-pendente')
     await exibicao(t, 'nuvem-30')
     const uso = await (await s.get('/api/me/uso', t)).json()
     expect(uso.alivio.segundosDeAudio.teto).toBe(planos.FRANQUIA_DE_ALIVIO.sttSegundosMes)
@@ -374,7 +412,7 @@ describe('limpeza diária', () => {
 
 describe('duração mínima (R33)', () => {
   it('concluir aos 5 s é 409 cedo_demais e não credita; aos 16 s credita', async () => {
-    const t = await s.tokenAdulto('ad-cedo')
+    const t = await tokenAdulto('ad-cedo')
     const id = await exibicao(t, 'loja-seeds', false)
     await recuar(id, 5_000)
     const r = await concluir(t, id)
@@ -387,7 +425,7 @@ describe('duração mínima (R33)', () => {
   })
 
   it('concluir logo depois de iniciar é 409', async () => {
-    const t = await s.tokenAdulto('ad-cedo-ja')
+    const t = await tokenAdulto('ad-cedo-ja')
     const r = await concluir(t, await exibicao(t, 'fim-premiado', false))
     expect(r.status).toBe(409)
     expect((await r.json()).code).toBe('cedo_demais')
@@ -397,7 +435,7 @@ describe('duração mínima (R33)', () => {
 describe('plano sem anúncios', () => {
   it('pagante: 403 sem_anuncios no iniciar e no concluir', async () => {
     const { subscriptionsRepo } = await s.load('../../server/db/repositories/subscriptions')
-    const t = await s.tokenAdulto('ad-pagante')
+    const t = await tokenAdulto('ad-pagante')
     const id = await exibicao(t, 'loja-seeds')
     await subscriptionsRepo.upsert('ad-pagante', { plan: 'premium', status: 'active' })
     const r = await iniciar(t, 'loja-seeds')
@@ -411,7 +449,7 @@ describe('plano sem anúncios', () => {
 
   it('no teste de 14 dias do Premium: 403 sem_anuncios', async () => {
     const { testesPremiumRepo } = await s.load('../../server/db/repositories/testesPremium')
-    const t = await s.tokenAdulto('ad-em-teste')
+    const t = await tokenAdulto('ad-em-teste')
     const agora = Date.now()
     await testesPremiumRepo.iniciar('ad-em-teste', 'marca-ad-em-teste', agora, agora + 14 * 86_400_000)
     const r = await iniciar(t, 'fim-premiado')
@@ -421,8 +459,10 @@ describe('plano sem anúncios', () => {
 })
 
 describe('nuvem-30 exige a nuvem do Grátis ligada', () => {
+  beforeEach(() => ativarTodosOsEspacos())
+
   it('desligada: 409 alivio_desligado no iniciar e no concluir (a flag mudou entre os passos)', async () => {
-    const t = await s.tokenAdulto('ad-nuvem-off')
+    const t = await tokenAdulto('ad-nuvem-off')
     const id = await exibicao(t, 'nuvem-30')
     await ligarAlivio(false)
     const r = await iniciar(t, 'nuvem-30')
@@ -440,7 +480,7 @@ describe('nuvem-30 exige a nuvem do Grátis ligada', () => {
   })
 
   it('no máximo 2 nuvem-30 por pessoa no dia: a terceira é 429 teto_do_dia; outro espaço segue', async () => {
-    const t = await s.tokenAdulto('ad-nuvem-teto')
+    const t = await tokenAdulto('ad-nuvem-teto')
     for (let i = 0; i < 2; i++) expect((await concluir(t, await exibicao(t, 'nuvem-30'))).status).toBe(200)
     const r = await iniciar(t, 'nuvem-30')
     expect(r.status).toBe(429)
@@ -449,7 +489,7 @@ describe('nuvem-30 exige a nuvem do Grátis ligada', () => {
   })
 
   it('pendentes de nuvem não furam o teto de 2 na conclusão', async () => {
-    const t = await s.tokenAdulto('ad-nuvem-pend')
+    const t = await tokenAdulto('ad-nuvem-pend')
     const ids = [await exibicao(t, 'nuvem-30'), await exibicao(t, 'nuvem-30'), await exibicao(t, 'nuvem-30')]
     const status = []
     for (const id of ids) status.push((await concluir(t, id)).status)
@@ -459,7 +499,7 @@ describe('nuvem-30 exige a nuvem do Grátis ligada', () => {
 
 describe('exibições pendentes', () => {
   it('com 3 pendentes nos últimos 10 min, a quarta não começa: 429 exibicoes_pendentes', async () => {
-    const t = await s.tokenAdulto('ad-pendentes')
+    const t = await tokenAdulto('ad-pendentes')
     const ids: string[] = []
     for (let i = 0; i < 3; i++) ids.push(await exibicao(t, 'fim-premiado'))
     const r = await iniciar(t, 'fim-premiado')
@@ -470,5 +510,118 @@ describe('exibições pendentes', () => {
     expect((await iniciar(t, 'fim-premiado')).status).toBe(200)
     for (const id of ids.slice(1)) await recuar(id, 10 * 60_000)
     expect((await iniciar(t, 'fim-premiado')).status).toBe(200)
+  })
+})
+
+describe('só os espaços ativos (os que a interface monta)', () => {
+  it('a lista ativa é fim-premiado e loja-seeds', () => {
+    expect(premiado.ESPACOS_PREMIADOS_ATIVOS).toEqual(['fim-premiado', 'loja-seeds'])
+  })
+
+  it('iniciar um espaço premiado inativo é 400 espaco_inativo, e nenhuma linha nasce', async () => {
+    const t = await tokenAdulto('ad-inativo')
+    for (const espaco of ['nuvem-30', 'tema-24h', 'ajuda-premiada']) {
+      const r = await iniciar(t, espaco)
+      expect(r.status).toBe(400)
+      expect((await r.json()).code).toBe('espaco_inativo')
+    }
+    const { rows } = await client.execute(
+      `SELECT count(*)::int AS n FROM anuncios_premiados WHERE user_id = 'ad-inativo'`,
+    )
+    expect(rows[0].n).toBe(0)
+    expect((await iniciar(t, 'loja-seeds')).status).toBe(200)
+  })
+
+  it('concluir uma exibição de espaço que deixou de ser ativo é 400 espaco_inativo, e não credita', async () => {
+    const t = await tokenAdulto('ad-inativo-concluir')
+    ativarTodosOsEspacos()
+    const id = await exibicao(t, 'nuvem-30')
+    rota.definirEspacosAtivosParaTestes(null)
+    const r = await concluir(t, id)
+    expect(r.status).toBe(400)
+    expect((await r.json()).code).toBe('espaco_inativo')
+    const { rows } = await client.execute(
+      `SELECT count(*)::int AS n FROM anuncios_premiados WHERE user_id = 'ad-inativo-concluir' AND concluido_em IS NOT NULL`,
+    )
+    expect(rows[0].n).toBe(0)
+  })
+
+  it('a troca da lista é só de teste: em produção ela recusa', () => {
+    const antes = process.env.NODE_ENV
+    process.env.NODE_ENV = 'production'
+    try {
+      expect(() => rota.definirEspacosAtivosParaTestes(premiado.ESPACOS_PREMIADOS)).toThrow()
+    } finally {
+      process.env.NODE_ENV = antes
+    }
+  })
+})
+
+describe('nuvem-30: teto do mês (10 por pessoa = 5 h)', () => {
+  beforeEach(() => ativarTodosOsEspacos())
+
+  /** `n` nuvem-30 concluídas pela pessoa no dia `dia` deste mês. */
+  async function nuvensConcluidas(sub: string, n: number, dia: string): Promise<void> {
+    const agora = Date.now()
+    await client.execute({
+      sql: `INSERT INTO anuncios_premiados (user_id, exibicao_id, espaco, dia, iniciado_em, concluido_em)
+            SELECT ?, md5(? || g::text), 'nuvem-30', ?, ?, ?
+            FROM generate_series(1, ?::int) AS g`,
+      args: [sub, `${sub}:${dia}:`, dia, agora, agora, n],
+    })
+  }
+  const primeiroDoMes = () => `${hoje().slice(0, 7)}-01`
+  const mesPassado = () => {
+    const d = new Date()
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - 1, 15)).toISOString().slice(0, 10)
+  }
+
+  it('com 10 no mês, a próxima não começa: 429 teto_do_mes; outro espaço segue', async () => {
+    const t = await tokenAdulto('ad-nuvem-mes')
+    await nuvensConcluidas('ad-nuvem-mes', 10, primeiroDoMes())
+    const r = await iniciar(t, 'nuvem-30')
+    expect(r.status).toBe(429)
+    expect((await r.json()).code).toBe('teto_do_mes')
+    expect((await iniciar(t, 'loja-seeds')).status).toBe(200)
+  })
+
+  it('uma pendente aberta antes do teto do mês não credita depois dele: 429 teto_do_mes', async () => {
+    const t = await tokenAdulto('ad-nuvem-mes-pend')
+    const id = await exibicao(t, 'nuvem-30')
+    await nuvensConcluidas('ad-nuvem-mes-pend', 10, primeiroDoMes())
+    const r = await concluir(t, id)
+    expect(r.status).toBe(429)
+    expect((await r.json()).code).toBe('teto_do_mes')
+  })
+
+  it('9 no mês ainda cabem; o mês passado não conta', async () => {
+    const t = await tokenAdulto('ad-nuvem-mes-ok')
+    await nuvensConcluidas('ad-nuvem-mes-ok', 9, primeiroDoMes())
+    await nuvensConcluidas('ad-nuvem-mes-ok', 10, mesPassado())
+    expect((await iniciar(t, 'nuvem-30')).status).toBe(200)
+  })
+})
+
+describe('conta com menos de 3 dias', () => {
+  it('iniciar é 403 conta_nova, e nenhuma linha nasce; com 3 dias, começa', async () => {
+    const t = await s.tokenAdulto('ad-conta-nova')
+    await contaCriadaHa('ad-conta-nova', 2)
+    const r = await iniciar(t, 'loja-seeds')
+    expect(r.status).toBe(403)
+    expect((await r.json()).code).toBe('conta_nova')
+    const { rows } = await client.execute(
+      `SELECT count(*)::int AS n FROM anuncios_premiados WHERE user_id = 'ad-conta-nova'`,
+    )
+    expect(rows[0].n).toBe(0)
+    await contaCriadaHa('ad-conta-nova', 3.01)
+    expect((await iniciar(t, 'loja-seeds')).status).toBe(200)
+  })
+
+  it('sem linha em users (idade da conta desconhecida): 403 conta_nova', async () => {
+    const t = await s.tokenAdulto('ad-sem-conta')
+    await client.execute(`DELETE FROM users WHERE id = 'ad-sem-conta'`)
+    const r = await iniciar(t, 'fim-premiado')
+    expect(r.status).toBe(403)
+    expect((await r.json()).code).toBe('conta_nova')
   })
 })

@@ -14,10 +14,16 @@
  *      ele (`politicaDeAnuncio.ts`), e o servidor não confia no cliente para isso.
  *   3. PLANO SEM ANÚNCIOS (`semAnuncios` do plano EFETIVO do servidor: quem paga, quem está no teste de 14 dias
  *      do Premium, o self-host) → 403 `sem_anuncios`.
- *   4. `nuvem-30` com a nuvem do Grátis (`nuvem_gratuita_alivio`) desligada → 409 `alivio_desligado`: os 30 min
+ *   4. ESPAÇO INATIVO (fora de `ESPACOS_PREMIADOS_ATIVOS`: a interface só monta `fim-premiado` e `loja-seeds`)
+ *      → 400 `espaco_inativo`. No `concluir`, pelo espaço gravado na linha. Os testes trocam a lista com
+ *      `definirEspacosAtivosParaTestes` (recusada em produção).
+ *   5. Só no `iniciar`: CONTA com menos de 3 dias (`IDADE_MINIMA_DA_CONTA_MS`, a mesma regra da política do
+ *      cliente) ou sem linha em `users` (idade desconhecida) → 403 `conta_nova`.
+ *   6. `nuvem-30` com a nuvem do Grátis (`nuvem_gratuita_alivio`) desligada → 409 `alivio_desligado`: os 30 min
  *      não teriam como ser usados. No `concluir` também, porque a flag pode mudar entre os dois passos.
- *   5. Só no `iniciar`: 3 ou mais exibições PENDENTES nos últimos 10 min → 429 `exibicoes_pendentes`.
- *   6. TETOS DO DIA UTC (em `src/core/planos.ts`: `LIMITE_DE_PREMIADOS_POR_DIA` por pessoa,
+ *   7. Só no `iniciar`: 3 ou mais exibições PENDENTES nos últimos 10 min → 429 `exibicoes_pendentes`.
+ *   8. TETO DO MÊS UTC do `nuvem-30` (`LIMITE_DE_NUVEM_30_POR_MES` por pessoa, 10 = 5 h) → 429 `teto_do_mes`; e os
+ *      TETOS DO DIA UTC (em `src/core/planos.ts`: `LIMITE_DE_PREMIADOS_POR_DIA` por pessoa,
  *      `LIMITE_DE_NUVEM_30_POR_DIA` por pessoa no `nuvem-30`, `TETO_GLOBAL_DE_PREMIADOS_POR_DIA` no total),
  *      contados nas exibições CONCLUÍDAS → 429 `teto_do_dia`. O `iniciar` confere para a exibição nem começar; o
  *      `concluir` confere de novo, sob trava, para as pendentes não furarem.
@@ -39,10 +45,11 @@ import { randomBytes } from 'node:crypto'
 import { Router } from 'express'
 import { z } from 'zod'
 
-import { FLAG_ANUNCIOS } from '../../src/core/anuncios/politicaDeAnuncio'
+import { FLAG_ANUNCIOS, IDADE_MINIMA_DA_CONTA_MS } from '../../src/core/anuncios/politicaDeAnuncio'
 import {
   ehEspacoPremiado,
   type EspacoPremiado,
+  ESPACOS_PREMIADOS_ATIVOS,
   PRAZO_DA_EXIBICAO_MS,
   type RecompensaDoPremiado,
   recompensaDoPremiado,
@@ -51,12 +58,14 @@ import { FLAG_NUVEM_GRATUITA_ALIVIO } from '../../src/core/nuvemDeAlivio'
 import {
   DURACAO_MINIMA_DA_EXIBICAO_MS,
   LIMITE_DE_NUVEM_30_POR_DIA,
+  LIMITE_DE_NUVEM_30_POR_MES,
   LIMITE_DE_PREMIADOS_PENDENTES,
   LIMITE_DE_PREMIADOS_POR_DIA,
   TETO_GLOBAL_DE_PREMIADOS_POR_DIA,
 } from '../../src/core/planos'
 import { anunciosPremiadosRepo, diaUtc } from '../db/repositories/anunciosPremiados'
 import { economiaRepo } from '../db/repositories/economia'
+import { usersRepo } from '../db/repositories/users'
 import { getEntitlements, getPlanForUser } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { flagLigada } from '../lib/flags'
@@ -79,11 +88,37 @@ const MENSAGENS = {
   alivioDesligado: 'a nuvem grátis não está disponível agora',
   pendentes: 'há exibições em aberto; termine ou espere alguns minutos',
   cedo: 'o anúncio ainda não terminou',
+  inativo: 'este espaço de anúncio não está disponível',
+  contaNova: 'as recompensas de anúncio começam depois dos primeiros dias da conta',
+  tetoDoMes: 'a nuvem dos anúncios deste mês acabou; volta no mês que vem',
 } as const
 
 /** O espaço que dá nuvem, e o teto dele por pessoa no dia. */
 const ESPACO_DE_NUVEM = 'nuvem-30'
 const LIMITE_POR_ESPACO: Readonly<Record<string, number>> = { [ESPACO_DE_NUVEM]: LIMITE_DE_NUVEM_30_POR_DIA }
+/** E no mês UTC. */
+const LIMITE_POR_ESPACO_NO_MES: Readonly<Record<string, number>> = { [ESPACO_DE_NUVEM]: LIMITE_DE_NUVEM_30_POR_MES }
+
+/** A lista ativa trocada por um teste (`null` = a de `ESPACOS_PREMIADOS_ATIVOS`). */
+let ativosDeTeste: ReadonlySet<string> | null = null
+
+/**
+ * SÓ PARA TESTES: troca a lista de espaços ativos (para exercitar `nuvem-30`, `tema-24h` e `ajuda-premiada`
+ * antes de eles ganharem tela); `null` volta ao padrão. Em produção lança: a lista de verdade é a do core.
+ */
+export function definirEspacosAtivosParaTestes(lista: readonly EspacoPremiado[] | null): void {
+  if (process.env.NODE_ENV === 'production') throw new Error('definirEspacosAtivosParaTestes: só em teste')
+  ativosDeTeste = lista ? new Set(lista) : null
+}
+
+const espacoAtivo = (espaco: string): boolean =>
+  ativosDeTeste ? ativosDeTeste.has(espaco) : (ESPACOS_PREMIADOS_ATIVOS as readonly string[]).includes(espaco)
+
+/** A conta tem os 3 dias da política? Sem linha em `users`, a idade é desconhecida e não tem. */
+async function contaComIdadeMinima(userId: import('../lib/authContext').UserId, agora: number): Promise<boolean> {
+  const conta = await usersRepo.get(userId)
+  return !!conta && agora - Number(conta.createdAt) >= IDADE_MINIMA_DA_CONTA_MS
+}
 
 /** A nuvem do Grátis está ligada para este pedido? Sem ela, o `nuvem-30` não tem o que entregar. */
 const alivioLigado = (req: import('express').Request) => flagLigada(req, FLAG_NUVEM_GRATUITA_ALIVIO)
@@ -119,11 +154,19 @@ anunciosRouter.post('/premiado/iniciar', async (req, res) => {
   if (!corpo) return
   try {
     if (!(await portasDoPremiado(req, res))) return
+    if (!espacoAtivo(corpo.espaco)) {
+      responderErro(res, 400, MENSAGENS.inativo, 'espaco_inativo')
+      return
+    }
+    const agora = Date.now()
+    if (!(await contaComIdadeMinima(req.userId, agora))) {
+      responderErro(res, 403, MENSAGENS.contaNova, 'conta_nova')
+      return
+    }
     if (corpo.espaco === ESPACO_DE_NUVEM && !(await alivioLigado(req))) {
       responderErro(res, 409, MENSAGENS.alivioDesligado, 'alivio_desligado')
       return
     }
-    const agora = Date.now()
     if (
       (await anunciosPremiadosRepo.pendentesDesde(req.userId, agora - PRAZO_DA_EXIBICAO_MS)) >=
       LIMITE_DE_PREMIADOS_PENDENTES
@@ -131,11 +174,15 @@ anunciosRouter.post('/premiado/iniciar', async (req, res) => {
       responderErro(res, 429, MENSAGENS.pendentes, 'exibicoes_pendentes')
       return
     }
-    const { daPessoa, doEspaco, global } = await anunciosPremiadosRepo.concluidasNoDia(
+    const { daPessoa, doEspaco, global, doEspacoNoMes } = await anunciosPremiadosRepo.concluidasNoDia(
       req.userId,
       diaUtc(agora),
       corpo.espaco,
     )
+    if (doEspacoNoMes >= (LIMITE_POR_ESPACO_NO_MES[corpo.espaco] ?? Number.POSITIVE_INFINITY)) {
+      responderErro(res, 429, MENSAGENS.tetoDoMes, 'teto_do_mes')
+      return
+    }
     if (
       daPessoa >= LIMITE_DE_PREMIADOS_POR_DIA ||
       global >= TETO_GLOBAL_DE_PREMIADOS_POR_DIA ||
@@ -164,10 +211,16 @@ anunciosRouter.post('/premiado/concluir', async (req, res) => {
       limitePorPessoa: LIMITE_DE_PREMIADOS_POR_DIA,
       tetoGlobal: TETO_GLOBAL_DE_PREMIADOS_POR_DIA,
       limitePorEspaco: LIMITE_POR_ESPACO,
+      limitePorEspacoNoMes: LIMITE_POR_ESPACO_NO_MES,
+      espacoAtivo,
       espacosBloqueados: (await alivioLigado(req)) ? new Set() : new Set([ESPACO_DE_NUVEM]),
     })
     if (r.tipo === 'desconhecida') {
       responderErro(res, 404, MENSAGENS.desconhecida, 'exibicao_desconhecida')
+      return
+    }
+    if (r.tipo === 'espaco-inativo') {
+      responderErro(res, 400, MENSAGENS.inativo, 'espaco_inativo')
       return
     }
     if (r.tipo === 'expirada') {
@@ -180,6 +233,10 @@ anunciosRouter.post('/premiado/concluir', async (req, res) => {
     }
     if (r.tipo === 'cedo-demais') {
       responderErro(res, 409, MENSAGENS.cedo, 'cedo_demais')
+      return
+    }
+    if (r.tipo === 'teto-do-mes') {
+      responderErro(res, 429, MENSAGENS.tetoDoMes, 'teto_do_mes')
       return
     }
     if (r.tipo === 'teto') {

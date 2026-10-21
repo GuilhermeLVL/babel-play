@@ -521,6 +521,16 @@ export const FRANQUIA_DE_ALIVIO = {
 } as const;
 
 /**
+ * OS TETOS DO ANÚNCIO PREMIADO (spec `anuncios-no-gratis`, "Amostra de nuvem com teto global"). A recompensa
+ * é creditada pelo servidor (`server/routes/anuncios.ts`), e os dois tetos contam as exibições CONCLUÍDAS no
+ * dia UTC: o da pessoa (somando todos os espaços premiados) e o de todas as contas juntas — este segura o
+ * custo da amostra de nuvem (`nuvem-30`) e das Seeds num dia de pico. Atingido qualquer um, a exibição nem
+ * começa (429 `teto_do_dia`) e a captura segue no aparelho.
+ */
+export const LIMITE_DE_PREMIADOS_POR_DIA = 5;
+export const TETO_GLOBAL_DE_PREMIADOS_POR_DIA = 2_000;
+
+/**
  * O TETO DO TESTE DE 14 DIAS, EM USO (não em tempo). O teste dá os recursos do Premium, mas a nuvem dele é uma AMOSTRA:
  * antes ele herdava as 20 h do mês inteiro (US$ 1,16 a US$ 1,76 por pessoa no teto, sem receita), e quem testa e some é
  * a maioria. Agora o teste acaba no que vier primeiro: os 14 dias ou este teto.

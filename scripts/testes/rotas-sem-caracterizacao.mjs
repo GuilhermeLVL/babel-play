@@ -40,6 +40,9 @@ const SEM_CARACTERIZACAO = {
   'POST /api/billing/trocar':
     'a troca de plano (planos v3, etapa 8) é coberta com o Asaas simulado em `tests/integration/billing-trocar-plano.test.ts` (subir, rebaixar, o webhook do valor novo e do antigo, recusas, Asaas fora do ar, repetição, chargeback)',
   'POST /api/billing/trocar/cancelar': 'idem',
+  'POST /api/anuncios/premiado/iniciar':
+    'a recompensa do anúncio premiado é coberta pelo app inteiro, com JWT de verdade, em `tests/integration/anuncios-premiado.test.ts` (idempotência e corrida, prazo de 10 min, tetos por pessoa e global no dia UTC, perfil protegido, flag desligada, exibição de outra conta, nuvem em `/api/me/uso`)',
+  'POST /api/anuncios/premiado/concluir': 'idem',
   'GET /api/vocab/resumo':
     'as contagens da tela Cartões são cobertas em `tests/integration/vocab-resumo.test.ts` (26 casos: totais por estado, por idioma, sessão e baralho, previsão, retenção, calendário, virada do dia, ETag e 304, outra conta)',
   'POST /api/billing/webhook/asaas': 'idem (é o próprio webhook)',
@@ -93,6 +96,8 @@ const PREFIXOS = {
   /* O tutor (antes `server/routes/gemini.ts`) nunca esteve nesta lista — era invisivel ao portao.
      Entrou na Fase 2 do lancamento, quando virou `tutor.ts`. */
   'server/routes/tutor.ts': '/api/tutor',
+  /* A recompensa do anúncio premiado (spec `anuncios-no-gratis`). */
+  'server/routes/anuncios.ts': '/api/anuncios',
 }
 
 function rotasDoServidor() {

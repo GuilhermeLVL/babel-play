@@ -1323,3 +1323,31 @@ export const admissaoDeIa = pgTable(
   },
   (t) => [primaryKey({ columns: [t.chave, t.janela] })],
 )
+
+/**
+ * AS EXIBIÇÕES DO ANÚNCIO PREMIADO (spec `anuncios-no-gratis`; `server/routes/anuncios.ts`). Na web não há
+ * verificação servidor a servidor da rede de anúncios: a recompensa é um aperto de mão em dois passos. `iniciar`
+ * cria a linha com um `exibicao_id` aleatório; `concluir` credita só se a linha é desta conta, ainda não foi
+ * concluída e foi iniciada há menos de 10 minutos — e grava `concluido_em` e `dia` (o dia UTC da CONCLUSÃO,
+ * nulo enquanto pendente). Os tetos do dia (`LIMITE_DE_PREMIADOS_POR_DIA`, `TETO_GLOBAL_DE_PREMIADOS_POR_DIA`)
+ * contam as linhas concluídas por `dia`; o bônus de nuvem do mês (`nuvem-30`) também sai daqui, e por isso
+ * creditar a nuvem e marcar a conclusão são a MESMA escrita.
+ *
+ * DADO DO TITULAR (`user_id`): sai com a exclusão da conta e entra na exportação. A limpeza diária poda as
+ * pendentes de mais de um dia e as concluídas antes do mês anterior.
+ */
+export const anunciosPremiados = pgTable(
+  'anuncios_premiados',
+  {
+    userId: text('user_id').notNull(),
+    /** 32 hex aleatórios, gerados pelo servidor no `iniciar`. */
+    exibicaoId: text('exibicao_id').notNull(),
+    /** O espaço premiado (`fim-premiado`, `loja-seeds`, `nuvem-30`, `tema-24h`, `ajuda-premiada`). */
+    espaco: text('espaco').notNull(),
+    /** `AAAA-MM-DD` UTC da conclusão; nulo enquanto pendente. */
+    dia: text('dia'),
+    iniciadoEm: bigint('iniciado_em', { mode: 'number' }).notNull(),
+    concluidoEm: bigint('concluido_em', { mode: 'number' }),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.exibicaoId] }), index('idx_anuncios_premiados_dia').on(t.dia)],
+)

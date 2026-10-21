@@ -46,6 +46,8 @@ export const PREFIXOS = {
   'server/routes/metricasCaptura.ts': '/api/metricas',
   'server/routes/metricasOfertas.ts': '/api/metricas',
   'server/audio/loopback.ts': '/api/audio',
+  /* A recompensa do anúncio premiado (spec `anuncios-no-gratis`). */
+  'server/routes/anuncios.ts': '/api/anuncios',
 }
 
 export function rotasDoServidor() {

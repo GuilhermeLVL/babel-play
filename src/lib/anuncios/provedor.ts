@@ -20,6 +20,13 @@ export interface PropsDoEspacoDeAnuncio {
   formato: FormatoDeAnuncio;
   /** A porta "Sem anúncios": leva aos planos. Todo anúncio tem uma ao lado (spec, "Identificação e saída"). */
   aoSemAnuncios: () => void;
+  /**
+   * O fim de um PREMIADO: o provedor abriu a exibição com `iniciarPremiado(espaco)` (`data/rotas/anuncios.ts`)
+   * antes de mostrar o anúncio e, quando a página dele avisa o fim, chama isto com o `exibicaoId`. Quem credita é
+   * o servidor, uma vez só; recusa (teto, prazo, perfil) rejeita a promessa com o `code` dele na mensagem.
+   * Ausente nos formatos que não são premiados.
+   */
+  aoRecompensar?: (exibicaoId: string) => Promise<void>;
 }
 
 export interface ProvedorDeAnuncios {

@@ -306,10 +306,10 @@ export async function aplicarEvento(
       }
 
       const atual = await subscriptionsRepo.getActive(userIdEfetivo)
-      /* O PLANO E O CICLO SAEM DO VALOR (matriz v2): R$ 19,90 é o Premium mensal, R$ 179 o anual, e
-         os preços antigos (Essencial R$ 19,90, Pro R$ 39,90) continuam pagando o Premium mensal — a
-         assinatura recorrente de antes não perde o plano no mês seguinte. O ramo do parcelamento
-         (`parcelas`, a parcela do 12x) é do C5. */
+      /* O PLANO E O CICLO SAEM DO VALOR (matriz v3): cada mensalidade e cada anual da matriz é de um
+         plano só (R$ 9,90 o Essencial, R$ 19,90 o Premium, R$ 39,90 o Ao Vivo; os anuais idem), e os
+         preços da v2 não pagam mais nada (`src/core/planos.ts`). O ramo do parcelamento (`parcelas`,
+         a parcela do 12x) é `aplicarParcela`. */
       const pago = planoPeloPagamento(vValor)
       const planoPago = pago?.plano ?? null
       /* A intenção gravada pode ter nome antigo (linha de antes da 0041): lida como o atual. Sem
@@ -660,8 +660,9 @@ async function aplicarDinheiroDevolvido(
  *
  * As três conferências, na ordem:
  *  1. A PARCELA É DO ANUAL: o valor é uma das parcelas que o Asaas cobra de `precoAnualBrl` em
- *     `PARCELAS_DO_ANUAL` vezes (R$ 14,91, ou R$ 14,99 na última). Qualquer outro valor não paga plano
- *     nenhum — R$ 14,91 como mensalidade seria o Premium pela terça parte.
+ *     `PARCELAS_DO_ANUAL` vezes (no Premium, R$ 12,49, ou R$ 12,51 na última; `valoresDasParcelas`).
+ *     Qualquer outro valor não paga plano nenhum — R$ 12,49 como mensalidade seria o Premium por
+ *     menos que o Essencial.
  *  2. NO CARTÃO: o 12x só é criado com `CREDIT_CARD` (`criarParcelamento`), e só nele o ano inteiro
  *     é compromisso da operadora. Uma parcela de carnê (Pix/boleto) que confirme aqui não é nossa —
  *     fica pendente para o admin, em vez de dar o ano por uma parcela.

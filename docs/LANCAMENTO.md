@@ -365,8 +365,11 @@ caminho: [`STAGING.md`](STAGING.md).
       webhook, e **estornar** no painel do Asaas.
 - [ ] **Os três ciclos no sandbox** (C5): mensal, anual em uma vez e anual em 12x com o cartão de teste do
       Asaas — conferir na tela "Premium · mensal / anual / anual em 12x", o fim do período (35 d ou 370 d) e o
-      arrependimento de 7 dias devolvendo o ano inteiro (o parcelamento inteiro no 12x). Quantos webhooks o 12x
-      manda ao confirmar ainda não foi medido (a sondagem não digitou cartão).
+      arrependimento de 7 dias devolvendo o ano inteiro (o parcelamento inteiro no 12x). (21/10/2026, parcial: no
+      Worker o `/assinar` e a conferência do webhook caíam em 400 `user_agent_not_informed` do Asaas — corrigido em
+      `f1d347af`, falta o deploy do staging para refazer pelo app. Medido direto no sandbox: o 12x do Premium sai
+      11 × R$ 12,49 + R$ 12,51; pagar a 1ª parcela no cartão confirma as 12 e manda **12 `PAYMENT_CONFIRMED`** em
+      ~2 s; o estorno do parcelamento devolve as 12 e manda 12 `PAYMENT_REFUNDED`. Inventário de 21/10, §9.)
 - [x] **O teste de 14 dias** numa conta nova: um toque em Planos, a faixa "Premium · teste" com a data, nada
       no Asaas; apagar a conta e recriar com o mesmo e-mail **não** renova o teste. (staging, 21/10/2026: "Premium ·
       em teste", 14 dias, nenhuma chamada ao Asaas; recriada → `marca_usada` e 409 `teste_ja_usado`)
@@ -385,8 +388,9 @@ caminho: [`STAGING.md`](STAGING.md).
 - [ ] **3 cartões na produção** (provado no staging em 21/10/2026: 3 cartões, sem Ao Vivo nem neural, `planosAVenda`
       `essencial`+`premium`; falta repetir na produção): logado numa conta Grátis, Planos mostra Grátis, Essencial e Premium (e **nem** Ao
       Vivo nem promessa de voz neural); `GET /api/billing/status` devolve `planosAVenda` com `essencial` e `premium`.
-- [ ] **Checkout do Essencial no sandbox** (chave sandbox do Asaas no staging; em 21/10/2026, aguardando a chave do
-      dono: sem ela, `/assinar` responde 501): mensal R$ 9,90, o webhook concede o
+- [ ] **Checkout do Essencial no sandbox** (chave sandbox do Asaas no staging desde 21/10/2026; o `/assinar` respondia
+      502 por falta de `User-Agent` no fetch do Worker, corrigido em `f1d347af` e ainda sem deploy no staging; a
+      entrega do webhook Asaas → staging, o token e a idempotência já foram provados): mensal R$ 9,90, o webhook concede o
       Essencial pelo valor, a troca para o Premium vale no próximo ciclo e o arrependimento de 7 dias devolve o valor.
 - [x] **Anúncio: página de bancada sem violação** (Chromium no staging, 21/10/2026; flag desligada: zero origem de terceiros em `/`, `/plano`, `/jogar`) (só antes de ligar `anuncios`): a página de bancada abre no Chrome real
       com o isolamento ligado, sem violação de CSP/COEP no console (`docs/auditoria/2026-10-21-anuncios-bancada.md`);

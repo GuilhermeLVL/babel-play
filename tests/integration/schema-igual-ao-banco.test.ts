@@ -230,7 +230,7 @@ describe('schema.ts × banco migrado (catálogo do Postgres)', () => {
           predicado: i.config.where ? normalizar(textoDe(i.config.where), cfg.name) : null,
         })),
         ...cfg.uniqueConstraints.map((u) => ({
-          nome: u.getName(),
+          nome: u.getName()!,
           unico: true,
           colunas: u.columns.map((col) => col.name),
           predicado: null,

@@ -58,7 +58,7 @@ describe('limpeza diária com erro transitório', () => {
     const original = agregadosRepo.fusoGravado.bind(agregadosRepo)
     const spy = vi
       .spyOn(agregadosRepo, 'fusoGravado')
-      .mockImplementation((u: string) => (u === 'limp-t2' ? Promise.reject(erroPg('40001')) : original(u)))
+      .mockImplementation((u: unknown) => (u === 'limp-t2' ? Promise.reject(erroPg('40001')) : original(u)))
     const r = await limparBanco({ agora: AGORA, dias: 30 })
     spy.mockRestore()
     expect(r.cartoes).toBe(1) // só o de limp-t3

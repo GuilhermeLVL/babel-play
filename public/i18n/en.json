@@ -519,7 +519,6 @@
   "Áudio": "Audio",
   "Documentos": "Documents",
   "Sessões recentes": "Recent sessions",
-  "iChat sintonizado com:": "iChat tuned to:",
   "Pouco espaço nesta janela: o iChat fica flutuante. Recolha o menu (Ctrl+B) ou aumente a janela.": "Not enough room in this window: iChat stays floating. Collapse the menu (Ctrl+B) or widen the window.",
   "iChat fixo na lateral direita. Arraste a borda para mudar a largura.": "iChat pinned to the right side. Drag the edge to change its width.",
   "iChat solto: volta a flutuar sobre a tela.": "iChat unpinned: it floats over the screen again.",
@@ -4127,10 +4126,6 @@
   "Cartões: comece agora": "Cards: start now",
   "Cartões: {n} para hoje": "Cards: {n} for today",
   "Cartões: tudo em dia": "Cards: all caught up",
-  "Suas {n} palavras já são cartões.": {
-    "one": "Your {n} word is already a card.",
-    "other": "Your {n} words are already cards."
-  },
   "Voltar aos Cartões": "Back to Cards",
   "O que é isto": "What is this",
   "precisa de internet para ouvir a sua voz.": "needs the internet to hear your voice.",

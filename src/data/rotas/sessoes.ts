@@ -63,7 +63,8 @@ function fmtDate(ts: number): string {
     try {
       txt = new Intl.RelativeTimeFormat(idiomaDaInterface(), { numeric: 'auto' }).format(n, un)
     } catch {
-      txt = new Intl.RelativeTimeFormat('pt', { numeric: 'auto' }).format(n, un)
+      /* Fallback quando idiomaDaInterface() não é um locale válido para o Intl: o do ambiente. */
+      txt = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' }).format(n, un)
     }
     return txt.charAt(0).toLocaleUpperCase(idiomaDaInterface()) + txt.slice(1)
   }

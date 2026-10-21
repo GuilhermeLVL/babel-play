@@ -76,6 +76,20 @@ export async function entrar(page: Page, { premium }: { premium: boolean }): Pro
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
   const authorization = (await autenticada).request().headers().authorization as string
   await expect(page.getByRole('heading', { name: 'Entrar' })).toBeHidden()
+  /* Sem data de nascimento declarada, o servidor responde 403 `idade_nao_informada` nas rotas de nuvem
+     (a simulação acima só vale para o navegador, não para `page.request`). Declara de verdade, uma vez;
+     o banco do e2e é reaproveitado, então "já informada" também serve. */
+  const declarada = await page.request.put('/api/me/idade', {
+    headers: { authorization },
+    data: { nascimento: '1990-01-01' },
+  })
+  if (!declarada.ok()) {
+    const corpo = (await declarada.json().catch(() => ({}))) as { code?: string }
+    const code = corpo.code
+    if (code !== 'nascimento_ja_informado') {
+      throw new Error(`não foi possível declarar a idade do e2e: status ${declarada.status()}, code ${code}`)
+    }
+  }
   return authorization
 }
 

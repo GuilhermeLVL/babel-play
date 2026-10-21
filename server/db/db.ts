@@ -82,7 +82,7 @@ const CONTROLE_DE_TRANSACAO = /^\s*(begin|commit|rollback|savepoint|release|star
 
 /** O `query` do driver embrulhado pela medição (exportado para o `Client` por requisição). */
 export function medida(original: Consultar): Consultar {
-  const medido = medirConsultas(original, (q: unknown) => [textoDe(q)])
+  const medido = medirConsultas(original, (...args: unknown[]) => [textoDe(args[0])])
   return (...args: unknown[]) => {
     const t = textoDe(args[0])
     return CONTROLE_DE_TRANSACAO.test(typeof t === 'string' ? t : t.sql) ? original(...args) : medido(...args)

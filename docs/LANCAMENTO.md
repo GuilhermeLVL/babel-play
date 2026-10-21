@@ -352,26 +352,29 @@ caminho: [`STAGING.md`](STAGING.md).
 - [ ] Criar uma conta de teste, confirmar o e-mail (chega pelo Resend), entrar, **ativar o 2FA** em
       Ajustes → Conta, sair e entrar de novo (o app pede o código).
 - [ ] Gravar uma sessão curta: o áudio aparece no bucket `frasy-midia`.
-- [ ] **Threads do WASM**: no Chrome ou no Firefox, console da página → `crossOriginIsolated` dá
-      `true` (`curl -sI https://<domínio>/` mostra `cross-origin-embedder-policy: credentialless` e
+- [x] **Threads do WASM**: no Chrome ou no Firefox, console da página → `crossOriginIsolated` dá
+      `true` (staging, 21/10/2026: Chromium 156 → `true`; Firefox fica com o dono) (`curl -sI https://<domínio>/` mostra `cross-origin-embedder-policy: credentialless` e
       `document-isolation-policy`). Se algum recurso de terceiro parar de carregar por causa do COEP,
       `CROSS_ORIGIN_ISOLATION=dip` (secret do Worker, `npx wrangler secret put CROSS_ORIGIN_ISOLATION
 -c wrangler.jsonc`, vale sem novo deploy) mantém as threads no Chrome/Edge; `0` desliga.
 - [ ] Na segunda seguinte: `semanal/<data>.dump` no `frasy-backups` (workflow `backup-pg-dump.yml` verde).
 - [ ] **Restaurar o dump** num banco descartável (`pg_restore`, runbook §0.2 e §8) e anotar a data no runbook.
-- [ ] Rodar o **ZAP Baseline** (Actions → _ZAP Baseline (staging)_ com a URL do staging) e triar.
+- [x] Rodar o **ZAP Baseline** (Actions → _ZAP Baseline (staging)_ com a URL do staging) e triar. (21/10/2026, run
+      39640692221: 0 FAIL, 7 WARN conhecidos e aceitos, triagem no inventário de 21/10)
 - [ ] **Cobrança real de R$ 5** no seu cartão pelo fluxo do app, conferir o plano liberado pelo
       webhook, e **estornar** no painel do Asaas.
 - [ ] **Os três ciclos no sandbox** (C5): mensal, anual em uma vez e anual em 12x com o cartão de teste do
       Asaas — conferir na tela "Premium · mensal / anual / anual em 12x", o fim do período (35 d ou 370 d) e o
       arrependimento de 7 dias devolvendo o ano inteiro (o parcelamento inteiro no 12x). Quantos webhooks o 12x
       manda ao confirmar ainda não foi medido (a sondagem não digitou cartão).
-- [ ] **O teste de 14 dias** numa conta nova: um toque em Planos, a faixa "Premium · teste" com a data, nada
-      no Asaas; apagar a conta e recriar com o mesmo e-mail **não** renova o teste.
+- [x] **O teste de 14 dias** numa conta nova: um toque em Planos, a faixa "Premium · teste" com a data, nada
+      no Asaas; apagar a conta e recriar com o mesmo e-mail **não** renova o teste. (staging, 21/10/2026: "Premium ·
+      em teste", 14 dias, nenhuma chamada ao Asaas; recriada → `marca_usada` e 409 `teste_ja_usado`)
 - [ ] **Termos §3–§4 validados pelo jurídico** (anual, 12x, teste, uso justo, cancelamento sem reembolso
       proporcional depois dos 7 dias — marcado "texto a validar" no HTML). **Sem isso, não abra a venda do
       anual.**
-- [ ] Forçar um erro de teste e ver o evento no Sentry **sem** e-mail nem IP.
+- [ ] Forçar um erro de teste e ver o evento no Sentry **sem** e-mail nem IP. (21/10/2026: o staging não tem
+      `SENTRY_DSN` nem `VITE_SENTRY_DSN`; fica para quando o dono criar o projeto no Sentry)
 - [ ] Aceitar os DPAs e marcar `docs/lgpd/operadores.md`; atualizar a política de privacidade com os
       operadores novos (a lista está lá).
 - [ ] Ligar alerta de fatura na Cloudflare, no Supabase e no Sentry.
@@ -379,14 +382,17 @@ caminho: [`STAGING.md`](STAGING.md).
       com uma conta de 15 anos — o e-mail chega (caixa de entrada, não spam; nos cabeçalhos,
       `spf=pass`, `dkim=pass` e `dmarc=pass`), o link não foi reescrito pelo Resend, o responsável
       aceita e a conta libera a nuvem. **Sem isso, não abra para menores.**
-- [ ] **3 cartões na produção**: logado numa conta Grátis, Planos mostra Grátis, Essencial e Premium (e **nem** Ao
+- [ ] **3 cartões na produção** (provado no staging em 21/10/2026: 3 cartões, sem Ao Vivo nem neural, `planosAVenda`
+      `essencial`+`premium`; falta repetir na produção): logado numa conta Grátis, Planos mostra Grátis, Essencial e Premium (e **nem** Ao
       Vivo nem promessa de voz neural); `GET /api/billing/status` devolve `planosAVenda` com `essencial` e `premium`.
-- [ ] **Checkout do Essencial no sandbox** (chave sandbox do Asaas no staging): mensal R$ 9,90, o webhook concede o
+- [ ] **Checkout do Essencial no sandbox** (chave sandbox do Asaas no staging; em 21/10/2026, aguardando a chave do
+      dono: sem ela, `/assinar` responde 501): mensal R$ 9,90, o webhook concede o
       Essencial pelo valor, a troca para o Premium vale no próximo ciclo e o arrependimento de 7 dias devolve o valor.
-- [ ] **Anúncio: página de bancada sem violação** (só antes de ligar `anuncios`): a página de bancada abre no Chrome real
+- [x] **Anúncio: página de bancada sem violação** (Chromium no staging, 21/10/2026; flag desligada: zero origem de terceiros em `/`, `/plano`, `/jogar`) (só antes de ligar `anuncios`): a página de bancada abre no Chrome real
       com o isolamento ligado, sem violação de CSP/COEP no console (`docs/auditoria/2026-10-21-anuncios-bancada.md`);
       com a flag desligada, nenhum byte de terceiro é pedido.
-- [ ] Testar as três chaves de emergência no staging: `AI_ENABLED=0` (tradução cai para o local),
+- [x] Testar as três chaves de emergência no staging (21/10/2026, 17:14–17:16Z, cada uma restaurada; o painel do
+      Supabase fica com o dono): `AI_ENABLED=0` (tradução cai para o local),
       `CHECKOUT_ENABLED=0` (assinar responde 503 com mensagem), `SIGNUP_ENABLED=0` (conta nova recebe
       `cadastro_fechado`; desligar também o cadastro no painel do Supabase).
 

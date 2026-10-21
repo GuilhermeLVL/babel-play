@@ -150,3 +150,55 @@ Linhas do arquivo atual (atualizado em 18/10):
 - :87: decisão #1 (e-mails do Asaas) segue aberta; #2 (assinaturas Pro a R$ 39,90) mudou: R$ 39,90 é hoje o preço do Ao Vivo, e há a pergunta 3 do design v3 (assinatura manual a 39,90/179).
 - Não menciona: planos v3 e flags `venda_planos_v3`/`stt_ao_vivo`, anúncios (flag `anuncios`, política, demonstração), `SIGNUP_ENABLED`/`CHECKOUT_ENABLED` como portas de produção, captcha Turnstile (falta só configurar), branch `cloudflare/migracao` e portão G1 da Fase 5, nome Frasy.
 - :44-45: "No ar hoje: só a edição estática" e "produção ainda não implantada": conferir antes da reescrita.
+
+## 9. Provado no staging (21/10/2026)
+
+Staging `https://frasy-staging.guigui-cruzeiro.workers.dev` na versão `0.1.0+2e5036e` (o ramo `lancamento/estado-3`
+só tem testes e docs a mais), banco `frasy_staging`. Flag `venda_planos_v3` **ligada** às 17:07:03Z (fica ligada: é o
+estado do lançamento); `anuncios` segue desligada. Horários em UTC. Contas descartáveis criadas pela Admin API do
+Supabase e apagadas pela própria exclusão do app (`DELETE /api/me`, que também remove o login), conferido no fim:
+nenhuma linha em `users` e nenhum usuário no Auth.
+
+| Caixa do §10                     | Resultado                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 4. `crossOriginIsolated`         | **Provada (Chromium).** HeadlessChrome 156: `crossOriginIsolated === true`, `SharedArrayBuffer` disponível. `curl -sI /`: `cross-origin-embedder-policy: credentialless`, `cross-origin-opener-policy: same-origin`, `document-isolation-policy: isolate-and-credentialless`. Firefox: fica com o dono (o Firefox do Playwright não abre neste sandbox, ver `2026-10-21-anuncios-bancada.md`).                                                                          |
+| 7. ZAP baseline                  | **Provada.** Run [39640692221](https://github.com/GuilhermeLVL/babel-play/actions/runs/39640692221): 0 FAIL, 7 WARN, 61 PASS (a anterior, 39530307523, tinha 8 WARN; o HSTS dos estáticos agora passa). Triagem abaixo.                                                                                                                                                                                                                                                 |
+| 9. Os três ciclos no sandbox     | **Bloqueada:** aguardando a chave sandbox do Asaas do dono. O staging só tem `ASAAS_WEBHOOK_TOKEN`; `POST /api/billing/assinar` responde 501 "cobrança não configurada".                                                                                                                                                                                                                                                                                                |
+| 10. Teste de 14 dias             | **Provada.** Conta nova adulta: `status.teste = disponivel`; um toque em "Testar 14 dias grátis" → selo "Premium · em teste" e "Seu teste termina em 14 dias" (17:10Z); entitlements `premium` com `teste.terminaEm`; nenhum pedido ao Asaas (navegador e `subscriptions`/`billing_events` vazios). Conta apagada pelo app (17:13:42Z) e recriada com o mesmo e-mail: `teste.estado = indisponivel` (`marca_usada`) e `POST /api/billing/teste` → 409 `teste_ja_usado`. |
+| 12. Sentry sem e-mail nem IP     | **Não testável:** sem DSN no staging (`SENTRY_DSN` fora dos secrets do Worker e `VITE_SENTRY_DSN` fora das variáveis do Environment `staging`).                                                                                                                                                                                                                                                                                                                         |
+| 16. Chaves de emergência         | **Provada**, uma por vez, cada uma restaurada antes da próxima (ver a tabela seguinte). O painel do Supabase ("Allow new users to sign up") fica com o dono.                                                                                                                                                                                                                                                                                                            |
+| 3 cartões                        | **Provada no staging** (falta repetir na produção): `GET /api/billing/status` → `planosAVenda: ["essencial","premium"]`; Chromium logado numa conta Grátis: 3 cartões `gratis`, `essencial`, `premium`, sem "Ao vivo" nem "neural". E2E `planos-v3` verde contra o staging.                                                                                                                                                                                             |
+| Checkout do Essencial no sandbox | **Bloqueada:** aguardando a chave sandbox do Asaas do dono (mesmo motivo da 9).                                                                                                                                                                                                                                                                                                                                                                                         |
+| Anúncio: bancada sem violação    | **Provada** pela Task 6 em Chromium (`2026-10-21-anuncios-bancada.md`). Conferido de novo às 17:18Z com a flag desligada: zero origem de terceiros pedida em `/`, `/plano` e `/jogar`.                                                                                                                                                                                                                                                                                  |
+
+**Chaves de emergência** (secret posto com `scripts/cloudflare/secrets.ts staging` e retirado com
+`wrangler secret delete … --env staging`: o `secret bulk` só cria ou atualiza, então tirar a chave do arquivo e
+reenviar **não** apaga o secret do Worker).
+
+| Chave                | Ligada (UTC) | Efeito medido                                                                                                                     | Restaurada (UTC) | De volta                                                              |
+| -------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------- | ---------------- | --------------------------------------------------------------------- |
+| `AI_ENABLED=0`       | 17:14:39     | `POST /api/ai/mt` (conta em teste) → 503 `ia_desligada`, 3 de 3 entre 17:14:45 e 17:14:54                                         | 17:15:07         | 17:15:12 `POST /api/ai/mt` → 200                                      |
+| `CHECKOUT_ENABLED=0` | 17:15:24     | `POST /api/billing/assinar` → 503 `checkout_desligado`; `/api/abertura` `checkout:false`                                          | 17:15:33         | `/assinar` volta ao 501 (sem chave do Asaas); `checkout:true`         |
+| `SIGNUP_ENABLED=0`   | 17:15:49     | conta nova (só no Auth) → 403 `cadastro_fechado`; conta existente segue (200); porta de login sem "Criar uma conta" e com o aviso | 17:16:23         | a mesma conta nova → 200; "Criar uma conta" de volta; `cadastro:true` |
+
+Fim: `wrangler secret list --env staging` com os mesmos 8 nomes de antes, e `.secrets.staging.json` igual ao de antes.
+
+**Triagem do ZAP (run 39640692221).** Nenhum FAIL. Os 7 WARN são os da Fase 4, todos aceitos:
+
+- 10055 CSP: `img-src 'self' https: data: blob:` e `style-src 'unsafe-inline'`: aceitos (imagens de dicionário e
+  Openverse; estilos inline do React).
+- 90004 CORP ausente nos estáticos: já registrado (Fase 4, avaliar `same-origin` sem quebrar a imagem `og`).
+- 10015/10049 cache: estáticos com hash são imutáveis de propósito; o HTML sai `max-age=0, must-revalidate` e `/api/flags` `private, max-age=30` (público, sem dado de conta).
+- 10027 comentários e 10094 Base64 nos bundles: ruído de bundle minificado.
+- 90005 `Sec-Fetch-*` ausentes: é sobre o pedido do próprio ZAP, não sobre o app.
+
+**E2E da porta e dos planos contra o staging** (17:17:43–17:17:54Z, sem `webServer`, `baseURL` = staging): `login-pseudo` e
+`planos-v3` verdes; os 6 de `acessibilidade-porta` seguem `fixme` (contraste dos links `.qen-link`, `VIOLAM_HOJE`, já
+conhecido). O `planos-v3` precisou da conta `e2e@babel.test` no Auth do staging: criada antes e apagada pelo app depois.
+
+**Limpeza.** A linha órfã `users` `770fd93f…` (sobra da Task 6, sem usuário no Auth) foi apagada pelo caminho do app:
+usuário recriado no Auth com o MESMO id, login e `DELETE /api/me` (17:13:55Z, 200, `users: 1`). Ficam, por desenho,
+duas marcas em `marcas_de_teste` (HMAC dos e-mails descartáveis; poda em 730 dias).
+
+**Visto de passagem (fora do escopo):** o aviso "Nova versão disponível" aparece na primeira visita de todo
+navegador limpo ao staging (já anotado pela Task 6).

@@ -436,6 +436,15 @@ app a embute por `<iframe credentialless sandbox>`.
   verificação do Google na web: o servidor credita por exibição com teto (Task 5). O Express (Node) não
   sobrepõe a CSP: anúncios só com o Worker.
 
+### Bancada (staging, 21/10/2026)
+
+Provado no Chromium contra o staging isolado (COOP/COEP/DIP), sem código da rede: a folha de consentimento, o
+quadro `credentialless sandbox` carregando com 200, nenhuma violação de CSP nem bloqueio de COEP, e a página
+postando `vazio` (com o aviso "sem código da rede" no console). O 304 de um documento já sai com a CSP
+sobreposta. Sem `VITE_ANUNCIOS_REDE_CONTA` nada vai ao Google: o anúncio real aguarda a aprovação do domínio e da
+rede. Relatório: `docs/auditoria/2026-10-21-anuncios-bancada.md`; e2e local:
+`npx playwright test -c playwright.publico.config.ts bancada-anuncios`.
+
 ## O que fica desativado por design
 
 No modo público, uma capacidade local responde **403 mesmo com token válido** — ela

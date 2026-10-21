@@ -308,7 +308,7 @@ caminho: [`STAGING.md`](STAGING.md).
 7. `wrangler tail` (`npx wrangler tail -c wrangler.jsonc`) não deve mostrar `ABORTADO`; o `/api/ready` deve dar 200.
 8. **Flags do lançamento** (banco, sem deploy; valem em até 30 s). O recorte é: `venda_planos_v3` **ligada** (Grátis, Essencial
    e Premium à venda), `stt_ao_vivo` **desligada** (o Ao Vivo não é vendido), `voz_natural` **desligada**, `anuncios`
-   **desligada**. Os padrões de fábrica já são "desligada" (migrações `0048` e `0051`); só `venda_planos_v3` pede ação.
+   **desligada**. Os padrões de fábrica já são "desligada" (migrações `0046` (`voz_natural`), `0048` e `0051`); só `venda_planos_v3` pede ação.
    Duas portas, as mesmas de [`flags.md`](flags.md): no app, logado como admin com o 2FA confirmado, **Admin → Flags**
    (liga e desliga o interruptor `habilitada`), ou pela CLI, da sua máquina com a `DATABASE_URL` de produção no
    ambiente (a CLI sai de `npm run build`):
@@ -438,7 +438,7 @@ próxima requisição, sem deploy). As mesmas portas, para fechar de volta, est�
 | a cada trimestre | `node scripts/modelos/revisoes.mjs` (modelos novos no Hub?); revisar a RoPA (`docs/lgpd/ropa.csv`)                   |
 
 Chaves de emergência (runbook §0), todas por `npx wrangler secret put NOME -c wrangler.jsonc` (vale na próxima
-requisição; volte com `1`):
+requisição; volte com `1` ou `wrangler secret delete NOME`; reenviar o `.secrets.*.json` sem a chave não a apaga):
 
 | chave                       | efeito                                                                                     |
 | --------------------------- | ------------------------------------------------------------------------------------------ |

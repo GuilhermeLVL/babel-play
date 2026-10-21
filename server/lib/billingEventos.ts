@@ -307,7 +307,8 @@ export async function aplicarEvento(
 
       const atual = await subscriptionsRepo.getActive(userIdEfetivo)
       /* O PLANO E O CICLO SAEM DO VALOR (matriz v3): cada mensalidade e cada anual da matriz é de um
-         plano só (R$ 9,90 o Essencial, R$ 19,90 o Premium, R$ 39,90 o Ao Vivo; os anuais idem), e os
+         plano só (R$ 9,90 o Essencial, R$ 19,90 o Premium, R$ 39,90 o Ao Vivo; o anual só existe no Essencial
+         e no Premium, o Ao Vivo não tem preço anual), e os
          preços da v2 não pagam mais nada (`src/core/planos.ts`). O ramo do parcelamento (`parcelas`,
          a parcela do 12x) é `aplicarParcela`. */
       const pago = planoPeloPagamento(vValor)

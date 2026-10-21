@@ -422,7 +422,8 @@ app a embute por `<iframe credentialless sandbox>`.
   `underAgeOfConsent`, `restrictDataProcessing`, `nonPersonalizedAds` e o SafeFrame antes de qualquer bloco;
   nunca `setPublisherProvidedId`. O premiado avisa o app por `postMessage` (`recompensa`/`fechou`/`vazio`).
 - **Publicar a página** (manual, passo do dono; o `deploy-worker.yml` não a publica):
-  `APP_URL=<origem do app> VITE_ANUNCIOS_REDE_CONTA=<código> npm run anuncios:build && npx wrangler deploy -c wrangler.anuncios.jsonc [--env staging]`.
+  `APP_URL=<origem do app> VITE_ANUNCIOS_REDE_CONTA=<código> npm run anuncios:build && npx wrangler deploy -c wrangler.anuncios.jsonc [--env staging]`
+  (`APP_URL` = a origem do app, passada só neste comando; o `deploy-worker.yml` não a lê).
   Staging: `https://frasy-anuncios-staging.<conta>.workers.dev`. Produção: domínio personalizado
   `https://ads.<domínio>` no painel da Cloudflare, apontando para o Worker `frasy-anuncios`.
 - **CSP do app:** com `ANUNCIOS_ORIGEM` (var do Worker do app) **e** a flag ligada, o Worker sobrepõe o

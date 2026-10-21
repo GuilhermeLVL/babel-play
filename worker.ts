@@ -3,9 +3,9 @@
  * pelo `httpServerHandler` do `cloudflare:node` (`nodejs_compat`). Configuração em `wrangler.jsonc`.
  *
  *   /api/*   → Express. Todo o resto → `env.ASSETS` (o build do Vite; SPA cai no `index.html`). O
- *              `run_worker_first` traz para cá a API e os DOCUMENTOS (`/*`, menos os estáticos pesados e
- *              `/anuncios/*`): é aqui que a CSP dos anúncios é sobreposta quando a flag está ligada
- *              (`servirEstatico`, rulings R31/R32). Os estáticos pesados vão direto ao Static Assets.
+ *              `run_worker_first` traz para cá a API e os DOCUMENTOS (`/*`, menos os estáticos pesados; a
+ *              página de anúncios não mora mais aqui, é o Worker próprio `frasy-anuncios`, R35): é aqui que a
+ *              CSP dos anúncios é sobreposta quando a flag está ligada (`servirEstatico`, rulings R31/R32). Os estáticos pesados vão direto ao Static Assets.
  *   cron     → `executarJobsDoCron(controller.cron)` (o registro em `server/jobs/registro.ts`).
  *
  * POR REQUISIÇÃO (e por disparo do cron), nesta ordem:

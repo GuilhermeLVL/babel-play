@@ -6,23 +6,13 @@
  * disparar para sempre, em silêncio — que é pior que não ter alerta, porque alguém acredita nele.
  * Este teste fecha essa porta: toda métrica citada em `ops/alertas/regras.yml` e em
  * `ops/dashboards/babel-play.json` tem de existir em `metricas.ts`, nas métricas padrão do
- * prom-client, ou na lista (explícita) das embutidas do Fly.
+ * prom-client.
  */
 import { readFileSync } from 'node:fs'
 
 import yaml from 'js-yaml'
 import { collectDefaultMetrics, Registry } from 'prom-client'
 import { beforeAll, describe, expect, it } from 'vitest'
-
-/** As embutidas do Fly citadas aqui (fly.io/docs/monitoring/metrics, "Built-in metrics"). */
-const EMBUTIDAS_DO_FLY = new Set([
-  'fly_instance_cpu_throttle',
-  'fly_instance_cpu_balance',
-  'fly_instance_cpu_baseline',
-  'fly_instance_memory_mem_total',
-  'fly_instance_memory_mem_available',
-  'fly_volume_used_pct',
-])
 
 /** Palavras do PromQL/MetricsQL que não são métrica. */
 const PALAVRAS_DO_PROMQL = new Set([
@@ -67,7 +57,7 @@ beforeAll(async () => {
   const r = new Registry()
   collectDefaultMetrics({ register: r })
   const padrao = (await r.getMetricsAsJSON()).map((m) => m.name)
-  conhecidas = new Set([...doCodigo, ...padrao, ...EMBUTIDAS_DO_FLY])
+  conhecidas = new Set([...doCodigo, ...padrao])
 })
 
 /** Os nomes de métrica de uma expressão: tira strings, seletores, janelas e agrupamentos. */

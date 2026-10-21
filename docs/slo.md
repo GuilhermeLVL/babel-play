@@ -25,13 +25,13 @@ entram como **% de degradação**, acompanhada à parte.
 
 ## Frontend
 
-| Métrica                                                        | Orçamento                                             | Cobrado por                                                 |
-| -------------------------------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------- |
-| JS inicial (entrada + `modulepreload` do `index.html`), gzip 6 | **≤ `frontend.jsInicialGzipMaxKB`** (o medido + 10 %) | `orcamento-bundle.mjs`, job `carga` do CI                   |
-| CSS inicial, gzip 6                                            | **≤ `frontend.cssInicialGzipMaxKB`**                  | idem                                                        |
-| Arquivos só de desenvolvimento no `dist`                       | **nenhum** (`prototipo-*.html`, `lucide.min.js`)      | idem                                                        |
-| LCP (p75 de campo)                                             | < 2,5 s (mobile) — meta "bom" do Core Web Vitals      | `scripts/perf/frontend.mjs` (manual: workflow `lighthouse`) |
-| CLS                                                            | < 0,1                                                 | idem                                                        |
+| Métrica                                                        | Orçamento                                             | Cobrado por                                                                                 |
+| -------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| JS inicial (entrada + `modulepreload` do `index.html`), gzip 6 | **≤ `frontend.jsInicialGzipMaxKB`** (o medido + 10 %) | `orcamento-bundle.mjs`, job `carga` do CI                                                   |
+| CSS inicial, gzip 6                                            | **≤ `frontend.cssInicialGzipMaxKB`**                  | idem                                                                                        |
+| Arquivos só de desenvolvimento no `dist`                       | **nenhum** (`prototipo-*.html`, `lucide.min.js`)      | idem                                                                                        |
+| LCP (p75 de campo)                                             | < 2,5 s (mobile) — meta "bom" do Core Web Vitals      | `scripts/perf/frontend.mjs` (manual: workflow `lighthouse`)                                 |
+| CLS                                                            | < 0,1                                                 | idem                                                                                        |
 | INP                                                            | < 200 ms                                              | `scripts/perf/telas/medir-telas.mjs` (Event Timing por interação, celular médio, CPU 4×/6×) |
 
 ### Medido em 03/10/2026 (build de produção, `scripts/perf/frontend.mjs --execucoes=3`, Lighthouse 13)
@@ -39,12 +39,12 @@ entram como **% de degradação**, acompanhada à parte.
 Mediana de 3 execuções (a de celular em 4G lento simulado oscila: algumas falham no Chrome sem cabeçalho).
 CLS do Lighthouse, antes -> depois das correções de salto de layout:
 
-| Rota      | Celular: nota | Celular: LCP | Celular: TBT | Celular: CLS    | Desktop: nota | Desktop: LCP | Desktop: CLS    |
-| --------- | ------------- | ------------ | ------------ | --------------- | ------------- | ------------ | --------------- |
-| /         | 70 -> 73      | 5,5 -> 4,6 s | 223 -> 273 ms | 0 -> 0         | 94 -> 96      | 1,3 s        | 0,090 -> 0      |
-| /capturar | 62 -> 62      | 10,4 s       | 185 -> 211 ms | 0 -> 0         | 87 -> 87      | 2,3 s        | 0 -> 0          |
-| /jogar    | 45 -> 52      | 10,4 s       | 531 -> 597 ms | 0,163 -> 0     | 84 -> 86      | 2,3 s        | 0,098 -> 0      |
-| /planos   | 64 -> 64      | 6,1 s        | 351 -> 347 ms | 0 -> 0         | 95 -> 95      | 1,4 s        | 0 -> 0          |
+| Rota      | Celular: nota | Celular: LCP | Celular: TBT  | Celular: CLS | Desktop: nota | Desktop: LCP | Desktop: CLS |
+| --------- | ------------- | ------------ | ------------- | ------------ | ------------- | ------------ | ------------ |
+| /         | 70 -> 73      | 5,5 -> 4,6 s | 223 -> 273 ms | 0 -> 0       | 94 -> 96      | 1,3 s        | 0,090 -> 0   |
+| /capturar | 62 -> 62      | 10,4 s       | 185 -> 211 ms | 0 -> 0       | 87 -> 87      | 2,3 s        | 0 -> 0       |
+| /jogar    | 45 -> 52      | 10,4 s       | 531 -> 597 ms | 0,163 -> 0   | 84 -> 86      | 2,3 s        | 0,098 -> 0   |
+| /planos   | 64 -> 64      | 6,1 s        | 351 -> 347 ms | 0 -> 0       | 95 -> 95      | 1,4 s        | 0 -> 0       |
 
 O LCP e a nota de celular seguem acima da meta (< 2,5 s): o custo é execução de JS (`vendor-react` e as telas
 sob demanda) em CPU 4x mais lenta, não rede nem fonte. Sem número novo de campo (p75): continua sem dados de produção.
@@ -65,12 +65,12 @@ Três cortes de JS que a tela não precisa no primeiro instante, cada um medido 
    fora do modo leve. JS inicial da edição estática 179,7 -> 175,8 KB gzip (teto 180); do build completo
    171,3 -> 167,8 KB gzip.
 
-| Rota      | Nota antes -> depois | LCP antes -> depois | TBT antes -> depois  |
-| --------- | -------------------- | ------------------- | -------------------- |
-| /         | 68-73 -> 70          | 4,6-5,5 -> 5,2 s    | 223-434 -> 275 ms    |
-| /capturar | 62 -> 64             | 10,6 -> 10,0 s      | 234 -> 199 ms        |
-| /jogar    | 53 -> 54             | 10,6 -> 9,5 s       | 525 -> 505 ms        |
-| /planos   | 63 -> 64             | 6,1 s -> 6,1 s      | 387 -> 332 ms        |
+| Rota      | Nota antes -> depois | LCP antes -> depois | TBT antes -> depois |
+| --------- | -------------------- | ------------------- | ------------------- |
+| /         | 68-73 -> 70          | 4,6-5,5 -> 5,2 s    | 223-434 -> 275 ms   |
+| /capturar | 62 -> 64             | 10,6 -> 10,0 s      | 234 -> 199 ms       |
+| /jogar    | 53 -> 54             | 10,6 -> 9,5 s       | 525 -> 505 ms       |
+| /planos   | 63 -> 64             | 6,1 s -> 6,1 s      | 387 -> 332 ms       |
 
 O ruído entre execuções é de +-3 pontos de nota e +-100 ms de TBT (o mesmo build deu `/` com TBT 239 e 434): só o
 corte 1 sai do ruído. CSS inicial inalterado (303,5 KB bruto, 54,6 KB gzip): os sete arquivos importados em
@@ -82,8 +82,8 @@ corte 1 sai do ruído. CSS inicial inalterado (303,5 KB bruto, 54,6 KB gzip): os
 
 ## O que os SLOs NÃO dizem
 
-- **Capacidade.** Estar dentro do SLO numa máquina local não é estar dentro no Fly: a `shared-cpu-1x`
-  sustenta 6,25 % de um núcleo. A tabela de capacidade (quantos usuários por máquina) está em
+- **Capacidade.** Estar dentro do SLO numa máquina local não é estar dentro no Worker: lá o que
+  conta é a CPU por requisição e as conexões do Hyperdrive. A tabela de capacidade está em
   `docs/escala.md` e no relatório da Fase 4.
 - **Latência do provedor de IA.** É do provedor; o SLO de IA cobre só o nosso lado.
 - **Janela e orçamento de erro.** Ainda não há dados de produção: quando houver (métricas da Fase 5), os

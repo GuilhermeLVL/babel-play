@@ -1,16 +1,15 @@
 # REGRAS DE ALERTA DO BABEL PLAY — formato "Prometheus alerting rules" (Fase 5 de prontidão, 25/09/2026).
 #
-# Onde isto roda: o Fly NÃO tem alerta embutido sobre métricas (fly.io/docs/monitoring/metrics,
-# "Alerting"). Duas formas, as duas aceitam este arquivo:
-#   - Grafana (fly-metrics.net ou Grafana Cloud grátis) com o data source Prometheus do Fly
-#     (https://api.fly.io/prometheus/<org>/, header `Authorization: FlyV1 <token read-only>`):
-#     Alerting → Alert rules → Import → "Data source-managed" ou recriar cada regra com a mesma `expr`;
-#   - vmalert/Prometheus próprio federando do Fly + Alertmanager (`rule_files: [ops/alertas/regras.yml]`).
-# A consulta no Fly é MetricsQL (VictoriaMetrics), compatível com o PromQL usado aqui.
+# Onde isto roda: estas regras valem para quem RASPA o `/metrics` do servidor Node (self-host em Docker). No
+# Worker da Cloudflare o `/metrics` não existe: as métricas vão para o Analytics Engine (docs/runbook.md §3.1).
+# Duas formas de usar, as duas aceitam este arquivo:
+#   - Grafana (Cloud ou próprio) com um data source Prometheus que raspa o `/metrics` (header
+#     `Authorization: Bearer <METRICS_TOKEN>`): Alerting → Alert rules → Import, ou recriar cada regra com a mesma `expr`;
+#   - vmalert/Prometheus próprio + Alertmanager (`rule_files: [ops/alertas/regras.yml]`).
 #
 # Convenções:
 #   - `severity`: `pagina` (acordar alguém / agir em minutos), `aviso` (agir no mesmo dia útil),
-#     `planejamento` (gatilho de escala do ADR 0006 / docs/escala.md — agir na semana).
+#     `planejamento` (gatilho de escala de docs/escala.md — agir na semana).
 #   - Toda regra tem `summary` e `description` em pt-BR e `runbook_url` para a seção do runbook com
 #     o que significa, a primeira ação e como silenciar.
 #   - Os nomes de métrica são conferidos contra server/http/metricas.ts por
@@ -78,7 +77,7 @@ groups:
           severity: aviso
         annotations:
           summary: 'Nenhum scrape do /metrics há 10 minutos'
-          description: 'Sem métricas, nenhum outro alerta dispara. A máquina caiu, o METRICS_ENABLED foi desligado ou o [metrics] do fly.toml mudou.'
+          description: 'Sem métricas, nenhum outro alerta dispara. O servidor caiu, o METRICS_ENABLED foi desligado ou o alvo do raspador mudou.'
           runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-metricas-ausentes'
 
   - name: babel-play-ia
@@ -166,7 +165,7 @@ groups:
           severity: aviso
         annotations:
           summary: 'Semáforo de uploads grandes no teto do processo'
-          description: 'Usuários recebendo 429 upload_ocupado porque a máquina já tem o máximo de uploads grandes em voo.'
+          description: 'Usuários recebendo 429 upload_ocupado porque o processo já tem o máximo de uploads grandes em voo.'
           runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-uploads'
 
       - alert: BabelMemoriaAlta
@@ -176,39 +175,5 @@ groups:
           severity: aviso
         annotations:
           summary: 'RSS do Node acima de 80% de 1 GB por 10 minutos'
-          description: 'RSS em {{ $value | humanize1024 }}B. Acima de 1 GB o OOM do Fly mata a única máquina.'
+          description: 'RSS em {{ $value | humanize1024 }}B. Acima de 1 GB o OOM mata o processo (self-host com limite de 1 GB).'
           runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-memoria'
-
-  # GATILHOS DE ESCALA — não são incidente: são o aviso a 70% dos limiares de docs/escala.md, para a
-  # decisão ser tomada na semana e não no dia em que quebra.
-  - name: babel-play-escala
-    rules:
-      - alert: BabelEscalaCpuEstrangulada
-        expr: sum(rate(fly_instance_cpu_throttle[10m])) > 0
-        for: 30m
-        labels:
-          severity: planejamento
-        annotations:
-          summary: 'CPU sendo estrangulada pelo Fly há 30 minutos (saldo de rajada do shared-cpu acabou)'
-          description: 'Passo 1 de docs/escala.md: shared-cpu-1x → performance-1x.'
-          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-escala'
-
-      - alert: BabelEscalaEscritasSQLite
-        expr: sum(rate(db_escritas_total[10m])) > 35
-        for: 30m
-        labels:
-          severity: planejamento
-        annotations:
-          summary: 'Escritas no SQLite acima de 35/s sustentadas (70% do gatilho de 50/s do ADR 0006)'
-          description: 'Comece a migração para Postgres (passo 4 de docs/escala.md) antes de chegar a 50/s.'
-          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-escala'
-
-      - alert: BabelEscalaBancoGrande
-        expr: max(db_tamanho_bytes) > 3500000000
-        for: 1h
-        labels:
-          severity: planejamento
-        annotations:
-          summary: 'Banco SQLite acima de 3,5 GB (70% do gatilho de 5 GB do ADR 0006)'
-          description: 'Volume com teto de 10 GB e crescimento do banco: planeje o Postgres.'
-          runbook_url: 'https://github.com/GuilhermeLVL/babel-play/blob/main/docs/runbook.md#alerta-escala'

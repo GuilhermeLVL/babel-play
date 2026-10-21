@@ -19,7 +19,7 @@ painel do Supabase (Authentication) para o fluxo da porta funcionar inteiro. Os 
 
 ## 2. URLs (Authentication → URL Configuration)
 
-- **Site URL:** o endereço do app (`https://babel-play-staging.fly.dev` no staging).
+- **Site URL:** o endereço do app (`https://frasy-staging.guigui-cruzeiro.workers.dev` no staging).
 - **Redirect URLs:** `<endereço do app>/auth/callback`. Confirmação, recuperação e Google voltam por aí.
 
 ## 3. Modelos de e-mail (Authentication → Emails → Templates)

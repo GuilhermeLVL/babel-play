@@ -16,7 +16,7 @@
 
 </div>
 
-> **状态（2026-10-18）：** 发布前。计费、登录和 Fly.io 部署均已实现并通过测试，但尚未在真实环境中运行。[发布状态](docs/ESTADO-DO-LANCAMENTO.md)（葡萄牙语）是当前有效内容的唯一来源。
+> **状态（2026-10-18）：** 发布前。计费和登录已实现并通过测试，Cloudflare Workers 部署已在预发布环境运行；生产环境尚未上线。[发布状态](docs/ESTADO-DO-LANCAMENTO.md)（葡萄牙语）是当前有效内容的唯一来源。
 
 **目录：** [这是什么](#这是什么) · [如何运行](#如何运行) · [架构](#架构) · [套餐与云端 AI](#套餐与云端-ai) · [自托管](#自托管) · [部署](#部署) · [安全与隐私](#安全与隐私) · [参与贡献](#参与贡献) · [许可证](#许可证)
 
@@ -113,7 +113,7 @@ HTTPS 由前置的反向代理负责（Caddy、Traefik、nginx）。详情见 [`
 
 ## 部署
 
-生产目标是 Fly.io（GRU，一台机器，SQLite 由 Litestream 复制到 Cloudflare R2），使用 Supabase 登录，前置 Cloudflare，并配合 Resend 和 Sentry。所有者的分步指南是 [docs/LANCAMENTO.md](docs/LANCAMENTO.md)；运维见 [docs/runbook.md](docs/runbook.md)；预发布环境见 [docs/STAGING.md](docs/STAGING.md)。部署经由 `deploy.yml`，它只接受 CI 为绿色的提交。
+生产目标是 Cloudflare Workers（同一个 Express 服务器，通过 Hyperdrive 连接圣保罗的 Supabase Postgres，R2 存放媒体和每周 `pg_dump` 备份；见 [ADR 0015](docs/adr/0015-cloudflare-workers-no-lugar-do-fly.md)），使用 Supabase 登录，并配合 Resend 和 Sentry。自托管仍可通过 Docker/Node 使用。所有者的分步指南是 [docs/LANCAMENTO.md](docs/LANCAMENTO.md)；运维见 [docs/runbook.md](docs/runbook.md)；预发布环境见 [docs/STAGING.md](docs/STAGING.md)。部署经由 `deploy-worker.yml`，按 Cloudflare 版本发布，带冒烟测试和自动回滚。
 
 ## 安全与隐私
 

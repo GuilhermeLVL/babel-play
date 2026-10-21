@@ -1,15 +1,17 @@
 # Deploy — modo público multi-usuário
 
-> **Banco desde a Fase 1 (ADR 0014):** o servidor fala Postgres (PGlite em dev/testes, `pg` em produção). Os trechos
-> abaixo sobre SQLite, réplicas/cluster, WAL, `VACUUM INTO`, snapshot e Litestream descrevem o deploy atual no Fly e ficam
-> pendentes para as fases seguintes; onde conflitarem com esta nota, vale esta nota.
+> **Produção e self-host (ADR 0014 e 0015):** a produção do Frasy é um Worker da Cloudflare com o Postgres do
+> Supabase (seções "Publicar o Worker (CI)" e "Secrets do Worker"). Este documento cobre também a imagem Docker
+> (Node + Postgres por `DATABASE_URL`) para quem hospeda por conta própria. O servidor fala Postgres (PGlite em
+> dev/testes, `pg` em produção).
 
-Container genérico (Docker), sem amarra a fornecedor: roda em VPS, Fly, Railway, Render,
+Container genérico (Docker), sem amarra a fornecedor: roda em VPS, Railway, Render,
 Coolify ou Kubernetes. Os números e limites citados aqui vêm de `docs/audit/04-scalability.md`.
 
-**A produção do Frasy roda no Fly.io (região GRU)** — `fly.toml`, `.env.production.example`
-e o passo a passo do dono em [`docs/LANCAMENTO.md`](LANCAMENTO.md). Este documento cobre a imagem
-em si e o `docker compose` de quem hospeda por conta própria.
+**A produção do Frasy roda como Worker da Cloudflare** — `wrangler.jsonc`, `worker.ts`, o workflow
+`deploy-worker.yml` e o passo a passo do dono em [`docs/LANCAMENTO.md`](LANCAMENTO.md); a decisão está no
+[ADR 0015](adr/0015-cloudflare-workers-no-lugar-do-fly.md). `.env.production.example` é o modelo do self-host.
+Este documento cobre a imagem em si e o `docker compose` de quem hospeda por conta própria.
 
 ## Subir
 
@@ -27,13 +29,13 @@ embutido no bundle do cliente.
 
 ### Obrigatórias
 
-| Variável                                       | Onde é usada                                                                                     | Se faltar                                             |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
-| `SECRET_KEY`                                   | cifra os segredos BYOK em repouso                                                                | **o boot ABORTA** (`server/boot/validar.ts`)          |
-| `SUPABASE_URL`                                 | JWKS assimétrico (ES256) que verifica o JWT, e o `iss` exigido                                   | nenhum token valida → 401 em tudo                     |
-| `SUPABASE_SERVICE_ROLE_KEY`                    | Admin API: exclusão de conta (LGPD art. 18, VI) e o 2FA exigido nas rotas sensíveis              | exclusão não desfaz o login; o AAL2 não é cobrado     |
-| `TRUST_PROXY`                                  | quantos proxies há na frente (`1` atrás de Caddy/Nginx, `2` Cloudflare → Fly, `false` sem proxy) | **o boot ABORTA** com `NODE_ENV=production` (GAP-004) |
-| `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` | **build time** — o Vite embute na SPA                                                            | a tela de login nunca aparece                         |
+| Variável                                       | Onde é usada                                                                                             | Se faltar                                             |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `SECRET_KEY`                                   | cifra os segredos BYOK em repouso                                                                        | **o boot ABORTA** (`server/boot/validar.ts`)          |
+| `SUPABASE_URL`                                 | JWKS assimétrico (ES256) que verifica o JWT, e o `iss` exigido                                           | nenhum token valida → 401 em tudo                     |
+| `SUPABASE_SERVICE_ROLE_KEY`                    | Admin API: exclusão de conta (LGPD art. 18, VI) e o 2FA exigido nas rotas sensíveis                      | exclusão não desfaz o login; o AAL2 não é cobrado     |
+| `TRUST_PROXY`                                  | quantos proxies há na frente (`1` atrás de Caddy/Nginx, `2` Cloudflare → Caddy/Nginx, `false` sem proxy) | **o boot ABORTA** com `NODE_ENV=production` (GAP-004) |
+| `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` | **build time** — o Vite embute na SPA                                                                    | a tela de login nunca aparece                         |
 
 `SUPABASE_JWT_SECRET` **não** entra: com `SUPABASE_URL` a verificação é pelo JWKS e o segredo fica
 inerte (o boot avisa). Ele só serve a projeto Supabase legado HS256, sem URL.
@@ -62,13 +64,11 @@ Trocar a `SECRET_KEY` (ou o formato dela) invalida os segredos já cifrados na t
 
 ### Definidas na imagem
 
-`DATABASE_URL=file:/data/babel.db` (o `Dockerfile` ainda define isto; o preflight de produção recusa `file:`, então defina `DATABASE_URL=postgres://...`) · `AUDIO_DIR=/data/audio` · `HOST=0.0.0.0` · `PORT=3000`
-· `NODE_ENV=production`. (`AUTH_REQUIRED=1` vem do `docker-compose.yml` e do `fly.toml`; com
-`NODE_ENV=production` e sem valor ela já liga.)
+`AUDIO_DIR=/data/audio` · `HOST=0.0.0.0` · `PORT=3000` · `NODE_ENV=production`. O banco NÃO vem na imagem:
+passe `DATABASE_URL=postgres://...` ao subir (o `docker-compose.yml` traz um `postgres:17`). `AUTH_REQUIRED=1` vem do
+`docker-compose.yml`; com `NODE_ENV=production` e sem valor ela já liga.
 
-O entrypoint é `scripts/iniciar-container.sh`: com as quatro `LITESTREAM_*` ele restaura o banco do
-R2 se o volume estiver vazio e sobe o Node sob `litestream replicate` (§Backup); sem elas, sobe o
-Node direto, como sempre.
+O `CMD` da imagem sobe o Node direto (`node dist-server/server.cjs`); a imagem não guarda estado.
 
 `HOST=0.0.0.0` é obrigatório **dentro** do container: o default do app é `127.0.0.1` (decisão
 de segurança para uso local) e por ele nada entraria de fora. Aqui a fronteira é a rede do
@@ -78,7 +78,7 @@ container mais o `AUTH_REQUIRED=1`, não o bind.
 
 - [ ] **HTTPS no proxy reverso.** O app não termina TLS. `AUTH_REQUIRED=1` sem HTTPS entrega o
       token em texto claro. O compose publica só em `127.0.0.1:3000` de propósito.
-- [ ] **Volume montado.** Sem `babel-data:/data`, banco e áudios morrem a cada `up`.
+- [ ] **Áudio.** Sem `S3_*` o áudio vai para `/data/audio`; sem o volume `babel-data:/data` ele morre a cada `up`. O banco é o Postgres externo.
 - [x] **Migrations** — o boot aplica sozinho, antes do seed, e falha o processo se não conseguir
       (sem schema o app não serve nada). Idempotente. A `0005` deduplica `settings` antes de criar
       o índice único, então rodar por cima de um banco antigo é seguro. Ordem do boot (`server.ts`, passos em
@@ -88,8 +88,8 @@ container mais o `AUTH_REQUIRED=1`, não o bind.
       ("migrations exigem conexão direta ou pooler em modo sessão").
 - [ ] **Backup do banco.** Com `postgres://`, `node scripts/backup.mjs` roda `pg_dump` e confere com
       `pg_restore --list`. Com `pglite:<dir>` (dev), copia o diretório e só vale com o servidor parado.
-      Litestream e snapshot diário saíram do servidor (ADR 0014): NÃO há backup automático neste build
-      (no Supabase, conte também com os backups gerenciados); o `pg_dump` semanal no CI está em "Backup semanal do Postgres no R2", abaixo.
+      Não há backup automático dentro do servidor (no Supabase, conte também com os backups gerenciados); o
+      `pg_dump` semanal no CI está em "Backup semanal do Postgres no R2", abaixo.
 - [ ] **Tetos por plano** (`PREMIUM_*` — `PREMIUM_MONTHLY_STT_SECONDS`, `PREMIUM_DAILY_STT_SECONDS` e as
       demais do inventário em `server/lib/config.ts`; defaults em `src/core/planos.ts`. As antigas
       `PRO_*`/`ESSENCIAL_*` NÃO são mais lidas: passe o valor para a `PREMIUM_*` correspondente) coerentes com o
@@ -142,8 +142,7 @@ primeira passada alguns minutos depois do boot e as seguintes no intervalo da ta
 | `reconciliarArmazenamento` | `19 * * * *` | 19 min / 1 h                 | `STORAGE_RECONCILE_MODE=job`          | 200 usuários                        |
 
 A reconciliação é a única horária: ela cobre todo usuário a cada `STORAGE_RECONCILE_HOURS` (padrão 24 h), e com teto de 200 usuários por passada uma vez por dia só daria conta de 200 usuários por dia; de hora em hora são até 4.800, em passadas curtas (cada uma faz `stat`/`HEAD` por arquivo) espalhadas pelo dia. O minuto do cron repete o atraso do Node, para a ordem ser a mesma; a `limpezaDiaria` vai para `:23` no
-cron para não coincidir com a poda das janelas. O snapshot diário (`BACKUP_DIARIO`) foi aposentado na
-migração para o Postgres e saiu do registro: a variável é legado, e ligada só gera um aviso no boot.
+cron para não coincidir com a poda das janelas. O snapshot diário do SQLite saiu na migração para o Postgres.
 
 **A lease.** Cada passada toma a linha `g:job:<nome>` da tabela `travas` numa instrução só, em autocommit
 (`INSERT … ON CONFLICT DO UPDATE … WHERE criado_em < agora − 15 min RETURNING`). Quem não recebe a linha
@@ -385,7 +384,7 @@ portão volta a ser só a fumaça final + rollback, e o passo 5 da produção pr
 | `SUPABASE_CA_PEM`                                                                                                                                                                                  | secret | CA do Supabase (PEM). O runner não tem a CA: o passo grava num arquivo `600` e usa `NODE_EXTRA_CA_CERTS`, como o `backup-pg-dump.yml` faz com o `PGSSLROOTCERT`; sem ela, `verify-full` falha (nunca cai para `require`) |
 | `URL_DO_WORKER`                                                                                                                                                                                    | var    | URL final (staging: `https://frasy-staging.guigui-cruzeiro.workers.dev`; a produção entra com o domínio)                                                                                                                 |
 | `VITE_PUBLIC_URL`, `VITE_ORT_WASM_URL`                                                                                                                                                             | var    | canônica/og e base do WASM (R2)                                                                                                                                                                                          |
-| `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SELF_HOST_MODELS`, `VITE_SENTRY_DSN`, `VITE_TURNSTILE_SITE_KEY`, `VITE_LOGIN_GOOGLE`, `VITE_DESENHO_NOVO_PADRAO`, `VITE_BERGAMOT_MODELOS_URL` | var    | os mesmos do build do Fly (`implantar-ambiente.yml`); todos públicos                                                                                                                                                     |
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SELF_HOST_MODELS`, `VITE_SENTRY_DSN`, `VITE_TURNSTILE_SITE_KEY`, `VITE_LOGIN_GOOGLE`, `VITE_DESENHO_NOVO_PADRAO`, `VITE_BERGAMOT_MODELOS_URL` | var    | os mesmos do build da imagem Docker; todos públicos                                                                                                                                                                      |
 
 Os secrets do Worker (`SECRET_KEY`, chaves de IA…) continuam por `scripts/cloudflare/secrets.ts`, não pelo CI.
 
@@ -424,11 +423,10 @@ Não é limitação da imagem; é `server.ts` decidindo pela flag.
 
 ## Escalar
 
-**Réplicas na MESMA máquina, mesmo volume: funciona.** Medido: 2 processos escrevendo
-concorrentemente → 0% de falha (era 50% antes do WAL). Medição histórica, em SQLite: com PGlite o boot recusa
-`REPLICAS>1`; com `postgres://` as réplicas são o caminho normal (o cluster foi aposentado).
+No Worker, a escala é a da plataforma (isolates por requisição; veja `docs/escala.md`). No self-host: com PGlite o boot
+recusa `REPLICAS>1`; com `postgres://` as réplicas são o caminho normal (o cluster foi aposentado).
 
-**Réplicas em HOSTS distintos: ainda não.** Dois motivos:
+**Réplicas em HOSTS distintos** (self-host) exigem:
 
 1. O PGlite aceita um processo por diretório (o boot recusa `REPLICAS>1`, e um segundo
    processo no mesmo diretório é recusado pela trava `<dir>/.babel-lock`; a de um pid morto é sobrescrita). Multi-host
@@ -451,9 +449,6 @@ Copia em lotes de 500 com os triggers desligados (`DISABLE TRIGGER USER`) numa s
 por checksum sha256 de cada tabela (`scripts/migracao/paridade.ts`). A tabela `flags` da origem vence a do destino.
 Sai com código 1 se qualquer tabela divergir. Para repetir sobre um destino não vazio, use `--continuar`.
 
-Ainda pendentes para as próximas fases: `ENV DATABASE_URL=file:` do `Dockerfile`, `iniciar-container.sh`,
-`litestream.yml`, `fly.toml` e os jobs de CI `restauracao-litestream` e `imagem-construir`.
-
 ## Tamanho da imagem — 847 MB (medido)
 
 A imagem saiu de **4,08 GB** para **847 MB** com duas mudanças, ambas verificadas subindo o container:
@@ -466,7 +461,7 @@ A imagem saiu de **4,08 GB** para **847 MB** com duas mudanças, ambas verificad
    `@ricky0123` (VAD) 138 MB, `onnxruntime-web` 130 MB, `tesseract.js-core` 44 MB, `lucide-react`
    44 MB, `country-flag-icons` 22 MB.
 
-O servidor exige estes pacotes em runtime (lista da imagem Fly; desde a Fase 3 `jsdom`, `jszip`, `mammoth`,
+O servidor exige estes pacotes em runtime (lista da imagem Docker; desde a Fase 3 `jsdom`, `jszip`, `mammoth`,
 `pdfjs-dist` e `@libsql/client` NÃO são mais carregados pelo servidor — Anki, PDF e DOCX são lidos no navegador
 e a página web usa `linkedom`; a lista abaixo ainda não foi reconferida dentro de uma imagem nova):
 
@@ -544,26 +539,12 @@ pg_restore --list AAAA-MM-DD.dump | head                 # abre e lista
 pg_restore --no-owner --schema=public --schema=drizzle --dbname="$PGDATABASE" AAAA-MM-DD.dump
 ```
 
-### Backup em produção (Fase 5): Litestream + snapshot diário, os dois no R2
+### Backup em produção
 
-1. **Litestream, contínuo.** Com `LITESTREAM_BUCKET`, `LITESTREAM_ENDPOINT`,
-   `LITESTREAM_ACCESS_KEY_ID` e `LITESTREAM_SECRET_ACCESS_KEY`, o entrypoint sobe o Node como filho
-   do `litestream replicate` (config em `litestream.yml`, versão e sha256 fixados no `Dockerfile`):
-   cada escrita chega ao R2 em ~10 s (`sync-interval`). Num volume vazio, o boot restaura sozinho
-   (`-if-db-not-exists -if-replica-exists`). O CI prova isso a cada push (job `restauracao-litestream`).
-2. **Snapshot diário, independente** (aposentado na migração para o Postgres; `BACKUP_DIARIO` é legado, ver "Jobs periódicos"). `BACKUP_DIARIO=1` fazia o processo primário rodar, às
-   `BACKUP_HORA_UTC`, `VACUUM INTO` + `integrity_check` + gzip e enviar
-   `backups/diario/AAAA-MM-DD.db.gz` ao `BACKUP_S3_BUCKET` (ou `S3_BUCKET`). Ele existe porque o
-   Litestream copia o ERRO também: um `DELETE` sem `WHERE` chega à réplica em um segundo, e a foto de
-   ontem não muda. Dentro do processo, e não num cron externo, porque o volume do Fly monta numa
-   máquina só (o porquê completo em `server/operacao/snapshot.ts`).
-3. **Alarme.** Depois de cada snapshot enviado E conferido, o servidor chama
-   `BACKUP_HEARTBEAT_URL` (heartbeat do UptimeRobot, que avisa quando a chamada não vem em 25 h).
-   A falha vira `log('error', { event: 'backup_diario_falhou' })`, que chega ao Sentry.
+O backup de produção é o **`pg_dump` semanal no R2** (seção anterior) mais os backups gerenciados do Supabase. A
+restauração e o ensaio dela (drill) estão em [`docs/runbook.md`](runbook.md), §8, "Restaurar o banco".
 
-Restaurar (os dois caminhos): [`docs/runbook.md`](runbook.md), "Restaurar o banco".
-
-### Agendar fora do Fly (self-host)
+### Agendar o backup no self-host
 
 No host, com `cron` (diário às 3h, log em arquivo):
 
@@ -583,8 +564,7 @@ backup:
   depends_on: [app]
 ```
 
-**Sem monitorar o código de saída, isto não é backup — é uma pasta.** Em produção quem fecha o
-ciclo é o heartbeat acima; aqui, alerte quando `scripts/backup.mjs` sair diferente de zero.
+**Sem monitorar o código de saída, isto não é backup — é uma pasta.** Alerte quando `scripts/backup.mjs` sair diferente de zero.
 
 ## Mídia em object storage
 
@@ -740,10 +720,5 @@ STORAGE_RECONCILE_MODE=job
 
 ## Modo cluster (aposentado)
 
-**Removido na Task 10 da Fase 2 (migração para o Cloudflare).** `CLUSTER_WORKERS` não é mais lida e
-`node:cluster` não existe mais no servidor: o PGlite é de processo único e, com Postgres, escala-se
-por **instâncias** (`REPLICAS`, veja acima). Consequências: a captura de loopback do servidor
-(`/api/audio/loopback/*`) não tem mais a recusa por cluster, e o diário de erros volta a ter um arquivo
-por dia (a leitura em `GET /api/admin/erros` continua juntando também os arquivos por PID antigos).
-A medição que motivou o modo (F6-01: vazão plana, saturação de processo único) segue válida como
-argumento para subir mais instâncias.
+`CLUSTER_WORKERS` não é mais lida e `node:cluster` não existe mais no servidor (Task 10 da Fase 2): escala-se por
+**instâncias** (`REPLICAS`, acima) ou, em produção, pelo Worker.

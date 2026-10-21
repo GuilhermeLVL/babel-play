@@ -4,6 +4,20 @@ All notable changes are listed here. Versions follow semver; dates are ISO.
 
 ## [Unreleased]
 
+### Phase 5 of the Cloudflare migration (2026-10-21)
+
+- **Fly.io retired.** The Fly target never went live: `fly.toml`, `litestream.yml`, the Fly workflows, the
+  SQLite snapshot code and the `BACKUP_*`/`LITESTREAM_*` variables are gone. Production is the Cloudflare Worker
+  (`worker.ts`, `deploy-worker.yml` by versions with smoke test and rollback) with Postgres on Supabase through
+  Hyperdrive, R2 for media and the weekly `pg_dump` backup. Self-hosting stays on Docker/Node. See
+  `docs/adr/0015-cloudflare-workers-no-lugar-do-fly.md`.
+- **Docs rewritten for the real system:** `deploy.md`, `runbook.md` (restore, rollback with
+  `wrangler versions deploy`, logs with `wrangler tail`, secrets with `scripts/cloudflare/secrets.ts`),
+  `STAGING.md` (the `frasy-staging` Worker), `LANCAMENTO.md` (Workers Paid go-live), `escala.md`,
+  `deploy-checklist.md`, costs, LGPD operators and the five READMEs.
+- **Alerts and dashboard:** removed the Fly built-in metric rules/panels (`fly_*`) and the SQLite scale triggers.
+- New gate `tests/docs-sem-fly.test.ts`: living docs may not mention the Fly/Litestream infrastructure.
+
 ### Audit of 2026-10-17/18
 
 - **Security:** closed a 2FA bypass caused by URL casing; `.docx`/PDF decompression-bomb guard;

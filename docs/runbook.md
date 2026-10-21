@@ -6,7 +6,8 @@ variável faz — aqui é o que se lê com o serviço já rodando, e às vezes j
 
 Tudo abaixo foi verificado por execução na rodada de saneamento de 2026-09-09, salvo onde estiver
 escrito "inferido". As seções 0, 0.1 a 0.5 e 12 entraram na Fase 6 do lançamento (2026-09-24), para
-a produção no Fly.io + Cloudflare + R2.
+a produção no Worker da Cloudflare (+ Supabase e R2); a decisão está no
+[ADR 0015](adr/0015-cloudflare-workers-no-lugar-do-fly.md).
 
 ---
 
@@ -18,13 +19,14 @@ vão pedir a linha do tempo.
 
 **1. DETECTAR — o que está errado, desde quando, quem é afetado.**
 
-- Sinais: e-mail do UptimeRobot (queda ou heartbeat do backup), issue `producao-caiu` aberta pelo
+- Sinais: e-mail do UptimeRobot (queda), falha do `backup-pg-dump.yml`, issue `producao-caiu` aberta pelo
   `uptime.yml`, alerta do Sentry, alerta de gasto do Groq/OpenRouter, reclamação de usuário.
-- Primeiro olhar: `curl -s https://<domínio>/api/ready | jq .` · `fly status --app babel-play` ·
-  `fly logs --app babel-play | jq -c 'select(.level=="error")'` · Sentry → Issues das últimas 24 h.
+- Primeiro olhar: `curl -s https://<domínio>/api/ready | jq .` · `npx wrangler tail -c wrangler.jsonc`
+  (ou o painel da Cloudflare → Workers → `frasy` → Logs, a observabilidade está ligada) · Sentry → Issues das últimas 24 h.
 
-**2. CONTER — as chaves de emergência** (cada uma é `fly secrets set X=… --app babel-play`; o Fly
-reinicia a máquina em ~20 s):
+**2. CONTER — as chaves de emergência** (cada uma é um secret do Worker; para trocar UMA, rode
+`npx wrangler secret put NOME -c wrangler.jsonc` (produção é o ambiente raiz do `wrangler.jsonc`; o staging leva
+`--env staging`) e digite o valor; vale a partir da próxima requisição, sem reiniciar nada):
 
 | situação                                                       | chave                                               |
 | -------------------------------------------------------------- | --------------------------------------------------- |
@@ -42,7 +44,7 @@ O que cada chave faz, exatamente (as três ficam no inventário `server/lib/conf
   rota e a tela esconde `Criar conta`. **Desligue também o cadastro no painel do Supabase**
   (Authentication → Providers → _Allow new users to sign up_), senão o login cria a identidade lá.
   | deploy novo quebrou | rollback (§0.3) |
-  | suspeita de vazamento de chave | trocar a chave NO PROVEDOR primeiro, depois `fly secrets set` (§6) |
+  | suspeita de vazamento de chave | trocar a chave NO PROVEDOR primeiro, depois `wrangler secret put` ou `scripts/cloudflare/secrets.ts` (§6) |
   | tráfego hostil | Cloudflare → Security → "Under Attack Mode"; bloquear o país/ASN/IP na WAF |
 
 **3. COMUNICAR.**
@@ -70,98 +72,40 @@ reais), causa raiz, o que detectou (e o que deveria ter detectado antes), açõe
   pelo UptimeRobot em `GET /api/ready` a cada 5 min, de fora (passa pelo Cloudflare).
 - **Alerta 1 — indisponibilidade:** o monitor HTTP do UptimeRobot em `/api/ready` falhou 2 vezes
   seguidas → e-mail + app. (O `uptime.yml` do GitHub, com `HEALTH_URL`, é o segundo par de olhos.)
-- **Alerta 2 — backup parado:** o monitor _heartbeat_ do UptimeRobot não recebeu a chamada de
-  `BACKUP_HEARTBEAT_URL` em 25 h → e-mail. Backup que falha em silêncio é o pior tipo de falha.
+- **Alerta 2 — backup parado:** o workflow `backup-pg-dump.yml` (segunda, 06:00 UTC) reprova em vez de ficar verde
+  sem backup, e o GitHub avisa por e-mail quem o dispara. Olhe também o último `semanal/AAAA-MM-DD.dump` no
+  bucket `frasy-backups`: com mais de 8 dias, o backup parou. Backup que falha em silêncio é o pior tipo de falha.
 
 Os erros de aplicação (Sentry) não são alerta de página: são revisados todo dia útil.
 
 ### 0.2 Restaurar o banco
 
-> **Desde a Fase 1 (ADR 0014)** o banco é Postgres. Com `postgres://`, restaure um dump do `scripts/backup.mjs`
-> (ou use o PITR do Supabase) com as credenciais no AMBIENTE (`PG*` do libpq, como `scripts/db/comando-pg-dump.mjs`),
-> nunca no argv — a linha de comando aparece em `ps` e no log do host — e só os schemas da aplicação: `--clean`
-> sem `--schema` apagaria e recriaria também `auth`, `storage` e os demais schemas do Supabase.
->
-> ```bash
-> export PGHOST=<host> PGPORT=5432 PGUSER=<usuario> PGDATABASE=<banco> PGSSLMODE=require
-> read -rs PGPASSWORD && export PGPASSWORD   # digitada, fora do histórico
-> pg_restore --clean --if-exists --schema=public --schema=drizzle -d "$PGDATABASE" <arquivo>
-> ```
->
-> Com `pglite:<dir>` (dev), pare o servidor e copie de volta o diretório do backup. Litestream e snapshot diário não existem mais
-> no servidor (`SNAPSHOT_INDISPONIVEL`); o roteiro A/B abaixo vale só para o Fly legado até a Fase 2.
-
-Há duas fontes, as duas no R2:
-
-**A. Litestream (réplica contínua, perda de ~10 s).** Para perda da máquina ou do volume.
-O caminho automático: criar um volume novo e subir a máquina — o entrypoint restaura sozinho quando
-`/data/babel.db` não existe. À mão, para CONFERIR sem tocar no banco vivo:
+O banco é o Postgres do Supabase (ADR 0014). Restaure um dump semanal do R2 (`frasy-backups`,
+`semanal/AAAA-MM-DD.dump`, ver §8) ou use o PITR do Supabase, com as credenciais no AMBIENTE (`PG*` do libpq, como
+`scripts/db/comando-pg-dump.mjs`), nunca no argv — a linha de comando aparece em `ps` e no log do host — e só os
+schemas da aplicação: `--clean` sem `--schema` apagaria e recriaria também `auth`, `storage` e os demais schemas do
+Supabase.
 
 ```bash
-fly ssh console --app babel-play
-litestream restore -config /etc/litestream.yml -o /data/restauro.db -integrity-check full /data/babel.db
-node dist-server/operacao.cjs verificar --arquivo=/data/restauro.db    # integrity_check + contagens
-rm /data/restauro.db
+export PGHOST=<host> PGPORT=5432 PGUSER=<usuario> PGDATABASE=<banco> PGSSLMODE=verify-full PGSSLROOTCERT=ca.pem
+read -rs PGPASSWORD && export PGPASSWORD   # digitada, fora do histórico
+pg_restore --list <arquivo> | head          # abre e lista, antes de tocar em qualquer banco
+pg_restore --clean --if-exists --schema=public --schema=drizzle -d "$PGDATABASE" <arquivo>
 ```
 
-Para um momento específico (antes de um erro): `-timestamp 2026-09-24T14:05:00Z` no `restore`.
+Com `pglite:<dir>` (dev), pare o servidor e copie de volta o diretório do backup.
 
-**B. Snapshot diário (uma foto por dia, 30 dias).** Para erro LÓGICO que o Litestream já replicou
-(um `DELETE` sem `WHERE`, uma migração ruim):
+**Antes de trocar o banco vivo**, restaure num banco NOVO e confira: `pg_restore --list` sem erro e as contagens das
+tabelas principais (`usuarios`, `sessoes`, …) compatíveis com o esperado. Só então:
 
-```bash
-fly ssh console --app babel-play
-node dist-server/operacao.cjs restaurar-snapshot --dia=2026-09-23 --destino=/data/restauro.db
-```
+1. ligue `CHECKOUT_ENABLED=0 SIGNUP_ENABLED=0` (`wrangler secret put`, como em §0 passo 2; ninguém
+   escreve algo que vai se perder);
+2. restaure sobre o banco vivo (comando acima) ou aponte o Hyperdrive para o banco novo;
+3. conferir `/api/ready`, religar as chaves, e anotar no pós-mortem o intervalo de dados perdido (o dump é semanal;
+   o PITR do Supabase cobre o intervalo entre dumps).
 
-**Trocar o banco vivo** (qualquer das duas fontes), depois de o `verificar` dizer `ok`:
-
-1. `fly secrets set CHECKOUT_ENABLED=0 SIGNUP_ENABLED=0` (ninguém escreve algo que vai se perder);
-2. `fly ssh console` → `mv /data/babel.db /data/babel.db.antes && mv /data/restauro.db /data/babel.db && rm -f /data/babel.db-wal /data/babel.db-shm`;
-3. `fly machine restart` — o Litestream passa a replicar o banco restaurado;
-4. conferir `/api/ready`, religar as chaves, e anotar no pós-mortem o intervalo de dados perdido.
-
-O CI restaura o Litestream a cada push (job `restauracao-litestream`) e a suíte restaura o snapshot
-(`tests/integration/snapshot-e-restauracao.test.ts`) — nenhum dos dois toca o R2 de produção. Para
-isso há dois exercícios, **um por mês**, alternados; registre cada um na tabela do fim desta seção.
-
-**C. Exercício de restauração no Fly (o dado não sai da produção).** Uma máquina TEMPORÁRIA, com um
-volume NOVO, no mesmo app — a máquina de produção e o volume `babel_dados` não são tocados:
-
-```bash
-# 1. volume novo e máquina temporária com a MESMA imagem, parada num `sleep` (sem subir o servidor
-#    e sem o entrypoint do Litestream, que restauraria sozinho e replicaria por cima)
-IMG=$(fly machines list --app babel-play --json | jq -r '.[0].config.image')
-fly volumes create restauro_drill --app babel-play --region gru --size 3 --yes
-fly machine run "$IMG" infinity --entrypoint sleep --app babel-play --region gru \
-  --volume restauro_drill:/restauro --name restauro-drill --vm-memory 1024   # sem --port: fora do tráfego
-# 2. dentro dela: restaurar as duas fontes no volume NOVO e conferir
-fly ssh console --app babel-play --machine <id da restauro-drill>
-node dist-server/operacao.cjs restaurar-snapshot --dia=$(date -u +%F) --destino=/restauro/snapshot.db
-litestream restore -config /etc/litestream.yml -o /restauro/litestream.db -integrity-check full /data/babel.db
-node dist-server/operacao.cjs verificar --arquivo=/restauro/snapshot.db
-node dist-server/operacao.cjs verificar --arquivo=/restauro/litestream.db
-exit
-# 3. as contagens do banco VIVO, para comparar (o `verificar` só lê; roda na máquina de produção)
-fly ssh console --app babel-play -C "node dist-server/operacao.cjs verificar --arquivo=/data/babel.db"
-# 4. desmontar TUDO (a máquina e o volume do exercício guardam uma cópia dos dados pessoais)
-fly machine destroy <id da restauro-drill> --force
-fly volumes destroy <id do volume restauro_drill> --yes
-```
-
-A máquina temporária herda os segredos do app (é assim que o `restaurar-snapshot` e o `litestream`
-leem as credenciais do R2). O que conferir: `integrity_check: ok` nas duas; contagens do Litestream
-iguais às do banco vivo (diferença só do que foi escrito nos segundos entre um comando e outro);
-contagens do snapshot menores ou iguais (ele é das 6h UTC). Snapshot do dia ausente = o backup diário
-parou (runbook §0.1, alerta 2).
-
-**D. Exercício pelo GitHub Actions** — _Actions → **Exercício de restauração** → Run workflow_
-(`.github/workflows/restauracao-drill.yml`). Baixa o snapshot mais recente e a réplica do Litestream
-do R2 para o runner, restaura com o mesmo código, roda `integrity_check` + contagens e publica no
-resumo; reprova se o snapshot mais recente tiver mais de 26 h. Usa um token R2 **só de leitura** no
-Environment `restauracao` (os nomes estão no cabeçalho do workflow). O banco fica só no disco efêmero
-do runner e é apagado no fim — mas sai da infraestrutura de produção; se isso não servir à política de
-dados, fique com o C.
+Para ensaiar a restauração sem tocar na produção, repita o `pg_restore` acima num banco descartável e registre o
+resultado na tabela abaixo (um ensaio por mês). O ensaio automatizado fica descrito em §8.
 
 | data                            | exercício | quem | resultado |
 | ------------------------------- | --------- | ---- | --------- |
@@ -169,61 +113,40 @@ dados, fique com o C.
 
 ### 0.3 Rollback de deploy
 
-Há três coisas que podem voltar, e só a primeira é rotineira.
+Há duas coisas que podem voltar, e só a primeira é rotineira.
 
-**1. A imagem (minutos, sem perda de dado).** O `deploy.yml` já faz sozinho quando a fumaça pós-deploy
-falha (`/api/ready` ≠ 200 ou `/api/health.versao` ≠ sha implantado): reimplanta a imagem que estava no
-ar e deixa o job vermelho. À mão, para um defeito que a fumaça não pega:
+**1. O Worker (segundos, sem perda de dado).** O `deploy-worker.yml` já faz sozinho quando a fumaça final
+falha: `wrangler rollback` para a versão anterior e o job vermelho. À mão, para um defeito que a fumaça não pega:
 
-- GitHub → Actions → **Deploy (Fly.io)** → Run workflow → destino `producao`,
-  `imagem = registry.fly.io/babel-play:<sha anterior>` (a lista sai de
-  `fly releases --image --app babel-play`). É a MESMA imagem que já esteve no ar — nada é reconstruído.
-- Pelo terminal, se o GitHub estiver fora: `fly deploy --app babel-play --image registry.fly.io/babel-play:<sha> --strategy immediate`.
+- Pelo terminal (produção é o ambiente raiz do `wrangler.jsonc`; no staging acrescente `--env staging`): `npx wrangler deployments list -c wrangler.jsonc` mostra as versões; então
+  `npx wrangler versions deploy <id-da-versão-anterior>@100% -y -c wrangler.jsonc`.
+- Pelo GitHub: Actions → **deploy-worker** → Run workflow → ambiente `production`, `ref` = o SHA (ou tag) anterior.
+  Isso rebuilda e publica o código antigo como versão nova.
 
 **O banco não volta junto**, e é por isso que o CI cobra expand/contract (`docs/versionamento.md` §3):
-uma migration nova só ACRESCENTA, então a imagem anterior roda sobre o banco migrado. Uma migration
+uma migration nova só ACRESCENTA, então a versão anterior roda sobre o banco migrado. Uma migration
 de CONTRATO (`-- CONTRATO:`) vem sempre sozinha, num deploy próprio, depois de o código já ter parado
-de usar o que ela remove — voltar a imagem de antes dela continua funcionando. Se ainda assim for
+de usar o que ela remove — voltar a versão de antes dela continua funcionando. Se ainda assim for
 preciso desfazer a migration, o comentário `REVERSAO:` dela diz como.
 
-**2. O banco a um instante (Litestream, perda de segundos).** Para "o deploy das 14h05 estragou
-dado": restaure o momento anterior ao deploy, confira, e troque o banco vivo pelo procedimento de
-§0.2 ("Trocar o banco vivo"). A hora exata do deploy está no resumo da execução do `deploy.yml`.
+**2. O banco a um instante.** Para "o deploy das 14h05 estragou dado": use o PITR do Supabase (se contratado) para
+o momento anterior ao deploy num banco novo, confira e troque pelo procedimento de §0.2. Sem PITR, o último dump
+semanal é a fonte (§0.2). A hora exata do deploy está no resumo da execução do `deploy-worker.yml`. Tudo que foi
+escrito DEPOIS do instante se perde: anote o intervalo no pós-mortem.
 
-```bash
-fly ssh console --app babel-play
-litestream restore -config /etc/litestream.yml -o /data/restauro.db -timestamp 2026-09-24T14:04:00Z /data/babel.db
-node dist-server/operacao.cjs verificar --arquivo=/data/restauro.db
-```
-
-Tudo que foi escrito DEPOIS do instante se perde: anote o intervalo no pós-mortem.
-
-**3. O volume inteiro (snapshot pré-deploy).** Todo deploy tira `fly volumes snapshots create` do
-volume antes de trocar a imagem (passo "Snapshot do volume antes do deploy" no resumo). É o caminho
-quando o Litestream também está comprometido (réplica apagada, bucket inacessível):
-
-```bash
-fly volumes snapshots list <id do volume babel_dados>          # o do horário do deploy
-fly volumes create babel_dados --snapshot-id <id> --app babel-play --region gru --size 3 --yes
-# com CHECKOUT_ENABLED=0 SIGNUP_ENABLED=0: destruir a máquina atual e subir uma nova montando o volume
-# restaurado (fly deploy com a imagem anterior); conferir /api/ready; religar as chaves
-```
-
-O volume antigo continua existindo até ser destruído à mão — não destrua antes de o restaurado estar
-conferido. A ordem de preferência é 1 → 2 → 3: cada passo perde mais tempo e, no 3, mais dado.
+A ordem de preferência é 1 → 2: o segundo passo perde dado.
 
 ### 0.4 Quando um fornecedor cai
 
-| cai                      | o que o usuário vê                                                                | o que fazer                                                                                                                                                                                                                                                 |
-| ------------------------ | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Groq**                 | tradução/tutor ficam mais lentos por 30 s e passam para a reserva                 | nada — o disjuntor (§5) manda para a OpenRouter. Se a reserva também cair: `AI_ENABLED=0` e aviso na página de status                                                                                                                                       |
-| **OpenRouter** (reserva) | nada, enquanto a Groq estiver de pé                                               | conferir o crédito pré-pago (sem recarga automática, ele acaba)                                                                                                                                                                                             |
-| **Asaas**                | checkout e cancelamento falham com mensagem; quem assina continua com acesso      | `CHECKOUT_ENABLED=0` se passar de 30 min; o Asaas reentrega os webhooks que não receberam 200 (idempotente)                                                                                                                                                 |
-| **Supabase**             | ninguém novo entra; quem está logado segue até o token vencer (1 h)               | nada a fazer do nosso lado; página de status. O servidor valida o token pelo JWKS em cache                                                                                                                                                                  |
-| **Fly.io** (região GRU)  | fora do ar                                                                        | status.flyio.net; se passar de 2 h, subir em outra região restaurando do Litestream (volume novo + `fly deploy`)                                                                                                                                            |
-| **Cloudflare**           | fora do ar                                                                        | status do Cloudflare; em último caso, DNS direto para o Fly (tira o WAF: religue assim que voltar) e remova `ORIGEM_SEGREDO` enquanto isso                                                                                                                  |
-| **R2**                   | áudio novo não grava (upload 503); o resto do app segue no ar; backup atrasa      | `/api/ready` segue 200 com `status: degradado` e `armazenamento: indisponivel` (ADR 0009); alerta pela métrica `ready_dependencia_degradada_total` / log warn `ready_armazenamento_indisponivel`; página de status; o Litestream reenvia quando o R2 voltar |
-| **Resend** (e-mail)      | e-mail de confirmação, recuperação de senha e o convite ao responsável não chegam | status do Resend; o Supabase reenvia pelo botão "reenviar"; se passar de horas, troque o SMTP do Supabase para outro provedor (SES)                                                                                                                         |
+| cai                      | o que o usuário vê                                                                | o que fazer                                                                                                                                                                                                                                                            |
+| ------------------------ | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Groq**                 | tradução/tutor ficam mais lentos por 30 s e passam para a reserva                 | nada — o disjuntor (§5) manda para a OpenRouter. Se a reserva também cair: `AI_ENABLED=0` e aviso na página de status                                                                                                                                                  |
+| **OpenRouter** (reserva) | nada, enquanto a Groq estiver de pé                                               | conferir o crédito pré-pago (sem recarga automática, ele acaba)                                                                                                                                                                                                        |
+| **Asaas**                | checkout e cancelamento falham com mensagem; quem assina continua com acesso      | `CHECKOUT_ENABLED=0` se passar de 30 min; o Asaas reentrega os webhooks que não receberam 200 (idempotente)                                                                                                                                                            |
+| **Supabase**             | ninguém novo entra; quem está logado segue até o token vencer (1 h)               | nada a fazer do nosso lado; página de status. O servidor valida o token pelo JWKS em cache                                                                                                                                                                             |
+| **Cloudflare** (Workers) | fora do ar                                                                        | cloudflarestatus.com; não há segunda hospedagem no ar. O plano de contingência é subir a imagem Docker (`Dockerfile`, Node + Postgres por `DATABASE_URL`) em uma VPS e apontar o DNS para ela                                                                          |
+| **R2**                   | áudio novo não grava (upload 503); o resto do app segue no ar; backup atrasa      | `/api/ready` segue 200 com `status: degradado` e `armazenamento: indisponivel` (ADR 0009); alerta pela métrica `ready_dependencia_degradada_total` / log warn `ready_armazenamento_indisponivel`; página de status; o upload volta a gravar sozinho quando o R2 voltar |
+| **Resend** (e-mail)      | e-mail de confirmação, recuperação de senha e o convite ao responsável não chegam | status do Resend; o Supabase reenvia pelo botão "reenviar"; se passar de horas, troque o SMTP do Supabase para outro provedor (SES)                                                                                                                                    |
 
 ### 0.5 Custo fora do previsto — o orçamento de IA
 
@@ -242,11 +165,11 @@ issue changes state"_ com o filtro `tags.event` em `ia_orcamento_alerta_80, ia_o
 → e-mail imediato. (No Axiom, se entrar: monitor de contagem `event == "ia_orcamento_*"` > 0 em 5 min.)
 
 Ao receber o de 80 %: olhe o painel do Groq/OpenRouter (quem está gastando? abuso?) e decida entre
-subir o orçamento (`fly secrets set AI_BUDGET_USD_MONTH=…`) ou deixar fechar. O teto do painel do
+subir o orçamento (`npx wrangler secret put AI_BUDGET_USD_MONTH -c wrangler.jsonc`) ou deixar fechar. O teto do painel do
 Groq e o crédito pré-pago sem recarga da OpenRouter são a segunda e a terceira barreira: mesmo que a
 estimativa erre, o provedor corta.
 
-## Fly, Supabase e Sentry têm alerta de fatura no painel — ligue os três (LANCAMENTO.md).
+## Cloudflare, Supabase e Sentry têm alerta de fatura no painel — ligue os três (LANCAMENTO.md).
 
 ## 1. As duas perguntas de saúde, e por que são duas
 
@@ -259,7 +182,7 @@ As duas são **públicas**: uma sonda de orquestrador não tem token. `ready` re
 pronto e `503` quando não.
 
 **O armazenamento externo (R2) não reprova o `ready`** (ADR 0009). Com uma máquina só, reprovar
-tirava o serviço inteiro do roteamento do Fly porque o áudio não gravava. Agora, com o R2 fora, o
+tirava o serviço inteiro do balanceador porque o áudio não gravava. Agora, com o R2 fora, o
 `ready` segue `200` com `status: "degradado"` e `armazenamento: "indisponivel"`, o upload de áudio
 responde `503` sozinho, e o aviso vem pelo log `warn` `ready_armazenamento_indisponivel` e pela
 métrica `ready_dependencia_degradada_total{dependencia="armazenamento"}` — é nela que se põe o
@@ -287,6 +210,15 @@ curl -s https://<host>/api/ready | jq .
 Uma **linha JSON por evento**, no stdout. O logger tem allowlist de campos: chave fora da lista é
 descartada, o que é a garantia — por construção — de que transcrição, prompt e chave de API não vão
 para o diário.
+
+No Worker, o mesmo diário sai pelo `wrangler tail` e pelo painel da Cloudflare (Workers → `frasy` → Logs; a
+observabilidade está ligada em `wrangler.jsonc`):
+
+```bash
+npx wrangler tail -c wrangler.jsonc               # produção (ambiente raiz); no staging, acrescente --env staging
+```
+
+No self-host (Docker):
 
 ```bash
 docker logs babel-play 2>&1 | jq -c 'select(.level=="error")'
@@ -328,14 +260,12 @@ jogo, atrás do auth).
 curl -s -H "Authorization: Bearer $METRICS_TOKEN" https://<host>/metrics | head -40
 ```
 
-**Porta interna 9091 (aposentada, Task 10 da Fase 2).** Até então o `fly.toml` ligava
-`METRICS_PORTA_INTERNA=9091` e o bloco `[metrics]` mandava o Prometheus gerenciado do Fly raspar um
-listener próprio, sem token. Esse listener não existe mais (`METRICS_PORTA_INTERNA` é ignorada): o
-`/metrics` mora sempre na porta do app, e em produção `METRICS_ENABLED=1` **exige** `METRICS_TOKEN`
-(o boot aborta sem). Um raspador que manda `Authorization: Bearer` (agente próprio, Grafana Alloy) é o
-caminho; o `[metrics]` do `fly.toml` está marcado como legado e sai na Fase 5 junto com o Fly. Num
-Worker, o `/metrics` não existe: as 6 famílias de métricas vão para o Analytics Engine (seção 3.1, Fase 4). Os dados do painel do Fly
-(`ops/dashboards/babel-play.json`) e as regras de `ops/alertas/regras.yml` seguem valendo para quem raspa.
+**Porta interna 9091 (aposentada, Task 10 da Fase 2).** O listener próprio sem token não existe mais
+(`METRICS_PORTA_INTERNA` é ignorada): o `/metrics` mora sempre na porta do app, e em produção
+`METRICS_ENABLED=1` **exige** `METRICS_TOKEN` (o boot aborta sem). Um raspador que manda
+`Authorization: Bearer` (agente próprio, Grafana Alloy) é o caminho. Num Worker, o `/metrics` não existe: as 6
+famílias de métricas vão para o Analytics Engine (seção 3.1). O painel (`ops/dashboards/babel-play.json`) e as
+regras de `ops/alertas/regras.yml` valem para quem raspa o `/metrics` (self-host).
 
 **Cada instância tem o seu `/metrics`** (o cluster saiu; escala-se por instâncias). O header
 `x-metrics-processo` e a métrica `processo_info` dizem qual respondeu; some por `sum(...)`.
@@ -408,8 +338,7 @@ GROUP BY job ORDER BY falhas DESC
 ## 4. Reiniciar, atualizar e parar
 
 O servidor trata `SIGTERM` e `SIGINT`: para de aceitar conexões, **drena as em curso** (teto de
-`DESLIGAMENTO_TIMEOUT_MS`, padrão 10.000 ms), faz `PRAGMA wal_checkpoint(TRUNCATE)`, fecha o banco e
-sai com `0`. Estourado o teto, sai com `1` — a requisição foi abandonada, e o código de saída é o
+`DESLIGAMENTO_TIMEOUT_MS`, padrão 10.000 ms), fecha o banco e sai com `0`. Estourado o teto, sai com `1` — a requisição foi abandonada, e o código de saída é o
 único canal para dizer isso.
 
 O padrão de 10 s é o prazo que o `docker stop` dá antes do `SIGKILL`; um teto maior nunca chegaria a
@@ -417,27 +346,20 @@ ser usado. Se você roda com `docker stop -t` menor ou `terminationGracePeriodSe
 ajuste a variável junto.
 
 ```bash
-docker stop babel-play          # SIGTERM, drena, checkpoint, sai 0
+docker stop babel-play          # SIGTERM, drena, sai 0
 docker compose up -d --build    # atualizar
 ```
 
-Medido em 2026-09-09, sobre uma cópia do banco real: o dreno leva **1–3 ms**; o `-wal` de 659.232
-bytes é dobrado no `.db` pelo checkpoint e zerado.
+Este roteiro vale para o self-host em Node. No Worker não há processo para parar: o deploy troca a versão (§0.3).
 
 **Jobs periódicos** (limpezas, podas, reconciliação): `npm run job` lista, `npm run job -- <nome>` roda um à mão; um job "preso" (`job_pulado` com `situacao: em_andamento` sem passada rodando) se resolve sozinho em 15 min, quando a lease em `travas` (`g:job:<nome>`) vence. Tabela e mecanismo em [`docs/deploy.md`](deploy.md), "Jobs periódicos".
 
 ### Se o processo morrer de morte matada (`kill -9`, OOM)
 
-Medido: `health` volta a `200` em **~1,6 s** com supervisor (`restart: unless-stopped`), e o teste
-de perda registrou **zero** requisições que o cliente viu como `2xx` sem a linha correspondente no
-banco. `PRAGMA integrity_check` devolveu `ok`. Requisições cortadas no meio (sem `2xx`) são
-aceitáveis: o cliente repete.
-
-Para reproduzir a medição:
-
-```bash
-node scripts/perf/recuperacao.mjs --db=<COPIA.db> --porta=3104 --carga=30 --matar=10
-```
+Medido (em SQLite, set/2026): `health` volta a `200` em **~1,6 s** com supervisor (`restart: unless-stopped`), e o
+teste de perda registrou **zero** requisições que o cliente viu como `2xx` sem a linha correspondente no banco.
+Requisições cortadas no meio (sem `2xx`) são aceitáveis: o cliente repete. Com Postgres o commit é do servidor de
+banco: um processo Node morto não corrompe nada.
 
 ---
 
@@ -463,13 +385,19 @@ o que atrasa a falha sem evitá-la.
 
 ## 6. Rotação de segredos
 
-| segredo                       | onde                                             | ao rotacionar                                                                           |
-| ----------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| `SECRET_KEY`                  | cifra as credenciais de IA guardadas por usuário | **as credenciais existentes deixam de abrir.** Não rotacione sem plano de recifra       |
-| `LLM_API_KEY` / `STT_API_KEY` | chave gerenciada do dono                         | troca e reinicia; nada persistido depende dela                                          |
-| `ASAAS_WEBHOOK_TOKEN`         | autentica o webhook de cobrança                  | trocar dos dois lados na mesma janela; o Asaas reentrega o evento que não recebeu `200` |
-| `SUPABASE_JWT_SECRET` / JWKS  | verifica o token de login                        | invalida as sessões em voo                                                              |
-| `METRICS_TOKEN`               | protege o scrape                                 | trocar aqui e no scraper                                                                |
+| segredo                       | onde                                                             | ao rotacionar                                                                           |
+| ----------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `SECRET_KEY`                  | cifra as credenciais de IA guardadas por usuário                 | **as credenciais existentes deixam de abrir.** Não rotacione sem plano de recifra       |
+| `LLM_API_KEY` / `STT_API_KEY` | chave gerenciada do dono                                         | troca e reinicia; nada persistido depende dela                                          |
+| `ASAAS_WEBHOOK_TOKEN`         | autentica o webhook de cobrança                                  | trocar dos dois lados na mesma janela; o Asaas reentrega o evento que não recebeu `200` |
+| `SUPABASE_JWT_SECRET` / JWKS  | verifica o token de login                                        | invalida as sessões em voo                                                              |
+| `METRICS_TOKEN`               | protege o scrape                                                 | trocar aqui e no scraper                                                                |
+| `SECRET_KEY` do Worker        | formato `hkdf:<64 hex>` (`docs/deploy.md`, "Gerar a SECRET_KEY") | mesma regra da linha da `SECRET_KEY`: trocar invalida o que está cifrado                |
+
+**Como trocar no Worker.** Um secret: `npx wrangler secret put NOME -c wrangler.jsonc` (produção é o ambiente raiz;
+o staging leva `--env staging`). Vários: preencha `.secrets.<ambiente>.json` (ignorado pelo git) e rode
+`npx tsx scripts/cloudflare/secrets.ts <staging|production>` (`--dry-run` só confere os nomes). O valor vale a
+partir da próxima requisição.
 
 O histórico do repositório é varrido por `gitleaks` a cada push (`.github/workflows/seguranca.yml`).
 A allowlist é por **valor** e não por caminho, para não abrir um arquivo inteiro; hoje ela tem uma
@@ -503,7 +431,6 @@ existir **em silêncio**.
 ## 8. Banco
 
 ```bash
-# SQLite legado (Fly): sqlite3 <banco> 'PRAGMA integrity_check;' (ok) e 'PRAGMA foreign_key_check;' (vazio)
 # Postgres: pg_restore --list <dump>; /api/health devolve banco: 'postgres' (ou 'pglite' em dev)
 node scripts/backup.mjs                        # cópia consistente
 ```
@@ -543,7 +470,7 @@ ALTER TABLE travas SET (fillfactor = 50);
 SELECT reloptions FROM pg_class WHERE relname = 'travas';   -- {fillfactor=50}
 ```
 
-Nunca aponte um script de medição para `data/babel.db`: todos eles escrevem de verdade. Use cópia.
+Nunca aponte um script de medição para o banco de produção: todos eles escrevem de verdade. Use cópia.
 
 ---
 
@@ -571,14 +498,13 @@ req/s no banco já engordado. Comparar corridas sobre bancos de tamanhos diferen
 
 ## 10. Sintomas conhecidos
 
-| sintoma                                                         | causa provável                                                                                                                | o que fazer                                                                           |
-| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `/api/ready` em 503 e `/api/health` em 200                      | banco inalcançável, migração pendente ou boot incompleto (S3 recusando dá `200` + `degradado`, não 503)                       | ler o corpo do `ready`, que nomeia o item                                             |
-| `429` em massa de uma origem só                                 | balde de autenticação estourado (§7)                                                                                          | conferir `TRUST_PROXY`; a janela é de 15 min                                          |
-| gráficos de `/metrics` oscilando entre patamares                | scrape alternando de instância (§3)                                                                                           | ler `x-metrics-processo`                                                              |
-| tradução lenta e depois instantânea falhando                    | disjuntor abriu (§5)                                                                                                          | ver o log do provedor; a reserva assume                                               |
-| `SQLITE_ERROR: too many SQL variables` ao salvar sessão         | **defeito conhecido**: o schema aceita 5.000 falas e o repositório grava tudo num `batch` só. Medido: 1.500 passam, 2.000 não | quebrar a sessão em partes menores; o conserto está registrado no relatório da Fase 5 |
-| `ECONNREFUSED` disparando centenas de conexões novas de uma vez | limite do **cliente**, não do servidor (medido: com o pool quente o mesmo servidor atende 300 simultâneas)                    | mandar em ondas                                                                       |
+| sintoma                                                         | causa provável                                                                                             | o que fazer                                  |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `/api/ready` em 503 e `/api/health` em 200                      | banco inalcançável, migração pendente ou boot incompleto (S3 recusando dá `200` + `degradado`, não 503)    | ler o corpo do `ready`, que nomeia o item    |
+| `429` em massa de uma origem só                                 | balde de autenticação estourado (§7)                                                                       | conferir `TRUST_PROXY`; a janela é de 15 min |
+| gráficos de `/metrics` oscilando entre patamares                | scrape alternando de instância (§3)                                                                        | ler `x-metrics-processo`                     |
+| tradução lenta e depois instantânea falhando                    | disjuntor abriu (§5)                                                                                       | ver o log do provedor; a reserva assume      |
+| `ECONNREFUSED` disparando centenas de conexões novas de uma vez | limite do **cliente**, não do servidor (medido: com o pool quente o mesmo servidor atende 300 simultâneas) | mandar em ondas                              |
 
 ---
 
@@ -599,7 +525,7 @@ req/s no banco já engordado. Comparar corridas sobre bancos de tamanhos diferen
 | o quê                                                                      | onde                             | sintoma quando falta                                                                  |
 | -------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------- |
 | `TRUST_PROXY` declarada em produção                                        | `server/lib/config.ts`           | boot aborta com a instrução                                                           |
-| `ORIGEM_SEGREDO` (cabeçalho do Cloudflare)                                 | `server/http/origemProtegida.ts` | acesso direto a `*.fly.dev` recebe 403; as sondas passam                              |
+| `ORIGEM_SEGREDO` (cabeçalho do Cloudflare)                                 | `server/http/origemProtegida.ts` | acesso direto à origem (sem passar pelo Cloudflare) recebe 403; as sondas passam      |
 | corpo JSON de 100 KB antes do login, 5 MB só em rotas listadas depois dele | `server/http/limitesDeCorpo.ts`  | `413 corpo_grande_demais`                                                             |
 | 2FA (AAL2) nas rotas sensíveis para quem o ativou                          | `server/lib/aal.ts`              | `403 aal2_requerido`; `503 aal_indisponivel` se a Admin API do Supabase não responder |
 | CSP com `connect-src` fechado                                              | `server/http/csp.ts`             | recurso bloqueado no console do navegador — um host novo precisa entrar na lista      |
@@ -611,7 +537,7 @@ req/s no banco já engordado. Comparar corridas sobre bancos de tamanhos diferen
 Entraram na Fase 5 de prontidão (25/09/2026). Cada regra do arquivo tem `runbook_url` apontando para
 uma âncora daqui (o teste `tests/integration/alertas-e-painel.test.ts` cobra que ela exista).
 Severidade: **página** = agir em minutos; **aviso** = no mesmo dia útil; **planejamento** = na semana
-(gatilhos de `docs/escala.md`).
+(`docs/escala.md`).
 
 **Como silenciar, em geral.** No Grafana: _Alerting → Silences → New silence_, com o matcher
 `alertname=<nome>` e uma duração — **sempre** com comentário dizendo por quê e até quando. No
@@ -624,18 +550,18 @@ alerta apagado; se a regra está errada, corrija o `regras.yml` (com teste) em v
 
 - **Significa:** o servidor está falhando em respostas que deveria dar (erro nosso, banco, provedor
   sem tratamento). Só dispara com tráfego mínimo (> 3 req/min) para 1 erro em 2 pedidos não acordar ninguém.
-- **Primeira ação:** painel "Erros por rota" → qual rota; Sentry → a exceção; `fly logs` filtrando
-  `"level":"error"`. Se começou num deploy, **rollback** (§0.3) antes de investigar.
+- **Primeira ação:** painel "Erros por rota" → qual rota; Sentry → a exceção; `wrangler tail` (ou o painel de
+  Logs da Cloudflare) filtrando `"level":"error"`. Se começou num deploy, **rollback** (§0.3) antes de investigar.
 - **Silenciar:** só durante um rollback em andamento (30 min).
 
 <a id="alerta-latencia-p95"></a>
 
 ### 13.2 `BabelLatenciaP95Alta` — p95 fora da IA acima de 1 s por 10 min (aviso)
 
-- **Significa:** o processo está saturado (CPU do `shared-cpu` sem saldo, rotas caras — `vocab`,
+- **Significa:** o processo está saturado (CPU sem folga, rotas caras — `vocab`,
   `profile`, `gastar` — em rajada) ou o banco está lento. A IA fica de fora: o p95 dela é de segundos.
-- **Primeira ação:** painel "p95 por rota" (qual rota) e "CPU" (estrangulada?). Se é CPU, é o passo 1
-  de `docs/escala.md` (`fly scale vm performance-1x`). Se é uma rota, `BabelEventLoopTravado` costuma
+- **Primeira ação:** painel "p95 por rota" (qual rota) e "CPU" (estrangulada?). Se é CPU, veja o passo 1
+  de `docs/escala.md` (no Worker, CPU-ms por requisição; no self-host, uma instância maior). Se é uma rota, `BabelEventLoopTravado` costuma
   disparar junto.
 - **Silenciar:** durante carga planejada (teste de carga), pela duração do teste.
 
@@ -644,11 +570,9 @@ alerta apagado; se a regra está errada, corrija o `regras.yml` (com teste) em v
 ### 13.3 `BabelEventLoopTravado` — p99 do atraso do event loop acima de 500 ms (página)
 
 - **Significa:** algo **síncrono** está segurando o único processo — e ninguém é atendido enquanto
-  isso. A Fase 2 mediu o driver libsql prendendo o loop pela consulta inteira e o snapshot antigo
-  travando 20–34 s.
-- **Primeira ação:** coincide com o horário do backup (`BACKUP_HORA_UTC`)? Veja o `backup_diario_*` no
-  log. Senão, painel "p95 por rota" para achar a rota cara e o "Banco: p95 da consulta". Se o
-  `/api/ready` começar a falhar, o Fly tira a máquina do roteamento — `fly machine restart` alivia, não cura.
+  isso. A Fase 2 mediu o driver libsql (SQLite, já removido) prendendo o loop pela consulta inteira.
+- **Primeira ação:** painel "p95 por rota" para achar a rota cara e o "Banco: p95 da consulta". Se o
+  `/api/ready` começar a falhar, o balanceador tira a instância do roteamento — reiniciar o container alivia, não cura.
 - **Silenciar:** não. Se for falso positivo, ajuste o limiar no `regras.yml`.
 
 <a id="alerta-ready-degradado"></a>
@@ -656,7 +580,7 @@ alerta apagado; se a regra está errada, corrija o `regras.yml` (com teste) em v
 ### 13.4 `BabelReadyDegradado` — `/api/ready` achou o armazenamento fora (aviso)
 
 - **Significa:** o R2/S3 não respondeu à sonda (ADR 0009). O site segue no ar; áudio novo não grava,
-  backup e Litestream atrasam.
+  o upload volta sozinho quando o R2 voltar.
 - **Primeira ação:** status da Cloudflare (R2); linha **R2** da tabela do §0.4.
 - **Silenciar:** pela duração do incidente declarado pela Cloudflare.
 
@@ -664,9 +588,9 @@ alerta apagado; se a regra está errada, corrija o `regras.yml` (com teste) em v
 
 ### 13.5 `BabelMetricasAusentes` — nenhum scrape há 10 min (aviso)
 
-- **Significa:** sem métricas, nenhum outro alerta daqui dispara. A máquina está fora, o
+- **Significa:** sem métricas, nenhum outro alerta daqui dispara. O servidor está fora, o
   `METRICS_ENABLED` saiu do ambiente, o token do raspador não confere ou o alvo do raspador mudou (a 9091 foi aposentada).
-- **Primeira ação:** `fly status`; `curl -s -H "Authorization: Bearer $METRICS_TOKEN" https://<host>/metrics | head`.
+- **Primeira ação:** `docker ps` (self-host); `curl -s -H "Authorization: Bearer $METRICS_TOKEN" https://<host>/metrics | head`.
 - **Silenciar:** durante manutenção planejada com a máquina parada.
 
 <a id="alerta-provedor-429"></a>
@@ -695,7 +619,7 @@ alerta apagado; se a regra está errada, corrija o `regras.yml` (com teste) em v
 ### 13.8 `BabelDisjuntorAberto` — disjuntor de provedor aberto há 2 min (aviso)
 
 - **Significa:** um provedor falhou 5 vezes seguidas e está sendo pulado por janelas de 30 s (§5).
-- **Primeira ação:** status do Groq/OpenRouter; `fly logs` com `mt_indisponivel`/`stt_upstream_erro`.
+- **Primeira ação:** status do Groq/OpenRouter; o log (`wrangler tail`) com `mt_indisponivel`/`stt_upstream_erro`.
   Se a reserva também cair: `AI_ENABLED=0` e aviso na página de status (§0.4).
 - **Silenciar:** pela duração do incidente do provedor.
 
@@ -709,7 +633,7 @@ alerta apagado; se a regra está errada, corrija o `regras.yml` (com teste) em v
   `ia_orcamento_alerta_80`/`_esgotado` (Sentry, §0.5).
 - **Primeira ação:** painel "Custo por plano (24 h)" e "Gasto anômalo por usuário" — é crescimento
   legítimo ou abuso? `GET /api/admin/ia` mostra o dia e o mês. Legítimo: suba o teto
-  (`fly secrets set AI_BUDGET_USD_DAY=…`). Abuso: veja §13.10.
+  (`npx wrangler secret put AI_BUDGET_USD_DAY -c wrangler.jsonc`). Abuso: veja §13.10.
 - **Silenciar:** o de 80 % até a virada do período, depois de decidido; o de 100 % não se silencia —
   ou sobe o teto, ou aceita a nuvem fechada até a virada.
 
@@ -732,27 +656,16 @@ alerta apagado; se a regra está errada, corrija o `regras.yml` (com teste) em v
 ### 13.11 `BabelUploadsNoTeto` — semáforo de uploads grandes cheio por 10 min (aviso)
 
 - **Significa:** `UPLOADS_GRANDES_POR_PROCESSO` (padrão 2) uploads grandes em voo o tempo todo, e
-  gente recebendo 429 `upload_ocupado`. O teto existe porque 4 uploads de 120 MB derrubavam a VM de 1 GB.
+  gente recebendo 429 `upload_ocupado`. O teto existe porque 4 uploads de 120 MB derrubavam uma VM de 1 GB.
 - **Primeira ação:** é um usuário só repetindo (motivo `usuario`) ou demanda real (`processo`)? Demanda
-  real: suba a memória (`fly scale memory 2048`) **e depois** o teto do semáforo — nunca o contrário.
+  real: suba a memória do container (self-host; o Worker tem limite fixo) **e depois** o teto do semáforo — nunca o contrário.
 - **Silenciar:** durante uma importação em massa planejada.
 
 <a id="alerta-memoria"></a>
 
 ### 13.12 `BabelMemoriaAlta` — RSS acima de 80 % de 1 GB por 10 min (aviso)
 
-- **Significa:** perto do OOM do Fly, que mata a única máquina (queda de ~20 s + boot).
-- **Primeira ação:** coincide com uploads (§13.11) ou com o snapshot? Se é crescimento contínuo, é
-  vazamento: `fly machine restart` e abrir defeito. Se é carga, passo 2 de `docs/escala.md`
-  (`fly scale memory 2048`).
+- **Significa:** perto do OOM do container (self-host com limite de 1 GB), que mata o processo.
+- **Primeira ação:** coincide com uploads (§13.11)? Se é crescimento contínuo, é
+  vazamento: reinicie o container e abra defeito. Se é carga, suba a memória (`docs/escala.md`).
 - **Silenciar:** não; ajuste o limiar se a VM mudar de tamanho.
-
-<a id="alerta-escala"></a>
-
-### 13.14 `BabelEscala*` — gatilhos de escala a 70 % (planejamento)
-
-- **Significa:** CPU estrangulada pelo Fly há 30 min (`BabelEscalaCpuEstrangulada`), escritas no
-  SQLite acima de 35/s sustentadas (`BabelEscalaEscritasSQLite`) ou banco acima de 3,5 GB
-  (`BabelEscalaBancoGrande`). Não é incidente: é o aviso para decidir o próximo passo com calma.
-- **Primeira ação:** `docs/escala.md` — qual passo este sinal dispara, o custo e o comando.
-- **Silenciar:** por uma semana, com a decisão anotada no comentário do silêncio.

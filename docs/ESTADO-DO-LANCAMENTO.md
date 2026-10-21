@@ -1,7 +1,7 @@
 # Estado do lançamento — o que vale hoje
 
 Atualizado em **2026-10-18** (a seção 0 resume o que mudou desde 02/10; o resto segue como estava). Índice de uma página: cada linha aponta para a fonte e não a repete. Se
-este documento e o código divergirem, **o código vence** (`src/core/planos.ts`, `fly.toml`,
+este documento e o código divergirem, **o código vence** (`src/core/planos.ts`, `wrangler.jsonc`,
 `server/lib/config.ts`).
 
 ## 0. O que mudou desde 02/10 (auditoria de 17–18/10/2026)
@@ -12,23 +12,23 @@ este documento e o código divergirem, **o código vence** (`src/core/planos.ts`
 - **Tradução no aparelho:** Bergamot traduz X→inglês em 15 idiomas a partir do CDN (R2), com o opus-mt de reserva — **liga só quando o dono publica os modelos** ([LANCAMENTO.md §2, passo 8](LANCAMENTO.md)).
 - **Dependências:** atualizações seguras do dependabot aplicadas; majors e o motor local ficaram de fora de propósito (typescript 7, vite 8, vitest 5, onnxruntime-web, `@libsql/client`, `@huggingface/transformers` 4.3.1 — este quebra o teste de uma cópia só do `onnxruntime-web`).
 - **Branches:** o modo intérprete foi mesclado (quase tudo já estava na `main`); `feat/redesign-v3` e `feat/redesign-design-system-v3` **não** foram mescladas (de 11/09, 1.017 commits atrás, a `main` segue o desenho Quest).
-- **Ainda não provado:** login e pagamento reais (nunca rodaram em ambiente real), o deploy no Fly (nunca feito), os E2E com conta real e o intérprete num Chrome real com e sem o pacote de voz do inglês (item 8.6 de `modo-interprete`).
+- **Ainda não provado:** login e pagamento reais (nunca rodaram em ambiente real), o deploy de produção no Worker (só o staging rodou), os E2E com conta real e o intérprete num Chrome real com e sem o pacote de voz do inglês (item 8.6 de `modo-interprete`).
 
 ## 1. Decisões fixadas
 
-| Decisão                                                                                                              | Fonte                                                                                                                                                                                    |
-| -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dois planos: **Grátis** e **Premium** (um plano pago só). Um 3º nível "Ao vivo" (streaming) só depois do lançamento. | [ADR 0011](adr/0011-um-plano-pago-com-uso-justo-diario.md) (aceito em 02/10) · `src/core/planos.ts`                                                                                      |
-| Premium **R$ 19,90/mês**, **R$ 179/ano** à vista, ou **R$ 179 em 12x só no cartão** (não renova).                    | `PLAN_MATRIX`, `PARCELAS_DO_ANUAL` · [monetizacao.md §3](monetizacao.md)                                                                                                                 |
-| **Teste de 14 dias** sem cartão, um por pessoa, nunca cobra sozinho.                                                 | `DIAS_DO_TESTE_PREMIUM` · `server/lib/testePremium.ts`                                                                                                                                   |
-| **Uso justo**: 2 h/dia e 40 h/mês de nuvem; passou, a legenda segue no aparelho, sem venda (429, nunca 402).         | `PLAN_MATRIX.premium.quotas` · [spec `matriz-de-planos`](../openspec/specs/matriz-de-planos/spec.md)                                                                                     |
-| Nomes antigos `essencial`/`pro` são lidos como `premium`.                                                            | `PLANOS_LEGADOS`, `normalizarPlano`                                                                                                                                                      |
-| Na tela: Grátis = "Tradução rápida ao vivo", Premium = "Tradução Nuance". Proibido "qualidade", "%", "mais precisa". | [change `planos-v2`](../openspec/changes/planos-v2/tasks.md) (C7) · [ofertas.md](ofertas.md)                                                                                             |
-| Pagamento: **Asaas**; quem concede o plano é o webhook, pelo valor pago. Pix Automático desligado.                   | [LANCAMENTO.md §6](LANCAMENTO.md) · [spec `pagamento-nunca-perdido`](../openspec/specs/pagamento-nunca-perdido/spec.md)                                                                  |
-| Infra: Fly.io GRU (1 máquina) + SQLite/Litestream → R2 + Supabase (login) + Cloudflare + Resend + Sentry.            | [LANCAMENTO.md](LANCAMENTO.md) · `fly.toml` · ADRs [0006](adr/0006-sqlite-numa-maquina-ate-o-gatilho-de-postgres.md), [0009](adr/0009-audio-no-r2-com-retencao-e-varredura-de-orfaos.md) |
-| IA: hoje **OpenRouter** (retenção zero; a Groq está sem créditos), o aparelho como piso. **Nunca Gemini.**           | [ADR 0008](adr/0008-groq-principal-com-reserva-e-degradacao-local.md) · [LANCAMENTO.md §5](LANCAMENTO.md)                                                                                |
-| Público: **todas as idades**, com perfil protegido para menores (não compra, não recebe oferta).                     | `public/privacidade.html`, `public/termos.html` · [monetizacao.md §3](monetizacao.md)                                                                                                    |
-| Custo fixo: **≈ R$ 199/mês** (sem Langfuse).                                                                         | [LANCAMENTO.md — Custo mensal](LANCAMENTO.md#custo-mensal) (a única fonte) · `scripts/custo/modelo.mjs`                                                                                  |
+| Decisão                                                                                                              | Fonte                                                                                                                                                                                                                                    |
+| -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dois planos: **Grátis** e **Premium** (um plano pago só). Um 3º nível "Ao vivo" (streaming) só depois do lançamento. | [ADR 0011](adr/0011-um-plano-pago-com-uso-justo-diario.md) (aceito em 02/10) · `src/core/planos.ts`                                                                                                                                      |
+| Premium **R$ 19,90/mês**, **R$ 179/ano** à vista, ou **R$ 179 em 12x só no cartão** (não renova).                    | `PLAN_MATRIX`, `PARCELAS_DO_ANUAL` · [monetizacao.md §3](monetizacao.md)                                                                                                                                                                 |
+| **Teste de 14 dias** sem cartão, um por pessoa, nunca cobra sozinho.                                                 | `DIAS_DO_TESTE_PREMIUM` · `server/lib/testePremium.ts`                                                                                                                                                                                   |
+| **Uso justo**: 2 h/dia e 40 h/mês de nuvem; passou, a legenda segue no aparelho, sem venda (429, nunca 402).         | `PLAN_MATRIX.premium.quotas` · [spec `matriz-de-planos`](../openspec/specs/matriz-de-planos/spec.md)                                                                                                                                     |
+| Nomes antigos `essencial`/`pro` são lidos como `premium`.                                                            | `PLANOS_LEGADOS`, `normalizarPlano`                                                                                                                                                                                                      |
+| Na tela: Grátis = "Tradução rápida ao vivo", Premium = "Tradução Nuance". Proibido "qualidade", "%", "mais precisa". | [change `planos-v2`](../openspec/changes/planos-v2/tasks.md) (C7) · [ofertas.md](ofertas.md)                                                                                                                                             |
+| Pagamento: **Asaas**; quem concede o plano é o webhook, pelo valor pago. Pix Automático desligado.                   | [LANCAMENTO.md §6](LANCAMENTO.md) · [spec `pagamento-nunca-perdido`](../openspec/specs/pagamento-nunca-perdido/spec.md)                                                                                                                  |
+| Infra: Cloudflare Workers (Hyperdrive) + Postgres do Supabase em SP + R2 (mídia e backup semanal) + Resend + Sentry. | [LANCAMENTO.md](LANCAMENTO.md) · [ADR 0015](adr/0015-cloudflare-workers-no-lugar-do-fly.md) · ADRs [0006](adr/0006-sqlite-numa-maquina-ate-o-gatilho-de-postgres.md), [0009](adr/0009-audio-no-r2-com-retencao-e-varredura-de-orfaos.md) |
+| IA: hoje **OpenRouter** (retenção zero; a Groq está sem créditos), o aparelho como piso. **Nunca Gemini.**           | [ADR 0008](adr/0008-groq-principal-com-reserva-e-degradacao-local.md) · [LANCAMENTO.md §5](LANCAMENTO.md)                                                                                                                                |
+| Público: **todas as idades**, com perfil protegido para menores (não compra, não recebe oferta).                     | `public/privacidade.html`, `public/termos.html` · [monetizacao.md §3](monetizacao.md)                                                                                                                                                    |
+| Custo fixo: **≈ R$ 199/mês** (sem Langfuse).                                                                         | [LANCAMENTO.md — Custo mensal](LANCAMENTO.md#custo-mensal) (a única fonte) · `scripts/custo/modelo.mjs`                                                                                                                                  |
 
 ## 2. O que está pronto
 
@@ -42,7 +42,7 @@ este documento e o código divergirem, **o código vence** (`src/core/planos.ts`
 - **Passo a passo do dono** escrito: [LANCAMENTO.md](LANCAMENTO.md); operação em [runbook.md](runbook.md),
   [deploy.md](deploy.md), [escala.md](escala.md).
 - **No ar hoje:** só a edição estática, sem conta nem cobrança ([edicao-estatica.md](edicao-estatica.md)). O
-  servidor (Fly.io) ainda não foi implantado.
+  servidor (Worker da Cloudflare) roda só no staging; a produção ainda não foi implantada.
 
 ## 3. O que falta
 
@@ -54,12 +54,12 @@ este documento e o código divergirem, **o código vence** (`src/core/planos.ts`
 | 1      | Furos de cobrança e conta: chargeback revoga; conferir atraso/estorno/cancelamento na API do Asaas; excluir conta com 12x; primeiro admin por CLI; captcha no cadastro; webhook sem dados pessoais. |
 | 2      | Cota da nuvem do site estático.                                                                                                                                                                     |
 | 3      | Telas de plano, avisos e pop-ups revisados; medidor do uso do dia; tela de admin.                                                                                                                   |
-| 4      | Staging no Fly, com cadastro e venda **fechados** até as conferências do [LANCAMENTO.md §10](LANCAMENTO.md).                                                                                        |
+| 4      | Staging no Worker, com cadastro e venda **fechados** até as conferências do [LANCAMENTO.md §10](LANCAMENTO.md).                                                                                     |
 | 5      | Bancada de qualidade e custo da IA (espera as chaves pagas).                                                                                                                                        |
 | 6      | Desempenho.                                                                                                                                                                                         |
 | 7      | Saneamento dos documentos (este arquivo).                                                                                                                                                           |
 
-Também de código, achado no saneamento: `public/privacidade.html` ainda não nomeia Fly.io, Cloudflare/R2,
+Também de código, achado no saneamento: `public/privacidade.html` ainda não nomeia Cloudflare/R2,
 Resend, Sentry nem a voz (DeepInfra/Workers AI) — ver [operadores.md](lgpd/operadores.md).
 
 ### Dono
@@ -87,7 +87,7 @@ Resend, Sentry nem a voz (DeepInfra/Workers AI) — ver [operadores.md](lgpd/ope
 | 1   | E-mails de cobrança do Asaas ao cliente: **ligar ou deixar desligados**? Os dois docs se contradizem. | [asaas-notificacoes.md](asaas-notificacoes.md) × [operadores.md](lgpd/operadores.md)         |
 | 2   | Assinaturas antigas do Pro a R$ 39,90: baixar o valor no Asaas ou manter?                             | [`planos-v2/design.md`](../openspec/changes/planos-v2/design.md) · ADR 0011, "Consequências" |
 | 3   | Langfuse: ligar, e com que amostragem? Fora do custo fixo de hoje.                                    | [LANCAMENTO.md — Custo mensal](LANCAMENTO.md#custo-mensal), nota ¹                           |
-| 4   | `performance-1x` antes de ~100 simultâneos?                                                           | [escala.md](escala.md) · RELATORIO-FINAL §6.2                                                |
+| 4   | Subir o compute do Supabase/Hyperdrive antes de ~100 simultâneos?                                     | [escala.md](escala.md) · RELATORIO-FINAL §6.2                                                |
 | 5   | O exercício de restauração pelo Actions é aceitável pela LGPD (o banco tem dados de menores)?         | RELATORIO-FINAL §6.4 · [runbook.md §0.2](runbook.md)                                         |
 | 6   | Quando ligar as flags `oferta_planos`, `nuvem_gratuita_alivio`, `nuvem_convidado` e `voz_natural`.    | [flags.md](flags.md) · RELATORIO-FINAL §6.7                                                  |
 

@@ -27,7 +27,8 @@ disso lança erro no caminho da requisição.
 2. Crie o projeto `babel-play` → _Settings → API Keys → Create_. Copie `pk-lf-…` e `sk-lf-…`.
 3. _Settings → Data retention_: defina a retenção (sugestão: 90 dias). Aceite o DPA e peça as
    cláusulas da Res. CD/ANPD 19/2024 (`docs/lgpd/operadores.md`).
-4. No Fly: `fly secrets set LANGFUSE_PUBLIC_KEY=pk-lf-… LANGFUSE_SECRET_KEY=sk-lf-…`.
+4. No Worker: `npx wrangler secret put LANGFUSE_PUBLIC_KEY -c wrangler.jsonc` e o mesmo para `LANGFUSE_SECRET_KEY`
+   (ou as duas chaves em `.secrets.production.json` e `scripts/cloudflare/secrets.ts production`).
 
 Antes de o projeto existir, dá para medir localmente: `LANGFUSE_ARQUIVO=./data/telemetria-ia.jsonl`
 (funciona sem as chaves).

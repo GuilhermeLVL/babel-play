@@ -16,7 +16,7 @@ Live captions and translation of any audio on your computer, running **on your o
 
 </div>
 
-> **Status (2026-10-18):** pre-launch. Billing, login and the Fly.io deploy are implemented and tested but have not run in a real environment yet. See the [launch status](docs/ESTADO-DO-LANCAMENTO.md) (Portuguese), the single source for what holds today.
+> **Status (2026-10-18):** pre-launch. Billing and login are implemented and tested, and the Cloudflare Workers deploy runs in staging; production has not gone live yet. See the [launch status](docs/ESTADO-DO-LANCAMENTO.md) (Portuguese), the single source for what holds today.
 
 **Contents:** [What it is](#what-it-is) · [Run it](#run-it) · [Architecture](#architecture) · [Plans and cloud AI](#plans-and-cloud-ai) · [Self-hosting](#self-hosting) · [Deploy](#deploy) · [Security and privacy](#security-and-privacy) · [Contributing](#contributing) · [License](#license)
 
@@ -113,7 +113,7 @@ HTTPS is up to the reverse proxy in front (Caddy, Traefik, nginx). Details in [`
 
 ## Deploy
 
-The production target is Fly.io (GRU, one machine; the server now speaks Postgres, the Litestream/SQLite setup is legacy until the next migration phases, see [ADR 0014](docs/adr/0014-postgres-agora-pelo-cloudflare.md)), with Supabase for login, Cloudflare in front, Resend and Sentry. The owner's step-by-step is [docs/LANCAMENTO.md](docs/LANCAMENTO.md); operating it is [docs/runbook.md](docs/runbook.md); staging is [docs/STAGING.md](docs/STAGING.md). Deploys go through `deploy.yml`, which only accepts a commit with a green CI.
+The production target is Cloudflare Workers (the same Express server, Postgres on Supabase in São Paulo through Hyperdrive, R2 for media and weekly `pg_dump` backups; see [ADR 0014](docs/adr/0014-postgres-agora-pelo-cloudflare.md) and [ADR 0015](docs/adr/0015-cloudflare-workers-no-lugar-do-fly.md)), with Supabase for login, Resend and Sentry. Self-hosting stays available through Docker/Node. The owner's step-by-step is [docs/LANCAMENTO.md](docs/LANCAMENTO.md); operating it is [docs/runbook.md](docs/runbook.md); staging is [docs/STAGING.md](docs/STAGING.md). Deploys go through `deploy-worker.yml`, by Cloudflare versions with a smoke test and automatic rollback.
 
 ## Security and privacy
 

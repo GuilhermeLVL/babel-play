@@ -34,7 +34,7 @@ comprometida é o app inteiro comprometido.
 | Groq + OpenRouter                                                      | pré-pago / teto no painel                | **variável, com teto** (ver `AI_BUDGET_USD_MONTH`) |
 | **Fixo**                                                               |                                          | **≈ US$ 30 + R$ 3,33 ≈ R$ 165/mês** ²              |
 
-² **Esta tabela é a fonte do custo fixo nos docs.** O Workers Paid (US$ 5/mês) substitui a máquina do Fly, e é
+² **Esta tabela é a fonte do custo fixo nos docs.** O Workers Paid (US$ 5/mês ≈ R$ 27 a R$ 5,20 + IOF de 3,5 %) substitui a máquina do Fly, e é
 ele que liga os crons (7 expressões no `wrangler.jsonc`); requisições e CPU além da franquia incluída são cobradas
 por uso, a conferir na primeira fatura. Fixo = US$ 5 + US$ 25 (Supabase Pro) = US$ 30, a R$ 5,20 + IOF de 3,5 %
 (câmbio PTAX de 25/09/2026) ≈ R$ 161, mais ~R$ 3,33 do domínio. O modelo `node scripts/custo/modelo.mjs` ainda
@@ -294,9 +294,9 @@ caminho: [`STAGING.md`](STAGING.md).
    não existe, o run apenas o cria (`wrangler deploy`, sem fumaça) e para.
 5. **Secrets do Worker**, da sua máquina (os valores vêm dos passos anteriores; a lista comentada está no
    `.env.production.example`): copie `.secrets.example.json` para `.secrets.production.json` (ignorado pelo git),
-   preencha (`SECRET_KEY` no formato `hkdf:<64 hex>`, ver `deploy.md`, "Gerar a SECRET*KEY"; `ORIGEM_SEGREDO`;
-   `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`; `ASAAS*\_`; `S3\_\_`do R2 ou o binding`MIDIA`; `LLM\_\*`;
-`AI_BUDGET_USD_MONTH`; `APP_URL`; `SENTRY_DSN`; `RESEND_API_KEY`; `EMAIL_REMETENTE`) e rode:
+   preencha (`SECRET_KEY` no formato `hkdf:<64 hex>`, ver `deploy.md`, "Gerar a `SECRET_KEY`"; `ORIGEM_SEGREDO`;
+   `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`; as `ASAAS_*`; as `S3_*` do R2 (ou só o binding `MIDIA`); as `LLM_*`;
+   `AI_BUDGET_USD_MONTH`; `APP_URL`; `SENTRY_DSN`; `RESEND_API_KEY`; `EMAIL_REMETENTE`) e rode:
    ```bash
    npx tsx scripts/cloudflare/secrets.ts production --dry-run   # confere só os nomes
    npx tsx scripts/cloudflare/secrets.ts production
@@ -369,12 +369,12 @@ caminho: [`STAGING.md`](STAGING.md).
 
 ## 11. Rotina depois do lançamento
 
-| quando           | o quê                                                                                              |
-| ---------------- | -------------------------------------------------------------------------------------------------- |
-| todo dia útil    | olhar o Sentry (issues novas) e o gasto de IA (`GET /api/admin/ia` com token de admin)             |
-| toda semana      | revisar e aplicar os PRs do Dependabot (CI verde → deploy staging → production)                    |
-| todo mês         | restaurar o dump semanal à mão (runbook §0.2) e anotar; conferir as faturas contra esta tabela     |
-| a cada trimestre | `node scripts/modelos/revisoes.mjs` (modelos novos no Hub?); revisar a RoPA (`docs/lgpd/ropa.csv`) |
+| quando           | o quê                                                                                                                |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------- |
+| todo dia útil    | olhar o Sentry (issues novas) e o gasto de IA (`GET /api/admin/ia` com token de admin)                               |
+| toda semana      | revisar e aplicar os PRs do Dependabot (CI verde → deploy staging → production)                                      |
+| todo mês         | restaurar o dump semanal à mão (runbook §0.2 e §8, uma vez por mês) e anotar; conferir as faturas contra esta tabela |
+| a cada trimestre | `node scripts/modelos/revisoes.mjs` (modelos novos no Hub?); revisar a RoPA (`docs/lgpd/ropa.csv`)                   |
 
 Chaves de emergência (runbook §0), todas por `npx wrangler secret put NOME -c wrangler.jsonc` (vale na próxima
 requisição; volte com `1`):

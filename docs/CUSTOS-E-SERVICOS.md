@@ -9,7 +9,7 @@ porque mudam. Valores em dólar convertidos a **R$ 5,50 por US$ 1** (suposição
 |                                                  | Custo fixo por mês                                            |
 | ------------------------------------------------ | ------------------------------------------------------------- |
 | **Só o site grátis** (o que já está em produção) | **R$ 0**                                                      |
-| **v1 vendendo o Premium**                        | **cerca de R$ 28** (só o Cloudflare Workers Paid)             |
+| **v1 vendendo o Premium**                        | **cerca de R$ 27** (só o Cloudflare Workers Paid, US$ 5)      |
 | Por venda de R$ 19,90                            | taxa do Asaas: cerca de R$ 1,09 no cartão                     |
 | Por assinante Premium (IA)                       | de R$ 0 (camada grátis do Groq) a cerca de R$ 17 no pior caso |
 
@@ -23,7 +23,7 @@ Uma única conta com mensalidade: o Cloudflare Workers Paid (US$ 5). O resto é 
 | [Cloudflare Pages](https://developers.cloudflare.com/workers/platform/pricing/)         | Hospeda o site grátis (`babel-play.pages.dev`)                                 | Grátis (100 mil pedidos por dia)                                                                                                                                        | Em produção                                                |
 | [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/platform/pricing/) | Transcrição, tradução e voz de nuvem do site grátis (headset e aparelho fraco) | Grátis até 10 mil "neurons" por dia; o código tem teto próprio (200 min de fala por dia, somados todos os visitantes)                                                   | Em produção                                                |
 | [Hugging Face](https://huggingface.co/pricing)                                          | De onde o navegador baixa os modelos que rodam no aparelho                     | Grátis                                                                                                                                                                  | Em produção                                                |
-| [Cloudflare Workers](https://developers.cloudflare.com/workers/platform/pricing/)       | O servidor completo: contas, planos, cobrança                                  | Plano Workers Paid: **US$ 5 por mês = cerca de R$ 28** (liga os crons; requisições e CPU além da franquia são cobradas por uso)                                         | Staging no ar; falta ativar o Workers Paid para a produção |
+| [Cloudflare Workers](https://developers.cloudflare.com/workers/platform/pricing/)       | O servidor completo: contas, planos, cobrança                                  | Plano Workers Paid: **US$ 5 por mês = cerca de R$ 27** (liga os crons; requisições e CPU além da franquia são cobradas por uso)                                         | Staging no ar; falta ativar o Workers Paid para a produção |
 | [Supabase](https://supabase.com/pricing)                                                | Login, senha, recuperação, 2FA                                                 | Grátis até 50 mil usuários ativos por mês                                                                                                                               | Em uso                                                     |
 | [Asaas](https://www.asaas.com/precos-e-taxas)                                           | Cobrança (cartão, Pix, boleto), assinatura, estorno                            | Sem mensalidade. Cartão à vista: 2,99% + R$ 0,49. Pix e boleto: R$ 1,99 por recebimento (R$ 0,99 nos 3 primeiros meses)                                                 | Sandbox provado; falta a chave de produção                 |
 | [Groq](https://groq.com/pricing)                                                        | A IA do Premium: transcrição de nuvem, Tradução Nuance, tutor                  | Camada grátis sem cartão (limites por minuto e por dia). Pago: transcrição US$ 0,04 por hora de áudio; texto US$ 0,15 (entrada) e US$ 0,60 (saída) por milhão de tokens | Falta criar a chave                                        |
@@ -73,7 +73,7 @@ Uma única conta com mensalidade: o Cloudflare Workers Paid (US$ 5). O resto é 
 ## 4. O caminho mais barato para lançar
 
 1. **Agora, R$ 0:** o site grátis já está no ar. Divulgar e ver se as pessoas usam.
-2. **Para vender, cerca de R$ 25 por mês:** Workers Paid, chave grátis do Groq, chave de produção do
+2. **Para vender, cerca de R$ 27 por mês:** Workers Paid, chave grátis do Groq, chave de produção do
    Asaas, confirmação de e-mail desligada no Supabase.
 3. **Só com clientes pagando:** domínio, envio de e-mail, Supabase Pro.
 

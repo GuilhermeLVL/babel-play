@@ -105,7 +105,7 @@ tabelas principais (`usuarios`, `sessoes`, …) compatíveis com o esperado. Só
    o PITR do Supabase cobre o intervalo entre dumps).
 
 Para ensaiar a restauração sem tocar na produção, repita o `pg_restore` acima num banco descartável e registre o
-resultado na tabela abaixo (um ensaio por mês). O ensaio automatizado fica descrito em §8.
+resultado na tabela abaixo (um ensaio por mês, como em §8).
 
 | data                            | exercício | quem | resultado |
 | ------------------------------- | --------- | ---- | --------- |
@@ -435,7 +435,7 @@ existir **em silêncio**.
 node scripts/backup.mjs                        # cópia consistente
 ```
 
-**Exercício de restauração do dump semanal (Postgres).** Uma vez por trimestre: baixe o `semanal/AAAA-MM-DD.dump` mais
+**Exercício de restauração do dump semanal (Postgres).** Uma vez por mês: baixe o `semanal/AAAA-MM-DD.dump` mais
 recente do bucket `frasy-backups`, crie um banco VAZIO (nunca o de produção), restaure com
 `pg_restore --no-owner --schema=public --schema=drizzle` (credenciais por `PG*`, passo a passo em `docs/deploy.md`,
 "Backup semanal do Postgres no R2"), compare `select count(*)` das tabelas grandes e de `drizzle.__drizzle_migrations`

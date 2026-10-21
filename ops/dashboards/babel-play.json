@@ -433,7 +433,7 @@
           "refId": "A"
         }
       ],
-      "description": "shared-cpu-1x tem base de 0,0625 núcleo; acima disso gasta saldo de rajada (docs/escala.md)."
+      "description": "CPU do processo Node (self-host). No Worker a medida é CPU-ms por requisição; o plano Paid cobra por CPU-ms acima do incluso (docs/escala.md)."
     },
     {
       "type": "timeseries",

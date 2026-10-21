@@ -77,3 +77,38 @@
   align-self: flex-end;
   margin: 8px;
 }
+/* O intersticial cobre a tela, entre duas rodadas, e sai pelo "Fechar" do topo. */
+.anuncio-rede[data-ad='intersticial'] {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  margin: 0;
+  justify-content: center;
+  padding: 16px;
+  background: rgb(20 18 16 / 0.72);
+  color: #f3efe8;
+}
+.anuncio-rede[data-ad='intersticial'] :is(.anuncio-rede-rotulo, .anuncio-rede-sem) {
+  color: inherit;
+}
+/* A âncora do celular: uma faixa presa ao pé, acima da barra flutuante, com o "Fechar" ao lado. */
+.anuncio-rede[data-ad='ancora'] {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(max(12px, env(safe-area-inset-bottom)) + 76px);
+  z-index: 28;
+  margin: 0;
+  padding: 6px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 14px 30px -14px rgb(0 0 0 / 0.4);
+}
+.anuncio-rede[data-ad='ancora'] .anuncio-rede-topo {
+  width: min(320px, 100%);
+}
+.anuncio-rede[data-ad='ancora'] .anuncio-rede-quadro {
+  width: 320px;
+  height: 50px;
+  border-radius: 8px;
+}

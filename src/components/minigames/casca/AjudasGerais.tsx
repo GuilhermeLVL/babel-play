@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { jogoTemVerResposta, SEGUNDOS_A_MAIS as SEGUNDOS, vezesDaAjuda } from '../../../core/minigames/regras';
+import { marcarAjudaEsgotada, rodadaComAjudas } from '../../../lib/jogos/ajudaEsgotada';
 import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { flutuar } from '../../../lib/polimento/jogos';
 import { sentir } from '../../../lib/polimento/sentidos';
@@ -55,6 +56,8 @@ export default function AjudasGerais({
   const [palco, setPalco] = useState<Element | null>(null);
 
   useEffect(() => setPalco(botao.current?.closest('.palco-jogo') ?? null), []);
+  /* Uma ajuda que chega a zero vira, no fim da rodada, a oferta "+1 ajuda" (`lib/jogos/ajudaEsgotada.ts`). */
+  useEffect(() => rodadaComAjudas(), []);
   useEffect(() => {
     if (!aVista) return;
     const t = window.setTimeout(() => setAVista(null), RESPOSTA_A_VISTA_MS);
@@ -75,6 +78,7 @@ export default function AjudasGerais({
           onClick={(e) => {
             if (tempo <= 0) return;
             if (aoGanharTempo(SEGUNDOS_A_MAIS) === false) return;
+            if (tempo === 1) marcarAjudaEsgotada(jogo);
             setTempo((n) => n - 1);
             sentir('moeda', 'timeBonus'); /* `jogos4.js:165` */
             flutuar(e.currentTarget, '+10s', 'good');
@@ -92,6 +96,7 @@ export default function AjudasGerais({
           onClick={() => {
             const r = resposta();
             if (vezes <= 0 || !r) return;
+            if (vezes === 1) marcarAjudaEsgotada(jogo);
             setVezes((n) => n - 1);
             setAVista({ texto: r, chave: Date.now() });
             aoVerResposta();

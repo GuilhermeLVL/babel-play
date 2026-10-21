@@ -16,13 +16,26 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 
 import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
 
-const chave = vi.hoisted(() => ({ comEspaco: true, celular: false }))
+const chave = vi.hoisted(() => ({ comEspaco: true, celular: false, protegido: false }))
+
+/* O perfil protegido (menor, sem idade, sem conta): a política nega antes de tudo, inclusive na demonstração. */
+vi.mock('../src/lib/protecaoDoMenor', async (original) => ({
+  ...(await original<typeof import('../src/lib/protecaoDoMenor')>()),
+  perfilProtegido: () => chave.protegido,
+}))
 
 /* O Início lê o conteúdo escolhido do app, que confere a conta UMA vez por página (com memória): aqui a
    conta não responde, para as duas fotos de cada tela pedirem à rede a mesma coisa. */
 vi.mock('../src/data/rotas/settings', async (original) => ({
   ...(await original<typeof import('../src/data/rotas/settings')>()),
   fetchSettings: async () => null,
+}))
+
+/* As Estatísticas leem os resultados e o caderno: aqui, vazios (a tela fica pronta, sem estudo). */
+vi.mock('../src/data/api', async (original) => ({
+  ...(await original<typeof import('../src/data/api')>()),
+  fetchExerciseResults: async () => [],
+  fetchDeck: async () => [],
 }))
 
 /* `EspacoDeAnuncio` de verdade, com um interruptor só do teste: desligado, é a tela de ANTES. */
@@ -45,8 +58,16 @@ const { default: InicioDoQuest } = await import('../src/components/views/quest/I
 const { default: BibliotecaDoQuest } = await import('../src/components/views/biblioteca/quest/BibliotecaDoQuest')
 const { default: FimDaRodada } = await import('../src/components/minigames/casca/FimDaRodada')
 const { default: LojaDoPrototipo } = await import('../src/components/views/personalizar/polimento/LojaDoPrototipo')
+const { default: Estatisticas } = await import('../src/components/views/Estatisticas')
+const { default: LobbyDoQuest } = await import('../src/components/views/play/quest/LobbyDoQuest')
+const { default: PainelTrilha } = await import('../src/components/views/PainelTrilha')
+const { default: NuvemPremiadaNaCaptura } = await import('../src/components/views/captura/NuvemPremiadaNaCaptura')
+const { default: EspacoDeAnuncio } = await import('../src/components/anuncios/EspacoDeAnuncio')
+const { JOGOS } = await import('../src/components/views/play/jogos')
+const { marcarAjudaEsgotada, rodadaComAjudas } = await import('../src/lib/jogos/ajudaEsgotada')
 const { registrarProvedorDeAnuncios, provedorDeAnuncios } = await import('../src/lib/anuncios/provedor')
 const { ligarDemonstracaoDeAnuncios } = await import('../src/components/anuncios/demonstracao/ligar')
+const { INTERVALO_DO_INTERSTICIAL_MS } = await import('../src/core/anuncios/politicaDeAnuncio')
 
 type Progresso = Parameters<typeof InicioDoQuest>[0]['progress']
 type Gravacao = Parameters<typeof BibliotecaDoQuest>[0]['gravacoes'][number]
@@ -89,7 +110,78 @@ const RELATORIO = {
 } as unknown as Relatorio
 
 const nada = () => undefined
-const TELAS: Array<{ nome: string; espacos: string[]; tela: () => ReactElement; onde: (raiz: HTMLElement) => void }> = [
+
+/* O Jogar: nove jogos que abrem num computador com voz, para a grade ter a segunda fileira inteira. */
+type JogoDoLobby = Parameters<typeof LobbyDoQuest>[0]['jogos'][number]
+const JOGOS_QUE_ABREM = JOGOS.slice(0, 9).map(
+  (j) =>
+    ({
+      ...j,
+      estado: { id: j.id, ok: true, disponiveis: 8, faltam: 0, fonte: 'baralho', tamanhoDaRodada: 8 },
+    }) as unknown as JogoDoLobby,
+)
+const COM_TUDO = { vozDeLeitura: true, reconhecimentoDoNavegador: true, tecladoFisico: true }
+const COM_VOZ = { haAlgumaVoz: () => true, haVozPara: () => true }
+const lobby = () => (
+  <LobbyDoQuest
+    jogos={JOGOS_QUE_ABREM}
+    ageProfile="pro"
+    naTrilha={false}
+    notaDoBloqueio={() => ''}
+    aoJogar={nada}
+    aoVerTelaCompleta={nada}
+    recursos={COM_TUDO}
+    voz={COM_VOZ}
+    miniatura={<EspacoDeAnuncio espaco="jogar-miniatura" formato="nativo" />}
+  />
+)
+
+const TRILHA = {
+  lang: 'en',
+  fonte: 'teste',
+  versao: '0',
+  niveis: {
+    A1: [
+      ['house', 'casa'],
+      ['water', 'água'],
+      ['bread', 'pão'],
+    ],
+  },
+} as unknown as Parameters<typeof PainelTrilha>[0]['dado']
+
+const fimDaRodada = (aoJogarDeNovo: () => void = nada) => (
+  <FimDaRodada
+    report={RELATORIO}
+    total={3}
+    progress={PROGRESSO}
+    proximo={null}
+    aoProximo={nada}
+    aoJogarDeNovo={aoJogarDeNovo}
+    aoVoltar={nada}
+  />
+)
+const loja = () => (
+  <LojaDoPrototipo
+    nivel={3}
+    saldo={37}
+    mostrado={37}
+    versao={0}
+    aoMudar={nada}
+    aoContarSeeds={nada}
+    aoProvarTema={nada}
+    aoUsar={nada}
+    aoGanhar={nada}
+  />
+)
+
+const TELAS: Array<{
+  nome: string
+  espacos: string[]
+  tela: () => ReactElement
+  onde: (raiz: HTMLElement) => void
+  /** Antes de cada foto (o aparelho, a rodada que acabou). */
+  preparar?: () => void
+}> = [
   {
     nome: 'Início: cartão nativo',
     espacos: ['inicio-nativo'],
@@ -156,26 +248,127 @@ const TELAS: Array<{ nome: string; espacos: string[]; tela: () => ReactElement; 
     },
   },
   {
-    nome: 'Loja: premiado de Seeds',
-    espacos: ['loja-seeds'],
-    tela: () => (
-      <LojaDoPrototipo
-        nivel={3}
-        saldo={37}
-        mostrado={37}
-        versao={0}
-        aoMudar={nada}
-        aoContarSeeds={nada}
-        aoProvarTema={nada}
-        aoUsar={nada}
-        aoGanhar={nada}
-      />
-    ),
-    /* Logo abaixo da carteira de Seeds, antes das categorias. */
+    nome: 'Loja: premiado de Seeds e tema patrocinado',
+    espacos: ['loja-seeds', 'loja-tema'],
+    tela: loja,
+    /* O premiado logo abaixo da carteira de Seeds, antes das categorias; o tema patrocinado como o TERCEIRO item
+       da prateleira ("Tudo"), com o mesmo desenho dos outros. */
     onde: (raiz) => {
       const carteira = raiz.querySelector('.px-carteira')!
       expect(carteira.nextElementSibling?.getAttribute('data-ad')).toBe('loja-seeds')
-      expect(raiz.querySelector('.px-loja [data-ad]')).toBeNull()
+      const prateleira = [...raiz.querySelectorAll('.px-loja > *')]
+      expect(prateleira.length).toBeGreaterThan(3)
+      expect(prateleira[2].getAttribute('data-ad')).toBe('loja-tema')
+      expect(prateleira.filter((x) => x.hasAttribute('data-ad'))).toHaveLength(1)
+    },
+  },
+  {
+    nome: 'Fim de rodada com uma ajuda que acabou: "+1 ajuda"',
+    espacos: ['fim-premiado', 'ajuda-premiada', 'fim-bloco'],
+    preparar: () => marcarAjudaEsgotada('memory'),
+    tela: () => fimDaRodada(),
+    /* Acima dos botões, depois do bônus de Seeds; nunca dentro da fileira de ações. */
+    onde: (raiz) => {
+      const acoes = raiz.querySelector('.pj-fim-acoes')!
+      expect(acoes.previousElementSibling?.getAttribute('data-ad')).toBe('ajuda-premiada')
+      expect(acoes.querySelector('[data-ad]')).toBeNull()
+    },
+  },
+  {
+    nome: 'Jogar: miniatura patrocinada',
+    espacos: ['jogar-miniatura'],
+    tela: lobby,
+    /* No 8º lugar da grade (o fim da segunda fileira), nunca na primeira fileira. */
+    onde: (raiz) => {
+      const grade = [...raiz.querySelectorAll('#grade-de-jogos > .q-grade.g4 > *')]
+      expect(grade).toHaveLength(10)
+      expect(grade.findIndex((c) => c.querySelector('[data-ad="jogar-miniatura"]'))).toBe(7)
+    },
+  },
+  {
+    nome: 'Jogar › trilha: selo "Oferecida por"',
+    espacos: ['trilha-oferecida'],
+    tela: () => (
+      <PainelTrilha
+        dado={TRILHA}
+        deck={[]}
+        ageProfile="pro"
+        nivel="A1"
+        onEscolherNivel={nada}
+        nativo="pt"
+        paresDeGlosa={['pt']}
+      />
+    ),
+    /* Logo abaixo da linha da trilha, fora do botão dela (um botão não cabe dentro de outro). */
+    onde: (raiz) => {
+      const linha = raiz.querySelector('.qj-trilha > button.q-linha')!
+      expect(linha.querySelector('[data-ad]')).toBeNull()
+      expect(linha.nextElementSibling?.querySelector('[data-ad="trilha-oferecida"]')).not.toBeNull()
+    },
+  },
+  {
+    nome: 'Estatísticas: linha patrocinada no fim',
+    espacos: ['estat-faixa'],
+    tela: () => <Estatisticas metrics={null} onChangeView={nada} />,
+    /* Sempre o ÚLTIMO elemento da tela, depois de todos os gráficos. */
+    onde: (raiz) => {
+      const palco = raiz.querySelector('.q-palco.qe')!
+      expect(palco.lastElementChild?.getAttribute('data-ad')).toBe('estat-faixa')
+    },
+  },
+  {
+    nome: 'Estatísticas no celular: linha e faixa âncora',
+    espacos: ['estat-faixa', 'ancora'],
+    preparar: () => {
+      chave.celular = true
+    },
+    tela: () => <Estatisticas metrics={null} onChangeView={nada} />,
+    /* A âncora no fim da tela, com o respiro do tamanho dela antes (nunca cobre a última linha). */
+    onde: (raiz) => {
+      const ancora = raiz.querySelector('[data-ad="ancora"]')!
+      expect(ancora.previousElementSibling?.classList.contains('ad-ancora-espaco')).toBe(true)
+      expect(ancora.getAttribute('aria-label')).toBe('Anúncio')
+    },
+  },
+  {
+    nome: 'Biblioteca no celular, sem o "Abrir" preso ao pé: faixa âncora',
+    espacos: ['ancora'],
+    preparar: () => {
+      chave.celular = true
+    },
+    tela: () => (
+      <BibliotecaDoQuest
+        gravacoes={[]}
+        total={GRAVACOES}
+        ordem="recentes"
+        aoTrocarOrdem={nada}
+        aoAbrir={nada}
+        aoJogar={nada}
+        aoRevisar={nada}
+        aoCapturar={nada}
+        busca="nada com este titulo"
+        aoBuscar={nada}
+      />
+    ),
+    onde: (raiz) => {
+      expect(raiz.querySelector('.q-bib-det')).toBeNull()
+      expect(raiz.querySelector('[data-testid="busca-sem-resultado"]')).not.toBeNull()
+    },
+  },
+  {
+    nome: 'Captura parada: "Ganhe 30 min de nuvem"',
+    espacos: ['nuvem-30'],
+    /* Os avisos da captura parada, com um recado de antes: o cartão entra depois dele. */
+    tela: () => (
+      <div className="avisos-da-captura">
+        <p className="aviso-info">
+          {'O uso justo do dia está perto do fim, e a legenda segue no aparelho. '.repeat(3)}
+        </p>
+        <NuvemPremiadaNaCaptura />
+      </div>
+    ),
+    onde: (raiz) => {
+      expect(raiz.querySelector('[data-ad="nuvem-30"]')?.textContent).toMatch(/30 min de nuvem/)
     },
   },
 ]
@@ -199,6 +392,8 @@ beforeAll(prepararDialogoNoJsdom)
 beforeEach(() => {
   chave.comEspaco = true
   chave.celular = false
+  chave.protegido = false
+  rodadaComAjudas()
   localStorage.clear()
   sessionStorage.clear()
   registrarProvedorDeAnuncios(null)
@@ -215,7 +410,9 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe.each(TELAS)('$nome', ({ tela, espacos, onde }) => {
+describe.each(TELAS)('$nome', ({ tela, espacos, onde, preparar }) => {
+  beforeEach(() => preparar?.())
+
   it('estado de fábrica: a tela renderiza o MESMO que antes, e pede à rede as mesmas coisas', async () => {
     const antes = await fotografar(tela, false)
     antes.desmontar()
@@ -288,5 +485,180 @@ describe('Biblioteca: onde a linha patrocinada não entra', () => {
     const { raiz } = await fotografar(biblioteca(GRAVACOES), true)
     expect(raiz.querySelector('[data-ad="bib-infeed"]')).not.toBeNull()
     expect(raiz.querySelector('.q-bib-det [data-ad]')).toBeNull()
+  })
+})
+
+/* ── OS ESPAÇOS NOVOS, UM A UM: provedor falso, perfil protegido e o intersticial ───────────────────────── */
+
+/** Pede o que a política lê (flag, idade da conta, consentimento) pela demonstração, sem carregar o provedor dela. */
+const pedirDemonstracao = () => {
+  localStorage.setItem('babel.px.anunciosDeProva', '1')
+  localStorage.setItem('babel.px.planoDeProva', 'free')
+}
+const ligarDemonstracao = async () => {
+  pedirDemonstracao()
+  await act(async () => {
+    expect(await ligarDemonstracaoDeAnuncios()).toBe(true)
+  })
+}
+/** Um provedor de teste: desenha só uma marca com o nome do espaço. */
+const PROVEDOR_FALSO = {
+  id: 'falso',
+  Espaco: ({ espaco }: { espaco: string }) => <i data-ad-falso={espaco} />,
+}
+
+const clicar = async (el: Element | null | undefined) => {
+  expect(el).toBeTruthy()
+  await act(async () => {
+    ;(el as HTMLElement).click()
+    await new Promise((ok) => setTimeout(ok, 0))
+  })
+}
+const jogarDeNovo = (raiz: ParentNode) => raiz.querySelector<HTMLButtonElement>('[data-acao="recomecar"]')
+const estatisticas = () => <Estatisticas metrics={null} onChangeView={nada} />
+
+/** Cada espaço novo: a tela, o que preparar antes e o que fazer para ele aparecer. */
+const NOVOS: Array<{
+  espaco: string
+  tela: () => ReactElement
+  preparar?: () => void
+  agir?: (raiz: HTMLElement) => Promise<void>
+}> = [
+  { espaco: 'intersticial', tela: () => fimDaRodada(), agir: (raiz) => clicar(jogarDeNovo(raiz)) },
+  { espaco: 'ancora', tela: estatisticas, preparar: () => void (chave.celular = true) },
+  { espaco: 'estat-faixa', tela: estatisticas },
+  { espaco: 'loja-tema', tela: loja },
+  {
+    espaco: 'tema-24h',
+    tela: loja,
+    /* Provar um tema da Loja ("Ver prévia" de uma peça da categoria Temas) é o que abre a oferta. */
+    agir: async (raiz) => {
+      await clicar(raiz.querySelector('[data-px-cat="Temas"]'))
+      await clicar(raiz.querySelector('.px-loja [data-px-previa]'))
+    },
+  },
+  { espaco: 'trilha-oferecida', tela: TELAS.find((x) => x.espacos[0] === 'trilha-oferecida')!.tela },
+  { espaco: 'jogar-miniatura', tela: lobby },
+  { espaco: 'nuvem-30', tela: () => <NuvemPremiadaNaCaptura /> },
+  { espaco: 'ajuda-premiada', tela: () => fimDaRodada(), preparar: () => marcarAjudaEsgotada('memory') },
+]
+
+describe.each(NOVOS)('espaço $espaco', ({ espaco, tela, preparar, agir }) => {
+  beforeEach(() => preparar?.())
+
+  it('com um provedor (falso) e a política deixando, o espaço aparece', async () => {
+    pedirDemonstracao()
+    registrarProvedorDeAnuncios(PROVEDOR_FALSO)
+    const { raiz } = await fotografar(tela, true)
+    await agir?.(raiz)
+    expect(document.querySelector(`[data-ad-falso="${espaco}"]`), espaco).not.toBeNull()
+  })
+
+  it('perfil protegido, com a demonstração ligada: nenhum anúncio e nenhuma folha de consentimento', async () => {
+    await ligarDemonstracao()
+    chave.protegido = true
+    const { raiz } = await fotografar(tela, true)
+    await agir?.(raiz)
+    expect(document.querySelector('[data-ad], .ad, .consentimento-de-anuncios, dialog[open]')).toBeNull()
+  })
+
+  it('perfil protegido, com um provedor que pede consentimento: nada também', async () => {
+    pedirDemonstracao()
+    registrarProvedorDeAnuncios({ ...PROVEDOR_FALSO, pedeConsentimento: true })
+    chave.protegido = true
+    const { raiz } = await fotografar(tela, true)
+    await agir?.(raiz)
+    expect(document.querySelector('[data-ad-falso], .consentimento-de-anuncios')).toBeNull()
+  })
+})
+
+describe('o intersticial entre rodadas', () => {
+  const CHAVE = 'babel.anuncios.ultimoIntersticial'
+
+  it('abre entre as rodadas, segura a próxima até a pessoa fechar e grava a hora em que apareceu', async () => {
+    await ligarDemonstracao()
+    const aoJogarDeNovo = vi.fn()
+    const antes = Date.now()
+    const { raiz } = await fotografar(() => fimDaRodada(aoJogarDeNovo), true)
+    await clicar(jogarDeNovo(raiz))
+    const anuncio = document.querySelector('dialog [data-ad="intersticial"]')
+    expect(anuncio).not.toBeNull()
+    expect(anuncio?.textContent).toMatch(/Anúncio/)
+    expect(anuncio?.querySelector('.ad-sem')?.textContent).toBe('Sem anúncios no Essencial')
+    expect(aoJogarDeNovo).not.toHaveBeenCalled()
+    expect(Number(localStorage.getItem(CHAVE))).toBeGreaterThanOrEqual(antes)
+
+    await clicar(anuncio?.querySelector('[data-ad-f="fechar"]'))
+    expect(aoJogarDeNovo).toHaveBeenCalledTimes(1)
+    expect(document.querySelector('[data-ad="intersticial"]')).toBeNull()
+  })
+
+  it('respeita o intervalo de 5 min: dentro dele a próxima rodada vem direto; passado, ele volta', async () => {
+    await ligarDemonstracao()
+    localStorage.setItem(CHAVE, String(Date.now() - INTERVALO_DO_INTERSTICIAL_MS + 60_000))
+    const aoJogarDeNovo = vi.fn()
+    const { raiz } = await fotografar(() => fimDaRodada(aoJogarDeNovo), true)
+    await clicar(jogarDeNovo(raiz))
+    expect(aoJogarDeNovo).toHaveBeenCalledTimes(1)
+    expect(document.querySelector('[data-ad="intersticial"]')).toBeNull()
+
+    localStorage.setItem(CHAVE, String(Date.now() - INTERVALO_DO_INTERSTICIAL_MS - 1))
+    await clicar(jogarDeNovo(raiz))
+    expect(aoJogarDeNovo).toHaveBeenCalledTimes(1)
+    expect(document.querySelector('[data-ad="intersticial"]')).not.toBeNull()
+  })
+
+  it('nunca com uma rodada em andamento (a política nega a tela ocupada, como na captura e no intérprete)', async () => {
+    await ligarDemonstracao()
+    const aoJogarDeNovo = vi.fn()
+    const { raiz } = await fotografar(() => fimDaRodada(aoJogarDeNovo), true)
+    document.body.setAttribute('data-jogo-ativo', '1')
+    try {
+      await clicar(jogarDeNovo(raiz))
+    } finally {
+      document.body.removeAttribute('data-jogo-ativo')
+    }
+    expect(aoJogarDeNovo).toHaveBeenCalledTimes(1)
+    expect(document.querySelector('[data-ad="intersticial"]')).toBeNull()
+    expect(localStorage.getItem(CHAVE)).toBeNull()
+  })
+
+  it('estado de fábrica (sem provedor): a próxima rodada vem direto e nada é gravado', async () => {
+    const aoJogarDeNovo = vi.fn()
+    const { raiz } = await fotografar(() => fimDaRodada(aoJogarDeNovo), true)
+    await clicar(jogarDeNovo(raiz))
+    expect(aoJogarDeNovo).toHaveBeenCalledTimes(1)
+    expect(document.querySelector('dialog')).toBeNull()
+    expect(localStorage.getItem(CHAVE)).toBeNull()
+  })
+
+  it('provedor que não desenha nada: a pessoa não fica presa, a rodada segue', async () => {
+    pedirDemonstracao()
+    registrarProvedorDeAnuncios({ id: 'vazio', Espaco: () => null })
+    const aoJogarDeNovo = vi.fn()
+    const { raiz } = await fotografar(() => fimDaRodada(aoJogarDeNovo), true)
+    await clicar(jogarDeNovo(raiz))
+    expect(aoJogarDeNovo).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('a faixa âncora', () => {
+  it('só no celular', async () => {
+    await ligarDemonstracao()
+    const { raiz } = await fotografar(estatisticas, true)
+    expect(raiz.querySelector('[data-ad="estat-faixa"]')).not.toBeNull()
+    expect(raiz.querySelector('[data-ad="ancora"]')).toBeNull()
+  })
+
+  it('fechada pelo "×", não volta nesta sessão', async () => {
+    await ligarDemonstracao()
+    chave.celular = true
+    const primeira = await fotografar(estatisticas, true)
+    await clicar(primeira.raiz.querySelector('[data-ad="ancora"] .ad-ancora-x'))
+    expect(primeira.raiz.querySelector('[data-ad="ancora"], .ad-ancora-espaco')).toBeNull()
+    primeira.desmontar()
+    const segunda = await fotografar(estatisticas, true)
+    expect(segunda.raiz.querySelector('[data-ad="ancora"]')).toBeNull()
+    expect(segunda.raiz.querySelector('[data-ad="estat-faixa"]')).not.toBeNull()
   })
 })

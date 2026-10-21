@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 /**
  * O PEDIDO DE ANÚNCIO — junta o que a política pura precisa saber (`core/anuncios/politicaDeAnuncio`).
  *
@@ -6,13 +8,13 @@
  * o aparelho (`noHeadset()`), a rede (`navigator.onLine`), a edição (`edicaoEstatica()`), a tela (a captura, a rodada, a rota) e o
  * consentimento (`lerPreferencias()`). NADA AQUI PEDE REDE.
  *
- * O MODO DE DEMONSTRAÇÃO, SÓ EM DESENVOLVIMENTO (`demonstracaoDeAnuncios()`): com
- * `localStorage['babel.px.anunciosDeProva'] = '1'` num servidor de desenvolvimento, a flag, o
+ * O MODO DE DEMONSTRAÇÃO (`demonstracaoDeAnuncios()`, R38): no build com `VITE_ANUNCIOS_DEMONSTRACAO=1` (o
+ * staging) ou, num servidor de desenvolvimento, com `localStorage['babel.px.anunciosDeProva'] = '1'`, a flag, o
  * consentimento e a idade da conta são tratados como DADOS, para o dono ver os lugares sem ligar nada
  * no banco e sem esperar três dias. O PLANO continua valendo: o servidor local é `selfhost` (sem
  * anúncios), então para ver é preciso também `localStorage['babel.px.planoDeProva'] = 'free'` (a mesma
  * chave da bancada dos Planos). Perfil protegido, headset, edição estática e tela ocupada continuam
- * negando na demonstração. Fora do desenvolvimento a chave não é lida.
+ * negando na demonstração. Fora do desenvolvimento a chave não é lida; sem a variável, o build não tem demonstração.
  */
 import {
   type EspacoDeAnuncio,
@@ -37,8 +39,13 @@ import { capturaAtiva } from '../sessaoDeCaptura';
 const CHAVE_DA_DEMONSTRACAO = 'babel.px.anunciosDeProva';
 const CHAVE_DO_ULTIMO_INTERSTICIAL = 'babel.anuncios.ultimoIntersticial';
 
-/** A demonstração está pedida? Só em desenvolvimento; no build de produção é sempre `false`. */
+/**
+ * A demonstração está pedida? No build com `VITE_ANUNCIOS_DEMONSTRACAO=1`, sempre (sem `localStorage`); em
+ * desenvolvimento, pela chave. No build de produção (sem a variável) é sempre `false`.
+ */
 export function demonstracaoDeAnuncios(): boolean {
+  /* A variável, LITERAL: o Vite a troca pelo valor no build (o staging a define; produção, não). */
+  if (import.meta.env.VITE_ANUNCIOS_DEMONSTRACAO === '1') return true;
   /* O cast é o padrão da casa (`lib/liberacaoDev.ts`): o tsconfig do servidor não carrega os tipos do Vite. */
   if (!(import.meta as unknown as { env?: Record<string, unknown> }).env?.DEV) return false;
   try {
@@ -60,13 +67,27 @@ function telaDoAnuncio(): TelaDoAnuncio {
   };
 }
 
-/* Nenhum intersticial está encaixado nesta etapa: quem grava esta chave é o espaço dele, quando existir. */
+/* Quem grava esta chave é `EspacoDeAnuncio`, quando o intersticial aparece (`components/anuncios/Intersticial.tsx`). A
+   memória da página cobre o navegador sem storage: ali o intervalo vale enquanto a página estiver aberta. */
+let ultimoNaMemoria: number | null = null;
+
 function ultimoIntersticial(): number | null {
+  let guardado: number | null = null;
   try {
     const n = Number(localStorage.getItem(CHAVE_DO_ULTIMO_INTERSTICIAL));
-    return Number.isFinite(n) && n > 0 ? n : null;
+    guardado = Number.isFinite(n) && n > 0 ? n : null;
   } catch {
-    return null;
+    /* sem storage: fica a memória */
+  }
+  return guardado ?? ultimoNaMemoria;
+}
+
+/** Um intersticial foi mostrado agora: o próximo só depois do intervalo (`INTERVALO_DO_INTERSTICIAL_MS`). */
+export function marcarIntersticial(agora: number = Date.now()): void {
+  try {
+    localStorage.setItem(CHAVE_DO_ULTIMO_INTERSTICIAL, String(agora));
+  } catch {
+    ultimoNaMemoria = agora; /* sem storage: fica a memória da página */
   }
 }
 

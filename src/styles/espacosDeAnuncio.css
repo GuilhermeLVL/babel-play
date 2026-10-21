@@ -1,10 +1,12 @@
 /* OS ESPAÇOS DE ANÚNCIO DO GRÁTIS (flag `anuncios`, change `planos-v3-e-rota-inteligente`).
    Cópia de `docs/prototipos/anuncios-no-gratis-src/anuncios.css` (protótipo aprovado), SÓ das regras dos
    espaços encaixados no app: Início, Biblioteca, fim de rodada e Loja, mais a folha e a tela do
-   premiado. As regras são as do protótipo, sem reescrita (só a formatação do Prettier); os números
+   premiado; e, no fim, as dos outros nove espaços (patrocínio de conteúdo, premiados nas telas, âncora e
+   intersticial). As regras são as do protótipo, sem reescrita (só a formatação do Prettier); os números
    entre colchetes são as linhas de lá.
    QUEM CARREGA ESTE ARQUIVO é o provedor de DEMONSTRAÇÃO (`components/anuncios/demonstracao`), que só
-   existe em desenvolvimento: no estado de fábrica nada disto chega ao navegador. */
+   existe em desenvolvimento e no build de demonstração (R38): no estado de fábrica nada disto chega ao
+   navegador. */
 
 /* ---- Peças comuns [anuncios.css:10-54] ---- */
 .ad-rotulo {
@@ -742,5 +744,281 @@ dialog.ad-video::backdrop {
   }
   .ad-fim-bloco-corpo .btn {
     flex: 1 1 100%;
+  }
+}
+
+/* ---- Os outros nove espaços [anuncios.css, seções c, e, f e o intersticial] ----
+   As regras são as do protótipo; as poucas do app vêm marcadas "app:". */
+.ad-mini-tag {
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ink) 9%, transparent);
+  color: var(--ink-muted);
+  font: 700 10px/1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* f) Patrocínio de conteúdo */
+.ad-oferece {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  font-size: 12px;
+  margin-left: auto;
+}
+/* app: o selo da trilha mora numa linha abaixo da linha da trilha (um botão não cabe dentro de outro) */
+.ad-oferece-linha {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 8px 0 0;
+}
+.ad-oferece-linha .ad-oferece {
+  margin-left: 0;
+  white-space: normal;
+}
+.ad-jogo-caixa {
+  display: grid;
+}
+.ad-jogo .px-mini {
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 0 18px;
+  align-content: center;
+}
+.ad-jogo .ad-pe {
+  margin-top: auto;
+}
+html:not([data-px='on']) .ad-jogo .px-mini {
+  display: none;
+}
+.ad-jogo .ad-cta {
+  min-height: 36px;
+  font-size: 14px;
+  padding: 0 14px;
+}
+.ad-jogo .ad-sem {
+  font-size: 11.5px;
+  white-space: normal;
+}
+.ad-arte-tema {
+  padding: 0 22px;
+}
+.ad-arte-tema .px-amostra {
+  height: 62px;
+  box-shadow: 0 10px 22px -14px rgb(0 0 0 / 0.5);
+}
+.ad-item .px-item-pe {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ad-item .ad-sem {
+  white-space: normal;
+}
+
+/* c) Premiados dentro das telas */
+.ad-chip {
+  gap: 8px;
+  cursor: pointer;
+}
+.ad-ctl {
+  gap: 8px;
+}
+.ad-chip svg,
+.ad-ctl svg {
+  width: 18px;
+  height: 18px;
+}
+.ad-nuvem-linha {
+  min-height: 44px;
+}
+.ad-ajuda {
+  gap: 6px;
+}
+.ad-ajuda svg {
+  width: 14px;
+  height: 14px;
+}
+.ad-ajuda .ad-mini-tag {
+  font-size: 9px;
+  padding: 2px 5px;
+}
+/* app: a oferta de "+1 ajuda" fica no fim da rodada, numa linha própria, como o bônus de Seeds */
+.ad-ajuda-linha {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 10px 0 0;
+}
+
+/* e) Faixa âncora (só celular) */
+.ad-ancora {
+  /* app: fixa na janela (o protótipo a prende ao `main`), acima da barra flutuante */
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(max(12px, env(safe-area-inset-bottom)) + 68px + 8px);
+  z-index: 28;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 8px;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.5),
+    0 14px 30px -14px rgb(0 0 0 / 0.4);
+  color: var(--ink);
+  transition: opacity 0.2s ease;
+}
+html.dark .ad-ancora {
+  box-shadow:
+    inset 0 1px 0 rgb(255 240 220 / 0.07),
+    0 14px 30px -12px rgb(0 0 0 / 0.8);
+}
+.ad-ancora .q-ic {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+.ad-ancora .q-ic svg {
+  width: 20px;
+  height: 20px;
+}
+.ad-ancora-texto {
+  flex: 1 1 0;
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.ad-ancora-texto b {
+  font: 800 14px/1.15 var(--font-display, inherit);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ad-ancora-texto small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+.ad-ancora-texto .ad-rotulo {
+  font-size: 10px;
+}
+.ad-ancora .ad-cta {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+.ad-ancora-x {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--ink-muted);
+}
+.ad-ancora-x svg {
+  width: 18px;
+  height: 18px;
+}
+.ad-ancora-espaco {
+  flex: 0 0 auto;
+  height: 58px;
+}
+/* some quando um painel sobe ou a sugestão do Premium aparece: um convite por vez */
+[data-raiz-do-app]:has(.qc-oferta) .ad-ancora,
+main.px-recuado .ad-ancora {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* O intersticial: um cartão do app no meio da tela */
+.ad-inter {
+  width: min(520px, 100%);
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 24px;
+  border: 1.5px solid var(--border-subtle);
+  background: var(--surface);
+  color: var(--ink);
+  text-align: start; /* app: o fim da rodada, onde ele nasce, centraliza o texto */
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.5),
+    0 34px 80px -24px rgb(0 0 0 / 0.6);
+}
+.ad-inter .ad-x {
+  min-height: 44px;
+  width: 44px;
+  padding: 0;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+.ad-inter .ad-x b {
+  font: 800 15px/1 var(--font-mono, monospace);
+}
+.ad-inter .ad-x:disabled,
+.ad-seguir:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.ad-seguir {
+  justify-content: center;
+  margin-top: 6px;
+}
+.ad-regra {
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink-muted);
+}
+.ad-regra svg {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  margin-top: 1px;
+}
+.ad-inter > .ad-sem {
+  justify-self: center;
+  padding: 0;
+}
+
+@media (max-width: 720px) {
+  .ad-nuvem-linha {
+    margin-top: 6px;
+  }
+  .ad-oferece-baixo {
+    display: inline-block;
+    margin: 8px 0 0;
+    font-size: 11px;
+    padding: 5px 8px;
+    white-space: normal;
+    line-height: 1.25;
+  }
+  .ad-jogo .px-mini .mm-chip:nth-child(n + 3) {
+    display: none;
+  }
+  .ad-chip.ad-nuvem-linha {
+    font-size: 15px;
+    padding: 0 14px;
   }
 }

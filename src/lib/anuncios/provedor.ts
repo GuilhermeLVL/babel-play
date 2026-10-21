@@ -30,6 +30,12 @@ export interface PropsDoEspacoDeAnuncio {
    * mensagem. Ausente nos formatos que não são premiados.
    */
   aoRecompensar?: (exibicaoId: string) => Promise<PremiadoConcluido>;
+  /**
+   * O anúncio terminou sem recompensa: a pessoa fechou o intersticial ("Continuar") ou a âncora (o "×"), ou o
+   * anúncio não veio. Quem encaixou o espaço segue (o intersticial leva à próxima rodada; a âncora some na
+   * sessão). Ausente nos espaços que ficam na tela.
+   */
+  aoFechar?: () => void;
 }
 
 export interface ProvedorDeAnuncios {

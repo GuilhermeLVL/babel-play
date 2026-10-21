@@ -433,6 +433,15 @@ app a embute por `<iframe credentialless sandbox>`.
   menos os estáticos pesados.
 - **Build do app:** `VITE_ANUNCIOS_ORIGEM` (a mesma origem) registra o provedor real
   (`src/lib/anuncios/ligar.ts`), e só com a flag ligada o módulo dele é baixado.
+- **Demonstração no staging (R38):** com a var `VITE_ANUNCIOS_DEMONSTRACAO=1` no Environment `staging`
+  (`gh variable set VITE_ANUNCIOS_DEMONSTRACAO --env staging --body 1`), o build do `deploy-worker.yml` liga o
+  provedor de DEMONSTRAÇÃO: os 15 espaços do protótipo aparecem com "Patrocinado · exemplo", marcas inventadas,
+  nada da rede e recompensa simulada, sem precisar de flag nem de `localStorage`. O perfil protegido, o plano pago,
+  o teste, o headset e a tela ocupada continuam negando. O workflow só passa a var quando o ambiente é o
+  `staging`; **nunca a defina no `production`**. Sem ela o Vite tira a demonstração do pacote:
+  `npm run build && node scripts/anuncios/conferir-demonstracao.mjs --espera ausente` (e, com a var,
+  `--espera presente`). Os premiados fora de `ESPACOS_PREMIADOS_ATIVOS` (`nuvem-30`, `tema-24h`,
+  `ajuda-premiada`) só a demonstração desenha; o provedor real os esconde (R39).
 - **Limitações:** Firefox não tem `credentialless` (sem anúncio, aceito). A recompensa do premiado não tem
   verificação do Google na web: o servidor credita por exibição com teto (Task 5). O Express (Node) não
   sobrepõe a CSP: anúncios só com o Worker.

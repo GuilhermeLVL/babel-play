@@ -21,6 +21,8 @@
 #            VITE_DESENHO_NOVO_PADRAO, VITE_BERGAMOT_MODELOS_URL
 #            VITE_ANUNCIOS_ORIGEM (opcional: a origem do Worker de anúncios `frasy-anuncios`, R35; ele se publica
 #            à parte, ver docs/deploy.md "Anúncios")
+#            VITE_ANUNCIOS_DEMONSTRACAO (só no `staging`: `1` liga a demonstração dos espaços de anúncio, R38;
+#            nunca no `production`, e o passo do build a ignora fora do staging)
 # Os secrets do Worker em si (SECRET_KEY, chaves de IA…) NÃO passam por aqui: `scripts/cloudflare/secrets.ts`.
 # Passo a passo, tabela e alternativa manual: docs/deploy.md ("Publicar o Worker (CI)").
 name: deploy-worker
@@ -127,6 +129,9 @@ jobs:
           VITE_DESENHO_NOVO_PADRAO: ${{ vars.VITE_DESENHO_NOVO_PADRAO }}
           VITE_BERGAMOT_MODELOS_URL: ${{ vars.VITE_BERGAMOT_MODELOS_URL }}
           VITE_ANUNCIOS_ORIGEM: ${{ vars.VITE_ANUNCIOS_ORIGEM }}
+          # A demonstração de anúncios (R38): só o Environment `staging` define a var, e mesmo assim ela só passa
+          # quando o ambiente é o staging. Sem ela o Vite tira a demonstração do pacote.
+          VITE_ANUNCIOS_DEMONSTRACAO: ${{ inputs.ambiente == 'staging' && vars.VITE_ANUNCIOS_DEMONSTRACAO || '' }}
         run: npm run build
 
       # Migrações antes da versão nova existir (o schema é aditivo; o Worker antigo continua servindo). A conexão

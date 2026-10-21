@@ -73,8 +73,14 @@ export function precomprimirDiretorio(dir: string): { removidos: string[]; compr
     if (gz.length < bruto.length) writeFileSync(`${arquivo}.gz`, gz);
     comprimidos += 1;
   }
+  /* Os `.br`/`.gz` são para o servidor Node. O Worker (Static Assets) comprime sozinho na borda e, sem
+     esta lista, subia 3× mais arquivos (1 049 em vez de 482 em 20/10/2026; o upload caía com EPIPE). */
+  writeFileSync(path.join(dir, '.assetsignore'), ASSETSIGNORE);
   return { removidos, comprimidos, ms: Date.now() - t0 };
 }
+
+/** O que o `wrangler deploy` NÃO sobe como asset (`dist/.assetsignore`, gerado aqui). */
+export const ASSETSIGNORE = '*.br\n*.gz\n.assetsignore\n';
 
 export function precomprimir(): Plugin {
   let saida = 'dist';

@@ -3,7 +3,7 @@
  * a fonte do CI, o veredito de nível, a classificação ok/degradação/erro, a mistura ponderada, o WAV
  * que o STT aceita e a janela de 429 do provedor falso. A carga de verdade roda no job `carga`.
  */
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -202,6 +202,8 @@ describe('orçamento do bundle e pré-compressão (frontend)', () => {
     expect(existsSync(path.join(dir, 'assets', 'a.js.gz'))).toBe(true)
     expect(existsSync(path.join(dir, 'assets', 'mini.js.br'))).toBe(false)
     expect(existsSync(path.join(dir, 'og.png.br'))).toBe(false)
+    // O Worker não sobe os `.br`/`.gz` (Static Assets comprime na borda): a lista nasce no build.
+    expect(readFileSync(path.join(dir, '.assetsignore'), 'utf8')).toBe('*.br\n*.gz\n.assetsignore\n')
     rmSync(dir, { recursive: true, force: true })
   })
 })

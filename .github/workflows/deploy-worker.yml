@@ -4,8 +4,10 @@
 # `GIT_SHA` e o alias de preview "fumaca") → fumaça na URL de preview → `wrangler versions deploy @100%` →
 # fumaça na URL final → `wrangler triggers deploy` (crons, rotas, workers_dev/preview_urls) → se a fumaça final
 # falhar, `wrangler rollback`.
-# O PRIMEIRO DEPLOY DE CADA AMBIENTE É MANUAL: `versions upload` não cria Worker. Antes deste workflow, uma vez:
-# `npx wrangler deploy -c wrangler.jsonc [--env staging]`, depois os secrets (docs/deploy.md, "Publicar").
+# O PRIMEIRO RUN DE CADA AMBIENTE CRIA O WORKER: `versions upload` não cria Worker, então, quando ele ainda não
+# existe, este workflow faz um `wrangler deploy` comum (sem fumaça, porque os secrets ainda não existem) e para.
+# Depois: os secrets (`scripts/cloudflare/secrets.ts`) e um segundo run, que já segue o fluxo por versões.
+# (O deploy manual de uma rede doméstica é inviável: são ~120 MB de assets; o runner do GitHub sobe em segundos.)
 # O Worker nunca roda migração; quem migra é o passo "Migrações" (antes do upload, com a conexão de sessão).
 #
 # GITHUB ENVIRONMENT (um por ambiente: `staging` e `production`; Settings → Environments). Nenhum valor mora aqui:
@@ -90,19 +92,19 @@ jobs:
           fi
 
       # `versions upload` não cria o Worker ("You cannot upload a new version of a Worker that does not yet
-      # exist"): reprova aqui, antes de migrar o banco, com o comando do primeiro deploy.
+      # exist"): decide aqui, antes de migrar o banco, se este run é o PRIMEIRO deploy (cria) ou um deploy por versões.
       - name: O Worker já existe neste ambiente?
+        id: existe
         run: |
           env_args=(); [ "$AMBIENTE" = "production" ] || env_args=(--env "$AMBIENTE")
-          if ! saida=$(npx wrangler deployments list -c wrangler.jsonc "${env_args[@]}" 2>&1); then
-            if printf '%s' "$saida" | grep -qiE 'does not (yet )?exist|workers\.api\.error\.script_not_found|10007'; then
-              [ "$AMBIENTE" = "production" ] && cmd="npx wrangler deploy -c wrangler.jsonc" \
-                || cmd="npx wrangler deploy -c wrangler.jsonc --env $AMBIENTE"
-              echo "::error::o Worker de '$AMBIENTE' ainda não existe: o primeiro deploy é manual (\`$cmd\`), depois os secrets; ver docs/deploy.md"
-            else
-              printf '%s\n' "$saida" | tail -n 20
-              echo "::error::não consegui listar os deployments de '$AMBIENTE' (token ou conta?)"
-            fi
+          if saida=$(npx wrangler deployments list -c wrangler.jsonc "${env_args[@]}" 2>&1); then
+            echo "existe=true" >> "$GITHUB_OUTPUT"
+          elif printf '%s' "$saida" | grep -qiE 'does not (yet )?exist|workers\.api\.error\.script_not_found|10007'; then
+            echo "existe=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::o Worker de '$AMBIENTE' ainda não existe: este run faz o PRIMEIRO deploy (cria o Worker, sem fumaça)"
+          else
+            printf '%s\n' "$saida" | tail -n 20
+            echo "::error::não consegui listar os deployments de '$AMBIENTE' (token ou conta?)"
             exit 1
           fi
 
@@ -135,11 +137,23 @@ jobs:
           export NODE_EXTRA_CA_CERTS="$RUNNER_TEMP/supabase-ca.pem"
           npm run db:migrate
 
+      # PRIMEIRO DEPLOY: um `wrangler deploy` comum cria o Worker, sobe os assets e aplica os triggers. Sem fumaça,
+      # porque os secrets do Worker ainda não existem (o boot responde 503 até eles chegarem). Depois dos secrets,
+      # um segundo run segue o fluxo por versões abaixo.
+      - name: Primeiro deploy (cria o Worker; sem fumaça)
+        if: ${{ steps.existe.outputs.existe == 'false' }}
+        run: |
+          set -euo pipefail
+          env_args=(); [ "$AMBIENTE" = "production" ] || env_args=(--env "$AMBIENTE")
+          npx wrangler deploy -c wrangler.jsonc "${env_args[@]}" --var "GIT_SHA:$SHA"
+          echo "::warning::Worker de '$AMBIENTE' criado sem secrets: envie-os (scripts/cloudflare/secrets.ts $AMBIENTE) e rode este workflow de novo; só então a fumaça vale"
+
       # Sobe a versão SEM tráfego. `GIT_SHA` vira a versão servida em /api/health (`0.1.0+<sha7>`); o alias
       # "fumaca" dá uma URL de preview estável para testar antes de virar o tráfego. A saída estruturada do
       # wrangler (WRANGLER_OUTPUT_FILE_PATH, uma linha JSON por evento) fornece o id da versão e a URL, sem
       # depender do texto do terminal.
       - name: Subir a versão (sem tráfego)
+        if: ${{ steps.existe.outputs.existe == 'true' }}
         id: subir
         env:
           WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-saida.ndjson
@@ -159,6 +173,7 @@ jobs:
       # Fumaça na URL de preview: a versão nova, ainda sem tráfego, tem de estar pronta e ser deste commit.
       # Na PRODUÇÃO ela é o portão antes do tráfego (`preview_urls: true` no wrangler.jsonc): sem URL, reprova.
       - name: Fumaça na versão em preview
+        if: ${{ steps.existe.outputs.existe == 'true' }}
         env:
           PREVIEW: ${{ steps.subir.outputs.preview }}
         run: |
@@ -174,6 +189,7 @@ jobs:
 
       # Vira 100% do tráfego para a versão que passou na fumaça. Daqui em diante, falha = rollback.
       - name: Promover a versão (100% do tráfego)
+        if: ${{ steps.existe.outputs.existe == 'true' }}
         id: implantar
         env:
           VERSAO: ${{ steps.subir.outputs.versao }}
@@ -183,6 +199,7 @@ jobs:
             --message "$SHA7 $AMBIENTE"
 
       - name: Fumaça na URL final
+        if: ${{ steps.existe.outputs.existe == 'true' }}
         id: fumaca_final
         env:
           URL_DO_WORKER: ${{ vars.URL_DO_WORKER }}
@@ -191,6 +208,7 @@ jobs:
       # `versions upload/deploy` não aplicam crons, rotas nem workers_dev/preview_urls ("Changes to triggers …
       # must be applied with `wrangler triggers deploy`"): só depois da fumaça final, com a versão já validada.
       - name: Aplicar triggers (crons, rotas)
+        if: ${{ steps.existe.outputs.existe == 'true' }}
         run: |
           env_args=(); [ "$AMBIENTE" = "production" ] || env_args=(--env "$AMBIENTE")
           npx wrangler triggers deploy -c wrangler.jsonc "${env_args[@]}"

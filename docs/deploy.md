@@ -320,13 +320,18 @@ imprime o log do wrangler.
 
 ## Publicar o Worker (CI)
 
-**Primeiro deploy de cada ambiente: manual.** `wrangler versions upload` não cria o Worker ("You cannot upload a
-new version of a Worker that does not yet exist"). Uma vez por ambiente, nesta ordem:
+**Primeiro deploy de cada ambiente: dois runs do workflow.** `wrangler versions upload` não cria o Worker ("You
+cannot upload a new version of a Worker that does not yet exist"), então o workflow detecta o Worker ausente e faz
+um `wrangler deploy` comum, SEM fumaça (os secrets ainda não existem e o boot responde 503). Uma vez por ambiente:
 
-1. `npx wrangler deploy -c wrangler.jsonc` (produção) ou `… --env staging`, com o build do Vite já feito: cria o
-   Worker e aplica `workers_dev`, `preview_urls` e os crons;
-2. os secrets (`scripts/cloudflare/secrets.ts`, seção "Secrets do Worker");
-3. daí em diante, o workflow.
+1. Actions → deploy-worker → `ambiente`: o run cria o Worker, sobe os assets e aplica `workers_dev`,
+   `preview_urls` e os crons (`wrangler deploy` exige **Analytics Engine ativado** no painel da conta, código 10089);
+2. os secrets (`scripts/cloudflare/secrets.ts`, seção "Secrets do Worker"), da sua máquina;
+3. um segundo run: daí em diante é o fluxo por versões, com fumaça e rollback.
+
+Fazer o primeiro deploy à mão (`npx wrangler deploy -c wrangler.jsonc [--env staging]`) funciona, mas só numa rede
+com upload decente: são ~120 MB de assets (ONNX/WASM), e de uma conexão doméstica o upload caía com `EPIPE`
+(20/10/2026). O `dist/.assetsignore`, gerado no build, deixa os `.br`/`.gz` de fora (o Worker comprime na borda).
 
 Ao apontar o Worker para um banco que já serviu um servidor Node, apague a linha `configuracao` de
 `boot_falhas` (`DELETE FROM boot_falhas WHERE passo = 'configuracao'`): o Worker só espelha esse passo em memória
@@ -336,7 +341,7 @@ e uma linha antiga deixaria o `/api/health` em `degraded`.
 `staging|production` e `ref` opcional) publica por **versões** do Cloudflare, com fumaça e rollback:
 
 1. confere os secrets/vars do Environment (reprova dizendo o NOME que falta) e se o Worker já existe
-   (`wrangler deployments list`; não existindo, reprova com o comando do primeiro deploy, antes de migrar);
+   (`wrangler deployments list`; não existindo, este run vira o primeiro deploy, acima);
 2. `npm run build` com os `VITE_*` do Environment;
 3. `npm run db:migrate` (o Worker nunca migra; é a conexão de sessão do Supabase, TLS `verify-full`);
 4. `wrangler versions upload` (versão SEM tráfego) com `--var GIT_SHA:<sha>` e `--preview-alias fumaca`; o id da

@@ -155,6 +155,8 @@ Bloco 3 (as conferências antes de abrir — `docs/LANCAMENTO.md` §10): as 16 c
 - [ ] **Step 3:** `npx vitest run tests/seguranca/csp-estreita.test.ts tests/seguranca/csp-anuncios.test.ts tests/anuncios-*.test.ts* tests/politicaDeAnuncio.test.ts tests/espacoDeAnuncio.test.tsx` → PASS; `npm run lint`; i18n 0.
 - [ ] **Step 4:** Commit `feat(anuncios): consentimento, CSP por configuração e provedor da rede (desligado por padrão)`.
 
+**Ruling R32 (pesquisa `docs/pesquisa/2026-10-21-rede-de-anuncios.md`, 21/10):** o GPT/AdSense do Google não suporta COEP e exige CSP por nonce. Desenho adotado: uma **origem de anúncios própria** (`ads.<domínio>`; no staging um caminho `/anuncios/espaco.html` servido pelo mesmo Worker sem COOP/COEP e com CSP própria larga) que carrega o GPT e desenha o espaço; o app embute essa página por `<iframe credentialless>` (Chrome/Edge; sem suporte = sem provedor = nada aparece) e a CSP do app só abre `frame-src https://ads.<domínio>` com a flag ligada. Recompensa do premiado: a página de anúncios manda `postMessage` com um token assinado pelo servidor (`exibicaoId`), e a Task 5 credita com teto diário — não existe SSV do Google na web. Logo: `ANUNCIOS_HOSTS` vira `ANUNCIOS_ORIGEM` (uma origem), o provedor é `src/lib/anuncios/provedores/iframe.ts`, e a página de anúncios fica em `public/anuncios/espaco.html` + regras no `worker.ts`/`_headers` para servi-la sem isolamento. Custo se errado: Firefox sem anúncios (aceito) e uma origem a mais para o dono configurar.
+
 ### Task 5: Anúncios — recompensa do premiado no servidor (spec "O premiado é sempre escolha")
 
 **Files:**

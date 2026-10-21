@@ -169,6 +169,30 @@ subir o orçamento (`npx wrangler secret put AI_BUDGET_USD_MONTH -c wrangler.jso
 Groq e o crédito pré-pago sem recarga da OpenRouter são a segunda e a terceira barreira: mesmo que a
 estimativa erre, o provedor corta.
 
+### 0.6 Abrir e fechar portas
+
+Seis portas decidem o que a produção oferece. Quatro são secrets do Worker (o inventário está em
+`server/lib/config.ts`) e duas são flags de banco. Trocar um secret: `npx wrangler secret put NOME -c wrangler.jsonc`
+(produção é o ambiente raiz; staging leva `--env staging`), vale na próxima requisição; apagar:
+`npx wrangler secret delete NOME -c wrangler.jsonc`. Flag: **Admin → Flags** no app (admin com 2FA) ou
+`node dist-server/operacao.cjs flags ligar|desligar <chave>` com a `DATABASE_URL` de produção; vale em até 30 s
+([flags.md](flags.md)). O procedimento ordenado de **abrir** pela primeira vez é o
+[LANCAMENTO.md §11-bis](LANCAMENTO.md#11-bis-abrir-a-venda--passo-a-passo).
+
+| porta              | onde                       | abrir                                                                                     | fechar                                                                         | o que acontece fechada                                                                                                                     |
+| ------------------ | -------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `SIGNUP_ENABLED`   | secret                     | `1` ou sem o secret (ausente = aberto) **e** Supabase "Allow new users to sign up" ligado | `0` **e** desligar o cadastro no Supabase (Authentication → Providers → Email) | conta nova recebe 403 `cadastro_fechado`; a tela esconde "Criar conta"; quem já tem conta entra normalmente                                |
+| `CHECKOUT_ENABLED` | secret                     | `1` ou sem o secret                                                                       | `0`                                                                            | assinar e comprar respondem 503 com mensagem; quem já paga segue; o webhook do Asaas continua processando; força `vender_planos` desligada |
+| `ANUAL_ENABLED`    | secret                     | `1` (**só depois dos Termos §3–§4 validados**)                                            | `0` ou apagar o secret (ausente = fechado)                                     | o anual (à vista e 12x) some da tela e o servidor responde 503 `anual_indisponivel`; quem já tem o anual não é afetado                     |
+| `venda_planos_v3`  | flag                       | `flags ligar venda_planos_v3` (Essencial à venda)                                         | `flags desligar venda_planos_v3`                                               | `POST /api/billing/assinar` recusa o Essencial com 503 `plano_indisponivel`; o Premium segue; quem já tem o Essencial o mantém             |
+| `anuncios`         | flag (+ `ANUNCIOS_ORIGEM`) | `flags ligar anuncios`, só depois do jurídico e da rede (LANCAMENTO §11-bis, passo 6)     | `flags desligar anuncios` (a CSP volta ao normal em até 60 s)                  | nenhum espaço renderiza e nada é pedido a terceiros                                                                                        |
+| `AI_ENABLED`       | secret                     | `1` ou sem o secret                                                                       | `0`                                                                            | toda IA de nuvem para; o app segue com os modelos locais                                                                                   |
+
+Regras de bolso: **abra na ordem** cadastro → venda → anual → anúncios e **feche na ordem inversa do problema** (cobrança
+errada: `CHECKOUT_ENABLED=0`; conta falsa em massa: `SIGNUP_ENABLED=0`; IA gastando: `AI_ENABLED=0`, §0 item 2). Fechar
+`CHECKOUT_ENABLED` ou `venda_planos_v3` nunca tira o plano de quem já pagou. As chaves de emergência e o orçamento de IA
+(`AI_BUDGET_USD_MONTH`) estão no §0 e no §0.5.
+
 ## Cloudflare, Supabase e Sentry têm alerta de fatura no painel — ligue os três (LANCAMENTO.md).
 
 ## 1. As duas perguntas de saúde, e por que são duas

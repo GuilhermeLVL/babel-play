@@ -306,6 +306,22 @@ caminho: [`STAGING.md`](STAGING.md).
 6. **Segundo run** do `deploy-worker` (`production`): daí em diante é o fluxo por versões, com fumaça e rollback
    automático. Cadastro e venda sobem **fechados** (`SIGNUP_ENABLED=0`, `CHECKOUT_ENABLED=0`).
 7. `wrangler tail` (`npx wrangler tail -c wrangler.jsonc`) não deve mostrar `ABORTADO`; o `/api/ready` deve dar 200.
+8. **Flags do lançamento** (banco, sem deploy; valem em até 30 s). O recorte é: `venda_planos_v3` **ligada** (Grátis, Essencial
+   e Premium à venda), `stt_ao_vivo` **desligada** (o Ao Vivo não é vendido), `voz_natural` **desligada**, `anuncios`
+   **desligada**. Os padrões de fábrica já são "desligada" (migrações `0048` e `0051`); só `venda_planos_v3` pede ação.
+   Duas portas, as mesmas de [`flags.md`](flags.md): no app, logado como admin com o 2FA confirmado, **Admin → Flags**
+   (liga e desliga o interruptor `habilitada`), ou pela CLI, da sua máquina com a `DATABASE_URL` de produção no
+   ambiente (a CLI sai de `npm run build`):
+   ```bash
+   node dist-server/operacao.cjs conta papel <seu-e-mail> admin   # uma vez: o papel mora no banco
+   node dist-server/operacao.cjs flags ligar venda_planos_v3
+   node dist-server/operacao.cjs flags listar                      # confere: venda_planos_v3 LIGADA, as outras desligada
+   ```
+   Ligar a flag **não abre a venda**: o checkout continua fechado por `CHECKOUT_ENABLED=0` até o §11-bis.
+9. **Página de anúncios** (só se for usar anúncios; pode ficar para depois do jurídico e da rede): o Worker próprio
+   `frasy-anuncios` é publicado à mão, `npm run anuncios:build` e `npx wrangler deploy -c wrangler.anuncios.jsonc`,
+   com o domínio `ads.<domínio>`. Passo a passo e variáveis em [`deploy.md`](deploy.md), "Anúncios". Publicá-lo não
+   liga nada: a flag `anuncios` segue desligada.
 
 ## 9. Domínio no Worker e a borda fechada — 20 min
 
@@ -363,9 +379,48 @@ caminho: [`STAGING.md`](STAGING.md).
       com uma conta de 15 anos — o e-mail chega (caixa de entrada, não spam; nos cabeçalhos,
       `spf=pass`, `dkim=pass` e `dmarc=pass`), o link não foi reescrito pelo Resend, o responsável
       aceita e a conta libera a nuvem. **Sem isso, não abra para menores.**
+- [ ] **3 cartões na produção**: logado numa conta Grátis, Planos mostra Grátis, Essencial e Premium (e **nem** Ao
+      Vivo nem promessa de voz neural); `GET /api/billing/status` devolve `planosAVenda` com `essencial` e `premium`.
+- [ ] **Checkout do Essencial no sandbox** (chave sandbox do Asaas no staging): mensal R$ 9,90, o webhook concede o
+      Essencial pelo valor, a troca para o Premium vale no próximo ciclo e o arrependimento de 7 dias devolve o valor.
+- [ ] **Anúncio: página de bancada sem violação** (só antes de ligar `anuncios`): a página de bancada abre no Chrome real
+      com o isolamento ligado, sem violação de CSP/COEP no console (`docs/auditoria/2026-10-21-anuncios-bancada.md`);
+      com a flag desligada, nenhum byte de terceiro é pedido.
 - [ ] Testar as três chaves de emergência no staging: `AI_ENABLED=0` (tradução cai para o local),
       `CHECKOUT_ENABLED=0` (assinar responde 503 com mensagem), `SIGNUP_ENABLED=0` (conta nova recebe
       `cadastro_fechado`; desligar também o cadastro no painel do Supabase).
+
+## 11-bis. Abrir a venda — passo a passo
+
+Produção sobe fechada (§8): `SIGNUP_ENABLED=0` e `CHECKOUT_ENABLED=0`, `ANUAL_ENABLED` ausente, `anuncios`
+desligada. Abra **na ordem**, uma porta por vez, conferindo antes de passar à próxima. Cada chave é um secret do
+Worker; para trocar uma, `npx wrangler secret put NOME -c wrangler.jsonc` (produção é o ambiente raiz; vale na
+próxima requisição, sem deploy). As mesmas portas, para fechar de volta, estão no
+[runbook, "Abrir e fechar portas"](runbook.md#06-abrir-e-fechar-portas).
+
+1. **Conferências do §10 fechadas**, em especial a cobrança real de R$ 5 com estorno, o convite ao responsável (sem ele,
+   não abra para menores), as três chaves de emergência e as três caixas novas (3 cartões, checkout do Essencial no
+   sandbox).
+2. **Flags** (§8, passo 8): `flags listar` mostra `venda_planos_v3` ligada; `stt_ao_vivo`, `voz_natural` e `anuncios`
+   desligadas.
+3. **Cadastro — `SIGNUP_ENABLED`.** Primeiro o app: `npx wrangler secret put SIGNUP_ENABLED -c wrangler.jsonc` e digite
+   `1` (ou apague o secret com `npx wrangler secret delete SIGNUP_ENABLED -c wrangler.jsonc`: ausente = aberto).
+   **Em seguida o Supabase:** Authentication → Providers → Email → _Allow new users to sign up_ **ligado**. Teste criando
+   uma conta nova: o e-mail chega, o login entra, o teste de 14 dias aparece em Planos.
+4. **Venda — `CHECKOUT_ENABLED`.** Ainda sem anual: `npx wrangler secret put CHECKOUT_ENABLED -c wrangler.jsonc` com `1`.
+   `venda_planos_v3` já está ligada (passo 2), então o Essencial e o Premium **mensais** passam a vender. Teste com a
+   sua conta: assinar o mensal, o webhook concede o plano pelo valor, e `GET /api/billing/status` confere.
+5. **Anual — `ANUAL_ENABLED=1`, só depois do jurídico.** Com os Termos §3–§4 validados (caixa do §10):
+   `npx wrangler secret put ANUAL_ENABLED -c wrangler.jsonc` com `1`. O anual à vista e em 12x aparece em Planos; até lá o
+   servidor responde 503 `anual_indisponivel`.
+6. **Anúncios — flag `anuncios`, só depois do jurídico (ECA Digital) e da rede aprovada.** Antes: a página
+   `frasy-anuncios` publicada em `ads.<domínio>` (§8, passo 9); o secret `ANUNCIOS_ORIGEM=https://ads.<domínio>` no Worker do app
+   (`npx wrangler secret put ANUNCIOS_ORIGEM -c wrangler.jsonc`; a CSP lê a cada 60 s) e `VITE_ANUNCIOS_ORIGEM` na
+   _variable_ do Environment `production` com um novo deploy do app; a caixa de bancada do §10 marcada. Então
+   `node dist-server/operacao.cjs flags ligar anuncios` (ou Admin → Flags). Conferir com uma conta Grátis adulta: a folha
+   de consentimento aparece; com perfil protegido, nada aparece. Para desfazer: `flags desligar anuncios`.
+7. **Acompanhar** nas primeiras horas: `wrangler tail`, o Sentry e `GET /api/admin/ia`. Qualquer coisa estranha: feche a
+   porta correspondente (`SIGNUP_ENABLED=0`, `CHECKOUT_ENABLED=0`) e siga o runbook §0.
 
 ## 11. Rotina depois do lançamento
 

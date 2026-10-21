@@ -1,6 +1,6 @@
 # Quatro planos, rota inteligente da fala, transparência e anúncios no Grátis
 
-Estado: **proposta, aguardando o dono**. Nada aqui foi implementado.
+Estado em 21/10/2026: **em implementação**. O dono delegou as decisões em 09/10 (`design.md` §11). Prontos: matriz e cobrança dos quatro planos, troca de plano, tela de planos, política, consentimento, CSP, provedor e recompensa de anúncios (grupos 1, 2, 3, 7, 8, 9 e 11.2 a 11.5). Abertos: rota inteligente, transparência, nuvem ao vivo e qualidade no aparelho (grupos 4, 5, 6, 10 e Q, depois do lançamento), a bancada de anúncios (11.1), a consulta jurídica (11.6) e a abertura da venda, que é do dono (`docs/LANCAMENTO.md` §11-bis).
 
 ## Por quê
 

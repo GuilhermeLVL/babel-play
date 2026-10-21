@@ -1502,14 +1502,19 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
    * O PREVISTO DO SELO sai daqui em TODO caso (com a nuvem primeiro, com o modelo já pronto, sem nada
    * em cache): a marca da tela pronta diz onde a fala VAI ser processada antes de qualquer captura, e
    * acompanha a troca de idioma, de nível e de conexão. É só a resposta da política; nada aquece por isso.
+   *
+   * `aquecer: false` — O QUE A TELA FAZ AO ABRIR (correção G do diagnóstico do Safari, 22/10/2026): só o
+   * previsto. Aquecer do cache ao abrir subia o worker do Whisper e o tradutor (~320 MB no WebKit) em
+   * quem só passava pela Capturar, e eles seguiam vivos nas outras telas; a carga fica para o "Iniciar".
    */
-  const preaquecerModelos = async (): Promise<void> => {
+  const preaquecerModelos = async (opcoes: { aquecer?: boolean } = {}): Promise<void> => {
     try {
       if (prepareEmVooRef.current) return;
       const { route, previstos, perfil, mtDe, mtPara, micVaiAoWhisper } = await rotaDaCaptura();
       // Uma preparação que começou enquanto a rota era lida publica o previsto dela.
       if (prepareEmVooRef.current) return;
       setRotaPrevista?.(previstos);
+      if (opcoes.aquecer === false) return;
       if (getProviderMode() === 'cloud' || modelReadyRef.current) return;
       if (route.preferCloud) return;
       /* NATIVO PRIMEIRO (plano "Grátis sem travar", A9a): o áudio da aba vai ao reconhecedor do

@@ -1,6 +1,7 @@
 import { env } from '@huggingface/transformers';
 
 import { urlFixadaDoModelo } from '../revisoesDosModelos';
+import { comPoliticaDoHub } from '../semReferer';
 
 /**
  * Configuração de ENTREGA DOS PESOS, compartilhada pelos workers (Whisper + opus-mt + WeSpeaker).
@@ -34,10 +35,11 @@ export function configureModelDelivery(): void {
   }
   env.useBrowserCache = true;
 
+  // Busca ao Hub vai SEM referer (`semReferer.ts`): o Hub recusa a origem `*.workers.dev` do staging.
   const buscar = env.fetch ?? globalThis.fetch.bind(globalThis);
-  env.fetch = (entrada: string | URL, init?: RequestInit) =>
-    buscar(
-      typeof entrada === 'string' || entrada instanceof URL ? urlFixadaDoModelo(String(entrada), bucket) : entrada,
-      init,
-    );
+  env.fetch = (entrada: string | URL, init?: RequestInit) => {
+    if (typeof entrada !== 'string' && !(entrada instanceof URL)) return buscar(entrada, init);
+    const url = urlFixadaDoModelo(String(entrada), bucket);
+    return buscar(url, comPoliticaDoHub(url, init));
+  };
 }

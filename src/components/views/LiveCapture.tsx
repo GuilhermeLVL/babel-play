@@ -1328,16 +1328,18 @@ export default function LiveCapture({
     </React.Suspense>
   ) : null;
 
-  /* PRÉ-AQUECE o STT/MT locais que JÁ estão em cache quando a tela abre e quando o par ou a qualidade
-     mudam (nunca baixa nada: ver `preaquecerModelos`). Com um respiro, para não disputar a
-     renderização da tela; a gravação em curso não é tocada. */
+  /* AO ABRIR A TELA (e quando o par, a qualidade ou a conexão mudam): só o PREVISTO do selo, a resposta
+     da política. Nenhum modelo sobe aqui (correção G do diagnóstico do Safari, 22/10/2026): aquecer do
+     cache ao abrir carregava ~320 MB e deixava os workers vivos em quem só passava pela Capturar; a carga
+     é do "Iniciar" (`prepareModels`). Com um respiro, para não disputar a renderização da tela; a
+     gravação em curso não é tocada. */
   const preaquecerRef = useRef(preaquecerModelos);
   preaquecerRef.current = preaquecerModelos;
   /* A conexão entra na lista: o previsto do selo da fala (e a marca da tela) muda quando ela cai ou volta. */
   const semRede = useSemRede();
   useEffect(() => {
     if (isRecordingRef.current) return;
-    const relogio = setTimeout(() => void preaquecerRef.current(), 400);
+    const relogio = setTimeout(() => void preaquecerRef.current({ aquecer: false }), 400);
     return () => clearTimeout(relogio);
   }, [sourceLang, targetLang, autoDetectLang, autoDetectMyLang, micEnabled, micEngine, sttQuality, semRede]);
 

@@ -159,7 +159,7 @@ describe('captura com final especulativo', () => {
 })
 
 describe('parciais mais cedo', () => {
-  it('o 1º parcial sai no 1º tique com 0,6 s de fala; os seguintes respeitam 1,1 s entre si', async () => {
+  it('o 1º parcial sai no 1º tique com 0,6 s de fala; os seguintes respeitam 2 s entre si (22/10/2026)', async () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'setTimeout', 'clearTimeout', 'performance'] })
     try {
       const parciais: number[] = []
@@ -173,7 +173,9 @@ describe('parciais mais cedo', () => {
       await alimentar(fala(8))
       await vi.advanceTimersByTimeAsync(400)
       expect(parciais).toHaveLength(1) // 0,6 s de áudio novo, mas só 0,6 s desde o último
-      await vi.advanceTimersByTimeAsync(800) // 1,2 s desde o 1º
+      await vi.advanceTimersByTimeAsync(800) // 1,2 s desde o 1º: ainda não (eram 1,1 s; hoje 2 s)
+      expect(parciais).toHaveLength(1)
+      await vi.advanceTimersByTimeAsync(900) // 2,1 s desde o 1º
       expect(parciais).toHaveLength(2)
       await cap.stop()
     } finally {

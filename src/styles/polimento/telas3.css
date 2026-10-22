@@ -99,7 +99,7 @@ html .q-palco.px-personalizar > * { flex: 0 0 auto; min-height: auto; }
     inset: 0;
     border-radius: inherit;
     border: 2px solid var(--q-acento);
-    animation: px-anel calc(2.4s * var(--px-k)) var(--px-ease-out) infinite;
+    animation: px-anel calc(2.4s * var(--px-k)) var(--px-ease-out) 3; /* 3 ciclos, não infinito (22/10/2026) */
   }
 }
 @media (max-width: 720px) {

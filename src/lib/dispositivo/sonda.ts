@@ -479,6 +479,36 @@ export async function sondarEMedir(
 let emAndamento: Promise<SondaDoAparelho | null> | null = null;
 
 /**
+ * O MICROBENCHMARK FORA DA CAPTURA (dono, 22/10/2026): a captura agenda a sonda SEM ele
+ * (`semBenchmark`), e a tela, ao sair, chama isto. Só mede se o benchmark guardado venceu (ou falta),
+ * no ocioso; uma medição por página. Nunca rejeita.
+ */
+let benchmarkAgendado: Promise<void> | null = null;
+export function agendarBenchmarkDoAparelho(dep: DependenciasDaSonda = {}, sinal?: AbortSignal): Promise<void> {
+  if (benchmarkAgendado) return benchmarkAgendado;
+  const d = resolverDependencias(dep);
+  benchmarkAgendado = (async () => {
+    const guardada = await sondaGuardada(dep);
+    if (guardada && benchmarkValido(guardada.benchmark, d.agora())) return;
+    await new Promise<void>((resolve) => {
+      const g = globalThis as { requestIdleCallback?: (f: () => void, o?: { timeout: number }) => unknown };
+      if (typeof g.requestIdleCallback === 'function') g.requestIdleCallback(() => resolve(), { timeout: 10_000 });
+      else setTimeout(resolve, 3000);
+    });
+    /* Uma captura nova chegou antes do ocioso: o benchmark não disputa a máquina com o modelo. A
+       promessa termina em paz e a próxima saída da captura agenda de novo. */
+    if (sinal?.aborted) {
+      benchmarkAgendado = null;
+      return;
+    }
+    await sondarEMedir(dep, sinal, {});
+  })().catch((erro: unknown) => {
+    console.warn('[sonda] o benchmark do aparelho falhou; fica sem pontuação até a próxima', erro);
+  });
+  return benchmarkAgendado;
+}
+
+/**
  * Agenda a sonda (e o benchmark, se faltar) para o OCIOSO — `requestIdleCallback` com teto de 5 s,
  * ou um temporizador onde ele não existe (Safari). Uma execução por página; as chamadas seguintes
  * recebem a mesma promessa. Nunca rejeita. Chamada do início da captura (`pipelineDeFala.ts`), por

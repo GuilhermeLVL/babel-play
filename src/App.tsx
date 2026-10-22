@@ -524,10 +524,12 @@ export default function App() {
               performanceMode={performanceMode}
               theme={theme}
               darkMode={darkMode}
-              /* Ambiente para TODOS os perfis (dono, 2026-08-27): na leve o padrão é sênior e
-                 ninguém via partícula nenhuma — quebrava a imersão. Os interruptores de animação
-                 e o Modo Desempenho continuam mandando. */
-              ambient
+              /* SEM AMBIENTE (dono, 22/10/2026: "deixe somente o necessário"). O ambiente para todos
+                 (27/08) mantinha o laço a 60 quadros por segundo em toda tela, o tempo todo: em repouso,
+                 o processo da GPU ia de 34 para 117 ms/s e o worker gastava 14–22 ms/s (auditoria de
+                 10/10, G11). Sem ele o motor dorme (`motorDeParticulas.ts`, "SONO DO LOOP") e só acorda
+                 para as RAJADAS curtas (confete, +Seeds), que confirmam uma ação e param sozinhas. */
+              ambient={false}
             />
           )}
           {/* Os números que sobem ("+10", "×3") — camada própria, no topo da árvore, para não
@@ -748,6 +750,7 @@ export default function App() {
                       if (r.tipo === 'conquista') dispararOferta('conquista', { id: r.id });
                     }}
                     onVerPersonalizar={() => navigateTo('loja', { aba: 'personalizar' })}
+                    onVerConquistas={() => navigateTo('loja', { aba: 'conquistas' })}
                   />
                 </Suspense>
               )}

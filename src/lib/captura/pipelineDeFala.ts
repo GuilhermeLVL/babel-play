@@ -97,8 +97,16 @@ function tradutorDeParciais(chave: { current: Map<number, string> }): TradutorDe
   return t;
 }
 
-/** O espaçamento padrão entre parciais — o mesmo 1,1 s da captura (`PARTIAL_INTERVAL_MS`, `systemAudio.ts`). */
-const INTERVALO_DOS_PARCIAIS_MS = 1100;
+/** O espaçamento padrão entre parciais — o mesmo 2 s da captura (`PARTIAL_INTERVAL_MS`, `systemAudio.ts`). */
+const INTERVALO_DOS_PARCIAIS_MS = 2000;
+/**
+ * TETO DE PARCIAIS POR FALA (dono, 22/10/2026): 3 com isolamento (WASM com threads ou GPU), 2 no
+ * aparelho leve, 1 onde o WASM roda numa thread só (Safari, Firefox: sem `crossOriginIsolado`), que é
+ * onde cada decode mais custa e mais esquenta. Ver `MAX_PARCIAIS_POR_FALA` em `systemAudio.ts`.
+ */
+const MAX_PARCIAIS_POR_FALA_ISOLADO = 3;
+const MAX_PARCIAIS_POR_FALA_LEVE = 2;
+const MAX_PARCIAIS_POR_FALA_SEM_ISOLAMENTO = 1;
 /**
  * No aparelho LEVE, o dobro ("Grátis sem travar", A5): cada parcial é um decode inteiro do
  * buffer-até-agora, e ali o Whisper mal dá conta dos finais. Metade dos parciais, e o texto ainda cresce
@@ -570,19 +578,27 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     };
     /** Quanto de fala o 1º parcial espera: 1,5 s no automático; 0 = o mínimo da própria captura (0,6 s). */
     const primeiroParcialComMs = (): number => (perfModeAutomatico() ? PRIMEIRO_PARCIAL_DO_AUTOMATICO_MS : 0);
+    /** Teto de parciais por fala (ver as constantes acima). */
+    const maxParciaisPorFala = (): number => {
+      const p = perfilDoDispositivo();
+      if (!p.sinais.isolado) return MAX_PARCIAIS_POR_FALA_SEM_ISOLAMENTO;
+      return p.leve ? MAX_PARCIAIS_POR_FALA_LEVE : MAX_PARCIAIS_POR_FALA_ISOLADO;
+    };
 
     // PARCIAL: transcreve o buffer-até-agora SÓ SE o Whisper estiver ocioso (idle-gating →
     // nunca enfileira → sem backlog). O texto aparece e refina em tempo real; a tradução acompanha.
-    const onPartialAudio = (pcm: Float32Array, sr: number, rawSeq: number) => {
-      if (!querParcial()) return;
+    /* Devolve `false` quando o parcial é descartado sem decode (ou a promessa resolve `false` quando o
+       worker estava ocupado): a captura devolve a cota do teto por fala (`maxParciaisPorFala`). */
+    const onPartialAudio = (pcm: Float32Array, sr: number, rawSeq: number): false | void | Promise<boolean | void> => {
+      if (!querParcial()) return false;
       const seq = rawSeq + offset;
-      if (suppressedSeqsRef.current.has(seq)) return; // anti-eco: enunciado é o nosso TTS
+      if (suppressedSeqsRef.current.has(seq)) return false; // anti-eco: enunciado é o nosso TTS
       const uttId = seqToSegmentRef.current.get(seq);
-      if (!uttId) return; // enunciado já finalizado/descartado
+      if (!uttId) return false; // enunciado já finalizado/descartado
       // A fala já fechou e o final está a caminho: um parcial agora só atrasaria o final.
-      if (lastPartialTextRef.current.get(seq) === FALA_FECHADA) return;
+      if (lastPartialTextRef.current.get(seq) === FALA_FECHADA) return false;
       // O parcial único do automático já foi pedido para esta fala (a marca é posta no pedido, abaixo).
-      if (perfModeAutomatico() && lastPartialTextRef.current.has(seq)) return;
+      if (perfModeAutomatico() && lastPartialTextRef.current.has(seq)) return false;
       const idiomas = langs(seq);
       const { to } = idiomas;
       let { hint, from } = idiomas;
@@ -607,7 +623,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
          novo, corrige. */
       if (!from && !hint) {
         const provisorio = contextoDoSttRef?.current.idiomaDe(source) ?? '';
-        if (!provisorio) return;
+        if (!provisorio) return false;
         hint = provisorio;
         from = provisorio;
       }
@@ -615,12 +631,12 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
          que nem um segundo em voo nem um retorno vazio abram espaço para outro decode desta fala. */
       if (perfModeAutomatico()) lastPartialTextRef.current.set(seq, '');
       const t0Parcial = performance.now();
-      gateway.stt
+      return gateway.stt
         .transcribePartial(pcm, sr, { languageHint: hint })
         .then((res) => {
           if (!res) {
             capMetrics.saturated(seq);
-            return;
+            return false;
           } // worker ocupado → parcial descartado
           // Regulador: o parcial chega bem mais vezes que o final — a latência dele avisa antes.
           reguladorRef?.current.aoParcial(Math.round(performance.now() - t0Parcial), efeitosDoRegulador);
@@ -1217,6 +1233,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       querParcial,
       intervaloDosParciais,
       primeiroParcialComMs,
+      maxParciaisPorFala,
     };
   };
 
@@ -1298,9 +1315,11 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     const sonda = await import('../dispositivo/sonda')
       .then((m) => {
         modSonda = m;
-        /* No Quest, sem o microbenchmark: ele disputaria os ~3 núcleos do app com a carga do modelo
-           (`OpcoesDaSonda.semBenchmark`). Lá quem mede é a página de diagnóstico, a pedido. */
-        void m.agendarSondaDoAparelho(undefined, { semBenchmark: perfil.tipo === 'quest' });
+        /* SEM O MICROBENCHMARK DURANTE A CAPTURA (dono, 22/10/2026): ele (CPU + GPU, segundos de carga)
+           disputava os núcleos com o modelo logo no primeiro Iniciar. Fica para o ocioso DEPOIS de sair da
+           captura (`agendarBenchmarkDoAparelho`, chamado pela tela ao desmontar); no Quest nunca (lá quem
+           mede é a página de diagnóstico, a pedido). Sem benchmark a rota segue pelas outras provas. */
+        void m.agendarSondaDoAparelho(undefined, { semBenchmark: true });
         return m.sondaGuardada();
       })
       .catch((erro: unknown) => {

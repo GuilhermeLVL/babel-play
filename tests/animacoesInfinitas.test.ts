@@ -93,7 +93,8 @@ const arquivos = [path.join(RAIZ, 'src/index.css'), ...folhas(path.join(RAIZ, 's
 /** `arquivo · animação · propriedades fora da regra`, para cada animação infinita que pinta. */
 function foraDaRegra(): string[] {
   const quadros = new Map<string, Set<string>>()
-  for (const a of arquivos) for (const [nome, props] of quadrosDe(a.css)) quadros.set(nome, new Set([...(quadros.get(nome) ?? []), ...props]))
+  for (const a of arquivos)
+    for (const [nome, props] of quadrosDe(a.css)) quadros.set(nome, new Set([...(quadros.get(nome) ?? []), ...props]))
   const conhecidas = new Set(quadros.keys())
   const fora: string[] = []
   for (const a of arquivos)
@@ -165,6 +166,9 @@ describe('animação infinita só em transform e opacity', () => {
     const css = arquivos.find((a) => a.nome === 'styles/polimentoDesempenho.css')!.css
     expect(css).toMatch(/html\[data-px='on'\] \.q-contagem\.q-contagem\s*\{[^}]*animation:\s*none;/)
     expect([...quadrosDe(css).get('px-pulso-composto')!].sort()).toEqual(['opacity', 'transform'])
-    expect(css).toMatch(/\.q-contagem\.q-contagem::before\s*\{[^}]*animation:\s*px-pulso-composto calc\(1\.9s \* var\(--px-k\)\) ease-out infinite;/)
+    // 3 ciclos, não `infinite` (22/10/2026): o pulso eterno mantinha o compositor acordado em repouso.
+    expect(css).toMatch(
+      /\.q-contagem\.q-contagem::before\s*\{[^}]*animation:\s*px-pulso-composto calc\(1\.9s \* var\(--px-k\)\) ease-out 3;/,
+    )
   })
 })

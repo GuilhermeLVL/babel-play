@@ -154,6 +154,21 @@ function novaChaveDeCaptura(): string {
   }
 }
 
+/**
+ * OS PARES QUE A CAPTURA AQUECE NO INICIAR (dono, 22/10/2026: "só o necessário"). `seu` é o idioma
+ * da pessoa e `doConteudo` o do vídeo/chamada: o sistema traduz `doConteudo → seu`, sempre; a fala
+ * da pessoa (`seu → doConteudo`) só existe com o microfone na sessão. Sem ele, o segundo tradutor
+ * (~113 MB e um worker) ficava vivo a captura inteira sem traduzir nada. Pura.
+ */
+export function paresDoTradutor(seu: string, doConteudo: string, comMicrofone: boolean): Array<[string, string]> {
+  return comMicrofone
+    ? [
+        [doConteudo, seu],
+        [seu, doConteudo],
+      ]
+    : [[doConteudo, seu]];
+}
+
 export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
   const {
     gateway,
@@ -302,11 +317,13 @@ export function criarSalvarSessao(deps: DepsDeSalvarSessao) {
       pacotes.tradutor.progresso,
       pacotes.tradutor.falhou,
     );
+    /* `s` é o SEU idioma e `t` o do conteúdo: o sistema traduz `t → s` (ver `pipelineDeFala.ts`,
+       `langs()`), e a sua fala, `s → t`. O sentido da sua fala só aquece com o microfone na sessão: sem
+       ele, o segundo tradutor (~113 MB e um worker) ficava vivo a captura inteira sem traduzir nada
+       (dono, 22/10/2026). O intérprete sempre tem microfone; o microfone ligado depois carrega o seu
+       sentido sob demanda (`prepararTradutorDaFala`). */
     if (!perfilDoDispositivo().poucaMemoria)
-      gateway.mt.warmup([
-        [s, t],
-        [t, s],
-      ]);
+      gateway.mt.warmup(paresDoTradutor(s, t, soToque || (deps.micNoInicio?.() ?? micEnabled)));
     if (!resuming) setTimer(0);
     if (soToque) return; // o intérprete abre o microfone no toque de um lado
     if (deps.micNoInicio?.() ?? micEnabled) void startMic();

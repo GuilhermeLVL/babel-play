@@ -141,10 +141,10 @@ describe('a sonda no início da captura', () => {
     expect(agendarSondaDoAparelho).toHaveBeenCalledWith(undefined, { semBenchmark: true })
   })
 
-  it('fora do Quest: o microbenchmark continua (é ele que prova a GPU do celular e do desktop)', async () => {
+  it('fora do Quest também sem o microbenchmark DURANTE a captura (22/10/2026): ele fica para o ocioso de depois', async () => {
     notebookFraco()
     await montar({ cenario: 'media' }).p.preaquecerModelos()
-    expect(agendarSondaDoAparelho).toHaveBeenCalledWith(undefined, { semBenchmark: false })
+    expect(agendarSondaDoAparelho).toHaveBeenCalledWith(undefined, { semBenchmark: true })
   })
 })
 

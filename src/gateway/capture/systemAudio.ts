@@ -330,8 +330,10 @@ export interface SystemAudioCallbacks {
   /**
    * PARCIAL: buffer da fala ATÉ AGORA (cresce a cada tick ~1s enquanto se fala) — permite
    * transcrever incrementalmente e exibir "em tempo real" em vez de esperar a fala fechar.
+   * Devolve `false` (na hora ou na promessa) quando o parcial foi descartado sem decode: ele não
+   * conta no teto por fala (`maxParciaisPorFala`).
    */
-  onPartialAudio?: (pcm: Float32Array, sampleRate: number, seq: number) => void;
+  onPartialAudio?: (pcm: Float32Array, sampleRate: number, seq: number) => void | boolean | Promise<void | boolean>;
   /**
    * O dono do pipeline QUER um parcial agora? Perguntado ANTES de montar o buffer-até-agora: com o
    * modo desempenho, o regulador cortando parciais ou o local só de reserva, a resposta é não, e o
@@ -340,6 +342,8 @@ export interface SystemAudioCallbacks {
   querParcial?: () => boolean;
   /** Espaçamento entre parciais (ms). Sem o callback, `PARTIAL_INTERVAL_MS`; o aparelho leve pede mais. */
   intervaloDosParciais?: () => number;
+  /** Quantos parciais uma fala pode ter, no máximo. Sem o callback, `MAX_PARCIAIS_POR_FALA`. */
+  maxParciaisPorFala?: () => number;
   /**
    * Quanto de fala (ms) o PRIMEIRO parcial de cada fala espera. Sem o callback (ou abaixo do mínimo da
    * captura, 0,6 s), o de sempre.
@@ -367,7 +371,17 @@ export const ESPECULATIVO_MS = 450;
 
 // Cadência dos parciais: reprocessa o buffer-até-agora a cada ~1.1s enquanto a fala continua.
 // É o padrão: o pipeline pode pedir outro (`intervaloDosParciais`, 2,2 s no aparelho leve).
-const PARTIAL_INTERVAL_MS = 1100;
+const PARTIAL_INTERVAL_MS = 2000;
+/**
+ * TETO DE PARCIAIS POR FALA (dono, 22/10/2026: "só o necessário"). Cada parcial é um decode da fala
+ * INTEIRA até ali; com 1,1 s de espaçamento uma fala de 6 s custava ~5 decodes antes do final. Medido
+ * no Chromium sem GPU: 2,6 núcleos cheios durante a fala (76 parciais para 16 finais). Com 2 s e teto
+ * de 3 (aos ~0,6, ~2,6 e ~4,6 s de uma fala de 6 s), o texto ainda cresce durante a fala e o final
+ * continua o mesmo. O pipeline pode pedir menos (`maxParciaisPorFala`: 2 no aparelho leve, 1 sem
+ * isolamento, onde o WASM tem uma thread só). SÓ O PARCIAL ACEITO CONTA: o pipeline devolve `false`
+ * (na hora ou na promessa) quando descarta — worker ocupado, sem dica de idioma — e a cota volta.
+ */
+const MAX_PARCIAIS_POR_FALA = 3;
 // Com que frequência o relógio dos parciais olha o buffer (o 1º parcial não espera o intervalo).
 const PARTIAL_TICK_MS = 200;
 // Só emite um parcial quando acumulou pelo menos este tanto de áudio NOVO (evita decodes minúsculos).
@@ -455,11 +469,11 @@ async function startCaptureFromStream(
           cb.onStatus?.(
             label === 'system'
               ? '⚠ A faixa de áudio do sistema existe, mas está SILENCIOSA (nível ~0). Confirme que marcou "Compartilhar o áudio do sistema/aba" e que algo está de fato tocando.'
-              : '⚠ O microfone está SILENCIOSO (nível ~0). Verifique o dispositivo de entrada escolhido e o volume do microfone no Windows.',
+              : '⚠ O microfone está SILENCIOSO (nível ~0). Verifique o dispositivo de entrada escolhido e o volume do microfone nas configurações de som do sistema.',
           );
         }
       }
-    }, 50);
+    }, 100); // 10 Hz bastam para o waveform; 20 Hz dobrava o custo de `setState` sem ganho visível
   } catch (e) {
     vlog(label, 'sonda de nível indisponível:', String(e));
   }
@@ -492,6 +506,7 @@ async function startCaptureFromStream(
   let frameChunks: Float32Array[] = [];
   let accumSamples = 0;
   let lastPartialSamples = 0;
+  let parciaisNestaFala = 0;
 
   /* FINAL ESPECULATIVO (ver `espelhoDoVad.ts`): o espelho reproduz o buffer do VAD quadro a quadro e
      avisa quando o silêncio passa de `ESPECULATIVO_MS`; a janela daquele instante é decodificada já.
@@ -573,6 +588,7 @@ async function startCaptureFromStream(
     frameChunks = [];
     accumSamples = 0;
     lastPartialSamples = 0;
+    parciaisNestaFala = 0;
   };
   const concatFrames = (): Float32Array => {
     const out = new Float32Array(accumSamples);
@@ -754,6 +770,8 @@ async function startCaptureFromStream(
     if (!speaking || !cb.onPartialAudio) return;
     // O final especulativo desta fala já está no worker: um parcial agora só o atrasaria.
     if (especulacao?.seq === currentSeq) return;
+    // Teto por fala: depois dele, só o final (ver `MAX_PARCIAIS_POR_FALA`).
+    if (parciaisNestaFala >= (cb.maxParciaisPorFala?.() ?? MAX_PARCIAIS_POR_FALA)) return;
     const primeiro = lastPartialSamples === 0;
     const minimo = primeiro
       ? Math.max(PARTIAL_MIN_NEW_SAMPLES, ((cb.primeiroParcialComMs?.() ?? 0) * 16000) / 1000)
@@ -767,10 +785,18 @@ async function startCaptureFromStream(
        próximo tique já entrega. */
     if (cb.querParcial && !cb.querParcial()) return;
     lastPartialSamples = accumSamples;
+    parciaisNestaFala += 1;
     ultimoParcialTs = performance.now();
     const soFar = concatFrames();
     vlog(label, 'VAD → parcial (seq', currentSeq, '):', soFar.length, 'amostras');
-    cb.onPartialAudio(soFar, 16000, currentSeq);
+    const seqDoParcial = currentSeq;
+    const devolverCota = () => {
+      if (seqDoParcial === currentSeq && parciaisNestaFala > 0) parciaisNestaFala -= 1;
+    };
+    const aceito = cb.onPartialAudio(soFar, 16000, currentSeq);
+    if (aceito === false) devolverCota();
+    else if (aceito && typeof (aceito as Promise<unknown>).then === 'function')
+      void (aceito as Promise<void | boolean>).then((ok) => ok === false && devolverCota()).catch(() => {});
   }, PARTIAL_TICK_MS);
 
   // Detecta quando a faixa de áudio encerra (usuário parou o compartilhamento / desplugou o mic).

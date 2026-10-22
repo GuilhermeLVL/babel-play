@@ -552,7 +552,7 @@ export function criarFontesDeAudio(deps: DepsDasFontesDeAudio) {
         let s = 0;
         for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i];
         pushLevel(Math.min(1, Math.sqrt(s / buf.length) * 4));
-      }, 50);
+      }, 100); // 10 Hz, como a sonda da captura
       meterRef.current = {
         stop: () => {
           clearInterval(iv);

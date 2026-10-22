@@ -17,10 +17,16 @@ vi.mock('../src/lib/entitlements', async (original) => {
 })
 /* O perfil do aparelho também muda por caso. Sem o mock, o jsdom (sem getDisplayMedia, sem WebGPU)
    seria classificado como celular fraco — leve — em todos os testes. */
-const aparelho = vi.hoisted(() => ({ leve: false }))
+const aparelho = vi.hoisted(() => ({ leve: false, isolado: true }))
 vi.mock('../src/lib/dispositivo/perfil', async (original) => {
   const m = await original<typeof import('../src/lib/dispositivo/perfil')>()
-  return { ...m, perfilDoDispositivo: () => ({ ...m.perfilDoDispositivo(), leve: aparelho.leve }) }
+  return {
+    ...m,
+    perfilDoDispositivo: () => {
+      const p = m.perfilDoDispositivo()
+      return { ...p, leve: aparelho.leve, sinais: { ...p.sinais, isolado: aparelho.isolado } }
+    },
+  }
 })
 
 import { ContextoDoStt } from '../src/gateway/promptDeStt'
@@ -417,8 +423,8 @@ describe('workers que descansam', () => {
     expect(transcribePartial).not.toHaveBeenCalled()
   })
 
-  it('`intervaloDosParciais`: 1,1 s de padrão, 2,2 s no aparelho leve', () => {
-    expect(montar().p.micHandlers.intervaloDosParciais()).toBe(1100)
+  it('`intervaloDosParciais`: 2 s de padrão (eram 1,1 s; 22/10/2026), 2,2 s no aparelho leve', () => {
+    expect(montar().p.micHandlers.intervaloDosParciais()).toBe(2000)
     aparelho.leve = true
     try {
       const { p } = montar()
@@ -426,6 +432,22 @@ describe('workers que descansam', () => {
       expect(p.sysHandlers.intervaloDosParciais()).toBe(2200)
     } finally {
       aparelho.leve = false
+    }
+  })
+
+  it('`maxParciaisPorFala`: 3 isolado, 2 no aparelho leve, 1 sem isolamento (22/10/2026)', () => {
+    expect(montar().p.micHandlers.maxParciaisPorFala()).toBe(3)
+    aparelho.leve = true
+    try {
+      expect(montar().p.sysHandlers.maxParciaisPorFala()).toBe(2)
+    } finally {
+      aparelho.leve = false
+    }
+    aparelho.isolado = false
+    try {
+      expect(montar().p.micHandlers.maxParciaisPorFala()).toBe(1)
+    } finally {
+      aparelho.isolado = true
     }
   })
 

@@ -164,7 +164,9 @@ html[data-px='on'] :is(.q-barra, .hud-progresso) > span::after {
   left: 0;
   width: 40%;
   background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.6), transparent);
-  animation: px-brilho calc(2.6s * var(--px-k)) var(--px-ease-in-out) infinite;
+  /* 3 ciclos, não infinito (dono, 22/10/2026): 4 brilhos eternos no Início mantinham o compositor
+     acordado a 60 fps — 17% de um núcleo em repouso, medido; com as animações paradas, 1%. */
+  animation: px-brilho calc(2.6s * var(--px-k)) var(--px-ease-in-out) 3;
 }
 @keyframes px-pulso {
   0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--q-acento, var(--accent)) 70%, transparent); }

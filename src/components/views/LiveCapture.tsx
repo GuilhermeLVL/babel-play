@@ -189,6 +189,9 @@ import AvisoDeNuvemSemConsentimento from '../AvisoDeNuvemSemConsentimento';
 // Um componente só serve a tela embutida E o Modo Foco — antes eram dois blocos que divergiam.
 import ChatTranscript from '../ChatTranscript';
 import DocumentPiP, { isDocumentPiPSupported } from '../DocumentPiP';
+
+/** O benchmark do aparelho agendado pela última saída da captura (cancelado por uma captura nova). */
+let benchmarkPendente: AbortController | null = null;
 import GuidePanel from '../GuidePanel';
 // Bandeira SVG do idioma (nunca emoji: o Windows renderiza 🇧🇷 como "BR") + o rótulo curto.
 import { LangFlag } from '../LangFlag';
@@ -852,9 +855,10 @@ export default function LiveCapture({
   /* SAIR DA CAPTURA: encerra os workers do Whisper e do tradutor. O heap do WASM só volta ao sistema
      com o `terminate()`; sem isso os modelos (67–589 MB de pesos do Whisper e ~113 MB por tradutor,
      mais o heap da inferência) ficam presos na aba enquanto a pessoa joga ou lê. POUCA MEMÓRIA (Quest/celular — no iOS a aba morre perto de
-     0,5–1,5 GB): na hora. No resto, 90 s depois (`memoriaDosModelos.ts`): quem sai para conferir algo
+     0,5–1,5 GB): na hora. No resto, 20 s depois (`memoriaDosModelos.ts`): quem sai para conferir algo
      e volta antes disso encontra o modelo quente — a volta cancela a liberação. A próxima captura
-     recarrega do cache (sem baixar de novo). */
+     recarrega do cache (sem baixar de novo). O microbenchmark do aparelho, que não roda mais durante a
+     captura, fica agendado para o ocioso daqui (`agendarBenchmarkDoAparelho`). */
   useEffect(() => {
     cancelarLiberacaoDosModelos();
     return () => {
@@ -863,8 +867,26 @@ export default function LiveCapture({
         gateway.mt.liberarModelos();
       };
       liberarAoSairDaCaptura(perfilDoAparelhoRef.current, liberar);
+      /* O microbenchmark só depois de uma captura de verdade nesta montagem (abrir a tela e sair não
+         conta), no ocioso, e cancelado se outra captura chegar antes (`benchmarkPendente`). */
+      if (capturouNestaMontagemRef.current && perfilDoAparelhoRef.current.tipo !== 'quest') {
+        benchmarkPendente?.abort();
+        const controle = new AbortController();
+        benchmarkPendente = controle;
+        void import('../../lib/dispositivo/sonda')
+          .then((m) => m.agendarBenchmarkDoAparelho({}, controle.signal))
+          .catch(() => {});
+      }
     };
   }, [gateway]);
+  const capturouNestaMontagemRef = useRef(false);
+  useEffect(() => {
+    if (!isRecording) return;
+    capturouNestaMontagemRef.current = true;
+    // Gravando de novo: um benchmark agendado pela saída anterior não disputa a máquina com o modelo.
+    benchmarkPendente?.abort();
+    benchmarkPendente = null;
+  }, [isRecording]);
 
   /* O texto da conversa sobe ao App (contexto do iChat) no máximo a cada 500 ms, só quando muda:
      antes era um `join` de TODAS as falas e um render do App inteiro a cada parcial do streaming. */

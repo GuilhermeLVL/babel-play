@@ -42,12 +42,12 @@ describe('liberarModelosDepois', () => {
     vi.useRealTimers()
   })
 
-  it('libera 90 s depois de sair', () => {
+  it('libera 20 s depois de sair (eram 90; 22/10/2026)', () => {
     vi.useFakeTimers()
     const liberar = vi.fn()
     liberarModelosDepois(liberar)
-    expect(LIBERAR_MODELOS_APOS_MS).toBe(90_000)
-    vi.advanceTimersByTime(89_999)
+    expect(LIBERAR_MODELOS_APOS_MS).toBe(20_000)
+    vi.advanceTimersByTime(LIBERAR_MODELOS_APOS_MS - 1)
     expect(liberar).not.toHaveBeenCalled()
     vi.advanceTimersByTime(1)
     expect(liberar).toHaveBeenCalledTimes(1)
@@ -57,7 +57,7 @@ describe('liberarModelosDepois', () => {
     vi.useFakeTimers()
     const liberar = vi.fn()
     liberarModelosDepois(liberar)
-    vi.advanceTimersByTime(30_000)
+    vi.advanceTimersByTime(10_000)
     expect(cancelarLiberacaoDosModelos()).toBe(true)
     vi.advanceTimersByTime(120_000)
     expect(liberar).not.toHaveBeenCalled()
@@ -69,12 +69,12 @@ describe('liberarModelosDepois', () => {
     const primeira = vi.fn()
     const segunda = vi.fn()
     liberarModelosDepois(primeira)
-    vi.advanceTimersByTime(60_000)
+    vi.advanceTimersByTime(15_000)
     liberarModelosDepois(segunda)
-    vi.advanceTimersByTime(60_000)
+    vi.advanceTimersByTime(15_000)
     expect(primeira).not.toHaveBeenCalled()
     expect(segunda).not.toHaveBeenCalled()
-    vi.advanceTimersByTime(30_000)
+    vi.advanceTimersByTime(10_000)
     expect(segunda).toHaveBeenCalledTimes(1)
   })
 })
@@ -113,7 +113,7 @@ describe('liberarAoSairDaCaptura', () => {
     expect(cancelarLiberacaoDosModelos()).toBe(false)
   })
 
-  it('desktop isolado (Chrome): agenda para 90 s depois', () => {
+  it('desktop isolado (Chrome): agenda para 20 s depois', () => {
     vi.useFakeTimers()
     const liberar = vi.fn()
     liberarAoSairDaCaptura(classificarDispositivo({ ...macComSafari, isolado: true, memoriaGb: 8 }), liberar)

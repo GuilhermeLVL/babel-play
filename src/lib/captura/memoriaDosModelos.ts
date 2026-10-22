@@ -28,7 +28,7 @@ export function umModeloDeCadaVez(perfil: Pick<PerfilDoDispositivo, 'poucaMemori
  * pouca memória, que solta na hora). Sair para conferir o histórico e voltar não paga a recarga; ficar
  * fora devolve os pesos do Whisper e dos tradutores, e o heap das sessões.
  */
-export const LIBERAR_MODELOS_APOS_MS = 90_000;
+export const LIBERAR_MODELOS_APOS_MS = 20_000;
 
 /* Fica no MÓDULO, não no componente: a tela da captura desmonta ao sair, e é a próxima montagem
    (a pessoa voltou) que precisa encontrar e cancelar o agendamento. */
@@ -53,7 +53,7 @@ export function cancelarLiberacaoDosModelos(): boolean {
 
 /**
  * Ao SAIR da captura: no aparelho de pouca memória (móvel, Quest e todo navegador sem
- * `crossOriginIsolated`, como o Safari no Mac) solta os modelos na hora; no resto, 90 s depois.
+ * `crossOriginIsolated`, como o Safari no Mac) solta os modelos na hora; no resto, 20 s depois (eram 90: dono, 22/10/2026 — os modelos presos na aba esquentavam o computador fora da captura).
  */
 export function liberarAoSairDaCaptura(perfil: Pick<PerfilDoDispositivo, 'poucaMemoria'>, liberar: () => void): void {
   if (perfil.poucaMemoria) liberar();

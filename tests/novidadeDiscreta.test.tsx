@@ -37,9 +37,13 @@ describe('precisaDeModal / loteDiscreto', () => {
     expect(precisaDeModal(conquista('x'))).toBe(false)
     expect(precisaDeModal(repetido)).toBe(false)
   })
-  it('o lote discreto é o prefixo da fila até a primeira que pede modal', () => {
-    expect(loteDiscreto([conquista('a'), repetido, nivelComItens, conquista('b')])).toEqual([conquista('a'), repetido])
-    expect(loteDiscreto([nivelComItens, conquista('a')])).toEqual([])
+  it('o lote discreto é tudo o que não pede modal, na ordem da fila (o modal não espera o cartão)', () => {
+    expect(loteDiscreto([conquista('a'), repetido, nivelComItens, conquista('b')])).toEqual([
+      conquista('a'),
+      repetido,
+      conquista('b'),
+    ])
+    expect(loteDiscreto([nivelComItens])).toEqual([])
   })
 })
 

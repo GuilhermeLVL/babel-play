@@ -186,7 +186,9 @@ html[data-px='on'] .q-tile.pri .q-ic::after {
   border-radius: inherit;
   border: 2px solid currentColor;
   pointer-events: none;
-  animation: px-anel calc(2.4s * var(--px-k)) var(--px-ease-out) infinite;
+  /* 3 ciclos, não infinito (22/10/2026): o anel eterno no Início mantinha o processo da GPU a ~80%
+     sem placa de vídeo (medido); com as animações paradas, 0%. */
+  animation: px-anel calc(2.4s * var(--px-k)) var(--px-ease-out) 3;
 }
 html[data-px='on'] .q-tile.pri .q-ic::after { animation-delay: calc(1.2s * var(--px-k)); }
 @keyframes px-flutua {

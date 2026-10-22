@@ -44,17 +44,17 @@ fiscalize os itens relacionados e deixe somente o necessário". Não só no Safa
 
 ## Antes → depois (Chromium sem GPU; CPU média, pico; memória de pico)
 
-| Estado                         | Antes                                             | Depois                                                                            |
-| ------------------------------ | ------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Início parado                  | 35% (pico 38%), 1,0 GB                            | **11%** (25%), 1,0 GB                                                             |
-| Capturar pronta, sem Iniciar   | 29% (32%), 1,0 GB                                 | **2%** (7%), 1,0 GB                                                               |
-| Gravando, fala contínua (60 s) | **259%** (321%), 3,2 GB · 76 parciais / 16 finais | **172%** (309%), 3,2 GB · 46 parciais / 16 finais (com teto 2: 124%, 31 parciais) |
-| Gravando, silêncio             | 37% (42%), 3,2 GB                                 | **19%** (22%), 3,2 GB                                                             |
-| Folha de Encerrar aberta       | 79% (84%)                                         | 63% (69%) — ainda alto; investigar o que anima sob a folha                        |
-| Depois de descartar            | —                                                 | **2%** (3%)                                                                       |
-| Início 20 s depois da captura  | 32% (34%), 1,8 GB                                 | **8%** (16%), 1,8 GB (os modelos soltam aos 20 s)                                 |
+| Estado                         | Antes                                             | Depois                                                                                                                                              |
+| ------------------------------ | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Início parado                  | 35% (pico 38%), 1,0 GB                            | **11%** (25%), 1,0 GB                                                                                                                               |
+| Capturar pronta, sem Iniciar   | 29% (32%), 1,0 GB                                 | **2%** (7%), 1,0 GB                                                                                                                                 |
+| Gravando, fala contínua (60 s) | **259%** (321%), 3,2 GB · 76 parciais / 16 finais | **172%** (309%), 3,2 GB · 46 parciais / 16 finais (com teto 2: 124%, 31 parciais)                                                                   |
+| Gravando, silêncio             | 37% (42%), 3,2 GB                                 | **19%** (22%), 3,2 GB                                                                                                                               |
+| Folha de Encerrar aberta       | 79% (84%)                                         | 63% (69%) → a única animação viva era o ponto "ao vivo" (`px-ao-vivo` em `.cel-ponto`, `box-shadow`) sob o véu desfocado; agora pausado sob diálogo |
+| Depois de descartar            | —                                                 | **2%** (3%)                                                                                                                                         |
+| Início 20 s depois da captura  | 32% (34%), 1,8 GB                                 | **8%** (16%), 1,8 GB (os modelos soltam aos 20 s)                                                                                                   |
 
-WebKit 27.2 (microfone, Whisper base no WebGPU), só DEPOIS: Início 39%, pronta 35%, fala 95% (pico 133%), silêncio 62%, folha 56%, depois de descartar 35%. ATENÇÃO: a soma incluiu processos `com.apple.WebKit` de outros apps do Mac (15 processos); os números do WebKit são um teto e precisam de nova medida com o filtro estrito.
+WebKit 27.2 (microfone, Whisper base no WebGPU), só DEPOIS, filtro estrito nos processos do Playwright: Início parado **8%**, Capturar pronta **6%**, gravando com fala **53%** (pico 125%), silêncio **28%** (o VAD), folha de Encerrar 23%, depois de descartar 2%; memória de pico 3,1 GB na captura. (Uma primeira medida deu 39%/35%/95%/62% por somar processos `com.apple.WebKit` de outros apps do Mac.)
 
 ## O que ainda pesa (não feito; decisões ou dívidas)
 

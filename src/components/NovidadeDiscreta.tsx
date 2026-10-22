@@ -30,14 +30,9 @@ export function precisaDeModal(r: Recompensa): boolean {
   return !!r.item;
 }
 
-/** O prefixo da fila que cabe num cartão só: as recompensas discretas até a primeira que pede modal. */
+/** Tudo o que está na fila e cabe num cartão só (o que não pede modal), na ordem da fila. */
 export function loteDiscreto(fila: readonly Recompensa[]): Recompensa[] {
-  const lote: Recompensa[] = [];
-  for (const r of fila) {
-    if (precisaDeModal(r)) break;
-    lote.push(r);
-  }
-  return lote;
+  return fila.filter((r) => !precisaDeModal(r));
 }
 
 function tituloDe(r: Recompensa): string {

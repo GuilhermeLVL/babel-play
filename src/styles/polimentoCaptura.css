@@ -60,7 +60,10 @@ html[data-quest-novo='true'] .q-casca:has(.px-pronto, .px-parada) .q-trilho {
 /* FOLHA ABERTA POR CIMA DA CAPTURA (Encerrar, salvar): a onda e o ponto de gravação continuavam a
    animar sob o véu desfocado — 56% de um núcleo parado na folha, medido em 22/10/2026. Pausar a
    animação enquanto qualquer diálogo está aberto não muda o que a pessoa vê (o véu cobre). */
-body:has(dialog[open]) .ondas i,
-body:has(dialog[open]) .ponto.vivo {
+body:has(dialog[open], [role='dialog'][aria-modal='true']) .ondas i,
+body:has(dialog[open], [role='dialog'][aria-modal='true']) .ponto.vivo,
+body:has(dialog[open], [role='dialog'][aria-modal='true']) .cel-ponto {
+  /* `.cel-ponto` (o "ao vivo" do desenho novo) anima `box-shadow`: sob o véu desfocado, 65% de um núcleo
+     sem placa de vídeo (medido). */
   animation-play-state: paused;
 }

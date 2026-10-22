@@ -151,12 +151,13 @@ describe('RecompensaDesbloqueada — lote de novidades e prévia real', () => {
   const conquista = (id: string): Recompensa => ({ tipo: 'conquista', id, nome: id, seeds: 10, xp: 5 })
   const tres = [nivel2, conquista('constante'), conquista('primeira-rodada')]
 
-  it('três juntas: o nível com peças abre o modal ("3 novidades · 1 de 3"); as duas conquistas sem peça viram UM cartão', () => {
+  it('três juntas: o nível com peças abre o modal E as duas conquistas sem peça viram UM cartão, ao mesmo tempo', () => {
     const { rerender } = render(
       <RecompensaDesbloqueada fila={tres} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />,
     )
     expect(screen.getAllByRole('dialog')).toHaveLength(1)
-    expect(screen.getByText(/3 novidades · 1 de 3/)).toBeTruthy()
+    expect(screen.queryByText(/3 novidades/)).toBeNull() // o lote do modal conta só os modais
+    expect(screen.getByTestId('novidade-discreta').getAttribute('data-novidades')).toBe('2')
     rerender(
       <RecompensaDesbloqueada
         fila={tres.slice(1)}
@@ -189,7 +190,8 @@ describe('RecompensaDesbloqueada — lote de novidades e prévia real', () => {
       document.body.removeAttribute('data-jogo-ativo')
       window.dispatchEvent(new Event('babel:rodada-fechou'))
     })
-    expect(screen.getByText(/3 novidades · 1 de 3/)).toBeTruthy()
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    expect(screen.getByTestId('novidade-discreta').getAttribute('data-novidades')).toBe('2')
   })
 
   it('a legenda chega estilizada, e o efeito toca ao abrir', async () => {

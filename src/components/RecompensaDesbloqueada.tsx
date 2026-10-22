@@ -38,6 +38,7 @@ import { movimentoReduzido } from '../lib/movimento/reduzido';
 import { play } from '../lib/soundFx';
 import { iconeDaConquista } from './iconesDaConquista';
 import MiniaturaDoItem from './MiniaturaDoItem';
+import NovidadeDiscreta, { loteDiscreto } from './NovidadeDiscreta';
 import PreviaRealDaPeca, { TIPOS_COM_PREVIA_REAL } from './PreviaRealDaPeca';
 import { DialogoBase } from './ui';
 
@@ -99,10 +100,21 @@ interface Props {
   /** Tira a recompensa da frente da fila (já marcada como vista aqui). */
   onFechar: (r: Recompensa) => void;
   onVerPersonalizar: () => void;
+  /** "Ver" do cartão discreto quando o lote tem conquista (a grade de Desafios). Ausente = Personalizar. */
+  onVerConquistas?: () => void;
 }
 
-export default function RecompensaDesbloqueada({ fila, onEquipar, onFechar, onVerPersonalizar }: Props) {
+export default function RecompensaDesbloqueada({
+  fila,
+  onEquipar,
+  onFechar,
+  onVerPersonalizar,
+  onVerConquistas,
+}: Props) {
   const atual = fila[0] ?? null;
+  /* O LOTE DISCRETO (dono, 22/10/2026): o que está na frente da fila e não tem peça a equipar vira um
+     cartão só, no canto, sem véu nem festa (`NovidadeDiscreta`). O modal fica para o que tem peça. */
+  const discretas = loteDiscreto(fila);
   /* Espera a rodada fechar e a CAPTURA liberar (gravando, no Encerrar ou salvando): a recompensa
      por cima do fim da captura era mais uma porta a fechar antes de conseguir sair. */
   const telaLivre = () => !jogoAtivo() && !capturaOcupada();
@@ -132,6 +144,15 @@ export default function RecompensaDesbloqueada({ fila, onEquipar, onFechar, onVe
   }, [atual]);
 
   if (!atual || !pronta) return null;
+  if (discretas.length > 0)
+    return (
+      <NovidadeDiscreta
+        key={chaveDaRecompensa(discretas[0])}
+        novidades={discretas}
+        onFechar={onFechar}
+        onVer={(destino) => (destino === 'conquistas' && onVerConquistas ? onVerConquistas() : onVerPersonalizar())}
+      />
+    );
   // Uma recompensa por diálogo: a próxima da fila abre um diálogo novo (e um confete novo).
   return (
     <Resgate

@@ -1,0 +1,94 @@
+/* A NOVIDADE DISCRETA (`NovidadeDiscreta.tsx`): cartão pequeno no canto, sem véu, sem festa. */
+.novidade-discreta {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top, 0px));
+  right: 12px;
+  z-index: var(--z-toast, 70);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(360px, calc(100vw - 24px));
+  padding: 10px 10px 10px 12px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.35);
+  animation: novidade-entra 0.28s var(--ease, ease-out) backwards;
+}
+@keyframes novidade-entra {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+.novidade-icone {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  color: var(--accent-ink, var(--accent));
+}
+.novidade-icone svg {
+  width: 18px;
+  height: 18px;
+}
+.novidade-texto {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.novidade-texto b {
+  font-size: 13.5px;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.novidade-texto small {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.novidade-texto small svg {
+  width: 13px;
+  height: 13px;
+  color: var(--good, var(--accent));
+}
+.novidade-fechar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+.novidade-fechar:hover {
+  background: var(--surface-hover, var(--surface-sunken));
+}
+.novidade-fechar svg {
+  width: 16px;
+  height: 16px;
+}
+@media (max-width: 720px) {
+  .novidade-discreta {
+    left: 12px;
+    right: 12px;
+    max-width: none;
+  }
+}
+body.animations-off .novidade-discreta,
+body.performance-mode .novidade-discreta {
+  animation: none;
+}

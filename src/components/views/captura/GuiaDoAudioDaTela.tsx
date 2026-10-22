@@ -66,7 +66,7 @@ export default function GuiaDoAudioDaTela({
           ) : semAudioNoNavegador ? (
             <>
               <p>
-                O Firefox e o Safari não entregam o som de uma aba ou tela, então marcar o áudio não resolve. Dois
+                O Firefox e o Safari não entregam o som de uma aba ou tela, então marcar o áudio não resolve. Três
                 caminhos funcionam:
               </p>
               <ol className="list-decimal ms-5 space-y-1">
@@ -75,7 +75,12 @@ export default function GuiaDoAudioDaTela({
                   tela;
                 </li>
                 <li>
-                  Usar o <b className="text-ink">microfone</b>, deixando o som do vídeo sair pelo alto-falante.
+                  Usar o <b className="text-ink">microfone</b>, deixando o som do vídeo sair pelo alto-falante;
+                </li>
+                <li>
+                  Instalar um <b className="text-ink">dispositivo de áudio virtual</b> (BlackHole no Mac, VB-Cable no
+                  Windows), mandar o som do computador para ele e escolhê-lo como microfone aqui: o Frasy passa a ouvir
+                  o computador direto, sem alto-falante.
                 </li>
               </ol>
             </>

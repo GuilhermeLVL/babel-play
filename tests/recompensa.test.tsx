@@ -3,16 +3,28 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import RecompensaDesbloqueada from '../src/components/RecompensaDesbloqueada'
-import { chaveDaRecompensa, marcarOcupacaoDaCaptura, type Recompensa, recompensasVistas } from '../src/lib/filaDeRecompensas'
+import {
+  chaveDaRecompensa,
+  marcarOcupacaoDaCaptura,
+  type Recompensa,
+  recompensasVistas,
+} from '../src/lib/filaDeRecompensas'
 import { CATALOGO_DA_LOJA } from '../src/lib/loja'
 import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
 
 prepararDialogoNoJsdom()
 
 const movimento = vi.hoisted(() => ({ reduzido: true }))
-vi.mock('../src/lib/juice', () => ({ explodirAleatorio: vi.fn(), pontosDoElemento: vi.fn(), movimentoReduzido: () => movimento.reduzido }))
+vi.mock('../src/lib/juice', () => ({
+  explodirAleatorio: vi.fn(),
+  pontosDoElemento: vi.fn(),
+  movimentoReduzido: () => movimento.reduzido,
+}))
 vi.mock('../src/lib/comemoracao', () => ({ celebrar: vi.fn(), tocarPreviaDoEfeito: vi.fn() }))
-vi.mock('../src/lib/effects', async (orig) => ({ ...(await orig<typeof import('../src/lib/effects')>()), emitBurst: vi.fn() }))
+vi.mock('../src/lib/effects', async (orig) => ({
+  ...(await orig<typeof import('../src/lib/effects')>()),
+  emitBurst: vi.fn(),
+}))
 
 const nivel2: Recompensa = {
   tipo: 'nivel',
@@ -106,12 +118,15 @@ describe('RecompensaDesbloqueada — o modal de resgate', () => {
     expect(screen.getByText('Tema Aurora')).toBeTruthy()
   })
 
-  it('conquista mostra o ícone lucide da grade de Desafios, e não o emoji do core', () => {
+  it('conquista SEM exclusivo vira o cartão discreto (22/10/2026), com o ícone lucide da grade de Desafios', () => {
     const r: Recompensa = { tipo: 'conquista', id: 'constante', nome: 'Constante', seeds: 100, xp: 50 }
     render(<RecompensaDesbloqueada fila={[r]} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />)
-    const dialogo = screen.getByRole('dialog')
-    expect(dialogo.textContent).not.toContain('🔥')
-    expect(dialogo.querySelector('.emoji svg.lucide-flame')).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    const cartao = screen.getByTestId('novidade-discreta')
+    expect(cartao.textContent).not.toContain('🔥')
+    expect(cartao.querySelector('.novidade-icone svg.lucide-flame')).toBeTruthy()
+    expect(cartao.textContent).toContain('Constante')
+    expect(cartao.textContent).toContain('+100 Seeds')
   })
 
   it('o modal é a ÚNICA festa da recompensa: comemora uma vez ao abrir', async () => {
@@ -136,20 +151,33 @@ describe('RecompensaDesbloqueada — lote de novidades e prévia real', () => {
   const conquista = (id: string): Recompensa => ({ tipo: 'conquista', id, nome: id, seeds: 10, xp: 5 })
   const tres = [nivel2, conquista('constante'), conquista('primeira-rodada')]
 
-  it('três juntas: "3 novidades", uma por vez, com a posição', () => {
+  it('três juntas: o nível com peças abre o modal ("3 novidades · 1 de 3"); as duas conquistas sem peça viram UM cartão', () => {
     const { rerender } = render(
       <RecompensaDesbloqueada fila={tres} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />,
     )
     expect(screen.getAllByRole('dialog')).toHaveLength(1)
     expect(screen.getByText(/3 novidades · 1 de 3/)).toBeTruthy()
     rerender(
-      <RecompensaDesbloqueada fila={tres.slice(1)} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />,
+      <RecompensaDesbloqueada
+        fila={tres.slice(1)}
+        onEquipar={() => true}
+        onFechar={vi.fn()}
+        onVerPersonalizar={vi.fn()}
+      />,
     )
-    expect(screen.getByText(/3 novidades · 2 de 3/)).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    const cartao = screen.getByTestId('novidade-discreta')
+    expect(cartao.getAttribute('data-novidades')).toBe('2')
+    expect(cartao.textContent).toContain('2 novidades')
+    expect(cartao.textContent).toContain('2 conquistas')
+    expect(cartao.textContent).toContain('+20 Seeds')
+    expect(cartao.textContent).toContain('+10 XP')
   })
 
   it('uma só não fala em lote', () => {
-    render(<RecompensaDesbloqueada fila={[nivel2]} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />)
+    render(
+      <RecompensaDesbloqueada fila={[nivel2]} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />,
+    )
     expect(screen.queryByText(/novidades/)).toBeNull()
   })
 
@@ -203,7 +231,8 @@ describe('RecompensaDesbloqueada — lote de novidades e prévia real', () => {
       expect(screen.getByRole('dialog').textContent ?? '').not.toMatch(/\p{Extended_Pictographic}/u)
       if (tipo === 'moldura') expect(previa!.querySelector(`[data-moldura-equipada="${item.id}"]`)).toBeTruthy()
       if (tipo === 'titulo') expect(previa!.querySelector(`[data-titulo-equipado="${item.id}"]`)).toBeTruthy()
-      if (tipo === 'cartao') expect(previa!.querySelectorAll('.cartao-nova, .cartao-aprendida, .cartao-dominada')).toHaveLength(3)
+      if (tipo === 'cartao')
+        expect(previa!.querySelectorAll('.cartao-nova, .cartao-aprendida, .cartao-dominada')).toHaveLength(3)
     },
   )
 
@@ -214,7 +243,12 @@ describe('RecompensaDesbloqueada — lote de novidades e prévia real', () => {
     vi.mocked(emitBurst).mockClear()
     const rastro = CATALOGO_DA_LOJA.find((i) => i.tipo === 'rastro' && i.alvo !== 'off')!
     const { unmount } = render(
-      <RecompensaDesbloqueada fila={[{ tipo: 'drop', roundId: 'rr', seeds: 0, item: rastro }]} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />,
+      <RecompensaDesbloqueada
+        fila={[{ tipo: 'drop', roundId: 'rr', seeds: 0, item: rastro }]}
+        onEquipar={() => true}
+        onFechar={vi.fn()}
+        onVerPersonalizar={vi.fn()}
+      />,
     )
     act(() => {
       vi.advanceTimersByTime(1200)
@@ -224,7 +258,12 @@ describe('RecompensaDesbloqueada — lote de novidades e prévia real', () => {
     vi.mocked(emitBurst).mockClear()
     const part = CATALOGO_DA_LOJA.find((i) => i.tipo === 'particulas' && i.alvo === 'pixel')!
     render(
-      <RecompensaDesbloqueada fila={[{ tipo: 'drop', roundId: 'rp', seeds: 0, item: part }]} onEquipar={() => true} onFechar={vi.fn()} onVerPersonalizar={vi.fn()} />,
+      <RecompensaDesbloqueada
+        fila={[{ tipo: 'drop', roundId: 'rp', seeds: 0, item: part }]}
+        onEquipar={() => true}
+        onFechar={vi.fn()}
+        onVerPersonalizar={vi.fn()}
+      />,
     )
     act(() => {
       vi.advanceTimersByTime(600)

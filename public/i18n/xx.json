@@ -118,6 +118,7 @@
     "one": "[{n} çöñgéláméñtöš güárdádöš: üm díá šém prátíçá ñãö qüébrá á öféñšívá. ····························]",
     "other": "[{n} çöñgéláméñtöš güárdádöš: üm díá šém prátíçá ñãö qüébrá á öféñšívá. ····························]"
   },
+  "{n} conquistas": "[{n} çöñqüíštáš ······]",
   "{n} contas na lista": "[{n} çöñtáš ñá líštá ········]",
   "{n} controles à vista, sem motor de vibração: o app usa um som bem baixo no lugar.": {
     "one": "[{n} çöñtröléš à víštá, šém mötör dé víbráçãö: ö ápp üšá üm šöm bém báíxö ñö lügár. ·································]",
@@ -405,6 +406,7 @@
   "−1 vida": "[−1 vídá ···]",
   "1 ano": "[1 áñö ··]",
   "1 ano em {n} parcelas": "[1 áñö ém {n} párçéláš ········]",
+  "1 conquista": "[1 çöñqüíštá ····]",
   "1 mês": "[1 mêš ··]",
   "2FA ativado com sucesso.": "[2FÁ átívádö çöm šüçéššö. ··········]",
   "2FA desativado.": "[2FÁ déšátívádö. ······]",
@@ -4564,6 +4566,7 @@
   "Vencidos": "[Véñçídöš ···]",
   "Vendas reabrem em breve": "[Véñdáš réábrém ém brévé ·········]",
   "vendo a tela": "[véñdö á télá ·····]",
+  "Ver": "[Vér ··]",
   "Ver {n} jogos": {
     "one": "[Vér {n} jögöš ·····]",
     "other": "[Vér {n} jögöš ·····]"

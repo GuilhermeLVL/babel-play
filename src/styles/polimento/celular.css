@@ -224,8 +224,8 @@
 /* ============================================================================
    Rodada 5 — passada de correção no celular (sobreposição, texto vazando, espaço)
    ============================================================================ */
-/* A conversa do intérprete ocupa a tela toda: a barra de navegação sai (nos dois tamanhos). */
-html[data-px='on'] .q-casca:has(.px-int) .q-trilho { display: none; }
+/* A conversa do intérprete convive com a barra de navegação (pedido do dono, 22/10/2026): antes a
+   barra saía "nos dois tamanhos" e a pessoa ficava sem caminho de volta além do botão do navegador. */
 @media (max-width: 720px) {
   /* Abas: sempre uma linha só, que rola de lado. Empilhar gastava meia tela. */
   html[data-px='on'] .q-abas { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; align-self: stretch; }

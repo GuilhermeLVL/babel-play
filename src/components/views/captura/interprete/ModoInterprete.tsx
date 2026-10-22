@@ -597,6 +597,7 @@ export default function ModoInterprete({
       aoPararVoz={() => controle.pararVoz()}
       aoSair={sairDaTela}
       emDialogo
+      comTrilho
       fase={atual.fase}
     />
   );

@@ -145,6 +145,7 @@ export default function ConversaDoPrototipo({
   aoSair,
   comEntrada = false,
   emDialogo = false,
+  comTrilho = !emDialogo,
   fase,
   testid = 'modo-interprete',
   rotulo,
@@ -188,6 +189,9 @@ export default function ConversaDoPrototipo({
   comEntrada?: boolean;
   /** A conversa em curso cobre a captura: é um diálogo para quem usa leitor de tela. */
   emDialogo?: boolean;
+  /** Convive com o trilho (ao lado dele no computador, acima da barra no celular): a tela pronta e a
+   *  conversa em curso. Só a conversa virtual cobre tudo. Ver `modoInterprete.css`. */
+  comTrilho?: boolean;
   fase?: string | undefined;
   testid?: string;
   /** O nome da tela e o do X para o leitor de tela. Ausentes = os do modo intérprete. */
@@ -391,9 +395,10 @@ export default function ConversaDoPrototipo({
       ref={raiz}
       className="int px-int"
       aria-label={rotulo ?? t('Modo intérprete')}
-      {...(emDialogo ? { role: 'dialog', 'aria-modal': true } : {})}
+      {...(emDialogo ? { role: 'dialog', ...(comTrilho ? {} : { 'aria-modal': true }) } : {})}
       data-testid={testid}
       data-fase={fase}
+      data-pagina={comTrilho ? '' : undefined}
       data-layout={emColunas ? 'computador' : undefined}
       data-escuta={escuta ? '' : undefined}
     >

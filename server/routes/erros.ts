@@ -33,7 +33,8 @@ const relatorioSchema = z
     origem: z.string().max(200).optional(),
     /** Rota da SPA onde aconteceu (pathname, sem query — o cliente já poda). */
     tela: z.string().max(80).optional(),
-    tipo: z.enum(['render', 'promise', 'erro-global']),
+    /** `modelo-vetado`: a sentinela vetou um modelo local neste aparelho (só o id do modelo e o tipo de aparelho). */
+    tipo: z.enum(['render', 'promise', 'erro-global', 'modelo-vetado']),
   })
   .strip()
 

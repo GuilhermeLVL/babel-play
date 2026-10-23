@@ -4,8 +4,13 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+const relatorio = vi.hoisted(() => ({ reportarErro: vi.fn() }))
+vi.mock('../src/lib/relatorioDeErros', () => relatorio)
+vi.mock('../src/lib/dispositivo/perfil', () => ({ perfilDoDispositivo: () => ({ tipo: 'desktop-com-gpu' }) }))
+
 import {
   desmarcar,
+  esquecerQuedas,
   INSTANCIA_DA_PAGINA,
   marcarCarregando,
   quedaSuspeita,
@@ -27,7 +32,12 @@ beforeEach(() => {
     },
   })
 })
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  desmarcar('m')
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
+  relatorio.reportarErro.mockClear()
+})
 
 describe('sentinelaDoModelo', () => {
   it('a marca é por instância: babel.sentinela.<id>.<instância>', () => {
@@ -89,5 +99,60 @@ describe('sentinelaDoModelo', () => {
     expect(() => marcarCarregando('m')).not.toThrow()
     expect(quedaSuspeita('m')).toBe(false)
     expect(await vetarSeCaiuComOModelo('m', async () => undefined)).toBe(false)
+  })
+
+  it('o veto emite UM evento pelo relatório de erros: só o nome e o tipo de aparelho', async () => {
+    marcarCarregando('m', 1000, 'outra')
+    await vetarSeCaiuComOModelo('m', async () => undefined, 2000)
+    await vi.waitFor(() => expect(relatorio.reportarErro).toHaveBeenCalledTimes(1))
+    expect(relatorio.reportarErro).toHaveBeenCalledWith('modelo-vetado', 'm · desktop-com-gpu')
+    // sem marca de queda, nada é emitido
+    await vetarSeCaiuComOModelo('m', async () => undefined, 3000)
+    await new Promise((r) => setTimeout(r, 0))
+    expect(relatorio.reportarErro).toHaveBeenCalledTimes(1)
+  })
+
+  it('esquecerQuedas apaga as marcas de outras instâncias (o "Tentar de novo"), não a própria', async () => {
+    marcarCarregando('m', 1000, 'morta')
+    marcarCarregando('m', 1000)
+    await esquecerQuedas('m')
+    expect(memoria.has('babel.sentinela.m.morta')).toBe(false)
+    expect(memoria.has(`babel.sentinela.m.${INSTANCIA_DA_PAGINA}`)).toBe(true)
+    expect(quedaSuspeita('m', 2000, new Set(), 'nova')).toBe(true) // a própria segue valendo para outra página
+  })
+})
+
+/* BATIMENTO: enquanto o Parakeet segue carregado, a marca desta página é renovada a cada 5 min, e a regra
+   dos 30 min conta do ÚLTIMO carimbo. Uma captura longa que derruba a aba aos 45 min ainda é vista. A
+   "morte" da página é simulada parando os relógios (`clearAllTimers`) sem desmarcar. */
+describe('sentinelaDoModelo — batimento da marca', () => {
+  const T0 = 1_000_000_000_000
+
+  it('marca em t0, renovada a cada 5 min: queda aos 45 min (último carimbo aos 45) é vista por outra página', () => {
+    vi.useFakeTimers({ now: T0 })
+    marcarCarregando('m')
+    vi.advanceTimersByTime(5 * 60_000)
+    expect(memoria.get(`babel.sentinela.m.${INSTANCIA_DA_PAGINA}`)).toBe(String(T0 + 5 * 60_000))
+    vi.advanceTimersByTime(40 * 60_000)
+    vi.clearAllTimers() // a aba morre aqui, com o modelo carregado
+    expect(quedaSuspeita('m', T0 + 45 * 60_000 + 1000, new Set(), 'nova')).toBe(true)
+  })
+
+  it('último carimbo há menos de 30 min: veta; há mais de 30 min: não veta', () => {
+    vi.useFakeTimers({ now: T0 })
+    marcarCarregando('m')
+    vi.advanceTimersByTime(10 * 60_000) // carimbos aos 5 e aos 10 min
+    vi.clearAllTimers()
+    expect(quedaSuspeita('m', T0 + 39 * 60_000, new Set(), 'nova')).toBe(true)
+    expect(quedaSuspeita('m', T0 + 41 * 60_000, new Set(), 'nova')).toBe(false)
+  })
+
+  it('desmarcar para o batimento: a marca não volta', () => {
+    vi.useFakeTimers({ now: T0 })
+    marcarCarregando('m')
+    desmarcar('m')
+    vi.advanceTimersByTime(20 * 60_000)
+    expect(memoria.size).toBe(0)
+    expect(vi.getTimerCount()).toBe(0)
   })
 })

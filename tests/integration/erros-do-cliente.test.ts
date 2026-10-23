@@ -74,6 +74,16 @@ describe('POST /api/erros-do-cliente', () => {
     expect(linha).toContain('e-abc123')
   })
 
+  it('o veto de um modelo local (sentinela) entra como `modelo-vetado`', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const r = await reportar(
+      { id: 'e-veto01', tipo: 'modelo-vetado', mensagem: 'parakeet · desktop-com-gpu' },
+      'u-veto',
+    )
+    expect(r.status).toBe(202)
+    expect(spy.mock.calls.map((c) => String(c[0])).some((l) => l.includes('e-veto01'))).toBe(true)
+  })
+
   it('payload fora da forma → 400 (mensagem gigante não entra no diário)', async () => {
     const r = await reportar({ ...valido, mensagem: 'x'.repeat(5_000) }, 'u-forma')
     expect(r.status).toBe(400)

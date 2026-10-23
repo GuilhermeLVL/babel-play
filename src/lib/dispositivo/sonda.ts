@@ -379,6 +379,20 @@ export async function proibirModelo(id: string, motivo: string, dep: Dependencia
   });
 }
 
+/** O inverso de `proibirModelo` ("Tentar de novo" na tela de modelos): tira o veto e o motivo deste aparelho. */
+export async function permitirModelo(id: string, dep: DependenciasDaSonda = {}): Promise<void> {
+  const d = resolverDependencias(dep);
+  const base = await registroDesteAparelho(d);
+  if (!base.modelosProibidos.includes(id)) return;
+  const motivos = { ...base.motivosDaProibicao };
+  delete motivos[id];
+  gravarRegistro(d.armazem, {
+    ...base,
+    modelosProibidos: base.modelosProibidos.filter((m) => m !== id),
+    motivosDaProibicao: motivos,
+  });
+}
+
 /** O registro guardado se é DESTE aparelho; senão um vazio (só a impressão, `medidaEm: 0`). */
 async function registroDesteAparelho(d: ReturnType<typeof resolverDependencias>): Promise<RegistroDoAparelho> {
   const { impressao } = await impressaoAtual(d.escopo, d.infoDoAdaptador);

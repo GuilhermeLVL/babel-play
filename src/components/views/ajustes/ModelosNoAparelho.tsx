@@ -1,6 +1,6 @@
 import '../../../styles/modelosNoAparelho.css';
 
-import { Download, Feather, Gauge, Trash2, Weight, X } from 'lucide-react';
+import { Download, Feather, Gauge, RotateCcw, Trash2, Weight, X } from 'lucide-react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { CHAVE_DO_PARAKEET, ID_DO_PARAKEET } from '../../../gateway/adapters/parakeetModelo';
@@ -15,6 +15,7 @@ import {
 import { apagarModelo, baixadoEm, type EstadoDoCache, modeloDisponivel } from '../../../gateway/modelManifest';
 import { gravarModeloFixo, lerModeloFixo, type ModeloFixo } from '../../../gateway/modeloFixo';
 import { parakeetCabeNoAparelho } from '../../../gateway/sttRouter';
+import { esquecerQuedas } from '../../../lib/captura/sentinelaDoModelo';
 import { algumaAbaGravando } from '../../../lib/captura/travaDaGravacao';
 import { type NivelDoAparelho, nivelDoAparelho } from '../../../lib/dispositivo/benchmark';
 import { dispositivoDaRota, perfilDoDispositivo } from '../../../lib/dispositivo/perfil';
@@ -174,6 +175,18 @@ export default function ModelosNoAparelho({ estudando, meu }: { estudando: strin
 
   const escolha = escolhaDoAutomatico(cabe, vetado, estudando, meu);
 
+  /** "Tentar de novo": tira o veto da sonda e as marcas de queda; a próxima captura pode usar o Preciso. */
+  const tentarDeNovo = async () => {
+    try {
+      const m = await import('../../../lib/dispositivo/sonda');
+      await m.permitirModelo(ID_DO_PARAKEET);
+      await esquecerQuedas(ID_DO_PARAKEET);
+      setVetado(false);
+    } catch {
+      /* sem sonda legível: o veto fica */
+    }
+  };
+
   const fixar = (m: ModeloFixo) => {
     if (m === 'parakeet') {
       /* Com a chave em '0' o adaptador recusaria o Parakeet fixado: escolher aqui é ligá-lo. */
@@ -256,7 +269,7 @@ export default function ModelosNoAparelho({ estudando, meu }: { estudando: strin
       <header>
         <div>
           <h2>{t('Modelos no aparelho')}</h2>
-          <p>{t('Os modelos rodam no seu aparelho: nada do que você ouve sai daqui.')}</p>
+          <p>{t('Estes modelos rodam no seu aparelho: com eles, nada do que você ouve sai daqui.')}</p>
         </div>
       </header>
 
@@ -331,6 +344,7 @@ export default function ModelosNoAparelho({ estudando, meu }: { estudando: strin
             aoCancelar={() => download.current?.abort()}
             aoUsar={() => fixar(item.fixo)}
             aoApagar={() => void apagar(item.id)}
+            aoTentarDeNovo={item.fixo === 'parakeet' && vetado ? () => void tentarDeNovo() : undefined}
           />
         ))}
       </ul>
@@ -430,6 +444,7 @@ function ItemDeTranscricao({
   aoCancelar,
   aoUsar,
   aoApagar,
+  aoTentarDeNovo,
 }: {
   item: ItemDoCatalogo;
   estado: EstadoDoCache | undefined;
@@ -443,6 +458,8 @@ function ItemDeTranscricao({
   aoCancelar: () => void;
   aoUsar: () => void;
   aoApagar: () => void;
+  /** Só no modelo vetado neste aparelho: limpa o veto. */
+  aoTentarDeNovo?: () => void;
 }) {
   const idDoNome = useId();
   const Peso = SELO_DO_PESO[item.peso];
@@ -510,6 +527,11 @@ function ItemDeTranscricao({
           ) : (
             <span className="mna-nota">{t('Baixa na primeira captura')}</span>
           ))}
+        {aoTentarDeNovo && (
+          <button type="button" className="q-ctl" onClick={aoTentarDeNovo}>
+            <RotateCcw aria-hidden /> {t('Tentar de novo')}
+          </button>
+        )}
         <button type="button" className="q-ctl" aria-pressed={fixado} disabled={!!motivo} onClick={aoUsar}>
           {fixado ? t('Em uso') : t('Usar este')}
         </button>

@@ -87,7 +87,11 @@ export function novoIdDeErro(): string {
   return `e-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
-export function reportarErro(tipo: 'render' | 'promise' | 'erro-global', mensagem: string, origem?: string): string {
+export function reportarErro(
+  tipo: 'render' | 'promise' | 'erro-global' | 'modelo-vetado',
+  mensagem: string,
+  origem?: string,
+): string {
   const id = novoIdDeErro();
   const msg = String(mensagem || 'erro sem mensagem').slice(0, 300);
 

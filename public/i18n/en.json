@@ -4806,7 +4806,7 @@
   "Só para português e espanhol": "Portuguese and Spanish only",
   "Precisa de placa de vídeo": "Needs a graphics card",
   "Só para inglês": "English only",
-  "Os modelos rodam no seu aparelho: nada do que você ouve sai daqui.": "The models run on your device: nothing you hear leaves it.",
+  "Estes modelos rodam no seu aparelho: com eles, nada do que você ouve sai daqui.": "These models run on your device: with them, nothing you hear leaves it.",
   "Automático (recomendado)": "Automatic (recommended)",
   "Seu computador aguenta o modelo preciso de português e espanhol.": "Your computer can handle the accurate Portuguese and Spanish model.",
   "Para este aparelho, o equilibrado é o que roda sem esquentar.": "On this device, the balanced model is the one that runs without heating up.",
@@ -4846,5 +4846,6 @@
   "Inglês, rápido": "English, fast",
   "Vale para {serve}; em {nao}, o app escolhe sozinho.": "Works for {serve}; for {nao}, the app picks on its own.",
   "Para os seus idiomas, o equilibrado é o que roda melhor neste aparelho.": "For your languages, the balanced model is the one that runs best on this device.",
-  "Termine a captura para apagar.": "Finish the capture to delete."
+  "Termine a captura para apagar.": "Finish the capture to delete.",
+  "Modelo de transcrição no aparelho, para português e espanhol": "On-device transcription model, for Portuguese and Spanish"
 }

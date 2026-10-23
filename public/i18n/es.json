@@ -1671,7 +1671,7 @@
   "Precisa de placa de vídeo": "Necesita tarjeta gráfica",
   "Só para inglês": "Solo para inglés",
   "Modelos no aparelho": "Modelos en el dispositivo",
-  "Os modelos rodam no seu aparelho: nada do que você ouve sai daqui.": "Los modelos funcionan en tu dispositivo: nada de lo que escuchas sale de aquí.",
+  "Estes modelos rodam no seu aparelho: com eles, nada do que você ouve sai daqui.": "Estos modelos funcionan en tu dispositivo: con ellos, nada de lo que escuchas sale de aquí.",
   "Automático (recomendado)": "Automático (recomendado)",
   "Seu computador aguenta o modelo preciso de português e espanhol.": "Tu computadora puede con el modelo preciso de portugués y español.",
   "Para este aparelho, o equilibrado é o que roda sem esquentar.": "En este dispositivo, el equilibrado es el que funciona sin calentarse.",
@@ -1716,5 +1716,6 @@
   "Inglês, rápido": "Inglés, rápido",
   "Vale para {serve}; em {nao}, o app escolhe sozinho.": "Vale para {serve}; en {nao}, la app elige sola.",
   "Para os seus idiomas, o equilibrado é o que roda melhor neste aparelho.": "Para tus idiomas, el equilibrado es el que mejor funciona en este dispositivo.",
-  "Termine a captura para apagar.": "Termina la captura para borrar."
+  "Termine a captura para apagar.": "Termina la captura para borrar.",
+  "Modelo de transcrição no aparelho, para português e espanhol": "Modelo de transcripción en el dispositivo, para portugués y español"
 }

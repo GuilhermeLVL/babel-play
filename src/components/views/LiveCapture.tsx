@@ -106,6 +106,7 @@ import {
 } from '../../lib/captura/legendaSemBaixar';
 import { cancelarLiberacaoDosModelos, liberarAoSairDaCaptura } from '../../lib/captura/memoriaDosModelos';
 import { type EscolhaDoMic, webSpeechBipaAoReligar } from '../../lib/captura/motorDoMicrofone';
+import { baixarSemEmpilhar, nuvemDoSttDisponivel, ofereceOPreciso } from '../../lib/captura/ofertaDoPreciso';
 import { preparoConcluido } from '../../lib/captura/pacotesNativos';
 // Vocabulário dentro da captura: examinar a palavra, fichar no deck, mandar praticar.
 import { criarPalavraDaFala } from '../../lib/captura/palavraDaFala';
@@ -881,14 +882,14 @@ export default function LiveCapture({
      e volta antes disso encontra o modelo quente — a volta cancela a liberação. A próxima captura
      recarrega do cache (sem baixar de novo). O microbenchmark do aparelho, que não roda mais durante a
      captura, fica agendado para o ocioso daqui (`agendarBenchmarkDoAparelho`). */
+  const liberarModelosDaCaptura = useCallback(() => {
+    gateway.stt.liberarModelo();
+    gateway.mt.liberarModelos();
+  }, [gateway]);
   useEffect(() => {
     cancelarLiberacaoDosModelos();
     return () => {
-      const liberar = () => {
-        gateway.stt.liberarModelo();
-        gateway.mt.liberarModelos();
-      };
-      liberarAoSairDaCaptura(perfilDoAparelhoRef.current, liberar);
+      liberarAoSairDaCaptura(perfilDoAparelhoRef.current, liberarModelosDaCaptura);
       /* O microbenchmark só depois de uma captura de verdade nesta montagem (abrir a tela e sair não
          conta), no ocioso, e cancelado se outra captura chegar antes (`benchmarkPendente`). */
       if (capturouNestaMontagemRef.current && perfilDoAparelhoRef.current.tipo !== 'quest') {
@@ -900,7 +901,7 @@ export default function LiveCapture({
           .catch(() => {});
       }
     };
-  }, [gateway]);
+  }, [liberarModelosDaCaptura]);
   const capturouNestaMontagemRef = useRef(false);
   useEffect(() => {
     if (!isRecording) return;
@@ -2432,36 +2433,51 @@ export default function LiveCapture({
     falhou: false,
   });
   const [baixouOPreciso, setBaixouOPreciso] = useState(false);
-  const rotaOfereceOPreciso = useMemo(() => {
-    const rota = routeStt({
-      contentLang: baseLang(targetLang),
-      micLang: micEnabled && micEngine === 'whisper' ? baseLang(sourceLang) : '',
-      soMicrofone: captureScenario === 'mic',
-      autoDetect: autoDetectLang || autoDetectMyLang,
-      quality: sttQuality,
-      hasWebGpu: temGpu,
-      cloudAvailable: false,
-      profileId: getActiveProfile().id,
-      dispositivo: dispositivoDaRota(perfilDoAparelho, sondaGuardada),
-      ...entradaDoParakeet(parakeetVetado, temCopiaNoAparelho(ID_DO_PARAKEET), lerModeloFixo()),
-    });
-    return !!rota.parakeetDisponivelParaBaixar;
+  /* A nuvem do STT de verdade (a mesma pergunta da captura): quem tem nuvem no automático vai a ela, e a
+     oferta de 672 MB seria download à toa. Refeita ao parar (o alívio pode ter sido aceito). */
+  const [nuvemDoStt, setNuvemDoStt] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (isRecording) return;
+    let vivo = true;
+    void nuvemDoSttDisponivel().then((v) => vivo && setNuvemDoStt(v));
+    return () => {
+      vivo = false;
+    };
+  }, [isRecording]);
+  const rotaOfereceOPreciso = useMemo(
+    () =>
+      ofereceOPreciso(
+        {
+          contentLang: baseLang(targetLang),
+          micLang: micEnabled && micEngine === 'whisper' ? baseLang(sourceLang) : '',
+          soMicrofone: captureScenario === 'mic',
+          autoDetect: autoDetectLang || autoDetectMyLang,
+          quality: sttQuality,
+          hasWebGpu: temGpu,
+          profileId: getActiveProfile().id,
+          dispositivo: dispositivoDaRota(perfilDoAparelho, sondaGuardada),
+          ...entradaDoParakeet(parakeetVetado, temCopiaNoAparelho(ID_DO_PARAKEET), lerModeloFixo()),
+        },
+        { nuvemDoStt, modoNuvem: getProviderMode() === 'cloud' },
+      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `baixouOPreciso` refaz a conta (a cópia passou a existir)
-  }, [
-    targetLang,
-    sourceLang,
-    micEnabled,
-    micEngine,
-    autoDetectLang,
-    autoDetectMyLang,
-    sttQuality,
-    temGpu,
-    perfilDoAparelho,
-    sondaGuardada,
-    parakeetVetado,
-    captureScenario,
-    baixouOPreciso,
-  ]);
+    [
+      targetLang,
+      sourceLang,
+      micEnabled,
+      micEngine,
+      autoDetectLang,
+      autoDetectMyLang,
+      sttQuality,
+      temGpu,
+      perfilDoAparelho,
+      sondaGuardada,
+      parakeetVetado,
+      captureScenario,
+      baixouOPreciso,
+      nuvemDoStt,
+    ],
+  );
   /* O download em segundo plano NUNCA convive com a captura: ao começar a gravar e ao sair da tela,
      aborta (libera o worker pesado) e a oferta volta a aparecer depois. */
   const downloadDoPrecisoRef = useRef<AbortController | null>(null);
@@ -2476,10 +2492,14 @@ export default function LiveCapture({
     setDownloadDoPreciso({ progresso: 0, falhou: false });
     const controle = new AbortController();
     downloadDoPrecisoRef.current = controle;
-    void baixarModelo(
-      ID_DO_PARAKEET,
-      (f) => !controle.signal.aborted && setDownloadDoPreciso({ progresso: f, falhou: false }),
-      controle.signal,
+    /* O Parakeet (~2 GB de heap ao verificar) nunca carrega por cima do Whisper e dos tradutores desta
+       tela: soltos antes, pelo mesmo caminho de sair da captura; o próximo Iniciar os recarrega do cache. */
+    void baixarSemEmpilhar(liberarModelosDaCaptura, () =>
+      baixarModelo(
+        ID_DO_PARAKEET,
+        (f) => !controle.signal.aborted && setDownloadDoPreciso({ progresso: f, falhou: false }),
+        controle.signal,
+      ),
     ).then((r) => {
       if (downloadDoPrecisoRef.current === controle) downloadDoPrecisoRef.current = null;
       if (r === 'baixado') {
@@ -2489,7 +2509,7 @@ export default function LiveCapture({
         setDownloadDoPreciso({ progresso: null, falhou: r === 'falhou' });
       }
     });
-  }, []);
+  }, [liberarModelosDaCaptura]);
   const ofertaDoPreciso =
     rotaOfereceOPreciso && !perfilDoAparelho.sinais.economiaDeDados && !isRecording ? (
       <div style={{ margin: '10px 16px 0' }}>

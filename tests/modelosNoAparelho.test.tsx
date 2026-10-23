@@ -19,6 +19,8 @@ const espioes = vi.hoisted(() => ({
     return 'baixado' as const
   }),
   proibido: vi.fn(async (_id: string) => false),
+  permitir: vi.fn(async (_id: string) => undefined),
+  esquecer: vi.fn(async (_id: string) => undefined),
   medir: vi.fn(),
   perfil: { memoriaGb: null as number | null },
 }))
@@ -36,9 +38,11 @@ vi.mock('../src/gateway/modelManifest', async (original) => {
 vi.mock('../src/gateway/baixarModelo', () => ({ baixarModelo: espioes.baixar }))
 vi.mock('../src/lib/dispositivo/sonda', () => ({
   modeloProibido: espioes.proibido,
+  permitirModelo: espioes.permitir,
   sondaGuardada: async () => null,
   sondarEMedir: espioes.medir,
 }))
+vi.mock('../src/lib/captura/sentinelaDoModelo', () => ({ esquecerQuedas: espioes.esquecer }))
 vi.mock('../src/lib/dispositivo/useSondaGuardada', () => ({ useSondaGuardada: () => null }))
 vi.mock('../src/lib/dispositivo/perfil', async (original) => {
   const real = await original<typeof import('../src/lib/dispositivo/perfil')>()
@@ -114,6 +118,10 @@ describe('ModelosNoAparelho', () => {
     expect(screen.getByRole('heading', { name: 'Modelos no aparelho' })).toBeTruthy()
     await waitFor(() => expect(screen.getByText(/Espaço usado: 120 MB de 10 GB/)).toBeTruthy())
     expect(screen.getByText(/Parakeet TDT v3 · NVIDIA · CC-BY-4.0/)).toBeTruthy()
+    // a promessa vale para quem também usa a nuvem: é sobre ESTES modelos
+    expect(
+      screen.getByText('Estes modelos rodam no seu aparelho: com eles, nada do que você ouve sai daqui.'),
+    ).toBeTruthy()
   })
 
   it('"Usar este" no Equilibrado fixa o whisper-base e desliga o automático', async () => {
@@ -195,6 +203,30 @@ describe('ModelosNoAparelho', () => {
     )
     expect((within(preciso).getByRole('button', { name: 'Usar este' }) as HTMLButtonElement).disabled).toBe(true)
     expect(screen.getByText('Para este aparelho, o equilibrado é o que roda sem esquentar.')).toBeTruthy()
+  })
+
+  it('"Tentar de novo" no Preciso vetado tira o veto e a marca de queda, e o modelo volta a poder ser usado', async () => {
+    cacheFalso({})
+    espioes.perfil.memoriaGb = 8
+    espioes.proibido.mockResolvedValue(true)
+    render(<ModelosNoAparelho estudando="pt-BR" meu="pt-BR" />)
+    const preciso = linha('Preciso')
+    const tentar = await within(preciso).findByRole('button', { name: 'Tentar de novo' })
+    fireEvent.click(tentar)
+    await waitFor(() => expect(espioes.permitir).toHaveBeenCalledWith(ID_DO_PARAKEET))
+    expect(espioes.esquecer).toHaveBeenCalledWith(ID_DO_PARAKEET)
+    await waitFor(() =>
+      expect((within(preciso).getByRole('button', { name: 'Usar este' }) as HTMLButtonElement).disabled).toBe(false),
+    )
+    expect(within(preciso).queryByRole('button', { name: 'Tentar de novo' })).toBeNull()
+  })
+
+  it('sem veto não há "Tentar de novo"', async () => {
+    cacheFalso({})
+    espioes.perfil.memoriaGb = 8
+    render(<ModelosNoAparelho estudando="pt-BR" meu="pt-BR" />)
+    await waitFor(() => expect(espioes.proibido).toHaveBeenCalled())
+    expect(within(linha('Preciso')).queryByRole('button', { name: 'Tentar de novo' })).toBeNull()
   })
 
   it('a lista de tradução vazia explica quando eles baixam', async () => {

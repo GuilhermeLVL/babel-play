@@ -1792,7 +1792,7 @@
   "Precisa de placa de vídeo": "يحتاج إلى بطاقة رسومات",
   "Só para inglês": "للإنجليزية فقط",
   "Modelos no aparelho": "النماذج على الجهاز",
-  "Os modelos rodam no seu aparelho: nada do que você ouve sai daqui.": "تعمل النماذج على جهازك: لا يخرج منه شيء مما تسمعه.",
+  "Estes modelos rodam no seu aparelho: com eles, nada do que você ouve sai daqui.": "تعمل هذه النماذج على جهازك: معها لا يخرج منه شيء مما تسمعه.",
   "Automático (recomendado)": "تلقائي (موصى به)",
   "Seu computador aguenta o modelo preciso de português e espanhol.": "حاسوبك يتحمّل النموذج الدقيق للبرتغالية والإسبانية.",
   "Para este aparelho, o equilibrado é o que roda sem esquentar.": "على هذا الجهاز، النموذج المتوازن هو الذي يعمل دون أن يسخن.",
@@ -1837,5 +1837,6 @@
   "Inglês, rápido": "الإنجليزية، سريع",
   "Vale para {serve}; em {nao}, o app escolhe sozinho.": "يعمل مع {serve}؛ أما مع {nao} فيختار التطبيق وحده.",
   "Para os seus idiomas, o equilibrado é o que roda melhor neste aparelho.": "للغاتك، النموذج المتوازن هو الأفضل أداءً على هذا الجهاز.",
-  "Termine a captura para apagar.": "أنهِ الالتقاط لتتمكن من الحذف."
+  "Termine a captura para apagar.": "أنهِ الالتقاط لتتمكن من الحذف.",
+  "Modelo de transcrição no aparelho, para português e espanhol": "نموذج تفريغ صوتي على الجهاز، للبرتغالية والإسبانية"
 }

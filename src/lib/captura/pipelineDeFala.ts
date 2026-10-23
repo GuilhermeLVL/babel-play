@@ -17,7 +17,6 @@ import {
   type SinaisDoAparelhoParaAlivio,
 } from '../../core/nuvemDeAlivio';
 import type { DecisaoDeRota } from '../../core/rota/politicaDeRota';
-import { apiFetch } from '../../data/api';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
 import { temAdaptadorWebGpu } from '../../gateway/adaptadorWebGpu';
 import { ID_DO_PARAKEET } from '../../gateway/adapters/parakeetModelo';
@@ -38,8 +37,8 @@ import { getEntitlements } from '../entitlements';
 import { t } from '../i18n';
 import { detectLanguage } from '../langDetect';
 import { baseLang, langLabel } from '../languages';
-import { alivioAceito, cabecalhoDoAlivio } from '../nuvemDeAlivio/estado';
-import { cabecalhoDoDono, ENDPOINT_DA_NUVEM_DO_QUEST, nuvemDoQuestAtiva, nuvemDoQuestExiste } from '../nuvemDoQuest';
+import { alivioAceito } from '../nuvemDeAlivio/estado';
+import { nuvemDoQuestAtiva, nuvemDoQuestExiste } from '../nuvemDoQuest';
 import { PerfilAdaptativoDeIdioma, pesoDaDeteccao } from '../perfilDeIdioma';
 import { perfilProtegido } from '../protecaoDoMenor';
 import { SpeakerClusterer } from '../speakerCluster';
@@ -56,6 +55,7 @@ import { direcaoDoLado as direcaoDeUmLado } from './interprete';
 import type { PistasDoIdioma } from './interpreteAutomatico';
 import { umModeloDeCadaVez } from './memoriaDosModelos';
 import { disponibilidadeDaSondaParaIdioma, escolherMotorDoMic, webSpeechBipaAoReligar } from './motorDoMicrofone';
+import { nuvemDoSttDisponivel } from './ofertaDoPreciso';
 import { preparoConcluido, semPacotePendente } from './pacotesNativos';
 import { criarTradutorDeParciais, type TradutorDeParciais } from './parcialEstavel';
 import { type EfeitosDoRegulador, escadaDeModelos, type ReguladorDaCaptura } from './reguladorDaCaptura';
@@ -1329,16 +1329,9 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
         console.warn('[captura] sonda do aparelho indisponível; rota sem ela', erro);
         return null;
       });
-    /* Com a nuvem de alívio ACEITA (A10), a pergunta leva o cabeçalho dela: o servidor responde pela
-       franquia da conta Grátis (flag, responsável, pool), o mesmo veredicto que a transcrição vai ouvir. */
-    /* No Quest (site estático) a nuvem é a função do próprio site, e só com o consentimento dado. */
-    const cloudAvailable = await (
-      nuvemDoQuestAtiva()
-        ? fetch(ENDPOINT_DA_NUVEM_DO_QUEST, { headers: cabecalhoDoDono() })
-        : apiFetch('/api/ai/stt/available', { headers: cabecalhoDoAlivio() })
-    )
-      .then((r) => r.ok)
-      .catch(() => false);
+    /* A nuvem do STT responde? (cabeçalho do alívio aceito; no Quest, a função do site) — a MESMA
+       pergunta que a oferta do modelo preciso faz na tela (`ofertaDoPreciso.ts`). */
+    const cloudAvailable = await nuvemDoSttDisponivel();
     /* O MIC VAI AO WHISPER? Não é mais só a escolha do seletor: sem consentimento (ou no perfil
        Privado) e sem reconhecimento no aparelho, o "navegador" cai no Whisper (`motorDoMicrofone.ts`).
        A sonda guardada responde pelo "no aparelho"; sem ela, conta como indisponível — errar para o

@@ -23,6 +23,7 @@ import {
   lerRegistro,
   modeloProibido,
   obterSondaDoAparelho,
+  permitirModelo,
   proibirModelo,
   type RegistroDoAparelho,
   registroValido,
@@ -349,6 +350,21 @@ describe('proibirModelo / modeloProibido', () => {
     const armazem = armazemFalso()
     await proibirModelo('whisper-small', 'OOM', dep({ armazem }))
     expect(await modeloProibido('whisper-small', dep({ armazem, infoDoAdaptador: async () => null }))).toBe(false)
+  })
+
+  it('permitirModelo é o inverso: tira o veto e o motivo, e deixa os outros', async () => {
+    const armazem = armazemFalso()
+    await proibirModelo('parakeet', 'a aba caiu', dep({ armazem }))
+    await proibirModelo('whisper-small', 'OOM', dep({ armazem }))
+    await permitirModelo('parakeet', dep({ armazem }))
+    expect(await modeloProibido('parakeet', dep({ armazem }))).toBe(false)
+    expect(await modeloProibido('whisper-small', dep({ armazem }))).toBe(true)
+    const reg = lerRegistro(armazem)!
+    expect(reg.motivosDaProibicao).toEqual({ 'whisper-small': 'OOM' })
+    // sem veto, não grava nada novo
+    const antes = armazem.getItem(CHAVE_DA_SONDA)
+    await permitirModelo('parakeet', dep({ armazem }))
+    expect(armazem.getItem(CHAVE_DA_SONDA)).toBe(antes)
   })
 })
 

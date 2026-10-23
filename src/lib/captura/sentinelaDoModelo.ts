@@ -13,11 +13,19 @@
  * enquanto existe; o lock some junto com a página, qualquer que seja a causa. Sem Web Locks, vale só a
  * regra da idade.
  *
- * Marca com mais de 30 min não conta. Nunca lança: sem `localStorage`, não há sentinela.
+ * BATIMENTO: enquanto o modelo segue carregado, a marca desta página é renovada a cada 5 min, e a regra
+ * dos 30 min conta do ÚLTIMO carimbo. Sem isso, uma captura longa (episódio) que derruba a aba depois
+ * de 30 min deixava uma marca "velha", apagada em vez de vetar. Para no `desmarcar` (liberar, `pagehide`).
+ *
+ * Marca cujo último carimbo tem mais de 30 min não conta. Nunca lança: sem `localStorage`, não há sentinela.
+ *
+ * O VETO É VISTO: cada veto gravado emite UM evento pelo relatório de erros do app (`reportarErro`,
+ * tipo `modelo-vetado`): só o id do modelo e o tipo de aparelho, nada de áudio nem de pessoa.
  */
 
 const PREFIXO = 'babel.sentinela.';
 const VALIDADE_MS = 30 * 60_000;
+const BATIMENTO_MS = 5 * 60_000;
 
 /** Identifica ESTA página (criado uma vez, ao carregar o módulo). */
 export const INSTANCIA_DA_PAGINA = Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -34,6 +42,14 @@ function armazem(): Storage | null {
 
 /** Locks que ESTA página segura, para soltar no `desmarcar`. */
 const locksPropriosPorChave = new Map<string, () => void>();
+/** Batimentos desta página (renovam o carimbo da marca enquanto o modelo segue carregado). */
+const batimentosPorChave = new Map<string, ReturnType<typeof setInterval>>();
+
+function pararBatimento(chave: string): void {
+  const id = batimentosPorChave.get(chave);
+  if (id !== undefined) clearInterval(id);
+  batimentosPorChave.delete(chave);
+}
 
 function segurarLock(chave: string): void {
   try {
@@ -54,8 +70,22 @@ function segurarLock(chave: string): void {
 export function marcarCarregando(id: string, agora = Date.now(), instancia = INSTANCIA_DA_PAGINA): void {
   try {
     const chave = chaveDe(id, instancia);
-    armazem()?.setItem(chave, String(agora));
-    if (instancia === INSTANCIA_DA_PAGINA) segurarLock(chave);
+    const s = armazem();
+    if (!s) return;
+    s.setItem(chave, String(agora));
+    if (instancia !== INSTANCIA_DA_PAGINA) return;
+    segurarLock(chave);
+    pararBatimento(chave);
+    batimentosPorChave.set(
+      chave,
+      setInterval(() => {
+        try {
+          armazem()?.setItem(chave, String(Date.now()));
+        } catch {
+          /* sem persistência */
+        }
+      }, BATIMENTO_MS),
+    );
   } catch {
     /* sem persistência */
   }
@@ -64,6 +94,7 @@ export function marcarCarregando(id: string, agora = Date.now(), instancia = INS
 /** Liberação normal (ou `pagehide`): apaga SÓ a marca desta instância. */
 export function desmarcar(id: string, instancia = INSTANCIA_DA_PAGINA): void {
   const chave = chaveDe(id, instancia);
+  pararBatimento(chave);
   try {
     armazem()?.removeItem(chave);
   } catch {
@@ -140,6 +171,7 @@ export async function vetarSeCaiuComOModelo(
   if (!suspeitas.length) return false;
   try {
     await proibir(id, 'a aba caiu com o modelo carregado');
+    avisarDoVeto(id);
   } finally {
     const s = armazem();
     for (const k of suspeitas) {
@@ -151,4 +183,27 @@ export async function vetarSeCaiuComOModelo(
     }
   }
   return true;
+}
+
+/** Um evento pelo relatório de erros que o app já tem: o id do modelo e o tipo de aparelho. Nunca lança. */
+function avisarDoVeto(id: string): void {
+  void Promise.all([import('../relatorioDeErros'), import('../dispositivo/perfil')])
+    .then(([r, p]) => r.reportarErro('modelo-vetado', `${id} · ${p.perfilDoDispositivo().tipo}`))
+    .catch(() => undefined);
+}
+
+/**
+ * "Tentar de novo" na tela de modelos: apaga as marcas de queda de páginas que não estão vivas (a própria
+ * e as de abas vivas ficam). Quem chama tira o veto da sonda (`permitirModelo`). Nunca lança.
+ */
+export async function esquecerQuedas(id: string, instancia = INSTANCIA_DA_PAGINA): Promise<void> {
+  const vivas = await chavesVivas();
+  try {
+    const s = armazem();
+    if (!s) return;
+    const propria = chaveDe(id, instancia);
+    for (const chave of chavesDoModelo(s, id)) if (chave !== propria && !vivas.has(chave)) s.removeItem(chave);
+  } catch {
+    /* sem persistência */
+  }
 }

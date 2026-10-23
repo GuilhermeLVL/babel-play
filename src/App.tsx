@@ -704,7 +704,9 @@ export default function App() {
                 ) : (
                   <Planos onEntrar={() => navigateTo('login')} />
                 ))}
-              {activeView === 'estatisticas' && (
+              {/* Sem conta, o convite fica sozinho e centrado: a tela de trás não aparece por baixo dele
+                  (na edição estática não há convite e ela monta normalmente). */}
+              {activeView === 'estatisticas' && (!anonimo || edicaoEstatica()) && (
                 <Estatisticas metrics={metrics} onChangeView={(v) => navigateTo(v as ViewType)} />
               )}
               {activeView === 'ajuda' && <Ajuda />}

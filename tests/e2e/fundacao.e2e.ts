@@ -127,8 +127,20 @@ test('o trilho leva a todo destino: os do trilho direto, o resto pelo "Mais"', a
     await expect(mais, 'escolher um destino fecha o painel').toBeHidden()
     await expect(page).toHaveURL(url)
     await expect(page.getByRole('main')).toBeVisible()
-    // Fora do trilho, quem fica marcado é o "Mais".
-    await expect(nav.locator('.q-mais-botao')).toHaveAttribute('aria-current', 'page')
+    /* Fora do trilho, quem fica marcado é o "Mais" — exceto Ajustes acima de 720 px: desde 23/10/2026 ele
+       tem botão próprio no pé do trilho (engrenagem), e é esse que fica marcado. A porta pelo "Mais"
+       continua valendo e é a que este laço acabou de usar; a garantia (todo destino alcançável) é a mesma. */
+    const ajustesNoPe = !estreito && /Ajustes/.test(String(nome))
+    await expect(nav.locator(ajustesNoPe ? '.q-ajustes-botao' : '.q-mais-botao')).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+  }
+  if (!estreito) {
+    // E o botão Ajustes do pé também leva à tela, direto.
+    await clicarRobusto(page, nav.getByTestId('ajustes-no-trilho'))
+    await expect(page).toHaveURL(/\/ajustes/)
+    await expect(nav.getByTestId('ajustes-no-trilho')).toHaveAttribute('aria-current', 'page')
   }
 
   // A faixa "Planos e Premium" do "Mais" segue levando aos planos, sem ladrilho repetido.

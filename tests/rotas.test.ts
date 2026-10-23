@@ -276,3 +276,25 @@ describe('as cinco abas de Personalizar (recompensas v2)', () => {
     expect(normalizarAbaDaLoja('loja')).toBe('conquistas')
   })
 })
+
+describe('abas dos Ajustes na URL', () => {
+  it('cada aba tem endereço próprio e "contas" vira /ajustes/processamento', () => {
+    expect(estadoParaUrl({ view: 'settings', ajustesAba: 'contas' })).toBe('/ajustes/processamento')
+    expect(estadoParaUrl({ view: 'settings', ajustesAba: 'notificacoes' })).toBe('/ajustes/notificacoes')
+    expect(estadoParaUrl({ view: 'settings', ajustesAba: 'privacidade' })).toBe('/ajustes/privacidade')
+    expect(estadoParaUrl({ view: 'settings' })).toBe('/ajustes')
+  })
+
+  it('a URL abre a aba (ida e volta)', () => {
+    for (const aba of ['idiomas', 'aparencia', 'notificacoes', 'contas', 'privacidade', 'conta'] as const) {
+      expect(ida({ view: 'settings', ajustesAba: aba })).toEqual({ view: 'settings', ajustesAba: aba })
+    }
+    expect(urlParaEstado('/ajustes/processamento')).toEqual({ view: 'settings', ajustesAba: 'contas' })
+  })
+
+  it('aba desconhecida (ou o id interno "contas" na URL) cai em /ajustes', () => {
+    expect(urlParaEstado('/ajustes/inventada')).toEqual({ view: 'settings' })
+    expect(urlParaEstado('/ajustes/contas')).toEqual({ view: 'settings' })
+    expect(estadoParaUrl({ view: 'settings', ajustesAba: 'inventada' as never })).toBe('/ajustes')
+  })
+})

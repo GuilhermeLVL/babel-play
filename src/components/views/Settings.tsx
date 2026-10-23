@@ -13,6 +13,7 @@ import {
   langConfigFrom,
   saveLangConfig,
 } from '../../lib/langConfig';
+import { type AbaDosAjustes, ehAbaDosAjustes } from '../../lib/rotas';
 import type { AgeProfileType, FontScale, MenuPositionType } from '../shell/navItems';
 import { toast } from '../Toast';
 import AjustesDoQuest from './ajustes/quest/AjustesDoQuest';
@@ -27,8 +28,7 @@ import AjustesDoQuest from './ajustes/quest/AjustesDoQuest';
  * consentimentos, formato da cópia) são guardadas por `lib/preferencias` no blob `settings.ui`, o
  * mesmo caminho do idioma e da apresentação.
  */
-export const ABAS_DOS_AJUSTES = ['idiomas', 'aparencia', 'notificacoes', 'contas', 'privacidade', 'conta'] as const;
-export type AbaDosAjustes = (typeof ABAS_DOS_AJUSTES)[number];
+export { ABAS_DOS_AJUSTES } from '../../lib/rotas';
 
 const ABAS = [
   { id: 'idiomas', rotulo: 'Idiomas', icone: <Languages aria-hidden /> },
@@ -60,6 +60,8 @@ interface SettingsProps {
   onAbrirSobre?: () => void;
   /** Aba em que a tela abre ("Som, animações" → aparencia; "Preferências" do sino → notificacoes). */
   abaInicial?: string | null;
+  /** Avisa a casca da aba escolhida pela pessoa, para a URL (`/ajustes/<aba>`) acompanhar. */
+  aoTrocarAba?: (aba: AbaDosAjustes) => void;
   nivel?: number;
   ageProfile?: AgeProfileType;
   setAgeProfile: (p: AgeProfileType) => void;
@@ -92,14 +94,14 @@ function definirEscuro(querEscuro: boolean, atual: boolean, setDarkMode?: (v: bo
   else toast.warn(t('Use o botão de claro/escuro na barra de controles.'));
 }
 
-const abaValida = (a: string | null | undefined): AbaDosAjustes | null =>
-  a && (ABAS_DOS_AJUSTES as readonly string[]).includes(a) ? (a as AbaDosAjustes) : null;
+const abaValida = (a: string | null | undefined): AbaDosAjustes | null => (ehAbaDosAjustes(a) ? a : null);
 
 export default function Settings({
   darkMode,
   setDarkMode,
   onReplayTour,
   abaInicial,
+  aoTrocarAba,
   ageProfile = 'pro',
   fontScale,
   setFontScale,
@@ -118,10 +120,15 @@ export default function Settings({
   const [entitlements, setEntitlements] = useState(() => getEntitlements());
   useEffect(() => onPlanChange(() => setEntitlements(getEntitlements())), []);
   const [aba, setAba] = useState<string>(abaValida(abaInicial) ?? 'idiomas');
+  /* A casca guarda a aba (é ela que a URL espelha): quem chega pela URL, pelo atalho do shell ou pelo
+     "voltar" muda `abaInicial`; sem aba pedida, a padrão. */
   useEffect(() => {
-    const a = abaValida(abaInicial);
-    if (a) setAba(a);
+    setAba(abaValida(abaInicial) ?? 'idiomas');
   }, [abaInicial]);
+  const trocarAba = (a: string) => {
+    setAba(a);
+    if (ehAbaDosAjustes(a)) aoTrocarAba?.(a);
+  };
   const loaded = useRef(false);
 
   /** Erro REAL de gravação: a UI volta ao valor do servidor e diz o que houve. */
@@ -204,7 +211,7 @@ export default function Settings({
       titulo={titulo}
       abas={ABAS.map((a) => ({ ...a, rotulo: t(a.rotulo) }))}
       aba={aba}
-      aoTrocarAba={setAba}
+      aoTrocarAba={trocarAba}
       erro={saveError}
       idiomas={langCfg}
       aoMudarIdioma={(mudanca) => void changeLang(mudanca)}

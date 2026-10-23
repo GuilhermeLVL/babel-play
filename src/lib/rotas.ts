@@ -72,6 +72,8 @@ export interface EstadoDeRota {
    * espelhar "estou em Planos" não a apaga (ver `publicarUrl`).
    */
   planosTela?: SubTelaDePlanos;
+  /** Só para `settings`: a aba dos Ajustes (id interno; o segmento da URL vem de `SEGMENTO_DA_ABA_DOS_AJUSTES`). */
+  ajustesAba?: AbaDosAjustes;
   /** Só para `cartoes`: "Hoje", "Palavras" ou a Memória (tela de dentro). Sem ela, a tela abre em "Hoje". */
   cartoesAba?: AbaDeCartoes;
   /** Só para `cartoes`: a rodada de revisão está aberta (`/cartoes/estudar`). */
@@ -84,6 +86,27 @@ export interface EstadoDeRota {
  * catálogo do seletor de conteúdo e "Trazer e levar" virou folha do "…": `/cartoes/baralhos` e
  * `/cartoes/trazer` caem em `/cartoes`, como qualquer aba que não existe.
  */
+/**
+ * As abas dos Ajustes (`/ajustes/<aba>`). O id é o interno; o segmento da URL fala a língua do rótulo —
+ * "contas" é a aba "Processamento", então o endereço é `/ajustes/processamento`. Aba desconhecida
+ * degrada para `/ajustes`, nunca para o 404.
+ */
+export const ABAS_DOS_AJUSTES = ['idiomas', 'aparencia', 'notificacoes', 'contas', 'privacidade', 'conta'] as const;
+export type AbaDosAjustes = (typeof ABAS_DOS_AJUSTES)[number];
+const SEGMENTO_DA_ABA_DOS_AJUSTES: Record<AbaDosAjustes, string> = {
+  idiomas: 'idiomas',
+  aparencia: 'aparencia',
+  notificacoes: 'notificacoes',
+  contas: 'processamento',
+  privacidade: 'privacidade',
+  conta: 'conta',
+};
+const ABA_DOS_AJUSTES_DE_SEGMENTO = Object.fromEntries(
+  Object.entries(SEGMENTO_DA_ABA_DOS_AJUSTES).map(([aba, seg]) => [seg, aba as AbaDosAjustes]),
+) as Record<string, AbaDosAjustes>;
+export const ehAbaDosAjustes = (s: string | null | undefined): s is AbaDosAjustes =>
+  !!s && (ABAS_DOS_AJUSTES as readonly string[]).includes(s);
+
 export const ABAS_DE_CARTOES = ['hoje', 'palavras', 'memoria'] as const;
 export type AbaDeCartoes = (typeof ABAS_DE_CARTOES)[number];
 const ehAbaDeCartoes = (s: string | undefined): s is AbaDeCartoes =>
@@ -260,6 +283,9 @@ export function estadoParaUrl(e: EstadoDeRota): string {
       e.lojaTab in ABA_DA_LOJA ? e.lojaTab : (normalizarAbaDaLojaV2(e.lojaTab) ?? normalizarAbaDaLoja(e.lojaTab));
     return canonica ? `/loja/${ABA_DA_LOJA[canonica]}` : '/loja';
   }
+  if (e.view === 'settings' && ehAbaDosAjustes(e.ajustesAba)) {
+    return `/${SEGMENTO.settings}/${SEGMENTO_DA_ABA_DOS_AJUSTES[e.ajustesAba]}`;
+  }
   if (e.view === 'play' && e.jogarQuery) return `/jogar?${e.jogarQuery}`;
   if (e.view === 'planos' && ehSubTelaDePlanos(e.planosTela)) return `/${SEGMENTO.planos}/${e.planosTela}`;
   const seg = SEGMENTO[e.view];
@@ -318,6 +344,11 @@ export function urlParaEstado(caminho: string): EstadoDeRota {
       ABA_DA_LOJA_DE_SEGMENTO[partes[1]] ?? normalizarAbaDaLojaV2(partes[1]) ?? normalizarAbaDaLoja(partes[1]);
     // Sub-aba desconhecida degrada para a tela, nunca para o Hub: o usuário pediu Personalizar.
     return aba ? { view: 'loja', lojaTab: aba } : { view: 'loja' };
+  }
+
+  if (partes[0] === SEGMENTO.settings && partes[1]) {
+    const aba = ABA_DOS_AJUSTES_DE_SEGMENTO[partes[1]];
+    return aba ? { view: 'settings', ajustesAba: aba } : { view: 'settings' };
   }
 
   const alias = ALIAS_DE_SEGMENTO[partes[0]];
@@ -383,7 +414,10 @@ export function publicarUrl(e: EstadoDeRota, push = true): void {
   if (e.view === 'planos' && !e.planosTela && urlParaEstado(window.location.pathname).planosTela) return;
   // `replaceState` na restauração inicial: entrar no app não deve criar uma entrada de histórico
   // para trás que devolveria o usuário para fora.
-  window.history[push ? 'pushState' : 'replaceState']({}, '', alvo);
+  /* Trocar de aba dentro dos Ajustes atualiza o endereço sem empilhar histórico: "voltar" sai da
+     tela, não percorre as abas uma a uma. */
+  const soTrocouDeAba = e.view === 'settings' && urlParaEstado(window.location.pathname).view === 'settings';
+  window.history[push && !soTrocouDeAba ? 'pushState' : 'replaceState']({}, '', alvo);
 }
 
 /**

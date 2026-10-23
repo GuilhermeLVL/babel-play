@@ -12,7 +12,9 @@ import { trocarDeTela } from '../polimento/telas';
 import { lerRecorteDaPratica, lerRecorteDoJogar, type RecorteDaPratica, type RecorteDoJogar } from '../revisao/pratica';
 import {
   type AbaDeCartoes,
+  type AbaDosAjustes,
   ABAS_DE_CARTOES,
+  ehAbaDosAjustes,
   estadoDaIntencao,
   type EstadoDeRota,
   irParaSubTelaDePlanos,
@@ -51,6 +53,9 @@ export interface EstadoDaNavegacao {
   /** A aba aberta da tela Cartões (`/cartoes/<aba>`). */
   cartoesAba: AbaDeCartoes;
   setCartoesAba: Dispatch<SetStateAction<AbaDeCartoes>>;
+  /** A aba aberta dos Ajustes (`/ajustes/<aba>`); `null` = a padrão. */
+  ajustesAba: AbaDosAjustes | null;
+  setAjustesAba: Dispatch<SetStateAction<AbaDosAjustes | null>>;
   /** A rodada de revisão aberta dentro de Cartões (`/cartoes/estudar`), ou `null`. */
   estudo: EstudoAberto | null;
   navigateTo: (view: string, data?: any) => void;
@@ -112,6 +117,9 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
   /* CARTÕES (10/10/2026): a aba aberta e a rodada de revisão, que passou a morar na tela. */
   const [cartoesAba, setCartoesAba] = useState<AbaDeCartoes>('hoje');
   const [estudo, setEstudo] = useState<EstudoAberto | null>(null);
+  /* AJUSTES: a aba pedida por um atalho (o sino, "Ver todos os modelos"), pela URL ou pela própria
+     pessoa. É o que `/ajustes/<aba>` espelha. */
+  const [ajustesAba, setAjustesAba] = useState<AbaDosAjustes | null>(null);
 
   const navigateTo = (view: string, data?: any) => {
     // Sem conta: a porta de entrada é um destino ("Entrar" no menu), e o que exige conta abre o
@@ -139,6 +147,8 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
   };
 
   const aplicarNavegacao = (view: string, data?: any) => {
+    // A aba dos Ajustes só vale enquanto a tela é Ajustes: qualquer outro destino a zera.
+    setAjustesAba(view === 'settings' && ehAbaDosAjustes(data?.aba) ? data.aba : null);
     if (view === 'study') {
       /* A REVISÃO ABRE DENTRO DE CARTÕES. Antes ela era uma pseudo-aba da sessão: sem gravação
          nenhuma a tela dizia "Nenhuma sessão ainda", e sem `id` a rodada ficava presa à sessão mais
@@ -205,7 +215,7 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
     via(e.subTab === 'study' || (e.view === 'cartoes' && e.estudando) ? 'study' : e.view, {
       id: e.sessionId,
       subTab: e.subTab,
-      aba: e.view === 'cartoes' ? e.cartoesAba : e.lojaTab,
+      aba: e.view === 'cartoes' ? e.cartoesAba : e.view === 'settings' ? e.ajustesAba : e.lojaTab,
       planosTela: e.planosTela,
     });
 
@@ -280,10 +290,11 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
             : undefined,
       subTab: activeView === 'analysis' ? (analysisSubTab as EstadoDeRota['subTab']) : undefined,
       lojaTab: activeView === 'loja' ? ((lojaAba ?? undefined) as EstadoDeRota['lojaTab']) : undefined,
+      ajustesAba: activeView === 'settings' ? (ajustesAba ?? undefined) : undefined,
       cartoesAba: activeView === 'cartoes' && !estudo ? cartoesAba : undefined,
       estudando: activeView === 'cartoes' && !!estudo,
     });
-  }, [activeView, selectedRecordingId, recordings, analysisSubTab, lojaAba, cartoesAba, estudo]);
+  }, [activeView, selectedRecordingId, recordings, analysisSubTab, lojaAba, ajustesAba, cartoesAba, estudo]);
 
   /* 3) BOTÃO VOLTAR. Sem isto, "voltar" saía do app — era o beco relatado na auditoria.
         Passa pelo `navGuard`: uma captura em andamento ainda pode pedir confirmação. */
@@ -314,6 +325,8 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
     setRecorteDoJogar,
     cartoesAba,
     setCartoesAba,
+    ajustesAba,
+    setAjustesAba,
     estudo,
     navigateTo,
   };

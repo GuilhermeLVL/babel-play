@@ -286,6 +286,8 @@ export default function App() {
     setRecorteDoJogar,
     cartoesAba,
     setCartoesAba,
+    ajustesAba,
+    setAjustesAba,
     estudo,
     navigateTo,
   } = useNavegacao({
@@ -300,22 +302,10 @@ export default function App() {
     setPedindoLogin,
   });
 
-  /* A ABA DE AJUSTES pedida por um atalho do shell: "Som, animações e desempenho" (rodapé do menu)
-     abre Aparência; a engrenagem do sino abre Notificações. Zera antes de repor, para pedir a mesma
-     aba de novo reabri-la mesmo que a pessoa tenha trocado de aba no meio; e zera ao sair de
-     Ajustes, para a próxima entrada pelo menu cair na aba padrão. */
-  const [abaDosAjustes, setAbaDosAjustes] = useState<string | null>(null);
-  useEffect(() => {
-    if (activeView !== 'settings') setAbaDosAjustes(null);
-  }, [activeView]);
-  const irPeloShell = (view: string, data?: Record<string, string>) => {
-    if (view === 'settings' && data?.aba) {
-      const aba = data.aba;
-      setAbaDosAjustes(null);
-      window.setTimeout(() => setAbaDosAjustes(aba), 0);
-    }
-    navigateTo(view, data);
-  };
+  /* A ABA DE AJUSTES mora na navegação (é o que `/ajustes/<aba>` espelha). Um atalho do shell —
+     "Som, animações e desempenho" abre Aparência, a engrenagem do sino abre Notificações — passa a
+     aba em `navigateTo`; ao ir para outra tela ela zera (`useNavegacao`), para a próxima entrada pelo menu cair na padrão. */
+  const irPeloShell = navigateTo;
   /* ⌘, / Ctrl+, abre os Ajustes de qualquer tela (o atalho que os apps de computador têm). */
   useEffect(() => {
     const aoTeclar = (e: KeyboardEvent) => {
@@ -787,7 +777,8 @@ export default function App() {
                   setDarkMode={(escuro) => {
                     if (escuro !== darkMode) toggleDarkMode();
                   }}
-                  abaInicial={abaDosAjustes}
+                  abaInicial={ajustesAba}
+                  aoTrocarAba={setAjustesAba}
                   /* Era 99 enquanto as métricas não chegavam: um clique rápido nos Ajustes abria tudo
                  como nível 99. Sem métrica, nível 1 — a régua nunca é generosa por engano. */
                   nivel={progress.available ? progress.level : 1}

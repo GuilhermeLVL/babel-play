@@ -30,7 +30,9 @@ export async function capturaPronta(page: Page): Promise<Locator> {
  * a linha não existe (no celular).
  */
 export async function modeloAnunciado(page: Page): Promise<string> {
+  /* Task 4 (23/10/2026): o selo compacto abre o painel de processamento; a folha fica no rodapé dele. */
   await page.getByTestId('chip-de-estado').click()
+  await page.getByTestId('painel-de-processamento').getByRole('button', { name: 'Como isto funciona' }).click()
   const folha = page.getByTestId('como-isto-funciona')
   await expect(folha).toBeVisible()
   const linha = folha.locator('[data-ex-f="modelo"] b')

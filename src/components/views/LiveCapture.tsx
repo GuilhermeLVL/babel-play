@@ -108,6 +108,7 @@ import { cancelarLiberacaoDosModelos, liberarAoSairDaCaptura } from '../../lib/c
 import { type EscolhaDoMic, webSpeechBipaAoReligar } from '../../lib/captura/motorDoMicrofone';
 import { baixarSemEmpilhar, nuvemDoSttDisponivel, ofereceOPreciso } from '../../lib/captura/ofertaDoPreciso';
 import { preparoConcluido } from '../../lib/captura/pacotesNativos';
+import { linhaDaTraducao, linhaDaTranscricao } from '../../lib/captura/painelDoProcessamento';
 // Vocabulário dentro da captura: examinar a palavra, fichar no deck, mandar praticar.
 import { criarPalavraDaFala } from '../../lib/captura/palavraDaFala';
 // Pipeline de fala: VAD → STT → diarização → emissão, e a preparação dos modelos locais.
@@ -3162,6 +3163,22 @@ export default function LiveCapture({
             void patchUiSettings({ sttQuality: q });
           },
           tipoDoAparelho: perfilDoAparelho.tipo,
+          /* O painel de processamento (o selo compacto do topo): quem transcreve e quem traduz, pelos
+             nomes da tela "Modelos no aparelho", e a porta para ela (fora da gravação, como no diálogo
+             do modelo). */
+          processamento: {
+            transcricao: linhaDaTranscricao({
+              selo: seloDaCaptura,
+              idDoModelo: modelosDaCaptura.find((m) => m.transcricao)?.id,
+              noNavegador: transcricaoNoNavegador,
+            }),
+            traducao: linhaDaTraducao({
+              nativo: preparoDoInicio.tradutorNativo,
+              ids: modelosDaCaptura.filter((m) => !m.transcricao).map((m) => m.id),
+            }),
+            aoVerModelosNoAparelho:
+              onChangeView && !isRecording ? () => onChangeView('settings', { aba: 'contas' }) : undefined,
+          },
           aoVerPlanos: (plano) => {
             if (plano === 'premium') pedirDestaqueEmPlanos({ plano: 'premium' });
             onChangeView?.('planos');

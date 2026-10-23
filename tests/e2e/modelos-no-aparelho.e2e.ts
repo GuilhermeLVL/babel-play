@@ -55,7 +55,7 @@ test.describe('Modelos no aparelho', () => {
 test.describe('Modelos no aparelho na Captura', () => {
   /* A CAPTURA RESPEITA O FIXADO (critério da spec): fixar o Equilibrado em Ajustes, abrir Capturar e
      iniciar — a rota desta captura é "escolhido por você (Whisper base)", e o painel "Modelo no
-     dispositivo" (chip de estado → "Neste aparelho") diz isso. É o rótulo, e não só o nome do modelo,
+     dispositivo" (selo compacto → painel de processamento → "Transcrição") diz isso. É o rótulo, e não só o nome do modelo,
      que prova a escolha: no padrão da suíte ("Detectar") o automático também cairia no Whisper base.
      No celular o painel não lista o modelo local (a folha dele não tem a linha), então lá não se vê. */
   test('fixar o Equilibrado em Ajustes: a Captura usa o escolhido', async ({ page }, info) => {
@@ -72,8 +72,10 @@ test.describe('Modelos no aparelho na Captura', () => {
 
     await abrirTela(page, '/capturar')
     await iniciarCaptura(page)
-    await clicarRobusto(page, page.getByRole('button', { name: /Abrir o nível, o modelo/ }))
-    await clicarRobusto(page, page.getByRole('button', { name: /Ver o modelo, atualizar ou liberar espaço/ }))
+    /* Task 4 (23/10/2026): o chip de estado virou o selo compacto, que abre o painel de processamento;
+       a linha "Transcrição" dele abre o diálogo do modelo. */
+    await clicarRobusto(page, page.getByRole('button', { name: /Abrir o painel de processamento/ }))
+    await clicarRobusto(page, page.getByTestId('painel-de-processamento').getByRole('button', { name: /^Transcrição/ }))
     const dialogo = page.getByRole('dialog', { name: /Modelo no dispositivo/ })
     await expect(dialogo).toBeVisible()
     await expect(dialogo.getByText(/Transcrição \(Whisper base/)).toBeVisible()

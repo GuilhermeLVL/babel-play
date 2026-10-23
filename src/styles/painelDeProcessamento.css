@@ -1,0 +1,261 @@
+/*
+ * O SELO COMPACTO E O PAINEL DE PROCESSAMENTO DA CAPTURA (plano 2026-10-23, Task 4; desenho do popover
+ * "Usage"): um cartão branco de 16 px de raio e sombra suave, título com o "onde" à direita, o segmentado
+ * Aparelho | Nuvem, linhas com ícone, nome, detalhe cinza, percentual e seta, uma divisa e o rodapé.
+ * As linhas são as `.q-linha` do painel "Mais", mais baixas e sem borda. Só tokens do tema (claro e
+ * escuro), alvos de 44 px ou mais, foco visível e nada que role para o lado a 375 px.
+ */
+
+/* ── O selo: só o ícone, redondo ─────────────────────────────────────────────────────────────── */
+.ex-selo-ancora {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+.px-vivo-topo .q-ctl.ex-selo {
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  min-height: 48px;
+  padding: 0;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+}
+.ex-selo > svg {
+  width: 22px;
+  height: 22px;
+}
+.ex-selo[data-tom='nuvem'] {
+  background: var(--q-suave, var(--accent-soft));
+  border-color: var(--q-acento, var(--accent));
+}
+.ex-selo[data-tom='alerta'] {
+  background: color-mix(in srgb, var(--warn) 22%, var(--surface));
+  border-color: color-mix(in srgb, var(--warn) 55%, var(--border-subtle));
+}
+.ex-selo[aria-expanded='true'] {
+  border-color: var(--q-acento, var(--accent));
+}
+
+/* No celular o selo fica na fileira, ao lado do microfone e dos ajustes (a pílula ia numa linha só dela). */
+@media (max-width: 720px) {
+  html[data-px='on'][data-telas='enxuta'] .px-vivo .px-vivo-topo:has(> .ex-selo-ancora) {
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+  }
+  html[data-px='on'][data-telas='enxuta'] .px-vivo .px-vivo-topo > .ex-selo-ancora {
+    grid-column: auto;
+    grid-row: auto;
+  }
+  html[data-telas='enxuta']:not([data-px='on']) .px-vivo .px-vivo-topo:has(> .ex-selo-ancora) {
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+  }
+}
+
+/* B8 (auditoria de 23/10/2026): no celular a folha "Como isto funciona" (e esta) encostava à esquerda,
+   com 20 px vazios à direita. Todo `<dialog>` tem `calc(100vw - 20px)` até 720 px (`questBase.css`), e a
+   base das folhas prende `margin: auto 0 0 !important`. Aqui a margem dos lados passa a ser automática:
+   mesma largura, 10 px de cada lado (a mesma saída de `polimentoExplicacao.css` para a apresentação). */
+@media (max-width: 720px) {
+  html dialog.folha-de-baixo:is(.pl-como-folha, .pp-folha) {
+    margin-inline: auto !important;
+  }
+}
+
+/* ── O popover (computador) ──────────────────────────────────────────────────────────────────── */
+.pp-pop {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  z-index: 60;
+  width: min(360px, calc(100vw - 32px));
+  max-height: min(640px, calc(100vh - 140px));
+  overflow-y: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-pop, 0 18px 40px -18px color-mix(in srgb, var(--ink) 40%, transparent));
+  text-align: left;
+  animation: pp-entra 160ms ease-out;
+}
+@keyframes pp-entra {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pp-pop {
+    animation: none;
+  }
+}
+body.performance-mode .pp-pop {
+  animation: none;
+}
+
+/* ── O conteúdo (igual no popover e na folha) ────────────────────────────────────────────────── */
+.pp {
+  display: grid;
+  gap: 12px;
+  padding: 16px 16px 10px;
+  min-width: 0;
+}
+.pp-folha .pp {
+  padding: 4px 0 8px;
+}
+.pp-cab {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px;
+}
+.pp-cab h2 {
+  margin: 0;
+  font: 800 18px/1.2 var(--font-display, inherit);
+  color: var(--ink);
+}
+.pp-onde {
+  font: 600 13px/1.2 var(--font-body, inherit);
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+/* O segmentado: duas metades iguais, a marcada pela cor E pela borda. */
+.pp-seg {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--surface-sunken, var(--q-suave));
+}
+.pp-seg-op {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1.5px solid transparent;
+  border-radius: 9px;
+  background: none;
+  color: var(--ink-muted);
+  font: 700 15px/1 var(--font-body, inherit);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.pp-seg-op svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.pp-seg-op:hover:not([aria-disabled='true']) {
+  color: var(--ink);
+}
+.pp-seg-op[aria-checked='true'] {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+  color: var(--ink);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 12%, transparent);
+}
+.pp-seg-op[aria-disabled='true'] {
+  cursor: default;
+  opacity: 0.75;
+}
+.pp-seg-op:focus-visible {
+  outline: 3px solid var(--q-acento, var(--accent));
+  outline-offset: 2px;
+}
+.pp-nota {
+  margin: -4px 4px 0;
+  font: 600 13px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+
+/* As linhas: as `.q-linha` do "Mais", compactas e sem borda. */
+.pp-lista {
+  display: grid;
+  gap: 2px;
+}
+.pp .q-linha.pp-linha {
+  min-height: 52px;
+  padding: 6px 8px;
+  gap: 12px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  /* A sombra em camadas da camada de polimento (`polimento.css`, seção 2) faz de cada linha um cartão;
+     aqui as linhas são de lista, como no popover de referência. */
+  box-shadow: none !important;
+}
+.pp .q-linha.pp-linha::after {
+  display: none;
+}
+.pp button.q-linha.pp-linha:hover {
+  background: var(--surface-hover, var(--q-suave));
+}
+.pp .pp-linha .q-ic {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+}
+.pp .pp-linha .q-ic svg {
+  width: 18px;
+  height: 18px;
+}
+.pp .pp-linha b {
+  font: 700 15px/1.25 var(--font-body, inherit);
+}
+.pp .pp-linha small {
+  margin-top: 1px;
+  font: 500 13px/1.3 var(--font-body, inherit);
+  color: var(--ink-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pp .pp-linha .q-fim {
+  font: 600 14px/1 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.pp-pct {
+  font-variant-numeric: tabular-nums;
+}
+
+/* As cotas: a linha e a barra fina embaixo, alinhada ao texto. */
+.pp-cota {
+  display: grid;
+  gap: 2px;
+  padding-bottom: 6px;
+}
+.pp-cota .pp-barra {
+  width: auto;
+  margin: 0 8px 0 54px;
+}
+.pp-cota[data-tom='pouco'] .pp-pct,
+.pp-cota[data-tom='fim'] .pp-pct {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.pp-divisa {
+  margin: 2px 4px;
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.pp .pp-pe .q-linha.pp-linha {
+  min-height: 46px;
+}
+.pp-pe .q-ic {
+  background: none;
+  color: var(--ink-muted);
+}
+
+/* Na folha do celular as linhas guardam o mesmo tamanho do popover (a regra das folhas aumenta o detalhe). */
+html dialog.folha-de-baixo.pp-folha .pp .q-linha.pp-linha b {
+  font-size: 15px;
+}
+html dialog.folha-de-baixo.pp-folha .pp .q-linha.pp-linha small {
+  font-size: 13px;
+}

@@ -2,9 +2,8 @@ import type { Capability } from '@core';
 import { AlertTriangle, Cpu, KeyRound, ListChecks, Loader2, Zap } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { createCredential, fetchSettings, patchUiSettings, testProvider } from '../data/api';
+import { createCredential, testProvider } from '../data/api';
 import { buildGateway } from '../gateway';
-import { CREDENTIAL_KEY, setProviderChoice } from '../gateway/activeProfile';
 import { webGpuProvavel } from '../gateway/adaptadorWebGpu';
 import { DEFAULT_PROFILE_ID, getBuiltinProfile } from '../gateway/profiles';
 import { getSttQuality, routeStt, tamanhoDoDownloadMb } from '../gateway/sttRouter';
@@ -13,6 +12,12 @@ import { dispositivoDaRota, perfilDoDispositivo } from '../lib/dispositivo/perfi
 import type { SondaDoAparelho } from '../lib/dispositivo/sonda';
 import { useSondaGuardada } from '../lib/dispositivo/useSondaGuardada';
 import { edicaoEstatica } from '../lib/edicaoEstatica';
+import {
+  escolherAparelho as escolherAparelhoNoApp,
+  escolherNuvem as escolherNuvemNoApp,
+  type PerfilDoAparelho,
+  usarNuvemComChave,
+} from '../lib/escolhaDoProcessamento';
 import { t } from '../lib/i18n';
 import { toast } from './Toast';
 import { Dialogo, fecharDialogoDe } from './ui';
@@ -40,14 +45,6 @@ const PROVEDORES: Record<string, { rotulo: string; baseUrl: string; modelo: stri
   openrouter: { rotulo: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', modelo: '' },
   custom: { rotulo: 'Outro', baseUrl: '', modelo: '' },
 };
-
-function lerCredencial(): string | null {
-  try {
-    return localStorage.getItem(CREDENTIAL_KEY);
-  } catch {
-    return null;
-  }
-}
 
 /** O tamanho do modelo local, estimado como a apresentação estima (o download é na 1ª captura). */
 function mbDoModelo(sonda: SondaDoAparelho | null): number | null {
@@ -121,42 +118,28 @@ export default function AiEnginePanel({
     setError('');
   };
 
-  const escolherAparelho = async (perfil: 'free-web' | 'local-private' = 'free-web') => {
-    const cred = lerCredencial();
-    setProviderChoice({ mode: 'local', profileId: perfil });
+  /* A escolha mora em `lib/escolhaDoProcessamento` (a mesma do painel de processamento da Captura). */
+  const escolherAparelho = async (perfil: PerfilDoAparelho = 'free-web') => {
+    const salvo = escolherAparelhoNoApp(perfil);
     aplicar(perfil);
-    const ok = await patchUiSettings({
-      providerMode: 'local',
-      credentialId: null,
-      ...(cred ? { credencialDaNuvem: cred } : {}),
-    });
-    if (!ok) toast.warn('Não consegui salvar a escolha. Verifique a conexão e tente de novo.');
+    if (!(await salvo)) toast.warn('Não consegui salvar a escolha. Verifique a conexão e tente de novo.');
   };
 
   const usarNuvem = async (credentialId: string) => {
-    setProviderChoice({ mode: 'cloud', profileId: 'cloud-quality', credentialId });
+    const salvo = usarNuvemComChave(credentialId);
     aplicar('cloud-quality');
-    const ok = await patchUiSettings({ providerMode: 'cloud', credentialId, credencialDaNuvem: credentialId });
-    if (!ok) toast.warn('Não consegui salvar a escolha. Verifique a conexão e tente de novo.');
+    if (!(await salvo)) toast.warn('Não consegui salvar a escolha. Verifique a conexão e tente de novo.');
   };
 
   const escolherNuvem = async () => {
     if (bloqueados.includes('cloud-quality')) return;
-    let cred = lerCredencial();
-    if (!cred) {
-      const s = await fetchSettings();
-      try {
-        const ui = s?.ui ? (JSON.parse(s.ui) as Record<string, unknown>) : {};
-        cred = (ui.credencialDaNuvem as string | undefined) ?? (ui.credentialId as string | undefined) ?? null;
-      } catch {
-        cred = null;
-      }
-    }
-    if (!cred) {
+    const r = await escolherNuvemNoApp();
+    if (r === 'sem-chave') {
       setPedindoChave(true);
       return;
     }
-    await usarNuvem(cred);
+    aplicar('cloud-quality');
+    if (r === 'falhou') toast.warn('Não consegui salvar a escolha. Verifique a conexão e tente de novo.');
   };
 
   const runTest = async () => {

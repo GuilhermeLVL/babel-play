@@ -188,7 +188,8 @@ test('desktop fraco: com o idioma do vídeo escolhido a legenda vem do navegador
   await expect(page.getByText(TRADUCAO).first()).toBeVisible({ timeout: 20_000 })
   expect(await modeloAnunciado(page)).toMatch(/reconhecimento do navegador/i)
   /* E o chip de estado diz o que está acontecendo: legendando, no aparelho. */
-  await expect(page.getByTestId('chip-de-estado')).toContainText(/Legendando · no aparelho/)
+  /* Task 4 (23/10/2026): o chip virou o selo compacto (só o ícone); o texto mora no title. */
+  await expect(page.getByTestId('chip-de-estado')).toHaveAttribute('title', /Legendando · no aparelho/)
   await page.screenshot({ path: path.join(PASTA, `legenda-${info.project.name}.png`), fullPage: true })
 
   // Um respiro para a preparação em segundo plano terminar: nada de Whisper nem de opus-mt.

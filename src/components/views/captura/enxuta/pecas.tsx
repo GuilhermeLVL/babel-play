@@ -1,17 +1,16 @@
 import {
-  ChevronDown,
   ChevronRight,
   CircleQuestionMark,
+  Cloud,
   Cpu,
   Info,
   type LucideIcon,
   Pause,
   Play,
-  Server,
   Smartphone,
   WifiOff,
 } from 'lucide-react';
-import { useLayoutEffect, useRef } from 'react';
+import { type Ref, useLayoutEffect, useRef } from 'react';
 
 import type { EstadoDoChip } from '../../../../lib/captura/estadoDaCaptura';
 import type { IconeDaMarca, MarcaDoSelo } from '../../../../lib/captura/nivelDeServico';
@@ -25,50 +24,52 @@ import { pulsarPausa } from '../../../../lib/polimento/enxuto';
  * é o dele: `styles/polimento/enxuto.css`). Só apresentação: o que cada peça diz chega pronto.
  */
 
-const ICONE_DA_MARCA: Record<IconeDaMarca, LucideIcon> = {
+/** O ícone do selo compacto: aparelho = Cpu, nuvem = Cloud; o navegador e a falta de rede, o deles. */
+const ICONE_DO_SELO: Record<IconeDaMarca, LucideIcon> = {
   cpu: Cpu,
   smartphone: Smartphone,
-  server: Server,
+  server: Cloud,
   'wifi-off': WifiOff,
 };
 
 /**
- * `chipDeEstado()` de `enxuto.js:62-65`: um chip que junta o chip do modelo, a marca e o seletor de
- * nível. Ao toque, abre a folha "Como isto funciona" (o nível, o modelo e as horas de nuvem).
+ * O SELO COMPACTO do topo da Captura (plano 2026-10-23, Task 4; era o `chipDeEstado()` de
+ * `enxuto.js:62-65`, uma pílula com o texto inteiro): só o ícone de onde a fala roda, num botão redondo
+ * de 48 px. O texto de antes (`estadoDoChip`: o selo da fala, ou "Legendando · …" gravando) fica no
+ * `aria-label` e no `title`, palavra por palavra. Ao toque, abre o painel de processamento.
  */
 export function ChipDeEstado({
   estado,
   marca,
-  motivo,
+  aberto,
+  ref,
   aoAbrir,
 }: {
   estado: EstadoDoChip;
-  /** O ícone e o tom, do selo. `null` = ainda não há selo (o chip é só a porta da folha). */
+  /** O ícone e o tom, do selo. `null` = ainda não há selo (o ícone neutro de informação). */
   marca: MarcaDoSelo | null;
-  /** O porquê da rota, para quem para o ponteiro em cima. */
-  motivo?: string;
+  /** O painel está aberto (`aria-expanded`). */
+  aberto: boolean;
+  ref?: Ref<HTMLButtonElement>;
   aoAbrir: () => void;
 }) {
-  const Icone = marca ? ICONE_DA_MARCA[marca.icone] : Info;
-  const { forte, resto } = estado;
+  const Icone = marca ? ICONE_DO_SELO[marca.icone] : Info;
+  const texto = [estado.forte, estado.resto].filter(Boolean).join(' · ');
   return (
     <button
+      ref={ref}
       type="button"
-      className="q-chip ex-estado"
+      className="q-ctl ex-estado ex-selo"
       data-pl="como"
       data-tom={marca?.tom ?? ''}
       data-testid="chip-de-estado"
       aria-haspopup="dialog"
-      aria-label={`${[forte, resto].filter(Boolean).join(', ')}. ${t('Abrir o nível, o modelo e as horas de nuvem')}`}
-      title={motivo || undefined}
+      aria-expanded={aberto}
+      aria-label={`${texto}. ${t('Abrir o painel de processamento')}`}
+      title={texto}
       onClick={aoAbrir}
     >
       <Icone aria-hidden />
-      <span className="ex-estado-txt">
-        <b>{forte}</b>
-        {resto && <> · {resto}</>}
-      </span>
-      <ChevronDown aria-hidden />
     </button>
   );
 }

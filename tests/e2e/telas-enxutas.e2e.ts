@@ -40,8 +40,13 @@ const chip = (page: Page) => page.getByTestId('chip-de-estado')
 const folha = (page: Page) => page.getByTestId('como-isto-funciona')
 const relogio = (page: Page) => tela(page).locator('.q-tempo .tn')
 
+/* Task 4 (23/10/2026): o chip virou o selo compacto, que abre o painel de processamento; a folha "Como
+   isto funciona" fica no rodapé dele. */
 async function abrirFolha(page: Page) {
   await clicarRobusto(page, chip(page))
+  const painel = page.getByTestId('painel-de-processamento')
+  await verSemSobreposicao(page, painel)
+  await painel.getByRole('button', { name: 'Como isto funciona' }).click()
   await verSemSobreposicao(page, folha(page))
   return folha(page)
 }
@@ -99,7 +104,7 @@ test('Capturar gravando: A− e A+ aparecem com o texto, e o Pausar para o reló
 
   const faixa = page.getByRole('toolbar', { name: 'Controles da captura' })
   await expect(faixa.getByRole('button', { name: 'Aumentar a letra' })).toBeVisible()
-  await expect(chip(page)).toContainText('Legendando')
+  await expect(chip(page)).toHaveAttribute('title', /Legendando/) // Task 4: o texto mora no title do selo
 
   // O Pausar fica logo depois do Encerrar.
   const pausar = page.getByTestId('pausar-captura')
@@ -115,7 +120,7 @@ test('Capturar gravando: A− e A+ aparecem com o texto, e o Pausar para o reló
   await clicarRobusto(page, pausar)
   await expect(pausar).toHaveAttribute('aria-pressed', 'true')
   await expect(pausar).toHaveAccessibleName('Retomar a captura')
-  await expect(chip(page)).toContainText('Pausado · nada está sendo ouvido')
+  await expect(chip(page)).toHaveAttribute('title', /Pausado · nada está sendo ouvido/)
   const parado = await relogio(page).textContent()
   await page.waitForTimeout(2600)
   expect(await relogio(page).textContent()).toBe(parado)
@@ -124,7 +129,7 @@ test('Capturar gravando: A− e A+ aparecem com o texto, e o Pausar para o reló
   // Retomada: o relógio volta a andar, com a mesma captura (o Encerrar continua lá).
   await clicarRobusto(page, pausar)
   await expect(pausar).toHaveAttribute('aria-pressed', 'false')
-  await expect(chip(page)).toContainText('Legendando')
+  await expect(chip(page)).toHaveAttribute('title', /Legendando/) // Task 4: o texto mora no title do selo
   await expect.poll(() => relogio(page).textContent(), { timeout: 8000 }).not.toBe(parado)
   await expect(botaoEncerrar(page)).toBeVisible()
 

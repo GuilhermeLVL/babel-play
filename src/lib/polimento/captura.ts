@@ -42,9 +42,11 @@ export function entrarPronta(v: HTMLElement): void {
   if (!comMovimento()) return;
   const ic = v.querySelector('.px-pronto-miolo .q-ic');
   if (ic) anima(ic, [{ transform: 'scale(0.4)' }, { transform: 'scale(1)' }], { d: 700, atraso: 200, e: MOLA });
-  const enxuta = !!v.querySelector('.px-vivo-topo > .ex-estado');
+  /* O selo compacto (Task 4, 23/10/2026) mora num invólucro (`.ex-selo-ancora`, a âncora do popover):
+     ele entra com a entrada dele, como entrava o chip de estado. */
+  const enxuta = !!v.querySelector('.px-vivo-topo > :is(.ex-estado, .ex-selo-ancora)');
   $$(
-    '.px-vivo-topo > :not(.pl-onde):not(.ex-estado), .px-pronto-miolo > :not(.q-ic):not(.pl-nota):not(.pl-sem)',
+    '.px-vivo-topo > :not(.pl-onde):not(.ex-estado):not(.ex-selo-ancora), .px-pronto-miolo > :not(.q-ic):not(.pl-nota):not(.pl-sem)',
     v,
   ).forEach((x, i) => {
     const pulo = !enxuta || i === 0 ? 0 : x.parentElement?.classList.contains('px-vivo-topo') ? 1 : 2;

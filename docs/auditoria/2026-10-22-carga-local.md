@@ -58,9 +58,27 @@ WebKit 27.2 (microfone, Whisper base no WebGPU), só DEPOIS, filtro estrito nos 
 
 ## O que ainda pesa (não feito; decisões ou dívidas)
 
-- O VAD Silero roda a cada quadro de 96 ms mesmo em silêncio (é a maior parte do custo em silêncio).
+- ~~O VAD Silero roda a cada quadro de 96 ms mesmo em silêncio~~ — ver "Portão de energia" abaixo: o corte funciona, mas no Chromium sem GPU quase não mexeu na CPU em silêncio.
 - Uma fala longa em pedaços de 6 s multiplica os parciais por pedaço; o texto fica parado ~1,4 s
   entre o último parcial e o final.
 - `backdrop-filter` nas barras e folhas (compositor; já desligado no modo leve) — decisão visual.
 - O final especulativo pode pagar um decode a mais quando a fala volta.
 - O regulador não lê temperatura (o navegador não expõe); lê pressão de CPU só no Chromium.
+
+## Portão de energia antes do VAD (23/10/2026)
+
+`src/gateway/capture/portaoDeEnergia.ts` envolve o Silero no `VadEmWorker`: depois de 8 quadros seguidos
+com RMS < 0,0015 (~ -56 dBFS, ~770 ms) o modelo deixa de rodar e a resposta é "não é fala"; o primeiro
+quadro acima do piso reinicia o modelo e é processado (o pré-pad do `FrameProcessor` guarda o começo da
+fala baixa). Só o caminho do worker; o `MicVAD` da thread principal ficou como estava.
+
+Medição (mesmo método: Chromium headless sem GPU, microfone falso a partir de `pt.wav`, ganho zerado,
+CPU por deltas de `ps cputime` nos processos do `ms-playwright`; 40 s de silêncio após ~25 s de carga):
+
+| Estado             | Portão desligado | Portão ligado                     |
+| ------------------ | ---------------- | --------------------------------- |
+| Gravando, silêncio | 16% (pico 20%)   | 15-16% (pico 19-21%), 3 execuções |
+
+Conferido que o portão age (600+ quadros pulados em 40 s), então o Silero a cada 96 ms não era o grosso
+dos ~16% em silêncio neste ambiente: o renderer segue em ~13% com o modelo parado. Meta de < 8% não
+atingida; o resto (Whisper/tradutor ociosos, worklet, UI) fica para outra frente. O piso não foi mexido.

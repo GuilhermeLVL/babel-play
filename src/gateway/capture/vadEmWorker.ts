@@ -14,6 +14,8 @@
  */
 import type { FrameProcessor as FrameProcessorTipo, Message as MensagemDaBiblioteca } from '@ricky0123/vad-web';
 
+import { comPortaoDeEnergia } from './portaoDeEnergia';
+
 /** O contrato com `vadWorker.ts`. */
 export type MensagemParaOVad =
   | { tipo: 'carregar'; url: string }
@@ -193,9 +195,10 @@ export class VadEmWorker {
     if (typeof AudioWorkletNode === 'undefined') throw new Error('AudioWorklet indisponível');
     const modelo = await criarModeloDoVad(opcoes.baseAssetPath + ARQUIVO_DO_MODELO, opcoes.criarWorker);
     const msPorQuadro = AMOSTRAS_POR_QUADRO / 16;
+    const portao = comPortaoDeEnergia(modelo);
     const frameProcessor = new vadWeb.FrameProcessor(
-      (q) => modelo.process(q),
-      () => modelo.reset(),
+      (q) => portao.process(q),
+      () => portao.reset(),
       {
         positiveSpeechThreshold: opcoes.positiveSpeechThreshold,
         negativeSpeechThreshold: opcoes.negativeSpeechThreshold,

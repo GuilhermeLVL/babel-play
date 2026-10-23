@@ -23,7 +23,7 @@ const opt = (n, p) => {
   return i > -1 && args[i + 1] ? args[i + 1] : p
 }
 const RAIZ = path.join(BANCADA_DIR, 'navegador')
-const SAIDA = 'docs/auditoria/eval/bancada-2026-10-navegador'
+const SAIDA = opt('saida', 'docs/auditoria/eval/bancada-2026-10-navegador')
 const lerJsonl = (p) =>
   readFileSync(p, 'utf8')
     .trim()
@@ -51,6 +51,9 @@ for (const arq of readdirSync(path.join(RAIZ, 'resultados')).filter((f) => f.end
     cargaMs: bruto.carga?.cargaMs ?? null,
     arquivos: bruto.carga?.arquivos ?? bruto.bytesDoModelo ?? null,
     memoriaDoChromeMb: bruto.memoriaBytes ? Math.round(bruto.memoriaBytes / 2 ** 20) : null,
+    memoriaPicoMb: bruto.memoriaPicoBytes ? Math.round(bruto.memoriaPicoBytes / 2 ** 20) : null,
+    lentidao: bruto.lentidao ?? 1,
+    navegador: bruto.navegador ?? 'chrome',
   }
   if (bruto.falhaDeCarga) {
     resultados.push({ ...base, n: 0, falhaDeCarga: bruto.falhaDeCarga.erro, etapa: bruto.falhaDeCarga.etapa })

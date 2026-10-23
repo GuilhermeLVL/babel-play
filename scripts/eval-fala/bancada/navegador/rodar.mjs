@@ -1,4 +1,4 @@
-/* global window -- dentro de page.evaluate, que roda no navegador */
+/* global window, setInterval, clearInterval -- window: dentro de page.evaluate; os timers: amostragem da memória */
 /**
  * BANCADA DE FALA NO NAVEGADOR — dirige um Chrome de verdade (WebGPU real) pela página `pagina.html`
  * e grava, por (sistema, conjunto), o texto CRU e o tempo de cada fala. O WER sai do `pontuar.mjs`.
@@ -23,7 +23,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { chromium } from 'playwright'
+import { chromium, webkit } from 'playwright'
 
 import { baixarModelo } from '../comum.mjs'
 import { BANCADA_DIR, subirServidor } from './servidor.mjs'
@@ -37,10 +37,14 @@ const flag = (n) => args.includes(`--${n}`)
 
 const PORTA = Number(opt('porta', '4517'))
 const RAIZ = path.join(BANCADA_DIR, 'navegador')
-const PERFIL = path.join(RAIZ, 'perfil-chrome')
+const PERFIL = path.join(RAIZ, opt('navegador', 'chrome') === 'webkit' ? 'perfil-webkit' : 'perfil-chrome')
 const RESULTADOS = path.join(RAIZ, 'resultados')
 const LIMITE = Number(opt('limite', '0')) || 0
 const THREADS = Number(opt('threads', '4'))
+// Simula aparelho fraco: CDP Emulation.setCPUThrottlingRate (só Chrome). 1 = sem estrangular.
+const LENTIDAO = Number(opt('lentidao', '1'))
+// `chrome` (padrão, o instalado) ou `webkit` (o WebKit do Playwright, proxy do Safari).
+const NAVEGADOR = opt('navegador', 'chrome')
 
 // Revisões fixadas: as de `src/gateway/revisoesDosModelos.ts` para o que o app já usa.
 const REV = {
@@ -199,20 +203,34 @@ async function prepararParakeet(sis) {
  */
 function memoriaDoChromeMb() {
   try {
-    const saida = execFileSync(
-      'powershell',
-      [
-        '-NoProfile',
-        '-Command',
-        "(Get-CimInstance Win32_Process -Filter \"Name='chrome.exe'\" | Where-Object { $_.CommandLine -like '*perfil-chrome*' } | Measure-Object WorkingSetSize -Sum).Sum",
-      ],
-      { encoding: 'utf8', timeout: 20000 },
-    )
-    const n = Number(saida.trim())
-    return Number.isFinite(n) && n > 0 ? Math.round(n / 2 ** 20) : null
+    // macOS/Linux: soma o RSS (KB) de todos os processos cuja linha de comando cita o perfil da bancada.
+    const saida = execFileSync('ps', ['-axo', 'rss=,command='], {
+      encoding: 'utf8',
+      timeout: 20000,
+      maxBuffer: 2 ** 26,
+    })
+    let kb = 0
+    for (const linha of saida.split('\n'))
+      if (linha.includes('perfil-chrome') || linha.includes('perfil-webkit'))
+        kb += Number(linha.trim().split(/\s+/)[0]) || 0
+    return kb > 0 ? Math.round(kb / 1024) : null
   } catch {
     return null
   }
+}
+
+/** Amostra a memória a cada 2 s enquanto o sistema roda e guarda o pico. */
+function vigiarMemoria() {
+  const est = { picoMb: 0, amostras: 0 }
+  const t = setInterval(() => {
+    const m = memoriaDoChromeMb()
+    if (m) {
+      est.amostras++
+      est.picoMb = Math.max(est.picoMb, m)
+    }
+  }, 2000)
+  est.parar = () => clearInterval(t)
+  return est
 }
 
 const comPrazo = (p, ms, rotulo) =>
@@ -223,22 +241,25 @@ const comPrazo = (p, ms, rotulo) =>
 
 async function abrirChrome() {
   mkdirSync(PERFIL, { recursive: true })
-  const contexto = await chromium.launchPersistentContext(PERFIL, {
-    channel: 'chrome',
-    headless: flag('sem-janela'),
-    viewport: { width: 640, height: 360 },
-    args: [
-      '--enable-unsafe-webgpu',
-      '--enable-features=WebGPU',
-      '--ignore-gpu-blocklist',
-      // A janela fica atrás das outras: sem isto o Chrome estrangula temporizadores e a medida de tempo.
-      '--disable-background-timer-throttling',
-      '--disable-renderer-backgrounding',
-      '--disable-backgrounding-occluded-windows',
-      '--window-size=660,420',
-      '--window-position=20,20',
-    ],
-  })
+  const contexto =
+    NAVEGADOR === 'webkit'
+      ? await webkit.launchPersistentContext(PERFIL, { headless: true, viewport: { width: 640, height: 360 } })
+      : await chromium.launchPersistentContext(PERFIL, {
+          channel: 'chrome',
+          headless: flag('sem-janela'),
+          viewport: { width: 640, height: 360 },
+          args: [
+            '--enable-unsafe-webgpu',
+            '--enable-features=WebGPU',
+            '--ignore-gpu-blocklist',
+            // A janela fica atrás das outras: sem isto o Chrome estrangula temporizadores e a medida de tempo.
+            '--disable-background-timer-throttling',
+            '--disable-renderer-backgrounding',
+            '--disable-backgrounding-occluded-windows',
+            '--window-size=660,420',
+            '--window-position=20,20',
+          ],
+        })
   const pagina = contexto.pages()[0] ?? (await contexto.newPage())
   const console_ = []
   pagina.on('console', (m) => {
@@ -250,6 +271,10 @@ async function abrirChrome() {
     caiu = true
     console_.push('[crash] a aba caiu')
   })
+  if (LENTIDAO > 1 && NAVEGADOR !== 'webkit') {
+    const cdp = await contexto.newCDPSession(pagina)
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: LENTIDAO })
+  }
   await pagina.goto(`http://127.0.0.1:${PORTA}/`)
   await pagina.waitForFunction(() => !!window.bancada, null, { timeout: 30000 })
   return { contexto, pagina, console_, caiu: () => caiu }
@@ -257,7 +282,7 @@ async function abrirChrome() {
 
 async function rodarSistema(idPedido, conjuntos) {
   // Fora das 4 threads padrão, o bruto vai para outro arquivo (`…@1t`): não sobrescreve a medida principal.
-  const id = THREADS === 4 ? idPedido : `${idPedido}@${THREADS}t`
+  const id = `${idPedido}${THREADS === 4 ? '' : `@${THREADS}t`}${LENTIDAO > 1 ? `@lento${LENTIDAO}x` : ''}${NAVEGADOR === 'webkit' ? '@webkit' : ''}`
   // `+basica` / `+desligada` no fim do id: nível de otimização de grafo do ONNX Runtime (controle).
   const [idBase, extra] = idPedido.split('+')
   const otimizacao = { basica: 'basic', desligada: 'disabled', estendida: 'extended' }[extra]
@@ -273,6 +298,7 @@ async function rodarSistema(idPedido, conjuntos) {
   }
   const perfilAntes = tamanhoDaPasta(PERFIL)
   const { contexto, pagina, console_, caiu } = await abrirChrome()
+  const vigia = vigiarMemoria()
   const versaoDoChrome = contexto.browser()?.version() ?? null
   try {
     const ambiente = await pagina.evaluate(() => window.bancada.info())
@@ -290,6 +316,8 @@ async function rodarSistema(idPedido, conjuntos) {
       versaoDoChrome,
       carga,
       threadsPedidas: THREADS,
+      lentidao: LENTIDAO,
+      navegador: NAVEGADOR,
     }
     if (!carga.ok) {
       console.log(`   CARGA FALHOU [${carga.etapa ?? '-'}]: ${carga.erro}`)
@@ -332,23 +360,25 @@ async function rodarSistema(idPedido, conjuntos) {
         process.stdout.write(`\r   ${conj}: ${i + 1}/${itens.length}   `)
         if ((i + 1) % 10 === 0) gravar(id, conj, { ...cabecalho, conjunto: conj, casos })
       }
-      const memoriaBytes = caiu() ? null : memoriaDoChromeMb() * 2 ** 20 || null
+      const memoriaBytes = caiu() ? null : (memoriaDoChromeMb() ?? 0) * 2 ** 20 || null
       const feitos = itens.filter((x) => casos[x.id]?.ok)
       const audioS = feitos.reduce((s, x) => s + casos[x.id].duracaoS, 0)
       const ms = feitos.reduce((s, x) => s + casos[x.id].ms, 0)
       console.log(
-        `\r   ${conj}: ${feitos.length}/${itens.length} falas, fator de tempo real ${(ms / 1000 / (audioS || 1)).toFixed(3)}, memória do Chrome ${memoriaBytes ? (memoriaBytes / 2 ** 20).toFixed(0) + ' MB' : 'n/d'}`,
+        `\r   ${conj}: ${feitos.length}/${itens.length} falas, fator de tempo real ${(ms / 1000 / (audioS || 1)).toFixed(3)}, memória (RSS) fim ${memoriaBytes ? (memoriaBytes / 2 ** 20).toFixed(0) + ' MB' : 'n/d'} pico ${vigia.picoMb} MB`,
       )
       gravar(id, conj, {
         ...cabecalho,
         conjunto: conj,
         memoriaBytes,
+        memoriaPicoBytes: vigia.picoMb * 2 ** 20 || null,
         abaCaiu: caiu(),
         console: console_.slice(-30),
         casos,
       })
     }
   } finally {
+    vigia.parar()
     await contexto.close().catch(() => {})
     const cresceu = tamanhoDaPasta(PERFIL) - perfilAntes
     console.log(`   perfil do Chrome cresceu ${(cresceu / 2 ** 20).toFixed(0)} MB (${PERFIL})`)

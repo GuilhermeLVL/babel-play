@@ -63,6 +63,7 @@ import { movimentoReduzido } from '../lib/movimento/reduzido';
 import { sinalizarRecusaLida } from '../lib/ofertas/eventos';
 import { type AgeProfileType } from '../lib/profile';
 import { seedFromSelection } from '../lib/sentences';
+import { zoomDoCorpo } from '../lib/zoomDoCorpo';
 import { Recording, ViewType, VocabCard } from '../types';
 import { GavetaDeConversas, GavetaDoRastro } from './ichat/Gavetas';
 import { camposDaTela, nomeDaTela } from './ichat/telaDoChat';
@@ -379,7 +380,7 @@ export default function IChat({
       const direita = (document.querySelector('main')?.parentElement ?? document.body).getBoundingClientRect().right;
       const menuADireita = Math.max(0, direita - (alca.parentElement?.getBoundingClientRect().right ?? direita));
       document.body.style.cursor = 'ew-resize';
-      mover = (ev) => guardarLargura(direita - menuADireita - ev.clientX);
+      mover = (ev) => guardarLargura((direita - menuADireita - ev.clientX) / zoomDoCorpo()); // px da janela → px do body
     } else {
       const x0 = e.clientX;
       const y0 = e.clientY;
@@ -387,8 +388,8 @@ export default function IChat({
       document.body.style.cursor = 'nwse-resize';
       mover = (ev) => {
         const novo = {
-          w: limitar(w0 + (x0 - ev.clientX), JANELA.wMin, JANELA.wMax),
-          h: limitar(h0 + (y0 - ev.clientY), JANELA.hMin, JANELA.hMax),
+          w: limitar(w0 + (x0 - ev.clientX) / zoomDoCorpo(), JANELA.wMin, JANELA.wMax),
+          h: limitar(h0 + (y0 - ev.clientY) / zoomDoCorpo(), JANELA.hMin, JANELA.hMax),
         };
         setTamanho(novo);
         try {

@@ -12,6 +12,7 @@
 import '../../styles/polimentoCursor.css';
 
 import { noHeadset } from '../dispositivo/telaNovaDoQuest';
+import { zoomDoCorpo } from '../zoomDoCorpo';
 import { polido } from './base';
 
 const CLICAVEL =
@@ -70,7 +71,9 @@ export function instalarCursor(): () => void {
       return;
     }
     delete caixa.dataset.fora;
-    ponto.style.translate = anel.style.translate = `${e.clientX}px ${e.clientY}px`;
+    /* clientX/Y são px da janela; o cursor mora no body, onde o `px` já vale `zoom` (o tamanho do texto). */
+    const z = zoomDoCorpo();
+    ponto.style.translate = anel.style.translate = `${e.clientX / z}px ${e.clientY / z}px`;
     const debaixo = e.target instanceof Element ? e.target : null;
     const alvo = debaixo?.closest(CLICAVEL) ?? null;
     anel.classList.toggle('sobre', !!alvo && !alvo.matches(PARADO));

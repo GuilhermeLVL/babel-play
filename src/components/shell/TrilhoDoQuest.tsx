@@ -71,6 +71,7 @@ import { instalarSentidos } from '../../lib/polimento/sentidos';
 import { instalarTelas } from '../../lib/polimento/telas';
 import { authRequired } from '../../lib/supabase';
 import { usePerfil } from '../../lib/usePerfil';
+import { zoomDoCorpo } from '../../lib/zoomDoCorpo';
 import type { ViewType } from '../../types';
 import { exigeConta } from '../conta/exigeConta';
 import { useListaDeNotificacoes } from './CentralDeNotificacoes';
@@ -235,7 +236,9 @@ function useDicaDoTrilho(ativo: boolean) {
     window.clearTimeout(espera.current);
     espera.current = window.setTimeout(() => {
       const r = item.getBoundingClientRect();
-      setDica({ texto: item.dataset.dica ?? '', x: r.right + 10, y: r.top + r.height / 2 });
+      /* O retângulo vem em px da janela e a dica é `fixed` dentro do body, onde o `px` vale `zoom`. */
+      const z = zoomDoCorpo();
+      setDica({ texto: item.dataset.dica ?? '', x: r.right / z + 10, y: (r.top + r.height / 2) / z });
     }, 300);
   };
   const eventos = {

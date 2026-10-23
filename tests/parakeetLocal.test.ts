@@ -223,6 +223,21 @@ describe('ParakeetLocalStt', () => {
     expect(doTipo('carregar')).toHaveLength(2)
   })
 
+  it('sentinela: marca ao carregar os pesos e apaga ao liberar', async () => {
+    const g = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      setItem: (k: string, v: string) => void g.set(k, v),
+      getItem: (k: string) => g.get(k) ?? null,
+      removeItem: (k: string) => void g.delete(k),
+    })
+    const stt = new ParakeetLocalStt()
+    expect(g.has(`babel.sentinela.${ID_DO_PARAKEET}`)).toBe(false)
+    await stt.preload()
+    expect(g.has(`babel.sentinela.${ID_DO_PARAKEET}`)).toBe(true)
+    stt.liberar()
+    expect(g.has(`babel.sentinela.${ID_DO_PARAKEET}`)).toBe(false)
+  })
+
   it('o manifesto que o worker manda é gravado na janela (o Worker não tem localStorage)', async () => {
     const gravados = new Map<string, string>()
     vi.stubGlobal('localStorage', {
@@ -244,6 +259,9 @@ describe('ParakeetLocalStt', () => {
       w.responder({ type: 'ready', model: ID_DO_PARAKEET, cargaMs: 1 })
     }
     await new ParakeetLocalStt().preload()
-    expect([...gravados.keys()]).toEqual([`babel.modelManifest.${ID_DO_PARAKEET}|int8|wasm`])
+    // A sentinela de queda (`babel.sentinela.*`) também grava na janela ao começar a carregar; aqui só o manifesto conta.
+    expect([...gravados.keys()].filter((k) => !k.startsWith('babel.sentinela.'))).toEqual([
+      `babel.modelManifest.${ID_DO_PARAKEET}|int8|wasm`,
+    ])
   })
 })

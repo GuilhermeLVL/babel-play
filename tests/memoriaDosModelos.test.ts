@@ -34,6 +34,12 @@ describe('umModeloDeCadaVez', () => {
   ])('%s', (_n, p, esperado) => {
     expect(umModeloDeCadaVez(p)).toBe(esperado)
   })
+
+  // Parakeet (~2x a memória do Whisper): o tradutor espera mesmo no desktop com GPU e 8 GB.
+  it('STT pesado (Parakeet): um de cada vez até no desktop com GPU e 8 GB', () => {
+    expect(umModeloDeCadaVez(perfil('desktop-com-gpu', 8), true)).toBe(true)
+    expect(umModeloDeCadaVez(perfil('desktop-com-gpu', 8), false)).toBe(false)
+  })
 })
 
 describe('liberarModelosDepois', () => {

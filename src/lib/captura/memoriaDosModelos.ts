@@ -19,8 +19,12 @@ import type { PerfilDoDispositivo } from '../dispositivo/perfil';
  * ser no desktop com GPU e ≥ 8 GB. `deviceMemory` ausente (Firefox, Safari) conta como 8: o Chromium
  * informa no máximo 8, e sem o sinal não há por que presumir o pior num desktop com GPU.
  */
-export function umModeloDeCadaVez(perfil: Pick<PerfilDoDispositivo, 'poucaMemoria' | 'tipo' | 'sinais'>): boolean {
-  return perfil.poucaMemoria || perfil.tipo !== 'desktop-com-gpu' || (perfil.sinais.memoriaGb ?? 8) < 8;
+export function umModeloDeCadaVez(
+  perfil: Pick<PerfilDoDispositivo, 'poucaMemoria' | 'tipo' | 'sinais'>,
+  sttPesado = false,
+): boolean {
+  // `sttPesado` (o Parakeet, ~2x a memória do Whisper): o tradutor espera mesmo no desktop com GPU e 8 GB.
+  return sttPesado || perfil.poucaMemoria || perfil.tipo !== 'desktop-com-gpu' || (perfil.sinais.memoriaGb ?? 8) < 8;
 }
 
 /**

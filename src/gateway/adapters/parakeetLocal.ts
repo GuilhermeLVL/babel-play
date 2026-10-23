@@ -13,6 +13,7 @@
  * Este arquivo entra por `import()` no gateway (fora do JS do arranque); o `onnxruntime-web` só é
  * carregado dentro do worker (`parakeetWorker.ts`), quando alguém manda carregar o modelo.
  */
+import { desmarcar, marcarCarregando } from '../../lib/captura/sentinelaDoModelo';
 import { distribuirThreads } from '../../lib/dispositivo/orcamentoDeThreads';
 import { perfilDoDispositivo } from '../../lib/dispositivo/perfil';
 import type { SttFinal, SttProvider } from '../capabilities';
@@ -57,6 +58,7 @@ export class ParakeetLocalStt implements SttProvider {
    * integridade NÃO ficam lembradas: a próxima preparação tenta de novo.
    */
   private falhaDoMotor: Error | null = null;
+  private aoSairDaPagina: (() => void) | null = null;
 
   /** O modelo que este adapter carrega (o selo da tela usa o mesmo nome dos outros adapters). */
   get modeloAtual(): string {
@@ -84,6 +86,7 @@ export class ParakeetLocalStt implements SttProvider {
     }
     this.worker = null;
     this.carregado = false;
+    desmarcar(ID_DO_PARAKEET);
     this.rejeitarPronto?.(motivo);
     this.pronto = null;
     this.resolverPronto = null;
@@ -99,6 +102,10 @@ export class ParakeetLocalStt implements SttProvider {
   private garantirWorker(): void {
     if (this.worker) return;
     this.worker = new Worker(new URL('./parakeetWorker.ts', import.meta.url), { type: 'module' });
+    if (!this.aoSairDaPagina && typeof addEventListener === 'function') {
+      this.aoSairDaPagina = () => desmarcar(ID_DO_PARAKEET);
+      addEventListener('pagehide', this.aoSairDaPagina);
+    }
     this.worker.onmessage = (msg: MessageEvent) => {
       const m = msg.data as MensagemDoParakeet | { type: typeof MENSAGEM_DO_MANIFESTO; manifesto: never };
       switch (m.type) {
@@ -171,6 +178,9 @@ export class ParakeetLocalStt implements SttProvider {
         leve: perfil.leve,
         quest: perfil.tipo === 'quest',
       }).whisper;
+      /* SENTINELA: a partir daqui o worker lê os pesos. Se a aba cair, a marca fica e a próxima captura
+         veta o Parakeet. Sai na liberação (`liberar`) e no `pagehide`. */
+      marcarCarregando(ID_DO_PARAKEET);
       this.enviar({ type: 'carregar', plano: planoDaPaginaDoParakeet(), threads });
     }
     return this.pronto;

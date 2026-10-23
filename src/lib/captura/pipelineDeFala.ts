@@ -61,6 +61,7 @@ import { criarTradutorDeParciais, type TradutorDeParciais } from './parcialEstav
 import { type EfeitosDoRegulador, escadaDeModelos, type ReguladorDaCaptura } from './reguladorDaCaptura';
 import { planoDaReservaLocal } from './reservaLocal';
 import { previstosDoSelo } from './seloDaFala';
+import { vetarSeCaiuComOModelo } from './sentinelaDoModelo';
 import { chaveLigada } from './testesDoInterprete';
 import {
   type CaptureScenario,
@@ -1369,6 +1370,20 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     const soIngles = doModelo.soIngles;
     const hasWebGpu = await temAdaptadorWebGpu();
     const dispositivo = dispositivoDaRota(perfil, sonda);
+    /* O PARAKEET VETADO NESTE APARELHO: a aba anterior caiu com ele carregado (sentinela) ou a sonda já o
+       proibiu. O roteador não consulta vetos; aqui ele sai da conta (nem o automático nem o fixado). */
+    const parakeetVetado = modSonda
+      ? await (async () => {
+          const m = modSonda as typeof import('../dispositivo/sonda');
+          try {
+            await vetarSeCaiuComOModelo(ID_DO_PARAKEET, m.proibirModelo);
+            return await m.modeloProibido(ID_DO_PARAKEET);
+          } catch {
+            return false; // sem sonda legível, o Parakeet segue o caminho normal
+          }
+        })()
+      : false;
+    const modeloFixoLido = lerModeloFixo();
     let route = routeStt({
       contentLang: listenLang,
       // O mesmo modelo decodifica o MIC: se você fala PT enquanto ouve EN, o moonshine (só inglês) não serve.
@@ -1385,8 +1400,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       profileId: getActiveProfile().id,
       // O APARELHO (Quest/celular: base q8 em WASM, ou na GPU provada; small só no desktop com GPU).
       dispositivo,
-      parakeetNoAparelho: temCopiaNoAparelho(ID_DO_PARAKEET),
-      modeloFixo: lerModeloFixo(),
+      parakeetNoAparelho: !parakeetVetado && temCopiaNoAparelho(ID_DO_PARAKEET),
+      modeloFixo: parakeetVetado && modeloFixoLido === 'parakeet' ? 'auto' : modeloFixoLido,
     });
     /* A POLÍTICA DE ROTA (`core/rota/politicaDeRota.ts`) responde à mesma pergunta, DESLIGADA (modo
        sombra). Não muda a rota. Serve a duas coisas: */
@@ -1567,7 +1582,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       }
       /* UM MODELO GRANDE DE CADA VEZ (`umModeloDeCadaVez`): o tradutor espera o STT em todo aparelho
          que não seja desktop com GPU e ≥ 8 GB — antes só no de pouca memória (Quest/celular). */
-      if (umModeloDeCadaVez(perfil)) await sttAquecendo;
+      if (umModeloDeCadaVez(perfil, route.localModel === ID_DO_PARAKEET)) await sttAquecendo;
       /* UM SENTIDO SÓ: o par que a preparação carrega (`mtDe → mtPara`), se já baixado. Antes eram os
          dois sentidos — ~113 MB a mais na memória antes de a pessoa apertar Iniciar. O outro sentido
          carrega quando é pedido (o microfone da conversa). */
@@ -1623,7 +1638,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       void pedirNuvemDeAlivio('aparelho', sinaisDoAlivio).catch(() => undefined);
     }
     /** STT e tradutor UM DE CADA VEZ, fora do desktop com GPU e ≥ 8 GB (`memoriaDosModelos.ts`). */
-    const umDeCadaVez = umModeloDeCadaVez(perfil);
+    const umDeCadaVez = umModeloDeCadaVez(perfil, route.localModel === ID_DO_PARAKEET);
 
     /* O ÁUDIO DA ABA NA WEB SPEECH NO APARELHO (`webSpeechDoSistema.ts`): o Whisper não baixa nem
        carrega — é o ponto do degrau. Só o MICROFONE no Whisper ainda o pede (aí segue o caminho de

@@ -207,7 +207,8 @@ export function lerManifesto(modelId: string, dtype: string, device: string): Ma
  * Sem `dtype`: qualquer um dos que as rotas usam. Não confere tamanhos — quem carrega confere.
  */
 export function temCopiaNoAparelho(modelId: string, dtype?: string): boolean {
-  const dtypes = dtype ? [dtype] : ['hybrid', 'hybrid-fp16', 'q8'];
+  // 'int8' é o do Parakeet: sem ele a cópia dele nunca era vista e a oferta de baixar reaparecia.
+  const dtypes = dtype ? [dtype] : ['hybrid', 'hybrid-fp16', 'q8', 'int8'];
   return dtypes.some((d) => ['wasm', 'webgpu'].some((dev) => lerManifesto(modelId, d, dev) !== null));
 }
 

@@ -71,14 +71,90 @@ function Bar({
   );
 }
 
+/**
+ * Oferta do modelo PRECISO (Parakeet): a captura roda no Whisper porque não há cópia dele no aparelho.
+ * O download só começa no clique, em segundo plano, e vale para as PRÓXIMAS capturas.
+ */
+export interface OfertaDoPreciso {
+  mb: number;
+  aoBaixar: () => void;
+  /** 0..1 enquanto baixa; null = ainda não pediu. */
+  progresso: number | null;
+  /** O último download falhou: a linha volta a oferecer, com o aviso. */
+  falhou?: boolean;
+}
+
+export function LinhaDaOfertaDoPreciso({ oferta }: { oferta: OfertaDoPreciso }) {
+  if (oferta.progresso !== null) {
+    const pct = Math.round(Math.min(1, Math.max(0, oferta.progresso)) * 100);
+    return (
+      <div className="rounded-xl border border-border-subtle bg-surface p-3">
+        <div className="flex items-center justify-between text-[11px] font-semibold mb-1 text-ink-muted">
+          <span className="flex items-center gap-1.5">
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-accent" />
+            {t('Baixando o modelo preciso…')}
+          </span>
+          <span className="tabular-nums">{pct}%</span>
+        </div>
+        <div
+          role="progressbar"
+          aria-label={t('Baixando o modelo preciso…')}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={pct}
+          className="h-2 bg-canvas rounded-full overflow-hidden border border-border-subtle"
+        >
+          <div className="h-full bg-accent transition-all" style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-xl border border-border-subtle bg-surface p-3">
+      {oferta.falhou && (
+        <p className="text-[12px] text-error mb-2">{t('Não foi possível baixar o modelo preciso. Tente de novo.')}</p>
+      )}
+      <button
+        type="button"
+        onClick={oferta.aoBaixar}
+        className="min-h-[44px] w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-border-subtle text-[13px] font-semibold text-ink cursor-pointer hover:bg-canvas"
+      >
+        <Download className="w-4 h-4 text-accent" />
+        {t('Baixar o modelo preciso ({mb} MB) para as próximas capturas', { mb: oferta.mb })}
+      </button>
+    </div>
+  );
+}
+
 export default function ModelPrepPanel({
   state,
   onRetry,
   compact = false,
+  ofertaDoPreciso,
 }: {
   state: ModelPrepState;
   onRetry?: () => void;
   compact?: boolean;
+  ofertaDoPreciso?: OfertaDoPreciso;
+}) {
+  const painel = <PainelDoPreparo state={state} onRetry={onRetry} compact={compact} />;
+  if (!ofertaDoPreciso) return painel;
+  return (
+    <div className={`space-y-2 ${compact ? 'max-w-sm mx-auto' : ''}`}>
+      {painel}
+      <LinhaDaOfertaDoPreciso oferta={ofertaDoPreciso} />
+    </div>
+  );
+}
+
+function PainelDoPreparo({
+  state,
+  onRetry,
+  compact,
+}: {
+  state: ModelPrepState;
+  onRetry?: () => void;
+  compact: boolean;
 }) {
   const { whisper, mt, fromCache, error, done, whisperBytes, mtBytes } = state;
   const mtFromCache = state.mtFromCache ?? fromCache;

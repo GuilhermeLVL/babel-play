@@ -4794,5 +4794,8 @@
   "Usar o microfone": "Use the microphone",
   "Ver": "View",
   "1 conquista": "1 achievement",
-  "{n} conquistas": "{n} achievements"
+  "{n} conquistas": "{n} achievements",
+  "Baixando o modelo preciso…": "Downloading the accurate model…",
+  "Não foi possível baixar o modelo preciso. Tente de novo.": "Could not download the accurate model. Try again.",
+  "Baixar o modelo preciso ({mb} MB) para as próximas capturas": "Download the accurate model ({mb} MB) for upcoming captures"
 }

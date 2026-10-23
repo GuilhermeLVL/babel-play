@@ -1779,5 +1779,8 @@
   "Usar o microfone": "استخدام الميكروفون",
   "Ver": "عرض",
   "1 conquista": "إنجاز واحد",
-  "{n} conquistas": "{n} إنجازات"
+  "{n} conquistas": "{n} إنجازات",
+  "Baixando o modelo preciso…": "جارٍ تنزيل النموذج الدقيق…",
+  "Não foi possível baixar o modelo preciso. Tente de novo.": "تعذّر تنزيل النموذج الدقيق. حاول مرة أخرى.",
+  "Baixar o modelo preciso ({mb} MB) para as próximas capturas": "نزّل النموذج الدقيق ({mb} ميغابايت) للتسجيلات القادمة"
 }

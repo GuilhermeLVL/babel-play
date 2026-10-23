@@ -39,7 +39,8 @@ import { buildGateway } from '../../gateway';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
 import { temAdaptadorWebGpu, webGpuProvavel } from '../../gateway/adaptadorWebGpu';
 import { parDoId } from '../../gateway/adapters/bergamotModelo';
-import { ID_DO_PARAKEET } from '../../gateway/adapters/parakeetModelo';
+import { ID_DO_PARAKEET, MB_DO_PARAKEET } from '../../gateway/adapters/parakeetModelo';
+import { baixarModelo } from '../../gateway/baixarModelo';
 import type { SttSession } from '../../gateway/capabilities';
 import { capMetrics, MOTOR_DA_NUVEM } from '../../gateway/capture/captureMetrics';
 import {
@@ -199,7 +200,7 @@ let benchmarkPendente: AbortController | null = null;
 import GuidePanel from '../GuidePanel';
 // Bandeira SVG do idioma (nunca emoji: o Windows renderiza 🇧🇷 como "BR") + o rótulo curto.
 import { LangFlag } from '../LangFlag';
-import ModelPrepPanel, { type ModelPrepState } from '../ModelPrepPanel';
+import ModelPrepPanel, { LinhaDaOfertaDoPreciso, type ModelPrepState } from '../ModelPrepPanel';
 import { toast } from '../Toast';
 import { Dialogo, fecharDialogoDe } from '../ui';
 import AjudaDoMicrofone from './captura/AjudaDoMicrofone';
@@ -2422,6 +2423,68 @@ export default function LiveCapture({
     parakeetVetado,
     captureScenario,
   ]);
+  /* OFERTA DO MODELO PRECISO: a rota (modo automático) cabe o Parakeet neste aparelho mas não há cópia,
+     então esta captura roda no Whisper. A pessoa decide baixar em segundo plano, só no clique; com
+     economia de dados ligada não oferecemos. Vetado nunca chega aqui (a rota não sinaliza). */
+  const [downloadDoPreciso, setDownloadDoPreciso] = useState<{ progresso: number | null; falhou: boolean }>({
+    progresso: null,
+    falhou: false,
+  });
+  const [baixouOPreciso, setBaixouOPreciso] = useState(false);
+  const rotaOfereceOPreciso = useMemo(() => {
+    const rota = routeStt({
+      contentLang: baseLang(targetLang),
+      micLang: micEnabled && micEngine === 'whisper' ? baseLang(sourceLang) : '',
+      soMicrofone: captureScenario === 'mic',
+      autoDetect: autoDetectLang || autoDetectMyLang,
+      quality: sttQuality,
+      hasWebGpu: temGpu,
+      cloudAvailable: false,
+      profileId: getActiveProfile().id,
+      dispositivo: dispositivoDaRota(perfilDoAparelho, sondaGuardada),
+      ...entradaDoParakeet(parakeetVetado, temCopiaNoAparelho(ID_DO_PARAKEET), lerModeloFixo()),
+    });
+    return !!rota.parakeetDisponivelParaBaixar;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `baixouOPreciso` refaz a conta (a cópia passou a existir)
+  }, [
+    targetLang,
+    sourceLang,
+    micEnabled,
+    micEngine,
+    autoDetectLang,
+    autoDetectMyLang,
+    sttQuality,
+    temGpu,
+    perfilDoAparelho,
+    sondaGuardada,
+    parakeetVetado,
+    captureScenario,
+    baixouOPreciso,
+  ]);
+  const baixarOPreciso = useCallback(() => {
+    setDownloadDoPreciso({ progresso: 0, falhou: false });
+    void baixarModelo(ID_DO_PARAKEET, (f) => setDownloadDoPreciso({ progresso: f, falhou: false })).then((r) => {
+      if (r === 'baixado') {
+        setBaixouOPreciso(true);
+        setDownloadDoPreciso({ progresso: null, falhou: false });
+      } else {
+        setDownloadDoPreciso({ progresso: null, falhou: r === 'falhou' });
+      }
+    });
+  }, []);
+  const ofertaDoPreciso =
+    rotaOfereceOPreciso && !perfilDoAparelho.sinais.economiaDeDados && !isRecording ? (
+      <div style={{ margin: '10px 16px 0' }}>
+        <LinhaDaOfertaDoPreciso
+          oferta={{
+            mb: MB_DO_PARAKEET,
+            aoBaixar: baixarOPreciso,
+            progresso: downloadDoPreciso.progresso,
+            falhou: downloadDoPreciso.falhou,
+          }}
+        />
+      </div>
+    ) : null;
   /* AVISO ANTES DE BAIXAR (perfil do aparelho): com economia de dados, rede abaixo de 4g, ou mais de
      100 MB no celular/Quest, a captura pergunta ANTES do primeiro byte, com o tamanho real do que
      falta (só o que não está no navegador). Confirmado uma vez, não pergunta de novo nesta tela. */
@@ -3090,6 +3153,7 @@ export default function LiveCapture({
                 <ModelPrepPanel state={modelPrep} onRetry={prepareModels} compact />
               </div>
             )}
+            {ofertaDoPreciso}
           </>
         }
         legenda={

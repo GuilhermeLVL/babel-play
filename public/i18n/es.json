@@ -1658,5 +1658,8 @@
   "Usar o microfone": "Usar el micrófono",
   "Ver": "Ver",
   "1 conquista": "1 logro",
-  "{n} conquistas": "{n} logros"
+  "{n} conquistas": "{n} logros",
+  "Baixando o modelo preciso…": "Descargando el modelo preciso…",
+  "Não foi possível baixar o modelo preciso. Tente de novo.": "No se pudo descargar el modelo preciso. Inténtalo de nuevo.",
+  "Baixar o modelo preciso ({mb} MB) para as próximas capturas": "Descargar el modelo preciso ({mb} MB) para las próximas capturas"
 }

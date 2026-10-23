@@ -316,6 +316,10 @@ export default function App() {
   useEffect(() => {
     const aoTeclar = (e: KeyboardEvent) => {
       if (e.key !== ',' || !(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey || e.defaultPrevented) return;
+      /* Não atropela quem digita nem um diálogo aberto. */
+      const alvo = e.target instanceof HTMLElement ? e.target : null;
+      if (alvo?.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return;
+      if (document.querySelector('dialog[open], [aria-modal="true"]')) return;
       e.preventDefault();
       navigateTo('settings');
     };

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 
+import { violacoesGraves } from './_acessibilidade'
 import { abrirTela, fecharSobreposicoes, trilho } from './_helpers'
 
 /**
@@ -113,6 +114,59 @@ test.describe('trilho: geometria', () => {
       await expect(page).toHaveURL(/\/ajustes/, { timeout: 10_000 })
     })
   }
+
+  test('1280×800 compacto: todo item tem nome, a dica aparece no foco do teclado, o marcado tem barra', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await abrirTela(page, '/')
+    await fecharSobreposicoes(page)
+    await page.waitForTimeout(400)
+    await expect(trilho(page)).toHaveAttribute('data-compacto', 'true')
+
+    const semNome = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>('nav.q-trilho .q-item')]
+        .filter((el) => !(el.getAttribute('aria-label') || '').trim())
+        .map((el) => el.className),
+    )
+    expect(semNome, 'itens sem nome acessível').toEqual([])
+
+    // A dica aparece no foco pelo teclado (não só no mouse), com o nome do item.
+    await page.keyboard.press('Shift')
+    const mais = trilho(page).getByRole('button', { name: 'Mais' })
+    await mais.focus()
+    await expect(page.locator('.q-dica')).toHaveText('Mais', { timeout: 3000 })
+    await page.keyboard.press('Escape')
+    await expect(page.locator('.q-dica')).toHaveCount(0)
+    const planos = trilho(page).locator('.q-item[data-px-rota="planos"]')
+    await page.keyboard.press('Shift')
+    await planos.focus()
+    await expect(page.locator('.q-dica')).toContainText('Planos', { timeout: 3000 })
+
+    // O item marcado tem a barra ao lado (não depende da cor).
+    const larguraDaBarra = await page.evaluate(() => {
+      const ativo = document.querySelector('nav.q-trilho .q-item[aria-current="page"]')
+      return ativo ? getComputedStyle(ativo, '::before').width : null
+    })
+    expect(larguraDaBarra).toBe('4px')
+
+    expect(await violacoesGraves(page)).toEqual([])
+  })
+
+  test('Ctrl+, é ignorado enquanto se digita num campo', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await abrirTela(page, '/')
+    await fecharSobreposicoes(page)
+    await page.evaluate(() => {
+      const campo = document.createElement('input')
+      campo.id = 'campo-de-teste'
+      document.body.appendChild(campo)
+      campo.focus()
+    })
+    await page.keyboard.press('Control+,')
+    await page.waitForTimeout(500)
+    await expect(page).not.toHaveURL(/\/ajustes/)
+  })
 
   test('375×812: a barra de cinco continua sem Ajustes e sem sobreposição', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 })

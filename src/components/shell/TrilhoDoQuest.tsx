@@ -33,6 +33,7 @@ import {
   X,
 } from 'lucide-react';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { PLAN_MATRIX } from '../../core/planos';
 import { tetoAnonimoDa } from '../../core/tetoAnonimo';
@@ -207,6 +208,56 @@ function useTrilhoCompacto(
   return ativo && compacto;
 }
 
+/**
+ * DICA DO MODO COMPACTO (23/10/2026): com só o ícone, o nome aparece ao apontar E ao focar pelo teclado,
+ * depois de 300 ms; Esc, saída do ponteiro e perda de foco a escondem. Desenha-se num portal com
+ * `position: fixed` (o trilho tem `overflow: hidden` e cortaria uma dica interna). O nome do botão já está
+ * no `aria-label`, então a dica é `aria-hidden`: só complementa a vista.
+ */
+function useDicaDoTrilho(ativo: boolean) {
+  const [dica, setDica] = useState<{ texto: string; x: number; y: number } | null>(null);
+  const espera = useRef<number | undefined>(undefined);
+  const esconder = () => {
+    window.clearTimeout(espera.current);
+    setDica(null);
+  };
+  useEffect(() => {
+    if (!ativo) {
+      window.clearTimeout(espera.current);
+      setDica(null);
+    }
+    return () => window.clearTimeout(espera.current);
+  }, [ativo]);
+  const mostrar = (alvo: EventTarget | null, soTeclado: boolean) => {
+    if (!ativo || !(alvo instanceof Element)) return;
+    const item = alvo.closest<HTMLElement>('.q-item[data-dica]');
+    if (!item || (soTeclado && !item.matches(':focus-visible'))) return;
+    window.clearTimeout(espera.current);
+    espera.current = window.setTimeout(() => {
+      const r = item.getBoundingClientRect();
+      setDica({ texto: item.dataset.dica ?? '', x: r.right + 10, y: r.top + r.height / 2 });
+    }, 300);
+  };
+  const eventos = {
+    onMouseOver: (e: React.MouseEvent) => mostrar(e.target, false),
+    onMouseOut: esconder,
+    onFocus: (e: React.FocusEvent) => mostrar(e.target, true),
+    onBlur: esconder,
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (e.key === 'Escape') esconder();
+    },
+  };
+  const peca = dica
+    ? createPortal(
+        <div className="q-dica" aria-hidden="true" style={{ left: dica.x, top: dica.y }}>
+          {dica.texto}
+        </div>,
+        document.body,
+      )
+    : null;
+  return { eventos, peca };
+}
+
 /** A frase da entrada "Planos e Premium": as duas do protótipo, com os dias que de fato restam do teste. */
 const fraseDoPlano = (): string => {
   const { plan, teste } = getEntitlements();
@@ -261,6 +312,7 @@ export default function TrilhoDoQuest({
   const trilhoRef = useRef<HTMLElement>(null);
   const topoRef = useRef<HTMLDivElement>(null);
   const compacto = useTrilhoCompacto(trilhoRef, topoRef, lateral);
+  const { eventos: eventosDaDica, peca: pecaDaDica } = useDicaDoTrilho(compacto);
   const buscaNoTrilho = !cinco && !!aoBuscar && (temTeclado || !headset);
   const [planoDito, setPlanoDito] = useState(estadoDoPlano);
   useEffect(() => onPlanChange(() => setPlanoDito(estadoDoPlano())), []);
@@ -411,6 +463,7 @@ export default function TrilhoDoQuest({
         key={item.id}
         type="button"
         className="q-item"
+        data-dica={comEstado ? rotulo + ' · ' + planoDito : rotulo}
         /* A camada de polimento acha o destino por aqui (a pílula responde no toque). */
         data-px-rota={item.id}
         onClick={() => ir(item.id)}
@@ -454,7 +507,8 @@ export default function TrilhoDoQuest({
       className="q-item q-busca-botao"
       onClick={() => aoBuscar?.()}
       aria-label={temTeclado ? t('Buscar gravação, palavra ou tela (Ctrl+K)') : t('Buscar')}
-      title={temTeclado ? t('Buscar gravação, palavra ou tela (Ctrl+K)') : undefined}
+      title={temTeclado && !compacto ? t('Buscar gravação, palavra ou tela (Ctrl+K)') : undefined}
+      data-dica={temTeclado ? t('Buscar gravação, palavra ou tela (Ctrl+K)') : t('Buscar')}
       aria-keyshortcuts={temTeclado ? 'Control+K Meta+K' : undefined}
       data-testid="busca-no-trilho"
     >
@@ -481,7 +535,10 @@ export default function TrilhoDoQuest({
       aria-current={activeView === 'settings' ? 'page' : undefined}
       aria-label={t('Ajustes')}
       aria-keyshortcuts="Control+, Meta+,"
-      title={temTeclado || !headset ? t('Ajustes') + ' (' + teclaDosAjustes() + ')' : t('Ajustes')}
+      title={
+        compacto ? undefined : temTeclado || !headset ? t('Ajustes') + ' (' + teclaDosAjustes() + ')' : t('Ajustes')
+      }
+      data-dica={temTeclado || !headset ? t('Ajustes') + ' (' + teclaDosAjustes() + ')' : t('Ajustes')}
       data-testid="ajustes-no-trilho"
     >
       <Settings aria-hidden />
@@ -494,6 +551,8 @@ export default function TrilhoDoQuest({
       type="button"
       className="q-item q-mais-botao"
       aria-haspopup="dialog"
+      aria-label={t('Mais')}
+      data-dica={t('Mais')}
       aria-expanded={maisAberto}
       aria-current={foraDoTrilho && !(lateral && activeView === 'settings') ? 'page' : undefined}
       onClick={() => setMaisAberto((v) => !v)}
@@ -516,6 +575,7 @@ export default function TrilhoDoQuest({
         data-shell="trilho-do-quest"
         data-compacto={compacto ? 'true' : undefined}
         aria-label={t('Navegação principal')}
+        {...eventosDaDica}
       >
         <MarcaBabel className="q-logo" />
         {lateral ? (
@@ -538,6 +598,7 @@ export default function TrilhoDoQuest({
           </>
         )}
       </nav>
+      {pecaDaDica}
 
       {maisAberto && (
         <div className="q-mais-fundo" onClick={(e) => e.target === e.currentTarget && setMaisAberto(false)}>

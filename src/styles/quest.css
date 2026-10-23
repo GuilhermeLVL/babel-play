@@ -1493,3 +1493,43 @@ html[data-quest-novo='true'][data-dispositivo^='desktop'] .q-palco {
     transform: none;
   }
 }
+
+/* DICA DO MODO COMPACTO (`useDicaDoTrilho`): fora do trilho, que tem `overflow: hidden`. */
+.q-dica {
+  position: fixed;
+  z-index: var(--z-toast, 70);
+  transform: translateY(-50%);
+  max-width: 280px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--ink-contrast);
+  font: 700 13px/1.25 var(--font-body, inherit);
+  box-shadow: var(--shadow-pop, 0 6px 18px rgb(0 0 0 / 0.25));
+  pointer-events: none;
+  animation: q-dica-surge 120ms ease-out;
+}
+@keyframes q-dica-surge {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .q-dica {
+    animation: none;
+  }
+}
+/* Compacto: o item marcado ganha uma barra ao lado (não depende só da cor). */
+.q-trilho[data-compacto='true'] .q-item {
+  position: relative;
+}
+.q-trilho[data-compacto='true'] .q-item:is([aria-current='page'], [aria-expanded='true'])::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 22%;
+  bottom: 22%;
+  width: 4px;
+  border-radius: 4px;
+  background: var(--q-acento);
+}

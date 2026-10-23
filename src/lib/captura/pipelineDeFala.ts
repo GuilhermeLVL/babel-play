@@ -1637,7 +1637,14 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       return;
     }
 
-    const cached = await areModelsCached(expectedModelIds(mtDe, mtPara, route.localModel));
+    /* O CACHE É POR PEÇA (dono, 23/10/2026: "toda vez que abro parece que baixa de novo"). Antes, um
+       `areModelsCached` da lista inteira: o tradutor local que nunca baixa no Chrome (lá traduz a
+       Translator API) deixava a resposta em "não" para sempre, e a tela dizia "Baixando modelo (uma vez
+       só)" a cada abertura, com o Whisper vindo do cache. Agora o título segue o Whisper, e o tradutor
+       tem a resposta dele. */
+    const idsEsperados = expectedModelIds(mtDe, mtPara, route.localModel);
+    const cached = await areModelsCached(idsEsperados.slice(0, 1));
+    const mtCached = idsEsperados.length < 2 || (await areModelsCached(idsEsperados.slice(1)));
 
     /* RESERVA PREGUIÇOSA no celular e no Quest com nuvem primeiro (`reservaLocal.ts`, auditoria de
        eficiência 2026-09-28, achado 4): nada baixa agora, a primeira falha da nuvem dispara a carga,
@@ -1658,6 +1665,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
           whisper: 0,
           mt: null,
           fromCache: cached,
+          mtFromCache: mtCached,
           error: null,
           done: false,
           ...manterPacotes(s),
@@ -1708,7 +1716,15 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     }
 
     modelReadyRef.current = false;
-    setModelPrep((s) => ({ whisper: 0, mt: null, fromCache: cached, error: null, done: false, ...manterPacotes(s) }));
+    setModelPrep((s) => ({
+      whisper: 0,
+      mt: null,
+      fromCache: cached,
+      mtFromCache: mtCached,
+      error: null,
+      done: false,
+      ...manterPacotes(s),
+    }));
     try {
       // Tradutor local (best-effort; direção "ouço → meu idioma"). Emite barra própria.
       const iniciarTradutor = () =>

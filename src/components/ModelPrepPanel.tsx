@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, Download, HardDriveDownload,Loader2, RotateCw } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Download, HardDriveDownload, Loader2, RotateCw } from 'lucide-react';
 import React from 'react';
 
 import { t } from '../lib/i18n';
@@ -20,7 +20,10 @@ export interface ModelPrepState {
   /** Bytes reais por modelo — a barra deixa de ser só um percentual sem escala. */
   whisperBytes?: { loaded: number; total: number } | null;
   mtBytes?: { loaded: number; total: number } | null;
+  /** O modelo de TRANSCRIÇÃO já está no navegador (o título do painel segue ele). */
   fromCache: boolean;
+  /** O tradutor local já está no navegador. Ausente = igual a `fromCache` (quem ainda não informa). */
+  mtFromCache?: boolean;
   error: string | null;
   done: boolean;
   /**
@@ -31,18 +34,29 @@ export interface ModelPrepState {
   nativos?: { tradutor?: number | null; voz?: number | null };
 }
 
-function Bar({ label, progress, bytes }: { label: string; progress: number | null; bytes?: { loaded: number; total: number } | null }) {
+function Bar({
+  label,
+  progress,
+  bytes,
+}: {
+  label: string;
+  progress: number | null;
+  bytes?: { loaded: number; total: number } | null;
+}) {
   const pct = progress == null ? 0 : Math.round(progress * 100);
   const complete = progress != null && progress >= 1;
   // Percentual sozinho não deixa o usuário julgar se vale esperar. Com bytes reais ele sabe.
-  const emMb = bytes && bytes.total > 0
-    ? `${(bytes.loaded / 1048576).toFixed(0)}/${(bytes.total / 1048576).toFixed(0)} MB`
-    : null;
+  const emMb =
+    bytes && bytes.total > 0 ? `${(bytes.loaded / 1048576).toFixed(0)}/${(bytes.total / 1048576).toFixed(0)} MB` : null;
   return (
     <div>
       <div className="flex items-center justify-between text-[11px] font-semibold mb-1">
         <span className="text-ink-muted flex items-center gap-1.5">
-          {complete ? <CheckCircle2 className="w-3.5 h-3.5 text-good" /> : <Loader2 className="w-3.5 h-3.5 animate-spin text-accent" />}
+          {complete ? (
+            <CheckCircle2 className="w-3.5 h-3.5 text-good" />
+          ) : (
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-accent" />
+          )}
           {label}
         </span>
         <span className="text-ink-muted tabular-nums">
@@ -67,6 +81,11 @@ export default function ModelPrepPanel({
   compact?: boolean;
 }) {
   const { whisper, mt, fromCache, error, done, whisperBytes, mtBytes } = state;
+  const mtFromCache = state.mtFromCache ?? fromCache;
+  /* Só o tradutor baixa de verdade (a transcrição veio do cache): o título diz isso, e não "Baixando
+     modelo" — o que dava a impressão de baixar tudo de novo a cada abertura. */
+  const soOTradutorBaixa = fromCache && mt !== null && !mtFromCache;
+  const tudoEmCache = fromCache && !soOTradutorBaixa;
   const nativos = state.nativos ?? {};
   const temNativos = Object.keys(nativos).length > 0;
   /* Só os pacotes do navegador (nenhum modelo nosso em preparo): o painel fala deles, sem a linha
@@ -99,25 +118,31 @@ export default function ModelPrepPanel({
   // "Pronto" é TUDO pronto: o tradutor pode seguir baixando depois do Whisper (pouca memória).
   if (done && nativosProntos && (mt === null || mt >= 1)) {
     return (
-      <div className={`flex items-center justify-center gap-2 text-[13px] font-semibold text-good ${compact ? '' : 'py-2'}`}>
+      <div
+        className={`flex items-center justify-center gap-2 text-[13px] font-semibold text-good ${compact ? '' : 'py-2'}`}
+      >
         <CheckCircle2 className="w-4 h-4" /> Modelo pronto, no dispositivo, offline.
       </div>
     );
   }
 
   return (
-    <div className={`rounded-xl border border-border-subtle bg-surface p-4 space-y-3 ${compact ? 'max-w-sm mx-auto' : ''}`}>
+    <div
+      className={`rounded-xl border border-border-subtle bg-surface p-4 space-y-3 ${compact ? 'max-w-sm mx-auto' : ''}`}
+    >
       <div className="flex items-center gap-2 text-[13px] font-bold text-ink">
-        {fromCache && !soNativos ? (
+        {tudoEmCache && !soNativos ? (
           <HardDriveDownload className="w-4 h-4 text-accent" />
         ) : (
           <Download className="w-4 h-4 text-accent" />
         )}
         {soNativos
           ? t('Baixando o pacote de idioma do navegador…')
-          : fromCache
+          : tudoEmCache
             ? 'Carregando modelo (já em cache)…'
-            : 'Baixando modelo (uma vez só)…'}
+            : soOTradutorBaixa
+              ? 'Baixando o tradutor (uma vez só)…'
+              : 'Baixando modelo (uma vez só)…'}
       </div>
       {/* Sem modelo de transcrição (o "Rápido": só o tradutor baixa), sem a linha dele parada em "-". */}
       {!soNativos && !(whisper === null && mt !== null) && (
@@ -129,7 +154,7 @@ export default function ModelPrepPanel({
       <p className="text-[11px] text-ink-muted leading-relaxed">
         {soNativos
           ? t('O pacote é do próprio navegador: grátis, baixa uma vez só e nada sai do aparelho.')
-          : fromCache
+          : tudoEmCache
             ? 'Os pesos já estão no seu navegador, nada é baixado de novo.'
             : 'Roda 100% no seu dispositivo depois de baixar. Recarregar a página não baixa de novo.'}
       </p>

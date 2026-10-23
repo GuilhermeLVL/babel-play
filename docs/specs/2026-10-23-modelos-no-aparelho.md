@@ -1,6 +1,6 @@
 # Modelos no aparelho: qualidade no Grátis, leve em qualquer PC, e uma tela para escolher
 
-Status: aprovado · Data: 2026-10-23 · Autor: Guilherme (com Claude)
+Status: implementado (staging) · Data: 2026-10-23 · Autor: Guilherme (com Claude)
 
 ## Problema
 
@@ -170,3 +170,18 @@ memória com o Parakeet carregado junto do tradutor (aí ele fica só no "precis
 - Safari do Mac: entra pelo adaptador WebGPU `apple`, com os modelos carregando um de cada vez e uma
   sentinela de queda (aba que morre com o Parakeet carregado volta ao Whisper na abertura seguinte),
   porque o WebKit já chegou a 4,2 GB no processo da página com o Whisper (correção F de 22/10/2026).
+
+## O que foi entregue (23/10/2026, commits 013888a1..60fc1b5f)
+
+- Parakeet no automático de pt/es onde cabe (≥ 8 GB medido ou Mac Apple), só com a cópia completa;
+  modelo fixado pela pessoa (`src/gateway/modeloFixo.ts`).
+- Memória: com o Parakeet, um modelo de cada vez; sentinela de queda por instância de página, com
+  batimento a cada 5 min e veto visível (evento `modelo-vetado` + "Tentar de novo" na tela).
+- Download do preciso em segundo plano, oferecido na Captura só sem nuvem, que solta os modelos da
+  captura antes e aborta ao gravar; cópia parcial não conta.
+- Portão de energia antes do Silero. **Meta de CPU não atingida**: 16% → 15–16% no silêncio (Chromium do
+  Mac); o grosso do silêncio é outra coisa — fica como próxima frente (perfilar).
+- Tela "Modelos no aparelho" (Ajustes → Processamento) + crédito no Sobre.
+- Não feito: camada do reconhecimento local do Chrome (não devolve texto no Chrome 155 + macOS 27 beta,
+  `docs/auditoria/2026-10-23-bancada-complementar.md`); e2e de 10 min com 8 GB (memória não se emula).
+- Medido e não decidido: Parakeet também ganha em inglês (7,1% × 13,6% do Moonshine) — decisão do dono.

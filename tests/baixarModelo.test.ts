@@ -11,6 +11,23 @@ import { gravarManifesto, temCopiaNoAparelho } from '../src/gateway/modelManifes
 let criados: WorkerFalso[] = []
 let aoCarregar: (w: WorkerFalso) => void
 
+/** O que o worker real faz antes do 'ready': manda o manifesto para a janela gravar. */
+function manifestoDoWorker(w: WorkerFalso, extra: Record<string, unknown> = {}) {
+  w.responder({
+    type: 'manifesto-do-modelo',
+    manifesto: {
+      modelId: ID_DO_PARAKEET,
+      dtype: 'int8',
+      device: 'wasm',
+      arquivos: [],
+      bytesTotais: 10,
+      bytesEsperados: 10,
+      gravadoEm: 1,
+      ...extra,
+    },
+  })
+}
+
 class WorkerFalso {
   onmessage: ((m: MessageEvent) => void) | null = null
   onerror: ((e: ErrorEvent) => void) | null = null
@@ -36,6 +53,7 @@ beforeEach(() => {
   localStorage.clear()
   aoCarregar = (w) => {
     w.responder({ type: 'progress', progress: 0.5, loaded: 5, total: 10, label: 'x' })
+    manifestoDoWorker(w)
     w.responder({ type: 'ready', model: ID_DO_PARAKEET, cargaMs: 1 })
   }
   vi.stubGlobal('Worker', WorkerFalso)
@@ -52,8 +70,7 @@ describe('baixarModelo', () => {
     expect(fracoes).toContain(0.5)
     expect(fracoes[fracoes.length - 1]).toBe(1)
     expect(criados[0].encerrado).toBe(true)
-    expect(Object.keys(localStorage).some((k) => k.includes(ID_DO_PARAKEET) && k.includes('carreg'))).toBe(false)
-    expect(localStorage.length).toBe(0)
+    expect(Object.keys(localStorage).some((k) => k.startsWith('babel.sentinela.'))).toBe(false)
   })
 
   it('AbortSignal abortado devolve cancelado', async () => {
@@ -116,5 +133,46 @@ describe('baixarModelo', () => {
       gravadoEm: 1,
     } as never)
     expect(temCopiaNoAparelho(ID_DO_PARAKEET)).toBe(true)
+  })
+
+  it('manifesto PARCIAL (bytesTotais < bytesEsperados) não é cópia e o download devolve falhou', async () => {
+    aoCarregar = (w) => {
+      manifestoDoWorker(w, { bytesTotais: 4 })
+      w.responder({ type: 'ready', model: ID_DO_PARAKEET, cargaMs: 1 })
+    }
+    expect(await baixarModelo(ID_DO_PARAKEET)).toBe('falhou')
+    expect(temCopiaNoAparelho(ID_DO_PARAKEET)).toBe(false)
+  })
+
+  it('manifesto legado sem bytesEsperados continua valendo como cópia', () => {
+    gravarManifesto({
+      modelId: ID_DO_PARAKEET,
+      dtype: 'int8',
+      device: 'wasm',
+      arquivos: [],
+      bytesTotais: 4,
+      gravadoEm: 1,
+    })
+    expect(temCopiaNoAparelho(ID_DO_PARAKEET)).toBe(true)
+  })
+
+  it('iniciar a captura (abort) cancela, libera o worker e permite baixar de novo depois', async () => {
+    const original = aoCarregar
+    aoCarregar = () => {}
+    const c = new AbortController()
+    const p = baixarModelo(ID_DO_PARAKEET, undefined, c.signal)
+    await new Promise((r) => setTimeout(r, 5))
+    c.abort() // o que o LiveCapture faz quando isRecording vira true
+    expect(await p).toBe('cancelado')
+    expect(criados[0].encerrado).toBe(true)
+    aoCarregar = original
+    expect(await baixarModelo(ID_DO_PARAKEET)).toBe('baixado')
+  })
+
+  it('LiveCapture aborta o download ao gravar e ao desmontar (ligação)', async () => {
+    const { readFileSync } = await import('node:fs')
+    const fonte = readFileSync('src/components/views/LiveCapture.tsx', 'utf8')
+    expect(fonte).toMatch(/if \(isRecording\) downloadDoPrecisoRef\.current\?\.abort\(\)/)
+    expect(fonte).toMatch(/useEffect\(\(\) => \(\) => downloadDoPrecisoRef\.current\?\.abort\(\), \[\]\)/)
   })
 })

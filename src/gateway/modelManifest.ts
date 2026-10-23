@@ -209,7 +209,14 @@ export function lerManifesto(modelId: string, dtype: string, device: string): Ma
 export function temCopiaNoAparelho(modelId: string, dtype?: string): boolean {
   // 'int8' é o do Parakeet: sem ele a cópia dele nunca era vista e a oferta de baixar reaparecia.
   const dtypes = dtype ? [dtype] : ['hybrid', 'hybrid-fp16', 'q8', 'int8'];
-  return dtypes.some((d) => ['wasm', 'webgpu'].some((dev) => lerManifesto(modelId, d, dev) !== null));
+  return dtypes.some((d) =>
+    ['wasm', 'webgpu'].some((dev) => {
+      const m = lerManifesto(modelId, d, dev);
+      if (!m) return false;
+      // Cópia PARCIAL (cache.put falhou sob quota): não é cópia. Legado sem `bytesEsperados` segue valendo.
+      return !(typeof m.bytesEsperados === 'number' && m.bytesTotais < m.bytesEsperados);
+    }),
+  );
 }
 
 export interface EstadoDoCache {

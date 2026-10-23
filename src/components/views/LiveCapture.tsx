@@ -2461,9 +2461,23 @@ export default function LiveCapture({
     captureScenario,
     baixouOPreciso,
   ]);
+  /* O download em segundo plano NUNCA convive com a captura: ao começar a gravar e ao sair da tela,
+     aborta (libera o worker pesado) e a oferta volta a aparecer depois. */
+  const downloadDoPrecisoRef = useRef<AbortController | null>(null);
+  useEffect(() => {
+    if (isRecording) downloadDoPrecisoRef.current?.abort();
+  }, [isRecording]);
+  useEffect(() => () => downloadDoPrecisoRef.current?.abort(), []);
   const baixarOPreciso = useCallback(() => {
     setDownloadDoPreciso({ progresso: 0, falhou: false });
-    void baixarModelo(ID_DO_PARAKEET, (f) => setDownloadDoPreciso({ progresso: f, falhou: false })).then((r) => {
+    const controle = new AbortController();
+    downloadDoPrecisoRef.current = controle;
+    void baixarModelo(
+      ID_DO_PARAKEET,
+      (f) => !controle.signal.aborted && setDownloadDoPreciso({ progresso: f, falhou: false }),
+      controle.signal,
+    ).then((r) => {
+      if (downloadDoPrecisoRef.current === controle) downloadDoPrecisoRef.current = null;
       if (r === 'baixado') {
         setBaixouOPreciso(true);
         setDownloadDoPreciso({ progresso: null, falhou: false });

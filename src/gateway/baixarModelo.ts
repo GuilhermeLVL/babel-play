@@ -31,6 +31,8 @@ async function baixarParakeet(
   try {
     await stt.preload((p) => aoProgresso?.(Math.min(1, Math.max(0, p))));
     if (sinal?.aborted) return 'cancelado';
+    // O worker gravou um manifesto PARCIAL (quota): não é uma cópia, e a captura travaria re-baixando.
+    if (!temCopiaNoAparelho(id)) return 'falhou';
     aoProgresso?.(1);
     void pedirArmazenamentoPersistente();
     return 'baixado';

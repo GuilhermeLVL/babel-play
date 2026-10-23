@@ -3717,7 +3717,7 @@
   "Nuance": "Nuance",
   "Nuvem · {horas} h": "Cloud · {horas} h",
   "Texto durante a fala": "Text while they speak",
-  "Para quem está conhecendo, ou tem um computador com placa de vídeo.": "For anyone getting to know the app, or with a computer that has a graphics card.",
+  "Para quem está conhecendo, ou tem um computador com placa de vídeo, 8 GB de memória ou Mac com chip Apple.": "For anyone getting to know the app, or with a computer that has a graphics card, 8 GB of memory or an Apple-chip Mac.",
   "Para o estudante no computador: sem anúncio e com Nuance.": "For the student at a computer: no ads, with Nuance.",
   "Para o estudante no computador, com Nuance.": "For the student at a computer, with Nuance.",
   "Para quem depende de nuvem: celular, notebook fraco, Quest.": "For anyone who depends on the cloud: phone, weak laptop, Quest.",
@@ -3734,7 +3734,7 @@
   "Onde a nuvem ajuda": "Where the cloud helps",
   "Português com menos erro, áudio com barulho, gíria e jeito de falar.": "Portuguese with fewer mistakes, noisy audio, slang and ways of speaking.",
   "Você está num computador fraco": "You are on a modest computer",
-  "Este computador é modesto: a legenda roda aqui, mas com um modelo leve, que erra mais. A nuvem do Premium erra menos, sobretudo em português e em áudio com barulho.": "This computer is modest: captions run here, but with a light model that makes more mistakes. Premium's cloud makes fewer, especially in Portuguese and in noisy audio.",
+  "Este computador é modesto: a legenda roda aqui, mas com um modelo leve, que erra mais. O modelo Preciso pede 8 GB de memória ou um Mac com chip Apple. A nuvem do Premium erra menos, sobretudo em português e em áudio com barulho.": "This computer is modest: captions run here, but with a light model that makes more mistakes. The Accurate model needs 8 GB of memory or an Apple-chip Mac. Premium's cloud makes fewer, especially in Portuguese and in noisy audio.",
   "Funciona, com um modelo leve: mais erros e mais espera.": "It works, with a light model: more mistakes and more waiting.",
   "A voz do sistema.": "The system voice.",
   "Quase sempre: menos erro e menos espera, sem esquentar o computador.": "Almost always: fewer mistakes and less waiting, without heating up the computer.",
@@ -3769,7 +3769,7 @@
   "No {planos}, a nuvem por trechos vai até {dia} h por dia.": "On {planos}, the cloud in stretches goes up to {dia} h a day.",
   "e": "and",
   "O que quer dizer \"no aparelho\"?": "What does \"on your device\" mean?",
-  "Que a transcrição e a tradução rodam no seu computador ou celular, sem mandar o áudio para fora. É grátis, não tem limite e funciona sem internet. Em aparelho fraco erra mais; no Quest, só o inglês roda no aparelho.": "That transcription and translation run on your computer or phone, without sending the audio out. It is free, has no limit and works offline. On a weak device it makes more mistakes; on the Quest, only English runs on the device.",
+  "Que a transcrição e a tradução rodam no seu computador ou celular, sem mandar o áudio para fora. É grátis, não tem limite e funciona sem internet. Com 8 GB de memória ou mais, ou num Mac com chip Apple, o modelo Preciso erra pouco em português e espanhol; em aparelho mais fraco o modelo é leve e erra mais; no Quest, só o inglês roda no aparelho.": "That transcription and translation run on your computer or phone, without sending the audio out. It is free, has no limit and works offline. With 8 GB of memory or more, or on an Apple-chip Mac, the Accurate model makes few mistakes in Portuguese and Spanish; on a weaker device the model is light and makes more mistakes; on the Quest, only English runs on the device.",
   "O que acontece quando as horas de nuvem acabam?": "What happens when the cloud hours run out?",
   "Nada trava. A legenda volta para o aparelho e segue sem limite, e nada é cobrado a mais. As horas voltam no dia 1º. No Quest, a legenda em inglês segue no aparelho; os outros idiomas esperam até lá.": "Nothing stops. Captions go back to your device and carry on with no limit, and nothing extra is charged. The hours come back on the 1st. On the Quest, English captions carry on on the device; other languages wait until then.",
   "Pode, quando quiser, em Planos › Sua assinatura. O plano vale até o fim do período pago e há 7 dias para desistir com reembolso. O que você gravou continua seu.": "Yes, whenever you want, in Plans › Your subscription. The plan lasts until the end of the paid period and you have 7 days to withdraw with a refund. What you recorded stays yours.",
@@ -4847,5 +4847,9 @@
   "Vale para {serve}; em {nao}, o app escolhe sozinho.": "Works for {serve}; for {nao}, the app picks on its own.",
   "Para os seus idiomas, o equilibrado é o que roda melhor neste aparelho.": "For your languages, the balanced model is the one that runs best on this device.",
   "Termine a captura para apagar.": "Finish the capture to delete.",
-  "Modelo de transcrição no aparelho, para português e espanhol": "On-device transcription model, for Portuguese and Spanish"
+  "Modelo de transcrição no aparelho, para português e espanhol": "On-device transcription model, for Portuguese and Spanish",
+  "Você está num computador que roda o modelo Preciso": "You are on a computer that runs the Accurate model",
+  "Este computador roda o modelo Preciso: a legenda sai aqui mesmo, sem limite e sem custo, com cerca de 6 erros a cada 100 palavras em português e espanhol. Para estudar inglês, o Grátis já resolve.": "This computer runs the Accurate model: captions come out right here, with no limit and no cost, with about 6 errors per 100 words in Portuguese and Spanish. For studying English, Free is already enough.",
+  "Em tempo real, no aparelho: o modelo Preciso em português e espanhol. Inclusive o som de uma aba.": "Real time, on the device: the Accurate model in Portuguese and Spanish. Including the sound of a tab.",
+  "Outros idiomas, áudio com barulho, gíria e jeito de falar.": "Other languages, noisy audio, slang and the way people talk."
 }

@@ -873,7 +873,7 @@
   "Nuance": "Nuance",
   "Nuvem · {horas} h": "السحابة · {horas} س",
   "Texto durante a fala": "النص أثناء الكلام",
-  "Para quem está conhecendo, ou tem um computador com placa de vídeo.": "لمن يتعرّف على التطبيق، أو لديه حاسوب ببطاقة رسومات.",
+  "Para quem está conhecendo, ou tem um computador com placa de vídeo, 8 GB de memória ou Mac com chip Apple.": "لمن يتعرّف على التطبيق، أو لديه حاسوب ببطاقة رسومات أو ذاكرة 8 جيجابايت أو جهاز Mac بشريحة Apple.",
   "Para o estudante no computador: sem anúncio e com Nuance.": "للطالب على الحاسوب: بلا إعلانات ومع Nuance.",
   "Para o estudante no computador, com Nuance.": "للطالب على الحاسوب، مع Nuance.",
   "Para quem depende de nuvem: celular, notebook fraco, Quest.": "لمن يعتمد على السحابة: الهاتف، الحاسوب المحمول الضعيف، Quest.",
@@ -890,7 +890,7 @@
   "Onde a nuvem ajuda": "أين تفيد السحابة",
   "Português com menos erro, áudio com barulho, gíria e jeito de falar.": "برتغالية بأخطاء أقل، وصوت فيه ضجيج، والعامية وطريقة الكلام.",
   "Você está num computador fraco": "أنت على حاسوب متواضع",
-  "Este computador é modesto: a legenda roda aqui, mas com um modelo leve, que erra mais. A nuvem do Premium erra menos, sobretudo em português e em áudio com barulho.": "هذا الحاسوب متواضع: تعمل الترجمة المصاحبة هنا لكن بنموذج خفيف يخطئ أكثر. سحابة Premium تخطئ أقل، خصوصًا في البرتغالية وفي الصوت الذي فيه ضجيج.",
+  "Este computador é modesto: a legenda roda aqui, mas com um modelo leve, que erra mais. O modelo Preciso pede 8 GB de memória ou um Mac com chip Apple. A nuvem do Premium erra menos, sobretudo em português e em áudio com barulho.": "هذا الحاسوب متواضع: تعمل الترجمة المصاحبة هنا لكن بنموذج خفيف يخطئ أكثر. النموذج الدقيق يحتاج إلى ذاكرة 8 جيجابايت أو جهاز Mac بشريحة Apple. سحابة Premium تخطئ أقل، خصوصًا في البرتغالية وفي الصوت الذي فيه ضجيج.",
   "Funciona, com um modelo leve: mais erros e mais espera.": "يعمل، بنموذج خفيف: أخطاء أكثر وانتظار أطول.",
   "A voz do sistema.": "صوت النظام.",
   "Quase sempre: menos erro e menos espera, sem esquentar o computador.": "في أغلب الأحيان: أخطاء أقل وانتظار أقل، دون تسخين الحاسوب.",
@@ -926,7 +926,7 @@
   "No {planos}, a nuvem por trechos vai até {dia} h por dia.": "في {planos}، تصل السحابة على مقاطع إلى {dia} س في اليوم.",
   "e": "و",
   "O que quer dizer \"no aparelho\"?": "ماذا تعني عبارة \"على جهازك\"؟",
-  "Que a transcrição e a tradução rodam no seu computador ou celular, sem mandar o áudio para fora. É grátis, não tem limite e funciona sem internet. Em aparelho fraco erra mais; no Quest, só o inglês roda no aparelho.": "أن النسخ والترجمة يعملان على حاسوبك أو هاتفك دون إرسال الصوت إلى الخارج. هذا مجاني وبلا حد ويعمل دون إنترنت. على الجهاز الضعيف يخطئ أكثر؛ وعلى Quest تعمل الإنجليزية فقط على الجهاز.",
+  "Que a transcrição e a tradução rodam no seu computador ou celular, sem mandar o áudio para fora. É grátis, não tem limite e funciona sem internet. Com 8 GB de memória ou mais, ou num Mac com chip Apple, o modelo Preciso erra pouco em português e espanhol; em aparelho mais fraco o modelo é leve e erra mais; no Quest, só o inglês roda no aparelho.": "أن النسخ والترجمة يعملان على حاسوبك أو هاتفك دون إرسال الصوت إلى الخارج. هذا مجاني وبلا حد ويعمل دون إنترنت. مع ذاكرة 8 جيجابايت أو أكثر، أو على جهاز Mac بشريحة Apple، يخطئ النموذج الدقيق قليلًا في البرتغالية والإسبانية؛ وعلى الجهاز الأضعف يكون النموذج خفيفًا ويخطئ أكثر؛ وعلى Quest تعمل الإنجليزية فقط على الجهاز.",
   "O que acontece quando as horas de nuvem acabam?": "ماذا يحدث عند انتهاء ساعات السحابة؟",
   "Nada trava. A legenda volta para o aparelho e segue sem limite, e nada é cobrado a mais. As horas voltam no dia 1º. No Quest, a legenda em inglês segue no aparelho; os outros idiomas esperam até lá.": "لا شيء يتوقف. تعود الترجمة إلى جهازك وتستمر بلا حد، ولا يُحسب أي مبلغ إضافي. تعود الساعات في اليوم الأول من الشهر. على Quest تستمر الترجمة بالإنجليزية على الجهاز؛ واللغات الأخرى تنتظر حتى ذلك الحين.",
   "Pode, quando quiser, em Planos › Sua assinatura. O plano vale até o fim do período pago e há 7 dias para desistir com reembolso. O que você gravou continua seu.": "نعم، متى شئت، في الخطط › اشتراكك. تبقى الخطة حتى نهاية الفترة المدفوعة ولديك 7 أيام للتراجع مع استرداد المبلغ. ما سجّلته يبقى لك.",
@@ -1838,5 +1838,9 @@
   "Vale para {serve}; em {nao}, o app escolhe sozinho.": "يعمل مع {serve}؛ أما مع {nao} فيختار التطبيق وحده.",
   "Para os seus idiomas, o equilibrado é o que roda melhor neste aparelho.": "للغاتك، النموذج المتوازن هو الأفضل أداءً على هذا الجهاز.",
   "Termine a captura para apagar.": "أنهِ الالتقاط لتتمكن من الحذف.",
-  "Modelo de transcrição no aparelho, para português e espanhol": "نموذج تفريغ صوتي على الجهاز، للبرتغالية والإسبانية"
+  "Modelo de transcrição no aparelho, para português e espanhol": "نموذج تفريغ صوتي على الجهاز، للبرتغالية والإسبانية",
+  "Você está num computador que roda o modelo Preciso": "أنت على حاسوب يشغّل النموذج الدقيق",
+  "Este computador roda o modelo Preciso: a legenda sai aqui mesmo, sem limite e sem custo, com cerca de 6 erros a cada 100 palavras em português e espanhol. Para estudar inglês, o Grátis já resolve.": "هذا الحاسوب يشغّل النموذج الدقيق: تظهر الترجمة المصاحبة هنا مباشرة، بلا حد وبلا تكلفة، بنحو 6 أخطاء لكل 100 كلمة في البرتغالية والإسبانية. لدراسة الإنجليزية تكفي الخطة المجانية.",
+  "Em tempo real, no aparelho: o modelo Preciso em português e espanhol. Inclusive o som de uma aba.": "في الوقت الفعلي، على الجهاز: النموذج الدقيق للبرتغالية والإسبانية. بما في ذلك صوت علامة تبويب.",
+  "Outros idiomas, áudio com barulho, gíria e jeito de falar.": "لغات أخرى، وصوت فيه ضجيج، وعامية، وطريقة الكلام."
 }

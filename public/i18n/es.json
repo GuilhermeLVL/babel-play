@@ -854,7 +854,7 @@
   "Nuance": "Nuance",
   "Nuvem · {horas} h": "Nube · {horas} h",
   "Texto durante a fala": "Texto mientras se habla",
-  "Para quem está conhecendo, ou tem um computador com placa de vídeo.": "Para quien está conociendo la app, o tiene una computadora con tarjeta gráfica.",
+  "Para quem está conhecendo, ou tem um computador com placa de vídeo, 8 GB de memória ou Mac com chip Apple.": "Para quien está conociendo la app, o tiene una computadora con tarjeta gráfica, 8 GB de memoria o una Mac con chip Apple.",
   "Para o estudante no computador: sem anúncio e com Nuance.": "Para el estudiante en la computadora: sin anuncios y con Nuance.",
   "Para o estudante no computador, com Nuance.": "Para el estudiante en la computadora, con Nuance.",
   "Para quem depende de nuvem: celular, notebook fraco, Quest.": "Para quien depende de la nube: celular, portátil débil, Quest.",
@@ -871,7 +871,7 @@
   "Onde a nuvem ajuda": "Dónde ayuda la nube",
   "Português com menos erro, áudio com barulho, gíria e jeito de falar.": "Portugués con menos errores, audio con ruido, jerga y forma de hablar.",
   "Você está num computador fraco": "Estás en una computadora modesta",
-  "Este computador é modesto: a legenda roda aqui, mas com um modelo leve, que erra mais. A nuvem do Premium erra menos, sobretudo em português e em áudio com barulho.": "Esta computadora es modesta: los subtítulos corren aquí, pero con un modelo ligero, que se equivoca más. La nube del Premium se equivoca menos, sobre todo en portugués y con audio ruidoso.",
+  "Este computador é modesto: a legenda roda aqui, mas com um modelo leve, que erra mais. O modelo Preciso pede 8 GB de memória ou um Mac com chip Apple. A nuvem do Premium erra menos, sobretudo em português e em áudio com barulho.": "Esta computadora es modesta: los subtítulos corren aquí, pero con un modelo ligero, que se equivoca más. El modelo Preciso necesita 8 GB de memoria o una Mac con chip Apple. La nube del Premium se equivoca menos, sobre todo en portugués y con audio ruidoso.",
   "Funciona, com um modelo leve: mais erros e mais espera.": "Funciona, con un modelo ligero: más errores y más espera.",
   "A voz do sistema.": "La voz del sistema.",
   "Quase sempre: menos erro e menos espera, sem esquentar o computador.": "Casi siempre: menos errores y menos espera, sin calentar la computadora.",
@@ -907,7 +907,7 @@
   "No {planos}, a nuvem por trechos vai até {dia} h por dia.": "En {planos}, la nube por tramos llega hasta {dia} h al día.",
   "e": "y",
   "O que quer dizer \"no aparelho\"?": "¿Qué quiere decir \"en el dispositivo\"?",
-  "Que a transcrição e a tradução rodam no seu computador ou celular, sem mandar o áudio para fora. É grátis, não tem limite e funciona sem internet. Em aparelho fraco erra mais; no Quest, só o inglês roda no aparelho.": "Que la transcripción y la traducción corren en tu computadora o celular, sin enviar el audio afuera. Es gratis, no tiene límite y funciona sin internet. En un dispositivo débil se equivoca más; en el Quest, solo el inglés corre en el dispositivo.",
+  "Que a transcrição e a tradução rodam no seu computador ou celular, sem mandar o áudio para fora. É grátis, não tem limite e funciona sem internet. Com 8 GB de memória ou mais, ou num Mac com chip Apple, o modelo Preciso erra pouco em português e espanhol; em aparelho mais fraco o modelo é leve e erra mais; no Quest, só o inglês roda no aparelho.": "Que la transcripción y la traducción corren en tu computadora o celular, sin enviar el audio afuera. Es gratis, no tiene límite y funciona sin internet. Con 8 GB de memoria o más, o en una Mac con chip Apple, el modelo Preciso se equivoca poco en portugués y español; en un dispositivo más débil el modelo es ligero y se equivoca más; en el Quest, solo el inglés corre en el dispositivo.",
   "O que acontece quando as horas de nuvem acabam?": "¿Qué pasa cuando se acaban las horas de nube?",
   "Nada trava. A legenda volta para o aparelho e segue sem limite, e nada é cobrado a mais. As horas voltam no dia 1º. No Quest, a legenda em inglês segue no aparelho; os outros idiomas esperam até lá.": "Nada se traba. Los subtítulos vuelven al dispositivo y siguen sin límite, y no se cobra nada más. Las horas vuelven el día 1. En el Quest, los subtítulos en inglés siguen en el dispositivo; los otros idiomas esperan hasta entonces.",
   "Pode, quando quiser, em Planos › Sua assinatura. O plano vale até o fim do período pago e há 7 dias para desistir com reembolso. O que você gravou continua seu.": "Sí, cuando quieras, en Planes › Tu suscripción. El plan vale hasta el fin del período pagado y hay 7 días para desistir con reembolso. Lo que grabaste sigue siendo tuyo.",
@@ -1717,5 +1717,9 @@
   "Vale para {serve}; em {nao}, o app escolhe sozinho.": "Vale para {serve}; en {nao}, la app elige sola.",
   "Para os seus idiomas, o equilibrado é o que roda melhor neste aparelho.": "Para tus idiomas, el equilibrado es el que mejor funciona en este dispositivo.",
   "Termine a captura para apagar.": "Termina la captura para borrar.",
-  "Modelo de transcrição no aparelho, para português e espanhol": "Modelo de transcripción en el dispositivo, para portugués y español"
+  "Modelo de transcrição no aparelho, para português e espanhol": "Modelo de transcripción en el dispositivo, para portugués y español",
+  "Você está num computador que roda o modelo Preciso": "Estás en una computadora que corre el modelo Preciso",
+  "Este computador roda o modelo Preciso: a legenda sai aqui mesmo, sem limite e sem custo, com cerca de 6 erros a cada 100 palavras em português e espanhol. Para estudar inglês, o Grátis já resolve.": "Esta computadora corre el modelo Preciso: los subtítulos salen aquí mismo, sin límite y sin costo, con cerca de 6 errores cada 100 palabras en portugués y español. Para estudiar inglés, el Gratis ya alcanza.",
+  "Em tempo real, no aparelho: o modelo Preciso em português e espanhol. Inclusive o som de uma aba.": "En tiempo real, en el dispositivo: el modelo Preciso en portugués y español. Incluido el sonido de una pestaña.",
+  "Outros idiomas, áudio com barulho, gíria e jeito de falar.": "Otros idiomas, audio ruidoso, jerga y modo de hablar."
 }

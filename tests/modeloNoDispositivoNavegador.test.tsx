@@ -5,7 +5,7 @@
  * para transcrever. Com `transcricaoNoNavegador`, a linha do Whisper sai, uma linha diz quem
  * transcreve, e os tradutores (que baixam do mesmo jeito) continuam.
  */
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
@@ -37,5 +37,15 @@ describe('ModeloNoDispositivo e o reconhecedor do navegador', () => {
     expect(screen.queryByText('Transcrição (Whisper small)')).toBeNull()
     expect(screen.getByTestId('transcricao-no-navegador').textContent).toMatch(/reconhecimento do navegador/)
     expect(screen.getByText('Tradutor English → Português (opus-mt)')).toBeTruthy()
+  })
+
+  it('"Ver todos os modelos" leva aos Ajustes; sem navegação (gravando), o link some', () => {
+    const ir = vi.fn()
+    render(<ModeloNoDispositivo modelos={MODELOS} nuvem={false} aoVerTodos={ir} aoFechar={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Ver todos os modelos' }))
+    expect(ir).toHaveBeenCalledTimes(1)
+    cleanup()
+    render(<ModeloNoDispositivo modelos={MODELOS} nuvem={false} aoFechar={() => {}} />)
+    expect(screen.queryByRole('button', { name: 'Ver todos os modelos' })).toBeNull()
   })
 })

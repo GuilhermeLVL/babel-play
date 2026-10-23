@@ -79,6 +79,26 @@ export function pontuarBenchmark(
   return { pontuacaoWasm, pontuacaoWebgpu, melhor, medidoEm, duracaoMs };
 }
 
+/**
+ * Os degraus do "Testar a velocidade do aparelho" (tela de modelos), em GFLOP/s deste benchmark.
+ * A CPU decide (o Parakeet, o Moonshine e o Whisper fora da GPU rodam nela); uma GPU forte só sobe
+ * de "bom" para "forte". Referências medidas: Quest 3 = 0,56 na CPU e 49,5 na GPU (01/10/2026);
+ * Mac M5 Pro = 2,94 na CPU (23/10/2026, Node com o mesmo laço). Um notebook comum não foi medido:
+ * os degraus são uma régua para a frase da tela, não decidem a rota.
+ */
+export const NIVEIS_DO_APARELHO = { bom: 1, forte: 2, gpuForte: 100 } as const;
+
+export type NivelDoAparelho = 'leve' | 'bom' | 'forte';
+
+/** A pontuação em uma palavra. `null` sem medida da CPU. Pura. */
+export function nivelDoAparelho(p: PontuacaoDoBenchmark | null): NivelDoAparelho | null {
+  const cpu = p?.pontuacaoWasm;
+  if (typeof cpu !== 'number' || !(cpu > 0)) return null;
+  if (cpu < NIVEIS_DO_APARELHO.bom) return 'leve';
+  if (cpu >= NIVEIS_DO_APARELHO.forte) return 'forte';
+  return (p?.pontuacaoWebgpu ?? 0) >= NIVEIS_DO_APARELHO.gpuForte ? 'forte' : 'bom';
+}
+
 /** O pedaço do `Worker` que a orquestração usa (injetável nos testes). */
 export interface WorkerDoBenchmark {
   onmessage: ((e: MessageEvent<MensagemDoBenchmark>) => void) | null;

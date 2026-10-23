@@ -596,7 +596,7 @@ export default function App() {
                   resumingRecordingId={activeView === 'capture' ? resumingRecordingId : null}
                   recordings={recordings}
                   onRecordingsChange={setRecordings}
-                  onChangeView={navigateTo}
+                  onChangeView={irPeloShell}
                   onEntrar={() => setPedindoLogin(true)}
                   ageProfile={ageProfile}
                 />

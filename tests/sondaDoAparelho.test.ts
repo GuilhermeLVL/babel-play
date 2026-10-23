@@ -435,6 +435,17 @@ describe('sondarEMedir (benchmark preguiçoso) e sondaGuardada', () => {
     expect(medir).toHaveBeenCalledTimes(1)
   })
 
+  it('forcarBenchmark mede de novo mesmo com um benchmark válido, e grava o novo (tela de modelos)', async () => {
+    const armazem = armazemFalso()
+    const novo = { ...bench, pontuacaoWasm: 3, medidoEm: 1_000_500 }
+    const medir = vi.fn().mockResolvedValueOnce(bench).mockResolvedValueOnce(novo)
+    await sondarEMedir(dep({ armazem, medirBenchmark: medir }))
+    const s = await sondarEMedir(dep({ armazem, medirBenchmark: medir }), undefined, { forcarBenchmark: true })
+    expect(medir).toHaveBeenCalledTimes(2)
+    expect(s.benchmark).toEqual(novo)
+    expect(lerRegistro(armazem)!.benchmark).toEqual(novo)
+  })
+
   it('benchmark vencido (30 dias) é refeito; abortado não mede', async () => {
     expect(benchmarkValido(bench, 1_000_000 + TRINTA_DIAS_MS)).toBe(false)
     expect(benchmarkValido(bench, 1_000_001)).toBe(true)

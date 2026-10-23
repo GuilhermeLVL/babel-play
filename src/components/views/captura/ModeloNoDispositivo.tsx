@@ -1,4 +1,4 @@
-import { Check, Cpu, Download, RefreshCw, Trash2, TriangleAlert } from 'lucide-react';
+import { Check, ChevronRight, Cpu, Download, RefreshCw, Trash2, TriangleAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { revisaoFixaDoModelo } from '../../../gateway/adapters/bergamotModelo';
@@ -49,6 +49,7 @@ export default function ModeloNoDispositivo({
   selo,
   nuvem,
   transcricaoNoNavegador = false,
+  aoVerTodos,
   aoFechar,
 }: {
   modelos: ModeloDaCaptura[];
@@ -67,6 +68,8 @@ export default function ModeloNoDispositivo({
    * (e do "Liberar espaço"); os tradutores continuam, porque baixam do mesmo jeito.
    */
   transcricaoNoNavegador?: boolean;
+  /** Leva a Ajustes → Processamento ("Modelos no aparelho"). Ausente (gravando, sem navegação) = sem o link. */
+  aoVerTodos?: () => void;
   aoFechar: () => void;
 }) {
   const modelos = transcricaoNoNavegador ? todos.filter((m) => !m.transcricao) : todos;
@@ -242,6 +245,16 @@ export default function ModeloNoDispositivo({
             Total no disco: <b style={{ color: 'var(--ink)' }}>{mb(total)} MB</b>.{' '}
             {total > 0 ? 'Funciona sem internet.' : 'Nada baixado ainda: o download acontece na primeira captura.'}
           </p>
+        )}
+        {aoVerTodos && (
+          <button
+            type="button"
+            className="btn btn-outline peq"
+            style={{ alignSelf: 'flex-start' }}
+            onClick={aoVerTodos}
+          >
+            <ChevronRight aria-hidden /> {t('Ver todos os modelos')}
+          </button>
         )}
         {texto ? (
           /* O SELO DA FALA: a mesma linha, com palavras claras. O rótulo técnico da rota fica no

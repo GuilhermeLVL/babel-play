@@ -1,0 +1,117 @@
+/*
+ * MODELOS NO APARELHO (Ajustes → Processamento). As peças são as de Ajustes (`.q-secao`, `.q-ajuste`,
+ * `.q-interruptor`, `.q-ctl`, `.q-tag`, de `quest.css`); aqui fica só a lista de modelos, a barra do
+ * espaço/download e o rodapé de créditos. Só tokens do tema (claro e escuro), alvos de 44 px ou mais,
+ * e nada que role para o lado a 375 px.
+ */
+.mna {
+  min-width: 0;
+}
+.mna-titulo {
+  margin: 18px 0 10px;
+  font: 800 18px/1.25 var(--font-display, inherit);
+  color: var(--ink);
+}
+.mna-lista {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mna-item > :first-child {
+  min-width: 0;
+}
+.mna-cabeca {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+.mna-cabeca b {
+  display: inline;
+}
+/* O selo do peso: ícone + texto, nunca só a cor. */
+.mna-peso {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.mna-peso svg {
+  width: 16px;
+  height: 16px;
+}
+.mna-peso[data-peso='pesado'] {
+  background: color-mix(in srgb, var(--warn, var(--q-acento)) 22%, var(--surface));
+}
+.mna-item small.mna-situacao {
+  color: var(--ink);
+}
+.mna-item small.mna-motivo {
+  color: var(--error-ink, var(--ink));
+}
+.mna-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.mna-acoes .q-ctl,
+.mna-espaco .q-ctl {
+  min-height: 48px;
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+.mna-acoes .q-ctl[aria-pressed='true'] {
+  border-color: var(--q-acento, var(--accent));
+  background: var(--q-suave, var(--accent-soft));
+}
+.mna-nota {
+  font: 600 15px/1.35 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.mna-perigo {
+  color: var(--error-ink, var(--ink));
+}
+.mna-barra {
+  margin-top: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+.mna-barra > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--q-acento, var(--accent));
+  transition: width 200ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mna-barra > span {
+    transition: none;
+  }
+}
+.mna-vazio,
+.mna-creditos {
+  margin: 0;
+  font: 600 15px/1.45 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.mna-creditos {
+  margin-top: 16px;
+  font-size: 14px;
+}
+/* Celular: as ações vão para baixo do texto e ocupam a linha. */
+@media (max-width: 520px) {
+  .mna-item > :first-child {
+    flex-basis: 100%;
+  }
+  .mna-acoes {
+    width: 100%;
+  }
+  .mna-acoes .q-ctl {
+    flex: 1 1 auto;
+    white-space: normal;
+  }
+}

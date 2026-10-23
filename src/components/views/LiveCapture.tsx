@@ -136,6 +136,7 @@ import {
 import { descartarRascunho, tentarDeNovo } from '../../lib/captura/trabalhoDeSalvar';
 import { criarRelogioDaSessao, criarTraducaoDaFala } from '../../lib/captura/traducaoDaFala';
 import { modoDeTraducao, type PedidoSobDemanda } from '../../lib/captura/traducaoSobDemanda';
+import { segurarTravaDaGravacao } from '../../lib/captura/travaDaGravacao';
 import { usePalavrasConhecidas } from '../../lib/captura/usePalavrasConhecidas';
 import { usePreparoDoInicio } from '../../lib/captura/usePreparoDoInicio';
 import { useSemRede } from '../../lib/captura/useSemRede';
@@ -2467,6 +2468,9 @@ export default function LiveCapture({
   useEffect(() => {
     if (isRecording) downloadDoPrecisoRef.current?.abort();
   }, [isRecording]);
+  /* Enquanto grava, a trava de gravação fica segura: a tela "Modelos no aparelho" (de qualquer aba) não
+     baixa o Parakeet por cima desta captura. */
+  useEffect(() => (isRecording ? segurarTravaDaGravacao() : undefined), [isRecording]);
   useEffect(() => () => downloadDoPrecisoRef.current?.abort(), []);
   const baixarOPreciso = useCallback(() => {
     setDownloadDoPreciso({ progresso: 0, falhou: false });
@@ -3853,6 +3857,14 @@ export default function LiveCapture({
           modelos={modelosDaCaptura}
           nuvem={getProviderMode() === 'cloud'}
           transcricaoNoNavegador={transcricaoSoNoNavegador}
+          aoVerTodos={
+            onChangeView && !isRecording
+              ? () => {
+                  setModeloAberto(false);
+                  onChangeView('settings', { aba: 'contas' });
+                }
+              : undefined
+          }
           aoFechar={() => setModeloAberto(false)}
         />
       )}

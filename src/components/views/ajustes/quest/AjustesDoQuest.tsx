@@ -32,6 +32,7 @@ import AbasDoQuest, { type AbaDoQuest } from './AbasDoQuest';
 import { provarComSom, rotuloDaVibracao, textoDaProva } from './vibracao';
 
 const PainelDaNuance = lazyComRecarga(() => import('../PainelDaNuance'));
+const ModelosNoAparelho = lazyComRecarga(() => import('../ModelosNoAparelho'));
 
 /**
  * AJUSTES NO META QUEST — a mesma tela de `Settings.tsx`, no desenho do headset.
@@ -380,6 +381,10 @@ export default function AjustesDoQuest({
       {/* ═════════════ PROCESSAMENTO ═════════════ */}
       <PainelDeAba id="contas" ativo={aba} className="q-aju-painel">
         <AiEnginePanel activeId={perfilDeIa} onSelect={aoMudarPerfilDeIa} bloqueados={perfisBloqueados} />
+        {/* Os modelos guardados neste navegador e a escolha do de transcrição (o idioma é o do que se ouve). */}
+        <Suspense fallback={<div className="q-aju-espera" aria-hidden />}>
+          <ModelosNoAparelho idioma={idiomas.studying} />
+        </Suspense>
       </PainelDeAba>
 
       {/* ═════════════ PRIVACIDADE ═════════════ */}

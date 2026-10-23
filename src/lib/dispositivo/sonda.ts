@@ -446,6 +446,11 @@ export interface OpcoesDaSonda {
    * a pedido. Um benchmark já guardado continua valendo.
    */
   semBenchmark?: boolean;
+  /**
+   * Mede de novo mesmo com um benchmark válido guardado: o "Testar a velocidade do aparelho" da tela de
+   * modelos, a pedido da pessoa. O resultado substitui o guardado.
+   */
+  forcarBenchmark?: boolean;
 }
 
 /**
@@ -459,7 +464,8 @@ export async function sondarEMedir(
 ): Promise<SondaDoAparelho> {
   const d = resolverDependencias(dep);
   const sonda = await obterSondaDoAparelho(dep);
-  if (benchmarkValido(sonda.benchmark, d.agora()) || sinal?.aborted || opcoes.semBenchmark) return sonda;
+  if (sinal?.aborted || opcoes.semBenchmark) return sonda;
+  if (!opcoes.forcarBenchmark && benchmarkValido(sonda.benchmark, d.agora())) return sonda;
   const benchmark = await d.medirBenchmark(sinal).catch((erro: unknown) => {
     console.warn('[sonda] benchmark falhou; o aparelho fica sem pontuação até a próxima', erro);
     return null;

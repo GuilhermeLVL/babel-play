@@ -9,6 +9,8 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   medirBenchmark,
   type MensagemDoBenchmark,
+  NIVEIS_DO_APARELHO,
+  nivelDoAparelho,
   pontuarBenchmark,
   type WorkerDoBenchmark,
 } from '../src/lib/dispositivo/benchmark'
@@ -172,5 +174,28 @@ describe('medirBenchmark (orquestração no thread principal)', () => {
         },
       }),
     ).toBeNull()
+  })
+})
+
+describe('nivelDoAparelho (o "Testar a velocidade" da tela de modelos)', () => {
+  const p = (pontuacaoWasm: number | null, pontuacaoWebgpu: number | null) => ({
+    pontuacaoWasm,
+    pontuacaoWebgpu,
+    melhor: null,
+    medidoEm: 0,
+    duracaoMs: 1,
+  })
+  it('sem medida, sem nível', () => {
+    expect(nivelDoAparelho(p(null, null))).toBeNull()
+    expect(nivelDoAparelho(null)).toBeNull()
+  })
+  it('pela CPU: abaixo do "bom" é leve; do "forte" para cima é forte', () => {
+    expect(nivelDoAparelho(p(NIVEIS_DO_APARELHO.bom - 0.01, null))).toBe('leve')
+    expect(nivelDoAparelho(p(NIVEIS_DO_APARELHO.bom, null))).toBe('bom')
+    expect(nivelDoAparelho(p(NIVEIS_DO_APARELHO.forte, null))).toBe('forte')
+  })
+  it('uma GPU forte sobe um aparelho de CPU média, mas não salva uma CPU leve', () => {
+    expect(nivelDoAparelho(p(NIVEIS_DO_APARELHO.bom, NIVEIS_DO_APARELHO.gpuForte))).toBe('forte')
+    expect(nivelDoAparelho(p(NIVEIS_DO_APARELHO.bom / 2, NIVEIS_DO_APARELHO.gpuForte))).toBe('leve')
   })
 })

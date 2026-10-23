@@ -43,6 +43,7 @@ export function subirServidor(porta) {
     const url = decodeURIComponent(new URL(req.url, 'http://x').pathname)
     let arquivo = null
     if (url === '/' || url === '/pagina.html') arquivo = path.join(AQUI, 'pagina.html')
+    else if (url === '/chrome-local.html') arquivo = path.join(AQUI, 'chrome-local.html')
     else
       for (const [prefixo, raiz] of Object.entries(MONTAGENS)) {
         if (!url.startsWith(prefixo)) continue

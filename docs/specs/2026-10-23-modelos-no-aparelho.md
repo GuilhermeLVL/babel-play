@@ -1,6 +1,6 @@
 # Modelos no aparelho: qualidade no Grátis, leve em qualquer PC, e uma tela para escolher
 
-Status: em revisão · Data: 2026-10-23 · Autor: Guilherme (com Claude)
+Status: aprovado · Data: 2026-10-23 · Autor: Guilherme (com Claude)
 
 ## Problema
 
@@ -150,8 +150,23 @@ memória com o Parakeet carregado junto do tradutor (aí ele fica só no "precis
 5. **Camada leve do Chrome (1 dia, se a medição do passo 1 for boa)**.
    Cada passo vai para o staging e é verificado antes do próximo.
 
-## Perguntas em aberto
+## Decisões do dono (23/10/2026)
 
-1. Parakeet como padrão do automático em pt/es (legenda só no fim da frase, melhor texto) ou só como "Preciso" escolhido na tela?
-2. Ligar também no Safari do Mac (medido no WebKit, não no Safari do sistema)?
-3. Você consegue testar num notebook comum (8 GB, sem placa de vídeo) antes de ligarmos para todos?
+1. O Parakeet é o **padrão do automático** em pt/es onde couber; o Whisper fica como reserva e como a
+   opção "com texto provisório" na tela.
+2. Liga **também no Safari do Mac** (adaptador WebGPU `apple`); o dono confirma no Safari do sistema pelo staging.
+3. Não há notebook comum para testar: liga com a trava de memória (≥ 8 GB), o tradutor carregando
+   depois e o regulador como proteção (troca para o Whisper base em pressão/lentidão), e acompanhamos
+   pelos erros reportados.
+
+## Decisões de implementação (plano `docs/superpowers/plans/2026-10-23-modelos-no-aparelho.md`)
+
+- "Enquanto baixa, Whisper base" virou: no automático o Parakeet só entra com a cópia completa no
+  aparelho; até lá a captura sai pelo Whisper e oferece "Baixar o modelo preciso (672 MB) para as
+  próximas capturas", em segundo plano. Ninguém espera 672 MB para começar. Escolher o "Preciso" na
+  mão baixa na hora, com a confirmação da folha de início.
+- "Perguntar antes de baixar acima de 100 MB" virou regra fixa: no computador a folha de início confirma
+  downloads acima de 300 MB (no celular continua 100 MB). Sem ajuste na tela.
+- Safari do Mac: entra pelo adaptador WebGPU `apple`, com os modelos carregando um de cada vez e uma
+  sentinela de queda (aba que morre com o Parakeet carregado volta ao Whisper na abertura seguinte),
+  porque o WebKit já chegou a 4,2 GB no processo da página com o Whisper (correção F de 22/10/2026).

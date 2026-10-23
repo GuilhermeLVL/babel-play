@@ -85,10 +85,6 @@ const TELAS: Tela[] = [
  */
 const VIOLAM_HOJE: Record<string, { projetos: string[]; violacao: string }> = {
   /* A contagem da aba (`.q-aba .n`, `opacity: 0.8`) sobre a pílula das abas (`--surface-sunken`). */
-  Cartões: {
-    projetos: ['desktop-1280'],
-    violacao: 'color-contrast: .q-aba .n (contagem "18" da aba, 14px 700) #777368 sobre #ddd8ca = 3.32 (pede 4.5)',
-  },
   /* O roxo das páginas legais (`--accent: #7c5cff`) no título pequeno e nos links. */
   'Política de privacidade': {
     projetos: ['desktop-1280', 'mobile-375'],

@@ -66,8 +66,9 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 44px; /* alvo de toque (WCAG 2.5.8): 30 px reprovava no celular */
+  height: 44px;
+  margin: -7px -4px -7px 0;
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -81,12 +82,11 @@
   width: 16px;
   height: 16px;
 }
-/* No celular o cartão vai para BAIXO, acima da barra de cinco (68 px + 12 px): no topo ele cobria a
-   barra de ferramentas da tela por 6 s (os Ajustes da captura, os chips de idioma). */
+/* No celular o cartão ocupa a largura, no TOPO. Embaixo (acima da barra de cinco) ele esbarrava no
+   botão flutuante do iChat e o X ficava parcialmente coberto (axe `target-size`, 22/10/2026). No topo
+   ele cobre a barra de ferramentas da tela por 6 s, como uma notificação do sistema; o X fecha na hora. */
 @media (max-width: 720px) {
   .novidade-discreta {
-    top: auto;
-    bottom: calc(92px + env(safe-area-inset-bottom, 0px));
     left: 12px;
     right: 12px;
     max-width: none;

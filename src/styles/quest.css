@@ -922,8 +922,8 @@ button.q-chip[aria-pressed='true'] {
   height: 20px;
 }
 .q-aba .n {
+  color: var(--ink); /* 22/10/2026: contraste da contagem */
   font: 700 14px/1 var(--font-mono, monospace);
-  opacity: 0.8;
 }
 .q-aba:hover {
   color: var(--ink);

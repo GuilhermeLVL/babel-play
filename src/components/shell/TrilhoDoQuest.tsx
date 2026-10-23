@@ -32,7 +32,7 @@ import {
   VolumeX,
   X,
 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { PLAN_MATRIX } from '../../core/planos';
 import { tetoAnonimoDa } from '../../core/tetoAnonimo';
@@ -58,7 +58,7 @@ import { instalarOrigemDoToque } from '../../lib/movimento/revelar';
 import { marcarLida, marcarTodasLidas, naoLidas, quando } from '../../lib/notificacoes';
 import { instalarAgua } from '../../lib/polimento/agua';
 import { instalarPolimento } from '../../lib/polimento/base';
-import { instalarCelular, NO_MAIS_NO_CELULAR, useBarraDeCinco } from '../../lib/polimento/celular';
+import { instalarCelular, NO_MAIS_NO_CELULAR, useBarraDeCinco, useJanelaEstreita } from '../../lib/polimento/celular';
 import { instalarCursor } from '../../lib/polimento/cursor';
 import { instalarDialogos } from '../../lib/polimento/dialogos';
 import { instalarFolhas } from '../../lib/polimento/folha';
@@ -142,6 +142,71 @@ interface TrilhoDoQuestProps {
 const teclaDaBusca = (): string =>
   typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform ?? '') ? '⌘ K' : 'Ctrl K';
 
+/** O atalho dos Ajustes como este teclado o escreve. */
+const teclaDosAjustes = (): string =>
+  typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform ?? '') ? '⌘,' : 'Ctrl+,';
+
+/**
+ * COMPACTO POR MEDIDA, NÃO POR NÚMERO (23/10/2026). Os itens ficam só com o ícone quando NÃO CABEM na altura
+ * do grupo de cima (`scrollHeight > clientHeight`), seja qual for a janela, o zoom ou o tamanho da fonte.
+ * HISTERESE: ao compactar guarda-se a altura do trilho que o modo cheio pediria; só se volta ao cheio com
+ * folga de 24 px acima dela, para o trilho não piscar entre os dois modos quando a janela está no limite.
+ */
+const FOLGA_DO_CHEIO = 24;
+function useTrilhoCompacto(
+  trilho: React.RefObject<HTMLElement | null>,
+  topo: React.RefObject<HTMLElement | null>,
+  ativo: boolean,
+): boolean {
+  const [compacto, setCompacto] = useState(false);
+  const pedido = useRef(0);
+  useLayoutEffect(() => {
+    const nav = trilho.current;
+    const grupo = topo.current;
+    if (!ativo || !nav || !grupo) {
+      setCompacto(false);
+      return;
+    }
+    const avaliar = () => {
+      const faltam = grupo.scrollHeight - grupo.clientHeight;
+      setCompacto((atual) => {
+        if (!atual) {
+          if (faltam <= 1) return false;
+          pedido.current = nav.clientHeight + faltam;
+          return true;
+        }
+        return nav.clientHeight < pedido.current + FOLGA_DO_CHEIO;
+      });
+    };
+    /* O sinal de rolagem (degradê no pé, sombra no alto) acompanha a posição do grupo de cima. */
+    const marcarRolagem = () => {
+      const marcas = [
+        grupo.scrollTop > 2 ? 'cima' : '',
+        grupo.scrollHeight - grupo.clientHeight - grupo.scrollTop > 2 ? 'baixo' : '',
+      ].filter(Boolean);
+      if (marcas.length) nav.dataset.rola = marcas.join(' ');
+      else delete nav.dataset.rola;
+    };
+    const aoMedir = () => {
+      avaliar();
+      marcarRolagem();
+    };
+    aoMedir();
+    grupo.addEventListener('scroll', marcarRolagem, { passive: true });
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(aoMedir);
+    ro?.observe(nav);
+    ro?.observe(grupo);
+    /* Os itens mudam de altura ao compactar sem que o grupo mude de caixa: observa-os também. */
+    for (const filho of Array.from(grupo.children)) ro?.observe(filho);
+    return () => {
+      ro?.disconnect();
+      grupo.removeEventListener('scroll', marcarRolagem);
+      delete nav.dataset.rola;
+    };
+  }, [trilho, topo, ativo]);
+  return ativo && compacto;
+}
+
 /** A frase da entrada "Planos e Premium": as duas do protótipo, com os dias que de fato restam do teste. */
 const fraseDoPlano = (): string => {
   const { plan, teste } = getEntitlements();
@@ -190,6 +255,12 @@ export default function TrilhoDoQuest({
      posição: `celular.css`); Intérprete, Biblioteca, Progresso e Planos moram no "Mais" e em cartões do
      Início, e a busca fica no "Mais". */
   const cinco = useBarraDeCinco();
+  /* ATÉ 720 PX O TRILHO É UMA BARRA EM LINHA (sem grupos que rolam); acima, uma coluna: o grupo de cima
+     rola e o pé (Buscar, Ajustes, Mais) tem altura própria, sem cobrir ninguém. */
+  const lateral = !useJanelaEstreita();
+  const trilhoRef = useRef<HTMLElement>(null);
+  const topoRef = useRef<HTMLDivElement>(null);
+  const compacto = useTrilhoCompacto(trilhoRef, topoRef, lateral);
   const buscaNoTrilho = !cinco && !!aoBuscar && (temTeclado || !headset);
   const [planoDito, setPlanoDito] = useState(estadoDoPlano);
   useEffect(() => onPlanChange(() => setPlanoDito(estadoDoPlano())), []);
@@ -330,89 +401,142 @@ export default function TrilhoDoQuest({
   const proximaVibracao = () =>
     guardarVibracaoDoQuest(VIBRACOES_DO_QUEST[(VIBRACOES_DO_QUEST.indexOf(vibracao) + 1) % VIBRACOES_DO_QUEST.length]);
 
+  const itensDoTopo = principais.map((item) => {
+    const Icone = item.icon;
+    const rotulo = navLabel(item, ageProfile, true);
+    const marcado = activeView === item.id;
+    const comEstado = item.id === 'planos' && !cinco;
+    return (
+      <button
+        key={item.id}
+        type="button"
+        className="q-item"
+        /* A camada de polimento acha o destino por aqui (a pílula responde no toque). */
+        data-px-rota={item.id}
+        onClick={() => ir(item.id)}
+        /* O pedaço da tela é pedido já no toque (e no foco do teclado), antes de o clique terminar. */
+        onPointerDown={() => pedir(item.id)}
+        onFocus={() => pedir(item.id, true)}
+        aria-current={marcado ? 'page' : undefined}
+        /* O nome não depende do rótulo visível: na barra do celular o de Capturar some (`display: none`). */
+        aria-label={rotulo}
+        aria-describedby={comEstado ? 'q-estado-do-plano' : undefined}
+      >
+        <Icone aria-hidden />
+        <span>{rotulo}</span>
+        {comEstado && (
+          <small className="q-estado" id="q-estado-do-plano">
+            {planoDito}
+          </small>
+        )}
+        {/* O número do dia: some quando está em dia (`ctSelo`, `cartoes3.js:61-65`). */}
+        {item.id === 'cartoes' && !!cartoesHoje && cartoesHoje > 0 && (
+          <i
+            className="q-contagem ct-selo-do-dia"
+            /* O anel que pulsa cresce 10 px para cada lado: a camada dele precisa do tamanho do selo. */
+            ref={medirOPulso}
+            aria-label={tp(cartoesHoje, '{n} cartão para hoje', '{n} cartões para hoje')}
+          >
+            {cartoesHoje > 99 ? '99+' : cartoesHoje}
+          </i>
+        )}
+      </button>
+    );
+  });
+
+  {
+    /* NO COMPUTADOR: a busca a um clique, com o atalho escrito (o rodapé do menu de sempre a trazia).
+        Ela e o "Mais" ficam juntos no pé do trilho; com a janela estreita sobra só o ícone. */
+  }
+  const botaoDeBusca = buscaNoTrilho && (
+    <button
+      type="button"
+      className="q-item q-busca-botao"
+      onClick={() => aoBuscar?.()}
+      aria-label={temTeclado ? t('Buscar gravação, palavra ou tela (Ctrl+K)') : t('Buscar')}
+      title={temTeclado ? t('Buscar gravação, palavra ou tela (Ctrl+K)') : undefined}
+      aria-keyshortcuts={temTeclado ? 'Control+K Meta+K' : undefined}
+      data-testid="busca-no-trilho"
+    >
+      <Search aria-hidden />
+      <span>{t('Buscar')}</span>
+      {temTeclado && (
+        <span className="q-tecla" aria-hidden>
+          {teclaDaBusca()}
+        </span>
+      )}
+    </button>
+  );
+
+  /* AJUSTES À MÃO (23/10/2026): no pé do trilho do computador e do tablet, entre a busca e o "Mais", com
+     o atalho no `title`. Na barra de cinco ele continua no "Mais" (a barra não tem lugar). */
+  const botaoAjustes = lateral && (
+    <button
+      type="button"
+      className="q-item q-ajustes-botao"
+      data-px-rota="settings"
+      onClick={() => ir('settings')}
+      onPointerDown={() => pedir('settings')}
+      onFocus={() => pedir('settings', true)}
+      aria-current={activeView === 'settings' ? 'page' : undefined}
+      aria-label={t('Ajustes')}
+      aria-keyshortcuts="Control+, Meta+,"
+      title={temTeclado || !headset ? t('Ajustes') + ' (' + teclaDosAjustes() + ')' : t('Ajustes')}
+      data-testid="ajustes-no-trilho"
+    >
+      <Settings aria-hidden />
+      <span>{t('Ajustes')}</span>
+    </button>
+  );
+
+  const botaoMais = (
+    <button
+      type="button"
+      className="q-item q-mais-botao"
+      aria-haspopup="dialog"
+      aria-expanded={maisAberto}
+      aria-current={foraDoTrilho && !(lateral && activeView === 'settings') ? 'page' : undefined}
+      onClick={() => setMaisAberto((v) => !v)}
+    >
+      <Ellipsis aria-hidden />
+      <span>{t('Mais')}</span>
+      {novos > 0 && (
+        <i className="q-contagem" ref={medirOPulso} aria-label={t('{n} não lidas', { n: novos })}>
+          {novos}
+        </i>
+      )}
+    </button>
+  );
+
   return (
     <>
-      <nav className="q-trilho" data-shell="trilho-do-quest" aria-label={t('Navegação principal')}>
+      <nav
+        ref={trilhoRef}
+        className="q-trilho"
+        data-shell="trilho-do-quest"
+        data-compacto={compacto ? 'true' : undefined}
+        aria-label={t('Navegação principal')}
+      >
         <MarcaBabel className="q-logo" />
-        {principais.map((item) => {
-          const Icone = item.icon;
-          const rotulo = navLabel(item, ageProfile, true);
-          const marcado = activeView === item.id;
-          const comEstado = item.id === 'planos' && !cinco;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              className="q-item"
-              /* A camada de polimento acha o destino por aqui (a pílula responde no toque). */
-              data-px-rota={item.id}
-              onClick={() => ir(item.id)}
-              /* O pedaço da tela é pedido já no toque (e no foco do teclado), antes de o clique terminar. */
-              onPointerDown={() => pedir(item.id)}
-              onFocus={() => pedir(item.id, true)}
-              aria-current={marcado ? 'page' : undefined}
-              /* O nome não depende do rótulo visível: na barra do celular o de Capturar some (`display: none`). */
-              aria-label={rotulo}
-              aria-describedby={comEstado ? 'q-estado-do-plano' : undefined}
-            >
-              <Icone aria-hidden />
-              <span>{rotulo}</span>
-              {comEstado && (
-                <small className="q-estado" id="q-estado-do-plano">
-                  {planoDito}
-                </small>
-              )}
-              {/* O número do dia: some quando está em dia (`ctSelo`, `cartoes3.js:61-65`). */}
-              {item.id === 'cartoes' && !!cartoesHoje && cartoesHoje > 0 && (
-                <i
-                  className="q-contagem ct-selo-do-dia"
-                  /* O anel que pulsa cresce 10 px para cada lado: a camada dele precisa do tamanho do selo. */
-                  ref={medirOPulso}
-                  aria-label={tp(cartoesHoje, '{n} cartão para hoje', '{n} cartões para hoje')}
-                >
-                  {cartoesHoje > 99 ? '99+' : cartoesHoje}
-                </i>
-              )}
-            </button>
-          );
-        })}
-        {/* NO COMPUTADOR: a busca a um clique, com o atalho escrito (o rodapé do menu de sempre a trazia).
-            Ela e o "Mais" ficam juntos no pé do trilho; com a janela estreita sobra só o ícone. */}
-        {buscaNoTrilho && (
-          <button
-            type="button"
-            className="q-item q-busca-botao"
-            onClick={() => aoBuscar?.()}
-            aria-label={temTeclado ? t('Buscar gravação, palavra ou tela (Ctrl+K)') : t('Buscar')}
-            title={temTeclado ? t('Buscar gravação, palavra ou tela (Ctrl+K)') : undefined}
-            aria-keyshortcuts={temTeclado ? 'Control+K Meta+K' : undefined}
-            data-testid="busca-no-trilho"
-          >
-            <Search aria-hidden />
-            <span>{t('Buscar')}</span>
-            {temTeclado && (
-              <span className="q-tecla" aria-hidden>
-                {teclaDaBusca()}
-              </span>
-            )}
-          </button>
+        {lateral ? (
+          <>
+            {/* O GRUPO DE CIMA rola por baixo do pé (nunca o contrário): o pé tem altura própria. */}
+            <div className="q-trilho-topo" ref={topoRef}>
+              {itensDoTopo}
+            </div>
+            <div className="q-trilho-pe">
+              {botaoDeBusca}
+              {botaoAjustes}
+              {botaoMais}
+            </div>
+          </>
+        ) : (
+          <>
+            {itensDoTopo}
+            {botaoDeBusca}
+            {botaoMais}
+          </>
         )}
-        <button
-          type="button"
-          className="q-item q-mais-botao"
-          aria-haspopup="dialog"
-          aria-expanded={maisAberto}
-          aria-current={foraDoTrilho ? 'page' : undefined}
-          onClick={() => setMaisAberto((v) => !v)}
-        >
-          <Ellipsis aria-hidden />
-          <span>{t('Mais')}</span>
-          {novos > 0 && (
-            <i className="q-contagem" ref={medirOPulso} aria-label={t('{n} não lidas', { n: novos })}>
-              {novos}
-            </i>
-          )}
-        </button>
       </nav>
 
       {maisAberto && (

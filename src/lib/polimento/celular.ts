@@ -36,6 +36,17 @@ function assinar(aoMudar: () => void): () => void {
   };
 }
 
+function assinarLargura(aoMudar: () => void): () => void {
+  const mq = window.matchMedia?.(CORTE);
+  mq?.addEventListener?.('change', aoMudar);
+  return () => mq?.removeEventListener?.('change', aoMudar);
+}
+
+/** A janela está na largura de celular (até 720 px), com a camada de polimento ligada ou não? */
+export function useJanelaEstreita(): boolean {
+  return useSyncExternalStore(assinarLargura, celular, () => false);
+}
+
 /** `barraDeCinco()` para componentes: muda ao girar o aparelho, encolher a janela ou desligar a camada. */
 export function useBarraDeCinco(): boolean {
   return useSyncExternalStore(assinar, barraDeCinco, () => false);

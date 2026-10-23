@@ -93,7 +93,9 @@ const montar = (activeView = 'hub', extra: Record<string, unknown> = {}) => {
   )
   return { ir, aoBuscar, ...r }
 }
-const botoes = (c: HTMLElement) => [...c.querySelectorAll<HTMLElement>('.q-trilho > button.q-item')]
+/* Descendente, não filho direto: acima de 720 px os botões moram nos grupos `.q-trilho-topo`/`.q-trilho-pe`
+   (23/10/2026); na barra de cinco continuam filhos diretos do trilho. */
+const botoes = (c: HTMLElement) => [...c.querySelectorAll<HTMLElement>('.q-trilho button.q-item')]
 
 describe('a barra de cinco destinos', () => {
   it('o trilho do celular tem cinco botões, na ordem do DOM que `celular.css` conta, com o "Mais" em quinto', () => {
@@ -191,6 +193,12 @@ describe('a barra de cinco destinos', () => {
     for (const repetido of ['Biblioteca', 'Intérprete', 'Progresso', 'Planos'])
       expect(ladrilhos).not.toContain(repetido)
     expect(ladrilhos.slice(0, 2)).toEqual(['Personalizar', 'Ajustes'])
+  })
+
+  it('na barra de cinco não há botão Ajustes (fica no "Mais") e, em Ajustes, o "Mais" é o marcado', () => {
+    const { container } = montar('settings')
+    expect(container.querySelector('[data-testid="ajustes-no-trilho"]')).toBeNull()
+    expect(container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Mais')
   })
 
   it('girar o aparelho troca de uma para a outra sem recarregar', () => {

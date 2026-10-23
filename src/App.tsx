@@ -312,6 +312,16 @@ export default function App() {
     }
     navigateTo(view, data);
   };
+  /* ⌘, / Ctrl+, abre os Ajustes de qualquer tela (o atalho que os apps de computador têm). */
+  useEffect(() => {
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (e.key !== ',' || !(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey || e.defaultPrevented) return;
+      e.preventDefault();
+      navigateTo('settings');
+    };
+    window.addEventListener('keydown', aoTeclar);
+    return () => window.removeEventListener('keydown', aoTeclar);
+  }, [navigateTo]);
 
   /**
    * `shouldRedirect=false` = "salvar e continuar na tela" (o usuário segue capturando).

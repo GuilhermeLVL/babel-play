@@ -493,6 +493,8 @@ export function instalarTelas(): () => void {
   /* Borda de rolagem: o degradê aparece depois de 6 px (`prototipo.js:266`, `polimento.css:195-208`). */
   const aoRolar = (e: Event) => {
     const alvo = e.target;
+    /* O grupo de cima do trilho rolou (janela baixa): a pílula, que mora no trilho, acompanha o item. */
+    if (alvo instanceof HTMLElement && alvo.matches('.q-trilho-topo')) requestAnimationFrame(reposicionar);
     if (!(alvo instanceof HTMLElement) || !alvo.matches('.q-palco, .rolagem')) return;
     alvo.closest('main')?.toggleAttribute('data-px-rolou', alvo.scrollTop > 6);
   };

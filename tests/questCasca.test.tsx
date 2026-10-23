@@ -4,7 +4,7 @@
  * encerrar sem digitação e o resumo da sessão. Só apresentação: cada teste confere o que aparece e para
  * onde cada toque leva.
  */
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -78,6 +78,7 @@ describe('TrilhoDoQuest', () => {
       'Biblioteca',
       'Progresso',
       'Planos',
+      'Ajustes',
       'Mais',
     ])
     expect(container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Jogar')
@@ -137,7 +138,8 @@ describe('TrilhoDoQuest', () => {
     const ladrilhos = [...painel.querySelectorAll('.q-grade .q-tile b')].map((b) => b.textContent)
     expect(ladrilhos.slice(0, 4)).toEqual(['Personalizar', 'Ajustes', 'Seu perfil', 'Ajuda e suporte'])
     expect(ladrilhos.indexOf('Sobre')).toBeGreaterThan(ladrilhos.indexOf('Ajuda e suporte'))
-    fireEvent.click(screen.getByRole('button', { name: 'Ajustes' }))
+    /* Ajustes também mora no pé do trilho (23/10/2026): o do painel é o do `dialog`. */
+    fireEvent.click(within(painel).getByRole('button', { name: 'Ajustes' }))
     expect(ir).toHaveBeenCalledWith('settings')
     expect(screen.queryByRole('dialog')).toBeNull()
   })
@@ -165,6 +167,7 @@ describe('TrilhoDoQuest', () => {
       'Biblioteca',
       'Progresso',
       'Planos',
+      'Ajustes',
       'Mais',
     ])
     fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
@@ -209,9 +212,14 @@ describe('TrilhoDoQuest', () => {
     }
   })
 
-  it('numa tela que só existe no "Mais", é o "Mais" que fica marcado', () => {
+  /* Premissa mudada (23/10/2026): Ajustes ganhou botão no pé do trilho do computador, então é ele que
+     fica marcado em Ajustes. Numa tela que só existe no "Mais" (Sobre), continua sendo o "Mais". */
+  it('em Ajustes é o botão Ajustes do pé que fica marcado; numa tela só do "Mais", é o "Mais"', () => {
     const { container } = montar('settings')
-    expect(container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Mais')
+    expect(container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Ajustes')
+    expect(container.querySelectorAll('.q-item[aria-current="page"]')).toHaveLength(1)
+    const outra = montar('sobre')
+    expect(outra.container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Mais')
   })
 })
 
@@ -603,6 +611,15 @@ describe('a casca no computador com o desenho novo', () => {
     return { ir, aoBuscar, ...r }
   }
 
+  it('Ajustes no trilho: engrenagem com o atalho no title, e um clique abre', () => {
+    const { ir } = montar()
+    const botao = screen.getByTestId('ajustes-no-trilho')
+    expect(botao.getAttribute('aria-keyshortcuts')).toBe('Control+, Meta+,')
+    expect(botao.getAttribute('title')).toMatch(/Ajustes \((Ctrl\+|⌘),\)/)
+    fireEvent.click(botao)
+    expect(ir).toHaveBeenCalledWith('settings')
+  })
+
   it('os mesmos oito destinos, e a busca no próprio trilho com o atalho à vista', () => {
     const { container, aoBuscar } = montar()
     const itens = [...container.querySelectorAll('.q-trilho .q-item')]
@@ -616,6 +633,7 @@ describe('a casca no computador com o desenho novo', () => {
       'Progresso',
       'Planos',
       'Buscar',
+      'Ajustes',
       'Mais',
     ])
     const busca = screen.getByTestId('busca-no-trilho')

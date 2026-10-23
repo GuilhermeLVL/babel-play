@@ -8,7 +8,7 @@
  *
  * Itens da lista `fidelidade/casca-e-telas.md`: D19 a D31.
  */
-import { anima, MOLA, MOLA_SUAVE, polido, reduz } from './base';
+import { anima, MOLA, MOLA_SUAVE, polido, reduz, semMovimentoDeTela } from './base';
 import { sentir, vibrar } from './sentidos';
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string, r: ParentNode) => r.querySelector<T>(s);
@@ -18,7 +18,9 @@ const anda = () => polido() && !reduz();
 
 /** A entrada da conversa: metades, faixa e os botões de falar (`telas2.js:275-278`). */
 export function entradaDaConversa(raiz: ParentNode): void {
-  if (!anda()) return;
+  /* É a entrada da TELA do Intérprete (a camada de telas não anima a raiz dele): segue o "reduzir
+     movimento" do sistema como a troca de tela (`semMovimentoDeTela`, B2). */
+  if (!anda() || semMovimentoDeTela()) return;
   $$('.int-metade', raiz).forEach((m, i) =>
     anima(
       m,

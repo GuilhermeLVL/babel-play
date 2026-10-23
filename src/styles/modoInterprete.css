@@ -25,17 +25,20 @@
   overscroll-behavior: contain;
 }
 /* A PÁGINA do intérprete e a conversa em curso (`data-pagina`, prop `comTrilho`) convivem com o trilho (pedido do dono, 22/10/2026; antes cobria a tela toda e a
-   barra saía): ao lado do trilho no computador e no tablet (108 px, `index.css` `.q-trilho-reserva`), e
-   acima da barra de cinco no celular (68 px + 12 px de respiro, `polimento/celular.css`). O diálogo da
-   conversa virtual (`emDialogo`) continua por cima de tudo. */
+   barra saía): ocupam a área da tela, ao lado do trilho no computador e no tablet, e acima da barra de
+   cinco no celular (68 px + 12 px de respiro, `polimento/celular.css`). O diálogo da conversa virtual
+   (`emDialogo`) continua `fixed`, por cima de tudo.
+   ABSOLUTE, NÃO FIXED (auditoria de 23/10/2026, B1): com `fixed; left: 108px`, a `.px-tela` animada (ou
+   recuada pelo "Mais") virava o bloco de contenção e o `left` passava a contar a partir dela: o Intérprete
+   abria 108 px à direita e pulava para o lugar no fim. Dentro da tela (a `.rolagem` da captura, do tamanho
+   da `.px-tela`), ele acompanha a troca e o recuo, e não depende da largura do trilho (o compacto é menor). */
 .int[data-pagina] {
-  left: 108px;
+  position: absolute;
   /* Abaixo das folhas e dos modais (`--z-sheet`, `--z-modal`): o painel "Mais" do trilho abre por cima. */
   z-index: var(--z-pop);
 }
 @media (max-width: 720px) {
   .int[data-pagina] {
-    left: 0;
     /* A camada termina acima da barra (e não só o conteúdo): o botão Falar, encostado no fundo da
        metade de baixo, ficava atrás dela. A barra já desconta a safe area. */
     bottom: calc(92px + env(safe-area-inset-bottom, 0px));

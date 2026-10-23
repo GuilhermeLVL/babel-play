@@ -240,9 +240,9 @@ const NuanceDaFrase = lazyComRecarga(() => import('./captura/nuance/NuanceDaFras
 /* O MODO INTÉRPRETE (E3 da Fase E): a tela, o controle e a fila de voz chegam só quando alguém entra nele. */
 import { detectarOutroGuardado, guardarDetectarOutro } from './captura/interprete/modoDaConversa';
 import type { AutomaticoNoPlano } from './captura/interprete/ModoInterprete';
+import { PaginaDoInterprete } from './captura/interprete/paginaSobDemanda';
 
 const ModoInterprete = lazyComRecarga(() => import('./captura/interprete/ModoInterprete'));
-const PaginaDoInterprete = lazyComRecarga(() => import('./captura/interprete/PaginaDoInterprete'));
 const ConversaVirtual = lazyComRecarga(() => import('./captura/interprete/ConversaVirtual'));
 
 export default function LiveCapture({

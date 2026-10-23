@@ -7,7 +7,7 @@
  *
  * Itens da lista `fidelidade/casca-e-telas.md`: B5–B19.
  */
-import { anima, EVENTO_DOS_ESTILOS, limpar, MOLA, polido, reduz } from './base';
+import { anima, EVENTO_DOS_ESTILOS, limpar, MOLA, polido, reduz, semMovimentoDeTela } from './base';
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string, r: ParentNode = document) => r.querySelector<T>(s);
 const $$ = <T extends HTMLElement = HTMLElement>(s: string, r: ParentNode = document) => [...r.querySelectorAll<T>(s)];
@@ -146,6 +146,20 @@ const ENTRA = (y: number): Keyframe[] => [
   { opacity: 1, transform: 'translateY(0) scale(1)', filter: 'blur(0)' },
 ];
 
+/**
+ * A TELA INTEIRA ENTRA SÓ COM OPACIDADE E UM PASSO CURTO (auditoria de 23/10/2026, B2). Antes ela usava a
+ * `ENTRA` dos blocos: escala, 28 px e `blur(8px)` na `.px-tela` inteira por 620 ms. O desfoque e a escala
+ * na tela toda borravam tudo junto, e a tela transformada virava o bloco de contenção dos filhos `fixed`
+ * (o Intérprete ficava 108 px à direita, B1). Nos blocos (peças) a `ENTRA` continua.
+ */
+const ENTRA_A_TELA = (y: number): Keyframe[] => [
+  { opacity: 0, transform: `translateY(${y}px)` },
+  { opacity: 1, transform: 'translateY(0)' },
+];
+
+/** A tela que já traz a entrada dela (a conversa do Intérprete, `entradaDaConversa`): a camada não a anima. */
+const temEntradaPropria = (tela: HTMLElement) => !!$('.int', tela);
+
 /** Quem está fora da vista espera: entra quando a rolagem chegar nele (`prototipo.js:283-294`). */
 let olheiro: IntersectionObserver | null = null;
 function olhar(): IntersectionObserver {
@@ -226,13 +240,14 @@ function pecas(tela: HTMLElement): HTMLElement[] {
 
 /** A tela entra: título, depois os blocos, 60 ms um do outro (`prototipo.js:328-344`). */
 function entrar(tela: HTMLElement, dir: number): void {
-  if (reduz()) {
-    anima(tela, [{ opacity: 0 }, { opacity: 1 }], { d: 160, e: 'ease' });
-    return;
-  }
+  /* Menos movimento: a tela aparece de uma vez (antes havia um esmaecer de 160 ms). */
+  if (semMovimentoDeTela()) return;
+  /* Uma entrada só: a conversa do Intérprete entra pelas metades; animar a raiz junto eram duas
+     animações desencontradas (B2). */
+  if (temEntradaPropria(tela)) return;
   revelarTitulo(tela);
   const lista = pecas(tela);
-  if (!lista.length) anima(tela, ENTRA(28 * dir), { d: 620 });
+  if (!lista.length) anima(tela, ENTRA_A_TELA(10 * dir), { d: 240 });
   let i = 0;
   for (const b of lista) {
     if (b.getBoundingClientRect().top < innerHeight - 20) {
@@ -253,8 +268,9 @@ let ultimaTecla = 0;
 let ultimoPonteiro = 0;
 
 /**
- * Troca de tela com saída: a de antes some para o lado do destino (150 ms, `ease-out`, 18 px, 0,985,
- * desfoque 5) e só então `trocar` roda. Navegação pelo teclado não anima; só a última vale.
+ * Troca de tela com saída: a de antes some para o lado do destino (150 ms, `ease-out`, 18 px, 0,985) e só
+ * então `trocar` roda. Navegação pelo teclado não anima; só a última vale. O desfoque de 5 px do protótipo
+ * saiu (auditoria de 23/10/2026, B2): a troca de tela nunca desfoca a tela inteira.
  */
 export function trocarDeTela(proxima: string, atual: string, trocar: () => void): void {
   const tela = telaAtual();
@@ -269,7 +285,7 @@ export function trocarDeTela(proxima: string, atual: string, trocar: () => void)
     limpar(tela);
   }, 4000);
   chegando = { dir, tipo, solta };
-  const sair = !reduz() && tipo === 'clique' && !!tela.firstElementChild;
+  const sair = !semMovimentoDeTela() && tipo === 'clique' && !!tela.firstElementChild;
   if (!sair) return trocar();
   marcarTrilho(proxima);
   limpar(tela);
@@ -282,7 +298,7 @@ export function trocarDeTela(proxima: string, atual: string, trocar: () => void)
   /* A navegação nunca fica presa à animação: numa aba em segundo plano o navegador congela as
      animações e a promessa não chega. O relógio garante a troca. */
   window.setTimeout(fim, 400);
-  anima(tela, [{ opacity: 0, transform: `translateY(${-18 * dir}px) scale(0.985)`, filter: 'blur(5px)' }], {
+  anima(tela, [{ opacity: 0, transform: `translateY(${-18 * dir}px) scale(0.985)` }], {
     d: 150,
     e: 'ease-out',
     fill: 'forwards',

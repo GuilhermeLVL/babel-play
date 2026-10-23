@@ -6,6 +6,7 @@ import PracticeMenu from './components/PracticeMenu';
 // bundle de arranque (~1,9 MB) — incluindo o onnxruntime-web/VAD (Captura), o recharts (Métricas) e o
 // gateway/offlineTranscribe (Análise/Biblioteca), pesos que só importam quando você abre aquela tela.
 // Agora cada view puxa o seu chunk quando aberta → app leve e dinâmica.
+import { PaginaDoInterprete } from './components/views/captura/interprete/paginaSobDemanda';
 import { lazyComRecarga } from './lib/lazyComRecarga';
 import { registrarTelas } from './lib/polimento/precarga';
 /* As telas do menu têm o `import()` com nome: é o mesmo pedido que a pré-carga faz no toque do item do
@@ -40,19 +41,22 @@ const Diagnostico = lazyComRecarga(() => import('./components/views/Diagnostico'
 const NaoEncontrado = lazyComRecarga(() => import('./components/views/NaoEncontrado'));
 const Admin = lazyComRecarga(() => import('./components/views/Admin'));
 const Loja = lazyComRecarga(carregarLoja);
+/* A pré-carga passa pelo `carregar` de cada `lazyComRecarga`: o componente fica guardado e a primeira
+   visita desenha a tela direto, sem o vazio do `Suspense` (auditoria de 23/10/2026, B3). O Intérprete
+   pede também a página dele, que é um pedaço à parte dentro da captura. */
 registrarTelas({
-  capture: carregarCaptura,
-  interprete: carregarCaptura,
-  library: carregarBiblioteca,
-  settings: carregarAjustes,
-  cartoes: carregarCartoes,
-  play: carregarJogar,
-  profile: carregarPerfil,
-  planos: carregarPlanos,
-  sobre: carregarSobre,
-  estatisticas: carregarEstatisticas,
-  ajuda: carregarAjuda,
-  loja: carregarLoja,
+  capture: LiveCapture.carregar,
+  interprete: () => Promise.all([LiveCapture.carregar(), PaginaDoInterprete.carregar()]),
+  library: Library.carregar,
+  settings: Settings.carregar,
+  cartoes: Cartoes.carregar,
+  play: Play.carregar,
+  profile: Perfil.carregar,
+  planos: Planos.carregar,
+  sobre: Sobre.carregar,
+  estatisticas: Estatisticas.carregar,
+  ajuda: Ajuda.carregar,
+  loja: Loja.carregar,
 });
 // A casca e o Início: pedaços à parte, fora do JS inicial.
 const TrilhoDoQuest = lazyComRecarga(() => import('./components/shell/TrilhoDoQuest'));

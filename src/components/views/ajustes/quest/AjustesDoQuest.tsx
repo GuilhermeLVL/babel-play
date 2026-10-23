@@ -381,9 +381,9 @@ export default function AjustesDoQuest({
       {/* ═════════════ PROCESSAMENTO ═════════════ */}
       <PainelDeAba id="contas" ativo={aba} className="q-aju-painel">
         <AiEnginePanel activeId={perfilDeIa} onSelect={aoMudarPerfilDeIa} bloqueados={perfisBloqueados} />
-        {/* Os modelos guardados neste navegador e a escolha do de transcrição (o idioma é o do que se ouve). */}
+        {/* Os modelos guardados neste navegador e a escolha do de transcrição (os dois idiomas: o roteador decide pelas fontes da captura). */}
         <Suspense fallback={<div className="q-aju-espera" aria-hidden />}>
-          <ModelosNoAparelho idioma={idiomas.studying} />
+          <ModelosNoAparelho estudando={idiomas.studying} meu={idiomas.mine} />
         </Suspense>
       </PainelDeAba>
 

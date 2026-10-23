@@ -1713,5 +1713,8 @@
   "Preciso com placa de vídeo": "Preciso con tarjeta gráfica",
   "Equilibrado": "Equilibrado",
   "Rápido": "Rápido",
-  "Inglês, rápido": "Inglés, rápido"
+  "Inglês, rápido": "Inglés, rápido",
+  "Vale para {serve}; em {nao}, o app escolhe sozinho.": "Vale para {serve}; en {nao}, la app elige sola.",
+  "Para os seus idiomas, o equilibrado é o que roda melhor neste aparelho.": "Para tus idiomas, el equilibrado es el que mejor funciona en este dispositivo.",
+  "Termine a captura para apagar.": "Termina la captura para borrar."
 }

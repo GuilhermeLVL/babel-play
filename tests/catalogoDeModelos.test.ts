@@ -7,7 +7,12 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { ID_DO_PARAKEET } from '../src/gateway/adapters/parakeetModelo'
-import { catalogoDeTranscricao, tradutoresGuardados } from '../src/gateway/catalogoDeModelos'
+import {
+  alcanceDoModelo,
+  catalogoDeTranscricao,
+  escolhaDoAutomatico,
+  tradutoresGuardados,
+} from '../src/gateway/catalogoDeModelos'
 import { chaveDoManifesto } from '../src/gateway/modelManifest'
 import { modeloFixoServe } from '../src/gateway/modeloFixo'
 import { MODEL_DOWNLOAD_MB_Q8, MOONSHINE_MODELS, WHISPER_MODELS } from '../src/gateway/sttRouter'
@@ -77,5 +82,46 @@ describe('tradutoresGuardados', () => {
   it('manifesto ilegível não derruba a lista', () => {
     localStorage.setItem(chaveDoManifesto('Xenova/opus-mt-pt-en', 'q8', 'wasm'), '{quebrado')
     expect(tradutoresGuardados()).toEqual([])
+  })
+})
+
+describe('alcanceDoModelo (estuda / fala)', () => {
+  const item = (fixo: string) => catalogoDeTranscricao().find((i) => i.fixo === fixo)!
+  it('en/pt: o Preciso vale em parte (a voz em português)', () => {
+    expect(alcanceDoModelo(item('parakeet'), 'en-US', 'pt-BR')).toEqual({
+      alcance: 'parte',
+      serve: ['pt'],
+      naoServe: ['en'],
+    })
+  })
+  it('es/en: o Preciso vale em parte (o conteúdo em espanhol)', () => {
+    expect(alcanceDoModelo(item('parakeet'), 'es', 'en')).toEqual({ alcance: 'parte', serve: ['es'], naoServe: ['en'] })
+  })
+  it('fr/de: o Preciso não serve a nenhum', () => {
+    expect(alcanceDoModelo(item('parakeet'), 'fr', 'de').alcance).toBe('nada')
+  })
+  it('en/en: o Moonshine serve a tudo; en/pt: em parte', () => {
+    expect(alcanceDoModelo(item('moonshine-base'), 'en-US', 'en-GB')).toEqual({
+      alcance: 'tudo',
+      serve: ['en'],
+      naoServe: [],
+    })
+    expect(alcanceDoModelo(item('moonshine-tiny'), 'en-US', 'pt-BR')).toEqual({
+      alcance: 'parte',
+      serve: ['en'],
+      naoServe: ['pt'],
+    })
+  })
+  it('o Whisper serve a tudo', () => {
+    expect(alcanceDoModelo(item('whisper-base'), 'fr', 'de').alcance).toBe('tudo')
+  })
+})
+
+describe('escolhaDoAutomatico', () => {
+  it('cabe e há pt/es: o preciso; cabe sem pt/es: o equilibrado pelos idiomas; não cabe ou vetado: pelo aparelho', () => {
+    expect(escolhaDoAutomatico(true, false, 'en', 'pt-BR')).toBe('preciso')
+    expect(escolhaDoAutomatico(true, false, 'en', 'fr')).toBe('equilibrado-pelos-idiomas')
+    expect(escolhaDoAutomatico(false, false, 'es', 'pt')).toBe('equilibrado-pelo-aparelho')
+    expect(escolhaDoAutomatico(true, true, 'es', 'pt')).toBe('equilibrado-pelo-aparelho')
   })
 })

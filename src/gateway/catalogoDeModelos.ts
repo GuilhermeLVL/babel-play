@@ -127,3 +127,48 @@ export function tradutoresGuardados(): Array<{ id: string; titulo: string; bytes
     .sort((a, b) => a.modelId.localeCompare(b.modelId))
     .map((m) => ({ id: m.modelId, titulo: tituloDoTradutor(m.modelId), bytes: Number(m.bytesTotais) || 0 }));
 }
+
+const base = (l: string) => (l || '').toLowerCase().split('-')[0];
+
+/** Os idiomas da captura desta pessoa (o que estuda e o dela), sem repetir, como código base. */
+function idiomasDaPessoa(estudando: string, meu: string): string[] {
+  return [...new Set([base(estudando), base(meu)].filter(Boolean))];
+}
+
+export interface AlcanceDoModelo {
+  /** 'tudo' = serve aos dois idiomas; 'parte' = só a um (no outro o roteador volta ao automático); 'nada' = a nenhum. */
+  alcance: 'tudo' | 'parte' | 'nada';
+  serve: string[];
+  naoServe: string[];
+}
+
+/**
+ * A QUAIS IDIOMAS DESTA PESSOA o modelo serve. O roteador decide pelas fontes da captura: só o
+ * microfone (o idioma dela), só o conteúdo (o que estuda) ou os dois. Então o modelo só é inútil quando
+ * não serve a NENHUM dos dois; servindo a um, fixá-lo vale nas capturas daquele idioma e, nas outras, o
+ * roteador ignora o fixado e usa o automático. Pura.
+ */
+export function alcanceDoModelo(item: ItemDoCatalogo, estudando: string, meu: string): AlcanceDoModelo {
+  const langs = idiomasDaPessoa(estudando, meu);
+  if (item.idiomas === 'todos') return { alcance: 'tudo', serve: langs, naoServe: [] };
+  const aceitos = item.idiomas;
+  const serve = langs.filter((l) => aceitos.includes(l));
+  const naoServe = langs.filter((l) => !aceitos.includes(l));
+  return { alcance: serve.length === 0 ? 'nada' : naoServe.length ? 'parte' : 'tudo', serve, naoServe };
+}
+
+/**
+ * O que o AUTOMÁTICO escolhe para esta pessoa, para a frase da tela: o Preciso quando ele cabe, não foi
+ * vetado e algum idioma dela é pt/es; o equilibrado pelos idiomas quando cabe mas nenhum é pt/es; o
+ * equilibrado pelo aparelho quando não cabe (ou foi vetado). Pura.
+ */
+export function escolhaDoAutomatico(
+  cabe: boolean,
+  vetado: boolean,
+  estudando: string,
+  meu: string,
+): 'preciso' | 'equilibrado-pelos-idiomas' | 'equilibrado-pelo-aparelho' {
+  if (!cabe || vetado) return 'equilibrado-pelo-aparelho';
+  const preciso = catalogoDeTranscricao()[0];
+  return alcanceDoModelo(preciso, estudando, meu).alcance === 'nada' ? 'equilibrado-pelos-idiomas' : 'preciso';
+}

@@ -1834,5 +1834,8 @@
   "Preciso com placa de vídeo": "دقيق مع بطاقة رسومات",
   "Equilibrado": "متوازن",
   "Rápido": "سريع",
-  "Inglês, rápido": "الإنجليزية، سريع"
+  "Inglês, rápido": "الإنجليزية، سريع",
+  "Vale para {serve}; em {nao}, o app escolhe sozinho.": "يعمل مع {serve}؛ أما مع {nao} فيختار التطبيق وحده.",
+  "Para os seus idiomas, o equilibrado é o que roda melhor neste aparelho.": "للغاتك، النموذج المتوازن هو الأفضل أداءً على هذا الجهاز.",
+  "Termine a captura para apagar.": "أنهِ الالتقاط لتتمكن من الحذف."
 }

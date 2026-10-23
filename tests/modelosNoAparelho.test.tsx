@@ -108,7 +108,7 @@ afterEach(() => {
 describe('ModelosNoAparelho', () => {
   it('mostra os seis modelos de transcrição', async () => {
     cacheFalso({})
-    render(<ModelosNoAparelho idioma="pt-BR" />)
+    render(<ModelosNoAparelho estudando="pt-BR" meu="pt-BR" />)
     for (const nome of ['Preciso', 'Preciso com placa de vídeo', 'Equilibrado', 'Rápido', 'Inglês', 'Inglês, rápido'])
       expect(linha(nome)).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'Modelos no aparelho' })).toBeTruthy()
@@ -118,7 +118,7 @@ describe('ModelosNoAparelho', () => {
 
   it('"Usar este" no Equilibrado fixa o whisper-base e desliga o automático', async () => {
     cacheFalso({})
-    render(<ModelosNoAparelho idioma="pt-BR" />)
+    render(<ModelosNoAparelho estudando="pt-BR" meu="pt-BR" />)
     const auto = screen.getByRole('switch', { name: 'Automático (recomendado)' })
     expect(auto.getAttribute('aria-checked')).toBe('true')
     fireEvent.click(within(linha('Equilibrado')).getByRole('button', { name: 'Usar este' }))
@@ -134,7 +134,7 @@ describe('ModelosNoAparelho', () => {
     const url = 'https://huggingface.co/onnx-community/whisper-base/resolve/main/onnx/encoder_model_quantized.onnx'
     const mapa = cacheFalso({ [url]: 80 * 1_048_576 })
     guardar(WHISPER_MODELS.base, 'q8', url, 80 * 1_048_576)
-    render(<ModelosNoAparelho idioma="pt-BR" />)
+    render(<ModelosNoAparelho estudando="pt-BR" meu="pt-BR" />)
     const l = linha('Equilibrado')
     await waitFor(() => expect(within(l).getByText(/No aparelho · baixado em/)).toBeTruthy())
     fireEvent.click(within(l).getByRole('button', { name: 'Apagar' }))
@@ -145,7 +145,7 @@ describe('ModelosNoAparelho', () => {
 
   it('o que não cabe tem o botão desabilitado e o motivo à vista', async () => {
     cacheFalso({})
-    render(<ModelosNoAparelho idioma="pt-BR" />)
+    render(<ModelosNoAparelho estudando="pt-BR" meu="pt-BR" />)
     const preciso = linha('Preciso')
     expect((within(preciso).getByRole('button', { name: 'Usar este' }) as HTMLButtonElement).disabled).toBe(true)
     expect(within(preciso).getByText('Precisa de 8 GB de memória')).toBeTruthy()
@@ -160,7 +160,7 @@ describe('ModelosNoAparelho', () => {
   it('em inglês, o Preciso diz que é só para português e espanhol', async () => {
     cacheFalso({})
     espioes.perfil.memoriaGb = 8
-    render(<ModelosNoAparelho idioma="en-US" />)
+    render(<ModelosNoAparelho estudando="en-US" meu="en-US" />)
     expect(within(linha('Preciso')).getByText('Só para português e espanhol')).toBeTruthy()
   })
 
@@ -168,7 +168,7 @@ describe('ModelosNoAparelho', () => {
     cacheFalso({})
     espioes.perfil.memoriaGb = 8
     localStorage.setItem('babel.stt.parakeet', '0')
-    render(<ModelosNoAparelho idioma="pt-BR" />)
+    render(<ModelosNoAparelho estudando="pt-BR" meu="pt-BR" />)
     expect(screen.getByText('Seu computador aguenta o modelo preciso de português e espanhol.')).toBeTruthy()
     const preciso = linha('Preciso')
     const usar = within(preciso).getByRole('button', { name: 'Usar este' }) as HTMLButtonElement
@@ -186,7 +186,7 @@ describe('ModelosNoAparelho', () => {
     cacheFalso({})
     espioes.perfil.memoriaGb = 8
     espioes.proibido.mockResolvedValue(true)
-    render(<ModelosNoAparelho idioma="pt-BR" />)
+    render(<ModelosNoAparelho estudando="pt-BR" meu="pt-BR" />)
     const preciso = linha('Preciso')
     await waitFor(() =>
       expect(
@@ -199,9 +199,67 @@ describe('ModelosNoAparelho', () => {
 
   it('a lista de tradução vazia explica quando eles baixam', async () => {
     cacheFalso({})
-    render(<ModelosNoAparelho idioma="pt-BR" />)
+    render(<ModelosNoAparelho estudando="pt-BR" meu="pt-BR" />)
     expect(
       screen.getByText('Os tradutores baixam quando você traduz um par de idiomas pela primeira vez.'),
     ).toBeTruthy()
+  })
+
+  it('estuda inglês e fala português: o Preciso pode ser fixado, com a nota de onde ele vale', async () => {
+    cacheFalso({})
+    espioes.perfil.memoriaGb = 8
+    render(<ModelosNoAparelho estudando="en-US" meu="pt-BR" />)
+    const preciso = linha('Preciso')
+    expect((within(preciso).getByRole('button', { name: 'Usar este' }) as HTMLButtonElement).disabled).toBe(false)
+    expect(within(preciso).getByText('Vale para português; em inglês, o app escolhe sozinho.')).toBeTruthy()
+    expect(within(preciso).queryByText('Só para português e espanhol')).toBeNull()
+    // o Moonshine também vale em parte (o conteúdo em inglês)
+    expect(within(linha('Inglês')).getByText('Vale para inglês; em português, o app escolhe sozinho.')).toBeTruthy()
+    expect(screen.getByText('Seu computador aguenta o modelo preciso de português e espanhol.')).toBeTruthy()
+  })
+
+  it('com 8 GB e nenhum idioma pt/es, o automático explica que fica no equilibrado pelos idiomas', async () => {
+    cacheFalso({})
+    espioes.perfil.memoriaGb = 8
+    render(<ModelosNoAparelho estudando="en-US" meu="fr-FR" />)
+    expect(screen.getByText('Para os seus idiomas, o equilibrado é o que roda melhor neste aparelho.')).toBeTruthy()
+  })
+
+  it('sem 8 GB, o automático explica que fica no equilibrado pelo aparelho', async () => {
+    cacheFalso({})
+    render(<ModelosNoAparelho estudando="es" meu="pt-BR" />)
+    expect(screen.getByText('Para este aparelho, o equilibrado é o que roda sem esquentar.')).toBeTruthy()
+  })
+
+  it('com uma captura gravando, "Apagar" e "Apagar todos os modelos" ficam desabilitados', async () => {
+    const url = 'https://huggingface.co/onnx-community/whisper-base/resolve/main/onnx/encoder_model_quantized.onnx'
+    cacheFalso({ [url]: 80 * 1_048_576 })
+    guardar(WHISPER_MODELS.base, 'q8', url, 80 * 1_048_576)
+    Object.defineProperty(navigator, 'locks', {
+      configurable: true,
+      value: { query: async () => ({ held: [{ name: 'babel.captura.gravando' }] }) },
+    })
+    try {
+      render(<ModelosNoAparelho estudando="pt-BR" meu="pt-BR" />)
+      const apagar = await within(linha('Equilibrado')).findByRole('button', { name: 'Apagar' })
+      await waitFor(() => expect((apagar as HTMLButtonElement).disabled).toBe(true))
+      expect((screen.getByRole('button', { name: 'Apagar todos os modelos' }) as HTMLButtonElement).disabled).toBe(true)
+    } finally {
+      delete (navigator as unknown as { locks?: unknown }).locks
+    }
+  })
+
+  it('apagar o modelo fixado devolve o automático (a próxima captura não baixa sem avisar)', async () => {
+    const url = 'https://huggingface.co/onnx-community/whisper-base/resolve/main/onnx/encoder_model_quantized.onnx'
+    cacheFalso({ [url]: 80 * 1_048_576 })
+    guardar(WHISPER_MODELS.base, 'q8', url, 80 * 1_048_576)
+    localStorage.setItem('babel.stt.modeloFixo', 'whisper-base')
+    render(<ModelosNoAparelho estudando="pt-BR" meu="pt-BR" />)
+    const auto = screen.getByRole('switch', { name: 'Automático (recomendado)' })
+    expect(auto.getAttribute('aria-checked')).toBe('false')
+    fireEvent.click(await within(linha('Equilibrado')).findByRole('button', { name: 'Apagar' }))
+    await waitFor(() => expect(within(linha('Equilibrado')).getByText('Não baixado')).toBeTruthy())
+    expect(localStorage.getItem('babel.stt.modeloFixo')).toBeNull()
+    expect(auto.getAttribute('aria-checked')).toBe('true')
   })
 })

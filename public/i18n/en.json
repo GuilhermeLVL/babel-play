@@ -4843,5 +4843,8 @@
   "Este aparelho aguenta os modelos maiores.": "This device can handle the bigger models.",
   "Preciso": "Accurate",
   "Preciso com placa de vídeo": "Accurate with a graphics card",
-  "Inglês, rápido": "English, fast"
+  "Inglês, rápido": "English, fast",
+  "Vale para {serve}; em {nao}, o app escolhe sozinho.": "Works for {serve}; for {nao}, the app picks on its own.",
+  "Para os seus idiomas, o equilibrado é o que roda melhor neste aparelho.": "For your languages, the balanced model is the one that runs best on this device.",
+  "Termine a captura para apagar.": "Finish the capture to delete."
 }

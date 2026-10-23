@@ -5,9 +5,15 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { CHAVE_DO_PARAKEET, ID_DO_PARAKEET } from '../../../gateway/adapters/parakeetModelo';
 import { baixarModelo } from '../../../gateway/baixarModelo';
-import { catalogoDeTranscricao, type ItemDoCatalogo, tradutoresGuardados } from '../../../gateway/catalogoDeModelos';
+import {
+  alcanceDoModelo,
+  catalogoDeTranscricao,
+  escolhaDoAutomatico,
+  type ItemDoCatalogo,
+  tradutoresGuardados,
+} from '../../../gateway/catalogoDeModelos';
 import { apagarModelo, baixadoEm, type EstadoDoCache, modeloDisponivel } from '../../../gateway/modelManifest';
-import { gravarModeloFixo, lerModeloFixo, type ModeloFixo, modeloFixoServe } from '../../../gateway/modeloFixo';
+import { gravarModeloFixo, lerModeloFixo, type ModeloFixo } from '../../../gateway/modeloFixo';
 import { parakeetCabeNoAparelho } from '../../../gateway/sttRouter';
 import { algumaAbaGravando } from '../../../lib/captura/travaDaGravacao';
 import { type NivelDoAparelho, nivelDoAparelho } from '../../../lib/dispositivo/benchmark';
@@ -83,7 +89,8 @@ function useAlgumaAbaGravando(): boolean {
   return gravando;
 }
 
-export default function ModelosNoAparelho({ idioma }: { idioma: string }) {
+/** `estudando` = o idioma do conteúdo; `meu` = o da pessoa (o do microfone). O roteador decide pelas fontes da captura. */
+export default function ModelosNoAparelho({ estudando, meu }: { estudando: string; meu: string }) {
   const catalogo = useMemo(() => catalogoDeTranscricao(), []);
   const sondaGuardada = useSondaGuardada();
   const [sondaMedida, setSondaMedida] = useState<SondaDoAparelho | null>(null);
@@ -145,20 +152,27 @@ export default function ModelosNoAparelho({ idioma }: { idioma: string }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const tradutores = useMemo(() => tradutoresGuardados(), [versao]);
 
-  const idiomaBase = (idioma || '').toLowerCase().split('-')[0];
-
-  /** Por que este modelo não pode ser fixado aqui (`null` = pode). */
+  /** Por que este modelo não pode ser fixado aqui (`null` = pode). Idioma só bloqueia quando não serve a NENHUM dos dois. */
   const motivo = (item: ItemDoCatalogo): string | null => {
     if (item.fixo === 'parakeet') {
       if (vetado) return t('Este aparelho fechou a página com este modelo carregado; voltamos ao equilibrado.');
       if (!cabe) return t('Precisa de 8 GB de memória');
-      if (!modeloFixoServe('parakeet', [idiomaBase])) return t('Só para português e espanhol');
     }
     if (item.fixo === 'whisper-small' && !dispositivo.permiteSmall) return t('Precisa de placa de vídeo');
-    if (item.idiomas !== 'todos' && item.idiomas.includes('en') && !modeloFixoServe(item.fixo, [idiomaBase]))
-      return t('Só para inglês');
+    if (alcanceDoModelo(item, estudando, meu).alcance === 'nada')
+      return item.fixo === 'parakeet' ? t('Só para português e espanhol') : t('Só para inglês');
     return null;
   };
+
+  /** Serve a um dos idiomas só: fixar vale nas capturas daquele idioma; nas outras, o roteador usa o automático. */
+  const nota = (item: ItemDoCatalogo): string | null => {
+    const a = alcanceDoModelo(item, estudando, meu);
+    if (a.alcance !== 'parte') return null;
+    const nomes = (ls: string[]) => ls.map((l) => langLabelNaUI(l)).join(', ');
+    return t('Vale para {serve}; em {nao}, o app escolhe sozinho.', { serve: nomes(a.serve), nao: nomes(a.naoServe) });
+  };
+
+  const escolha = escolhaDoAutomatico(cabe, vetado, estudando, meu);
 
   const fixar = (m: ModeloFixo) => {
     if (m === 'parakeet') {
@@ -193,16 +207,26 @@ export default function ModelosNoAparelho({ idioma }: { idioma: string }) {
     setVersao((v) => v + 1);
   };
 
+  /** Sem a cópia, o modelo fixado faria a próxima captura baixar tudo ao começar: apagar devolve o automático. */
+  const soltarSeFixado = (ids: string[]) => {
+    const atual = catalogo.find((i) => i.fixo === fixo);
+    if (atual && ids.includes(atual.id)) fixar('auto');
+  };
+
   const apagar = async (id: string) => {
+    if (gravando || (await algumaAbaGravando())) return;
     await apagarModelo(id).catch(() => 0);
+    soltarSeFixado([id]);
     setEstados((e) => ({ ...e, [id]: undefined }));
     setVersao((v) => v + 1);
   };
 
   const apagarTudo = async () => {
+    if (gravando || (await algumaAbaGravando())) return setConfirmarTudo('nao');
     setConfirmarTudo('rodando');
-    for (const id of [...catalogo.map((i) => i.id), ...tradutores.map((tr) => tr.id)])
-      await apagarModelo(id).catch(() => 0);
+    const ids = [...catalogo.map((i) => i.id), ...tradutores.map((tr) => tr.id)];
+    for (const id of ids) await apagarModelo(id).catch(() => 0);
+    soltarSeFixado(ids);
     setConfirmarTudo('nao');
     setEstados({});
     setVersao((v) => v + 1);
@@ -241,9 +265,11 @@ export default function ModelosNoAparelho({ idioma }: { idioma: string }) {
           <div>
             <b id={idDoAuto}>{t('Automático (recomendado)')}</b>
             <small>
-              {cabe && !vetado
+              {escolha === 'preciso'
                 ? t('Seu computador aguenta o modelo preciso de português e espanhol.')
-                : t('Para este aparelho, o equilibrado é o que roda sem esquentar.')}
+                : escolha === 'equilibrado-pelos-idiomas'
+                  ? t('Para os seus idiomas, o equilibrado é o que roda melhor neste aparelho.')
+                  : t('Para este aparelho, o equilibrado é o que roda sem esquentar.')}
             </small>
           </div>
           <button
@@ -280,7 +306,7 @@ export default function ModelosNoAparelho({ idioma }: { idioma: string }) {
           <button
             type="button"
             className="q-ctl mna-perigo"
-            disabled={!guardadoAlgo || confirmarTudo !== 'nao'}
+            disabled={!guardadoAlgo || confirmarTudo !== 'nao' || gravando}
             onClick={() => setConfirmarTudo('confirmar')}
           >
             <Trash2 aria-hidden /> {t('Apagar todos os modelos')}
@@ -297,6 +323,7 @@ export default function ModelosNoAparelho({ idioma }: { idioma: string }) {
             estado={estados[item.id]}
             fixado={fixo === item.fixo}
             motivo={motivo(item)}
+            nota={nota(item)}
             gravando={gravando}
             progresso={item.fixo === 'parakeet' ? progresso : null}
             falhou={item.fixo === 'parakeet' && falhouODownload}
@@ -322,7 +349,7 @@ export default function ModelosNoAparelho({ idioma }: { idioma: string }) {
                   <small>{[motor, tamanho(tr.bytes)].filter(Boolean).join(' · ')}</small>
                 </div>
                 <div className="mna-acoes">
-                  <button type="button" className="q-ctl" onClick={() => void apagar(tr.id)}>
+                  <button type="button" className="q-ctl" disabled={gravando} onClick={() => void apagar(tr.id)}>
                     <Trash2 aria-hidden /> {t('Apagar')}
                   </button>
                 </div>
@@ -395,6 +422,7 @@ function ItemDeTranscricao({
   estado,
   fixado,
   motivo,
+  nota,
   gravando,
   progresso,
   falhou,
@@ -407,6 +435,7 @@ function ItemDeTranscricao({
   estado: EstadoDoCache | undefined;
   fixado: boolean;
   motivo: string | null;
+  nota: string | null;
   gravando: boolean;
   progresso: number | null;
   falhou: boolean;
@@ -445,6 +474,7 @@ function ItemDeTranscricao({
         <small>{detalhes.join(' · ')}</small>
         <small className="mna-situacao">{situacao}</small>
         {motivo && <small className="mna-motivo">{motivo}</small>}
+        {!motivo && nota && <small className="mna-nota">{nota}</small>}
         {falhou && <small className="mna-motivo">{t('Não deu para baixar agora. Tente de novo.')}</small>}
         {progresso != null && (
           <div
@@ -484,7 +514,13 @@ function ItemDeTranscricao({
           {fixado ? t('Em uso') : t('Usar este')}
         </button>
         {temArquivos && progresso == null && (
-          <button type="button" className="q-ctl" onClick={aoApagar}>
+          <button
+            type="button"
+            className="q-ctl"
+            disabled={gravando}
+            title={gravando ? t('Termine a captura para apagar.') : undefined}
+            onClick={aoApagar}
+          >
             <Trash2 aria-hidden /> {t('Apagar')}
           </button>
         )}

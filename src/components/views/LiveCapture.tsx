@@ -53,7 +53,7 @@ import {
 } from '../../gateway/capture/systemAudio';
 import { expectedModelIds } from '../../gateway/modelCache';
 import { temCopiaNoAparelho } from '../../gateway/modelManifest';
-import { lerModeloFixo } from '../../gateway/modeloFixo';
+import { entradaDoParakeet, lerModeloFixo } from '../../gateway/modeloFixo';
 import { ContextoDoStt } from '../../gateway/promptDeStt';
 import { comPoliticaDoHub } from '../../gateway/semReferer';
 import {
@@ -114,6 +114,7 @@ import { lerRascunhos } from '../../lib/captura/rascunhoDaCaptura';
 import { criarReguladorDaCaptura, type ReguladorDaCaptura } from '../../lib/captura/reguladorDaCaptura';
 import { criarSalvarSessao, type EstadoDaIdentificacaoDeVoz } from '../../lib/captura/salvarSessao';
 import { motorDaUltimaFala, seloDaFala } from '../../lib/captura/seloDaFala';
+import { vetarSeCaiuComOModelo } from '../../lib/captura/sentinelaDoModelo';
 // Produtor ÚNICO de palavra/cartão: o idioma vem da FRASE de onde a palavra saiu e a direção da
 // tradução é decidida pelo idioma DA PALAVRA (não pelo par da sessão).
 import { telaAcesaSuportada, usePreferenciaDeTelaAcesa, useTelaAcesa } from '../../lib/captura/telaAcesa';
@@ -463,6 +464,22 @@ export default function LiveCapture({
   const perfilDoAparelhoRef = useRef(perfilDoAparelho);
   /* A sonda GUARDADA, para as estimativas de download baterem com a rota real (`useSondaGuardada`). */
   const sondaGuardada = useSondaGuardada();
+  /* O Parakeet vetado neste aparelho (a aba caiu com ele) sai das estimativas, como sai da rota real
+     (`entradaDoParakeet`): senão a folha de início mostra o tamanho dele e ~0 MB a baixar. */
+  const [parakeetVetado, setParakeetVetado] = useState(false);
+  useEffect(() => {
+    let vivo = true;
+    void import('../../lib/dispositivo/sonda')
+      .then(async (m) => {
+        await vetarSeCaiuComOModelo(ID_DO_PARAKEET, m.proibirModelo);
+        return m.modeloProibido(ID_DO_PARAKEET);
+      })
+      .then((v) => vivo && setParakeetVetado(v))
+      .catch(() => undefined);
+    return () => {
+      vivo = false;
+    };
+  }, [sondaGuardada]);
   perfilDoAparelhoRef.current = perfilDoAparelho;
 
   // --- SPEAKER DIARIZATION STATE ---
@@ -2360,8 +2377,7 @@ export default function LiveCapture({
       cloudAvailable: false,
       profileId: getActiveProfile().id,
       dispositivo: dispositivoDaRota(perfilDoAparelho, sondaGuardada),
-      parakeetNoAparelho: temCopiaNoAparelho(ID_DO_PARAKEET),
-      modeloFixo: lerModeloFixo(),
+      ...entradaDoParakeet(parakeetVetado, temCopiaNoAparelho(ID_DO_PARAKEET), lerModeloFixo()),
     });
     // Só microfone: o tradutor é o da SUA fala (o mesmo sentido que `prepareModels` carrega).
     const [mtDe, mtPara] = captureScenario === 'mic' ? [meu, ouvir] : [ouvir, meu];
@@ -2403,6 +2419,7 @@ export default function LiveCapture({
     temGpu,
     perfilDoAparelho,
     sondaGuardada,
+    parakeetVetado,
     captureScenario,
   ]);
   /* AVISO ANTES DE BAIXAR (perfil do aparelho): com economia de dados, rede abaixo de 4g, ou mais de
@@ -2430,8 +2447,7 @@ export default function LiveCapture({
       cloudAvailable: false,
       profileId: getActiveProfile().id,
       dispositivo: dispositivoDaRota(perfilDoAparelho, sondaGuardada),
-      parakeetNoAparelho: temCopiaNoAparelho(ID_DO_PARAKEET),
-      modeloFixo: lerModeloFixo(),
+      ...entradaDoParakeet(parakeetVetado, temCopiaNoAparelho(ID_DO_PARAKEET), lerModeloFixo()),
     });
     return tamanhoDoDownloadMb(rota.localModel, rota.dtype);
   }, [
@@ -2443,6 +2459,7 @@ export default function LiveCapture({
     temGpu,
     perfilDoAparelho,
     sondaGuardada,
+    parakeetVetado,
     captureScenario,
   ]);
 
@@ -2462,8 +2479,7 @@ export default function LiveCapture({
       cloudAvailable: false,
       profileId: getActiveProfile().id,
       dispositivo: dispositivoDaRota(perfilDoAparelho, sondaGuardada),
-      parakeetNoAparelho: temCopiaNoAparelho(ID_DO_PARAKEET),
-      modeloFixo: lerModeloFixo(),
+      ...entradaDoParakeet(parakeetVetado, temCopiaNoAparelho(ID_DO_PARAKEET), lerModeloFixo()),
     });
     const [mtDe, mtPara] = captureScenario === 'mic' ? [meu, ouvir] : [ouvir, meu];
     const tradutores = expectedModelIds(mtDe, mtPara, rota.localModel).filter((id) => id !== rota.localModel);
@@ -2483,6 +2499,7 @@ export default function LiveCapture({
     temGpu,
     perfilDoAparelho,
     sondaGuardada,
+    parakeetVetado,
     captureScenario,
   ]);
   /* O INTÉRPRETE TRADUZ NOS DOIS SENTIDOS: a folha do início conta a ida E a volta (a volta, en→pt,

@@ -231,11 +231,12 @@ describe('ParakeetLocalStt', () => {
       removeItem: (k: string) => void g.delete(k),
     })
     const stt = new ParakeetLocalStt()
-    expect(g.has(`babel.sentinela.${ID_DO_PARAKEET}`)).toBe(false)
+    const marcas = () => [...g.keys()].filter((k) => k.startsWith(`babel.sentinela.${ID_DO_PARAKEET}.`))
+    expect(marcas()).toHaveLength(0)
     await stt.preload()
-    expect(g.has(`babel.sentinela.${ID_DO_PARAKEET}`)).toBe(true)
+    expect(marcas()).toHaveLength(1)
     stt.liberar()
-    expect(g.has(`babel.sentinela.${ID_DO_PARAKEET}`)).toBe(false)
+    expect(marcas()).toHaveLength(0)
   })
 
   it('o manifesto que o worker manda é gravado na janela (o Worker não tem localStorage)', async () => {

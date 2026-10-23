@@ -51,3 +51,19 @@ export function modeloFixoServe(m: ModeloFixo, idiomas: string[]): boolean {
   if (m === 'moonshine-base' || m === 'moonshine-tiny') return langs.every((l) => l === 'en');
   return true;
 }
+
+/**
+ * O Parakeet VETADO neste aparelho (a aba caiu com ele, ou a sonda o proibiu) sai da conta do roteador:
+ * nem o automático (`parakeetNoAparelho`) nem o fixado pela pessoa. Uma regra só, para a captura e para
+ * as estimativas da tela (`LiveCapture`), que precisam bater com a rota real.
+ */
+export function entradaDoParakeet(
+  vetado: boolean,
+  temCopia: boolean,
+  fixo: ModeloFixo,
+): { parakeetNoAparelho: boolean; modeloFixo: ModeloFixo } {
+  return {
+    parakeetNoAparelho: !vetado && temCopia,
+    modeloFixo: vetado && fixo === 'parakeet' ? 'auto' : fixo,
+  };
+}

@@ -27,7 +27,7 @@ import type { EspeculacaoDoFinal } from '../../gateway/capture/systemAudio';
 import { aoFalharANuvemDoStt } from '../../gateway/falhaDaNuvemDoStt';
 import { areModelsCached, expectedModelIds } from '../../gateway/modelCache';
 import { temCopiaNoAparelho } from '../../gateway/modelManifest';
-import { lerModeloFixo } from '../../gateway/modeloFixo';
+import { entradaDoParakeet, lerModeloFixo } from '../../gateway/modeloFixo';
 import type { ContextoDoStt } from '../../gateway/promptDeStt';
 import { getSttQuality, nomeLegivelDoModelo, outroBackend, routeStt } from '../../gateway/sttRouter';
 import { consentiuNuvem, consentiuReconhecimentoDoNavegador, rapidoDoMicPermitido } from '../consentimentoDeNuvem';
@@ -1400,8 +1400,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       profileId: getActiveProfile().id,
       // O APARELHO (Quest/celular: base q8 em WASM, ou na GPU provada; small só no desktop com GPU).
       dispositivo,
-      parakeetNoAparelho: !parakeetVetado && temCopiaNoAparelho(ID_DO_PARAKEET),
-      modeloFixo: parakeetVetado && modeloFixoLido === 'parakeet' ? 'auto' : modeloFixoLido,
+      ...entradaDoParakeet(parakeetVetado, temCopiaNoAparelho(ID_DO_PARAKEET), modeloFixoLido),
     });
     /* A POLÍTICA DE ROTA (`core/rota/politicaDeRota.ts`) responde à mesma pergunta, DESLIGADA (modo
        sombra). Não muda a rota. Serve a duas coisas: */

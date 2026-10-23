@@ -36,15 +36,9 @@ const MODOS: Array<[string, (page: Page) => Promise<void>]> = [
  * a sugestão de correção está em `docs/auditoria/2026-10-15-acessibilidade.md`. Corrigida a cor, a
  * linha sai daqui e o caso passa a barrar a regressão.
  */
-const LINK = '#ae300e sobre #d9d5c8 = 4.42 (pede 4.5)'
-const VIOLAM_HOJE: Record<string, string> = {
-  'Entrar (computador)': `color-contrast: .qen-rotulo > .qen-link ("Esqueci"), .qen-rodape > .qen-link ("Criar uma conta"), a[href$="termos.html"], a[href$="privacidade.html"]: ${LINK}`,
-  'Criar conta (computador)': `color-contrast: .qen-link ("Entrar"): ${LINK}`,
-  'Recuperar senha (computador)': `color-contrast: .qen-link ("← Voltar ao login"): ${LINK}`,
-  'Entrar (celular)': `color-contrast: .qen-rotulo > .qen-link ("Esqueci"), .qen-rodape > .qen-link ("Criar uma conta"), a[href$="termos.html"], a[href$="privacidade.html"]: ${LINK}`,
-  'Criar conta (celular)': `color-contrast: .qen-link ("Entrar"), a[href$="termos.html"], a[href$="privacidade.html"]: ${LINK}`,
-  'Recuperar senha (celular)': `color-contrast: .qen-link ("← Voltar ao login"): ${LINK}`,
-}
+/* Corrigida em 22/10/2026: `--accent-ink` passou de #AE300E para #A82E0D (4,67:1 sobre #d9d5c8). Os seis
+   casos agora barram a regressão. */
+const VIOLAM_HOJE: Record<string, string> = {}
 
 for (const [aparelho, uso] of [
   ['computador', {}],

@@ -49,6 +49,9 @@ async function abrir(page: Page, rota: string) {
 
 /** Fecha comemorações e avisos que a semente dispara — podem vir em sequência. */
 async function fecharDialogos(page: Page) {
+  // A novidade discreta (cartão no canto, 22/10/2026) não é diálogo, mas cobre o que está embaixo.
+  const cartao = page.getByTestId('novidade-discreta').getByRole('button', { name: 'Fechar' })
+  if (await cartao.isVisible().catch(() => false)) await cartao.click({ timeout: 2000 }).catch(() => {})
   for (let i = 0; i < 6; i++) {
     const aberto = page.locator('dialog[open]')
     if (!(await aberto.count())) {

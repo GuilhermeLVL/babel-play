@@ -22,7 +22,7 @@ import { t } from '../lib/i18n';
 import { iconeDaConquista } from './iconesDaConquista';
 
 /** Quanto o cartão fica (ms) antes de sair sozinho; o mouse em cima segura. */
-export const DURACAO_DA_NOVIDADE_MS = 7000;
+export const DURACAO_DA_NOVIDADE_MS = 6000;
 
 /** A recompensa precisa do modal (há peça a equipar) ou cabe no cartão discreto? Pura. */
 export function precisaDeModal(r: Recompensa): boolean {

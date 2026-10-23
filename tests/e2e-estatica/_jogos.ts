@@ -187,6 +187,9 @@ export const ultimaFala = (page: Page, idioma = '') =>
 
 /** As recompensas (baú, conquista, nível) são diálogos por cima da tela: fecha um por um. */
 export async function dispensarRecompensas(page: Page) {
+  // A novidade discreta (cartão no canto, 22/10/2026) não é diálogo, mas cobre o que está embaixo.
+  const cartao = page.getByTestId('novidade-discreta').getByRole('button', { name: 'Fechar' })
+  if (await cartao.isVisible().catch(() => false)) await cartao.click({ timeout: 2000 }).catch(() => {})
   for (let i = 0; i < 6; i++) {
     const b = page
       .getByRole('dialog')

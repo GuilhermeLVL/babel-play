@@ -88,6 +88,10 @@ export async function fecharSobreposicoes(page: Page) {
     await recompensa.click({ force: true, timeout: 2000 }).catch(() => {})
     await page.waitForTimeout(250)
   }
+  /* A NOVIDADE DISCRETA (22/10/2026): a recompensa sem peça é um cartão no canto, não um diálogo. Ele
+     some sozinho em 6 s, mas até lá cobre o que estiver embaixo (os Ajustes da captura, no tablet). */
+  const cartao = page.getByTestId('novidade-discreta').getByRole('button', { name: 'Fechar' })
+  if (await cartao.isVisible().catch(() => false)) await cartao.click({ timeout: 2000 }).catch(() => {})
   /* O CLIQUE PRECISA DE PRAZO: uma recompensa pode estar POR CIMA deste botão, e um `click()` sem
      prazo espera a interceptação sumir até o teste inteiro estourar. Com prazo curto e a falha
      engolida, quem chama tenta de novo (o laço de `irParaPraticar`). */

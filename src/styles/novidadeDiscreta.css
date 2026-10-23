@@ -81,8 +81,12 @@
   width: 16px;
   height: 16px;
 }
+/* No celular o cartão vai para BAIXO, acima da barra de cinco (68 px + 12 px): no topo ele cobria a
+   barra de ferramentas da tela por 6 s (os Ajustes da captura, os chips de idioma). */
 @media (max-width: 720px) {
   .novidade-discreta {
+    top: auto;
+    bottom: calc(92px + env(safe-area-inset-bottom, 0px));
     left: 12px;
     right: 12px;
     max-width: none;

@@ -39,6 +39,7 @@ import { buildGateway } from '../../gateway';
 import { getActiveProfile, getProviderMode } from '../../gateway/activeProfile';
 import { temAdaptadorWebGpu, webGpuProvavel } from '../../gateway/adaptadorWebGpu';
 import { parDoId } from '../../gateway/adapters/bergamotModelo';
+import { ID_DO_PARAKEET } from '../../gateway/adapters/parakeetModelo';
 import type { SttSession } from '../../gateway/capabilities';
 import { capMetrics, MOTOR_DA_NUVEM } from '../../gateway/capture/captureMetrics';
 import {
@@ -51,6 +52,8 @@ import {
   type SystemAudioProbe,
 } from '../../gateway/capture/systemAudio';
 import { expectedModelIds } from '../../gateway/modelCache';
+import { temCopiaNoAparelho } from '../../gateway/modelManifest';
+import { lerModeloFixo } from '../../gateway/modeloFixo';
 import { ContextoDoStt } from '../../gateway/promptDeStt';
 import { comPoliticaDoHub } from '../../gateway/semReferer';
 import {
@@ -2357,6 +2360,8 @@ export default function LiveCapture({
       cloudAvailable: false,
       profileId: getActiveProfile().id,
       dispositivo: dispositivoDaRota(perfilDoAparelho, sondaGuardada),
+      parakeetNoAparelho: temCopiaNoAparelho(ID_DO_PARAKEET),
+      modeloFixo: lerModeloFixo(),
     });
     // Só microfone: o tradutor é o da SUA fala (o mesmo sentido que `prepareModels` carrega).
     const [mtDe, mtPara] = captureScenario === 'mic' ? [meu, ouvir] : [ouvir, meu];
@@ -2425,6 +2430,8 @@ export default function LiveCapture({
       cloudAvailable: false,
       profileId: getActiveProfile().id,
       dispositivo: dispositivoDaRota(perfilDoAparelho, sondaGuardada),
+      parakeetNoAparelho: temCopiaNoAparelho(ID_DO_PARAKEET),
+      modeloFixo: lerModeloFixo(),
     });
     return tamanhoDoDownloadMb(rota.localModel, rota.dtype);
   }, [
@@ -2455,6 +2462,8 @@ export default function LiveCapture({
       cloudAvailable: false,
       profileId: getActiveProfile().id,
       dispositivo: dispositivoDaRota(perfilDoAparelho, sondaGuardada),
+      parakeetNoAparelho: temCopiaNoAparelho(ID_DO_PARAKEET),
+      modeloFixo: lerModeloFixo(),
     });
     const [mtDe, mtPara] = captureScenario === 'mic' ? [meu, ouvir] : [ouvir, meu];
     const tradutores = expectedModelIds(mtDe, mtPara, rota.localModel).filter((id) => id !== rota.localModel);

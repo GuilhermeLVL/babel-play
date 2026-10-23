@@ -238,8 +238,10 @@ describe('threads do WASM', () => {
 })
 
 describe('aviso de download', () => {
-  it('desktop em rede boa não pede confirmação', () => {
-    expect(classificarDispositivo(desktop).confirmarDownloadAcimaDeMb).toBeNull()
+  // Reescrito: o Parakeet (672 MB) e o small (589 MB) são baixados no desktop e pedem confirmação na
+  // folha de início; o base (80 MB) não.
+  it('desktop em rede boa confirma só acima de 300 MB', () => {
+    expect(classificarDispositivo(desktop).confirmarDownloadAcimaDeMb).toBe(300)
   })
 
   it('saveData: confirma qualquer download', () => {
@@ -441,6 +443,7 @@ describe('dispositivoDaRota + sonda (campos novos, sem mudar a decisão)', () =>
       economiaDeDados: false,
       memoriaGb: 8,
       poucaMemoria: false,
+      fornecedorGpu: 'amd',
       shaderF16: true,
       limites: { maxStorageBufferBindingSize: 128, maxBufferSize: 256 },
       nativo: false,

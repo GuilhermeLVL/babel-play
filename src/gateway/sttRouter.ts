@@ -26,6 +26,7 @@ import { edicaoEstatica } from '../lib/edicaoEstatica';
 import { nuvemDoQuestAtiva } from '../lib/nuvemDoQuest';
 import { mbDoDownload, parDoId } from './adapters/bergamotModelo';
 import { ID_DO_PARAKEET, IDIOMAS_DO_PARAKEET, MB_DO_PARAKEET, parakeetLigado } from './adapters/parakeetModelo';
+import { type ModeloFixo, modeloFixoServe } from './modeloFixo';
 
 export type SttQuality = 'auto' | 'fast' | 'accurate' | 'cloud';
 
@@ -64,9 +65,19 @@ export interface SttRouteInput {
   dispositivo?: DispositivoDaRota;
   /**
    * A chave local do Parakeet (`babel.stt.parakeet`). Ausente = lê a chave (`parakeetLigado`), que é
-   * DESLIGADA de fábrica; quem testa a rota passa o valor. Ligada, não basta: ver `parakeetCabeNoAparelho`.
+   * LIGADA de fábrica (só `'0'` desliga); quem testa a rota passa o valor. Ligada, não basta: ver
+   * `parakeetCabeNoAparelho` e `parakeetNoAparelho`.
    */
   parakeet?: boolean;
+  /**
+   * Há uma cópia COMPLETA do Parakeet neste aparelho (`temCopiaNoAparelho(ID_DO_PARAKEET)`). No
+   * `auto` o Parakeet só entra com ela; sem ela o automático segue no Whisper e a rota leva
+   * `parakeetDisponivelParaBaixar`. No `accurate` entra mesmo sem cópia (a folha de início confirma o
+   * download). Ausente = sem cópia.
+   */
+  parakeetNoAparelho?: boolean;
+  /** O modelo fixado pela pessoa (`lerModeloFixo`). Só vale se serve aos idiomas e o aparelho permite. */
+  modeloFixo?: ModeloFixo;
 }
 
 /** O pedaço do perfil do dispositivo que a rota usa. */
@@ -90,6 +101,8 @@ export interface DispositivoDaRota {
   /** Microbenchmark guardado (GFLOP/s relativos, `lib/dispositivo/benchmark.ts`). */
   pontuacaoWasm?: number | null;
   pontuacaoWebgpu?: number | null;
+  /** Fornecedor do adaptador WebGPU em minúsculas (`'apple'` = chip Apple, todos com 8 GB ou mais). */
+  fornecedorGpu?: string;
 }
 
 /** Preset de quantização pedido ao worker (ver `DTYPE_PRESETS` em `whisperWorker.ts`). */
@@ -158,15 +171,17 @@ function dtypeNaGpu(_d: DispositivoDaRota | undefined): DtypeDaRota {
 export const MEMORIA_MINIMA_DO_PARAKEET_GB = 8;
 
 /**
- * O Parakeet int8 (672 MB de download, ~2 GB de RAM) CABE neste aparelho? Só no COMPUTADOR, com a
- * memória medida e suficiente, sem `poucaMemoria` e sem economia de dados. Sem medida (Firefox e
- * Safari não informam `deviceMemory`; perfil sem os campos) a resposta é não: quem não prova a
- * memória fica no Whisper. Celular e Quest nunca. Não exige GPU: ele roda no processador, e é por
- * isso que serve também o computador sem placa de vídeo. Pura.
+ * O Parakeet int8 (672 MB de download, ~2 GB de RAM) CABE neste aparelho? Só no COMPUTADOR e sem
+ * economia de dados, e com (a) memória medida de 8 GB ou mais e sem `poucaMemoria`, OU (b) GPU da
+ * Apple (`fornecedorGpu === 'apple'`): todo Mac com chip Apple tem 8 GB ou mais, mesmo quando o
+ * Safari/Firefox não informam `deviceMemory` ou a aba não tem isolamento (`poucaMemoria`) — os
+ * modelos são carregados um de cada vez. Sem prova, a resposta é não. Celular e Quest nunca. Não
+ * exige GPU: ele roda no processador. Pura.
  */
 export function parakeetCabeNoAparelho(d: DispositivoDaRota | undefined): boolean {
-  if (!d || !d.tipo.startsWith('desktop') || d.economiaDeDados || d.poucaMemoria !== false) return false;
-  return typeof d.memoriaGb === 'number' && d.memoriaGb >= MEMORIA_MINIMA_DO_PARAKEET_GB;
+  if (!d || !d.tipo.startsWith('desktop') || d.economiaDeDados) return false;
+  if (d.fornecedorGpu === 'apple') return true;
+  return d.poucaMemoria === false && typeof d.memoriaGb === 'number' && d.memoriaGb >= MEMORIA_MINIMA_DO_PARAKEET_GB;
 }
 
 export interface SttRoute {
@@ -183,6 +198,8 @@ export interface SttRoute {
    * `webgpu` no Quest/celular com GPU provada (`usarGpuNoAparelho`). Ausente = `auto` (desktop).
    */
   device?: 'wasm' | 'webgpu';
+  /** O automático ficou no Whisper, mas o Parakeet serve aqui e ainda não está no aparelho (a tela pode oferecer baixar). */
+  parakeetDisponivelParaBaixar?: boolean;
 }
 
 export const WHISPER_MODELS = {
@@ -356,7 +373,7 @@ export function routeStt(input: SttRouteInput): SttRoute {
   const bestLocal = podeSmall ? WHISPER_MODELS.small : WHISPER_MODELS.base;
   const nomeCurto = (m: string) => m.split('-').pop();
   const sufixo = gpuMovel ? ' · GPU' : q8 ? ' q8' : '';
-  /* PARAKEET (chave `babel.stt.parakeet`, DESLIGADA de fábrica): com a chave ligada, no computador
+  /* PARAKEET (chave `babel.stt.parakeet`, LIGADA de fábrica): com a chave ligada, no computador
      com memória medida (`parakeetCabeNoAparelho`), o modelo local de PRECISÃO de português e espanhol
      é o Parakeet int8 em WASM, no lugar do Whisper small/base — 5,8% de erro em português contra
      10,8% do small e 18,2% do base, 11 vezes mais rápido que a fala sem usar a GPU
@@ -365,21 +382,29 @@ export function routeStt(input: SttRouteInput): SttRoute {
      os outros idiomas, o "rápido" e a RESERVA da nuvem (o base, para não baixar 672 MB de reserva)
      ficam como estavam. */
   const fontes = input.soMicrofone && micLang ? [micLang] : micLang ? [lang, micLang] : [lang];
-  const parakeet =
+  const parakeetServe =
     (input.parakeet ?? parakeetLigado()) &&
     !autoDetect &&
     fontes.every((l) => IDIOMAS_DO_PARAKEET.includes(l)) &&
     parakeetCabeNoAparelho(dispositivo);
-  /** A rota local de precisão: o Parakeet quando serve, senão o melhor Whisper do aparelho. */
-  const precisoLocal = (rotulo: (nome: string) => string): SttRoute =>
-    parakeet
-      ? {
-          localModel: ID_DO_PARAKEET,
-          device: 'wasm',
-          preferCloud: false,
-          label: rotulo(nomeLegivelDoModelo(ID_DO_PARAKEET)),
-        }
-      : { ...whisperLocal(bestLocal), preferCloud: false, label: rotulo(`${nomeCurto(bestLocal)}${sufixo}`) };
+  /** A rota local de precisão: o Parakeet quando serve, senão o melhor Whisper do aparelho. No `auto`
+      (`exigirCopia`) o Parakeet só entra com a cópia no aparelho; sem ela, o Whisper e o aviso. */
+  const precisoLocal = (rotulo: (nome: string) => string, exigirCopia = false): SttRoute => {
+    const parakeet = parakeetServe && (!exigirCopia || input.parakeetNoAparelho === true);
+    if (parakeet)
+      return {
+        localModel: ID_DO_PARAKEET,
+        device: 'wasm',
+        preferCloud: false,
+        label: rotulo(nomeLegivelDoModelo(ID_DO_PARAKEET)),
+      };
+    return {
+      ...whisperLocal(bestLocal),
+      preferCloud: false,
+      label: rotulo(`${nomeCurto(bestLocal)}${sufixo}`),
+      ...(parakeetServe ? { parakeetDisponivelParaBaixar: true } : {}),
+    };
+  };
   /** Moonshine do "auto" em inglês: o tiny no celular fraco, no Quest (~3 núcleos em clock reduzido
       para o app) ou com economia de dados. */
   const moonshineAuto =
@@ -392,6 +417,40 @@ export function routeStt(input: SttRouteInput): SttRoute {
     label,
     dtype: 'q8',
   });
+
+  /* MODELO FIXADO PELA PESSOA: vale quando serve a todos os idiomas e o aparelho permite; senão é
+     ignorado e a rota é a do automático. Nunca vai à nuvem. */
+  const fixo = input.modeloFixo;
+  if (fixo && fixo !== 'auto') {
+    const idiomasDaRota = autoDetect ? [] : fontes;
+    const serve = fixo.startsWith('moonshine')
+      ? isEnglish
+      : fixo === 'parakeet'
+        ? !autoDetect && modeloFixoServe(fixo, idiomasDaRota) && parakeetCabeNoAparelho(dispositivo)
+        : fixo === 'whisper-small'
+          ? dispositivo
+            ? dispositivo.permiteSmall
+            : hasWebGpu
+          : true;
+    if (serve) {
+      const escolhido = (modelo: string, extra: Partial<SttRoute>): SttRoute => ({
+        localModel: modelo,
+        preferCloud: false,
+        label: `local · escolhido por você (${nomeLegivelDoModelo(modelo)})`,
+        ...extra,
+      });
+      if (fixo === 'parakeet') return escolhido(ID_DO_PARAKEET, { device: 'wasm' });
+      if (fixo === 'moonshine-base') return escolhido(MOONSHINE_MODELS.base, { dtype: 'q8' });
+      if (fixo === 'moonshine-tiny') return escolhido(MOONSHINE_MODELS.tiny, { dtype: 'q8' });
+      const w =
+        fixo === 'whisper-small'
+          ? WHISPER_MODELS.small
+          : fixo === 'whisper-base'
+            ? WHISPER_MODELS.base
+            : WHISPER_MODELS.tiny;
+      return escolhido(w, whisperLocal(w));
+    }
+  }
 
   switch (quality) {
     case 'fast':
@@ -450,7 +509,7 @@ export function routeStt(input: SttRouteInput): SttRoute {
           label: 'nuvem (large-v3-turbo) · reserva local',
         };
       }
-      return precisoLocal((nome) => `local · modelo preciso (${nome})`);
+      return precisoLocal((nome) => `local · modelo preciso (${nome})`, true);
     }
   }
 }

@@ -1,11 +1,13 @@
 /**
- * PARAKEET NA ROTA — atrás da chave `babel.stt.parakeet`, DESLIGADA de fábrica.
+ * PARAKEET NA ROTA — chave `babel.stt.parakeet`, LIGADA de fábrica desde 23/10/2026 (decisão do dono;
+ * só `'0'` desliga). A premissa antiga ("desligada de fábrica") foi reescrita: o que vale é "desligada
+ * pela pessoa = nada muda".
  *
  * Duas garantias:
- *  1. CHAVE DESLIGADA = NADA MUDA. `IMPRESSAO_DE_ANTES` é o sha256 das 1280 rotas da matriz abaixo,
+ *  1. DESLIGADA PELA PESSOA (`parakeet: false` ou `'0'`) = NADA MUDA. `IMPRESSAO_DE_ANTES` é o sha256 das 1280 rotas da matriz abaixo,
  *     capturado com o `sttRouter.ts` de ANTES do Parakeet existir (09/10/2026, commit 202c02e5). Se
  *     uma rota qualquer mudar com a chave desligada, a impressão muda e este teste quebra.
- *  2. CHAVE LIGADA: só o modelo local de PRECISÃO de português e espanhol, no computador com memória
+ *  2. CHAVE LIGADA: no `auto` só com a cópia no aparelho (`parakeetNoAparelho`); no "preciso" sempre. Só o modelo local de PRECISÃO de português e espanhol, no computador com memória
  *     medida (`deviceMemory` ≥ 8 e sem `poucaMemoria`), vira o Parakeet int8 em WASM. Inglês, os demais
  *     idiomas, "Detectar", o "rápido", a reserva da nuvem, o celular e o Quest ficam como estavam.
  */
@@ -62,6 +64,7 @@ function matriz(dispositivos: Array<DispositivoDaRota | undefined>): SttRouteInp
                   cloudAvailable,
                   profileId: 'free-web',
                   dispositivo,
+                  parakeet: false,
                 })
   return entradas
 }
@@ -82,7 +85,7 @@ const APARELHOS = [undefined, desktopGpu, desktopSemGpu, quest, celularBom]
 
 afterEach(() => vi.unstubAllGlobals())
 
-describe('chave desligada: a rota é a de antes', () => {
+describe('chave desligada pela pessoa: a rota é a de antes', () => {
   it('as 1280 rotas da matriz têm a mesma impressão de antes do Parakeet', () => {
     const entradas = matriz(APARELHOS)
     expect(entradas).toHaveLength(1280)
@@ -93,9 +96,10 @@ describe('chave desligada: a rota é a de antes', () => {
     expect(impressao(matriz(APARELHOS.map((d) => d && comMemoria(d))))).toBe(IMPRESSAO_DE_ANTES)
   })
 
-  it('…e com a chave gravada com outro valor que não "1"', () => {
-    vi.stubGlobal('localStorage', { getItem: (k: string) => (k === CHAVE_DO_PARAKEET ? 'true' : null) })
-    expect(impressao(matriz(APARELHOS.map((d) => d && comMemoria(d))))).toBe(IMPRESSAO_DE_ANTES)
+  it('…e com a chave gravada como "0" (sem `parakeet` na entrada)', () => {
+    vi.stubGlobal('localStorage', { getItem: (k: string) => (k === CHAVE_DO_PARAKEET ? '0' : null) })
+    const entradas = matriz(APARELHOS.map((d) => d && comMemoria(d))).map(({ parakeet: _, ...e }) => e)
+    expect(impressao(entradas)).toBe(IMPRESSAO_DE_ANTES)
   })
 
   it('`parakeet: false` na entrada vence a chave ligada', () => {
@@ -115,6 +119,7 @@ describe('chave ligada', () => {
     profileId: 'free-web',
     dispositivo: comMemoria(desktopGpu),
     parakeet: true,
+    parakeetNoAparelho: true,
   }
 
   it.each(['pt', 'es'])('%s no computador com memória: Parakeet int8 em WASM, 672 MB', (contentLang) => {
@@ -209,6 +214,7 @@ describe('o que a tela mostra do Parakeet', () => {
       profileId: 'free-web',
       dispositivo: comMemoria(desktopGpu),
       parakeet: true,
+      parakeetNoAparelho: true,
     })
     // A GPU medida mais rápida não leva o Parakeet a ela: o int8 no WebGPU ficou 2,3× mais lento.
     expect(outroBackend(rota, { ...comMemoria(desktopGpu), pontuacaoWasm: 1, pontuacaoWebgpu: 30 }, true)).toBeNull()

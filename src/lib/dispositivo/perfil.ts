@@ -205,7 +205,7 @@ export function classificarDispositivo(s: SinaisDoDispositivo): PerfilDoDisposit
   if (s.economiaDeDados) motivos.push('economia de dados ligada');
   if (redeLenta) motivos.push(`rede ${s.tipoDeRede}`);
   const confirmarDownloadAcimaDeMb =
-    s.economiaDeDados || redeLenta ? 0 : tipo === 'quest' || tipo.startsWith('celular') ? 100 : null;
+    s.economiaDeDados || redeLenta ? 0 : tipo === 'quest' || tipo.startsWith('celular') ? 100 : 300;
 
   return {
     tipo,
@@ -342,9 +342,10 @@ export function dispositivoDaRota(
   economiaDeDados: boolean;
   memoriaGb: number | null;
   poucaMemoria: boolean;
+  fornecedorGpu?: string;
 } & CamposDaSondaNaRota {
   /* `memoriaGb` e `poucaMemoria`: o que a rota lê para saber se o Parakeet (672 MB, ~2 GB de RAM) cabe
-     (`parakeetCabeNoAparelho` em `sttRouter.ts`). Sem a chave dele ligada, ninguém os consulta. */
+     (`parakeetCabeNoAparelho` em `sttRouter.ts`). */
   const base = {
     tipo: p.tipo,
     permiteSmall: p.permiteSmall,
@@ -364,6 +365,7 @@ export function dispositivoDaRota(
     iOS: s.iOS,
     pontuacaoWasm: sonda.benchmark?.pontuacaoWasm ?? null,
     pontuacaoWebgpu: sonda.benchmark?.pontuacaoWebgpu ?? null,
+    fornecedorGpu: (s.webGpu?.fornecedor ?? '').toLowerCase(),
     adaptadorReal: !!s.webGpu && s.webGpu.reserva !== true,
     gpuCaiu: Object.values(sonda.motivosDaProibicao ?? {}).includes('device-lost'),
   };

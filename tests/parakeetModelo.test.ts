@@ -1,5 +1,5 @@
 /**
- * PARAKEET — o que o app sabe do modelo antes de abrir o worker: a chave (desligada de fábrica), os
+ * PARAKEET — o que o app sabe do modelo antes de abrir o worker: a chave (ligada de fábrica; só '0' desliga), os
  * idiomas, os arquivos FIXADOS (commit + sha256) e de onde eles vêm.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -23,18 +23,19 @@ import {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('a chave', () => {
-  it('sem localStorage, ou sem a chave: DESLIGADA', () => {
+  // Reescrito (decisão do dono, 23/10/2026): a chave é LIGADA de fábrica; só '0' desliga.
+  it('sem localStorage: desligada; sem a chave: LIGADA', () => {
     expect(parakeetLigado()).toBe(false)
     vi.stubGlobal('localStorage', { getItem: () => null })
-    expect(parakeetLigado()).toBe(false)
+    expect(parakeetLigado()).toBe(true)
   })
 
-  it("só o valor '1' liga", () => {
+  it("só o valor '0' desliga", () => {
     for (const [valor, esperado] of [
       ['1', true],
-      ['true', false],
+      ['true', true],
       ['0', false],
-      ['', false],
+      ['', true],
     ] as const) {
       vi.stubGlobal('localStorage', { getItem: (k: string) => (k === CHAVE_DO_PARAKEET ? valor : null) })
       expect(parakeetLigado(), valor).toBe(esperado)

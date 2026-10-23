@@ -9,6 +9,7 @@ import { celebrar } from '../../../lib/comemoracao';
 import { t } from '../../../lib/i18n';
 import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { anima, MOLA_SUAVE, polido, reduz } from '../../../lib/polimento/base';
+import { zoomDoCorpo } from '../../../lib/zoomDoCorpo';
 import AjudasGerais from '../casca/AjudasGerais';
 import { useAtalhosDasAlternativas } from '../casca/atalhos';
 import { useRodada } from '../casca/CascaDaRodada';
@@ -196,7 +197,7 @@ export default function VitendawiliDoPrototipo({ items, onFinish, onExit }: Prop
         l,
         [
           {
-            transform: `translate(${de.left + de.width / 2 - para.left - para.width / 2}px, ${de.top + de.height / 2 - para.top - para.height / 2}px) scale(0.8)`,
+            transform: `translate(${(de.left + de.width / 2 - para.left - para.width / 2) / zoomDoCorpo()}px, ${(de.top + de.height / 2 - para.top - para.height / 2) / zoomDoCorpo()}px) scale(0.8)`,
             opacity: 0.4,
           },
           { transform: 'translate(0,0) scale(1)', opacity: 1 },

@@ -7,6 +7,7 @@
  * gestos do cartão no celular e a varredura das ondas. Com a camada desligada ou com movimento
  * reduzido, nada disto roda e a tela fica no estado final.
  */
+import { zoomDoCorpo } from '../zoomDoCorpo';
 import { anima, contar, limpar, MOLA, MOLA_SUAVE, polido, reduz } from './base';
 import { centro, molaFisica, rajada } from './captura';
 import { flutuar } from './jogos';
@@ -67,7 +68,10 @@ export function pintarRodada(raiz: HTMLElement, como: ComoPintar, o: { dir?: num
     /* o desfazer "acende" depois de cada nota: é ele que dá confiança para responder depressa */
     const des = $('.cx-desfazer:not(:disabled)', raiz);
     if (des && como === 'proximo')
-      anima(des, [{ transform: 'scale(0.7) rotate(-40deg)' }, { transform: 'scale(1) rotate(0)' }], { d: 520, e: MOLA });
+      anima(des, [{ transform: 'scale(0.7) rotate(-40deg)' }, { transform: 'scale(1) rotate(0)' }], {
+        d: 520,
+        e: MOLA,
+      });
   } else if (como === 'resposta') {
     const r = $('.resp', cartao);
     if (!r) return;
@@ -191,8 +195,15 @@ export function armarCartao(
     aoSegurar: () => void;
   },
 ): () => void {
-  let a: { id: number; x: number; y: number; dx: number; indo: boolean; hist: Array<[number, number]>; t: number } | null =
-    null;
+  let a: {
+    id: number;
+    x: number;
+    y: number;
+    dx: number;
+    indo: boolean;
+    hist: Array<[number, number]>;
+    t: number;
+  } | null = null;
   let seg = 0;
   const selos = { e: $('.ct-carimbo.e', cartao), b: $('.ct-carimbo.b', cartao) };
   const por = (dx: number) => {
@@ -204,13 +215,15 @@ export function armarCartao(
   const descer = (e: PointerEvent) => {
     if (a || e.button || (e.target as Element).closest('button, input, a, select')) return;
     if (e.pointerType === 'mouse' && !celular()) return;
+    /* Em px do body: `clientX/Y` vêm em px da janela (zoom do A±). */
+    const z = zoomDoCorpo();
     a = {
       id: e.pointerId,
-      x: e.clientX,
-      y: e.clientY,
+      x: e.clientX / z,
+      y: e.clientY / z,
       dx: 0,
       indo: false,
-      hist: [[performance.now(), e.clientX]],
+      hist: [[performance.now(), e.clientX / z]],
       t: performance.now(),
     };
     clearTimeout(seg);
@@ -223,8 +236,9 @@ export function armarCartao(
   };
   const mover = (e: PointerEvent) => {
     if (!a || e.pointerId !== a.id) return;
-    const dx = e.clientX - a.x;
-    const dy = e.clientY - a.y;
+    const z = zoomDoCorpo();
+    const dx = e.clientX / z - a.x;
+    const dy = e.clientY / z - a.y;
     if (!a.indo) {
       if (Math.hypot(dx, dy) < 8) return;
       clearTimeout(seg);
@@ -238,7 +252,7 @@ export function armarCartao(
       cartao.classList.add('ct-arrastando');
     }
     a.dx = dx;
-    a.hist.push([performance.now(), e.clientX]);
+    a.hist.push([performance.now(), e.clientX / z]);
     if (a.hist.length > 6) a.hist.shift();
     por(dx);
   };
@@ -417,7 +431,10 @@ export function varrerOnda(raiz: ParentNode, trilha: HTMLElement, ms: number): v
   trilha.classList.add('tocando');
   const cor = $('.cx-onda-cor', trilha);
   if (cor && mexe() && typeof cor.animate === 'function')
-    cor.animate([{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0 0 0)' }], { duration: ms, easing: 'linear' });
+    cor.animate([{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0 0 0)' }], {
+      duration: ms,
+      easing: 'linear',
+    });
 }
 
 /** Um bloco da folha troca de conteúdo (`trocar`, `cartoes2.js:574-577`) ou chega (`cartoes4.js:318`). */

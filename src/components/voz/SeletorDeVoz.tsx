@@ -19,6 +19,7 @@ import {
   vozEmUso,
   vozGuardada,
 } from '../../lib/voz/preferenciaDeVoz';
+import { zoomDoCorpo } from '../../lib/zoomDoCorpo';
 import { toast } from '../Toast';
 
 const ICONE = { automatica: Sparkles, nuvem: Cloud, aparelho: AudioLines } as const;
@@ -89,7 +90,8 @@ export default function SeletorDeVoz({
     const marcada = l?.querySelector<HTMLElement>('[aria-checked="true"]');
     if (!l || !marcada || l.scrollHeight <= l.clientHeight) return;
     const sobra = l.clientHeight - marcada.offsetHeight;
-    l.scrollTop += marcada.getBoundingClientRect().top - l.getBoundingClientRect().top - Math.max(0, sobra / 2);
+    l.scrollTop +=
+      (marcada.getBoundingClientRect().top - l.getBoundingClientRect().top) / zoomDoCorpo() - Math.max(0, sobra / 2);
   }, [idioma]);
 
   const ouvir = async (o: OpcaoDeVoz) => {

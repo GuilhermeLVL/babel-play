@@ -7,6 +7,7 @@
  */
 import { type PointerEvent as PonteiroDoReact, type RefObject, useEffect, useMemo, useRef } from 'react';
 
+import { zoomDoCorpo } from '../zoomDoCorpo';
 import { polido, reduz } from './base';
 import { elastico } from './folha';
 
@@ -102,13 +103,22 @@ export function useAviso(
         /* O toque num botão de dentro do aviso é do botão (no protótipo o aviso não tem botões). */
         if ((e.target as Element).closest('button, a')) return;
         e.currentTarget.setPointerCapture?.(e.pointerId);
-        arr.current = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), eixo: null, dx: 0, dy: 0 };
+        const z = zoomDoCorpo(); /* px do body, não da janela (zoom do A±) */
+        arr.current = {
+          id: e.pointerId,
+          x: e.clientX / z,
+          y: e.clientY / z,
+          t: performance.now(),
+          eixo: null,
+          dx: 0,
+          dy: 0,
+        };
       },
       onPointerMove: (e: PonteiroDoReact<HTMLElement>) => {
         const a = arr.current;
         if (!a || e.pointerId !== a.id) return;
-        const dx = e.clientX - a.x;
-        const dy = e.clientY - a.y;
+        const dx = e.clientX / zoomDoCorpo() - a.x;
+        const dy = e.clientY / zoomDoCorpo() - a.y;
         if (!a.eixo) {
           if (Math.hypot(dx, dy) < 6) return;
           a.eixo = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';

@@ -9,6 +9,7 @@
  *
  * Itens da lista `fidelidade/casca-e-telas.md`: B27, B28, B30.
  */
+import { zoomDoCorpo } from '../zoomDoCorpo';
 import { anima, EG, MOLA_SUAVE, polido, reduz } from './base';
 import { gatilhoRecente } from './folha';
 
@@ -97,7 +98,10 @@ function entrar(d: HTMLDialogElement): void {
   /* Nasce do botão que abriu: a origem do crescimento é o centro do gatilho. */
   const r = d.getBoundingClientRect();
   const g = gatilhoRecente()?.getBoundingClientRect();
-  d.style.transformOrigin = g ? `${g.left + g.width / 2 - r.left}px ${g.top + g.height / 2 - r.top}px` : '50% 50%';
+  const z = zoomDoCorpo(); /* px da janela → px do body (zoom do A±) */
+  d.style.transformOrigin = g
+    ? `${(g.left + g.width / 2 - r.left) / z}px ${(g.top + g.height / 2 - r.top) / z}px`
+    : '50% 50%';
   anima(
     d,
     [

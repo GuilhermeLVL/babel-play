@@ -11,6 +11,7 @@ import { useNivelDoJogo } from '../../../lib/jogos/nivelDoJogo';
 import { anima, EIO, polido, reduz } from '../../../lib/polimento/base';
 import { tremer } from '../../../lib/polimento/jogos';
 import { sentir } from '../../../lib/polimento/sentidos';
+import { zoomDoCorpo } from '../../../lib/zoomDoCorpo';
 import AjudasGerais from '../casca/AjudasGerais';
 import { useRodada } from '../casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from '../casca/HudDaRodada';
@@ -174,9 +175,10 @@ export default function BaoDoPrototipo({ items, onFinish, onExit }: Props) {
     if (de && montada.current && polido() && !reduz()) {
       /* O pedaço voa da cova até a palavra montada. */
       const alvo = montada.current.getBoundingClientRect();
+      const z = zoomDoCorpo(); // px da janela → px do body (zoom do A±)
       const v = document.createElement('span');
       v.className = 'ganho';
-      v.style.cssText = `left:${de.left + de.width / 2}px;top:${de.top + de.height / 2}px;animation:none;translate:-50% -50%;font-size:22px`;
+      v.style.cssText = `left:${(de.left + de.width / 2) / z}px;top:${(de.top + de.height / 2) / z}px;animation:none;translate:-50% -50%;font-size:22px`;
       v.textContent = covas[k];
       document.body.append(v);
       const fim = () => v.remove();
@@ -185,7 +187,7 @@ export default function BaoDoPrototipo({ items, onFinish, onExit }: Props) {
         [
           { transform: 'translate(0,0) scale(1)', opacity: 1 },
           {
-            transform: `translate(${alvo.left + alvo.width / 2 - de.left - de.width / 2}px, ${alvo.top + alvo.height / 2 - de.top - de.height / 2}px) scale(1.3)`,
+            transform: `translate(${(alvo.left + alvo.width / 2 - de.left - de.width / 2) / z}px, ${(alvo.top + alvo.height / 2 - de.top - de.height / 2) / z}px) scale(1.3)`,
             opacity: 0.2,
           },
         ],

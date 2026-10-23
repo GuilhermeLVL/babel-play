@@ -8,6 +8,7 @@
  *
  * Itens da lista `fidelidade/casca-e-telas.md`: D19 a D31.
  */
+import { zoomDoCorpo } from '../zoomDoCorpo';
 import { anima, MOLA, MOLA_SUAVE, polido, reduz, semMovimentoDeTela } from './base';
 import { sentir, vibrar } from './sentidos';
 
@@ -141,7 +142,7 @@ export function trocaDeLados(raiz: ParentNode, antes: Map<string, number>): void
   for (const m of metades) {
     const topo = antes.get(m.dataset.lado ?? '');
     if (topo === undefined) continue;
-    anima(m, [{ translate: `0 ${topo - m.getBoundingClientRect().top}px` }, { translate: '0 0' }], {
+    anima(m, [{ translate: `0 ${(topo - m.getBoundingClientRect().top) / zoomDoCorpo()}px` }, { translate: '0 0' }], {
       d: 620,
       e: MOLA_SUAVE,
     });

@@ -12,6 +12,7 @@
  * os acertos da camada (`styles/polimento/jogos.css`, `jogos4.css`). Aqui não há estilo.
  */
 import { t } from '../i18n';
+import { zoomDoCorpo } from '../zoomDoCorpo';
 import { anima, limpar, polido, reduz } from './base';
 import { anunciarChegada } from './telas';
 
@@ -51,8 +52,9 @@ export function flutuar(el: Element | null | undefined, texto: string, tom: TomD
   const [x, y] = centro(alvo);
   const g = document.createElement('span');
   g.className = `ganho ${tom}`.trim();
-  g.style.left = `${x}px`;
-  g.style.top = `${y - 8}px`;
+  const z = zoomDoCorpo(); // px da janela → px do body (zoom do A±)
+  g.style.left = `${x / z}px`;
+  g.style.top = `${y / z - 8}px`;
   g.textContent = texto;
   document.body.append(g);
   window.setTimeout(() => g.remove(), VIDA_DO_GANHO);

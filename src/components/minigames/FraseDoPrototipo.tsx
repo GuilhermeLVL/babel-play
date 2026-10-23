@@ -11,6 +11,7 @@ import { useNivelDoJogo } from '../../lib/jogos/nivelDoJogo';
 import { anima, MOLA_SUAVE, polido, reduz } from '../../lib/polimento/base';
 import { flutuar } from '../../lib/polimento/jogos';
 import { sentir } from '../../lib/polimento/sentidos';
+import { zoomDoCorpo } from '../../lib/zoomDoCorpo';
 import AjudasGerais from './casca/AjudasGerais';
 import { useRodada } from './casca/CascaDaRodada';
 import HudDaRodada, { BotaoDeAjuda, usePlacarDaRodada } from './casca/HudDaRodada';
@@ -113,7 +114,7 @@ export default function FraseDoPrototipo({ rodadas, onFinish }: Props) {
       const a = de.get(x.dataset.k ?? '');
       if (!a) continue;
       const para = x.getBoundingClientRect();
-      const [dx, dy] = [a.left - para.left, a.top - para.top];
+      const [dx, dy] = [(a.left - para.left) / zoomDoCorpo(), (a.top - para.top) / zoomDoCorpo()]; // px da janela → px do body
       if (Math.abs(dx) + Math.abs(dy) > 2)
         anima(x, [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0, 0)' }], {
           d: 460,

@@ -1,6 +1,7 @@
 import { type ReactNode, type RefObject, useId, useRef } from 'react';
 
 import { t } from '../../../../lib/i18n';
+import { zoomDoCorpo } from '../../../../lib/zoomDoCorpo';
 import { DialogoBase } from '../../../ui';
 
 /** Arrastar a pega para baixo mais que isto fecha a folha. */
@@ -88,7 +89,7 @@ export default function FolhaDeBaixo({
         onPointerMove={(e) => {
           const a = arrasto.current;
           if (!a || !ref.current) return;
-          a.dy = Math.max(0, e.clientY - a.y0);
+          a.dy = Math.max(0, e.clientY - a.y0) / zoomDoCorpo(); // px da janela → px do body
           ref.current.style.transform = `translateY(${a.dy}px)`;
         }}
         onPointerUp={soltar}

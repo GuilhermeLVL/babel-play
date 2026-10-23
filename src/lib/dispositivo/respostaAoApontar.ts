@@ -16,6 +16,7 @@
  */
 import { SELETOR_DO_ACIONAVEL } from '../sfxDelegate';
 import { play } from '../soundFx';
+import { zoomDoCorpo } from '../zoomDoCorpo';
 import { perfilDoDispositivo } from './perfil';
 import { lerVibracaoDoQuest, type VibracaoDoQuest } from './preferenciasDoQuest';
 
@@ -201,8 +202,10 @@ export function instalarRespostaAoApontar(): () => void {
       quadro = 0;
       if (!el.isConnected) return;
       const r = el.getBoundingClientRect();
-      el.style.setProperty('--mx', `${Math.round(e.clientX - r.left)}px`);
-      el.style.setProperty('--my', `${Math.round(e.clientY - r.top)}px`);
+      /* px da janela → px do body (zoom do A±), senão o brilho sai longe do ponteiro. */
+      const z = zoomDoCorpo();
+      el.style.setProperty('--mx', `${Math.round((e.clientX - r.left) / z)}px`);
+      el.style.setProperty('--my', `${Math.round((e.clientY - r.top) / z)}px`);
     });
   };
 

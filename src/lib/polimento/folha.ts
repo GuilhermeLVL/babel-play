@@ -8,6 +8,7 @@
  *
  * Itens da lista `fidelidade/casca-e-telas.md`: B20–B26 e as folhas de baixo (2.10).
  */
+import { zoomDoCorpo } from '../zoomDoCorpo';
 import { anima, EG, limpar, MOLA_SUAVE, polido, reduz } from './base';
 
 const $$ = <T extends HTMLElement = HTMLElement>(s: string, r: ParentNode) => [...r.querySelectorAll<T>(s)];
@@ -42,7 +43,9 @@ function origem(painel: HTMLElement, gatilho: Element | null): void {
   const r = painel.getBoundingClientRect();
   const g = gatilho?.getBoundingClientRect?.();
   painel.style.transformOrigin =
-    g && g.width ? `${g.left + g.width / 2 - r.left}px ${g.top + g.height / 2 - r.top}px` : '50% 50%';
+    g && g.width
+      ? `${(g.left + g.width / 2 - r.left) / zoomDoCorpo()}px ${(g.top + g.height / 2 - r.top) / zoomDoCorpo()}px`
+      : '50% 50%';
 }
 
 /**
@@ -54,13 +57,16 @@ function arrastarFolha(f: Folha): void {
   let a: { id: number; y0: number; t: number; hist: Array<[number, number]>; indo: boolean } | null = null;
   p.addEventListener('pointerdown', (e) => {
     if (a || (e.target as Element).closest('button, input, a')) return;
-    if (e.clientY - p.getBoundingClientRect().top > 76) return;
-    a = { id: e.pointerId, y0: e.clientY, t: 0, hist: [[performance.now(), e.clientY]], indo: false };
+    /* Tudo em px do body: `clientY` e o retângulo vêm em px da janela (zoom do A±). */
+    const y = e.clientY / zoomDoCorpo();
+    if (y - p.getBoundingClientRect().top / zoomDoCorpo() > 76) return;
+    a = { id: e.pointerId, y0: y, t: 0, hist: [[performance.now(), y]], indo: false };
     p.setPointerCapture?.(e.pointerId);
   });
   p.addEventListener('pointermove', (e) => {
     if (!a || e.pointerId !== a.id) return;
-    const dy = e.clientY - a.y0;
+    const y = e.clientY / zoomDoCorpo();
+    const dy = y - a.y0;
     if (!a.indo) {
       if (Math.abs(dy) < 6) return;
       a.indo = true;
@@ -68,7 +74,7 @@ function arrastarFolha(f: Folha): void {
       f.el.classList.add('px-arrastando');
     }
     a.t = dy > 0 ? dy : elastico(dy, 90);
-    a.hist.push([performance.now(), e.clientY]);
+    a.hist.push([performance.now(), y]);
     if (a.hist.length > 6) a.hist.shift();
     p.style.transform = `translateY(${a.t}px)`;
     f.el.style.setProperty('--px-prog', String(Math.max(0, 1 - a.t / p.offsetHeight)));

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 
+import { zoomDoCorpo } from './zoomDoCorpo';
+
 /**
  * ONDE UM POPUP DEVE ABRIR — a conta feita uma vez só.
  *
@@ -84,16 +86,6 @@ export function caixaFlutuante(
   };
 }
 
-/** O `zoom` acumulado dos ancestrais de `el` — 1 quando o A± está no tamanho normal. */
-function zoomAcumulado(el: HTMLElement | null): number {
-  let z = 1;
-  for (let n: HTMLElement | null = el; n; n = n.parentElement) {
-    const v = parseFloat(getComputedStyle(n).zoom || '1');
-    if (Number.isFinite(v) && v > 0) z *= v;
-  }
-  return z;
-}
-
 export function usePosicaoFlutuante(
   aberto: boolean,
   ancora: { current: HTMLElement | null },
@@ -106,16 +98,20 @@ export function usePosicaoFlutuante(
     const g = ancora.current?.getBoundingClientRect();
     if (!g) return;
     /* O popup é renderizado por portal no `body`: é o zoom DELE que reescala o `fixed`. */
-    const zoom = typeof document === 'undefined' ? 1 : zoomAcumulado(document.body);
-    setCaixa(caixaFlutuante(
-      g,
-      { width: window.innerWidth, height: window.innerHeight },
-      { largura, alturaEstimada, margem, zoom },
-    ));
+    const zoom = zoomDoCorpo();
+    setCaixa(
+      caixaFlutuante(
+        g,
+        { width: window.innerWidth, height: window.innerHeight },
+        { largura, alturaEstimada, margem, zoom },
+      ),
+    );
   }, [ancora, largura, alturaEstimada, margem]);
 
   // Antes de pintar: um quadro na posição errada é visível e parece defeito.
-  useLayoutEffect(() => { if (aberto) calcular(); }, [aberto, calcular]);
+  useLayoutEffect(() => {
+    if (aberto) calcular();
+  }, [aberto, calcular]);
 
   useEffect(() => {
     if (!aberto) return;
@@ -132,7 +128,10 @@ export function usePosicaoFlutuante(
   return aberto ? caixa : null;
 }
 
-export interface PosPopover { top: number; left: number }
+export interface PosPopover {
+  top: number;
+  left: number;
+}
 
 /**
  * Posição de um POPOVER DE PALAVRA (hover na Análise/Leitura): centraliza no termo, respeita as

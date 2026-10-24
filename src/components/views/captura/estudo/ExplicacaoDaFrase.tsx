@@ -25,7 +25,8 @@ export default function ExplicacaoDaFrase(props: {
   if (!ligada) return null;
   return (
     <Suspense fallback={null}>
-      <CorpoDaExplicacao key={props.fala.texto} {...props} />
+      {/* A frase E o idioma de destino: a mesma frase pedida em outro idioma é outra explicação. */}
+      <CorpoDaExplicacao key={`${props.fala.texto}\u0000${props.destino}`} {...props} />
     </Suspense>
   );
 }

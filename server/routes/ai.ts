@@ -13,6 +13,7 @@ import { llmChatProxy, providerTest } from '../ai/proxy'
 // F14-02: a leitura de env sai do handler. B1 (Fase B): a pergunta é do registro de provedores, a
 // MESMA que a porta da transcrição faz — as duas discordavam (B0).
 import { sttDeNuvemConfigurado } from '../ai/registroDeProvedores'
+import { resumirProxy } from '../ai/resumir'
 import { apagarDoGlossario, gravarNoGlossario, listarGlossario } from '../ai/rotasDoGlossario'
 import { portaDoStt, sttTranscribeProxy } from '../ai/sttProxy'
 import { ttsProxy } from '../ai/ttsProxy'
@@ -49,6 +50,10 @@ aiRouter.post('/mt/polir', polirProxy)
    frase tocada. Atrás da flag `ia_de_estudo` (404 `recurso_indisponivel`); o plano tem `explicacoesMes`, o Grátis a
    amostra do dia (402 `amostra_acabou`), com a admissão, o orçamento e a retenção zero das outras funções. */
 aiRouter.post('/explicar', explicarProxy)
+/* O RESUMO DA SESSÃO (IA de estudo, etapa 2, Task 3): 3 pontos e até 10 cartões com a frase da cena, lidos das falas
+   da sessão DO DONO (alheia = 404 `sessao_inexistente`). Mesma flag, franquia (`resumosMes`; Grátis 1 por semana),
+   menor, retenção zero, admissão e orçamento da explicação. */
+aiRouter.post('/resumir', resumirProxy)
 /* A VOZ NATURAL do modo intérprete (E4 da Fase E): a tradução lida em voz alta pela nuvem, só com o
    `vozNatural` (402 pelo entitlement) e a flag `voz_natural` (503), com a admissão `tts`, a cota de
    caracteres no mês e no dia e o custo das outras funções. Sem clonagem de voz. O cliente cai na voz

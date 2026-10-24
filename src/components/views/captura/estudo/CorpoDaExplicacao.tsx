@@ -49,6 +49,8 @@ function fraseDaFalha(m: FalhaDoEstudo, protegido: boolean): string {
       return t('A nuvem está ocupada agora. Tente de novo em instantes.');
     case 'sem_conta':
       return t('Entre na sua conta para explicar frases.');
+    case 'sem_plano':
+      return t('A explicação da frase não está disponível nesta conta. A legenda e as palavras seguem funcionando.');
     default:
       return t('Não deu para explicar agora.');
   }
@@ -129,22 +131,19 @@ export default function CorpoDaExplicacao({
           <Lightbulb aria-hidden /> {rotulo}
         </button>
       )}
-      {pedido?.estado === 'carregando' && (
-        <p className="folha-status" role="status">
-          {t('Explicando a frase…')}
-        </p>
-      )}
-      {pedido?.estado === 'erro' && (
-        <>
-          <p className="folha-status" role="status">
-            {fraseDaFalha(pedido.motivo, protegido)}
-          </p>
-          {pedido.motivo === 'amostra_acabou' && aoConhecer && !protegido && (
-            <button type="button" className="folha-acao" onClick={aoConhecer}>
-              {t('Ver os planos')}
-            </button>
-          )}
-        </>
+      {/* O aviso fica SEMPRE montado (vazio em repouso) e só o texto troca: um `role="status"` que nasce junto com a
+          frase pode não ser anunciado pelo leitor de tela. */}
+      <p className="folha-status" role="status">
+        {pedido?.estado === 'carregando'
+          ? t('Explicando a frase…')
+          : pedido?.estado === 'erro'
+            ? fraseDaFalha(pedido.motivo, protegido)
+            : ''}
+      </p>
+      {pedido?.estado === 'erro' && pedido.motivo === 'amostra_acabou' && aoConhecer && !protegido && (
+        <button type="button" className="folha-acao" onClick={aoConhecer}>
+          {t('Ver os planos')}
+        </button>
       )}
       {ok && (
         <div className="explicacao-blocos" data-testid="explicacao-da-frase" style={{ display: 'grid', gap: 8 }}>

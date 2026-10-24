@@ -997,3 +997,83 @@ html[data-px='on'] .px-sessao .qs-visao .q-num b {
   font-weight: 700;
   line-height: 1.5;
 }
+
+/* O RESUMO DA SESSÃO (IA de estudo, etapa 2): 3 pontos e os cartões propostos, com caixa de marcar. */
+.resumo-da-sessao .resumo-aviso:empty {
+  margin: 0;
+  min-height: 0;
+}
+.resumo-da-sessao .resumo-corpo {
+  display: grid;
+  gap: 14px;
+}
+.resumo-da-sessao .resumo-pontos {
+  margin: 0;
+  padding-left: 1.4em;
+  list-style: decimal;
+  display: grid;
+  gap: 8px;
+  font: 600 17px/1.45 var(--font-body, inherit);
+  color: var(--ink);
+}
+.resumo-da-sessao .resumo-cartoes {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.resumo-da-sessao .resumo-cartoes legend {
+  margin-bottom: 8px;
+}
+.resumo-da-sessao .resumo-cartao {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--canvas);
+  cursor: pointer;
+  min-width: 0;
+}
+.resumo-da-sessao .resumo-cartao[data-tratado] {
+  cursor: default;
+  opacity: 0.75;
+}
+.resumo-da-sessao .resumo-cartao input {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 2px 0 0;
+  accent-color: var(--q-acento, var(--accent));
+}
+.resumo-da-sessao .resumo-cartao-texto {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.resumo-da-sessao .resumo-cartao-frente {
+  font: 600 16px/1.4 var(--font-body, inherit);
+  color: var(--ink);
+}
+.resumo-da-sessao .resumo-cartao-frente .q-tag {
+  margin-left: 8px;
+}
+.resumo-da-sessao .resumo-cartao-frase {
+  font: 500 15px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.resumo-da-sessao .resumo-fora ul {
+  margin: 6px 0 0;
+  padding-left: 1.2em;
+  list-style: disc;
+  font: 500 15px/1.4 var(--font-body, inherit);
+}
+.resumo-da-sessao .resumo-nota {
+  margin: 0;
+  font: 500 13px/1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+}

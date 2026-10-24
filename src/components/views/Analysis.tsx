@@ -4,6 +4,7 @@ import React, { Suspense, useEffect, useRef, useState } from 'react';
 import type { AppMetrics, UtteranceRow } from '../../data/api';
 import { fetchDeck, fetchSessionTranscript, fetchSettings } from '../../data/api';
 import { applyOutputDevice } from '../../lib/audioDevices';
+import { MIN_FALAS_DO_RESUMO } from '../../lib/estudo/promptDoResumo';
 import { useLangConfig } from '../../lib/langConfig';
 import { baseLang } from '../../lib/languages';
 import { lazyComRecarga } from '../../lib/lazyComRecarga';
@@ -57,6 +58,7 @@ import JogosDaSessao from './analise/quest/JogosDaSessao';
 import SessaoDoQuest from './analise/quest/SessaoDoQuest';
 import TranscricaoDoQuest, { type AjusteDeExibicao } from './analise/quest/TranscricaoDoQuest';
 import VisaoGeralDoQuest from './analise/quest/VisaoGeralDoQuest';
+import ResumoDaSessao from './analise/ResumoDaSessao';
 import type { FalaTocada } from './captura/celular/FolhaDaFrase';
 import FolhasDoPrototipo, { type PalavraNaFolha } from './captura/celular/FolhasDoPrototipo';
 
@@ -787,6 +789,22 @@ export default function Analysis({
       aoExportar={() => setShowExportModal(true)}
       repintar={['dashboard', 'lexical', 'fluency'].indexOf(overviewSubTab)}
     >
+      {/* O RESUMO DA SESSÃO (IA de estudo, etapa 2): na revisão, com a transcrição pronta e falas suficientes. Atrás
+          da flag `ia_de_estudo` (a porta não renderiza nada desligada). */}
+      {currentTab === 'transcript' &&
+        estadoDaTranscricao === 'pronta' &&
+        parsedSentences.length >= MIN_FALAS_DO_RESUMO && (
+          <ResumoDaSessao
+            sessionId={recording.id}
+            lang={langConfig.mine}
+            aoConhecer={perfilProtegido() ? undefined : () => onChangeView('planos')}
+            aoAdicionar={() => {
+              void fetchDeck()
+                .then(setVocabCards)
+                .catch(() => {});
+            }}
+          />
+        )}
       {currentTab === 'transcript' && (
         <TranscricaoDoQuest
           falas={parsedSentences}

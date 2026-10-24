@@ -165,6 +165,34 @@ describe('ExplicacaoDaFrase', () => {
     expect(await screen.findByText(/Entre na sua conta/)).toBeTruthy()
   })
 
+  it('sem_plano (logado, plano sem a cota): frase própria, sem "Entre na sua conta" e sem link', async () => {
+    api.explicarFrase.mockResolvedValue(falha('sem_plano'))
+    const { container } = montar(vi.fn())
+    pedir()
+    expect(await screen.findByText(/não está disponível nesta conta/)).toBeTruthy()
+    expect(container.textContent).not.toMatch(/Entre na sua conta/)
+    expect(screen.queryByRole('button', { name: /planos/i })).toBeNull()
+  })
+
+  it('o aviso (role="status") já está montado antes do pedido; só o texto troca', async () => {
+    api.explicarFrase.mockResolvedValue(falha('indisponivel', { status: 502 }))
+    montar()
+    const aviso = screen.getByRole('status')
+    expect(aviso.textContent).toBe('')
+    pedir()
+    await waitFor(() => expect(aviso.textContent).toBe('Não deu para explicar agora.'))
+    expect(screen.getByRole('status')).toBe(aviso)
+  })
+
+  it('trocar o idioma de destino da mesma frase descarta a explicação anterior', async () => {
+    api.explicarFrase.mockResolvedValue(ok())
+    const { rerender } = montar()
+    pedir()
+    expect(await screen.findByText(EXPLICACAO.porQue)).toBeTruthy()
+    rerender(<ExplicacaoDaFrase fala={fala} destino="es" contexto={['Ola', 'Tudo bem?']} />)
+    await waitFor(() => expect(screen.queryByText(EXPLICACAO.porQue)).toBeNull())
+  })
+
   it('flag velha no cache (404 recurso_indisponivel): a seção some em vez de mostrar erro', async () => {
     api.explicarFrase.mockResolvedValue(falha('fora', { status: 404 }))
     const { container } = montar()

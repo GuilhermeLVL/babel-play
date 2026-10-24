@@ -22,6 +22,7 @@ import type { LadoDoInterprete } from '../../../../lib/captura/tiposDaFala';
 import { noComputador } from '../../../../lib/dispositivo/telaNovaDoQuest';
 import { t } from '../../../../lib/i18n';
 import { direcaoDoTexto } from '../../../../lib/languages';
+import { comNomeDoPlano, planoDoInterprete } from '../../../../lib/planoDeEntrada';
 import {
   entradaDaConversa,
   entradaDasBolhas,
@@ -499,7 +500,7 @@ export default function ConversaDoPrototipo({
           </span>
           {aoConhecerOPremium && (
             <button type="button" className="int-modo px-int-conhecer" onClick={aoConhecerOPremium}>
-              {t('Conhecer o Premium')}
+              {comNomeDoPlano(t('Conhecer o Premium'), planoDoInterprete())}
             </button>
           )}
         </div>

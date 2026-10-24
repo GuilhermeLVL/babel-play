@@ -5,6 +5,7 @@ import type { FalhaDaNuance, PolidaDaFala } from '../../../data/apiDaNuance';
 import { contarPolimento, type FalaParaPolir, polirSessao } from '../../../lib/analise/polimentoDaSessao';
 import { useConsentimentoDeNuvem } from '../../../lib/consentimentoDeNuvem';
 import { t } from '../../../lib/i18n';
+import { comNomeDoPlano, planoDeEntradaAgora } from '../../../lib/planoDeEntrada';
 import { nuanceDoPolimentoDasPreferencias } from '../../../lib/traducao/preferenciasDaNuance';
 
 export type VersaoDaTraducao = 'original' | 'polida';
@@ -149,14 +150,17 @@ export default function PolirSessao({
           <div className="aviso-info" role="note" data-testid="convite-do-polimento">
             <Lock aria-hidden />
             <span style={{ flex: 1 }}>
-              {t(
-                'Com a Tradução Nuance do Premium, a tradução da sessão inteira é revisada com o contexto da conversa, e a original continua guardada.',
+              {comNomeDoPlano(
+                t(
+                  'Com a Tradução Nuance do Premium, a tradução da sessão inteira é revisada com o contexto da conversa, e a original continua guardada.',
+                ),
+                planoDeEntradaAgora(),
               )}{' '}
               {t('Sua legenda já usa a Tradução rápida ao vivo, sem esperar.')}
             </span>
             {aoConhecer && (
               <button type="button" className="btn btn-outline peq" onClick={aoConhecer}>
-                <Sparkles aria-hidden /> {t('Conhecer o Premium')}
+                <Sparkles aria-hidden /> {comNomeDoPlano(t('Conhecer o Premium'), planoDeEntradaAgora())}
               </button>
             )}
           </div>

@@ -22,10 +22,11 @@ import {
   precoMensal,
   rotuloDaForma,
 } from '../../../lib/assinatura';
-import { t } from '../../../lib/i18n';
+import { bruto, t } from '../../../lib/i18n';
 import { faseDoFimDoTeste } from '../../../lib/ofertas/fimDoTeste';
+import { comNomeDoPlano } from '../../../lib/planoDeEntrada';
 import { navegarPara } from '../../../lib/rotas';
-import { T } from '../../../lib/T';
+import { montar, T } from '../../../lib/T';
 import { PLANO_ICO, PLANO_NOME } from './dados';
 
 /**
@@ -113,7 +114,8 @@ export default function FaixaDaConta({
     );
   } else if (estado === 'teste') {
     icone = Hourglass;
-    titulo = t('{plano} · teste', { plano: PLANO_NOME.premium });
+    const planoDoTeste = conta.plano ?? 'premium';
+    titulo = t('{plano} · teste', { plano: PLANO_NOME[planoDoTeste] });
     selo = (
       <span className={classeDoSelo('ok')}>
         <Hourglass aria-hidden /> {t('Teste grátis')}
@@ -122,17 +124,34 @@ export default function FaixaDaConta({
     const fase = conta.valeAte ? faseDoFimDoTeste(conta.valeAte) : null;
     texto =
       fase === 'd0' ? (
-        t('Seu teste do Premium termina hoje. Depois a conta volta ao Grátis sozinha, e nada é cobrado.')
+        comNomeDoPlano(
+          t('Seu teste do Premium termina hoje. Depois a conta volta ao Grátis sozinha, e nada é cobrado.'),
+          planoDoTeste,
+        )
       ) : fase === 'd3' ? (
-        <T
-          txt="Seu teste do Premium termina em 3 dias, em <b>{data}</b>. Depois a conta volta ao Grátis sozinha, e nada é cobrado."
-          val={{ data: ate }}
-        />
+        <>
+          {montar(
+            comNomeDoPlano(
+              bruto(
+                'Seu teste do Premium termina em 3 dias, em <b>{data}</b>. Depois a conta volta ao Grátis sozinha, e nada é cobrado.',
+              ),
+              planoDoTeste,
+            ),
+            { data: ate },
+          )}
+        </>
       ) : (
-        <T
-          txt="Seu teste do Premium vale até <b>{data}</b>. No fim, a conta volta ao Grátis sozinha, e nada é cobrado."
-          val={{ data: ate }}
-        />
+        <>
+          {montar(
+            comNomeDoPlano(
+              bruto(
+                'Seu teste do Premium vale até <b>{data}</b>. No fim, a conta volta ao Grátis sozinha, e nada é cobrado.',
+              ),
+              planoDoTeste,
+            ),
+            { data: ate },
+          )}
+        </>
       );
   } else if (estado === 'ativa') {
     icone = IconePago;

@@ -4,6 +4,7 @@ import { abrirContextoDoClique } from '../../../../lib/captura/contextoDoClique'
 import type { LadoDoInterprete } from '../../../../lib/captura/tiposDaFala';
 import { t } from '../../../../lib/i18n';
 import { langLabel } from '../../../../lib/languages';
+import { textoDoAutomaticoNoPlano } from '../../../../lib/planoDeEntrada';
 import {
   aoMudarEstadoDaTela,
   estadoDaTela,
@@ -251,7 +252,7 @@ export default function PaginaDoInterprete({
                 (presoNoDetectar && detectar
                   ? t('Para falar por toque, escolha o idioma da outra pessoa.')
                   : avisoDoCadeado
-                    ? t('O modo automático faz parte do Premium: o app reconhece sozinho quem fala qual idioma.')
+                    ? textoDoAutomaticoNoPlano()
                     : idiomaSemVoz
                       ? comoInstalarVoz(idiomaSemVoz)
                       : detectar

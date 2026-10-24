@@ -5,6 +5,7 @@ import {
   FRANQUIA_DE_ALIVIO,
   horasDeTranscricao,
   horasDoUsoJusto,
+  PARCELAS_DO_ANUAL,
   PLAN_MATRIX,
   type PlanoDeAssinatura,
   type PlanoPago,
@@ -15,6 +16,7 @@ import { brl } from '../../../lib/assinatura';
 import { dispositivoDaRota, perfilDoDispositivo } from '../../../lib/dispositivo/perfil';
 import type { SondaDoAparelho } from '../../../lib/dispositivo/sonda';
 import { numero, t } from '../../../lib/i18n';
+import { comNomeDoPlano } from '../../../lib/planoDeEntrada';
 
 /**
  * OS QUATRO PLANOS COMO A TELA OS MOSTRA — porte de `planos4.js:24-112` (aparelhos e planos),
@@ -116,7 +118,23 @@ export interface ContextoDosPlanos {
    * do aparelho promete: com ele o computador não "erra mais".
    */
   preciso?: boolean;
+  /**
+   * OS PLANOS v4 (Grátis, Plus e Pro; a Família é uma linha): a venda do Plus está aberta
+   * (`venda_planos_v4`). Desligada, a tela é a de hoje, sem tirar nem pôr uma palavra.
+   */
+  v4?: boolean;
+  /** Os planos que aparecem na tela mas ainda não se vendem ("em breve", sem botão de compra). */
+  emBreve?: readonly PlanoDaTela[];
+  /** O anual está à venda (`ANUAL_ENABLED`): só então a pergunta do anual existe. */
+  anual?: boolean;
+  /** Perfil protegido (menor ou idade não declarada): nenhum preço nem convite ao anual. */
+  protegido?: boolean;
+  /** O plano que o teste de 14 dias concede (`teste.plano`); o Premium se não vier. */
+  planoDoTeste?: PlanoPago;
 }
+
+/** Quantas pessoas cabem na Família (perfis, "até 4" da spec dos planos v4). */
+export const PESSOAS_NA_FAMILIA = 4;
 
 /* ---- Os cartões (`PLANOS`, `planos4.js:71-112`) ----------------------------------------------------- */
 
@@ -125,6 +143,8 @@ interface Item {
   tema: string;
   texto: string;
   nota?: string;
+  /** Ainda não existe: o item diz "em breve" (nada se promete como pronto). */
+  emBreve?: boolean;
 }
 
 /** O que cada plano ACRESCENTA ao de baixo, com o que a matriz diz que ele tem. */
@@ -134,6 +154,77 @@ function itensProprios(id: PlanoDaTela, c: ContextoDosPlanos): Item[] {
   /* O teto do dia vai AO LADO das horas do mês (CDC, art. 6º, III: a limitação não se esconde). O
      protótipo não tem esta frase; o número é o da matriz. */
   const porDia = dia === null ? '' : ` · ${t('até {dia} h por dia', { dia: numero(dia) })}`;
+  if (c.v4 === true && id === 'gratis')
+    return [
+      {
+        tema: 'legenda',
+        texto: t('Legenda bilíngue no aparelho, sem limite'),
+        nota: t('com o modelo Preciso nos aparelhos que o rodam'),
+      },
+      { tema: 'jogos', texto: t('Jogos, vocabulário e revisão') },
+      { tema: 'biblioteca', texto: t('Cartões, leitura, biblioteca e Anki') },
+      {
+        tema: 'nuvem',
+        texto: t('Nuvem: até {horas} h por mês, para aparelho fraco, quando disponível', {
+          horas: numero(horasDoAlivioDoGratis()),
+        }),
+      },
+    ];
+  if (c.v4 === true && id === 'plus') {
+    const voz = e.vozNatural ? definicao(id).quotas.vozCaracteresMes : null;
+    return [
+      ...(e.traducaoNuance
+        ? [
+            {
+              tema: 'nuance',
+              texto: t('Nuance, polir a sessão e glossário'),
+              nota: t('outras formas de dizer, formal ou informal'),
+            },
+          ]
+        : []),
+      ...(e.managedCloudLlm
+        ? [{ tema: 'tutor', texto: t('Tutor de IA por texto (iChat)'), nota: t('sobre o seu material') }]
+        : []),
+      ...(c.vozNatural && voz
+        ? [
+            {
+              tema: 'voz',
+              texto: t('Voz natural para ouvir as frases'),
+              nota: t('até {mil} mil caracteres por mês', { mil: numero(Math.round(voz / 1000)) }),
+            },
+          ]
+        : []),
+      {
+        tema: 'nuvem',
+        texto: t('{horas} h de nuvem por mês', { horas: numero(horasDePrecisao(id)) }),
+        nota: t('no nível Precisão, para o áudio difícil') + porDia,
+      },
+      ...(c.comAnuncios && e.semAnuncios
+        ? [{ tema: 'anuncios', texto: t('Sem anúncios'), nota: t('nenhum espaço patrocinado, intersticial ou faixa') }]
+        : []),
+      {
+        tema: 'contexto',
+        texto: t('Explicação da frase no contexto'),
+        nota: t('por que essa tradução, gramática, formal ou informal, gíria'),
+        emBreve: true,
+      },
+      {
+        tema: 'resumo',
+        texto: t('Resumo da sessão que vira cartões'),
+        nota: t('com a frase e o áudio da cena'),
+        emBreve: true,
+      },
+    ];
+  }
+  if (c.v4 === true && id === 'pro4')
+    return [
+      {
+        tema: 'conversa',
+        texto: t('Conversa por voz com um tutor, a partir da cena'),
+        nota: t('com pronúncia e intérprete automático; só para adultos no começo'),
+        emBreve: true,
+      },
+    ];
   if (id === 'gratis')
     return [
       { tema: 'legenda', texto: t('Legenda bilíngue no aparelho, sem limite') },
@@ -221,8 +312,10 @@ export interface CartaoDoPlano {
   quem: string;
   /** "Tudo do {plano}, e:", ou `null` no Grátis. */
   base: string | null;
-  itens: { texto: string; nota?: string }[];
+  itens: { texto: string; nota?: string; emBreve?: boolean }[];
   preco: PrecoDoPlano;
+  /** O plano ainda não se vende: o cartão diz "em breve" e não tem botão de compra. */
+  emBreve: boolean;
 }
 
 /** O plano que aparece logo abaixo deste na tela (o "Tudo do … e:"). */
@@ -242,7 +335,8 @@ function itensDoCartao(id: PlanoDaTela, c: ContextoDosPlanos): Item[] {
     (p) => ordemDoPlano(p) < ordemDoPlano(id) && (base === null || ordemDoPlano(p) > ordemDoPlano(base)),
   );
   const proprios = itensProprios(id, c);
-  const herdados = (id === 'gratis' ? [] : escondidos)
+  /* Na v4 os planos de antes (Essencial, Premium, Ao Vivo) não existem na tela: nada se herda deles. */
+  const herdados = (id === 'gratis' || c.v4 === true ? [] : escondidos)
     .flatMap((p) => itensProprios(p, c))
     .filter((h) => !proprios.some((p) => p.tema === h.tema));
   return [...herdados, ...proprios];
@@ -255,10 +349,9 @@ export function cartaoDoPlano(id: PlanoDaTela, c: ContextoDosPlanos): CartaoDoPl
     essencial: c.comAnuncios ? t('Sem anúncios · Nuance') : t('Nuance'),
     premium: t('Nuvem · {horas} h', { horas: numero(horasDePrecisao('premium')) }),
     aovivo: t('Texto durante a fala'),
-    // planos-v4: a tela é da Task 3 — por ora herdam o texto do Premium (sem frase nova para traduzir).
-    plus: t('Nuvem · {horas} h', { horas: numero(horasDePrecisao('plus')) }),
-    familia: t('Nuvem · {horas} h', { horas: numero(horasDePrecisao('familia')) }),
-    pro4: t('Nuvem · {horas} h', { horas: numero(horasDePrecisao('pro4')) }),
+    plus: t('Do que você assiste ao estudo'),
+    familia: t('Para até {n} pessoas', { n: PESSOAS_NA_FAMILIA }),
+    pro4: t('Falar com um tutor · em breve'),
   };
   const quem: Record<PlanoDaTela, string> = {
     gratis: t(
@@ -269,9 +362,9 @@ export function cartaoDoPlano(id: PlanoDaTela, c: ContextoDosPlanos): CartaoDoPl
       : t('Para o estudante no computador, com Nuance.'),
     premium: t('Para quem depende de nuvem: celular, notebook fraco, Quest.'),
     aovivo: t('Para o intérprete na rua, em viagem, reunião e aula ao vivo.'),
-    plus: t('Para quem depende de nuvem: celular, notebook fraco, Quest.'),
-    familia: t('Para quem depende de nuvem: celular, notebook fraco, Quest.'),
-    pro4: t('Para quem depende de nuvem: celular, notebook fraco, Quest.'),
+    plus: t('Para quem quer transformar o que assiste em estudo, com tutor, Nuance e nuvem para o áudio difícil.'),
+    familia: t('Para a família estudar junta, com o responsável cuidando da conta.'),
+    pro4: t('Para quem quer praticar falando com um tutor de voz. Só para adultos no começo.'),
   };
   return {
     id,
@@ -279,16 +372,45 @@ export function cartaoDoPlano(id: PlanoDaTela, c: ContextoDosPlanos): CartaoDoPl
     rotulo: rotulo[id],
     quem: quem[id],
     base: base === null ? null : t('Tudo do {plano}, e:', { plano: nomeDoPlano(base) }),
-    itens: itensDoCartao(id, c).map(({ texto, nota }) => ({ texto, ...(nota ? { nota } : {}) })),
+    itens: itensDoCartao(id, c).map(({ texto, nota, emBreve }) => ({
+      texto,
+      ...(nota ? { nota } : {}),
+      ...(emBreve ? { emBreve } : {}),
+    })),
     preco: precoDoPlanoNaTela(id),
+    emBreve: (c.emBreve ?? []).includes(id),
   };
 }
 
 /** O que o plano tem, numa linha (para o seletor do checkout). */
 export const resumoDoPlano = (id: PlanoPago): string =>
-  itensDoCartao(id, { visiveis: ['gratis', id], comAnuncios: false })
+  itensDoCartao(id, {
+    visiveis: ['gratis', id],
+    comAnuncios: false,
+    v4: definicao(id).flagsDeVenda.includes('venda_planos_v4'),
+  })
+    .filter((i) => !i.emBreve)
     .map((i) => i.texto)
     .join(' · ');
+
+/** A linha da Família sob o Plus ("para até 4 pessoas · R$ 24,90/mês · em breve"). */
+export function linhaDaFamilia(c: ContextoDosPlanos): {
+  nome: string;
+  resumo: string;
+  detalhe: string;
+  emBreve: boolean;
+} {
+  const preco = precoDoPlanoNaTela('familia').mensal;
+  const emBreve = (c.emBreve ?? []).includes('familia');
+  return {
+    nome: nomeDoPlano('familia'),
+    resumo:
+      t('para até {n} pessoas · {preco}/mês', { n: PESSOAS_NA_FAMILIA, preco }) +
+      (emBreve ? ` · ${t('em breve')}` : ''),
+    detalhe: t('Um perfil para cada pessoa e o responsável cuidando da conta, sem ver o que foi ouvido.'),
+    emBreve,
+  };
+}
 
 /* ---- O aparelho (`DISPS` e `GRATIS_NO_APARELHO`, `planos4.js:24-69`) ------------------------------- */
 
@@ -328,6 +450,17 @@ export interface NotaDoAparelho {
 }
 
 export function notaDoAparelho(aparelho: Aparelho, c: ContextoDosPlanos): NotaDoAparelho {
+  const nota = notaDoAparelhoDeHoje(aparelho, c);
+  /* Na v4 quem abre a nuvem é o Plus, não o Premium: o nome troca nas frases do aparelho. */
+  if (c.v4 !== true) return nota;
+  return {
+    ...nota,
+    frase: comNomeDoPlano(nota.frase, 'plus'),
+    linhas: nota.linhas.map(([a, b, sinal]) => [a, comNomeDoPlano(b, 'plus'), sinal]),
+  };
+}
+
+function notaDoAparelhoDeHoje(aparelho: Aparelho, c: ContextoDosPlanos): NotaDoAparelho {
   const comEssencial = c.visiveis.includes('essencial');
   const mb = numero(113);
   const tradutor = t('Pelo tradutor do navegador ou pelo modelo local.');
@@ -446,6 +579,7 @@ export type Celula = 0 | 1 | string;
 
 /** As linhas, uma célula por plano à vista. Linha em que ninguém à vista tem nada não aparece. */
 export function linhasDaComparacao(c: ContextoDosPlanos): [string, Celula[]][] {
+  if (c.v4 === true) return linhasDaComparacaoV4(c);
   const voz = { aparelho: t('do aparelho'), basica: t('neural básica'), boa: t('neural boa') };
   const por = (f: (id: PlanoDaTela) => Celula): Celula[] => c.visiveis.map(f);
   const h = (n: number): string => `${numero(n)} h`;
@@ -478,6 +612,49 @@ export function linhasDaComparacao(c: ContextoDosPlanos): [string, Celula[]][] {
   return linhas.filter((l): l is [string, Celula[]] => !!l && l[1].some((v) => v !== 0));
 }
 
+/** A comparação da v4: o que o Grátis, o Plus e o Pro (em breve) têm, linha a linha, da matriz. */
+function linhasDaComparacaoV4(c: ContextoDosPlanos): [string, Celula[]][] {
+  const voz = { aparelho: t('do aparelho'), basica: t('neural básica'), boa: t('neural boa') };
+  const por = (f: (id: PlanoDaTela) => Celula): Celula[] => c.visiveis.map(f);
+  const tem = (id: PlanoDaTela, k: 'traducaoNuance' | 'managedCloudLlm'): 0 | 1 =>
+    definicao(id).entitlements[k] ? 1 : 0;
+  const h = (n: number): string => `${numero(n)} h`;
+  const emBreve = t('em breve');
+  const linhas: ([string, Celula[]] | false)[] = [
+    c.comAnuncios === true && [
+      t('Anúncios'),
+      por((id) => (definicao(id).entitlements.semAnuncios ? t('sem anúncios') : t('leves e rotulados'))),
+    ],
+    [t('Legenda bilíngue no aparelho'), por(() => t('sem limite'))],
+    [t('Jogos, vocabulário e revisão'), por(() => 1)],
+    [
+      t('Horas de nuvem por mês (Precisão)'),
+      por((id) =>
+        id !== 'gratis'
+          ? h(horasDePrecisao(id))
+          : t('até {horas} h, em aparelho fraco', { horas: numero(horasDoAlivioDoGratis()) }),
+      ),
+    ],
+    [t('Nuance, polir a sessão e glossário'), por((id) => (id === 'gratis' ? 0 : tem(id, 'traducaoNuance')))],
+    [t('Tutor de IA por texto (iChat)'), por((id) => (id === 'gratis' ? 0 : tem(id, 'managedCloudLlm')))],
+    c.vozNatural === true && [t('Voz para ouvir as frases'), por((id) => voz[definicao(id).entitlements.nivelDeVoz])],
+    [t('Explicação da frase no contexto'), por((id) => (id === 'gratis' ? 0 : emBreve))],
+    [t('Resumo da sessão que vira cartões'), por((id) => (id === 'gratis' ? 0 : emBreve))],
+    [t('Conversa por voz com um tutor'), por((id) => (id === 'pro4' ? emBreve : 0))],
+    [
+      t('Intérprete'),
+      por((id) =>
+        definicao(id).entitlements.interpreteAutomatico
+          ? id === 'pro4'
+            ? t('automático · em breve')
+            : t('automático')
+          : t('cada um toca o seu lado'),
+      ),
+    ],
+  ];
+  return linhas.filter((l): l is [string, Celula[]] => !!l && l[1].some((v) => v !== 0));
+}
+
 /** A nota embaixo da tabela (`planos4.js:627`), com o teto do dia da matriz. */
 export function notaDaComparacao(c: ContextoDosPlanos): string {
   const comAoVivo = c.visiveis.some((id) => definicao(id).entitlements.sttAoVivo);
@@ -488,12 +665,18 @@ export function notaDaComparacao(c: ContextoDosPlanos): string {
     : t(
         'A nuvem trabalha no nível Precisão (por trechos, erra menos). Quando as horas acabam, a legenda segue no aparelho.',
       );
-  const comTetoNoDia = c.visiveis.filter((id) => horasPorDia(id) !== null);
+  const comTetoNoDia = c.visiveis.filter((id) => horasPorDia(id) !== null && !(c.emBreve ?? []).includes(id));
   if (!comTetoNoDia.length) return niveis;
   return `${niveis} ${t('No {planos}, a nuvem por trechos vai até {dia} h por dia.', {
     planos: comTetoNoDia.map(nomeDoPlano).join(` ${t('e')} `),
     dia: numero(horasPorDia(comTetoNoDia[0]) ?? 0),
   })}`;
+}
+
+/** Quantas mensalidades o anual do Plus devolve: 12 meses contra o preço do ano ("2 meses grátis"). */
+export function mesesGratisDoAnual(plano: PlanoPago = 'plus'): number {
+  const { precoMensalBrl: m, precoAnualBrl: a } = PLAN_MATRIX[plano];
+  return m && a ? Math.floor((m * 12 - a) / m + 1e-9) : 0;
 }
 
 /* ---- Perguntas frequentes (`FAQ4`, `planos4.js:585-592`) -------------------------------------------- */
@@ -524,11 +707,23 @@ export function perguntasDosPlanos(c: ContextoDosPlanos, diasDoTeste = DIAS_DO_T
         'Porque é ele que paga o Grátis sem limite. Os anúncios são poucos, rotulados e nunca aparecem durante a legenda ao vivo, o intérprete ou uma rodada. No Quest e no perfil infantil não há anúncio nenhum.',
       ),
     ],
+    c.v4 === true &&
+      c.anual === true &&
+      c.protegido !== true && [
+        t('Como funciona o plano anual?'),
+        t(
+          'O anual custa {m} mensalidades: são {n} meses grátis. Você paga uma vez, ou em até {parcelas}x no cartão, e o plano vale por um ano.',
+          { m: 12 - mesesGratisDoAnual(), n: mesesGratisDoAnual(), parcelas: PARCELAS_DO_ANUAL },
+        ),
+      ],
     [
       t('O teste cobra sozinho no fim?'),
-      t('Não. São {dias} dias de Premium, sem cartão. No fim, a conta volta ao Grátis sozinha e nada é cobrado.', {
-        dias: diasDoTeste,
-      }),
+      comNomeDoPlano(
+        t('Não. São {dias} dias de Premium, sem cartão. No fim, a conta volta ao Grátis sozinha e nada é cobrado.', {
+          dias: diasDoTeste,
+        }),
+        c.planoDoTeste ?? 'premium',
+      ),
     ],
     [
       t('Meu áudio fica guardado na nuvem?'),

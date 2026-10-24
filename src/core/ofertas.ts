@@ -91,11 +91,17 @@ export function resolverTextoRemoto(texto: TextoRemoto, idioma: string, traduzir
 }
 
 /**
+ * Os planos que um teste de 14 dias concede: o Premium (matriz v3) e o Plus (v4). Quem começou o teste
+ * com a v4 tem o Plus nos entitlements, e o fim do teste dele é o mesmo momento.
+ */
+const PLANOS_DO_TESTE: PlanoDaFlag[] = [PLANO_DO_TESTE, 'plus'];
+
+/**
  * OS AVISOS FUNCIONAIS EMBUTIDOS — o que aparece com a flag desligada (e, com ela ligada, quando o
  * payload não define um gatilho para o mesmo momento). Os textos são CHAVES do i18n (português),
  * traduzidas pelo catálogo (`public/i18n/*.json`). `planos` não inclui `selfhost`: lá não há cota. Os
  * pagos vêm de `PLANOS_PAGOS` (todo plano com cota recebe o aviso da cota dele), e o fim do teste é de
- * quem tem o plano que o teste concede (`PLANO_DO_TESTE`).
+ * quem tem o plano que o teste concede (`PLANOS_DO_TESTE`: o Premium, ou o Plus na v4).
  *
  * Frequência conservadora: fim de cota no máximo 1 vez por dia e 3 por semana, 12 h entre um e
  * outro; cota próxima 1 por dia, 2 por semana, 24 h entre um e outro.
@@ -139,7 +145,7 @@ export const GATILHOS_FUNCIONAIS: readonly GatilhoDeOferta[] = Object.freeze([
     maxPorDia: 1,
     maxPorSemana: 1,
     intervaloMinHoras: 24,
-    planos: [PLANO_DO_TESTE],
+    planos: PLANOS_DO_TESTE,
   },
   {
     id: 'funcional_fim_do_teste_d0',
@@ -152,7 +158,7 @@ export const GATILHOS_FUNCIONAIS: readonly GatilhoDeOferta[] = Object.freeze([
     maxPorDia: 1,
     maxPorSemana: 1,
     intervaloMinHoras: 24,
-    planos: [PLANO_DO_TESTE],
+    planos: PLANOS_DO_TESTE,
   },
   /* O FIM DO TESTE POR USO: o teste acaba nos 14 dias OU na franquia de nuvem (`FRANQUIA_DO_TESTE`, 3 h), o que vier
      primeiro. A autoridade é `GET /api/me/uso`, que já traz o teto do teste: ≥ 80% (`uso_perto`) e 100% (`uso_acabou`).
@@ -170,7 +176,7 @@ export const GATILHOS_FUNCIONAIS: readonly GatilhoDeOferta[] = Object.freeze([
     maxPorDia: 1,
     maxPorSemana: 1,
     intervaloMinHoras: 24,
-    planos: [PLANO_DO_TESTE],
+    planos: PLANOS_DO_TESTE,
   },
   {
     id: 'funcional_fim_do_teste_uso_acabou',
@@ -184,7 +190,7 @@ export const GATILHOS_FUNCIONAIS: readonly GatilhoDeOferta[] = Object.freeze([
     maxPorDia: 1,
     maxPorSemana: 2,
     intervaloMinHoras: 24,
-    planos: [PLANO_DO_TESTE],
+    planos: PLANOS_DO_TESTE,
   },
 ] satisfies GatilhoDeOferta[]);
 

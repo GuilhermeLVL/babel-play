@@ -14,6 +14,7 @@ import { useSondaGuardada } from '../lib/dispositivo/useSondaGuardada';
 import { edicaoEstatica } from '../lib/edicaoEstatica';
 import { escolherProcessamento, type PerfilDoAparelho, useLadoDoProcessamento } from '../lib/escolhaDoProcessamento';
 import { t } from '../lib/i18n';
+import { comNomeDoPlano, planoDeEntradaAgora } from '../lib/planoDeEntrada';
 import { perfilProtegido } from '../lib/protecaoDoMenor';
 import { toast } from './Toast';
 import { Dialogo, fecharDialogoDe } from './ui';
@@ -217,7 +218,7 @@ export default function AiEnginePanel({
               <span className="q-ic">
                 <KeyRound aria-hidden />
               </span>
-              <b>{t('Usar a sua chave (nuvem)')}</b>
+              <b>{comNomeDoPlano(t('Usar a sua chave (nuvem)'), planoDeEntradaAgora())}</b>
               <span className="q-aju-tags">
                 {!(bloqueadaNuvem && protegido) && (
                   <span className="q-tag">{bloqueadaNuvem ? t('Premium') : t('Sua chave')}</span>
@@ -227,7 +228,7 @@ export default function AiEnginePanel({
               <span className="q-d">
                 {t('OpenAI, Groq, OpenRouter… Melhor qualidade, sem baixar modelo. A chave fica cifrada no servidor.')}
                 {bloqueadaNuvem &&
-                  ` ${protegido ? t('A nuvem não está disponível neste perfil.') : t('Disponível no plano Premium.')}`}
+                  ` ${protegido ? t('A nuvem não está disponível neste perfil.') : comNomeDoPlano(t('Disponível no plano Premium.'), planoDeEntradaAgora())}`}
               </span>
             </button>
           )}

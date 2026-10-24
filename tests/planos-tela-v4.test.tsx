@@ -1,0 +1,232 @@
+// @vitest-environment jsdom
+/**
+ * A TELA DE PLANOS v4 (spec `docs/specs/2026-10-24-planos-v4.md`): com a venda do Plus aberta
+ * (`venda_planos_v4`), três cartões — Grátis, Plus e Pro ("em breve", sem preço, sem botão de compra) — e a
+ * Família como linha sob o Plus. Com ela fechada, a tela de hoje. Perfil protegido: nenhum "R$".
+ *
+ * A venda é simulada pela prova local (`babel.px.planosAVendaDeProva`), como nos testes v3.
+ */
+import { act, cleanup, render } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const abertura = vi.hoisted(() => ({ anual: false }))
+vi.mock('../src/data/api', async (original) => ({
+  ...(await original<typeof import('../src/data/api')>()),
+  apiFetch: async () => ({ ok: false, status: 404, json: async () => ({}) }),
+}))
+vi.mock('../src/data/rotas/idade', async (original) => ({
+  ...(await original<typeof import('../src/data/rotas/idade')>()),
+  lerAbertura: async () => ({ cadastro: true, checkout: true, anual: abertura.anual }),
+}))
+
+import Planos from '../src/components/views/Planos'
+import { PLAN_MATRIX } from '../src/core/planos'
+import { definirEstadoDasFlags } from '../src/lib/flagsCache'
+import { _reiniciarIdentidade, definirIdentidade } from '../src/lib/identidade'
+import { definirProtecao } from '../src/lib/protecaoDoMenor'
+
+const aguardar = () => act(async () => {})
+const abrir = async (aVenda: string) => {
+  localStorage.setItem('babel.px.planosAVendaDeProva', aVenda)
+  localStorage.setItem('babel.px.planoDeProva', 'free')
+  const tela = render(<Planos />)
+  await aguardar()
+  return tela
+}
+const cartoes = () =>
+  [...document.querySelectorAll<HTMLElement>('.pl-planos-grade > .pl-plano')].map((c) => c.dataset.plPlano)
+const cartao = (id: string) => document.querySelector<HTMLElement>(`[data-pl-plano="${id}"]`)!
+const tela = () => document.body.textContent ?? ''
+
+beforeEach(() => {
+  localStorage.clear()
+  sessionStorage.clear()
+  window.history.replaceState({}, '', '/')
+  _reiniciarIdentidade()
+  definirIdentidade('conta')
+  abertura.anual = false
+})
+afterEach(() => {
+  cleanup()
+  definirEstadoDasFlags(null)
+  definirProtecao(null)
+})
+
+describe('Planos v4 ligada: Grátis, Plus e Pro, com a Família numa linha', () => {
+  it('desenha três cartões (Grátis, Plus, Pro) e nenhum Essencial, Premium ou Ao Vivo', async () => {
+    await abrir('plus')
+    expect(cartoes()).toEqual(['gratis', 'plus', 'pro4'])
+    expect(tela()).not.toMatch(/Essencial|Premium|Ao [Vv]ivo/)
+  })
+
+  it('o Plus é o recomendado e custa 14,90 por mês (da matriz)', async () => {
+    await abrir('plus')
+    expect(PLAN_MATRIX.plus.precoMensalBrl).toBe(14.9)
+    expect(cartao('plus').textContent).toContain('R$ 14,90')
+    expect(cartao('plus').textContent).toContain('Recomendado aqui')
+  })
+
+  it('no anual o Plus custa 149,00 e o cartão diz "2 meses grátis"', async () => {
+    abertura.anual = true
+    await abrir('plus')
+    expect(PLAN_MATRIX.plus.precoAnualBrl).toBe(149)
+    expect(tela()).toContain('2 meses grátis')
+    const anual = [...document.querySelectorAll<HTMLButtonElement>('[role="radio"]')].find((b) =>
+      /Anual/.test(b.textContent ?? ''),
+    )!
+    await act(async () => anual.click())
+    expect(cartao('plus').textContent).toContain('R$ 149,00')
+    expect(cartao('plus').textContent).toContain('R$ 12,42 por mês')
+  })
+
+  it('com o anual desligado o Plus só tem mensal (sem 149,00 nem "meses grátis")', async () => {
+    abertura.anual = false
+    await abrir('plus')
+    expect(tela()).not.toContain('149,00')
+    expect(tela()).not.toMatch(/meses grátis/)
+    expect(document.querySelector('[role="radiogroup"][aria-label="Cobrança"]')).toBeNull()
+  })
+
+  it('o Plus tem Nuance, tutor por texto e as horas de nuvem da matriz', async () => {
+    await abrir('plus')
+    const plus = cartao('plus').textContent ?? ''
+    expect(plus).toContain('Nuance, polir a sessão e glossário')
+    expect(plus).toContain('Tutor de IA por texto (iChat)')
+    expect(plus).toContain('8 h de nuvem por mês')
+  })
+
+  it('"em breve" fica dentro do cartão do Plus (explicação no contexto e resumo→cartões), nunca no Grátis', async () => {
+    await abrir('plus')
+    const plus = cartao('plus').textContent ?? ''
+    expect(plus).toContain('Explicação da frase no contexto')
+    expect(plus).toContain('Resumo da sessão que vira cartões')
+    expect(cartao('plus').querySelectorAll('.pl-em-breve-tag')).toHaveLength(2)
+    const gratis = cartao('gratis').textContent ?? ''
+    expect(gratis).not.toMatch(/Explicação da frase|Resumo da sessão|em breve/)
+    expect(gratis).toContain('Legenda bilíngue no aparelho, sem limite')
+  })
+
+  it('o Pro aparece "em breve", sem preço e sem botão de compra', async () => {
+    await abrir('plus')
+    const pro = cartao('pro4')
+    expect(pro.textContent).toContain('Em breve')
+    expect(pro.textContent).not.toContain('R$')
+    expect(pro.querySelectorAll('button')).toHaveLength(0)
+    expect(pro.textContent).toContain('Conversa por voz com um tutor, a partir da cena')
+  })
+
+  it('a Família é uma linha abaixo do cartão do Plus, com preço, "em breve" e sem botão', async () => {
+    await abrir('plus')
+    const linha = document.querySelector<HTMLElement>('[data-pl-familia]')!
+    expect(linha).not.toBeNull()
+    expect(linha.textContent).toContain('Família')
+    expect(linha.textContent).toContain('para até 4 pessoas · R$ 24,90/mês · em breve')
+    expect(linha.querySelectorAll('button')).toHaveLength(0)
+    expect(cartoes()).not.toContain('familia')
+  })
+
+  it('a comparação tem as colunas Grátis, Plus e Pro, e o Pro diz "em breve" no preço', async () => {
+    await abrir('plus')
+    const colunas = [...document.querySelectorAll<HTMLElement>('.pl-compara thead th[data-c]')].map((c) => c.dataset.c)
+    expect(colunas).toEqual(['gratis', 'plus', 'pro4'])
+    const preco = document.querySelector('.pl-compara-preco')!
+    expect(preco.querySelector('[data-c="pro4"]')!.textContent).toBe('em breve')
+    expect(preco.querySelector('[data-c="plus"]')!.textContent).toBe('R$ 14,90')
+  })
+
+  it('o teste de 14 dias é do Plus, sem cartão; não cita Pix Automático (o checkout não o oferece)', async () => {
+    await abrir('plus')
+    const faq = document.querySelector('.pl-faq')!.textContent ?? ''
+    expect(faq).toContain('São 14 dias de Plus, sem cartão')
+    expect(faq).not.toMatch(/Premium|Pix Autom/)
+  })
+
+  it('a FAQ explica o anual como 10 mensalidades quando o anual está à venda', async () => {
+    abertura.anual = true
+    await abrir('plus')
+    expect(document.querySelector('.pl-faq')!.textContent).toContain(
+      'O anual custa 10 mensalidades: são 2 meses grátis',
+    )
+  })
+})
+
+describe('Planos v4 desligada: a tela de hoje', () => {
+  it('só Grátis e Premium, sem Plus, Pro nem Família', async () => {
+    await abrir('premium')
+    expect(cartoes()).toEqual(['gratis', 'premium'])
+    expect(document.querySelector('[data-pl-familia]')).toBeNull()
+    expect(tela()).not.toMatch(/Plus|Família|em breve\b/)
+    expect(cartao('premium').textContent).toContain('R$ 19,90')
+  })
+
+  it('o teste continua sendo do Premium', async () => {
+    await abrir('premium')
+    expect(document.querySelector('.pl-faq')!.textContent).toContain('São 14 dias de Premium, sem cartão')
+  })
+})
+
+describe('Planos v4 com perfil protegido', () => {
+  const menor = {
+    nascimentoInformado: true,
+    faixa: '12-15' as const,
+    protegido: true,
+    exigeResponsavel: true,
+    exigeConsentimentoEspecifico: true,
+    vinculo: { estado: 'nenhum' as const },
+    restrita: false,
+  }
+
+  it('nenhum preço, nenhuma linha da Família, nenhuma oferta nem "peça ao responsável"', async () => {
+    abertura.anual = true
+    definirProtecao(menor)
+    await abrir('plus')
+    expect(tela()).not.toContain('R$')
+    expect(document.querySelector('[data-pl-familia]')).toBeNull()
+    expect(tela()).not.toMatch(/responsável|pais|Assinar|Testar/)
+    expect(document.querySelector('[role="radiogroup"][aria-label="Cobrança"]')).toBeNull()
+    expect(cartao('plus').querySelectorAll('button')).toHaveLength(0)
+    expect(cartao('pro4').querySelectorAll('button')).toHaveLength(0)
+  })
+
+  it('idade não declarada também é perfil protegido: nenhum "R$"', async () => {
+    definirProtecao({ ...menor, nascimentoInformado: false, faixa: null })
+    await abrir('plus')
+    expect(tela()).not.toContain('R$')
+    expect(document.querySelector('[data-pl-familia]')).toBeNull()
+  })
+})
+
+describe('Checkout do Plus', () => {
+  it('monta no Plus (14,90 por mês) quando o plano lembrado é o Plus', async () => {
+    sessionStorage.setItem('babel.checkout.plano', 'plus')
+    window.history.replaceState({}, '', '/plano/assinar')
+    await abrir('plus')
+    const checkout = document.querySelector<HTMLElement>('[aria-label="Plano e período"]')!
+    expect(checkout).not.toBeNull()
+    expect(checkout.textContent).toContain('Plus')
+    expect(checkout.textContent).toContain('R$ 14,90')
+    expect(checkout.textContent).not.toMatch(/Premium|Essencial/)
+  })
+
+  it('o plano lembrado que não está à venda (Premium) cai no Plus quando a v4 está ligada', async () => {
+    sessionStorage.setItem('babel.checkout.plano', 'premium')
+    window.history.replaceState({}, '', '/plano/assinar')
+    await abrir('plus')
+    const checkout = document.querySelector<HTMLElement>('[aria-label="Plano e período"]')!
+    expect(checkout.textContent).toContain('Plus')
+    expect(checkout.textContent).not.toContain('Premium')
+  })
+})
+
+describe('Planos v4 com quem já tem o Premium (staging)', () => {
+  it('mostra o plano dele e não quebra; o Plus é oferecido como troca, o Pro segue "em breve"', async () => {
+    localStorage.setItem('babel.px.planosAVendaDeProva', 'plus')
+    localStorage.setItem('babel.px.planoDeProva', 'premium')
+    render(<Planos />)
+    await aguardar()
+    expect(cartoes()).toEqual(['gratis', 'premium', 'plus', 'pro4'])
+    expect(cartao('premium').textContent).toContain('Seu plano')
+    expect(cartao('plus').textContent).toContain('Plus')
+    expect(cartao('pro4').querySelectorAll('button')).toHaveLength(0)
+  })
+})

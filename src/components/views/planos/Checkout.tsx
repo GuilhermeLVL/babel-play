@@ -45,6 +45,7 @@ import {
 import { carregarEntitlements, type Plan } from '../../../lib/entitlements';
 import { t } from '../../../lib/i18n';
 import { registrarCheckoutIniciado } from '../../../lib/ofertas/instrumentacao';
+import { comNomeDoPlano } from '../../../lib/planoDeEntrada';
 import { estadoDaProtecao } from '../../../lib/protecaoDoMenor';
 import { T } from '../../../lib/T';
 import { irSub, PLANO_ICO, PLANO_NOME } from './dados';
@@ -143,6 +144,8 @@ function TesteDoPremium({ teste, beneficiario }: { teste?: SituacaoDoTeste; bene
   const [erro, setErro] = useState('');
   if (!teste) return null;
   const dias = teste.dias;
+  /* O plano do teste é o que o servidor diz (o Plus com a v4, o Premium antes): o texto leva o nome dele. */
+  const doPlano = (texto: string): string => comNomeDoPlano(texto, teste.plano ?? 'premium');
   const aviso = { className: 'q-aviso' };
 
   const comecar = async () => {
@@ -163,9 +166,11 @@ function TesteDoPremium({ teste, beneficiario }: { teste?: SituacaoDoTeste; bene
       <p {...aviso} role="status">
         <Hourglass aria-hidden />
         <span>
-          {t('Pronto: o Premium vale até {data}. No fim a conta volta ao Grátis sozinha, e nada é cobrado.', {
-            data: dataCurta(feito),
-          })}
+          {doPlano(
+            t('Pronto: o Premium vale até {data}. No fim a conta volta ao Grátis sozinha, e nada é cobrado.', {
+              data: dataCurta(feito),
+            }),
+          )}
         </span>
       </p>
     );
@@ -175,11 +180,16 @@ function TesteDoPremium({ teste, beneficiario }: { teste?: SituacaoDoTeste; bene
       <p {...aviso}>
         <Hourglass aria-hidden />
         <span>
-          {t('Seu teste do Premium vale até {data}. No fim, nada é cobrado.', { data: dataCurta(teste.terminaEm) })}
+          {doPlano(
+            t('Seu teste do Premium vale até {data}. No fim, nada é cobrado.', { data: dataCurta(teste.terminaEm) }),
+          )}
         </span>
       </p>
     );
 
+  /* Planos v4: o perfil protegido não recebe convite nem "peça ao seu responsável" (ECA Digital). */
+  if (!beneficiario && teste.estado === 'indisponivel' && teste.motivo === 'perfil_protegido' && teste.plano === 'plus')
+    return null;
   if (!beneficiario && teste.estado === 'indisponivel' && teste.motivo === 'perfil_protegido')
     return (
       <p {...aviso}>
@@ -200,18 +210,22 @@ function TesteDoPremium({ teste, beneficiario }: { teste?: SituacaoDoTeste; bene
       <Hourglass aria-hidden />
       <span>
         {beneficiario
-          ? t(
-              'Teste o Premium na conta de {nome} por {dias} dias, sem cartão. No fim ela volta ao Grátis: nada é cobrado.',
-              {
-                nome: beneficiario.nome ?? t('quem está vinculado a você'),
-                dias,
-              },
+          ? doPlano(
+              t(
+                'Teste o Premium na conta de {nome} por {dias} dias, sem cartão. No fim ela volta ao Grátis: nada é cobrado.',
+                {
+                  nome: beneficiario.nome ?? t('quem está vinculado a você'),
+                  dias,
+                },
+              ),
             )
-          : t(
-              'Ou teste o Premium por {dias} dias, sem cartão. No fim a conta volta ao Grátis sozinha: nada é cobrado.',
-              {
-                dias,
-              },
+          : doPlano(
+              t(
+                'Ou teste o Premium por {dias} dias, sem cartão. No fim a conta volta ao Grátis sozinha: nada é cobrado.',
+                {
+                  dias,
+                },
+              ),
             )}
         {erro && (
           <small className="qc-erro-miudo" role="alert">

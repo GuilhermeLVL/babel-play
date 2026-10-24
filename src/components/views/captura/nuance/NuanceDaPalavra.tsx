@@ -2,6 +2,7 @@ import { Lock, Pin } from 'lucide-react';
 import { useState } from 'react';
 
 import { t } from '../../../../lib/i18n';
+import { comNomeDoPlano, planoDeEntradaAgora } from '../../../../lib/planoDeEntrada';
 import ConviteDaNuance from './ConviteDaNuance';
 import FixarNoGlossario, { cabeNoGlossario } from './FixarNoGlossario';
 
@@ -49,7 +50,10 @@ export default function NuanceDaPalavra({
           <FixarNoGlossario termo={palavra} traducaoInicial={glosa ?? ''} origem={lang} destino={destino} />
         ) : (
           <ConviteDaNuance
-            texto={t('Com a Tradução Nuance do Premium, você fixa a sua tradução e ela vale em toda legenda.')}
+            texto={comNomeDoPlano(
+              t('Com a Tradução Nuance do Premium, você fixa a sua tradução e ela vale em toda legenda.'),
+              planoDeEntradaAgora(),
+            )}
             aoConhecer={aoConhecer}
           />
         ))}

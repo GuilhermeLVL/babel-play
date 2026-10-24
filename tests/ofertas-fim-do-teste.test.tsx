@@ -113,7 +113,7 @@ describe('o motor', () => {
     expect(doTeste.map((g) => g.fase).sort()).toEqual(['d0', 'd3', 'uso_acabou', 'uso_perto'])
     for (const g of doTeste) {
       expect(String(g.texto)).toMatch(/nada é cobrado|sem cobrança/)
-      expect(g.planos).toEqual(['premium'])
+      expect(g.planos).toEqual(['premium', 'plus']) // o teste do Premium (v3) e o do Plus (v4)
     }
   })
 })
@@ -191,7 +191,7 @@ describe('o fim do teste por USO (a franquia de nuvem do teste)', () => {
       expect(tudo).toMatch(/no aparelho/)
       expect(tudo).toMatch(/nada é cobrado/)
       expect(tudo).not.toMatch(/dia 1º|últim|só hoje|corra|perca|%/i)
-      expect(g.planos).toEqual(['premium'])
+      expect(g.planos).toEqual(['premium', 'plus']) // o teste do Premium (v3) e o do Plus (v4)
     }
   })
 

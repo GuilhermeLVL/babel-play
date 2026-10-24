@@ -107,9 +107,9 @@ export type MotivoSemTeste =
 
 /** O teste de 14 dias como o servidor o vê — `GET /api/billing/status` → `teste`. */
 export type SituacaoDoTeste =
-  | { estado: 'disponivel'; dias: number }
-  | { estado: 'ativo' | 'usado'; dias: number; iniciadoEm: number; terminaEm: number }
-  | { estado: 'indisponivel'; dias: number; motivo: MotivoSemTeste };
+  | { estado: 'disponivel'; dias: number; plano?: PlanoPago }
+  | { estado: 'ativo' | 'usado'; dias: number; plano?: PlanoPago; iniciadoEm: number; terminaEm: number }
+  | { estado: 'indisponivel'; dias: number; plano?: PlanoPago; motivo: MotivoSemTeste };
 
 export interface Fatura {
   id: string;
@@ -195,7 +195,14 @@ export function estadoDaConta(
       : !status?.teste && testeDosEntitlements
         ? testeDosEntitlements.terminaEm
         : null;
-  if (terminaEm !== null && terminaEm > agora) return { estado: 'teste', plano: PLANO_DO_TESTE, valeAte: terminaEm };
+  /* O plano do teste é o GRAVADO (v4: o Plus; antes, o Premium). Sem o status, o plano que o servidor já
+     dá aos entitlements durante o teste. */
+  if (terminaEm !== null && terminaEm > agora)
+    return {
+      estado: 'teste',
+      plano: (t?.estado === 'ativo' ? t.plano : null) ?? planoPagoDe(plan) ?? PLANO_DO_TESTE,
+      valeAte: terminaEm,
+    };
   // Plano pago sem cobrança no provedor (concedido pelo administrador): ativo, sem data.
   const pagoNoPlano = planoPagoDe(plan);
   if (pagoNoPlano) return { estado: 'ativa', plano: pagoNoPlano, valeAte: null };

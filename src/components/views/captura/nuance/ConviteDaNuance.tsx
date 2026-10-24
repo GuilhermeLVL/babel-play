@@ -1,6 +1,7 @@
 import { Lock, Sparkles } from 'lucide-react';
 
 import { t } from '../../../../lib/i18n';
+import { comNomeDoPlano, planoDeEntradaAgora } from '../../../../lib/planoDeEntrada';
 
 /**
  * O QUE O GRÁTIS VÊ NO LUGAR DE UM RECURSO DA TRADUÇÃO NUANCE (Fase D) — decisão do dono: o recurso
@@ -21,7 +22,7 @@ export default function ConviteDaNuance({ texto, aoConhecer }: { texto: string; 
       <p className="folha-status">{t('Sua legenda já usa a Tradução rápida ao vivo, sem esperar.')}</p>
       {aoConhecer && (
         <button type="button" className="folha-acao" onClick={aoConhecer}>
-          <Sparkles aria-hidden /> {t('Conhecer o Premium')}
+          <Sparkles aria-hidden /> {comNomeDoPlano(t('Conhecer o Premium'), planoDeEntradaAgora())}
         </button>
       )}
     </div>

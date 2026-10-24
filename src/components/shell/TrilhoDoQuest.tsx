@@ -57,6 +57,7 @@ import { aoMudarIdentidade, estaAnonimo } from '../../lib/identidade';
 import { instalarMarcaDeMovimento } from '../../lib/movimento/animar';
 import { instalarOrigemDoToque } from '../../lib/movimento/revelar';
 import { marcarLida, marcarTodasLidas, naoLidas, quando } from '../../lib/notificacoes';
+import { comNomeDoPlano, planoDeEntradaAgora, planoParaNome } from '../../lib/planoDeEntrada';
 import { instalarAgua } from '../../lib/polimento/agua';
 import { instalarPolimento } from '../../lib/polimento/base';
 import { instalarCelular, NO_MAIS_NO_CELULAR, useBarraDeCinco, useJanelaEstreita } from '../../lib/polimento/celular';
@@ -264,10 +265,13 @@ function useDicaDoTrilho(ativo: boolean) {
 /** A frase da entrada "Planos e Premium": as duas do protótipo, com os dias que de fato restam do teste. */
 const fraseDoPlano = (): string => {
   const { plan, teste } = getEntitlements();
-  if (plan === 'free' || plan === 'anonimo') return t('Você está no Grátis · teste o Premium por 14 dias, sem cartão');
-  if (!teste) return t('Você está no Premium');
+  /* Planos v4: o nome é o do plano de quem assina (Plus) ou o de entrada (o teste, a oferta). */
+  const doPlano = planoParaNome(plan);
+  if (plan === 'free' || plan === 'anonimo')
+    return comNomeDoPlano(t('Você está no Grátis · teste o Premium por 14 dias, sem cartão'), planoDeEntradaAgora());
+  if (!teste) return comNomeDoPlano(t('Você está no Premium'), doPlano);
   const dias = Math.max(1, Math.ceil((teste.terminaEm - Date.now()) / 86_400_000));
-  return tp(dias, 'Premium em teste · {n} dia', 'Premium em teste · {n} dias');
+  return comNomeDoPlano(tp(dias, 'Premium em teste · {n} dia', 'Premium em teste · {n} dias'), doPlano);
 };
 
 const ROTULO_DA_VIBRACAO: Record<VibracaoDoQuest, () => string> = {
@@ -745,7 +749,7 @@ export default function TrilhoDoQuest({
                   <Sparkles aria-hidden />
                 </span>
                 <span>
-                  <b>{t('Planos e Premium')}</b>
+                  <b>{comNomeDoPlano(t('Planos e Premium'), planoDeEntradaAgora())}</b>
                   <small>{fraseDoPlano()}</small>
                 </span>
                 <span className="q-fim">

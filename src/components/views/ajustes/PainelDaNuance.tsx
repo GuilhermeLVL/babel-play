@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type { EntradaDoGlossario, FalhaDaNuance } from '../../../data/apiDaNuance';
 import { getEntitlements } from '../../../lib/entitlements';
 import { t } from '../../../lib/i18n';
+import { comNomeDoPlano, planoDeEntradaAgora } from '../../../lib/planoDeEntrada';
 import { type PreferenciasDaNuance, salvarPreferencias, usePreferencias } from '../../../lib/preferencias';
 import { toast } from '../../Toast';
 
@@ -90,13 +91,16 @@ export default function PainelDaNuance({ aoConhecer }: { aoConhecer?: () => void
         <div className="q-aviso" role="note" data-testid="convite-da-nuance">
           <span>
             <Lock aria-hidden />{' '}
-            {t(
-              'Registro, variantes e glossário são da Tradução Nuance do Premium. Sua legenda já usa a Tradução rápida ao vivo.',
+            {comNomeDoPlano(
+              t(
+                'Registro, variantes e glossário são da Tradução Nuance do Premium. Sua legenda já usa a Tradução rápida ao vivo.',
+              ),
+              planoDeEntradaAgora(),
             )}
           </span>
           {aoConhecer && (
             <button type="button" className="q-ctl" onClick={aoConhecer}>
-              {t('Conhecer o Premium')}
+              {comNomeDoPlano(t('Conhecer o Premium'), planoDeEntradaAgora())}
             </button>
           )}
         </div>

@@ -28,6 +28,7 @@ import { edicaoEstatica } from '../../../lib/edicaoEstatica';
 import { getEntitlements } from '../../../lib/entitlements';
 import { proximaRecompensa } from '../../../lib/galeria/progressao';
 import { numero, t, tp } from '../../../lib/i18n';
+import { comNomeDoPlano, planoParaNome } from '../../../lib/planoDeEntrada';
 import type { AgeProfileType } from '../../../lib/profile';
 import type { DerivedProgress } from '../../../lib/progress';
 import { perfilProtegido } from '../../../lib/protecaoDoMenor';
@@ -153,7 +154,8 @@ const saudacao = (hora: number): string =>
 const rotuloDoPlano = (): string => {
   const { plan, teste } = getEntitlements();
   if (plan === 'free' || plan === 'anonimo') return t('Grátis · Ver planos');
-  return teste ? t('Premium · em teste') : t('Premium');
+  const doPlano = planoParaNome(plan);
+  return comNomeDoPlano(teste ? t('Premium · em teste') : t('Premium'), doPlano);
 };
 
 const iconeDaSessao = (tipo: Recording['type']) =>

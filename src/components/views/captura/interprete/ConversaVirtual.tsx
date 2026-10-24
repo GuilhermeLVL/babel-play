@@ -18,6 +18,7 @@ import type { LadoDoInterprete } from '../../../../lib/captura/tiposDaFala';
 import type { TraducaoFinal } from '../../../../lib/captura/traducaoDaFala';
 import { data, t } from '../../../../lib/i18n';
 import { langLabel, toBcp47 } from '../../../../lib/languages';
+import { comNomeDoPlano, planoDeEntradaAgora } from '../../../../lib/planoDeEntrada';
 import { mudarEstadoDaTela } from '../../../../lib/polimento/interprete';
 import { nativeTts } from '../../../../lib/tts';
 import { ladosDaVoz } from '../../../../lib/voz/catalogoDeVozes';
@@ -387,7 +388,11 @@ export default function ConversaVirtual({
         ),
       }}
       voz={{
-        rotulo: !lerEmVozAlta ? t('Só legenda') : vozNatural ? t('Voz natural · Premium') : t('Voz do aparelho'),
+        rotulo: !lerEmVozAlta
+          ? t('Só legenda')
+          : vozNatural
+            ? comNomeDoPlano(t('Voz natural · Premium'), planoDeEntradaAgora())
+            : t('Voz do aparelho'),
         natural: lerEmVozAlta && vozNatural,
         muda: !lerEmVozAlta,
       }}

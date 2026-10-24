@@ -12,3 +12,39 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+/* PLANOS v4: a Família é uma linha sob os três cartões, e o que ainda não existe leva "em breve". */
+.pl-familia {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.pl-familia h3 {
+  font-size: 1rem;
+  margin: 0;
+}
+.pl-familia .q-d {
+  margin: 4px 0 0;
+}
+.pl-familia-resumo {
+  font-weight: 500;
+  color: var(--q-texto-2, var(--ink-muted, inherit));
+}
+.pl-em-breve-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 600;
+  opacity: 0.8;
+  vertical-align: middle;
+}
+.pl-em-breve {
+  text-align: center;
+}

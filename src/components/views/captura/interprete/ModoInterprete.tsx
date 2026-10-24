@@ -15,6 +15,7 @@ import { chaveLigada } from '../../../../lib/captura/testesDoInterprete';
 import type { LadoDoInterprete, SpeechSegment } from '../../../../lib/captura/tiposDaFala';
 import { data, t } from '../../../../lib/i18n';
 import { langLabel, toBcp47 } from '../../../../lib/languages';
+import { comNomeDoPlano, planoDeEntradaAgora, textoDoAutomaticoNoPlano } from '../../../../lib/planoDeEntrada';
 import { estadoDaTela, mudarEstadoDaTela, tomarPedidoDaConversa, tremer } from '../../../../lib/polimento/interprete';
 import { nativeTts, type TtsEngine } from '../../../../lib/tts';
 import { aquecerInterprete } from '../../../../lib/voz/aquecimentoDoInterprete';
@@ -384,7 +385,7 @@ export default function ModoInterprete({
         : comVozDoSite
           ? t('Voz do site')
           : vozNatural
-            ? t('Voz natural · Premium')
+            ? comNomeDoPlano(t('Voz natural · Premium'), planoDeEntradaAgora())
             : t('Voz do aparelho');
 
   /** O que cada lado precisa para se desenhar, igual nas duas telas (frente a frente e conversa). */
@@ -551,7 +552,7 @@ export default function ModoInterprete({
         (presoNoDetectar && detectar
           ? t('Para falar por toque, escolha o idioma da outra pessoa.')
           : avisoDoCadeado
-            ? t('O modo automático faz parte do Premium: o app reconhece sozinho quem fala qual idioma.')
+            ? textoDoAutomaticoNoPlano()
             : idiomaSemVoz
               ? comoInstalarVoz(idiomaSemVoz)
               : detectar

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type { FalhaDaNuance, PedidoDeNuance } from '../../../../data/apiDaNuance';
 import { useConsentimentoDeNuvem } from '../../../../lib/consentimentoDeNuvem';
 import { t } from '../../../../lib/i18n';
+import { comNomeDoPlano, planoDeEntradaAgora } from '../../../../lib/planoDeEntrada';
 import { nuanceDasPreferencias } from '../../../../lib/traducao/preferenciasDaNuance';
 import type { RegistroDaTraducao } from '../../../../lib/traducao/promptComunicativo';
 import ConviteDaNuance from './ConviteDaNuance';
@@ -151,8 +152,11 @@ export default function NuanceDaFrase({
         </div>
         {convite && (
           <ConviteDaNuance
-            texto={t(
-              'Com a Tradução Nuance do Premium, você vê outras formas de dizer cada frase e escolhe entre formal e informal.',
+            texto={comNomeDoPlano(
+              t(
+                'Com a Tradução Nuance do Premium, você vê outras formas de dizer cada frase e escolhe entre formal e informal.',
+              ),
+              planoDeEntradaAgora(),
             )}
             aoConhecer={aoConhecer}
           />

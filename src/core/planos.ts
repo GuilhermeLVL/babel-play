@@ -769,6 +769,25 @@ export function planoDoTeste(flagLigada: (chave: string) => boolean): PlanoPago 
 }
 
 /**
+ * O plano que as ofertas e os "Ver o plano" SUGEREM (planos v4): o Plus com `venda_planos_v4` ligada, o
+ * Premium sem ela. Hoje coincide com o do teste (a entrada paga é a mesma porta), mas é outra decisão:
+ * se o teste um dia for de outro plano, as ofertas continuam apontando para o que se vende primeiro.
+ */
+export function planoDeEntrada(flagLigada: (chave: string) => boolean): PlanoPago {
+  return flagLigada(FLAG_VENDA_PLANOS_V4) ? 'plus' : PLANO_DO_TESTE;
+}
+
+/**
+ * Os planos "em breve" com a v4 ligada: os que dependem da `venda_planos_v4` (estão no desenho da v4) e
+ * ainda não estão à venda (Família e Pro, cujas chaves próprias seguem desligadas). Sem a v4 ligada
+ * (`aVenda` sem o Plus), a lista é vazia: a tela de hoje não anuncia nada que não vende.
+ */
+export function planosEmBreve(aVenda: readonly PlanoPago[]): PlanoPago[] {
+  if (!aVenda.includes('plus')) return [];
+  return PLANOS_PAGOS.filter((p) => PLAN_MATRIX[p].flagsDeVenda.includes(FLAG_VENDA_PLANOS_V4) && !aVenda.includes(p));
+}
+
+/**
  * O plano pago de MENOR mensalidade. É o que o webhook concede quando um pagamento confirmado chega
  * sem valor E sem intenção gravada: sem saber quanto entrou, o que se dá é o mínimo que qualquer
  * pagamento de plano paga — nunca o mais caro por omissão.

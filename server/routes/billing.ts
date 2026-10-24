@@ -834,7 +834,8 @@ billingRouter.post('/teste', async (req, res) => {
     return
   }
   if (req.convidado) {
-    responderErro(res, 403, 'crie uma conta para testar o Premium', 'exige_conta')
+    const plano = await planoDoTesteParaOPedido(req)
+    responderErro(res, 403, `crie uma conta para testar o ${PLAN_MATRIX[plano].rotulo}`, 'exige_conta')
     return
   }
   if (!checkoutLigado()) {
@@ -880,16 +881,25 @@ billingRouter.post('/teste', async (req, res) => {
         },
         jaEstavaAtivo: true,
       })
-    const usado = () => responderErro(res, 409, 'o teste do Premium já foi usado por esta pessoa', 'teste_ja_usado')
+    /* O nome do plano na mensagem é o do teste que ela usou (o gravado), ou o que daria agora. */
+    const nomeDoTeste = async (t: TestePremium | null): Promise<string> =>
+      PLAN_MATRIX[t ? planoDoTesteGravado(t) : await planoDoTesteParaOPedido(req)].rotulo
+    const usado = async (t: TestePremium | null) =>
+      responderErro(res, 409, `o teste do ${await nomeDoTeste(t)} já foi usado por esta pessoa`, 'teste_ja_usado')
 
     const existente = await testesPremiumRepo.doUsuario(destino)
     if (existente) {
       if (testeAtivo(existente)) jaAtivo(existente)
-      else usado()
+      else await usado(existente)
       return
     }
     if (jaAssinou(await subscriptionsRepo.getActive(destino))) {
-      responderErro(res, 409, 'esta conta já tem (ou já teve) o Premium', 'ja_assinante')
+      responderErro(
+        res,
+        409,
+        `esta conta já tem (ou já teve) o ${PLAN_MATRIX[await planoDoTesteParaOPedido(req)].rotulo}`,
+        'ja_assinante',
+      )
       return
     }
     const email = emailDaRequisicao(req)
@@ -920,7 +930,7 @@ billingRouter.post('/teste', async (req, res) => {
        (a mesma conta, o mesmo e-mail) — relido, o teste ativo desta conta é a resposta certa. */
     const agoraExiste = r.tipo === 'ja_existia' ? r.teste : await testesPremiumRepo.doUsuario(destino)
     if (agoraExiste && testeAtivo(agoraExiste)) jaAtivo(agoraExiste)
-    else usado()
+    else await usado(agoraExiste ?? null)
   } catch (err) {
     res.status(500).json({ error: erroDeRota(err, { status: 500, event: 'billing_teste_error' }) })
   }

@@ -8,6 +8,7 @@ import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 're
 import { type DictionaryResult, lookup } from '../../../../lib/dictionary';
 import { t } from '../../../../lib/i18n';
 import { direcaoDoTexto } from '../../../../lib/languages';
+import { comNomeDoPlano, planoDeEntradaAgora } from '../../../../lib/planoDeEntrada';
 import { comemorarGuardada, entrarFolha } from '../../../../lib/polimento/captura';
 import { haVozPara } from '../../../../lib/voz/haVoz';
 import { toast } from '../../../Toast';
@@ -152,7 +153,7 @@ function CorpoDaFrase({
           </span>
           {nuance.aoConhecer && (
             <button type="button" className="q-ctl" data-px="planos" onClick={nuance.aoConhecer}>
-              {t('Conhecer o Premium')}
+              {comNomeDoPlano(t('Conhecer o Premium'), planoDeEntradaAgora())}
             </button>
           )}
         </div>

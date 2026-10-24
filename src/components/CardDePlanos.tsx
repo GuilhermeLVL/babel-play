@@ -1,9 +1,10 @@
 import { Sparkles, X } from 'lucide-react';
 import { useState } from 'react';
 
-import { menorPrecoDeAssinatura } from '../core/planos';
+import { FLAG_VENDA_PLANOS_V4, menorPrecoDeAssinatura } from '../core/planos';
 import { getEntitlements } from '../lib/entitlements';
 import { t } from '../lib/i18n';
+import { v4Ligada } from '../lib/planoDeEntrada';
 import { readStoredValue } from '../lib/profile';
 import { usePedacoDoQuest } from './conta/quest/usePedacoDoQuest';
 
@@ -53,7 +54,8 @@ export default function CardDePlanos({ onVerPlanos }: { onVerPlanos: () => void 
   const [cotaNunca, setCotaNunca] = useState(() => readStoredValue(CHAVE_NUNCA_DA_COTA) === '1');
   /* Se o desenho do headset não chegar, vale o card de sempre (um convite nunca recarrega a página). */
   const doQuest = usePedacoDoQuest(carregarFaixaDoQuest, true);
-  const preco = menorPrecoDeAssinatura();
+  /* Com a v4 o menor plano à venda é o Plus (R$ 14,90): "a partir de R$ 9,90" seria prometer o que não se vende. */
+  const preco = menorPrecoDeAssinatura((chave) => chave === FLAG_VENDA_PLANOS_V4 && v4Ligada());
   /* Quota de armazenamento estourando (>90%) é o momento em que o upgrade deixa de ser anúncio e
      vira solução — o card fala do problema real mesmo para quem dispensou o anúncio comum. Mas a
      dispensa É RESPEITADA (Fase 8): depois de qualquer dispensa, o aviso de armazenamento volta no

@@ -14,6 +14,7 @@ import { useMemo, useRef, useState } from 'react';
 import { creditarSeeds, type TemporadaNoServidor } from '../../../../data/api';
 import { data, t } from '../../../../lib/i18n';
 import type { ItemDaLoja } from '../../../../lib/loja';
+import { comNomeDoPlano, planoDeEntradaAgora } from '../../../../lib/planoDeEntrada';
 import { centro, comemorarResgate, irParaNivel, sentirMoeda } from '../../../../lib/polimento/personalizar';
 import { perfilProtegido } from '../../../../lib/protecaoDoMenor';
 import { recompensasV2Ligadas } from '../../../../lib/recompensasV2';
@@ -361,7 +362,7 @@ export default function TemporadaDoPrototipo({
               )}
             </span>
             <button type="button" className="q-ctl" data-px="planos" onClick={aoVerPlanos}>
-              {t('Conhecer o Premium')}
+              {comNomeDoPlano(t('Conhecer o Premium'), planoDeEntradaAgora())}
             </button>
           </div>
         )}

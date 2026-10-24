@@ -9,8 +9,8 @@ import {
   type PlanoSugerido,
   resolverTextoRemoto,
 } from '../../core/ofertas';
-import { DIAS_DO_TESTE_PREMIUM, PLAN_MATRIX, precoDoPlano } from '../../core/planos';
-import { onPlanChange } from '../../lib/entitlements';
+import { DIAS_DO_TESTE_PREMIUM, ehPlanoPago, PLAN_MATRIX, type PlanoPago, precoDoPlano } from '../../core/planos';
+import { getEntitlements, onPlanChange } from '../../lib/entitlements';
 import { ehConfigDeOfertas, useConfigRemota, useFlag } from '../../lib/flags';
 import { estadoDeIdentidade } from '../../lib/identidade';
 import { verificarCota } from '../../lib/ofertas/cota';
@@ -40,6 +40,7 @@ import {
 import { decidirOferta, type DecisaoDeOferta, type EstadoDaTela } from '../../lib/ofertas/motor';
 import { pessoaDaOferta, planoDaOferta } from '../../lib/ofertas/plano';
 import { verificarTeste } from '../../lib/ofertas/teste';
+import { comNomeDoPlano, planoDeEntradaAgora } from '../../lib/planoDeEntrada';
 import { planoDeProva } from '../../lib/polimento/planos';
 import { capturaAtiva } from '../../lib/sessaoDeCaptura';
 import { useI18n } from '../../lib/useI18n';
@@ -256,12 +257,18 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
     fechar();
   };
 
-  const titulo = resolverTextoRemoto(g.titulo, idioma, t);
-  const texto = resolverTextoRemoto(g.texto, idioma, t);
+  /* O texto do fim do teste fala do plano que o teste deu: o Premium até aqui, o Plus na v4. */
+  const planoDoTeste = ((): PlanoPago => {
+    const { plan } = getEntitlements();
+    return ehPlanoPago(plan) ? plan : planoDeEntradaAgora();
+  })();
+  const doTeste = (txt: string): string => (informativoDoTeste ? comNomeDoPlano(txt, planoDoTeste) : txt);
+  const titulo = doTeste(resolverTextoRemoto(g.titulo, idioma, t));
+  const texto = doTeste(resolverTextoRemoto(g.texto, idioma, t));
   /* Quem não tem plano a subir (Premium) vê o consumo, não uma venda. */
   const cta =
     sugerido === 'nenhum' && !informativoDoTeste ? t('Ver consumo do mês') : resolverTextoRemoto(g.cta, idioma, t);
-  const selo = seloDoPlano(sugerido, t);
+  const selo = seloDoPlano(sugerido, t, planoDeEntradaAgora());
   const props = {
     /* O fim de sessão traz o livro aberto (`OFERTAS`, `telas.js:480`). */
     icone: momento === 'fim_de_sessao' ? BookOpen : ICONE[momento],
@@ -285,15 +292,20 @@ function renderizar(componente: ComponenteDeOferta, props: Parameters<typeof Mod
  * "Sugerido: Premium · R$ 19,90/mês" — o nome e o preço da matriz, nunca escritos à mão. Para quem
  * pode testar: "Sugerido: 14 dias de Premium grátis, sem cartão" (C8).
  */
-function seloDoPlano(sugerido: PlanoSugerido, t: (s: string, v?: Record<string, string | number>) => string) {
+function seloDoPlano(
+  sugerido: PlanoSugerido,
+  t: (s: string, v?: Record<string, string | number>) => string,
+  /* O plano de entrada: o Plus com a v4, o Premium sem ela. `premium` em `PlanoSugerido` é "assinar". */
+  entrada: PlanoPago,
+) {
   if (sugerido === 'teste')
     return t('Sugerido: {dias} dias de {plano} grátis, sem cartão', {
       dias: DIAS_DO_TESTE_PREMIUM,
-      plano: PLAN_MATRIX.premium.rotulo,
+      plano: PLAN_MATRIX[entrada].rotulo,
     });
   if (sugerido !== 'premium') return undefined;
-  const nome = PLAN_MATRIX[sugerido].rotulo;
-  const preco = precoDoPlano(sugerido);
+  const nome = PLAN_MATRIX[entrada].rotulo;
+  const preco = precoDoPlano(entrada);
   return preco
     ? t('Sugerido: {plano} · R$ {preco}/mês', { plano: nome, preco })
     : t('Sugerido: {plano}', { plano: nome });

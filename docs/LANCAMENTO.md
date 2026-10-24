@@ -310,16 +310,18 @@ caminho: [`STAGING.md`](STAGING.md).
 6. **Segundo run** do `deploy-worker` (`production`): daí em diante é o fluxo por versões, com fumaça e rollback
    automático. Cadastro e venda sobem **fechados** (`SIGNUP_ENABLED=0`, `CHECKOUT_ENABLED=0`).
 7. `wrangler tail` (`npx wrangler tail -c wrangler.jsonc`) não deve mostrar `ABORTADO`; o `/api/ready` deve dar 200.
-8. **Flags do lançamento** (banco, sem deploy; valem em até 30 s). O recorte é: `venda_planos_v3` **ligada** (Grátis, Essencial
-   e Premium à venda), `stt_ao_vivo` **desligada** (o Ao Vivo não é vendido), `voz_natural` **desligada**, `anuncios`
-   **desligada**. Os padrões de fábrica já são "desligada" (migrações `0046` (`voz_natural`), `0048` e `0051`); só `venda_planos_v3` pede ação.
+8. **Flags do lançamento** (banco, sem deploy; valem em até 30 s). O recorte (planos v4, `docs/specs/2026-10-24-planos-v4.md`)
+   é: `venda_planos_v4` **ligada** (Grátis e Plus à venda; Essencial, Premium e Ao Vivo saem da venda), `venda_familia` e
+   `venda_pro4` **desligadas** (aparecem como "em breve"), `stt_ao_vivo` **desligada**, `voz_natural` **desligada**
+   (o Plus mostra a voz como "em breve" até ela ligar), `anuncios` **desligada**. Os padrões de fábrica já são
+   "desligada"; só `venda_planos_v4` pede ação (`venda_planos_v3` pode ficar como está: a v4 encerra os v3).
    Duas portas, as mesmas de [`flags.md`](flags.md): no app, logado como admin com o 2FA confirmado, **Admin → Flags**
    (liga e desliga o interruptor `habilitada`), ou pela CLI, da sua máquina com a `DATABASE_URL` de produção no
    ambiente (a CLI sai de `npm run build`):
    ```bash
    node dist-server/operacao.cjs conta papel <seu-e-mail> admin   # uma vez: o papel mora no banco
-   node dist-server/operacao.cjs flags ligar venda_planos_v3
-   node dist-server/operacao.cjs flags listar                      # confere: venda_planos_v3 LIGADA, as outras desligada
+   node dist-server/operacao.cjs flags ligar venda_planos_v4
+   node dist-server/operacao.cjs flags listar                      # confere: venda_planos_v4 LIGADA, venda_familia/venda_pro4 desligadas
    ```
    Ligar a flag **não abre a venda**: o checkout continua fechado por `CHECKOUT_ENABLED=0` até o §11-bis.
 9. **Página de anúncios** (só se for usar anúncios; pode ficar para depois do jurídico e da rede): o Worker próprio

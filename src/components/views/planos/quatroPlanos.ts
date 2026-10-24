@@ -10,8 +10,10 @@ import {
   type PlanoPago,
   PLANOS_PAGOS,
 } from '../../../core/planos';
+import { parakeetCabeNoAparelho } from '../../../gateway/sttRouter';
 import { brl } from '../../../lib/assinatura';
-import { perfilDoDispositivo } from '../../../lib/dispositivo/perfil';
+import { dispositivoDaRota, perfilDoDispositivo } from '../../../lib/dispositivo/perfil';
+import type { SondaDoAparelho } from '../../../lib/dispositivo/sonda';
 import { numero, t } from '../../../lib/i18n';
 
 /**
@@ -109,6 +111,11 @@ export interface ContextoDosPlanos {
    * comparação a prometem (o plano a teria na matriz, mas a flag não a entrega).
    */
   vozNatural?: boolean;
+  /**
+   * O modelo local Preciso (Parakeet, pt/es) roda NESTE aparelho (`precisoCabeAqui`). Muda o que a nota
+   * do aparelho promete: com ele o computador não "erra mais".
+   */
+  preciso?: boolean;
 }
 
 /* ---- Os cartões (`PLANOS`, `planos4.js:71-112`) ----------------------------------------------------- */
@@ -250,7 +257,9 @@ export function cartaoDoPlano(id: PlanoDaTela, c: ContextoDosPlanos): CartaoDoPl
     aovivo: t('Texto durante a fala'),
   };
   const quem: Record<PlanoDaTela, string> = {
-    gratis: t('Para quem está conhecendo, ou tem um computador com placa de vídeo.'),
+    gratis: t(
+      'Para quem está conhecendo, ou tem um computador com placa de vídeo, 8 GB de memória ou Mac com chip Apple.',
+    ),
     essencial: c.comAnuncios
       ? t('Para o estudante no computador: sem anúncio e com Nuance.')
       : t('Para o estudante no computador, com Nuance.'),
@@ -278,12 +287,25 @@ export const resumoDoPlano = (id: PlanoPago): string =>
 
 export type Aparelho = 'pc' | 'fraco' | 'celular' | 'quest';
 
-/** O aparelho REAL, pelo perfil medido (`lib/dispositivo/perfil.ts`), nas quatro caixas do protótipo. */
-export function aparelhoAtual(): Aparelho {
+/**
+ * O modelo Preciso (Parakeet) cabe e não foi vetado neste aparelho? A mesma regra da captura
+ * (`parakeetCabeNoAparelho`: computador com 8 GB ou mais, ou Mac com chip Apple; sem economia de dados)
+ * e o mesmo veto da sentinela (`modeloProibido`, resolvido por quem chama: é assíncrono). Sem a sonda
+ * guardada o Mac Apple não é reconhecido: a resposta é não, que é o lado seguro.
+ */
+export function precisoCabeAqui(sonda: SondaDoAparelho | null, vetado: boolean): boolean {
+  return !vetado && parakeetCabeNoAparelho(dispositivoDaRota(perfilDoDispositivo(), sonda));
+}
+
+/**
+ * O aparelho REAL, pelo perfil medido (`lib/dispositivo/perfil.ts`), nas quatro caixas do protótipo.
+ * "pc" é o computador que roda a legenda bem aqui: com placa de vídeo OU com o Preciso no aparelho.
+ */
+export function aparelhoAtual(preciso = false): Aparelho {
   const { tipo } = perfilDoDispositivo();
   if (tipo === 'quest') return 'quest';
   if (tipo.startsWith('celular')) return 'celular';
-  return tipo === 'desktop-com-gpu' ? 'pc' : 'fraco';
+  return tipo === 'desktop-com-gpu' || (preciso && tipo.startsWith('desktop')) ? 'pc' : 'fraco';
 }
 
 /** `1` funciona, `2` funciona com ressalva, `0` não há. */
@@ -292,7 +314,7 @@ export type Sinal = 0 | 1 | 2;
 export interface NotaDoAparelho {
   aparelho: Aparelho;
   icone: LucideIcon;
-  /** "Você está num computador com placa de vídeo". */
+  /** "Você está num computador com placa de vídeo" (ou, com o Preciso no aparelho, "…que roda o modelo Preciso"). */
   titulo: string;
   frase: string;
   linhas: [string, string, Sinal][];
@@ -302,14 +324,25 @@ export function notaDoAparelho(aparelho: Aparelho, c: ContextoDosPlanos): NotaDo
   const comEssencial = c.visiveis.includes('essencial');
   const mb = numero(113);
   const tradutor = t('Pelo tradutor do navegador ou pelo modelo local.');
-  if (aparelho === 'pc')
+  if (aparelho === 'pc') {
+    /* Com o Preciso no aparelho a promessa é a dele (pt/es, ~6 erros em 100 palavras); sem ele, é a da
+       placa de vídeo, como antes. A nuvem já não é "português com menos erro" para quem o roda. */
+    const preciso = c.preciso === true;
     return {
       aparelho,
       icone: Monitor,
-      titulo: t('Você está num computador com placa de vídeo'),
-      frase: `${t(
-        'Este computador tem placa de vídeo: a legenda roda aqui mesmo, sem limite e sem custo. Para estudar inglês, o Grátis já resolve.',
-      )} ${
+      titulo: preciso
+        ? t('Você está num computador que roda o modelo Preciso')
+        : t('Você está num computador com placa de vídeo'),
+      frase: `${
+        preciso
+          ? t(
+              'Este computador roda o modelo Preciso: a legenda sai aqui mesmo, sem limite e sem custo, com cerca de 6 erros a cada 100 palavras em português e espanhol. Para estudar inglês, o Grátis já resolve.',
+            )
+          : t(
+              'Este computador tem placa de vídeo: a legenda roda aqui mesmo, sem limite e sem custo. Para estudar inglês, o Grátis já resolve.',
+            )
+      } ${
         !comEssencial
           ? t('O Premium abre a Nuance e a nuvem para o áudio difícil.')
           : c.comAnuncios
@@ -317,19 +350,32 @@ export function notaDoAparelho(aparelho: Aparelho, c: ContextoDosPlanos): NotaDo
             : t('O Essencial abre a Nuance.')
       }`,
       linhas: [
-        [t('Transcrição'), t('Em tempo real, no aparelho. Inclusive o som de uma aba.'), 1],
+        [
+          t('Transcrição'),
+          preciso
+            ? t('Em tempo real, no aparelho: o modelo Preciso em português e espanhol. Inclusive o som de uma aba.')
+            : t('Em tempo real, no aparelho. Inclusive o som de uma aba.'),
+          1,
+        ],
         [t('Tradução'), tradutor, 1],
         [t('Voz'), t('A voz do sistema. Boa no Edge.'), 1],
-        [t('Onde a nuvem ajuda'), t('Português com menos erro, áudio com barulho, gíria e jeito de falar.'), 2],
+        [
+          t('Onde a nuvem ajuda'),
+          preciso
+            ? t('Outros idiomas, áudio com barulho, gíria e jeito de falar.')
+            : t('Português com menos erro, áudio com barulho, gíria e jeito de falar.'),
+          2,
+        ],
       ],
     };
+  }
   if (aparelho === 'fraco')
     return {
       aparelho,
       icone: Monitor,
       titulo: t('Você está num computador fraco'),
       frase: t(
-        'Este computador é modesto: a legenda roda aqui, mas com um modelo leve, que erra mais. A nuvem do Premium erra menos, sobretudo em português e em áudio com barulho.',
+        'Este computador é modesto: a legenda roda aqui, mas com um modelo leve, que erra mais. O modelo Preciso pede 8 GB de memória ou um Mac com chip Apple. A nuvem do Premium erra menos, sobretudo em português e em áudio com barulho.',
       ),
       linhas: [
         [t('Transcrição'), t('Funciona, com um modelo leve: mais erros e mais espera.'), 2],
@@ -377,7 +423,8 @@ export function notaDoAparelho(aparelho: Aparelho, c: ContextoDosPlanos): NotaDo
 
 /**
  * O plano recomendado para o aparelho (`recomendadoAqui`, `planos4.js:593`, e `DISPS[...].recomendado`):
- * o Essencial no computador com placa de vídeo, o Premium nos outros. Se o indicado não está à vista,
+ * o Essencial no computador que roda a legenda bem aqui (placa de vídeo ou modelo Preciso no aparelho),
+ * o Premium nos outros. Se o indicado não está à vista,
  * vale o primeiro plano pago de cima dele que estiver; sem nenhum, não há recomendado.
  */
 export function recomendadoPara(aparelho: Aparelho, visiveis: readonly PlanoDaTela[]): PlanoDaTela | null {
@@ -449,7 +496,7 @@ export function perguntasDosPlanos(c: ContextoDosPlanos, diasDoTeste = DIAS_DO_T
     [
       t('O que quer dizer "no aparelho"?'),
       t(
-        'Que a transcrição e a tradução rodam no seu computador ou celular, sem mandar o áudio para fora. É grátis, não tem limite e funciona sem internet. Em aparelho fraco erra mais; no Quest, só o inglês roda no aparelho.',
+        'Que a transcrição e a tradução rodam no seu computador ou celular, sem mandar o áudio para fora. É grátis, não tem limite e funciona sem internet. Com 8 GB de memória ou mais, ou num Mac com chip Apple, o modelo Preciso erra pouco em português e espanhol; em aparelho mais fraco o modelo é leve e erra mais; no Quest, só o inglês roda no aparelho.',
       ),
     ],
     [

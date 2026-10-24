@@ -27,6 +27,7 @@ import {
   planosAVenda,
 } from '../../core/planos';
 import { FLAG_VOZ_NATURAL } from '../../core/vozNatural';
+import { ID_DO_PARAKEET } from '../../gateway/adapters/parakeetModelo';
 import {
   brl,
   carregarFaturas,
@@ -51,6 +52,7 @@ import {
   type StatusDeBilling,
   temAssinatura,
 } from '../../lib/assinatura';
+import { useSondaGuardada } from '../../lib/dispositivo/useSondaGuardada';
 import { carregarEntitlements, getEntitlements, onPlanChange, PLAN_LABELS } from '../../lib/entitlements';
 import { useFlag } from '../../lib/flags';
 import { numero, t, tp } from '../../lib/i18n';
@@ -98,6 +100,7 @@ import {
   ordemDoPlano,
   perguntasDosPlanos,
   type PlanoDaTela,
+  precisoCabeAqui,
   recomendadoPara,
   type Sinal,
 } from './planos/quatroPlanos';
@@ -282,7 +285,23 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
   const pago = meuPago !== null;
   /* SÓ O QUE ESTÁ À VENDA, mais o plano que a pessoa já tem (mesmo fora de venda). */
   const visiveis = ORDEM_DOS_PLANOS.filter((id) => id === 'gratis' || aVenda.includes(id) || id === meu);
-  const aparelho = prova.aparelho ?? aparelhoAtual();
+  /* O Preciso (Parakeet) no aparelho: a sonda guardada reconhece o Mac Apple e o veto da sentinela o tira. */
+  const sondaGuardada = useSondaGuardada();
+  const [precisoVetado, setPrecisoVetado] = useState(false);
+  useEffect(() => {
+    let vivo = true;
+    void import('../../lib/dispositivo/sonda')
+      .then((m) => m.modeloProibido(ID_DO_PARAKEET))
+      .then(
+        (v) => vivo && setPrecisoVetado(v),
+        () => undefined,
+      );
+    return () => {
+      vivo = false;
+    };
+  }, []);
+  const preciso = precisoCabeAqui(sondaGuardada, precisoVetado);
+  const aparelho = prova.aparelho ?? aparelhoAtual(preciso);
   const recomendado = recomendadoPara(aparelho, visiveis);
   /* O que o protótipo guarda em `PL` (`planos4.js:122-131`): com quem a tabela compara no celular, e o
      cartão que a oferta pediu para destacar. */
@@ -459,7 +478,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
     fimDoTeste === null ? diasDoTeste : Math.max(1, Math.ceil((fimDoTeste - Date.now()) / 86_400_000));
 
   /* ── O QUE A TELA MOSTRA (`planos4.js:594-683`) ───────────────────────────────────────────────── */
-  const contexto: ContextoDosPlanos = { visiveis, comAnuncios, vozNatural };
+  const contexto: ContextoDosPlanos = { visiveis, comAnuncios, vozNatural, preciso };
   const nota = notaDoAparelho(aparelho, contexto);
   const IconeDoAparelho = nota.icone;
   const temAnual = (id: PlanoDaTela): boolean => id !== 'gratis' && PLAN_MATRIX[id].precoAnualBrl !== null;

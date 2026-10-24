@@ -46,10 +46,22 @@ vi.mock('../src/lib/rotas', async (original) => ({
   navegarPara: nav.navegarPara,
 }))
 /* O aparelho é o do perfil medido: cada teste diz qual (o padrão é o computador sem placa de vídeo). */
-const aparelho = vi.hoisted(() => ({ tipo: 'desktop-sem-gpu' }))
+const aparelho = vi.hoisted(() => ({ tipo: 'desktop-sem-gpu', memoriaGb: null as number | null }))
 vi.mock('../src/lib/dispositivo/perfil', async (original) => {
   const real = await original<typeof import('../src/lib/dispositivo/perfil')>()
-  return { ...real, perfilDoDispositivo: () => ({ ...real.perfilDoDispositivo(), tipo: aparelho.tipo }) }
+  return {
+    ...real,
+    perfilDoDispositivo: () => {
+      const p = real.perfilDoDispositivo()
+      /* `memoriaGb` e `poucaMemoria` são o que a rota lê para saber se o Preciso (Parakeet) cabe. */
+      return {
+        ...p,
+        tipo: aparelho.tipo,
+        poucaMemoria: aparelho.memoriaGb === null,
+        sinais: { ...p.sinais, memoriaGb: aparelho.memoriaGb },
+      }
+    },
+  }
 })
 /* `ANUAL_ENABLED` do servidor: cada teste diz se o anual está à venda. */
 const venda = vi.hoisted(() => ({ anual: false }))
@@ -91,6 +103,7 @@ beforeEach(() => {
   ents.plan = 'free'
   venda.anual = false
   aparelho.tipo = 'desktop-sem-gpu'
+  aparelho.memoriaGb = null
   definirEstadoDasFlags(null)
   /* "Assinar" leva ao checkout pelo endereço: cada teste começa na tela de Planos. */
   window.history.replaceState({}, '', '/')
@@ -382,6 +395,42 @@ describe('Planos: o aparelho', () => {
     expect(texto('.pl-aparelho-frase')).toBe(
       'Este computador tem placa de vídeo: a legenda roda aqui mesmo, sem limite e sem custo. Para estudar inglês, o Grátis já resolve. O Premium abre a Nuance e a nuvem para o áudio difícil.',
     )
+  })
+
+  /* O Grátis ganhou o modelo local Preciso (Parakeet v3, ~6 erros em 100 palavras em pt/es): o computador
+     com 8 GB ou mais NÃO "erra mais" e não vai para o Premium por isso. A regra é a da captura
+     (`parakeetCabeNoAparelho`); o que estes testes prendem é que a TELA diga a mesma verdade. */
+  it('computador com 8 GB (sem placa de vídeo) roda o Preciso: a nota diz isso, não "erra mais", e recomenda o Essencial', async () => {
+    servidor.rotas['/api/billing/status'] = TODOS_A_VENDA
+    aparelho.tipo = 'desktop-sem-gpu'
+    aparelho.memoriaGb = 8
+    await abrir()
+    expect(document.querySelector<HTMLElement>('.pl-aparelho')!.dataset.plAparelho).toBe('pc')
+    expect(texto('.pl-aparelho .q-rotulo')).toBe('Você está num computador que roda o modelo Preciso')
+    const nota = document.querySelector<HTMLElement>('.pl-aparelho')!.textContent!
+    expect(nota).toMatch(/cerca de 6 erros a cada 100 palavras em português e espanhol/)
+    expect(nota).not.toMatch(/modelo leve|erra mais|placa de vídeo/)
+    expect(document.querySelector<HTMLElement>('.pl-plano.px-premium')!.dataset.plPlano).toBe('essencial')
+  })
+
+  it('computador com menos de 8 GB e sem placa de vídeo continua "fraco": modelo leve, que erra mais, e o Premium', async () => {
+    servidor.rotas['/api/billing/status'] = TODOS_A_VENDA
+    aparelho.tipo = 'desktop-sem-gpu'
+    aparelho.memoriaGb = 4
+    await abrir()
+    expect(document.querySelector<HTMLElement>('.pl-aparelho')!.dataset.plAparelho).toBe('fraco')
+    expect(texto('.pl-aparelho-frase')).toMatch(
+      /modelo leve, que erra mais\. O modelo Preciso pede 8 GB de memória ou um Mac/,
+    )
+    expect(document.querySelector<HTMLElement>('.pl-plano.px-premium')!.dataset.plPlano).toBe('premium')
+  })
+
+  it('placa de vídeo com pouca memória (o Preciso não cabe): a frase segue sendo a da placa de vídeo', async () => {
+    aparelho.tipo = 'desktop-com-gpu'
+    aparelho.memoriaGb = 4
+    await abrir()
+    expect(texto('.pl-aparelho .q-rotulo')).toBe('Você está num computador com placa de vídeo')
+    expect(texto('.pl-aparelho-frase')).toMatch(/^Este computador tem placa de vídeo: a legenda roda aqui mesmo/)
   })
 
   it('no Quest a frase não diz que não há legenda no Grátis: o inglês roda no aparelho', async () => {

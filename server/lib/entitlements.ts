@@ -10,19 +10,13 @@
  *
  * Sem `Date.now()` proibido aqui — é módulo Node normal (não script de workflow).
  */
-import {
-  definicaoDoPlano,
-  type EntitlementsDoPlano,
-  normalizarPlano,
-  PLANO_DO_TESTE,
-  type PlanoEfetivo,
-} from '../../src/core/planos'
+import { definicaoDoPlano, type EntitlementsDoPlano, normalizarPlano, type PlanoEfetivo } from '../../src/core/planos'
 import { type Subscription, subscriptionsRepo } from '../db/repositories/subscriptions'
 import { authRequired } from './auth'
 import type { UserId } from './authContext'
 import { ehConvidadoNoContexto, memoDoRequest } from './contextoDeConvidado'
 import { log } from './logger'
-import { testeAtivoDe } from './testePremium'
+import { planoDoTesteGravado, testeAtivoDe } from './testePremium'
 
 /* O shape é o da MATRIZ, mais o plano: um entitlement novo (`traducaoNuance`, `vozNatural` na matriz
    v2) chega ao servidor, ao `/api/me/entitlements` e ao `hasEntitlement` sem mais uma lista à mão. */
@@ -96,10 +90,11 @@ export async function resolverPlano(userId: UserId): Promise<PlanoResolvido> {
     /* Assinatura que não concede (cancelada, graça expirada, checkout não pago) segue para o teste. */
   }
 
-  // 2) O TESTE DE 14 DIAS (C6): sem assinatura que conceda, o teste ativo concede `PLANO_DO_TESTE`. Vem
-  //    DEPOIS da assinatura: quem assina durante o teste passa a ser Premium pago na mesma hora.
+  // 2) O TESTE DE 14 DIAS (C6): sem assinatura que conceda, o teste ativo concede o plano GRAVADO no início
+  //    (`planoDoTesteGravado`: Plus com a v4, Premium antes dela). Vem DEPOIS da assinatura: quem assina
+  //    durante o teste passa a ter o plano pago na mesma hora.
   const teste = await memoDoRequest(userId, 'teste_premium', () => testeAtivoDe(userId))
-  if (teste) return { plano: PLANO_DO_TESTE, teste: { terminaEm: teste.terminaEm } }
+  if (teste) return { plano: planoDoTesteGravado(teste), teste: { terminaEm: teste.terminaEm } }
 
   // 3) Público sem assinatura nem teste → free. NÃO honramos settings.ui.plan: é gravável pelo
   //    cliente (PUT /api/settings) e concedê-lo seria escalada de privilégio/gasto (OWASP A01). Para

@@ -22,9 +22,11 @@ import { autorizarGastoDeCredito, ehRecusa } from '../../src/core/economiaAutori
 import {
   DIAS_DO_TESTE_PREMIUM,
   ehPlanoPago,
+  FLAG_VENDA_PLANOS_V4,
   normalizarPlano,
   PARCELAS_DO_ANUAL,
   PLAN_MATRIX,
+  planoDoTeste,
   type PlanoPago,
   PLANOS_PAGOS,
   planosAVenda,
@@ -65,6 +67,7 @@ import {
   DURACAO_DO_TESTE_MS,
   marcaDoTeste,
   type OrigemDaMarca,
+  planoDoTesteGravado,
   type SituacaoDoTeste,
   situacaoDoTeste,
   testeAtivo,
@@ -202,10 +205,23 @@ async function autorizarPagamento(
  * venda aberta, não depende disto.
  */
 async function planosAVendaPara(req: import('express').Request): Promise<PlanoPago[]> {
-  const chaves = [...new Set(PLANOS_PAGOS.flatMap((p) => PLAN_MATRIX[p].flagsDeVenda))]
+  /* As chaves que ABREM (`flagsDeVenda`) e as que ENCERRAM (`encerradoPor`, planos v4: a `venda_planos_v4`
+     fecha o Essencial, o Premium e o Ao Vivo) — avaliadas uma vez cada para este pedido. */
+  const chaves = [
+    ...new Set(PLANOS_PAGOS.flatMap((p) => [...PLAN_MATRIX[p].flagsDeVenda, ...(PLAN_MATRIX[p].encerradoPor ?? [])])),
+  ]
   const ligadas = new Set<string>()
   for (const chave of chaves) if (await flagLigada(req, chave)) ligadas.add(chave)
   return planosAVenda((chave) => ligadas.has(chave))
+}
+
+/**
+ * O PLANO QUE O TESTE DE 14 DIAS DARIA AGORA a este pedido (planos v4): o Plus com `venda_planos_v4`
+ * ligada, o Premium sem ela. Avaliado no início do teste e GRAVADO (`testes_premium.plano`).
+ */
+async function planoDoTesteParaOPedido(req: import('express').Request): Promise<PlanoPago> {
+  const v4 = await flagLigada(req, FLAG_VENDA_PLANOS_V4)
+  return planoDoTeste((chave) => chave === FLAG_VENDA_PLANOS_V4 && v4)
 }
 
 /**
@@ -456,12 +472,31 @@ billingRouter.post('/assinar', async (req, res) => {
          a cancelada ainda tem. O `meio` diz só qual fluxo do Asaas cobra esta tentativa.
          `cancelAtPeriodEnd` volta a 0: a marca diz que a assinatura REGISTRADA foi cancelada, e a
          registrada agora é esta, nova — o pagamento dela reativa; o atrasado da antiga, não
-         (billingEventos `canceladaSemRenovar`). */
+         (billingEventos `canceladaSemRenovar`).
+       - Nos DOIS casos grava `planoDaCobranca` (planos v4, migração 0008): o plano que ESTA cobrança cobra, junto
+         do id dela. Não concede nada; é o que o webhook usa para desempatar a parcela ambígua do 12x (R$ 12,49 =
+         Plus e Premium) — `plan` da linha existente pode ser o de outra cobrança. */
     await subscriptionsRepo.upsert(
       destino,
       atual
-        ? { provider: 'asaas', providerCustomerId: clienteId, ...ids, meio, cancelAtPeriodEnd: 0 }
-        : { provider: 'asaas', providerCustomerId: clienteId, ...ids, meio, ciclo, plan: plano, status: 'trialing' },
+        ? {
+            provider: 'asaas',
+            providerCustomerId: clienteId,
+            ...ids,
+            meio,
+            cancelAtPeriodEnd: 0,
+            planoDaCobranca: plano,
+          }
+        : {
+            provider: 'asaas',
+            providerCustomerId: clienteId,
+            ...ids,
+            meio,
+            ciclo,
+            plan: plano,
+            status: 'trialing',
+            planoDaCobranca: plano,
+          },
     )
 
     log('info', { event: 'billing_assinatura_criada', route: '/api/billing/assinar', requestId: req.requestId })
@@ -754,11 +789,17 @@ function assinaturaDoPedido(req: import('express').Request) {
 
 async function situacaoParaATela(req: import('express').Request): Promise<SituacaoDoTeste | null> {
   const dias = DIAS_DO_TESTE_PREMIUM
-  if (!authRequired()) return { estado: 'indisponivel', dias, motivo: 'selfhost' }
-  if (req.convidado) return { estado: 'indisponivel', dias, motivo: 'convidado' }
   try {
+    const planoAgora = await planoDoTesteParaOPedido(req)
+    if (!authRequired()) return { estado: 'indisponivel', dias, plano: planoAgora, motivo: 'selfhost' }
+    if (req.convidado) return { estado: 'indisponivel', dias, plano: planoAgora, motivo: 'convidado' }
     const [sub, idade] = await Promise.all([assinaturaDoPedido(req), ehAdultoDeclarado(req.userId)])
-    return await situacaoDoTeste(req.userId, { email: emailDaRequisicao(req), jaAssinou: jaAssinou(sub), idade })
+    return await situacaoDoTeste(req.userId, {
+      email: emailDaRequisicao(req),
+      jaAssinou: jaAssinou(sub),
+      idade,
+      planoAgora,
+    })
   } catch (err) {
     log('warn', { event: 'billing_teste_situacao_falhou', error: String(err).slice(0, 120) })
     return null
@@ -831,7 +872,12 @@ billingRouter.post('/teste', async (req, res) => {
   try {
     const jaAtivo = (t: TestePremium) =>
       res.json({
-        teste: { iniciadoEm: t.iniciadoEm, terminaEm: t.terminaEm, dias: DIAS_DO_TESTE_PREMIUM },
+        teste: {
+          iniciadoEm: t.iniciadoEm,
+          terminaEm: t.terminaEm,
+          dias: DIAS_DO_TESTE_PREMIUM,
+          plano: planoDoTesteGravado(t),
+        },
         jaEstavaAtivo: true,
       })
     const usado = () => responderErro(res, 409, 'o teste do Premium já foi usado por esta pessoa', 'teste_ja_usado')
@@ -853,11 +899,21 @@ billingRouter.post('/teste', async (req, res) => {
       return
     }
 
+    /* O PLANO DO TESTE é decidido AGORA e gravado (planos v4): ligar ou desligar a v4 depois não muda o
+       teste de quem já começou. A flag é avaliada para quem PEDE (o responsável, quando ativa pelo menor). */
+    const plano = await planoDoTesteParaOPedido(req)
     const agora = Date.now()
-    const r = await testesPremiumRepo.iniciar(destino, marca, agora, agora + DURACAO_DO_TESTE_MS)
+    const r = await testesPremiumRepo.iniciar(destino, marca, agora, agora + DURACAO_DO_TESTE_MS, plano)
     if (r.tipo === 'iniciado') {
       log('info', { event: 'billing_teste_iniciado', route: '/api/billing/teste', requestId: req.requestId })
-      res.json({ teste: { iniciadoEm: r.teste.iniciadoEm, terminaEm: r.teste.terminaEm, dias: DIAS_DO_TESTE_PREMIUM } })
+      res.json({
+        teste: {
+          iniciadoEm: r.teste.iniciadoEm,
+          terminaEm: r.teste.terminaEm,
+          dias: DIAS_DO_TESTE_PREMIUM,
+          plano: planoDoTesteGravado(r.teste),
+        },
+      })
       return
     }
     /* `ja_existia`, ou a marca já estava gravada: pode ser o 2º toque que perdeu a corrida para o 1º

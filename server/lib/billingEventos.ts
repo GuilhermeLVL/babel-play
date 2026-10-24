@@ -20,8 +20,11 @@ import {
   normalizarPlano,
   PARCELAS_DO_ANUAL,
   type PlanoDeAssinatura,
+  type PlanoPago,
   planoPagoMaisBarato,
   planoPeloPagamento,
+  PLANOS_PAGOS,
+  valoresCobraveis,
 } from '../../src/core/planos'
 import { creditsRepo } from '../db/repositories/credits'
 import { type Subscription, subscriptionsRepo } from '../db/repositories/subscriptions'
@@ -313,6 +316,17 @@ export async function aplicarEvento(
          a parcela do 12x) é `aplicarParcela`. */
       const pago = planoPeloPagamento(vValor)
       const planoPago = pago?.plano ?? null
+      /* VALOR AMBÍGUO (planos v4): um valor que pagasse mais de um plano numa cobrança única não cai na intenção
+         nem no plano mais barato — fica pendente. Hoje nenhuma mensalidade ou anual da matriz colide
+         (`tests/planos-v4-matriz.test.ts`); a guarda existe para o dia em que um preço novo colidir. */
+      const ambiguos = pago ? [] : candidatosDoValor(vValor, 1)
+      if (ambiguos.length > 1) {
+        log('warn', { event: 'billing_valor_ambiguo', error: `R$ ${vValor}`, requestId })
+        return {
+          estado: 'nao-aplicado',
+          motivo: `valor-ambiguo: R$ ${vValor} paga ${ambiguos.join(' e ')}; sem como saber qual, nada é concedido`,
+        }
+      }
       /* A intenção gravada pode ter nome antigo (linha de antes da 0041): lida como o atual. Sem
          intenção de plano pago (a linha não existe, ou é a do admin), o padrão é o plano pago MAIS
          BARATO da matriz: ele só vale quando o evento também veio sem valor, e sem saber quanto entrou
@@ -684,19 +698,22 @@ async function aplicarParcela(
     requestId: string | undefined
   },
 ): Promise<ResultadoDoEvento> {
-  /* A parcela de R$ 12,49 é do Plus (a última) E do Premium (a padrão): o valor sozinho não decide. A intenção
-     gravada por `/assinar` desempata, mas só ENTRE os planos que o dinheiro permite (`planoPeloPagamento`);
-     sem intenção de plano pago a parcela ambígua não concede (Task 2 dos planos v4 refina este ramo). */
   const atual = await subscriptionsRepo.getActive(userId)
-  const planoGravado = atual ? normalizarPlano(atual.plan) : null
   const pago = planoPeloPagamento(p.valor, {
     parcelas: PARCELAS_DO_ANUAL,
-    preferido: ehPlanoPago(planoGravado) ? planoGravado : null,
+    preferido: planoDesteParcelamento(atual, p.parcelamento),
   })
   if (!pago) {
+    /* Valor que é parcela de MAIS DE UM plano (R$ 12,49: a última do Plus e a padrão do Premium) sem vínculo
+       confiável com o plano deste parcelamento: não se concede por palpite — nem o mais barato. Fica
+       pendente para o admin, com o porquê. */
+    const ambigua = candidatosDoValor(p.valor, PARCELAS_DO_ANUAL).length > 1
+    if (ambigua) log('warn', { event: 'billing_parcela_ambigua', error: `${p.parcelamento}`, requestId: p.requestId })
     return {
       estado: 'nao-aplicado',
-      motivo: `parcela-desconhecida: R$ ${p.valor} do parcelamento ${p.parcelamento} não é parcela do anual`,
+      motivo: ambigua
+        ? `parcela-desconhecida: R$ ${p.valor} é parcela do anual de ${candidatosDoValor(p.valor, PARCELAS_DO_ANUAL).join(' e ')}, e o parcelamento ${p.parcelamento} não tem plano registrado que desempate`
+        : `parcela-desconhecida: R$ ${p.valor} do parcelamento ${p.parcelamento} não é parcela do anual`,
     }
   }
   if (p.tipo && p.tipo !== 'CREDIT_CARD') {
@@ -727,8 +744,39 @@ async function aplicarParcela(
     provider: 'asaas',
     meio: 'parcelamento',
     providerInstallmentId: p.parcelamento,
+    /* O par (id do parcelamento, plano dele) anda junto: se a parcela de um parcelamento DIVERGENTE passou a
+       ser o registrado, o plano registrado passa a ser o que ele pagou — senão a próxima parcela ambígua dele
+       seria desempatada pelo plano do parcelamento anterior. */
+    planoDaCobranca: pago.plano,
     currentPeriodEnd: vale.fim,
     cancelAtPeriodEnd: 0,
   })
   return { estado: 'aplicado', motivo }
+}
+
+/**
+ * O PLANO LIGADO A ESTE PARCELAMENTO — o desempate da parcela ambígua (planos v4). Só vale quando o
+ * parcelamento pago é o REGISTRADO na linha: o plano de uma linha que aponta para outro parcelamento (o
+ * Premium antigo de quem assinou o Plus, ou vice-versa) não diz nada sobre este.
+ *  - `planoDaCobranca`: gravado por `/assinar` junto com o id (migração 0008). É o vínculo de verdade: `/assinar`
+ *    numa linha existente troca os ids sem tocar em `plan` (GAP-001).
+ *  - Linha de antes da 0008 (`planoDaCobranca` nulo): o `plan` gravado. Ela é de antes de o Plus existir, então
+ *    o parcelamento dela só pode ser de um plano da v3.
+ * Sem vínculo, ou com plano que não é pago (Grátis), `null`: a parcela ambígua não concede.
+ */
+function planoDesteParcelamento(atual: Subscription | null, parcelamento: string): PlanoPago | null {
+  if (!atual || atual.providerInstallmentId !== parcelamento) return null
+  const plano = normalizarPlano(atual.planoDaCobranca ?? atual.plan)
+  return ehPlanoPago(plano) ? plano : null
+}
+
+/**
+ * Os planos que este valor paga, numa cobrança única (`parcelas` 1: mensalidade ou ano à vista) ou como parcela
+ * do 12x (`PARCELAS_DO_ANUAL`). Mais de um = AMBÍGUO, e o webhook não concede por palpite.
+ */
+function candidatosDoValor(valor: number | undefined, parcelas: number): PlanoPago[] {
+  if (typeof valor !== 'number') return []
+  return PLANOS_PAGOS.filter((plano) =>
+    valoresCobraveis(plano).some((v) => v.parcelas === parcelas && Math.abs(v.valor - valor) < 0.005),
+  )
 }

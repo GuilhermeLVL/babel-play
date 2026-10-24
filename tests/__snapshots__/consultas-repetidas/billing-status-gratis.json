@@ -2,6 +2,7 @@
   "teste": {
     "estado": "indisponivel",
     "dias": 14,
+    "plano": "premium",
     "motivo": "sem_email"
   },
   "configurado": false,

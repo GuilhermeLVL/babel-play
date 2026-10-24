@@ -34,6 +34,11 @@ export interface SubscriptionPatch {
    */
   trocaPara?: Plan | null
   trocaAPartirDe?: string | null
+  /**
+   * O PLANO DA COBRANÇA REGISTRADA (planos v4, migração 0008): o que o fluxo do Asaas desta linha cobra.
+   * Não concede; só desempata a parcela ambígua do 12x no webhook (`aplicarParcela`).
+   */
+  planoDaCobranca?: Plan | null
 }
 
 /**
@@ -129,6 +134,7 @@ export const subscriptionsRepo = {
       providerInstallmentId: patch.providerInstallmentId ?? null,
       trocaPara: patch.trocaPara ?? null,
       trocaAPartirDe: patch.trocaAPartirDe ?? null,
+      planoDaCobranca: patch.planoDaCobranca ?? null,
     }
     await db.insert(subscriptions).values(row)
     const r = await getActiveSub(userId)

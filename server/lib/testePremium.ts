@@ -26,7 +26,13 @@
  */
 import { createHmac } from 'node:crypto'
 
-import { DIAS_DO_TESTE_PREMIUM } from '../../src/core/planos'
+import {
+  DIAS_DO_TESTE_PREMIUM,
+  ehPlanoPago,
+  normalizarPlano,
+  PLANO_DO_TESTE,
+  type PlanoPago,
+} from '../../src/core/planos'
 import { type TestePremium, testesPremiumRepo } from '../db/repositories/testesPremium'
 import type { UserId } from './authContext'
 import { memoDoRequest } from './contextoDeConvidado'
@@ -81,6 +87,16 @@ export async function marcaDoTeste(email: string, origem: OrigemDaMarca): Promis
     .digest('hex')
 }
 
+/**
+ * O PLANO QUE ESTE TESTE DÁ (planos v4): o gravado no início (`planoDoTeste(flag)` avaliado em
+ * `POST /api/billing/teste`). Quem começou no Premium segue no Premium até o fim, mesmo com a v4 ligada
+ * depois. O teste de antes da migração 0008 (`plano` nulo), ou com um valor fora da matriz, é o Premium.
+ */
+export function planoDoTesteGravado(t: Pick<TestePremium, 'plano'>): PlanoPago {
+  const plano = normalizarPlano(t.plano)
+  return ehPlanoPago(plano) ? plano : PLANO_DO_TESTE
+}
+
 /** O teste vale AGORA? (Começou e ainda não terminou.) */
 export function testeAtivo(t: TestePremium | null, agora = Date.now()): t is TestePremium {
   return !!t && t.iniciadoEm <= agora && agora < t.terminaEm
@@ -112,34 +128,49 @@ export type MotivoSemTeste =
   | 'sem_email'
   | 'marca_usada'
 
-/** O que a tela de Planos (C7) precisa saber do teste desta conta. */
+/**
+ * O que a tela de Planos (C7) precisa saber do teste desta conta. `plano` (planos v4): o plano do teste —
+ * o GRAVADO, em `ativo`/`usado`; o que ele daria se começasse agora, em `disponivel`/`indisponivel`.
+ */
 export type SituacaoDoTeste =
-  | { estado: 'disponivel'; dias: number }
-  | { estado: 'ativo' | 'usado'; dias: number; iniciadoEm: number; terminaEm: number }
-  | { estado: 'indisponivel'; dias: number; motivo: MotivoSemTeste }
+  | { estado: 'disponivel'; dias: number; plano: PlanoPago }
+  | { estado: 'ativo' | 'usado'; dias: number; plano: PlanoPago; iniciadoEm: number; terminaEm: number }
+  | { estado: 'indisponivel'; dias: number; plano: PlanoPago; motivo: MotivoSemTeste }
 
 /**
  * A SITUAÇÃO DO TESTE para a própria conta — a mesma régua que `POST /api/billing/teste` aplica, na
  * mesma ordem, para a tela não oferecer o que o servidor recusaria. `jaAssinou`: a conta tem (ou teve)
- * o Premium pago; `idade`: o que `ehAdultoDeclarado` respondeu.
+ * o Premium pago; `idade`: o que `ehAdultoDeclarado` respondeu; `planoAgora`: `planoDoTeste(flag)` deste pedido.
  */
 export async function situacaoDoTeste(
   userId: UserId,
-  ctx: { email: string | null; jaAssinou: boolean; idade: { adulto: boolean; informado: boolean } },
+  ctx: {
+    email: string | null
+    jaAssinou: boolean
+    idade: { adulto: boolean; informado: boolean }
+    planoAgora: PlanoPago
+  },
   agora = Date.now(),
 ): Promise<SituacaoDoTeste> {
   const dias = DIAS_DO_TESTE_PREMIUM
   const t = await testeDaConta(userId)
   if (t)
-    return { estado: testeAtivo(t, agora) ? 'ativo' : 'usado', dias, iniciadoEm: t.iniciadoEm, terminaEm: t.terminaEm }
-  const semTeste = (motivo: MotivoSemTeste): SituacaoDoTeste => ({ estado: 'indisponivel', dias, motivo })
+    return {
+      estado: testeAtivo(t, agora) ? 'ativo' : 'usado',
+      dias,
+      plano: planoDoTesteGravado(t),
+      iniciadoEm: t.iniciadoEm,
+      terminaEm: t.terminaEm,
+    }
+  const plano = ctx.planoAgora
+  const semTeste = (motivo: MotivoSemTeste): SituacaoDoTeste => ({ estado: 'indisponivel', dias, plano, motivo })
   if (ctx.jaAssinou) return semTeste('ja_assinante')
   if (!ctx.idade.informado) return semTeste('idade_nao_informada')
   if (!ctx.idade.adulto) return semTeste('perfil_protegido')
   const marca = ctx.email ? await marcaDoTeste(ctx.email, 'conta') : null
   if (!marca) return semTeste('sem_email')
   if (await testesPremiumRepo.marcaExiste(marca)) return semTeste('marca_usada')
-  return { estado: 'disponivel', dias }
+  return { estado: 'disponivel', dias, plano }
 }
 
 /** A retenção: apaga as marcas com mais de `DIAS_DE_RETENCAO_DA_MARCA` dias. Devolve quantas saíram. */

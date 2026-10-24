@@ -12,6 +12,7 @@
  */
 import { eq, lt } from 'drizzle-orm'
 
+import type { PlanoPago } from '../../../src/core/planos'
 import type { UserId } from '../../lib/authContext'
 import { db, emTransacao, linhasAfetadas, travarUsuario } from '../db'
 import { marcasDeTeste, testesPremium } from '../schema'
@@ -41,8 +42,17 @@ export const testesPremiumRepo = {
     return rows.length > 0
   },
 
-  /** Começa o teste: a marca e o teste da conta, os dois ou nenhum. */
-  async iniciar(userId: UserId, marca: string, inicio: number, fim: number): Promise<InicioDoTeste> {
+  /**
+   * Começa o teste: a marca e o teste da conta, os dois ou nenhum. `plano` é o plano do teste avaliado AGORA
+   * (`planoDoTeste`), gravado para valer até o fim; ausente = `null` (lido como Premium).
+   */
+  async iniciar(
+    userId: UserId,
+    marca: string,
+    inicio: number,
+    fim: number,
+    plano: PlanoPago | null = null,
+  ): Promise<InicioDoTeste> {
     return emTransacao(async (tx) => {
       /* Trava do usuário: dois toques simultâneos da MESMA conta não passam os dois pelo "já existe?"
          (o segundo veria a marca do primeiro e responderia `marca_usada` em vez de `ja_existia`). */
@@ -54,7 +64,7 @@ export const testesPremiumRepo = {
         .values({ marca, criadoEm: inicio })
         .onConflictDoNothing({ target: marcasDeTeste.marca })
       if (linhasAfetadas(marcou) === 0) return { tipo: 'marca_usada' }
-      const teste = { userId, iniciadoEm: inicio, terminaEm: fim }
+      const teste = { userId, iniciadoEm: inicio, terminaEm: fim, plano }
       await tx.insert(testesPremium).values(teste)
       return { tipo: 'iniciado', teste }
     })

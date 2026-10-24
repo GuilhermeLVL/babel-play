@@ -73,6 +73,16 @@ const TABELAS_DE_CONTROLE = new Set(['__drizzle_migrations']);
  */
 export const TABELAS_SO_DO_POSTGRES: ReadonlySet<string> = new Set(['travas', 'admissao_de_ia', 'anuncios_premiados']);
 
+/**
+ * Colunas (`tabela.coluna`) que nasceram no Postgres depois da migração e que o SQLite nunca teve: ficam fora da
+ * leitura da origem, da cópia e do checksum (no destino, a linha copiada as recebe nulas — o "antes da coluna").
+ * `plano_da_cobranca` e `testes_premium.plano`: planos v4, migração PG 0008.
+ */
+export const COLUNAS_SO_DO_POSTGRES: ReadonlySet<string> = new Set([
+  'subscriptions.plano_da_cobranca',
+  'testes_premium.plano',
+]);
+
 interface Tabela {
   nome: string;
   tabela: PgTable;
@@ -99,7 +109,8 @@ function tabelasEmOrdem(): Tabela[] {
     .filter((tabela) => !TABELAS_SO_DO_POSTGRES.has(getTableConfig(tabela).name))
     .map((tabela) => {
       const cfg = getTableConfig(tabela);
-      const chaves = Object.entries(getTableColumns(tabela));
+      const daOrigem = (nome: string) => !COLUNAS_SO_DO_POSTGRES.has(`${cfg.name}.${nome}`);
+      const chaves = Object.entries(getTableColumns(tabela)).filter(([, c]) => daOrigem(c.name));
       const pais = new Set(cfg.foreignKeys.map((fk) => getTableConfig(fk.reference().foreignTable).name));
       pais.delete(cfg.name);
       const pk = cfg.primaryKeys[0]?.columns ?? cfg.columns.filter((c) => c.primary);
@@ -109,7 +120,7 @@ function tabelasEmOrdem(): Tabela[] {
         t: {
           nome: cfg.name,
           tabela,
-          colunas: cfg.columns.map((c) => c.name),
+          colunas: cfg.columns.map((c) => c.name).filter(daOrigem),
           inseriveis: chaves
             .filter(([, c]) => !c.generated)
             .map(([chave, c]) => ({ nome: c.name, chave, booleana: c.columnType === 'PgBoolean' })),

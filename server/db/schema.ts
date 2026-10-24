@@ -779,6 +779,11 @@ export const subscriptions = pgTable(
        cobrança no valor novo. `plan` continua sendo o que está PAGO; as duas nulas = sem troca pendente. */
     trocaPara: text('troca_para'),
     trocaAPartirDe: text('troca_a_partir_de'),
+    /* O PLANO DA COBRANÇA REGISTRADA (planos v4, migração 0008): o plano que o fluxo do Asaas guardado nesta
+       linha (`providerSubscriptionId`/`providerInstallmentId`) cobra, gravado por `/assinar` junto com o id.
+       NÃO concede nada (quem concede é `plan`, pelo webhook): só desempata a parcela de valor ambíguo do 12x
+       (R$ 12,49 = Plus e Premium). Nulo = linha de antes da 0008. */
+    planoDaCobranca: text('plano_da_cobranca'),
   },
   (t) => [unique('uq_subscriptions_user').on(t.userId)],
 )
@@ -1194,6 +1199,10 @@ export const testesPremium = pgTable('testes_premium', {
   userId: text('user_id').primaryKey(),
   iniciadoEm: bigint('iniciado_em', { mode: 'number' }).notNull(),
   terminaEm: bigint('termina_em', { mode: 'number' }).notNull(),
+  /* O PLANO DO TESTE (planos v4, migração 0008): `planoDoTeste(flag)` avaliado no INÍCIO e gravado — quem
+     começou no Premium segue nele até o fim, mesmo com a v4 ligada depois. Nulo = teste de antes da 0008
+     (Premium). */
+  plano: text('plano'),
 })
 
 /**

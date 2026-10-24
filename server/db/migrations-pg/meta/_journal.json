@@ -57,6 +57,13 @@
       "when": 1792700000000,
       "tag": "0007_flags_venda_planos_v4",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792812905657,
+      "tag": "0008_planos_v4_cobranca_e_teste",
+      "breakpoints": true
     }
   ]
 }

@@ -193,6 +193,15 @@ export function entrarFolha(d: HTMLElement): void {
   if (!comMovimento()) return;
   limpar(d);
   anima(d, [{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }], { d: 560, e: MOLA_SUAVE });
+  entrarConteudoDaFolha(d);
+}
+
+/**
+ * Só a cascata do conteúdo de `entrarFolha`: o painel da frase (`PainelDaFrase`, sem modal) não sai do lugar
+ * quando troca da frase para a palavra; o que entra é o que está nele.
+ */
+export function entrarConteudoDaFolha(d: HTMLElement): void {
+  if (!comMovimento()) return;
   $$('.folha-corpo > *, .folha-acao, .folha-palavras button', d).forEach((x, i) =>
     anima(
       x,

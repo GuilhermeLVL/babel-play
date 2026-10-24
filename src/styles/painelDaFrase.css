@@ -1,0 +1,192 @@
+/* O PAINEL DA FRASE (`PainelDaFrase.tsx`, 24/10/2026): a frase tocada SEM modal e sem fundo escuro.
+   Computador: fixo à direita da tela, e a tela encolhe para dar lugar (nada da legenda fica por baixo).
+   Celular e tablet em pé: folha baixa acima da barra do app, e a legenda ganha folga embaixo.
+   Só tokens de cor. */
+
+html {
+  --pf-largura: 380px;
+  /* O que fica embaixo da folha baixa: a barra flutuante do celular (12 + 68 + 8 px) ou só a área segura. */
+  --pf-pe: env(safe-area-inset-bottom, 0px);
+  --pf-meia: calc((100dvh - var(--pf-pe)) * 0.45);
+  --pf-cheia: calc((100dvh - var(--pf-pe)) * 0.85);
+  --pf-ocupa: calc(var(--pf-pe) + var(--pf-meia));
+}
+@media (min-width: 1440px) {
+  html {
+    --pf-largura: 420px;
+  }
+}
+@media (max-width: 720px) {
+  html[data-px='on'] {
+    --pf-pe: calc(max(12px, env(safe-area-inset-bottom, 0px)) + 76px);
+  }
+}
+html[data-painel-cheio] {
+  --pf-ocupa: calc(var(--pf-pe) + var(--pf-cheia));
+}
+
+/* ---- a casca abre espaço ---- */
+html[data-painel-da-frase='lado'] .px-tela {
+  padding-inline-end: var(--pf-largura);
+}
+html[data-painel-da-frase='baixo'] :is(.q-historico, .q-palco, .rolagem) {
+  padding-bottom: calc(var(--pf-ocupa) + 12px) !important;
+  scroll-padding-bottom: var(--pf-ocupa);
+}
+html[data-painel-da-frase='baixo'] [data-frase-escolhida] {
+  scroll-margin-bottom: calc(var(--pf-ocupa) + 12px);
+}
+
+/* O que flutua no canto (o botão e a janela do iChat, os avisos) sai de cima do painel. */
+html[data-painel-da-frase='lado'] :is(.fab, .painel-chat, .toast, .novidade-discreta) {
+  right: calc(var(--pf-largura) + 22px + var(--shell-inset-right, 0px));
+}
+html[data-painel-da-frase='baixo'] .fab {
+  bottom: calc(var(--pf-ocupa) + 12px);
+}
+
+/* ---- a frase escolhida, na legenda ---- */
+/* O realce cresce para fora (sombra), sem mudar o tamanho da linha: a legenda não pula ao escolher. */
+[data-frase-escolhida] {
+  border-radius: 14px;
+  background: var(--accent-soft) !important;
+  box-shadow:
+    0 0 0 4px var(--accent-soft),
+    0 0 0 6px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* ---- o painel ---- */
+.painel-da-frase {
+  position: fixed;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  color: var(--ink);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  outline: none;
+}
+.painel-da-frase:focus-visible {
+  box-shadow: inset 0 0 0 3px var(--accent);
+}
+.painel-da-frase[data-modo='lado'] {
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: var(--pf-largura);
+  padding: 0 18px 24px;
+  border-inline-start: 1px solid var(--border-subtle);
+  box-shadow: -12px 0 32px -20px color-mix(in srgb, var(--ink) 40%, transparent);
+  animation: pf-entra-ao-lado 0.26s var(--px-ease-out, ease-out);
+}
+[dir='rtl'] .painel-da-frase[data-modo='lado'] {
+  animation-name: pf-entra-ao-lado-rtl;
+}
+.painel-da-frase[data-modo='baixo'] {
+  inset-inline: 0;
+  bottom: var(--pf-pe);
+  height: var(--pf-meia);
+  padding: 0 16px 16px;
+  border: 1px solid var(--border-subtle);
+  border-bottom: 0;
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -14px 32px -18px color-mix(in srgb, var(--ink) 45%, transparent);
+  animation: pf-sobe 0.24s var(--px-ease-out, ease-out);
+  transition:
+    height 0.2s ease-out,
+    transform 0.18s ease-out;
+}
+.painel-da-frase[data-modo='baixo'][data-altura='cheia'] {
+  height: var(--pf-cheia);
+}
+@keyframes pf-entra-ao-lado {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+@keyframes pf-entra-ao-lado-rtl {
+  from {
+    transform: translateX(-24px);
+    opacity: 0;
+  }
+}
+@keyframes pf-sobe {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .painel-da-frase,
+  .painel-da-frase[data-modo] {
+    animation: none;
+    transition: none;
+  }
+}
+body.performance-mode .painel-da-frase {
+  animation: none;
+  transition: none;
+}
+
+/* o topo: a alça (celular) e o × */
+.pf-topo {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-height: 56px;
+  margin: 0 -4px 4px;
+  background: var(--surface);
+}
+.pf-pega {
+  flex: 1;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  touch-action: none;
+  cursor: grab;
+}
+.pf-pega span {
+  width: 40px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--border-subtle);
+}
+.pf-pega:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
+}
+.painel-da-frase .pf-fechar {
+  flex: none;
+  width: 44px;
+  height: 44px;
+}
+.painel-da-frase .pf-fechar svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* o conteúdo, em coluna: a grade de ações mais compacta e as seções separadas por um fio */
+.painel-da-frase .folha-acao {
+  min-height: 48px;
+  padding: 0 12px;
+  font-size: 14px;
+}
+.painel-da-frase .explicacao-da-frase {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+.painel-da-frase .folha-palavras button:focus-visible,
+.painel-da-frase .folha-acao:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}

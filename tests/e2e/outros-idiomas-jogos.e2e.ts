@@ -282,7 +282,7 @@ test.describe('Captura: a fala em outra escrita aparece na tela', () => {
 
     // Na folha da frase, a mesma direção.
     await clicarRobusto(page, fala.locator('xpath=ancestor::button[1]'))
-    const folha = page.getByRole('dialog', { name: 'Ações', exact: true })
+    const folha = page.getByRole('complementary', { name: 'Frase escolhida' })
     await expect(folha).toBeVisible()
     expect(await folha.locator('.folha-frase').evaluate((el) => getComputedStyle(el).direction)).toBe('rtl')
     await foto(page, 'arabe-na-folha')
@@ -299,7 +299,7 @@ test.describe('Captura: a fala em outra escrita aparece na tela', () => {
     const fala = tela.getByText(CHINES, { exact: false }).first()
     await expect(fala).toBeVisible({ timeout: 10_000 })
     await clicarRobusto(page, fala.locator('xpath=ancestor::button[1]'))
-    const folha = page.getByRole('dialog', { name: 'Ações', exact: true })
+    const folha = page.getByRole('complementary', { name: 'Frase escolhida' })
     await expect(folha).toBeVisible()
 
     const palavras = folha.locator('.folha-palavras button')
@@ -312,7 +312,7 @@ test.describe('Captura: a fala em outra escrita aparece na tela', () => {
     await foto(page, 'chines-palavras-da-frase')
 
     await clicarRobusto(page, palavras.filter({ hasText: /^中文$/ }))
-    await expect(page.getByRole('dialog', { name: 'Palavra: 中文' })).toBeVisible()
+    await expect(page.getByRole('complementary', { name: 'Palavra: 中文' })).toBeVisible()
     await foto(page, 'chines-folha-da-palavra')
   })
 })

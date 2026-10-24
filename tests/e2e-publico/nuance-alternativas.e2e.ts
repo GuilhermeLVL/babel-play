@@ -13,7 +13,7 @@
  *
  * O CAMINHO É O DO DESENHO NOVO (o único desde 09/10/2026): Capturar abre pronta
  * (`CapturaDoPrototipo`), a legenda é `HistoricoDoPrototipo` (cada fala é um botão `.q-fala`) e a
- * folha é `FolhasDoPrototipo` (um `<dialog>` chamado "Ações").
+ * folha é `FolhasDoPrototipo`: desde 24/10/2026 o painel da frase, sem modal (`complementary` "Frase escolhida").
  *
  *   npx playwright test -c playwright.publico.config.ts nuance-alternativas
  */
@@ -73,7 +73,7 @@ test('celular: Formal/Informal e "Outras formas" na folha da frase, e a escolhid
   await chegarEm(page, balao)
   /* A fala inteira é UM botão (`.q-fala`): as palavras só viram botões dentro da folha. */
   await clicar(page, balao.locator('.q-fala'))
-  const folha = page.getByRole('dialog', { name: 'Ações', exact: true })
+  const folha = page.getByRole('complementary', { name: 'Frase escolhida' })
   await expect(folha).toBeVisible()
   const nuance = folha.getByRole('region', { name: 'Tradução Nuance' })
   await expect(nuance).toBeVisible({ timeout: 15_000 })

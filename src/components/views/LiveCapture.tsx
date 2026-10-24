@@ -19,7 +19,6 @@ import {
   PictureInPicture2,
   RefreshCw,
   SlidersHorizontal,
-  Sparkles,
   Square,
   TriangleAlert,
   Type,
@@ -219,7 +218,6 @@ import FolhasDoPrototipo from './captura/celular/FolhasDoPrototipo';
 import EncerrarSessao from './captura/EncerrarSessao';
 import { AjudaNoPainel } from './captura/enxuta/pecas';
 import EscolhaDoMicrofone from './captura/EscolhaDoMicrofone';
-import ExplicacaoDaFrase from './captura/estudo/ExplicacaoDaFrase';
 import GuiaDoAudioDaTela from './captura/GuiaDoAudioDaTela';
 import IdiomasDaSessao, { type Lado } from './captura/IdiomasDaSessao';
 import LegendaFlutuanteDoPrototipo from './captura/legendas/LegendaFlutuanteDoPrototipo';
@@ -238,8 +236,6 @@ import { CampoLinha, Segmentos } from './vocab/Dialogo';
    para todo o resto (`lib/captura/legendaSemBaixar.ts`). */
 /* A oferta da nuvem grátis para aparelho fraco (A10): só existe no aparelho que precisa dela. */
 const OfertaDaNuvemDeAlivio = lazyComRecarga(() => import('./captura/OfertaDaNuvemDeAlivio'));
-/* A Tradução Nuance da fala no computador (D4 da Fase D): o menu do balão abre um diálogo com ela. */
-const NuanceDaFrase = lazyComRecarga(() => import('./captura/nuance/NuanceDaFrase'));
 /* O MODO INTÉRPRETE (E3 da Fase E): a tela, o controle e a fila de voz chegam só quando alguém entra nele. */
 import { detectarOutroGuardado, guardarDetectarOutro } from './captura/interprete/modoDaConversa';
 import type { AutomaticoNoPlano } from './captura/interprete/ModoInterprete';
@@ -662,8 +658,6 @@ export default function LiveCapture({
   /* AS FOLHAS DA CAPTURA (`captura/celular/*`): a fala e a palavra tocadas (as folhas de baixo), as
      opções e a troca de modo antes de gravar. */
   const [falaTocada, setFalaTocada] = useState<FalaTocada | null>(null);
-  /* A fala do menu do balão no computador (Tradução Nuance, D4). */
-  const [falaNoComputador, setFalaNoComputador] = useState<FalaTocada | null>(null);
   const [palavraTocada, setPalavraTocada] = useState<{
     palavra: string;
     frase: string;
@@ -2994,7 +2988,6 @@ export default function LiveCapture({
   const trocarTraducaoDaFala = (id: string, traducao: string) => {
     setSpeechSegments((prev) => prev.map((seg) => (seg.id === id ? { ...seg, translatedText: traducao } : seg)));
     setFalaTocada((f) => (f && f.id === id ? { ...f, traducao } : f));
-    setFalaNoComputador((f) => (f && f.id === id ? { ...f, traducao } : f));
   };
   const nuanceDaFrase = (fala: FalaTocada): NuanceNaFolhaDaFrase => {
     const i = speechSegments.findIndex((seg) => seg.id === fala.id);
@@ -3011,11 +3004,6 @@ export default function LiveCapture({
       aoEscolher: (traducao) => trocarTraducaoDaFala(fala.id, traducao),
     };
   };
-  const abrirNuanceNoComputador = useFuncaoEstavel(
-    (segment: { id: string; originalText: string; translatedText: string }, lang: string) => {
-      setFalaNoComputador({ id: segment.id, texto: segment.originalText, traducao: segment.translatedText, lang });
-    },
-  );
   /** A prática vai abrir o microfone: a captura fica muda até a folha fechar. */
   const praticarNoCelular = () => {
     if (!isRecordingRef.current || !micEnabled || mutouParaPraticarRef.current) return;
@@ -3238,6 +3226,7 @@ export default function LiveCapture({
             idiomaPadrao={captureScenario === 'mic' ? sourceLang : targetLang}
             idiomaDaTraducao={(lang) => toBcp47(destinoDaFala(lang)) || destinoDaFala(lang)}
             aoTocar={tocarFala}
+            escolhida={falaTocada?.id ?? null}
             aoOuvir={(fala, lang) =>
               temAudioDaFala(fala.id) ? tocarAudioDaFala(fala.id) : ouvirNaLegenda(fala.originalText, lang, false)
             }
@@ -3268,6 +3257,9 @@ export default function LiveCapture({
           aoSalvar={salvarNaLegenda}
           aoFechar={fecharFolhasDoCelular}
           nuance={falaTocada ? nuanceDaFrase(falaTocada) : undefined}
+          /* O painel da frase é sem modal; o Quest e as camadas que já são modais (o Intérprete, o foco
+             cheio) ficam com a folha modal, que abre por cima delas. */
+          modal={noQuest || interpreteAberto || isFocusMode}
         />
       )}
       {opcoesAbertas && (
@@ -3352,36 +3344,6 @@ export default function LiveCapture({
             <X className="w-3 h-3" /> Sair do modo retomar
           </button>
         </div>
-      )}
-
-      {/* --- A TRADUÇÃO NUANCE DA FALA (D4): o menu do balão no computador --- */}
-      {falaNoComputador && (
-        <Dialogo
-          icone={Sparkles}
-          titulo={t('Tradução Nuance')}
-          sub={t('Outras formas de dizer, formal ou informal.')}
-          aoFechar={() => setFalaNoComputador(null)}
-        >
-          <div className="dlg-corpo">
-            <div className="folha-corpo">
-              <p className="folha-frase" lang={falaNoComputador.lang}>
-                {falaNoComputador.texto}
-              </p>
-              {falaNoComputador.traducao && falaNoComputador.traducao !== '…' && (
-                <p className="folha-frase-trad">{falaNoComputador.traducao}</p>
-              )}
-              <Suspense fallback={null}>
-                <NuanceDaFrase fala={falaNoComputador} {...nuanceDaFrase(falaNoComputador)} />
-              </Suspense>
-              <ExplicacaoDaFrase
-                fala={falaNoComputador}
-                destino={nuanceDaFrase(falaNoComputador).destino}
-                contexto={nuanceDaFrase(falaNoComputador).contexto}
-                aoConhecer={conhecerOPremium}
-              />
-            </div>
-          </div>
-        </Dialogo>
       )}
 
       {/* --- AJUSTES DA CAPTURA: o `dialogoAjustesCaptura()` do protótipo (C1) ---
@@ -4032,7 +3994,7 @@ export default function LiveCapture({
                   onRevelarTraducao={revelarNaConversa}
                   conhecidas={conhecidas}
                   progressoDoTradutor={modelPrep?.mt ?? null}
-                  aoAbrirMenuDaFala={abrirNuanceNoComputador}
+                  aoAbrirMenuDaFala={tocarFala}
                 />
               ) : (
                 <p className="foco-vazio">

@@ -9,12 +9,13 @@ import { type DictionaryResult, lookup } from '../../../../lib/dictionary';
 import { t } from '../../../../lib/i18n';
 import { direcaoDoTexto } from '../../../../lib/languages';
 import { comNomeDoPlano, planoDeEntradaAgora } from '../../../../lib/planoDeEntrada';
-import { comemorarGuardada, entrarFolha } from '../../../../lib/polimento/captura';
+import { comemorarGuardada, entrarConteudoDaFolha, entrarFolha } from '../../../../lib/polimento/captura';
 import { haVozPara } from '../../../../lib/voz/haVoz';
 import { toast } from '../../../Toast';
 import ExplicacaoDaFrase from '../estudo/ExplicacaoDaFrase';
 import { type FalaTocada, type NuanceNaFolhaDaFrase, palavrasDaFrase } from './FolhaDaFrase';
 import FolhaDeBaixo from './FolhaDeBaixo';
+import PainelDaFrase, { useModoDoPainel } from './PainelDaFrase';
 
 const SombraDaFala = lazy(() => import('../../analise/SombraDaFala'));
 const NuanceDaFrase = lazy(() => import('../nuance/NuanceDaFrase'));
@@ -139,6 +140,15 @@ function CorpoDaFrase({
           />
         </Suspense>
       )}
+      {/* Em coluna (o painel da frase, 24/10/2026): primeiro a explicação, depois as outras formas. */}
+      {nuance && (
+        <ExplicacaoDaFrase
+          fala={fala}
+          destino={nuance.destino}
+          contexto={nuance.contexto}
+          aoConhecer={nuance.aoConhecer}
+        />
+      )}
       {/* `nuanceDaFrase()` de `telas.js:190-196`: no Grátis, com cadeado e um exemplo desfocado. */}
       {nuance && !nuance.disponivel && (
         <div className="q-aviso px-nuance">
@@ -181,14 +191,6 @@ function CorpoDaFrase({
             />
           </Suspense>
         </>
-      )}
-      {nuance && (
-        <ExplicacaoDaFrase
-          fala={fala}
-          destino={nuance.destino}
-          contexto={nuance.contexto}
-          aoConhecer={nuance.aoConhecer}
-        />
       )}
       {palavras.length > 0 && (
         <>
@@ -373,10 +375,14 @@ export interface PalavraNaFolha {
 }
 
 /**
- * AS DUAS FOLHAS DO DESENHO NOVO NUM `<dialog>` SÓ. No protótipo, ir da frase para a palavra (e
- * voltar) tira a folha antiga na hora e a nova sobe de baixo (`folhaDeBaixo()` de `telas.js:173-188`).
- * Aqui é o mesmo diálogo que troca de conteúdo e refaz a subida: dois diálogos fariam a antiga sair
- * devagar por baixo da nova.
+ * AS DUAS FOLHAS DO DESENHO NOVO NUM LUGAR SÓ. No protótipo, ir da frase para a palavra (e voltar) tira a
+ * folha antiga na hora e a nova sobe de baixo (`folhaDeBaixo()` de `telas.js:173-188`). Aqui é o mesmo
+ * lugar que troca de conteúdo: dois fariam o antigo sair devagar por baixo do novo.
+ *
+ * O LUGAR É O PAINEL DA FRASE (`PainelDaFrase`, 24/10/2026): sem modal, ao lado da legenda no computador e
+ * folha baixa no celular, com a legenda tocável. A folha MODAL de antes fica para onde o painel não cabe:
+ * o Quest e as camadas que já são modais (o Intérprete, o foco cheio) pedem `modal`; o celular deitado
+ * (baixo demais para a folha) cai nela sozinho.
  */
 export default function FolhasDoPrototipo({
   fala,
@@ -393,6 +399,7 @@ export default function FolhasDoPrototipo({
   aoSalvar,
   aoFechar,
   nuance,
+  modal = false,
 }: {
   /** A fala tocada; ausente quando a palavra não veio de uma frase. */
   fala: FalaTocada | null;
@@ -411,54 +418,77 @@ export default function FolhasDoPrototipo({
   aoSalvar: (item: { palavra: string; frase?: string; lang?: string; traducao?: string }) => Promise<string>;
   aoFechar: () => void;
   nuance?: NuanceNaFolhaDaFrase;
+  /** A folha modal de antes: o Quest e quem já está numa camada modal (o Intérprete, o foco cheio). */
+  modal?: boolean;
 }) {
   const dialogo = useRef<HTMLDialogElement>(null);
+  const doPainel = useRef<HTMLElement>(null);
+  const modo = useModoDoPainel();
   const qual = palavra ? `palavra:${palavra.palavra}` : 'frase';
   const anterior = useRef(qual);
   useLayoutEffect(() => {
     if (anterior.current === qual) return;
     anterior.current = qual;
     if (dialogo.current) entrarFolha(dialogo.current);
+    /* No painel, só o conteúdo entra: ele não sai do lugar. */
+    if (doPainel.current) entrarConteudoDaFolha(doPainel.current);
   }, [qual]);
 
   if (!palavra && !fala) return null;
+  const classe = palavra ? 'folha-da-palavra' : 'folha-da-frase';
+  const conteudo = palavra ? (
+    <CorpoDaPalavra
+      key={palavra.palavra}
+      palavra={palavra.palavra}
+      frase={palavra.frase}
+      lang={palavra.lang}
+      jaGuardada={!!guardada?.(palavra.palavra)}
+      aoConsultar={aoConsultar}
+      aoOuvir={aoOuvir}
+      aoSalvar={aoSalvar}
+      aoVoltar={aoVoltar}
+      aoPraticar={aoPraticar}
+      semPratica={semPratica}
+    />
+  ) : (
+    fala && (
+      <CorpoDaFrase
+        /* Outra frase no mesmo painel: a prática e a explicação da anterior não ficam. */
+        key={fala.id}
+        fala={fala}
+        aoOuvir={aoOuvir}
+        audioReal={audioReal}
+        semPratica={semPratica}
+        aoTocarPalavra={aoTocarPalavra}
+        ehNova={ehNova}
+        guardada={guardada}
+        aoPraticar={aoPraticar}
+        nuance={nuance}
+      />
+    )
+  );
+  if (!modal && modo !== 'nao-cabe')
+    return (
+      <PainelDaFrase
+        rotulo={palavra ? t('Palavra: {palavra}', { palavra: palavra.palavra }) : t('Frase escolhida')}
+        modo={modo}
+        chave={`${fala?.id ?? ''}|${qual}`}
+        aoFechar={aoFechar}
+        refDoPainel={doPainel}
+        classe={classe}
+      >
+        {conteudo}
+      </PainelDaFrase>
+    );
   return (
     <FolhaDeBaixo
       titulo={palavra ? t('Palavra: {palavra}', { palavra: palavra.palavra }) : t('Ações')}
       aoFechar={aoFechar}
-      classe={palavra ? 'folha-da-palavra' : 'folha-da-frase'}
+      classe={classe}
       refDaFolha={dialogo}
       doPrototipo
     >
-      {palavra ? (
-        <CorpoDaPalavra
-          key={palavra.palavra}
-          palavra={palavra.palavra}
-          frase={palavra.frase}
-          lang={palavra.lang}
-          jaGuardada={!!guardada?.(palavra.palavra)}
-          aoConsultar={aoConsultar}
-          aoOuvir={aoOuvir}
-          aoSalvar={aoSalvar}
-          aoVoltar={aoVoltar}
-          aoPraticar={aoPraticar}
-          semPratica={semPratica}
-        />
-      ) : (
-        fala && (
-          <CorpoDaFrase
-            fala={fala}
-            aoOuvir={aoOuvir}
-            audioReal={audioReal}
-            semPratica={semPratica}
-            aoTocarPalavra={aoTocarPalavra}
-            ehNova={ehNova}
-            guardada={guardada}
-            aoPraticar={aoPraticar}
-            nuance={nuance}
-          />
-        )
-      )}
+      {conteudo}
     </FolhaDeBaixo>
   );
 }

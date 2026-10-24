@@ -51,6 +51,7 @@ const Linha = memo(function Linha({
   lang,
   langDaTraducao,
   atual,
+  escolhida,
   nova,
   tocando,
   aoTocar,
@@ -67,6 +68,8 @@ const Linha = memo(function Linha({
   lang: string;
   langDaTraducao?: string;
   atual: boolean;
+  /** O painel da frase está aberto nesta fala: ela fica marcada. */
+  escolhida: boolean;
   /** Chegou com a tela já aberta: entra animada. */
   nova: boolean;
   tocando: boolean;
@@ -157,6 +160,8 @@ const Linha = memo(function Linha({
         type="button"
         className="q-fala"
         aria-disabled={ouvindo || undefined}
+        aria-current={escolhida ? 'true' : undefined}
+        data-frase-escolhida={escolhida ? '' : undefined}
         onClick={() => !ouvindo && aoTocar(id)}
       >
         <span className="q-meta">
@@ -232,6 +237,7 @@ export default function HistoricoDoPrototipo({
   aoTocar,
   aoOuvir,
   aoPararAudio,
+  escolhida,
 }: {
   falas: readonly SpeechSegment[];
   /** Multiplicador do tamanho do texto (0,75 a 2), escolhido na faixa. */
@@ -245,6 +251,8 @@ export default function HistoricoDoPrototipo({
   /** "Ouvir de novo": o áudio real da fala onde foi guardado, ou a voz de leitura. */
   aoOuvir?: (fala: SpeechSegment, lang: string) => void;
   aoPararAudio?: () => void;
+  /** O id da fala em que o painel da frase está aberto: ela fica marcada (`aria-current`). */
+  escolhida?: string | null;
 }) {
   /* "…" é só o marcador de tradução a caminho: sozinho, não é texto para mostrar (e enquanto a do
      final não chega, fica a parcial que a linha já tinha: `traducaoNaLegenda`). */
@@ -323,10 +331,7 @@ export default function HistoricoDoPrototipo({
         {blocos.map((grupo, i) => (
           /* O último bloco é o que está recebendo falas: fica inteiro à vista do navegador (a linha que
              entra animada não pode ser cortada pela borda do bloco). Os de antes podem ser pulados. */
-          <div
-            key={grupo.bloco}
-            className={i === blocos.length - 1 ? 'q-bloco-de-falas' : 'q-bloco-de-falas antigo'}
-          >
+          <div key={grupo.bloco} className={i === blocos.length - 1 ? 'q-bloco-de-falas' : 'q-bloco-de-falas antigo'}>
             {grupo.falas.map((fala) => {
               const lang = fala.lang ?? idiomaPadrao;
               const traducao = traducaoNaLegenda(fala);
@@ -341,6 +346,7 @@ export default function HistoricoDoPrototipo({
                   lang={lang}
                   langDaTraducao={idiomaDaTraducao?.(lang)}
                   atual={fala === atual}
+                  escolhida={fala.id === escolhida}
                   nova={!deAntes.has(fala.id)}
                   tocando={tocando === fala.id}
                   aoTocar={fixos.tocar}

@@ -783,6 +783,8 @@ export default function Analysis({
       aoTrocarAba={(id) => {
         /* `telas3.js:167`: trocar de aba para o player. */
         setIsPlaying(false);
+        /* O painel da frase não é modal: a aba muda com ele aberto, e ele fecha junto (a frase é da Transcrição). */
+        fecharFolhas();
         onSubTabChange(id);
       }}
       aoVoltar={() => onChangeView('library')}
@@ -843,6 +845,7 @@ export default function Analysis({
           aoOuvir={ouvirFala}
           aoAbrirFala={abrirFala}
           aoAbrirPalavra={abrirPalavra}
+          escolhida={falaNaFolha?.id ?? null}
           ajustes={ajustesDeExibicao}
         />
       )}
@@ -903,6 +906,8 @@ export default function Analysis({
           palavra={palavraNaFolha}
           aoOuvir={ouvirNaFolha}
           semPratica={noHeadset()}
+          /* O painel da frase é sem modal; no headset fica a folha modal de antes. */
+          modal={noHeadset()}
           ehNova={
             falaNaFolha && conhecidas && baseLang(falaNaFolha.lang) === baseLang(conhecidas.idioma)
               ? (palavra) => !conhecidas.conhece(palavra)

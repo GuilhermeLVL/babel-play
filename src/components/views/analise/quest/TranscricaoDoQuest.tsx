@@ -76,6 +76,7 @@ export default function TranscricaoDoQuest({
   velocidade = 1,
   palavraFalada,
   vozAvisaPalavra = true,
+  escolhida,
 }: {
   falas: readonly FalaDaAnalise[];
   /** A transcrição ainda está vindo, chegou, ou o pedido falhou. */
@@ -119,6 +120,8 @@ export default function TranscricaoDoQuest({
   palavraFalada?: { current: ((posicao: number, charIndex: number) => void) | null };
   /** A voz que narra avisa a palavra? A voz do site (o headset) não avisa: vale só a cadência. */
   vozAvisaPalavra?: boolean;
+  /** O id da fala (`id`, ou o índice sem ele) em que o painel da frase está aberto: ela fica marcada. */
+  escolhida?: string | null;
 }) {
   const [verPalavras, setVerPalavras] = useState(false);
   const [ajustando, setAjustando] = useState(false);
@@ -301,13 +304,14 @@ export default function TranscricaoDoQuest({
               </span>
             );
             const ativa = i === posicao;
+            const marcada = !!escolhida && (fala.id ?? String(fala.index)) === escolhida;
             return (
               <div key={fala.index} className={ativa ? 'qs-fala ativa' : 'qs-fala'} data-fala={fala.index}>
                 <button
                   type="button"
                   className="qs-fala-texto"
-                  aria-haspopup="dialog"
-                  aria-current={ativa ? 'true' : undefined}
+                  aria-current={ativa || marcada ? 'true' : undefined}
+                  data-frase-escolhida={marcada ? '' : undefined}
                   onClick={() => aoAbrirFala(fala)}
                 >
                   <span className="qs-meta">
@@ -343,7 +347,6 @@ export default function TranscricaoDoQuest({
                     type="button"
                     className="q-ctl"
                     aria-label={t('Opções da fala')}
-                    aria-haspopup="dialog"
                     data-px-opcoes={fala.index}
                     onClick={() => aoAbrirFala(fala)}
                   >

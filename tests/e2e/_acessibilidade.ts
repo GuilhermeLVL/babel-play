@@ -16,7 +16,8 @@ const AXE = readFileSync(createRequire(import.meta.url).resolve('axe-core/axe.mi
 /** As tags da WCAG 2.2 AA (o axe separa por versão e nível; AA inclui A). */
 export const TAGS_WCAG_AA = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] as const
 
-export async function violacoesGraves(page: Page): Promise<string[]> {
+/** `incluir`: só esta parte da tela (seletores CSS); sem ele, a página inteira. */
+export async function violacoesGraves(page: Page, incluir?: string[]): Promise<string[]> {
   /* Espera as animações de entrada terminarem: no meio de um fade o texto está semitransparente,
      e o axe mede a cor MISTURADA — acusava 4,17:1 num rótulo que, parado, passa com folga. */
   await page.evaluate(() =>
@@ -29,7 +30,7 @@ export async function violacoesGraves(page: Page): Promise<string[]> {
   )
   await page.addScriptTag({ content: AXE })
   return page.evaluate(
-    async (tags) => {
+    async ([tags, dentro]) => {
       type No = { target: string[]; any: { data?: { fgColor?: string; bgColor?: string; contrastRatio?: number } }[] }
       const axe = (
         window as unknown as {
@@ -39,7 +40,10 @@ export async function violacoesGraves(page: Page): Promise<string[]> {
         }
       ).axe
       /* A marca (logotipo) fica de fora: WCAG 1.4.3 isenta logotipos do contraste mínimo. */
-      const r = await axe.run({ exclude: [['.font-marca']] }, { runOnly: { type: 'tag', values: tags } })
+      const contexto = dentro
+        ? { include: dentro.map((s) => [s]), exclude: [['.font-marca']] }
+        : { exclude: [['.font-marca']] }
+      const r = await axe.run(contexto, { runOnly: { type: 'tag', values: tags } })
       return r.violations
         .filter((v) => v.impact === 'serious' || v.impact === 'critical')
         .map(
@@ -56,6 +60,6 @@ export async function violacoesGraves(page: Page): Promise<string[]> {
               .join(' | ')}`,
         )
     },
-    [...TAGS_WCAG_AA],
+    [[...TAGS_WCAG_AA], incluir ?? null] as const,
   )
 }

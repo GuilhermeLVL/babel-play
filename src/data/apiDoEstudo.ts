@@ -56,7 +56,8 @@ export interface RespostaDaExplicacao {
 function motivoDaFalha(status: number, code: string | undefined): FalhaDoEstudo {
   if (status === 404 && code === 'recurso_indisponivel') return 'fora';
   if (code === 'sem_plano') return 'sem_plano';
-  if (status === 401 || code === 'exige_conta') return 'sem_conta';
+  /* Sem sessão, quem responde é o servidor em memória: 501 `EXIGE_CONTA` (`data/efemero/nucleo.ts`), em maiúsculas. */
+  if (status === 401 || code?.toLowerCase() === 'exige_conta') return 'sem_conta';
   if (code === 'sessao_curta') return 'sessao_curta';
   if (code === 'amostra_acabou') return 'amostra_acabou';
   if (code === 'cota_do_mes' || code === 'quota_exceeded' || code === 'teto_usd_da_conta') return 'cota_do_mes';

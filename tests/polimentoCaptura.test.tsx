@@ -391,6 +391,21 @@ describe('a fala ao vivo (telas.js:111-160)', () => {
     fireEvent.click(container.querySelector('[data-fala="a"] .q-fala') as HTMLElement)
     expect(aoTocar).toHaveBeenCalledWith(falas[0], 'en')
   })
+
+  it('a frase escolhida (o painel da frase aberto nela) fica marcada na legenda, e só ela', () => {
+    const falas = [fala('a', 'One.', 'Um.'), fala('b', 'Two.', 'Dois.')]
+    const { container, rerender } = render(
+      <HistoricoDoPrototipo falas={falas} escala={1} idiomaPadrao="en" aoTocar={nada} escolhida="a" />,
+    )
+    const marcadas = () => [...container.querySelectorAll('[data-frase-escolhida]')]
+    expect(marcadas()).toHaveLength(1)
+    expect(marcadas()[0].matches('[data-fala="a"] .q-fala[aria-current="true"]')).toBe(true)
+    rerender(<HistoricoDoPrototipo falas={falas} escala={1} idiomaPadrao="en" aoTocar={nada} escolhida="b" />)
+    expect(marcadas()[0].matches('[data-fala="b"] .q-fala[aria-current="true"]')).toBe(true)
+    rerender(<HistoricoDoPrototipo falas={falas} escala={1} idiomaPadrao="en" aoTocar={nada} />)
+    expect(marcadas()).toHaveLength(0)
+    expect(container.querySelector('[aria-current]')).toBeNull()
+  })
 })
 
 describe('as folhas (telas.js:190-255)', () => {
@@ -421,9 +436,11 @@ describe('as folhas (telas.js:190-255)', () => {
         nuance={{ disponivel: false, destino: 'pt', aoConhecer, aoEscolher: nada }}
       />,
     )
-    const d = document.querySelector('dialog.folha-de-baixo.folha-da-frase') as HTMLElement
-    expect(d.getAttribute('aria-label')).toBe('Ações')
-    expect(d.firstElementChild?.matches('span.folha-pega[aria-hidden]')).toBe(true)
+    /* O painel da frase (24/10/2026): sem modal, com o × no topo. */
+    const d = document.querySelector('aside.painel-da-frase.folha-da-frase') as HTMLElement
+    expect(d.getAttribute('aria-label')).toBe('Frase escolhida')
+    expect(d.querySelector('.pf-topo button[aria-label="Fechar"]')).toBeTruthy()
+    expect(document.querySelector('dialog')).toBeNull()
     expect(d.querySelector('.folha-frase')?.getAttribute('lang')).toBe('en')
     expect(d.querySelector('.folha-frase-trad')?.textContent).toBe(falaTocada.traducao)
     expect([...d.querySelectorAll('.folha-grade .folha-acao')].map((b) => b.textContent?.trim())).toEqual([
@@ -460,13 +477,39 @@ describe('as folhas (telas.js:190-255)', () => {
     expect(palavras.filter((b) => b.hasAttribute('data-aprendida')).map((b) => b.textContent)).toEqual(['roadmap'])
   })
 
-  it('a folha da palavra: Guardar ficha de verdade, vira Guardada e comemora (520 ms na mola)', async () => {
-    const aoSalvar = vi.fn(folha.aoSalvar)
-    const { rerender } = render(<FolhasDoPrototipo {...folha} aoSalvar={aoSalvar} />)
+  it('a folha modal (Quest, Intérprete): a pega do protótipo e o nome "Ações"', () => {
+    render(<FolhasDoPrototipo {...folha} modal />)
+    const d = document.querySelector('dialog.folha-de-baixo.folha-da-frase') as HTMLElement
+    expect(d.getAttribute('aria-label')).toBe('Ações')
+    expect(d.firstElementChild?.matches('span.folha-pega[aria-hidden]')).toBe(true)
+  })
+
+  it('no painel, ir da frase para a palavra troca só o conteúdo: o painel fica, o conteúdo entra em cascata', async () => {
+    const { rerender } = render(<FolhasDoPrototipo {...folha} />)
+    const antes = document.querySelector('aside.painel-da-frase')
     animacoes = []
     rerender(
       <FolhasDoPrototipo
         {...folha}
+        aoVoltar={nada}
+        palavra={{ palavra: 'shipping', frase: falaTocada.texto, lang: 'en' }}
+      />,
+    )
+    await act(async () => undefined)
+    expect(document.querySelector('aside.painel-da-frase.folha-da-palavra')).toBe(antes)
+    expect(animacoes.some((a) => a.quem.startsWith('aside.'))).toBe(false)
+    expect(animacoes.find((a) => a.quem.startsWith('button.folha-voltar'))).toMatchObject({ d: 420, atraso: 120 })
+  })
+
+  it('a folha da palavra: Guardar ficha de verdade, vira Guardada e comemora (520 ms na mola)', async () => {
+    const aoSalvar = vi.fn(folha.aoSalvar)
+    /* A subida de 560 ms é da folha modal (Quest); no painel só o conteúdo entra (teste acima). */
+    const { rerender } = render(<FolhasDoPrototipo {...folha} aoSalvar={aoSalvar} modal />)
+    animacoes = []
+    rerender(
+      <FolhasDoPrototipo
+        {...folha}
+        modal
         aoSalvar={aoSalvar}
         aoVoltar={nada}
         palavra={{ palavra: 'shipping', frase: falaTocada.texto, lang: 'en' }}

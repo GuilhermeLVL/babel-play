@@ -92,6 +92,12 @@ async function prepararNoInicio(page: Page) {
   await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {})
   await page.waitForTimeout(800)
   await fecharSobreposicoes(page)
+  /* CPU_LENTA=4 imita a máquina da CI (4x mais lenta): a tela não pode esvaziar nem aí. */
+  const lenta = Number(process.env.CPU_LENTA || 1)
+  if (lenta > 1) {
+    const cdp = await page.context().newCDPSession(page)
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: lenta })
+  }
 }
 
 test.describe('entrada das telas', () => {

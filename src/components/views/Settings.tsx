@@ -28,8 +28,6 @@ import AjustesDoQuest from './ajustes/quest/AjustesDoQuest';
  * consentimentos, formato da cópia) são guardadas por `lib/preferencias` no blob `settings.ui`, o
  * mesmo caminho do idioma e da apresentação.
  */
-export { ABAS_DOS_AJUSTES } from '../../lib/rotas';
-
 const ABAS = [
   { id: 'idiomas', rotulo: 'Idiomas', icone: <Languages aria-hidden /> },
   { id: 'aparencia', rotulo: 'Aparência', icone: <Palette aria-hidden /> },

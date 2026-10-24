@@ -25,8 +25,7 @@ import { fetchSettings, patchUiSettings } from '../data/api';
 import { CREDENTIAL_KEY, getProviderMode, setProviderChoice } from '../gateway/activeProfile';
 import { getSttQuality, setSttQualityMirror, type SttQuality } from '../gateway/sttRouter';
 import { qualidadeDoNivel } from './captura/nivelDeServico';
-import { consentiuNuvem } from './consentimentoDeNuvem';
-import { perfilProtegido } from './protecaoDoMenor';
+import { consentiuNuvem, protegidoSemResponsavel } from './consentimentoDeNuvem';
 
 export type LadoDoProcessamento = 'aparelho' | 'nuvem';
 export type PerfilDoAparelho = 'free-web' | 'local-private';
@@ -69,11 +68,11 @@ export const consentiuNuvemNaFala = (): boolean => consentiuNuvem() && !soNoApar
 
 /**
  * O LADO MARCADO, o mesmo em toda tela. `nuvemLiberada` = o plano tem nuvem (e não é a edição estática);
- * sem ela, e no perfil protegido, é sempre o aparelho. No automático, é a nuvem só com o consentimento
+ * sem ela, e no perfil protegido SEM o responsável, é sempre o aparelho. No automático, é a nuvem só com o consentimento
  * (sem ele, nada sai do aparelho de qualquer jeito).
  */
 export function ladoDoProcessamento(nuvemLiberada: boolean): LadoDoProcessamento {
-  if (!nuvemLiberada || perfilProtegido() || soNoAparelho()) return 'aparelho';
+  if (!nuvemLiberada || protegidoSemResponsavel() || soNoAparelho()) return 'aparelho';
   if (getProviderMode() === 'cloud' || getSttQuality() === 'cloud') return 'nuvem';
   return consentiuNuvem() ? 'nuvem' : 'aparelho';
 }

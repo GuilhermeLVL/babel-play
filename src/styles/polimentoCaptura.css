@@ -52,9 +52,6 @@ html[data-quest-novo='true'] .q-casca:has(.px-pronto, .px-parada) .q-trilho {
     padding: 0 14px;
     font-size: 14.5px;
   }
-  html[data-telas='enxuta']:not([data-px='on']) .ex-estado > svg:last-child {
-    margin-left: auto;
-  }
 }
 
 /* FOLHA ABERTA POR CIMA DA CAPTURA (Encerrar, salvar): a onda, o ponto de gravação, os pontinhos de

@@ -305,7 +305,6 @@ export default function App() {
   /* A ABA DE AJUSTES mora na navegação (é o que `/ajustes/<aba>` espelha). Um atalho do shell —
      "Som, animações e desempenho" abre Aparência, a engrenagem do sino abre Notificações — passa a
      aba em `navigateTo`; ao ir para outra tela ela zera (`useNavegacao`), para a próxima entrada pelo menu cair na padrão. */
-  const irPeloShell = navigateTo;
   /* ⌘, / Ctrl+, abre os Ajustes de qualquer tela (o atalho que os apps de computador têm). */
   useEffect(() => {
     const aoTeclar = (e: KeyboardEvent) => {
@@ -500,7 +499,7 @@ export default function App() {
             activeView={viewDoMenu}
             /* É este caminho que abre Ajustes na aba pedida (o botão
                  "Preferências de notificação" do painel Mais caía em Idiomas). */
-            onChangeView={irPeloShell}
+            onChangeView={navigateTo}
             aoEntrar={authRequired && anonimo ? () => setPedindoLogin(true) : undefined}
             aoBuscar={() => setBuscaAberta(true)}
             ageProfile={ageProfile}
@@ -604,7 +603,7 @@ export default function App() {
                   resumingRecordingId={activeView === 'capture' ? resumingRecordingId : null}
                   recordings={recordings}
                   onRecordingsChange={setRecordings}
-                  onChangeView={irPeloShell}
+                  onChangeView={navigateTo}
                   onEntrar={() => setPedindoLogin(true)}
                   ageProfile={ageProfile}
                 />

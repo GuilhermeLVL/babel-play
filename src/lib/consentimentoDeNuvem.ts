@@ -1,5 +1,11 @@
 import { type EscolhaDoMic, escolhaGuardada, podeOferecerRapido } from './captura/motorDoMicrofone';
-import { lerPreferencias, mudarConsentimento, type Preferencias, salvarPreferencias, usePreferencias } from './preferencias';
+import {
+  lerPreferencias,
+  mudarConsentimento,
+  type Preferencias,
+  salvarPreferencias,
+  usePreferencias,
+} from './preferencias';
 import { estadoDaProtecao, perfilProtegido } from './protecaoDoMenor';
 
 /**
@@ -56,12 +62,20 @@ export function guardarEscolhaDoMic(escolha: EscolhaDoMic): Promise<boolean> {
  * com o vínculo do responsável aceito e a conta não restrita — a régua da nuvem em `protecaoDoMenor.ts`.
  */
 export function rapidoDoMicPermitido(): boolean {
-  const e = estadoDaProtecao();
-  return podeOferecerRapido({
-    protegido: perfilProtegido(),
-    responsavelAutorizou: !!e && e.vinculo.estado === 'aceito' && !e.restrita,
-  });
+  return podeOferecerRapido({ protegido: perfilProtegido(), responsavelAutorizou: responsavelAutorizou() });
 }
+
+/** O responsável aceitou o vínculo e a conta não está restrita (`estadoDaProtecao`). */
+export function responsavelAutorizou(): boolean {
+  const e = estadoDaProtecao();
+  return !!e && e.vinculo.estado === 'aceito' && !e.restrita;
+}
+
+/**
+ * O perfil que TRANCA a nuvem: protegido E sem o responsável. É a regra de `perfilQueTranca` da política
+ * de rota (`core/rota/politicaDeRota.ts`); protegido COM o responsável pode usar a nuvem do plano.
+ */
+export const protegidoSemResponsavel = (): boolean => perfilProtegido() && !responsavelAutorizou();
 
 /** Para o painel da captura: a escolha reativa e a ação de trocar. */
 export function useEscolhaDoMic(): { escolha: EscolhaDoMic | null; escolher: (e: EscolhaDoMic) => Promise<boolean> } {

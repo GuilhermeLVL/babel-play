@@ -34,6 +34,14 @@ function medir(g: HTMLElement): Caixa | null {
   if (!a) return null;
   const rg = g.getBoundingClientRect();
   const ra = a.getBoundingClientRect();
+  /* A pílula é filha do trilho, mas o item mora no grupo que ROLA (`.q-trilho-topo`). Com o item rolado
+     para fora da área visível do grupo, a pílula apareceria sobre o logo ou sobre o pé: some, e volta
+     quando a rolagem trouxer o item de volta (`seguirRolagem`). */
+  const topo = g.matches('.q-trilho') ? $('.q-trilho-topo', g) : null;
+  if (topo?.contains(a)) {
+    const rt = topo.getBoundingClientRect();
+    if (ra.top < rt.top - 0.5 || ra.bottom > rt.bottom + 0.5) return null;
+  }
   /* No protótipo a pílula é medida ANTES de o painel começar a crescer. No app a medida pode cair no
      meio da animação (o painel está em escala 0,55): a conta desfaz a escala para dar o mesmo número. */
   const k = g.offsetWidth && rg.width ? rg.width / g.offsetWidth : 1;
@@ -56,6 +64,25 @@ function aplicar(p: HTMLElement, r: Caixa | null): void {
   p.style.transform = `translate(${r.x}px, ${r.y}px)`;
 }
 
+/** Rolando o grupo do trilho, a pílula acompanha o item (ou some, se ele sair da área visível). */
+const topoComEscuta = new WeakSet<Element>();
+function seguirRolagem(g: HTMLElement, p: HTMLElement): void {
+  const topo = g.matches('.q-trilho') ? $('.q-trilho-topo', g) : null;
+  if (!topo || topoComEscuta.has(topo)) return;
+  topoComEscuta.add(topo);
+  topo.addEventListener(
+    'scroll',
+    () => {
+      const pilula = $(':scope > .px-pilula', g) ?? p;
+      pilula.style.transition = 'none';
+      aplicar(pilula, medir(g));
+      void pilula.offsetWidth;
+      pilula.style.transition = '';
+    },
+    { passive: true },
+  );
+}
+
 function porPilula(g: HTMLElement): void {
   if (!polido()) return;
   let p = $(':scope > .px-pilula', g);
@@ -71,6 +98,7 @@ function porPilula(g: HTMLElement): void {
     p.style.transition = '';
   }
   aplicar(p, medir(g));
+  seguirRolagem(g, p);
 }
 
 function tirarPilulas(): void {
@@ -272,6 +300,15 @@ let ultimoPonteiro = 0;
  * então `trocar` roda. Navegação pelo teclado não anima; só a última vale. O desfoque de 5 px do protótipo
  * saiu (auditoria de 23/10/2026, B2): a troca de tela nunca desfoca a tela inteira.
  */
+/* QUANTO A TELA NOVA LEVA PARA MONTAR (ms), aprendido a cada troca. A saída é opacidade e transformação, que
+   o navegador anima SEM a linha principal: a montagem da tela nova pode rodar por baixo do fim da saída. Se
+   `trocar` só rodasse depois dos 150 ms, em máquina lenta a tela ficava vazia durante toda a montagem (CI, 4x
+   mais lenta: ~170 ms). Então a troca começa `SAIDA - montagem` ms depois do toque: a tela nova monta
+   enquanto a antiga termina de sumir. Começa em 100 (máquina média) e se ajusta pelas medidas reais. */
+const SAIDA_MS = 150;
+let montagemMs = 100;
+let trocaEm: number | null = null;
+
 export function trocarDeTela(proxima: string, atual: string, trocar: () => void): void {
   const tela = telaAtual();
   const tipo = ultimaTecla > ultimoPonteiro ? 'teclado' : 'clique';
@@ -293,13 +330,14 @@ export function trocarDeTela(proxima: string, atual: string, trocar: () => void)
   const fim = () => {
     if (feito || vez !== vezDaTela) return;
     feito = true;
+    trocaEm = performance.now();
     trocar();
   };
   /* A navegação nunca fica presa à animação: numa aba em segundo plano o navegador congela as
      animações e a promessa não chega. O relógio garante a troca. */
-  window.setTimeout(fim, 400);
+  window.setTimeout(fim, Math.min(400, Math.max(0, SAIDA_MS - montagemMs)));
   anima(tela, [{ opacity: 0, transform: `translateY(${-18 * dir}px) scale(0.985)` }], {
-    d: 150,
+    d: SAIDA_MS,
     e: 'ease-out',
     fill: 'forwards',
   }).finished.then(fim, fim);
@@ -335,6 +373,10 @@ function chegou(tela: HTMLElement): void {
   }
   aEspera?.disconnect();
   aEspera = null;
+  if (trocaEm !== null) {
+    montagemMs = Math.min(400, (montagemMs + (performance.now() - trocaEm)) / 2);
+    trocaEm = null;
+  }
   const de = chegando;
   if (de) clearTimeout(de.solta);
   chegando = null;

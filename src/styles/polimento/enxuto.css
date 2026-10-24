@@ -17,9 +17,6 @@ html[data-px='on'][data-telas='enxuta'] .px-vivo.px-pronto .q-faixa [aria-label$
 
 .px-vivo-topo .q-chip.ex-estado { flex: 0 1 auto; gap: 9px; }
 .ex-estado > svg:first-child { flex: 0 0 auto; width: 20px; height: 20px; }
-.ex-estado > svg:last-child { flex: 0 0 auto; opacity: 0.7; }
-.ex-estado-txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: var(--ink-muted); }
-.ex-estado-txt b { font-weight: 800; color: var(--ink); }
 .ex-estado[data-tom='nuvem'] { background: var(--q-suave, var(--accent-soft)); border-color: var(--q-acento, var(--accent)); }
 .ex-estado[data-tom='alerta'] { background: color-mix(in srgb, var(--warn) 22%, var(--surface)); border-color: color-mix(in srgb, var(--warn) 55%, var(--border-subtle)); }
 .ex-pausado .cel-ponto { animation: none; opacity: 0.45; box-shadow: none; }
@@ -85,7 +82,6 @@ dialog.ex-organizar-dlg .dlg-pe:empty { display: none; }
   html[data-px='on'][data-telas='enxuta'] .px-vivo-topo > .q-espaco { display: none; }
   html[data-px='on'][data-telas='enxuta'] .px-vivo-topo > [data-px-vivo='capturar:Detectar'] { justify-self: start; max-width: 100%; padding: 0 14px; gap: 6px; font-size: 15px; }
   html[data-px='on'][data-telas='enxuta'] .px-vivo-topo .q-chip.ex-estado { grid-column: 1 / -1; grid-row: 2; min-height: 48px; padding: 0 14px; font-size: 14.5px; }
-  html[data-px='on'][data-telas='enxuta'] .ex-estado > svg:last-child { margin-left: auto; }
 
   /* gravando: [relógio] [Encerrar] [pausar, só o ícone] [A+] cabem sem apertar o Encerrar */
   html[data-px='on'][data-telas='enxuta'] .px-vivo:not(.px-pronto) .q-faixa { gap: 8px; }

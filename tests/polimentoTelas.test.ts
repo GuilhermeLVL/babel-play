@@ -206,6 +206,64 @@ describe('a entrada da tela e a pílula', () => {
     expect(document.querySelector('.px-pilula')).toBeNull()
   })
 
+  /* Revisão final (23/10/2026): a pílula é filha de `.q-trilho`, mas o item mora no grupo que ROLA. */
+  describe('a pílula do trilho some com o item rolado para fora do grupo', () => {
+    const original = Element.prototype.getBoundingClientRect
+    const caixa = (top: number, bottom: number) =>
+      ({
+        top,
+        bottom,
+        left: 0,
+        right: 96,
+        width: 96,
+        height: bottom - top,
+        x: 0,
+        y: top,
+        toJSON: () => ({}),
+      }) as DOMRect
+    afterEach(() => {
+      Element.prototype.getBoundingClientRect = original
+    })
+
+    it('esconde fora da área visível, reaparece ao rolar de volta e não mexe nos itens do pé', async () => {
+      document.body.innerHTML = `
+        <nav class="q-trilho">
+          <div class="q-trilho-topo">
+            <button class="q-item" data-px-rota="hub" aria-current="page"><svg></svg></button>
+            <button class="q-item" data-px-rota="play"><svg></svg></button>
+          </div>
+          <div class="q-trilho-pe"><button class="q-item q-mais-botao"><svg></svg></button></div>
+        </nav>
+        <main><div class="px-tela"></div></main>`
+      let topoDoItem = 120
+      Element.prototype.getBoundingClientRect = function (this: Element) {
+        if (this.matches('.q-trilho')) return caixa(0, 600)
+        if (this.matches('.q-trilho-topo')) return caixa(100, 300)
+        if (this.matches('.q-item[aria-current="page"]')) return caixa(topoDoItem, topoDoItem + 64)
+        return caixa(0, 0)
+      }
+      desinstalar = instalarTelas()
+      await quadro()
+      await quadro()
+      const pilula = document.querySelector<HTMLElement>('.q-trilho > .px-pilula')!
+      expect(pilula.style.opacity).toBe('1')
+
+      const topo = document.querySelector('.q-trilho-topo')!
+      topoDoItem = 20 // rolou: o item saiu por cima, para o lado do logo
+      topo.dispatchEvent(new Event('scroll'))
+      expect(pilula.style.opacity).toBe('0')
+
+      topoDoItem = 260 // cortado embaixo, por baixo do pé
+      topo.dispatchEvent(new Event('scroll'))
+      expect(pilula.style.opacity).toBe('0')
+
+      topoDoItem = 150 // de volta, inteiro à vista
+      topo.dispatchEvent(new Event('scroll'))
+      expect(pilula.style.opacity).toBe('1')
+      expect(pilula.style.transform).toBe('translate(0px, 150px)')
+    })
+  })
+
   /* Auditoria de desempenho de 10/10/2026, G5: antes toda mutação do documento media todas as barras. */
   describe('a pílula só é medida quando pode ter mudado', () => {
     let medidas = 0

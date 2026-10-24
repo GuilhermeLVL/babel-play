@@ -453,10 +453,15 @@ export default function LiveCapture({
   /** O áudio da aba está no reconhecedor do navegador, no aparelho (`webSpeechDoSistema.ts`). */
   const [sistemaNoNavegador, setSistemaNoNavegador] = useState(false);
   const [sttQuality, setSttQuality] = useState<SttQuality>(() => getSttQuality());
+  /** A pessoa já escolheu a qualidade (ou Aparelho | Nuvem) nesta montagem: a carga assíncrona dos ajustes não a desfaz. */
+  const qualidadeTocadaRef = useRef(false);
   /* A escolha Aparelho | Nuvem (painel de processamento, Ajustes) grava a qualidade no espelho local e
      avisa: a Captura aberta passa a valer com ela. */
   useEffect(() => {
-    const aoMudar = () => setSttQuality(getSttQuality());
+    const aoMudar = () => {
+      qualidadeTocadaRef.current = true;
+      setSttQuality(getSttQuality());
+    };
     window.addEventListener(EVENTO_DO_PROCESSAMENTO, aoMudar);
     return () => window.removeEventListener(EVENTO_DO_PROCESSAMENTO, aoMudar);
   }, []);
@@ -1094,10 +1099,11 @@ export default function LiveCapture({
       /* Esta linha estava DUPLICADA, caractere por caractere. Sem efeito visível — atribuir o mesmo
          valor duas vezes é idempotente, mas quem lesse depois ficaria procurando a diferença. */
       if (
-        ui.sttQuality === 'auto' ||
-        ui.sttQuality === 'fast' ||
-        ui.sttQuality === 'accurate' ||
-        ui.sttQuality === 'cloud'
+        !qualidadeTocadaRef.current &&
+        (ui.sttQuality === 'auto' ||
+          ui.sttQuality === 'fast' ||
+          ui.sttQuality === 'accurate' ||
+          ui.sttQuality === 'cloud')
       ) {
         setSttQuality(ui.sttQuality);
         setSttQualityMirror(ui.sttQuality);
@@ -1736,6 +1742,7 @@ export default function LiveCapture({
     setMicEngine(webSpeechSupported ? 'browser' : 'whisper');
     setInputDeviceId('');
     setOutputDeviceId('');
+    qualidadeTocadaRef.current = true;
     setSttQuality('auto');
     setSttQualityMirror('auto');
     void patchUiSettings({ sttQuality: 'auto' });
@@ -3168,6 +3175,7 @@ export default function LiveCapture({
           selo: seloDaCaptura,
           qualidade: sttQuality,
           aoEscolherQualidade: (q) => {
+            qualidadeTocadaRef.current = true;
             setSttQuality(q);
             setSttQualityMirror(q);
             void patchUiSettings({ sttQuality: q });
@@ -3763,6 +3771,7 @@ export default function LiveCapture({
                   value={sttQuality}
                   onChange={(e) => {
                     const q = e.target.value as SttQuality;
+                    qualidadeTocadaRef.current = true;
                     setSttQuality(q);
                     setSttQualityMirror(q);
                     void patchUiSettings({ sttQuality: q });

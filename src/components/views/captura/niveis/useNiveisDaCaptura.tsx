@@ -25,7 +25,7 @@ import {
 import type { LinhaDoMotor } from '../../../../lib/captura/painelDoProcessamento';
 import { type SeloDaFala, seloDaFala } from '../../../../lib/captura/seloDaFala';
 import { useSemRede } from '../../../../lib/captura/useSemRede';
-import { consentiuNuvem } from '../../../../lib/consentimentoDeNuvem';
+import { consentiuNuvem, responsavelAutorizou } from '../../../../lib/consentimentoDeNuvem';
 import type { TipoDeDispositivo } from '../../../../lib/dispositivo/perfil';
 import { edicaoEstatica } from '../../../../lib/edicaoEstatica';
 import { getEntitlements } from '../../../../lib/entitlements';
@@ -211,9 +211,11 @@ export function useNiveisDaCaptura(
   const seloRef = useRef<HTMLButtonElement>(null);
 
   const amb: AmbienteDosNiveis | null = dados ? { ...ambienteReal(), ...dados.ambiente } : null;
+  /* O perfil que TRANCA a nuvem: protegido SEM o responsável (a regra da política de rota). */
+  const trancadoPeloPerfil = !!amb && amb.protegido && !responsavelAutorizou();
   const temNuvem = !!amb && amb.capacidades.managedCloudStt && !amb.semPlanos;
   /* O lado Aparelho | Nuvem marcado: o MESMO dos Ajustes (`lib/escolhaDoProcessamento`). */
-  const lado = useLadoDoProcessamento(temNuvem && !amb?.protegido);
+  const lado = useLadoDoProcessamento(temNuvem && !trancadoPeloPerfil);
   const ler = amb?.carregarUso;
 
   /* As horas do mês: só para quem tem nuvem no plano, e de novo quando uma captura termina. */
@@ -244,7 +246,7 @@ export function useNiveisDaCaptura(
     precisao: quemTemONivel('precisao', amb.aVenda),
     aovivo: quemTemONivel('aovivo', amb.aVenda),
   };
-  const niveis: NivelDoSeletor[] = niveisDaTela(amb).map((n) => ({
+  const niveis: NivelDoSeletor[] = niveisDaTela({ ...amb, protegido: trancadoPeloPerfil }).map((n) => ({
     ...n,
     plano:
       !n.tranca || n.nivel === 'aparelho' || (n.nivel === 'aovivo' && amb.capacidades.sttAoVivo)
@@ -314,7 +316,7 @@ export function useNiveisDaCaptura(
      Processamento dos Ajustes (`lib/escolhaDoProcessamento`) e, junto, a preferência do nível — sem ela,
      quem tem nuvem no plano continuaria indo à nuvem no automático. A nuvem com chave própria só muda
      quando há chave cadastrada; sem chave, fica a nuvem do plano. */
-  const nuvemTrancada: { trancada: true; porque: string } | null = amb.protegido
+  const nuvemTrancada: { trancada: true; porque: string } | null = trancadoPeloPerfil
     ? { trancada: true, porque: t('A nuvem não está disponível neste perfil.') }
     : amb.semPlanos
       ? { trancada: true, porque: t('A nuvem não está disponível nesta versão.') }

@@ -7,13 +7,14 @@ import { buildGateway } from '../gateway';
 import { webGpuProvavel } from '../gateway/adaptadorWebGpu';
 import { DEFAULT_PROFILE_ID, getBuiltinProfile } from '../gateway/profiles';
 import { getSttQuality, routeStt, tamanhoDoDownloadMb } from '../gateway/sttRouter';
-import { consentiuNuvem } from '../lib/consentimentoDeNuvem';
+import { consentiuNuvem, protegidoSemResponsavel } from '../lib/consentimentoDeNuvem';
 import { dispositivoDaRota, perfilDoDispositivo } from '../lib/dispositivo/perfil';
 import type { SondaDoAparelho } from '../lib/dispositivo/sonda';
 import { useSondaGuardada } from '../lib/dispositivo/useSondaGuardada';
 import { edicaoEstatica } from '../lib/edicaoEstatica';
 import { escolherProcessamento, type PerfilDoAparelho, useLadoDoProcessamento } from '../lib/escolhaDoProcessamento';
 import { t } from '../lib/i18n';
+import { perfilProtegido } from '../lib/protecaoDoMenor';
 import { toast } from './Toast';
 import { Dialogo, fecharDialogoDe } from './ui';
 
@@ -89,6 +90,10 @@ export default function AiEnginePanel({
   const activeId = controladoId ?? internoId;
   /* O lado marcado é o de `ladoDoProcessamento`: o mesmo que o painel da Captura mostra. */
   const nuvem = useLadoDoProcessamento(!bloqueados.includes('cloud-quality') && !edicaoEstatica()) === 'nuvem';
+  /* Protegido: nunca há oferta de plano (sem etiqueta, sem frase de venda). Sem o responsável, a nuvem
+     também fica trancada, como no painel da Captura. */
+  const protegido = perfilProtegido();
+  const bloqueadaNuvem = bloqueados.includes('cloud-quality') || protegidoSemResponsavel();
   const [pedindoChave, setPedindoChave] = useState(false);
   const [text, setText] = useState('Good morning, my friend. How are you today?');
   const [result, setResult] = useState<{ text: string; engine: string } | null>(null);
@@ -134,7 +139,7 @@ export default function AiEnginePanel({
   /* Sem chave própria, a nuvem do plano já vale (a qualidade foi para `cloud`); o formulário da chave
      abre como antes, para quem quer usar a dele. */
   const escolherNuvem = async () => {
-    if (bloqueados.includes('cloud-quality')) return;
+    if (bloqueadaNuvem) return;
     const r = await escolherProcessamento('nuvem');
     if (r.semChave) {
       setPedindoChave(true);
@@ -164,8 +169,6 @@ export default function AiEnginePanel({
     const where = first.baseUrl ? ' · local' : first.credentialId ? ' · nuvem' : '';
     return first.adapterId + where;
   };
-
-  const bloqueadaNuvem = bloqueados.includes('cloud-quality');
 
   /* QUEST: as mesmas duas opções como cartões-alvo, a IA do computador num interruptor, e o detalhe
      (o que este jeito faz, o teste ao vivo) recolhido atrás de um alvo de 60 px. */
@@ -216,12 +219,15 @@ export default function AiEnginePanel({
               </span>
               <b>{t('Usar a sua chave (nuvem)')}</b>
               <span className="q-aju-tags">
-                <span className="q-tag">{bloqueadaNuvem ? t('Premium') : t('Sua chave')}</span>
+                {!(bloqueadaNuvem && protegido) && (
+                  <span className="q-tag">{bloqueadaNuvem ? t('Premium') : t('Sua chave')}</span>
+                )}
                 {nuvem && <span className="q-tag">{t('Em uso')}</span>}
               </span>
               <span className="q-d">
                 {t('OpenAI, Groq, OpenRouter… Melhor qualidade, sem baixar modelo. A chave fica cifrada no servidor.')}
-                {bloqueadaNuvem && ` ${t('Disponível no plano Premium.')}`}
+                {bloqueadaNuvem &&
+                  ` ${protegido ? t('A nuvem não está disponível neste perfil.') : t('Disponível no plano Premium.')}`}
               </span>
             </button>
           )}

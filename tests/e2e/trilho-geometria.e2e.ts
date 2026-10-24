@@ -153,6 +153,44 @@ test.describe('trilho: geometria', () => {
     expect(await violacoesGraves(page)).toEqual([])
   })
 
+  test('1024×600: a pílula do item ativo some quando ele é rolado para fora do grupo e volta ao rolar de volta', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1024, height: 600 })
+    await abrirTela(page, '/')
+    await fecharSobreposicoes(page)
+    await page.waitForTimeout(400)
+    const estado = () =>
+      page.evaluate(() => {
+        const nav = document.querySelector('nav.q-trilho') as HTMLElement
+        const topo = nav.querySelector<HTMLElement>('.q-trilho-topo')
+        const pilula = nav.querySelector<HTMLElement>(':scope > .px-pilula')
+        const ativo = nav.querySelector<HTMLElement>('.q-item[aria-current="page"]')
+        if (!topo || !pilula || !ativo || !topo.contains(ativo)) return null
+        const a = ativo.getBoundingClientRect()
+        const t = topo.getBoundingClientRect()
+        return {
+          rola: topo.scrollHeight > topo.clientHeight + 1,
+          dentro: a.top >= t.top - 0.5 && a.bottom <= t.bottom + 0.5,
+          opacidade: getComputedStyle(pilula).opacity,
+        }
+      })
+    const antes = await estado()
+    test.skip(!antes || !antes.rola, 'sem pílula (animações desligadas) ou o grupo não rola neste tamanho')
+    expect(antes!.opacidade).toBe('1')
+    await page.evaluate(() => {
+      const topo = document.querySelector('nav.q-trilho .q-trilho-topo') as HTMLElement
+      topo.scrollTop = topo.scrollHeight
+    })
+    await expect.poll(async () => (await estado())?.dentro).toBe(false)
+    await expect.poll(async () => (await estado())?.opacidade).toBe('0')
+    await page.evaluate(() => {
+      const topo = document.querySelector('nav.q-trilho .q-trilho-topo') as HTMLElement
+      topo.scrollTop = 0
+    })
+    await expect.poll(async () => (await estado())?.opacidade).toBe('1')
+  })
+
   test('Ctrl+, é ignorado enquanto se digita num campo', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 })
     await abrirTela(page, '/')

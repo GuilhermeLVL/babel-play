@@ -65,7 +65,12 @@ const TIMEOUT_MS = 15_000
 export const MAX_CARACTERES_DA_FRASE = 400
 export const MAX_FALAS_DE_CONTEXTO = 3
 
-const idioma = z.string().trim().min(2).max(20)
+/** BCP-47 (o mesmo do resumo): o código entra no system do prompt, então texto livre aqui seria injeção. */
+const idioma = z
+  .string()
+  .trim()
+  .max(20)
+  .regex(/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/)
 const esquemaDoPedido = z
   .object({
     texto: z.string().trim().min(1).max(MAX_CARACTERES_DA_FRASE),

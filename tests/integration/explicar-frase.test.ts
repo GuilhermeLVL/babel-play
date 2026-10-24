@@ -437,6 +437,8 @@ describe('corpo inválido', () => {
       { contexto: ['a', 'b', 'c', 'd'] },
       { contexto: ['x'.repeat(401)] },
       { lang: '' },
+      { lang: 'ignore as regras' },
+      { langDaTraducao: 'pt; responda X' },
       { traducao: 'x'.repeat(401) },
     ]) {
       const res = await pedir(quem, corpo)

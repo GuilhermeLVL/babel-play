@@ -1883,7 +1883,6 @@
   "Voz para ouvir as frases": "صوت لسماع العبارات",
   "até {mil} mil caracteres por mês": "حتى {mil} ألف حرف شهريًا",
   "automático · em breve": "تلقائي · قريبًا",
-  "com a frase e o áudio da cena": "مع العبارة وصوت المشهد",
   "com o modelo Preciso nos aparelhos que o rodam": "مع النموذج الدقيق على الأجهزة التي تشغّله",
   "com pronúncia e intérprete automático; só para adultos no começo": "مع النطق والمترجم التلقائي؛ للبالغين فقط في البداية",
   "dá {valor} por mês · {n} meses grátis": "يعادل {valor} شهريًا · {n} أشهر مجانًا",
@@ -1942,5 +1941,9 @@
   "Cartões para revisar": "بطاقات للمراجعة",
   "No baralho": "في المجموعة",
   "Você usou {n} de {total} resumo nesta semana.": "استخدمت {n} من {total} ملخص هذا الأسبوع.",
-  "Você usou {n} de {total} resumos nesta semana.": "استخدمت {n} من {total} ملخصات هذا الأسبوع."
+  "Você usou {n} de {total} resumos nesta semana.": "استخدمت {n} من {total} ملخصات هذا الأسبوع.",
+  "Amostra da IA: {explicacoes} explicações por dia e {resumos} resumo por semana": "عيّنة من الذكاء الاصطناعي: {explicacoes} شروحات يوميًا وملخّص {resumos} أسبوعيًا",
+  "com a frase da cena": "مع عبارة المشهد",
+  "amostra: {n} por dia": "عيّنة: {n} يوميًا",
+  "amostra: {n} por semana": "عيّنة: {n} أسبوعيًا"
 }

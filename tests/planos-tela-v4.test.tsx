@@ -278,6 +278,66 @@ describe('Planos v4: itens "em breve" e voz natural', () => {
   })
 })
 
+describe('Planos v4: IA de estudo (`ia_de_estudo`)', () => {
+  const temCheck = (li: Element) => !!li.querySelector('.lucide-check')
+  const itemDe = (id: string, texto: string) =>
+    [...cartao(id).querySelectorAll('li')].find((li) => li.textContent?.includes(texto))
+  const linhaDaComparacao = (texto: string) =>
+    [...document.querySelectorAll('.pl-compara tbody tr')].find((tr) => tr.textContent?.includes(texto))!
+  const celula = (texto: string, plano: string) =>
+    linhaDaComparacao(texto).querySelector(`[data-c="${plano}"]`)!.textContent
+
+  it('desligada: explicação e resumo seguem "em breve", o Grátis não fala da amostra', async () => {
+    await abrir('plus')
+    for (const texto of ['Explicação da frase no contexto', 'Resumo da sessão que vira cartões']) {
+      const li = itemDe('plus', texto)!
+      expect(li.className).toContain('pl-item-breve')
+      expect(temCheck(li)).toBe(false)
+      expect(li.textContent).toContain('em breve')
+      expect(celula(texto, 'plus')).toBe('em breve')
+      expect(celula(texto, 'gratis')).not.toMatch(/amostra/)
+    }
+    expect(cartao('gratis').textContent).not.toContain('Amostra da IA')
+    expect(itemDe('plus', 'Resumo da sessão que vira cartões')!.textContent).toContain('com a frase da cena')
+    expect(tela()).not.toContain('áudio da cena')
+  })
+
+  it('ligada: os dois itens do Plus são normais e o Grátis mostra a amostra', async () => {
+    definirEstadoDasFlags({ ia_de_estudo: { ligada: true } })
+    await abrir('plus')
+    for (const texto of ['Explicação da frase no contexto', 'Resumo da sessão que vira cartões']) {
+      const li = itemDe('plus', texto)!
+      expect(li.className).not.toContain('pl-item-breve')
+      expect(temCheck(li)).toBe(true)
+      expect(li.querySelector('.pl-em-breve-tag')).toBeNull()
+      expect(celula(texto, 'plus')).not.toBe('em breve')
+    }
+    expect(itemDe('plus', 'Resumo da sessão que vira cartões')!.textContent).toContain('com a frase da cena')
+    expect(tela()).not.toContain('áudio da cena')
+    expect(itemDe('gratis', 'Amostra da IA')!.textContent).toContain(
+      'Amostra da IA: 5 explicações por dia e 1 resumo por semana',
+    )
+    expect(celula('Explicação da frase no contexto', 'gratis')).toBe('amostra: 5 por dia')
+    expect(celula('Resumo da sessão que vira cartões', 'gratis')).toBe('amostra: 1 por semana')
+  })
+
+  it('ligada, perfil protegido: a amostra aparece e continua sem preço nem oferta', async () => {
+    definirEstadoDasFlags({ ia_de_estudo: { ligada: true } })
+    definirProtecao({
+      nascimentoInformado: true,
+      faixa: '12-15',
+      protegido: true,
+      exigeResponsavel: true,
+      exigeConsentimentoEspecifico: true,
+      vinculo: { estado: 'nenhum' },
+      restrita: false,
+    })
+    await abrir('plus')
+    expect(itemDe('gratis', 'Amostra da IA')).toBeTruthy()
+    expect(tela()).not.toContain('R$')
+  })
+})
+
 describe('Planos v4 sem o /status (pendente ou com falha)', () => {
   it('com a flag ligada a tela já é a v4: Grátis, Plus e Pro, nunca o Premium', async () => {
     definirEstadoDasFlags({ venda_planos_v4: { ligada: true } })

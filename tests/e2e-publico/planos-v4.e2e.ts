@@ -142,3 +142,37 @@ test('no celular (375), escolher Plus e Pro na comparação mostra a coluna cert
     expect(await colunasVisiveis()).toEqual(['gratis', id])
   }
 })
+
+for (const { nome, largura, altura } of TAMANHOS) {
+  test(`com a IA de estudo ligada, explicação e resumo saem do "em breve" e o Grátis mostra a amostra (${nome})`, async ({
+    page,
+  }) => {
+    await page.route('**/api/flags', (r) =>
+      r.fulfill({ json: { flags: { venda_planos_v4: { ligada: true }, ia_de_estudo: { ligada: true } } } }),
+    )
+    await page.route('**/api/billing/status', (r) =>
+      r.fulfill({ json: { configurado: true, assinatura: null, planosAVenda: ['plus'] } }),
+    )
+    await page.setViewportSize({ width: largura, height: altura })
+    await entrar(page, { premium: false })
+    await page.goto('/plano')
+    await chegarEm(page, page.locator('.pl-planos-grade > .pl-plano').first())
+
+    const plus = page.locator('[data-pl-plano="plus"]')
+    const gratis = page.locator('[data-pl-plano="gratis"]')
+    /* Só a voz natural (flag `voz_natural` desligada) segue "em breve" no Plus. */
+    await expect(plus.locator('.pl-em-breve-tag')).toHaveCount(1)
+    await expect(plus).toContainText('Explicação da frase no contexto')
+    await expect(plus).toContainText('com a frase da cena')
+    await expect(plus).not.toContainText('áudio da cena')
+    await expect(gratis).toContainText('Amostra da IA: 5 explicações por dia e 1 resumo por semana')
+
+    const pasta = process.env.CAPTURAS_PLANOS_V4
+    if (pasta) {
+      await page.setViewportSize({ width: largura, height: nome === '375' ? 4200 : 2300 })
+      await page.screenshot({ path: `${pasta}/planos-v4-ia-de-estudo-${nome}.png` })
+      await page.setViewportSize({ width: largura, height: altura })
+    }
+    expect(await violacoesGraves(page)).toEqual([])
+  })
+}

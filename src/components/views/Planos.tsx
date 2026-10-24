@@ -21,6 +21,7 @@ import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useLayoutEf
 import {
   DIAS_DO_TESTE_PREMIUM,
   ehPlanoPago,
+  FLAG_IA_DE_ESTUDO,
   FLAG_STT_AO_VIVO,
   FLAG_VENDA_PLANOS_V3,
   FLAG_VENDA_PLANOS_V4,
@@ -267,6 +268,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
   const vendaV4 = useFlag(FLAG_VENDA_PLANOS_V4);
   const aoVivoExiste = useFlag(FLAG_STT_AO_VIVO);
   const vozNatural = useFlag(FLAG_VOZ_NATURAL);
+  const iaDeEstudo = useFlag(FLAG_IA_DE_ESTUDO);
   const anunciosLigados = useFlag('anuncios');
   const comAnuncios = anunciosLigados || prova.anuncios;
   const aVenda: readonly PlanoPago[] =
@@ -515,6 +517,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
     visiveis,
     comAnuncios,
     vozNatural,
+    iaDeEstudo,
     preciso,
     v4: modoV4,
     emBreve,

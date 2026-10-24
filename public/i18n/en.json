@@ -4883,7 +4883,6 @@
   "Voz para ouvir as frases": "Voice to hear the phrases",
   "até {mil} mil caracteres por mês": "up to {mil} thousand characters a month",
   "automático · em breve": "automatic · coming soon",
-  "com a frase e o áudio da cena": "with the phrase and the audio from the scene",
   "com o modelo Preciso nos aparelhos que o rodam": "with the Precise model on devices that run it",
   "com pronúncia e intérprete automático; só para adultos no começo": "with pronunciation and automatic interpreter; adults only at the start",
   "dá {valor} por mês · {n} meses grátis": "comes to {valor} a month · {n} months free",
@@ -4931,5 +4930,9 @@
   "Cartões para revisar": "Cards to review",
   "No baralho": "In the deck",
   "Você usou {n} de {total} resumo nesta semana.": "You've used {n} of {total} summary this week.",
-  "Você usou {n} de {total} resumos nesta semana.": "You've used {n} of {total} summaries this week."
+  "Você usou {n} de {total} resumos nesta semana.": "You've used {n} of {total} summaries this week.",
+  "Amostra da IA: {explicacoes} explicações por dia e {resumos} resumo por semana": "AI sample: {explicacoes} explanations a day and {resumos} summary a week",
+  "com a frase da cena": "with the phrase from the scene",
+  "amostra: {n} por dia": "sample: {n} a day",
+  "amostra: {n} por semana": "sample: {n} a week"
 }

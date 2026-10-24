@@ -1,6 +1,7 @@
 import { type LucideIcon, Monitor, RectangleGoggles, Smartphone } from 'lucide-react';
 
 import {
+  AMOSTRA_DE_IA,
   DIAS_DO_TESTE_PREMIUM,
   FRANQUIA_DE_ALIVIO,
   horasDeTranscricao,
@@ -114,6 +115,11 @@ export interface ContextoDosPlanos {
    */
   vozNatural?: boolean;
   /**
+   * A flag `ia_de_estudo` está ligada: a explicação da frase e o resumo da sessão existem. Desligada, os dois
+   * itens do Plus dizem "em breve" e o Grátis não fala da amostra (nada se promete como pronto).
+   */
+  iaDeEstudo?: boolean;
+  /**
    * O modelo local Preciso (Parakeet, pt/es) roda NESTE aparelho (`precisoCabeAqui`). Muda o que a nota
    * do aparelho promete: com ele o computador não "erra mais".
    */
@@ -163,6 +169,17 @@ function itensProprios(id: PlanoDaTela, c: ContextoDosPlanos): Item[] {
       },
       { tema: 'jogos', texto: t('Jogos, vocabulário e revisão') },
       { tema: 'biblioteca', texto: t('Cartões, leitura, biblioteca e Anki') },
+      ...(c.iaDeEstudo === true
+        ? [
+            {
+              tema: 'amostra-ia',
+              texto: t('Amostra da IA: {explicacoes} explicações por dia e {resumos} resumo por semana', {
+                explicacoes: numero(AMOSTRA_DE_IA.explicacoesDia),
+                resumos: numero(AMOSTRA_DE_IA.resumosSemana),
+              }),
+            },
+          ]
+        : []),
       {
         tema: 'nuvem',
         texto: t('Nuvem: até {horas} h por mês, para aparelho fraco, quando disponível', {
@@ -209,13 +226,13 @@ function itensProprios(id: PlanoDaTela, c: ContextoDosPlanos): Item[] {
         tema: 'contexto',
         texto: t('Explicação da frase no contexto'),
         nota: t('por que essa tradução, gramática, formal ou informal, gíria'),
-        emBreve: true,
+        ...(c.iaDeEstudo === true ? {} : { emBreve: true }),
       },
       {
         tema: 'resumo',
         texto: t('Resumo da sessão que vira cartões'),
-        nota: t('com a frase e o áudio da cena'),
-        emBreve: true,
+        nota: t('com a frase da cena'),
+        ...(c.iaDeEstudo === true ? {} : { emBreve: true }),
       },
     ];
   }
@@ -644,8 +661,30 @@ function linhasDaComparacaoV4(c: ContextoDosPlanos): [string, Celula[]][] {
       t('Voz para ouvir as frases'),
       por((id) => (id === 'gratis' || c.vozNatural === true ? voz[definicao(id).entitlements.nivelDeVoz] : emBreve)),
     ],
-    [t('Explicação da frase no contexto'), por((id) => (id === 'gratis' ? 0 : emBreve))],
-    [t('Resumo da sessão que vira cartões'), por((id) => (id === 'gratis' ? 0 : emBreve))],
+    [
+      t('Explicação da frase no contexto'),
+      por((id) =>
+        c.iaDeEstudo !== true
+          ? id === 'gratis'
+            ? 0
+            : emBreve
+          : id === 'gratis'
+            ? t('amostra: {n} por dia', { n: numero(AMOSTRA_DE_IA.explicacoesDia) })
+            : 1,
+      ),
+    ],
+    [
+      t('Resumo da sessão que vira cartões'),
+      por((id) =>
+        c.iaDeEstudo !== true
+          ? id === 'gratis'
+            ? 0
+            : emBreve
+          : id === 'gratis'
+            ? t('amostra: {n} por semana', { n: numero(AMOSTRA_DE_IA.resumosSemana) })
+            : 1,
+      ),
+    ],
     [t('Conversa por voz com um tutor'), por((id) => (id === 'pro4' ? emBreve : 0))],
     [
       t('Intérprete'),

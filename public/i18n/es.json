@@ -1762,7 +1762,6 @@
   "Voz para ouvir as frases": "Voz para escuchar las frases",
   "até {mil} mil caracteres por mês": "hasta {mil} mil caracteres al mes",
   "automático · em breve": "automático · próximamente",
-  "com a frase e o áudio da cena": "con la frase y el audio de la escena",
   "com o modelo Preciso nos aparelhos que o rodam": "con el modelo Preciso en los dispositivos que lo ejecutan",
   "com pronúncia e intérprete automático; só para adultos no começo": "con pronunciación e intérprete automático; solo para adultos al principio",
   "dá {valor} por mês · {n} meses grátis": "sale a {valor} al mes · {n} meses gratis",
@@ -1821,5 +1820,9 @@
   "Cartões para revisar": "Tarjetas para repasar",
   "No baralho": "En el mazo",
   "Você usou {n} de {total} resumo nesta semana.": "Has usado {n} de {total} resumen esta semana.",
-  "Você usou {n} de {total} resumos nesta semana.": "Has usado {n} de {total} resúmenes esta semana."
+  "Você usou {n} de {total} resumos nesta semana.": "Has usado {n} de {total} resúmenes esta semana.",
+  "Amostra da IA: {explicacoes} explicações por dia e {resumos} resumo por semana": "Muestra de la IA: {explicacoes} explicaciones al día y {resumos} resumen por semana",
+  "com a frase da cena": "con la frase de la escena",
+  "amostra: {n} por dia": "muestra: {n} al día",
+  "amostra: {n} por semana": "muestra: {n} por semana"
 }

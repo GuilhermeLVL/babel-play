@@ -96,6 +96,7 @@ describe('Planos v4 ligada: Grátis, Plus e Pro, com a Família numa linha', () 
   })
 
   it('"em breve" fica dentro do cartão do Plus (explicação no contexto e resumo→cartões), nunca no Grátis', async () => {
+    definirEstadoDasFlags({ voz_natural: { ligada: true } })
     await abrir('plus')
     const plus = cartao('plus').textContent ?? ''
     expect(plus).toContain('Explicação da frase no contexto')
@@ -229,4 +230,99 @@ describe('Planos v4 com quem já tem o Premium (staging)', () => {
     expect(cartao('plus').textContent).toContain('Plus')
     expect(cartao('pro4').querySelectorAll('button')).toHaveLength(0)
   })
+})
+
+describe('Planos v4: itens "em breve" e voz natural', () => {
+  const temCheck = (li: Element) => !!li.querySelector('.lucide-check')
+  const itemDe = (id: string, texto: string) =>
+    [...cartao(id).querySelectorAll('li')].find((li) => li.textContent?.includes(texto))!
+
+  it('item "em breve" não leva o ✓ dos incluídos: leva o relógio e o texto "em breve"', async () => {
+    definirEstadoDasFlags({ voz_natural: { ligada: true } })
+    await abrir('plus')
+    for (const [id, texto] of [
+      ['plus', 'Explicação da frase no contexto'],
+      ['plus', 'Resumo da sessão que vira cartões'],
+      ['pro4', 'Conversa por voz com um tutor'],
+    ]) {
+      const li = itemDe(id, texto)
+      expect(temCheck(li), texto).toBe(false)
+      expect(li.querySelector('.lucide-clock'), texto).not.toBeNull()
+      expect(li.textContent).toContain('em breve')
+    }
+    expect(temCheck(itemDe('plus', 'Tutor de IA por texto (iChat)'))).toBe(true)
+  })
+
+  it('com `voz_natural` ligada, a voz do Plus é um item normal com o teto de caracteres', async () => {
+    definirEstadoDasFlags({ voz_natural: { ligada: true } })
+    await abrir('plus')
+    const li = itemDe('plus', 'Voz natural para ouvir as frases')
+    expect(li.textContent).toContain('até 150 mil caracteres por mês')
+    expect(temCheck(li)).toBe(true)
+    expect(li.querySelector('.pl-em-breve-tag')).toBeNull()
+    const celula = document.querySelector('.pl-compara tbody')!.textContent ?? ''
+    expect(celula).toContain('Voz para ouvir as frases')
+  })
+
+  it('com `voz_natural` desligada, a voz do Plus aparece "em breve" (item e comparação)', async () => {
+    await abrir('plus')
+    const li = itemDe('plus', 'Voz natural para ouvir as frases')
+    expect(li.className).toContain('pl-item-breve')
+    expect(temCheck(li)).toBe(false)
+    expect(li.textContent).toContain('em breve')
+    const linha = [...document.querySelectorAll('.pl-compara tbody tr')].find((tr) =>
+      tr.textContent?.includes('Voz para ouvir as frases'),
+    )!
+    expect(linha.querySelector('[data-c="plus"]')!.textContent).toBe('em breve')
+    expect(linha.querySelector('[data-c="gratis"]')!.textContent).toBe('do aparelho')
+  })
+})
+
+describe('Planos v4 sem o /status (pendente ou com falha)', () => {
+  it('com a flag ligada a tela já é a v4: Grátis, Plus e Pro, nunca o Premium', async () => {
+    definirEstadoDasFlags({ venda_planos_v4: { ligada: true } })
+    localStorage.setItem('babel.px.planoDeProva', 'free')
+    render(<Planos />)
+    await aguardar()
+    expect(cartoes()).toEqual(['gratis', 'plus', 'pro4'])
+    expect(tela()).not.toMatch(/Premium/)
+  })
+
+  it('o plano do checkout, sem nada guardado, é o Plus', async () => {
+    definirEstadoDasFlags({ venda_planos_v4: { ligada: true } })
+    localStorage.setItem('babel.px.planoDeProva', 'free')
+    window.history.replaceState({}, '', '/plano/assinar')
+    render(<Planos />)
+    await aguardar()
+    const checkout = document.querySelector<HTMLElement>('[aria-label="Plano e período"]')!
+    expect(checkout.textContent).toContain('Plus')
+    expect(checkout.textContent).not.toContain('Premium')
+  })
+})
+
+describe('Checkout por endereço com perfil protegido (v4)', () => {
+  const protegido = {
+    nascimentoInformado: true,
+    faixa: '12-15' as const,
+    protegido: true,
+    exigeResponsavel: true,
+    exigeConsentimentoEspecifico: true,
+    vinculo: { estado: 'nenhum' as const },
+    restrita: false,
+  }
+  for (const [nome, estado] of [
+    ['menor declarado', protegido],
+    ['idade não declarada', { ...protegido, nascimentoInformado: false, faixa: null }],
+  ] as const)
+    it(`${nome}: nenhum "R$", nenhum "responsável", e um caminho de volta`, async () => {
+      definirProtecao(estado)
+      sessionStorage.setItem('babel.checkout.plano', 'plus')
+      window.history.replaceState({}, '', '/plano/assinar')
+      await abrir('plus')
+      expect(tela()).not.toContain('R$')
+      expect(tela()).not.toMatch(/responsável|pais/)
+      expect(document.querySelector('[aria-label="Plano e período"]')).toBeNull()
+      expect(tela()).toContain('Os planos pagos não estão disponíveis neste perfil')
+      expect(document.querySelector('[aria-label="Voltar para Planos"]')).not.toBeNull()
+    })
 })

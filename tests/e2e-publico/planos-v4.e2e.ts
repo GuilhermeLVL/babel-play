@@ -61,7 +61,9 @@ for (const { nome, largura, altura } of TAMANHOS) {
     const familia = page.locator('[data-pl-familia]')
     await expect(plus).toContainText('R$ 14,90')
     await expect(plus).toContainText('8 h de nuvem por mês')
-    await expect(plus.locator('.pl-em-breve-tag')).toHaveCount(2)
+    /* Explicação, resumo e (com `voz_natural` desligada) a voz natural. */
+    await expect(plus.locator('.pl-em-breve-tag')).toHaveCount(3)
+    await expect(plus.locator('.pl-item-breve .lucide-check')).toHaveCount(0)
     await expect(pro).toContainText('Em breve')
     await expect(pro).not.toContainText('R$')
     await expect(pro.getByRole('button')).toHaveCount(0)

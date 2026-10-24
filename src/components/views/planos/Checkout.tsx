@@ -46,7 +46,7 @@ import { carregarEntitlements, type Plan } from '../../../lib/entitlements';
 import { t } from '../../../lib/i18n';
 import { registrarCheckoutIniciado } from '../../../lib/ofertas/instrumentacao';
 import { comNomeDoPlano } from '../../../lib/planoDeEntrada';
-import { estadoDaProtecao } from '../../../lib/protecaoDoMenor';
+import { estadoDaProtecao, perfilProtegido } from '../../../lib/protecaoDoMenor';
 import { T } from '../../../lib/T';
 import { irSub, PLANO_ICO, PLANO_NOME } from './dados';
 import Etapas, { rolarAoTopo } from './Etapas';
@@ -756,6 +756,33 @@ export default function Checkout({
       </p>
     </section>
   );
+
+  /* PLANOS v4: o perfil protegido (menor, ou idade não declarada) que chega ao checkout por endereço não vê
+     preço, resumo nem "peça ao seu responsável": só a frase neutra e o caminho de volta. */
+  if (planos.includes('plus') && (menor || protecao?.protegido === true || perfilProtegido()))
+    return (
+      <div className="q-palco qc" data-testid="checkout-do-quest">
+        <header className="q-cab">
+          <button
+            type="button"
+            className="q-ctl q-voltar"
+            aria-label={t('Voltar para Planos')}
+            onClick={() => irSub(null)}
+          >
+            <ArrowLeft aria-hidden /> {t('Planos')}
+          </button>
+          <div>
+            <p className="q-sobre">{t('Assinatura')}</p>
+            <h1>{t('Planos')}</h1>
+          </div>
+        </header>
+        <section className="q-cartao" role="status">
+          <p className="q-texto">
+            {t('Os planos pagos não estão disponíveis neste perfil. Tudo no aparelho segue sem limite.')}
+          </p>
+        </section>
+      </div>
+    );
 
   const IconeDoResumo = PLANO_ICO[plano];
   return (

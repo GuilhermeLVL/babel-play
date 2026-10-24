@@ -48,3 +48,12 @@
 .pl-em-breve {
   text-align: center;
 }
+
+/* Item "em breve": o relógio no lugar do ✓ dos incluídos; o texto esmaecido sem perder o contraste AA
+   (cor de texto secundária, nunca opacidade). */
+.pl-item-breve > svg {
+  color: var(--ink-muted, currentColor);
+}
+.pl-item-breve > span {
+  color: var(--ink-muted, inherit);
+}

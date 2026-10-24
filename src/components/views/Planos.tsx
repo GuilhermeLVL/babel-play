@@ -6,6 +6,7 @@ import {
   CalendarClock,
   Check,
   ChevronDown,
+  Clock,
   Gauge,
   Info,
   LoaderCircle,
@@ -59,7 +60,7 @@ import { carregarEntitlements, getEntitlements, onPlanChange, PLAN_LABELS } from
 import { flagLigada, useFlag } from '../../lib/flags';
 import { numero, t, tp } from '../../lib/i18n';
 import { consumirDestaqueEmPlanos } from '../../lib/ofertas/destaque';
-import { comNomeDoPlano } from '../../lib/planoDeEntrada';
+import { comNomeDoPlano, planoDeEntradaAgora } from '../../lib/planoDeEntrada';
 import {
   alternarPergunta,
   arrumarPlanos,
@@ -153,9 +154,9 @@ const CHAVE_DO_CHECKOUT = CHAVE_DO_PLANO_DO_CHECKOUT;
 /** O plano do checkout desta aba; o nome antigo guardado antes do deploy é o Premium, e o padrão também. */
 function planoGuardado(): PlanoPago {
   try {
-    return planoPagoDe(sessionStorage.getItem(CHAVE_DO_CHECKOUT)) ?? 'premium';
+    return planoPagoDe(sessionStorage.getItem(CHAVE_DO_CHECKOUT)) ?? planoDeEntradaAgora();
   } catch {
-    return 'premium';
+    return planoDeEntradaAgora();
   }
 }
 
@@ -262,6 +263,8 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
   /* OS PLANOS À VENDA: o servidor diz (`planosAVenda` do status); sem ele, as duas chaves da venda no
      cache de flags. Com tudo desligado sobra o que nunca teve chave: o Premium. */
   const vendaV3 = useFlag(FLAG_VENDA_PLANOS_V3);
+  /* Com a v4 ligada, antes do `/status` chegar (ou se ele falhar) a tela já é a v4: nunca o Premium. */
+  const vendaV4 = useFlag(FLAG_VENDA_PLANOS_V4);
   const aoVivoExiste = useFlag(FLAG_STT_AO_VIVO);
   const vozNatural = useFlag(FLAG_VOZ_NATURAL);
   const anunciosLigados = useFlag('anuncios');
@@ -269,7 +272,13 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
   const aVenda: readonly PlanoPago[] =
     prova.aVenda ??
     status?.planosAVenda?.filter(ehPlanoPago) ??
-    planosAVenda((chave) => (chave === FLAG_VENDA_PLANOS_V3 ? vendaV3 : chave === FLAG_STT_AO_VIVO && aoVivoExiste));
+    planosAVenda((chave) =>
+      chave === FLAG_VENDA_PLANOS_V3
+        ? vendaV3
+        : chave === FLAG_VENDA_PLANOS_V4
+          ? vendaV4
+          : chave === FLAG_STT_AO_VIVO && aoVivoExiste,
+    );
   const contaReal = estadoDaConta(meuPlano, status, Date.now(), entitlements.teste);
   /* PLANOS v4: a venda do Plus aberta (o servidor diz pelo `planosAVenda`) muda a tela para Grátis, Plus e
      Pro, com a Família numa linha. Fechada, é a tela de hoje. O Pro e a Família ficam "em breve". */
@@ -711,8 +720,12 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
         {p.base && <p className="px-tudo">{p.base}</p>}
         <ul>
           {p.itens.map((i) => (
-            <li key={i.texto}>
-              <Check aria-hidden />
+            <li
+              key={i.texto}
+              className={i.emBreve ? 'pl-item-breve' : undefined}
+              data-em-breve={i.emBreve ? '' : undefined}
+            >
+              {i.emBreve ? <Clock aria-hidden /> : <Check aria-hidden />}
               <span>
                 {i.texto}
                 {i.emBreve && <em className="pl-em-breve-tag">{t('em breve')}</em>}
@@ -1033,9 +1046,16 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
               {!emBreve.includes('familia') && <div className="pl-plano-pe">{acoesDoCartao('familia')}</div>}
             </section>
           )}
-          <p className="px-garantia">
-            <Lock aria-hidden /> {t('Pagamento seguro · 7 dias para desistir com reembolso · cancele quando quiser')}
-          </p>
+          {protegidoNaV4 ? (
+            <p className="px-garantia" role="status">
+              <Lock aria-hidden />{' '}
+              {t('Os planos pagos não estão disponíveis neste perfil. Tudo no aparelho segue sem limite.')}
+            </p>
+          ) : (
+            <p className="px-garantia">
+              <Lock aria-hidden /> {t('Pagamento seguro · 7 dias para desistir com reembolso · cancele quando quiser')}
+            </p>
+          )}
           <section className="q-secao pl-comparar">
             <header>
               <div>

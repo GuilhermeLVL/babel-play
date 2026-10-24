@@ -185,12 +185,15 @@ function itensProprios(id: PlanoDaTela, c: ContextoDosPlanos): Item[] {
       ...(e.managedCloudLlm
         ? [{ tema: 'tutor', texto: t('Tutor de IA por texto (iChat)'), nota: t('sobre o seu material') }]
         : []),
-      ...(c.vozNatural && voz
+      /* Voz natural: com a flag `voz_natural` ligada é um item normal; desligada, ela ainda não chega a
+         ninguém, então o item diz "em breve" (nada se promete como pronto). */
+      ...(voz
         ? [
             {
               tema: 'voz',
               texto: t('Voz natural para ouvir as frases'),
               nota: t('até {mil} mil caracteres por mês', { mil: numero(Math.round(voz / 1000)) }),
+              ...(c.vozNatural === true ? {} : { emBreve: true }),
             },
           ]
         : []),
@@ -637,7 +640,10 @@ function linhasDaComparacaoV4(c: ContextoDosPlanos): [string, Celula[]][] {
     ],
     [t('Nuance, polir a sessão e glossário'), por((id) => (id === 'gratis' ? 0 : tem(id, 'traducaoNuance')))],
     [t('Tutor de IA por texto (iChat)'), por((id) => (id === 'gratis' ? 0 : tem(id, 'managedCloudLlm')))],
-    c.vozNatural === true && [t('Voz para ouvir as frases'), por((id) => voz[definicao(id).entitlements.nivelDeVoz])],
+    [
+      t('Voz para ouvir as frases'),
+      por((id) => (id === 'gratis' || c.vozNatural === true ? voz[definicao(id).entitlements.nivelDeVoz] : emBreve)),
+    ],
     [t('Explicação da frase no contexto'), por((id) => (id === 'gratis' ? 0 : emBreve))],
     [t('Resumo da sessão que vira cartões'), por((id) => (id === 'gratis' ? 0 : emBreve))],
     [t('Conversa por voz com um tutor'), por((id) => (id === 'pro4' ? emBreve : 0))],

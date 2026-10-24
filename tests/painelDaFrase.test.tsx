@@ -162,9 +162,23 @@ describe('PainelDaFrase', () => {
     expect(document.activeElement?.textContent).toBe(A.texto)
   })
 
-  it('Esc não fecha o painel enquanto um diálogo modal está aberto por cima', () => {
+  it('Esc não fecha o painel com uma camada modal por cima; um <dialog> não modal não segura o Esc', () => {
     const aoFechar = vi.fn()
-    render(
+    const { rerender } = render(
+      <>
+        <Tela aoFechar={aoFechar} />
+        <div role="dialog" aria-modal="true">
+          <button type="button">na camada</button>
+        </div>
+      </>,
+    )
+    const naCamada = screen.getByRole('button', { name: 'na camada' })
+    naCamada.focus()
+    fireEvent.keyDown(naCamada, { key: 'Escape' })
+    expect(aoFechar).not.toHaveBeenCalled()
+
+    /* `<dialog open>` sem `showModal()` não é modal (`:modal` falso): o Esc é do painel. */
+    rerender(
       <>
         <Tela aoFechar={aoFechar} />
         <dialog open>
@@ -175,7 +189,19 @@ describe('PainelDaFrase', () => {
     const noDialogo = screen.getByRole('button', { name: 'no diálogo' })
     noDialogo.focus()
     fireEvent.keyDown(noDialogo, { key: 'Escape' })
-    expect(aoFechar).not.toHaveBeenCalled()
+    expect(aoFechar).toHaveBeenCalledTimes(1)
+  })
+
+  it('anuncia a frase escolhida numa região viva, e a troca de frase também', async () => {
+    render(<Tela />)
+    const viva = painel().querySelector('[aria-live="polite"]') as HTMLElement
+    expect(viva).toBeTruthy()
+    await act(async () => undefined)
+    expect(viva.textContent).toBe(`Frase escolhida: ${A.texto}`)
+    fireEvent.click(screen.getByRole('button', { name: 'outra' }))
+    await act(async () => undefined)
+    expect(painel().querySelector('[aria-live="polite"]')).toBe(viva)
+    expect(viva.textContent).toBe(`Frase escolhida: ${B.texto}`)
   })
 
   it('aberto pelo teclado, o foco vai para o painel; pelo toque, fica onde estava', () => {
@@ -265,12 +291,20 @@ describe('PainelDaFrase', () => {
     }
     render(<ComPalavra />)
     const antes = painel()
-    fireEvent.click(within(antes).getByRole('button', { name: 'roadmap' }))
+    /* Pelo teclado: o botão da palavra some com a frase, e o foco não pode cair no <body>. */
+    const roadmap = within(antes).getByRole('button', { name: 'roadmap' })
+    roadmap.focus()
+    fireEvent.keyDown(roadmap, { key: 'Enter' })
+    fireEvent.click(roadmap)
     await act(async () => undefined)
     const daPalavra = screen.getByRole('complementary', { name: 'Palavra: roadmap' })
     expect(daPalavra).toBe(antes)
     expect(daPalavra.querySelector('.folha-glosa')?.textContent).toBe('roteiro')
+    expect(document.activeElement).toBe(within(daPalavra).getByRole('button', { name: 'Voltar à frase' }))
+    fireEvent.keyDown(document.activeElement!, { key: 'Enter' })
     fireEvent.click(within(daPalavra).getByRole('button', { name: 'Voltar à frase' }))
     expect(painel()).toBe(antes)
+    expect(antes.contains(document.activeElement)).toBe(true)
+    expect(document.activeElement).not.toBe(document.body)
   })
 })

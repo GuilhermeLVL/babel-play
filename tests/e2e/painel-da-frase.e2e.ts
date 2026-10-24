@@ -65,6 +65,14 @@ test('1280: o painel abre à direita, a legenda segue inteira e clicável, Esc f
   for (const nome of ['Ouvir', 'Ouvir devagar', 'Repetir eu', 'Copiar'])
     await expect(p.getByRole('button', { name: nome, exact: true })).toBeVisible()
 
+  // O × inteiro dentro da janela, com alvo de pelo menos 44 px (medido depois da entrada de 260 ms).
+  await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))))
+  const x = await caixa(p.getByRole('button', { name: 'Fechar' }))
+  expect(x.width).toBeGreaterThanOrEqual(44)
+  expect(x.height).toBeGreaterThanOrEqual(44)
+  expect(x.y).toBeGreaterThanOrEqual(0)
+  expect(x.x + x.width).toBeLessThanOrEqual(1280)
+
   // À direita, encostado na borda da janela, e nada da legenda por baixo dele.
   const doPainel = await caixa(p)
   expect(doPainel.x + doPainel.width).toBeGreaterThanOrEqual(1279)
@@ -111,9 +119,10 @@ test('375: a folha baixa deixa a legenda à vista acima dela, e outra frase cont
   const p = painel(page)
   await verSemSobreposicao(page, p)
   await expect(page.getByRole('dialog', { name: 'Ações', exact: true })).toHaveCount(0)
+  await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))))
   const folha = await caixa(p)
-  // Folha baixa: a largura toda, entre ~40% e ~50% da altura, presa embaixo.
-  expect(folha.width).toBeGreaterThanOrEqual(370)
+  // Folha baixa: a largura da barra (cartão com 12 px de margem), entre ~40% e ~50% da altura.
+  expect(folha.width).toBeGreaterThanOrEqual(345)
   expect(folha.height).toBeGreaterThan(812 * 0.3)
   expect(folha.height).toBeLessThan(812 * 0.55)
   // A frase escolhida rola para cima da folha e fica à vista (a rolagem é suave: espera assentar).
@@ -127,6 +136,37 @@ test('375: a folha baixa deixa a legenda à vista acima dela, e outra frase cont
   /* Só o painel: a faixa da captura pronta, atrás da barra do celular, já acusa `target-size` sem ele
      (anotado no relatório de 24/10/2026, fora deste escopo). */
   expect(await violacoesGraves(page, ['.painel-da-frase'])).toEqual([])
+
+  /* A folha fica ACIMA da barra do app (o microfone do meio dela segue tocável) e rola até o fim sem nada
+     coberto: a última ação e a última palavra aparecem inteiras acima da barra. */
+  const barra = await caixa(page.locator('.q-trilho'))
+  expect(folha.y + folha.height).toBeLessThanOrEqual(barra.y)
+  const ultimaAcao = p.locator('.folha-acao').last()
+  const ultimaPalavra = p.locator('.folha-palavras button').last()
+  for (const alvo of [ultimaAcao, ultimaPalavra]) {
+    await alvo.scrollIntoViewIfNeeded()
+    const c = await caixa(alvo)
+    expect(c.y).toBeGreaterThanOrEqual(folha.y)
+    expect(c.y + c.height).toBeLessThanOrEqual(Math.min(barra.y, folha.y + folha.height))
+    const noCentro = await page.evaluate(
+      ([cx, cy]) => document.elementFromPoint(cx, cy)?.closest('.painel-da-frase') !== null,
+      [c.x + c.width / 2, c.y + c.height / 2],
+    )
+    expect(noCentro, 'nada por cima do alvo').toBe(true)
+  }
+  const mic = await caixa(page.locator('.q-trilho .q-item').nth(2))
+  expect(
+    await page.evaluate(
+      ([cx, cy]) => !!document.elementFromPoint(cx, cy)?.closest('.q-trilho'),
+      [mic.x + mic.width / 2, mic.y + mic.height / 2],
+    ),
+    'o microfone da barra continua à mão',
+  ).toBe(true)
+
+  // "Ir para a fala atual", se aparecer, fica acima da folha.
+  const irAoFim = page.getByRole('button', { name: 'Ir para a fala atual' })
+  if (await irAoFim.isVisible())
+    expect((await caixa(irAoFim)).y + (await caixa(irAoFim)).height).toBeLessThanOrEqual(folha.y)
 
   // Outra frase, acima da folha, continua tocável: troca o conteúdo.
   const outra = linha(page, 'hiking').locator('.q-fala')

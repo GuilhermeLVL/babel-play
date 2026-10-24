@@ -59,11 +59,19 @@ if (typeof document !== 'undefined') {
   document.addEventListener('pointerdown', () => (ultimaEntradaFoiTeclado = false), true);
 }
 
+/** `<dialog>` aberto por `showModal()` (`:modal`); onde o seletor não existe, todo `<dialog open>` conta. */
+const ehModal = (d: Element) => {
+  try {
+    return d.matches(':modal');
+  } catch {
+    return d.hasAttribute('open');
+  }
+};
+
 /** Um `<dialog>` modal ou uma camada `aria-modal` está aberta por cima: o Esc é dela. */
 function haCamadaModal(painel: HTMLElement): boolean {
-  for (const d of document.querySelectorAll<HTMLElement>('dialog[open], [aria-modal="true"]')) {
-    if (!painel.contains(d)) return true;
-  }
+  for (const d of document.querySelectorAll('dialog[open]')) if (!painel.contains(d) && ehModal(d)) return true;
+  for (const d of document.querySelectorAll('[aria-modal="true"]')) if (!painel.contains(d)) return true;
   return false;
 }
 
@@ -89,6 +97,7 @@ const fraseNaLegenda = () => document.querySelector<HTMLElement>('[data-frase-es
  */
 export default function PainelDaFrase({
   rotulo,
+  anuncio,
   modo,
   chave,
   aoFechar,
@@ -97,6 +106,11 @@ export default function PainelDaFrase({
   children,
 }: {
   rotulo: string;
+  /**
+   * O que a região viva diz quando a frase (ou a palavra) muda: o leitor de tela fica sabendo da troca mesmo
+   * quando o foco não vem para o painel (o clique virtual do leitor não passa por tecla nem ponteiro).
+   */
+  anuncio: string;
   modo: Exclude<ModoDoPainel, 'nao-cabe'>;
   /** Muda quando muda a frase (ou a palavra): rola a frase para a vista e guarda a volta do foco. */
   chave: string;
@@ -113,6 +127,9 @@ export default function PainelDaFrase({
   /* A frase de onde a pessoa veio: o foco volta para ela ao fechar. */
   const origem = useRef<HTMLElement | null>(null);
   const arrasto = useRef<{ y0: number; dy: number; moveu: boolean } | null>(null);
+  /* A região viva nasce vazia e só então recebe o texto: o que já nasce com texto pode não ser lido. */
+  const [falado, setFalado] = useState('');
+  useEffect(() => setFalado(anuncio), [anuncio]);
   const acabouDeArrastar = useRef(false);
 
   /* A casca abre espaço para o painel (a tela encolhe ou a legenda ganha folga embaixo). */
@@ -236,6 +253,9 @@ export default function PainelDaFrase({
           <X aria-hidden />
         </button>
       </div>
+      <p className="sr" aria-live="polite">
+        {falado}
+      </p>
       <div className="folha-corpo">{children}</div>
     </aside>
   );

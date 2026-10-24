@@ -5,7 +5,8 @@
 
 html {
   --pf-largura: 380px;
-  /* O que fica embaixo da folha baixa: a barra flutuante do celular (12 + 68 + 8 px) ou só a área segura. */
+  /* O que fica embaixo da folha baixa: a barra flutuante do celular (12 + 68 + 8 px) ou só a área segura.
+     Com a folha aberta a barra não se esconde ao rolar (`px-some`): a folha sempre pousa acima dela. */
   --pf-pe: env(safe-area-inset-bottom, 0px);
   --pf-meia: calc((100dvh - var(--pf-pe)) * 0.45);
   --pf-cheia: calc((100dvh - var(--pf-pe)) * 0.85);
@@ -17,8 +18,22 @@ html {
   }
 }
 @media (max-width: 720px) {
+  /* A folha fica ACIMA da barra flutuante (o microfone do meio dela segue à mão durante a gravação): o fundo
+     da folha pousa 8 px acima do topo da barra (12 + 68 px, com a área segura), e ela vira um cartão com os
+     quatro cantos e as mesmas margens da barra, para não parecer cortada. */
   html[data-px='on'] {
     --pf-pe: calc(max(12px, env(safe-area-inset-bottom, 0px)) + 76px);
+  }
+  html[data-px='on'][data-painel-da-frase='baixo'] .q-trilho.px-some {
+    transform: none !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+  html[data-px='on'] .painel-da-frase[data-modo='baixo'] {
+    inset-inline: 12px;
+    border-bottom: 1px solid var(--border-subtle);
+    border-radius: 24px;
+    padding-bottom: 20px;
   }
 }
 html[data-painel-cheio] {
@@ -42,6 +57,12 @@ html[data-painel-da-frase='lado'] :is(.fab, .painel-chat, .toast, .novidade-disc
   right: calc(var(--pf-largura) + 22px + var(--shell-inset-right, 0px));
 }
 html[data-painel-da-frase='baixo'] .fab {
+  bottom: calc(var(--pf-ocupa) + 12px);
+}
+/* "Ir para a fala atual" mora na base da legenda, que fica sob a folha: sobe para cima dela. */
+html[data-painel-da-frase='baixo'] .q-ir-para-o-fim {
+  position: fixed;
+  z-index: 26;
   bottom: calc(var(--pf-ocupa) + 12px);
 }
 
@@ -138,7 +159,8 @@ body.performance-mode .painel-da-frase {
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  min-height: 56px;
+  min-height: 64px;
+  padding-top: 8px;
   margin: 0 -4px 4px;
   background: var(--surface);
 }
@@ -164,10 +186,14 @@ body.performance-mode .painel-da-frase {
   outline: 3px solid var(--accent);
   outline-offset: -3px;
 }
-.painel-da-frase .pf-fechar {
+/* O × inteiro e com 48 px de alvo: o `.q-ctl` do app tem 60 px de mínimo e passava da linha do topo. */
+.painel-da-frase .pf-topo .pf-fechar {
   flex: none;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
 }
 .painel-da-frase .pf-fechar svg {
   width: 20px;

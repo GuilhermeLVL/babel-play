@@ -430,8 +430,15 @@ export default function FolhasDoPrototipo({
     if (anterior.current === qual) return;
     anterior.current = qual;
     if (dialogo.current) entrarFolha(dialogo.current);
+    const painel = doPainel.current;
+    if (!painel) return;
     /* No painel, só o conteúdo entra: ele não sai do lugar. */
-    if (doPainel.current) entrarConteudoDaFolha(doPainel.current);
+    entrarConteudoDaFolha(painel);
+    /* O botão em foco (a palavra, o "Voltar") saiu com o conteúdo antigo: o foco não cai no <body>. Vai para
+       o "Voltar à frase" da palavra ou, de volta na frase, para o painel. */
+    const ativo = document.activeElement;
+    if (!ativo || ativo === document.body || painel.contains(ativo))
+      (painel.querySelector<HTMLElement>('.folha-voltar') ?? painel).focus({ preventScroll: true });
   }, [qual]);
 
   if (!palavra && !fala) return null;
@@ -471,6 +478,11 @@ export default function FolhasDoPrototipo({
     return (
       <PainelDaFrase
         rotulo={palavra ? t('Palavra: {palavra}', { palavra: palavra.palavra }) : t('Frase escolhida')}
+        anuncio={
+          palavra
+            ? t('Palavra: {palavra}', { palavra: palavra.palavra })
+            : t('Frase escolhida: {frase}', { frase: fala?.texto ?? '' })
+        }
         modo={modo}
         chave={`${fala?.id ?? ''}|${qual}`}
         aoFechar={aoFechar}

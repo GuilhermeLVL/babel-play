@@ -246,15 +246,19 @@ export function useNiveisDaCaptura(
     precisao: quemTemONivel('precisao', amb.aVenda),
     aovivo: quemTemONivel('aovivo', amb.aVenda),
   };
-  const niveis: NivelDoSeletor[] = niveisDaTela({ ...amb, protegido: trancadoPeloPerfil }).map((n) => ({
-    ...n,
-    plano:
-      !n.tranca || n.nivel === 'aparelho' || (n.nivel === 'aovivo' && amb.capacidades.sttAoVivo)
-        ? null
-        : quem[n.nivel][0]
-          ? nomeDoPlano(quem[n.nivel][0].plano)
-          : null,
-  }));
+  /* Protegido COM o responsável: só o que ele já pode usar. Nível trancado é oferta de plano, e perfil
+     protegido não recebe oferta (ECA Digital), então nem aparece. */
+  const niveis: NivelDoSeletor[] = niveisDaTela({ ...amb, protegido: trancadoPeloPerfil })
+    .filter((n) => !(amb.protegido && n.tranca && n.nivel !== 'aparelho'))
+    .map((n) => ({
+      ...n,
+      plano:
+        amb.protegido || !n.tranca || n.nivel === 'aparelho' || (n.nivel === 'aovivo' && amb.capacidades.sttAoVivo)
+          ? null
+          : quem[n.nivel][0]
+            ? nomeDoPlano(quem[n.nivel][0].plano)
+            : null,
+    }));
 
   /** `escolherNivel()` de `planos4.js:317-328`: grava a preferência que já existia. Diz se gravou. */
   const escolher = (n: NivelDeServico): boolean => {

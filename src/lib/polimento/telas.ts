@@ -314,11 +314,14 @@ export function trocarDeTela(proxima: string, atual: string, trocar: () => void)
   const tipo = ultimaTecla > ultimoPonteiro ? 'teclado' : 'clique';
   const vez = ++vezDaTela;
   const dir = ordem(proxima) < ordem(atual) ? -1 : 1;
+  /* Uma troca anterior que não chegou (outra navegação passou na frente) não vira medida. */
+  trocaEm = null;
   if (!tela || !polido() || proxima === atual) return trocar();
   if (chegando) clearTimeout(chegando.solta);
   /* Rede de segurança: se nenhuma tela nova montar (destino sem conteúdo), a de agora reaparece. */
   const solta = window.setTimeout(() => {
     chegando = null;
+    trocaEm = null;
     limpar(tela);
   }, 4000);
   chegando = { dir, tipo, solta };
@@ -364,6 +367,13 @@ function esperarOConteudo(tela: HTMLElement): void {
 
 /** Uma tela nova montou dentro de `.px-tela`. */
 function chegou(tela: HTMLElement): void {
+  /* A montagem conta até a tela aparecer, com esqueleto ou não: a espera pelos dados (ou pelo pedaço, na
+     primeira visita) não é montagem. Cada medida vale até 200 ms, para uma troca lenta não zerar a saída
+     das próximas. */
+  if (trocaEm !== null) {
+    montagemMs = (montagemMs + Math.min(200, performance.now() - trocaEm)) / 2;
+    trocaEm = null;
+  }
   /* O app carrega dados e o protótipo não: enquanto a tela é só o esqueleto de carregamento, ela aparece
      sem cerimônia, e a entrada fica guardada para o conteúdo de verdade. */
   if ($('.q-esqueleto', tela)) {
@@ -373,10 +383,6 @@ function chegou(tela: HTMLElement): void {
   }
   aEspera?.disconnect();
   aEspera = null;
-  if (trocaEm !== null) {
-    montagemMs = Math.min(400, (montagemMs + (performance.now() - trocaEm)) / 2);
-    trocaEm = null;
-  }
   const de = chegando;
   if (de) clearTimeout(de.solta);
   chegando = null;

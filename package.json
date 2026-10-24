@@ -174,10 +174,7 @@
     "@esbuild-kit/core-utils": {
       "esbuild": "^0.25.0"
     },
-    "iconv-lite": "0.7.0",
-    "miniflare": {
-      "undici": "^7.30.1"
-    }
+    "iconv-lite": "0.7.0"
   },
   "lint-staged": {
     "*.{ts,tsx,mjs,js}": [

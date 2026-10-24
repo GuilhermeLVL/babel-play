@@ -38,6 +38,7 @@ import type { PlanoPago } from '../src/core/planos'
 import { decidirRota, type PedidoDeRota } from '../src/core/rota/politicaDeRota'
 import type { SttQuality } from '../src/gateway/sttRouter'
 import { type SeloDaFala, seloDaFala } from '../src/lib/captura/seloDaFala'
+import { definirProtecao, type EstadoDeProtecao } from '../src/lib/protecaoDoMenor'
 import type { UsoDoMes } from '../src/lib/uso'
 import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
 
@@ -264,6 +265,36 @@ describe('o perfil protegido', () => {
     const como = within(screen.getByTestId('como-isto-funciona'))
     expect(como.getAllByRole('radio')).toHaveLength(1)
     expect(como.queryByRole('button', { name: 'Ver os planos' })).toBeNull()
+  })
+})
+
+describe('o perfil protegido COM o responsável', () => {
+  afterEach(() => definirProtecao(null))
+  const comResponsavel = () =>
+    definirProtecao({
+      nascimentoInformado: true,
+      faixa: '16-17',
+      protegido: true,
+      exigeResponsavel: false,
+      exigeConsentimentoEspecifico: false,
+      vinculo: { estado: 'aceito' } as EstadoDeProtecao['vinculo'],
+      restrita: false,
+    })
+
+  it('no Grátis: só "No aparelho", sem nível trancado nem nome de plano', () => {
+    comResponsavel()
+    render(<Tela ambiente={{ capacidades: GRATIS, protegido: true }} />)
+    const radios = screen.getAllByRole('radio')
+    expect(radios.map((r) => r.textContent)).toEqual(['No aparelho'])
+    for (const r of radios) expect(r.title).not.toMatch(/Essencial|Premium|Ao Vivo|plano/)
+  })
+
+  it('com nuvem no plano: "Precisão" livre, e o "Ao vivo" trancado não aparece', () => {
+    comResponsavel()
+    render(<Tela ambiente={{ capacidades: COM_NUVEM, protegido: true }} />)
+    expect(temCadeado(nivel('Precisão'))).toBe(false)
+    expect(screen.queryByRole('radio', { name: /^Ao vivo/ })).toBeNull()
+    for (const r of screen.getAllByRole('radio')) expect(r.title).not.toMatch(/Essencial|Premium|Ao Vivo|plano/)
   })
 })
 

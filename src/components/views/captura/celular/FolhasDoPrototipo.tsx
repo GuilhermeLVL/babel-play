@@ -12,6 +12,7 @@ import { comNomeDoPlano, planoDeEntradaAgora } from '../../../../lib/planoDeEntr
 import { comemorarGuardada, entrarFolha } from '../../../../lib/polimento/captura';
 import { haVozPara } from '../../../../lib/voz/haVoz';
 import { toast } from '../../../Toast';
+import ExplicacaoDaFrase from '../estudo/ExplicacaoDaFrase';
 import { type FalaTocada, type NuanceNaFolhaDaFrase, palavrasDaFrase } from './FolhaDaFrase';
 import FolhaDeBaixo from './FolhaDeBaixo';
 
@@ -180,6 +181,14 @@ function CorpoDaFrase({
             />
           </Suspense>
         </>
+      )}
+      {nuance && (
+        <ExplicacaoDaFrase
+          fala={fala}
+          destino={nuance.destino}
+          contexto={nuance.contexto}
+          aoConhecer={nuance.aoConhecer}
+        />
       )}
       {palavras.length > 0 && (
         <>

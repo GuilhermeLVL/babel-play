@@ -219,6 +219,7 @@ import FolhasDoPrototipo from './captura/celular/FolhasDoPrototipo';
 import EncerrarSessao from './captura/EncerrarSessao';
 import { AjudaNoPainel } from './captura/enxuta/pecas';
 import EscolhaDoMicrofone from './captura/EscolhaDoMicrofone';
+import ExplicacaoDaFrase from './captura/estudo/ExplicacaoDaFrase';
 import GuiaDoAudioDaTela from './captura/GuiaDoAudioDaTela';
 import IdiomasDaSessao, { type Lado } from './captura/IdiomasDaSessao';
 import LegendaFlutuanteDoPrototipo from './captura/legendas/LegendaFlutuanteDoPrototipo';
@@ -3372,6 +3373,12 @@ export default function LiveCapture({
               <Suspense fallback={null}>
                 <NuanceDaFrase fala={falaNoComputador} {...nuanceDaFrase(falaNoComputador)} />
               </Suspense>
+              <ExplicacaoDaFrase
+                fala={falaNoComputador}
+                destino={nuanceDaFrase(falaNoComputador).destino}
+                contexto={nuanceDaFrase(falaNoComputador).contexto}
+                aoConhecer={conhecerOPremium}
+              />
             </div>
           </div>
         </Dialogo>

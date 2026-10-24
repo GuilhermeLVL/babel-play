@@ -1771,5 +1771,21 @@
   "sobre o seu material": "sobre tu material",
   "{n} meses grátis": "{n} meses gratis",
   "até {dia} h de nuvem por dia; passando disso, a legenda segue no aparelho": "hasta {dia} h de nube al día; pasado eso, el subtitulado sigue en el dispositivo",
-  "Os planos pagos não estão disponíveis neste perfil. Tudo no aparelho segue sem limite.": "Los planes de pago no están disponibles en este perfil. Todo en el dispositivo sigue sin límite."
+  "Os planos pagos não estão disponíveis neste perfil. Tudo no aparelho segue sem limite.": "Los planes de pago no están disponibles en este perfil. Todo en el dispositivo sigue sin límite.",
+  "Explicar esta frase": "Explicar esta frase",
+  "A explicação usa a IA de nuvem, que você ainda não autorizou.": "La explicación usa la IA en la nube, que aún no has autorizado.",
+  "Explicando a frase…": "Explicando la frase…",
+  "Por que essa tradução": "Por qué esta traducción",
+  "Gíria": "Jerga",
+  "Isto é uma IA e pode errar.": "Esto es una IA y puede equivocarse.",
+  "Você usou {n} de {total} explicações hoje.": "Has usado {n} de {total} explicaciones hoy.",
+  "A amostra de hoje acabou. A legenda e as palavras seguem funcionando. Volta amanhã.": "La muestra de hoy terminó. Los subtítulos y las palabras siguen funcionando. Vuelve mañana.",
+  "A amostra de hoje acabou. A legenda e as palavras seguem funcionando, e as explicações voltam amanhã.": "La muestra de hoy terminó. Los subtítulos y las palabras siguen funcionando, y las explicaciones vuelven mañana.",
+  "Você usou as explicações deste mês; elas voltam no dia {data}.": "Usaste las explicaciones de este mes; vuelven el {data}.",
+  "Você chegou ao limite de hoje. Volta amanhã.": "Llegaste al límite de hoy. Vuelve mañana.",
+  "Entre na sua conta para explicar frases.": "Inicia sesión en tu cuenta para explicar frases.",
+  "Não deu para explicar agora.": "No se pudo explicar ahora.",
+  "A nuvem está ocupada agora. Tente de novo em instantes.": "La nube está ocupada ahora. Inténtalo de nuevo en un momento.",
+  "Autorizar IA de nuvem": "Autorizar IA en la nube",
+  "Registro": "Registro"
 }

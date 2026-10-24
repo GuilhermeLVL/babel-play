@@ -6,6 +6,7 @@ import { t } from '../../../../lib/i18n';
 import { direcaoDoTexto } from '../../../../lib/languages';
 import { haVozPara } from '../../../../lib/voz/haVoz';
 import { toast } from '../../../Toast';
+import ExplicacaoDaFrase from '../estudo/ExplicacaoDaFrase';
 import FolhaDeBaixo from './FolhaDeBaixo';
 
 const SombraDaFala = lazy(() => import('../../analise/SombraDaFala'));
@@ -192,6 +193,14 @@ export default function FolhaDaFrase({
             aoEscolher={nuance.aoEscolher}
           />
         </Suspense>
+      )}
+      {nuance && (
+        <ExplicacaoDaFrase
+          fala={fala}
+          destino={nuance.destino}
+          contexto={nuance.contexto}
+          aoConhecer={nuance.aoConhecer}
+        />
       )}
       {palavras.length > 0 && (
         <>

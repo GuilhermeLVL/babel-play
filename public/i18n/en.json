@@ -4892,5 +4892,18 @@
   "sobre o seu material": "on your material",
   "{n} meses grátis": "{n} months free",
   "até {dia} h de nuvem por dia; passando disso, a legenda segue no aparelho": "up to {dia} h of cloud a day; beyond that, captions continue on your device",
-  "Os planos pagos não estão disponíveis neste perfil. Tudo no aparelho segue sem limite.": "Paid plans are not available on this profile. Everything on your device keeps working without limits."
+  "Os planos pagos não estão disponíveis neste perfil. Tudo no aparelho segue sem limite.": "Paid plans are not available on this profile. Everything on your device keeps working without limits.",
+  "Explicar esta frase": "Explain this sentence",
+  "A explicação usa a IA de nuvem, que você ainda não autorizou.": "The explanation uses cloud AI, which you haven't allowed yet.",
+  "Explicando a frase…": "Explaining the sentence…",
+  "Por que essa tradução": "Why this translation",
+  "Gíria": "Slang",
+  "Isto é uma IA e pode errar.": "This is an AI and it can make mistakes.",
+  "Você usou {n} de {total} explicações hoje.": "You've used {n} of {total} explanations today.",
+  "A amostra de hoje acabou. A legenda e as palavras seguem funcionando. Volta amanhã.": "Today's sample is over. Captions and words keep working. Back tomorrow.",
+  "A amostra de hoje acabou. A legenda e as palavras seguem funcionando, e as explicações voltam amanhã.": "Today's sample is over. Captions and words keep working, and explanations come back tomorrow.",
+  "Você usou as explicações deste mês; elas voltam no dia {data}.": "You've used this month's explanations; they come back on {data}.",
+  "Você chegou ao limite de hoje. Volta amanhã.": "You've reached today's limit. Back tomorrow.",
+  "Entre na sua conta para explicar frases.": "Sign in to your account to explain sentences.",
+  "Não deu para explicar agora.": "Couldn't explain right now."
 }

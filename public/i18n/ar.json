@@ -1892,5 +1892,21 @@
   "sobre o seu material": "حول موادّك",
   "{n} meses grátis": "{n} أشهر مجانًا",
   "até {dia} h de nuvem por dia; passando disso, a legenda segue no aparelho": "حتى {dia} ساعة سحابة يوميًا؛ وبعدها تستمر الترجمة على جهازك",
-  "Os planos pagos não estão disponíveis neste perfil. Tudo no aparelho segue sem limite.": "الخطط المدفوعة غير متاحة في هذا الملف. كل ما يعمل على جهازك يستمر بلا حدود."
+  "Os planos pagos não estão disponíveis neste perfil. Tudo no aparelho segue sem limite.": "الخطط المدفوعة غير متاحة في هذا الملف. كل ما يعمل على جهازك يستمر بلا حدود.",
+  "Explicar esta frase": "اشرح هذه الجملة",
+  "A explicação usa a IA de nuvem, que você ainda não autorizou.": "يستخدم الشرح الذكاء الاصطناعي السحابي، ولم تسمح به بعد.",
+  "Explicando a frase…": "جارٍ شرح الجملة…",
+  "Por que essa tradução": "لماذا هذه الترجمة",
+  "Gíria": "العامية",
+  "Isto é uma IA e pode errar.": "هذا ذكاء اصطناعي وقد يخطئ.",
+  "Você usou {n} de {total} explicações hoje.": "استخدمت {n} من {total} شروحات اليوم.",
+  "A amostra de hoje acabou. A legenda e as palavras seguem funcionando. Volta amanhã.": "انتهت عيّنة اليوم. تستمر الترجمة والكلمات في العمل. نراك غدًا.",
+  "A amostra de hoje acabou. A legenda e as palavras seguem funcionando, e as explicações voltam amanhã.": "انتهت عيّنة اليوم. تستمر الترجمة والكلمات في العمل، وتعود الشروحات غدًا.",
+  "Você usou as explicações deste mês; elas voltam no dia {data}.": "استخدمت شروحات هذا الشهر؛ تعود في {data}.",
+  "Você chegou ao limite de hoje. Volta amanhã.": "وصلت إلى حد اليوم. نراك غدًا.",
+  "Entre na sua conta para explicar frases.": "سجّل الدخول إلى حسابك لشرح الجمل.",
+  "Não deu para explicar agora.": "تعذّر الشرح الآن.",
+  "A nuvem está ocupada agora. Tente de novo em instantes.": "السحابة مشغولة الآن. حاول مرة أخرى بعد قليل.",
+  "Autorizar IA de nuvem": "السماح بالذكاء الاصطناعي السحابي",
+  "Registro": "الأسلوب"
 }

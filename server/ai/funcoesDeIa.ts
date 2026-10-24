@@ -35,6 +35,14 @@
  *               raciocínio "low". Temperatura 0,2: reescrever com liberdade de expressão, sem variar à
  *               toa. Um bloco típico: ~1.500 de entrada + ~1.200 de saída ≈ US$ 0,001 no gpt-oss-120b;
  *               uma hora de conversa (~600 falas, 15 blocos) ≈ US$ 0,015, uma vez só (é idempotente).
+ *   explicacao  2.000 caracteres: a frase tocada (até 400), a tradução (até 400) e até 3 falas de contexto (até 400
+ *               cada) — IA de estudo, planos v4, etapa 2 (`server/ai/nucleo/explicarFrase.ts`). 1.200 de saída: o
+ *               JSON com o "por quê", a gramática, o registro e as gírias (~300 tokens) mais a folga do raciocínio.
+ *               É também o teto por chamada da AMOSTRA do Grátis (`AMOSTRA_DE_IA`). Temperatura 0,3. Pior caso:
+ *               ~1.000 de entrada + 1.200 de saída ≈ US$ 0,0005 no Llama 3.3 70B, ≈ US$ 0,0009 no gpt-oss-120b.
+ *   resumo      12.000 caracteres: as falas de uma sessão para o resumo que vira cartões (Task 3 da etapa 2).
+ *               1.500 de saída: dentro do teto da amostra para o resumo (≤ 2.000) e do teto geral de 1.500 por
+ *               chamada que vale para toda função (`tests/integration/funcoes-de-ia.test.ts`). Temperatura 0,2.
  *
  * O teto ABSOLUTO continua em `llmClient.ts` (`MAX_PROMPT_CHARS`): é a rede de segurança para
  * qualquer caminho que um dia chame o provedor sem passar por aqui.
@@ -42,7 +50,7 @@
 import { TETO_DE_ENTRADA_DO_TUTOR } from '../../src/lib/ichat/contencao'
 import type { AgeProfileType } from '../../src/lib/profile'
 
-export type FuncaoDeIa = 'tutor' | 'corretor' | 'traducao' | 'alternativas' | 'polimento'
+export type FuncaoDeIa = 'tutor' | 'corretor' | 'traducao' | 'alternativas' | 'polimento' | 'explicacao' | 'resumo'
 
 interface DefinicaoDeFuncao {
   /** Caracteres de conteúdo do cliente aceitos (o `system` é nosso e não conta). */
@@ -58,6 +66,8 @@ export const FUNCOES_DE_IA: Readonly<Record<FuncaoDeIa, DefinicaoDeFuncao>> = {
   traducao: { tetoEntrada: 4_000, maxTokens: 1_200, temperatura: 0 },
   alternativas: { tetoEntrada: 500, maxTokens: 900, temperatura: 0.5 },
   polimento: { tetoEntrada: 12_000, maxTokens: 1_500, temperatura: 0.2 },
+  explicacao: { tetoEntrada: 2_000, maxTokens: 1_200, temperatura: 0.3 },
+  resumo: { tetoEntrada: 12_000, maxTokens: 1_500, temperatura: 0.2 },
 }
 
 /**

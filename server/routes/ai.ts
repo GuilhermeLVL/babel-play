@@ -6,6 +6,7 @@
 import { raw, Router } from 'express'
 
 import { alternativasProxy } from '../ai/alternativas'
+import { explicarProxy } from '../ai/explicar'
 import { mtTranslateProxy } from '../ai/mtProxy'
 import { polirProxy } from '../ai/polimento'
 import { llmChatProxy, providerTest } from '../ai/proxy'
@@ -44,6 +45,10 @@ aiRouter.post('/mt/alternativas', alternativasProxy)
 /* "Polir a tradução da sessão" (D5 da Fase D): um bloco de até 40 falas por pedido, lidas do banco,
    no nível `polimento`; a polida vai AO LADO da original, e o bloco já polido não é cobrado de novo. */
 aiRouter.post('/mt/polir', polirProxy)
+/* A EXPLICAÇÃO DA FRASE (IA de estudo, planos v4, etapa 2): o porquê, a gramática, o registro e as gírias de uma
+   frase tocada. Atrás da flag `ia_de_estudo` (404 `recurso_indisponivel`); o plano tem `explicacoesMes`, o Grátis a
+   amostra do dia (402 `amostra_acabou`), com a admissão, o orçamento e a retenção zero das outras funções. */
+aiRouter.post('/explicar', explicarProxy)
 /* A VOZ NATURAL do modo intérprete (E4 da Fase E): a tradução lida em voz alta pela nuvem, só com o
    `vozNatural` (402 pelo entitlement) e a flag `voz_natural` (503), com a admissão `tts`, a cota de
    caracteres no mês e no dia e o custo das outras funções. Sem clonagem de voz. O cliente cai na voz

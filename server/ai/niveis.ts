@@ -53,6 +53,10 @@ export const IA_NIVEIS: Readonly<Record<FuncaoDeIa, NiveisDaFuncao>> = {
   /* "Polir a sessão" (D5): blocos inteiros, sem pressa de legenda — o nível mais alto da escada. Como
      as "Outras formas", a rota recusa (402) quem não tem a capacidade. */
   polimento: { semNuance: 'rapida', comNuance: 'polimento' },
+  /* A IA de estudo (planos v4, etapa 2): segue o tutor, com quem divide os modelos. O Grátis (a amostra) recebe a
+     rápida; quem paga, a nuance — como no tutor. */
+  explicacao: { semNuance: 'rapida', comNuance: 'nuance' },
+  resumo: { semNuance: 'rapida', comNuance: 'nuance' },
 }
 
 /** O nível que a função entrega a este plano — pela capacidade `traducaoNuance`. */

@@ -89,7 +89,7 @@ export interface OpcoesDoPreparo {
 }
 
 /** Acrescenta a instrução de menor ao `system`, quando houver. */
-const comInstrucaoDeMenor = (sistema: string, instrucao?: string): string =>
+export const comInstrucaoDeMenor = (sistema: string, instrucao?: string): string =>
   instrucao ? `${sistema}\n\n[SEGURANÇA — PÚBLICO MENOR]\n${instrucao}` : sistema
 
 export function prepareLlmRequest(body: LlmChatBody | undefined, opcoes: OpcoesDoPreparo = {}): PreparedLlm {

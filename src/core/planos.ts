@@ -173,6 +173,13 @@ export interface QuotasDoPlano {
    * `sttAoVivo`; `null` = sem teto.
    */
   sttAoVivoSegundosMes: number | null;
+  /**
+   * A IA DE ESTUDO (planos v4, etapa 2): explicações de frase e resumos de sessão por mês, com contadores
+   * PRÓPRIOS (`server/lib/iaDeEstudo.ts`). Os tokens de cada chamada saem da cota `tokensMes` do plano (a conta do
+   * Plus já os inclui). `0` = o plano não tem (o Grátis usa a `AMOSTRA_DE_IA`, à parte); `null` = sem teto.
+   */
+  explicacoesMes: number | null;
+  resumosMes: number | null;
 }
 
 /**
@@ -222,6 +229,14 @@ export const FLAG_VENDA_PLANOS_V4 = 'venda_planos_v4';
 export const FLAG_VENDA_FAMILIA = 'venda_familia';
 export const FLAG_VENDA_PRO4 = 'venda_pro4';
 
+/**
+ * A IA DE ESTUDO (planos v4, etapa 2): a explicação da frase (`POST /api/ai/explicar`) e o resumo da sessão que
+ * vira cartões. Nasce DESLIGADA (migração 0055 / PG 0009): desligada, as rotas respondem 404 `recurso_indisponivel`
+ * e as telas ficam como estão. Não é permissão nem cota: quem pode é o plano (`explicacoesMes`/`resumosMes`) ou a
+ * `AMOSTRA_DE_IA` do Grátis.
+ */
+export const FLAG_IA_DE_ESTUDO = 'ia_de_estudo';
+
 export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
   free: {
     rotulo: 'Grátis',
@@ -251,6 +266,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       vozCaracteresMes: 0,
       vozCaracteresDia: null,
       sttAoVivoSegundosMes: 0,
+      explicacoesMes: 0,
+      resumosMes: 0,
     },
   },
   essencial: {
@@ -285,6 +302,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       vozCaracteresMes: 0,
       vozCaracteresDia: null,
       sttAoVivoSegundosMes: 0,
+      explicacoesMes: 300,
+      resumosMes: 60,
     },
   },
   premium: {
@@ -330,6 +349,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       vozCaracteresMes: 600_000,
       vozCaracteresDia: 60_000,
       sttAoVivoSegundosMes: 0,
+      explicacoesMes: 300,
+      resumosMes: 60,
     },
   },
   aovivo: {
@@ -368,6 +389,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       vozCaracteresMes: 600_000,
       vozCaracteresDia: 60_000,
       sttAoVivoSegundosMes: 36_000,
+      explicacoesMes: 300,
+      resumosMes: 60,
     },
   },
   /* PLUS (planos v4): o plano de entrada pago. Tudo do Premium, menos o intérprete automático (que é do Pro).
@@ -400,6 +423,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       vozCaracteresMes: 150_000,
       vozCaracteresDia: 15_000,
       sttAoVivoSegundosMes: 0,
+      explicacoesMes: 300,
+      resumosMes: 60,
     },
   },
   /* FAMÍLIA (planos v4, "em breve"): as capacidades do Plus com 12 h compartilhadas. Só existe como produto
@@ -431,6 +456,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       vozCaracteresMes: 600_000,
       vozCaracteresDia: 60_000,
       sttAoVivoSegundosMes: 0,
+      explicacoesMes: 300,
+      resumosMes: 60,
     },
   },
   /* PRO (planos v4, "em breve"; id \`pro4\`, NUNCA \`pro\`, que é o apelido antigo do Premium): 20 h e o intérprete
@@ -462,6 +489,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       vozCaracteresMes: 600_000,
       vozCaracteresDia: 60_000,
       sttAoVivoSegundosMes: 0,
+      explicacoesMes: 300,
+      resumosMes: 60,
     },
   },
   selfhost: {
@@ -491,6 +520,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       vozCaracteresMes: null,
       vozCaracteresDia: null,
       sttAoVivoSegundosMes: null,
+      explicacoesMes: null,
+      resumosMes: null,
     },
   },
 };
@@ -545,6 +576,8 @@ export const PLANO_CONVIDADO: DefinicaoDePlano = {
     vozCaracteresMes: 0,
     vozCaracteresDia: null,
     sttAoVivoSegundosMes: 0,
+    explicacoesMes: 0,
+    resumosMes: 0,
   },
 };
 
@@ -631,6 +664,30 @@ export const FRANQUIA_DE_ALIVIO = {
   chamadasMes: 4_000,
   /** Teto de gasto ESTIMADO por conta no mês, em US$ — o aceite do plano. */
   tetoUsdMes: 0.13,
+} as const;
+
+/**
+ * A AMOSTRA DA IA DE ESTUDO DO GRÁTIS (planos v4, etapa 2). NÃO é cota de plano nem muda o `free` da matriz (que
+ * continua sem `managedCloudLlm` e com `tokensMes: 0`, e por isso sem tutor, Nuance ou polimento): é uma franquia à
+ * parte, com contadores próprios por conta (`server/lib/iaDeEstudo.ts`), que passa pela admissão (faixa `gratis`) e
+ * pelo orçamento global de IA como qualquer chamada. A janela do dia é o dia LOCAL da pessoa (o fuso da cota); a da
+ * semana começa na segunda-feira desse dia.
+ *
+ * O teto de tokens por chamada é o `maxTokens` da função (`server/ai/funcoesDeIa.ts`): 1.200 de saída na explicação
+ * e 1.500 no resumo (o teto geral por chamada; a amostra admitia até 2.000). A amostra usa o nível `rapida` (o Grátis não tem `traducaoNuance`).
+ *
+ * A CONTA DE CUSTO (pior caso: uma conta que usa TODA a amostra do mês, todo pedido no teto de entrada e de saída,
+ * no modelo mais caro da cascata rápida — Llama 3.3 70B no OpenRouter, US$ 0,10/1M de entrada e US$ 0,32 de saída,
+ * `ops/ia-provedores.openrouter.json`; `scripts/ia/modeloDeCusto.ts` a calcula a partir destes números):
+ *   explicação  ~2.000 tokens de entrada + 1.200 de saída ≈ US$ 0,00058; 5/dia × 30 = 150/mês ≈ US$ 0,088
+ *   resumo      ~7.000 tokens de entrada + 1.500 de saída ≈ US$ 0,0012; 1/semana × ~4,3 ≈ US$ 0,0051
+ *   TETO POR CONTA GRÁTIS QUE USA TUDO ≈ US$ 0,093/mês; no Gemma 4 (a primeira perna) ≈ US$ 0,064. Na base, o
+ *   `npm run ia:custo` supõe 30% dos grátis no teto no pior caso (`--amostra`); quem fecha o dinheiro de verdade é o
+ *   orçamento global (`AI_BUDGET_USD_*`), que a amostra respeita.
+ */
+export const AMOSTRA_DE_IA = {
+  explicacoesDia: 5,
+  resumosSemana: 1,
 } as const;
 
 /**

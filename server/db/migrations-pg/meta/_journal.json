@@ -64,6 +64,13 @@
       "when": 1792812905657,
       "tag": "0008_planos_v4_cobranca_e_teste",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792900000000,
+      "tag": "0009_flag_ia_de_estudo",
+      "breakpoints": true
     }
   ]
 }

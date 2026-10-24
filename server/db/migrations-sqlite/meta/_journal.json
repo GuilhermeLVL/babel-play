@@ -386,6 +386,13 @@
       "when": 1790870000000,
       "tag": "0054_flags_venda_planos_v4",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "6",
+      "when": 1792900000000,
+      "tag": "0055_flag_ia_de_estudo",
+      "breakpoints": true
     }
   ]
 }

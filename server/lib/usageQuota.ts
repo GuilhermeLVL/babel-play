@@ -86,10 +86,39 @@ export const METRIC_LLM_TOKENS_DIA = 'llm_tokens_dia'
 export const METRIC_TTS_CARACTERES = 'tts_chars'
 export const METRIC_TTS_CARACTERES_DIA = 'tts_chars_dia'
 
+/**
+ * A IA DE ESTUDO (planos v4, etapa 2; `server/lib/iaDeEstudo.ts`). No PLANO, explicações e resumos por mês (janela
+ * `AAAA-MM`, como as outras cotas do mês). Na AMOSTRA do Grátis, contadores À PARTE: explicações por dia LOCAL
+ * (`AAAA-MM-DD`) e resumos por semana — a janela da semana é a data da SEGUNDA-FEIRA do dia local (`janelaDaSemana`),
+ * também `AAAA-MM-DD`, e por isso com poda própria (a do dia apagaria a semana corrente a partir da quarta).
+ */
+export const METRIC_EXPLICACOES_MES = 'explicacoes_mes'
+export const METRIC_RESUMOS_MES = 'resumos_mes'
+export const METRIC_AMOSTRA_EXPLICACOES_DIA = 'amostra_explicacoes_dia'
+export const METRIC_AMOSTRA_RESUMOS_SEMANA = 'amostra_resumos_semana'
+
 /* ─────────────────────── a poda das janelas diárias (C9, item 9.3) ─────────────────────── */
 
-/** As métricas do uso justo do DIA: as únicas com janela `AAAA-MM-DD`. */
-export const METRICAS_DO_DIA = [METRIC_STT_SEGUNDOS_DIA, METRIC_LLM_TOKENS_DIA, METRIC_TTS_CARACTERES_DIA] as const
+/** As métricas com janela de DIA (`AAAA-MM-DD`): o uso justo do dia e a amostra de explicações do Grátis. */
+export const METRICAS_DO_DIA = [
+  METRIC_STT_SEGUNDOS_DIA,
+  METRIC_LLM_TOKENS_DIA,
+  METRIC_TTS_CARACTERES_DIA,
+  METRIC_AMOSTRA_EXPLICACOES_DIA,
+] as const
+
+/** As métricas com janela de SEMANA (a segunda-feira, `AAAA-MM-DD`): a amostra de resumos do Grátis. */
+export const METRICAS_DA_SEMANA = [METRIC_AMOSTRA_RESUMOS_SEMANA] as const
+
+/**
+ * A janela da SEMANA de um dia `AAAA-MM-DD`: a data da segunda-feira daquela semana. Pura (a conta é no calendário,
+ * em UTC, sobre a data que já é a do dia local da pessoa).
+ */
+export function janelaDaSemana(dia: string): string {
+  const d = new Date(`${dia}T00:00:00Z`)
+  const desdeSegunda = (d.getUTCDay() + 6) % 7
+  return new Date(d.getTime() - desdeSegunda * 86_400_000).toISOString().slice(0, 10)
+}
 
 /**
  * Quantos dias de janela diária ficam: hoje, ontem e anteontem no relógio UTC. A janela é o dia LOCAL
@@ -108,6 +137,10 @@ const DIA_MS = 86_400_000
 export async function podarJanelasDiarias(agora = Date.now()): Promise<void> {
   const corte = new Date(agora - (DIAS_DAS_JANELAS_DIARIAS - 1) * DIA_MS).toISOString().slice(0, 10)
   for (const metrica of METRICAS_DO_DIA) await usageCountersRepo.prune(metrica, corte)
+  /* A SEMANA: ficam a corrente e a anterior (o dia local vai de −12 a +14 h do UTC, e o estorno volta para a
+     semana em que a reserva caiu); a segunda-feira de 8 dias atrás cobre as duas. */
+  const corteDaSemana = janelaDaSemana(new Date(agora - 8 * DIA_MS).toISOString().slice(0, 10))
+  for (const metrica of METRICAS_DA_SEMANA) await usageCountersRepo.prune(metrica, corteDaSemana)
 }
 
 /** Qual teto recusou: o do MÊS (402 `quota_exceeded`) ou o do DIA (429 `uso_justo_do_dia`). */

@@ -50,6 +50,8 @@ export type FuncaoTelemetrada =
   | 'corretor'
   | 'byok-chat'
   | 'tts'
+  | 'explicacao'
+  | 'resumo'
 
 /** Os metadados de RASTRO que as rotas podem anotar. Lista fechada: nada de texto livre. */
 export interface AnotacoesDoRastro {

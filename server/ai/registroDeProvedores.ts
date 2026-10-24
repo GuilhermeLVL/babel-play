@@ -691,15 +691,25 @@ function candidatasDaFuncao(f: FuncaoDoRegistro, modelosGrandes: boolean, env: N
  * antes. O STT não tem nível: vale a ordem do registro (a cascata do STT reordena pelo custo, B6).
  */
 export function pernasDaFuncao(
-  funcao: FuncaoDoRegistro | 'corretor' | 'alternativas' | 'polimento',
+  funcao: FuncaoDoRegistro | 'corretor' | 'alternativas' | 'polimento' | 'explicacao' | 'resumo',
   opcoes: { modelosGrandes?: boolean; nivel?: NivelDaTraducao } = {},
   env: NodeJS.ProcessEnv = process.env,
 ): Provedor[] {
-  /* O corretor usa os modelos do tutor; as "Outras formas" (D4) e o "polir a sessão" (D5), os da
-     tradução — é tradução. */
+  /* O corretor e a IA de estudo (explicação e resumo, planos v4) usam os modelos do tutor; as "Outras formas" (D4)
+     e o "polir a sessão" (D5), os da tradução — é tradução. */
+  const deEstudo = funcao === 'explicacao' || funcao === 'resumo'
   const f: FuncaoDoRegistro =
-    funcao === 'corretor' ? 'tutor' : funcao === 'alternativas' || funcao === 'polimento' ? 'traducao' : funcao
-  const candidatas = candidatasDaFuncao(f, opcoes.modelosGrandes === true, env)
+    funcao === 'corretor' || deEstudo
+      ? 'tutor'
+      : funcao === 'alternativas' || funcao === 'polimento'
+        ? 'traducao'
+        : funcao
+  /* A IA DE ESTUDO SÓ COM RETENÇÃO ZERO DECLARADA, em qualquer ambiente: ela nasceu depois da regra e manda o texto
+     de alguém (às vezes menor) junto com a explicação pedida. Fora de produção o registro aceita provedor sem `zdr`
+     (o boot só aborta em produção); aqui ele nem vira perna. */
+  const candidatas = candidatasDaFuncao(f, opcoes.modelosGrandes === true, env).filter(
+    (c) => !deEstudo || c.provedor.retencao === 'zdr',
+  )
   const ordem: Candidata[] = []
   /* O STT e a voz não têm nível: vale a ordem do registro. */
   if (f === 'stt' || f === 'tts') ordem.push(...candidatas)

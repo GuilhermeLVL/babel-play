@@ -11,7 +11,8 @@
  * A taxa do anual (cartão em 12x) é calibrada na tabela da spec (6,3% a 6,7% do valor); usa-se 7%, do lado
  * conservador. É estimativa: o uso real precisa ser medido (docs/alternativas-de-custo-e-eficiencia.md).
  */
-import { PLAN_MATRIX, type PlanoDeAssinatura } from '../../src/core/planos';
+import { FUNCOES_DE_IA } from '../../server/ai/funcoesDeIa';
+import { AMOSTRA_DE_IA, PLAN_MATRIX, type PlanoDeAssinatura } from '../../src/core/planos';
 
 export const CAMBIO_BRL_POR_USD = 5.6;
 /** Pior custo da hora de legenda na nuvem, em R$ (spec dos planos v4). */
@@ -76,5 +77,44 @@ export function margemDoAnual(plano: PlanoDeAssinatura): MargemDoAnual {
     receitaLiquidaMensalBrl,
     margemMensalBrl,
     margemAnualBrl: margemMensalBrl * MESES_DO_ANUAL,
+  };
+}
+
+/**
+ * A AMOSTRA DA IA DE ESTUDO DO GRÁTIS (planos v4, etapa 2; `AMOSTRA_DE_IA`), em US$ por conta Grátis que a usa INTEIRA
+ * no mês: 5 explicações por dia (30 dias) e 1 resumo por semana (52 ÷ 12 no mês). Os tokens de SAÍDA são o teto
+ * da função (`FUNCOES_DE_IA[...].maxTokens`); os de ENTRADA, o pior caso pela estimativa conservadora do servidor
+ * (metade dos caracteres do prompt, `estimarTokens`): explicação ~3.900 caracteres (system + instrução de menor +
+ * frase, tradução e 3 falas de contexto no teto) ≈ 2.000 tokens; resumo ~14.000 caracteres ≈ 7.000 tokens.
+ * Os preços são os da cascata RÁPIDA do registro (`ops/ia-provedores.openrouter.json`): conservador = Llama 3.3 70B
+ * (a perna mais cara do nível), esperado = Gemma 4 26B (a primeira).
+ */
+export const TOKENS_DE_ENTRADA_DA_AMOSTRA = { explicacao: 2_000, resumo: 7_000 } as const;
+export const PRECO_DO_TEXTO_RAPIDO_USD_POR_MILHAO = {
+  conservador: { entrada: 0.1, saida: 0.32 },
+  esperado: { entrada: 0.0675, saida: 0.225 },
+} as const;
+
+export interface CustoDaAmostra {
+  explicacoesMes: number;
+  resumosMes: number;
+  usdPorExplicacao: number;
+  usdPorResumo: number;
+  usdMes: number;
+}
+
+export function custoDaAmostraPorConta(modo: 'conservador' | 'esperado'): CustoDaAmostra {
+  const p = PRECO_DO_TEXTO_RAPIDO_USD_POR_MILHAO[modo];
+  const usd = (entrada: number, saida: number) => (entrada * p.entrada + saida * p.saida) / 1_000_000;
+  const usdPorExplicacao = usd(TOKENS_DE_ENTRADA_DA_AMOSTRA.explicacao, FUNCOES_DE_IA.explicacao.maxTokens);
+  const usdPorResumo = usd(TOKENS_DE_ENTRADA_DA_AMOSTRA.resumo, FUNCOES_DE_IA.resumo.maxTokens);
+  const explicacoesMes = AMOSTRA_DE_IA.explicacoesDia * 30;
+  const resumosMes = (AMOSTRA_DE_IA.resumosSemana * 52) / 12;
+  return {
+    explicacoesMes,
+    resumosMes,
+    usdPorExplicacao,
+    usdPorResumo,
+    usdMes: explicacoesMes * usdPorExplicacao + resumosMes * usdPorResumo,
   };
 }

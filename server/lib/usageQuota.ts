@@ -96,15 +96,22 @@ export const METRIC_EXPLICACOES_MES = 'explicacoes_mes'
 export const METRIC_RESUMOS_MES = 'resumos_mes'
 export const METRIC_AMOSTRA_EXPLICACOES_DIA = 'amostra_explicacoes_dia'
 export const METRIC_AMOSTRA_RESUMOS_SEMANA = 'amostra_resumos_semana'
+/**
+ * O POOL DIÁRIO GLOBAL da amostra (`AMOSTRA_DE_IA.poolChamadasDia`): chamadas de TODAS as contas Grátis no dia UTC,
+ * numa linha só de `usage_counters` (a chave `CHAVE_DO_POOL_DA_AMOSTRA` no lugar do `user_id`, como o pool do alívio).
+ */
+export const METRIC_AMOSTRA_POOL_DIA = 'amostra_pool_dia'
+export const CHAVE_DO_POOL_DA_AMOSTRA = 'pool-amostra-estudo'
 
 /* ─────────────────────── a poda das janelas diárias (C9, item 9.3) ─────────────────────── */
 
-/** As métricas com janela de DIA (`AAAA-MM-DD`): o uso justo do dia e a amostra de explicações do Grátis. */
+/** As métricas com janela de DIA (`AAAA-MM-DD`): o uso justo do dia, a amostra de explicações e o pool da amostra (dia UTC). */
 export const METRICAS_DO_DIA = [
   METRIC_STT_SEGUNDOS_DIA,
   METRIC_LLM_TOKENS_DIA,
   METRIC_TTS_CARACTERES_DIA,
   METRIC_AMOSTRA_EXPLICACOES_DIA,
+  METRIC_AMOSTRA_POOL_DIA,
 ] as const
 
 /** As métricas com janela de SEMANA (a segunda-feira, `AAAA-MM-DD`): a amostra de resumos do Grátis. */

@@ -682,12 +682,19 @@ export const FRANQUIA_DE_ALIVIO = {
  *   explicação  ~2.000 tokens de entrada + 1.200 de saída ≈ US$ 0,00058; 5/dia × 30 = 150/mês ≈ US$ 0,088
  *   resumo      ~7.000 tokens de entrada + 1.500 de saída ≈ US$ 0,0012; 1/semana × ~4,3 ≈ US$ 0,0051
  *   TETO POR CONTA GRÁTIS QUE USA TUDO ≈ US$ 0,093/mês; no Gemma 4 (a primeira perna) ≈ US$ 0,064. Na base, o
- *   `npm run ia:custo` supõe 30% dos grátis no teto no pior caso (`--amostra`); quem fecha o dinheiro de verdade é o
- *   orçamento global (`AI_BUDGET_USD_*`), que a amostra respeita.
+ *   `npm run ia:custo` supõe 30% dos grátis no teto no pior caso (`--amostra`).
+ *
+ * O POOL DIÁRIO GLOBAL (`poolChamadasDia`, no molde do pool do alívio): somando TODAS as contas Grátis, no máximo
+ * 120 chamadas da amostra (explicações + resumos) por dia UTC. É ele que fecha o custo da amostra, qualquer que seja
+ * o tamanho da base: no pior caso, toda chamada no preço do resumo (~US$ 0,0012) → 120 × 30 × 0,0012 ≈ US$ 4,25/mês.
+ * O número veio do `npm run ia:custo`: com 3% de pagantes (1.000 usuários, 15 Essencial + 15 Premium) a margem no
+ * pior caso sem a amostra é ~US$ 5,0, e 120 é o maior pool redondo que a mantém ≥ 0 (~US$ 0,8). Esgotado, a conta
+ * recebe o mesmo 402 `amostra_acabou` da franquia individual; volta à meia-noite UTC.
  */
 export const AMOSTRA_DE_IA = {
   explicacoesDia: 5,
   resumosSemana: 1,
+  poolChamadasDia: 120,
 } as const;
 
 /**

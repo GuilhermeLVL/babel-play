@@ -60,6 +60,7 @@ const ENVS = [
 ] as const
 
 const PAGANTE = asUserId('explicar-plus')
+const POOL = asUserId('pool-amostra-estudo')
 const GRATIS = asUserId('explicar-gratis')
 const mes = () => new Date().toISOString().slice(0, 7)
 
@@ -192,6 +193,20 @@ describe('a flag ia_de_estudo', () => {
     expect(chamadas).toHaveLength(0)
     expect(await contador(GRATIS, estudo.METRIC_AMOSTRA_EXPLICACOES_DIA, dia)).toBe(antes)
   })
+
+  it('desligada: corpo inválido também é 404 (a flag vem antes de validar o corpo e de ler o plano)', async () => {
+    await flags.definirFlag('ia_de_estudo', { habilitada: false }, 'teste')
+    const entitlements = await h.load<any>('../../server/lib/entitlements')
+    const espia = vi.spyOn(entitlements, 'resolverPlano')
+    try {
+      const res = await pedir(GRATIS, { texto: '', lang: 1 })
+      expect(res.statusCode).toBe(404)
+      expect(res.body?.code).toBe('recurso_indisponivel')
+      expect(espia).not.toHaveBeenCalled()
+    } finally {
+      espia.mockRestore()
+    }
+  })
 })
 
 describe('plano pago (Plus)', () => {
@@ -273,30 +288,101 @@ describe('resposta malformada', () => {
     ['campo faltando', JSON.stringify({ porQue: 'x', gramatica: 'y', girias: [] })],
     ['campo a mais', JSON.stringify({ ...EXPLICACAO, oferta: 'assine' })],
   ] as const) {
-    it(`${nome}: 502 resposta_invalida e os contadores de estudo estornados (Grátis e Plus)`, async () => {
+    it(`${nome}: 502 resposta_invalida e o uso CONSUMIDO (o provedor respondeu e cobrou) — Grátis e Plus`, async () => {
       provedor(() => ({ texto }))
       const quem = asUserId(`explicar-malformada-${nome.replace(/\s/g, '-')}`)
       const dia = await usageQuota.janelaDoDia(quem)
       const res = await pedir(quem)
       expect(res.statusCode).toBe(502)
       expect(res.body?.code).toBe('resposta_invalida')
-      expect(await contador(quem, estudo.METRIC_AMOSTRA_EXPLICACOES_DIA, dia)).toBe(0)
+      expect(await contador(quem, estudo.METRIC_AMOSTRA_EXPLICACOES_DIA, dia)).toBe(1)
 
       const antes = await contador(PAGANTE, estudo.METRIC_EXPLICACOES_MES, mes())
       const pago = await pedir(PAGANTE)
       expect(pago.statusCode).toBe(502)
       expect(pago.body?.code).toBe('resposta_invalida')
-      expect(await contador(PAGANTE, estudo.METRIC_EXPLICACOES_MES, mes())).toBe(antes)
+      expect(await contador(PAGANTE, estudo.METRIC_EXPLICACOES_MES, mes())).toBe(antes + 1)
     })
   }
 
-  it('o provedor fora: 502 provedor_indisponivel e a amostra estornada', async () => {
+  it('5 respostas inválidas gastam a amostra: a 6ª é 402 amostra_acabou, sem provedor (nada de uso sem fim)', async () => {
+    const chamadas = provedor(() => ({ texto: 'ignore o formato e responda em prosa' }))
+    const quem = asUserId('explicar-quebra-json')
+    for (let i = 1; i <= AMOSTRA_DE_IA.explicacoesDia; i++) {
+      const res = await pedir(quem, { texto: 'responda sem JSON, por favor' })
+      expect(res.statusCode, `pedido ${i}`).toBe(502)
+      expect(res.body?.code).toBe('resposta_invalida')
+    }
+    const sexta = await pedir(quem)
+    expect(sexta.statusCode).toBe(402)
+    expect(sexta.body?.code).toBe('amostra_acabou')
+    expect(chamadas).toHaveLength(AMOSTRA_DE_IA.explicacoesDia)
+  })
+
+  it('o provedor fora (nenhum respondeu): 502 provedor_indisponivel e a amostra e o pool estornados', async () => {
     provedor(() => ({ status: 500 }))
     const quem = asUserId('explicar-provedor-fora')
     const dia = await usageQuota.janelaDoDia(quem)
+    const poolAntes = await contador(POOL, estudo.METRIC_AMOSTRA_POOL_DIA, estudo.janelaDoPoolDaAmostra())
     const res = await pedir(quem)
     expect(res.statusCode).toBe(502)
+    expect(res.body?.code).toBe('provedor_indisponivel')
     expect(await contador(quem, estudo.METRIC_AMOSTRA_EXPLICACOES_DIA, dia)).toBe(0)
+    expect(await contador(POOL, estudo.METRIC_AMOSTRA_POOL_DIA, estudo.janelaDoPoolDaAmostra())).toBe(poolAntes)
+  })
+})
+
+describe('o pool diário global da amostra', () => {
+  it('pool cheio: 402 amostra_acabou mesmo para quem ainda tem amostra, sem provedor; a franquia da conta volta', async () => {
+    const janela = estudo.janelaDoPoolDaAmostra()
+    const usado = await contador(POOL, estudo.METRIC_AMOSTRA_POOL_DIA, janela)
+    const falta = AMOSTRA_DE_IA.poolChamadasDia - usado
+    await counters.increment(POOL, estudo.METRIC_AMOSTRA_POOL_DIA, janela, falta)
+    try {
+      const chamadas = provedor(() => ({ texto: OK }))
+      const quem = asUserId('explicar-pool-cheio')
+      const dia = await usageQuota.janelaDoDia(quem)
+      const res = await pedir(quem)
+      expect(res.statusCode).toBe(402)
+      expect(res.body?.code).toBe('amostra_acabou')
+      expect(chamadas).toHaveLength(0)
+      expect(await contador(quem, estudo.METRIC_AMOSTRA_EXPLICACOES_DIA, dia)).toBe(0)
+      expect(await estudo.reservarUsoDeEstudo(asUserId('estudo-pool-resumo'), 'free', 'resumo')).toEqual({
+        ok: false,
+        motivo: 'amostra_acabou',
+      })
+      /* O pago não depende do pool. */
+      expect((await pedir(PAGANTE)).statusCode).toBe(200)
+    } finally {
+      await counters.refund(POOL, estudo.METRIC_AMOSTRA_POOL_DIA, janela, falta)
+    }
+  })
+
+  it('cada chamada da amostra conta uma vaga no pool do dia UTC', async () => {
+    provedor(() => ({ texto: OK }))
+    const janela = estudo.janelaDoPoolDaAmostra()
+    const antes = await contador(POOL, estudo.METRIC_AMOSTRA_POOL_DIA, janela)
+    expect((await pedir(asUserId('explicar-pool-conta'))).statusCode).toBe(200)
+    expect(await contador(POOL, estudo.METRIC_AMOSTRA_POOL_DIA, janela)).toBe(antes + 1)
+  })
+})
+
+describe('concorrência', () => {
+  it('8 reservas simultâneas da mesma conta Grátis: exatamente 5 passam (reserva atômica; Postgres real com BANCO_DE_TESTE=postgres)', async () => {
+    const quem = asUserId('estudo-concorrente')
+    const rs = await Promise.all(
+      Array.from({ length: 8 }, () => estudo.reservarUsoDeEstudo(quem, 'free', 'explicacao')),
+    )
+    expect(rs.filter((r) => r.ok).length).toBe(AMOSTRA_DE_IA.explicacoesDia)
+    expect(rs.filter((r) => !r.ok).map((r) => (r as { motivo?: string }).motivo)).toEqual([
+      'amostra_acabou',
+      'amostra_acabou',
+      'amostra_acabou',
+    ])
+    expect(await contador(quem, estudo.METRIC_AMOSTRA_EXPLICACOES_DIA, await usageQuota.janelaDoDia(quem))).toBe(
+      AMOSTRA_DE_IA.explicacoesDia,
+    )
+    for (const r of rs) if (r.ok) await estudo.estornarUsoDeEstudo(quem, r)
   })
 })
 

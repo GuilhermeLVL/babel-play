@@ -12,9 +12,11 @@
  */
 import type { Request, Response } from 'express'
 
+import { FLAG_IA_DE_ESTUDO } from '../../src/core/planos'
 import { getEntitlements, resolverPlano } from '../lib/entitlements'
 import { erroDeRota } from '../lib/erroDeRota'
 import { flagLigada } from '../lib/flags'
+import { envelopeDeErro } from '../lib/respostaDeErro'
 import { explicarFrase, lerPedidoDeExplicacao, type ResultadoDaExplicacao } from './nucleo/explicarFrase'
 import { responderRecusa } from './respostaDoNucleo'
 import { abrirRastro, type RastroDeIa } from './telemetriaDeIa'
@@ -37,6 +39,12 @@ function responderExplicacao(res: Response, r: ResultadoDaExplicacao): void {
 }
 
 async function pedirExplicacao(req: Request, res: Response, rastro: RastroDeIa): Promise<void> {
+  /* A FLAG PRIMEIRO: desligada, qualquer corpo é 404 e nada mais é lido (nem o corpo, nem o plano). O núcleo confere
+     de novo, para os outros canais. */
+  if (!(await flagLigada(req, FLAG_IA_DE_ESTUDO))) {
+    res.status(404).json(envelopeDeErro('recurso indisponível', 'recurso_indisponivel'))
+    return
+  }
   const lido = lerPedidoDeExplicacao(req.body, rastro)
   if (lido.ok === false) {
     responderRecusa(res, lido)

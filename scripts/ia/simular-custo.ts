@@ -10,11 +10,12 @@
  * 5 explicações por dia e 1 resumo por semana, `AMOSTRA_DE_IA`). `--amostra` é a fração dos grátis que usa a amostra INTEIRA no pior
  * caso (hipótese: 0,3); no típico, um terço disso usa metade, no preço esperado. É estimativa: o uso real precisa ser medido.
  */
-import { FRANQUIA_DE_ALIVIO, FRANQUIA_DO_TESTE, PLAN_MATRIX } from '../../src/core/planos';
+import { AMOSTRA_DE_IA, FRANQUIA_DE_ALIVIO, FRANQUIA_DO_TESTE, PLAN_MATRIX } from '../../src/core/planos';
 import {
   CAMBIO_BRL_POR_USD,
   custoDaAmostraPorConta,
   custoDoPlanoNoPiorCaso,
+  custoDoPoolDaAmostraNoMes,
   margemDoAnual,
   PIOR_CUSTO_BRL_POR_HORA_DE_NUVEM,
   TAXA_DO_ANUAL,
@@ -55,7 +56,11 @@ const liquido = {
 function custo(modo: 'conservador' | 'esperado', fracaoDeUso: number, fracaoDoAlivio: number, fracaoDaAmostra: number) {
   const h = HORA[modo];
   const alivio = gratis * 0.2 * FRANQUIA_DE_ALIVIO.tetoUsdMes * fracaoDoAlivio; // 20% dos grátis com aparelho fraco (hipótese)
-  const iaDeEstudo = gratis * fracaoDaAmostra * custoDaAmostraPorConta(modo).usdMes;
+  /* A amostra das contas, limitada pelo POOL DIÁRIO GLOBAL (`AMOSTRA_DE_IA.poolChamadasDia`): o menor dos dois. */
+  const iaDeEstudo = Math.min(
+    gratis * fracaoDaAmostra * custoDaAmostraPorConta(modo).usdMes,
+    custoDoPoolDaAmostraNoMes(modo),
+  );
   const g = alivio + iaDeEstudo;
   const e = essencial * horas(ess.sttSegundosMes) * fracaoDeUso * h;
   const p =
@@ -101,7 +106,7 @@ console.log(
 );
 const am = { pior: custoDaAmostraPorConta('conservador'), esperado: custoDaAmostraPorConta('esperado') };
 console.log(
-  `\nAMOSTRA DE IA DE ESTUDO do Grátis (já no "grátis" acima): ${am.pior.explicacoesMes} explicações + ${am.pior.resumosMes.toFixed(1)} resumos por conta/mês no teto = US$ ${am.pior.usdMes.toFixed(3)} (conservador) | US$ ${am.esperado.usdMes.toFixed(3)} (esperado) por conta que usa tudo. Na base: pior ${f(teto.iaDeEstudo)} (${(amostra * 100).toFixed(0)}% dos grátis no teto) | típico ${f(tipico.iaDeEstudo)}`,
+  `\nAMOSTRA DE IA DE ESTUDO do Grátis (já no "grátis" acima): ${am.pior.explicacoesMes} explicações + ${am.pior.resumosMes.toFixed(1)} resumos por conta/mês no teto = US$ ${am.pior.usdMes.toFixed(3)} (conservador) | US$ ${am.esperado.usdMes.toFixed(3)} (esperado) por conta que usa tudo. Pool global de ${AMOSTRA_DE_IA.poolChamadasDia} chamadas/dia = teto de US$ ${custoDoPoolDaAmostraNoMes('conservador').toFixed(2)}/mês. Na base: pior ${f(teto.iaDeEstudo)} (${(amostra * 100).toFixed(0)}% dos grátis no teto, limitado pelo pool) | típico ${f(tipico.iaDeEstudo)}`,
 );
 console.log(
   `\nCRÉDITO a manter por 30 dias (pior caso + ${((TAXA_DO_CREDITO - 1) * 100).toFixed(1)}% de taxa [hipótese] + ${((FOLGA - 1) * 100).toFixed(0)}% de folga): ${f(teto.total * TAXA_DO_CREDITO * FOLGA)}`,

@@ -118,3 +118,12 @@ export function custoDaAmostraPorConta(modo: 'conservador' | 'esperado'): CustoD
     usdMes: explicacoesMes * usdPorExplicacao + resumosMes * usdPorResumo,
   };
 }
+
+/**
+ * O TETO DA AMOSTRA NA BASE INTEIRA, em US$ por mês: o pool diário global (`AMOSTRA_DE_IA.poolChamadasDia`) × 30 dias,
+ * com toda chamada no preço da mais cara (o resumo) — o pior caso, qualquer que seja o tamanho da base.
+ */
+export function custoDoPoolDaAmostraNoMes(modo: 'conservador' | 'esperado'): number {
+  const c = custoDaAmostraPorConta(modo);
+  return AMOSTRA_DE_IA.poolChamadasDia * 30 * Math.max(c.usdPorExplicacao, c.usdPorResumo);
+}

@@ -18,8 +18,9 @@
  *      custo, admissão (o Grátis na faixa `gratis`), e — só no plano — a reserva de chamada + tokens da cota do plano
  *      (o 429 `uso_justo_do_dia` vem dela). Na amostra o teto de tokens é o `maxTokens` da função (1.200 de saída);
  *   6. a cascata, o custo da perna que respondeu no gasto global do mês, e a leitura defensiva: resposta que não é a
- *      explicação pedida é 502 `resposta_invalida` — nunca explicação inventada —, com a reserva de estudo ESTORNADA
- *      (o custo que o provedor cobrou continua registrado, e os tokens do plano, acertados pelo real).
+ *      explicação pedida é 502 `resposta_invalida` — nunca explicação inventada —, com a reserva de estudo CONSUMIDA
+ *      (o provedor cobrou; tokens do plano acertados pelo real). A reserva de estudo só é estornada quando nenhum
+ *      provedor respondeu (falha antes da chamada, ou todas as pernas falharam ou estouraram o tempo).
  *
  * SEM CACHE, de propósito: a frase tocada é da conversa de alguém.
  */
@@ -137,7 +138,8 @@ async function explicar(
     return decidir(recusaDeErro(404, 'recurso indisponível', 'recurso_indisponivel'))
 
   let estudo: ReservaDeEstudo | null = null
-  let entregou = false
+  /** Algum provedor RESPONDEU (e cobrou)? Então o uso de estudo foi consumido, com ou sem JSON útil. */
+  let provedorRespondeu = false
   let reserva: ReservaDeLlm | null = null
   let admissao: AdmissaoDaCascata | null = null
   const t0 = Date.now()
@@ -227,7 +229,8 @@ async function explicar(
       return decidir(recusaDeErro(502, 'explicação indisponível agora', 'provedor_indisponivel'))
     }
 
-    /* O provedor respondeu e cobrou: tokens e gasto contam o que foi gasto, com ou sem JSON útil. */
+    /* O provedor respondeu e cobrou: tokens, gasto e o uso de estudo contam, com ou sem JSON útil. */
+    provedorRespondeu = true
     await reserva?.consumir(entregue.tokensEntrada + entregue.tokensSaida)
     await registrarGastoDeIa(entregue.custoUsd, { userId: ctx.userId, plano: plano.plan })
     await ctx.registrarCusto?.(entregue.custoUsd)
@@ -239,7 +242,6 @@ async function explicar(
         recusaDeErro(502, 'o modelo não devolveu uma explicação utilizável; tente de novo', 'resposta_invalida'),
       )
     }
-    entregou = true
     log('info', {
       event: 'explicacao',
       route: ROTA,
@@ -266,8 +268,9 @@ async function explicar(
         // Todo caminho que NÃO consumiu devolve chamada e tokens do plano.
         await reserva?.estornar()
       } finally {
-        // Todo caminho que NÃO entregou uma explicação utilizável devolve a explicação (do plano ou da amostra).
-        if (estudo && !entregou) await estornarUsoDeEstudo(ctx.userId, estudo)
+        /* O uso de estudo (plano ou amostra) só volta quando NENHUM provedor respondeu. A resposta inválida foi
+           cobrada e consome: senão um texto que manda o modelo quebrar o JSON daria explicações sem fim. */
+        if (estudo && !provedorRespondeu) await estornarUsoDeEstudo(ctx.userId, estudo)
       }
     }
   }

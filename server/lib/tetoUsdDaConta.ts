@@ -11,6 +11,7 @@
  * não existir, nada é contado, nada é recusado e não há escrita nova no banco. Para ligar:
  *
  *   TETO_USD_MES_ESSENCIAL=...   TETO_USD_MES_PREMIUM=...   TETO_USD_MES_AOVIVO=...
+ *   TETO_USD_MES_PLUS=...        TETO_USD_MES_FAMILIA=...   TETO_USD_MES_PRO4=...   (planos v4)
  *
  * (em US$ por conta e por mês; o custo máximo conservador de cada plano está em
  * `docs/estrategia-comercial-e-custos-br.md` §2 e o dono escolhe a folga em cima dele). Ligar no meio

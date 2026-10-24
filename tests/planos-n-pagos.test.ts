@@ -64,7 +64,13 @@ describe('os planos pagos saem da matriz', () => {
   })
 
   it('à venda é o plano pago com TODAS as chaves de venda ligadas', () => {
-    expect(planosAVenda(() => true)).toEqual([...PLANOS_PAGOS])
+    // Ligar TUDO liga também as chaves de ENCERRAMENTO (v4), que tiram da venda os planos que elas encerram.
+    const encerradores = new Set(PLANOS_PAGOS.flatMap((p) => PLAN_MATRIX[p].encerradoPor ?? []))
+    // Sem as de encerramento: todos os que não dependem delas (os v4 pedem a própria `venda_planos_v4`).
+    expect(planosAVenda((chave) => !encerradores.has(chave))).toEqual(
+      PLANOS_PAGOS.filter((p) => !PLAN_MATRIX[p].flagsDeVenda.some((f) => encerradores.has(f))),
+    )
+    expect(planosAVenda(() => true)).toEqual(PLANOS_PAGOS.filter((p) => !PLAN_MATRIX[p].encerradoPor))
     const semChave = PLANOS_PAGOS.filter((p) => PLAN_MATRIX[p].flagsDeVenda.length === 0)
     expect(planosAVenda(() => false)).toEqual(semChave)
     for (const p of PLANOS_PAGOS) {

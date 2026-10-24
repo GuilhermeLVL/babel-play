@@ -255,6 +255,10 @@ export function cartaoDoPlano(id: PlanoDaTela, c: ContextoDosPlanos): CartaoDoPl
     essencial: c.comAnuncios ? t('Sem anúncios · Nuance') : t('Nuance'),
     premium: t('Nuvem · {horas} h', { horas: numero(horasDePrecisao('premium')) }),
     aovivo: t('Texto durante a fala'),
+    // planos-v4: a tela é da Task 3 — por ora herdam o texto do Premium (sem frase nova para traduzir).
+    plus: t('Nuvem · {horas} h', { horas: numero(horasDePrecisao('plus')) }),
+    familia: t('Nuvem · {horas} h', { horas: numero(horasDePrecisao('familia')) }),
+    pro4: t('Nuvem · {horas} h', { horas: numero(horasDePrecisao('pro4')) }),
   };
   const quem: Record<PlanoDaTela, string> = {
     gratis: t(
@@ -265,6 +269,9 @@ export function cartaoDoPlano(id: PlanoDaTela, c: ContextoDosPlanos): CartaoDoPl
       : t('Para o estudante no computador, com Nuance.'),
     premium: t('Para quem depende de nuvem: celular, notebook fraco, Quest.'),
     aovivo: t('Para o intérprete na rua, em viagem, reunião e aula ao vivo.'),
+    plus: t('Para quem depende de nuvem: celular, notebook fraco, Quest.'),
+    familia: t('Para quem depende de nuvem: celular, notebook fraco, Quest.'),
+    pro4: t('Para quem depende de nuvem: celular, notebook fraco, Quest.'),
   };
   return {
     id,

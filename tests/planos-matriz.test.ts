@@ -22,17 +22,20 @@ import {
 } from '../server/lib/usageQuota'
 import {
   ehPlanoDeAssinatura,
+  FLAG_VENDA_PLANOS_V4,
   horasDeTranscricao,
   menorPrecoDeAssinatura,
   normalizarPlano,
   PARCELAS_DO_ANUAL,
   PLAN_MATRIX,
   PLANO_DO_TESTE,
+  type PlanoPago,
   planoPagoMaisBarato,
   planoPeloPagamento,
   PLANOS_DE_ASSINATURA,
   PLANOS_LEGADOS,
   PLANOS_PAGOS,
+  valoresCobraveis,
   valoresDasParcelas,
 } from '../src/core/planos'
 import { PLAN_LABELS } from '../src/lib/entitlements'
@@ -78,9 +81,18 @@ describe('a matriz é a fonte única', () => {
  * conta de custo está no topo de `src/core/planos.ts`.
  */
 describe('a matriz v3', () => {
-  it('cinco planos, nesta ordem: free, essencial, premium, aovivo e selfhost', () => {
-    expect([...PLANOS_DE_ASSINATURA]).toEqual(['free', 'essencial', 'premium', 'aovivo', 'selfhost'])
-    expect([...PLANOS_PAGOS]).toEqual(['essencial', 'premium', 'aovivo'])
+  it('os planos, nesta ordem: free, os três v3, os três v4 e selfhost', () => {
+    expect([...PLANOS_DE_ASSINATURA]).toEqual([
+      'free',
+      'essencial',
+      'premium',
+      'aovivo',
+      'plus',
+      'familia',
+      'pro4',
+      'selfhost',
+    ])
+    expect([...PLANOS_PAGOS]).toEqual(['essencial', 'premium', 'aovivo', 'plus', 'familia', 'pro4'])
   })
 
   it('os preços: Essencial 9,90 / 79,90; Premium 19,90 / 149,90; Ao Vivo 39,90, só mensal', () => {
@@ -95,9 +107,11 @@ describe('a matriz v3', () => {
 
   /* "A partir de R$ X" é o menor preço do que está À VENDA: com a venda dos planos novos fechada
      (como nasce), anunciar os R$ 9,90 do Essencial seria prometer um plano que o checkout recusa. */
-  it('o menor preço anunciado é o do que se vende: R$ 19,90 com a venda fechada, R$ 9,90 aberta', () => {
+  it('o menor preço anunciado é o do que se vende: R$ 19,90 com a venda fechada, R$ 9,90 aberta (v4 desligada)', () => {
     expect(menorPrecoDeAssinatura()).toBe('19,90')
-    expect(menorPrecoDeAssinatura(() => true)).toBe('9,90')
+    // `() => true` ligaria também a v4, que encerra a venda dos v3 (o Plus passa a ser o menor: R$ 14,90).
+    expect(menorPrecoDeAssinatura((chave) => chave !== FLAG_VENDA_PLANOS_V4)).toBe('9,90')
+    expect(menorPrecoDeAssinatura(() => true)).toBe('14,90')
     expect(menorPrecoDeAssinatura((chave) => chave === 'stt_ao_vivo')).toBe('19,90')
   })
 
@@ -257,7 +271,9 @@ describe('os nomes antigos', () => {
 
   it('o nome atual passa; o que não é plano é null', () => {
     for (const p of PLANOS_DE_ASSINATURA) expect(normalizarPlano(p)).toBe(p)
-    expect(normalizarPlano('familia')).toBeNull()
+    expect(normalizarPlano('enterprise')).toBeNull()
+    // `pro` é o apelido antigo do Premium; o Pro da v4 é `pro4`.
+    expect(normalizarPlano('pro4')).toBe('pro4')
     expect(normalizarPlano('')).toBeNull()
     expect(normalizarPlano(null)).toBeNull()
     expect(normalizarPlano(42)).toBeNull()
@@ -273,20 +289,8 @@ describe('os nomes antigos', () => {
   })
 })
 
-/** Todo valor que o Asaas pode cobrar por um plano, com o que ele tem de pagar. */
-function valoresCobraveis() {
-  const lista: Array<{ plano: string; ciclo: 'mensal' | 'anual'; valor: number; parcelas: number; oQue: string }> = []
-  for (const plano of PLANOS_PAGOS) {
-    const { precoMensalBrl: mensal, precoAnualBrl: anual } = PLAN_MATRIX[plano]
-    lista.push({ plano, ciclo: 'mensal', valor: mensal as number, parcelas: 1, oQue: 'mensalidade' })
-    if (anual === null) continue
-    const { padrao, ultima } = valoresDasParcelas(anual, PARCELAS_DO_ANUAL)
-    lista.push({ plano, ciclo: 'anual', valor: anual, parcelas: 1, oQue: 'ano à vista' })
-    lista.push({ plano, ciclo: 'anual', valor: padrao, parcelas: PARCELAS_DO_ANUAL, oQue: 'parcela do 12x' })
-    lista.push({ plano, ciclo: 'anual', valor: ultima, parcelas: PARCELAS_DO_ANUAL, oQue: 'última parcela do 12x' })
-  }
-  return lista
-}
+/** Todo valor que o Asaas pode cobrar por um plano, com o que ele tem de pagar (`valoresCobraveis` da matriz). */
+const todosOsValoresCobraveis = () => PLANOS_PAGOS.flatMap((p) => valoresCobraveis(p))
 
 /*
  * O PLANO E O CICLO SAEM DO DINHEIRO (GAP-001): o webhook pergunta "o que este valor paga?". O Asaas
@@ -307,24 +311,27 @@ describe('planoPeloPagamento', () => {
      valor em comum fariam um pagar o outro. Vale para TODOS os valores juntos (mensalidade, ano e as
      duas parcelas), não só dentro de cada ciclo: um evento de parcela que chegasse sem dizer que é
      parcela não pode cair na mensalidade de outro plano. */
-  it('TODO valor cobrável é distinto de todos os outros', () => {
-    const lista = valoresCobraveis()
-    // 3 mensalidades + 2 planos com anual × (ano, parcela, última).
-    expect(lista).toHaveLength(9)
+  it('TODO valor cobrável é distinto de todos os outros — salvo a parcela de R$ 12,49 do Plus × Premium', () => {
+    const lista = todosOsValoresCobraveis()
+    // 6 mensalidades + 5 planos com anual × (ano, parcela, última).
+    expect(lista).toHaveLength(6 + 5 * 3)
     const centavos = lista.map((v) => Math.round(v.valor * 100))
-    const repetidos = lista.filter((_, i) => centavos.indexOf(centavos[i]) !== i)
-    expect(repetidos, 'dois planos (ou dois ciclos) cobram o mesmo valor').toEqual([])
+    const porValor = new Map<number, Set<string>>()
+    lista.forEach((v, i) => porValor.set(centavos[i], (porValor.get(centavos[i]) ?? new Set()).add(v.plano)))
+    // Repetir DENTRO do mesmo plano não é colisão (249,00 em 12x é 12 × 20,75). Entre planos, só a conhecida.
+    const colisoes = [...porValor].filter(([, planos]) => planos.size > 1)
+    expect(colisoes, 'dois planos cobram o mesmo valor').toEqual([[1249, new Set(['premium', 'plus'])]])
     // E distintos com folga maior que a tolerância de ponto flutuante do casamento (meio centavo).
-    const ordenados = [...centavos].sort((a, b) => a - b)
+    const ordenados = [...porValor.keys()].sort((a, b) => a - b)
     for (let i = 1; i < ordenados.length; i++) expect(ordenados[i] - ordenados[i - 1]).toBeGreaterThanOrEqual(1)
   })
 
-  it('cada valor cobrável paga o plano e o ciclo dele — e só ele', () => {
-    for (const v of valoresCobraveis()) {
-      expect(planoPeloPagamento(v.valor, { parcelas: v.parcelas }), `${v.oQue} do ${v.plano}`).toEqual({
-        plano: v.plano,
-        ciclo: v.ciclo,
-      })
+  it('cada valor cobrável paga o plano e o ciclo dele — e só ele (com o plano como preferido)', () => {
+    for (const v of todosOsValoresCobraveis()) {
+      expect(
+        planoPeloPagamento(v.valor, { parcelas: v.parcelas, preferido: v.plano as PlanoPago }),
+        `${v.oQue} do ${v.plano}`,
+      ).toEqual({ plano: v.plano, ciclo: v.ciclo })
     }
   })
 
@@ -336,7 +343,12 @@ describe('planoPeloPagamento', () => {
   it('as parcelas do 12x, como o Asaas as cobra', () => {
     expect(valoresDasParcelas(149.9, 12)).toEqual({ padrao: 12.49, ultima: 12.51 })
     expect(valoresDasParcelas(79.9, 12)).toEqual({ padrao: 6.65, ultima: 6.75 })
-    expect(planoPeloPagamento(12.49, { parcelas: 12 })).toEqual({ plano: 'premium', ciclo: 'anual' })
+    // R$ 12,49 é também a última parcela do Plus: o Premium só é concedido com a intenção dele (v4).
+    expect(planoPeloPagamento(12.49, { parcelas: 12 })).toBeNull()
+    expect(planoPeloPagamento(12.49, { parcelas: 12, preferido: 'premium' })).toEqual({
+      plano: 'premium',
+      ciclo: 'anual',
+    })
     expect(planoPeloPagamento(12.51, { parcelas: 12 })).toEqual({ plano: 'premium', ciclo: 'anual' })
     expect(planoPeloPagamento(6.65, { parcelas: 12 })).toEqual({ plano: 'essencial', ciclo: 'anual' })
     expect(planoPeloPagamento(6.75, { parcelas: 12 })).toEqual({ plano: 'essencial', ciclo: 'anual' })

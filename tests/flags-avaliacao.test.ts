@@ -57,7 +57,17 @@ describe('regra por plano', () => {
     expect(planoDaFlag('aovivo')).toBe('aovivo')
     expect(planoDaFlag('convidado')).toBe('convidado')
     expect(planoDaFlag('ouro')).toBeNull()
-    expect(PLANOS_DA_FLAG).toEqual(['convidado', 'free', 'essencial', 'premium', 'aovivo', 'selfhost'])
+    expect(PLANOS_DA_FLAG).toEqual([
+      'convidado',
+      'free',
+      'essencial',
+      'premium',
+      'aovivo',
+      'plus',
+      'familia',
+      'pro4',
+      'selfhost',
+    ])
   })
 
   it('a regra por plano distingue os três planos pagos', () => {

@@ -50,6 +50,13 @@
       "when": 1792597390350,
       "tag": "0006_anuncios_premiados",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792700000000,
+      "tag": "0007_flags_venda_planos_v4",
+      "breakpoints": true
     }
   ]
 }

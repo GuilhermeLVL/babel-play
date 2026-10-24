@@ -379,6 +379,13 @@
       "when": 1790860000000,
       "tag": "0053_agregados_diarios",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "6",
+      "when": 1790870000000,
+      "tag": "0054_flags_venda_planos_v4",
+      "breakpoints": true
     }
   ]
 }

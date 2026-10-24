@@ -15,7 +15,7 @@ describe('baseline do schema Postgres', () => {
     await h.cleanup()
   })
 
-  it('o baseline cria as 41 tabelas, os 25 triggers, a RLS em todas e semeia as 10 flags', async () => {
+  it('o baseline cria as 41 tabelas, os 25 triggers, a RLS em todas e semeia as 13 flags', async () => {
     const { db, linhas } = await h.load<typeof import('../../server/db/db')>('../../server/db/db')
     const contar = async (consulta: ReturnType<typeof sql>) => linhas<{ n: number }>(await db.execute(consulta))[0].n
     expect(
@@ -24,7 +24,7 @@ describe('baseline do schema Postgres', () => {
       ),
     ).toBe(41)
     expect(await contar(sql`select count(*)::int as n from pg_trigger where not tgisinternal`)).toBe(25)
-    expect(await contar(sql`select count(*)::int as n from flags`)).toBe(10) // estado final da cadeia SQLite
+    expect(await contar(sql`select count(*)::int as n from flags`)).toBe(13) // estado final da cadeia SQLite
     expect(
       await contar(
         sql`select count(*)::int as n from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity`,

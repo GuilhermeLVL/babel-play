@@ -62,7 +62,7 @@
  */
 
 /** Planos que o servidor pode atribuir. Derive listas com `PLANOS_DE_ASSINATURA`, nunca à mão. */
-export type PlanoDeAssinatura = 'free' | 'essencial' | 'premium' | 'aovivo' | 'selfhost';
+export type PlanoDeAssinatura = 'free' | 'essencial' | 'premium' | 'aovivo' | 'plus' | 'familia' | 'pro4' | 'selfhost';
 
 /**
  * OS NOMES QUE JÁ EXISTIRAM, e o plano que eles são hoje. Existe porque o nome antigo vive FORA do
@@ -195,6 +195,12 @@ export interface DefinicaoDePlano {
    * (pagou antes, ou o admin concedeu) continua com ele, flag ligada ou não.
    */
   flagsDeVenda: readonly string[];
+  /**
+   * O FIM DE VENDA (planos v4): o plano SAI de `planosAVenda` quando QUALQUER flag desta lista está ligada.
+   * Diferente de `flagsDeVenda` (que abre), isto fecha — e só a venda: quem já tem o plano o mantém, e
+   * entitlements, cotas e o reconhecimento do valor pago no webhook seguem valendo. Ausente = nunca encerra.
+   */
+  encerradoPor?: readonly string[];
   entitlements: EntitlementsDoPlano;
   quotas: QuotasDoPlano;
 }
@@ -205,6 +211,16 @@ export interface DefinicaoDePlano {
  */
 export const FLAG_VENDA_PLANOS_V3 = 'venda_planos_v3';
 export const FLAG_STT_AO_VIVO = 'stt_ao_vivo';
+
+/**
+ * AS CHAVES DA VENDA V4 (`docs/specs/2026-10-24-planos-v4.md`; migração 0054). `venda_planos_v4` vende o Plus e
+ * ENCERRA a venda do Essencial, do Premium e do Ao Vivo (`encerradoPor`). `venda_familia` e `venda_pro4` abrem a
+ * Família e o Pro (junto com a v4): nascem desligadas e nenhuma é ligada na etapa 1, então os dois planos são
+ * "em breve" — existem na matriz, mas `planosAVenda` nunca os devolve.
+ */
+export const FLAG_VENDA_PLANOS_V4 = 'venda_planos_v4';
+export const FLAG_VENDA_FAMILIA = 'venda_familia';
+export const FLAG_VENDA_PRO4 = 'venda_pro4';
 
 export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
   free: {
@@ -242,6 +258,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
     precoMensalBrl: 9.9,
     precoAnualBrl: 79.9,
     flagsDeVenda: [FLAG_VENDA_PLANOS_V3],
+    encerradoPor: [FLAG_VENDA_PLANOS_V4],
     /* NO APARELHO, com a nuvem por trechos SOB DEMANDA (5 h no mês para transcrever e traduzir, não
        por padrão — quem decide quando usar é a política de rota) e a Tradução Nuance. Sem anúncios.
        Fala com a voz do aparelho e o intérprete é por toque. `largerModels` fica de fora: além dos
@@ -275,6 +292,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
     precoMensalBrl: 19.9,
     precoAnualBrl: 149.9,
     flagsDeVenda: [],
+    encerradoPor: [FLAG_VENDA_PLANOS_V4],
     /* A nuvem por trechos POR PADRÃO onde compensa. A importação do YouTube foi removida (a rota
        responde 410), então nenhum plano a vende. `largerModels` vem do Pro (quem pagava por ele não
        perde nada); `LLM_MODEL_GRANDE` continua ausente por padrão, e o modelo mais forte chega pelo
@@ -323,6 +341,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
     /* Duas chaves: a venda dos planos novos E a nuvem ao vivo existir — vender o plano sem a rota
        seria cobrar por uma promessa (§11, item 12). */
     flagsDeVenda: [FLAG_VENDA_PLANOS_V3, FLAG_STT_AO_VIVO],
+    encerradoPor: [FLAG_VENDA_PLANOS_V4],
     /* Tudo do Premium, MAIS o texto durante a fala (`sttAoVivo`) e a voz neural boa. Até a medição de
        custo escolher as vozes, a "boa" e a "básica" saem do mesmo provedor (§11, item 10). */
     entitlements: {
@@ -349,6 +368,100 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       vozCaracteresMes: 600_000,
       vozCaracteresDia: 60_000,
       sttAoVivoSegundosMes: 36_000,
+    },
+  },
+  /* PLUS (planos v4): o plano de entrada pago. Tudo do Premium, menos o intérprete automático (que é do Pro).
+     8 h por trechos; o dia é o uso justo de 2 h. Tokens: 150 mil por hora de fala × 8 h = 1,2 M, com folga até 2 M
+     (explicação da frase e resumo→cartões, etapa 2). Voz natural até 150 mil caracteres (≈ 2,8 h de voz).
+     Chamadas: no meio entre o Essencial (6.500) e o Premium (26.000). Armazenamento: o do Grátis (MVP). */
+  plus: {
+    rotulo: 'Plus',
+    precoMensalBrl: 14.9,
+    precoAnualBrl: 149.0,
+    flagsDeVenda: [FLAG_VENDA_PLANOS_V4],
+    entitlements: {
+      managedCloudStt: true,
+      managedCloudLlm: true,
+      largerModels: true,
+      traducaoNuance: true,
+      vozNatural: true,
+      interpreteAutomatico: false,
+      semAnuncios: true,
+      sttAoVivo: false,
+      nivelDeVoz: 'basica',
+    },
+    quotas: {
+      chamadasMes: 16_250,
+      sttSegundosMes: 28_800,
+      tokensMes: 2_000_000,
+      armazenamentoMb: 500,
+      sttSegundosDia: 7_200,
+      tokensDia: 200_000,
+      vozCaracteresMes: 150_000,
+      vozCaracteresDia: 15_000,
+      sttAoVivoSegundosMes: 0,
+    },
+  },
+  /* FAMÍLIA (planos v4, "em breve"): as capacidades do Plus com 12 h compartilhadas. Só existe como produto
+     quando houver grupo, convite do responsável e painel; até lá `venda_familia` fica desligada. Dia, chamadas
+     e armazenamento seguem o Premium (a Família divide as horas, não relaxa o uso justo de cada dia). */
+  familia: {
+    rotulo: 'Família',
+    precoMensalBrl: 24.9,
+    precoAnualBrl: 249.0,
+    flagsDeVenda: [FLAG_VENDA_PLANOS_V4, FLAG_VENDA_FAMILIA],
+    entitlements: {
+      managedCloudStt: true,
+      managedCloudLlm: true,
+      largerModels: true,
+      traducaoNuance: true,
+      vozNatural: true,
+      interpreteAutomatico: false,
+      semAnuncios: true,
+      sttAoVivo: false,
+      nivelDeVoz: 'basica',
+    },
+    quotas: {
+      chamadasMes: 26_000,
+      sttSegundosMes: 43_200,
+      tokensMes: 3_000_000,
+      armazenamentoMb: 500,
+      sttSegundosDia: 7_200,
+      tokensDia: 300_000,
+      vozCaracteresMes: 600_000,
+      vozCaracteresDia: 60_000,
+      sttAoVivoSegundosMes: 0,
+    },
+  },
+  /* PRO (planos v4, "em breve"; id \`pro4\`, NUNCA \`pro\`, que é o apelido antigo do Premium): 20 h e o intérprete
+     automático. A conversa por voz com o tutor (5 h de voz) ainda não existe: sem quota própria aqui até a
+     medição de custo; \`venda_pro4\` fica desligada até lá. */
+  pro4: {
+    rotulo: 'Pro',
+    precoMensalBrl: 34.9,
+    precoAnualBrl: 349.0,
+    flagsDeVenda: [FLAG_VENDA_PLANOS_V4, FLAG_VENDA_PRO4],
+    entitlements: {
+      managedCloudStt: true,
+      managedCloudLlm: true,
+      largerModels: true,
+      traducaoNuance: true,
+      vozNatural: true,
+      interpreteAutomatico: true,
+      semAnuncios: true,
+      sttAoVivo: false,
+      nivelDeVoz: 'basica',
+    },
+    quotas: {
+      chamadasMes: 26_000,
+      sttSegundosMes: 72_000,
+      tokensMes: 3_000_000,
+      armazenamentoMb: 500,
+      sttSegundosDia: 7_200,
+      tokensDia: 300_000,
+      vozCaracteresMes: 600_000,
+      vozCaracteresDia: 60_000,
+      sttAoVivoSegundosMes: 0,
     },
   },
   selfhost: {
@@ -628,10 +741,13 @@ export const PLANOS_PAGOS: readonly PlanoPago[] = PLANOS_DE_ASSINATURA.filter(eh
  * OS PLANOS À VENDA AGORA: os pagos cujas `flagsDeVenda` estão TODAS ligadas — quem pergunta diz como
  * ler uma flag (o servidor, pelo request; a tela, pelo cache de `GET /api/flags`). É a régua única de
  * `POST /api/billing/assinar` e do que a tela oferece. Com tudo desligado (a venda fechada da matriz
- * v3) sobra o que nunca teve chave: o Premium.
+ * v3) sobra o que nunca teve chave: o Premium. Com `venda_planos_v4` ligada, os v3 saem (`encerradoPor`) e
+ * entra o Plus; a Família e o Pro só com as flags próprias (nunca ligadas na etapa 1: "em breve").
  */
 export function planosAVenda(flagLigada: (chave: string) => boolean): PlanoPago[] {
-  return PLANOS_PAGOS.filter((p) => PLAN_MATRIX[p].flagsDeVenda.every(flagLigada));
+  return PLANOS_PAGOS.filter(
+    (p) => PLAN_MATRIX[p].flagsDeVenda.every(flagLigada) && !(PLAN_MATRIX[p].encerradoPor ?? []).some(flagLigada),
+  );
 }
 
 /** Nenhuma chave de venda ligada: a venda dos planos novos fechada, como nasce. */
@@ -642,6 +758,15 @@ const VENDA_FECHADA = (): boolean => false;
  * isso mora ao lado da matriz: o servidor (`resolverPlano`) e a tela leem daqui.
  */
 export const PLANO_DO_TESTE: PlanoPago = 'premium';
+
+/**
+ * O plano que o teste concede AGORA, dada a leitura das flags (planos v4): o Plus com `venda_planos_v4`
+ * ligada, o Premium sem. Quem começou o teste num plano o segue até acabar: o servidor grava o plano na
+ * concessão. `PLANO_DO_TESTE` fica para os chamadores que não leem flags (valor da v3, o de hoje).
+ */
+export function planoDoTeste(flagLigada: (chave: string) => boolean): PlanoPago {
+  return flagLigada(FLAG_VENDA_PLANOS_V4) ? 'plus' : PLANO_DO_TESTE;
+}
 
 /**
  * O plano pago de MENOR mensalidade. É o que o webhook concede quando um pagamento confirmado chega
@@ -690,29 +815,65 @@ export function valoresDasParcelas(total: number, parcelas: number): { padrao: n
  * mensalidade seria o Premium por menos que o Essencial. Com VÁRIOS planos pagos (matriz v3) o valor
  * também diz QUAL: por isso todo valor cobrável é distinto dos outros, e pagar R$ 9,90 com a intenção
  * do Premium concede o Essencial.
+ *
+ * UMA COLISÃO CONHECIDA (v4): a última parcela do 12x do Plus (R$ 149,00 → 11 × 12,41 + 12,49) é igual à parcela
+ * padrão do Premium (R$ 149,90 → 11 × 12,49 + 12,51). Valor que casa com MAIS DE UM plano só concede se
+ * `preferido` (a intenção gravada do pagador) estiver entre os candidatos; senão devolve `null` — ambíguo, e o
+ * chamador não concede por palpite. `tests/planos-v4-matriz.test.ts` falha se surgir outra colisão.
  */
 export function planoPeloPagamento(
   valor: number | undefined,
-  opcoes: { parcelas?: number } = {},
+  opcoes: { parcelas?: number; preferido?: PlanoPago | null } = {},
 ): { plano: PlanoDeAssinatura; ciclo: CicloDeCobranca } | null {
   if (typeof valor !== 'number' || !Number.isFinite(valor) || valor <= 0) return null;
   const parcelas = opcoes.parcelas ?? 1;
-  if (parcelas > 1) {
-    if (parcelas !== PARCELAS_DO_ANUAL) return null;
-    for (const plano of PLANOS_DE_ASSINATURA) {
-      const anual = PLAN_MATRIX[plano].precoAnualBrl;
-      if (anual === null) continue;
-      const { padrao, ultima } = valoresDasParcelas(anual, parcelas);
-      if (casa(valor, padrao) || casa(valor, ultima)) return { plano, ciclo: 'anual' };
-    }
-    return null;
-  }
+  if (parcelas > 1 && parcelas !== PARCELAS_DO_ANUAL) return null;
+  const candidatos: Array<{ plano: PlanoDeAssinatura; ciclo: CicloDeCobranca }> = [];
   for (const plano of PLANOS_DE_ASSINATURA) {
     const { precoMensalBrl: mensal, precoAnualBrl: anual } = PLAN_MATRIX[plano];
-    if (mensal !== null && casa(valor, mensal)) return { plano, ciclo: 'mensal' };
-    if (anual !== null && casa(valor, anual)) return { plano, ciclo: 'anual' };
+    if (parcelas > 1) {
+      if (anual === null) continue;
+      const { padrao, ultima } = valoresDasParcelas(anual, parcelas);
+      if (casa(valor, padrao) || casa(valor, ultima)) candidatos.push({ plano, ciclo: 'anual' });
+      continue;
+    }
+    if (mensal !== null && casa(valor, mensal)) candidatos.push({ plano, ciclo: 'mensal' });
+    else if (anual !== null && casa(valor, anual)) candidatos.push({ plano, ciclo: 'anual' });
   }
-  return null;
+  if (candidatos.length <= 1) return candidatos[0] ?? null;
+  /* AMBÍGUO (a parcela de R$ 12,49 é do Plus e do Premium): quem decide é a intenção, mas só ENTRE os
+     candidatos que o dinheiro permite. Sem intenção, ou com uma que não está entre eles, não se concede por
+     palpite: `null`, e o webhook registra e mantém o estado. */
+  const preferido = opcoes.preferido ? candidatos.find((c) => c.plano === opcoes.preferido) : undefined;
+  return preferido ?? null;
+}
+
+/** Um valor que o Asaas pode cobrar por um plano, com o que ele tem de pagar. */
+export interface ValorCobravel {
+  plano: PlanoDeAssinatura;
+  ciclo: CicloDeCobranca;
+  valor: number;
+  /** 1 = cobrança única (mensalidade ou ano à vista); `PARCELAS_DO_ANUAL` = parcela do 12x. */
+  parcelas: number;
+  oQue: 'mensalidade' | 'ano à vista' | 'parcela do 12x' | 'última parcela do 12x';
+}
+
+/**
+ * TODO VALOR que o Asaas pode cobrar por um plano: a mensalidade, o ano à vista e as duas parcelas do 12x
+ * (padrão e última). É o que o webhook casa em `planoPeloPagamento` e o que os testes enumeram para provar que
+ * nenhum valor novo colide com outro plano. Plano sem preço (Grátis, self-host) devolve `[]`; sem anual (Ao Vivo),
+ * só a mensalidade.
+ */
+export function valoresCobraveis(plano: PlanoDeAssinatura): ValorCobravel[] {
+  const { precoMensalBrl: mensal, precoAnualBrl: anual } = PLAN_MATRIX[plano];
+  const lista: ValorCobravel[] = [];
+  if (mensal !== null) lista.push({ plano, ciclo: 'mensal', valor: mensal, parcelas: 1, oQue: 'mensalidade' });
+  if (anual === null) return lista;
+  const { padrao, ultima } = valoresDasParcelas(anual, PARCELAS_DO_ANUAL);
+  lista.push({ plano, ciclo: 'anual', valor: anual, parcelas: 1, oQue: 'ano à vista' });
+  lista.push({ plano, ciclo: 'anual', valor: padrao, parcelas: PARCELAS_DO_ANUAL, oQue: 'parcela do 12x' });
+  lista.push({ plano, ciclo: 'anual', valor: ultima, parcelas: PARCELAS_DO_ANUAL, oQue: 'última parcela do 12x' });
+  return lista;
 }
 
 /**

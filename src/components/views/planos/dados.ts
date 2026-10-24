@@ -168,12 +168,19 @@ export const PLANO_NOME: Record<Coluna | PlanoPago, string> = {
   premium: 'Premium',
   essencial: PLAN_MATRIX.essencial.rotulo,
   aovivo: PLAN_MATRIX.aovivo.rotulo,
+  // planos-v4: a tela é da Task 3 — o nome é o da matriz; ícone e itens ainda são os do Premium.
+  plus: PLAN_MATRIX.plus.rotulo,
+  familia: PLAN_MATRIX.familia.rotulo,
+  pro4: PLAN_MATRIX.pro4.rotulo,
 };
 export const PLANO_ICO: Record<Coluna | PlanoPago, LucideIcon> = {
   gratis: Cpu,
   premium: Sparkles,
   essencial: Sparkles,
   aovivo: Sparkles,
+  plus: Sparkles,
+  familia: Sparkles,
+  pro4: Sparkles,
 };
 
 // planos-v3: tela na etapa 9 — plano pago sem coluna própria mostra os itens do Premium.

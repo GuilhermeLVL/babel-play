@@ -684,7 +684,15 @@ async function aplicarParcela(
     requestId: string | undefined
   },
 ): Promise<ResultadoDoEvento> {
-  const pago = planoPeloPagamento(p.valor, { parcelas: PARCELAS_DO_ANUAL })
+  /* A parcela de R$ 12,49 é do Plus (a última) E do Premium (a padrão): o valor sozinho não decide. A intenção
+     gravada por `/assinar` desempata, mas só ENTRE os planos que o dinheiro permite (`planoPeloPagamento`);
+     sem intenção de plano pago a parcela ambígua não concede (Task 2 dos planos v4 refina este ramo). */
+  const atual = await subscriptionsRepo.getActive(userId)
+  const planoGravado = atual ? normalizarPlano(atual.plan) : null
+  const pago = planoPeloPagamento(p.valor, {
+    parcelas: PARCELAS_DO_ANUAL,
+    preferido: ehPlanoPago(planoGravado) ? planoGravado : null,
+  })
   if (!pago) {
     return {
       estado: 'nao-aplicado',
@@ -698,7 +706,6 @@ async function aplicarParcela(
     }
   }
 
-  const atual = await subscriptionsRepo.getActive(userId)
   let motivo: string | null = null
   if (atual?.providerInstallmentId && atual.providerInstallmentId !== p.parcelamento) {
     motivo = `parcelamento-divergente: pago ${p.parcelamento}, registrado ${atual.providerInstallmentId}`

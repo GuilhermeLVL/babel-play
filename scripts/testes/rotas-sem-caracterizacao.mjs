@@ -63,7 +63,6 @@ const SEM_CARACTERIZACAO = {
     'capa embutida (data: URI); coberto por `f11-03-capa-mime.test.ts` e `capa-teto.test.ts`',
   'POST /api/sessions/:id/audio':
     'upload binário de áudio (120 MB); coberto por `delete-sessao-audio.test.ts` e `cota-armazenamento.test.ts`',
-  'GET /api/sessions/:id/audio': 'idem',
   'POST /api/sessions/utterances/relabel': 'reetiquetagem em lote; coberto por `tests/integration/sessions-*`',
 }
 

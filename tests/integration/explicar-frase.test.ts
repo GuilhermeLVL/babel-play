@@ -470,7 +470,9 @@ describe('reservarUsoDeEstudo (o resumo da Task 3)', () => {
 
   it('Plus: 60 resumos no mês, depois cota_do_mes', async () => {
     const quem = asUserId('estudo-resumo-plus')
-    await counters.increment(quem, estudo.METRIC_RESUMOS_MES, mes(), PLAN_MATRIX.plus.quotas.resumosMes - 1)
+    const resumosMes = PLAN_MATRIX.plus.quotas.resumosMes
+    if (resumosMes === null) throw new Error('o Plus deveria ter cota mensal de resumos')
+    await counters.increment(quem, estudo.METRIC_RESUMOS_MES, mes(), resumosMes - 1)
     expect(await estudo.reservarUsoDeEstudo(quem, 'plus', 'resumo')).toMatchObject({
       ok: true,
       origem: 'plano',

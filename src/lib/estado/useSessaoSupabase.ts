@@ -34,6 +34,12 @@ function sessaoDeConta<S extends { user?: unknown }>(s: S | null | undefined): S
 }
 
 export function useSessaoSupabase(): EstadoDaSessaoSupabase {
+  /* ARMA A ESPERA NA RENDERIZAÇÃO, não só no efeito abaixo: os efeitos dos filhos rodam ANTES do efeito do
+     pai, então um filho que lê as configurações ao montar chamava `apiFetch` com a identidade ainda
+     `carregando` e NÃO armada — `aguardarIdentidade` devolvia na hora e o `GET /api/settings` saía sem token
+     (401). Cada visita anônima gastava um ponto do limitador de falhas de autenticação do IP (30 por 15 min),
+     e uma escola/NAT inteira ficava com 429. Idempotente. */
+  if (authRequired) armarIdentidade();
   // Marco 1: sessão Supabase — só relevante no modo público (authRequired). No local fica null.
   const [session, setSession] = useState<{ user?: unknown } | null | undefined>(authRequired ? undefined : null);
   // Marco 1: fluxo de recuperação. O link do e-mail dispara PASSWORD_RECOVERY (com sessão temporária);

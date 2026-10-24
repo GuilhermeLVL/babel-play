@@ -640,3 +640,36 @@ describe('DELETE /api/ai/credentials/:id', () => {
     )
   })
 })
+
+describe('POST /api/ai/explicar e /api/ai/resumir — IA de estudo (flag ia_de_estudo)', () => {
+  /* Chamadas literais (`s.post('/api/ai/…')`): é o que o gate `rotas-sem-caracterizacao.mjs` reconhece. */
+  async function pedirAmbas(): Promise<Array<[string, Response]>> {
+    return [
+      ['/api/ai/explicar', await s.post('/api/ai/explicar', {})],
+      ['/api/ai/resumir', await s.post('/api/ai/resumir', {})],
+    ]
+  }
+  async function flag(habilitada: boolean) {
+    const flags = await s.load<any>('../../server/lib/flags')
+    await flags.definirFlag('ia_de_estudo', { habilitada }, 'caracterizacao')
+  }
+  afterAll(() => flag(false))
+
+  it('flag desligada → 404 recurso_indisponivel, mesmo com corpo vazio, sem chamar provedor', async () => {
+    await flag(false)
+    for (const [rota, r] of await pedirAmbas()) {
+      expect(r.status, rota).toBe(404)
+      expect((await r.json()).code, rota).toBe('recurso_indisponivel')
+    }
+    expect(chamadas).toHaveLength(0)
+  })
+
+  it('flag ligada e corpo inválido → 400 invalido, sem chamar provedor', async () => {
+    await flag(true)
+    for (const [rota, r] of await pedirAmbas()) {
+      expect(r.status, rota).toBe(400)
+      expect((await r.json()).code, rota).toBe('invalido')
+    }
+    expect(chamadas).toHaveLength(0)
+  })
+})

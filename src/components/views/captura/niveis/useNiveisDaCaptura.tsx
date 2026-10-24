@@ -20,7 +20,6 @@ import {
   NIVEIS,
   niveisDaTela,
   nivelDoSelo,
-  qualidadeDoNivel,
   quemTemONivel,
 } from '../../../../lib/captura/nivelDeServico';
 import type { LinhaDoMotor } from '../../../../lib/captura/painelDoProcessamento';
@@ -30,7 +29,7 @@ import { consentiuNuvem } from '../../../../lib/consentimentoDeNuvem';
 import type { TipoDeDispositivo } from '../../../../lib/dispositivo/perfil';
 import { edicaoEstatica } from '../../../../lib/edicaoEstatica';
 import { getEntitlements } from '../../../../lib/entitlements';
-import { escolherAparelho, escolherNuvem } from '../../../../lib/escolhaDoProcessamento';
+import { escolherProcessamento, useLadoDoProcessamento } from '../../../../lib/escolhaDoProcessamento';
 import { flagLigada } from '../../../../lib/flags';
 import { numero, t } from '../../../../lib/i18n';
 import { celular } from '../../../../lib/polimento/captura';
@@ -213,6 +212,8 @@ export function useNiveisDaCaptura(
 
   const amb: AmbienteDosNiveis | null = dados ? { ...ambienteReal(), ...dados.ambiente } : null;
   const temNuvem = !!amb && amb.capacidades.managedCloudStt && !amb.semPlanos;
+  /* O lado Aparelho | Nuvem marcado: o MESMO dos Ajustes (`lib/escolhaDoProcessamento`). */
+  const lado = useLadoDoProcessamento(temNuvem && !amb?.protegido);
   const ler = amb?.carregarUso;
 
   /* As horas do mês: só para quem tem nuvem no plano, e de novo quando uma captura termina. */
@@ -271,7 +272,11 @@ export function useNiveisDaCaptura(
       toast.info(t('As horas do nível {nivel} deste mês acabaram. Elas voltam no dia 1º.', { nivel: t(N.nome) }));
       return false;
     }
-    dados.aoEscolherQualidade(qualidadeDoNivel(n, dados.qualidade));
+    /* A escolha inteira (modo, chave e qualidade) é a dos Ajustes: `escolherProcessamento`. A Captura
+       recebe a qualidade nova pelo aviso dele (`EVENTO_DO_PROCESSAMENTO`). */
+    void escolherProcessamento(n === 'precisao' ? 'nuvem' : 'aparelho', {
+      perfil: getActiveProfile().id === 'local-private' ? 'local-private' : 'free-web',
+    });
     sentir('aba');
     /* O protótipo diz a razão quando o nível pedido não é o que fica valendo (`planos4.js:326-327`).
        Aqui a razão que a tela já conhece é a do aceite: sem ele a nuvem não recebe nada. */
@@ -316,22 +321,16 @@ export function useNiveisDaCaptura(
       : !amb.capacidades.managedCloudStt
         ? { trancada: true, porque: t('O seu plano não tem horas de nuvem: a legenda roda no aparelho, sem limite.') }
         : null;
-  const naNuvem = emUso ? emUso === 'precisao' : escolhaDaPreferencia(dados.qualidade) === 'precisao';
   const escolherNoPainel = (e: 'aparelho' | 'nuvem') => {
-    if (e === 'nuvem') {
-      if (nuvemTrancada || !escolher('precisao')) return;
-      void escolherNuvem();
-      return;
-    }
-    if (!escolher('aparelho')) return;
-    void escolherAparelho(getActiveProfile().id === 'local-private' ? 'local-private' : 'free-web');
+    if (e === 'nuvem' && nuvemTrancada) return;
+    escolher(e === 'nuvem' ? 'precisao' : 'aparelho');
   };
   const noCelular = celular();
   const aberto = folha?.qual === 'painel';
   const painel = aberto ? (
     <PainelDeProcessamento
       onde={selo?.onde ?? null}
-      escolha={naNuvem ? 'nuvem' : 'aparelho'}
+      escolha={lado}
       nuvem={nuvemTrancada}
       aoEscolher={escolherNoPainel}
       transcricao={dados.processamento?.transcricao ?? null}

@@ -49,11 +49,21 @@ export function linhaDaTranscricao(o: {
   return { nome: item?.nome ?? 'Modelo local', onde: 'aparelho' };
 }
 
-/** Quem traduz: o tradutor do navegador, o Bergamot ou o opus-mt. `null` = nada a afirmar. */
-export function linhaDaTraducao(o: { nativo: boolean; ids: readonly string[] }): LinhaDoMotor | null {
+/**
+ * Quem traduz, em palavras de gente (Task 4, correção 2): o tradutor do navegador (o nativo do
+ * Chrome/Edge), o tradutor do aparelho (Bergamot ou opus-mt — o nome técnico fica no "Modelo no
+ * dispositivo") ou a tradução na nuvem (quem tem a tradução da nuvem no plano e não escolheu
+ * "Aparelho": ela vai primeiro). `null` = nada a afirmar.
+ */
+export function linhaDaTraducao(o: {
+  nativo: boolean;
+  ids: readonly string[];
+  naNuvem?: boolean;
+}): LinhaDoMotor | null {
+  if (o.naNuvem) return { nome: 'Tradução na nuvem', onde: 'nuvem' };
   if (o.nativo) return { nome: 'Tradutor do navegador', onde: 'aparelho' };
-  if (o.ids.some((id) => /^bergamot\//i.test(id))) return { nome: 'Bergamot', onde: 'aparelho' };
-  if (o.ids.some((id) => /opus-mt/i.test(id))) return { nome: 'opus-mt', onde: 'aparelho' };
+  if (o.ids.some((id) => /^bergamot\//i.test(id) || /opus-mt/i.test(id)))
+    return { nome: 'Tradutor do aparelho', onde: 'aparelho' };
   return null;
 }
 

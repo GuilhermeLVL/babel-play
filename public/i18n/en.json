@@ -4858,5 +4858,7 @@
   "Você está num computador que roda o modelo Preciso": "You are on a computer that runs the Accurate model",
   "Este computador roda o modelo Preciso: a legenda sai aqui mesmo, sem limite e sem custo, com cerca de 6 erros a cada 100 palavras em português e espanhol. Para estudar inglês, o Grátis já resolve.": "This computer runs the Accurate model: captions come out right here, with no limit and no cost, with about 6 errors per 100 words in Portuguese and Spanish. For studying English, Free is already enough.",
   "Em tempo real, no aparelho: o modelo Preciso em português e espanhol. Inclusive o som de uma aba.": "Real time, on the device: the Accurate model in Portuguese and Spanish. Including the sound of a tab.",
-  "Outros idiomas, áudio com barulho, gíria e jeito de falar.": "Other languages, noisy audio, slang and the way people talk."
+  "Outros idiomas, áudio com barulho, gíria e jeito de falar.": "Other languages, noisy audio, slang and the way people talk.",
+  "Tradutor do aparelho": "On-device translator",
+  "Tradução na nuvem": "Cloud translation"
 }

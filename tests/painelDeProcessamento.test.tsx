@@ -21,13 +21,14 @@ vi.mock('../src/components/Toast', () => ({
   toast: { info: avisos.info, ok: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
 vi.mock('../src/lib/polimento/sentidos', () => ({ sentir: vi.fn(), vibrar: vi.fn() }))
+/* A escolha inteira (`escolherProcessamento`) é observada aqui; o que ela grava, e a rota que sai dela,
+   estão em `tests/escolhaDoProcessamento.test.tsx`. */
 const escolha = vi.hoisted(() => ({
-  aparelho: vi.fn(async () => true),
-  nuvem: vi.fn(async () => 'sem-chave' as 'ok' | 'sem-chave' | 'falhou'),
+  processamento: vi.fn(async () => ({ qualidade: 'accurate', semChave: false, salvo: true })),
 }))
 vi.mock('../src/lib/escolhaDoProcessamento', async (orig) => {
   const real = await orig<typeof import('../src/lib/escolhaDoProcessamento')>()
-  return { ...real, escolherAparelho: escolha.aparelho, escolherNuvem: escolha.nuvem }
+  return { ...real, escolherProcessamento: escolha.processamento }
 })
 
 import AiEnginePanel from '../src/components/AiEnginePanel'
@@ -43,8 +44,7 @@ import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
 beforeAll(prepararDialogoNoJsdom)
 beforeEach(() => {
   avisos.info.mockClear()
-  escolha.aparelho.mockClear()
-  escolha.nuvem.mockClear()
+  escolha.processamento.mockClear()
   localStorage.clear()
 })
 afterEach(() => {
@@ -292,47 +292,35 @@ describe('no celular, a folha de baixo', () => {
 })
 
 describe('o segmentado Aparelho | Nuvem', () => {
-  it('Nuvem chama a mesma função dos Ajustes e grava a preferência de nuvem', async () => {
-    const gravar = vi.fn()
-    render(
-      <CapturaDoPrototipo
-        {...base}
-        niveis={niveisDe({ ambiente: { capacidades: COM_NUVEM }, aoEscolherQualidade: gravar })}
-      />,
-    )
+  it('Nuvem chama a mesma escolha dos Ajustes', async () => {
+    render(<CapturaDoPrototipo {...base} niveis={niveisDe({ ambiente: { capacidades: COM_NUVEM } })} />)
     const p = await abrir()
     fireEvent.click(p.getByRole('radio', { name: /Nuvem/ }))
-    await waitFor(() => expect(escolha.nuvem).toHaveBeenCalledTimes(1))
-    expect(gravar).toHaveBeenCalledWith('cloud')
+    await waitFor(() => expect(escolha.processamento).toHaveBeenCalledWith('nuvem', expect.anything()))
   })
 
-  it('Aparelho chama a mesma função dos Ajustes e grava o modelo local', async () => {
-    const gravar = vi.fn()
+  it('Aparelho chama a mesma escolha dos Ajustes', async () => {
+    localStorage.setItem('babel.sttQuality', 'cloud')
     render(
       <CapturaDoPrototipo
         {...base}
         temFalas
-        niveis={niveisDe({
-          selo: seloDaFala(NA_NUVEM, 'groq-whisper'),
-          qualidade: 'cloud',
-          ambiente: { capacidades: COM_NUVEM },
-          aoEscolherQualidade: gravar,
-        })}
+        niveis={niveisDe({ selo: seloDaFala(NA_NUVEM, 'groq-whisper'), ambiente: { capacidades: COM_NUVEM } })}
       />,
     )
     const p = await abrir()
+    expect(p.getByRole('radio', { name: /Nuvem/ }).getAttribute('aria-checked')).toBe('true')
     fireEvent.click(p.getByRole('radio', { name: /Aparelho/ }))
-    await waitFor(() => expect(escolha.aparelho).toHaveBeenCalledTimes(1))
-    expect(gravar).toHaveBeenCalledWith('accurate')
+    await waitFor(() => expect(escolha.processamento).toHaveBeenCalledWith('aparelho', expect.anything()))
   })
 
-  it('a aba Processamento dos Ajustes chama as MESMAS funções', async () => {
-    localStorage.setItem('babel.activeProfileId', 'cloud-quality')
+  it('a aba Processamento dos Ajustes chama a MESMA escolha', async () => {
+    localStorage.setItem('babel.providerMode', 'cloud')
     const { unmount } = render(<AiEnginePanel />)
     fireEvent.click(screen.getByRole('button', { name: /Rodar no seu aparelho/ }))
-    await waitFor(() => expect(escolha.aparelho).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(escolha.processamento).toHaveBeenCalledWith('aparelho', expect.anything()))
     fireEvent.click(screen.getByRole('button', { name: /Usar a sua chave/ }))
-    await waitFor(() => expect(escolha.nuvem).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(escolha.processamento).toHaveBeenCalledWith('nuvem'))
     unmount()
   })
 
@@ -344,7 +332,7 @@ describe('o segmentado Aparelho | Nuvem', () => {
     expect(nuvem.querySelector('.lucide-lock')).toBeTruthy()
     expect(p.getByText('O seu plano não tem horas de nuvem: a legenda roda no aparelho, sem limite.')).toBeTruthy()
     fireEvent.click(nuvem)
-    expect(escolha.nuvem).not.toHaveBeenCalled()
+    expect(escolha.processamento).not.toHaveBeenCalled()
   })
 
   it('perfil protegido: cadeado, só "A nuvem não está disponível neste perfil.", e nada de planos', async () => {
@@ -455,10 +443,15 @@ describe('o que o painel diz (puro)', () => {
     expect(linhaDaTranscricao({ selo: null, idDoModelo: 'desconhecido' }).nome).toBe('Modelo local')
   })
 
-  it('a tradução: o tradutor do navegador antes; depois o Bergamot ou o opus-mt', () => {
+  it('a tradução: na nuvem, o tradutor do navegador ou o tradutor do aparelho', () => {
     expect(linhaDaTraducao({ nativo: true, ids: ['bergamot/es-en'] })?.nome).toBe('Tradutor do navegador')
-    expect(linhaDaTraducao({ nativo: false, ids: ['bergamot/es-en'] })?.nome).toBe('Bergamot')
-    expect(linhaDaTraducao({ nativo: false, ids: ['Xenova/opus-mt-en-ROMANCE'] })?.nome).toBe('opus-mt')
+    /* Correção 2: nomes de gente; o técnico (Bergamot, opus-mt) fica no "Modelo no dispositivo". */
+    expect(linhaDaTraducao({ nativo: false, ids: ['bergamot/es-en'] })?.nome).toBe('Tradutor do aparelho')
+    expect(linhaDaTraducao({ nativo: false, ids: ['Xenova/opus-mt-en-ROMANCE'] })?.nome).toBe('Tradutor do aparelho')
+    expect(linhaDaTraducao({ nativo: true, ids: [], naNuvem: true })).toEqual({
+      nome: 'Tradução na nuvem',
+      onde: 'nuvem',
+    })
     expect(linhaDaTraducao({ nativo: false, ids: [] })).toBeNull()
   })
 

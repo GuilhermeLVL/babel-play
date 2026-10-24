@@ -21,6 +21,15 @@ vi.mock('../src/components/Toast', () => ({
   toast: { info: avisos.info, ok: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
 vi.mock('../src/lib/polimento/sentidos', () => ({ sentir: vi.fn(), vibrar: vi.fn() }))
+/* Task 4, correção 1: escolher um nível grava a escolha INTEIRA por `escolherProcessamento` (a mesma dos
+   Ajustes). Aqui ela é observada; o que ela grava é testado em `tests/escolhaDoProcessamento.test.tsx`. */
+const processamento = vi.hoisted(() => ({
+  escolher: vi.fn(async () => ({ qualidade: 'accurate', semChave: true, salvo: true })),
+}))
+vi.mock('../src/lib/escolhaDoProcessamento', async (orig) => {
+  const real = await orig<typeof import('../src/lib/escolhaDoProcessamento')>()
+  return { ...real, escolherProcessamento: processamento.escolher }
+})
 const aparelho = vi.hoisted(() => ({ tipo: 'desktop-com-gpu' as 'quest' | 'desktop-com-gpu' }))
 vi.mock('../src/lib/dispositivo/perfil', async (orig) => {
   const real = await orig<typeof import('../src/lib/dispositivo/perfil')>()
@@ -392,13 +401,8 @@ describe('estadoDoChip (puro)', () => {
 
 describe('a folha "Como isto funciona" guarda o que saiu da tela (enxuto.js:163-205)', () => {
   it('"Escolha o nível": o nível sem cadeado é escolhido ali mesmo, e grava a preferência de sempre', () => {
-    const gravar = vi.fn()
-    render(
-      <CapturaDoPrototipo
-        {...base}
-        niveis={niveisDe({ ambiente: { capacidades: COM_NUVEM }, aoEscolherQualidade: gravar })}
-      />,
-    )
+    processamento.escolher.mockClear()
+    render(<CapturaDoPrototipo {...base} niveis={niveisDe({ ambiente: { capacidades: COM_NUVEM } })} />)
     const como = abrirFolha()
     expect(como.getByText('Escolha o nível')).toBeTruthy()
     expect(como.queryByText('Os três níveis')).toBeNull()
@@ -408,9 +412,9 @@ describe('a folha "Como isto funciona" guarda o que saiu da tela (enxuto.js:163-
       'aovivo',
     ])
     fireEvent.click(como.getByRole('radio', { name: /Precisão/ }))
-    expect(gravar).toHaveBeenCalledWith('cloud')
+    expect(processamento.escolher).toHaveBeenCalledWith('nuvem', expect.anything())
     fireEvent.click(como.getByRole('radio', { name: /No aparelho/ }))
-    expect(gravar).toHaveBeenLastCalledWith('accurate')
+    expect(processamento.escolher).toHaveBeenLastCalledWith('aparelho', expect.anything())
     /* A folha continua aberta: o nível troca com ela à vista. */
     expect(screen.getByTestId('como-isto-funciona')).toBeTruthy()
   })

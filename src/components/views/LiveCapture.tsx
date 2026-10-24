@@ -143,7 +143,7 @@ import { usePalavrasConhecidas } from '../../lib/captura/usePalavrasConhecidas';
 import { usePreparoDoInicio } from '../../lib/captura/usePreparoDoInicio';
 import { useSemRede } from '../../lib/captura/useSemRede';
 import { cenarioDasFontes, type CenarioDeCaptura } from '../../lib/cenarioDeCaptura';
-import { consentiuNuvem, rapidoDoMicPermitido, useEscolhaDoMic } from '../../lib/consentimentoDeNuvem';
+import { rapidoDoMicPermitido, useEscolhaDoMic } from '../../lib/consentimentoDeNuvem';
 import { DominantLangTracker } from '../../lib/convoLang';
 import { classificarDispositivo, dispositivoDaRota, lerSinaisDoDispositivo } from '../../lib/dispositivo/perfil';
 import {
@@ -156,6 +156,7 @@ import { recursosDoAparelho } from '../../lib/dispositivo/recursos';
 import { useSondaGuardada } from '../../lib/dispositivo/useSondaGuardada';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { getEntitlements } from '../../lib/entitlements';
+import { consentiuNuvemNaFala, EVENTO_DO_PROCESSAMENTO } from '../../lib/escolhaDoProcessamento';
 import { marcarOcupacaoDaCaptura } from '../../lib/filaDeRecompensas';
 import { flagLigada } from '../../lib/flagsCache';
 import { t } from '../../lib/i18n';
@@ -452,6 +453,13 @@ export default function LiveCapture({
   /** O áudio da aba está no reconhecedor do navegador, no aparelho (`webSpeechDoSistema.ts`). */
   const [sistemaNoNavegador, setSistemaNoNavegador] = useState(false);
   const [sttQuality, setSttQuality] = useState<SttQuality>(() => getSttQuality());
+  /* A escolha Aparelho | Nuvem (painel de processamento, Ajustes) grava a qualidade no espelho local e
+     avisa: a Captura aberta passa a valer com ela. */
+  useEffect(() => {
+    const aoMudar = () => setSttQuality(getSttQuality());
+    window.addEventListener(EVENTO_DO_PROCESSAMENTO, aoMudar);
+    return () => window.removeEventListener(EVENTO_DO_PROCESSAMENTO, aoMudar);
+  }, []);
   /* Há um ADAPTADOR WebGPU? (não só `navigator.gpu`). Começa com o palpite síncrono e vira a medida
      assim que o navegador responde — o selo e o tamanho do download mudam junto. */
   const [temGpu, setTemGpu] = useState<boolean>(() => webGpuProvavel());
@@ -866,7 +874,9 @@ export default function LiveCapture({
     () =>
       buildGateway({
         profile: getActiveProfile(),
-        cloudConsent: consentiuNuvem,
+        /* "Aparelho" no painel de processamento ou nos Ajustes vale como "sem nuvem" para a fala
+           (`lib/escolhaDoProcessamento`): nenhum trecho, nenhuma tradução sai do aparelho. */
+        cloudConsent: consentiuNuvemNaFala,
       }),
     [],
   );
@@ -3174,6 +3184,7 @@ export default function LiveCapture({
             }),
             traducao: linhaDaTraducao({
               nativo: preparoDoInicio.tradutorNativo,
+              naNuvem: getEntitlements().managedCloudLlm && consentiuNuvemNaFala(),
               ids: modelosDaCaptura.filter((m) => !m.transcricao).map((m) => m.id),
             }),
             aoVerModelosNoAparelho:

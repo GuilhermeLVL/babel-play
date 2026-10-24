@@ -12,12 +12,7 @@ import { dispositivoDaRota, perfilDoDispositivo } from '../lib/dispositivo/perfi
 import type { SondaDoAparelho } from '../lib/dispositivo/sonda';
 import { useSondaGuardada } from '../lib/dispositivo/useSondaGuardada';
 import { edicaoEstatica } from '../lib/edicaoEstatica';
-import {
-  escolherAparelho as escolherAparelhoNoApp,
-  escolherNuvem as escolherNuvemNoApp,
-  type PerfilDoAparelho,
-  usarNuvemComChave,
-} from '../lib/escolhaDoProcessamento';
+import { escolherProcessamento, type PerfilDoAparelho, useLadoDoProcessamento } from '../lib/escolhaDoProcessamento';
 import { t } from '../lib/i18n';
 import { toast } from './Toast';
 import { Dialogo, fecharDialogoDe } from './ui';
@@ -92,7 +87,8 @@ export default function AiEnginePanel({
     () => localStorage.getItem(PROFILE_STORAGE_KEY) ?? DEFAULT_PROFILE_ID,
   );
   const activeId = controladoId ?? internoId;
-  const nuvem = activeId === 'cloud-quality';
+  /* O lado marcado é o de `ladoDoProcessamento`: o mesmo que o painel da Captura mostra. */
+  const nuvem = useLadoDoProcessamento(!bloqueados.includes('cloud-quality') && !edicaoEstatica()) === 'nuvem';
   const [pedindoChave, setPedindoChave] = useState(false);
   const [text, setText] = useState('Good morning, my friend. How are you today?');
   const [result, setResult] = useState<{ text: string; engine: string } | null>(null);
@@ -118,28 +114,34 @@ export default function AiEnginePanel({
     setError('');
   };
 
-  /* A escolha mora em `lib/escolhaDoProcessamento` (a mesma do painel de processamento da Captura). */
+  /* A escolha mora em `lib/escolhaDoProcessamento` (a MESMA do painel de processamento da Captura): o
+     modo, a chave e a qualidade da transcrição, juntos. O lado marcado vem de lá também. */
+  const avisarSeFalhou = (salvo: boolean) => {
+    if (!salvo) toast.warn('Não consegui salvar a escolha. Verifique a conexão e tente de novo.');
+  };
   const escolherAparelho = async (perfil: PerfilDoAparelho = 'free-web') => {
-    const salvo = escolherAparelhoNoApp(perfil);
+    const feito = escolherProcessamento('aparelho', { perfil });
     aplicar(perfil);
-    if (!(await salvo)) toast.warn('Não consegui salvar a escolha. Verifique a conexão e tente de novo.');
+    avisarSeFalhou((await feito).salvo);
   };
 
   const usarNuvem = async (credentialId: string) => {
-    const salvo = usarNuvemComChave(credentialId);
+    const feito = escolherProcessamento('nuvem', { credencial: credentialId });
     aplicar('cloud-quality');
-    if (!(await salvo)) toast.warn('Não consegui salvar a escolha. Verifique a conexão e tente de novo.');
+    avisarSeFalhou((await feito).salvo);
   };
 
+  /* Sem chave própria, a nuvem do plano já vale (a qualidade foi para `cloud`); o formulário da chave
+     abre como antes, para quem quer usar a dele. */
   const escolherNuvem = async () => {
     if (bloqueados.includes('cloud-quality')) return;
-    const r = await escolherNuvemNoApp();
-    if (r === 'sem-chave') {
+    const r = await escolherProcessamento('nuvem');
+    if (r.semChave) {
       setPedindoChave(true);
       return;
     }
     aplicar('cloud-quality');
-    if (r === 'falhou') toast.warn('Não consegui salvar a escolha. Verifique a conexão e tente de novo.');
+    avisarSeFalhou(r.salvo);
   };
 
   const runTest = async () => {

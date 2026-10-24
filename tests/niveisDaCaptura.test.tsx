@@ -19,6 +19,15 @@ vi.mock('../src/components/Toast', () => ({
   toast: { info: avisos.info, ok: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
 vi.mock('../src/lib/polimento/sentidos', () => ({ sentir: vi.fn(), vibrar: vi.fn() }))
+/* Task 4, correção 1: escolher um nível grava a escolha INTEIRA por `escolherProcessamento` (a mesma dos
+   Ajustes). Aqui ela é observada; o que ela grava é testado em `tests/escolhaDoProcessamento.test.tsx`. */
+const processamento = vi.hoisted(() => ({
+  escolher: vi.fn(async () => ({ qualidade: 'accurate', semChave: true, salvo: true })),
+}))
+vi.mock('../src/lib/escolhaDoProcessamento', async (orig) => {
+  const real = await orig<typeof import('../src/lib/escolhaDoProcessamento')>()
+  return { ...real, escolherProcessamento: processamento.escolher }
+})
 
 import {
   type AmbienteDosNiveis,
@@ -33,7 +42,10 @@ import type { UsoDoMes } from '../src/lib/uso'
 import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
 
 beforeAll(prepararDialogoNoJsdom)
-beforeEach(() => avisos.info.mockClear())
+beforeEach(() => {
+  avisos.info.mockClear()
+  processamento.escolher.mockClear()
+})
 afterEach(cleanup)
 
 const pedido = (nuvem: boolean): PedidoDeRota => ({
@@ -166,12 +178,11 @@ describe('o seletor de nível, por capacidade do plano', () => {
   })
 
   it('escolher "Precisão" grava a preferência de nuvem; "No aparelho", a do modelo local', () => {
-    const gravar = vi.fn()
-    render(<Tela ambiente={{ capacidades: COM_NUVEM }} aoEscolherQualidade={gravar} />)
+    render(<Tela ambiente={{ capacidades: COM_NUVEM }} />)
     fireEvent.click(nivel('Precisão'))
-    expect(gravar).toHaveBeenLastCalledWith('cloud')
+    expect(processamento.escolher).toHaveBeenLastCalledWith('nuvem', expect.anything())
     fireEvent.click(nivel('No aparelho'))
-    expect(gravar).toHaveBeenLastCalledWith('accurate')
+    expect(processamento.escolher).toHaveBeenLastCalledWith('aparelho', expect.anything())
     expect(screen.queryByTestId('folha-do-cadeado')).toBeNull()
   })
 
@@ -184,11 +195,10 @@ describe('o seletor de nível, por capacidade do plano', () => {
 
 describe('o cadeado', () => {
   it('tocar no nível com cadeado NÃO grava nada e abre a folha: o que é, quando vale, quem tem, a porta', () => {
-    const gravar = vi.fn()
     const verPlanos = vi.fn()
-    render(<Tela ambiente={{ capacidades: GRATIS }} aoEscolherQualidade={gravar} aoVerPlanos={verPlanos} />)
+    render(<Tela ambiente={{ capacidades: GRATIS }} aoVerPlanos={verPlanos} />)
     fireEvent.click(nivel('Precisão'))
-    expect(gravar).not.toHaveBeenCalled()
+    expect(processamento.escolher).not.toHaveBeenCalled()
 
     const folha = within(screen.getByTestId('folha-do-cadeado'))
     expect(folha.getByRole('heading', { name: 'A Precisão começa no plano Essencial' })).toBeTruthy()
@@ -331,11 +341,10 @@ describe('as horas acabaram', () => {
   })
 
   it('escolher "Precisão" sem horas avisa e não grava', async () => {
-    const gravar = vi.fn()
-    render(<Tela ambiente={{ capacidades: COM_NUVEM, carregarUso: esgotado }} aoEscolherQualidade={gravar} />)
+    render(<Tela ambiente={{ capacidades: COM_NUVEM, carregarUso: esgotado }} />)
     await screen.findByTestId('nota-das-horas')
     fireEvent.click(nivel('Precisão'))
-    expect(gravar).not.toHaveBeenCalled()
+    expect(processamento.escolher).not.toHaveBeenCalled()
     expect(avisos.info).toHaveBeenLastCalledWith(
       'As horas do nível Precisão deste mês acabaram. Elas voltam no dia 1º.',
     )

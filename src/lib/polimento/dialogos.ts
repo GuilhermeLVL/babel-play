@@ -151,6 +151,10 @@ function devolverFoco(el: Element | null | undefined): void {
 function reabrir(d: HTMLDialogElement): boolean {
   try {
     d.removeAttribute('open');
+    /* Outro diálogo já aberto (uma folha que passa a vez a outra: o painel de processamento abre "Como
+       isto funciona"): não há saída — a folha nova já cobre a tela. Reaberta, a saída subia por cima
+       dela (modal mais recente), prendia o foco e engolia o primeiro Esc (Task 4, 23/10/2026). */
+    if ([...document.querySelectorAll('dialog[open]')].some((x) => x !== d)) return false;
     d.showModal();
     return true;
   } catch {

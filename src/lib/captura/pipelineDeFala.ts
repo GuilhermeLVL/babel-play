@@ -29,11 +29,12 @@ import { temCopiaNoAparelho } from '../../gateway/modelManifest';
 import { entradaDoParakeet, lerModeloFixo } from '../../gateway/modeloFixo';
 import type { ContextoDoStt } from '../../gateway/promptDeStt';
 import { getSttQuality, nomeLegivelDoModelo, outroBackend, routeStt } from '../../gateway/sttRouter';
-import { consentiuNuvem, consentiuReconhecimentoDoNavegador, rapidoDoMicPermitido } from '../consentimentoDeNuvem';
+import { consentiuReconhecimentoDoNavegador, rapidoDoMicPermitido } from '../consentimentoDeNuvem';
 import { DominantLangTracker } from '../convoLang';
 import { dispositivoDaRota, medirPerfilDoDispositivo, perfilDoDispositivo } from '../dispositivo/perfil';
 import { edicaoEstatica } from '../edicaoEstatica';
 import { getEntitlements } from '../entitlements';
+import { consentiuNuvemNaFala, soNoAparelho } from '../escolhaDoProcessamento';
 import { t } from '../i18n';
 import { detectLanguage } from '../langDetect';
 import { baseLang, langLabel } from '../languages';
@@ -1420,7 +1421,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       const protegido = perfilProtegido();
       previstos = previstosDoSelo(
         montarPedidoDeRota(entradaDaPolitica, {
-          consentiuNuvem: consentiuNuvem(),
+          /* "Aparelho" (`lib/escolhaDoProcessamento`) vale como sem nuvem: o selo diz o aparelho. */
+          consentiuNuvem: consentiuNuvemNaFala(),
           consentiuNavegador: consentiuReconhecimentoDoNavegador(),
           protegido,
           // `rapidoDoMicPermitido` é a régua do responsável: adulto, ou protegido com o vínculo aceito.
@@ -1626,7 +1628,14 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
        no reconhecedor do navegador (A9a, logo abaixo) e o microfone fora do Whisper, o aparelho não
        roda modelo de fala nenhum: oferecer nuvem ali seria gastar franquia (e dinheiro) sem ganho. */
     const falaNoNavegador = !!opcoes.sistemaNoNavegador && !micVaiAoWhisper;
-    if (!route.preferCloud && !falaNoNavegador && pedirNuvemDeAlivio && aparelhoPedeAlivio(sinaisDoAlivio)) {
+    /* Quem escolheu "Aparelho" não recebe a oferta: nada de fala vai à nuvem até escolher Nuvem. */
+    if (
+      !route.preferCloud &&
+      !falaNoNavegador &&
+      !soNoAparelho() &&
+      pedirNuvemDeAlivio &&
+      aparelhoPedeAlivio(sinaisDoAlivio)
+    ) {
       void pedirNuvemDeAlivio('aparelho', sinaisDoAlivio).catch(() => undefined);
     }
     /** STT e tradutor UM DE CADA VEZ, fora do desktop com GPU e ≥ 8 GB (`memoriaDosModelos.ts`). */

@@ -17,6 +17,7 @@
  *     `avaliarFrase`/`LIMITES_DO_BULK_ADD` reprovam é descartado ANTES de propor. A validação do bulk-add é do lote
  *     inteiro, e uma linha ruim derrubaria todas.
  */
+import { apareceComoPalavra } from '../../core/learning/cloze';
 import { avaliarFrase, LIMITES_DO_BULK_ADD } from '../../core/learning/quality';
 import { FALA_CLOSE, FALA_OPEN, nomeDoIdioma, semRegiao } from '../traducao/promptComunicativo';
 import { objetoDaResposta } from '../traducao/promptDasAlternativas';
@@ -25,8 +26,6 @@ import { objetoDaResposta } from '../traducao/promptDasAlternativas';
 export const PONTOS_DO_RESUMO = 3;
 /** Até quantos cartões o resumo propõe (depois do filtro). */
 export const MAX_CARTOES_DO_RESUMO = 10;
-/** Abaixo disto a sessão é curta demais para resumir (400 `sessao_curta`). */
-export const MIN_FALAS_DO_RESUMO = 4;
 /** Teto de caracteres de cada ponto e do verso de cada cartão (a tradução ou o sentido). */
 export const MAX_CARACTERES_DO_PONTO = 300;
 export const MAX_CARACTERES_DO_VERSO = 200;
@@ -143,7 +142,8 @@ const chave = (s: string): string => s.normalize('NFC').replace(/\s+/g, ' ').tri
 /**
  * Os candidatos que viram cartão, no formato do bulk-add. Fica de fora, em silêncio, o candidato que:
  *   - não tem exatamente `fala` (inteiro de 1 ao número de falas), `palavra` e `verso` (textos);
- *   - tem a palavra fora de `LIMITES_DO_BULK_ADD`, ou que não aparece na fala apontada;
+ *   - tem a palavra fora de `LIMITES_DO_BULK_ADD`, ou que não aparece INTEIRA na fala apontada (a borda de
+ *     palavra do `makeCloze`: "an" não está em "and");
  *   - tem o verso vazio, longo demais ou igual à palavra;
  *   - aponta uma fala que `avaliarFrase` reprova (cortada, longa demais, ruído) ou que já está no idioma de quem
  *     estuda;
@@ -176,7 +176,7 @@ export function cartoesDoResumo(
     if (word.length < LIMITES_DO_BULK_ADD.min || word.length > LIMITES_DO_BULK_ADD.max) continue;
     if (!back || back.length > MAX_CARACTERES_DO_VERSO || chave(back) === chave(word)) continue;
     if (!sentence || sentence.length > MAX_CARACTERES_DA_FRASE_DO_CARTAO) continue;
-    if (!chave(sentence).includes(chave(word))) continue;
+    if (!apareceComoPalavra(sentence.normalize('NFC'), word.normalize('NFC'))) continue;
     if (!srcLang || srcLang.length > MAX_CARACTERES_DO_IDIOMA) continue;
     if (semRegiao(srcLang) === semRegiao(tgtLang)) continue;
     if (!avaliarFrase(sentence, { traducao: fala.traducao }).serve) continue;

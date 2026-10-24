@@ -98,6 +98,15 @@ describe('lerResumo (estrita no topo)', () => {
 })
 
 describe('cartoesDoResumo (o filtro antes de propor)', () => {
+  it('a palavra tem de estar INTEIRA na frase: "an" dentro de "and" é descartado; "an" sozinho passa', () => {
+    const falas = [fala('Bread and butter for an old friend.', 'Pão com manteiga para um velho amigo.')]
+    expect(
+      cartoesDoResumo([{ fala: 1, palavra: 'an', verso: 'um' }], [fala('Bread and butter, please.')], 'pt'),
+    ).toEqual([])
+    expect(cartoesDoResumo([{ fala: 1, palavra: 'an', verso: 'um' }], falas, 'pt').map((x) => x.word)).toEqual(['an'])
+    expect(cartoesDoResumo([{ fala: 1, palavra: 'butter', verso: 'manteiga' }], falas, 'pt')).toHaveLength(1)
+  })
+
   const c = (falaN: number, palavra: string, verso: string) => ({ fala: falaN, palavra, verso })
 
   it('o candidato bom vira cartão com a frase da cena (do banco) e os idiomas da fala e de quem estuda', () => {
@@ -120,6 +129,8 @@ describe('cartoesDoResumo (o filtro antes de propor)', () => {
       c(1, 'a', 'um'), // curta demais para o bulk-add
       c(1, longa, 'x'), // longa demais para o bulk-add
       c(1, 'banana', 'banana-fruta'), // a palavra não está na frase
+      c(1, 'sho', 'deveria'), // pedaço de palavra ("sho" dentro de "should"): não é a palavra
+      c(5, 'Hones', 'sincera'), // idem, no começo da frase
       c(9, 'coffee', 'café'), // fala inexistente
       c(0, 'coffee', 'café'),
       c(1.5, 'coffee', 'café'),

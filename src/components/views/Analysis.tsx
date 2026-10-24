@@ -4,7 +4,7 @@ import React, { Suspense, useEffect, useRef, useState } from 'react';
 import type { AppMetrics, UtteranceRow } from '../../data/api';
 import { fetchDeck, fetchSessionTranscript, fetchSettings } from '../../data/api';
 import { applyOutputDevice } from '../../lib/audioDevices';
-import { MIN_FALAS_DO_RESUMO } from '../../lib/estudo/promptDoResumo';
+import { MIN_FALAS_DO_RESUMO } from '../../lib/estudo/constantes';
 import { useLangConfig } from '../../lib/langConfig';
 import { baseLang } from '../../lib/languages';
 import { lazyComRecarga } from '../../lib/lazyComRecarga';

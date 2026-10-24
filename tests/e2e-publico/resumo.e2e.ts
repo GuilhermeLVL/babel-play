@@ -65,6 +65,24 @@ async function foto(page: Page, nome: string) {
   if (dir) await page.screenshot({ path: `${dir}/${nome}.png`, fullPage: false })
 }
 
+/**
+ * O PLAYER NÃO COBRE O FIM DO RESUMO: o botão de adicionar (com foco do teclado) e o rodapé "Isto é uma IA",
+ * rolados até o fim da janela, ficam INTEIROS acima do player (que é preso embaixo: `sticky` no computador,
+ * `fixed` sobre a barra no celular). É o respiro de rolagem da sessão (`scroll-padding-bottom`).
+ */
+async function fimDoResumoAVista(page: Page) {
+  const corpo = page.getByTestId('resumo-da-sessao')
+  const topoDoPlayer = async () => page.locator('.px-player').evaluate((el) => el.getBoundingClientRect().top)
+  await page.locator('.q-palco').evaluate((el) => el.scrollTo(0, 0))
+  const botao = corpo.getByRole('button', { name: /Adicionar/ })
+  await botao.focus()
+  expect((await botao.boundingBox())!.y + (await botao.boundingBox())!.height).toBeLessThanOrEqual(await topoDoPlayer())
+  await page.locator('.q-palco').evaluate((el) => el.scrollTo(0, 0))
+  await corpo.locator('.resumo-nota').evaluate((el) => el.scrollIntoView({ block: 'end' }))
+  const nota = (await corpo.locator('.resumo-nota').boundingBox())!
+  expect(nota.y + nota.height).toBeLessThanOrEqual(await topoDoPlayer())
+}
+
 async function semearSessao(page: Page, authorization: string): Promise<string> {
   const criada = await page.request.post('/api/sessions', {
     headers: { authorization },
@@ -157,7 +175,7 @@ test('computador, Grátis: resume, adiciona só os marcados e, no 2º da semana,
   await expect(secao).toContainText('Você usou 1 de 1 resumo nesta semana.')
   await expect(secao).toContainText('Isto é uma IA')
   /* A foto mostra os pontos e o botão de adicionar acima do player preso embaixo. */
-  await secao.getByTestId('resumo-da-sessao').evaluate((el) => el.scrollIntoView({ block: 'center' }))
+  await fimDoResumoAVista(page)
   await foto(page, 'task-3-resumo-na-revisao-1280')
 
   // Desmarca um e adiciona os outros dois.
@@ -220,7 +238,7 @@ test.describe('celular', () => {
     const largura = await page.evaluate(() => document.documentElement.scrollWidth)
     expect(largura).toBeLessThanOrEqual(375)
     /* A foto mostra os pontos e o botão de adicionar acima do player preso embaixo. */
-    await secao.getByTestId('resumo-da-sessao').evaluate((el) => el.scrollIntoView({ block: 'center' }))
+    await fimDoResumoAVista(page)
     await foto(page, 'task-3-resumo-na-revisao-375')
     expect(postsDeIa(escapadas)).toEqual([])
   })

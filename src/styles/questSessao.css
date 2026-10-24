@@ -998,6 +998,19 @@ html[data-px='on'] .px-sessao .qs-visao .q-num b {
   line-height: 1.5;
 }
 
+/* O RESPIRO DO PLAYER. O player fica preso ao pé da sessão (`sticky` no computador; no celular, `fixed` sobre a
+   barra de baixo) e cobre o que passa por trás dele. A margem de rolagem faz o foco do teclado e todo
+   "rolar até" pararem ACIMA dele: no computador, o player (cerca de 80 px) mais o pé do palco (84 px); no
+   celular, o player (cerca de 110 px) mais a barra de baixo (92 px). Com folga de 16 px nos dois. */
+html[data-quest-novo='true'] .q-palco.qs {
+  scroll-padding-bottom: 180px;
+}
+@media (max-width: 720px) {
+  html[data-quest-novo='true'] .q-palco.qs {
+    scroll-padding-bottom: 220px;
+  }
+}
+
 /* O RESUMO DA SESSÃO (IA de estudo, etapa 2): 3 pontos e os cartões propostos, com caixa de marcar. */
 .resumo-da-sessao .resumo-aviso:empty {
   margin: 0;

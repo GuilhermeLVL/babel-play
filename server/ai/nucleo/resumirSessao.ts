@@ -25,13 +25,13 @@
 import { z } from 'zod'
 
 import { FLAG_IA_DE_ESTUDO } from '../../../src/core/planos'
+import { MIN_FALAS_DO_RESUMO } from '../../../src/lib/estudo/constantes'
 import {
   type CartaoDoResumo,
   cartoesDoResumo,
   type FalaDoResumo,
   falasQueCabem,
   lerResumo,
-  MIN_FALAS_DO_RESUMO,
   systemDoResumo,
   userDoResumo,
 } from '../../../src/lib/estudo/promptDoResumo'
@@ -69,7 +69,11 @@ const esquemaDoPedido = z
   .object({
     sessionId: z.string().trim().min(1).max(128),
     /** O idioma de quem estuda (os pontos e os versos são escritos nele). Ausente: o das traduções da sessão. */
-    lang: z.string().trim().min(2).max(20).optional(),
+    lang: z
+      .string()
+      .max(20)
+      .regex(/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/)
+      .optional(),
   })
   .strip()
 
@@ -78,7 +82,8 @@ export type PedidoDeResumo = z.infer<typeof esquemaDoPedido>
 /** Lê o corpo cru: o pedido validado, ou o 400 `invalido`. */
 export function lerPedidoDeResumo(corpo: unknown): { ok: true; pedido: PedidoDeResumo } | RecusaDeIa {
   const parsed = esquemaDoPedido.safeParse(corpo ?? {})
-  if (!parsed.success) return recusaDeErro(400, 'pedido inválido: sessionId obrigatório; lang opcional', 'invalido')
+  if (!parsed.success)
+    return recusaDeErro(400, 'pedido inválido: sessionId obrigatório; lang opcional, em BCP-47', 'invalido')
   return { ok: true, pedido: parsed.data }
 }
 

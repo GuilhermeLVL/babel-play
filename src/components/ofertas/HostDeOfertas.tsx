@@ -262,12 +262,17 @@ export default function HostDeOfertas({ aoEntrar, aoVerPlanos }: { aoEntrar: () 
     const { plan } = getEntitlements();
     return ehPlanoPago(plan) ? plan : planoDeEntradaAgora();
   })();
-  const doTeste = (txt: string): string => (informativoDoTeste ? comNomeDoPlano(txt, planoDoTeste) : txt);
-  const titulo = doTeste(resolverTextoRemoto(g.titulo, idioma, t));
-  const texto = doTeste(resolverTextoRemoto(g.texto, idioma, t));
+  /* Com a v4 ligada NENHUMA oferta fala do Premium (as remotas da flag `oferta_planos` ainda o nomeiam):
+     o fim do teste usa o plano que o teste deu; as demais, o plano de entrada. Sem a v4 o texto é o de hoje. */
+  const planoDoTexto = informativoDoTeste ? planoDoTeste : planoDeEntradaAgora();
+  const doPlano = (txt: string): string => comNomeDoPlano(txt, planoDoTexto);
+  const titulo = doPlano(resolverTextoRemoto(g.titulo, idioma, t));
+  const texto = doPlano(resolverTextoRemoto(g.texto, idioma, t));
   /* Quem não tem plano a subir (Premium) vê o consumo, não uma venda. */
   const cta =
-    sugerido === 'nenhum' && !informativoDoTeste ? t('Ver consumo do mês') : resolverTextoRemoto(g.cta, idioma, t);
+    sugerido === 'nenhum' && !informativoDoTeste
+      ? t('Ver consumo do mês')
+      : doPlano(resolverTextoRemoto(g.cta, idioma, t));
   const selo = seloDoPlano(sugerido, t, planoDeEntradaAgora());
   const props = {
     /* O fim de sessão traz o livro aberto (`OFERTAS`, `telas.js:480`). */

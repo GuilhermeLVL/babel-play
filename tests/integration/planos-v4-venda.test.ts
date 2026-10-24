@@ -260,6 +260,50 @@ describe('GET /api/billing/status com a v4', () => {
   })
 })
 
+/** O pagamento de uma assinatura (mensal ou anual à vista) confirmado, conferido pelo verificador. */
+async function pagamentoDeAssinatura(userId: string, evento: string, assinatura: string, valor: number) {
+  const pagamento = {
+    id: `pay_${evento}`,
+    status: 'CONFIRMED',
+    value: valor,
+    subscription: assinatura,
+    billingType: 'CREDIT_CARD',
+    dueDate: '2026-11-01',
+    externalReference: userId,
+  }
+  return aplicarEvento(
+    {
+      id: evento,
+      event: 'PAYMENT_CONFIRMED',
+      payment: { id: pagamento.id, subscription: assinatura, externalReference: userId, value: valor },
+    },
+    'req-teste',
+    async () => pagamento,
+  )
+}
+
+describe('webhook — o pagamento do Plus chega como `plus` com o ciclo certo', () => {
+  it('mensal R$ 14,90 → plus, ciclo mensal', async () => {
+    await ligar(FLAG_VENDA_PLANOS_V4, true)
+    await assinar('v4-wh-plus-mensal', pedido('plus'))
+    const r = await pagamentoDeAssinatura('v4-wh-plus-mensal', 'evt_wh_plus_mensal', 'sub_novo', 14.9)
+    expect(r.estado).toBe('aplicado')
+    const u = asUserId('v4-wh-plus-mensal')
+    expect(await subs.getActive(u)).toMatchObject({ plan: 'plus', status: 'active', ciclo: 'mensal' })
+    expect(await ent.getPlanForUser(u)).toBe('plus')
+  })
+
+  it('anual à vista R$ 149,00 → plus, ciclo anual', async () => {
+    await ligar(FLAG_VENDA_PLANOS_V4, true)
+    await assinar('v4-wh-plus-anual', pedido('plus', { ciclo: 'anual' }))
+    const r = await pagamentoDeAssinatura('v4-wh-plus-anual', 'evt_wh_plus_anual', 'sub_novo', 149)
+    expect(r.estado).toBe('aplicado')
+    const u = asUserId('v4-wh-plus-anual')
+    expect(await subs.getActive(u)).toMatchObject({ plan: 'plus', status: 'active', ciclo: 'anual' })
+    expect(await ent.getPlanForUser(u)).toBe('plus')
+  })
+})
+
 describe('webhook — a parcela ambígua de R$ 12,49', () => {
   it('do checkout do Plus 12x → Plus (o vínculo é o plano gravado para ESTE parcelamento)', async () => {
     await ligar(FLAG_VENDA_PLANOS_V4, true)

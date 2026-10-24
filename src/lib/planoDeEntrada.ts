@@ -5,7 +5,6 @@
  * Folha: só importa a matriz e o cache das flags, para qualquer tela poder usá-la sem puxar a assinatura.
  */
 import { FLAG_VENDA_PLANOS_V4, PLAN_MATRIX, planoDeEntrada, type PlanoPago } from '../core/planos';
-import { useFlag } from './flags';
 import { flagLigada } from './flagsCache';
 import { t } from './i18n';
 
@@ -14,12 +13,6 @@ export const planoDeEntradaAgora = (): PlanoPago => planoDeEntrada(flagLigada);
 
 /** A v4 está ligada para esta pessoa. */
 export const v4Ligada = (): boolean => flagLigada(FLAG_VENDA_PLANOS_V4);
-
-/** O plano de entrada, relido quando as flags mudam. */
-export function usePlanoDeEntrada(): PlanoPago {
-  const v4 = useFlag(FLAG_VENDA_PLANOS_V4);
-  return planoDeEntrada((chave) => chave === FLAG_VENDA_PLANOS_V4 && v4);
-}
 
 /**
  * Troca o nome "Premium" de uma frase já traduzida pelo do plano pedido. Os nomes dos planos são marcas

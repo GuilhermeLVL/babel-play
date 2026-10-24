@@ -115,3 +115,30 @@ test('o Plus leva do cartão ao passo do pagamento do checkout', async ({ page }
   await expect(page.getByRole('region', { name: 'Pagamento' })).toBeVisible()
   expect(cobrancas).toEqual([])
 })
+
+test('no celular (375), escolher Plus e Pro na comparação mostra a coluna certa', async ({ page }) => {
+  await page.route('**/api/flags', (r) => r.fulfill({ json: { flags: { venda_planos_v4: { ligada: true } } } }))
+  await page.route('**/api/billing/status', (r) =>
+    r.fulfill({ json: { configurado: true, assinatura: null, planosAVenda: ['plus'] } }),
+  )
+  await page.setViewportSize({ width: 375, height: 812 })
+  await entrar(page, { premium: false })
+  await page.goto('/plano')
+  await chegarEm(page, page.locator('.pl-planos-grade > .pl-plano').first())
+
+  const tabela = page.locator('table.pl-compara')
+  await tabela.scrollIntoViewIfNeeded()
+  const colunasVisiveis = () =>
+    tabela
+      .locator('thead th[data-c]')
+      .evaluateAll((ths) =>
+        ths.filter((th) => getComputedStyle(th).display !== 'none').map((th) => (th as HTMLElement).dataset.c),
+      )
+  for (const [nome, id] of [
+    ['Plus', 'plus'],
+    ['Pro', 'pro4'],
+  ] as const) {
+    await clicar(page, page.getByRole('radio', { name: nome, exact: true }))
+    expect(await colunasVisiveis()).toEqual(['gratis', id])
+  }
+})

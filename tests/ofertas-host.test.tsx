@@ -38,6 +38,7 @@ vi.mock('../src/lib/ofertas/instrumentacao', async (original) => {
   }
 })
 
+const { definirEstadoDasFlags } = await import('../src/lib/flagsCache')
 const { default: HostDeOfertas } = await import('../src/components/ofertas/HostDeOfertas')
 const { dispararOferta } = await import('../src/lib/ofertas/eventos')
 const { consumirDestaqueEmPlanos } = await import('../src/lib/ofertas/destaque')
@@ -104,6 +105,7 @@ beforeEach(() => {
   estado.plano = 'free'
   estado.pessoa = { protegido: false, podeTestar: false }
   estado.eventos = []
+  definirEstadoDasFlags({})
 })
 afterEach(() => {
   cleanup()
@@ -328,5 +330,46 @@ describe('C8 — o perfil protegido e o teste no host', () => {
     expect(dialogo.textContent).toMatch(/Sugerido: 14 dias de Premium grátis, sem cartão/)
     fireEvent.click(screen.getByRole('button', { name: 'Ver planos' }))
     expect(consumirDestaqueEmPlanos()).toEqual({ plano: 'teste' })
+  })
+})
+
+describe('planos v4 — nenhuma oferta fala do Premium', () => {
+  const remota = () =>
+    gatilho({
+      titulo: { pt: 'A IA de nuvem está no Premium' },
+      texto: { pt: 'Com o Premium a tradução de nuvem vem junto.' },
+      cta: { pt: 'Conhecer o Premium' },
+    })
+  beforeEach(() => {
+    estado.flag = true
+    estado.config = { gatilhos: [remota()] }
+  })
+
+  it('v4 ligada: título, texto e CTA levam o nome do plano de entrada (Plus)', () => {
+    definirEstadoDasFlags({ venda_planos_v4: { ligada: true } })
+    montar()
+    disparar('conquista')
+    const d = screen.getByRole('dialog')
+    expect(d.textContent).not.toContain('Premium')
+    expect(d.textContent).toContain('A IA de nuvem está no Plus')
+    expect(d.textContent).toContain('Com o Plus a tradução')
+    expect(screen.getByRole('button', { name: 'Conhecer o Plus' })).toBeTruthy()
+  })
+
+  it('v4 desligada: os textos são os de hoje', () => {
+    montar()
+    disparar('conquista')
+    const d = screen.getByRole('dialog')
+    expect(d.textContent).toContain('A IA de nuvem está no Premium')
+    expect(d.textContent).toContain('Com o Premium a tradução')
+    expect(screen.getByRole('button', { name: 'Conhecer o Premium' })).toBeTruthy()
+  })
+
+  it('v4 ligada com perfil protegido: segue sem oferta', () => {
+    definirEstadoDasFlags({ venda_planos_v4: { ligada: true } })
+    estado.pessoa = { protegido: true, podeTestar: true }
+    montar()
+    disparar('conquista')
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })

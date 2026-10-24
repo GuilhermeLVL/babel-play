@@ -755,6 +755,11 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
       : recomendado && recomendado !== meu
         ? recomendado
         : outro;
+  /* Marcas de cada coluna da comparação: o CSS escolhe pelas marcas, não por uma lista de planos. */
+  const marcas = (id: string) => ({
+    'data-seu': id === meu ? 'sim' : undefined,
+    'data-mostra': id === meu || id === ver ? 'sim' : undefined,
+  });
   const celula = (v: Celula): ReactNode =>
     v === 1 ? (
       <span className="px-sim">
@@ -1091,7 +1096,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
                   <tr>
                     <th scope="col">&nbsp;</th>
                     {visiveis.map((id) => (
-                      <th key={id} scope="col" data-c={id}>
+                      <th key={id} scope="col" data-c={id} {...marcas(id)}>
                         {nome(id)}
                         {id === meu && <small>{t('seu plano')}</small>}
                         {modoV4 && emBreve.includes(id) && <small>{t('em breve')}</small>}
@@ -1104,7 +1109,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
                     <tr key={rotulo}>
                       <th scope="row">{rotulo}</th>
                       {celulas.map((v, i) => (
-                        <td key={visiveis[i]} data-c={visiveis[i]}>
+                        <td key={visiveis[i]} data-c={visiveis[i]} {...marcas(visiveis[i])}>
                           {celula(v)}
                         </td>
                       ))}
@@ -1114,7 +1119,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
                     <tr className="pl-compara-preco">
                       <th scope="row">{t('Por mês')}</th>
                       {visiveis.map((id, i) => (
-                        <td key={id} data-c={id}>
+                        <td key={id} data-c={id} {...marcas(id)}>
                           <b>{modoV4 && emBreve.includes(id) ? t('em breve') : precos[i].mensal}</b>
                         </td>
                       ))}
@@ -1124,7 +1129,7 @@ export default function Planos({ onEntrar }: { onEntrar?: () => void } = {}) {
                     <tr className="pl-compara-preco">
                       <th scope="row">{t('Por ano')}</th>
                       {visiveis.map((id, i) => (
-                        <td key={id} data-c={id}>
+                        <td key={id} data-c={id} {...marcas(id)}>
                           {modoV4 && emBreve.includes(id)
                             ? t('em breve')
                             : (precos[i].anual ?? (id === 'gratis' ? celula(0) : t('só mensal')))}

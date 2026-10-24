@@ -174,7 +174,7 @@ html[data-px='on'] .pl-planos-grade > .px-premium { order: 0; }
 .pl-compara th[scope='col'] small { display: block; margin-top: 5px; font: 700 11px/1 var(--font-mono, monospace); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); }
 .pl-compara td { text-align: center; font-weight: 700; font-size: 15.5px; padding: 14px 10px; }
 .pl-compara th[scope='row'] { text-align: left; font: 700 15.5px/1.3 var(--font-body, inherit); letter-spacing: 0; text-transform: none; color: var(--ink); white-space: normal; border-top: 1.5px solid var(--border-subtle); }
-.pl-compara[data-meu='gratis'] [data-c='gratis'], .pl-compara[data-meu='essencial'] [data-c='essencial'], .pl-compara[data-meu='premium'] [data-c='premium'], .pl-compara[data-meu='aovivo'] [data-c='aovivo'] { background: color-mix(in srgb, var(--q-acento, var(--accent)) 9%, transparent); }
+.pl-compara [data-c][data-seu] { background: color-mix(in srgb, var(--q-acento, var(--accent)) 9%, transparent); }
 .pl-compara-preco td b { font: 900 18px/1 var(--font-display, inherit); }
 .pl-compara :is(.px-sim, .px-nao) { display: inline-flex; justify-content: center; }
 .pl-compara .px-sim svg { display: inline-block; }
@@ -244,8 +244,7 @@ html[data-px='on'] .pl-planos-grade > .px-premium { order: 0; }
   .pl-compara-escolha { display: flex; align-self: stretch; }
   html[data-px] .pl-compara-escolha.q-abas .q-aba { flex: 1 1 0; justify-content: center; min-height: 44px; padding: 0 4px; font-size: 14px; }
   .pl-compara :is(th, td)[data-c] { display: none; }
-  .pl-compara[data-meu='gratis'] [data-c='gratis'], .pl-compara[data-meu='essencial'] [data-c='essencial'], .pl-compara[data-meu='premium'] [data-c='premium'], .pl-compara[data-meu='aovivo'] [data-c='aovivo'],
-  .pl-compara[data-ver='gratis'] [data-c='gratis'], .pl-compara[data-ver='essencial'] [data-c='essencial'], .pl-compara[data-ver='premium'] [data-c='premium'], .pl-compara[data-ver='aovivo'] [data-c='aovivo'] { display: table-cell; }
+  .pl-compara :is(th, td)[data-c][data-mostra] { display: table-cell; }
   .pl-compara th:first-child { width: 36%; }
   .pl-compara :is(th, td) { padding: 12px 8px; font-size: 14px; }
   .pl-compara th[scope='row'] { font-size: 14px; }

@@ -6,12 +6,20 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import * as moduloLivro from '../../scripts/eval-fala/bancada/livroCaixa.mjs'
 import * as estatistica from '../../scripts/eval-ia/estatistica.mjs'
+import * as funcoes from '../../scripts/eval-ia/funcoes.mjs'
+import * as golds from '../../scripts/eval-ia/golds.mjs'
 import * as cliente from '../../scripts/eval-ia/openrouter.mjs'
+import * as relatorio from '../../scripts/eval-ia/relatorio.mjs'
+import { chamarChat } from '../../server/ai/llmClient'
+
+const { pedidoDaProducao } = funcoes as any
+const { carregarGold } = golds as any
 
 const { armazemEmMemoria, LivroCaixa, TetoDeGasto } = moduloLivro as any
 const { chamar, interpretarSistema, lerEventoSse, montarCorpo, piorCasoUsd, RecusaDoProvedor, tetoDePrecoZdr } =
   cliente as any
-const { decidirFuncao, TETO_USD_POR_MILHAO_DE_TOKENS } = estatistica as any
+const { casosNecessarios, decidirFuncao, passouDoTimeout } = estatistica as any
+const { efeitoNaMargem, gerarRelatorio } = relatorio as any
 
 const livro = (teto: number) => new LivroCaixa({ tetoUsd: teto, armazem: armazemEmMemoria() })
 
@@ -101,6 +109,69 @@ function respostaSse(eventos: unknown[]) {
   return new Response(texto, { status: 200, headers: { 'Content-Type': 'text/event-stream' } })
 }
 
+describe('o pedido da bancada é o da produção (deriva)', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  /** O corpo que `chamarChat` (o servidor) manda, capturado no `fetch`. */
+  async function corpoDoServidor(p: Record<string, unknown>) {
+    let corpo: any = null
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init: any) => {
+        corpo = JSON.parse(init.body)
+        return new Response(JSON.stringify({ choices: [{ message: { content: '{}' } }], usage: {} }), { status: 200 })
+      }),
+    )
+    await chamarChat({ base: 'https://openrouter.ai/api/v1', apiKey: 'k', ...p } as any)
+    return corpo
+  }
+  const semBancada = (c: any) => Object.fromEntries(Object.entries(c).filter(([k]) => !['stream', 'usage'].includes(k)))
+
+  for (const funcao of ['explicacao', 'resumo', 'alternativas', 'legenda']) {
+    it(`${funcao}: o corpo da bancada é byte a byte o do servidor (fora streaming e custo)`, async () => {
+      const caso = carregarGold(funcao)[0]
+      const p = pedidoDaProducao(funcao, caso)
+      for (const modelo of ['openai/gpt-oss-120b', 'google/gemma-4-26b-a4b-it']) {
+        const { corpo, parametros } = montarCorpo({ sis: interpretarSistema(modelo), ...p })
+        expect(parametros.foraDaProducao).toBe(false)
+        const servidor = await corpoDoServidor({
+          model: modelo,
+          messages: p.mensagens,
+          temperature: p.temperatura,
+          maxTokens: p.maxTokens,
+          formatoDeSaida: p.formato,
+          legenda: p.legenda,
+        })
+        expect(semBancada(corpo)).toEqual(semBancada(servidor))
+      }
+    })
+  }
+
+  it('a explicação leva json_schema estrito + require_parameters; a legenda, sort por preço', () => {
+    const exp = pedidoDaProducao('explicacao', carregarGold('explicacao')[0])
+    const { corpo } = montarCorpo({ sis: interpretarSistema('openai/gpt-oss-120b'), ...exp })
+    expect(corpo.response_format.type).toBe('json_schema')
+    expect(corpo.response_format.json_schema.strict).toBe(true)
+    expect(corpo.provider.require_parameters).toBe(true)
+    const leg = pedidoDaProducao('legenda', carregarGold('legenda')[0])
+    expect(montarCorpo({ sis: interpretarSistema('google/gemma-4-26b-a4b-it'), ...leg }).corpo.provider.sort).toBe(
+      'price',
+    )
+  })
+
+  it('@none tira do roteamento quem ignora o raciocínio desligado e fica marcado como ajuste', () => {
+    const exp = pedidoDaProducao('explicacao', carregarGold('explicacao')[0])
+    const { corpo, parametros } = montarCorpo({
+      sis: interpretarSistema('deepseek/deepseek-v4.1-flash@none'),
+      ...exp,
+    })
+    expect(corpo.provider.ignore).toEqual(expect.arrayContaining(['novita', 'google-vertex', 'google-ai-studio']))
+    expect(corpo.reasoning).toEqual({ enabled: false })
+    expect(corpo.provider.require_parameters).toBe(true)
+    expect(parametros.foraDaProducao).toBe(true)
+  })
+})
+
 describe('chamada com teto do livro-caixa', () => {
   afterEach(() => vi.unstubAllGlobals())
 
@@ -171,7 +242,7 @@ describe('chamada com teto do livro-caixa', () => {
   })
 })
 
-describe('regra do mais barato não-inferior', () => {
+describe('regra: o mais barato que não piora a experiência (referência = produção)', () => {
   /** Um bruto sintético: n casos, nota por sistema (fração de critérios) e custo por uso. */
   function bruto(
     spec: Record<string, { notas: number[]; usd: number; tokens?: number; quebraCritico?: boolean; ms?: number }>,
@@ -224,81 +295,135 @@ describe('regra do mais barato não-inferior', () => {
     return b
   }
 
-  it('recomenda o MAIS BARATO entre os não-inferiores ao melhor', () => {
+  const situacao = (d: any, s: string) => d.avaliacoes.find((a: any) => a.sistema === s)
+
+  it('a referência é a PRODUÇÃO: o mais barato que não piora é recomendado (o mais barato entre os que passam)', () => {
     const n = 40
     const d = decidirFuncao(
       bruto({
-        'openai/caro': { notas: Array(n).fill(1), usd: 0.001 },
+        'openai/producao': { notas: Array(n).fill(1), usd: 0.001 },
         'x/barato': {
           notas: Array(n)
             .fill(1)
             .map((v, i) => (i === 0 ? 6 / 7 : v)),
-          usd: 0.0001,
+          usd: 0.0002,
         },
-        'y/ruim': { notas: Array(n).fill(4 / 7), usd: 0.00001 },
+        'y/baratissimo': { notas: Array(n).fill(1), usd: 0.0001 },
+        'z/ruim': { notas: Array(n).fill(4 / 7), usd: 0.00001 },
       }),
     )
-    expect(d.melhor).toBe('openai/caro')
-    expect(d.recomendado).toBe('x/barato')
-    expect(d.avaliacoes.find((a: any) => a.sistema === 'y/ruim').naoInferior).toBe(false)
+    expect(situacao(d, 'x/barato').situacao).toBe('pode-trocar')
+    expect(situacao(d, 'z/ruim').situacao).toBe('piora')
+    expect(d.recomendado).toBe('y/baratissimo')
   })
 
-  it('o barato com FALHA CRÍTICA (gramática) não é recomendado, mesmo com nota parecida', () => {
+  it('mais caro e melhor na nota, mas sem ganho em critério crítico: não entra nem como opção', () => {
     const n = 40
     const d = decidirFuncao(
       bruto({
-        'openai/caro': { notas: Array(n).fill(6 / 7), usd: 0.001 },
-        'x/barato': { notas: Array(n).fill(6 / 7), usd: 0.0001, quebraCritico: true },
+        'openai/producao': { notas: Array(n).fill(5 / 7), usd: 0.0001 },
+        'x/caro': { notas: Array(n).fill(6 / 7), usd: 0.001 },
       }),
     )
-    const barato = d.avaliacoes.find((a: any) => a.sistema === 'x/barato')
-    expect(barato.falhasCriticas.join(' ')).toMatch(/gramatica_correta/)
-    expect(d.recomendado).toBe('openai/caro')
+    // 6/7 atende até 'adequada_aprendiz' (não crítico); os críticos ficam iguais.
+    expect(situacao(d, 'x/caro').situacao).toBe('mais-caro-sem-ganho-critico')
+    expect(d.recomendado).toBe('openai/producao')
+    expect(d.opcoesMaisCaras).toEqual([])
   })
 
-  it('custo acima do que o modelo de custo cobra por 1M de tokens não passa', () => {
+  it('mais caro com ganho num critério CRÍTICO (gramática) vira OPÇÃO que depende do dono — nunca recomendado', () => {
+    const n = 40
+    const d = decidirFuncao(
+      bruto({
+        'openai/producao': { notas: Array(n).fill(1), usd: 0.0001, quebraCritico: true },
+        'x/caro': { notas: Array(n).fill(1), usd: 0.001 },
+      }),
+    )
+    const a = situacao(d, 'x/caro')
+    expect(a.melhoras).toContain('gramatica_correta')
+    expect(a.situacao).toBe('opcao-mais-cara')
+    expect(d.opcoesMaisCaras).toEqual(['x/caro'])
+    expect(d.recomendado).toBe('openai/producao')
+  })
+
+  it('o barato com piora num critério crítico não troca, mesmo com nota parecida', () => {
+    const n = 40
+    const d = decidirFuncao(
+      bruto({
+        'openai/producao': { notas: Array(n).fill(1), usd: 0.001 },
+        'x/barato': { notas: Array(n).fill(1), usd: 0.0001, quebraCritico: true },
+      }),
+    )
+    expect(situacao(d, 'x/barato').pioras.join(' ')).toMatch(/gramatica_correta/)
+    expect(d.recomendado).toBe('openai/producao')
+  })
+
+  it('não piorar a experiência: passar do timeout (inclusive abortado pelo relógio) ou latência 20% pior reprova', () => {
     const n = 20
     const d = decidirFuncao(
       bruto({
-        'openai/base': { notas: Array(n).fill(1), usd: 0.0001, tokens: 1000 },
-        'x/caro': { notas: Array(n).fill(1), usd: 0.01, tokens: 1000 },
-      }),
-    )
-    expect(TETO_USD_POR_MILHAO_DE_TOKENS).toBeCloseTo(0.25)
-    expect(d.avaliacoes.find((a: any) => a.sistema === 'x/caro').custoCabe).toBe(false)
-    expect(d.recomendado).toBe('openai/base')
-  })
-
-  it('o barato que estoura o SLO de latência perde para o seguinte; sem ninguém no SLO, relaxa e diz', () => {
-    const n = 20
-    const d = decidirFuncao(
-      bruto({
-        'openai/base': { notas: Array(n).fill(1), usd: 0.0002 },
-        'x/lento': { notas: Array(n).fill(1), usd: 0.0001, ms: 20_000 },
-      }),
-    )
-    expect(d.recomendado).toBe('openai/base')
-    expect(d.relaxado).toBeNull()
-    const todosLentos = decidirFuncao(
-      bruto({
-        'openai/base': { notas: Array(n).fill(1), usd: 0.0002, ms: 6_000 },
-        'x/lento': { notas: Array(n).fill(1), usd: 0.0001, ms: 6_000 },
-      }),
-    )
-    expect(todosLentos.recomendado).toBe('x/lento')
-    expect(todosLentos.relaxado).toMatch(/SLO/)
-  })
-
-  it('passar do timeout da produção não se relaxa: o barato que não chega a tempo nunca é recomendado', () => {
-    const n = 20
-    const d = decidirFuncao(
-      bruto({
-        'openai/base': { notas: Array(n).fill(1), usd: 0.0002, ms: 6_000 },
+        'openai/producao': { notas: Array(n).fill(1), usd: 0.0002, ms: 2_000 },
         'x/estoura': { notas: Array(n).fill(1), usd: 0.0001, ms: 20_000 },
+        'y/lento': { notas: Array(n).fill(1), usd: 0.0001, ms: 3_000 },
       }),
     )
-    expect(d.avaliacoes.find((a: any) => a.sistema === 'x/estoura').chegaNoTempo).toBe(false)
-    expect(d.recomendado).toBe('openai/base')
+    expect(situacao(d, 'x/estoura').chegaNoTempo).toBe(false)
+    expect(situacao(d, 'y/lento').latenciaNaoPiora).toBe(false)
+    expect(d.recomendado).toBe('openai/producao')
+    // A chamada abortada pelo relógio da bancada também passou do timeout da produção.
+    expect(passouDoTimeout({ semResposta: true, erro: 'rede: The operation was aborted due to timeout' }, 15_000)).toBe(
+      true,
+    )
+    expect(passouDoTimeout({ semResposta: true, erro: 'HTTP 429: rate limited' }, 15_000)).toBe(false)
+    expect(passouDoTimeout({ totalMs: 16_000 }, 15_000)).toBe(true)
+  })
+
+  it('análise de poder: n pareado para não-inferioridade e superioridade; null quando aponta para o outro lado', () => {
+    // σ = 0,2, δ = 0, margem 0,05: ((1,96 + 0,84)·0,2/0,05)² ≈ 126
+    expect(casosNecessarios({ dp: 0.2, delta: 0 }, 'nao-inferioridade', 0.05)).toBe(126)
+    // superioridade com δ = 0,05 e σ = 0,2: o mesmo número
+    expect(casosNecessarios({ dp: 0.2, delta: 0.05 }, 'superioridade')).toBe(126)
+    expect(casosNecessarios({ dp: 0.2, delta: -0.06 }, 'nao-inferioridade', 0.05)).toBeNull()
+    expect(casosNecessarios({ dp: 0.2, delta: -0.01 }, 'superioridade')).toBeNull()
+  })
+
+  it('efeito na margem: custo por 1M acima do modelo sobe a IA de texto de cada plano pela cota de tokens', () => {
+    const e = efeitoNaMargem({
+      usdPorMilhao: 0.3,
+      cambio: 5.6,
+      brlPorMilhaoDoModelo: 1.4,
+      planos: [{ plano: 'plus', rotulo: 'Plus', tokensMes: 2_000_000, margemAnualBrl: 30 }],
+      misturasSoPlus: [{ fracao: 0.08, pagantes: 80, margemPiorCasoUsd: 35 }],
+    })
+    expect(e.deltaBrlPorMilhao).toBeCloseTo(0.28)
+    expect(e.porPlano[0].extraMensal).toBeCloseTo(0.56)
+    expect(e.porPlano[0].margemAnualAjustada).toBeCloseTo(30 - 0.56 * 12)
+    expect(e.misturas[0].margemAjustadaUsd).toBeCloseTo(35 - (80 * 0.56) / 5.6)
+  })
+
+  it('o relatório sai do bruto: os números da tabela são os da decisão', () => {
+    const n = 20
+    const d = decidirFuncao(
+      bruto({
+        'openai/producao': { notas: Array(n).fill(1), usd: 0.0001, quebraCritico: true },
+        'x/caro': { notas: Array(n).fill(1), usd: 0.001 },
+      }),
+    )
+    const md = gerarRelatorio({
+      decisoes: { explicacao: d },
+      robustez: { explicacao: d },
+      concordancia: {},
+      juizes: [],
+      gasto: { totalUsd: 1.234, tetoUsd: 5 },
+      custo: null,
+      calibracao: null,
+      geradoEm: '2026-10-24',
+      commit: null,
+    })
+    expect(md).toContain('US$ 1,23')
+    expect(md).toContain('manter `openai/producao`')
+    expect(md).toContain('gramatica_correta 0% → 100%')
+    expect(md).toContain('Provisória')
   })
 
   it('mede a autopreferência: o juiz que dá a mais só para a própria família aparece positivo', () => {

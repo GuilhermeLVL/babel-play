@@ -1,30 +1,33 @@
 /**
  * BANCADA DA IA PAGA (Fase A do plano de qualidade, 24/10/2026) — gera com os candidatos, julga com LLM-as-judge e
- * decide pelo MAIS BARATO NÃO-INFERIOR, com as métricas de experiência de quem usa.
+ * decide pelo MAIS BARATO QUE NÃO PIORA A EXPERIÊNCIA em relação à PRODUÇÃO (`estatistica.mjs#decidirFuncao`).
  *
  * Uso (a chave vem SÓ do ambiente, `OPENROUTER_API_KEY`; nunca é impressa nem gravada):
  *   node node_modules/tsx/dist/cli.mjs scripts/eval-ia/rodar.mjs --funcao explicacao --teto-usd 5
  *   …  --funcao todas [--limite 20] [--candidatos a,b,c] [--juizes j1,j2] [--sem-pareado] [--sem-segundo-juiz]
  *   …  --ensaio                       só confere ZDR e preço-teto e estima o pior caso, sem chamar nenhum modelo
- *   …  --relatorio                    refaz resumos, concordância e planilha a partir dos brutos (sem rede)
+ *   …  --relatorio                    refaz decisões, concordância, planilha e `docs/auditoria/eval-ia-paga-v1.md` a
+ *                                     partir dos brutos (sem rede; o relatório é GERADO, nada se digita à mão)
  *   …  --calibrar <planilha.csv>      κ juiz × humano da planilha preenchida pelo dono (sem rede)
  *
- * O que sai em `--saida` (padrão `docs/auditoria/eval/ia-paga-v1`): `bruto-<função>.json` (cada geração com texto,
- * custo, tokens, TTFT e total; cada veredito com o raciocínio do juiz; cada par nas duas ordens), `bruto-legenda-mt.json`
- * (a legenda no formato de `bancada/mt.mjs`, que `bancada/resumo.mjs` lê), `decisao-<função>.{json,md}`,
- * `concordancia.json`, `planilha-calibracao.csv` + `calibracao-juiz.json` (30 casos, cegos).
+ * O que sai em `--saida` (padrão `docs/auditoria/eval/ia-paga-v1`): `bruto-<função>.json` (compacto: cada geração com
+ * texto, custo, tokens, TTFT e total; cada veredito com o raciocínio do juiz; cada par nas duas ordens; os juízes com
+ * id e parâmetros), `bruto-legenda-mt.json` (a legenda no formato de `bancada/mt.mjs`, que `bancada/resumo.mjs` lê),
+ * `decisao-<função>.json`, `concordancia.json`, `planilha-calibracao.csv` + `calibracao-juiz.json` (30 casos, cegos;
+ * passo a passo em `LEIA-ME-calibracao.md`).
  *
  * TETO DE GASTO: um livro-caixa em disco (`--caixa`, padrão `$BANCADA_DIR/ia-paga-gasto.json`) soma TODAS as execuções;
  * cada chamada reserva o pior caso ANTES de sair, e a que passaria de `--teto-usd` não sai — a bancada PARA e grava o
  * parcial (`livroCaixa.mjs`). Respostas ficam em cache (`--trabalho`): refazer o relatório não paga de novo.
  */
+import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
+import { createRequire } from 'node:module'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { LivroCaixa, TetoDeGasto } from '../eval-fala/bancada/livroCaixa.mjs'
 import {
-  COLUNAS_DA_PLANILHA,
   escolherParaCalibrar,
   kappaDaPlanilha,
   kappaDeCohen,
@@ -33,7 +36,9 @@ import {
   montarPlanilha,
   paraCsv,
 } from './concordancia.mjs'
-import { decidirFuncao, markdownDaFuncao } from './estatistica.mjs'
+import { PLAN_MATRIX } from '../../src/core/planos.ts'
+import { CAMBIO_BRL_POR_USD, CUSTO_BRL_POR_MILHAO_DE_TOKENS, margemDoAnual } from '../ia/modeloDeCusto.ts'
+import { decidirFuncao, TETO_USD_POR_MILHAO_DE_TOKENS } from './estatistica.mjs'
 import {
   blocoDoCaso,
   CRITERIOS,
@@ -63,6 +68,7 @@ import {
   RecusaDoProvedor,
   tetoDePrecoZdr,
 } from './openrouter.mjs'
+import { efeitoNaMargem, gerarRelatorio } from './relatorio.mjs'
 
 const args = process.argv.slice(2)
 const opt = (n, p) => {
@@ -74,6 +80,7 @@ const flag = (n) => args.includes(`--${n}`)
 const BANCADA_DIR =
   process.env.BANCADA_DIR || path.join(process.env.LOCALAPPDATA || process.env.HOME || '.', 'babel-bancada')
 const SAIDA = opt('saida', 'docs/auditoria/eval/ia-paga-v1')
+const RELATORIO = opt('relatorio-md', 'docs/auditoria/eval-ia-paga-v1.md')
 const TRABALHO = opt('trabalho', path.join(BANCADA_DIR, 'ia-paga'))
 const CAIXA = opt('caixa', path.join(BANCADA_DIR, 'ia-paga-gasto.json'))
 const TETO_USD = Number(opt('teto-usd', '5'))
@@ -112,9 +119,10 @@ function lerJson(arq, padrao) {
     return padrao
   }
 }
-function gravarJson(arq, dados) {
+/** JSON em disco. Os BRUTOS vão compactos (sem indentação): são gerados, grandes, e não se lê diff deles. */
+function gravarJson(arq, dados, { compacto = false } = {}) {
   mkdirSync(path.dirname(arq), { recursive: true })
-  writeFileSync(arq, `${JSON.stringify(dados, null, 2)}\n`)
+  writeFileSync(arq, `${compacto ? JSON.stringify(dados) : JSON.stringify(dados, null, 2)}\n`)
 }
 
 const ARQ_CACHE = path.join(TRABALHO, 'cache.json')
@@ -191,6 +199,17 @@ function resolverSistemas(specs, endpoints) {
   return { sistemas, pulados }
 }
 
+/** O corpo da geração de um caso: o pedido da produção (mensagens, temperatura, teto, saída estruturada, legenda). */
+const corpoDoCaso = (s, p) =>
+  montarCorpo({
+    sis: s,
+    mensagens: p.mensagens,
+    temperatura: p.temperatura,
+    maxTokens: p.maxTokens,
+    formato: p.formato,
+    legenda: p.legenda,
+  })
+
 // ------------------------------------------------------------------ uma função
 
 async function rodarFuncao(funcao, ctx, endpoints) {
@@ -210,12 +229,22 @@ async function rodarFuncao(funcao, ctx, endpoints) {
     funcao,
     geradoEm: new Date().toISOString(),
     base,
-    juizes: juizes.map((j) => j.modelo),
+    juizes: juizes.map((j) => j.id),
+    juizesParametros: Object.fromEntries(
+      juizes.map((j) => [
+        j.id,
+        {
+          precoTetoZdr: j.preco,
+          ...montarCorpo({ sis: j, mensagens: [], temperatura: 0, maxTokens: 1, respostaJson: true }).parametros,
+          maxTokens: MAX_TOKENS_DO_JUIZ,
+        },
+      ]),
+    ),
     sistemas: sistemas.map((s) => ({
       id: s.id,
       modelo: s.modelo,
       precoTetoZdr: s.preco,
-      parametros: montarCorpo({ sis: s, mensagens: [], temperatura: 0, maxTokens: 1 }).parametros,
+      parametros: corpoDoCaso(s, { ...pedidoDaProducao(funcao, casos[0]), mensagens: [] }).parametros,
     })),
     pulados: [...pulados, ...juizesPulados],
     casos: casos.map((c) => c.id),
@@ -223,17 +252,14 @@ async function rodarFuncao(funcao, ctx, endpoints) {
     rubrica: {},
     pareado: {},
   }
-  const gravar = () => gravarJson(arqBruto, bruto)
+  const gravar = () => gravarJson(arqBruto, bruto, { compacto: true })
 
   if (flag('ensaio')) {
     let pior = 0
     for (const s of sistemas)
       for (const c of casos) {
         const p = pedidoDaProducao(funcao, c)
-        pior += piorCasoUsd(
-          montarCorpo({ sis: s, mensagens: p.mensagens, temperatura: p.temperatura, maxTokens: p.maxTokens }).corpo,
-          s.preco,
-        )
+        pior += piorCasoUsd(corpoDoCaso(s, p).corpo, s.preco)
       }
     console.log(
       `  ${funcao}: ${sistemas.length} sistemas × ${casos.length} casos — pior caso da GERAÇÃO US$ ${pior.toFixed(3)} (juízes à parte)`,
@@ -254,12 +280,7 @@ async function rodarFuncao(funcao, ctx, endpoints) {
     let feitos = 0
     await emParalelo(trabalhos, CONCORRENCIA, async ({ s, c }) => {
       const p = pedidoDaProducao(funcao, c)
-      const { corpo } = montarCorpo({
-        sis: s,
-        mensagens: p.mensagens,
-        temperatura: p.temperatura,
-        maxTokens: p.maxTokens,
-      })
+      const { corpo } = corpoDoCaso(s, p)
       let r
       try {
         r = await chamarComCache(ctx, s, s.preco, corpo, `ger:${s.id}`)
@@ -305,11 +326,11 @@ async function rodarFuncao(funcao, ctx, endpoints) {
     feitos = 0
     await emParalelo(julgar, CONCORRENCIA, async ({ s, j, c }) => {
       const g = bruto.geracoes[s.id]?.[c.id]
-      bruto.rubrica[j.modelo] ??= {}
-      bruto.rubrica[j.modelo][s.id] ??= {}
+      bruto.rubrica[j.id] ??= {}
+      bruto.rubrica[j.id][s.id] ??= {}
       if (!g || g.semResposta) return
       if (!g.valida) {
-        bruto.rubrica[j.modelo][s.id][c.id] = vereditoDaInvalida(criterios)
+        bruto.rubrica[j.id][s.id][c.id] = vereditoDaInvalida(criterios)
         return
       }
       const mensagens = [
@@ -325,10 +346,10 @@ async function rodarFuncao(funcao, ctx, endpoints) {
       })
       try {
         const r = await chamarComCache(ctx, j, j.preco, corpo, `juiz:${j.id}`)
-        bruto.rubrica[j.modelo][s.id][c.id] = lerRubrica(r.texto, criterios)
+        bruto.rubrica[j.id][s.id][c.id] = lerRubrica(r.texto, criterios)
       } catch (e) {
         if (e instanceof TetoDeGasto) throw e
-        bruto.rubrica[j.modelo][s.id][c.id] = null
+        bruto.rubrica[j.id][s.id][c.id] = null
       }
       process.stdout.write(`\r  julgando ${++feitos}/${julgar.length}   `)
     })
@@ -353,9 +374,9 @@ async function rodarFuncao(funcao, ctx, endpoints) {
         }
         const juizModelo = juizPara(
           [s.modelo, sisBase.modelo],
-          juizes.map((j) => j.modelo),
+          juizes.map((j) => j.id),
         )
-        const j = juizes.find((x) => x.modelo === juizModelo)
+        const j = juizes.find((x) => x.id === juizModelo)
         if (!j) return
         const bloco = blocoDoCaso(funcao, c)
         const [a, b] = [saidaParaJuiz(funcao, gc.lido), saidaParaJuiz(funcao, gb.lido)]
@@ -381,7 +402,7 @@ async function rodarFuncao(funcao, ctx, endpoints) {
         const primeira = await ordem(a, b) // candidato em A
         const segunda = await ordem(b, a) // candidato em B
         const comb = combinarOrdens(primeira, segunda)
-        if (comb) bruto.pareado[s.id][c.id] = { ...comb, juiz: j.modelo, ordens: [primeira, segunda] }
+        if (comb) bruto.pareado[s.id][c.id] = { ...comb, juiz: j.id, ordens: [primeira, segunda] }
         process.stdout.write(`\r  pareando ${++feitos}/${pares.length}   `)
       })
       gravar()
@@ -424,7 +445,7 @@ function gravarLegendaMt(bruto) {
       casos,
     }
   })
-  gravarJson(path.join(SAIDA, 'bruto-legenda-mt.json'), { geradoEm: bruto.geradoEm, resultados })
+  gravarJson(path.join(SAIDA, 'bruto-legenda-mt.json'), { geradoEm: bruto.geradoEm, resultados }, { compacto: true })
 }
 
 // ------------------------------------------------------------------ relatório, concordância, calibração
@@ -460,29 +481,141 @@ export function concordanciaEntreJuizes(brutos) {
   return saida
 }
 
+/**
+ * A CONTA DE CUSTO para o relatório, das MESMAS fontes que `npm run ia:custo`: as margens do anual de
+ * `scripts/ia/modeloDeCusto.ts` e as misturas de pagantes rodando `scripts/ia/simular-custo.ts` (sem rede).
+ */
+function contaDeCusto(decisoes) {
+  const rodarSimulacao = (args) => {
+    const saida = execFileSync(
+      process.execPath,
+      [createRequire(import.meta.url).resolve('tsx/cli'), 'scripts/ia/simular-custo.ts', ...args],
+      {
+        encoding: 'utf8',
+      },
+    )
+    const m = saida.match(/margem no pior caso: US\$\s+(-?[\d.]+)/)
+    if (!m) throw new Error('simular-custo.ts: margem no pior caso não encontrada na saída')
+    return Number(m[1])
+  }
+  const FRACOES = [0.03, 0.08, 0.15]
+  const misturasSoPlus = FRACOES.map((fracao) => {
+    const pagantes = Math.round(1000 * fracao)
+    return {
+      fracao,
+      pagantes,
+      margemPiorCasoUsd: rodarSimulacao([
+        '--usuarios',
+        '1000',
+        '--essencial',
+        '0',
+        '--premium',
+        '0',
+        '--plus',
+        String(pagantes),
+        '--testes',
+        '100',
+      ]),
+    }
+  })
+  const misturasEssencialPremium = FRACOES.map((fracao) => {
+    const pagantes = Math.round(1000 * fracao)
+    const essencial = Math.round(pagantes * 0.6)
+    return {
+      fracao,
+      margemPiorCasoUsd: rodarSimulacao([
+        '--usuarios',
+        '1000',
+        '--essencial',
+        String(essencial),
+        '--premium',
+        String(pagantes - essencial),
+        '--testes',
+        '100',
+      ]),
+    }
+  })
+  const planos = ['plus', 'familia', 'pro4'].map((plano) => ({
+    plano,
+    rotulo: PLAN_MATRIX[plano].rotulo,
+    tokensMes: PLAN_MATRIX[plano].quotas.tokensMes ?? 0,
+    margemAnualBrl: margemDoAnual(plano).margemAnualBrl,
+  }))
+  const efeitos = []
+  for (const d of Object.values(decisoes)) {
+    if (d.funcao === 'legenda') continue
+    for (const s of new Set([...d.opcoesMaisCaras, d.recomendado])) {
+      const r = d.resumos[s]
+      if (s === d.base || !(r.custo.usdPorMilhaoDeTokens > TETO_USD_POR_MILHAO_DE_TOKENS)) continue
+      efeitos.push({
+        funcao: d.funcao,
+        sistema: s,
+        usdPorMilhao: r.custo.usdPorMilhaoDeTokens,
+        ...efeitoNaMargem({
+          usdPorMilhao: r.custo.usdPorMilhaoDeTokens,
+          cambio: CAMBIO_BRL_POR_USD,
+          brlPorMilhaoDoModelo: CUSTO_BRL_POR_MILHAO_DE_TOKENS,
+          planos,
+          misturasSoPlus,
+        }),
+      })
+    }
+  }
+  return {
+    brlPorMilhaoDoModelo: CUSTO_BRL_POR_MILHAO_DE_TOKENS,
+    misturasSoPlus,
+    misturasEssencialPremium,
+    planos,
+    efeitos,
+  }
+}
+
 function relatorio() {
   const brutos = lerBrutos()
   if (!brutos.length) throw new Error(`nenhum bruto em ${SAIDA}`)
-  const decisoes = []
+  const decisoes = {}
+  const robustez = {}
   for (const b of brutos) {
     if (b.funcao === 'legenda') gravarLegendaMt(b)
-    const d = decidirFuncao(b)
-    decisoes.push(d)
-    gravarJson(path.join(SAIDA, `decisao-${b.funcao}.json`), d)
-    writeFileSync(path.join(SAIDA, `decisao-${b.funcao}.md`), markdownDaFuncao(d))
-    console.log(markdownDaFuncao(d))
+    decisoes[b.funcao] = decidirFuncao(b)
+    // Robustez: só o PRIMEIRO juiz (Mistral), de família diferente dos candidatos DeepSeek.
+    if (b.juizes.length > 1) robustez[b.funcao] = decidirFuncao(b, { juizes: [b.juizes[0]] })
+    gravarJson(path.join(SAIDA, `decisao-${b.funcao}.json`), decisoes[b.funcao])
   }
-  const conc = concordanciaEntreJuizes(brutos)
-  gravarJson(path.join(SAIDA, 'concordancia.json'), conc)
-  for (const [f, c] of Object.entries(conc))
-    console.log(
-      `κ juiz×juiz ${f}: ${c.geral.kappa.toFixed(2)} (${leituraDoKappa(c.geral.kappa)}, n=${c.geral.n}, acordo ${(c.geral.concordancia * 100).toFixed(0)}%)`,
-    )
+  const concordancia = concordanciaEntreJuizes(brutos)
+  gravarJson(path.join(SAIDA, 'concordancia.json'), concordancia)
   planilha(brutos)
+  const calibracao = lerJson(path.join(SAIDA, 'calibracao-resultado.json'), null)
+  const primeiro = brutos[0]
+  const md = gerarRelatorio({
+    decisoes,
+    robustez,
+    concordancia,
+    juizes: primeiro.juizes.map((id) => ({ id, parametros: primeiro.juizesParametros?.[id] })),
+    gasto: { totalUsd: armazem.ler().totalUsd, tetoUsd: TETO_USD },
+    custo: contaDeCusto(decisoes),
+    calibracao,
+    geradoEm: new Date().toISOString().slice(0, 10),
+    commit: commitAtual(),
+  })
+  writeFileSync(RELATORIO, `${md}\n`)
+  console.log(md)
   return decisoes
 }
 
-/** A planilha CEGA de 30 casos: 12 de explicação, 6 de cada outra função (o resto completa). */
+const commitAtual = () => {
+  try {
+    return execFileSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8' }).trim()
+  } catch {
+    return null
+  }
+}
+
+/**
+ * A planilha CEGA de 30 casos para um humano leigo (uma linha por caso, coluna por critério, CSV com `;` e BOM),
+ * sobreamostrando "não atende", discordância entre os juízes e gramática (`escolherParaCalibrar`). O gabarito
+ * comparado é a MÉDIA dos juízes — o que a decisão usa.
+ */
 function planilha(brutos) {
   const itens = []
   for (const b of brutos) {
@@ -491,40 +624,29 @@ function planilha(brutos) {
       for (const id of b.casos) {
         const g = b.geracoes[s][id]
         if (!g?.valida) continue
-        const modelo = b.sistemas.find((x) => x.id === s)?.modelo ?? s
-        const juiz = juizPara([modelo], b.juizes)
-        const veredito = juiz ? b.rubrica?.[juiz]?.[s]?.[id] : null
-        if (!veredito) continue
+        const vereditos = b.juizes.map((j) => b.rubrica?.[j]?.[s]?.[id] ?? null)
+        if (!vereditos.some(Boolean)) continue
         itens.push({
           chave: hash([b.funcao, s, id]).slice(0, 10),
           funcao: b.funcao,
           caso: id,
           sistema: s,
-          juiz,
           entrada: blocoDoCaso(b.funcao, casos.get(id)),
           resposta: saidaParaJuiz(b.funcao, g.lido),
           criterios: CRITERIOS[b.funcao],
-          veredito,
+          vereditos,
         })
       }
   }
-  const escolhidos = escolherParaCalibrar(itens, 30, { explicacao: 12, resumo: 6, alternativas: 6, legenda: 6 })
-  const { linhas, doJuiz } = montarPlanilha(escolhidos)
-  writeFileSync(path.join(SAIDA, 'planilha-calibracao.csv'), paraCsv(linhas, COLUNAS_DA_PLANILHA))
+  const escolhidos = escolherParaCalibrar(itens, 30)
+  const { linhas, colunas, doJuiz } = montarPlanilha(escolhidos)
+  writeFileSync(path.join(SAIDA, 'planilha-calibracao.csv'), paraCsv(linhas, colunas))
   gravarJson(path.join(SAIDA, 'calibracao-juiz.json'), {
-    instrucoes: 'Preencha a coluna "humano" da planilha com 1 (atende) ou 0 (não atende) e rode --calibrar <csv>.',
-    casos: escolhidos.map((e) => ({
-      chave: e.chave,
-      funcao: e.funcao,
-      caso: e.caso,
-      sistema: e.sistema,
-      juiz: e.juiz,
-    })),
+    instrucoes: 'Gabarito dos juízes (média dos dois: 1, 0,5 ou 0) por chave#critério. Não abra antes de anotar.',
+    casos: escolhidos.map((e) => ({ chave: e.chave, funcao: e.funcao, caso: e.caso, sistema: e.sistema })),
     doJuiz,
   })
-  console.log(
-    `planilha de calibração: ${escolhidos.length} casos, ${linhas.length} linhas → ${path.join(SAIDA, 'planilha-calibracao.csv')}`,
-  )
+  console.log(`planilha de calibração: ${escolhidos.length} casos → ${path.join(SAIDA, 'planilha-calibracao.csv')}`)
 }
 
 function calibrar(arq) {
@@ -538,11 +660,15 @@ function calibrar(arq) {
     )
     return k
   }
+  const kg = k.geral.kappa
   console.log(
-    `κ juiz × humano: ${k.geral.kappa.toFixed(2)} (${leituraDoKappa(k.geral.kappa)}) — ${k.geral.kappa >= 0.6 ? 'calibrado (≥ 0,6)' : 'NÃO calibrado (< 0,6)'}`,
+    `κ juiz × humano: ${Number.isFinite(kg) ? kg.toFixed(2) : 'indefinido'} (${leituraDoKappa(kg)}) — ${kg >= 0.6 ? 'calibrado (≥ 0,6)' : 'NÃO calibrado (< 0,6)'}`,
+  )
+  console.log(
+    `juízes divididos: ${k.divididos.n} itens; neles o humano disse "atende" ${k.divididos.humanoDisseAtende} vez(es)`,
   )
   for (const [c, v] of Object.entries(k.porCriterio))
-    console.log(`  ${c.padEnd(20)} κ ${Number.isFinite(v.kappa) ? v.kappa.toFixed(2) : '—'} (n=${v.n})`)
+    console.log(`  ${c.padEnd(20)} κ ${Number.isFinite(v.kappa) ? v.kappa.toFixed(2) : 'indefinido'} (n=${v.n})`)
   gravarJson(path.join(SAIDA, 'calibracao-resultado.json'), k)
   return k
 }

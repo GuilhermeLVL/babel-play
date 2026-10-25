@@ -80,6 +80,12 @@ export function tetoDePrecoZdr(endpoints, sis) {
   }
 }
 
+/**
+ * Provedores que dizem aceitar `reasoning` mas IGNORAM `reasoning.enabled: false` (o modelo pensa do mesmo jeito):
+ * o ajuste `@none` os tira do roteamento, senão o "sem raciocínio" medido seria um sorteio de provedor.
+ */
+export const IGNORAM_RACIOCINIO_DESLIGADO = Object.freeze(['novita'])
+
 /** O ajuste `@esforço` no dialeto do OpenRouter (= `bancada/nuvem.mjs`). */
 function ajusteDeEsforco(esforco) {
   if (!esforco) return {}
@@ -89,16 +95,44 @@ function ajusteDeEsforco(esforco) {
 
 const igual = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 
+/** O que só a bancada acrescenta e não muda o texto gerado: streaming (para o TTFT) e o custo na resposta. */
+export const CAMPOS_DA_BANCADA = Object.freeze(['stream', 'usage'])
+
 /**
- * O corpo do pedido, pronto para o `fetch`. `parametros` diz o que veio da produção, o que é ajuste e se o ajuste
- * muda o pedido (`foraDaProducao`). `respostaJson` (só para os JUÍZES) pede `response_format: json_object`.
+ * O corpo do pedido, pronto para o `fetch` — o MESMO que `chamarChat` (`server/ai/llmClient.ts`) monta: `model`,
+ * `messages`, `temperature`, `max_tokens` e `parametrosDoProvedor(base, model, roteamento, { formato, legenda })`,
+ * com a saída estruturada (`formato`, de `src/lib/esquemasDeSaida.ts`) e o roteamento da legenda (`legenda: true`).
+ * `tests/eval/ia-paga-cliente.test.ts` compara byte a byte com o corpo que o servidor manda.
+ *
+ * `parametros` diz o que veio da produção, o que é ajuste de candidato e se o ajuste muda o pedido (`foraDaProducao`).
+ * Sem ajuste, o corpo é conferido contra `parametrosDoProvedor` e qualquer divergência LANÇA: medir um pedido que a
+ * produção não manda é medir outro produto. `respostaJson` (só os JUÍZES, que não são produção) pede `json_object`.
  */
-export function montarCorpo({ sis, mensagens, temperatura, maxTokens, respostaJson = false }) {
-  const producao = parametrosDoProvedor(BASE_OPENROUTER, sis.modelo)
-  const roteamento = sis.only ? { ...producao.provider, only: sis.only, allow_fallbacks: false } : null
-  const doRoteamento = roteamento ? parametrosDoProvedor(BASE_OPENROUTER, sis.modelo, roteamento) : producao
+export function montarCorpo({
+  sis,
+  mensagens,
+  temperatura,
+  maxTokens,
+  formato,
+  legenda = false,
+  respostaJson = false,
+}) {
+  const opcoes = { ...(formato ? { formato } : {}), ...(legenda ? { legenda: true } : {}) }
+  const producao = parametrosDoProvedor(BASE_OPENROUTER, sis.modelo, undefined, opcoes)
+  const desligaRaciocinio = sis.esforco === 'none' || sis.esforco === 'off'
+  const ajusteDeRota =
+    sis.only || desligaRaciocinio
+      ? {
+          ...producao.provider,
+          ...(sis.only ? { only: sis.only, allow_fallbacks: false } : {}),
+          ...(desligaRaciocinio
+            ? { ignore: [...new Set([...(producao.provider.ignore ?? []), ...IGNORAM_RACIOCINIO_DESLIGADO])] }
+            : {}),
+        }
+      : null
+  const doRoteamento = ajusteDeRota ? parametrosDoProvedor(BASE_OPENROUTER, sis.modelo, ajusteDeRota, opcoes) : producao
   const ajuste = ajusteDeEsforco(sis.esforco)
-  const foraDaProducao = Boolean(sis.only) || Object.entries(ajuste).some(([k, v]) => !igual(producao[k], v))
+  const foraDaProducao = Boolean(ajusteDeRota) || Object.entries(ajuste).some(([k, v]) => !igual(producao[k], v))
   const corpo = {
     model: sis.modelo,
     messages: mensagens,
@@ -115,6 +149,15 @@ export function montarCorpo({ sis, mensagens, temperatura, maxTokens, respostaJs
     throw new Error(`${sis.id}: pedido sem retenção zero — recusado`)
   for (const g of ['google-vertex', 'google-ai-studio'])
     if (!corpo.provider.ignore?.includes(g)) throw new Error(`${sis.id}: pedido sem ignorar ${g} — recusado`)
+  // Sem ajuste e sem ser juiz: o corpo TEM de ser o da produção.
+  if (!foraDaProducao && !respostaJson) {
+    for (const [k, v] of Object.entries(producao))
+      if (!igual(corpo[k], v)) throw new Error(`${sis.id}: o pedido diverge da produção em "${k}" — recusado`)
+    const extras = Object.keys(corpo).filter(
+      (k) => !(k in producao) && !['model', 'messages', 'temperature', 'max_tokens', ...CAMPOS_DA_BANCADA].includes(k),
+    )
+    if (extras.length) throw new Error(`${sis.id}: campos fora da produção no pedido (${extras.join(', ')}) — recusado`)
+  }
   return { corpo, parametros: { producao, ajuste, roteamento: corpo.provider, foraDaProducao } }
 }
 

@@ -26,3 +26,6 @@ src/index.css
 # Fontes dos protótipos de tela: código de protótipo, montado por montar.mjs; não formatar
 docs/prototipos/*-src
 docs/prototipos/_comum
+
+# Brutos da bancada de IA paga (scripts/eval-ia/rodar.mjs): JSON compacto gerado, sem leitura humana
+docs/auditoria/eval/ia-paga-v1/bruto-*.json

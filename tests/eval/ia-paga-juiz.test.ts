@@ -23,8 +23,17 @@ const {
   userDaRubrica,
   vereditoDaInvalida,
 } = juiz as any
-const { escolherParaCalibrar, kappaDaPlanilha, kappaDeCohen, lerCsv, leituraDoKappa, montarPlanilha, paraCsv } =
-  concordancia as any
+const {
+  escolherParaCalibrar,
+  kappaDaPlanilha,
+  kappaDeCohen,
+  lerCsv,
+  leituraDoKappa,
+  montarPlanilha,
+  NAO_SE_APLICA,
+  paraCsv,
+  vereditoMedio,
+} = concordancia as any
 
 const CRIT = [
   { id: 'a', pergunta: 'A?' },
@@ -130,54 +139,79 @@ describe('kappa de Cohen', () => {
     expect(kappaDeCohen([true, false, true], [true, false, true]).kappa).toBe(1)
     expect(kappaDeCohen([true, false], [false, true]).kappa).toBe(-1)
     expect(kappaDeCohen([true, null, false], [true, true, false]).n).toBe(2)
-    expect(kappaDeCohen([true, true], [true, true]).kappa).toBe(1) // degenerado: nada a descontar
+    expect(kappaDeCohen([true, true], [true, true])).toMatchObject({ indefinido: true, concordancia: 1 }) // degenerado: pₑ = 1
+    expect(Number.isNaN(kappaDeCohen([true, true], [true, true]).kappa)).toBe(true)
+    expect(leituraDoKappa(Number.NaN)).toBe('indefinido')
     expect(Number.isNaN(kappaDeCohen([], []).kappa)).toBe(true)
     expect(() => kappaDeCohen([true], [])).toThrow(/tamanhos/)
   })
 })
 
-describe('planilha de calibração', () => {
-  const item = (funcao: string, i: number) => ({
+describe('planilha de calibração (humano leigo)', () => {
+  const v = (a: boolean, b: boolean) => ({ a: { veredito: a }, b: { veredito: b } })
+  /** Item com os vereditos dos DOIS juízes. */
+  const item = (funcao: string, i: number, j1: any, j2: any, criterios = CRIT) => ({
     chave: `${funcao}-${i}`,
     funcao,
     caso: `c${i}`,
-    entrada: 'Frase: "a, b"\nlinha 2',
+    entrada: 'Frase: "a; b"\nlinha 2',
     resposta: 'ok',
-    criterios: CRIT,
-    veredito: { a: { veredito: true }, b: { veredito: i % 2 === 0 } },
+    criterios,
+    vereditos: [j1, j2],
   })
-  const itens = [
-    ...Array.from({ length: 20 }, (_, i) => item('explicacao', i)),
-    ...Array.from({ length: 10 }, (_, i) => item('resumo', i)),
-    ...Array.from({ length: 10 }, (_, i) => item('legenda', i)),
-  ]
+  const atende = Array.from({ length: 40 }, (_, i) => item('explicacao', i, v(true, true), v(true, true)))
+  const discorda = Array.from({ length: 12 }, (_, i) => item('resumo', i, v(true, true), v(false, true)))
+  const reprova = Array.from({ length: 12 }, (_, i) => item('legenda', i, v(false, true), v(false, true)))
 
-  it('escolhe n itens com as cotas por função, sem repetir, de forma reprodutível', () => {
-    const e = escolherParaCalibrar(itens, 30, { explicacao: 12, resumo: 6 })
+  it('sobreamostra discordância e "não atende" (uma amostra uniforme seria quase só "atende")', () => {
+    const e = escolherParaCalibrar([...atende, ...discorda, ...reprova], 30)
     expect(e).toHaveLength(30)
     expect(new Set(e.map((x: any) => x.chave)).size).toBe(30)
-    expect(e.filter((x: any) => x.funcao === 'explicacao').length).toBeGreaterThanOrEqual(12)
-    expect(e.filter((x: any) => x.funcao === 'resumo').length).toBeGreaterThanOrEqual(6)
-    expect(escolherParaCalibrar(itens, 30, { explicacao: 12, resumo: 6 })).toEqual(e)
+    expect(e.filter((x: any) => x.funcao === 'resumo').length).toBeGreaterThanOrEqual(10)
+    expect(e.filter((x: any) => x.funcao === 'legenda').length).toBeGreaterThanOrEqual(10)
+    expect(escolherParaCalibrar([...atende, ...discorda, ...reprova], 30)).toEqual(e)
   })
 
-  it('a planilha é CEGA (sem modelo nem veredito) e o CSV ida e volta preserva vírgula, aspas e quebra', () => {
-    const { linhas, doJuiz } = montarPlanilha([itens[0], itens[1]])
-    expect(linhas).toHaveLength(4)
-    const csv = paraCsv(linhas, Object.keys(linhas[0]))
+  it('o gabarito comparado é a MÉDIA dos dois juízes (1, 0,5 ou 0)', () => {
+    expect(vereditoMedio([v(true, true), v(false, true)], 'a')).toBe(0.5)
+    expect(vereditoMedio([v(false, true), v(false, true)], 'a')).toBe(0)
+    expect(vereditoMedio([null, v(true, true)], 'a')).toBe(1)
+  })
+
+  it('uma linha por caso, coluna por critério, "não se aplica" no critério de outra função; CSV com ; e BOM', () => {
+    const outra = item('legenda', 99, { x: { veredito: true } }, { x: { veredito: false } }, [
+      { id: 'x', pergunta: 'X?' },
+    ])
+    const { linhas, colunas, doJuiz } = montarPlanilha([atende[0], outra])
+    expect(linhas).toHaveLength(2)
+    expect(colunas).toEqual(['chave', 'funcao', 'entrada_e_referencia', 'resposta_a_avaliar', 'a', 'b', 'x'])
+    expect(linhas[0].x).toBe(NAO_SE_APLICA)
+    expect(linhas[1].a).toBe(NAO_SE_APLICA)
+    expect(doJuiz['legenda-99#x']).toBe(0.5)
+    const csv = paraCsv(linhas, colunas)
+    expect(csv.charCodeAt(0)).toBe(0xfeff)
+    expect(csv.slice(1).split('\r\n')[0]).toBe('chave;funcao;entrada_e_referencia;resposta_a_avaliar;a;b;x')
     expect(csv).not.toMatch(/veredito|mistral|deepseek|gpt-oss/)
     const volta = lerCsv(csv)
-    expect(volta[0].entrada).toBe('Frase: "a, b"\nlinha 2')
-    expect(volta).toHaveLength(4)
-    expect(doJuiz['explicacao-0#a']).toBe(true)
+    expect(volta[0].entrada_e_referencia).toBe('Frase: "a; b"\nlinha 2')
+    expect(volta).toHaveLength(2)
   })
 
-  it('κ juiz × humano da planilha preenchida; não preenchida = NaN com 0 anotadas', () => {
-    const { linhas, doJuiz } = montarPlanilha([itens[0], itens[1]])
-    // O humano concorda em tudo com o juiz.
-    const preenchida = linhas.map((l: any) => ({ ...l, humano: doJuiz[l.chave] ? '1' : '0' }))
-    const k = kappaDaPlanilha(lerCsv(paraCsv(preenchida, Object.keys(preenchida[0]))), doJuiz)
-    expect(k.anotadas).toBe(4)
+  it('κ juiz × humano contra a média; o meio a meio fica à parte; não preenchida = NaN com 0 anotadas', () => {
+    const itens = [
+      item('explicacao', 1, v(true, false), v(true, false)),
+      item('explicacao', 2, v(false, true), v(false, true)),
+      item('explicacao', 3, v(true, true), v(false, true)),
+    ]
+    const { linhas, colunas, doJuiz } = montarPlanilha(itens)
+    // O humano concorda com os juízes onde eles concordam; no item 3 (critério a dividido) diz "atende".
+    const preenchida = linhas.map((l: any) => ({
+      ...l,
+      a: doJuiz[`${l.chave}#a`] >= 0.5 ? '1' : '0',
+      b: doJuiz[`${l.chave}#b`] ? '1' : '0',
+    }))
+    const k = kappaDaPlanilha(lerCsv(paraCsv(preenchida, colunas)), doJuiz)
+    expect(k.divididos).toEqual({ n: 1, humanoDisseAtende: 1 })
     expect(k.geral.kappa).toBe(1)
     const vazia = kappaDaPlanilha(linhas, doJuiz)
     expect(vazia.anotadas).toBe(0)

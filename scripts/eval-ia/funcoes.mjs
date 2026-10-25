@@ -7,11 +7,12 @@
  *                 no perfil menor (`server/ai/nucleo/explicarFrase.ts`);
  *   resumo        `systemDoResumo`/`userDoResumo(falasQueCabem(…, tetoEntrada))` + a instrução de menor
  *                 (`resumirSessao.ts`); os cartões passam pelo MESMO filtro (`cartoesDoResumo`) antes do juiz ver;
- *   alternativas  `systemDasAlternativas`/`userDasAlternativas` com o registro pedido (`sugerirAlternativas.ts`; a
- *                 rota não acrescenta instrução de menor — a Nuance é paga);
- *   legenda       `systemComunicativo`/`userComunicativo`, temperatura 0,2 e `maxTokensDaTraducao` (`mtProxy.ts`, o
- *                 mesmo de `bancada/nuvem.mjs`).
- * Temperatura e `max_tokens` vêm de `FUNCOES_DE_IA`. A leitura é a da produção (`lerExplicacao`, `lerResumo`,
+ *   alternativas  `systemDasAlternativas`/`userDasAlternativas` com o registro pedido + a instrução de menor
+ *                 (`sugerirAlternativas.ts`, desde a Fase B);
+ *   legenda       `systemComunicativo`/`userComunicativo`, temperatura 0,2 e `maxTokensDaTraducao` (`mtProxy.ts`), com
+ *                 o roteamento da legenda (`legenda: true` → `sort: price` + `preferred_max_latency`).
+ * Temperatura e `max_tokens` vêm de `FUNCOES_DE_IA`; a SAÍDA ESTRUTURADA (`formato`: `json_schema strict` +
+ * `require_parameters`) vem de `src/lib/esquemasDeSaida.ts`, como no servidor (Fase B). A leitura é a da produção (`lerExplicacao`, `lerResumo`,
  * `lerAlternativas`): resposta que ela recusa é o 502 `resposta_invalida` que a pessoa veria ("não deu para explicar
  * agora") — conta como falha de experiência, e o juiz nem é chamado (todas as notas 0).
  *
@@ -23,6 +24,7 @@ import { FUNCOES_DE_IA, maxTokensDaTraducao } from '../../server/ai/funcoesDeIa.
 import { comInstrucaoDeMenor } from '../../server/ai/llmRequest.ts'
 import { INSTRUCAO_DE_SEGURANCA_PARA_MENORES } from '../../server/lib/idade.ts'
 import { chrf } from '../../src/core/eval/chrf.ts'
+import { SAIDA_DA_EXPLICACAO, SAIDA_DAS_ALTERNATIVAS, SAIDA_DO_RESUMO } from '../../src/lib/esquemasDeSaida.ts'
 import { lerExplicacao, systemDaExplicacao, userDaExplicacao } from '../../src/lib/estudo/promptDaExplicacao.ts'
 import {
   cartoesDoResumo,
@@ -155,6 +157,7 @@ export function pedidoDaProducao(funcao, caso) {
         ],
         temperatura: f.temperatura,
         maxTokens: f.maxTokens,
+        formato: SAIDA_DA_EXPLICACAO,
       }
     }
     case 'resumo': {
@@ -167,6 +170,7 @@ export function pedidoDaProducao(funcao, caso) {
         ],
         temperatura: f.temperatura,
         maxTokens: f.maxTokens,
+        formato: SAIDA_DO_RESUMO,
         falas,
       }
     }
@@ -175,11 +179,12 @@ export function pedidoDaProducao(funcao, caso) {
       const opcoes = caso.registro ? { registro: caso.registro } : undefined
       return {
         mensagens: [
-          { role: 'system', content: systemDasAlternativas(caso.tgt, caso.src, opcoes) },
+          { role: 'system', content: sistemaComMenor(systemDasAlternativas(caso.tgt, caso.src, opcoes), caso.perfil) },
           { role: 'user', content: userDasAlternativas(caso.texto, caso.traducaoAtual, caso.contexto, opcoes) },
         ],
         temperatura: f.temperatura,
         maxTokens: f.maxTokens,
+        formato: SAIDA_DAS_ALTERNATIVAS,
       }
     }
     case 'legenda':
@@ -190,6 +195,7 @@ export function pedidoDaProducao(funcao, caso) {
         ],
         temperatura: TEMPERATURA_DA_LEGENDA,
         maxTokens: maxTokensDaTraducao(caso.origem.length),
+        legenda: true,
       }
     default:
       throw new Error(`função desconhecida: ${funcao}`)
@@ -244,7 +250,7 @@ export function blocoDoCaso(funcao, caso) {
         `Perfil de quem estuda: ${caso.perfil}`,
         `Idioma em que a explicação deve vir: português do Brasil`,
         '',
-        'FATOS ESPERADOS (gabarito escrito por professor):',
+        'O QUE SE ESPERA (referência escrita pela equipe):',
         `- sentido: ${x.sentido}`,
         `- gramática: ${x.gramatica}`,
         `- registro: ${x.registro}`,
@@ -261,7 +267,7 @@ export function blocoDoCaso(funcao, caso) {
         'Falas da sessão:',
         ...caso.falas.map((f, i) => `${i + 1}. [${f.srcLang}] ${f.texto} = ${f.traducao}`),
         '',
-        'ESPERADO (gabarito):',
+        'O QUE SE ESPERA (referência escrita pela equipe):',
         `Pontos:\n${lista(x.pontos)}`,
         `Palavras-alvo boas para cartão: ${x.palavrasAlvo.join(', ')}`,
         `Não inventar: ${x.naoInventar?.length ? x.naoInventar.join('; ') : '(nada específico)'}`,
@@ -278,7 +284,7 @@ export function blocoDoCaso(funcao, caso) {
         `Contexto: ${caso.contexto.length ? caso.contexto.join(' | ') : '(nenhum)'}`,
         `Registro pedido: ${caso.registro ?? '(nenhum: variar o registro)'}`,
         '',
-        'ESPERADO (gabarito):',
+        'O QUE SE ESPERA (referência escrita pela equipe):',
         `- sentido: ${x.sentido}`,
         `- exemplos aceitáveis (não são os únicos): ${x.aceitaveis.join(' | ')}`,
         `- evitar: ${x.evitar.length ? x.evitar.join(' | ') : '(nada específico)'}`,
@@ -292,7 +298,7 @@ export function blocoDoCaso(funcao, caso) {
         `Fala (inglês, conversa informal): ${caso.origem}`,
         `Contexto: ${caso.contexto?.length ? caso.contexto.join(' | ') : '(nenhum)'}`,
         `Referência (UMA tradução possível): ${caso.referencia}`,
-        caso.nota ? `Nota do gabarito: ${caso.nota}` : null,
+        caso.nota ? `Nota da referência: ${caso.nota}` : null,
       ]
         .filter((l) => l !== null)
         .join('\n')

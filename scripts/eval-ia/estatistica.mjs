@@ -1,24 +1,10 @@
 /**
- * DA RODADA À DECISÃO — resumo por sistema, comparação pareada e a regra do MAIS BARATO NÃO-INFERIOR. PURO.
- *
- * A REGRA (diretriz do dono, 24/10/2026: "modelos baratos sempre que possível e bom harness pensando na experiência
- * dos usuários"):
- *   1. o MELHOR é o de maior nota média da rubrica (fração de critérios atendidos; resposta inválida = 0);
- *   2. um sistema é NÃO-INFERIOR quando o IC 95% do bootstrap PAREADO (`bootstrapPareado`, mesmos casos) da diferença
- *      sistema − melhor fica inteiro acima de −MARGEM (padrão 0,05: até 5 pontos percentuais de critérios atendidos);
- *   3. FALHA CRÍTICA, que nenhum preço compensa: num critério crítico (gramática, gíria inventada, idioma de saída,
- *      segurança — `criteriosCriticos`), o sistema é pior que o melhor com o IC pareado inteiro abaixo de 0, ou fica
- *      mais de 10 pontos abaixo dele na taxa de acerto;
- *   4. CUSTO QUE CABE: o custo medido por 1M de tokens da cota não passa do que o modelo de custo cobra
- *      (`CUSTO_BRL_POR_MILHAO_DE_TOKENS` de `scripts/ia/modeloDeCusto.ts`, R$ 1,40 ÷ câmbio) — acima disso a margem de
- *      `npm run ia:custo` muda e a troca exige refazer a conta;
- *   5. LATÊNCIA DENTRO DO SLO: o p95 da espera total não passa do SLO da função (`SLO_P95_MS`, Fase C do plano); e,
- *      SEM relaxamento possível, no máximo 5% das respostas passam do TIMEOUT DA PRODUÇÃO (a que não chega a tempo
- *      vira reserva ou erro na tela — `TIMEOUT_DA_PRODUCAO_MS`);
- *   6. RECOMENDADO = o MAIS BARATO (US$ por 1.000 usos) entre os que passam em 2 a 5. Ninguém passa → relaxa, NESTA
- *      ordem e dizendo qual: primeiro o SLO, depois o custo; e só então o melhor.
- * A regra da bancada de fala (B5, `bancada/decisao.mjs` → `decidir`) também é aplicada contra a PRODUÇÃO, para o
- * relatório dizer "troca por qualidade" (IC exclui 0 para cima) ou não.
+ * DA RODADA À DECISÃO — resumo por sistema, comparação pareada contra a PRODUÇÃO e a regra "o MAIS BARATO que não
+ * piora a experiência" (dono, 24/10/2026). PURO. A regra está em `decidirFuncao`, com a análise de poder
+ * (`casosNecessarios`) onde a amostra não decide. O custo que "cabe" é o do modelo de custo
+ * (`CUSTO_BRL_POR_MILHAO_DE_TOKENS` de `scripts/ia/modeloDeCusto.ts`, R$ 1,40 ÷ câmbio por 1M tokens; US$ 0,05 por
+ * hora de fala na legenda): acima dele a troca exige refazer `npm run ia:custo`. A regra da bancada de fala (B5,
+ * `bancada/decisao.mjs` → `decidir`) sai ao lado, como referência.
  *
  * QUEM JULGA: o MESMO INSTRUMENTO para todos — a nota de um caso é a média dos juízes (dois, de famílias diferentes).
  * Excluir o juiz da família do candidato daria a cada sistema um juiz diferente (o Mistral mais severo para uns, o
@@ -131,7 +117,16 @@ function pareado(casos, fA, fB) {
       b.push(y)
     }
   }
-  return { n: a.length, ...bootstrapPareado(a.length, mediaEm(a), mediaEm(b)) }
+  const d = a.map((x, i) => x - b[i])
+  const delta = media(d)
+  const dp = d.length > 1 ? Math.sqrt(d.reduce((s, x) => s + (x - delta) ** 2, 0) / (d.length - 1)) : Number.NaN
+  return { n: a.length, delta, dp, ...bootstrapPareado(a.length, mediaEm(a), mediaEm(b)) }
+}
+
+/** A geração passou do timeout da produção: demorou mais, ou foi ABORTADA pelo relógio (sem resposta por timeout). */
+export function passouDoTimeout(g, timeoutMs) {
+  if (g.totalMs > timeoutMs) return true
+  return Boolean(g.semResposta) && /timeout|abort|sem resposta em/i.test(String(g.erro ?? ''))
 }
 
 /** O resumo de UM sistema numa função: qualidade, experiência, latência e custo. */
@@ -174,8 +169,9 @@ export function resumirSistema(bruto, sis) {
     latenciaMs: { ttftP50: ttft50, ttftP95: ttft95, totalP50: total50, totalP95: total95 },
     sloP95Ms: SLO_P95_MS[bruto.funcao],
     dentroDoSlo: Number.isFinite(total95) ? total95 <= SLO_P95_MS[bruto.funcao] : null,
-    acimaDoTimeout: casos.length
-      ? casos.filter((c) => ger[c].totalMs > TIMEOUT_DA_PRODUCAO_MS[bruto.funcao]).length / casos.length
+    // Sobre TODAS as tentativas: a chamada abortada pelo relógio (sem resposta) também não chegou a tempo.
+    acimaDoTimeout: tentados.length
+      ? tentados.filter((c) => passouDoTimeout(ger[c], TIMEOUT_DA_PRODUCAO_MS[bruto.funcao])).length / tentados.length
       : 0,
     experiencia: {
       caracteresP50: percentis(ok.map((e) => e.caracteres))[0],
@@ -265,179 +261,150 @@ export function resumirPreferencia(bruto, sis) {
   }
 }
 
-/**
- * A DECISÃO de uma função: o melhor, os não-inferiores, as falhas críticas, o custo e o RECOMENDADO (o mais barato
- * que passa). `margem` é a de não-inferioridade, declarada e impressa.
- */
-export function decidirFuncao(bruto, { margem = MARGEM_DE_NAO_INFERIORIDADE } = {}) {
-  const sistemas = bruto.sistemas.map((s) => s.id).filter((s) => bruto.geracoes[s])
-  const resumos = Object.fromEntries(sistemas.map((s) => [s, resumirSistema(bruto, s)]))
-  const custoDe = (s) => resumos[s].custo.usdPor1000Usos
-  const melhor = [...sistemas].sort(
-    (a, b) => (resumos[b].nota.valor || 0) - (resumos[a].nota.valor || 0) || custoDe(a) - custoDe(b),
-  )[0]
-  const avaliacoes = sistemas.map((s) => {
-    const cmp = s === melhor ? null : compararPar(bruto, s, melhor)
-    const naoInferior = s === melhor || (cmp.nota.n > 0 && cmp.nota.ic95[0] > -margem)
-    const falhasCriticas = []
-    if (cmp)
-      for (const [cr, d] of Object.entries(cmp.criticos)) {
-        const queda = (resumos[melhor].taxas[cr] ?? 0) - (resumos[s].taxas[cr] ?? 0)
-        if (d.n > 0 && d.ic95[1] < 0) falhasCriticas.push(`${cr}: pior que o melhor (IC pareado exclui 0)`)
-        else if (queda > QUEDA_CRITICA_MAXIMA)
-          falhasCriticas.push(`${cr}: ${(queda * 100).toFixed(0)} pts abaixo do melhor na taxa de acerto`)
-      }
-    const r = resumos[s]
-    const custoCabe =
-      bruto.funcao === 'legenda'
-        ? Number.isFinite(r.custo.usdPorHoraDeFala) && r.custo.usdPorHoraDeFala <= TETO_LEGENDA_USD_POR_HORA
-        : Number.isFinite(r.custo.usdPorMilhaoDeTokens) && r.custo.usdPorMilhaoDeTokens <= TETO_USD_POR_MILHAO_DE_TOKENS
-    return {
-      sistema: s,
-      comparacao: cmp,
-      naoInferior,
-      falhasCriticas,
-      custoCabe,
-      dentroDoSlo: r.dentroDoSlo !== false,
-      chegaNoTempo: (r.acimaDoTimeout ?? 0) <= MAXIMO_ACIMA_DO_TIMEOUT,
-    }
-  })
-  /* As exigências, da mais forte à mais fraca: relaxa o SLO, depois o custo — nunca a qualidade nem o crítico. */
-  const NIVEIS = [
-    {
-      nome: 'todas as exigências',
-      ok: (a) => a.naoInferior && a.chegaNoTempo && !a.falhasCriticas.length && a.custoCabe && a.dentroDoSlo,
-    },
-    {
-      nome: 'relaxado o SLO de latência',
-      ok: (a) => a.naoInferior && a.chegaNoTempo && !a.falhasCriticas.length && a.custoCabe,
-    },
-    { nome: 'relaxados o SLO e o custo', ok: (a) => a.naoInferior && a.chegaNoTempo && !a.falhasCriticas.length },
-  ]
-  for (const a of avaliacoes) a.passa = NIVEIS[0].ok(a)
-  let recomendado = melhor
-  let motivo = 'nenhum sistema não-inferior sem falha crítica: fica o melhor'
-  let relaxado = null
-  for (const [i, nivel] of NIVEIS.entries()) {
-    const ok = avaliacoes.filter(nivel.ok).sort((a, b) => custoDe(a.sistema) - custoDe(b.sistema))
-    if (!ok.length) continue
-    recomendado = ok[0].sistema
-    relaxado = i === 0 ? null : nivel.nome
-    motivo = `o mais barato entre ${ok.length} sistema(s) não-inferior(es) ao melhor (margem −${margem}) e sem falha crítica — ${nivel.nome}`
-    break
-  }
+/** z de 0,975 (IC 95% bilateral = teste unilateral a 2,5%) e de 0,80 (poder de 80%). */
+const Z_ALFA = 1.959964
+const Z_PODER = 0.841621
 
-  /* A regra B5 contra a PRODUÇÃO (a base): troca "por qualidade" só se o IC pareado excluir 0 para cima. */
-  const base = bruto.base
-  const contraProducao = sistemas
-    .filter((s) => s !== base && bruto.geracoes[base])
+/**
+ * ANÁLISE DE PODER — quantos casos PAREADOS seriam precisos para a amostra decidir, pelo desvio-padrão observado da
+ * diferença por caso (aproximação normal, α = 2,5% unilateral, poder 80%):
+ *   - não-inferioridade (margem m, diferença observada δ > −m):  n = ((z_α + z_β)·σ / (δ + m))²
+ *   - superioridade (δ > 0):                                       n = ((z_α + z_β)·σ / δ)²
+ * `null` quando a diferença observada aponta para o outro lado (nenhum n decide a favor).
+ */
+export function casosNecessarios({ dp, delta }, alvo, margem = 0) {
+  if (!Number.isFinite(dp) || !Number.isFinite(delta)) return null
+  const efeito = alvo === 'nao-inferioridade' ? delta + margem : delta
+  if (efeito <= 0) return null
+  if (dp === 0) return 2
+  return Math.ceil((((Z_ALFA + Z_PODER) * dp) / efeito) ** 2)
+}
+
+/** Quanto pior a latência p95 do candidato pode ser que a da produção sem "piorar a experiência" (20%). */
+export const PIORA_DE_LATENCIA_TOLERADA = 1.2
+
+/**
+ * A DECISÃO de uma função contra a PRODUÇÃO (o status quo, `bruto.base`) — "o MAIS BARATO que não piora a
+ * experiência" (dono, 24/10/2026):
+ *
+ *   NÃO PIORA A EXPERIÊNCIA =
+ *     nota não-inferior à produção (IC 95% pareado da diferença inteiro acima de −margem, padrão 0,05)
+ *     E nenhum critério crítico pior (IC pareado inteiro abaixo de 0, ou queda de mais de 10 pontos na taxa)
+ *     E no máximo 5% das respostas acima do timeout da produção
+ *     E latência p95 no máximo 20% pior que a da produção.
+ *   MAIS BARATO que a produção (US$ por 1.000 usos) e não piora → PODE TROCAR; o recomendado é o mais barato deles.
+ *   MAIS CARO que a produção → só entra como OPÇÃO se, além de não piorar, for SUPERIOR à produção num critério
+ *     crítico (IC pareado inteiro acima de 0) — e a troca depende de o DONO aceitar o custo a mais. Nunca é
+ *     "recomendado" automaticamente.
+ *   Ninguém passa → MANTER a produção.
+ *
+ * Onde a amostra não decide (IC atravessa a margem ou o 0), sai a análise de poder (`casosNecessarios`).
+ * `juizes` troca o instrumento (checagem de robustez: só o juiz de família diferente do candidato).
+ */
+export function decidirFuncao(bruto, { margem = MARGEM_DE_NAO_INFERIORIDADE, juizes } = {}) {
+  const b = juizes ? { ...bruto, juizes } : bruto
+  const sistemas = b.sistemas.map((s) => s.id).filter((s) => b.geracoes[s])
+  const resumos = Object.fromEntries(sistemas.map((s) => [s, resumirSistema(b, s)]))
+  const base = b.base
+  const rb = resumos[base]
+  const custoDe = (s) => resumos[s].custo.usdPor1000Usos
+  const avaliacoes = sistemas
+    .filter((s) => s !== base)
     .map((s) => {
-      const cmp = compararPar(bruto, s, base)
-      const pref = resumirPreferencia(bruto, s)
-      const comparacoes = [{ corpus: `gold:${bruto.funcao}`, metrica: 'juiz', gold: true, diferenca: cmp.nota }]
-      if (pref) comparacoes.push({ corpus: `pareado:${bruto.funcao}`, metrica: 'preferencia', diferenca: pref.media })
       const r = resumos[s]
-      const custo = bruto.funcao === 'legenda' ? r.custo.usdPorHoraDeFala : r.custo.usdPorMilhaoDeTokens
-      const teto = bruto.funcao === 'legenda' ? TETO_LEGENDA_USD_POR_HORA : TETO_USD_POR_MILHAO_DE_TOKENS
-      const dec = decidir({
-        comparacoes,
-        margens: { juiz: margem, preferencia: 0.1 },
-        custoUsdPorHora: custo,
-        tetoUsdPorHora: teto,
-      })
-      // `decidir` fala em "por hora" (a bancada de fala); no estudo o custo é por 1M de tokens da cota.
-      const unidade = bruto.funcao === 'legenda' ? '/h de fala' : '/1M tokens'
-      const motivos = dec.motivos.map((m) => m.replace(/\/h\b/g, unidade).replace('custo por hora', 'custo'))
-      return { sistema: s, preferencia: pref, ...dec, motivos }
+      const cmp = compararPar(b, s, base)
+      const maisBarato = custoDe(s) <= custoDe(base)
+      const naoInferior = cmp.nota.n > 0 && cmp.nota.ic95[0] > -margem
+      const superiorNaNota = cmp.nota.n > 0 && cmp.nota.ic95[0] > 0
+      const pioras = []
+      const melhoras = []
+      for (const [cr, d] of Object.entries(cmp.criticos)) {
+        const queda = (rb.taxas[cr] ?? 0) - (r.taxas[cr] ?? 0)
+        if (d.n > 0 && d.ic95[1] < 0) pioras.push(`${cr}: pior que a produção (IC pareado exclui 0)`)
+        else if (queda > QUEDA_CRITICA_MAXIMA) pioras.push(`${cr}: ${(queda * 100).toFixed(0)} pts abaixo da produção`)
+        if (d.n > 0 && d.ic95[0] > 0) melhoras.push(cr)
+      }
+      const chegaNoTempo = (r.acimaDoTimeout ?? 0) <= MAXIMO_ACIMA_DO_TIMEOUT
+      const latenciaNaoPiora =
+        !Number.isFinite(rb.latenciaMs.totalP95) ||
+        r.latenciaMs.totalP95 <= rb.latenciaMs.totalP95 * PIORA_DE_LATENCIA_TOLERADA
+      const naoPiora = naoInferior && !pioras.length && chegaNoTempo && latenciaNaoPiora
+      const custoCabe =
+        b.funcao === 'legenda'
+          ? Number.isFinite(r.custo.usdPorHoraDeFala) && r.custo.usdPorHoraDeFala <= TETO_LEGENDA_USD_POR_HORA
+          : Number.isFinite(r.custo.usdPorMilhaoDeTokens) &&
+            r.custo.usdPorMilhaoDeTokens <= TETO_USD_POR_MILHAO_DE_TOKENS
+      const situacao = !naoPiora
+        ? 'piora'
+        : maisBarato
+          ? 'pode-trocar'
+          : melhoras.length
+            ? 'opcao-mais-cara'
+            : 'mais-caro-sem-ganho-critico'
+      /* Poder: onde a amostra não decide. */
+      const poder = {}
+      if (!naoInferior && cmp.nota.ic95[0] <= -margem && cmp.nota.ic95[1] > -margem)
+        poder.naoInferioridade = casosNecessarios(cmp.nota, 'nao-inferioridade', margem)
+      for (const [cr, d] of Object.entries(cmp.criticos))
+        if (d.n > 0 && d.ic95[0] <= 0 && d.ic95[1] > 0 && d.delta > 0)
+          poder[`superioridade:${cr}`] = casosNecessarios(d, 'superioridade')
+      return {
+        sistema: s,
+        comparacao: cmp,
+        maisBarato,
+        custoRelativo: custoDe(s) / custoDe(base),
+        naoInferior,
+        superiorNaNota,
+        pioras,
+        melhoras,
+        chegaNoTempo,
+        latenciaNaoPiora,
+        custoCabe,
+        situacao,
+        poder,
+        preferencia: resumirPreferencia(b, s),
+      }
     })
+  const podeTrocar = avaliacoes
+    .filter((a) => a.situacao === 'pode-trocar')
+    .sort((x, y) => custoDe(x.sistema) - custoDe(y.sistema))
+  const opcoesMaisCaras = avaliacoes
+    .filter((a) => a.situacao === 'opcao-mais-cara')
+    .sort((x, y) => custoDe(x.sistema) - custoDe(y.sistema))
+  const recomendado = podeTrocar[0]?.sistema ?? base
+  const motivo = podeTrocar.length
+    ? `o mais barato que a produção entre ${podeTrocar.length} que não pioram a experiência`
+    : 'nenhum candidato mais barato que a produção sem piorar a experiência: manter'
+
+  /* A regra B5 contra a produção (troca "por qualidade" só se o IC pareado excluir 0 para cima), como referência. */
+  const contraProducao = avaliacoes.map((a) => {
+    const r = resumos[a.sistema]
+    const comparacoes = [{ corpus: `gold:${b.funcao}`, metrica: 'juiz', gold: true, diferenca: a.comparacao.nota }]
+    if (a.preferencia)
+      comparacoes.push({ corpus: `pareado:${b.funcao}`, metrica: 'preferencia', diferenca: a.preferencia.media })
+    const custo = b.funcao === 'legenda' ? r.custo.usdPorHoraDeFala : r.custo.usdPorMilhaoDeTokens
+    const teto = b.funcao === 'legenda' ? TETO_LEGENDA_USD_POR_HORA : TETO_USD_POR_MILHAO_DE_TOKENS
+    const dec = decidir({
+      comparacoes,
+      margens: { juiz: margem, preferencia: 0.1 },
+      custoUsdPorHora: custo,
+      tetoUsdPorHora: teto,
+    })
+    const unidade = b.funcao === 'legenda' ? '/h de fala' : '/1M tokens'
+    const motivos = dec.motivos.map((m) => m.replace(/\/h\b/g, unidade).replace('custo por hora', 'custo'))
+    return { sistema: a.sistema, ...dec, motivos }
+  })
   return {
-    funcao: bruto.funcao,
+    funcao: b.funcao,
     base,
+    juizes: b.juizes,
     margem,
-    melhor,
     recomendado,
     motivo,
-    relaxado,
-    autopreferencia: autopreferencia(bruto),
+    opcoesMaisCaras: opcoesMaisCaras.map((a) => a.sistema),
+    autopreferencia: autopreferencia(b),
     resumos,
     avaliacoes,
     contraProducao,
   }
-}
-
-// ------------------------------------------------------------------ markdown
-
-const f2 = (x) => (Number.isFinite(x) ? x.toFixed(2) : '—')
-const f3 = (x) => (Number.isFinite(x) ? x.toFixed(3) : '—')
-const pct = (x) => (Number.isFinite(x) ? `${(x * 100).toFixed(0)}%` : '—')
-const ms = (x) => (Number.isFinite(x) ? `${(x / 1000).toFixed(1)} s` : '—')
-const ic = (iv) => `${f2(iv.valor)} [${f2(iv.ic95[0])}, ${f2(iv.ic95[1])}]`
-
-export function markdownDaFuncao(d) {
-  const l = [`## ${d.funcao}`, '']
-  l.push(`Melhor nota: \`${d.melhor}\` · **recomendado: \`${d.recomendado}\`** — ${d.motivo}.`, '')
-  const auto = Object.entries(d.autopreferencia ?? {}).filter(([, v]) => Number.isFinite(v))
-  if (auto.length)
-    l.push(
-      `Autopreferência medida (nota a mais para a própria família, descontada a severidade): ${auto.map(([j, v]) => `\`${j}\` ${v >= 0 ? '+' : ''}${v.toFixed(3)}`).join(' · ')}.`,
-      '',
-    )
-  l.push('### Qualidade, custo e latência', '')
-  l.push(
-    '| Sistema | n | Nota [IC 95%] | Inválidas | Sem resposta | Total p50 · p95 | TTFT p50 · p95 | US$/1.000 usos | US$/1M tok | Não-inf. | No tempo | Falha crítica | Custo cabe |',
-  )
-  l.push('| --- | --: | --- | --: | --: | --- | --- | --: | --: | :-: | :-: | --- | :-: |')
-  for (const a of d.avaliacoes) {
-    const r = d.resumos[a.sistema]
-    l.push(
-      `| \`${a.sistema}\`${a.sistema === d.recomendado ? ' ★' : ''}${r.foraDaProducao ? ' (ajuste)' : ''} | ${r.n} | ${ic(r.nota)} | ${pct(r.invalidas)} | ${pct(r.semResposta)} | ${ms(r.latenciaMs.totalP50)} · ${ms(r.latenciaMs.totalP95)} | ${ms(r.latenciaMs.ttftP50)} · ${ms(r.latenciaMs.ttftP95)} | ${f3(r.custo.usdPor1000Usos)} | ${f3(r.custo.usdPorMilhaoDeTokens)} | ${a.naoInferior ? 'sim' : 'não'} | ${a.chegaNoTempo ? 'sim' : 'não'} | ${a.falhasCriticas.join('; ') || '—'} | ${a.custoCabe ? 'sim' : 'não'} |`,
-    )
-  }
-  l.push('')
-  l.push('### Taxa de acerto por critério', '')
-  const crits = CRITERIOS[d.funcao].map((c) => c.id)
-  l.push(
-    `| Sistema | ${crits.map((c) => (criteriosCriticos(d.funcao).includes(c) ? `${c} (crítico)` : c)).join(' | ')} |`,
-  )
-  l.push(`| --- | ${crits.map(() => '--:').join(' | ')} |`)
-  for (const a of d.avaliacoes) {
-    const r = d.resumos[a.sistema]
-    l.push(`| \`${a.sistema}\` | ${crits.map((c) => pct(r.taxas[c])).join(' | ')} |`)
-  }
-  l.push('')
-  l.push('### Como o usuário sente', '')
-  l.push(
-    '| Sistema | Erro na tela (502) | Passa do timeout | Espera p95 | Caracteres p50 | Cabe sem rolar | Palavras/frase | Idioma certo | R$ por pagante/mês (cota cheia) | Extra |',
-  )
-  l.push('| --- | --: | --: | --: | --: | --: | --: | --: | --: | --- |')
-  for (const a of d.avaliacoes) {
-    const r = d.resumos[a.sistema]
-    const e = r.experiencia
-    const extra =
-      d.funcao === 'resumo'
-        ? `${f2(e.cartoes)} cartões; ${pct(e.palavrasAlvoNosCartoes)} das palavras-alvo`
-        : d.funcao === 'alternativas'
-          ? `${f2(e.opcoes)} opções; nota ≤ 140: ${pct(e.notaCurta)}`
-          : d.funcao === 'legenda'
-            ? `chrF++ ${f2(e.chrf)}; tamanho/ref ${f2(e.razaoDeTamanho)}`
-            : ''
-    l.push(
-      `| \`${a.sistema}\` | ${pct(r.invalidas)} | ${pct(r.acimaDoTimeout)} | ${ms(r.latenciaMs.totalP95)}${r.dentroDoSlo === false ? ' (fora do SLO)' : ''} | ${Number.isFinite(e.caracteresP50) ? e.caracteresP50.toFixed(0) : '—'} | ${pct(e.cabeSemRolar)} | ${f2(e.palavrasPorFrase)} | ${pct(e.idiomaOk)} | ${Number.isFinite(r.custo.brlPorPaganteNoMes) ? `R$ ${r.custo.brlPorPaganteNoMes.toFixed(2)}` : '—'} | ${extra} |`,
-    )
-  }
-  l.push('')
-  if (d.contraProducao.length) {
-    l.push(`### Contra a produção (\`${d.base}\`) — regra B5`, '')
-    l.push('| Candidato | Δ nota [IC 95%] | Preferência pareada (duas ordens) | Instáveis | Veredito B5 |')
-    l.push('| --- | --- | --- | --: | --- |')
-    for (const c of d.contraProducao) {
-      const dn = c.porCorpus.find((p) => p.metrica === 'juiz')
-      const p = c.preferencia
-      l.push(
-        `| \`${c.sistema}\` | ${dn ? `${dn.delta >= 0 ? '+' : ''}${f3(dn.delta)} [${f3(dn.ic95[0])}, ${f3(dn.ic95[1])}]` : '—'} | ${p ? `${p.vitorias}V ${p.empates}E ${p.derrotas}D · ${ic(p.media)}` : '—'} | ${p ? pct(p.instaveis) : '—'} | ${c.veredito}${c.aprovado ? ' (aprovado)' : ''}${c.motivos.length ? ` — ${c.motivos.join('; ')}` : ''} |`,
-      )
-    }
-    l.push('')
-  }
-  return `${l.join('\n')}\n`
 }

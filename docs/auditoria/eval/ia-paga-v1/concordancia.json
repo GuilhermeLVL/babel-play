@@ -45,10 +45,11 @@
         "acaso": 0.6618787704682563
       },
       "segura": {
-        "kappa": 1,
+        "kappa": null,
         "n": 354,
         "concordancia": 1,
-        "acaso": 1
+        "acaso": 1,
+        "indefinido": true
       }
     }
   },
@@ -74,22 +75,25 @@
         "acaso": 0.9393750000000001
       },
       "cartoes_uteis": {
-        "kappa": 1,
+        "kappa": null,
         "n": 80,
         "concordancia": 1,
-        "acaso": 1
+        "acaso": 1,
+        "indefinido": true
       },
       "cartoes_corretos": {
-        "kappa": 1,
+        "kappa": null,
         "n": 80,
         "concordancia": 1,
-        "acaso": 1
+        "acaso": 1,
+        "indefinido": true
       },
       "idioma_certo": {
-        "kappa": 1,
+        "kappa": null,
         "n": 80,
         "concordancia": 1,
-        "acaso": 1
+        "acaso": 1,
+        "indefinido": true
       },
       "segura": {
         "kappa": 0,
@@ -147,43 +151,45 @@
     }
   },
   "legenda": {
-    "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
+    "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
     "geral": {
-      "kappa": 0.4926944947344273,
-      "n": 865,
-      "concordancia": 0.9468208092485549,
-      "acaso": 0.8951732433425773
+      "kappa": 0.4603967599553763,
+      "n": 445,
+      "concordancia": 0.9438202247191011,
+      "acaso": 0.8958868829693221
     },
     "porCriterio": {
       "adequacao": {
-        "kappa": 0.4296221151407559,
-        "n": 173,
-        "concordancia": 0.8497109826589595,
-        "acaso": 0.7365097397173309
+        "kappa": 0.5870069605568445,
+        "n": 89,
+        "concordancia": 0.9101123595505618,
+        "acaso": 0.782350713293776
       },
       "naturalidade": {
-        "kappa": 0.4143534190927556,
-        "n": 173,
-        "concordancia": 0.9421965317919075,
-        "acaso": 0.9012997427244479
+        "kappa": 0.3471882640586798,
+        "n": 89,
+        "concordancia": 0.898876404494382,
+        "acaso": 0.8450953162479484
       },
       "registro": {
-        "kappa": 0.5525090532850496,
-        "n": 173,
-        "concordancia": 0.9421965317919075,
-        "acaso": 0.8708276253800661
+        "kappa": 0.2908366533864546,
+        "n": 89,
+        "concordancia": 0.9101123595505618,
+        "acaso": 0.8732483272314101
       },
       "idioma_certo": {
-        "kappa": 1,
-        "n": 173,
+        "kappa": null,
+        "n": 89,
         "concordancia": 1,
-        "acaso": 1
+        "acaso": 1,
+        "indefinido": true
       },
       "segura": {
-        "kappa": 1,
-        "n": 173,
+        "kappa": null,
+        "n": 89,
         "concordancia": 1,
-        "acaso": 1
+        "acaso": 1,
+        "indefinido": true
       }
     }
   }

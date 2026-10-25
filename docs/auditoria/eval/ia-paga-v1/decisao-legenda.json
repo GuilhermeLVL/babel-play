@@ -1,78 +1,30 @@
 {
   "funcao": "legenda",
   "base": "google/gemma-4-26b-a4b-it",
+  "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
   "margem": 0.05,
-  "melhor": "openai/gpt-oss-120b~groq+cerebras",
   "recomendado": "google/gemma-4-26b-a4b-it",
-  "motivo": "o mais barato entre 1 sistema(s) não-inferior(es) ao melhor (margem −0.05) e sem falha crítica — relaxado o SLO de latência",
-  "relaxado": "relaxado o SLO de latência",
+  "motivo": "nenhum candidato mais barato que a produção sem piorar a experiência: manter",
+  "opcoesMaisCaras": [],
   "autopreferencia": {
-    "mistralai/mistral-medium-3.1": 0.0034180790960451984,
-    "deepseek/deepseek-v4.1-flash": null
+    "mistralai/mistral-medium-3.1": 0.008474576271186446,
+    "deepseek/deepseek-v4.1-flash@none": null
   },
   "resumos": {
     "google/gemma-4-26b-a4b-it": {
       "sistema": "google/gemma-4-26b-a4b-it",
       "modelo": "google/gemma-4-26b-a4b-it",
-      "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
+      "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
       "juizCompensado": false,
       "n": 60,
       "julgados": 60,
       "nota": {
-        "valor": 0.9583333333333333,
-        "ic95": [0.9333333333333332, 0.9783333333333333]
+        "valor": 0.9383333333333332,
+        "ic95": [0.9066249999999997, 0.965]
       },
       "taxas": {
-        "adequacao": 0.8666666666666667,
-        "naturalidade": 0.9583333333333334,
-        "registro": 0.9666666666666667,
-        "idioma_certo": 1,
-        "segura": 1
-      },
-      "semResposta": 0,
-      "invalidas": 0,
-      "latenciaMs": {
-        "ttftP50": 968.3893330000574,
-        "ttftP95": 1998.7260000000242,
-        "totalP50": 1134.1334169999463,
-        "totalP95": 2057.3132500000065
-      },
-      "sloP95Ms": 1500,
-      "dentroDoSlo": false,
-      "acimaDoTimeout": 0,
-      "experiencia": {
-        "caracteresP50": 40,
-        "cabeSemRolar": null,
-        "palavrasPorFrase": 5.291666666666667,
-        "idiomaOk": 1,
-        "chrf": 79.22388801273483,
-        "razaoDeTamanho": 0.9953333333333333
-      },
-      "custo": {
-        "usdTotal": 0.001385205,
-        "usdPorUso": 0.00002308675,
-        "usdPor1000Usos": 0.02308675,
-        "usdPorMilhaoDeTokens": 0.08425821167883212,
-        "tokensPorUso": 274,
-        "usdPorHoraDeFala": 0.02865941379310345
-      },
-      "tokensDeRaciocinioP50": 0,
-      "foraDaProducao": false
-    },
-    "openai/gpt-oss-120b~groq+cerebras": {
-      "sistema": "openai/gpt-oss-120b~groq+cerebras",
-      "modelo": "openai/gpt-oss-120b",
-      "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
-      "juizCompensado": false,
-      "n": 60,
-      "julgados": 60,
-      "nota": {
-        "valor": 0.9583333333333334,
-        "ic95": [0.9332916666666666, 0.9783333333333333]
-      },
-      "taxas": {
-        "adequacao": 0.9083333333333333,
-        "naturalidade": 0.95,
+        "adequacao": 0.85,
+        "naturalidade": 0.9083333333333333,
         "registro": 0.9333333333333333,
         "idioma_certo": 1,
         "segura": 1
@@ -80,10 +32,58 @@
       "semResposta": 0,
       "invalidas": 0,
       "latenciaMs": {
-        "ttftP50": 819.888042000006,
-        "ttftP95": 1391.533374999999,
-        "totalP50": 854.5864590000128,
-        "totalP95": 1484.5526669999817
+        "ttftP50": 975.2362499999999,
+        "ttftP95": 4204.046125,
+        "totalP50": 1038.2904170000002,
+        "totalP95": 4271.398959
+      },
+      "sloP95Ms": 1500,
+      "dentroDoSlo": false,
+      "acimaDoTimeout": 0,
+      "experiencia": {
+        "caracteresP50": 40,
+        "cabeSemRolar": null,
+        "palavrasPorFrase": 5.258333333333334,
+        "idiomaOk": 1,
+        "chrf": 77.92665939493223,
+        "razaoDeTamanho": 0.9919999999999999
+      },
+      "custo": {
+        "usdTotal": 0.00108787,
+        "usdPorUso": 0.000018131166666666663,
+        "usdPor1000Usos": 0.018131166666666663,
+        "usdPorMilhaoDeTokens": 0.06613995622568093,
+        "tokensPorUso": 274.1333333333333,
+        "usdPorHoraDeFala": 0.02250765517241379
+      },
+      "tokensDeRaciocinioP50": 0,
+      "foraDaProducao": false
+    },
+    "openai/gpt-oss-120b~groq+cerebras": {
+      "sistema": "openai/gpt-oss-120b~groq+cerebras",
+      "modelo": "openai/gpt-oss-120b",
+      "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
+      "juizCompensado": false,
+      "n": 60,
+      "julgados": 53,
+      "nota": {
+        "valor": 0.9433962264150944,
+        "ic95": [0.9056603773584907, 0.9716981132075471]
+      },
+      "taxas": {
+        "adequacao": 0.8867924528301887,
+        "naturalidade": 0.9339622641509434,
+        "registro": 0.8962264150943396,
+        "idioma_certo": 1,
+        "segura": 1
+      },
+      "semResposta": 0,
+      "invalidas": 0,
+      "latenciaMs": {
+        "ttftP50": 818.5899579999987,
+        "ttftP95": 1427.348208000003,
+        "totalP50": 851.463291,
+        "totalP95": 1457.473917000003
       },
       "sloP95Ms": 1500,
       "dentroDoSlo": true,
@@ -91,18 +91,18 @@
       "experiencia": {
         "caracteresP50": 38,
         "cabeSemRolar": null,
-        "palavrasPorFrase": 5.05,
+        "palavrasPorFrase": 5.1,
         "idiomaOk": 1,
-        "chrf": 74.72752810817357,
-        "razaoDeTamanho": 0.9596666666666666
+        "chrf": 72.95497180266835,
+        "razaoDeTamanho": 0.9775000000000003
       },
       "custo": {
-        "usdTotal": 0.003543150000000001,
-        "usdPorUso": 0.00005905250000000002,
-        "usdPor1000Usos": 0.059052500000000015,
-        "usdPorMilhaoDeTokens": 0.1634671280276817,
-        "tokensPorUso": 361.25,
-        "usdPorHoraDeFala": 0.07330655172413796
+        "usdTotal": 0.0034783500000000003,
+        "usdPorUso": 0.00005797250000000001,
+        "usdPor1000Usos": 0.05797250000000001,
+        "usdPorMilhaoDeTokens": 0.1610421778786055,
+        "tokensPorUso": 359.98333333333335,
+        "usdPorHoraDeFala": 0.07196586206896552
       },
       "tokensDeRaciocinioP50": 26,
       "foraDaProducao": true
@@ -110,47 +110,47 @@
     "mistralai/mistral-small-2603": {
       "sistema": "mistralai/mistral-small-2603",
       "modelo": "mistralai/mistral-small-2603",
-      "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
+      "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
       "juizCompensado": true,
-      "n": 54,
-      "julgados": 54,
+      "n": 55,
+      "julgados": 18,
       "nota": {
-        "valor": 0.9148148148148145,
-        "ic95": [0.8795833333333329, 0.9481944444444443]
+        "valor": 0.9555555555555557,
+        "ic95": [0.9111111111111112, 0.9890277777777776]
       },
       "taxas": {
-        "adequacao": 0.75,
-        "naturalidade": 0.9351851851851852,
-        "registro": 0.8888888888888888,
+        "adequacao": 0.8888888888888888,
+        "naturalidade": 0.9722222222222222,
+        "registro": 0.9166666666666666,
         "idioma_certo": 1,
         "segura": 1
       },
-      "semResposta": 0.1,
+      "semResposta": 0.08333333333333333,
       "invalidas": 0,
       "latenciaMs": {
-        "ttftP50": 909.2936660000123,
-        "ttftP95": 1388.1554999999935,
-        "totalP50": 1019.2412079999922,
-        "totalP95": 1695.9586249999702
+        "ttftP50": 903.6655830000018,
+        "ttftP95": 1326.3484160000007,
+        "totalP50": 1036.2015000000101,
+        "totalP95": 1555.2257079999981
       },
       "sloP95Ms": 1500,
       "dentroDoSlo": false,
       "acimaDoTimeout": 0,
       "experiencia": {
-        "caracteresP50": 31,
+        "caracteresP50": 35,
         "cabeSemRolar": null,
-        "palavrasPorFrase": 4.907407407407407,
+        "palavrasPorFrase": 4.881818181818182,
         "idiomaOk": 1,
-        "chrf": 62.07942490562458,
-        "razaoDeTamanho": 0.9161111111111113
+        "chrf": 63.85867729222464,
+        "razaoDeTamanho": 0.9276363636363637
       },
       "custo": {
-        "usdTotal": 0.0009451500000000001,
-        "usdPorUso": 0.00001750277777777778,
-        "usdPor1000Usos": 0.01750277777777778,
-        "usdPorMilhaoDeTokens": 0.05984613436332553,
-        "tokensPorUso": 292.462962962963,
-        "usdPorHoraDeFala": 0.022209791122715407
+        "usdTotal": 0.0009672000000000002,
+        "usdPorUso": 0.000017585454545454548,
+        "usdPor1000Usos": 0.017585454545454546,
+        "usdPorMilhaoDeTokens": 0.059578662067266246,
+        "tokensPorUso": 295.1636363636364,
+        "usdPorHoraDeFala": 0.0216
       },
       "tokensDeRaciocinioP50": 0,
       "foraDaProducao": false
@@ -158,158 +158,134 @@
   },
   "avaliacoes": [
     {
-      "sistema": "google/gemma-4-26b-a4b-it",
+      "sistema": "openai/gpt-oss-120b~groq+cerebras",
       "comparacao": {
-        "contra": "openai/gpt-oss-120b~groq+cerebras",
-        "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
+        "contra": "google/gemma-4-26b-a4b-it",
+        "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
         "juizCompensado": false,
         "nota": {
-          "n": 60,
-          "valor": -1.1102230246251565e-16,
-          "ic95": [-0.021666666666666834, 0.02000000000000024],
+          "n": 53,
+          "delta": -0.0037735849056603787,
+          "dp": 0.11923193969180622,
+          "valor": -0.0037735849056602655,
+          "ic95": [-0.03584905660377369, 0.024528301886792562],
           "significativo": false
         },
         "criticos": {
           "idioma_certo": {
-            "n": 60,
+            "n": 53,
+            "delta": 0,
+            "dp": 0,
             "valor": 0,
             "ic95": [0, 0],
             "significativo": false
           },
           "segura": {
-            "n": 60,
+            "n": 53,
+            "delta": 0,
+            "dp": 0,
             "valor": 0,
             "ic95": [0, 0],
             "significativo": false
           }
         }
       },
+      "maisBarato": false,
+      "custoRelativo": 3.19739490931821,
       "naoInferior": true,
-      "falhasCriticas": [],
-      "custoCabe": true,
-      "dentroDoSlo": false,
+      "superiorNaNota": false,
+      "pioras": [],
+      "melhoras": [],
       "chegaNoTempo": true,
-      "passa": false
-    },
-    {
-      "sistema": "openai/gpt-oss-120b~groq+cerebras",
-      "comparacao": null,
-      "naoInferior": true,
-      "falhasCriticas": [],
+      "disponivel": true,
+      "latenciaNaoPiora": true,
       "custoCabe": false,
-      "dentroDoSlo": true,
-      "chegaNoTempo": true,
-      "passa": false
+      "situacao": "mais-caro-sem-ganho-critico",
+      "poder": {},
+      "preferencia": null
     },
     {
       "sistema": "mistralai/mistral-small-2603",
       "comparacao": {
-        "contra": "openai/gpt-oss-120b~groq+cerebras",
-        "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
+        "contra": "google/gemma-4-26b-a4b-it",
+        "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
         "juizCompensado": true,
         "nota": {
-          "n": 54,
-          "valor": -0.038888888888889195,
-          "ic95": [-0.07222222222222241, -0.007407407407407854],
-          "significativo": true
+          "n": 18,
+          "delta": -0.016666666666666663,
+          "dp": 0.051449575542752646,
+          "valor": -0.016666666666666496,
+          "ic95": [-0.04444444444444429, 0],
+          "significativo": false
         },
         "criticos": {
           "idioma_certo": {
-            "n": 54,
+            "n": 18,
+            "delta": 0,
+            "dp": 0,
             "valor": 0,
             "ic95": [0, 0],
             "significativo": false
           },
           "segura": {
-            "n": 54,
+            "n": 18,
+            "delta": 0,
+            "dp": 0,
             "valor": 0,
             "ic95": [0, 0],
             "significativo": false
           }
         }
       },
-      "naoInferior": false,
-      "falhasCriticas": [],
-      "custoCabe": true,
-      "dentroDoSlo": false,
+      "maisBarato": false,
+      "custoRelativo": 0.9699019852806613,
+      "naoInferior": true,
+      "superiorNaNota": false,
+      "pioras": [],
+      "melhoras": [],
       "chegaNoTempo": true,
-      "passa": false
+      "disponivel": false,
+      "latenciaNaoPiora": true,
+      "custoCabe": true,
+      "situacao": "piora",
+      "poder": {},
+      "preferencia": null
     }
   ],
   "contraProducao": [
     {
       "sistema": "openai/gpt-oss-120b~groq+cerebras",
-      "preferencia": {
-        "n": 60,
-        "vitorias": 10,
-        "derrotas": 8,
-        "empates": 42,
-        "instaveis": 0.16666666666666666,
-        "media": {
-          "valor": 0.03333333333333333,
-          "ic95": [-0.1, 0.18333333333333332]
-        }
-      },
-      "veredito": "inconclusivo",
+      "veredito": "nao-inferior",
       "aprovado": false,
       "reprovacoes": ["custo-acima-do-teto"],
-      "motivos": ["custo de US$ 0.0733/h de fala acima do teto de US$ 0.05/h de fala"],
+      "motivos": ["custo de US$ 0.0720/h de fala acima do teto de US$ 0.05/h de fala"],
       "porCorpus": [
         {
           "corpus": "gold:legenda",
           "metrica": "juiz",
           "gold": true,
-          "delta": 1.1102230246251565e-16,
-          "ic95": [-0.020000000000000243, 0.021666666666666837],
+          "delta": -0.0037735849056602655,
+          "ic95": [-0.03584905660377369, 0.024528301886792562],
           "margem": 0.05,
           "classe": "nao-inferior"
-        },
-        {
-          "corpus": "pareado:legenda",
-          "metrica": "preferencia",
-          "gold": false,
-          "delta": 0.03333333333333333,
-          "ic95": [-0.1, 0.18333333333333332],
-          "margem": 0.1,
-          "classe": "inconclusivo"
         }
       ]
     },
     {
       "sistema": "mistralai/mistral-small-2603",
-      "preferencia": {
-        "n": 52,
-        "vitorias": 3,
-        "derrotas": 20,
-        "empates": 29,
-        "instaveis": 0.25,
-        "media": {
-          "valor": -0.3269230769230769,
-          "ic95": [-0.48125, -0.17307692307692307]
-        }
-      },
-      "veredito": "inferior",
-      "aprovado": false,
-      "reprovacoes": ["gold-piorou"],
-      "motivos": ["gold de conversa piorou em gold:legenda (IC exclui 0 para baixo)"],
+      "veredito": "nao-inferior",
+      "aprovado": true,
+      "reprovacoes": [],
+      "motivos": [],
       "porCorpus": [
         {
           "corpus": "gold:legenda",
           "metrica": "juiz",
           "gold": true,
-          "delta": -0.040740740740740744,
-          "ic95": [-0.06851851851851853, -0.012962962962963065],
+          "delta": -0.016666666666666496,
+          "ic95": [-0.04444444444444429, 0],
           "margem": 0.05,
-          "classe": "inferior"
-        },
-        {
-          "corpus": "pareado:legenda",
-          "metrica": "preferencia",
-          "gold": false,
-          "delta": -0.3269230769230769,
-          "ic95": [-0.48125, -0.17307692307692307],
-          "margem": 0.1,
-          "classe": "inferior"
+          "classe": "nao-inferior"
         }
       ]
     }

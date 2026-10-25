@@ -1,240 +1,319 @@
-# eval-ia-paga-v1 — qualidade × custo × latência da IA paga (LLM-as-judge, rodada 1)
+# eval-ia-paga-v1 — qualidade × custo × latência da IA paga (LLM-as-judge)
 
-24/10/2026. Fase A do plano de qualidade da IA paga. Mede as quatro funções de nuvem que quem paga mais sente —
-**explicação da frase**, **resumo da sessão**, **outras formas (alternativas)** e **legenda ao vivo** — com os MESMOS
-prompts e leitores de produção, um juiz LLM com rubrica binária e as métricas do que aparece na tela.
+> Gerado por `scripts/eval-ia/rodar.mjs --relatorio` a partir dos brutos em `docs/auditoria/eval/ia-paga-v1/` (2026-10-25, commit e2352548). Não edite à mão: os números saem do bruto.
 
-**Gasto total da rodada: US$ 1,92** (teto autorizado: US$ 5; livro-caixa com reserva antes de cada chamada).
+Fase A do plano de qualidade da IA paga: explicação da frase, resumo da sessão, outras formas e legenda ao vivo, medidas com o PEDIDO DA PRODUÇÃO ATUAL (prompts, leitores, saída estruturada `json_schema strict` + `require_parameters` e o roteamento da legenda da Fase B), um juiz LLM com rubrica binária e as métricas do que aparece na tela.
 
-Reproduzir (a chave vem só do ambiente):
+**Gasto acumulado da bancada: US$ 1,99** de US$ 5,00 (livro-caixa com reserva do pior caso antes de cada chamada).
 
-```bash
-OPENROUTER_API_KEY=… node node_modules/tsx/dist/cli.mjs scripts/eval-ia/rodar.mjs --funcao todas --teto-usd 5
-node node_modules/tsx/dist/cli.mjs scripts/eval-ia/rodar.mjs --relatorio          # refaz tudo do bruto, sem rede
-node node_modules/tsx/dist/cli.mjs scripts/eval-ia/rodar.mjs --calibrar <planilha preenchida.csv>
-```
+## 1. Recomendação
 
-Brutos e tabelas completas em `docs/auditoria/eval/ia-paga-v1/` (`decisao-<função>.md` tem todas as colunas).
+**Atenção — medido com o pedido ANTERIOR à Fase B:** Explicação da frase (2026-10-25), Resumo da sessão (2026-10-25), Outras formas (2026-10-25). Sem `json_schema strict` + `require_parameters` (estudo) ou sem o roteamento da legenda. A repetição com o pedido atual parou no limite de gasto da chave do OpenRouter (§9); a taxa de resposta inválida, em especial, pode cair com a saída estruturada.
 
----
+Medido com o pedido ATUAL da produção (Fase B): Legenda ao vivo (2026-10-25).
 
-## 1. A recomendação (provisória até a calibração humana)
+**Provisória:** a planilha de calibração humana ainda não foi anotada, e o plano exige κ ≥ 0,6 entre juiz e humano antes de o juiz decidir troca.
 
-| Função            | Hoje                 | Recomendado                              | Por quê                                                                                                                                                                                   | Custo por pagante/mês (cota cheia)   |
-| ----------------- | -------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| **Explicação**    | `gpt-oss-120b` (low) | **`deepseek-v4.1-flash` sem raciocínio** | Nota 0,98 contra 0,89; **gramática certa em 97% contra 63%**; espera p95 6,3 s contra 8,0 s; 0% de erro na tela. É o melhor e o único não-inferior que chega a tempo e sem falha crítica. | R$ 0,29 (hoje R$ 0,10)               |
-| **Outras formas** | `gpt-oss-120b` (low) | **`deepseek-v4.1-flash` sem raciocínio** | Nota 0,97 contra 0,94 (empate no IC), mas o juiz pareado prefere 25 × 4 (11 empates) e a espera p95 cai de 8,3 s para 4,4 s. Custo por 1M tokens cabe no modelo.                          | US$ 0,09 por 1.000 usos (hoje 0,046) |
-| **Resumo**        | `gpt-oss-120b` (low) | **manter**                               | É o melhor (0,99) e o mais barato. Só 15 sessões: os candidatos ficam dentro do ruído.                                                                                                    | R$ 0,05                              |
-| **Legenda**       | `gemma-4-26b`        | **manter**                               | Mesma nota do `gpt-oss-120b` na Groq/Cerebras (Δ 0,000), maior chrF++ (79,2) e 2,6× mais barato.                                                                                          | US$ 0,029 por hora de fala           |
-
-Em uma linha: **trocar a explicação e as outras formas para o DeepSeek V4.1 Flash sem raciocínio; manter resumo e
-legenda.** A troca da explicação corrige o que mais importa ao aprendiz — hoje uma em cada três explicações afirma algo
-gramaticalmente falso (exemplos na §4) — e custa R$ 0,19 a mais por pagante que usa a cota inteira.
-
-**Por que "provisória":** o plano exige κ ≥ 0,6 entre juiz e humano antes de o juiz decidir troca. A planilha cega de
-30 casos está pronta (`planilha-calibracao.csv`), mas não foi anotada. A concordância entre os DOIS juízes ficou entre
-0,18 e 0,49 (§5). Os veredictos grandes (gramática 63% × 97%, inválidas de 47% no DeepSeek com raciocínio) são robustos
-a isso; os pequenos (alternativas, resumo) não.
-
-**O que a troca exige no código (Fase C, fora deste trabalho):** o DeepSeek pensa por padrão. Medido "como a produção
-mandaria hoje" (sem parâmetro), ele gasta até 1.111 tokens raciocinando, fica 3× mais caro, estoura o timeout em 10% das
-explicações e devolve resposta inválida em 5% (explicação), 33% (alternativas) e 47% (resumo). A versão medida aqui
-(`@none`) manda `reasoning: { enabled: false }`; `parametrosDoProvedor` precisa levar esse parâmetro para o modelo
-junto com a troca no registro (`ops/ia-provedores.openrouter.json`, níveis `nuance` da explicação e das alternativas).
-
----
+1. **Explicação da frase: manter `openai/gpt-oss-120b`** (nenhum candidato mais barato sem piorar). Opção mais cara, só com o aceite do dono: `deepseek/deepseek-v4.1-flash@none` melhora gramatica_correta 64% → 97% (IC pareado exclui 0) e custa US$ 0,286/1M tokens (teto do modelo de custo US$ 0,25); R$ 0,29 por pagante/mês na cota cheia, contra R$ 0,10 — **ACIMA do modelo de custo: depende do dono aceitar o custo e do portão `ia:custo`**; `qwen/qwen3-next-80b-a3b-instruct` melhora gramatica_correta 64% → 89% (IC pareado exclui 0) e custa US$ 0,424/1M tokens (teto do modelo de custo US$ 0,25); R$ 0,42 por pagante/mês na cota cheia, contra R$ 0,10 — **ACIMA do modelo de custo: depende do dono aceitar o custo e do portão `ia:custo`**.
+2. **Resumo da sessão: manter `openai/gpt-oss-120b`** (nenhum candidato mais barato sem piorar).
+3. **Outras formas: manter `openai/gpt-oss-120b`** (nenhum candidato mais barato sem piorar).
+4. **Legenda ao vivo: manter `google/gemma-4-26b-a4b-it`** (nenhum candidato mais barato sem piorar).
 
 ## 2. A regra de decisão
 
-Diretriz do dono (24/10): **modelos baratos sempre que possível, pensando na experiência de quem usa.** A regra
-(código em `scripts/eval-ia/estatistica.mjs`, com teste):
+"O MAIS BARATO QUE NÃO PIORA A EXPERIÊNCIA" (dono, 24/10/2026). A referência é a PRODUÇÃO (o que o usuário tem hoje), não o melhor pontual entre os candidatos. Código: `scripts/eval-ia/estatistica.mjs#decidirFuncao`, com teste.
 
-1. **Melhor** = maior nota média da rubrica (fração de critérios atendidos; resposta que a produção recusaria = 0).
-2. **Não-inferior** = o IC 95% do bootstrap **pareado** (mesmos casos, `bootstrapPareado`) da diferença contra o melhor
-   fica inteiro acima de **−0,05**.
-3. **Falha crítica** (não se troca por preço): num critério crítico — **gramática correta, gíria não inventada, idioma
-   de saída, segurança (injeção e perfil menor)** — pior que o melhor com IC pareado excluindo 0, ou mais de 10 pontos
-   abaixo dele.
-4. **Chega a tempo** (sem relaxamento): no máximo 5% das respostas acima do timeout da produção (15 s explicação e
-   alternativas, 30 s resumo, 12 s legenda) — acima disso a pessoa vê erro ou a reserva.
-5. **Custo que cabe**: US$ por 1M tokens da cota ≤ o que `scripts/ia/modeloDeCusto.ts` cobra (R$ 1,40 ÷ 5,6 = US$ 0,25);
-   legenda ≤ US$ 0,05 por hora de fala (o teto da bancada).
-6. **SLO de latência** (proposta da Fase C): p95 ≤ 4 s explicação e alternativas, 8 s resumo, 1,5 s legenda.
-7. **Recomendado = o MAIS BARATO** (US$ por 1.000 usos) que passa em 2–6. Ninguém passa → relaxa o SLO, depois o custo
-   (o relatório diz qual). Qualidade, crítico e timeout nunca relaxam.
-
-Contra a produção vale também a regra B5 da bancada (`bancada/decisao.mjs` → `decidir`): troca **por qualidade** só se o
-IC pareado excluir 0 para cima. Resultado na §3.
-
-**Nenhum candidato passou em todas as exigências.** O SLO de 4 s não é cumprido nem pela produção de hoje (p95 8,0 s na
-explicação). Na explicação, o DeepSeek sem raciocínio passou com o SLO e o custo relaxados: p95 de 6,3 s e US$ 0,286 por
-1M tokens, 14% acima do modelo de custo (efeito na margem: §6).
-
----
+- **Não piora** = nota não-inferior à produção (IC 95% do bootstrap pareado da diferença inteiro acima de −0,05), nenhum critério crítico pior (IC pareado abaixo de 0, ou mais de 10 pontos de queda), no máximo 5% das respostas acima do timeout da produção (inclui as abortadas pelo relógio), latência p95 no máximo 20% pior e no máximo 5% de chamadas sem resposta do provedor (senão a cascata cai na reserva com frequência).
+- **Mais barato** que a produção (pelo menos 5% a menos por 1.000 usos: abaixo disso não há economia que pague o risco de trocar) e não piora → **pode trocar**; o recomendado é o mais barato deles.
+- **Mais caro (ou sem essa economia)** → só aparece como **opção**, se além de não piorar for **superior à produção num critério crítico** (explicacao: gramatica_correta, girias_corretas, idioma_certo, segura; resumo: sem_invencao, idioma_certo, segura; alternativas: idioma_certo, segura; legenda: idioma_certo, segura) com IC excluindo 0 — e a troca depende de o dono aceitar o custo.
+- Ninguém passa → **manter** a produção. Onde a amostra não decide, a §4 dá o n necessário.
+- A regra B5 da bancada de fala (troca por qualidade só com IC excluindo 0 para cima) sai ao lado, como referência.
 
 ## 3. Resultados por função
 
-Nota = fração de critérios atendidos (média dos dois juízes). Δ vs produção = IC 95% pareado. "Inválida" = a leitura de
-produção recusou a resposta (502 `resposta_invalida` na tela). Latência = espera total que a pessoa tem hoje (a
-produção não usa streaming); TTFT = primeiro pedaço, se houvesse streaming.
+Nota = fração de critérios atendidos, média dos dois juízes; resposta que a leitura da produção recusa conta 0. "Sem resposta do provedor" (429/5xx depois das tentativas) fica fora da nota. Latência = espera total (a produção não usa streaming); TTFT = primeiro pedaço, se houvesse streaming. "(ajuste)" = parâmetro que a produção ainda não manda.
 
-### Explicação da frase (60 frases: 40 en, 20 es; 30 sem gíria, 5 injeções, 5 de perfil menor)
+### Explicação da frase
 
-| Sistema                                          |     Nota | Δ vs produção               | Gramática | Gíria certa | Inválida | Passa timeout | Espera p50 · p95 | US$/1.000 | US$/1M tok |
-| ------------------------------------------------ | -------: | --------------------------- | --------: | ----------: | -------: | ------------: | ---------------- | --------: | ---------: |
-| `gpt-oss-120b` (produção)                        |     0,89 | —                           |   **63%** |         90% |       0% |            0% | 3,1 · 8,0 s      |     0,060 |      0,094 |
-| **`deepseek-v4.1-flash@none`**                   | **0,98** | **+0,087 [+0,056, +0,121]** |   **97%** |         96% |       0% |            0% | 2,1 · 6,3 s      |     0,175 |      0,286 |
-| `deepseek-v4.1-flash` (como a produção mandaria) |     0,92 | +0,023 [−0,039, +0,076]     |       89% |         89% |       5% |           10% | 6,0 · 23,7 s     |     0,575 |      0,477 |
-| `glm-5.3-flash`                                  |     0,95 | +0,058 [+0,026, +0,095]     |       93% |         98% |       0% |       **20%** | 7,1 · 23,1 s     |     0,176 |      0,177 |
-| `qwen3-next-80b-a3b-instruct`                    |     0,95 | +0,056 [+0,017, +0,099]     |       89% |         97% |       0% |            0% | 1,7 · 2,3 s      |     0,250 |      0,424 |
-| `mistral-small-2603`                             |     0,89 | −0,004 [−0,040, +0,032]     |   **66%** |         94% |       0% |            0% | 1,8 · 3,0 s      |     0,121 |      0,207 |
+| Sistema                                      |   n | Nota [IC 95%]     | Δ vs produção [IC 95%]  | gramatica_correta (crítico) | girias_corretas (crítico) | idioma_certo (crítico) | segura (crítico) | Situação                                                    |
+| -------------------------------------------- | --: | ----------------- | ----------------------- | --------------------------: | ------------------------: | ---------------------: | ---------------: | ----------------------------------------------------------- |
+| `openai/gpt-oss-120b`                        |  60 | 0,89 [0,86, 0,93] | —                       |                         64% |                       91% |                   100% |             100% | produção                                                    |
+| `deepseek/deepseek-v4.1-flash`               |  60 | 0,92 [0,85, 0,97] | +0,023 [−0,037, +0,075] |                         90% |                       90% |                    95% |              95% | piora a experiência: não                                    |
+| `deepseek/deepseek-v4.1-flash@none` (ajuste) |  60 | 0,98 [0,96, 0,99] | +0,082 [+0,052, +0,115] |                         97% |                       96% |                   100% |             100% | opção MAIS CARA (melhora critério crítico; depende do dono) |
+| `mistralai/mistral-small-2603`               |  60 | 0,89 [0,86, 0,91] | −0,006 [−0,042, +0,029] |                         67% |                       94% |                   100% |             100% | mais caro sem ganho crítico: não                            |
+| `z-ai/glm-5.3-flash`                         |  60 | 0,95 [0,93, 0,96] | +0,054 [+0,023, +0,087] |                         93% |                       98% |                    99% |             100% | piora a experiência: não                                    |
+| `qwen/qwen3-next-80b-a3b-instruct`           |  60 | 0,95 [0,92, 0,97] | +0,052 [+0,015, +0,090] |                         89% |                       97% |                    98% |             100% | opção MAIS CARA (melhora critério crítico; depende do dono) |
 
-- O GLM e o Qwen também superam a produção, mas o GLM passa do timeout de 15 s em 20% das explicações (a pessoa veria
-  erro ou a reserva) e o Qwen custa mais por uso que o DeepSeek, com gramática 89%. O Mistral Small é rápido e barato,
-  mas erra a gramática tanto quanto a produção.
-- Segurança: 100% em todos, menos o DeepSeek com raciocínio (95%, as respostas inválidas). Nenhum obedeceu às 5
-  injeções nem saiu do tom com o perfil menor.
+Taxa de acerto por critério:
 
-### Resumo da sessão (15 sessões, 8 a 28 falas; uma bilíngue, uma com injeção, uma de perfil menor)
+| Sistema                             | sentido_correto | gramatica_correta | registro_correto | girias_corretas | idioma_certo | adequada_aprendiz | segura |
+| ----------------------------------- | --------------: | ----------------: | ---------------: | --------------: | -----------: | ----------------: | -----: |
+| `openai/gpt-oss-120b`               |             96% |               64% |             100% |             91% |         100% |               75% |   100% |
+| `deepseek/deepseek-v4.1-flash`      |             94% |               90% |              93% |             90% |          95% |               84% |    95% |
+| `deepseek/deepseek-v4.1-flash@none` |             99% |               97% |              98% |             96% |         100% |               94% |   100% |
+| `mistralai/mistral-small-2603`      |             93% |               67% |              97% |             94% |         100% |               71% |   100% |
+| `z-ai/glm-5.3-flash`                |             98% |               93% |             100% |             98% |          99% |               76% |   100% |
+| `qwen/qwen3-next-80b-a3b-instruct`  |             96% |               89% |              98% |             97% |          98% |               85% |   100% |
 
-| Sistema                       |     Nota | Δ vs produção           | Inválida | Espera p50 · p95 | Palavras-alvo nos cartões | US$/1.000 | US$/1M tok |
-| ----------------------------- | -------: | ----------------------- | -------: | ---------------- | ------------------------: | --------: | ---------: |
-| **`gpt-oss-120b` (produção)** | **0,99** | —                       |       0% | 4,7 · 13,3 s     |                       73% |     0,149 |      0,104 |
-| `qwen3-next-80b-a3b-instruct` |     0,98 | −0,011 [−0,050, +0,017] |       0% | 2,9 · 4,7 s      |                       74% |     0,651 |      0,488 |
-| `mistral-small-2603`          |     0,97 | −0,022 [−0,061, 0,000]  |       0% | 2,8 · 5,2 s      |                       65% |     0,302 |      0,250 |
-| `deepseek-v4.1-flash@none`    |     0,93 | −0,067 [−0,206, +0,011] |       7% | 2,5 · 12,1 s     |                       84% |     0,480 |      0,344 |
-| `glm-5.3-flash`               |     0,86 | −0,133 [−0,333, +0,006] |      13% | 7,7 · 24,8 s     |                       80% |     0,194 |      0,111 |
-| `deepseek-v4.1-flash`         |     0,53 | −0,461 [−0,728, −0,189] |  **47%** | 7,7 · 28,8 s     |                       84% |     1,097 |      0,484 |
+Pareado nas duas ordens contra a produção (juiz de família diferente dos dois lados):
 
-O resumo é a função em que o `gpt-oss-120b` vai melhor; com 15 sessões o IC é largo, e nenhum candidato justifica a
-troca. A única queixa de experiência é a espera p95 de 13 s (acima do SLO de 8 s).
+| Candidato                           | Preferência (V · E · D) [IC 95%]  | Instáveis (viés de posição) | Regra B5 da bancada                                                              |
+| ----------------------------------- | --------------------------------- | --------------------------: | -------------------------------------------------------------------------------- |
+| `deepseek/deepseek-v4.1-flash`      | 21 · 35 · 4 +0,28 [+0,13, +0,43]  |                         48% | nao-inferior — custo de US$ 0.4773/1M tokens acima do teto de US$ 0.25/1M tokens |
+| `deepseek/deepseek-v4.1-flash@none` | 22 · 32 · 6 +0,27 [+0,10, +0,42]  |                         27% | superior — custo de US$ 0.2864/1M tokens acima do teto de US$ 0.25/1M tokens     |
+| `mistralai/mistral-small-2603`      | 12 · 31 · 16 −0,07 [−0,24, +0,10] |                         41% | inconclusivo                                                                     |
+| `z-ai/glm-5.3-flash`                | 22 · 32 · 6 +0,27 [+0,10, +0,42]  |                         42% | superior                                                                         |
+| `qwen/qwen3-next-80b-a3b-instruct`  | 17 · 34 · 9 +0,13 [−0,02, +0,30]  |                         30% | nao-inferior — custo de US$ 0.4236/1M tokens acima do teto de US$ 0.25/1M tokens |
 
-### Outras formas (40 frases; 8 com registro pedido, 4 injeções, 4 que dependem do contexto)
+### Resumo da sessão
 
-| Sistema                        |     Nota | Δ vs produção           | Preferência pareada (V·E·D) | Inválida | Espera p50 · p95 | US$/1.000 | US$/1M tok |
-| ------------------------------ | -------: | ----------------------- | --------------------------- | -------: | ---------------- | --------: | ---------: |
-| `gpt-oss-120b` (produção)      |     0,94 | —                       | —                           |       0% | 2,9 · 8,3 s      |     0,046 |      0,099 |
-| **`deepseek-v4.1-flash@none`** | **0,97** | +0,029 [−0,019, +0,090] | **25 · 11 · 4**             |       0% | 1,7 · 4,4 s      |     0,090 |      0,233 |
-| `glm-5.3-flash`                |     0,96 | +0,017 [−0,056, +0,081] | 23 · 10 · 7                 |       3% | 5,0 · 38,8 s     |     0,112 |      0,146 |
-| `mistral-small-2603`           |     0,95 | +0,008 [−0,038, +0,063] | 12 · 17 · 9                 |       0% | 1,5 · 2,3 s      |     0,068 |      0,175 |
-| `qwen3-next-80b-a3b-instruct`  |     0,92 | −0,021 [−0,063, +0,031] | 13 · 12 · 15                |       0% | 1,4 · 2,2 s      |     0,147 |      0,369 |
-| `deepseek-v4.1-flash`          |     0,67 | −0,275 [−0,413, −0,154] | 18 · 9 · 13                 |      33% | 4,9 · 19,8 s     |     0,541 |      0,560 |
+| Sistema                                      |   n | Nota [IC 95%]     | Δ vs produção [IC 95%]  | sem_invencao (crítico) | idioma_certo (crítico) | segura (crítico) | Situação                                                                                                                                                                                       |
+| -------------------------------------------- | --: | ----------------- | ----------------------- | ---------------------: | ---------------------: | ---------------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `openai/gpt-oss-120b`                        |  15 | 0,99 [0,98, 1,00] | —                       |                   100% |                   100% |             100% | produção                                                                                                                                                                                       |
+| `deepseek/deepseek-v4.1-flash`               |  15 | 0,53 [0,27, 0,80] | −0,461 [−0,728, −0,189] |                    53% |                    53% |              53% | piora a experiência: não (sem_invencao: pior que a produção (IC pareado exclui 0); idioma_certo: pior que a produção (IC pareado exclui 0); segura: pior que a produção (IC pareado exclui 0)) |
+| `deepseek/deepseek-v4.1-flash@none` (ajuste) |  15 | 0,93 [0,79, 1,00] | −0,067 [−0,206, +0,011] |                    90% |                    93% |              93% | piora a experiência: não                                                                                                                                                                       |
+| `mistralai/mistral-small-2603`               |  15 | 0,97 [0,93, 1,00] | −0,022 [−0,061, +0,000] |                    93% |                   100% |              97% | piora a experiência: não                                                                                                                                                                       |
+| `z-ai/glm-5.3-flash`                         |  15 | 0,86 [0,67, 1,00] | −0,133 [−0,333, +0,006] |                    87% |                    87% |              87% | piora a experiência: não (sem_invencao: 13 pts abaixo da produção; idioma_certo: 13 pts abaixo da produção; segura: 13 pts abaixo da produção)                                                 |
+| `qwen/qwen3-next-80b-a3b-instruct`           |  15 | 0,98 [0,95, 1,00] | −0,011 [−0,050, +0,017] |                    93% |                   100% |             100% | piora a experiência: não                                                                                                                                                                       |
 
-Pela regra, só o DeepSeek sem raciocínio é não-inferior ao melhor (o Mistral Small e a produção ficam a 1 ponto da
-margem). É a decisão mais frágil das quatro: a rubrica empata, quem desempata é o juiz pareado e a latência. Se a
-calibração humana não confirmar, **manter a produção aqui é igualmente defensável** (é a mais barata).
+Taxa de acerto por critério:
 
-### Legenda ao vivo (gold de conversa, 60 frases en→pt)
+| Sistema                             | pontos_fieis | sem_invencao | cartoes_uteis | cartoes_corretos | idioma_certo | segura |
+| ----------------------------------- | -----------: | -----------: | ------------: | ---------------: | -----------: | -----: |
+| `openai/gpt-oss-120b`               |          97% |         100% |          100% |             100% |         100% |   100% |
+| `deepseek/deepseek-v4.1-flash`      |          53% |          53% |           53% |              53% |          53% |    53% |
+| `deepseek/deepseek-v4.1-flash@none` |          93% |          90% |           93% |              93% |          93% |    93% |
+| `mistralai/mistral-small-2603`      |          93% |          93% |          100% |             100% |         100% |    97% |
+| `z-ai/glm-5.3-flash`                |          83% |          87% |           87% |              87% |          87% |    87% |
+| `qwen/qwen3-next-80b-a3b-instruct`  |          97% |          93% |          100% |             100% |         100% |   100% |
 
-| Sistema                             |     Nota | Δ vs produção           |   chrF++ | Espera p50 · p95 | US$/h de fala |
-| ----------------------------------- | -------: | ----------------------- | -------: | ---------------- | ------------: |
-| **`gemma-4-26b-a4b-it` (produção)** | **0,96** | —                       | **79,2** | 1,1 · 2,1 s      |     **0,029** |
-| `gpt-oss-120b` só Groq/Cerebras     |     0,96 | 0,000 [−0,025, +0,027]  |     74,7 | 0,9 · 1,5 s      |         0,073 |
-| `mistral-small-2603`                |     0,92 | −0,041 [−0,070, −0,009] |     62,1 | 1,0 · 1,7 s      |         0,022 |
+Pareado nas duas ordens contra a produção (juiz de família diferente dos dois lados):
 
-O `gpt-oss-120b` na Groq/Cerebras é o único dentro do SLO de 1,5 s, com a mesma qualidade, mas custa 2,6× e passa do
-teto de US$ 0,05/h. É o candidato natural para a "rápida+" só de pagantes da Fase C, se a latência ao vivo for a queixa.
-O Mistral Small é inferior e teve 10% de 429 do provedor. O resumo da bancada de fala (`bancada/resumo.mjs`) lê o bruto
-`bruto-legenda-mt.json` e dá a mesma leitura no chrF++ (`resumo-bancada.md`).
+| Candidato                           | Preferência (V · E · D) [IC 95%] | Instáveis (viés de posição) | Regra B5 da bancada                                                                                                                           |
+| ----------------------------------- | -------------------------------- | --------------------------: | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deepseek/deepseek-v4.1-flash`      | 5 · 3 · 7 −0,13 [−0,60, +0,33]   |                         20% | inferior — gold de conversa piorou em gold:resumo (IC exclui 0 para baixo); custo de US$ 0.4839/1M tokens acima do teto de US$ 0.25/1M tokens |
+| `deepseek/deepseek-v4.1-flash@none` | 7 · 7 · 1 +0,40 [+0,07, +0,73]   |                         47% | inconclusivo — custo de US$ 0.3438/1M tokens acima do teto de US$ 0.25/1M tokens                                                              |
+| `mistralai/mistral-small-2603`      | 4 · 6 · 5 −0,07 [−0,47, +0,27]   |                         40% | inconclusivo                                                                                                                                  |
+| `z-ai/glm-5.3-flash`                | 10 · 2 · 3 +0,47 [+0,07, +0,87]  |                         13% | inconclusivo                                                                                                                                  |
+| `qwen/qwen3-next-80b-a3b-instruct`  | 10 · 4 · 1 +0,60 [+0,27, +0,87]  |                         27% | inconclusivo — custo de US$ 0.4885/1M tokens acima do teto de US$ 0.25/1M tokens                                                              |
 
----
+### Outras formas
 
-## 4. Como o usuário sente
+| Sistema                                      |   n | Nota [IC 95%]     | Δ vs produção [IC 95%]  | idioma_certo (crítico) | segura (crítico) | Situação                                                                                                                              |
+| -------------------------------------------- | --: | ----------------- | ----------------------- | ---------------------: | ---------------: | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `openai/gpt-oss-120b`                        |  40 | 0,94 [0,89, 0,98] | —                       |                   100% |             100% | produção                                                                                                                              |
+| `deepseek/deepseek-v4.1-flash`               |  40 | 0,66 [0,51, 0,80] | −0,275 [−0,413, −0,154] |                    68% |              68% | piora a experiência: não (idioma_certo: pior que a produção (IC pareado exclui 0); segura: pior que a produção (IC pareado exclui 0)) |
+| `deepseek/deepseek-v4.1-flash@none` (ajuste) |  40 | 0,97 [0,93, 1,00] | +0,029 [−0,019, +0,090] |                    99% |             100% | mais caro sem ganho crítico: não                                                                                                      |
+| `mistralai/mistral-small-2603`               |  40 | 0,95 [0,91, 0,98] | +0,008 [−0,038, +0,063] |                    99% |             100% | mais caro sem ganho crítico: não                                                                                                      |
+| `z-ai/glm-5.3-flash`                         |  40 | 0,96 [0,90, 0,99] | +0,017 [−0,056, +0,081] |                    96% |              98% | piora a experiência: não                                                                                                              |
+| `qwen/qwen3-next-80b-a3b-instruct`           |  40 | 0,92 [0,87, 0,96] | −0,021 [−0,063, +0,031] |                    99% |              99% | piora a experiência: não                                                                                                              |
 
-Cada métrica do harness, ligada ao que aparece na tela:
+Taxa de acerto por critério:
 
-| Métrica                                                 | O que a pessoa vê                                                                  | Explicação: produção → recomendado                      |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| **Resposta inválida**                                   | "Não deu para explicar agora" (502 `resposta_invalida`), e o uso foi consumido     | 0% → 0% (o DeepSeek COM raciocínio: 5%; no resumo, 47%) |
-| **Passa do timeout da produção**                        | A folha fica girando e cai na reserva ou em erro                                   | 0% → 0% (GLM: 20%)                                      |
-| **Espera total p50 / p95**                              | Quanto tempo a folha da frase fica carregando (sem streaming, é o que vale hoje)   | 3,1 / 8,0 s → 2,1 / 6,3 s                               |
-| **TTFT p50 / p95**                                      | Quanto levaria para o texto começar a aparecer, se a explicação fosse em streaming | 1,6 / 3,9 s → 0,8 / 3,1 s                               |
-| **Caracteres e "cabe sem rolar"** (≤ 900 na explicação) | Se a explicação cabe na folha do celular sem rolar mais de uma tela                | 395 → 476 caracteres; 100% cabem nos dois               |
-| **Palavras por frase**                                  | Leitura de aprendiz: frases longas cansam                                          | 17,0 → 13,7                                             |
-| **Critério "adequada ao aprendiz"**                     | Linguagem simples, sem jargão                                                      | 73% → 94%                                               |
-| **Gramática correta / gíria não inventada**             | Se o que a tela ENSINA está certo                                                  | 63% / 90% → 97% / 96%                                   |
-| **Idioma de saída** (heurística + juiz)                 | Explicação em português, e não em inglês                                           | 98–100% → 100%                                          |
-| **Custo por 1.000 usos**                                | Nada na tela; é o que o plano paga                                                 | US$ 0,060 → 0,175                                       |
+| Sistema                             | mesmo_sentido | diversidade | registro_certo | naturalidade | idioma_certo | segura |
+| ----------------------------------- | ------------: | ----------: | -------------: | -----------: | -----------: | -----: |
+| `openai/gpt-oss-120b`               |           90% |         93% |            91% |          90% |         100% |   100% |
+| `deepseek/deepseek-v4.1-flash`      |           65% |         68% |            65% |          66% |          68% |    68% |
+| `deepseek/deepseek-v4.1-flash@none` |           94% |         99% |            96% |          94% |          99% |   100% |
+| `mistralai/mistral-small-2603`      |           93% |         98% |            91% |          89% |          99% |   100% |
+| `z-ai/glm-5.3-flash`                |           94% |         98% |            95% |          94% |          96% |    98% |
+| `qwen/qwen3-next-80b-a3b-instruct`  |           84% |         98% |            89% |          84% |          99% |    99% |
 
-Exemplos reais do que a produção ensina hoje (os dois juízes reprovaram 15 de 60 explicações na gramática):
+Pareado nas duas ordens contra a produção (juiz de família diferente dos dois lados):
 
-- _"It's raining cats and dogs out there."_ → "Frase no **presente simples** ('It's raining')… verbo no gerúndio" — é
-  presente contínuo.
-- _"You'd better leave now or you'll miss the bus."_ → "combina o **condicional** 'You'd better'" — é _had better_,
-  conselho, não condicional.
-- _"I would appreciate it if you could send the report."_ → "verbo no **passado simples** 'could send'" — é modal de
-  cortesia.
-- _"He's low-key annoyed about it."_ → "'low-key' **adjetivo**" — aqui modifica _annoyed_, é advérbio.
+| Candidato                           | Preferência (V · E · D) [IC 95%]  | Instáveis (viés de posição) | Regra B5 da bancada                                                                                                                                 |
+| ----------------------------------- | --------------------------------- | --------------------------: | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deepseek/deepseek-v4.1-flash`      | 18 · 9 · 13 +0,13 [−0,13, +0,38]  |                         20% | inferior — gold de conversa piorou em gold:alternativas (IC exclui 0 para baixo); custo de US$ 0.5600/1M tokens acima do teto de US$ 0.25/1M tokens |
+| `deepseek/deepseek-v4.1-flash@none` | 25 · 11 · 4 +0,53 [+0,30, +0,72]  |                         23% | nao-inferior                                                                                                                                        |
+| `mistralai/mistral-small-2603`      | 12 · 17 · 9 +0,08 [−0,16, +0,29]  |                         45% | inconclusivo                                                                                                                                        |
+| `z-ai/glm-5.3-flash`                | 23 · 10 · 7 +0,40 [+0,15, +0,65]  |                         23% | inconclusivo                                                                                                                                        |
+| `qwen/qwen3-next-80b-a3b-instruct`  | 13 · 12 · 15 −0,05 [−0,30, +0,20] |                         28% | inconclusivo — custo de US$ 0.3693/1M tokens acima do teto de US$ 0.25/1M tokens                                                                    |
 
----
+### Legenda ao vivo
 
-## 5. O juiz: quem julgou, concordância e limites
+| Sistema                                      |   n | Nota [IC 95%]     | Δ vs produção [IC 95%]  | idioma_certo (crítico) | segura (crítico) | Situação                         |
+| -------------------------------------------- | --: | ----------------- | ----------------------- | ---------------------: | ---------------: | -------------------------------- |
+| `google/gemma-4-26b-a4b-it`                  |  60 | 0,94 [0,91, 0,96] | —                       |                   100% |             100% | produção                         |
+| `openai/gpt-oss-120b~groq+cerebras` (ajuste) |  60 | 0,94 [0,91, 0,97] | −0,004 [−0,036, +0,025] |                   100% |             100% | mais caro sem ganho crítico: não |
+| `mistralai/mistral-small-2603`               |  55 | 0,96 [0,91, 0,99] | −0,017 [−0,044, +0,000] |                   100% |             100% | piora a experiência: não         |
 
-- **Juízes**: `mistralai/mistral-medium-3.1` (principal) e `deepseek/deepseek-v4.1-flash` sem raciocínio (segundo),
-  temperatura 0, só endpoints ZDR. A nota de cada caso é a **média dos dois** (o mesmo instrumento para todos os
-  candidatos). O pareado de preferência usa sempre um juiz de família diferente dos dois lados.
-- **Autopreferência medida** (nota a mais para a própria família, descontada a severidade): Mistral −0,027 / −0,024 /
-  +0,022 / +0,003 e DeepSeek −0,025 / −0,011 / −0,034 (explicação / resumo / alternativas / legenda). Nenhum favorece a
-  própria família de forma relevante; o Mistral é, em geral, o mais severo.
-- **Viés de posição**: no pareado nas duas ordens, 17% a 48% dos pares mudaram de lado com a troca de posição e contaram
-  como empate. Sem a segunda ordem, esses viravam "vitórias" falsas.
-- **κ juiz × juiz**: explicação 0,33, resumo 0,18, alternativas 0,47, legenda 0,49, com acordo bruto de 92% a 98%. O κ é
-  baixo em parte pelo paradoxo da prevalência (quase tudo "atende"), mas critérios subjetivos concordam pouco de fato:
-  "adequada ao aprendiz" κ 0,10, "sentido correto" 0,16; os objetivos concordam bem (idioma 0,67, segurança 1,00,
-  gramática 0,49). **Abaixo de 0,6: o juiz ainda não está calibrado para decidir sozinho.**
-- **Calibração humana pendente**: `planilha-calibracao.csv` (30 casos, 186 linhas, cega: sem modelo nem veredito). O
-  dono preenche a coluna `humano` com 1/0 e roda `--calibrar`; o harness imprime o κ geral e por critério.
-- **Correções feitas no meio da rodada** (registradas porque mudam como ler o bruto): o segundo juiz começou COM
-  raciocínio e devolveu vazio em 12% das rubricas (gastava os 1.600 tokens pensando); foi trocado pela versão sem
-  raciocínio e refeito. O leitor da rubrica passou a aceitar o número do critério ("1", "2") no lugar do nome.
+Taxa de acerto por critério:
 
----
+| Sistema                             | adequacao | naturalidade | registro | idioma_certo | segura |
+| ----------------------------------- | --------: | -----------: | -------: | -----------: | -----: |
+| `google/gemma-4-26b-a4b-it`         |       85% |          91% |      93% |         100% |   100% |
+| `openai/gpt-oss-120b~groq+cerebras` |       89% |          93% |      90% |         100% |   100% |
+| `mistralai/mistral-small-2603`      |       89% |          97% |      92% |         100% |   100% |
 
-## 6. Custo por usuário pagante e `npm run ia:custo`
+Pareado nas duas ordens contra a produção (juiz de família diferente dos dois lados):
 
-- **Por pagante que esgota a cota de estudo** (300 explicações e 60 resumos por mês, `src/core/planos.ts`), pelo custo
-  medido: explicação R$ 0,10 hoje → **R$ 0,29** com o DeepSeek sem raciocínio; resumo R$ 0,05 (sem troca). Nos planos de
-  R$ 14,90 a R$ 34,90, a diferença é de 1% a 1,3% do preço.
-- **O modelo de custo** cobra a IA de texto por token da cota: R$ 1,40 por 1M (US$ 0,25). O DeepSeek sem raciocínio custou
-  **US$ 0,286 por 1M** na explicação (R$ 1,60) e US$ 0,233 nas alternativas (cabe). No pior caso — TODA a cota de tokens
-  pelo preço da explicação —, a IA de texto sobe R$ 0,40/mês no Plus (2M tokens) e R$ 0,60 na Família e no Pro (3M).
-- **Margem do anual** (`ia:custo`, cota cheia, pior custo): Plus R$ 32,49 → R$ 27,69; Família R$ 47,25 → R$ 40,05; Pro
-  R$ 27,45 → R$ 20,25. **Todas continuam ≥ 0.**
-- **Misturas de 3/8/15% de pagantes** (`ia:custo -- --usuarios 1000 --essencial/--premium` em 60/40): margem no pior caso
-  US$ 0,17 / 64,06 / 154,51, **inalteradas** (o modelo dos planos Essencial/Premium não inclui IA de texto). Só com
-  Plus: US$ −10,76 / 35,33 / 99,86 hoje → −12,90 / 29,62 / 89,15 com a troca. **O negativo da mistura de 3% só com Plus já
-  existe hoje**, sem a troca (vem do custo do Grátis) — ver §8.
-- Se a troca for aprovada, o mais simples é subir `CUSTO_BRL_POR_MILHAO_DE_TOKENS` para R$ 1,60 (ou medir o preço
-  combinado das funções), para o modelo continuar um teto verdadeiro.
+| Candidato                           | Preferência (V · E · D) [IC 95%] | Instáveis (viés de posição) | Regra B5 da bancada                                                              |
+| ----------------------------------- | -------------------------------- | --------------------------: | -------------------------------------------------------------------------------- |
+| `openai/gpt-oss-120b~groq+cerebras` | —                                |                           — | nao-inferior — custo de US$ 0.0720/h de fala acima do teto de US$ 0.05/h de fala |
+| `mistralai/mistral-small-2603`      | —                                |                           — | nao-inferior                                                                     |
 
----
+## 4. Onde a amostra não decide (análise de poder)
 
-## 7. Limitações
+Casos PAREADOS necessários para decidir com α = 2,5% unilateral e poder de 80%, pelo desvio-padrão observado da diferença por caso:
 
-- **Juiz não calibrado contra humano** (κ pendente); κ entre juízes de 0,18 a 0,49.
-- **Amostras pequenas**: 15 sessões de resumo e 40 alternativas dão IC largo; a explicação (60) e a legenda (60) são
-  as mais firmes.
-- **Golds escritos por uma pessoa** (o agente), revisados só por consistência; o gabarito pode ter falhas (um juiz já
-  discordou de um fato do gabarito sobre "tomar el pelo").
-- **Uma execução por modelo**, temperatura de produção: a variação entre execuções não foi medida (no
-  `eval-modelos-v1` o gpt-oss variou ±11 pontos de chrF++ entre execuções).
-- **Latência pelo OpenRouter de São Paulo, num só horário**: o provedor sorteado muda o número (o OpenRouter escolhe por
-  preço); o p95 é indicativo, não SLO medido em produção.
-- **Custo pelo roteamento padrão do OpenRouter** (por preço entre os ZDR); o teto reservado foi o do endpoint ZDR mais
-  caro.
-- **Ajuste fora da produção**: `deepseek@none` e `gpt-oss~groq+cerebras` mandam parâmetros que a produção ainda não manda.
+**Explicação da frase**
+
+- `deepseek/deepseek-v4.1-flash@none`, superioridade em girias_corretas: ~259 casos pareados (hoje 60)
+- `mistralai/mistral-small-2603`, superioridade em gramatica_correta: ~3664 casos pareados (hoje 60)
+- `mistralai/mistral-small-2603`, superioridade em girias_corretas: ~232 casos pareados (hoje 60)
+- `z-ai/glm-5.3-flash`, superioridade em girias_corretas: ~142 casos pareados (hoje 60)
+- `qwen/qwen3-next-80b-a3b-instruct`, superioridade em girias_corretas: ~159 casos pareados (hoje 60)
+
+**Resumo da sessão**
+
+- `deepseek/deepseek-v4.1-flash@none`, naoInferioridade: a diferença observada aponta para o outro lado — nenhuma amostra decide a favor
+- `mistralai/mistral-small-2603`, naoInferioridade: ~46 casos pareados (hoje 15)
+- `z-ai/glm-5.3-flash`, naoInferioridade: a diferença observada aponta para o outro lado — nenhuma amostra decide a favor
+- `qwen/qwen3-next-80b-a3b-instruct`, naoInferioridade: ~26 casos pareados (hoje 15)
+
+**Outras formas**
+
+- `z-ai/glm-5.3-flash`, naoInferioridade: ~101 casos pareados (hoje 40)
+- `qwen/qwen3-next-80b-a3b-instruct`, naoInferioridade: ~217 casos pareados (hoje 40)
+
+**Legenda ao vivo**
+
+- (a amostra decidiu todas as comparações relevantes)
+
+## 5. Como o usuário sente
+
+Cada métrica e o que aparece na tela: **inválida** = "não deu para explicar agora" (502 `resposta_invalida`, uso consumido); **passa do timeout** = a folha gira e cai na reserva ou em erro; **espera** = quanto a folha fica carregando; **TTFT** = quando o texto começaria a aparecer com streaming; **caracteres / cabe sem rolar** = se cabe na folha do celular (limites declarados em `funcoes.mjs`); **palavras por frase** = leitura de aprendiz; **idioma certo** = explicação em português (heurística; o juiz também julga); **R$ por pagante/mês** = custo da cota cheia de estudo.
+
+### Explicação da frase
+
+| Sistema                             | Erro na tela (inválida) | Sem resposta do provedor | Passa do timeout | Espera p50 · p95             | TTFT p50 · p95 | Caracteres p50 | Cabe sem rolar | Palavras/frase | Idioma certo | US$/1.000 usos | R$ por pagante/mês | Extra |
+| ----------------------------------- | ----------------------: | -----------------------: | ---------------: | ---------------------------- | -------------- | -------------: | -------------: | -------------: | -----------: | -------------: | -----------------: | ----- |
+| `openai/gpt-oss-120b`               |                      0% |                       0% |               0% | 3,1 s · 8,0 s (fora do SLO)  | 1,6 s · 3,9 s  |            395 |           100% |           17,0 |          98% |      US$ 0,060 |            R$ 0,10 |       |
+| `deepseek/deepseek-v4.1-flash`      |                      5% |                       0% |              10% | 6,0 s · 23,7 s (fora do SLO) | 4,9 s · 21,3 s |            559 |           100% |           14,5 |         100% |      US$ 0,575 |            R$ 0,97 |       |
+| `deepseek/deepseek-v4.1-flash@none` |                      0% |                       0% |               0% | 2,1 s · 6,3 s (fora do SLO)  | 0,8 s · 3,1 s  |            476 |           100% |           13,6 |         100% |      US$ 0,175 |            R$ 0,29 |       |
+| `mistralai/mistral-small-2603`      |                      0% |                       0% |               0% | 1,8 s · 3,0 s                | 0,5 s · 1,3 s  |            511 |           100% |           15,0 |          98% |      US$ 0,121 |            R$ 0,20 |       |
+| `z-ai/glm-5.3-flash`                |                      0% |                       0% |              20% | 7,1 s · 23,1 s (fora do SLO) | 4,7 s · 19,7 s |            642 |           100% |           14,8 |         100% |      US$ 0,176 |            R$ 0,30 |       |
+| `qwen/qwen3-next-80b-a3b-instruct`  |                      0% |                       0% |               0% | 1,7 s · 2,3 s                | 0,7 s · 1,4 s  |            466 |           100% |           13,6 |          98% |      US$ 0,250 |            R$ 0,42 |       |
+
+### Resumo da sessão
+
+| Sistema                             | Erro na tela (inválida) | Sem resposta do provedor | Passa do timeout | Espera p50 · p95             | TTFT p50 · p95 | Caracteres p50 | Cabe sem rolar | Palavras/frase | Idioma certo | US$/1.000 usos | R$ por pagante/mês | Extra                               |
+| ----------------------------------- | ----------------------: | -----------------------: | ---------------: | ---------------------------- | -------------- | -------------: | -------------: | -------------: | -----------: | -------------: | -----------------: | ----------------------------------- |
+| `openai/gpt-oss-120b`               |                      0% |                       0% |               0% | 4,7 s · 13,3 s (fora do SLO) | 2,7 s · 4,9 s  |            764 |           100% |            8,5 |         100% |      US$ 0,149 |            R$ 0,05 | 8,6 cartões; 73% das palavras-alvo  |
+| `deepseek/deepseek-v4.1-flash`      |                     47% |                       0% |               0% | 7,7 s · 28,8 s (fora do SLO) | 5,8 s · 21,8 s |            860 |           100% |            8,9 |         100% |      US$ 1,097 |            R$ 0,37 | 10,0 cartões; 84% das palavras-alvo |
+| `deepseek/deepseek-v4.1-flash@none` |                      7% |                       0% |               0% | 2,5 s · 12,1 s (fora do SLO) | 1,0 s · 1,8 s  |            881 |           100% |            9,1 |         100% |      US$ 0,480 |            R$ 0,16 | 9,6 cartões; 84% das palavras-alvo  |
+| `mistralai/mistral-small-2603`      |                      0% |                       0% |               0% | 2,8 s · 5,2 s                | 0,8 s · 1,9 s  |            525 |           100% |            7,8 |         100% |      US$ 0,302 |            R$ 0,10 | 8,3 cartões; 65% das palavras-alvo  |
+| `z-ai/glm-5.3-flash`                |                     13% |                       0% |               0% | 7,7 s · 24,8 s (fora do SLO) | 3,5 s · 20,4 s |            728 |           100% |            8,7 |         100% |      US$ 0,194 |            R$ 0,07 | 9,3 cartões; 80% das palavras-alvo  |
+| `qwen/qwen3-next-80b-a3b-instruct`  |                      0% |                       0% |               0% | 2,9 s · 4,7 s                | 1,3 s · 1,7 s  |            701 |           100% |            8,0 |         100% |      US$ 0,651 |            R$ 0,22 | 8,9 cartões; 74% das palavras-alvo  |
+
+### Outras formas
+
+| Sistema                             | Erro na tela (inválida) | Sem resposta do provedor | Passa do timeout | Espera p50 · p95             | TTFT p50 · p95 | Caracteres p50 | Cabe sem rolar | Palavras/frase | Idioma certo | US$/1.000 usos | R$ por pagante/mês | Extra                        |
+| ----------------------------------- | ----------------------: | -----------------------: | ---------------: | ---------------------------- | -------------- | -------------: | -------------: | -------------: | -----------: | -------------: | -----------------: | ---------------------------- |
+| `openai/gpt-oss-120b`               |                      0% |                       0% |               0% | 2,9 s · 8,3 s (fora do SLO)  | 1,9 s · 8,3 s  |            184 |           100% |            7,7 |         100% |      US$ 0,046 |                  — | 3,0 opções; nota ≤ 140: 100% |
+| `deepseek/deepseek-v4.1-flash`      |                     33% |                       0% |              10% | 4,9 s · 19,8 s (fora do SLO) | 3,7 s · 16,1 s |            206 |           100% |            8,1 |         100% |      US$ 0,541 |                  — | 3,0 opções; nota ≤ 140: 85%  |
+| `deepseek/deepseek-v4.1-flash@none` |                      0% |                       0% |               0% | 1,7 s · 4,4 s (fora do SLO)  | 1,1 s · 3,1 s  |            202 |           100% |            8,4 |         100% |      US$ 0,090 |                  — | 3,0 opções; nota ≤ 140: 93%  |
+| `mistralai/mistral-small-2603`      |                      0% |                       0% |               0% | 1,5 s · 2,3 s                | 0,8 s · 1,3 s  |            181 |           100% |            7,1 |         100% |      US$ 0,068 |                  — | 3,0 opções; nota ≤ 140: 98%  |
+| `z-ai/glm-5.3-flash`                |                      3% |                       0% |              13% | 5,0 s · 38,8 s (fora do SLO) | 3,9 s · 37,3 s |            208 |           100% |            8,5 |         100% |      US$ 0,112 |                  — | 2,9 opções; nota ≤ 140: 100% |
+| `qwen/qwen3-next-80b-a3b-instruct`  |                      0% |                       0% |               0% | 1,4 s · 2,2 s                | 1,0 s · 1,7 s  |            232 |           100% |            9,7 |         100% |      US$ 0,147 |                  — | 3,0 opções; nota ≤ 140: 75%  |
+
+### Legenda ao vivo
+
+| Sistema                             | Erro na tela (inválida) | Sem resposta do provedor | Passa do timeout | Espera p50 · p95            | TTFT p50 · p95 | Caracteres p50 | Cabe sem rolar | Palavras/frase | Idioma certo | US$/1.000 usos | R$ por pagante/mês | Extra                    |
+| ----------------------------------- | ----------------------: | -----------------------: | ---------------: | --------------------------- | -------------- | -------------: | -------------: | -------------: | -----------: | -------------: | -----------------: | ------------------------ |
+| `google/gemma-4-26b-a4b-it`         |                      0% |                       0% |               0% | 1,0 s · 4,3 s (fora do SLO) | 1,0 s · 4,2 s  |             40 |              — |            5,3 |         100% |      US$ 0,018 |                  — | chrF++ 77,9; US$ 0,023/h |
+| `openai/gpt-oss-120b~groq+cerebras` |                      0% |                       0% |               0% | 0,9 s · 1,5 s               | 0,8 s · 1,4 s  |             38 |              — |            5,1 |         100% |      US$ 0,058 |                  — | chrF++ 73,0; US$ 0,072/h |
+| `mistralai/mistral-small-2603`      |                      0% |                       8% |               0% | 1,0 s · 1,6 s (fora do SLO) | 0,9 s · 1,3 s  |             35 |              — |            4,9 |         100% |      US$ 0,018 |                  — | chrF++ 63,9; US$ 0,022/h |
+
+## 6. Robustez: só o juiz de família diferente do candidato
+
+A nota principal é a média dos dois juízes, e cada um deles é da família de algum candidato (DeepSeek, Mistral). Aqui a decisão é refeita, para cada candidato, só com o juiz de família DIFERENTE da dele (o Mistral para o DeepSeek e os demais; o DeepSeek para o Mistral Small):
+
+| Função       | Candidato                           | Juiz único (família diferente)      | Δ nota, média dos 2 juízes | Δ nota, juiz único      | Situação (2 juízes)         | Situação (juiz único)       |
+| ------------ | ----------------------------------- | ----------------------------------- | -------------------------- | ----------------------- | --------------------------- | --------------------------- |
+| explicacao   | `deepseek/deepseek-v4.1-flash`      | `mistralai/mistral-medium-3.1`      | +0,023 [−0,037, +0,075]    | +0,024 [−0,045, +0,086] | piora                       | piora                       |
+| explicacao   | `deepseek/deepseek-v4.1-flash@none` | `mistralai/mistral-medium-3.1`      | +0,082 [+0,052, +0,115]    | +0,088 [+0,050, +0,129] | opcao-mais-cara             | opcao-mais-cara             |
+| explicacao   | `mistralai/mistral-small-2603`      | `deepseek/deepseek-v4.1-flash`      | −0,006 [−0,042, +0,029]    | +0,010 [−0,027, +0,046] | mais-caro-sem-ganho-critico | mais-caro-sem-ganho-critico |
+| explicacao   | `z-ai/glm-5.3-flash`                | `mistralai/mistral-medium-3.1`      | +0,054 [+0,023, +0,087]    | +0,040 [−0,002, +0,090] | piora                       | piora                       |
+| explicacao   | `qwen/qwen3-next-80b-a3b-instruct`  | `mistralai/mistral-medium-3.1`      | +0,052 [+0,015, +0,090]    | +0,045 [−0,007, +0,095] | opcao-mais-cara             | opcao-mais-cara             |
+| resumo       | `deepseek/deepseek-v4.1-flash`      | `mistralai/mistral-medium-3.1`      | −0,461 [−0,728, −0,189]    | −0,456 [−0,722, −0,178] | piora                       | piora                       |
+| resumo       | `deepseek/deepseek-v4.1-flash@none` | `mistralai/mistral-medium-3.1`      | −0,067 [−0,206, +0,011]    | −0,067 [−0,211, +0,022] | piora                       | piora                       |
+| resumo       | `mistralai/mistral-small-2603`      | `deepseek/deepseek-v4.1-flash`      | −0,022 [−0,061, +0,000]    | −0,011 [−0,033, +0,000] | piora                       | mais-caro-sem-ganho-critico |
+| resumo       | `z-ai/glm-5.3-flash`                | `mistralai/mistral-medium-3.1`      | −0,133 [−0,333, +0,006]    | −0,133 [−0,333, +0,011] | piora                       | piora                       |
+| resumo       | `qwen/qwen3-next-80b-a3b-instruct`  | `mistralai/mistral-medium-3.1`      | −0,011 [−0,050, +0,017]    | −0,011 [−0,067, +0,033] | piora                       | piora                       |
+| alternativas | `deepseek/deepseek-v4.1-flash`      | `mistralai/mistral-medium-3.1`      | −0,275 [−0,413, −0,154]    | −0,254 [−0,388, −0,137] | piora                       | piora                       |
+| alternativas | `deepseek/deepseek-v4.1-flash@none` | `mistralai/mistral-medium-3.1`      | +0,029 [−0,019, +0,090]    | +0,046 [−0,004, +0,108] | mais-caro-sem-ganho-critico | mais-caro-sem-ganho-critico |
+| alternativas | `mistralai/mistral-small-2603`      | `deepseek/deepseek-v4.1-flash`      | +0,008 [−0,038, +0,063]    | −0,009 [−0,066, +0,053] | mais-caro-sem-ganho-critico | piora                       |
+| alternativas | `z-ai/glm-5.3-flash`                | `mistralai/mistral-medium-3.1`      | +0,017 [−0,056, +0,081]    | +0,029 [−0,058, +0,108] | piora                       | piora                       |
+| alternativas | `qwen/qwen3-next-80b-a3b-instruct`  | `mistralai/mistral-medium-3.1`      | −0,021 [−0,063, +0,031]    | −0,042 [−0,104, +0,029] | piora                       | piora                       |
+| legenda      | `openai/gpt-oss-120b~groq+cerebras` | `mistralai/mistral-medium-3.1`      | −0,004 [−0,036, +0,025]    | +0,015 [−0,023, +0,057] | mais-caro-sem-ganho-critico | mais-caro-sem-ganho-critico |
+| legenda      | `mistralai/mistral-small-2603`      | `deepseek/deepseek-v4.1-flash@none` | −0,017 [−0,044, +0,000]    | +0,000 [+0,000, +0,000] | piora                       | piora                       |
+
+## 7. O juiz
+
+- `mistralai/mistral-medium-3.1`: temperatura 0, `max_tokens` 1600 (rubrica) / 600 (pareado), `response_format: json_object`, roteamento `{"data_collection":"deny","zdr":true,"ignore":["google-ai-studio","google-vertex"]}`.
+- `deepseek/deepseek-v4.1-flash@none`: temperatura 0, `max_tokens` 1600 (rubrica) / 600 (pareado), `response_format: json_object`, roteamento `{"data_collection":"deny","zdr":true,"ignore":["google-ai-studio","google-vertex","novita"]}`, raciocínio `{"enabled":false}`.
+
+**Autopreferência medida** (nota a mais para a própria família, descontada a severidade): explicacao: `mistralai/mistral-medium-3.1` −0,027, `deepseek/deepseek-v4.1-flash` −0,025; resumo: `mistralai/mistral-medium-3.1` −0,024, `deepseek/deepseek-v4.1-flash` −0,011; alternativas: `mistralai/mistral-medium-3.1` +0,022, `deepseek/deepseek-v4.1-flash` −0,034; legenda: `mistralai/mistral-medium-3.1` +0,008, `deepseek/deepseek-v4.1-flash@none` —.
+
+**Viés de posição:** no pareado nas duas ordens, de 13% a 48% dos pares mudaram de lado com a troca de posição e contaram como empate.
+
+**κ juiz × juiz** (sobre as respostas válidas; "indefinido" = os dois deram sempre o mesmo veredito, sem variação para medir):
+
+| Função       | κ geral (acordo bruto) | κ por critério                                                                                                                                                                                      |
+| ------------ | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| explicacao   | 0,33 — razoável (92%)  | sentido_correto 0,16 (95%); gramatica_correta 0,49 (86%); registro_correto 0,66 (99%); girias_corretas 0,42 (94%); idioma_certo 0,67 (100%); adequada_aprendiz 0,10 (69%); segura indefinido (100%) |
+| resumo       | 0,18 — leve (98%)      | pontos_fieis 0,00 (94%); sem_invencao 0,38 (96%); cartoes_uteis indefinido (100%); cartoes_corretos indefinido (100%); idioma_certo indefinido (100%); segura 0,00 (99%)                            |
+| alternativas | 0,47 — moderado (95%)  | mesmo_sentido 0,56 (93%); diversidade 0,35 (97%); registro_certo 0,43 (93%); naturalidade 0,47 (91%); idioma_certo 0,00 (98%); segura 0,00 (100%)                                                   |
+| legenda      | 0,46 — moderado (94%)  | adequacao 0,59 (91%); naturalidade 0,35 (90%); registro 0,29 (91%); idioma_certo indefinido (100%); segura indefinido (100%)                                                                        |
+
+**κ juiz × humano: pendente.** Planilha: `docs/auditoria/eval/ia-paga-v1/planilha-calibracao.csv`; passo a passo: `docs/auditoria/eval/ia-paga-v1/LEIA-ME-calibracao.md`.
+
+## 8. Custo por usuário pagante e `npm run ia:custo`
+
+**Por pagante que esgota a cota de estudo** (300 explicações e 60 resumos por mês, `src/core/planos.ts`), pelo custo medido:
+
+- Explicação da frase: `openai/gpt-oss-120b` R$ 0,10 · `deepseek/deepseek-v4.1-flash@none` R$ 0,29 · `qwen/qwen3-next-80b-a3b-instruct` R$ 0,42
+- Resumo da sessão: `openai/gpt-oss-120b` R$ 0,05
+
+**Portão `ia:custo`.** O modelo de custo cobra a IA de texto a R$ 1,40 por 1M tokens (US$ 0,25). Efeito, no pior caso (toda a cota de tokens ao preço medido), de cada opção acima do modelo:
+
+- `deepseek/deepseek-v4.1-flash@none` em explicacao (US$ 0,286/1M, +R$ 0,20/1M):
+  - Plus: +R$ 0,41/mês; margem do anual R$ 32,49 → R$ 27,59
+  - Família: +R$ 0,61/mês; margem do anual R$ 47,25 → R$ 39,91
+  - Pro: +R$ 0,61/mês; margem do anual R$ 27,45 → R$ 20,11
+  - mistura de 3% de pagantes só com Plus: margem no pior caso US$ -10,76 → US$ -12,95
+  - mistura de 8% de pagantes só com Plus: margem no pior caso US$ 35,33 → US$ 29,50
+  - mistura de 15% de pagantes só com Plus: margem no pior caso US$ 99,86 → US$ 88,93
+- `qwen/qwen3-next-80b-a3b-instruct` em explicacao (US$ 0,424/1M, +R$ 0,97/1M):
+  - Plus: +R$ 1,94/mês; margem do anual R$ 32,49 → R$ 9,16
+  - Família: +R$ 2,92/mês; margem do anual R$ 47,25 → R$ 12,26
+  - Pro: +R$ 2,92/mês; margem do anual R$ 27,45 → R$ -7,54 **NEGATIVA**
+  - mistura de 3% de pagantes só com Plus: margem no pior caso US$ -10,76 → US$ -21,18
+  - mistura de 8% de pagantes só com Plus: margem no pior caso US$ 35,33 → US$ 7,56
+  - mistura de 15% de pagantes só com Plus: margem no pior caso US$ 99,86 → US$ 47,78
+
+Misturas Essencial/Premium (60/40) de 3%, 8%, 15%: margem no pior caso US$ 0,17 / US$ 64,47 / US$ 154,51 — o modelo desses planos não inclui IA de texto, então a troca não as altera.
+
+## 9. Método e limitações
+
+- **Cliente próprio, não `bancada/nuvem.mjs`.** O harness tem um cliente do OpenRouter (`scripts/eval-ia/openrouter.mjs`) porque precisa de streaming (TTFT) e de outras funções além da tradução; o corpo é montado com o MESMO `parametrosDoProvedor` do servidor, e um teste (`tests/eval/ia-paga-cliente.test.ts`) compara byte a byte com o corpo que `chamarChat` manda. Sem ajuste declarado, divergência LANÇA. Preço-teto e prova de retenção zero saem de `GET /api/v1/endpoints/zdr`; o livro-caixa (`bancada/livroCaixa.mjs`) reserva o pior caso antes de cada chamada.
+- **Golds escritos pela equipe** (o agente), revisados por consistência; a referência pode ter falhas.
+- **Amostras pequenas** no resumo e nas alternativas (ver §4); **uma execução por modelo**, na temperatura de produção.
+- **Latência num só horário**, pelo OpenRouter; o provedor sorteado muda o número. Indicativo, não SLO medido em produção.
+- **Ajustes fora da produção** (`@none`, `~groq+cerebras`): parâmetros que a produção ainda não manda; o `@none` também tira do roteamento o provedor que ignora o raciocínio desligado.
+- **Limite da chave do OpenRouter:** além do teto do livro-caixa, a chave tem um limite de gasto próprio, definido no painel do OpenRouter. A repetição com o pedido da Fase B parou nele (HTTP 403 "Key limit exceeded"); o harness agora para a rodada inteira nesse caso e grava o parcial à parte, sem apagar o bruto anterior. Para repetir: subir o limite da chave e rodar `--funcao explicacao,alternativas,resumo` (as respostas já pagas estão em cache).
+- **Registro do juiz nos brutos antigos:** nos brutos medidos antes da Fase B, o segundo juiz aparece como `deepseek/deepseek-v4.1-flash`, sem o `@none` (raciocínio desligado) que de fato foi usado; o id real e os parâmetros passaram a ser gravados na correção 1.
 - Funções não medidas: polimento e tutor.
 
-## 8. Fora do escopo, registrado
+## 10. Achados à parte
 
-- A mistura de 3% de pagantes **só com Plus** já fecha negativa no pior caso hoje (`ia:custo`: US$ −10,76), sem
-  relação com esta troca.
-- A rota das alternativas não acrescenta a instrução de segurança para menores (a explicação e o resumo acrescentam);
-  hoje a Nuance é paga e o pagante é adulto, mas um membro menor do plano Família chegaria sem ela.
-- Explicação e alternativas da produção têm p95 de 8 s: acima do SLO de 4 s proposto para a Fase C, com o modelo atual.
+- **Mistura só com Plus já negativa hoje:** com 3% de pagantes (margem no pior caso US$ -10,76), o `ia:custo` fecha negativo SEM nenhuma troca de modelo — vem do custo do Grátis. Precisa de decisão à parte.
+- Explicação da frase: a produção já tem p95 de 8,0 s, acima do SLO proposto de 4,0 s.
+- Resumo da sessão: a produção já tem p95 de 13,3 s, acima do SLO proposto de 8,0 s.
+- Outras formas: a produção já tem p95 de 8,3 s, acima do SLO proposto de 4,0 s.
+- Legenda ao vivo: a produção já tem p95 de 4,3 s, acima do SLO proposto de 1,5 s.
 
 ## Arquivos
 
-`scripts/eval-ia/` (harness), `tests/eval/ia-paga-*.test.ts` (testes puros), `tests/eval/fixtures/gold-{explicacao,resumo,alternativas}-v1.jsonl`
-(golds), `docs/auditoria/eval/ia-paga-v1/` (brutos, decisões, concordância, planilha de calibração, resumo da bancada
-de fala para a legenda).
+`scripts/eval-ia/` (harness), `tests/eval/ia-paga-*.test.ts` (testes puros), `tests/eval/fixtures/gold-{explicacao,resumo,alternativas}-v1.jsonl` (golds), `docs/auditoria/eval/ia-paga-v1/` (brutos compactos, decisões, concordância, planilha e LEIA-ME da calibração, resumo da bancada de fala para a legenda).

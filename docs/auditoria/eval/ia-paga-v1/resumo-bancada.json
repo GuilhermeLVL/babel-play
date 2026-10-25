@@ -1,5 +1,5 @@
 {
-  "geradoEm": "2026-10-25T02:10:51.099Z",
+  "geradoEm": "2026-10-25T02:43:44.207Z",
   "commit": null,
   "titulo": "Legenda ao vivo — chrF++ no gold de conversa (bancada/resumo.mjs)",
   "arquivos": ["docs/auditoria/eval/ia-paga-v1/bruto-legenda-mt.json"],
@@ -12,13 +12,13 @@
       "n": 60,
       "comet": null,
       "chrf": {
-        "valor": 79.22388801273483,
+        "valor": 77.92665939493223,
         "ic95": [null, null]
       },
       "bleu": null,
       "latenciaMs": {
-        "p50": 1134,
-        "p95": 2057
+        "p50": 1038,
+        "p95": 4271
       },
       "latenciaPorFraseMs": null,
       "falhas": 0,
@@ -28,14 +28,22 @@
           "provider": {
             "data_collection": "deny",
             "zdr": true,
-            "ignore": ["google-ai-studio", "google-vertex"]
+            "ignore": ["google-ai-studio", "google-vertex"],
+            "sort": "price",
+            "preferred_max_latency": {
+              "p50": 1.5
+            }
           }
         },
         "ajuste": {},
         "roteamento": {
           "data_collection": "deny",
           "zdr": true,
-          "ignore": ["google-ai-studio", "google-vertex"]
+          "ignore": ["google-ai-studio", "google-vertex"],
+          "sort": "price",
+          "preferred_max_latency": {
+            "p50": 1.5
+          }
         },
         "foraDaProducao": false
       },
@@ -49,13 +57,13 @@
       "n": 60,
       "comet": null,
       "chrf": {
-        "valor": 74.72752810817357,
+        "valor": 72.95497180266835,
         "ic95": [null, null]
       },
       "bleu": null,
       "latenciaMs": {
-        "p50": 855,
-        "p95": 1485
+        "p50": 851,
+        "p95": 1457
       },
       "latenciaPorFraseMs": null,
       "falhas": 0,
@@ -65,7 +73,11 @@
           "provider": {
             "data_collection": "deny",
             "zdr": true,
-            "ignore": ["google-ai-studio", "google-vertex"]
+            "ignore": ["google-ai-studio", "google-vertex"],
+            "sort": "price",
+            "preferred_max_latency": {
+              "p50": 1.5
+            }
           },
           "reasoning": {
             "effort": "low",
@@ -77,6 +89,10 @@
           "data_collection": "deny",
           "zdr": true,
           "ignore": ["google-ai-studio", "google-vertex"],
+          "sort": "price",
+          "preferred_max_latency": {
+            "p50": 1.5
+          },
           "only": ["groq", "cerebras"],
           "allow_fallbacks": false
         },
@@ -89,8 +105,8 @@
           "n": 60,
           "metrica": "chrf",
           "diferenca": {
-            "valor": -4.49635990456126,
-            "ic95": [-9.948347684802462, 1.0776881479740181],
+            "valor": -4.971687592263876,
+            "ic95": [-11.552609808957587, 2.847211144013141],
             "significativo": false
           }
         }
@@ -100,16 +116,16 @@
       "corpus": "gold:en-pt",
       "sistema": "openrouter:mistralai/mistral-small-2603",
       "candidato": true,
-      "n": 54,
+      "n": 55,
       "comet": null,
       "chrf": {
-        "valor": 62.07942490562458,
+        "valor": 63.85867729222464,
         "ic95": [null, null]
       },
       "bleu": null,
       "latenciaMs": {
-        "p50": 1019,
-        "p95": 1696
+        "p50": 1036,
+        "p95": 1555
       },
       "latenciaPorFraseMs": null,
       "falhas": 0,
@@ -119,14 +135,22 @@
           "provider": {
             "data_collection": "deny",
             "zdr": true,
-            "ignore": ["google-ai-studio", "google-vertex"]
+            "ignore": ["google-ai-studio", "google-vertex"],
+            "sort": "price",
+            "preferred_max_latency": {
+              "p50": 1.5
+            }
           }
         },
         "ajuste": {},
         "roteamento": {
           "data_collection": "deny",
           "zdr": true,
-          "ignore": ["google-ai-studio", "google-vertex"]
+          "ignore": ["google-ai-studio", "google-vertex"],
+          "sort": "price",
+          "preferred_max_latency": {
+            "p50": 1.5
+          }
         },
         "foraDaProducao": false
       },
@@ -134,11 +158,11 @@
       "comparacoes": [
         {
           "contra": "openrouter:google/gemma-4-26b-a4b-it",
-          "n": 54,
+          "n": 55,
           "metrica": "chrf",
           "diferenca": {
-            "valor": -15.870267633173697,
-            "ic95": [-21.667198506635845, -9.074882523483659],
+            "valor": -13.843008186372955,
+            "ic95": [-21.845218031293907, -5.258461183675106],
             "significativo": true
           }
         }

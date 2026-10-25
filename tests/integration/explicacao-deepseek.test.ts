@@ -15,6 +15,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 
 import { esquecerAdmissao } from '../../server/ai/admissao'
 import { esquecerDisjuntores } from '../../server/ai/disjuntor'
+import { decidirCusto } from '../../server/ai/politicaDeCusto'
 import { esquecerRegistro, pernasDaFuncao } from '../../server/ai/registroDeProvedores'
 import { asUserId } from '../../server/lib/authContext'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
@@ -40,6 +41,18 @@ describe('a cascata do registro real', () => {
 
   it('explicação da amostra do Grátis (rápida): DeepSeek primeiro; o gpt-oss (nuance) nunca chega à rápida', () => {
     expect(modelos('explicacao', 'rapida')).toEqual([DEEPSEEK, GEMMA, LLAMA])
+  })
+
+  it('orçamento a 70/90%: a política de custo põe a perna mais BARATA primeiro também na explicação (Gemma)', () => {
+    const pernas = pernasDaFuncao('explicacao', { nivel: 'nuance' }, envDoRegistro())
+    const base = { pernas, tokensEntrada: 2_000, tokensSaida: 1_200 }
+    // A 90%, todo mundo; a 70%, o pagante com o primeiro balde baixo.
+    const a90 = decidirCusto({ ...base, nivel: 'nuance', fracaoDoOrcamento: 0.9, fracaoDoPrimeiroBalde: 1 })
+    const a70 = decidirCusto({ ...base, nivel: 'nuance', fracaoDoOrcamento: 0.7, fracaoDoPrimeiroBalde: 0.1 })
+    for (const d of [a90, a70]) expect(d.pernas.map((p) => p.model)).toEqual([GEMMA, DEEPSEEK, GPT_OSS, LLAMA])
+    // Abaixo disso, a ordem da explicação: o DeepSeek primeiro.
+    const normal = decidirCusto({ ...base, nivel: 'nuance', fracaoDoOrcamento: 0.5, fracaoDoPrimeiroBalde: 1 })
+    expect(normal.pernas[0].model).toBe(DEEPSEEK)
   })
 
   it('as outras funções seguem com as pernas de antes, sem o DeepSeek', () => {
@@ -179,4 +192,41 @@ describe('POST /api/ai/explicar no registro real', () => {
     expect(reserva.response_format?.json_schema).toMatchObject({ name: 'explicacao', strict: true })
     expect(reserva.messages.find((m: any) => m.role === 'system')?.content).toContain('PÚBLICO MENOR')
   })
+
+  it('amostra do Grátis com o DeepSeek fora: cai no Gemma, sem passar pelo gpt-oss (só da nuance)', async () => {
+    const corpos = provedor((m) => m === DEEPSEEK)
+    const res = await pedir(asUserId('explicacao-deepseek-gratis-fora'))
+    expect(res.statusCode).toBe(200)
+    expect(res.body.origem).toBe('amostra')
+    expect(res.headers['x-ia-modelo']).toBe(GEMMA)
+    expect(corpos.map((c) => c.model)).toEqual([DEEPSEEK, GEMMA])
+  })
+
+  it('DeepSeek estoura o tempo: o relógio dele é de 8 s (não 15), e o gpt-oss entrega dentro do prazo total', async () => {
+    const chamadas: Array<{ modelo: string; t: number }> = []
+    const t0 = Date.now()
+    vi.stubGlobal('fetch', async (_u: unknown, init: any) => {
+      const corpo = JSON.parse(init.body)
+      chamadas.push({ modelo: corpo.model, t: Date.now() - t0 })
+      if (corpo.model === DEEPSEEK)
+        return new Promise((_, rejeitar) =>
+          init.signal.addEventListener('abort', () => rejeitar(init.signal.reason), { once: true }),
+        )
+      return {
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: OK } }],
+          usage: { prompt_tokens: 300, completion_tokens: 200 },
+        }),
+      }
+    })
+    const res = await pedir(PAGANTE)
+    const total = Date.now() - t0
+    expect(res.statusCode).toBe(200)
+    expect(res.headers['x-ia-modelo']).toBe(GPT_OSS)
+    expect(chamadas.map((c) => c.modelo)).toEqual([DEEPSEEK, GPT_OSS])
+    expect(chamadas[1].t).toBeGreaterThanOrEqual(7_500)
+    expect(chamadas[1].t).toBeLessThan(12_000)
+    expect(total).toBeLessThan(30_000)
+  }, 25_000)
 })

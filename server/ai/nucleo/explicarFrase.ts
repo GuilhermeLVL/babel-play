@@ -61,8 +61,19 @@ import { recusaDeErro, type RecusaDeIa, recusaNuvemOcupada, recusaPortaoFechado,
 
 const EXPLICACAO = FUNCOES_DE_IA.explicacao
 const ROTA = '/api/ai/explicar'
-/** Alguém está olhando a folha da frase esperando: o mesmo das "Outras formas". */
+/**
+ * OS RELÓGIOS (revisão de 25/10/2026). Alguém está olhando a folha da frase esperando, e o relógio era por perna: com
+ * 15 s em cada uma o pior caso passava de 45 s. Agora:
+ *   - a PRIMEIRA perna (o DeepSeek, p95 medido de 3 s; com o orçamento a 70/90% a política de custo põe a mais barata
+ *     na frente, e o relógio curto vai com ela) tem 8 s;
+ *   - as reservas, os 15 s das "Outras formas";
+ *   - a cascata inteira, 30 s: a perna em curso recebe só o que sobra, e as seguintes não são chamadas. O cliente
+ *     desiste em 35 s (`src/data/apiDoEstudo.ts`), depois do servidor.
+ * A repetição sem esquema (`chamarChat`) cabe dentro do relógio da perna.
+ */
+export const TIMEOUT_DA_PRIMEIRA_PERNA_MS = 8_000
 const TIMEOUT_MS = 15_000
+export const PRAZO_TOTAL_MS = 30_000
 /** Os limites de entrada (Task 1 da etapa 2): a frase e cada fala de contexto, em caracteres. */
 export const MAX_CARACTERES_DA_FRASE = 400
 export const MAX_FALAS_DE_CONTEXTO = 3
@@ -226,6 +237,8 @@ async function explicar(
         rastro,
         admissao,
         fatorDeSaida: custo.fatorDeSaida,
+        timeoutDaPrimeiraPernaMs: TIMEOUT_DA_PRIMEIRA_PERNA_MS,
+        prazoTotalMs: PRAZO_TOTAL_MS,
       },
     )
     if (!entregue && limitadoPeloProvedor)

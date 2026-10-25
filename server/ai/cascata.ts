@@ -25,9 +25,16 @@ import { ehModeloDeRaciocinio } from './parametrosDoProvedor'
 import type { Provedor } from './provedores'
 import { nomeDoProvedor, type RastroDeIa, registrarLimiteDoProvedor, statusDaTentativa } from './telemetriaDeIa'
 
-/** O esforço de raciocínio que `parametrosDoProvedor` pediu — metadado da geração, nunca decisão. */
+/**
+ * O esforço de raciocínio que `parametrosDoProvedor` pediu — metadado da geração, nunca decisão. `none` = o
+ * raciocínio foi DESLIGADO no pedido (`reasoning: { enabled: false }`, o DeepSeek da explicação).
+ */
 function esforcoPedido(base: string, model: string): string | undefined {
-  const p = parametrosDoProvedor(base, model) as { reasoning_effort?: string; reasoning?: { effort?: string } }
+  const p = parametrosDoProvedor(base, model) as {
+    reasoning_effort?: string
+    reasoning?: { effort?: string; enabled?: boolean }
+  }
+  if (p.reasoning?.enabled === false) return 'none'
   return p.reasoning_effort ?? p.reasoning?.effort
 }
 
@@ -186,6 +193,16 @@ export async function percorrerCascata(
      * das pernas SEM raciocínio. Ausente ou 1 = o teto inteiro.
      */
     fatorDeSaida?: number
+    /**
+     * O relógio PRÓPRIO da primeira perna da lista (a explicação: 8 s no DeepSeek, p95 medido de 3 s). As outras
+     * seguem com o `timeoutMs` do pedido. Ausente = todas com o `timeoutMs`.
+     */
+    timeoutDaPrimeiraPernaMs?: number
+    /**
+     * O PRAZO DA CASCATA INTEIRA, em ms desde a entrada: cada perna recebe o menor entre o relógio dela e o que
+     * sobra, e esgotado o prazo nenhuma perna a mais é chamada. Sem ele, o pior caso é a soma dos relógios.
+     */
+    prazoTotalMs?: number
   },
 ): Promise<ResultadoDaCascata> {
   const rastro = contexto.rastro
@@ -196,6 +213,7 @@ export async function percorrerCascata(
   let chamadas = 0
   let limitadas = 0
   let esperaDoLimite = Infinity
+  const prazoFinal = contexto.prazoTotalMs !== undefined ? Date.now() + contexto.prazoTotalMs : Infinity
   for (let i = 0; i < provedores.length; i++) {
     const prov = provedores[i]
     /* QUEM PEDIU DESISTIU: nenhuma perna a mais é chamada. Se nenhuma foi, o pedido volta ao balde. */
@@ -203,6 +221,17 @@ export async function percorrerCascata(
       if (adm && chamadas === 0) await adm.ticket.devolver()
       return { entregue: null, ultimaFalha: 'cancelado por quem pediu', cancelado: true }
     }
+    /* O PRAZO TOTAL ESGOTADO: ninguém mais é chamado — a pessoa já esperou o que a função promete. Se nenhuma
+       perna foi chamada, o pedido volta ao balde, como no cancelamento. */
+    const restante = prazoFinal - Date.now()
+    if (restante <= 0) {
+      if (adm && chamadas === 0) await adm.ticket.devolver()
+      ultimaFalha = `prazo total de ${contexto.prazoTotalMs} ms esgotado (${ultimaFalha})`
+      break
+    }
+    const relogioDaPerna =
+      i === 0 && contexto.timeoutDaPrimeiraPernaMs !== undefined ? contexto.timeoutDaPrimeiraPernaMs : pedido.timeoutMs
+    const timeoutMs = Number.isFinite(restante) ? Math.min(relogioDaPerna ?? restante, restante) : relogioDaPerna
     /* A ADMISSÃO DA PERNA (ADR 0007). Antes da perna admitida na entrada: estava sem saldo, pula.
        A admitida: já tem o pedido. Depois dela (a reserva, quando o primário falhou): pede ao
        balde DELA agora — sem saldo, pula sem abrir socket. */
@@ -251,6 +280,7 @@ export async function percorrerCascata(
     const inicio = Date.now()
     const r = await chamarChat({
       ...pedido,
+      ...(timeoutMs !== undefined ? { timeoutMs } : {}),
       maxTokens: maxTokensDaPerna(pedido.maxTokens, prov.model, contexto.fatorDeSaida),
       base: prov.base,
       apiKey: prov.apiKey,

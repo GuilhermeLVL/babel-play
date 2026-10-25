@@ -147,13 +147,23 @@ function recusouOEsquema(status: number, corpo: string): boolean {
 }
 
 export async function chamarChat(p: PedidoDeChat): Promise<RespostaDeChat> {
+  const inicio = Date.now()
   const r = await chamarUmaVez(p)
   /* SAÍDA ESTRUTURADA SEM QUEBRAR A CASCATA. O modelo da perna pode não ter, entre os endpoints de retenção zero,
      nenhum que aceite o esquema; o `require_parameters` então recusa o pedido inteiro. Repetir a MESMA perna sem o
      esquema devolve o comportamento de antes (JSON pelo prompt + leitura defensiva), em vez de gastar a perna. */
   const { recusouEsquema, ...resposta } = r
   if (!resposta.ok && !resposta.cancelado && recusouEsquema && ehBaseDoOpenRouter(p.base)) {
-    const { recusouEsquema: _ignorado, ...sem } = await chamarUmaVez({ ...p, formatoDeSaida: undefined })
+    /* A repetição cabe no RELÓGIO DA PERNA (o `timeoutMs` é da perna, não de cada tentativa): sem isso uma perna de
+       15 s viraria 30 s, e o prazo da cascata (`percorrerCascata`) não fecharia. O resto do pedido — raciocínio,
+       `provider` com retenção zero e os `ignore` — é o mesmo: só o esquema sai. */
+    const restante = (p.timeoutMs ?? TIMEOUT_PADRAO_MS) - (Date.now() - inicio)
+    if (restante <= 0) return { ok: false, status: 0, causa: `sem resposta em ${p.timeoutMs ?? TIMEOUT_PADRAO_MS} ms` }
+    const { recusouEsquema: _ignorado, ...sem } = await chamarUmaVez({
+      ...p,
+      formatoDeSaida: undefined,
+      timeoutMs: restante,
+    })
     return sem.ok ? { ...sem, semEsquema: true } : sem
   }
   return resposta

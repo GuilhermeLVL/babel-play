@@ -319,6 +319,16 @@ describe('transcrever', () => {
     expect(m.registro.encoder).toEqual([4 * 16000])
   })
 
+  it('o resultado leva a CONFIANÇA média dos tokens (o sinal do áudio difícil); silêncio não leva', async () => {
+    const m = await carregado()
+    await m.worker.receber({ type: 'transcrever', id: 'a', pcm: fala(4), idioma: 'pt' })
+    const r = m.ultima('result')
+    expect(r?.confianca).toBeGreaterThan(0.99) // o joint falso dá 5 ao token e −10 aos outros
+    expect(r?.confianca).toBeLessThanOrEqual(1)
+    await m.worker.receber({ type: 'transcrever', id: 's', pcm: new Float32Array(3 * 16000), idioma: 'pt' })
+    expect(m.ultima('result')?.confianca).toBeUndefined()
+  })
+
   it('sem modelo carregado: erro, não texto', async () => {
     const m = montar()
     await m.worker.receber({ type: 'transcrever', id: 'a', pcm: fala(2), idioma: 'pt' })

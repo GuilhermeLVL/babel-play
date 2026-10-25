@@ -131,7 +131,9 @@ export class ParakeetLocalStt implements SttProvider {
           const p = this.pendentes.get(m.id);
           if (!p) break;
           this.pendentes.delete(m.id);
-          p.resolve(m.descartado ? { text: m.text, alucinacaoDescartada: true } : { text: m.text });
+          // A confiança média dos tokens vai como `confidence`: o sinal do áudio difícil (`core/rota/audioDificil.ts`).
+          const confianca = m.confianca !== undefined ? { confidence: m.confianca } : {};
+          p.resolve(m.descartado ? { text: m.text, alucinacaoDescartada: true } : { text: m.text, ...confianca });
           break;
         }
         case 'cancelado': {

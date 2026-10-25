@@ -111,6 +111,20 @@ describe('ParakeetLocalStt', () => {
     expect(pcm.length).toBe(1600)
   })
 
+  it('a confiança média do worker chega como `confidence` do final (o sinal do áudio difícil)', async () => {
+    const stt = new ParakeetLocalStt()
+    await stt.preload()
+    criados[0].postMessage = function (msg: Msg) {
+      queueMicrotask(() =>
+        this.responder({ type: 'result', id: msg.id, text: 'olá', descartado: false, confianca: 0.6 }),
+      )
+    }
+    expect(await stt.transcribePcm(new Float32Array(1600), 16000, { languageHint: 'pt' })).toEqual({
+      text: 'olá',
+      confidence: 0.6,
+    })
+  })
+
   it('texto que o filtro de alucinação esvaziou chega marcado, para a telemetria contar', async () => {
     const stt = new ParakeetLocalStt()
     await stt.preload()

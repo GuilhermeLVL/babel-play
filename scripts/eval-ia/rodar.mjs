@@ -404,7 +404,7 @@ function gravarLegendaMt(bruto) {
   const resultados = bruto.sistemas.map((s) => {
     const ger = bruto.geracoes[s.id] ?? {}
     const casos = bruto.casos
-      .filter((c) => ger[c])
+      .filter((c) => ger[c] && !ger[c].semResposta) // sem resposta do provedor não é tradução ruim
       .map((c) => ({
         id: c,
         hipotese: ger[c].lido?.texto ?? '',
@@ -465,6 +465,7 @@ function relatorio() {
   if (!brutos.length) throw new Error(`nenhum bruto em ${SAIDA}`)
   const decisoes = []
   for (const b of brutos) {
+    if (b.funcao === 'legenda') gravarLegendaMt(b)
     const d = decidirFuncao(b)
     decisoes.push(d)
     gravarJson(path.join(SAIDA, `decisao-${b.funcao}.json`), d)

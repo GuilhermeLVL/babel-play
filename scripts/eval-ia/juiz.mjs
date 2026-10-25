@@ -77,8 +77,13 @@ export function lerRubrica(bruto, criterios) {
   const porId = new Map()
   for (const c of o.criterios) if (c && typeof c.id === 'string') porId.set(c.id.trim(), c)
   const saida = {}
-  for (const { id } of criterios) {
-    const c = porId.get(id)
+  /* O juiz às vezes devolve o NÚMERO do critério ("1", "2"…) em vez do nome, ou nenhum id: na ordem dada, vale pela
+     posição — o pedido numera os critérios e exige a ordem. */
+  const nomes = new Set(criterios.map((c) => c.id))
+  const naOrdem = o.criterios.length === criterios.length ? o.criterios : null
+  for (const [i, { id }] of criterios.entries()) {
+    const posicional = naOrdem?.[i] && !nomes.has(String(naOrdem[i].id ?? '').trim()) ? naOrdem[i] : undefined
+    const c = porId.get(id) ?? porId.get(String(i + 1)) ?? posicional
     const v = booleano(c?.veredito)
     if (v === null) return null
     saida[id] = { veredito: v, raciocinio: String(c.raciocinio ?? '').slice(0, 300) }

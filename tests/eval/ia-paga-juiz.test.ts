@@ -41,6 +41,14 @@ describe('rubrica binária', () => {
     expect(notaDaRubrica(v)).toBe(0.5)
   })
 
+  it('aceita o NÚMERO do critério no lugar do nome (o juiz às vezes devolve "1", "2"), pela ordem pedida', () => {
+    const v = lerRubrica('{"criterios":[{"id":"1","veredito":true},{"id":"2","veredito":false}]}', CRIT)
+    expect(v.a.veredito).toBe(true)
+    expect(v.b.veredito).toBe(false)
+    // Nome de critério trocado não vira posição: o "b" no lugar do "a" não conta como "a".
+    expect(lerRubrica('{"criterios":[{"id":"b","veredito":true},{"id":"x","veredito":false}]}', CRIT)).toBeNull()
+  })
+
   it('critério faltando, veredito não booleano ou texto sem JSON = null (fora da conta, não zero)', () => {
     expect(lerRubrica('{"criterios":[{"id":"a","veredito":true}]}', CRIT)).toBeNull()
     expect(lerRubrica('{"criterios":[{"id":"a","veredito":true},{"id":"b","veredito":"talvez"}]}', CRIT)).toBeNull()

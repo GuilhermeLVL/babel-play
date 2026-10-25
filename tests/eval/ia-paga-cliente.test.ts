@@ -281,12 +281,24 @@ describe('regra do mais barato não-inferior', () => {
     expect(d.relaxado).toBeNull()
     const todosLentos = decidirFuncao(
       bruto({
-        'openai/base': { notas: Array(n).fill(1), usd: 0.0002, ms: 20_000 },
-        'x/lento': { notas: Array(n).fill(1), usd: 0.0001, ms: 20_000 },
+        'openai/base': { notas: Array(n).fill(1), usd: 0.0002, ms: 6_000 },
+        'x/lento': { notas: Array(n).fill(1), usd: 0.0001, ms: 6_000 },
       }),
     )
     expect(todosLentos.recomendado).toBe('x/lento')
     expect(todosLentos.relaxado).toMatch(/SLO/)
+  })
+
+  it('passar do timeout da produção não se relaxa: o barato que não chega a tempo nunca é recomendado', () => {
+    const n = 20
+    const d = decidirFuncao(
+      bruto({
+        'openai/base': { notas: Array(n).fill(1), usd: 0.0002, ms: 6_000 },
+        'x/estoura': { notas: Array(n).fill(1), usd: 0.0001, ms: 20_000 },
+      }),
+    )
+    expect(d.avaliacoes.find((a: any) => a.sistema === 'x/estoura').chegaNoTempo).toBe(false)
+    expect(d.recomendado).toBe('openai/base')
   })
 
   it('mede a autopreferência: o juiz que dá a mais só para a própria família aparece positivo', () => {

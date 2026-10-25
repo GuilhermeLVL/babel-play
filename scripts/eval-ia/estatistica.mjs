@@ -12,7 +12,9 @@
  *   4. CUSTO QUE CABE: o custo medido por 1M de tokens da cota não passa do que o modelo de custo cobra
  *      (`CUSTO_BRL_POR_MILHAO_DE_TOKENS` de `scripts/ia/modeloDeCusto.ts`, R$ 1,40 ÷ câmbio) — acima disso a margem de
  *      `npm run ia:custo` muda e a troca exige refazer a conta;
- *   5. LATÊNCIA DENTRO DO SLO: o p95 da espera total não passa do SLO da função (`SLO_P95_MS`, Fase C do plano);
+ *   5. LATÊNCIA DENTRO DO SLO: o p95 da espera total não passa do SLO da função (`SLO_P95_MS`, Fase C do plano); e,
+ *      SEM relaxamento possível, no máximo 5% das respostas passam do TIMEOUT DA PRODUÇÃO (a que não chega a tempo
+ *      vira reserva ou erro na tela — `TIMEOUT_DA_PRODUCAO_MS`);
  *   6. RECOMENDADO = o MAIS BARATO (US$ por 1.000 usos) entre os que passam em 2 a 5. Ninguém passa → relaxa, NESTA
  *      ordem e dizendo qual: primeiro o SLO, depois o custo; e só então o melhor.
  * A regra da bancada de fala (B5, `bancada/decisao.mjs` → `decidir`) também é aplicada contra a PRODUÇÃO, para o
@@ -41,6 +43,23 @@ export const TETO_LEGENDA_USD_POR_HORA = 0.05
 export const USOS_POR_PAGANTE_NO_MES = Object.freeze({ explicacao: 300, resumo: 60 })
 /** O SLO por função (Fase C do plano): p95 da latência total, em ms. */
 export const SLO_P95_MS = Object.freeze({ explicacao: 4000, resumo: 8000, alternativas: 4000, legenda: 1500 })
+/**
+ * O TIMEOUT DA PRODUÇÃO por função (`explicarFrase.ts` e `sugerirAlternativas.ts` 15 s, `resumirSessao.ts` 30 s,
+ * `mtProxy.ts` 12 s): acima dele a pessoa não recebe a resposta deste modelo — a cascata cai na reserva ou a tela
+ * mostra erro. Conta como falha de experiência.
+ */
+/**
+ * Quantas respostas podem passar do timeout da produção: acima de 5% o sistema NÃO passa, em nível nenhum de
+ * relaxamento — a resposta que não chega é pior que a lenta.
+ */
+export const MAXIMO_ACIMA_DO_TIMEOUT = 0.05
+
+export const TIMEOUT_DA_PRODUCAO_MS = Object.freeze({
+  explicacao: 15_000,
+  resumo: 30_000,
+  alternativas: 15_000,
+  legenda: 12_000,
+})
 
 export function percentis(valores, ps = [0.5, 0.95]) {
   const o = [...valores].filter(Number.isFinite).sort((a, b) => a - b)
@@ -155,6 +174,9 @@ export function resumirSistema(bruto, sis) {
     latenciaMs: { ttftP50: ttft50, ttftP95: ttft95, totalP50: total50, totalP95: total95 },
     sloP95Ms: SLO_P95_MS[bruto.funcao],
     dentroDoSlo: Number.isFinite(total95) ? total95 <= SLO_P95_MS[bruto.funcao] : null,
+    acimaDoTimeout: casos.length
+      ? casos.filter((c) => ger[c].totalMs > TIMEOUT_DA_PRODUCAO_MS[bruto.funcao]).length / casos.length
+      : 0,
     experiencia: {
       caracteresP50: percentis(ok.map((e) => e.caracteres))[0],
       cabeSemRolar: ok.some((e) => 'cabeSemRolar' in e) ? media(ok.map((e) => (e.cabeSemRolar ? 1 : 0))) : null,
@@ -277,16 +299,20 @@ export function decidirFuncao(bruto, { margem = MARGEM_DE_NAO_INFERIORIDADE } = 
       falhasCriticas,
       custoCabe,
       dentroDoSlo: r.dentroDoSlo !== false,
+      chegaNoTempo: (r.acimaDoTimeout ?? 0) <= MAXIMO_ACIMA_DO_TIMEOUT,
     }
   })
   /* As exigências, da mais forte à mais fraca: relaxa o SLO, depois o custo — nunca a qualidade nem o crítico. */
   const NIVEIS = [
     {
       nome: 'todas as exigências',
-      ok: (a) => a.naoInferior && !a.falhasCriticas.length && a.custoCabe && a.dentroDoSlo,
+      ok: (a) => a.naoInferior && a.chegaNoTempo && !a.falhasCriticas.length && a.custoCabe && a.dentroDoSlo,
     },
-    { nome: 'relaxado o SLO de latência', ok: (a) => a.naoInferior && !a.falhasCriticas.length && a.custoCabe },
-    { nome: 'relaxados o SLO e o custo', ok: (a) => a.naoInferior && !a.falhasCriticas.length },
+    {
+      nome: 'relaxado o SLO de latência',
+      ok: (a) => a.naoInferior && a.chegaNoTempo && !a.falhasCriticas.length && a.custoCabe,
+    },
+    { nome: 'relaxados o SLO e o custo', ok: (a) => a.naoInferior && a.chegaNoTempo && !a.falhasCriticas.length },
   ]
   for (const a of avaliacoes) a.passa = NIVEIS[0].ok(a)
   let recomendado = melhor
@@ -358,13 +384,13 @@ export function markdownDaFuncao(d) {
     )
   l.push('### Qualidade, custo e latência', '')
   l.push(
-    '| Sistema | n | Nota [IC 95%] | Inválidas | Sem resposta | Total p50 · p95 | TTFT p50 · p95 | US$/1.000 usos | US$/1M tok | Não-inf. | Falha crítica | Custo cabe |',
+    '| Sistema | n | Nota [IC 95%] | Inválidas | Sem resposta | Total p50 · p95 | TTFT p50 · p95 | US$/1.000 usos | US$/1M tok | Não-inf. | No tempo | Falha crítica | Custo cabe |',
   )
-  l.push('| --- | --: | --- | --: | --: | --- | --- | --: | --: | :-: | --- | :-: |')
+  l.push('| --- | --: | --- | --: | --: | --- | --- | --: | --: | :-: | :-: | --- | :-: |')
   for (const a of d.avaliacoes) {
     const r = d.resumos[a.sistema]
     l.push(
-      `| \`${a.sistema}\`${a.sistema === d.recomendado ? ' ★' : ''}${r.foraDaProducao ? ' (ajuste)' : ''} | ${r.n} | ${ic(r.nota)} | ${pct(r.invalidas)} | ${pct(r.semResposta)} | ${ms(r.latenciaMs.totalP50)} · ${ms(r.latenciaMs.totalP95)} | ${ms(r.latenciaMs.ttftP50)} · ${ms(r.latenciaMs.ttftP95)} | ${f3(r.custo.usdPor1000Usos)} | ${f3(r.custo.usdPorMilhaoDeTokens)} | ${a.naoInferior ? 'sim' : 'não'} | ${a.falhasCriticas.join('; ') || '—'} | ${a.custoCabe ? 'sim' : 'não'} |`,
+      `| \`${a.sistema}\`${a.sistema === d.recomendado ? ' ★' : ''}${r.foraDaProducao ? ' (ajuste)' : ''} | ${r.n} | ${ic(r.nota)} | ${pct(r.invalidas)} | ${pct(r.semResposta)} | ${ms(r.latenciaMs.totalP50)} · ${ms(r.latenciaMs.totalP95)} | ${ms(r.latenciaMs.ttftP50)} · ${ms(r.latenciaMs.ttftP95)} | ${f3(r.custo.usdPor1000Usos)} | ${f3(r.custo.usdPorMilhaoDeTokens)} | ${a.naoInferior ? 'sim' : 'não'} | ${a.chegaNoTempo ? 'sim' : 'não'} | ${a.falhasCriticas.join('; ') || '—'} | ${a.custoCabe ? 'sim' : 'não'} |`,
     )
   }
   l.push('')
@@ -381,9 +407,9 @@ export function markdownDaFuncao(d) {
   l.push('')
   l.push('### Como o usuário sente', '')
   l.push(
-    '| Sistema | Erro na tela (502) | Espera p95 | Caracteres p50 | Cabe sem rolar | Palavras/frase | Idioma certo | R$ por pagante/mês (cota cheia) | Extra |',
+    '| Sistema | Erro na tela (502) | Passa do timeout | Espera p95 | Caracteres p50 | Cabe sem rolar | Palavras/frase | Idioma certo | R$ por pagante/mês (cota cheia) | Extra |',
   )
-  l.push('| --- | --: | --: | --: | --: | --: | --: | --: | --- |')
+  l.push('| --- | --: | --: | --: | --: | --: | --: | --: | --: | --- |')
   for (const a of d.avaliacoes) {
     const r = d.resumos[a.sistema]
     const e = r.experiencia
@@ -396,7 +422,7 @@ export function markdownDaFuncao(d) {
             ? `chrF++ ${f2(e.chrf)}; tamanho/ref ${f2(e.razaoDeTamanho)}`
             : ''
     l.push(
-      `| \`${a.sistema}\` | ${pct(r.invalidas)} | ${ms(r.latenciaMs.totalP95)}${r.dentroDoSlo === false ? ' (fora do SLO)' : ''} | ${Number.isFinite(e.caracteresP50) ? e.caracteresP50.toFixed(0) : '—'} | ${pct(e.cabeSemRolar)} | ${f2(e.palavrasPorFrase)} | ${pct(e.idiomaOk)} | ${Number.isFinite(r.custo.brlPorPaganteNoMes) ? `R$ ${r.custo.brlPorPaganteNoMes.toFixed(2)}` : '—'} | ${extra} |`,
+      `| \`${a.sistema}\` | ${pct(r.invalidas)} | ${pct(r.acimaDoTimeout)} | ${ms(r.latenciaMs.totalP95)}${r.dentroDoSlo === false ? ' (fora do SLO)' : ''} | ${Number.isFinite(e.caracteresP50) ? e.caracteresP50.toFixed(0) : '—'} | ${pct(e.cabeSemRolar)} | ${f2(e.palavrasPorFrase)} | ${pct(e.idiomaOk)} | ${Number.isFinite(r.custo.brlPorPaganteNoMes) ? `R$ ${r.custo.brlPorPaganteNoMes.toFixed(2)}` : '—'} | ${extra} |`,
     )
   }
   l.push('')

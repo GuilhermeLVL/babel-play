@@ -6,8 +6,10 @@
   <title>Termos de Uso — Frasy</title>
   <meta name="description" content="Termos de uso do Frasy: quem pode usar, o Grátis e o Premium (mensal, anual e 12x), o teste de 14 dias sem cartão, arrependimento em 7 dias, cancelamento, reembolso, uso justo e responsabilidades." />
   <style>
-    :root { color-scheme: light dark; --ink: #1a1a1a; --muted: #555; --bg: #fafaf8; --panel: #fff; --border: #e4e2dd; --accent: #7c5cff; }
-    @media (prefers-color-scheme: dark) { :root { --ink: #ececec; --muted: #a8a8a8; --bg: #131313; --panel: #1c1c1c; --border: #2c2c2c; } }
+    /* O roxo é o da marca escurecido no claro (#6a48f0: 5,3 sobre #fafaf8) e clareado no escuro (#a594ff: 7,3 sobre
+       #131313); o #7c5cff de antes dava 4,15 e 4,28, abaixo dos 4,5 do WCAG AA. */
+    :root { color-scheme: light dark; --ink: #1a1a1a; --muted: #555; --bg: #fafaf8; --panel: #fff; --border: #e4e2dd; --accent: #6a48f0; }
+    @media (prefers-color-scheme: dark) { :root { --ink: #ececec; --muted: #a8a8a8; --bg: #131313; --panel: #1c1c1c; --border: #2c2c2c; --accent: #a594ff; } }
     body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif; }
     main { max-width: 720px; margin: 0 auto; padding: 40px 20px 80px; }
     h1 { font-size: 1.6rem; } h2 { font-size: 1.15rem; margin-top: 2.2em; } h3 { font-size: 1rem; margin-top: 1.4em; }
@@ -15,9 +17,30 @@
     .muted { color: var(--muted); font-size: 13px; }
     .revisao { border: 1px dashed var(--accent); border-radius: 8px; padding: 10px 14px; font-size: 13px; }
     a { color: var(--accent); }
+    .site-topo, .site-rodape { max-width: 720px; margin: 0 auto; padding: 16px 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+    .site-topo { border-bottom: 1px solid var(--border); }
+    .site-rodape { border-top: 1px solid var(--border); font-size: 14px; }
+    .site-marca { font-weight: 700; color: var(--ink); text-decoration: none; margin-right: auto; padding: 6px 0; }
+    .site-topo nav ul, .site-rodape ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+    .site-topo nav a, .site-rodape a { display: inline-block; padding: 6px 0; }
+    .site-entrar { font-weight: 600; }
+    a[aria-current="page"] { color: var(--ink); text-decoration: none; font-weight: 600; }
   </style>
 </head>
 <body>
+<header class="site-topo">
+  <a class="site-marca" href="/">Frasy</a>
+  <nav aria-label="Principal">
+    <ul>
+      <li><a href="/">Início</a></li>
+      <li><a href="/planos">Planos</a></li>
+      <li><a href="/guias">Guias</a></li>
+      <li><a href="/ajuda">Ajuda</a></li>
+      <li><a href="/sobre">Sobre</a></li>
+      <li><a class="site-entrar" href="/app">Entrar</a></li>
+    </ul>
+  </nav>
+</header>
 <main>
   <p class="kicker">Frasy</p>
   <h1>Termos de Uso</h1>
@@ -192,9 +215,22 @@
   <p>Estes termos são regidos pela lei brasileira. Foro: o do seu domicílio, como manda o CDC.</p>
 
   <h2>Contato</h2>
-  <p><a href="mailto:guigui.cruzeiro@gmail.com">guigui.cruzeiro@gmail.com</a></p>
+  <p><a href="mailto:contato@frasy.com.br">contato@frasy.com.br</a></p>
 
-  <p class="muted"><a href="/">← voltar ao Frasy</a> · <a href="/privacidade.html">Política de Privacidade</a></p>
 </main>
+<footer class="site-rodape">
+  <nav aria-label="Rodapé">
+    <ul>
+      <li><a href="/sobre">Sobre</a></li>
+      <li><a href="/contato">Contato</a></li>
+      <li><a href="/ajuda">Ajuda</a></li>
+      <li><a href="/guias">Guias</a></li>
+      <li><a href="/planos">Planos</a></li>
+      <li><a href="/privacidade">Privacidade</a></li>
+      <li><a href="/termos" aria-current="page">Termos de uso</a></li>
+    </ul>
+  </nav>
+</footer>
+
 </body>
 </html>

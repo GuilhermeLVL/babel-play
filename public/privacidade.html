@@ -6,8 +6,10 @@
   <title>Política de Privacidade — Frasy</title>
   <meta name="description" content="Que dados o Frasy processa no navegador e no servidor, quais serviços de nuvem podem ser usados, e como exportar ou excluir tudo." />
   <style>
-    :root { color-scheme: light dark; --ink: #1a1a1a; --muted: #555; --bg: #fafaf8; --panel: #fff; --border: #e4e2dd; --accent: #7c5cff; }
-    @media (prefers-color-scheme: dark) { :root { --ink: #ececec; --muted: #a8a8a8; --bg: #131313; --panel: #1c1c1c; --border: #2c2c2c; } }
+    /* O roxo é o da marca escurecido no claro (#6a48f0: 5,3 sobre #fafaf8) e clareado no escuro (#a594ff: 7,3 sobre
+       #131313); o #7c5cff de antes dava 4,15 e 4,28, abaixo dos 4,5 do WCAG AA. */
+    :root { color-scheme: light dark; --ink: #1a1a1a; --muted: #555; --bg: #fafaf8; --panel: #fff; --border: #e4e2dd; --accent: #6a48f0; }
+    @media (prefers-color-scheme: dark) { :root { --ink: #ececec; --muted: #a8a8a8; --bg: #131313; --panel: #1c1c1c; --border: #2c2c2c; --accent: #a594ff; } }
     body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif; }
     main { max-width: 720px; margin: 0 auto; padding: 40px 20px 80px; }
     h1 { font-size: 1.6rem; } h2 { font-size: 1.15rem; margin-top: 2.2em; }
@@ -17,13 +19,34 @@
     th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
     code { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: 13px; }
     a { color: var(--accent); }
+    .site-topo, .site-rodape { max-width: 720px; margin: 0 auto; padding: 16px 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+    .site-topo { border-bottom: 1px solid var(--border); }
+    .site-rodape { border-top: 1px solid var(--border); font-size: 14px; }
+    .site-marca { font-weight: 700; color: var(--ink); text-decoration: none; margin-right: auto; padding: 6px 0; }
+    .site-topo nav ul, .site-rodape ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+    .site-topo nav a, .site-rodape a { display: inline-block; padding: 6px 0; }
+    .site-entrar { font-weight: 600; }
+    a[aria-current="page"] { color: var(--ink); text-decoration: none; font-weight: 600; }
   </style>
 </head>
 <body>
+<header class="site-topo">
+  <a class="site-marca" href="/">Frasy</a>
+  <nav aria-label="Principal">
+    <ul>
+      <li><a href="/">Início</a></li>
+      <li><a href="/planos">Planos</a></li>
+      <li><a href="/guias">Guias</a></li>
+      <li><a href="/ajuda">Ajuda</a></li>
+      <li><a href="/sobre">Sobre</a></li>
+      <li><a class="site-entrar" href="/app">Entrar</a></li>
+    </ul>
+  </nav>
+</header>
 <main>
   <p class="kicker">Frasy</p>
   <h1>Política de Privacidade</h1>
-  <p class="muted"><strong>Versão para revisão jurídica</strong> — 21 de outubro de 2026.</p>
+  <p class="muted"><strong>Versão para revisão jurídica</strong> — 25 de outubro de 2026 (seção Anúncios reescrita).</p>
 
   <p>O Frasy foi desenhado para processar o máximo possível <strong>no seu próprio
   navegador</strong>. Ainda assim, algumas funções usam serviços de nuvem — de tradução, de
@@ -45,8 +68,9 @@
       lá, tudo fica no aparelho.</li>
     <li><strong>Menores de 12 anos</strong>: além do vínculo, o responsável dá um
       <strong>consentimento específico</strong>, que registramos (quem, quando e o texto aceito).</li>
-    <li>Nunca usamos dados de ninguém — e menos ainda de crianças e adolescentes — para publicidade ou
-      para montar perfil de comportamento.</li>
+    <li>Nunca usamos dados de ninguém — e menos ainda de crianças e adolescentes — para publicidade
+      personalizada ou para montar perfil de comportamento. Os anúncios comuns que o perfil protegido pode
+      ver são contextuais e marcados por idade (veja Anúncios); o anúncio com recompensa é só para adultos.</li>
   </ul>
 
   <h2>O que roda no seu navegador</h2>
@@ -183,27 +207,48 @@
   só depois de os DPAs de cada fornecedor estarem aceitos.]</p>
 
   <h2>Anúncios</h2>
-  <p>Hoje o Frasy <strong>não mostra anúncios</strong>. Se um dia mostrar, a gente avisa antes, no app, e
-  as regras abaixo já valem:</p>
+  <p>O plano Grátis pode mostrar anúncios em alguns lugares fixos do app, sempre com a marca
+  &ldquo;Patrocinado&rdquo;. [DONO: confirmar a data em que os anúncios passam a aparecer; até lá, eles
+  estão desligados.] Os planos pagos não têm anúncios. Estas regras valem para todo anúncio:</p>
   <ul>
-    <li><strong>Nunca para menores de 18 anos</strong> nem para quem está no perfil protegido (inclusive
-      quem usa sem conta, porque não sabemos a idade).</li>
-    <li><strong>Nunca sem o seu consentimento.</strong> Você escolhe, e pode mudar de ideia quando quiser
-      em Ajustes.</li>
-    <li><strong>Sem anúncio personalizado.</strong> Não usamos o que você estuda, fala ou digita, nem
-      perfil de comportamento, para escolher anúncio.</li>
-    <li><strong>Sempre dá para dizer não.</strong> Há a opção &ldquo;Sem anúncios&rdquo; e o plano pago
-      não os mostra.</li>
-    <li><strong>Anúncio com recompensa é sempre uma escolha</strong> sua: você assiste se quiser, em troca
-      de um benefício, e nada é tirado de quem não quiser. Para creditar a recompensa e respeitar o limite
-      do dia, registramos que você viu um anúncio premiado (qual espaço e quando, ligado à sua conta) por até
-      2 meses.</li>
+    <li><strong>Quem fornece os anúncios é o Google</strong> (Google Ad Manager / AdSense, da Google LLC).
+      Os anúncios carregam numa página separada do Frasy, num endereço próprio, e só depois do seu
+      consentimento.</li>
+    <li><strong>Nunca sem o seu consentimento.</strong> Na primeira vez, o app pergunta se você aceita ver
+      anúncios. Sem o &ldquo;Aceitar&rdquo;, nenhum anúncio aparece e nada é pedido ao Google. Você pode
+      mudar a resposta quando quiser em <strong>Ajustes → Privacidade → Anúncios</strong>.</li>
+    <li><strong>Nenhum anúncio é personalizado, para ninguém.</strong> Não usamos o que você estuda, fala ou
+      digita, nem perfil de comportamento, para escolher anúncio, e pedimos ao Google anúncios não
+      personalizados, com processamento restrito de dados, para todas as pessoas.</li>
+    <li><strong>O que o Google recebe:</strong> o navegador envia à rede de anúncios do Google o endereço de
+      internet (IP) do seu aparelho, o tipo de navegador e o idioma, para mostrar e contar o anúncio e
+      combater fraude. O Google pode usar cookies ou identificadores do navegador para isso, conforme a
+      política dele. <strong>Nós não enviamos ao Google</strong> o seu nome, e-mail, identificador da conta,
+      data de nascimento nem o que você estuda. O quadro do anúncio abre sem os cookies do Frasy.</li>
+    <li><strong>Crianças e adolescentes:</strong> quem está no perfil protegido pode ver anúncios comuns,
+      sempre contextuais (escolhidos pelo lugar do app, não por quem você é) e com a marcação de idade que o
+      Google oferece: <strong>abaixo de 13 anos, ou se não sabemos a idade, o anúncio vai marcado como para
+      criança</strong>; <strong>de 13 a 17 anos, como para adolescente</strong>. Essas marcações fazem o Google
+      restringir os anúncios e os dados usados. Só a marcação vai ao Google, nunca a data de nascimento.</li>
+    <li><strong>Anúncio com recompensa (&ldquo;assista e ganhe&rdquo;) é só para maiores de 18 anos</strong> e
+      é sempre uma escolha: você assiste se quiser, em troca de um benefício, e nada é tirado de quem não
+      quiser. Para creditar a recompensa e respeitar o limite do dia, registramos que você viu um anúncio
+      premiado (qual espaço e quando, ligado à sua conta) por até 2 meses.</li>
+    <li><strong>Nunca durante uma gravação, uma rodada de jogo ou o intérprete</strong>, e nunca nos
+      primeiros dias da conta. Quem usa sem conta não vê anúncios.</li>
+    <li><strong>Sempre dá para dizer não.</strong> Todo anúncio tem ao lado a opção &ldquo;Sem anúncios&rdquo;
+      (os planos pagos).</li>
   </ul>
+  <p>Como o Google usa as informações dos sites que usam os serviços dele:
+  <a href="https://policies.google.com/technologies/partner-sites">policies.google.com/technologies/partner-sites</a>.
+  As suas escolhas de anúncios na sua conta Google ficam em
+  <a href="https://adssettings.google.com">adssettings.google.com</a>.
+  [DONO: confirmar o produto contratado (Ad Manager ou AdSense) e o código da conta antes de ligar.]</p>
 
   <h2>O que NÃO fazemos</h2>
   <ul>
     <li><strong>Não há analytics nem telemetria de comportamento.</strong> Nenhum rastreador de uso,
-      nenhum pixel. A única medição é a técnica da IA de nuvem descrita acima — custo, tempo e
+      nenhum pixel nosso (os anúncios do Google, só com o seu consentimento, seguem a seção Anúncios). A única medição é a técnica da IA de nuvem descrita acima — custo, tempo e
       falhas de cada chamada, com pseudônimo e sem o conteúdo —, e ela não é usada para montar perfil
       de ninguém.</li>
     <li><strong>Não vendemos</strong> seus dados nem os compartilhamos para publicidade personalizada. Os terceiros
@@ -234,9 +279,21 @@
   </ul>
 
   <h2>Contato</h2>
-  <p>Dúvidas ou solicitações: <a href="mailto:guigui.cruzeiro@gmail.com">guigui.cruzeiro@gmail.com</a>.</p>
-
-  <p class="muted"><a href="/">← voltar ao Frasy</a> · <a href="/termos.html">Termos de uso</a></p>
+  <p>Dúvidas ou solicitações: <a href="mailto:contato@frasy.com.br">contato@frasy.com.br</a>.</p>
 </main>
+<footer class="site-rodape">
+  <nav aria-label="Rodapé">
+    <ul>
+      <li><a href="/sobre">Sobre</a></li>
+      <li><a href="/contato">Contato</a></li>
+      <li><a href="/ajuda">Ajuda</a></li>
+      <li><a href="/guias">Guias</a></li>
+      <li><a href="/planos">Planos</a></li>
+      <li><a href="/privacidade" aria-current="page">Privacidade</a></li>
+      <li><a href="/termos">Termos de uso</a></li>
+    </ul>
+  </nav>
+</footer>
+
 </body>
 </html>

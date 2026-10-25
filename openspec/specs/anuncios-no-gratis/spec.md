@@ -9,9 +9,12 @@ Anúncios no plano Grátis: onde a política permite mostrar, o premiado como es
 ### Requirement: Anúncio só onde a política permite
 
 Todo espaço de anúncio SHALL consultar a função pura `podeMostrar(...)`. Ela SHALL negar quando: o plano
-tem `semAnuncios`; o perfil é protegido; o aparelho é o Quest; há captura ativa, intérprete aberto ou
-rodada em andamento; a conta tem menos de três dias; não há consentimento de anúncios; ou, para
-intersticial, o último foi há menos de cinco minutos.
+tem `semAnuncios`; o perfil é protegido E o formato é premiado (o premiado é só para adultos); o aparelho
+é o Quest; há captura ativa, intérprete aberto ou rodada em andamento; a conta tem menos de três dias; não há
+consentimento de anúncios; ou, para intersticial, o último foi há menos de cinco minutos. O anúncio comum
+para o perfil protegido SHALL ser não personalizado e levar o tratamento de idade do Google (abaixo de 13 ou
+idade desconhecida → criança; 13–17 → adolescente). Decisão do dono de 25/10/2026
+(`docs/specs/2026-10-25-site-publico-seo-e-anuncios.md`, Tarefa 3).
 
 #### Scenario: Assinante
 
@@ -20,8 +23,14 @@ intersticial, o último foi há menos de cinco minutos.
 
 #### Scenario: Perfil protegido
 
-- **WHEN** a pessoa é menor, não declarou idade ou está sem conta
-- **THEN** nenhum anúncio é mostrado
+- **WHEN** a pessoa é menor ou não declarou idade, tem conta de três dias e aceitou anúncios
+- **THEN** o anúncio comum pode aparecer, não personalizado e com o tratamento de idade
+- **AND** o premiado nunca aparece
+
+#### Scenario: Sem conta
+
+- **WHEN** a pessoa usa sem conta
+- **THEN** nenhum anúncio é mostrado (não há conta de três dias)
 
 #### Scenario: Durante a captura
 

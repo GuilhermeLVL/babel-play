@@ -9,6 +9,11 @@ export interface PalavraTocada {
   /** A fala de onde ela saiu — é dela que sai o idioma real (`vocabWord.resolveWord`). */
   frase: string;
   lang?: string;
+  /**
+   * Veio de um destaque do assistente (Fase C2): o tipo e, na expressão ou no termo, o sentido que a nuvem já deu —
+   * aí o cartão não consulta o dicionário (a expressão não é a soma das palavras) e o "Salvar" leva o sentido.
+   */
+  realce?: { tipo: 'expressao' | 'termo' | 'nivel'; sentido?: string; rotulo: string };
 }
 
 /** Sem resposta nisto (MT fora, rede lenta), o cartão diz "sem tradução" em vez de esperar para sempre. */
@@ -41,7 +46,8 @@ export default function CartaoDaPalavra({
   aoSalvar?: (item: { palavra: string; frase?: string; lang?: string; traducao?: string }) => Promise<string>;
   aoFechar: () => void;
 }) {
-  const [glosa, setGlosa] = useState<string | null>(aoConsultar ? null : '');
+  const sentidoPronto = alvo.realce?.sentido;
+  const [glosa, setGlosa] = useState<string | null>(sentidoPronto ?? (aoConsultar ? null : ''));
   const [status, setStatus] = useState('');
   const [salvando, setSalvando] = useState(false);
   const fechar = useRef<HTMLButtonElement>(null);
@@ -51,6 +57,11 @@ export default function CartaoDaPalavra({
   }, []);
 
   useEffect(() => {
+    if (sentidoPronto) {
+      setGlosa(sentidoPronto);
+      setStatus('');
+      return;
+    }
     if (!aoConsultar) return;
     let vivo = true;
     setGlosa(null);
@@ -64,7 +75,7 @@ export default function CartaoDaPalavra({
       vivo = false;
       clearTimeout(desistir);
     };
-  }, [alvo, aoConsultar]);
+  }, [alvo, aoConsultar, sentidoPronto]);
 
   const salvar = async () => {
     if (!aoSalvar || salvando) return;
@@ -103,6 +114,11 @@ export default function CartaoDaPalavra({
           <X aria-hidden />
         </button>
       </div>
+      {alvo.realce && (
+        <p className="leg-cartao-realce" data-realce={alvo.realce.tipo}>
+          {alvo.realce.rotulo}
+        </p>
+      )}
       <p className="leg-cartao-glosa" aria-live="polite">
         {glosa === null ? t('Consultando…') : glosa || t('Sem tradução para esta palavra.')}
       </p>

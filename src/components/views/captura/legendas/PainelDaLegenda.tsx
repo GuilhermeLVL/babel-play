@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 
+import { mudarAjustesDoAssistente, useAjustesDoAssistente } from '../../../../lib/assistente/ajustesDoAssistente';
 import type { Leitura } from '../../../../lib/captura/ritmoDaLegenda';
 import { t, tp } from '../../../../lib/i18n';
 import { Interruptor, Segmentos } from '../../vocab/Dialogo';
@@ -35,6 +36,7 @@ export default function PainelDaLegenda({
   aoResetar,
   oculto,
   aoOcultar,
+  assistente,
 }: {
   ap: Aparencia;
   mudar: (patch: Partial<Aparencia>) => void;
@@ -43,6 +45,8 @@ export default function PainelDaLegenda({
   aoResetar: () => void;
   oculto: boolean;
   aoOcultar: () => void;
+  /** O assistente ao vivo está na janela (`nuvem` = os recursos pagos existem para esta conta). */
+  assistente?: { nuvem: boolean };
 }) {
   return (
     <div className="leg-painel">
@@ -148,6 +152,36 @@ export default function PainelDaLegenda({
       <button type="button" className="link" onClick={aoSalvarMeu}>
         {t('Salvar como “Meu perfil”')}
       </button>
+      {assistente && <AssistenteNoPainel nuvem={assistente.nuvem} />}
     </div>
+  );
+}
+
+/**
+ * O ASSISTENTE no Personalizar (Fase C2): os mesmos interruptores de Ajustes da captura, o essencial. Os pagos só
+ * aparecem quando existem para a conta (flag e plano); a correção da fala nasce desligada (opt-in).
+ */
+function AssistenteNoPainel({ nuvem }: { nuvem: boolean }) {
+  const aj = useAjustesDoAssistente();
+  const linha = (rotulo: string, ligado: boolean, aoTrocar: () => void) => (
+    <div className="entre">
+      <span>{rotulo}</span>
+      <Interruptor ligado={ligado} rotulo={rotulo} aoTrocar={aoTrocar} />
+    </div>
+  );
+  return (
+    <>
+      <span className="label-mono">{t('Assistente ao vivo')}</span>
+      {linha(t('Palavras acima do meu nível'), aj.niveis, () => mudarAjustesDoAssistente({ niveis: !aj.niveis }))}
+      {nuvem && (
+        <>
+          {linha(t('Expressões e gírias'), aj.expressoes, () =>
+            mudarAjustesDoAssistente({ expressoes: !aj.expressoes }),
+          )}
+          {linha(t('Termos e siglas'), aj.termos, () => mudarAjustesDoAssistente({ termos: !aj.termos }))}
+          {linha(t('Correção da minha fala'), aj.correcao, () => mudarAjustesDoAssistente({ correcao: !aj.correcao }))}
+        </>
+      )}
+    </>
   );
 }

@@ -32,6 +32,11 @@ export interface QuadroDaLegenda {
   /** Escala da letra escolhida pela pessoa (1 = 100%). */
   escala: number;
   pausado: boolean;
+  /**
+   * A glosa do assistente ao vivo (Fase C2): UMA linha curta embaixo da legenda ("break a leg: boa sorte"), ou nada.
+   * Só leitura, como o resto do quadro.
+   */
+  glosa?: string;
   /** Os textos da moldura, já traduzidos para a interface (`t()` fica com quem chama). */
   textos: { vazio: string; pausada: string };
 }
@@ -45,9 +50,30 @@ export const DIMENSOES_DO_QUADRO: Readonly<Record<Formato, { largura: number; al
 };
 
 const CORES = {
-  escuro: { fundo: '#141210', texto: '#ffffff', traducao: '#ffea00', quem: 'rgba(255,255,255,0.62)', selo: '#ffb597' },
-  preto: { fundo: '#000000', texto: '#ffffff', traducao: '#ffea00', quem: 'rgba(255,255,255,0.62)', selo: '#ffb597' },
-  claro: { fundo: '#f6f1e8', texto: '#1d1915', traducao: '#7a4e00', quem: 'rgba(29,25,21,0.62)', selo: '#9a3412' },
+  escuro: {
+    fundo: '#141210',
+    texto: '#ffffff',
+    traducao: '#ffea00',
+    quem: 'rgba(255,255,255,0.62)',
+    selo: '#ffb597',
+    glosa: '#ffcfb8',
+  },
+  preto: {
+    fundo: '#000000',
+    texto: '#ffffff',
+    traducao: '#ffea00',
+    quem: 'rgba(255,255,255,0.62)',
+    selo: '#ffb597',
+    glosa: '#ffcfb8',
+  },
+  claro: {
+    fundo: '#f6f1e8',
+    texto: '#1d1915',
+    traducao: '#7a4e00',
+    quem: 'rgba(29,25,21,0.62)',
+    selo: '#9a3412',
+    glosa: '#8a2f10',
+  },
 } as const;
 
 const FONTE = '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif';
@@ -118,6 +144,25 @@ export function desenharQuadro(ctx: CanvasRenderingContext2D, q: QuadroDaLegenda
     });
     const espacoEntre = q.formato === 'conversa' ? tamO * 0.7 : tamO * 0.45;
     let y = H - margem * 0.7;
+    /* A glosa mora no pé do quadro, com um ponto à esquerda; a legenda sobe para dar lugar a ela. */
+    if (q.glosa) {
+      const tamG = Math.round(tamO * 0.56);
+      ctx.font = `600 ${tamG}px ${FONTE}`;
+      const [linha] = quebrarLinhas(q.glosa, larguraUtil - tamG, (s) => ctx.measureText(s).width, 1);
+      const texto = linha ?? q.glosa;
+      const largura = ctx.measureText(texto).width;
+      const yG = H - margem * 0.55;
+      const x0 = centro ? (W - largura) / 2 : margem + tamG * 0.6;
+      /* Um ponto na cor da marca de expressão (o mesmo sinal do sublinhado da janela), não um traço que se leia "|". */
+      ctx.fillStyle = cor.glosa;
+      ctx.beginPath();
+      ctx.arc(x0 - tamG * 0.5, yG - tamG * 0.34, Math.max(3, tamG * 0.17), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.textAlign = 'left';
+      ctx.fillText(texto, x0, yG);
+      ctx.textAlign = centro ? 'center' : 'left';
+      y = yG - tamG * 1.35;
+    }
     for (let i = blocos.length - 1; i >= 0; i--) {
       const bloco = blocos[i];
       const alturaDoBloco = bloco.reduce((s, l) => s + l.altura, 0);

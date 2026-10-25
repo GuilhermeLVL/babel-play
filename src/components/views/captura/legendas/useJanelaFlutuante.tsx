@@ -1,4 +1,4 @@
-import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   type ContextoDaCaptura,
@@ -18,7 +18,9 @@ import {
 import { criarLegendaEmVideo, type LegendaEmVideo as Controlador } from '../../../../lib/legendas/legendaEmVideo';
 import DocumentPiP from '../../../DocumentPiP';
 import { toast } from '../../../Toast';
-import LegendasFlutuantes from '../LegendasFlutuantes';
+import AbaDoAssistente from '../assistente/AbaDoAssistente';
+import { useAssistenteAoVivo } from '../assistente/useAssistenteAoVivo';
+import LegendasFlutuantes, { type AbaDaJanela } from '../LegendasFlutuantes';
 import LegendaEmVideo from './LegendaEmVideo';
 import LegendaFlutuanteDoPrototipo from './LegendaFlutuanteDoPrototipo';
 import type { LegendaAoVivo } from './LinhaDaLegenda';
@@ -56,6 +58,8 @@ interface Opcoes {
   aoOuvir?: (texto: string, lang: string | undefined, lenta: boolean) => void;
   aoSalvarPalavra?: (item: { palavra: string; frase?: string; lang?: string; traducao?: string }) => Promise<string>;
   idiomaDaTraducao?: (lang: string | undefined) => string | undefined;
+  /** O idioma da pessoa: o assistente ao vivo explica e traduz nele (e não ajuda nas falas nele). */
+  langDaPessoa?: string;
 }
 
 /**
@@ -246,6 +250,38 @@ export function useJanelaFlutuante(o: Opcoes) {
     };
   }, [janela]);
 
+  /* ── O ASSISTENTE AO VIVO (Fase C2): na Document PiP inteiro; no PiP de vídeo, só a glosa desenhada. ── */
+  const [pausaDaJanela, setPausaDaJanela] = useState(false);
+  const assistente = useAssistenteAoVivo({
+    aberta: o.ativo && ((ativo === 'documento' && !!janela) || ativo === 'video'),
+    pausado: ativo === 'video' ? pausaDoVideo.pausado : pausaDaJanela,
+    falas: o.falas,
+    langDaPessoa: o.langDaPessoa || 'pt',
+    soLeitura: caminho === 'video',
+  });
+  const { janela: doAssistente, recursos: recursosDoAssistente, glossario, paradoPorCota } = assistente;
+  const abasDoAssistente: AbaDaJanela[] | undefined = useMemo(
+    () =>
+      recursosDoAssistente.algum
+        ? [
+            {
+              id: 'assistente',
+              rotulo: t('Assistente'),
+              conteudo: (
+                <AbaDoAssistente
+                  itens={glossario}
+                  recursos={recursosDoAssistente}
+                  paradoPorCota={paradoPorCota}
+                  aoSalvar={o.aoSalvarPalavra}
+                  aoComoRespondo={() => doAssistente.pedirComoRespondo()}
+                />
+              ),
+            },
+          ]
+        : undefined,
+    [recursosDoAssistente, glossario, paradoPorCota, o.aoSalvarPalavra, doAssistente],
+  );
+
   const trocarFormato = useCallback(
     (f: Formato) => {
       setFormato(f);
@@ -270,6 +306,10 @@ export function useJanelaFlutuante(o: Opcoes) {
             aoOuvir={o.aoOuvir}
             aoSalvarPalavra={o.aoSalvarPalavra}
             aoFechar={fechar}
+            abasExtras={abasDoAssistente}
+            abaInicial={assistente.ajustes.abrirNaAba ? 'assistente' : undefined}
+            assistente={doAssistente}
+            aoMudarPausa={setPausaDaJanela}
           />
         </DocumentPiP>
       )}
@@ -281,6 +321,7 @@ export function useJanelaFlutuante(o: Opcoes) {
           formato={formato}
           pausado={pausaDoVideo.pausado}
           seloDePausa={pausaDoVideo.pausado && !pausaDoVideo.pelaJanela}
+          glosas={assistente.glosasDoVideo}
         />
       )}
       {/* O último recurso: a janelinha do protótipo, que se arrasta e se joga dentro da página. */}

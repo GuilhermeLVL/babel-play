@@ -24,6 +24,7 @@ export default function LegendaEmVideo({
   formato,
   pausado,
   seloDePausa = pausado,
+  glosas,
 }: {
   aberta: boolean;
   controlador: Controlador | null;
@@ -35,6 +36,11 @@ export default function LegendaEmVideo({
    * para, o quadro novo nem chegaria a aparecer, e o próprio botão já mostra a pausa.
    */
   seloDePausa?: boolean;
+  /**
+   * A glosa do assistente ao vivo por fala (Fase C2): no máximo UMA linha curta embaixo da legenda, a da fala mais nova
+   * à vista. Na faixa (jogo), nenhuma: lá fica só o texto.
+   */
+  glosas?: ReadonlyMap<string, string>;
 }) {
   /* A aparência guardada (fundo, o que mostrar, letra, ritmo), relida a cada abertura. */
   const [ap, setAp] = useState(lerAparencia);
@@ -86,6 +92,8 @@ export default function LegendaEmVideo({
   aVistaRef.current = aVista;
   useEffect(() => setCongeladas(pausado ? aVistaRef.current : null), [pausado]);
   const desenhadas = congeladas ?? aVista;
+  const maisNova = desenhadas[desenhadas.length - 1];
+  const glosa = formato !== 'faixa' && maisNova ? glosas?.get(maisNova.id) : undefined;
 
   const quadro = {
     falas: desenhadas.map((f) => ({ original: f.original, traducao: f.traducao || undefined, quem: f.quem })),
@@ -94,6 +102,7 @@ export default function LegendaEmVideo({
     mostrar: ap.mostrar,
     escala: ap.tam / 100,
     pausado: seloDePausa,
+    ...(glosa ? { glosa } : {}),
     textos: { vazio: t('Esperando a primeira fala'), pausada: t('Pausada') },
   };
   /* O controlador compara a chave e só pinta o que mudou. */

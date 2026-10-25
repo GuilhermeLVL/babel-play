@@ -208,6 +208,7 @@ import ModelPrepPanel, { LinhaDaOfertaDoPreciso, type ModelPrepState } from '../
 import { toast } from '../Toast';
 import { Dialogo, fecharDialogoDe } from '../ui';
 import AjudaDoMicrofone from './captura/AjudaDoMicrofone';
+import AjustesDoAssistente from './captura/assistente/AjustesDoAssistente';
 import AvisoDoTradutorLocal from './captura/AvisoDoTradutorLocal';
 import AvisoDoUsoDoDia from './captura/AvisoDoUsoDoDia';
 import CapturaNaoSalva from './captura/CapturaNaoSalva';
@@ -2989,6 +2990,7 @@ export default function LiveCapture({
     aoOuvir: ouvirNaLegenda,
     aoSalvarPalavra: salvarNaLegenda,
     idiomaDaTraducao: (lang) => (lang ? toBcp47(destinoDaFala(lang)) || destinoDaFala(lang) : undefined),
+    langDaPessoa: sourceLang,
   });
   /* "Abrir ao começar a legendar" (Ajustes da captura). A janela por cima de tudo só abre com um gesto
      ainda valendo (o navegador exige): sem ele (o seletor da tela demorou), o aviso traz o botão. O
@@ -3844,6 +3846,8 @@ export default function LiveCapture({
                 </CampoLinha>
               )}
             </section>
+            {/* O ASSISTENTE AO VIVO da legenda flutuante (Fase C2). */}
+            {!noQuest && <AjustesDoAssistente />}
           </div>
           <div className="dlg-pe">
             <button type="button" className="link" style={{ marginRight: 'auto' }} onClick={voltarAoPadrao}>

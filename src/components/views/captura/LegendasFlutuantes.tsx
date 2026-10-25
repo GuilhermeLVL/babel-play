@@ -1,9 +1,11 @@
 import '../../../styles/legendas.css';
 import '../../../styles/legendasFlutuantes.css';
+import '../../../styles/assistenteAoVivo.css';
 
-import { ArrowDown, AudioLines, MousePointerClick } from 'lucide-react';
+import { ArrowDown, AudioLines, MessageCircleReply, MousePointerClick } from 'lucide-react';
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { assistenteNoLayout, type MarcaNaLinha } from '../../../core/assistente/telaDoAssistente';
 import {
   falasAVista,
   type Formato,
@@ -29,6 +31,9 @@ import {
 } from '../../../lib/estilosDeLegenda';
 import { t, tp } from '../../../lib/i18n';
 import { toast } from '../../Toast';
+import { rotuloDoNivel, rotuloDoTipo } from './assistente/copyDoAssistente';
+import FolhaComoRespondo from './assistente/FolhaComoRespondo';
+import type { AssistenteDaJanela } from './assistente/useAssistenteAoVivo';
 import {
   type Aparencia,
   CHAVE,
@@ -123,6 +128,9 @@ export default function LegendasFlutuantes({
   formatoInicial,
   aoTrocarFormato,
   abasExtras,
+  abaInicial,
+  assistente,
+  aoMudarPausa,
 }: {
   /** As últimas falas da captura, em ordem. A janela decide quais e quando aparecem. */
   falas: LegendaAoVivo[];
@@ -145,6 +153,12 @@ export default function LegendasFlutuantes({
   aoTrocarFormato?: (f: Formato) => void;
   /** Abas além de "Legendas" (Fase C: o Assistente). */
   abasExtras?: readonly AbaDaJanela[];
+  /** A aba em que a janela abre (uma das `abasExtras`; sem ela, "Legendas"). */
+  abaInicial?: string;
+  /** O assistente ao vivo (Fase C2): marcas, correções e o "Como respondo?". Ausente = nada do assistente. */
+  assistente?: AssistenteDaJanela;
+  /** A janela parou (pausada, escondida, recolhida): quem gasta chamadas automáticas espera. */
+  aoMudarPausa?: (parada: boolean) => void;
 }) {
   const [ap, setAp] = useState<Aparencia>(lerAparencia);
   /* O formato SUGERIDO vale só nesta abertura: não sobrescreve o modo guardado. Quando a pessoa
@@ -269,6 +283,8 @@ export default function LegendasFlutuantes({
   }, [naJanela]);
   const formato = FORMATO_DO_MODO[modo];
   const layout = layoutPorTamanho(formato, tamanho);
+  const doAssistente = assistenteNoLayout(layout);
+  const podeResponder = !!assistente?.recursos.comoRespondo && doAssistente.comoRespondo && !recolhido;
   const modoDoLayout = MODO_DO_LAYOUT[layout];
   const quantasAVista = falasAVista(layout, tamanho, ap.visiveis);
   /* Fora da PiP a letra é a do protótipo (`--leg-tam`); dentro, acompanha a largura da janela. */
@@ -285,7 +301,9 @@ export default function LegendasFlutuantes({
   }, []);
 
   /* ── AS ABAS (só com abas extras) ─────────────────────────────────────────────────────────── */
-  const [aba, setAba] = useState('legendas');
+  const [aba, setAba] = useState(() =>
+    abaInicial && abasExtras?.some((a) => a.id === abaInicial) ? abaInicial : 'legendas',
+  );
   const abaExtra = abasExtras?.find((a) => a.id === aba);
 
   /* ── O RITMO ──────────────────────────────────────────────────────────────────────────────── */
@@ -299,7 +317,8 @@ export default function LegendasFlutuantes({
   const [cursor, setCursor] = useState<string | null>(null);
   /* Pausa efetiva: o botão, o cartão aberto (a fala não pode sair debaixo dele) e, se ligado,
      o mouse em cima ou o dedo segurando a janela. */
-  const pausado = pausaManual || !!cartao || (ap.pausarAoPassar && (sobre || segurando));
+  const folhaAberta = !!assistente && assistente.comoRespondo.estado !== 'fechado';
+  const pausado = pausaManual || !!cartao || folhaAberta || (ap.pausarAoPassar && (sobre || segurando));
 
   const aMostra = useCallback(
     (f: LegendaAoVivo) => ap.mostrar === 'traducao' || traducaoAMostra(modoDaTraducao, trocas[f.id]),
@@ -399,9 +418,30 @@ export default function LegendasFlutuantes({
     setCartao({ palavra, frase: f.original, lang: f.lang });
   }, []);
 
+  const tocarMarca = useCallback((m: MarcaNaLinha, f: LegendaAoVivo) => {
+    const ids = idsAVistaRef.current;
+    setCartaoNoAlto(ids.indexOf(f.id) >= ids.length / 2);
+    setCartao({
+      palavra: m.texto,
+      frase: f.original,
+      lang: f.lang,
+      realce: {
+        tipo: m.tipo,
+        sentido: m.sentido,
+        rotulo: m.tipo === 'nivel' ? rotuloDoNivel(m.nivel, m.escala) : rotuloDoTipo(m.tipo),
+      },
+    });
+  }, []);
+
   useEffect(() => {
     idsAVistaRef.current = idsAVista;
   });
+
+  /* Quem gasta chamadas automáticas (o assistente) espera enquanto a janela está parada. */
+  const parada = pausado || oculto || recolhido;
+  useEffect(() => {
+    aoMudarPausa?.(parada);
+  }, [parada, aoMudarPausa]);
 
   /* ── LEITOR DE TELA: só a fala NOVA e já fechada é anunciada, nunca cada parcial. ─────────── */
   const anunciada = useRef<string | null>(ritmo.atual);
@@ -415,12 +455,19 @@ export default function LegendasFlutuantes({
 
   /* ── TECLADO ───────────────────────────────────────────────────────────────────────────────── */
   const teclar = (e: KeyboardEvent) => {
-    if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.defaultPrevented) return;
+    /* Alt+R (Option+R no Mac): "Como respondo?", onde o botão existe. `code`, porque no Mac a tecla vira "®". */
+    if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyR' && !e.repeat && podeResponder) {
+      e.preventDefault();
+      assistente?.pedirComoRespondo(emFoco?.id);
+      return;
+    }
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
     const alvo = e.target as HTMLElement | null;
     if (alvo?.closest?.('input,select,textarea,[contenteditable="true"],.leg-cartao')) return;
     const tecla = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     if (tecla === ' ') {
-      if (alvo?.closest?.('button')) return; // o próprio botão já responde ao Espaço
+      if (alvo?.closest?.('button,[role="button"]')) return; // o próprio botão (ou a marca) já responde ao Espaço
       alternarPausa();
     } else if (tecla === 'ArrowLeft') navegar(-1);
     else if (tecla === 'ArrowRight') navegar(1);
@@ -496,6 +543,10 @@ export default function LegendasFlutuantes({
           aoOuvir={aoOuvir ? ouvirFala : undefined}
           aoCopiar={copiar}
           aoSalvarFrase={aoSalvarPalavra ? salvarFrase : undefined}
+          marcas={assistente?.marcas.get(id)}
+          marcasSutis={doAssistente.marcasSutis}
+          aoTocarMarca={assistente ? tocarMarca : undefined}
+          correcao={doAssistente.correcao ? assistente?.correcoes.get(id) : undefined}
         />
       );
     })
@@ -520,7 +571,7 @@ export default function LegendasFlutuantes({
   } as CSSProperties;
 
   const estudo = layout === 'estudo';
-  const cartaoAberto = !!cartao && !recolhido && !abaExtra;
+  const cartaoAberto = !!cartao && !recolhido && !abaExtra && !folhaAberta;
   const classes = [
     'leg-flut',
     'leg-limpa',
@@ -530,6 +581,7 @@ export default function LegendasFlutuantes({
     pausado ? 'pausado' : '',
     controles || recolhido ? 'com-controles' : '',
     letraPx ? 'letra-da-janela' : '',
+    abaExtra ? 'na-aba-extra' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -657,10 +709,33 @@ export default function LegendasFlutuantes({
           aoFechar={() => setCartao(null)}
         />
       )}
-      {estudo && !cartaoAberto && !recolhido && !abaExtra && (
+      {estudo && !cartaoAberto && !folhaAberta && !recolhido && !abaExtra && (
         <p className="leg-estudo-dica">
           <MousePointerClick aria-hidden /> {t('Toque numa palavra para ver o significado, ouvir e salvar.')}
         </p>
+      )}
+      {podeResponder && !abaExtra && !folhaAberta && !cartaoAberto && (
+        <button
+          type="button"
+          className="leg-responder"
+          aria-keyshortcuts="Alt+R"
+          title={`${t('Sugestões para você responder com as suas palavras')} (Alt+R)`}
+          onClick={() => assistente?.pedirComoRespondo(emFoco?.id)}
+        >
+          <MessageCircleReply aria-hidden /> {t('Como respondo?')}
+        </button>
+      )}
+      {assistente && folhaAberta && !recolhido && assistente.comoRespondo.estado !== 'fechado' && (
+        <FolhaComoRespondo
+          estado={assistente.comoRespondo}
+          protegido={assistente.protegido}
+          aoFechar={assistente.fecharComoRespondo}
+          aoTentarDeNovo={() =>
+            assistente.comoRespondo.estado !== 'fechado' && assistente.pedirComoRespondo(assistente.comoRespondo.falaId)
+          }
+          aoAutorizar={assistente.autorizarEPedir}
+          aoOuvir={aoOuvir}
+        />
       )}
       {aviso && (
         <p className="leg-aviso" role="status">
@@ -679,6 +754,7 @@ export default function LegendasFlutuantes({
           aoResetar={() => mudar({ ...PADRAO })}
           oculto={oculto}
           aoOcultar={() => setOculto((v) => !v)}
+          assistente={assistente ? { nuvem: assistente.recursos.nuvem } : undefined}
         />
       )}
     </div>

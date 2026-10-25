@@ -1,0 +1,403 @@
+/*
+ * O ASSISTENTE AO VIVO NA LEGENDA FLUTUANTE (Fase C2) — `components/views/captura/assistente/`.
+ *
+ * SILENCIOSO: o automático é só um sublinhado pontilhado na palavra (sem fundo, sem piscar, sem animação); o sentido
+ * aparece no `title` (passar o mouse) e no cartão (tocar ou Enter). Expressão e termo têm cor de fio própria; a palavra
+ * acima do nível usa a cor do texto. Na faixa (jogo), o fio fica mais fino e mais apagado. As cores vêm dos tokens da
+ * janela (`legendasFlutuantes.css`, `data-fundo`).
+ */
+.leg-flut[data-fundo] {
+  --leg-marca-expressao: #ffb597;
+  --leg-marca-termo: #8fd0ff;
+  --leg-marca-nivel: rgba(255, 255, 255, 0.72);
+}
+.leg-flut[data-fundo='claro'] {
+  --leg-marca-expressao: #b4400f;
+  --leg-marca-termo: #1f5f99;
+  --leg-marca-nivel: rgba(29, 25, 21, 0.62);
+}
+.leg-marca {
+  cursor: help;
+  border-radius: 3px;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-thickness: max(2px, 0.09em);
+  text-underline-offset: 0.2em;
+  text-decoration-skip-ink: none;
+  text-decoration-color: var(--leg-marca-nivel, currentColor);
+}
+.leg-marca[data-marca='expressao'] {
+  text-decoration-color: var(--leg-marca-expressao, #ffb597);
+}
+.leg-marca[data-marca='termo'] {
+  text-decoration-color: var(--leg-marca-termo, #8fd0ff);
+}
+.leg-marca:hover {
+  background: var(--leg-ui-suave, rgba(255, 255, 255, 0.14));
+}
+.leg-marca:focus-visible {
+  outline: 2px solid var(--leg-foco, #ffb597);
+  outline-offset: 1px;
+}
+.leg-marca [data-palavra]:hover {
+  background: none;
+}
+.marcas-sutis .leg-marca {
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.16em;
+}
+.marcas-sutis .leg-marca[data-marca='nivel'] {
+  text-decoration-color: color-mix(in srgb, var(--leg-marca-nivel) 70%, transparent);
+}
+
+/* A correção gentil da própria fala: uma linha pequena embaixo da fala, sem vermelho e sem "erro". */
+.leg-correcao {
+  display: block;
+  margin-top: 0.15em;
+  font-size: 0.72em;
+  line-height: 1.35;
+  color: var(--leg-ui-fraca, rgba(255, 255, 255, 0.66));
+}
+.leg-correcao svg {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.12em;
+  color: var(--leg-marca-expressao, #ffb597);
+}
+.leg-correcao > span[lang] {
+  color: var(--leg-ui, #fff);
+  font-weight: 600;
+}
+.leg-flut.leg-limpa[data-layout='legenda'] .leg-correcao-dica {
+  display: none;
+}
+
+/* "Como respondo?": um botão no canto de baixo, que aparece com os controles (ou com o foco). */
+.leg-responder {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--leg-borda, rgba(255, 255, 255, 0.16));
+  background: var(--leg-barra-fundo, rgba(31, 27, 23, 0.94));
+  color: var(--leg-ui, #fff);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+  font: 600 12.5px var(--font-body, inherit);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s var(--ease, ease-out);
+}
+.leg-responder svg {
+  width: 15px;
+  height: 15px;
+}
+.leg-flut.com-controles > .leg-responder,
+.leg-responder:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+.leg-responder:hover {
+  background: var(--leg-superficie, #1f1b17);
+}
+.leg-flut .leg-responder:focus-visible {
+  outline: 2px solid var(--leg-foco, #ffb597);
+  outline-offset: 1px;
+}
+
+/* A FOLHA do "Como respondo?": compacta, por cima do texto, rola se não couber (~440×300). */
+.leg-folha {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  z-index: 6;
+  display: grid;
+  gap: 8px;
+  max-height: calc(100% - 16px);
+  overflow-y: auto;
+  padding: 10px 12px 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--leg-borda, rgba(255, 255, 255, 0.14));
+  background: var(--leg-superficie, #1f1b17);
+  color: var(--leg-ui, #fff);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+  font-size: 14px;
+  text-align: left;
+}
+.leg-folha-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.leg-folha-topo b {
+  font: 700 1.05em var(--font-display, inherit);
+}
+.leg-folha-topo button {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  display: grid;
+  place-items: center;
+}
+.leg-folha-topo button:hover {
+  background: var(--leg-ui-suave, rgba(255, 255, 255, 0.14));
+}
+.leg-folha svg {
+  width: 15px;
+  height: 15px;
+}
+.leg-folha-sub,
+.leg-folha-nota,
+.leg-folha-status {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--leg-ui-fraca, rgba(255, 255, 255, 0.66));
+}
+.leg-folha-status:empty {
+  display: none;
+}
+.leg-folha-frase {
+  margin: 0;
+  overflow: hidden;
+  font-size: 12.5px;
+  font-style: italic;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--leg-ui-fraca, rgba(255, 255, 255, 0.66));
+}
+.leg-folha-esperando {
+  display: grid;
+  gap: 6px;
+}
+.leg-folha-esperando span {
+  height: 34px;
+  border-radius: 10px;
+  background: var(--leg-ui-suave, rgba(255, 255, 255, 0.1));
+  animation: leg-respira 1.6s ease-in-out infinite;
+}
+.leg-folha-esperando span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.leg-folha-esperando span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes leg-respira {
+  50% {
+    opacity: 0.45;
+  }
+}
+.leg-sugestoes {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.leg-sugestao {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--leg-bolha, rgba(255, 255, 255, 0.07));
+}
+.leg-sugestao-texto {
+  margin: 0;
+  font-weight: 650;
+  line-height: 1.3;
+}
+.leg-sugestao-trad {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--leg-trad, #ffea00);
+}
+.leg-sugestao-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+.leg-sugestao-tom {
+  margin-right: auto;
+  font: 600 11px var(--font-mono, monospace);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--leg-ui-fraca, rgba(255, 255, 255, 0.66));
+}
+.leg-folha .leg-acao-texto {
+  justify-self: start;
+  min-height: 30px;
+  padding: 0 10px;
+  border-color: var(--leg-borda, rgba(255, 255, 255, 0.22));
+  color: var(--leg-ui, #fff);
+}
+.leg-folha .leg-acao-texto:hover {
+  background: var(--leg-ui-suave, rgba(255, 255, 255, 0.1));
+}
+.leg-flut .leg-folha button:focus-visible {
+  outline: 2px solid var(--leg-foco, #ffb597);
+  outline-offset: 1px;
+}
+
+/* O cartão da palavra que veio de um destaque: o tipo numa linha pequena. */
+.leg-cartao-realce {
+  margin: -4px 0 0;
+  font: 600 11px var(--font-mono, monospace);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--leg-ui-fraca, rgba(255, 255, 255, 0.66));
+}
+.leg-cartao-realce[data-realce='expressao'] {
+  color: var(--leg-marca-expressao, #ffb597);
+}
+.leg-cartao-realce[data-realce='termo'] {
+  color: var(--leg-marca-termo, #8fd0ff);
+}
+
+/* AS ABAS na janela limpa: no pé, à esquerda, com os controles (ou sempre, dentro de uma aba extra). Na faixa (jogo),
+   nenhuma: a tira é baixa e as abas cobririam o texto. */
+.leg-flut.leg-limpa > .leg-abas {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 4;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid var(--leg-borda);
+  background: var(--leg-barra-fundo);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s var(--ease, ease-out);
+}
+.leg-flut.leg-limpa > .leg-abas button {
+  min-height: 28px;
+  border-radius: 999px;
+}
+.leg-flut.leg-limpa.com-controles > .leg-abas,
+.leg-flut.leg-limpa.na-aba-extra > .leg-abas,
+.leg-flut.leg-limpa > .leg-abas:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
+.leg-flut.leg-limpa.recolhido > .leg-abas,
+.leg-flut.leg-limpa[data-layout='faixa']:not(.na-aba-extra) > .leg-abas {
+  display: none;
+}
+.leg-flut.leg-limpa > .leg-aba-extra {
+  padding: 12px 14px 48px;
+  font-size: 14px;
+}
+.leg-flut.leg-limpa.com-controles > .leg-aba-extra {
+  padding-top: 50px;
+}
+
+/* A ABA ASSISTENTE: o glossário da sessão, uma linha por item. */
+.leg-assistente {
+  display: grid;
+  gap: 8px;
+}
+.leg-assistente-responder {
+  justify-self: start;
+}
+.leg-assistente-vazio {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--leg-ui-fraca, rgba(255, 255, 255, 0.66));
+}
+.leg-glossario {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.leg-glossario-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 2px;
+  border-bottom: 1px solid var(--leg-borda, rgba(255, 255, 255, 0.12));
+}
+.leg-glossario-txt {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+}
+.leg-glossario-txt b {
+  font-weight: 700;
+  text-decoration: underline dotted var(--leg-marca-nivel) 2px;
+  text-underline-offset: 0.2em;
+}
+.leg-glossario-item[data-marca='expressao'] b {
+  text-decoration-color: var(--leg-marca-expressao);
+}
+.leg-glossario-item[data-marca='termo'] b {
+  text-decoration-color: var(--leg-marca-termo);
+}
+.leg-glossario-tipo {
+  font: 600 10.5px var(--font-mono, monospace);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--leg-ui-fraca, rgba(255, 255, 255, 0.66));
+}
+.leg-glossario-sentido,
+.leg-glossario-status {
+  display: block;
+  font-size: 12.5px;
+  color: var(--leg-ui-fraca, rgba(255, 255, 255, 0.66));
+}
+.leg-glossario-salvar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--leg-borda, rgba(255, 255, 255, 0.22));
+  background: none;
+  color: var(--leg-ui, #fff);
+  font: 600 12px var(--font-body, inherit);
+}
+.leg-glossario-salvar:hover {
+  background: var(--leg-ui-suave, rgba(255, 255, 255, 0.1));
+}
+.leg-glossario-salvar svg {
+  width: 14px;
+  height: 14px;
+}
+.leg-flut .leg-glossario-salvar:focus-visible {
+  outline: 2px solid var(--leg-foco, #ffb597);
+  outline-offset: 1px;
+}
+@container (max-width: 360px) {
+  .leg-glossario-salvar span {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leg-responder,
+  .leg-flut.leg-limpa > .leg-abas {
+    transition: none;
+  }
+  .leg-folha-esperando span {
+    animation: none;
+  }
+}

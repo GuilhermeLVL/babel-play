@@ -71,6 +71,22 @@ vi.mock('../src/gateway/adapters/whisperLocal', () => ({
   },
 }))
 
+/** A nuvem falsa (groq-whisper): cada chamada fica à espera do teste. */
+const nuvem = vi.hoisted(() => ({
+  transcribePcm: vi.fn(async (_pcm: Float32Array, _sr: number, _o?: unknown): Promise<{ text: string }> => {
+    throw new Error('sem roteiro')
+  }),
+}))
+vi.mock('../src/gateway/adapters/groqWhisper', () => ({
+  GroqWhisperStt: class {
+    readonly id = 'groq-whisper'
+    readonly supportsBlob = true
+    readonly supportsLiveMic = false
+    isAvailable = () => true
+    transcribePcm = nuvem.transcribePcm
+  },
+}))
+
 function perfil(stt: Array<{ adapterId: string }>) {
   return {
     id: 'teste',
@@ -100,6 +116,10 @@ beforeEach(() => {
   parakeet.disponivel = true
   parakeet.fila = 0
   for (const f of [parakeet.preload, parakeet.transcribePcm, parakeet.liberar]) f.mockClear()
+  nuvem.transcribePcm.mockReset()
+  nuvem.transcribePcm.mockImplementation(async () => {
+    throw new Error('sem roteiro')
+  })
   parakeet.preload.mockImplementation(async () => {})
   parakeet.transcribePcm.mockImplementation(async () => ({ text: 'do parakeet' }))
   whisper.modelos = []
@@ -317,6 +337,36 @@ describe('reservaParakeet (a reserva pesada da nuvem)', () => {
     expect(whisper.preload).not.toHaveBeenCalled() // nunca recarregado enquanto o Parakeet atende
     expect(whisper.modelos.length).toBe(modelosAntes) // nenhum setModel: o tiny do regulador fica
     expect((await gw.stt.transcribePcm(pcm(), 16000, { languageHint: 'pt' })).engine).toBe('parakeet-local')
+    expect(whisper.preload).not.toHaveBeenCalled()
+  })
+
+  /* Ajuste antes do merge (A-1): a fala X já estava na nuvem quando a pausa veio (por outra fala, Y), com
+     a cadeia montada ANTES (nuvem → Whisper). Se X falhar depois que o Parakeet ficou pronto e o Whisper
+     foi liberado, o próximo motor é reavaliado na queda: X vai ao Parakeet, e o Whisper liberado nunca é
+     chamado (chamá-lo recarregaria o worker: três modelos juntos). */
+  it('fala em voo na nuvem que cai depois da troca vai ao Parakeet; o Whisper liberado não é chamado nem recarregado', async () => {
+    const { gw } = await montar([{ adapterId: 'groq-whisper' }, { adapterId: 'whisper-local' }])
+    gw.stt.setRoute(ROTA_DE_NUVEM)
+    whisper.fila = 0
+    const emVoo = adiada<{ text: string }>()
+    nuvem.transcribePcm.mockImplementationOnce(() => emVoo.promessa)
+    const falaX = gw.stt.transcribePcm(pcm(), 16000, { languageHint: 'pt' })
+    await espera(0)
+    // A pausa (por outra fala): a reserva liga, o Parakeet carrega e o Whisper ocioso é liberado.
+    await gw.stt.reservaParakeet(true)
+    expect(gw.stt.parakeetAtivo()).toBe(true)
+    expect(whisper.liberar).toHaveBeenCalledTimes(1)
+    whisper.transcribePcm.mockClear()
+    whisper.preload.mockClear()
+
+    emVoo.promessa.catch(() => undefined)
+    // X falha na nuvem agora.
+    nuvem.transcribePcm.mockClear()
+    const rejeitar = new Error('groq-whisper HTTP 503')
+    ;(emVoo as unknown as { resolver: (v: unknown) => void }).resolver(Promise.reject(rejeitar))
+    const r = await falaX
+    expect(r.engine).toBe('parakeet-local') // nenhuma fala perdida
+    expect(whisper.transcribePcm).not.toHaveBeenCalled()
     expect(whisper.preload).not.toHaveBeenCalled()
   })
 

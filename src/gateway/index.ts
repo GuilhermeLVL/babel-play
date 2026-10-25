@@ -172,7 +172,7 @@ function obterParakeet(): Promise<SttDoParakeet> {
 }
 
 /** A reserva do Parakeet (`reservaParakeet`): a geração cancela a ligação em curso; `ligada` diz se ela está de pé. */
-const reservaDoParakeet = { geracao: 0, ligada: false };
+const reservaDoParakeet = { geracao: 0, ligada: false, whisperLiberado: false };
 /** De quanto em quanto tempo a reserva confere se o Whisper terminou as falas em voo. */
 const ESPERA_DO_WHISPER_OCIOSO_MS = 50;
 
@@ -713,6 +713,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
           // Rota nova (nova preparação): a reserva do Parakeet da rota anterior acaba aqui.
           reservaDoParakeet.geracao++;
           reservaDoParakeet.ligada = false;
+          reservaDoParakeet.whisperLiberado = false;
           /* PARAKEET: entra na cadeia antes do Whisper local, que fica de RESERVA com o base (o
              multilíngue que cabe em qualquer computador), sem dtype nem backend forçados. Nada do
              Whisper é carregado aqui: só se o Parakeet falhar. Qualquer outro modelo o tira da cadeia. */
@@ -770,6 +771,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
         if (!ativa) {
           if (!reservaDoParakeet.ligada) return;
           reservaDoParakeet.ligada = false;
+          reservaDoParakeet.whisperLiberado = false;
           usarParakeet(false);
           for (const a of whispers()) if (a.isAvailable() && a.preload) await a.preload().catch(() => undefined);
           return;
@@ -799,6 +801,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
         }
         if (!vale() || !parakeet.ativo) return;
         for (const a of whispers()) (a as { liberar?: () => void }).liberar?.();
+        reservaDoParakeet.whisperLiberado = true;
       },
 
       /**
@@ -831,6 +834,7 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
         reservaDoParakeet.geracao++;
         if (reservaDoParakeet.ligada) parakeet.ativo = false; // a reserva sai da cadeia (a rota local fica)
         reservaDoParakeet.ligada = false;
+        reservaDoParakeet.whisperLiberado = false;
         parakeet.adaptador?.liberar();
         for (const b of core.getProfile().bindings.stt ?? []) {
           try {
@@ -901,21 +905,16 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             ...bindings.filter((b) => b.adapterId !== 'groq-whisper'),
           ];
         }
-        /* PARAKEET na frente do Whisper local (e atrás da nuvem, se a rota a pôs primeiro). Só com
-           um `whisper-local` no perfil: perfil sem transcrição no aparelho não ganha uma por aqui. */
-        if (parakeet.ativo) {
-          const i = bindings.findIndex((b) => b.adapterId === 'whisper-local');
-          if (i >= 0) bindings.splice(i, 0, BINDING_DO_PARAKEET);
-        }
-        for (const b of bindings) {
+        /** Tenta um motor; `null` = pulado ou falhou (o próximo assume). Cancelamento sobe. */
+        const tentar = async (b: CapabilityBinding): Promise<SttFinal | null> => {
           let a: SttProvider;
           try {
             a = b === BINDING_DO_PARAKEET ? await obterParakeet() : resolveStt(b);
           } catch {
-            continue;
+            return null;
           }
-          if (!a.supportsBlob || !a.transcribePcm || !a.isAvailable()) continue;
-          if (exigeConsentimento(b) && !consentiu()) continue;
+          if (!a.supportsBlob || !a.transcribePcm || !a.isAvailable()) return null;
+          if (exigeConsentimento(b) && !consentiu()) return null;
           try {
             // AWAIT: se este adapter (ex.: Groq sem chave/erro de rede) REJEITAR, cai para o
             // próximo binding (ex.: Whisper local) em vez de propagar a falha.
@@ -928,7 +927,26 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
             lastErr = e instanceof Error ? e : new Error(String(e));
             // Telemetria: este motor caiu e o próximo da cadeia (se houver) assume.
             capMetrics.fallback(`stt:${b.adapterId}`);
+            return null;
           }
+        };
+        /* PARAKEET na frente do Whisper local (e atrás da nuvem, se a rota a pôs primeiro). Só com um
+           `whisper-local` no perfil: perfil sem transcrição no aparelho não ganha uma por aqui. Decidido
+           NA HORA de chegar ao Whisper, não na montagem: uma fala que estava na nuvem quando o Parakeet
+           de reserva entrou (e o Whisper foi liberado) cai no Parakeet — o Whisper liberado nunca é
+           chamado, porque chamá-lo recarregaria o worker (três modelos juntos). */
+        let parakeetTentado = false;
+        for (const b of bindings) {
+          if (b.adapterId === 'whisper-local') {
+            if (parakeet.ativo && !parakeetTentado) {
+              parakeetTentado = true;
+              const r = await tentar(BINDING_DO_PARAKEET);
+              if (r) return r;
+            }
+            if (parakeet.ativo && reservaDoParakeet.whisperLiberado) continue;
+          }
+          const r = await tentar(b);
+          if (r) return r;
         }
         throw lastErr ?? new Error('nenhum STT de blob disponível neste perfil');
       },

@@ -26,7 +26,7 @@ Parakeet só entra na cadeia e carrega na primeira falha da nuvem (`gateway/falh
 
 A `rota_inteligente` (`politicaLigada`) **continua desligada**: o ramo dela manda o inglês do pagante
 ao Moonshine (13,5% de erro contra 4,9% da nuvem) e muda a tradução, o que ninguém decidiu. A regra
-nova vale nos dois modos da política, só para a transcrição.
+nova entra no modo de hoje da política (o único que o app usa), só para a transcrição.
 
 ## Peças
 

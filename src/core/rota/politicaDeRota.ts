@@ -161,7 +161,8 @@ export interface EstadoDaRota {
   /**
    * A flag `stt_aparelho_primeiro` (Fase B, item 6, decisão do dono de 24/10/2026): no automático de
    * quem tem nuvem, o Parakeet pronto transcreve primeiro e a nuvem fica de reserva para o áudio
-   * difícil. Independe de `politicaLigada` (vale nos dois modos). Ausente ou `false` = a regra de hoje.
+   * difícil. Vale no modo de hoje (`politicaLigada` desligada, o único que o app usa); o ramo da política
+   * nova tem a regra 3 dele. Ausente ou `false` = a regra de hoje.
    */
   aparelhoPrimeiro?: boolean;
   /**

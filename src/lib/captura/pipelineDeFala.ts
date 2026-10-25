@@ -1621,10 +1621,14 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   const preaquecerModelos = async (opcoes: { aquecer?: boolean } = {}): Promise<void> => {
     try {
       if (prepareEmVooRef.current) return;
-      const { route, previstos, perfil, mtDe, mtPara, micVaiAoWhisper } = await rotaDaCaptura();
+      const { route, previstos, previstosNaNuvem, perfil, mtDe, mtPara, micVaiAoWhisper } = await rotaDaCaptura();
       // Uma preparação que começou enquanto a rota era lida publica o previsto dela.
       if (prepareEmVooRef.current) return;
-      setRotaPrevista?.(previstos);
+      /* Com a histerese do áudio difícil em cima (a nuvem vai primeiro nesta captura), o previsto é o
+         da nuvem: o selo nunca volta a prometer "não sai daqui" enquanto o gateway tenta a nuvem antes. */
+      const nuvemNaFrente =
+        audioDificil.ativo && audioDificil.estado.modo === 'nuvem' && route.nuvemNoAudioDificil === true;
+      setRotaPrevista?.(nuvemNaFrente ? previstosNaNuvem : previstos);
       if (opcoes.aquecer === false) return;
       if (getProviderMode() === 'cloud' || modelReadyRef.current) return;
       if (route.preferCloud) return;

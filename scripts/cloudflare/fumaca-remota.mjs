@@ -5,7 +5,8 @@
  *
  *   1. GET <url>/api/ready → 200 (até 10 tentativas, 3 s entre elas: a versão nova pode demorar a propagar);
  *   2. GET <url>/api/health → JSON com `status: 'ok'` e `versao` terminando em `+<7 primeiros do sha>`
- *      (é o `GIT_SHA` passado por `--var` no upload; prova que a versão servida é a deste commit).
+ *      (é o `GIT_SHA` passado por `--var` no upload; prova que a versão servida é a deste commit). Versão de
+ *      outro commit tenta de novo (mesmas tentativas e espera): a borda leva segundos para trocar de versão.
  *
  * Sai com 1 e uma mensagem clara em qualquer falha. Não usa nem imprime segredo; cada requisição tem 10 s.
  */
@@ -39,18 +40,23 @@ export async function verificarRemoto(base, sha, { tentativas = 10, esperaMs = 3
   }
   if (!pronto) throw new Error(`GET ${url}/api/ready não ficou 200 em ${tentativas} tentativas (última: ${ultimo})`)
 
-  const h = await pegar(`${url}/api/health`)
-  let corpo
-  try {
-    corpo = JSON.parse(h.corpo)
-  } catch {
-    throw new Error(`GET ${url}/api/health devolveu ${h.status} sem JSON: ${h.corpo.slice(0, 200)}`)
+  // A versão de outro commit é a única falha que se repete: logo depois do `versions deploy`, a borda ainda
+  // serve a versão anterior por alguns segundos (o `/api/ready` dela já dá 200). Status, JSON e saúde falham na hora.
+  for (let i = 1; ; i++) {
+    const h = await pegar(`${url}/api/health`)
+    let corpo
+    try {
+      corpo = JSON.parse(h.corpo)
+    } catch {
+      throw new Error(`GET ${url}/api/health devolveu ${h.status} sem JSON: ${h.corpo.slice(0, 200)}`)
+    }
+    if (h.status !== 200) throw new Error(`GET ${url}/api/health: ${h.status} ${h.corpo.slice(0, 200)}`)
+    if (corpo.status !== 'ok') throw new Error(`/api/health com status "${corpo.status}" (esperado "ok")`)
+    if (typeof corpo.versao === 'string' && corpo.versao.endsWith(`+${sha7}`)) return corpo
+    if (i >= tentativas)
+      throw new Error(`versão servida "${corpo.versao}" não termina em +${sha7} (commit esperado ${sha7})`)
+    await esperar(esperaMs)
   }
-  if (h.status !== 200) throw new Error(`GET ${url}/api/health: ${h.status} ${h.corpo.slice(0, 200)}`)
-  if (corpo.status !== 'ok') throw new Error(`/api/health com status "${corpo.status}" (esperado "ok")`)
-  if (typeof corpo.versao !== 'string' || !corpo.versao.endsWith(`+${sha7}`))
-    throw new Error(`versão servida "${corpo.versao}" não termina em +${sha7} (commit esperado ${sha7})`)
-  return corpo
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

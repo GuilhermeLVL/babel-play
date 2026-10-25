@@ -673,3 +673,38 @@ describe('POST /api/ai/explicar e /api/ai/resumir — IA de estudo (flag ia_de_e
     expect(chamadas).toHaveLength(0)
   })
 })
+
+describe('POST /api/ai/feedback — 👍/👎 de lista fechada (Fase B da IA paga)', () => {
+  it('avaliação válida → 202, sem chamar provedor', async () => {
+    const r = await s.post('/api/ai/feedback', {
+      funcao: 'explicacao',
+      nota: 'down',
+      motivo: 'errado',
+      nivel: 'nuance',
+    })
+    expect(r.status).toBe(202)
+    expect(await r.json()).toEqual({ ok: true })
+    expect(chamadas).toHaveLength(0)
+  })
+
+  it('função ou motivo fora da lista → 400; texto livre (chave a mais) → 400', async () => {
+    for (const corpo of [
+      { funcao: 'qualquer', nota: 'up' },
+      { funcao: 'tutor', nota: 'talvez' },
+      { funcao: 'tutor', nota: 'down', motivo: 'achei ruim porque…' },
+      { funcao: 'tutor', nota: 'down', comentario: 'texto livre' },
+      { funcao: 'tutor', nota: 'down', frase: 'see you later' },
+    ]) {
+      const r = await s.post('/api/ai/feedback', corpo)
+      expect(r.status, JSON.stringify(corpo)).toBe(400)
+    }
+    expect(chamadas).toHaveLength(0)
+  })
+
+  it('teto próprio: depois de 30 avaliações no minuto, 429 feedback_demais (sem gastar o teto das chamadas de IA)', async () => {
+    let ultimo: Response | undefined
+    for (let i = 0; i < 31; i++) ultimo = await s.post('/api/ai/feedback', { funcao: 'resumo', nota: 'up' })
+    expect(ultimo!.status).toBe(429)
+    expect((await ultimo!.json()).code).toBe('feedback_demais')
+  })
+})

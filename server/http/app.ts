@@ -292,6 +292,9 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
     /* BALDE PROPRIO. Os dois limitadores compartilhavam a metrica, entao compartilhavam o contador:
        60 salvamentos de transcricao esgotavam a cota de IA da pessoa (achado A27). */
     store: createDbRateLimitStore(METRIC_RATELIMIT_CARO),
+    /* O 👍/👎 (`POST /api/ai/feedback`) não chama provedor e tem balde próprio (`METRIC_RATELIMIT_FEEDBACK`):
+       avaliar uma resposta não pode gastar o teto das chamadas de IA da pessoa (o mesmo A27). */
+    skip: (req) => req.method === 'POST' && /^\/api\/ai\/feedback\/?(\?|$)/.test(req.originalUrl),
   })
 
   /**

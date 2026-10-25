@@ -35,6 +35,9 @@ function responderExplicacao(res: Response, r: ResultadoDaExplicacao): void {
     responderRecusa(res, r)
     return
   }
+  /* O modelo que respondeu, para o 👍/👎 da tela dizer QUEM avaliou (`POST /api/ai/feedback`). Fora do corpo, que
+     é o contrato da tela. */
+  res.setHeader('x-ia-modelo', r.modelo)
   res.json({ explicacao: r.explicacao, origem: r.origem, restanteNaAmostra: r.restanteNaAmostra })
 }
 

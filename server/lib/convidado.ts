@@ -369,6 +369,8 @@ async function somarGasto(usd: number, o: { agora: number; userId?: UserId; chav
 const ESCRITAS_DO_CONVIDADO: ReadonlyArray<{ metodo: string; caminho: RegExp }> = [
   { metodo: 'POST', caminho: /^\/api\/ai\/stt\/?$/ },
   { metodo: 'POST', caminho: /^\/api\/ai\/mt\/?$/ },
+  /* O 👍/👎 da IA (só listas fechadas, sem texto): o convidado também avalia o que a nuvem respondeu. */
+  { metodo: 'POST', caminho: /^\/api\/ai\/feedback\/?$/ },
   { metodo: 'POST', caminho: /^\/api\/tutor\/chat\/?$/ },
   { metodo: 'DELETE', caminho: /^\/api\/me\/?$/ },
 ]

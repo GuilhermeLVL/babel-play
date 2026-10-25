@@ -43,7 +43,7 @@ describe('modo publico (AUTH_REQUIRED=1, JWT ES256)', () => {
   })
 
   it('sem token, as rotas de IA de estudo (POST) tambem respondem 401, antes da flag e do corpo', async () => {
-    for (const caminho of ['/api/ai/explicar', '/api/ai/resumir']) {
+    for (const caminho of ['/api/ai/explicar', '/api/ai/resumir', '/api/ai/feedback']) {
       const r = await s.post(caminho, {})
       expect(r.status, caminho).toBe(401)
     }

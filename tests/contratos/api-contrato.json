@@ -71,6 +71,7 @@
     "POST /api/admin/billing/reprocessar/:id",
     "POST /api/ai/credentials",
     "POST /api/ai/explicar",
+    "POST /api/ai/feedback",
     "POST /api/ai/glossario",
     "POST /api/ai/llm/chat/completions",
     "POST /api/ai/mt",

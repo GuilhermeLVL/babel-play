@@ -223,6 +223,8 @@ describe('plano pago (Plus)', () => {
     const res = await pedir(PAGANTE)
     expect(res.statusCode).toBe(200)
     expect(res.body).toEqual({ explicacao: EXPLICACAO, origem: 'plano', restanteNaAmostra: null })
+    // O modelo que respondeu vai no cabeçalho, para o 👍/👎 da tela (fora do corpo).
+    expect(res.headers['x-ia-modelo']).toBe('openai/gpt-oss-120b')
     expect(chamadas).toHaveLength(1)
     expect(chamadas[0].user).toContain('Frase: <<<see you later>>>')
     expect(chamadas[0].maxTokens).toBeLessThanOrEqual(1_200)

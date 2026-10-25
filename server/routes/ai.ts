@@ -7,6 +7,7 @@ import { raw, Router } from 'express'
 
 import { alternativasProxy } from '../ai/alternativas'
 import { explicarProxy } from '../ai/explicar'
+import { registrarFeedback, tetoDoFeedback } from '../ai/feedback'
 import { mtTranslateProxy } from '../ai/mtProxy'
 import { polirProxy } from '../ai/polimento'
 import { llmChatProxy, providerTest } from '../ai/proxy'
@@ -54,6 +55,9 @@ aiRouter.post('/explicar', explicarProxy)
    da sessão DO DONO (alheia = 404 `sessao_inexistente`). Mesma flag, franquia (`resumosMes`; Grátis 1 por semana),
    menor, retenção zero, admissão e orçamento da explicação. */
 aiRouter.post('/resumir', resumirProxy)
+/* O FEEDBACK DE IA (Fase B da IA paga): 👍/👎 com função, modelo, nível e motivo de LISTA FECHADA — nada de texto
+   livre nem conteúdo da frase. Vira métrica e nota no Langfuse; nenhuma tabela. Adulto, menor e convidado. */
+aiRouter.post('/feedback', tetoDoFeedback, registrarFeedback)
 /* A VOZ NATURAL do modo intérprete (E4 da Fase E): a tradução lida em voz alta pela nuvem, só com o
    `vozNatural` (402 pelo entitlement) e a flag `voz_natural` (503), com a admissão `tts`, a cota de
    caracteres no mês e no dia e o custo das outras funções. Sem clonagem de voz. O cliente cai na voz

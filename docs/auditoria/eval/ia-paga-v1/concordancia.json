@@ -1,0 +1,190 @@
+{
+  "explicacao": {
+    "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
+    "geral": {
+      "kappa": 0.3312264357175824,
+      "n": 2478,
+      "concordancia": 0.9192897497982244,
+      "acaso": 0.8793160278570875
+    },
+    "porCriterio": {
+      "sentido_correto": {
+        "kappa": 0.1552373775433307,
+        "n": 354,
+        "concordancia": 0.9463276836158192,
+        "acaso": 0.9364646174470938
+      },
+      "gramatica_correta": {
+        "kappa": 0.4909221642998383,
+        "n": 354,
+        "concordancia": 0.864406779661017,
+        "acaso": 0.7336493344824284
+      },
+      "registro_correto": {
+        "kappa": 0.6610818573480145,
+        "n": 354,
+        "concordancia": 0.9887005649717514,
+        "acaso": 0.9666602828050687
+      },
+      "girias_corretas": {
+        "kappa": 0.42081151832460645,
+        "n": 354,
+        "concordancia": 0.943502824858757,
+        "acaso": 0.9024545947843852
+      },
+      "idioma_certo": {
+        "kappa": 0.6654064272211676,
+        "n": 354,
+        "concordancia": 0.9971751412429378,
+        "acaso": 0.991557343036803
+      },
+      "adequada_aprendiz": {
+        "kappa": 0.09770603228547158,
+        "n": 354,
+        "concordancia": 0.6949152542372882,
+        "acaso": 0.6618787704682563
+      },
+      "segura": {
+        "kappa": 1,
+        "n": 354,
+        "concordancia": 1,
+        "acaso": 1
+      }
+    }
+  },
+  "resumo": {
+    "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
+    "geral": {
+      "kappa": 0.1762013729977079,
+      "n": 480,
+      "concordancia": 0.98125,
+      "acaso": 0.9772395833333334
+    },
+    "porCriterio": {
+      "pontos_fieis": {
+        "kappa": 0,
+        "n": 80,
+        "concordancia": 0.9375,
+        "acaso": 0.9375
+      },
+      "sem_invencao": {
+        "kappa": 0.3814432989690718,
+        "n": 80,
+        "concordancia": 0.9625,
+        "acaso": 0.9393750000000001
+      },
+      "cartoes_uteis": {
+        "kappa": 1,
+        "n": 80,
+        "concordancia": 1,
+        "acaso": 1
+      },
+      "cartoes_corretos": {
+        "kappa": 1,
+        "n": 80,
+        "concordancia": 1,
+        "acaso": 1
+      },
+      "idioma_certo": {
+        "kappa": 1,
+        "n": 80,
+        "concordancia": 1,
+        "acaso": 1
+      },
+      "segura": {
+        "kappa": 0,
+        "n": 80,
+        "concordancia": 0.9875,
+        "acaso": 0.9875
+      }
+    }
+  },
+  "alternativas": {
+    "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
+    "geral": {
+      "kappa": 0.46905878250087235,
+      "n": 1326,
+      "concordancia": 0.9532428355957768,
+      "acaso": 0.9119353275594958
+    },
+    "porCriterio": {
+      "mesmo_sentido": {
+        "kappa": 0.5611015490533561,
+        "n": 221,
+        "concordancia": 0.9321266968325792,
+        "acaso": 0.8453553367048178
+      },
+      "diversidade": {
+        "kappa": 0.34863157894736957,
+        "n": 221,
+        "concordancia": 0.9683257918552036,
+        "acaso": 0.9513728220142912
+      },
+      "registro_certo": {
+        "kappa": 0.4307791371538962,
+        "n": 221,
+        "concordancia": 0.9276018099547512,
+        "acaso": 0.872811776990643
+      },
+      "naturalidade": {
+        "kappa": 0.4665226781857445,
+        "n": 221,
+        "concordancia": 0.9140271493212669,
+        "acaso": 0.8388444135050471
+      },
+      "idioma_certo": {
+        "kappa": 0,
+        "n": 221,
+        "concordancia": 0.9819004524886877,
+        "acaso": 0.9819004524886877
+      },
+      "segura": {
+        "kappa": 0,
+        "n": 221,
+        "concordancia": 0.995475113122172,
+        "acaso": 0.995475113122172
+      }
+    }
+  },
+  "legenda": {
+    "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
+    "geral": {
+      "kappa": 0.4926944947344273,
+      "n": 865,
+      "concordancia": 0.9468208092485549,
+      "acaso": 0.8951732433425773
+    },
+    "porCriterio": {
+      "adequacao": {
+        "kappa": 0.4296221151407559,
+        "n": 173,
+        "concordancia": 0.8497109826589595,
+        "acaso": 0.7365097397173309
+      },
+      "naturalidade": {
+        "kappa": 0.4143534190927556,
+        "n": 173,
+        "concordancia": 0.9421965317919075,
+        "acaso": 0.9012997427244479
+      },
+      "registro": {
+        "kappa": 0.5525090532850496,
+        "n": 173,
+        "concordancia": 0.9421965317919075,
+        "acaso": 0.8708276253800661
+      },
+      "idioma_certo": {
+        "kappa": 1,
+        "n": 173,
+        "concordancia": 1,
+        "acaso": 1
+      },
+      "segura": {
+        "kappa": 1,
+        "n": 173,
+        "concordancia": 1,
+        "acaso": 1
+      }
+    }
+  }
+}

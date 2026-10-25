@@ -1,0 +1,148 @@
+{
+  "geradoEm": "2026-10-25T02:10:51.099Z",
+  "commit": null,
+  "titulo": "Legenda ao vivo — chrF++ no gold de conversa (bancada/resumo.mjs)",
+  "arquivos": ["docs/auditoria/eval/ia-paga-v1/bruto-legenda-mt.json"],
+  "stt": [],
+  "mt": [
+    {
+      "corpus": "gold:en-pt",
+      "sistema": "openrouter:google/gemma-4-26b-a4b-it",
+      "candidato": false,
+      "n": 60,
+      "comet": null,
+      "chrf": {
+        "valor": 79.22388801273483,
+        "ic95": [null, null]
+      },
+      "bleu": null,
+      "latenciaMs": {
+        "p50": 1134,
+        "p95": 2057
+      },
+      "latenciaPorFraseMs": null,
+      "falhas": 0,
+      "usdPorHoraDeFala": null,
+      "parametros": {
+        "producao": {
+          "provider": {
+            "data_collection": "deny",
+            "zdr": true,
+            "ignore": ["google-ai-studio", "google-vertex"]
+          }
+        },
+        "ajuste": {},
+        "roteamento": {
+          "data_collection": "deny",
+          "zdr": true,
+          "ignore": ["google-ai-studio", "google-vertex"]
+        },
+        "foraDaProducao": false
+      },
+      "acimaDoTimeoutDeProducao": 0,
+      "comparacoes": []
+    },
+    {
+      "corpus": "gold:en-pt",
+      "sistema": "openrouter:openai/gpt-oss-120b~groq+cerebras",
+      "candidato": true,
+      "n": 60,
+      "comet": null,
+      "chrf": {
+        "valor": 74.72752810817357,
+        "ic95": [null, null]
+      },
+      "bleu": null,
+      "latenciaMs": {
+        "p50": 855,
+        "p95": 1485
+      },
+      "latenciaPorFraseMs": null,
+      "falhas": 0,
+      "usdPorHoraDeFala": null,
+      "parametros": {
+        "producao": {
+          "provider": {
+            "data_collection": "deny",
+            "zdr": true,
+            "ignore": ["google-ai-studio", "google-vertex"]
+          },
+          "reasoning": {
+            "effort": "low",
+            "exclude": true
+          }
+        },
+        "ajuste": {},
+        "roteamento": {
+          "data_collection": "deny",
+          "zdr": true,
+          "ignore": ["google-ai-studio", "google-vertex"],
+          "only": ["groq", "cerebras"],
+          "allow_fallbacks": false
+        },
+        "foraDaProducao": true
+      },
+      "acimaDoTimeoutDeProducao": 0,
+      "comparacoes": [
+        {
+          "contra": "openrouter:google/gemma-4-26b-a4b-it",
+          "n": 60,
+          "metrica": "chrf",
+          "diferenca": {
+            "valor": -4.49635990456126,
+            "ic95": [-9.948347684802462, 1.0776881479740181],
+            "significativo": false
+          }
+        }
+      ]
+    },
+    {
+      "corpus": "gold:en-pt",
+      "sistema": "openrouter:mistralai/mistral-small-2603",
+      "candidato": true,
+      "n": 54,
+      "comet": null,
+      "chrf": {
+        "valor": 62.07942490562458,
+        "ic95": [null, null]
+      },
+      "bleu": null,
+      "latenciaMs": {
+        "p50": 1019,
+        "p95": 1696
+      },
+      "latenciaPorFraseMs": null,
+      "falhas": 0,
+      "usdPorHoraDeFala": null,
+      "parametros": {
+        "producao": {
+          "provider": {
+            "data_collection": "deny",
+            "zdr": true,
+            "ignore": ["google-ai-studio", "google-vertex"]
+          }
+        },
+        "ajuste": {},
+        "roteamento": {
+          "data_collection": "deny",
+          "zdr": true,
+          "ignore": ["google-ai-studio", "google-vertex"]
+        },
+        "foraDaProducao": false
+      },
+      "acimaDoTimeoutDeProducao": 0,
+      "comparacoes": [
+        {
+          "contra": "openrouter:google/gemma-4-26b-a4b-it",
+          "n": 54,
+          "metrica": "chrf",
+          "diferenca": {
+            "valor": -15.870267633173697,
+            "ic95": [-21.667198506635845, -9.074882523483659],
+            "significativo": true
+          }
+        }
+      ]
+    }
+  ]
+}

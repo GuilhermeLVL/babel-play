@@ -307,6 +307,18 @@ export async function acquireDisplayStream(): Promise<MediaStream> {
   }
 }
 
+/**
+ * O que foi compartilhado na captura em curso: uma aba (`browser`), uma janela ou a tela inteira
+ * (`monitor`). A legenda flutuante usa para sugerir o formato (aba = vídeo; tela = jogo). `null`
+ * quando não há compartilhamento ou o navegador não diz.
+ */
+export function superficieCompartilhada(): 'browser' | 'window' | 'monitor' | null {
+  const trilha = activeDisplayStream?.getVideoTracks()[0];
+  const s = trilha?.getSettings?.() as { displaySurface?: string } | undefined;
+  const sup = s?.displaySurface;
+  return sup === 'browser' || sup === 'window' || sup === 'monitor' ? sup : null;
+}
+
 /** O que o dono do decode especulativo devolve: a captura só sabe cancelá-lo (a fala continuou). */
 export interface EspeculacaoDoFinal {
   cancelar(): void;

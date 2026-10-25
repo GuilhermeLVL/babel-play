@@ -339,3 +339,388 @@ html[data-dispositivo^='celular'] .leg-ajuda {
     transition: none;
   }
 }
+
+/*
+ * A PiP INTELIGENTE — `.leg-limpa` é a janela completa (`LegendasFlutuantes`), na Document PiP.
+ *
+ * LIMPA: por padrão só o texto. A barra flutua por cima do topo e aparece ao passar o mouse, tocar ou
+ * chegar pelo teclado (`.com-controles`, que a raiz tira depois de 2 s parada; o foco dentro dela a
+ * segura). FUNDO: a Document PiP não tem transparência, então o fundo é uma escolha (`data-fundo`):
+ * escuro, preto ou claro (o `auto` vira um dos dois pelo tema do app). LAYOUT: `data-layout` é o que
+ * cabe no tamanho real da janela (faixa, legenda, conversa, estudo — `core/legendas/janelaFlutuante`),
+ * e a letra (`--leg-letra`) acompanha a largura.
+ */
+.leg-flut[data-fundo] {
+  --leg-fundo: #141210;
+  --leg-ui: #ffffff;
+  --leg-ui-suave: rgba(255, 255, 255, 0.14);
+  --leg-ui-fraca: rgba(255, 255, 255, 0.66);
+  --leg-superficie: #1f1b17;
+  --leg-borda: rgba(255, 255, 255, 0.16);
+  --leg-barra-fundo: rgba(31, 27, 23, 0.94);
+  --leg-bolha: rgba(255, 255, 255, 0.07);
+  --leg-bolha-b: rgba(232, 84, 43, 0.22);
+  --leg-foco: #ffb597;
+}
+.leg-flut[data-fundo='preto'] {
+  --leg-fundo: #000000;
+  --leg-superficie: #171513;
+  --leg-barra-fundo: rgba(23, 21, 19, 0.94);
+}
+.leg-flut[data-fundo='claro'] {
+  --leg-fundo: #f6f1e8;
+  --leg-ui: #1d1915;
+  --leg-ui-suave: rgba(29, 25, 21, 0.08);
+  --leg-ui-fraca: rgba(29, 25, 21, 0.66);
+  --leg-superficie: #fffdf9;
+  --leg-borda: rgba(29, 25, 21, 0.16);
+  --leg-barra-fundo: rgba(255, 253, 249, 0.96);
+  --leg-bolha: rgba(29, 25, 21, 0.06);
+  --leg-bolha-b: rgba(232, 84, 43, 0.13);
+  --leg-foco: #9a3412;
+  /* No claro, o texto é escuro: as cores escolhidas no Personalizar são para fundo escuro. */
+  --leg-cor: #1d1915;
+  --leg-trad: #7a4e00;
+}
+
+.leg-flut.leg-limpa {
+  background: var(--leg-fundo);
+  color: var(--leg-ui);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border: 0;
+}
+.leg-flut.letra-da-janela {
+  font-size: var(--leg-letra);
+}
+
+/* A barra: por cima do texto, escondida até alguém mexer. */
+.leg-flut.leg-limpa > .leg-barra {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  right: 6px;
+  z-index: 4;
+  flex-wrap: nowrap;
+  gap: 2px;
+  padding: 3px 4px;
+  border-radius: 12px;
+  border: 1px solid var(--leg-borda);
+  background: var(--leg-barra-fundo);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
+  color: var(--leg-ui);
+  font-size: 12px;
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+  transition:
+    opacity 0.18s var(--ease, ease-out),
+    transform 0.18s var(--ease, ease-out);
+}
+.leg-flut.leg-limpa.com-controles > .leg-barra,
+.leg-flut.leg-limpa > .leg-barra:focus-within {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.leg-flut.leg-limpa.recolhido > .leg-barra {
+  position: static;
+  border-radius: 0;
+  border: 0;
+  box-shadow: none;
+}
+.leg-flut.leg-limpa .leg-barra .leg-tit {
+  margin-right: 0;
+  width: 32px;
+  padding: 0;
+  justify-content: center;
+  opacity: 1;
+}
+.leg-flut.leg-limpa .leg-espaco {
+  flex: 1;
+}
+.leg-flut.leg-limpa .leg-barra button {
+  flex: none;
+  color: var(--leg-ui);
+}
+.leg-flut.leg-limpa .leg-barra button:hover,
+.leg-flut.leg-limpa .leg-barra button[aria-pressed='true'] {
+  background: var(--leg-ui-suave);
+}
+.leg-flut.leg-limpa .leg-barra button:disabled {
+  opacity: 0.4;
+}
+.leg-flut.leg-limpa .leg-barra .leg-mostrar {
+  width: auto;
+  display: inline-flex;
+  gap: 5px;
+  padding: 0 8px;
+  font: 600 12px var(--font-body, inherit);
+  white-space: nowrap;
+}
+.leg-flut.leg-limpa .leg-barra select {
+  max-width: 128px;
+  border-color: var(--leg-borda);
+  background: var(--leg-superficie);
+  color: var(--leg-ui);
+}
+.leg-flut.leg-limpa .leg-escolha svg {
+  opacity: 0.8;
+}
+.leg-flut.leg-limpa .leg-atalhos {
+  background: var(--leg-superficie);
+  border-color: var(--leg-borda);
+  color: var(--leg-ui);
+}
+.leg-flut.leg-limpa .leg-atalhos kbd {
+  border-color: var(--leg-borda);
+}
+.leg-flut.leg-limpa button:focus-visible,
+.leg-flut.leg-limpa select:focus-visible,
+.leg-flut.leg-limpa input:focus-visible {
+  outline-color: var(--leg-foco);
+}
+/* Ritmo e modo da tradução só em janela larga (moram também no Personalizar). */
+.leg-flut.leg-limpa .leg-larga {
+  display: none;
+}
+@container (min-width: 860px) {
+  .leg-flut.leg-limpa .leg-larga {
+    display: inline-flex;
+  }
+}
+@container (max-width: 600px) {
+  .leg-flut.leg-limpa .leg-mostrar-txt {
+    display: none;
+  }
+}
+@container (max-width: 440px) {
+  .leg-flut.leg-limpa .leg-letra,
+  .leg-flut.leg-limpa .leg-ajuda {
+    display: none;
+  }
+  .leg-flut.leg-limpa .leg-barra select {
+    max-width: 104px;
+  }
+}
+
+/* O texto: a fala mais nova embaixo; o que não cabe sai por cima (numa legenda ao vivo, o fim da
+   frase é o que acabou de ser dito). */
+.leg-flut.leg-limpa > .leg-corpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.55em;
+  overflow: hidden;
+  padding: 12px 18px 14px;
+}
+.leg-flut.leg-limpa .leg-o {
+  line-height: 1.3;
+}
+.leg-flut.leg-limpa .leg-o-traducao {
+  color: var(--leg-trad, #ffea00);
+}
+.leg-flut.leg-limpa .leg-vazio {
+  justify-content: center;
+  color: var(--leg-ui-fraca);
+  opacity: 1;
+  font-size: 14px;
+}
+.leg-flut.leg-limpa[data-layout='faixa'] > .leg-corpo,
+.leg-flut.leg-limpa[data-layout='legenda'] > .leg-corpo {
+  text-align: center;
+  align-items: stretch;
+}
+.leg-flut.leg-limpa[data-layout='faixa'] > .leg-corpo {
+  justify-content: center;
+  padding: 6px 20px;
+  gap: 0;
+}
+.leg-flut.leg-limpa[data-layout='faixa'] .leg-fala {
+  gap: 0;
+}
+.leg-flut.leg-limpa[data-layout='faixa'] .leg-acoes,
+.leg-flut.leg-limpa[data-layout='legenda'] .leg-acoes {
+  right: 0;
+}
+.leg-flut.leg-limpa.modo-conversa .leg-fala {
+  background: var(--leg-bolha);
+}
+.leg-flut.leg-limpa.modo-conversa .leg-fala.b {
+  background: var(--leg-bolha-b);
+}
+.leg-flut.leg-limpa .leg-quem {
+  color: var(--leg-ui-fraca);
+  opacity: 1;
+}
+.leg-flut.leg-limpa .leg-fala.anterior {
+  opacity: 0.74;
+}
+/* No claro a cor da tradução já é contida: sem o esmaecido a mais, que a deixava abaixo do contraste AA. */
+.leg-flut[data-fundo='claro'] .leg-t.discreta {
+  opacity: 1;
+}
+.leg-flut.leg-limpa .leg-acoes,
+.leg-flut.leg-limpa .leg-cartao {
+  background: var(--leg-superficie);
+  border-color: var(--leg-borda);
+  color: var(--leg-ui);
+}
+.leg-flut.leg-limpa .leg-acoes button,
+.leg-flut.leg-limpa .leg-cartao-topo button,
+.leg-flut.leg-limpa .leg-acao-texto {
+  color: var(--leg-ui);
+}
+.leg-flut.leg-limpa .leg-acao-texto {
+  border-color: var(--leg-borda);
+}
+.leg-flut.leg-limpa .leg-acoes button:hover,
+.leg-flut.leg-limpa .leg-cartao-topo button:hover,
+.leg-flut.leg-limpa .leg-acao-texto:hover {
+  background: var(--leg-ui-suave);
+}
+.leg-flut.leg-limpa .leg-o [data-palavra]:hover {
+  background: var(--leg-ui-suave);
+}
+.leg-flut[data-fundo='claro'] .leg-novas,
+.leg-flut[data-fundo='claro'] .leg-aviso {
+  background: #1d1915;
+  color: #fff;
+}
+
+/* ESTUDO: o cartão mora embaixo da fala, sem cobrir nada. */
+.leg-flut.leg-limpa[data-layout='estudo'] > .leg-corpo {
+  flex: 0 1 auto;
+  justify-content: flex-start;
+  padding-top: 14px;
+}
+.leg-cartao.encaixado {
+  position: static;
+  margin: 4px 12px 12px;
+  box-shadow: none;
+}
+.leg-estudo-dica {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 12px 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px dashed var(--leg-borda);
+  color: var(--leg-ui-fraca);
+  font-size: 13px;
+}
+.leg-estudo-dica svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+/* PERSONALIZAR, folha compacta por cima do texto. */
+.leg-flut.leg-limpa > .leg-painel {
+  position: absolute;
+  top: 50px;
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
+  z-index: 5;
+  border: 1px solid var(--leg-borda);
+  border-radius: 12px;
+  background: var(--leg-superficie);
+  color: var(--leg-ui);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+}
+.leg-flut.leg-limpa .leg-painel .label-mono {
+  color: var(--leg-ui-fraca);
+}
+.leg-flut.leg-limpa .leg-painel .leg-select,
+.leg-flut.leg-limpa .leg-painel .pill {
+  border-color: var(--leg-borda);
+  background: transparent;
+  color: var(--leg-ui);
+}
+.leg-flut.leg-limpa .leg-painel .seg {
+  background: var(--leg-ui-suave);
+  border-color: var(--leg-borda);
+  flex-wrap: wrap;
+}
+.leg-flut.leg-limpa .leg-painel .seg button {
+  color: var(--leg-ui);
+}
+.leg-flut.leg-limpa .leg-painel .pill[aria-pressed='true'],
+.leg-flut.leg-limpa .leg-painel .seg button[aria-checked='true'] {
+  background: var(--leg-ui);
+  color: var(--leg-fundo);
+}
+.leg-flut[data-fundo='claro'] .leg-painel .link {
+  color: #9a3412;
+}
+.leg-nota {
+  margin: -4px 0 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--leg-ui-fraca, rgba(255, 255, 255, 0.66));
+}
+
+/* AS ABAS (Fase C: o Assistente entra aqui). */
+.leg-abas {
+  display: flex;
+  gap: 4px;
+  padding: 6px 10px 0;
+}
+.leg-abas button {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--leg-ui-fraca, #ddd);
+  font: 600 12px var(--font-body, inherit);
+}
+.leg-abas button[aria-selected='true'] {
+  background: var(--leg-ui-suave, rgba(255, 255, 255, 0.14));
+  color: var(--leg-ui, #fff);
+}
+.leg-aba-extra {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leg-flut.leg-limpa > .leg-barra {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* As ações da fala na janela limpa: nada por cima do texto que se lê. Na faixa e na legenda, a barra
+   já tem o essencial (salvar, o que mostrar) e as teclas fazem o resto; na conversa e no estudo, as
+   ações da fala em foco ficam numa linha embaixo dela, à vista só com os controles. */
+.leg-flut.leg-limpa[data-layout='faixa'] .leg-acoes,
+.leg-flut.leg-limpa[data-layout='legenda'] .leg-acoes,
+.leg-flut.leg-limpa .leg-fala:not(.atual) .leg-acoes {
+  display: none;
+}
+.leg-flut.leg-limpa .leg-fala.atual .leg-acoes {
+  position: static;
+  justify-self: start;
+  margin: 2px 0 0 -6px;
+  background: none;
+  box-shadow: none;
+  display: none;
+  opacity: 1;
+  pointer-events: auto;
+}
+/* Só com os controles à vista (sem espaço reservado à toa quando a janela está limpa). */
+.leg-flut.leg-limpa.com-controles .leg-fala.atual .leg-acoes,
+.leg-flut.leg-limpa .leg-fala.atual .leg-acoes:focus-within {
+  display: flex;
+}
+/* No estudo a fala fica no alto: abaixo da barra, para a barra que aparece não cobrir a palavra. */
+.leg-flut.leg-limpa[data-layout='estudo'] > .leg-corpo {
+  padding-top: 50px;
+}

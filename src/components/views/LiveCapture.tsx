@@ -49,6 +49,7 @@ import {
   probeServerLoopback,
   probeSystemAudio,
   serverLoopbackSupported,
+  superficieCompartilhada,
   type SystemAudioProbe,
 } from '../../gateway/capture/systemAudio';
 import { expectedModelIds } from '../../gateway/modelCache';
@@ -196,10 +197,10 @@ import AvisoDeNuvemSemConsentimento from '../AvisoDeNuvemSemConsentimento';
 // A conversa em balões (lados opostos, agrupamento por pessoa, estado vazio que ensina).
 // Um componente só serve a tela embutida E o Modo Foco — antes eram dois blocos que divergiam.
 import ChatTranscript from '../ChatTranscript';
-import DocumentPiP, { isDocumentPiPSupported } from '../DocumentPiP';
 
 /** O benchmark do aparelho agendado pela última saída da captura (cancelado por uma captura nova). */
 let benchmarkPendente: AbortController | null = null;
+import { guardarAbrirAoComecar, lerAbrirAoComecar } from '../../lib/legendas/janelaDoNavegador';
 import GuidePanel from '../GuidePanel';
 // Bandeira SVG do idioma (nunca emoji: o Windows renderiza 🇧🇷 como "BR") + o rótulo curto.
 import { LangFlag } from '../LangFlag';
@@ -220,8 +221,8 @@ import { AjudaNoPainel } from './captura/enxuta/pecas';
 import EscolhaDoMicrofone from './captura/EscolhaDoMicrofone';
 import GuiaDoAudioDaTela from './captura/GuiaDoAudioDaTela';
 import IdiomasDaSessao, { type Lado } from './captura/IdiomasDaSessao';
-import LegendaFlutuanteDoPrototipo from './captura/legendas/LegendaFlutuanteDoPrototipo';
-import LegendasFlutuantes, { type LegendaAoVivo } from './captura/LegendasFlutuantes';
+import { useJanelaFlutuante } from './captura/legendas/useJanelaFlutuante';
+import type { LegendaAoVivo } from './captura/LegendasFlutuantes';
 import ModeloNoDispositivo, { type ModeloDaCaptura } from './captura/ModeloNoDispositivo';
 import ModoDesempenho from './captura/ModoDesempenho';
 import NuvemDoQuest from './captura/NuvemDoQuest';
@@ -230,7 +231,7 @@ import EncerrarNoQuest from './captura/quest/EncerrarNoQuest';
 import HistoricoDoPrototipo from './captura/quest/HistoricoDoPrototipo';
 import ResumoDaSessaoNoQuest from './captura/quest/ResumoDaSessaoNoQuest';
 import TranscriptVisualSettings, { TEMA } from './captura/TranscriptVisualSettings';
-import { CampoLinha, Segmentos } from './vocab/Dialogo';
+import { CampoLinha, Interruptor, Segmentos } from './vocab/Dialogo';
 
 /* A oferta "Legenda sem baixar nada" só existe no desktop fraco, antes de começar: fora do JS da tela
    para todo o resto (`lib/captura/legendaSemBaixar.ts`). */
@@ -272,7 +273,6 @@ export default function LiveCapture({
   onChangeView?: (view: string, data?: any) => void;
   ageProfile?: 'kids' | 'pro' | 'senior';
 }) {
-  const [showOverlay, setShowOverlay] = useState(false);
   /* AVISOS DA TELA pelo toast global do app (o `.toast` do protótipo). A captura tinha um balão
      próprio no topo; as chamadas de "apagar" (`setFeedbackMsg('')`) viram nada. */
   const setFeedbackMsg = useCallback((msg: string) => {
@@ -1532,8 +1532,14 @@ export default function LiveCapture({
        transcritas e traduzidas, pelo MESMO estado que o pipeline escreve. É o que deixa o e2e
        medir Parar → Salvar → sair sem modelo de fala, rede nem áudio de verdade.
        Uso no console: window.__simFalas(['primeira frase', 'segunda frase'])
-       O terceiro argumento é o idioma das falas (o que o pipeline declara): 'ar', 'zh'… */
-    (window as any).__simFalas = (textos: string[], fonte: 'system' | 'mic' = 'system', lang = 'en') => {
+       O terceiro argumento é o idioma das falas (o que o pipeline declara): 'ar', 'zh'…; o quarto, as
+       traduções (sem ele, o texto entre parênteses). */
+    (window as any).__simFalas = (
+      textos: string[],
+      fonte: 'system' | 'mic' = 'system',
+      lang = 'en',
+      traducoes?: string[],
+    ) => {
       const agora = Date.now();
       setSpeechSegments((prev) => [
         ...prev,
@@ -1543,7 +1549,7 @@ export default function LiveCapture({
           source: fonte,
           timestamp: formatTime(Math.round((prev.length + i) * 2)),
           originalText: texto,
-          translatedText: `(${texto})`,
+          translatedText: traducoes?.[i] ?? `(${texto})`,
           words: wordsFromText(texto, lang),
           isPartial: false,
           tStartMs: (prev.length + i) * 2000,
@@ -2302,23 +2308,14 @@ export default function LiveCapture({
    */
   const botaoDasLegendas = () => (
     <button
-      onClick={() => {
-        const abrir = !showOverlay;
-        setShowOverlay(abrir);
-        toast.info(
-          abrir
-            ? isDocumentPiPSupported()
-              ? 'Legendas flutuantes abertas: a janelinha fica por cima de tudo'
-              : 'Legendas flutuantes abertas nesta tela (a janela por cima de tudo precisa do Chrome ou do Edge)'
-            : 'Legendas flutuantes fechadas',
-        );
-      }}
+      onClick={flutuante.alternar}
       role="switch"
-      aria-checked={showOverlay}
-      className={`btn btn-outline ${showOverlay ? 'mic-on' : ''} ${isRecording && !showOverlay ? 'pulsa' : ''}`}
+      aria-checked={flutuante.aberta}
+      title={flutuante.dica}
+      className={`btn btn-outline ${flutuante.aberta ? 'mic-on' : ''} ${isRecording && !flutuante.aberta ? 'pulsa' : ''}`}
     >
       <PictureInPicture2 aria-hidden />
-      {showOverlay ? 'Legendas flutuantes ativas' : 'Legendas flutuantes'}
+      {flutuante.aberta ? t('Legendas flutuantes ativas') : t('Legendas flutuantes')}
     </button>
   );
 
@@ -2975,6 +2972,38 @@ export default function LiveCapture({
     const { mine, studying } = langConfigRef.current;
     return baseLang(lang) === baseLang(mine) ? studying : mine;
   };
+  /* A LEGENDA FLUTUANTE (PiP inteligente): um botão, Alt+L, e a melhor janela deste navegador. */
+  const flutuante = useJanelaFlutuante({
+    ativo: !noQuest,
+    falas: legendasAoVivo,
+    contexto: () => ({
+      interprete: interpreteAberto,
+      cenario: captureScenario,
+      superficie: superficieCompartilhada(),
+    }),
+    aprendidas,
+    aoRevelarTraducao: revelarNaConversa,
+    aoConsultarPalavra: consultarNaLegenda,
+    aoOuvir: ouvirNaLegenda,
+    aoSalvarPalavra: salvarNaLegenda,
+    idiomaDaTraducao: (lang) => (lang ? toBcp47(destinoDaFala(lang)) || destinoDaFala(lang) : undefined),
+  });
+  /* "Abrir ao começar a legendar" (Ajustes da captura). A janela só abre com um gesto ainda valendo
+     (o navegador exige); se a captura demorou a abrir (o seletor da tela), o aviso traz o botão. */
+  const [abrirAoComecar, setAbrirAoComecar] = useState(lerAbrirAoComecar);
+  const estavaGravando = useRef(false);
+  useEffect(() => {
+    const comecou = isRecording && !estavaGravando.current;
+    estavaGravando.current = isRecording;
+    if (!comecou || !abrirAoComecar || flutuante.aberta || noQuest) return;
+    const gesto = (navigator as Navigator & { userActivation?: { isActive: boolean } }).userActivation?.isActive;
+    if (gesto) flutuante.abrir(true);
+    else
+      toast.info(t('A captura começou.'), {
+        action: { label: t('Abrir a legenda flutuante'), onClick: () => flutuante.abrir() },
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só na virada para "gravando"
+  }, [isRecording]);
   const conhecerOPremium = perfilProtegido()
     ? undefined
     : () => {
@@ -3093,17 +3122,7 @@ export default function LiveCapture({
   /* ═══════════════ CAPTURAR (o protótipo de polimento, itens D6–D18) ═══════════════
      A mesma captura (o mesmo `iniciarCaptura`, o mesmo `handleStopRecording`, as mesmas falas), na
      marcação do protótipo: tela pronta, legenda ao vivo, folha da frase e folha da palavra. */
-  const alternarFlutuante = () => {
-    const abrir = !showOverlay;
-    setShowOverlay(abrir);
-    toast.info(
-      abrir
-        ? isDocumentPiPSupported()
-          ? t('Legendas flutuantes abertas: a janelinha fica por cima de tudo')
-          : t('Legendas flutuantes abertas nesta tela (a janela por cima de tudo precisa do Chrome ou do Edge)')
-        : t('Legendas flutuantes fechadas'),
-    );
-  };
+  const alternarFlutuante = () => flutuante.alternar();
   /* PAUSAR E RETOMAR (`pausarOuRetomar()` de `enxuto.js:125-139`): a pausa de verdade das fontes, a mesma
      que o Encerrar já usava (`pausarFontes`/`retomarFontes`, `salvarSessao.ts`). */
   const alternarPausa = () => {
@@ -3156,6 +3175,7 @@ export default function LiveCapture({
         aoAbrirAjustes={() => (noQuest ? setOpcoesAbertas(true) : setShowConfigPanel(true))}
         aoAbrirAjuda={() => setShowGuide(true)}
         aoFlutuante={noQuest ? undefined : alternarFlutuante}
+        flutuante={{ aberta: flutuante.aberta, dica: flutuante.dica }}
         letra={{
           menor: () => setEscalaDaLegenda((e) => mudarEscalaDaLegenda(e, -1)),
           maior: () => setEscalaDaLegenda((e) => mudarEscalaDaLegenda(e, 1)),
@@ -3801,6 +3821,23 @@ export default function LiveCapture({
                 <Type aria-hidden /> {ageProfile === 'senior' ? 'Como a legenda aparece' : 'Aparência da legenda'}
               </h3>
               <TranscriptVisualSettings idPrefix="cfg-visual" tsSettings={tsSettings} updateSetting={updateSetting} />
+              {!noQuest && (
+                <CampoLinha
+                  rotulo={t('Abrir a legenda flutuante ao começar')}
+                  desc={t(
+                    'Quando a captura começa, a legenda já abre na janela flutuante. Também abre e fecha com Alt+L.',
+                  )}
+                >
+                  <Interruptor
+                    ligado={abrirAoComecar}
+                    rotulo={t('Abrir a legenda flutuante ao começar')}
+                    aoTrocar={() => {
+                      guardarAbrirAoComecar(!abrirAoComecar);
+                      setAbrirAoComecar((v) => !v);
+                    }}
+                  />
+                </CampoLinha>
+              )}
             </section>
           </div>
           <div className="dlg-pe">
@@ -4276,35 +4313,9 @@ export default function LiveCapture({
         />
       )}
 
-      {/* LEGENDAS FLUTUANTES (C6), alimentadas pelas falas REAIS. No Chrome/Edge numa janela
-          sempre-no-topo (Document PiP); sem a API, flutuando no canto do app como no protótipo. */}
-      {isDocumentPiPSupported() ? (
-        <DocumentPiP
-          isVisible={showOverlay}
-          onClose={() => setShowOverlay(false)}
-          backgroundColor="#141210"
-          width={440}
-          height={300}
-        >
-          <LegendasFlutuantes
-            falas={legendasAoVivo}
-            aprendidas={aprendidas}
-            aoRevelarTraducao={revelarNaConversa}
-            aoConsultarPalavra={consultarNaLegenda}
-            aoOuvir={ouvirNaLegenda}
-            aoSalvarPalavra={salvarNaLegenda}
-            aoFechar={() => setShowOverlay(false)}
-          />
-        </DocumentPiP>
-      ) : (
-        /* Sem a janela sempre-no-topo: a janelinha do protótipo, que se arrasta e se joga. */
-        <LegendaFlutuanteDoPrototipo
-          aberta={showOverlay}
-          falas={legendasAoVivo}
-          idiomaDaTraducao={(lang) => (lang ? toBcp47(destinoDaFala(lang)) || destinoDaFala(lang) : undefined)}
-          aoFechar={() => setShowOverlay(false)}
-        />
-      )}
+      {/* LEGENDAS FLUTUANTES (C6), alimentadas pelas falas REAIS: Document PiP no Chrome/Edge, PiP de
+          vídeo no Safari, o painel dentro da página no resto (`useJanelaFlutuante`). */}
+      {flutuante.elemento}
     </div>
   );
 }

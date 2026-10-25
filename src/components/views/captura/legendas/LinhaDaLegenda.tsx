@@ -73,6 +73,7 @@ function LinhaDaLegenda({
   aoOuvir,
   aoCopiar,
   aoSalvarFrase,
+  soTraducao = false,
 }: {
   fala: LegendaAoVivo;
   modo: Modo;
@@ -87,6 +88,8 @@ function LinhaDaLegenda({
   aoOuvir?: (fala: LegendaAoVivo, lenta: boolean) => void;
   aoCopiar: (fala: LegendaAoVivo) => void;
   aoSalvarFrase?: (fala: LegendaAoVivo) => void;
+  /** "Só a tradução": a fala traduzida aparece no lugar do original (se ainda não há tradução, o original). */
+  soTraducao?: boolean;
 }) {
   const tocar = (e: MouseEvent<HTMLElement>) => {
     const alvo = (e.target as HTMLElement).closest<HTMLElement>('[data-palavra]');
@@ -112,15 +115,22 @@ function LinhaDaLegenda({
       onClick={tocarNaFala}
     >
       {modo === 'conversa' && <span className="leg-quem">{fala.quem}</span>}
-      <span
-        className="leg-o"
-        lang={fala.lang || undefined}
-        dir={fala.lang ? direcaoDoTexto(fala.lang) : undefined}
-        onClick={tocar}
-      >
-        <Palavras texto={fala.original} lang={fala.lang ?? ''} aprendidas={aprendidas} />
-      </span>
-      {modoDaTraducao !== 'oculta' && !fala.traducao && fala.sobDemanda && aoRevelarTraducao ? (
+      {soTraducao && fala.traducao ? (
+        <span className="leg-o leg-o-traducao">{fala.traducao}</span>
+      ) : (
+        <span
+          className="leg-o"
+          lang={fala.lang || undefined}
+          dir={fala.lang ? direcaoDoTexto(fala.lang) : undefined}
+          onClick={tocar}
+        >
+          <Palavras texto={fala.original} lang={fala.lang ?? ''} aprendidas={aprendidas} />
+        </span>
+      )}
+      {soTraducao && fala.traducao ? null : modoDaTraducao !== 'oculta' &&
+        !fala.traducao &&
+        fala.sobDemanda &&
+        aoRevelarTraducao ? (
         /* Compacto, na cor e no tamanho da linha de tradução que ele substitui. */
         <button
           type="button"

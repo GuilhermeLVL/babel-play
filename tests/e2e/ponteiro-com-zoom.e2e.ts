@@ -49,6 +49,8 @@ test.describe('tamanho do texto: legenda flutuante', () => {
       test.slow()
       await page.addInitScript(() => {
         delete (window as unknown as { documentPictureInPicture?: unknown }).documentPictureInPicture
+        /* Nem o PiP de vídeo (o caminho do Safari): sem os dois, a legenda flutua dentro da página. */
+        Object.defineProperty(document, 'pictureInPictureEnabled', { configurable: true, get: () => false })
       })
       await page.route(/huggingface\.co|hf\.co|cdn-lfs/, (r) => r.abort())
       await noTamanho(page, escala)

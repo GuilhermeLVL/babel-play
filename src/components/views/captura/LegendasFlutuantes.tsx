@@ -70,6 +70,21 @@ export interface AbaDaJanela {
   conteudo: ReactNode;
 }
 
+/**
+ * As marcas que o layout mostra. Na faixa (jogo) sem as de nível (`assistenteNoLayout`). O array filtrado é guardado
+ * por array de origem: a mesma lista dá sempre a mesma saída, e o `memo` da linha segura.
+ */
+const semNivel = new WeakMap<readonly MarcaNaLinha[], MarcaNaLinha[]>();
+function marcasNoLayout(lista: MarcaNaLinha[] | undefined, niveis: boolean): MarcaNaLinha[] | undefined {
+  if (!lista || niveis) return lista;
+  let filtrada = semNivel.get(lista);
+  if (!filtrada) {
+    filtrada = lista.filter((m) => m.tipo !== 'nivel');
+    semNivel.set(lista, filtrada);
+  }
+  return filtrada.length ? filtrada : undefined;
+}
+
 /** O modo (classe e rótulo de quem fala) que cada layout usa. */
 const MODO_DO_LAYOUT: Readonly<Record<Layout, Modo>> = {
   faixa: 'jogo',
@@ -318,6 +333,17 @@ export default function LegendasFlutuantes({
   /* Pausa efetiva: o botão, o cartão aberto (a fala não pode sair debaixo dele) e, se ligado,
      o mouse em cima ou o dedo segurando a janela. */
   const folhaAberta = !!assistente && assistente.comoRespondo.estado !== 'fechado';
+  /* A folha fechou: o foco volta para o botão "Como respondo?" (ou o da aba), senão para a janela — nunca se perde no
+     `body` da PiP. */
+  const folhaEstavaAberta = useRef(false);
+  useEffect(() => {
+    if (folhaEstavaAberta.current && !folhaAberta) {
+      const r = raiz.current;
+      const botao = r?.querySelector<HTMLElement>('.leg-responder, .leg-assistente-responder');
+      (botao ?? r)?.focus({ preventScroll: true });
+    }
+    folhaEstavaAberta.current = folhaAberta;
+  }, [folhaAberta]);
   const pausado = pausaManual || !!cartao || folhaAberta || (ap.pausarAoPassar && (sobre || segurando));
 
   const aMostra = useCallback(
@@ -543,7 +569,7 @@ export default function LegendasFlutuantes({
           aoOuvir={aoOuvir ? ouvirFala : undefined}
           aoCopiar={copiar}
           aoSalvarFrase={aoSalvarPalavra ? salvarFrase : undefined}
-          marcas={assistente?.marcas.get(id)}
+          marcas={marcasNoLayout(assistente?.marcas.get(id), doAssistente.niveis)}
           marcasSutis={doAssistente.marcasSutis}
           aoTocarMarca={assistente ? tocarMarca : undefined}
           correcao={doAssistente.correcao ? assistente?.correcoes.get(id) : undefined}

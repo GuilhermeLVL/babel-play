@@ -11,10 +11,12 @@ import {
   AJUSTES_PADRAO,
   type AjustesDoAssistente,
   assistenteNoLayout,
+  contarPalavras,
   type ContextoDoAssistente,
   glosaParaOVideo,
   marcasDaLinha,
   normalizarAjustes,
+  PALAVRAS_PARA_EXPRESSOES,
   planejarChamadas,
   posicaoNaLinha,
   recursosDoAssistente,
@@ -107,12 +109,17 @@ describe('o portão: flag, plano, recusa do servidor e consentimento', () => {
 })
 
 describe('a faixa (jogo) fica mínima', () => {
-  it('na faixa: só marcas sutis, sem "Como respondo?" e sem correção', () => {
-    expect(assistenteNoLayout('faixa')).toEqual({ marcasSutis: true, comoRespondo: false, correcao: false })
+  it('na faixa: só marcas sutis (sem as de nível), sem "Como respondo?" e sem correção', () => {
+    expect(assistenteNoLayout('faixa')).toEqual({
+      marcasSutis: true,
+      niveis: false,
+      comoRespondo: false,
+      correcao: false,
+    })
   })
   it('legenda, conversa e estudo: o botão e a correção', () => {
     for (const l of ['legenda', 'conversa', 'estudo'] as const)
-      expect(assistenteNoLayout(l)).toEqual({ marcasSutis: false, comoRespondo: true, correcao: true })
+      expect(assistenteNoLayout(l)).toEqual({ marcasSutis: false, niveis: true, comoRespondo: true, correcao: true })
   })
 })
 
@@ -195,6 +202,31 @@ describe('as marcas na linha', () => {
 
   it('trecho que a nuvem devolveu e não está na linha é descartado', () => {
     expect(marcasDaLinha(linha, { expressoes: [{ trecho: 'piece of cake', sentido: 'moleza' }] })).toEqual([])
+  })
+})
+
+describe('escritas sem espaço (chinês, japonês)', () => {
+  it('a expressão é achada sem borda de palavra', () => {
+    expect(posicaoNaLinha('今日は猫の手も借りたいほど忙しい', '猫の手も借りたい')).toEqual({ inicio: 3, fim: 11 })
+    const m = marcasDaLinha('今日は猫の手も借りたいほど忙しい', {
+      expressoes: [{ trecho: '猫の手も借りたい', sentido: 'muito ocupado' }],
+    })
+    expect(m.map((x) => x.texto)).toEqual(['猫の手も借りたい'])
+  })
+  it('as palavras são contadas pelo segmentador: "はい" não vale uma chamada, a frase vale', () => {
+    expect(contarPalavras('はい', 'ja')).toBeLessThan(PALAVRAS_PARA_EXPRESSOES)
+    expect(contarPalavras('今日は猫の手も借りたいほど忙しいです', 'ja')).toBeGreaterThanOrEqual(
+      PALAVRAS_PARA_EXPRESSOES,
+    )
+    const r = tudo()
+    const p = (original: string) => planejarChamadas({ id: '1', original, lado: 'eles', lang: 'ja' }, r, 'pt')
+    expect(p('はい').expressoes).toBe(false)
+    expect(p('今日は猫の手も借りたいほど忙しいです').expressoes).toBe(true)
+  })
+  it('só a primeira ocorrência da expressão é marcada', () => {
+    const m = marcasDaLinha('KPI up, KPI down', { termos: [{ termo: 'KPI', explicacao: 'indicador' }] })
+    expect(m).toHaveLength(1)
+    expect(m[0].inicio).toBe(0)
   })
 })
 

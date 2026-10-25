@@ -18,7 +18,14 @@ const estado = vi.hoisted(() => ({
 }))
 
 vi.mock('../src/lib/flags', () => ({ useFlag: () => estado.flag }))
-vi.mock('../src/lib/entitlements', () => ({ getEntitlements: () => ({ plan: estado.plano }) }))
+const plano = vi.hoisted(() => ({ ouvintes: new Set<() => void>() }))
+vi.mock('../src/lib/entitlements', () => ({
+  getEntitlements: () => ({ plan: estado.plano }),
+  onPlanChange: (cb: () => void) => {
+    plano.ouvintes.add(cb)
+    return () => plano.ouvintes.delete(cb)
+  },
+}))
 vi.mock('../src/lib/consentimentoDeNuvem', () => ({
   useConsentimentoDeNuvem: () => ({ consentiu: estado.consentiu, autorizar: vi.fn(async () => true) }),
 }))
@@ -35,14 +42,23 @@ const api = vi.hoisted(() => ({
   corrigirMinhaFala: vi.fn(),
 }))
 vi.mock('../src/data/apiDoAssistente', () => api)
+vi.mock('../src/lib/estilosDeLegenda', async (original) => {
+  const m = await original<typeof import('../src/lib/estilosDeLegenda')>()
+  return { ...m, pedacosDaLegenda: vi.fn(m.pedacosDaLegenda) }
+})
 
 import type { AssistenteDaJanela } from '../src/components/views/captura/assistente/useAssistenteAoVivo'
 import {
   COMO_RESPONDO_LENTO_MS,
+  RECUO_DO_ASSISTENTE_MS,
   useAssistenteAoVivo,
 } from '../src/components/views/captura/assistente/useAssistenteAoVivo'
 import LegendasFlutuantes, { type LegendaAoVivo } from '../src/components/views/captura/LegendasFlutuantes'
 import { ESPERA_DO_ASSISTENTE_MS } from '../src/lib/assistente/agendaDoAssistente'
+import { pedacosDaLegenda } from '../src/lib/estilosDeLegenda'
+import { estabilizarFalas } from '../src/lib/legendas/estabilizarFalas'
+
+const noop = () => {}
 import { esquecerAjustesDoAssistente, mudarAjustesDoAssistente } from '../src/lib/assistente/ajustesDoAssistente'
 
 const fala = (id: string, original: string, extra: Partial<LegendaAoVivo> = {}): LegendaAoVivo => ({
@@ -222,6 +238,86 @@ describe('no StrictMode (o modo de dev)', () => {
   })
 })
 
+describe('portão e recuo no hook', () => {
+  it('consentimento negado: nenhuma chamada automática', async () => {
+    estado.consentiu = false
+    const h = montarHook({ falas: [fala('1', 'Our KPI went up, break a leg team')] })
+    await passar(ESPERA_DO_ASSISTENTE_MS * 3)
+    expect(api.destacarExpressoes).not.toHaveBeenCalled()
+    expect(api.explicarTermos).not.toHaveBeenCalled()
+    expect(h.result.current.recursos.comoRespondo).toBe(true)
+  })
+
+  it('o plano muda (evento dos entitlements): os recursos acompanham sem remontar', async () => {
+    estado.plano = 'free'
+    const h = montarHook()
+    expect(h.result.current.recursos.comoRespondo).toBe(false)
+    estado.plano = 'plus'
+    act(() => plano.ouvintes.forEach((f) => f()))
+    expect(h.result.current.recursos.comoRespondo).toBe(true)
+  })
+
+  it('sem_conta (401): a sessão fica recusada', async () => {
+    api.destacarExpressoes.mockResolvedValue({ ok: false, motivo: 'sem_conta', status: 401 })
+    const h = montarHook({ falas: [fala('1', 'You will do great, break a leg')] })
+    await passar()
+    expect(h.result.current.recursos.nuvem).toBe(false)
+    expect(h.result.current.recursos.comoRespondo).toBe(false)
+  })
+
+  it('indisponível: as automáticas recuam 60 s e depois voltam', async () => {
+    api.destacarExpressoes.mockResolvedValueOnce({ ok: false, motivo: 'indisponivel', status: 502 })
+    const h = montarHook({ falas: [fala('1', 'You will do great, break a leg')] })
+    await passar()
+    expect(api.destacarExpressoes).toHaveBeenCalledTimes(1)
+    const duas = [fala('1', 'You will do great, break a leg'), fala('2', 'That was a piece of cake for us')]
+    h.rerender({ aberta: true, pausado: false, langDaPessoa: 'pt-BR', falas: duas })
+    await passar(ESPERA_DO_ASSISTENTE_MS * 3)
+    expect(api.destacarExpressoes).toHaveBeenCalledTimes(1)
+    /* Passado o recuo, a linha que esperava é pedida. */
+    await passar(RECUO_DO_ASSISTENTE_MS)
+    await passar()
+    expect(api.destacarExpressoes).toHaveBeenCalledTimes(2)
+    expect(api.destacarExpressoes).toHaveBeenLastCalledWith(
+      expect.objectContaining({ frase: 'That was a piece of cake for us' }),
+    )
+  })
+
+  it('ligar um recurso depois NÃO manda a linha velha à nuvem; só a próxima', async () => {
+    estado.consentiu = false
+    const velha = [fala('1', 'You will do great, break a leg')]
+    const h = montarHook({ falas: velha })
+    await passar(ESPERA_DO_ASSISTENTE_MS * 2)
+    estado.consentiu = true
+    h.rerender({ aberta: true, pausado: false, langDaPessoa: 'pt-BR', falas: [...velha] })
+    await passar(ESPERA_DO_ASSISTENTE_MS * 3)
+    expect(api.destacarExpressoes).not.toHaveBeenCalled()
+    h.rerender({
+      aberta: true,
+      pausado: false,
+      langDaPessoa: 'pt-BR',
+      falas: [...velha, fala('2', 'That was a piece of cake for us')],
+    })
+    await passar()
+    expect(api.destacarExpressoes).toHaveBeenCalledTimes(1)
+  })
+
+  it('as marcas de uma linha que não mudou são O MESMO array quando outra linha cresce', async () => {
+    const h = montarHook({
+      falas: [fala('1', 'The answer was ambiguous, so they scrutinize it'), fala('2', 'Hel', { parcial: true })],
+    })
+    const antes = h.result.current.janela.marcas.get('1')
+    expect(antes?.length).toBeGreaterThan(0)
+    h.rerender({
+      aberta: true,
+      pausado: false,
+      langDaPessoa: 'pt-BR',
+      falas: [fala('1', 'The answer was ambiguous, so they scrutinize it'), fala('2', 'Hello wor', { parcial: true })],
+    })
+    expect(h.result.current.janela.marcas.get('1')).toBe(antes)
+  })
+})
+
 describe('"Como respondo?" no hook', () => {
   it('responde à última fala do outro lado, com contexto; diz quando demora', async () => {
     let resolver: (v: unknown) => void = () => {}
@@ -341,7 +437,86 @@ const montarJanela = (a: AssistenteDaJanela, formato: 'faixa' | 'legenda' | 'con
   )
 }
 
+describe('a linha que não mudou não é repintada (o memo segura)', () => {
+  it('a parcial de outra linha crescendo não repinta a linha com marcas', async () => {
+    const pintadas = vi.mocked(pedacosDaLegenda)
+    const LINHA1 = 'The answer was ambiguous, so they scrutinize it'
+    /* A fala que não mudou é o MESMO objeto (`estabilizarFalas`, como na captura). */
+    const anteriores = new Map<string, LegendaAoVivo>()
+    function Janela({ parcial }: { parcial: string }) {
+      const falas = React.useMemo(
+        () => estabilizarFalas(anteriores, [fala('1', LINHA1), fala('2', parcial, { parcial: true })]),
+        [parcial],
+      )
+      const { janela } = useAssistenteAoVivo({ aberta: true, pausado: false, falas, langDaPessoa: 'pt-BR' })
+      return <LegendasFlutuantes falas={falas} aoFechar={noop} assistente={janela} />
+    }
+    const r = render(<Janela parcial="Hel" />)
+    await passar(5000)
+    expect(document.querySelector('.leg-marca')).toBeTruthy()
+    const vezes = () => pintadas.mock.calls.filter((c) => c[0] === LINHA1).length
+    const antes = vezes()
+    r.rerender(<Janela parcial="Hello wor" />)
+    r.rerender(<Janela parcial="Hello world, how" />)
+    expect(vezes()).toBe(antes)
+  })
+})
+
+describe('estabilizarFalas', () => {
+  it('a fala igual continua o mesmo objeto; a que mudou é nova', () => {
+    const m = new Map<string, LegendaAoVivo>()
+    const [a1, b1] = estabilizarFalas(m, [fala('1', 'A'), fala('2', 'B', { parcial: true })])
+    const [a2, b2] = estabilizarFalas(m, [fala('1', 'A'), fala('2', 'Bc', { parcial: true })])
+    expect(a2).toBe(a1)
+    expect(b2).not.toBe(b1)
+  })
+})
+
+describe('a janela avisa quando para (oculto, recolhido)', () => {
+  it('recolher e esconder chegam em aoMudarPausa', () => {
+    const aoMudarPausa = vi.fn()
+    tamanhoDaJanela(600, 170)
+    render(
+      <LegendasFlutuantes
+        naJanela
+        formatoInicial="legenda"
+        falas={[fala('1', LINHA)]}
+        aoFechar={vi.fn()}
+        assistente={assistente()}
+        aoMudarPausa={aoMudarPausa}
+      />,
+    )
+    expect(aoMudarPausa).toHaveBeenLastCalledWith(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Recolher' }))
+    expect(aoMudarPausa).toHaveBeenLastCalledWith(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Expandir' }))
+    expect(aoMudarPausa).toHaveBeenLastCalledWith(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Personalizar' }))
+    fireEvent.click(screen.getByRole('switch', { name: 'Esconder a legenda' }))
+    expect(aoMudarPausa).toHaveBeenLastCalledWith(true)
+  })
+})
+
 describe('a janela pinta o assistente', () => {
+  it('fechar a folha devolve o foco ao botão "Como respondo?"', () => {
+    tamanhoDaJanela(600, 170)
+    const props = {
+      naJanela: true,
+      formatoInicial: 'legenda' as const,
+      falas: [fala('1', LINHA)],
+      aoFechar: vi.fn(),
+    }
+    const r = render(
+      <LegendasFlutuantes
+        {...props}
+        assistente={assistente({ comoRespondo: { estado: 'erro', falaId: '1', frase: LINHA, motivo: 'indisponivel' } })}
+      />,
+    )
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Fechar as sugestões')
+    r.rerender(<LegendasFlutuantes {...props} assistente={assistente()} />)
+    expect(document.activeElement?.classList.contains('leg-responder')).toBe(true)
+  })
+
   it('marcas silenciosas: sublinhado com o sentido no title, alcançáveis pelo teclado, fora do anúncio', () => {
     montarJanela(assistente({ marcas: MARCAS }))
     const marcas = [...document.querySelectorAll<HTMLElement>('.leg-marca')]
@@ -351,7 +526,13 @@ describe('a janela pinta o assistente', () => {
       ['nivel', 'review'],
     ])
     expect(marcas[0].title).toBe('Break a leg: boa sorte')
-    expect(marcas.every((m) => m.tabIndex === 0)).toBe(true)
+    /* Roving: só a primeira marca entra no Tab; as setas andam entre elas. */
+    expect(marcas.map((m) => m.tabIndex)).toEqual([0, -1, -1])
+    marcas[0].focus()
+    fireEvent.keyDown(marcas[0], { key: 'ArrowRight' })
+    expect(document.activeElement).toBe(marcas[1])
+    fireEvent.keyDown(marcas[1], { key: 'ArrowLeft' })
+    expect(document.activeElement).toBe(marcas[0])
     /* As palavras continuam tocáveis por dentro da marca. */
     expect(marcas[0].querySelectorAll('[data-palavra]')).toHaveLength(3)
     /* O anúncio ao leitor de tela é só o texto da fala, sem os destaques. */
@@ -387,13 +568,16 @@ describe('a janela pinta o assistente', () => {
     expect(cartao.textContent).toContain('Acima do seu nível · B2')
   })
 
-  it('FAIXA mínima: só as marcas (sutis), sem botão "Como respondo?" e sem correção', () => {
+  it('FAIXA mínima: só as marcas (sutis, sem as de nível), sem botão "Como respondo?" e sem correção', () => {
     const correcoes = new Map([['1', { ok: false, corrigida: 'Fixed.', dica: 'dica' }]])
     const a = assistente({ marcas: MARCAS, correcoes })
     montarJanela(a, 'faixa')
     expect(document.getElementById('leg-flut')?.dataset.layout).toBe('faixa')
     expect(document.querySelector('.leg-fala.marcas-sutis')).toBeTruthy()
-    expect(document.querySelectorAll('.leg-marca')).toHaveLength(3)
+    expect([...document.querySelectorAll<HTMLElement>('.leg-marca')].map((m) => m.dataset.marca)).toEqual([
+      'expressao',
+      'termo',
+    ])
     expect(screen.queryByRole('button', { name: /Como respondo/ })).toBeNull()
     expect(document.querySelector('.leg-correcao')).toBeNull()
     fireEvent.keyDown(document, { key: 'r', code: 'KeyR', altKey: true })

@@ -101,13 +101,15 @@ export function recursosDoAssistente(aj: AjustesDoAssistente, ctx: ContextoDoAss
 /** O que cada layout da janela mostra. A FAIXA (jogo) fica mínima: só as marcas sutis. */
 export interface AssistenteNoLayout {
   marcasSutis: boolean;
+  /** As palavras acima do nível aparecem neste layout? Na faixa, não: no jogo elas seriam ruído (fica a expressão). */
+  niveis: boolean;
   comoRespondo: boolean;
   correcao: boolean;
 }
 
 export function assistenteNoLayout(layout: Layout): AssistenteNoLayout {
   const faixa = layout === 'faixa';
-  return { marcasSutis: faixa, comoRespondo: !faixa, correcao: !faixa };
+  return { marcasSutis: faixa, niveis: !faixa, comoRespondo: !faixa, correcao: !faixa };
 }
 
 /* ─────────────────────────────── o orçamento de chamadas ─────────────────────────────── */
@@ -116,7 +118,37 @@ export function assistenteNoLayout(layout: Layout): AssistenteNoLayout {
 export const PALAVRAS_PARA_EXPRESSOES = 4;
 
 const base = (lang: string | undefined) => (lang || '').toLowerCase().split('-')[0];
-const contarPalavras = (s: string) => s.split(/\s+/).filter((p) => /\p{L}/u.test(p)).length;
+/** Escritas sem espaço entre palavras (chinês, japonês, tailandês, laosiano, khmer, birmanês). */
+const ESCRITA_SEM_ESPACO =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]/u;
+
+/**
+ * Quantas palavras a linha tem. Nas escritas sem espaço, conta pelo `Intl.Segmenter` (granularidade de palavra) e, sem
+ * ele, aproxima por caracteres (2 por palavra) — "≥ 4 palavras" continua querendo dizer uma frase, não um "はい".
+ */
+export function contarPalavras(s: string, lang?: string): number {
+  if (!ESCRITA_SEM_ESPACO.test(s)) return s.split(/\s+/).filter((p) => /\p{L}/u.test(p)).length;
+  const Segmenter = (
+    Intl as unknown as {
+      Segmenter?: new (
+        l?: string,
+        o?: { granularity: 'word' },
+      ) => {
+        segment: (t: string) => Iterable<{ isWordLike?: boolean }>;
+      };
+    }
+  ).Segmenter;
+  if (Segmenter) {
+    try {
+      let n = 0;
+      for (const seg of new Segmenter(lang || undefined, { granularity: 'word' }).segment(s)) if (seg.isWordLike) n++;
+      return n;
+    } catch {
+      /* idioma que o Intl recusa: cai na aproximação */
+    }
+  }
+  return Math.floor(s.replace(/[\s\p{P}]/gu, '').length / 2);
+}
 
 /** A fala, no que o orçamento precisa. */
 export interface FalaDoAssistente {
@@ -155,10 +187,10 @@ export function planejarChamadas(f: FalaDoAssistente, r: RecursosDoAssistente, l
   if (f.lang && base(f.lang) === base(langDaPessoa)) return NADA_A_CHAMAR;
   /* A própria fala com a correção ligada: só a correção (uma chamada por linha, não três). */
   if (f.lado === 'voce' && r.correcao) {
-    return { expressoes: false, termos: [], correcao: contarPalavras(texto) >= 2 };
+    return { expressoes: false, termos: [], correcao: contarPalavras(texto, f.lang) >= 2 };
   }
   return {
-    expressoes: r.expressoes && contarPalavras(texto) >= PALAVRAS_PARA_EXPRESSOES,
+    expressoes: r.expressoes && contarPalavras(texto, f.lang) >= PALAVRAS_PARA_EXPRESSOES,
     termos: r.termos ? candidatosATermo(texto) : [],
     correcao: false,
   };
@@ -183,11 +215,16 @@ export interface MarcaNaLinha {
 
 const escapar = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/** Onde o trecho está na linha (sem diferenciar maiúsculas, inteiro e não no meio de uma palavra). */
+/**
+ * Onde o trecho está na linha: a PRIMEIRA ocorrência, sem diferenciar maiúsculas, inteira e não no meio de uma palavra.
+ * Nas escritas sem espaço (chinês, japonês…) não há borda de palavra para conferir: vale a ocorrência do trecho.
+ */
 export function posicaoNaLinha(linha: string, trecho: string): { inicio: number; fim: number } | null {
   const t = trecho.trim();
   if (!t) return null;
-  const re = new RegExp(`(?<![\\p{L}\\p{N}])${escapar(t)}(?![\\p{L}\\p{N}])`, 'iu');
+  const re = ESCRITA_SEM_ESPACO.test(t)
+    ? new RegExp(escapar(t), 'iu')
+    : new RegExp(`(?<![\\p{L}\\p{N}])${escapar(t)}(?![\\p{L}\\p{N}])`, 'iu');
   const m = re.exec(linha);
   return m ? { inicio: m.index, fim: m.index + m[0].length } : null;
 }
@@ -195,6 +232,9 @@ export function posicaoNaLinha(linha: string, trecho: string): { inicio: number;
 /**
  * Junta os destaques numa lista ordenada e SEM SOBREPOSIÇÃO (uma palavra tem uma marca só). A expressão vence o termo,
  * que vence o nível: a expressão diz mais ("break a leg" ≠ "perna").
+ *
+ * Expressão e termo marcam só a PRIMEIRA ocorrência na linha (de propósito: a mesma sigla sublinhada três vezes numa
+ * linha é ruído, e o sentido é um só). As palavras acima do nível vêm com a posição de cada uma e marcam todas.
  */
 export function marcasDaLinha(
   linha: string,

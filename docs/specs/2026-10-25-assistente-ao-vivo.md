@@ -127,12 +127,21 @@ cache, `restanteHoje` é o último valor conhecido na aba, ou fica de fora — n
 
 - **Silencioso**: sublinhado pontilhado na palavra (cor por tipo), sentido no `title` e no cartão da palavra (toque ou Enter);
   nenhum aviso, som ou anúncio ao leitor de tela. Falha automática não avisa; a cota esgotada para as automáticas e deixa
-  uma nota na aba.
-- **Faixa (jogo)**: só as marcas, mais finas; sem botão, sem correção, sem abas. **PiP de vídeo**: uma linha curta de glosa
+  uma nota na aba; `nuvem_ocupada`/`indisponivel` fazem as automáticas recuarem 60 s (`RECUO_DO_ASSISTENTE_MS`).
+  Teclado: só a primeira marca da linha entra no Tab (roving), ← → andam entre as marcas, Enter abre o cartão.
+- **Uma marca por trecho**: expressão e termo marcam só a PRIMEIRA ocorrência na linha (a mesma sigla três vezes seria
+  ruído); as palavras acima do nível marcam todas. Chinês e japonês: a expressão é achada sem borda de palavra, e o
+  "≥ 4 palavras" conta pelo `Intl.Segmenter` (sem ele, 2 caracteres por palavra). O recurso 2 segue sem esses idiomas.
+- **Orçamento na tela**: cada linha final é oferecida uma vez, quando chega (ligar um recurso depois não manda a linha
+  velha); as marcas de cada linha são guardadas por texto, nível, glosas e recursos (o mesmo array, e a linha não é
+  repintada enquanto a parcial de outra cresce — a captura também mantém a identidade das falas, `estabilizarFalas`).
+- **Faixa (jogo)**: só as marcas de expressão e termo, mais finas (as de nível ficam de fora no jogo); sem botão, sem
+  correção, sem abas. **PiP de vídeo**: uma linha curta de glosa
   (expressão, senão termo) embaixo da legenda nos formatos Legenda e Conversa; na faixa, nada.
 - **"Como respondo?"**: botão no canto (com os controles) e Alt+R, em legenda/conversa/estudo; folha com 2–3 sugestões,
   tradução, tom, Copiar e Ouvir; "Pensando em respostas…" e, depois de 2,5 s, "Está demorando…" com Cancelar.
-- **Escondido** com a flag desligada, no Grátis ou depois de um `sem_plano`/`fora` do servidor; o recurso 2 segue. O perfil
+- **Escondido** com a flag desligada, no Grátis ou depois de um `sem_plano`/`fora`/`sem_conta` do servidor (o plano é
+  acompanhado pelo evento dos entitlements); o recurso 2 segue. O perfil
   protegido recebe os mesmos recursos, sem contexto no "Como respondo?" e sem nenhuma oferta.
 - Testes: `tests/assistente-tela.test.ts`, `tests/assistente-janela.test.tsx`, `tests/e2e/assistente-ao-vivo.e2e.ts`.
 

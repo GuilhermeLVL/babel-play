@@ -94,6 +94,7 @@ function Palavras({
   return (
     <>
       {grupos.map((g, i) => {
+        const primeira = grupos.find((x) => x.marca)?.marca;
         const m = g.marca;
         if (!m) return <Fragment key={i}>{g.itens}</Fragment>;
         const rotulo = m.tipo === 'nivel' ? rotuloDoNivel(m.nivel, m.escala) : rotuloDoTipo(m.tipo);
@@ -103,7 +104,8 @@ function Palavras({
             className="leg-marca"
             data-marca={m.tipo}
             role="button"
-            tabIndex={0}
+            /* ROVING: só a primeira marca da linha entra no Tab; ← → andam entre as marcas dela. */
+            tabIndex={m === primeira ? 0 : -1}
             title={m.sentido ? `${m.texto}: ${m.sentido}` : rotulo}
             aria-label={`${m.texto}, ${rotulo}`}
             onClick={(e) => {
@@ -112,6 +114,17 @@ function Palavras({
               aoTocarMarca(m);
             }}
             onKeyDown={(e) => {
+              if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                const todas = [
+                  ...(e.currentTarget.closest('.leg-o')?.querySelectorAll<HTMLElement>('.leg-marca') ?? []),
+                ];
+                const alvo = todas[todas.indexOf(e.currentTarget) + (e.key === 'ArrowRight' ? 1 : -1)];
+                /* Na ponta, a seta segue para a janela (voltar e avançar pelas falas). */
+                if (!alvo) return;
+                e.preventDefault();
+                alvo.focus();
+                return;
+              }
               if (!aoTocarMarca || (e.key !== 'Enter' && e.key !== ' ')) return;
               e.preventDefault();
               e.stopPropagation();

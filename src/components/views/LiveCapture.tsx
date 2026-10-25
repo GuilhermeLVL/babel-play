@@ -201,6 +201,7 @@ import ChatTranscript from '../ChatTranscript';
 
 /** O benchmark do aparelho agendado pela última saída da captura (cancelado por uma captura nova). */
 let benchmarkPendente: AbortController | null = null;
+import { estabilizarFalas } from '../../lib/legendas/estabilizarFalas';
 import GuidePanel from '../GuidePanel';
 // Bandeira SVG do idioma (nunca emoji: o Windows renderiza 🇧🇷 como "BR") + o rótulo curto.
 import { LangFlag } from '../LangFlag';
@@ -601,6 +602,8 @@ export default function LiveCapture({
   // As últimas são procuradas DE TRÁS PARA FRENTE: filtrar a sessão inteira era O(n) por parcial.
   // 24, não 2 (ei/leg): a janela tem ritmo de leitura e histórico (até 5 à vista, ← → para voltar),
   // e é ela quem decide quais e quando aparecem.
+  /* Identidade estável: a fala que não mudou continua o MESMO objeto, e a linha dela não é repintada a cada parcial. */
+  const legendasAnteriores = useRef(new Map<string, LegendaAoVivo>());
   const legendasAoVivo: LegendaAoVivo[] = useMemo(() => {
     const nomeDe = (id: string) => speakerProfiles.find((p) => p.id === id)?.name ?? id;
     const ultimas: SpeechSegment[] = [];
@@ -608,7 +611,7 @@ export default function LiveCapture({
       const s = speechSegments[i];
       if (s.originalText && s.originalText.trim()) ultimas.unshift(s);
     }
-    return ultimas.map((s) => ({
+    const novas = ultimas.map((s) => ({
       id: s.id,
       quem: nomeDe(s.speakerId),
       original: s.originalText,
@@ -620,6 +623,7 @@ export default function LiveCapture({
       // Deixada sem tradução pela preferência "Tradução": a legenda oferece "Mostrar tradução".
       sobDemanda: !!s.traducaoSobDemanda && !s.isPartial,
     }));
+    return estabilizarFalas(legendasAnteriores.current, novas);
   }, [speechSegments, speakerProfiles]);
 
   // Dispositivos de loopback candidatos (Stereo Mix / VB-Cable) entre os inputs enumerados.

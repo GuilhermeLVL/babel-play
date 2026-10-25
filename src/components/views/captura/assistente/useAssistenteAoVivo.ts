@@ -23,18 +23,32 @@ import type {
 import { type AgendaDoAssistente, criarAgenda } from '../../../../lib/assistente/agendaDoAssistente';
 import { useAjustesDoAssistente } from '../../../../lib/assistente/ajustesDoAssistente';
 import { useConsentimentoDeNuvem } from '../../../../lib/consentimentoDeNuvem';
-import { getEntitlements } from '../../../../lib/entitlements';
+import { getEntitlements, onPlanChange } from '../../../../lib/entitlements';
 import { useFlag } from '../../../../lib/flags';
 import { perfilProtegido } from '../../../../lib/protecaoDoMenor';
 
 /* O cliente chega por `import()` UMA vez (como a explicação da frase): quem nunca abre a janela não o baixa. */
+/* Falhou (rede caiu ao baixar o chunk): a promessa é esquecida, e o próximo pedido tenta de novo. */
 let apiDoAssistente: Promise<typeof import('../../../../data/apiDoAssistente')> | null = null;
-const carregarApi = () => (apiDoAssistente ??= import('../../../../data/apiDoAssistente'));
+const carregarApi = () =>
+  (apiDoAssistente ??= import('../../../../data/apiDoAssistente').catch((e: unknown) => {
+    apiDoAssistente = null;
+    throw e;
+  }));
 let niveisDoIdioma: Promise<typeof import('../../../../data/trilha/carregar')> | null = null;
-const carregarNiveis = () => (niveisDoIdioma ??= import('../../../../data/trilha/carregar'));
+const carregarNiveis = () =>
+  (niveisDoIdioma ??= import('../../../../data/trilha/carregar').catch((e: unknown) => {
+    niveisDoIdioma = null;
+    throw e;
+  }));
 
 /** Depois disto sem resposta, a folha do "Como respondo?" diz que está demorando (o p95 medido é ~3,8 s). */
 export const COMO_RESPONDO_LENTO_MS = 2500;
+/**
+ * O RECUO: com a nuvem ocupada ou fora (`nuvem_ocupada`, `indisponivel`), as chamadas AUTOMÁTICAS param por este tempo
+ * (pedir de novo a cada linha só somaria recusas). O "Como respondo?" segue: é pedido explícito.
+ */
+export const RECUO_DO_ASSISTENTE_MS = 60_000;
 /** Quantos itens o glossário da sessão guarda (os mais novos primeiro). */
 export const TETO_DO_GLOSSARIO = 40;
 
@@ -89,10 +103,21 @@ export function assistenteDiaDoPlano(plano: string): number | null {
   return def ? def.quotas.assistenteDia : 0;
 }
 
+/** O plano que o servidor disse por último, ACOMPANHADO: muda na hora em que o cache dos entitlements muda. */
+function usePlanoAtual(): string {
+  const [plano, setPlano] = useState(() => getEntitlements().plan);
+  useEffect(() => {
+    setPlano(getEntitlements().plan);
+    return onPlanChange(() => setPlano(getEntitlements().plan));
+  }, []);
+  return plano;
+}
+
 /** Os recursos de nuvem do assistente existem para esta conta (flag + plano)? Para os Ajustes, que não têm a janela. */
 export function useNuvemDoAssistente(): boolean {
   const flagLigada = useFlag(FLAG_ASSISTENTE_AO_VIVO);
-  return flagLigada && assistenteDiaDoPlano(getEntitlements().plan) !== 0;
+  const plano = usePlanoAtual();
+  return flagLigada && assistenteDiaDoPlano(plano) !== 0;
 }
 
 /**
@@ -120,17 +145,20 @@ export function useAssistenteAoVivo(o: {
   const [recusado, setRecusado] = useState(false);
   /** As glosas automáticas pararam nesta sessão por cota (a aba conta por quê). */
   const [paradoPorCota, setParadoPorCota] = useState<FalhaDoAssistente | null>(null);
+  /** A nuvem recusou há pouco (ocupada, fora): as automáticas esperam `RECUO_DO_ASSISTENTE_MS`. */
+  const [recuando, setRecuando] = useState(false);
   const protegido = perfilProtegido();
   const soLeitura = !!o.soLeitura;
+  const plano = usePlanoAtual();
   const recursos = useMemo(() => {
     const r = recursosDoAssistente(ajustes, {
       flagLigada,
-      assistenteDiaDoPlano: assistenteDiaDoPlano(getEntitlements().plan),
+      assistenteDiaDoPlano: assistenteDiaDoPlano(plano),
       recusadoNaSessao: recusado,
       consentiuNuvem: consentiu,
     });
     return soLeitura ? { ...r, comoRespondo: false, correcao: false } : r;
-  }, [ajustes, flagLigada, recusado, consentiu, soLeitura]);
+  }, [ajustes, flagLigada, plano, recusado, consentiu, soLeitura]);
 
   const [glosas, setGlosas] = useState<Record<string, Glosas>>({});
   const [correcoes, setCorrecoes] = useState<ReadonlyMap<string, CorrecaoDaFala>>(new Map());
@@ -167,9 +195,15 @@ export function useAssistenteAoVivo(o: {
   }, []);
 
   const falhou = useCallback((m: FalhaDoAssistente) => {
-    if (m === 'sem_plano' || m === 'fora') setRecusado(true);
+    if (m === 'sem_plano' || m === 'fora' || m === 'sem_conta') setRecusado(true);
     else if (m === 'uso_justo' || m === 'cota_do_mes') setParadoPorCota(m);
+    else if (m === 'nuvem_ocupada' || m === 'indisponivel') setRecuando(true);
   }, []);
+  useEffect(() => {
+    if (!recuando) return;
+    const id = setTimeout(() => setRecuando(false), RECUO_DO_ASSISTENTE_MS);
+    return () => clearTimeout(id);
+  }, [recuando]);
 
   const executar = useCallback(
     async (f: FalaDoAssistente) => {
@@ -198,13 +232,17 @@ export function useAssistenteAoVivo(o: {
      uma agenda destruída na primeira desmontagem ficaria morta para sempre. */
   const [agenda, setAgenda] = useState<AgendaDoAssistente<FalaDoAssistente> | null>(null);
   useEffect(() => {
-    const a = criarAgenda<FalaDoAssistente>({ executar: (f) => void executar(f), pausado: true });
+    /* Nenhuma rejeição solta: o que lançar (o chunk do cliente que não baixou) vira o recuo. */
+    const a = criarAgenda<FalaDoAssistente>({
+      executar: (f) => void executar(f).catch(() => vivo.current && setRecuando(true)),
+      pausado: true,
+    });
     setAgenda(a);
     return () => a.destruir();
   }, [executar]);
 
   const automatico = (recursos.expressoes || recursos.termos || recursos.correcao) && !paradoPorCota;
-  const parado = !o.aberta || o.pausado || !automatico;
+  const parado = !o.aberta || o.pausado || !automatico || recuando;
   useEffect(() => agenda?.pausar(parado), [agenda, parado]);
 
   /* A linha final mais nova ainda não pedida vai para a agenda (a anterior, atropelada, sai da fila). */
@@ -213,30 +251,57 @@ export function useAssistenteAoVivo(o: {
       if (!o.falas[i].parcial && o.falas[i].original.trim()) return o.falas[i];
     return undefined;
   }, [o.falas]);
+  /* Cada linha é oferecida UMA vez, quando chega: ligar um recurso (ou o consentimento) depois não manda à nuvem a
+     linha velha que estava à vista quando ele estava desligado. */
+  const oferecida = useRef<string | null>(null);
   useEffect(() => {
-    if (!agenda || !ultimaFinal || !automatico) return;
-    if (temChamada(planejarChamadas(ultimaFinal, recursos, o.langDaPessoa))) agenda.oferecer(ultimaFinal);
+    if (!agenda || !ultimaFinal || oferecida.current === ultimaFinal.id) return;
+    oferecida.current = ultimaFinal.id;
+    if (automatico && temChamada(planejarChamadas(ultimaFinal, recursos, o.langDaPessoa))) agenda.oferecer(ultimaFinal);
   }, [ultimaFinal, agenda, automatico, recursos, o.langDaPessoa]);
 
   /* ── AS MARCAS de cada linha (nível local + glosas da nuvem) ───────────────────────────────── */
+  /* O CACHE das marcas por linha: a mesma linha com o mesmo texto, nível, glosas e recursos devolve O MESMO array —
+     assim o `memo` de `LinhaDaLegenda` segura as linhas que não mudaram enquanto a parcial de outra cresce. */
+  const cacheDeMarcas = useRef(new Map<string, { chave: string; glosa: Glosas | undefined; lista: MarcaNaLinha[] }>());
   const marcas = useMemo(() => {
-    void versaoDosNiveis;
     const m = new Map<string, MarcaNaLinha[]>();
     /* Janela fechada: nada a pintar, e nenhum trabalho a cada fala (a captura segue sem a janela). */
     if (!o.aberta) return m;
+    const cache = cacheDeMarcas.current;
+    const vivas = new Set<string>();
     for (const f of o.falas) {
       if (f.parcial || !f.original.trim()) continue;
+      vivas.add(f.id);
       const g = glosas[f.id];
-      const doIdiomaDaPessoa = !!f.lang && base(f.lang) === base(o.langDaPessoa);
-      const niveis =
-        recursos.niveis && f.lang && !doIdiomaDaPessoa ? palavrasAcimaDoNivel(f.original, f.lang, ajustes.nivel) : [];
-      const lista = marcasDaLinha(f.original, {
-        expressoes: recursos.expressoes ? g?.expressoes : undefined,
-        termos: recursos.termos ? g?.termos : undefined,
-        niveis,
-      });
+      const chave = [
+        f.original,
+        f.lang,
+        o.langDaPessoa,
+        ajustes.nivel,
+        recursos.niveis,
+        recursos.expressoes,
+        recursos.termos,
+        versaoDosNiveis,
+      ].join('\u0000');
+      const guardada = cache.get(f.id);
+      let lista: MarcaNaLinha[];
+      if (guardada && guardada.chave === chave && guardada.glosa === g) lista = guardada.lista;
+      else {
+        const doIdiomaDaPessoa = !!f.lang && base(f.lang) === base(o.langDaPessoa);
+        const niveis =
+          recursos.niveis && f.lang && !doIdiomaDaPessoa ? palavrasAcimaDoNivel(f.original, f.lang, ajustes.nivel) : [];
+        lista = marcasDaLinha(f.original, {
+          expressoes: recursos.expressoes ? g?.expressoes : undefined,
+          termos: recursos.termos ? g?.termos : undefined,
+          niveis,
+        });
+        cache.set(f.id, { chave, glosa: g, lista });
+      }
       if (lista.length) m.set(f.id, lista);
     }
+    /* As falas que saíram da janela da captura saem do cache. */
+    for (const id of [...cache.keys()]) if (!vivas.has(id)) cache.delete(id);
     return m;
   }, [o.aberta, o.falas, glosas, recursos, ajustes.nivel, o.langDaPessoa, versaoDosNiveis]);
 
@@ -293,7 +358,14 @@ export function useAssistenteAoVivo(o: {
     const relogio = setTimeout(() => {
       if (pedido.current === id) setComoRespondo((c) => (c.estado === 'carregando' ? { ...c, lento: true } : c));
     }, COMO_RESPONDO_LENTO_MS);
-    const api = await carregarApi();
+    let api: Awaited<ReturnType<typeof carregarApi>>;
+    try {
+      api = await carregarApi();
+    } catch {
+      clearTimeout(relogio);
+      if (vivo.current && pedido.current === id) setComoRespondo({ estado: 'erro', ...alvo, motivo: 'indisponivel' });
+      return;
+    }
     const res = await api.comoRespondo({
       frase: frase.slice(0, 400),
       /* O servidor já descarta o contexto do perfil protegido; aqui ele nem sai. */
@@ -305,7 +377,7 @@ export function useAssistenteAoVivo(o: {
     if (!vivo.current || pedido.current !== id) return;
     if (res.ok === true) setComoRespondo({ estado: 'ok', ...alvo, sugestoes: res.valor.sugestoes.slice(0, 3) });
     else {
-      if (res.motivo === 'sem_plano' || res.motivo === 'fora') setRecusado(true);
+      if (res.motivo === 'sem_plano' || res.motivo === 'fora' || res.motivo === 'sem_conta') setRecusado(true);
       setComoRespondo({ estado: 'erro', ...alvo, motivo: res.motivo });
     }
   }, []);

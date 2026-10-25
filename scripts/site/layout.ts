@@ -253,7 +253,7 @@ details.pergunta p{margin:0;padding:0 0 20px;color:var(--suave);max-width:62ch}
 .memoria{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .memoria span{aspect-ratio:1/1.1;display:grid;place-items:center;border-radius:12px;font:700 15px/1.1 var(--texto);text-align:center;padding:6px;background:var(--papel);border:1.5px solid var(--borda-fraca)}
 .memoria .fechada{background:var(--superficie-2);border-style:dashed}
-.memoria .par{color:var(--suave);opacity:.6}
+.memoria .par{color:var(--suave);font-weight:550;background:var(--superficie-2);border-color:transparent}
 .memoria .aberta{border-color:var(--acento);background:var(--superficie);box-shadow:0 0 0 3px var(--acento-suave)}
 .conversa{display:flex;flex-direction:column;gap:14px}
 .fala-de{max-width:84%;padding:14px 16px;border-radius:18px;background:var(--papel);border:1.5px solid var(--borda-fraca)}

@@ -65,6 +65,8 @@ export const MOTIVOS_DA_ROTA = [
   'nuvem-primeiro',
   'navegador-no-aparelho',
   'so-na-nuvem',
+  // "aparelho primeiro" (flag `stt_aparelho_primeiro`): a nuvem entra porque o áudio ficou difícil
+  'audio-dificil',
   // por que a nuvem não entrou
   'plano-nao-inclui',
   'cota-do-mes',
@@ -112,6 +114,12 @@ export interface AparelhoDaRota {
     /** O tradutor do navegador tem o par. */
     tradutor: boolean;
   };
+  /**
+   * O PARAKEET está PRONTO para esta captura (`parakeetProntoNaRota` do roteador: serve aos idiomas, o
+   * aparelho comporta e há cópia completa). Ausente = não. Entra no automático (o motor, ou a reserva
+   * da nuvem) e no "aparelho primeiro".
+   */
+  parakeet?: boolean;
   modelos: {
     /** O opus-mt cobre o par. */
     opusMt: boolean;
@@ -150,6 +158,17 @@ export interface PlanoDaRota {
 export interface EstadoDaRota {
   /** A flag `rota_inteligente`. Ausente ou `false` = a decisão de hoje (modo sombra). */
   politicaLigada?: boolean;
+  /**
+   * A flag `stt_aparelho_primeiro` (Fase B, item 6, decisão do dono de 24/10/2026): no automático de
+   * quem tem nuvem, o Parakeet pronto transcreve primeiro e a nuvem fica de reserva para o áudio
+   * difícil. Independe de `politicaLigada` (vale nos dois modos). Ausente ou `false` = a regra de hoje.
+   */
+  aparelhoPrimeiro?: boolean;
+  /**
+   * A histerese do áudio difícil (`core/rota/audioDificil.ts`) subiu: com `aparelhoPrimeiro`, a nuvem
+   * vai primeiro até ela descer. Sem `aparelhoPrimeiro`, não muda nada.
+   */
+  audioDificil?: boolean;
   consentimentos: {
     /** "Usar IA de nuvem": os NOSSOS servidores. */
     nuvem: boolean;
@@ -316,6 +335,7 @@ const EXPLICACOES: Record<MotivoDaRota, string> = {
   'nuvem-primeiro': 'A nuvem está disponível na sua conta e erra menos.',
   'navegador-no-aparelho': 'O navegador reconhece {idioma} no próprio aparelho.',
   'so-na-nuvem': 'Este recurso só existe pela nuvem.',
+  'audio-dificil': 'Áudio difícil: nestas falas a nuvem erra menos.',
   'plano-nao-inclui': 'O seu plano não inclui a nuvem para isto.',
   'cota-do-mes': 'A nuvem deste mês acabou. Seguimos no aparelho.',
   'cota-do-dia': 'A nuvem de hoje acabou. Seguimos no aparelho.',
@@ -359,7 +379,13 @@ function fechar(
 
 // ───────────────────────────── transcrever ─────────────────────────────
 
-type ModeloDeStt = 'whisper-small' | 'whisper-base' | 'whisper-tiny' | 'moonshine-base' | 'moonshine-tiny';
+type ModeloDeStt =
+  | 'parakeet-v3'
+  | 'whisper-small'
+  | 'whisper-base'
+  | 'whisper-tiny'
+  | 'moonshine-base'
+  | 'moonshine-tiny';
 
 /** "Inglês" só quando TODAS as fontes que o modelo decodifica são inglês (o modelo é um só). */
 function soIngles(p: PedidoDeRota): boolean {
@@ -376,6 +402,7 @@ function soIngles(p: PedidoDeRota): boolean {
 function modeloLocal(p: PedidoDeRota, id: ModeloDeStt, motivo: MotivoDaRota): PassoDaRota {
   const a = p.aparelho;
   const passo: PassoDaRota = { degrau: 'modelo-no-aparelho', motivo, motor: id, modelo: motorPorId(id)?.modelo ?? id };
+  if (id === 'parakeet-v3') return { ...passo, device: 'wasm' }; // int8, sempre no processador
   if (id === 'moonshine-base' || id === 'moonshine-tiny') return { ...passo, dtype: 'q8' };
   if (id === 'whisper-tiny') return { ...passo, dtype: 'hybrid' };
   const movel = !a.tipo.startsWith('desktop');
@@ -402,7 +429,9 @@ function moonshineDoAparelho(p: PedidoDeRota): ModeloDeStt {
  */
 function chaoLocal(p: PedidoDeRota, atual: PassoDaRota): PassoDaRota {
   if (soIngles(p)) return modeloLocal(p, 'moonshine-tiny', 'reserva');
-  if (atual.motor === 'whisper-small') return modeloLocal(p, 'whisper-base', 'reserva');
+  // O Whisper base é a reserva do Parakeet no gateway (`setRoute`), como do small.
+  if (atual.motor === 'whisper-small' || atual.motor === 'parakeet-v3')
+    return modeloLocal(p, 'whisper-base', 'reserva');
   return { ...atual, motivo: 'reserva' };
 }
 
@@ -419,8 +448,10 @@ function aparelhoAcompanha(p: PedidoDeRota): boolean {
 interface EscolhaDoStt {
   nuvem: { motivo: MotivoDaRota; aoVivo: boolean } | null;
   local: PassoDaRota;
-  /** A nuvem fica de reserva atrás do modelo local (só a política nova). */
+  /** A nuvem fica de reserva atrás do modelo local (a política nova, e o "aparelho primeiro"). */
   nuvemDeReserva: boolean;
+  /** O motivo da nuvem de reserva. Ausente = `reserva`. */
+  motivoDaNuvemDeReserva?: MotivoDaRota;
   descartadas: Descartada[];
   acao: Acao;
 }
@@ -433,6 +464,8 @@ function escolhaDeHoje(p: PedidoDeRota, bloqueios: readonly MotivoDaRota[], nuve
   const tranca = perfilQueTranca(p.estado);
   const base: Omit<EscolhaDoStt, 'local' | 'nuvem'> = { nuvemDeReserva: false, descartadas: [], acao: null };
   const semNuvem = (motivo: MotivoDaRota): Descartada[] => [{ degrau: nuvem, motivo: bloqueio ?? motivo }];
+  /** O Parakeet pronto entra no automático (motor ou reserva da nuvem) e na reserva da "Precisão". */
+  const parakeet = !ingles && p.aparelho.parakeet === true;
 
   if (q === 'rapido' || q === 'preciso') {
     const id = q === 'preciso' ? melhorWhisper(p) : ingles ? 'moonshine-tiny' : 'whisper-tiny';
@@ -446,14 +479,41 @@ function escolhaDeHoje(p: PedidoDeRota, bloqueios: readonly MotivoDaRota[], nuve
     const local = modeloLocal(p, moonshineDoAparelho(p), tranca ?? 'aparelho-da-conta');
     return { ...base, nuvem: null, local, descartadas: semNuvem('aparelho-da-conta') };
   }
+  /* APARELHO PRIMEIRO (flag `stt_aparelho_primeiro`): no automático, o Parakeet pronto é o motor e a
+     nuvem fica de reserva para o áudio difícil; quando a histerese sobe, a nuvem vai primeiro com o
+     motivo, e o Parakeet fica de reserva. É a régua do `routeStt` com `aparelhoPrimeiro`. */
+  if (q === 'auto' && parakeet && !bloqueio && p.estado.aparelhoPrimeiro === true) {
+    if (p.estado.audioDificil === true)
+      return {
+        ...base,
+        nuvem: { motivo: 'audio-dificil', aoVivo: false },
+        local: modeloLocal(p, 'parakeet-v3', 'reserva'),
+      };
+    return {
+      ...base,
+      nuvem: null,
+      local: modeloLocal(p, 'parakeet-v3', 'aparelho-da-conta'),
+      nuvemDeReserva: true,
+      motivoDaNuvemDeReserva: 'audio-dificil',
+    };
+  }
   if (!bloqueio) {
-    // A reserva é moderada (base, ou o Moonshine em inglês): quem vai à nuvem não baixa o small.
-    const reserva = ingles ? (q === 'auto' ? moonshineDoAparelho(p) : 'moonshine-base') : 'whisper-base';
+    /* A reserva é moderada (base, ou o Moonshine em inglês): quem vai à nuvem não baixa o small. O
+       Parakeet só quando já está no aparelho (Fase B, item 5). */
+    const reserva = ingles
+      ? q === 'auto'
+        ? moonshineDoAparelho(p)
+        : 'moonshine-base'
+      : parakeet
+        ? 'parakeet-v3'
+        : 'whisper-base';
     const motivo: MotivoDaRota = q === 'nuvem' ? 'escolha-da-pessoa' : 'nuvem-primeiro';
     return { ...base, nuvem: { motivo, aoVivo: false }, local: modeloLocal(p, reserva, 'reserva') };
   }
-  // Sem nuvem: o Moonshine em inglês no automático; no resto (e em "nuvem" recusada), o melhor Whisper.
-  const id = q === 'auto' && ingles ? moonshineDoAparelho(p) : melhorWhisper(p);
+  /* Sem nuvem: o Moonshine em inglês no automático (e o Parakeet pronto fora dele); no resto (e em
+     "nuvem" recusada), o melhor Whisper. */
+  const id =
+    q === 'auto' && ingles ? moonshineDoAparelho(p) : q === 'auto' && parakeet ? 'parakeet-v3' : melhorWhisper(p);
   return {
     ...base,
     nuvem: null,
@@ -590,7 +650,8 @@ function decidirStt(p: PedidoDeRota): DecisaoDeRota {
     ligada &&
     !aparelhoAcompanha(p) &&
     mic.descartadas.some((d) => d.degrau === 'navegador-na-nuvem' && d.motivo === 'sem-consentimento');
-  const reservas = e.nuvemDeReserva && p.tarefa === 'stt-final' ? [porTrechos('reserva')] : [];
+  const reservas =
+    e.nuvemDeReserva && p.tarefa === 'stt-final' ? [porTrechos(e.motivoDaNuvemDeReserva ?? 'reserva')] : [];
   return fechar(
     p,
     e.local,

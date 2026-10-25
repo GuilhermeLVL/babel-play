@@ -3596,6 +3596,8 @@
   "Mudou: esta fala foi para o serviço de fala do navegador.": "Changed: this utterance went to the browser's speech service.",
   "Mudou: esta fala foi para a nuvem.": "Changed: this utterance went to the cloud.",
   "Mudou: a nuvem não respondeu nesta fala.": "Changed: the cloud did not respond for this utterance.",
+  "Áudio difícil: nestas falas a nuvem erra menos.": "Difficult audio: the cloud makes fewer mistakes on these utterances.",
+  "Áudio difícil: esta fala foi para a nuvem, que erra menos.": "Difficult audio: this utterance went to the cloud, which makes fewer mistakes.",
   "O navegador reconheceu esta fala no próprio aparelho.": "The browser recognized this utterance on the device itself.",
   "O texto provisório muda a cada segundo e nunca sai do aparelho.": "The provisional text changes every second and never leaves the device.",
   "O perfil Privado não envia nada para fora do aparelho.": "The Private profile sends nothing off the device.",

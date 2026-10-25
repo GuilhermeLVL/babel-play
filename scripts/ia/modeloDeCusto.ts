@@ -86,11 +86,11 @@ export function margemDoAnual(plano: PlanoDeAssinatura): MargemDoAnual {
  * da função (`FUNCOES_DE_IA[...].maxTokens`); os de ENTRADA, o pior caso pela estimativa conservadora do servidor
  * (metade dos caracteres do prompt, `estimarTokens`): explicação ~3.900 caracteres (system + instrução de menor +
  * frase, tradução e 3 falas de contexto no teto) ≈ 2.000 tokens; resumo ~14.000 caracteres ≈ 7.000 tokens.
- * Os preços são os da cascata RÁPIDA do registro (`ops/ia-provedores.openrouter.json`): conservador = Llama 3.3 70B
- * (a perna mais cara do nível), esperado = Gemma 4 26B (a primeira). A EXPLICAÇÃO tem cascata própria desde 25/10/2026
- * (DeepSeek V4.1 Flash sem raciocínio → Gemma → Llama): esperado = o DeepSeek (preço declarado, o endpoint ZDR mais
- * barato com saída estruturada); conservador = o Llama, ainda a perna mais cara declarada do nível. O custo REAL medido
- * do DeepSeek na bancada é ~US$ 0,235/1M tokens (o roteamento nem sempre cai no endpoint mais barato).
+ * Os preços do RESUMO são os da cascata RÁPIDA do tutor (`ops/ia-provedores.openrouter.json`): conservador = Llama 3.3
+ * 70B (a perna mais cara do nível), esperado = Gemma 4 26B (a primeira). A EXPLICAÇÃO tem cascata própria desde
+ * 25/10/2026 (DeepSeek V4.1 Flash sem raciocínio → Gemma → Llama) e usa o preço DECLARADO do DeepSeek nos dois modos,
+ * US$ 0,15/1M de entrada e US$ 0,65 de saída: conservador de propósito (o endpoint que o OpenRouter escolheu na chamada
+ * real cobra 0,10/0,65), e não o endpoint mais barato da lista. É a perna mais cara do nível dela.
  */
 export const TOKENS_DE_ENTRADA_DA_AMOSTRA = { explicacao: 2_000, resumo: 7_000 } as const;
 export const PRECO_DO_TEXTO_RAPIDO_USD_POR_MILHAO = {
@@ -98,9 +98,9 @@ export const PRECO_DO_TEXTO_RAPIDO_USD_POR_MILHAO = {
   esperado: { entrada: 0.0675, saida: 0.225 },
 } as const;
 /**
- * A explicação da amostra (cascata própria) no DeepSeek V4.1 Flash. O preço é o do endpoint ZDR que o OpenRouter
- * de fato escolheu na chamada real de 25/10/2026 (Wafer, 0,10/0,65), não o mais barato da lista (Decart, 0,09/0,18):
- * declarado conservador (0,15/0,65) para o orçamento não contar metade do gasto real. A saída dele passa a do Llama.
+ * A explicação da amostra (cascata própria) no DeepSeek V4.1 Flash, nos dois modos: o preço declarado no registro
+ * (0,15/0,65), acima do endpoint que o OpenRouter de fato escolheu na chamada real de 25/10/2026 (Wafer, 0,10/0,65) e
+ * não o mais barato da lista (Decart, 0,09/0,18) — para o orçamento não contar metade do gasto real.
  */
 export const PRECO_DA_EXPLICACAO_RAPIDA_USD_POR_MILHAO = {
   conservador: { entrada: 0.15, saida: 0.65 },

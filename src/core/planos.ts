@@ -677,13 +677,16 @@ export const FRANQUIA_DE_ALIVIO = {
  * e 1.500 no resumo (o teto geral por chamada; a amostra admitia até 2.000). A amostra usa o nível `rapida` (o Grátis não tem `traducaoNuance`).
  *
  * A CONTA DE CUSTO (pior caso: uma conta que usa TODA a amostra do mês, todo pedido no teto de entrada e de saída,
- * no modelo mais caro da cascata rápida — Llama 3.3 70B no OpenRouter, US$ 0,10/1M de entrada e US$ 0,32 de saída,
- * `ops/ia-provedores.openrouter.json`; `scripts/ia/modeloDeCusto.ts` a calcula a partir destes números):
- *   explicação  ~2.000 tokens de entrada + 1.200 de saída ≈ US$ 0,00058; 5/dia × 30 = 150/mês ≈ US$ 0,088
- *   resumo      ~7.000 tokens de entrada + 1.500 de saída ≈ US$ 0,0012; 1/semana × ~4,3 ≈ US$ 0,0051
- *   TETO POR CONTA GRÁTIS QUE USA TUDO ≈ US$ 0,093/mês; nas primeiras pernas (explicação no DeepSeek V4.1 Flash desde
- *   25/10/2026, resumo no Gemma 4) ≈ US$ 0,063. Na base, o
- *   `npm run ia:custo` supõe 30% dos grátis no teto no pior caso (`--amostra`).
+ * `ops/ia-provedores.openrouter.json`; `scripts/ia/modeloDeCusto.ts` a calcula a partir destes números — o
+ * `npm run ia:custo` de 25/10/2026):
+ *   explicação  no DeepSeek V4.1 Flash (a primeira perna desde 25/10/2026; preço declarado conservador, US$ 0,15/1M de
+ *               entrada e US$ 0,65 de saída): ~2.000 tokens de entrada + 1.200 de saída ≈ US$ 0,0011; 5/dia × 30 =
+ *               150/mês ≈ US$ 0,162
+ *   resumo      no Llama 3.3 70B (a perna mais cara da cascata rápida do tutor, US$ 0,10/0,32): ~7.000 tokens de
+ *               entrada + 1.500 de saída ≈ US$ 0,0012; 1/semana × ~4,3 ≈ US$ 0,0051 (no Gemma 4, ≈ US$ 0,0035)
+ *   TETO POR CONTA GRÁTIS QUE USA TUDO ≈ US$ 0,167/mês (conservador) e ≈ US$ 0,166 (esperado: o mesmo DeepSeek na
+ *   explicação, o resumo no Gemma 4). Na base, o `npm run ia:custo` supõe 30% dos grátis no teto no pior caso
+ *   (`--amostra`).
  *
  * O POOL DIÁRIO GLOBAL (`poolChamadasDia`, no molde do pool do alívio): somando TODAS as contas Grátis, no máximo
  * 120 chamadas da amostra (explicações + resumos) por dia UTC. É ele que fecha o custo da amostra, qualquer que seja

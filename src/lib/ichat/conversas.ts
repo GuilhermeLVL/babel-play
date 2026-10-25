@@ -38,6 +38,8 @@ export interface MensagemDoChat {
   proposta?: Proposta | null;
   decidida?: 'ok' | 'nao';
   av?: 'bom' | 'ruim' | null;
+  /** A resposta veio do tutor do servidor (`/api/tutor/chat`): o 👍/👎 dela vai a `POST /api/ai/feedback`. */
+  doTutor?: boolean;
   /** Resposta que é um aviso de falha (sem plano, sem modelo, servidor fora): não se avalia. */
   erro?: boolean;
 }

@@ -15,10 +15,16 @@
  */
 import type { RegistroDaTraducao, VarianteDaTraducao } from '../lib/traducao/promptComunicativo';
 import { apiFetch, lerErro } from './funil';
+import { motivoDeCota } from './motivoDeCota';
 
 export type FalhaDaNuance =
+  /** 402 pela capacidade (`exige_nuance`, ou o `entitlement` da nuvem): o plano não tem a Nuance. */
   | 'exige_nuance'
   | 'sem_conta'
+  /** 402 `quota_exceeded`/`teto_usd_da_conta`: a IA de nuvem deste mês acabou (volta no dia 1º). */
+  | 'cota_do_mes'
+  /** 429 `uso_justo_do_dia`: o limite de hoje acabou (volta amanhã). */
+  | 'uso_justo'
   | 'nuvem_ocupada'
   | 'glossario_cheio'
   | 'em_andamento'
@@ -27,10 +33,12 @@ export type FalhaDaNuance =
 
 export type ResultadoDaNuance<T> = { ok: true; valor: T } | { ok: false; motivo: FalhaDaNuance; status: number };
 
-function motivoDaFalha(status: number, code: string | undefined): FalhaDaNuance {
+/** Exportada para o teste: a cota (`motivoDeCota`, o mesmo mapeamento da IA de estudo) vem ANTES do 402 genérico. */
+export function motivoDaFalha(status: number, code: string | undefined): FalhaDaNuance {
+  const cota = motivoDeCota(status, code);
+  if (cota) return cota;
   if (status === 402) return 'exige_nuance';
   if (status === 401 || status === 403 || code === 'exige_conta') return 'sem_conta';
-  if (status === 429) return 'nuvem_ocupada';
   if (status === 409 && code === 'glossario_cheio') return 'glossario_cheio';
   if (status === 409 && code === 'polimento_em_andamento') return 'em_andamento';
   if (status === 400) return 'invalido';
@@ -70,8 +78,14 @@ export interface PedidoDeNuance {
   falada?: boolean;
 }
 
+/** O modelo da procedência (`provenance.origin`), para o 👍/👎 dizer quem respondeu. */
+function modeloDaProcedencia(c: unknown): { modelo?: string } {
+  const origem = (c as { provenance?: { origin?: unknown } } | null)?.provenance?.origin;
+  return typeof origem === 'string' && origem ? { modelo: origem } : {};
+}
+
 /** A tradução no nível `nuance` — o servidor rebaixa para a rápida quem não tem a capacidade. */
-export function traduzirComNuance(p: PedidoDeNuance): Promise<ResultadoDaNuance<{ texto: string }>> {
+export function traduzirComNuance(p: PedidoDeNuance): Promise<ResultadoDaNuance<{ texto: string; modelo?: string }>> {
   return chamar(
     '/api/ai/mt',
     json({
@@ -86,7 +100,7 @@ export function traduzirComNuance(p: PedidoDeNuance): Promise<ResultadoDaNuance<
     }),
     (c) => {
       const texto = (c as { text?: unknown } | null)?.text;
-      return typeof texto === 'string' && texto ? { texto } : null;
+      return typeof texto === 'string' && texto ? { texto, ...modeloDaProcedencia(c) } : null;
     },
   );
 }
@@ -96,6 +110,8 @@ export interface AlternativasDaFrase {
   opcoes: string[];
   /** Uma nota curta sobre a diferença entre elas (pode vir vazia). */
   nota: string;
+  /** O modelo que respondeu, para o 👍/👎. */
+  modelo?: string;
 }
 
 /** "Outras formas" (D4): até 3 opções e uma nota. Só com a Tradução Nuance (402 sem ela). */
@@ -116,7 +132,9 @@ export function pedirAlternativas(
     (c) => {
       const o = (c ?? {}) as { opcoes?: unknown; nota?: unknown };
       const opcoes = Array.isArray(o.opcoes) ? o.opcoes.filter((x): x is string => typeof x === 'string' && !!x) : [];
-      return opcoes.length ? { opcoes: opcoes.slice(0, 3), nota: typeof o.nota === 'string' ? o.nota : '' } : null;
+      return opcoes.length
+        ? { opcoes: opcoes.slice(0, 3), nota: typeof o.nota === 'string' ? o.nota : '', ...modeloDaProcedencia(c) }
+        : null;
     },
   );
 }

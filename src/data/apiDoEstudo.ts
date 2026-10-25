@@ -10,6 +10,7 @@
  * carrega oferta: quem decide mostrar o link de Planos é a tela (adulto no Grátis, fim da amostra).
  */
 import { apiFetch, lerErro } from './funil';
+import { motivoDeCota } from './motivoDeCota';
 
 export type FalhaDoEstudo =
   | 'sem_conta'
@@ -48,6 +49,8 @@ export interface ExplicacaoDaFrase {
 
 export interface RespostaDaExplicacao {
   explicacao: ExplicacaoDaFrase;
+  /** O modelo que respondeu (cabeçalho `x-ia-modelo`), para o 👍/👎. Ausente se o servidor não disse. */
+  modelo?: string;
   origem: 'plano' | 'amostra';
   /** Amostra: quantas sobram hoje depois desta. Plano: `null`. */
   restanteNaAmostra: number | null;
@@ -60,9 +63,8 @@ function motivoDaFalha(status: number, code: string | undefined): FalhaDoEstudo 
   if (status === 401 || code?.toLowerCase() === 'exige_conta') return 'sem_conta';
   if (code === 'sessao_curta') return 'sessao_curta';
   if (code === 'amostra_acabou') return 'amostra_acabou';
-  if (code === 'cota_do_mes' || code === 'quota_exceeded' || code === 'teto_usd_da_conta') return 'cota_do_mes';
-  if (code === 'uso_justo_do_dia') return 'uso_justo';
-  if (status === 429) return 'nuvem_ocupada';
+  const cota = motivoDeCota(status, code);
+  if (cota) return cota;
   if (status === 400) return 'invalido';
   return 'indisponivel';
 }
@@ -116,7 +118,15 @@ export async function explicarFrase(p: PedidoDeExplicacao): Promise<ResultadoDoE
     return { ok: false, motivo: motivoDaFalha(res.status, erro.code), status: res.status };
   }
   const valor = lerResposta(await res.json().catch(() => null));
-  return valor === null ? { ok: false, motivo: 'indisponivel', status: res.status } : { ok: true, valor };
+  return valor === null
+    ? { ok: false, motivo: 'indisponivel', status: res.status }
+    : { ok: true, valor: { ...valor, ...modeloDaResposta(res) } };
+}
+
+/** O modelo que o servidor disse ter respondido (`x-ia-modelo`), se disse. */
+function modeloDaResposta(res: Response): { modelo?: string } {
+  const modelo = res.headers?.get?.('x-ia-modelo');
+  return modelo ? { modelo } : {};
 }
 
 /** Um cartão proposto pelo resumo, já no formato do bulk-add (o servidor já filtrou). */
@@ -134,6 +144,8 @@ export interface RespostaDoResumo {
   origem: 'plano' | 'amostra';
   /** Amostra: quantos resumos sobram nesta semana depois deste. Plano: `null`. */
   restanteNaAmostra: number | null;
+  /** O modelo que respondeu (cabeçalho `x-ia-modelo`), para o 👍/👎. */
+  modelo?: string;
 }
 
 const textoCheio = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v : null);
@@ -184,5 +196,7 @@ export async function resumirSessao(p: {
     return { ok: false, motivo: motivoDaFalha(res.status, erro.code), status: res.status };
   }
   const valor = lerResumo(await res.json().catch(() => null));
-  return valor === null ? { ok: false, motivo: 'indisponivel', status: res.status } : { ok: true, valor };
+  return valor === null
+    ? { ok: false, motivo: 'indisponivel', status: res.status }
+    : { ok: true, valor: { ...valor, ...modeloDaResposta(res) } };
 }

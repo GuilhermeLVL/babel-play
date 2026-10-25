@@ -4935,5 +4935,10 @@
   "Amostra da IA: {explicacoes} explicações por dia e {resumos} resumo por semana": "AI sample: {explicacoes} explanations a day and {resumos} summary a week",
   "com a frase da cena": "with the phrase from the scene",
   "amostra: {n} por dia": "sample: {n} a day",
-  "amostra: {n} por semana": "sample: {n} a week"
+  "amostra: {n} por semana": "sample: {n} a week",
+  "Você usou a IA de nuvem deste mês; ela volta no dia {data}. A legenda e as palavras seguem funcionando.": "You've used this month's cloud AI; it comes back on {data}. Captions and words keep working.",
+  "Você usou a IA de nuvem deste mês; ela volta no dia {data}. O que já foi polido continua guardado.": "You've used this month's cloud AI; it comes back on {data}. What's already polished stays saved.",
+  "Você chegou ao limite de hoje. Amanhã o polimento continua de onde parou.": "You've reached today's limit. Tomorrow polishing picks up where it left off.",
+  "Não ajudou": "Didn't help",
+  "Obrigado pelo aviso. Ele ajuda a melhorar as respostas.": "Thanks for letting us know. It helps improve the answers."
 }

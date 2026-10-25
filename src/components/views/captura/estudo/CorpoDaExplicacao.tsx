@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { AMOSTRA_DE_IA } from '../../../../core/planos';
 import type { FalhaDoEstudo, RespostaDaExplicacao } from '../../../../data/apiDoEstudo';
 import { useConsentimentoDeNuvem } from '../../../../lib/consentimentoDeNuvem';
-import { data, t } from '../../../../lib/i18n';
+import { diaQueACotaVolta } from '../../../../lib/diaQueACotaVolta';
+import { t } from '../../../../lib/i18n';
 import { perfilProtegido } from '../../../../lib/protecaoDoMenor';
+import NaoAjudou from '../../../NaoAjudou';
 
 /** A fala tocada, no que a explicação precisa. */
 export interface FalaDaExplicacao {
@@ -24,13 +26,6 @@ type Pedido =
   | { estado: 'ok'; valor: RespostaDaExplicacao }
   | { estado: 'erro'; motivo: FalhaDoEstudo };
 
-/** O primeiro dia do mês que vem, que é quando a cota do mês volta (a janela do servidor é o mês UTC). */
-function diaQueVoltam(): string {
-  const agora = new Date();
-  const primeiro = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth() + 1, 1));
-  return data(primeiro, { day: 'numeric', month: 'long', timeZone: 'UTC' });
-}
-
 /**
  * A FRASE de cada recusa. Nenhuma tem preço, urgência nem contagem do pool; o que continua funcionando
  * entra na frase. O link de Planos (só adulto, só no fim da amostra) é decidido no componente.
@@ -42,7 +37,7 @@ function fraseDaFalha(m: FalhaDoEstudo, protegido: boolean): string {
         ? t('A amostra de hoje acabou. A legenda e as palavras seguem funcionando. Volta amanhã.')
         : t('A amostra de hoje acabou. A legenda e as palavras seguem funcionando, e as explicações voltam amanhã.');
     case 'cota_do_mes':
-      return t('Você usou as explicações deste mês; elas voltam no dia {data}.', { data: diaQueVoltam() });
+      return t('Você usou as explicações deste mês; elas voltam no dia {data}.', { data: diaQueACotaVolta() });
     case 'uso_justo':
       return t('Você chegou ao limite de hoje. Volta amanhã.');
     case 'nuvem_ocupada':
@@ -165,6 +160,7 @@ export default function CorpoDaExplicacao({
             {usadas !== null &&
               ' ' + t('Você usou {n} de {total} explicações hoje.', { n: usadas, total: AMOSTRA_DE_IA.explicacoesDia })}
           </p>
+          <NaoAjudou funcao="explicacao" modelo={ok.modelo} />
         </div>
       )}
     </section>

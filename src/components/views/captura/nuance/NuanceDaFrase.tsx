@@ -1,12 +1,14 @@
-import { Check, Cloud, Lock, Shuffle, Sparkles } from 'lucide-react';
+import { Check, Cloud, Lock, RotateCcw, Shuffle, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import type { FalhaDaNuance, PedidoDeNuance } from '../../../../data/apiDaNuance';
 import { useConsentimentoDeNuvem } from '../../../../lib/consentimentoDeNuvem';
+import { diaQueACotaVolta } from '../../../../lib/diaQueACotaVolta';
 import { t } from '../../../../lib/i18n';
 import { comNomeDoPlano, planoDeEntradaAgora } from '../../../../lib/planoDeEntrada';
 import { nuanceDasPreferencias } from '../../../../lib/traducao/preferenciasDaNuance';
 import type { RegistroDaTraducao } from '../../../../lib/traducao/promptComunicativo';
+import NaoAjudou from '../../../NaoAjudou';
 import ConviteDaNuance from './ConviteDaNuance';
 import FixarNoGlossario, { cabeNoGlossario } from './FixarNoGlossario';
 
@@ -24,8 +26,24 @@ const carregarApi = () => (apiDaNuance ??= import('../../../../data/apiDaNuance'
 
 type Pedido<T> = { estado: 'carregando' } | { estado: 'ok'; valor: T } | { estado: 'erro'; motivo: FalhaDaNuance };
 
+/** Falhas passageiras: tentar de novo pode dar certo. Cota, uso justo e plano, não — o botão não aparece. */
+const passageira = (m: FalhaDaNuance) => m === 'nuvem_ocupada' || m === 'indisponivel';
+
+/**
+ * A FRASE de cada recusa. A cota do mês e o uso justo do dia NÃO são "faz parte da Tradução Nuance": quem lê isso
+ * já tem a Nuance. Nenhuma frase vende nada (é o instante da recusa); todas dizem o que continua funcionando.
+ */
 function fraseDaFalha(m: FalhaDaNuance): string {
   switch (m) {
+    case 'cota_do_mes':
+      return t(
+        'Você usou a IA de nuvem deste mês; ela volta no dia {data}. A legenda e as palavras seguem funcionando.',
+        {
+          data: diaQueACotaVolta(),
+        },
+      );
+    case 'uso_justo':
+      return t('Você chegou ao limite de hoje. Volta amanhã.');
     case 'nuvem_ocupada':
       return t('A nuvem está ocupada agora. Tente de novo em instantes.');
     case 'sem_conta':
@@ -71,8 +89,10 @@ export default function NuanceDaFrase({
 }) {
   const { consentiu, autorizar } = useConsentimentoDeNuvem();
   const pode = disponivel && consentiu;
-  const [daNuance, setDaNuance] = useState<Pedido<string> | null>(null);
-  const [formas, setFormas] = useState<Pedido<{ opcoes: string[]; nota: string }> | null>(null);
+  const [daNuance, setDaNuance] = useState<Pedido<{ texto: string; modelo?: string }> | null>(null);
+  /* Cada "Tentar de novo" soma 1 e refaz o pedido da abertura. */
+  const [tentativa, setTentativa] = useState(0);
+  const [formas, setFormas] = useState<Pedido<{ opcoes: string[]; nota: string; modelo?: string }> | null>(null);
   const [registro, setRegistro] = useState<RegistroDaTraducao | null>(null);
   const [doRegistro, setDoRegistro] = useState<Pedido<string> | null>(null);
   const [escolhida, setEscolhida] = useState<string | null>(null);
@@ -98,13 +118,13 @@ export default function NuanceDaFrase({
       .then(({ traduzirComNuance }) => traduzirComNuance(pedido))
       .then((r) => {
         if (!vivo) return;
-        setDaNuance(r.ok === false ? { estado: 'erro', motivo: r.motivo } : { estado: 'ok', valor: r.valor.texto });
+        setDaNuance(r.ok === false ? { estado: 'erro', motivo: r.motivo } : { estado: 'ok', valor: r.valor });
       });
     return () => {
       vivo = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- uma vez por frase aberta
-  }, [pode, fala.texto, destino]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- uma vez por frase aberta (e a cada "Tentar de novo")
+  }, [pode, fala.texto, destino, tentativa]);
 
   const pedirFormas = async () => {
     setFormas({ estado: 'carregando' });
@@ -182,15 +202,23 @@ export default function NuanceDaFrase({
       <p className="folha-rotulo">{t('Tradução Nuance')}</p>
       {daNuance?.estado === 'carregando' && <p className="folha-status">{t('Buscando a Tradução Nuance…')}</p>}
       {daNuance?.estado === 'erro' && <p className="folha-status">{fraseDaFalha(daNuance.motivo)}</p>}
+      {daNuance?.estado === 'erro' && passageira(daNuance.motivo) && (
+        <button type="button" className="folha-acao" onClick={() => setTentativa((n) => n + 1)}>
+          <RotateCcw aria-hidden /> {t('Tentar de novo')}
+        </button>
+      )}
       {daNuance?.estado === 'ok' &&
-        (daNuance.valor.trim() === fala.traducao.trim() ? (
+        (daNuance.valor.texto.trim() === fala.traducao.trim() ? (
           <p className="folha-status">
             <Sparkles aria-hidden style={{ display: 'inline', verticalAlign: '-4px', marginRight: 6 }} />
             {t('A Tradução Nuance concorda com a legenda.')}
           </p>
         ) : (
-          opcao(daNuance.valor)
+          opcao(daNuance.valor.texto)
         ))}
+      {daNuance?.estado === 'ok' && (
+        <NaoAjudou key={`nuance-${tentativa}`} funcao="nuance" modelo={daNuance.valor.modelo} nivel="nuance" />
+      )}
       <div className="folha-grade">
         <button
           type="button"
@@ -219,6 +247,7 @@ export default function NuanceDaFrase({
         <div className="nuance-formas" style={{ display: 'grid', gap: 8 }} data-testid="outras-formas">
           {formas.valor.opcoes.map(opcao)}
           {formas.valor.nota && <p className="folha-def">{formas.valor.nota}</p>}
+          <NaoAjudou funcao="alternativas" modelo={formas.valor.modelo} nivel="nuance" />
         </div>
       )}
       {escolhida && cabeNoGlossario(fala.texto) && (

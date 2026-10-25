@@ -614,6 +614,7 @@ export default function IChat({
           : {
               de: 'ia',
               txt: String(data.text ?? ''),
+              doTutor: true,
               origem,
               proposta: propostaDoPedido(pedido, pendentes),
             },
@@ -730,8 +731,19 @@ export default function IChat({
     const m = conv.msgs[idx];
     const novo = m.av === v ? null : v;
     naAtual((c) => ({ ...c, msgs: c.msgs.map((x, i) => (i === idx ? { ...x, av: novo } : x)) }));
+    /* A NOTA CHEGA AO SERVIDOR (Fase B da IA paga): só função, nota e motivo de lista fechada — nunca a pergunta
+       nem a resposta. Só das respostas do tutor de verdade (as do caderno local não são de IA); desmarcar não manda. */
+    if (novo && m.doTutor) {
+      void import('../data/apiDoFeedback').then(({ enviarFeedback }) =>
+        enviarFeedback({
+          funcao: 'tutor',
+          nota: novo === 'bom' ? 'up' : 'down',
+          ...(novo === 'ruim' ? { motivo: 'nao_ajudou' as const } : {}),
+        }),
+      );
+    }
     if (novo === 'ruim') {
-      // A "lista de casos para melhorar" é local: não existe rota de servidor para receber isto.
+      // A "lista de casos para melhorar" com o texto continua LOCAL: ao servidor vai só a nota, acima.
       const casos = lerJson<unknown[]>('ichat_avaliacoes', []);
       casos.push({
         pergunta: conv.msgs[idx - 1]?.txt ?? '',

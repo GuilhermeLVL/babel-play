@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FalhaDaNuance, PolidaDaFala } from '../../../data/apiDaNuance';
 import { contarPolimento, type FalaParaPolir, polirSessao } from '../../../lib/analise/polimentoDaSessao';
 import { useConsentimentoDeNuvem } from '../../../lib/consentimentoDeNuvem';
+import { diaQueACotaVolta } from '../../../lib/diaQueACotaVolta';
 import { t } from '../../../lib/i18n';
 import { comNomeDoPlano, planoDeEntradaAgora } from '../../../lib/planoDeEntrada';
 import { nuanceDoPolimentoDasPreferencias } from '../../../lib/traducao/preferenciasDaNuance';
@@ -16,8 +17,15 @@ type Fase =
   | { f: 'pausado' }
   | { f: 'erro'; motivo: FalhaDaNuance };
 
+/** A frase de cada recusa: a cota e o uso justo dizem quando volta e que o já polido fica guardado (sem oferta). */
 function fraseDaFalha(m: FalhaDaNuance): string {
   switch (m) {
+    case 'cota_do_mes':
+      return t('Você usou a IA de nuvem deste mês; ela volta no dia {data}. O que já foi polido continua guardado.', {
+        data: diaQueACotaVolta(),
+      });
+    case 'uso_justo':
+      return t('Você chegou ao limite de hoje. Amanhã o polimento continua de onde parou.');
     case 'nuvem_ocupada':
       return t('A nuvem está ocupada agora. Tente de novo em instantes.');
     case 'em_andamento':

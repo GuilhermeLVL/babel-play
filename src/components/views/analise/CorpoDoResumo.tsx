@@ -6,9 +6,11 @@ import { AMOSTRA_DE_IA } from '../../../core/planos';
 import { bulkAddCards } from '../../../data/api';
 import type { CartaoDoResumo, FalhaDoEstudo, RespostaDoResumo } from '../../../data/apiDoEstudo';
 import { useConsentimentoDeNuvem } from '../../../lib/consentimentoDeNuvem';
-import { data, t } from '../../../lib/i18n';
+import { diaQueACotaVolta } from '../../../lib/diaQueACotaVolta';
+import { t } from '../../../lib/i18n';
 import { perfilProtegido } from '../../../lib/protecaoDoMenor';
 import type { VocabCard } from '../../../types';
+import NaoAjudou from '../../NaoAjudou';
 
 /* O cliente chega por `import()` UMA vez, e os pedidos seguintes reusam a mesma promessa. */
 let apiDoEstudo: Promise<typeof import('../../../data/apiDoEstudo')> | null = null;
@@ -27,13 +29,6 @@ type Adicao =
   | { estado: 'feito'; entraram: number; fora: { word: string; motivo: string }[] }
   | { estado: 'erro' };
 
-/** O primeiro dia do mês que vem, que é quando a cota do mês volta (a janela do servidor é o mês UTC). */
-function diaQueVoltam(): string {
-  const agora = new Date();
-  const primeiro = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth() + 1, 1));
-  return data(primeiro, { day: 'numeric', month: 'long', timeZone: 'UTC' });
-}
-
 /**
  * A FRASE de cada recusa. Nenhuma tem preço, urgência nem número; o que continua funcionando entra na frase. O
  * link de Planos (só adulto, só no fim da amostra) é decidido no componente.
@@ -49,7 +44,7 @@ function fraseDaFalha(m: FalhaDoEstudo, protegido: boolean): string {
             'O resumo desta semana já foi usado. A transcrição e as palavras seguem funcionando, e o próximo resumo volta na segunda-feira.',
           );
     case 'cota_do_mes':
-      return t('Você usou os resumos deste mês; eles voltam no dia {data}.', { data: diaQueVoltam() });
+      return t('Você usou os resumos deste mês; eles voltam no dia {data}.', { data: diaQueACotaVolta() });
     case 'uso_justo':
       return t('Você chegou ao limite de hoje. Volta amanhã.');
     case 'nuvem_ocupada':
@@ -324,6 +319,7 @@ export default function CorpoDoResumo({
                       total: AMOSTRA_DE_IA.resumosSemana,
                     }))}
           </p>
+          <NaoAjudou funcao="resumo" modelo={ok.modelo} className="q-ctl" />
         </div>
       )}
     </section>

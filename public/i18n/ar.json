@@ -1947,5 +1947,10 @@
   "Amostra da IA: {explicacoes} explicações por dia e {resumos} resumo por semana": "عيّنة من الذكاء الاصطناعي: {explicacoes} شروحات يوميًا وملخّص {resumos} أسبوعيًا",
   "com a frase da cena": "مع عبارة المشهد",
   "amostra: {n} por dia": "عيّنة: {n} يوميًا",
-  "amostra: {n} por semana": "عيّنة: {n} أسبوعيًا"
+  "amostra: {n} por semana": "عيّنة: {n} أسبوعيًا",
+  "Você usou a IA de nuvem deste mês; ela volta no dia {data}. A legenda e as palavras seguem funcionando.": "لقد استخدمت الذكاء الاصطناعي السحابي لهذا الشهر؛ سيعود في {data}. تستمر الترجمة النصية والكلمات في العمل.",
+  "Você usou a IA de nuvem deste mês; ela volta no dia {data}. O que já foi polido continua guardado.": "لقد استخدمت الذكاء الاصطناعي السحابي لهذا الشهر؛ سيعود في {data}. ما تم تحسينه يبقى محفوظًا.",
+  "Você chegou ao limite de hoje. Amanhã o polimento continua de onde parou.": "لقد وصلت إلى حد اليوم. غدًا يستمر التحسين من حيث توقف.",
+  "Não ajudou": "لم يساعد",
+  "Obrigado pelo aviso. Ele ajuda a melhorar as respostas.": "شكرًا على التنبيه. هذا يساعد على تحسين الإجابات."
 }

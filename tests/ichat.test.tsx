@@ -34,6 +34,9 @@ vi.mock('../src/lib/consentimentoDeNuvem', () => ({
   consentiuNuvem: () => consentiu,
   useConsentimentoDeNuvem: () => ({ consentiu, autorizar: async () => true }),
 }))
+/* O 👍/👎 do tutor chega ao servidor (Fase B da IA paga): só a nota, nunca o texto. */
+const feedback = vi.hoisted(() => ({ enviarFeedback: vi.fn(async () => true) }))
+vi.mock('../src/data/apiDoFeedback', () => feedback)
 vi.mock('../src/lib/ichatContext', async (orig) => ({
   ...(await orig<typeof import('../src/lib/ichatContext')>()),
   construirContextoDaTela: async () => 'Tela: Vocabulário (conteúdo real).',
@@ -148,6 +151,29 @@ describe('iChat', () => {
     fireEvent.keyDown(campo, { key: 'Enter' })
     expect(await screen.findByText(/Origem: lacuna conhecida/, {}, { timeout: 3000 })).toBeTruthy()
     expect(apiFetch).not.toHaveBeenCalled()
+  })
+
+  it('👍/👎 de uma resposta do tutor manda só a nota ao servidor; o caso com texto fica no aparelho', async () => {
+    feedback.enviarFeedback.mockClear()
+    const campo = await abrir()
+    responder('Leverage é alavancar.')
+    fireEvent.change(campo, { target: { value: 'o que é leverage?' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+    expect(await screen.findByText(/Leverage é alavancar/, {}, { timeout: 3000 })).toBeTruthy()
+
+    fireEvent.click(await screen.findByRole('button', { name: /Não faz sentido aqui/ }, { timeout: 3000 }))
+    await waitFor(() =>
+      expect(feedback.enviarFeedback).toHaveBeenCalledWith({ funcao: 'tutor', nota: 'down', motivo: 'nao_ajudou' }),
+    )
+    expect(JSON.stringify(feedback.enviarFeedback.mock.calls)).not.toMatch(/leverage|alavancar/i)
+    expect(localStorage.getItem('ichat_avaliacoes')).toMatch(/alavancar/)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Resposta útil' }))
+    await waitFor(() => expect(feedback.enviarFeedback).toHaveBeenLastCalledWith({ funcao: 'tutor', nota: 'up' }))
+    // Desmarcar não manda nada.
+    fireEvent.click(screen.getByRole('button', { name: 'Resposta útil' }))
+    await new Promise((r) => setTimeout(r, 20))
+    expect(feedback.enviarFeedback).toHaveBeenCalledTimes(2)
   })
 
   it('falha do tutor aparece como aviso, sem origem nem avaliação', async () => {

@@ -45,6 +45,14 @@ describe('páginas públicas', () => {
     expect(html).not.toMatch(/<script(?![^>]*application\/ld\+json)/)
   })
 
+  it('nenhuma promessa de privacidade que a flag nuvem_convidado desmentiria', () => {
+    for (const [arquivo] of PAGINAS) {
+      const html = arquivos.get(arquivo)!
+      expect(html, arquivo).not.toMatch(/sem conta, (nada|o que você ouve)/i)
+      expect(html, arquivo).not.toMatch(/não sai do seu (computador|aparelho)/i)
+    }
+  })
+
   it('título e descrição não se repetem entre as páginas', () => {
     const htmls = PAGINAS.map(([a]) => arquivos.get(a)!)
     expect(new Set(htmls.map(titulo)).size).toBe(htmls.length)

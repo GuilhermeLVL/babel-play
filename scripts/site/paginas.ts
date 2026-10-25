@@ -31,7 +31,7 @@ export function corpoDaHome(guias: Guia[]): string {
 
 <h2>O que você encontra no Frasy</h2>
 <div class="grade">
-<div class="cartao"><h3>No seu aparelho primeiro</h3><p>Os modelos de transcrição e tradução rodam no navegador. Sem conta, nada do que você ouve vai para o nosso servidor.</p></div>
+<div class="cartao"><h3>No seu aparelho primeiro</h3><p>Por padrão, a transcrição e a tradução rodam no navegador. A nuvem só entra com o seu consentimento: quando você a escolhe ou quando o aparelho não dá conta.</p></div>
 <div class="cartao"><h3>Revisão que respeita sua memória</h3><p>A revisão espaçada traz cada palavra de volta perto da hora em que você esqueceria, e não todo dia.</p></div>
 <div class="cartao"><h3>Jogos com as suas palavras</h3><p>Memória, ditado, caça-palavras e outros jogos curtos. O que você acerta conta na revisão.</p></div>
 <div class="cartao"><h3>Modo intérprete</h3><p>Duas pessoas que não falam a mesma língua conversam com um aparelho só, e a tradução é lida em voz alta.</p></div>
@@ -43,7 +43,7 @@ export function corpoDaHome(guias: Guia[]): string {
 <div class="texto">
 <p>O Frasy não promete fluência em poucos dias. Ele ajuda você a entender um pouco mais a cada episódio, aula ou conversa, e a não esquecer o que aprendeu.</p>
 <p>Menores de 18 anos usam um perfil protegido: não fazem compras nem recebem ofertas de plano, e quem decide qualquer pagamento é o responsável, pela conta dele vinculada à do estudante.</p>
-<p>Quando você quiser mais qualidade, pode ligar a nuvem, sempre com o seu consentimento e com provedores que não guardam o que é enviado. Veja <a href="/privacidade">como tratamos os dados</a>.</p>
+<p>Quando você quiser mais qualidade, pode ligar a nuvem, sempre com o seu consentimento e com provedores que se comprometem a não guardar o que recebem nem usar para treinar modelos. Veja <a href="/privacidade">como tratamos os dados</a>.</p>
 </div>
 ${
   recentes.length
@@ -87,8 +87,8 @@ export function corpoDoSobre(): string {
 <p>O Frasy transcreve e traduz ao vivo o som que você escolhe: uma aba do navegador, o áudio do computador ou o microfone. Você salva as palavras e frases que quiser aprender, e elas voltam em revisões espaçadas e em jogos curtos. Também dá para importar baralhos do Anki, documentos e legendas.</p>
 <h2>No que acreditamos</h2>
 <ul>
-<li><strong>Seu aparelho primeiro.</strong> Os modelos de transcrição e tradução rodam no navegador. Sem conta, o que você ouve não sai do seu computador.</li>
-<li><strong>Nuvem só quando você pede.</strong> Para mais qualidade, a nuvem é opcional, pede o seu consentimento e usa provedores que não guardam o que é enviado.</li>
+<li><strong>Seu aparelho primeiro.</strong> Por padrão, os modelos de transcrição e tradução rodam no navegador, e o que você salva sem conta fica no próprio aparelho.</li>
+<li><strong>Nuvem só com o seu sim.</strong> A nuvem é opcional: entra quando você a escolhe ou quando o aparelho não dá conta, sempre depois do seu consentimento, que você pode retirar em Ajustes. Ela usa provedores que se comprometem a não guardar o que recebem nem usar para treinar modelos.</li>
 <li><strong>Estudo sem pressão.</strong> Nada de contagem regressiva, de culpa ou de promessa de fluência. O Frasy é usado também por crianças e adolescentes, com um perfil protegido, sem compras nem ofertas.</li>
 <li><strong>Transparência.</strong> O código é aberto, e a <a href="/privacidade">Política de Privacidade</a> diz o que roda no aparelho e o que vai para a nuvem.</li>
 </ul>
@@ -125,7 +125,7 @@ export function corpoDoContato(): string {
 const PERGUNTAS: [string, string][] = [
   [
     'Preciso criar uma conta?',
-    'Não. Sem conta, tudo o que roda no aparelho funciona, e o que você salva fica no próprio navegador. A conta serve para guardar o progresso entre aparelhos e para usar a nuvem.',
+    'Não. Sem conta, tudo o que roda no aparelho funciona, e o que você salva fica no próprio navegador. A conta serve para guardar o progresso entre aparelhos e para usar a nuvem dos planos.',
   ],
   [
     'Em quais navegadores o Frasy funciona?',
@@ -137,7 +137,7 @@ const PERGUNTAS: [string, string][] = [
   ],
   [
     'O que roda no aparelho e o que vai para a nuvem?',
-    'Por padrão, a transcrição e a tradução rodam no navegador, com modelos baixados uma vez. A nuvem é opcional: só é usada depois do seu consentimento, com provedores que não guardam o que é enviado.',
+    'Por padrão, a transcrição e a tradução rodam no navegador, com modelos baixados uma vez. A nuvem (e o reconhecimento de voz do próprio navegador, a opção Rápido do microfone) só é usada depois do seu consentimento, que você pode retirar em Ajustes. A nuvem usa provedores que se comprometem a não guardar o que recebem nem usar para treinar modelos. Detalhes na Política de Privacidade.',
   ],
   [
     'A primeira vez demora. É normal?',

@@ -11,7 +11,7 @@
  *
  * `FUMACA_PG_URL=postgres://…` usa um Postgres existente no lugar do Docker (job `worker` do ci.yml).
  *
- * As sete verificações:
+ * As oito verificações:
  *   1. GET /api/health → 200 com `banco: 'postgres'`;
  *   2. JWT ES256 → GET /api/me 200 (e a idade adulta declarada, para as rotas de nuvem);
  *   3. POST /api/sessions + POST /api/sessions/:id/audio (1 MB) → 2xx; GET …/audio com Range → 206, 100 bytes;
@@ -23,6 +23,9 @@
  *      cancelado no meio do corpo → todos 200, nenhum 500; cada requisição abriu a SUA conexão (o log do
  *      Postgres conta as conexões novas) e, no fim, nenhuma ficou aberta;
  *   7. GET /api (sem barra) → 404 JSON, não a SPA.
+ *   8. SITE PÚBLICO pelo ASSETS de verdade (o `dist/` do build): `/` → 200 com a home estática, `/app` → 200
+ *      com o app, `/nao-existe` → 404 com a `404.html` (nada de soft 404) e, num host que não é o de produção,
+ *      `X-Robots-Tag: noindex` e `robots.txt` com `Disallow: /`.
  *
  * `--verboso` imprime a saída inteira do wrangler no fim. Sai com código ≠ 0 em qualquer falha. Encerra o wrangler (o grupo de processos inteiro) e o container
  * no fim, dando certo ou não.
@@ -241,7 +244,7 @@ async function verificacoes(base, w, token) {
   const metricas = await fetch(`${base}/metrics`)
   confere(metricas.status === 404, `/metrics no Worker deveria ser 404, veio ${metricas.status}`)
   console.log(
-    `✔ 1/7 GET /api/health → 200, banco=${corpoH.banco}, versão ${corpoH.versao}, CSP de produção; /metrics → 404`,
+    `✔ 1/8 GET /api/health → 200, banco=${corpoH.banco}, versão ${corpoH.versao}, CSP de produção; /metrics → 404`,
   )
 
   // 2. JWT ES256 → /api/me
@@ -307,7 +310,7 @@ async function verificacoes(base, w, token) {
     resumoWeb = `import web: 200, ${corpoWeb.text.length} caracteres, "${corpoWeb.title}", ${Date.now() - t0} ms`
   }
   console.log(
-    '✔ 2/7 JWT ES256 (JWKS local) → GET /api/me 200 (sem token: 401, balde por CF-Connecting-IP, X-Forwarded-For forjado ignorado; ' +
+    '✔ 2/8 JWT ES256 (JWKS local) → GET /api/me 200 (sem token: 401, balde por CF-Connecting-IP, X-Forwarded-For forjado ignorado; ' +
       resumoWeb +
       ')',
   )
@@ -336,7 +339,7 @@ async function verificacoes(base, w, token) {
     `Range devolveu ${pedaco.length} bytes diferentes`,
   )
   console.log(
-    `✔ 3/7 POST /api/sessions + upload de 1 MB → ${up.status}; GET …/audio Range bytes=0-99 → 206 (100 bytes iguais)`,
+    `✔ 3/8 POST /api/sessions + upload de 1 MB → ${up.status}; GET …/audio Range bytes=0-99 → 206 (100 bytes iguais)`,
   )
 
   // 4. cron
@@ -352,7 +355,7 @@ async function verificacoes(base, w, token) {
   for (let i = 0; i < 40 && !linhaDoJob(); i++) await esperar(250)
   const linha = linhaDoJob()
   confere(linha, `o log não trouxe job_fim de ${JOB_DO_CRON}:\n${w.saida().slice(antes).slice(-2000)}`)
-  console.log(`✔ 4/7 cron "${CRON}" → 200; log: ${linha.trim().slice(0, 200)}`)
+  console.log(`✔ 4/8 cron "${CRON}" → 200; log: ${linha.trim().slice(0, 200)}`)
 
   // 5. estorno da cota depois da resposta (C1)
   const usoDeArmazenamento = () =>
@@ -417,7 +420,7 @@ async function verificacoes(base, w, token) {
     .filter((l) => /storage_release_failed|storage_adjust_failed|executor_fechou_ocupado/.test(l))
   confere(falhas.length === 0, `o estorno falhou no Worker:\n${falhas.join('\n').slice(-1500)}`)
   console.log(
-    `✔ 5/7 uploads que não são áudio (${estornos.join(', ')}); o estorno do finally (depois da resposta) devolveu a reserva: ${usoAntes} bytes, como antes`,
+    `✔ 5/8 uploads que não são áudio (${estornos.join(', ')}); o estorno do finally (depois da resposta) devolveu a reserva: ${usoAntes} bytes, como antes`,
   )
 
   // 6. concorrência no isolate (I1)
@@ -483,7 +486,7 @@ async function verificacoes(base, w, token) {
   )
   confere(!/"status":500|erro_interno|worker_requisicao_falhou/.test(w.saida()), 'algum 500 no log do Worker')
   console.log(
-    `✔ 6/7 ${N} GET /api/me em paralelo (usuários distintos) → todos 200; upload cancelado → ${fimDoCancelado}; ${novas} conexões novas (uma por requisição), 0 abertas no fim; nenhum 500`,
+    `✔ 6/8 ${N} GET /api/me em paralelo (usuários distintos) → todos 200; upload cancelado → ${fimDoCancelado}; ${novas} conexões novas (uma por requisição), 0 abertas no fim; nenhum 500`,
   )
 
   // 7. /api sem barra
@@ -493,7 +496,30 @@ async function verificacoes(base, w, token) {
     raiz.status === 404 && JSON.parse(corpoRaiz).code === 'rota_inexistente',
     `GET /api: ${raiz.status} ${corpoRaiz.slice(0, 200)}`,
   )
-  console.log('✔ 7/7 GET /api → 404 JSON (rota_inexistente)')
+  console.log('✔ 7/8 GET /api → 404 JSON (rota_inexistente)')
+
+  // 8. o site público e o 404 de verdade, pelo ASSETS real
+  const home = await fetch(`${base}/`)
+  const corpoHome = await home.text()
+  confere(
+    home.status === 200 && /<h1>[^<]+<\/h1>/.test(corpoHome) && !corpoHome.includes('id="root"'),
+    `GET / deveria ser a home estática: ${home.status} ${corpoHome.slice(0, 200)}`,
+  )
+  const app = await fetch(`${base}/app`)
+  confere(app.status === 200 && (await app.text()).includes('id="root"'), `GET /app deveria ser o app: ${app.status}`)
+  const nada = await fetch(`${base}/nao-existe-fumaca`)
+  const corpoNada = await nada.text()
+  confere(
+    nada.status === 404 && /não encontrada/i.test(corpoNada),
+    `GET /nao-existe-fumaca deveria ser 404 com a 404.html: ${nada.status} ${corpoNada.slice(0, 200)}`,
+  )
+  confere(
+    nada.headers.get('x-robots-tag') === 'noindex, nofollow',
+    `host local sem X-Robots-Tag noindex: ${nada.headers.get('x-robots-tag')}`,
+  )
+  const robots = await (await fetch(`${base}/robots.txt`)).text()
+  confere(/Disallow: \/\s*$/.test(robots), `robots.txt fora da produção deveria bloquear tudo: ${robots}`)
+  console.log('✔ 8/8 site público: / → home estática, /app → app, /nao-existe → 404 (404.html), noindex e robots bloqueado')
 }
 
 /**
@@ -554,7 +580,7 @@ async function principal() {
     if (process.argv.includes('--verboso')) console.log(`--- saída do wrangler ---\n${w.saida()}`)
     await derrubar(w)
     await travasDeProducao(jwks.url, persistir)
-    console.log('fumaça do Worker: 7/7')
+    console.log('fumaça do Worker: 8/8')
   } catch (err) {
     console.error(`✘ ${err.message}`)
     if (w) console.error(`--- saída do wrangler (fim) ---\n${w.saida().slice(-4000)}`)

@@ -54,5 +54,9 @@ describe('base do app', () => {
     window.history.replaceState({}, '', '/auth/callback')
     clearAuthCallbackUrl()
     expect(window.location.pathname).toBe('/app')
+    // com barra final também é o callback
+    window.history.replaceState({}, '', '/auth/callback/')
+    clearAuthCallbackUrl()
+    expect(window.location.pathname).toBe('/app')
   })
 })

@@ -5,7 +5,7 @@
  * caminho que não é da API, `decidirRotaDoSite` diz o que fazer, sem tocar em rede (puro, testável):
  *
  *   www.<domínio>/…              301 para o domínio sem `www` (mesmo caminho e busca)
- *   /app, /app/*, /auth/callback o `index.html` do app (a SPA). O callback é o endereço cadastrado no
+ *   /app, /app/*, /auth/callback(/) o `index.html` do app (a SPA). O callback é o endereço cadastrado no
  *                                Supabase para o login: continua fora de `/app` de propósito
  *   /jogar, /plano/assinado, …   302 para `/app/…`: os endereços do app de antes da mudança (favoritos,
  *                                e-mails de convite já enviados, a volta do Asaas pendente)
@@ -60,7 +60,7 @@ export function decidirRotaDoSite(url: URL): DecisaoDoSite {
     return { tipo: 'redirecionar', destino: destino.toString(), status: 301 }
   }
   const caminho = url.pathname
-  if (/^\/app(\/|$)/i.test(caminho) || caminho === '/auth/callback') return { tipo: 'asset', caminho: '/' }
+  if (/^\/app(\/|$)/i.test(caminho) || /^\/auth\/callback\/?$/.test(caminho)) return { tipo: 'asset', caminho: '/' }
   const primeiro = caminho.split('/')[1]?.toLowerCase() ?? ''
   if (DO_APP.has(primeiro)) {
     return { tipo: 'redirecionar', destino: `${url.origin}/app${caminho}${url.search}`, status: 302 }

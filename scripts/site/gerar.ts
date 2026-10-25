@@ -145,7 +145,7 @@ export function gerarSite(o: OpcoesDoSite): Map<string, string> {
       atual: '/sobre',
       titulo: 'Sobre o Frasy',
       descricao:
-        'Por que o Frasy existe, no que acreditamos (seu aparelho primeiro, nuvem só quando você pede, estudo sem pressão) e quem faz.',
+        'Por que o Frasy existe, no que acreditamos (seu aparelho primeiro, nuvem só com o seu consentimento, estudo sem pressão) e quem faz.',
       corpo: corpoDoSobre(),
       jsonLd: [organizacao],
     }),

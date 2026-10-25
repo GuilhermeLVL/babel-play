@@ -21,6 +21,9 @@
 #            VITE_DESENHO_NOVO_PADRAO, VITE_BERGAMOT_MODELOS_URL
 #            VITE_ANUNCIOS_ORIGEM (opcional: a origem do Worker de anúncios `frasy-anuncios`, R35; ele se publica
 #            à parte, ver docs/deploy.md "Anúncios")
+#            SITE_FLAGS_DE_VENDA (opcional: as flags de venda ligadas no banco, ex. `venda_planos_v4,ia_de_estudo`;
+#            decidem os planos da página pública /planos; vazia = venda fechada, com aviso no build)
+#            ADSENSE_PUB_ID (opcional: `pub-…`; só com ele o build gera o /ads.txt)
 #            VITE_ANUNCIOS_DEMONSTRACAO (só no `staging`: `1` liga a demonstração dos espaços de anúncio, R38;
 #            nunca no `production`, e o passo do build a ignora fora do staging)
 # Os secrets do Worker em si (SECRET_KEY, chaves de IA…) NÃO passam por aqui: `scripts/cloudflare/secrets.ts`.
@@ -132,6 +135,10 @@ jobs:
           # A demonstração de anúncios (R38): só o Environment `staging` define a var, e mesmo assim ela só passa
           # quando o ambiente é o staging. Sem ela o Vite tira a demonstração do pacote.
           VITE_ANUNCIOS_DEMONSTRACAO: ${{ inputs.ambiente == 'staging' && vars.VITE_ANUNCIOS_DEMONSTRACAO || '' }}
+          # O site público (scripts/site): as flags de venda ligadas no banco deste ambiente (decidem os planos e preços
+          # de /planos; vazia = venda fechada, e o build avisa) e o id do AdSense (só com ele sai o /ads.txt).
+          SITE_FLAGS_DE_VENDA: ${{ vars.SITE_FLAGS_DE_VENDA }}
+          ADSENSE_PUB_ID: ${{ vars.ADSENSE_PUB_ID }}
         run: npm run build
 
       # Migrações antes da versão nova existir (o schema é aditivo; o Worker antigo continua servindo). A conexão

@@ -32,6 +32,13 @@ export function siteDoBuild(envDoVite: Record<string, string>): Plugin {
       const pastaDaFonte = path.join(raiz, 'node_modules', PACOTE_DA_FONTE);
       const versao = (JSON.parse(readFileSync(path.join(pastaDaFonte, 'package.json'), 'utf8')) as { version: string })
         .version;
+      if (!env.SITE_FLAGS_DE_VENDA?.trim()) {
+        /* `::warning::` vira anotação no GitHub Actions; fora dele, só a linha. */
+        console.warn(
+          `${process.env.GITHUB_ACTIONS ? '::warning::' : ''}[site-publico] SITE_FLAGS_DE_VENDA vazia: /planos sai com a venda fechada ` +
+            '(Grátis + Premium). Se a produção vende outros planos, defina a var do Environment com as flags ligadas no banco.',
+        );
+      }
       const { opcoes, ignorados } = opcoesDoAmbiente(env, path.join(raiz, 'content', 'guias'), versao);
       for (const [relativo, conteudo] of gerarSite(opcoes)) {
         const destino = path.join(saida, relativo);

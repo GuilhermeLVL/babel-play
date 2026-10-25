@@ -63,7 +63,7 @@ describe('site público no Worker', () => {
     expect(r.headers.get('x-robots-tag')).toBeNull()
   })
 
-  it.each(['/app', '/app/', '/app/jogar', '/app/plano/assinado?x=1', '/auth/callback'])(
+  it.each(['/app', '/app/', '/app/jogar', '/app/plano/assinado?x=1', '/auth/callback', '/auth/callback/'])(
     '%s serve o app (index.html)',
     async (caminho) => {
       const r = await chamar(`https://frasy.com.br${caminho}`)

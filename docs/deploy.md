@@ -385,6 +385,8 @@ portão volta a ser só a fumaça final + rollback, e o passo 5 da produção pr
 | `URL_DO_WORKER`                                                                                                                                                                                    | var    | URL final (staging: `https://frasy-staging.guigui-cruzeiro.workers.dev`; a produção entra com o domínio)                                                                                                                 |
 | `VITE_PUBLIC_URL`, `VITE_ORT_WASM_URL`                                                                                                                                                             | var    | canônica/og e base do WASM (R2)                                                                                                                                                                                          |
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SELF_HOST_MODELS`, `VITE_SENTRY_DSN`, `VITE_TURNSTILE_SITE_KEY`, `VITE_LOGIN_GOOGLE`, `VITE_DESENHO_NOVO_PADRAO`, `VITE_BERGAMOT_MODELOS_URL` | var    | os mesmos do build da imagem Docker; todos públicos                                                                                                                                                                      |
+| `SITE_FLAGS_DE_VENDA`                                                                                                                                                                              | var    | opcional: as flags de venda ligadas no banco deste ambiente (ex.: `venda_planos_v4,ia_de_estudo`); decidem os planos e preços da página pública `/planos`. Vazia = venda fechada (Grátis + Premium) e o build avisa      |
+| `ADSENSE_PUB_ID`                                                                                                                                                                                   | var    | opcional: o id `pub-…` do AdSense; só com ele o build gera o `/ads.txt`                                                                                                                                                  |
 
 Os secrets do Worker (`SECRET_KEY`, chaves de IA…) continuam por `scripts/cloudflare/secrets.ts`, não pelo CI.
 
@@ -405,6 +407,25 @@ npx wrangler rollback -c wrangler.jsonc --env staging --message "motivo" -y   # 
 
 Para a produção, tire o `--env staging`. O Lighthouse manual (`lighthouse.yml`) aceita o input `url` para medir
 uma versão publicada (sem servidor local e sem o onboarding pré-marcado).
+
+## Site público
+
+A raiz do domínio é um site estático gerado no build (`scripts/site/`, plugin `scripts/vite/site.ts`): `/`
+(`dist/inicio.html`), `/planos`, `/sobre`, `/contato`, `/ajuda`, `/guias` e `/guias/<slug>` (de `content/guias/*.md`,
+só `revisado: true`), `404.html`, `sitemap.xml`, `robots.txt` e, com `ADSENSE_PUB_ID`, `ads.txt`. O app (`dist/index.html`)
+é servido em `/app` e `/app/*`, e também em `/auth/callback` (o endereço de volta do login cadastrado no Supabase). O
+roteamento é do Worker (`server/http/siteNoWorker.ts`):
+
+- `www.` → domínio sem `www` (301; exige DNS e rota do `www` apontando para o Worker);
+- endereços antigos do app (`/jogar`, `/plano/assinado`, `/responsavel?token=…`…) → `/app/…` (302);
+- caminho desconhecido → `404.html` com status 404 (`not_found_handling: "404-page"`);
+- host diferente de `HOST_DE_PRODUCAO` (só nos `vars` do topo do `wrangler.jsonc`; o staging não herda) →
+  `X-Robots-Tag: noindex, nofollow` em tudo e `robots.txt` com `Disallow: /`.
+
+Variáveis do BUILD (Environment do `deploy-worker.yml`): `VITE_PUBLIC_URL` (canonical, sitemap, linha `Sitemap:`;
+sem ela, `https://frasy.com.br`), `SITE_FLAGS_DE_VENDA` (os planos de `/planos` têm de bater com o checkout: quem
+liga uma flag de venda no banco atualiza a var e publica de novo; vazia, o build emite um aviso) e `ADSENSE_PUB_ID`.
+A edição estática (`VITE_EDICAO_ESTATICA=1`) não gera o site.
 
 ## Anúncios
 

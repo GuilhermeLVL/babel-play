@@ -28,7 +28,7 @@ function guardarErroDoLink(): void {
 if (typeof window !== 'undefined') guardarErroDoLink()
 
 export function isOnAuthCallback(): boolean {
-  return typeof window !== 'undefined' && window.location.pathname === AUTH_CALLBACK_PATH
+  return typeof window !== 'undefined' && window.location.pathname.replace(/\/+$/, '') === AUTH_CALLBACK_PATH
 }
 
 /** Limpa a URL do callback: volta ao início do app (`/app` no build de produção, a raiz em dev e testes). */

@@ -31,7 +31,7 @@ export function baseDoAppAtual(): '' | typeof BASE_DO_APP {
   if (typeof window === 'undefined') return '';
   const caminho = window.location.pathname;
   if (SOB_A_BASE.test(caminho)) return BASE_DO_APP;
-  if (import.meta.env.PROD && caminho === '/auth/callback') return BASE_DO_APP;
+  if (import.meta.env.PROD && /^\/auth\/callback\/?$/.test(caminho)) return BASE_DO_APP;
   return '';
 }
 

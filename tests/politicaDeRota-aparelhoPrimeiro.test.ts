@@ -249,16 +249,13 @@ describe('o selo com o aparelho primeiro', () => {
     })
   })
 
-  it('uma fala que subiu à nuvem por áudio difícil: "Nuvem do Frasy", motivo dito, sem "mudou"', () => {
-    expect(seloDaFala(noAparelho, 'groq-whisper')).toEqual({
-      onde: 'nuvem',
-      etiqueta: 'Nuvem do Frasy',
-      detalhe: 'o áudio vai para o nosso servidor',
-      motivo: { chave: 'Áudio difícil: esta fala foi para a nuvem, que erra menos.' },
-      saiDoAparelho: true,
-      confirmado: true,
-      mudou: false,
-    })
+  /* Rodada de correção 1, item 5: no modo APARELHO, uma fala que foi à nuvem não foi decisão da
+     histerese (a porta subiu um trecho, ou os motores locais falharam e a cadeia caiu na nuvem): o selo
+     diz que mudou, sem inventar "áudio difícil". O motivo só aparece no modo nuvem, abaixo. */
+  it('modo aparelho, fala atendida pela nuvem: "Nuvem do Frasy" com "mudou", sem o motivo de áudio difícil', () => {
+    const selo = seloDaFala(noAparelho, 'groq-whisper')
+    expect(selo).toMatchObject({ onde: 'nuvem', saiDoAparelho: true, mudou: true })
+    expect(selo?.motivo?.chave).toBe('Mudou: esta fala foi para a nuvem.')
   })
 
   it('no modo nuvem (a histerese subiu): a fala da nuvem diz o motivo; a do aparelho não promete que o áudio ficou', () => {

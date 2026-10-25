@@ -21,6 +21,8 @@
  *     isolada não sobe: essa a porta por trecho já leva sozinha);
  *   - na nuvem, fica pelo menos `minimoNaNuvem` falas atendidas por ela; então tenta o aparelho de novo,
  *     com a janela limpa;
+ *   - a nuvem que para de responder (`locaisParaDescer` falas locais seguidas no modo nuvem, ou a pausa
+ *     dela) devolve ao aparelho na hora, sem esperar o mínimo;
  *   - quem sobe de novo até `reincidencia` falas locais depois de descer fica o DOBRO na nuvem (até
  *     `maximoNaNuvem`): áudio que segue difícil não fica trocando de lado a cada minuto.
  * Conta FALAS, não segundos: é puro e testável, e cada fala é uma cobrança (a nuvem cobra por trecho).
@@ -49,6 +51,8 @@ export interface LimiaresDoAudioDificil {
   maximoNaNuvem: number;
   /** Subir de novo até tantas falas locais depois de descer conta como reincidência (dobra o mínimo). */
   reincidencia: number;
+  /** Falas LOCAIS seguidas no modo nuvem (a nuvem não respondeu) que devolvem ao aparelho. */
+  locaisParaDescer: number;
 }
 
 export const LIMIARES_DO_AUDIO_DIFICIL: LimiaresDoAudioDificil = {
@@ -60,6 +64,7 @@ export const LIMIARES_DO_AUDIO_DIFICIL: LimiaresDoAudioDificil = {
   minimoNaNuvem: 8,
   maximoNaNuvem: 64,
   reincidencia: 6,
+  locaisParaDescer: 2,
 };
 
 export type MotivoDoAudioDificil = 'confianca' | 'compressao' | 'lento';
@@ -101,24 +106,60 @@ export interface EstadoDoAudioDificil {
   minimoNaNuvem: number;
   /** Falas locais desde a última descida; `null` = ainda não desceu nesta sessão. */
   desdeADescida: number | null;
+  /** No modo nuvem: falas LOCAIS seguidas (a nuvem falhou ou está em pausa e a cadeia caiu no aparelho). */
+  locaisNaNuvem: number;
 }
 
 export function estadoInicialDoAudioDificil(
   l: LimiaresDoAudioDificil = LIMIARES_DO_AUDIO_DIFICIL,
 ): EstadoDoAudioDificil {
-  return { modo: 'aparelho', recentes: [], naNuvem: 0, minimoNaNuvem: l.minimoNaNuvem, desdeADescida: null };
+  return {
+    modo: 'aparelho',
+    recentes: [],
+    naNuvem: 0,
+    minimoNaNuvem: l.minimoNaNuvem,
+    desdeADescida: null,
+    locaisNaNuvem: 0,
+  };
+}
+
+/** Desce ao aparelho com a janela limpa, guardando o mínimo (subir logo de novo é reincidência). */
+const descer = (e: EstadoDoAudioDificil): EstadoDoAudioDificil => ({
+  modo: 'aparelho',
+  recentes: [],
+  naNuvem: 0,
+  minimoNaNuvem: e.minimoNaNuvem,
+  desdeADescida: 0,
+  locaisNaNuvem: 0,
+});
+
+/**
+ * Uma NOVA PREPARAÇÃO na mesma sessão (troca de idioma ou de rota): começa no aparelho, mas a memória
+ * anti-oscilação fica — o mínimo dobrado e, se estava na nuvem, conta como recém-descido. Pura.
+ */
+export function continuarAudioDificil(e: EstadoDoAudioDificil): EstadoDoAudioDificil {
+  return e.modo === 'nuvem' ? descer(e) : { ...e, recentes: [], naNuvem: 0, locaisNaNuvem: 0 };
+}
+
+/** A nuvem entrou em PAUSA (402/429/503 ou 5xx seguidos): no modo nuvem, desce ao aparelho na hora. Pura. */
+export function registrarPausaDaNuvem(e: EstadoDoAudioDificil): EstadoDoAudioDificil {
+  return e.modo === 'nuvem' ? descer(e) : e;
 }
 
 /**
- * Uma fala atendida pelo modelo LOCAL. No modo nuvem ela é a reserva de uma nuvem que falhou: não conta
- * para nada (a pausa da nuvem já cuida de não insistir). Devolve um estado novo.
+ * Uma fala atendida pelo modelo LOCAL. No modo nuvem ela é a reserva de uma nuvem que falhou: uma é
+ * soluço; `locaisParaDescer` seguidas querem dizer que a nuvem parou de responder (pausa, cota) — desce
+ * ao aparelho. Devolve um estado novo.
  */
 export function registrarFalaLocal(
   e: EstadoDoAudioDificil,
   dificil: boolean,
   l: LimiaresDoAudioDificil = LIMIARES_DO_AUDIO_DIFICIL,
 ): EstadoDoAudioDificil {
-  if (e.modo === 'nuvem') return e;
+  if (e.modo === 'nuvem') {
+    const locaisNaNuvem = e.locaisNaNuvem + 1;
+    return locaisNaNuvem >= l.locaisParaDescer ? descer(e) : { ...e, locaisNaNuvem };
+  }
   const recentes = [...e.recentes, dificil].slice(-l.janela);
   const desdeADescida = e.desdeADescida === null ? null : e.desdeADescida + 1;
   if (recentes.filter(Boolean).length < l.dificeisParaSubir) return { ...e, recentes, desdeADescida };
@@ -129,6 +170,7 @@ export function registrarFalaLocal(
     naNuvem: 0,
     minimoNaNuvem: reincidiu ? Math.min(l.maximoNaNuvem, e.minimoNaNuvem * 2) : l.minimoNaNuvem,
     desdeADescida: null,
+    locaisNaNuvem: 0,
   };
 }
 
@@ -139,6 +181,6 @@ export function registrarFalaLocal(
 export function registrarFalaNaNuvem(e: EstadoDoAudioDificil): EstadoDoAudioDificil {
   if (e.modo === 'aparelho') return e;
   const naNuvem = e.naNuvem + 1;
-  if (naNuvem < e.minimoNaNuvem) return { ...e, naNuvem };
-  return { modo: 'aparelho', recentes: [], naNuvem: 0, minimoNaNuvem: e.minimoNaNuvem, desdeADescida: 0 };
+  if (naNuvem < e.minimoNaNuvem) return { ...e, naNuvem, locaisNaNuvem: 0 };
+  return descer(e);
 }

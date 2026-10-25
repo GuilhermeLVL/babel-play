@@ -21,8 +21,11 @@ do Plus promete "8 h de nuvem para o áudio difícil", e essas horas se gastam e
 | Sem nuvem na conta, perfil Privado, chave própria                                                             | Como hoje             | Igual                                                                                  |
 
 Item 5 vale com ou sem a flag: quando a nuvem é o motor, a **reserva** local é o Parakeet se ele
-estiver pronto (senão o Whisper base). O Whisper base segue quente (parciais e queda invisível), e o
-Parakeet só entra na cadeia e carrega na primeira falha da nuvem (`gateway/falhaDaNuvemDoStt.ts`).
+estiver pronto (senão o Whisper base). O Whisper base segue quente (parciais e queda invisível); o
+Parakeet só entra quando a nuvem PAUSA (402/429/503 ou a 3ª 5xx seguida — num soluço o Whisper quente
+atende), uma vez, e o gateway LIBERA o Whisper enquanto ele atende (`reservaParakeet`; os três modelos
+não ficam juntos — `memoriaDosModelos.ts`). O modelo do Whisper não é tocado (o regulador pode tê-lo
+descido). Depois de 5 respostas boas seguidas da nuvem, o Parakeet sai e o Whisper volta.
 
 A `rota_inteligente` (`politicaLigada`) **continua desligada**: o ramo dela manda o inglês do pagante
 ao Moonshine (13,5% de erro contra 4,9% da nuvem) e muda a tradução, o que ninguém decidiu. A regra
@@ -47,12 +50,17 @@ Uma fala local é **difícil** se qualquer um destes disparar:
 
 - `confianca`: média do softmax de cada token emitido pelo Parakeet < **0,75** (só com 3+ palavras);
 - `compressao`: a porta do Whisper que já existia (laço de repetição);
-- `lento`: decode (com a fila) ÷ duração da fala > **1** (o aparelho não acompanhou).
+- `lento`: tempo de DECODE no motor (`decodeMs` do Parakeet, sem a fila) ÷ duração da fala > **1**.
 
 Histerese, por falas (cada fala é um pedido cobrado na nuvem): sobe com **3 difíceis nas últimas 6**
 falas locais; fica no mínimo **8 falas** na nuvem; volta com a janela limpa; subir de novo em até 6
-falas locais depois de descer dobra o mínimo (teto **64**). Fala local no modo nuvem (a nuvem falhou)
-e fala da nuvem no modo aparelho (a porta subiu um trecho) não mudam o modo.
+falas locais depois de descer dobra o mínimo (teto **64**); a memória (o mínimo dobrado) continua numa
+nova preparação da mesma sessão. A nuvem que para de responder devolve ao aparelho na hora: a pausa
+dela, ou 2 falas locais seguidas no modo nuvem. Fala da nuvem no modo aparelho (a porta subiu um
+trecho) não muda o modo, e o selo diz "mudou" (o motivo "Áudio difícil" é só da histerese).
+
+Se o Parakeet sair da cadeia (não carregou, ou o regulador desceu a um Whisper), o "aparelho primeiro"
+acaba na preparação: a nuvem volta à frente, com o Whisper de reserva.
 
 ## Medir na bancada ANTES de ligar no staging
 
@@ -93,7 +101,5 @@ A bancada (`scripts/eval-fala/bancada/stt.mjs`) grava agora a `confianca` por ca
 
 - O primeiro trecho depois da subida ainda é local; o selo, nesse intervalo, falha fechado ("a nuvem
   não respondeu") até a próxima fala.
-- O regulador continua podendo descer o Parakeet ao Whisper base num aparelho que trava; o sinal
-  `lento` costuma subir à nuvem antes, mas as duas regras não conversam.
 - Inglês segue na nuvem primeiro: ligar o Parakeet em inglês (medido melhor que o Moonshine) estende
   a regra sozinho, por `IDIOMAS_DO_PARAKEET`.

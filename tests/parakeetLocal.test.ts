@@ -125,6 +125,20 @@ describe('ParakeetLocalStt', () => {
     })
   })
 
+  it('o tempo de DECODE do worker (sem a fila) chega como `decodeMs` (o sinal `lento` do áudio difícil)', async () => {
+    const stt = new ParakeetLocalStt()
+    await stt.preload()
+    criados[0].postMessage = function (msg: Msg) {
+      queueMicrotask(() =>
+        this.responder({ type: 'result', id: msg.id, text: 'olá', descartado: false, ms: 420, audioS: 1 }),
+      )
+    }
+    expect(await stt.transcribePcm(new Float32Array(1600), 16000, { languageHint: 'pt' })).toEqual({
+      text: 'olá',
+      decodeMs: 420,
+    })
+  })
+
   it('texto que o filtro de alucinação esvaziou chega marcado, para a telemetria contar', async () => {
     const stt = new ParakeetLocalStt()
     await stt.preload()

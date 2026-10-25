@@ -89,8 +89,6 @@ const MUDOU: Record<OndeDoSelo, string> = {
   nuvem: 'Mudou: esta fala foi para a nuvem.',
 };
 const MUDOU_A_NUVEM_NAO_RESPONDEU = 'Mudou: a nuvem não respondeu nesta fala.';
-/** "Aparelho primeiro" (flag `stt_aparelho_primeiro`): a fala foi à nuvem de reserva do áudio difícil. */
-const FOI_A_NUVEM_DO_AUDIO_DIFICIL = 'Áudio difícil: esta fala foi para a nuvem, que erra menos.';
 const NAVEGADOR_NO_APARELHO = 'O navegador reconheceu esta fala no próprio aparelho.';
 
 /** Onde o processamento acontece e se o áudio sai: o que o previsto e o real têm em comum. */
@@ -183,22 +181,6 @@ export function seloDaFala(
     return l.onde === real.onde && l.envia === real.envia;
   });
 
-  /* "APARELHO PRIMEIRO": a política previu o aparelho com a nuvem de reserva para o áudio difícil, e a
-     fala foi a ela (a porta por trecho, ou a histerese que acabou de subir). O lugar mudou, mas era o
-     previsto: diz onde e por quê, sem o "mudou" (que pinta a marca de alerta). */
-  const pelaNuvemDoAudioDificil =
-    !exato &&
-    real.onde === 'nuvem' &&
-    previstos.some((p) => p.reservas.some((r) => r.motivo === 'audio-dificil' && r.degrau === 'nuvem-por-trechos'));
-  if (pelaNuvemDoAudioDificil) {
-    return {
-      ...base,
-      detalhe: DETALHE.nuvem,
-      motivo: { chave: FOI_A_NUVEM_DO_AUDIO_DIFICIL },
-      saiDoAparelho: true,
-      mudou: false,
-    };
-  }
   const mesmaEtiqueta = exato ?? previstos.find((p) => etiquetaDoLugar(lugarDoPrevisto(p)) === onde);
   const mudou = previstos.length > 0 && !mesmaEtiqueta;
   const motivo: MotivoDoSelo | null = mudou

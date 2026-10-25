@@ -133,7 +133,11 @@ export class ParakeetLocalStt implements SttProvider {
           this.pendentes.delete(m.id);
           // A confiança média dos tokens vai como `confidence`: o sinal do áudio difícil (`core/rota/audioDificil.ts`).
           const confianca = m.confianca !== undefined ? { confidence: m.confianca } : {};
-          p.resolve(m.descartado ? { text: m.text, alucinacaoDescartada: true } : { text: m.text, ...confianca });
+          // O tempo de decode no worker, sem a fila: o sinal `lento` do áudio difícil.
+          const decode = typeof m.ms === 'number' ? { decodeMs: m.ms } : {};
+          p.resolve(
+            m.descartado ? { text: m.text, alucinacaoDescartada: true } : { text: m.text, ...confianca, ...decode },
+          );
           break;
         }
         case 'cancelado': {

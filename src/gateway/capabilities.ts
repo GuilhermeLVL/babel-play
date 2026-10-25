@@ -93,6 +93,11 @@ export interface SttFinal {
    */
   confiancaDoIdioma?: number;
   confidence?: number;
+  /**
+   * Tempo de DECODE no motor, em ms, SEM a espera na fila (o Parakeet mede no worker). Ausente = o motor
+   * não informa. É o sinal `lento` do áudio difícil (`core/rota/audioDificil.ts`).
+   */
+  decodeMs?: number;
   /** Adapter que de fato transcreveu (preenchido pelo wrapper do gateway) — procedência honesta. */
   engine?: string;
   /**

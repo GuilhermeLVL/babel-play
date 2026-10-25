@@ -4,19 +4,22 @@
  *
  * O que se garante: uma fala ruim isolada não sobe (só a porta por trecho a leva); três difíceis nas
  * últimas seis sobem; na nuvem há um mínimo de falas antes de voltar; quem volta e sobe de novo logo
- * fica o dobro do tempo na nuvem (com teto); a fala local enquanto o modo é nuvem (a nuvem falhou) e
- * a fala da nuvem enquanto o modo é aparelho (a porta subiu um trecho) não mudam o modo.
+ * fica o dobro do tempo na nuvem (com teto); a nuvem que para de responder (duas falas locais seguidas
+ * no modo nuvem, ou a pausa dela) devolve ao aparelho; a fala da nuvem enquanto o modo é aparelho (a
+ * porta subiu um trecho) não muda o modo.
  */
 import { describe, expect, it } from 'vitest'
 
 import {
   avaliarFalaLocal,
+  continuarAudioDificil,
   type EstadoDoAudioDificil,
   estadoInicialDoAudioDificil,
   FLAG_STT_APARELHO_PRIMEIRO,
   LIMIARES_DO_AUDIO_DIFICIL,
   registrarFalaLocal,
   registrarFalaNaNuvem,
+  registrarPausaDaNuvem,
 } from '../src/core/rota/audioDificil'
 
 const L = LIMIARES_DO_AUDIO_DIFICIL
@@ -108,10 +111,30 @@ describe('histerese', () => {
     expect(voltou.recentes).toEqual([]) // volta com a janela limpa: precisa de 3 novas para subir
   })
 
-  it('fala local enquanto o modo é nuvem (a nuvem falhou e o aparelho atendeu) não conta para nada', () => {
+  /* Rodada de correção 1, item 4: a nuvem que para de responder (pausa, 402, 429) devolve ao aparelho.
+     Uma fala local isolada no modo nuvem é um soluço; duas seguidas, a nuvem não está respondendo. */
+  it('uma fala local no modo nuvem (soluço da nuvem) não muda o modo', () => {
     const subiu = rodar('ddd')
-    expect(rodar('ffffffffffff', subiu)).toEqual(subiu)
-    expect(rodar('dddd', subiu)).toEqual(subiu)
+    expect(rodar('f', subiu).modo).toBe('nuvem')
+    expect(rodar('fnf', subiu).modo).toBe('nuvem') // a nuvem respondeu no meio: a contagem zera
+  })
+
+  it(`${L.locaisParaDescer} falas locais SEGUIDAS no modo nuvem (ela parou de responder): desce ao aparelho`, () => {
+    const subiu = rodar('ddd')
+    const desceu = rodar('f'.repeat(L.locaisParaDescer), subiu)
+    expect(desceu.modo).toBe('aparelho')
+    expect(desceu.recentes).toEqual([])
+    expect(desceu.desdeADescida).toBe(0) // subir logo de novo conta como reincidência
+    expect(rodar('dd'.repeat(L.locaisParaDescer), subiu).modo).toBe('aparelho') // difícil ou não
+  })
+
+  it('a pausa da nuvem no modo nuvem desce na hora; no modo aparelho não muda nada', () => {
+    const subiu = rodar('ddd')
+    const desceu = registrarPausaDaNuvem(subiu)
+    expect(desceu.modo).toBe('aparelho')
+    expect(desceu.minimoNaNuvem).toBe(subiu.minimoNaNuvem)
+    const noAparelho = rodar('df')
+    expect(registrarPausaDaNuvem(noAparelho)).toEqual(noAparelho)
   })
 
   it('fala da nuvem enquanto o modo é aparelho (a porta subiu um trecho) não muda o modo nem a janela', () => {
@@ -139,6 +162,21 @@ describe('histerese', () => {
     e = rodar('ddd', e)
     expect(e.modo).toBe('nuvem')
     expect(e.minimoNaNuvem).toBe(L.minimoNaNuvem)
+  })
+
+  /* Rodada de correção 1, item 5: trocar de rota no meio da sessão (nova preparação) não apaga a memória
+     da histerese — o mínimo dobrado continua, e quem estava na nuvem conta como recém-descido. */
+  it('continuar numa nova preparação: volta ao aparelho, guarda o mínimo dobrado e conta como descida', () => {
+    let e = rodar('ddd')
+    e = rodar('ddd', rodar('n'.repeat(e.minimoNaNuvem), e))
+    expect(e.minimoNaNuvem).toBe(L.minimoNaNuvem * 2)
+    const c = continuarAudioDificil(e)
+    expect(c.modo).toBe('aparelho')
+    expect(c.minimoNaNuvem).toBe(L.minimoNaNuvem * 2)
+    expect(c.desdeADescida).toBe(0)
+    expect(rodar('ddd', c).minimoNaNuvem).toBe(L.minimoNaNuvem * 4) // reincidiu logo
+    const parado = rodar('df')
+    expect(continuarAudioDificil(parado)).toEqual({ ...estadoInicialDoAudioDificil(), desdeADescida: null })
   })
 
   it('é pura: não altera o estado recebido', () => {

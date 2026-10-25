@@ -102,7 +102,13 @@ export function cascataDeNuvem(opcoes: OpcoesDeProvedor = {}, env: NodeJS.Proces
   return pernasDaFuncao(opcoes.funcao ?? 'traducao', opcoes, env)
 }
 
-const NOME_DA_FUNCAO = { traducao: 'tradução', tutor: 'tutor', stt: 'STT', tts: 'voz natural' } as const
+const NOME_DA_FUNCAO = {
+  traducao: 'tradução',
+  tutor: 'tutor',
+  stt: 'STT',
+  tts: 'voz natural',
+  explicacao: 'explicação da frase',
+} as const
 
 /**
  * O AVISO DO ADR 0008: em produção, a nuvem configurada SEM reserva. O ADR diz como a decisão é

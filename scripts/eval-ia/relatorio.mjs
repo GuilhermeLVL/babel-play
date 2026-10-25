@@ -34,8 +34,8 @@ const NOMES = {
 const SITUACAO = {
   'pode-trocar': 'pode trocar (mais barato, não piora)',
   'opcao-mais-cara': 'opção MAIS CARA (melhora critério crítico; depende do dono)',
-  'mais-caro-sem-ganho-critico': 'mais caro sem ganho crítico: não',
-  piora: 'piora a experiência: não',
+  'mais-caro-sem-ganho-critico': 'mais caro sem ganho crítico (não troca)',
+  piora: 'piora a experiência (não troca)',
 }
 
 // ------------------------------------------------------------------ custo (puro)
@@ -83,6 +83,17 @@ function linhaDeRecomendacao(d) {
   return `**${NOMES[d.funcao]}: manter ${cod(d.base)}** (nenhum candidato mais barato sem piorar).${caras.length ? ` Opção mais cara, só com o aceite do dono: ${caras.join('; ')}.` : ''}`
 }
 
+/** Por que o candidato piora a experiência (vazio quando não piora). */
+function motivosDaPiora(a) {
+  if (a.situacao !== 'piora') return ''
+  const m = [...a.pioras]
+  if (!a.naoInferior) m.push('não-inferioridade da nota não demonstrada')
+  if (!a.chegaNoTempo) m.push('passa do timeout da produção em mais de 5%')
+  if (!a.latenciaNaoPiora) m.push('latência p95 mais de 20% pior')
+  if (a.disponivel === false) m.push('mais de 5% sem resposta do provedor')
+  return m.length ? ` — ${m.join('; ')}` : ''
+}
+
 function tabelaQualidade(d) {
   const l = []
   const crits = criteriosCriticos(d.funcao)
@@ -95,7 +106,7 @@ function tabelaQualidade(d) {
     const r = d.resumos[s]
     const a = d.avaliacoes.find((x) => x.sistema === s)
     const nota = `${num(r.nota.valor)} [${num(r.nota.ic95[0])}, ${num(r.nota.ic95[1])}]`
-    const sit = a ? `${SITUACAO[a.situacao]}${a.pioras.length ? ` (${a.pioras.join('; ')})` : ''}` : 'produção'
+    const sit = a ? `${SITUACAO[a.situacao]}${motivosDaPiora(a)}` : 'produção'
     l.push(
       `| ${cod(s)}${s === d.recomendado && s !== d.base ? ' ★' : ''}${r.foraDaProducao ? ' (ajuste)' : ''} | ${r.n} | ${nota} | ${a ? ic(a.comparacao.nota) : '—'} | ${crits.map((c) => pct(r.taxas[c])).join(' | ')} | ${sit} |`,
     )
@@ -385,8 +396,14 @@ export function gerarRelatorio(p) {
     '- **Amostras pequenas** no resumo e nas alternativas (ver §4); **uma execução por modelo**, na temperatura de produção.',
     '- **Latência num só horário**, pelo OpenRouter; o provedor sorteado muda o número. Indicativo, não SLO medido em produção.',
     '- **Ajustes fora da produção** (`@none`, `~groq+cerebras`): parâmetros que a produção ainda não manda; o `@none` também tira do roteamento o provedor que ignora o raciocínio desligado.',
-    '- **Limite da chave do OpenRouter:** além do teto do livro-caixa, a chave tem um limite de gasto próprio, definido no painel do OpenRouter. A repetição com o pedido da Fase B parou nele (HTTP 403 "Key limit exceeded"); o harness agora para a rodada inteira nesse caso e grava o parcial à parte, sem apagar o bruto anterior. Para repetir: subir o limite da chave e rodar `--funcao explicacao,alternativas,resumo` (as respostas já pagas estão em cache).',
-    '- **Registro do juiz nos brutos antigos:** nos brutos medidos antes da Fase B, o segundo juiz aparece como `deepseek/deepseek-v4.1-flash`, sem o `@none` (raciocínio desligado) que de fato foi usado; o id real e os parâmetros passaram a ser gravados na correção 1.',
+    antigos.length
+      ? '- **Limite da chave do OpenRouter:** além do teto do livro-caixa, a chave tem um limite de gasto próprio, definido no painel do OpenRouter. A repetição com o pedido da Fase B parou nele (HTTP 403 "Key limit exceeded"); o harness para a rodada inteira nesse caso e grava o parcial à parte, sem apagar o bruto anterior. Para repetir: subir o limite da chave e rodar `--funcao explicacao,alternativas,resumo` (as respostas já pagas estão em cache).'
+      : '- **Limite da chave do OpenRouter:** além do teto do livro-caixa, a chave tem um limite de gasto próprio (painel do OpenRouter). A primeira tentativa de repetir com o pedido da Fase B parou nele (HTTP 403); a medição foi refeita depois que o dono subiu o limite. O harness para a rodada inteira nesse caso e grava o parcial à parte, sem apagar o bruto anterior.',
+    ...(antigos.length
+      ? [
+          '- **Registro do juiz nos brutos antigos:** nos brutos medidos antes da Fase B, o segundo juiz aparece como `deepseek/deepseek-v4.1-flash`, sem o `@none` (raciocínio desligado) que de fato foi usado; o id real e os parâmetros passaram a ser gravados na correção 1.',
+        ]
+      : []),
     '- Funções não medidas: polimento e tutor.',
     '',
   )

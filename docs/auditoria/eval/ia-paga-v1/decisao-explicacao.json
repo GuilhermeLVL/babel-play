@@ -1,156 +1,156 @@
 {
   "funcao": "explicacao",
   "base": "openai/gpt-oss-120b",
-  "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
+  "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
   "margem": 0.05,
   "recomendado": "openai/gpt-oss-120b",
   "motivo": "nenhum candidato mais barato que a produção sem piorar a experiência: manter",
   "opcoesMaisCaras": ["deepseek/deepseek-v4.1-flash@none", "qwen/qwen3-next-80b-a3b-instruct"],
   "autopreferencia": {
-    "mistralai/mistral-medium-3.1": -0.02672789513233699,
-    "deepseek/deepseek-v4.1-flash": -0.024810052600818228
+    "mistralai/mistral-medium-3.1": -0.0045502645502645545,
+    "deepseek/deepseek-v4.1-flash@none": -0.026851851851851863
   },
   "resumos": {
     "openai/gpt-oss-120b": {
       "sistema": "openai/gpt-oss-120b",
       "modelo": "openai/gpt-oss-120b",
-      "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
+      "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
       "juizCompensado": false,
       "n": 60,
       "julgados": 60,
       "nota": {
-        "valor": 0.894047619047619,
-        "ic95": [0.8606845238095238, 0.925]
+        "valor": 0.7988095238095239,
+        "ic95": [0.75, 0.8428571428571427]
       },
       "taxas": {
-        "sentido_correto": 0.9583333333333334,
-        "gramatica_correta": 0.6416666666666667,
-        "registro_correto": 1,
-        "girias_corretas": 0.9083333333333333,
-        "idioma_certo": 1,
-        "adequada_aprendiz": 0.75,
-        "segura": 1
+        "sentido_correto": 0.8583333333333333,
+        "gramatica_correta": 0.5,
+        "registro_correto": 0.9,
+        "girias_corretas": 0.85,
+        "idioma_certo": 0.9583333333333334,
+        "adequada_aprendiz": 0.5416666666666666,
+        "segura": 0.9833333333333333
       },
       "semResposta": 0,
-      "invalidas": 0,
+      "invalidas": 0.016666666666666666,
       "latenciaMs": {
-        "ttftP50": 1610.5104589999974,
-        "ttftP95": 3914.4218330000003,
-        "totalP50": 3081.5461670000022,
-        "totalP95": 7955.718000000001
+        "ttftP50": 1322.701083,
+        "ttftP95": 4197.612042000001,
+        "totalP50": 2636.5475420000002,
+        "totalP95": 6855.799375000002
       },
       "sloP95Ms": 4000,
       "dentroDoSlo": false,
       "acimaDoTimeout": 0,
       "experiencia": {
-        "caracteresP50": 395,
+        "caracteresP50": 380,
         "cabeSemRolar": 1,
-        "palavrasPorFrase": 17.041666666666657,
-        "idiomaOk": 0.9833333333333333
+        "palavrasPorFrase": 15.513559322033894,
+        "idiomaOk": 0.9811320754716981
       },
       "custo": {
-        "usdTotal": 0.003604494000000001,
-        "usdPorUso": 0.00006007490000000002,
-        "usdPor1000Usos": 0.060074900000000014,
-        "usdPorMilhaoDeTokens": 0.09391105205565112,
-        "tokensPorUso": 639.7,
-        "brlPorPaganteNoMes": 0.10092583200000002
+        "usdTotal": 0.0042292020000000005,
+        "usdPorUso": 0.00007048670000000001,
+        "usdPor1000Usos": 0.07048670000000001,
+        "usdPorMilhaoDeTokens": 0.1067710679121434,
+        "tokensPorUso": 660.1666666666666,
+        "brlPorPaganteNoMes": 0.11841765600000001
       },
-      "tokensDeRaciocinioP50": 48,
+      "tokensDeRaciocinioP50": 42,
       "foraDaProducao": false
     },
     "deepseek/deepseek-v4.1-flash": {
       "sistema": "deepseek/deepseek-v4.1-flash",
       "modelo": "deepseek/deepseek-v4.1-flash",
-      "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
+      "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
       "juizCompensado": true,
       "n": 60,
       "julgados": 60,
       "nota": {
-        "valor": 0.9166666666666665,
-        "ic95": [0.8511904761904762, 0.9678869047619049]
+        "valor": 0.9345238095238094,
+        "ic95": [0.9142857142857144, 0.9535714285714286]
       },
       "taxas": {
-        "sentido_correto": 0.9416666666666667,
-        "gramatica_correta": 0.9,
-        "registro_correto": 0.9333333333333333,
-        "girias_corretas": 0.9,
-        "idioma_certo": 0.95,
-        "adequada_aprendiz": 0.8416666666666667,
-        "segura": 0.95
+        "sentido_correto": 0.9833333333333333,
+        "gramatica_correta": 0.9333333333333333,
+        "registro_correto": 0.9916666666666667,
+        "girias_corretas": 0.9166666666666666,
+        "idioma_certo": 1,
+        "adequada_aprendiz": 0.725,
+        "segura": 0.9916666666666667
       },
       "semResposta": 0,
-      "invalidas": 0.05,
+      "invalidas": 0,
       "latenciaMs": {
-        "ttftP50": 4855.832791999994,
-        "ttftP95": 21344.025084,
-        "totalP50": 6044.653333999988,
-        "totalP95": 23707.416415999993
+        "ttftP50": 3791.09375,
+        "ttftP95": 7885.328332999998,
+        "totalP50": 4813.223833000004,
+        "totalP95": 9041.194083999995
       },
       "sloP95Ms": 4000,
       "dentroDoSlo": false,
-      "acimaDoTimeout": 0.1,
+      "acimaDoTimeout": 0.016666666666666666,
       "experiencia": {
-        "caracteresP50": 559,
-        "cabeSemRolar": 1,
-        "palavrasPorFrase": 14.466666666666663,
+        "caracteresP50": 582,
+        "cabeSemRolar": 0.9833333333333333,
+        "palavrasPorFrase": 14.001666666666672,
         "idiomaOk": 1
       },
       "custo": {
-        "usdTotal": 0.034510234199999996,
-        "usdPorUso": 0.00057517057,
-        "usdPor1000Usos": 0.5751705699999999,
-        "usdPorMilhaoDeTokens": 0.47730677159691287,
-        "tokensPorUso": 1205.0333333333333,
-        "brlPorPaganteNoMes": 0.9662865575999998
+        "usdTotal": 0.031122279399999998,
+        "usdPorUso": 0.0005187046566666666,
+        "usdPor1000Usos": 0.5187046566666667,
+        "usdPorMilhaoDeTokens": 0.44477554771126,
+        "tokensPorUso": 1166.2166666666667,
+        "brlPorPaganteNoMes": 0.8714238231999999
       },
-      "tokensDeRaciocinioP50": 551,
+      "tokensDeRaciocinioP50": 455,
       "foraDaProducao": false
     },
     "deepseek/deepseek-v4.1-flash@none": {
       "sistema": "deepseek/deepseek-v4.1-flash@none",
       "modelo": "deepseek/deepseek-v4.1-flash",
-      "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
+      "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
       "juizCompensado": true,
       "n": 60,
       "julgados": 60,
       "nota": {
-        "valor": 0.9761904761904762,
-        "ic95": [0.9619047619047618, 0.9880952380952382]
+        "valor": 0.9654761904761904,
+        "ic95": [0.9488095238095237, 0.9797619047619048]
       },
       "taxas": {
-        "sentido_correto": 0.9916666666666667,
-        "gramatica_correta": 0.9666666666666667,
+        "sentido_correto": 1,
+        "gramatica_correta": 0.9083333333333333,
         "registro_correto": 0.975,
-        "girias_corretas": 0.9583333333333334,
+        "girias_corretas": 0.95,
         "idioma_certo": 1,
-        "adequada_aprendiz": 0.9416666666666667,
+        "adequada_aprendiz": 0.925,
         "segura": 1
       },
       "semResposta": 0,
       "invalidas": 0,
       "latenciaMs": {
-        "ttftP50": 847.1779169999936,
-        "ttftP95": 3082.5917920000065,
-        "totalP50": 2101.7358749999985,
-        "totalP95": 6320.541041000004
+        "ttftP50": 673.1195409999928,
+        "ttftP95": 1666.5064170000114,
+        "totalP50": 1796.984083000003,
+        "totalP95": 2994.1376660000096
       },
       "sloP95Ms": 4000,
-      "dentroDoSlo": false,
+      "dentroDoSlo": true,
       "acimaDoTimeout": 0,
       "experiencia": {
-        "caracteresP50": 476,
+        "caracteresP50": 444,
         "cabeSemRolar": 1,
-        "palavrasPorFrase": 13.646666666666665,
+        "palavrasPorFrase": 13.733333333333336,
         "idiomaOk": 1
       },
       "custo": {
-        "usdTotal": 0.010481480000000003,
-        "usdPorUso": 0.0001746913333333334,
-        "usdPor1000Usos": 0.1746913333333334,
-        "usdPorMilhaoDeTokens": 0.2864261900858065,
-        "tokensPorUso": 609.9,
-        "brlPorPaganteNoMes": 0.29348144000000004
+        "usdTotal": 0.0090614046,
+        "usdPorUso": 0.00015102340999999998,
+        "usdPor1000Usos": 0.15102340999999997,
+        "usdPorMilhaoDeTokens": 0.2348974647449191,
+        "tokensPorUso": 642.9333333333333,
+        "brlPorPaganteNoMes": 0.2537193288
       },
       "tokensDeRaciocinioP50": 0,
       "foraDaProducao": true
@@ -158,47 +158,47 @@
     "mistralai/mistral-small-2603": {
       "sistema": "mistralai/mistral-small-2603",
       "modelo": "mistralai/mistral-small-2603",
-      "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
+      "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
       "juizCompensado": true,
-      "n": 60,
-      "julgados": 60,
+      "n": 54,
+      "julgados": 54,
       "nota": {
-        "valor": 0.888095238095238,
-        "ic95": [0.8595238095238095, 0.9143154761904762]
+        "valor": 0.869047619047619,
+        "ic95": [0.8359788359788358, 0.9007936507936507]
       },
       "taxas": {
-        "sentido_correto": 0.9333333333333333,
-        "gramatica_correta": 0.6666666666666666,
-        "registro_correto": 0.9666666666666667,
-        "girias_corretas": 0.9416666666666667,
+        "sentido_correto": 0.8796296296296297,
+        "gramatica_correta": 0.6944444444444444,
+        "registro_correto": 0.9722222222222222,
+        "girias_corretas": 0.9259259259259259,
         "idioma_certo": 1,
-        "adequada_aprendiz": 0.7083333333333334,
-        "segura": 1
+        "adequada_aprendiz": 0.6203703703703703,
+        "segura": 0.9907407407407407
       },
-      "semResposta": 0,
+      "semResposta": 0.1,
       "invalidas": 0,
       "latenciaMs": {
-        "ttftP50": 505.3370419999992,
-        "ttftP95": 1336.5742920000048,
-        "totalP50": 1837.9065830000036,
-        "totalP95": 2987.0909589999937
+        "ttftP50": 560.2162500000268,
+        "ttftP95": 1281.3740000000107,
+        "totalP50": 1919.9817500000063,
+        "totalP95": 3093.6315000000177
       },
       "sloP95Ms": 4000,
       "dentroDoSlo": true,
       "acimaDoTimeout": 0,
       "experiencia": {
-        "caracteresP50": 511,
+        "caracteresP50": 548,
         "cabeSemRolar": 1,
-        "palavrasPorFrase": 15.039999999999994,
-        "idiomaOk": 0.9833333333333333
+        "palavrasPorFrase": 15.209259259259253,
+        "idiomaOk": 1
       },
       "custo": {
-        "usdTotal": 0.007283760000000002,
-        "usdPorUso": 0.00012139600000000003,
-        "usdPor1000Usos": 0.12139600000000003,
-        "usdPorMilhaoDeTokens": 0.20729601275009257,
-        "tokensPorUso": 585.6166666666667,
-        "brlPorPaganteNoMes": 0.20394528000000003
+        "usdTotal": 0.00636624,
+        "usdPorUso": 0.00011789333333333332,
+        "usdPor1000Usos": 0.11789333333333332,
+        "usdPorMilhaoDeTokens": 0.20636779150053486,
+        "tokensPorUso": 571.2777777777778,
+        "brlPorPaganteNoMes": 0.19806079999999998
       },
       "tokensDeRaciocinioP50": 0,
       "foraDaProducao": false
@@ -206,95 +206,95 @@
     "z-ai/glm-5.3-flash": {
       "sistema": "z-ai/glm-5.3-flash",
       "modelo": "z-ai/glm-5.3-flash",
-      "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
+      "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
       "juizCompensado": false,
       "n": 60,
       "julgados": 60,
       "nota": {
-        "valor": 0.9476190476190478,
-        "ic95": [0.9285714285714287, 0.9643154761904762]
+        "valor": 0.9130952380952381,
+        "ic95": [0.8964285714285715, 0.9309523809523811]
       },
       "taxas": {
-        "sentido_correto": 0.975,
-        "gramatica_correta": 0.9333333333333333,
-        "registro_correto": 1,
-        "girias_corretas": 0.975,
-        "idioma_certo": 0.9916666666666667,
-        "adequada_aprendiz": 0.7583333333333333,
-        "segura": 1
+        "sentido_correto": 0.9666666666666667,
+        "gramatica_correta": 0.9,
+        "registro_correto": 0.9666666666666667,
+        "girias_corretas": 0.95,
+        "idioma_certo": 1,
+        "adequada_aprendiz": 0.6166666666666667,
+        "segura": 0.9916666666666667
       },
       "semResposta": 0,
       "invalidas": 0,
       "latenciaMs": {
-        "ttftP50": 4667.078167,
-        "ttftP95": 19741.558334,
-        "totalP50": 7090.493415999983,
-        "totalP95": 23140.94745800001
+        "ttftP50": 3186.0266669999983,
+        "ttftP95": 22997.68516699999,
+        "totalP50": 4162.859624999983,
+        "totalP95": 29860.321958999964
       },
       "sloP95Ms": 4000,
       "dentroDoSlo": false,
-      "acimaDoTimeout": 0.2,
+      "acimaDoTimeout": 0.08333333333333333,
       "experiencia": {
         "caracteresP50": 642,
-        "cabeSemRolar": 1,
-        "palavrasPorFrase": 14.816666666666665,
+        "cabeSemRolar": 0.9833333333333333,
+        "palavrasPorFrase": 14.41,
         "idiomaOk": 1
       },
       "custo": {
-        "usdTotal": 0.010557533895000002,
-        "usdPorUso": 0.00017595889825000003,
-        "usdPor1000Usos": 0.17595889825000002,
-        "usdPorMilhaoDeTokens": 0.17655624688529528,
-        "tokensPorUso": 996.6166666666667,
-        "brlPorPaganteNoMes": 0.29561094906
+        "usdTotal": 0.01045104629,
+        "usdPorUso": 0.00017418410483333334,
+        "usdPor1000Usos": 0.17418410483333333,
+        "usdPorMilhaoDeTokens": 0.1665611559302585,
+        "tokensPorUso": 1045.7666666666667,
+        "brlPorPaganteNoMes": 0.29262929612
       },
-      "tokensDeRaciocinioP50": 360,
+      "tokensDeRaciocinioP50": 493,
       "foraDaProducao": false
     },
     "qwen/qwen3-next-80b-a3b-instruct": {
       "sistema": "qwen/qwen3-next-80b-a3b-instruct",
       "modelo": "qwen/qwen3-next-80b-a3b-instruct",
-      "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
+      "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
       "juizCompensado": false,
       "n": 60,
       "julgados": 60,
       "nota": {
-        "valor": 0.9464285714285713,
-        "ic95": [0.9238095238095236, 0.9666666666666666]
+        "valor": 0.9238095238095239,
+        "ic95": [0.8964285714285714, 0.9488095238095239]
       },
       "taxas": {
-        "sentido_correto": 0.9583333333333334,
-        "gramatica_correta": 0.8916666666666667,
-        "registro_correto": 0.975,
-        "girias_corretas": 0.9666666666666667,
+        "sentido_correto": 0.95,
+        "gramatica_correta": 0.85,
+        "registro_correto": 0.95,
+        "girias_corretas": 0.9,
         "idioma_certo": 0.9833333333333333,
-        "adequada_aprendiz": 0.85,
-        "segura": 1
+        "adequada_aprendiz": 0.8416666666666667,
+        "segura": 0.9916666666666667
       },
       "semResposta": 0,
       "invalidas": 0,
       "latenciaMs": {
-        "ttftP50": 702.5781669999997,
-        "ttftP95": 1408.8254579999775,
-        "totalP50": 1655.2085420000076,
-        "totalP95": 2313.7377500000002
+        "ttftP50": 697.1687909999746,
+        "ttftP95": 1274.9032500000321,
+        "totalP50": 1688.9996249999967,
+        "totalP95": 2640.9474579999805
       },
       "sloP95Ms": 4000,
       "dentroDoSlo": true,
       "acimaDoTimeout": 0,
       "experiencia": {
-        "caracteresP50": 466,
+        "caracteresP50": 452,
         "cabeSemRolar": 1,
-        "palavrasPorFrase": 13.605000000000002,
-        "idiomaOk": 0.9833333333333333
+        "palavrasPorFrase": 13.683333333333332,
+        "idiomaOk": 1
       },
       "custo": {
-        "usdTotal": 0.015023244999999996,
-        "usdPorUso": 0.0002503874166666666,
-        "usdPor1000Usos": 0.2503874166666666,
-        "usdPorMilhaoDeTokens": 0.4235837539120872,
-        "tokensPorUso": 591.1166666666667,
-        "brlPorPaganteNoMes": 0.42065085999999985
+        "usdTotal": 0.014630185,
+        "usdPorUso": 0.00024383641666666668,
+        "usdPor1000Usos": 0.24383641666666667,
+        "usdPorMilhaoDeTokens": 0.41342220526732226,
+        "tokensPorUso": 589.8,
+        "brlPorPaganteNoMes": 0.40964518
       },
       "tokensDeRaciocinioP50": 0,
       "foraDaProducao": false
@@ -305,72 +305,75 @@
       "sistema": "deepseek/deepseek-v4.1-flash",
       "comparacao": {
         "contra": "openai/gpt-oss-120b",
-        "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
+        "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
         "juizCompensado": true,
         "nota": {
           "n": 60,
-          "delta": 0.02261904761904762,
-          "dp": 0.22414434968594993,
-          "valor": 0.02261904761904754,
-          "ic95": [-0.03690476190476178, 0.07499999999999984],
-          "significativo": false
+          "delta": 0.13571428571428573,
+          "dp": 0.19269789856323896,
+          "valor": 0.13571428571428557,
+          "ic95": [0.09166666666666667, 0.18574404761904792],
+          "significativo": true
         },
         "criticos": {
           "gramatica_correta": {
             "n": 60,
-            "delta": 0.25833333333333336,
-            "dp": 0.4647914300482829,
-            "valor": 0.2583333333333333,
-            "ic95": [0.14166666666666672, 0.375],
+            "delta": 0.43333333333333335,
+            "dp": 0.4459484908564834,
+            "valor": 0.43333333333333335,
+            "ic95": [0.33333333333333326, 0.5416666666666667],
             "significativo": true
           },
           "girias_corretas": {
             "n": 60,
-            "delta": -0.008333333333333333,
-            "dp": 0.36233314882089296,
-            "valor": -0.008333333333333304,
-            "ic95": [-0.09999999999999998, 0.08333333333333337],
+            "delta": 0.06666666666666667,
+            "dp": 0.33782287338975525,
+            "valor": 0.06666666666666665,
+            "ic95": [-0.01666666666666672, 0.15000000000000002],
             "significativo": false
           },
           "idioma_certo": {
             "n": 60,
-            "delta": -0.05,
-            "dp": 0.21978417765108269,
-            "valor": -0.050000000000000044,
-            "ic95": [-0.1166666666666667, 0],
-            "significativo": false
+            "delta": 0.041666666666666664,
+            "dp": 0.16701940074730462,
+            "valor": 0.04166666666666663,
+            "ic95": [0.008333333333333304, 0.08333333333333337],
+            "significativo": true
           },
           "segura": {
             "n": 60,
-            "delta": -0.05,
-            "dp": 0.21978417765108269,
-            "valor": -0.050000000000000044,
-            "ic95": [-0.1166666666666667, 0],
+            "delta": 0.008333333333333333,
+            "dp": 0.14531283222427246,
+            "valor": 0.008333333333333415,
+            "ic95": [-0.01666666666666672, 0.050000000000000044],
             "significativo": false
           }
         }
       },
       "maisBarato": false,
-      "custoRelativo": 9.574224343278138,
+      "custoRelativo": 7.358901135486079,
       "naoInferior": true,
-      "superiorNaNota": false,
+      "superiorNaNota": true,
       "pioras": [],
-      "melhoras": ["gramatica_correta"],
-      "chegaNoTempo": false,
+      "melhoras": ["gramatica_correta", "idioma_certo"],
+      "chegaNoTempo": true,
       "disponivel": true,
       "latenciaNaoPiora": false,
       "custoCabe": false,
       "situacao": "piora",
-      "poder": {},
+      "poder": {
+        "superioridade:girias_corretas": 202,
+        "superioridade:segura": 2387
+      },
       "preferencia": {
         "n": 60,
         "vitorias": 21,
-        "derrotas": 4,
-        "empates": 35,
-        "instaveis": 0.48333333333333334,
+        "derrotas": 8,
+        "empates": 31,
+        "instaveis": 0.4,
         "media": {
-          "valor": 0.2833333333333333,
-          "ic95": [0.13333333333333333, 0.43333333333333335]
+          "valor": 0.21666666666666667,
+          "ic95": [0.03333333333333333, 0.38333333333333336]
         }
       }
     },
@@ -378,74 +381,74 @@
       "sistema": "deepseek/deepseek-v4.1-flash@none",
       "comparacao": {
         "contra": "openai/gpt-oss-120b",
-        "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
+        "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
         "juizCompensado": true,
         "nota": {
           "n": 60,
-          "delta": 0.08214285714285716,
-          "dp": 0.12394487231518395,
-          "valor": 0.08214285714285718,
-          "ic95": [0.05238095238095264, 0.11547619047619029],
+          "delta": 0.16666666666666663,
+          "dp": 0.1931312135025393,
+          "valor": 0.16666666666666652,
+          "ic95": [0.1225892857142854, 0.21666666666666679],
           "significativo": true
         },
         "criticos": {
           "gramatica_correta": {
             "n": 60,
-            "delta": 0.325,
-            "dp": 0.4200988584219881,
-            "valor": 0.32499999999999996,
-            "ic95": [0.21666666666666667, 0.43333333333333324],
+            "delta": 0.4083333333333333,
+            "dp": 0.44618597120926484,
+            "valor": 0.4083333333333333,
+            "ic95": [0.30000000000000004, 0.5166666666666666],
             "significativo": true
           },
           "girias_corretas": {
             "n": 60,
-            "delta": 0.05,
-            "dp": 0.2867113353714995,
-            "valor": 0.050000000000000044,
-            "ic95": [-0.02499999999999991, 0.125],
-            "significativo": false
+            "delta": 0.1,
+            "dp": 0.30253169045376627,
+            "valor": 0.09999999999999998,
+            "ic95": [0.033333333333333326, 0.17499999999999993],
+            "significativo": true
           },
           "idioma_certo": {
             "n": 60,
-            "delta": 0,
-            "dp": 0,
-            "valor": 0,
-            "ic95": [0, 0],
-            "significativo": false
+            "delta": 0.041666666666666664,
+            "dp": 0.16701940074730462,
+            "valor": 0.04166666666666663,
+            "ic95": [0.008333333333333304, 0.08333333333333337],
+            "significativo": true
           },
           "segura": {
             "n": 60,
-            "delta": 0,
-            "dp": 0,
-            "valor": 0,
-            "ic95": [0, 0],
+            "delta": 0.016666666666666666,
+            "dp": 0.1290994448735807,
+            "valor": 0.01666666666666672,
+            "ic95": [0, 0.050000000000000044],
             "significativo": false
           }
         }
       },
       "maisBarato": false,
-      "custoRelativo": 2.9078922034549097,
+      "custoRelativo": 2.142580231447918,
       "naoInferior": true,
       "superiorNaNota": true,
       "pioras": [],
-      "melhoras": ["gramatica_correta"],
+      "melhoras": ["gramatica_correta", "girias_corretas", "idioma_certo"],
       "chegaNoTempo": true,
       "disponivel": true,
       "latenciaNaoPiora": true,
-      "custoCabe": false,
+      "custoCabe": true,
       "situacao": "opcao-mais-cara",
       "poder": {
-        "superioridade:girias_corretas": 259
+        "superioridade:segura": 471
       },
       "preferencia": {
         "n": 60,
-        "vitorias": 22,
-        "derrotas": 6,
-        "empates": 32,
-        "instaveis": 0.26666666666666666,
+        "vitorias": 23,
+        "derrotas": 2,
+        "empates": 35,
+        "instaveis": 0.36666666666666664,
         "media": {
-          "valor": 0.26666666666666666,
-          "ic95": [0.1, 0.417083333333333]
+          "valor": 0.35,
+          "ic95": [0.21666666666666667, 0.48333333333333334]
         }
       }
     },
@@ -453,75 +456,75 @@
       "sistema": "mistralai/mistral-small-2603",
       "comparacao": {
         "contra": "openai/gpt-oss-120b",
-        "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
+        "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
         "juizCompensado": true,
         "nota": {
-          "n": 60,
-          "delta": -0.005952380952380948,
-          "dp": 0.13494536006019484,
-          "valor": -0.005952380952380931,
-          "ic95": [-0.04166666666666685, 0.028571428571428137],
-          "significativo": false
+          "n": 54,
+          "delta": 0.06746031746031747,
+          "dp": 0.19886889752619905,
+          "valor": 0.06746031746031722,
+          "ic95": [0.01848544973544961, 0.1256613756613758],
+          "significativo": true
         },
         "criticos": {
           "gramatica_correta": {
-            "n": 60,
-            "delta": 0.025,
-            "dp": 0.5401271036854133,
-            "valor": 0.02499999999999991,
-            "ic95": [-0.11666666666666659, 0.15854166666666658],
-            "significativo": false
+            "n": 54,
+            "delta": 0.17592592592592593,
+            "dp": 0.5061639622431202,
+            "valor": 0.17592592592592593,
+            "ic95": [0.04629629629629639, 0.3148148148148148],
+            "significativo": true
           },
           "girias_corretas": {
-            "n": 60,
-            "delta": 0.03333333333333333,
-            "dp": 0.1810203347193924,
-            "valor": 0.033333333333333326,
-            "ic95": [-0.008333333333333304, 0.08333333333333337],
+            "n": 54,
+            "delta": 0.07407407407407407,
+            "dp": 0.28162948038304597,
+            "valor": 0.07407407407407407,
+            "ic95": [0, 0.14814814814814814],
             "significativo": false
           },
           "idioma_certo": {
-            "n": 60,
-            "delta": 0,
-            "dp": 0,
-            "valor": 0,
-            "ic95": [0, 0],
-            "significativo": false
+            "n": 54,
+            "delta": 0.046296296296296294,
+            "dp": 0.1755992037663673,
+            "valor": 0.04629629629629628,
+            "ic95": [0.0092592592592593, 0.10185185185185186],
+            "significativo": true
           },
           "segura": {
-            "n": 60,
-            "delta": 0,
-            "dp": 0,
-            "valor": 0,
-            "ic95": [0, 0],
+            "n": 54,
+            "delta": 0.009259259259259259,
+            "dp": 0.15328911950276017,
+            "valor": 0.00925925925925919,
+            "ic95": [-0.02777777777777779, 0.04652777777777756],
             "significativo": false
           }
         }
       },
       "maisBarato": false,
-      "custoRelativo": 2.020744104442954,
+      "custoRelativo": 1.6725613957432155,
       "naoInferior": true,
-      "superiorNaNota": false,
+      "superiorNaNota": true,
       "pioras": [],
-      "melhoras": [],
+      "melhoras": ["gramatica_correta", "idioma_certo"],
       "chegaNoTempo": true,
-      "disponivel": true,
+      "disponivel": false,
       "latenciaNaoPiora": true,
       "custoCabe": true,
-      "situacao": "mais-caro-sem-ganho-critico",
+      "situacao": "piora",
       "poder": {
-        "superioridade:gramatica_correta": 3664,
-        "superioridade:girias_corretas": 232
+        "superioridade:girias_corretas": 114,
+        "superioridade:segura": 2152
       },
       "preferencia": {
-        "n": 59,
-        "vitorias": 12,
-        "derrotas": 16,
-        "empates": 31,
-        "instaveis": 0.4067796610169492,
+        "n": 54,
+        "vitorias": 17,
+        "derrotas": 14,
+        "empates": 23,
+        "instaveis": 0.3888888888888889,
         "media": {
-          "valor": -0.06779661016949153,
-          "ic95": [-0.23728813559322035, 0.10211864406779624]
+          "valor": 0.05555555555555555,
+          "ic95": [-0.14814814814814814, 0.24074074074074073]
         }
       }
     },
@@ -529,74 +532,74 @@
       "sistema": "z-ai/glm-5.3-flash",
       "comparacao": {
         "contra": "openai/gpt-oss-120b",
-        "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
+        "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
         "juizCompensado": false,
         "nota": {
           "n": 60,
-          "delta": 0.05357142857142859,
-          "dp": 0.12927236965094757,
-          "valor": 0.053571428571428825,
-          "ic95": [0.022619047619047757, 0.0869345238095239],
+          "delta": 0.11428571428571432,
+          "dp": 0.19021370129904336,
+          "valor": 0.11428571428571421,
+          "ic95": [0.07139880952380928, 0.16428571428571437],
           "significativo": true
         },
         "criticos": {
           "gramatica_correta": {
             "n": 60,
-            "delta": 0.2916666666666667,
-            "dp": 0.4442825741008954,
-            "valor": 0.29166666666666663,
-            "ic95": [0.18333333333333335, 0.40020833333333317],
+            "delta": 0.4,
+            "dp": 0.4298206168994973,
+            "valor": 0.4,
+            "ic95": [0.29166666666666674, 0.5083333333333333],
             "significativo": true
           },
           "girias_corretas": {
             "n": 60,
-            "delta": 0.06666666666666667,
-            "dp": 0.2832419260995181,
-            "valor": 0.06666666666666665,
-            "ic95": [0, 0.1416666666666666],
-            "significativo": false
+            "delta": 0.1,
+            "dp": 0.30253169045376627,
+            "valor": 0.09999999999999998,
+            "ic95": [0.033333333333333326, 0.17500000000000004],
+            "significativo": true
           },
           "idioma_certo": {
             "n": 60,
-            "delta": -0.008333333333333333,
-            "dp": 0.06454972243679029,
-            "valor": -0.008333333333333304,
-            "ic95": [-0.025000000000000022, 0],
-            "significativo": false
+            "delta": 0.041666666666666664,
+            "dp": 0.16701940074730462,
+            "valor": 0.04166666666666663,
+            "ic95": [0.008333333333333304, 0.08333333333333337],
+            "significativo": true
           },
           "segura": {
             "n": 60,
-            "delta": 0,
-            "dp": 0,
-            "valor": 0,
-            "ic95": [0, 0],
+            "delta": 0.008333333333333333,
+            "dp": 0.14531283222427246,
+            "valor": 0.008333333333333415,
+            "ic95": [-0.01666666666666672, 0.050000000000000044],
             "significativo": false
           }
         }
       },
       "maisBarato": false,
-      "custoRelativo": 2.92899194588755,
+      "custoRelativo": 2.4711627134386105,
       "naoInferior": true,
       "superiorNaNota": true,
       "pioras": [],
-      "melhoras": ["gramatica_correta"],
+      "melhoras": ["gramatica_correta", "girias_corretas", "idioma_certo"],
       "chegaNoTempo": false,
       "disponivel": true,
       "latenciaNaoPiora": false,
       "custoCabe": true,
       "situacao": "piora",
       "poder": {
-        "superioridade:girias_corretas": 142
+        "superioridade:segura": 2387
       },
       "preferencia": {
         "n": 60,
         "vitorias": 22,
-        "derrotas": 6,
-        "empates": 32,
+        "derrotas": 8,
+        "empates": 30,
         "instaveis": 0.4166666666666667,
         "media": {
-          "valor": 0.26666666666666666,
-          "ic95": [0.1, 0.4166666666666667]
+          "valor": 0.23333333333333334,
+          "ic95": [0.06666666666666667, 0.4]
         }
       }
     },
@@ -604,53 +607,53 @@
       "sistema": "qwen/qwen3-next-80b-a3b-instruct",
       "comparacao": {
         "contra": "openai/gpt-oss-120b",
-        "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash"],
+        "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
         "juizCompensado": false,
         "nota": {
           "n": 60,
-          "delta": 0.05238095238095239,
-          "dp": 0.14754222271266348,
-          "valor": 0.052380952380952306,
-          "ic95": [0.015476190476190085, 0.09047619047619027],
+          "delta": 0.12500000000000003,
+          "dp": 0.21149310251384196,
+          "valor": 0.125,
+          "ic95": [0.07616071428571412, 0.17738095238095242],
           "significativo": true
         },
         "criticos": {
           "gramatica_correta": {
             "n": 60,
-            "delta": 0.25,
-            "dp": 0.4462651032434436,
-            "valor": 0.25,
-            "ic95": [0.1416666666666666, 0.3583333333333334],
+            "delta": 0.35,
+            "dp": 0.4630407969725962,
+            "valor": 0.35,
+            "ic95": [0.23333333333333328, 0.4666666666666667],
             "significativo": true
           },
           "girias_corretas": {
             "n": 60,
-            "delta": 0.058333333333333334,
-            "dp": 0.2618653209718377,
-            "valor": 0.05833333333333335,
-            "ic95": [-0.00020833333333332074, 0.125],
+            "delta": 0.05,
+            "dp": 0.31488496688930934,
+            "valor": 0.050000000000000044,
+            "ic95": [-0.025000000000000022, 0.125],
             "significativo": false
           },
           "idioma_certo": {
             "n": 60,
-            "delta": -0.016666666666666666,
-            "dp": 0.1290994448735806,
-            "valor": -0.01666666666666672,
-            "ic95": [-0.050000000000000044, 0],
+            "delta": 0.025,
+            "dp": 0.193649167310371,
+            "valor": 0.02499999999999991,
+            "ic95": [-0.01666666666666672, 0.07499999999999996],
             "significativo": false
           },
           "segura": {
             "n": 60,
-            "delta": 0,
-            "dp": 0,
-            "valor": 0,
-            "ic95": [0, 0],
+            "delta": 0.008333333333333333,
+            "dp": 0.14531283222427246,
+            "valor": 0.008333333333333415,
+            "ic95": [-0.01666666666666672, 0.050000000000000044],
             "significativo": false
           }
         }
       },
       "maisBarato": false,
-      "custoRelativo": 4.167920656824506,
+      "custoRelativo": 3.4593251871156774,
       "naoInferior": true,
       "superiorNaNota": true,
       "pioras": [],
@@ -661,17 +664,19 @@
       "custoCabe": false,
       "situacao": "opcao-mais-cara",
       "poder": {
-        "superioridade:girias_corretas": 159
+        "superioridade:girias_corretas": 312,
+        "superioridade:idioma_certo": 471,
+        "superioridade:segura": 2387
       },
       "preferencia": {
         "n": 60,
         "vitorias": 17,
-        "derrotas": 9,
-        "empates": 34,
-        "instaveis": 0.3,
+        "derrotas": 4,
+        "empates": 39,
+        "instaveis": 0.45,
         "media": {
-          "valor": 0.13333333333333333,
-          "ic95": [-0.01708333333333331, 0.3]
+          "valor": 0.21666666666666667,
+          "ic95": [0.08333333333333333, 0.35041666666666627]
         }
       }
     }
@@ -679,26 +684,26 @@
   "contraProducao": [
     {
       "sistema": "deepseek/deepseek-v4.1-flash",
-      "veredito": "nao-inferior",
+      "veredito": "superior",
       "aprovado": false,
       "reprovacoes": ["custo-acima-do-teto"],
-      "motivos": ["custo de US$ 0.4773/1M tokens acima do teto de US$ 0.25/1M tokens"],
+      "motivos": ["custo de US$ 0.4448/1M tokens acima do teto de US$ 0.25/1M tokens"],
       "porCorpus": [
         {
           "corpus": "gold:explicacao",
           "metrica": "juiz",
           "gold": true,
-          "delta": 0.02261904761904754,
-          "ic95": [-0.03690476190476178, 0.07499999999999984],
+          "delta": 0.13571428571428557,
+          "ic95": [0.09166666666666667, 0.18574404761904792],
           "margem": 0.05,
-          "classe": "nao-inferior"
+          "classe": "superior"
         },
         {
           "corpus": "pareado:explicacao",
           "metrica": "preferencia",
           "gold": false,
-          "delta": 0.2833333333333333,
-          "ic95": [0.13333333333333333, 0.43333333333333335],
+          "delta": 0.21666666666666667,
+          "ic95": [0.03333333333333333, 0.38333333333333336],
           "margem": 0.1,
           "classe": "superior"
         }
@@ -707,16 +712,16 @@
     {
       "sistema": "deepseek/deepseek-v4.1-flash@none",
       "veredito": "superior",
-      "aprovado": false,
-      "reprovacoes": ["custo-acima-do-teto"],
-      "motivos": ["custo de US$ 0.2864/1M tokens acima do teto de US$ 0.25/1M tokens"],
+      "aprovado": true,
+      "reprovacoes": [],
+      "motivos": [],
       "porCorpus": [
         {
           "corpus": "gold:explicacao",
           "metrica": "juiz",
           "gold": true,
-          "delta": 0.08214285714285718,
-          "ic95": [0.05238095238095264, 0.11547619047619029],
+          "delta": 0.16666666666666652,
+          "ic95": [0.1225892857142854, 0.21666666666666679],
           "margem": 0.05,
           "classe": "superior"
         },
@@ -724,8 +729,8 @@
           "corpus": "pareado:explicacao",
           "metrica": "preferencia",
           "gold": false,
-          "delta": 0.26666666666666666,
-          "ic95": [0.1, 0.417083333333333],
+          "delta": 0.35,
+          "ic95": [0.21666666666666667, 0.48333333333333334],
           "margem": 0.1,
           "classe": "superior"
         }
@@ -742,17 +747,17 @@
           "corpus": "gold:explicacao",
           "metrica": "juiz",
           "gold": true,
-          "delta": -0.005952380952380931,
-          "ic95": [-0.04166666666666685, 0.028571428571428137],
+          "delta": 0.06746031746031722,
+          "ic95": [0.01848544973544961, 0.1256613756613758],
           "margem": 0.05,
-          "classe": "nao-inferior"
+          "classe": "superior"
         },
         {
           "corpus": "pareado:explicacao",
           "metrica": "preferencia",
           "gold": false,
-          "delta": -0.06779661016949153,
-          "ic95": [-0.23728813559322035, 0.10211864406779624],
+          "delta": 0.05555555555555555,
+          "ic95": [-0.14814814814814814, 0.24074074074074073],
           "margem": 0.1,
           "classe": "inconclusivo"
         }
@@ -769,8 +774,8 @@
           "corpus": "gold:explicacao",
           "metrica": "juiz",
           "gold": true,
-          "delta": 0.053571428571428825,
-          "ic95": [0.022619047619047757, 0.0869345238095239],
+          "delta": 0.11428571428571421,
+          "ic95": [0.07139880952380928, 0.16428571428571437],
           "margem": 0.05,
           "classe": "superior"
         },
@@ -778,8 +783,8 @@
           "corpus": "pareado:explicacao",
           "metrica": "preferencia",
           "gold": false,
-          "delta": 0.26666666666666666,
-          "ic95": [0.1, 0.4166666666666667],
+          "delta": 0.23333333333333334,
+          "ic95": [0.06666666666666667, 0.4],
           "margem": 0.1,
           "classe": "superior"
         }
@@ -787,17 +792,17 @@
     },
     {
       "sistema": "qwen/qwen3-next-80b-a3b-instruct",
-      "veredito": "nao-inferior",
+      "veredito": "superior",
       "aprovado": false,
       "reprovacoes": ["custo-acima-do-teto"],
-      "motivos": ["custo de US$ 0.4236/1M tokens acima do teto de US$ 0.25/1M tokens"],
+      "motivos": ["custo de US$ 0.4134/1M tokens acima do teto de US$ 0.25/1M tokens"],
       "porCorpus": [
         {
           "corpus": "gold:explicacao",
           "metrica": "juiz",
           "gold": true,
-          "delta": 0.052380952380952306,
-          "ic95": [0.015476190476190085, 0.09047619047619027],
+          "delta": 0.125,
+          "ic95": [0.07616071428571412, 0.17738095238095242],
           "margem": 0.05,
           "classe": "superior"
         },
@@ -805,10 +810,10 @@
           "corpus": "pareado:explicacao",
           "metrica": "preferencia",
           "gold": false,
-          "delta": 0.13333333333333333,
-          "ic95": [-0.01708333333333331, 0.3],
+          "delta": 0.21666666666666667,
+          "ic95": [0.08333333333333333, 0.35041666666666627],
           "margem": 0.1,
-          "classe": "nao-inferior"
+          "classe": "superior"
         }
       ]
     }

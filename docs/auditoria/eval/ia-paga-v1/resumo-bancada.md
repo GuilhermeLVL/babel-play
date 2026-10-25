@@ -1,6 +1,6 @@
 # Legenda ao vivo — chrF++ no gold de conversa (bancada/resumo.mjs)
 
-Commit `?` · 2026-10-25T02:43:44.207Z
+Commit `?` · 2026-10-25T03:37:03.429Z
 
 > **Regra de decisão:** troca só se o IC 95% do bootstrap **pareado** da diferença exclui 0, o custo cabe e o gold de conversa não piora. **sig.** = IC exclui 0. STT: Δ < 0 é melhor. MT: Δ > 0 é melhor.
 

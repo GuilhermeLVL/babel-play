@@ -276,9 +276,13 @@ async function transcreverParakeetBancada(sis, pcm, idioma) {
   await carregarParakeet(sis.modelo) // download e carga FORA do cronômetro, como em `asrLocal`
   const dur = pcm.length / 16000
   const t0 = performance.now()
-  const texto = await transcreverParakeet(sis.modelo, pcm)
+  const confiancas = []
+  const texto = await transcreverParakeet(sis.modelo, pcm, confiancas)
   const ms = performance.now() - t0
-  return { texto: filtrarAlucinacao(texto.trim(), dur, idioma), ms }
+  /* A confiança média dos tokens: o sinal do áudio difícil do app (`src/core/rota/audioDificil.ts`).
+     Vai por caso no JSON, para calibrar o limiar contra o WER (docs/specs/2026-10-24-stt-aparelho-primeiro.md). */
+  const confianca = confiancas.length ? confiancas.reduce((a, b) => a + b, 0) / confiancas.length : undefined
+  return { texto: filtrarAlucinacao(texto.trim(), dur, idioma), ms, confianca }
 }
 
 // ------------------------------------------------------------------ execução
@@ -335,6 +339,7 @@ async function rodar(sis, spec) {
       duracaoS: r.duracaoS,
       usd: r.usd,
       segundosFaturados: r.segundosFaturados,
+      confianca: r.confianca,
     })
     process.stdout.write(`\r  ${sis.id} × ${conjunto}: ${i + 1}/${itens.length}   `)
   }
@@ -403,6 +408,7 @@ async function rodar(sis, spec) {
       erros: erros[i].distancia,
       palavras: erros[i].unidadesNaReferencia,
       ms: Math.round(x.ms),
+      ...(Number.isFinite(x.confianca) && { confianca: x.confianca }),
     })),
   }
 }

@@ -64,6 +64,27 @@ describe('parakeet: laço TDT guloso', () => {
     expect(tokens).toHaveLength(10)
     expect(chamadas).toBe(10)
   })
+
+  /* O sinal do áudio difícil (Fase B, item 6): a mesma confiança que o app calcula
+     (`src/gateway/adapters/parakeetTdt.ts`), para calibrar o limiar contra o WER por trecho. */
+  it('com `confiancas`, guarda o softmax do token emitido (o branco não entra)', async () => {
+    const roteiro = [
+      { logits: Float32Array.from([0, 20, 0, 0]), duracao: 1 },
+      { logits: Float32Array.from([0, 0, 0, 5]), duracao: 1 },
+      { logits: Float32Array.from([0, 0, 0.0001, 0]), duracao: 1 },
+    ]
+    const confiancas: number[] = []
+    const tokens = await decodificarTdt(
+      3,
+      BLANK,
+      async (_u: number, estado: null, t: number) => ({ ...roteiro[t], estado }),
+      null,
+      confiancas,
+    )
+    expect(tokens).toEqual([1, 2])
+    expect(confiancas[0]).toBeGreaterThan(0.99)
+    expect(confiancas[1]).toBeCloseTo(0.25, 3)
+  })
 })
 
 /** As linhas do resumo vêm de um .mjs sem tipos: `any` aqui é a borda, não descuido. */

@@ -17,7 +17,10 @@
  *   - AS HORAS são as de `GET /api/me/uso` (`porNivel`).
  *
  * A política de rota continua DESLIGADA (`politicaLigada` falso): escolher um nível só grava a
- * preferência, e quem decide a rota é o `routeStt` de sempre.
+ * preferência, e quem decide a rota é o `routeStt` de sempre. A ÚNICA regra nova que vale é a do
+ * "aparelho primeiro" (flag `stt_aparelho_primeiro`, desligada de fábrica; Fase B, item 6): no
+ * automático de quem tem nuvem, o Parakeet pronto transcreve e a nuvem entra quando o áudio fica
+ * difícil (`core/rota/audioDificil.ts`). O nível EM USO continua saindo do selo, que segue a rota real.
  *
  * PURO: sem DOM, sem relógio, sem estado global. As frases em português são as chaves do catálogo de
  * i18n; quem traduz é a tela.

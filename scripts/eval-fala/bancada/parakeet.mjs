@@ -50,9 +50,10 @@ export function destokenizar(pecas) {
 
 /**
  * Laço TDT guloso, isolado do ONNX para ser testável: `passo(ultimoToken, estado, t)` devolve
- * `{ logits (vocab), duracao, estado }`.
+ * `{ logits (vocab), duracao, estado }`. `confiancas` (opcional) recebe o softmax de cada token
+ * emitido — o sinal do áudio difícil do app (`src/gateway/adapters/parakeetTdt.ts`).
  */
-export async function decodificarTdt(nQuadros, blank, passo, estadoInicial) {
+export async function decodificarTdt(nQuadros, blank, passo, estadoInicial, confiancas) {
   const tokens = []
   let estado = estadoInicial
   let t = 0
@@ -64,6 +65,11 @@ export async function decodificarTdt(nQuadros, blank, passo, estadoInicial) {
     if (token !== blank) {
       estado = r.estado
       tokens.push(token)
+      if (confiancas) {
+        let soma = 0
+        for (let i = 0; i < r.logits.length; i++) soma += Math.exp(r.logits[i] - r.logits[token])
+        confiancas.push(1 / soma)
+      }
       emitidos++
     }
     if (r.duracao > 0) {
@@ -135,8 +141,11 @@ export async function carregarParakeet(variante) {
   return carregado
 }
 
-/** Transcreve PCM 16 kHz mono. Devolve o texto CRU (o filtro de alucinação é do chamador). */
-export async function transcreverParakeet(variante, pcm) {
+/**
+ * Transcreve PCM 16 kHz mono. Devolve o texto CRU (o filtro de alucinação é do chamador). Com
+ * `confiancas`, recebe a confiança de cada token emitido.
+ */
+export async function transcreverParakeet(variante, pcm, confiancas) {
   const { ort, sessoes, vocab, blank, formaEstado1, formaEstado2 } = await carregarParakeet(variante)
   const { Tensor } = ort
   const pre = await sessoes.pre.run({
@@ -164,6 +173,6 @@ export async function transcreverParakeet(variante, pcm) {
     for (let i = nVocab + 1; i < o.length; i++) if (o[i] > o[nVocab + duracao]) duracao = i - nVocab
     return { logits: o.subarray(0, nVocab), duracao, estado: [r.output_states_1, r.output_states_2] }
   }
-  const tokens = await decodificarTdt(nQuadros, blank, passo, [zeros(formaEstado1), zeros(formaEstado2)])
+  const tokens = await decodificarTdt(nQuadros, blank, passo, [zeros(formaEstado1), zeros(formaEstado2)], confiancas)
   return destokenizar(tokens.map((t) => vocab[t]))
 }

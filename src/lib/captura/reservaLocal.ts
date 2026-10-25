@@ -64,33 +64,35 @@ export const RESPOSTAS_PARA_SOLTAR_O_PARAKEET = 5;
 export interface EstadoDoParakeetDeReserva {
   ativo: boolean;
   respostasSeguidas: number;
+  /** Já entrou uma vez nesta preparação: ~2 GB não ciclam a cada pausa. */
+  jaEntrou: boolean;
 }
 
 type PassoDoParakeetDeReserva<A> = { estado: EstadoDoParakeetDeReserva; acao: A | null };
 
 /**
- * Uma falha da nuvem. O Parakeet de reserva entra SÓ quando a nuvem PAUSA (402/429/503 ou a 3ª 5xx
- * seguida): num soluço o Whisper quente atende a fala, e baixar 2 GB de modelo por um soluço é o que
- * não pode. Ao entrar, o gateway LIBERA o Whisper (`reservaParakeet`): com o Parakeet,
+ * Uma falha da nuvem. O Parakeet de reserva entra SÓ quando a nuvem PAUSA por cota (402/teto),
+ * indisponibilidade (503) ou a 3ª 5xx seguida — nunca num soluço nem na nuvem OCUPADA (429
+ * `nuvem_ocupada`, a colisão da captura dupla, que passa em segundos) — e no máximo UMA vez por
+ * preparação. Carregar 2 GB de modelo por um soluço, ou várias vezes na mesma sessão, é o que não pode. Ao entrar, o gateway LIBERA o Whisper (`reservaParakeet`): com o Parakeet,
  * `umModeloDeCadaVez(perfil, true)` é sempre verdadeiro — os três modelos (Whisper, Parakeet e o
  * tradutor) não ficam juntos em aparelho nenhum. Pura.
  */
 export function parakeetDeReservaNaFalha(
   e: EstadoDoParakeetDeReserva,
-  falha: { pausou: boolean },
+  falha: { pausou: boolean; motivo?: string },
 ): PassoDoParakeetDeReserva<'ligar'> {
-  if (!falha.pausou || e.ativo) {
+  if (!falha.pausou || falha.motivo === 'ocupada' || e.ativo || e.jaEntrou) {
     const estado = e.respostasSeguidas === 0 ? e : { ...e, respostasSeguidas: 0 };
     return { estado, acao: null };
   }
-  return { estado: { ativo: true, respostasSeguidas: 0 }, acao: 'ligar' };
+  return { estado: { ativo: true, respostasSeguidas: 0, jaEntrou: true }, acao: 'ligar' };
 }
 
 /** Uma resposta boa da nuvem: depois de `RESPOSTAS_PARA_SOLTAR_O_PARAKEET` seguidas, o Parakeet sai. Pura. */
 export function parakeetDeReservaNaResposta(e: EstadoDoParakeetDeReserva): PassoDoParakeetDeReserva<'desligar'> {
   if (!e.ativo) return { estado: e, acao: null };
   const respostasSeguidas = e.respostasSeguidas + 1;
-  if (respostasSeguidas < RESPOSTAS_PARA_SOLTAR_O_PARAKEET)
-    return { estado: { ativo: true, respostasSeguidas }, acao: null };
-  return { estado: { ativo: false, respostasSeguidas: 0 }, acao: 'desligar' };
+  if (respostasSeguidas < RESPOSTAS_PARA_SOLTAR_O_PARAKEET) return { estado: { ...e, respostasSeguidas }, acao: null };
+  return { estado: { ativo: false, respostasSeguidas: 0, jaEntrou: true }, acao: 'desligar' };
 }

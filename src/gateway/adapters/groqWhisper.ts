@@ -19,7 +19,7 @@ import { filtrarAlucinacao } from '../alucinacao';
 import { audioParaStt } from '../audio/opusDoStt';
 import { encodeWav } from '../audio/wav';
 import type { SttFinal, SttProvider } from '../capabilities';
-import { avisarFalhaDaNuvemDoStt, avisarRespostaDaNuvemDoStt } from '../falhaDaNuvemDoStt';
+import { avisarFalhaDaNuvemDoStt, avisarRespostaDaNuvemDoStt, type MotivoDaPausaDaNuvem } from '../falhaDaNuvemDoStt';
 import { esperaDoRetryAfter, PAUSA_MAXIMA_MS, PausaDaNuvem } from '../pausaDaNuvem';
 import { cortarPrompt } from '../promptDeStt';
 
@@ -47,6 +47,17 @@ async function esperaDaVagaEmVoo(res: Response): Promise<number | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Por que a nuvem pausou, pelo status e o código: 429 `nuvem_ocupada` é a admissão cheia ou a colisão da
+ * captura dupla (passa em segundos); outro 429 é teto (uso justo, cota do dia); 402 é cota; 503 é a
+ * nuvem fora; o resto (5xx seguidos) é falha do provedor.
+ */
+function motivoDaPausa(status: number, code: string | undefined): MotivoDaPausaDaNuvem {
+  if (status === 429) return code === 'nuvem_ocupada' ? 'ocupada' : 'cota';
+  if (status === 402) return 'cota';
+  return status === 503 ? 'indisponivel' : 'falhas';
 }
 
 /** Dorme `ms`, e acorda antes se quem pediu desistir (a fala continuou e este trecho foi cancelado). */
@@ -176,12 +187,6 @@ export class GroqWhisperStt implements SttProvider {
       const errorText = await res.text().catch(() => '');
       const retryAfter = res.headers?.get?.('retry-after');
       const pausou = this.pausa.falha(res.status, retryAfter);
-      /* A reserva local preguiçosa (celular/Quest, `lib/captura/reservaLocal.ts`) começa a carregar
-         na primeira falha — o gateway já cai no local nesta mesma fala. O Parakeet de reserva só entra
-         quando a nuvem PAUSA (`pausou`). */
-      avisarFalhaDaNuvemDoStt({ pausou });
-      // 402 de cota/plano vira momento de oferta (Fase 8); o host espera a captura acabar.
-      sinalizarRecusaLida(res.status, errorText, 'transcricao');
       let code: string | undefined;
       let corpo: unknown = null;
       try {
@@ -190,6 +195,12 @@ export class GroqWhisperStt implements SttProvider {
       } catch {
         /* corpo não-JSON */
       }
+      /* A reserva local preguiçosa (celular/Quest, `lib/captura/reservaLocal.ts`) começa a carregar
+         na primeira falha — o gateway já cai no local nesta mesma fala. O Parakeet de reserva só entra
+         quando a nuvem PAUSA, e não pela nuvem ocupada (`motivoDaPausa`). */
+      avisarFalhaDaNuvemDoStt(pausou ? { pausou, motivo: motivoDaPausa(res.status, code) } : { pausou });
+      // 402 de cota/plano vira momento de oferta (Fase 8); o host espera a captura acabar.
+      sinalizarRecusaLida(res.status, errorText, 'transcricao');
       /* O SERVIDOR RECUSOU O ALÍVIO (flag, responsável, pool, franquia): a nuvem pausa pelo teto — o
          aparelho segue sem uma ida ao servidor por fala para ouvir a mesma recusa. */
       if (registrarRecusaDoAlivio(res.status, corpo)) this.pausa.pausar(PAUSA_MAXIMA_MS);

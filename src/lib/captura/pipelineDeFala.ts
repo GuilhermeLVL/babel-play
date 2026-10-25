@@ -1912,7 +1912,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
            regulador pode tê-lo descido). Sai depois de respostas boas seguidas da nuvem, e o Whisper
            volta. Se o Parakeet não carregar, o gateway o tira da cadeia e recarrega o Whisper. */
         if (plano.parakeetNaFalha) {
-          let ciclo: EstadoDoParakeetDeReserva = { ativo: false, respostasSeguidas: 0 };
+          let ciclo: EstadoDoParakeetDeReserva = { ativo: false, respostasSeguidas: 0, jaEntrou: false };
           const soltarFalha = aoFalharANuvemDoStt((falha) => {
             const passo = parakeetDeReservaNaFalha(ciclo, falha);
             ciclo = passo.estado;

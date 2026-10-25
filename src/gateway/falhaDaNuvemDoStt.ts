@@ -10,9 +10,18 @@
  * Um conjunto de ouvintes no módulo, e não um evento de `window`: o adaptador roda no teste de Node
  * e na importação, onde não há janela, e quem ouve precisa soltar ao trocar de rota.
  */
-/** O que a falha diz: `pausou` = a nuvem entrou em pausa (402/429/503 ou a 3ª 5xx seguida), não foi um soluço. */
+/**
+ * Por que a nuvem PAUSOU: `cota` (402, ou 429 de teto do dia/uso justo), `indisponivel` (503),
+ * `falhas` (a 3ª 5xx seguida) ou `ocupada` (429 `nuvem_ocupada`: a admissão cheia ou a colisão da
+ * captura dupla — passa em segundos e não justifica carregar um modelo de 2 GB).
+ */
+export type MotivoDaPausaDaNuvem = 'cota' | 'indisponivel' | 'falhas' | 'ocupada';
+
+/** O que a falha diz: `pausou` = a nuvem entrou em pausa (não foi um soluço), e o `motivo` dela. */
 export interface FalhaDaNuvemDoStt {
   pausou: boolean;
+  /** Só com `pausou`. */
+  motivo?: MotivoDaPausaDaNuvem;
 }
 type Ouvinte = (falha: FalhaDaNuvemDoStt) => void;
 

@@ -71,21 +71,42 @@ describe('planoDaReservaLocal', () => {
 /* Rodada de correção 1, item 2: o ciclo do Parakeet de reserva. Entra só quando a nuvem PAUSA (não no
    soluço), uma vez; sai depois de RESPOSTAS_PARA_SOLTAR_O_PARAKEET respostas boas seguidas. */
 describe('o ciclo do Parakeet de reserva', () => {
-  const inicio = { ativo: false, respostasSeguidas: 0 }
+  const inicio = { ativo: false, respostasSeguidas: 0, jaEntrou: false }
+  const PAUSA_DE_COTA = { pausou: true, motivo: 'cota' } as const
 
   it('falha que não pausou (soluço): nada', () => {
     expect(parakeetDeReservaNaFalha(inicio, { pausou: false })).toEqual({ estado: inicio, acao: null })
   })
 
   it('a nuvem pausou: liga, uma vez só', () => {
-    const r = parakeetDeReservaNaFalha(inicio, { pausou: true })
+    const r = parakeetDeReservaNaFalha(inicio, PAUSA_DE_COTA)
     expect(r.acao).toBe('ligar')
     expect(r.estado.ativo).toBe(true)
-    expect(parakeetDeReservaNaFalha(r.estado, { pausou: true }).acao).toBeNull()
+    expect(parakeetDeReservaNaFalha(r.estado, PAUSA_DE_COTA).acao).toBeNull()
+  })
+
+  /* Rodada de correção 2, B: a pausa por COLISÃO (429 `nuvem_ocupada`, a captura dupla) não liga a
+     reserva; cota/402, 503 e o 3º 5xx ligam. E no máximo uma entrada por preparação: ~2 GB não ciclam. */
+  it.each(['cota', 'indisponivel', 'falhas'] as const)('pausa por %s liga', (motivo) => {
+    expect(parakeetDeReservaNaFalha(inicio, { pausou: true, motivo }).acao).toBe('ligar')
+  })
+
+  it('pausa por nuvem ocupada (colisão da captura dupla) não liga', () => {
+    expect(parakeetDeReservaNaFalha(inicio, { pausou: true, motivo: 'ocupada' })).toEqual({
+      estado: inicio,
+      acao: null,
+    })
+  })
+
+  it('uma entrada por preparação: depois de sair, outra pausa não liga de novo', () => {
+    let e = parakeetDeReservaNaFalha(inicio, PAUSA_DE_COTA).estado
+    for (let i = 0; i < RESPOSTAS_PARA_SOLTAR_O_PARAKEET; i++) e = parakeetDeReservaNaResposta(e).estado
+    expect(e.ativo).toBe(false)
+    expect(parakeetDeReservaNaFalha(e, PAUSA_DE_COTA).acao).toBeNull()
   })
 
   it('sai depois de N respostas boas SEGUIDAS; uma falha no meio zera a contagem', () => {
-    let e = parakeetDeReservaNaFalha(inicio, { pausou: true }).estado
+    let e = parakeetDeReservaNaFalha(inicio, PAUSA_DE_COTA).estado
     for (let i = 0; i < RESPOSTAS_PARA_SOLTAR_O_PARAKEET - 1; i++) {
       const r = parakeetDeReservaNaResposta(e)
       expect(r.acao).toBeNull()
@@ -95,7 +116,7 @@ describe('o ciclo do Parakeet de reserva', () => {
     for (let i = 0; i < RESPOSTAS_PARA_SOLTAR_O_PARAKEET - 1; i++) e = parakeetDeReservaNaResposta(e).estado
     const fim = parakeetDeReservaNaResposta(e)
     expect(fim.acao).toBe('desligar')
-    expect(fim.estado).toEqual(inicio)
+    expect(fim.estado).toEqual({ ...inicio, jaEntrou: true })
   })
 
   it('resposta boa sem o Parakeet ligado: nada', () => {
@@ -174,10 +195,15 @@ describe('o sinal diz se a nuvem PAUSOU, e avisa quando ela responde', () => {
   }
   const pcm = new Float32Array(1600)
 
-  it('402/429/503 pausam: o ouvinte recebe `pausou: true`', async () => {
-    const m = await montar(async () => new Response('{"code":"cota"}', { status: 402 }))
+  it.each([
+    [402, '{"code":"cota"}', 'cota'],
+    [429, '{"code":"uso_justo_do_dia"}', 'cota'],
+    [503, '{"code":"provedor_em_disjuntor"}', 'indisponivel'],
+    [429, '{"code":"nuvem_ocupada","detalhes":{"motivo":"teto"}}', 'ocupada'],
+  ] as const)('HTTP %i (%s) pausa, com o motivo %s', async (status, corpo, motivo) => {
+    const m = await montar(async () => new Response(corpo, { status }))
     await m.stt.transcribePcm(pcm, 16_000).catch(() => undefined)
-    expect(m.falhas).toHaveBeenCalledWith({ pausou: true })
+    expect(m.falhas).toHaveBeenCalledWith({ pausou: true, motivo })
   })
 
   it('um 500 isolado e a rede caída não pausam: `pausou: false`', async () => {
@@ -195,7 +221,11 @@ describe('o sinal diz se a nuvem PAUSOU, e avisa quando ela responde', () => {
   it('o terceiro 5xx seguido pausa', async () => {
     const m = await montar(async () => new Response('x', { status: 500 }))
     for (let k = 0; k < 3; k++) await m.stt.transcribePcm(pcm, 16_000).catch(() => undefined)
-    expect(m.falhas.mock.calls.map((c) => c[0])).toEqual([{ pausou: false }, { pausou: false }, { pausou: true }])
+    expect(m.falhas.mock.calls.map((c) => c[0])).toEqual([
+      { pausou: false },
+      { pausou: false },
+      { pausou: true, motivo: 'falhas' },
+    ])
   })
 
   it('a resposta boa avisa quem ouve a volta da nuvem', async () => {

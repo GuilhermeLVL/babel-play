@@ -28,7 +28,7 @@ import { areModelsCached, expectedModelIds } from '../../gateway/modelCache';
 import { temCopiaNoAparelho } from '../../gateway/modelManifest';
 import { entradaDoParakeet, lerModeloFixo } from '../../gateway/modeloFixo';
 import type { ContextoDoStt } from '../../gateway/promptDeStt';
-import { getSttQuality, nomeLegivelDoModelo, outroBackend, routeStt } from '../../gateway/sttRouter';
+import { getSttQuality, nomeLegivelDoModelo, outroBackend, routeStt, WHISPER_MODELS } from '../../gateway/sttRouter';
 import { consentiuReconhecimentoDoNavegador, rapidoDoMicPermitido } from '../consentimentoDeNuvem';
 import { DominantLangTracker } from '../convoLang';
 import { dispositivoDaRota, medirPerfilDoDispositivo, perfilDoDispositivo } from '../dispositivo/perfil';
@@ -1592,22 +1592,34 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     if (escritaDoIdioma(targetLangRef.current) || escritaDoIdioma(sourceLangRef.current)) void prepararEscritaChinesa();
     const { route, previstos, perfil, mtDe, mtPara, soIngles, micVaiAoWhisper, backend, outro, sinaisDoAlivio } =
       await rotaDaCaptura();
+    /* RESERVA PREGUIÇOSA no celular e no Quest com nuvem primeiro (`reservaLocal.ts`, auditoria de
+       eficiência 2026-09-28, achado 4), e o PARAKEET DE RESERVA só na falha (Fase B, item 5). */
+    const plano = planoDaReservaLocal({
+      preferCloud: route.preferCloud,
+      tipo: perfil.tipo,
+      localModel: route.localModel,
+    });
+    /* Com o Parakeet de reserva, o que carrega agora é o Whisper base de sempre (o mesmo dtype do
+       computador): o Parakeet entra na cadeia na primeira falha da nuvem, logo abaixo. */
+    const rotaAgora = plano.parakeetNaFalha
+      ? { ...route, localModel: WHISPER_MODELS.base, dtype: 'hybrid' as const, device: undefined }
+      : route;
     /* Sessão nova: o regulador começa no máximo, com a escada do modelo desta rota — o backend e o
        dtype dizem se o português pode descer ao tiny (só híbrido, só na GPU), e o manifesto diz que
        degrau já está no aparelho (o Moonshine é sempre q8). */
     reguladorRef?.current.reiniciar({
-      modelo: route.localModel,
+      modelo: rotaAgora.localModel,
       soIngles,
       backend,
-      dtype: route.dtype,
+      dtype: rotaAgora.dtype,
       outro,
       emCache: (m, d) => temCopiaNoAparelho(m, /moonshine/i.test(m) ? 'q8' : d),
     });
     gateway.stt.setRoute({
-      preferCloud: route.preferCloud,
-      localModel: route.localModel,
-      dtype: route.dtype,
-      device: route.device,
+      preferCloud: rotaAgora.preferCloud,
+      localModel: rotaAgora.localModel,
+      dtype: rotaAgora.dtype,
+      device: rotaAgora.device,
     });
     setSttRouteLabel(route.label);
     setRotaPrevista?.(previstos);
@@ -1639,7 +1651,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       void pedirNuvemDeAlivio('aparelho', sinaisDoAlivio).catch(() => undefined);
     }
     /** STT e tradutor UM DE CADA VEZ, fora do desktop com GPU e ≥ 8 GB (`memoriaDosModelos.ts`). */
-    const umDeCadaVez = umModeloDeCadaVez(perfil, route.localModel === ID_DO_PARAKEET);
+    const umDeCadaVez = umModeloDeCadaVez(perfil, rotaAgora.localModel === ID_DO_PARAKEET);
 
     /* O ÁUDIO DA ABA NA WEB SPEECH NO APARELHO (`webSpeechDoSistema.ts`): o Whisper não baixa nem
        carrega — é o ponto do degrau. Só o MICROFONE no Whisper ainda o pede (aí segue o caminho de
@@ -1662,14 +1674,13 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
        Translator API) deixava a resposta em "não" para sempre, e a tela dizia "Baixando modelo (uma vez
        só)" a cada abertura, com o Whisper vindo do cache. Agora o título segue o Whisper, e o tradutor
        tem a resposta dele. */
-    const idsEsperados = expectedModelIds(mtDe, mtPara, route.localModel);
+    const idsEsperados = expectedModelIds(mtDe, mtPara, rotaAgora.localModel);
     const cached = await areModelsCached(idsEsperados.slice(0, 1));
     const mtCached = idsEsperados.length < 2 || (await areModelsCached(idsEsperados.slice(1)));
 
-    /* RESERVA PREGUIÇOSA no celular e no Quest com nuvem primeiro (`reservaLocal.ts`, auditoria de
-       eficiência 2026-09-28, achado 4): nada baixa agora, a primeira falha da nuvem dispara a carga,
-       e o parcial local não roda. Uma nova preparação (troca de idioma/rota) solta o ouvinte antigo. */
-    const plano = planoDaReservaLocal({ preferCloud: route.preferCloud, tipo: perfil.tipo });
+    /* RESERVA PREGUIÇOSA (o `plano`, lá em cima): no celular e no Quest nada baixa agora, a primeira
+       falha da nuvem dispara a carga, e o parcial local não roda. Uma nova preparação (troca de
+       idioma/rota) solta o ouvinte antigo. */
     reservaLocal.soltar?.();
     reservaLocal.soltar = null;
     reservaLocal.parciaisLocais = plano.parciaisLocais;
@@ -1721,6 +1732,22 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
       };
       if (plano.carregarAgora) {
         carregarReserva();
+        /* O PARAKEET DE RESERVA (Fase B, item 5): na primeira falha da nuvem ele entra na cadeia, entre
+           a nuvem e o Whisper base, e carrega em segundo plano. O trecho que falhou já está na cadeia
+           montada antes e vai ao Whisper quente; os seguintes, ao Parakeet. Se ele não carregar, o
+           gateway o tira da cadeia e o Whisper segue (`preloadModel`). */
+        if (plano.parakeetNaFalha) {
+          const soltar = aoFalharANuvemDoStt(() => {
+            soltar();
+            if (reservaLocal.soltar === soltar) reservaLocal.soltar = null;
+            clog('nuvem do STT falhou → o Parakeet entra como reserva local');
+            gateway.stt.setRoute({ preferCloud: true, localModel: route.localModel, device: route.device });
+            gateway.stt
+              .preloadModel()
+              .catch((e: unknown) => clog('Parakeet de reserva não carregou (fica o Whisper):', String(e)));
+          });
+          reservaLocal.soltar = soltar;
+        }
         return;
       }
       clog('reserva local preguiçosa: só carrega na primeira falha da nuvem | aparelho:', perfil.tipo);

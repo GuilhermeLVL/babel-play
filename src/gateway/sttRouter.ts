@@ -338,6 +338,34 @@ export function modeloLocalDaImportacao(idioma?: string): string | null {
   return (idioma || '').toLowerCase().split('-')[0] === 'en' ? MOONSHINE_MODELS.base : null;
 }
 
+/** Os idiomas que o modelo decodifica nesta rota: só o do microfone, ou o do conteúdo (e o do microfone). */
+function fontesDaRota(input: SttRouteInput): string[] {
+  const lang = (input.contentLang || '').toLowerCase().split('-')[0];
+  const micLang = (input.micLang || '').toLowerCase().split('-')[0];
+  return input.soMicrofone && micLang ? [micLang] : micLang ? [lang, micLang] : [lang];
+}
+
+/**
+ * O Parakeet SERVE a esta rota: a chave ligada, sem "Detectar", todas as fontes em pt/es e o aparelho
+ * comporta (`parakeetCabeNoAparelho`). Não olha a cópia no aparelho (o "preciso" baixa). Pura.
+ */
+export function parakeetServeNaRota(input: SttRouteInput): boolean {
+  return (
+    (input.parakeet ?? parakeetLigado()) &&
+    !input.autoDetect &&
+    fontesDaRota(input).every((l) => IDIOMAS_DO_PARAKEET.includes(l)) &&
+    parakeetCabeNoAparelho(input.dispositivo)
+  );
+}
+
+/**
+ * O Parakeet serve E já tem cópia completa neste aparelho: o critério do automático, da reserva da
+ * nuvem (Fase B, item 5) e do "aparelho primeiro" (flag `stt_aparelho_primeiro`). Pura.
+ */
+export function parakeetProntoNaRota(input: SttRouteInput): boolean {
+  return parakeetServeNaRota(input) && input.parakeetNoAparelho === true;
+}
+
 export function routeStt(input: SttRouteInput): SttRoute {
   const { autoDetect, quality, hasWebGpu, cloudAvailable, profileId, dispositivo } = input;
   const lang = (input.contentLang || '').toLowerCase().split('-')[0];
@@ -379,14 +407,16 @@ export function routeStt(input: SttRouteInput): SttRoute {
      10,8% do small e 18,2% do base, 11 vezes mais rápido que a fala sem usar a GPU
      (`docs/auditoria/2026-10-09-medicoes-no-aparelho.md`). Um modelo só decodifica todas as fontes,
      então TODAS têm de ser pt ou es (a mesma régua do `isEnglish`); com "Detectar" não entra. Inglês,
-     os outros idiomas, o "rápido" e a RESERVA da nuvem (o base, para não baixar 672 MB de reserva)
-     ficam como estavam. */
-  const fontes = input.soMicrofone && micLang ? [micLang] : micLang ? [lang, micLang] : [lang];
-  const parakeetServe =
-    (input.parakeet ?? parakeetLigado()) &&
-    !autoDetect &&
-    fontes.every((l) => IDIOMAS_DO_PARAKEET.includes(l)) &&
-    parakeetCabeNoAparelho(dispositivo);
+     os outros idiomas e o "rápido" ficam como estavam. A RESERVA da nuvem (Fase B, item 5) é o
+     Parakeet só quando ele JÁ ESTÁ no aparelho (`reservaDaNuvem`); sem a cópia, o base — a reserva
+     nunca baixa 672 MB. */
+  const fontes = fontesDaRota(input);
+  const parakeetServe = parakeetServeNaRota(input);
+  /** O Parakeet serve E já tem cópia completa aqui: o critério do automático (e da reserva da nuvem). */
+  const parakeetPronto = parakeetProntoNaRota(input);
+  /** A RESERVA de quem vai à nuvem primeiro (fora do inglês): o Parakeet pronto, senão o Whisper base. */
+  const reservaDaNuvem = (): Pick<SttRoute, 'localModel' | 'dtype' | 'device'> =>
+    parakeetPronto ? { localModel: ID_DO_PARAKEET, device: 'wasm' } : whisperLocal(WHISPER_MODELS.base);
   /** A rota local de precisão: o Parakeet quando serve, senão o melhor Whisper do aparelho. No `auto`
       (`exigirCopia`) o Parakeet só entra com a cópia no aparelho; sem ela, o Whisper e o aviso. */
   const precisoLocal = (rotulo: (nome: string) => string, exigirCopia = false): SttRoute => {
@@ -477,7 +507,7 @@ export function routeStt(input: SttRouteInput): SttRoute {
             label: 'nuvem (large-v3-turbo) · reserva local',
           };
         return {
-          ...whisperLocal(WHISPER_MODELS.base),
+          ...reservaDaNuvem(),
           preferCloud: true,
           label: 'nuvem (large-v3-turbo) · reserva local',
         };
@@ -502,9 +532,9 @@ export function routeStt(input: SttRouteInput): SttRoute {
         };
       if (isEnglish) return moonshine(moonshineAuto, 'local · inglês (moonshine)');
       if (cloudAllowed) {
-        // Reserva base: se a nuvem cair no meio da sessão, a qualidade local não desaba p/ tiny.
+        // Reserva base (ou o Parakeet pronto): se a nuvem cair no meio da sessão, a qualidade local não desaba p/ tiny.
         return {
-          ...whisperLocal(WHISPER_MODELS.base),
+          ...reservaDaNuvem(),
           preferCloud: true,
           label: 'nuvem (large-v3-turbo) · reserva local',
         };

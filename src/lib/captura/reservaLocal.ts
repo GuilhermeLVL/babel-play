@@ -14,6 +14,7 @@
  * No DESKTOP nada muda: disco, memória e rede sobram, e a reserva quente é o que deixa a queda da
  * nuvem invisível. Rota local (sem nuvem) em qualquer aparelho: o modelo local é o motor, carrega já.
  */
+import { ID_DO_PARAKEET } from '../../gateway/adapters/parakeetModelo';
 import type { TipoDeDispositivo } from '../dispositivo/perfil';
 
 export interface PlanoDaReservaLocal {
@@ -21,11 +22,32 @@ export interface PlanoDaReservaLocal {
   carregarAgora: boolean;
   /** Rodar os decodes PARCIAIS no modelo local. */
   parciaisLocais: boolean;
+  /**
+   * A reserva da nuvem é o PARAKEET (Fase B, item 5; só computador, só com a cópia no aparelho): o que
+   * carrega agora é o Whisper base de sempre (parciais e queda invisível iguais), e o Parakeet (~2 GB
+   * de RAM) só entra na cadeia e carrega na PRIMEIRA falha da nuvem (`gateway/falhaDaNuvemDoStt.ts`).
+   * A sessão sem falha — a regra — não segura 2 GB por uma reserva que não usa.
+   */
+  parakeetNaFalha: boolean;
 }
 
-const APARELHOS_DE_RESERVA_PREGUICOSA: ReadonlySet<TipoDeDispositivo> = new Set(['celular-fraco', 'celular-bom', 'quest']);
+const APARELHOS_DE_RESERVA_PREGUICOSA: ReadonlySet<TipoDeDispositivo> = new Set([
+  'celular-fraco',
+  'celular-bom',
+  'quest',
+]);
 
-export function planoDaReservaLocal(p: { preferCloud: boolean; tipo: TipoDeDispositivo }): PlanoDaReservaLocal {
-  if (p.preferCloud && APARELHOS_DE_RESERVA_PREGUICOSA.has(p.tipo)) return { carregarAgora: false, parciaisLocais: false };
-  return { carregarAgora: true, parciaisLocais: true };
+export function planoDaReservaLocal(p: {
+  preferCloud: boolean;
+  tipo: TipoDeDispositivo;
+  /** O modelo local da rota (`SttRoute.localModel`). Ausente = não é o Parakeet. */
+  localModel?: string;
+}): PlanoDaReservaLocal {
+  if (p.preferCloud && APARELHOS_DE_RESERVA_PREGUICOSA.has(p.tipo))
+    return { carregarAgora: false, parciaisLocais: false, parakeetNaFalha: false };
+  return {
+    carregarAgora: true,
+    parciaisLocais: true,
+    parakeetNaFalha: p.preferCloud && p.localModel === ID_DO_PARAKEET,
+  };
 }

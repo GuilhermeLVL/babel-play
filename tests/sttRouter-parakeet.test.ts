@@ -145,10 +145,31 @@ describe('chave ligada', () => {
     expect(routeStt({ ...base, quality: 'fast' }).localModel).toBe(WHISPER_MODELS.tiny)
   })
 
-  it('com a nuvem primeiro, a RESERVA local continua o Whisper base (não baixa 672 MB de reserva)', () => {
+  /* Fase B, item 5 (24/10/2026): quando a nuvem do pagante falha ou pausa, a reserva é o Parakeet onde
+     ele serve e JÁ ESTÁ no aparelho (o mesmo critério do automático). Sem a cópia, o Whisper base: a
+     reserva nunca baixa 672 MB. */
+  it('com a nuvem primeiro e o Parakeet no aparelho, a RESERVA local é o Parakeet (int8, WASM)', () => {
     for (const quality of ['auto', 'cloud'] as const) {
       const r = routeStt({ ...base, quality, cloudAvailable: true })
-      expect(r).toMatchObject({ localModel: WHISPER_MODELS.base, preferCloud: true })
+      expect(r).toMatchObject({ localModel: ID_DO_PARAKEET, device: 'wasm', preferCloud: true })
+      expect(r.dtype).toBeUndefined()
+      expect(r.label).toBe('nuvem (large-v3-turbo) · reserva local')
+    }
+  })
+
+  it('com a nuvem primeiro SEM a cópia do Parakeet, a reserva continua o Whisper base (não baixa 672 MB)', () => {
+    for (const quality of ['auto', 'cloud'] as const) {
+      const r = routeStt({ ...base, quality, cloudAvailable: true, parakeetNoAparelho: false })
+      expect(r).toMatchObject({ localModel: WHISPER_MODELS.base, dtype: 'hybrid', preferCloud: true })
+      expect(r.parakeetDisponivelParaBaixar).toBeUndefined()
+    }
+  })
+
+  it('a reserva da nuvem em aparelho que não comporta o Parakeet segue o Whisper base', () => {
+    for (const d of [quest, celularBom, { ...desktopGpu, memoriaGb: 4, poucaMemoria: false }]) {
+      const entrada = { ...base, quality: 'auto' as const, cloudAvailable: true, dispositivo: d }
+      expect(routeStt(entrada), d.tipo).toEqual(routeStt({ ...entrada, parakeet: false }))
+      expect(routeStt(entrada).localModel).not.toBe(ID_DO_PARAKEET)
     }
   })
 

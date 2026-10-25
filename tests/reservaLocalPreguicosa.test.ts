@@ -8,6 +8,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { ID_DO_PARAKEET } from '../src/gateway/adapters/parakeetModelo'
 import { planoDaReservaLocal } from '../src/lib/captura/reservaLocal'
 import type { TipoDeDispositivo } from '../src/lib/dispositivo/perfil'
 
@@ -17,17 +18,48 @@ describe('planoDaReservaLocal', () => {
   it.each(['quest', 'celular-fraco', 'celular-bom'] as const)(
     '%s com nuvem primeiro: não baixa a reserva agora e não roda parcial local',
     (tipo) => {
-      expect(planoDaReservaLocal({ preferCloud: true, tipo })).toEqual({ carregarAgora: false, parciaisLocais: false })
+      expect(planoDaReservaLocal({ preferCloud: true, tipo })).toEqual({
+        carregarAgora: false,
+        parciaisLocais: false,
+        parakeetNaFalha: false,
+      })
     },
   )
 
   it.each(['desktop-com-gpu', 'desktop-sem-gpu'] as const)('%s com nuvem primeiro: comportamento de antes', (tipo) => {
-    expect(planoDaReservaLocal({ preferCloud: true, tipo })).toEqual({ carregarAgora: true, parciaisLocais: true })
+    expect(planoDaReservaLocal({ preferCloud: true, tipo })).toEqual({
+      carregarAgora: true,
+      parciaisLocais: true,
+      parakeetNaFalha: false,
+    })
+  })
+
+  /* Fase B, item 5: o Parakeet de reserva (~2 GB de RAM) só entra na PRIMEIRA falha da nuvem; até lá a
+     reserva quente é o Whisper base de sempre (os parciais e a queda invisível continuam iguais). */
+  it('computador com nuvem primeiro e o Parakeet de reserva: Whisper base quente, Parakeet só na falha', () => {
+    for (const tipo of ['desktop-com-gpu', 'desktop-sem-gpu'] as const)
+      expect(planoDaReservaLocal({ preferCloud: true, tipo, localModel: ID_DO_PARAKEET })).toEqual({
+        carregarAgora: true,
+        parciaisLocais: true,
+        parakeetNaFalha: true,
+      })
+  })
+
+  it('o Parakeet como motor (rota local) carrega já, como sempre', () => {
+    expect(planoDaReservaLocal({ preferCloud: false, tipo: 'desktop-com-gpu', localModel: ID_DO_PARAKEET })).toEqual({
+      carregarAgora: true,
+      parciaisLocais: true,
+      parakeetNaFalha: false,
+    })
   })
 
   it('rota local (sem nuvem) em qualquer aparelho: o modelo local é o motor, carrega já', () => {
     for (const tipo of TIPOS)
-      expect(planoDaReservaLocal({ preferCloud: false, tipo })).toEqual({ carregarAgora: true, parciaisLocais: true })
+      expect(planoDaReservaLocal({ preferCloud: false, tipo })).toEqual({
+        carregarAgora: true,
+        parciaisLocais: true,
+        parakeetNaFalha: false,
+      })
   })
 })
 

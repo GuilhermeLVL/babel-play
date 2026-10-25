@@ -19,8 +19,9 @@
  *      `INSTRUCAO_DE_SEGURANCA_PARA_MENORES` no fim do system, e o "Como respondo?" vai SEM o contexto (só a frase
  *      que a própria pessoa está vendo; nada de conversa de terceiros);
  *   4. RETENÇÃO ZERO: só provedor com `retencao: 'zdr'` (`pernasDaFuncao('assistente')`); sem perna, 501;
- *   5. o MESMO CAMINHO DAS OUTRAS FUNÇÕES: portão da nuvem, política de custo, admissão e a reserva de chamada + tokens
- *      da cota do plano (o 429 `uso_justo_do_dia` vem dela);
+ *   5. o MESMO CAMINHO DAS OUTRAS FUNÇÕES: portão da nuvem, política de custo, admissão, a SUBCOTA de tokens do
+ *      assistente (`assistenteTokensMes`, 25% da `tokensMes`; esgotada, 402 `cota_do_assistente`) e a reserva de
+ *      chamada + tokens da cota do plano (o 429 `uso_justo_do_dia` vem dela) — os mesmos tokens contam nas duas;
  *   6. a cascata com relógios CURTOS (a frase some da tela em segundos), o custo no gasto global e a leitura defensiva:
  *      resposta fora do formato é 502 `resposta_invalida` — nunca ajuda inventada —, com o uso do dia CONSUMIDO (o
  *      provedor cobrou). O uso do dia só é estornado quando nenhum provedor respondeu.
@@ -57,7 +58,14 @@ import {
   userDoAssistente,
 } from '../../../src/lib/estudo/promptDoAssistente'
 import { contarRespostaInvalida } from '../../http/metricas'
-import { estornarUsoDoAssistente, type ReservaDoAssistente, reservarUsoDoAssistente } from '../../lib/assistenteAoVivo'
+import {
+  acertarTokensDoAssistente,
+  estornarUsoDoAssistente,
+  type ReservaDeTokensDoAssistente,
+  type ReservaDoAssistente,
+  reservarTokensDoAssistente,
+  reservarUsoDoAssistente,
+} from '../../lib/assistenteAoVivo'
 import { erroDeRota } from '../../lib/erroDeRota'
 import { ehMenor, INSTRUCAO_DE_SEGURANCA_PARA_MENORES } from '../../lib/idade'
 import { log } from '../../lib/logger'
@@ -197,6 +205,7 @@ export type ResultadoDoAssistente = AjudaEntregue | RecusaDeIa
 const MENSAGEM_SEM_ASSISTENTE = {
   sem_plano: 'O assistente ao vivo não está disponível nesta conta; a legenda e a tradução continuam.',
   teto_do_dia: 'O assistente de hoje chegou ao limite; a legenda e a tradução continuam, e ele volta amanhã.',
+  cota_do_mes: 'O assistente deste mês chegou ao limite; a legenda e a tradução continuam, e ele volta no dia 1º.',
 } as const
 
 /** A entrada do prompt — no perfil protegido, o "Como respondo?" vai SEM contexto (só a frase que a pessoa vê). */
@@ -268,6 +277,8 @@ async function atender(
   let doDia: ReservaDoAssistente | null = null
   let provedorRespondeu = false
   let reserva: ReservaDeLlm | null = null
+  let subcota: ReservaDeTokensDoAssistente | null = null
+  let tokensReais = 0
   let admissao: AdmissaoDaCascata | null = null
   const t0 = Date.now()
   try {
@@ -326,6 +337,11 @@ async function atender(
     if (admitida.ok === false) return decidir(recusaNuvemOcupada(admitida.recusa))
     admissao = admitida.admissao
 
+    /* A SUBCOTA DE TOKENS do assistente (25% da `tokensMes`), ANTES da cota do plano: os mesmos tokens contam nas
+       duas, e o assistente para aqui antes de chegar perto da cota da legenda. */
+    subcota = await reservarTokensDoAssistente(ctx.userId, plano.plan, estimativa)
+    if (!subcota) return decidir(recusaDeErro(402, MENSAGEM_SEM_ASSISTENTE.cota_do_mes, 'cota_do_assistente'))
+
     const reservada = await reservarLlm(ctx.userId, estimativa, 'plano', plano.plan)
     if (!(reservada instanceof ReservaDeLlm)) return decidir(reservada) // 402/429 da cota ou 503 do contador
     reserva = reservada
@@ -371,7 +387,8 @@ async function atender(
 
     /* O provedor respondeu e cobrou: tokens, gasto e o uso do dia contam, com ou sem JSON útil. */
     provedorRespondeu = true
-    await reserva.consumir(entregue.tokensEntrada + entregue.tokensSaida)
+    tokensReais = entregue.tokensEntrada + entregue.tokensSaida
+    await reserva.consumir(tokensReais)
     await registrarGastoDeIa(entregue.custoUsd, { userId: ctx.userId, plano: plano.plan })
     await ctx.registrarCusto?.(entregue.custoUsd)
 
@@ -405,6 +422,8 @@ async function atender(
       } finally {
         /* O uso do dia só volta quando NENHUM provedor respondeu (a resposta inválida foi cobrada e consome). */
         if (doDia && !provedorRespondeu) await estornarUsoDoAssistente(ctx.userId, doDia)
+        /* A subcota de tokens: acertada pelo real, ou devolvida inteira se ninguém respondeu. */
+        if (subcota) await acertarTokensDoAssistente(ctx.userId, subcota, provedorRespondeu ? tokensReais : 0)
       }
     }
   }

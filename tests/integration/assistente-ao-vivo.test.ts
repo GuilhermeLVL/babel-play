@@ -24,7 +24,12 @@ import { esquecerAdmissao } from '../../server/ai/admissao'
 import { esquecerDisjuntores } from '../../server/ai/disjuntor'
 import { esquecerRegistro } from '../../server/ai/registroDeProvedores'
 import { asUserId } from '../../server/lib/authContext'
-import { ASSISTENTE_DIA_DOS_PAGOS, PLAN_MATRIX } from '../../src/core/planos'
+import {
+  ASSISTENTE_DIA_DOS_PAGOS,
+  FRACAO_DA_COTA_DO_ASSISTENTE,
+  PLAN_MATRIX,
+  PLANO_CONVIDADO,
+} from '../../src/core/planos'
 import type { RecursoDoAssistente } from '../../src/lib/estudo/promptDoAssistente'
 import { type EphemeralDb, setupEphemeralDb } from '../harness/ephemeralDb'
 
@@ -234,6 +239,18 @@ describe('a cota do assistente na matriz', () => {
     for (const p of ['plus', 'familia', 'pro4', 'premium', 'essencial', 'aovivo'] as const)
       expect(PLAN_MATRIX[p].quotas.assistenteDia, p).toBe(ASSISTENTE_DIA_DOS_PAGOS)
     expect(PLAN_MATRIX.selfhost.quotas.assistenteDia).toBeNull()
+    expect(PLANO_CONVIDADO.quotas.assistenteDia).toBe(0)
+    expect(PLANO_CONVIDADO.quotas.assistenteTokensMes).toBe(0)
+  })
+
+  it('a subcota de tokens é 25% da tokensMes em todo plano (0 sem cota; sem teto no self-host)', () => {
+    expect(FRACAO_DA_COTA_DO_ASSISTENTE).toBe(0.25)
+    for (const [p, def] of Object.entries(PLAN_MATRIX)) {
+      const { tokensMes, assistenteTokensMes } = def.quotas
+      if (tokensMes === null) expect(assistenteTokensMes, p).toBeNull()
+      else if (def.quotas.assistenteDia === 0) expect(assistenteTokensMes, p).toBe(0)
+      else expect(assistenteTokensMes, p).toBe(tokensMes * FRACAO_DA_COTA_DO_ASSISTENTE)
+    }
   })
 })
 
@@ -292,6 +309,8 @@ describe('plano pago (Plus): a saída estruturada', () => {
       expect(chamadas[0].maxTokens).toBeLessThanOrEqual(600)
       expect(await doDia(quem)).toBe(1)
       expect(await contador(quem, 'llm_tokens', mes())).toBe(400)
+      // Os MESMOS tokens contam na subcota do assistente (25% da tokensMes).
+      expect(await contador(quem, usageQuota.METRIC_ASSISTENTE_TOKENS_MES, mes())).toBe(400)
     })
 
   it('expressões: o trecho que NÃO está na frase não chega à tela', async () => {
@@ -307,6 +326,56 @@ describe('plano pago (Plus): a saída estruturada', () => {
     const res = await pedir('expressoes', quem)
     expect(res.statusCode).toBe(200)
     expect(res.body.expressoes).toEqual([{ trecho: 'break a leg', sentido: 'boa sorte', tipo: 'idiomatica' }])
+  })
+
+  it('a subcota de tokens do mês esgotada: 402 cota_do_assistente, sem provedor, e a tokensMes da legenda intacta', async () => {
+    const quem = await assinante('assistente-subcota')
+    await counters.increment(
+      quem,
+      usageQuota.METRIC_ASSISTENTE_TOKENS_MES,
+      mes(),
+      PLAN_MATRIX.plus.quotas.assistenteTokensMes,
+    )
+    const chamadas = provedor(() => ({ texto: JSON.stringify(CASOS.expressoes.resposta) }))
+    const res = await pedir('expressoes', quem)
+    expect(res.statusCode).toBe(402)
+    expect(res.body?.code).toBe('cota_do_assistente')
+    expect(chamadas).toHaveLength(0)
+    /* Nada foi tirado da cota do plano (a da legenda), e o uso do dia voltou. */
+    expect(await contador(quem, 'llm_tokens', mes())).toBe(0)
+    expect(await doDia(quem)).toBe(0)
+  })
+
+  it('o teste de 14 dias tem o assistente (é uma amostra do plano pago, como a IA de estudo)', async () => {
+    const quem = asUserId('assistente-em-teste')
+    const entitlements = await h.load<any>('../../server/lib/entitlements')
+    const espia = vi
+      .spyOn(entitlements, 'resolverPlano')
+      .mockResolvedValue({ plano: 'plus', teste: { terminaEm: Date.now() + 86_400_000 } })
+    try {
+      const chamadas = provedor(() => ({ texto: JSON.stringify(CASOS.comoRespondo.resposta) }))
+      const res = await pedir('comoRespondo', quem)
+      expect(res.statusCode).toBe(200)
+      expect(res.body.sugestoes).toHaveLength(3)
+      expect(chamadas).toHaveLength(1)
+    } finally {
+      espia.mockRestore()
+    }
+  })
+
+  it('convidado (anônimo): 402 sem_plano, sem provedor', async () => {
+    const quem = asUserId('assistente-convidado')
+    const entitlements = await h.load<any>('../../server/lib/entitlements')
+    const espia = vi.spyOn(entitlements, 'resolverPlano').mockResolvedValue({ plano: 'convidado', teste: null })
+    try {
+      const chamadas = provedor(() => ({ texto: JSON.stringify(CASOS.expressoes.resposta) }))
+      const res = await pedir('expressoes', quem)
+      expect(res.statusCode).toBe(402)
+      expect(res.body?.code).toBe('sem_plano')
+      expect(chamadas).toHaveLength(0)
+    } finally {
+      espia.mockRestore()
+    }
   })
 
   it('o teto do dia esgotado: 429 teto_do_assistente, sem provedor', async () => {
@@ -351,6 +420,7 @@ describe('resposta do modelo fora do formato e provedor fora do ar', () => {
     expect(res.body?.code).toBe('provedor_indisponivel')
     expect(await doDia(quem)).toBe(0)
     expect(await contador(quem, 'llm_tokens', mes())).toBe(0)
+    expect(await contador(quem, usageQuota.METRIC_ASSISTENTE_TOKENS_MES, mes())).toBe(0)
   })
 })
 

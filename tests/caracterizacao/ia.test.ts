@@ -710,11 +710,34 @@ describe('POST /api/ai/assistente/* — assistente ao vivo (flag assistente_ao_v
 
   it('teto próprio: passou de 30 pedidos no minuto, 429 assistente_demais (fora do balde caro da legenda)', async () => {
     await flag(true)
-    let ultimo: Response | undefined
-    for (let i = 0; i < 31; i++) ultimo = await s.post('/api/ai/assistente/expressoes', {})
-    expect(ultimo!.status).toBe(429)
-    expect((await ultimo!.json()).code).toBe('assistente_demais')
+    const { usageCountersRepo } = await s.load<any>('../../server/db/repositories/usageCounters')
+    const { donoLocal } = await s.load<any>('../../server/lib/authContext')
+    const chave = `u:${donoLocal()}`
+    /* O balde é por minuto: longe da virada, para os 31 pedidos caírem no mesmo balde. */
+    if (Date.now() % 60_000 > 50_000) await new Promise((r) => setTimeout(r, 60_000 - (Date.now() % 60_000) + 50))
+    const balde = `rl:${Math.floor(Date.now() / 60_000)}`
+    /* O balde zerado (os casos acima já gastaram alguns pedidos dele). */
+    await usageCountersRepo.reset(chave, 'ratelimit:assistente', balde)
+    const caroAntes = await usageCountersRepo.get(chave, 'ratelimit:caro', balde)
+    const respostas: Response[] = []
+    for (let i = 0; i < 31; i++) respostas.push(await s.post('/api/ai/assistente/expressoes', {}))
+    expect(respostas[29].status, 'o 30º passa').not.toBe(429)
+    expect(respostas[30].status, 'o 31º é recusado').toBe(429)
+    expect((await respostas[30].json()).code).toBe('assistente_demais')
+    expect(await usageCountersRepo.get(chave, 'ratelimit:caro', balde), 'o balde caro não mudou').toBe(caroAntes)
     expect(chamadas).toHaveLength(0)
+  }, 90_000)
+
+  it('a flag vem ANTES do teto por minuto: desligada, 404 sem contar no balde do assistente', async () => {
+    await flag(false)
+    const { usageCountersRepo } = await s.load<any>('../../server/db/repositories/usageCounters')
+    const { donoLocal } = await s.load<any>('../../server/lib/authContext')
+    const chave = `u:${donoLocal()}`
+    const balde = `rl:${Math.floor(Date.now() / 60_000)}`
+    const antes = await usageCountersRepo.get(chave, 'ratelimit:assistente', balde)
+    const r = await s.post('/api/ai/assistente/termos', {})
+    expect(r.status).toBe(404)
+    expect(await usageCountersRepo.get(chave, 'ratelimit:assistente', balde)).toBe(antes)
   })
 })
 

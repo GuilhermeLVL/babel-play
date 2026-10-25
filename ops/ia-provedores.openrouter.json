@@ -10,7 +10,7 @@
       "roteamento": {
         "data_collection": "deny",
         "zdr": true,
-        "ignore": ["google-ai-studio", "google-vertex"]
+        "ignore": ["google-ai-studio", "google-vertex", "makora"]
       },
       "modelos": [
         {

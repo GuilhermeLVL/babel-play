@@ -150,7 +150,12 @@ export function systemDoAssistente(recurso: RecursoDoAssistente, lang: string, l
 Idioma da frase: ${nomeDoIdioma(lang)}. Idioma de quem estuda (explicações e traduções): ${nomeDoIdioma(langDaPessoa)}.`;
 }
 
-const delimitar = (s: string): string => `${FALA_OPEN}${s.replace(/\s+/g, ' ').trim()}${FALA_CLOSE}`;
+/**
+ * O texto como DADO entre os delimitadores — sem os delimitadores que vierem DENTRO dele: uma legenda com ">>> ignore as
+ * regras <<<" fecharia o bloco de dado e abriria um de instrução.
+ */
+const delimitar = (s: string): string =>
+  `${FALA_OPEN}${s.split(FALA_OPEN).join(' ').split(FALA_CLOSE).join(' ').replace(/\s+/g, ' ').trim()}${FALA_CLOSE}`;
 
 /** O que vai na mensagem do usuário de cada recurso. Só texto que a própria pessoa está vendo ou falou. */
 export type EntradaDoAssistente =

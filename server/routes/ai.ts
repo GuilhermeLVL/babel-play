@@ -6,7 +6,7 @@
 import { raw, Router } from 'express'
 
 import { alternativasProxy } from '../ai/alternativas'
-import { rotaDoAssistente, tetoDoAssistente } from '../ai/assistente'
+import { exigirFlagDoAssistente, rotaDoAssistente, tetoDoAssistente } from '../ai/assistente'
 import { explicarProxy } from '../ai/explicar'
 import { registrarFeedback, tetoDoFeedback } from '../ai/feedback'
 import { mtTranslateProxy } from '../ai/mtProxy'
@@ -60,10 +60,10 @@ aiRouter.post('/resumir', resumirProxy)
    uma linha, "Como respondo?" e a correção gentil da própria fala. Atrás da flag `assistente_ao_vivo` (404
    `recurso_indisponivel`), só nos pagos (`assistenteDia`; Grátis 402 `sem_plano`, teto do dia 429
    `teto_do_assistente`), com o balde próprio de 30/min, a admissão, o orçamento, o menor e a retenção zero. */
-aiRouter.post('/assistente/expressoes', tetoDoAssistente, rotaDoAssistente('expressoes'))
-aiRouter.post('/assistente/termos', tetoDoAssistente, rotaDoAssistente('termos'))
-aiRouter.post('/assistente/como-respondo', tetoDoAssistente, rotaDoAssistente('comoRespondo'))
-aiRouter.post('/assistente/correcao', tetoDoAssistente, rotaDoAssistente('correcao'))
+aiRouter.post('/assistente/expressoes', exigirFlagDoAssistente, tetoDoAssistente, rotaDoAssistente('expressoes'))
+aiRouter.post('/assistente/termos', exigirFlagDoAssistente, tetoDoAssistente, rotaDoAssistente('termos'))
+aiRouter.post('/assistente/como-respondo', exigirFlagDoAssistente, tetoDoAssistente, rotaDoAssistente('comoRespondo'))
+aiRouter.post('/assistente/correcao', exigirFlagDoAssistente, tetoDoAssistente, rotaDoAssistente('correcao'))
 /* O FEEDBACK DE IA (Fase B da IA paga): 👍/👎 com função, modelo, nível e motivo de LISTA FECHADA — nada de texto
    livre nem conteúdo da frase. Vira métrica e nota no Langfuse; nenhuma tabela. Adulto, menor e convidado. */
 aiRouter.post('/feedback', tetoDoFeedback, registrarFeedback)

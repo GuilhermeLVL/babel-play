@@ -57,14 +57,19 @@ aqui trata só a frase que a própria pessoa está vendo ou falou, e sempre leva
 
 ### Fluxo de um pedido (igual ao da explicação da frase)
 
-1. **Flag** `assistente_ao_vivo` desligada → 404 `recurso_indisponivel`, sem ler corpo nem plano.
+1. **Flag** `assistente_ao_vivo` desligada → 404 `recurso_indisponivel`, ANTES do limite por minuto (não conta no
+   balde), sem ler corpo nem plano.
 2. **Corpo estrito** (`z.strictObject`): só o texto da própria pessoa e os idiomas BCP-47. Chave a mais → 400 `invalido`.
 3. **Plano** resolvido (erro → 502, fail-closed).
 4. **Teto do dia** (`assistenteDia`): Grátis/convidado → 402 `sem_plano`; teto atingido → 429 `teto_do_assistente`.
+   **O teste de 14 dias tem o assistente** (decisão de 25/10/2026): é uma amostra do plano pago, como a IA de estudo — o
+   plano efetivo do teste traz o `assistenteDia` e a `assistenteTokensMes` dele, e os tokens seguem limitados pela
+   franquia do teste (`FRANQUIA_DO_TESTE`).
 5. **Menor** (`ehMenor`): instrução de segurança no fim do system; no "Como respondo?", o contexto é descartado.
 6. **Pernas** do tutor só com `retencao: 'zdr'` (`pernasDaFuncao('assistente')`), nível rápido; sem perna → 501.
-7. **Portão** da nuvem, **política de custo**, **admissão** (disjuntor e balde por modelo), **reserva de LLM** (chamadas
-   e tokens da `tokensMes`, com o uso justo do dia).
+7. **Portão** da nuvem, **política de custo**, **admissão** (disjuntor e balde por modelo), a **subcota de tokens** do
+   assistente (`assistenteTokensMes`; esgotada → 402 `cota_do_assistente`) e a **reserva de LLM** (chamadas e tokens
+   da `tokensMes`, com o uso justo do dia). Os mesmos tokens contam nas duas.
 8. **Cascata** com saída estruturada (`json_schema` strict + `require_parameters`) e o **roteamento da legenda** no
    OpenRouter (o endpoint mais barato que responde em até 1,5 s no p50). Relógios: 5 s na primeira perna, 6 s nas
    reservas, 10 s no total.
@@ -93,12 +98,14 @@ envelope `{ error, code }`.
 | 402 `sem_plano`                                   | Grátis, convidado                                         | `sem_plano`                 |
 | 429 `teto_do_assistente`                          | teto do dia                                               | `uso_justo`                 |
 | 429 `uso_justo_do_dia` / 402 `quota_exceeded`     | tokens do dia / do mês                                    | `uso_justo` / `cota_do_mes` |
+| 402 `cota_do_assistente`                          | a subcota de tokens do assistente no mês                  | `cota_do_mes`               |
 | 429 `assistente_demais` / `nuvem_ocupada`         | 30/min, admissão, limite do provedor                      | `nuvem_ocupada`             |
 | 501                                               | nenhuma perna ZDR configurada                             | `indisponivel`              |
 | 502 `resposta_invalida` / `provedor_indisponivel` | modelo fora do formato / provedor fora do ar              | `indisponivel`              |
 
 Clientes (`src/data/apiDoAssistente.ts`): `destacarExpressoes`, `explicarTermos`, `comoRespondo`, `corrigirMinhaFala`
-(nenhum lança; `{ ok: true, valor } | { ok: false, motivo, status }`), `esquecerCacheDoAssistente`. Local:
+(nenhum lança; `{ ok: true, valor } | { ok: false, motivo, status }`), `esquecerCacheDoAssistente`. Numa resposta do
+cache, `restanteHoje` é o último valor conhecido na aba, ou fica de fora — nunca `null`. Local:
 `palavrasAcimaDoNivel(linha, lang, nivelDaPessoa)` e `candidatosATermo(linha)`.
 
 ### Recomendações para a tela (C2)
@@ -113,13 +120,23 @@ Clientes (`src/data/apiDoAssistente.ts`): `destacarExpressoes`, `explicarTermos`
 ### Cota e custo
 
 - **Teto do dia**: 200 chamadas por dia local nos pagos, somando os quatro recursos; contador próprio.
-- **Tokens**: saem da `tokensMes` do plano (como a IA de estudo), então o custo já está na coluna "IA de texto" de
-  `npm run ia:custo`. Pior caso (teto todo dia, 650 tokens por chamada, preço da perna mais cara do nível rápido):
-  R$ 1,79/mês no Plus, dentro dos R$ 2,80 da IA de texto; a margem do anual não muda (Plus R$ 2,71, Família R$ 3,94,
-  Pro R$ 2,29 por mês).
+- **Subcota de tokens** (`assistenteTokensMes`, decisão do dono de 25/10/2026): 25% da `tokensMes` em todo plano
+  (Plus 500 mil, Família e Pro 750 mil), definida só em `src/core/planos.ts` (`FRACAO_DA_COTA_DO_ASSISTENTE`), por
+  cima do teto do dia. **Decisão: os tokens do assistente contam na subcota E na `tokensMes`.** A subcota é checada
+  antes: o assistente para em 25%, e a legenda (e o resto da IA de texto) fica com pelo menos 75% — nunca é esgotada
+  pelo assistente. Contar só na subcota protegeria 100% da legenda, mas somaria 25% de tokens ao custo do plano (a
+  margem do Pro cairia de R$ 2,29 para R$ 1,24); contar nas duas mantém o custo dentro do que a coluna "IA de texto"
+  já paga e conserva o uso justo do dia (`tokensDia`).
+- **Custo**: pior caso (teto todo dia, 650 tokens por chamada, preço da perna mais cara do nível rápido), limitado
+  pela subcota: R$ 0,45/mês no Plus e R$ 0,67 no Família e no Pro, dentro da IA de texto (R$ 2,80 e R$ 4,20); a
+  margem do anual não muda (Plus R$ 2,71, Família R$ 3,94, Pro R$ 2,29 por mês).
 - **Medido** (bancada): US$ 0,03–0,07 por mil chamadas no Gemma 4 26B com o roteamento da legenda.
 - **Por minuto**: 30 pedidos por conta, num balde próprio — as glosas acompanham a legenda, e dividir o balde caro com
   a tradução de cada fala cortaria a legenda.
+
+- **Roteamento**: a Makora está no `ignore` do OpenRouter (`ops/ia-provedores.openrouter.json`, decisão do dono de
+  25/10/2026): era a cauda de 5–14 s do "Como respondo?". Medido antes/depois, intercalado: "Como respondo?" p95
+  5,6 → 3,8 s; legenda p95 1,7 → 1,4 s (não piorou: a legenda quase não passa por ela).
 
 ### Modelo
 
@@ -133,7 +150,9 @@ menos. Detalhes e números: `docs/auditoria/eval-assistente-v1.md`.
    sem contar e sem ler o plano. _(teste: `tests/integration/assistente-ao-vivo.test.ts`, `tests/caracterizacao/ia.test.ts`)_
 2. Grátis: 402 `sem_plano` nas quatro, sem provedor. Pagos: `assistenteDia` = 200; self-host sem teto.
 3. Plus: 200 com o corpo do contrato, esquema `assistente_*` com `require_parameters`, `provider.sort = 'price'`, o
-   contador do dia +1 e os tokens na `tokensMes`.
+   contador do dia +1 e os tokens na `tokensMes` e na subcota `assistenteTokensMes`.
+   Subcota esgotada: 402 `cota_do_assistente`, sem provedor e sem tocar na `tokensMes`. `assistenteTokensMes` = 25% da
+   `tokensMes` em todo plano. Teste de 14 dias: 200. Convidado (`PLANO_CONVIDADO`): `assistenteDia` 0 e 402.
 4. Teto do dia atingido: 429 `teto_do_assistente` sem provedor; o cliente mapeia para `uso_justo`.
 5. Resposta fora do formato: 502 `resposta_invalida` e o uso do dia consumido; provedor fora do ar: 502 com uso e
    tokens estornados.
@@ -142,25 +161,26 @@ menos. Detalhes e números: `docs/auditoria/eval-assistente-v1.md`.
 7. Corpo estrito: `falante`, `participantes`, `transcricao`, `falas`, `sessionId`, `emocao` ou qualquer chave a mais →
    400, sem custo; termo pedido fora da frase → 400; idioma com texto livre → 400.
 8. Provedor sem `retencao: 'zdr'` nunca é chamado; sem perna ZDR → 501.
-9. 31º pedido no minuto → 429 `assistente_demais`, fora do balde caro.
+9. Com o balde zerado, o 30º pedido no minuto passa e o 31º → 429 `assistente_demais`; o balde caro não muda. Flag
+   desligada não conta no balde.
 10. Recurso 2: só palavras estritamente acima do nível, com a posição exata; não marca sigla, nome próprio no meio da
     frase, palavra fora da lista (salvo opção) nem idioma sem espaço. _(teste: `tests/assistente-local.test.ts`)_
-11. Qualidade e latência medidas com o harness, gasto ≤ US$ 1,00 no livro-caixa; "Como respondo?" com alvo de p95 ≤ 3 s (medido: 5,7 s, por causa de um endpoint — ver o relatório; pendente de decisão antes de ligar).
+11. Qualidade e latência medidas com o harness, gasto ≤ US$ 1,00 no livro-caixa; "Como respondo?" com alvo de p95 ≤ 3 s (medido: 5,7 s com a Makora; 3,8 s sem ela — ainda 0,8 s acima do alvo, ver o relatório).
 12. `npm run ia:custo`: margem do anual ≥ 0 nos planos v4. _(teste: `tests/assistente-custo.test.ts`)_
 
 ## Riscos e mitigação
 
-| Risco                                                         | Mitigação                                                                                                                                                                                                          |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| O assistente come a `tokensMes` e falta legenda no fim do mês | O teto do dia × 30 pode chegar à cota inteira. A tela deve chamar com parcimônia (recomendações acima). Se a telemetria mostrar o problema, criar uma subcota de tokens (`assistenteTokensMes`) — decisão do dono. |
-| Destaque errado ou inventado                                  | O leitor descarta trecho/termo que não está na frase; a bancada mediu 80–88% de aprovação nas glosas.                                                                                                              |
-| "Como respondo?" lido como cola                               | Copy de ajuda de idioma, sob demanda, sem promessa de ocultação; o prompt proíbe mentir e dados pessoais.                                                                                                          |
-| Latência acima de 3 s no "Como respondo?"                     | p95 medido de 5,7 s (p50 2,2 s, p90 3,3 s; a cauda é um endpoint, a Makora): a tela mostra a espera e permite cancelar; tirar a Makora do roteamento é decisão do dono (mexe na legenda).                          |
-| Provedor do OpenRouter que ignora o esquema                   | `require_parameters` + leitor defensivo; a bancada viu um endpoint (SiliconFlow) devolver JSON sem uma chave — vira 502, sem ajuda inventada.                                                                      |
+| Risco                                                         | Mitigação                                                                                                                                       |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| O assistente come a `tokensMes` e falta legenda no fim do mês | Resolvido pela subcota `assistenteTokensMes` (25%): o assistente para antes, e a legenda fica com pelo menos 75% da cota.                       |
+| Destaque errado ou inventado                                  | O leitor descarta trecho/termo que não está na frase; a bancada mediu 80–88% de aprovação nas glosas.                                           |
+| "Como respondo?" lido como cola                               | Copy de ajuda de idioma, sob demanda, sem promessa de ocultação; o prompt proíbe mentir e dados pessoais.                                       |
+| Latência acima de 3 s no "Como respondo?"                     | Sem a Makora (aplicado), p95 de 3,8 s (p50 2,6 s, p90 3,4 s), ainda acima do alvo: a tela mostra a espera e permite cancelar; medir no staging. |
+| Provedor do OpenRouter que ignora o esquema                   | `require_parameters` + leitor defensivo; a bancada viu um endpoint (SiliconFlow) devolver JSON sem uma chave — vira 502, sem ajuda inventada.   |
 
 ## Perguntas ao dono
 
 1. O teto do dia (200) e o limite por minuto (30) estão bons para o lançamento?
-2. Criar já a subcota de tokens do assistente, para a legenda nunca ficar sem cota?
+2. ~~Subcota de tokens~~ — decidido: 25% da `tokensMes`, contando nas duas cotas.
 3. A palavra acima do nível vai ao Grátis como isca (custo zero) — confirmado; mostrar a contagem de "palavras novas"
    no fim da sessão é próxima fase?

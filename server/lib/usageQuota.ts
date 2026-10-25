@@ -107,6 +107,8 @@ export const CHAVE_DO_POOL_DA_AMOSTRA = 'pool-amostra-estudo'
  * `assistenteDia` do plano.
  */
 export const METRIC_ASSISTENTE_DIA = 'assistente_dia'
+/** A subcota de tokens do assistente ao vivo por mês (janela `AAAA-MM`), contra `assistenteTokensMes` do plano. */
+export const METRIC_ASSISTENTE_TOKENS_MES = 'assistente_tokens_mes'
 
 /* ─────────────────────── a poda das janelas diárias (C9, item 9.3) ─────────────────────── */
 

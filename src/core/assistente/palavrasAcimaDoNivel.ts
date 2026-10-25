@@ -47,7 +47,15 @@ const PALAVRA = /\p{L}[\p{L}\p{M}]*(?:['’-]\p{L}[\p{L}\p{M}]*)*/gu;
 
 const indice = (n: CefrLevel): number => NIVEIS_CEFR.indexOf(n);
 
-/** As formas-base prováveis de uma palavra inglesa flexionada, da mais provável à menos. */
+/**
+ * As formas-base prováveis de uma palavra inglesa flexionada, da mais provável à menos.
+ *
+ * LIMITAÇÃO, de propósito: é corte de sufixo, não lematizador. Não acha irregulares ("went" → "go", "children" →
+ * "child", "better" → "good"), erra em palavras que só parecem flexionadas ("during", "bless", "early" podem gerar
+ * candidatos falsos — só valem se o candidato estiver na lista, e aí o nível do candidato é o que aparece) e não trata
+ * "-ves" ("knives"), "-ier"/"-iest" ("happier") nem prefixos. Errar aqui é deixar de marcar, que é o lado seguro; um
+ * lematizador de verdade só se a medição mostrar que vale o tamanho.
+ */
 export function formasDoIngles(p: string): string[] {
   const f: string[] = [];
   const add = (s: string) => {

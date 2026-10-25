@@ -29,7 +29,14 @@ export type FalhaDoAssistente =
   | 'indisponivel';
 
 export type ResultadoDoAssistente<T> =
-  | { ok: true; valor: T & { restanteHoje: number | null; modelo?: string } }
+  | {
+      ok: true;
+      /**
+       * `restanteHoje`: quantas chamadas sobram hoje (`null` = sem teto, self-host). Numa resposta do CACHE (nada foi
+       * gasto) vem o último valor conhecido nesta aba, ou nada — nunca um `null` que a tela leria como "sem teto".
+       */
+      valor: T & { restanteHoje?: number | null; modelo?: string };
+    }
   | { ok: false; motivo: FalhaDoAssistente; status: number };
 
 export type TipoDeExpressao = 'idiomatica' | 'giria' | 'phrasal';
@@ -103,8 +110,15 @@ async function postar<T>(
   if (valor === null) return { ok: false, motivo: 'indisponivel', status: res.status };
   const modelo = res.headers?.get?.('x-ia-modelo');
   const restanteHoje = typeof json?.restanteHoje === 'number' ? json.restanteHoje : null;
+  ultimoRestanteHoje = restanteHoje;
   return { ok: true, valor: { ...valor, restanteHoje, ...(modelo ? { modelo } : {}) } };
 }
+
+/** O último `restanteHoje` que o servidor disse nesta aba (`undefined` = nenhum ainda). */
+let ultimoRestanteHoje: number | null | undefined;
+
+/** O que vai numa resposta do cache: o último valor conhecido, ou nada. */
+const restanteDoCache = () => (ultimoRestanteHoje === undefined ? {} : { restanteHoje: ultimoRestanteHoje });
 
 /* ─────────────────────────────── a leitura defensiva ─────────────────────────────── */
 
@@ -171,6 +185,7 @@ const cacheDeTermos = cacheLimitado<string>();
 
 /** Esquece as glosas guardadas (ao sair da conta ou trocar de idioma). */
 export function esquecerCacheDoAssistente(): void {
+  ultimoRestanteHoje = undefined;
   cacheDeExpressoes.limpar();
   cacheDeTermos.limpar();
 }
@@ -179,14 +194,14 @@ export function esquecerCacheDoAssistente(): void {
 
 /**
  * (1) As expressões idiomáticas e gírias da linha da legenda. Linha já vista nesta aba volta do cache, sem rede (e
- * com `restanteHoje: null`, porque não gastou nada).
+ * com o último `restanteHoje` conhecido, porque não gastou nada).
  */
 export async function destacarExpressoes(
   p: Idiomas & { frase: string },
 ): Promise<ResultadoDoAssistente<{ expressoes: ExpressaoDestacada[] }>> {
   const k = chave(p.lang, p.langDaPessoa, p.frase);
   const guardadas = cacheDeExpressoes.get(k);
-  if (guardadas) return { ok: true, valor: { expressoes: guardadas, restanteHoje: null } };
+  if (guardadas) return { ok: true, valor: { expressoes: guardadas, ...restanteDoCache() } };
   const r = await postar(
     '/api/ai/assistente/expressoes',
     { frase: p.frase, lang: p.lang, langDaPessoa: p.langDaPessoa },
@@ -211,7 +226,7 @@ export async function explicarTermos(
     return explicacao ? [{ termo: t, explicacao }] : [];
   });
   const faltam = pedidos.filter((t) => !doCache(t));
-  if (pedidos.length && !faltam.length) return { ok: true, valor: { termos: guardados, restanteHoje: null } };
+  if (pedidos.length && !faltam.length) return { ok: true, valor: { termos: guardados, ...restanteDoCache() } };
   const r = await postar(
     '/api/ai/assistente/termos',
     {

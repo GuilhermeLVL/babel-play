@@ -131,7 +131,7 @@ for (const plano of ['plus', 'familia', 'pro4'] as const) {
 }
 
 console.log(
-  '\nASSISTENTE AO VIVO (tokens da tokensMes, já na coluna "IA texto"; teto do dia × 30, limitado pela cota de tokens)',
+  '\nASSISTENTE AO VIVO (tokens na tokensMes, já na coluna "IA texto"; teto do dia × 30, limitado pela subcota assistenteTokensMes = 25%)',
 );
 for (const plano of ['plus', 'familia', 'pro4'] as const) {
   const a = custoDoAssistenteNoPiorCaso(plano);

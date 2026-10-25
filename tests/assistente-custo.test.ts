@@ -15,6 +15,8 @@ describe('o assistente ao vivo na conta dos planos', () => {
       const m = margemDoAnual(plano)
       expect(a.tokensMes).toBeLessThanOrEqual(PLAN_MATRIX[plano].quotas.tokensMes ?? Infinity)
       expect(a.brlMes).toBeLessThanOrEqual(m.iaDeTextoBrl)
+      // A subcota: o assistente nunca passa de 25% da tokensMes (a legenda fica com pelo menos 75%).
+      expect(a.fracaoDaCota).toBeLessThanOrEqual(0.25)
       expect(m.margemMensalBrl).toBeGreaterThanOrEqual(0)
     })
 

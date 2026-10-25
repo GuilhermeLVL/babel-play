@@ -35,6 +35,18 @@ import { abrirRastro, type FuncaoTelemetrada, type RastroDeIa } from './telemetr
 /** Pedidos por minuto por conta, somando os quatro recursos. */
 export const PEDIDOS_POR_MINUTO_DO_ASSISTENTE = 30
 
+/**
+ * A FLAG ANTES DO TETO POR MINUTO: com o assistente desligado, o pedido é 404 sem contar no balde (e sem escrever no
+ * banco). Montada antes de `tetoDoAssistente` em `server/routes/ai.ts`; o handler e o núcleo conferem de novo.
+ */
+export async function exigirFlagDoAssistente(req: Request, res: Response, next: NextFunction): Promise<void> {
+  if (!(await flagLigada(req, FLAG_ASSISTENTE_AO_VIVO))) {
+    res.status(404).json(envelopeDeErro('recurso indisponível', 'recurso_indisponivel'))
+    return
+  }
+  next()
+}
+
 export const tetoDoAssistente = rateLimit({
   windowMs: 60_000,
   limit: PEDIDOS_POR_MINUTO_DO_ASSISTENTE,

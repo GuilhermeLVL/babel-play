@@ -1,5 +1,5 @@
 {
-  "totalUsd": 0.3423288321999997,
+  "totalUsd": 0.3538179311999987,
   "porSistema": {
     "gerar:expressoes:google/gemma-4-26b-a4b-it": 0.0013896365,
     "juiz:expressoes:mistralai/mistral-medium-3.1": 0.046003520000000006,
@@ -25,6 +25,10 @@
     "gerar:termos:google/gemma-4-26b-a4b-it#legenda": 0.0018232790000000001,
     "gerar:comoRespondo:google/gemma-4-26b-a4b-it#legenda": 0.0028209029999999996,
     "gerar:correcao:google/gemma-4-26b-a4b-it#legenda": 0.001308742,
-    "gerar:comoRespondo:google/gemma-4-26b-a4b-it#latencia": 0.001392807
+    "gerar:comoRespondo:google/gemma-4-26b-a4b-it#latencia": 0.001392807,
+    "rota:comoRespondo:depois": 0.0036673225,
+    "rota:comoRespondo:antes": 0.0039047715000000006,
+    "rota:legenda:antes": 0.0019614125,
+    "rota:legenda:depois": 0.0019555924999999997
   }
 }

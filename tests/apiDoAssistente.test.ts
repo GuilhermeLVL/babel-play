@@ -34,6 +34,9 @@ describe('motivoDeCota: o teto do dia do assistente', () => {
   it('429 teto_do_assistente é o limite de HOJE (volta amanhã)', () => {
     expect(motivoDeCota(429, 'teto_do_assistente')).toBe('uso_justo')
   })
+  it('402 cota_do_assistente (a subcota de tokens do mês) é a cota do MÊS', () => {
+    expect(motivoDeCota(402, 'cota_do_assistente')).toBe('cota_do_mes')
+  })
 })
 
 describe('as recusas viram motivos que a tela entende', () => {
@@ -87,6 +90,8 @@ describe('as quatro chamadas', () => {
     expect(corpoEnviado()).toEqual({ frase: 'Break a leg!', lang: 'en', langDaPessoa: 'pt-BR' })
     const r2 = await destacarExpressoes({ ...I, frase: '  break a  LEG! ' })
     expect(r2.ok && r2.valor.expressoes).toHaveLength(1)
+    // Do cache: o último restanteHoje conhecido, nunca null.
+    expect(r2.ok && r2.valor.restanteHoje).toBe(199)
     expect(rede.apiFetch).toHaveBeenCalledTimes(1)
   })
 

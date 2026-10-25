@@ -22,7 +22,14 @@ export function motivoDeCota(
   detalhes?: Record<string, unknown>,
 ): FalhaDeCota | null {
   if (code === 'quota_exceeded' && detalhes?.escopo === 'ip') return 'uso_justo';
-  if (code === 'cota_do_mes' || code === 'quota_exceeded' || code === 'teto_usd_da_conta') return 'cota_do_mes';
+  /* `cota_do_assistente`: a subcota de tokens do assistente ao vivo (`assistenteTokensMes`) acabou — volta no dia 1º. */
+  if (
+    code === 'cota_do_mes' ||
+    code === 'quota_exceeded' ||
+    code === 'teto_usd_da_conta' ||
+    code === 'cota_do_assistente'
+  )
+    return 'cota_do_mes';
   /* O teto do DIA do assistente ao vivo (`assistenteDia`, 429 `teto_do_assistente`): também volta amanhã. */
   if (code === 'uso_justo_do_dia' || code === 'teto_do_assistente') return 'uso_justo';
   if (status === 429) return 'nuvem_ocupada';

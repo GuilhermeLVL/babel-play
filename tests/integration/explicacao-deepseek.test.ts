@@ -187,7 +187,8 @@ describe('POST /api/ai/explicar no registro real', () => {
     expect(corpos.map((c) => c.model)).toEqual([DEEPSEEK, GPT_OSS])
     const reserva = corpos[1]
     expect(reserva.reasoning).toEqual({ effort: 'low', exclude: true })
-    expect(reserva.provider.ignore).toEqual(['google-ai-studio', 'google-vertex'])
+    // O ignore do registro (o Google e a Makora, decisão de 25/10/2026), sem o `novita` que só o DeepSeek leva.
+    expect(reserva.provider.ignore).toEqual(['google-ai-studio', 'google-vertex', 'makora'])
     expect(reserva.provider).toMatchObject({ zdr: true, data_collection: 'deny', require_parameters: true })
     expect(reserva.response_format?.json_schema).toMatchObject({ name: 'explicacao', strict: true })
     expect(reserva.messages.find((m: any) => m.role === 'system')?.content).toContain('PÚBLICO MENOR')

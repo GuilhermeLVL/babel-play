@@ -107,6 +107,8 @@ export const CAMPOS_DA_BANCADA = Object.freeze(['stream', 'usage'])
  * `parametros` diz o que veio da produção, o que é ajuste de candidato e se o ajuste muda o pedido (`foraDaProducao`).
  * Sem ajuste, o corpo é conferido contra `parametrosDoProvedor` e qualquer divergência LANÇA: medir um pedido que a
  * produção não manda é medir outro produto. `respostaJson` (só os JUÍZES, que não são produção) pede `json_object`.
+ * `roteamento`: o `roteamento` declarado do provedor no registro (`ops/ia-provedores.openrouter.json`, como a perna da
+ * produção o leva). Ausente = o padrão endurecido (ZDR, sem Google).
  */
 export function montarCorpo({
   sis,
@@ -116,9 +118,10 @@ export function montarCorpo({
   formato,
   legenda = false,
   respostaJson = false,
+  roteamento,
 }) {
   const opcoes = { ...(formato ? { formato } : {}), ...(legenda ? { legenda: true } : {}) }
-  const producao = parametrosDoProvedor(BASE_OPENROUTER, sis.modelo, undefined, opcoes)
+  const producao = parametrosDoProvedor(BASE_OPENROUTER, sis.modelo, roteamento, opcoes)
   const desligaRaciocinio = sis.esforco === 'none' || sis.esforco === 'off'
   const ajusteDeRota =
     sis.only || desligaRaciocinio

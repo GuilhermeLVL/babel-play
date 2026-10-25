@@ -188,6 +188,14 @@ export interface QuotasDoPlano {
    * convidado); `null` = sem teto.
    */
   assistenteDia: number | null;
+  /**
+   * A SUBCOTA DE TOKENS DO ASSISTENTE AO VIVO por mês: 25% da `tokensMes` (`FRACAO_DA_COTA_DO_ASSISTENTE`). Os tokens do
+   * assistente contam AQUI e TAMBÉM na `tokensMes` (o custo continua dentro do que o plano já paga), e esta subcota é
+   * checada antes: o assistente nunca passa de 25% da cota, então a legenda e o resto da IA de texto ficam com pelo
+   * menos 75% (decisão de 25/10/2026, spec `docs/specs/2026-10-25-assistente-ao-vivo.md`, "Cota e custo"). Contador
+   * próprio (`server/lib/assistenteAoVivo.ts`). `0` = o plano não tem; `null` = sem teto.
+   */
+  assistenteTokensMes: number | null;
 }
 
 /**
@@ -262,6 +270,9 @@ export const FLAG_ASSISTENTE_AO_VIVO = 'assistente_ao_vivo';
  */
 export const ASSISTENTE_DIA_DOS_PAGOS = 200;
 
+/** A fração da `tokensMes` que o assistente ao vivo pode usar no mês (`assistenteTokensMes` = 25% em todo plano). */
+export const FRACAO_DA_COTA_DO_ASSISTENTE = 0.25;
+
 export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
   free: {
     rotulo: 'Grátis',
@@ -294,6 +305,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       explicacoesMes: 0,
       resumosMes: 0,
       assistenteDia: 0,
+      assistenteTokensMes: 0,
     },
   },
   essencial: {
@@ -331,6 +343,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       explicacoesMes: 300,
       resumosMes: 60,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
+      assistenteTokensMes: 187_500,
     },
   },
   premium: {
@@ -379,6 +392,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       explicacoesMes: 300,
       resumosMes: 60,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
+      assistenteTokensMes: 750_000,
     },
   },
   aovivo: {
@@ -420,6 +434,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       explicacoesMes: 300,
       resumosMes: 60,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
+      assistenteTokensMes: 1_125_000,
     },
   },
   /* PLUS (planos v4): o plano de entrada pago. Tudo do Premium, menos o intérprete automático (que é do Pro).
@@ -455,6 +470,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       explicacoesMes: 300,
       resumosMes: 60,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
+      assistenteTokensMes: 500_000,
     },
   },
   /* FAMÍLIA (planos v4, "em breve"): as capacidades do Plus com 12 h compartilhadas. Só existe como produto
@@ -489,6 +505,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       explicacoesMes: 300,
       resumosMes: 60,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
+      assistenteTokensMes: 750_000,
     },
   },
   /* PRO (planos v4, "em breve"; id \`pro4\`, NUNCA \`pro\`, que é o apelido antigo do Premium): 20 h e o intérprete
@@ -523,6 +540,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       explicacoesMes: 300,
       resumosMes: 60,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
+      assistenteTokensMes: 750_000,
     },
   },
   selfhost: {
@@ -555,6 +573,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       explicacoesMes: null,
       resumosMes: null,
       assistenteDia: null,
+      assistenteTokensMes: null,
     },
   },
 };
@@ -612,6 +631,7 @@ export const PLANO_CONVIDADO: DefinicaoDePlano = {
     explicacoesMes: 0,
     resumosMes: 0,
     assistenteDia: 0,
+    assistenteTokensMes: 0,
   },
 };
 

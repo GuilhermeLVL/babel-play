@@ -20,8 +20,12 @@ Pesquisa que escolheu os recursos: [`docs/pesquisa/2026-10-25-frasy-assistente-a
    que às vezes leva 5–14 s. Sem ele, o p95 seria 3,3 s.
 4. **Custo por chamada**: US$ 0,000029–0,000070 (US$ 0,03–0,07 por mil chamadas) _[medido]_. No teto do dia, todo dia,
    o assistente cabe na `tokensMes` e a margem do anual não muda (`npm run ia:custo`).
-5. **Gasto da bancada: US$ 0,342** de teto de US$ 1,00 no livro-caixa (`eval/assistente-v1/gasto.json`): um teste de
-   fumaça, três rodadas e uma sonda de roteamento.
+5. **Gasto da bancada: US$ 0,354** de teto de US$ 1,00 no livro-caixa (`eval/assistente-v1/gasto.json`): um teste de
+   fumaça, três rodadas, uma sonda de roteamento e o antes/depois da Makora.
+6. **Makora fora do roteamento** (decisão do dono, aplicada em `ops/ia-provedores.openrouter.json`): medido antes e
+   depois, intercalado caso a caso, o p95 do "Como respondo?" caiu de **5,6 s para 3,8 s** (p50 2,8 → 2,6 s) e o da
+   legenda de **1,7 s para 1,4 s** (p50 0,67 → 0,66 s) — a legenda não piorou. O "Como respondo?" segue **0,8 s acima**
+   do alvo de 3 s.
 
 ## Método
 
@@ -109,6 +113,24 @@ A cauda é de um endpoint, não do modelo: as chamadas lentas foram quase todas 
 não foi mantida no código. No servidor, a primeira perna tem 5 s: uma chamada presa é cortada e a reserva (Llama 3.3
 70B) responde dentro do prazo total de 10 s.
 
+## Makora fora do roteamento: antes e depois
+
+`scripts/eval-ia/latencia-rota.mjs`: o mesmo pedido de produção na perna primária (Gemma 4 26B, roteamento da legenda),
+com o `roteamento` declarado em `ops/ia-provedores.openrouter.json` com e sem `makora` no `ignore`, os dois lados
+intercalados caso a caso e sem cache. Só latência e resposta utilizável. "Como respondo?": 20 contextos × 3
+repetições; legenda: o gold de conversa (60 frases) × 2 _[medido]_:
+
+| Pedido         | Rota         | n   | válidos | p50  | p90  | p95  | máx. | US$/1k |
+| -------------- | ------------ | --- | ------- | ---- | ---- | ---- | ---- | ------ |
+| Como respondo? | com a Makora | 60  | 60      | 2,76 | 4,24 | 5,64 | 7,29 | 0,065  |
+| Como respondo? | **sem ela**  | 60  | 60      | 2,59 | 3,44 | 3,79 | 4,57 | 0,061  |
+| Legenda        | com a Makora | 120 | 120     | 0,67 | 1,44 | 1,70 | 2,85 | 0,016  |
+| Legenda        | **sem ela**  | 120 | 120     | 0,66 | 1,30 | 1,45 | 1,92 | 0,016  |
+
+A Makora atendeu 8 das 60 chamadas do "Como respondo?" (as mais lentas); a legenda foi quase toda para a DekaLLM nos
+dois lados, então a diferença dela é ruído — não piorou, e a exclusão vale para todo o OpenRouter. Dados:
+`eval/assistente-v1/rota/`.
+
 ## O que mudou por causa da bancada
 
 1. **Prompt da correção**: na rodada 1, a "corrigida" vinha em minúsculas (a entrada é transcrição de voz), e o Mistral
@@ -143,8 +165,8 @@ não foi mantida no código. No servidor, a primeira perna tem 5 s: uma chamada 
 
 ## Próximos passos
 
-1. **Tirar a Makora do roteamento** (o `ignore` do provedor em `ops/ia-provedores.openrouter.json`) ou só do assistente,
-   e medir de novo o p95 do "Como respondo?" — mexe na legenda também, então é decisão do dono.
+1. ~~Tirar a Makora do roteamento~~ — feito (p95 do "Como respondo?" 5,6 → 3,8 s). Para chegar a 3 s: mostrar as
+   sugestões em fluxo (streaming) ou pedir só 2 sugestões no aperto — medir antes.
 2. Medir o p95 em staging pela telemetria (`assistente-como-respondo`) antes de ligar a flag.
 3. A tela (C2) mostra a espera do "Como respondo?" e corta as glosas automáticas em linhas curtas.
 4. Repetir a bancada com ≥ 50 casos por recurso e mais francês e espanhol.
@@ -154,7 +176,8 @@ não foi mantida no código. No servidor, a primeira perna tem 5 s: uma chamada 
 - `eval/assistente-v1/resumo.json` e `bruto.jsonl`: a comparação (rodada 2), com cada geração, latência, custo,
   provedor e os vereditos com o raciocínio dos juízes.
 - `eval/assistente-v1/final/resumo.json` e `final/bruto.jsonl`: a configuração final (rodada 3).
-- `eval/assistente-v1/gasto.json`: o livro-caixa, **US$ 0,342** no total.
+- `eval/assistente-v1/rota/resumo.json` e `rota/bruto.jsonl`: o antes/depois da Makora.
+- `eval/assistente-v1/gasto.json`: o livro-caixa, **US$ 0,354** no total.
 - Para reproduzir: `npx tsx --env-file=.env scripts/eval-ia/assistente.mjs --candidatos
 google/gemma-4-26b-a4b-it#legenda --saida docs/auditoria/eval/assistente-v1/final --caixa
 docs/auditoria/eval/assistente-v1/gasto.json --trabalho <dir do cache>`. Com o cache, refazer não paga de novo.

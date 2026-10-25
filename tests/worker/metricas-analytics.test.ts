@@ -9,6 +9,9 @@ import {
   contarAdmissaoRecusada,
   contarCacheDeTraducao,
   contarCustoPorPlano,
+  contarFeedbackDeIa,
+  contarRespostaInvalida,
+  contarTokensDeEntrada,
   esquecerMetricas,
   medirUsoDoR2,
   observarChamadaDeProvedor,
@@ -85,6 +88,20 @@ describe('famílias do Analytics Engine', () => {
     expect(pontos).toEqual([
       { blobs: ['job', 'limpeza', 'ok'], doubles: [42], indexes: ['limpeza'] },
       { blobs: ['job', 'limpeza', 'falhou'], doubles: [7], indexes: ['limpeza'] },
+    ])
+  })
+
+  it('resposta_invalida, tokens_de_entrada e feedback_ia (Fase B da IA paga): o Worker também mede a qualidade', () => {
+    contarRespostaInvalida('explicacao', 'modelo/fora-do-registro')
+    contarTokensDeEntrada('resumo', undefined, 900, 300)
+    contarTokensDeEntrada('resumo', 'x', 0, 0) // nada a contar: nenhum ponto
+    contarFeedbackDeIa('tutor', 'down', 'errado')
+    contarFeedbackDeIa('nuance', 'up', undefined)
+    expect(pontos).toEqual([
+      { blobs: ['resposta_invalida', 'explicacao', 'outro'], doubles: [1], indexes: ['explicacao'] },
+      { blobs: ['tokens_de_entrada', 'resumo', 'outro'], doubles: [900, 300], indexes: ['resumo'] },
+      { blobs: ['feedback_ia', 'tutor', 'down', 'errado'], doubles: [1], indexes: ['tutor'] },
+      { blobs: ['feedback_ia', 'nuance', 'up', 'nenhum'], doubles: [1], indexes: ['nuance'] },
     ])
   })
 

@@ -324,7 +324,7 @@ export async function percorrerCascata(
     })
     if (r.ok) {
       registrarSucesso(chave)
-      contarTokensDeEntrada(contexto.funcao ?? contexto.evento, r.tokensEntrada ?? 0, r.tokensEmCache ?? 0)
+      contarTokensDeEntrada(contexto.funcao ?? contexto.evento, prov.model, r.tokensEntrada ?? 0, r.tokensEmCache ?? 0)
       return {
         entregue: {
           texto: r.texto ?? '',

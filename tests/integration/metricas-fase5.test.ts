@@ -211,12 +211,13 @@ describe('qualidade da IA (Fase B do plano da IA paga): resposta inválida, cach
   })
 
   it('tokens de entrada e em cache por função: a razão dá a taxa de cache do prompt', async () => {
-    m.contarTokensDeEntrada('resumo', 1000, 600)
-    m.contarTokensDeEntrada('resumo', 500, 0)
-    m.contarTokensDeEntrada('resumo', Number.NaN, -1) // lixo não soma
+    m.contarTokensDeEntrada('resumo', 'modelo/fora-do-registro', 1000, 600)
+    m.contarTokensDeEntrada('resumo', undefined, 500, 0)
+    m.contarTokensDeEntrada('resumo', 'x', Number.NaN, -1) // lixo não soma
     const corpo = await scrape()
-    expect(valor(corpo, 'ia_tokens_entrada_total{funcao="resumo"}')).toBe(1500)
-    expect(valor(corpo, 'ia_tokens_em_cache_total{funcao="resumo"}')).toBe(600)
+    expect(valor(corpo, 'ia_tokens_entrada_total{funcao="resumo",modelo="outro"}')).toBe(1500)
+    expect(valor(corpo, 'ia_tokens_em_cache_total{funcao="resumo",modelo="outro"}')).toBe(600)
+    expect(corpo).not.toContain('modelo/fora-do-registro')
   })
 
   it('feedback por função, nota e motivo; sem motivo é `nenhum`', async () => {

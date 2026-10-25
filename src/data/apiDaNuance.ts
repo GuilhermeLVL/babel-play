@@ -34,8 +34,12 @@ export type FalhaDaNuance =
 export type ResultadoDaNuance<T> = { ok: true; valor: T } | { ok: false; motivo: FalhaDaNuance; status: number };
 
 /** Exportada para o teste: a cota (`motivoDeCota`, o mesmo mapeamento da IA de estudo) vem ANTES do 402 genérico. */
-export function motivoDaFalha(status: number, code: string | undefined): FalhaDaNuance {
-  const cota = motivoDeCota(status, code);
+export function motivoDaFalha(
+  status: number,
+  code: string | undefined,
+  detalhes?: Record<string, unknown>,
+): FalhaDaNuance {
+  const cota = motivoDeCota(status, code, detalhes);
   if (cota) return cota;
   if (status === 402) return 'exige_nuance';
   if (status === 401 || status === 403 || code === 'exige_conta') return 'sem_conta';
@@ -54,7 +58,7 @@ async function chamar<T>(caminho: string, init: RequestInit, ler: (corpo: unknow
   }
   if (!res.ok) {
     const erro = await lerErro(res);
-    return { ok: false, motivo: motivoDaFalha(res.status, erro.code), status: res.status };
+    return { ok: false, motivo: motivoDaFalha(res.status, erro.code, erro.detalhes), status: res.status };
   }
   const valor = ler(await res.json().catch(() => null));
   return valor === null ? { ok: false, motivo: 'indisponivel', status: res.status } : { ok: true, valor };

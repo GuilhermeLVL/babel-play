@@ -106,6 +106,10 @@ describe('POST /api/ai/feedback', () => {
       dataType: 'NUMERIC',
       metadata: { funcao: 'explicacao', nota: 'down', motivo: 'errado', nivel: 'nuance', modelo: 'outro' },
     })
+    // O horário vai ARREDONDADO ao minuto: não dá para casar a nota com o rastro da explicação pelo instante.
+    for (const iso of [rastro.timestamp, rastro.body.timestamp, nota.timestamp])
+      expect(Date.parse(iso) % 60_000).toBe(0)
+    expect(rastro.body.metadata.latenciaMs).toBe(0)
     const tudo = JSON.stringify(evs)
     expect(tudo).not.toContain('usuario-feedback')
     expect(tudo).not.toContain('x/desconhecido')

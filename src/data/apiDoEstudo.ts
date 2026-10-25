@@ -56,14 +56,14 @@ export interface RespostaDaExplicacao {
   restanteNaAmostra: number | null;
 }
 
-function motivoDaFalha(status: number, code: string | undefined): FalhaDoEstudo {
+function motivoDaFalha(status: number, code: string | undefined, detalhes?: Record<string, unknown>): FalhaDoEstudo {
   if (status === 404 && code === 'recurso_indisponivel') return 'fora';
   if (code === 'sem_plano') return 'sem_plano';
   /* Sem sessão, quem responde é o servidor em memória: 501 `EXIGE_CONTA` (`data/efemero/nucleo.ts`), em maiúsculas. */
   if (status === 401 || code?.toLowerCase() === 'exige_conta') return 'sem_conta';
   if (code === 'sessao_curta') return 'sessao_curta';
   if (code === 'amostra_acabou') return 'amostra_acabou';
-  const cota = motivoDeCota(status, code);
+  const cota = motivoDeCota(status, code, detalhes);
   if (cota) return cota;
   if (status === 400) return 'invalido';
   return 'indisponivel';
@@ -115,7 +115,7 @@ export async function explicarFrase(p: PedidoDeExplicacao): Promise<ResultadoDoE
   }
   if (!res.ok) {
     const erro = await lerErro(res);
-    return { ok: false, motivo: motivoDaFalha(res.status, erro.code), status: res.status };
+    return { ok: false, motivo: motivoDaFalha(res.status, erro.code, erro.detalhes), status: res.status };
   }
   const valor = lerResposta(await res.json().catch(() => null));
   return valor === null
@@ -193,7 +193,7 @@ export async function resumirSessao(p: {
   }
   if (!res.ok) {
     const erro = await lerErro(res);
-    return { ok: false, motivo: motivoDaFalha(res.status, erro.code), status: res.status };
+    return { ok: false, motivo: motivoDaFalha(res.status, erro.code, erro.detalhes), status: res.status };
   }
   const valor = lerResumo(await res.json().catch(() => null));
   return valor === null

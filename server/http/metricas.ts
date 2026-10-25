@@ -129,8 +129,8 @@ interface Estado {
   r2UsoFracao: Gauge<'recurso'>
   /* Fase B do plano de qualidade da IA paga (item 7): o JSON que não serviu, o cache de prompt e o feedback. */
   respostaInvalida: Counter<'funcao' | 'modelo'>
-  tokensDeEntrada: Counter<'funcao'>
-  tokensEmCache: Counter<'funcao'>
+  tokensDeEntrada: Counter<'funcao' | 'modelo'>
+  tokensEmCache: Counter<'funcao' | 'modelo'>
   feedbackDeIa: Counter<'funcao' | 'nota' | 'motivo'>
 }
 
@@ -410,13 +410,13 @@ function criarEstadoProm(): Estado {
        (tokens em cache custam a metade no gpt-oss). Só das pernas que ENTREGARAM. */
     tokensDeEntrada: new Counter({
       name: 'ia_tokens_entrada_total',
-      help: 'Tokens de entrada das chamadas de LLM entregues, por função (inclui os servidos do cache de prompt).',
-      labelNames: ['funcao'] as const,
+      help: 'Tokens de entrada das chamadas de LLM entregues, por função e modelo (inclui os servidos do cache de prompt).',
+      labelNames: ['funcao', 'modelo'] as const,
     }),
     tokensEmCache: new Counter({
       name: 'ia_tokens_em_cache_total',
-      help: 'Tokens de entrada servidos do cache de prompt do provedor, por função. Dividir por ia_tokens_entrada_total dá a taxa de cache.',
-      labelNames: ['funcao'] as const,
+      help: 'Tokens de entrada servidos do cache de prompt do provedor, por função e modelo. Dividir por ia_tokens_entrada_total dá a taxa de cache.',
+      labelNames: ['funcao', 'modelo'] as const,
     }),
     /* O FEEDBACK QUE CHEGA (`POST /api/ai/feedback`): 👍/👎 por função, com o motivo da lista fechada. Nenhum
        rótulo carrega texto ou quem mandou. */
@@ -734,19 +734,35 @@ export function observarChamadaDeProvedor(o: {
 
 /** Uma resposta de LLM que o `ler*` recusou (502 `resposta_invalida`). `funcao` é valor fixo do código. */
 export function contarRespostaInvalida(funcao: string, modelo: string | undefined): void {
+  const rotulo = rotuloFechado(modelo, rotulosDoRegistro().modelos)
+  if (ehWorker()) gravarPonto('resposta_invalida', [funcao, rotulo], [1], funcao)
   if (!estado) return
-  estado.respostaInvalida.inc({ funcao, modelo: rotuloFechado(modelo, rotulosDoRegistro().modelos) })
+  estado.respostaInvalida.inc({ funcao, modelo: rotulo })
 }
 
-/** Os tokens de entrada de uma chamada entregue e quantos deles vieram do cache de prompt. */
-export function contarTokensDeEntrada(funcao: string, entrada: number, emCache: number): void {
+/**
+ * Os tokens de entrada de uma chamada entregue e quantos deles vieram do cache de prompt, por função e MODELO (o
+ * cache é do provedor de cada modelo: misturar os modelos esconderia qual perna não aproveita o prefixo fixo).
+ */
+export function contarTokensDeEntrada(
+  funcao: string,
+  modelo: string | undefined,
+  entrada: number,
+  emCache: number,
+): void {
+  const e = Number.isFinite(entrada) && entrada > 0 ? entrada : 0
+  const c = Number.isFinite(emCache) && emCache > 0 ? emCache : 0
+  if (e === 0 && c === 0) return
+  const rotulo = rotuloFechado(modelo, rotulosDoRegistro().modelos)
+  if (ehWorker()) gravarPonto('tokens_de_entrada', [funcao, rotulo], [e, c], funcao)
   if (!estado) return
-  if (Number.isFinite(entrada) && entrada > 0) estado.tokensDeEntrada.inc({ funcao }, entrada)
-  if (Number.isFinite(emCache) && emCache > 0) estado.tokensEmCache.inc({ funcao }, emCache)
+  if (e > 0) estado.tokensDeEntrada.inc({ funcao, modelo: rotulo }, e)
+  if (c > 0) estado.tokensEmCache.inc({ funcao, modelo: rotulo }, c)
 }
 
 /** Uma avaliação JÁ VALIDADA pela rota (`server/ai/feedback.ts`): os três rótulos são de listas fechadas. */
 export function contarFeedbackDeIa(funcao: string, nota: 'up' | 'down', motivo: string | undefined): void {
+  if (ehWorker()) gravarPonto('feedback_ia', [funcao, nota, motivo ?? 'nenhum'], [1], funcao)
   if (!estado) return
   estado.feedbackDeIa.inc({ funcao, nota, motivo: motivo ?? 'nenhum' })
 }
@@ -759,8 +775,8 @@ export function observarJob(nome: string, ms: number, resultado: 'ok' | 'falhou'
   if (ehWorker()) gravarPonto('job', [nome, resultado], [ms], nome)
 }
 
-/* As demais funções `contar*`/`observar*` ficam sem efeito no Worker de propósito: só as 6 famílias do R6
-   (requisicao, admissao_recusada, custo_por_plano, r2, provedor, job) viram pontos do Analytics Engine. */
+/* As demais funções `contar*`/`observar*` ficam sem efeito no Worker de propósito: só as 6 famílias do R6 e as 3 da qualidade da IA
+   (requisicao, admissao_recusada, custo_por_plano, r2, provedor, job; resposta_invalida, tokens_de_entrada, feedback_ia) viram pontos do Analytics Engine. */
 
 /** Um 429 do provedor. Rótulos fixos do código ou do env — ver o bloco da métrica. */
 export function contarLimiteDoProvedor(provedor: string, modelo: string): void {

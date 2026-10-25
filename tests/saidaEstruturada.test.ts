@@ -141,6 +141,9 @@ describe('response_format json_schema estrito no OpenRouter', () => {
 
     for (const [status, corpo] of [
       [400, 'max_tokens too large'],
+      [400, '{"error":{"message":"temperature is not supported with this model","param":"temperature"}}'],
+      [400, 'invalid parameters: top_p'],
+      [404, '{"error":{"message":"Model not found"}}'],
       [429, 'rate limited'],
       [503, 'upstream down'],
     ] as const) {
@@ -158,7 +161,7 @@ describe('response_format json_schema estrito no OpenRouter', () => {
   })
 
   it('a segunda tentativa que também falha devolve a falha dela (a cascata segue para a reserva)', async () => {
-    stubFetch([404, 502], 'falhou')
+    stubFetch([404, 502]) // o 404 é o "No endpoints found" padrão do stub; o 502 vem com o mesmo corpo
     const r = await chamarChat({ base: OPENROUTER, model: 'm', messages: mensagens, formatoDeSaida: SAIDA_DO_RESUMO })
     expect(r.ok).toBe(false)
     expect(r.status).toBe(502)

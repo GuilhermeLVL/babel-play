@@ -300,7 +300,7 @@ cai num balde `desconhecida`. É o que impede um scanner de porta de criar mil s
 
 ### 3.1 Métricas do Worker: Analytics Engine
 
-No Worker não há `/metrics` (404). Seis famílias saem como pontos de dados para o dataset `frasy_metricas`
+No Worker não há `/metrics` (404). Nove famílias saem como pontos de dados para o dataset `frasy_metricas`
 (`frasy_metricas_staging` no staging), binding `METRICAS`, gravados por `server/http/metricasDoAnalyticsEngine.ts`.
 Sem o binding (dev local, testes) nada é gravado. Falha do binding vira um único `analytics_engine_falhou`
 (`warn`) por isolate. Blobs e índice são cortados em 96 bytes; um número não finito derruba o ponto.
@@ -315,6 +315,9 @@ Sem o binding (dev local, testes) nada é gravado. Falha do binding vira um úni
 | `r2`                | recurso (`armazenamento`, `ops_a`, `ops_b`) |                  |            |        | fração de uso |                               | recurso  |
 | `provedor`          | provedor                                    | função           | fornecedor | modelo | ms            | custo (USD, 0 se não cobrado) | provedor |
 | `job`               | nome                                        | `ok` ou `falhou` |            |        | ms            |                               | nome     |
+| `resposta_invalida` | função                                      | modelo           |            |        | 1             |                               | função   |
+| `tokens_de_entrada` | função                                      | modelo           |            |        | tokens        | tokens em cache               | função   |
+| `feedback_ia`       | função                                      | `up` ou `down`   | motivo     |        | 1             |                               | função   |
 
 Consultas pela API SQL (`POST https://api.cloudflare.com/client/v4/accounts/<conta>/analytics_engine/sql`,
 token com "Account Analytics: Read"; o corpo é o SQL). Some `_sample_interval` para corrigir a amostragem:

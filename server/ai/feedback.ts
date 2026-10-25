@@ -67,7 +67,9 @@ export function registrarFeedback(req: Request, res: Response): void {
   /* O motivo é do 👎: no 👍 ele não diz nada e não vira série. */
   const motivo = f.nota === 'down' ? f.motivo : undefined
   contarFeedbackDeIa(f.funcao, f.nota, motivo)
-  const agora = Date.now()
+  /* O HORÁRIO ARREDONDADO AO MINUTO: com o instante exato, a nota poderia ser casada com o rastro da explicação
+     (que leva o pseudônimo) pelo horário, e o feedback deixaria de ser anônimo. */
+  const agora = Math.floor(Date.now() / 60_000) * 60_000
   const metadados = {
     funcao: f.funcao,
     modelo: modeloConhecido(f.modelo),

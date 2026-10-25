@@ -136,13 +136,14 @@ export function tamanhoDoPrompt(messages: MensagemDeChat[]): number {
  * coisas diferentes em arquivos vizinhos.
  */
 /**
- * O OpenRouter recusou o pedido PELOS PARÂMETROS: com `require_parameters`, nenhum endpoint do modelo aceita o
- * `response_format` — 404 ("No endpoints found that can handle the requested parameters") ou um 400 que cita o
- * esquema. É a única falha que a segunda tentativa sem esquema conserta; as outras seguem para a reserva.
+ * O OpenRouter recusou o pedido PELO ESQUEMA: com `require_parameters`, nenhum endpoint do modelo aceita o
+ * `response_format` — 404 "No endpoints found…" ou um 400 que cita o response_format/json_schema. É a única falha que a segunda tentativa sem esquema conserta; as outras seguem para a reserva.
  */
 function recusouOEsquema(status: number, corpo: string): boolean {
-  if (status === 404) return true
-  return status === 400 && /response_format|json_schema|structured|require_parameters|parameters/i.test(corpo)
+  /* SÓ a recusa do esquema. Um 400 de outro parâmetro (temperature, top_p, max_tokens) ou um 404 de modelo
+     inexistente seria repetido à toa — e a mesma falha voltaria. */
+  if (status === 404) return /no endpoints found/i.test(corpo)
+  return status === 400 && /response_format|json_schema|structured|require_parameters/i.test(corpo)
 }
 
 export async function chamarChat(p: PedidoDeChat): Promise<RespostaDeChat> {

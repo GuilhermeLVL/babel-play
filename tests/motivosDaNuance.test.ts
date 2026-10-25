@@ -34,6 +34,10 @@ describe('motivoDeCota (o mapeamento único)', () => {
     expect(motivoDeCota(429, 'nuvem_ocupada')).toBe('nuvem_ocupada')
     expect(motivoDeCota(429, undefined)).toBe('nuvem_ocupada')
   })
+  it('402 quota_exceeded com escopo "ip" (convidados da mesma rede, cota DIÁRIA) é o limite de hoje, não "dia 1º"', () => {
+    expect(motivoDeCota(402, 'quota_exceeded', { plano: 'convidado', escopo: 'ip' })).toBe('uso_justo')
+    expect(motivoDeCota(402, 'quota_exceeded', { plano: 'convidado', escopo: 'convidado' })).toBe('cota_do_mes')
+  })
   it('o resto não é de cota', () => {
     expect(motivoDeCota(402, 'exige_nuance')).toBeNull()
     expect(motivoDeCota(402, undefined)).toBeNull()
@@ -71,6 +75,13 @@ describe('as chamadas da Nuance, pela resposta HTTP', () => {
     expect(await traduzirComNuance(pedido)).toEqual({ ok: false, motivo: 'cota_do_mes', status: 402 })
     rede.apiFetch.mockResolvedValueOnce(json(429, { error: 'hoje', code: 'uso_justo_do_dia' }))
     expect(await traduzirComNuance(pedido)).toEqual({ ok: false, motivo: 'uso_justo', status: 429 })
+  })
+
+  it('traduzir como convidado: a cota diária da rede (escopo ip) vira uso_justo', async () => {
+    rede.apiFetch.mockResolvedValueOnce(
+      json(402, { error: 'rede', code: 'quota_exceeded', detalhes: { plano: 'convidado', escopo: 'ip' } }),
+    )
+    expect(await traduzirComNuance(pedido)).toEqual({ ok: false, motivo: 'uso_justo', status: 402 })
   })
 
   it('traduzir e outras formas trazem o modelo da procedência (para o 👍/👎)', async () => {

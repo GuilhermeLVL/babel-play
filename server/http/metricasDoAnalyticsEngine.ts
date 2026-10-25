@@ -25,7 +25,17 @@ export interface BindingDeMetricas {
   writeDataPoint(ponto: PontoDeDados): void
 }
 
-export type FamiliaDeMetrica = 'requisicao' | 'admissao_recusada' | 'custo_por_plano' | 'r2' | 'provedor' | 'job'
+export type FamiliaDeMetrica =
+  | 'requisicao'
+  | 'admissao_recusada'
+  | 'custo_por_plano'
+  | 'r2'
+  | 'provedor'
+  | 'job'
+  /* Fase B da IA paga (qualidade): o JSON que não serviu, o cache de prompt e o 👍/👎. */
+  | 'resposta_invalida'
+  | 'tokens_de_entrada'
+  | 'feedback_ia'
 
 /** O limite do índice e o que se aplica também aos blobs, para o rótulo ter o mesmo teto em toda parte. */
 const LIMITE_EM_BYTES = 96

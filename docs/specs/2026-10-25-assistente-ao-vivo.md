@@ -29,7 +29,6 @@ aqui trata só a frase que a própria pessoa está vendo ou falou, e sempre leva
 
 ## Fora do escopo
 
-- A tela (Fase C2). Este documento entrega o contrato da API e os clientes tipados em `src/data/`.
 - Qualquer modo "oculto", "indetectável" ou "para entrevistas" (a lição do Cluely). A copy segue a skill
   `copy-br-etica`.
 - Tudo que analisa terceiros: resumo, ata, tarefas, "quem disse o quê", emoção ou tom de quem fala, dossiê do
@@ -116,6 +115,26 @@ cache, `restanteHoje` é o último valor conhecido na aba, ou fica de fora — n
   palavras". Nada de "oculto", "ninguém vê" ou "entrevista".
 - Correção: interruptor desligado por padrão, e só com a fala do microfone da própria pessoa.
 - No Safari (PiP de vídeo, só leitura) só cabem 1, 2 e 3, desenhados inline.
+
+### A tela (Fase C2)
+
+| Peça                                        | O que faz                                                                                                                                                                                                                                                                       |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/core/assistente/telaDoAssistente.ts`   | Puro: o portão (`recursosDoAssistente`: flag + `assistenteDia` do plano + recusa do servidor na sessão + consentimento), a faixa mínima (`assistenteNoLayout`), o orçamento (`planejarChamadas`), as marcas sem sobreposição (`marcasDaLinha`) e a glosa única do PiP de vídeo. |
+| `src/lib/assistente/agendaDoAssistente.ts`  | Quando uma linha final vai à nuvem: espera de 700 ms, uma chamada por linha, a linha atropelada não é pedida, nada pausado/escondido/fechado.                                                                                                                                   |
+| `src/lib/assistente/ajustesDoAssistente.ts` | Os ajustes no aparelho (`babel.assistente`): nível, expressões, termos, correção (opt-in, desligada), abrir na aba.                                                                                                                                                             |
+| `src/components/views/captura/assistente/`  | O hook (`useAssistenteAoVivo`), a folha "Como respondo?", a aba Assistente (glossário com Salvar), a seção dos Ajustes da captura e a copy (`copyDoAssistente.ts`).                                                                                                             |
+
+- **Silencioso**: sublinhado pontilhado na palavra (cor por tipo), sentido no `title` e no cartão da palavra (toque ou Enter);
+  nenhum aviso, som ou anúncio ao leitor de tela. Falha automática não avisa; a cota esgotada para as automáticas e deixa
+  uma nota na aba.
+- **Faixa (jogo)**: só as marcas, mais finas; sem botão, sem correção, sem abas. **PiP de vídeo**: uma linha curta de glosa
+  (expressão, senão termo) embaixo da legenda nos formatos Legenda e Conversa; na faixa, nada.
+- **"Como respondo?"**: botão no canto (com os controles) e Alt+R, em legenda/conversa/estudo; folha com 2–3 sugestões,
+  tradução, tom, Copiar e Ouvir; "Pensando em respostas…" e, depois de 2,5 s, "Está demorando…" com Cancelar.
+- **Escondido** com a flag desligada, no Grátis ou depois de um `sem_plano`/`fora` do servidor; o recurso 2 segue. O perfil
+  protegido recebe os mesmos recursos, sem contexto no "Como respondo?" e sem nenhuma oferta.
+- Testes: `tests/assistente-tela.test.ts`, `tests/assistente-janela.test.tsx`, `tests/e2e/assistente-ao-vivo.e2e.ts`.
 
 ### Cota e custo
 

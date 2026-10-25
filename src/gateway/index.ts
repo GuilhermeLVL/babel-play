@@ -171,6 +171,11 @@ function obterParakeet(): Promise<SttDoParakeet> {
   return parakeet.carga;
 }
 
+/** A reserva do Parakeet (`reservaParakeet`): a geração cancela a ligação em curso; `ligada` diz se ela está de pé. */
+const reservaDoParakeet = { geracao: 0, ligada: false };
+/** De quanto em quanto tempo a reserva confere se o Whisper terminou as falas em voo. */
+const ESPERA_DO_WHISPER_OCIOSO_MS = 50;
+
 /** Liga ou desliga o Parakeet na cadeia. Desligado, o worker dele é encerrado (devolve a memória). */
 function usarParakeet(ativo: boolean): void {
   parakeet.ativo = ativo;
@@ -705,6 +710,9 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
       setRoute(route: { preferCloud: boolean; localModel?: string; dtype?: string; device?: 'wasm' | 'webgpu' }): void {
         sttPreferCloudRef.value = route.preferCloud;
         if (route.localModel) {
+          // Rota nova (nova preparação): a reserva do Parakeet da rota anterior acaba aqui.
+          reservaDoParakeet.geracao++;
+          reservaDoParakeet.ligada = false;
           /* PARAKEET: entra na cadeia antes do Whisper local, que fica de RESERVA com o base (o
              multilíngue que cabe em qualquer computador), sem dtype nem backend forçados. Nada do
              Whisper é carregado aqui: só se o Parakeet falhar. Qualquer outro modelo o tira da cadeia. */
@@ -733,52 +741,64 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
       },
 
       /**
-       * O PARAKEET DE RESERVA da nuvem (Fase B, item 5; rodada de correção 1). Ligar: ele entra na cadeia
-       * (atrás da nuvem, na frente do Whisper) e carrega, e o Whisper é LIBERADO — o Parakeet (~2 GB) e o
-       * Whisper quente juntos com o tradutor não cabem (`memoriaDosModelos.ts`). O modelo do Whisper NÃO é
-       * tocado (o regulador pode tê-lo descido). Se o Parakeet não carregar, ele sai e o Whisper volta.
-       * Desligar: o Parakeet sai (o worker é encerrado) e o Whisper recarrega, com o modelo que tinha.
+       * O PARAKEET DE RESERVA da nuvem (Fase B, item 5; rodadas de correção 1 e 2).
+       *
+       * LIGAR acontece DENTRO do aviso de pausa, antes de a nuvem lançar: a cadeia de `transcribePcm` já
+       * montada leva a fala da pausa ao Whisper, e há falas em voo nele (a captura dupla). Então o Whisper
+       * segue QUENTE atendendo; o Parakeet carrega em segundo plano; quando ele fica pronto, entra na
+       * cadeia (as falas NOVAS vão a ele); e só quando o Whisper está ocioso (fila vazia) ele é liberado —
+       * uma vez, sem nunca recarregar enquanto o Parakeet atende. O Parakeet (~2 GB), o Whisper e o
+       * tradutor juntos não cabem (`memoriaDosModelos.ts`), por isso o Whisper sai. O modelo do Whisper
+       * NÃO é tocado (o regulador pode tê-lo descido). Se o Parakeet não carregar, nada mudou.
+       *
+       * DESLIGAR: o Parakeet sai (o worker é encerrado) e o Whisper recarrega, com o modelo que tinha —
+       * só se a reserva estava ligada (um ouvinte atrasado depois da saída da captura não recarrega nada).
+       * `liberarModelo` (sair da captura) cancela uma ligação em curso.
        */
       async reservaParakeet(ativa: boolean): Promise<void> {
-        const liberarWhisper = () => {
-          for (const b of core.getProfile().bindings.stt ?? []) {
-            if (b.adapterId !== 'whisper-local') continue;
+        const whispers = (): SttProvider[] =>
+          (core.getProfile().bindings.stt ?? []).flatMap((b) => {
+            if (b.adapterId !== 'whisper-local') return [];
             try {
-              (resolveStt(b) as { liberar?: () => void }).liberar?.();
+              return [resolveStt(b)];
             } catch {
-              /* próximo binding */
+              return [];
             }
-          }
-        };
-        const carregarWhisper = async () => {
-          for (const b of core.getProfile().bindings.stt ?? []) {
-            if (b.adapterId !== 'whisper-local') continue;
-            try {
-              const a = resolveStt(b);
-              if (a.isAvailable() && a.preload) return await a.preload();
-            } catch {
-              /* próximo binding */
-            }
-          }
-        };
+          });
+        const geracao = ++reservaDoParakeet.geracao;
+        const vale = () => geracao === reservaDoParakeet.geracao;
         if (!ativa) {
+          if (!reservaDoParakeet.ligada) return;
+          reservaDoParakeet.ligada = false;
           usarParakeet(false);
-          await carregarWhisper();
+          for (const a of whispers()) if (a.isAvailable() && a.preload) await a.preload().catch(() => undefined);
           return;
         }
-        usarParakeet(true);
-        liberarWhisper();
+        reservaDoParakeet.ligada = true;
         try {
           const a = await obterParakeet();
           if (!a.isAvailable() || !a.preload) throw new Error('Parakeet indisponível neste aparelho');
           await a.preload();
         } catch (e) {
-          if (!parakeet.ativo) return; // desligada no meio da carga
-          console.warn('[stt] Parakeet de reserva não carregou; volta o Whisper:', String(e));
+          if (!vale()) return;
+          reservaDoParakeet.ligada = false;
+          console.warn('[stt] Parakeet de reserva não carregou; o Whisper segue de reserva:', String(e));
           capMetrics.fallback(`stt:${ADAPTADOR_DO_PARAKEET}`);
-          usarParakeet(false);
-          await carregarWhisper();
+          parakeet.adaptador?.liberar();
+          return;
         }
+        if (!vale()) {
+          if (!parakeet.ativo) parakeet.adaptador?.liberar();
+          return;
+        }
+        usarParakeet(true); // as falas NOVAS vão ao Parakeet; o Whisper termina as que tem
+        const ocioso = () => whispers().every((a) => ((a as { queueDepth?: number }).queueDepth ?? 0) === 0);
+        while (!ocioso()) {
+          await new Promise((r) => setTimeout(r, ESPERA_DO_WHISPER_OCIOSO_MS));
+          if (!vale() || !parakeet.ativo) return;
+        }
+        if (!vale() || !parakeet.ativo) return;
+        for (const a of whispers()) (a as { liberar?: () => void }).liberar?.();
       },
 
       /**
@@ -807,6 +827,10 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
        * A captura chama ao sair, em aparelho com pouca memória (`perfilDoDispositivo().poucaMemoria`).
        */
       liberarModelo(): void {
+        // Sair da captura cancela a reserva do Parakeet (em curso ou ligada): nada recarrega depois.
+        reservaDoParakeet.geracao++;
+        if (reservaDoParakeet.ligada) parakeet.ativo = false; // a reserva sai da cadeia (a rota local fica)
+        reservaDoParakeet.ligada = false;
         parakeet.adaptador?.liberar();
         for (const b of core.getProfile().bindings.stt ?? []) {
           try {

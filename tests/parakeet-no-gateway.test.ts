@@ -45,6 +45,8 @@ vi.mock('../src/gateway/adapters/parakeetLocal', () => {
 /** O Whisper local falso: guarda o modelo que o gateway lhe deu. */
 const whisper = vi.hoisted(() => ({
   modelos: [] as Array<[string, unknown]>,
+  /** Falas pendentes no worker do Whisper (o `pending.size` do de verdade). */
+  fila: 7,
   preload: vi.fn(async (_p?: unknown) => {}),
   transcribePcm: vi.fn(async (pcm: Float32Array, _sr: number, _o?: unknown) => ({
     text: `do whisper (${pcm.length})`,
@@ -57,7 +59,9 @@ vi.mock('../src/gateway/adapters/whisperLocal', () => ({
     readonly id = 'whisper-local'
     readonly supportsBlob = true
     readonly supportsLiveMic = false
-    readonly queueDepth = 7
+    get queueDepth() {
+      return whisper.fila
+    }
     isAvailable = () => true
     setModel = (m: string, o?: unknown) => void whisper.modelos.push([m, o])
     preload = whisper.preload
@@ -99,6 +103,8 @@ beforeEach(() => {
   parakeet.preload.mockImplementation(async () => {})
   parakeet.transcribePcm.mockImplementation(async () => ({ text: 'do parakeet' }))
   whisper.modelos = []
+  whisper.fila = 7
+  whisper.transcribePcm.mockImplementation(async (pcm: Float32Array) => ({ text: `do whisper (${pcm.length})` }))
   for (const f of [whisper.preload, whisper.transcribePcm, whisper.transcribeIfIdle, whisper.liberar]) f.mockClear()
 })
 
@@ -264,25 +270,60 @@ describe('com a rota do Parakeet', () => {
 /* Rodada de correção 1, item 2: o Parakeet de RESERVA da nuvem entra sem trocar o modelo do Whisper (o
    regulador pode tê-lo descido) e sem empilhar: o Whisper sai da memória enquanto o Parakeet atende, e
    volta quando a reserva sai. */
+/* Rodadas de correção 1 e 2, item 2: o Parakeet de RESERVA da nuvem carrega em SEGUNDO PLANO, com o
+   Whisper quente atendendo a fala da pausa e as em voo. Só quando o Parakeet ficou pronto E o Whisper
+   está ocioso o Parakeet passa a atender e o Whisper é liberado — uma vez, sem recarregar. O modelo do
+   Whisper nunca é tocado (o regulador pode tê-lo descido). */
 describe('reservaParakeet (a reserva pesada da nuvem)', () => {
   const ROTA_DE_NUVEM = { preferCloud: true, localModel: WHISPER_MODELS.base, dtype: 'hybrid' }
+  /** Uma promessa que o teste resolve. */
+  function adiada<T = void>() {
+    let resolver!: (v: T) => void
+    const promessa = new Promise<T>((r) => (resolver = r))
+    return { promessa, resolver }
+  }
+  const espera = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-  it('ligar: o Parakeet entra na cadeia e carrega; o Whisper é LIBERADO e o modelo dele não é tocado', async () => {
+  it('a fala da pausa e a pendente vão ao Whisper quente; o Whisper só sai depois do Parakeet pronto e ocioso, uma vez', async () => {
     const { gw } = await montar()
     gw.stt.setRoute(ROTA_DE_NUVEM)
     gw.stt.trocarModeloLocal(WHISPER_MODELS.tiny) // o regulador desceu
     const modelosAntes = whisper.modelos.length
-    await gw.stt.reservaParakeet(true)
-    expect(gw.stt.parakeetAtivo()).toBe(true)
-    expect(parakeet.preload).toHaveBeenCalledTimes(1)
-    expect(whisper.liberar).toHaveBeenCalledTimes(1)
-    expect(whisper.modelos.length).toBe(modelosAntes) // nenhum setModel(base): o tiny do regulador fica
+    const cargaDoParakeet = adiada()
+    parakeet.preload.mockImplementation(() => cargaDoParakeet.promessa)
+    // Uma fala já pendente no Whisper (a captura dupla), que só termina quando o teste mandar.
+    const pendente = adiada<{ text: string }>()
+    whisper.fila = 1
+    whisper.transcribePcm.mockImplementationOnce(() => pendente.promessa)
+    const falaPendente = gw.stt.transcribePcm(pcm(), 16000, { languageHint: 'pt' })
+
+    const ligando = gw.stt.reservaParakeet(true) // a pausa: dentro do aviso, antes de a nuvem lançar
+    expect(gw.stt.parakeetAtivo()).toBe(false)
+    expect(whisper.liberar).not.toHaveBeenCalled()
+    // A fala da pausa (a que a cadeia já montou) vai ao Whisper quente, não a um Whisper liberado.
+    expect((await gw.stt.transcribePcm(pcm(), 16000, { languageHint: 'pt' })).engine).toBe('whisper-local')
+
+    cargaDoParakeet.resolver() // o Parakeet ficou pronto…
+    await espera(80)
+    expect(gw.stt.parakeetAtivo()).toBe(true) // …e passa a atender as falas novas,
+    expect(whisper.liberar).not.toHaveBeenCalled() // mas o Whisper ainda tem fala em voo.
     expect((await gw.stt.transcribePcm(pcm(), 16000, { languageHint: 'pt' })).engine).toBe('parakeet-local')
+
+    pendente.resolver({ text: 'a pendente' })
+    whisper.fila = 0
+    expect((await falaPendente).text).toBe('a pendente') // nenhuma fala perdida
+    await ligando
+    expect(whisper.liberar).toHaveBeenCalledTimes(1)
+    expect(whisper.preload).not.toHaveBeenCalled() // nunca recarregado enquanto o Parakeet atende
+    expect(whisper.modelos.length).toBe(modelosAntes) // nenhum setModel: o tiny do regulador fica
+    expect((await gw.stt.transcribePcm(pcm(), 16000, { languageHint: 'pt' })).engine).toBe('parakeet-local')
+    expect(whisper.preload).not.toHaveBeenCalled()
   })
 
   it('desligar: o Parakeet sai (worker encerrado) e o Whisper recarrega, com o modelo que tinha', async () => {
     const { gw } = await montar()
     gw.stt.setRoute(ROTA_DE_NUVEM)
+    whisper.fila = 0
     await gw.stt.reservaParakeet(true)
     whisper.preload.mockClear()
     const modelosAntes = whisper.modelos.length
@@ -293,15 +334,42 @@ describe('reservaParakeet (a reserva pesada da nuvem)', () => {
     expect(whisper.modelos.length).toBe(modelosAntes)
   })
 
-  it('o Parakeet de reserva não carrega: sai da cadeia e o Whisper volta a carregar', async () => {
+  it('o Parakeet de reserva não carrega: nunca entrou, e o Whisper (que nunca saiu) não é recarregado', async () => {
     const { gw } = await montar()
     gw.stt.setRoute(ROTA_DE_NUVEM)
+    whisper.fila = 0
     parakeet.preload.mockRejectedValue(new Error('integridade'))
     const aviso = vi.spyOn(console, 'warn').mockImplementation(() => {})
     await gw.stt.reservaParakeet(true)
     expect(gw.stt.parakeetAtivo()).toBe(false)
-    expect(whisper.preload).toHaveBeenCalledTimes(1)
+    expect(whisper.liberar).not.toHaveBeenCalled()
+    expect(whisper.preload).not.toHaveBeenCalled()
     aviso.mockRestore()
+  })
+
+  it('desligar no meio da carga (ou sair da captura): o Parakeet não entra e o Whisper não é liberado', async () => {
+    const { gw } = await montar()
+    gw.stt.setRoute(ROTA_DE_NUVEM)
+    whisper.fila = 0
+    const carga = adiada()
+    parakeet.preload.mockImplementation(() => carga.promessa)
+    const ligando = gw.stt.reservaParakeet(true)
+    gw.stt.liberarModelo() // a pessoa saiu da captura
+    carga.resolver()
+    await ligando
+    expect(gw.stt.parakeetAtivo()).toBe(false)
+    expect(whisper.liberar).toHaveBeenCalledTimes(1) // só o do `liberarModelo`
+  })
+
+  it('desligar a reserva que não está ligada (ouvinte atrasado depois da saída) não recarrega o Whisper', async () => {
+    const { gw } = await montar()
+    gw.stt.setRoute(ROTA_DE_NUVEM)
+    whisper.fila = 0
+    await gw.stt.reservaParakeet(true)
+    gw.stt.liberarModelo()
+    whisper.preload.mockClear()
+    await gw.stt.reservaParakeet(false)
+    expect(whisper.preload).not.toHaveBeenCalled()
   })
 })
 

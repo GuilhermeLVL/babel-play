@@ -59,6 +59,8 @@ export interface OpcoesDoSite {
   flags: Set<string>;
   adsensePubId: string | null;
   versaoDaFonte: string;
+  /** Versão do pacote da Inter (padrão: a da Archivo). */
+  versaoDaFonteDoTexto?: string;
 }
 
 /** As páginas indexáveis, na ordem do sitemap: [caminho, arquivo]. */
@@ -97,7 +99,7 @@ export function robots(url: string): string {
 /** Todos os arquivos do site: caminho relativo a `dist/` → conteúdo. */
 export function gerarSite(o: OpcoesDoSite): Map<string, string> {
   const url = o.urlDoSite;
-  const base = { urlDoSite: url, versaoDaFonte: o.versaoDaFonte };
+  const base = { urlDoSite: url, versaoDaFonte: o.versaoDaFonte, versaoDaFonteDoTexto: o.versaoDaFonteDoTexto };
   const planos = planosDoSite(o.flags);
   const arquivos = new Map<string, string>();
   const organizacao = {
@@ -229,11 +231,49 @@ export function gerarSite(o: OpcoesDoSite): Map<string, string> {
   return arquivos;
 }
 
+/** As páginas escritas à mão em `public/` que o build veste com o layout do site: arquivo → caminho. */
+export const PAGINAS_LEGAIS: [string, string][] = [
+  ['privacidade.html', '/privacidade'],
+  ['termos.html', '/termos'],
+];
+
+const desescapar = (t: string): string =>
+  t
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+
+/**
+ * UMA PÁGINA LEGAL COM O LAYOUT DO SITE: tira o título, a descrição e o miolo de `<main>` do HTML escrito à
+ * mão (`public/privacidade.html`, `public/termos.html`) e devolve a página com o mesmo `<head>`, cabeçalho,
+ * rodapé e CSS das outras. O texto do miolo passa intacto (é o que o jurídico revisa). Sem `<main>`, erro:
+ * melhor o build cair que publicar a política vazia.
+ */
+export function paginaLegal(
+  html: string,
+  o: { caminho: string; urlDoSite: string; versaoDaFonte: string; versaoDaFonteDoTexto?: string },
+): string {
+  const miolo = /<main[^>]*>([\s\S]*?)<\/main>/.exec(html)?.[1];
+  if (miolo === undefined) throw new Error(`página legal sem <main>: ${o.caminho}`);
+  const titulo = desescapar(/<title>([^<]*)<\/title>/.exec(html)?.[1]?.trim() ?? 'Frasy');
+  const descricao = desescapar(/<meta name="description" content="([^"]*)"/.exec(html)?.[1] ?? '');
+  return pagina({
+    ...o,
+    atual: o.caminho,
+    titulo,
+    descricao,
+    corpo: `<article class="prosa legal">${miolo}</article>`,
+  });
+}
+
 /** As opções a partir do ambiente do build e da pasta dos guias. */
 export function opcoesDoAmbiente(
   env: Record<string, string | undefined>,
   pastaDosGuias: string,
   versaoDaFonte: string,
+  versaoDaFonteDoTexto: string = versaoDaFonte,
 ): { opcoes: OpcoesDoSite; ignorados: { arquivo: string; motivo: string }[] } {
   const { publicados, ignorados } = lerGuias(pastaDosGuias);
   return {
@@ -243,6 +283,7 @@ export function opcoesDoAmbiente(
       flags: lerFlagsDoSite(env.SITE_FLAGS_DE_VENDA),
       adsensePubId: idDoAdsense(env.ADSENSE_PUB_ID),
       versaoDaFonte,
+      versaoDaFonteDoTexto,
     },
     ignorados,
   };

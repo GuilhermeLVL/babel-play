@@ -3,16 +3,16 @@
  * com título, descrição e canonical próprios e o texto no HTML (sem JS); só guia `revisado: true` publicado
  * (e no sitemap); preços da matriz; robots, ads.txt e a 404.
  */
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { gerarSite, idDoAdsense, opcoesDoAmbiente, robots, urlDoSite } from '../scripts/site/gerar'
+import { gerarSite, idDoAdsense, opcoesDoAmbiente, paginaLegal, robots, urlDoSite } from '../scripts/site/gerar'
 import { lerGuias } from '../scripts/site/guias'
 import { lerFrontmatter, markdownParaHtml } from '../scripts/site/markdown'
-import { guiasRelacionados } from '../scripts/site/paginas'
+import { guiasRelacionados, sumarioDoGuia } from '../scripts/site/paginas'
 import { PLAN_MATRIX } from '../src/core/planos'
 
 const PASTA = path.join(__dirname, 'fixtures', 'guias-do-site')
@@ -136,10 +136,10 @@ describe('guias', () => {
   })
 
   it('guia revisado com frontmatter inválido derruba o build', () => {
-    const pasta = mkdtempSync(path.join(tmpdir(), 'guias-'));
-    writeFileSync(path.join(pasta, 'x.md'), "---\ntitulo: 'X'\nslug: 'Slug Ruim'\nrevisado: true\n---\ncorpo");
-    expect(() => lerGuias(pasta)).toThrow(/frontmatter inválido: x\.md/);
-    expect(markdownParaHtml('# só título')).toBe('');
+    const pasta = mkdtempSync(path.join(tmpdir(), 'guias-'))
+    writeFileSync(path.join(pasta, 'x.md'), "---\ntitulo: 'X'\nslug: 'Slug Ruim'\nrevisado: true\n---\ncorpo")
+    expect(() => lerGuias(pasta)).toThrow(/frontmatter inválido: x\.md/)
+    expect(markdownParaHtml('# só título')).toBe('')
   })
 
   it('relacionados: não inclui o próprio guia', () => {
@@ -178,5 +178,51 @@ describe('sitemap, robots e ads.txt', () => {
     expect(urlDoSite({ VITE_PUBLIC_URL: 'https://staging.exemplo.dev/' })).toBe('https://staging.exemplo.dev')
     expect(urlDoSite({ VITE_PUBLIC_URL: 'http://localhost:3000' })).toBe('https://frasy.com.br')
     expect(urlDoSite({})).toBe('https://frasy.com.br')
+  })
+})
+
+describe('layout do site', () => {
+  it('home: a cena da legenda tem frase real, tradução e a descrição para leitor de tela', () => {
+    const html = site().get('inicio.html')!
+    expect(html).toContain('Estou bem cansado depois do trabalho')
+    expect(html).toContain('<span class="salva">beat</span>')
+    expect(html).toMatch(/<figcaption class="so-leitor">[^<]*beat/)
+    expect(html).toContain('prefers-reduced-motion')
+  })
+
+  it('as duas fontes do app, pré-carregadas', () => {
+    const html = site().get('planos.html')!
+    expect(html).toContain('<link rel="preload" href="/fontes/archivo-5.3.0.woff2"')
+    expect(html).toContain('<link rel="preload" href="/fontes/inter-5.3.0.woff2"')
+  })
+
+  it('guia: sumário lateral a partir dos h2, com âncoras únicas', () => {
+    const { html, itens } = sumarioDoGuia(
+      '<h2>Uma seção</h2><p>x</p><h2>Uma seção</h2><h2>Ação &amp; <code>y</code></h2>',
+    )
+    expect(itens.map((i) => i.id)).toEqual(['uma-secao', 'uma-secao-2', 'acao-y'])
+    expect(html).toContain('<h2 id="uma-secao-2">Uma seção</h2>')
+  })
+})
+
+describe('páginas legais com o layout do site', () => {
+  it.each([
+    ['privacidade.html', '/privacidade'],
+    ['termos.html', '/termos'],
+  ])('%s: o miolo de <main> passa intacto, com cabeçalho, rodapé e canonical', (arquivo, caminho) => {
+    const fonte = readFileSync(path.join('public', arquivo), 'utf8')
+    const html = paginaLegal(fonte, { caminho, urlDoSite: URL_SITE, versaoDaFonte: '5.3.0' })
+    const miolo = /<main[^>]*>([\s\S]*?)<\/main>/.exec(fonte)![1]
+    expect(html).toContain(miolo)
+    expect(canonical(html)).toBe(`${URL_SITE}${caminho}`)
+    expect(html).toContain('<a class="botao" href="/app">Entrar</a>')
+    expect(html).toContain(`<a href="${caminho}" aria-current="page">`)
+    expect(html.match(/<h1>/g)).toHaveLength(1)
+  })
+
+  it('sem <main>, erro (não publica a política vazia)', () => {
+    expect(() => paginaLegal('<p>x</p>', { caminho: '/termos', urlDoSite: URL_SITE, versaoDaFonte: '1' })).toThrow(
+      /sem <main>/,
+    )
   })
 })

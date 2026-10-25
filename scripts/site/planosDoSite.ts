@@ -132,25 +132,28 @@ export function webApplicationJsonLd(p: PlanosDoSite, urlDoSite: string): object
   };
 }
 
-/** O HTML dos cartões de plano. */
+/** O HTML dos cartões de plano (no desenho dos cartões de Planos do app: nome, para quem, preço, lista). */
 export function cartoesDosPlanos(p: PlanosDoSite): string {
+  const lista = (itens: string[]) => `<ul>${itens.map((b) => `<li>${escaparHtml(b)}</li>`).join('')}</ul>`;
   const gratis =
-    `<article class="plano"><h2>Grátis</h2><p class="preco">R$ 0</p><p class="nota">Sem cartão e sem prazo.</p><ul>` +
-    [
+    `<article class="plano peca"><h2>Grátis</h2><p class="quem">Tudo o que roda no seu aparelho.</p>` +
+    `<p class="preco"><b>R$ 0</b></p><p class="nota">Sem cartão e sem prazo.</p>` +
+    lista([
       'Legendas e tradução ao vivo, rodando no seu aparelho',
       'Revisão espaçada e jogos com as palavras que você salvou',
       'Importação de baralhos Anki, PDF, DOCX e legendas',
       'Modo intérprete com a voz do aparelho',
       `${p.armazenamentoGratis} para suas sessões com conta`,
-    ]
-      .map((b) => `<li>${escaparHtml(b)}</li>`)
-      .join('') +
-    `</ul><a class="botao contorno" href="/app">Começar grátis</a></article>`;
+    ]) +
+    `<a class="botao contorno" href="/app">Começar grátis</a></article>`;
   const pagos = p.aVenda
     .map(
       (pl) =>
-        `<article class="plano"><h2>${escaparHtml(pl.rotulo)}</h2>` +
-        `<p class="preco">${brl(pl.mensal)} <small>por mês</small></p>` +
+        `<article class="plano peca"><h2>${escaparHtml(pl.rotulo)}</h2>` +
+        (PLAN_MATRIX[pl.id].entitlements.managedCloudStt
+          ? `<p class="quem">Tudo do Grátis, com a nuvem junto.</p>`
+          : '') +
+        `<p class="preco"><b>${brl(pl.mensal)}</b> <span>por mês</span></p>` +
         (pl.anual !== null
           ? `<p class="nota">ou ${brl(pl.anual)} por ano` +
             (pl.economiaAnual && pl.economiaAnual > 0
@@ -158,7 +161,7 @@ export function cartoesDosPlanos(p: PlanosDoSite): string {
               : '') +
             '</p>'
           : '') +
-        `<ul>${pl.beneficios.map((b) => `<li>${escaparHtml(b)}</li>`).join('')}</ul>` +
+        lista(pl.beneficios) +
         `<a class="botao" href="/app/plano">Ver no app</a></article>`,
     )
     .join('');

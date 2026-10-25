@@ -9,43 +9,30 @@
   <title>Termos de Uso — Frasy</title>
   <meta name="description" content="Termos de uso do Frasy: quem pode usar, o Grátis e o Premium (mensal, anual e 12x), o teste de 14 dias sem cartão, arrependimento em 7 dias, cancelamento, reembolso, uso justo e responsabilidades." />
   <style>
-    /* O roxo é o da marca escurecido no claro (#6a48f0: 5,3 sobre #fafaf8) e clareado no escuro (#a594ff: 7,3 sobre
-       #131313); o #7c5cff de antes dava 4,15 e 4,28, abaixo dos 4,5 do WCAG AA. */
-    :root { color-scheme: light dark; --ink: #1a1a1a; --muted: #555; --bg: #fafaf8; --panel: #fff; --border: #e4e2dd; --accent: #6a48f0; }
-    @media (prefers-color-scheme: dark) { :root { --ink: #ececec; --muted: #a8a8a8; --bg: #131313; --panel: #1c1c1c; --border: #2c2c2c; --accent: #a594ff; } }
-    body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif; }
-    main { max-width: 720px; margin: 0 auto; padding: 40px 20px 80px; }
-    h1 { font-size: 1.6rem; } h2 { font-size: 1.15rem; margin-top: 2.2em; } h3 { font-size: 1rem; margin-top: 1.4em; }
-    .kicker { font: 600 11px/1 ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
-    .muted { color: var(--muted); font-size: 13px; }
-    .revisao { border: 1px dashed var(--accent); border-radius: 8px; padding: 10px 14px; font-size: 13px; }
-    a { color: var(--accent); }
-    .site-topo, .site-rodape { max-width: 720px; margin: 0 auto; padding: 16px 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
-    .site-topo { border-bottom: 1px solid var(--border); }
-    .site-rodape { border-top: 1px solid var(--border); font-size: 14px; }
-    .site-marca { font-weight: 700; color: var(--ink); text-decoration: none; margin-right: auto; padding: 6px 0; }
-    .site-topo nav ul, .site-rodape ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; }
-    .site-topo nav a, .site-rodape a { display: inline-block; padding: 6px 0; }
-    .site-entrar { font-weight: 600; }
-    a[aria-current="page"] { color: var(--ink); text-decoration: none; font-weight: 600; }
+    /* Só para abrir este arquivo direto (no build, scripts/site/gerar.ts troca a moldura pela do site). */
+    :root { color-scheme: light dark; --papel: #E6E2D6; --superficie: #F5F2EA; --tinta: #26241F; --suave: #5E5A50; --borda: #C6BFAC; --acento: #F04E23; --acao: #C93A15; --acao-tinta: #fff; }
+    @media (prefers-color-scheme: dark) { :root { --papel: #17130F; --superficie: #211C17; --tinta: #F3ECE0; --suave: #B5AA98; --borda: #3A3229; --acento: #FF6B3D; --acao: #FF6B3D; --acao-tinta: #17130F; } }
+    body { margin: 0; background: var(--papel); color: var(--tinta); font: 17px/1.65 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main, .largura { max-width: 760px; margin: 0 auto; padding: 0 20px; }
+    main { padding-top: 32px; padding-bottom: 80px; }
+    h1, h2 { font-family: Archivo, system-ui, sans-serif; letter-spacing: -.02em; line-height: 1.15; } h1 { font-size: 2.4rem; } h2 { font-size: 1.4rem; margin-top: 2em; }
+    .muted, .revisao { color: var(--suave); font-size: 15px; }
+    table { border-collapse: collapse; width: 100%; font-size: 15px; }
+    th, td { text-align: left; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--borda); vertical-align: top; }
+    code { background: var(--superficie); border: 1px solid var(--borda); border-radius: 4px; padding: 1px 5px; font-size: 14px; }
+    a { color: var(--tinta); text-decoration-color: var(--acento); text-underline-offset: .2em; }
+    .topo .largura, .rodape .largura { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding-top: 14px; padding-bottom: 14px; }
+    .rodape { border-top: 1px solid var(--borda); font-size: 15px; color: var(--suave); }
+    .marca { display: inline-flex; align-items: center; gap: 8px; font: 800 20px/1 Archivo, system-ui, sans-serif; color: var(--tinta); text-decoration: none; margin-right: auto; }
+    .topo ul, .rodape ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+    .topo nav a, .rodape nav a { display: inline-block; padding: 6px 0; text-decoration: none; }
+    .botao { display: inline-block; padding: 10px 16px; border-radius: 12px; background: var(--acao); color: var(--acao-tinta); font-weight: 700; text-decoration: none; }
+    a[aria-current="page"] { text-decoration: underline; text-decoration-color: var(--acento); }
   </style>
 </head>
 <body>
-<header class="site-topo">
-  <a class="site-marca" href="/">Frasy</a>
-  <nav aria-label="Principal">
-    <ul>
-      <li><a href="/">Início</a></li>
-      <li><a href="/planos">Planos</a></li>
-      <li><a href="/guias">Guias</a></li>
-      <li><a href="/ajuda">Ajuda</a></li>
-      <li><a href="/sobre">Sobre</a></li>
-      <li><a class="site-entrar" href="/app">Entrar</a></li>
-    </ul>
-  </nav>
-</header>
-<main>
-  <p class="kicker">Frasy</p>
+<header class="topo"><div class="largura"><a class="marca" href="/"><img src="/favicon.svg" alt="" width="30" height="30">Frasy</a><nav aria-label="Principal"><ul class="menu"><li><a href="/planos">Planos</a></li><li><a href="/guias">Guias</a></li><li><a href="/ajuda">Ajuda</a></li><li><a href="/sobre">Sobre</a></li></ul></nav><a class="botao" href="/app">Entrar</a></div></header>
+<main id="conteudo">
   <h1>Termos de Uso</h1>
   <p class="revisao"><strong>Versão para revisão jurídica</strong> — versão 5, de 30 de setembro de 2026.
   Este texto descreve o que o app faz hoje e ainda será revisado por advogado antes do lançamento
@@ -221,19 +208,7 @@
   <p><a href="mailto:contato@frasy.com.br">contato@frasy.com.br</a></p>
 
 </main>
-<footer class="site-rodape">
-  <nav aria-label="Rodapé">
-    <ul>
-      <li><a href="/sobre">Sobre</a></li>
-      <li><a href="/contato">Contato</a></li>
-      <li><a href="/ajuda">Ajuda</a></li>
-      <li><a href="/guias">Guias</a></li>
-      <li><a href="/planos">Planos</a></li>
-      <li><a href="/privacidade">Privacidade</a></li>
-      <li><a href="/termos" aria-current="page">Termos de uso</a></li>
-    </ul>
-  </nav>
-</footer>
+<footer class="rodape"><div class="largura"><div><a class="marca" href="/"><img src="/favicon.svg" alt="" width="24" height="24">Frasy</a><p>Aprenda idiomas com o que você já assiste e escuta. Fale com a gente: <a href="mailto:contato@frasy.com.br">contato@frasy.com.br</a></p></div><nav aria-label="Rodapé"><ul><li><a href="/sobre">Sobre</a></li><li><a href="/contato">Contato</a></li><li><a href="/ajuda">Ajuda</a></li><li><a href="/guias">Guias</a></li><li><a href="/planos">Planos</a></li><li><a href="/privacidade">Privacidade</a></li><li><a href="/termos" aria-current="page">Termos de uso</a></li></ul></nav></div></footer>
 
 </body>
 </html>

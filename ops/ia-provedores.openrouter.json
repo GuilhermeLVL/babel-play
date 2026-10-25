@@ -17,7 +17,7 @@
           "id": "deepseek/deepseek-v4.1-flash",
           "funcoes": ["explicacao"],
           "niveis": ["rapida", "nuance"],
-          "preco": { "entrada": 0.09, "entradaEmCache": 0.018, "saida": 0.18 }
+          "preco": { "entrada": 0.15, "entradaEmCache": 0.03, "saida": 0.65 }
         },
         {
           "id": "openai/whisper-large-v3-turbo",

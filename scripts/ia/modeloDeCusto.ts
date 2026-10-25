@@ -97,10 +97,14 @@ export const PRECO_DO_TEXTO_RAPIDO_USD_POR_MILHAO = {
   conservador: { entrada: 0.1, saida: 0.32 },
   esperado: { entrada: 0.0675, saida: 0.225 },
 } as const;
-/** A explicação da amostra (cascata própria): conservador = Llama 3.3 70B; esperado = DeepSeek V4.1 Flash. */
+/**
+ * A explicação da amostra (cascata própria) no DeepSeek V4.1 Flash. O preço é o do endpoint ZDR que o OpenRouter
+ * de fato escolheu na chamada real de 25/10/2026 (Wafer, 0,10/0,65), não o mais barato da lista (Decart, 0,09/0,18):
+ * declarado conservador (0,15/0,65) para o orçamento não contar metade do gasto real. A saída dele passa a do Llama.
+ */
 export const PRECO_DA_EXPLICACAO_RAPIDA_USD_POR_MILHAO = {
-  conservador: PRECO_DO_TEXTO_RAPIDO_USD_POR_MILHAO.conservador,
-  esperado: { entrada: 0.09, saida: 0.18 },
+  conservador: { entrada: 0.15, saida: 0.65 },
+  esperado: { entrada: 0.15, saida: 0.65 },
 } as const;
 
 export interface CustoDaAmostra {

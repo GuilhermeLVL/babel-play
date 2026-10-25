@@ -249,6 +249,7 @@ export default function ConversaDoPrototipo({
         className="int-modo asst-responder"
         data-onde={onde}
         data-para={id}
+        aria-label={t('Como respondo?')}
         aria-keyshortcuts="Alt+R"
         title={`${t('Sugestões para você responder com as suas palavras')} (Alt+R)`}
         onClick={() => assistente.aoComoRespondo?.(id)}

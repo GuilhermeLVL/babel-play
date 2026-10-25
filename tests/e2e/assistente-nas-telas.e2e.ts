@@ -73,9 +73,7 @@ async function prepararRotas(page: Page, o: { flag: boolean }): Promise<Pedidos>
     const { frase } = r.request().postDataJSON() as { frase: string }
     const expressoes = /break a leg/i.test(frase)
       ? [{ trecho: 'break a leg', sentido: 'boa sorte (antes de uma apresentação)', tipo: 'idiomatica' }]
-      : /good morning/i.test(frase)
-        ? [{ trecho: 'good morning', sentido: 'bom dia', tipo: 'idiomatica' }]
-        : []
+      : []
     return r.fulfill({ json: { expressoes, restanteHoje: 180 } })
   })
   await page.route('**/api/ai/assistente/termos', (r) => {
@@ -319,14 +317,17 @@ test('Intérprete: "Como respondo?" junto da última fala da outra pessoa, com a
   const conversa = page.getByTestId('modo-interprete')
   await expect(conversa).toBeVisible({ timeout: 10_000 })
   const minha = conversa.getByTestId('interprete-meu')
-  await expect(minha.getByText(/\[trad\] good morning everyone/)).toBeVisible({ timeout: 10_000 })
+  /* A tradução é a do motor de verdade (local); o original dela fica embaixo, na metade da pessoa. */
+  await expect(minha.locator('.int-original')).toHaveText('good morning everyone, break a leg today', {
+    timeout: 15_000,
+  })
   const botao = minha.getByRole('button', { name: /Como respondo\?/ })
   await expect(botao).toBeVisible({ timeout: 10_000 })
   await expect(conversa).toHaveAttribute('data-fase', 'parado', { timeout: 5_000 })
   /* O destaque no original dela, silencioso (só atributos dentro da região anunciada). */
   await expect(minha.locator('.int-original .asst-marca[data-marca="expressao"]').first()).toHaveAttribute(
     'title',
-    /bom dia/,
+    /break a leg: boa sorte/,
     { timeout: 10_000 },
   )
   for (const escuro of [false, true]) {
@@ -355,8 +356,8 @@ test('Intérprete: "Como respondo?" junto da última fala da outra pessoa, com a
   await expect(marca).toBeVisible()
   await foto(page, `interprete-${aparelho()}-lista-claro`)
   await marca.click()
-  const cartao = conversa.getByRole('dialog', { name: /Palavra: good morning/i })
-  await expect(cartao).toContainText('bom dia')
+  const cartao = conversa.getByRole('dialog', { name: /Palavra: break a leg/i })
+  await expect(cartao).toContainText('boa sorte')
   await foto(page, `interprete-${aparelho()}-cartao-claro`)
   if (PASTA) {
     await tema(page, true)

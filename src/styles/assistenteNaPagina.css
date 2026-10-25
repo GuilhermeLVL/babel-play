@@ -17,10 +17,11 @@
   --asst-termo: #8fd0ff;
   --asst-nivel: color-mix(in srgb, var(--ink, #f4efe8) 70%, transparent);
 }
+/* O Intérprete segue o tema (claro ou escuro, conforme o tema do app): as cores saem dos tokens dele. */
 .int {
-  --asst-expressao: #ffb597;
-  --asst-termo: #8fd0ff;
-  --asst-nivel: color-mix(in srgb, var(--int-tinta) 70%, transparent);
+  --asst-expressao: color-mix(in srgb, var(--accent) 82%, var(--int-tinta));
+  --asst-termo: color-mix(in srgb, #2f7fd0 75%, var(--int-tinta));
+  --asst-nivel: color-mix(in srgb, var(--int-tinta) 60%, transparent);
 }
 
 .asst-marca {
@@ -107,14 +108,7 @@
 .asst-pagina .leg-sugestao-trad {
   font-size: 13.5px;
 }
-.asst-pagina .leg-folha .leg-acao-texto,
-.asst-pagina .leg-folha-topo button {
-  min-height: 40px;
-}
-.asst-pagina .leg-folha-topo button {
-  width: 40px;
-  height: 40px;
-}
+/* Os botões da folha seguem o alvo dos diálogos do desenho novo (56 px, `quest.css`): nada a encolher aqui. */
 .asst-pagina .leg-folha button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
@@ -168,6 +162,33 @@
   width: 17px;
   height: 17px;
   color: var(--int-acento);
+}
+/* NO CELULAR a metade é baixa: o botão no fluxo apertava a tradução (que perdia linhas). Ele sobe para a linha do
+   idioma, à direita, onde há espaço livre. */
+.int:not([data-layout='computador']) .int-metade {
+  position: relative;
+}
+.int:not([data-layout='computador']) .int-assistente:has(> .asst-responder) {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+.int:not([data-layout='computador']) .int-metade .asst-responder {
+  min-height: 40px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+/* Na tela bem estreita, só o ícone (o nome segue no `aria-label` e no `title`): o rótulo encostava no idioma. */
+@media (max-width: 400px) {
+  .int:not([data-layout='computador']) .int-metade .asst-responder {
+    width: 44px;
+    min-height: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  .int:not([data-layout='computador']) .int-metade .asst-responder > span {
+    display: none;
+  }
 }
 .int-bolhas > .asst-responder {
   align-self: flex-start;

@@ -6,7 +6,7 @@
  * `llmClient.ts` já documenta: uma correção num lugar e o defeito continuando no outro. O que
  * difere entre os dois chamadores — o prefixo do evento de log e a rota — entra por parâmetro.
  */
-import { contarAdmissaoRecusada, observarChamadaDeProvedor } from '../http/metricas'
+import { contarAdmissaoRecusada, contarTokensDeEntrada, observarChamadaDeProvedor } from '../http/metricas'
 import { log } from '../lib/logger'
 import { custoDeLlm } from '../lib/orcamentoDeIa'
 import {
@@ -304,6 +304,8 @@ export async function percorrerCascata(
         rotulo: prov.rotulo,
         esforco: esforcoPedido(prov.base, prov.model),
         statusHttp: r.status,
+        /* A perna pediu saída estruturada e nenhum endpoint a aceitou: a resposta veio sem o esquema. */
+        semEsquema: r.semEsquema,
       },
       ...(rastro?.conteudoPermitido
         ? { entrada: JSON.stringify(pedido.messages), saida: r.texto ?? r.causa ?? '' }
@@ -322,6 +324,7 @@ export async function percorrerCascata(
     })
     if (r.ok) {
       registrarSucesso(chave)
+      contarTokensDeEntrada(contexto.funcao ?? contexto.evento, r.tokensEntrada ?? 0, r.tokensEmCache ?? 0)
       return {
         entregue: {
           texto: r.texto ?? '',

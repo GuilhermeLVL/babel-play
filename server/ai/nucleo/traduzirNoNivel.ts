@@ -290,6 +290,8 @@ async function traduzir(
       consulta,
       usaCache,
       admissao: admitida.admissao,
+      /* A LEGENDA AO VIVO (a rápida) pede o endpoint mais barato que responde a tempo; a nuance, o de sempre. */
+      legenda: nivel === 'rapida',
     })
   } finally {
     await encerrarAdmissao(admitida.admissao)
@@ -312,6 +314,8 @@ async function traduzirAdmitido(
     /** `false` com glossário (D3): a tradução é desta pessoa e não vai ao cache compartilhado. */
     usaCache: boolean
     admissao: AdmissaoDaCascata
+    /** A tradução rápida: preço primeiro com teto de latência (`ROTEAMENTO_DA_LEGENDA`). */
+    legenda?: boolean
   },
 ): Promise<ResultadoDaTraducao> {
   const { provedores, messages, maxTokens, falada, consulta } = p
@@ -334,6 +338,7 @@ async function traduzirAdmitido(
         maxTokens,
         timeoutMs: 12_000,
         sinal: ctx.sinal,
+        legenda: p.legenda,
       },
       {
         evento: 'mt',

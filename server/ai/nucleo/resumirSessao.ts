@@ -25,6 +25,7 @@
 import { z } from 'zod'
 
 import { FLAG_IA_DE_ESTUDO } from '../../../src/core/planos'
+import { SAIDA_DO_RESUMO } from '../../../src/lib/esquemasDeSaida'
 import { MIN_FALAS_DO_RESUMO } from '../../../src/lib/estudo/constantes'
 import {
   type CartaoDoResumo,
@@ -36,6 +37,7 @@ import {
   userDoResumo,
 } from '../../../src/lib/estudo/promptDoResumo'
 import { sessionsRepo } from '../../db/repositories/sessions'
+import { contarRespostaInvalida } from '../../http/metricas'
 import { erroDeRota } from '../../lib/erroDeRota'
 import {
   estornarUsoDeEstudo,
@@ -241,7 +243,13 @@ async function resumir(
     /* 6) A cascata. */
     const { entregue, ultimaFalha, limitadoPeloProvedor } = await percorrerCascata(
       custo.pernas,
-      { messages, temperature: RESUMO.temperatura, maxTokens, timeoutMs: TIMEOUT_MS },
+      {
+        messages,
+        temperature: RESUMO.temperatura,
+        maxTokens,
+        timeoutMs: TIMEOUT_MS,
+        formatoDeSaida: SAIDA_DO_RESUMO,
+      },
       {
         evento: 'resumo',
         route: ROTA,
@@ -274,6 +282,7 @@ async function resumir(
 
     const lido = lerResumo(entregue.texto)
     if (!lido) {
+      contarRespostaInvalida('resumo', entregue.model)
       log('warn', { event: 'resumo_resposta_invalida', route: ROTA, status: 502, requestId: ctx.requestId })
       return decidir(
         recusaDeErro(502, 'o modelo não devolveu um resumo utilizável; tente de novo', 'resposta_invalida'),

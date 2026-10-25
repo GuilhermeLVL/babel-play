@@ -70,6 +70,9 @@ interface Chamada {
   user: string
   /** As linhas do bloco que foram ao prompt, lidas do JSON da mensagem. */
   linhas: Array<{ n: number; original: string; traducao: string; para: string }>
+  /** O nome do `response_format.json_schema` enviado (saída estruturada) e o `provider.require_parameters`. */
+  esquema?: string
+  exigeParametros?: boolean
 }
 
 function mockRes(): any {
@@ -97,6 +100,8 @@ function provedor(resposta: (c: Chamada) => Resposta): Chamada[] {
       system: corpo.messages.find((m) => m.role === 'system')?.content ?? '',
       user,
       linhas: linhasDoPrompt(user),
+      esquema: (corpo as any).response_format?.json_schema?.name,
+      exigeParametros: (corpo as any).provider?.require_parameters,
     }
     chamadas.push(c)
     const r = resposta(c)
@@ -190,6 +195,9 @@ describe('com a Tradução Nuance', () => {
 
     expect(chamadas).toHaveLength(1)
     expect(chamadas[0].modelo).toBe('modelo-do-polimento')
+    // DeepInfra direta (fora do OpenRouter): sem response_format nem require_parameters.
+    expect(chamadas[0].esquema).toBeUndefined()
+    expect(chamadas[0].exigeParametros).toBeUndefined()
     expect(chamadas[0].linhas).toHaveLength(40)
     expect(chamadas[0].linhas[0]).toMatchObject({ n: 1, original: 'line 0', traducao: 'linha 0', para: 'português' })
     expect(chamadas[0].user).not.toContain('Contexto')

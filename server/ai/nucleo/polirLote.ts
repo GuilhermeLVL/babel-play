@@ -33,6 +33,7 @@ import { createHash } from 'node:crypto'
 
 import { z } from 'zod'
 
+import { SAIDA_DO_POLIMENTO } from '../../../src/lib/esquemasDeSaida'
 import {
   type EntradaDoGlossarioNoPrompt,
   nomeDoIdioma,
@@ -53,6 +54,7 @@ import {
 } from '../../../src/lib/traducao/promptDoPolimento'
 import { sessionsRepo } from '../../db/repositories/sessions'
 import { utterancesRepo } from '../../db/repositories/utterances'
+import { contarRespostaInvalida } from '../../http/metricas'
 import type { UserId } from '../../lib/authContext'
 import type { Entitlements } from '../../lib/entitlements'
 import { erroDeRota } from '../../lib/erroDeRota'
@@ -343,7 +345,13 @@ async function polirPendentes(
        núcleo gravaria quando o lote voltasse. Aqui é a chamada síncrona de sempre, um bloco por pedido. */
     const { entregue, ultimaFalha, limitadoPeloProvedor } = await percorrerCascata(
       custo.pernas,
-      { messages, temperature: POLIMENTO.temperatura, maxTokens, timeoutMs: TIMEOUT_MS },
+      {
+        messages,
+        temperature: POLIMENTO.temperatura,
+        maxTokens,
+        timeoutMs: TIMEOUT_MS,
+        formatoDeSaida: SAIDA_DO_POLIMENTO,
+      },
       {
         evento: 'mt_polimento',
         route: ROTA,
@@ -375,6 +383,7 @@ async function polirPendentes(
 
     const lidas = lerPolimento(entregue.texto, pendentes)
     if (!lidas) {
+      contarRespostaInvalida('polimento', entregue.model)
       log('warn', { event: 'mt_polimento_resposta_invalida', route: ROTA, status: 502, requestId: ctx.requestId })
       return decidir(
         recusaDeErro(502, 'o modelo não devolveu uma tradução polida utilizável; tente de novo', 'resposta_invalida'),

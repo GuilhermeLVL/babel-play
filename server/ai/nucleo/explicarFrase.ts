@@ -27,12 +27,14 @@
 import { z } from 'zod'
 
 import { FLAG_IA_DE_ESTUDO } from '../../../src/core/planos'
+import { SAIDA_DA_EXPLICACAO } from '../../../src/lib/esquemasDeSaida'
 import {
   type ExplicacaoDaFrase,
   lerExplicacao,
   systemDaExplicacao,
   userDaExplicacao,
 } from '../../../src/lib/estudo/promptDaExplicacao'
+import { contarRespostaInvalida } from '../../http/metricas'
 import { erroDeRota } from '../../lib/erroDeRota'
 import {
   estornarUsoDeEstudo,
@@ -209,7 +211,13 @@ async function explicar(
     /* 6) A cascata. */
     const { entregue, ultimaFalha, limitadoPeloProvedor } = await percorrerCascata(
       custo.pernas,
-      { messages, temperature: EXPLICACAO.temperatura, maxTokens, timeoutMs: TIMEOUT_MS },
+      {
+        messages,
+        temperature: EXPLICACAO.temperatura,
+        maxTokens,
+        timeoutMs: TIMEOUT_MS,
+        formatoDeSaida: SAIDA_DA_EXPLICACAO,
+      },
       {
         evento: 'explicacao',
         route: ROTA,
@@ -242,6 +250,7 @@ async function explicar(
 
     const explicacao = lerExplicacao(entregue.texto)
     if (!explicacao) {
+      contarRespostaInvalida('explicacao', entregue.model)
       log('warn', { event: 'explicacao_resposta_invalida', route: ROTA, status: 502, requestId: ctx.requestId })
       return decidir(
         recusaDeErro(502, 'o modelo não devolveu uma explicação utilizável; tente de novo', 'resposta_invalida'),

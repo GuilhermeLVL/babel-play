@@ -71,6 +71,9 @@ interface Chamada {
   system: string
   user: string
   maxTokens: number
+  /** O nome do `response_format.json_schema` enviado (saída estruturada) e o `provider.require_parameters`. */
+  esquema?: string
+  exigeParametros?: boolean
 }
 
 function mockRes(): any {
@@ -90,6 +93,8 @@ function provedor(resposta: (c: Chamada) => { status?: number; texto?: string })
       maxTokens: corpo.max_tokens,
       system: corpo.messages.find((m) => m.role === 'system')?.content ?? '',
       user: corpo.messages.find((m) => m.role === 'user')?.content ?? '',
+      esquema: (corpo as any).response_format?.json_schema?.name,
+      exigeParametros: (corpo as any).provider?.require_parameters,
     }
     chamadas.push(c)
     const r = resposta(c)
@@ -305,6 +310,9 @@ describe('plano pago (Plus)', () => {
     }
     expect(chamadas).toHaveLength(1)
     expect(chamadas[0].maxTokens).toBeLessThanOrEqual(FUNCOES_DE_IA.resumo.maxTokens)
+    // Saída estruturada no OpenRouter: o esquema do resumo, só em endpoint que o aceita.
+    expect(chamadas[0].esquema).toBe('resumo')
+    expect(chamadas[0].exigeParametros).toBe(true)
     /* As falas do BANCO, delimitadas como dado. */
     expect(chamadas[0].user).toContain('1. [inglês] <<<We should grab a coffee sometime.>>>')
     expect(chamadas[0].user).toContain('= <<<Me avisa quando estiver livre.>>>')

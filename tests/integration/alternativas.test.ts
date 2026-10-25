@@ -66,6 +66,9 @@ interface Chamada {
   modelo: string
   system: string
   user: string
+  /** O nome do `response_format.json_schema` enviado (saída estruturada) e o `provider.require_parameters`. */
+  esquema?: string
+  exigeParametros?: boolean
 }
 
 function mockRes(): any {
@@ -84,6 +87,8 @@ function provedor(resposta: (c: Chamada) => { status?: number; texto?: string })
       modelo: corpo.model,
       system: corpo.messages.find((m) => m.role === 'system')?.content ?? '',
       user: corpo.messages.find((m) => m.role === 'user')?.content ?? '',
+      esquema: (corpo as any).response_format?.json_schema?.name,
+      exigeParametros: (corpo as any).provider?.require_parameters,
     }
     chamadas.push(c)
     const r = resposta(c)
@@ -147,6 +152,9 @@ describe('com a Tradução Nuance', () => {
     expect(chamadas[0].modelo).toBe('openai/gpt-oss-120b')
     expect(chamadas[0].user).toContain('Frase: <<<see you later>>>')
     expect(chamadas[0].user).toContain('Tradução atual: <<<até mais>>>')
+    // A perna é da DeepInfra direta, não do OpenRouter: o pedido segue sem response_format (a leitura defensiva vale).
+    expect(chamadas[0].esquema).toBeUndefined()
+    expect(chamadas[0].exigeParametros).toBeUndefined()
   })
 
   it('gasta cota (chamada + tokens) e entra no gasto de IA do mês', async () => {

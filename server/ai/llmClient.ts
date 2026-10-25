@@ -25,7 +25,13 @@
  */
 import { segundosDoRetryAfter } from './admissao'
 import { clienteDesistiu, comTempoLimite } from './cancelamento'
-import { parametrosDoProvedor, registrarRaciocinioObservado, type RoteamentoOpenRouter } from './parametrosDoProvedor'
+import {
+  ehBaseDoOpenRouter,
+  type OpcoesDoPedido,
+  parametrosDoProvedor,
+  registrarRaciocinioObservado,
+  type RoteamentoOpenRouter,
+} from './parametrosDoProvedor'
 
 export interface MensagemDeChat {
   role: 'system' | 'user' | 'assistant'
@@ -44,6 +50,13 @@ export interface PedidoDeChat {
   roteamento?: RoteamentoOpenRouter
   /** Quem pediu desistiu (`cancelamento.ts`): aborta a chamada junto com o relógio. Opcional. */
   sinal?: AbortSignal
+  /**
+   * A SAÍDA ESTRUTURADA (`src/lib/esquemasDeSaida.ts`): no OpenRouter vira `response_format` `json_schema` estrito
+   * com `provider.require_parameters`; nos outros provedores é ignorada (ver `parametrosDoProvedor`).
+   */
+  formatoDeSaida?: OpcoesDoPedido['formato']
+  /** A legenda ao vivo (a tradução rápida): no OpenRouter, o endpoint mais barato que responde a tempo. */
+  legenda?: boolean
 }
 
 /**
@@ -79,6 +92,11 @@ export interface RespostaDeChat {
   retryAfterS?: number
   /** A chamada foi abortada porque quem pediu desistiu: não é falha do provedor, e a cascata para. */
   cancelado?: boolean
+  /**
+   * Pediu saída estruturada, nenhum endpoint do modelo a aceitava, e a resposta veio da SEGUNDA tentativa, sem o
+   * esquema (`chamarChat`). O texto ainda passa pelo `ler*` defensivo de quem chamou.
+   */
+  semEsquema?: boolean
 }
 
 /**
@@ -117,7 +135,30 @@ export function tamanhoDoPrompt(messages: MensagemDeChat[]): number {
  * repetido — e um dos lugares o guardava já concatenado, o que fazia a mesma variável significar
  * coisas diferentes em arquivos vizinhos.
  */
+/**
+ * O OpenRouter recusou o pedido PELOS PARÂMETROS: com `require_parameters`, nenhum endpoint do modelo aceita o
+ * `response_format` — 404 ("No endpoints found that can handle the requested parameters") ou um 400 que cita o
+ * esquema. É a única falha que a segunda tentativa sem esquema conserta; as outras seguem para a reserva.
+ */
+function recusouOEsquema(status: number, corpo: string): boolean {
+  if (status === 404) return true
+  return status === 400 && /response_format|json_schema|structured|require_parameters|parameters/i.test(corpo)
+}
+
 export async function chamarChat(p: PedidoDeChat): Promise<RespostaDeChat> {
+  const r = await chamarUmaVez(p)
+  /* SAÍDA ESTRUTURADA SEM QUEBRAR A CASCATA. O modelo da perna pode não ter, entre os endpoints de retenção zero,
+     nenhum que aceite o esquema; o `require_parameters` então recusa o pedido inteiro. Repetir a MESMA perna sem o
+     esquema devolve o comportamento de antes (JSON pelo prompt + leitura defensiva), em vez de gastar a perna. */
+  const { recusouEsquema, ...resposta } = r
+  if (!resposta.ok && !resposta.cancelado && recusouEsquema && ehBaseDoOpenRouter(p.base)) {
+    const { recusouEsquema: _ignorado, ...sem } = await chamarUmaVez({ ...p, formatoDeSaida: undefined })
+    return sem.ok ? { ...sem, semEsquema: true } : sem
+  }
+  return resposta
+}
+
+async function chamarUmaVez(p: PedidoDeChat): Promise<RespostaDeChat & { recusouEsquema?: boolean }> {
   const caracteres = tamanhoDoPrompt(p.messages)
   if (caracteres > MAX_PROMPT_CHARS) {
     return { ok: false, status: 413, causa: `prompt de ${caracteres} caracteres acima do teto de ${MAX_PROMPT_CHARS}` }
@@ -137,18 +178,20 @@ export async function chamarChat(p: PedidoDeChat): Promise<RespostaDeChat> {
         stream: false,
         ...(p.temperature !== undefined ? { temperature: p.temperature } : {}),
         max_tokens: p.maxTokens ?? MAX_TOKENS_PADRAO,
-        ...parametrosDoProvedor(p.base, p.model, p.roteamento),
+        ...parametrosDoProvedor(p.base, p.model, p.roteamento, { formato: p.formatoDeSaida, legenda: p.legenda }),
       }),
       signal: comTempoLimite(p.timeoutMs ?? TIMEOUT_PADRAO_MS, p.sinal),
     })
 
     if (!r.ok) {
       const retryAfterS = r.status === 429 ? segundosDoRetryAfter(r.headers?.get?.('retry-after')) : undefined
+      const corpo = await r.text().catch(() => '')
       return {
         ok: false,
         status: r.status,
-        causa: `HTTP ${r.status}: ${(await r.text().catch(() => '')).slice(0, 160)}`,
+        causa: `HTTP ${r.status}: ${corpo.slice(0, 160)}`,
         ...(retryAfterS !== undefined ? { retryAfterS } : {}),
+        ...(p.formatoDeSaida && recusouOEsquema(r.status, corpo) ? { recusouEsquema: true } : {}),
       }
     }
 

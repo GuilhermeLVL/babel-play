@@ -81,6 +81,9 @@ interface Chamada {
   system: string
   user: string
   maxTokens: number
+  /** O nome do `response_format.json_schema` enviado (saída estruturada) e o `provider.require_parameters`. */
+  esquema?: string
+  exigeParametros?: boolean
 }
 
 function mockRes(): any {
@@ -105,6 +108,8 @@ function provedor(resposta: (c: Chamada) => { status?: number; texto?: string })
       maxTokens: corpo.max_tokens,
       system: corpo.messages.find((m) => m.role === 'system')?.content ?? '',
       user: corpo.messages.find((m) => m.role === 'user')?.content ?? '',
+      esquema: (corpo as any).response_format?.json_schema?.name,
+      exigeParametros: (corpo as any).provider?.require_parameters,
     }
     chamadas.push(c)
     const r = resposta(c)
@@ -221,6 +226,9 @@ describe('plano pago (Plus)', () => {
     expect(chamadas).toHaveLength(1)
     expect(chamadas[0].user).toContain('Frase: <<<see you later>>>')
     expect(chamadas[0].maxTokens).toBeLessThanOrEqual(1_200)
+    // Saída estruturada no OpenRouter: o esquema da explicação, só em endpoint que o aceita.
+    expect(chamadas[0].esquema).toBe('explicacao')
+    expect(chamadas[0].exigeParametros).toBe(true)
     expect(await contador(PAGANTE, estudo.METRIC_EXPLICACOES_MES, mes())).toBe(explicacoesAntes + 1)
     expect(await contador(PAGANTE, 'llm_tokens', mes())).toBe(tokensAntes + 500)
     expect((await gasto.ler(mes()))?.microUsd ?? 0).toBeGreaterThan(gastoAntes)

@@ -201,6 +201,33 @@ describe('estado de agora: disjuntor, uploads, cache', () => {
   })
 })
 
+describe('qualidade da IA (Fase B do plano da IA paga): resposta inválida, cache de prompt e feedback', () => {
+  it('resposta_invalida por função e modelo; modelo fora do registro vira `outro` (cardinalidade fechada)', async () => {
+    m.contarRespostaInvalida('explicacao', 'modelo/que-ninguem-declarou')
+    m.contarRespostaInvalida('explicacao', undefined)
+    const corpo = await scrape()
+    expect(valor(corpo, 'ia_resposta_invalida_total{funcao="explicacao",modelo="outro"}')).toBe(2)
+    expect(corpo).not.toContain('modelo/que-ninguem-declarou')
+  })
+
+  it('tokens de entrada e em cache por função: a razão dá a taxa de cache do prompt', async () => {
+    m.contarTokensDeEntrada('resumo', 1000, 600)
+    m.contarTokensDeEntrada('resumo', 500, 0)
+    m.contarTokensDeEntrada('resumo', Number.NaN, -1) // lixo não soma
+    const corpo = await scrape()
+    expect(valor(corpo, 'ia_tokens_entrada_total{funcao="resumo"}')).toBe(1500)
+    expect(valor(corpo, 'ia_tokens_em_cache_total{funcao="resumo"}')).toBe(600)
+  })
+
+  it('feedback por função, nota e motivo; sem motivo é `nenhum`', async () => {
+    m.contarFeedbackDeIa('tutor', 'down', 'errado')
+    m.contarFeedbackDeIa('tutor', 'up', undefined)
+    const corpo = await scrape()
+    expect(valor(corpo, 'ia_feedback_total{funcao="tutor",nota="down",motivo="errado"}')).toBe(1)
+    expect(valor(corpo, 'ia_feedback_total{funcao="tutor",nota="up",motivo="nenhum"}')).toBe(1)
+  })
+})
+
 describe('a porta INTERNA de métricas (aposentada na Task 10 da Fase 2)', () => {
   it('o listener próprio não existe mais: o scrape é o GET /metrics do app, com token em produção', () => {
     expect('iniciarServidorDeMetricas' in m).toBe(false)

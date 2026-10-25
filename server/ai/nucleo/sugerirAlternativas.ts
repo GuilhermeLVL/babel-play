@@ -22,6 +22,7 @@
  */
 import { z } from 'zod'
 
+import { SAIDA_DAS_ALTERNATIVAS } from '../../../src/lib/esquemasDeSaida'
 import {
   type OpcoesDaNuance,
   REGISTROS_DA_TRADUCAO,
@@ -33,6 +34,7 @@ import {
   systemDasAlternativas,
   userDasAlternativas,
 } from '../../../src/lib/traducao/promptDasAlternativas'
+import { contarRespostaInvalida } from '../../http/metricas'
 import { erroDeRota } from '../../lib/erroDeRota'
 import { log } from '../../lib/logger'
 import { portaoDaNuvem, registrarGastoDeIa } from '../../lib/orcamentoDeIa'
@@ -171,7 +173,13 @@ async function sugerir(
 
     const { entregue, ultimaFalha, limitadoPeloProvedor } = await percorrerCascata(
       custo.pernas,
-      { messages, temperature: ALTERNATIVAS.temperatura, maxTokens, timeoutMs: TIMEOUT_MS },
+      {
+        messages,
+        temperature: ALTERNATIVAS.temperatura,
+        maxTokens,
+        timeoutMs: TIMEOUT_MS,
+        formatoDeSaida: SAIDA_DAS_ALTERNATIVAS,
+      },
       {
         evento: 'mt_alternativas',
         route: ROTA,
@@ -203,6 +211,7 @@ async function sugerir(
 
     const lidas = lerAlternativas(entregue.texto, traducaoAtual)
     if (!lidas) {
+      contarRespostaInvalida('alternativas', entregue.model)
       log('warn', { event: 'mt_alternativas_resposta_invalida', route: ROTA, status: 502, requestId: ctx.requestId })
       return decidir(
         recusaDeErro(502, 'o modelo não devolveu outras formas utilizáveis; tente de novo', 'resposta_invalida'),

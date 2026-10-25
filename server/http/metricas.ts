@@ -127,6 +127,11 @@ interface Estado {
   cacheDeTraducaoPorNivel: Counter<'nivel' | 'resultado'>
   uploadsRecusados: Counter<'motivo'>
   r2UsoFracao: Gauge<'recurso'>
+  /* Fase B do plano de qualidade da IA paga (item 7): o JSON que não serviu, o cache de prompt e o feedback. */
+  respostaInvalida: Counter<'funcao' | 'modelo'>
+  tokensDeEntrada: Counter<'funcao'>
+  tokensEmCache: Counter<'funcao'>
+  feedbackDeIa: Counter<'funcao' | 'nota' | 'motivo'>
 }
 
 let estado: Estado | undefined
@@ -392,6 +397,33 @@ function criarEstadoProm(): Estado {
       name: 'ia_cache_traducao_nivel_total',
       help: 'Consultas a cada nível do cache de tradução (nivel=l1 memória | l2 SQLite), por resultado (acerto|falta).',
       labelNames: ['nivel', 'resultado'] as const,
+    }),
+    /* A RESPOSTA QUE NÃO SERVIU (502 `resposta_invalida`): o provedor respondeu e cobrou, e o `ler*` recusou o
+       texto. Por função e modelo (lista fechada do registro, `outro` fora dela). É o número que a saída estruturada
+       (`response_format` estrito, `src/lib/esquemasDeSaida.ts`) deve derrubar. */
+    respostaInvalida: new Counter({
+      name: 'ia_resposta_invalida_total',
+      help: 'Respostas de LLM que o servidor recusou por forma (502 resposta_invalida, depois de o provedor cobrar), por função e modelo.',
+      labelNames: ['funcao', 'modelo'] as const,
+    }),
+    /* O CACHE DE PROMPT, por função: a razão `em_cache / entrada` diz quanto o prefixo fixo dos prompts economiza
+       (tokens em cache custam a metade no gpt-oss). Só das pernas que ENTREGARAM. */
+    tokensDeEntrada: new Counter({
+      name: 'ia_tokens_entrada_total',
+      help: 'Tokens de entrada das chamadas de LLM entregues, por função (inclui os servidos do cache de prompt).',
+      labelNames: ['funcao'] as const,
+    }),
+    tokensEmCache: new Counter({
+      name: 'ia_tokens_em_cache_total',
+      help: 'Tokens de entrada servidos do cache de prompt do provedor, por função. Dividir por ia_tokens_entrada_total dá a taxa de cache.',
+      labelNames: ['funcao'] as const,
+    }),
+    /* O FEEDBACK QUE CHEGA (`POST /api/ai/feedback`): 👍/👎 por função, com o motivo da lista fechada. Nenhum
+       rótulo carrega texto ou quem mandou. */
+    feedbackDeIa: new Counter({
+      name: 'ia_feedback_total',
+      help: 'Avaliações das respostas de IA (nota=up|down), por função e motivo (lista fechada; `nenhum` sem motivo).',
+      labelNames: ['funcao', 'nota', 'motivo'] as const,
     }),
     uploadsRecusados: new Counter({
       name: 'uploads_grandes_recusados_total',
@@ -698,6 +730,25 @@ export function observarChamadaDeProvedor(o: {
   if (Number.isFinite(o.ms) && o.ms >= 0) estado.provedorLatencia.observe(labels, o.ms)
   if (o.custoUsd !== undefined && Number.isFinite(o.custoUsd) && o.custoUsd > 0)
     estado.provedorCusto.inc(labels, o.custoUsd)
+}
+
+/** Uma resposta de LLM que o `ler*` recusou (502 `resposta_invalida`). `funcao` é valor fixo do código. */
+export function contarRespostaInvalida(funcao: string, modelo: string | undefined): void {
+  if (!estado) return
+  estado.respostaInvalida.inc({ funcao, modelo: rotuloFechado(modelo, rotulosDoRegistro().modelos) })
+}
+
+/** Os tokens de entrada de uma chamada entregue e quantos deles vieram do cache de prompt. */
+export function contarTokensDeEntrada(funcao: string, entrada: number, emCache: number): void {
+  if (!estado) return
+  if (Number.isFinite(entrada) && entrada > 0) estado.tokensDeEntrada.inc({ funcao }, entrada)
+  if (Number.isFinite(emCache) && emCache > 0) estado.tokensEmCache.inc({ funcao }, emCache)
+}
+
+/** Uma avaliação JÁ VALIDADA pela rota (`server/ai/feedback.ts`): os três rótulos são de listas fechadas. */
+export function contarFeedbackDeIa(funcao: string, nota: 'up' | 'down', motivo: string | undefined): void {
+  if (!estado) return
+  estado.feedbackDeIa.inc({ funcao, nota, motivo: motivo ?? 'nenhum' })
 }
 
 /**

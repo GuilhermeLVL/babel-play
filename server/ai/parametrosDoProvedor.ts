@@ -42,6 +42,38 @@ export interface RoteamentoOpenRouter {
   only?: string[]
   order?: string[]
   allow_fallbacks?: boolean
+  /** Só os endpoints que aceitam TODOS os parâmetros do pedido (o `response_format`, aqui). */
+  require_parameters?: boolean
+  /** `price`: o endpoint mais barato primeiro (a legenda ao vivo, com o teto de latência abaixo). */
+  sort?: 'latency' | 'price' | 'throughput'
+  /** Endpoints com latência (p50, em segundos) acima disto vão para o fim da fila — não saem dela. */
+  preferred_max_latency?: { p50?: number; p90?: number }
+}
+
+/**
+ * A LEGENDA AO VIVO: o mais BARATO primeiro, desde que responda em até 1,5 s no p50 (o SLO da legenda no plano de
+ * qualidade da IA paga). Diretriz do dono (24/10/2026): "modelos baratos sempre que possível, pensando na
+ * experiência do usuário". `sort: 'latency'` puro mandaria a legenda ao endpoint mais rápido — e, no Gemma 4 com
+ * retenção zero, o mais rápido custa até ~1,8× o mais barato (`/api/v1/endpoints/zdr`, 24/10/2026). Com o preço
+ * na frente e a latência como preferência, o barato lento demais cai para o fim, sem que o caro passe à frente
+ * de um barato que responde a tempo.
+ */
+export const ROTEAMENTO_DA_LEGENDA = { sort: 'price', preferred_max_latency: { p50: 1.5 } } as const
+
+/**
+ * O QUE O PEDIDO QUER ALÉM DO TEXTO (Fase B do plano de qualidade da IA paga, itens 2 e 3). Estrutural, sem import
+ * (este módulo não importa nada — ver o topo): o `FormatoDeSaida` de `src/lib/esquemasDeSaida.ts` cabe aqui.
+ *
+ *   - `formato`: a SAÍDA ESTRUTURADA. No OpenRouter vira `response_format: { type: 'json_schema', json_schema:
+ *     { name, strict: true, schema } }` com `provider.require_parameters: true` — sem o segundo, o roteador pode
+ *     mandar o pedido a um endpoint que IGNORA o esquema. Fora do OpenRouter, nada: cada perna da cascata monta o
+ *     seu pedido, e a reserva de outro provedor segue como sempre (o `ler*` defensivo continua valendo).
+ *   - `legenda: true`: a tradução RÁPIDA (a legenda ao vivo) pede o endpoint mais barato que responde a tempo
+ *     (`ROTEAMENTO_DA_LEGENDA`). Só no OpenRouter; com `order` declarado no registro, a ordem declarada manda.
+ */
+export interface OpcoesDoPedido {
+  formato?: { nome: string; esquema: Readonly<Record<string, unknown>> }
+  legenda?: boolean
 }
 
 /** Os dois provedores do Google no OpenRouter — `google-vertex` casa também as regiões dele. */
@@ -99,14 +131,29 @@ export function parametrosDoProvedor(
   base: string,
   model: string,
   roteamento?: RoteamentoOpenRouter,
+  opcoes: OpcoesDoPedido = {},
 ): Record<string, unknown> {
   const host = hostDe(base)
   const raciocinio = /gpt-oss/i.test(model)
   /* Direto ou pelo AI Gateway da Cloudflare: o roteamento de retenção zero vai nos dois caminhos. */
   if (ehBaseDoOpenRouter(base)) {
+    const provider = roteamentoEndurecido(roteamento)
+    if (opcoes.formato) provider.require_parameters = true
+    if (opcoes.legenda && !provider.order?.length) {
+      provider.sort = ROTEAMENTO_DA_LEGENDA.sort
+      provider.preferred_max_latency = { ...ROTEAMENTO_DA_LEGENDA.preferred_max_latency }
+    }
     return {
-      provider: roteamentoEndurecido(roteamento),
+      provider,
       ...(raciocinio ? { reasoning: { effort: 'low', exclude: true } } : {}),
+      ...(opcoes.formato
+        ? {
+            response_format: {
+              type: 'json_schema',
+              json_schema: { name: opcoes.formato.nome, strict: true, schema: opcoes.formato.esquema },
+            },
+          }
+        : {}),
     }
   }
   if (!raciocinio) return {}

@@ -293,6 +293,27 @@ export interface DepsDoPipelineDeFala {
   virtualDetectaIdioma?: () => boolean;
 }
 
+/**
+ * OS OUVINTES DA NUVEM QUE A PREPARAÇÃO REGISTRA (a reserva preguiçosa, o ciclo do Parakeet de reserva e
+ * a pausa da histerese). Moram no MÓDULO: a fábrica do pipeline roda a cada render, e quem para a
+ * captura é outro render — sem isto, um ouvinte de uma captura encerrada continuaria vivo (um
+ * `reservaParakeet(false)` atrasado recarregaria o Whisper depois da saída).
+ */
+const ouvintesDaCaptura = new Set<() => void>();
+const registrarOuvinteDaCaptura = (soltar: () => void): (() => void) => {
+  const solta = () => {
+    ouvintesDaCaptura.delete(solta);
+    soltar();
+  };
+  ouvintesDaCaptura.add(solta);
+  return solta;
+};
+
+/** Solta todos os ouvintes da nuvem da captura (a captura parou, ou uma nova preparação começa). */
+export function soltarOuvintesDaCaptura(): void {
+  for (const solta of [...ouvintesDaCaptura]) solta();
+}
+
 export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
   const {
     gateway,
@@ -1747,7 +1768,8 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     } = await rotaDaCaptura();
     /* "APARELHO PRIMEIRO" (Fase B, item 6): cada preparação começa no aparelho; a memória da histerese
        (o mínimo dobrado) continua na mesma sessão (`continuarAudioDificil`). */
-    audioDificil.soltar?.();
+    // Os ouvintes de uma preparação anterior (de qualquer render) saem antes dos novos.
+    soltarOuvintesDaCaptura();
     audioDificil.soltar = null;
     audioDificil.ativo = route.nuvemNoAudioDificil === true;
     audioDificil.semParakeet = false;
@@ -1759,12 +1781,14 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
     /* A NUVEM PAROU (pausa: 402/429/503 ou 5xx seguidos) com a histerese em cima: desce ao aparelho na
        hora — a cadeia já cai no Parakeet, e o selo não pode seguir dizendo "nuvem". */
     if (audioDificil.ativo)
-      audioDificil.soltar = aoFalharANuvemDoStt((falha) => {
-        if (!falha.pausou || !audioDificil.ativo) return;
-        const antes = audioDificil.estado.modo;
-        audioDificil.estado = registrarPausaDaNuvem(audioDificil.estado);
-        if (audioDificil.estado.modo !== antes) aplicarModoDoAudio();
-      });
+      audioDificil.soltar = registrarOuvinteDaCaptura(
+        aoFalharANuvemDoStt((falha) => {
+          if (!falha.pausou || !audioDificil.ativo) return;
+          const antes = audioDificil.estado.modo;
+          audioDificil.estado = registrarPausaDaNuvem(audioDificil.estado);
+          if (audioDificil.estado.modo !== antes) aplicarModoDoAudio();
+        }),
+      );
     /* RESERVA PREGUIÇOSA no celular e no Quest com nuvem primeiro (`reservaLocal.ts`, auditoria de
        eficiência 2026-09-28, achado 4), e o PARAKEET DE RESERVA só na falha (Fase B, item 5). */
     const plano = planoDaReservaLocal({
@@ -1927,21 +1951,23 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
             clog('a nuvem do STT voltou estável → o Parakeet de reserva sai, o Whisper volta');
             void gateway.stt.reservaParakeet(false).catch(() => undefined);
           });
-          reservaLocal.soltar = () => {
+          reservaLocal.soltar = registrarOuvinteDaCaptura(() => {
             soltarFalha();
             soltarVolta();
-          };
+          });
         }
         return;
       }
       clog('reserva local preguiçosa: só carrega na primeira falha da nuvem | aparelho:', perfil.tipo);
       setModelPrep(null);
-      const soltar = aoFalharANuvemDoStt(() => {
-        soltar();
-        if (reservaLocal.soltar === soltar) reservaLocal.soltar = null;
-        clog('nuvem do STT falhou → carregando a reserva local');
-        carregarReserva();
-      });
+      const soltar = registrarOuvinteDaCaptura(
+        aoFalharANuvemDoStt(() => {
+          soltar();
+          if (reservaLocal.soltar === soltar) reservaLocal.soltar = null;
+          clog('nuvem do STT falhou → carregando a reserva local');
+          carregarReserva();
+        }),
+      );
       reservaLocal.soltar = soltar;
       return;
     }

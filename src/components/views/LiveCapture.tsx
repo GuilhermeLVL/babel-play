@@ -111,7 +111,7 @@ import { linhaDaTraducao, linhaDaTranscricao } from '../../lib/captura/painelDoP
 // Vocabulário dentro da captura: examinar a palavra, fichar no deck, mandar praticar.
 import { criarPalavraDaFala } from '../../lib/captura/palavraDaFala';
 // Pipeline de fala: VAD → STT → diarização → emissão, e a preparação dos modelos locais.
-import { criarPipelineDeFala, type EnunciadoPendente } from '../../lib/captura/pipelineDeFala';
+import { criarPipelineDeFala, type EnunciadoPendente, soltarOuvintesDaCaptura } from '../../lib/captura/pipelineDeFala';
 import { lerRascunhos } from '../../lib/captura/rascunhoDaCaptura';
 import { criarReguladorDaCaptura, type ReguladorDaCaptura } from '../../lib/captura/reguladorDaCaptura';
 import { criarSalvarSessao, type EstadoDaIdentificacaoDeVoz } from '../../lib/captura/salvarSessao';
@@ -1669,6 +1669,12 @@ export default function LiveCapture({
     marcarOcupacaoDaCaptura('captura', isRecording || showSaveModal);
   }, [isRecording, showSaveModal]);
   useEffect(() => () => marcarOcupacaoDaCaptura('captura', false), []);
+  /* A CAPTURA PAROU (ou a tela saiu): os ouvintes da nuvem da preparação (a reserva preguiçosa, o ciclo
+     do Parakeet de reserva, a pausa da histerese) saem já — nada deles age depois da saída. */
+  useEffect(() => {
+    if (!isRecording) soltarOuvintesDaCaptura();
+  }, [isRecording]);
+  useEffect(() => () => soltarOuvintesDaCaptura(), []);
   // A recusa aparece na tela normal, onde estão as saídas: o Foco cheio a esconderia.
   useEffect(() => {
     if (salvamento.fase === 'falhou') setIsFocusMode(false);

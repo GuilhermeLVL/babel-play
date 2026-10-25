@@ -36,7 +36,7 @@ import type { DecisaoDeRota } from '../src/core/rota/politicaDeRota'
 import { ADAPTADOR_DO_PARAKEET, ID_DO_PARAKEET } from '../src/gateway/adapters/parakeetModelo'
 import { avisarFalhaDaNuvemDoStt, avisarRespostaDaNuvemDoStt } from '../src/gateway/falhaDaNuvemDoStt'
 import { WHISPER_MODELS } from '../src/gateway/sttRouter'
-import { criarPipelineDeFala } from '../src/lib/captura/pipelineDeFala'
+import { criarPipelineDeFala, soltarOuvintesDaCaptura } from '../src/lib/captura/pipelineDeFala'
 import { RESPOSTAS_PARA_SOLTAR_O_PARAKEET } from '../src/lib/captura/reservaLocal'
 
 const ref = <T>(current: T) => ({ current })
@@ -342,6 +342,38 @@ describe('Parakeet de reserva da nuvem (item 5, rodada de correção 1)', () => 
     expect(m.reservaParakeet.mock.calls).toEqual([[true]])
     avisarRespostaDaNuvemDoStt()
     expect(m.reservaParakeet.mock.calls).toEqual([[true], [false]])
+  })
+
+  /* Rodada de correção 2, B e C. */
+  it('a pausa por nuvem OCUPADA (colisão da captura dupla) não liga o Parakeet', async () => {
+    cena.rota = rotaDeNuvemComParakeet
+    const m = montar()
+    await m.p.prepareModels()
+    avisarFalhaDaNuvemDoStt({ pausou: true, motivo: 'ocupada' })
+    expect(m.reservaParakeet).not.toHaveBeenCalled()
+    avisarFalhaDaNuvemDoStt({ pausou: true, motivo: 'cota' })
+    expect(m.reservaParakeet.mock.calls).toEqual([[true]])
+  })
+
+  it('uma entrada por preparação: depois de sair, outra pausa não liga de novo', async () => {
+    cena.rota = rotaDeNuvemComParakeet
+    const m = montar()
+    await m.p.prepareModels()
+    avisarFalhaDaNuvemDoStt({ pausou: true, motivo: 'indisponivel' })
+    for (let i = 0; i < RESPOSTAS_PARA_SOLTAR_O_PARAKEET; i++) avisarRespostaDaNuvemDoStt()
+    avisarFalhaDaNuvemDoStt({ pausou: true, motivo: 'indisponivel' })
+    expect(m.reservaParakeet.mock.calls).toEqual([[true], [false]])
+  })
+
+  it('a captura parou (`soltarOuvintesDaCaptura`): pausa e respostas atrasadas não mexem em nada', async () => {
+    cena.rota = rotaDeNuvemComParakeet
+    const m = montar()
+    await m.p.prepareModels()
+    avisarFalhaDaNuvemDoStt({ pausou: true, motivo: 'cota' })
+    soltarOuvintesDaCaptura()
+    for (let i = 0; i < RESPOSTAS_PARA_SOLTAR_O_PARAKEET; i++) avisarRespostaDaNuvemDoStt()
+    avisarFalhaDaNuvemDoStt({ pausou: true, motivo: 'cota' })
+    expect(m.reservaParakeet.mock.calls).toEqual([[true]]) // nenhum `false` atrasado recarregando o Whisper
   })
 
   it('reserva Whisper base (sem o Parakeet pronto): nem a pausa troca nada', async () => {

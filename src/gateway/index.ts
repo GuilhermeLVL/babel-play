@@ -933,8 +933,10 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
         /* PARAKEET na frente do Whisper local (e atrás da nuvem, se a rota a pôs primeiro). Só com um
            `whisper-local` no perfil: perfil sem transcrição no aparelho não ganha uma por aqui. Decidido
            NA HORA de chegar ao Whisper, não na montagem: uma fala que estava na nuvem quando o Parakeet
-           de reserva entrou (e o Whisper foi liberado) cai no Parakeet — o Whisper liberado nunca é
-           chamado, porque chamá-lo recarregaria o worker (três modelos juntos). */
+           de reserva entrou (e o Whisper foi liberado) cai no Parakeet, e não no Whisper liberado, que
+           recarregaria o worker (três modelos juntos). Se o Parakeet também falhar nessa fala, o Whisper
+           é o ÚLTIMO recurso (perder a fala é pior que o pico de memória): ele recarrega e volta a contar
+           como quente — uma próxima liberação segue a regra da fila vazia (`reservaParakeet`). */
         let parakeetTentado = false;
         for (const b of bindings) {
           if (b.adapterId === 'whisper-local') {
@@ -943,7 +945,8 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
               const r = await tentar(BINDING_DO_PARAKEET);
               if (r) return r;
             }
-            if (parakeet.ativo && reservaDoParakeet.whisperLiberado) continue;
+            // Chegou aqui: o Parakeet falhou (ou não estava). O Whisper atende e, se estava liberado, recarrega.
+            reservaDoParakeet.whisperLiberado = false;
           }
           const r = await tentar(b);
           if (r) return r;

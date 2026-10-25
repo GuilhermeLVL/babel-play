@@ -370,6 +370,25 @@ describe('reservaParakeet (a reserva pesada da nuvem)', () => {
     expect(whisper.preload).not.toHaveBeenCalled()
   })
 
+  /* Decisão do coordenador: perder fala é pior que o pico de memória. Se o Parakeet de reserva falhar na
+     fala com o Whisper liberado, o Whisper é o ÚLTIMO recurso só nessa fala (recarrega), e passa a contar
+     como quente de novo. */
+  it('o Parakeet de reserva falha na fala com o Whisper liberado: a fala sai no Whisper (último recurso), nada se perde', async () => {
+    const { gw } = await montar([{ adapterId: 'groq-whisper' }, { adapterId: 'whisper-local' }])
+    gw.stt.setRoute(ROTA_DE_NUVEM)
+    whisper.fila = 0
+    await gw.stt.reservaParakeet(true)
+    expect(whisper.liberar).toHaveBeenCalledTimes(1)
+    parakeet.transcribePcm.mockRejectedValueOnce(new Error('Parakeet caiu nesta fala'))
+    whisper.transcribePcm.mockClear()
+    const r = await gw.stt.transcribePcm(pcm(), 16000, { languageHint: 'pt' })
+    expect(r.engine).toBe('whisper-local')
+    expect(whisper.transcribePcm).toHaveBeenCalledTimes(1)
+    // A seguinte volta ao Parakeet; o Whisper (quente de novo) não é liberado por isso.
+    expect((await gw.stt.transcribePcm(pcm(), 16000, { languageHint: 'pt' })).engine).toBe('parakeet-local')
+    expect(whisper.liberar).toHaveBeenCalledTimes(1)
+  })
+
   it('desligar: o Parakeet sai (worker encerrado) e o Whisper recarrega, com o modelo que tinha', async () => {
     const { gw } = await montar()
     gw.stt.setRoute(ROTA_DE_NUVEM)

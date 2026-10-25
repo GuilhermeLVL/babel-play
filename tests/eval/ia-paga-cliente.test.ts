@@ -173,7 +173,9 @@ describe('chamada com teto do livro-caixa', () => {
 
 describe('regra do mais barato não-inferior', () => {
   /** Um bruto sintético: n casos, nota por sistema (fração de critérios) e custo por uso. */
-  function bruto(spec: Record<string, { notas: number[]; usd: number; tokens?: number; quebraCritico?: boolean }>) {
+  function bruto(
+    spec: Record<string, { notas: number[]; usd: number; tokens?: number; quebraCritico?: boolean; ms?: number }>,
+  ) {
     const juizes = ['mistralai/juiz', 'deepseek/juiz']
     const ids = spec[Object.keys(spec)[0]].notas.map((_, i) => `c${i}`)
     const criterios = [
@@ -204,7 +206,7 @@ describe('regra do mais barato não-inferior', () => {
           usd: v.usd,
           tokensEntrada: v.tokens ?? 1000,
           tokensSaida: 0,
-          totalMs: 1000,
+          totalMs: v.ms ?? 1000,
           ttftMs: 500,
           experiencia: { valida: true, caracteres: 300, cabeSemRolar: true, palavrasPorFrase: 10, idiomaOk: true },
         }
@@ -265,5 +267,41 @@ describe('regra do mais barato não-inferior', () => {
     expect(TETO_USD_POR_MILHAO_DE_TOKENS).toBeCloseTo(0.25)
     expect(d.avaliacoes.find((a: any) => a.sistema === 'x/caro').custoCabe).toBe(false)
     expect(d.recomendado).toBe('openai/base')
+  })
+
+  it('o barato que estoura o SLO de latência perde para o seguinte; sem ninguém no SLO, relaxa e diz', () => {
+    const n = 20
+    const d = decidirFuncao(
+      bruto({
+        'openai/base': { notas: Array(n).fill(1), usd: 0.0002 },
+        'x/lento': { notas: Array(n).fill(1), usd: 0.0001, ms: 20_000 },
+      }),
+    )
+    expect(d.recomendado).toBe('openai/base')
+    expect(d.relaxado).toBeNull()
+    const todosLentos = decidirFuncao(
+      bruto({
+        'openai/base': { notas: Array(n).fill(1), usd: 0.0002, ms: 20_000 },
+        'x/lento': { notas: Array(n).fill(1), usd: 0.0001, ms: 20_000 },
+      }),
+    )
+    expect(todosLentos.recomendado).toBe('x/lento')
+    expect(todosLentos.relaxado).toMatch(/SLO/)
+  })
+
+  it('mede a autopreferência: o juiz que dá a mais só para a própria família aparece positivo', () => {
+    const n = 10
+    const b = bruto({
+      'openai/base': { notas: Array(n).fill(5 / 7), usd: 0.0001 },
+      'mistralai/candidato': { notas: Array(n).fill(5 / 7), usd: 0.0001 },
+    })
+    // O juiz Mistral dá nota cheia ao Mistral; o DeepSeek não.
+    for (const c of b.casos)
+      b.rubrica['mistralai/juiz']['mistralai/candidato'][c] = Object.fromEntries(
+        Object.keys(b.rubrica['mistralai/juiz']['mistralai/candidato'][c]).map((k) => [k, { veredito: true }]),
+      )
+    const d = decidirFuncao(b)
+    expect(d.autopreferencia['mistralai/juiz']).toBeCloseTo(2 / 7)
+    expect(d.autopreferencia['deepseek/juiz']).toBeNull()
   })
 })

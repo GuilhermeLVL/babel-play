@@ -93,7 +93,12 @@ export const CANDIDATOS_PADRAO = Object.freeze({
   ],
   legenda: ['google/gemma-4-26b-a4b-it', 'openai/gpt-oss-120b~groq+cerebras', 'mistralai/mistral-small-2603'],
 })
-export const JUIZES_PADRAO = Object.freeze(['mistralai/mistral-medium-3.1', 'deepseek/deepseek-v4.1-flash'])
+/**
+ * O segundo juiz vai SEM raciocínio interno (`@none`): na rodada 1 o DeepSeek com o raciocínio padrão gastou os 1.600
+ * tokens pensando e devolveu vazio em 87 de 714 rubricas (12%). O raciocínio que conta é o que o juiz ESCREVE antes de
+ * cada veredito, e esse a rubrica já exige.
+ */
+export const JUIZES_PADRAO = Object.freeze(['mistralai/mistral-medium-3.1', 'deepseek/deepseek-v4.1-flash@none'])
 const MAX_TOKENS_DO_JUIZ = { rubrica: 1600, pareado: 600 }
 
 const hash = (x) => createHash('sha256').update(JSON.stringify(x)).digest('hex').slice(0, 16)

@@ -12,14 +12,17 @@
  *   4. CUSTO QUE CABE: o custo medido por 1M de tokens da cota não passa do que o modelo de custo cobra
  *      (`CUSTO_BRL_POR_MILHAO_DE_TOKENS` de `scripts/ia/modeloDeCusto.ts`, R$ 1,40 ÷ câmbio) — acima disso a margem de
  *      `npm run ia:custo` muda e a troca exige refazer a conta;
- *   5. RECOMENDADO = o MAIS BARATO (US$ por 1.000 usos) entre os não-inferiores sem falha crítica e com custo que cabe.
- *      Ninguém passa → o melhor, com o motivo.
+ *   5. LATÊNCIA DENTRO DO SLO: o p95 da espera total não passa do SLO da função (`SLO_P95_MS`, Fase C do plano);
+ *   6. RECOMENDADO = o MAIS BARATO (US$ por 1.000 usos) entre os que passam em 2 a 5. Ninguém passa → relaxa, NESTA
+ *      ordem e dizendo qual: primeiro o SLO, depois o custo; e só então o melhor.
  * A regra da bancada de fala (B5, `bancada/decisao.mjs` → `decidir`) também é aplicada contra a PRODUÇÃO, para o
  * relatório dizer "troca por qualidade" (IC exclui 0 para cima) ou não.
  *
- * Quem julga cada número: a nota de um sistema num caso é a média dos juízes de família DIFERENTE da dele (e, num
- * par, de família diferente dos dois). Quando nenhum juiz serve (um Mistral contra um DeepSeek, com só esses dois
- * juízes), vale a média dos dois — cada um puxa para o seu lado e os vieses se compensam; o relatório marca.
+ * QUEM JULGA: o MESMO INSTRUMENTO para todos — a nota de um caso é a média dos juízes (dois, de famílias diferentes).
+ * Excluir o juiz da família do candidato daria a cada sistema um juiz diferente (o Mistral mais severo para uns, o
+ * DeepSeek mais leniente para outros), e as notas deixariam de ser comparáveis. A autopreferência é MEDIDA
+ * (`autopreferencia`): quanto cada juiz dá a mais para a própria família, descontada a severidade que ele mostra com
+ * os outros sistemas. O pareado de preferência (duas ordens) continua com juiz de família diferente dos dois.
  */
 import { CAMBIO_BRL_POR_USD, CUSTO_BRL_POR_MILHAO_DE_TOKENS } from '../ia/modeloDeCusto.ts'
 import { bootstrap, bootstrapPareado, mediaEm } from '../../src/core/eval/bootstrap.ts'
@@ -49,11 +52,35 @@ const media = (xs) => {
   return f.length ? f.reduce((a, b) => a + b, 0) / f.length : Number.NaN
 }
 
-/** Os juízes que podem dar a nota de `modelos` num caso (família diferente de todos); vazio → todos. */
+/**
+ * Os juízes da nota de `modelos`: TODOS (o mesmo instrumento). `compensado` diz se algum deles é da família de algum
+ * dos modelos — a autopreferência, medida à parte, diz quanto isso pesa.
+ */
 export function juizesElegiveis(modelos, juizes) {
   const fams = new Set(modelos.map(familia))
-  const ok = juizes.filter((j) => !fams.has(familia(j)))
-  return { juizes: ok.length ? ok : juizes, compensado: ok.length === 0 }
+  return { juizes, compensado: juizes.some((j) => fams.has(familia(j))) }
+}
+
+/**
+ * AUTOPREFERÊNCIA de cada juiz: (nota dele − nota do outro juiz) na própria família, menos a mesma diferença nos
+ * sistemas das outras famílias (a severidade geral dele). Positivo = favorece a própria família. `null` sem sistema
+ * da família ou sem segundo juiz.
+ */
+export function autopreferencia(bruto) {
+  const [j1, j2] = bruto.juizes
+  if (!j2) return {}
+  const sistemas = bruto.sistemas.map((s) => s.id).filter((s) => bruto.geracoes[s])
+  const saida = {}
+  for (const [j, outro] of [
+    [j1, j2],
+    [j2, j1],
+  ]) {
+    const dif = (s) => media(bruto.casos.map((c) => notaPor(bruto, s, c, [j]) - notaPor(bruto, s, c, [outro])))
+    const propria = sistemas.filter((s) => familia(modeloDe(bruto, s)) === familia(j))
+    const outras = sistemas.filter((s) => familia(modeloDe(bruto, s)) !== familia(j))
+    saida[j] = propria.length && outras.length ? media(propria.map(dif)) - media(outras.map(dif)) : null
+  }
+  return saida
 }
 
 /** Nota de um sistema num caso pelos juízes dados (média dos que julgaram), ou NaN. */
@@ -249,14 +276,30 @@ export function decidirFuncao(bruto, { margem = MARGEM_DE_NAO_INFERIORIDADE } = 
       naoInferior,
       falhasCriticas,
       custoCabe,
-      passa: naoInferior && !falhasCriticas.length && custoCabe,
+      dentroDoSlo: r.dentroDoSlo !== false,
     }
   })
-  const elegiveis = avaliacoes.filter((a) => a.passa).sort((a, b) => custoDe(a.sistema) - custoDe(b.sistema))
-  const recomendado = elegiveis[0]?.sistema ?? melhor
-  const motivo = elegiveis.length
-    ? `o mais barato entre ${elegiveis.length} sistema(s) não-inferior(es) ao melhor (margem −${margem}), sem falha crítica e com custo que cabe`
-    : 'nenhum sistema passou na regra (não-inferior, sem falha crítica, custo que cabe): fica o melhor'
+  /* As exigências, da mais forte à mais fraca: relaxa o SLO, depois o custo — nunca a qualidade nem o crítico. */
+  const NIVEIS = [
+    {
+      nome: 'todas as exigências',
+      ok: (a) => a.naoInferior && !a.falhasCriticas.length && a.custoCabe && a.dentroDoSlo,
+    },
+    { nome: 'relaxado o SLO de latência', ok: (a) => a.naoInferior && !a.falhasCriticas.length && a.custoCabe },
+    { nome: 'relaxados o SLO e o custo', ok: (a) => a.naoInferior && !a.falhasCriticas.length },
+  ]
+  for (const a of avaliacoes) a.passa = NIVEIS[0].ok(a)
+  let recomendado = melhor
+  let motivo = 'nenhum sistema não-inferior sem falha crítica: fica o melhor'
+  let relaxado = null
+  for (const [i, nivel] of NIVEIS.entries()) {
+    const ok = avaliacoes.filter(nivel.ok).sort((a, b) => custoDe(a.sistema) - custoDe(b.sistema))
+    if (!ok.length) continue
+    recomendado = ok[0].sistema
+    relaxado = i === 0 ? null : nivel.nome
+    motivo = `o mais barato entre ${ok.length} sistema(s) não-inferior(es) ao melhor (margem −${margem}) e sem falha crítica — ${nivel.nome}`
+    break
+  }
 
   /* A regra B5 contra a PRODUÇÃO (a base): troca "por qualidade" só se o IC pareado excluir 0 para cima. */
   const base = bruto.base
@@ -281,7 +324,19 @@ export function decidirFuncao(bruto, { margem = MARGEM_DE_NAO_INFERIORIDADE } = 
       const motivos = dec.motivos.map((m) => m.replace(/\/h\b/g, unidade).replace('custo por hora', 'custo'))
       return { sistema: s, preferencia: pref, ...dec, motivos }
     })
-  return { funcao: bruto.funcao, base, margem, melhor, recomendado, motivo, resumos, avaliacoes, contraProducao }
+  return {
+    funcao: bruto.funcao,
+    base,
+    margem,
+    melhor,
+    recomendado,
+    motivo,
+    relaxado,
+    autopreferencia: autopreferencia(bruto),
+    resumos,
+    avaliacoes,
+    contraProducao,
+  }
 }
 
 // ------------------------------------------------------------------ markdown
@@ -295,6 +350,12 @@ const ic = (iv) => `${f2(iv.valor)} [${f2(iv.ic95[0])}, ${f2(iv.ic95[1])}]`
 export function markdownDaFuncao(d) {
   const l = [`## ${d.funcao}`, '']
   l.push(`Melhor nota: \`${d.melhor}\` · **recomendado: \`${d.recomendado}\`** — ${d.motivo}.`, '')
+  const auto = Object.entries(d.autopreferencia ?? {}).filter(([, v]) => Number.isFinite(v))
+  if (auto.length)
+    l.push(
+      `Autopreferência medida (nota a mais para a própria família, descontada a severidade): ${auto.map(([j, v]) => `\`${j}\` ${v >= 0 ? '+' : ''}${v.toFixed(3)}`).join(' · ')}.`,
+      '',
+    )
   l.push('### Qualidade, custo e latência', '')
   l.push(
     '| Sistema | n | Nota [IC 95%] | Inválidas | Sem resposta | Total p50 · p95 | TTFT p50 · p95 | US$/1.000 usos | US$/1M tok | Não-inf. | Falha crítica | Custo cabe |',

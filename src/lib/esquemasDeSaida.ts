@@ -62,3 +62,44 @@ export const SAIDA_DO_POLIMENTO: FormatoDeSaida = {
   nome: 'polimento',
   esquema: objeto({ linhas: { type: 'array', items: objeto({ n: { type: 'integer' }, traducao: texto }) } }),
 };
+
+/* O ASSISTENTE AO VIVO (`promptDoAssistente.ts`; spec `docs/specs/2026-10-25-assistente-ao-vivo.md`). `enum` é aceito
+   no modo estrito; o leitor confere o valor de novo, porque a reserva da cascata pode não aplicar o esquema. */
+
+/** `{"expressoes": [{"trecho", "sentido", "tipo"}]}` — `lerExpressoes`. */
+export const SAIDA_DAS_EXPRESSOES: FormatoDeSaida = {
+  nome: 'assistente_expressoes',
+  esquema: objeto({
+    expressoes: {
+      type: 'array',
+      items: objeto({
+        trecho: texto,
+        sentido: texto,
+        tipo: { type: 'string', enum: ['idiomatica', 'giria', 'phrasal'] },
+      }),
+    },
+  }),
+};
+
+/** `{"termos": [{"termo", "explicacao"}]}` — `lerTermos`. */
+export const SAIDA_DOS_TERMOS: FormatoDeSaida = {
+  nome: 'assistente_termos',
+  esquema: objeto({ termos: { type: 'array', items: objeto({ termo: texto, explicacao: texto }) } }),
+};
+
+/** `{"sugestoes": [{"texto", "traducao", "tom"}]}` — `lerSugestoes`. */
+export const SAIDA_DO_COMO_RESPONDO: FormatoDeSaida = {
+  nome: 'assistente_como_respondo',
+  esquema: objeto({
+    sugestoes: {
+      type: 'array',
+      items: objeto({ texto, traducao: texto, tom: { type: 'string', enum: ['neutro', 'informal', 'formal'] } }),
+    },
+  }),
+};
+
+/** `{"ok", "corrigida", "dica"}` — `lerCorrecao`. */
+export const SAIDA_DA_CORRECAO: FormatoDeSaida = {
+  nome: 'assistente_correcao',
+  esquema: objeto({ ok: { type: 'boolean' }, corrigida: texto, dica: texto }),
+};

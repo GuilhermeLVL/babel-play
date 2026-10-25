@@ -43,6 +43,11 @@
  *   resumo      12.000 caracteres: as falas de uma sessão para o resumo que vira cartões (Task 3 da etapa 2).
  *               1.500 de saída: dentro do teto da amostra para o resumo (≤ 2.000) e do teto geral de 1.500 por
  *               chamada que vale para toda função (`tests/integration/funcoes-de-ia.test.ts`). Temperatura 0,2.
+ *   assistente  1.500 caracteres: a linha da legenda (até 300) ou a fala da pessoa (até 400), mais até 2 linhas de
+ *               contexto no "Como respondo?" (`docs/specs/2026-10-25-assistente-ao-vivo.md`). 600 de saída no teto;
+ *               cada recurso manda o seu (`PARAMETROS_DO_ASSISTENTE`, `src/lib/estudo/promptDoAssistente.ts`): 400 nas
+ *               glosas e na correção, 600 no "Como respondo?". Pior caso: ~800 de entrada + 600 de saída ≈ US$ 0,0002
+ *               no Gemma 4 26B, ≈ US$ 0,0005 no gpt-oss-120b.
  *
  * O teto ABSOLUTO continua em `llmClient.ts` (`MAX_PROMPT_CHARS`): é a rede de segurança para
  * qualquer caminho que um dia chame o provedor sem passar por aqui.
@@ -50,7 +55,15 @@
 import { TETO_DE_ENTRADA_DO_TUTOR } from '../../src/lib/ichat/contencao'
 import type { AgeProfileType } from '../../src/lib/profile'
 
-export type FuncaoDeIa = 'tutor' | 'corretor' | 'traducao' | 'alternativas' | 'polimento' | 'explicacao' | 'resumo'
+export type FuncaoDeIa =
+  | 'tutor'
+  | 'corretor'
+  | 'traducao'
+  | 'alternativas'
+  | 'polimento'
+  | 'explicacao'
+  | 'resumo'
+  | 'assistente'
 
 interface DefinicaoDeFuncao {
   /** Caracteres de conteúdo do cliente aceitos (o `system` é nosso e não conta). */
@@ -68,6 +81,8 @@ export const FUNCOES_DE_IA: Readonly<Record<FuncaoDeIa, DefinicaoDeFuncao>> = {
   polimento: { tetoEntrada: 12_000, maxTokens: 1_500, temperatura: 0.2 },
   explicacao: { tetoEntrada: 2_000, maxTokens: 1_200, temperatura: 0.3 },
   resumo: { tetoEntrada: 12_000, maxTokens: 1_500, temperatura: 0.2 },
+  /* O teto da FUNÇÃO; cada recurso do assistente manda o seu (`PARAMETROS_DO_ASSISTENTE`), sempre ≤ este. */
+  assistente: { tetoEntrada: 1_500, maxTokens: 600, temperatura: 0.3 },
 }
 
 /**

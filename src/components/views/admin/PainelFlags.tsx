@@ -21,6 +21,7 @@ const FLAGS_SENSIVEIS = new Set([
   'nuvem_gratuita_alivio',
   'voz_natural',
   'stt_aparelho_primeiro',
+  'assistente_ao_vivo',
 ]);
 
 /** As regras da flag em palavras curtas, para ver de relance quem ela alcança. */

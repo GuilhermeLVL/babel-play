@@ -52,6 +52,11 @@ export type FuncaoTelemetrada =
   | 'tts'
   | 'explicacao'
   | 'resumo'
+  /* O assistente ao vivo (spec `docs/specs/2026-10-25-assistente-ao-vivo.md`): um rótulo por recurso de nuvem. */
+  | 'assistente-expressoes'
+  | 'assistente-termos'
+  | 'assistente-como-respondo'
+  | 'assistente-correcao'
 
 /** Os metadados de RASTRO que as rotas podem anotar. Lista fechada: nada de texto livre. */
 export interface AnotacoesDoRastro {

@@ -294,7 +294,13 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
     store: createDbRateLimitStore(METRIC_RATELIMIT_CARO),
     /* O 👍/👎 (`POST /api/ai/feedback`) não chama provedor e tem balde próprio (`METRIC_RATELIMIT_FEEDBACK`):
        avaliar uma resposta não pode gastar o teto das chamadas de IA da pessoa (o mesmo A27). */
-    skip: (req) => req.method === 'POST' && /^\/api\/ai\/feedback\/?(\?|$)/.test(req.originalUrl),
+    /* O ASSISTENTE AO VIVO (`POST /api/ai/assistente/*`) também tem balde próprio (`METRIC_RATELIMIT_ASSISTENTE`,
+       30/min em `server/ai/assistente.ts`): as glosas automáticas acompanham a legenda, e dividir este balde com a
+       tradução de cada fala cortaria a legenda. O custo dele é contido pelo teto do dia e pela cota de tokens. */
+    skip: (req) =>
+      req.method === 'POST' &&
+      (/^\/api\/ai\/feedback\/?(\?|$)/.test(req.originalUrl) ||
+        /^\/api\/ai\/assistente\/(expressoes|termos|como-respondo|correcao)\/?(\?|$)/.test(req.originalUrl)),
   })
 
   /**

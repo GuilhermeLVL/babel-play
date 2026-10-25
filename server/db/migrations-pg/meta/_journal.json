@@ -78,6 +78,13 @@
       "when": 1793000000000,
       "tag": "0010_flag_stt_aparelho_primeiro",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793100000000,
+      "tag": "0011_flag_assistente_ao_vivo",
+      "breakpoints": true
     }
   ]
 }

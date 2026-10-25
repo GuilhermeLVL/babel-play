@@ -674,6 +674,50 @@ describe('POST /api/ai/explicar e /api/ai/resumir — IA de estudo (flag ia_de_e
   })
 })
 
+describe('POST /api/ai/assistente/* — assistente ao vivo (flag assistente_ao_vivo)', () => {
+  /* Chamadas literais (`s.post('/api/ai/…')`): é o que o gate `rotas-sem-caracterizacao.mjs` reconhece. */
+  async function pedirTodas(corpo: Record<string, unknown> = {}): Promise<Array<[string, Response]>> {
+    return [
+      ['/api/ai/assistente/expressoes', await s.post('/api/ai/assistente/expressoes', corpo)],
+      ['/api/ai/assistente/termos', await s.post('/api/ai/assistente/termos', corpo)],
+      ['/api/ai/assistente/como-respondo', await s.post('/api/ai/assistente/como-respondo', corpo)],
+      ['/api/ai/assistente/correcao', await s.post('/api/ai/assistente/correcao', corpo)],
+    ]
+  }
+  async function flag(habilitada: boolean) {
+    const flags = await s.load<any>('../../server/lib/flags')
+    await flags.definirFlag('assistente_ao_vivo', { habilitada }, 'caracterizacao')
+  }
+  afterAll(() => flag(false))
+
+  it('flag desligada → 404 recurso_indisponivel, mesmo com corpo vazio, sem chamar provedor', async () => {
+    await flag(false)
+    for (const [rota, r] of await pedirTodas()) {
+      expect(r.status, rota).toBe(404)
+      expect((await r.json()).code, rota).toBe('recurso_indisponivel')
+    }
+    expect(chamadas).toHaveLength(0)
+  })
+
+  it('flag ligada e corpo com campo de terceiros → 400 invalido, sem chamar provedor', async () => {
+    await flag(true)
+    for (const [rota, r] of await pedirTodas({ frase: 'hi', lang: 'en', langDaPessoa: 'pt', falante: 'Ana' })) {
+      expect(r.status, rota).toBe(400)
+      expect((await r.json()).code, rota).toBe('invalido')
+    }
+    expect(chamadas).toHaveLength(0)
+  })
+
+  it('teto próprio: passou de 30 pedidos no minuto, 429 assistente_demais (fora do balde caro da legenda)', async () => {
+    await flag(true)
+    let ultimo: Response | undefined
+    for (let i = 0; i < 31; i++) ultimo = await s.post('/api/ai/assistente/expressoes', {})
+    expect(ultimo!.status).toBe(429)
+    expect((await ultimo!.json()).code).toBe('assistente_demais')
+    expect(chamadas).toHaveLength(0)
+  })
+})
+
 describe('POST /api/ai/feedback — 👍/👎 de lista fechada (Fase B da IA paga)', () => {
   it('avaliação válida → 202, sem chamar provedor', async () => {
     const r = await s.post('/api/ai/feedback', {

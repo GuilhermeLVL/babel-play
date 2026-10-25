@@ -71,6 +71,11 @@ export const METRIC_RATELIMIT_EXPORTAR = 'ratelimit:exportar'
 export const METRIC_RATELIMIT_IMAGENS = 'ratelimit:imagens'
 /** O balde do feedback de IA (`POST /api/ai/feedback`, Fase B da IA paga): próprio pelo mesmo A27. */
 export const METRIC_RATELIMIT_FEEDBACK = 'ratelimit:feedback'
+/**
+ * O balde do ASSISTENTE AO VIVO (`POST /api/ai/assistente/*`): próprio pelo mesmo A27 — as glosas automáticas
+ * acompanham a legenda, e dividir o balde caro com a tradução de cada fala cortaria a legenda.
+ */
+export const METRIC_RATELIMIT_ASSISTENTE = 'ratelimit:assistente'
 
 /**
  * A chave do balde: o TENANT, não o IP. Cai no IP só onde não há usuário resolvido

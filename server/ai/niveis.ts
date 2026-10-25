@@ -57,6 +57,10 @@ export const IA_NIVEIS: Readonly<Record<FuncaoDeIa, NiveisDaFuncao>> = {
      rápida; quem paga, a nuance — como no tutor. */
   explicacao: { semNuance: 'rapida', comNuance: 'nuance' },
   resumo: { semNuance: 'rapida', comNuance: 'nuance' },
+  /* O assistente ao vivo (spec `docs/specs/2026-10-25-assistente-ao-vivo.md`): o MAIS BARATO que não piora a experiência
+     — a rápida para todo plano. O recurso que precisa de outro nível o pede no núcleo
+     (`NIVEL_DO_RECURSO` em `server/ai/nucleo/assistenteAoVivo.ts`), sempre pelo `rebaixarNivel`. */
+  assistente: { semNuance: 'rapida', comNuance: 'rapida' },
 }
 
 /** O nível que a função entrega a este plano — pela capacidade `traducaoNuance`. */

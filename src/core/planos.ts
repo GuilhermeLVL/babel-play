@@ -180,6 +180,14 @@ export interface QuotasDoPlano {
    */
   explicacoesMes: number | null;
   resumosMes: number | null;
+  /**
+   * O ASSISTENTE AO VIVO (`docs/specs/2026-10-25-assistente-ao-vivo.md`): chamadas de nuvem POR DIA LOCAL, somando
+   * expressões, termos, "Como respondo?" e a correção da fala (contador próprio, `server/lib/assistenteAoVivo.ts`). Os
+   * tokens de cada chamada saem da `tokensMes` do plano (como a IA de estudo), então o custo já está na conta do plano;
+   * o teto do dia é o uso justo. As palavras acima do nível são locais e não contam. `0` = o plano não tem (Grátis e
+   * convidado); `null` = sem teto.
+   */
+  assistenteDia: number | null;
 }
 
 /**
@@ -237,6 +245,23 @@ export const FLAG_VENDA_PRO4 = 'venda_pro4';
  */
 export const FLAG_IA_DE_ESTUDO = 'ia_de_estudo';
 
+/**
+ * O ASSISTENTE AO VIVO (`docs/specs/2026-10-25-assistente-ao-vivo.md`): expressões e gírias da legenda, termo técnico ou
+ * sigla em uma linha, "Como respondo?" e a correção gentil da própria fala (`POST /api/ai/assistente/*`). Nasce
+ * DESLIGADA (migração SQLite 0057 / PG 0011): desligada, as rotas respondem 404 `recurso_indisponivel`. Não é
+ * permissão nem cota: quem pode é o plano (`assistenteDia`). As palavras acima do nível são locais e valem também no
+ * Grátis, sem flag de servidor.
+ */
+export const FLAG_ASSISTENTE_AO_VIVO = 'assistente_ao_vivo';
+
+/**
+ * O TETO DO DIA do assistente nos planos pagos: 200 chamadas por dia local. A conta (spec, "Custo"): o uso cheio
+ * estimado é de ~450 mil tokens por mês (~22% da `tokensMes` do Plus), uns 25 usos por hora em 40 min por dia; 200 por
+ * dia cobre o dia mais intenso (≈3 h de vídeo com glosa) e corta o uso automático em laço. Os tokens saem da
+ * `tokensMes`, então o teto não muda a margem (`npm run ia:custo`).
+ */
+export const ASSISTENTE_DIA_DOS_PAGOS = 200;
+
 export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
   free: {
     rotulo: 'Grátis',
@@ -268,6 +293,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       sttAoVivoSegundosMes: 0,
       explicacoesMes: 0,
       resumosMes: 0,
+      assistenteDia: 0,
     },
   },
   essencial: {
@@ -304,6 +330,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       sttAoVivoSegundosMes: 0,
       explicacoesMes: 300,
       resumosMes: 60,
+      assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
     },
   },
   premium: {
@@ -351,6 +378,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       sttAoVivoSegundosMes: 0,
       explicacoesMes: 300,
       resumosMes: 60,
+      assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
     },
   },
   aovivo: {
@@ -391,6 +419,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       sttAoVivoSegundosMes: 36_000,
       explicacoesMes: 300,
       resumosMes: 60,
+      assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
     },
   },
   /* PLUS (planos v4): o plano de entrada pago. Tudo do Premium, menos o intérprete automático (que é do Pro).
@@ -425,6 +454,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       sttAoVivoSegundosMes: 0,
       explicacoesMes: 300,
       resumosMes: 60,
+      assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
     },
   },
   /* FAMÍLIA (planos v4, "em breve"): as capacidades do Plus com 12 h compartilhadas. Só existe como produto
@@ -458,6 +488,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       sttAoVivoSegundosMes: 0,
       explicacoesMes: 300,
       resumosMes: 60,
+      assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
     },
   },
   /* PRO (planos v4, "em breve"; id \`pro4\`, NUNCA \`pro\`, que é o apelido antigo do Premium): 20 h e o intérprete
@@ -491,6 +522,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       sttAoVivoSegundosMes: 0,
       explicacoesMes: 300,
       resumosMes: 60,
+      assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
     },
   },
   selfhost: {
@@ -522,6 +554,7 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       sttAoVivoSegundosMes: null,
       explicacoesMes: null,
       resumosMes: null,
+      assistenteDia: null,
     },
   },
 };
@@ -578,6 +611,7 @@ export const PLANO_CONVIDADO: DefinicaoDePlano = {
     sttAoVivoSegundosMes: 0,
     explicacoesMes: 0,
     resumosMes: 0,
+    assistenteDia: 0,
   },
 };
 

@@ -24,7 +24,7 @@ describe('baseline do schema Postgres', () => {
       ),
     ).toBe(41)
     expect(await contar(sql`select count(*)::int as n from pg_trigger where not tgisinternal`)).toBe(25)
-    expect(await contar(sql`select count(*)::int as n from flags`)).toBe(15) // estado final da cadeia SQLite (+ `ia_de_estudo`, PG 0009; + `stt_aparelho_primeiro`, PG 0010)
+    expect(await contar(sql`select count(*)::int as n from flags`)).toBe(16) // estado final da cadeia SQLite (+ `ia_de_estudo`, PG 0009; + `stt_aparelho_primeiro`, PG 0010; + `assistente_ao_vivo`, PG 0011)
     expect(
       await contar(
         sql`select count(*)::int as n from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity`,

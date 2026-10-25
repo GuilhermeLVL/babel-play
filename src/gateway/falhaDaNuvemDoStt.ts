@@ -10,9 +10,14 @@
  * Um conjunto de ouvintes no módulo, e não um evento de `window`: o adaptador roda no teste de Node
  * e na importação, onde não há janela, e quem ouve precisa soltar ao trocar de rota.
  */
-type Ouvinte = () => void;
+/** O que a falha diz: `pausou` = a nuvem entrou em pausa (402/429/503 ou a 3ª 5xx seguida), não foi um soluço. */
+export interface FalhaDaNuvemDoStt {
+  pausou: boolean;
+}
+type Ouvinte = (falha: FalhaDaNuvemDoStt) => void;
 
 const ouvintes = new Set<Ouvinte>();
+const ouvintesDaVolta = new Set<() => void>();
 
 /** Registra quem quer saber da próxima falha. Devolve a função que solta o registro. */
 export function aoFalharANuvemDoStt(ouvinte: Ouvinte): () => void {
@@ -23,12 +28,34 @@ export function aoFalharANuvemDoStt(ouvinte: Ouvinte): () => void {
 }
 
 /** Chamado pelo adaptador groq-whisper a cada falha que não é cancelamento. Nunca lança. */
-export function avisarFalhaDaNuvemDoStt(): void {
+export function avisarFalhaDaNuvemDoStt(falha: FalhaDaNuvemDoStt = { pausou: false }): void {
   for (const o of [...ouvintes]) {
+    try {
+      o(falha);
+    } catch {
+      /* um ouvinte quebrado não impede os outros nem a transcrição */
+    }
+  }
+}
+
+/**
+ * Quem quer saber de cada resposta BOA da nuvem (a reserva pesada sai quando a nuvem volta estável).
+ * Devolve a função que solta o registro.
+ */
+export function aoResponderANuvemDoStt(ouvinte: () => void): () => void {
+  ouvintesDaVolta.add(ouvinte);
+  return () => {
+    ouvintesDaVolta.delete(ouvinte);
+  };
+}
+
+/** Chamado pelo adaptador groq-whisper a cada resposta boa. Nunca lança. */
+export function avisarRespostaDaNuvemDoStt(): void {
+  for (const o of [...ouvintesDaVolta]) {
     try {
       o();
     } catch {
-      /* um ouvinte quebrado não impede os outros nem a transcrição */
+      /* idem */
     }
   }
 }

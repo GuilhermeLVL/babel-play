@@ -727,6 +727,60 @@ export function buildGateway({ profile, cloudConsent }: GatewayDeps) {
         }
       },
 
+      /** O Parakeet está na cadeia agora? (Sai sozinho se não carregar, ou se o regulador descer a um Whisper.) */
+      parakeetAtivo(): boolean {
+        return parakeet.ativo;
+      },
+
+      /**
+       * O PARAKEET DE RESERVA da nuvem (Fase B, item 5; rodada de correção 1). Ligar: ele entra na cadeia
+       * (atrás da nuvem, na frente do Whisper) e carrega, e o Whisper é LIBERADO — o Parakeet (~2 GB) e o
+       * Whisper quente juntos com o tradutor não cabem (`memoriaDosModelos.ts`). O modelo do Whisper NÃO é
+       * tocado (o regulador pode tê-lo descido). Se o Parakeet não carregar, ele sai e o Whisper volta.
+       * Desligar: o Parakeet sai (o worker é encerrado) e o Whisper recarrega, com o modelo que tinha.
+       */
+      async reservaParakeet(ativa: boolean): Promise<void> {
+        const liberarWhisper = () => {
+          for (const b of core.getProfile().bindings.stt ?? []) {
+            if (b.adapterId !== 'whisper-local') continue;
+            try {
+              (resolveStt(b) as { liberar?: () => void }).liberar?.();
+            } catch {
+              /* próximo binding */
+            }
+          }
+        };
+        const carregarWhisper = async () => {
+          for (const b of core.getProfile().bindings.stt ?? []) {
+            if (b.adapterId !== 'whisper-local') continue;
+            try {
+              const a = resolveStt(b);
+              if (a.isAvailable() && a.preload) return await a.preload();
+            } catch {
+              /* próximo binding */
+            }
+          }
+        };
+        if (!ativa) {
+          usarParakeet(false);
+          await carregarWhisper();
+          return;
+        }
+        usarParakeet(true);
+        liberarWhisper();
+        try {
+          const a = await obterParakeet();
+          if (!a.isAvailable() || !a.preload) throw new Error('Parakeet indisponível neste aparelho');
+          await a.preload();
+        } catch (e) {
+          if (!parakeet.ativo) return; // desligada no meio da carga
+          console.warn('[stt] Parakeet de reserva não carregou; volta o Whisper:', String(e));
+          capMetrics.fallback(`stt:${ADAPTADOR_DO_PARAKEET}`);
+          usarParakeet(false);
+          await carregarWhisper();
+        }
+      },
+
       /**
        * O REGULADOR trocou o modelo local (um degrau abaixo ou de volta — `reguladorDaCaptura.ts`).
        * Sem `opcoes`, só o modelo: a rota (nuvem primeiro?) e o dtype ficam como o roteador deixou.

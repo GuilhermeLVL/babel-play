@@ -25,8 +25,9 @@ export interface PlanoDaReservaLocal {
   /**
    * A reserva da nuvem é o PARAKEET (Fase B, item 5; só computador, só com a cópia no aparelho): o que
    * carrega agora é o Whisper base de sempre (parciais e queda invisível iguais), e o Parakeet (~2 GB
-   * de RAM) só entra na cadeia e carrega na PRIMEIRA falha da nuvem (`gateway/falhaDaNuvemDoStt.ts`).
-   * A sessão sem falha — a regra — não segura 2 GB por uma reserva que não usa.
+   * de RAM) só entra na cadeia quando a nuvem PAUSA (`parakeetDeReservaNaFalha`), no lugar do Whisper
+   * (que é liberado), e sai quando ela volta estável. A sessão sem pausa — a regra — não segura 2 GB
+   * por uma reserva que não usa.
    */
   parakeetNaFalha: boolean;
 }
@@ -50,4 +51,46 @@ export function planoDaReservaLocal(p: {
     parciaisLocais: true,
     parakeetNaFalha: p.preferCloud && p.localModel === ID_DO_PARAKEET,
   };
+}
+
+/* ───────────── o ciclo do Parakeet de reserva (rodada de correção 1, item 2) ───────────── */
+
+/**
+ * Quantas respostas boas SEGUIDAS da nuvem soltam o Parakeet de reserva (a nuvem voltou estável). Na
+ * pausa a nuvem nem é chamada, então a contagem só anda depois que ela religa.
+ */
+export const RESPOSTAS_PARA_SOLTAR_O_PARAKEET = 5;
+
+export interface EstadoDoParakeetDeReserva {
+  ativo: boolean;
+  respostasSeguidas: number;
+}
+
+type PassoDoParakeetDeReserva<A> = { estado: EstadoDoParakeetDeReserva; acao: A | null };
+
+/**
+ * Uma falha da nuvem. O Parakeet de reserva entra SÓ quando a nuvem PAUSA (402/429/503 ou a 3ª 5xx
+ * seguida): num soluço o Whisper quente atende a fala, e baixar 2 GB de modelo por um soluço é o que
+ * não pode. Ao entrar, o gateway LIBERA o Whisper (`reservaParakeet`): com o Parakeet,
+ * `umModeloDeCadaVez(perfil, true)` é sempre verdadeiro — os três modelos (Whisper, Parakeet e o
+ * tradutor) não ficam juntos em aparelho nenhum. Pura.
+ */
+export function parakeetDeReservaNaFalha(
+  e: EstadoDoParakeetDeReserva,
+  falha: { pausou: boolean },
+): PassoDoParakeetDeReserva<'ligar'> {
+  if (!falha.pausou || e.ativo) {
+    const estado = e.respostasSeguidas === 0 ? e : { ...e, respostasSeguidas: 0 };
+    return { estado, acao: null };
+  }
+  return { estado: { ativo: true, respostasSeguidas: 0 }, acao: 'ligar' };
+}
+
+/** Uma resposta boa da nuvem: depois de `RESPOSTAS_PARA_SOLTAR_O_PARAKEET` seguidas, o Parakeet sai. Pura. */
+export function parakeetDeReservaNaResposta(e: EstadoDoParakeetDeReserva): PassoDoParakeetDeReserva<'desligar'> {
+  if (!e.ativo) return { estado: e, acao: null };
+  const respostasSeguidas = e.respostasSeguidas + 1;
+  if (respostasSeguidas < RESPOSTAS_PARA_SOLTAR_O_PARAKEET)
+    return { estado: { ativo: true, respostasSeguidas }, acao: null };
+  return { estado: { ativo: false, respostasSeguidas: 0 }, acao: 'desligar' };
 }

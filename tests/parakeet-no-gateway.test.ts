@@ -241,6 +241,71 @@ describe('com a rota do Parakeet', () => {
     expect(parakeet.transcribePcm).not.toHaveBeenCalled()
   })
 
+  it('`parakeetAtivo` diz se o Parakeet está na cadeia (a captura confere depois da carga e do regulador)', async () => {
+    const { gw } = await montar()
+    expect(gw.stt.parakeetAtivo()).toBe(false)
+    gw.stt.setRoute(ROTA_DO_PARAKEET)
+    expect(gw.stt.parakeetAtivo()).toBe(true)
+    parakeet.preload.mockRejectedValue(new Error('WASM indisponível'))
+    const aviso = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    await gw.stt.preloadModel()
+    expect(gw.stt.parakeetAtivo()).toBe(false)
+    aviso.mockRestore()
+  })
+
+  it('o regulador desce o Parakeet a um Whisper: `parakeetAtivo` vira false', async () => {
+    const { gw } = await montar()
+    gw.stt.setRoute(ROTA_DO_PARAKEET)
+    gw.stt.trocarModeloLocal(WHISPER_MODELS.tiny)
+    expect(gw.stt.parakeetAtivo()).toBe(false)
+  })
+})
+
+/* Rodada de correção 1, item 2: o Parakeet de RESERVA da nuvem entra sem trocar o modelo do Whisper (o
+   regulador pode tê-lo descido) e sem empilhar: o Whisper sai da memória enquanto o Parakeet atende, e
+   volta quando a reserva sai. */
+describe('reservaParakeet (a reserva pesada da nuvem)', () => {
+  const ROTA_DE_NUVEM = { preferCloud: true, localModel: WHISPER_MODELS.base, dtype: 'hybrid' }
+
+  it('ligar: o Parakeet entra na cadeia e carrega; o Whisper é LIBERADO e o modelo dele não é tocado', async () => {
+    const { gw } = await montar()
+    gw.stt.setRoute(ROTA_DE_NUVEM)
+    gw.stt.trocarModeloLocal(WHISPER_MODELS.tiny) // o regulador desceu
+    const modelosAntes = whisper.modelos.length
+    await gw.stt.reservaParakeet(true)
+    expect(gw.stt.parakeetAtivo()).toBe(true)
+    expect(parakeet.preload).toHaveBeenCalledTimes(1)
+    expect(whisper.liberar).toHaveBeenCalledTimes(1)
+    expect(whisper.modelos.length).toBe(modelosAntes) // nenhum setModel(base): o tiny do regulador fica
+    expect((await gw.stt.transcribePcm(pcm(), 16000, { languageHint: 'pt' })).engine).toBe('parakeet-local')
+  })
+
+  it('desligar: o Parakeet sai (worker encerrado) e o Whisper recarrega, com o modelo que tinha', async () => {
+    const { gw } = await montar()
+    gw.stt.setRoute(ROTA_DE_NUVEM)
+    await gw.stt.reservaParakeet(true)
+    whisper.preload.mockClear()
+    const modelosAntes = whisper.modelos.length
+    await gw.stt.reservaParakeet(false)
+    expect(gw.stt.parakeetAtivo()).toBe(false)
+    expect(parakeet.liberar).toHaveBeenCalled()
+    expect(whisper.preload).toHaveBeenCalledTimes(1)
+    expect(whisper.modelos.length).toBe(modelosAntes)
+  })
+
+  it('o Parakeet de reserva não carrega: sai da cadeia e o Whisper volta a carregar', async () => {
+    const { gw } = await montar()
+    gw.stt.setRoute(ROTA_DE_NUVEM)
+    parakeet.preload.mockRejectedValue(new Error('integridade'))
+    const aviso = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    await gw.stt.reservaParakeet(true)
+    expect(gw.stt.parakeetAtivo()).toBe(false)
+    expect(whisper.preload).toHaveBeenCalledTimes(1)
+    aviso.mockRestore()
+  })
+})
+
+describe('consentimento', () => {
   it('não pede consentimento de nuvem: roda no aparelho mesmo com o consentimento negado', async () => {
     const { buildGateway } = await import('../src/gateway/index')
     const gw = buildGateway({

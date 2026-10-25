@@ -58,6 +58,7 @@ import { contarRespostaInvalida } from '../../http/metricas'
 import type { UserId } from '../../lib/authContext'
 import type { Entitlements } from '../../lib/entitlements'
 import { erroDeRota } from '../../lib/erroDeRota'
+import { ehMenor, INSTRUCAO_DE_SEGURANCA_PARA_MENORES } from '../../lib/idade'
 import { log } from '../../lib/logger'
 import { portaoDaNuvem, registrarGastoDeIa } from '../../lib/orcamentoDeIa'
 import { estimarTokens } from '../../lib/usageQuota'
@@ -66,6 +67,7 @@ import { admitirCascata, encerrarAdmissao, percorrerCascata } from '../cascata'
 import { FUNCOES_DE_IA } from '../funcoesDeIa'
 import { glossarioDoPedido, MAX_GLOSSARIO_POR_PEDIDO } from '../glossario'
 import { type MensagemDeChat, tamanhoDoPrompt } from '../llmClient'
+import { comInstrucaoDeMenor } from '../llmRequest'
 import { cascataDoPlano } from '../niveis'
 import { aplicarNuance } from '../nuanceDaTraducao'
 import { aplicarPoliticaDeCusto } from '../politicaDeCusto'
@@ -309,8 +311,14 @@ async function polirPendentes(
     original: l.original,
     traducao: l.traducaoPolida ?? l.traducao,
   }))
+  /* Público menor (idade não declarada conta como menor): a instrução vai no FIM do system. */
+  const menor = await ehMenor(ctx.userId)
+  rastro.anotar({ menor })
   const messages: MensagemDeChat[] = [
-    { role: 'system', content: systemDoPolimento(opcoes) },
+    {
+      role: 'system',
+      content: comInstrucaoDeMenor(systemDoPolimento(opcoes), menor ? INSTRUCAO_DE_SEGURANCA_PARA_MENORES : undefined),
+    },
     { role: 'user', content: userDoPolimento(contexto, linhasNoPrompt, opcoes) },
   ]
   const maxTokens = POLIMENTO.maxTokens

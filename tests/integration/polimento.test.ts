@@ -63,6 +63,7 @@ let glossario: any
 let sessionsRepo: any
 let utterancesRepo: any
 let contaRepo: any
+let idades: any
 
 interface Chamada {
   modelo: string
@@ -159,6 +160,7 @@ beforeAll(async () => {
   ;({ sessionsRepo } = await h.load<any>('../../server/db/repositories/sessions'))
   ;({ utterancesRepo } = await h.load<any>('../../server/db/repositories/utterances'))
   ;({ contaRepo } = await h.load<any>('../../server/db/repositories/conta'))
+  ;({ idadesRepo: idades } = await h.load<any>('../../server/db/repositories/idades'))
   const { subscriptionsRepo } = await h.load<any>('../../server/db/repositories/subscriptions')
   await subscriptionsRepo.upsert(PAGANTE, { plan: PLANO_PAGO, status: 'active' })
   await subscriptionsRepo.upsert(OUTRA, { plan: PLANO_PAGO, status: 'active' })
@@ -281,6 +283,23 @@ describe('com a Tradução Nuance', () => {
     expect(chamadas[0].system).toMatch(/FORMAL/)
     expect(chamadas[0].user).toContain('{"termo":"line","traducao":"fala"}')
     expect(chamadas[0].linhas[0].para).toBe('português de Portugal')
+  })
+
+  it('MENOR (idade não declarada): o system enviado ao provedor leva a instrução de segurança, no fim', async () => {
+    const id = await sessaoCom(PAGANTE, 2)
+    const chamadas = provedor(polidaDeTudo)
+    await pedir({ sessionId: id, bloco: 0 })
+    expect(chamadas[0].system).toContain('PÚBLICO MENOR')
+    expect(chamadas[0].system).toContain('CVV')
+  })
+
+  it('ADULTO declarado: sem a instrução de menor', async () => {
+    await idades.declarar(OUTRA, '1990-01-01')
+    const id = await sessaoCom(OUTRA, 2)
+    const chamadas = provedor(polidaDeTudo)
+    await pedir({ sessionId: id, bloco: 0 }, OUTRA)
+    expect(chamadas).toHaveLength(1)
+    expect(chamadas[0].system).not.toContain('PÚBLICO MENOR')
   })
 
   it('resposta sem JSON utilizável: 502 resposta_invalida, nada gravado, e o custo fica registrado', async () => {

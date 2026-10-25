@@ -95,12 +95,21 @@ function lerResposta(c: unknown): RespostaDaExplicacao | null {
   };
 }
 
+/**
+ * Quanto a folha espera a explicação: 35 s, DEPOIS do prazo total da cascata no servidor (30 s, `PRAZO_TOTAL_MS` em
+ * `server/ai/nucleo/explicarFrase.ts`) — o servidor responde antes, e o cliente só desiste se a rede travar. O padrão
+ * do `apiFetch` (30 s) cortaria a reserva que ainda podia entregar. Esgotado, vira `indisponivel` ("Não deu para
+ * explicar agora."), sem lançar.
+ */
+export const TEMPO_DA_EXPLICACAO_MS = 35_000;
+
 /** Pede a explicação de uma frase. Nunca lança. */
 export async function explicarFrase(p: PedidoDeExplicacao): Promise<ResultadoDoEstudo<RespostaDaExplicacao>> {
   let res: Response;
   try {
     res = await apiFetch('/api/ai/explicar', {
       method: 'POST',
+      timeoutMs: TEMPO_DA_EXPLICACAO_MS,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         texto: p.texto,

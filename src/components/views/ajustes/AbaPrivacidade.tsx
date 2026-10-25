@@ -116,7 +116,7 @@ export default function AbaPrivacidade() {
         <p className="q-aju-nota">{t('Cada mudança fica registrada com data, para você e para nós.')}</p>
       </section>
 
-      {/* Só com a flag `anuncios` ligada e fora do perfil protegido; desligada, nada muda aqui. */}
+      {/* Só com a flag `anuncios` ligada (o perfil protegido também vê); desligada, nada muda aqui. */}
       <AnunciosNosAjustes />
 
       <section className="q-secao">

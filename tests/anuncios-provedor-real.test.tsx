@@ -7,7 +7,9 @@
  *  - sem consentimento → nenhum iframe e nenhum pedido de rede;
  *  - consentimento + flag → UM iframe `credentialless` com o `src` certo, "Patrocinado" e a porta
  *    "Sem anúncios";
- *  - perfil protegido → nada;
+ *  - perfil protegido → o anúncio comum sim, com o tratamento de idade na query (`tratamento=crianca|adolescente`);
+ *    o premiado nunca (decisão do dono, 25/10/2026; antes era "nada" para tudo);
+ *  - o tratamento de idade: adulto → `nenhum`; protegido → o do servidor, ou pela faixa, ou `crianca`;
  *  - navegador sem `credentialless` (Firefox) → o provedor se declara indisponível e nada aparece;
  *  - mensagem de outra origem é ignorada; `recompensa` da origem de anúncios credita UMA vez
  *    (`concluirPremiado`, o aperto de mão da Task 5) e mostra o resultado; a recusa mostra o motivo;
@@ -29,6 +31,7 @@ const mundo = vi.hoisted(() => ({
   protegido: false,
   consentimento: false,
   contaCriadaEm: null as number | null,
+  estado: null as null | { faixa: string | null; tratamentoDeAnuncio?: string },
 }))
 
 vi.mock('../src/lib/flags', () => ({ useFlag: () => mundo.flag }))
@@ -39,6 +42,7 @@ vi.mock('../src/lib/entitlements', () => ({
 }))
 vi.mock('../src/lib/protecaoDoMenor', () => ({
   perfilProtegido: () => mundo.protegido,
+  estadoDaProtecao: () => mundo.estado,
   aoMudarProtecao: () => () => undefined,
 }))
 vi.mock('../src/lib/dispositivo/telaNovaDoQuest', () => ({ noHeadset: () => false }))
@@ -91,7 +95,7 @@ const SANDBOX = 'allow-scripts allow-same-origin allow-popups allow-popups-to-es
 const iframes = () => [...document.querySelectorAll('iframe')]
 
 beforeEach(() => {
-  Object.assign(mundo, { flag: false, protegido: false, consentimento: false, contaCriadaEm: null })
+  Object.assign(mundo, { flag: false, protegido: false, consentimento: false, contaCriadaEm: null, estado: null })
   proto.credentialless = false // o Chrome expõe a propriedade; o Firefox não
   registrarProvedorDeAnuncios(criarProvedorPorIframe({ origem: ORIGEM }))
   rede = vi.fn(async () => new Response('{}', { status: 200 }))
@@ -161,14 +165,45 @@ describe('o provedor real (iframe credentialless)', () => {
     expect(rede).not.toHaveBeenCalled()
   })
 
-  it('perfil protegido: nada', async () => {
+  it('adulto: o quadro leva `tratamento=nenhum` (não personalizado do mesmo jeito, pela página)', () => {
+    quemPodeVer()
+    render(<EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" />)
+    expect(new URL(iframes()[0].src).searchParams.get('tratamento')).toBe('nenhum')
+  })
+
+  it.each([
+    ['sem estado do servidor (idade desconhecida)', null, 'crianca'],
+    ['servidor diz criança (abaixo de 13)', { faixa: '12-15', tratamentoDeAnuncio: 'crianca' }, 'crianca'],
+    ['servidor diz adolescente (13–17)', { faixa: '12-15', tratamentoDeAnuncio: 'adolescente' }, 'adolescente'],
+    ['servidor antigo, faixa 16-17', { faixa: '16-17' }, 'adolescente'],
+    ['servidor antigo, faixa 12-15 (inclui 12)', { faixa: '12-15' }, 'crianca'],
+    ['servidor antigo, faixa menor-12', { faixa: 'menor-12' }, 'crianca'],
+    ['incoerente: protegido com `nenhum`', { faixa: null, tratamentoDeAnuncio: 'nenhum' }, 'crianca'],
+  ])('perfil protegido, %s: o anúncio comum aparece com tratamento=%s', async (_n, estado, esperado) => {
     quemPodeVer()
     mundo.protegido = true
-    const { container } = render(<EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" />)
+    mundo.estado = estado
+    render(<EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" />)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    const [f] = iframes()
+    expect(f.hasAttribute('credentialless')).toBe(true)
+    const q = new URL(f.src).searchParams
+    expect(q.get('tratamento')).toBe(esperado)
+    expect(q.get('consentimento')).toBe('1')
+    expect(rede).not.toHaveBeenCalled()
+  })
+
+  it('perfil protegido: o premiado nunca aparece (só para adultos), nem o botão', async () => {
+    quemPodeVer()
+    mundo.protegido = true
+    const { container } = render(<EspacoDeAnuncio espaco="fim-premiado" formato="premiado" />)
     await act(async () => {
       await Promise.resolve()
     })
     expect(container.innerHTML).toBe('')
+    expect(iniciarPremiado).not.toHaveBeenCalled()
     expect(rede).not.toHaveBeenCalled()
   })
 

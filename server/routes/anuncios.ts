@@ -10,8 +10,9 @@
  *
  * AS PORTAS, nas duas pontas e nesta ordem:
  *   1. FLAG `anuncios` desligada → 404 `anuncios_desligados` (a rota "não existe" para quem não vê anúncio).
- *   2. PERFIL PROTEGIDO (menor, idade não declarada, convidado) → 403 `perfil_protegido`. Nunca há anúncio para
- *      ele (`politicaDeAnuncio.ts`), e o servidor não confia no cliente para isso.
+ *   2. PERFIL PROTEGIDO (menor, idade não declarada, convidado) → 403 `perfil_protegido`. O premiado ("assista e
+ *      ganhe") é só para adultos declarados (18+; `politicaDeAnuncio.ts`, decisão do dono de 25/10/2026: o perfil
+ *      protegido vê só o anúncio comum, que não passa por esta rota), e o servidor não confia no cliente para isso.
  *   3. PLANO SEM ANÚNCIOS (`semAnuncios` do plano EFETIVO do servidor: quem paga, quem está no teste de 14 dias
  *      do Premium, o self-host) → 403 `sem_anuncios`.
  *   4. ESPAÇO INATIVO (fora de `ESPACOS_PREMIADOS_ATIVOS`: a interface só monta `fim-premiado` e `loja-seeds`)
@@ -80,7 +81,7 @@ const concluirSchema = z.object({ exibicaoId: z.string().regex(/^[0-9a-f]{32}$/)
 
 const MENSAGENS = {
   desligados: 'anúncios não estão disponíveis',
-  protegido: 'este perfil não vê anúncios',
+  protegido: 'o anúncio com recompensa é só para maiores de 18 anos',
   teto: 'os anúncios premiados de hoje acabaram; voltam amanhã',
   desconhecida: 'exibição desconhecida',
   expirada: 'esta exibição passou do prazo e não rende recompensa',

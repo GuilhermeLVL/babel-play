@@ -67,7 +67,9 @@ const { JOGOS } = await import('../src/components/views/play/jogos')
 const { marcarAjudaEsgotada, rodadaComAjudas } = await import('../src/lib/jogos/ajudaEsgotada')
 const { registrarProvedorDeAnuncios, provedorDeAnuncios } = await import('../src/lib/anuncios/provedor')
 const { ligarDemonstracaoDeAnuncios } = await import('../src/components/anuncios/demonstracao/ligar')
-const { INTERVALO_DO_INTERSTICIAL_MS } = await import('../src/core/anuncios/politicaDeAnuncio')
+const { FORMATO_DO_ESPACO, INTERVALO_DO_INTERSTICIAL_MS } = await import('../src/core/anuncios/politicaDeAnuncio')
+const { ESPACOS_PREMIADOS } = await import('../src/core/anuncios/premiado')
+type EspacoDeAnuncioDaPolitica = import('../src/core/anuncios/politicaDeAnuncio').EspacoDeAnuncio
 
 type Progresso = Parameters<typeof InicioDoQuest>[0]['progress']
 type Gravacao = Parameters<typeof BibliotecaDoQuest>[0]['gravacoes'][number]
@@ -558,21 +560,30 @@ describe.each(NOVOS)('espaço $espaco', ({ espaco, tela, preparar, agir }) => {
     expect(document.querySelector(`[data-ad-falso="${espaco}"]`), espaco).not.toBeNull()
   })
 
-  it('perfil protegido, com a demonstração ligada: nenhum anúncio e nenhuma folha de consentimento', async () => {
+  /* Decisão do dono (25/10/2026): o perfil protegido vê o anúncio COMUM e nunca o premiado. Antes este par de
+     testes exigia "nada" em todo espaço; agora exige o comum presente e nenhum premiado (nem a folha por ele). */
+  const ehPremiado = (e: string) => FORMATO_DO_ESPACO[e as EspacoDeAnuncioDaPolitica] === 'premiado'
+  const seletorDosPremiados = (atributo: string) => ESPACOS_PREMIADOS.map((e) => `[${atributo}="${e}"]`).join(', ')
+
+  it('perfil protegido, com a demonstração ligada: o comum aparece; premiado, nunca (nem a folha)', async () => {
     await ligarDemonstracao()
     chave.protegido = true
     const { raiz } = await fotografar(tela, true)
     await agir?.(raiz)
-    expect(document.querySelector('[data-ad], .ad, .consentimento-de-anuncios, dialog[open]')).toBeNull()
+    expect(document.querySelector(seletorDosPremiados('data-ad'))).toBeNull()
+    expect(document.querySelector('.consentimento-de-anuncios')).toBeNull()
+    if (!ehPremiado(espaco)) expect(document.querySelector(`[data-ad="${espaco}"]`), espaco).not.toBeNull()
   })
 
-  it('perfil protegido, com um provedor que pede consentimento: nada também', async () => {
+  it('perfil protegido, com um provedor que pede consentimento: o comum aparece; premiado, nunca', async () => {
     pedirDemonstracao()
     registrarProvedorDeAnuncios({ ...PROVEDOR_FALSO, pedeConsentimento: true })
     chave.protegido = true
     const { raiz } = await fotografar(tela, true)
     await agir?.(raiz)
-    expect(document.querySelector('[data-ad-falso], .consentimento-de-anuncios')).toBeNull()
+    expect(document.querySelector(seletorDosPremiados('data-ad-falso'))).toBeNull()
+    expect(document.querySelector('.consentimento-de-anuncios')).toBeNull()
+    if (!ehPremiado(espaco)) expect(document.querySelector(`[data-ad-falso="${espaco}"]`), espaco).not.toBeNull()
   })
 })
 

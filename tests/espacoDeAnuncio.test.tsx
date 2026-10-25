@@ -5,9 +5,11 @@
  *  - ESTADO DE FÁBRICA: sem provedor registrado o componente não renderiza nada e não pede rede, com a
  *    flag ligada ou desligada. Não existe provedor de produção nesta etapa;
  *  - com um provedor, quem decide é a política: a flag, o consentimento e a idade da conta precisam
- *    estar lá, e assinante, perfil protegido, headset e tela ocupada nunca veem;
+ *    estar lá, e assinante, headset e tela ocupada nunca veem; o perfil protegido vê o comum e nunca o premiado
+ *    (decisão do dono, 25/10/2026; antes ele não via nada);
  *  - a DEMONSTRAÇÃO (só em desenvolvimento, pela chave local) desenha "Patrocinado · exemplo" com as
- *    classes do protótipo, sem rede, e continua negando para assinante, protegido, headset e tela ocupada;
+ *    classes do protótipo, sem rede, e continua negando para assinante, headset e tela ocupada (e o premiado
+ *    para o protegido);
  *  - o premiado é escolha: a folha diz antes o que se ganha, recusar não muda nada, e a recompensa da
  *    demonstração é simulada (nenhum pedido ao servidor).
  */
@@ -180,6 +182,16 @@ describe('com um provedor, quem decide é a política', () => {
     expect(screen.getByTestId('anuncio-de-teste').dataset).toMatchObject({ espaco: 'inicio-nativo', formato: 'nativo' })
   })
 
+  it('perfil protegido: o comum o provedor desenha; o premiado, não', () => {
+    quemPodeVer()
+    Object.assign(mundo, { protegido: true })
+    montar()
+    expect(screen.getByTestId('anuncio-de-teste').dataset).toMatchObject({ espaco: 'inicio-nativo', formato: 'nativo' })
+    cleanup()
+    const { container } = render(<EspacoDeAnuncio espaco="fim-premiado" formato="premiado" />)
+    expect(container.innerHTML).toBe('')
+  })
+
   it.each([
     ['flag desligada', () => Object.assign(mundo, { flag: false })],
     ['sem consentimento', () => Object.assign(mundo, { consentimento: false })],
@@ -187,7 +199,6 @@ describe('com um provedor, quem decide é a política', () => {
     ['conta sem data', () => Object.assign(mundo, { contaCriadaEm: null })],
     ['assinante (`semAnuncios`)', () => Object.assign(mundo, { semAnuncios: true })],
     ['teste de 14 dias', () => Object.assign(mundo, { teste: { terminaEm: Date.now() + DIA } })],
-    ['perfil protegido', () => Object.assign(mundo, { protegido: true })],
     ['headset', () => Object.assign(mundo, { headset: true })],
     ['edição estática', () => Object.assign(mundo, { estatica: true })],
     ['captura ativa', () => Object.assign(mundo, { captura: true })],
@@ -282,7 +293,6 @@ describe('a demonstração (só em desenvolvimento, pela chave local)', () => {
   it.each([
     ['assinante (`semAnuncios`)', () => Object.assign(mundo, { semAnuncios: true })],
     ['teste de 14 dias', () => Object.assign(mundo, { teste: { terminaEm: Date.now() + DIA } })],
-    ['perfil protegido', () => Object.assign(mundo, { protegido: true })],
     ['headset', () => Object.assign(mundo, { headset: true })],
     ['edição estática', () => Object.assign(mundo, { estatica: true })],
     ['captura ativa', () => Object.assign(mundo, { captura: true })],
@@ -299,6 +309,20 @@ describe('a demonstração (só em desenvolvimento, pela chave local)', () => {
       </>,
     )
     expect(container.innerHTML).toBe('')
+  })
+
+  it('perfil protegido, na demonstração: vê o comum e nunca o premiado', async () => {
+    await comDemonstracao()
+    Object.assign(mundo, { protegido: true })
+    render(
+      <>
+        <EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" />
+        <EspacoDeAnuncio espaco="fim-premiado" formato="premiado" />
+        <EspacoDeAnuncio espaco="loja-seeds" formato="premiado" />
+      </>,
+    )
+    expect(document.querySelector('[data-ad="inicio-nativo"]')).not.toBeNull()
+    expect(document.querySelector('[data-ad="fim-premiado"], [data-ad="loja-seeds"]')).toBeNull()
   })
 
   it('a porta "Sem anúncios" chama quem a tela passou', async () => {

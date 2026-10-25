@@ -11,6 +11,10 @@
  *   formato       `nativo` | `premiado`
  *   consentimento `1` = a pessoa aceitou. Sem ele, o GPT NUNCA é carregado
  *   exibicao      (premiado) a exibição aberta pelo servidor (`/api/anuncios/premiado/iniciar`)
+ *   tratamento    o tratamento de idade (`tratamentoDeIdade` em `src/core/anuncios/politicaDeAnuncio.ts`):
+ *                 `crianca` (abaixo de 13 ou idade desconhecida) | `adolescente` (13–17) | `nenhum` (adulto).
+ *                 Ausente ou fora da lista vale `crianca` (falha para o lado protetivo). O premiado só com
+ *                 `nenhum`: o "assista e ganhe" é só para adultos, e esta página confere de novo.
  *   tema, idioma  aparência; não vão ao Google
  * Lida a query, ela sai da barra de endereço (`history.replaceState`) ANTES do GPT: a exibição não vai ao
  * Google no endereço da página.
@@ -18,9 +22,14 @@
  * Só roda DENTRO de um quadro e fora da origem do app: aberta direto (topo) ou servida pela origem do app,
  * sai sem fazer nada.
  *
- * Privacidade, sempre e antes de qualquer slot: `childDirectedTreatment`, `underAgeOfConsent`,
- * `restrictDataProcessing` e `nonPersonalizedAds`; criativo em SafeFrame. `setPublisherProvidedId` NUNCA:
- * o Google não recebe identificador nenhum nosso. O quadro é `credentialless` (sem cookies).
+ * Privacidade, sempre e antes de qualquer slot, PARA TODOS: `childDirectedTreatment`, `underAgeOfConsent`,
+ * `restrictDataProcessing` e `nonPersonalizedAds` (`setPrivacySettings`), mais `privacyTreatments`
+ * `disablePersonalization` (`setConfig`, quando o GPT o tem); criativo em SafeFrame. E o TRATAMENTO DE IDADE
+ * (`tagForAgeTreatment`, o TFAT que o Google pôs no lugar do TFCD/TFUA, hoje marcados como obsoletos):
+ * `CHILD`, `TEEN` ou `UNSPECIFIED`. O Google aplica o tratamento MAIS conservador quando há TFAT e TFCD/TFUA
+ * juntos (Ad Manager, resposta 9004919), então manter o TFCD para todos não afrouxa nada: o tratamento de
+ * idade só acrescenta. `setPublisherProvidedId` NUNCA: o Google não recebe identificador nenhum nosso. O quadro
+ * é `credentialless` (sem cookies).
  *
  * Mensagens ao app: `{ tipo: 'frasy:anuncio', evento: 'recompensa' | 'fechou' | 'vazio', exibicaoId }`.
  * O app confere a origem e a exibição; quem credita é o servidor, com teto (não há SSV do Google na web).
@@ -48,6 +57,8 @@
   var formato = q.get('formato') || '';
   var exibicao = q.get('exibicao') || '';
   var consentiu = q.get('consentimento') === '1';
+  var tratamento = q.get('tratamento');
+  if (tratamento !== 'adolescente' && tratamento !== 'nenhum') tratamento = 'crianca';
   /* A query (com a exibição) sai do endereço antes de qualquer script do Google. */
   window.history.replaceState(null, '', window.location.pathname);
 
@@ -55,6 +66,8 @@
     /^[a-z0-9-]{1,40}$/.test(espaco) &&
     (formato === 'nativo' || formato === 'premiado') &&
     (formato !== 'premiado' || /^[A-Za-z0-9_-]{1,80}$/.test(exibicao));
+  /* O premiado é só para adultos: com tratamento de criança ou adolescente, nada da rede é pedido. */
+  var permitido = formato !== 'premiado' || tratamento === 'nenhum';
   var temRede = /^[0-9]{1,20}$/.test(rede);
 
   function avisar(evento) {
@@ -65,7 +78,7 @@
 
   /* Sem consentimento, sem o código da rede no build ou com a query fora da forma: nada da rede é pedido. Com a
      query certa, o app ouve `vazio` e o espaço some (falha fechada). Sem rede, um aviso no console (Task 6). */
-  if (!consentiu || !valida || !temRede) {
+  if (!consentiu || !valida || !temRede || !permitido) {
     if (valida && !temRede) {
       window.console.warn('frasy-anuncios: sem código da rede no build (VITE_ANUNCIOS_REDE_CONTA); nada é pedido.');
     }
@@ -78,12 +91,21 @@
 
   googletag.cmd.push(function () {
     var pubads = googletag.pubads();
-    pubads.setPrivacySettings({
+    var idades = (googletag.enums && googletag.enums.TagForAgeTreatment) || {};
+    var privacidade = {
       childDirectedTreatment: true,
       underAgeOfConsent: true,
       restrictDataProcessing: true,
       nonPersonalizedAds: true,
-    });
+    };
+    var tfat =
+      tratamento === 'crianca' ? idades.CHILD : tratamento === 'adolescente' ? idades.TEEN : idades.UNSPECIFIED;
+    /* GPT sem o enum (versão antiga): fica o TFCD/TFUA acima, que já é o tratamento de criança. */
+    if (tfat !== undefined) privacidade.tagForAgeTreatment = tfat;
+    pubads.setPrivacySettings(privacidade);
+    if (typeof googletag.setConfig === 'function') {
+      googletag.setConfig({ privacyTreatments: { treatments: ['disablePersonalization'] } });
+    }
     /* Criativo em SafeFrame, nos dois formatos (a CSP do GPT pede isso numa origem só). */
     pubads.setForceSafeFrame(true);
 

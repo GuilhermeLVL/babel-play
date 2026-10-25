@@ -21,6 +21,7 @@
  */
 import type { NextFunction, Request, Response } from 'express'
 
+import { type TratamentoDeIdade, tratamentoDeIdade } from '../../src/core/anuncios/politicaDeAnuncio'
 import { idadesRepo } from '../db/repositories/idades'
 import { vinculosRepo } from '../db/repositories/vinculos'
 import { aferidorAtual, type ConfiancaDaIdade } from './afericaoDeIdade'
@@ -90,6 +91,11 @@ export interface EstadoDeProtecao {
   }
   /** Sem nuvem até o responsável aceitar (e consentir, abaixo de 12). */
   restrita: boolean
+  /**
+   * O tratamento de idade do anúncio comum (`tratamentoDeIdade`): abaixo de 13 ou sem data → `crianca`; 13–17 →
+   * `adolescente`; adulto → `nenhum`. Vem pronto porque a faixa (`12-15`) não separa 12 de 13 e a data não sai daqui.
+   */
+  tratamentoDeAnuncio: TratamentoDeIdade
 }
 
 const LIBERADO: EstadoDeProtecao = Object.freeze({
@@ -101,6 +107,7 @@ const LIBERADO: EstadoDeProtecao = Object.freeze({
   exigeConsentimentoEspecifico: false,
   vinculo: { estado: 'nenhum' },
   restrita: false,
+  tratamentoDeAnuncio: 'nenhum',
 }) as EstadoDeProtecao
 
 /** `ma***@exemplo.com` — o menor vê para quem foi o convite sem a tela expor o e-mail inteiro. */
@@ -146,6 +153,7 @@ export async function estadoDeProtecao(userId: UserId, agora = Date.now()): Prom
     exigeConsentimentoEspecifico,
     vinculo,
     restrita: exigeResponsavel && !liberadoPeloResponsavel,
+    tratamentoDeAnuncio: tratamentoDeIdade(aferida.nascimento ? idadeEm(aferida.nascimento, agora) : null),
   }
 }
 

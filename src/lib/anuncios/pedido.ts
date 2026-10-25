@@ -13,8 +13,8 @@
  * consentimento e a idade da conta são tratados como DADOS, para o dono ver os lugares sem ligar nada
  * no banco e sem esperar três dias. O PLANO continua valendo: o servidor local é `selfhost` (sem
  * anúncios), então para ver é preciso também `localStorage['babel.px.planoDeProva'] = 'free'` (a mesma
- * chave da bancada dos Planos). Perfil protegido, headset, edição estática e tela ocupada continuam
- * negando na demonstração. Fora do desenvolvimento a chave não é lida; sem a variável, o build não tem demonstração.
+ * chave da bancada dos Planos). O premiado para o perfil protegido, headset, edição estática e tela ocupada
+ * continuam negando na demonstração. Fora do desenvolvimento a chave não é lida; sem a variável, o build não tem demonstração.
  * As trocas valem SÓ com o provedor de demonstração registrado (`demonstracaoAtiva()`): com o provedor REAL (flag
  * ligada e `VITE_ANUNCIOS_ORIGEM` no mesmo build), a flag, o consentimento e os três dias da conta valem de verdade.
  */

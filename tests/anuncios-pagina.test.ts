@@ -9,7 +9,9 @@
  *  - a query sai do endereço (`history.replaceState`) antes do GPT;
  *  - com consentimento: carrega o GPT uma vez, liga as travas de criança/idade/dados e o SafeFrame ANTES de
  *    qualquer slot, nos dois formatos, e nunca chama `setPublisherProvidedId`;
- *  - o premiado usa o formato premiado do GPT e avisa o app (`postMessage` só para a origem do build).
+ *  - o premiado usa o formato premiado do GPT e avisa o app (`postMessage` só para a origem do build);
+ *  - o TRATAMENTO DE IDADE (`tratamento=` → `tagForAgeTreatment`): criança/adolescente/nenhum; ausente ou
+ *    inválido = criança; não personalizado para todos; o premiado só com `nenhum` (adulto).
  */
 import { readFileSync } from 'node:fs'
 
@@ -37,7 +39,11 @@ function gptFalso() {
   }
   const googletag = {
     cmd: [] as Array<() => void>,
-    enums: { OutOfPageFormat: { REWARDED: 'REWARDED' } },
+    enums: {
+      OutOfPageFormat: { REWARDED: 'REWARDED' },
+      TagForAgeTreatment: { CHILD: 'CHILD', TEEN: 'TEEN', UNSPECIFIED: 'UNSPECIFIED' },
+    },
+    setConfig: vi.fn(),
     pubads: () => pubads,
     defineSlot: vi.fn(() => {
       ordem.push('slot')
@@ -147,7 +153,9 @@ describe('a página de anúncios', () => {
   it('premiado: formato premiado do GPT, SafeFrame também; recompensa e fechou vão ao app com a exibição', () => {
     const g = gptFalso()
     ;(window as unknown as Janela).googletag = g.googletag
-    rodar(`espaco=fim-premiado&formato=premiado&consentimento=1&exibicao=exib-9&app=https://outro.example`)
+    rodar(
+      `espaco=fim-premiado&formato=premiado&consentimento=1&tratamento=nenhum&exibicao=exib-9&app=https://outro.example`,
+    )
     for (const f of g.googletag.cmd) f()
     expect(g.googletag.defineOutOfPageSlot).toHaveBeenCalledWith('/123/frasy-fim-premiado', 'REWARDED')
     expect(g.ordem.slice(0, 3)).toEqual(['privacidade', 'safeframe', 'slot'])
@@ -163,7 +171,63 @@ describe('a página de anúncios', () => {
   })
 
   it('premiado sem exibição do servidor: não carrega nada', () => {
-    rodar('espaco=fim-premiado&formato=premiado&consentimento=1')
+    rodar('espaco=fim-premiado&formato=premiado&consentimento=1&tratamento=nenhum')
     expect(scriptsDoGpt()).toHaveLength(0)
+  })
+})
+
+describe('o tratamento de idade', () => {
+  const nativo = (extra: string) => {
+    const g = gptFalso()
+    ;(window as unknown as Janela).googletag = g.googletag
+    rodar(`espaco=inicio-nativo&formato=nativo&consentimento=1${extra}`)
+    for (const f of g.googletag.cmd) f()
+    return g
+  }
+
+  it.each([
+    ['criança (abaixo de 13)', '&tratamento=crianca', 'CHILD'],
+    ['adolescente (13–17)', '&tratamento=adolescente', 'TEEN'],
+    ['adulto', '&tratamento=nenhum', 'UNSPECIFIED'],
+    ['idade desconhecida (sem o parâmetro)', '', 'CHILD'],
+    ['valor fora da lista', '&tratamento=adulto', 'CHILD'],
+  ])('%s → tagForAgeTreatment %s, sempre não personalizado e sem PPID', (_n, extra, esperado) => {
+    const g = nativo(extra)
+    expect(g.pubads.setPrivacySettings).toHaveBeenCalledTimes(1)
+    expect(g.pubads.setPrivacySettings).toHaveBeenCalledWith({
+      childDirectedTreatment: true,
+      underAgeOfConsent: true,
+      restrictDataProcessing: true,
+      nonPersonalizedAds: true,
+      tagForAgeTreatment: esperado,
+    })
+    expect(g.googletag.setConfig).toHaveBeenCalledWith({
+      privacyTreatments: { treatments: ['disablePersonalization'] },
+    })
+    expect(g.ordem.slice(0, 3)).toEqual(['privacidade', 'safeframe', 'slot'])
+    expect(g.pubads.setPublisherProvidedId).not.toHaveBeenCalled()
+  })
+
+  it('GPT sem o enum de idade: fica o tratamento de criança (TFCD/TFUA), e o slot sai do mesmo jeito', () => {
+    const g = gptFalso()
+    delete (g.googletag.enums as Record<string, unknown>).TagForAgeTreatment
+    ;(window as unknown as Janela).googletag = g.googletag
+    rodar('espaco=inicio-nativo&formato=nativo&consentimento=1&tratamento=adolescente')
+    for (const f of g.googletag.cmd) f()
+    const [config] = g.pubads.setPrivacySettings.mock.calls[0] as unknown as [Record<string, unknown>]
+    expect(config).toMatchObject({ childDirectedTreatment: true, underAgeOfConsent: true, nonPersonalizedAds: true })
+    expect(config).not.toHaveProperty('tagForAgeTreatment')
+    expect(g.googletag.defineSlot).toHaveBeenCalled()
+  })
+
+  it.each([
+    ['criança', '&tratamento=crianca'],
+    ['adolescente', '&tratamento=adolescente'],
+    ['idade desconhecida', ''],
+  ])('premiado com tratamento de %s: o GPT nunca carrega e o app ouve `vazio`', (_n, extra) => {
+    rodar(`espaco=fim-premiado&formato=premiado&consentimento=1&exibicao=exib-9${extra}`)
+    expect(scriptsDoGpt()).toHaveLength(0)
+    expect((window as unknown as Janela).googletag).toBeUndefined()
+    expect(postar).toHaveBeenCalledWith({ tipo: 'frasy:anuncio', evento: 'vazio', exibicaoId: 'exib-9' }, APP)
   })
 })

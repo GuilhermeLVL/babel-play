@@ -85,17 +85,7 @@ const TELAS: Tela[] = [
  */
 const VIOLAM_HOJE: Record<string, { projetos: string[]; violacao: string }> = {
   /* A contagem da aba (`.q-aba .n`, `opacity: 0.8`) sobre a pílula das abas (`--surface-sunken`). */
-  /* O roxo das páginas legais (`--accent: #7c5cff`) no título pequeno e nos links. */
-  'Política de privacidade': {
-    projetos: ['desktop-1280', 'mobile-375'],
-    violacao:
-      'color-contrast: .kicker e os links (a[href="/"], a[href$="termos.html"]…) #7c5cff sobre #fafaf8 = 4.15 (pede 4.5)',
-  },
-  'Termos de uso': {
-    projetos: ['desktop-1280', 'mobile-375'],
-    violacao:
-      'color-contrast: .kicker e os links (a[href$="privacidade.html"]…) #7c5cff sobre #fafaf8 = 4.15 (pede 4.5)',
-  },
+  /* As páginas legais saíram daqui em 25/10/2026: o roxo virou #6a48f0 no claro e #a594ff no escuro (≥ 4,5). */
 }
 
 /** Marca o caso como `fixme` só no projeto em que ele viola hoje, com a violação como motivo. */

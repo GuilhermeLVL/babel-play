@@ -3465,8 +3465,8 @@ export default function Play({
           avisosDoEstado={avisosDoEstado}
           /* A FAIXA DE ANÚNCIO DO GRÁTIS (`fxFaixaDeAnuncio()`, `fontes.js:152-164`), no lugar que era da
              "Sugestão para hoje". Quem decide se aparece é a política (`politicaDeAnuncio.ts`): só no Grátis,
-             nunca em perfil protegido, no headset, sem rede ou sem consentimento, e só com a flag `anuncios`
-             ligada. Negado (ou sem provedor, o estado de fábrica) não entra nada, e a grade sobe. */
+             nunca no headset, sem rede ou sem consentimento, e só com a flag `anuncios` ligada (o perfil
+             protegido vê, sem personalização e com o tratamento de idade). Negado (ou sem provedor, o estado de fábrica) não entra nada, e a grade sobe. */
           anuncio={<EspacoDeAnuncio espaco="jogar-faixa" formato="nativo" />}
           /* A miniatura patrocinada, no 8º lugar da grade (`anuncios.js:156-168`): mesma régua da faixa. */
           miniatura={<EspacoDeAnuncio espaco="jogar-miniatura" formato="nativo" />}

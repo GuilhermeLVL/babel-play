@@ -5,7 +5,8 @@
  *  - uma folha só: o que é mostrado, "sem anúncio personalizado", o que é coletado, "Aceitar" e "Agora não";
  *  - grava `consentimentos.anuncios` (com data, por `mudarConsentimento`) e avisa os espaços pelo evento
  *    `babel:consentimento-anuncios`;
- *  - NUNCA aparece para o perfil protegido;
+ *  - aparece também para o perfil protegido (decisão do dono, 25/10/2026: o menor vê anúncio comum, não
+ *    personalizado, e responde à mesma folha); o premiado continua só para adultos, então ele nunca convida;
  *  - abre a partir de Ajustes → Privacidade (só com a flag ligada) e no PRIMEIRO espaço elegível, uma vez:
  *    quem já respondeu (sim ou "agora não") não é perguntado de novo pelo espaço.
  */
@@ -112,10 +113,12 @@ describe('a folha de consentimento', () => {
     expect(mudarConsentimento).toHaveBeenCalledWith('anuncios', false)
   })
 
-  it('perfil protegido: nunca aparece', () => {
+  it('perfil protegido: a folha aparece igual (o menor responde por si ao anúncio comum) e diz que o premiado é 18+', () => {
     mundo.protegido = true
-    const { container } = render(<ConsentimentoDeAnuncios />)
-    expect(container.innerHTML).toBe('')
+    render(<ConsentimentoDeAnuncios />)
+    const folha = screen.getByRole('region', { name: 'Anúncios no plano Grátis' })
+    expect(folha.textContent).toMatch(/não são personalizados/)
+    expect(folha.textContent).toMatch(/só para maiores de 18 anos/)
   })
 })
 
@@ -160,10 +163,16 @@ describe('no primeiro espaço elegível', () => {
     expect(container.innerHTML).toBe('')
   })
 
-  it('perfil protegido: nenhum convite', async () => {
+  it('perfil protegido: o espaço comum convida; o premiado, não', async () => {
     elegivelSemConsentimento()
     mundo.protegido = true
-    const { container } = render(<EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" />)
+    render(<EspacoDeAnuncio espaco="inicio-nativo" formato="nativo" />)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(screen.getAllByRole('region', { name: 'Anúncios no plano Grátis' })).toHaveLength(1)
+    cleanup()
+    const { container } = render(<EspacoDeAnuncio espaco="fim-premiado" formato="premiado" />)
     await act(async () => {
       await Promise.resolve()
     })
@@ -177,10 +186,10 @@ describe('Ajustes → Privacidade → Anúncios', () => {
     expect(container.innerHTML).toBe('')
   })
 
-  it('perfil protegido: a entrada não existe', () => {
+  it('perfil protegido: a entrada existe (ele vê anúncio comum e pode rever a resposta)', () => {
     Object.assign(mundo, { flag: true, protegido: true })
-    const { container } = render(<AnunciosNosAjustes />)
-    expect(container.innerHTML).toBe('')
+    render(<AnunciosNosAjustes />)
+    expect(screen.getByText('Você não aceitou anúncios.')).toBeTruthy()
   })
 
   it('flag ligada: mostra o estado, abre a folha e tem a porta "Sem anúncios"', () => {

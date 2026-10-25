@@ -34,7 +34,7 @@ import { ligarDemonstracaoDeAnuncios } from './demonstracao/ligar';
  * Só com as duas respostas o provedor desenha. Uma exceção, só do provedor REAL (`pedeConsentimento`):
  * quando a política nega SÓ por falta do consentimento e a pessoa nunca respondeu, o primeiro espaço
  * elegível mostra a folha de consentimento (`ConsentimentoDeAnuncios`) no lugar do anúncio — um espaço
- * por vez, e nunca para o perfil protegido (a política nega antes).
+ * por vez. No premiado, nunca para o perfil protegido (a política nega antes: o premiado é só para adultos).
  * O espaço volta a perguntar quando muda o que a política
  * lê: a flag, o plano, o perfil, o consentimento, a rede e o fim de uma rodada.
  *

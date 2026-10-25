@@ -14,9 +14,13 @@
  * dela) e os pop-ups do clique no anúncio ficam.
  *
  * Só é montado depois da política (`podeMostrar`), que já exige a flag, o consentimento, a idade da conta
- * e o perfil não protegido. Por defesa, o espaço confere de novo o consentimento e a proteção antes de
- * desenhar o quadro: sem os dois, nada vai à rede. Se a CSP do app recusar o quadro (`frame-src`, a
- * sobreposição do Worker ainda não chegou), o espaço some.
+ * e, no premiado, o perfil adulto. Por defesa, o espaço confere de novo o consentimento (e, no premiado, a
+ * proteção) antes de desenhar o quadro: sem eles, nada vai à rede. Se a CSP do app recusar o quadro
+ * (`frame-src`, a sobreposição do Worker ainda não chegou), o espaço some.
+ *
+ * O TRATAMENTO DE IDADE (`tratamentoDoAnuncio`): todo endereço leva `tratamento=crianca|adolescente|nenhum`
+ * (`tratamentoDeIdade` do core), que a página traduz para o `tagForAgeTreatment` do Google. O anúncio é não
+ * personalizado para TODOS; o tratamento só acrescenta proteção ao perfil protegido.
  *
  * Mensagens: só as da origem de anúncios E do próprio quadro (`event.source`), no formato
  * `{ tipo: 'frasy:anuncio', evento, exibicaoId }`. `recompensa` vale uma vez por exibição, e só a
@@ -48,13 +52,19 @@ import '../../../styles/anunciosDaRede.css';
 
 import { type RefObject, useEffect, useRef, useState } from 'react';
 
-import type { EspacoDeAnuncio, FormatoDeAnuncio } from '../../../core/anuncios/politicaDeAnuncio';
+import {
+  type EspacoDeAnuncio,
+  type FormatoDeAnuncio,
+  tratamentoDaFaixa,
+  type TratamentoDeIdade,
+  TRATAMENTOS_DE_IDADE,
+} from '../../../core/anuncios/politicaDeAnuncio';
 import { ehEspacoPremiado, ESPACOS_PREMIADOS_ATIVOS } from '../../../core/anuncios/premiado';
 import { DURACAO_MINIMA_DA_EXIBICAO_MS } from '../../../core/planos';
 import type { PremiadoConcluido } from '../../../data/rotas/anuncios';
 import { t } from '../../i18n';
 import { lerPreferencias } from '../../preferencias';
-import { perfilProtegido } from '../../protecaoDoMenor';
+import { estadoDaProtecao, perfilProtegido } from '../../protecaoDoMenor';
 import type { PropsDoEspacoDeAnuncio, ProvedorDeAnuncios } from '../provedor';
 
 export interface ConfigDoIframe {
@@ -82,12 +92,28 @@ function idioma(): string {
   return (typeof document !== 'undefined' && document.documentElement.lang) || 'pt-BR';
 }
 
+/**
+ * O tratamento de idade desta pessoa. Fora do perfil protegido, `nenhum` (adulto declarado, ou self-host). No
+ * perfil protegido, o que o servidor calculou pela data (`tratamentoDeAnuncio`); se ele não veio (servidor antigo,
+ * sem resposta ainda) ou veio `nenhum` para um perfil protegido, pela faixa — e sem faixa, `crianca`.
+ */
+export function tratamentoDoAnuncio(): TratamentoDeIdade {
+  if (!perfilProtegido()) return 'nenhum';
+  const e = estadoDaProtecao();
+  const doServidor = e?.tratamentoDeAnuncio;
+  if (doServidor && doServidor !== 'nenhum' && (TRATAMENTOS_DE_IDADE as readonly string[]).includes(doServidor))
+    return doServidor;
+  const daFaixa = tratamentoDaFaixa(e?.faixa);
+  return daFaixa === 'nenhum' ? 'crianca' : daFaixa;
+}
+
 /** O endereço da página de anúncios para um espaço. `consentimento=1`: só se chega aqui com ele. */
 export function enderecoDoEspaco(
   cfg: ConfigDoIframe,
   espaco: EspacoDeAnuncio,
   formato: FormatoDeAnuncio,
   exibicaoId?: string,
+  tratamento: TratamentoDeIdade = tratamentoDoAnuncio(),
 ): string {
   const u = new URL('/espaco.html', cfg.origem);
   const q = u.searchParams;
@@ -96,6 +122,7 @@ export function enderecoDoEspaco(
   q.set('tema', tema());
   q.set('idioma', idioma());
   q.set('consentimento', '1');
+  q.set('tratamento', tratamento);
   if (exibicaoId) q.set('exibicao', exibicaoId);
   return u.toString();
 }
@@ -356,8 +383,9 @@ function Premiado({
 }
 
 function EspacoPorIframe(props: PropsDoEspacoDeAnuncio & { cfg: ConfigDoIframe }) {
-  /* Defesa: a política já exigiu os dois, mas sem eles nada vai à rede, nunca. */
-  if (perfilProtegido() || !lerPreferencias().consentimentos.anuncios) return null;
+  /* Defesa: a política já exigiu o consentimento (e o perfil adulto no premiado), mas sem eles nada vai à rede. */
+  if (!lerPreferencias().consentimentos.anuncios) return null;
+  if (props.formato === 'premiado' && perfilProtegido()) return null;
   if (!suportaCredentialless()) return null;
   /* R39: premiado que o servidor ainda não abre não aparece no provedor real. */
   if (props.formato === 'premiado' && !(ESPACOS_PREMIADOS_ATIVOS as readonly string[]).includes(props.espaco))

@@ -35,6 +35,8 @@ export interface EstadoDeProtecao {
     responsavel?: string | null;
   };
   restrita: boolean;
+  /** O tratamento de idade do anúncio comum (`core/anuncios/politicaDeAnuncio`). Servidor antigo: ausente. */
+  tratamentoDeAnuncio?: 'crianca' | 'adolescente' | 'nenhum';
 }
 
 const EVENTO = 'babel_protecao_changed';

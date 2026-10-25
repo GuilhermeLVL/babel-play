@@ -17,7 +17,11 @@
  *     no lugar que era da "Sugestão para hoje"); um nome de fora, ou um formato que não é o do espaço, não aparece.
  *  3. EDIÇÃO ESTÁTICA: sem anúncio (ali todo mundo é "sem conta"; decisão 13 do design).
  *  4. PLANO com `semAnuncios` (os pagos e o self-host) e o TESTE de 14 dias: nada.
- *  5. PERFIL PROTEGIDO (menor, idade não declarada, sem conta): nada, nem premiado (ECA Digital).
+ *  5. PERFIL PROTEGIDO (menor, idade não declarada, sem conta) e PREMIADO: nada. O premiado ("assista e ganhe")
+ *     é só para adultos (18+): recompensa por atenção é pressão comercial que o ECA Digital veda ao menor. O
+ *     anúncio COMUM (nativo, âncora, intersticial) o perfil protegido vê, com as mesmas regras de todo mundo,
+ *     e SEMPRE sem personalização, com o tratamento de idade do Google (`tratamentoDeIdade`; decisão do dono,
+ *     25/10/2026, spec `docs/specs/2026-10-25-site-publico-seo-e-anuncios.md`, Tarefa 3).
  *  6. HEADSET: nada neste aparelho. SEM REDE: nada (não há de onde o anúncio vir, e a tela não reserva
  *     lugar para o que não chega).
  *  7. TELA OCUPADA: captura ativa, intérprete aberto ou rodada em andamento. Vale também para o
@@ -25,6 +29,13 @@
  *  8. CONTA com menos de três dias (ou de idade desconhecida): os primeiros dias são sem anúncio.
  *  9. CONSENTIMENTO de anúncios: sem o "sim" próprio, nada.
  * 10. INTERSTICIAL: o último há menos de cinco minutos nega.
+ *
+ * O CONSENTIMENTO DO MENOR (LGPD art. 14): é a mesma folha de todo mundo (`ConsentimentoDeAnuncios`), e o "sim"
+ * vale só para VER anúncio — nunca para personalizar: a página de anúncios pede a TODOS anúncios não
+ * personalizados, com processamento restrito e a marcação de público infantil, e acrescenta o tratamento de
+ * idade (abaixo de 13 ou idade desconhecida → criança; 13–17 → adolescente). Abaixo de 12 a conta só tem nuvem
+ * com o consentimento específico do responsável (`server/lib/idade.ts`); o anúncio de quem tem menos de 12 ou
+ * idade desconhecida é sempre contextual (o tratamento de criança do Google não usa perfil nem histórico).
  */
 
 /** A chave da flag (`docs/flags.md`, migração 0051). Nasce DESLIGADA. */
@@ -123,7 +134,7 @@ export type MotivoDoAnuncio =
   | 'edicao_estatica'
   | 'sem_anuncios_no_plano'
   | 'em_teste'
-  | 'perfil_protegido'
+  | 'premiado_so_para_adultos'
   | 'headset'
   | 'sem_rede'
   | 'captura_ativa'
@@ -160,8 +171,8 @@ export function podeMostrar(p: PedidoDeAnuncio): DecisaoDeAnuncio {
   if (p.semAnuncios) return nega('sem_anuncios_no_plano');
   if (p.emTeste) return nega('em_teste');
 
-  // 5. Perfil protegido: antes do consentimento, que nem se pede a ele.
-  if (p.perfilProtegido) return nega('perfil_protegido');
+  // 5. O premiado é só para adultos: antes do consentimento, que nem se pede por ele ao perfil protegido.
+  if (p.perfilProtegido && p.formato === 'premiado') return nega('premiado_so_para_adultos');
 
   // 6. O aparelho.
   if (p.noHeadset) return nega('headset');
@@ -187,4 +198,29 @@ export function podeMostrar(p: PedidoDeAnuncio): DecisaoDeAnuncio {
     return nega('intersticial_recente');
 
   return { pode: true, motivo: 'pode' };
+}
+
+/**
+ * O TRATAMENTO DE IDADE que a página de anúncios passa ao Google (`tagForAgeTreatment` do GPT, o TFAT que
+ * substitui o TFCD/TFUA). Vai na query (`tratamento=`) e a página o traduz (`anuncios/espaco.js`):
+ * `crianca` → `CHILD`, `adolescente` → `TEEN`, `nenhum` → `UNSPECIFIED`. Em TODOS os casos o anúncio é não
+ * personalizado: o tratamento só acrescenta proteção, nunca tira.
+ */
+export const TRATAMENTOS_DE_IDADE = ['crianca', 'adolescente', 'nenhum'] as const;
+export type TratamentoDeIdade = (typeof TRATAMENTOS_DE_IDADE)[number];
+
+/** Pela idade em anos completos: abaixo de 13 ou desconhecida (ou absurda) → criança; 13–17 → adolescente. */
+export function tratamentoDeIdade(idade: number | null | undefined): TratamentoDeIdade {
+  if (typeof idade !== 'number' || !Number.isFinite(idade) || idade < 13) return 'crianca';
+  return idade < 18 ? 'adolescente' : 'nenhum';
+}
+
+/**
+ * Pela FAIXA etária do servidor (`server/lib/idade.ts`), quando a idade exata não veio. `12-15` vira criança
+ * porque inclui quem tem 12 (o lado mais protetivo); faixa desconhecida, também.
+ */
+export function tratamentoDaFaixa(faixa: string | null | undefined): TratamentoDeIdade {
+  if (faixa === 'adulto') return 'nenhum';
+  if (faixa === '16-17') return 'adolescente';
+  return 'crianca';
 }

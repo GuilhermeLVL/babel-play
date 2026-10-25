@@ -16,6 +16,9 @@ import {
   type MotivoDoAnuncio,
   type PedidoDeAnuncio,
   podeMostrar,
+  tratamentoDaFaixa,
+  tratamentoDeIdade,
+  TRATAMENTOS_DE_IDADE,
 } from '../src/core/anuncios/politicaDeAnuncio'
 
 const DIA = 24 * 60 * 60_000
@@ -56,7 +59,6 @@ describe('podeMostrar — a tabela das negativas (uma mudança por linha)', () =
     ['flag `anuncios` desligada', { flagLigada: false }, 'flag_desligada'],
     ['plano com `semAnuncios`', { semAnuncios: true }, 'sem_anuncios_no_plano'],
     ['teste de 14 dias valendo', { emTeste: true }, 'em_teste'],
-    ['perfil protegido (menor, idade não declarada, sem conta)', { perfilProtegido: true }, 'perfil_protegido'],
     ['headset', { noHeadset: true }, 'headset'],
     ['sem rede', { semRede: true }, 'sem_rede'],
     ['edição estática', { edicaoEstatica: true }, 'edicao_estatica'],
@@ -92,6 +94,78 @@ describe('podeMostrar — a tabela das negativas (uma mudança por linha)', () =
 
   it.each(TABELA)('%s → nega também o intersticial', (_nome, mudanca, motivo) => {
     expect(podeMostrar(intersticial(mudanca))).toEqual({ pode: false, motivo })
+  })
+})
+
+/* Decisão do dono (25/10/2026, spec `2026-10-25-site-publico-seo-e-anuncios.md`, Tarefa 3): a regra antiga
+   "perfil protegido → nada" virou "perfil protegido → anúncio comum sim, premiado nunca". */
+describe('podeMostrar — o perfil protegido (menor, idade não declarada, sem conta)', () => {
+  it('vê o anúncio COMUM (nativo, âncora, faixa) e o intersticial, com as regras de todo mundo', () => {
+    expect(podeMostrar(pedido({ perfilProtegido: true }))).toEqual({ pode: true, motivo: 'pode' })
+    expect(podeMostrar(pedido({ perfilProtegido: true, espaco: 'ancora' }))).toEqual({ pode: true, motivo: 'pode' })
+    expect(podeMostrar(intersticial({ perfilProtegido: true }))).toEqual({ pode: true, motivo: 'pode' })
+  })
+
+  it('NUNCA vê o premiado ("assista e ganhe" é só para adultos), em nenhum dos espaços premiados', () => {
+    for (const espaco of ESPACOS_DE_ANUNCIO.filter((e) => FORMATO_DO_ESPACO[e] === 'premiado'))
+      expect(podeMostrar(premiado({ espaco, perfilProtegido: true })), espaco).toEqual({
+        pode: false,
+        motivo: 'premiado_so_para_adultos',
+      })
+  })
+
+  it('o premiado do protegido é negado antes do consentimento (não se pede consentimento por ele)', () => {
+    expect(podeMostrar(premiado({ perfilProtegido: true, consentimento: false })).motivo).toBe(
+      'premiado_so_para_adultos',
+    )
+  })
+
+  it('as outras regras continuam valendo para o protegido: consentimento, conta nova, plano, tela ocupada', () => {
+    expect(podeMostrar(pedido({ perfilProtegido: true, consentimento: false })).motivo).toBe('sem_consentimento')
+    expect(podeMostrar(pedido({ perfilProtegido: true, contaCriadaEm: null })).motivo).toBe('conta_nova')
+    expect(podeMostrar(pedido({ perfilProtegido: true, semAnuncios: true })).motivo).toBe('sem_anuncios_no_plano')
+    expect(podeMostrar(pedido({ perfilProtegido: true, emTeste: true })).motivo).toBe('em_teste')
+    expect(
+      podeMostrar(
+        pedido({
+          perfilProtegido: true,
+          tela: { capturaAtiva: true, interpreteAberto: false, rodadaEmAndamento: false },
+        }),
+      ).motivo,
+    ).toBe('captura_ativa')
+  })
+})
+
+describe('tratamentoDeIdade — o tratamento de idade que vai ao Google', () => {
+  it('abaixo de 13 → criança; 13–17 → adolescente; 18+ → nenhum', () => {
+    expect(tratamentoDeIdade(0)).toBe('crianca')
+    expect(tratamentoDeIdade(11)).toBe('crianca')
+    expect(tratamentoDeIdade(12)).toBe('crianca')
+    expect(tratamentoDeIdade(13)).toBe('adolescente')
+    expect(tratamentoDeIdade(15)).toBe('adolescente')
+    expect(tratamentoDeIdade(17)).toBe('adolescente')
+    expect(tratamentoDeIdade(18)).toBe('nenhum')
+    expect(tratamentoDeIdade(40)).toBe('nenhum')
+  })
+
+  it('idade desconhecida ou absurda → criança (o lado protetivo)', () => {
+    expect(tratamentoDeIdade(null)).toBe('crianca')
+    expect(tratamentoDeIdade(undefined)).toBe('crianca')
+    expect(tratamentoDeIdade(Number.NaN)).toBe('crianca')
+    expect(tratamentoDeIdade(-1)).toBe('crianca')
+  })
+
+  it('pela faixa: `12-15` inclui quem tem 12, então é criança; faixa desconhecida também', () => {
+    expect(tratamentoDaFaixa('menor-12')).toBe('crianca')
+    expect(tratamentoDaFaixa('12-15')).toBe('crianca')
+    expect(tratamentoDaFaixa('16-17')).toBe('adolescente')
+    expect(tratamentoDaFaixa('adulto')).toBe('nenhum')
+    expect(tratamentoDaFaixa(null)).toBe('crianca')
+    expect(tratamentoDaFaixa('outra')).toBe('crianca')
+  })
+
+  it('a lista é fechada (é o que a página de anúncios aceita)', () => {
+    expect([...TRATAMENTOS_DE_IDADE]).toEqual(['crianca', 'adolescente', 'nenhum'])
   })
 })
 
@@ -180,7 +254,10 @@ describe('podeMostrar — a ordem (a flag vem antes de tudo)', () => {
     ).toBe('flag_desligada')
   })
 
-  it('o perfil protegido é dito antes do consentimento (não se pede consentimento de anúncio a menor)', () => {
-    expect(podeMostrar(pedido({ perfilProtegido: true, consentimento: false })).motivo).toBe('perfil_protegido')
+  it('o premiado do perfil protegido é dito antes do consentimento; o comum, não (o menor responde à folha)', () => {
+    expect(podeMostrar(premiado({ perfilProtegido: true, consentimento: false })).motivo).toBe(
+      'premiado_so_para_adultos',
+    )
+    expect(podeMostrar(pedido({ perfilProtegido: true, consentimento: false })).motivo).toBe('sem_consentimento')
   })
 })

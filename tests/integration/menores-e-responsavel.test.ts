@@ -89,6 +89,15 @@ describe('data de nascimento', () => {
     expect((await declarar('u-f17', 17)).faixa).toBe('16-17')
     expect((await declarar('u-f18', 18)).faixa).toBe('adulto')
   })
+
+  it('o tratamento de idade do anúncio comum: <13 ou sem data → criança; 13–17 → adolescente; 18+ → nenhum', async () => {
+    const semData = await (await s.get('/api/me/idade', await tk('u-tfat-sem-data'))).json()
+    expect(semData.tratamentoDeAnuncio).toBe('crianca')
+    expect((await declarar('u-tfat-12', 12)).tratamentoDeAnuncio).toBe('crianca')
+    expect((await declarar('u-tfat-13', 13)).tratamentoDeAnuncio).toBe('adolescente')
+    expect((await declarar('u-tfat-17', 17)).tratamentoDeAnuncio).toBe('adolescente')
+    expect((await declarar('u-tfat-18', 18)).tratamentoDeAnuncio).toBe('nenhum')
+  })
 })
 
 describe('menor de 16 sem vínculo fica sem nuvem', () => {

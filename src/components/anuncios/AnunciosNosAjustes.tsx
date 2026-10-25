@@ -4,20 +4,19 @@ import { FLAG_ANUNCIOS } from '../../core/anuncios/politicaDeAnuncio';
 import { useFlag } from '../../lib/flags';
 import { t } from '../../lib/i18n';
 import { usePreferencias } from '../../lib/preferencias';
-import { perfilProtegido } from '../../lib/protecaoDoMenor';
 import { navegarPara } from '../../lib/rotas';
 import ConsentimentoDeAnuncios from './ConsentimentoDeAnuncios';
 
 /**
  * AJUSTES → PRIVACIDADE → ANÚNCIOS: o estado do consentimento, a folha para rever a resposta e a porta
- * "Sem anúncios" (os planos). Só existe com a flag `anuncios` ligada e nunca para o perfil protegido:
- * desligada, a tela de Privacidade fica como era.
+ * "Sem anúncios" (os planos). Só existe com a flag `anuncios` ligada: desligada, a tela de Privacidade fica como
+ * era. O perfil protegido também a vê (ele recebe anúncio comum e precisa poder rever a resposta, LGPD art. 18).
  */
 export default function AnunciosNosAjustes() {
   const ligada = useFlag(FLAG_ANUNCIOS);
   const p = usePreferencias();
   const [aberta, setAberta] = useState(false);
-  if (!ligada || perfilProtegido()) return null;
+  if (!ligada) return null;
   const aceitou = p.consentimentos.anuncios;
   return (
     <section className="q-secao">

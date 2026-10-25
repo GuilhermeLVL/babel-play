@@ -282,6 +282,16 @@ export function casosNecessarios({ dp, delta }, alvo, margem = 0) {
 
 /** Quanto pior a latência p95 do candidato pode ser que a da produção sem "piorar a experiência" (20%). */
 export const PIORA_DE_LATENCIA_TOLERADA = 1.2
+/**
+ * "Mais barato" só conta com ECONOMIA DE VERDADE: pelo menos 5% a menos por 1.000 usos. Abaixo disso a troca não
+ * economiza nada que se veja e só traz o risco de mudar.
+ */
+export const ECONOMIA_MINIMA = 0.05
+/**
+ * DISPONIBILIDADE: no máximo 5% das chamadas sem resposta do provedor (429/5xx depois das tentativas). Acima disso a
+ * cascata cai na reserva com frequência — a pessoa espera mais, e recebe outro modelo.
+ */
+export const MAXIMO_SEM_RESPOSTA = 0.05
 
 /**
  * A DECISÃO de uma função contra a PRODUÇÃO (o status quo, `bruto.base`) — "o MAIS BARATO que não piora a
@@ -291,9 +301,10 @@ export const PIORA_DE_LATENCIA_TOLERADA = 1.2
  *     nota não-inferior à produção (IC 95% pareado da diferença inteiro acima de −margem, padrão 0,05)
  *     E nenhum critério crítico pior (IC pareado inteiro abaixo de 0, ou queda de mais de 10 pontos na taxa)
  *     E no máximo 5% das respostas acima do timeout da produção
- *     E latência p95 no máximo 20% pior que a da produção.
- *   MAIS BARATO que a produção (US$ por 1.000 usos) e não piora → PODE TROCAR; o recomendado é o mais barato deles.
- *   MAIS CARO que a produção → só entra como OPÇÃO se, além de não piorar, for SUPERIOR à produção num critério
+ *     E latência p95 no máximo 20% pior que a da produção
+ *     E no máximo 5% das chamadas sem resposta do provedor (disponibilidade).
+ *   MAIS BARATO que a produção (pelo menos 5% a menos por 1.000 usos) e não piora → PODE TROCAR; o recomendado é o mais barato deles.
+ *   MAIS CARO (ou sem economia de 5%) → só entra como OPÇÃO se, além de não piorar, for SUPERIOR à produção num critério
  *     crítico (IC pareado inteiro acima de 0) — e a troca depende de o DONO aceitar o custo a mais. Nunca é
  *     "recomendado" automaticamente.
  *   Ninguém passa → MANTER a produção.
@@ -313,7 +324,7 @@ export function decidirFuncao(bruto, { margem = MARGEM_DE_NAO_INFERIORIDADE, jui
     .map((s) => {
       const r = resumos[s]
       const cmp = compararPar(b, s, base)
-      const maisBarato = custoDe(s) <= custoDe(base)
+      const maisBarato = custoDe(s) <= custoDe(base) * (1 - ECONOMIA_MINIMA)
       const naoInferior = cmp.nota.n > 0 && cmp.nota.ic95[0] > -margem
       const superiorNaNota = cmp.nota.n > 0 && cmp.nota.ic95[0] > 0
       const pioras = []
@@ -328,7 +339,8 @@ export function decidirFuncao(bruto, { margem = MARGEM_DE_NAO_INFERIORIDADE, jui
       const latenciaNaoPiora =
         !Number.isFinite(rb.latenciaMs.totalP95) ||
         r.latenciaMs.totalP95 <= rb.latenciaMs.totalP95 * PIORA_DE_LATENCIA_TOLERADA
-      const naoPiora = naoInferior && !pioras.length && chegaNoTempo && latenciaNaoPiora
+      const disponivel = (r.semResposta ?? 0) <= MAXIMO_SEM_RESPOSTA
+      const naoPiora = naoInferior && !pioras.length && chegaNoTempo && latenciaNaoPiora && disponivel
       const custoCabe =
         b.funcao === 'legenda'
           ? Number.isFinite(r.custo.usdPorHoraDeFala) && r.custo.usdPorHoraDeFala <= TETO_LEGENDA_USD_POR_HORA
@@ -358,6 +370,7 @@ export function decidirFuncao(bruto, { margem = MARGEM_DE_NAO_INFERIORIDADE, jui
         pioras,
         melhoras,
         chegaNoTempo,
+        disponivel,
         latenciaNaoPiora,
         custoCabe,
         situacao,

@@ -16,8 +16,16 @@ const { pedidoDaProducao } = funcoes as any
 const { carregarGold } = golds as any
 
 const { armazemEmMemoria, LivroCaixa, TetoDeGasto } = moduloLivro as any
-const { chamar, interpretarSistema, lerEventoSse, montarCorpo, piorCasoUsd, RecusaDoProvedor, tetoDePrecoZdr } =
-  cliente as any
+const {
+  chamar,
+  interpretarSistema,
+  LimiteDaChave,
+  lerEventoSse,
+  montarCorpo,
+  piorCasoUsd,
+  RecusaDoProvedor,
+  tetoDePrecoZdr,
+} = cliente as any
 const { casosNecessarios, decidirFuncao, passouDoTimeout } = estatistica as any
 const { efeitoNaMargem, gerarRelatorio } = relatorio as any
 
@@ -231,6 +239,20 @@ describe('chamada com teto do livro-caixa', () => {
     expect(l2.reservadoUsd).toBe(0)
   })
 
+  it('limite da chave (403 "Key limit exceeded") para a bancada sem repetir e sem cobrar', async () => {
+    const f = vi.fn(
+      async () => new Response('{"error":{"message":"Key limit exceeded (total limit)"}}', { status: 403 }),
+    )
+    vi.stubGlobal('fetch', f)
+    const l = livro(1)
+    await expect(chamar({ corpo, preco: PRECO, livro: l, rotulo: 'x', chave: 'k' })).rejects.toBeInstanceOf(
+      LimiteDaChave,
+    )
+    expect(f).toHaveBeenCalledTimes(1)
+    expect(l.totalUsd).toBe(0)
+    expect(l.reservadoUsd).toBe(0)
+  })
+
   it('lê eventos SSE: conteúdo, uso, erro no meio do fluxo; ignora comentário e [DONE]', () => {
     const e = { texto: '', uso: null, provedor: null, erro: null, fim: null, primeiroConteudo: null }
     lerEventoSse(': OPENROUTER PROCESSING', e)
@@ -378,6 +400,26 @@ describe('regra: o mais barato que não piora a experiência (referência = prod
     expect(passouDoTimeout({ totalMs: 16_000 }, 15_000)).toBe(true)
   })
 
+  it('economia de menos de 5% não é "mais barato"; mais de 5% sem resposta do provedor piora a experiência', () => {
+    const n = 40
+    const quase = decidirFuncao(
+      bruto({
+        'openai/producao': { notas: Array(n).fill(1), usd: 0.0001 },
+        'x/quase': { notas: Array(n).fill(1), usd: 0.000097 },
+      }),
+    )
+    expect(situacao(quase, 'x/quase').maisBarato).toBe(false)
+    expect(quase.recomendado).toBe('openai/producao')
+    const b = bruto({
+      'openai/producao': { notas: Array(n).fill(1), usd: 0.001 },
+      'x/instavel': { notas: Array(n).fill(1), usd: 0.0001 },
+    })
+    for (const c of b.casos.slice(0, 4)) b.geracoes['x/instavel'][c] = { semResposta: true, erro: 'HTTP 429' }
+    const d = decidirFuncao(b)
+    expect(situacao(d, 'x/instavel').disponivel).toBe(false)
+    expect(d.recomendado).toBe('openai/producao')
+  })
+
   it('análise de poder: n pareado para não-inferioridade e superioridade; null quando aponta para o outro lado', () => {
     // σ = 0,2, δ = 0, margem 0,05: ((1,96 + 0,84)·0,2/0,05)² ≈ 126
     expect(casosNecessarios({ dp: 0.2, delta: 0 }, 'nao-inferioridade', 0.05)).toBe(126)
@@ -411,7 +453,7 @@ describe('regra: o mais barato que não piora a experiência (referência = prod
     )
     const md = gerarRelatorio({
       decisoes: { explicacao: d },
-      robustez: { explicacao: d },
+      robustez: { explicacao: { 'mistralai/juiz': d, 'deepseek/juiz': d } },
       concordancia: {},
       juizes: [],
       gasto: { totalUsd: 1.234, tetoUsd: 5 },

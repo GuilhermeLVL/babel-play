@@ -4,9 +4,12 @@
  * mão: o texto fixo é qualitativo, e todo número vem de uma variável. Puro (recebe os dados, devolve o Markdown).
  */
 import { leituraDoKappa } from './concordancia.mjs'
+import { familia } from './juiz.mjs'
 import { criteriosCriticos, CRITERIOS } from './funcoes.mjs'
 import {
+  ECONOMIA_MINIMA,
   MARGEM_DE_NAO_INFERIORIDADE,
+  MAXIMO_SEM_RESPOSTA,
   PIORA_DE_LATENCIA_TOLERADA,
   TETO_USD_POR_MILHAO_DE_TOKENS,
 } from './estatistica.mjs'
@@ -62,7 +65,7 @@ function linhaDeRecomendacao(d) {
   if (d.recomendado !== d.base) {
     const r = d.resumos[d.recomendado]
     const a = d.avaliacoes.find((x) => x.sistema === d.recomendado)
-    return `**${NOMES[d.funcao]}: trocar ${cod(d.base)} por ${cod(d.recomendado)}** — mais barato (${usd(r.custo.usdPor1000Usos)} contra ${usd(rb.custo.usdPor1000Usos)} por 1.000 usos) e não piora a experiência (Δ nota ${ic(a.comparacao.nota)}).`
+    return `**${NOMES[d.funcao]}: trocar ${cod(d.base)} por ${cod(d.recomendado)}** — mais barato (${usd(r.custo.usdPor1000Usos, 4)} contra ${usd(rb.custo.usdPor1000Usos, 4)} por 1.000 usos, ${pct(1 - r.custo.usdPor1000Usos / rb.custo.usdPor1000Usos)} a menos) e não piora a experiência (Δ nota ${ic(a.comparacao.nota)}).`
   }
   const caras = d.opcoesMaisCaras.map((s) => {
     const r = d.resumos[s]
@@ -159,17 +162,19 @@ function listaDePoder(d) {
 
 function tabelaRobustez(decisoes, robustez) {
   const l = [
-    '| Função | Candidato | Δ nota, média dos 2 juízes | Δ nota, só Mistral | Situação (2 juízes) | Situação (só Mistral) |',
-    '| --- | --- | --- | --- | --- | --- |',
+    '| Função | Candidato | Juiz único (família diferente) | Δ nota, média dos 2 juízes | Δ nota, juiz único | Situação (2 juízes) | Situação (juiz único) |',
+    '| --- | --- | --- | --- | --- | --- | --- |',
   ]
   for (const f of Object.keys(decisoes)) {
     const d = decisoes[f]
-    const m = robustez[f]
-    if (!m) continue
+    const porJuiz = robustez[f]
+    if (!porJuiz) continue
     for (const a of d.avaliacoes) {
-      const am = m.avaliacoes.find((x) => x.sistema === a.sistema)
+      const modelo = d.resumos[a.sistema]?.modelo ?? a.sistema
+      const juiz = Object.keys(porJuiz).find((j) => familia(j) !== familia(modelo))
+      const am = juiz ? porJuiz[juiz].avaliacoes.find((x) => x.sistema === a.sistema) : null
       l.push(
-        `| ${f} | ${cod(a.sistema)} | ${ic(a.comparacao.nota)} | ${am ? ic(am.comparacao.nota) : '—'} | ${a.situacao} | ${am?.situacao ?? '—'} |`,
+        `| ${f} | ${cod(a.sistema)} | ${juiz ? cod(juiz) : '—'} | ${ic(a.comparacao.nota)} | ${am ? ic(am.comparacao.nota) : '—'} | ${a.situacao} | ${am?.situacao ?? '—'} |`,
       )
     }
   }
@@ -236,7 +241,7 @@ function secaoCusto(decisoes, custo) {
  *   calibracao: any, geradoEm: string, commit: string | null }} p
  */
 export function gerarRelatorio(p) {
-  const { decisoes, robustez, concordancia, juizes, gasto, custo, calibracao } = p
+  const { decisoes, robustez, concordancia, juizes, gasto, custo, calibracao, medicoes = {} } = p
   const funcoes = ['explicacao', 'resumo', 'alternativas', 'legenda'].filter((f) => decisoes[f])
   const l = []
   l.push('# eval-ia-paga-v1 — qualidade × custo × latência da IA paga (LLM-as-judge)', '')
@@ -254,6 +259,23 @@ export function gerarRelatorio(p) {
   )
 
   l.push('## 1. Recomendação', '')
+  /* O pedido que cada bruto mediu: a rodada pode ser anterior à Fase B (sem saída estruturada ou roteamento da legenda). */
+  const antigos = Object.entries(medicoes).filter(([f, m]) =>
+    f === 'legenda' ? !m.roteamentoDaLegenda : !m.saidaEstruturada,
+  )
+  if (antigos.length) {
+    const quais = antigos.map(([f, m]) => `${NOMES[f]} (${String(m.geradoEm).slice(0, 10)})`).join(', ')
+    l.push(
+      `**Atenção — medido com o pedido ANTERIOR à Fase B:** ${quais}. Sem \`json_schema strict\` + \`require_parameters\` (estudo) ou sem o roteamento da legenda. A repetição com o pedido atual parou no limite de gasto da chave do OpenRouter (§9); a taxa de resposta inválida, em especial, pode cair com a saída estruturada.`,
+      '',
+    )
+  }
+  const atuais = Object.entries(medicoes).filter(([f]) => !antigos.some(([g]) => g === f))
+  if (atuais.length)
+    l.push(
+      `Medido com o pedido ATUAL da produção (Fase B): ${atuais.map(([f, m]) => `${NOMES[f]} (${String(m.geradoEm).slice(0, 10)})`).join(', ')}.`,
+      '',
+    )
   const cal = calibracao?.anotadas ? calibracao : null
   l.push(
     cal
@@ -268,9 +290,9 @@ export function gerarRelatorio(p) {
   l.push(
     `"O MAIS BARATO QUE NÃO PIORA A EXPERIÊNCIA" (dono, 24/10/2026). A referência é a PRODUÇÃO (o que o usuário tem hoje), não o melhor pontual entre os candidatos. Código: \`scripts/eval-ia/estatistica.mjs#decidirFuncao\`, com teste.`,
     '',
-    `- **Não piora** = nota não-inferior à produção (IC 95% do bootstrap pareado da diferença inteiro acima de −${num(MARGEM_DE_NAO_INFERIORIDADE)}), nenhum critério crítico pior (IC pareado abaixo de 0, ou mais de 10 pontos de queda), no máximo 5% das respostas acima do timeout da produção (inclui as abortadas pelo relógio) e latência p95 no máximo ${Math.round((PIORA_DE_LATENCIA_TOLERADA - 1) * 100)}% pior.`,
-    '- **Mais barato** que a produção (US$ por 1.000 usos) e não piora → **pode trocar**; o recomendado é o mais barato deles.',
-    `- **Mais caro** → só aparece como **opção**, se além de não piorar for **superior à produção num critério crítico** (${funcoes.map((f) => `${f}: ${criteriosCriticos(f).join(', ')}`).join('; ')}) com IC excluindo 0 — e a troca depende de o dono aceitar o custo.`,
+    `- **Não piora** = nota não-inferior à produção (IC 95% do bootstrap pareado da diferença inteiro acima de −${num(MARGEM_DE_NAO_INFERIORIDADE)}), nenhum critério crítico pior (IC pareado abaixo de 0, ou mais de 10 pontos de queda), no máximo 5% das respostas acima do timeout da produção (inclui as abortadas pelo relógio), latência p95 no máximo ${Math.round((PIORA_DE_LATENCIA_TOLERADA - 1) * 100)}% pior e no máximo ${Math.round(MAXIMO_SEM_RESPOSTA * 100)}% de chamadas sem resposta do provedor (senão a cascata cai na reserva com frequência).`,
+    `- **Mais barato** que a produção (pelo menos ${Math.round(ECONOMIA_MINIMA * 100)}% a menos por 1.000 usos: abaixo disso não há economia que pague o risco de trocar) e não piora → **pode trocar**; o recomendado é o mais barato deles.`,
+    `- **Mais caro (ou sem essa economia)** → só aparece como **opção**, se além de não piorar for **superior à produção num critério crítico** (${funcoes.map((f) => `${f}: ${criteriosCriticos(f).join(', ')}`).join('; ')}) com IC excluindo 0 — e a troca depende de o dono aceitar o custo.`,
     '- Ninguém passa → **manter** a produção. Onde a amostra não decide, a §4 dá o n necessário.',
     '- A regra B5 da bancada de fala (troca por qualidade só com IC excluindo 0 para cima) sai ao lado, como referência.',
     '',
@@ -308,9 +330,9 @@ export function gerarRelatorio(p) {
   )
   for (const f of funcoes) l.push(`### ${NOMES[f]}`, '', tabelaExperiencia(decisoes[f]), '')
 
-  l.push('## 6. Robustez: só o juiz Mistral', '')
+  l.push('## 6. Robustez: só o juiz de família diferente do candidato', '')
   l.push(
-    'A nota principal é a média dos dois juízes. Como um deles é da família DeepSeek (a do candidato que mais aparece nas opções), a decisão foi refeita só com o juiz Mistral (família diferente de todos os candidatos, exceto o Mistral Small):',
+    'A nota principal é a média dos dois juízes, e cada um deles é da família de algum candidato (DeepSeek, Mistral). Aqui a decisão é refeita, para cada candidato, só com o juiz de família DIFERENTE da dele (o Mistral para o DeepSeek e os demais; o DeepSeek para o Mistral Small):',
     '',
     tabelaRobustez(decisoes, robustez),
     '',
@@ -363,6 +385,8 @@ export function gerarRelatorio(p) {
     '- **Amostras pequenas** no resumo e nas alternativas (ver §4); **uma execução por modelo**, na temperatura de produção.',
     '- **Latência num só horário**, pelo OpenRouter; o provedor sorteado muda o número. Indicativo, não SLO medido em produção.',
     '- **Ajustes fora da produção** (`@none`, `~groq+cerebras`): parâmetros que a produção ainda não manda; o `@none` também tira do roteamento o provedor que ignora o raciocínio desligado.',
+    '- **Limite da chave do OpenRouter:** além do teto do livro-caixa, a chave tem um limite de gasto próprio, definido no painel do OpenRouter. A repetição com o pedido da Fase B parou nele (HTTP 403 "Key limit exceeded"); o harness agora para a rodada inteira nesse caso e grava o parcial à parte, sem apagar o bruto anterior. Para repetir: subir o limite da chave e rodar `--funcao explicacao,alternativas,resumo` (as respostas já pagas estão em cache).',
+    '- **Registro do juiz nos brutos antigos:** nos brutos medidos antes da Fase B, o segundo juiz aparece como `deepseek/deepseek-v4.1-flash`, sem o `@none` (raciocínio desligado) que de fato foi usado; o id real e os parâmetros passaram a ser gravados na correção 1.',
     '- Funções não medidas: polimento e tutor.',
     '',
   )

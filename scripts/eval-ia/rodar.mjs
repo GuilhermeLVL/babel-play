@@ -23,7 +23,7 @@
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { LivroCaixa, TetoDeGasto } from '../eval-fala/bancada/livroCaixa.mjs'
@@ -65,6 +65,7 @@ import {
   interpretarSistema,
   montarCorpo,
   piorCasoUsd,
+  LimiteDaChave,
   RecusaDoProvedor,
   tetoDePrecoZdr,
 } from './openrouter.mjs'
@@ -145,6 +146,9 @@ const armazem = {
 
 // ------------------------------------------------------------------ pool
 
+/** O que para a bancada inteira: o teto do livro-caixa e o limite da chave. */
+const paraTudo = (e) => e instanceof TetoDeGasto || e instanceof LimiteDaChave
+
 async function emParalelo(itens, n, fn) {
   let i = 0
   let parado = null
@@ -155,7 +159,7 @@ async function emParalelo(itens, n, fn) {
         try {
           await fn(it)
         } catch (e) {
-          if (e instanceof TetoDeGasto) parado = e
+          if (paraTudo(e)) parado = e
           else throw e
         }
       }
@@ -252,7 +256,17 @@ async function rodarFuncao(funcao, ctx, endpoints) {
     rubrica: {},
     pareado: {},
   }
-  const gravar = () => gravarJson(arqBruto, bruto, { compacto: true })
+  /* Durante a rodada, e quando ela PARA (teto ou limite da chave), o bruto vai para `bruto-<função>.parcial.json`; o
+     bruto principal só é trocado no fim de uma rodada COMPLETA — uma rodada interrompida nunca apaga a medição que já
+     existia. */
+  let parado = false
+  const arqParcial = arqBruto.replace(/\.json$/, '.parcial.json')
+  const gravar = (final = false) => {
+    if (final && !parado) {
+      gravarJson(arqBruto, bruto, { compacto: true })
+      if (existsSync(arqParcial)) unlinkSync(arqParcial)
+    } else gravarJson(arqParcial, bruto, { compacto: true })
+  }
 
   if (flag('ensaio')) {
     let pior = 0
@@ -285,7 +299,7 @@ async function rodarFuncao(funcao, ctx, endpoints) {
       try {
         r = await chamarComCache(ctx, s, s.preco, corpo, `ger:${s.id}`)
       } catch (e) {
-        if (e instanceof TetoDeGasto) throw e
+        if (paraTudo(e)) throw e
         r = {
           texto: '',
           erro: String(e.message).slice(0, 200),
@@ -348,7 +362,7 @@ async function rodarFuncao(funcao, ctx, endpoints) {
         const r = await chamarComCache(ctx, j, j.preco, corpo, `juiz:${j.id}`)
         bruto.rubrica[j.id][s.id][c.id] = lerRubrica(r.texto, criterios)
       } catch (e) {
-        if (e instanceof TetoDeGasto) throw e
+        if (paraTudo(e)) throw e
         bruto.rubrica[j.id][s.id][c.id] = null
       }
       process.stdout.write(`\r  julgando ${++feitos}/${julgar.length}   `)
@@ -395,7 +409,7 @@ async function rodarFuncao(funcao, ctx, endpoints) {
           try {
             return lerPareado((await chamarComCache(ctx, j, j.preco, corpo, `par:${j.id}`)).texto)
           } catch (e) {
-            if (e instanceof TetoDeGasto) throw e
+            if (paraTudo(e)) throw e
             return null
           }
         }
@@ -409,14 +423,15 @@ async function rodarFuncao(funcao, ctx, endpoints) {
       console.log(`\r  pareado ${feitos}/${pares.length} · gasto acumulado US$ ${ctx.livro.totalUsd.toFixed(4)}`)
     }
   } catch (e) {
-    if (!(e instanceof TetoDeGasto)) throw e
+    if (!paraTudo(e)) throw e
     bruto.paradoPeloTeto = e.message
+    parado = true
     console.error(`\n  ${e.message} — parcial gravado.`)
   } finally {
     gravarJson(ARQ_CACHE, cache)
-    gravar()
+    gravar(true)
   }
-  if (funcao === 'legenda') gravarLegendaMt(bruto)
+  if (funcao === 'legenda' && !parado) gravarLegendaMt(bruto)
   return bruto
 }
 
@@ -578,17 +593,34 @@ function relatorio() {
   for (const b of brutos) {
     if (b.funcao === 'legenda') gravarLegendaMt(b)
     decisoes[b.funcao] = decidirFuncao(b)
-    // Robustez: só o PRIMEIRO juiz (Mistral), de família diferente dos candidatos DeepSeek.
-    if (b.juizes.length > 1) robustez[b.funcao] = decidirFuncao(b, { juizes: [b.juizes[0]] })
+    // Robustez: a decisão com UM juiz só, para cada juiz — o relatório usa, por candidato, o de família diferente.
+    if (b.juizes.length > 1)
+      robustez[b.funcao] = Object.fromEntries(b.juizes.map((j) => [j, decidirFuncao(b, { juizes: [j] })]))
     gravarJson(path.join(SAIDA, `decisao-${b.funcao}.json`), decisoes[b.funcao])
   }
   const concordancia = concordanciaEntreJuizes(brutos)
   gravarJson(path.join(SAIDA, 'concordancia.json'), concordancia)
   planilha(brutos)
   const calibracao = lerJson(path.join(SAIDA, 'calibracao-resultado.json'), null)
-  const primeiro = brutos[0]
+  // Os juízes como o bruto mais novo os registra (id real, com o `@none`, e os parâmetros).
+  const primeiro = brutos.find((b) => b.juizesParametros) ?? brutos[0]
+  // O pedido que cada bruto mediu (a rodada pode ter sido antes da Fase B: sem saída estruturada nem roteamento da legenda).
+  const medicoes = Object.fromEntries(
+    brutos.map((b) => {
+      const producao = b.sistemas.find((s) => s.id === b.base)?.parametros?.producao ?? {}
+      return [
+        b.funcao,
+        {
+          geradoEm: b.geradoEm,
+          saidaEstruturada: Boolean(producao.response_format),
+          roteamentoDaLegenda: Boolean(producao.provider?.sort),
+        },
+      ]
+    }),
+  )
   const md = gerarRelatorio({
     decisoes,
+    medicoes,
     robustez,
     concordancia,
     juizes: primeiro.juizes.map((id) => ({ id, parametros: primeiro.juizesParametros?.[id] })),

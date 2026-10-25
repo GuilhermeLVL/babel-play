@@ -197,6 +197,12 @@ export function lerEventoSse(linha, estado) {
 /** Erro que não adianta repetir (4xx que não é 429): para o sistema, não a bancada. */
 export class RecusaDoProvedor extends Error {}
 
+/**
+ * A CHAVE não pode mais gastar (401/402/403: limite de gasto da chave, saldo, chave inválida). Não é falha do modelo:
+ * para a bancada inteira, como o teto do livro-caixa — gravar "sem resposta" para todos os casos apagaria a medição.
+ */
+export class LimiteDaChave extends Error {}
+
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms))
 
 /**
@@ -227,6 +233,7 @@ export async function chamar({ corpo, preco, livro, rotulo, chave, timeoutMs = 6
       reserva.cancelar()
       const corpoErro = (await r.text().catch(() => '')).slice(0, 200)
       ultimo = `HTTP ${r.status}: ${corpoErro}`
+      if ([401, 402, 403].includes(r.status)) throw new LimiteDaChave(ultimo)
       if (r.status !== 429 && r.status < 500) throw new RecusaDoProvedor(ultimo)
       await esperar((r.status === 429 ? 6000 : 2000) * (t + 1))
       continue

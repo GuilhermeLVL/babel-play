@@ -133,3 +133,4 @@ dist-anuncios/
 .secrets.*.json
 !.secrets.example.json
 .superpowers/
+docs/auditoria/eval/ia-paga-v1/*.parcial.json

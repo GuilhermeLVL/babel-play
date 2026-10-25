@@ -78,6 +78,12 @@ export interface SttRouteInput {
   parakeetNoAparelho?: boolean;
   /** O modelo fixado pela pessoa (`lerModeloFixo`). Só vale se serve aos idiomas e o aparelho permite. */
   modeloFixo?: ModeloFixo;
+  /**
+   * A flag `stt_aparelho_primeiro` (Fase B, item 6). Ligada, no AUTOMÁTICO de quem tem nuvem, o
+   * aparelho que roda o Parakeet pronto (`parakeetProntoNaRota`) transcreve primeiro, e a nuvem entra
+   * quando o áudio fica difícil (`nuvemNoAudioDificil`). Ausente ou `false` = a rota de hoje.
+   */
+  aparelhoPrimeiro?: boolean;
 }
 
 /** O pedaço do perfil do dispositivo que a rota usa. */
@@ -200,6 +206,12 @@ export interface SttRoute {
   device?: 'wasm' | 'webgpu';
   /** O automático ficou no Whisper, mas o Parakeet serve aqui e ainda não está no aparelho (a tela pode oferecer baixar). */
   parakeetDisponivelParaBaixar?: boolean;
+  /**
+   * "Aparelho primeiro" (flag `stt_aparelho_primeiro`): o modelo local é o motor, e a captura manda as
+   * falas à nuvem quando o áudio fica difícil (a histerese de `core/rota/audioDificil.ts`), trocando o
+   * `preferCloud` do gateway em tempo de execução. Só aparece com `true`.
+   */
+  nuvemNoAudioDificil?: boolean;
 }
 
 export const WHISPER_MODELS = {
@@ -531,6 +543,19 @@ export function routeStt(input: SttRouteInput): SttRoute {
           label: 'nuvem (large-v3-turbo) · reserva local',
         };
       if (isEnglish) return moonshine(moonshineAuto, 'local · inglês (moonshine)');
+      /* APARELHO PRIMEIRO (flag `stt_aparelho_primeiro`, decisão do dono de 24/10/2026): quem tem nuvem
+         e um computador que roda o Parakeet PRONTO (pt/es, cópia no aparelho; 5,8% de erro em português e
+         4,3% em espanhol na bancada de 09/10/2026) transcreve aqui, e a nuvem fica para o áudio difícil — as
+         "8 h para o áudio difícil" do Plus deixam de se gastar em áudio fácil. Aparelho fraco, sem a
+         cópia, inglês e os outros idiomas seguem na nuvem primeiro. */
+      if (cloudAllowed && input.aparelhoPrimeiro === true && parakeetPronto)
+        return {
+          localModel: ID_DO_PARAKEET,
+          device: 'wasm',
+          preferCloud: false,
+          nuvemNoAudioDificil: true,
+          label: `local · ${nomeLegivelDoModelo(ID_DO_PARAKEET)} · nuvem para o áudio difícil`,
+        };
       if (cloudAllowed) {
         // Reserva base (ou o Parakeet pronto): se a nuvem cair no meio da sessão, a qualidade local não desaba p/ tiny.
         return {

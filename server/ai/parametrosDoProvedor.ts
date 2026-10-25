@@ -79,6 +79,22 @@ export interface OpcoesDoPedido {
 /** Os dois provedores do Google no OpenRouter — `google-vertex` casa também as regiões dele. */
 export const PROVEDORES_DO_GOOGLE_NO_OPENROUTER = ['google-ai-studio', 'google-vertex'] as const
 
+/**
+ * OS MODELOS QUE VÃO SEM RACIOCÍNIO NO OPENROUTER (25/10/2026). O DeepSeek V4.1 Flash pensa por padrão — na bancada
+ * gastou até 1.111 tokens raciocinando, com p95 de 9 s na explicação — e SEM raciocínio (`reasoning: { enabled:
+ * false }`, o formato unificado do OpenRouter, docs "Reasoning Tokens") explica melhor e mais rápido
+ * (`docs/auditoria/eval-ia-paga-v1.md`: gramática 50% → 91%, p95 3,0 s). A lista é dos modelos MEDIDOS assim; outro
+ * modelo só entra com a bancada.
+ */
+export const MODELOS_SEM_RACIOCINIO_NO_OPENROUTER: ReadonlySet<string> = new Set(['deepseek/deepseek-v4.1-flash'])
+
+/**
+ * Provedores que dizem aceitar `reasoning` mas IGNORAM `reasoning.enabled: false` (o modelo pensa do mesmo jeito,
+ * achado da bancada — `scripts/eval-ia/openrouter.mjs`). Saem do roteamento de quem vai sem raciocínio, senão o
+ * "sem raciocínio" vira sorteio de provedor (e a conta e a latência voltam).
+ */
+export const IGNORAM_RACIOCINIO_DESLIGADO = ['novita'] as const
+
 /** O mínimo que todo pedido ao OpenRouter leva, declarado ou não. */
 export const ROTEAMENTO_OPENROUTER: RoteamentoOpenRouter = {
   data_collection: 'deny',
@@ -138,6 +154,8 @@ export function parametrosDoProvedor(
   /* Direto ou pelo AI Gateway da Cloudflare: o roteamento de retenção zero vai nos dois caminhos. */
   if (ehBaseDoOpenRouter(base)) {
     const provider = roteamentoEndurecido(roteamento)
+    const semRaciocinio = MODELOS_SEM_RACIOCINIO_NO_OPENROUTER.has(model.toLowerCase())
+    if (semRaciocinio) provider.ignore = [...new Set([...provider.ignore, ...IGNORAM_RACIOCINIO_DESLIGADO])]
     if (opcoes.formato) provider.require_parameters = true
     if (opcoes.legenda && !provider.order?.length) {
       provider.sort = ROTEAMENTO_DA_LEGENDA.sort
@@ -146,6 +164,7 @@ export function parametrosDoProvedor(
     return {
       provider,
       ...(raciocinio ? { reasoning: { effort: 'low', exclude: true } } : {}),
+      ...(semRaciocinio ? { reasoning: { enabled: false } } : {}),
       ...(opcoes.formato
         ? {
             response_format: {

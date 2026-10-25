@@ -108,6 +108,41 @@ describe('parametrosDoProvedor (módulo puro, sem dependências do servidor)', (
     expect(parametrosDoProvedor('https://api.deepinfra.com/v1/openai', 'google/gemma-4-26B-A4B-it')).toEqual({})
   })
 
+  it('OpenRouter + DeepSeek V4.1 Flash (a explicação): raciocínio DESLIGADO e o Novita fora, retenção zero mantida', async () => {
+    const { parametrosDoProvedor } = await import('../server/ai/parametrosDoProvedor')
+    const p = parametrosDoProvedor('https://openrouter.ai/api/v1', 'deepseek/deepseek-v4.1-flash', undefined, {
+      formato: { nome: 'explicacao', esquema: { type: 'object' } },
+    }) as any
+    expect(p.reasoning).toEqual({ enabled: false })
+    expect(p.provider).toMatchObject({ data_collection: 'deny', zdr: true, require_parameters: true })
+    expect(p.provider.ignore).toEqual(expect.arrayContaining(['google-ai-studio', 'google-vertex', 'novita']))
+    expect(p.response_format).toEqual({
+      type: 'json_schema',
+      json_schema: { name: 'explicacao', strict: true, schema: { type: 'object' } },
+    })
+    // O roteamento declarado também ganha o Novita (nunca afrouxa), sem repetir.
+    const declarado = parametrosDoProvedor('https://openrouter.ai/api/v1', 'deepseek/deepseek-v4.1-flash', {
+      data_collection: 'deny',
+      zdr: true,
+      ignore: ['google-ai-studio', 'google-vertex', 'novita'],
+    }) as any
+    expect(declarado.provider.ignore.filter((s: string) => s === 'novita')).toHaveLength(1)
+  })
+
+  it('o Novita só sai do DeepSeek: o gpt-oss e os outros seguem com o roteamento de antes', async () => {
+    const { parametrosDoProvedor } = await import('../server/ai/parametrosDoProvedor')
+    for (const m of ['openai/gpt-oss-120b', 'google/gemma-4-26b-a4b-it', 'meta-llama/llama-3.3-70b-instruct']) {
+      const p = parametrosDoProvedor('https://openrouter.ai/api/v1', m) as any
+      expect(p.provider.ignore, m).toEqual(['google-ai-studio', 'google-vertex'])
+      expect(p.reasoning?.enabled, m).toBeUndefined()
+    }
+  })
+
+  it('DeepSeek fora do OpenRouter: nada a mais (o reasoning unificado é dialeto do OpenRouter)', async () => {
+    const { parametrosDoProvedor } = await import('../server/ai/parametrosDoProvedor')
+    expect(parametrosDoProvedor('https://api.deepinfra.com/v1/openai', 'deepseek/deepseek-v4.1-flash')).toEqual({})
+  })
+
   it('base inválida não lança: cai no caso genérico', async () => {
     const { parametrosDoProvedor } = await import('../server/ai/parametrosDoProvedor')
     expect(parametrosDoProvedor('não é url', 'gpt-oss-120b')).toEqual({ reasoning_effort: 'low' })

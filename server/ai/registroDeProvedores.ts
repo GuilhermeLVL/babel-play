@@ -83,9 +83,10 @@ export type FormatoDeProvedor = (typeof FORMATOS_DE_PROVEDOR)[number]
 
 /**
  * As funções que o registro distribui. O `corretor` usa os modelos do `tutor` (a mesma rota). `tts` é a
- * voz natural do modo intérprete (E4 da Fase E).
+ * voz natural do modo intérprete (E4 da Fase E). `explicacao` (25/10/2026) é a ordem PRÓPRIA da explicação da
+ * frase: o modelo que declara `explicacao` vem antes dos do tutor na cascata dela, e só nela (`pernasDaFuncao`).
  */
-export const FUNCOES_DO_REGISTRO = ['traducao', 'tutor', 'stt', 'tts'] as const
+export const FUNCOES_DO_REGISTRO = ['traducao', 'tutor', 'stt', 'tts', 'explicacao'] as const
 export type FuncaoDoRegistro = (typeof FUNCOES_DO_REGISTRO)[number]
 
 /**
@@ -334,9 +335,9 @@ function errosDeNegocio(reg: z.infer<typeof registroSchema>, producao: boolean):
       /* B3: `grande` é o sinônimo provisório da nuance; os dois juntos deixariam a dúvida de qual vale. */
       if (m.grande && m.niveis)
         erros.push(`${onde}: modelo "${m.id}" declara "grande" e "niveis" — use só "niveis" (grande = ["nuance"])`)
-      if (m.niveis && !m.funcoes.some((f) => f === 'traducao' || f === 'tutor'))
+      if (m.niveis && !m.funcoes.some((f) => f === 'traducao' || f === 'tutor' || f === 'explicacao'))
         erros.push(
-          `${onde}: modelo "${m.id}" declara "niveis", que só valem para traducao/tutor (o STT e a voz não têm nível)`,
+          `${onde}: modelo "${m.id}" declara "niveis", que só valem para traducao/tutor/explicacao (o STT e a voz não têm nível)`,
         )
       /* A voz só sabe falar com o formato OpenAI (`/audio/speech`) e com o do Google; e o do Google só fala. */
       if (m.funcoes.includes('tts') && p.formato === 'cloudflare')
@@ -707,9 +708,15 @@ export function pernasDaFuncao(
   /* A IA DE ESTUDO SÓ COM RETENÇÃO ZERO DECLARADA, em qualquer ambiente: ela nasceu depois da regra e manda o texto
      de alguém (às vezes menor) junto com a explicação pedida. Fora de produção o registro aceita provedor sem `zdr`
      (o boot só aborta em produção); aqui ele nem vira perna. */
-  const candidatas = candidatasDaFuncao(f, opcoes.modelosGrandes === true, env).filter(
-    (c) => !deEstudo || c.provedor.retencao === 'zdr',
+  /* A EXPLICAÇÃO TEM ORDEM PRÓPRIA (decisão do dono, 25/10/2026; `docs/auditoria/eval-ia-paga-v1.md`): os modelos
+     que declaram `explicacao` vêm ANTES dos do tutor, que seguem de reserva na ordem de sempre. Só a explicação lê
+     essa função: tutor, corretor e resumo continuam com as pernas de antes. */
+  const daExplicacao =
+    funcao === 'explicacao' ? candidatasDaFuncao('explicacao', opcoes.modelosGrandes === true, env) : []
+  const doTutor = candidatasDaFuncao(f, opcoes.modelosGrandes === true, env).filter(
+    (c) => !daExplicacao.some((e) => e.provedor.id === c.provedor.id && e.modelo.id === c.modelo.id),
   )
+  const candidatas = [...daExplicacao, ...doTutor].filter((c) => !deEstudo || c.provedor.retencao === 'zdr')
   const ordem: Candidata[] = []
   /* O STT e a voz não têm nível: vale a ordem do registro. */
   if (f === 'stt' || f === 'tts') ordem.push(...candidatas)

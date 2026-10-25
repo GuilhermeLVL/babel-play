@@ -46,6 +46,10 @@ for (const nivel of ['rapida', 'nuance', 'polimento'] as const) {
   const pernas = pernasDaFuncao('traducao', { nivel }, env);
   if (pernas.length) console.log(`  tradução nível ${nivel}: ${pernas.map((p) => p.model).join('  →  ')}`);
 }
+for (const nivel of ['rapida', 'nuance'] as const) {
+  const pernas = pernasDaFuncao('explicacao', { nivel }, env);
+  if (pernas.length) console.log(`  explicação nível ${nivel}: ${pernas.map((p) => p.model).join('  →  ')}`);
+}
 const stt = pernasDaFuncao('stt', {}, env)[0];
 if (stt) console.log(`  endpoint de transcrição: ${endpointDaTranscricao(stt) ?? '(nenhum)'}`);
 

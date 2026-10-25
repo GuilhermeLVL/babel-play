@@ -1,0 +1,2985 @@
+{
+  "geradoEm": "2026-10-25T20:44:03.613Z",
+  "juizes": [
+    {
+      "id": "mistralai/mistral-medium-3.1",
+      "precoTetoZdr": {
+        "entrada": 0.44,
+        "saida": 2.2,
+        "endpoints": 2,
+        "provedores": [
+          "Mistral"
+        ]
+      }
+    },
+    {
+      "id": "deepseek/deepseek-v4.1-flash@none",
+      "precoTetoZdr": {
+        "entrada": 0.6,
+        "saida": 2.4,
+        "endpoints": 35,
+        "provedores": [
+          "BaseTen",
+          "Cohere",
+          "CoreWeave",
+          "Crusoe",
+          "Decart",
+          "DeepInfra",
+          "DigitalOcean",
+          "Fireworks",
+          "InferenceNet",
+          "Makora",
+          "Mancer 2",
+          "Modal",
+          "ModelRun",
+          "Morph",
+          "Nebius",
+          "Novita",
+          "OpenInference",
+          "Parasail",
+          "Phala",
+          "PrimeIntellect",
+          "Reka",
+          "Relace",
+          "Sail Research",
+          "SiliconFlow",
+          "Together",
+          "Venice",
+          "Wafer"
+        ]
+      }
+    }
+  ],
+  "temperatura": 0,
+  "horasDeUsoCheio": 20,
+  "usdPorBusca": 0.007,
+  "criterios": [
+    {
+      "id": "valor",
+      "pergunta": "Resolve um problema real e sentido por quem usa (aprendiz de idioma ou profissional), não um \"legal de ter\"?"
+    },
+    {
+      "id": "frequencia",
+      "pergunta": "Seria usada com frequência (em quase toda sessão do contexto dela), não uma vez por mês?"
+    },
+    {
+      "id": "viavel",
+      "pergunta": "É viável hoje no navegador com o que o app tem (transcrição pronta, LLM barato, regras locais), sem extensão nem acesso a outros apps?"
+    },
+    {
+      "id": "custo",
+      "pergunta": "O custo estimado no uso cheio cabe na margem do plano, pela régua dada (até ~US$ 0,30/mês por pessoa)?"
+    },
+    {
+      "id": "privacidade",
+      "pergunta": "O risco de privacidade e para menores é BAIXO (sem perfilamento, sem inferir emoção, sem expor terceiros, sem busca não-ZDR com dado pessoal, sem conteúdo impróprio)? true = risco baixo."
+    },
+    {
+      "id": "diferencial",
+      "pergunta": "É um diferencial claro para o plano pago (alguém pagaria por isso; os concorrentes de idioma não fazem igual)?"
+    },
+    {
+      "id": "naoAtrapalha",
+      "pergunta": "NÃO atrapalha o jogo ou o vídeo (cabe numa janela pequena, sem pedir atenção ou cliques no momento errado)? true = não atrapalha."
+    }
+  ],
+  "parada": null,
+  "gastoUsd": 0.11604925799999997,
+  "tetoUsd": 1,
+  "rubricasValidas": {
+    "mistralai/mistral-medium-3.1": 42,
+    "deepseek/deepseek-v4.1-flash@none": 42
+  },
+  "concordanciaRubrica": {
+    "valor": {
+      "kappa": 0.2941176470588234,
+      "n": 42,
+      "concordancia": 0.7142857142857143,
+      "acaso": 0.5952380952380953,
+      "leitura": "razoável"
+    },
+    "frequencia": {
+      "kappa": 0.07579462102689487,
+      "n": 42,
+      "concordancia": 0.5714285714285714,
+      "acaso": 0.536281179138322,
+      "leitura": "leve"
+    },
+    "viavel": {
+      "kappa": 0.6440677966101694,
+      "n": 42,
+      "concordancia": 0.9523809523809523,
+      "acaso": 0.8662131519274375,
+      "leitura": "substancial"
+    },
+    "custo": {
+      "kappa": 1,
+      "n": 42,
+      "concordancia": 1,
+      "acaso": 0.9535147392290249,
+      "leitura": "quase perfeito"
+    },
+    "privacidade": {
+      "kappa": 0.5635103926096997,
+      "n": 42,
+      "concordancia": 0.7857142857142857,
+      "acaso": 0.5090702947845805,
+      "leitura": "moderado"
+    },
+    "diferencial": {
+      "kappa": 0.2500000000000001,
+      "n": 42,
+      "concordancia": 0.6190476190476191,
+      "acaso": 0.49206349206349204,
+      "leitura": "razoável"
+    },
+    "naoAtrapalha": {
+      "kappa": 0.1495327102803737,
+      "n": 42,
+      "concordancia": 0.6904761904761905,
+      "acaso": 0.6360544217687075,
+      "leitura": "leve"
+    },
+    "geral": {
+      "kappa": 0.4293478260869563,
+      "n": 294,
+      "concordancia": 0.7619047619047619,
+      "acaso": 0.5827664399092971,
+      "leitura": "moderado"
+    }
+  },
+  "ranking": [
+    {
+      "id": "video-expressoes",
+      "titulo": "Destacar expressões idiomáticas",
+      "contexto": "video",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 7,
+        "deepseek/deepseek-v4.1-flash@none": 7
+      },
+      "media": 7,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          true,
+          true
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          true
+        ],
+        "diferencial": [
+          true,
+          true
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Tooltip pode ser difícil de acionar em PiP Safari",
+        "Hover não existe em PiP de vídeo Safari; só leitura, sem toque para ver glosa."
+      ],
+      "custo": {
+        "porUsoUsd": 0.000030375,
+        "porHoraUsd": 0.0006075,
+        "mesUsd": 0.01215
+      }
+    },
+    {
+      "id": "video-nivel",
+      "titulo": "Palavras acima do meu nível em destaque",
+      "contexto": "video",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 7,
+        "deepseek/deepseek-v4.1-flash@none": 7
+      },
+      "media": 7,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          true,
+          true
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          true
+        ],
+        "diferencial": [
+          true,
+          true
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Tamanho fixo pode limitar visibilidade do destaque",
+        "A clareza do destaque visual sem poluir a legenda é o desafio."
+      ],
+      "custo": {
+        "porUsoUsd": 0,
+        "porHoraUsd": 0,
+        "mesUsd": 0
+      }
+    },
+    {
+      "id": "consultoria-pauta",
+      "titulo": "Pauta com tópicos cobertos e faltando",
+      "contexto": "consultoria",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 7,
+        "deepseek/deepseek-v4.1-flash@none": 6
+      },
+      "media": 6.5,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          true,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          true
+        ],
+        "diferencial": [
+          true,
+          true
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Tamanho fixo e sem transparência",
+        "Lista de tópicos pode não caber em ~440×300 sem rolagem e compete com a legenda."
+      ],
+      "custo": {
+        "porUsoUsd": 0.000153,
+        "porHoraUsd": 0.001836,
+        "mesUsd": 0.03672
+      }
+    },
+    {
+      "id": "presencial-correcao",
+      "titulo": "Correção gentil da minha fala",
+      "contexto": "presencial",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 7,
+        "deepseek/deepseek-v4.1-flash@none": 6
+      },
+      "media": 6.5,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          true,
+          true
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          true
+        ],
+        "diferencial": [
+          true,
+          true
+        ],
+        "naoAtrapalha": [
+          true,
+          false
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Tamanho fixo e sem transparência",
+        "Correção automática polui a legenda e compete com o vídeo/jogo."
+      ],
+      "custo": {
+        "porUsoUsd": 0.000105,
+        "porHoraUsd": 0.0021000000000000003,
+        "mesUsd": 0.04200000000000001
+      }
+    },
+    {
+      "id": "reuniao-como-respondo",
+      "titulo": "\"Como respondo?\" com 3 sugestões",
+      "contexto": "reuniao",
+      "gatilho": "sob demanda",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 6,
+        "deepseek/deepseek-v4.1-flash@none": 7
+      },
+      "media": 6.5,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          false,
+          true
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          true
+        ],
+        "diferencial": [
+          true,
+          true
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Tamanho fixo e sem transparência",
+        "A latência da geração de 3 sugestões pode ser perceptível durante o fluxo da conversa."
+      ],
+      "custo": {
+        "porUsoUsd": 0.000255,
+        "porHoraUsd": 0.00102,
+        "mesUsd": 0.0204
+      }
+    },
+    {
+      "id": "reuniao-termo-tecnico",
+      "titulo": "Termo técnico ou sigla explicado na hora",
+      "contexto": "reuniao",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 7,
+        "deepseek/deepseek-v4.1-flash@none": 6
+      },
+      "media": 6.5,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          true,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          true
+        ],
+        "diferencial": [
+          true,
+          true
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Tamanho fixo e sem transparência",
+        "Texto extra pode poluir legenda em janela pequena e distrair."
+      ],
+      "custo": {
+        "porUsoUsd": 0.000036,
+        "porHoraUsd": 0.00036,
+        "mesUsd": 0.007200000000000001
+      }
+    },
+    {
+      "id": "aula-conceitos",
+      "titulo": "Conceitos-chave da aula",
+      "contexto": "aula",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 5,
+        "deepseek/deepseek-v4.1-flash@none": 7
+      },
+      "media": 6,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          false,
+          true
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          true
+        ],
+        "diferencial": [
+          true,
+          true
+        ],
+        "naoAtrapalha": [
+          false,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Frequência alta pode distrair",
+        "A relevância do conceito pode ser baixa se o discurso for muito denso ou vago."
+      ],
+      "custo": {
+        "porUsoUsd": 0.000495,
+        "porHoraUsd": 0.00594,
+        "mesUsd": 0.1188
+      }
+    },
+    {
+      "id": "consultoria-followup",
+      "titulo": "Rascunho do e-mail de follow-up",
+      "contexto": "consultoria",
+      "gatilho": "sob demanda",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 6,
+        "deepseek/deepseek-v4.1-flash@none": 6
+      },
+      "media": 6,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          false,
+          true
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          false
+        ],
+        "diferencial": [
+          true,
+          true
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        true,
+        false
+      ],
+      "problemaPiP": [
+        "Uso esporádico, não justifica janela flutuante",
+        "Rascunho longo não cabe em ~440×300; revisar e editar texto na janelinha é sofrível."
+      ],
+      "custo": {
+        "porUsoUsd": 0.00069,
+        "porHoraUsd": 0.00069,
+        "mesUsd": 0.0138
+      }
+    },
+    {
+      "id": "consultoria-glossario",
+      "titulo": "Glossário da sessão",
+      "contexto": "consultoria",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 7,
+        "deepseek/deepseek-v4.1-flash@none": 5
+      },
+      "media": 6,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          true,
+          true
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          false
+        ],
+        "diferencial": [
+          true,
+          false
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Tamanho fixo e sem transparência",
+        "Glossário longo não cabe em ~440×300 px sem rolagem e compete com a legenda."
+      ],
+      "custo": {
+        "porUsoUsd": 0.000225,
+        "porHoraUsd": 0.000225,
+        "mesUsd": 0.0045
+      }
+    },
+    {
+      "id": "podcast-vocab",
+      "titulo": "Vocabulário do episódio no meu nível",
+      "contexto": "aula",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 7,
+        "deepseek/deepseek-v4.1-flash@none": 5
+      },
+      "media": 6,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          true,
+          true
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          false
+        ],
+        "diferencial": [
+          true,
+          false
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Tamanho fixo e sem transparência",
+        "Cartões de vocabulário não cabem bem em ~300px de altura."
+      ],
+      "custo": {
+        "porUsoUsd": 0.0002925,
+        "porHoraUsd": 0.0002925,
+        "mesUsd": 0.00585
+      }
+    },
+    {
+      "id": "presencial-sugestao",
+      "titulo": "Intérprete com resposta sugerida",
+      "contexto": "presencial",
+      "gatilho": "sob demanda",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 7,
+        "deepseek/deepseek-v4.1-flash@none": 5
+      },
+      "media": 6,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          true,
+          true
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          false
+        ],
+        "diferencial": [
+          true,
+          true
+        ],
+        "naoAtrapalha": [
+          true,
+          false
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        true
+      ],
+      "problemaPiP": [
+        "Tamanho fixo e sem transparência",
+        "Ler resposta em voz alta exige atenção e cliques no momento errado; janela pequena não comporta."
+      ],
+      "custo": {
+        "porUsoUsd": 0.000147,
+        "porHoraUsd": 0.000882,
+        "mesUsd": 0.01764
+      }
+    },
+    {
+      "id": "reuniao-polir-minha-fala",
+      "titulo": "Polir minha frase antes de falar",
+      "contexto": "reuniao",
+      "gatilho": "sob demanda",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 6,
+        "deepseek/deepseek-v4.1-flash@none": 6
+      },
+      "media": 6,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          false,
+          true
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          true
+        ],
+        "diferencial": [
+          true,
+          true
+        ],
+        "naoAtrapalha": [
+          true,
+          false
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Tamanho fixo e sem transparência",
+        "Digitar e ler na janelinha durante reunião desvia atenção e atrapalha a fala."
+      ],
+      "custo": {
+        "porUsoUsd": 0.000105,
+        "porHoraUsd": 0.00042,
+        "mesUsd": 0.008400000000000001
+      }
+    },
+    {
+      "id": "video-frase-episodio",
+      "titulo": "Frase do episódio",
+      "contexto": "video",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 6,
+        "deepseek/deepseek-v4.1-flash@none": 6
+      },
+      "media": 6,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          false,
+          true
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          false
+        ],
+        "diferencial": [
+          true,
+          true
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Tamanho fixo, sem transparência.",
+        "Lista de 3 frases em janela 440×300 exige rolagem e quebra o layout."
+      ],
+      "custo": {
+        "porUsoUsd": 0.00108,
+        "porHoraUsd": 0.00108,
+        "mesUsd": 0.0216
+      }
+    },
+    {
+      "id": "aula-topicos",
+      "titulo": "Sumário com marcas de tempo",
+      "contexto": "aula",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 7,
+        "deepseek/deepseek-v4.1-flash@none": 4
+      },
+      "media": 5.5,
+      "porCriterio": {
+        "valor": [
+          true,
+          false
+        ],
+        "frequencia": [
+          true,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          true
+        ],
+        "diferencial": [
+          true,
+          false
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Tamanho fixo e sem transparência",
+        "Lista longa de tópicos não cabe em ~440×300 px sem rolagem constante."
+      ],
+      "custo": {
+        "porUsoUsd": 0.00019125,
+        "porHoraUsd": 0.0022949999999999997,
+        "mesUsd": 0.045899999999999996
+      }
+    },
+    {
+      "id": "jogo-callouts",
+      "titulo": "Glossário de callouts da partida",
+      "contexto": "jogo",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 6,
+        "deepseek/deepseek-v4.1-flash@none": 5
+      },
+      "media": 5.5,
+      "porCriterio": {
+        "valor": [
+          true,
+          false
+        ],
+        "frequencia": [
+          false,
+          true
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          true
+        ],
+        "diferencial": [
+          true,
+          false
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Tamanho fixo e sem transparência",
+        "Conteúdo pós-jogo irrelevante na janela pequena durante a partida."
+      ],
+      "custo": {
+        "porUsoUsd": 0.00019125,
+        "porHoraUsd": 0.00019125,
+        "mesUsd": 0.003825
+      }
+    },
+    {
+      "id": "jogo-como-respondo",
+      "titulo": "\"Como respondo?\" no chat de voz do jogo",
+      "contexto": "jogo",
+      "gatilho": "sob demanda",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 6,
+        "deepseek/deepseek-v4.1-flash@none": 5
+      },
+      "media": 5.5,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          false,
+          true
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          false
+        ],
+        "diferencial": [
+          true,
+          true
+        ],
+        "naoAtrapalha": [
+          true,
+          false
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Safari não permite interação",
+        "Ler sugestões durante partida exige atenção e cliques no momento errado."
+      ],
+      "custo": {
+        "porUsoUsd": 0.00018,
+        "porHoraUsd": 0.00072,
+        "mesUsd": 0.014400000000000001
+      }
+    },
+    {
+      "id": "reuniao-auditoria",
+      "titulo": "Auditoria da conversa",
+      "contexto": "reuniao",
+      "gatilho": "sob demanda",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 5,
+        "deepseek/deepseek-v4.1-flash@none": 6
+      },
+      "media": 5.5,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          false,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          false,
+          true
+        ],
+        "diferencial": [
+          true,
+          true
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        true,
+        true
+      ],
+      "problemaPiP": [
+        "Transcrição de terceiros sem consentimento",
+        "Não é um recurso de PiP, mas sim um relatório pós-sessão."
+      ],
+      "custo": {
+        "porUsoUsd": 0.00162,
+        "porHoraUsd": 0.00162,
+        "mesUsd": 0.0324
+      }
+    },
+    {
+      "id": "reuniao-tarefas",
+      "titulo": "Tarefas, prazos e responsáveis",
+      "contexto": "reuniao",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 6,
+        "deepseek/deepseek-v4.1-flash@none": 5
+      },
+      "media": 5.5,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          true,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          false,
+          false
+        ],
+        "diferencial": [
+          true,
+          true
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        true,
+        true
+      ],
+      "problemaPiP": [
+        "Processa falas de terceiros sem consentimento",
+        "Lista de tarefas não cabe em ~440×300 px sem rolagem e compete com a legenda."
+      ],
+      "custo": {
+        "porUsoUsd": 0.000465,
+        "porHoraUsd": 0.00558,
+        "mesUsd": 0.1116
+      }
+    },
+    {
+      "id": "video-piada",
+      "titulo": "Explicar a piada ou referência da cena",
+      "contexto": "video",
+      "gatilho": "sob demanda",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 4,
+        "deepseek/deepseek-v4.1-flash@none": 7
+      },
+      "media": 5.5,
+      "porCriterio": {
+        "valor": [
+          false,
+          true
+        ],
+        "frequencia": [
+          false,
+          true
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          true
+        ],
+        "diferencial": [
+          false,
+          true
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Tamanho fixo e sem transparência",
+        "A dependência de um gatilho manual pode quebrar o fluxo de consumo passivo."
+      ],
+      "custo": {
+        "porUsoUsd": 0.0001725,
+        "porHoraUsd": 0.0005175,
+        "mesUsd": 0.010349999999999998
+      }
+    },
+    {
+      "id": "video-quem-e",
+      "titulo": "\"Quem é esse?\" — personagens da sessão",
+      "contexto": "video",
+      "gatilho": "sob demanda",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 6,
+        "deepseek/deepseek-v4.1-flash@none": 5
+      },
+      "media": 5.5,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          false,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          false
+        ],
+        "diferencial": [
+          true,
+          true
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Tamanho fixo e sem transparência",
+        "Lista longa de nomes não cabe em ~440×300 px sem rolagem constante."
+      ],
+      "custo": {
+        "porUsoUsd": 0.00075,
+        "porHoraUsd": 0.00075,
+        "mesUsd": 0.015
+      }
+    },
+    {
+      "id": "aula-pergunta",
+      "titulo": "Perguntar ao conteúdo",
+      "contexto": "aula",
+      "gatilho": "sob demanda",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 5,
+        "deepseek/deepseek-v4.1-flash@none": 5
+      },
+      "media": 5,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          false,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          true
+        ],
+        "diferencial": [
+          false,
+          true
+        ],
+        "naoAtrapalha": [
+          true,
+          false
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Tamanho fixo e sem transparência",
+        "Digitar pergunta em janela de 440×300 durante a aula tira atenção e é desconfortável."
+      ],
+      "custo": {
+        "porUsoUsd": 0.00087,
+        "porHoraUsd": 0.00261,
+        "mesUsd": 0.052199999999999996
+      }
+    },
+    {
+      "id": "aula-quiz",
+      "titulo": "Mini-quiz do que foi dito",
+      "contexto": "aula",
+      "gatilho": "sob demanda",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 4,
+        "deepseek/deepseek-v4.1-flash@none": 6
+      },
+      "media": 5,
+      "porCriterio": {
+        "valor": [
+          false,
+          true
+        ],
+        "frequencia": [
+          false,
+          true
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          true
+        ],
+        "diferencial": [
+          false,
+          false
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Tamanho fixo e sem transparência",
+        "Quiz exige ler e clicar em ~440×300, apertado e sem toque no celular."
+      ],
+      "custo": {
+        "porUsoUsd": 0.00114,
+        "porHoraUsd": 0.00114,
+        "mesUsd": 0.0228
+      }
+    },
+    {
+      "id": "jogo-giria",
+      "titulo": "Dica de gíria de jogo na hora",
+      "contexto": "jogo",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 6,
+        "deepseek/deepseek-v4.1-flash@none": 4
+      },
+      "media": 5,
+      "porCriterio": {
+        "valor": [
+          true,
+          false
+        ],
+        "frequencia": [
+          false,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          true
+        ],
+        "diferencial": [
+          true,
+          false
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Tamanho fixo e sem transparência",
+        "Chip em janela de ~440×300 pode cobrir legenda e competir por espaço."
+      ],
+      "custo": {
+        "porUsoUsd": 0.00003375,
+        "porHoraUsd": 0.000405,
+        "mesUsd": 0.0081
+      }
+    },
+    {
+      "id": "presencial-falso-cognato",
+      "titulo": "Alerta de falso cognato",
+      "contexto": "presencial",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 5,
+        "deepseek/deepseek-v4.1-flash@none": 5
+      },
+      "media": 5,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          false,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          true
+        ],
+        "diferencial": [
+          false,
+          false
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Frequência baixa para justificar uso",
+        "Chip piscando em 440×300 px pode cobrir legenda e distrair do vídeo."
+      ],
+      "custo": {
+        "porUsoUsd": 0,
+        "porHoraUsd": 0,
+        "mesUsd": 0
+      }
+    },
+    {
+      "id": "reuniao-ata",
+      "titulo": "Ata final exportável",
+      "contexto": "reuniao",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 6,
+        "deepseek/deepseek-v4.1-flash@none": 4
+      },
+      "media": 5,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          true,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          false,
+          false
+        ],
+        "diferencial": [
+          true,
+          false
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        true,
+        false
+      ],
+      "problemaPiP": [
+        "Transcrição de terceiros sem consentimento",
+        "Ata longa em janela ~440×300 exige rolagem e cópia difícil; sem botões no Safari."
+      ],
+      "custo": {
+        "porUsoUsd": 0.00186,
+        "porHoraUsd": 0.00186,
+        "mesUsd": 0.037200000000000004
+      }
+    },
+    {
+      "id": "reuniao-mencao",
+      "titulo": "Aviso quando falam comigo",
+      "contexto": "reuniao",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 5,
+        "deepseek/deepseek-v4.1-flash@none": 5
+      },
+      "media": 5,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          false,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          true
+        ],
+        "diferencial": [
+          true,
+          false
+        ],
+        "naoAtrapalha": [
+          false,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Piscar pode distrair em reuniões",
+        "Piscar compete com legenda em 440×300 e pode distrair em reunião."
+      ],
+      "custo": {
+        "porUsoUsd": 0,
+        "porHoraUsd": 0,
+        "mesUsd": 0
+      }
+    },
+    {
+      "id": "reuniao-perguntas",
+      "titulo": "Perguntas boas para fazer",
+      "contexto": "reuniao",
+      "gatilho": "sob demanda",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 5,
+        "deepseek/deepseek-v4.1-flash@none": 5
+      },
+      "media": 5,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          false,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          false,
+          false
+        ],
+        "diferencial": [
+          true,
+          true
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        true,
+        false
+      ],
+      "problemaPiP": [
+        "Exposição de terceiros sem consentimento",
+        "Ler perguntas em 440×300 px durante reunião desvia atenção da fala."
+      ],
+      "custo": {
+        "porUsoUsd": 0.00027,
+        "porHoraUsd": 0.00054,
+        "mesUsd": 0.0108
+      }
+    },
+    {
+      "id": "video-recap",
+      "titulo": "\"O que aconteceu?\" — resumo dos últimos minutos",
+      "contexto": "video",
+      "gatilho": "sob demanda",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 6,
+        "deepseek/deepseek-v4.1-flash@none": 4
+      },
+      "media": 5,
+      "porCriterio": {
+        "valor": [
+          true,
+          false
+        ],
+        "frequencia": [
+          false,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          true
+        ],
+        "diferencial": [
+          true,
+          false
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Tamanho fixo, sem transparência",
+        "Texto de resumo longo em janela ~440×300 exige rolagem e leitura, competindo com o vídeo."
+      ],
+      "custo": {
+        "porUsoUsd": 0.000315,
+        "porHoraUsd": 0.00063,
+        "mesUsd": 0.0126
+      }
+    },
+    {
+      "id": "jogo-faixa-chave",
+      "titulo": "Faixa só com palavras-chave",
+      "contexto": "jogo",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 4,
+        "deepseek/deepseek-v4.1-flash@none": 5
+      },
+      "media": 4.5,
+      "porCriterio": {
+        "valor": [
+          false,
+          false
+        ],
+        "frequencia": [
+          false,
+          true
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          true
+        ],
+        "diferencial": [
+          false,
+          false
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Tamanho fixo e sem transparência",
+        "Palavras soltas sem contexto confundem e ainda cobrem parte do jogo."
+      ],
+      "custo": {
+        "porUsoUsd": 0,
+        "porHoraUsd": 0,
+        "mesUsd": 0
+      }
+    },
+    {
+      "id": "presencial-frases-situacao",
+      "titulo": "Frases úteis para a situação",
+      "contexto": "presencial",
+      "gatilho": "sob demanda",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 5,
+        "deepseek/deepseek-v4.1-flash@none": 4
+      },
+      "media": 4.5,
+      "porCriterio": {
+        "valor": [
+          true,
+          false
+        ],
+        "frequencia": [
+          false,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          true
+        ],
+        "diferencial": [
+          false,
+          false
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Uso esporádico não justifica janela flutuante",
+        "Lista de 6 frases em ~440×300 px exige rolagem e leitura, competindo com o vídeo."
+      ],
+      "custo": {
+        "porUsoUsd": 0,
+        "porHoraUsd": 0,
+        "mesUsd": 0
+      }
+    },
+    {
+      "id": "reuniao-o-que-perdi",
+      "titulo": "\"O que eu perdi?\"",
+      "contexto": "reuniao",
+      "gatilho": "sob demanda",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 4,
+        "deepseek/deepseek-v4.1-flash@none": 5
+      },
+      "media": 4.5,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          false,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          false,
+          false
+        ],
+        "diferencial": [
+          false,
+          true
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        true,
+        false
+      ],
+      "problemaPiP": [
+        "Exposição de terceiros sem consentimento",
+        "Resumo de 3 linhas pode não caber legível em ~440×300 px."
+      ],
+      "custo": {
+        "porUsoUsd": 0.00054,
+        "porHoraUsd": 0.00054,
+        "mesUsd": 0.0108
+      }
+    },
+    {
+      "id": "video-sombra",
+      "titulo": "Shadowing: repetir a fala e comparar",
+      "contexto": "video",
+      "gatilho": "sob demanda",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 5,
+        "deepseek/deepseek-v4.1-flash@none": 4
+      },
+      "media": 4.5,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          false,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          true
+        ],
+        "diferencial": [
+          false,
+          false
+        ],
+        "naoAtrapalha": [
+          true,
+          false
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Tamanho fixo, sem transparência",
+        "Falar em voz alta durante vídeo é constrangedor e interrompe a sessão."
+      ],
+      "custo": {
+        "porUsoUsd": 0,
+        "porHoraUsd": 0,
+        "mesUsd": 0
+      }
+    },
+    {
+      "id": "consultoria-objecoes",
+      "titulo": "Objeções do cliente e como responder",
+      "contexto": "consultoria",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 6,
+        "deepseek/deepseek-v4.1-flash@none": 2
+      },
+      "media": 4,
+      "porCriterio": {
+        "valor": [
+          true,
+          false
+        ],
+        "frequencia": [
+          true,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          false,
+          false
+        ],
+        "diferencial": [
+          true,
+          false
+        ],
+        "naoAtrapalha": [
+          true,
+          false
+        ]
+      },
+      "somenteAdultos": [
+        true,
+        true
+      ],
+      "problemaPiP": [
+        "Falas de terceiros sem consentimento",
+        "Sugestões em tempo real exigem leitura durante a fala, atrapalhando a conversa."
+      ],
+      "custo": {
+        "porUsoUsd": 0.000345,
+        "porHoraUsd": 0.00414,
+        "mesUsd": 0.08279999999999998
+      }
+    },
+    {
+      "id": "presencial-como-se-diz",
+      "titulo": "\"Como se diz…?\"",
+      "contexto": "presencial",
+      "gatilho": "sob demanda",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 5,
+        "deepseek/deepseek-v4.1-flash@none": 3
+      },
+      "media": 4,
+      "porCriterio": {
+        "valor": [
+          true,
+          false
+        ],
+        "frequencia": [
+          false,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          false
+        ],
+        "diferencial": [
+          false,
+          false
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Uso esporádico não justifica janela flutuante",
+        "Digitar/falar em janela de 440×300 durante vídeo é lento e tira o foco."
+      ],
+      "custo": {
+        "porUsoUsd": 0.000027,
+        "porHoraUsd": 0.00016199999999999998,
+        "mesUsd": 0.00324
+      }
+    },
+    {
+      "id": "reuniao-resumo-rolante",
+      "titulo": "Resumo rolante da reunião",
+      "contexto": "reuniao",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 6,
+        "deepseek/deepseek-v4.1-flash@none": 2
+      },
+      "media": 4,
+      "porCriterio": {
+        "valor": [
+          true,
+          false
+        ],
+        "frequencia": [
+          true,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          false,
+          false
+        ],
+        "diferencial": [
+          true,
+          false
+        ],
+        "naoAtrapalha": [
+          true,
+          false
+        ]
+      },
+      "somenteAdultos": [
+        true,
+        false
+      ],
+      "problemaPiP": [
+        "Processa falas de terceiros sem consentimento",
+        "Atualização automática a cada 5 min pisca e desvia atenção em janela pequena."
+      ],
+      "custo": {
+        "porUsoUsd": 0.000525,
+        "porHoraUsd": 0.0063,
+        "mesUsd": 0.126
+      }
+    },
+    {
+      "id": "jogo-minha-fala",
+      "titulo": "Traduzir minha fala para o chat",
+      "contexto": "jogo",
+      "gatilho": "sob demanda",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 4,
+        "deepseek/deepseek-v4.1-flash@none": 3
+      },
+      "media": 3.5,
+      "porCriterio": {
+        "valor": [
+          false,
+          false
+        ],
+        "frequencia": [
+          false,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          true,
+          true
+        ],
+        "diferencial": [
+          false,
+          false
+        ],
+        "naoAtrapalha": [
+          true,
+          false
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Uso esporádico não justifica janela flutuante",
+        "Falar e copiar durante o jogo desvia a atenção e atrapalha a ação."
+      ],
+      "custo": {
+        "porUsoUsd": 0.000027,
+        "porHoraUsd": 0.00016199999999999998,
+        "mesUsd": 0.00324
+      }
+    },
+    {
+      "id": "reuniao-checagem",
+      "titulo": "Checagem de fato com fonte",
+      "contexto": "reuniao",
+      "gatilho": "sob demanda",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 4,
+        "deepseek/deepseek-v4.1-flash@none": 3
+      },
+      "media": 3.5,
+      "porCriterio": {
+        "valor": [
+          true,
+          false
+        ],
+        "frequencia": [
+          false,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          false,
+          false
+        ],
+        "diferencial": [
+          false,
+          true
+        ],
+        "naoAtrapalha": [
+          true,
+          false
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        true
+      ],
+      "problemaPiP": [
+        "Busca na web sem ZDR",
+        "Exige toque e leitura de fonte, desviando atenção no meio da reunião."
+      ],
+      "custo": {
+        "porUsoUsd": 0.0076125,
+        "porHoraUsd": 0.0076125,
+        "mesUsd": 0.15225
+      }
+    },
+    {
+      "id": "video-contexto-web",
+      "titulo": "Contexto histórico/cultural com pesquisa",
+      "contexto": "video",
+      "gatilho": "sob demanda",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 3,
+        "deepseek/deepseek-v4.1-flash@none": 3
+      },
+      "media": 3,
+      "porCriterio": {
+        "valor": [
+          false,
+          false
+        ],
+        "frequencia": [
+          false,
+          false
+        ],
+        "viavel": [
+          false,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          false,
+          false
+        ],
+        "diferencial": [
+          true,
+          false
+        ],
+        "naoAtrapalha": [
+          true,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Busca na web viola ZDR",
+        "Resposta com fontes pode não caber em ~440×300 e desviar atenção da cena."
+      ],
+      "custo": {
+        "porUsoUsd": 0.0075375,
+        "porHoraUsd": 0.0075375,
+        "mesUsd": 0.15075
+      }
+    },
+    {
+      "id": "aula-referencias",
+      "titulo": "Referências citadas com link",
+      "contexto": "aula",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 1,
+        "deepseek/deepseek-v4.1-flash@none": 4
+      },
+      "media": 2.5,
+      "porCriterio": {
+        "valor": [
+          true,
+          true
+        ],
+        "frequencia": [
+          false,
+          true
+        ],
+        "viavel": [
+          false,
+          true
+        ],
+        "custo": [
+          false,
+          false
+        ],
+        "privacidade": [
+          false,
+          false
+        ],
+        "diferencial": [
+          false,
+          false
+        ],
+        "naoAtrapalha": [
+          false,
+          true
+        ]
+      },
+      "somenteAdultos": [
+        false,
+        false
+      ],
+      "problemaPiP": [
+        "Espaço limitado para links",
+        "Lista cresce rápido e vira parede de texto em janela de 440×300 px."
+      ],
+      "custo": {
+        "porUsoUsd": 0.0075375,
+        "porHoraUsd": 0.015075,
+        "mesUsd": 0.3015
+      }
+    },
+    {
+      "id": "geral-dossie",
+      "titulo": "Dossiê do interlocutor",
+      "contexto": "geral",
+      "gatilho": "sob demanda",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 3,
+        "deepseek/deepseek-v4.1-flash@none": 1
+      },
+      "media": 2,
+      "porCriterio": {
+        "valor": [
+          true,
+          false
+        ],
+        "frequencia": [
+          false,
+          false
+        ],
+        "viavel": [
+          false,
+          false
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          false,
+          false
+        ],
+        "diferencial": [
+          true,
+          false
+        ],
+        "naoAtrapalha": [
+          false,
+          false
+        ]
+      },
+      "somenteAdultos": [
+        true,
+        true
+      ],
+      "problemaPiP": [
+        "Exige foco para ler dados",
+        "Dossiê longo não cabe em ~440×300 px e desvia atenção da conversa."
+      ],
+      "custo": {
+        "porUsoUsd": 0.007645,
+        "porHoraUsd": 0.007645,
+        "mesUsd": 0.1529
+      }
+    },
+    {
+      "id": "jogo-toxicidade",
+      "titulo": "Aviso de assédio ou toxicidade no chat de voz",
+      "contexto": "jogo",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 2,
+        "deepseek/deepseek-v4.1-flash@none": 2
+      },
+      "media": 2,
+      "porCriterio": {
+        "valor": [
+          false,
+          false
+        ],
+        "frequencia": [
+          false,
+          false
+        ],
+        "viavel": [
+          true,
+          true
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          false,
+          false
+        ],
+        "diferencial": [
+          false,
+          false
+        ],
+        "naoAtrapalha": [
+          false,
+          false
+        ]
+      },
+      "somenteAdultos": [
+        true,
+        true
+      ],
+      "problemaPiP": [
+        "Aviso atrapalha imersão no jogo",
+        "Aviso automático interrompe o jogo e pede ação no pior momento."
+      ],
+      "custo": {
+        "porUsoUsd": 0.000014625,
+        "porHoraUsd": 0.001755,
+        "mesUsd": 0.0351
+      }
+    },
+    {
+      "id": "geral-emocao",
+      "titulo": "Emoção e sentimento de quem fala",
+      "contexto": "geral",
+      "gatilho": "automatico",
+      "notas": {
+        "mistralai/mistral-medium-3.1": 1,
+        "deepseek/deepseek-v4.1-flash@none": 1
+      },
+      "media": 1,
+      "porCriterio": {
+        "valor": [
+          false,
+          false
+        ],
+        "frequencia": [
+          false,
+          false
+        ],
+        "viavel": [
+          false,
+          false
+        ],
+        "custo": [
+          true,
+          true
+        ],
+        "privacidade": [
+          false,
+          false
+        ],
+        "diferencial": [
+          false,
+          false
+        ],
+        "naoAtrapalha": [
+          false,
+          false
+        ]
+      },
+      "somenteAdultos": [
+        true,
+        true
+      ],
+      "problemaPiP": [
+        "Distração visual com emoções",
+        "Rótulos de emoção por falante poluem janela pequena e distraem do vídeo."
+      ],
+      "custo": {
+        "porUsoUsd": 0.000027,
+        "porHoraUsd": 0.00162,
+        "mesUsd": 0.0324
+      }
+    }
+  ],
+  "pareado": {
+    "top": [
+      "video-expressoes",
+      "video-nivel",
+      "consultoria-pauta",
+      "presencial-correcao",
+      "reuniao-como-respondo",
+      "reuniao-termo-tecnico",
+      "aula-conceitos",
+      "consultoria-followup",
+      "consultoria-glossario",
+      "podcast-vocab"
+    ],
+    "pares": 45,
+    "julgamentos": 90,
+    "estaveis": 52,
+    "taxaEstavel": 0.5777777777777777,
+    "ambosJuizesEstaveis": 14,
+    "concordanciaEntreJuizesNosEstaveis": 0.7857142857142857,
+    "ranking": [
+      {
+        "id": "video-expressoes",
+        "titulo": "Destacar expressões idiomáticas",
+        "mistralai/mistral-medium-3.1": 3,
+        "deepseek/deepseek-v4.1-flash@none": 5,
+        "estaveis": 10,
+        "instaveis": 8,
+        "soma": 8
+      },
+      {
+        "id": "video-nivel",
+        "titulo": "Palavras acima do meu nível em destaque",
+        "mistralai/mistral-medium-3.1": 1,
+        "deepseek/deepseek-v4.1-flash@none": 7,
+        "estaveis": 12,
+        "instaveis": 6,
+        "soma": 8
+      },
+      {
+        "id": "reuniao-termo-tecnico",
+        "titulo": "Termo técnico ou sigla explicado na hora",
+        "mistralai/mistral-medium-3.1": 3,
+        "deepseek/deepseek-v4.1-flash@none": 3,
+        "estaveis": 10,
+        "instaveis": 8,
+        "soma": 6
+      },
+      {
+        "id": "reuniao-como-respondo",
+        "titulo": "\"Como respondo?\" com 3 sugestões",
+        "mistralai/mistral-medium-3.1": 0,
+        "deepseek/deepseek-v4.1-flash@none": 4,
+        "estaveis": 8,
+        "instaveis": 10,
+        "soma": 4
+      },
+      {
+        "id": "presencial-correcao",
+        "titulo": "Correção gentil da minha fala",
+        "mistralai/mistral-medium-3.1": 0,
+        "deepseek/deepseek-v4.1-flash@none": 2,
+        "estaveis": 10,
+        "instaveis": 8,
+        "soma": 2
+      },
+      {
+        "id": "consultoria-pauta",
+        "titulo": "Pauta com tópicos cobertos e faltando",
+        "mistralai/mistral-medium-3.1": 2,
+        "deepseek/deepseek-v4.1-flash@none": -3,
+        "estaveis": 7,
+        "instaveis": 11,
+        "soma": -1
+      },
+      {
+        "id": "podcast-vocab",
+        "titulo": "Vocabulário do episódio no meu nível",
+        "mistralai/mistral-medium-3.1": -2,
+        "deepseek/deepseek-v4.1-flash@none": 0,
+        "estaveis": 10,
+        "instaveis": 8,
+        "soma": -2
+      },
+      {
+        "id": "consultoria-glossario",
+        "titulo": "Glossário da sessão",
+        "mistralai/mistral-medium-3.1": 1,
+        "deepseek/deepseek-v4.1-flash@none": -5,
+        "estaveis": 10,
+        "instaveis": 8,
+        "soma": -4
+      },
+      {
+        "id": "aula-conceitos",
+        "titulo": "Conceitos-chave da aula",
+        "mistralai/mistral-medium-3.1": -2,
+        "deepseek/deepseek-v4.1-flash@none": -5,
+        "estaveis": 11,
+        "instaveis": 7,
+        "soma": -7
+      },
+      {
+        "id": "consultoria-followup",
+        "titulo": "Rascunho do e-mail de follow-up",
+        "mistralai/mistral-medium-3.1": -6,
+        "deepseek/deepseek-v4.1-flash@none": -8,
+        "estaveis": 16,
+        "instaveis": 2,
+        "soma": -14
+      }
+    ],
+    "porPar": {
+      "video-expressoes|consultoria-pauta": {
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        },
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        }
+      },
+      "video-expressoes|video-nivel": {
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": -1,
+          "estavel": true
+        },
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "video-expressoes|presencial-correcao": {
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        },
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        }
+      },
+      "video-expressoes|reuniao-como-respondo": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 1,
+          "estavel": true
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 0,
+          "estavel": false
+        }
+      },
+      "video-expressoes|reuniao-termo-tecnico": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 0,
+          "estavel": false
+        }
+      },
+      "video-expressoes|aula-conceitos": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "video-expressoes|consultoria-followup": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 1,
+          "estavel": true
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "video-expressoes|consultoria-glossario": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "video-expressoes|podcast-vocab": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "video-nivel|consultoria-pauta": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "video-nivel|presencial-correcao": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 1,
+          "estavel": true
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 0,
+          "estavel": false
+        }
+      },
+      "video-nivel|reuniao-como-respondo": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "video-nivel|reuniao-termo-tecnico": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "video-nivel|aula-conceitos": {
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        },
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "video-nivel|consultoria-followup": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 1,
+          "estavel": true
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "video-nivel|consultoria-glossario": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": -1,
+          "estavel": true
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "video-nivel|podcast-vocab": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 0,
+          "estavel": false
+        }
+      },
+      "consultoria-pauta|presencial-correcao": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 0,
+          "estavel": false
+        }
+      },
+      "consultoria-pauta|reuniao-como-respondo": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": -1,
+          "estavel": true
+        }
+      },
+      "consultoria-pauta|reuniao-termo-tecnico": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": -1,
+          "estavel": true
+        }
+      },
+      "consultoria-pauta|aula-conceitos": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 0,
+          "estavel": false
+        }
+      },
+      "consultoria-pauta|consultoria-followup": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 1,
+          "estavel": true
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "consultoria-pauta|consultoria-glossario": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 1,
+          "estavel": true
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 0,
+          "estavel": false
+        }
+      },
+      "consultoria-pauta|podcast-vocab": {
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        }
+      },
+      "presencial-correcao|reuniao-como-respondo": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": -1,
+          "estavel": true
+        }
+      },
+      "presencial-correcao|reuniao-termo-tecnico": {
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "mistralai/mistral-medium-3.1": {
+          "resultado": -1,
+          "estavel": true
+        }
+      },
+      "presencial-correcao|aula-conceitos": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 1,
+          "estavel": true
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "presencial-correcao|consultoria-followup": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "presencial-correcao|consultoria-glossario": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "presencial-correcao|podcast-vocab": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 1,
+          "estavel": true
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "reuniao-como-respondo|reuniao-termo-tecnico": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "reuniao-como-respondo|aula-conceitos": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "reuniao-como-respondo|consultoria-followup": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 1,
+          "estavel": true
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "reuniao-como-respondo|consultoria-glossario": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 0,
+          "estavel": false
+        }
+      },
+      "reuniao-como-respondo|podcast-vocab": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 0,
+          "estavel": false
+        }
+      },
+      "reuniao-termo-tecnico|aula-conceitos": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "reuniao-termo-tecnico|consultoria-followup": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 1,
+          "estavel": true
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "reuniao-termo-tecnico|consultoria-glossario": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "reuniao-termo-tecnico|podcast-vocab": {
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        },
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 1,
+          "estavel": true
+        }
+      },
+      "aula-conceitos|consultoria-followup": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": -1,
+          "estavel": true
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 0,
+          "estavel": false
+        }
+      },
+      "aula-conceitos|consultoria-glossario": {
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": 1,
+          "estavel": true
+        },
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        }
+      },
+      "aula-conceitos|podcast-vocab": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 1,
+          "estavel": true
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": -1,
+          "estavel": true
+        }
+      },
+      "consultoria-followup|consultoria-glossario": {
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": -1,
+          "estavel": true
+        },
+        "mistralai/mistral-medium-3.1": {
+          "resultado": -1,
+          "estavel": true
+        }
+      },
+      "consultoria-followup|podcast-vocab": {
+        "mistralai/mistral-medium-3.1": {
+          "resultado": -1,
+          "estavel": true
+        },
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": -1,
+          "estavel": true
+        }
+      },
+      "consultoria-glossario|podcast-vocab": {
+        "deepseek/deepseek-v4.1-flash@none": {
+          "resultado": -1,
+          "estavel": true
+        },
+        "mistralai/mistral-medium-3.1": {
+          "resultado": 0,
+          "estavel": false
+        }
+      }
+    }
+  }
+}

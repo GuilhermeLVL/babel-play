@@ -1,0 +1,9 @@
+{
+  "totalUsd": 0.11604925799999997,
+  "porSistema": {
+    "rubrica:deepseek/deepseek-v4.1-flash@none": 0.017228942,
+    "rubrica:mistralai/mistral-medium-3.1": 0.039892159999999996,
+    "pareado:deepseek/deepseek-v4.1-flash@none": 0.017119436000000005,
+    "pareado:mistralai/mistral-medium-3.1": 0.04180872
+  }
+}

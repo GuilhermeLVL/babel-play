@@ -1,3 +1,5 @@
+import { caminhoInternoAtual, comBaseDoApp, semBaseDoApp } from './baseDoApp';
+
 /**
  * A URL COMO ESPELHO DO ESTADO.
  *
@@ -293,7 +295,8 @@ export function estadoParaUrl(e: EstadoDeRota): string {
 }
 
 export function urlParaEstado(caminho: string): EstadoDeRota {
-  const bruto = String(caminho || '').split('#')[0];
+  /* Sob `/app` (o app no Worker, atrás do site público) a base sai antes: as rotas são internas. */
+  const bruto = semBaseDoApp(String(caminho || '').split('#')[0]);
   // A query era DESCARTADA aqui (auditoria do seletor, defeito de persistência): um link com
   // filtro abria a tela certa e jogava o filtro fora. Ela sobrevive apenas em `/jogar` — é a
   // única rota que a publica — e sem o `.toLowerCase()` do caminho, porque ids de baralho e
@@ -406,7 +409,8 @@ export function publicarUrl(e: EstadoDeRota, push = true): void {
   // Alvo COM query compara com caminho+query; alvo SEM query compara só o caminho — assim uma
   // publicação de view que não conhece o filtro (App trocando de aba) não apaga a query que o
   // dono dela (Play) acabou de escrever.
-  const atual = alvo.includes('?') ? window.location.pathname + window.location.search : window.location.pathname;
+  const interno = caminhoInternoAtual();
+  const atual = alvo.includes('?') ? interno + window.location.search : interno;
   if (atual === alvo) return;
   /* A sub-tela de Planos é da tela, não do App: quem espelha só "estou em Planos" (sem
      `planosTela`) não a apaga. Sem isto, recarregar `/plano/assinado` — a volta do pagamento —
@@ -417,7 +421,7 @@ export function publicarUrl(e: EstadoDeRota, push = true): void {
   /* Trocar de aba dentro dos Ajustes atualiza o endereço sem empilhar histórico: "voltar" sai da
      tela, não percorre as abas uma a uma. */
   const soTrocouDeAba = e.view === 'settings' && urlParaEstado(window.location.pathname).view === 'settings';
-  window.history[push && !soTrocouDeAba ? 'pushState' : 'replaceState']({}, '', alvo);
+  window.history[push && !soTrocouDeAba ? 'pushState' : 'replaceState']({}, '', comBaseDoApp(alvo));
 }
 
 /**
@@ -427,7 +431,7 @@ export function publicarUrl(e: EstadoDeRota, push = true): void {
  */
 export function publicarQueryDoJogar(query: string): void {
   if (typeof window === 'undefined') return;
-  if (window.location.pathname !== `/${SEGMENTO.play}`) return;
+  if (caminhoInternoAtual() !== `/${SEGMENTO.play}`) return;
   const alvo = query ? `?${query}` : '';
   if (window.location.search === alvo) return;
   window.history.replaceState({}, '', window.location.pathname + alvo);
@@ -443,7 +447,7 @@ export function publicarQueryDoJogar(query: string): void {
 export function navegarPara(e: EstadoDeRota): void {
   if (typeof window === 'undefined') return;
   const alvo = estadoParaUrl(e);
-  if (window.location.pathname + window.location.search !== alvo) window.history.pushState({}, '', alvo);
+  if (caminhoInternoAtual() + window.location.search !== alvo) window.history.pushState({}, '', comBaseDoApp(alvo));
   window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
@@ -458,7 +462,7 @@ export const EVENTO_SUBTELA_DE_PLANOS = 'babel:planos-subtela';
 export function irParaSubTelaDePlanos(planosTela: SubTelaDePlanos | null): void {
   if (typeof window === 'undefined') return;
   const alvo = estadoParaUrl(planosTela ? { view: 'planos', planosTela } : { view: 'planos' });
-  if (window.location.pathname !== alvo) window.history.pushState({}, '', alvo);
+  if (caminhoInternoAtual() !== alvo) window.history.pushState({}, '', comBaseDoApp(alvo));
   window.dispatchEvent(new Event(EVENTO_SUBTELA_DE_PLANOS));
 }
 

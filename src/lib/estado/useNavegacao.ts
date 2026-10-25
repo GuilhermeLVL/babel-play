@@ -2,6 +2,7 @@ import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 
 
 import type { Recording, ViewType } from '../../types';
 import { clearAuthCallbackUrl, isOnAuthCallback } from '../authCallback';
+import { caminhoInternoAtual } from '../baseDoApp';
 import { type Conteudo, lerConteudo } from '../conteudo/estado';
 import { edicaoEstatica } from '../edicaoEstatica';
 import { aoMudarIdentidade } from '../identidade';
@@ -272,7 +273,7 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
     rotaRestaurada.current = true;
     if (isOnAuthCallback()) return; // o callback tem dono; não é rota de tela
     const e = lerUrlAtual();
-    if (e.view === 'hub' && window.location.pathname === '/') return;
+    if (e.view === 'hub' && caminhoInternoAtual() === '/') return;
     irParaEstado(e);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

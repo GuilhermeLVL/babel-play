@@ -1,6 +1,7 @@
 import { Home,RefreshCw } from 'lucide-react';
 import React from 'react';
 
+import { comBaseDoApp } from '../lib/baseDoApp';
 import { reportarErro } from '../lib/relatorioDeErros';
 
 /**
@@ -46,7 +47,7 @@ export default class ErroDaTela extends React.Component<{ children: React.ReactN
             <button onClick={() => window.location.reload()} className="btn-solid">
               <RefreshCw className="w-4 h-4" aria-hidden /> Recarregar
             </button>
-            <button onClick={() => { window.location.href = '/'; }} className="btn-outline">
+            <button onClick={() => { window.location.href = comBaseDoApp('/'); }} className="btn-outline">
               <Home className="w-4 h-4" aria-hidden /> Voltar ao início
             </button>
           </div>

@@ -3,6 +3,7 @@ import { type ReactNode, useEffect, useState } from 'react';
 
 import { excluirConta, type ResultadoDaExclusao } from '../../../data/api';
 import * as auth from '../../../lib/auth';
+import { comBaseDoApp } from '../../../lib/baseDoApp';
 import { supabase } from '../../../lib/supabase';
 import { toast } from '../../Toast';
 import { Dialogo, fecharDialogoDe } from '../../ui';
@@ -414,7 +415,7 @@ function ExcluirConta({ aoFechar, aoIrParaPrivacidade }: { aoFechar: () => void;
             className="btn btn-solid"
             onClick={(e) => {
               fecharDialogoDe(e.currentTarget);
-              if (resultado.ok) window.location.assign('/');
+              if (resultado.ok) window.location.assign(comBaseDoApp('/'));
             }}
           >
             Fechar

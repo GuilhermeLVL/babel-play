@@ -482,6 +482,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
     paraQue: 'só diagnóstico: identifica a instância que registrou uma falha de boot',
   },
   {
+    nome: 'HOST_DE_PRODUCAO',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'só no Worker: o(s) host(s) indexável(is) do site público (lista por vírgula, sem porta; `frasy.com.br` nos `vars` do topo do `wrangler.jsonc`, o staging não herda). Outro host (staging, preview, `wrangler dev`) recebe `X-Robots-Tag: noindex, nofollow` e robots `Disallow: /` (`server/http/siteNoWorker.ts`). Ausente: nenhum host é indexável',
+  },
+  {
     nome: 'HTTP_KEEP_ALIVE_TIMEOUT_MS',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',

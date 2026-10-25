@@ -40,12 +40,14 @@
   // Métricas do Worker (server/http/metricasDoAnalyticsEngine.ts); o esquema está em docs/runbook.md.
   "analytics_engine_datasets": [{ "binding": "METRICAS", "dataset": "frasy_metricas" }],
 
-  // O build do Vite; caminho desconhecido cai no index.html (SPA). `/*` passa pelo Worker (API, /metrics e os
-  // documentos, para a CSP dos anúncios: R31/R32); os `!` vão direto ao Static Assets (pesados, nunca HTML).
+  // O build do Vite: o site público estático na raiz e o app (index.html) em /app (server/http/siteNoWorker.ts).
+  // Caminho desconhecido recebe o 404.html com status 404 (nada de "soft 404"). `/*` passa pelo Worker (API,
+  // /metrics, o roteamento do site e os documentos, para a CSP dos anúncios: R31/R32); os `!` vão direto ao
+  // Static Assets (pesados, nunca HTML).
   "assets": {
     "directory": "dist",
     "binding": "ASSETS",
-    "not_found_handling": "single-page-application",
+    "not_found_handling": "404-page",
     "run_worker_first": [
       "/*",
       "!/assets/*",
@@ -58,6 +60,8 @@
       "!/models/*",
       "!/ort-wasm-*",
       "!/silero_vad_*",
+      "!/fontes/*",
+      "!/icones/*",
     ],
   },
 
@@ -92,10 +96,13 @@
 
   // Só o que é público. O Worker é sempre o modo hospedado (JWT do Supabase). A base do Asaas é a REAL:
   // sem ela, com ASAAS_API_KEY, o cliente cai no sandbox e o boot aborta (erroDeAsaasSandboxEmProducao).
+  // HOST_DE_PRODUCAO: o único host indexável (server/http/siteNoWorker.ts). Só aqui no topo: o staging não
+  // herda `vars`, então lá (e nas URLs de preview e no `wrangler dev`) sai `X-Robots-Tag: noindex`.
   "vars": {
     "NODE_ENV": "production",
     "AUTH_REQUIRED": "1",
     "ASAAS_BASE_URL": "https://api.asaas.com/v3",
+    "HOST_DE_PRODUCAO": "frasy.com.br",
   },
 
   // Staging (Fase 4, T5): `npx wrangler deploy -c wrangler.jsonc --env staging`, em

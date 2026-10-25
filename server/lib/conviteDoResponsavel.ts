@@ -243,9 +243,9 @@ export function enviadorAtual(env?: NodeJS.ProcessEnv, fetchImpl?: typeof fetch)
   return resend ? criarEnviadorResend({ ...resend, fetch: fetchImpl }) : enviadorPorLog
 }
 
-/** O link que o responsável abre. Absoluto com `APP_URL`; relativo sem ele (serve só na tela). */
+/** O link que o responsável abre (o app mora em `/app`). Absoluto com `APP_URL`; relativo sem ele (serve só na tela). */
 export function linkDoConvite(token: string): string {
-  const caminho = `/responsavel?token=${encodeURIComponent(token)}`
+  const caminho = `/app/responsavel?token=${encodeURIComponent(token)}`
   const base = lerAppUrl()
   return base ? `${base.replace(/\/+$/, '')}${caminho}` : caminho
 }

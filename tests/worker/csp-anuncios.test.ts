@@ -87,7 +87,7 @@ describe('CSP dos anúncios no Worker', () => {
   it('flag ligada + origem: frame-src leva a origem; script-src não muda', async () => {
     process.env.ANUNCIOS_ORIGEM = ORIGEM
     mundo.flag = true
-    const r = await chamar('/biblioteca')
+    const r = await chamar('/app/biblioteca') // um documento do app (sob /app desde o site público)
     const csp = r.headers.get('content-security-policy')
     expect(frameSrc(csp)).toEqual(["'self'", ORIGEM])
     expect(scriptSrc(csp)).toBe(scriptSrc(CSP))

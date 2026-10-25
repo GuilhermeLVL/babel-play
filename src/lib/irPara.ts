@@ -1,3 +1,4 @@
+import { comBaseDoApp } from './baseDoApp';
 import { type EstadoDeRota, estadoParaUrl } from './rotas';
 
 /**
@@ -5,6 +6,6 @@ import { type EstadoDeRota, estadoParaUrl } from './rotas';
  * `lib/estado/useNavegacao`), o mesmo caminho que Planos usa para levar a Ajustes.
  */
 export function irPara(e: EstadoDeRota): void {
-  window.history.pushState({}, '', estadoParaUrl(e));
+  window.history.pushState({}, '', comBaseDoApp(estadoParaUrl(e)));
   window.dispatchEvent(new PopStateEvent('popstate'));
 }

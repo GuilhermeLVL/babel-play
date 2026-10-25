@@ -2,7 +2,9 @@
  * PONTO DE ENTRADA DO WORKER (Fase 2, Task 12). O par do `server.ts` (Node): o mesmo `criarApp()`, servido
  * pelo `httpServerHandler` do `cloudflare:node` (`nodejs_compat`). Configuração em `wrangler.jsonc`.
  *
- *   /api/*   → Express. Todo o resto → `env.ASSETS` (o build do Vite; SPA cai no `index.html`). O
+ *   /api/*   → Express. Todo o resto → `env.ASSETS` (o build do Vite): o SITE PÚBLICO na raiz e o app em
+ *              `/app` (`server/http/siteNoWorker.ts`: www→apex, legados do app→`/app`, 404 de verdade,
+ *              `noindex` fora do host de produção). O
  *              `run_worker_first` traz para cá a API e os DOCUMENTOS (`/*`, menos os estáticos pesados; a
  *              página de anúncios não mora mais aqui, é o Worker próprio `frasy-anuncios`, R35): é aqui que a
  *              CSP dos anúncios é sobreposta quando a flag está ligada (`servirEstatico`, rulings R31/R32). Os estáticos pesados vão direto ao Static Assets.
@@ -49,6 +51,13 @@ import { criarApp } from './server/http/app'
 import { cspComAnuncios, origemDosAnuncios } from './server/http/csp'
 import { definicoesDasFlags } from './server/lib/flags'
 import { comIpDaBorda } from './server/http/ipDaBorda'
+import {
+  CABECALHO_NOINDEX,
+  comNoindex,
+  decidirRotaDoSite,
+  hostIndexavel,
+  ROBOTS_BLOQUEADO,
+} from './server/http/siteNoWorker'
 import { executarJobsDoCron } from './server/jobs/executar'
 import { ligarAnalyticsEngine, type BindingDeMetricas } from './server/http/metricasDoAnalyticsEngine'
 import { type BucketR2, ligarBucketDoR2 } from './server/lib/armazenamentoR2'
@@ -184,7 +193,7 @@ async function lerFlagDosAnuncios(env: Env, ctx: Contexto): Promise<boolean> {
  * O ESTÁTICO (rulings R31 e R32). Sai do `ASSETS` como está (com os cabeçalhos do `_headers`), salvo um
  * caso: documento HTML, `ANUNCIOS_ORIGEM` configurada e a flag `anuncios` ligada — aí a origem de anúncios
  * entra em `frame-src` da CSP (`cspComAnuncios`), e só ali. Sem a origem a flag nem é lida. A página de
- * anúncios NÃO mora aqui (Worker `frasy-anuncios`, R35): `/anuncios/*` é um caminho qualquer da SPA, e uma
+ * anúncios NÃO mora aqui (Worker `frasy-anuncios`, R35): `/anuncios/*` é um caminho qualquer (404), e uma
  * `ANUNCIOS_ORIGEM` igual à origem do app é recusada (`origemDosAnuncios`).
  */
 async function servirEstatico(request: Request, env: Env, ctx: Contexto): Promise<Response> {
@@ -205,10 +214,39 @@ async function servirEstatico(request: Request, env: Env, ctx: Contexto): Promis
   return r
 }
 
+/**
+ * O SITE E O APP (`server/http/siteNoWorker.ts`): redireciona, ou pede ao `ASSETS` o arquivo da decisão
+ * (`/` para o app, `/inicio` para a home) pelo `servirEstatico` — a CSP dos anúncios vale aqui também.
+ * Fora do host de produção, `X-Robots-Tag: noindex, nofollow` em tudo e o `robots.txt` que bloqueia.
+ */
+async function servirSite(request: Request, url: URL, env: Env, ctx: Contexto): Promise<Response> {
+  const indexavel = hostIndexavel(url.hostname)
+  if (url.pathname === '/robots.txt' && !indexavel) {
+    return new Response(ROBOTS_BLOQUEADO, {
+      headers: { 'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': CABECALHO_NOINDEX },
+    })
+  }
+  const d = decidirRotaDoSite(url)
+  if (d.tipo === 'redirecionar') {
+    const r = new Response(null, { status: d.status, headers: { location: d.destino } })
+    if (!indexavel) r.headers.set('x-robots-tag', CABECALHO_NOINDEX)
+    return r
+  }
+  const pedido = d.caminho === url.pathname ? request : new Request(new URL(d.caminho + url.search, url), request)
+  const resposta = await servirEstatico(pedido, env, ctx)
+  return indexavel ? resposta : comNoindex(resposta)
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: Contexto): Promise<Response> {
     fixarModo()
-    const { pathname } = new URL(request.url)
+    const url = new URL(request.url)
+    const { pathname } = url
+    /* `www.` → o domínio sem `www`, antes de tudo (API inclusive): um endereço só por página. */
+    if (url.hostname.toLowerCase().startsWith('www.')) {
+      const d = decidirRotaDoSite(url)
+      if (d.tipo === 'redirecionar') return new Response(null, { status: d.status, headers: { location: d.destino } })
+    }
     /* `/metrics` é só do Node (prom-client); aqui é um 404 explícito, não o `index.html` da SPA. */
     if (pathname === '/metrics') return json(404, { error: 'rota inexistente', code: 'rota_inexistente' })
     /* `/api` sem barra e `/API/...` (qualquer caixa) também são da API: o Express roteia com caixa
@@ -217,7 +255,7 @@ export default {
     if (/^\/api(\/|$)/i.test(pathname) && (pathname === '/api' || !pathname.startsWith('/api/'))) {
       return json(404, { error: 'rota inexistente', code: 'rota_inexistente' })
     }
-    if (!pathname.startsWith('/api/')) return servirEstatico(request, env, ctx)
+    if (!pathname.startsWith('/api/')) return servirSite(request, url, env, ctx)
     ligarAnalyticsEngine(env.METRICAS)
     ligarBucketDoR2(env.MIDIA) // antes do portão: o armazenamento de mídia é uma das travas
     if (conferirBootDoWorker()) {

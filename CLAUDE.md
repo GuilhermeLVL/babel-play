@@ -22,6 +22,9 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
 - `tests/` (vitest e e2e Playwright), `scripts/` (operação, perf, i18n), `ops/` (provedores, alertas), `docs/`, `openspec/`.
   `scripts/cloudflare/`: infra reproduzível (buckets R2, Hyperdrive de staging, secrets do Worker — nunca commitar `.secrets.*.json`).
   `scripts/vite/cabecalhos.ts` GERA o `dist/_headers` no build (CSP bloqueante = `diretivasDeCsp(env)` do Express); não existe mais `public/_headers`.
+  `scripts/site/` gera no build o SITE PÚBLICO estático (home `inicio.html`, planos, guias de `content/guias/*.md`
+  com `revisado: true`, sitemap, robots, ads.txt com `ADSENSE_PUB_ID`); o app (`index.html`) é servido em `/app`
+  pelo Worker (`server/http/siteNoWorker.ts`), e na raiz em dev/testes/self-host (`src/lib/baseDoApp.ts`).
   `tests/harness/lerApkgNode.ts` lê um `.apkg` em Node com o mesmo leitor do navegador (testes e scripts).
 
 ## Comandos

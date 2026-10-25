@@ -12,6 +12,7 @@ import { cabecalhosDoDeploy } from './scripts/vite/cabecalhos'
 import { preCarregarEfemeroNaEdicaoEstatica } from './scripts/vite/preCarregarEfemero'
 import { preCarregarFontes } from './scripts/vite/preCarregarFontes'
 import { precomprimir } from './scripts/vite/precomprimir'
+import { siteDoBuild } from './scripts/vite/site'
 import { aplicarUrlPublica } from './scripts/vite/urlPublica'
 import { montarVersao } from './server/lib/versao'
 
@@ -159,6 +160,8 @@ export default defineConfig(({ mode }) => {
       // Edição estática: o servidor em memória vem como modulepreload (sem cascata no arranque).
       preCarregarEfemeroNaEdicaoEstatica(env.VITE_EDICAO_ESTATICA === '1' || process.env.VITE_EDICAO_ESTATICA === '1'),
       preCarregarFontes(),
+      // O site público estático (páginas, sitemap, robots, ads.txt): antes do `precomprimir`.
+      siteDoBuild(env),
       precomprimir(),
       // `dist/_headers` com a CSP bloqueante do Express; depois do `precomprimir` para não virar `.br`/`.gz`.
       cabecalhosDoDeploy(env),

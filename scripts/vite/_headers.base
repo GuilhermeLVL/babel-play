@@ -57,3 +57,6 @@
 # A semente da memória de tradução (Tatoeba) também mora em `public/` sem hash: mesma regra.
 /semente-traducao/*
   Cache-Control: public, max-age=86400, must-revalidate
+# A fonte do site público (`scripts/vite/site.ts`): a versão do pacote está no nome do arquivo.
+/fontes/*
+  Cache-Control: public, max-age=31536000, immutable

@@ -32,7 +32,13 @@ export function suportaPiPDeVideo(escopo: unknown = globalThis): boolean {
   );
 }
 
-export function caminhoDaJanela(escopo: unknown = globalThis): CaminhoDaJanela {
+/**
+ * `celular`: no telefone fica o painel. O iOS e o Android têm PiP de vídeo, mas a legenda num vídeo
+ * por cima de outro app no celular não foi verificada (gesto, metadados, tela pequena): até ser, o
+ * painel dentro da página é o caminho honesto.
+ */
+export function caminhoDaJanela(escopo: unknown = globalThis, { celular = false } = {}): CaminhoDaJanela {
+  if (celular) return 'painel';
   const g = (escopo ?? {}) as EscopoDaJanela;
   if (g.documentPictureInPicture) return 'documento';
   if (suportaPiPDeVideo(escopo)) return 'video';

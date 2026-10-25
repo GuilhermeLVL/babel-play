@@ -14,7 +14,10 @@ import { criarLegendaEmVideo, desenharQuadro, type QuadroDaLegenda } from '../sr
 const textos: string[] = []
 let pinturas = 0
 const ctxFalso = {
-  fillRect: () => void pinturas++,
+  fillRect: () => {
+    pinturas++
+    ordem.push('pintou')
+  },
   fillText: (s: string) => void textos.push(s),
   measureText: (s: string) => ({ width: s.length * 20 }),
   set fillStyle(_v: string) {},
@@ -23,17 +26,20 @@ const ctxFalso = {
   set textBaseline(_v: string) {},
   set globalAlpha(_v: number) {},
 }
-const trilha = { stop: vi.fn() }
+const ordem: string[] = []
+const trilha = { stop: vi.fn(), requestFrame: vi.fn(() => void ordem.push('requestFrame')) }
 const tratadores = new Map<string, (() => void) | null>()
 
 beforeEach(() => {
   textos.length = 0
+  ordem.length = 0
   pinturas = 0
   tratadores.clear()
   HTMLCanvasElement.prototype.getContext = vi.fn(() => ctxFalso) as never
-  ;(HTMLCanvasElement.prototype as unknown as { captureStream: () => unknown }).captureStream = vi.fn(() => ({
-    getTracks: () => [trilha],
-  }))
+  ;(HTMLCanvasElement.prototype as unknown as { captureStream: () => unknown }).captureStream = vi.fn(() => {
+    ordem.push('captureStream')
+    return { getTracks: () => [trilha], getVideoTracks: () => [trilha] }
+  })
   HTMLMediaElement.prototype.play = vi.fn(async () => {})
   HTMLMediaElement.prototype.pause = vi.fn()
   Object.defineProperty(HTMLMediaElement.prototype, 'readyState', { configurable: true, get: () => 1 })
@@ -88,6 +94,16 @@ describe('o quadro desenhado', () => {
 })
 
 describe('o controlador', () => {
+  it('preparar emite um quadro DEPOIS de ligar a fonte (o vídeo ganha metadados antes do clique)', () => {
+    const leg = criarLegendaEmVideo()
+    leg.preparar()
+    const i = ordem.indexOf('captureStream')
+    expect(i).toBeGreaterThanOrEqual(0)
+    expect(ordem.slice(i + 1)).toEqual(['pintou', 'requestFrame'])
+    expect(HTMLMediaElement.prototype.play).toHaveBeenCalled()
+    leg.destruir()
+  })
+
   it('prepara o vídeo antes do clique; abre no gesto; redesenha só quando muda; pausa e salva', async () => {
     const leg = criarLegendaEmVideo()
     leg.preparar()
@@ -114,17 +130,24 @@ describe('o controlador', () => {
     /* Chrome: a Media Session. */
     expect([...tratadores.keys()].sort()).toEqual(['nexttrack', 'pause', 'play'])
     tratadores.get('pause')!()
-    expect(aoPausar).toHaveBeenLastCalledWith(true)
+    expect(aoPausar, 'Media Session: a legenda pausa e o vídeo segue (o selo aparece)').toHaveBeenLastCalledWith(
+      true,
+      false,
+    )
+    expect(video.pause).not.toHaveBeenCalled()
     tratadores.get('play')!()
-    expect(aoPausar).toHaveBeenLastCalledWith(false)
+    expect(aoPausar).toHaveBeenLastCalledWith(false, false)
     tratadores.get('nexttrack')!()
     expect(aoSalvar).toHaveBeenCalledTimes(1)
 
     /* Safari: o botão da janelinha pausa o próprio vídeo. */
     video.dispatchEvent(new Event('pause'))
-    expect(aoPausar).toHaveBeenLastCalledWith(true)
+    expect(aoPausar, 'pausa pela janelinha: o quadro congela, quem mostra é o botão nativo').toHaveBeenLastCalledWith(
+      true,
+      true,
+    )
     video.dispatchEvent(new Event('play'))
-    expect(aoPausar).toHaveBeenLastCalledWith(false)
+    expect(aoPausar).toHaveBeenLastCalledWith(false, true)
 
     /* Sair do PiP: avisa e solta os tratadores. */
     video.dispatchEvent(new Event('leavepictureinpicture'))

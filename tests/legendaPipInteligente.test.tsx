@@ -14,6 +14,7 @@ vi.mock('../src/data/api', () => ({
   patchUiSettings: vi.fn(async () => {}),
 }))
 
+import { normalizar } from '../src/components/views/captura/legendas/aparenciaDaLegenda'
 import LegendasFlutuantes, {
   CONTROLES_SOMEM_MS,
   type LegendaAoVivo,
@@ -164,9 +165,42 @@ describe('limpa: só o texto, controles ao mexer', () => {
     expect(raiz().className).toContain('com-controles')
   })
 
+  it('o foco saiu do controle: a barra volta a sumir sozinha', () => {
+    vi.useFakeTimers()
+    montar()
+    const pausar = screen.getByRole('button', { name: 'Pausar legendas' })
+    act(() => pausar.focus())
+    act(() => void vi.advanceTimersByTime(CONTROLES_SOMEM_MS * 2))
+    expect(raiz().className).toContain('com-controles')
+    act(() => pausar.blur())
+    act(() => void vi.advanceTimersByTime(CONTROLES_SOMEM_MS + 50))
+    expect(raiz().className).not.toContain('com-controles')
+  })
+
   it('o anúncio ao leitor de tela continua (aria-live)', () => {
     montar()
     expect(document.querySelector('.leg-anuncio')?.getAttribute('aria-live')).toBe('polite')
+  })
+})
+
+describe('o que fica guardado', () => {
+  it('o formato SUGERIDO não sobrescreve o modo guardado; a escolha da pessoa, sim', () => {
+    localStorage.setItem('babel.legendasFlutuantes', JSON.stringify({ modo: 'conversa' }))
+    montar({ formatoInicial: 'faixa' })
+    expect(raiz().dataset.layout).toBe('faixa')
+    fireEvent.click(screen.getByRole('button', { name: 'Letra maior' }))
+    expect(JSON.parse(localStorage.getItem('babel.legendasFlutuantes')!).modo).toBe('conversa')
+    fireEvent.change(screen.getByRole('combobox', { name: 'Modo da janela' }), { target: { value: 'estudo' } })
+    expect(raiz().dataset.layout).toBe('estudo')
+    expect(JSON.parse(localStorage.getItem('babel.legendasFlutuantes')!).modo).toBe('estudo')
+  })
+
+  it('fundo: quem já tinha cores próprias (antes do fundo existir) fica no escuro; o resto segue o tema', () => {
+    expect(normalizar({ cores: { legenda: '#00FF00', traducao: '#FFEA00' } }).fundo).toBe('escuro')
+    expect(normalizar({ cores: { legenda: '#ffffff', traducao: '#ffea00' } }).fundo).toBe('auto')
+    expect(normalizar({}).fundo).toBe('auto')
+    /* Quem já escolheu um fundo fica com ele. */
+    expect(normalizar({ fundo: 'claro', cores: { legenda: '#00FF00' } }).fundo).toBe('claro')
   })
 })
 

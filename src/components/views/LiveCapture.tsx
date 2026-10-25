@@ -172,6 +172,7 @@ import {
 } from '../../lib/langConfig';
 import { baseLang, langLabel, langLabelNaUI, mtCoverage, toBcp47 } from '../../lib/languages';
 import { lazyComRecarga } from '../../lib/lazyComRecarga';
+import { guardarAbrirAoComecar, lerAbrirAoComecar } from '../../lib/legendas/janelaDoNavegador';
 import { setNavGuard } from '../../lib/navGuard';
 import { nuvemDoQuestAtiva, nuvemDoQuestExiste } from '../../lib/nuvemDoQuest';
 import { pedirDestaqueEmPlanos } from '../../lib/ofertas/destaque';
@@ -200,7 +201,6 @@ import ChatTranscript from '../ChatTranscript';
 
 /** O benchmark do aparelho agendado pela última saída da captura (cancelado por uma captura nova). */
 let benchmarkPendente: AbortController | null = null;
-import { guardarAbrirAoComecar, lerAbrirAoComecar } from '../../lib/legendas/janelaDoNavegador';
 import GuidePanel from '../GuidePanel';
 // Bandeira SVG do idioma (nunca emoji: o Windows renderiza 🇧🇷 como "BR") + o rótulo curto.
 import { LangFlag } from '../LangFlag';
@@ -2975,6 +2975,8 @@ export default function LiveCapture({
   /* A LEGENDA FLUTUANTE (PiP inteligente): um botão, Alt+L, e a melhor janela deste navegador. */
   const flutuante = useJanelaFlutuante({
     ativo: !noQuest,
+    celular: perfilDoAparelho.tipo.startsWith('celular'),
+    gravando: isRecording,
     falas: legendasAoVivo,
     contexto: () => ({
       interprete: interpreteAberto,
@@ -2988,20 +2990,23 @@ export default function LiveCapture({
     aoSalvarPalavra: salvarNaLegenda,
     idiomaDaTraducao: (lang) => (lang ? toBcp47(destinoDaFala(lang)) || destinoDaFala(lang) : undefined),
   });
-  /* "Abrir ao começar a legendar" (Ajustes da captura). A janela só abre com um gesto ainda valendo
-     (o navegador exige); se a captura demorou a abrir (o seletor da tela), o aviso traz o botão. */
+  /* "Abrir ao começar a legendar" (Ajustes da captura). A janela por cima de tudo só abre com um gesto
+     ainda valendo (o navegador exige): sem ele (o seletor da tela demorou), o aviso traz o botão. O
+     painel da página não precisa de gesto, e onde não dá para saber do gesto, tenta-se direto. */
   const [abrirAoComecar, setAbrirAoComecar] = useState(lerAbrirAoComecar);
   const estavaGravando = useRef(false);
   useEffect(() => {
     const comecou = isRecording && !estavaGravando.current;
     estavaGravando.current = isRecording;
     if (!comecou || !abrirAoComecar || flutuante.aberta || noQuest) return;
-    const gesto = (navigator as Navigator & { userActivation?: { isActive: boolean } }).userActivation?.isActive;
-    if (gesto) flutuante.abrir(true);
-    else
+    const oferecer = () =>
       toast.info(t('A captura começou.'), {
         action: { label: t('Abrir a legenda flutuante'), onClick: () => flutuante.abrir() },
       });
+    const ativacao = (navigator as Navigator & { userActivation?: { isActive: boolean } }).userActivation;
+    if (flutuante.caminho === 'painel' || !ativacao || ativacao.isActive)
+      flutuante.abrir({ silencioso: true, aoFalhar: oferecer });
+    else oferecer();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- só na virada para "gravando"
   }, [isRecording]);
   const conhecerOPremium = perfilProtegido()

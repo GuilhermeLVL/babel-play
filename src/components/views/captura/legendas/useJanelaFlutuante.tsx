@@ -23,6 +23,8 @@ import LegendaEmVideo from './LegendaEmVideo';
 import LegendaFlutuanteDoPrototipo from './LegendaFlutuanteDoPrototipo';
 import type { LegendaAoVivo } from './LinhaDaLegenda';
 
+const SEM_PAUSA: { pausado: boolean; pelaJanela: boolean } = { pausado: false, pelaJanela: false };
+
 /** Depois de redimensionar, espera a pessoa soltar a borda antes de guardar o tamanho. */
 const GUARDAR_TAMANHO_MS = 500;
 
@@ -41,6 +43,10 @@ export function dicaDoCaminho(caminho: CaminhoDaJanela): string {
 interface Opcoes {
   /** Sem a legenda flutuante (headset): o atalho e a preparação do vídeo ficam desligados. */
   ativo: boolean;
+  /** No celular a legenda fica no painel da página (`caminhoDaJanela`). */
+  celular?: boolean;
+  /** A captura está rodando: é quando o vídeo do PiP do Safari fica pronto (antes do clique). */
+  gravando?: boolean;
   falas: LegendaAoVivo[];
   /** Lido na hora de abrir: é dele que sai o formato sugerido. */
   contexto: () => ContextoDaCaptura;
@@ -62,33 +68,47 @@ interface Opcoes {
  * redimensiona (é um clique, então pode), e o último tamanho de cada formato fica guardado.
  */
 export function useJanelaFlutuante(o: Opcoes) {
-  const [caminho] = useState<CaminhoDaJanela>(() => caminhoDaJanela());
+  const [caminho] = useState<CaminhoDaJanela>(() => caminhoDaJanela(globalThis, { celular: o.celular }));
   const [ativo, setAtivo] = useState<CaminhoDaJanela | null>(null);
   const [janela, setJanela] = useState<Window | null>(null);
   const [formato, setFormato] = useState<Formato>('legenda');
   const formatoRef = useRef(formato);
   formatoRef.current = formato;
-  const [pausaDoVideo, setPausaDoVideo] = useState(false);
+  const [pausaDoVideo, setPausaDoVideo] = useState(SEM_PAUSA);
+  /** O pedido em curso. Fechar (ou sair da tela) troca o número: a resposta atrasada é descartada. */
+  const pedidoRef = useRef(0);
   const controlador = useRef<Controlador | null>(null);
   const opcoes = useRef(o);
   opcoes.current = o;
 
-  /* O vídeo fica pronto antes do clique: no Safari, esperar os metadados depois do toque perde o gesto. */
+  /* O controlador do PiP de vídeo vive com a tela; o vídeo fica pronto ENQUANTO A CAPTURA RODA, antes
+     do clique: no Safari, esperar os metadados depois do toque perde o gesto. */
   useEffect(() => {
     if (!o.ativo || caminho !== 'video') return;
     const c = criarLegendaEmVideo();
     controlador.current = c;
-    c.preparar();
     return () => {
       c.destruir();
       controlador.current = null;
     };
   }, [o.ativo, caminho]);
+  useEffect(() => {
+    if (o.gravando) controlador.current?.preparar();
+  }, [o.gravando, o.ativo, caminho]);
+
+  /* Saiu da tela com um pedido no ar: a resposta que chegar depois fecha a janela que abriu. */
+  useEffect(
+    () => () => {
+      pedidoRef.current++;
+    },
+    [],
+  );
 
   const fechar = useCallback(() => {
+    pedidoRef.current++;
     setJanela(null);
     void controlador.current?.fechar();
-    setPausaDoVideo(false);
+    setPausaDoVideo(SEM_PAUSA);
     setAtivo(null);
   }, []);
 
@@ -108,8 +128,14 @@ export function useJanelaFlutuante(o: Opcoes) {
     );
   }, []);
 
+  /**
+   * Abre a melhor janela. `silencioso`: sem o aviso de "abertas" (a abertura automática). `aoFalhar`:
+   * em vez de cair no painel quando o navegador recusa, chama isto (quem abriu oferece o botão).
+   */
   const abrir = useCallback(
-    (silencioso = false) => {
+    ({ silencioso = false, aoFalhar }: { silencioso?: boolean; aoFalhar?: () => void } = {}) => {
+      const id = ++pedidoRef.current;
+      const valendo = () => pedidoRef.current === id;
       const f = formatoSugerido(opcoes.current.contexto());
       if (caminho === 'documento') {
         /* PRIMEIRO o pedido (ainda dentro do gesto); o estado vem depois. */
@@ -118,37 +144,50 @@ export function useJanelaFlutuante(o: Opcoes) {
         setAtivo('documento');
         pedido.then(
           (win) => {
+            /* Fechada (ou saiu da tela) enquanto o navegador abria: esta janela não fica. */
+            if (!valendo()) return win.close();
             setJanela(win);
             if (!silencioso) toast.info(t('Legendas flutuantes abertas: a janelinha fica por cima de tudo'));
           },
           () => {
-            if (silencioso) return setAtivo(null);
+            if (!valendo()) return;
+            if (aoFalhar) {
+              setAtivo(null);
+              return aoFalhar();
+            }
             cairNoPainel(t('A janela por cima de tudo não abriu. A legenda ficou flutuando nesta tela.'));
           },
         );
         return;
       }
-      if (caminho === 'video' && controlador.current) {
+      const c = controlador.current;
+      if (caminho === 'video' && c) {
         /* O PiP de vídeo não tem o formato Estudo (não dá para tocar nas palavras). */
         const doVideo: Formato = f === 'estudo' ? 'legenda' : f;
         setFormato(doVideo);
-        setPausaDoVideo(false);
-        const pedido = controlador.current.abrir({
-          aoPausar: setPausaDoVideo,
+        setPausaDoVideo(SEM_PAUSA);
+        const pedido = c.abrir({
+          aoPausar: (pausado, pelaJanela) => setPausaDoVideo({ pausado, pelaJanela }),
           aoSalvar: salvarUltimaFrase,
           aoSair: () => {
-            setPausaDoVideo(false);
+            if (!valendo()) return;
+            setPausaDoVideo(SEM_PAUSA);
             setAtivo(null);
           },
         });
         setAtivo('video');
         pedido.then(
           () => {
+            if (!valendo()) return void c.fechar();
             if (!silencioso)
               toast.info(t('Legendas por cima de tudo, só para ler. Para pausar, use o botão da própria janelinha.'));
           },
           () => {
-            if (silencioso) return setAtivo(null);
+            if (!valendo()) return;
+            if (aoFalhar) {
+              setAtivo(null);
+              return aoFalhar();
+            }
             cairNoPainel(t('A janelinha por cima de tudo não abriu. A legenda ficou flutuando nesta tela.'));
           },
         );
@@ -240,7 +279,8 @@ export function useJanelaFlutuante(o: Opcoes) {
           controlador={controlador.current}
           falas={o.falas}
           formato={formato}
-          pausado={pausaDoVideo}
+          pausado={pausaDoVideo.pausado}
+          seloDePausa={pausaDoVideo.pausado && !pausaDoVideo.pelaJanela}
         />
       )}
       {/* O último recurso: a janelinha do protótipo, que se arrasta e se joga dentro da página. */}

@@ -23,12 +23,18 @@ export default function LegendaEmVideo({
   falas,
   formato,
   pausado,
+  seloDePausa = pausado,
 }: {
   aberta: boolean;
   controlador: Controlador | null;
   falas: LegendaAoVivo[];
   formato: Formato;
   pausado: boolean;
+  /**
+   * Desenhar o selo "Pausada". Não quando quem pausou foi o botão da janelinha do Safari: ali o VÍDEO
+   * para, o quadro novo nem chegaria a aparecer, e o próprio botão já mostra a pausa.
+   */
+  seloDePausa?: boolean;
 }) {
   /* A aparência guardada (fundo, o que mostrar, letra, ritmo), relida a cada abertura. */
   const [ap, setAp] = useState(lerAparencia);
@@ -87,7 +93,7 @@ export default function LegendaEmVideo({
     fundo: fundoResolvido(ap.fundo, temaEscuro),
     mostrar: ap.mostrar,
     escala: ap.tam / 100,
-    pausado,
+    pausado: seloDePausa,
     textos: { vazio: t('Esperando a primeira fala'), pausada: t('Pausada') },
   };
   /* O controlador compara a chave e só pinta o que mudou. */

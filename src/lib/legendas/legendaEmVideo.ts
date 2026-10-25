@@ -153,7 +153,11 @@ export function desenharQuadro(ctx: CanvasRenderingContext2D, q: QuadroDaLegenda
 
 export interface AcoesDoVideo {
   /** A pessoa pausou (true) ou retomou (false) pelo controle do navegador. */
-  aoPausar: (pausado: boolean) => void;
+  /**
+   * Pausou (true) ou retomou (false). `pelaJanela` = foi o botão da própria janelinha (Safari), que
+   * pausa o VÍDEO: o quadro fica congelado e quem mostra a pausa é o botão nativo, não um selo nosso.
+   */
+  aoPausar: (pausado: boolean, pelaJanela: boolean) => void;
   /** "Próxima" no PiP (onde o navegador mostra): salvar a última frase. */
   aoSalvar: () => void;
   /** A janelinha fechou (X do sistema, ou voltou para a aba). */
@@ -161,7 +165,10 @@ export interface AcoesDoVideo {
 }
 
 export interface LegendaEmVideo {
-  /** Cria o canvas e o vídeo e deixa o vídeo pronto (metadados carregados) para abrir no clique. */
+  /**
+   * Cria o canvas e o vídeo e deixa o vídeo pronto (com um quadro, logo com metadados) para abrir no
+   * clique. Chame enquanto a captura está ativa, não no clique.
+   */
   preparar(): void;
   /** Pede o PiP. Chame no gesto: o pedido sai na hora se o vídeo já está pronto. */
   abrir(acoes: AcoesDoVideo): Promise<void>;
@@ -202,8 +209,8 @@ export function criarLegendaEmVideo(doc: Document = document): LegendaEmVideo {
   /* Pausa pedida pela Media Session (Chrome): o vídeo segue tocando para o selo "Pausada" aparecer. */
   let pausaPelaSessao = false;
 
-  const aoPausarVideo = () => emPiP && !pausaPelaSessao && acoes?.aoPausar(true);
-  const aoTocarVideo = () => emPiP && acoes?.aoPausar(false);
+  const aoPausarVideo = () => emPiP && !pausaPelaSessao && acoes?.aoPausar(true, true);
+  const aoTocarVideo = () => emPiP && acoes?.aoPausar(false, true);
   const aoSairDoPiP = () => {
     if (!emPiP) return;
     emPiP = false;
@@ -224,10 +231,25 @@ export function criarLegendaEmVideo(doc: Document = document): LegendaEmVideo {
     ultimaChave = '';
   }
 
+  /** Pinta o quadro vazio (o fundo): o primeiro quadro do vídeo, o que dá a ele metadados. */
+  function pintarVazio() {
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+    ctx.fillStyle = '#141210';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
   function ligarFonte() {
     if (!canvas || !video || video.srcObject) return;
     /* Sem taxa fixa: um quadro por pintura do canvas. */
-    video.srcObject = canvas.captureStream();
+    const fonte = canvas.captureStream();
+    video.srcObject = fonte;
+    /* A trilha só emite quadro quando o canvas é pintado DEPOIS de existir: pinta de novo e, onde há,
+       pede o quadro explicitamente. Sem isto o vídeo ficava em `readyState` 0 e o clique esperava. */
+    pintarVazio();
+    for (const t of fonte.getVideoTracks?.() ?? [])
+      (t as MediaStreamTrack & { requestFrame?: () => void }).requestFrame?.();
+    ultimaChave = '';
     void video.play().catch(() => {
       /* sem autoplay: o clique em "abrir" toca de novo */
     });
@@ -265,12 +287,6 @@ export function criarLegendaEmVideo(doc: Document = document): LegendaEmVideo {
       video.addEventListener('play', aoTocarVideo);
       video.addEventListener('leavepictureinpicture', aoSairDoPiP);
       doc.body.appendChild(video);
-      /* Um quadro vazio, para o vídeo ter metadados antes do clique. */
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.fillStyle = '#141210';
-        ctx.fillRect(0, 0, largura, altura);
-      }
       ligarFonte();
     },
 
@@ -298,12 +314,12 @@ export function criarLegendaEmVideo(doc: Document = document): LegendaEmVideo {
         pausaPelaSessao = false;
         if (ms) ms.playbackState = 'playing';
         void v.play().catch(() => {});
-        acoes?.aoPausar(false);
+        acoes?.aoPausar(false, false);
       });
       tratar(ms, 'pause', () => {
         pausaPelaSessao = true;
         if (ms) ms.playbackState = 'paused';
-        acoes?.aoPausar(true);
+        acoes?.aoPausar(true, false);
       });
       tratar(ms, 'nexttrack', () => acoes?.aoSalvar());
       if (ms) ms.playbackState = 'playing';

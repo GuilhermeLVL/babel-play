@@ -113,9 +113,20 @@ export function normalizar(bruto: unknown): Aparencia {
       legenda: typeof cores.legenda === 'string' ? cores.legenda : PADRAO.cores.legenda,
       traducao: typeof cores.traducao === 'string' ? cores.traducao : PADRAO.cores.traducao,
     },
-    fundo: o.fundo && FUNDOS.includes(o.fundo) ? o.fundo : PADRAO.fundo,
+    fundo: o.fundo && FUNDOS.includes(o.fundo) ? o.fundo : fundoDeQuemNaoEscolheu(cores),
     mostrar: o.mostrar && MOSTRAS.includes(o.mostrar) ? o.mostrar : PADRAO.mostrar,
   };
+}
+
+/**
+ * Quem guardou a aparência antes do fundo existir e já tinha CORES próprias as escolheu para o fundo
+ * escuro de sempre: o `auto` poderia abrir a janela clara e apagar a escolha (o claro usa texto escuro).
+ * Para essa pessoa o fundo fica escuro; para quem nunca mexeu nas cores, segue o tema.
+ */
+function fundoDeQuemNaoEscolheu(cores: Partial<Aparencia['cores']>): Fundo {
+  const legenda = typeof cores.legenda === 'string' ? cores.legenda.toUpperCase() : PADRAO.cores.legenda;
+  const traducao = typeof cores.traducao === 'string' ? cores.traducao.toUpperCase() : PADRAO.cores.traducao;
+  return legenda !== PADRAO.cores.legenda || traducao !== PADRAO.cores.traducao ? 'escuro' : PADRAO.fundo;
 }
 
 /** A janela antiga guardava outro formato: modo em inglês, "independência" e escala de fonte. */

@@ -146,10 +146,13 @@ export default function LegendasFlutuantes({
   /** Abas além de "Legendas" (Fase C: o Assistente). */
   abasExtras?: readonly AbaDaJanela[];
 }) {
-  const [ap, setAp] = useState<Aparencia>(() => {
-    const lida = lerAparencia();
-    return formatoInicial ? { ...lida, modo: modoDoFormato(formatoInicial) } : lida;
-  });
+  const [ap, setAp] = useState<Aparencia>(lerAparencia);
+  /* O formato SUGERIDO vale só nesta abertura: não sobrescreve o modo guardado. Quando a pessoa
+     escolhe um formato (ou uma predefinição), a escolha dela passa a valer e é guardada. */
+  const [modoDaSessao, setModoDaSessao] = useState<Modo | null>(() =>
+    formatoInicial ? modoDoFormato(formatoInicial) : null,
+  );
+  const modo = modoDaSessao ?? ap.modo;
   const temaEscuro = useTemaEscuro();
   const fundo = fundoResolvido(ap.fundo, temaEscuro);
   /* O ESTILO DE LEGENDA equipado (onda 4) — o mesmo da transcrição, relido quando muda. As cores
@@ -201,7 +204,10 @@ export default function LegendasFlutuantes({
   }, []);
 
   const mudar = (patch: Partial<Aparencia>) => {
-    if (patch.modo && patch.modo !== ap.modo) aoTrocarFormato?.(FORMATO_DO_MODO[patch.modo]);
+    if (patch.modo) {
+      if (patch.modo !== modo) aoTrocarFormato?.(FORMATO_DO_MODO[patch.modo]);
+      setModoDaSessao(null);
+    }
     setAp((a) => ({ ...a, ...patch }));
   };
 
@@ -218,12 +224,13 @@ export default function LegendasFlutuantes({
         toast.info(t('Você ainda não salvou um “Meu perfil”: ajuste e use “Salvar como Meu perfil”.'));
         return;
       }
-      if (meu.modo !== ap.modo) aoTrocarFormato?.(FORMATO_DO_MODO[meu.modo]);
+      if (meu.modo !== modo) aoTrocarFormato?.(FORMATO_DO_MODO[meu.modo]);
+      setModoDaSessao(null);
       setAp({ ...meu, preset: 'meu' });
       return;
     }
-    const [modo, traducao, tam] = PRESETS[p];
-    mudar({ preset: p, modo, traducao, tam });
+    const [modoDoPreset, traducao, tam] = PRESETS[p];
+    mudar({ preset: p, modo: modoDoPreset, traducao, tam });
   };
 
   const salvarMeu = () => {
@@ -260,7 +267,7 @@ export default function LegendasFlutuantes({
       obs?.disconnect();
     };
   }, [naJanela]);
-  const formato = FORMATO_DO_MODO[ap.modo];
+  const formato = FORMATO_DO_MODO[modo];
   const layout = layoutPorTamanho(formato, tamanho);
   const modoDoLayout = MODO_DO_LAYOUT[layout];
   const quantasAVista = falasAVista(layout, tamanho, ap.visiveis);
@@ -548,6 +555,8 @@ export default function LegendasFlutuantes({
         setControles(false);
       }}
       onFocus={mostrarControles}
+      /* Saiu o foco de um controle: a conta dos 2 s recomeça (antes, a barra podia ficar presa). */
+      onBlur={mostrarControles}
       onKeyDown={mostrarControles}
       onTouchStart={() => {
         ultimoToque.current = Date.now();
@@ -566,7 +575,7 @@ export default function LegendasFlutuantes({
         aoTrocarLeitura={(leitura) => mudar({ leitura })}
         traducao={ap.traducao}
         aoTrocarTraducao={(traducao) => mudar({ traducao })}
-        modo={ap.modo}
+        modo={modo}
         aoTrocarModo={(modo) => mudar({ modo })}
         mostrar={ap.mostrar}
         aoTrocarMostrar={() => mudar({ mostrar: proximoDe(MOSTRAS, ap.mostrar) })}

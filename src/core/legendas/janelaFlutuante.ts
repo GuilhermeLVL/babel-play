@@ -135,11 +135,26 @@ export function tamanhoParaAbrir(formato: Formato, guardados: Partial<Record<For
   return guardados[formato] ?? TAMANHO_DO_FORMATO[formato];
 }
 
+/** Os grafemas do texto (um emoji ou um caractere com acento é um só), sem depender de `Intl.Segmenter`. */
+function grafemas(texto: string): string[] {
+  const Seg = (
+    Intl as unknown as {
+      Segmenter?: new (
+        l?: string,
+        o?: { granularity: string },
+      ) => { segment: (t: string) => Iterable<{ segment: string }> };
+    }
+  ).Segmenter;
+  if (Seg) return Array.from(new Seg(undefined, { granularity: 'grapheme' }).segment(texto), (p) => p.segment);
+  return Array.from(texto);
+}
+
 /**
  * Quebra o texto em linhas que cabem em `largura`, medindo com `medir` (o `measureText` do canvas, ou
- * um falso nos testes). Palavra maior que a linha vai sozinha (o canvas corta, não trava). Devolve no
- * máximo `maxLinhas`; se sobrar texto, ficam as ÚLTIMAS linhas — numa legenda ao vivo, o fim da frase
- * é o que acabou de ser dito.
+ * um falso nos testes). Entre palavras, quebra no espaço; a "palavra" que não cabe sozinha numa linha
+ * (chinês e japonês não têm espaço; uma URL longa) quebra por caractere. Devolve no máximo
+ * `maxLinhas`; se sobrar texto, ficam as ÚLTIMAS linhas — numa legenda ao vivo, o fim da frase é o
+ * que acabou de ser dito.
  */
 export function quebrarLinhas(
   texto: string,
@@ -152,12 +167,24 @@ export function quebrarLinhas(
   let atual = '';
   for (const p of palavras) {
     const tentativa = atual ? `${atual} ${p}` : p;
-    if (!atual || medir(tentativa) <= largura) {
+    if (medir(tentativa) <= largura) {
       atual = tentativa;
-    } else {
-      linhas.push(atual);
-      atual = p;
+      continue;
     }
+    if (medir(p) <= largura) {
+      if (atual) linhas.push(atual);
+      atual = p;
+      continue;
+    }
+    /* Não cabe nem sozinha: caractere a caractere, continuando a linha que já estava aberta. */
+    let pedaco = atual ? `${atual} ` : '';
+    for (const g of grafemas(p)) {
+      if (pedaco.trim() && medir(pedaco + g) > largura) {
+        linhas.push(pedaco.trimEnd());
+        pedaco = g;
+      } else pedaco += g;
+    }
+    atual = pedaco;
   }
   if (atual) linhas.push(atual);
   return linhas.length > maxLinhas ? linhas.slice(linhas.length - maxLinhas) : linhas;

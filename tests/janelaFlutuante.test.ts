@@ -112,8 +112,15 @@ describe('quebrar linhas (o quadro do PiP de vídeo)', () => {
   it('quebra pela largura, sem perder palavra', () => {
     expect(quebrarLinhas('one two three four', 90, medir)).toEqual(['one two', 'three', 'four'])
   })
-  it('palavra maior que a linha vai sozinha', () => {
-    expect(quebrarLinhas('supercalifragilistic go', 50, medir)).toEqual(['supercalifragilistic', 'go'])
+  it('palavra maior que a linha quebra por caractere (o canvas não a corta para fora)', () => {
+    expect(quebrarLinhas('supercalifragilistic go', 50, medir)).toEqual(['super', 'calif', 'ragil', 'istic', 'go'])
+    expect(quebrarLinhas('ok supercalifragilistic', 60, medir)).toEqual(['ok sup', 'ercali', 'fragil', 'istic'])
+  })
+  it('chinês e japonês (sem espaço) quebram por caractere, e o teto guarda o fim', () => {
+    expect(quebrarLinhas('我们明天一起去看比赛吧', 50, medir)).toEqual(['我们明天一', '起去看比赛', '吧'])
+    expect(quebrarLinhas('明日は一緒に試合を見に行こう', 60, medir)).toEqual(['明日は一緒に', '試合を見に行', 'こう'])
+    expect(quebrarLinhas('我们明天一起去看比赛吧', 50, medir, 2)).toEqual(['起去看比赛', '吧'])
+    for (const l of quebrarLinhas('我们明天一起去看比赛吧', 50, medir)) expect(medir(l)).toBeLessThanOrEqual(50)
   })
   it('com teto de linhas, ficam as ÚLTIMAS (o fim da frase é o que acabou de ser dito)', () => {
     expect(quebrarLinhas('a b c d e f', 30, medir, 2)).toEqual(['c d', 'e f'])
@@ -141,5 +148,11 @@ describe('que janela este navegador dá', () => {
     expect(caminhoDaJanela({ ...comVideo, HTMLCanvasElement: { prototype: {} } })).toBe('painel')
     expect(caminhoDaJanela({ ...comVideo, HTMLVideoElement: { prototype: {} } })).toBe('painel')
     expect(caminhoDaJanela({})).toBe('painel')
+  })
+  it('no celular, o painel, mesmo com PiP de vídeo ou Document PiP (não verificado lá)', () => {
+    expect(caminhoDaJanela(comVideo, { celular: true })).toBe('painel')
+    expect(
+      caminhoDaJanela({ ...comVideo, documentPictureInPicture: { requestWindow: () => null } }, { celular: true }),
+    ).toBe('painel')
   })
 })

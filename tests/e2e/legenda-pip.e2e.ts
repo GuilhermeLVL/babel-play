@@ -339,19 +339,25 @@ test('PiP de vídeo (Safari): desenha só quando muda, pausa e salva pela Media 
   await expect.poll(textos).toContain('❚❚ Pausada')
   await page.evaluate(() => (window as unknown as { __tratadores: Record<string, () => void> }).__tratadores.play())
 
-  /* Safari: o botão da janelinha pausa o próprio vídeo; a legenda acompanha. */
+  /* Safari: o botão da janelinha pausa o próprio VÍDEO. A legenda congela (a fala nova espera), e não
+     se desenha selo nenhum: o quadro parado nem o mostraria, quem mostra a pausa é o botão nativo. */
+  const extra: [string, string] = ['Who is bringing the chairs?', 'Quem traz as cadeiras?']
   await page.evaluate(() => {
     ;(window as unknown as { __textos: string[] }).__textos.length = 0
     ;(window as unknown as { __videoPiP: HTMLVideoElement }).__videoPiP.pause()
   })
-  await expect.poll(textos).toContain('❚❚ Pausada')
+  await falarTraduzido(page, [extra])
+  await page.waitForTimeout(1500)
+  expect(await textos()).not.toContain(extra[0])
+  expect(await textos()).not.toContain('Pausada')
   await page.evaluate(() => void (window as unknown as { __videoPiP: HTMLVideoElement }).__videoPiP.play())
+  await expect.poll(textos, { timeout: 10_000 }).toContain(extra[0])
 
   /* "Próxima" salva a última frase: o fichamento responde na página (entrou, repetida ou recusada). */
   await page.evaluate(() =>
     (window as unknown as { __tratadores: Record<string, () => void> }).__tratadores.nexttrack(),
   )
-  await expect(page.getByText(`"${FRASES[2][0]}"`, { exact: false }).first()).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText(`"${extra[0]}"`, { exact: false }).first()).toBeVisible({ timeout: 15_000 })
 
   /* Sair do PiP: tratadores soltos, e nada mais é pintado. */
   await page.evaluate(() => document.exitPictureInPicture())

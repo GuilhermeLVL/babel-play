@@ -1,6 +1,8 @@
 import { ArrowDown, Ellipsis, Square, Volume2 } from 'lucide-react';
 import { memo, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 
+import type { MarcaNaLinha } from '../../../../core/assistente/telaDoAssistente';
+import type { CorrecaoDaFala } from '../../../../data/apiDoAssistente';
 import { aoMudarAudioDasFalas, falaTocando } from '../../../../lib/captura/audioDasFalas';
 import { agruparEmBlocos, blocosDasFalas } from '../../../../lib/captura/blocosDasFalas';
 import type { SpeechSegment } from '../../../../lib/captura/tiposDaFala';
@@ -16,6 +18,8 @@ import {
   sairLinhaVazia,
   sairOriginal,
 } from '../../../../lib/polimento/captura';
+import { CorrecaoNaPagina } from '../assistente/AssistenteNaPagina';
+import { marcaDoAlvo, TextoComMarcas, tituloDaMarca } from '../assistente/TextoComMarcas';
 
 /** A esta distância do fim (px) a lista ainda conta como "no fim" e segue acompanhando. */
 const FOLGA_DO_FIM = 80;
@@ -24,13 +28,50 @@ const FOLGA_DO_FIM = 80;
  * Uma palavra da fala que ainda está chegando: entra desfocada e assenta (`telas.js:131-134`).
  * `texto` já traz o espaço de depois, quando a escrita tem espaço entre as palavras.
  */
-function Palavra({ texto, anima }: { texto: string; anima: boolean }) {
+function Palavra({
+  texto,
+  anima,
+  marca,
+  indice,
+}: {
+  texto: string;
+  anima: boolean;
+  /** A marca do assistente que cai nesta palavra (Fase C3): só atributos, a palavra é a mesma. */
+  marca?: MarcaNaLinha;
+  indice?: number;
+}) {
   const ref = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
     if (anima && ref.current) entrarPalavra(ref.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- só na chegada da palavra
   }, []);
-  return <span ref={ref}>{texto}</span>;
+  return (
+    <span
+      ref={ref}
+      className={marca ? 'asst-marca' : undefined}
+      data-marca={marca?.tipo}
+      data-marca-i={marca ? indice : undefined}
+      title={marca ? tituloDaMarca(marca) : undefined}
+    >
+      {texto}
+    </span>
+  );
+}
+
+/** As palavras de uma fala que ainda está só no original, cada uma com a marca que cai nela (se houver). */
+function marcasDasPalavras(original: string, palavras: string[], marcas: ReadonlyArray<MarcaNaLinha> | undefined) {
+  if (!marcas?.length) return null;
+  let cursor = 0;
+  return palavras.map((p) => {
+    const limpa = p.trim();
+    const ini = original.indexOf(limpa, cursor);
+    if (ini < 0) return -1;
+    cursor = ini + limpa.length;
+    const nucleo = /[\p{L}\p{N}][\s\S]*[\p{L}\p{N}]|[\p{L}\p{N}]/u.exec(limpa);
+    const a = ini + (nucleo?.index ?? 0);
+    const b = a + (nucleo?.[0].length ?? limpa.length);
+    return marcas.findIndex((m) => a < m.fim && m.inicio < b);
+  });
 }
 
 /**
@@ -58,6 +99,10 @@ const Linha = memo(function Linha({
   aoOuvir,
   aoPararAudio,
   aoMudar,
+  comMarcas = false,
+  marcas,
+  correcao,
+  aoTocarMarca,
 }: {
   id: string;
   hora: string;
@@ -78,6 +123,17 @@ const Linha = memo(function Linha({
   aoPararAudio?: () => void;
   /** O texto mudou de tamanho: a lista acompanha o fim. */
   aoMudar: () => void;
+  /**
+   * O ASSISTENTE AO VIVO está nesta tela (Fase C3): o original já nasce em pedaços, e as marcas que chegarem depois
+   * só mudam atributos — nada novo para a região `aria-live` anunciar.
+   */
+  comMarcas?: boolean;
+  /** As marcas desta fala (o MESMO array enquanto nada muda: o `memo` segura a linha). */
+  marcas?: MarcaNaLinha[];
+  /** A correção gentil da própria fala (opt-in). */
+  correcao?: CorrecaoDaFala;
+  /** Tocou numa palavra marcada: abre o cartão da palavra com o sentido. */
+  aoTocarMarca?: (id: string, marca: MarcaNaLinha) => void;
 }) {
   const linha = useRef<HTMLDivElement>(null);
   const alvo = useRef<HTMLSpanElement>(null);
@@ -99,6 +155,7 @@ const Linha = memo(function Linha({
       const partes = palavrasDoPedaco(pedaco, lang);
       return partes.map((p, i) => (i === partes.length - 1 ? `${p} ` : p));
     });
+  const indicesDasMarcas = marcasDasPalavras(original, palavras, marcas);
   /* A fala abriu e nada chegou ainda: a linha de escuta. */
   const ouvindo = !mostrada && !traducao && palavras.length === 0;
   const aindaOuvindo = useRef(ouvindo);
@@ -162,14 +219,19 @@ const Linha = memo(function Linha({
         aria-disabled={ouvindo || undefined}
         aria-current={escolhida ? 'true' : undefined}
         data-frase-escolhida={escolhida ? '' : undefined}
-        onClick={() => !ouvindo && aoTocar(id)}
+        onClick={(e) => {
+          if (ouvindo) return;
+          const marca = aoTocarMarca ? marcaDoAlvo(e.target, marcas) : undefined;
+          if (marca && aoTocarMarca) aoTocarMarca(id, marca);
+          else aoTocar(id);
+        }}
       >
         <span className="q-meta">
           <span className="tn">{hora}</span>
         </span>
         {mostrada && original && (
           <span className="q-o" lang={lang} dir={direcaoDoTexto(lang)} ref={pequena}>
-            {original}
+            {comMarcas ? <TextoComMarcas texto={original} lang={lang} marcas={marcas} /> : original}
           </span>
         )}
         {mostrada ? (
@@ -190,11 +252,13 @@ const Linha = memo(function Linha({
           </span>
         ) : (
           <span className="q-t" lang={lang} dir={direcaoDoTexto(lang)} ref={alvo}>
-            {palavras.map((p, i) => (
-              <Palavra key={i} texto={p} anima={nova} />
-            ))}
+            {palavras.map((p, i) => {
+              const k = indicesDasMarcas?.[i] ?? -1;
+              return <Palavra key={i} texto={p} anima={nova} marca={k >= 0 ? marcas?.[k] : undefined} indice={k} />;
+            })}
           </span>
         )}
+        <CorrecaoNaPagina correcao={correcao} lang={lang} />
       </button>
       {/* Na escuta os botões guardam o lugar (a linha não muda de tamanho quando o texto chega), sem aparecer. */}
       <div className="q-acoes-da-fala" style={ouvindo ? { visibility: 'hidden' } : undefined}>
@@ -217,6 +281,13 @@ const Linha = memo(function Linha({
   );
 });
 
+/** O que a legenda da página recebe do assistente ao vivo (Fase C3). */
+export interface AssistenteNaLegenda {
+  marcas: ReadonlyMap<string, MarcaNaLinha[]>;
+  correcoes: ReadonlyMap<string, CorrecaoDaFala>;
+  aoTocarMarca?: (fala: SpeechSegment, marca: MarcaNaLinha, lang: string) => void;
+}
+
 /**
  * A LEGENDA AO VIVO NO DESENHO NOVO — a marcação e o movimento do protótipo de polimento
  * (`telas.js:78-160`, `telas.css:11-20`; itens D11 e D12 de `fidelidade/casca-e-telas.md`).
@@ -238,6 +309,7 @@ export default function HistoricoDoPrototipo({
   aoOuvir,
   aoPararAudio,
   escolhida,
+  assistente,
 }: {
   falas: readonly SpeechSegment[];
   /** Multiplicador do tamanho do texto (0,75 a 2), escolhido na faixa. */
@@ -253,6 +325,11 @@ export default function HistoricoDoPrototipo({
   aoPararAudio?: () => void;
   /** O id da fala em que o painel da frase está aberto: ela fica marcada (`aria-current`). */
   escolhida?: string | null;
+  /**
+   * O ASSISTENTE AO VIVO na legenda da página (Fase C3): as marcas silenciosas (sublinhado pontilhado, sentido no
+   * `title` e no cartão da palavra), a correção da própria fala. A instância é a mesma da janela flutuante.
+   */
+  assistente?: AssistenteNaLegenda;
 }) {
   /* "…" é só o marcador de tradução a caminho: sozinho, não é texto para mostrar (e enquanto a do
      final não chega, fica a parcial que a linha já tinha: `traducaoNaLegenda`). */
@@ -291,6 +368,8 @@ export default function HistoricoDoPrototipo({
   tocar.current = aoTocar;
   const ouvir = useRef(aoOuvir);
   ouvir.current = aoOuvir;
+  const tocarMarca = useRef(assistente?.aoTocarMarca);
+  tocarMarca.current = assistente?.aoTocarMarca;
   const padrao = useRef(idiomaPadrao);
   padrao.current = idiomaPadrao;
   const [fixos] = useState(() => ({
@@ -301,6 +380,10 @@ export default function HistoricoDoPrototipo({
     ouvir: (id: string) => {
       const f = porId.current.get(id);
       if (f) ouvir.current?.(f, f.lang ?? padrao.current);
+    },
+    tocarMarca: (id: string, m: MarcaNaLinha) => {
+      const f = porId.current.get(id);
+      if (f) tocarMarca.current?.(f, m, f.lang ?? padrao.current);
     },
     seguir: () => {
       if (noFim.current && lista.current) irAoFim(lista.current);
@@ -353,6 +436,10 @@ export default function HistoricoDoPrototipo({
                   aoOuvir={aoOuvir ? fixos.ouvir : undefined}
                   aoPararAudio={aoPararAudio}
                   aoMudar={fixos.seguir}
+                  comMarcas={!!assistente}
+                  marcas={assistente?.marcas.get(fala.id)}
+                  correcao={assistente?.correcoes.get(fala.id)}
+                  aoTocarMarca={assistente?.aoTocarMarca ? fixos.tocarMarca : undefined}
                 />
               );
             })}

@@ -4,14 +4,24 @@
  * aparelho) transcreve primeiro, e a nuvem entra quando o áudio fica difícil (`nuvemNoAudioDificil`,
  * a histerese de `core/rota/audioDificil.ts`). Fora disso, nada muda.
  *
- * Garantias: flag desligada = rota idêntica à de hoje em toda a matriz; ligada, só o caso do aparelho
+ * Garantias: flag desligada = a rota do commit 79c0d284 (impressão congelada) em toda a matriz, menos a
+ * reserva da nuvem (item 5) onde o Parakeet está pronto; ligada, só o caso do aparelho
  * capaz no automático muda; Precisão pedida, aparelho fraco, sem cópia, inglês, sem nuvem e perfil
  * Privado ficam como estão.
  */
+import { createHash } from 'node:crypto'
+
 import { describe, expect, it } from 'vitest'
 
 import { ID_DO_PARAKEET } from '../src/gateway/adapters/parakeetModelo'
-import { type DispositivoDaRota, routeStt, type SttQuality, type SttRouteInput } from '../src/gateway/sttRouter'
+import {
+  type DispositivoDaRota,
+  parakeetProntoNaRota,
+  routeStt,
+  type SttQuality,
+  type SttRouteInput,
+  WHISPER_MODELS,
+} from '../src/gateway/sttRouter'
 
 const desktop8: DispositivoDaRota = {
   tipo: 'desktop-com-gpu',
@@ -70,15 +80,36 @@ function matriz(): SttRouteInput[] {
   return lista
 }
 
-describe('flag desligada: a rota de hoje', () => {
-  it('`aparelhoPrimeiro: false` (ou ausente) dá a mesma rota em toda a matriz', () => {
+/**
+ * A IMPRESSÃO CONGELADA: sha256 das 4.608 rotas da `matriz()` (modelo, dtype, device, nuvem primeiro,
+ * rótulo e a oferta de baixar o Parakeet), calculada com o `sttRouter.ts` de ANTES desta frente
+ * (commit 79c0d284, 24/10/2026). Não se recalcula: se uma rota mudar fora do que a Fase B pediu, quebra.
+ */
+const IMPRESSAO_DE_79C0D284 = '3fc4431fc23faa1542c63603948785f47b21f9ab111815cbe98d4cc59cab4396'
+
+const linha = (r: ReturnType<typeof routeStt>): string =>
+  [r.localModel, r.dtype ?? '', r.device ?? '', r.preferCloud, r.label, r.parakeetDisponivelParaBaixar ?? ''].join('|')
+
+describe('flag desligada: a rota de antes, menos a reserva da nuvem (item 5)', () => {
+  it('só muda a reserva da nuvem (Whisper base → Parakeet) nas entradas com o Parakeet pronto; o resto é a impressão congelada', () => {
     const lista = matriz()
-    expect(lista.length).toBeGreaterThan(4000)
-    for (const e of lista) {
-      const hoje = routeStt(e)
-      expect(routeStt({ ...e, aparelhoPrimeiro: false }), JSON.stringify(e)).toEqual(hoje)
-      expect(hoje.nuvemNoAudioDificil).toBeUndefined()
-    }
+    expect(lista).toHaveLength(4608)
+    let trocadas = 0
+    const linhas = lista.map((e) => {
+      const r = routeStt({ ...e, aparelhoPrimeiro: false })
+      expect(r.nuvemNoAudioDificil).toBeUndefined()
+      expect(routeStt(e)).toEqual(r) // ausente = desligada
+      if (r.localModel === ID_DO_PARAKEET && r.preferCloud) {
+        // A ÚNICA mudança permitida: a reserva da nuvem, só onde o Parakeet está pronto.
+        expect(parakeetProntoNaRota(e), JSON.stringify(e)).toBe(true)
+        expect(r).toEqual({ localModel: ID_DO_PARAKEET, device: 'wasm', preferCloud: true, label: r.label })
+        trocadas++
+        return linha({ ...r, localModel: WHISPER_MODELS.base, dtype: 'hybrid', device: undefined })
+      }
+      return linha(r)
+    })
+    expect(trocadas).toBeGreaterThan(0)
+    expect(createHash('sha256').update(linhas.join('\n')).digest('hex')).toBe(IMPRESSAO_DE_79C0D284)
   })
 })
 

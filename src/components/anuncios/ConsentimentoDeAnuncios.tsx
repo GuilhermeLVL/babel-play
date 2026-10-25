@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 
 import { t } from '../../lib/i18n';
 import { mudarConsentimento } from '../../lib/preferencias';
+import { perfilProtegido } from '../../lib/protecaoDoMenor';
 import { toast } from '../Toast';
 
 /** O evento que avisa os espaços de que a resposta mudou (`detail: { aceito }`). */
@@ -57,11 +58,15 @@ export default function ConsentimentoDeAnuncios({ aoResponder }: { aoResponder?:
           'A rede de anúncios do Google recebe o endereço de internet do seu aparelho, o navegador e o idioma, só para mostrar e contar o anúncio. Não enviamos seu nome, seu e-mail nem o que você estuda.',
         )}
       </p>
-      <p>{t('O anúncio com recompensa é só para maiores de 18 anos.')}</p>
+      {/* O perfil protegido não vê o premiado nem compra: para ele, nem "só se você escolher ver" nem os planos. */}
       <p>
-        {t(
-          'Anúncio com recompensa só se você escolher ver. Você pode mudar esta resposta quando quiser em Ajustes → Privacidade, e os planos pagos não têm anúncios.',
-        )}
+        {perfilProtegido()
+          ? t(
+              'O anúncio com recompensa é só para maiores de 18 anos. Você pode mudar esta resposta quando quiser em Ajustes → Privacidade.',
+            )
+          : t(
+              'Anúncio com recompensa só se você escolher ver. Você pode mudar esta resposta quando quiser em Ajustes → Privacidade, e os planos pagos não têm anúncios.',
+            )}
       </p>
       <div className="q-acoes">
         <button type="button" className="q-ctl pri" disabled={gravando} onClick={() => void responder(true)}>

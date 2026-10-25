@@ -32,6 +32,12 @@
  * controlador, 25/10/2026). `setPublisherProvidedId` NUNCA: o Google não recebe identificador nenhum nosso. O
  * quadro é `credentialless` (sem cookies).
  *
+ * Fonte da API (conferida em 25/10/2026): https://developers.google.com/publisher-tag/reference —
+ * `googletag.PrivacySettingsConfig.tagForAgeTreatment` (enum `googletag.enums.TagForAgeTreatment`: `CHILD`, `TEEN`,
+ * `UNSPECIFIED`) e `googletag.config.PrivacyTreatmentsConfig.treatments` (`['disablePersonalization']`, via
+ * `googletag.setConfig({ privacyTreatments })`); TFAT no lugar do TFCD/TFUA e "o mais conservador vale":
+ * https://support.google.com/admanager/answer/9004919
+ *
  * Mensagens ao app: `{ tipo: 'frasy:anuncio', evento: 'recompensa' | 'fechou' | 'vazio', exibicaoId }`.
  * O app confere a origem e a exibição; quem credita é o servidor, com teto (não há SSV do Google na web).
  */

@@ -14,7 +14,7 @@ import { onPlanChange } from '../../lib/entitlements';
 import { useFlag } from '../../lib/flags';
 import { flagLigada } from '../../lib/flagsCache';
 import { lerPreferencias, usePreferencias } from '../../lib/preferencias';
-import { aoMudarProtecao } from '../../lib/protecaoDoMenor';
+import { aoMudarProtecao, perfilProtegido } from '../../lib/protecaoDoMenor';
 import { navegarPara } from '../../lib/rotas';
 import ConsentimentoDeAnuncios from './ConsentimentoDeAnuncios';
 import { ligarDemonstracaoDeAnuncios } from './demonstracao/ligar';
@@ -54,6 +54,13 @@ interface EspacoDeAnuncioProps {
 /** O evento que `lib/flags.ts` dispara quando as flags mudam. */
 const EVENTO_DAS_FLAGS = 'babel_flags_changed';
 const irAosPlanos = () => navegarPara({ view: 'planos' });
+/**
+ * A porta do PERFIL PROTEGIDO: ele não compra, então "Sem anúncios" apontando para os planos seria convite
+ * comercial a um menor. Para ele a saída é revogar o consentimento em Ajustes → Privacidade → Anúncios, e o
+ * provedor troca o rótulo para "Não quero anúncios" (o real em `provedores/iframe.tsx`, a demonstração em
+ * `demonstracao/EspacoDeDemonstracao.tsx`). Vale por cima do `aoSemAnuncios` que a tela passou.
+ */
+export const irAosAjustesDeAnuncios = () => navegarPara({ view: 'settings', ajustesAba: 'privacidade' });
 const semProvedor = () => null;
 
 /**
@@ -149,7 +156,7 @@ function EspacoComProvedor({
     <Desenho
       espaco={espaco}
       formato={formato}
-      aoSemAnuncios={aoSemAnuncios}
+      aoSemAnuncios={perfilProtegido() ? irAosAjustesDeAnuncios : aoSemAnuncios}
       aoRecompensar={formato === 'premiado' ? recompensar : undefined}
       aoFechar={aoFechar}
     />

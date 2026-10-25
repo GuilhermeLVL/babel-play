@@ -232,8 +232,10 @@ function Topo({ aoSemAnuncios, aoFechar }: { aoSemAnuncios: () => void; aoFechar
   return (
     <span className="anuncio-rede-topo">
       <span className="anuncio-rede-rotulo">{t('Patrocinado')}</span>
+      {/* O perfil protegido não compra: a porta dele leva a Ajustes → Privacidade (revogar), não aos planos
+          (`irAosAjustesDeAnuncios` em `EspacoDeAnuncio`), e o rótulo diz isso. */}
       <button type="button" className="anuncio-rede-sem" onClick={aoSemAnuncios}>
-        {t('Sem anúncios')}
+        {perfilProtegido() ? t('Não quero anúncios') : t('Sem anúncios')}
       </button>
       {aoFechar && (
         <button type="button" className="anuncio-rede-sem anuncio-rede-x" onClick={aoFechar}>

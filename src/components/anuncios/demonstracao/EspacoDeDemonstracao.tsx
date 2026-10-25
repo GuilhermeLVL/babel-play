@@ -23,6 +23,7 @@ import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 're
 import type { EspacoDeAnuncio } from '../../../core/anuncios/politicaDeAnuncio';
 import { LIMITE_DE_PREMIADOS_POR_DIA } from '../../../core/planos';
 import type { PropsDoEspacoDeAnuncio } from '../../../lib/anuncios/provedor';
+import { perfilProtegido } from '../../../lib/protecaoDoMenor';
 import { toast } from '../../Toast';
 import FluxoDoPremiado from './FluxoDoPremiado';
 import type { MarcaDeExemplo, PremioDeExemplo } from './tipos';
@@ -130,7 +131,8 @@ function Rotulo({ texto = 'Patrocinado' }: { texto?: string }) {
 function SemAnuncios({ aoSemAnuncios }: { aoSemAnuncios: () => void }) {
   return (
     <button type="button" className="ad-sem" onClick={aoSemAnuncios}>
-      Sem anúncios no Essencial
+      {/* O perfil protegido não compra: a porta dele leva a Ajustes → Privacidade (`EspacoDeAnuncio`). */}
+      {perfilProtegido() ? 'Não quero anúncios' : 'Sem anúncios no Essencial'}
     </button>
   );
 }

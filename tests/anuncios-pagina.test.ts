@@ -185,21 +185,22 @@ describe('o tratamento de idade', () => {
     return g
   }
 
+  const CRIANCA = { childDirectedTreatment: true, underAgeOfConsent: true }
   it.each([
-    ['criança (abaixo de 13)', '&tratamento=crianca', 'CHILD'],
-    ['adolescente (13–17)', '&tratamento=adolescente', 'TEEN'],
-    ['adulto', '&tratamento=nenhum', 'UNSPECIFIED'],
-    ['idade desconhecida (sem o parâmetro)', '', 'CHILD'],
-    ['valor fora da lista', '&tratamento=adulto', 'CHILD'],
-  ])('%s → tagForAgeTreatment %s, sempre não personalizado e sem PPID', (_n, extra, esperado) => {
+    ['criança (abaixo de 13)', '&tratamento=crianca', 'CHILD', CRIANCA],
+    ['adolescente (13–17)', '&tratamento=adolescente', 'TEEN', {}],
+    ['adulto', '&tratamento=nenhum', 'UNSPECIFIED', {}],
+    ['idade desconhecida (sem o parâmetro)', '', 'CHILD', CRIANCA],
+    ['valor fora da lista', '&tratamento=adulto', 'CHILD', CRIANCA],
+  ])('%s → tagForAgeTreatment %s, sempre não personalizado e sem PPID', (_n, extra, esperado, crianca) => {
     const g = nativo(extra)
     expect(g.pubads.setPrivacySettings).toHaveBeenCalledTimes(1)
+    /* Igualdade exata: adolescente e adulto NÃO levam childDirectedTreatment/underAgeOfConsent. */
     expect(g.pubads.setPrivacySettings).toHaveBeenCalledWith({
-      childDirectedTreatment: true,
-      underAgeOfConsent: true,
       restrictDataProcessing: true,
       nonPersonalizedAds: true,
       tagForAgeTreatment: esperado,
+      ...crianca,
     })
     expect(g.googletag.setConfig).toHaveBeenCalledWith({
       privacyTreatments: { treatments: ['disablePersonalization'] },
@@ -208,16 +209,23 @@ describe('o tratamento de idade', () => {
     expect(g.pubads.setPublisherProvidedId).not.toHaveBeenCalled()
   })
 
-  it('GPT sem o enum de idade: fica o tratamento de criança (TFCD/TFUA), e o slot sai do mesmo jeito', () => {
-    const g = gptFalso()
-    delete (g.googletag.enums as Record<string, unknown>).TagForAgeTreatment
-    ;(window as unknown as Janela).googletag = g.googletag
-    rodar('espaco=inicio-nativo&formato=nativo&consentimento=1&tratamento=adolescente')
-    for (const f of g.googletag.cmd) f()
-    const [config] = g.pubads.setPrivacySettings.mock.calls[0] as unknown as [Record<string, unknown>]
-    expect(config).toMatchObject({ childDirectedTreatment: true, underAgeOfConsent: true, nonPersonalizedAds: true })
-    expect(config).not.toHaveProperty('tagForAgeTreatment')
-    expect(g.googletag.defineSlot).toHaveBeenCalled()
+  it('GPT sem o enum de idade: a criança fica com o TFCD/TFUA, todos com o não personalizado, e o slot sai', () => {
+    for (const [tratamento, crianca] of [
+      ['crianca', true],
+      ['adolescente', false],
+    ] as const) {
+      const g = gptFalso()
+      delete (g.googletag.enums as Record<string, unknown>).TagForAgeTreatment
+      ;(window as unknown as Janela).googletag = g.googletag
+      rodar(`espaco=inicio-nativo&formato=nativo&consentimento=1&tratamento=${tratamento}`)
+      for (const f of g.googletag.cmd) f()
+      const [config] = g.pubads.setPrivacySettings.mock.calls[0] as unknown as [Record<string, unknown>]
+      expect(config).toMatchObject({ restrictDataProcessing: true, nonPersonalizedAds: true })
+      expect(config).not.toHaveProperty('tagForAgeTreatment')
+      if (crianca) expect(config).toMatchObject({ childDirectedTreatment: true, underAgeOfConsent: true })
+      else expect(config).not.toHaveProperty('childDirectedTreatment')
+      expect(g.googletag.defineSlot).toHaveBeenCalled()
+    }
   })
 
   it.each([

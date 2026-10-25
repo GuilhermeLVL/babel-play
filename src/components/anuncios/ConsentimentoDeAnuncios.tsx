@@ -48,7 +48,7 @@ export default function ConsentimentoDeAnuncios({ aoResponder }: { aoResponder?:
       </p>
       <p>
         {t(
-          'Os anúncios não são personalizados: não usamos o que você estuda nem o seu histórico para escolhê-los, e o Google recebe a marcação de público infantil.',
+          'Os anúncios não são personalizados: não usamos o que você estuda nem o seu histórico para escolhê-los. Para menores de 18, o Google recebe também a marcação de idade (criança ou adolescente).',
         )}
       </p>
       <p>

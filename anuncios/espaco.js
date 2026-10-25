@@ -22,14 +22,15 @@
  * Só roda DENTRO de um quadro e fora da origem do app: aberta direto (topo) ou servida pela origem do app,
  * sai sem fazer nada.
  *
- * Privacidade, sempre e antes de qualquer slot, PARA TODOS: `childDirectedTreatment`, `underAgeOfConsent`,
- * `restrictDataProcessing` e `nonPersonalizedAds` (`setPrivacySettings`), mais `privacyTreatments`
- * `disablePersonalization` (`setConfig`, quando o GPT o tem); criativo em SafeFrame. E o TRATAMENTO DE IDADE
- * (`tagForAgeTreatment`, o TFAT que o Google pôs no lugar do TFCD/TFUA, hoje marcados como obsoletos):
- * `CHILD`, `TEEN` ou `UNSPECIFIED`. O Google aplica o tratamento MAIS conservador quando há TFAT e TFCD/TFUA
- * juntos (Ad Manager, resposta 9004919), então manter o TFCD para todos não afrouxa nada: o tratamento de
- * idade só acrescenta. `setPublisherProvidedId` NUNCA: o Google não recebe identificador nenhum nosso. O quadro
- * é `credentialless` (sem cookies).
+ * Privacidade, sempre e antes de qualquer slot. PARA TODOS, adultos inclusive: `restrictDataProcessing` e
+ * `nonPersonalizedAds` (`setPrivacySettings`), mais `privacyTreatments` `disablePersonalization` (`setConfig`,
+ * quando o GPT o tem); criativo em SafeFrame. E o TRATAMENTO DE IDADE (`tagForAgeTreatment`, o TFAT que o Google
+ * pôs no lugar do TFCD/TFUA, hoje obsoletos; Ad Manager, resposta 9004919): `crianca` → `CHILD` e, junto,
+ * `childDirectedTreatment` + `underAgeOfConsent` (equivalentes; valem também num GPT sem o enum); `adolescente` →
+ * `TEEN`; `nenhum` (adulto) → `UNSPECIFIED`, sem tratamento de criança nem de adolescente. Só a criança leva o
+ * TFCD/TFUA: como o Google aplica o mais conservador, mandá-los a todos anularia o TEEN e o adulto (decisão do
+ * controlador, 25/10/2026). `setPublisherProvidedId` NUNCA: o Google não recebe identificador nenhum nosso. O
+ * quadro é `credentialless` (sem cookies).
  *
  * Mensagens ao app: `{ tipo: 'frasy:anuncio', evento: 'recompensa' | 'fechou' | 'vazio', exibicaoId }`.
  * O app confere a origem e a exibição; quem credita é o servidor, com teto (não há SSV do Google na web).
@@ -92,15 +93,15 @@
   googletag.cmd.push(function () {
     var pubads = googletag.pubads();
     var idades = (googletag.enums && googletag.enums.TagForAgeTreatment) || {};
-    var privacidade = {
-      childDirectedTreatment: true,
-      underAgeOfConsent: true,
-      restrictDataProcessing: true,
-      nonPersonalizedAds: true,
-    };
+    /* Não personalizado e processamento restrito para TODOS. */
+    var privacidade = { restrictDataProcessing: true, nonPersonalizedAds: true };
+    /* Criança (abaixo de 13 ou idade desconhecida): também o TFCD/TFUA, que valem num GPT sem o enum. */
+    if (tratamento === 'crianca') {
+      privacidade.childDirectedTreatment = true;
+      privacidade.underAgeOfConsent = true;
+    }
     var tfat =
       tratamento === 'crianca' ? idades.CHILD : tratamento === 'adolescente' ? idades.TEEN : idades.UNSPECIFIED;
-    /* GPT sem o enum (versão antiga): fica o TFCD/TFUA acima, que já é o tratamento de criança. */
     if (tfat !== undefined) privacidade.tagForAgeTreatment = tfat;
     pubads.setPrivacySettings(privacidade);
     if (typeof googletag.setConfig === 'function') {

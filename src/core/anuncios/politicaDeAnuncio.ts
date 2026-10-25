@@ -32,8 +32,8 @@
  *
  * O CONSENTIMENTO DO MENOR (LGPD art. 14): é a mesma folha de todo mundo (`ConsentimentoDeAnuncios`), e o "sim"
  * vale só para VER anúncio — nunca para personalizar: a página de anúncios pede a TODOS anúncios não
- * personalizados, com processamento restrito e a marcação de público infantil, e acrescenta o tratamento de
- * idade (abaixo de 13 ou idade desconhecida → criança; 13–17 → adolescente). Abaixo de 12 a conta só tem nuvem
+ * personalizados, com processamento restrito, e acrescenta o tratamento de idade (abaixo de 13 ou idade
+ * desconhecida → criança, com o TFCD/TFUA junto; 13–17 → adolescente; adulto, nenhum). Abaixo de 12 a conta só tem nuvem
  * com o consentimento específico do responsável (`server/lib/idade.ts`); o anúncio de quem tem menos de 12 ou
  * idade desconhecida é sempre contextual (o tratamento de criança do Google não usa perfil nem histórico).
  */

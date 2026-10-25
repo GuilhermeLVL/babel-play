@@ -1,0 +1,30 @@
+{
+  "totalUsd": 0.3423288321999997,
+  "porSistema": {
+    "gerar:expressoes:google/gemma-4-26b-a4b-it": 0.0013896365,
+    "juiz:expressoes:mistralai/mistral-medium-3.1": 0.046003520000000006,
+    "juiz:expressoes:deepseek/deepseek-v4.1-flash@none": 0.018594298199999998,
+    "gerar:expressoes:deepseek/deepseek-v4.1-flash": 0.0021766330000000003,
+    "gerar:expressoes:openai/gpt-oss-120b": 0.0009300780000000001,
+    "gerar:termos:google/gemma-4-26b-a4b-it": 0.001159308,
+    "gerar:termos:openai/gpt-oss-120b": 0.002214822,
+    "gerar:termos:deepseek/deepseek-v4.1-flash": 0.002734739,
+    "juiz:termos:mistralai/mistral-medium-3.1": 0.05110816,
+    "juiz:termos:deepseek/deepseek-v4.1-flash@none": 0.0209693198,
+    "gerar:comoRespondo:deepseek/deepseek-v4.1-flash": 0.002919901,
+    "gerar:comoRespondo:google/gemma-4-26b-a4b-it": 0.0017807235,
+    "gerar:comoRespondo:openai/gpt-oss-120b": 0.00089392,
+    "juiz:comoRespondo:mistralai/mistral-medium-3.1": 0.06768680000000002,
+    "juiz:comoRespondo:deepseek/deepseek-v4.1-flash@none": 0.0271838256,
+    "gerar:correcao:deepseek/deepseek-v4.1-flash": 0.0029777999999999996,
+    "gerar:correcao:google/gemma-4-26b-a4b-it": 0.0020104734999999993,
+    "gerar:correcao:openai/gpt-oss-120b": 0.001220852,
+    "juiz:correcao:mistralai/mistral-medium-3.1": 0.05411888,
+    "juiz:correcao:deepseek/deepseek-v4.1-flash@none": 0.0249402906,
+    "gerar:expressoes:google/gemma-4-26b-a4b-it#legenda": 0.0019691205,
+    "gerar:termos:google/gemma-4-26b-a4b-it#legenda": 0.0018232790000000001,
+    "gerar:comoRespondo:google/gemma-4-26b-a4b-it#legenda": 0.0028209029999999996,
+    "gerar:correcao:google/gemma-4-26b-a4b-it#legenda": 0.001308742,
+    "gerar:comoRespondo:google/gemma-4-26b-a4b-it#latencia": 0.001392807
+  }
+}

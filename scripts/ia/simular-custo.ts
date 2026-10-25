@@ -14,6 +14,7 @@ import { AMOSTRA_DE_IA, FRANQUIA_DE_ALIVIO, FRANQUIA_DO_TESTE, PLAN_MATRIX } fro
 import {
   CAMBIO_BRL_POR_USD,
   custoDaAmostraPorConta,
+  custoDoAssistenteNoPiorCaso,
   custoDoPlanoNoPiorCaso,
   custoDoPoolDaAmostraNoMes,
   margemDoAnual,
@@ -126,5 +127,16 @@ for (const plano of ['plus', 'familia', 'pro4'] as const) {
   const m = margemDoAnual(plano);
   console.log(
     `${PLAN_MATRIX[plano].rotulo.padEnd(9)} ${r(m.receitaBrutaAnualBrl)} ${r(m.receitaLiquidaMensalBrl)} ${r(m.nuvemBrl)} ${r(m.iaDeTextoBrl)} ${r(m.vozBrl)} ${r(m.extraBrl)} ${r(m.totalMensalBrl)} ${r(m.margemMensalBrl)} ${r(m.margemAnualBrl)}${m.margemAnualBrl < 0 ? '  <-- NEGATIVA' : ''}`,
+  );
+}
+
+console.log(
+  '\nASSISTENTE AO VIVO (tokens da tokensMes, já na coluna "IA texto"; teto do dia × 30, limitado pela cota de tokens)',
+);
+for (const plano of ['plus', 'familia', 'pro4'] as const) {
+  const a = custoDoAssistenteNoPiorCaso(plano);
+  const m = margemDoAnual(plano);
+  console.log(
+    `${PLAN_MATRIX[plano].rotulo.padEnd(9)} ${a.chamadasMes} chamadas/mês no teto, ${(a.tokensMes / 1e6).toFixed(2)} M tokens (${(a.fracaoDaCota * 100).toFixed(0)}% da cota) = ${r(a.brlMes)}/mês, dentro dos ${r(m.iaDeTextoBrl)} da IA de texto`,
   );
 }

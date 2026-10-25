@@ -1,0 +1,166 @@
+# Assistente ao vivo: ajuda de idioma em cima da legenda
+
+Fase C1 do plano "legenda flutuante inteligente" (decisões do dono de 25/10/2026). Este documento cobre o **motor**:
+a spec, o servidor, o módulo local e a medição de qualidade. A tela (a aba "Assistente" da janela flutuante) é a
+Fase C2. Flag `assistente_ao_vivo`, **desligada de fábrica** (SQLite 0057, PG 0011; `docs/flags.md`).
+
+Pesquisa e LLM-as-judge que escolheram o escopo: [`docs/pesquisa/2026-10-25-frasy-assistente-ao-vivo.md`](../pesquisa/2026-10-25-frasy-assistente-ao-vivo.md).
+Medição deste motor: [`docs/auditoria/eval-assistente-v1.md`](../auditoria/eval-assistente-v1.md).
+
+## Problema
+
+Quem assiste a uma série, joga ou está numa reunião em outro idioma vê a legenda e a tradução, mas tropeça em três
+coisas que a tradução não resolve: a expressão que não é a soma das palavras ("break a leg"), a sigla ou o termo de
+trabalho ("KPI", "churn") e a hora de responder ("e agora, como eu digo isso?"). Quem fala também quer saber se falou
+certo. Os concorrentes de reunião (Otter, Copilot, Zoom) disputam resumo e ata, que o Teams e o Zoom dão de graça; os
+de idioma (Language Reactor, Trancy) cobram US$ 3–6 por glosa na legenda. O espaço do Frasy é o **idioma dentro do
+conteúdo**.
+
+## Objetivos
+
+1. **Destacar expressões idiomáticas e gírias** na linha da legenda, com o sentido em poucas palavras (automático).
+2. **Marcar as palavras acima do nível da pessoa**, 100% no aparelho, sem rede e sem custo — também no Grátis.
+3. **Explicar um termo técnico ou sigla em uma linha** (automático; detecção local e cache por termo).
+4. **"Como respondo?"**: 3 respostas curtas, com tradução, sob demanda. Apresentado como ajuda de idioma.
+5. **Correção gentil da própria fala** (opt-in).
+
+Os recursos 1, 3, 4 e 5 são de nuvem e **só dos planos pagos**. Perfil protegido (menor ou idade não declarada): tudo
+aqui trata só a frase que a própria pessoa está vendo ou falou, e sempre leva a instrução de segurança para menores.
+
+## Fora do escopo
+
+- A tela (Fase C2). Este documento entrega o contrato da API e os clientes tipados em `src/data/`.
+- Qualquer modo "oculto", "indetectável" ou "para entrevistas" (a lição do Cluely). A copy segue a skill
+  `copy-br-etica`.
+- Tudo que analisa terceiros: resumo, ata, tarefas, "quem disse o quê", emoção ou tom de quem fala, dossiê do
+  interlocutor, filtro de toxicidade. Os juízes reprovaram ou marcaram como só para adultos (§5 da pesquisa).
+- Busca na web (o ZDR do OpenRouter não cobre plugins de busca).
+- Cache no servidor: a frase é da conversa de alguém (retenção zero). O cache das glosas é só na memória da aba.
+- Segmentação de idiomas sem espaço (chinês, japonês, tailandês) no recurso 2.
+
+## Design
+
+### Peças
+
+| Peça                                          | O que faz                                                                                                                                                                                                 |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/core/planos.ts`                          | `assistenteDia` em `QuotasDoPlano` (200 nos pagos, 0 no Grátis e no convidado, `null` no self-host), `ASSISTENTE_DIA_DOS_PAGOS`, `FLAG_ASSISTENTE_AO_VIVO`.                                               |
+| `src/core/assistente/palavrasAcimaDoNivel.ts` | Recurso 2, puro: as palavras da linha acima do nível CEFR da pessoa, com início e fim. Usa `nivelCefr` (as listas A1–C2 da trilha: CEFR-J + Octanove no inglês, faixas de frequência nos outros idiomas). |
+| `src/core/assistente/termosCandidatos.ts`     | A detecção local do recurso 3: siglas em caixa alta (2–6 caracteres). A tela só chama a nuvem quando há candidato.                                                                                        |
+| `src/lib/estudo/promptDoAssistente.ts`        | Os quatro prompts, os parâmetros (`PARAMETROS_DO_ASSISTENTE`) e os leitores defensivos.                                                                                                                   |
+| `src/lib/esquemasDeSaida.ts`                  | Os quatro esquemas `json_schema` estritos (`assistente_*`).                                                                                                                                               |
+| `server/lib/assistenteAoVivo.ts`              | O teto do dia: `reservarUsoDoAssistente`/`estornarUsoDoAssistente` (contador `assistente_dia`, dia local).                                                                                                |
+| `server/ai/nucleo/assistenteAoVivo.ts`        | O núcleo: flag, teto do dia, menor, ZDR, portão, admissão, cota, cascata, leitura.                                                                                                                        |
+| `server/ai/assistente.ts`                     | O adaptador Express e o limitador de 30 pedidos/min (balde próprio).                                                                                                                                      |
+| `src/data/apiDoAssistente.ts`                 | Os clientes tipados, o cache da aba e os motivos de falha (`motivoDeCota`).                                                                                                                               |
+| `scripts/eval-ia/assistente.mjs`              | A bancada de qualidade e latência (LLM-as-judge, teto no livro-caixa).                                                                                                                                    |
+
+### Fluxo de um pedido (igual ao da explicação da frase)
+
+1. **Flag** `assistente_ao_vivo` desligada → 404 `recurso_indisponivel`, sem ler corpo nem plano.
+2. **Corpo estrito** (`z.strictObject`): só o texto da própria pessoa e os idiomas BCP-47. Chave a mais → 400 `invalido`.
+3. **Plano** resolvido (erro → 502, fail-closed).
+4. **Teto do dia** (`assistenteDia`): Grátis/convidado → 402 `sem_plano`; teto atingido → 429 `teto_do_assistente`.
+5. **Menor** (`ehMenor`): instrução de segurança no fim do system; no "Como respondo?", o contexto é descartado.
+6. **Pernas** do tutor só com `retencao: 'zdr'` (`pernasDaFuncao('assistente')`), nível rápido; sem perna → 501.
+7. **Portão** da nuvem, **política de custo**, **admissão** (disjuntor e balde por modelo), **reserva de LLM** (chamadas
+   e tokens da `tokensMes`, com o uso justo do dia).
+8. **Cascata** com saída estruturada (`json_schema` strict + `require_parameters`) e o **roteamento da legenda** no
+   OpenRouter (o endpoint mais barato que responde em até 1,5 s no p50). Relógios: 5 s na primeira perna, 6 s nas
+   reservas, 10 s no total.
+9. **Leitura defensiva**: fora do formato → 502 `resposta_invalida` (uso consumido: o provedor cobrou). Nenhum
+   provedor respondeu → 502 `provedor_indisponivel` com o uso do dia e os tokens estornados.
+10. **Telemetria**: `abrirRastro` com um rótulo por recurso (`assistente-expressoes`, `-termos`, `-como-respondo`,
+    `-correcao`), menor, nível e par de idiomas; métrica de resposta inválida com a função `assistente`.
+
+### Contrato da API (para a Fase C2)
+
+Todas as rotas: `POST`, JSON, sessão obrigatória (`/api/ai` está em `SO_COM_CONTA`). Sucesso: o corpo abaixo +
+`restanteHoje: number | null`; o modelo que respondeu vem no cabeçalho `x-ia-modelo` (para o 👍/👎). Recusas no
+envelope `{ error, code }`.
+
+| Rota                               | Pedido                                                                             | Resposta                                                                                                        |
+| ---------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `/api/ai/assistente/expressoes`    | `{ frase (1–300), lang, langDaPessoa }`                                            | `{ expressoes: [{ trecho, sentido, tipo: 'idiomatica'\|'giria'\|'phrasal' }] }` (até 3; `trecho` está na frase) |
+| `/api/ai/assistente/termos`        | `{ frase (1–300), termos?: string[] (≤ 3, cada um na frase), lang, langDaPessoa }` | `{ termos: [{ termo, explicacao }] }` (até 3; sem `termos`, o modelo escolhe até 2)                             |
+| `/api/ai/assistente/como-respondo` | `{ frase (1–400), contexto?: string[] (≤ 2), lang, langDaPessoa }`                 | `{ sugestoes: [{ texto, traducao, tom: 'neutro'\|'informal'\|'formal' }] }` (2 ou 3)                            |
+| `/api/ai/assistente/correcao`      | `{ minhaFala (1–400), lang, langDaPessoa }`                                        | `{ correcao: { ok, corrigida, dica } }`                                                                         |
+
+| Status / `code`                                   | Quando                                                    | Motivo no cliente           |
+| ------------------------------------------------- | --------------------------------------------------------- | --------------------------- |
+| 404 `recurso_indisponivel`                        | flag desligada                                            | `fora`                      |
+| 400 `invalido`                                    | corpo fora do contrato, chave a mais, termo fora da frase | `invalido`                  |
+| 402 `sem_plano`                                   | Grátis, convidado                                         | `sem_plano`                 |
+| 429 `teto_do_assistente`                          | teto do dia                                               | `uso_justo`                 |
+| 429 `uso_justo_do_dia` / 402 `quota_exceeded`     | tokens do dia / do mês                                    | `uso_justo` / `cota_do_mes` |
+| 429 `assistente_demais` / `nuvem_ocupada`         | 30/min, admissão, limite do provedor                      | `nuvem_ocupada`             |
+| 501                                               | nenhuma perna ZDR configurada                             | `indisponivel`              |
+| 502 `resposta_invalida` / `provedor_indisponivel` | modelo fora do formato / provedor fora do ar              | `indisponivel`              |
+
+Clientes (`src/data/apiDoAssistente.ts`): `destacarExpressoes`, `explicarTermos`, `comoRespondo`, `corrigirMinhaFala`
+(nenhum lança; `{ ok: true, valor } | { ok: false, motivo, status }`), `esquecerCacheDoAssistente`. Local:
+`palavrasAcimaDoNivel(linha, lang, nivelDaPessoa)` e `candidatosATermo(linha)`.
+
+### Recomendações para a tela (C2)
+
+- Expressões: chamar só para linhas com ≥ 4 palavras e no máximo uma vez por linha (o cliente já guarda em cache).
+- Termos: chamar só quando `candidatosATermo` acha sigla (ou num toque explícito na linha).
+- "Como respondo?": botão explícito. Texto sugerido: "Como respondo?" / "Sugestões para você responder com as suas
+  palavras". Nada de "oculto", "ninguém vê" ou "entrevista".
+- Correção: interruptor desligado por padrão, e só com a fala do microfone da própria pessoa.
+- No Safari (PiP de vídeo, só leitura) só cabem 1, 2 e 3, desenhados inline.
+
+### Cota e custo
+
+- **Teto do dia**: 200 chamadas por dia local nos pagos, somando os quatro recursos; contador próprio.
+- **Tokens**: saem da `tokensMes` do plano (como a IA de estudo), então o custo já está na coluna "IA de texto" de
+  `npm run ia:custo`. Pior caso (teto todo dia, 650 tokens por chamada, preço da perna mais cara do nível rápido):
+  R$ 1,79/mês no Plus, dentro dos R$ 2,80 da IA de texto; a margem do anual não muda (Plus R$ 2,71, Família R$ 3,94,
+  Pro R$ 2,29 por mês).
+- **Medido** (bancada): US$ 0,03–0,07 por mil chamadas no Gemma 4 26B com o roteamento da legenda.
+- **Por minuto**: 30 pedidos por conta, num balde próprio — as glosas acompanham a legenda, e dividir o balde caro com
+  a tradução de cada fala cortaria a legenda.
+
+### Modelo
+
+A cascata rápida atual (Gemma 4 26B → Llama 3.3 70B, só ZDR) com o roteamento da legenda. Na bancada de 25/10/2026
+(100 casos, 2 juízes), ela empatou ou venceu o DeepSeek v4.1 Flash e o gpt-oss-120b nos quatro recursos e custou
+menos. Detalhes e números: `docs/auditoria/eval-assistente-v1.md`.
+
+## Critérios de aceite
+
+1. Flag desligada (a semente da migração): as quatro rotas respondem 404 `recurso_indisponivel` sem chamar provedor,
+   sem contar e sem ler o plano. _(teste: `tests/integration/assistente-ao-vivo.test.ts`, `tests/caracterizacao/ia.test.ts`)_
+2. Grátis: 402 `sem_plano` nas quatro, sem provedor. Pagos: `assistenteDia` = 200; self-host sem teto.
+3. Plus: 200 com o corpo do contrato, esquema `assistente_*` com `require_parameters`, `provider.sort = 'price'`, o
+   contador do dia +1 e os tokens na `tokensMes`.
+4. Teto do dia atingido: 429 `teto_do_assistente` sem provedor; o cliente mapeia para `uso_justo`.
+5. Resposta fora do formato: 502 `resposta_invalida` e o uso do dia consumido; provedor fora do ar: 502 com uso e
+   tokens estornados.
+6. Menor: a instrução de segurança no system dos quatro recursos; o "Como respondo?" não envia o contexto. Adulto: sem
+   a instrução, com o contexto.
+7. Corpo estrito: `falante`, `participantes`, `transcricao`, `falas`, `sessionId`, `emocao` ou qualquer chave a mais →
+   400, sem custo; termo pedido fora da frase → 400; idioma com texto livre → 400.
+8. Provedor sem `retencao: 'zdr'` nunca é chamado; sem perna ZDR → 501.
+9. 31º pedido no minuto → 429 `assistente_demais`, fora do balde caro.
+10. Recurso 2: só palavras estritamente acima do nível, com a posição exata; não marca sigla, nome próprio no meio da
+    frase, palavra fora da lista (salvo opção) nem idioma sem espaço. _(teste: `tests/assistente-local.test.ts`)_
+11. Qualidade e latência medidas com o harness, gasto ≤ US$ 1,00 no livro-caixa; "Como respondo?" com alvo de p95 ≤ 3 s (medido: 5,7 s, por causa de um endpoint — ver o relatório; pendente de decisão antes de ligar).
+12. `npm run ia:custo`: margem do anual ≥ 0 nos planos v4. _(teste: `tests/assistente-custo.test.ts`)_
+
+## Riscos e mitigação
+
+| Risco                                                         | Mitigação                                                                                                                                                                                                          |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| O assistente come a `tokensMes` e falta legenda no fim do mês | O teto do dia × 30 pode chegar à cota inteira. A tela deve chamar com parcimônia (recomendações acima). Se a telemetria mostrar o problema, criar uma subcota de tokens (`assistenteTokensMes`) — decisão do dono. |
+| Destaque errado ou inventado                                  | O leitor descarta trecho/termo que não está na frase; a bancada mediu 80–88% de aprovação nas glosas.                                                                                                              |
+| "Como respondo?" lido como cola                               | Copy de ajuda de idioma, sob demanda, sem promessa de ocultação; o prompt proíbe mentir e dados pessoais.                                                                                                          |
+| Latência acima de 3 s no "Como respondo?"                     | p95 medido de 5,7 s (p50 2,2 s, p90 3,3 s; a cauda é um endpoint, a Makora): a tela mostra a espera e permite cancelar; tirar a Makora do roteamento é decisão do dono (mexe na legenda).                          |
+| Provedor do OpenRouter que ignora o esquema                   | `require_parameters` + leitor defensivo; a bancada viu um endpoint (SiliconFlow) devolver JSON sem uma chave — vira 502, sem ajuda inventada.                                                                      |
+
+## Perguntas ao dono
+
+1. O teto do dia (200) e o limite por minuto (30) estão bons para o lançamento?
+2. Criar já a subcota de tokens do assistente, para a legenda nunca ficar sem cota?
+3. A palavra acima do nível vai ao Grátis como isca (custo zero) — confirmado; mostrar a contagem de "palavras novas"
+   no fim da sessão é próxima fase?

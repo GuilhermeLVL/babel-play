@@ -1,0 +1,176 @@
+{
+  "geradoEm": "2026-10-25T21:30:33.301Z",
+  "juizes": ["mistralai/mistral-medium-3.1", "deepseek/deepseek-v4.1-flash@none"],
+  "candidatos": ["google/gemma-4-26b-a4b-it#legenda"],
+  "recursos": {
+    "expressoes": {
+      "google/gemma-4-26b-a4b-it#legenda": {
+        "casos": 30,
+        "validos": 30,
+        "taxaValida": 1,
+        "porJuiz": {
+          "mistralai/mistral-medium-3.1": {
+            "julgados": 30,
+            "porCriterio": {
+              "acerto": 0.9,
+              "semInvencao": 1,
+              "sentido": 0.7333333333333333,
+              "seguro": 1
+            },
+            "aprovacao": 0.6666666666666666
+          },
+          "deepseek/deepseek-v4.1-flash@none": {
+            "julgados": 30,
+            "porCriterio": {
+              "acerto": 0.9333333333333333,
+              "semInvencao": 1,
+              "sentido": 0.9666666666666667,
+              "seguro": 1
+            },
+            "aprovacao": 0.9333333333333333
+          }
+        },
+        "aprovacaoMedia": 0.8,
+        "latenciaMs": {
+          "p50": 1197.4352500000005,
+          "p95": 2327.368375,
+          "max": 2558.810958
+        },
+        "ttftMs": {
+          "p50": 414.1136670000001,
+          "p95": 1456.531542
+        },
+        "usdPorChamada": 0.00003140525,
+        "tokensPorChamada": 442.06666666666666
+      }
+    },
+    "termos": {
+      "google/gemma-4-26b-a4b-it#legenda": {
+        "casos": 30,
+        "validos": 30,
+        "taxaValida": 1,
+        "porJuiz": {
+          "mistralai/mistral-medium-3.1": {
+            "julgados": 30,
+            "porCriterio": {
+              "cobertura": 1,
+              "correcao": 0.9,
+              "concisao": 0.7,
+              "seguro": 1
+            },
+            "aprovacao": 0.7
+          },
+          "deepseek/deepseek-v4.1-flash@none": {
+            "julgados": 30,
+            "porCriterio": {
+              "cobertura": 1,
+              "correcao": 1,
+              "concisao": 0.9,
+              "seguro": 1
+            },
+            "aprovacao": 0.9
+          }
+        },
+        "aprovacaoMedia": 0.8,
+        "latenciaMs": {
+          "p50": 930.8419170000016,
+          "p95": 2203.347791,
+          "max": 2624.325082999996
+        },
+        "ttftMs": {
+          "p50": 370.2041250000002,
+          "p95": 778.0835829999996
+        },
+        "usdPorChamada": 0.000029103000000000002,
+        "tokensPorChamada": 412.73333333333335
+      }
+    },
+    "comoRespondo": {
+      "google/gemma-4-26b-a4b-it#legenda": {
+        "casos": 20,
+        "validos": 20,
+        "taxaValida": 1,
+        "porJuiz": {
+          "mistralai/mistral-medium-3.1": {
+            "julgados": 20,
+            "porCriterio": {
+              "pertinente": 1,
+              "natural": 1,
+              "traducao": 1,
+              "variedade": 1,
+              "seguro": 1
+            },
+            "aprovacao": 1
+          },
+          "deepseek/deepseek-v4.1-flash@none": {
+            "julgados": 20,
+            "porCriterio": {
+              "pertinente": 1,
+              "natural": 1,
+              "traducao": 1,
+              "variedade": 1,
+              "seguro": 1
+            },
+            "aprovacao": 1
+          }
+        },
+        "aprovacaoMedia": 1,
+        "latenciaMs": {
+          "p50": 2209.591916000005,
+          "p95": 5661.708874999997,
+          "max": 9951.102083999998
+        },
+        "ttftMs": {
+          "p50": 430.3316659999982,
+          "p95": 1180.3062079999945
+        },
+        "usdPorChamada": 0.0000703812,
+        "tokensPorChamada": 592.9
+      }
+    },
+    "correcao": {
+      "google/gemma-4-26b-a4b-it#legenda": {
+        "casos": 20,
+        "validos": 20,
+        "taxaValida": 1,
+        "porJuiz": {
+          "mistralai/mistral-medium-3.1": {
+            "julgados": 20,
+            "porCriterio": {
+              "veredito": 0.9,
+              "corrigida": 0.9,
+              "dica": 0.95,
+              "seguro": 1
+            },
+            "aprovacao": 0.9
+          },
+          "deepseek/deepseek-v4.1-flash@none": {
+            "julgados": 20,
+            "porCriterio": {
+              "veredito": 0.95,
+              "corrigida": 0.95,
+              "dica": 1,
+              "seguro": 1
+            },
+            "aprovacao": 0.95
+          }
+        },
+        "aprovacaoMedia": 0.925,
+        "latenciaMs": {
+          "p50": 858.7714169999963,
+          "p95": 1279.3649589999986,
+          "max": 2314.731124999991
+        },
+        "ttftMs": {
+          "p50": 385.3153330000059,
+          "p95": 834.9285419999942
+        },
+        "usdPorChamada": 0.00003183225,
+        "tokensPorChamada": 451.35
+      }
+    }
+  },
+  "gastoUsd": 0.3273224417999997,
+  "tetoUsd": 1,
+  "parada": null
+}

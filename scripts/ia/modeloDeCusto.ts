@@ -147,3 +147,38 @@ export function custoDoPoolDaAmostraNoMes(modo: 'conservador' | 'esperado'): num
   const c = custoDaAmostraPorConta(modo);
   return AMOSTRA_DE_IA.poolChamadasDia * 30 * Math.max(c.usdPorExplicacao, c.usdPorResumo);
 }
+
+/**
+ * O ASSISTENTE AO VIVO (`docs/specs/2026-10-25-assistente-ao-vivo.md`) NÃO TEM CUSTO À PARTE: os tokens de cada chamada
+ * saem da `tokensMes` do plano (o mesmo pote da IA de texto já somado em `iaDeTextoBrl`), e o teto do dia
+ * (`assistenteDia`) é o uso justo. Esta conta mostra o pior caso de uma conta que usa o teto TODO dia, com os números da
+ * bancada (`docs/auditoria/eval-assistente-v1.md`, 25/10/2026): até ~640 tokens por chamada (arredondado para 650) e o
+ * Gemma 4 26B com o roteamento da legenda a ≤ US$ 0,12 por 1M tokens medidos. O preço usado é o da perna MAIS CARA do
+ * nível rápido, a reserva Llama 3.3 70B (US$ 0,10 de entrada e 0,32 de saída por 1M), na mistura medida de ~75% de
+ * entrada: ~US$ 0,16/1M — abaixo do R$ 1,40/1M que a `tokensMes` já paga. O que passa da `tokensMes` não acontece: a
+ * reserva de LLM recusa antes (402 da cota do mês).
+ */
+export const TOKENS_POR_CHAMADA_DO_ASSISTENTE = 650;
+export const USD_POR_MILHAO_DE_TOKENS_DO_ASSISTENTE = 0.16;
+
+export interface CustoDoAssistente {
+  chamadasMes: number;
+  /** Tokens no teto do dia × 30, limitados pela `tokensMes` do plano. */
+  tokensMes: number;
+  /** Quanto da `tokensMes` o assistente no teto ocuparia (1 = toda a cota de texto). */
+  fracaoDaCota: number;
+  brlMes: number;
+}
+
+export function custoDoAssistenteNoPiorCaso(plano: PlanoDeAssinatura): CustoDoAssistente {
+  const q = PLAN_MATRIX[plano].quotas;
+  const chamadasMes = (q.assistenteDia ?? 0) * 30;
+  const semTeto = chamadasMes * TOKENS_POR_CHAMADA_DO_ASSISTENTE;
+  const tokensMes = q.tokensMes === null ? semTeto : Math.min(semTeto, q.tokensMes);
+  return {
+    chamadasMes,
+    tokensMes,
+    fracaoDaCota: q.tokensMes ? tokensMes / q.tokensMes : 0,
+    brlMes: (tokensMes / 1_000_000) * USD_POR_MILHAO_DE_TOKENS_DO_ASSISTENTE * CAMBIO_BRL_POR_USD,
+  };
+}

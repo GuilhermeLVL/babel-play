@@ -1,9 +1,17 @@
 import '../../../styles/legendas.css';
 import '../../../styles/legendasFlutuantes.css';
 
-import { ArrowDown, AudioLines } from 'lucide-react';
-import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowDown, AudioLines, MousePointerClick } from 'lucide-react';
+import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import {
+  falasAVista,
+  type Formato,
+  type Layout,
+  layoutPorTamanho,
+  type Tamanho,
+  tamanhoDaLetra,
+} from '../../../core/legendas/janelaFlutuante';
 import { fetchSettings, patchUiSettings } from '../../../data/api';
 import {
   avancar,
@@ -25,11 +33,19 @@ import {
   type Aparencia,
   CHAVE,
   CHAVE_MEU,
+  FORMATO_DO_MODO,
+  fundoResolvido,
+  FUNDOS,
   lerAparencia,
+  type Modo,
+  modoDoFormato,
+  MOSTRAS,
   normalizar,
   PADRAO,
   type Preset,
   PRESETS,
+  proximoDe,
+  type Traducao,
   traducaoAMostra,
 } from './legendas/aparenciaDaLegenda';
 import BarraDaLegenda from './legendas/BarraDaLegenda';
@@ -38,6 +54,39 @@ import LinhaDaLegenda, { type LegendaAoVivo } from './legendas/LinhaDaLegenda';
 import PainelDaLegenda from './legendas/PainelDaLegenda';
 
 export type { LegendaAoVivo };
+
+/**
+ * Uma aba a mais na janela, ao lado de "Legendas" (a costura para o Assistente da Fase C). Sem abas
+ * extras, a janela não mostra lista de abas nenhuma.
+ */
+export interface AbaDaJanela {
+  id: string;
+  rotulo: string;
+  conteudo: ReactNode;
+}
+
+/** O modo (classe e rótulo de quem fala) que cada layout usa. */
+const MODO_DO_LAYOUT: Readonly<Record<Layout, Modo>> = {
+  faixa: 'jogo',
+  legenda: 'video',
+  conversa: 'conversa',
+  estudo: 'estudo',
+};
+
+/** Sem mexer o mouse, tocar ou teclar por este tempo, os controles somem e fica só o texto. */
+export const CONTROLES_SOMEM_MS = 2000;
+
+/** Lê (e acompanha) o tema escuro do APP — é ele que decide o fundo `auto`, também dentro da PiP. */
+function useTemaEscuro(): boolean {
+  const ler = () => typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+  const [escuro, setEscuro] = useState(ler);
+  useEffect(() => {
+    const obs = new MutationObserver(() => setEscuro(ler()));
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => obs.disconnect();
+  }, []);
+  return escuro;
+}
 
 /**
  * LEGENDAS FLUTUANTES — o `desenharLegendas()` do protótipo aprovado (C6): a janelinha escura com a
@@ -70,6 +119,10 @@ export default function LegendasFlutuantes({
   aoConsultarPalavra,
   aoOuvir,
   aoSalvarPalavra,
+  naJanela = false,
+  formatoInicial,
+  aoTrocarFormato,
+  abasExtras,
 }: {
   /** As últimas falas da captura, em ordem. A janela decide quais e quando aparecem. */
   falas: LegendaAoVivo[];
@@ -84,8 +137,24 @@ export default function LegendasFlutuantes({
   aoOuvir?: (texto: string, lang: string | undefined, lenta: boolean) => void;
   /** Ficha no vocabulário (FSRS); devolve o que o fichamento disse, para a janela mostrar. */
   aoSalvarPalavra?: (item: { palavra: string; frase?: string; lang?: string; traducao?: string }) => Promise<string>;
+  /** Ocupa uma janela inteira (a PiP): o layout segue o TAMANHO dela, medido de verdade. */
+  naJanela?: boolean;
+  /** O formato sugerido pelo app ao abrir (vence o guardado, uma vez). */
+  formatoInicial?: Formato;
+  /** A pessoa trocou o formato: quem abriu a janela a redimensiona. */
+  aoTrocarFormato?: (f: Formato) => void;
+  /** Abas além de "Legendas" (Fase C: o Assistente). */
+  abasExtras?: readonly AbaDaJanela[];
 }) {
   const [ap, setAp] = useState<Aparencia>(lerAparencia);
+  /* O formato SUGERIDO vale só nesta abertura: não sobrescreve o modo guardado. Quando a pessoa
+     escolhe um formato (ou uma predefinição), a escolha dela passa a valer e é guardada. */
+  const [modoDaSessao, setModoDaSessao] = useState<Modo | null>(() =>
+    formatoInicial ? modoDoFormato(formatoInicial) : null,
+  );
+  const modo = modoDaSessao ?? ap.modo;
+  const temaEscuro = useTemaEscuro();
+  const fundo = fundoResolvido(ap.fundo, temaEscuro);
   /* O ESTILO DE LEGENDA equipado (onda 4) — o mesmo da transcrição, relido quando muda. As cores
      que a pessoa escolheu aqui (`--leg-cor`) continuam valendo: o estilo não pinta o texto. */
   const [estiloId, setEstiloId] = useState(lerEstiloDeLegenda);
@@ -134,7 +203,13 @@ export default function LegendasFlutuantes({
     };
   }, []);
 
-  const mudar = (patch: Partial<Aparencia>) => setAp((a) => ({ ...a, ...patch }));
+  const mudar = (patch: Partial<Aparencia>) => {
+    if (patch.modo) {
+      if (patch.modo !== modo) aoTrocarFormato?.(FORMATO_DO_MODO[patch.modo]);
+      setModoDaSessao(null);
+    }
+    setAp((a) => ({ ...a, ...patch }));
+  };
 
   const aplicarPreset = (p: Preset) => {
     if (p === 'meu') {
@@ -149,11 +224,13 @@ export default function LegendasFlutuantes({
         toast.info(t('Você ainda não salvou um “Meu perfil”: ajuste e use “Salvar como Meu perfil”.'));
         return;
       }
+      if (meu.modo !== modo) aoTrocarFormato?.(FORMATO_DO_MODO[meu.modo]);
+      setModoDaSessao(null);
       setAp({ ...meu, preset: 'meu' });
       return;
     }
-    const [modo, traducao, tam] = PRESETS[p];
-    mudar({ preset: p, modo, traducao, tam });
+    const [modoDoPreset, traducao, tam] = PRESETS[p];
+    mudar({ preset: p, modo: modoDoPreset, traducao, tam });
   };
 
   const salvarMeu = () => {
@@ -165,6 +242,51 @@ export default function LegendasFlutuantes({
       toast.info(t('Não deu para salvar o perfil neste navegador.'));
     }
   };
+
+  /* ── O TAMANHO DE VERDADE: na PiP, a janela inteira; o layout acompanha quando a pessoa a estica. ── */
+  const raiz = useRef<HTMLDivElement>(null);
+  const [tamanho, setTamanho] = useState<Tamanho | null>(null);
+  useEffect(() => {
+    if (!naJanela) return;
+    const win = raiz.current?.ownerDocument.defaultView;
+    if (!win) return;
+    const medir = () =>
+      setTamanho((t) =>
+        t && t.largura === win.innerWidth && t.altura === win.innerHeight
+          ? t
+          : { largura: win.innerWidth, altura: win.innerHeight },
+      );
+    medir();
+    win.addEventListener('resize', medir);
+    /* O observador DA JANELA dela: o da janela principal não vê o documento da PiP. */
+    const RO = (win as unknown as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver;
+    const obs = RO ? new RO(medir) : null;
+    if (obs && raiz.current) obs.observe(raiz.current);
+    return () => {
+      win.removeEventListener('resize', medir);
+      obs?.disconnect();
+    };
+  }, [naJanela]);
+  const formato = FORMATO_DO_MODO[modo];
+  const layout = layoutPorTamanho(formato, tamanho);
+  const modoDoLayout = MODO_DO_LAYOUT[layout];
+  const quantasAVista = falasAVista(layout, tamanho, ap.visiveis);
+  /* Fora da PiP a letra é a do protótipo (`--leg-tam`); dentro, acompanha a largura da janela. */
+  const letraPx = tamanho ? tamanhoDaLetra(layout, tamanho.largura, ap.tam / 100) : null;
+  /* "Só o original" esconde a tradução de todas as falas (como a Imersão); "só a tradução" a mostra no lugar. */
+  const modoDaTraducao: Traducao = ap.mostrar === 'original' ? 'oculta' : ap.traducao;
+
+  /* ── LIMPA: só o texto; os controles aparecem ao mexer e somem sozinhos. ─────────────────── */
+  const [controles, setControles] = useState(false);
+  const [mexeu, setMexeu] = useState(0);
+  const mostrarControles = useCallback(() => {
+    setControles(true);
+    setMexeu((n) => n + 1);
+  }, []);
+
+  /* ── AS ABAS (só com abas extras) ─────────────────────────────────────────────────────────── */
+  const [aba, setAba] = useState('legendas');
+  const abaExtra = abasExtras?.find((a) => a.id === aba);
 
   /* ── O RITMO ──────────────────────────────────────────────────────────────────────────────── */
   const [pausaManual, setPausaManual] = useState(false);
@@ -179,7 +301,10 @@ export default function LegendasFlutuantes({
      o mouse em cima ou o dedo segurando a janela. */
   const pausado = pausaManual || !!cartao || (ap.pausarAoPassar && (sobre || segurando));
 
-  const aMostra = useCallback((f: LegendaAoVivo) => traducaoAMostra(ap.traducao, trocas[f.id]), [ap.traducao, trocas]);
+  const aMostra = useCallback(
+    (f: LegendaAoVivo) => ap.mostrar === 'traducao' || traducaoAMostra(modoDaTraducao, trocas[f.id]),
+    [ap.mostrar, modoDaTraducao, trocas],
+  );
   const doRitmo: FalaDoRitmo[] = useMemo(
     () => falas.map((f) => ({ id: f.id, caracteres: f.original.length + (aMostra(f) ? f.traducao.length : 0) })),
     [falas, aMostra],
@@ -197,7 +322,7 @@ export default function LegendasFlutuantes({
 
   const porId = useMemo(() => new Map(falas.map((f) => [f.id, f])), [falas]);
   const reveladas = ritmo.reveladas.filter((id) => porId.has(id));
-  const janela = janelaDaLegenda(reveladas, ap.visiveis, cursor, ritmo.atual);
+  const janela = janelaDaLegenda(reveladas, quantasAVista, cursor, ritmo.atual);
   const idsAVista = janela.ids;
   const emFoco = janela.foco ? porId.get(janela.foco) : undefined;
   const esperando = pausado ? pendentes(ritmo, doRitmo) : 0;
@@ -223,7 +348,6 @@ export default function LegendasFlutuantes({
   };
 
   /* ── AS AÇÕES DA FALA ─────────────────────────────────────────────────────────────────────── */
-  const raiz = useRef<HTMLDivElement>(null);
   const [aviso, setAviso] = useState('');
   useEffect(() => {
     if (!aviso) return;
@@ -240,9 +364,9 @@ export default function LegendasFlutuantes({
         }
         return;
       }
-      setTrocas((m) => ({ ...m, [f.id]: !traducaoAMostra(ap.traducao, m[f.id]) }));
+      setTrocas((m) => ({ ...m, [f.id]: !traducaoAMostra(modoDaTraducao, m[f.id]) }));
     },
-    [ap.traducao, aoRevelarTraducao],
+    [modoDaTraducao, aoRevelarTraducao],
   );
   const ouvirFala = useCallback((f: LegendaAoVivo, lenta: boolean) => aoOuvir?.(f.original, f.lang, lenta), [aoOuvir]);
   const copiar = useCallback((f: LegendaAoVivo) => {
@@ -302,6 +426,7 @@ export default function LegendasFlutuantes({
     else if (tecla === 'ArrowRight') navegar(1);
     else if (tecla === 't' && emFoco) alternarTraducao(emFoco);
     else if (tecla === 'p' && emFoco) ouvirFala(emFoco, false);
+    else if (tecla === 's' && emFoco && aoSalvarPalavra) salvarFrase(emFoco);
     else return;
     e.preventDefault();
   };
@@ -322,6 +447,29 @@ export default function LegendasFlutuantes({
   const dedoY = useRef<number | null>(null);
   const ultimoToque = useRef(0);
 
+  /* Os controles somem sozinhos — menos com o Personalizar aberto ou o foco neles (quem navega pelo
+     teclado não perde o botão de vista). */
+  useEffect(() => {
+    if (!controles || painel) return;
+    const id = setTimeout(() => {
+      const ativo = raiz.current?.ownerDocument.activeElement;
+      if (ativo && ativo.closest?.('.leg-barra, .leg-painel, .leg-abas')) return;
+      setControles(false);
+    }, CONTROLES_SOMEM_MS);
+    return () => clearTimeout(id);
+  }, [controles, painel, mexeu]);
+
+  /* Na PiP, o fundo do documento acompanha o da janela (sem faixa de outra cor ao redimensionar). */
+  useEffect(() => {
+    if (!naJanela) return;
+    const doc = raiz.current?.ownerDocument;
+    if (!doc) return;
+    doc.body.style.backgroundColor = fundo === 'claro' ? '#f6f1e8' : fundo === 'preto' ? '#000000' : '#141210';
+  }, [naJanela, fundo]);
+
+  const salvarAtual = emFoco && aoSalvarPalavra ? () => salvarFrase(emFoco) : undefined;
+  const mudarLetra = (passo: -1 | 1) => mudar({ tam: Math.min(160, Math.max(70, ap.tam + passo * 10)) });
+
   const corpo = recolhido ? null : oculto ? (
     <p className="leg-vazio">{t('Legenda escondida')}</p>
   ) : !janela.ids.length ? (
@@ -336,9 +484,10 @@ export default function LegendasFlutuantes({
         <LinhaDaLegenda
           key={id}
           fala={f}
-          modo={ap.modo}
-          modoDaTraducao={ap.traducao}
+          modo={modoDoLayout}
+          modoDaTraducao={modoDaTraducao}
           traducaoVisivel={aMostra(f)}
+          soTraducao={ap.mostrar === 'traducao'}
           emFoco={id === janela.foco}
           aprendidas={aprendidas}
           aoTocarPalavra={tocarPalavra}
@@ -352,10 +501,12 @@ export default function LegendasFlutuantes({
     })
   );
 
+  const claro = fundo === 'claro';
   const estilo = {
     '--leg-tam': ap.tam / 100,
-    '--leg-cor': ap.cores.legenda,
-    '--leg-trad': ap.cores.traducao,
+    /* No fundo claro o texto é escuro (as cores escolhidas são para fundo escuro). */
+    ...(claro ? {} : { '--leg-cor': ap.cores.legenda, '--leg-trad': ap.cores.traducao }),
+    ...(letraPx ? { '--leg-letra': `${letraPx}px` } : {}),
     /* Na janela sempre-no-topo, a caixa É a janela: ocupa tudo e rola se o painel não couber. */
     position: 'relative',
     right: 'auto',
@@ -368,6 +519,21 @@ export default function LegendasFlutuantes({
     overflowY: 'auto',
   } as CSSProperties;
 
+  const estudo = layout === 'estudo';
+  const cartaoAberto = !!cartao && !recolhido && !abaExtra;
+  const classes = [
+    'leg-flut',
+    'leg-limpa',
+    `modo-${modoDoLayout}`,
+    classesDoEstiloEquipado,
+    recolhido ? 'recolhido' : '',
+    pausado ? 'pausado' : '',
+    controles || recolhido ? 'com-controles' : '',
+    letraPx ? 'letra-da-janela' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <div
       id="leg-flut"
@@ -375,15 +541,27 @@ export default function LegendasFlutuantes({
       role="region"
       aria-label={t('Legendas flutuantes')}
       tabIndex={-1}
-      className={`leg-flut modo-${ap.modo} ${classesDoEstiloEquipado} ${recolhido ? 'recolhido' : ''} ${pausado ? 'pausado' : ''}`}
+      data-fundo={fundo}
+      data-layout={layout}
+      className={classes}
       style={estilo}
       onMouseEnter={() => {
         if (Date.now() - ultimoToque.current > TOQUE_RECENTE_MS) setSobre(true);
+        mostrarControles();
       }}
-      onMouseLeave={() => setSobre(false)}
+      onMouseMove={mostrarControles}
+      onMouseLeave={() => {
+        setSobre(false);
+        setControles(false);
+      }}
+      onFocus={mostrarControles}
+      /* Saiu o foco de um controle: a conta dos 2 s recomeça (antes, a barra podia ficar presa). */
+      onBlur={mostrarControles}
+      onKeyDown={mostrarControles}
       onTouchStart={() => {
         ultimoToque.current = Date.now();
         setSegurando(true);
+        mostrarControles();
       }}
       onTouchEnd={() => setSegurando(false)}
       onTouchCancel={() => setSegurando(false)}
@@ -397,48 +575,92 @@ export default function LegendasFlutuantes({
         aoTrocarLeitura={(leitura) => mudar({ leitura })}
         traducao={ap.traducao}
         aoTrocarTraducao={(traducao) => mudar({ traducao })}
+        modo={modo}
+        aoTrocarModo={(modo) => mudar({ modo })}
+        mostrar={ap.mostrar}
+        aoTrocarMostrar={() => mudar({ mostrar: proximoDe(MOSTRAS, ap.mostrar) })}
+        aoLetra={mudarLetra}
+        letraNoMinimo={ap.tam <= 70}
+        letraNoMaximo={ap.tam >= 160}
+        fundo={ap.fundo}
+        aoTrocarFundo={() => mudar({ fundo: proximoDe(FUNDOS, ap.fundo) })}
+        aoSalvarFrase={salvarAtual}
         painel={painel}
         aoPainel={() => setPainel((v) => !v)}
         aoFechar={aoFechar}
       />
-      {corpo && (
-        <div
-          className="leg-corpo"
-          onWheel={(e) => {
-            const agora = Date.now();
-            if (!e.deltaY || agora - ultimaRoda.current < PASSO_DA_RODA_MS) return;
-            ultimaRoda.current = agora;
-            navegar(e.deltaY < 0 ? -1 : 1);
-          }}
-          onTouchStart={(e) => {
-            dedoY.current = e.touches[0]?.clientY ?? null;
-          }}
-          onTouchMove={(e) => {
-            const y = e.touches[0]?.clientY;
-            if (dedoY.current === null || y === undefined) return;
-            const dy = y - dedoY.current;
-            if (Math.abs(dy) < PASSO_DO_DEDO_PX) return;
-            dedoY.current = y;
-            navegar(dy > 0 ? -1 : 1);
-          }}
-        >
-          {corpo}
-          {novas > 0 && !oculto && (
-            <button type="button" className="leg-novas" onClick={irParaOFim}>
-              {tp(novas, '{n} nova', '{n} novas')} <ArrowDown aria-hidden />
+      {abasExtras && abasExtras.length > 0 && !recolhido && (
+        <div className="leg-abas" role="tablist" aria-label={t('Partes da janela')}>
+          {[{ id: 'legendas', rotulo: t('Legendas') }, ...abasExtras].map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              role="tab"
+              id={`leg-aba-${a.id}`}
+              aria-selected={aba === a.id}
+              aria-controls={`leg-painel-${a.id}`}
+              onClick={() => setAba(a.id)}
+            >
+              {a.rotulo}
             </button>
-          )}
+          ))}
         </div>
       )}
-      {cartao && !recolhido && (
+      {abaExtra && !recolhido ? (
+        <div
+          className="leg-aba-extra"
+          role="tabpanel"
+          id={`leg-painel-${abaExtra.id}`}
+          aria-labelledby={`leg-aba-${abaExtra.id}`}
+        >
+          {abaExtra.conteudo}
+        </div>
+      ) : (
+        corpo && (
+          <div
+            className="leg-corpo"
+            onWheel={(e) => {
+              const agora = Date.now();
+              if (!e.deltaY || agora - ultimaRoda.current < PASSO_DA_RODA_MS) return;
+              ultimaRoda.current = agora;
+              navegar(e.deltaY < 0 ? -1 : 1);
+            }}
+            onTouchStart={(e) => {
+              dedoY.current = e.touches[0]?.clientY ?? null;
+            }}
+            onTouchMove={(e) => {
+              const y = e.touches[0]?.clientY;
+              if (dedoY.current === null || y === undefined) return;
+              const dy = y - dedoY.current;
+              if (Math.abs(dy) < PASSO_DO_DEDO_PX) return;
+              dedoY.current = y;
+              navegar(dy > 0 ? -1 : 1);
+            }}
+          >
+            {corpo}
+            {novas > 0 && !oculto && (
+              <button type="button" className="leg-novas" onClick={irParaOFim}>
+                {tp(novas, '{n} nova', '{n} novas')} <ArrowDown aria-hidden />
+              </button>
+            )}
+          </div>
+        )
+      )}
+      {cartaoAberto && cartao && (
         <CartaoDaPalavra
           alvo={cartao}
-          noAlto={cartaoNoAlto}
+          noAlto={!estudo && cartaoNoAlto}
+          encaixado={estudo}
           aoConsultar={aoConsultarPalavra}
           aoOuvir={aoOuvir}
           aoSalvar={aoSalvarPalavra}
           aoFechar={() => setCartao(null)}
         />
+      )}
+      {estudo && !cartaoAberto && !recolhido && !abaExtra && (
+        <p className="leg-estudo-dica">
+          <MousePointerClick aria-hidden /> {t('Toque numa palavra para ver o significado, ouvir e salvar.')}
+        </p>
       )}
       {aviso && (
         <p className="leg-aviso" role="status">

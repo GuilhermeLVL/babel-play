@@ -1,8 +1,18 @@
 import type { CSSProperties } from 'react';
 
+import type { Leitura } from '../../../../lib/captura/ritmoDaLegenda';
 import { t, tp } from '../../../../lib/i18n';
 import { Interruptor, Segmentos } from '../../vocab/Dialogo';
-import { type Aparencia, type Modo, type Preset, QUANTAS, type Traducao, type Visiveis } from './aparenciaDaLegenda';
+import {
+  type Aparencia,
+  type Fundo,
+  FUNDOS,
+  type Preset,
+  QUANTAS,
+  type Traducao,
+  type Visiveis,
+} from './aparenciaDaLegenda';
+import { ROTULO_DO_FUNDO } from './BarraDaLegenda';
 
 const PREDEFINICOES: Array<[Preset, string]> = [
   ['filme', 'Filme'],
@@ -13,9 +23,9 @@ const PREDEFINICOES: Array<[Preset, string]> = [
 ];
 
 /**
- * O PERSONALIZAR da janelinha: tudo o que saiu da barra (ei/leg) — modo da janela, predefinições,
- * tradução, quantas falas ficam à vista, pausar ao passar o mouse, esconder, tamanho, cores e
- * "Meu perfil". Mesmo desenho do painel do protótipo (C6).
+ * O PERSONALIZAR da janelinha, uma folha compacta: predefinições, fundo, ritmo de leitura, tradução,
+ * quantas falas ficam à vista, pausar ao passar o mouse, esconder, tamanho, cores e "Meu perfil".
+ * O formato da janela mora na barra (troca com um toque). Mesmo desenho do painel do protótipo (C6).
  */
 export default function PainelDaLegenda({
   ap,
@@ -42,14 +52,6 @@ export default function PainelDaLegenda({
           {t('Resetar tudo')}
         </button>
       </div>
-      <label className="entre">
-        <span className="label-mono">{t('Modo da janela')}</span>
-        <select className="leg-select" aria-label={t('Modo da janela')} value={ap.modo} onChange={(e) => mudar({ modo: e.target.value as Modo })}>
-          <option value="video">{t('Modo vídeo')}</option>
-          <option value="conversa">{t('Conversa')}</option>
-          <option value="jogo">{t('Jogo')}</option>
-        </select>
-      </label>
       <span className="label-mono">{t('Predefinições')}</span>
       <div className="chips">
         {PREDEFINICOES.map(([v, r]) => (
@@ -58,6 +60,27 @@ export default function PainelDaLegenda({
           </button>
         ))}
       </div>
+      <span className="label-mono">{t('Fundo')}</span>
+      <Segmentos<Fundo>
+        rotulo={t('Fundo')}
+        atual={ap.fundo}
+        opcoes={FUNDOS.map((f) => [f, t(ROTULO_DO_FUNDO[f])])}
+        aoTrocar={(fundo) => mudar({ fundo })}
+      />
+      <p className="leg-nota">
+        {t('A janela por cima de tudo não fica transparente: escolha o fundo que menos atrapalha o que está atrás.')}
+      </p>
+      <span className="label-mono">{t('Ritmo de leitura')}</span>
+      <Segmentos<Leitura>
+        rotulo={t('Ritmo de leitura')}
+        atual={ap.leitura}
+        opcoes={[
+          ['lenta', t('Lenta')],
+          ['normal', t('Normal')],
+          ['rapida', t('Rápida')],
+        ]}
+        aoTrocar={(leitura) => mudar({ leitura })}
+      />
       <span className="label-mono">{t('Tradução')}</span>
       <Segmentos<Traducao>
         rotulo={t('Tradução')}
@@ -121,6 +144,7 @@ export default function PainelDaLegenda({
           </label>
         ))}
       </div>
+      {ap.fundo === 'claro' && <p className="leg-nota">{t('No fundo claro, o texto fica escuro para dar leitura.')}</p>}
       <button type="button" className="link" onClick={aoSalvarMeu}>
         {t('Salvar como “Meu perfil”')}
       </button>

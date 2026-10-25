@@ -60,6 +60,7 @@ export default function CapturaDoPrototipo({
   aoAbrirAjustes,
   aoAbrirAjuda,
   aoFlutuante,
+  flutuante,
   letra,
   legenda,
   avisos,
@@ -91,6 +92,8 @@ export default function CapturaDoPrototipo({
   aoAbrirAjuda: () => void;
   /** Abre ou fecha as legendas flutuantes. Ausente = sem o botão (onde não há janela flutuante). */
   aoFlutuante?: () => void;
+  /** A legenda flutuante está aberta, e o que o botão diz antes de tentar (qual janela este navegador dá). */
+  flutuante?: { aberta: boolean; dica: string };
   letra: { menor: () => void; maior: () => void; noMinimo: boolean; noMaximo: boolean };
   /** A legenda ao vivo (`HistoricoDoPrototipo`), usada enquanto grava. */
   legenda: ReactNode;
@@ -296,7 +299,14 @@ export default function CapturaDoPrototipo({
         {/* `enxugarCapturar()` de `enxuto.js:82`: o Pausar, logo depois do Encerrar, só enquanto grava. */}
         {enxuta && gravando && pausa && <BotaoDePausa pausada={pausa.pausada} aoAlternar={pausa.aoAlternar} />}
         {aoFlutuante && (
-          <button type="button" className="q-ctl" data-px="flutuante" onClick={aoFlutuante}>
+          <button
+            type="button"
+            className="q-ctl"
+            data-px="flutuante"
+            aria-pressed={flutuante?.aberta}
+            title={flutuante?.dica}
+            onClick={aoFlutuante}
+          >
             <PictureInPicture2 aria-hidden /> {t('Legendas flutuantes')}
           </button>
         )}

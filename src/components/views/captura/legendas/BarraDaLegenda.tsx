@@ -1,9 +1,24 @@
-import { Gauge, Keyboard, Languages, Palette, Pause, PictureInPicture2, Play, X } from 'lucide-react';
+import {
+  AArrowDown,
+  AArrowUp,
+  BookmarkPlus,
+  ChevronDown,
+  ChevronUp,
+  Contrast,
+  Gauge,
+  Keyboard,
+  Languages,
+  LayoutPanelTop,
+  Palette,
+  Pause,
+  Play,
+  X,
+} from 'lucide-react';
 import { useState } from 'react';
 
 import type { Leitura } from '../../../../lib/captura/ritmoDaLegenda';
 import { t } from '../../../../lib/i18n';
-import type { Traducao } from './aparenciaDaLegenda';
+import type { Fundo, Modo, Mostrar, Traducao } from './aparenciaDaLegenda';
 
 /** Os atalhos da janelinha, na ordem da ajuda. As teclas valem com o foco dentro da janela. */
 const ATALHOS: ReadonlyArray<[string, string]> = [
@@ -11,12 +26,29 @@ const ATALHOS: ReadonlyArray<[string, string]> = [
   ['← →', 'Voltar e avançar pelas falas'],
   ['T', 'Tradução da fala em foco'],
   ['P', 'Ouvir a fala em foco'],
+  ['S', 'Salvar a frase atual'],
 ];
 
+/** O nome curto do que a fala mostra (o texto do botão de troca rápida). */
+export const ROTULO_DO_MOSTRAR: Readonly<Record<Mostrar, string>> = {
+  ambos: 'Original e tradução',
+  original: 'Só o original',
+  traducao: 'Só a tradução',
+};
+
+export const ROTULO_DO_FUNDO: Readonly<Record<Fundo, string>> = {
+  auto: 'Seguir o tema',
+  escuro: 'Escuro',
+  preto: 'Preto',
+  claro: 'Claro',
+};
+
 /**
- * A BARRA DA JANELINHA, enxuta (ei/leg): pausar, ritmo de leitura, tradução, personalizar e
- * fechar. Modo, cores, tamanho, quantas falas, predefinições e "Meu perfil" moram no Personalizar.
- * O título recolhe e expande a janela.
+ * A BARRA DA JANELINHA (ei/leg, refeita na PiP inteligente). Fica escondida até a pessoa passar o
+ * mouse, tocar ou chegar pelo teclado, e some sozinha (quem esconde é a raiz). Tem o que se usa sem
+ * sair do jogo ou do vídeo: formato, pausar, o que a fala mostra, letra menor e maior, salvar a frase,
+ * fundo, personalizar e fechar. Ritmo e modo da tradução aparecem aqui só em janela larga (o CSS
+ * esconde), e moram também no Personalizar. O primeiro botão recolhe e expande a janela.
  */
 export default function BarraDaLegenda({
   pausado,
@@ -27,6 +59,16 @@ export default function BarraDaLegenda({
   aoTrocarLeitura,
   traducao,
   aoTrocarTraducao,
+  modo,
+  aoTrocarModo,
+  mostrar,
+  aoTrocarMostrar,
+  aoLetra,
+  letraNoMinimo,
+  letraNoMaximo,
+  fundo,
+  aoTrocarFundo,
+  aoSalvarFrase,
   painel,
   aoPainel,
   aoFechar,
@@ -39,6 +81,17 @@ export default function BarraDaLegenda({
   aoTrocarLeitura: (l: Leitura) => void;
   traducao: Traducao;
   aoTrocarTraducao: (t: Traducao) => void;
+  modo: Modo;
+  aoTrocarModo: (m: Modo) => void;
+  mostrar: Mostrar;
+  aoTrocarMostrar: () => void;
+  aoLetra: (passo: -1 | 1) => void;
+  letraNoMinimo: boolean;
+  letraNoMaximo: boolean;
+  fundo: Fundo;
+  aoTrocarFundo: () => void;
+  /** Salvar a frase em foco. Ausente = sem fichamento (o botão não aparece). */
+  aoSalvarFrase?: () => void;
   painel: boolean;
   aoPainel: () => void;
   aoFechar: () => void;
@@ -46,7 +99,7 @@ export default function BarraDaLegenda({
   const [ajuda, setAjuda] = useState(false);
   const dicaDosAtalhos = ATALHOS.map(([k, o]) => `${t(k)}: ${t(o)}`).join(' · ');
   return (
-    <div className="leg-barra">
+    <div className="leg-barra" role="toolbar" aria-label={t('Controles da legenda flutuante')}>
       <button
         type="button"
         className="leg-tit"
@@ -55,8 +108,17 @@ export default function BarraDaLegenda({
         title={recolhido ? t('Expandir') : t('Recolher')}
         onClick={aoRecolher}
       >
-        <PictureInPicture2 aria-hidden /> <span>{t('Legendas')}</span>
+        {recolhido ? <ChevronDown aria-hidden /> : <ChevronUp aria-hidden />}
       </button>
+      <label className="leg-escolha leg-formato" title={t('Formato da janela')}>
+        <LayoutPanelTop aria-hidden />
+        <select aria-label={t('Modo da janela')} value={modo} onChange={(e) => aoTrocarModo(e.target.value as Modo)}>
+          <option value="jogo">{t('Faixa (jogo)')}</option>
+          <option value="video">{t('Legenda (vídeo)')}</option>
+          <option value="conversa">{t('Conversa')}</option>
+          <option value="estudo">{t('Estudo')}</option>
+        </select>
+      </label>
       <button
         type="button"
         aria-pressed={pausado}
@@ -66,7 +128,56 @@ export default function BarraDaLegenda({
       >
         {pausado ? <Play aria-hidden /> : <Pause aria-hidden />}
       </button>
-      <label className="leg-escolha" title={t('Ritmo de leitura')}>
+      <button
+        type="button"
+        className="leg-mostrar"
+        aria-label={t('Mostrar: {o_que}. Trocar', { o_que: t(ROTULO_DO_MOSTRAR[mostrar]) })}
+        title={t('Mostrar: {o_que}. Trocar', { o_que: t(ROTULO_DO_MOSTRAR[mostrar]) })}
+        onClick={aoTrocarMostrar}
+      >
+        <Languages aria-hidden />
+        <span className="leg-mostrar-txt">{t(ROTULO_DO_MOSTRAR[mostrar])}</span>
+      </button>
+      <button
+        type="button"
+        className="leg-letra"
+        aria-label={t('Letra menor')}
+        title={t('Letra menor')}
+        disabled={letraNoMinimo}
+        onClick={() => aoLetra(-1)}
+      >
+        <AArrowDown aria-hidden />
+      </button>
+      <button
+        type="button"
+        className="leg-letra"
+        aria-label={t('Letra maior')}
+        title={t('Letra maior')}
+        disabled={letraNoMaximo}
+        onClick={() => aoLetra(1)}
+      >
+        <AArrowUp aria-hidden />
+      </button>
+      {aoSalvarFrase && (
+        <button
+          type="button"
+          aria-label={t('Salvar a frase atual')}
+          title={`${t('Salvar a frase atual')} (S)`}
+          onClick={aoSalvarFrase}
+        >
+          <BookmarkPlus aria-hidden />
+        </button>
+      )}
+      <button
+        type="button"
+        className="leg-fundo"
+        aria-label={t('Fundo: {qual}. Trocar', { qual: t(ROTULO_DO_FUNDO[fundo]) })}
+        title={t('Fundo: {qual}. Trocar', { qual: t(ROTULO_DO_FUNDO[fundo]) })}
+        onClick={aoTrocarFundo}
+      >
+        <Contrast aria-hidden />
+      </button>
+      <label className="leg-escolha leg-larga" title={t('Ritmo de leitura')}>
         <Gauge aria-hidden />
         <select
           aria-label={t('Ritmo de leitura')}
@@ -78,7 +189,7 @@ export default function BarraDaLegenda({
           <option value="rapida">{t('Rápida')}</option>
         </select>
       </label>
-      <label className="leg-escolha" title={t('Tradução')}>
+      <label className="leg-escolha leg-larga" title={t('Tradução')}>
         <Languages aria-hidden />
         <select
           aria-label={t('Tradução')}
@@ -91,6 +202,7 @@ export default function BarraDaLegenda({
           <option value="toque">{t('Ao tocar')}</option>
         </select>
       </label>
+      <span className="leg-espaco" />
       <span className="leg-ajuda">
         <button
           type="button"

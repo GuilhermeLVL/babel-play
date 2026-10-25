@@ -25,6 +25,7 @@ const PACIENCIA_MS = 8000;
 export default function CartaoDaPalavra({
   alvo,
   noAlto = false,
+  encaixado = false,
   aoConsultar,
   aoOuvir,
   aoSalvar,
@@ -33,6 +34,8 @@ export default function CartaoDaPalavra({
   alvo: PalavraTocada;
   /** Abre no alto da janela (a palavra veio de uma fala de baixo). */
   noAlto?: boolean;
+  /** No formato Estudo o cartão mora embaixo da fala, sem cobrir nada. */
+  encaixado?: boolean;
   aoConsultar?: (palavra: string, frase: string, lang?: string) => Promise<{ traducao: string }>;
   aoOuvir?: (texto: string, lang: string | undefined, lenta: boolean) => void;
   aoSalvar?: (item: { palavra: string; frase?: string; lang?: string; traducao?: string }) => Promise<string>;
@@ -78,7 +81,7 @@ export default function CartaoDaPalavra({
 
   return (
     <div
-      className={`leg-cartao ${noAlto ? 'no-alto' : ''}`}
+      className={`leg-cartao ${noAlto ? 'no-alto' : ''} ${encaixado ? 'encaixado' : ''}`}
       role="dialog"
       aria-label={t('Palavra: {palavra}', { palavra: alvo.palavra })}
       onKeyDown={(e) => {
@@ -90,7 +93,13 @@ export default function CartaoDaPalavra({
     >
       <div className="leg-cartao-topo">
         <b lang={alvo.lang || undefined}>{alvo.palavra}</b>
-        <button ref={fechar} type="button" aria-label={t('Fechar o cartão da palavra')} title={t('Fechar')} onClick={aoFechar}>
+        <button
+          ref={fechar}
+          type="button"
+          aria-label={t('Fechar o cartão da palavra')}
+          title={t('Fechar')}
+          onClick={aoFechar}
+        >
           <X aria-hidden />
         </button>
       </div>

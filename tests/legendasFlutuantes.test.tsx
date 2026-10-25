@@ -62,15 +62,29 @@ describe('Legendas flutuantes (C6)', () => {
     expect(document.querySelector('.leg-fala.b')).toBeTruthy()
   })
 
-  it('a barra enxuta: pausar, leitura, tradução, personalizar e fechar — o resto no Personalizar', () => {
-    montar()
-    const barra = document.querySelector('.leg-barra') as HTMLElement
-    for (const nome of ['Pausar legendas', 'Personalizar', 'Fechar as legendas flutuantes'])
+  it('a barra: formato, pausar, o que mostrar, letra, salvar, fundo, personalizar e fechar — o resto no Personalizar', () => {
+    montar({ aoSalvarPalavra: vi.fn(async () => 'ok') })
+    const barra = screen.getByRole('toolbar', { name: 'Controles da legenda flutuante' })
+    for (const nome of [
+      'Pausar legendas',
+      'Mostrar: Original e tradução. Trocar',
+      'Letra menor',
+      'Letra maior',
+      'Salvar a frase atual',
+      'Fundo: Seguir o tema. Trocar',
+      'Personalizar',
+      'Fechar as legendas flutuantes',
+    ])
       expect(within(barra).getByRole('button', { name: nome })).toBeTruthy()
+    /* O formato troca com um toque, sem abrir o Personalizar (PiP inteligente). */
+    expect(within(barra).getByRole('combobox', { name: 'Modo da janela' })).toBeTruthy()
     expect(within(barra).getByRole('combobox', { name: 'Ritmo de leitura' })).toBeTruthy()
     expect(within(barra).getByRole('combobox', { name: 'Tradução' })).toBeTruthy()
-    expect(within(barra).queryByRole('combobox', { name: 'Modo da janela' })).toBeNull()
     expect(within(barra).queryByRole('button', { name: 'Esconder a legenda' })).toBeNull()
+    /* Sem fichamento, o "Salvar a frase atual" não aparece. */
+    cleanup()
+    montar()
+    expect(screen.queryByRole('button', { name: 'Salvar a frase atual' })).toBeNull()
   })
 
   it('esconder (no Personalizar), recolher (pelo título) e fechar', () => {

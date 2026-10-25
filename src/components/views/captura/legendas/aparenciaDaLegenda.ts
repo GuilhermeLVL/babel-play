@@ -8,13 +8,37 @@
  * `visiveis`, `pausarAoPassar`) abre com os padrões novos; o `historico: false` de antes vira
  * "mostrar 1 fala", que era o que ele fazia.
  */
+import type { Formato } from '../../../../core/legendas/janelaFlutuante';
 import type { Leitura } from '../../../../lib/captura/ritmoDaLegenda';
 
-export type Modo = 'video' | 'conversa' | 'jogo';
+/**
+ * O formato da janela, com os nomes que já estavam guardados (`video`, `conversa`, `jogo`) e o
+ * `estudo`. Na regra pura (`core/legendas/janelaFlutuante`) eles se chamam legenda, conversa, faixa e
+ * estudo: `FORMATO_DO_MODO` e `modoDoFormato` traduzem.
+ */
+export type Modo = 'video' | 'conversa' | 'jogo' | 'estudo';
+
+export const FORMATO_DO_MODO: Readonly<Record<Modo, Formato>> = {
+  video: 'legenda',
+  conversa: 'conversa',
+  jogo: 'faixa',
+  estudo: 'estudo',
+};
+
+export function modoDoFormato(f: Formato): Modo {
+  return f === 'legenda' ? 'video' : f === 'faixa' ? 'jogo' : f;
+}
 /** `toque` = tradução escondida até você pedir, fala por fala. */
 export type Traducao = 'sempre' | 'discreta' | 'oculta' | 'toque';
 export type Preset = 'filme' | 'conversa' | 'jogo' | 'imersao' | 'meu';
 export type Visiveis = 1 | 2 | 3 | 5;
+/**
+ * O fundo da janela. `auto` segue o tema do app (claro ou escuro). A janela flutuante do navegador
+ * não tem transparência de verdade: o mais discreto possível é o fundo que combina com o que está atrás.
+ */
+export type Fundo = 'auto' | 'escuro' | 'preto' | 'claro';
+/** O que a fala mostra: os dois textos, só o original (o idioma que se aprende) ou só a tradução. */
+export type Mostrar = 'ambos' | 'original' | 'traducao';
 
 /** O que é GUARDADO. Pausar, travar, esconder e o painel valem só enquanto a janela está aberta. */
 export interface Aparencia {
@@ -29,6 +53,8 @@ export interface Aparencia {
   /** Passar o mouse (ou segurar o dedo) na janela pausa a legenda. */
   pausarAoPassar: boolean;
   cores: { legenda: string; traducao: string };
+  fundo: Fundo;
+  mostrar: Mostrar;
 }
 
 export const PADRAO: Aparencia = {
@@ -40,6 +66,8 @@ export const PADRAO: Aparencia = {
   leitura: 'normal',
   pausarAoPassar: true,
   cores: { legenda: '#FFFFFF', traducao: '#FFEA00' },
+  fundo: 'auto',
+  mostrar: 'ambos',
 };
 
 /** As predefinições do protótipo: modo, tradução e tamanho de uma vez. */
@@ -55,9 +83,11 @@ export const CHAVE_MEU = 'babel.legendasMeuPerfil';
 /** A configuração da janela antiga (Overlay), migrada na primeira abertura para ninguém perder a sua. */
 const CHAVE_ANTIGA = 'babel.overlaySettings';
 
-const MODOS = new Set<Modo>(['video', 'conversa', 'jogo']);
+const MODOS = new Set<Modo>(['video', 'conversa', 'jogo', 'estudo']);
 const TRADUCOES = new Set<Traducao>(['sempre', 'discreta', 'oculta', 'toque']);
 const LEITURAS = new Set<Leitura>(['lenta', 'normal', 'rapida']);
+export const FUNDOS: readonly Fundo[] = ['auto', 'escuro', 'preto', 'claro'];
+export const MOSTRAS: readonly Mostrar[] = ['ambos', 'original', 'traducao'];
 export const QUANTAS: readonly Visiveis[] = [1, 2, 3, 5];
 
 /** Aceita só o que tem forma de `Aparencia` (o que vem do disco ou do servidor pode ser qualquer coisa). */
@@ -83,7 +113,20 @@ export function normalizar(bruto: unknown): Aparencia {
       legenda: typeof cores.legenda === 'string' ? cores.legenda : PADRAO.cores.legenda,
       traducao: typeof cores.traducao === 'string' ? cores.traducao : PADRAO.cores.traducao,
     },
+    fundo: o.fundo && FUNDOS.includes(o.fundo) ? o.fundo : fundoDeQuemNaoEscolheu(cores),
+    mostrar: o.mostrar && MOSTRAS.includes(o.mostrar) ? o.mostrar : PADRAO.mostrar,
   };
+}
+
+/**
+ * Quem guardou a aparência antes do fundo existir e já tinha CORES próprias as escolheu para o fundo
+ * escuro de sempre: o `auto` poderia abrir a janela clara e apagar a escolha (o claro usa texto escuro).
+ * Para essa pessoa o fundo fica escuro; para quem nunca mexeu nas cores, segue o tema.
+ */
+function fundoDeQuemNaoEscolheu(cores: Partial<Aparencia['cores']>): Fundo {
+  const legenda = typeof cores.legenda === 'string' ? cores.legenda.toUpperCase() : PADRAO.cores.legenda;
+  const traducao = typeof cores.traducao === 'string' ? cores.traducao.toUpperCase() : PADRAO.cores.traducao;
+  return legenda !== PADRAO.cores.legenda || traducao !== PADRAO.cores.traducao ? 'escuro' : PADRAO.fundo;
 }
 
 /** A janela antiga guardava outro formato: modo em inglês, "independência" e escala de fonte. */
@@ -116,4 +159,14 @@ export function lerAparencia(): Aparencia {
 /** A tradução desta fala está à mostra? A troca da própria fala vence o modo da janela. */
 export function traducaoAMostra(modo: Traducao, troca: boolean | undefined): boolean {
   return troca ?? (modo === 'sempre' || modo === 'discreta');
+}
+
+/** O próximo da troca rápida (um toque passa para o seguinte e, do último, volta ao primeiro). */
+export function proximoDe<T>(lista: readonly T[], atual: T): T {
+  return lista[(lista.indexOf(atual) + 1) % lista.length];
+}
+
+/** O fundo de verdade: `auto` vira claro ou escuro conforme o tema do app. */
+export function fundoResolvido(fundo: Fundo, temaEscuro: boolean): Exclude<Fundo, 'auto'> {
+  return fundo === 'auto' ? (temaEscuro ? 'escuro' : 'claro') : fundo;
 }

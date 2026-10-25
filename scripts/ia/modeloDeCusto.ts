@@ -87,12 +87,20 @@ export function margemDoAnual(plano: PlanoDeAssinatura): MargemDoAnual {
  * (metade dos caracteres do prompt, `estimarTokens`): explicação ~3.900 caracteres (system + instrução de menor +
  * frase, tradução e 3 falas de contexto no teto) ≈ 2.000 tokens; resumo ~14.000 caracteres ≈ 7.000 tokens.
  * Os preços são os da cascata RÁPIDA do registro (`ops/ia-provedores.openrouter.json`): conservador = Llama 3.3 70B
- * (a perna mais cara do nível), esperado = Gemma 4 26B (a primeira).
+ * (a perna mais cara do nível), esperado = Gemma 4 26B (a primeira). A EXPLICAÇÃO tem cascata própria desde 25/10/2026
+ * (DeepSeek V4.1 Flash sem raciocínio → Gemma → Llama): esperado = o DeepSeek (preço declarado, o endpoint ZDR mais
+ * barato com saída estruturada); conservador = o Llama, ainda a perna mais cara declarada do nível. O custo REAL medido
+ * do DeepSeek na bancada é ~US$ 0,235/1M tokens (o roteamento nem sempre cai no endpoint mais barato).
  */
 export const TOKENS_DE_ENTRADA_DA_AMOSTRA = { explicacao: 2_000, resumo: 7_000 } as const;
 export const PRECO_DO_TEXTO_RAPIDO_USD_POR_MILHAO = {
   conservador: { entrada: 0.1, saida: 0.32 },
   esperado: { entrada: 0.0675, saida: 0.225 },
+} as const;
+/** A explicação da amostra (cascata própria): conservador = Llama 3.3 70B; esperado = DeepSeek V4.1 Flash. */
+export const PRECO_DA_EXPLICACAO_RAPIDA_USD_POR_MILHAO = {
+  conservador: PRECO_DO_TEXTO_RAPIDO_USD_POR_MILHAO.conservador,
+  esperado: { entrada: 0.09, saida: 0.18 },
 } as const;
 
 export interface CustoDaAmostra {
@@ -104,10 +112,18 @@ export interface CustoDaAmostra {
 }
 
 export function custoDaAmostraPorConta(modo: 'conservador' | 'esperado'): CustoDaAmostra {
-  const p = PRECO_DO_TEXTO_RAPIDO_USD_POR_MILHAO[modo];
-  const usd = (entrada: number, saida: number) => (entrada * p.entrada + saida * p.saida) / 1_000_000;
-  const usdPorExplicacao = usd(TOKENS_DE_ENTRADA_DA_AMOSTRA.explicacao, FUNCOES_DE_IA.explicacao.maxTokens);
-  const usdPorResumo = usd(TOKENS_DE_ENTRADA_DA_AMOSTRA.resumo, FUNCOES_DE_IA.resumo.maxTokens);
+  const usd = (p: { entrada: number; saida: number }, entrada: number, saida: number) =>
+    (entrada * p.entrada + saida * p.saida) / 1_000_000;
+  const usdPorExplicacao = usd(
+    PRECO_DA_EXPLICACAO_RAPIDA_USD_POR_MILHAO[modo],
+    TOKENS_DE_ENTRADA_DA_AMOSTRA.explicacao,
+    FUNCOES_DE_IA.explicacao.maxTokens,
+  );
+  const usdPorResumo = usd(
+    PRECO_DO_TEXTO_RAPIDO_USD_POR_MILHAO[modo],
+    TOKENS_DE_ENTRADA_DA_AMOSTRA.resumo,
+    FUNCOES_DE_IA.resumo.maxTokens,
+  );
   const explicacoesMes = AMOSTRA_DE_IA.explicacoesDia * 30;
   const resumosMes = (AMOSTRA_DE_IA.resumosSemana * 52) / 12;
   return {

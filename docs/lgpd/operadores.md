@@ -42,6 +42,10 @@ cobrir nos DPAs; `GET /api/v1/endpoints/zdr` lista quem hoje atende cada modelo.
 (`public/privacidade.html`) para dizer que a IA de nuvem passa pela OpenRouter, com retenção zero em cada chamada, e que ela
 escolhe o provedor entre os que cumprem a exigência. Ainda falta, e é do dono e do jurídico: nomear os suboperadores atrás
 dela, quando a lista estabilizar, e aceitar os DPAs.**
+**Desde 25/10/2026 a explicação da frase** (IA de estudo) vai primeiro ao modelo `deepseek/deepseek-v4.1-flash` (pesos abertos),
+pelo MESMO OpenRouter com retenção zero e sem o Google; o provedor `novita` também fica de fora desse pedido. Os endpoints de retenção
+zero desse modelo (ex.: DeepInfra, Decart, Sail Research, Fireworks, CoreWeave, Together) entram na mesma lista de suboperadores a
+nomear. O texto enviado é o mesmo de antes (a frase, a tradução e até 3 falas de contexto).
 
 **Voz natural do intérprete (30/09/2026, E4 da Fase E):** a rota `POST /api/ai/tts` nasce com a flag
 `voz_natural` DESLIGADA (migração 0046). A retenção do provedor está marcada "a confirmar com o contrato

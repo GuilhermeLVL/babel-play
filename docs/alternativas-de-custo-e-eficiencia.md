@@ -13,6 +13,10 @@ relevante: o Whisper turbo já está no menor preço confirmado (DeepInfra, US$ 
 legenda, uns 100× menos que as APIs de tradução dedicadas. **O ganho que sobra está em chamar IA menos vezes, em baixar menos e em
 traduzir mais rápido no aparelho**, e não em achar um provedor mais barato.
 
+**Decisão do dono (25/10/2026): a explicação da frase passa a usar `deepseek/deepseek-v4.1-flash` sem raciocínio como primeira perna**
+(gpt-oss-120b de reserva; gramática 50% → 91%, p95 6,9 → 3,0 s, US$ 0,235/1M tokens medidos, dentro do teto de US$ 0,25), só nela;
+resumo, alternativas, tutor, polimento e legenda não mudam. Relatório: [`docs/auditoria/eval-ia-paga-v1.md`](auditoria/eval-ia-paga-v1.md).
+
 ## 2. O que a pesquisa achou, e o veredito de cada ideia
 
 ### Tradução no aparelho (o achado de maior impacto)

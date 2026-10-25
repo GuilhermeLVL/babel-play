@@ -681,7 +681,8 @@ export const FRANQUIA_DE_ALIVIO = {
  * `ops/ia-provedores.openrouter.json`; `scripts/ia/modeloDeCusto.ts` a calcula a partir destes números):
  *   explicação  ~2.000 tokens de entrada + 1.200 de saída ≈ US$ 0,00058; 5/dia × 30 = 150/mês ≈ US$ 0,088
  *   resumo      ~7.000 tokens de entrada + 1.500 de saída ≈ US$ 0,0012; 1/semana × ~4,3 ≈ US$ 0,0051
- *   TETO POR CONTA GRÁTIS QUE USA TUDO ≈ US$ 0,093/mês; no Gemma 4 (a primeira perna) ≈ US$ 0,064. Na base, o
+ *   TETO POR CONTA GRÁTIS QUE USA TUDO ≈ US$ 0,093/mês; nas primeiras pernas (explicação no DeepSeek V4.1 Flash desde
+ *   25/10/2026, resumo no Gemma 4) ≈ US$ 0,063. Na base, o
  *   `npm run ia:custo` supõe 30% dos grátis no teto no pior caso (`--amostra`).
  *
  * O POOL DIÁRIO GLOBAL (`poolChamadasDia`, no molde do pool do alívio): somando TODAS as contas Grátis, no máximo

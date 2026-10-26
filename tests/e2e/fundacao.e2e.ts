@@ -1,7 +1,14 @@
 import { expect, type Page, test } from '@playwright/test'
 
 import { violacoesGraves } from './_acessibilidade'
-import { abasDePraticar, abrirMais, clicarRobusto, fecharSobreposicoes, trilho } from './_helpers'
+import {
+  abasDePraticar,
+  abrirAoVivo,
+  abrirMais,
+  clicarRobusto,
+  fecharSobreposicoes,
+  trilho,
+} from './_helpers'
 
 /**
  * FUNDAÇÃO (23/09/2026) — o que o shell novo promete e o que as duas telas-molde garantem.
@@ -10,8 +17,8 @@ import { abasDePraticar, abrirMais, clicarRobusto, fecharSobreposicoes, trilho }
  *   já é dependência, e o wrapper do Playwright seria um pacote a mais para a mesma coisa).
  * - Nenhuma tela rola de lado, em nenhum dos três tamanhos.
  * - O trilho de ícones leva a todo destino: no computador e no tablet, oito no trilho (Início,
- *   Capturar, Intérprete, Cartões, Jogar, Biblioteca, Progresso, Planos) e o resto no 'Mais'; abaixo de
- *   720 px, a barra de cinco (Início, Cartões, Capturar, Jogar, Mais), com Intérprete, Biblioteca e
+ *   Ao vivo, Cartões, Jogar, Biblioteca, Progresso, Planos) e o resto no 'Mais'; abaixo de
+ *   720 px, a barra de cinco (Início, Cartões, Ao vivo, Jogar, Mais), com Biblioteca e
  *   Progresso também no 'Mais'.
  * - iChat fixo: divide a linha com o conteúdo, a largura muda pela alça e volta a flutuar sozinho
  *   quando a janela fica estreita demais.
@@ -58,17 +65,16 @@ test('o trilho leva a todo destino: os do trilho direto, o resto pelo "Mais"', a
   await expect(nav).toBeVisible()
 
   /* A NAVEGAÇÃO DE 22/10/2026 (R40). No computador e no tablet o trilho tem oito destinos: Início,
-     Capturar, Intérprete, Cartões, Jogar, Biblioteca, Progresso e Planos. Abaixo de 720 px ele é a barra
-     de cinco (Início, Cartões, Capturar, Jogar, Mais): Intérprete, Biblioteca e Progresso passam ao
+     Ao vivo (Capturar e Intérprete), Cartões, Jogar, Biblioteca, Progresso e Planos. Abaixo de 720 px ele é a barra
+     de cinco (Início, Cartões, Ao vivo, Jogar, Mais): Biblioteca e Progresso passam ao
      "Mais" e Planos fica na faixa "Planos e Premium" dele. Personalizar mora no "Mais" em todo aparelho. */
   const noTrilho: Array<[RegExp, RegExp]> = [
     [/^(Início|Página Inicial)$/, /\/$/],
     // O Jogar antes dos outros: a sala da primeira visita abre por cima, e sair da tela a leva junto.
     [/^(Jogar|Praticar)$/, /\/jogar/],
-    [/^(Capturar|Gravar|Gravar Áudio)$/, /\/capturar/],
     [/^Cartões$/, /\/cartoes$/],
   ]
-  /** Só no trilho acima de 720 px; na barra de cinco, cada um vai para o "Mais". */
+  /** Não é item do trilho: mora dentro do "Ao vivo" (a escolha rápida). */
   const interprete: [RegExp, RegExp] = [/^Intérprete/, /\/interprete/]
   const biblioteca: [RegExp, RegExp] = [/^(Biblioteca|Minhas Mídias)/, /\/biblioteca/]
   const progresso: [RegExp, RegExp] = [/^(Progresso|Meu progresso)/, /\/estatisticas/]
@@ -87,6 +93,27 @@ test('o trilho leva a todo destino: os do trilho direto, o resto pelo "Mais"', a
     await expect(page.getByRole('main')).toBeVisible()
     await expect(item).toHaveAttribute('aria-current', 'page')
   }
+  /* AO VIVO: um item só no lugar de Capturar e Intérprete; abre a escolha e cada opção leva à sua tela. */
+  const aoVivo = nav.getByRole('button', { name: /^(Ao vivo|Gravar e conversar)$/ })
+  await expect(aoVivo).toBeVisible()
+  await expect(nav.getByRole('button', { name: /^(Capturar|Gravar Áudio)$/ })).toHaveCount(0)
+  for (const [opcao, url] of [
+    [interprete[0], interprete[1]],
+    /* Legendar por último: a captura abre, uns segundos depois, o convite para baixar os modelos, que
+       cobre a tela. Seguir logo para outra tela (como antes, com Capturar no meio do trilho) o evita. */
+    [/^Legendar/, /\/capturar/],
+  ] as Array<[RegExp, RegExp]>) {
+    await clicarRobusto(page, aoVivo)
+    const menu = page.getByRole('menu', { name: 'Ao vivo: escolha o que fazer' })
+    await expect(menu).toBeVisible()
+    await clicarRobusto(page, menu.getByRole('menuitem', { name: opcao }))
+    await expect(page).toHaveURL(url)
+    await expect(page.getByRole('main')).toBeVisible()
+    await expect(aoVivo).toHaveAttribute('aria-current', 'page')
+  }
+  await clicarRobusto(page, nav.getByRole('button', { name: 'Cartões', exact: true }))
+  await expect(page).toHaveURL(/\/cartoes$/)
+
   if (estreito) {
     for (const nome of [interprete[0], biblioteca[0], progresso[0], planos[0]])
       await expect(nav.getByRole('button', { name: nome })).toHaveCount(0)
@@ -161,16 +188,9 @@ test('o trilho leva a todo destino: os do trilho direto, o resto pelo "Mais"', a
 
   /* O INTÉRPRETE, por último: ele abre direto na conversa frente a frente, que ocupa a tela INTEIRA —
      o trilho sai de cena, e a saída é o "Sair do modo intérprete" da própria tela, que devolve o menu. */
-  if (estreito) {
-    const maisInterprete = await abrirMais(page)
-    await maisInterprete.getByTestId('planos-no-mais').waitFor()
-    await maisInterprete
-      .getByRole('tabpanel', { name: 'Destinos' })
-      .getByRole('button', { name: interprete[0] })
-      .click()
-  } else {
-    await clicarRobusto(page, nav.getByRole('button', { name: interprete[0] }))
-  }
+  /* Pelo "Ao vivo" (o item que juntou Capturar e Intérprete), no trilho e na folha da barra de cinco. */
+  await abrirAoVivo(page)
+  await clicarRobusto(page, page.getByRole('menuitem', { name: interprete[0] }))
   await expect(page).toHaveURL(interprete[1])
   await expect(page.getByTestId('conversa-pronta')).toBeVisible({ timeout: 15_000 })
   await clicarRobusto(page, page.getByRole('button', { name: 'Sair do modo intérprete' }))

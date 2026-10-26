@@ -66,13 +66,12 @@ describe('TrilhoDoQuest', () => {
     return { ir, ...r }
   }
 
-  it('os oito destinos por prioridade (R40) e "Mais", com o destino atual marcado', () => {
+  it('os sete destinos por prioridade (R40, com Ao vivo no lugar de Capturar e Intérprete) e "Mais", com o destino atual marcado', () => {
     const { container } = montar('play')
     const itens = [...container.querySelectorAll('.q-trilho .q-item')]
     expect(itens.map((i) => i.querySelector('span')?.textContent)).toEqual([
       'Início',
-      'Capturar',
-      'Intérprete',
+      'Ao vivo',
       'Cartões',
       'Jogar',
       'Biblioteca',
@@ -160,8 +159,7 @@ describe('TrilhoDoQuest', () => {
     const itens = [...container.querySelectorAll('.q-trilho .q-item')].map((i) => i.querySelector('span')?.textContent)
     expect(itens).toEqual([
       'Início',
-      'Capturar',
-      'Intérprete',
+      'Ao vivo',
       'Cartões',
       'Jogar',
       'Biblioteca',
@@ -620,13 +618,12 @@ describe('a casca no computador com o desenho novo', () => {
     expect(ir).toHaveBeenCalledWith('settings')
   })
 
-  it('os mesmos oito destinos, e a busca no próprio trilho com o atalho à vista', () => {
+  it('os mesmos sete destinos, e a busca no próprio trilho com o atalho à vista', () => {
     const { container, aoBuscar } = montar()
     const itens = [...container.querySelectorAll('.q-trilho .q-item')]
     expect(itens.map((i) => i.querySelector('span')?.textContent)).toEqual([
       'Início',
-      'Capturar',
-      'Intérprete',
+      'Ao vivo',
       'Cartões',
       'Jogar',
       'Biblioteca',

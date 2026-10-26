@@ -155,7 +155,7 @@ const doMenu = (page: Page, view: 'play' | 'capture') => page.locator(`.q-trilho
 
 /**
  * Vai ao Jogar pelo menu. No trilho (computador) e na barra de cinco do celular (R40: Início, Cartões,
- * Capturar, Jogar, Mais) o Jogar tem botão próprio.
+ * Ao vivo, Jogar, Mais) o Jogar tem botão próprio.
  */
 async function irAoJogarPeloMenu(page: Page) {
   await doMenu(page, 'play').click()
@@ -258,6 +258,7 @@ test('a recusa no meio do salvamento não prende: mostra o motivo, guarda a capt
      pela saída que sobra (o "Ver o que fazer" do próprio selo), para conferir o resto. */
   const pelaBarra = await doMenu(page, 'capture')
     .click({ timeout: 5000 })
+    .then(() => page.getByRole('menuitem', { name: /^Legendar/ }).click({ timeout: 5000 }))
     .then(
       () => true,
       () => false,

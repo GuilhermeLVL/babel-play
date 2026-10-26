@@ -139,6 +139,18 @@ const TODOS_OS_ITENS: NavItemDef[] = [
 ];
 
 /**
+ * O "AO VIVO" DO TRILHO: um só botão no lugar de Capturar e Intérprete (as duas portas da mesma captura),
+ * que abre a escolha rápida. Fica FORA de `NAV_ITEMS` de propósito: a busca e o resto do app continuam
+ * achando "Capturar" e "Intérprete" como destinos; só o trilho junta os dois. O `id` é o de Capturar.
+ */
+export const ITEM_AO_VIVO: NavItemDef = {
+  id: 'capture',
+  icon: Mic,
+  short: 'Ao vivo',
+  labels: { kids: 'Ao vivo', pro: 'Ao vivo', senior: 'Gravar e conversar' },
+};
+
+/**
  * A ADMINISTRAÇÃO (`/admin`) — o item que só o papel admin vê.
  *
  * Fica FORA de `NAV_ITEMS` de propósito: aquela lista é o menu de todo mundo (e várias telas a leem

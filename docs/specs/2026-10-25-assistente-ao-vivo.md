@@ -156,7 +156,10 @@ cache, `restanteHoje` é o último valor conhecido na aba, ou fica de fora — n
   e o microfone é "você"; no Intérprete, a METADE da pessoa (`meu`, ou `outro` com os lados trocados) é "você" — a
   correção (opt-in) só cai nela. A fala sem idioma leva o do lado. SÓ COM O MICROFONE fora do Intérprete (o celular, o
   "Usar o microfone" do Safari e do Firefox) o microfone ouve a TV: o lado é `incerto` e a fala NUNCA vai à correção.
-  O lado é guardado quando a fala chega (trocar os lados não reescreve o passado).
+  No Intérprete, a fala do microfone que chega SEM metade (o automático só decide o lado depois de medir o idioma) é
+  `incerto` e fica PENDENTE (como uma parcial): nem marcada nem oferecida, até a metade chegar. Só o lado certo é
+  guardado (a metade, ou o som do computador); o incerto nunca congela. Regra contra o envio duplo: cada id é oferecido
+  no máximo uma vez na vida da instância, com o lado que tinha naquela hora.
 - **Quando a página conta** (`paginaMostraOAssistente`): a aba à vista E a legenda da captura (gravando ou com falas, fora
   do foco cheio) ou a conversa do Intérprete; a conversa virtual e a tela pronta, não. As falas que já existem quando a
   captura monta, ou que chegam de uma vez na sessão retomada (`semente`), contam como vistas: nenhuma vai à nuvem.

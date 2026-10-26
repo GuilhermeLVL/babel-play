@@ -291,19 +291,30 @@ export function useAssistenteAoVivo(o: {
   /* Cada linha é oferecida UMA vez, quando chega: ligar um recurso (ou o consentimento) depois não manda à nuvem a
      linha velha que estava à vista quando ele estava desligado.
      As linhas que JÁ ESTAVAM ali quando a instância nasceu, ou quando a tela trocou as falas de uma vez (`semente`: a
-     sessão retomada), contam como vistas: nenhuma linha velha vai à nuvem. */
-  const oferecida = useRef<string | null>(o.semente !== undefined ? (ultimaFinal?.id ?? null) : null);
-  const ultimaFinalRef = useRef(ultimaFinal);
-  ultimaFinalRef.current = ultimaFinal;
+     sessão retomada), contam como vistas: nenhuma linha velha vai à nuvem.
+     A REGRA CONTRA O ENVIO DUPLO: um id é oferecido no máximo UMA vez na vida da instância (o conjunto guarda todos),
+     com o lado que tinha naquela hora. A fala que muda de lado depois (ou volta a ser a última porque outra sumiu) não
+     é pedida de novo. A fala do Intérprete sem metade nem chega aqui: espera pendente (`falasDoAssistente`). */
+  const finaisDe = (falas: ReadonlyArray<FalaDoAssistente>) =>
+    falas.filter((f) => !f.parcial && f.original.trim()).map((f) => f.id);
+  const oferecidas = useRef<Set<string>>(new Set(o.semente !== undefined ? finaisDe(o.falas) : []));
+  const falasAgora = useRef(o.falas);
+  falasAgora.current = o.falas;
   const sementeVista = useRef(o.semente);
   useEffect(() => {
     if (sementeVista.current === o.semente) return;
     sementeVista.current = o.semente;
-    oferecida.current = ultimaFinalRef.current?.id ?? null;
+    for (const id of finaisDe(falasAgora.current)) oferecidas.current.add(id);
   }, [o.semente]);
   useEffect(() => {
-    if (!agenda || !ultimaFinal || oferecida.current === ultimaFinal.id) return;
-    oferecida.current = ultimaFinal.id;
+    if (!agenda || !ultimaFinal || oferecidas.current.has(ultimaFinal.id)) return;
+    const vistas = oferecidas.current;
+    vistas.add(ultimaFinal.id);
+    /* O conjunto não cresce sem fim: passou do teto, fica só com as falas que ainda estão na tela. */
+    if (vistas.size > 400) {
+      const vivas = new Set(falasAgora.current.map((f) => f.id));
+      for (const id of [...vistas]) if (!vivas.has(id)) vistas.delete(id);
+    }
     if (automatico && temChamada(planejarChamadas(ultimaFinal, recursosDaAgenda, o.langDaPessoa)))
       agenda.oferecer(ultimaFinal);
   }, [ultimaFinal, agenda, automatico, recursosDaAgenda, o.langDaPessoa]);

@@ -204,6 +204,7 @@ let benchmarkPendente: AbortController | null = null;
 import type { FalaDoAssistente, MarcaNaLinha } from '../../core/assistente/telaDoAssistente';
 import { usePaginaVisivel } from '../../hooks/usePaginaVisivel';
 import {
+  contextoDasFalas,
   falasDoAssistente as falasParaOAssistente,
   paginaMostraOAssistente,
 } from '../../lib/assistente/falasDoAssistente';
@@ -3007,8 +3008,9 @@ export default function LiveCapture({
   const falasDoAssistenteAntes = useRef(new Map<string, FalaDoAssistente>());
   /* O lado de cada fala QUANDO ELA CHEGOU (trocar os lados depois não reescreve o passado). */
   const ladosDasFalas = useRef(new Map<string, FalaDoAssistente['lado']>());
-  /* Só com o microfone, fora do Intérprete, ele ouve a TV: de quem é a fala é incerto (nunca vai à correção). */
-  const soMicrofone = captureScenario === 'mic' && !interpreteAberto;
+  /* Só com o microfone, fora do Intérprete, ele ouve a TV: a fala é incerta (nunca vai à correção). No Intérprete, a
+     fala do microfone sem metade espera a metade. */
+  const { soMicrofone, noInterprete } = contextoDasFalas(captureScenario, interpreteAberto);
   const falasDoAssistente: FalaDoAssistente[] = useMemo(
     () =>
       estabilizarFalas(
@@ -3018,10 +3020,11 @@ export default function LiveCapture({
           idiomaDaPessoa: sourceLang,
           idiomaDoOutro: outroDoInterprete,
           soMicrofone,
+          noInterprete,
           ladosVistos: ladosDasFalas.current,
         }),
       ),
-    [speechSegments, trocadosNoInterprete, sourceLang, outroDoInterprete, soMicrofone],
+    [speechSegments, trocadosNoInterprete, sourceLang, outroDoInterprete, soMicrofone, noInterprete],
   );
   const [vistaDaJanela, setVistaDaJanela] = useState<VistaDaJanela>(JANELA_FECHADA);
   const paginaVisivel = usePaginaVisivel();

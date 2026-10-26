@@ -60,7 +60,7 @@ import { AJUSTES_PADRAO, planejarChamadas, recursosDoAssistente } from '../src/c
 import { usePaginaVisivel } from '../src/hooks/usePaginaVisivel'
 import { ESPERA_DO_ASSISTENTE_MS } from '../src/lib/assistente/agendaDoAssistente'
 import { esquecerAjustesDoAssistente, mudarAjustesDoAssistente } from '../src/lib/assistente/ajustesDoAssistente'
-import { falasDoAssistente, paginaMostraOAssistente } from '../src/lib/assistente/falasDoAssistente'
+import { contextoDasFalas, falasDoAssistente, paginaMostraOAssistente } from '../src/lib/assistente/falasDoAssistente'
 import type { SpeechSegment } from '../src/lib/captura/tiposDaFala'
 import { estabilizarFalas } from '../src/lib/legendas/estabilizarFalas'
 
@@ -713,5 +713,91 @@ describe('a página só conta quando mostra o assistente', () => {
     } finally {
       delete (document as unknown as { visibilityState?: unknown }).visibilityState
     }
+  })
+})
+
+/* ───────────── o Intérprete automático: a fala do microfone chega ANTES da metade ───────────── */
+
+describe('no Intérprete, a fala sem metade espera: a da outra pessoa nunca vai à correção', () => {
+  const NO_INTERPRETE = { ...ESTA_PAGINA, ...contextoDasFalas('conversa', true) }
+  /** A fiação da `LiveCapture`: as falas da sessão → `falasDoAssistente` (com o registro de lados) → a instância. */
+  function montarInterprete() {
+    const vistos = new Map<string, FalaDoAssistente['lado']>()
+    const antes = new Map<string, FalaDoAssistente>()
+    const derivar = (segs: SpeechSegment[]) =>
+      estabilizarFalas(antes, falasDoAssistente(segs, { ...NO_INTERPRETE, ladosVistos: vistos }))
+    const props = (segs: SpeechSegment[]): Opcoes => ({
+      aberta: false,
+      pausado: false,
+      falas: derivar(segs),
+      langDaPessoa: 'pt-BR',
+      pagina: { aberta: true },
+      semente: 0,
+    })
+    const h = renderHook<ReturnType<typeof useAssistenteAoVivo>, Opcoes>((p) => useAssistenteAoVivo(p), {
+      initialProps: props([]),
+    })
+    return { h, vistos, mudar: (segs: SpeechSegment[]) => h.rerender(props(segs)) }
+  }
+  const FRASE = 'I goed to the store yesterday, break a leg'
+  const doMicrofone = (extra: Partial<SpeechSegment> = {}) =>
+    segmento('x', FRASE, { source: 'mic', speakerId: 'user', lado: undefined, ...extra })
+
+  beforeEach(() => mudarAjustesDoAssistente({ correcao: true }))
+
+  it('o contexto da captura: só com o microfone fora do Intérprete é incerto; no Intérprete, a fala espera a metade', () => {
+    expect(contextoDasFalas('mic', false)).toEqual({ soMicrofone: true, noInterprete: false })
+    expect(contextoDasFalas('mic', true)).toEqual({ soMicrofone: false, noInterprete: true })
+    expect(contextoDasFalas('conversa', false)).toEqual({ soMicrofone: false, noInterprete: false })
+    const vistos = new Map<string, FalaDoAssistente['lado']>()
+    const [f] = falasDoAssistente([doMicrofone()], { ...NO_INTERPRETE, ladosVistos: vistos })
+    expect(f).toMatchObject({ lado: 'incerto', parcial: true })
+    /* O incerto nunca fica guardado. */
+    expect(vistos.size).toBe(0)
+  })
+
+  it('chega sem metade e depois vira da OUTRA pessoa: nenhuma correção (e uma chamada de expressões)', async () => {
+    const { mudar, vistos } = montarInterprete()
+    mudar([doMicrofone()])
+    await passar(ESPERA_DO_ASSISTENTE_MS * 3)
+    expect(api.destacarExpressoes).not.toHaveBeenCalled()
+    expect(api.corrigirMinhaFala).not.toHaveBeenCalled()
+
+    mudar([doMicrofone({ lado: 'outro' })])
+    await passar()
+    expect(api.corrigirMinhaFala).not.toHaveBeenCalled()
+    expect(api.destacarExpressoes).toHaveBeenCalledTimes(1)
+    expect(vistos.get('x')).toBe('eles')
+  })
+
+  it('chega sem metade e depois vira da PESSOA: no máximo UMA correção, mesmo com mais desenhos', async () => {
+    const { mudar } = montarInterprete()
+    mudar([doMicrofone()])
+    await passar(ESPERA_DO_ASSISTENTE_MS * 3)
+    mudar([doMicrofone({ lado: 'meu' })])
+    await passar()
+    expect(api.corrigirMinhaFala).toHaveBeenCalledTimes(1)
+    /* Mais desenhos, uma parcial nova e até a metade mudando: nada sai de novo para a mesma fala. */
+    const parcial = segmento('y', 'and then', { source: 'mic', isPartial: true, lado: undefined })
+    mudar([doMicrofone({ lado: 'meu' }), parcial])
+    mudar([doMicrofone({ lado: 'outro' }), parcial])
+    await passar(ESPERA_DO_ASSISTENTE_MS * 3)
+    expect(api.corrigirMinhaFala).toHaveBeenCalledTimes(1)
+    expect(api.destacarExpressoes).not.toHaveBeenCalled()
+  })
+
+  it('sem envio duplo: a fala já oferecida não é pedida de novo quando volta a ser a última', async () => {
+    const { mudar } = montarInterprete()
+    const a = segmento('a', 'Break a leg out there tonight, my friend', { lado: 'outro', source: 'mic' })
+    const b = segmento('b', 'Break a leg once again, everyone here', { lado: 'outro', source: 'mic' })
+    mudar([a])
+    await passar()
+    mudar([a, b])
+    await passar()
+    expect(api.destacarExpressoes).toHaveBeenCalledTimes(2)
+    /* A fala B sai (corrigida, apagada): A volta a ser a última, e não é pedida de novo. */
+    mudar([a])
+    await passar(ESPERA_DO_ASSISTENTE_MS * 3)
+    expect(api.destacarExpressoes).toHaveBeenCalledTimes(2)
   })
 })

@@ -17,7 +17,11 @@ type Lado = FalaDoAssistente['lado'];
  *   lados trocados — `direcaoDoLado`) é "você", e é só nela que a correção gentil (opt-in) cai. A fala sem idioma
  *   declarado leva o do lado: sem ele, a fala da pessoa no idioma dela contaria como estrangeira e iria à nuvem.
  *
- * `ladosVistos` guarda o lado de cada fala QUANDO ELA CHEGOU: trocar os lados depois não reescreve o passado.
+ * - No Intérprete, a fala do microfone que chega SEM `lado` (o automático só sabe a metade depois de medir o idioma) é
+ *   `incerto` e fica pendente até a metade chegar: a fala da outra pessoa nunca sai como "minha fala".
+ *
+ * `ladosVistos` guarda o lado CERTO de cada fala quando ele aparece: trocar os lados depois não reescreve o passado. O
+ * incerto nunca é guardado.
  */
 export function falasDoAssistente(
   falas: ReadonlyArray<Pick<SpeechSegment, 'id' | 'originalText' | 'source' | 'isPartial' | 'lado' | 'lang'>>,
@@ -26,6 +30,8 @@ export function falasDoAssistente(
     idiomaDaPessoa: string;
     idiomaDoOutro: string;
     soMicrofone?: boolean;
+    /** O Intérprete está aberto: a fala do microfone sem `lado` ainda não tem dono (o automático decide depois). */
+    noInterprete?: boolean;
     ladosVistos?: Map<string, Lado>;
     limite?: number;
   },
@@ -44,6 +50,10 @@ export function falasDoAssistente(
   }
   return ultimas.map((s): FalaDoAssistente => {
     let lado = vistos?.get(s.id);
+    /* A fala do microfone NO INTÉRPRETE ainda sem metade (o automático só decide o lado depois de medir o idioma):
+       incerta e PENDENTE — como uma parcial, ela não é oferecida à nuvem nem marcada. Quando o lado chega, ela vira
+       final com o lado de verdade e é oferecida UMA vez, já com o plano certo (correção só se for da pessoa). */
+    const semMetade = !lado && !s.lado && s.source !== 'system' && !!o.noInterprete;
     if (!lado) {
       lado = s.lado
         ? (s.lado === 'meu') !== o.trocados
@@ -51,10 +61,11 @@ export function falasDoAssistente(
           : 'eles'
         : s.source === 'system'
           ? 'eles'
-          : o.soMicrofone
+          : o.soMicrofone || o.noInterprete
             ? 'incerto'
             : 'voce';
-      vistos?.set(s.id, lado);
+      /* Só o lado CERTO fica guardado (a metade, ou o som do computador): o incerto nunca congela. */
+      if (s.lado || s.source === 'system') vistos?.set(s.id, lado);
     }
     const doLado = s.lado ? (lado === 'voce' ? o.idiomaDaPessoa : o.idiomaDoOutro) : '';
     return {
@@ -62,9 +73,17 @@ export function falasDoAssistente(
       original: s.originalText.trim(),
       lado,
       lang: s.lang || doLado || undefined,
-      parcial: !!s.isPartial,
+      parcial: !!s.isPartial || semMetade,
     };
   });
+}
+
+/**
+ * O que a captura diz às falas do assistente, a partir do cenário: só com o microfone (fora do Intérprete) a fala é
+ * incerta; no Intérprete, a fala sem metade espera a metade (`falasDoAssistente`).
+ */
+export function contextoDasFalas(cenario: string, interpreteAberto: boolean) {
+  return { soMicrofone: cenario === 'mic' && !interpreteAberto, noInterprete: interpreteAberto };
 }
 
 /**

@@ -459,3 +459,54 @@ describe('ouvirTrecho (Intérprete v3, Fase 1)', () => {
     expect(voz.falas).toHaveLength(0)
   })
 })
+
+describe('praticar a conversa: a pessoa fala o idioma da outra (`falaDoMeu`)', () => {
+  const pistas = (idiomaDoMotor: string) => ({ idiomaDoMotor, idiomaDoTexto: idiomaDoMotor, audioMs: 3000 })
+  const praticando = () => montar({ idiomas: () => ({ meu: 'pt-BR', outro: 'en-US', falaDoMeu: 'en-US' }) })
+  const semTraducao = (segId: string) => ({
+    segId,
+    original: 'I want go to the beach',
+    resultado: 'sem-traducao' as const,
+    traducao: '',
+    de: 'en',
+    para: 'en',
+    aproximada: false,
+    falada: true,
+  })
+
+  it('a rede de segurança: todo lado que o automático decide praticando é palpite, nos dois lados', () => {
+    const m = praticando()
+    m.controle.ouvir()
+    m.controle.aoFimDaFala({ segId: 'a', source: 'mic' })
+    expect(m.controle.ladoDaFala('a', pistas('en'))).toMatchObject({ lado: 'outro', palpite: true })
+    m.controle.aoFimDaFala({ segId: 'b', source: 'mic' })
+    expect(m.controle.ladoDaFala('b', pistas('pt'))).toMatchObject({ lado: 'meu', palpite: true })
+    /* Sem a prática, o mesmo idioma medido é evidência (não é palpite). */
+    const n = montar()
+    n.controle.ouvir()
+    n.controle.aoFimDaFala({ segId: 'c', source: 'mic' })
+    expect(n.controle.ladoDaFala('c', pistas('en'))).toMatchObject({ lado: 'outro', palpite: false })
+  })
+
+  it('o "sem tradução" que chega antes do fim da fala é entregue no fim: a conversa volta a parado', () => {
+    const m = praticando()
+    m.controle.tocar('meu')
+    expect(m.controle.direcao()).toMatchObject({ fala: 'en-US', de: 'en', para: 'en' })
+    m.controle.aoTraduzirFinal(semTraducao('m1'))
+    m.controle.aoFimDaFala({ segId: 'm1', source: 'mic', lado: 'meu' })
+    expect(m.controle.estado().fase).toBe('parado')
+  })
+
+  it('o aviso guardado de uma fala interrompida (parar, trocar os lados) não vale para depois', () => {
+    for (const interromper of ['parar', 'trocarLados'] as const) {
+      const m = praticando()
+      m.controle.tocar('meu')
+      m.controle.aoTraduzirFinal(semTraducao('m1'))
+      m.controle[interromper]()
+      m.controle.tocar('meu')
+      m.controle.aoFimDaFala({ segId: 'm1', source: 'mic', lado: 'meu' })
+      /* Sem o aviso velho, a fala espera a tradução dela (como qualquer fala). */
+      expect(m.controle.estado().fase).toBe('traduzindo')
+    }
+  })
+})

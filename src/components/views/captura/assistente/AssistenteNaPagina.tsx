@@ -99,10 +99,33 @@ export function CorrecaoNaPagina({
  * "FALAR ESTA" (a prática da conversa): enquanto o microfone espera a pessoa ler a sugestão, a frase fica à vista na
  * metade dela. Fora dos anúncios: ela já sabe o que pediu.
  */
-export function SugestaoParaLer({ texto, lang }: { texto: string; lang: string | undefined }) {
+export function SugestaoParaLer({
+  texto,
+  lang,
+  esperando = false,
+  aoCancelar,
+}: {
+  texto: string;
+  lang?: string | undefined;
+  /** A outra pessoa ainda fala: o microfone abre na metade da pessoa quando a fala dela chegar. */
+  esperando?: boolean;
+  aoCancelar?: (() => void) | undefined;
+}) {
   return (
     <span className="asst-correcao asst-ensaio" aria-live="off" data-testid="sugestao-para-ler">
-      <Mic aria-hidden /> {t('Leia em voz alta:')} <span lang={lang || undefined}>{texto}</span>
+      <Mic aria-hidden /> {esperando && <>{t('Espere a outra pessoa terminar.')} </>}
+      {t('Leia em voz alta:')} <span lang={lang || undefined}>{texto}</span>
+      {aoCancelar && (
+        <button
+          type="button"
+          className="asst-ensaio-cancelar"
+          aria-label={t('Cancelar a leitura da sugestão')}
+          onClick={aoCancelar}
+          data-testid="cancelar-sugestao"
+        >
+          {t('Cancelar')}
+        </button>
+      )}
     </span>
   );
 }
@@ -120,7 +143,9 @@ export function ComparacaoNaPagina({
   sugestao: string;
   lang: string | undefined;
 }) {
-  const c = compararComASugestao(falado, sugestao);
+  const c = compararComASugestao(falado, sugestao, lang);
+  /* Sem como partir a frase (escrita sem espaço, sem `Intl.Segmenter`): nada a dizer. */
+  if (!c) return null;
   return (
     <span className="asst-correcao asst-comparacao" aria-live="off" data-testid="comparacao-com-a-sugestao">
       <Sparkles aria-hidden />{' '}

@@ -33,7 +33,9 @@ const esperar = () => new Promise((r) => setTimeout(r, 0))
 const PCM = new Float32Array(16000 * 3)
 const MIC = 1_000_000
 
-function montarConversa() {
+function montarConversa(
+  idiomas: { meu: string; outro: string; falaDoMeu?: string } = { meu: 'pt-BR', outro: 'en-US' },
+) {
   /** O que o motor de fala "ouve" a cada vez: o texto e o idioma medido no áudio. */
   const roteiro: Array<{ text: string; language: string }> = []
   const lidas: Array<{ texto: string; lang: string | undefined; fim?: () => void }> = []
@@ -47,7 +49,7 @@ function montarConversa() {
     isSpeaking: () => false,
   }
   const controle = criarControleDoInterprete({
-    idiomas: () => ({ meu: 'pt-BR', outro: 'en-US' }),
+    idiomas: () => idiomas,
     microfone,
     motor: () => motor,
     nomeDoMotor: () => 'voz-do-aparelho',
@@ -218,5 +220,23 @@ describe('intérprete automático: uma conversa inteira, sem ninguém tocar em l
     c.controle.parar()
     expect(c.controle.estado()).toMatchObject({ fase: 'parado', automatico: false })
     expect(c.microfone.abrir).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('praticar a conversa (a pessoa fala o idioma da outra): o lado do automático chega à fala como palpite', () => {
+  it('as duas falas em inglês saem com `ladoPalpite`, e a fala de lado certo não', async () => {
+    const c = montarConversa({ meu: 'pt-BR', outro: 'en-US', falaDoMeu: 'en-US' })
+    c.controle.ouvir()
+    const a = await c.falar('Where do you want to go tomorrow?', 'en')
+    expect(c.falas().find((f) => f.id === a)).toMatchObject({ lado: 'outro', ladoPalpite: true })
+    c.lidas.at(-1)?.fim?.()
+    const b = await c.falar('Quero ir à praia.', 'pt')
+    expect(c.falas().find((f) => f.id === b)).toMatchObject({ lado: 'meu', ladoPalpite: true })
+
+    /* Sem a prática, o idioma medido é evidência: nada de palpite no segmento. */
+    const n = montarConversa()
+    n.controle.ouvir()
+    const d = await n.falar('Two blocks ahead, on the left.', 'en')
+    expect(n.falas().find((f) => f.id === d)?.ladoPalpite).toBeUndefined()
   })
 })

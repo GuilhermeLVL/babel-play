@@ -128,6 +128,8 @@ export const VELOCIDADE_LENTA = 0.7;
  * de fala inteligente informar, o medidor recebe o valor medido no lugar deste (mesma etapa `vad`).
  */
 const ESPERA_NOMINAL_DO_VAD_MS = 800;
+/** Quantos avisos de tradução chegados ANTES do fim da fala o controle guarda (o resto é de falas que não terminaram). */
+const TETO_DE_TRADUCOES_GUARDADAS = 32;
 
 const relogioPadrao = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 const outroLado = (lado: LadoDoInterprete): LadoDoInterprete => (lado === 'meu' ? 'outro' : 'meu');
@@ -266,10 +268,19 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
        em "Traduzindo…" esperando um aviso que já tinha passado. */
     if (!pendente) {
       traducoes.set(final.segId, final);
+      /* Com teto: um aviso cuja fala nunca terminou (interrompida, microfone fechado) não fica para sempre. */
+      while (traducoes.size > TETO_DE_TRADUCOES_GUARDADAS) traducoes.delete(traducoes.keys().next().value as string);
       return;
     }
     traducoes.delete(final.segId);
     maquina.enviar({ tipo: 'semTraducao', segId: final.segId });
+  };
+
+  /** Uma fala que não vai mais ser lida: o que estava guardado para ela sai. */
+  const esquecerFala = (segId: string) => {
+    fins.delete(segId);
+    decisoes.delete(segId);
+    traducoes.delete(segId);
   };
 
   const destravar = () => {
@@ -296,7 +307,12 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
         : { ...ESTADO_DO_AUTOMATICO, estrangeiro: conversa.estrangeiro };
       maquina.enviar({ tipo: 'ouvir' });
     },
-    parar: () => void (desligado || maquina.enviar({ tipo: 'parar' })),
+    parar() {
+      if (desligado) return;
+      maquina.enviar({ tipo: 'parar' });
+      /* A conversa parou: os avisos guardados para falas que ainda não terminaram não valem mais. */
+      traducoes.clear();
+    },
     automatico: () => maquina.estado().automatico,
     ladoDaFala(segId, pistas) {
       const m = maquina.estado();
@@ -326,15 +342,17 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
       /* A fala acabou SEM TEXTO (`FimDaFala.semTexto`): nenhuma tradução vem. É o mesmo "sem tradução"
          de sempre — o toque volta a "parado", o automático reabre o microfone. */
       if (fim.semTexto) {
-        fins.delete(fim.segId);
-        decisoes.delete(fim.segId);
-        traducoes.delete(fim.segId);
+        esquecerFala(fim.segId);
         if (maquina.estado().pendentes.includes(fim.segId)) maquina.enviar({ tipo: 'semTraducao', segId: fim.segId });
         return;
       }
       const lado = fim.lado ?? maquina.estado().lado;
-      /* Sem lado só no automático: o idioma medido o dirá (`ladoDaFala`), antes de a tradução chegar. */
-      if (!lado && !maquina.estado().automatico) return;
+      /* Sem lado só no automático: o idioma medido o dirá (`ladoDaFala`), antes de a tradução chegar. Fora dele,
+         a fala não será lida: o que estava guardado para ela sai junto. */
+      if (!lado && !maquina.estado().automatico) {
+        esquecerFala(fim.segId);
+        return;
+      }
       if (!fins.has(fim.segId)) fins.set(fim.segId, { em: agora(), lado: lado ?? null });
       maquina.enviar({ tipo: 'fimDaFala', segId: fim.segId });
       /* A tradução já tinha chegado (cache): entrega agora, na ordem que a máquina espera. */
@@ -363,7 +381,11 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
       });
       return 'lendo';
     },
-    trocarLados: () => void (desligado || maquina.enviar({ tipo: 'trocarLados' })),
+    trocarLados() {
+      if (desligado) return;
+      maquina.enviar({ tipo: 'trocarLados' });
+      traducoes.clear();
+    },
     sair() {
       if (desligado) return;
       maquina.enviar({ tipo: 'sair' });

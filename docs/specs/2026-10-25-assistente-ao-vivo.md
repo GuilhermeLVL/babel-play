@@ -188,24 +188,39 @@ que aprende e recebe a dica.
 - **Os idiomas**: praticando, a METADE da pessoa FALA o idioma que ela aprende (`IdiomasDoInterprete.falaDoMeu`;
   `direcaoDoLado` e `idiomasDaConversa` o usam) e segue OUVINDO no dela: a fala da outra pessoa continua chegando
   traduzida. A fala da pessoa no mesmo idioma da outra não tem tradução (o tradutor trata como "sem tradução"); o
-  controle guarda esse aviso quando ele chega antes do fim da fala, e a conversa não fica presa em "Traduzindo…".
+  controle guarda esse aviso quando ele chega antes do fim da fala, e a conversa não fica presa em "Traduzindo…". O
+  guardado sai quando a fala não vai mais ser lida (Parar, trocar os lados, o fim sem lado) e tem teto.
 - **Por toque**: praticando, a conversa é por toque (o automático fica de fora, e tocar nele diz por quê). As duas
   pessoas falam o mesmo idioma e o idioma medido não separa as duas; só o toque na metade diz quem falou. No "Detectar"
-  (o idioma da outra pessoa ainda não escolhido) a prática não liga e a faixa pede o idioma.
+  (o idioma da outra pessoa ainda não escolhido) a prática não liga e a faixa pede o idioma. Praticando, o "Automático"
+  com cadeado só mostra a nota de por quê: nada de "Conhecer o Premium" junto da prática.
+- **O limite do toque, dito com honestidade**: o lado é o da metade TOCADA, não de quem de fato falou. Se a outra pessoa
+  falar enquanto o microfone está na metade da pessoa, a fala dela entra como "você" e pode ir à correção — o app não
+  reconhece vozes. A tela reduz o risco onde pode: "Falar esta" não troca de lado no meio da fala da outra pessoa (ver
+  abaixo), e tocar na metade dela cancela a leitura. O resto depende de cada um tocar na própria vez (a faixa diz isso).
 - **A correção**: a fala da pessoa, no idioma que ela aprende, é "você" e cai nas regras de sempre (`planejarChamadas`:
   só a própria fala, só fora do idioma da pessoa). A prática vale como o opt-in da correção na vez
   (`useAssistenteAoVivo({ praticando })`; os ajustes guardados não mudam). **Nunca a fala da outra pessoa.**
 - **O lado incerto nunca vai à correção** (a garantia da C3 vale na prática): a fala sem metade espera; o lado do
-  automático sem evidência de idioma (a alternância, ou as duas metades no mesmo idioma — `decidirLadoDaFala` agora
-  devolve palpite nesse caso, e o controle marca palpite em tudo que o automático decide praticando) chega como
-  `ladoPalpite` e, se cairia na pessoa, vira `incerto`. A fala de terceiros não chega à `/correcao`.
+  automático por palpite chega à fala como `ladoPalpite` e, se cairia na pessoa, vira `incerto`. Palpite é a
+  alternância sem evidência de idioma (`decidirLadoDaFala`) e, praticando, TUDO o que o automático decide: o controle
+  (`ladoDaFala`) marca palpite sempre que há `falaDoMeu`, porque a pessoa fala o idioma da outra e o idioma medido não
+  prova nada. É a rede de segurança: a tela já põe a prática no toque. A fala de terceiros não chega à `/correcao`.
 - **Na tela**: "Mais natural: …" com a dica, embaixo da própria fala (na metade e na lista), `aria-live="off"`, sem
   vermelho, sem modal (`CorrecaoNaPagina`).
 - **"Falar esta"**: praticando, cada sugestão do "Como respondo?" ganha "Falar esta" (junto de "Ouvir", que lê antes). A
-  folha fecha, o microfone abre na metade da pessoa e a sugestão fica à vista ("Leia em voz alta: …"). A PRÓXIMA fala
-  final dela fica ligada à sugestão: a tela compara no aparelho (`compararComASugestao`: as palavras que faltaram, sem
-  contar ordem nem pontuação) e a correção do servidor vem como em toda fala dela. A rota não muda (o contrato da
+  folha fecha, o microfone abre na metade da pessoa e a sugestão fica à vista ("Leia em voz alta: …", na metade e na
+  lista, com "Cancelar"). Conta só a fala da pessoa que COMEÇOU depois do toque (um id novo, com a metade dela; a
+  parcial que já estava a caminho não): a tela compara no aparelho (`compararComASugestao`: as palavras que faltaram,
+  sem contar ordem nem pontuação; japonês, chinês e as outras escritas sem espaço pelo `Intl.Segmenter`, e sem ele a
+  tela não afirma nada) e a correção do servidor vem como em toda fala dela. A rota não muda (o contrato da
   `/correcao` é o mesmo: só `minhaFala`).
+  - **A outra pessoa ainda fala** (o microfone na metade dela, a parcial dela a caminho, ou a tradução dela sendo lida):
+    os lados NÃO trocam. A sugestão espera, a tela diz "Espere a outra pessoa terminar." e, quando a fala dela chega e
+    a conversa volta a parado, o microfone abre na metade da pessoa. Nesse caso ele abre fora do toque: num aparelho
+    que exige o gesto para o áudio, a sessão já aberta é o que o permite.
+  - **A leitura cancela** no "Cancelar", ao tocar na metade da outra pessoa, no "terminei" sem ter falado, e quando o
+    microfone falha ou a permissão é negada: a sugestão não fica esperando para sempre.
 - **O portão** (`correcaoNaPratica`): a dica sai com a flag + plano pago ou teste (`assistenteDia`) + o consentimento de
   nuvem. Sem o consentimento, a faixa diz e oferece "Autorizar IA de nuvem". No Grátis, no convidado e depois de um
   `sem_plano` do servidor, a prática liga do mesmo jeito (a pessoa pratica a fala) e a faixa diz, sem oferta de plano:

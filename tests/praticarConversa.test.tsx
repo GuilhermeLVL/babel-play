@@ -56,7 +56,6 @@ import { esquecerAjustesDoAssistente } from '../src/lib/assistente/ajustesDoAssi
 import { contextoDasFalas, falasDoAssistente } from '../src/lib/assistente/falasDoAssistente'
 import type { PonteDoInterprete } from '../src/lib/captura/controleDoInterprete'
 import { direcaoDoLado, idiomasDaConversa } from '../src/lib/captura/interprete'
-import { decidirLadoDaFala, ESTADO_DO_AUTOMATICO } from '../src/lib/captura/interpreteAutomatico'
 import type { SpeechSegment } from '../src/lib/captura/tiposDaFala'
 import { estabilizarFalas } from '../src/lib/legendas/estabilizarFalas'
 import { estadoDaTela, mudarEstadoDaTela, tomarPedidoDaConversa } from '../src/lib/polimento/interprete'
@@ -111,6 +110,23 @@ describe('as regras da prática', () => {
       faltaram: ['really', 'that'],
     })
     expect(compararComASugestao('I dont know', "I don't know")).toMatchObject({ faltaram: ["don't"] })
+    /* Todo apóstrofo conta como o reto (o reconhecedor e a sugestão escrevem diferente). */
+    expect(compararComASugestao('I don’t know it’s fine', "I don't know it's fine")).toMatchObject({ igual: true })
+  })
+
+  it('japonês e chinês: as palavras pelo Intl.Segmenter; sem ele, nenhuma afirmação', () => {
+    expect(compararComASugestao('東京に行きたい', '東京に行きたいです', 'ja')).toMatchObject({ igual: false })
+    expect(compararComASugestao('東京に行きたいです', '東京に行きたいです', 'ja')).toMatchObject({ igual: true })
+    expect(compararComASugestao('我想去北京', '我想去北京', 'zh')).toMatchObject({ igual: true })
+    const segmentador = (Intl as unknown as { Segmenter?: unknown }).Segmenter
+    try {
+      ;(Intl as unknown as { Segmenter?: unknown }).Segmenter = undefined
+      expect(compararComASugestao('我想去', '我想去北京', 'zh')).toBeNull()
+      /* O inglês não precisa dele. */
+      expect(compararComASugestao('I want', 'I want it')).toMatchObject({ faltaram: ['it'] })
+    } finally {
+      ;(Intl as unknown as { Segmenter?: unknown }).Segmenter = segmentador
+    }
   })
 
   it('a direção: praticando, a metade da pessoa FALA o idioma que aprende e segue OUVINDO no dela', () => {
@@ -124,19 +140,6 @@ describe('as regras da prática', () => {
     expect(direcaoDoLado('meu', { meu: 'pt-BR', outro: 'en-US' })).toMatchObject({ fala: 'pt-BR', para: 'en' })
     /* O motor serve a um idioma só (sem repetir). */
     expect(idiomasDaConversa(idiomas)).toEqual(['en-US'])
-  })
-
-  it('o automático com as duas metades no mesmo idioma não tem certeza: é sempre palpite', () => {
-    const pistas = { idiomaDoMotor: 'en', idiomaDoTexto: 'en', audioMs: 3000 }
-    const a = decidirLadoDaFala(pistas, { meu: 'en', outro: 'en' }, ESTADO_DO_AUTOMATICO)
-    expect(a).toMatchObject({ lado: 'meu', palpite: true })
-    const b = decidirLadoDaFala(pistas, { meu: 'en', outro: 'en' }, a.estado)
-    expect(b).toMatchObject({ lado: 'outro', palpite: true })
-    /* Com idiomas diferentes, o idioma medido segue valendo como evidência. */
-    expect(decidirLadoDaFala(pistas, { meu: 'pt', outro: 'en' }, ESTADO_DO_AUTOMATICO)).toMatchObject({
-      lado: 'outro',
-      palpite: false,
-    })
   })
 })
 
@@ -484,6 +487,150 @@ describe('ModoInterprete: "Falar esta" e a correção na metade da pessoa', () =
     expect(metade.querySelector('[data-testid="comparacao-com-a-sugestao"]')?.textContent).toContain(
       'Da sugestão, faltou: really',
     )
+  })
+
+  const MINHA_FALA: FalaDoInterprete = {
+    id: 'm1',
+    originalText: 'It was great',
+    translatedText: '',
+    isPartial: false,
+    lado: 'meu',
+    lang: 'en',
+  }
+  const falarEsta = () => fireEvent.click(screen.getByRole('button', { name: 'Falar esta: It was really great!' }))
+  const lendo = () => screen.queryAllByTestId('sugestao-para-ler')
+
+  it('com a lista aberta, a sugestão a ler fica à vista na lista', () => {
+    montarConversa({ pratica: pratica({ ligada: true }), falas: [doOutro], assistente: assistente() })
+    fireEvent.click(screen.getByTestId('tela-conversa'))
+    falarEsta()
+    const lista = screen.getByTestId('interprete-conversa')
+    expect(lista.querySelector('[data-testid="sugestao-para-ler"]')?.textContent).toContain('It was really great!')
+  })
+
+  it('só a fala que COMEÇOU depois do toque conta: a parcial que já estava a caminho não', () => {
+    const p = pratica({ ligada: true })
+    const parcial: FalaDoInterprete = { ...MINHA_FALA, id: 'm0', originalText: 'so', isPartial: true }
+    const { trocar } = montarConversa({ pratica: p, falas: [doOutro, parcial], assistente: assistente() })
+    falarEsta()
+    trocar({ pratica: p, falas: [doOutro, { ...parcial, originalText: 'so anyway', isPartial: false }] })
+    expect(lendo()).toHaveLength(1)
+    expect(screen.queryByTestId('comparacao-com-a-sugestao')).toBeNull()
+    trocar({ pratica: p, falas: [doOutro, { ...parcial, isPartial: false }, MINHA_FALA] })
+    expect(lendo()).toHaveLength(0)
+    expect(screen.getByTestId('comparacao-com-a-sugestao').textContent).toContain('faltou: really')
+  })
+
+  it('cancela: no botão Cancelar, no toque na metade da outra pessoa, e no "terminei" sem falar', () => {
+    const r = montarConversa({ pratica: pratica({ ligada: true }), falas: [doOutro], assistente: assistente() })
+    falarEsta()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar a leitura da sugestão' }))
+    expect(lendo()).toHaveLength(0)
+
+    falarEsta()
+    expect(lendo()).toHaveLength(1)
+    fireEvent.click(screen.getByTestId('falar-outro'))
+    expect(lendo()).toHaveLength(0)
+    r.unmount()
+
+    montarConversa({ pratica: pratica({ ligada: true }), falas: [doOutro], assistente: assistente() })
+    falarEsta()
+    expect(lendo()).toHaveLength(1)
+    /* O mesmo lado de novo, sem ter falado: o microfone fecha, e a sugestão não fica esperando. */
+    fireEvent.click(screen.getByTestId('falar-meu'))
+    expect(screen.getByTestId('modo-interprete').getAttribute('data-fase')).toBe('parado')
+    expect(lendo()).toHaveLength(0)
+  })
+
+  it('cancela quando o microfone falha ou a permissão é negada', async () => {
+    const { ponte } = montarConversa({ pratica: pratica({ ligada: true }), falas: [doOutro], assistente: assistente() })
+    falarEsta()
+    expect(lendo()).toHaveLength(1)
+    act(() => ponte.atual!.microfoneFalhou())
+    expect(lendo()).toHaveLength(0)
+    cleanup()
+
+    const negado = vi.fn(() => Promise.reject(new DOMException('negado', 'NotAllowedError')))
+    render(
+      <ModoInterprete
+        idiomas={{ meu: 'pt-BR', outro: 'en-US' }}
+        microfone={{ abrir: negado, fechar: vi.fn() }}
+        registrarPonte={() => {}}
+        vozNaturalDisponivel={false}
+        layout="celular"
+        aoSair={vi.fn()}
+        falas={[doOutro]}
+        pratica={pratica({ ligada: true })}
+        assistente={assistente() as unknown as React.ComponentProps<typeof ModoInterprete>['assistente']}
+      />,
+    )
+    falarEsta()
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(negado).toHaveBeenCalled()
+    expect(lendo()).toHaveLength(0)
+  })
+
+  it('a outra pessoa ainda fala: os lados não trocam; a tela pede para esperar e troca quando a fala dela chega', () => {
+    const p = pratica({ ligada: true })
+    const { abrir, ponte, trocar } = montarConversa({ pratica: p, falas: [doOutro], assistente: assistente() })
+    fireEvent.click(screen.getByTestId('falar-outro'))
+    expect(abrir).toHaveBeenCalledTimes(1)
+    const delaAoVivo: FalaDoInterprete = { ...doOutro, id: 'o2', originalText: 'And you', isPartial: true }
+    trocar({ pratica: p, falas: [doOutro, delaAoVivo] })
+    falarEsta()
+    /* Nada de trocar: o microfone segue na metade dela. */
+    expect(abrir).toHaveBeenCalledTimes(1)
+    expect(ponte.atual!.direcao()).toMatchObject({ lado: 'outro' })
+    expect(lendo()[0].textContent).toContain('Espere a outra pessoa terminar.')
+
+    /* A fala dela chega (o fim, e a tradução que não vai ser lida): agora o microfone abre na metade da pessoa. */
+    act(() => ponte.atual!.aoFimDaFala({ segId: 'o2', source: 'mic', lado: 'outro' }))
+    trocar({ pratica: p, falas: [doOutro, { ...delaAoVivo, originalText: 'And you?', isPartial: false }] })
+    expect(abrir).toHaveBeenCalledTimes(1)
+    act(() =>
+      ponte.atual!.aoTraduzirFinal({
+        segId: 'o2',
+        original: 'And you?',
+        resultado: 'sem-traducao',
+        traducao: '',
+        de: 'en',
+        para: 'pt',
+        aproximada: false,
+        falada: true,
+      }),
+    )
+    expect(abrir).toHaveBeenCalledTimes(2)
+    expect(ponte.atual!.direcao()).toMatchObject({ lado: 'meu', fala: 'en-US' })
+    expect(lendo()[0].textContent).not.toContain('Espere')
+    /* E a fala que vem agora é a que se compara (a dela, que terminou antes, não). */
+    trocar({
+      pratica: p,
+      falas: [doOutro, { ...delaAoVivo, originalText: 'And you?', isPartial: false }, MINHA_FALA],
+    })
+    expect(screen.getByTestId('comparacao-com-a-sugestao').textContent).toContain('faltou: really')
+  })
+
+  it('praticando, o "Automático" com cadeado só mostra a nota, sem oferta de plano', () => {
+    render(
+      <ModoInterprete
+        idiomas={{ meu: 'pt-BR', outro: 'en-US' }}
+        microfone={{ abrir: vi.fn(), fechar: vi.fn() }}
+        registrarPonte={() => {}}
+        vozNaturalDisponivel={false}
+        layout="celular"
+        automatico="premium"
+        aoConhecerOPremium={vi.fn()}
+        aoSair={vi.fn()}
+        falas={[]}
+        pratica={pratica({ ligada: true })}
+      />,
+    )
+    fireEvent.click(screen.getByTestId('modo-automatico'))
+    expect(aviso()).toContain('cada um toca em Falar na sua vez')
+    expect(screen.queryByText(/Conhecer o/)).toBeNull()
   })
 
   it('a correção da própria fala aparece na metade dela, discreta, e nunca na da outra pessoa', () => {

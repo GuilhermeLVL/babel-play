@@ -119,8 +119,13 @@ export interface AssistenteNaConversa {
   aoComoRespondo?: (falaId: string) => void;
   /** Mostra o atalho (Alt+R) no botão: no computador. */
   comAtalho?: boolean;
-  /** "Falar esta" (a prática): a sugestão que a pessoa vai ler agora, à vista na metade dela. */
-  ensaiando?: { texto: string; lang?: string };
+  /**
+   * "Falar esta" (a prática): a sugestão que a pessoa vai ler, à vista na metade dela e na lista. `esperando`: a outra
+   * pessoa ainda fala, e os lados só trocam quando a fala dela chegar.
+   */
+  ensaiando?: { texto: string; lang?: string; esperando?: boolean };
+  /** "Cancelar" a leitura da sugestão. */
+  aoCancelarEnsaio?: () => void;
   /** As falas da pessoa que leram uma sugestão (id → a sugestão): a comparação aparece embaixo delas. */
   ensaios?: ReadonlyMap<string, string>;
 }
@@ -394,7 +399,7 @@ export default function ConversaDoPrototipo({
             </>
           )}
           {assistente.ensaiando && (
-            <SugestaoParaLer texto={assistente.ensaiando.texto} lang={assistente.ensaiando.lang} />
+            <SugestaoParaLer {...assistente.ensaiando} aoCancelar={assistente.aoCancelarEnsaio} />
           )}
         </div>
       )}
@@ -645,6 +650,10 @@ export default function ConversaDoPrototipo({
                 ))
               ) : (
                 <p className="int-dica">{t('A conversa aparece aqui conforme vocês falam.')}</p>
+              )}
+              {/* Com a lista aberta, as metades somem: a sugestão a ler fica à vista aqui, depois da última fala. */}
+              {assistente?.ensaiando && (
+                <SugestaoParaLer {...assistente.ensaiando} aoCancelar={assistente.aoCancelarEnsaio} />
               )}
             </div>
           )}

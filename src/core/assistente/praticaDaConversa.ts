@@ -33,9 +33,32 @@ export function correcaoNaPratica(r: Pick<RecursosDoAssistente, 'nuvem'>, consen
   return consentiuNuvem ? 'ligada' : 'sem_consentimento';
 }
 
-/** As palavras de uma frase, para comparar (minúsculas, sem pontuação; o apóstrofo fica: "don't"). */
-function palavras(s: string): string[] {
-  return (s.toLowerCase().match(/[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu) ?? []).map((p) => p.replace('’', "'"));
+/** Escritas sem espaço entre palavras (chinês, japonês, tailandês, laosiano, khmer, birmanês). */
+const ESCRITA_SEM_ESPACO =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]/u;
+
+type Segmentador = new (
+  l?: string,
+  o?: { granularity: 'word' },
+) => { segment: (t: string) => Iterable<{ segment: string; isWordLike?: boolean }> };
+
+/**
+ * As palavras de uma frase, para comparar (minúsculas, sem pontuação; todo apóstrofo vira o reto: "don't"). Nas escritas
+ * sem espaço, pelo `Intl.Segmenter`; sem ele, `null` — a tela não compara o que não sabe partir.
+ */
+function palavras(s: string, lang: string | undefined): string[] | null {
+  const texto = s.toLowerCase().replaceAll(/[’‘ʼ]/gu, "'");
+  if (!ESCRITA_SEM_ESPACO.test(texto)) return texto.match(/[\p{L}\p{N}]+(?:'[\p{L}\p{N}]+)*/gu) ?? [];
+  const Segmenter = (Intl as unknown as { Segmenter?: Segmentador }).Segmenter;
+  if (!Segmenter) return null;
+  try {
+    const lista: string[] = [];
+    for (const seg of new Segmenter(lang || undefined, { granularity: 'word' }).segment(texto))
+      if (seg.isWordLike) lista.push(seg.segment);
+    return lista;
+  } catch {
+    return null;
+  }
 }
 
 export interface ComparacaoComASugestao {
@@ -48,13 +71,17 @@ export interface ComparacaoComASugestao {
 /**
  * "FALAR ESTA": a pessoa leu em voz alta uma sugestão do "Como respondo?". A tela compara o que o reconhecedor ouviu
  * com a sugestão, no aparelho (nada sai para a rede): diz as palavras que faltaram. A correção do servidor, se vier,
- * aparece junto, como em toda fala da pessoa.
+ * aparece junto, como em toda fala da pessoa. `null` = não dá para comparar aqui (escrita sem espaço, sem o
+ * `Intl.Segmenter`): a tela não diz nada, em vez de afirmar o que não mediu.
  */
-export function compararComASugestao(falado: string, sugestao: string): ComparacaoComASugestao {
+export function compararComASugestao(falado: string, sugestao: string, lang?: string): ComparacaoComASugestao | null {
+  const ditas = palavras(falado, lang);
+  const esperadas = palavras(sugestao, lang);
+  if (!ditas || !esperadas || !esperadas.length) return null;
   const restantes = new Map<string, number>();
-  for (const p of palavras(falado)) restantes.set(p, (restantes.get(p) ?? 0) + 1);
+  for (const p of ditas) restantes.set(p, (restantes.get(p) ?? 0) + 1);
   const faltaram: string[] = [];
-  for (const p of palavras(sugestao)) {
+  for (const p of esperadas) {
     const n = restantes.get(p) ?? 0;
     if (n > 0) restantes.set(p, n - 1);
     else if (!faltaram.includes(p)) faltaram.push(p);

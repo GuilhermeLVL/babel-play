@@ -118,12 +118,16 @@ async function falsos(page: Page, frases: string[]) {
           this.onstart?.()
           this.onaudiostart?.()
           this.onsoundstart?.()
-          setTimeout(() => {
-            if (this.parado) return
-            const texto = restantes.shift() ?? 'okay'
-            const r = Object.assign([{ transcript: texto, confidence: 0.9 }], { isFinal: true })
-            this.onresult?.({ resultIndex: 0, results: { length: 1, 0: r } })
-          }, 400)
+          setTimeout(
+            () => {
+              if (this.parado) return
+              const texto = restantes.shift() ?? 'okay'
+              const r = Object.assign([{ transcript: texto, confidence: 0.9 }], { isFinal: true })
+              this.onresult?.({ resultIndex: 0, results: { length: 1, 0: r } })
+              /* O teste pode alongar a fala (`__atrasoDaFala`) para ver o que a tela mostra enquanto ela não chega. */
+            },
+            (w.__atrasoDaFala as number | undefined) ?? 400,
+          )
         }, 200)
       }
       stop() {
@@ -258,10 +262,15 @@ test('praticar: a fala da pessoa em inglês ganha a correção; a da outra pesso
   const folha = conversa.getByRole('dialog', { name: 'Como respondo?' })
   await expect(folha.locator('.leg-sugestao')).toHaveCount(2, { timeout: 10_000 })
   await fotosNosDoisTemas(page, 'falar-esta')
+  await page.evaluate(() => ((window as unknown as Record<string, unknown>).__atrasoDaFala = 2500))
   await clicarRobusto(page, folha.getByRole('button', { name: `Falar esta: ${SUGESTAO}` }))
   await expect(folha).toHaveCount(0)
+  /* Com a lista aberta, a sugestão a ler fica à vista nela enquanto a pessoa lê. */
+  await expect(lista.getByTestId('sugestao-para-ler')).toContainText(SUGESTAO)
+  await page.evaluate(() => ((window as unknown as Record<string, unknown>).__atrasoDaFala = 400))
   const comparacao = lista.getByTestId('comparacao-com-a-sugestao')
   await expect(comparacao).toContainText('Da sugestão, faltou: really', { timeout: 15_000 })
+  await expect(lista.getByTestId('sugestao-para-ler')).toHaveCount(0)
   await parada(conversa)
   await fotosNosDoisTemas(page, 'comparacao-na-lista')
   expect(correcoes).toEqual([MINHA_1, MINHA_2])

@@ -75,6 +75,12 @@ const MOTOR_SEM_VOZ: TtsEngine = MOTOR_MUDO;
 
 const outro = (lado: LadoDoInterprete): LadoDoInterprete => (lado === 'meu' ? 'outro' : 'meu');
 
+/** "Falar esta": a sugestão que a pessoa vai ler. `esperando` a outra pessoa terminar, ou `ouvindo` a fala da pessoa
+    que começar depois do toque (`antes`: os ids que já existiam). */
+type Ensaio =
+  | { fase: 'esperando'; texto: string; lang?: string }
+  | { fase: 'ouvindo'; texto: string; lang?: string; antes: ReadonlySet<string> };
+
 export type { ModoDaConversa };
 /**
  * O automático NESTA conta: `disponivel` (o plano o tem), `premium` (não tem: o botão aparece com
@@ -243,7 +249,11 @@ export default function ModoInterprete({
       ...(voz ? { destravarVoz: destravarVozDaNuvem } : {}),
       ...(velocidadeInicial && velocidadeInicial !== 1 ? { opcoesDeFala: { rate: velocidadeInicial } } : {}),
       aoMudar: setEstado,
-      aoFalharMicrofone: (erro) => aoFalharRef.current?.(erro),
+      aoFalharMicrofone: (erro) => {
+        /* O microfone não abriu: a sugestão que esperava a fala não fica pendurada. */
+        setEnsaio(null);
+        aoFalharRef.current?.(erro);
+      },
     });
     controleRef.current = controle;
     vozRef.current = voz;
@@ -373,8 +383,22 @@ export default function ModoInterprete({
     baixarTexto(nomeDoArquivoDaConversa(titulo), md);
   };
 
+  /* "FALAR ESTA" (a prática): a sugestão escolhida espera a PRÓXIMA fala da pessoa que COMEÇOU depois do toque (os ids
+     que já existiam não contam, nem a parcial em andamento); essa fala fica ligada a ela, e a comparação aparece
+     embaixo. `esperando`: a outra pessoa ainda fala — os lados não trocam no meio da fala dela. */
+  const [ensaio, setEnsaio] = useState<Ensaio | null>(null);
+  const ensaioRef = useRef(ensaio);
+  ensaioRef.current = ensaio;
+  const [ensaios, setEnsaios] = useState<ReadonlyMap<string, string>>(() => new Map());
+  /** A metade da pessoa, no lado do MOTOR (com os lados trocados, a de cima). */
+  const meuLadoAgora = (): LadoDoInterprete => ((controleRef.current?.estado().trocados ?? false) ? 'outro' : 'meu');
+
   const controle = {
-    tocar: (lado: LadoDoInterprete) => controleRef.current?.tocar(lado),
+    tocar: (lado: LadoDoInterprete) => {
+      /* Tocar a metade da OUTRA pessoa enquanto a pessoa ia ler a sugestão: a leitura fica para trás. */
+      if (lado !== meuLadoAgora() && ensaioRef.current?.fase === 'ouvindo') setEnsaio(null);
+      controleRef.current?.tocar(lado);
+    },
     repetir: () => controleRef.current?.repetir(),
     pararVoz: () => controleRef.current?.pararVoz(),
     trocarLados: () => controleRef.current?.trocarLados(),
@@ -564,21 +588,50 @@ export default function ModoInterprete({
     if (donoDe(tudo.itens[i].lado) === 'outro') responderA = tudo.itens[i].id;
   const pedirResposta = assistente?.recursos.comoRespondo ? assistente.pedirComoRespondo : undefined;
 
-  /* "FALAR ESTA" (a prática): a sugestão escolhida espera a PRÓXIMA fala final da pessoa; essa fala fica ligada a ela, e
-     a comparação aparece embaixo (junto da correção, se vier). As falas que já existiam não contam. */
-  const [ensaio, setEnsaio] = useState<{ texto: string; lang?: string; antes: ReadonlySet<string> } | null>(null);
-  const [ensaios, setEnsaios] = useState<ReadonlyMap<string, string>>(() => new Map());
-  const minhasFinais = (): string[] =>
-    falas.filter((f) => f.lado && donoDe(f.lado) === 'meu' && !f.isPartial && f.originalText.trim()).map((f) => f.id);
-  const minhasFinaisRef = useRef(minhasFinais);
-  minhasFinaisRef.current = minhasFinais;
+  /** A outra pessoa ainda está falando (o microfone na metade dela, a fala dela a caminho, ou a tradução dela sendo
+      lida): trocar de lado agora cortaria a fala dela. */
+  const outraOcupada = (): boolean => {
+    const c = controleRef.current;
+    if (!c) return false;
+    const e = c.estado();
+    const meuLado = meuLadoAgora();
+    const ouvindoEu = e.fase === 'ouvindo' && !e.automatico && e.lado === meuLado;
+    return (e.fase !== 'parado' && !ouvindoEu) || falas.some((f) => f.isPartial && f.lado && f.lado !== meuLado);
+  };
+  /** Abre (ou segue com) o microfone na metade da pessoa, e a sugestão passa a esperar a fala que começar agora. */
+  const ouvirOEnsaio = (texto: string, lang: string | undefined) => {
+    const c = controleRef.current;
+    setEnsaio({ fase: 'ouvindo', texto, ...(lang ? { lang } : {}), antes: new Set(falas.map((f) => f.id)) });
+    if (!c) return;
+    const e = c.estado();
+    const meuLado = meuLadoAgora();
+    if (!(e.fase === 'ouvindo' && e.lado === meuLado && !e.automatico)) c.tocar(meuLado);
+  };
+  const ouvirOEnsaioRef = useRef(ouvirOEnsaio);
+  ouvirOEnsaioRef.current = ouvirOEnsaio;
+  const outraOcupadaRef = useRef(outraOcupada);
+  outraOcupadaRef.current = outraOcupada;
   useEffect(() => {
     if (!ensaio) return;
-    const nova = minhasFinaisRef.current().find((id) => !ensaio.antes.has(id));
-    if (!nova) return;
-    setEnsaios((m) => new Map(m).set(nova, ensaio.texto));
-    setEnsaio(null);
-  }, [falas, ensaio]);
+    const c = controleRef.current;
+    if (!c) return;
+    if (ensaio.fase === 'esperando') {
+      /* A fala dela chegou (e a tradução foi lida): agora os lados trocam. */
+      if (!outraOcupadaRef.current()) ouvirOEnsaioRef.current(ensaio.texto, ensaio.lang);
+      return;
+    }
+    const meuLado = meuLadoAgora();
+    const novas = falas.filter((f) => !ensaio.antes.has(f.id) && f.lado === meuLado);
+    const final = novas.find((f) => !f.isPartial && f.originalText.trim());
+    if (final) {
+      setEnsaios((m) => new Map(m).set(final.id, ensaio.texto));
+      setEnsaio(null);
+      return;
+    }
+    /* O microfone fechou sem fala nenhuma (o "terminei" sem falar, a permissão negada, o microfone que falhou): a
+       sugestão não fica esperando para sempre. */
+    if (c.estado().fase === 'parado' && !novas.length) setEnsaio(null);
+  }, [falas, ensaio, atual]);
   /* A prática desligou: a sugestão que esperava a fala fica para trás. */
   useEffect(() => {
     if (!praticando) setEnsaio(null);
@@ -586,13 +639,9 @@ export default function ModoInterprete({
   const falarSugestao = (texto: string) => {
     const lang = assistente?.comoRespondo.estado !== 'fechado' ? assistente?.comoRespondo.lang : undefined;
     assistente?.fecharComoRespondo();
-    setEnsaio({ texto, ...(lang ? { lang } : {}), antes: new Set(minhasFinais()) });
-    const c = controleRef.current;
-    if (!c) return;
-    /* A metade da pessoa (com os lados trocados, a de cima); já ouvindo nela, segue ouvindo. */
-    const meuLado: LadoDoInterprete = atual.trocados ? 'outro' : 'meu';
-    const e = c.estado();
-    if (!(e.fase === 'ouvindo' && e.lado === meuLado && !e.automatico)) c.tocar(meuLado);
+    /* A outra pessoa ainda fala: os lados NÃO trocam no meio da fala dela; a sugestão espera, e a tela diz. */
+    if (outraOcupada()) setEnsaio({ fase: 'esperando', texto, ...(lang ? { lang } : {}) });
+    /* Dentro do toque (o áudio do iPhone): o microfone abre já. */ else ouvirOEnsaio(texto, lang);
   };
 
   const naConversa: AssistenteNaConversa | undefined = assistente
@@ -602,7 +651,14 @@ export default function ModoInterprete({
         ...(pedirResposta && responderA ? { responderA, aoComoRespondo: pedirResposta } : {}),
         comAtalho: layout === 'computador',
         ...(praticando && ensaio
-          ? { ensaiando: { texto: ensaio.texto, ...(ensaio.lang ? { lang: ensaio.lang } : {}) } }
+          ? {
+              ensaiando: {
+                texto: ensaio.texto,
+                ...(ensaio.lang ? { lang: ensaio.lang } : {}),
+                esperando: ensaio.fase === 'esperando',
+              },
+              aoCancelarEnsaio: () => setEnsaio(null),
+            }
           : {}),
         ...(ensaios.size ? { ensaios } : {}),
       }
@@ -646,6 +702,12 @@ export default function ModoInterprete({
               ligado: noAutomatico,
               comCadeado: automatico === 'premium',
               aoTocar: (botao: HTMLElement) => {
+                /* Praticando, o toque é o modo: nem o cadeado nem a oferta, só a nota de por quê. */
+                if (praticando) {
+                  setPresoNaPratica('toque');
+                  tremer(botao);
+                  return;
+                }
                 if (automatico !== 'disponivel') {
                   setCadeado(true);
                   tremer(botao);
@@ -653,11 +715,6 @@ export default function ModoInterprete({
                 }
                 if (detectar) {
                   setPresoNoDetectar(true);
-                  tremer(botao);
-                  return;
-                }
-                if (praticando) {
-                  setPresoNaPratica('toque');
                   tremer(botao);
                   return;
                 }
@@ -712,7 +769,7 @@ export default function ModoInterprete({
           : undefined
       }
       aoConhecerOPremium={
-        avisoDoCadeado && !aviso && aoConhecerOPremium && totalDeFinais === 0
+        avisoDoCadeado && !praticando && !aviso && aoConhecerOPremium && totalDeFinais === 0
           ? () => {
               mudarEstadoDaTela({ depois: 'planos' });
               sair();

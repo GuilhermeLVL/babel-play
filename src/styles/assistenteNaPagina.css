@@ -296,3 +296,28 @@
 .int-bolha .asst-comparacao {
   text-align: start;
 }
+/* "Cancelar" a leitura da sugestão: um botão de texto, alvo de 44 px. */
+.asst-ensaio-cancelar {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-inline-start: 6px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+.asst-ensaio-cancelar:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.int-bolhas > .asst-ensaio {
+  align-self: flex-end;
+  text-align: end;
+}

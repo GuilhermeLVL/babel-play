@@ -257,6 +257,12 @@ export default function PaginaDoInterprete({
                   ligado: noAutomatico,
                   comCadeado: automatico === 'premium',
                   aoTocar: (botao: HTMLElement) => {
+                    /* Praticando, o toque é o modo: nem o cadeado nem a oferta, só a nota de por quê. */
+                    if (praticando) {
+                      setPresoNaPratica('toque');
+                      tremer(botao);
+                      return;
+                    }
                     if (automatico !== 'disponivel') {
                       setCadeado(true);
                       tremer(botao);
@@ -264,11 +270,6 @@ export default function PaginaDoInterprete({
                     }
                     if (detectar) {
                       setPresoNoDetectar(true);
-                      tremer(botao);
-                      return;
-                    }
-                    if (praticando) {
-                      setPresoNaPratica('toque');
                       tremer(botao);
                       return;
                     }
@@ -306,7 +307,7 @@ export default function PaginaDoInterprete({
                           ? t('Automático ligado: é só conversar. O app reconhece quem fala qual idioma.')
                           : ''))
           }
-          aoConhecerOPremium={avisoDoCadeado && possivel && !aviso ? aoConhecerOPremium : undefined}
+          aoConhecerOPremium={avisoDoCadeado && !praticando && possivel && !aviso ? aoConhecerOPremium : undefined}
           acaoDoAviso={
             possivel && !aviso && praticando && pratica?.correcao === 'sem_consentimento'
               ? { rotulo: t('Autorizar IA de nuvem'), aoTocar: pratica.aoAutorizar }

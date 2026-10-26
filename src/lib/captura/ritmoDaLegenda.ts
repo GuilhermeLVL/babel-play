@@ -15,6 +15,12 @@
  * A fila tem teto (`FILA_MAXIMA`): se a pessoa fala mais rápido do que dá para ler, as mais
  * antigas da fila vão direto ao histórico (continuam lá para voltar e ler), e o atraso da legenda
  * em relação à fala fica limitado — legenda de dois minutos atrás não serve para nada.
+ *
+ * SEGUIR AO VIVO (relato do dono, 26/10: "às vezes a mensagem atual não fica em tela"): numa fala
+ * rápida (telejornal) o ritmo de leitura empilhava falas e a legenda ficava para trás. Com
+ * `aoVivo` (a janela seguindo o fim, sem pausa), a fila não segura ninguém: mais de UMA fala
+ * esperando, ou a mais antiga esperando há `ESPERA_MAXIMA_MS`, e tudo entra de uma vez — a mais
+ * recente vira a atual. O ritmo de leitura fica para a fala lenta, que é onde ele ajuda.
  */
 
 export type Leitura = 'lenta' | 'normal' | 'rapida';
@@ -27,6 +33,10 @@ export const MINIMO_MS = 1500;
 export const MAXIMO_MS = 12_000;
 /** Quantas falas podem esperar a vez; além disso, as mais antigas entram direto no histórico. */
 export const FILA_MAXIMA = 3;
+/** Seguindo ao vivo: a fala mais antiga da fila não espera mais que isto para entrar. */
+export const ESPERA_MAXIMA_MS = 2000;
+/** Seguindo ao vivo: mais falas que isto esperando, e a legenda alcança a mais recente na hora. */
+export const FILA_AO_VIVO = 1;
 
 /** O que o ritmo precisa de cada fala: quem é e quanto texto há para ler. */
 export interface FalaDoRitmo {
@@ -42,6 +52,8 @@ export interface EstadoDoRitmo {
   atual: string | null;
   /** Quando a atual entrou (ms, o mesmo relógio de `agora`). */
   desdeMs: number;
+  /** Seguindo ao vivo: quando cada fala da fila foi vista pela primeira vez (só as que esperam). */
+  chegadas?: Readonly<Record<string, number>>;
 }
 
 export const RITMO_VAZIO: EstadoDoRitmo = { reveladas: [], atual: null, desdeMs: 0 };
@@ -82,6 +94,7 @@ export function avancar(
   falas: readonly FalaDoRitmo[],
   agora: number,
   leitura: Leitura,
+  opcoes: { aoVivo?: boolean } = {},
 ): { estado: EstadoDoRitmo; proximaEmMs: number | null } {
   const presentes = new Set(falas.map((f) => f.id));
   let reveladas = estado.reveladas.every((id) => presentes.has(id))
@@ -99,7 +112,11 @@ export function avancar(
     desdeMs = agora;
   };
 
-  if (fila.length > FILA_MAXIMA) {
+  /* Ao vivo: quando cada fala da fila chegou (a que já estava guarda a hora; a nova ganha `agora`). */
+  const chegou = (id: string) => (opcoes.aoVivo ? (estado.chegadas?.[id] ?? agora) : agora);
+  if (opcoes.aoVivo && fila.length && (fila.length > FILA_AO_VIVO || agora - chegou(fila[0].id) >= ESPERA_MAXIMA_MS)) {
+    revelar(fila.splice(0).map((f) => f.id));
+  } else if (fila.length > FILA_MAXIMA) {
     revelar(fila.splice(0, fila.length - FILA_MAXIMA).map((f) => f.id));
   } else if (fila.length && !atual) {
     revelar([fila.shift()!.id]);
@@ -108,14 +125,31 @@ export function avancar(
     if (agora - desdeMs >= tempoDeLeitura(daAtual.caracteres, leitura)) revelar([fila.shift()!.id]);
   }
 
-  const mudou = reveladas !== estado.reveladas || atual !== estado.atual || desdeMs !== estado.desdeMs;
-  const novo = mudou ? { reveladas, atual, desdeMs } : estado;
+  const chegadas = opcoes.aoVivo ? chegadasDaFila(estado.chegadas, fila, chegou) : estado.chegadas;
+  const mudou =
+    reveladas !== estado.reveladas ||
+    atual !== estado.atual ||
+    desdeMs !== estado.desdeMs ||
+    chegadas !== estado.chegadas;
+  const novo: EstadoDoRitmo = mudou ? { reveladas, atual, desdeMs, ...(chegadas ? { chegadas } : {}) } : estado;
   if (!fila.length || !novo.atual) return { estado: novo, proximaEmMs: null };
   const daAtual = falas.find((f) => f.id === novo.atual)!;
-  return {
-    estado: novo,
-    proximaEmMs: Math.max(0, novo.desdeMs + tempoDeLeitura(daAtual.caracteres, leitura) - agora),
-  };
+  let proxima = novo.desdeMs + tempoDeLeitura(daAtual.caracteres, leitura);
+  if (opcoes.aoVivo) proxima = Math.min(proxima, chegou(fila[0].id) + ESPERA_MAXIMA_MS);
+  return { estado: novo, proximaEmMs: Math.max(0, proxima - agora) };
+}
+
+/** As chegadas só das falas que ainda esperam. Devolve o MESMO objeto quando nada mudou. */
+function chegadasDaFila(
+  antes: Readonly<Record<string, number>> | undefined,
+  fila: readonly FalaDoRitmo[],
+  chegou: (id: string) => number,
+): Readonly<Record<string, number>> | undefined {
+  const igual =
+    (antes ? Object.keys(antes).length : 0) === fila.length && fila.every((f) => antes?.[f.id] !== undefined);
+  if (igual) return antes;
+  if (!fila.length) return undefined;
+  return Object.fromEntries(fila.map((f) => [f.id, chegou(f.id)]));
 }
 
 /**

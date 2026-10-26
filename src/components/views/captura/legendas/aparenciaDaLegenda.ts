@@ -7,6 +7,12 @@
  * `normalizar`, que completa o que faltar com o padrão. Uma aparência antiga (sem `leitura`,
  * `visiveis`, `pausarAoPassar`) abre com os padrões novos; o `historico: false` de antes vira
  * "mostrar 1 fala", que era o que ele fazia.
+ *
+ * A VERSÃO (`versao`): quando um PADRÃO muda de propósito, quem guardou o padrão antigo também
+ * precisa recebê-lo — o disco não diz se a pessoa escolheu o valor ou só herdou. A versão 2
+ * (26/10/2026) desliga o `pausarAoPassar` (relato do dono: o mouse parado em cima congelava a
+ * legenda e as falas viravam "N novas"). Sem versão, ou com uma anterior, ele volta ao padrão
+ * novo UMA vez; depois da migração a escolha da pessoa vale, inclusive ligar de novo.
  */
 import type { Formato } from '../../../../core/legendas/janelaFlutuante';
 import type { Leitura } from '../../../../lib/captura/ritmoDaLegenda';
@@ -40,8 +46,13 @@ export type Fundo = 'auto' | 'escuro' | 'preto' | 'claro';
 /** O que a fala mostra: os dois textos, só o original (o idioma que se aprende) ou só a tradução. */
 export type Mostrar = 'ambos' | 'original' | 'traducao';
 
+/** A versão da aparência guardada. Ver o comentário do topo: cada versão nova migra um padrão. */
+export const VERSAO_DA_APARENCIA = 2;
+
 /** O que é GUARDADO. Pausar, travar, esconder e o painel valem só enquanto a janela está aberta. */
 export interface Aparencia {
+  /** A versão em que foi guardada (`VERSAO_DA_APARENCIA`). */
+  versao: number;
   modo: Modo;
   preset: Preset;
   traducao: Traducao;
@@ -50,7 +61,7 @@ export interface Aparencia {
   visiveis: Visiveis;
   /** Ritmo de leitura: quanto tempo cada fala fica antes de a seguinte entrar. */
   leitura: Leitura;
-  /** Passar o mouse (ou segurar o dedo) na janela pausa a legenda. */
+  /** Passar o mouse (ou segurar o dedo) na janela pausa a legenda. Desligado de fábrica desde a versão 2. */
   pausarAoPassar: boolean;
   cores: { legenda: string; traducao: string };
   fundo: Fundo;
@@ -58,13 +69,14 @@ export interface Aparencia {
 }
 
 export const PADRAO: Aparencia = {
+  versao: VERSAO_DA_APARENCIA,
   modo: 'video',
   preset: 'filme',
   traducao: 'discreta',
   tam: 100,
   visiveis: 3,
   leitura: 'normal',
-  pausarAoPassar: true,
+  pausarAoPassar: false,
   cores: { legenda: '#FFFFFF', traducao: '#FFEA00' },
   fundo: 'auto',
   mostrar: 'ambos',
@@ -101,14 +113,19 @@ export function normalizar(bruto: unknown): Aparencia {
     : o.historico === false
       ? 1
       : PADRAO.visiveis;
+  /* Guardada antes da versão 2: o `pausarAoPassar` guardado era o padrão antigo (ligado), não uma escolha. */
+  const versao = typeof o.versao === 'number' && Number.isFinite(o.versao) ? o.versao : 0;
+  const pausarAoPassar =
+    versao >= 2 && typeof o.pausarAoPassar === 'boolean' ? o.pausarAoPassar : PADRAO.pausarAoPassar;
   return {
+    versao: VERSAO_DA_APARENCIA,
     modo: o.modo && MODOS.has(o.modo) ? o.modo : PADRAO.modo,
     preset: o.preset && (o.preset in PRESETS || o.preset === 'meu') ? o.preset : PADRAO.preset,
     traducao: o.traducao && TRADUCOES.has(o.traducao) ? o.traducao : PADRAO.traducao,
     tam: Math.round(tam / 10) * 10,
     visiveis,
     leitura: o.leitura && LEITURAS.has(o.leitura) ? o.leitura : PADRAO.leitura,
-    pausarAoPassar: typeof o.pausarAoPassar === 'boolean' ? o.pausarAoPassar : PADRAO.pausarAoPassar,
+    pausarAoPassar,
     cores: {
       legenda: typeof cores.legenda === 'string' ? cores.legenda : PADRAO.cores.legenda,
       traducao: typeof cores.traducao === 'string' ? cores.traducao : PADRAO.cores.traducao,

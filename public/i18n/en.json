@@ -5021,5 +5021,7 @@
   "Legenda flutuante": "Floating caption",
   "por cima de outros apps": "on top of other apps",
   "Ao vivo: escolha o que fazer": "Live: choose what to do",
-  "Destaques desta frase": "Highlights in this sentence"
+  "Destaques desta frase": "Highlights in this sentence",
+  "O assistente ajuda nas falas em {aprende}. Esta conversa está em {fala}.": "The assistant helps with lines in {aprende}. This conversation is in {fala}.",
+  "A última fala está em {fala}, o seu idioma. O “Como respondo?” ajuda nas falas do idioma que você aprende.": "The last line is in {fala}, your own language. “How do I reply?” helps with lines in the language you are learning."
 }

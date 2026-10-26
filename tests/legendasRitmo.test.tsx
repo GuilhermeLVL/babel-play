@@ -3,7 +3,8 @@
  * A JANELINHA COM RITMO (ei/leg) — relato do dono: "a legenda some rápido demais, não dá para
  * voltar, pausar, ouvir nem tocar numa palavra". Aqui, com as falas entrando como na captura:
  *  - a fala nova espera a atual cumprir o tempo de leitura (não a empurra);
- *  - pausar (botão, Espaço, mouse em cima) congela a janela; continuar pula para a mais recente;
+ *  - pausar (botão, Espaço, mouse em cima se ligado) congela a janela; continuar pula para a mais recente;
+ *  - o mouse PARADO em cima solta a pausa sozinho em 3 s; seguindo o fim, a fala rápida não fica para trás;
  *  - rolar para cima / ← volta pelo histórico, e o "N novas ↓" traz de volta ao fim;
  *  - tocar uma palavra abre o cartão (glosa, ouvir, salvar); as ações da fala ouvem, copiam, salvam;
  *  - o leitor de tela ouve só a fala nova já fechada, nunca cada parcial;
@@ -18,7 +19,12 @@ vi.mock('../src/data/api', () => ({
   patchUiSettings: vi.fn(async () => {}),
 }))
 
-import LegendasFlutuantes, { type LegendaAoVivo } from '../src/components/views/captura/LegendasFlutuantes'
+import { normalizar, PADRAO, VERSAO_DA_APARENCIA } from '../src/components/views/captura/legendas/aparenciaDaLegenda'
+import LegendasFlutuantes, {
+  type LegendaAoVivo,
+  PAUSA_AO_PASSAR_SOLTA_MS,
+} from '../src/components/views/captura/LegendasFlutuantes'
+import { ESPERA_MAXIMA_MS } from '../src/lib/captura/ritmoDaLegenda'
 
 const f = (id: string, original: string, extra: Partial<LegendaAoVivo> = {}): LegendaAoVivo => ({
   id,
@@ -42,6 +48,12 @@ const base = (extra: Partial<Props> = {}): Props => ({ falas: [A], aoFechar: vi.
 const aVista = () => [...document.querySelectorAll('.leg-o')].map((e) => e.textContent)
 const emFoco = () => document.querySelector('.leg-fala.atual .leg-o')?.textContent
 const regiao = () => screen.getByRole('region', { name: 'Legendas flutuantes' })
+/** "Pausar ao passar o mouse" LIGADO por escolha da pessoa (desligado de fábrica desde a versão 2 da aparência). */
+const ligarPausaAoPassar = () =>
+  localStorage.setItem(
+    'babel.legendasFlutuantes',
+    JSON.stringify({ ...PADRAO, pausarAoPassar: true, versao: VERSAO_DA_APARENCIA }),
+  )
 
 beforeEach(() => {
   localStorage.clear()
@@ -94,25 +106,71 @@ describe('pausar', () => {
     expect(emFoco()).toBe(C.original)
   })
 
-  it('o mouse em cima pausa enquanto está lá; sair retoma o ritmo', () => {
+  it('de fábrica, o mouse em cima NÃO pausa: a legenda segue', () => {
     const { rerender } = render(<LegendasFlutuantes {...base()} />)
     fireEvent.mouseEnter(regiao())
     rerender(<LegendasFlutuantes {...base({ falas: [A, B] })} />)
-    act(() => void vi.advanceTimersByTime(10_000))
+    act(() => void vi.advanceTimersByTime(ESPERA_MAXIMA_MS + 100))
+    expect(aVista()).toEqual([A.original, B.original])
+    expect(regiao().classList.contains('pausado')).toBe(false)
+  })
+
+  it('ligado, o mouse em cima pausa enquanto se mexe; sair retoma o ritmo', () => {
+    ligarPausaAoPassar()
+    const { rerender } = render(<LegendasFlutuantes {...base()} />)
+    fireEvent.mouseEnter(regiao())
+    rerender(<LegendasFlutuantes {...base({ falas: [A, B] })} />)
+    for (let i = 0; i < 5; i++) {
+      act(() => void vi.advanceTimersByTime(2000))
+      fireEvent.mouseMove(regiao())
+    }
     expect(aVista()).toEqual([A.original])
     fireEvent.mouseLeave(regiao())
     act(() => void vi.advanceTimersByTime(100))
     expect(aVista()).toEqual([A.original, B.original])
   })
 
-  it('segurar o dedo na janela também pausa; desligar "Pausar ao passar o mouse" tira isso', () => {
+  it('o mouse PARADO em cima solta a pausa sozinho em 3 s; mexer de novo pausa outra vez', () => {
+    ligarPausaAoPassar()
+    const { rerender } = render(<LegendasFlutuantes {...base()} />)
+    fireEvent.mouseEnter(regiao())
+    rerender(<LegendasFlutuantes {...base({ falas: [A, B] })} />)
+    act(() => void vi.advanceTimersByTime(PAUSA_AO_PASSAR_SOLTA_MS - 100))
+    expect(aVista()).toEqual([A.original])
+    expect(regiao().classList.contains('pausado')).toBe(true)
+    act(() => void vi.advanceTimersByTime(200))
+    expect(aVista()).toEqual([A.original, B.original])
+    expect(regiao().classList.contains('pausado')).toBe(false)
+
+    fireEvent.mouseMove(regiao())
+    rerender(<LegendasFlutuantes {...base({ falas: [A, B, C] })} />)
+    act(() => void vi.advanceTimersByTime(PAUSA_AO_PASSAR_SOLTA_MS - 100))
+    expect(aVista()).not.toContain(C.original)
+    act(() => void vi.advanceTimersByTime(ESPERA_MAXIMA_MS + 200))
+    expect(aVista()).toContain(C.original)
+  })
+
+  it('a pausa do botão e o cartão aberto NÃO soltam sozinhos com o mouse parado', () => {
+    ligarPausaAoPassar()
+    const { rerender } = render(<LegendasFlutuantes {...base()} />)
+    fireEvent.mouseEnter(regiao())
+    fireEvent.click(screen.getByRole('button', { name: 'Pausar legendas' }))
+    rerender(<LegendasFlutuantes {...base({ falas: [A, B] })} />)
+    act(() => void vi.advanceTimersByTime(20_000))
+    expect(aVista()).toEqual([A.original])
+    expect(screen.getByRole('button', { name: /1 nova/ })).toBeTruthy()
+  })
+
+  it('segurar o dedo na janela também pausa (e solta sozinho); desligar "Pausar ao passar o mouse" tira isso', () => {
+    ligarPausaAoPassar()
     const { rerender } = render(<LegendasFlutuantes {...base()} />)
     fireEvent.touchStart(regiao())
     rerender(<LegendasFlutuantes {...base({ falas: [A, B] })} />)
-    act(() => void vi.advanceTimersByTime(10_000))
+    act(() => void vi.advanceTimersByTime(PAUSA_AO_PASSAR_SOLTA_MS - 500))
     expect(aVista()).toEqual([A.original])
     fireEvent.touchEnd(regiao())
-    act(() => void vi.advanceTimersByTime(100))
+    // Retomou em 2,5 s: A (≈ 2,8 s de leitura) termina o tempo dela, e B entra.
+    act(() => void vi.advanceTimersByTime(400))
     expect(aVista()).toContain(B.original)
 
     fireEvent.click(screen.getByRole('button', { name: 'Personalizar' }))
@@ -121,6 +179,37 @@ describe('pausar', () => {
     rerender(<LegendasFlutuantes {...base({ falas: [A, B, C] })} />)
     act(() => void vi.advanceTimersByTime(10_000))
     expect(aVista()).toContain(C.original)
+  })
+})
+
+describe('seguir ao vivo (relato do dono: "a mensagem atual não fica em tela")', () => {
+  /** Um telejornal: falas longas chegando a cada 700 ms, mais rápido do que dá para ler. */
+  const longa = (i: number) =>
+    f(`n${i}`, `Notícia número ${i}, com bastante texto para ler, porque o apresentador fala muito rápido mesmo.`)
+
+  it('na fala rápida a mais recente entra em foco, sem acumular "N novas"', () => {
+    const falas = [longa(0)]
+    const { rerender } = render(<LegendasFlutuantes {...base({ falas: [...falas] })} />)
+    for (let i = 1; i <= 10; i++) {
+      falas.push(longa(i))
+      rerender(<LegendasFlutuantes {...base({ falas: [...falas] })} />)
+      act(() => void vi.advanceTimersByTime(700))
+      // Nunca mais de UMA fala atrás da mais recente.
+      const foco = Number(document.querySelector('.leg-fala.atual')?.textContent?.match(/número (\d+)/)?.[1])
+      expect(i - foco).toBeLessThanOrEqual(1)
+      expect(screen.queryByRole('button', { name: /novas?/ })).toBeNull()
+    }
+    act(() => void vi.advanceTimersByTime(ESPERA_MAXIMA_MS))
+    expect(emFoco()).toBe(longa(10).original)
+  })
+
+  it('uma fala só esperando entra em até ESPERA_MAXIMA_MS, mesmo com a atual longa', () => {
+    const { rerender } = render(<LegendasFlutuantes {...base({ falas: [longa(0)] })} />)
+    rerender(<LegendasFlutuantes {...base({ falas: [longa(0), B] })} />)
+    act(() => void vi.advanceTimersByTime(ESPERA_MAXIMA_MS - 100))
+    expect(emFoco()).toBe(longa(0).original)
+    act(() => void vi.advanceTimersByTime(200))
+    expect(emFoco()).toBe(B.original)
   })
 })
 
@@ -278,13 +367,14 @@ describe('leitor de tela', () => {
 })
 
 describe('a aparência guardada', () => {
-  it('uma aparência antiga (sem os campos novos) abre com os padrões: normal, 3 falas, pausa ao passar', () => {
+  // O padrão de "Pausar ao passar o mouse" mudou DE PROPÓSITO para desligado (versão 2 da aparência, 26/10/2026).
+  it('uma aparência antiga (sem os campos novos) abre com os padrões: normal, 3 falas, sem pausa ao passar', () => {
     localStorage.setItem('babel.legendasFlutuantes', JSON.stringify({ modo: 'video', traducao: 'sempre', tam: 120 }))
     render(<LegendasFlutuantes {...base({ falas: [A, B, C, D] })} />)
     expect(aVista()).toHaveLength(3)
     expect((screen.getByRole('combobox', { name: 'Ritmo de leitura' }) as HTMLSelectElement).value).toBe('normal')
     fireEvent.click(screen.getByRole('button', { name: 'Personalizar' }))
-    expect(screen.getByRole('switch', { name: 'Pausar ao passar o mouse' }).getAttribute('aria-checked')).toBe('true')
+    expect(screen.getByRole('switch', { name: 'Pausar ao passar o mouse' }).getAttribute('aria-checked')).toBe('false')
     expect(screen.getByText('Tamanho · 120%')).toBeTruthy()
   })
 
@@ -310,6 +400,35 @@ describe('a aparência guardada', () => {
     expect(aVista()).toEqual([B.original, C.original])
     expect((screen.getByRole('combobox', { name: 'Ritmo de leitura' }) as HTMLSelectElement).value).toBe('lenta')
     const salvo = JSON.parse(localStorage.getItem('babel.legendasFlutuantes')!)
-    expect(salvo).toMatchObject({ leitura: 'lenta', visiveis: 2, pausarAoPassar: false })
+    // O interruptor parte do padrão novo (desligado): um toque o LIGA, e a escolha volta na próxima abertura.
+    expect(salvo).toMatchObject({ leitura: 'lenta', visiveis: 2, pausarAoPassar: true, versao: VERSAO_DA_APARENCIA })
+    cleanup()
+    render(<LegendasFlutuantes {...base({ falas: [A, B, C] })} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Personalizar' }))
+    expect(screen.getByRole('switch', { name: 'Pausar ao passar o mouse' }).getAttribute('aria-checked')).toBe('true')
+  })
+
+  it('a migração da versão 2: o "pausar ao passar" ligado de antes desliga UMA vez; ligado depois, fica', () => {
+    // Guardado antes da versão (o padrão antigo, ligado): volta ao padrão novo.
+    expect(normalizar({ pausarAoPassar: true }).pausarAoPassar).toBe(false)
+    expect(normalizar({ pausarAoPassar: true, versao: 1 }).pausarAoPassar).toBe(false)
+    // Ligado de novo pela pessoa, já na versão 2: a escolha vale.
+    expect(normalizar({ pausarAoPassar: true, versao: 2 }).pausarAoPassar).toBe(true)
+    expect(normalizar({ pausarAoPassar: false, versao: 2 }).pausarAoPassar).toBe(false)
+    // Normalizar carimba a versão atual: o que for guardado depois não migra de novo.
+    expect(normalizar({ pausarAoPassar: true }).versao).toBe(VERSAO_DA_APARENCIA)
+    expect(normalizar(normalizar({ pausarAoPassar: true, versao: 2 })).pausarAoPassar).toBe(true)
+    expect(PADRAO.pausarAoPassar).toBe(false)
+  })
+
+  it('a aparência guardada antes da versão 2 abre com a pausa ao passar desligada e grava a versão nova', () => {
+    localStorage.setItem('babel.legendasFlutuantes', JSON.stringify({ pausarAoPassar: true, leitura: 'lenta' }))
+    render(<LegendasFlutuantes {...base()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Personalizar' }))
+    expect(screen.getByRole('switch', { name: 'Pausar ao passar o mouse' }).getAttribute('aria-checked')).toBe('false')
+    // A primeira mudança grava a aparência já na versão nova (a migração não se repete).
+    fireEvent.click(screen.getByRole('radio', { name: '2 falas' }))
+    const salvo = JSON.parse(localStorage.getItem('babel.legendasFlutuantes')!)
+    expect(salvo).toMatchObject({ pausarAoPassar: false, leitura: 'lenta', versao: VERSAO_DA_APARENCIA })
   })
 })

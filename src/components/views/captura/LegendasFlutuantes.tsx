@@ -2,10 +2,10 @@ import '../../../styles/legendas.css';
 import '../../../styles/legendasFlutuantes.css';
 import '../../../styles/assistenteAoVivo.css';
 
-import { ArrowDown, AudioLines, MessageCircleReply, MousePointerClick } from 'lucide-react';
+import { ArrowDown, AudioLines, Info, MessageCircleReply, MousePointerClick, X } from 'lucide-react';
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { assistenteNoLayout, type MarcaNaLinha } from '../../../core/assistente/telaDoAssistente';
+import { assistenteNoLayout, type MarcaNaLinha, noIdiomaDaPessoa } from '../../../core/assistente/telaDoAssistente';
 import {
   falasAVista,
   type Formato,
@@ -15,6 +15,7 @@ import {
   tamanhoDaLetra,
 } from '../../../core/legendas/janelaFlutuante';
 import { fetchSettings, patchUiSettings } from '../../../data/api';
+import { dispensarAvisoDoIdioma, useAvisoDoIdiomaDispensado } from '../../../lib/assistente/avisoDoIdioma';
 import {
   avancar,
   type FalaDoRitmo,
@@ -31,7 +32,12 @@ import {
 } from '../../../lib/estilosDeLegenda';
 import { t, tp } from '../../../lib/i18n';
 import { toast } from '../../Toast';
-import { rotuloDoNivel, rotuloDoTipo } from './assistente/copyDoAssistente';
+import {
+  motivoDoComoRespondoDesligado,
+  rotuloDoNivel,
+  rotuloDoTipo,
+  textoDoAvisoDoIdioma,
+} from './assistente/copyDoAssistente';
 import FolhaComoRespondo from './assistente/FolhaComoRespondo';
 import type { AssistenteDaJanela } from './assistente/useAssistenteAoVivo';
 import {
@@ -95,6 +101,12 @@ const MODO_DO_LAYOUT: Readonly<Record<Layout, Modo>> = {
 
 /** Sem mexer o mouse, tocar ou teclar por este tempo, os controles somem e fica só o texto. */
 export const CONTROLES_SOMEM_MS = 2000;
+/**
+ * "Pausar ao passar o mouse" ligado: o mouse PARADO em cima da janela (ou o dedo que segura sem mexer) solta a pausa
+ * depois disto. Ninguém fica com a legenda congelada porque largou o cursor ali (relato do dono, 26/10/2026). A pausa
+ * do botão, o cartão aberto e a folha do "Como respondo?" seguem pausando sem prazo.
+ */
+export const PAUSA_AO_PASSAR_SOLTA_MS = 3000;
 
 /** Lê (e acompanha) o tema escuro do APP — é ele que decide o fundo `auto`, também dentro da PiP. */
 function useTemaEscuro(): boolean {
@@ -119,7 +131,7 @@ function useTemaEscuro(): boolean {
  *
  * O RITMO (ei/leg, relato do dono: "a legenda some rápido demais"): cada fala fica pelo menos o
  * tempo de ler (`lib/captura/ritmoDaLegenda`), a seguinte espera a vez, as N últimas ficam à vista,
- * e dá para pausar (botão, Espaço, ou só passar o mouse), voltar pelo histórico (rolar, ← →) e
+ * e dá para pausar (botão, Espaço, ou passar o mouse, se ligado), voltar pelo histórico (rolar, ← →) e
  * tocar uma palavra para ver a glosa, ouvir e salvar. A captura NUNCA para: pausar congela só a
  * janela, e continuar pula para a mais recente.
  */
@@ -344,7 +356,17 @@ export default function LegendasFlutuantes({
     }
     folhaEstavaAberta.current = folhaAberta;
   }, [folhaAberta]);
-  const pausado = pausaManual || !!cartao || folhaAberta || (ap.pausarAoPassar && (sobre || segurando));
+  /* A pausa do mouse em cima solta sozinha com o mouse parado (`PAUSA_AO_PASSAR_SOLTA_MS`); mexer de novo pausa outra
+     vez. `mexeu` conta cada movimento, toque e tecla na janela. */
+  const pausaAoPassar = ap.pausarAoPassar && (sobre || segurando);
+  const [passarSoltoEm, setPassarSoltoEm] = useState(-1);
+  useEffect(() => {
+    if (!pausaAoPassar) return;
+    const visto = mexeu;
+    const id = setTimeout(() => setPassarSoltoEm(visto), PAUSA_AO_PASSAR_SOLTA_MS);
+    return () => clearTimeout(id);
+  }, [pausaAoPassar, mexeu]);
+  const pausado = pausaManual || !!cartao || folhaAberta || (pausaAoPassar && passarSoltoEm !== mexeu);
 
   const aMostra = useCallback(
     (f: LegendaAoVivo) => ap.mostrar === 'traducao' || traducaoAMostra(modoDaTraducao, trocas[f.id]),
@@ -356,14 +378,17 @@ export default function LegendasFlutuantes({
   );
   const [ritmo, setRitmo] = useState(() => iniciarRitmo(doRitmo, Date.now()));
   const [tique, setTique] = useState(0);
+  /* SEGUINDO O FIM (`cursor` nulo), a fala mais recente entra em ~2 s mesmo na fala rápida (`aoVivo`); voltando no
+     histórico, a fila segue o ritmo de leitura. */
+  const aoVivo = cursor === null;
   useEffect(() => {
     if (pausado) return;
-    const { estado, proximaEmMs } = avancar(ritmo, doRitmo, Date.now(), ap.leitura);
+    const { estado, proximaEmMs } = avancar(ritmo, doRitmo, Date.now(), ap.leitura, { aoVivo });
     if (estado !== ritmo) setRitmo(estado);
     if (proximaEmMs === null) return;
     const id = setTimeout(() => setTique((n) => n + 1), proximaEmMs + 16);
     return () => clearTimeout(id);
-  }, [ritmo, doRitmo, pausado, ap.leitura, tique]);
+  }, [ritmo, doRitmo, pausado, ap.leitura, tique, aoVivo]);
 
   const porId = useMemo(() => new Map(falas.map((f) => [f.id, f])), [falas]);
   const reveladas = ritmo.reveladas.filter((id) => porId.has(id));
@@ -483,7 +508,15 @@ export default function LegendasFlutuantes({
   const teclar = (e: KeyboardEvent) => {
     if (e.defaultPrevented) return;
     /* Alt+R (Option+R no Mac): "Como respondo?", onde o botão existe. `code`, porque no Mac a tecla vira "®". */
-    if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyR' && !e.repeat && podeResponder) {
+    if (
+      e.altKey &&
+      !e.ctrlKey &&
+      !e.metaKey &&
+      e.code === 'KeyR' &&
+      !e.repeat &&
+      podeResponder &&
+      !responderDesligado
+    ) {
       e.preventDefault();
       assistente?.pedirComoRespondo(emFoco?.id);
       return;
@@ -597,6 +630,18 @@ export default function LegendasFlutuantes({
   } as CSSProperties;
 
   const estudo = layout === 'estudo';
+  /* "Como respondo?" na CONVERSA fica sempre à vista, num canto (não só com os controles). Desligado, com o motivo,
+     quando a última fala fechada está no idioma da pessoa (o assistente ajuda no idioma que ela aprende). */
+  const responderFixo = layout === 'conversa';
+  const ultimaFinal = useMemo(() => {
+    for (let i = falas.length - 1; i >= 0; i--) if (!falas[i].parcial) return falas[i];
+    return undefined;
+  }, [falas]);
+  const responderDesligado =
+    !!assistente?.langDaPessoa && !!ultimaFinal && noIdiomaDaPessoa(ultimaFinal.lang, assistente.langDaPessoa);
+  /* O aviso de "esta conversa está no seu idioma": uma linha discreta que se dispensa (por sessão), nunca na faixa. */
+  const avisoDispensado = useAvisoDoIdiomaDispensado();
+  const avisoDoIdioma = assistente?.avisoDoIdioma;
   const cartaoAberto = !!cartao && !recolhido && !abaExtra && !folhaAberta;
   const classes = [
     'leg-flut',
@@ -608,6 +653,8 @@ export default function LegendasFlutuantes({
     controles || recolhido ? 'com-controles' : '',
     letraPx ? 'letra-da-janela' : '',
     abaExtra ? 'na-aba-extra' : '',
+    podeResponder ? 'com-responder' : '',
+    podeResponder && responderFixo ? 'com-responder-fixo' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -724,6 +771,27 @@ export default function LegendasFlutuantes({
           </div>
         )
       )}
+      {avisoDoIdioma &&
+        !avisoDispensado &&
+        layout !== 'faixa' &&
+        !recolhido &&
+        !abaExtra &&
+        !folhaAberta &&
+        !cartaoAberto && (
+          <p className="leg-aviso-idioma" data-testid="aviso-do-idioma">
+            <Info aria-hidden />
+            <span>{textoDoAvisoDoIdioma(avisoDoIdioma)}</span>
+            <button
+              type="button"
+              className="leg-aviso-idioma-fechar"
+              aria-label={t('Dispensar o aviso')}
+              title={t('Dispensar o aviso')}
+              onClick={dispensarAvisoDoIdioma}
+            >
+              <X aria-hidden />
+            </button>
+          </p>
+        )}
       {cartaoAberto && cartao && (
         <CartaoDaPalavra
           alvo={cartao}
@@ -743,10 +811,17 @@ export default function LegendasFlutuantes({
       {podeResponder && !abaExtra && !folhaAberta && !cartaoAberto && (
         <button
           type="button"
-          className="leg-responder"
+          className={responderFixo ? 'leg-responder leg-responder-fixo' : 'leg-responder'}
           aria-keyshortcuts="Alt+R"
-          title={`${t('Sugestões para você responder com as suas palavras')} (Alt+R)`}
-          onClick={() => assistente?.pedirComoRespondo(emFoco?.id)}
+          aria-disabled={responderDesligado || undefined}
+          title={
+            responderDesligado && assistente?.langDaPessoa
+              ? motivoDoComoRespondoDesligado(assistente.langDaPessoa)
+              : `${t('Sugestões para você responder com as suas palavras')} (Alt+R)`
+          }
+          onClick={() => {
+            if (!responderDesligado) assistente?.pedirComoRespondo(emFoco?.id);
+          }}
         >
           <MessageCircleReply aria-hidden /> {t('Como respondo?')}
         </button>

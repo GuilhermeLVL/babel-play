@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { palavrasAcimaDoNivel } from '../../../../core/assistente/palavrasAcimaDoNivel';
 import {
+  type AvisoDoIdioma,
+  avisoDoIdiomaProprio,
   type FalaDoAssistente,
   glosaParaOVideo,
   type MarcaNaLinha,
@@ -98,6 +100,10 @@ export interface AssistenteDaJanela {
   fecharComoRespondo: () => void;
   /** A folha pediu o consentimento de nuvem: autoriza (com data, como Ajustes) e pede. */
   autorizarEPedir: () => void;
+  /** A conversa está no idioma da pessoa e o assistente não ajuda nela (`avisoDoIdiomaProprio`). Ausente = sem aviso. */
+  avisoDoIdioma?: AvisoDoIdioma | null;
+  /** O idioma da pessoa: o "Como respondo?" fica desligado quando a última fala está nele. */
+  langDaPessoa?: string;
 }
 
 interface Glosas {
@@ -146,6 +152,8 @@ export function useAssistenteAoVivo(o: {
   falas: ReadonlyArray<FalaDoAssistente>;
   /** O idioma da pessoa (explicações e traduções vêm nele). */
   langDaPessoa: string;
+  /** O idioma que a pessoa aprende: só para o aviso de "esta conversa está no seu idioma". */
+  langQueAprende?: string;
   /** A janela é SÓ LEITURA (PiP de vídeo): nada que precise de toque — sem "Como respondo?" e sem correção. */
   soLeitura?: boolean;
   /**
@@ -487,6 +495,14 @@ export function useAssistenteAoVivo(o: {
     [ondeDaFolha, comoRespondo],
   );
   const autorizarDaFolha = useCallback(() => void autorizarEPedir(), [autorizarEPedir]);
+  /* O aviso é refeito a cada fala; a vista recebe O MESMO objeto enquanto os idiomas forem os mesmos (o `memo` segura). */
+  const aviso = avisoDoIdiomaProprio(o.falas, recursosDaPagina, o.langDaPessoa, o.langQueAprende);
+  const chaveDoAviso = aviso ? `${aviso.aprende}|${aviso.fala}` : '';
+  const avisoEstavel: AvisoDoIdioma | null = useMemo(() => {
+    if (!chaveDoAviso) return null;
+    const [aprende, fala] = chaveDoAviso.split('|');
+    return { aprende, fala };
+  }, [chaveDoAviso]);
   const comoRespondoDaJanela = folhaDe('janela');
   const janela: AssistenteDaJanela = useMemo(
     () => ({
@@ -498,8 +514,12 @@ export function useAssistenteAoVivo(o: {
       pedirComoRespondo: (falaId?: string) => pedirComoRespondo(falaId, 'janela'),
       fecharComoRespondo,
       autorizarEPedir: autorizarDaFolha,
+      avisoDoIdioma: avisoEstavel,
+      langDaPessoa: o.langDaPessoa,
     }),
     [
+      avisoEstavel,
+      o.langDaPessoa,
       recursos,
       protegido,
       marcas,
@@ -521,8 +541,12 @@ export function useAssistenteAoVivo(o: {
       pedirComoRespondo: (falaId?: string) => pedirComoRespondo(falaId, 'pagina'),
       fecharComoRespondo,
       autorizarEPedir: autorizarDaFolha,
+      avisoDoIdioma: avisoEstavel,
+      langDaPessoa: o.langDaPessoa,
     }),
     [
+      avisoEstavel,
+      o.langDaPessoa,
       recursosDaPagina,
       protegido,
       marcas,

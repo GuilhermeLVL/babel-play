@@ -3,10 +3,12 @@
  * continua funcionando, sem preço, sem urgência e SEM OFERTA DE PLANO (nunca no instante da recusa, e nunca para o perfil
  * protegido). "Como respondo?" é ajuda de idioma: nada de "oculto", "ninguém vê" ou "entrevista".
  */
+import type { AvisoDoIdioma } from '../../../../core/assistente/telaDoAssistente';
 import type { CefrLevel } from '../../../../core/learning/contract';
 import type { FalhaDoAssistente } from '../../../../data/apiDoAssistente';
 import { diaQueACotaVolta } from '../../../../lib/diaQueACotaVolta';
 import { t } from '../../../../lib/i18n';
+import { langLabelNaUI } from '../../../../lib/languages';
 
 /** A frase de cada recusa do "Como respondo?". */
 export function fraseDaFalhaDoAssistente(m: FalhaDoAssistente, protegido: boolean): string {
@@ -55,3 +57,16 @@ export function rotuloDoNivel(nivel: CefrLevel | null | undefined, escala: strin
 
 export const rotuloDoTipo = (tipo: 'expressao' | 'termo' | 'nivel'): string =>
   tipo === 'expressao' ? t('Expressão') : tipo === 'termo' ? t('Termo') : t('Palavra');
+
+/** O aviso discreto de quando a conversa está no idioma da pessoa (o assistente ajuda no idioma que ela aprende). */
+export const textoDoAvisoDoIdioma = (a: AvisoDoIdioma): string =>
+  t('O assistente ajuda nas falas em {aprende}. Esta conversa está em {fala}.', {
+    aprende: langLabelNaUI(a.aprende),
+    fala: langLabelNaUI(a.fala),
+  });
+
+/** Por que o "Como respondo?" está desligado: a última fala está no idioma da pessoa. */
+export const motivoDoComoRespondoDesligado = (langDaPessoa: string): string =>
+  t('A última fala está em {fala}, o seu idioma. O “Como respondo?” ajuda nas falas do idioma que você aprende.', {
+    fala: langLabelNaUI(langDaPessoa),
+  });

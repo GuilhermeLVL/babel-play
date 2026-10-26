@@ -11,10 +11,12 @@ import {
   AJUSTES_PADRAO,
   type AjustesDoAssistente,
   assistenteNoLayout,
+  avisoDoIdiomaProprio,
   contarPalavras,
   type ContextoDoAssistente,
   glosaParaOVideo,
   marcasDaLinha,
+  noIdiomaDaPessoa,
   normalizarAjustes,
   PALAVRAS_PARA_EXPRESSOES,
   planejarChamadas,
@@ -309,5 +311,63 @@ describe('a agenda: espera, uma por linha, nada pausado', () => {
     a.oferecer(f('2'))
     vi.advanceTimersByTime(ESPERA_DO_ASSISTENTE_MS * 2)
     expect(executar).not.toHaveBeenCalled()
+  })
+})
+
+describe('o aviso de "esta conversa está no seu idioma" (relato do dono, 26/10/2026)', () => {
+  type F = Parameters<typeof avisoDoIdiomaProprio>[0][number]
+  const pt = (id: string, extra: Partial<F> = {}): F => ({
+    id,
+    original: 'Boa noite, estas são as notícias de hoje',
+    lado: 'eles',
+    lang: 'pt',
+    ...extra,
+  })
+  const en = (id: string): F => ({ id, original: 'Good evening, here is the news', lado: 'eles', lang: 'en' })
+  const nuvem = { nuvem: true }
+
+  it('as duas últimas falas finais de outra pessoa no idioma da pessoa: o aviso, com os dois idiomas', () => {
+    expect(avisoDoIdiomaProprio([pt('1'), pt('2')], nuvem, 'pt-BR', 'en-US')).toEqual({ aprende: 'en', fala: 'pt' })
+  })
+
+  it('basta uma fala recente no idioma que se aprende para não avisar', () => {
+    expect(avisoDoIdiomaProprio([pt('1'), en('2')], nuvem, 'pt', 'en')).toBeNull()
+    expect(avisoDoIdiomaProprio([en('1'), pt('2')], nuvem, 'pt', 'en')).toBeNull()
+  })
+
+  it('uma fala só ainda não basta (uma detecção errada não pisca o aviso)', () => {
+    expect(avisoDoIdiomaProprio([pt('1')], nuvem, 'pt', 'en')).toBeNull()
+  })
+
+  it('parcial, a própria fala da pessoa, fala vazia e fala sem idioma não contam', () => {
+    const falas = [pt('1'), pt('2', { lado: 'voce' }), pt('3', { lang: undefined }), pt('4', { parcial: true })]
+    expect(avisoDoIdiomaProprio(falas, nuvem, 'pt', 'en')).toBeNull()
+    expect(avisoDoIdiomaProprio([...falas, pt('5', { original: '  ' }), pt('6')], nuvem, 'pt', 'en')).toEqual({
+      aprende: 'en',
+      fala: 'pt',
+    })
+    /* No Intérprete a fala do outro no idioma que se aprende, depois da própria em português: nada. */
+    expect(avisoDoIdiomaProprio([en('1'), pt('2', { lado: 'voce' })], nuvem, 'pt', 'en')).toBeNull()
+  })
+
+  it('a fala de lado incerto (a TV no microfone) conta como de outra pessoa', () => {
+    expect(
+      avisoDoIdiomaProprio([pt('1', { lado: 'incerto' }), pt('2', { lado: 'incerto' })], nuvem, 'pt', 'en'),
+    ).toEqual({
+      aprende: 'en',
+      fala: 'pt',
+    })
+  })
+
+  it('sem o assistente de nuvem (flag desligada, plano sem), sem o idioma que se aprende ou com os dois iguais: nada', () => {
+    expect(avisoDoIdiomaProprio([pt('1'), pt('2')], { nuvem: false }, 'pt', 'en')).toBeNull()
+    expect(avisoDoIdiomaProprio([pt('1'), pt('2')], nuvem, 'pt', undefined)).toBeNull()
+    expect(avisoDoIdiomaProprio([pt('1'), pt('2')], nuvem, 'pt', 'pt-PT')).toBeNull()
+  })
+
+  it('noIdiomaDaPessoa compara o código base e recusa fala sem idioma', () => {
+    expect(noIdiomaDaPessoa('pt-PT', 'pt-BR')).toBe(true)
+    expect(noIdiomaDaPessoa('en', 'pt')).toBe(false)
+    expect(noIdiomaDaPessoa(undefined, 'pt')).toBe(false)
   })
 })

@@ -110,6 +110,95 @@
   outline-offset: 1px;
 }
 
+/* Na CONVERSA o botão fica sempre à vista, menor e mais discreto, num canto; o texto ganha espaço embaixo para o
+   botão nunca cobrir uma fala. */
+.leg-flut .leg-responder.leg-responder-fixo {
+  right: 6px;
+  bottom: 6px;
+  min-height: 26px;
+  padding: 0 9px;
+  gap: 5px;
+  font-size: 11.5px;
+  box-shadow: none;
+  opacity: 0.82;
+  pointer-events: auto;
+}
+.leg-flut .leg-responder.leg-responder-fixo svg {
+  width: 13px;
+  height: 13px;
+}
+.leg-flut.com-controles > .leg-responder.leg-responder-fixo,
+.leg-flut .leg-responder.leg-responder-fixo:hover,
+.leg-flut .leg-responder.leg-responder-fixo:focus-visible {
+  opacity: 1;
+}
+.leg-flut .leg-responder[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.leg-flut .leg-responder[aria-disabled='true']:hover {
+  background: var(--leg-barra-fundo, rgba(31, 27, 23, 0.94));
+}
+.leg-flut.leg-limpa.com-responder-fixo > .leg-corpo {
+  padding-bottom: 40px;
+}
+.leg-flut.leg-limpa.com-responder-fixo:has(> .leg-aviso-idioma) > .leg-corpo {
+  padding-bottom: 10px;
+}
+.leg-flut.com-responder > .leg-aviso-idioma {
+  margin-right: 164px;
+}
+.leg-flut.com-responder-fixo > .leg-aviso-idioma {
+  margin-right: 132px;
+}
+
+/* O AVISO de "esta conversa está no seu idioma": uma linha pequena EMBAIXO do texto (no alto, a barra que aparece ao
+   passar o mouse a cobriria), que se dispensa. Nunca na faixa. Com o "Como respondo?", abre espaço para o botão do canto. */
+.leg-aviso-idioma {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  margin: 0 10px 8px;
+  padding: 4px 4px 4px 9px;
+  border-radius: 10px;
+  border: 1px dashed var(--leg-borda, rgba(255, 255, 255, 0.16));
+  color: var(--leg-ui-fraca, rgba(255, 255, 255, 0.7));
+  font: 500 12px/1.35 var(--font-body, inherit);
+}
+.leg-aviso-idioma > svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.leg-aviso-idioma > span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.leg-aviso-idioma-fechar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.leg-aviso-idioma-fechar svg {
+  width: 14px;
+  height: 14px;
+}
+.leg-aviso-idioma-fechar:hover {
+  background: var(--leg-borda, rgba(255, 255, 255, 0.12));
+}
+.leg-flut .leg-aviso-idioma-fechar:focus-visible {
+  outline: 2px solid var(--leg-foco, #ffb597);
+  outline-offset: 1px;
+}
+
 /* A FOLHA do "Como respondo?": compacta, por cima do texto, rola se não couber (~440×300). */
 .leg-folha {
   position: absolute;

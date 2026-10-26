@@ -112,6 +112,45 @@ export function assistenteNoLayout(layout: Layout): AssistenteNoLayout {
   return { marcasSutis: faixa, niveis: !faixa, comoRespondo: !faixa, correcao: !faixa };
 }
 
+/* ─────────────────────────────── a conversa no idioma da pessoa ─────────────────────────────── */
+
+/** A fala está no idioma da própria pessoa (o assistente não ajuda nela: `planejarChamadas`)? */
+export function noIdiomaDaPessoa(lang: string | undefined, langDaPessoa: string): boolean {
+  return !!lang && base(lang) === base(langDaPessoa);
+}
+
+/** Quantas falas finais recentes (de outra pessoa) o aviso do idioma confere antes de aparecer. */
+export const FALAS_DO_AVISO_DO_IDIOMA = 2;
+
+/** O aviso discreto: os dois idiomas (códigos base) da frase "ajuda nas falas em X; esta conversa está em Y". */
+export interface AvisoDoIdioma {
+  aprende: string;
+  fala: string;
+}
+
+/**
+ * O assistente está disponível, mas a conversa está no idioma da própria pessoa: nada dele aparece (de propósito, a
+ * ajuda é sobre o idioma que ela aprende), e sem um aviso parece que ele não funciona (relato do dono, 26/10/2026, com um
+ * telejornal em português). O aviso aparece quando as `FALAS_DO_AVISO_DO_IDIOMA` últimas falas finais de OUTRA pessoa
+ * (a própria fala no idioma dela é o normal no Intérprete) estão no idioma da pessoa. Fala sem idioma não conta.
+ */
+export function avisoDoIdiomaProprio(
+  falas: ReadonlyArray<FalaDoAssistente>,
+  r: Pick<RecursosDoAssistente, 'nuvem'>,
+  langDaPessoa: string,
+  langQueAprende: string | undefined,
+): AvisoDoIdioma | null {
+  if (!r.nuvem || !langQueAprende || !langDaPessoa || base(langQueAprende) === base(langDaPessoa)) return null;
+  let vistas = 0;
+  for (let i = falas.length - 1; i >= 0 && vistas < FALAS_DO_AVISO_DO_IDIOMA; i--) {
+    const f = falas[i];
+    if (f.parcial || f.lado === 'voce' || !f.lang || !f.original.trim()) continue;
+    if (!noIdiomaDaPessoa(f.lang, langDaPessoa)) return null;
+    vistas++;
+  }
+  return vistas >= FALAS_DO_AVISO_DO_IDIOMA ? { aprende: base(langQueAprende), fala: base(langDaPessoa) } : null;
+}
+
 /* ─────────────────────────────── o orçamento de chamadas ─────────────────────────────── */
 
 /** Expressões só em linha com pelo menos isto de palavras (a recomendação da spec). */
@@ -188,7 +227,7 @@ export const temChamada = (p: PlanoDeChamadas) => p.expressoes || p.termos.lengt
 export function planejarChamadas(f: FalaDoAssistente, r: RecursosDoAssistente, langDaPessoa: string): PlanoDeChamadas {
   const texto = f.original.trim();
   if (f.parcial || !texto) return NADA_A_CHAMAR;
-  if (f.lang && base(f.lang) === base(langDaPessoa)) return NADA_A_CHAMAR;
+  if (noIdiomaDaPessoa(f.lang, langDaPessoa)) return NADA_A_CHAMAR;
   /* A própria fala com a correção ligada: só a correção (uma chamada por linha, não três). */
   if (f.lado === 'voce' && r.correcao) {
     return { expressoes: false, termos: [], correcao: contarPalavras(texto, f.lang) >= 2 };

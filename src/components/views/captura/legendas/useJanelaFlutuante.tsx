@@ -293,6 +293,7 @@ export function useJanelaFlutuante(o: Opcoes) {
                   paradoPorCota={paradoPorCota}
                   aoSalvar={o.aoSalvarPalavra}
                   aoComoRespondo={() => doAssistente.pedirComoRespondo()}
+                  aviso={doAssistente.avisoDoIdioma}
                 />
               ),
             },

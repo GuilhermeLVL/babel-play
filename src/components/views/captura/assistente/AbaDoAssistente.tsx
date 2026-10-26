@@ -1,10 +1,10 @@
 import { BookmarkPlus, MessageCircleReply } from 'lucide-react';
 import { useState } from 'react';
 
-import type { RecursosDoAssistente } from '../../../../core/assistente/telaDoAssistente';
+import type { AvisoDoIdioma, RecursosDoAssistente } from '../../../../core/assistente/telaDoAssistente';
 import type { FalhaDoAssistente } from '../../../../data/apiDoAssistente';
 import { t } from '../../../../lib/i18n';
-import { notaDasGlosasAutomaticas, rotuloDoNivel, rotuloDoTipo } from './copyDoAssistente';
+import { notaDasGlosasAutomaticas, rotuloDoNivel, rotuloDoTipo, textoDoAvisoDoIdioma } from './copyDoAssistente';
 import type { ItemDoGlossario } from './useAssistenteAoVivo';
 
 /**
@@ -19,12 +19,15 @@ export default function AbaDoAssistente({
   paradoPorCota,
   aoSalvar,
   aoComoRespondo,
+  aviso,
 }: {
   itens: ReadonlyArray<ItemDoGlossario>;
   recursos: RecursosDoAssistente;
   paradoPorCota: FalhaDoAssistente | null;
   aoSalvar?: (item: { palavra: string; frase?: string; lang?: string; traducao?: string }) => Promise<string>;
   aoComoRespondo?: () => void;
+  /** A conversa está no idioma da pessoa: o vazio explica por que nada aparece (`avisoDoIdiomaProprio`). */
+  aviso?: AvisoDoIdioma | null;
 }) {
   const [status, setStatus] = useState<Record<string, string>>({});
   const nota = notaDasGlosasAutomaticas(paradoPorCota);
@@ -48,9 +51,11 @@ export default function AbaDoAssistente({
       {nota && <p className="leg-nota">{nota}</p>}
       {!itens.length ? (
         <p className="leg-assistente-vazio">
-          {recursos.nuvem
-            ? t('As expressões, os termos e as palavras acima do seu nível desta sessão aparecem aqui.')
-            : t('As palavras acima do seu nível desta sessão aparecem aqui.')}
+          {aviso
+            ? textoDoAvisoDoIdioma(aviso)
+            : recursos.nuvem
+              ? t('As expressões, os termos e as palavras acima do seu nível desta sessão aparecem aqui.')
+              : t('As palavras acima do seu nível desta sessão aparecem aqui.')}
         </p>
       ) : (
         <ul className="leg-glossario" aria-label={t('Destaques desta sessão')}>

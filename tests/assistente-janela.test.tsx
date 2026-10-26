@@ -59,7 +59,9 @@ import { pedacosDaLegenda } from '../src/lib/estilosDeLegenda'
 import { estabilizarFalas } from '../src/lib/legendas/estabilizarFalas'
 
 const noop = () => {}
+import AbaDoAssistente from '../src/components/views/captura/assistente/AbaDoAssistente'
 import { esquecerAjustesDoAssistente, mudarAjustesDoAssistente } from '../src/lib/assistente/ajustesDoAssistente'
+import { esquecerAvisoDoIdiomaDispensado } from '../src/lib/assistente/avisoDoIdioma'
 
 const fala = (id: string, original: string, extra: Partial<LegendaAoVivo> = {}): LegendaAoVivo => ({
   id,
@@ -95,6 +97,7 @@ beforeEach(() => {
   vi.useFakeTimers()
   localStorage.clear()
   esquecerAjustesDoAssistente()
+  esquecerAvisoDoIdiomaDispensado()
   Object.assign(estado, { flag: true, plano: 'plus', consentiu: true, protegido: false })
   for (const f of Object.values(api)) f.mockReset()
   api.destacarExpressoes.mockResolvedValue(okExpressoes('break a leg', 'boa sorte'))
@@ -670,5 +673,110 @@ describe('a janela pinta o assistente', () => {
       'legenda',
     )
     expect(document.querySelector('.leg-folha')!.textContent).not.toMatch(/plano|R\$|assin|conhecer/i)
+  })
+})
+
+describe('a conversa no idioma da própria pessoa (relato do dono, 26/10/2026)', () => {
+  const AVISO = { aprende: 'en', fala: 'pt' }
+  const TEXTO_DO_AVISO = 'O assistente ajuda nas falas em inglês. Esta conversa está em português.'
+  const FALAS_PT = [
+    fala('1', 'Boa noite, estas são as notícias de hoje', { lang: 'pt' }),
+    fala('2', 'O tempo segue firme em todo o país', { lang: 'pt' }),
+  ]
+  const aviso = () => screen.queryByTestId('aviso-do-idioma')
+
+  it('o hook dá o aviso quando as falas recentes estão no idioma da pessoa e o assistente existe', () => {
+    const h = montarHook({ falas: FALAS_PT, langQueAprende: 'en' })
+    expect(h.result.current.janela.avisoDoIdioma).toEqual(AVISO)
+    expect(h.result.current.pagina.avisoDoIdioma).toEqual(AVISO)
+    const antes = h.result.current.janela.avisoDoIdioma
+    h.rerender({
+      aberta: true,
+      pausado: false,
+      langDaPessoa: 'pt-BR',
+      langQueAprende: 'en',
+      falas: [...FALAS_PT, fala('3', 'E agora os esportes', { lang: 'pt' })],
+    })
+    expect(h.result.current.janela.avisoDoIdioma).toBe(antes) // o mesmo objeto: a janela não repinta à toa
+    h.rerender({
+      aberta: true,
+      pausado: false,
+      langDaPessoa: 'pt-BR',
+      langQueAprende: 'en',
+      falas: [...FALAS_PT, fala('3', 'Good evening and welcome', { lang: 'en' })],
+    })
+    expect(h.result.current.janela.avisoDoIdioma).toBeNull()
+  })
+
+  it('sem o assistente (flag desligada ou Grátis) o hook não avisa', () => {
+    for (const ctx of [{ flag: false }, { plano: 'free' }]) {
+      Object.assign(estado, { flag: true, plano: 'plus' }, ctx)
+      const h = montarHook({ falas: FALAS_PT, langQueAprende: 'en' })
+      expect(h.result.current.janela.avisoDoIdioma).toBeNull()
+      h.unmount()
+    }
+  })
+
+  it('uma linha discreta na legenda, na conversa e no estudo — nunca na faixa, nunca anunciada', () => {
+    for (const formato of ['legenda', 'conversa', 'estudo'] as const) {
+      const r = montarJanela(assistente({ avisoDoIdioma: AVISO, langDaPessoa: 'pt-BR' }), formato)
+      expect(aviso()?.textContent).toBe(TEXTO_DO_AVISO)
+      expect(aviso()?.closest('[aria-live],[role="status"],[role="alert"]')).toBeNull()
+      expect(document.querySelector('[aria-live]')?.textContent).not.toContain('assistente ajuda')
+      r.unmount()
+    }
+    montarJanela(assistente({ avisoDoIdioma: AVISO, langDaPessoa: 'pt-BR' }), 'faixa')
+    expect(aviso()).toBeNull()
+  })
+
+  it('sem aviso do hook, nada aparece', () => {
+    montarJanela(assistente({ avisoDoIdioma: null, langDaPessoa: 'pt-BR' }), 'conversa')
+    expect(aviso()).toBeNull()
+  })
+
+  it('dispensar esconde o aviso pelo resto da sessão (também ao reabrir a janela)', () => {
+    const r = montarJanela(assistente({ avisoDoIdioma: AVISO, langDaPessoa: 'pt-BR' }), 'legenda')
+    fireEvent.click(screen.getByRole('button', { name: 'Dispensar o aviso' }))
+    expect(aviso()).toBeNull()
+    r.unmount()
+    montarJanela(assistente({ avisoDoIdioma: AVISO, langDaPessoa: 'pt-BR' }), 'conversa')
+    expect(aviso()).toBeNull()
+    expect(sessionStorage.getItem('babel.assistente.avisoDoIdioma.dispensado')).toBe('1')
+  })
+
+  it('a aba Assistente vazia explica por que nada aparece', () => {
+    const recursos = assistente().recursos
+    const r = render(<AbaDoAssistente itens={[]} recursos={recursos} paradoPorCota={null} aviso={AVISO} />)
+    expect(screen.getByTestId('aba-assistente').textContent).toContain(TEXTO_DO_AVISO)
+    r.unmount()
+    render(<AbaDoAssistente itens={[]} recursos={recursos} paradoPorCota={null} aviso={null} />)
+    expect(screen.getByTestId('aba-assistente').textContent).not.toContain('Esta conversa está em')
+  })
+
+  it('na conversa, "Como respondo?" fica sempre à vista num canto (não só com os controles); na legenda, não', () => {
+    const r = montarJanela(assistente({ langDaPessoa: 'pt-BR' }), 'conversa')
+    const botao = screen.getByRole('button', { name: /Como respondo/ })
+    expect(botao.classList.contains('leg-responder-fixo')).toBe(true)
+    expect(document.getElementById('leg-flut')?.classList.contains('com-responder-fixo')).toBe(true)
+    expect(document.getElementById('leg-flut')?.classList.contains('com-controles')).toBe(false)
+    expect(botao.getAttribute('aria-disabled')).toBeNull()
+    r.unmount()
+    montarJanela(assistente({ langDaPessoa: 'pt-BR' }), 'legenda')
+    expect(screen.getByRole('button', { name: /Como respondo/ }).classList.contains('leg-responder-fixo')).toBe(false)
+    expect(document.getElementById('leg-flut')?.classList.contains('com-responder-fixo')).toBe(false)
+  })
+
+  it('a última fala no idioma da pessoa: o botão fica desligado, com o motivo, e nem o clique nem o Alt+R pedem', () => {
+    const a = assistente({ langDaPessoa: 'pt-BR' })
+    tamanhoDaJanela(400, 460)
+    render(<LegendasFlutuantes naJanela formatoInicial="conversa" falas={FALAS_PT} aoFechar={vi.fn()} assistente={a} />)
+    const botao = screen.getByRole('button', { name: /Como respondo/ })
+    expect(botao.getAttribute('aria-disabled')).toBe('true')
+    expect(botao.title).toBe(
+      'A última fala está em português, o seu idioma. O “Como respondo?” ajuda nas falas do idioma que você aprende.',
+    )
+    fireEvent.click(botao)
+    fireEvent.keyDown(document, { key: 'r', code: 'KeyR', altKey: true })
+    expect(a.pedirComoRespondo).not.toHaveBeenCalled()
   })
 })

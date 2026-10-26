@@ -454,3 +454,130 @@ test('PiP de vídeo (só leitura): uma glosa curta embaixo da legenda', async ({
     }
   }
 })
+/* ── Os ajustes do relato do dono de 26/10/2026 (telejornal em português na janela flutuante) ───────────────────── */
+
+/** Com `PIP_AJUSTES_SHOTS=<pasta>`, fotografa o aviso do idioma e o botão fixo da conversa. */
+const PASTA_AJUSTES = process.env.PIP_AJUSTES_SHOTS
+const fotoDoAjuste = async (page: Page, nome: string) => {
+  if (!PASTA_AJUSTES) return
+  mkdirSync(PASTA_AJUSTES, { recursive: true })
+  await page.waitForTimeout(350)
+  await page.locator('#pip-simulada').screenshot({ path: join(PASTA_AJUSTES, `${nome}.png`) })
+}
+
+const FRASES_PT: Array<[string, string]> = [
+  ['Boa noite, estas são as principais notícias de hoje.', 'Good evening, these are the main news today.'],
+  ['O tempo segue firme em quase todo o país amanhã.', 'The weather stays dry in most of the country tomorrow.'],
+]
+const falarEm = (page: Page, lang: string, pares: Array<[string, string]>) =>
+  page.evaluate(
+    ({ ps, l }) =>
+      (
+        window as unknown as {
+          __simFalas: (t: string[], f?: string, l?: string, tr?: string[]) => number
+        }
+      ).__simFalas(
+        ps.map((p) => p[0]),
+        undefined,
+        l,
+        ps.map((p) => p[1]),
+      ),
+    { ps: pares, l: lang },
+  )
+
+test('conversa no idioma da pessoa: o aviso discreto (dispensável) e o "Como respondo?" desligado com o motivo', async ({
+  page,
+}) => {
+  test.slow()
+  const pedidos = await prepararRotas(page, { flag: true })
+  const pip = await abrirComFalas(page)
+  const regiao = pip.getByRole('region', { name: 'Legendas flutuantes' })
+  const aviso = pip.getByTestId('aviso-do-idioma')
+  /* Em inglês (o idioma que se aprende), nada de aviso. */
+  await expect(aviso).toHaveCount(0)
+
+  await falarEm(page, 'pt', FRASES_PT)
+  await expect(pip.locator('.leg-fala.atual .leg-o')).toHaveText(FRASES_PT[1][0], { timeout: 20_000 })
+  /* Legenda: uma linha discreta, fora de qualquer anúncio ao leitor de tela. */
+  await expect(aviso).toHaveText('O assistente ajuda nas falas em inglês. Esta conversa está em português.')
+  await expect(regiao.locator('[aria-live] [data-testid="aviso-do-idioma"]')).toHaveCount(0)
+  await expect(regiao.locator('.leg-anuncio')).not.toContainText('assistente ajuda')
+  await esconderBarra(page)
+  await expect(regiao).not.toHaveClass(/com-controles/, { timeout: 5000 })
+  await fotoDoAjuste(page, 'aviso-do-idioma-legenda-claro')
+
+  /* Faixa: nunca. */
+  await trocarFormato(page, pip, 'jogo')
+  await expect(aviso).toHaveCount(0)
+
+  /* Conversa: o aviso e o botão SEMPRE à vista no canto (sem os controles), desligado com o motivo. */
+  await trocarFormato(page, pip, 'conversa')
+  await esconderBarra(page)
+  await expect(regiao).not.toHaveClass(/com-controles/, { timeout: 5000 })
+  const botao = pip.getByRole('button', { name: /Como respondo/ })
+  await expect(botao).toBeVisible()
+  await expect(botao).toHaveAttribute('aria-disabled', 'true')
+  await expect(botao).toHaveAttribute('title', /A última fala está em português, o seu idioma/)
+  await expect(aviso).toBeVisible()
+  await fotoDoAjuste(page, 'conversa-botao-desligado-e-aviso-claro')
+  if (PASTA_AJUSTES) {
+    await tema(page, true)
+    await fotoDoAjuste(page, 'conversa-botao-desligado-e-aviso-escuro')
+    await tema(page, false)
+  }
+  /* O botão não cobre o texto: a última fala termina acima dele. */
+  const caixaDoBotao = (await botao.boundingBox())!
+  const caixaDaFala = (await pip.locator('.leg-fala.atual').boundingBox())!
+  expect(caixaDaFala.y + caixaDaFala.height).toBeLessThanOrEqual(caixaDoBotao.y + 1)
+  await botao.click({ force: true })
+  await expect(pip.getByRole('dialog', { name: 'Como respondo?' })).toHaveCount(0)
+  expect(pedidos.comoRespondo).toBe(0)
+
+  /* (A aba Assistente VAZIA explica a mesma coisa — `assistente-janela.test.tsx`; aqui ela já tem os destaques das
+     falas em inglês do começo.) */
+
+  /* Dispensar: some e não volta nesta sessão. */
+  await aviso.getByRole('button', { name: 'Dispensar o aviso' }).click()
+  await expect(aviso).toHaveCount(0)
+  await trocarFormato(page, pip, 'estudo')
+  await expect(aviso).toHaveCount(0)
+
+  /* A fala volta ao inglês: o botão volta a valer. */
+  await trocarFormato(page, pip, 'conversa')
+  const despedida = 'Thanks for watching, see you again tomorrow night.'
+  await falarTraduzido(page, [[despedida, 'Obrigado por assistir.']])
+  await expect(pip.locator('.leg-fala.atual .leg-o')).toHaveText(despedida, {
+    timeout: 20_000,
+  })
+  await expect(botao).not.toHaveAttribute('aria-disabled', 'true')
+  await esconderBarra(page)
+  await expect(regiao).not.toHaveClass(/com-controles/, { timeout: 5000 })
+  await fotoDoAjuste(page, 'conversa-botao-fixo-claro')
+})
+
+test('"Pausar ao passar o mouse" ligado: o mouse PARADO em cima solta a pausa sozinho em ~3 s', async ({ page }) => {
+  test.slow()
+  await prepararRotas(page, { flag: true })
+  /* A pessoa ligou a opção (desligada de fábrica desde a versão 2 da aparência). */
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      'babel.legendasFlutuantes',
+      JSON.stringify({ modo: 'video', pausarAoPassar: true, versao: 2 }),
+    ),
+  )
+  const pip = await abrirComFalas(page)
+  const regiao = pip.getByRole('region', { name: 'Legendas flutuantes' })
+  await mostrarBarra(page) // o mouse para no meio da janela
+  await expect(regiao).toHaveClass(/\bpausado\b/)
+  const nova = 'Meanwhile the markets closed higher after a long and busy day.'
+  await falarTraduzido(page, [[nova, 'Enquanto isso, os mercados fecharam em alta.']])
+  await page.waitForTimeout(1000)
+  await expect(regiao).toHaveClass(/\bpausado\b/)
+  await expect(pip.locator('.leg-fala.atual .leg-o')).not.toHaveText(nova)
+  /* Sem mexer o mouse: a pausa solta e a fala nova entra. */
+  await expect(regiao).not.toHaveClass(/\bpausado\b/, { timeout: 5000 })
+  await expect(pip.locator('.leg-fala.atual .leg-o')).toHaveText(nova, {
+    timeout: 5000,
+  })
+  await expect(pip.getByRole('button', { name: /novas?/ })).toHaveCount(0)
+})

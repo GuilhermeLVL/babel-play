@@ -3044,6 +3044,7 @@ export default function LiveCapture({
     },
     falas: falasDoAssistente,
     langDaPessoa: sourceLang || 'pt',
+    langQueAprende: targetLang,
     semente: geracaoDasFalas,
   });
   const doAssistente = assistente.pagina;

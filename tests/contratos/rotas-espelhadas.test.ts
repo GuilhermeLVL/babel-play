@@ -50,6 +50,10 @@ const SO_COM_CONTA: Record<string, string> = {
   '/api/vocab/relabel': 'idem, no acervo',
   '/api/vocab/resumo':
     'as contagens da tela Cartões (o que vence agora, a previsão, a retenção medida): a revisão exige conta, então sem conta a tela mostra o estado vazio e NÃO chama a rota. Um espelho contaria um baralho que não pode ser revisado',
+  '/api/vocab/vistas':
+    'as palavras já vistas nas sessões (etiquetas de palavras) vêm do índice derivado das falas, que só existe no servidor; sem conta a legenda marca só pelo estado do baralho local',
+  '/api/vocab/palavra':
+    'o histórico de uma palavra (onde apareceu, frases, jogos) sai do mesmo índice do servidor; sem conta a gaveta mostra só o que o baralho local sabe',
   '/api/vocab/para-jogo':
     'NÃO precisa de espelho: `compor` cai em `composicaoLocal`, a MESMA ordenação do core rodando no cliente. Espelhá-la criaria uma segunda verdade onde hoje há uma',
   '/api/health':

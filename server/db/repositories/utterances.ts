@@ -1,11 +1,13 @@
 import { randomUUID } from 'node:crypto'
 
-import { and, asc, eq, gte, isNotNull, isNull, lte } from 'drizzle-orm'
+import { and, asc, eq, gte, inArray, isNotNull, isNull, lte } from 'drizzle-orm'
 
+import { contarChaves, diferencaDeChaves } from '../../../src/core/texto/palavrasVistas'
 import type { UserId } from '../../lib/authContext'
 import { db, type ExecutorDb, linhasAfetadas } from '../db'
 import { emLotes, type InstrucaoDeBatch, rodarLote, tamanhoDoLoteDeInsert } from '../lotes'
-import { utterances } from '../schema'
+import { sessions, utterances } from '../schema'
+import { palavrasVistasRepo } from './palavrasVistas'
 
 export type Utterance = typeof utterances.$inferSelect
 
@@ -187,6 +189,18 @@ export const utterancesRepo = {
       )
     if (!instrucoes.length) return 0
     const resultados = await rodarLote(instrucoes)
+    /* O idioma da fala decide a chave das palavras vistas: as sessões tocadas são reconstruídas logo
+       depois (um lote por sessão; a reetiquetagem em si já está gravada). */
+    const ids = items.filter((it) => it?.id && it.sourceLang && it.targetLang).map((it) => it.id)
+    const tocadas = new Set<string>()
+    for (const fatia of emLotes(ids, 1_000)) {
+      const linhas = await db
+        .selectDistinct({ sessionId: utterances.sessionId })
+        .from(utterances)
+        .where(and(eq(utterances.userId, userId), inArray(utterances.id, fatia)))
+      for (const l of linhas) tocadas.add(l.sessionId)
+    }
+    if (tocadas.size) await palavrasVistasRepo.reconstruirSessoes(userId, [...tocadas])
     return resultados.reduce<number>((n, r) => n + linhasAfetadas(r), 0)
   },
 
@@ -213,13 +227,23 @@ export const utterancesRepo = {
       if (patch[k] !== undefined) values[k] = patch[k]
     }
     const daFala = and(eq(utterances.id, id), eq(utterances.userId, userId))
+    const indexar: InstrucaoDeBatch[] = []
     /* A TRADUÇÃO POLIDA (D5) é derivada do texto e da tradução: corrigir um dos dois a apaga, com a
        procedência dela — ela descrevia outro texto. Salvar sem mudar nada (a edição da Análise manda
        os dois campos sempre) não apaga: a comparação é com o que está no banco. */
     if (patch.sourceText !== undefined || patch.translatedText !== undefined) {
       const [atual] = await db
-        .select({ sourceText: utterances.sourceText, translatedText: utterances.translatedText })
+        .select({
+          sourceText: utterances.sourceText,
+          translatedText: utterances.translatedText,
+          sourceLang: utterances.sourceLang,
+          sessionId: utterances.sessionId,
+          idx: utterances.idx,
+          deletedAt: utterances.deletedAt,
+          idiomaDaSessao: sessions.sourceLang,
+        })
         .from(utterances)
+        .innerJoin(sessions, eq(sessions.id, utterances.sessionId))
         .where(daFala)
         .limit(1)
       const mudou =
@@ -227,8 +251,23 @@ export const utterancesRepo = {
         ((patch.sourceText !== undefined && patch.sourceText !== atual.sourceText) ||
           (patch.translatedText !== undefined && patch.translatedText !== atual.translatedText))
       if (mudou) Object.assign(values, SEM_POLIMENTO)
+      /* O texto corrigido muda as palavras vistas da sessão: a diferença velha → nova, no mesmo lote. */
+      if (atual && atual.deletedAt == null && patch.sourceText !== undefined && patch.sourceText !== atual.sourceText) {
+        const idioma = atual.sourceLang || atual.idiomaDaSessao
+        indexar.push(
+          ...palavrasVistasRepo.stmtsAjustar(
+            userId,
+            atual.sessionId,
+            diferencaDeChaves(
+              contarChaves([{ texto: atual.sourceText, idioma, idx: atual.idx }]),
+              contarChaves([{ texto: patch.sourceText, idioma, idx: atual.idx }]),
+            ),
+            Number(values.updatedAt),
+          ),
+        )
+      }
     }
-    await db.update(utterances).set(values).where(daFala)
+    await rodarLote([(tx) => tx.update(utterances).set(values).where(daFala), ...indexar])
     const rows = await db.select().from(utterances).where(daFala).limit(1)
     return rows[0]
   },

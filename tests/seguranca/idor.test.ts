@@ -349,6 +349,10 @@ describe('IDOR — usuario B contra os recursos de A', () => {
         const id = await novoCartao('bridge')
         return { caminho: `/api/vocab/${id}/review`, corpo: { grade: 3 }, aindaExiste: cartaoExiste(id) }
       },
+      'PUT /api/vocab/:id/nota': async () => {
+        const id = await novoCartao('willow')
+        return { caminho: `/api/vocab/${id}/nota`, corpo: { nota: 'escrita por B' }, aindaExiste: cartaoExiste(id) }
+      },
       'DELETE /api/vocab/:id': async () => {
         const id = await novoCartao('lantern')
         return { caminho: `/api/vocab/${id}`, aindaExiste: cartaoExiste(id) }

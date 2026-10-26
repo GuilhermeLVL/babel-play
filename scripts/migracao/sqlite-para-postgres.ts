@@ -71,16 +71,24 @@ const TABELAS_DE_CONTROLE = new Set(['__drizzle_migrations']);
  * que viviam na memória do processo) e `anuncios_premiados` (as exibições do anúncio premiado, que nasceram depois
  * da migração). O SQLite nunca as teve; ficam fora da cópia.
  */
-export const TABELAS_SO_DO_POSTGRES: ReadonlySet<string> = new Set(['travas', 'admissao_de_ia', 'anuncios_premiados']);
+export const TABELAS_SO_DO_POSTGRES: ReadonlySet<string> = new Set([
+  'travas',
+  'admissao_de_ia',
+  'anuncios_premiados',
+  // Etiquetas de palavras, migração PG 0012: índice derivado das falas, refeito por `palavras reindexar`.
+  'palavras_vistas',
+]);
 
 /**
  * Colunas (`tabela.coluna`) que nasceram no Postgres depois da migração e que o SQLite nunca teve: ficam fora da
  * leitura da origem, da cópia e do checksum (no destino, a linha copiada as recebe nulas — o "antes da coluna").
- * `plano_da_cobranca` e `testes_premium.plano`: planos v4, migração PG 0008.
+ * `plano_da_cobranca` e `testes_premium.plano`: planos v4, migração PG 0008. `vocab_cards.nota`: a nota pessoal
+ * da palavra (etiquetas de palavras), migração PG 0012.
  */
 export const COLUNAS_SO_DO_POSTGRES: ReadonlySet<string> = new Set([
   'subscriptions.plano_da_cobranca',
   'testes_premium.plano',
+  'vocab_cards.nota',
 ]);
 
 interface Tabela {

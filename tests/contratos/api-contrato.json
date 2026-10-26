@@ -58,8 +58,10 @@
     "GET /api/vocab/distribuicao-dificuldade",
     "GET /api/vocab/inicio-da-contagem",
     "GET /api/vocab/pagina",
+    "GET /api/vocab/palavra",
     "GET /api/vocab/para-jogo",
     "GET /api/vocab/resumo",
+    "GET /api/vocab/vistas",
     "PATCH /api/admin/users/:id",
     "PATCH /api/admin/users/:id/plan",
     "PATCH /api/me",
@@ -125,6 +127,7 @@
     "PUT /api/admin/flags/:chave",
     "PUT /api/me/idade",
     "PUT /api/sessions/:id/utterances",
-    "PUT /api/settings"
+    "PUT /api/settings",
+    "PUT /api/vocab/:id/nota"
   ]
 }

@@ -618,6 +618,24 @@ export const vocabConteudoQuerySchema = z
   })
   .strip()
 
+/** Idioma das etiquetas de palavras (`en`, ou `pt-BR`, que o handler reduz à base). Obrigatório. */
+const idiomaDaPalavra = z
+  .string()
+  .trim()
+  .regex(/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/, 'idioma inválido')
+
+/** `GET /api/vocab/vistas?lang=xx`: as chaves das palavras já vistas nesse idioma. */
+export const palavrasVistasQuerySchema = z.object({ lang: idiomaDaPalavra }).strip()
+
+/**
+ * `GET /api/vocab/palavra?lang=xx&chave=yy`: o histórico de UMA palavra. `chave` pode vir como a palavra
+ * escrita (`Água`): o servidor a reduz com `chaveDaPalavra`.
+ */
+export const palavraQuerySchema = z.object({ lang: idiomaDaPalavra, chave: z.string().trim().min(1).max(100) }).strip()
+
+/** `PUT /api/vocab/:id/nota`: a nota pessoal do cartão, até 500 caracteres; `''` limpa. */
+export const notaDoCartaoSchema = z.object({ nota: z.string().max(500) }).strip()
+
 /**
  * PATCH de cartão: o handler fazia `typeof` + `slice(0,2000)` à mão.
  *

@@ -182,6 +182,12 @@ export const vocabCards = pgTable(
      * mantido pelo banco a cada escrita, então não há linha "desatualizada" possível.
      */
     srcLangBase: text('src_lang_base').generatedAlwaysAs(sql`lower(substr(coalesce(src_lang,''),1,2))`),
+    /**
+     * A NOTA PESSOAL da palavra (etiquetas de palavras, migração PG 0012): o que a pessoa escreveu para
+     * si sobre ela, até 500 caracteres (`PUT /api/vocab/:id/nota`). Nula = sem nota. Sai com o cartão
+     * em `GET /api/vocab` e na exportação da conta.
+     */
+    nota: text('nota'),
   },
   (t) => [
     /* UNIQUE que destrava o upsert atômico. Parcial (`deleted_at is null`) porque um cartão
@@ -1359,4 +1365,47 @@ export const anunciosPremiados = pgTable(
     concluidoEm: bigint('concluido_em', { mode: 'number' }),
   },
   (t) => [primaryKey({ columns: [t.userId, t.exibicaoId] }), index('idx_anuncios_premiados_dia').on(t.dia)],
+)
+
+/**
+ * O ÍNDICE DAS PALAVRAS VISTAS (etiquetas de palavras, migração PG 0012): por sessão, quantas vezes cada
+ * palavra apareceu nas falas, para a legenda marcar "já vi" e o histórico da palavra dizer onde.
+ *
+ * DADO DERIVADO das falas (`utterances.source_text`), mantido no MESMO lote de toda escrita nelas
+ * (`palavrasVistasRepo`, chamado por `sessionsRepo`/`utterancesRepo`), e reconstruível a qualquer momento
+ * (`operacao.cjs palavras reindexar`). A chave é `chaveDaPalavra` com o idioma BASE da fala, então
+ * `lang|chave` é o `norm_key` do cartão da mesma palavra (`src/core/texto/palavrasVistas.ts`).
+ *
+ * `exemplo_idx` é o `idx` de UMA fala da sessão que contém a palavra — estável entre "retomar a captura"
+ * e os lotes da captura longa, ao contrário do id da fala. O texto não é copiado para cá: a rota lê a
+ * fala e confere se ela ainda contém a palavra.
+ *
+ * FOREIGN KEY COM CASCADE, desvio declarado da regra do cabeçalho: a linha não tem sentido sem a sessão,
+ * e a limpeza diária (que apaga a sessão de vez) e a exclusão de conta não precisam conhecê-la. A remoção
+ * SOFT da sessão apaga as linhas daqui no mesmo lote (`sessionsRepo.remove`). Sem FK para `users`: nenhuma
+ * tabela a tem (sessões existem sem linha em `users` no self-host e nos testes). Dado do titular:
+ * `TABELAS_DO_TITULAR` (exclusão e exportação).
+ */
+export const palavrasVistas = pgTable(
+  'palavras_vistas',
+  {
+    userId: text('user_id').notNull(),
+    sessionId: text('session_id')
+      .notNull()
+      .references(() => sessions.id, { onDelete: 'cascade' }),
+    lang: text('lang').notNull(),
+    chave: text('chave').notNull(),
+    vezes: bigint('vezes', { mode: 'number' }).notNull().default(0),
+    primeiraEm: bigint('primeira_em', { mode: 'number' }).notNull(),
+    ultimaEm: bigint('ultima_em', { mode: 'number' }).notNull(),
+    exemploIdx: bigint('exemplo_idx', { mode: 'number' }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.sessionId, t.lang, t.chave] }),
+    /* As duas leituras: as chaves vistas num idioma (`GET /api/vocab/vistas`) e o histórico de uma chave
+       (`GET /api/vocab/palavra`). A PK começa por `session_id` depois do usuário e não serve a nenhuma. */
+    index('idx_palavras_vistas_chave').on(t.userId, t.lang, t.chave),
+    // Lado filho da FK (o CASCADE e o DELETE por sessão procuram por ela).
+    index('idx_palavras_vistas_sessao').on(t.sessionId),
+  ],
 )

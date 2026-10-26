@@ -24,6 +24,7 @@
         "lastReview": "null",
         "lastSeenAt": "number",
         "normKey": "string",
+        "nota": "null",
         "occurrences": "number",
         "origens": [
           "string"

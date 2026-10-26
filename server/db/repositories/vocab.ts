@@ -257,6 +257,9 @@ const COLUNAS_DO_CARTAO = {
   lastSeenAt: vocabCards.lastSeenAt,
   cefrSource: vocabCards.cefrSource,
   difficultyScore: vocabCards.difficultyScore,
+  /* A nota pessoal da palavra (etiquetas de palavras, migração PG 0012): vai com o baralho para o
+     cliente ter a nota sem pedir o histórico de cada palavra. */
+  nota: vocabCards.nota,
 }
 
 /**
@@ -1363,6 +1366,20 @@ export const vocabRepo = {
       .set(set)
       .where(and(eq(vocabCards.id, id), eq(vocabCards.userId, userId)))
     return this.get(userId, id)
+  },
+
+  /**
+   * A NOTA PESSOAL do cartão (`PUT /api/vocab/:id/nota`): texto aparado, até 500 caracteres; vazio limpa
+   * (`null`). Não toca no agendamento. Cartão que não é seu (ou apagado): `undefined`, e a rota responde 404.
+   */
+  async salvarNota(userId: UserId, id: string, nota: string): Promise<{ id: string; nota: string | null } | undefined> {
+    const valor = nota.trim().slice(0, 500) || null
+    const r = await db
+      .update(vocabCards)
+      .set({ nota: valor, updatedAt: Date.now() })
+      .where(and(eq(vocabCards.id, id), eq(vocabCards.userId, userId), isNull(vocabCards.deletedAt)))
+      .returning({ id: vocabCards.id, nota: vocabCards.nota })
+    return r[0]
   },
 
   /**

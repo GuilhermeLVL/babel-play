@@ -32,6 +32,7 @@ import {
   exerciseResults,
   glossario,
   idadesDeclaradas,
+  palavrasVistas,
   presencas,
   providerCredentials,
   reviewLogs,
@@ -85,6 +86,10 @@ const TABELAS_DO_TITULAR: ReadonlyArray<readonly [string, any]> = [
   ['ankiImports', ankiImports],
   ['ankiDecks', ankiDecks],
   ['vocabCards', vocabCards],
+  /* O índice das palavras vistas (migração PG 0012): derivado das falas, filho de `sessions` (FK com
+     CASCADE). Antes dela, como toda filha — o CASCADE o levaria junto, mas a lista é também a da
+     EXPORTAÇÃO, e o relatório da exclusão conta as linhas por tabela. */
+  ['palavrasVistas', palavrasVistas],
   ['sessions', sessions],
   ['settings', settings],
   ['userInterests', userInterests],

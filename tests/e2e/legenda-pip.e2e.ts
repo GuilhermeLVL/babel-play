@@ -205,7 +205,8 @@ test('Document PiP: abre no gesto, adapta ao tamanho, troca o formato e salva um
   const cartao = pip.getByRole('dialog', { name: 'Palavra: drinks' })
   await expect(cartao).toBeVisible()
   await cartao.getByRole('button', { name: 'Salvar no vocabulário' }).click()
-  await expect(cartao.getByRole('status')).not.toBeEmpty({ timeout: 15_000 })
+  /* O aviso do salvar (o cartão também tem o `status` da nota, no histórico da palavra). */
+  await expect(cartao.locator('.leg-cartao-status')).toHaveText(/^"drinks" /, { timeout: 15_000 })
   if (PASTA) {
     for (const escuro of [false, true]) {
       await tema(page, escuro)

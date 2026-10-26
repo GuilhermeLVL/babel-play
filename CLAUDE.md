@@ -13,6 +13,9 @@ menores de idade (retenção zero, ECA Digital/LGPD). Front React + Vite, servid
 - `src/lib/`: utilitários de app (áudio, dispositivo, polimento, captura, auth). Pode usar core e gateway.
   `src/lib/anki/`: leitura do `.apkg` no navegador (zip com teto, zstd, `sql.js` num Web Worker) e exportação;
   `src/lib/import/`: PDF/DOCX/legendas viram texto no navegador. O leitor puro do Anki fica em `src/core/anki/`.
+  O leitor de livros (`/leitor`): motor em `src/lib/leitor/` (foliate-js VENDORIZADO em `foliate/`, fora do
+  lint/prettier; mudanças só com `FRASY:` e registro em `foliate/PATCHES.md`), tela em `src/components/views/leitor/`,
+  regras puras (anotação W3C, exportações, CFI, perfil) em `src/core/leitura/`, estante e `abrirLivroNoLeitor` em `src/lib/livros/`.
 - `src/data/`: acesso a dados e clientes das rotas da API (`src/data/rotas/`), trilha de conteúdo.
 - `server/`: Express (`routes/`, `ai/` com proxies e núcleo de IA, `db/` com migrações Drizzle em `migrations-pg/`, `lib/`).
   `server/lib/config.ts` lista as variáveis de ambiente; `.env.production.example` é o modelo de produção.

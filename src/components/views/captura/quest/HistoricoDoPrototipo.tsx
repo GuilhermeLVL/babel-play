@@ -643,6 +643,7 @@ export default function HistoricoDoPrototipo({
       fixos.conferir();
       fixos.seguir();
     },
+    /* O toque e o arrasto (o arrasto também: o dedo pode ter encostado fora da lista e entrado nela). */
     aoTocarNaLista: () => {
       fixos.dedo = true;
       fixos.soltar();
@@ -709,6 +710,13 @@ export default function HistoricoDoPrototipo({
     noFim.current = chegou;
     setLongeDoFim(!noFim.current);
   };
+  /* A roda para cima já é a pessoa saindo do fim: a fala que chegar antes do evento de rolagem não puxa a lista. */
+  const aoRodar = (e: React.WheelEvent) => {
+    fixos.soltar();
+    if (e.deltaY >= 0 || !noFim.current) return;
+    noFim.current = false;
+    setLongeDoFim(true);
+  };
   /* O foco numa fala prende o bloco dela na janela (o desenho que vem depois já o conta). */
   const aoFocar = (e: React.FocusEvent) => {
     fixos.soltar();
@@ -741,9 +749,9 @@ export default function HistoricoDoPrototipo({
         onScroll={aoRolar}
         onFocus={aoFocar}
         onBlur={aoDesfocar}
-        onWheel={fixos.soltar}
+        onWheel={aoRodar}
         onTouchStart={fixos.aoTocarNaLista}
-        onTouchMove={fixos.soltar}
+        onTouchMove={fixos.aoTocarNaLista}
         onTouchEnd={fixos.aoSoltarDaLista}
         onTouchCancel={fixos.aoSoltarDaLista}
         onKeyDown={fixos.soltar}

@@ -254,6 +254,67 @@ describe('a janela da legenda longa', () => {
     expect(lista.scrollTop).toBe(fimAgora - 2000)
   })
 
+  describe('sem evento de rolagem no meio (a fala chega antes dele)', () => {
+    async function noFimAcompanhando() {
+      let n = 600
+      const r = render(historico(falas(n)))
+      const lista = r.container.querySelector('.q-historico') as HTMLElement
+      await act(async () => {
+        fireEvent.scroll(lista)
+        await quadro()
+      })
+      const maisUma = () => act(() => r.rerender(historico(falas(++n))))
+      /* Controle: sem toque nem roda, a fala nova puxa a lista até o fim novo. */
+      const antes = lista.scrollTop
+      maisUma()
+      expect(lista.scrollTop).toBeGreaterThan(antes)
+      return { ...r, lista, maisUma }
+    }
+
+    it('o dedo encostado (touchstart) segura a lista: a fala nova não a puxa', async () => {
+      const { lista, maisUma } = await noFimAcompanhando()
+      fireEvent.touchStart(lista)
+      const parada = lista.scrollTop
+      maisUma()
+      maisUma()
+      expect(lista.scrollTop).toBe(parada)
+    })
+
+    it('o arrasto que entra na lista (touchmove, sem touchstart nela) também segura', async () => {
+      const { lista, maisUma } = await noFimAcompanhando()
+      fireEvent.touchMove(lista)
+      const parada = lista.scrollTop
+      maisUma()
+      expect(lista.scrollTop).toBe(parada)
+      // o dedo sai: o acompanhamento volta (a pessoa não saiu do fim)
+      fireEvent.touchEnd(lista)
+      maisUma()
+      expect(lista.scrollTop).toBeGreaterThan(parada)
+    })
+
+    it('a roda para cima sai do fim na hora: a fala que chega antes da rolagem não puxa', async () => {
+      const { container, lista, maisUma } = await noFimAcompanhando()
+      const parada = lista.scrollTop
+      act(() => {
+        fireEvent.wheel(lista, { deltaY: -120 })
+      })
+      expect(container.querySelector('.q-ir-para-o-fim')).toBeTruthy()
+      maisUma()
+      expect(lista.scrollTop).toBe(parada)
+    })
+
+    it('a roda para baixo, no fim, não para de acompanhar', async () => {
+      const { container, lista, maisUma } = await noFimAcompanhando()
+      act(() => {
+        fireEvent.wheel(lista, { deltaY: 120 })
+      })
+      const antes = lista.scrollTop
+      maisUma()
+      expect(lista.scrollTop).toBeGreaterThan(antes)
+      expect(container.querySelector('.q-ir-para-o-fim')).toBeNull()
+    })
+  })
+
   it('a lista que encolhe embaixo (sobe sem se afastar do fim) continua acompanhando', async () => {
     const { container } = render(historico(falas(600)))
     const lista = container.querySelector('.q-historico') as HTMLElement

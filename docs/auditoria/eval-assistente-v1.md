@@ -204,8 +204,9 @@ Em segundos _[medido]_:
 ## Próximos passos
 
 1. ~~Tirar a Makora do roteamento~~ — feito (p95 do "Como respondo?" 5,6 → 3,8 s). ~~Mostrar as sugestões em
-   fluxo~~ — feito (primeira sugestão com p95 de 1,7 s direto, 2,8 s pelo servidor local). Falta medir o fluxo no
-   Worker (staging), onde o `httpServerHandler` faz a ponte do `res.write` para o `Response`.
+   fluxo~~ — feito (primeira sugestão com p95 de 1,7 s direto, 2,8 s pelo servidor local). O fluxo no Worker está
+   provado na fumaça local (`npm run fumaca:worker`, verificação 9: chega aos pedaços e o abort fecha o provedor);
+   falta a latência real no staging (`primeiraSugestaoMs` no rastro).
 2. Medir o p95 em staging pela telemetria (`assistente-como-respondo`) antes de ligar a flag.
 3. A tela (C2) mostra a espera do "Como respondo?" e corta as glosas automáticas em linhas curtas.
 4. Repetir a bancada com ≥ 50 casos por recurso e mais francês e espanhol.

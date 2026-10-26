@@ -78,6 +78,11 @@ interface ResultadoDaCascata {
    * (do provedor, ou estimados pelo texto quando o fluxo caiu antes do uso) e o custo, para o chamador acertar a cota.
    */
   parcial?: { tokensEntrada: number; tokensSaida: number; custoUsd: number; rotulo: string; model: string }
+  /**
+   * EM FLUXO, quem pediu desistiu ANTES do primeiro byte: a pessoa não paga, mas o provedor cobrou o que leu e escreveu.
+   * A estimativa (US$) vai só ao orçamento global (`registrarGastoDeIa`), para o portão ver o gasto real.
+   */
+  gastoDescartadoUsd?: number
 }
 
 /**
@@ -221,7 +226,7 @@ export async function percorrerCascata(
      * compromisso, a cascata é a de sempre; depois, a falha da perna encerra a cascata (`parcial`). O relógio depois
      * do compromisso é o `prazoTotalMs`.
      */
-    emFluxo?: (modelo: string) => (acumulado: string) => boolean
+    emFluxo?: (modelo: string) => (acumulado: string, restanteMs: number) => boolean
   },
 ): Promise<ResultadoDaCascata> {
   const rastro = contexto.rastro
@@ -309,7 +314,8 @@ export async function percorrerCascata(
     const r: RespostaDoFluxo = contexto.emFluxo
       ? await chamarChatEmFluxo(pedidoDaPerna, {
           aoTexto: contexto.emFluxo(prov.model),
-          prazoFinal: Number.isFinite(prazoFinal) ? prazoFinal : Date.now() + (timeoutMs ?? 0),
+          /* Sem prazo total, o da perna (`chamarChatEmFluxo`) — nunca "agora". */
+          ...(Number.isFinite(prazoFinal) ? { prazoFinal } : {}),
         })
       : await chamarChat(pedidoDaPerna)
     const fim = Date.now()
@@ -407,13 +413,22 @@ export async function percorrerCascata(
       : undefined
     /* Abortada porque quem pediu desistiu: não é falha do provedor (o disjuntor não conta) e a
        reserva não é tentada. */
-    if (r.cancelado)
+    if (r.cancelado) {
+      const gastoDescartadoUsd =
+        !parcial && r.descartado
+          ? custoDeLlm(prov.model, r.descartado.tokensEntrada, r.descartado.tokensSaida, {
+              fornecedor,
+              preco: prov.preco,
+            })
+          : undefined
       return {
         entregue: null,
         ultimaFalha: r.causa ?? 'cancelado por quem pediu',
         cancelado: true,
         ...(parcial ? { parcial } : {}),
+        ...(gastoDescartadoUsd ? { gastoDescartadoUsd } : {}),
       }
+    }
     registrarFalha(chave, r.status)
     ultimaFalha = r.causa ?? 'falha sem causa declarada'
     if (parcial) {

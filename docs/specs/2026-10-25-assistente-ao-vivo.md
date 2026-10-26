@@ -119,18 +119,35 @@ cada sugestão sai assim que o objeto dela fecha no texto do modelo:
 - **Cascata só antes do primeiro byte**: a perna que cai sem ter entregado uma sugestão cede à reserva (os relógios de
   sempre: 5 s até a primeira sugestão na primeira perna, 6 s nas reservas); depois, não há reserva, a leitura vai até o
   prazo total (10 s) e a falha é o evento `erro` (`provedor_indisponivel`; o fim fora do formato é `resposta_invalida`).
+  A primeira sugestão só compromete se sobrar ≥ 1,5 s até o prazo total (`MARGEM_DO_COMPROMISSO_MS`): com menos, a
+  perna segue sem compromisso — termina a tempo, a lista vai inteira de uma vez; não termina, é o 502 de sempre, sem
+  cobrança (nada de 1 sugestão e logo o erro). Sem prazo total na cascata, o relógio depois do compromisso é o da perna.
 - **Leitura**: `src/lib/estudo/sugestoesEmFluxo.ts` varre o JSON que cresce e passa cada item pelo mesmo leitor
   (`lerItemDaSugestao`: chaves exatas, tom do enum, sem os delimitadores do prompt, sem repetir, até 3). O que sai é
   sempre um prefixo do que `lerSugestoes` lê do texto final; o `fim` só vem se o todo passar (2 ou 3, sem chave a mais).
-- **Volta ao caminho de sempre**: o provedor que recusa o esquema ou o `stream` (o 404 "No endpoints found" ou um 400
-  que os cita) tem a MESMA perna repetida inteira pelo `chamarChat` (com a segunda tentativa sem esquema), e a resposta
-  que chega sem `text/event-stream` é lida como JSON; nos dois casos o fluxo sai de uma vez.
+- **Volta ao caminho de sempre**: o provedor que recusa o ESQUEMA (o 404 "No endpoints found" ou um 400 que o cita) tem
+  a MESMA perna repetida UMA vez, inteira e já sem o esquema (repetir com ele daria a mesma recusa; o leitor defensivo
+  segue valendo); o que recusa só o `stream` (um 400 que o cita) volta ao `chamarChat` de sempre, com o esquema. A
+  resposta que chega sem `text/event-stream` é lida como JSON. Nos três casos o fluxo sai de uma vez.
 - **Cota idêntica**: o uso do dia e as reservas de tokens são acertados no fim pelo uso real (o `usage` do último
   pedaço; `usage: {include: true}` no OpenRouter, `stream_options.include_usage` nos outros). Caiu (ou a pessoa
-  cancelou) depois da primeira sugestão: o que foi gerado conta (o uso do provedor, ou ~4 caracteres por token quando
-  ele não chegou) e o uso do dia também. Nada gerado: tudo volta. O estorno roda no `finally` do handler, que no Worker
-  já segura a requisição (`capturarAssincrono` → `emSegundoPlano`).
+  cancelou) depois da primeira sugestão: o que foi gerado conta e o uso do dia também. Nada gerado: tudo volta. O
+  estorno roda no `finally` do handler, que no Worker já segura a requisição (`capturarAssincrono` → `emSegundoPlano`).
+- **Uso que o provedor não diz** (`tokensDaChamada`, em fluxo E no caminho inteiro de todas as funções): sem `usage`,
+  ou sem um lado dele (zero, negativo ou não numérico conta como ausente), o lado que falta é estimado pelo texto
+  (~4 caracteres por token: a entrada pelo prompt, a saída pelo que o modelo escreveu). Antes, sem `usage`, a chamada
+  saía de graça para a cota. O lado declarado vale como veio.
+- **Cancelado ANTES da primeira sugestão**: a pessoa não paga (tudo estornado), mas a estimativa do que o provedor já
+  leu e escreveu vai ao orçamento global (`registrarGastoDeIa`, com a conta: o teto em US$ por conta também vê), para
+  o portão da nuvem ver o gasto real.
+- **Telemetria**: o HTTP já era 200, então o rastro leva `desfechoDoFluxo` (`completo`, `interrompido`, `invalido`,
+  `cancelado`) e `primeiraSugestaoMs`; o desfecho que não é `completo` nunca cai na amostragem (`rastroObrigatorio`).
+  O log tem `assistente_comoRespondo_fluxo_interrompido`.
 - **Cancelar**: em fluxo, o handler passa o `sinalDoCliente` ao núcleo; a conexão fechada aborta o `fetch` ao provedor.
+- **No Worker** (provado na fumaça, `npm run fumaca:worker`, verificação 9, com um provedor simulado em https que manda
+  o SSE a cada 250 ms): o NDJSON atravessa o `httpServerHandler` e o `acompanharCorpo` aos pedaços — a 1ª sugestão em
+  ~0,3 s, o provedor terminando em ~1,3 s, ~0,5 s entre a 1ª e a 3ª — e o abort do cliente fecha a conexão do Worker
+  com o provedor antes do fim (o `close` chega ao `sinalDoCliente`). O workerd não segura o corpo: nada mudou no Worker.
 - **Menor**: igual (a instrução de segurança no system, o contexto descartado). As outras três rotas ignoram o `Accept`.
 - Sem o `Accept`, o contrato antigo, sem mudança nenhuma (o JSON inteiro; o provedor chamado com `stream: false`).
 
@@ -176,7 +193,9 @@ cache, `restanteHoje` é o último valor conhecido na aba, ou fica de fora — n
   tradução, tom, Copiar e Ouvir; "Pensando em respostas…" e, depois de 2,5 s, "Está demorando…" com Cancelar. Em
   fluxo (26/10/2026): a primeira sugestão já troca a espera pela lista (`ok` com `parcial: true`, o lugar das que faltam
   em pontinhos `aria-hidden`, `aria-busy` na lista) e as outras completam; os avisos de espera só valem antes da
-  primeira. Fechar a folha (ou Cancelar) aborta o pedido. Um `erro` depois da primeira troca a lista pela falha.
+  primeira. Fechar a folha (ou Cancelar) aborta o pedido. Um `erro` (ou o fim inválido) DEPOIS de alguma sugestão
+  (decisão do dono, 26/10/2026): as que chegaram ficam, com Copiar e Ouvir, e a nota discreta "Não deu para completar
+  as sugestões." embaixo (`ok` com `incompleta: true`); cobra-se só o que foi gerado.
 - **Escondido** com a flag desligada, no Grátis ou depois de um `sem_plano`/`fora`/`sem_conta` do servidor (o plano é
   acompanhado pelo evento dos entitlements); o recurso 2 segue. O perfil
   protegido recebe os mesmos recursos, sem contexto no "Como respondo?" e sem nenhuma oferta.

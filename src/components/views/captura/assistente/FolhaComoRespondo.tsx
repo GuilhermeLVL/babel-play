@@ -20,7 +20,8 @@ const ROTULO_DO_TOM: Readonly<Record<TomDaSugestao, string>> = {
  * A espera é honesta: "Pensando em respostas…", e depois de 2,5 s sem a primeira sugestão diz que está demorando e
  * oferece cancelar. As sugestões chegam EM FLUXO: a primeira aparece assim que fica pronta, e as outras completam a
  * lista (`parcial`, com os pontinhos embaixo dela); os avisos de espera só valem antes da primeira. Fechar cancela o
- * pedido. O aviso (`role="status"`) fica sempre montado e só o texto troca.
+ * pedido. Se o fluxo falhar depois de alguma sugestão, as que chegaram ficam (com Copiar e Ouvir) e uma nota discreta
+ * diz que não deu para completar. O aviso (`role="status"`) fica sempre montado e só o texto troca.
  */
 export default function FolhaComoRespondo({
   estado,
@@ -159,6 +160,11 @@ export default function FolhaComoRespondo({
         <button type="button" className="leg-acao-texto" onClick={aoTentarDeNovo}>
           <RotateCcw aria-hidden /> {t('Tentar de novo')}
         </button>
+      )}
+      {estado.estado === 'ok' && estado.incompleta && (
+        <p className="leg-folha-nota" data-testid="como-respondo-incompleta">
+          {t('Não deu para completar as sugestões.')}
+        </p>
       )}
       {estado.estado === 'ok' && <p className="leg-folha-nota">{t('Isto é uma IA e pode errar.')}</p>}
     </div>

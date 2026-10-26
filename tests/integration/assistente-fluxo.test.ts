@@ -61,6 +61,7 @@ let rotaDoAssistente: (r: RecursoDoAssistente) => (req: any, res: any) => Promis
 let counters: any
 let flags: any
 let usageQuota: any
+let orcamento: any
 let idades: any
 let subscriptions: any
 
@@ -235,6 +236,7 @@ beforeAll(async () => {
   ;({ subscriptionsRepo: subscriptions } = await h.load<any>('../../server/db/repositories/subscriptions'))
   flags = await h.load<any>('../../server/lib/flags')
   usageQuota = await h.load<any>('../../server/lib/usageQuota')
+  orcamento = await h.load<any>('../../server/lib/orcamentoDeIa')
 })
 afterAll(async () => {
   delete process.env.AUTH_REQUIRED
@@ -410,7 +412,7 @@ describe('em fluxo: a cascata só antes do primeiro byte', () => {
 })
 
 describe('em fluxo: a volta ao caminho de sempre', () => {
-  it('o provedor recusa o esquema em fluxo: a mesma perna é repetida inteira, e o fluxo sai de uma vez', async () => {
+  it('o provedor recusa o esquema em fluxo: a mesma perna é repetida UMA vez, inteira e SEM o esquema', async () => {
     const quem = await assinante('fluxo-sem-fluxo')
     const chamadas = provedor((c) =>
       c.stream
@@ -422,7 +424,7 @@ describe('em fluxo: a volta ao caminho de sempre', () => {
       [GEMMA, true],
       [GEMMA, false],
     ])
-    expect(chamadas[1].esquema).toBe('assistente_como_respondo') // o caminho de sempre, com o esquema
+    expect(chamadas[1].esquema).toBeUndefined() // repetir com o esquema daria a mesma recusa
     expect(res.headers['x-ia-modelo']).toBe(GEMMA)
     expect(res.eventos).toEqual([
       { tipo: 'sugestao', sugestao: S1 },
@@ -438,6 +440,109 @@ describe('em fluxo: a volta ao caminho de sempre', () => {
     provedor(() => respostaJson(RESPOSTA))
     const res = await pedir(quem)
     expect(res.eventos.map((e) => e.tipo)).toEqual(['sugestao', 'sugestao', 'sugestao', 'fim'])
+  })
+})
+
+describe('a cota quando o provedor não diz o uso', () => {
+  it('fluxo sem usage: cobra a estimativa pelo texto (nunca 0), na tokensMes e na subcota', async () => {
+    const quem = await assinante('fluxo-sem-usage')
+    provedor(() => respostaSse(sseInteiro(RESPOSTA, false)))
+    const res = await pedir(quem)
+    expect(res.eventos.at(-1)).toMatchObject({ tipo: 'fim' })
+    const tokens = await tokensDoMes(quem)
+    /* ~4 caracteres por token: o prompt (system + user) e as 3 sugestões. */
+    expect(tokens).toBeGreaterThan(Math.ceil(RESPOSTA.length / 4))
+    expect(tokens).toBeLessThan(2000)
+    expect(await subcota(quem)).toBe(tokens)
+    expect(await doDia(quem)).toBe(1)
+  })
+})
+
+describe('a telemetria do fluxo (o HTTP já era 200)', () => {
+  async function pedirNoNucleo(id: string) {
+    const quem = await assinante(id)
+    const nucleo = await h.load<any>('../../server/ai/nucleo/assistenteAoVivo')
+    const entitlements = await h.load<any>('../../server/lib/entitlements')
+    const anotacoes: Record<string, unknown> = {}
+    const tentativas: Array<{ status: string }> = []
+    const rastro = {
+      conteudoPermitido: false,
+      anotar: (a: Record<string, unknown>) => Object.assign(anotacoes, a),
+      tentativa: (t: { status: string }) => tentativas.push(t),
+      encerrar: () => {},
+    }
+    const lido = nucleo.lerPedidoDoAssistente('comoRespondo', CORPO)
+    const resultado = await nucleo.pedirAoAssistente(
+      {
+        userId: quem,
+        requestId: 'r-telemetria',
+        rastro,
+        entitlements: entitlements.getEntitlements('plus'),
+        emTeste: false,
+        modo: 'plano',
+        canal: 'app',
+        perfilProtegido: null,
+        flagLigada: async () => true,
+      },
+      lido.pedido,
+      undefined,
+      { aoComecar: () => {}, aoSugerir: () => {} },
+    )
+    return { resultado, anotacoes, tentativas }
+  }
+
+  it('a falha no MEIO do fluxo fica no rastro: desfecho interrompido, a perna com status de erro', async () => {
+    const fimDoPrimeiro = RESPOSTA.indexOf('}') + 1
+    provedor(() =>
+      respostaSse(
+        pedaco(RESPOSTA.slice(0, fimDoPrimeiro)) + `data: ${JSON.stringify({ error: { message: 'x' } })}\n\n`,
+      ),
+    )
+    const { resultado, anotacoes, tentativas } = await pedirNoNucleo('fluxo-telemetria-meio')
+    expect(resultado).toMatchObject({ ok: false, code: 'provedor_indisponivel' })
+    expect(anotacoes.desfechoDoFluxo).toBe('interrompido')
+    expect(anotacoes.primeiraSugestaoMs).toEqual(expect.any(Number))
+    expect(tentativas.map((t) => t.status)).not.toContain('ok')
+  })
+
+  it('o fim fora do formato: desfecho invalido; o completo: desfecho completo', async () => {
+    provedor(() => respostaSse(sseInteiro(JSON.stringify({ sugestoes: [S1] }))))
+    expect((await pedirNoNucleo('fluxo-telemetria-invalido')).anotacoes.desfechoDoFluxo).toBe('invalido')
+    vi.unstubAllGlobals()
+    provedor(() => respostaSse(sseInteiro(RESPOSTA)))
+    expect((await pedirNoNucleo('fluxo-telemetria-completo')).anotacoes.desfechoDoFluxo).toBe('completo')
+  })
+})
+
+describe('o prazo no compromisso', () => {
+  it('com menos de 1,5 s até o prazo total, a primeira sugestão NÃO compromete: a lista sai inteira no fim', async () => {
+    const quem = await assinante('fluxo-sem-tempo')
+    let f!: ReturnType<typeof fluxoControlado>
+    provedor((c) => (f = fluxoControlado(c.sinal)).resposta)
+    const res = new RespostaFalsa()
+    const pendente = pedir(quem, true, res)
+    await vi.waitFor(() => expect(f).toBeDefined())
+    /* O relógio pula para 9 s depois da entrada (sobra 1 s do prazo de 10 s) — os timers de verdade não mudam. */
+    const agora = Date.now.bind(Date)
+    const espia = vi.spyOn(Date, 'now').mockImplementation(() => agora() + 9_000)
+    try {
+      f.mandar(pedaco(RESPOSTA.slice(0, RESPOSTA.indexOf('}') + 1)))
+      await new Promise((r) => setTimeout(r, 30))
+      expect(res.escrito).toBe('') // sem compromisso: nada saiu, nem o cabeçalho
+      expect(res.headersSent).toBe(false)
+      f.mandar(pedaco(RESPOSTA.slice(RESPOSTA.indexOf('}') + 1)))
+      f.mandar(FIM_COM_USO)
+      f.fechar()
+      await pendente
+    } finally {
+      espia.mockRestore()
+    }
+    expect(res.eventos).toEqual([
+      { tipo: 'sugestao', sugestao: S1 },
+      { tipo: 'sugestao', sugestao: S2 },
+      { tipo: 'sugestao', sugestao: S3 },
+      { tipo: 'fim', sugestoes: [S1, S2, S3], restanteHoje: ASSISTENTE_DIA_DOS_PAGOS - 1 },
+    ])
   })
 })
 
@@ -491,6 +596,7 @@ describe('o Cancelar', () => {
 
   it('fechar antes da primeira sugestão: nada gerado, tudo estornado, e nenhuma reserva chamada', async () => {
     const quem = await assinante('fluxo-cancelado-antes')
+    const gastoAntes = (await orcamento.estadoDoOrcamento()).dia.gastoUsd
     let f!: ReturnType<typeof fluxoControlado>
     const chamadas = provedor((c) => (f = fluxoControlado(c.sinal)).resposta)
     const res = new RespostaFalsa()
@@ -507,6 +613,8 @@ describe('o Cancelar', () => {
     expect(await doDia(quem)).toBe(0)
     expect(await tokensDoMes(quem)).toBe(0)
     expect(await subcota(quem)).toBe(0)
+    /* A pessoa não paga, mas o que o provedor já leu e escreveu vai ao orçamento GLOBAL (o portão vê o gasto real). */
+    expect((await orcamento.estadoDoOrcamento()).dia.gastoUsd).toBeGreaterThan(gastoAntes)
   })
 })
 

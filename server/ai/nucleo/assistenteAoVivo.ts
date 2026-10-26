@@ -119,6 +119,12 @@ const SAIDA_DO_RECURSO: Readonly<Record<RecursoDoAssistente, FormatoDeSaida>> = 
 export const TIMEOUT_DA_PRIMEIRA_PERNA_MS = 5_000
 const TIMEOUT_MS = 6_000
 export const PRAZO_TOTAL_MS = 10_000
+/**
+ * EM FLUXO, a primeira sugestão só COMPROMETE a resposta se sobrar pelo menos isto até o prazo total: com menos, a
+ * pessoa veria 1 sugestão e logo o erro do prazo. A perna segue sem compromisso: termina a tempo, a lista vai inteira
+ * de uma vez; não termina, é o 502 de sempre, sem cobrança.
+ */
+export const MARGEM_DO_COMPROMISSO_MS = 1_500
 
 /** Os limites de entrada, em caracteres. */
 export const MAX_CARACTERES_DA_LINHA = 300
@@ -374,11 +380,17 @@ async function atender(
     const emFluxo = fluxo
       ? (modelo: string) => {
           const leitor = criarLeitorDeSugestoesEmFluxo()
-          return (acumulado: string): boolean => {
+          let semTempo = false
+          return (acumulado: string, restanteMs: number): boolean => {
             for (const s of leitor.alimentar(acumulado)) {
               if (!comecou) {
+                if (semTempo || restanteMs < MARGEM_DO_COMPROMISSO_MS) {
+                  semTempo = true
+                  continue
+                }
                 comecou = true
                 primeiraMs = Date.now() - t0
+                rastro.anotar({ primeiraSugestaoMs: primeiraMs })
                 fluxo.aoComecar(modelo, restanteHoje)
               }
               fluxo.aoSugerir(s)
@@ -387,32 +399,33 @@ async function atender(
           }
         }
       : undefined
-    const { entregue, ultimaFalha, limitadoPeloProvedor, cancelado, parcial } = await percorrerCascata(
-      custo.pernas,
-      {
-        messages,
-        temperature: temperatura,
-        maxTokens,
-        timeoutMs: TIMEOUT_MS,
-        formatoDeSaida: SAIDA_DO_RECURSO[recurso],
-        /* O ROTEAMENTO DA LEGENDA no OpenRouter (o endpoint mais barato que responde em até 1,5 s no p50): na bancada,
+    const { entregue, ultimaFalha, limitadoPeloProvedor, cancelado, parcial, gastoDescartadoUsd } =
+      await percorrerCascata(
+        custo.pernas,
+        {
+          messages,
+          temperature: temperatura,
+          maxTokens,
+          timeoutMs: TIMEOUT_MS,
+          formatoDeSaida: SAIDA_DO_RECURSO[recurso],
+          /* O ROTEAMENTO DA LEGENDA no OpenRouter (o endpoint mais barato que responde em até 1,5 s no p50): na bancada,
            o mesmo Gemma ficou mais barato (~20%) e com a cauda menor (p95 das glosas abaixo de 2,1 s). */
-        legenda: true,
-        ...(ctx.sinal ? { sinal: ctx.sinal } : {}),
-      },
-      {
-        evento,
-        route: rota,
-        requestId: ctx.requestId,
-        funcao: 'assistente',
-        rastro,
-        admissao,
-        fatorDeSaida: custo.fatorDeSaida,
-        timeoutDaPrimeiraPernaMs: TIMEOUT_DA_PRIMEIRA_PERNA_MS,
-        prazoTotalMs: PRAZO_TOTAL_MS,
-        ...(emFluxo ? { emFluxo } : {}),
-      },
-    )
+          legenda: true,
+          ...(ctx.sinal ? { sinal: ctx.sinal } : {}),
+        },
+        {
+          evento,
+          route: rota,
+          requestId: ctx.requestId,
+          funcao: 'assistente',
+          rastro,
+          admissao,
+          fatorDeSaida: custo.fatorDeSaida,
+          timeoutDaPrimeiraPernaMs: TIMEOUT_DA_PRIMEIRA_PERNA_MS,
+          prazoTotalMs: PRAZO_TOTAL_MS,
+          ...(emFluxo ? { emFluxo } : {}),
+        },
+      )
     /* EM FLUXO, a perna caiu (ou quem pediu desistiu) DEPOIS da primeira sugestão: o que ela gerou foi cobrado — o
        uso do dia, os tokens e o gasto contam pelo que saiu —, e não há reserva depois do primeiro byte. */
     if (!entregue && parcial) {
@@ -421,6 +434,7 @@ async function atender(
       await reserva.consumir(tokensReais)
       await registrarGastoDeIa(parcial.custoUsd, { userId: ctx.userId, plano: plano.plan })
       await ctx.registrarCusto?.(parcial.custoUsd)
+      rastro.anotar({ desfechoDoFluxo: cancelado ? 'cancelado' : 'interrompido' })
       if (cancelado) return decidir(recusaCancelada())
       log('error', {
         event: `${evento}_fluxo_interrompido`,
@@ -432,8 +446,14 @@ async function atender(
       })
       return decidir(recusaDeErro(502, 'o assistente parou no meio; tente de novo', 'provedor_indisponivel'))
     }
-    /* Quem pediu desistiu antes de qualquer coisa sair: nada gerado, tudo volta (o `finally`). */
-    if (!entregue && cancelado) return decidir(recusaCancelada())
+    /* Quem pediu desistiu antes de qualquer coisa sair: a PESSOA não paga (o `finally` devolve tudo), mas o que o
+       provedor já leu e escreveu entra no orçamento GLOBAL — o portão da nuvem tem de ver o gasto real. */
+    if (!entregue && cancelado) {
+      /* Com a conta: o teto em US$ por conta e a vigia de gasto também veem (cancelar em série não sai de graça). */
+      if (gastoDescartadoUsd) await registrarGastoDeIa(gastoDescartadoUsd, { userId: ctx.userId, plano: plano.plan })
+      if (fluxo) rastro.anotar({ desfechoDoFluxo: 'cancelado' })
+      return decidir(recusaCancelada())
+    }
     if (!entregue && limitadoPeloProvedor)
       return decidir(recusaNuvemOcupada({ motivo: 'provedor_limitou', retryAfterS: limitadoPeloProvedor.retryAfterS }))
     if (!entregue) {
@@ -457,6 +477,7 @@ async function atender(
 
     const valor = lerValor(pedido, entregue.texto)
     if (!valor) {
+      if (primeiraMs !== null) rastro.anotar({ desfechoDoFluxo: 'invalido' })
       contarRespostaInvalida('assistente', entregue.model)
       log('warn', { event: `${evento}_resposta_invalida`, route: rota, status: 502, requestId: ctx.requestId })
       return decidir(
@@ -472,7 +493,7 @@ async function atender(
       requestId: ctx.requestId,
     })
     /* O tempo até a primeira sugestão (em fluxo): é o que a pessoa sente. */
-    if (primeiraMs !== null) rastro.anotar({ primeiraSugestaoMs: primeiraMs })
+    if (primeiraMs !== null) rastro.anotar({ desfechoDoFluxo: 'completo' })
     return decidir({ ok: true, valor, restanteHoje: doDia.restanteHoje, modelo: entregue.model })
   } catch (err) {
     if (err instanceof ContadorIndisponivel) return decidir(recusaContadorIndisponivel())

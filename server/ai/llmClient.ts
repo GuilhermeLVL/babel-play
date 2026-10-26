@@ -257,10 +257,35 @@ function respostaDoTexto(bruto: string | undefined, uso: UsoDoChat | undefined, 
           : 'resposta vazia do provedor',
     }
   }
-  const tokensEntrada = data.usage?.prompt_tokens ?? 0
-  const tokensSaida = data.usage?.completion_tokens ?? 0
+  const { tokensEntrada, tokensSaida } = tokensDaChamada(uso, tamanhoDoPrompt(p.messages), bruto?.length ?? 0)
   const tokensEmCache = data.usage?.prompt_tokens_details?.cached_tokens ?? 0
   return { ok: true, texto, tokens: tokensEntrada + tokensSaida, tokensEntrada, tokensSaida, tokensEmCache }
+}
+
+/** Tokens de um texto quando o provedor não disse o uso: ~4 caracteres por token. */
+const tokensDoTexto = (caracteres: number): number => Math.ceil(Math.max(0, caracteres) / 4)
+
+/** O número que o provedor declarou, se for um número de tokens plausível (positivo e finito). */
+const declarado = (n: unknown): number | null =>
+  typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.ceil(n) : null
+
+/**
+ * OS TOKENS QUE A COTA COBRA. O provedor que omite o `usage` (ou um lado dele: o fluxo sem o último pedaço, um proxy,
+ * um provedor que não manda `prompt_tokens`) NÃO pode fazer a chamada sair de graça — era o caminho para gastar a
+ * nuvem sem a cota contar. O lado que falta (ou vem zero, negativo, não numérico) vira a estimativa pelo texto: a
+ * entrada pelo prompt, a saída pelo que o modelo escreveu. O lado declarado vale como veio (é o real que a cota
+ * acerta); a estimativa fica dentro da reserva (`estimarTokens` reserva ~2 caracteres por token de entrada mais o
+ * `max_tokens` inteiro).
+ */
+export function tokensDaChamada(
+  uso: UsoDoChat | undefined,
+  caracteresDoPrompt: number,
+  caracteresDaSaida: number,
+): { tokensEntrada: number; tokensSaida: number } {
+  return {
+    tokensEntrada: declarado(uso?.prompt_tokens) ?? tokensDoTexto(caracteresDoPrompt),
+    tokensSaida: declarado(uso?.completion_tokens) ?? tokensDoTexto(caracteresDaSaida),
+  }
 }
 
 function respostaDoCorpo(data: CorpoDoChat, p: PedidoDeChat): RespostaDeChat {
@@ -276,25 +301,32 @@ function respostaDoCorpo(data: CorpoDoChat, p: PedidoDeChat): RespostaDeChat {
  * `comprometido` e os tokens do que já saiu.
  */
 export interface FluxoDoChat {
-  /** O texto acumulado a cada pedaço; `true` = a resposta foi comprometida (o primeiro byte saiu para quem pediu). */
-  aoTexto: (acumulado: string) => boolean
+  /**
+   * O texto acumulado a cada pedaço, e quanto falta (ms) até o prazo que vale depois do compromisso; `true` = a
+   * resposta foi comprometida (o primeiro byte saiu para quem pediu). Com pouco tempo sobrando, quem chama pode não
+   * comprometer (o núcleo não manda 1 sugestão para logo depois mandar o erro do prazo).
+   */
+  aoTexto: (acumulado: string, restanteMs: number) => boolean
   /**
    * O instante (`Date.now()`) em que a leitura para DEPOIS do compromisso: o prazo da cascata. Antes do compromisso
-   * vale o `timeoutMs` da perna, como numa chamada inteira.
+   * vale o `timeoutMs` da perna, como numa chamada inteira. Ausente (a cascata sem prazo total): o prazo da PERNA
+   * (início + `timeoutMs`) — nunca "agora".
    */
-  prazoFinal: number
+  prazoFinal?: number
 }
 
 export interface RespostaDoFluxo extends RespostaDeChat {
   /** A falha veio DEPOIS do compromisso: a cascata não tenta a reserva, e os tokens já gerados contam. */
   comprometido?: boolean
+  /**
+   * Quem pediu desistiu ANTES do compromisso: a pessoa não paga (nada lhe foi entregue), mas o provedor cobrou o que
+   * já tinha lido e escrito — a estimativa vai ao orçamento GLOBAL, para o portão da nuvem ver o gasto real.
+   */
+  descartado?: { tokensEntrada: number; tokensSaida: number }
 }
 
 /** O pedido recusou o FLUXO (`stream`) — o 400 que o cita. A mesma perna é repetida sem fluxo. */
 const recusouOFluxo = (status: number, corpo: string): boolean => status === 400 && /\bstream/i.test(corpo)
-
-/** Tokens de um texto quando o provedor não disse o uso (o fluxo caiu antes do último pedaço): ~4 caracteres. */
-const tokensDoTexto = (caracteres: number): number => Math.ceil(Math.max(0, caracteres) / 4)
 
 interface PedacoDoFluxo {
   error?: { message?: string } | string
@@ -317,6 +349,7 @@ export async function chamarChatEmFluxo(p: PedidoDeChat, fluxo: FluxoDoChat): Pr
     return { ok: false, status: 413, causa: `prompt de ${caracteres} caracteres acima do teto de ${MAX_PROMPT_CHARS}` }
   }
   const timeoutMs = p.timeoutMs ?? TIMEOUT_PADRAO_MS
+  const prazoFinal = Number.isFinite(fluxo.prazoFinal) ? (fluxo.prazoFinal as number) : inicio + timeoutMs
   /* O RELÓGIO É TROCADO NO COMPROMISSO: até o primeiro byte, o da perna; depois, o prazo da cascata. */
   const controle = new AbortController()
   let motivo: 'relogio' | 'prazo' | null = null
@@ -333,8 +366,7 @@ export async function chamarChatEmFluxo(p: PedidoDeChat, fluxo: FluxoDoChat): Pr
   let uso: UsoDoChat | undefined
   const falha = (status: number, causa: string): RespostaDoFluxo => {
     if (!comprometido) return { ok: false, status, causa }
-    const tokensEntrada = uso?.prompt_tokens ?? tokensDoTexto(caracteres)
-    const tokensSaida = uso?.completion_tokens ?? tokensDoTexto(acumulado.length)
+    const { tokensEntrada, tokensSaida } = tokensDaChamada(uso, caracteres, acumulado.length)
     return {
       ok: false,
       status,
@@ -351,7 +383,7 @@ export async function chamarChatEmFluxo(p: PedidoDeChat, fluxo: FluxoDoChat): Pr
     const delta = j.choices?.[0]?.delta?.content
     if (typeof delta === 'string' && delta) {
       acumulado += delta
-      if (fluxo.aoTexto(acumulado) && !comprometido) {
+      if (fluxo.aoTexto(acumulado, prazoFinal - Date.now()) && !comprometido) {
         comprometido = true
         clearTimeout(relogio)
         relogio = setTimeout(
@@ -359,7 +391,7 @@ export async function chamarChatEmFluxo(p: PedidoDeChat, fluxo: FluxoDoChat): Pr
             motivo = 'prazo'
             controle.abort()
           },
-          Math.max(0, fluxo.prazoFinal - Date.now()),
+          Math.max(0, prazoFinal - Date.now()),
         )
       }
     }
@@ -392,10 +424,21 @@ export async function chamarChatEmFluxo(p: PedidoDeChat, fluxo: FluxoDoChat): Pr
     if (!r.ok) {
       const retryAfterS = r.status === 429 ? segundosDoRetryAfter(r.headers?.get?.('retry-after')) : undefined
       const corpo = await r.text().catch(() => '')
-      if ((p.formatoDeSaida && recusouOEsquema(r.status, corpo)) || recusouOFluxo(r.status, corpo)) {
+      const semEsquema = Boolean(p.formatoDeSaida) && recusouOEsquema(r.status, corpo)
+      if (semEsquema || recusouOFluxo(r.status, corpo)) {
         clearTimeout(relogio)
         const restante = timeoutMs - (Date.now() - inicio)
         if (restante <= 0) return { ok: false, status: 0, causa: `sem resposta em ${timeoutMs} ms` }
+        /* Recusou o ESQUEMA: UMA tentativa inteira, já sem ele (repetir com o esquema daria a mesma recusa). Recusou
+           só o fluxo: o caminho inteiro de sempre, com o esquema (e a segunda tentativa dele). */
+        if (semEsquema) {
+          const { recusouEsquema: _ignorado, ...sem } = await chamarUmaVez({
+            ...p,
+            formatoDeSaida: undefined,
+            timeoutMs: restante,
+          })
+          return sem.ok ? { ...sem, semEsquema: true } : sem
+        }
         return await chamarChat({ ...p, timeoutMs: restante })
       }
       return {
@@ -443,7 +486,10 @@ export async function chamarChatEmFluxo(p: PedidoDeChat, fluxo: FluxoDoChat): Pr
     }
     return respostaDoTexto(acumulado, uso, p)
   } catch (err) {
-    if (clienteDesistiu(p.sinal)) return { ...falha(0, 'cancelado por quem pediu'), cancelado: true }
+    if (clienteDesistiu(p.sinal)) {
+      const r = { ...falha(0, 'cancelado por quem pediu'), cancelado: true }
+      return comprometido ? r : { ...r, descartado: tokensDaChamada(uso, caracteres, acumulado.length) }
+    }
     if (motivo === 'relogio') return falha(0, `sem resposta em ${timeoutMs} ms`)
     if (motivo === 'prazo') return falha(0, 'prazo da cascata esgotado no meio do fluxo')
     return falha(0, `fluxo interrompido: ${String((err as Error)?.message ?? err).slice(0, 140)}`)

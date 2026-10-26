@@ -75,6 +75,12 @@ export interface AnotacoesDoRastro {
   glossario?: number
   /** "Como respondo?" em fluxo: ms da entrada até a primeira sugestão sair (o que a pessoa sente). */
   primeiraSugestaoMs?: number
+  /**
+   * Como o fluxo DEPOIS do primeiro byte terminou — o HTTP já era 200, então a falha no meio só aparece aqui (e no log
+   * `assistente_comoRespondo_fluxo_interrompido`): `completo`, `interrompido` (o provedor caiu), `invalido` (o fim fora
+   * do formato), `cancelado` (quem pediu fechou a conexão).
+   */
+  desfechoDoFluxo?: 'completo' | 'interrompido' | 'invalido' | 'cancelado'
 }
 
 /** O id da sessão de captura que o cliente PODE mandar. Formato fechado; fora dele, ignorado. */
@@ -183,7 +189,13 @@ export function taxaDeAmostragem(env: NodeJS.ProcessEnv = process.env): number {
 }
 
 /** O rastro precisa ir, independentemente da amostra? */
-export function rastroObrigatorio(statusHttp: number, geracoes: Pick<DadosDaGeracao, 'status'>[]): boolean {
+export function rastroObrigatorio(
+  statusHttp: number,
+  geracoes: Pick<DadosDaGeracao, 'status'>[],
+  /* O fluxo que falhou DEPOIS do 200 também vai sempre: é erro, só que sem status HTTP para dizer. */
+  desfechoDoFluxo?: AnotacoesDoRastro['desfechoDoFluxo'],
+): boolean {
+  if (desfechoDoFluxo !== undefined && desfechoDoFluxo !== 'completo') return true
   return statusHttp >= 400 || geracoes.length > 1 || geracoes.some((g) => g.status !== 'ok')
 }
 
@@ -228,7 +240,8 @@ export function abrirRastro(req: Request, funcao: FuncaoTelemetrada): RastroDeIa
     encerrar(statusHttp) {
       if (fechado) return
       fechado = true
-      if (!rastroObrigatorio(statusHttp, geracoes) && Math.random() >= taxaDeAmostragem()) return
+      if (!rastroObrigatorio(statusHttp, geracoes, anotacoes.desfechoDoFluxo) && Math.random() >= taxaDeAmostragem())
+        return
       const fim = Date.now()
       const p = (async () => {
         try {
@@ -253,6 +266,8 @@ export function abrirRastro(req: Request, funcao: FuncaoTelemetrada): RastroDeIa
             nivel: anotacoes.nivel,
             degradacao: anotacoes.degradacao,
             glossario: anotacoes.glossario,
+            primeiraSugestaoMs: anotacoes.primeiraSugestaoMs,
+            desfechoDoFluxo: anotacoes.desfechoDoFluxo,
             custoUsd: somaDeCusto(geracoes),
           }
           cliente.enviar({

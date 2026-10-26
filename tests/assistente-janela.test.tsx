@@ -405,6 +405,39 @@ describe('"Como respondo?" no hook', () => {
     expect((final as { parcial?: boolean }).parcial).toBeFalsy()
   })
 
+  it('o fluxo falha DEPOIS de uma sugestão: ela fica na folha, marcada como incompleta (não vira erro)', async () => {
+    let resolver: (v: unknown) => void = () => {}
+    let aoSugerir: (s: unknown[]) => void = () => {}
+    api.comoRespondo.mockImplementation((_p: unknown, o: { aoSugerir: (s: unknown[]) => void }) => {
+      aoSugerir = o.aoSugerir
+      return new Promise((r) => (resolver = r))
+    })
+    const h = montarHook({ falas: [fala('1', 'How was your weekend?')] })
+    await act(async () => h.result.current.janela.pedirComoRespondo())
+    await act(async () => {
+      await vi.dynamicImportSettled()
+    })
+    const primeira = { texto: 'It was great!', traducao: 'Foi ótimo!', tom: 'informal' }
+    act(() => aoSugerir([primeira]))
+    await act(async () => resolver({ ok: false, motivo: 'indisponivel', status: 200 }))
+    expect(h.result.current.janela.comoRespondo).toMatchObject({
+      estado: 'ok',
+      sugestoes: [primeira],
+      incompleta: true,
+    })
+    expect((h.result.current.janela.comoRespondo as { parcial?: boolean }).parcial).toBeFalsy()
+  })
+
+  it('a falha SEM nenhuma sugestão continua sendo o erro de sempre', async () => {
+    api.comoRespondo.mockResolvedValue({ ok: false, motivo: 'indisponivel', status: 502 })
+    const h = montarHook({ falas: [fala('1', 'How was your weekend?')] })
+    await act(async () => h.result.current.janela.pedirComoRespondo())
+    await act(async () => {
+      await vi.dynamicImportSettled()
+    })
+    expect(h.result.current.janela.comoRespondo).toMatchObject({ estado: 'erro', motivo: 'indisponivel' })
+  })
+
   it('fechar a folha aborta o pedido em voo, e a sugestão atrasada não reabre nada', async () => {
     let sinal: AbortSignal | undefined
     let aoSugerir: (s: unknown[]) => void = () => {}
@@ -749,6 +782,40 @@ describe('a janela pinta o assistente', () => {
     expect(folha.querySelectorAll('.leg-sugestao')).toHaveLength(2)
     expect(within(folha).queryByTestId('como-respondo-chegando')).toBeNull()
     expect(folha.querySelector('.leg-sugestoes')?.getAttribute('aria-busy')).toBeNull()
+  })
+
+  it('incompleta: as sugestões que chegaram ficam usáveis, com a nota discreta embaixo', () => {
+    const ouvir = vi.fn()
+    tamanhoDaJanela(400, 460)
+    render(
+      <LegendasFlutuantes
+        naJanela
+        formatoInicial="conversa"
+        falas={[fala('1', LINHA)]}
+        aoFechar={vi.fn()}
+        aoOuvir={ouvir}
+        assistente={assistente({
+          comoRespondo: {
+            estado: 'ok',
+            falaId: '1',
+            frase: LINHA,
+            lang: 'en',
+            sugestoes: [{ texto: 'Thanks, I will!', traducao: 'Obrigado, vou fazer!', tom: 'informal' }],
+            incompleta: true,
+          },
+        })}
+      />,
+    )
+    const folha = screen.getByRole('dialog', { name: 'Como respondo?' })
+    expect(folha.querySelectorAll('.leg-sugestao')).toHaveLength(1)
+    expect(within(folha).getByTestId('como-respondo-incompleta').textContent).toBe(
+      'Não deu para completar as sugestões.',
+    )
+    expect(within(folha).queryByTestId('como-respondo-chegando')).toBeNull()
+    expect(within(folha).queryByRole('button', { name: /Tentar de novo/ })).toBeNull()
+    expect(within(folha).getAllByRole('button', { name: /Copiar/ })).toHaveLength(1)
+    fireEvent.click(within(folha).getByRole('button', { name: /Ouvir/ }))
+    expect(ouvir).toHaveBeenCalledWith('Thanks, I will!', 'en', false)
   })
 
   it('carregando devagar: diz que demora e deixa cancelar', () => {

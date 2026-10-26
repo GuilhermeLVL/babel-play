@@ -61,8 +61,11 @@ export type EstadoDoComoRespondo =
   | { estado: 'fechado' }
   | ({ estado: 'consentimento' } & AlvoDaResposta)
   | ({ estado: 'carregando'; lento: boolean } & AlvoDaResposta)
-  /** `parcial`: as sugestões ainda estão chegando (em fluxo); a lista cresce até a final. */
-  | ({ estado: 'ok'; sugestoes: SugestaoDeResposta[]; parcial?: boolean } & AlvoDaResposta)
+  /**
+   * `parcial`: as sugestões ainda estão chegando (em fluxo); a lista cresce até a final. `incompleta`: o fluxo falhou
+   * depois de alguma sugestão — as que chegaram ficam (com Copiar e Ouvir), e a folha diz que não deu para completar.
+   */
+  | ({ estado: 'ok'; sugestoes: SugestaoDeResposta[]; parcial?: boolean; incompleta?: boolean } & AlvoDaResposta)
   | ({ estado: 'erro'; motivo: FalhaDoAssistente } & AlvoDaResposta);
 
 /**
@@ -431,6 +434,8 @@ export function useAssistenteAoVivo(o: {
     emVoo.current?.abort();
     const controle = new AbortController();
     emVoo.current = controle;
+    /* As que já chegaram em fluxo: se o fim falhar, elas ficam na folha. */
+    let chegaram: SugestaoDeResposta[] = [];
     setComoRespondo({ estado: 'carregando', ...alvo, lento: false });
     const relogio = setTimeout(() => {
       if (pedido.current === id) setComoRespondo((c) => (c.estado === 'carregando' ? { ...c, lento: true } : c));
@@ -457,14 +462,18 @@ export function useAssistenteAoVivo(o: {
         aoSugerir: (sugestoes) => {
           if (!vivo.current || pedido.current !== id) return;
           clearTimeout(relogio);
-          setComoRespondo({ estado: 'ok', ...alvo, sugestoes: sugestoes.slice(0, 3), parcial: true });
+          chegaram = sugestoes.slice(0, 3);
+          setComoRespondo({ estado: 'ok', ...alvo, sugestoes: chegaram, parcial: true });
         },
       },
     );
     clearTimeout(relogio);
     if (emVoo.current === controle) emVoo.current = null;
     if (!vivo.current || pedido.current !== id) return;
+    /* O fluxo falhou DEPOIS de alguma sugestão (decisão do dono): as que chegaram ficam, com a nota discreta. */
+    const incompleta = res.ok !== true && chegaram.length > 0;
     if (res.ok === true) setComoRespondo({ estado: 'ok', ...alvo, sugestoes: res.valor.sugestoes.slice(0, 3) });
+    else if (incompleta) setComoRespondo({ estado: 'ok', ...alvo, sugestoes: chegaram, incompleta: true });
     else {
       if (res.motivo === 'sem_plano' || res.motivo === 'fora' || res.motivo === 'sem_conta') setRecusado(true);
       setComoRespondo({ estado: 'erro', ...alvo, motivo: res.motivo });

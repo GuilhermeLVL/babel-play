@@ -3,8 +3,11 @@
  *
  *  · JSON no modelo W3C Web Annotation (`@context` oficial), para portabilidade;
  *  · Markdown por capítulo (citação em bloco, nota, link `frasy://livro/<id>#<cfi>`), para Notion/Obsidian;
- *  · CSV do Anki (frente: a palavra ou o trecho; verso: tradução/nota; extra: a frase de contexto e a
- *    fonte), com o cabeçalho de diretivas que o Anki 2.1.55+ lê (`#separator`, `#html`, `#columns`).
+ *  · o arquivo de TEXTO do Anki, separado por tab (frente: a palavra ou o trecho; verso: tradução/nota;
+ *    extra: a frase de contexto e a fonte), com as diretivas que o Anki 2.1.55+ lê (`#separator:tab`,
+ *    `#html:false`, `#columns`) — formato nativo, e não CSV de planilha, para o cartão não levar o apóstrofo
+ *    da mitigação de fórmula;
+ *  · CSV para planilha, com a mitigação de injeção de fórmula da OWASP (`campoCsv`).
  *
  * Os RÓTULOS vêm de quem chama (o núcleo não traduz): a tela passa o texto pelo `t()`.
  */
@@ -186,27 +189,108 @@ export function paraMarkdown(
   return linhas.join('\n') + '\n';
 }
 
-/** Um campo de CSV (RFC 4180): entre aspas quando precisa, aspas dobradas. */
+/**
+ * Um campo de CSV PARA PLANILHA (RFC 4180, com a mitigação de injeção de fórmula da OWASP): o campo que
+ * começa com `=`, `+`, `-`, `@`, tab ou CR ganha um apóstrofo na frente ANTES das aspas — senão o Excel e o
+ * Google Sheets o executam como fórmula (`=HYPERLINK(...)` num grifo vira link clicável para qualquer lugar).
+ * Depois, entre aspas quando precisa, com aspas dobradas.
+ */
 export function campoCsv(v: string): string {
-  const s = v.replace(/\r\n?/g, '\n');
+  const neutro = /^[=+\-@\t\r]/.test(v) ? `'${v}` : v;
+  const s = neutro.replace(/\r\n?/g, '\n');
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
 /**
- * CSV para importar no Anki: uma linha por anotação viva (palavra, grifo ou nota).
+ * CSV PARA PLANILHA de todas as anotações vivas do livro (tipo, capítulo, trecho, nota, palavra, cor, data,
+ * link). É o arquivo que alguém abre no Excel/Sheets, por isso cada campo passa por `campoCsv`.
+ */
+export function paraCsvDePlanilha(livro: LivroDaExportacao, anotacoes: readonly AnotacaoDeLeitura[]): string {
+  const vivas = anotacoesVivas(anotacoes.filter((a) => a.livroId === livro.id));
+  const linhas = [['tipo', 'capitulo', 'trecho', 'nota', 'palavra', 'cor', 'criado_em', 'link'].join(',')];
+  for (const a of vivas) {
+    linhas.push(
+      [
+        a.tipo,
+        a.alvo.capitulo ?? '',
+        a.alvo.citacao.exact,
+        a.nota,
+        a.palavra ?? '',
+        a.cor,
+        iso(a.criadoEm),
+        linkDaAnotacao(a),
+      ]
+        .map(campoCsv)
+        .join(','),
+    );
+  }
+  return linhas.join('\n') + '\n';
+}
+
+/**
+ * Um campo no FORMATO DE TEXTO DO ANKI (`#separator:tab`): o importador do Anki lê o campo entre aspas
+ * duplas com tab, quebra de linha e aspas dentro (`""` = uma aspa), então é assim que tab e quebra de linha
+ * são escapados — sem trocar nada do texto, e sem o apóstrofo da planilha, que sujaria o cartão. O Anki não
+ * avalia fórmulas: a mitigação de planilha não se aplica a este arquivo.
+ */
+export function campoDoAnki(v: string): string {
+  const s = v.replace(/\r\n?/g, '\n');
+  return /["\t\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/** Lê de volta as linhas de dados de um arquivo de texto do Anki (ignora as diretivas `#…`). Para o teste e a importação. */
+export function lerTextoDoAnki(texto: string): string[][] {
+  const linhas: string[][] = [];
+  let campo = '';
+  let linha: string[] = [];
+  let aspas = false;
+  let inicioDeLinha = true;
+  for (let i = 0; i < texto.length; i++) {
+    const ch = texto[i];
+    if (inicioDeLinha && ch === '#' && !aspas) {
+      i = texto.indexOf('\n', i);
+      if (i < 0) break;
+      continue;
+    }
+    inicioDeLinha = false;
+    if (aspas) {
+      if (ch === '"' && texto[i + 1] === '"') {
+        campo += '"';
+        i++;
+      } else if (ch === '"') aspas = false;
+      else campo += ch;
+    } else if (ch === '"' && campo === '') aspas = true;
+    else if (ch === '\t') {
+      linha.push(campo);
+      campo = '';
+    } else if (ch === '\n') {
+      linha.push(campo);
+      linhas.push(linha);
+      linha = [];
+      campo = '';
+      inicioDeLinha = true;
+    } else campo += ch;
+  }
+  if (campo || linha.length) linhas.push([...linha, campo]);
+  return linhas;
+}
+
+/**
+ * O ARQUIVO DE TEXTO DO ANKI (Arquivo → Importar, Anki 2.1.55+): uma linha por anotação viva, separada
+ * por tab, com as diretivas que o Anki lê (`#separator:tab`, `#html:false`, `#columns`, `#tags column`).
  *
  *  · frente: a palavra (tipo `palavra`) ou o trecho grifado;
  *  · verso: a tradução da palavra (quando a tela a tiver em `traducoes`) e/ou a nota;
  *  · contexto: a frase do livro (a citação com o entorno, para a palavra; vazio para o trecho, que já é a frente);
  *  · fonte: "Título — capítulo".
  */
-export function paraCsvDoAnki(
+export function paraTextoDoAnki(
   livro: LivroDaExportacao,
   anotacoes: readonly AnotacaoDeLeitura[],
   traducoes: Readonly<Record<string, string>> = {},
 ): string {
   const vivas = anotacoesVivas(anotacoes.filter((a) => a.livroId === livro.id));
-  const linhas = ['#separator:Comma', '#html:false', '#columns:Frente,Verso,Contexto,Fonte', '#tags column:5'];
+  const linhas = ['#separator:tab', '#html:false', '#columns:Frente\tVerso\tContexto\tFonte\tTags', '#tags column:5'];
   for (const a of vivas) {
     const c = a.alvo.citacao;
     const palavra = a.tipo === 'palavra' ? (a.palavra ?? '') : '';
@@ -215,7 +299,7 @@ export function paraCsvDoAnki(
     const verso = [palavra ? (traducoes[palavra.toLowerCase()] ?? '') : '', a.nota].filter(Boolean).join(' — ');
     const contexto = palavra ? `${c.prefix}${c.exact}${c.suffix}`.trim() : '';
     const fonte = [livro.titulo, a.alvo.capitulo].filter(Boolean).join(' — ');
-    linhas.push([frente, verso, contexto, fonte, `frasy livro::${a.tipo}`].map(campoCsv).join(','));
+    linhas.push([frente, verso, contexto, fonte, `frasy_livro::${a.tipo}`].map(campoDoAnki).join('\t'));
   }
   return linhas.join('\n') + '\n';
 }

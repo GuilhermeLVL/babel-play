@@ -1,11 +1,20 @@
 /**
- * AS EXPORTAÇÕES DO LEITOR (critério 10): Markdown por capítulo, CSV do Anki com contexto, nome de
+ * AS EXPORTAÇÕES DO LEITOR (critério 10): Markdown por capítulo, texto do Anki (tab) com contexto, CSV de planilha
+ * sem injeção de fórmula, nome de
  * arquivo — todas com TODAS as anotações vivas do livro, e nenhuma de outro livro.
  */
 import { describe, expect, it } from 'vitest'
 
 import { type AnotacaoDeLeitura, citacaoDe, novaAnotacao } from '../src/core/leitura/anotacao'
-import { campoCsv, linkDaAnotacao, nomeDeArquivo, paraCsvDoAnki, paraMarkdown } from '../src/core/leitura/exportar'
+import {
+  campoCsv,
+  lerTextoDoAnki,
+  linkDaAnotacao,
+  nomeDeArquivo,
+  paraCsvDePlanilha,
+  paraMarkdown,
+  paraTextoDoAnki,
+} from '../src/core/leitura/exportar'
 
 const TEXTO = 'Ishmael looked at the "whale", and the sea, and the sky.'
 const LIVRO = { id: 'se:moby-dick', titulo: 'Moby Dick', autor: 'Herman Melville', fonte: 'Standard Ebooks' }
@@ -75,33 +84,62 @@ describe('Markdown', () => {
   })
 })
 
-describe('CSV do Anki', () => {
-  const csv = paraCsvDoAnki(LIVRO, anotacoes, { whale: 'baleia' })
-  const linhas = csv.trim().split('\n')
+describe('arquivo de texto do Anki (tab, formato nativo)', () => {
+  const txt = paraTextoDoAnki(LIVRO, anotacoes, { whale: 'baleia' })
+  const dados = lerTextoDoAnki(txt)
 
   it('traz as diretivas que o Anki lê e uma linha por viva', () => {
-    expect(linhas.slice(0, 4)).toEqual([
-      '#separator:Comma',
+    expect(txt.split('\n').slice(0, 4)).toEqual([
+      '#separator:tab',
       '#html:false',
-      '#columns:Frente,Verso,Contexto,Fonte',
+      '#columns:Frente\tVerso\tContexto\tFonte\tTags',
       '#tags column:5',
     ])
-    // Uma linha por viva (a nota com quebra de linha ocupa duas linhas físicas, dentro das aspas).
-    expect(csv.match(/,frasy livro::/g)).toHaveLength(3)
+    expect(dados).toHaveLength(3)
+    expect(dados.every((l) => l.length === 5)).toBe(true)
   })
 
   it('a palavra vai com a tradução, a frase de contexto e a fonte', () => {
-    const palavra = linhas.find((l) => l.startsWith('whale,'))!
-    expect(palavra).toContain('baleia')
-    expect(palavra).toContain('"Ishmael looked at the ""whale"", and the sea, and the sky."')
-    expect(palavra).toContain('Moby Dick — Capítulo 2')
+    const palavra = dados.find((l) => l[0] === 'whale')!
+    expect(palavra).toEqual(['whale', 'baleia', TEXTO, 'Moby Dick — Capítulo 2', 'frasy_livro::palavra'])
   })
 
-  it('campos com vírgula, aspas e quebra de linha são escapados (RFC 4180)', () => {
+  it('o texto faz ida e volta: aspas, tab, quebra de linha e "=" chegam intactos (sem apóstrofo no cartão)', () => {
+    const traicoeira = nova('anotacao-a006', {
+      citacao: { exact: '=HYPERLINK("http://x.test","oi")\tcom tab', prefix: '', suffix: '' },
+      nota: 'linha 1\nlinha "2"',
+      capitulo: 'Capítulo 3',
+    })
+    const [linha] = lerTextoDoAnki(paraTextoDoAnki(LIVRO, [traicoeira]))
+    expect(linha[0]).toBe('=HYPERLINK("http://x.test","oi")\tcom tab')
+    expect(linha[1]).toBe('linha 1\nlinha "2"')
+    expect(lerTextoDoAnki(txt).find((l) => l[1].startsWith('linha 1'))![1]).toBe('linha 1\nlinha 2')
+  })
+})
+
+describe('CSV de planilha (mitigação de fórmula da OWASP)', () => {
+  it('um grifo que começa com "=HYPERLINK(...)" é neutralizado', () => {
+    const perigo = nova('anotacao-a007', {
+      citacao: { exact: '=HYPERLINK("http://mal.test","clique")', prefix: '', suffix: '' },
+    })
+    const csv = paraCsvDePlanilha(LIVRO, [perigo])
+    const linha = csv.trim().split('\n')[1]
+    expect(linha).toContain(`"'=HYPERLINK(""http://mal.test"",""clique"")"`)
+    expect(csv).not.toMatch(/(^|,)=HYPERLINK/m)
+  })
+
+  it('= + - @ tab e CR no começo ganham o apóstrofo; o resto fica igual', () => {
+    for (const ch of ['=', '+', '-', '@', '\t', '\r']) expect(campoCsv(`${ch}1`).replace(/^"/, '')[0]).toBe("'")
+    expect(campoCsv('1-2')).toBe('1-2')
     expect(campoCsv('a,b')).toBe('"a,b"')
     expect(campoCsv('diz "oi"')).toBe('"diz ""oi"""')
     expect(campoCsv('l1\r\nl2')).toBe('"l1\nl2"')
-    expect(csv).toContain('"linha 1\nlinha 2"')
+  })
+
+  it('traz cabeçalho e uma linha por viva, com o link frasy://', () => {
+    const csv = paraCsvDePlanilha(LIVRO, anotacoes)
+    expect(csv.startsWith('tipo,capitulo,trecho,nota,palavra,cor,criado_em,link\n')).toBe(true)
+    expect(csv.match(/frasy:\/\/livro\//g)).toHaveLength(3)
   })
 })
 

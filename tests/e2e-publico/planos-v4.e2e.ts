@@ -69,7 +69,8 @@ for (const { nome, largura, altura } of TAMANHOS) {
     await expect(pro.getByRole('button')).toHaveCount(0)
     await expect(familia).toContainText('para até 4 pessoas · R$ 24,90/mês · em breve')
     await expect(familia.getByRole('button')).toHaveCount(0)
-    await expect(page.locator('body')).not.toContainText(/Essencial|Premium|Ao [Vv]ivo/)
+    // No conteúdo da tela (o <main>): o trilho tem o item "Ao vivo" (Legendar/Intérprete), que não é o plano antigo.
+    await expect(page.locator('main')).not.toContainText(/Essencial|Premium|Ao [Vv]ivo/)
 
     // O anual do Plus (149,00), se o servidor o vende: o seletor só existe com `ANUAL_ENABLED`.
     const anual = page.getByRole('radio', { name: /Anual/ })

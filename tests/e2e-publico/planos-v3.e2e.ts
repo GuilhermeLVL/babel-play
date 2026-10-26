@@ -38,7 +38,8 @@ test('com a venda v3 aberta, a tela de Planos tem três cartões e o Essencial c
     'premium',
   ])
 
-  const tela = page.locator('body')
+  // O conteúdo da tela (o <main>): o trilho tem o item "Ao vivo" (Legendar/Intérprete), que não é o plano antigo.
+  const tela = page.locator('main')
   await expect(tela).toContainText('5 h de nuvem por mês')
   await expect(tela).toContainText('20 h de nuvem por mês')
   await expect(tela).not.toContainText(/Ao [Vv]ivo/)

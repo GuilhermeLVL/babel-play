@@ -277,7 +277,7 @@ export interface DepsDoPipelineDeFala {
   ladoDaFalaAutomatica?: (
     segId: string,
     pistas: PistasDoIdioma,
-  ) => { lado: LadoDoInterprete; de: string; para: string } | null;
+  ) => { lado: LadoDoInterprete; de: string; para: string; palpite?: boolean } | null;
   /**
    * A CONVERSA VIRTUAL do intérprete (Fase 4): o áudio do computador ("Eles") e o microfone ("Você") rodam
    * juntos e a direção é FIXA por fonte — o sistema é o outro (idioma dele → o meu), o microfone sou eu
@@ -1283,6 +1283,7 @@ export function criarPipelineDeFala(deps: DepsDoPipelineDeFala) {
                     ? {
                         ...s,
                         lado: d.lado,
+                        ...(d.palpite ? { ladoPalpite: true } : {}),
                         lang: d.de,
                         words: wordsFromText(clean, d.de),
                         translatedText: marcadorDeTraducao(d.de, d.para),

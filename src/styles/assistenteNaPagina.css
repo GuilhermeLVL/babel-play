@@ -59,6 +59,8 @@
   text-align: start;
 }
 .asst-correcao svg {
+  /* Na linha do texto (o preflight põe o svg em bloco, e o ícone ficava sozinho numa linha). */
+  display: inline-block;
   width: 1em;
   height: 1em;
   vertical-align: -0.12em;
@@ -168,7 +170,7 @@
 .int:not([data-layout='computador']) .int-metade {
   position: relative;
 }
-.int:not([data-layout='computador']) .int-assistente:has(> .asst-responder) {
+.int:not([data-layout='computador']) .int-assistente:has(> .asst-responder):not(:has(> .asst-ensaio)) {
   position: absolute;
   top: 12px;
   right: 12px;
@@ -279,4 +281,18 @@
 .folha-correcao {
   margin-top: 2px;
   font-size: 14px;
+}
+
+/* "PRATICAR A CONVERSA": a sugestão a ler e a comparação com ela, no mesmo tom discreto da correção (sem vermelho, sem
+   nota, sem animação). Centradas na metade, como a fala. */
+.int .asst-ensaio,
+.int .asst-comparacao {
+  text-align: center;
+  max-width: 34rem;
+}
+.int .asst-ensaio svg {
+  color: var(--int-acento);
+}
+.int-bolha .asst-comparacao {
+  text-align: start;
 }

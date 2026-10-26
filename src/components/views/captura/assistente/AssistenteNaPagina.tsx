@@ -1,9 +1,10 @@
 import '../../../../styles/assistenteAoVivo.css';
 import '../../../../styles/assistenteNaPagina.css';
 
-import { Sparkles, X } from 'lucide-react';
+import { Mic, Sparkles, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 
+import { compararComASugestao } from '../../../../core/assistente/praticaDaConversa';
 import type { MarcaNaLinha } from '../../../../core/assistente/telaDoAssistente';
 import type { CorrecaoDaFala } from '../../../../data/apiDoAssistente';
 import { t } from '../../../../lib/i18n';
@@ -40,9 +41,12 @@ function useVoltaDoFoco(aberta: boolean, reserva?: () => HTMLElement | null | un
 export function ComoRespondoNaPagina({
   assistente,
   aoOuvir,
+  aoFalar,
 }: {
   assistente: AssistenteDaJanela;
   aoOuvir?: (texto: string, lang: string | undefined, lenta: boolean) => void;
+  /** "Falar esta" em cada sugestão (a prática da conversa no Intérprete). */
+  aoFalar?: (texto: string) => void;
 }) {
   const c = assistente.comoRespondo;
   const aberta = c.estado !== 'fechado';
@@ -62,6 +66,7 @@ export function ComoRespondoNaPagina({
         aoTentarDeNovo={() => assistente.pedirComoRespondo(c.falaId)}
         aoAutorizar={assistente.autorizarEPedir}
         aoOuvir={aoOuvir}
+        aoFalar={aoFalar}
       />
     </div>
   );
@@ -86,6 +91,46 @@ export function CorrecaoNaPagina({
     <span className={className} aria-live="off" data-testid="correcao-da-fala">
       <Sparkles aria-hidden /> {t('Mais natural:')} <span lang={lang || undefined}>{correcao.corrigida}</span>
       {correcao.dica && <span className="asst-correcao-dica"> · {correcao.dica}</span>}
+    </span>
+  );
+}
+
+/**
+ * "FALAR ESTA" (a prática da conversa): enquanto o microfone espera a pessoa ler a sugestão, a frase fica à vista na
+ * metade dela. Fora dos anúncios: ela já sabe o que pediu.
+ */
+export function SugestaoParaLer({ texto, lang }: { texto: string; lang: string | undefined }) {
+  return (
+    <span className="asst-correcao asst-ensaio" aria-live="off" data-testid="sugestao-para-ler">
+      <Mic aria-hidden /> {t('Leia em voz alta:')} <span lang={lang || undefined}>{texto}</span>
+    </span>
+  );
+}
+
+/**
+ * A fala que leu uma sugestão, comparada com ela no aparelho (`compararComASugestao`): as palavras que faltaram, ou que
+ * saiu inteira. Discreta como a correção: sem vermelho, sem nota, sem anúncio.
+ */
+export function ComparacaoNaPagina({
+  falado,
+  sugestao,
+  lang,
+}: {
+  falado: string;
+  sugestao: string;
+  lang: string | undefined;
+}) {
+  const c = compararComASugestao(falado, sugestao);
+  return (
+    <span className="asst-correcao asst-comparacao" aria-live="off" data-testid="comparacao-com-a-sugestao">
+      <Sparkles aria-hidden />{' '}
+      {c.igual ? (
+        t('Você disse a sugestão inteira.')
+      ) : (
+        <>
+          {t('Da sugestão, faltou:')} <span lang={lang || undefined}>{c.faltaram.join(', ')}</span>
+        </>
+      )}
     </span>
   );
 }

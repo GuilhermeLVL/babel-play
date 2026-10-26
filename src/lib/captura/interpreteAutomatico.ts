@@ -115,6 +115,11 @@ export function decidirLadoDaFala(
   });
   const pelo = (l: string) => (l === meu ? doMeuLado(false) : doOutroLado(outro, false, false));
 
+  /* AS DUAS METADES NO MESMO IDIOMA (a prática da conversa: a pessoa responde no idioma da outra): o idioma não diz
+     de quem é a fala. Nada de certeza — a conversa alterna, como palpite (a correção nunca cai num palpite). */
+  if (!detectar && meu === outro)
+    return estado.ultimoLado === 'meu' ? doOutroLado(outro, false, true) : doMeuLado(true);
+
   if (doPar(motor)) return pelo(motor);
   if (doPar(texto)) return pelo(texto);
 

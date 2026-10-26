@@ -174,6 +174,48 @@ cache, `restanteHoje` é o último valor conhecido na aba, ou fica de fora — n
 - **Correção**: "Mais natural: …" embaixo da própria fala, com `aria-live="off"`.
 - Testes: `tests/assistente-paginas.test.tsx`, `tests/modoInterprete.test.tsx` (Fase C3), `tests/e2e/assistente-nas-telas.e2e.ts`.
 
+### Praticar a conversa (Intérprete)
+
+Pedido aprovado pelo dono em 26/10/2026. No Intérprete a pessoa fala o idioma DELA, e a correção gentil da própria fala
+quase nunca saía (`planejarChamadas` pula a fala no idioma da pessoa). A prática é o modo em que ela responde no idioma
+que aprende e recebe a dica.
+
+- **O botão "Praticar"** (rótulo para o leitor: "Praticar falando em {idioma}") fica na faixa da tela pronta e da
+  conversa em curso, ao lado de "Conversa", com `aria-pressed`. **Desligado de fábrica e a cada visita**: o estado mora
+  no `EstadoDaTela` (`praticar`) e sair da tela pronta o desliga — mandar a própria fala à nuvem é escolha da vez, não um
+  ajuste esquecido. Só aparece com a flag `assistente_ao_vivo` ligada e um idioma a praticar (o que a pessoa aprende,
+  diferente do dela).
+- **Os idiomas**: praticando, a METADE da pessoa FALA o idioma que ela aprende (`IdiomasDoInterprete.falaDoMeu`;
+  `direcaoDoLado` e `idiomasDaConversa` o usam) e segue OUVINDO no dela: a fala da outra pessoa continua chegando
+  traduzida. A fala da pessoa no mesmo idioma da outra não tem tradução (o tradutor trata como "sem tradução"); o
+  controle guarda esse aviso quando ele chega antes do fim da fala, e a conversa não fica presa em "Traduzindo…".
+- **Por toque**: praticando, a conversa é por toque (o automático fica de fora, e tocar nele diz por quê). As duas
+  pessoas falam o mesmo idioma e o idioma medido não separa as duas; só o toque na metade diz quem falou. No "Detectar"
+  (o idioma da outra pessoa ainda não escolhido) a prática não liga e a faixa pede o idioma.
+- **A correção**: a fala da pessoa, no idioma que ela aprende, é "você" e cai nas regras de sempre (`planejarChamadas`:
+  só a própria fala, só fora do idioma da pessoa). A prática vale como o opt-in da correção na vez
+  (`useAssistenteAoVivo({ praticando })`; os ajustes guardados não mudam). **Nunca a fala da outra pessoa.**
+- **O lado incerto nunca vai à correção** (a garantia da C3 vale na prática): a fala sem metade espera; o lado do
+  automático sem evidência de idioma (a alternância, ou as duas metades no mesmo idioma — `decidirLadoDaFala` agora
+  devolve palpite nesse caso, e o controle marca palpite em tudo que o automático decide praticando) chega como
+  `ladoPalpite` e, se cairia na pessoa, vira `incerto`. A fala de terceiros não chega à `/correcao`.
+- **Na tela**: "Mais natural: …" com a dica, embaixo da própria fala (na metade e na lista), `aria-live="off"`, sem
+  vermelho, sem modal (`CorrecaoNaPagina`).
+- **"Falar esta"**: praticando, cada sugestão do "Como respondo?" ganha "Falar esta" (junto de "Ouvir", que lê antes). A
+  folha fecha, o microfone abre na metade da pessoa e a sugestão fica à vista ("Leia em voz alta: …"). A PRÓXIMA fala
+  final dela fica ligada à sugestão: a tela compara no aparelho (`compararComASugestao`: as palavras que faltaram, sem
+  contar ordem nem pontuação) e a correção do servidor vem como em toda fala dela. A rota não muda (o contrato da
+  `/correcao` é o mesmo: só `minhaFala`).
+- **O portão** (`correcaoNaPratica`): a dica sai com a flag + plano pago ou teste (`assistenteDia`) + o consentimento de
+  nuvem. Sem o consentimento, a faixa diz e oferece "Autorizar IA de nuvem". No Grátis, no convidado e depois de um
+  `sem_plano` do servidor, a prática liga do mesmo jeito (a pessoa pratica a fala) e a faixa diz, sem oferta de plano:
+  "A dica da sua fala não está disponível nesta conta; a tradução segue funcionando." O perfil protegido recebe a
+  prática inteira no plano pago, e a mesma nota sem oferta no Grátis.
+- Peças: `src/core/assistente/praticaDaConversa.ts` (puro), `interprete/praticaNaConversa.ts` (o botão e as frases),
+  `ModoInterprete`, `PaginaDoInterprete`, `ConversaDoPrototipo` (`modos`, `acaoDoAviso`, `ensaiando`, `ensaios`),
+  `FolhaComoRespondo` (`aoFalar`), `AssistenteNaPagina` (`SugestaoParaLer`, `ComparacaoNaPagina`).
+- Testes: `tests/praticarConversa.test.tsx`, `tests/e2e/praticar-conversa.e2e.ts` (com `PRATICAR_TELAS=<pasta>`, as fotos).
+
 ### Cota e custo
 
 - **Teto do dia**: 200 chamadas por dia local nos pagos, somando os quatro recursos; contador próprio.

@@ -1,4 +1,4 @@
-import { Cloud, Copy, RotateCcw, Volume2, X } from 'lucide-react';
+import { Cloud, Copy, Mic, RotateCcw, Volume2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import type { TomDaSugestao } from '../../../../data/apiDoAssistente';
@@ -27,6 +27,7 @@ export default function FolhaComoRespondo({
   aoTentarDeNovo,
   aoAutorizar,
   aoOuvir,
+  aoFalar,
 }: {
   estado: Exclude<EstadoDoComoRespondo, { estado: 'fechado' }>;
   protegido: boolean;
@@ -34,6 +35,11 @@ export default function FolhaComoRespondo({
   aoTentarDeNovo: () => void;
   aoAutorizar: () => void;
   aoOuvir?: (texto: string, lang: string | undefined, lenta: boolean) => void;
+  /**
+   * "FALAR ESTA" (a prática da conversa no Intérprete): a pessoa lê a sugestão em voz alta — o microfone abre na metade
+   * dela, e a fala é comparada com a sugestão. Ausente = sem o botão (fora da prática, e na janela flutuante).
+   */
+  aoFalar?: (texto: string) => void;
 }) {
   const raiz = useRef<HTMLDivElement>(null);
   const fechar = useRef<HTMLButtonElement>(null);
@@ -129,6 +135,17 @@ export default function FolhaComoRespondo({
                 {aoOuvir && (
                   <button type="button" className="leg-acao-texto" onClick={() => aoOuvir(s.texto, estado.lang, false)}>
                     <Volume2 aria-hidden /> {t('Ouvir')}
+                  </button>
+                )}
+                {aoFalar && (
+                  <button
+                    type="button"
+                    className="leg-acao-texto"
+                    aria-label={t('Falar esta: {frase}', { frase: s.texto })}
+                    onClick={() => aoFalar(s.texto)}
+                    data-testid="falar-esta"
+                  >
+                    <Mic aria-hidden /> {t('Falar esta')}
                   </button>
                 )}
               </div>

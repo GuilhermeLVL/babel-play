@@ -93,6 +93,11 @@ export type EfeitoDoInterprete =
 export interface IdiomasDoInterprete {
   meu: string;
   outro: string;
+  /**
+   * "PRATICAR A CONVERSA" (o Intérprete com a prática ligada): o idioma que a METADE da pessoa FALA — o que ela aprende.
+   * Ela continua OUVINDO no `meu` (a fala da outra pessoa ainda chega traduzida para ela). Ausente = fala o `meu`.
+   */
+  falaDoMeu?: string;
 }
 
 export interface Transicao {
@@ -117,7 +122,7 @@ const bcp47 = (idioma: string): string => {
 /** A direção de quem fala num lado: o idioma dele (com os lados trocados, o da outra metade). */
 export function direcaoDoLado(lado: LadoDoInterprete, idiomas: IdiomasDoInterprete, trocados = false): DirecaoDaFala {
   const doMeuLado = (lado === 'meu') !== trocados;
-  const fala = doMeuLado ? idiomas.meu : idiomas.outro;
+  const fala = doMeuLado ? idiomas.falaDoMeu || idiomas.meu : idiomas.outro;
   const ouve = doMeuLado ? idiomas.outro : idiomas.meu;
   return { lado, fala: bcp47(fala), de: baseLang(fala), para: baseLang(ouve) };
 }
@@ -128,7 +133,8 @@ export function direcaoDoLado(lado: LadoDoInterprete, idiomas: IdiomasDoInterpre
  */
 export function idiomasDaConversa(idiomas: IdiomasDoInterprete): string[] {
   /* No "Detectar", o idioma do outro chega vazio: o motor serve só ao meu (e mede o dele). */
-  return [idiomas.meu, idiomas.outro].filter(Boolean).map(bcp47);
+  /* Praticando, a pessoa fala o idioma que aprende (em geral o mesmo da outra): um idioma só, sem repetir. */
+  return [...new Set([idiomas.falaDoMeu || idiomas.meu, idiomas.outro].filter(Boolean).map(bcp47))];
 }
 
 /**

@@ -143,7 +143,7 @@ import { usePalavrasConhecidas } from '../../lib/captura/usePalavrasConhecidas';
 import { usePreparoDoInicio } from '../../lib/captura/usePreparoDoInicio';
 import { useSemRede } from '../../lib/captura/useSemRede';
 import { cenarioDasFontes, type CenarioDeCaptura } from '../../lib/cenarioDeCaptura';
-import { rapidoDoMicPermitido, useEscolhaDoMic } from '../../lib/consentimentoDeNuvem';
+import { rapidoDoMicPermitido, useConsentimentoDeNuvem, useEscolhaDoMic } from '../../lib/consentimentoDeNuvem';
 import { DominantLangTracker } from '../../lib/convoLang';
 import { classificarDispositivo, dispositivoDaRota, lerSinaisDoDispositivo } from '../../lib/dispositivo/perfil';
 import {
@@ -201,15 +201,18 @@ import ChatTranscript from '../ChatTranscript';
 
 /** O benchmark do aparelho agendado pela última saída da captura (cancelado por uma captura nova). */
 let benchmarkPendente: AbortController | null = null;
+import { correcaoNaPratica, praticaPossivel } from '../../core/assistente/praticaDaConversa';
 import type { FalaDoAssistente, MarcaNaLinha } from '../../core/assistente/telaDoAssistente';
+import { FLAG_ASSISTENTE_AO_VIVO } from '../../core/planos';
 import { usePaginaVisivel } from '../../hooks/usePaginaVisivel';
 import {
   contextoDasFalas,
   falasDoAssistente as falasParaOAssistente,
   paginaMostraOAssistente,
 } from '../../lib/assistente/falasDoAssistente';
+import { useFlag } from '../../lib/flags';
 import { estabilizarFalas } from '../../lib/legendas/estabilizarFalas';
-import { aoMudarEstadoDaTela, estadoDaTela } from '../../lib/polimento/interprete';
+import { aoMudarEstadoDaTela, estadoDaTela, mudarEstadoDaTela } from '../../lib/polimento/interprete';
 import GuidePanel from '../GuidePanel';
 // Bandeira SVG do idioma (nunca emoji: o Windows renderiza 🇧🇷 como "BR") + o rótulo curto.
 import { LangFlag } from '../LangFlag';
@@ -255,6 +258,7 @@ const OfertaDaNuvemDeAlivio = lazyComRecarga(() => import('./captura/OfertaDaNuv
 import { detectarOutroGuardado, guardarDetectarOutro } from './captura/interprete/modoDaConversa';
 import type { AutomaticoNoPlano } from './captura/interprete/ModoInterprete';
 import { PaginaDoInterprete } from './captura/interprete/paginaSobDemanda';
+import type { PraticaNaConversa } from './captura/interprete/praticaNaConversa';
 
 const ModoInterprete = lazyComRecarga(() => import('./captura/interprete/ModoInterprete'));
 const ConversaVirtual = lazyComRecarga(() => import('./captura/interprete/ConversaVirtual'));
@@ -3005,6 +3009,15 @@ export default function LiveCapture({
     () => estadoDaTela().trocados,
     () => false,
   );
+  /* "PRATICAR A CONVERSA" (o Intérprete): a metade da pessoa fala o idioma que ela aprende, e a fala dela ganha a
+     correção gentil (a prática da vez vale como o opt-in). Desligada de fábrica e a cada visita (`EstadoDaTela`). */
+  const praticarNoInterprete = useSyncExternalStore(
+    aoMudarEstadoDaTela,
+    () => !!estadoDaTela().praticar,
+    () => false,
+  );
+  const possivelPratica = praticaPossivel({ meu: sourceLang, outro: outroDoInterprete, aprende: targetLang });
+  const praticando = interpreteAberto && praticarNoInterprete && possivelPratica === 'ok';
   const falasDoAssistenteAntes = useRef(new Map<string, FalaDoAssistente>());
   /* O lado de cada fala QUANDO ELA CHEGOU (trocar os lados depois não reescreve o passado). */
   const ladosDasFalas = useRef(new Map<string, FalaDoAssistente['lado']>());
@@ -3017,14 +3030,24 @@ export default function LiveCapture({
         falasDoAssistenteAntes.current,
         falasParaOAssistente(speechSegments, {
           trocados: trocadosNoInterprete,
-          idiomaDaPessoa: sourceLang,
+          /* O idioma da METADE da pessoa (para a fala que chega sem idioma): praticando, o que ela aprende. */
+          idiomaDaPessoa: praticando ? targetLang : sourceLang,
           idiomaDoOutro: outroDoInterprete,
           soMicrofone,
           noInterprete,
           ladosVistos: ladosDasFalas.current,
         }),
       ),
-    [speechSegments, trocadosNoInterprete, sourceLang, outroDoInterprete, soMicrofone, noInterprete],
+    [
+      speechSegments,
+      trocadosNoInterprete,
+      sourceLang,
+      targetLang,
+      praticando,
+      outroDoInterprete,
+      soMicrofone,
+      noInterprete,
+    ],
   );
   const [vistaDaJanela, setVistaDaJanela] = useState<VistaDaJanela>(JANELA_FECHADA);
   const paginaVisivel = usePaginaVisivel();
@@ -3046,8 +3069,24 @@ export default function LiveCapture({
     langDaPessoa: sourceLang || 'pt',
     langQueAprende: targetLang,
     semente: geracaoDasFalas,
+    praticando,
   });
   const doAssistente = assistente.pagina;
+  /* A prática na tela: só com a flag do assistente (sem ela, nada dele aparece) e com um idioma a praticar. No Grátis e no
+     perfil protegido ela aparece também, com a nota honesta de que a dica da fala não está na conta (sem oferta). */
+  const flagDoAssistente = useFlag(FLAG_ASSISTENTE_AO_VIVO);
+  const nuvemConsentida = useConsentimentoDeNuvem();
+  const praticaDoInterprete: PraticaNaConversa | undefined =
+    flagDoAssistente && possivelPratica !== 'sem_idioma'
+      ? {
+          idioma: targetLang,
+          ligada: praticarNoInterprete,
+          possivel: possivelPratica,
+          correcao: correcaoNaPratica(doAssistente.recursos, nuvemConsentida.consentiu),
+          aoMudar: (ligada) => mudarEstadoDaTela({ praticar: ligada }),
+          aoAutorizar: () => void nuvemConsentida.autorizar(),
+        }
+      : undefined;
   /** "Como respondo?" cabe nesta fala: não é da própria pessoa (é de "eles", ou de lado incerto: a TV no microfone). */
   const podeResponderA = (id: string) => {
     if (!doAssistente.recursos.comoRespondo) return false;
@@ -4026,6 +4065,7 @@ export default function LiveCapture({
                 : {})}
               aoEscolherIdiomas={() => setIdiomasAbertos(true)}
               aoVoltar={() => onChangeView?.('hub')}
+              {...(praticaDoInterprete ? { pratica: praticaDoInterprete } : {})}
             />
           </Suspense>
         </div>
@@ -4368,6 +4408,7 @@ export default function LiveCapture({
             comVirtual={chaveLigada('virtual') && systemEnabled && !capturaEnxuta}
             assistente={doAssistente}
             aoOuvirSugestao={ouvirNaLegenda}
+            {...(praticaDoInterprete ? { pratica: praticaDoInterprete } : {})}
           />
         </Suspense>
       )}

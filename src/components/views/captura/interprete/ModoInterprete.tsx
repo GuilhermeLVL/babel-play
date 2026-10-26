@@ -40,6 +40,15 @@ import ConversaDoPrototipo, {
   type MetadeDaConversa,
 } from './ConversaDoPrototipo';
 import { guardarModo, type ModoDaConversa, modoGuardado } from './modoDaConversa';
+import {
+  avisoDaPratica,
+  dicaDaPratica,
+  modoDaPratica,
+  type PraticaNaConversa,
+  praticandoAgora,
+  textoDaPraticaNoToque,
+  textoDaPraticaSemIdioma,
+} from './praticaNaConversa';
 
 /** A fala, no que a tela precisa. */
 export type FalaDoInterprete = Pick<SpeechSegment, 'id' | 'originalText' | 'translatedText' | 'isPartial' | 'lado'> &
@@ -114,6 +123,7 @@ export default function ModoInterprete({
   comVirtual = false,
   assistente,
   aoOuvirSugestao,
+  pratica,
 }: {
   idiomas: IdiomasDoInterprete;
   falas: ReadonlyArray<FalaDoInterprete>;
@@ -154,9 +164,18 @@ export default function ModoInterprete({
   assistente?: AssistenteDaJanela;
   /** "Ouvir" uma sugestão do "Como respondo?". */
   aoOuvirSugestao?: (texto: string, lang: string | undefined, lenta: boolean) => void;
+  /**
+   * "PRATICAR A CONVERSA": a metade da pessoa fala o idioma que ela aprende (`falaDoMeu`) e a fala dela ganha a correção
+   * gentil. Praticando, a conversa é por toque (o idioma não separa as duas pessoas). Ausente = a prática não aparece.
+   */
+  pratica?: PraticaNaConversa;
 }) {
-  const idiomasRef = useRef(idiomas);
-  idiomasRef.current = idiomas;
+  const praticando = praticandoAgora(pratica);
+  /* Praticando, a metade da pessoa FALA o idioma que ela aprende e segue OUVINDO no dela. */
+  const idiomasDaConversa: IdiomasDoInterprete =
+    praticando && pratica ? { ...idiomas, falaDoMeu: pratica.idioma } : idiomas;
+  const idiomasRef = useRef(idiomasDaConversa);
+  idiomasRef.current = idiomasDaConversa;
   const microfoneRef = useRef(microfone);
   microfoneRef.current = microfone;
   const aoFalharRef = useRef(aoFalharMicrofone);
@@ -282,11 +301,36 @@ export default function ModoInterprete({
   }, [automatico]);
   /* "DETECTAR": o idioma da outra pessoa chega vazio e só o automático o mede; o toque fica fechado. */
   const detectar = !idiomas.outro;
-  const modo: ModoDaConversa = detectar ? 'automatico' : modoEscolhido;
+  /* Praticando, a conversa é por TOQUE: as duas pessoas falam o mesmo idioma, e só o toque diz quem falou. */
+  const modo: ModoDaConversa = detectar ? 'automatico' : praticando ? 'toque' : modoEscolhido;
   /** O aviso do cadeado fica na tela, com o botão dos Planos (`telas2.js:260-262`). */
   const [cadeado, setCadeado] = useState(false);
   /** Tocou em "Automático" com o "Detectar" ligado: a faixa diz por que o toque não abre. */
   const [presoNoDetectar, setPresoNoDetectar] = useState(false);
+  /** Tocou em "Automático" praticando, ou em "Praticar" sem o idioma da outra pessoa: a faixa diz por quê. */
+  const [presoNaPratica, setPresoNaPratica] = useState<'toque' | 'sem-idioma' | null>(null);
+  /* A prática ligou com o automático ouvindo: a escuta para (o modo agora é o toque, e o idioma da pessoa mudou). */
+  useEffect(() => {
+    if (!praticando) {
+      setPresoNaPratica((p) => (p === 'toque' ? null : p));
+      return;
+    }
+    setPresoNaPratica(null);
+    const c = controleRef.current;
+    if (c && c.estado().automatico) c.parar();
+  }, [praticando]);
+  const praticaBotao = () => document.querySelector<HTMLElement>('[data-testid="praticar-conversa"]') ?? undefined;
+  const alternarPratica = (botao?: HTMLElement) => {
+    if (!pratica) return;
+    if (!pratica.ligada && pratica.possivel !== 'ok') {
+      setPresoNaPratica('sem-idioma');
+      if (botao) tremer(botao);
+      return;
+    }
+    /* Trocar o idioma no meio de uma fala fecha o microfone: a fala nova começa no idioma novo. */
+    if (controleRef.current && controleRef.current.estado().fase !== 'parado') controleRef.current.parar();
+    pratica.aoMudar(!pratica.ligada);
+  };
   const trocarModo = () => {
     /* Trocar no meio da conversa fecha o microfone e cala a voz: o modo novo começa do zero. */
     if (controleRef.current && controleRef.current.estado().fase !== 'parado') controleRef.current.parar();
@@ -305,7 +349,7 @@ export default function ModoInterprete({
 
   /** Os idiomas como a TELA os mostra: no "Detectar", o da outra pessoa é o medido (vazio até ela falar). */
   const idiomasDaTela: IdiomasDoInterprete = {
-    meu: idiomas.meu,
+    ...idiomasDaConversa,
     outro: idiomas.outro || (atual.detectado ? toBcp47(atual.detectado) || atual.detectado : ''),
   };
   const nomeDoIdioma = (lang: string, dono: LadoDoInterprete) =>
@@ -436,17 +480,19 @@ export default function ModoInterprete({
 
   /** A dica de começo, enquanto ninguém falou, no que a voz promete neste aparelho. */
   const dicaDeComeco = (d: DadosDoLado) =>
-    detectar && !atual.detectado
-      ? donoDe(d.lado) === 'meu'
-        ? t('Deixe a outra pessoa falar primeiro: o app descobre o idioma dela.')
-        : t('Fale no seu idioma: o app descobre qual é e traduz.')
-      : d.semVozParaOOutro
-        ? noAutomatico
-          ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e mostra a tradução.')
-          : t('Toque em Falar e fale. A tradução aparece do outro lado, em texto.')
-        : noAutomatico
-          ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e lê a tradução em voz alta.')
-          : t('Toque em Falar e fale. A tradução aparece do outro lado e é lida em voz alta.');
+    praticando && pratica && donoDe(d.lado) === 'meu'
+      ? dicaDaPratica(pratica.idioma)
+      : detectar && !atual.detectado
+        ? donoDe(d.lado) === 'meu'
+          ? t('Deixe a outra pessoa falar primeiro: o app descobre o idioma dela.')
+          : t('Fale no seu idioma: o app descobre qual é e traduz.')
+        : d.semVozParaOOutro
+          ? noAutomatico
+            ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e mostra a tradução.')
+            : t('Toque em Falar e fale. A tradução aparece do outro lado, em texto.')
+          : noAutomatico
+            ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e lê a tradução em voz alta.')
+            : t('Toque em Falar e fale. A tradução aparece do outro lado e é lida em voz alta.');
 
   /** A linha de estado de um lado (Ouvindo, Traduzindo, Lendo a tradução). */
   const statusDoLado = (d: DadosDoLado) =>
@@ -517,12 +563,48 @@ export default function ModoInterprete({
   for (let i = tudo.itens.length - 1; i >= 0 && !responderA; i--)
     if (donoDe(tudo.itens[i].lado) === 'outro') responderA = tudo.itens[i].id;
   const pedirResposta = assistente?.recursos.comoRespondo ? assistente.pedirComoRespondo : undefined;
+
+  /* "FALAR ESTA" (a prática): a sugestão escolhida espera a PRÓXIMA fala final da pessoa; essa fala fica ligada a ela, e
+     a comparação aparece embaixo (junto da correção, se vier). As falas que já existiam não contam. */
+  const [ensaio, setEnsaio] = useState<{ texto: string; lang?: string; antes: ReadonlySet<string> } | null>(null);
+  const [ensaios, setEnsaios] = useState<ReadonlyMap<string, string>>(() => new Map());
+  const minhasFinais = (): string[] =>
+    falas.filter((f) => f.lado && donoDe(f.lado) === 'meu' && !f.isPartial && f.originalText.trim()).map((f) => f.id);
+  const minhasFinaisRef = useRef(minhasFinais);
+  minhasFinaisRef.current = minhasFinais;
+  useEffect(() => {
+    if (!ensaio) return;
+    const nova = minhasFinaisRef.current().find((id) => !ensaio.antes.has(id));
+    if (!nova) return;
+    setEnsaios((m) => new Map(m).set(nova, ensaio.texto));
+    setEnsaio(null);
+  }, [falas, ensaio]);
+  /* A prática desligou: a sugestão que esperava a fala fica para trás. */
+  useEffect(() => {
+    if (!praticando) setEnsaio(null);
+  }, [praticando]);
+  const falarSugestao = (texto: string) => {
+    const lang = assistente?.comoRespondo.estado !== 'fechado' ? assistente?.comoRespondo.lang : undefined;
+    assistente?.fecharComoRespondo();
+    setEnsaio({ texto, ...(lang ? { lang } : {}), antes: new Set(minhasFinais()) });
+    const c = controleRef.current;
+    if (!c) return;
+    /* A metade da pessoa (com os lados trocados, a de cima); já ouvindo nela, segue ouvindo. */
+    const meuLado: LadoDoInterprete = atual.trocados ? 'outro' : 'meu';
+    const e = c.estado();
+    if (!(e.fase === 'ouvindo' && e.lado === meuLado && !e.automatico)) c.tocar(meuLado);
+  };
+
   const naConversa: AssistenteNaConversa | undefined = assistente
     ? {
         marcas: assistente.marcas,
         correcoes: assistente.correcoes,
         ...(pedirResposta && responderA ? { responderA, aoComoRespondo: pedirResposta } : {}),
         comAtalho: layout === 'computador',
+        ...(praticando && ensaio
+          ? { ensaiando: { texto: ensaio.texto, ...(ensaio.lang ? { lang: ensaio.lang } : {}) } }
+          : {}),
+        ...(ensaios.size ? { ensaios } : {}),
       }
     : undefined;
   /* Alt+R (Option+R no Mac), em todo aparelho com teclado: "Como respondo?" para a última fala da outra pessoa. */
@@ -574,6 +656,11 @@ export default function ModoInterprete({
                   tremer(botao);
                   return;
                 }
+                if (praticando) {
+                  setPresoNaPratica('toque');
+                  tremer(botao);
+                  return;
+                }
                 trocarModo();
               },
             },
@@ -593,10 +680,18 @@ export default function ModoInterprete({
           if (totalDeFinais > 0) exportar();
         },
       }}
+      {...(pratica && pratica.possivel !== 'sem_idioma'
+        ? { modos: [modoDaPratica(pratica, () => alternarPratica(praticaBotao()))] }
+        : {})}
       voz={{ rotulo: rotuloDaVoz, natural: vozNatural, muda: mudos.length === 2 }}
       vozes={semVoz ? undefined : { lados: ladosDaVoz(idiomasDaTela).filter((l) => l.idioma) }}
       aviso={
         aviso ??
+        (presoNaPratica === 'sem-idioma'
+          ? textoDaPraticaSemIdioma()
+          : presoNaPratica === 'toque' && praticando
+            ? textoDaPraticaNoToque()
+            : avisoDaPratica(pratica)) ??
         (presoNoDetectar && detectar
           ? t('Para falar por toque, escolha o idioma da outra pessoa.')
           : avisoDoCadeado
@@ -610,6 +705,11 @@ export default function ModoInterprete({
                 : noAutomatico
                   ? t('Automático ligado: é só conversar. O app reconhece quem fala qual idioma.')
                   : '')
+      }
+      acaoDoAviso={
+        !aviso && praticando && pratica?.correcao === 'sem_consentimento'
+          ? { rotulo: t('Autorizar IA de nuvem'), aoTocar: pratica.aoAutorizar }
+          : undefined
       }
       aoConhecerOPremium={
         avisoDoCadeado && !aviso && aoConhecerOPremium && totalDeFinais === 0
@@ -650,7 +750,13 @@ export default function ModoInterprete({
       fase={atual.fase}
       assistente={naConversa}
     >
-      {assistente && <ComoRespondoNaPagina assistente={assistente} aoOuvir={aoOuvirSugestao} />}
+      {assistente && (
+        <ComoRespondoNaPagina
+          assistente={assistente}
+          aoOuvir={aoOuvirSugestao}
+          {...(praticando ? { aoFalar: falarSugestao } : {})}
+        />
+      )}
     </ConversaDoPrototipo>
   );
 }

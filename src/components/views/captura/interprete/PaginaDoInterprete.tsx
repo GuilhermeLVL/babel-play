@@ -25,6 +25,15 @@ import ConversaDoPrototipo, { type MetadeDaConversa } from './ConversaDoPrototip
 import FolhaDaConversaVirtual from './FolhaDaConversaVirtual';
 import { guardarModo, type ModoDaConversa, modoGuardado } from './modoDaConversa';
 import type { AutomaticoNoPlano } from './ModoInterprete';
+import {
+  avisoDaPratica,
+  dicaDaPratica,
+  modoDaPratica,
+  type PraticaNaConversa,
+  praticandoAgora,
+  textoDaPraticaNoToque,
+  textoDaPraticaSemIdioma,
+} from './praticaNaConversa';
 
 interface PropsDaPagina {
   idiomas: { meu: string; outro: string };
@@ -55,6 +64,8 @@ interface PropsDaPagina {
   aoEscolherIdiomas: () => void;
   /** O X da conversa volta para a tela de onde a pessoa veio (`direto.js:94`). */
   aoVoltar?: (() => void) | undefined;
+  /** "Praticar a conversa" (o botão "Praticar" da faixa). Ausente = não aparece. */
+  pratica?: PraticaNaConversa;
 }
 
 /** O tempo de a captura encerrar uma sessão vazia antes de a tela seguir para a origem ou os Planos. */
@@ -84,10 +95,11 @@ export default function PaginaDoInterprete({
   aoComecarVirtual,
   aoEscolherIdiomas,
   aoVoltar,
+  pratica,
 }: PropsDaPagina) {
   const tela = useSyncExternalStore(aoMudarEstadoDaTela, estadoDaTela, estadoDaTela);
   /* Sair da tela esquece os lados trocados e a folha pedida: a próxima visita começa do desenho. */
-  useEffect(() => () => mudarEstadoDaTela({ trocados: false, folhaVirtual: false, depois: null }), []);
+  useEffect(() => () => mudarEstadoDaTela({ trocados: false, folhaVirtual: false, depois: null, praticar: false }), []);
   /* O X (ou "Conhecer o Premium") de uma conversa em que ninguém falou: a sessão encerra e a tela
      segue para onde foi pedido. A captura segura a navegação enquanto ainda fecha o microfone; o
      intervalo deixa isso terminar. */
@@ -137,10 +149,27 @@ export default function PaginaDoInterprete({
   /* "DETECTAR": o idioma da outra pessoa chega vazio; só o automático o descobre. */
   const detectar = !idiomas.outro;
   const [presoNoDetectar, setPresoNoDetectar] = useState(false);
-  const modo: ModoDaConversa = detectar ? 'automatico' : modoEscolhido;
+  /* PRATICANDO: a metade da pessoa fala o idioma que ela aprende, e a conversa é por toque (`ModoInterprete`). */
+  const praticando = praticandoAgora(pratica);
+  const [presoNaPratica, setPresoNaPratica] = useState<'toque' | 'sem-idioma' | null>(null);
+  const modo: ModoDaConversa = detectar ? 'automatico' : praticando ? 'toque' : modoEscolhido;
   const noAutomatico = modo === 'automatico';
+  const alternarPratica = () => {
+    if (!pratica) return;
+    if (!pratica.ligada && pratica.possivel !== 'ok') {
+      setPresoNaPratica('sem-idioma');
+      const b = document.querySelector<HTMLElement>(
+        '[data-testid="conversa-pronta"] [data-testid="praticar-conversa"]',
+      );
+      if (b) tremer(b);
+      return;
+    }
+    setPresoNaPratica(null);
+    pratica.aoMudar(!pratica.ligada);
+  };
 
-  const idiomaDe = (dono: LadoDoInterprete) => (dono === 'meu' ? idiomas.meu : idiomas.outro);
+  const idiomaDe = (dono: LadoDoInterprete) =>
+    dono === 'meu' ? (praticando && pratica ? pratica.idioma : idiomas.meu) : idiomas.outro;
   const mudos = (['meu', 'outro'] as const).filter((l) => mudo(idiomaDe(l)));
   const idiomaSemVoz = (['outro', 'meu'] as const).map(idiomaDe).find(semVozDoIdioma);
   const rotuloDaVoz =
@@ -167,17 +196,20 @@ export default function PaginaDoInterprete({
       nome,
       frase: {
         tipo: 'dica',
-        texto: detectar
-          ? dono === 'meu'
-            ? t('Toque em Ouvir. Deixe a outra pessoa falar primeiro: o app descobre o idioma dela.')
-            : t('Fale no seu idioma: o app descobre qual é e traduz.')
-          : semVozParaOOutro
-            ? noAutomatico
-              ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e mostra a tradução.')
-              : t('Toque em Falar e fale. A tradução aparece do outro lado, em texto.')
-            : noAutomatico
-              ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e lê a tradução em voz alta.')
-              : t('Toque em Falar e fale. A tradução aparece do outro lado e é lida em voz alta.'),
+        texto:
+          praticando && pratica && dono === 'meu'
+            ? dicaDaPratica(pratica.idioma)
+            : detectar
+              ? dono === 'meu'
+                ? t('Toque em Ouvir. Deixe a outra pessoa falar primeiro: o app descobre o idioma dela.')
+                : t('Fale no seu idioma: o app descobre qual é e traduz.')
+              : semVozParaOOutro
+                ? noAutomatico
+                  ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e mostra a tradução.')
+                  : t('Toque em Falar e fale. A tradução aparece do outro lado, em texto.')
+                : noAutomatico
+                  ? t('Toque em Ouvir e conversem. O app reconhece quem fala qual idioma e lê a tradução em voz alta.')
+                  : t('Toque em Falar e fale. A tradução aparece do outro lado e é lida em voz alta.'),
       },
       status: '',
       rotulo: noAutomatico ? t('Ouvir') : t('Falar'),
@@ -235,6 +267,11 @@ export default function PaginaDoInterprete({
                       tremer(botao);
                       return;
                     }
+                    if (praticando) {
+                      setPresoNaPratica('toque');
+                      tremer(botao);
+                      return;
+                    }
                     const novoModo: ModoDaConversa = noAutomatico ? 'toque' : 'automatico';
                     setModo(novoModo);
                     guardarModo(novoModo);
@@ -243,12 +280,20 @@ export default function PaginaDoInterprete({
               }
             : {})}
           lista={{ aberta: lista, bolhas: [], aoAlternar: () => setLista((v) => !v), aoExportar: () => undefined }}
+          {...(pratica && pratica.possivel !== 'sem_idioma'
+            ? { modos: [modoDaPratica(pratica, alternarPratica)] }
+            : {})}
           voz={{ rotulo: rotuloDaVoz, natural: false, muda: mudos.length === 2 }}
           vozes={semVoz ? undefined : { lados: ladosDaVoz(idiomas).filter((l) => l.idioma) }}
           aviso={
             !possivel
               ? t('Escolha dois idiomas diferentes: um para você, outro para a outra pessoa.')
               : (aviso ??
+                (presoNaPratica === 'sem-idioma'
+                  ? textoDaPraticaSemIdioma()
+                  : presoNaPratica === 'toque' && praticando
+                    ? textoDaPraticaNoToque()
+                    : avisoDaPratica(pratica)) ??
                 (presoNoDetectar && detectar
                   ? t('Para falar por toque, escolha o idioma da outra pessoa.')
                   : avisoDoCadeado
@@ -262,6 +307,11 @@ export default function PaginaDoInterprete({
                           : ''))
           }
           aoConhecerOPremium={avisoDoCadeado && possivel && !aviso ? aoConhecerOPremium : undefined}
+          acaoDoAviso={
+            possivel && !aviso && praticando && pratica?.correcao === 'sem_consentimento'
+              ? { rotulo: t('Autorizar IA de nuvem'), aoTocar: pratica.aoAutorizar }
+              : undefined
+          }
           aoTrocarLados={() => mudarEstadoDaTela({ trocados: !tela.trocados })}
           aoVirtual={aoComecarVirtual ? () => mudarEstadoDaTela({ folhaVirtual: true }) : undefined}
           aoEscolherIdioma={aoEscolherIdiomas}

@@ -168,8 +168,18 @@ export function useAssistenteAoVivo(o: {
    * instância nasce também contam como vistas (a captura); sem ela, a linha à vista na montagem é oferecida (a C2).
    */
   semente?: number;
+  /**
+   * "PRATICAR A CONVERSA" (o Intérprete): a pessoa escolheu, na vez, que a fala dela no idioma que aprende seja
+   * corrigida — vale como o opt-in da correção nesta conversa, mesmo com o ajuste desligado. As regras são as de
+   * sempre: só a fala de "você", só fora do idioma da pessoa, só com a nuvem do plano e o consentimento. Ausente = não.
+   */
+  praticando?: boolean;
 }) {
-  const ajustes = useAjustesDoAssistente();
+  const ajustesGuardados = useAjustesDoAssistente();
+  const ajustes = useMemo(
+    () => (o.praticando && !ajustesGuardados.correcao ? { ...ajustesGuardados, correcao: true } : ajustesGuardados),
+    [ajustesGuardados, o.praticando],
+  );
   const flagLigada = useFlag(FLAG_ASSISTENTE_AO_VIVO);
   const { consentiu, autorizar } = useConsentimentoDeNuvem();
   const [recusado, setRecusado] = useState(false);
@@ -560,7 +570,8 @@ export function useAssistenteAoVivo(o: {
 
   return {
     recursos,
-    ajustes,
+    /* Os ajustes GUARDADOS (a prática da vez não liga a correção nos Ajustes). */
+    ajustes: ajustesGuardados,
     janela,
     pagina,
     glossario,

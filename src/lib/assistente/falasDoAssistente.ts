@@ -20,11 +20,16 @@ type Lado = FalaDoAssistente['lado'];
  * - No Intérprete, a fala do microfone que chega SEM `lado` (o automático só sabe a metade depois de medir o idioma) é
  *   `incerto` e fica pendente até a metade chegar: a fala da outra pessoa nunca sai como "minha fala".
  *
+ * - O lado do automático por PALPITE (`ladoPalpite`) que cairia na pessoa é `incerto`: nunca vai à correção.
+ *
  * `ladosVistos` guarda o lado CERTO de cada fala quando ele aparece: trocar os lados depois não reescreve o passado. O
  * incerto nunca é guardado.
  */
 export function falasDoAssistente(
-  falas: ReadonlyArray<Pick<SpeechSegment, 'id' | 'originalText' | 'source' | 'isPartial' | 'lado' | 'lang'>>,
+  falas: ReadonlyArray<
+    Pick<SpeechSegment, 'id' | 'originalText' | 'source' | 'isPartial' | 'lado' | 'lang'> &
+      Partial<Pick<SpeechSegment, 'ladoPalpite'>>
+  >,
   o: {
     trocados: boolean;
     idiomaDaPessoa: string;
@@ -64,8 +69,15 @@ export function falasDoAssistente(
           : o.soMicrofone || o.noInterprete
             ? 'incerto'
             : 'voce';
-      /* Só o lado CERTO fica guardado (a metade, ou o som do computador): o incerto nunca congela. */
-      if (s.lado || s.source === 'system') vistos?.set(s.id, lado);
+      /* A metade da pessoa por PALPITE do automático (sem evidência de idioma; as duas metades no mesmo idioma da
+         prática): incerta, e nunca vai à correção. A metade da outra pessoa por palpite segue "eles" (não corrige). */
+      const palpiteMeu = !!s.lado && !!s.ladoPalpite && lado === 'voce';
+      if (palpiteMeu) lado = 'incerto';
+      /* Só o lado CERTO fica guardado (a metade, ou o som do computador): o incerto nunca congela. */ else if (
+        s.lado ||
+        s.source === 'system'
+      )
+        vistos?.set(s.id, lado);
     }
     const doLado = s.lado ? (lado === 'voce' ? o.idiomaDaPessoa : o.idiomaDoOutro) : '';
     return {

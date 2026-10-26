@@ -58,6 +58,11 @@ export interface SpeechSegment {
    */
   lado?: LadoDoInterprete;
   /**
+   * O `lado` do AUTOMÁTICO veio sem evidência de idioma (a alternância, ou as duas metades no mesmo idioma da prática):
+   * é um palpite. O assistente trata a fala como de lado incerto, e ela nunca vai à correção como "minha fala".
+   */
+  ladoPalpite?: boolean;
+  /**
    * CONVERSA VIRTUAL com detecção de idioma: o idioma para o qual esta fala foi traduzida (ISO-639-1; o `lang`
    * é o dela) e se ela nem precisou de tradução porque já estava no idioma de quem lê.
    */

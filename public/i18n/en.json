@@ -5023,5 +5023,17 @@
   "Ao vivo: escolha o que fazer": "Live: choose what to do",
   "Destaques desta frase": "Highlights in this sentence",
   "O assistente ajuda nas falas em {aprende}. Esta conversa está em {fala}.": "The assistant helps with lines in {aprende}. This conversation is in {fala}.",
-  "A última fala está em {fala}, o seu idioma. O “Como respondo?” ajuda nas falas do idioma que você aprende.": "The last line is in {fala}, your own language. “How do I reply?” helps with lines in the language you are learning."
+  "A última fala está em {fala}, o seu idioma. O “Como respondo?” ajuda nas falas do idioma que você aprende.": "The last line is in {fala}, your own language. “How do I reply?” helps with lines in the language you are learning.",
+  "Falar esta": "Say this one",
+  "Falar esta: {frase}": "Say this one: {frase}",
+  "Leia em voz alta:": "Read it out loud:",
+  "Você disse a sugestão inteira.": "You said the whole suggestion.",
+  "Da sugestão, faltou:": "Missing from the suggestion:",
+  "Praticar falando em {idioma}": "Practice speaking {idioma}",
+  "Praticando em {idioma}: a sua fala ganha uma dica de como soar mais natural.": "Practicing in {idioma}: what you say gets a tip on how to sound more natural.",
+  "Praticando em {idioma}. A dica da sua fala usa a IA de nuvem, que você ainda não autorizou.": "Practicing in {idioma}. The tip on what you say uses cloud AI, which you haven't allowed yet.",
+  "Praticando em {idioma}. A dica da sua fala não está disponível nesta conta; a tradução segue funcionando.": "Practicing in {idioma}. Tips on what you say aren't available on this account; translation keeps working.",
+  "Para praticar, escolha o idioma da outra pessoa.": "To practice, choose the other person's language.",
+  "Na prática, cada um toca em Falar na sua vez: assim o app sabe quem falou.": "When practicing, each person taps Speak on their turn: that way the app knows who spoke.",
+  "Toque em Falar e responda em {idioma}.": "Tap Speak and reply in {idioma}."
 }

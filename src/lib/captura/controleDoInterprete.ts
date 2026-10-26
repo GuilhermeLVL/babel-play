@@ -261,8 +261,15 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
       if (pendente) maquina.enviar({ tipo: 'traduziu', segId: final.segId });
       return;
     }
+    /* SEM TRADUÇÃO antes do fim da fala (o mesmo idioma dos dois lados — a prática da conversa — responde na hora, antes
+       de o VAD fechar): fica guardada, como a traduzida, e o `aoFimDaFala` a entrega. Sem isto a conversa ficava presa
+       em "Traduzindo…" esperando um aviso que já tinha passado. */
+    if (!pendente) {
+      traducoes.set(final.segId, final);
+      return;
+    }
     traducoes.delete(final.segId);
-    if (pendente) maquina.enviar({ tipo: 'semTraducao', segId: final.segId });
+    maquina.enviar({ tipo: 'semTraducao', segId: final.segId });
   };
 
   const destravar = () => {
@@ -302,7 +309,10 @@ export function criarControleDoInterprete(o: OpcoesDoControle): ControleDoInterp
         m.trocados && !detectar ? { meu: idiomas.outro, outro: idiomas.meu } : idiomas,
         conversa,
       );
-      const decisao = m.trocados && detectar ? { ...decidida, lado: outroLado(decidida.lado) } : decidida;
+      const virada = m.trocados && detectar ? { ...decidida, lado: outroLado(decidida.lado) } : decidida;
+      /* PRATICANDO (`falaDoMeu`), a pessoa fala o idioma da outra: o idioma medido não separa as duas, e todo lado do
+         automático é palpite (a tela põe a prática no toque; isto é a rede de segurança). */
+      const decisao = idiomas.falaDoMeu ? { ...virada, palpite: true } : virada;
       const mudou = decisao.estado.estrangeiro !== conversa.estrangeiro;
       conversa = decisao.estado;
       if (mudou) avisar();

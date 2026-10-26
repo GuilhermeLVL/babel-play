@@ -184,8 +184,14 @@ export interface EstadoDaTela {
    * (com falas, o Encerrar decide antes). Quem age é a tela pronta.
    */
   depois: 'voltar' | 'planos' | 'virtual' | null;
+  /**
+   * "PRATICAR A CONVERSA": a metade da pessoa fala o idioma que ela aprende, e a fala dela ganha a correção gentil.
+   * DESLIGADA de fábrica e a cada visita (sair da tela pronta a desliga): mandar a própria fala à nuvem é uma escolha da
+   * vez, não um ajuste esquecido. Ausente = desligada.
+   */
+  praticar?: boolean;
 }
-let estado: EstadoDaTela = { emCurso: false, trocados: false, folhaVirtual: false, depois: null };
+let estado: EstadoDaTela = { emCurso: false, trocados: false, folhaVirtual: false, depois: null, praticar: false };
 const ouvintes = new Set<() => void>();
 
 export const estadoDaTela = (): EstadoDaTela => estado;
@@ -195,7 +201,8 @@ export function mudarEstadoDaTela(parte: Partial<EstadoDaTela>): void {
     novo.emCurso === estado.emCurso &&
     novo.trocados === estado.trocados &&
     novo.folhaVirtual === estado.folhaVirtual &&
-    novo.depois === estado.depois
+    novo.depois === estado.depois &&
+    !!novo.praticar === !!estado.praticar
   )
     return;
   estado = novo;

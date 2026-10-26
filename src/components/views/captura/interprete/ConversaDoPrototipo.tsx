@@ -37,7 +37,7 @@ import {
 import { sentir } from '../../../../lib/polimento/sentidos';
 import type { LadoDaVoz } from '../../../../lib/voz/catalogoDeVozes';
 import FolhaDasVozes from '../../../voz/FolhaDasVozes';
-import { CartaoDaMarca, CorrecaoNaPagina } from '../assistente/AssistenteNaPagina';
+import { CartaoDaMarca, ComparacaoNaPagina, CorrecaoNaPagina, SugestaoParaLer } from '../assistente/AssistenteNaPagina';
 import { TextoComMarcas } from '../assistente/TextoComMarcas';
 
 /** O que a metade mostra no meio: a dica de começo, a fala de quem está nela, ou a tradução do outro. */
@@ -119,6 +119,10 @@ export interface AssistenteNaConversa {
   aoComoRespondo?: (falaId: string) => void;
   /** Mostra o atalho (Alt+R) no botão: no computador. */
   comAtalho?: boolean;
+  /** "Falar esta" (a prática): a sugestão que a pessoa vai ler agora, à vista na metade dela. */
+  ensaiando?: { texto: string; lang?: string };
+  /** As falas da pessoa que leram uma sugestão (id → a sugestão): a comparação aparece embaixo delas. */
+  ensaios?: ReadonlyMap<string, string>;
 }
 
 const quem = (dono: LadoDoInterprete) => (dono === 'meu' ? t('Você') : t('A outra pessoa'));
@@ -160,6 +164,7 @@ export default function ConversaDoPrototipo({
   vozes,
   aviso,
   aoConhecerOPremium,
+  acaoDoAviso,
   aoTrocarLados,
   aoVirtual,
   aoEscolherIdioma,
@@ -203,6 +208,8 @@ export default function ConversaDoPrototipo({
   aviso: string;
   /** Com o aviso do cadeado na tela: o botão que leva aos Planos. */
   aoConhecerOPremium?: (() => void) | undefined;
+  /** Uma ação do aviso da faixa (a prática sem o consentimento de nuvem: "Autorizar IA de nuvem"). */
+  acaoDoAviso?: { rotulo: string; aoTocar: () => void } | undefined;
   aoTrocarLados: () => void;
   aoVirtual?: (() => void) | undefined;
   aoEscolherIdioma?: (() => void) | undefined;
@@ -375,7 +382,19 @@ export default function ConversaDoPrototipo({
         <div className="int-assistente">
           {m.frase.tipo === 'traducao' && botaoResponder(m.frase.id, 'metade')}
           {m.frase.tipo === 'fala' && !m.frase.aoVivo && m.frase.id && (
-            <CorrecaoNaPagina correcao={assistente.correcoes.get(m.frase.id)} lang={m.frase.lang} />
+            <>
+              <CorrecaoNaPagina correcao={assistente.correcoes.get(m.frase.id)} lang={m.frase.lang} />
+              {assistente.ensaios?.get(m.frase.id) && (
+                <ComparacaoNaPagina
+                  falado={m.frase.texto}
+                  sugestao={assistente.ensaios.get(m.frase.id) as string}
+                  lang={m.frase.lang}
+                />
+              )}
+            </>
+          )}
+          {assistente.ensaiando && (
+            <SugestaoParaLer texto={assistente.ensaiando.texto} lang={assistente.ensaiando.lang} />
           )}
         </div>
       )}
@@ -572,6 +591,11 @@ export default function ConversaDoPrototipo({
               {comNomeDoPlano(t('Conhecer o Premium'), planoDoInterprete())}
             </button>
           )}
+          {acaoDoAviso && (
+            <button type="button" className="int-modo" onClick={acaoDoAviso.aoTocar} data-testid="acao-do-aviso">
+              {acaoDoAviso.rotulo}
+            </button>
+          )}
         </div>
         <button
           type="button"
@@ -607,6 +631,13 @@ export default function ConversaDoPrototipo({
                       </p>
                       {assistente && b.dono === 'meu' && (
                         <CorrecaoNaPagina correcao={assistente.correcoes.get(b.id)} lang={b.lang} />
+                      )}
+                      {assistente && b.dono === 'meu' && assistente.ensaios?.get(b.id) && (
+                        <ComparacaoNaPagina
+                          falado={b.fala}
+                          sugestao={assistente.ensaios.get(b.id) as string}
+                          lang={b.lang}
+                        />
                       )}
                     </div>
                     {b.dono === 'outro' && botaoResponder(b.id, 'bolha')}

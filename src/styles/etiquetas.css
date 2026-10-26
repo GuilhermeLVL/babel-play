@@ -3,32 +3,34 @@
  * flutuante, a sessão da Biblioteca e a folha da frase.
  *
  * Só ATRIBUTO (`data-etiqueta`): a palavra é o mesmo nó de antes, nada novo para a região `aria-live` anunciar.
- *   - `salva` e `aprendendo`: um tom de fundo, dois tons distintos (o do acento e o "raro"), raio pequeno, quebrando
- *     junto com a palavra (`box-decoration-break`). O texto continua na cor dele: o tom é claro o bastante para o
- *     contraste ficar AA nos dois temas (medido em `scripts/etiquetas/contraste.mjs`);
+ *   - `salva` e `aprendendo`: um tom de fundo, dois tons distintos (o do acento e o verde de "aprendida", o mesmo
+ *     das peles de cartão e do destaque de aprendida da legenda), raio pequeno, quebrando junto com a palavra
+ *     (`box-decoration-break`). No app, a palavra com tom passa à cor de texto PRINCIPAL (`--ink`): a linha original
+ *     da legenda é `--ink-muted`, e o tom por baixo dela derrubava o contraste abaixo de AA no tema claro. Medido nos
+ *     dois temas e nos fundos da janela em `scripts/etiquetas/contraste.mjs` (todos ≥ 4,5:1);
  *   - `dominada`: nada (a palavra que a pessoa já sabe não pede atenção);
  *   - `nova-para-voce`: um PONTO no alto da palavra (forma, não só cor), fora do fluxo: chegar não empurra o texto.
  * O fio pontilhado das marcas do assistente (`text-decoration`) convive com o fundo.
  */
 :root {
   --etq-salva: color-mix(in srgb, var(--accent, #f04e23) 17%, transparent);
-  --etq-aprendendo: color-mix(in srgb, var(--rare, #5b5ea6) 19%, transparent);
+  --etq-aprendendo: color-mix(in srgb, var(--good, #3e6b44) 20%, transparent);
   --etq-ponto: var(--accent, #f04e23);
 }
 .dark {
   --etq-salva: color-mix(in srgb, var(--accent, #ff6b3d) 26%, transparent);
-  --etq-aprendendo: color-mix(in srgb, var(--rare, #9195e6) 28%, transparent);
+  --etq-aprendendo: color-mix(in srgb, var(--good, #6dbe6f) 24%, transparent);
   --etq-ponto: var(--accent, #ff6b3d);
 }
 /* A janela flutuante tem o fundo dela (escuro, preto ou claro), que não segue o tema do app. */
 .leg-flut[data-fundo] {
   --etq-salva: rgba(255, 140, 90, 0.28);
-  --etq-aprendendo: rgba(150, 155, 240, 0.3);
+  --etq-aprendendo: rgba(109, 190, 111, 0.28);
   --etq-ponto: #ff8c5a;
 }
 .leg-flut[data-fundo='claro'] {
   --etq-salva: rgba(240, 78, 35, 0.16);
-  --etq-aprendendo: rgba(91, 94, 166, 0.18);
+  --etq-aprendendo: rgba(62, 107, 68, 0.2);
   --etq-ponto: #c63c14;
 }
 
@@ -40,6 +42,11 @@
   /* Um respiro de cada lado sem mexer no espaçamento da frase (a sombra não ocupa lugar). */
   box-shadow: 0 0 0 0.08em var(--etq-fundo);
   background: var(--etq-fundo);
+}
+/* Fora da janela flutuante (que tem as cores de legenda dela): a palavra com tom em `--ink`. */
+:not(.leg-flut *)[data-etiqueta='salva'],
+:not(.leg-flut *)[data-etiqueta='aprendendo'] {
+  color: var(--ink);
 }
 [data-etiqueta='salva'] {
   --etq-fundo: var(--etq-salva);
@@ -53,8 +60,9 @@
 [data-etiqueta='nova-para-voce']::after {
   content: '';
   position: absolute;
-  top: 0.02em;
-  inset-inline-end: -0.28em;
+  /* Sobre o fim da palavra, e não no vão até a próxima: o ponto é da palavra. */
+  top: -0.12em;
+  inset-inline-end: -0.2em;
   width: 5px;
   height: 5px;
   border-radius: 50%;
@@ -86,6 +94,8 @@
   font-weight: 700;
 }
 .q-linha [data-etiqueta] {
+  /* Na lista, a palavra é um bloco: o tom fica do tamanho dela, não da linha. */
+  width: fit-content;
   padding-inline: 0.15em;
 }
 

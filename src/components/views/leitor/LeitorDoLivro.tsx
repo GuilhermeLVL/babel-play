@@ -232,6 +232,13 @@ export default function LeitorDoLivro({
         setIdioma(baseLang(fonte.idioma || info.idioma || ''));
         motor.aplicarPerfil(perfil);
         await motor.comecar(posicoes.ler(livroId));
+        /* As fontes do perfil chegam DEPOIS do texto (o capítulo é um documento à parte): o livro só aparece
+           com elas, senão o paginador repagina na frente da pessoa (e o Lighthouse mede o salto). Teto de 1,5 s. */
+        await Promise.race([
+          Promise.all(motor.documentos().map(({ doc }) => doc.fonts?.ready)),
+          new Promise((ok) => window.setTimeout(ok, 1500)),
+        ]);
+        if (cancelado) return;
         setEstado('pronto');
         if (info.ehPdf) {
           const amostra = await motor.livro.amostraDeTexto?.().catch(() => null);

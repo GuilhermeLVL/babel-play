@@ -171,6 +171,8 @@ export class MotorDoLeitor {
   }
 
   aplicarPerfil(perfil: PerfilDeLeitura) {
+    /* O mesmo perfil de novo não reaplica: cada `setStyles` repagina o capítulo (e o texto salta na tela). */
+    if (this.perfil && JSON.stringify(this.perfil) === JSON.stringify(perfil)) return;
     this.perfil = perfil;
     const r = this.view.renderer;
     r.setStyles?.(cssDoLivro(perfil, facesDaFonte(perfil.fonte)));

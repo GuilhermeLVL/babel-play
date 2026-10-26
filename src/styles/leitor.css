@@ -648,3 +648,9 @@
     transition: none !important;
   }
 }
+
+/* Até o motor parar na posição salva, o livro fica invisível: o paginador abre na primeira página e salta para a
+   do CFI, e a camada de grifos (o SVG do overlayer) salta junto — sem isto o Lighthouse media CLS de 0,55. */
+.leitor[data-estado='carregando'] .leitor-motor {
+  visibility: hidden;
+}

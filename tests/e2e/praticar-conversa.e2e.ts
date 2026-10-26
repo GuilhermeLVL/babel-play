@@ -198,8 +198,7 @@ async function passarPelaEscolhaDoMicrofone(page: Page) {
 
 const parada = (conversa: Locator) => expect(conversa).toHaveAttribute('data-fase', 'parado', { timeout: 15_000 })
 
-test.beforeEach(async ({ page }, info) => {
-  test.skip(info.project.name === 'tablet-768', 'computador e celular bastam: o tablet é o layout do computador')
+test.beforeEach(async ({ page }) => {
   await page.route(/huggingface\.co|hf\.co|cdn-lfs/, (r) => r.abort())
   await page.route(/\/modelos\/bergamot\/|bergamot-translator-worker/, (r) => r.abort())
   await page.addInitScript(() => {
@@ -251,7 +250,8 @@ test('praticar: a fala da pessoa em inglês ganha a correção; a da outra pesso
   await expect(correcao).toHaveAttribute('aria-live', 'off')
   await parada(conversa)
   await fotosNosDoisTemas(page, 'correcao-na-fala')
-  expect(correcoes).toEqual([MINHA_1])
+  /* A chamada sai pela agenda do assistente (espera de 700 ms depois da fala final): espera por ela, com a lista EXATA. */
+  await expect.poll(() => [...correcoes], { timeout: 10_000 }).toEqual([MINHA_1])
 
   /* "Como respondo?" → "Falar esta": o microfone abre na metade da pessoa, e a fala é comparada com a sugestão. */
   const metadeDaOutra = conversa.getByTestId('interprete-outro')
@@ -273,7 +273,7 @@ test('praticar: a fala da pessoa em inglês ganha a correção; a da outra pesso
   await expect(lista.getByTestId('sugestao-para-ler')).toHaveCount(0)
   await parada(conversa)
   await fotosNosDoisTemas(page, 'comparacao-na-lista')
-  expect(correcoes).toEqual([MINHA_1, MINHA_2])
+  await expect.poll(() => [...correcoes], { timeout: 10_000 }).toEqual([MINHA_1, MINHA_2])
 
   /* A outra pessoa fala de novo, com um erro: a fala dela NUNCA vai à correção. */
   await clicarRobusto(page, conversa.getByTestId('tela-conversa'))

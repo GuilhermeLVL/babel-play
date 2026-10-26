@@ -1535,10 +1535,14 @@ html[data-quest-novo='true'][data-dispositivo^='desktop'] .q-palco {
 }
 
 /* "AO VIVO": a escolha rápida entre Legendar e Intérprete. Cartão ao lado do trilho no computador; folha que
-   sobe da borda na barra de baixo. Só tokens do app: o escuro vem deles. */
+   sobe da borda na barra de baixo. Só tokens do app: o escuro vem deles.
+   ACIMA DOS AVISOS (`--z-toast`): a folha sobe sobre o pé da tela, onde mora o selo de salvamento
+   (`.indicador-de-salvamento`, que dura enquanto uma captura não foi salva). Na camada da folha o selo
+   ficava por cima do fundo escuro e cobria o "Legendar": tocar nele não fazia nada. A escolha é aberta
+   pela pessoa e fecha no toque; enquanto está aberta, ela é o que se toca. */
 .q-vivo {
   position: fixed;
-  z-index: var(--z-sheet, 50);
+  z-index: calc(var(--z-toast, 70) + 1);
   width: min(320px, calc(100vw - 24px));
   display: flex;
   flex-direction: column;
@@ -1606,7 +1610,7 @@ html[data-quest-novo='true'][data-dispositivo^='desktop'] .q-palco {
 .q-vivo-fundo {
   position: fixed;
   inset: 0;
-  z-index: var(--z-sheet, 50);
+  z-index: calc(var(--z-toast, 70) + 1);
   display: flex;
   align-items: flex-end;
   background: color-mix(in srgb, #000 55%, transparent);

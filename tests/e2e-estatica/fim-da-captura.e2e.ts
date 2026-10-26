@@ -251,11 +251,12 @@ test('a recusa no meio do salvamento não prende: mostra o motivo, guarda a capt
      primeira visita); nada fica por cima da barra. */
   await expect(page.getByTestId('lobby-do-quest')).toBeVisible({ timeout: 10_000 })
   await expect(page.getByRole('dialog', { name: 'O que você vai praticar' })).toHaveCount(0)
-  /* DEFEITO DO APP NO CELULAR (09/10/2026, deixado falhando de propósito): o selo "A sessão … não foi
-     salva" (`indicador-de-salvamento`) deveria ficar ACIMA da barra de baixo (`index.css`, pelo
-     `--shell-inset-bottom`) e, com a barra flutuante do desenho novo, fica em cima dela: cobre
-     Capturar, Intérprete e Jogar enquanto a recusa durar. `soft`: o teste registra a falha e segue
-     pela saída que sobra (o "Ver o que fazer" do próprio selo), para conferir o resto. */
+  /* O SELO NÃO PODE COBRIR O CAMINHO DE VOLTA. O selo "A sessão … não foi salva"
+     (`indicador-de-salvamento`) fica no pé da tela enquanto a recusa durar. Em 09/10/2026 ele cobria a
+     barra de baixo (corrigido depois: passa na CI desde então); em 25/10/2026, com o "Ao vivo", cobria o
+     "Legendar" da folha que sobe sobre ele (corrigido no `quest.css`: a folha fica acima dos avisos).
+     `soft`: se voltar a falhar, o teste registra e segue pela saída que sobra (o "Ver o que fazer" do
+     próprio selo), para conferir o resto. */
   const pelaBarra = await doMenu(page, 'capture')
     .click({ timeout: 5000 })
     .then(() => page.getByRole('menuitem', { name: /^Legendar/ }).click({ timeout: 5000 }))

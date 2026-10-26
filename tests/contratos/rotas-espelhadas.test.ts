@@ -56,6 +56,10 @@ const SO_COM_CONTA: Record<string, string> = {
     'o histórico de uma palavra (onde apareceu, frases, jogos) sai do mesmo índice do servidor; sem conta a gaveta mostra só o que o baralho local sabe',
   '/api/vocab/para-jogo':
     'NÃO precisa de espelho: `compor` cai em `composicaoLocal`, a MESMA ordenação do core rodando no cliente. Espelhá-la criaria uma segunda verdade onde hoje há uma',
+  '/api/vocab/vistas':
+    'o índice de palavras vistas é derivado das sessões no servidor; sem conta o cliente usa só os estados do caderno local, e o ponto "nova para você" não aparece (nenhum ponto é melhor que um ponto errado)',
+  '/api/vocab/palavra':
+    'o histórico da palavra (sessões, jogos, nota) mora no índice do servidor; sem conta o cartão da palavra mostra só o estado do caderno local, sem contagens',
   '/api/health':
     'status do servidor na Ajuda: é a pergunta "o servidor está no ar?", que um espelho local responderia sempre sim. Sem servidor, a tela diz que ele não responde',
   '/api/rank': 'placar público: fala com o servidor real por `fetch` cru, fora do funil, com e sem conta',

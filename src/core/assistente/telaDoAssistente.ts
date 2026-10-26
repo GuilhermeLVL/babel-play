@@ -26,6 +26,13 @@ export interface AjustesDoAssistente {
   correcao: boolean;
   /** A janela abre já na aba Assistente. */
   abrirNaAba: boolean;
+  /**
+   * As ETIQUETAS DE PALAVRAS na legenda (`core/vocabulario/etiquetas`): o tom da palavra guardada e da que está
+   * aprendendo. Locais (o caderno), valem em todo plano e sem o assistente.
+   */
+  etiquetas: boolean;
+  /** O ponto "nova para você" (precisa do índice do servidor: sem conta, nunca aparece). */
+  etiquetaNova: boolean;
 }
 
 export const AJUSTES_PADRAO: Readonly<AjustesDoAssistente> = Object.freeze({
@@ -35,6 +42,8 @@ export const AJUSTES_PADRAO: Readonly<AjustesDoAssistente> = Object.freeze({
   termos: true,
   correcao: false,
   abrirNaAba: false,
+  etiquetas: true,
+  etiquetaNova: true,
 });
 
 /** Aceita só o que tem forma de ajuste (o disco pode ter qualquer coisa); o resto cai no padrão. */
@@ -49,6 +58,8 @@ export function normalizarAjustes(bruto: unknown): AjustesDoAssistente {
     termos: sim('termos'),
     correcao: sim('correcao'),
     abrirNaAba: sim('abrirNaAba'),
+    etiquetas: sim('etiquetas'),
+    etiquetaNova: sim('etiquetaNova'),
   };
 }
 

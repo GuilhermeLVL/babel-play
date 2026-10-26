@@ -69,6 +69,8 @@ const SO_COM_CONTA: Record<string, string> = {
     'feature flags (Fase 6b): PASSA DIRETO (está em `PASSAM_DIRETO`) porque é pública e quem decide o que está ligado é o operador, no servidor — um espelho local responderia sempre "desligado"',
   '/api/admin':
     'tela de administração: só existe com conta de papel admin (e 2FA); a edição estática nem mostra o item de menu, e o servidor efêmero não tem papéis, planos nem cobrança para administrar',
+  '/api/leitura':
+    'as anotações do leitor (L2) só sobem com conta: sem conta elas moram no IndexedDB do aparelho (`src/lib/livros/armazem.ts`), com aviso e backup por arquivo, e `podeSincronizarAnotacoes()` impede a chamada — um espelho em memória seria uma segunda cópia local, sem ganho',
   '/api/audio':
     'captura do áudio do sistema por WASAPI: PASSA DIRETO (está em `PASSAM_DIRETO`) porque depende de um dispositivo da máquina, e só existe no self-host',
 }

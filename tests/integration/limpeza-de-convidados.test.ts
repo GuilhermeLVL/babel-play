@@ -138,13 +138,14 @@ describe('CSP do Turnstile', () => {
     const d = diretivasDeCsp({} as NodeJS.ProcessEnv)
     expect(d.scriptSrc).not.toContain(HOST_DO_TURNSTILE)
     expect(d.connectSrc).not.toContain(HOST_DO_TURNSTILE)
-    expect(d.frameSrc).toBeUndefined()
+    // frame-src só com o `blob:` dos capítulos do leitor (L2) — nenhum host de fora.
+    expect(d.frameSrc).toEqual(["'self'", 'blob:'])
   })
 
   it('com a chave, script, conexão e frame liberam challenges.cloudflare.com', () => {
     const d = diretivasDeCsp({ VITE_TURNSTILE_SITE_KEY: '0x4AAA' } as NodeJS.ProcessEnv)
     expect(d.scriptSrc).toContain(HOST_DO_TURNSTILE)
     expect(d.connectSrc).toContain(HOST_DO_TURNSTILE)
-    expect(d.frameSrc).toEqual(["'self'", HOST_DO_TURNSTILE])
+    expect(d.frameSrc).toEqual(["'self'", 'blob:', HOST_DO_TURNSTILE])
   })
 })

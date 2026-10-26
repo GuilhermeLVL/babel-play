@@ -1,0 +1,24 @@
+foliate-js — motor de leitura de EPUB/PDF vendorizado (licença MIT, ver LICENSE nesta pasta).
+
+Origem: https://github.com/johnfactotum/foliate-js
+Commit: 78914aef4466eb960965702401634c2cb348e9b1 (2026-05-01)
+
+Arquivos copiados sem mudança: epub.js, epubcfi.js, paginator.js, fixed-layout.js, overlayer.js,
+progress.js, text-walker.js, search.js, LICENSE.
+
+Mudanças do Frasy (marcadas com "FRASY:" no código):
+  - view.js: makeBook só abre EPUB e PDF (MOBI, FB2, CBZ e pasta ficaram fora); o carregador de ZIP
+    usa o `fflate` do app (carregadorZip.js, novo) no lugar do vendor/zip.js; initTTS desligado
+    (tts.js não vendorizado — a narração do leitor é a fase L3).
+  - pdf.js: reescrito sobre o `pdfjs-dist` do app (Apache-2.0), sem a camada de anotações do PDF e
+    com o CSS da camada de texto do PDF.js 6.4 embutido; expõe `book.amostraDeTexto` para o aviso
+    de PDF escaneado/duas colunas.
+  - carregadorZip.js: novo (Frasy, MIT como o resto do repositório).
+
+Segurança: EPUB com script não é suportado pelo foliate-js (os documentos são `blob:` da mesma
+origem). O adaptador (src/lib/leitor/motor.ts) recusa todo recurso de script do manifesto
+(evento `load` → allow=false) e remove <script> e atributos on* do HTML de cada seção (evento
+`data`); a CSP do app (sem 'unsafe-inline' em script-src) é a segunda barreira.
+
+Para atualizar: copie os mesmos arquivos de um commit novo, reaplique os trechos "FRASY:" e rode
+os testes do leitor (tests/leitor-*.test.ts e tests/e2e/leitor.e2e.ts).

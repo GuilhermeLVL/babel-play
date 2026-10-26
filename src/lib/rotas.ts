@@ -41,6 +41,8 @@ export type ViewDeRota =
   | 'ajuda'
   | 'diagnostico'
   | 'admin'
+  /** O leitor de livros (`/leitor/<livroId>`, L2 de Livros & Leitura). */
+  | 'leitor'
   | 'naoencontrado';
 
 /** As duas áreas clássicas de Personalizar (sem a flag `recompensas_v2`). */
@@ -82,7 +84,10 @@ export interface EstadoDeRota {
   cartoesAba?: AbaDeCartoes;
   /** Só para `cartoes`: a rodada de revisão está aberta (`/cartoes/estudar`). */
   estudando?: boolean;
-  /** Só para `livros`: o livro aberto (o detalhe), do catálogo ou trazido pela pessoa. */
+  /**
+   * Para `livros`: o livro aberto (o detalhe), do catálogo ou trazido pela pessoa. Para `leitor`: o livro no
+   * leitor — como a sub-tela de Planos, é DA TELA: espelhar "estou no leitor" (sem o id) não o apaga.
+   */
   livroId?: string;
   /** Só para `livros` com `livroId`: a leitura dele (`/livros/<id>/ler`), não o detalhe. */
   lendo?: boolean;
@@ -149,6 +154,7 @@ const SEGMENTO: Record<Exclude<ViewDeRota, 'analysis'>, string> = {
   ajuda: 'ajuda',
   diagnostico: 'diagnostico',
   admin: 'admin',
+  leitor: 'leitor',
   naoencontrado: 'nao-encontrado',
 };
 
@@ -303,6 +309,7 @@ export function estadoParaUrl(e: EstadoDeRota): string {
   if (e.view === 'livros' && e.livroId && ehIdDeLivro(e.livroId)) {
     return `/${SEGMENTO.livros}/${e.livroId}${e.lendo ? `/${SEGMENTO_DE_LEITURA}` : ''}`;
   }
+  if (e.view === 'leitor' && e.livroId) return `/${SEGMENTO.leitor}/${encodeURIComponent(e.livroId)}`;
   if (e.view === 'planos' && ehSubTelaDePlanos(e.planosTela)) return `/${SEGMENTO.planos}/${e.planosTela}`;
   const seg = SEGMENTO[e.view];
   return seg ? `/${seg}` : '/';
@@ -369,6 +376,18 @@ export function urlParaEstado(caminho: string): EstadoDeRota {
     return partes[2] === SEGMENTO_DE_LEITURA
       ? { view: 'livros', livroId: partes[1], lendo: true }
       : { view: 'livros', livroId: partes[1] };
+  }
+
+  /* O LEITOR: o id do livro sai do caminho CRU (sem o `toLowerCase`), porque ids de catálogo têm caixa. */
+  if (partes[0] === SEGMENTO.leitor) {
+    const cru = bruto.split('?')[0].split('/').filter(Boolean)[1];
+    let livroId: string | undefined;
+    try {
+      livroId = cru ? decodeURIComponent(cru) : undefined;
+    } catch {
+      livroId = undefined;
+    }
+    return livroId ? { view: 'leitor', livroId } : { view: 'leitor' };
   }
 
   if (partes[0] === SEGMENTO.settings && partes[1]) {
@@ -438,6 +457,8 @@ export function publicarUrl(e: EstadoDeRota, push = true): void {
      `planosTela`) não a apaga. Sem isto, recarregar `/plano/assinado` — a volta do pagamento —
      caía em `/plano` no primeiro render. */
   if (e.view === 'planos' && !e.planosTela && urlParaEstado(window.location.pathname).planosTela) return;
+  /* O livro aberto é do leitor, como a sub-tela é de Planos: espelhar só "estou no leitor" não o apaga. */
+  if (e.view === 'leitor' && !e.livroId && urlParaEstado(caminhoInternoAtual()).livroId) return;
   // `replaceState` na restauração inicial: entrar no app não deve criar uma entrada de histórico
   // para trás que devolveria o usuário para fora.
   /* Trocar de aba dentro dos Ajustes atualiza o endereço sem empilhar histórico: "voltar" sai da

@@ -47,6 +47,7 @@ import {
   type TipoDeNota,
   TIPOS_DE_NOTA,
 } from '../../lib/leitura/anotacaoDaFrase';
+import { abrirSessaoNoLeitor } from '../../lib/livros/abrir';
 import { micErrorMessage } from '../../lib/mediaErrors';
 import { criarMarcador, type GuiaDaFala, seguirFala } from '../../lib/polimento/sessao';
 import { usePopoverDePalavra } from '../../lib/popoverDePalavra';
@@ -1232,6 +1233,18 @@ export default function Reading({ recording, onChangeView }: ReadingProps = {}) 
         <button type="button" className="q-chip" aria-haspopup="dialog" onClick={() => setAjustandoNoQuest(true)}>
           <SlidersHorizontal aria-hidden /> {t('Ajustar exibição')}
         </button>
+        {/* O LEITOR NOVO (L2): o documento abre paginado, com grifos sincronizados e exportação. A Leitura
+            de sempre continua aqui, com tudo o que já fazia. */}
+        {recording?.type === 'document' && (
+          <button
+            type="button"
+            className="q-chip"
+            data-testid="abrir-no-leitor"
+            onClick={() => void abrirSessaoNoLeitor(recording.id, recording.title)}
+          >
+            <BookOpen aria-hidden /> {t('Abrir no leitor')}
+          </button>
+        )}
       </div>
 
       {isDrawModeActive ? (

@@ -41,6 +41,8 @@ const Sobre = lazyComRecarga(carregarSobre);
 const Estatisticas = lazyComRecarga(carregarEstatisticas);
 const Ajuda = lazyComRecarga(carregarAjuda);
 const Diagnostico = lazyComRecarga(() => import('./components/views/Diagnostico'));
+/* O leitor de livros (L2): o motor (foliate-js, PDF.js) e a tela descem só quando um livro abre. */
+const Leitor = lazyComRecarga(() => import('./components/views/leitor/Leitor'));
 const NaoEncontrado = lazyComRecarga(() => import('./components/views/NaoEncontrado'));
 const Admin = lazyComRecarga(() => import('./components/views/Admin'));
 const Loja = lazyComRecarga(carregarLoja);
@@ -375,7 +377,7 @@ export default function App() {
 
   // Item aceso no menu (protótipo): a sessão vive na Biblioteca; a revisão, em Cartões.
   /* Livros mora na Biblioteca (a porta é de lá e do Início): o trilho não ganhou item (simplificado em 22/10). */
-  const viewDoMenu: ViewType = activeView === 'analysis' || activeView === 'livros' ? 'library' : activeView;
+  const viewDoMenu: ViewType = activeView === 'analysis' || activeView === 'livros' || activeView === 'leitor' ? 'library' : activeView;
 
   // Marco 1: OAuth/recuperação voltando em /auth/callback — aguarda o supabase-js processar a URL.
   if (authRequired && processingCallback) {
@@ -725,6 +727,7 @@ export default function App() {
               )}
               {activeView === 'ajuda' && <Ajuda />}
               {activeView === 'diagnostico' && <Diagnostico />}
+              {activeView === 'leitor' && <Leitor onChangeView={navigateTo} />}
               {activeView === 'admin' && (
                 <Admin onChangeView={(v) => navigateTo(v as ViewType)} onBuscar={() => setBuscaAberta(true)} />
               )}
@@ -843,7 +846,8 @@ export default function App() {
           {/* Global iChat assistant with layout capabilities. O tutor é IA de NUVEM (`/api/tutor`):
               na edição estática, sem servidor, ele não monta — melhor ausente que um botão que só
               responde "não deu". */}
-          {!edicaoEstatica() && (
+          {/* No leitor de livros o botão flutuante cobria a virada de página: lá o iChat não monta. */}
+          {!edicaoEstatica() && activeView !== 'leitor' && (
             <IChat
               activeView={mappedActiveViewForChat}
               selectedRecording={selectedRecording}

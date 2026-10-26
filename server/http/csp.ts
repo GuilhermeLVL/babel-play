@@ -90,6 +90,12 @@ const CONEXOES_FIXAS = [
   'https://*.wikisource.org',
 ]
 
+/**
+ * O LEITOR DE LIVROS (L2 de Livros & Leitura): além das fontes do catálogo (acima, em `CONEXOES_FIXAS`), o EPUB
+ * do Wikisource sai do ws-export, baixado pelo NAVEGADOR por CORS, sem passar pelo servidor.
+ */
+const CONEXOES_DO_LEITOR = ['https://ws-export.wmcloud.org']
+
 /** A ORIGEM (`https://host[:porta]`) de uma URL, ou `null` se ela não for http(s) válida. */
 function origemDe(valor: string | undefined): string | null {
   const v = valor?.trim()
@@ -149,7 +155,16 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
   const turnstile = env.VITE_TURNSTILE_SITE_KEY?.trim() ? [HOST_DO_TURNSTILE] : []
 
   const conexoes = [
-    ...new Set(["'self'", 'blob:', 'data:', ...CONEXOES_FIXAS, ...doDeploy, ...runtimeDoOnnx, ...turnstile]),
+    ...new Set([
+      "'self'",
+      'blob:',
+      'data:',
+      ...CONEXOES_FIXAS,
+      ...CONEXOES_DO_LEITOR,
+      ...doDeploy,
+      ...runtimeDoOnnx,
+      ...turnstile,
+    ]),
   ]
 
   /* R32: com a flag ligada E a origem configurada, a página de anúncios entra SÓ em `frame-src`. Nada em
@@ -167,12 +182,16 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
     styleSrc: ["'self'", "'unsafe-inline'"],
     // `data:`: o Vite embute no CSS as faces pequenas (Silkscreen, < 4 KB) como data URI; sem isto o
     // navegador as recusa e a marca cai na fonte de reserva (visto no staging, 03/10/2026).
-    fontSrc: ["'self'", 'data:'],
+    /* `blob:`: as fontes EMBUTIDAS num EPUB viram `blob:` (o foliate-js reescreve as URLs do livro). */
+    fontSrc: ["'self'", 'data:', 'blob:'],
     objectSrc: ["'none'"],
     frameAncestors: ["'self'"],
     baseUri: ["'self'"],
     formAction: ["'self'"],
-    ...(quadros.length ? { frameSrc: ["'self'", ...quadros] } : {}),
+    /* `blob:`: cada capítulo do leitor é um documento `blob:` num iframe (foliate-js). Ele herda ESTA política —
+       por isso o `script-src` sem `'unsafe-inline'` é a segunda barreira contra script de EPUB (a primeira é o
+       motor, que recusa o script do manifesto e limpa o HTML; `src/lib/leitor/motor.ts`). */
+    frameSrc: ["'self'", 'blob:', ...quadros],
   }
 }
 

@@ -209,7 +209,7 @@ export function novaAnotacao(e: {
     atualizadoEm: e.agora,
     apagadoEm: null,
   });
-  if (!r.ok) throw new Error(`anotação inválida: ${r.code}`);
+  if (r.ok === false) throw new Error(`anotação inválida: ${r.code}`);
   return r.anotacao;
 }
 

@@ -29,3 +29,6 @@ docs/prototipos/_comum
 
 # Brutos da bancada de IA paga (scripts/eval-ia/rodar.mjs): JSON compacto gerado, sem leitura humana
 docs/auditoria/eval/ia-paga-v1/bruto-*.json
+
+# Motor do leitor vendorizado (foliate-js, MIT): código de terceiro numa versão fixa (ver ORIGEM.txt)
+src/lib/leitor/foliate

@@ -161,6 +161,7 @@ import { consentiuNuvemNaFala, EVENTO_DO_PROCESSAMENTO } from '../../lib/escolha
 import {
   estaNoCaderno,
   marcarSalva,
+  renovarVistas,
   useEtiquetador,
   useSnapshotDasEtiquetas,
 } from '../../lib/etiquetas/indiceDeEtiquetas';
@@ -3167,6 +3168,21 @@ export default function LiveCapture({
     assistente,
     aoMudarVistaDoAssistente: setVistaDaJanela,
   });
+  /* O ÍNDICE DE PALAVRAS VISTAS é renovado quando a janela flutuante abre e uma vez quando a captura termina — nunca a
+     cada fala (`pedirVistas`). */
+  const idiomaDasLinhas = captureScenario === 'mic' ? sourceLang : targetLang;
+  const flutuanteAberta = flutuante.aberta;
+  const gravavaParaAsVistas = useRef(isRecording);
+  useEffect(() => {
+    if (flutuanteAberta && baseLang(idiomaDasLinhas) !== baseLang(sourceLang)) renovarVistas([idiomaDasLinhas]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando a janela abre
+  }, [flutuanteAberta]);
+  useEffect(() => {
+    const terminou = gravavaParaAsVistas.current && !isRecording;
+    gravavaParaAsVistas.current = isRecording;
+    if (terminou && baseLang(idiomaDasLinhas) !== baseLang(sourceLang)) renovarVistas([idiomaDasLinhas]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando a captura termina
+  }, [isRecording]);
   /* "Abrir ao começar a legendar" (Ajustes da captura). A janela por cima de tudo só abre com um gesto
      ainda valendo (o navegador exige): sem ele (o seletor da tela demorou), o aviso traz o botão. O
      painel da página não precisa de gesto, e onde não dá para saber do gesto, tenta-se direto. */

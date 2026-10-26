@@ -31,7 +31,7 @@ import {
 } from '../../core/vocabulario/etiquetas';
 import { fetchDeck, fetchPalavrasVistas, fetchSessions, geracaoDeEscritas } from '../../data/api';
 import type { VocabCard } from '../../types';
-import { useAjustesDoAssistente } from '../assistente/ajustesDoAssistente';
+import { lerAjustesDoAssistente, useAjustesDoAssistente } from '../assistente/ajustesDoAssistente';
 import { estadoDoCartao } from '../pelesDeCartao';
 
 export interface SnapshotDasEtiquetas {
@@ -65,6 +65,7 @@ let cartoesLidos: ReturnType<typeof cartoesParaOIndice> = [];
 let geracaoDoCaderno = -1;
 let cadernoEmVoo: Promise<void> | null = null;
 const vistasPedidas = new Set<string>();
+const vistasEmVoo = new Set<string>();
 let sessoesPorIdioma: Promise<Map<string, number>> | null = null;
 
 function publicar(patch: Partial<SnapshotDasEtiquetas>) {
@@ -116,12 +117,24 @@ function contarSessoes(): Promise<Map<string, number>> {
   return sessoesPorIdioma;
 }
 
-/** Pede o índice de palavras vistas de `lang` (uma vez por idioma por página). */
-export function pedirVistas(lang: string | undefined): void {
+/**
+ * Pede o índice de palavras vistas de `lang`. Sem `renovar`, uma vez por idioma por página; com `renovar`, de novo
+ * (o ETag faz a revalidação custar um 304 quando nada mudou).
+ *
+ * QUANDO SE PEDE, e só então: ao abrir a captura ou a sessão da Biblioteca (`useEtiquetador` montando), ao abrir a
+ * janela flutuante e uma vez quando a captura termina (`renovarVistas`). NUNCA a cada fala: o ETag do índice muda a cada
+ * lote de falas salvo e a lista pode passar de 200 KB. Durante a captura vale o índice da abertura — a palavra que
+ * apareceu só nesta sessão ainda ganha o ponto, e está certo: ela é nova em relação ao passado da pessoa.
+ */
+export function pedirVistas(lang: string | undefined, o: { renovar?: boolean } = {}): void {
   const idioma = baseLang(lang);
-  if (!idioma || vistasPedidas.has(idioma)) return;
+  if (!idioma || vistasEmVoo.has(idioma) || (vistasPedidas.has(idioma) && !o.renovar)) return;
   vistasPedidas.add(idioma);
+  vistasEmVoo.add(idioma);
+  /* A contagem de sessões também envelhece (a captura que acabou é uma sessão a mais). */
+  if (o.renovar) sessoesPorIdioma = null;
   void fetchPalavrasVistas(idioma).then(async (v) => {
+    vistasEmVoo.delete(idioma);
     let doIdioma: VistasDoIdioma | null = null;
     if (v) {
       const sessoes = (await contarSessoes()).get(idioma) ?? 0;
@@ -131,6 +144,13 @@ export function pedirVistas(lang: string | undefined): void {
     vistas.set(idioma, doIdioma);
     publicar({ vistas });
   });
+}
+
+/** Renova o índice dos idiomas (a janela flutuante abriu, a captura terminou). */
+export function renovarVistas(idiomas: ReadonlyArray<string | undefined>): void {
+  const aj = lerAjustesDoAssistente();
+  if (!aj.etiquetas || !aj.etiquetaNova) return;
+  for (const l of idiomas) pedirVistas(l, { renovar: true });
 }
 
 /** A palavra acabou de ser fichada: pinta como salva já (o caderno relido confirma ou corrige). */
@@ -151,6 +171,7 @@ export function esquecerIndiceDeEtiquetas(): void {
   geracaoDoCaderno = -1;
   cadernoEmVoo = null;
   vistasPedidas.clear();
+  vistasEmVoo.clear();
   sessoesPorIdioma = null;
 }
 
@@ -226,9 +247,10 @@ export function useEtiquetador(o: {
   /* No idioma da pessoa nada é "novo para você": as vistas dele não são pedidas. */
   const daPessoa = baseLang(o.langDaPessoa);
   const chaveDosIdiomas = [...new Set(o.idiomas.map(baseLang).filter((l) => l && l !== daPessoa))].sort().join(',');
+  /* A tela abriu (ou trocou de idioma): o índice é renovado UMA vez. As falas que chegam não mexem nele. */
   useEffect(() => {
     if (!aj.etiquetas || !aj.etiquetaNova) return;
-    for (const l of chaveDosIdiomas.split(',')) if (l) pedirVistas(l);
+    for (const l of chaveDosIdiomas.split(',')) if (l) pedirVistas(l, { renovar: true });
   }, [aj.etiquetas, aj.etiquetaNova, chaveDosIdiomas]);
   return useMemo(
     () => (aj.etiquetas ? criarEtiquetador(s, nova, o.langDaPessoa) : null),

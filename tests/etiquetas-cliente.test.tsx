@@ -31,6 +31,7 @@ import {
   lerSnapshotDasEtiquetas,
   marcarSalva,
   pedirVistas,
+  renovarVistas,
   useEtiquetador,
 } from '../src/lib/etiquetas/indiceDeEtiquetas'
 import { definirIdentidade } from '../src/lib/identidade'
@@ -275,6 +276,43 @@ describe('a pintura', () => {
     expect(container.querySelector('.q-fala')?.getAttribute('aria-description')).toBe(
       'Aprendendo: report. Novas para você: scrutinize.',
     )
+  })
+
+  it('falas novas chegando NÃO pedem o índice de novo; renovar (janela aberta, captura encerrada) pede', async () => {
+    const r = redeDaConta()
+    vi.stubGlobal('fetch', r.fetch)
+    const pedidasDasVistas = () => r.pedidos.filter((p) => p.url.startsWith('/api/vocab/vistas')).length
+    const falas = [segmento('1', 'The report was a scrutinize answer', 'O relatório…')]
+    const { container, rerender } = render(<Legenda falas={falas} />)
+    await waitFor(() => expect(container.querySelector('[data-etiqueta="nova-para-voce"]')).not.toBeNull())
+    expect(pedidasDasVistas()).toBe(1)
+    /* Vinte falas chegando, uma a uma, com parciais no meio. */
+    let agora = falas
+    for (let i = 2; i <= 21; i++) {
+      agora = [...agora, { ...segmento(String(i), `Bring the report number ${i}`), isPartial: true }]
+      rerender(<Legenda falas={agora} />)
+      agora = agora.map((f) => (f.id === String(i) ? { ...f, isPartial: false, translatedText: 'Traga…' } : f))
+      rerender(<Legenda falas={agora} />)
+    }
+    await act(async () => {
+      await new Promise((ok) => setTimeout(ok, 50))
+    })
+    expect(pedidasDasVistas()).toBe(1)
+    /* A janela abriu ou a captura acabou: uma revalidação, com o ETag (304, sem a lista). */
+    act(() => renovarVistas(['en']))
+    await waitFor(() => expect(pedidasDasVistas()).toBe(2))
+    const ultima = r.pedidos.filter((p) => p.url.startsWith('/api/vocab/vistas'))[1]
+    expect(new Headers(ultima.init?.headers).get('If-None-Match')).toBe('"v1"')
+    /* Renovar duas vezes seguidas não empilha pedidos. */
+    act(() => {
+      renovarVistas(['en'])
+      renovarVistas(['en'])
+    })
+    await waitFor(() => expect(pedidasDasVistas()).toBe(3))
+    await act(async () => {
+      await new Promise((ok) => setTimeout(ok, 30))
+    })
+    expect(pedidasDasVistas()).toBe(3)
   })
 
   it('desligar remove as etiquetas da legenda', async () => {

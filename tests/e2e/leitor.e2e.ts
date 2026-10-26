@@ -5,6 +5,7 @@ import path from 'node:path'
 import { expect, type Frame, type Page, test } from '@playwright/test'
 
 import { violacoesGraves } from './_acessibilidade'
+import { fecharSobreposicoes } from './_helpers'
 
 /**
  * O LEITOR (L2 de Livros & Leitura), de ponta a ponta, com o EPUB de domínio público dos testes
@@ -91,6 +92,8 @@ test.describe('Leitor', () => {
     expect(livroId).toBe(LIVRO_ID)
     await expect(leitorPronto(page)).toBeVisible({ timeout: 30_000 })
     await expect(page.getByRole('heading', { level: 1, name: "Aesop's Fables (tiny edition)" })).toBeVisible()
+    /* Uma conquista de outra suíte pode abrir por cima (o banco do e2e é compartilhado): fecha antes de tocar. */
+    await fecharSobreposicoes(page)
 
     // ── acessibilidade (ACE07): nada sério nem crítico no axe, no leitor e com os painéis abertos ──
     expect(await violacoesGraves(page, ['[data-testid=leitor]'])).toEqual([])
@@ -161,6 +164,7 @@ test.describe('Leitor', () => {
     // ── recarregar: continua no MESMO CFI, com o tema e as anotações ──
     await page.reload()
     await expect(leitorPronto(page)).toBeVisible({ timeout: 30_000 })
+    await fecharSobreposicoes(page)
     await expect(progresso).toHaveText(ondeEstava ?? '', { timeout: 10_000 })
     expect((await posicaoGuardada(page, livroId)).cfi).toBe(guardada.cfi)
     await expect(page.getByTestId('leitor')).toHaveAttribute('data-tema', 'escuro')
@@ -181,6 +185,18 @@ test.describe('Leitor', () => {
     expect(md).toContain('> He tried many times until his legs were tired.')
     expect(md).toContain('**Nota:** Fábula da raposa: desdenhar do que não se alcança.')
     expect(md).toMatch(/\[abrir no Frasy\]\(frasy:\/\/livro\/arq%3A[0-9a-f]{32}#epubcfi/)
+
+    // ── sumário e busca no livro (LEI03) ──
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: /Sumário/ }).click()
+    await expect(
+      page.getByRole('navigation', { name: 'Sumário' }).getByRole('button', { name: 'Part Two' }),
+    ).toBeVisible()
+    await page.getByRole('searchbox', { name: 'Buscar no livro' }).fill('grasshopper')
+    await page.getByRole('button', { name: 'Buscar', exact: true }).click()
+    await expect(page.getByText(/^\d+ resultados$/)).toBeVisible({ timeout: 15_000 })
+    await page.locator('.leitor-resultados .leitor-item').first().click()
+    await expect(progresso).toContainText('Part Two', { timeout: 10_000 })
 
     // Deixa o perfil como estava para os outros projetos.
     await page.evaluate(() => localStorage.removeItem('leitor:perfil'))

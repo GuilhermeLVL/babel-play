@@ -2,6 +2,8 @@ import path from 'node:path'
 
 import { expect, type Page, test } from '@playwright/test'
 
+import { fecharSobreposicoes } from './_helpers'
+
 /**
  * O LIVRO NUNCA EXECUTA NA ORIGEM DO APP (revisão de segurança de 26/10/2026, `src/lib/leitor/foliate/PATCHES.md`).
  *
@@ -32,6 +34,7 @@ test.describe('Leitor — segurança do conteúdo do livro', () => {
     await expect(page.getByTestId('estante')).toBeVisible({ timeout: 30_000 })
     await page.getByTestId('abrir-arquivo').setInputFiles(HOSTIL)
     await expect(page.locator('[data-testid=leitor][data-estado=pronto]')).toBeVisible({ timeout: 30_000 })
+    await fecharSobreposicoes(page)
 
     // O capítulo seguro abriu, sem `allow-scripts` no iframe.
     let capitulo = page.frames().find((f) => f.url().startsWith('blob:'))

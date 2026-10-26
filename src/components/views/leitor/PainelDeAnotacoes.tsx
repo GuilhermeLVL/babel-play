@@ -96,7 +96,7 @@ export default function PainelDeAnotacoes({
               setTexto(a.nota);
             }}
           >
-            <Pencil aria-hidden /> {a.nota ? t('Editar') : t('Nota')}
+            <Pencil aria-hidden /> {a.nota ? t('Editar') : t('Anotar')}
           </button>
           <button
             type="button"

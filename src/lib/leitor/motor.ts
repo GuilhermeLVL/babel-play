@@ -182,7 +182,8 @@ export class MotorDoLeitor {
       r.setAttribute('gap', `${perfil.margem}%`);
       r.setAttribute('max-inline-size', `${perfil.largura}px`);
       r.setAttribute('max-column-count', '2');
-      r.setAttribute('margin', '48px');
+      /* A margem de cima e de baixo (cabeçalho e rodapé do paginador): menor no celular, onde a altura é curta. */
+      r.setAttribute('margin', window.matchMedia?.('(max-width: 640px)').matches ? '20px' : '44px');
     }
   }
 

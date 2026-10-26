@@ -20,6 +20,7 @@ import {
   dividirEmCapitulos,
   limparTextoDoGutenberg,
   LINHA_DE_CREDITO,
+  TextoComDireitosDeclarados,
 } from '../src/core/livros/gutenberg'
 
 const COM_MOLDURA = `\uFEFFThe Project Gutenberg eBook of Pride and Prejudice
@@ -116,6 +117,65 @@ describe('limpar a moldura do Gutenberg', () => {
     expect(contemMarcaDoGutenberg('<p>Project Gutenberg-tm</p>')).toBe(true)
     expect(contemMarcaDoGutenberg('see www.gutenberg.org/license')).toBe(true)
     expect(contemMarcaDoGutenberg('Johannes Gutenberg inventou a prensa.')).toBe(false)
+  })
+})
+
+/*
+ * MOLDURAS REAIS (tests/fixtures/livros/gutenberg/): cabeçalho, começo do texto e rodapé de arquivos de verdade
+ * do espelho, recortados (o miolo do livro saiu para o arquivo ficar pequeno). Os bytes são os do espelho:
+ * os `-8.txt` em latin-1, decodificados como o script decodifica (UTF-8 estrito, e latin-1 se falhar).
+ */
+const FIXTURES = 'tests/fixtures/livros/gutenberg'
+const decodificar = (b: Buffer) => {
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(b)
+  } catch {
+    return new TextDecoder('latin1').decode(b)
+  }
+}
+const fixture = (nome: string) => decodificar(readFileSync(join(FIXTURES, nome)))
+
+describe('molduras reais do Gutenberg (fixtures)', () => {
+  it.each([
+    ['pg-18600-latin1-8.txt', 'Adios, padres y hermanos', 'Rizal'],
+    ['pg-57303-latin1-8.txt', 'Nota del Transcriptor', 'CENTENARIO DE LA'],
+    ['pg-215-utf8-0.txt', 'The Call of the Wild', 'Jack London'],
+  ])('%s: sai o texto, sem cabeçalho, rodapé, licença nem crédito de voluntário', (nome, trecho, outro) => {
+    const bruto = fixture(nome)
+    expect(contemMarcaDoGutenberg(bruto)).toBe(true)
+    const { texto } = limparTextoDoGutenberg(bruto)
+    expect(texto).toContain(trecho)
+    expect(texto).toContain(outro)
+    expect(contemMarcaDoGutenberg(texto)).toBe(false)
+    expect(texto).not.toMatch(/Produced by|gutenberg\.(?:org|ph)|FULL LICENSE|START OF|END OF/i)
+  })
+
+  it('o latin-1 do -8.txt chega com os acentos certos', () => {
+    const { texto } = limparTextoDoGutenberg(fixture('pg-18600-latin1-8.txt'))
+    expect(texto).toContain('alma mía')
+    expect(texto).not.toContain('�')
+  })
+
+  it('o formato antigo ("SMALL PRINT!") de um etext COM DIREITOS declarados é recusado, nunca limpo', () => {
+    const bruto = fixture('pg-1619-small-print-copyright.txt')
+    expect(bruto).toMatch(/SMALL PRINT!/)
+    expect(() => limparTextoDoGutenberg(bruto)).toThrow(TextoComDireitosDeclarados)
+  })
+
+  it('o formato antigo de domínio público: a licença do topo termina no "*END*THE SMALL PRINT!"', () => {
+    /* O espelho não serve mais nenhum arquivo neste formato sem direitos; a moldura abaixo é a do 1619 (real)
+       com a frase de direitos trocada pela de domínio público, que é a única diferença entre os dois. */
+    const bruto = fixture('pg-1619-small-print-copyright.txt')
+      .replace(/\*\*This is a COPYRIGHTED Project Gutenberg Etext, Details Below\*\*/, 'The Project Gutenberg Etext')
+      .replace(/COPYRIGHTED Project Gutenberg/g, 'Project Gutenberg')
+      .replace(
+        /SMALL PRINT! Ver\.04\.29\.93 FOR COPYRIGHT PROTECTED ETEXTS\*END\*/,
+        '*END*THE SMALL PRINT! FOR PUBLIC DOMAIN ETEXTS*Ver.04.29.93*END*',
+      )
+      .replace(/for COPYRIGHT PROTECTED ETEXTS/g, 'FOR PUBLIC DOMAIN ETEXTS')
+    const { texto } = limparTextoDoGutenberg(bruto)
+    expect(texto).toContain('Fernando de Rojas')
+    expect(contemMarcaDoGutenberg(texto)).toBe(false)
   })
 })
 

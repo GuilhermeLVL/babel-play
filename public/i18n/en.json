@@ -5199,5 +5199,10 @@
   "Seções de Livros": "Books sections",
   "Carregando o catálogo": "Loading the catalog",
   "Clássicos em domínio público para ler no seu nível, ou um livro seu.": "Public-domain classics to read at your level, or a book of your own.",
-  "Nenhum livro encontrado": "No books found"
+  "Nenhum livro encontrado": "No books found",
+  "abriu, mas é grande demais para ficar guardado neste aparelho: depois de fechar a aba, será preciso trazer o arquivo de novo.": "opened, but it's too large to keep on this device: after closing the tab, you'll need to bring the file again.",
+  "Para caber, saiu deste aparelho o conteúdo dos livros abertos há mais tempo: {titulos}. Eles continuam na lista; para ler, traga o arquivo de novo.": "To make room, the content of the books opened longest ago left this device: {titulos}. They stay in the list; to read them, bring the file again.",
+  "A própria fonte diz que a obra tem direitos autorais": "The source itself says the work is under copyright",
+  "Os livros para a sua idade ainda estão em revisão": "The books for your age are still being reviewed",
+  "Cada livro só aparece aqui depois que uma pessoa confere a faixa etária dele. Enquanto isso, você pode ler um arquivo seu.": "Each book only shows up here after a person checks its age rating. Meanwhile, you can read a file of your own."
 }

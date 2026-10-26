@@ -11,7 +11,7 @@ import { useLangConfig } from '../../lib/langConfig';
 import { baseLang } from '../../lib/languages';
 import { abrirDetalheDoLivro, abrirLivroNoLeitor, voltarAoCatalogo } from '../../lib/livros/abrir';
 import { carregarCatalogo } from '../../lib/livros/catalogo';
-import { useMeusLivros } from '../../lib/livros/meusLivros';
+import { filtrarMeusLivrosVisiveis, useMeusLivros } from '../../lib/livros/meusLivros';
 import { leitorMenor, tetoDoLeitor } from '../../lib/livros/quemLe';
 import { abrirTextoDoCatalogo, abrirTextoTrazido } from '../../lib/livros/textoDoLivro';
 import type { AgeProfileType } from '../../lib/profile';
@@ -79,6 +79,11 @@ export default function Livros({
     [catalogo, teto],
   );
 
+  /* Sem o catálogo ainda, nenhum livro DO CATÁLOGO conta como visível (os trazidos, sim). */
+  const idsVisiveis = useMemo(() => new Set(visiveis.map((l) => l.id)), [visiveis]);
+  const visivel = (id: string) => idsVisiveis.has(id);
+  const meusVisiveis = filtrarMeusLivrosVisiveis(meus, visivel);
+
   const idiomasComLivro = useMemo(() => new Set(visiveis.map((l) => l.idioma)), [visiveis]);
   const [idiomaEscolhido, setIdiomaEscolhido] = useState<string | null>(() => lerLocal(CHAVE_DO_IDIOMA));
   const idioma =
@@ -115,7 +120,7 @@ export default function Livros({
 
   /* ── Um livro aberto: o detalhe, ou a leitura ─────────────────────────────────────────────── */
   if (livroAberto) {
-    const meu = meus.find((m) => m.id === livroAberto.id && m.origem !== 'catalogo');
+    const meu = meusVisiveis.find((m) => m.id === livroAberto.id && m.origem !== 'catalogo');
     if (meu && livroAberto.lendo) {
       return (
         <LeituraProvisoria
@@ -173,7 +178,7 @@ export default function Livros({
   /* ── O catálogo ───────────────────────────────────────────────────────────────────────────── */
   const abas: Array<{ id: Aba; rotulo: string; icone: React.ReactNode; n?: number }> = [
     { id: 'catalogo', rotulo: t('Catálogo'), icone: <BookOpen aria-hidden /> },
-    { id: 'meus', rotulo: t('Meus livros'), icone: <BookMarked aria-hidden />, n: meus.length },
+    { id: 'meus', rotulo: t('Meus livros'), icone: <BookMarked aria-hidden />, n: meusVisiveis.length },
     { id: 'trazer', rotulo: t('Trazer o seu'), icone: <Upload aria-hidden /> },
   ];
 
@@ -214,7 +219,26 @@ export default function Livros({
       </div>
 
       <div role="tabpanel" id={`lv-painel-${aba}`} aria-labelledby={`lv-aba-${aba}`} className="lv-painel">
+        {aba === 'catalogo' && catalogo && visiveis.length === 0 && (
+          <div className="q-vazio" data-testid="catalogo-vazio-para-o-perfil">
+            <span className="q-ic">
+              <BookOpen aria-hidden />
+            </span>
+            <h2>{t('Os livros para a sua idade ainda estão em revisão')}</h2>
+            <p>
+              {t(
+                'Cada livro só aparece aqui depois que uma pessoa confere a faixa etária dele. Enquanto isso, você pode ler um arquivo seu.',
+              )}
+            </p>
+            <div className="q-acoes">
+              <button type="button" className="q-ctl pri" onClick={() => setAba('trazer')}>
+                <Upload aria-hidden /> {t('Trazer o seu')}
+              </button>
+            </div>
+          </div>
+        )}
         {aba === 'catalogo' &&
+          !(catalogo && visiveis.length === 0) &&
           (catalogo ? (
             <Vitrine
               livros={visiveis}
@@ -243,6 +267,7 @@ export default function Livros({
           ))}
         {aba === 'meus' && (
           <MeusLivros
+            visivel={visivel}
             aoAbrir={(l) => abrirLivroNoLeitor(l)}
             aoTrazer={() => setAba('trazer')}
             aoCatalogo={() => setAba('catalogo')}

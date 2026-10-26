@@ -22,6 +22,7 @@ import {
 import { categoriasDosAssuntos, ehAutorDoVestibular, nomeNaOrdemDireta, slug } from '../src/core/livros/categorias'
 import { anoLimite, avaliarLegalidade } from '../src/core/livros/filtroLegal'
 import type { Catalogo, Classificacao, LivroDoCatalogo, LivroExcluido, NivelDoLivro } from '../src/core/livros/tipos'
+import { validarCatalogo } from '../src/lib/livros/catalogo'
 
 let n = 0
 function livro(o: Partial<LivroDoCatalogo> = {}): LivroDoCatalogo {
@@ -29,7 +30,7 @@ function livro(o: Partial<LivroDoCatalogo> = {}): LivroDoCatalogo {
   return {
     id: `l${n}`,
     titulo: `Livro ${n}`,
-    autores: [{ nome: 'Machado de Assis', anoMorte: 1908 }],
+    autores: [{ nome: 'Machado de Assis', anoMorte: 1908, idiomas: ['pt'] }],
     tradutores: [],
     idioma: 'pt',
     fonte: 'wikisource',
@@ -68,15 +69,55 @@ describe('quem pode ver o quê (critério 4)', () => {
     expect(visivelPara(de('14'), '12')).toBe(false)
   })
 
+  it('classificação desconhecida ou inválida é INVISÍVEL para livre e 12 (falha fechada)', () => {
+    for (const invalida of ['18+', undefined, 'adulto', '', 0, 'LIVRE'])
+      for (const teto of ['livre', '12'] as const)
+        expect(visivelPara({ classificacao: invalida }, teto), `${String(invalida)} / ${teto}`).toBe(false)
+  })
+
+  it('teto inválido não vê nada', () => {
+    expect(visivelPara(de('livre'), 'adulto' as never)).toBe(false)
+    expect(visivelPara(de('livre'), undefined as never)).toBe(false)
+  })
+
   it('livrosVisiveis aplica também a defesa dupla do filtro legal', () => {
+    const em2026 = new Date('2026-10-26T12:00:00-03:00')
     const lista = [
       livro({ classificacao: '18' }),
       livro({ classificacao: '12' }),
-      livro({ classificacao: 'livre', autores: [{ nome: 'Protegido', anoMorte: 1990 }] }),
-      livro({ classificacao: 'livre', autores: [{ nome: 'Sem ano', anoMorte: null }] }),
+      livro({ classificacao: 'livre', autores: [{ nome: 'Protegido', anoMorte: 1990, idiomas: ['pt'] }] }),
+      livro({ classificacao: 'livre', autores: [{ nome: 'Sem ano', anoMorte: null, idiomas: ['pt'] }] }),
+      /* Tradução sem tradutor: o autor escrevia em francês, o livro está em português. */
+      livro({ classificacao: 'livre', autores: [{ nome: 'Dumas', anoMorte: 1870, idiomas: ['fr'] }] }),
     ]
-    expect(livrosVisiveis(lista, '12', 1955).map((l) => l.classificacao)).toEqual(['12'])
-    expect(livrosVisiveis(lista, '18', 1955)).toHaveLength(2)
+    expect(livrosVisiveis(lista, '12', 1955, em2026).map((l) => l.classificacao)).toEqual(['12'])
+    expect(livrosVisiveis(lista, '18', 1955, em2026)).toHaveLength(2)
+  })
+})
+
+describe('o catálogo no cliente (validarCatalogo)', () => {
+  const em2026 = new Date('2026-10-26T12:00:00-03:00')
+  const bruto = (livros: unknown[]) => ({ versao: 1, ano: 2026, anoLimite: 1955, geradoEm: '', livros, exclusoes: [] })
+
+  it('classificação inválida vira null ("a revisar"), e o menor deixa de ver', () => {
+    const c = validarCatalogo(bruto([livro({ classificacao: '18+' as never }), livro({ classificacao: '12' })]), em2026)
+    expect(c.livros.map((l) => l.classificacao)).toEqual([null, '12'])
+    expect(livrosVisiveis(c.livros, '12', c.anoLimite, em2026)).toHaveLength(1)
+  })
+
+  it('descarta o que não passa na defesa, inclusive com anoLimite adulterado', () => {
+    const c = validarCatalogo(
+      {
+        ...bruto([livro({ autores: [{ nome: 'Recente', anoMorte: 1980, idiomas: ['pt'] }] }), livro()]),
+        anoLimite: 1990,
+      },
+      em2026,
+    )
+    expect(c.livros).toHaveLength(1)
+  })
+
+  it('formato desconhecido é recusado', () => {
+    expect(() => validarCatalogo({ versao: 2 })).toThrow()
   })
 })
 
@@ -230,7 +271,7 @@ describe.runIf(existsSync(CAMINHO))('o catálogo publicado', () => {
     const violacoes = catalogoPublicado()
       .livros.map((l) => ({
         l,
-        v: avaliarLegalidade({ ...l, ehTraducao: l.tradutores.length > 0 }, catalogoPublicado().ano),
+        v: avaliarLegalidade(l, catalogoPublicado().ano),
       }))
       .filter((x) => !x.v.entra)
       .map((x) => `${x.l.id}: ${'motivo' in x.v ? x.v.motivo : ''}`)
@@ -246,19 +287,26 @@ describe.runIf(existsSync(CAMINHO))('o catálogo publicado', () => {
     }
   })
 
-  it('ids únicos, e a classificação revisada aplicada de scripts/livros/classificacao.json', () => {
+  it('ids únicos; só a classificação REVISADA pelo dono é publicada, a proposta sai null', () => {
     const ids = catalogoPublicado().livros.map((l) => l.id)
     expect(new Set(ids).size).toBe(ids.length)
     const revisados = JSON.parse(readFileSync('scripts/livros/classificacao.json', 'utf8')).revisados as Array<{
       id: string
       classificacao: string
+      revisor?: string
     }>
-    for (const r of revisados) {
-      expect(['livre', '12', '14', '16', '18']).toContain(r.classificacao)
-      const l = catalogoPublicado().livros.find((x) => x.id === r.id)
-      if (l) expect(l.classificacao).toBe(r.classificacao)
+    const aprovados = revisados.filter((r) => r.revisor && r.revisor !== 'proposta-claude')
+    for (const r of revisados) expect(['livre', '12', '14', '16', '18']).toContain(r.classificacao)
+    for (const l of catalogoPublicado().livros) {
+      const r = aprovados.find((x) => x.id === l.id)
+      expect(l.classificacao, l.id).toBe(r ? r.classificacao : null)
     }
-    const naoRevisados = catalogoPublicado().livros.filter((l) => !revisados.some((r) => r.id === l.id))
-    expect(naoRevisados.every((l) => l.classificacao === null)).toBe(true)
+  })
+
+  it('todo autor publicado escreve no idioma do livro, ou o livro tem tradutor', () => {
+    const suspeitos = catalogoPublicado()
+      .livros.filter((l) => l.tradutores.length === 0 && !l.autores.every((a) => a.idiomas?.includes(l.idioma)))
+      .map((l) => l.id)
+    expect(suspeitos).toEqual([])
   })
 })

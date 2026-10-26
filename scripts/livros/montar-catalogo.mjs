@@ -32,8 +32,20 @@ import {
   slug,
 } from '../../src/core/livros/categorias.ts'
 import { lerEpubComoTexto } from '../../src/core/livros/epub.ts'
-import { anoLimite, avaliarLegalidade, respeitaOLimite } from '../../src/core/livros/filtroLegal.ts'
-import { LINHA_DE_CREDITO, limparTextoDoGutenberg } from '../../src/core/livros/gutenberg.ts'
+import { ehClassificacao } from '../../src/core/livros/catalogo.ts'
+import {
+  anoEmSaoPaulo,
+  anoLimite,
+  avaliarLegalidade,
+  passaNaDefesaDoCliente,
+} from '../../src/core/livros/filtroLegal.ts'
+import { metadadosLegaisDoGutendex, pessoaDoGutendex } from '../../src/core/livros/fontes.ts'
+import {
+  LINHA_DE_CREDITO,
+  limparTextoDoGutenberg,
+  TextoComDireitosDeclarados,
+} from '../../src/core/livros/gutenberg.ts'
+import { textoDizQueETraducao } from '../../src/core/livros/traducao.ts'
 import { contarPalavras, estimarNivel, montarIndiceCefr } from '../../src/core/livros/nivelEstimado.ts'
 import { textoDoEspelho } from './_espelho.mjs'
 import { baixar, pedidosFeitos, usarCache } from './_rede.mjs'
@@ -45,7 +57,11 @@ const AQUI = dirname(fileURLToPath(import.meta.url))
 
 const args = process.argv.slice(2)
 const arg = (nome) => args.find((a) => a.startsWith(`--${nome}=`))?.slice(nome.length + 3)
-const ANO = Number(arg('ano') ?? new Date().getFullYear())
+/* O ano é o CIVIL NO BRASIL (America/Sao_Paulo): a virada do domínio público é 1º de janeiro daqui. No CI
+   (que só roda `--verificar`) e em qualquer montagem automatizada, o ano tem de vir explícito. */
+if (process.env.CI && !arg('ano') && !args.includes('--verificar'))
+  throw new Error('no CI, --ano=AAAA é obrigatório (o relógio da máquina não decide o domínio público)')
+const ANO = Number(arg('ano') ?? anoEmSaoPaulo(new Date()))
 const SAIDA = join(RAIZ, arg('saida') ?? 'public/catalogo/livros.json')
 const SO_VERIFICAR = args.includes('--verificar')
 const RAPIDO = args.includes('--rapido')
@@ -84,8 +100,23 @@ const PALAVRAS_POR_MINUTO = 180
 /* ── Listas revisadas por pessoa ─────────────────────────────────────────────────────────────── */
 
 const lerJson = (arq) => JSON.parse(readFileSync(join(AQUI, arq), 'utf8'))
-/** `id → classificação`, revisada à mão (`classificacao.json`). Fora dela: `null`, "a revisar". */
-const CLASSIFICACAO = new Map(lerJson('classificacao.json').revisados.map((r) => [r.id, r.classificacao]))
+/**
+ * `id → classificação`, revisada à mão (`classificacao.json`). Fora dela: `null`, "a revisar". Só vale o item
+ * com `revisor` de pessoa: a PROPOSTA (`"revisor": "proposta-claude"`) sai `null` até o dono trocar o revisor
+ * pelo nome dele. Valor fora de livre/12/14/16/18 para a montagem (falha fechada, nunca vira "livre").
+ */
+export const REVISOR_DE_PROPOSTA = 'proposta-claude'
+const CLASSIFICACAO = new Map()
+for (const r of lerJson('classificacao.json').revisados) {
+  if (!ehClassificacao(r.classificacao)) throw new Error(`classificacao.json: "${r.classificacao}" inválida em ${r.id}`)
+  if (typeof r.revisor !== 'string' || !r.revisor.trim() || r.revisor === REVISOR_DE_PROPOSTA) continue
+  CLASSIFICACAO.set(r.id, r.classificacao)
+}
+/**
+ * Idiomas de autor decididos à mão (`idiomas-de-autor.json`), para quando a Wikidata não decide (pessoa não
+ * achada, ou sem idioma de escrita). Nome na ordem direta → códigos de duas letras.
+ */
+const IDIOMAS_MANUAIS = new Map(Object.entries(lerJson('idiomas-de-autor.json').autores))
 /** Obras anônimas ou coletivas que entram por justificativa escrita (`excecoes.json`). */
 const EXCECOES = new Map(lerJson('excecoes.json').obras.map((o) => [`${o.fonte}:${o.fonteId}`, o]))
 
@@ -180,19 +211,16 @@ function aceitar(meta, texto) {
     credito: meta.credito,
     licenca: licencaDe(meta.autores, meta.tradutores),
     ...(meta.resumo ? { resumo: meta.resumo } : {}),
+    ...(meta.traducaoDeclarada ? { traducaoDeclarada: true } : {}),
   })
   obrasVistas.add(chaveDaObra(meta.idioma, meta.titulo, meta.autores))
   return true
 }
 
-/** "translated by", "traducción de"… no começo do texto: a fonte esqueceu de dizer que é tradução. */
-const MARCA_DE_TRADUCAO =
-  /\b(?:translated\s+(?:from\s+[^\n]{0,60}?)?(?:into\s+\w+\s+)?by|translator|traduzid[oa]s?\s+(?:do\s+\w+\s+)?por|tradução\s+de|traducción\s+de|traducid[oa]\s+por|traduit\s+(?:de\s+[^\n]{0,40}?)?par|traduction\s+de|übersetzt\s+von|übersetzung\s+von|tradotto\s+da|traduzione\s+di|vertaald\s+door|przełożył|przekład|перевод|översatt\s+av|çeviren|翻訳|译)\b/i
+/* ── Wikidata: pessoas (ano de morte e idiomas de escrita) ──────────────────────────────────── */
 
-/* ── Wikidata: ano de morte por link da Wikipedia ────────────────────────────────────────────── */
-
-async function anosDeMortePorWikipedia(links) {
-  /* `https://en.wikipedia.org/wiki/Fyodor_Dostoevsky` → QID (pageprops) → P570. Em lotes de 50. */
+/** `https://en.wikipedia.org/wiki/Fyodor_Dostoevsky` → QID (pageprops), em lotes de 50. */
+async function qidsPorWikipedia(links) {
   const porWiki = new Map()
   for (const link of links) {
     const m = link.match(/^https?:\/\/([a-z-]+)\.wikipedia\.org\/wiki\/(.+)$/)
@@ -216,64 +244,157 @@ async function anosDeMortePorWikipedia(links) {
       }
     }
   }
-  const anoPorQid = await anosDeMortePorQid([...new Set(qidPorLink.values())])
-  return new Map([...qidPorLink].map(([link, qid]) => [link, anoPorQid.get(qid) ?? null]))
+  return qidPorLink
 }
 
-/** O ano de morte (P570) de uma entidade; com mais de uma data, a MAIS RECENTE (a mais restritiva). */
-function anoDeMorteDaEntidade(ent) {
-  /* Afirmação "obsoleta" (deprecated) é a que a própria Wikidata marcou como errada; havendo "preferida", só ela. */
-  const validas = (ent.claims?.P570 ?? []).filter((c) => c.rank !== 'deprecated')
+/** As afirmações válidas de uma propriedade: sem as obsoletas (deprecated); havendo "preferida", só ela. */
+function afirmacoes(ent, prop) {
+  const validas = (ent.claims?.[prop] ?? []).filter((c) => c.rank !== 'deprecated')
   const preferidas = validas.filter((c) => c.rank === 'preferred')
-  const anos = (preferidas.length ? preferidas : validas)
+  return preferidas.length ? preferidas : validas
+}
+
+/** O ano (P570, P569); com mais de uma data, a MAIS RECENTE (para a morte, a mais restritiva). */
+const anoDaEntidade = (ent, prop) => {
+  const anos = afirmacoes(ent, prop)
     .map((c) => anoDe(c.mainsnak?.datavalue?.value?.time))
     .filter((a) => a != null)
   return anos.length ? Math.max(...anos) : null
 }
 
-async function anosDeMortePorQid(qids) {
-  const ano = new Map()
-  for (let i = 0; i < qids.length; i += 50) {
-    const lote = qids.slice(i, i + 50)
+/** Três letras (ISO 639-2/3) → duas, para os idiomas que a P218 não cobre (chinês clássico, por exemplo). */
+const DE_TRES_LETRAS = {
+  eng: 'en',
+  spa: 'es',
+  por: 'pt',
+  fra: 'fr',
+  fre: 'fr',
+  deu: 'de',
+  ger: 'de',
+  ita: 'it',
+  rus: 'ru',
+  nld: 'nl',
+  dut: 'nl',
+  pol: 'pl',
+  swe: 'sv',
+  tur: 'tr',
+  ara: 'ar',
+  heb: 'he',
+  hin: 'hi',
+  jpn: 'ja',
+  kor: 'ko',
+  zho: 'zh',
+  chi: 'zh',
+  lzh: 'zh',
+  cmn: 'zh',
+  och: 'zh',
+  yue: 'zh',
+  lat: 'la',
+  grc: 'grc',
+  ell: 'el',
+  gre: 'el',
+}
+
+const codigoPorQidDeIdioma = new Map()
+async function codigosDosIdiomas(qids) {
+  const faltam = qids.filter((q) => !codigoPorQidDeIdioma.has(q))
+  for (let i = 0; i < faltam.length; i += 50) {
+    const lote = faltam.slice(i, i + 50)
     const j = await baixar(
       `https://www.wikidata.org/w/api.php?action=wbgetentities&props=claims&format=json&ids=${lote.join('|')}`,
       'json',
     )
     for (const [qid, ent] of Object.entries(j?.entities ?? {})) {
-      ano.set(qid, anoDeMorteDaEntidade(ent))
+      const valor = (p) => afirmacoes(ent, p)[0]?.mainsnak?.datavalue?.value
+      const duas = valor('P218')
+      const tres = valor('P219') ?? valor('P220')
+      const codigo = duas ?? DE_TRES_LETRAS[tres] ?? null
+      codigoPorQidDeIdioma.set(qid, typeof codigo === 'string' ? codigo.toLowerCase() : null)
     }
+    for (const q of lote) if (!codigoPorQidDeIdioma.has(q)) codigoPorQidDeIdioma.set(q, null)
   }
-  return ano
 }
 
-/** Nome (pt, senão en) e ano de morte de cada QID, seguindo redirecionamento. */
+/**
+ * Nome (pt, senão en), anos de nascimento e de morte e os IDIOMAS DE ESCRITA de cada QID, seguindo
+ * redirecionamento. Idiomas: P6886 (idioma de escrita), P1412 (idiomas falados, escritos ou sinalizados) e
+ * P103 (língua materna), juntos.
+ */
+const pessoaPorQid = new Map()
 async function pessoasPorQid(qids) {
-  const saida = new Map()
-  for (let i = 0; i < qids.length; i += 50) {
-    const lote = qids.slice(i, i + 50)
+  const faltam = [...new Set(qids)].filter((q) => !pessoaPorQid.has(q))
+  const brutas = new Map()
+  for (let i = 0; i < faltam.length; i += 50) {
+    const lote = faltam.slice(i, i + 50)
     const j = await baixar(
       `https://www.wikidata.org/w/api.php?action=wbgetentities&props=labels|claims&languages=pt|en&redirects=yes&format=json&ids=${lote.join('|')}`,
       'json',
     )
     for (const [qid, ent] of Object.entries(j?.entities ?? {})) {
-      const pessoa = {
-        nome: ent.labels?.pt?.value ?? ent.labels?.en?.value ?? null,
-        anoMorte: anoDeMorteDaEntidade(ent),
-      }
-      saida.set(ent.redirects?.from ?? qid, pessoa)
-      saida.set(qid, pessoa)
+      brutas.set(qid, ent)
+      if (ent.redirects?.from) brutas.set(ent.redirects.from, ent)
     }
   }
-  return saida
+  const qidsDeIdioma = new Set()
+  for (const ent of brutas.values())
+    for (const p of ['P6886', 'P1412', 'P103'])
+      for (const c of afirmacoes(ent, p))
+        if (c.mainsnak?.datavalue?.value?.id) qidsDeIdioma.add(c.mainsnak.datavalue.value.id)
+  await codigosDosIdiomas([...qidsDeIdioma])
+  for (const [qid, ent] of brutas) {
+    const idiomas = new Set()
+    for (const p of ['P6886', 'P1412', 'P103'])
+      for (const c of afirmacoes(ent, p)) {
+        const codigo = codigoPorQidDeIdioma.get(c.mainsnak?.datavalue?.value?.id)
+        if (codigo) idiomas.add(codigo)
+      }
+    pessoaPorQid.set(qid, {
+      nome: ent.labels?.pt?.value ?? ent.labels?.en?.value ?? null,
+      anoMorte: anoDaEntidade(ent, 'P570'),
+      anoNascimento: anoDaEntidade(ent, 'P569'),
+      idiomas: [...idiomas],
+    })
+  }
+  return new Map([...new Set(qids)].map((q) => [q, pessoaPorQid.get(q) ?? null]))
+}
+
+/**
+ * Os idiomas de escrita de uma pessoa do Gutendex. A Wikidata é buscada pelo nome, e o candidato só vale se
+ * o ano de morte bater (e o de nascimento também, quando os dois lados têm): homônimo não decide nada. Sem
+ * candidato que bata, a lista manual; sem ela, `null` (desconhecido = tradução, falha fechada).
+ */
+const idiomasResolvidos = new Map()
+async function idiomasDaPessoaDoGutendex(p) {
+  const nome = nomeNaOrdemDireta(p.name)
+  if (IDIOMAS_MANUAIS.has(nome)) return IDIOMAS_MANUAIS.get(nome)
+  if (!Number.isInteger(p.death_year)) return null
+  const chave = `${nome}|${p.birth_year}|${p.death_year}`
+  if (idiomasResolvidos.has(chave)) return idiomasResolvidos.get(chave)
+  const j = await baixar(
+    `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(nome)}&language=en&uselang=en&type=item&limit=10&format=json`,
+    'json',
+  )
+  const candidatos = await pessoasPorQid((j?.search ?? []).map((r) => r.id))
+  const bate = [...candidatos.values()].find(
+    (c) =>
+      c &&
+      c.anoMorte === p.death_year &&
+      (!Number.isInteger(p.birth_year) || c.anoNascimento == null || c.anoNascimento === p.birth_year),
+  )
+  const idiomas = bate?.idiomas?.length ? bate.idiomas : null
+  idiomasResolvidos.set(chave, idiomas)
+  return idiomas
+}
+
+/** Os idiomas de todas as pessoas de um livro do Gutendex, pelo nome na ordem direta. */
+async function idiomasDoLivroDoGutendex(b) {
+  const mapa = new Map()
+  for (const p of [...(b.authors ?? []), ...(b.translators ?? [])])
+    mapa.set(nomeNaOrdemDireta(p.name), await idiomasDaPessoaDoGutendex(p))
+  return mapa
 }
 
 /* ── Gutendex ────────────────────────────────────────────────────────────────────────────────── */
-
-const pessoasDoGutendex = (ps) =>
-  (ps ?? []).map((p) => ({
-    nome: nomeNaOrdemDireta(p.name),
-    anoMorte: Number.isInteger(p.death_year) ? p.death_year : null,
-  }))
 
 async function downloadsDoGutendex(ids) {
   const mapa = new Map()
@@ -313,11 +434,14 @@ async function standardEbooks() {
     candidatos.push({ caminho, url, epub })
     if (candidatos.length >= MAX_SE * 1.6) break
   }
-  /* Os anos de morte, de uma vez: todas as pessoas com link da Wikipedia. */
+  /* Anos de morte e idiomas, de uma vez: todas as pessoas com link da Wikipedia. */
   const links = candidatos.flatMap((c) =>
     [...c.epub.metadados.autores, ...c.epub.metadados.colaboradores].flatMap((p) => p.links),
   )
-  const anoPorLink = await anosDeMortePorWikipedia([...new Set(links)])
+  const qidPorLink = await qidsPorWikipedia([...new Set(links)])
+  const pessoaPorLink = new Map()
+  const pessoas = await pessoasPorQid([...new Set(qidPorLink.values())])
+  for (const [link, qid] of qidPorLink) pessoaPorLink.set(link, pessoas.get(qid))
   const idsDoGutenberg = candidatos.flatMap((c) =>
     c.epub.metadados.fontes.map((f) => Number(f.match(/gutenberg\.org\/(?:ebooks\/)?(\d+)/)?.[1])).filter(Boolean),
   )
@@ -335,10 +459,15 @@ async function standardEbooks() {
           if (slug(p.name).includes(sobrenome) && Number.isInteger(p.death_year)) return p.death_year
       return null
     }
-    const pessoa = (p) => ({
-      nome: p.nome,
-      anoMorte: p.links.map((l) => anoPorLink.get(l)).find((a) => a != null) ?? anoPorNome(p.nome),
-    })
+    const pessoa = (p) => {
+      const daWikidata = p.links.map((l) => pessoaPorLink.get(l)).find(Boolean)
+      const idiomas = daWikidata?.idiomas?.length ? daWikidata.idiomas : IDIOMAS_MANUAIS.get(p.nome)
+      return {
+        nome: p.nome,
+        anoMorte: daWikidata?.anoMorte ?? anoPorNome(p.nome),
+        ...(idiomas?.length ? { idiomas } : {}),
+      }
+    }
     const autores = md.autores.filter((p) => !p.papeis.length || p.papeis.includes('aut')).map(pessoa)
     const tradutores = md.colaboradores.filter((p) => p.papeis.includes('trl')).map(pessoa)
     const meta = {
@@ -357,13 +486,14 @@ async function standardEbooks() {
       credito: `Edição do Standard Ebooks (CC0), produzida por voluntários a partir de texto em domínio público.`,
       resumo: md.descricao ? md.descricao.split('\n\n')[0].slice(0, 400) : undefined,
     }
-    const v = avaliarLegalidade({ ...meta, ehTraducao: tradutores.length > 0 }, ANO)
+    if (aceitos >= MAX_SE) continue
+    const texto = c.epub.capitulos.map((x) => x.texto).join('\n\n')
+    meta.traducaoDeclarada = textoDizQueETraducao(texto)
+    const v = avaliarLegalidade(meta, ANO)
     if (!v.entra) {
       excluir(meta, v)
       continue
     }
-    if (aceitos >= MAX_SE) continue
-    const texto = c.epub.capitulos.map((x) => x.texto).join('\n\n')
     if (!aceitar(meta, texto)) continue
     for (const id of fontesPg) usadosDoGutenberg.add(id)
     aceitos++
@@ -383,9 +513,28 @@ async function gutendex(idioma, alvo, jaTem, pularIds) {
       if (aceitos >= alvo) break
       if (pularIds.has(b.id) || b.media_type !== 'Text' || (b.languages ?? []).length !== 1) continue
       const excecao = EXCECOES.get(`gutenberg-curado:${b.id}`)
-      const autores = excecao?.autores ?? pessoasDoGutendex(b.authors)
-      const tradutores = pessoasDoGutendex(b.translators)
       const titulo = b.title.split(/[:;]\s|\r?\n/)[0].trim()
+      /* Primeiro o que não custa rede: os anos de morte. Só quem passa ali vai à Wikidata atrás do idioma. */
+      const semIdioma = new Map()
+      const autoresSemIdioma = excecao?.autores ?? (b.authors ?? []).map((p) => pessoaDoGutendex(p, semIdioma))
+      const tradutoresSemIdioma = (b.translators ?? []).map((p) => pessoaDoGutendex(p, semIdioma))
+      const previa = avaliarLegalidade(
+        {
+          autores: autoresSemIdioma.map((a) => ({ ...a, idiomas: [idioma] })),
+          tradutores: tradutoresSemIdioma,
+          idioma,
+          fonte: 'gutenberg-curado',
+        },
+        ANO,
+      )
+      if (!previa.entra) {
+        excluir({ titulo, autores: autoresSemIdioma, idioma, fonteRotulo: 'Project Gutenberg' }, previa)
+        continue
+      }
+      const idiomasDasPessoas = excecao ? new Map() : await idiomasDoLivroDoGutendex(b)
+      const legais = metadadosLegaisDoGutendex(b, idioma, idiomasDasPessoas)
+      const autores = excecao?.autores ?? legais.autores
+      const tradutores = legais.tradutores
       const meta = {
         id: `pg-${b.id}`,
         titulo,
@@ -402,7 +551,7 @@ async function gutendex(idioma, alvo, jaTem, pularIds) {
         credito: LINHA_DE_CREDITO,
       }
       if (obrasVistas.has(chaveDaObra(idioma, titulo, autores))) continue
-      const antes = avaliarLegalidade({ ...meta, ehTraducao: tradutores.length > 0 }, ANO)
+      const antes = avaliarLegalidade(meta, ANO)
       if (!antes.entra) {
         excluir(meta, antes)
         continue
@@ -412,15 +561,16 @@ async function gutendex(idioma, alvo, jaTem, pularIds) {
       let texto
       try {
         texto = limparTextoDoGutenberg(bruto).texto
-      } catch {
+      } catch (e) {
+        if (e instanceof TextoComDireitosDeclarados)
+          excluir(meta, { motivo: 'direitos-declarados-na-fonte', detalhe: e.message })
         continue
       }
       /* A fonte não disse que é tradução, mas o texto diz: sem tradutor identificado, fora. */
-      if (tradutores.length === 0 && MARCA_DE_TRADUCAO.test(texto.slice(0, 4000))) {
-        excluir(meta, {
-          motivo: 'traducao-sem-tradutor',
-          detalhe: 'o texto diz que é tradução, sem tradutor identificado',
-        })
+      meta.traducaoDeclarada = textoDizQueETraducao(texto)
+      const depois = avaliarLegalidade(meta, ANO)
+      if (!depois.entra) {
+        excluir(meta, depois)
         continue
       }
       if (contarPalavras(texto.slice(0, 20_000), idioma) < 300 && idioma !== 'zh' && idioma !== 'ja') continue
@@ -432,10 +582,11 @@ async function gutendex(idioma, alvo, jaTem, pularIds) {
 
 /* ── Wikisource em português ─────────────────────────────────────────────────────────────────── */
 
-const SPARQL_PT = `SELECT ?obra ?titulo ?links ?autor ?autorLabel ?morte ?generoLabel WHERE {
+const SPARQL_PT = `SELECT ?obra ?titulo ?links ?autor ?autorLabel ?morte ?tradutor ?generoLabel WHERE {
   ?pagina schema:about ?obra ; schema:isPartOf <https://pt.wikisource.org/> ; schema:name ?titulo .
   ?obra wdt:P407 wd:Q5146 ; wikibase:sitelinks ?links .
   OPTIONAL { ?obra wdt:P50 ?autor . OPTIONAL { ?autor wdt:P570 ?morte . } }
+  OPTIONAL { ?obra wdt:P655 ?tradutor . }
   OPTIONAL { ?obra wdt:P136 ?genero . }
   FILTER(!CONTAINS(?titulo, "/") && !CONTAINS(?titulo, ":"))
   SERVICE wikibase:label { bd:serviceParam wikibase:language "pt,en". }
@@ -484,6 +635,7 @@ async function wikisourcePt(alvo) {
       titulo: b.titulo.value,
       links: Number(b.links.value),
       autores: new Map(),
+      tradutores: new Set(),
       generos: new Set(),
     }
     if (b.autor) {
@@ -497,27 +649,36 @@ async function wikisourcePt(alvo) {
         anoMorte: !antes ? ano : antes.anoMorte == null || ano == null ? null : Math.max(antes.anoMorte, ano),
       })
     }
+    if (b.tradutor) o.tradutores.add(b.tradutor.value.split('/').pop())
     if (b.generoLabel) o.generos.add(b.generoLabel.value)
     if (o.titulo !== 'Página principal') obras.set(qid, o)
   }
-  /* O serviço de rótulos devolve o próprio QID quando o item não tem rótulo em pt/en (item redirecionado):
-     esses vão de novo à Wikidata, que segue o redirecionamento e dá o nome e a data. */
-  const semNome = [...obras.values()].flatMap((o) => [...o.autores.values()]).filter((a) => /^Q\d+$/.test(a.nome))
-  const resolvidos = await pessoasPorQid([...new Set(semNome.map((a) => a.qid))])
-  for (const a of semNome) {
-    const r = resolvidos.get(a.qid)
-    if (r) Object.assign(a, { nome: r.nome ?? a.nome, anoMorte: r.anoMorte })
+  /* Nome, ano de morte e idiomas de escrita de TODAS as pessoas (autores e tradutores, P655) pela Wikidata, a
+     mesma régua das outras fontes. O ano de morte fica o MAIS RECENTE entre a consulta e a entidade. */
+  const todas = [...obras.values()].flatMap((o) => [...[...o.autores.values()].map((a) => a.qid), ...o.tradutores])
+  const pessoas = await pessoasPorQid(todas)
+  const pessoaDaWikidata = (qid, rotulo, anoDaConsulta) => {
+    const r = pessoas.get(qid)
+    const anos = [anoDaConsulta, r?.anoMorte].filter((a) => a != null)
+    return {
+      nome: r?.nome ?? (rotulo && !/^Q\d+$/.test(rotulo) ? rotulo : qid),
+      anoMorte: anos.length && anoDaConsulta !== null ? Math.max(...anos) : (r?.anoMorte ?? null),
+      ...(r?.idiomas?.length ? { idiomas: r.idiomas } : {}),
+    }
   }
   let aceitos = 0
   for (const o of [...obras.values()].sort((a, b) => b.links - a.links)) {
     if (aceitos >= alvo) break
-    const autores = [...o.autores.values()].map(({ nome, anoMorte }) => ({ nome, anoMorte }))
+    const autores = [...o.autores.values()].map((a) => pessoaDaWikidata(a.qid, a.nome, a.anoMorte))
+    const tradutores = [...o.tradutores].map((q) => pessoaDaWikidata(q, null, null))
     const meta = {
       id: `ws-pt-${slug(o.titulo)}`,
       titulo: o.titulo.replace(/\s*\((?:\d{4}|[^)]*edição[^)]*)\)\s*$/i, ''),
       autores,
-      tradutores: [],
+      tradutores,
       idioma: 'pt',
+      /* P655 na obra = tradução declarada, mesmo que a pessoa não tenha sido resolvida. */
+      traducaoDeclarada: o.tradutores.size > 0,
       fonte: 'wikisource',
       fonteRotulo: 'Wikisource',
       fonteId: o.titulo,
@@ -531,7 +692,7 @@ async function wikisourcePt(alvo) {
       credito: 'Texto da Wikisource em português, transcrito e revisado por voluntários.',
     }
     if (obrasVistas.has(chaveDaObra('pt', meta.titulo, autores))) continue
-    const v = avaliarLegalidade({ ...meta, ehTraducao: false }, ANO)
+    const v = avaliarLegalidade(meta, ANO)
     if (!v.entra) {
       excluir(meta, v)
       continue
@@ -596,17 +757,32 @@ function normalizarPopularidade() {
   }
 }
 
-/** Confere TODO livro contra o filtro (e o JSON contra a estrutura). Devolve a lista de problemas. */
-function conferir(catalogo) {
+/**
+ * Confere TODO livro contra o filtro (a MESMA regra da montagem: `avaliarLegalidade`, com a tradução decidida
+ * pelos idiomas dos autores gravados no JSON) e o JSON contra a estrutura. Devolve a lista de problemas.
+ */
+function conferir(catalogo, agora = new Date()) {
   const problemas = []
   if (catalogo.anoLimite !== anoLimite(catalogo.ano)) problemas.push(`anoLimite ${catalogo.anoLimite} ≠ ano − 71`)
+  if (catalogo.ano > anoEmSaoPaulo(agora))
+    problemas.push(`catálogo montado para ${catalogo.ano}, mas no Brasil ainda é ${anoEmSaoPaulo(agora)}`)
   const ids = new Set()
+  const propostas = new Set(
+    lerJson('classificacao.json')
+      .revisados.filter((r) => !r.revisor || r.revisor === REVISOR_DE_PROPOSTA)
+      .map((r) => r.id),
+  )
   for (const l of catalogo.livros) {
     if (ids.has(l.id)) problemas.push(`id repetido: ${l.id}`)
     ids.add(l.id)
-    const v = avaliarLegalidade({ ...l, ehTraducao: l.tradutores.length > 0 }, catalogo.ano)
+    const v = avaliarLegalidade(l, catalogo.ano)
     if (!v.entra) problemas.push(`${l.id} (${l.titulo}): ${v.motivo}: ${v.detalhe}`)
-    if (!respeitaOLimite(l, catalogo.anoLimite)) problemas.push(`${l.id}: passa do anoLimite ${catalogo.anoLimite}`)
+    if (!passaNaDefesaDoCliente(l, catalogo.anoLimite, agora))
+      problemas.push(`${l.id}: o cliente o recusaria (ano-limite ${catalogo.anoLimite})`)
+    if (l.classificacao !== null && !ehClassificacao(l.classificacao))
+      problemas.push(`${l.id}: classificação inválida "${l.classificacao}"`)
+    if (l.classificacao !== null && propostas.has(l.id))
+      problemas.push(`${l.id}: classificação de PROPOSTA publicada sem revisão do dono`)
     if (l.fonte === 'gutenberg-curado' && (l.formatos.epub || !l.formatos.r2))
       problemas.push(`${l.id}: Gutenberg só pela cópia curada no R2`)
   }

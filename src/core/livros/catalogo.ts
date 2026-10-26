@@ -6,7 +6,7 @@
  * dos filtros nem por link direto (critério 4). A tela pergunta `visivelPara` e nunca filtra por conta própria.
  */
 import { dobrarTexto } from '../texto/palavra';
-import { respeitaOLimite } from './filtroLegal';
+import { passaNaDefesaDoCliente } from './filtroLegal';
 import {
   type CategoriaDoLivro,
   type Classificacao,
@@ -26,22 +26,33 @@ import {
  */
 export type TetoDeClassificacao = Classificacao;
 
-export function visivelPara(livro: Pick<LivroDoCatalogo, 'classificacao'>, teto: TetoDeClassificacao): boolean {
+/** O valor é uma classificação conhecida? (`'18+'`, `'adulto'`, `undefined` não são.) */
+export const ehClassificacao = (c: unknown): c is Classificacao => (CLASSIFICACOES as readonly unknown[]).includes(c);
+
+/**
+ * Falha FECHADA: teto desconhecido não vê nada; classificação desconhecida ou inválida vale como "a revisar"
+ * (`null`), que só o adulto vê. Nunca compara `indexOf` cru: o −1 de um valor inválido passaria como "livre".
+ */
+export function visivelPara(livro: { classificacao?: unknown }, teto: TetoDeClassificacao): boolean {
+  if (!ehClassificacao(teto)) return false;
   if (teto === '18') return true;
-  if (livro.classificacao === null) return false;
-  return CLASSIFICACOES.indexOf(livro.classificacao) <= CLASSIFICACOES.indexOf(teto);
+  const c = livro.classificacao;
+  if (!ehClassificacao(c)) return false;
+  return CLASSIFICACOES.indexOf(c) <= CLASSIFICACOES.indexOf(teto);
 }
 
 /**
- * O catálogo que este leitor pode ver: a defesa dupla do filtro legal (`anoLimite` do próprio catálogo) e a
- * classificação. É a ÚNICA porta: vitrine, busca, filtros e detalhe partem daqui.
+ * O catálogo que este leitor pode ver: a defesa dupla do filtro legal (o ano-limite mais restritivo entre o
+ * do catálogo e o do relógio do Brasil, e a regra da tradução) e a classificação. É a ÚNICA porta: vitrine,
+ * busca, filtros, detalhe e "Meus livros" partem daqui.
  */
 export function livrosVisiveis(
   livros: readonly LivroDoCatalogo[],
   teto: TetoDeClassificacao,
   limite: number,
+  agora: Date = new Date(),
 ): LivroDoCatalogo[] {
-  return livros.filter((l) => respeitaOLimite(l, limite) && visivelPara(l, teto));
+  return livros.filter((l) => passaNaDefesaDoCliente(l, limite, agora) && visivelPara(l, teto));
 }
 
 /* ── Filtros ─────────────────────────────────────────────────────────────────────────────────── */

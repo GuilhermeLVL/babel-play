@@ -38,7 +38,7 @@ const CATALOGO = {
     livro({
       id: 'se-teste-pequena-viagem',
       titulo: 'A Pequena Viagem',
-      autores: [{ nome: 'Autora Antiga', anoMorte: 1900 }],
+      autores: [{ nome: 'Autora Antiga', anoMorte: 1900, idiomas: ['en'] }],
       idioma: 'en',
       fonte: 'standard-ebooks',
       fonteId: 'teste/pequena-viagem',
@@ -53,7 +53,7 @@ const CATALOGO = {
     livro({
       id: 'ws-pt-contos-da-serra',
       titulo: 'Contos da Serra',
-      autores: [{ nome: 'Machado de Assis', anoMorte: 1908 }],
+      autores: [{ nome: 'Machado de Assis', anoMorte: 1908, idiomas: ['pt'] }],
       idioma: 'pt',
       fonte: 'wikisource',
       fonteId: 'Contos da Serra',
@@ -65,7 +65,7 @@ const CATALOGO = {
     livro({
       id: 'pg-9999',
       titulo: 'Noite Proibida',
-      autores: [{ nome: 'Autor Adulto', anoMorte: 1920 }],
+      autores: [{ nome: 'Autor Adulto', anoMorte: 1920, idiomas: ['en'] }],
       idioma: 'en',
       fonte: 'gutenberg-curado',
       fonteId: '9999',
@@ -78,7 +78,7 @@ const CATALOGO = {
     livro({
       id: 'pg-9998',
       titulo: 'Romance Sem Revisão',
-      autores: [{ nome: 'Autor Qualquer', anoMorte: 1890 }],
+      autores: [{ nome: 'Autor Qualquer', anoMorte: 1890, idiomas: ['en'] }],
       idioma: 'en',
       fonte: 'gutenberg-curado',
       fonteId: '9998',
@@ -90,7 +90,7 @@ const CATALOGO = {
     livro({
       id: 'pg-9997',
       titulo: 'Obra Protegida',
-      autores: [{ nome: 'Autor Recente', anoMorte: 1990 }],
+      autores: [{ nome: 'Autor Recente', anoMorte: 1990, idiomas: ['en'] }],
       idioma: 'en',
       fonte: 'gutenberg-curado',
       fonteId: '9997',
@@ -285,6 +285,11 @@ test.describe('Livros', () => {
     await page.getByTestId('busca-de-livros').fill('noite proibida')
     await expect(page.getByRole('heading', { name: 'Nenhum livro encontrado' })).toBeVisible()
     await expect(page.getByText('Noite Proibida')).toHaveCount(0)
+
+    /* "Por que não está?" para menor: só a explicação geral, nenhum título excluído. */
+    await page.getByTestId('busca-de-livros').fill('guimarães rosa')
+    await expect(page.getByTestId('por-que-nao-esta')).toContainText('70 anos')
+    await expect(page.getByTestId('por-que-nao-esta')).not.toContainText('Grande Sertão')
 
     await abrirTela(page, '/livros/pg-9999')
     await expect(page.getByTestId('livro-nao-encontrado')).toBeVisible()

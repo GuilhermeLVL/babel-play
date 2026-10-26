@@ -19,7 +19,10 @@ export const LINHA_DE_CREDITO = 'Texto de domínio público obtido do Project Gu
 const MARCAS = [
   /project\s+gutenberg/i,
   /gutenberg[\s-]*tm/i,
-  /gutenberg\.org/i,
+  /gutenberg\.(?:org|net|ph|ca|au|de|eu)\b/i,
+  /proje(?:c|k|kt)?to(?:ng)?\s+gutenberg/i,
+  /proyekto(?:ng)?\s+gutenberg/i,
+  /small\s+print!/i,
   /gutenberg\s+literary\s+archive/i,
   /pglaf/i,
   /\bPG\s+(?:e-?book|edition|license)/i,
@@ -33,6 +36,18 @@ export function contemMarcaDoGutenberg(texto: string): boolean {
 }
 
 const INICIO = /^\s*\*{3}\s*START OF (?:THE|THIS) PROJECT GUTENBERG E-?BOOK[^\n]*$/im;
+/* O formato antigo (até ~2002): a licença vem no topo e termina na linha "*END*THE SMALL PRINT! … *END*". */
+const INICIO_ANTIGO = /^[^\n]*SMALL PRINT![^\n]*\*END\*[^\n]*$/im;
+/* "This is a COPYRIGHTED Project Gutenberg Etext": o projeto distribuía, com permissão, obra AINDA protegida. */
+const COM_DIREITOS = /COPYRIGHTED\s+Project\s+Gutenberg|COPYRIGHT\s+PROTECTED\s+ETEXTS/i;
+
+/** O texto declara que tem direitos autorais (o Gutenberg distribuía algumas obras protegidas com permissão). */
+export class TextoComDireitosDeclarados extends Error {
+  constructor() {
+    super('o próprio texto do Gutenberg declara direitos autorais (COPYRIGHTED etext)');
+    this.name = 'TextoComDireitosDeclarados';
+  }
+}
 const FIM = /^\s*\*{3}\s*END OF (?:THE|THIS) PROJECT GUTENBERG E-?BOOK[^\n]*$/im;
 /* Textos antigos usam "*END*THE SMALL PRINT!" e afins; o rodapé de alguns começa com "End of the Project…". */
 const FIM_ANTIGO = /^\s*End of (?:the )?Project Gutenberg[^\n]*$/im;
@@ -49,7 +64,8 @@ export interface TextoLimpo {
  */
 export function limparTextoDoGutenberg(bruto: string): TextoLimpo {
   const texto = bruto.replace(/\r\n?/g, '\n').replace(/^\uFEFF/, '');
-  const inicio = texto.match(INICIO);
+  if (COM_DIREITOS.test(texto.slice(0, 20_000))) throw new TextoComDireitosDeclarados();
+  const inicio = texto.match(INICIO) ?? texto.match(INICIO_ANTIGO);
   if (!inicio || inicio.index === undefined) throw new Error('texto sem o marcador de início do Gutenberg');
   let miolo = texto.slice(inicio.index + inicio[0].length);
   const fim = miolo.match(FIM) ?? miolo.match(FIM_ANTIGO);

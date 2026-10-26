@@ -1,5 +1,5 @@
 /**
- * O FILTRO LEGAL DO CATÁLOGO (spec de Livros & Leitura, Design §1). Função pura, sem relógio.
+ * O FILTRO LEGAL DO CATÁLOGO (spec de Livros & Leitura, Design §1). Função pura: o relógio entra por parâmetro.
  *
  * No Brasil a obra entra em domínio público 70 anos contados de 1º de janeiro do ano seguinte à morte do
  * autor (Lei 9.610, art. 41). Morto em 1955, a obra é livre desde 1º/1/2026; morto em 1956, só em 2027.
@@ -10,7 +10,7 @@
  *   1. a fonte é uma das aceitas;
  *   2. há autor (obra anônima só entra pela lista de exceções revisada, que o chamador aplica antes);
  *   3. todo autor tem ano de morte, e ele é ≤ `anoLimite`;
- *   4. a obra marcada como tradução tem tradutor identificado;
+ *   4. o que É TRADUÇÃO tem tradutor identificado (ver `ehTraducao`: na dúvida, é tradução);
  *   5. todo tradutor tem ano de morte, e ele é ≤ `anoLimite`.
  * Sem ano de morte, FORA: na dúvida, o livro não entra.
  */
@@ -21,17 +21,41 @@ export function anoLimite(ano: number): number {
   return ano - 71;
 }
 
+/**
+ * O ANO CIVIL NO BRASIL (America/Sao_Paulo). A virada que importa para a Lei 9.610 é 1º de janeiro aqui: às
+ * 23h de 31/12 em São Paulo já é 1º/1 em UTC, e um relógio em UTC liberaria uma obra algumas horas antes.
+ */
+export function anoEmSaoPaulo(agora: Date): number {
+  const ano = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', year: 'numeric' }).format(agora);
+  return Number(ano);
+}
+
 export interface MetadadosLegais {
   autores: readonly Pessoa[];
   tradutores: readonly Pessoa[];
-  /** A fonte (ou o texto) diz que é tradução: `translators` no Gutendex, "translated by" no texto, `trl` no OPF. */
-  ehTraducao: boolean;
+  /** O idioma do TEXTO que vai ser lido (código de duas letras). */
+  idioma: string;
+  /** A fonte ou o próprio texto diz que é tradução ("translated by", `trl` no OPF, P655 na Wikidata). */
+  traducaoDeclarada?: boolean;
   fonte: string;
 }
 
 export type Veredito = { entra: true } | { entra: false; motivo: MotivoDeExclusao; detalhe: string };
 
 const lista = (ps: readonly Pessoa[]) => ps.map((p) => p.nome).join(', ');
+
+/**
+ * É TRADUÇÃO? Sim quando há tradutor, quando a fonte ou o texto dizem que é, e quando NÃO DÁ PARA CONFIRMAR
+ * que cada autor escrevia no idioma do texto (`idiomas` vem da Wikidata: idioma de escrita, idiomas falados
+ * ou escritos, língua materna; ou da lista manual revisada). Falha fechada: autor sem idioma conhecido conta
+ * como tradução, e tradução sem tradutor identificado não entra.
+ */
+export function ehTraducao(
+  m: Pick<MetadadosLegais, 'autores' | 'tradutores' | 'idioma' | 'traducaoDeclarada'>,
+): boolean {
+  if (m.tradutores.length > 0 || m.traducaoDeclarada) return true;
+  return !m.autores.every((a) => !!a.idiomas?.length && a.idiomas.includes(m.idioma));
+}
 
 export function avaliarLegalidade(m: MetadadosLegais, ano: number): Veredito {
   const limite = anoLimite(ano);
@@ -57,8 +81,14 @@ export function avaliarLegalidade(m: MetadadosLegais, ano: number): Veredito {
       detalhe: `${autorProtegido.nome} morreu em ${autorProtegido.anoMorte}; a obra fica livre no Brasil em ${(autorProtegido.anoMorte as number) + 71}`,
     };
   }
-  if (m.ehTraducao && m.tradutores.length === 0) {
-    return { entra: false, motivo: 'traducao-sem-tradutor', detalhe: 'tradução sem tradutor identificado' };
+  if (ehTraducao(m) && m.tradutores.length === 0) {
+    const semIdioma = m.autores.filter((a) => !a.idiomas?.length);
+    const detalhe = m.traducaoDeclarada
+      ? 'a fonte diz que é tradução, sem tradutor identificado'
+      : semIdioma.length
+        ? `não deu para confirmar o idioma em que ${lista(semIdioma)} escrevia; tratado como tradução sem tradutor`
+        : 'o autor não escrevia neste idioma: é tradução, sem tradutor identificado';
+    return { entra: false, motivo: 'traducao-sem-tradutor', detalhe };
   }
   const tradutorSemAno = m.tradutores.filter((t) => t.anoMorte == null);
   if (tradutorSemAno.length) {
@@ -85,14 +115,17 @@ export function entraNoCatalogo(m: MetadadosLegais, ano: number): boolean {
 }
 
 /**
- * A DEFESA DUPLA DO CLIENTE: o catálogo publicado guarda `anoLimite`, e o cliente recusa o livro cujo ano de
- * morte (de autor ou tradutor) passe dele ou falte. Um JSON adulterado ou montado com `--ano` errado não
- * publica obra protegida.
+ * A DEFESA DUPLA DO CLIENTE: o mesmo filtro, de novo, sobre cada livro do JSON publicado, com o ano-limite
+ * MAIS RESTRITIVO entre o que o catálogo declara e o que o relógio do Brasil dá (`anoEmSaoPaulo − 71`). Um
+ * catálogo montado com `--ano` adiantado, ou com o `anoLimite` editado à mão, não libera obra protegida; um
+ * livro sem ano de morte, ou tradução sem tradutor, cai aqui mesmo que o script o tenha deixado passar.
+ * O que ela NÃO pega: um ano de morte errado no próprio JSON (aí só a revisão da fonte resolve).
  */
-export function respeitaOLimite(
-  livro: { autores: readonly Pessoa[]; tradutores: readonly Pessoa[] },
-  limite: number,
+export function passaNaDefesaDoCliente(
+  livro: Pick<MetadadosLegais, 'autores' | 'tradutores' | 'idioma' | 'traducaoDeclarada' | 'fonte'>,
+  anoLimitePublicado: number,
+  agora: Date,
 ): boolean {
-  if (livro.autores.length === 0) return false;
-  return [...livro.autores, ...livro.tradutores].every((p) => p.anoMorte != null && p.anoMorte <= limite);
+  const limite = Math.min(anoLimitePublicado, anoLimite(anoEmSaoPaulo(agora)));
+  return avaliarLegalidade(livro, limite + 71).entra;
 }

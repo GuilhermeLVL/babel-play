@@ -25,7 +25,8 @@ export default function PorQueNaoEsta({
   menor: boolean;
   aoTrazer: () => void;
 }) {
-  const achados = buscarExcluidos(exclusoes, busca);
+  /* Para menor de idade, nenhum título excluído aparece (pode ser obra adulta): só a explicação geral. */
+  const achados = menor ? [] : buscarExcluidos(exclusoes, busca);
   return (
     <section className="q-cartao lv-porque" aria-labelledby="lv-porque-titulo" data-testid="por-que-nao-esta">
       <h2 id="lv-porque-titulo">

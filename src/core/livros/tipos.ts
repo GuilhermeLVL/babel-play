@@ -47,6 +47,11 @@ export interface Pessoa {
   nome: string;
   /** Ano da morte. `null` = desconhecido, e quem não tem ano não entra no catálogo (ver `filtroLegal`). */
   anoMorte: number | null;
+  /**
+   * Os idiomas em que a pessoa escrevia (códigos de duas letras), da Wikidata ou da lista manual revisada.
+   * Ausente = desconhecido, e autor de idioma desconhecido faz a obra contar como tradução (`ehTraducao`).
+   */
+  idiomas?: string[];
 }
 
 /** Como abrir o texto. Só o que a fonte oferece; o cliente escolhe. */
@@ -94,6 +99,8 @@ export interface LivroDoCatalogo {
   /** "Domínio público no Brasil" + a justificativa curta. */
   licenca: string;
   resumo?: string;
+  /** A fonte ou o texto dizem que é tradução (mesmo sem dizer de quem). Entra no filtro do cliente. */
+  traducaoDeclarada?: boolean;
 }
 
 /** Por que um livro que a fonte tem NÃO está no catálogo. A tela usa para responder "por que não está?". */
@@ -105,6 +112,7 @@ export const MOTIVOS_DE_EXCLUSAO = [
   'tradutor-sem-ano-de-morte',
   'traducao-sem-tradutor',
   'fonte-nao-aceita',
+  'direitos-declarados-na-fonte',
 ] as const;
 export type MotivoDeExclusao = (typeof MOTIVOS_DE_EXCLUSAO)[number];
 

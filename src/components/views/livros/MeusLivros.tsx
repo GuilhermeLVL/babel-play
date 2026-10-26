@@ -3,6 +3,7 @@ import React from 'react';
 
 import { t } from '../../../lib/i18n';
 import {
+  filtrarMeusLivrosVisiveis,
   type MeuLivro,
   mudarStatus,
   recentes,
@@ -25,12 +26,19 @@ export default function MeusLivros({
   aoAbrir,
   aoTrazer,
   aoCatalogo,
+  visivel,
 }: {
   aoAbrir: (livro: MeuLivro) => void;
   aoTrazer: () => void;
   aoCatalogo: () => void;
+  /**
+   * O livro DO CATÁLOGO que este perfil pode ver (`livrosVisiveis`). Um guardado que deixou de ser visível (a
+   * conta passou a ser de menor, a classificação mudou) some da lista, sem dizer o título. Os trazidos pela
+   * pessoa continuam: são dela.
+   */
+  visivel: (id: string) => boolean;
 }) {
-  const lista = useMeusLivros();
+  const lista = filtrarMeusLivrosVisiveis(useMeusLivros(), visivel);
   if (lista.length === 0) {
     return (
       <section className="q-vazio" data-testid="meus-livros">

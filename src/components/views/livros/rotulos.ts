@@ -75,6 +75,8 @@ export function rotuloDoMotivo(m: MotivoDeExclusao): string {
       return t('É uma tradução sem tradutor identificado');
     case 'fonte-nao-aceita':
       return t('A fonte não está entre as que usamos');
+    case 'direitos-declarados-na-fonte':
+      return t('A própria fonte diz que a obra tem direitos autorais');
   }
 }
 

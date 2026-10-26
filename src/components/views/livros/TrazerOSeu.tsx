@@ -11,15 +11,17 @@ import {
   guardarConteudo,
   guardarEmMemoria,
   guardarMeuLivro,
+  lerMeusLivros,
   type MeuLivro,
   novoIdDeLivroTrazido,
+  type ResultadoDaGuarda,
 } from '../../../lib/livros/meusLivros';
 
 type Estado =
   | { tipo: 'parado' }
   | { tipo: 'lendo'; oQue: string }
   | { tipo: 'erro'; mensagem: string }
-  | { tipo: 'pronto'; livro: MeuLivro; guardado: boolean };
+  | { tipo: 'pronto'; livro: MeuLivro; guarda: ResultadoDaGuarda; sairam: string[] };
 
 /** Um texto corrido (PDF, artigo) vira capítulos de ~3000 palavras, para a leitura não ser uma página só. */
 function emCapitulos(texto: string, rotulo: (i: number) => string): CapituloDeTexto[] {
@@ -60,9 +62,16 @@ export default function TrazerOSeu({ aoAbrir }: { aoAbrir: (livro: MeuLivro) => 
     const id = novoIdDeLivroTrazido();
     const conteudo = { id, capitulos, ...(arquivo ? { arquivo } : {}) };
     guardarEmMemoria(conteudo);
-    const guardado = await guardarConteudo(conteudo);
+    const guarda = await guardarConteudo(conteudo);
+    /* Os títulos dos que saíram para este caber (o conteúdo; a entrada na lista continua). */
+    const sairam =
+      'removidos' in guarda
+        ? lerMeusLivros()
+            .filter((l) => guarda.removidos.includes(l.id))
+            .map((l) => l.titulo)
+        : [];
     const livro = guardarMeuLivro({ id, ...dados, status: 'lendo' });
-    setEstado({ tipo: 'pronto', livro, guardado });
+    setEstado({ tipo: 'pronto', livro, guarda, sairam });
   };
 
   const aoEscolherArquivo = async (arquivo: File | undefined) => {
@@ -210,12 +219,26 @@ export default function TrazerOSeu({ aoAbrir }: { aoAbrir: (livro: MeuLivro) => 
           <div className="q-cartao" data-testid="trazido">
             <p>
               <b>{estado.livro.titulo}</b>{' '}
-              {estado.guardado
+              {estado.guarda.guardado
                 ? t('está em Meus livros.')
-                : t(
-                    'abriu, mas este navegador não deixou guardar o conteúdo: depois de fechar a aba, será preciso trazer o arquivo de novo.',
-                  )}
+                : 'motivo' in estado.guarda && estado.guarda.motivo === 'grande-demais'
+                  ? t(
+                      'abriu, mas é grande demais para ficar guardado neste aparelho: depois de fechar a aba, será preciso trazer o arquivo de novo.',
+                    )
+                  : t(
+                      'abriu, mas este navegador não deixou guardar o conteúdo: depois de fechar a aba, será preciso trazer o arquivo de novo.',
+                    )}
             </p>
+            {estado.sairam.length > 0 && (
+              <p className="lv-nota">
+                {t(
+                  'Para caber, saiu deste aparelho o conteúdo dos livros abertos há mais tempo: {titulos}. Eles continuam na lista; para ler, traga o arquivo de novo.',
+                  {
+                    titulos: estado.sairam.join(', '),
+                  },
+                )}
+              </p>
+            )}
             <div className="q-acoes">
               <button type="button" className="q-ctl pri" onClick={() => aoAbrir(estado.livro)}>
                 {t('Ler agora')}

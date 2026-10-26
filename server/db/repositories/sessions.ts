@@ -5,7 +5,7 @@ import { and, asc, desc, eq, gte, isNull, like, lt, lte } from 'drizzle-orm'
 import { contarChaves, diferencaDeChaves } from '../../../src/core/texto/palavrasVistas'
 import type { UserId } from '../../lib/authContext'
 import { cadeiaDeCausas } from '../../lib/cadeiaDeCausas'
-import { db } from '../db'
+import { db, travarUsuario } from '../db'
 import { type InstrucaoDeBatch, rodarLote } from '../lotes'
 import { sessions, utterances as tabelaDeFalas } from '../schema'
 import { falasComIdioma, palavrasVistasRepo } from './palavrasVistas'
@@ -65,21 +65,6 @@ export interface NewSession {
 /** As falas de um lote para contar as palavras vistas, com o `idx` que o INSERT dá a cada uma. */
 function falasDoLote(utts: readonly NewUtterance[], idiomaDaSessao: string | null | undefined) {
   return utts.map((u, i) => ({ texto: u.sourceText, idioma: u.sourceLang || idiomaDaSessao, idx: u.idx ?? i }))
-}
-
-/** As falas vivas de uma sessão, só o que a contagem de palavras vistas lê. */
-async function falasParaContar(userId: UserId, sessionId: string) {
-  return db
-    .select({
-      idx: tabelaDeFalas.idx,
-      sourceText: tabelaDeFalas.sourceText,
-      sourceLang: tabelaDeFalas.sourceLang,
-      createdAt: tabelaDeFalas.createdAt,
-    })
-    .from(tabelaDeFalas)
-    .where(
-      and(eq(tabelaDeFalas.sessionId, sessionId), eq(tabelaDeFalas.userId, userId), isNull(tabelaDeFalas.deletedAt)),
-    )
 }
 
 /** Repositório de sessões (adapter de SERVIDOR). Marco 1: `userId` obrigatório em toda função. */
@@ -227,30 +212,25 @@ export const sessionsRepo = {
   /**
    * Atualiza campos escalares da sessão (renomear; recontar após retomar a captura). Trocar o
    * `sourceLang` muda o idioma das falas que não têm o próprio, então as palavras vistas da sessão são
-   * reconstruídas no mesmo lote.
+   * reconstruídas na MESMA transação, com a trava do usuário, lendo as falas depois do UPDATE.
    */
   async update(userId: UserId, id: string, patch: Partial<NewSession>): Promise<Session | undefined> {
-    const agora = Date.now()
-    const values: Record<string, unknown> = { updatedAt: agora }
+    const values: Record<string, unknown> = { updatedAt: Date.now() }
     for (const k of ['title', 'kind', 'sourceLang', 'targetLang', 'status', 'durationMs', 'wordCount'] as const) {
       if (patch[k] !== undefined) values[k] = patch[k]
     }
-    const atualizar: InstrucaoDeBatch = (tx) =>
-      tx
-        .update(sessions)
-        .set(values)
-        .where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
-    const antes = patch.sourceLang !== undefined ? await this.get(userId, id) : undefined
-    if (antes && (antes.sourceLang ?? null) !== (patch.sourceLang ?? null)) {
-      const falas = await falasParaContar(userId, id)
-      const reindexar = palavrasVistasRepo.stmtsReconstruir(
-        userId,
-        id,
-        contarChaves(falasComIdioma(falas, patch.sourceLang)),
-        { primeiraEm: antes.createdAt, ultimaEm: falas.reduce((m, f) => Math.max(m, f.createdAt), antes.createdAt) },
-      )
-      await rodarLote([atualizar, ...reindexar])
-    } else await rodarLote([atualizar])
+    const daSessao = and(eq(sessions.id, id), eq(sessions.userId, userId))
+    if (patch.sourceLang === undefined) {
+      await db.update(sessions).set(values).where(daSessao)
+      return this.get(userId, id)
+    }
+    const atualizarEReindexar: InstrucaoDeBatch = async (tx) => {
+      const [antes] = await tx.select({ sourceLang: sessions.sourceLang }).from(sessions).where(daSessao).limit(1)
+      await tx.update(sessions).set(values).where(daSessao)
+      if (antes && (antes.sourceLang ?? null) !== (patch.sourceLang ?? null))
+        await palavrasVistasRepo.stmtReconstruirLendo(userId, id)(tx)
+    }
+    await rodarLote([(tx) => travarUsuario(tx, userId), atualizarEReindexar])
     return this.get(userId, id)
   },
 
@@ -283,7 +263,8 @@ export const sessionsRepo = {
       primeiraEm: s.createdAt,
       ultimaEm: agora,
     })
-    await rodarLote([apagar, ...inserir, contar, ...reindexar])
+    // A trava do usuário enfileira esta troca com os lotes da captura da mesma sessão (`appendUtterances`).
+    await rodarLote([(tx) => travarUsuario(tx, userId), apagar, ...inserir, contar, ...reindexar])
     return this.get(userId, id)
   },
 
@@ -308,38 +289,48 @@ export const sessionsRepo = {
       lte(tabelaDeFalas.idx, ate),
     )
     const palavras = (t: string | null | undefined) => (t ? t.trim().split(/\s+/).filter(Boolean).length : 0)
-    const saem = await db
-      .select({ sourceText: tabelaDeFalas.sourceText, sourceLang: tabelaDeFalas.sourceLang, idx: tabelaDeFalas.idx })
-      .from(tabelaDeFalas)
-      .where(naFaixa)
-    const wordCount = Math.max(
-      0,
-      (s.wordCount ?? 0) -
-        saem.reduce((n, u) => n + palavras(u.sourceText), 0) +
-        utts.reduce((n, u) => n + palavras(u.sourceText), 0),
-    )
-    const apagar: InstrucaoDeBatch = (tx) => tx.delete(tabelaDeFalas).where(naFaixa)
     // D5: o lote repetido não apaga a tradução polida das falas que voltam iguais.
     const preservadas = await utterancesRepo.polidasParaPreservar(userId, id, { de, ate })
     const inserir = utterancesRepo.stmtInsertMany(userId, id, utts, preservadas)
     const agora = Date.now()
-    const contar: InstrucaoDeBatch = (tx) =>
-      tx
+    /* UM passo, depois da trava do usuário: o que sai da faixa, a contagem da sessão e o idioma são lidos
+       DENTRO da transação. Lidos antes (como era), dois lotes iguais ao mesmo tempo viam a faixa vazia e
+       somavam as mesmas palavras duas vezes — no `wordCount` e nas palavras vistas. */
+    const substituirFaixa: InstrucaoDeBatch = async (tx) => {
+      const [atual] = await tx
+        .select({ wordCount: sessions.wordCount, sourceLang: sessions.sourceLang })
+        .from(sessions)
+        .where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
+        .limit(1)
+      const saem = await tx
+        .select({ sourceText: tabelaDeFalas.sourceText, sourceLang: tabelaDeFalas.sourceLang, idx: tabelaDeFalas.idx })
+        .from(tabelaDeFalas)
+        .where(naFaixa)
+      await tx.delete(tabelaDeFalas).where(naFaixa)
+      for (const i of inserir) await i(tx)
+      const wordCount = Math.max(
+        0,
+        (atual?.wordCount ?? 0) -
+          saem.reduce((n, u) => n + palavras(u.sourceText), 0) +
+          utts.reduce((n, u) => n + palavras(u.sourceText), 0),
+      )
+      await tx
         .update(sessions)
         .set({ wordCount, updatedAt: agora })
         .where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
-    /* As palavras vistas acompanham pela MESMA diferença (o que sai da faixa, o que entra): repetir o
-       lote não dobra a contagem, e a sessão longa não é relida. */
-    const indexar = palavrasVistasRepo.stmtsAjustar(
-      userId,
-      id,
-      diferencaDeChaves(
-        contarChaves(falasComIdioma(saem, s.sourceLang)),
-        contarChaves(falasDoLote(utts, s.sourceLang)),
-      ),
-      agora,
-    )
-    await rodarLote([apagar, ...inserir, contar, ...indexar])
+      /* As palavras vistas acompanham pela MESMA diferença (o que sai da faixa, o que entra): repetir o
+         lote não dobra a contagem, e a sessão longa não é relida. */
+      const idioma = atual?.sourceLang ?? s.sourceLang
+      await palavrasVistasRepo.ajustar(
+        tx,
+        userId,
+        id,
+        diferencaDeChaves(contarChaves(falasComIdioma(saem, idioma)), contarChaves(falasDoLote(utts, idioma))),
+        agora,
+        { de, ate },
+      )
+    }
+    await rodarLote([(tx) => travarUsuario(tx, userId), substituirFaixa])
     return this.get(userId, id)
   },
 

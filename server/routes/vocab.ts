@@ -233,18 +233,22 @@ vocabRouter.get('/conteudo', async (req, res) => {
  * ETIQUETAS DE PALAVRAS: as chaves das palavras que a pessoa já viu nas sessões dela, num idioma (base) —
  * a legenda marca "já vi" sem pedir palavra por palavra. A chave é a de `src/core/texto/palavrasVistas.ts`.
  *
- * ETag pela versão `atividade` (sessões e falas; toda escrita no índice vai no lote de uma escrita nelas,
- * e a reconstrução avulsa sobe a versão à mão), com o idioma como variante. If-None-Match igual → 304 com
- * UMA consulta de chave primária. Teto de `TETO_DE_CHAVES_VISTAS` chaves, das mais vistas: acima dele,
- * `truncado: true`.
+ * ETag pela versão `palavras` (`versoes_de_dados`), que sobe só quando o CONJUNTO de chaves pode ter
+ * mudado (linha nova ou que zerou no índice, reconstrução, sessão removida) — o lote da captura que só soma
+ * ocorrência, a tradução, o título e o polimento não invalidam. O idioma entra como variante.
+ * If-None-Match igual → 304 com UMA consulta de chave primária. Teto de `TETO_DE_CHAVES_VISTAS` chaves, das
+ * mais vistas: acima dele, `truncado: true`.
+ *
+ * PARA O CLIENTE: pedir ao abrir a tela e ao FIM da captura, nunca durante ela — durante a captura a legenda
+ * marca as palavras novas pelo que acabou de ouvir (as falas que ela mesma mostra).
  */
 vocabRouter.get('/vistas', async (req, res) => {
   const q = parseOr400(palavrasVistasQuerySchema, req.query, res)
   if (!q) return
   try {
     const lang = q.lang.toLowerCase().split('-')[0]
-    const { atividade } = await versoesRepo.de(req.userId)
-    const etag = etagPorVersao('palavras-vistas', req.userId, atividade, lang)
+    const { palavras } = await versoesRepo.de(req.userId)
+    const etag = etagPorVersao('palavras-vistas', req.userId, palavras, lang)
     res.setHeader('ETag', etag)
     if (casaComIfNoneMatch(req.headers['if-none-match'], etag)) {
       res.status(304).end()

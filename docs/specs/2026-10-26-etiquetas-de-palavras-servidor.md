@@ -11,9 +11,12 @@ documento é o contrato do servidor; o cliente (legenda e gaveta da palavra) vem
   `lang|chave` é o `vocab_cards.norm_key` do cartão da mesma palavra. Tokens por `palavrasDoTexto` (a mesma
   segmentação da legenda). Ficam de fora palavras funcionais (`PALAVRAS_FUNCIONAIS`), chaves com algarismo e
   chaves com menos de 2 caracteres (1 basta em ja/zh/th/lo/km/my). Regra única: `src/core/texto/palavrasVistas.ts`.
-- `exemplo_idx`: o `idx` de uma fala que contém a palavra. O texto não é copiado; a rota confere a fala e,
-  se ela não tiver mais a palavra, varre a sessão (até 2.000 falas).
-- Manutenção no MESMO lote de toda escrita em falas: criar sessão com falas, retomar a captura (reconstrói),
+- `exemplo_idx`: o `idx` de uma fala que contém a palavra. O texto não é copiado; a rota confere a fala. Quando
+  a palavra só perde ocorrência e o exemplo apontava para a fala que saiu, ele vira nulo (`frase: null`, sem
+  varrer a sessão); a reconstrução devolve um exemplo válido. Só um exemplo que não confere (índice torto)
+  dispara a varredura (até 2.000 falas).
+- Manutenção na MESMA transação de toda escrita em falas, com `travarUsuario` e a leitura do que sai DENTRO
+  dela (dois lotes iguais ao mesmo tempo se enfileiram em vez de contar a mesma fala duas vezes): criar sessão com falas, retomar a captura (reconstrói),
   lote da captura longa (diferença; repetir o lote não dobra), editar o texto de uma fala (diferença),
   reetiquetar o idioma e trocar o idioma da sessão (reconstrói), reparo de idioma (reconstrói), remover a
   sessão (apaga as linhas). A limpeza diária e a exclusão de conta levam o resto pelo `ON DELETE CASCADE`.
@@ -21,7 +24,12 @@ documento é o contrato do servidor; o cliente (legenda e gaveta da palavra) vem
   Idempotente; pode rodar com o servidor no ar.
 
 Custo: o lote da captura longa faz no máximo 2 instruções no índice (1 upsert multi-VALUES + 1 DELETE só se
-alguma palavra perdeu ocorrência), cobrado em `tests/integration/palavras-vistas.test.ts`.
+alguma palavra perdeu ocorrência), cobrado em `tests/integration/palavras-vistas.test.ts`. A segmentação
+(`Intl.Segmenter`) de 5.000 falas custa ~56 ms de CPU em en/pt e ~76 ms em ja (Node 24, M-series, mediana de
+5 rodadas): é o pior caso de "retomar a captura" de uma sessão no teto do schema.
+
+A reetiquetagem de idioma e o reparo de idioma reconstroem as sessões tocadas no MESMO lote dos UPDATEs (ou
+tudo, ou nada). `palavras reindexar` reconstrói em transações de 50 sessões.
 
 ## Contrato
 
@@ -38,8 +46,12 @@ PUT /api/vocab/:id/nota { nota: string (<= 500; '' limpa) } -> 200 { id: string;
 ```
 
 - `lang` aceita BCP-47 (`pt-BR`) e é reduzido à base. `chave` pode vir como a palavra escrita (`Água`).
-- `vistas`: até 20.000 chaves, das mais vistas; acima disso `truncado: true`. ETag pela versão `atividade`
-  (`versoes_de_dados`) com o idioma como variante: 304 custa uma consulta de chave primária.
+- `vistas`: até 20.000 chaves, das mais vistas; acima disso `truncado: true`. ETag pela versão
+  `versoes_de_dados.palavras`, com o idioma como variante: 304 custa uma consulta de chave primária. A versão
+  sobe só quando o CONJUNTO de chaves pode ter mudado (linha nova ou que zerou no índice, reconstrução, sessão
+  removida); somar ocorrência, traduzir, renomear e polir não invalidam.
+- **Cliente:** pedir `vistas` ao abrir a tela e ao fim da captura, NUNCA durante a captura (ali a legenda
+  marca pelo que acabou de ouvir). Mande `If-None-Match` com o ETag guardado.
 - `palavra`: o estado do cartão é a régua de `src/core/learning/estadoDoCartao.ts` (a mesma da moldura do
   cartão; `aprendida` lá é `aprendendo` aqui). `quando` é a primeira vez que a palavra apareceu naquela sessão.
   `jogos` vem de `estado_por_item`, mais `revisao` de `review_logs` (acerto = nota >= 3). Palavra nunca vista

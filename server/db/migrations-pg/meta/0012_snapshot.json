@@ -1,5 +1,5 @@
 {
-  "id": "27e2b50c-4f9e-4738-a5cd-bec7d9794994",
+  "id": "2bf37310-ffc0-4990-a871-bb26a7c2a96f",
   "prevId": "30b53c08-3e75-4e87-9d9f-81d82df6d7d7",
   "version": "7",
   "dialect": "postgresql",
@@ -3857,6 +3857,13 @@
         },
         "atividade": {
           "name": "atividade",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "palavras": {
+          "name": "palavras",
           "type": "bigint",
           "primaryKey": false,
           "notNull": true,

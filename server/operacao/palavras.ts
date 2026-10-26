@@ -6,7 +6,7 @@
  *
  * Toda escrita em falas mantém o índice no mesmo lote; isto existe para o que veio ANTES da migração
  * (sessões sem nenhuma linha no índice) e para reparar um índice que se suspeite torto. Cada sessão é
- * reconstruída do zero (apaga as linhas dela e insere a contagem das falas vivas) num lote com a trava do
+ * reconstruída do zero (apaga as linhas dela e insere a contagem das falas vivas), 50 sessões por transação, com a trava do
  * usuário, então rodar de novo dá o mesmo estado — e o servidor pode continuar no ar enquanto roda.
  *
  * Comando consciente, e não job de cron: a passada inteira lê todas as falas de todas as contas, e só faz

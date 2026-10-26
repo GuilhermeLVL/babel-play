@@ -70,11 +70,11 @@ async function linhasDoUsuario(userId: string): Promise<number> {
   return Number(r.n)
 }
 
-const versaoAtividade = async (userId: string) => {
-  const [r] = linhas(await db.execute(sql`SELECT atividade FROM versoes_de_dados WHERE user_id = ${userId}`)) as Array<{
-    atividade: number
+const versaoDasPalavras = async (userId: string) => {
+  const [r] = linhas(await db.execute(sql`SELECT palavras FROM versoes_de_dados WHERE user_id = ${userId}`)) as Array<{
+    palavras: number
   }>
-  return Number(r?.atividade ?? 0)
+  return Number(r?.palavras ?? 0)
 }
 
 describe('o índice acompanha as escritas nas falas', () => {
@@ -142,6 +142,22 @@ describe('o índice acompanha as escritas nas falas', () => {
     expect(await indice(u, s.id)).toEqual({ 'pt|casa': 1, 'pt|grande': 1, 'es|mesa': 1 })
   })
 
+  it('reetiquetar falas de duas sessões reindexa as duas (no mesmo lote da reetiquetagem) e conta só as falas', async () => {
+    const u = novoUsuario()
+    const a = await sessionsRepo.createWithUtterances(u, { sourceLang: 'en' }, [{ sourceText: 'casa', idx: 0 }])
+    const b = await sessionsRepo.createWithUtterances(u, { sourceLang: 'en' }, [{ sourceText: 'mesa', idx: 0 }])
+    const [fa] = await utterancesRepo.listBySession(u, a.id)
+    const [fb] = await utterancesRepo.listBySession(u, b.id)
+    expect(
+      await utterancesRepo.relabel(u, [
+        { id: fa.id, sourceLang: 'pt', targetLang: 'en' },
+        { id: fb.id, sourceLang: 'pt', targetLang: 'en' },
+      ]),
+    ).toBe(2)
+    expect(await indice(u, a.id)).toEqual({ 'pt|casa': 1 })
+    expect(await indice(u, b.id)).toEqual({ 'pt|mesa': 1 })
+  })
+
   it('remover a sessão apaga as linhas dela no mesmo lote', async () => {
     const u = novoUsuario()
     const s = await sessionsRepo.createWithUtterances(u, { sourceLang: 'en' }, [{ sourceText: 'apple', idx: 0 }])
@@ -183,6 +199,88 @@ describe('o índice acompanha as escritas nas falas', () => {
   })
 })
 
+describe('concorrência: a leitura vai dentro da transação, com a trava do usuário', () => {
+  it('dois lotes iguais ao mesmo tempo não dobram a contagem nem o wordCount', async () => {
+    const u = novoUsuario()
+    const s = await sessionsRepo.createWithUtterances(u, { sourceLang: 'en' }, [{ sourceText: 'apple', idx: 0 }])
+    const lote = [{ sourceText: 'banana cherry', idx: 1 }]
+    await Promise.all([
+      sessionsRepo.appendUtterances(u, s.id, lote),
+      sessionsRepo.appendUtterances(u, s.id, lote),
+      sessionsRepo.appendUtterances(u, s.id, lote),
+    ])
+    expect(await indice(u, s.id)).toEqual({ 'en|apple': 1, 'en|banana': 1, 'en|cherry': 1 })
+    expect((await sessionsRepo.get(u, s.id)).wordCount).toBe(3)
+  })
+
+  it('duas edições da mesma fala ao mesmo tempo: o índice fica com o texto que ganhou', async () => {
+    const u = novoUsuario()
+    const s = await sessionsRepo.createWithUtterances(u, { sourceLang: 'en' }, [{ sourceText: 'apple', idx: 0 }])
+    const [f] = await utterancesRepo.listBySession(u, s.id)
+    await Promise.all([
+      utterancesRepo.update(u, f.id, { sourceText: 'plum' }),
+      utterancesRepo.update(u, f.id, { sourceText: 'plum' }),
+    ])
+    expect(await indice(u, s.id)).toEqual({ 'en|plum': 1 })
+  })
+
+  it('a troca de idioma da sessão concorrente com um lote: o índice bate com as falas', async () => {
+    const u = novoUsuario()
+    const s = await sessionsRepo.createWithUtterances(u, { sourceLang: 'en' }, [{ sourceText: 'casa', idx: 0 }])
+    await Promise.all([
+      sessionsRepo.update(u, s.id, { sourceLang: 'pt' }),
+      sessionsRepo.appendUtterances(u, s.id, [{ sourceText: 'mesa', idx: 1 }]),
+    ])
+    await reindexarPalavrasVistas({ usuario: u })
+    const reconstruido = await indice(u, s.id)
+    expect(reconstruido).toEqual({ 'pt|casa': 1, 'pt|mesa': 1 })
+  })
+
+  it('o que só perde ocorrência não fica com a fala que saiu como exemplo', async () => {
+    const u = novoUsuario()
+    const s = await sessionsRepo.createWithUtterances(u, { sourceLang: 'en' }, [{ sourceText: 'fig', idx: 0 }])
+    await sessionsRepo.appendUtterances(u, s.id, [{ sourceText: 'fig melon', idx: 1 }])
+    const exemplo = async () => {
+      const [l] = linhas(
+        await db.execute(
+          sql`SELECT exemplo_idx FROM palavras_vistas WHERE user_id = ${u} AND session_id = ${s.id} AND chave = 'fig'`,
+        ),
+      ) as Array<{ exemplo_idx: number | null }>
+      return l.exemplo_idx == null ? null : Number(l.exemplo_idx)
+    }
+    expect(await exemplo()).toBe(1)
+    // A fala 1 perde "fig": o exemplo apontava para ela e sai (nulo), em vez de forçar a varredura.
+    await sessionsRepo.appendUtterances(u, s.id, [{ sourceText: 'melon', idx: 1 }])
+    expect(await indice(u, s.id)).toEqual({ 'en|fig': 1, 'en|melon': 1 })
+    expect(await exemplo()).toBeNull()
+    const h = await palavrasVistasRepo.historico(u, 'en', 'fig')
+    expect(h.onde).toEqual([{ sessaoId: s.id, titulo: null, quando: expect.any(String), frase: null }])
+    // A reconstrução devolve um exemplo válido.
+    await reindexarPalavrasVistas({ usuario: u })
+    expect(await exemplo()).toBe(0)
+  })
+})
+
+describe('a versão do conjunto de palavras (ETag de /vistas)', () => {
+  it('sobe quando nasce ou some uma chave; não sobe quando só soma ocorrência ou muda a tradução', async () => {
+    const u = novoUsuario()
+    const s = await sessionsRepo.createWithUtterances(u, { sourceLang: 'en' }, [{ sourceText: 'apple', idx: 0 }])
+    const v0 = await versaoDasPalavras(u)
+    expect(v0).toBeGreaterThan(0)
+    await sessionsRepo.appendUtterances(u, s.id, [{ sourceText: 'apple apple', idx: 1 }])
+    expect(await versaoDasPalavras(u)).toBe(v0)
+    const [f0] = await utterancesRepo.listBySession(u, s.id)
+    await utterancesRepo.update(u, f0.id, { translatedText: 'maçã' })
+    await sessionsRepo.update(u, s.id, { title: 'renomeada' })
+    expect(await versaoDasPalavras(u)).toBe(v0)
+    await sessionsRepo.appendUtterances(u, s.id, [{ sourceText: 'apple pear', idx: 1 }])
+    const v1 = await versaoDasPalavras(u)
+    expect(v1).toBeGreaterThan(v0)
+    await sessionsRepo.appendUtterances(u, s.id, [{ sourceText: 'apple', idx: 1 }])
+    expect(await versaoDasPalavras(u)).toBeGreaterThan(v1)
+  })
+})
+
 describe('reconstrução (palavras reindexar)', () => {
   it('indexa o legado e é idempotente (duas passadas, o mesmo estado)', async () => {
     const u = novoUsuario()
@@ -192,12 +290,12 @@ describe('reconstrução (palavras reindexar)', () => {
     ])
     // O legado: sessão de antes da migração, sem nenhuma linha no índice.
     await db.execute(sql`DELETE FROM palavras_vistas WHERE user_id = ${u}`)
-    const antes = await versaoAtividade(u)
+    const antes = await versaoDasPalavras(u)
     const r1 = await reindexarPalavrasVistas({ usuario: u })
     expect(r1).toEqual({ sessoes: 1, usuarios: 1 })
     const depois1 = await indice(u, s.id)
     expect(depois1).toEqual({ 'en|apple': 2, 'en|pear': 1 })
-    expect(await versaoAtividade(u)).toBeGreaterThan(antes)
+    expect(await versaoDasPalavras(u)).toBeGreaterThan(antes)
     await reindexarPalavrasVistas({ usuario: u })
     expect(await indice(u, s.id)).toEqual(depois1)
   })
@@ -240,12 +338,15 @@ describe('histórico e nota', () => {
     expect(r.nota).toBe('lembrar do jardim da avó')
     expect((await vocabRepo.get(u, id)).nota).toBe('lembrar do jardim da avó')
 
-    // A fala de exemplo foi corrigida e não contém mais a palavra: a sessão é varrida.
+    // A fala de exemplo foi corrigida e não contém mais a palavra: o exemplo sai (nulo), sem varrer a sessão.
     const [f0] = await utterancesRepo.listBySession(u, s.id)
     await utterancesRepo.update(u, f0.id, { sourceText: 'Hello there.' })
     const r2 = await palavrasVistasRepo.historico(u, 'en', 'garden')
     expect(r2.vistas.vezes).toBe(2)
-    expect(r2.onde[0].frase).toBe('garden garden')
+    expect(r2.onde[0].frase).toBeNull()
+    // A reconstrução devolve o exemplo que ainda vale.
+    await reindexarPalavrasVistas({ usuario: u })
+    expect((await palavrasVistasRepo.historico(u, 'en', 'garden')).onde[0].frase).toBe('garden garden')
 
     expect(await vocabRepo.salvarNota(u, id, '')).toEqual({ id, nota: null })
     expect(await vocabRepo.salvarNota(novoUsuario(), id, 'alheia')).toBeUndefined()

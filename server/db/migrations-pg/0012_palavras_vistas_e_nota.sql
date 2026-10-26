@@ -6,7 +6,10 @@
 --     de conta); a remoção soft da sessão apaga as linhas no mesmo lote. Dado do titular (`TABELAS_DO_TITULAR`).
 --     RLS e REVOKE como em 0002/0003/0005/0006: o PostgREST do Supabase não pode enxergá-la com a chave `anon`.
 --   - `vocab_cards.nota`: a nota pessoal da palavra (até 500 caracteres, `PUT /api/vocab/:id/nota`). Nula = sem nota.
--- REVERSÃO: `DROP TABLE "palavras_vistas"` e `ALTER TABLE "vocab_cards" DROP COLUMN "nota"` — só depois de voltar o
+--   - `versoes_de_dados.palavras`: a versão do conjunto de palavras vistas (ETag de `/api/vocab/vistas`), mantida
+--     pelo repositório (não por gatilho). Default 0: o código anterior não a lê nem escreve.
+-- REVERSÃO: `DROP TABLE "palavras_vistas"`, `ALTER TABLE "vocab_cards" DROP COLUMN "nota"` e
+-- `ALTER TABLE "versoes_de_dados" DROP COLUMN "palavras"` — só depois de voltar o
 -- código sem as rotas `/api/vocab/vistas`, `/api/vocab/palavra` e `/api/vocab/:id/nota` (a nota escrita se perde).
 CREATE TABLE "palavras_vistas" (
 	"user_id" text NOT NULL,
@@ -21,6 +24,7 @@ CREATE TABLE "palavras_vistas" (
 );
 --> statement-breakpoint
 ALTER TABLE "vocab_cards" ADD COLUMN "nota" text;--> statement-breakpoint
+ALTER TABLE "versoes_de_dados" ADD COLUMN "palavras" bigint DEFAULT 0 NOT NULL;--> statement-breakpoint
 ALTER TABLE "palavras_vistas" ADD CONSTRAINT "palavras_vistas_session_id_sessions_id_fk" FOREIGN KEY ("session_id") REFERENCES "public"."sessions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "idx_palavras_vistas_chave" ON "palavras_vistas" USING btree ("user_id","lang","chave");--> statement-breakpoint
 CREATE INDEX "idx_palavras_vistas_sessao" ON "palavras_vistas" USING btree ("session_id");

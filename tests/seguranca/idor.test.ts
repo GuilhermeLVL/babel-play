@@ -351,7 +351,16 @@ describe('IDOR — usuario B contra os recursos de A', () => {
       },
       'PUT /api/vocab/:id/nota': async () => {
         const id = await novoCartao('willow')
-        return { caminho: `/api/vocab/${id}/nota`, corpo: { nota: 'escrita por B' }, aindaExiste: cartaoExiste(id) }
+        await s.put(`/api/vocab/${id}/nota`, { nota: `nota de A ${MARCADOR}` }, ta)
+        return {
+          caminho: `/api/vocab/${id}/nota`,
+          corpo: { nota: 'escrita por B' },
+          // O cartão continua lá E a nota de A não mudou (B não escreve por cima).
+          aindaExiste: async () => {
+            const lista = (await (await s.get('/api/vocab', ta)).json()) as Array<{ id: string; nota: string | null }>
+            return lista.find((c) => c.id === id)?.nota === `nota de A ${MARCADOR}`
+          },
+        }
       },
       'DELETE /api/vocab/:id': async () => {
         const id = await novoCartao('lantern')

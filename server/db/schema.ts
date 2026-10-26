@@ -1242,6 +1242,12 @@ export const versoesDeDados = pgTable('versoes_de_dados', {
   userId: text('user_id').primaryKey(),
   vocab: bigint('vocab', { mode: 'number' }).notNull().default(0),
   atividade: bigint('atividade', { mode: 'number' }).notNull().default(0),
+  /**
+   * A versão do CONJUNTO de palavras vistas (etiquetas de palavras, migração PG 0012): o ETag de
+   * `GET /api/vocab/vistas`. Não é gatilho: sobe em `palavrasVistasRepo` só quando nasce ou some uma linha
+   * do índice (ou numa reconstrução) — somar ocorrência numa palavra já vista não invalida a lista.
+   */
+  palavras: bigint('palavras', { mode: 'number' }).notNull().default(0),
 })
 
 /** Uma linha por (usuário, idioma, dia local): agregados derivados de review_logs e exercise_results. */

@@ -3,8 +3,10 @@
  *
  * Quem escreve nas falas chama as instruções daqui DENTRO DO MESMO LOTE (`rodarLote`): criar a sessão com
  * falas, retomar a captura, o lote da captura longa, a edição de uma fala, a remoção da sessão. O índice
- * nunca diverge das falas por uma escrita que caiu no meio, e o gatilho `versao_*` das falas sobe
- * `versoes_de_dados.atividade` na mesma transação — é a versão do ETag de `GET /api/vocab/vistas`.
+ * nunca diverge das falas por uma escrita que caiu no meio. A leitura do que sai vai DENTRO da transação,
+ * depois de `travarUsuario`: dois lotes iguais ao mesmo tempo se enfileiram em vez de contar a mesma fala
+ * duas vezes. `versoes_de_dados.palavras` sobe só quando o conjunto de chaves pode ter mudado — é a versão
+ * do ETag de `GET /api/vocab/vistas`.
  *
  * Duas formas de escrever:
  *   · AJUSTAR: a diferença entre as falas que saem e as que entram (`diferencaDeChaves`), em 1 upsert
@@ -22,7 +24,7 @@ import { chaveDaPalavra, chaveDedup } from '../../../src/core/texto/palavra'
 import { type ContagemDeChave, contarChaves, fraseComAChave, idiomaBase } from '../../../src/core/texto/palavrasVistas'
 import type { UserId } from '../../lib/authContext'
 import { db, type ExecutorDb, linhas as linhasDe, travarUsuario } from '../db'
-import { inserirEmLotes, type InstrucaoDeBatch, rodarLote } from '../lotes'
+import { emLotes, inserirEmLotes, type InstrucaoDeBatch, rodarLote, tamanhoDoLoteDeInsert } from '../lotes'
 import { palavrasVistas, reviewLogs, sessions, utterances, vocabCards } from '../schema'
 import { agregadosRepo } from './agregados'
 
@@ -35,6 +37,9 @@ const SESSOES_NO_HISTORICO = 10
 /** Quantas falas o histórico varre numa sessão quando a fala de exemplo não contém mais a palavra. */
 const FALAS_NA_VARREDURA = 2_000
 
+/** Sessões por transação na reconstrução em massa (`palavras reindexar`): transações curtas, poucas idas. */
+const SESSOES_POR_LOTE = 50
+
 const ALVO = [palavrasVistas.userId, palavrasVistas.sessionId, palavrasVistas.lang, palavrasVistas.chave]
 
 /** As falas de uma sessão já com o idioma que vale para cada uma (o da fala, senão o da sessão). */
@@ -45,11 +50,15 @@ export function falasComIdioma<T extends { sourceText: string | null; sourceLang
   return falas.map((f) => ({ texto: f.sourceText, idioma: f.sourceLang || idiomaDaSessao, idx: f.idx }))
 }
 
-/** Sobe a versão `atividade` do usuário — a reconstrução sem escrita em falas não aciona o gatilho. */
-function subirAtividade(userId: UserId): InstrucaoDeBatch {
-  return (tx) =>
-    tx.execute(sql`INSERT INTO versoes_de_dados (user_id, vocab, atividade) VALUES (${userId}, 0, 1)
-      ON CONFLICT (user_id) DO UPDATE SET atividade = versoes_de_dados.atividade + 1`)
+/**
+ * Sobe a versão `palavras` do usuário (`versoes_de_dados.palavras`, o ETag de `GET /api/vocab/vistas`). Só
+ * quem pode ter mudado o CONJUNTO de chaves chama: uma linha nova, uma linha que zerou, uma reconstrução,
+ * uma sessão removida. Somar ocorrência numa chave que já existe não sobe — o lote da captura e a edição de
+ * tradução, título ou polimento não invalidam a lista.
+ */
+async function subirVersaoDasPalavras(tx: ExecutorDb, userId: UserId): Promise<void> {
+  await tx.execute(sql`INSERT INTO versoes_de_dados (user_id, vocab, atividade, palavras) VALUES (${userId}, 0, 0, 1)
+    ON CONFLICT (user_id) DO UPDATE SET palavras = versoes_de_dados.palavras + 1`)
 }
 
 export interface ResumoDaPalavra {
@@ -79,13 +88,27 @@ const iso = (ms: number | null | undefined): string | null => (ms == null ? null
 
 export const palavrasVistasRepo = {
   /**
-   * MONTA o ajuste de UMA sessão pela diferença (`diferencaDeChaves`). Lista vazia quando nada muda.
+   * AJUSTA UMA sessão pela diferença (`diferencaDeChaves`), no executor recebido — quem chama leu as falas
+   * que saem DENTRO da mesma transação, depois de `travarUsuario` (senão dois lotes iguais ao mesmo tempo
+   * contam a mesma fala duas vezes).
+   *
+   * 1 upsert multi-VALUES por fatia (`vezes = vezes + delta`) e, só se alguma chave perdeu ocorrência,
+   * 1 DELETE das linhas que zeraram. `faixaQueSai` é a faixa de `idx` das falas que saíram: a chave que só
+   * perdeu ocorrência e cujo exemplo apontava para dentro dela fica sem exemplo (nulo), em vez de apontar
+   * para uma fala que não a contém mais. A versão `palavras` sobe só se nasceu ou sumiu alguma linha.
    *
    * Uma chave que só perde ocorrência numa sessão ainda não indexada (anterior à migração) entra com
    * `vezes` negativo e sai no DELETE logo atrás — a reconstrução (`palavras reindexar`) acerta o resto.
    */
-  stmtsAjustar(userId: UserId, sessionId: string, diferenca: readonly ContagemDeChave[], agora: number) {
-    if (!diferenca.length) return []
+  async ajustar(
+    tx: ExecutorDb,
+    userId: UserId,
+    sessionId: string,
+    diferenca: readonly ContagemDeChave[],
+    agora: number,
+    faixaQueSai?: { de: number; ate: number },
+  ): Promise<void> {
+    if (!diferenca.length) return
     const linhas = diferenca.map((d) => ({
       userId,
       sessionId,
@@ -96,44 +119,57 @@ export const palavrasVistasRepo = {
       ultimaEm: agora,
       exemploIdx: d.idx,
     }))
-    const instrucoes: InstrucaoDeBatch[] = [
-      (tx) =>
-        inserirEmLotes(tx, palavrasVistas, linhas, {
-          conflito: {
-            alvo: ALVO,
-            atualizar: {
-              vezes: sql`${palavrasVistas.vezes} + excluded.vezes`,
-              ultimaEm: sql`CASE WHEN excluded.vezes > 0 THEN excluded.ultima_em ELSE ${palavrasVistas.ultimaEm} END`,
-              // A fala que entra contém a palavra AGORA; a de antes pode ter saído.
-              exemploIdx: sql`COALESCE(excluded.exemplo_idx, ${palavrasVistas.exemploIdx})`,
-            },
+    const exemplo = faixaQueSai
+      ? sql`CASE WHEN excluded.exemplo_idx IS NOT NULL THEN excluded.exemplo_idx
+          WHEN ${palavrasVistas.exemploIdx} BETWEEN ${faixaQueSai.de} AND ${faixaQueSai.ate} THEN NULL
+          ELSE ${palavrasVistas.exemploIdx} END`
+      : sql`COALESCE(excluded.exemplo_idx, ${palavrasVistas.exemploIdx})`
+    let mudouConjunto = false
+    for (const fatia of emLotes(linhas, tamanhoDoLoteDeInsert(palavrasVistas))) {
+      const r = await tx
+        .insert(palavrasVistas)
+        .values(fatia)
+        .onConflictDoUpdate({
+          target: ALVO,
+          set: {
+            vezes: sql`${palavrasVistas.vezes} + excluded.vezes`,
+            ultimaEm: sql`CASE WHEN excluded.vezes > 0 THEN excluded.ultima_em ELSE ${palavrasVistas.ultimaEm} END`,
+            exemploIdx: exemplo,
           },
-        }),
-    ]
-    if (diferenca.some((d) => d.vezes < 0)) {
-      instrucoes.push((tx) =>
-        tx
-          .delete(palavrasVistas)
-          .where(
-            and(
-              eq(palavrasVistas.userId, userId),
-              eq(palavrasVistas.sessionId, sessionId),
-              sql`${palavrasVistas.vezes} <= 0`,
-            ),
-          ),
-      )
+        })
+        // `xmax = 0` só na linha recém-inserida (na atualizada ele é o id da transação).
+        .returning({ nova: sql<boolean>`(xmax = 0)` })
+      if (r.some((l) => l.nova)) mudouConjunto = true
     }
-    return instrucoes
+    if (diferenca.some((d) => d.vezes < 0)) {
+      const apagadas = await tx
+        .delete(palavrasVistas)
+        .where(
+          and(
+            eq(palavrasVistas.userId, userId),
+            eq(palavrasVistas.sessionId, sessionId),
+            sql`${palavrasVistas.vezes} <= 0`,
+          ),
+        )
+        .returning({ chave: palavrasVistas.chave })
+      if (apagadas.length) mudouConjunto = true
+    }
+    if (mudouConjunto) await subirVersaoDasPalavras(tx, userId)
   },
 
-  /** MONTA o apagamento das linhas de uma sessão (a remoção soft dela, e o começo da reconstrução). */
+  /** MONTA o apagamento das linhas de uma sessão (a remoção soft dela), com a versão `palavras` subindo. */
   stmtApagarDaSessao(userId: UserId, sessionId: string): InstrucaoDeBatch {
-    return (tx) =>
-      tx.delete(palavrasVistas).where(and(eq(palavrasVistas.userId, userId), eq(palavrasVistas.sessionId, sessionId)))
+    return async (tx) => {
+      await tx
+        .delete(palavrasVistas)
+        .where(and(eq(palavrasVistas.userId, userId), eq(palavrasVistas.sessionId, sessionId)))
+      await subirVersaoDasPalavras(tx, userId)
+    }
   },
 
   /**
-   * MONTA a reconstrução de UMA sessão: apaga as linhas dela e insere `contagem` inteira. `primeiraEm` e
+   * MONTA a reconstrução de UMA sessão a partir de uma contagem já feita (as falas que acabaram de entrar,
+   * na criação e em "retomar a captura"): apaga as linhas dela e insere `contagem` inteira. `primeiraEm` e
    * `ultimaEm` são os da sessão (quando ela começou e a última fala que chegou).
    */
   stmtsReconstruir(
@@ -158,40 +194,47 @@ export const palavrasVistasRepo = {
   },
 
   /**
-   * RECONSTRÓI as sessões dadas a partir das falas vivas, uma sessão por lote (com a trava do usuário e a
-   * versão `atividade` subindo junto). Sessão apagada ou de outro dono: as linhas dela saem e nada entra.
-   * Devolve quantas sessões foram reconstruídas.
+   * MONTA a reconstrução de UMA sessão que LÊ as falas no executor recebido — para ir no mesmo lote (e
+   * depois da trava do usuário) de quem acabou de mudar o idioma das falas ou da sessão. Sessão apagada ou
+   * de outro dono: as linhas dela saem e nada entra.
+   */
+  stmtReconstruirLendo(userId: UserId, sessionId: string): InstrucaoDeBatch {
+    return async (tx) => {
+      const [s] = await tx
+        .select({ sourceLang: sessions.sourceLang, createdAt: sessions.createdAt })
+        .from(sessions)
+        .where(and(eq(sessions.id, sessionId), eq(sessions.userId, userId), isNull(sessions.deletedAt)))
+        .limit(1)
+      if (!s) return this.stmtApagarDaSessao(userId, sessionId)(tx)
+      const falas = await tx
+        .select({
+          idx: utterances.idx,
+          sourceText: utterances.sourceText,
+          sourceLang: utterances.sourceLang,
+          createdAt: utterances.createdAt,
+        })
+        .from(utterances)
+        .where(and(eq(utterances.sessionId, sessionId), eq(utterances.userId, userId), isNull(utterances.deletedAt)))
+      const ultimaEm = falas.reduce((m, f) => Math.max(m, Number(f.createdAt)), Number(s.createdAt))
+      const contagem = contarChaves(falasComIdioma(falas, s.sourceLang))
+      for (const i of this.stmtsReconstruir(userId, sessionId, contagem, { primeiraEm: Number(s.createdAt), ultimaEm }))
+        await i(tx)
+    }
+  },
+
+  /**
+   * RECONSTRÓI as sessões dadas a partir das falas vivas, em lotes de `SESSOES_POR_LOTE` sessões por
+   * transação (com a trava do usuário). Devolve quantas sessões foram reconstruídas.
    */
   async reconstruirSessoes(userId: UserId, sessionIds: readonly string[]): Promise<number> {
-    let feitas = 0
-    for (const id of new Set(sessionIds)) {
-      /* A leitura das falas vai DENTRO da transação, depois da trava: um lote da captura que entrou antes
-         dela já está contado, e o que vier depois ajusta sobre a contagem nova. */
-      const reconstruir: InstrucaoDeBatch = async (tx) => {
-        const [s] = await tx
-          .select({ sourceLang: sessions.sourceLang, createdAt: sessions.createdAt })
-          .from(sessions)
-          .where(and(eq(sessions.id, id), eq(sessions.userId, userId), isNull(sessions.deletedAt)))
-          .limit(1)
-        if (!s) return this.stmtApagarDaSessao(userId, id)(tx)
-        const falas = await tx
-          .select({
-            idx: utterances.idx,
-            sourceText: utterances.sourceText,
-            sourceLang: utterances.sourceLang,
-            createdAt: utterances.createdAt,
-          })
-          .from(utterances)
-          .where(and(eq(utterances.sessionId, id), eq(utterances.userId, userId), isNull(utterances.deletedAt)))
-        const ultimaEm = falas.reduce((m, f) => Math.max(m, Number(f.createdAt)), Number(s.createdAt))
-        const contagem = contarChaves(falasComIdioma(falas, s.sourceLang))
-        for (const i of this.stmtsReconstruir(userId, id, contagem, { primeiraEm: Number(s.createdAt), ultimaEm }))
-          await i(tx)
-      }
-      await rodarLote([(tx: ExecutorDb) => travarUsuario(tx, userId), reconstruir, subirAtividade(userId)])
-      feitas += 1
+    const ids = [...new Set(sessionIds)]
+    for (const fatia of emLotes(ids, SESSOES_POR_LOTE)) {
+      await rodarLote([
+        (tx: ExecutorDb) => travarUsuario(tx, userId),
+        ...fatia.map((id) => this.stmtReconstruirLendo(userId, id)),
+      ])
     }
-    return feitas
+    return ids.length
   },
 
   /**
@@ -283,8 +326,8 @@ export const palavrasVistasRepo = {
 
   /**
    * "Onde eu vi": as sessões mais recentes em que a chave aparece, com a frase de exemplo. A fala do
-   * `exemplo_idx` é lida e conferida (a pessoa pode tê-la corrigido); se não contiver mais a palavra, a
-   * sessão é varrida até `FALAS_NA_VARREDURA` falas. Sem frase achada, `frase: null`.
+   * `exemplo_idx` é lida e conferida; se não contiver mais a palavra (índice torto), a sessão é varrida até
+   * `FALAS_NA_VARREDURA` falas. Sem exemplo (nulo) ou sem frase achada, `frase: null`.
    */
   async onde(userId: UserId, lang: string, chave: string): Promise<ResumoDaPalavra['onde']> {
     const linhas = await db
@@ -334,6 +377,12 @@ export const palavrasVistasRepo = {
     }
     for (const l of linhas) {
       if (exemplos.has(l.sessaoId)) continue
+      /* Sem exemplo (a fala que o era perdeu a palavra): sem frase, sem varredura. A varredura fica para o
+         exemplo que não confere — o que só um índice torto produz. */
+      if (l.exemploIdx == null) {
+        exemplos.set(l.sessaoId, null)
+        continue
+      }
       const falas = await db
         .select({ sourceText: utterances.sourceText })
         .from(utterances)

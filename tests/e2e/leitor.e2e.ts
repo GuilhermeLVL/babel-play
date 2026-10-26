@@ -202,3 +202,21 @@ test.describe('Leitor', () => {
     await page.evaluate(() => localStorage.removeItem('leitor:perfil'))
   })
 })
+
+test.describe('Leitor — PDF', () => {
+  /* `fabula-cc0.pdf`: uma página escrita à mão para o teste (CC0), com texto selecionável. */
+  test('o PDF abre com a página desenhada e a camada de texto, sem o aviso de escaneado', async ({ page }) => {
+    test.slow()
+    await page.goto('/leitor')
+    await expect(page.getByTestId('estante')).toBeVisible({ timeout: 30_000 })
+    await page.getByTestId('abrir-arquivo').setInputFiles(path.resolve('tests', 'fixtures', 'livros', 'fabula-cc0.pdf'))
+    await expect(leitorPronto(page)).toBeVisible({ timeout: 30_000 })
+    await fecharSobreposicoes(page)
+    const pagina = await quadroCom(page, 'The fox looked at the grapes.')
+    /* Sem `allow-scripts` o `<canvas>` não desenharia: a página é uma imagem, e ela tem de ter pixels. */
+    await expect
+      .poll(() => pagina.evaluate(() => document.querySelector<HTMLImageElement>('#canvas img')?.naturalWidth ?? 0))
+      .toBeGreaterThan(100)
+    await expect(page.getByRole('note')).toHaveCount(0)
+  })
+})

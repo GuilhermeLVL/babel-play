@@ -24,5 +24,7 @@ Origem, commit e lista de arquivos: `ORIGEM.txt`. Toda mudança está marcada co
 
 - `view.js`: `makeBook` só abre EPUB e PDF (MOBI, FB2, CBZ e pasta ficaram fora); o ZIP sai do
   `carregadorZip.js` (sobre o `fflate` do app) no lugar do `vendor/zip.js`; `initTTS` desligado (L3).
+- `pdf.js`: a página desenhada vai como `<img>` (`blob:`) e não como `<canvas>`: sem `allow-scripts`, o canvas
+  num documento sem script mostra só o conteúdo de reserva (consequência do item 1 da segurança).
 - `pdf.js`: reescrito sobre o `pdfjs-dist` do app, sem a camada de anotações do PDF, com o CSS da camada de
   texto embutido e `book.amostraDeTexto` para o aviso de PDF escaneado/duas colunas.

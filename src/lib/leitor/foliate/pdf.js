@@ -176,14 +176,30 @@ const render = async (page, doc, zoom) => {
     canvas.width = viewport.width
     const canvasContext = canvas.getContext('2d')
     await page.render({ canvasContext, viewport, canvas }).promise
-    doc.querySelector('#canvas').replaceChildren(doc.adoptNode(canvas))
+    // FRASY: o iframe do livro não tem `allow-scripts`, e num documento sem script o `<canvas>` vira o conteúdo
+    // de reserva (não desenha). A página vai como `<img>` (`blob:`), do tamanho do canvas (ver PATCHES.md).
+    const blob = await new Promise(resolve => canvas.toBlob(resolve))
+    const img = doc.createElement('img')
+    img.alt = ''
+    img.src = URL.createObjectURL(blob)
+    img.style.width = `${canvas.width}px`
+    img.style.height = `${canvas.height}px`
+    img.style.display = 'block'
+    const alvo = doc.querySelector('#canvas')
+    const antiga = alvo.querySelector('img')
+    if (antiga) URL.revokeObjectURL(antiga.src)
+    alvo.replaceChildren(img)
     const container = doc.querySelector('.textLayer')
-    container.replaceChildren()
+    // FRASY: a camada é montada fora e trocada de uma vez — dois `onZoom` seguidos duplicavam o texto.
+    const montagem = doc.createElement('div')
     const textLayer = new pdfjsLib.TextLayer({
         textContentSource: await page.streamTextContent(),
-        container, viewport,
+        container: montagem, viewport,
     })
     await textLayer.render()
+    container.replaceChildren(...montagem.childNodes)
+    for (const prop of ['--total-scale-factor', '--scale-round-x', '--scale-round-y'])
+        if (montagem.style.getPropertyValue(prop)) container.style.setProperty(prop, montagem.style.getPropertyValue(prop))
     for (const c of document.querySelectorAll('.hiddenCanvasElement'))
         Object.assign(c.style, { position: 'absolute', top: '0', left: '0', width: '0', height: '0', display: 'none' })
     const endOfContent = document.createElement('div')

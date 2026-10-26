@@ -511,8 +511,10 @@ jobs:
       # `npm ci` nao baixa o navegador do Playwright; sem esta linha o passo abaixo falha com
       # "browser not found" em toda maquina limpa — o gate parecia existir e nunca podia passar.
       - name: Navegador do Playwright
-        run: npx playwright install --with-deps chromium
-        timeout-minutes: 5
+        # Com o navegador no cache, o que demora é o `apt` das dependências do sistema: o espelho às vezes
+        # trava e estourava os 5 min. Três tentativas, com folga, antes de dar a máquina por perdida.
+        run: for i in 1 2 3; do npx playwright install --with-deps chromium && exit 0; echo "tentativa $i falhou"; sleep 15; done; exit 1
+        timeout-minutes: 12
       # `github` além do `list`: as falhas de todas as fatias aparecem juntas, como anotações, na
       # página da execução.
       - name: Testes de ponta a ponta
@@ -626,8 +628,10 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.pw.outputs.versao }}-chromium
       - name: Navegador do Playwright
-        run: npx playwright install --with-deps chromium
-        timeout-minutes: 5
+        # Com o navegador no cache, o que demora é o `apt` das dependências do sistema: o espelho às vezes
+        # trava e estourava os 5 min. Três tentativas, com folga, antes de dar a máquina por perdida.
+        run: for i in 1 2 3; do npx playwright install --with-deps chromium && exit 0; echo "tentativa $i falhou"; sleep 15; done; exit 1
+        timeout-minutes: 12
       - name: E2E com AUTH_REQUIRED=1
         run: npx playwright test -c playwright.publico.config.ts
         timeout-minutes: 10
@@ -682,8 +686,10 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.pw.outputs.versao }}-chromium
       - name: Navegador do Playwright
-        run: npx playwright install --with-deps chromium
-        timeout-minutes: 5
+        # Com o navegador no cache, o que demora é o `apt` das dependências do sistema: o espelho às vezes
+        # trava e estourava os 5 min. Três tentativas, com folga, antes de dar a máquina por perdida.
+        run: for i in 1 2 3; do npx playwright install --with-deps chromium && exit 0; echo "tentativa $i falhou"; sleep 15; done; exit 1
+        timeout-minutes: 12
       # O build baixa os modelos do Bergamot pt→en (~26 MB, `scripts/baixar-modelos-bergamot.mjs`) do
       # bucket da Mozilla e confere o sha256 de cada um. Os testes não dependem dele para passar (sem
       # rede, o build sai sem oferecê-lo e os totais são conferidos entre si, não fixados), mas o `dist`

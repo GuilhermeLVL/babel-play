@@ -281,8 +281,17 @@ export async function abrirMais(page: Page): Promise<Locator> {
  */
 export async function irAoJogarPeloMenu(page: Page) {
   await clicarRobusto(page, trilho(page).locator('.q-item[data-px-rota="play"]'))
-  await expect(page).toHaveURL(/\/jogar/, { timeout: 10_000 })
+  await expect(page).toHaveURL(naUrl(/\/jogar/), { timeout: 10_000 })
 }
+
+/**
+ * A URL CONFERIDA SÓ PELO ENDEREÇO. `toHaveURL(/regex/)` (Playwright 1.64), a cada tentativa que ainda
+ * não bate, gera a árvore de acessibilidade da PÁGINA INTEIRA na thread da página (para o relatório). Numa
+ * captura com 600 falas isso custa de 10 a 20 s de CPU na CI, e prende justamente o relógio da troca de
+ * tela (`trocarDeTela`, até 400 ms): a URL não muda porque o próprio teste trava a página. Com uma
+ * função, o matcher só lê o endereço (`waitForURL`). A conferência é a mesma.
+ */
+const naUrl = (padrao: RegExp) => (url: URL) => padrao.test(url.href)
 
 /**
  * ABRE A ESCOLHA DO "AO VIVO" (o item único que juntou Capturar e Intérprete) e devolve o menu. No
@@ -300,7 +309,7 @@ export async function abrirAoVivo(page: Page): Promise<Locator> {
 export async function irAoInterpretePeloMenu(page: Page) {
   const menu = await abrirAoVivo(page)
   await clicarRobusto(page, menu.getByRole('menuitem', { name: /^Intérprete/ }))
-  await expect(page).toHaveURL(/\/interprete$/, { timeout: 10_000 })
+  await expect(page).toHaveURL(naUrl(/\/interprete$/), { timeout: 10_000 })
 }
 
 /**

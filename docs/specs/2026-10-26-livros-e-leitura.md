@@ -301,11 +301,12 @@ O livro é o primeiro `tipo`. A matéria de História/ENEM entra depois como `ti
 Cada fase vai num worktree próprio, com revisão `revisor-critico`, merge na main, CI e staging manual
 (`gh workflow run deploy-worker.yml -f ambiente=staging -f ref=<sha>`), e prints para o dono a cada tela nova.
 
-## Perguntas ao dono
+## Decisões do dono (26/10/2026)
 
-1. **Audiolivro grátis com a voz do aparelho não é possível** (o navegador não deixa gravar `speechSynthesis`). Aceita
-   o audiolivro só no pago e só para livros PD, deixando o grátis para quando o TTS local (Kokoro/Piper) passar no
-   teste de pt-BR e de licença?
-2. Resumo de capítulo que já está no cache compartilhado (livro PD) pode aparecer no Grátis, já que o custo marginal
-   é zero? Ajuda a converter, mas tira um motivo de upgrade.
-3. Teto do audiolivro no pago: sugiro 30 capítulos por mês no Plus, dentro dos 150 mil caracteres de voz que já existem.
+1. **Audiolivro: pago agora, grátis depois.** Ouvir lendo é grátis para todos com a voz do aparelho; baixar o MP3
+   (por capítulo, ZIP) só no pago, com a voz da nuvem e cota, e só para livros PD. Depois, avaliar TTS local
+   (Kokoro/Piper) em pt-BR e licença para liberar o MP3 no Grátis.
+2. **Resumo já gerado aparece no Grátis.** O resumo de capítulo de livro PD que já está no cache compartilhado é
+   mostrado também no Grátis (custo zero); gerar resumo novo, simplificar, quiz e explicar continuam no pago.
+3. Teto do audiolivro no pago (proposta, a confirmar na L3): 30 capítulos por mês no Plus, dentro dos 150 mil
+   caracteres de voz que já existem.

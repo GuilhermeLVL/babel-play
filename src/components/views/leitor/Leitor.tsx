@@ -4,10 +4,11 @@ import { BookOpen, FileUp, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { criarArmazemDePosicoes } from '../../../core/leitura/posicao';
+import { comBaseDoApp } from '../../../lib/baseDoApp';
 import { t } from '../../../lib/i18n';
 import { abrirLivroNoLeitor, ErroAoAbrirLivro } from '../../../lib/livros/abrir';
 import { estante, type LivroGuardado } from '../../../lib/livros/armazem';
-import { lerUrlAtual, navegarPara } from '../../../lib/rotas';
+import { esquecerLivroDoBoot, estadoParaUrl, lerLivroDoBoot, lerUrlAtual, navegarPara } from '../../../lib/rotas';
 import { toast } from '../../Toast';
 import LeitorDoLivro from './LeitorDoLivro';
 
@@ -35,7 +36,18 @@ const posicoes = criarArmazemDePosicoes({
  * de livros é a tela da L1 — ela chama `abrirLivroNoLeitor` e cai aqui.
  */
 export default function Leitor({ onChangeView }: { onChangeView?: (view: string, data?: unknown) => void }) {
-  const [livroId, setLivroId] = useState<string | undefined>(() => lerUrlAtual().livroId);
+  const [livroId, setLivroId] = useState<string | undefined>(
+    () => lerUrlAtual().livroId ?? lerLivroDoBoot() ?? undefined,
+  );
+  /* O F5 em `/leitor/<id>`: o boot do App reescreve a URL antes de o leitor montar; o id volta para a barra. */
+  useEffect(() => {
+    esquecerLivroDoBoot();
+    if (livroId && lerUrlAtual().livroId !== livroId) {
+      window.history.replaceState({}, '', comBaseDoApp(estadoParaUrl({ view: 'leitor', livroId })));
+    }
+    // Só na montagem: depois, quem manda no id é a URL (o `popstate` abaixo).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     const aoMudar = () => setLivroId(lerUrlAtual().livroId);
     window.addEventListener('popstate', aoMudar);

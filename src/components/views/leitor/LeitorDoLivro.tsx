@@ -606,7 +606,7 @@ export default function LeitorDoLivro({
       )}
 
       <div className="leitor-miolo">
-        <main className="leitor-pagina" aria-label={t('Texto do livro')} aria-busy={estado === 'carregando'}>
+        <section className="leitor-pagina" aria-label={t('Texto do livro')} aria-busy={estado === 'carregando'}>
           <div ref={hospedeiro} className="leitor-motor" />
           {estado === 'carregando' && (
             <p className="leitor-estado" role="status">
@@ -629,7 +629,7 @@ export default function LeitorDoLivro({
               </button>
             </div>
           )}
-        </main>
+        </section>
 
         {painel && motorRef.current && (
           <aside id="leitor-painel" className="leitor-painel" aria-labelledby="leitor-painel-titulo">

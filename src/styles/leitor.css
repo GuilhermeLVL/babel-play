@@ -610,6 +610,13 @@
     z-index: 5;
   }
 }
+/* A barra de cinco do celular ocupa os 84 px de baixo (o palco os reserva, `prototipo-app.css`): o leitor cabe
+   no que sobra, e o pé com a virada de página fica acima dela. */
+@media (max-width: 720px) {
+  .leitor {
+    height: calc(100dvh - 84px - env(safe-area-inset-bottom, 0px));
+  }
+}
 @media (max-width: 640px) {
   .leitor-topo {
     padding: 4px 4px;

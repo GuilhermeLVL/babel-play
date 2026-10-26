@@ -155,6 +155,22 @@ describe('sincronização das anotações (aparelho A grava, B recebe)', () => {
     expect(await b.vivas()).toHaveLength(0)
   })
 
+  it('reancorar no aparelho não "edita": não sobe, e a lápide de outro aparelho vence (o bug do F5)', async () => {
+    const srv = servidor()
+    const a = anotacoesDoLivro('arq:livro', srv.deps)
+    await a.gravar(anot('anotacao-a4', 5))
+    await a.sincronizar()
+    // Outro aparelho apaga no servidor.
+    srv.linhas.set('anotacao-a4', { ...srv.linhas.get('anotacao-a4')!, apagadoEm: 50 })
+    // Este aparelho abre o livro e recalcula o CFI (dado derivado).
+    await a.reancorar('anotacao-a4', 'epubcfi(/6/4!/4/2/1:1)')
+    const local = (await estante.anotacoes('arq:livro')).find((x) => x.id === 'anotacao-a4')!
+    expect(local).toMatchObject({ pendente: 0, atualizadoEm: 5, alvo: { cfi: 'epubcfi(/6/4!/4/2/1:1)' } })
+    await a.sincronizar()
+    expect(srv.linhas.get('anotacao-a4')?.apagadoEm).toBe(50)
+    expect(await a.vivas()).toHaveLength(0)
+  })
+
   it('falha de rede: continua pendente e no aparelho', async () => {
     const r = anotacoesDoLivro('arq:livro', {
       pode: async () => true,

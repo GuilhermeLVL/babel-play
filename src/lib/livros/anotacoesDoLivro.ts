@@ -55,6 +55,16 @@ export function anotacoesDoLivro(livroId: string, deps: DependenciasDaSincroniza
       await estante.gravarAnotacoes([{ ...a, pendente: 1 }]);
     },
 
+    /**
+     * O CFI recalculado pela reancoragem (dado DERIVADO: cada aparelho o recalcula do texto que tem). Grava só no
+     * aparelho, sem mudar `atualizadoEm` nem marcar para subir — senão abrir o livro "editava" toda anotação, e
+     * a versão local reviveria no servidor a anotação que outro aparelho acabou de apagar.
+     */
+    async reancorar(id: string, cfi: string): Promise<void> {
+      const a = (await todas()).find((x) => x.id === id);
+      if (a && a.alvo.cfi !== cfi) await estante.gravarAnotacoes([{ ...a, alvo: { ...a.alvo, cfi } }]);
+    },
+
     /** Apaga (lápide) no aparelho, marcada para subir. */
     async apagar(id: string, agora = Date.now()): Promise<void> {
       const a = (await todas()).find((x) => x.id === id);

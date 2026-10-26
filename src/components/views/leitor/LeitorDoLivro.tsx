@@ -162,13 +162,13 @@ export default function LeitorDoLivro({
         if (r2.como === 'citacao') {
           const cfi = await motor.cfiDoTrecho(r2.secao, r2.trecho.inicio, r2.trecho.fim);
           if (cfi) {
-            reancoradas.push({ ...a, alvo: { ...a.alvo, cfi }, atualizadoEm: Date.now() });
+            reancoradas.push({ ...a, alvo: { ...a.alvo, cfi } });
             continue;
           }
         }
         if (r2.como !== 'cfi') perdidas.add(a.id);
       }
-      for (const a of reancoradas) await repo.gravar(a);
+      for (const a of reancoradas) await repo.reancorar(a.id, a.alvo.cfi);
       const finais = lista.map((a) => reancoradas.find((r) => r.id === a.id) ?? a);
       setNaoLocalizadas(perdidas);
       setAnotacoes(finais);

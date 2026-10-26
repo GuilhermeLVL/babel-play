@@ -145,6 +145,12 @@ describe('reancoragem pela citação (critério 9)', () => {
     expect(ancorar(base(), () => 'O gato dormia.', [TEXTO])).toEqual({ como: 'cfi' })
   })
 
+  it('o CFI de um parágrafo inteiro traz espaço e quebra de linha a mais: é o mesmo texto (não reancora)', () => {
+    expect(ancorar(base(), () => '\n  O gato\n dormia. ', [TEXTO])).toEqual({ como: 'cfi' })
+    // E o exact cortado no teto (500) dentro de um trecho maior também é o mesmo.
+    expect(ancorar(base(), () => 'O gato dormia. Um dia, o gato acordou', [TEXTO])).toEqual({ como: 'cfi' })
+  })
+
   it('CFI quebrado: reancora pela citação na seção certa', () => {
     const r = ancorar(base(), () => null, ['Prefácio sem nada.', TEXTO])
     expect(r).toMatchObject({ como: 'citacao', secao: 1 })

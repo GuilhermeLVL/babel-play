@@ -33,6 +33,17 @@ function normalizarComMapa(s: string): { texto: string; mapa: number[] } {
 }
 
 const colapsar = (s: string) => s.replace(/\s+/g, ' ');
+/**
+ * O texto do CFI "é" a citação? Sem espaço nenhum na conta (o CFI de um parágrafo inteiro começa no fim do nó
+ * de texto anterior e traz a quebra de linha entre os blocos), e aceitando que um contenha o outro: o `exact`
+ * guardado pode ter sido cortado no teto de 500 caracteres.
+ */
+const semEspaco = (s: string) => s.replace(/\s+/g, '');
+function mesmoTexto(atual: string, exact: string): boolean {
+  const a = semEspaco(atual);
+  const e = semEspaco(exact);
+  return !!e && (a === e || a.includes(e) || (e.length > 20 && e.includes(a) && a.length >= e.length * 0.9));
+}
 
 /** Quantos caracteres do fim de `a` casam com o fim de `b`. */
 function sufixoComum(a: string, b: string): number {
@@ -87,7 +98,7 @@ export function ancorar(
   if (cfi) {
     const atual = resolverCfi(cfi);
     // Sem citação guardada, o CFI que resolve é a única prova; com ela, o texto tem de bater.
-    if (atual != null && (!citacao.exact || colapsar(atual).trim() === colapsar(citacao.exact).trim())) {
+    if (atual != null && (!citacao.exact || mesmoTexto(atual, citacao.exact))) {
       return { como: 'cfi' };
     }
   }

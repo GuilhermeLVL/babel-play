@@ -566,8 +566,8 @@ export default function LeitorDoLivro({
           <button
             type="button"
             className="leitor-botao"
-            aria-pressed={painel === 'sumario'}
-            aria-controls="leitor-painel"
+            aria-expanded={painel === 'sumario'}
+            aria-controls={painel === 'sumario' ? 'leitor-painel' : undefined}
             onClick={() => abrirPainel('sumario')}
           >
             <ListTree aria-hidden />
@@ -576,8 +576,8 @@ export default function LeitorDoLivro({
           <button
             type="button"
             className="leitor-botao"
-            aria-pressed={painel === 'tipografia'}
-            aria-controls="leitor-painel"
+            aria-expanded={painel === 'tipografia'}
+            aria-controls={painel === 'tipografia' ? 'leitor-painel' : undefined}
             onClick={() => abrirPainel('tipografia')}
           >
             <Type aria-hidden />
@@ -586,8 +586,8 @@ export default function LeitorDoLivro({
           <button
             type="button"
             className="leitor-botao"
-            aria-pressed={painel === 'anotacoes'}
-            aria-controls="leitor-painel"
+            aria-expanded={painel === 'anotacoes'}
+            aria-controls={painel === 'anotacoes' ? 'leitor-painel' : undefined}
             onClick={() => abrirPainel('anotacoes')}
           >
             <Highlighter aria-hidden />

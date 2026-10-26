@@ -4,6 +4,8 @@ import path from 'node:path'
 
 import { expect, type Frame, type Page, test } from '@playwright/test'
 
+import { violacoesGraves } from './_acessibilidade'
+
 /**
  * O LEITOR (L2 de Livros & Leitura), de ponta a ponta, com o EPUB de domínio público dos testes
  * (`tests/fixtures/livros/fabulas-cc0.epub`, CC0):
@@ -90,6 +92,9 @@ test.describe('Leitor', () => {
     await expect(leitorPronto(page)).toBeVisible({ timeout: 30_000 })
     await expect(page.getByRole('heading', { level: 1, name: "Aesop's Fables (tiny edition)" })).toBeVisible()
 
+    // ── acessibilidade (ACE07): nada sério nem crítico no axe, no leitor e com os painéis abertos ──
+    expect(await violacoesGraves(page, ['[data-testid=leitor]'])).toEqual([])
+
     // ── paginar (teclado e botão) ──
     const progresso = page.getByTestId('leitor-progresso')
     await quadroCom(page, 'hungry fox')
@@ -97,6 +102,12 @@ test.describe('Leitor', () => {
     await page.getByRole('button', { name: 'Próxima página' }).click()
     await expect(progresso).not.toHaveText(antes ?? '', { timeout: 10_000 })
     await page.getByRole('button', { name: 'Página anterior' }).click()
+    await expect(progresso).toHaveText(antes ?? '', { timeout: 10_000 })
+    // O teclado também vira (ACE07): → e ←.
+    await page.getByRole('button', { name: 'Próxima página' }).focus()
+    await page.keyboard.press('ArrowRight')
+    await expect(progresso).not.toHaveText(antes ?? '', { timeout: 10_000 })
+    await page.keyboard.press('ArrowLeft')
     await expect(progresso).toHaveText(antes ?? '', { timeout: 10_000 })
 
     // ── tema e fonte (o perfil vale para todo livro) ──
@@ -113,6 +124,7 @@ test.describe('Leitor', () => {
     await expect
       .poll(() => fox.evaluate(() => getComputedStyle(document.documentElement).backgroundColor))
       .toBe('rgb(28, 28, 30)')
+    expect(await violacoesGraves(page, ['[data-testid=leitor]'])).toEqual([])
     const perfil = await page.evaluate(() => JSON.parse(localStorage.getItem('leitor:perfil') ?? '{}'))
     expect(perfil).toMatchObject({ tema: 'escuro', fonte: 'atkinson' })
     await page.getByRole('button', { name: 'Fechar o painel' }).click()
@@ -155,6 +167,7 @@ test.describe('Leitor', () => {
     await page.getByRole('button', { name: /Anotações/ }).click()
     const painel = page.getByTestId('painel-anotacoes')
     await expect(painel.getByText('nose in the air', { exact: false })).toBeVisible()
+    expect(await violacoesGraves(page, ['[data-testid=leitor]'])).toEqual([])
     await expect(painel.getByText('desdenhar do que não se alcança', { exact: false })).toBeVisible()
 
     // ── exportar Markdown ──

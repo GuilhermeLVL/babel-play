@@ -68,7 +68,8 @@
 .leitor-botao:hover {
   background: var(--leitor-sutil);
 }
-.leitor-botao[aria-pressed='true'] {
+.leitor-botao[aria-pressed='true'],
+.leitor-botao[aria-expanded='true'] {
   background: var(--leitor-sutil);
   border-color: var(--leitor-borda);
 }

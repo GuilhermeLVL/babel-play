@@ -110,7 +110,8 @@ async function prepararRotas(
   await page.route('**/api/flags', (r) => r.fulfill({ json: { flags: { assistente_ao_vivo: { ligada: o.flag } } } }))
   await page.route('**/api/settings', async (route) => {
     const pedido = route.request()
-    const resposta = await route.fetch()
+    /* SEMPRE um GET ao servidor: repassar o PUT gravaria no banco o consentimento simulado. */
+    const resposta = await route.fetch({ method: 'GET', postData: undefined })
     const s = (await resposta.json().catch(() => ({}))) as Record<string, unknown>
     if (pedido.method() !== 'GET') {
       /* As gravações da janela (aparência) ficam nesta página: o banco de dev não muda. */

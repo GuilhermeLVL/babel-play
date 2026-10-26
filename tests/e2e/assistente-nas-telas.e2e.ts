@@ -51,7 +51,9 @@ async function prepararRotas(page: Page, o: { flag: boolean }): Promise<Pedidos>
   await page.route('**/api/flags', (r) => r.fulfill({ json: { flags: { assistente_ao_vivo: { ligada: o.flag } } } }))
   await page.route('**/api/settings', async (route) => {
     const pedido = route.request()
-    const resposta = await route.fetch()
+    /* SEMPRE um GET ao servidor: repassar o PUT gravaria no banco o consentimento simulado (e a suíte seguinte, no
+       mesmo banco, herdaria a nuvem autorizada). */
+    const resposta = await route.fetch({ method: 'GET', postData: undefined })
     const s = (await resposta.json().catch(() => ({}))) as Record<string, unknown>
     if (pedido.method() !== 'GET') {
       const corpo = (pedido.postDataJSON() ?? {}) as { ui?: unknown }
@@ -366,4 +368,12 @@ test('Intérprete: "Como respondo?" junto da última fala da outra pessoa, com a
   }
   /* Uma chamada de expressões para a fala dela (a da pessoa, no idioma dela, não vai à nuvem). */
   expect(pedidos.expressoes).toBe(1)
+
+  /* Sai e descarta, como o `modo-interprete.e2e.ts`: a sessão aberta não fica para a suíte seguinte. */
+  await cartao.getByRole('button', { name: 'Fechar o cartão da palavra' }).click()
+  await clicarRobusto(page, conversa.getByRole('button', { name: 'Sair do modo intérprete' }))
+  const encerrar = page.getByRole('dialog').filter({ hasText: /Descartar/ })
+  await expect(encerrar).toBeVisible({ timeout: 5_000 })
+  await clicarRobusto(page, encerrar.getByRole('button', { name: /Descartar/ }).first())
+  await expect(page.getByTestId('modo-interprete')).toHaveCount(0)
 })

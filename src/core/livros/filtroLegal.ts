@@ -26,6 +26,7 @@ export function anoLimite(ano: number): number {
  * 23h de 31/12 em São Paulo já é 1º/1 em UTC, e um relógio em UTC liberaria uma obra algumas horas antes.
  */
 export function anoEmSaoPaulo(agora: Date): number {
+  // ast-grep-ignore: locale-cravado — locale de MÁQUINA: só extrai os dígitos do ano para a conta da lei; ninguém lê este texto.
   const ano = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', year: 'numeric' }).format(agora);
   return Number(ano);
 }

@@ -665,10 +665,7 @@ body:has(.cel) .fab {
   html[data-px='on'][data-telas='enxuta'] .cel.px-vivo:not(.px-pronto):not(.px-parada) .q-faixa .q-letra-menor {
     display: inline-flex;
   }
-  html[data-px='on'][data-telas='enxuta']
-    .cel.px-vivo:not(.px-pronto):not(.px-parada)
-    .q-faixa
-    :is(.ex-pausar, .q-letra-menor, .q-fica) {
+  html[data-px='on'][data-telas='enxuta'] .cel.px-vivo:not(.px-pronto):not(.px-parada) .q-faixa :is(.ex-pausar, .q-letra-menor, .q-fica) {
     flex: 1 1 40px;
     /* 40 px no uso normal; só abaixo disso se o relógio passar de uma hora numa tela de 360 px */
     min-width: 34px;

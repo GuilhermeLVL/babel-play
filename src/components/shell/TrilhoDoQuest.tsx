@@ -70,23 +70,31 @@ import { pedirTela, precarregarNoOcioso } from '../../lib/polimento/precarga';
 import { medirOPulso } from '../../lib/polimento/pulso';
 import { instalarSentidos } from '../../lib/polimento/sentidos';
 import { instalarTelas } from '../../lib/polimento/telas';
+import { capturaAtiva } from '../../lib/sessaoDeCaptura';
 import { authRequired } from '../../lib/supabase';
 import { usePerfil } from '../../lib/usePerfil';
 import { zoomDoCorpo } from '../../lib/zoomDoCorpo';
 import type { ViewType } from '../../types';
 import { exigeConta } from '../conta/exigeConta';
 import { useListaDeNotificacoes } from './CentralDeNotificacoes';
-import { type AgeProfileType, ITEM_ADMIN, NAV_ITEMS, navLabel } from './navItems';
+import { type DestinoAoVivo, EscolhaAoVivo } from './EscolhaAoVivo';
+import { type AgeProfileType, ITEM_ADMIN, ITEM_AO_VIVO, NAV_ITEMS, navLabel } from './navItems';
 import { MarcaBabel } from './ShellBits';
 
 /**
  * OS DESTINOS DO TRILHO NO COMPUTADOR (R40, 22/10/2026): oito, por prioridade de uso. O que se faz com o
- * app (Início, Capturar, Intérprete, Cartões, Jogar), o que a pessoa guarda (Biblioteca) e o que mostra o
+ * app (Início, Ao vivo, Cartões, Jogar), o que a pessoa guarda (Biblioteca) e o que mostra o
  * quanto ela evoluiu e o que ela paga (Progresso, Planos). Personalizar, Ajustes e o resto ficam no "Mais".
  */
-const NO_TRILHO: ViewType[] = ['hub', 'capture', 'interprete', 'cartoes', 'play', 'library', 'estatisticas', 'planos'];
+const NO_TRILHO: ViewType[] = ['hub', 'capture', 'cartoes', 'play', 'library', 'estatisticas', 'planos'];
 
-/** NO CELULAR (barra de cinco) o trilho é Início, Capturar, Cartões, Jogar e o "Mais" (R40). */
+/**
+ * "AO VIVO": o botão de `capture` no trilho abre a escolha entre Legendar (`capture`) e Intérprete
+ * (`interprete`). As duas views continuam existindo (rotas, busca, cartões do Início); só o trilho as junta.
+ */
+const AO_VIVO: ViewType[] = ['capture', 'interprete'];
+
+/** NO CELULAR (barra de cinco) o trilho é Início, Ao vivo, Cartões, Jogar e o "Mais" (R40). */
 const NO_TRILHO_NO_CELULAR: ViewType[] = ['hub', 'capture', 'cartoes', 'play'];
 
 /** O estado do plano que o item "Planos" do trilho diz em texto pequeno: o teste, ou o nome do plano. */
@@ -296,6 +304,8 @@ export default function TrilhoDoQuest({
   cartoesHoje = null,
 }: TrilhoDoQuestProps) {
   const [maisAberto, setMaisAberto] = useState(false);
+  const [vivoAberto, setVivoAberto] = useState(false);
+  const botaoVivo = useRef<HTMLButtonElement | null>(null);
   const [aba, setAba] = useState<'destinos' | 'avisos'>('destinos');
   const avisos = useListaDeNotificacoes();
   const novos = naoLidas(avisos);
@@ -390,8 +400,10 @@ export default function TrilhoDoQuest({
   /* R42: item do trilho não leva o marcador "Pede conta" (como a Biblioteca); o cadeado fica na própria tela
      e no ladrilho do "Mais" no celular. */
   const noTrilho = cinco ? NO_TRILHO_NO_CELULAR : NO_TRILHO;
-  const principais = noTrilho.map((id) => NAV_ITEMS.find((i) => i.id === id)).filter((i) => !!i);
-  const foraDosSeis = NAV_ITEMS.filter((i) => !noTrilho.includes(i.id));
+  const principais = noTrilho
+    .map((id) => (id === 'capture' ? ITEM_AO_VIVO : NAV_ITEMS.find((i) => i.id === id)))
+    .filter((i) => !!i);
+  const foraDosSeis = NAV_ITEMS.filter((i) => !noTrilho.includes(i.id) && i.id !== 'interprete');
   /* OS LADRILHOS DO "MAIS", na ordem do protótipo (`CT_NAV.a.mais`, `cartoes3.js:14`): Estatísticas,
      Personalizar, Ajustes; depois o perfil e a ajuda (fixos, abaixo); por fim Sobre e o que mais houver. */
   const outros = [
@@ -409,7 +421,7 @@ export default function TrilhoDoQuest({
     ),
     ...(ehAdmin(perfil) ? [ITEM_ADMIN] : []),
   ];
-  const foraDoTrilho = !noTrilho.includes(activeView);
+  const foraDoTrilho = !noTrilho.includes(activeView) && !AO_VIVO.includes(activeView);
   /** Um ladrilho de destino do "Mais". Sem conta, o destino que só abriria o convite diz isso antes do toque. */
   const ladrilho = (item: (typeof NAV_ITEMS)[number]) => {
     const Icone = item.icon;
@@ -441,6 +453,7 @@ export default function TrilhoDoQuest({
   };
 
   useEffect(() => setMaisAberto(false), [activeView]);
+  useEffect(() => setVivoAberto(false), [activeView]);
   useEffect(() => {
     if (!maisAberto) setAba('destinos');
   }, [maisAberto]);
@@ -453,6 +466,7 @@ export default function TrilhoDoQuest({
 
   const ir = (id: ViewType, dado?: Record<string, string>) => {
     setMaisAberto(false);
+    setVivoAberto(false);
     if (dado) onChangeView(id, dado);
     else onChangeView(id);
   };
@@ -465,6 +479,37 @@ export default function TrilhoDoQuest({
     const rotulo = navLabel(item, ageProfile, true);
     const marcado = activeView === item.id;
     const comEstado = item.id === 'planos' && !cinco;
+    const aoVivo = item === ITEM_AO_VIVO;
+    if (aoVivo) {
+      return (
+        <button
+          key="ao-vivo"
+          ref={botaoVivo}
+          type="button"
+          className="q-item"
+          data-dica={rotulo}
+          /* A camada de polimento acha o destino por aqui: a pílula serve às duas views. */
+          data-px-rota="capture"
+          data-px-tambem="interprete"
+          aria-haspopup="menu"
+          aria-expanded={vivoAberto}
+          aria-current={AO_VIVO.includes(activeView) ? 'page' : undefined}
+          aria-label={rotulo}
+          onClick={() => {
+            setMaisAberto(false);
+            setVivoAberto((v) => !v);
+          }}
+          onPointerDown={() => {
+            pedir('capture');
+            pedir('interprete');
+          }}
+          onFocus={() => pedir('capture', true)}
+        >
+          <Icone aria-hidden />
+          <span>{rotulo}</span>
+        </button>
+      );
+    }
     return (
       <button
         key={item.id}
@@ -606,6 +651,21 @@ export default function TrilhoDoQuest({
         )}
       </nav>
       {pecaDaDica}
+
+      {vivoAberto && (
+        <EscolhaAoVivo
+          ancora={botaoVivo.current}
+          folha={!lateral}
+          comFlutuante={AO_VIVO.includes(activeView) && capturaAtiva() && !headset}
+          aoEscolher={(d: DestinoAoVivo) => ir(d)}
+          aoAbrirFlutuante={() => {
+            setVivoAberto(false);
+            /* O mesmo gesto do teclado: a legenda flutuante escuta o Alt+L na janela. */
+            window.dispatchEvent(new KeyboardEvent('keydown', { altKey: true, code: 'KeyL', key: 'l' }));
+          }}
+          aoFechar={() => setVivoAberto(false)}
+        />
+      )}
 
       {maisAberto && (
         <div className="q-mais-fundo" onClick={(e) => e.target === e.currentTarget && setMaisAberto(false)}>

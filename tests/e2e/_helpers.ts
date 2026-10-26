@@ -3,9 +3,9 @@ import { expect, type Locator, type Page } from '@playwright/test'
 /**
  * O QUE AS SUÍTES DIVIDEM, no desenho que virou o único (09/10/2026).
  *
- * A casca é o trilho de ícones (`nav.q-trilho`): Início, Capturar, Intérprete, Cartões, Jogar,
+ * A casca é o trilho de ícones (`nav.q-trilho`): Início, Ao vivo (Capturar e Intérprete), Cartões, Jogar,
  * Biblioteca, Progresso, Planos, Buscar e "Mais" (R40, 22/10/2026). Abaixo de 720 px ele vira uma barra
- * de cinco destinos (Início, Cartões, Capturar, Jogar, Mais); no alto das duas telas de praticar há as
+ * de cinco destinos (Início, Cartões, Ao vivo, Jogar, Mais); no alto das duas telas de praticar há as
  * abas `abas-de-praticar` ("Cartões" e "Jogos"), e Intérprete e Biblioteca viram os primeiros ladrilhos
  * do "Mais" (e cartões no Início). O painel "Mais" (`.q-mais`, o diálogo "Mais destinos") traz
  * Personalizar, Ajustes, o perfil, a ajuda, Sobre (no celular, também Progresso) e a faixa "Planos e
@@ -277,7 +277,7 @@ export async function abrirMais(page: Page): Promise<Locator> {
 
 /**
  * VAI AO JOGAR PELO MENU, como a pessoa vai em cada largura: no trilho (computador e tablet) o Jogar
- * tem botão próprio, e na barra de cinco do celular também (R40: Início, Cartões, Capturar, Jogar, Mais).
+ * tem botão próprio, e na barra de cinco do celular também (R40: Início, Cartões, Ao vivo, Jogar, Mais).
  */
 export async function irAoJogarPeloMenu(page: Page) {
   await clicarRobusto(page, trilho(page).locator('.q-item[data-px-rota="play"]'))
@@ -285,14 +285,21 @@ export async function irAoJogarPeloMenu(page: Page) {
 }
 
 /**
- * VAI AO INTÉRPRETE PELO MENU: no trilho (computador e tablet) ele tem botão próprio; na barra de cinco
- * do celular ele não cabe e é o primeiro ladrilho do "Mais" (R40).
+ * ABRE A ESCOLHA DO "AO VIVO" (o item único que juntou Capturar e Intérprete) e devolve o menu. No
+ * computador é um cartão ao lado do trilho; na barra de cinco do celular, uma folha embaixo.
  */
+export async function abrirAoVivo(page: Page): Promise<Locator> {
+  const menu = page.getByRole('menu', { name: 'Ao vivo: escolha o que fazer' })
+  if (!(await menu.isVisible().catch(() => false)))
+    await clicarRobusto(page, trilho(page).locator('.q-item[data-px-rota="capture"]'))
+  await expect(menu).toBeVisible()
+  return menu
+}
+
+/** VAI AO INTÉRPRETE PELO MENU: "Ao vivo" → "Intérprete", no trilho e na folha do celular. */
 export async function irAoInterpretePeloMenu(page: Page) {
-  const botao = naBarraDeCinco(page)
-    ? (await abrirMais(page)).getByRole('button', { name: /^Intérprete/ })
-    : trilho(page).getByRole('button', { name: /^Intérprete/ })
-  await clicarRobusto(page, botao)
+  const menu = await abrirAoVivo(page)
+  await clicarRobusto(page, menu.getByRole('menuitem', { name: /^Intérprete/ }))
   await expect(page).toHaveURL(/\/interprete$/, { timeout: 10_000 })
 }
 

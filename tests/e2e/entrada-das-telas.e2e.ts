@@ -80,15 +80,21 @@ function maiorVazio(qs: Quadro[]): number {
   return maior
 }
 
-const itemDoInterprete = (page: Page) => trilho(page).locator('.q-item[data-px-rota="interprete"]')
+const itemAoVivo = (page: Page) => trilho(page).locator('.q-item[data-px-rota="capture"]')
+
+/** O Intérprete pelo trilho: "Ao vivo" abre a escolha e o item "Intérprete" leva à conversa. */
+async function abrirInterprete(page: Page) {
+  await itemAoVivo(page).click()
+  await page.getByRole('menuitem', { name: /^Intérprete/ }).click()
+}
 
 /** Abre o Início e pede o pedaço do Intérprete como o toque pede (`precarga.ts`), sem navegar ainda. */
 async function prepararNoInicio(page: Page) {
   await page.setViewportSize({ width: 1440, height: 900 })
   await abrirTela(page, '/')
   await fecharSobreposicoes(page)
-  await expect(itemDoInterprete(page)).toBeVisible()
-  await itemDoInterprete(page).dispatchEvent('pointerdown')
+  await expect(itemAoVivo(page)).toBeVisible()
+  await itemAoVivo(page).dispatchEvent('pointerdown')
   await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {})
   await page.waitForTimeout(800)
   await fecharSobreposicoes(page)
@@ -108,7 +114,7 @@ test.describe('entrada das telas', () => {
   test('Intérprete pelo trilho: sem deslocamento e sem tela vazia', async ({ page }) => {
     await prepararNoInicio(page)
     await amostrar(page, 800)
-    await itemDoInterprete(page).click()
+    await abrirInterprete(page)
     // O final é medido com tudo parado (a entrada de antes durava até ~1,2 s depois do clique).
     await page.waitForTimeout(1800)
     const qs = await quadros(page)
@@ -128,7 +134,7 @@ test.describe('entrada das telas', () => {
 
   test('com o "Mais" aberto por cima do Intérprete, a conversa não sai do lugar', async ({ page }) => {
     await prepararNoInicio(page)
-    await itemDoInterprete(page).click()
+    await abrirInterprete(page)
     await expect(page.locator('.int[data-pagina]')).toBeVisible()
     await page.waitForTimeout(1200)
     const antes = await page.locator('.int[data-pagina]').evaluate((el) => el.getBoundingClientRect().x)
@@ -148,7 +154,7 @@ test.describe('entrada das telas', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await prepararNoInicio(page)
     await amostrar(page, 800)
-    await itemDoInterprete(page).click()
+    await abrirInterprete(page)
     await page.waitForTimeout(1000)
     const qs = await quadros(page)
     // Só os quadros com a tela nova: o que roda no Início antes de ele sair não é da entrada.

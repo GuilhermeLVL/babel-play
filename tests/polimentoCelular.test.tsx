@@ -3,8 +3,8 @@
  * O DESENHO NOVO NO CELULAR (08/10/2026) — a versão de celular do protótipo de polimento:
  *   · a barra flutuante de cinco destinos (`celular.css` conta os botões pela posição: no celular o DOM
  *     tem só Início, Capturar, Cartões, Jogar e o "Mais" em quinto);
- *   · desde a R40 (22/10/2026) a barra é Início, Cartões, Capturar, Jogar, Mais: Intérprete e Biblioteca
- *     viram os primeiros ladrilhos do "Mais" (e cartão no Início), Progresso e Planos também moram lá, e
+ *   · desde a R40 (22/10/2026) a barra é Início, Cartões, Ao vivo (Capturar e Intérprete numa escolha só), Jogar, Mais: a Biblioteca
+ *     vira o primeiro ladrilho do "Mais" (e cartão no Início), Progresso e Planos também moram lá, e
  *     o destaque deles vai para o "Mais";
  *   · a barra some ao rolar e volta ao subir, no fim e em toda troca de tela (`sentidos.js:279-304`);
  *   · o "Mais" sobe de baixo e fecha arrastado (`prototipo.js:428-469, 502-509, 546-549`).
@@ -102,7 +102,7 @@ describe('a barra de cinco destinos', () => {
     const { container } = montar()
     expect(botoes(container).map((b) => b.querySelector('span')?.textContent)).toEqual([
       'Início',
-      'Capturar',
+      'Ao vivo',
       'Cartões',
       'Jogar',
       'Mais',
@@ -146,8 +146,8 @@ describe('a barra de cinco destinos', () => {
     expect(aoBuscar).toHaveBeenCalledTimes(1)
   })
 
-  it('no Intérprete, na Biblioteca, no Progresso, em Planos e em Personalizar (fora da barra) o destaque é do "Mais"', async () => {
-    for (const tela of ['interprete', 'library', 'estatisticas', 'planos', 'loja']) {
+  it('na Biblioteca, no Progresso, em Planos e em Personalizar (fora da barra) o destaque é do "Mais"', async () => {
+    for (const tela of ['library', 'estatisticas', 'planos', 'loja']) {
       const { container, unmount } = montar(tela)
       /* A marca da camada (`data-px`) chega com o trilho montado: a barra de cinco acompanha. */
       await act(vez)
@@ -160,25 +160,39 @@ describe('a barra de cinco destinos', () => {
     }
   })
 
+  it('em Capturar e no Intérprete o destaque é do "Ao vivo", não do "Mais"', async () => {
+    for (const tela of ['capture', 'interprete']) {
+      const { container, unmount } = montar(tela)
+      await act(vez)
+      const marcados = [...container.querySelectorAll('.q-item[aria-current="page"]')]
+      expect(
+        marcados.map((b) => b.textContent),
+        tela,
+      ).toEqual(['Ao vivo'])
+      unmount()
+    }
+  })
+
   it('cada botão do trilho do celular é achado pela camada pela própria rota', () => {
     const { container } = montar()
     expect(botoes(container).map((b) => b.dataset.pxRota ?? null)).toEqual(['hub', 'capture', 'cartoes', 'play', null])
   })
 
-  it('o "Mais" começa com Intérprete e Biblioteca, depois Progresso e Personalizar, sem Planos; o toque leva à tela', () => {
+  it('o "Mais" começa com a Biblioteca, depois Progresso e Personalizar, sem Intérprete nem Planos; o toque leva à tela', () => {
     const { ir } = montar()
     fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
     const ladrilhos = [...screen.getByRole('dialog').querySelectorAll('.q-grade .q-tile b')].map((b) => b.textContent)
-    expect(ladrilhos.slice(0, 4)).toEqual(['Intérprete', 'Biblioteca', 'Progresso', 'Personalizar'])
+    expect(ladrilhos.slice(0, 3)).toEqual(['Biblioteca', 'Progresso', 'Personalizar'])
+    expect(ladrilhos).not.toContain('Intérprete')
     expect(ladrilhos.filter((r) => r === 'Biblioteca')).toHaveLength(1)
     expect(ladrilhos).not.toContain('Jogar')
     expect(ladrilhos).not.toContain('Planos')
     expect(screen.getByTestId('planos-no-mais')).toBeTruthy()
     fireEvent.click(screen.getByRole('dialog').querySelector('.q-grade .q-tile')!)
-    expect(ir).toHaveBeenLastCalledWith('interprete')
+    expect(ir).toHaveBeenLastCalledWith('library')
   })
 
-  it('acima de 720 px (o tablet) vale o trilho de oito: Biblioteca, Progresso e Planos no trilho e fora do "Mais"', () => {
+  it('acima de 720 px (o tablet) vale o trilho de sete: Biblioteca, Progresso e Planos no trilho e fora do "Mais"', () => {
     estreita = false
     const { container } = montar('library')
     expect(barraDeCinco()).toBe(false)
@@ -186,8 +200,8 @@ describe('a barra de cinco destinos', () => {
     expect(
       botoes(container)
         .map((b) => b.dataset.pxRota ?? null)
-        .slice(0, 8),
-    ).toEqual(['hub', 'capture', 'interprete', 'cartoes', 'play', 'library', 'estatisticas', 'planos'])
+        .slice(0, 7),
+    ).toEqual(['hub', 'capture', 'cartoes', 'play', 'library', 'estatisticas', 'planos'])
     fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
     const ladrilhos = [...screen.getByRole('dialog').querySelectorAll('.q-grade .q-tile b')].map((b) => b.textContent)
     for (const repetido of ['Biblioteca', 'Intérprete', 'Progresso', 'Planos'])
@@ -216,7 +230,7 @@ describe('a barra de cinco destinos', () => {
     await act(vez)
     expect(document.documentElement.dataset.px).toBe('off')
     expect(container.querySelector('.q-item[aria-current="page"]')?.textContent).toBe('Biblioteca')
-    expect(botoes(container)[3].querySelector('span')?.textContent).toBe('Cartões')
+    expect(botoes(container)[2].querySelector('span')?.textContent).toBe('Cartões')
   })
 })
 

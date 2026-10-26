@@ -3,24 +3,35 @@
  * esta classe; trocar de motor (a spec deixa a porta aberta) é reescrever este arquivo.
  *
  * O que ele faz além de repassar:
- *  · SEGURANÇA: recusa todo script do manifesto do EPUB e limpa o HTML de cada seção (`limparHtml`);
+ *  · SEGURANÇA: só carrega os tipos da lista (`politicaDeRecursos`), limpa toda marcação (`limparHtml`) e
+ *    abre só link http(s) sem opener; os iframes do livro não têm `allow-scripts` (`foliate/PATCHES.md`);
  *  · PERFIL: aplica o perfil de leitura (CSS dentro do livro, fluxo paginado/rolagem, margem e coluna);
  *  · ANOTAÇÕES: desenha grifos/notas/palavras com a cor do tipo e avisa o toque num grifo;
  *  · TEXTO: devolve o texto que um CFI aponta e o texto de cada seção (para reancorar pela citação).
  */
 import type { CorDeAnotacao, TipoDeAnotacao } from '../../core/leitura/anotacao';
-import { cssDoLivro, type PerfilDeLeitura } from '../../core/leitura/perfilDeLeitura';
+import { CORES_DOS_TEMAS, cssDoLivro, type PerfilDeLeitura } from '../../core/leitura/perfilDeLeitura';
 import type { ItemDoSumario, LivroDoFoliate, Localizacao, View } from './foliate/view.js';
 import { facesDaFonte } from './fontes';
 import { limparHtml } from './limparHtml';
+import {
+  ehTipoDeMarcacao,
+  linkExternoSeguro,
+  pareceMarcacao,
+  tipoDaMarcacao,
+  tipoPermitido,
+} from './politicaDeRecursos';
 
-/** A cor de cada token no livro (translúcida: o texto continua legível em qualquer tema). */
+/**
+ * A cor de cada token no livro. Sólida: a transparência é do overlayer (`--overlayer-highlight-opacity`,
+ * ajustada por tema em `aplicarPerfil`), e no tema claro ela MULTIPLICA (o texto continua nítido por baixo).
+ */
 export const COR_DO_GRIFO: Record<CorDeAnotacao, string> = {
-  amarelo: 'rgba(250, 204, 21, 0.42)',
-  verde: 'rgba(52, 199, 89, 0.38)',
-  azul: 'rgba(56, 132, 255, 0.36)',
-  rosa: 'rgba(255, 99, 166, 0.36)',
-  laranja: 'rgba(255, 149, 0, 0.40)',
+  amarelo: '#f5c400',
+  verde: '#3cc46b',
+  azul: '#4a8dff',
+  rosa: '#ff5fa8',
+  laranja: '#ff9500',
 };
 
 export interface AnotacaoDesenhada {
@@ -93,6 +104,12 @@ export class MotorDoLeitor {
       eventos.aoCarregarSecao?.(doc, index);
     });
     view.addEventListener('draw-annotation', (e) => motor.desenhar(e as CustomEvent));
+    /* LINK EXTERNO: o motor decide, não o foliate — só http(s), aba nova sem opener nem referrer. */
+    view.addEventListener('external-link', (e) => {
+      e.preventDefault();
+      const url = linkExternoSeguro((e as CustomEvent<{ href_: string }>).detail?.href_ ?? '');
+      if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    });
     view.addEventListener('show-annotation', (e) =>
       eventos.aoTocarAnotacao?.((e as CustomEvent<{ value: string }>).detail.value),
     );
@@ -121,14 +138,27 @@ export class MotorDoLeitor {
   private blindar() {
     const alvo = this.view.book.transformTarget;
     if (!alvo) return;
+    /* NEGAÇÃO POR PADRÃO: só entra o tipo da lista (`tipoPermitido`); script, XML/XSLT e o resto, não. */
     alvo.addEventListener('load', (e) => {
-      const d = (e as CustomEvent<{ isScript: boolean; allow: boolean | Promise<boolean> }>).detail;
-      if (d.isScript) d.allow = false;
+      const d = (e as CustomEvent<{ type: string; isScript: boolean; allow: boolean | Promise<boolean> }>).detail;
+      if (d.isScript || !tipoPermitido(d.type)) d.allow = false;
     });
+    /* O CONTEÚDO: a marcação (string ou Blob, declarada ou farejada) passa pelo `limparHtml`. */
     alvo.addEventListener('data', (e) => {
       const d = (e as CustomEvent<{ data: unknown; type: string }>).detail;
-      if (!/html|svg/i.test(d.type)) return;
-      d.data = Promise.resolve(d.data).then((x) => (typeof x === 'string' ? limparHtml(x, d.type) : x));
+      const tipo = d.type;
+      d.data = Promise.resolve(d.data).then(async (x) => {
+        if (typeof x === 'string') {
+          const inicio = x.slice(0, 512);
+          return ehTipoDeMarcacao(tipo) || pareceMarcacao(inicio) ? limparHtml(x, tipoDaMarcacao(inicio, tipo)) : x;
+        }
+        if (x instanceof Blob) {
+          const inicio = await x.slice(0, 512).text();
+          if (!ehTipoDeMarcacao(tipo) && !pareceMarcacao(inicio)) return x;
+          return new Blob([limparHtml(await x.text(), tipoDaMarcacao(inicio, tipo))], { type: x.type || tipo });
+        }
+        return x;
+      });
     });
   }
 
@@ -144,6 +174,9 @@ export class MotorDoLeitor {
     this.perfil = perfil;
     const r = this.view.renderer;
     r.setStyles?.(cssDoLivro(perfil, facesDaFonte(perfil.fonte)));
+    const escuro = CORES_DOS_TEMAS[perfil.tema].esquema === 'dark';
+    this.view.style.setProperty('--overlayer-highlight-opacity', escuro ? '0.42' : '0.45');
+    this.view.style.setProperty('--overlayer-highlight-blend-mode', escuro ? 'normal' : 'multiply');
     if (!this.view.isFixedLayout) {
       r.setAttribute('flow', perfil.modo === 'rolagem' ? 'scrolled' : 'paginated');
       r.setAttribute('gap', `${perfil.margem}%`);
@@ -153,10 +186,17 @@ export class MotorDoLeitor {
     }
   }
 
-  proxima = () => this.view.next();
-  anterior = () => this.view.prev();
-  esquerda = () => this.view.goLeft();
-  direita = () => this.view.goRight();
+  /* AS VIRADAS ENTRAM EM FILA: o paginador IGNORA a virada pedida durante a animação da anterior (`#locked`),
+     e o toque rápido duas vezes virava uma página só — ou, voltando logo depois de avançar, nenhuma. */
+  private fila: Promise<unknown> = Promise.resolve();
+  private virar(f: () => Promise<unknown>) {
+    this.fila = this.fila.then(f).catch(() => {});
+    return this.fila;
+  }
+  proxima = () => this.virar(() => this.view.next());
+  anterior = () => this.virar(() => this.view.prev());
+  esquerda = () => this.virar(() => this.view.goLeft());
+  direita = () => this.virar(() => this.view.goRight());
   ir = (alvo: string | number) => this.view.goTo(alvo);
   irParaFracao = (f: number) => this.view.goToFraction(f);
   get posicao(): Localizacao | null {
@@ -252,8 +292,7 @@ export class MotorDoLeitor {
     const a = this.anotacoes.get(annotation.value);
     void import('./foliate/overlayer.js').then(({ Overlayer }) => {
       if (!a) return;
-      if (a.tipo === 'palavra')
-        draw(Overlayer.underline, { color: COR_DO_GRIFO[a.cor].replace(/[\d.]+\)$/, '0.9)'), width: 2 });
+      if (a.tipo === 'palavra') draw(Overlayer.underline, { color: COR_DO_GRIFO[a.cor], width: 2 });
       else draw(Overlayer.highlight, { color: COR_DO_GRIFO[a.cor] });
     });
   }

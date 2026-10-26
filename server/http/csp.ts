@@ -174,6 +174,11 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
 
   return {
     defaultSrc: ["'self'"],
+    /* `blob:` CONTINUA (conferido em 26/10/2026, revisão do leitor): com várias threads e o runtime em outra
+       origem (`VITE_ORT_WASM_URL`, o R2 de produção), o `importWasmModule` do onnxruntime-web 1.26 baixa o
+       `.mjs`, faz `URL.createObjectURL` e `import()` desse `blob:` NA THREAD PRINCIPAL — `worker-src` não cobre
+       isso. Por isso o conteúdo dos livros NÃO depende desta diretiva: o iframe do capítulo não tem
+       `allow-scripts` (`src/lib/leitor/foliate/PATCHES.md`). */
     scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'blob:', ...runtimeDoOnnx, ...turnstile],
     workerSrc: ["'self'", 'blob:', ...runtimeDoOnnx],
     connectSrc: conexoes,
@@ -188,9 +193,9 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
     frameAncestors: ["'self'"],
     baseUri: ["'self'"],
     formAction: ["'self'"],
-    /* `blob:`: cada capítulo do leitor é um documento `blob:` num iframe (foliate-js). Ele herda ESTA política —
-       por isso o `script-src` sem `'unsafe-inline'` é a segunda barreira contra script de EPUB (a primeira é o
-       motor, que recusa o script do manifesto e limpa o HTML; `src/lib/leitor/motor.ts`). */
+    /* `blob:`: cada capítulo do leitor é um documento `blob:` num iframe (foliate-js). A CSP NÃO é a barreira do
+       conteúdo do livro: o iframe não tem `allow-scripts`, o motor só aceita os tipos da lista e limpa toda
+       marcação (`src/lib/leitor/foliate/PATCHES.md`). */
     frameSrc: ["'self'", 'blob:', ...quadros],
   }
 }

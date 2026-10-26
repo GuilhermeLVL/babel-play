@@ -241,7 +241,8 @@ class View {
         })
         // `allow-scripts` is needed for events because of WebKit bug
         // https://bugs.webkit.org/show_bug.cgi?id=218086
-        this.#iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts')
+        // FRASY: sem allow-scripts — nada do livro executa, nem na mesma origem (ver PATCHES.md).
+        this.#iframe.setAttribute('sandbox', 'allow-same-origin')
         this.#iframe.setAttribute('scrolling', 'no')
     }
     get element() {

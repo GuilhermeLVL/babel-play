@@ -288,7 +288,8 @@ export class View extends HTMLElement {
             const href = section?.resolveHref?.(href_) ?? href_
             if (book?.isExternal?.(href))
                 Promise.resolve(this.#emit('external-link', { a, href_ }, true))
-                    .then(x => x ? globalThis.open(href_, '_blank') : null)
+                    // FRASY: só http(s), sempre sem opener nem referrer (ver PATCHES.md).
+                    .then(x => x && /^https?:\/\//i.test(href_) ? globalThis.open(href_, '_blank', 'noopener,noreferrer') : null)
                     .catch(e => console.error(e))
             else Promise.resolve(this.#emit('link', { a, href }, true))
                 .then(x => x ? this.goTo(href) : null)

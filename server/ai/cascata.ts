@@ -20,7 +20,13 @@ import {
 } from './admissao'
 import { clienteDesistiu } from './cancelamento'
 import { chaveDoProvedor, disjuntorPermite, registrarFalha, registrarSucesso } from './disjuntor'
-import { chamarChat, parametrosDoProvedor, type PedidoDeChat } from './llmClient'
+import {
+  chamarChat,
+  chamarChatEmFluxo,
+  parametrosDoProvedor,
+  type PedidoDeChat,
+  type RespostaDoFluxo,
+} from './llmClient'
 import { ehModeloDeRaciocinio } from './parametrosDoProvedor'
 import type { Provedor } from './provedores'
 import { nomeDoProvedor, type RastroDeIa, registrarLimiteDoProvedor, statusDaTentativa } from './telemetriaDeIa'
@@ -66,6 +72,12 @@ interface ResultadoDaCascata {
   limitadoPeloProvedor?: { retryAfterS: number }
   /** Quem pediu desistiu no meio (`cancelamento.ts`): a cascata parou, e não há a quem responder. */
   cancelado?: boolean
+  /**
+   * EM FLUXO: a perna falhou (ou quem pediu desistiu) DEPOIS do compromisso — o primeiro byte já tinha saído. A
+   * cascata parou ali (não há reserva depois do primeiro byte), e o que a perna já gerou foi cobrado: os tokens
+   * (do provedor, ou estimados pelo texto quando o fluxo caiu antes do uso) e o custo, para o chamador acertar a cota.
+   */
+  parcial?: { tokensEntrada: number; tokensSaida: number; custoUsd: number; rotulo: string; model: string }
 }
 
 /**
@@ -203,6 +215,13 @@ export async function percorrerCascata(
      * sobra, e esgotado o prazo nenhuma perna a mais é chamada. Sem ele, o pior caso é a soma dos relógios.
      */
     prazoTotalMs?: number
+    /**
+     * EM FLUXO (o "Como respondo?"): cada perna é chamada com `stream: true` (`chamarChatEmFluxo`), e esta fábrica dá,
+     * para a perna (pelo modelo dela), quem lê o texto acumulado e diz quando a resposta foi COMPROMETIDA. Antes do
+     * compromisso, a cascata é a de sempre; depois, a falha da perna encerra a cascata (`parcial`). O relógio depois
+     * do compromisso é o `prazoTotalMs`.
+     */
+    emFluxo?: (modelo: string) => (acumulado: string) => boolean
   },
 ): Promise<ResultadoDaCascata> {
   const rastro = contexto.rastro
@@ -278,7 +297,7 @@ export async function percorrerCascata(
       continue
     }
     const inicio = Date.now()
-    const r = await chamarChat({
+    const pedidoDaPerna = {
       ...pedido,
       ...(timeoutMs !== undefined ? { timeoutMs } : {}),
       maxTokens: maxTokensDaPerna(pedido.maxTokens, prov.model, contexto.fatorDeSaida),
@@ -286,14 +305,22 @@ export async function percorrerCascata(
       apiKey: prov.apiKey,
       model: prov.model,
       roteamento: prov.roteamento,
-    })
+    }
+    const r: RespostaDoFluxo = contexto.emFluxo
+      ? await chamarChatEmFluxo(pedidoDaPerna, {
+          aoTexto: contexto.emFluxo(prov.model),
+          prazoFinal: Number.isFinite(prazoFinal) ? prazoFinal : Date.now() + (timeoutMs ?? 0),
+        })
+      : await chamarChat(pedidoDaPerna)
     const fim = Date.now()
     const provedor = nomeDoProvedor(prov.base)
     const fornecedor = prov.fornecedor ?? provedor
     /* O CUSTO DA PERNA (B2 da Fase B): preço de `fornecedor:modelo` — o declarado no registro, se
        houver —, com os tokens do cache de prompt pelo preço de cache. Calculado aqui, uma vez, e usado
-       no rastro, na métrica e no orçamento: os três nunca discordam. Perna que falhou não custa. */
-    const custoUsd = r.ok
+       no rastro, na métrica e no orçamento: os três nunca discordam. Perna que falhou não custa — salvo a do fluxo
+       que falhou DEPOIS do primeiro byte: o que ela já gerou foi cobrado. */
+    const gerou = r.ok || r.comprometido === true
+    const custoUsd = gerou
       ? custoDeLlm(prov.model, r.tokensEntrada ?? 0, r.tokensSaida ?? 0, {
           fornecedor,
           preco: prov.preco,
@@ -316,7 +343,7 @@ export async function percorrerCascata(
       esperaDoLimite = Math.min(esperaDoLimite, espera)
     }
     /* Os tokens do dia saem da estimativa para o REAL; perna que falhou não gerou tokens. */
-    await ticket?.acertarTokens(r.ok ? (r.tokensEntrada ?? 0) + (r.tokensSaida ?? 0) : 0)
+    await ticket?.acertarTokens(gerou ? (r.tokensEntrada ?? 0) + (r.tokensSaida ?? 0) : 0)
     /* UMA GERAÇÃO POR PERNA, inclusive a que falhou — é assim que o fallback aparece no painel. O
        custo é o `custoUsd` acima, o mesmo do orçamento e da métrica. O texto só entra quando o
        rastro permite (dev, `LANGFUSE_CONTEUDO=1`); em produção nem é montado. */
@@ -326,7 +353,7 @@ export async function percorrerCascata(
       provedor,
       modelo: prov.model,
       status: r.ok ? 'ok' : r.cancelado ? 'cancelado' : statusDaTentativa(r.status, r.causa),
-      uso: r.ok
+      uso: gerou
         ? { input: r.tokensEntrada ?? 0, output: r.tokensSaida ?? 0, cached_input: r.tokensEmCache ?? 0 }
         : undefined,
       custoUsd,
@@ -368,11 +395,38 @@ export async function percorrerCascata(
         ultimaFalha: '',
       }
     }
+    /* O que a perna do fluxo já gerou antes de cair (ou de quem pediu desistir): cobrado, e sem reserva depois. */
+    const parcial = r.comprometido
+      ? {
+          tokensEntrada: r.tokensEntrada ?? 0,
+          tokensSaida: r.tokensSaida ?? 0,
+          custoUsd: custoUsd ?? 0,
+          rotulo: prov.rotulo,
+          model: prov.model,
+        }
+      : undefined
     /* Abortada porque quem pediu desistiu: não é falha do provedor (o disjuntor não conta) e a
        reserva não é tentada. */
-    if (r.cancelado) return { entregue: null, ultimaFalha: r.causa ?? 'cancelado por quem pediu', cancelado: true }
+    if (r.cancelado)
+      return {
+        entregue: null,
+        ultimaFalha: r.causa ?? 'cancelado por quem pediu',
+        cancelado: true,
+        ...(parcial ? { parcial } : {}),
+      }
     registrarFalha(chave, r.status)
     ultimaFalha = r.causa ?? 'falha sem causa declarada'
+    if (parcial) {
+      log('warn', {
+        event: `${contexto.evento}_fluxo_interrompido`,
+        route: contexto.route,
+        provider: prov.rotulo,
+        status: r.status,
+        error: ultimaFalha.slice(0, 120),
+        requestId: contexto.requestId,
+      })
+      return { entregue: null, ultimaFalha, parcial }
+    }
     /* Todo tipo de falha do primário tenta a reserva — inclusive 4xx: chave revogada ou modelo
        aposentado são exatamente os casos em que a reserva salva o assinante. */
     log('warn', {

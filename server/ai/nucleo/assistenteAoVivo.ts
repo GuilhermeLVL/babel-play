@@ -57,6 +57,7 @@ import {
   type TermoExplicado,
   userDoAssistente,
 } from '../../../src/lib/estudo/promptDoAssistente'
+import { criarLeitorDeSugestoesEmFluxo } from '../../../src/lib/estudo/sugestoesEmFluxo'
 import { contarRespostaInvalida } from '../../http/metricas'
 import {
   acertarTokensDoAssistente,
@@ -72,6 +73,7 @@ import { log } from '../../lib/logger'
 import { portaoDaNuvem, registrarGastoDeIa } from '../../lib/orcamentoDeIa'
 import { ContadorIndisponivel, estimarTokens } from '../../lib/usageQuota'
 import { planoDeAdmissao } from '../admissao'
+import { recusaCancelada } from '../cancelamento'
 import { type AdmissaoDaCascata, admitirCascata, encerrarAdmissao, percorrerCascata } from '../cascata'
 import { type MensagemDeChat, tamanhoDoPrompt } from '../llmClient'
 import { comInstrucaoDeMenor } from '../llmRequest'
@@ -248,19 +250,38 @@ function lerValor(p: PedidoDoAssistente, texto: string): ValorDoAssistente | nul
   }
 }
 
+/**
+ * O "COMO RESPONDO?" EM FLUXO (só esse recurso): quem pede recebe cada sugestão assim que ela fecha no texto do
+ * modelo, lida pelo mesmo leitor defensivo (`sugestoesEmFluxo.ts`). O PRIMEIRO BYTE é a primeira sugestão:
+ *
+ *   - antes dela, nada saiu — a cascata vale (a perna que cai cede à reserva) e toda recusa é a de sempre;
+ *   - `aoComecar` vem uma vez, logo antes da primeira sugestão, com o modelo da perna que está respondendo e o
+ *     `restanteHoje`; daí em diante, não há reserva: a falha da perna é o resultado (`aoDecidir` com a recusa);
+ *   - o resultado final (`aoDecidir`) é o de sempre: a lista inteira, lida por `lerSugestoes` sobre o texto final.
+ *
+ * A cota é a mesma: o uso do dia e os tokens são acertados pelo real no fim; o que já tinha sido gerado quando o fluxo
+ * caiu (ou quando quem pediu desistiu) conta; nada gerado, tudo volta.
+ */
+export interface FluxoDoComoRespondo {
+  aoComecar: (modelo: string, restanteHoje: number | null) => void
+  aoSugerir: (sugestao: SugestaoDeResposta) => void
+}
+
 export async function pedirAoAssistente(
   ctx: ContextoDeIa,
   pedido: PedidoDoAssistente,
   ganchos?: GanchosDoNucleo<ResultadoDoAssistente>,
+  fluxo?: FluxoDoComoRespondo,
 ): Promise<ResultadoDoAssistente> {
   const decidir = decisor(ganchos)
-  return decidir(await atender(ctx, pedido, decidir))
+  return decidir(await atender(ctx, pedido, decidir, pedido.recurso === 'comoRespondo' ? fluxo : undefined))
 }
 
 async function atender(
   ctx: ContextoDeIa,
   pedido: PedidoDoAssistente,
   decidir: (r: ResultadoDoAssistente) => ResultadoDoAssistente,
+  fluxo: FluxoDoComoRespondo | undefined,
 ): Promise<ResultadoDoAssistente> {
   const quem = recusaDeQuemPede(ctx)
   if (quem) return decidir(quem)
@@ -346,8 +367,27 @@ async function atender(
     if (!(reservada instanceof ReservaDeLlm)) return decidir(reservada) // 402/429 da cota ou 503 do contador
     reserva = reservada
 
-    /* 6) A cascata. */
-    const { entregue, ultimaFalha, limitadoPeloProvedor } = await percorrerCascata(
+    /* 6) A cascata — em fluxo, cada perna lê as sugestões aos pedaços; a primeira compromete a resposta. */
+    let comecou = false
+    let primeiraMs: number | null = null
+    const restanteHoje = doDia.restanteHoje
+    const emFluxo = fluxo
+      ? (modelo: string) => {
+          const leitor = criarLeitorDeSugestoesEmFluxo()
+          return (acumulado: string): boolean => {
+            for (const s of leitor.alimentar(acumulado)) {
+              if (!comecou) {
+                comecou = true
+                primeiraMs = Date.now() - t0
+                fluxo.aoComecar(modelo, restanteHoje)
+              }
+              fluxo.aoSugerir(s)
+            }
+            return comecou
+          }
+        }
+      : undefined
+    const { entregue, ultimaFalha, limitadoPeloProvedor, cancelado, parcial } = await percorrerCascata(
       custo.pernas,
       {
         messages,
@@ -358,6 +398,7 @@ async function atender(
         /* O ROTEAMENTO DA LEGENDA no OpenRouter (o endpoint mais barato que responde em até 1,5 s no p50): na bancada,
            o mesmo Gemma ficou mais barato (~20%) e com a cauda menor (p95 das glosas abaixo de 2,1 s). */
         legenda: true,
+        ...(ctx.sinal ? { sinal: ctx.sinal } : {}),
       },
       {
         evento,
@@ -369,8 +410,30 @@ async function atender(
         fatorDeSaida: custo.fatorDeSaida,
         timeoutDaPrimeiraPernaMs: TIMEOUT_DA_PRIMEIRA_PERNA_MS,
         prazoTotalMs: PRAZO_TOTAL_MS,
+        ...(emFluxo ? { emFluxo } : {}),
       },
     )
+    /* EM FLUXO, a perna caiu (ou quem pediu desistiu) DEPOIS da primeira sugestão: o que ela gerou foi cobrado — o
+       uso do dia, os tokens e o gasto contam pelo que saiu —, e não há reserva depois do primeiro byte. */
+    if (!entregue && parcial) {
+      provedorRespondeu = true
+      tokensReais = parcial.tokensEntrada + parcial.tokensSaida
+      await reserva.consumir(tokensReais)
+      await registrarGastoDeIa(parcial.custoUsd, { userId: ctx.userId, plano: plano.plan })
+      await ctx.registrarCusto?.(parcial.custoUsd)
+      if (cancelado) return decidir(recusaCancelada())
+      log('error', {
+        event: `${evento}_fluxo_interrompido`,
+        route: rota,
+        status: 502,
+        error: ultimaFalha.slice(0, 300),
+        latencyMs: Date.now() - t0,
+        requestId: ctx.requestId,
+      })
+      return decidir(recusaDeErro(502, 'o assistente parou no meio; tente de novo', 'provedor_indisponivel'))
+    }
+    /* Quem pediu desistiu antes de qualquer coisa sair: nada gerado, tudo volta (o `finally`). */
+    if (!entregue && cancelado) return decidir(recusaCancelada())
     if (!entregue && limitadoPeloProvedor)
       return decidir(recusaNuvemOcupada({ motivo: 'provedor_limitou', retryAfterS: limitadoPeloProvedor.retryAfterS }))
     if (!entregue) {
@@ -408,6 +471,8 @@ async function atender(
       latencyMs: Date.now() - t0,
       requestId: ctx.requestId,
     })
+    /* O tempo até a primeira sugestão (em fluxo): é o que a pessoa sente. */
+    if (primeiraMs !== null) rastro.anotar({ primeiraSugestaoMs: primeiraMs })
     return decidir({ ok: true, valor, restanteHoje: doDia.restanteHoje, modelo: entregue.model })
   } catch (err) {
     if (err instanceof ContadorIndisponivel) return decidir(recusaContadorIndisponivel())

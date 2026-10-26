@@ -252,6 +252,23 @@ export function lerTermos(bruto: string, frase: string, pedidos?: ReadonlyArray<
   return lidos;
 }
 
+/**
+ * UM item de `sugestoes`, pelo mesmo leitor da resposta inteira: a sugestão limpa, `'vazia'` (sem texto ou sem tradução
+ * depois da limpeza: é pulada) ou `null` (fora do formato: a resposta inteira é recusada). O fluxo do "Como respondo?"
+ * (`sugestoesEmFluxo.ts`) lê cada sugestão por aqui assim que ela fecha.
+ */
+export function lerItemDaSugestao(x: unknown): SugestaoDeResposta | 'vazia' | null {
+  if (!temSoAsChaves(x, ['texto', 'traducao', 'tom'])) return null;
+  if (typeof x.texto !== 'string' || typeof x.traducao !== 'string' || !ehDe(TONS_DA_SUGESTAO, x.tom)) return null;
+  const texto = limpar(x.texto, MAX_CARACTERES_DA_SUGESTAO);
+  const traducao = limpar(x.traducao, MAX_CARACTERES_DA_TRADUCAO_DA_SUGESTAO);
+  if (!texto || !traducao) return 'vazia';
+  return { texto, traducao, tom: x.tom };
+}
+
+/** A chave que diz que duas sugestões são a mesma (caixa, espaço e aspas tipográficas não contam). */
+export const chaveDaSugestao = (s: SugestaoDeResposta): string => normalizar(s.texto);
+
 /** `{"sugestoes": [...]}` → 2 ou 3 sugestões distintas; menos de 2 utilizáveis é `null` (não é a ajuda pedida). */
 export function lerSugestoes(bruto: string): SugestaoDeResposta[] | null {
   const o = objetoDaResposta(bruto);
@@ -259,14 +276,13 @@ export function lerSugestoes(bruto: string): SugestaoDeResposta[] | null {
   const lidas: SugestaoDeResposta[] = [];
   const vistas = new Set<string>();
   for (const x of o.sugestoes) {
-    if (!temSoAsChaves(x, ['texto', 'traducao', 'tom'])) return null;
-    if (typeof x.texto !== 'string' || typeof x.traducao !== 'string' || !ehDe(TONS_DA_SUGESTAO, x.tom)) return null;
-    const texto = limpar(x.texto, MAX_CARACTERES_DA_SUGESTAO);
-    const traducao = limpar(x.traducao, MAX_CARACTERES_DA_TRADUCAO_DA_SUGESTAO);
-    const chave = normalizar(texto);
-    if (!texto || !traducao || vistas.has(chave)) continue;
+    const s = lerItemDaSugestao(x);
+    if (s === null) return null;
+    if (s === 'vazia') continue;
+    const chave = chaveDaSugestao(s);
+    if (vistas.has(chave)) continue;
     vistas.add(chave);
-    if (lidas.length < MAX_SUGESTOES) lidas.push({ texto, traducao, tom: x.tom });
+    if (lidas.length < MAX_SUGESTOES) lidas.push(s);
   }
   return lidas.length >= 2 ? lidas : null;
 }

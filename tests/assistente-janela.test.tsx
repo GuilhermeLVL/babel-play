@@ -336,12 +336,16 @@ describe('"Como respondo?" no hook', () => {
       await vi.dynamicImportSettled()
     })
     expect(h.result.current.janela.comoRespondo).toMatchObject({ estado: 'carregando', lento: false, falaId: '2' })
-    expect(api.comoRespondo).toHaveBeenCalledWith({
-      frase: 'How was your weekend?',
-      contexto: ['Hi there.'],
-      lang: 'en',
-      langDaPessoa: 'pt-BR',
-    })
+    expect(api.comoRespondo).toHaveBeenCalledWith(
+      {
+        frase: 'How was your weekend?',
+        contexto: ['Hi there.'],
+        lang: 'en',
+        langDaPessoa: 'pt-BR',
+      },
+      /* Em fluxo e cancelável. */
+      { sinal: expect.any(AbortSignal), aoSugerir: expect.any(Function) },
+    )
     await act(async () => {
       vi.advanceTimersByTime(COMO_RESPONDO_LENTO_MS)
     })
@@ -368,7 +372,57 @@ describe('"Como respondo?" no hook', () => {
     await act(async () => {
       await vi.dynamicImportSettled()
     })
-    expect(api.comoRespondo).toHaveBeenCalledWith(expect.objectContaining({ contexto: undefined }))
+    expect(api.comoRespondo).toHaveBeenCalledWith(expect.objectContaining({ contexto: undefined }), expect.anything())
+  })
+
+  it('em fluxo: a primeira sugestão troca a espera pela lista, as outras completam, e o "demorando" não volta', async () => {
+    let resolver: (v: unknown) => void = () => {}
+    let aoSugerir: (s: unknown[]) => void = () => {}
+    api.comoRespondo.mockImplementation((_p: unknown, o: { aoSugerir: (s: unknown[]) => void }) => {
+      aoSugerir = o.aoSugerir
+      return new Promise((r) => (resolver = r))
+    })
+    const h = montarHook({ falas: [fala('1', 'How was your weekend?')] })
+    await act(async () => h.result.current.janela.pedirComoRespondo())
+    await act(async () => {
+      await vi.dynamicImportSettled()
+    })
+    expect(h.result.current.janela.comoRespondo).toMatchObject({ estado: 'carregando', lento: false })
+    const primeira = { texto: 'It was great!', traducao: 'Foi ótimo!', tom: 'informal' }
+    const segunda = { texto: 'Quite relaxing.', traducao: 'Bem tranquilo.', tom: 'neutro' }
+    act(() => aoSugerir([primeira]))
+    expect(h.result.current.janela.comoRespondo).toMatchObject({ estado: 'ok', parcial: true, sugestoes: [primeira] })
+    /* O relógio do "demorando" é só ANTES da primeira sugestão. */
+    await act(async () => {
+      vi.advanceTimersByTime(COMO_RESPONDO_LENTO_MS * 2)
+    })
+    expect(h.result.current.janela.comoRespondo).toMatchObject({ estado: 'ok', parcial: true })
+    act(() => aoSugerir([primeira, segunda]))
+    expect(h.result.current.janela.comoRespondo).toMatchObject({ sugestoes: [primeira, segunda], parcial: true })
+    await act(async () => resolver({ ok: true, valor: { sugestoes: [primeira, segunda] } }))
+    const final = h.result.current.janela.comoRespondo
+    expect(final).toMatchObject({ estado: 'ok', sugestoes: [primeira, segunda] })
+    expect((final as { parcial?: boolean }).parcial).toBeFalsy()
+  })
+
+  it('fechar a folha aborta o pedido em voo, e a sugestão atrasada não reabre nada', async () => {
+    let sinal: AbortSignal | undefined
+    let aoSugerir: (s: unknown[]) => void = () => {}
+    api.comoRespondo.mockImplementation((_p: unknown, o: { sinal: AbortSignal; aoSugerir: (s: unknown[]) => void }) => {
+      sinal = o.sinal
+      aoSugerir = o.aoSugerir
+      return new Promise(() => {})
+    })
+    const h = montarHook({ falas: [fala('1', 'How was your weekend?')] })
+    await act(async () => h.result.current.janela.pedirComoRespondo())
+    await act(async () => {
+      await vi.dynamicImportSettled()
+    })
+    expect(sinal?.aborted).toBe(false)
+    act(() => h.result.current.janela.fecharComoRespondo())
+    expect(sinal?.aborted).toBe(true)
+    act(() => aoSugerir([{ texto: 'Late.', traducao: 'Atrasada.', tom: 'neutro' }]))
+    expect(h.result.current.janela.comoRespondo.estado).toBe('fechado')
   })
 
   it('sem o consentimento: a folha pede o sim antes de qualquer chamada', async () => {
@@ -645,6 +699,56 @@ describe('a janela pinta o assistente', () => {
     fireEvent.click(within(folha).getAllByRole('button', { name: /Ouvir/ })[1])
     expect(ouvir).toHaveBeenCalledWith('I appreciate it.', 'en', false)
     expect(folha.textContent).not.toMatch(/oculto|ningu[eé]m v[eê]|entrevista/i)
+  })
+
+  it('em fluxo: a primeira sugestão já aparece, com o lugar das que faltam e sem aviso de espera', () => {
+    const primeira = {
+      texto: 'Thanks, I will!',
+      traducao: 'Obrigado, vou fazer!',
+      tom: 'informal' as 'neutro' | 'informal' | 'formal',
+    }
+    const comoRespondo = (sugestoes: (typeof primeira)[], parcial: boolean) => ({
+      estado: 'ok' as const,
+      falaId: '1',
+      frase: LINHA,
+      lang: 'en',
+      sugestoes,
+      parcial,
+    })
+    const { rerender } = render(
+      <LegendasFlutuantes
+        naJanela
+        formatoInicial="conversa"
+        falas={[fala('1', LINHA)]}
+        aoFechar={vi.fn()}
+        assistente={assistente({ comoRespondo: comoRespondo([primeira], true) })}
+      />,
+    )
+    const folha = screen.getByRole('dialog', { name: 'Como respondo?' })
+    expect(folha.querySelectorAll('.leg-sugestao')).toHaveLength(1)
+    expect(folha.textContent).toContain('Obrigado, vou fazer!')
+    expect(within(folha).getAllByRole('button', { name: /Copiar/ })).toHaveLength(1)
+    /* O lugar das 2 que ainda vêm, escondido do leitor de tela; nenhum "Pensando…" nem "demorando". */
+    const chegando = within(folha).getByTestId('como-respondo-chegando')
+    expect(chegando.getAttribute('aria-hidden')).toBe('true')
+    expect(chegando.querySelectorAll('span')).toHaveLength(2)
+    expect(folha.querySelector('.leg-folha-status')?.textContent).toBe('')
+    expect(within(folha).queryByRole('button', { name: 'Cancelar' })).toBeNull()
+    expect(folha.querySelector('.leg-sugestoes')?.getAttribute('aria-busy')).toBe('true')
+
+    const segunda = { texto: 'I appreciate it.', traducao: 'Agradeço.', tom: 'formal' as const }
+    rerender(
+      <LegendasFlutuantes
+        naJanela
+        formatoInicial="conversa"
+        falas={[fala('1', LINHA)]}
+        aoFechar={vi.fn()}
+        assistente={assistente({ comoRespondo: comoRespondo([primeira, segunda], false) })}
+      />,
+    )
+    expect(folha.querySelectorAll('.leg-sugestao')).toHaveLength(2)
+    expect(within(folha).queryByTestId('como-respondo-chegando')).toBeNull()
+    expect(folha.querySelector('.leg-sugestoes')?.getAttribute('aria-busy')).toBeNull()
   })
 
   it('carregando devagar: diz que demora e deixa cancelar', () => {

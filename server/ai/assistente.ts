@@ -13,6 +13,15 @@
  *   correcao       `{ correcao: { ok, corrigida, dica } }`
  * As recusas vêm no envelope `{ error, code }`.
  *
+ * O "COMO RESPONDO?" EM FLUXO: com `Accept: application/x-ndjson`, a resposta é NDJSON (um evento JSON por linha), e a
+ * primeira sugestão sai assim que fecha no texto do modelo:
+ *   {"tipo":"sugestao","sugestao":{texto,traducao,tom}}   — uma por sugestão, na ordem (já lida e limpa);
+ *   {"tipo":"fim","sugestoes":[…],"restanteHoje":n}       — a lista final (a de sempre, lida do texto inteiro);
+ *   {"tipo":"erro","code":"…","error":"…"}                — o fluxo falhou DEPOIS da primeira sugestão.
+ * O status 200, o `Content-Type` e o `x-ia-modelo` saem com a primeira sugestão. Toda recusa ANTES dela (flag, plano,
+ * cota, provedor fora, resposta inválida) é a resposta HTTP de sempre, com o status e o envelope. Sem o `Accept`, o
+ * contrato antigo (o JSON inteiro), sem mudança nenhuma.
+ *
  * O TETO POR MINUTO (`tetoDoAssistente`): 30 pedidos por minuto por conta, num balde PRÓPRIO no banco
  * (`METRIC_RATELIMIT_ASSISTENTE`). As glosas automáticas acompanham a legenda, que já gasta o balde caro de `/api/ai`
  * com a tradução de cada fala; dividir o balde cortaria a legenda (o mesmo A27 do feedback). Por isso o assistente
@@ -28,7 +37,13 @@ import { erroDeRota } from '../lib/erroDeRota'
 import { flagLigada } from '../lib/flags'
 import { chaveDoRequest, createDbRateLimitStore, METRIC_RATELIMIT_ASSISTENTE } from '../lib/rateLimitStore'
 import { envelopeDeErro } from '../lib/respostaDeErro'
-import { lerPedidoDoAssistente, pedirAoAssistente, type ResultadoDoAssistente } from './nucleo/assistenteAoVivo'
+import { CODIGO_DE_CANCELAMENTO, sinalDoCliente } from './cancelamento'
+import {
+  type FluxoDoComoRespondo,
+  lerPedidoDoAssistente,
+  pedirAoAssistente,
+  type ResultadoDoAssistente,
+} from './nucleo/assistenteAoVivo'
 import { responderRecusa } from './respostaDoNucleo'
 import { abrirRastro, type FuncaoTelemetrada, type RastroDeIa } from './telemetriaDeIa'
 
@@ -76,6 +91,70 @@ function responder(res: Response, r: ResultadoDoAssistente): void {
   res.json({ ...corpo, restanteHoje: r.restanteHoje })
 }
 
+/** O tipo do "Como respondo?" em fluxo. */
+export const TIPO_DO_FLUXO = 'application/x-ndjson'
+
+/** Quem pediu aceita o fluxo? (só o "Como respondo?" tem fluxo) */
+function querFluxo(recurso: RecursoDoAssistente, req: Request): boolean {
+  if (recurso !== 'comoRespondo') return false
+  const aceita = typeof req.header === 'function' ? req.header('accept') : req.headers?.accept
+  return typeof aceita === 'string' && aceita.toLowerCase().includes(TIPO_DO_FLUXO)
+}
+
+/**
+ * A RESPOSTA EM FLUXO: o cabeçalho sai com a primeira sugestão (`comecar`), cada evento é uma linha, e o resultado do
+ * núcleo fecha o fluxo. Sem `no-transform`, o `compression` do Node seguraria os pedaços até o fim.
+ */
+function respostaEmFluxo(res: Response): { fluxo: FluxoDoComoRespondo; responder: (r: ResultadoDoAssistente) => void } {
+  let comecou = false
+  const escrever = (evento: Record<string, unknown>): void => {
+    res.write(`${JSON.stringify(evento)}\n`)
+    ;(res as Response & { flush?: () => void }).flush?.()
+  }
+  const comecar = (modelo: string): void => {
+    comecou = true
+    res.status(200)
+    res.setHeader('Content-Type', `${TIPO_DO_FLUXO}; charset=utf-8`)
+    res.setHeader('Cache-Control', 'no-store, no-transform')
+    res.setHeader('X-Accel-Buffering', 'no')
+    res.setHeader('x-ia-modelo', modelo)
+    res.flushHeaders?.()
+  }
+  return {
+    fluxo: {
+      aoComecar: (modelo) => comecar(modelo),
+      aoSugerir: (sugestao) => escrever({ tipo: 'sugestao', sugestao }),
+    },
+    responder: (r) => {
+      if (!comecou) {
+        if (r.ok === false) {
+          responderRecusa(res, r)
+          return
+        }
+        /* Nada saiu em fluxo (a perna voltou ao caminho inteiro, sem `stream`): o mesmo fluxo, tudo de uma vez. */
+        comecar(r.modelo)
+        if (r.valor.recurso === 'comoRespondo')
+          for (const sugestao of r.valor.sugestoes) escrever({ tipo: 'sugestao', sugestao })
+      }
+      if (r.ok === false) {
+        /* Quem pediu desistiu: não há a quem escrever (o status do rastro fica 499, como em `responderRecusa`). */
+        if (r.code === CODIGO_DE_CANCELAMENTO) {
+          res.end()
+          return
+        }
+        escrever({
+          tipo: 'erro',
+          code: r.code ?? 'provedor_indisponivel',
+          error: r.corpo?.error ?? 'falha no assistente',
+        })
+      } else if (r.valor.recurso === 'comoRespondo') {
+        escrever({ tipo: 'fim', sugestoes: r.valor.sugestoes, restanteHoje: r.restanteHoje })
+      }
+      res.end()
+    },
+  }
+}
+
 async function atender(recurso: RecursoDoAssistente, req: Request, res: Response, rastro: RastroDeIa): Promise<void> {
   /* A FLAG PRIMEIRO: desligada, qualquer corpo é 404 e nada mais é lido. O núcleo confere de novo. */
   if (!(await flagLigada(req, FLAG_ASSISTENTE_AO_VIVO))) {
@@ -97,6 +176,8 @@ async function atender(recurso: RecursoDoAssistente, req: Request, res: Response
     res.status(502).json({ error: `falha ao checar o plano: ${erroDeRota(err, { event: 'assistente_erro' })}` })
     return
   }
+  const emFluxo = querFluxo(recurso, req) ? respostaEmFluxo(res) : null
+  const sinal = emFluxo ? sinalDoCliente(res) : undefined
   await pedirAoAssistente(
     {
       userId: req.userId,
@@ -108,9 +189,12 @@ async function atender(recurso: RecursoDoAssistente, req: Request, res: Response
       canal: 'app',
       perfilProtegido: null,
       flagLigada: (chave) => flagLigada(req, chave),
+      /* Em fluxo, fechar a conexão (o Cancelar da folha) aborta a chamada ao provedor. */
+      ...(sinal ? { sinal } : {}),
     },
     lido.pedido,
-    { aoDecidir: (r) => responder(res, r) },
+    { aoDecidir: (r) => (emFluxo ? emFluxo.responder(r) : responder(res, r)) },
+    emFluxo?.fluxo,
   )
 }
 

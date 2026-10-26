@@ -44,7 +44,10 @@ const carregarNiveis = () =>
     throw e;
   }));
 
-/** Depois disto sem resposta, a folha do "Como respondo?" diz que está demorando (o p95 medido é ~3,8 s). */
+/**
+ * Depois disto sem a PRIMEIRA sugestão, a folha do "Como respondo?" diz que está demorando (as sugestões chegam em
+ * fluxo; `docs/auditoria/eval-assistente-v1.md` tem o tempo até a primeira).
+ */
 export const COMO_RESPONDO_LENTO_MS = 2500;
 /**
  * O RECUO: com a nuvem ocupada ou fora (`nuvem_ocupada`, `indisponivel`), as chamadas AUTOMÁTICAS param por este tempo
@@ -58,7 +61,8 @@ export type EstadoDoComoRespondo =
   | { estado: 'fechado' }
   | ({ estado: 'consentimento' } & AlvoDaResposta)
   | ({ estado: 'carregando'; lento: boolean } & AlvoDaResposta)
-  | ({ estado: 'ok'; sugestoes: SugestaoDeResposta[] } & AlvoDaResposta)
+  /** `parcial`: as sugestões ainda estão chegando (em fluxo); a lista cresce até a final. */
+  | ({ estado: 'ok'; sugestoes: SugestaoDeResposta[]; parcial?: boolean } & AlvoDaResposta)
   | ({ estado: 'erro'; motivo: FalhaDoAssistente } & AlvoDaResposta);
 
 /**
@@ -417,10 +421,16 @@ export function useAssistenteAoVivo(o: {
   const falasRef = useRef(o.falas);
   falasRef.current = o.falas;
   const contextoPendente = useRef<string[]>([]);
+  /* O pedido em voo: fechar a folha (ou o Cancelar) o aborta — a conexão fecha e o servidor para o provedor. */
+  const emVoo = useRef<AbortController | null>(null);
+  useEffect(() => () => emVoo.current?.abort(), []);
 
   const pedirAgora = useCallback(async (alvo: AlvoDaResposta, contexto: string[]) => {
     const { frase, lang } = alvo;
     const id = ++pedido.current;
+    emVoo.current?.abort();
+    const controle = new AbortController();
+    emVoo.current = controle;
     setComoRespondo({ estado: 'carregando', ...alvo, lento: false });
     const relogio = setTimeout(() => {
       if (pedido.current === id) setComoRespondo((c) => (c.estado === 'carregando' ? { ...c, lento: true } : c));
@@ -433,14 +443,26 @@ export function useAssistenteAoVivo(o: {
       if (vivo.current && pedido.current === id) setComoRespondo({ estado: 'erro', ...alvo, motivo: 'indisponivel' });
       return;
     }
-    const res = await api.comoRespondo({
-      frase: frase.slice(0, 400),
-      /* O servidor já descarta o contexto do perfil protegido; aqui ele nem sai. */
-      contexto: perfilProtegido() ? undefined : contexto,
-      lang: lang || 'en',
-      langDaPessoa: estado.current.langDaPessoa,
-    });
+    const res = await api.comoRespondo(
+      {
+        frase: frase.slice(0, 400),
+        /* O servidor já descarta o contexto do perfil protegido; aqui ele nem sai. */
+        contexto: perfilProtegido() ? undefined : contexto,
+        lang: lang || 'en',
+        langDaPessoa: estado.current.langDaPessoa,
+      },
+      {
+        sinal: controle.signal,
+        /* EM FLUXO: a primeira sugestão já troca o "Pensando…" pela lista, e as outras completam. */
+        aoSugerir: (sugestoes) => {
+          if (!vivo.current || pedido.current !== id) return;
+          clearTimeout(relogio);
+          setComoRespondo({ estado: 'ok', ...alvo, sugestoes: sugestoes.slice(0, 3), parcial: true });
+        },
+      },
+    );
     clearTimeout(relogio);
+    if (emVoo.current === controle) emVoo.current = null;
     if (!vivo.current || pedido.current !== id) return;
     if (res.ok === true) setComoRespondo({ estado: 'ok', ...alvo, sugestoes: res.valor.sugestoes.slice(0, 3) });
     else {
@@ -480,6 +502,8 @@ export function useAssistenteAoVivo(o: {
 
   const fecharComoRespondo = useCallback(() => {
     pedido.current++;
+    emVoo.current?.abort();
+    emVoo.current = null;
     setComoRespondo({ estado: 'fechado' });
   }, []);
 

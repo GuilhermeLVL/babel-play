@@ -73,6 +73,8 @@ export interface AnotacoesDoRastro {
   degradacao?: 'orcamento_70' | 'orcamento_90'
   /** Quantas entradas do glossário pessoal foram ao pedido (D3 da Fase D) — o número, nunca o texto. */
   glossario?: number
+  /** "Como respondo?" em fluxo: ms da entrada até a primeira sugestão sair (o que a pessoa sente). */
+  primeiraSugestaoMs?: number
 }
 
 /** O id da sessão de captura que o cliente PODE mandar. Formato fechado; fora dele, ignorado. */

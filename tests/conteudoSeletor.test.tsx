@@ -26,7 +26,12 @@ vi.mock('../src/data/rotas/conteudo', () => ({
   lerContagensDeConteudo: async (idioma: string) => {
     servidor.pedidos.push(idioma)
     const k = servidor.contagens as ContagensDeConteudo
-    return k && { ...k, idioma: k.idiomas.length > 1 ? (k.idiomas.some((i) => i.id === idioma) ? idioma : k.idiomas[0].id) : '' }
+    return (
+      k && {
+        ...k,
+        idioma: k.idiomas.length > 1 ? (k.idiomas.some((i) => i.id === idioma) ? idioma : k.idiomas[0].id) : '',
+      }
+    )
   },
 }))
 vi.mock('../src/lib/langConfig', async (orig) => {
@@ -66,10 +71,39 @@ const catalogo = (o: Partial<ContagensDeConteudo> = {}): ContagensDeConteudo => 
   tudo: { palavras: 318, frases: 236, paraHoje: 22 },
   dificeis: { palavras: 5, frases: 5, paraHoje: 2 },
   sessoes: [
-    { id: 's1', nome: SESSAO.nome, tipo: 'live', quando: Date.UTC(2026, 9, 3), duracaoMs: 38 * 60_000, palavras: 37, frases: 31, paraHoje: 9 },
-    { id: 's2', nome: 'Entrevista com a designer', tipo: 'video', quando: Date.UTC(2026, 9, 1), duracaoMs: null, palavras: 3, frases: 2, paraHoje: 0 },
+    {
+      id: 's1',
+      nome: SESSAO.nome,
+      tipo: 'live',
+      quando: Date.UTC(2026, 9, 3),
+      duracaoMs: 38 * 60_000,
+      palavras: 37,
+      frases: 31,
+      paraHoje: 9,
+    },
+    {
+      id: 's2',
+      nome: 'Entrevista com a designer',
+      tipo: 'video',
+      quando: Date.UTC(2026, 9, 1),
+      duracaoMs: null,
+      palavras: 3,
+      frases: 2,
+      paraHoje: 0,
+    },
   ],
-  anki: [{ id: 'dA', nome: 'English Phrasal Verbs', tipo: null, quando: Date.UTC(2026, 8, 12), duracaoMs: null, palavras: 120, frases: 96, paraHoje: 2 }],
+  anki: [
+    {
+      id: 'dA',
+      nome: 'English Phrasal Verbs',
+      tipo: null,
+      quando: Date.UTC(2026, 8, 12),
+      duracaoMs: null,
+      palavras: 120,
+      frases: 96,
+      paraHoje: 2,
+    },
+  ],
   trilha: { palavras: 60, frases: 0, paraHoje: 2 },
   ...o,
 })
@@ -90,13 +124,27 @@ beforeEach(() => {
   zerarConteudoParaTeste()
   servidor.contagens = catalogo()
   servidor.pedidos = []
-  window.matchMedia = ((q: string) => ({ matches: false, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} })) as never
+  window.matchMedia = ((q: string) => ({
+    matches: false,
+    media: q,
+    addEventListener() {},
+    removeEventListener() {},
+    addListener() {},
+    removeListener() {},
+  })) as never
 })
 afterEach(cleanup)
 
 describe('a ficha', () => {
   it('com "Tudo": ícone, nome e seta, sem o "x"', () => {
-    render(<FichaDeConteudo conteudo={{ idioma: 'en', fonte: { tipo: 'tudo' } }} idioma="Inglês" aoAbrir={() => {}} aoVoltarParaTudo={() => {}} />)
+    render(
+      <FichaDeConteudo
+        conteudo={{ idioma: 'en', fonte: { tipo: 'tudo' } }}
+        idioma="Inglês"
+        aoAbrir={() => {}}
+        aoVoltarParaTudo={() => {}}
+      />,
+    )
     const ficha = document.querySelector('.fs-ficha')!
     expect(ficha.classList.contains('fs-com-volta')).toBe(false)
     const abre = ficha.querySelector('button.q-chip.fs-abrir')!
@@ -124,15 +172,28 @@ describe('a ficha', () => {
       </CabecalhoComFicha>,
     )
     const cab = document.querySelector('header.q-cab.fs-cab.fs-cab-bib')!
-    expect([...cab.children].map((x) => x.tagName + (x.className ? '.' + x.className : ''))).toEqual(['H1', 'SPAN', 'SPAN.q-espaco', 'P'])
+    expect([...cab.children].map((x) => x.tagName + (x.className ? '.' + x.className : ''))).toEqual([
+      'H1',
+      'SPAN',
+      'SPAN.q-espaco',
+      'P',
+    ])
   })
 
   it('"respira" uma vez ao mudar (a classe do brilho entra)', async () => {
     document.documentElement.dataset.px = 'on'
     document.body.classList.add('animations-on')
-    const { rerender } = render(<FichaDeConteudo conteudo={{ idioma: 'en', fonte: { tipo: 'tudo' } }} aoAbrir={() => {}} aoVoltarParaTudo={() => {}} />)
+    const { rerender } = render(
+      <FichaDeConteudo
+        conteudo={{ idioma: 'en', fonte: { tipo: 'tudo' } }}
+        aoAbrir={() => {}}
+        aoVoltarParaTudo={() => {}}
+      />,
+    )
     expect(document.querySelector('.fs-brilho')).toBeNull()
-    rerender(<FichaDeConteudo conteudo={{ idioma: 'en', fonte: SESSAO }} aoAbrir={() => {}} aoVoltarParaTudo={() => {}} />)
+    rerender(
+      <FichaDeConteudo conteudo={{ idioma: 'en', fonte: SESSAO }} aoAbrir={() => {}} aoVoltarParaTudo={() => {}} />,
+    )
     expect(document.querySelector('.fs-ficha.fs-brilho')).not.toBeNull()
     delete document.documentElement.dataset.px
     document.body.classList.remove('animations-on')
@@ -157,7 +218,11 @@ describe('o catálogo', () => {
       'English Phrasal Verbs',
       'Trilha de vocabulário',
     ])
-    expect([...d.querySelectorAll('.ct-grupo h3')].map((h) => h.textContent)).toEqual(['Das minhas sessões', 'Do Anki', 'Trilha do app'])
+    expect([...d.querySelectorAll('.ct-grupo h3')].map((h) => h.textContent)).toEqual([
+      'Das minhas sessões',
+      'Do Anki',
+      'Trilha do app',
+    ])
     const linha = d.querySelector('[data-fx-fonte="sessao:s1"]')!
     expect(linha.querySelector('.fx-linha-conta')!.textContent).toBe('37 palavras · 31 frases')
     expect(d.querySelector('[data-fx-fonte="trilha"] .fx-linha-conta')!.textContent).toBe('60 palavras · sem frases')
@@ -211,13 +276,19 @@ describe('o catálogo', () => {
     fireEvent.click(d.querySelector('[data-fx-fonte="sessao:s2"]')!)
     const det = d.querySelector('.fx-cat-det')!
     expect(det.querySelector('h2')!.textContent).toBe('Entrevista com a designer')
-    expect([...det.querySelectorAll('.ct-fatos3 > div')].map((x) => x.textContent)).toEqual(['Palavras3', 'Frases2', 'Para hoje0'])
+    expect([...det.querySelectorAll('.ct-fatos3 > div')].map((x) => x.textContent)).toEqual([
+      'Palavras3',
+      'Frases2',
+      'Para hoje0',
+    ])
     /* A conta dos jogos só aparece com os números da GRADE do Jogar (`jogosDaGrade`), e só no conteúdo em
        uso: a conta por palavras e frases dizia "18 abrem" onde a grade abria 14. Aqui (Biblioteca) não há. */
     expect(det.querySelector('.fx-fora, .fx-todos')).toBeNull()
     /* sem ação ligada, o botão não existe; "Revisar" sem nada para hoje fica desligado */
     expect(within(det as HTMLElement).queryByRole('button', { name: /Ver palavras/ })).toBeNull()
-    expect((within(det as HTMLElement).getByRole('button', { name: 'Revisar' }) as HTMLButtonElement).disabled).toBe(true)
+    expect((within(det as HTMLElement).getByRole('button', { name: 'Revisar' }) as HTMLButtonElement).disabled).toBe(
+      true,
+    )
     expect(conteudoAtual().fonte.tipo).toBe('tudo') // tocar na linha não escolhe
 
     fireEvent.click(d.querySelector('[data-fx-fonte="sessao:s1"]')!)
@@ -242,7 +313,14 @@ describe('o catálogo', () => {
   })
 
   it('no celular a linha inteira usa', async () => {
-    window.matchMedia = ((q: string) => ({ matches: /max-width: 720px/.test(q), media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} })) as never
+    window.matchMedia = ((q: string) => ({
+      matches: /max-width: 720px/.test(q),
+      media: q,
+      addEventListener() {},
+      removeEventListener() {},
+      addListener() {},
+      removeListener() {},
+    })) as never
     render(<Seletor />)
     const d = await abrir()
     fireEvent.click(d.querySelector('[data-fx-fonte="dificeis"]')!)
@@ -276,7 +354,14 @@ describe('o catálogo', () => {
   })
 
   it('quem ainda não trouxe nada vê os grupos vazios com a porta', async () => {
-    servidor.contagens = catalogo({ idiomas: [], tudo: { palavras: 0, frases: 0, paraHoje: 0 }, dificeis: { palavras: 0, frases: 0, paraHoje: 0 }, sessoes: [], anki: [], trilha: null })
+    servidor.contagens = catalogo({
+      idiomas: [],
+      tudo: { palavras: 0, frases: 0, paraHoje: 0 },
+      dificeis: { palavras: 0, frases: 0, paraHoje: 0 },
+      sessoes: [],
+      anki: [],
+      trilha: null,
+    })
     render(<Seletor />)
     const d = await abrir()
     expect(d.querySelectorAll('.fx-grupo-vazio')).toHaveLength(2)
@@ -306,7 +391,18 @@ describe('o catálogo', () => {
 
 describe('a Biblioteca com a ficha', () => {
   const gravacao = (id: string, extra: Partial<Recording> = {}): Recording =>
-    ({ id, title: `Sessão ${id}`, date: 'Ontem', durationStr: '38:10', wordCount: 1234, type: 'audio', tags: [], idioma: 'en', pronta: true, ...extra }) as Recording
+    ({
+      id,
+      title: `Sessão ${id}`,
+      date: 'Ontem',
+      durationStr: '38:10',
+      wordCount: 1234,
+      type: 'audio',
+      tags: [],
+      idioma: 'en',
+      pronta: true,
+      ...extra,
+    }) as Recording
   const GRAVACOES = [
     gravacao('s1', { title: SESSAO.nome }),
     gravacao('s2'),
@@ -319,17 +415,20 @@ describe('a Biblioteca com a ficha', () => {
   }
   const pronta = () => waitFor(() => expect(document.querySelector('.fx-bib-acoes')).not.toBeNull())
 
-  it('o cabeçalho: título, ficha, e à direita os totais do idioma e a ordem; sem "Importar"', async () => {
+  it('o cabeçalho: título, ficha, e à direita os totais do idioma, a porta de Livros e a ordem; sem "Importar"', async () => {
     montar()
     await pronta()
     const cab = document.querySelector('.q-bib > header.q-cab.fs-cab.fs-cab-bib')!
+    /* "Livros" (26/10/2026, L1 da spec de Livros & Leitura): a porta do catálogo mora no cabeçalho da Biblioteca. */
     expect([...cab.children].map((x) => x.className || x.tagName)).toEqual([
       'H1',
       'fs-ficha ',
       'q-espaco',
       'q-sobre fs-bib-sobre',
+      'q-chip',
       'q-chip fs-bib-ordem',
     ])
+    expect(screen.getByTestId('livros-na-biblioteca').textContent?.trim()).toBe('Livros')
     expect(cab.querySelector('.fs-bib-sobre')!.textContent).toBe('3 gravações · 115 min · 3.702 palavras')
     expect(screen.queryByRole('button', { name: 'Importar' })).toBeNull()
   })
@@ -338,11 +437,19 @@ describe('a Biblioteca com a ficha', () => {
     montar()
     await pronta()
     expect(document.querySelectorAll('.q-bib > .q-abas')).toHaveLength(1)
-    expect([...document.querySelectorAll('.q-bib .q-lista .q-linha b')].map((b) => b.textContent)).toEqual([SESSAO.nome, 'Sessão s2', 'Sem cartão'])
+    expect([...document.querySelectorAll('.q-bib .q-lista .q-linha b')].map((b) => b.textContent)).toEqual([
+      SESSAO.nome,
+      'Sessão s2',
+      'Sem cartão',
+    ])
     const link = screen.getByRole('button', { name: 'Ver a gravação em espanhol' })
     expect(link.className).toBe('ex-lig fs-outro-idioma')
     fireEvent.click(link)
-    await waitFor(() => expect([...document.querySelectorAll('.q-bib .q-lista .q-linha b')].map((b) => b.textContent)).toEqual(['Aula de espanhol']))
+    await waitFor(() =>
+      expect([...document.querySelectorAll('.q-bib .q-lista .q-linha b')].map((b) => b.textContent)).toEqual([
+        'Aula de espanhol',
+      ]),
+    )
     expect(conteudoAtual().idioma).toBe('es')
   })
 
@@ -350,10 +457,22 @@ describe('a Biblioteca com a ficha', () => {
     montar()
     await pronta()
     const linhas = [...document.querySelectorAll('.q-bib .q-lista > .ct-linha-caixa.fx-bib-caixa')]
-    expect(linhas.map((l) => l.querySelector('.q-fim')!.textContent)).toEqual(['37 palavras', '3 palavras', 'sem cartões'])
+    expect(linhas.map((l) => l.querySelector('.q-fim')!.textContent)).toEqual([
+      '37 palavras',
+      '3 palavras',
+      'sem cartões',
+    ])
     expect(linhas.map((l) => l.querySelectorAll('.fx-bib-acoes .q-ctl.ct-so-icone').length)).toEqual([2, 2, 0])
-    expect(within(linhas[0] as HTMLElement).getByRole('button', { name: `Revisar ${SESSAO.nome}: 9 para hoje` })).toBeTruthy()
-    expect((within(linhas[1] as HTMLElement).getByRole('button', { name: 'Revisar Sessão s2: nada vence hoje' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(
+      within(linhas[0] as HTMLElement).getByRole('button', { name: `Revisar ${SESSAO.nome}: 9 para hoje` }),
+    ).toBeTruthy()
+    expect(
+      (
+        within(linhas[1] as HTMLElement).getByRole('button', {
+          name: 'Revisar Sessão s2: nada vence hoje',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true)
     /* o painel: guardadas de total */
     expect(document.querySelector('.q-bib-det .q-bib-fatos > div')!.textContent).toBe('Guardadas37 de 1.234')
   })
@@ -368,7 +487,9 @@ describe('a Biblioteca com a ficha', () => {
     expect(conteudoAtual().fonte).toEqual(SESSAO)
     expect(aoIr).toHaveBeenLastCalledWith('study', { id: 's1' })
     await waitFor(() => expect(document.querySelector('.q-lista .fs-em-uso')!.textContent).toBe('em uso'))
-    expect(document.querySelector('.q-lista .fs-em-uso')!.closest('.q-linha')!.querySelector('b')!.textContent).toBe(SESSAO.nome)
+    expect(document.querySelector('.q-lista .fs-em-uso')!.closest('.q-linha')!.querySelector('b')!.textContent).toBe(
+      SESSAO.nome,
+    )
     expect(document.querySelector('.q-bib-tags .q-tag.ct-rv')!.textContent).toBe('Em uso')
   })
 

@@ -41,8 +41,3 @@ export function carregarCatalogo(): Promise<Catalogo> {
     });
   return pedido;
 }
-
-/** Para os testes. */
-export function esquecerCatalogo(): void {
-  pedido = null;
-}

@@ -152,8 +152,40 @@ export default function PainelDaLegenda({
       <button type="button" className="link" onClick={aoSalvarMeu}>
         {t('Salvar como “Meu perfil”')}
       </button>
+      <EtiquetasNoPainel />
       {assistente && <AssistenteNoPainel nuvem={assistente.nuvem} />}
     </div>
+  );
+}
+
+/**
+ * AS ETIQUETAS DE PALAVRAS no Personalizar: os mesmos dois interruptores dos Ajustes da captura. Fora do bloco do
+ * assistente: valem em todo plano (o caderno é local) e aparecem mesmo sem o assistente na janela.
+ */
+function EtiquetasNoPainel() {
+  const aj = useAjustesDoAssistente();
+  return (
+    <>
+      <span className="label-mono">{t('Etiquetas de palavras')}</span>
+      <div className="entre">
+        <span>{t('Salvas e aprendendo')}</span>
+        <Interruptor
+          ligado={aj.etiquetas}
+          rotulo={t('Etiquetas de palavras')}
+          aoTrocar={() => mudarAjustesDoAssistente({ etiquetas: !aj.etiquetas })}
+        />
+      </div>
+      {aj.etiquetas && (
+        <div className="entre">
+          <span>{t('Marcar palavras novas para você')}</span>
+          <Interruptor
+            ligado={aj.etiquetaNova}
+            rotulo={t('Marcar palavras novas para você')}
+            aoTrocar={() => mudarAjustesDoAssistente({ etiquetaNova: !aj.etiquetaNova })}
+          />
+        </div>
+      )}
+    </>
   );
 }
 

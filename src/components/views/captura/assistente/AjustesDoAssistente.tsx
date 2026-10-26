@@ -79,6 +79,30 @@ export default function AjustesDoAssistente() {
         </>
       )}
       <CampoLinha
+        rotulo={t('Etiquetas de palavras')}
+        desc={t('Um tom nas palavras que você já guardou e nas que está aprendendo, na legenda e na Biblioteca.')}
+      >
+        <Interruptor
+          ligado={aj.etiquetas}
+          rotulo={t('Etiquetas de palavras')}
+          aoTrocar={() => mudarAjustesDoAssistente({ etiquetas: !aj.etiquetas })}
+        />
+      </CampoLinha>
+      {aj.etiquetas && (
+        <CampoLinha
+          rotulo={t('Marcar palavras novas para você')}
+          desc={t(
+            'Um ponto na palavra que ainda não apareceu nas suas sessões. Precisa da conta e de algumas sessões no idioma.',
+          )}
+        >
+          <Interruptor
+            ligado={aj.etiquetaNova}
+            rotulo={t('Marcar palavras novas para você')}
+            aoTrocar={() => mudarAjustesDoAssistente({ etiquetaNova: !aj.etiquetaNova })}
+          />
+        </CampoLinha>
+      )}
+      <CampoLinha
         rotulo={t('Abrir na aba Assistente')}
         desc={t('A janela flutuante abre direto nos destaques da sessão.')}
       >

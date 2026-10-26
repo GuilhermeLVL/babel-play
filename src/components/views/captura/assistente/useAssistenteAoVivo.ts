@@ -181,6 +181,11 @@ export function useAssistenteAoVivo(o: {
    * sempre: só a fala de "você", só fora do idioma da pessoa, só com a nuvem do plano e o consentimento. Ausente = não.
    */
   praticando?: boolean;
+  /**
+   * O idioma das falas que chegam SEM o próprio (o reconhecimento nem sempre o diz): o mesmo `idiomaPadrao` da legenda
+   * da página. Sem ele, uma fala sem `lang` não ganhava as marcas de nível nem tinha a lista do idioma carregada.
+   */
+  idiomaPadrao?: string;
 }) {
   const ajustesGuardados = useAjustesDoAssistente();
   const ajustes = useMemo(
@@ -225,8 +230,8 @@ export function useAssistenteAoVivo(o: {
   /* As listas de nível dos idiomas fora do inglês chegam por `import()`; quando chegam, as marcas são refeitas. */
   const [versaoDosNiveis, setVersaoDosNiveis] = useState(0);
   const idiomas = useMemo(
-    () => [...new Set(o.falas.map((f) => base(f.lang)).filter((l) => l && l !== 'en'))].join(','),
-    [o.falas],
+    () => [...new Set(o.falas.map((f) => base(f.lang || o.idiomaPadrao)).filter((l) => l && l !== 'en'))].join(','),
+    [o.falas, o.idiomaPadrao],
   );
   useEffect(() => {
     if (!recursos.niveis || !idiomas) return;
@@ -358,9 +363,10 @@ export function useAssistenteAoVivo(o: {
       if (f.parcial || !f.original.trim()) continue;
       vivas.add(f.id);
       const g = glosas[f.id];
+      const lang = f.lang || o.idiomaPadrao;
       const chave = [
         f.original,
-        f.lang,
+        lang,
         o.langDaPessoa,
         ajustes.nivel,
         recursos.niveis,
@@ -372,9 +378,9 @@ export function useAssistenteAoVivo(o: {
       let lista: MarcaNaLinha[];
       if (guardada && guardada.chave === chave && guardada.glosa === g) lista = guardada.lista;
       else {
-        const doIdiomaDaPessoa = !!f.lang && base(f.lang) === base(o.langDaPessoa);
+        const doIdiomaDaPessoa = !!lang && base(lang) === base(o.langDaPessoa);
         const niveis =
-          recursos.niveis && f.lang && !doIdiomaDaPessoa ? palavrasAcimaDoNivel(f.original, f.lang, ajustes.nivel) : [];
+          recursos.niveis && lang && !doIdiomaDaPessoa ? palavrasAcimaDoNivel(f.original, lang, ajustes.nivel) : [];
         lista = marcasDaLinha(f.original, {
           expressoes: recursos.expressoes ? g?.expressoes : undefined,
           termos: recursos.termos ? g?.termos : undefined,
@@ -387,7 +393,7 @@ export function useAssistenteAoVivo(o: {
     /* As falas que saíram da janela da captura saem do cache. */
     for (const id of [...cache.keys()]) if (!vivas.has(id)) cache.delete(id);
     return m;
-  }, [algumaAberta, o.falas, glosas, recursos, ajustes.nivel, o.langDaPessoa, versaoDosNiveis]);
+  }, [algumaAberta, o.falas, o.idiomaPadrao, glosas, recursos, ajustes.nivel, o.langDaPessoa, versaoDosNiveis]);
 
   /* ── O GLOSSÁRIO da sessão (a aba): os destaques mais novos primeiro, sem repetir ───────────── */
   const historico = useRef(new Map<string, ItemDoGlossario>());

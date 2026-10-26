@@ -185,6 +185,23 @@ describe('o orçamento de chamadas do hook', () => {
     }
   })
 
+  it('fala SEM idioma: as marcas de nível saem do idioma padrão da legenda (`idiomaPadrao`)', () => {
+    Object.assign(estado, { flag: false })
+    const semLang = [fala('1', 'The answer was ambiguous, so they scrutinize it', { lang: undefined })]
+    /* Antes da correção a fala sem `lang` não tinha idioma para as marcas: nenhuma. */
+    const sem = montarHook({ falas: semLang })
+    expect(sem.result.current.janela.marcas.get('1')).toBeUndefined()
+    sem.unmount()
+    const com = montarHook({ falas: semLang, idiomaPadrao: 'en' })
+    const marcas = com.result.current.janela.marcas.get('1')
+    expect(marcas?.length).toBeGreaterThan(0)
+    expect(marcas?.every((m) => m.tipo === 'nivel')).toBe(true)
+    com.unmount()
+    /* O idioma padrão é o da pessoa (o microfone): nada, como a fala no próprio idioma. */
+    const daPessoa = montarHook({ falas: semLang, idiomaPadrao: 'pt-BR' })
+    expect(daPessoa.result.current.janela.marcas.get('1')).toBeUndefined()
+  })
+
   it('o servidor diz sem_plano: os recursos pagos somem na sessão (o cache do cliente era velho)', async () => {
     api.destacarExpressoes.mockResolvedValue({ ok: false, motivo: 'sem_plano', status: 402 })
     const h = montarHook({ falas: [fala('1', 'You will do great, break a leg')] })

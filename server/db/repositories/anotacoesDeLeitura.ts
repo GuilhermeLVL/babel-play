@@ -1,5 +1,5 @@
 /**
- * AS ANOTAÇÕES DO LEITOR (migração 0012, L2 de Livros & Leitura) — a tabela `anotacoes_de_leitura` e nada
+ * AS ANOTAÇÕES DO LEITOR (migração 0013, L2 de Livros & Leitura) — a tabela `anotacoes_de_leitura` e nada
  * mais. O que é uma anotação válida mora em `src/core/leitura/anotacao.ts` (o mesmo módulo do cliente).
  *
  * POSSE PELA CHAVE: a chave primária é `(user_id, id)`. Um id que outra pessoa já usa não colide nem

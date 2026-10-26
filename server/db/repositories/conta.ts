@@ -126,7 +126,7 @@ const TABELAS_DO_TITULAR: ReadonlyArray<readonly [string, any]> = [
   ['testesPremium', testesPremium],
   /* As exibições do anúncio premiado (migração 0006): os tetos do dia e o bônus de nuvem do mês. */
   ['anunciosPremiados', anunciosPremiados],
-  /* As anotações do leitor (migração 0012): grifos, notas e palavras salvas de cada livro, com a citação
+  /* As anotações do leitor (migração 0013): grifos, notas e palavras salvas de cada livro, com a citação
      curta (≤ 500 caracteres). Sem FOREIGN KEY: o livro não é linha do banco (o arquivo nunca sobe). */
   ['anotacoesDeLeitura', anotacoesDeLeitura],
   /* A contabilidade derivada (versões dos dados, agregados diários e estado por item): sem FOREIGN

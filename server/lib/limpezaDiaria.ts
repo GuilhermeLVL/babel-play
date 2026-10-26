@@ -62,6 +62,7 @@ import {
   reconstruirNaTransacao,
 } from '../db/repositories/agregados'
 import { ankiRepo } from '../db/repositories/anki'
+import { anotacoesDeLeituraRepo } from '../db/repositories/anotacoesDeLeitura'
 import { anunciosPremiadosRepo } from '../db/repositories/anunciosPremiados'
 import type { UserId } from './authContext'
 import { diasAteApagarDeVez } from './config'
@@ -87,6 +88,8 @@ export interface RelatorioDaLimpeza {
   admissaoPodada: number
   /** Exibições do anúncio premiado podadas: pendentes de mais de um dia e concluídas antes do mês anterior. */
   premiadosPodados: number
+  /** Lápides das anotações do leitor com mais de 90 dias (`DIAS_DA_LAPIDE`), apagadas de vez. */
+  lapidesDeLeituraPodadas: number
   /** Imports do Anki em lotes abertos há mais de 24 h (o navegador não concluiu), fechados como `falhou`. */
   importsAbandonados: number
   /** Lotes (transações curtas) que a passada usou. */
@@ -289,6 +292,7 @@ export async function limparBanco(
     travasPodadas: 0,
     admissaoPodada: 0,
     premiadosPodados: 0,
+    lapidesDeLeituraPodadas: 0,
     importsAbandonados: 0,
     lotes: 0,
     incompleta: false,
@@ -372,6 +376,9 @@ export async function limparBanco(
   /* As exibições do anúncio premiado (`anuncios_premiados`): a pendente de ontem nunca mais credita (o prazo é
      de 10 min), e a concluída só conta no teto do dia e no bônus de nuvem do mês. O mês anterior fica de folga. */
   r.premiadosPodados = await anunciosPremiadosRepo.podar(agora)
+
+  /* As lápides das anotações do leitor: já sem conteúdo, ficam 90 dias para os outros aparelhos as receberem. */
+  r.lapidesDeLeituraPodadas = await anotacoesDeLeituraRepo.podarLapides(agora)
 
   /* Imports do Anki em lotes que o navegador abriu e não fechou (aba fechada no meio): 24 h é folga
      larga sobre o maior import (100 lotes), e o ledger para de dizer "gravando" para sempre. */

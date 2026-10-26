@@ -84,6 +84,14 @@ describe('validarAnotacao', () => {
     expect(validarAnotacao(null)).toMatchObject({ code: 'anotacao_invalida' })
   })
 
+  it('a lápide sem conteúdo (como o servidor a guarda) é válida; viva sem âncora não', () => {
+    const a = base()
+    const lapide = { ...a, nota: '', alvo: { cfi: '', citacao: { exact: '', prefix: '', suffix: '' } }, apagadoEm: 9 }
+    expect(validarAnotacao(lapide, { estrito: true }).ok).toBe(true)
+    expect(validarAnotacao({ ...lapide, tipo: 'palavra' }, { estrito: true }).ok).toBe(true)
+    expect(validarAnotacao({ ...lapide, apagadoEm: null })).toMatchObject({ code: 'sem_ancora' })
+  })
+
   it('tira caracteres de controle e cor desconhecida volta à do tipo', () => {
     const r = validarAnotacao({ ...base(), nota: 'a\u0000b\nc', cor: 'roxo' })
     expect(r.ok && r.anotacao.nota).toBe('ab\nc')

@@ -136,7 +136,9 @@ export function validarAnotacao(x: unknown, opcoes: { estrito?: boolean } = {}):
     return { ok: false, erro: 'CFI inválido', code: 'cfi_invalido' };
   }
   const exactBruto = ehTexto(cit.exact) ? semControle(cit.exact) : '';
-  if (!exactBruto.trim() && !cfi) return { ok: false, erro: 'anotação sem âncora', code: 'sem_ancora' };
+  /* A LÁPIDE não tem conteúdo (o servidor o apaga junto): sem âncora e sem palavra ela ainda é válida. */
+  const lapide = o.apagadoEm != null && ehNumero(o.apagadoEm);
+  if (!lapide && !exactBruto.trim() && !cfi) return { ok: false, erro: 'anotação sem âncora', code: 'sem_ancora' };
   if (estrito && tamanho(exactBruto) > MAX_CITACAO) {
     return { ok: false, erro: `a citação passa de ${MAX_CITACAO} caracteres`, code: 'citacao_longa' };
   }
@@ -152,7 +154,7 @@ export function validarAnotacao(x: unknown, opcoes: { estrito?: boolean } = {}):
   const capitulo = ehTexto(alvo.capitulo) ? cortar(semControle(alvo.capitulo).trim(), MAX_CAPITULO) : '';
   const cor = (CORES_DE_ANOTACAO as readonly unknown[]).includes(o.cor) ? (o.cor as CorDeAnotacao) : COR_DO_TIPO[tipo];
   const palavra = ehTexto(o.palavra) ? cortar(semControle(o.palavra).trim(), MAX_PALAVRA) : '';
-  if (tipo === 'palavra' && !palavra) return { ok: false, erro: 'palavra vazia', code: 'palavra_vazia' };
+  if (tipo === 'palavra' && !palavra && !lapide) return { ok: false, erro: 'palavra vazia', code: 'palavra_vazia' };
   if (!ehNumero(o.criadoEm) || !ehNumero(o.atualizadoEm)) {
     return { ok: false, erro: 'datas inválidas', code: 'datas_invalidas' };
   }

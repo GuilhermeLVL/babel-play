@@ -5,7 +5,7 @@ import path from 'node:path'
 import { expect, type Frame, type Page, test } from '@playwright/test'
 
 import { violacoesGraves } from './_acessibilidade'
-import { fecharSobreposicoes } from './_helpers'
+import { clicarRobusto, fecharSobreposicoes, verSemSobreposicao } from './_helpers'
 
 /**
  * O LEITOR (L2 de Livros & Leitura), de ponta a ponta, com o EPUB de domínio público dos testes
@@ -218,5 +218,51 @@ test.describe('Leitor — PDF', () => {
       .poll(() => pagina.evaluate(() => document.querySelector<HTMLImageElement>('#canvas img')?.naturalWidth ?? 0))
       .toBeGreaterThan(100)
     await expect(page.getByRole('note')).toHaveCount(0)
+  })
+})
+
+test.describe('Leitor — a Leitura de sempre', () => {
+  test('uma sessão de documento abre no leitor pelo "Abrir no leitor", e a Leitura antiga continua lá', async ({
+    page,
+  }) => {
+    test.slow()
+    const r = await page.request.post('/api/sessions', {
+      data: {
+        title: 'Documento para o leitor',
+        kind: 'document',
+        sourceLang: 'en',
+        targetLang: 'pt',
+        status: 'done',
+        utterances: [
+          {
+            idx: 0,
+            sourceText: 'The north wind and the sun argued about who was stronger.',
+            sourceLang: 'en',
+            targetLang: 'pt',
+          },
+          {
+            idx: 1,
+            sourceText: 'A traveller walked along the road in a warm coat.',
+            sourceLang: 'en',
+            targetLang: 'pt',
+          },
+        ],
+      },
+    })
+    expect(r.ok()).toBe(true)
+    const { id } = (await r.json()) as { id: string }
+    await page.goto(`/sessao/${id}/leitura`)
+    await fecharSobreposicoes(page)
+    const abrir = page.getByTestId('abrir-no-leitor')
+    await verSemSobreposicao(page, abrir, 30_000)
+    await clicarRobusto(page, abrir)
+    await expect(page).toHaveURL(new RegExp(`/leitor/sessao%3A${id}$`))
+    await expect(leitorPronto(page)).toBeVisible({ timeout: 30_000 })
+    await quadroCom(page, 'A traveller walked along the road')
+    await expect(page.getByRole('heading', { level: 1, name: 'Documento para o leitor' })).toBeVisible()
+    // A Leitura de sempre não saiu do lugar.
+    await page.goBack()
+    await expect(page.getByTestId('abrir-no-leitor')).toBeVisible({ timeout: 30_000 })
+    await page.request.delete(`/api/sessions/${id}`)
   })
 })

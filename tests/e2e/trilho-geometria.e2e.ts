@@ -153,10 +153,14 @@ test.describe('trilho: geometria', () => {
     expect(await violacoesGraves(page)).toEqual([])
   })
 
-  test('1024×600: a pílula do item ativo some quando ele é rolado para fora do grupo e volta ao rolar de volta', async ({
+  /* A JANELA PRECISA ROLAR O GRUPO MAIS QUE UM ITEM. Com oito destinos, 1024×600 rolava 58 px e o Início
+     saía da área visível; com o "Ao vivo" juntando Capturar e Intérprete (25/10/2026) são sete, e em
+     1024×600 o grupo rola só 6 px (o respiro): nenhum item consegue sair, e não há o que conferir ali.
+     1024×520 rola 86 px, a mesma situação que o teste foi escrito para pegar. */
+  test('1024×520: a pílula do item ativo some quando ele é rolado para fora do grupo e volta ao rolar de volta', async ({
     page,
   }) => {
-    await page.setViewportSize({ width: 1024, height: 600 })
+    await page.setViewportSize({ width: 1024, height: 520 })
     await abrirTela(page, '/')
     await fecharSobreposicoes(page)
     await page.waitForTimeout(400)
@@ -170,13 +174,15 @@ test.describe('trilho: geometria', () => {
         const a = ativo.getBoundingClientRect()
         const t = topo.getBoundingClientRect()
         return {
-          rola: topo.scrollHeight > topo.clientHeight + 1,
+          /* Rola o bastante para o item ativo sair inteiro da área visível. */
+          rola: topo.scrollHeight - topo.clientHeight > a.bottom - t.top,
           dentro: a.top >= t.top - 0.5 && a.bottom <= t.bottom + 0.5,
           opacidade: getComputedStyle(pilula).opacity,
         }
       })
     const antes = await estado()
-    test.skip(!antes || !antes.rola, 'sem pílula (animações desligadas) ou o grupo não rola neste tamanho')
+    test.skip(!antes, 'sem pílula (animações desligadas)')
+    expect(antes!.rola, 'neste tamanho o grupo rola o bastante para o item ativo sair').toBe(true)
     expect(antes!.opacidade).toBe('1')
     await page.evaluate(() => {
       const topo = document.querySelector('nav.q-trilho .q-trilho-topo') as HTMLElement

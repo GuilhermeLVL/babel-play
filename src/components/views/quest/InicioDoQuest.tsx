@@ -1,5 +1,6 @@
 import type { EstadoDasMissoes } from '@core';
 import {
+  BookOpen,
   ChartColumn,
   CheckCircle2,
   ChevronRight,
@@ -345,6 +346,21 @@ export default function InicioDoQuest({
           </span>
         </button>
       )}
+
+      {/* LIVROS (26/10/2026): clássicos em domínio público no nível da pessoa. Uma linha, sem disputar com os
+          caminhos da grade; o trilho não ganhou item. */}
+      <button type="button" className="q-linha" onClick={() => onChangeView('livros')} data-testid="livros-no-inicio">
+        <span className="q-ic">
+          <BookOpen aria-hidden />
+        </span>
+        <span>
+          <b>{t('Livros')}</b>
+          <small>{t('Clássicos em domínio público para ler no seu nível, ou um livro seu.')}</small>
+        </span>
+        <span className="q-fim">
+          <ChevronRight aria-hidden style={{ width: 16, height: 16, verticalAlign: -3 }} />
+        </span>
+      </button>
 
       {/* AS MISSÕES DO DIA: o progresso que o servidor contou. Fechadas as três, é o ponto de parada. */}
       {missoesPendentes && !semConta && !missoes && <div className="q-missoes-reserva" aria-hidden="true" />}

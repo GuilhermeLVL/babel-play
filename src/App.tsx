@@ -13,6 +13,7 @@ import { registrarTelas } from './lib/polimento/precarga';
    menu e com o navegador ocioso (`lib/polimento/precarga.ts`), para a tela não esperar o arquivo. */
 const carregarCaptura = () => import('./components/views/LiveCapture');
 const carregarBiblioteca = () => import('./components/views/Library');
+const carregarLivros = () => import('./components/views/Livros');
 const carregarAjustes = () => import('./components/views/Settings');
 const carregarCartoes = () => import('./components/views/Cartoes');
 const carregarJogar = () => import('./components/views/Play');
@@ -24,6 +25,8 @@ const carregarAjuda = () => import('./components/views/Ajuda');
 const carregarLoja = () => import('./components/views/Loja');
 const LiveCapture = lazyComRecarga(carregarCaptura);
 const Library = lazyComRecarga(carregarBiblioteca);
+/* Livros: o catálogo de domínio público. Pedaço de rota; o JSON do catálogo só desce quando a tela abre. */
+const Livros = lazyComRecarga(carregarLivros);
 const Analysis = lazyComRecarga(() => import('./components/views/Analysis'));
 const Settings = lazyComRecarga(carregarAjustes);
 /* Cartões: a casa da revisão, dos baralhos e do catálogo (o Vocabulário é a aba "Palavras" dela e
@@ -48,6 +51,7 @@ registrarTelas({
   capture: LiveCapture.carregar,
   interprete: () => Promise.all([LiveCapture.carregar(), PaginaDoInterprete.carregar()]),
   library: Library.carregar,
+  livros: Livros.carregar,
   settings: Settings.carregar,
   cartoes: Cartoes.carregar,
   play: Play.carregar,
@@ -289,6 +293,7 @@ export default function App() {
     ajustesAba,
     setAjustesAba,
     estudo,
+    livroAberto,
     navigateTo,
   } = useNavegacao({
     activeView,
@@ -369,7 +374,8 @@ export default function App() {
         : activeView;
 
   // Item aceso no menu (protótipo): a sessão vive na Biblioteca; a revisão, em Cartões.
-  const viewDoMenu: ViewType = activeView === 'analysis' ? 'library' : activeView;
+  /* Livros mora na Biblioteca (a porta é de lá e do Início): o trilho não ganhou item (simplificado em 22/10). */
+  const viewDoMenu: ViewType = activeView === 'analysis' || activeView === 'livros' ? 'library' : activeView;
 
   // Marco 1: OAuth/recuperação voltando em /auth/callback — aguarda o supabase-js processar a URL.
   if (authRequired && processingCallback) {
@@ -616,6 +622,7 @@ export default function App() {
                   ageProfile={ageProfile}
                 />
               )}
+              {activeView === 'livros' && <Livros livroAberto={livroAberto} ageProfile={ageProfile} />}
               {/* `selectedRecordingId` e NÃO `selectedRecording`: este último cai na gravação mais
               recente quando não há id, e o filtro de sessão ligaria sozinho sem ninguém pedir. */}
               {activeView === 'play' && (

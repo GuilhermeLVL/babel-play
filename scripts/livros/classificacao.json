@@ -1,0 +1,4 @@
+{
+  "nota": "Classificação etária REVISADA POR PESSOA (spec de Livros & Leitura, Design §2). Livro fora desta lista sai com classificacao null ('a revisar') e não aparece para menor de idade. Valores: livre, 12, 14, 16, 18. Como revisar: docs/livros-catalogo.md.",
+  "revisados": []
+}

@@ -20,6 +20,9 @@
  *   api.mymemory.translated.net                 a tradução de reserva do cliente
  *                                               (`src/gateway/adapters/mymemory.ts`)
  *   localhost:11434 / 127.0.0.1:11434           o Ollama LOCAL de quem o tem (`src/gateway/profiles.ts`)
+ *   standardebooks.org                          o EPUB dos livros do catálogo (CORS `*`), baixado direto
+ *                                               pelo navegador (`src/lib/livros/textoDoLivro.ts`)
+ *   *.wikisource.org                            o texto dos livros da Wikisource, pela API (`origin=*`)
  *
  * E os que dependem do deploy, lidos do ambiente (origem só — caminho e chave não entram):
  *
@@ -29,6 +32,8 @@
  *                                               código, vem sempre do próprio domínio: `script-src`
  *                                               não muda)
  *   VITE_SENTRY_DSN                             o envio de erro do navegador
+ *   VITE_LIVROS_URL                             a cópia curada dos livros do Gutenberg no R2
+ *                                               (`scripts/livros/curar-gutenberg.mjs`)
  *   VITE_ORT_WASM_URL                           o runtime do ONNX (`ort-wasm-*.{wasm,mjs}`) num R2/CDN
  *                                               (`src/gateway/baseDoWasm.ts`). ESTE é código: entra
  *                                               também em `script-src` e `worker-src` (ver abaixo)
@@ -81,6 +86,8 @@ const CONEXOES_FIXAS = [
   'https://api.mymemory.translated.net',
   'http://localhost:11434',
   'http://127.0.0.1:11434',
+  'https://standardebooks.org',
+  'https://*.wikisource.org',
 ]
 
 /** A ORIGEM (`https://host[:porta]`) de uma URL, ou `null` se ela não for http(s) válida. */
@@ -125,6 +132,8 @@ export function diretivasDeCsp(env: NodeJS.ProcessEnv = process.env, opcoes: Opc
     origemDe(env.VITE_SELF_HOST_MODELS),
     /* A9b: sem ela, os `.gz` do Bergamot saem do próprio domínio (`'self'`). */
     origemDe(env.VITE_BERGAMOT_MODELOS_URL),
+    /* Os livros do Gutenberg, na cópia curada do R2 (sem ela, o detalhe diz que a cópia não foi publicada). */
+    origemDe(env.VITE_LIVROS_URL),
     /* O DSN tem a chave pública no userinfo; `origin` a descarta e fica só o host de ingestão. */
     origemDe(env.VITE_SENTRY_DSN),
   ].filter((o): o is string => o !== null)

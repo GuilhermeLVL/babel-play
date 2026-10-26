@@ -26,6 +26,7 @@ export const SEGMENTOS_DO_APP = [
   'interprete',
   'jogar',
   'biblioteca',
+  'livros',
   'cartoes',
   'ajustes',
   'perfil',

@@ -1,0 +1,560 @@
+/*
+ * A TELA LIVROS (L1 de `docs/specs/2026-10-26-livros-e-leitura.md`): catálogo, detalhe, leitura provisória,
+ * "Meus livros" e "Trazer o seu". As peças comuns (`.q-palco`, `.q-cab`, `.q-chip`, `.q-ctl`, `.q-campo`,
+ * `.q-abas`, `.q-secao`, `.q-cartao`, `.q-vazio`) moram em `quest.css`; aqui fica só o que é desta tela, com o
+ * prefixo `.lv-`. Só tokens do tema: claro e escuro (e os temas) mandam nas cores.
+ */
+
+.lv {
+  gap: 22px;
+}
+.lv .q-abas {
+  align-self: flex-start;
+}
+.lv-painel {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+
+/* ── Busca e filtros ─────────────────────────────────────────────────────────────────────────── */
+.lv-busca {
+  display: grid;
+  gap: 14px;
+}
+.lv-busca-linha {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.lv-campo-busca {
+  position: relative;
+  flex: 1 1 280px;
+}
+.lv-campo-busca input {
+  padding-left: 52px;
+}
+.lv-lupa {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  transform: translateY(-50%);
+  color: var(--ink-muted);
+  pointer-events: none;
+}
+.lv-idioma {
+  flex: 0 1 220px;
+}
+.lv-contagem {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  background: var(--q-acento, var(--accent));
+  color: var(--q-sobre-acento, #fff);
+  font: 800 13px/1 var(--font-mono, monospace);
+}
+.lv-filtros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  padding: 18px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 20px;
+  background: var(--surface);
+  align-items: end;
+}
+.lv-filtros[hidden] {
+  display: none;
+}
+.lv-grupo {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+.lv-grupo legend {
+  padding: 0;
+  margin-bottom: 8px;
+  font: 700 14px/1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.lv-opcoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.lv-opcoes .q-chip {
+  min-height: 48px;
+  padding: 0 14px;
+}
+.lv-opcoes .q-chip:disabled {
+  opacity: 0.45;
+  cursor: default;
+  border-style: dashed;
+}
+
+/* ── Prateleiras e cartões ───────────────────────────────────────────────────────────────────── */
+.lv-prateleira > header {
+  align-items: flex-end;
+}
+.lv-fileira,
+.lv-grade {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+/* A fileira rola de lado, um livro por vez (o foco de teclado leva a rolagem junto, cada cartão é botão). */
+.lv-fileira {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(168px, 188px);
+  gap: 14px;
+  overflow-x: auto;
+  padding: 4px 4px 12px;
+  margin: -4px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+.lv-fileira > li {
+  scroll-snap-align: start;
+}
+.lv-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 14px;
+}
+.lv-item {
+  min-width: 0;
+  display: flex;
+}
+.lv-cartao {
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--ink);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 10px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform var(--q-toque, 120ms ease),
+    border-color var(--q-cor, 160ms ease),
+    background-color var(--q-cor, 160ms ease);
+}
+.lv-cartao:hover {
+  border-color: var(--q-acento, var(--accent));
+  background: color-mix(in srgb, var(--q-acento, var(--accent)) 6%, var(--surface));
+}
+.lv-cartao:focus-visible {
+  outline: 3px solid var(--q-acento, var(--accent));
+  outline-offset: 3px;
+}
+.lv-cartao:active {
+  transform: scale(0.98);
+}
+.lv-cartao-texto {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  min-width: 0;
+}
+.lv-cartao-texto b {
+  font: 800 16px/1.25 var(--font-display, inherit);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.lv-autor {
+  font: 600 14px/1.3 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.lv-selos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.lv-selo {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--q-suave, var(--accent-soft));
+  color: var(--ink);
+  font: 700 13px/1 var(--font-mono, monospace);
+}
+.lv-selo.fraco {
+  background: var(--surface-sunken);
+}
+
+/* A CAPA DESENHADA: lombada no tom do livro, miolo na superfície do tema. A cor só decora (a lombada), o
+   texto fica em tinta do tema sobre a superfície: o contraste é o do resto do app, em claro e escuro. */
+.lv-capa {
+  --lv-tom: 210;
+  position: relative;
+  aspect-ratio: 2 / 3;
+  border-radius: 10px 12px 12px 10px;
+  padding: 14px 12px 12px 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  overflow: hidden;
+  background: linear-gradient(90deg, hsl(var(--lv-tom) 55% 42%) 0 10px, transparent 10px),
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, hsl(var(--lv-tom) 60% 55%) 18%, var(--surface-sunken)),
+      var(--surface-sunken)
+    );
+  border: 1.5px solid color-mix(in srgb, hsl(var(--lv-tom) 50% 45%) 35%, var(--border-subtle));
+  color: var(--ink);
+}
+.lv-capa-titulo {
+  font: 800 15px/1.2 var(--font-display, inherit);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.lv-capa-autor {
+  font: 600 12px/1.25 var(--font-body, inherit);
+  color: var(--ink-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.lv-capa.grande {
+  width: min(240px, 100%);
+  padding: 22px 18px 18px 32px;
+  background: linear-gradient(90deg, hsl(var(--lv-tom) 55% 42%) 0 14px, transparent 14px),
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, hsl(var(--lv-tom) 60% 55%) 18%, var(--surface-sunken)),
+      var(--surface-sunken)
+    );
+}
+.lv-capa.grande .lv-capa-titulo {
+  font-size: 22px;
+}
+.lv-capa.grande .lv-capa-autor {
+  font-size: 14px;
+}
+
+/* ── Detalhe ─────────────────────────────────────────────────────────────────────────────────── */
+.lv-detalhe-corpo {
+  display: grid;
+  grid-template-columns: minmax(160px, 240px) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+.lv-detalhe-info {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  max-width: 72ch;
+}
+.lv-autores {
+  margin: 0;
+  font: 700 19px/1.4 var(--font-body, inherit);
+}
+.lv-selo-legal {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-self: start;
+  padding: 8px 14px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--good, #3f9b56) 14%, var(--surface));
+  border: 1.5px solid color-mix(in srgb, var(--good, #3f9b56) 40%, var(--border-subtle));
+  color: var(--ink);
+  font: 700 15px/1.35 var(--font-body, inherit);
+}
+.lv-selo-legal svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  color: var(--good, #3f9b56);
+}
+.lv-ficha {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+.lv-ficha > div {
+  padding: 14px 16px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--surface);
+  min-width: 0;
+}
+.lv-ficha dt {
+  font: 700 13px/1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 8px;
+}
+.lv-ficha dd {
+  margin: 0;
+  font: 700 17px/1.35 var(--font-body, inherit);
+  overflow-wrap: anywhere;
+}
+.lv-ficha dd small {
+  display: block;
+  margin-top: 4px;
+  font: 600 14px/1.35 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.lv-resumo {
+  margin: 0;
+  font: 500 17px/1.55 var(--font-body, inherit);
+}
+.lv-nota {
+  margin: 0;
+  font: 600 15px/1.45 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+
+/* ── Leitura provisória ──────────────────────────────────────────────────────────────────────── */
+.lv-aviso {
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--surface-sunken);
+  font: 600 15px/1.45 var(--font-body, inherit);
+  color: var(--ink);
+}
+.lv-aviso svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  margin-top: 1px;
+}
+.lv-capitulos {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.lv-capitulo-escolha {
+  flex: 1 1 auto;
+  max-width: 520px;
+}
+.lv-capitulos .q-ctl {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+/* O texto: alinhado à esquerda, medida de leitura confortável, entrelinha generosa (ACE01). */
+.lv-texto {
+  max-width: 68ch;
+  font: 400 19px/1.7 var(--font-leitura, Georgia, 'Times New Roman', serif);
+  color: var(--ink);
+  text-align: start;
+  outline: none;
+}
+.lv-texto p {
+  margin: 0 0 1em;
+}
+.lv-texto:focus-visible {
+  outline: 3px solid var(--q-acento, var(--accent));
+  outline-offset: 6px;
+  border-radius: 6px;
+}
+
+/* ── Meus livros e Trazer o seu ──────────────────────────────────────────────────────────────── */
+.lv-meus,
+.lv-trazer {
+  display: grid;
+  gap: 16px;
+}
+:is(.lv-meus, .lv-trazer) > header h2,
+.lv-porque h2 {
+  margin: 0;
+  font: 800 22px/1.2 var(--font-display, inherit);
+}
+:is(.lv-meus, .lv-trazer) > header p {
+  margin: 6px 0 0;
+}
+.lv-trazer > header p {
+  font: 600 16px/1.45 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.lv-trazer h3 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 800 19px/1.2 var(--font-display, inherit);
+}
+.lv-trazer h3 svg {
+  width: 22px;
+  height: 22px;
+}
+.lv-meu {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 18px;
+  background: var(--surface);
+}
+.lv-meu-texto {
+  flex: 1 1 240px;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.lv-meu-texto b {
+  font: 800 17px/1.3 var(--font-display, inherit);
+  overflow-wrap: anywhere;
+}
+.lv-meu-texto small {
+  font: 600 14px/1.35 var(--font-body, inherit);
+  color: var(--ink-muted);
+}
+.lv-status {
+  flex: 0 0 170px;
+}
+.lv-erro {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bad, #c0392b) 12%, var(--surface));
+  border: 1.5px solid color-mix(in srgb, var(--bad, #c0392b) 45%, var(--border-subtle));
+  color: var(--ink);
+  font: 600 16px/1.4 var(--font-body, inherit);
+}
+
+/* ── "Por que não está?" ─────────────────────────────────────────────────────────────────────── */
+.lv-porque h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.lv-porque h2 svg {
+  width: 24px;
+  height: 24px;
+}
+.lv-porque p {
+  margin: 0;
+  font: 600 16px/1.5 var(--font-body, inherit);
+  max-width: 72ch;
+}
+.lv-excluidos {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+.lv-excluidos li {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--surface-sunken);
+  font: 600 15px/1.45 var(--font-body, inherit);
+}
+.lv-motivo {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink-muted);
+}
+.lv-porque-dobra > summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font: 700 16px/1.3 var(--font-body, inherit);
+  color: var(--ink);
+  border-radius: 12px;
+}
+.lv-porque-dobra > summary:focus-visible {
+  outline: 3px solid var(--q-acento, var(--accent));
+  outline-offset: 3px;
+}
+.lv-porque-dobra[open] > summary {
+  margin-bottom: 12px;
+}
+.lv-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-ink, var(--ink));
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  min-height: 24px;
+}
+.lv-link:focus-visible {
+  outline: 3px solid var(--q-acento, var(--accent));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.lv-esperando {
+  display: grid;
+  gap: 16px;
+}
+
+/* ── Celular ─────────────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .lv-detalhe-corpo {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  .lv-capa.grande {
+    width: 150px;
+  }
+  .lv-capa.grande .lv-capa-titulo {
+    font-size: 18px;
+  }
+  .lv-fileira {
+    grid-auto-columns: minmax(140px, 46%);
+  }
+  .lv-grade {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .lv-idioma {
+    flex: 1 1 160px;
+  }
+  .lv-texto {
+    font-size: 18px;
+  }
+  .lv-status {
+    flex: 1 1 160px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lv-cartao,
+  .lv-cartao:active {
+    transition: none;
+    transform: none;
+  }
+  .lv-fileira {
+    scroll-behavior: auto;
+  }
+}

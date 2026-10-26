@@ -162,6 +162,7 @@ describe('os segmentos do app que o Worker manda para /app', () => {
       'interprete',
       'play',
       'library',
+      'livros',
       'cartoes',
       'settings',
       'profile',

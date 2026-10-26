@@ -15,7 +15,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 
 import { type AnotacaoDeLeitura, ehLivroId, validarAnotacao } from '../../src/core/leitura/anotacao'
-import { anotacoesDeLeituraRepo, MAX_ANOTACOES_POR_LIVRO } from '../db/repositories/anotacoesDeLeitura'
+import { anotacoesDeLeituraRepo, TETOS_DAS_ANOTACOES } from '../db/repositories/anotacoesDeLeitura'
 import { responderErro } from '../lib/respostaDeErro'
 import { idParamSchema } from '../validation'
 
@@ -75,7 +75,7 @@ leituraRouter.post('/anotacoes/lote', async (req, res) => {
     validas.push(v.anotacao)
   }
   const r = await anotacoesDeLeituraRepo.gravarLote(req.userId, validas)
-  res.json({ ...r, limitePorLivro: MAX_ANOTACOES_POR_LIVRO })
+  res.json({ ...r, tetos: TETOS_DAS_ANOTACOES })
 })
 
 leituraRouter.delete('/anotacoes/:id', async (req, res) => {

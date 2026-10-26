@@ -9,7 +9,11 @@
  * A SINCRONIZAÇÃO é "última escrita vence" por `max(atualizado_em, apagado_em)`, decidida no banco
  * (`ON CONFLICT … WHERE`), e não num "lê, compara, grava" que dois aparelhos atravessariam juntos.
  *
- * TETO: `MAX_ANOTACOES_POR_LIVRO` vivas por livro, cobrado sob a trava do usuário (como o glossário).
+ * TETOS (`TETOS_DAS_ANOTACOES`, os três num lugar só): vivas por livro, vivas por pessoa e livros distintos
+ * com anotação viva — cobrados sob a trava do usuário (como o glossário). Não dependem de plano (anotar é
+ * grátis para todos), por isso moram aqui e não em `src/core/planos.ts`: são tetos de abuso, não cota. O
+ * teto por pessoa e o de livros fecham o desvio de inventar `livro_id` novos para fugir do teto por livro.
+ * "Nova viva" inclui a RESSURREIÇÃO: uma lápide que volta a `apagado_em = null` ocupa vaga como uma nova.
  */
 import { and, eq, gt, inArray, isNull, sql } from 'drizzle-orm'
 
@@ -18,8 +22,12 @@ import type { UserId } from '../../lib/authContext'
 import { db, emTransacao, linhas, travarUsuario } from '../db'
 import { anotacoesDeLeitura as t } from '../schema'
 
-/** Quantas anotações VIVAS cabem num livro. Um livro inteiro grifado frase a frase tem poucos milhares. */
-export const MAX_ANOTACOES_POR_LIVRO = 5_000
+/**
+ * Os tetos das anotações vivas. `porLivro`: um livro inteiro grifado frase a frase tem poucos milhares.
+ * `porPessoa`: dez livros desses. `livros`: uma biblioteca grande de quem anota tudo o que lê.
+ */
+export const TETOS_DAS_ANOTACOES = { porLivro: 5_000, porPessoa: 50_000, livros: 1_000 } as const
+export type TetosDasAnotacoes = { porLivro: number; porPessoa: number; livros: number }
 /** Teto de uma leitura (uma página da sincronização). */
 export const MAX_POR_LEITURA = 2_000
 
@@ -44,7 +52,13 @@ function paraAnotacao(l: Linha): AnotacaoDeLeitura {
   }
 }
 
-export type ResultadoDoLote = { gravadas: AnotacaoDeLeitura[]; recusadas: Array<{ id: string; motivo: 'livro_cheio' }> }
+export type MotivoDeRecusa = 'livro_cheio' | 'pessoa_cheia' | 'livros_demais'
+export type ResultadoDoLote = {
+  gravadas: AnotacaoDeLeitura[]
+  recusadas: Array<{ id: string; motivo: MotivoDeRecusa }>
+}
+
+const marca = (atualizadoEm: number, apagadoEm: number | null) => Math.max(atualizadoEm, apagadoEm ?? 0)
 
 export const anotacoesDeLeituraRepo = {
   /**
@@ -71,37 +85,60 @@ export const anotacoesDeLeituraRepo = {
 
   /**
    * Grava um lote (já validado). Cada anotação entra se for nova ou mais recente que a guardada; a mais
-   * velha perde em silêncio e a resposta devolve a que ficou valendo. Anotação NOVA viva num livro cheio é
-   * recusada (`livro_cheio`); editar ou apagar uma que já existe sempre passa.
+   * velha perde em silêncio e a resposta devolve a que ficou valendo. Uma escrita que faria uma anotação
+   * VIVA nascer — nova, ou lápide ressuscitada — passa pelos três tetos (`livro_cheio`, `pessoa_cheia`,
+   * `livros_demais`); editar uma viva ou apagar sempre passa. `tetos` é injetável só para o teste.
    */
-  async gravarLote(userId: UserId, lote: readonly AnotacaoDeLeitura[]): Promise<ResultadoDoLote> {
+  async gravarLote(
+    userId: UserId,
+    lote: readonly AnotacaoDeLeitura[],
+    tetos: TetosDasAnotacoes = TETOS_DAS_ANOTACOES,
+  ): Promise<ResultadoDoLote> {
     const recusadas: ResultadoDoLote['recusadas'] = []
     await emTransacao(async (tx) => {
       await travarUsuario(tx, userId)
-      const vivasPorLivro = new Map<string, number>()
-      const contar = async (livroId: string) => {
-        if (!vivasPorLivro.has(livroId)) {
-          const [{ n }] = linhas<{ n: number | string }>(
-            await tx.execute(
-              sql`SELECT COUNT(*) AS n FROM ${t} WHERE user_id = ${userId} AND livro_id = ${livroId} AND apagado_em IS NULL`,
-            ),
-          )
-          vivasPorLivro.set(livroId, Number(n))
-        }
-        return vivasPorLivro.get(livroId)!
+      /* A contagem das vivas, UMA vez por lote e sob a trava: por livro, o total e os livros distintos. */
+      const porLivro = new Map<string, number>()
+      for (const r of linhas<{ livro_id: string; n: number | string }>(
+        await tx.execute(
+          sql`SELECT livro_id, COUNT(*) AS n FROM ${t} WHERE user_id = ${userId} AND apagado_em IS NULL GROUP BY livro_id`,
+        ),
+      )) {
+        porLivro.set(r.livro_id, Number(r.n))
       }
+      let total = [...porLivro.values()].reduce((s, n) => s + n, 0)
+      const vivas = (livroId: string) => porLivro.get(livroId) ?? 0
+      const livrosVivos = () => [...porLivro.values()].filter((n) => n > 0).length
       for (const a of lote) {
-        const existe = await tx
-          .select({ id: t.id })
+        const [guardada] = await tx
+          .select({ livroId: t.livroId, atualizadoEm: t.atualizadoEm, apagadoEm: t.apagadoEm })
           .from(t)
           .where(and(eq(t.userId, userId), eq(t.id, a.id)))
           .limit(1)
-        if (!existe.length && a.apagadoEm == null) {
-          if ((await contar(a.livroId)) >= MAX_ANOTACOES_POR_LIVRO) {
-            recusadas.push({ id: a.id, motivo: 'livro_cheio' })
+        /* O livro que conta é o da linha guardada (o UPDATE não muda `livro_id`). A escrita só muda algo se
+           vencer a guardada; se perder, não há o que contar. */
+        const livroId = guardada?.livroId ?? a.livroId
+        const vence = !guardada || marca(a.atualizadoEm, a.apagadoEm) > marca(guardada.atualizadoEm, guardada.apagadoEm)
+        const estavaViva = !!guardada && guardada.apagadoEm == null
+        const ficaViva = a.apagadoEm == null
+        if (vence && !estavaViva && ficaViva) {
+          const motivo: MotivoDeRecusa | null =
+            vivas(livroId) >= tetos.porLivro
+              ? 'livro_cheio'
+              : total >= tetos.porPessoa
+                ? 'pessoa_cheia'
+                : vivas(livroId) === 0 && livrosVivos() >= tetos.livros
+                  ? 'livros_demais'
+                  : null
+          if (motivo) {
+            recusadas.push({ id: a.id, motivo })
             continue
           }
-          vivasPorLivro.set(a.livroId, (vivasPorLivro.get(a.livroId) ?? 0) + 1)
+          porLivro.set(livroId, vivas(livroId) + 1)
+          total++
+        } else if (vence && estavaViva && !ficaViva) {
+          porLivro.set(livroId, Math.max(0, vivas(livroId) - 1))
+          total--
         }
         const valores = {
           userId,

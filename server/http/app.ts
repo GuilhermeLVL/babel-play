@@ -537,6 +537,8 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
       '/api/settings',
       '/api/images',
       '/api/tutor',
+      /* As anotações do leitor guardam trecho do livro e nota da pessoa: dado de estudo na nuvem, como o deck. */
+      '/api/leitura',
     ],
     exigirContaLiberada,
   )

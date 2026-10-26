@@ -6,18 +6,18 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { limparHtml } from '../src/lib/leitor/limparHtml'
+import { limparCapitulo } from '../src/lib/leitor/limparHtml'
 import { capitulosDoTexto, livroDeTexto, xhtmlDoCapitulo } from '../src/lib/leitor/livroDeTexto'
 import { citacaoDoRange, fraseDoRange, palavraEm } from '../src/lib/leitor/selecao'
 import { estadoParaUrl, urlParaEstado } from '../src/lib/rotas'
 
-describe('limparHtml (nenhum script do livro roda)', () => {
+describe('limparCapitulo (nenhum script do livro roda)', () => {
   it('tira <script>, on*, javascript: e as tags que embutem conteúdo ativo', () => {
     const sujo = `<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml"><head><script>alert(1)</script></head>
       <body onload="x()"><p onclick="y()">Olá <a href="javascript:z()">link</a> <a href="#n">nota</a></p>
       <iframe src="https://mal.test"></iframe><object data="x.swf"></object><form action="/x"><input/></form>
       <img src="capa.png" onerror="w()"/></body></html>`
-    const limpo = limparHtml(sujo, 'application/xhtml+xml')
+    const limpo = limparCapitulo(sujo, 'xhtml') ?? ''
     expect(limpo).not.toMatch(/<script|onload|onclick|onerror|javascript:|<iframe|<object|<form/i)
     expect(limpo).toContain('Olá')
     expect(limpo).toContain('href="#n"')
@@ -25,7 +25,7 @@ describe('limparHtml (nenhum script do livro roda)', () => {
   })
 
   it('HTML que não é XHTML válido também sai limpo', () => {
-    const limpo = limparHtml('<p>ok<script>alert(1)</script><svg onload="x()"></svg>', 'text/html')
+    const limpo = limparCapitulo('<p>ok<script>alert(1)</script><svg onload="x()"></svg>', 'html') ?? ''
     expect(limpo).toContain('ok')
     expect(limpo).not.toMatch(/<script|onload/i)
   })

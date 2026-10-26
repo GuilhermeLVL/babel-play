@@ -147,7 +147,8 @@ test.describe('Leitor — os desvios do filtro de recursos remotos', () => {
        app, porque a CSP do capítulo não deixa o próprio capítulo buscar nada. */
     const fonte = await page.evaluate((u) => fetch(u).then((r) => r.text()), capitulo!.url())
     const primeiro = await page.evaluate((x) => {
-      const d = new DOMParser().parseFromString(x, 'application/xhtml+xml')
+      /* O capítulo sai como HTML (`text/html`): é o modo em que o navegador aplica a CSP do <meta>. */
+      const d = new DOMParser().parseFromString(x, 'text/html')
       const m = d.getElementsByTagName('head')[0]?.firstElementChild
       return [m?.localName, m?.getAttribute('http-equiv'), m?.getAttribute('content')]
     }, fonte)
@@ -157,6 +158,78 @@ test.describe('Leitor — os desvios do filtro de recursos remotos', () => {
     expect(primeiro[2]).toContain("default-src 'none'")
     // O SMIL teria 1 s para trocar o href: espera passar.
     await page.waitForTimeout(2000)
+    expect(chegaram).toEqual([])
+    expect(deFora).toEqual([])
+  })
+})
+
+test.describe('Leitor — mXSS e confusão de namespace (DOMPurify)', () => {
+  /* `mxss.epub`: texto de <style>/<xmp>/<noscript>/<noembed> que fecharia o elemento ao virar HTML, script e
+     style com prefixo de namespace, <img onerror> no foreignObject, mglyph/style no MathML, e um capítulo com
+     RAIZ SVG (script + imagem remota). Nada roda e nenhum pedido sai da página. */
+  test('nenhum vetor de mXSS executa nem busca nada; o capítulo de raiz SVG abre como HTML', async ({
+    page,
+    baseURL,
+  }) => {
+    test.slow()
+    const app = new URL(baseURL ?? 'http://localhost:3100').host
+    const deFora: string[] = []
+    page.context().on('request', (r) => {
+      const u = new URL(r.url())
+      if (/^https?:$/.test(u.protocol) && u.host !== app) deFora.push(r.url())
+    })
+    const chegaram: string[] = []
+    await page.context().route(/mxss\.example/, (rota) => {
+      chegaram.push(rota.request().url())
+      return rota.fulfill({ status: 204, body: '' })
+    })
+    await page.goto('/leitor')
+    await expect(page.getByTestId('estante')).toBeVisible({ timeout: 30_000 })
+    deFora.length = 0
+    await page.getByTestId('abrir-arquivo').setInputFiles(path.resolve('tests', 'fixtures', 'livros', 'mxss.epub'))
+    await expect(page.locator('[data-testid=leitor][data-estado=pronto]')).toBeVisible({ timeout: 30_000 })
+    await fecharSobreposicoes(page)
+    let capitulo = page.frames().find((f) => f.url().startsWith('blob:'))
+    await expect(async () => {
+      capitulo = page.frames().find((f) => f.url().startsWith('blob:'))
+      await expect(capitulo!.getByText('The sanitizer must keep this text')).toBeVisible({ timeout: 1000 })
+    }).toPass({ timeout: 15_000 })
+    // Nenhum elemento ativo sobrou no capítulo que o navegador montou.
+    const ativos = await capitulo!.evaluate(
+      () =>
+        [...document.querySelectorAll('*')].filter(
+          (el) =>
+            /^(script|iframe|object|embed|base|form|foreignobject)$/i.test(el.localName) ||
+            [...el.attributes].some((a) => /^on/i.test(a.name)),
+        ).length,
+    )
+    expect(ativos).toBe(0)
+
+    // O capítulo de raiz SVG: vai até ele e confere que abriu (como HTML, com a CSP primeiro).
+    await expect(async () => {
+      await page.getByRole('button', { name: 'Próxima página' }).click()
+      const svg = page.frames().find((f) => f !== capitulo && f.url().startsWith('blob:'))
+      await expect(svg!.getByText('SVG root chapter text')).toBeVisible({ timeout: 1000 })
+    }).toPass({ timeout: 20_000 })
+    const svg = page.frames().find((f) => f !== capitulo && f.url().startsWith('blob:'))!
+    const fonte = await page.evaluate((u) => fetch(u).then((r) => r.text()), svg.url())
+    expect(fonte).toMatch(/^<!DOCTYPE html><html[^>]*><head><meta http-equiv="Content-Security-Policy"/)
+    expect(fonte).not.toContain('mxss.example')
+    /* O `onclick` do <text> saiu (não se clica: o toque abriria a folha da palavra, que consulta o dicionário). */
+    expect(
+      await svg.evaluate(
+        () =>
+          [...document.querySelectorAll('*')].filter(
+            (el) =>
+              [...el.attributes].some((a) => /^on/i.test(a.name)) ||
+              el.localName === 'script' ||
+              (el.localName === 'image' && [...el.attributes].some((a) => /href$/i.test(a.name))),
+          ).length,
+      ),
+    ).toBe(0)
+    await page.waitForTimeout(1500)
+
+    expect(await pwnedEmTodaParte(page)).toEqual([])
     expect(chegaram).toEqual([])
     expect(deFora).toEqual([])
   })

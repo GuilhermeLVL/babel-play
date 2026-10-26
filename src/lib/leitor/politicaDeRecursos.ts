@@ -5,8 +5,6 @@
  *
  *  · `tipoPermitido`: só (X)HTML, SVG, CSS, imagem, fonte e áudio. XML genérico, XSLT, JavaScript, SMIL,
  *    `application/octet-stream`, e qualquer coisa sem tipo, ficam fora;
- *  · `pareceMarcacao`: o conteúdo que FAREJA como marcação (`<html`, `<svg`, `<?xml`…) é limpo mesmo que o
- *    manifesto diga outro tipo — um "image/png" que na verdade é HTML não passa cru;
  *  · `linkExternoSeguro`: só `http:`/`https:` abrem, numa aba nova sem `opener` nem `referrer`.
  */
 
@@ -34,20 +32,6 @@ export function tipoPermitido(tipo: string | undefined | null): boolean {
   if (MARCACAO.has(t) || t === 'text/css') return true;
   if (t.startsWith('image/') || t.startsWith('audio/') || t.startsWith('font/')) return true;
   return FONTES.has(t);
-}
-
-/** O tipo é de marcação (o que vai para o `limparHtml`)? */
-export const ehTipoDeMarcacao = (tipo: string | undefined | null) => MARCACAO.has(normalizarTipo(tipo));
-
-/** O começo do conteúdo fareja como marcação? (BOM e espaço ignorados.) */
-export function pareceMarcacao(inicio: string): boolean {
-  return /^\uFEFF?\s*<(\?xml|!doctype|html|svg|xsl|body|head|script|iframe)\b/i.test(inicio);
-}
-
-/** O tipo para limpar um conteúdo que farejou como marcação. */
-export function tipoDaMarcacao(inicio: string, declarado: string): string {
-  if (ehTipoDeMarcacao(declarado)) return normalizarTipo(declarado);
-  return /<svg\b/i.test(inicio) && !/<html\b/i.test(inicio) ? 'image/svg+xml' : 'text/html';
 }
 
 /** Só `http(s)` com host: o resto (`javascript:`, `data:`, `file:`, `blob:`, relativo) não abre. */

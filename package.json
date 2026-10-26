@@ -94,6 +94,7 @@
     "chinese-conv": "4.0.0",
     "compression": "1.8.2",
     "country-flag-icons": "^1.6.20",
+    "dompurify": "3.4.17",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.4",
     "express": "^4.22.3",

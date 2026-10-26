@@ -3,7 +3,7 @@
  * esta classe; trocar de motor (a spec deixa a porta aberta) é reescrever este arquivo.
  *
  * O que ele faz além de repassar:
- *  · SEGURANÇA: só carrega os tipos da lista (`politicaDeRecursos`), limpa toda marcação (`limparHtml`) e
+ *  · SEGURANÇA: só carrega os tipos da lista (`politicaDeRecursos`), limpa toda marcação (`limparCapitulo`, DOMPurify) e
  *    abre só link http(s) sem opener; os iframes do livro não têm `allow-scripts` (`foliate/PATCHES.md`);
  *  · PERFIL: aplica o perfil de leitura (CSS dentro do livro, fluxo paginado/rolagem, margem e coluna);
  *  · ANOTAÇÕES: desenha grifos/notas/palavras com a cor do tipo e avisa o toque num grifo;
@@ -13,15 +13,8 @@ import type { CorDeAnotacao, TipoDeAnotacao } from '../../core/leitura/anotacao'
 import { CORES_DOS_TEMAS, cssDoLivro, type PerfilDeLeitura } from '../../core/leitura/perfilDeLeitura';
 import type { ItemDoSumario, LivroDoFoliate, Localizacao, View } from './foliate/view.js';
 import { facesDaFonte } from './fontes';
-import { limparCss, limparHtml, tipoDoCapituloLimpo } from './limparHtml';
-import {
-  ehTipoDeMarcacao,
-  linkExternoSeguro,
-  normalizarTipo,
-  pareceMarcacao,
-  tipoDaMarcacao,
-  tipoPermitido,
-} from './politicaDeRecursos';
+import { limparCapitulo, limparCss, limparSvgDeImagem, tipoDeMarcacao } from './limparHtml';
+import { linkExternoSeguro, normalizarTipo, tipoPermitido } from './politicaDeRecursos';
 
 /**
  * A cor de cada token no livro. Sólida: a transparência é do overlayer (`--overlayer-highlight-opacity`,
@@ -137,38 +130,67 @@ export class MotorDoLeitor {
 
   /** Nenhum script do livro roda: recurso de script recusado, HTML limpo antes de virar `blob:`. */
   private blindar() {
-    const alvo = this.view.book.transformTarget;
+    const livro = this.view.book;
+    const alvo = livro.transformTarget;
     if (!alvo) return;
     /* NEGAÇÃO POR PADRÃO: só entra o tipo da lista (`tipoPermitido`); script, XML/XSLT e o resto, não. */
     alvo.addEventListener('load', (e) => {
       const d = (e as CustomEvent<{ type: string; isScript: boolean; allow: boolean | Promise<boolean> }>).detail;
       if (d.isScript || !tipoPermitido(d.type)) d.allow = false;
     });
-    /* O CONTEÚDO: a marcação (string ou Blob, declarada ou farejada) passa pelo `limparHtml`. */
+    /*
+     * O CONTEÚDO. Um predicado só (`tipoDeMarcacao`, sobre o tipo declarado e o começo do conteúdo) decide se é
+     * marcação; e o TIPO do `blob:` só vira `text/html` depois que a limpeza RODOU e deu certo. Marcação que não
+     * passou na limpeza vira texto vazio (`text/plain`) — falha fechada. CSS passa por `limparCss`.
+     */
     alvo.addEventListener('data', (e) => {
-      const d = (e as CustomEvent<{ data: unknown; type: unknown }>).detail;
-      const tipo = String(d.type ?? '');
-      /* (X)HTML vira `text/html`: é o parser de HTML que lê a CSP do `<meta>` (ver `limparHtml`). */
-      if (/x?html/i.test(tipo)) d.type = tipoDoCapituloLimpo(tipo);
-      d.data = Promise.resolve(d.data).then(async (x) => {
-        /* PRIVACIDADE: a folha de estilo do livro não puxa nada de fora (fonte, imagem, `@import`). */
-        if (normalizarTipo(tipo) === 'text/css') {
-          const css = typeof x === 'string' ? x : x instanceof Blob ? await x.text() : null;
-          return css == null ? x : limparCss(css);
-        }
-        if (typeof x === 'string') {
-          const inicio = x.slice(0, 512);
-          if (!ehTipoDeMarcacao(tipo) && !pareceMarcacao(inicio)) return x;
-          return limparHtml(x, tipoDaMarcacao(inicio, tipo));
-        }
-        if (x instanceof Blob) {
-          const inicio = await x.slice(0, 512).text();
-          if (!ehTipoDeMarcacao(tipo) && !pareceMarcacao(inicio)) return x;
-          return new Blob([limparHtml(await x.text(), tipoDaMarcacao(inicio, tipo))], { type: x.type || tipo });
-        }
-        return x;
-      });
+      const d = (e as CustomEvent<{ data: unknown; type: unknown; name?: string }>).detail;
+      const declarado = String(d.type ?? '');
+      const ehCapitulo = livro.sections.some((s) => s.id === d.name);
+      let fixarTipo: (t: string) => void = () => {};
+      d.type = new Promise<string>((ok) => (fixarTipo = ok));
+      d.data = Promise.resolve(d.data)
+        .then(async (x) => {
+          if (normalizarTipo(declarado) === 'text/css') {
+            const css = typeof x === 'string' ? x : x instanceof Blob ? await x.text() : '';
+            fixarTipo('text/css');
+            return limparCss(css);
+          }
+          const inicio =
+            typeof x === 'string' ? x.slice(0, 512) : x instanceof Blob ? await x.slice(0, 512).text() : '';
+          const marcacao = tipoDeMarcacao(declarado, inicio);
+          if (!marcacao) {
+            fixarTipo(declarado);
+            return x;
+          }
+          const texto = typeof x === 'string' ? x : x instanceof Blob ? await x.text() : '';
+          if (marcacao === 'svg' && !ehCapitulo) {
+            const svg = limparSvgDeImagem(texto);
+            fixarTipo(svg == null ? 'text/plain' : 'image/svg+xml');
+            return svg ?? '';
+          }
+          const html = limparCapitulo(texto, marcacao);
+          fixarTipo(html == null ? 'text/plain' : 'text/html');
+          return html ?? '';
+        })
+        .catch(() => {
+          fixarTipo('text/plain');
+          return '';
+        });
     });
+    /* O DOCUMENTO DE BUSCA E DE CFI (`createDocument`) é o mesmo capítulo LIMPO, lido como HTML: assim a árvore da
+       busca, das anotações e a da tela coincidem (a limpeza tira elementos, e o CFI conta elementos). */
+    for (const secao of livro.sections) {
+      const original = secao.createDocument?.bind(secao);
+      if (!original) continue;
+      secao.createDocument = async () => {
+        const doc = await original();
+        const fonte = new XMLSerializer().serializeToString(doc);
+        const tipo = doc.documentElement?.localName.toLowerCase() === 'svg' ? 'svg' : 'xhtml';
+        const html = limparCapitulo(fonte, tipo);
+        return new DOMParser().parseFromString(html ?? '<!DOCTYPE html><html><body></body></html>', 'text/html');
+      };
+    }
   }
 
   /** Vai para a posição salva (ou o começo do texto). Se o CFI não resolver, cai na seção. */

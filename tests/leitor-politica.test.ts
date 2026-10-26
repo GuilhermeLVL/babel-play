@@ -6,8 +6,15 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { CSP_DO_CAPITULO, ehRemoto, limparCss, limparHtml } from '../src/lib/leitor/limparHtml'
-import { linkExternoSeguro, pareceMarcacao, tipoDaMarcacao, tipoPermitido } from '../src/lib/leitor/politicaDeRecursos'
+import {
+  CSP_DO_CAPITULO,
+  ehRemoto,
+  limparCapitulo,
+  limparCss,
+  limparSvgDeImagem,
+  tipoDeMarcacao,
+} from '../src/lib/leitor/limparHtml'
+import { linkExternoSeguro, tipoPermitido } from '../src/lib/leitor/politicaDeRecursos'
 
 describe('política de recursos do livro (negação por padrão)', () => {
   it('só (X)HTML, SVG, CSS, imagem, fonte e áudio entram', () => {
@@ -39,12 +46,14 @@ describe('política de recursos do livro (negação por padrão)', () => {
       expect(tipoPermitido(t), String(t)).toBe(false)
   })
 
-  it('fareja marcação mesmo com o tipo errado', () => {
-    expect(pareceMarcacao('\uFEFF  <?xml version="1.0"?><svg/>')).toBe(true)
-    expect(pareceMarcacao('<!DOCTYPE html><html>')).toBe(true)
-    expect(pareceMarcacao('\x89PNG\r\n')).toBe(false)
-    expect(tipoDaMarcacao('<svg xmlns="x">', 'image/png')).toBe('image/svg+xml')
-    expect(tipoDaMarcacao('<html>', 'image/png')).toBe('text/html')
+  it('o predicado único: marcação pelo tipo declarado ou, sem ele, pelo começo do conteúdo', () => {
+    expect(tipoDeMarcacao('application/xhtml+xml', '')).toBe('xhtml')
+    expect(tipoDeMarcacao('text/html; charset=utf-8', '')).toBe('html')
+    expect(tipoDeMarcacao('image/svg+xml', '')).toBe('svg')
+    expect(tipoDeMarcacao('image/png', '\uFEFF  <?xml version="1.0"?><svg/>')).toBe('svg')
+    expect(tipoDeMarcacao('image/png', '<!DOCTYPE html><html>')).toBe('html')
+    expect(tipoDeMarcacao('image/png', '\x89PNG\r\n')).toBeNull()
+    expect(tipoDeMarcacao('text/css', 'body {}')).toBeNull()
   })
 
   it('link externo: só http(s) com host', () => {
@@ -60,10 +69,10 @@ describe('política de recursos do livro (negação por padrão)', () => {
       expect(linkExternoSeguro(u), u).toBeNull()
   })
 
-  it('limparHtml tira a instrução xml-stylesheet (XSLT)', () => {
+  it('o capítulo limpo não leva a instrução xml-stylesheet (XSLT)', () => {
     const x =
       '<?xml version="1.0"?><?xml-stylesheet type="text/xsl" href="evil.xsl"?><html xmlns="http://www.w3.org/1999/xhtml"><body><p>ok</p></body></html>'
-    const limpo = limparHtml(x, 'application/xhtml+xml')
+    const limpo = limparCapitulo(x, 'xhtml') ?? ''
     expect(limpo).not.toContain('xml-stylesheet')
     expect(limpo).toContain('<p>ok</p>')
   })
@@ -110,7 +119,7 @@ p { background-image: url(data:image/png;base64,AA) }`
       <p style="background: url('https://x.test/s.png')">texto</p>
       <a href="https://standardebooks.org" ping="https://x.test/ping">fonte</a>
       </body></html>`
-    const limpo = limparHtml(x, 'application/xhtml+xml')
+    const limpo = limparCapitulo(x, 'xhtml') ?? ''
     expect(limpo.replace('https://standardebooks.org', '')).not.toMatch(/x\.test/)
     expect(limpo).toContain('src="blob:http://localhost/capa"')
     expect(limpo).toContain('href="https://standardebooks.org"')
@@ -153,7 +162,7 @@ describe('os seis desvios da revisão (o filtro falha fechado)', () => {
       <svg:svg><svg:style>rect { fill: url(https://x.test/s.png) }</svg:style><svg:image xl:href="https://x.test/p.png"/></svg:svg>
       <svg xmlns="http://www.w3.org/2000/svg"><image href="data:,"><set attributeName="href" to="https://x.test/set.png"/><animate attributeName="href" values="https://x.test/an.png"/></image></svg>
       <p>ok</p></body></html>`
-    const limpo = limparHtml(x, 'application/xhtml+xml')
+    const limpo = limparCapitulo(x, 'xhtml') ?? ''
     expect(limpo).not.toMatch(/x\.test/)
     expect(limpo).not.toMatch(/<(svg:)?(set|animate)\b/i)
     expect(limpo).toContain('ok')
@@ -163,7 +172,7 @@ describe('os seis desvios da revisão (o filtro falha fechado)', () => {
     const x = `<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml"><head>
       <meta http-equiv="Content-Security-Policy" content="default-src *"/><meta http-equiv="refresh" content="0;url=https://x.test"/>
       <title>t</title></head><body><a id="ancora"/><p>ok</p></body></html>`
-    const limpo = limparHtml(x, 'application/xhtml+xml')
+    const limpo = limparCapitulo(x, 'xhtml') ?? ''
     expect(limpo.startsWith('<!DOCTYPE html>')).toBe(true)
     const d = new DOMParser().parseFromString(limpo, 'text/html')
     const primeiro = d.head.firstElementChild!
@@ -179,5 +188,82 @@ describe('os seis desvios da revisão (o filtro falha fechado)', () => {
     expect(CSP_DO_CAPITULO).toBe(
       "default-src 'none'; img-src blob: data:; style-src blob: 'unsafe-inline'; font-src blob: data:; media-src blob: data:; script-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'",
     )
+  })
+})
+
+describe('DOMPurify e mXSS (o capítulo sai como HTML montado por nós, com a CSP primeiro)', () => {
+  const vivo = (html: string) => {
+    const d = new DOMParser().parseFromString(html, 'text/html')
+    return {
+      d,
+      ativo: [...d.querySelectorAll('*')].some(
+        (el) =>
+          /^(script|iframe|object|embed|base|form)$/i.test(el.localName) ||
+          [...el.attributes].some((a) => /^on/i.test(a.name)),
+      ),
+    }
+  }
+
+  it('o <style> do XHTML com </style> dentro não escapa para o HTML (o diferencial XML→HTML)', () => {
+    const x = `<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml"><head><style>p{} &lt;/style&gt;&lt;img src=x onerror=alert(1)&gt;</style></head><body><p>ok</p></body></html>`
+    const limpo = limparCapitulo(x, 'xhtml')!
+    expect(vivo(limpo).ativo).toBe(false)
+    expect(limpo).not.toMatch(/onerror/i)
+  })
+
+  it('noscript, xmp, noembed e title com marcação dentro não viram elementos ativos', () => {
+    const h = `<!DOCTYPE html><html><head><title>&lt;/title&gt;&lt;img src=x onerror=alert(1)&gt;</title></head><body>
+      <noscript><p title="</noscript><img src=x onerror=alert(1)>"></p></noscript>
+      <xmp></xmp><img src=x onerror=alert(2)></xmp><noembed><img src=x onerror=alert(3)></noembed>
+      <svg><style><img src=x onerror=alert(4)></style></svg>
+      <math><mtext><table><mglyph><style><img src=x onerror=alert(5)></style></mglyph></table></mtext></math>
+      <p>ok</p></body></html>`
+    const limpo = limparCapitulo(h, 'html')!
+    const { d, ativo } = vivo(limpo)
+    expect(ativo).toBe(false)
+    /* O <title> fica, mas só como TEXTO escapado (é inerte): nenhum elemento dentro dele. Fora dele, nada sobra. */
+    expect(d.title).toContain('onerror')
+    expect(d.head.querySelector('title')?.children.length).toBe(0)
+    expect(limpo.replace(/<title>[^<]*<\/title>/, '')).not.toMatch(/onerror/i)
+    expect(d.querySelectorAll('img').length).toBe(2)
+  })
+
+  it('confusão de namespace no XHTML: script SVG, script com prefixo e html dentro de svg saem', () => {
+    const x = `<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:s="http://www.w3.org/2000/svg"><head></head><body>
+      <s:svg><s:script>alert(1)</s:script><s:foreignObject><h:script>alert(2)</h:script><h:img src="x" onerror="alert(3)"/></s:foreignObject></s:svg>
+      <h:script>alert(4)</h:script><p>ok</p></body></html>`
+    const limpo = limparCapitulo(x, 'xhtml')!
+    expect(vivo(limpo).ativo).toBe(false)
+    expect(limpo).not.toMatch(/alert/)
+    expect(limpo).toContain('ok')
+  })
+
+  it('raiz SVG vira HTML com a CSP e sem a imagem remota; outra raiz XML é recusada', () => {
+    const svg = `<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><image href="https://x.test/a.png"/><script>alert(1)</script><text>ok</text></svg>`
+    const limpo = limparCapitulo(svg, 'svg')!
+    const { d, ativo } = vivo(limpo)
+    expect(ativo).toBe(false)
+    expect(d.head.firstElementChild?.getAttribute('content')).toBe(CSP_DO_CAPITULO)
+    expect(d.querySelector('svg')).not.toBeNull()
+    expect(limpo).not.toMatch(/x\.test/)
+    expect(limparCapitulo('<?xml version="1.0"?><capitulo><p>x</p></capitulo>', 'xhtml')).toBeNull()
+    expect(limparCapitulo('<?xml version="1.0"?><capitulo/>', 'svg')).toBeNull()
+  })
+
+  it('a imagem SVG (não capítulo) sai sem script nem recurso remoto e continua SVG', () => {
+    const s = limparSvgDeImagem(
+      `<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script><image href="https://x.test/b.png"/><rect onload="alert(2)" width="1" height="1"/></svg>`,
+    )!
+    expect(s).toMatch(/^<svg/)
+    expect(s).not.toMatch(/script|onload|x\.test/)
+  })
+
+  it('a saída é estável: limpar de novo não muda nada', () => {
+    const h = `<!DOCTYPE html><html lang="en"><head><style>p{color:red}</style></head><body class="c"><p>a <a href="https://standardebooks.org">b</a></p></body></html>`
+    const um = limparCapitulo(h, 'html')!
+    expect(limparCapitulo(um, 'html')).toBe(um)
+    expect(um).toContain('lang="en"')
+    expect(um).toContain('class="c"')
+    expect(um).toContain('href="https://standardebooks.org"')
   })
 })

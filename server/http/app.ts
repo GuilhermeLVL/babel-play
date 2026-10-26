@@ -71,6 +71,7 @@ import { criarRotaDeFlags } from '../routes/flags'
 import { healthHandler, readyHandler } from '../routes/health'
 import { imagesRouter } from '../routes/images'
 import { importRouter } from '../routes/import'
+import { leituraRouter } from '../routes/leitura'
 import { meRouter } from '../routes/me'
 import { metricasCapturaRouter } from '../routes/metricasCaptura'
 import { metricasOfertasRouter } from '../routes/metricasOfertas'
@@ -576,6 +577,7 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
         '/api/audio',
         '/api/responsavel',
         '/api/anuncios',
+        '/api/leitura',
       ],
       writeLimiter,
     )
@@ -619,6 +621,8 @@ export function criarApp(opcoes: OpcoesDoApp = {}): express.Express {
   app.use('/api/billing', capturarAssincrono(billingRouter))
   // Anúncios — a recompensa do premiado, creditada pelo servidor (spec `anuncios-no-gratis`).
   app.use('/api/anuncios', capturarAssincrono(anunciosRouter))
+  // Leitor (L2 de Livros & Leitura) — grifos, notas e palavras do livro, grátis; o arquivo do livro nunca sobe.
+  app.use('/api/leitura', capturarAssincrono(leituraRouter))
   // Áudio do sistema via WASAPI loopback do PRÓPRIO servidor local (Windows) — a rota sem
   // fricção para capturar o que o computador toca; o navegador só consome o PCM.
   // Capacidade local: no modo público (AUTH_REQUIRED) ela some (403), mesmo autenticado. No Worker também:

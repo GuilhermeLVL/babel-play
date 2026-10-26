@@ -95,6 +95,7 @@ export const ROUTERS_PRIVADOS: Array<[string, string, string]> = [
   ['/api/erros-do-cliente', '../../server/routes/erros', 'errosRouter'],
   ['/api/billing', '../../server/routes/billing', 'billingRouter'],
   ['/api/anuncios', '../../server/routes/anuncios', 'anunciosRouter'],
+  ['/api/leitura', '../../server/routes/leitura', 'leituraRouter'],
   /* So no self-host: no modo publico o `app.ts` responde 403 no lugar dele. */
   ['/api/audio', '../../server/audio/loopback', 'audioRouter'],
   /* Ultimo a ser montado, como no `app.ts`: a rota de chat saiu do `server.ts` na Fase 3. */

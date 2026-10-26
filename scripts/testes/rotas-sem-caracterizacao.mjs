@@ -97,6 +97,8 @@ const PREFIXOS = {
   'server/routes/tutor.ts': '/api/tutor',
   /* A recompensa do anúncio premiado (spec `anuncios-no-gratis`). */
   'server/routes/anuncios.ts': '/api/anuncios',
+  /* As anotações do leitor (L2 de Livros & Leitura). */
+  'server/routes/leitura.ts': '/api/leitura',
 }
 
 function rotasDoServidor() {

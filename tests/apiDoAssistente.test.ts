@@ -145,3 +145,118 @@ describe('as quatro chamadas', () => {
     })
   })
 })
+
+describe('"Como respondo?" em fluxo (NDJSON)', () => {
+  const S1 = { texto: 'Sure.', traducao: 'Claro.', tom: 'neutro' }
+  const S2 = { texto: 'Yeah!', traducao: 'Sim!', tom: 'informal' }
+  const ndjson = (linhas: unknown[]) =>
+    new Response(linhas.map((l) => JSON.stringify(l)).join('\n') + '\n', {
+      status: 200,
+      headers: { 'content-type': 'application/x-ndjson; charset=utf-8', 'x-ia-modelo': 'gemma' },
+    })
+  const codificar = (s: string) => new TextEncoder().encode(s)
+
+  it('pede NDJSON, entrega a lista a cada sugestão e devolve a lista final do fim', async () => {
+    rede.apiFetch.mockResolvedValueOnce(
+      ndjson([
+        { tipo: 'sugestao', sugestao: S1 },
+        { tipo: 'sugestao', sugestao: { texto: '', traducao: 'x', tom: 'neutro' } }, // fora do formato: ignorada
+        { tipo: 'sugestao', sugestao: S2 },
+        { tipo: 'fim', sugestoes: [S1, S2], restanteHoje: 150 },
+      ]),
+    )
+    const vistas: unknown[] = []
+    const r = await comoRespondo({ ...I, frase: 'Can you?' }, { aoSugerir: (s) => vistas.push(s) })
+    expect(rede.apiFetch.mock.calls[0][1].headers.Accept).toContain('application/x-ndjson')
+    expect(corpoEnviado()).toEqual({ frase: 'Can you?', lang: 'en', langDaPessoa: 'pt-BR' })
+    expect(vistas).toEqual([[S1], [S1, S2]])
+    expect(r).toEqual({ ok: true, valor: { sugestoes: [S1, S2], restanteHoje: 150, modelo: 'gemma' } })
+  })
+
+  it('a sugestão chega antes do fim do corpo (o corpo é lido aos pedaços)', async () => {
+    let ctrl!: ReadableStreamDefaultController<Uint8Array>
+    const corpo = new ReadableStream<Uint8Array>({ start: (c) => void (ctrl = c) })
+    rede.apiFetch.mockResolvedValueOnce(
+      new Response(corpo, { status: 200, headers: { 'content-type': 'application/x-ndjson' } }),
+    )
+    const vistas: unknown[] = []
+    const pendente = comoRespondo({ ...I, frase: 'Can you?' }, { aoSugerir: (s) => vistas.push(s) })
+    ctrl.enqueue(codificar(`${JSON.stringify({ tipo: 'sugestao', sugestao: S1 })}\n{"tipo":"sug`))
+    await vi.waitFor(() => expect(vistas).toEqual([[S1]]))
+    ctrl.enqueue(codificar(`estao","sugestao":${JSON.stringify(S2)}}\n`))
+    ctrl.enqueue(codificar(`${JSON.stringify({ tipo: 'fim', sugestoes: [S1, S2], restanteHoje: 1 })}\n`))
+    ctrl.close()
+    expect(await pendente).toMatchObject({ ok: true, valor: { sugestoes: [S1, S2] } })
+    expect(vistas).toEqual([[S1], [S1, S2]])
+  })
+
+  it('o erro depois da primeira sugestão e o fluxo que acaba sem fim são indisponivel', async () => {
+    rede.apiFetch.mockResolvedValueOnce(
+      ndjson([
+        { tipo: 'sugestao', sugestao: S1 },
+        { tipo: 'erro', code: 'provedor_indisponivel', error: 'parou' },
+      ]),
+    )
+    expect(await comoRespondo({ ...I, frase: 'Can you?' }, { aoSugerir: () => {} })).toEqual({
+      ok: false,
+      motivo: 'indisponivel',
+      status: 200,
+    })
+    rede.apiFetch.mockResolvedValueOnce(ndjson([{ tipo: 'sugestao', sugestao: S1 }]))
+    expect(await comoRespondo({ ...I, frase: 'Can you?' }, { aoSugerir: () => {} })).toMatchObject({
+      ok: false,
+      motivo: 'indisponivel',
+    })
+  })
+
+  it('o fim com menos de 2 sugestões não é a ajuda pedida', async () => {
+    rede.apiFetch.mockResolvedValueOnce(ndjson([{ tipo: 'fim', sugestoes: [S1], restanteHoje: 1 }]))
+    expect(await comoRespondo({ ...I, frase: 'Can you?' }, { aoSugerir: () => {} })).toMatchObject({
+      ok: false,
+      motivo: 'indisponivel',
+    })
+  })
+
+  it('um servidor com o contrato antigo (JSON inteiro) também serve', async () => {
+    rede.apiFetch.mockResolvedValueOnce(json(200, { sugestoes: [S1, S2], restanteHoje: 9 }))
+    const vistas: unknown[] = []
+    const r = await comoRespondo({ ...I, frase: 'Can you?' }, { aoSugerir: (s) => vistas.push(s) })
+    expect(r).toEqual({ ok: true, valor: { sugestoes: [S1, S2], restanteHoje: 9 } })
+    expect(vistas).toEqual([])
+  })
+
+  it('a recusa antes do fluxo é a de sempre; o sinal de quem pede vai junto com o teto de tempo', async () => {
+    rede.apiFetch.mockResolvedValueOnce(json(429, { error: 'x', code: 'teto_do_assistente' }))
+    const controle = new AbortController()
+    const r = await comoRespondo({ ...I, frase: 'Can you?' }, { aoSugerir: () => {}, sinal: controle.signal })
+    expect(r).toEqual({ ok: false, motivo: 'uso_justo', status: 429 })
+    const sinal: AbortSignal = rede.apiFetch.mock.calls[0][1].signal
+    expect(sinal.aborted).toBe(false)
+    controle.abort()
+    expect(sinal.aborted).toBe(true)
+  })
+
+  it('cancelado no meio do corpo: indisponivel, sem lançar', async () => {
+    const controle = new AbortController()
+    const corpo = new ReadableStream<Uint8Array>({
+      start: (c) => {
+        c.enqueue(codificar(`${JSON.stringify({ tipo: 'sugestao', sugestao: S1 })}\n`))
+        controle.signal.addEventListener('abort', () => c.error(new DOMException('abortado', 'AbortError')))
+      },
+    })
+    rede.apiFetch.mockResolvedValueOnce(
+      new Response(corpo, { status: 200, headers: { 'content-type': 'application/x-ndjson' } }),
+    )
+    const r = await comoRespondo(
+      { ...I, frase: 'Can you?' },
+      { aoSugerir: () => controle.abort(), sinal: controle.signal },
+    )
+    expect(r).toEqual({ ok: false, motivo: 'indisponivel', status: 0 })
+  })
+
+  it('sem opções, o pedido é o de sempre (sem Accept de fluxo)', async () => {
+    rede.apiFetch.mockResolvedValueOnce(json(200, { sugestoes: [S1, S2], restanteHoje: 9 }))
+    await comoRespondo({ ...I, frase: 'Can you?' })
+    expect(rede.apiFetch.mock.calls[0][1].headers.Accept).toBeUndefined()
+  })
+})

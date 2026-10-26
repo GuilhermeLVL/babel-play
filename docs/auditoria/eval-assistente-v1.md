@@ -26,6 +26,9 @@ Pesquisa que escolheu os recursos: [`docs/pesquisa/2026-10-25-frasy-assistente-a
    depois, intercalado caso a caso, o p95 do "Como respondo?" caiu de **5,6 s para 3,8 s** (p50 2,8 → 2,6 s) e o da
    legenda de **1,7 s para 1,4 s** (p50 0,67 → 0,66 s) — a legenda não piorou. O "Como respondo?" segue **0,8 s acima**
    do alvo de 3 s.
+7. **"Como respondo?" em fluxo** (26/10/2026; seção abaixo): a primeira sugestão aparece com p50/p95 de **0,92/1,67 s**
+   direto ao OpenRouter (n = 100) e **1,01/2,80 s** pelo servidor do Frasy rodando local (n = 19) _[medido]_ — **dentro do
+   alvo de 3 s**. O total (as 3 sugestões) ficou em 1,84/2,53 s e 1,99/3,27 s. Gasto: US$ 0,0088 de US$ 0,30.
 
 ## Método
 
@@ -145,6 +148,41 @@ dois lados, então a diferença dela é ruído — não piorou, e a exclusão va
    apesar do `require_parameters`. O leitor defensivo recusa (502 `resposta_invalida`, sem ajuda inventada). Não se
    repetiu com o roteamento da legenda.
 
+## "Como respondo?" em fluxo (26/10/2026)
+
+A resposta passa a sair aos pedaços (NDJSON; spec, "Em fluxo"): cada sugestão vai à tela assim que o objeto dela fecha
+no texto do modelo, lida pelo mesmo leitor defensivo. O que a pessoa espera deixa de ser o JSON inteiro e passa a ser
+a primeira sugestão.
+
+- **Script**: [`scripts/eval-ia/latencia-rota.mjs`](../../scripts/eval-ia/latencia-rota.mjs) com `--rotas depois` (a
+  rota de produção, sem a Makora), 20 casos × 5 repetições, sem legenda. Mede o total, o TTFT (primeiro pedaço de
+  conteúdo) e o tempo até a 1ª e a 2ª sugestão, pelo leitor da produção (`src/lib/estudo/sugestoesEmFluxo.ts`):
+  é o instante em que o servidor manda o primeiro byte. Livro-caixa próprio, teto US$ 0,30
+  (`eval/assistente-v1/fluxo/gasto.json`).
+- **Pelo servidor**: as mesmas 20 frases contra o `npm run dev:local` (Express + o núcleo de verdade, cascata
+  Gemma → Llama, chave real), com `Accept: application/x-ndjson`, do mesmo computador. Confere também que os eventos
+  saem espaçados (não presos num buffer) e que o contrato antigo segue respondendo o JSON inteiro.
+
+Em segundos _[medido]_:
+
+| Medida                    | Onde                    | n   | p50  | p90  | p95  | máx. |
+| ------------------------- | ----------------------- | --- | ---- | ---- | ---- | ---- |
+| Primeira sugestão         | direto ao OpenRouter    | 100 | 0,92 | 1,33 | 1,67 | 11,5 |
+| Segunda sugestão          | direto ao OpenRouter    | 100 | 1,35 | 1,84 | 1,97 | 12,2 |
+| Total (3 sugestões + uso) | direto ao OpenRouter    | 100 | 1,84 | 2,33 | 2,53 | 13,0 |
+| TTFT (primeiro pedaço)    | direto ao OpenRouter    | 100 | 0,40 | 0,79 | 0,91 | 10,7 |
+| Primeira sugestão         | servidor local do Frasy | 19  | 1,01 | 1,78 | 2,80 | 2,80 |
+| Total                     | servidor local do Frasy | 19  | 1,99 | 2,69 | 3,27 | 3,27 |
+
+- **Validade**: 99 de 100 utilizáveis direto (1 resposta fora do formato, sem primeira sugestão); pelo servidor, 19 de
+  20 com o `fim` e 1 com 502 `provedor_indisponivel`: as duas pernas passaram 5 s sem entregar a primeira sugestão
+  (a cauda do provedor; no caminho inteiro seria o mesmo 502).
+- **Provedores** (direto): DeepInfra em 99, NextBit em 1 — e é esse o ponto da cauda (primeira sugestão em 11,5 s).
+- **Comparação com antes**: o total de hoje (p95 2,5 s) é menor que os 3,8 s do antes/depois da Makora de 25/10, sem
+  mudança no pedido: a rede e os endpoints variam de um dia para o outro. Por isso a medida que conta é a da primeira
+  sugestão, que é 0,9–1,2 s menor que o total em toda a distribuição.
+- **Custo**: US$ 0,067 por mil chamadas, o mesmo do caminho inteiro (o fluxo não muda os tokens).
+
 ## Custo nos planos
 
 - Por chamada no escolhido: 410–590 tokens e US$ 0,000029–0,000070 _[medido]_.
@@ -165,8 +203,10 @@ dois lados, então a diferença dela é ruído — não piorou, e a exclusão va
 
 ## Próximos passos
 
-1. ~~Tirar a Makora do roteamento~~ — feito (p95 do "Como respondo?" 5,6 → 3,8 s). Para chegar a 3 s: mostrar as
-   sugestões em fluxo (streaming) ou pedir só 2 sugestões no aperto — medir antes.
+1. ~~Tirar a Makora do roteamento~~ — feito (p95 do "Como respondo?" 5,6 → 3,8 s). ~~Mostrar as sugestões em
+   fluxo~~ — feito (primeira sugestão com p95 de 1,7 s direto, 2,8 s pelo servidor local). O fluxo no Worker está
+   provado na fumaça local (`npm run fumaca:worker`, verificação 9: chega aos pedaços e o abort fecha o provedor);
+   falta a latência real no staging (`primeiraSugestaoMs` no rastro).
 2. Medir o p95 em staging pela telemetria (`assistente-como-respondo`) antes de ligar a flag.
 3. A tela (C2) mostra a espera do "Como respondo?" e corta as glosas automáticas em linhas curtas.
 4. Repetir a bancada com ≥ 50 casos por recurso e mais francês e espanhol.
@@ -178,6 +218,11 @@ dois lados, então a diferença dela é ruído — não piorou, e a exclusão va
 - `eval/assistente-v1/final/resumo.json` e `final/bruto.jsonl`: a configuração final (rodada 3).
 - `eval/assistente-v1/rota/resumo.json` e `rota/bruto.jsonl`: o antes/depois da Makora.
 - `eval/assistente-v1/gasto.json`: o livro-caixa, **US$ 0,354** no total.
+- `eval/assistente-v1/fluxo/resumo.json`, `fluxo/bruto.jsonl` e `fluxo/gasto.json`: o fluxo (26/10/2026), **US$ 0,0088**
+  (a bancada direta e uma estimativa conservadora das 21 chamadas pelo servidor local). Para reproduzir:
+  `npx tsx --env-file=.env scripts/eval-ia/latencia-rota.mjs --rotas depois --repeticoes-respondo 5
+--repeticoes-legenda 0 --teto 0.30 --caixa docs/auditoria/eval/assistente-v1/fluxo/gasto.json --saida
+docs/auditoria/eval/assistente-v1/fluxo`.
 - Para reproduzir: `npx tsx --env-file=.env scripts/eval-ia/assistente.mjs --candidatos
 google/gemma-4-26b-a4b-it#legenda --saida docs/auditoria/eval/assistente-v1/final --caixa
 docs/auditoria/eval/assistente-v1/gasto.json --trabalho <dir do cache>`. Com o cache, refazer não paga de novo.

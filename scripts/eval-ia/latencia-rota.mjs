@@ -8,8 +8,14 @@
  * `roteamento` declarado), na perna primária (Gemma 4 26B), com e sem `makora` no `ignore`, INTERCALADOS caso a caso
  * (os dois lados sob o mesmo momento da rede), sem cache. Teto no MESMO livro-caixa da bancada do assistente.
  *
+ * O "COMO RESPONDO?" EM FLUXO (26/10/2026): além do total, mede o TEMPO ATÉ A PRIMEIRA SUGESTÃO (`primeiraMs`) — o
+ * instante em que o leitor incremental da produção (`src/lib/estudo/sugestoesEmFluxo.ts`) entrega a primeira sugestão
+ * lida, que é quando o servidor manda o primeiro byte à tela — e a segunda. `--rotas depois` mede só a rota de
+ * produção (sem a comparação da Makora).
+ *
  * Uso: npx tsx --env-file=.env scripts/eval-ia/latencia-rota.mjs [--repeticoes-respondo 3] [--repeticoes-legenda 2]
- *        [--teto 1] [--caixa docs/auditoria/eval/assistente-v1/gasto.json] [--saida docs/auditoria/eval/assistente-v1/rota]
+ *        [--rotas antes,depois] [--teto 1] [--caixa docs/auditoria/eval/assistente-v1/gasto.json]
+ *        [--saida docs/auditoria/eval/assistente-v1/rota]
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
@@ -21,6 +27,7 @@ import {
   systemDoAssistente,
   userDoAssistente,
 } from '../../src/lib/estudo/promptDoAssistente.ts'
+import { criarLeitorDeSugestoesEmFluxo } from '../../src/lib/estudo/sugestoesEmFluxo.ts'
 import { LivroCaixa, TetoDeGasto } from '../eval-fala/bancada/livroCaixa.mjs'
 import { lerComoAProducao, pedidoDaProducao } from './funcoes.mjs'
 import { carregarGold, lerJsonl } from './golds.mjs'
@@ -36,6 +43,7 @@ const CAIXA = path.resolve(opt('caixa', 'docs/auditoria/eval/assistente-v1/gasto
 const SAIDA = path.resolve(opt('saida', 'docs/auditoria/eval/assistente-v1/rota'))
 const REP_RESPONDO = Number(opt('repeticoes-respondo', '3'))
 const REP_LEGENDA = Number(opt('repeticoes-legenda', '2'))
+const ROTAS = opt('rotas', 'antes,depois').split(',').filter(Boolean)
 const MODELO = 'google/gemma-4-26b-a4b-it'
 const EXCLUIDO = 'makora'
 
@@ -71,10 +79,12 @@ async function main() {
     (p) => p.id === 'openrouter',
   )
   const semExcluido = (ops.roteamento.ignore ?? []).filter((x) => x !== EXCLUIDO)
-  const rotas = {
+  const todas = {
     antes: { ...ops.roteamento, ignore: semExcluido },
     depois: { ...ops.roteamento, ignore: [...new Set([...semExcluido, EXCLUIDO])] },
   }
+  const rotas = Object.fromEntries(ROTAS.map((r) => [r, todas[r]]).filter(([, v]) => v))
+  if (!Object.keys(rotas).length) throw new Error(`--rotas sem rota conhecida (${ROTAS.join(',')})`)
 
   const r = await fetch('https://openrouter.ai/api/v1/endpoints/zdr')
   if (!r.ok) throw new Error(`endpoints/zdr: HTTP ${r.status}`)
@@ -143,13 +153,40 @@ async function main() {
     Array.from({ length: 4 }, async () => {
       while (i < tarefas.length && !parada) {
         const t = tarefas[i++]
+        /* O tempo até a 1ª e a 2ª sugestão, pelo leitor da produção (por tentativa: a repetida começa do zero). */
+        const marcas = { tentativa: -1, leitor: null, primeiraMs: null, segundaMs: null }
+        const aoConteudo =
+          t.funcao === 'comoRespondo'
+            ? (texto, ms, tentativa) => {
+                if (tentativa !== marcas.tentativa)
+                  Object.assign(marcas, {
+                    tentativa,
+                    leitor: criarLeitorDeSugestoesEmFluxo(),
+                    primeiraMs: null,
+                    segundaMs: null,
+                  })
+                marcas.leitor.alimentar(texto)
+                const n = marcas.leitor.entregues
+                if (n >= 1 && marcas.primeiraMs === null) marcas.primeiraMs = ms
+                if (n >= 2 && marcas.segundaMs === null) marcas.segundaMs = ms
+              }
+            : undefined
         try {
-          const g = await chamar({ corpo: t.corpo, preco, livro, rotulo: `rota:${t.funcao}:${t.rota}`, chave })
+          const g = await chamar({
+            corpo: t.corpo,
+            preco,
+            livro,
+            rotulo: `rota:${t.funcao}:${t.rota}`,
+            chave,
+            aoConteudo,
+          })
           resultados.push({
             funcao: t.funcao,
             rota: t.rota,
             caso: t.caso,
             totalMs: g.totalMs,
+            ttftMs: g.ttftMs,
+            ...(aoConteudo ? { primeiraMs: marcas.primeiraMs, segundaMs: marcas.segundaMs } : {}),
             provedor: g.provedor,
             usd: g.usd,
             valido: Boolean(g.texto && t.ler(g.texto)),
@@ -170,6 +207,13 @@ async function main() {
     for (const rota of Object.keys(rotas)) {
       const rs = resultados.filter((x) => x.funcao === funcao && x.rota === rota)
       const t = rs.map((x) => x.totalMs / 1000)
+      const seg = (campo) => rs.map((x) => (Number.isFinite(x[campo]) ? x[campo] / 1000 : NaN))
+      const quantis = (v) => ({
+        p50: percentil(v, 50),
+        p90: percentil(v, 90),
+        p95: percentil(v, 95),
+        max: percentil(v, 100),
+      })
       const provedores = {}
       for (const x of rs) provedores[x.provedor ?? 'erro'] = (provedores[x.provedor ?? 'erro'] ?? 0) + 1
       const custos = rs.map((x) => x.usd).filter(Number.isFinite)
@@ -181,6 +225,14 @@ async function main() {
         p90: percentil(t, 90),
         p95: percentil(t, 95),
         max: percentil(t, 100),
+        ...(funcao === 'comoRespondo'
+          ? {
+              primeiraSugestao: quantis(seg('primeiraMs')),
+              segundaSugestao: quantis(seg('segundaMs')),
+              ttft: quantis(seg('ttftMs')),
+              semPrimeira: rs.filter((x) => !x.erro && !Number.isFinite(x.primeiraMs)).length,
+            }
+          : {}),
         usdPorMil: custos.length ? (1000 * custos.reduce((a, b) => a + b, 0)) / custos.length : null,
         provedores,
       }

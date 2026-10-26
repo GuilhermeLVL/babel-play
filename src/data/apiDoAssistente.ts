@@ -11,7 +11,7 @@
  * mesma linha de legenda (um refrão, uma fala repetida) ou a mesma sigla não custa outra chamada na sessão. O servidor
  * não guarda nada. "Como respondo?" e a correção da fala não têm cache: são pedidos explícitos e mudam a cada vez.
  */
-import { apiFetch, lerErro } from './funil';
+import { apiFetch, comTeto, lerErro } from './funil';
 import { motivoDeCota } from './motivoDeCota';
 
 export type FalhaDoAssistente =
@@ -105,6 +105,14 @@ async function postar<T>(
     const erro = await lerErro(res);
     return { ok: false, motivo: motivoDaFalha(res.status, erro.code, erro.detalhes), status: res.status };
   }
+  return lerCorpoDeSucesso(res, ler);
+}
+
+/** O corpo JSON de sucesso (o contrato de sempre): o valor lido, o `restanteHoje` e o modelo do cabeçalho. */
+async function lerCorpoDeSucesso<T>(
+  res: Response,
+  ler: (c: Record<string, unknown>) => T | null,
+): Promise<ResultadoDoAssistente<T>> {
   const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
   const valor = json && typeof json === 'object' ? ler(json) : null;
   if (valor === null) return { ok: false, motivo: 'indisponivel', status: res.status };
@@ -146,12 +154,13 @@ function lerTermos(c: Record<string, unknown>): { termos: TermoExplicado[] } | n
   };
 }
 
+const lerUmaSugestao = (x: Record<string, unknown>): SugestaoDeResposta[] =>
+  ehTexto(x.texto) && ehTexto(x.traducao) && (x.tom === 'neutro' || x.tom === 'informal' || x.tom === 'formal')
+    ? [{ texto: x.texto, traducao: x.traducao, tom: x.tom }]
+    : [];
+
 function lerSugestoes(c: Record<string, unknown>): { sugestoes: SugestaoDeResposta[] } | null {
-  const sugestoes = lista(c.sugestoes).flatMap<SugestaoDeResposta>((x) =>
-    ehTexto(x.texto) && ehTexto(x.traducao) && (x.tom === 'neutro' || x.tom === 'informal' || x.tom === 'formal')
-      ? [{ texto: x.texto, traducao: x.traducao, tom: x.tom }]
-      : [],
-  );
+  const sugestoes = lista(c.sugestoes).flatMap<SugestaoDeResposta>(lerUmaSugestao);
   return sugestoes.length >= 2 ? { sugestoes } : null;
 }
 
@@ -242,20 +251,117 @@ export async function explicarTermos(
   return { ok: true, valor: { ...r.valor, termos: [...guardados, ...r.valor.termos] } };
 }
 
+/** O tipo do "Como respondo?" em fluxo (NDJSON, um evento por linha; `server/ai/assistente.ts`). */
+export const TIPO_DO_FLUXO = 'application/x-ndjson';
+
+/** Como o "Como respondo?" chega aos pedaços: quem pede recebe a lista a cada sugestão nova, e pode cancelar. */
+export interface OpcoesDoFluxo {
+  /** A lista até agora (cresce: 1, 2, 3), a cada sugestão que chega. Com ele, o pedido vai em fluxo. */
+  aoSugerir?: (sugestoes: SugestaoDeResposta[]) => void;
+  /** Cancela o pedido (e o fluxo): a conexão fecha e o servidor aborta a chamada ao provedor. */
+  sinal?: AbortSignal;
+}
+
+/**
+ * Lê o NDJSON do fluxo: cada `sugestao` vai para `aoSugerir`; o `fim` traz a lista final (a que vale); o `erro`, a
+ * falha DEPOIS da primeira sugestão (o servidor não tem mais como mudar o status). Fluxo que acaba sem `fim` (a
+ * conexão caiu) é `indisponivel`.
+ */
+async function lerFluxoDeSugestoes(
+  res: Response,
+  aoSugerir: (sugestoes: SugestaoDeResposta[]) => void,
+): Promise<ResultadoDoAssistente<{ sugestoes: SugestaoDeResposta[] }>> {
+  const falhou = (code?: string) => ({ ok: false as const, motivo: motivoDaFalha(502, code), status: res.status });
+  const modelo = res.headers?.get?.('x-ia-modelo');
+  const chegaram: SugestaoDeResposta[] = [];
+  let final: ResultadoDoAssistente<{ sugestoes: SugestaoDeResposta[] }> | null = null;
+  const lerLinha = (linha: string) => {
+    if (!linha.trim() || final) return;
+    let ev: Record<string, unknown>;
+    try {
+      ev = JSON.parse(linha) as Record<string, unknown>;
+    } catch {
+      return;
+    }
+    if (ev.tipo === 'sugestao' && ev.sugestao && typeof ev.sugestao === 'object') {
+      const lida = lerUmaSugestao(ev.sugestao as Record<string, unknown>);
+      if (lida.length && chegaram.length < 3) {
+        chegaram.push(lida[0]);
+        aoSugerir([...chegaram]);
+      }
+    } else if (ev.tipo === 'fim') {
+      const lidas = lerSugestoes(ev);
+      if (!lidas) {
+        final = falhou();
+        return;
+      }
+      const restanteHoje = typeof ev.restanteHoje === 'number' ? ev.restanteHoje : null;
+      ultimoRestanteHoje = restanteHoje;
+      final = { ok: true, valor: { ...lidas, restanteHoje, ...(modelo ? { modelo } : {}) } };
+    } else if (ev.tipo === 'erro') {
+      final = falhou(typeof ev.code === 'string' ? ev.code : undefined);
+    }
+  };
+  try {
+    const leitor = res.body?.getReader();
+    if (!leitor) return falhou();
+    const decodificador = new TextDecoder();
+    let pendente = '';
+    while (!final) {
+      const { done, value } = await leitor.read();
+      if (done) break;
+      pendente += decodificador.decode(value, { stream: true });
+      let i: number;
+      while (!final && (i = pendente.indexOf('\n')) >= 0) {
+        lerLinha(pendente.slice(0, i));
+        pendente = pendente.slice(i + 1);
+      }
+    }
+    if (!final) lerLinha(pendente);
+    if (final) void leitor.cancel().catch(() => undefined);
+  } catch {
+    return { ok: false, motivo: 'indisponivel', status: 0 };
+  }
+  return final ?? falhou();
+}
+
 /**
  * (4) "Como respondo?": 3 respostas curtas no idioma da conversa, com a tradução. É ajuda de IDIOMA, sob demanda (a
  * tela nunca o apresenta como modo oculto ou para entrevistas). `contexto` (até 2 linhas anteriores da legenda) é
  * ignorado pelo servidor no perfil protegido.
+ *
+ * EM FLUXO (com `aoSugerir`): pede NDJSON e entrega cada sugestão assim que chega; o resultado é o mesmo de sempre (a
+ * lista final). Um servidor que responde o JSON inteiro (o contrato antigo) também serve: a lista chega de uma vez.
  */
 export async function comoRespondo(
   p: Idiomas & { frase: string; contexto?: ReadonlyArray<string> },
+  opcoes: OpcoesDoFluxo = {},
 ): Promise<ResultadoDoAssistente<{ sugestoes: SugestaoDeResposta[] }>> {
   const contexto = (p.contexto ?? []).map((l) => l.trim()).filter(Boolean).slice(-2);
-  return postar(
-    '/api/ai/assistente/como-respondo',
-    { frase: p.frase, ...(contexto.length ? { contexto } : {}), lang: p.lang, langDaPessoa: p.langDaPessoa },
-    lerSugestoes,
-  );
+  const corpo = { frase: p.frase, ...(contexto.length ? { contexto } : {}), lang: p.lang, langDaPessoa: p.langDaPessoa };
+  const { aoSugerir, sinal } = opcoes;
+  if (!aoSugerir && !sinal) return postar('/api/ai/assistente/como-respondo', corpo, lerSugestoes);
+  let res: Response;
+  try {
+    res = await apiFetch('/api/ai/assistente/como-respondo', {
+      method: 'POST',
+      ...(sinal ? { signal: comTeto(sinal, TEMPO_DO_ASSISTENTE_MS) } : { timeoutMs: TEMPO_DO_ASSISTENTE_MS }),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(aoSugerir ? { Accept: `${TIPO_DO_FLUXO}, application/json` } : {}),
+      },
+      body: JSON.stringify(corpo),
+    });
+  } catch {
+    return { ok: false, motivo: 'indisponivel', status: 0 };
+  }
+  if (!res.ok) {
+    const erro = await lerErro(res);
+    return { ok: false, motivo: motivoDaFalha(res.status, erro.code, erro.detalhes), status: res.status };
+  }
+  if (aoSugerir && (res.headers?.get?.('content-type') ?? '').includes(TIPO_DO_FLUXO))
+    return lerFluxoDeSugestoes(res, aoSugerir);
+  return lerCorpoDeSucesso(res, lerSugestoes);
 }
 
 /** (5) A correção gentil do que a PRÓPRIA pessoa falou (a tela só chama com o opt-in ligado). */

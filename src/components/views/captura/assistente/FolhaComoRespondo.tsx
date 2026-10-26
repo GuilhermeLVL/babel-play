@@ -17,8 +17,11 @@ const ROTULO_DO_TOM: Readonly<Record<TomDaSugestao, string>> = {
  * cada uma com a tradução, "Copiar" e "Ouvir". É AJUDA DE IDIOMA, sob pedido: nada de "oculto" nem "entrevista"
  * (`copy-br-etica`). Nada para digitar.
  *
- * A espera é honesta: "Pensando em respostas…", e depois de 2,5 s (o p95 medido é ~3,8 s) diz que está demorando e
- * oferece cancelar. O aviso (`role="status"`) fica sempre montado e só o texto troca.
+ * A espera é honesta: "Pensando em respostas…", e depois de 2,5 s sem a primeira sugestão diz que está demorando e
+ * oferece cancelar. As sugestões chegam EM FLUXO: a primeira aparece assim que fica pronta, e as outras completam a
+ * lista (`parcial`, com os pontinhos embaixo dela); os avisos de espera só valem antes da primeira. Fechar cancela o
+ * pedido. Se o fluxo falhar depois de alguma sugestão, as que chegaram ficam (com Copiar e Ouvir) e uma nota discreta
+ * diz que não deu para completar. O aviso (`role="status"`) fica sempre montado e só o texto troca.
  */
 export default function FolhaComoRespondo({
   estado,
@@ -120,7 +123,7 @@ export default function FolhaComoRespondo({
       )}
 
       {estado.estado === 'ok' && (
-        <ul className="leg-sugestoes" aria-label={t('Sugestões de resposta')}>
+        <ul className="leg-sugestoes" aria-label={t('Sugestões de resposta')} aria-busy={estado.parcial || undefined}>
           {estado.sugestoes.map((s, i) => (
             <li key={i} className="leg-sugestao">
               <p className="leg-sugestao-texto" lang={estado.lang || undefined}>
@@ -153,6 +156,14 @@ export default function FolhaComoRespondo({
           ))}
         </ul>
       )}
+      {/* Em fluxo: o lugar das que ainda vêm (até 3), sem aviso nenhum ao leitor de tela. */}
+      {estado.estado === 'ok' && estado.parcial && estado.sugestoes.length < 3 && (
+        <div className="leg-folha-esperando" aria-hidden data-testid="como-respondo-chegando">
+          {Array.from({ length: 3 - estado.sugestoes.length }, (_, i) => (
+            <span key={i} />
+          ))}
+        </div>
+      )}
 
       <p className="leg-folha-status" role="status">
         {status}
@@ -166,6 +177,11 @@ export default function FolhaComoRespondo({
         <button type="button" className="leg-acao-texto" onClick={aoTentarDeNovo}>
           <RotateCcw aria-hidden /> {t('Tentar de novo')}
         </button>
+      )}
+      {estado.estado === 'ok' && estado.incompleta && (
+        <p className="leg-folha-nota" data-testid="como-respondo-incompleta">
+          {t('Não deu para completar as sugestões.')}
+        </p>
       )}
       {estado.estado === 'ok' && <p className="leg-folha-nota">{t('Isto é uma IA e pode errar.')}</p>}
     </div>

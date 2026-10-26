@@ -92,6 +92,8 @@ interface Pedidos {
   expressoes: number
   termos: number
   comoRespondo: number
+  /** Quantos pediram NDJSON (o "Como respondo?" em fluxo). */
+  comoRespondoEmFluxo: number
 }
 
 /**
@@ -106,7 +108,7 @@ async function prepararRotas(
     comoRespondo?: (r: Route) => Promise<void>
   },
 ): Promise<Pedidos> {
-  const pedidos: Pedidos = { expressoes: 0, termos: 0, comoRespondo: 0 }
+  const pedidos: Pedidos = { expressoes: 0, termos: 0, comoRespondo: 0, comoRespondoEmFluxo: 0 }
   await page.route('**/api/flags', (r) => r.fulfill({ json: { flags: { assistente_ao_vivo: { ligada: o.flag } } } }))
   await page.route('**/api/settings', async (route) => {
     const pedido = route.request()
@@ -146,16 +148,25 @@ async function prepararRotas(
     pedidos.comoRespondo++
     if (o.comoRespondo) return o.comoRespondo(r)
     await new Promise((ok) => setTimeout(ok, 900))
-    return r.fulfill({
-      json: {
-        sugestoes: [
-          { texto: 'Thanks! I really needed that.', traducao: 'Valeu! Eu precisava disso.', tom: 'informal' },
-          { texto: 'Thank you, I will do my best.', traducao: 'Obrigado, vou dar o meu melhor.', tom: 'neutro' },
-          { texto: 'I appreciate your support.', traducao: 'Agradeço o seu apoio.', tom: 'formal' },
-        ],
-        restanteHoje: 179,
-      },
-    })
+    const sugestoes = [
+      { texto: 'Thanks! I really needed that.', traducao: 'Valeu! Eu precisava disso.', tom: 'informal' },
+      { texto: 'Thank you, I will do my best.', traducao: 'Obrigado, vou dar o meu melhor.', tom: 'neutro' },
+      { texto: 'I appreciate your support.', traducao: 'Agradeço o seu apoio.', tom: 'formal' },
+    ]
+    /* EM FLUXO, como o servidor: quem pede NDJSON recebe uma linha por sugestão e o fim (`server/ai/assistente.ts`). */
+    if ((r.request().headers().accept ?? '').includes('application/x-ndjson')) {
+      pedidos.comoRespondoEmFluxo++
+      const linhas = [
+        ...sugestoes.map((sugestao) => ({ tipo: 'sugestao', sugestao })),
+        { tipo: 'fim', sugestoes, restanteHoje: 179 },
+      ]
+      return r.fulfill({
+        status: 200,
+        headers: { 'content-type': 'application/x-ndjson; charset=utf-8' },
+        body: linhas.map((l) => JSON.stringify(l)).join('\n') + '\n',
+      })
+    }
+    return r.fulfill({ json: { sugestoes, restanteHoje: 179 } })
   })
   return pedidos
 }
@@ -289,6 +300,7 @@ test('destaque silencioso, sentido ao tocar, "Como respondo?" com sugestões e a
   await expect(folha.getByRole('button', { name: 'Copiar' })).toHaveCount(3)
   await expect(folha.getByRole('button', { name: 'Ouvir' })).toHaveCount(3)
   expect(pedidos.comoRespondo).toBe(1)
+  expect(pedidos.comoRespondoEmFluxo).toBe(1) // a folha pede em fluxo
   await foto(page, 'como-respondo-claro')
   if (PASTA) {
     await tema(page, true)
@@ -341,7 +353,7 @@ test('flag desligada: nada pago aparece e nenhuma rota do assistente é chamada'
   await expect(pip.locator('.leg-marca[data-marca="expressao"]')).toHaveCount(0)
   await mostrarBarra(page)
   await expect(pip.getByRole('button', { name: /Como respondo/ })).toHaveCount(0)
-  expect(pedidos).toEqual({ expressoes: 0, termos: 0, comoRespondo: 0 })
+  expect(pedidos).toEqual({ expressoes: 0, termos: 0, comoRespondo: 0, comoRespondoEmFluxo: 0 })
 })
 
 test('Grátis (o servidor diz sem_plano): só as marcas de nível, sem botão', async ({ page }) => {

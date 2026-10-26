@@ -206,39 +206,7 @@ async function chamarUmaVez(p: PedidoDeChat): Promise<RespostaDeChat & { recusou
       }
     }
 
-    const data = (await r.json()) as {
-      choices?: Array<{ message?: { content?: string } }>
-      usage?: {
-        prompt_tokens?: number
-        prompt_tokens_details?: { cached_tokens?: number }
-        completion_tokens?: number
-        completion_tokens_details?: { reasoning_tokens?: number }
-      }
-    }
-    const texto = data.choices?.[0]?.message?.content?.trim()
-    /* O provedor disse que o modelo pensou: a política de custo não corta mais o teto dele, com ou
-       sem o nome na lista (`ehModeloDeRaciocinio`). */
-    if ((data.usage?.completion_tokens_details?.reasoning_tokens ?? 0) > 0) registrarRaciocinioObservado(p.model)
-    if (!texto) {
-      /* RESPOSTA VAZIA TEM UMA CAUSA COMUM E NADA ÓBVIA: modelo de raciocínio que gasta o
-         `max_tokens` inteiro PENSANDO — o provedor devolve HTTP 200 sem conteúdo e sem erro para
-         ler. Medido: o `qwen3.7-flash` gasta 593 tokens para responder "Boa sorte!". Dizer o
-         número de raciocínio aponta direto para o teto, em vez de mandar procurar no provedor.
-         Esta explicação existia só dentro do `mtProxy`; agora vale para as sete chamadas. */
-      const raciocinio = data.usage?.completion_tokens_details?.reasoning_tokens ?? 0
-      return {
-        ok: false,
-        status: 200,
-        causa:
-          raciocinio > 0
-            ? `resposta vazia — gastou ${raciocinio} tokens raciocinando dentro do teto de ${p.maxTokens ?? MAX_TOKENS_PADRAO}`
-            : 'resposta vazia do provedor',
-      }
-    }
-    const tokensEntrada = data.usage?.prompt_tokens ?? 0
-    const tokensSaida = data.usage?.completion_tokens ?? 0
-    const tokensEmCache = data.usage?.prompt_tokens_details?.cached_tokens ?? 0
-    return { ok: true, texto, tokens: tokensEntrada + tokensSaida, tokensEntrada, tokensSaida, tokensEmCache }
+    return respostaDoCorpo((await r.json()) as CorpoDoChat, p)
   } catch (err) {
     /* Quem abortou foi o cliente, não o relógio: dito à parte, para a cascata parar em vez de
        tentar a reserva e para o disjuntor não contar como falha do provedor. */
@@ -250,5 +218,283 @@ async function chamarUmaVez(p: PedidoDeChat): Promise<RespostaDeChat & { recusou
       ? `sem resposta em ${p.timeoutMs ?? TIMEOUT_PADRAO_MS} ms`
       : msg.slice(0, 160)
     return { ok: false, status: 0, causa }
+  }
+}
+
+/** O uso que o provedor declara (formato OpenAI; a Groq e o OpenRouter repetem). */
+interface UsoDoChat {
+  prompt_tokens?: number
+  prompt_tokens_details?: { cached_tokens?: number }
+  completion_tokens?: number
+  completion_tokens_details?: { reasoning_tokens?: number }
+}
+
+interface CorpoDoChat {
+  choices?: Array<{ message?: { content?: string } }>
+  usage?: UsoDoChat
+}
+
+/** O texto e o uso de uma resposta inteira — o mesmo para o corpo JSON e para o fluxo já acumulado. */
+function respostaDoTexto(bruto: string | undefined, uso: UsoDoChat | undefined, p: PedidoDeChat): RespostaDeChat {
+  const data = { usage: uso }
+  const texto = bruto?.trim()
+  /* O provedor disse que o modelo pensou: a política de custo não corta mais o teto dele, com ou
+     sem o nome na lista (`ehModeloDeRaciocinio`). */
+  if ((data.usage?.completion_tokens_details?.reasoning_tokens ?? 0) > 0) registrarRaciocinioObservado(p.model)
+  if (!texto) {
+    /* RESPOSTA VAZIA TEM UMA CAUSA COMUM E NADA ÓBVIA: modelo de raciocínio que gasta o
+       `max_tokens` inteiro PENSANDO — o provedor devolve HTTP 200 sem conteúdo e sem erro para
+       ler. Medido: o `qwen3.7-flash` gasta 593 tokens para responder "Boa sorte!". Dizer o
+       número de raciocínio aponta direto para o teto, em vez de mandar procurar no provedor.
+       Esta explicação existia só dentro do `mtProxy`; agora vale para as sete chamadas. */
+    const raciocinio = data.usage?.completion_tokens_details?.reasoning_tokens ?? 0
+    return {
+      ok: false,
+      status: 200,
+      causa:
+        raciocinio > 0
+          ? `resposta vazia — gastou ${raciocinio} tokens raciocinando dentro do teto de ${p.maxTokens ?? MAX_TOKENS_PADRAO}`
+          : 'resposta vazia do provedor',
+    }
+  }
+  const { tokensEntrada, tokensSaida } = tokensDaChamada(uso, tamanhoDoPrompt(p.messages), bruto?.length ?? 0)
+  const tokensEmCache = data.usage?.prompt_tokens_details?.cached_tokens ?? 0
+  return { ok: true, texto, tokens: tokensEntrada + tokensSaida, tokensEntrada, tokensSaida, tokensEmCache }
+}
+
+/** Tokens de um texto quando o provedor não disse o uso: ~4 caracteres por token. */
+const tokensDoTexto = (caracteres: number): number => Math.ceil(Math.max(0, caracteres) / 4)
+
+/** O número que o provedor declarou, se for um número de tokens plausível (positivo e finito). */
+const declarado = (n: unknown): number | null =>
+  typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.ceil(n) : null
+
+/**
+ * OS TOKENS QUE A COTA COBRA. O provedor que omite o `usage` (ou um lado dele: o fluxo sem o último pedaço, um proxy,
+ * um provedor que não manda `prompt_tokens`) NÃO pode fazer a chamada sair de graça — era o caminho para gastar a
+ * nuvem sem a cota contar. O lado que falta (ou vem zero, negativo, não numérico) vira a estimativa pelo texto: a
+ * entrada pelo prompt, a saída pelo que o modelo escreveu. O lado declarado vale como veio (é o real que a cota
+ * acerta); a estimativa fica dentro da reserva (`estimarTokens` reserva ~2 caracteres por token de entrada mais o
+ * `max_tokens` inteiro).
+ */
+export function tokensDaChamada(
+  uso: UsoDoChat | undefined,
+  caracteresDoPrompt: number,
+  caracteresDaSaida: number,
+): { tokensEntrada: number; tokensSaida: number } {
+  return {
+    tokensEntrada: declarado(uso?.prompt_tokens) ?? tokensDoTexto(caracteresDoPrompt),
+    tokensSaida: declarado(uso?.completion_tokens) ?? tokensDoTexto(caracteresDaSaida),
+  }
+}
+
+function respostaDoCorpo(data: CorpoDoChat, p: PedidoDeChat): RespostaDeChat {
+  return respostaDoTexto(data.choices?.[0]?.message?.content, data.usage, p)
+}
+
+/* ─────────────────────────────── a chamada em fluxo ─────────────────────────────── */
+
+/**
+ * O FLUXO DE UMA CHAMADA (o "Como respondo?" em fluxo; `docs/specs/2026-10-25-assistente-ao-vivo.md`). Quem chama lê
+ * o texto aos pedaços e diz quando COMPROMETEU a resposta — mandou o primeiro byte a quem pediu. Até ali, a chamada
+ * é uma perna como outra qualquer (falhou, a cascata tenta a reserva); depois, não há reserva: a falha vem com
+ * `comprometido` e os tokens do que já saiu.
+ */
+export interface FluxoDoChat {
+  /**
+   * O texto acumulado a cada pedaço, e quanto falta (ms) até o prazo que vale depois do compromisso; `true` = a
+   * resposta foi comprometida (o primeiro byte saiu para quem pediu). Com pouco tempo sobrando, quem chama pode não
+   * comprometer (o núcleo não manda 1 sugestão para logo depois mandar o erro do prazo).
+   */
+  aoTexto: (acumulado: string, restanteMs: number) => boolean
+  /**
+   * O instante (`Date.now()`) em que a leitura para DEPOIS do compromisso: o prazo da cascata. Antes do compromisso
+   * vale o `timeoutMs` da perna, como numa chamada inteira. Ausente (a cascata sem prazo total): o prazo da PERNA
+   * (início + `timeoutMs`) — nunca "agora".
+   */
+  prazoFinal?: number
+}
+
+export interface RespostaDoFluxo extends RespostaDeChat {
+  /** A falha veio DEPOIS do compromisso: a cascata não tenta a reserva, e os tokens já gerados contam. */
+  comprometido?: boolean
+  /**
+   * Quem pediu desistiu ANTES do compromisso: a pessoa não paga (nada lhe foi entregue), mas o provedor cobrou o que
+   * já tinha lido e escrito — a estimativa vai ao orçamento GLOBAL, para o portão da nuvem ver o gasto real.
+   */
+  descartado?: { tokensEntrada: number; tokensSaida: number }
+}
+
+/** O pedido recusou o FLUXO (`stream`) — o 400 que o cita. A mesma perna é repetida sem fluxo. */
+const recusouOFluxo = (status: number, corpo: string): boolean => status === 400 && /\bstream/i.test(corpo)
+
+interface PedacoDoFluxo {
+  error?: { message?: string } | string
+  choices?: Array<{ delta?: { content?: string }; finish_reason?: string | null }>
+  usage?: UsoDoChat
+}
+
+/**
+ * UMA chamada com `stream: true`, lida aos pedaços (SSE do formato OpenAI). Falha vira valor, como em `chamarChat`.
+ *
+ * VOLTA AO CAMINHO DE SEMPRE: se o provedor recusa o esquema ou o fluxo (o mesmo `recusouOEsquema` do `chamarChat`,
+ * ou um 400 que cita `stream`), a MESMA perna é repetida pelo `chamarChat` (inteira, com a segunda tentativa sem
+ * esquema), dentro do relógio da perna. Uma resposta que chega sem `text/event-stream` (um proxy, um provedor que
+ * ignora o `stream`) é lida como o JSON inteiro.
+ */
+export async function chamarChatEmFluxo(p: PedidoDeChat, fluxo: FluxoDoChat): Promise<RespostaDoFluxo> {
+  const inicio = Date.now()
+  const caracteres = tamanhoDoPrompt(p.messages)
+  if (caracteres > MAX_PROMPT_CHARS) {
+    return { ok: false, status: 413, causa: `prompt de ${caracteres} caracteres acima do teto de ${MAX_PROMPT_CHARS}` }
+  }
+  const timeoutMs = p.timeoutMs ?? TIMEOUT_PADRAO_MS
+  const prazoFinal = Number.isFinite(fluxo.prazoFinal) ? (fluxo.prazoFinal as number) : inicio + timeoutMs
+  /* O RELÓGIO É TROCADO NO COMPROMISSO: até o primeiro byte, o da perna; depois, o prazo da cascata. */
+  const controle = new AbortController()
+  let motivo: 'relogio' | 'prazo' | null = null
+  let relogio = setTimeout(() => {
+    motivo = 'relogio'
+    controle.abort()
+  }, timeoutMs)
+  const desistiu = () => controle.abort()
+  if (p.sinal?.aborted) controle.abort()
+  else p.sinal?.addEventListener('abort', desistiu, { once: true })
+
+  let acumulado = ''
+  let comprometido = false
+  let uso: UsoDoChat | undefined
+  const falha = (status: number, causa: string): RespostaDoFluxo => {
+    if (!comprometido) return { ok: false, status, causa }
+    const { tokensEntrada, tokensSaida } = tokensDaChamada(uso, caracteres, acumulado.length)
+    return {
+      ok: false,
+      status,
+      causa,
+      comprometido: true,
+      tokens: tokensEntrada + tokensSaida,
+      tokensEntrada,
+      tokensSaida,
+      tokensEmCache: uso?.prompt_tokens_details?.cached_tokens ?? 0,
+    }
+  }
+  const lerPedaco = (j: PedacoDoFluxo): string | null => {
+    if (j.usage) uso = j.usage
+    const delta = j.choices?.[0]?.delta?.content
+    if (typeof delta === 'string' && delta) {
+      acumulado += delta
+      if (fluxo.aoTexto(acumulado, prazoFinal - Date.now()) && !comprometido) {
+        comprometido = true
+        clearTimeout(relogio)
+        relogio = setTimeout(
+          () => {
+            motivo = 'prazo'
+            controle.abort()
+          },
+          Math.max(0, prazoFinal - Date.now()),
+        )
+      }
+    }
+    if (j.error) return String((typeof j.error === 'object' ? j.error.message : j.error) ?? 'erro no fluxo')
+    if (j.choices?.[0]?.finish_reason === 'error') return 'o provedor encerrou o fluxo com erro'
+    return null
+  }
+  try {
+    const url = `${p.base.replace(/\/+$/, '')}/chat/completions`
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+        ...(p.apiKey ? { Authorization: `Bearer ${p.apiKey}` } : {}),
+      },
+      body: JSON.stringify({
+        model: p.model,
+        messages: p.messages,
+        stream: true,
+        /* O uso vem no último pedaço: no OpenRouter pelo `usage`, nos outros pelo `stream_options` do OpenAI. */
+        ...(ehBaseDoOpenRouter(p.base) ? { usage: { include: true } } : { stream_options: { include_usage: true } }),
+        ...(p.temperature !== undefined ? { temperature: p.temperature } : {}),
+        max_tokens: p.maxTokens ?? MAX_TOKENS_PADRAO,
+        ...parametrosDoProvedor(p.base, p.model, p.roteamento, { formato: p.formatoDeSaida, legenda: p.legenda }),
+      }),
+      signal: controle.signal,
+    })
+
+    if (!r.ok) {
+      const retryAfterS = r.status === 429 ? segundosDoRetryAfter(r.headers?.get?.('retry-after')) : undefined
+      const corpo = await r.text().catch(() => '')
+      const semEsquema = Boolean(p.formatoDeSaida) && recusouOEsquema(r.status, corpo)
+      if (semEsquema || recusouOFluxo(r.status, corpo)) {
+        clearTimeout(relogio)
+        const restante = timeoutMs - (Date.now() - inicio)
+        if (restante <= 0) return { ok: false, status: 0, causa: `sem resposta em ${timeoutMs} ms` }
+        /* Recusou o ESQUEMA: UMA tentativa inteira, já sem ele (repetir com o esquema daria a mesma recusa). Recusou
+           só o fluxo: o caminho inteiro de sempre, com o esquema (e a segunda tentativa dele). */
+        if (semEsquema) {
+          const { recusouEsquema: _ignorado, ...sem } = await chamarUmaVez({
+            ...p,
+            formatoDeSaida: undefined,
+            timeoutMs: restante,
+          })
+          return sem.ok ? { ...sem, semEsquema: true } : sem
+        }
+        return await chamarChat({ ...p, timeoutMs: restante })
+      }
+      return {
+        ok: false,
+        status: r.status,
+        causa: `HTTP ${r.status}: ${corpo.slice(0, 160)}`,
+        ...(retryAfterS !== undefined ? { retryAfterS } : {}),
+      }
+    }
+
+    const tipo = r.headers?.get?.('content-type') ?? ''
+    if (!/text\/event-stream/i.test(tipo) || !r.body) return respostaDoCorpo((await r.json()) as CorpoDoChat, p)
+
+    const leitor = r.body.getReader()
+    const decodificador = new TextDecoder()
+    let pendente = ''
+    let erroNoFluxo: string | null = null
+    const lerLinha = (linha: string): void => {
+      const l = linha.trim()
+      if (!l.startsWith('data:')) return // `: OPENROUTER PROCESSING` e linhas vazias
+      const dado = l.slice(5).trim()
+      if (!dado || dado === '[DONE]') return
+      let j: PedacoDoFluxo
+      try {
+        j = JSON.parse(dado) as PedacoDoFluxo
+      } catch {
+        return
+      }
+      erroNoFluxo ??= lerPedaco(j)
+    }
+    while (!erroNoFluxo) {
+      const { done, value } = await leitor.read()
+      if (done) break
+      pendente += decodificador.decode(value, { stream: true })
+      let i: number
+      while (!erroNoFluxo && (i = pendente.indexOf('\n')) >= 0) {
+        lerLinha(pendente.slice(0, i))
+        pendente = pendente.slice(i + 1)
+      }
+    }
+    if (!erroNoFluxo && pendente) lerLinha(pendente)
+    if (erroNoFluxo) {
+      controle.abort()
+      return falha(502, `erro no fluxo: ${String(erroNoFluxo).slice(0, 140)}`)
+    }
+    return respostaDoTexto(acumulado, uso, p)
+  } catch (err) {
+    if (clienteDesistiu(p.sinal)) {
+      const r = { ...falha(0, 'cancelado por quem pediu'), cancelado: true }
+      return comprometido ? r : { ...r, descartado: tokensDaChamada(uso, caracteres, acumulado.length) }
+    }
+    if (motivo === 'relogio') return falha(0, `sem resposta em ${timeoutMs} ms`)
+    if (motivo === 'prazo') return falha(0, 'prazo da cascata esgotado no meio do fluxo')
+    return falha(0, `fluxo interrompido: ${String((err as Error)?.message ?? err).slice(0, 140)}`)
+  } finally {
+    clearTimeout(relogio)
+    p.sinal?.removeEventListener('abort', desistiu)
   }
 }

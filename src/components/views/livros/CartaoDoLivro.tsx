@@ -10,6 +10,12 @@ function tomDe(id: string): number {
   return h;
 }
 
+/** A primeira letra do título, pulando artigo inicial ("The", "A", "O", "El"…) e pontuação. */
+function inicialDe(titulo: string): string {
+  const semArtigo = titulo.replace(/^(?:the|a|an|o|os|as|el|la|los|las|le|les|der|die|das|il|lo)\s+/i, '');
+  return (semArtigo.match(/\p{L}|\p{N}/u)?.[0] ?? titulo.charAt(0)).toUpperCase();
+}
+
 export const autoresDe = (l: Pick<LivroDoCatalogo, 'autores'>) => l.autores.map((a) => a.nome).join(', ');
 
 /**
@@ -24,10 +30,19 @@ export function CapaDoLivro({ livro, grande = false }: { livro: LivroDoCatalogo;
       style={{ '--lv-tom': tomDe(livro.id) } as React.CSSProperties}
       aria-hidden
     >
-      <span className="lv-capa-titulo" lang={livro.idioma}>
-        {livro.titulo}
-      </span>
-      <span className="lv-capa-autor">{autoresDe(livro)}</span>
+      {grande ? (
+        <>
+          <span className="lv-capa-titulo" lang={livro.idioma}>
+            {livro.titulo}
+          </span>
+          <span className="lv-capa-autor">{autoresDe(livro)}</span>
+        </>
+      ) : (
+        /* Na fileira o título já vem logo abaixo: a capa pequena leva só a inicial, sem repetir texto. */
+        <span className="lv-capa-inicial" lang={livro.idioma}>
+          {inicialDe(livro.titulo)}
+        </span>
+      )}
     </span>
   );
 }

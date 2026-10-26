@@ -92,7 +92,20 @@ ou o `r2.dev`) e defina `VITE_LIVROS_URL` com a raiz pública no build do ambien
 `.env.production.example`). A CSP abre a origem sozinha. Sem a variável, o livro do Gutenberg aparece no
 catálogo e a leitura avisa que a cópia ainda não foi publicada.
 
-## 4. O que fica para depois
+## 4. A montagem de 26/10/2026
+
+331 livros (277 KB minificado): en 110, pt 70 (50 da Wikisource), es 60, de/fr/it/nl/pl/sv/zh 12 cada, ja 3,
+ru 3, he 1; ar, hi, ko e tr ficaram sem livro (o Gutenberg quase não tem, e o que tem não passou no filtro).
+Por fonte: Gutenberg 211, Standard Ebooks 70, Wikisource 50. Exclusões registradas (uma por obra): sem autor
+38, autor protegido 31, autor sem ano de morte 24, tradutor sem ano de morte 21, tradutor protegido 4,
+tradução sem tradutor 4. 8 livros sem nível estimado (verso em português, que não tem lista nem fórmula).
+
+Limites conhecidos: o Standard Ebooks limita downloads por IP (a montagem baixa ~110 EPUBs e depois disso o
+navegador da mesma máquina recebeu 429 por um tempo); a mesma obra pode aparecer em duas edições quando a
+grafia muda ("Memórias Póstumas" e "Memorias Posthumas"); categorias saem dos assuntos da fonte e erram às
+vezes (a revisão manual é a da classificação etária, não a das categorias).
+
+## 5. O que fica para depois
 
 - **"Meus livros" no servidor.** Na L1 a lista mora no `localStorage` e o conteúdo dos livros trazidos no
   IndexedDB, neste aparelho. A sessão `kind:'document'` guardaria o texto inteiro no servidor, o que a spec

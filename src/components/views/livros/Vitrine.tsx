@@ -127,6 +127,8 @@ export default function Vitrine({
       : [];
   const outroIdioma = emOutros.length ? [...contarPor(emOutros, (l) => l.idioma)].sort((a, b) => b[1] - a[1])[0] : null;
 
+  const comece = comecePorAqui(doIdioma, idioma);
+  const idsDoComece = new Set(comece.map((l) => l.id));
   const contagemCategorias = contarPor(doIdioma, (l) => l.categorias);
   const contagemFontes = contarPor(doIdioma, (l) => l.fonte);
   const contagemTamanhos = contarPor(doIdioma, (l) => tamanhoDe(l.palavras));
@@ -295,14 +297,19 @@ export default function Vitrine({
             id="lv-comece"
             titulo={t('Comece por aqui')}
             descricao={t('Os mais lidos entre os mais fáceis deste idioma.')}
-            livros={comecePorAqui(doIdioma, idioma)}
+            livros={comece}
             aoAbrir={aoAbrir}
           />
           <Prateleira
             id="lv-seu-nivel"
             titulo={t('Para o seu nível')}
             descricao={t('O seu nível e o de baixo: ler um pouco abaixo do limite dá fluência.')}
-            livros={paraOSeuNivel(doIdioma, idioma, nivel)}
+            livros={paraOSeuNivel(
+              /* Sem repetir a prateleira de cima: quem está em "Comece por aqui" não volta aqui. */
+              doIdioma.filter((l) => !idsDoComece.has(l.id)),
+              idioma,
+              nivel,
+            )}
             aoAbrir={aoAbrir}
             controle={
               <label className="q-campo lv-nivel">

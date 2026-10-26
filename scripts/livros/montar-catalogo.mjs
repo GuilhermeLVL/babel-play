@@ -138,8 +138,13 @@ function licencaDe(autores, tradutores) {
 /** Acima disto é coletânea de obras completas ou dicionário, não um livro para ler: fica de fora. */
 const TETO_DE_PALAVRAS = 650_000
 
-/** Mede e monta o livro; devolve `false` quando ele não entra por tamanho. */
+/** Dicionário, genealogia, catálogo, índice: referência, não leitura. Fica fora sem virar "exclusão" legal. */
+const NAO_E_LEITURA =
+  /dicion|diccion|dictionar|w(?:ö|oe)rterbuch|genealog|cat[aá]logo|catalogue|vocabul[aá]rio|\bindex\b|\bíndice\b/i
+
+/** Mede e monta o livro; devolve `false` quando ele não entra por tamanho ou por não ser leitura. */
 function aceitar(meta, texto) {
+  if (NAO_E_LEITURA.test(meta.titulo)) return false
   const palavras = meta.palavras ?? (texto ? contarPalavras(texto, meta.idioma) : 0)
   if (palavras > TETO_DE_PALAVRAS) {
     console.warn(`[catalogo] ${meta.id} (${meta.titulo}): ${palavras} palavras, fica de fora`)

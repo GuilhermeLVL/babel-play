@@ -146,7 +146,10 @@ async function principal() {
   ])
   if (!ENVIAR) {
     console.log(`[curar] sem --enviar: nada foi para o R2. Os comandos seriam (bucket ${BUCKET}):`)
-    for (const c of comandos.slice(0, 3)) console.log(`  node node_modules/wrangler/bin/wrangler.js ${c.join(' ')}`)
+    for (const c of comandos.slice(0, 3))
+      console.log(
+        `  node node_modules/wrangler/bin/wrangler.js ${c.map((x) => (/\s/.test(x) ? `"${x}"` : x)).join(' ')}`,
+      )
     if (comandos.length > 3) console.log(`  … e mais ${comandos.length - 3}`)
     return
   }

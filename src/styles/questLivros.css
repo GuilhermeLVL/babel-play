@@ -60,9 +60,9 @@
   font: 800 13px/1 var(--font-mono, monospace);
 }
 .lv-filtros {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
   padding: 18px;
   border: 1.5px solid var(--border-subtle);
   border-radius: 20px;
@@ -72,7 +72,11 @@
 .lv-filtros[hidden] {
   display: none;
 }
+.lv-filtros > .q-campo {
+  flex: 1 1 200px;
+}
 .lv-grupo {
+  flex: 0 1 auto;
   margin: 0;
   padding: 0;
   border: 0;
@@ -117,7 +121,7 @@
 .lv-fileira {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(168px, 188px);
+  grid-auto-columns: minmax(150px, 164px);
   gap: 14px;
   overflow-x: auto;
   padding: 4px 4px 12px;
@@ -130,7 +134,7 @@
 }
 .lv-grade {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 14px;
 }
 .lv-item {
@@ -206,7 +210,8 @@
 .lv-capa {
   --lv-tom: 210;
   position: relative;
-  aspect-ratio: 2 / 3;
+  /* Baixa de propósito: o título está logo abaixo, a capa só distingue um livro do outro na fileira. */
+  aspect-ratio: 16 / 10;
   border-radius: 10px 12px 12px 10px;
   padding: 14px 12px 12px 22px;
   display: flex;
@@ -223,11 +228,18 @@
   border: 1.5px solid color-mix(in srgb, hsl(var(--lv-tom) 50% 45%) 35%, var(--border-subtle));
   color: var(--ink);
 }
+.lv-capa-inicial {
+  align-self: flex-end;
+  margin-top: auto;
+  font: 900 44px/1 var(--font-display, inherit);
+  color: color-mix(in srgb, hsl(var(--lv-tom) 55% 35%) 55%, var(--ink));
+  opacity: 0.85;
+}
 .lv-capa-titulo {
-  font: 800 15px/1.2 var(--font-display, inherit);
+  font: 800 14px/1.2 var(--font-display, inherit);
   overflow-wrap: anywhere;
   display: -webkit-box;
-  -webkit-line-clamp: 5;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -240,6 +252,7 @@
   overflow: hidden;
 }
 .lv-capa.grande {
+  aspect-ratio: 2 / 3;
   width: min(240px, 100%);
   padding: 22px 18px 18px 32px;
   background: linear-gradient(90deg, hsl(var(--lv-tom) 55% 42%) 0 14px, transparent 14px),
@@ -521,6 +534,27 @@
 
 /* ── Celular ─────────────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 720px) {
+  /* As três abas cabem em 375 px sem rolar: sem ícone e com menos folga. */
+  .lv .q-abas {
+    align-self: stretch;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 4px;
+    gap: 2px;
+  }
+  .lv .q-aba {
+    min-width: 0;
+    justify-content: center;
+    padding: 4px 6px;
+    gap: 4px;
+    font-size: 14px;
+    line-height: 1.15;
+    white-space: normal;
+    text-align: center;
+  }
+  .lv .q-aba svg {
+    display: none;
+  }
   .lv-detalhe-corpo {
     grid-template-columns: minmax(0, 1fr);
     gap: 18px;

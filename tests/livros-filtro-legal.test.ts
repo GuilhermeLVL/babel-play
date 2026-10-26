@@ -32,12 +32,9 @@ describe('autor', () => {
 
   it('morto em 1956 NUNCA entra em 2026', () => {
     const v = avaliarLegalidade(obra({ autores: [autor(1956, 'Gabriela')] }), 2026)
-    expect(v.entra).toBe(false)
-    if (!v.entra) {
-      expect(v.motivo).toBe('autor-protegido')
-      expect(v.detalhe).toContain('1956')
-      expect(v.detalhe).toContain('2027')
-    }
+    expect(v).toMatchObject({ entra: false, motivo: 'autor-protegido' })
+    expect(v).toHaveProperty('detalhe', expect.stringContaining('1956'))
+    expect(v).toHaveProperty('detalhe', expect.stringContaining('2027'))
   })
 
   it('morto em 1998 (Jünger, que o Standard Ebooks tem por ser domínio público nos EUA) não entra', () => {

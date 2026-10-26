@@ -9,8 +9,10 @@ import {
   ajusteDaRolagem,
   alturaDoBloco,
   alturaMediaDaFala,
+  ancoraDaLeitura,
   janelaDasFalas,
   type MedidaDoBloco,
+  toposDosBlocos,
 } from '../../../../lib/captura/janelaDasFalas';
 import type { SpeechSegment } from '../../../../lib/captura/tiposDaFala';
 import { traducaoNaLegenda } from '../../../../lib/captura/traducaoDaFala';
@@ -319,7 +321,7 @@ function montarJanela(
   const alturas = blocos.map((g) => alturaDoBloco(medidas.get(g.bloco), g.falas.length, porFala, v.espaco));
   /* Antes da primeira medida (ou sem layout), a área visível é a da janela do navegador. */
   const visivel = v.visivel > 0 ? v.visivel : typeof window !== 'undefined' ? window.innerHeight : 800;
-  return janelaDasFalas({
+  const pedacos = janelaDasFalas({
     alturas,
     espaco: v.espaco,
     topo: noFim ? null : Math.max(0, v.rolagem - v.margem),
@@ -327,17 +329,26 @@ function montarJanela(
     folga: Math.max(600, visivel),
     fixos,
   });
+  return { pedacos, alturas };
 }
 
-/** Quais blocos uma janela monta, como texto: duas janelas com a mesma chave desenham a mesma lista. */
+/**
+ * Quais blocos uma janela monta e a altura de cada vão, como texto: duas janelas com a mesma chave desenham a mesma
+ * lista. A altura entra porque um vão reestimado (outra letra, outra largura) muda a tela sem mudar os blocos.
+ */
 const chaveDaJanela = (pedacos: ReturnType<typeof janelaDasFalas>, blocos: readonly BlocoDaLista[]) =>
-  pedacos.map((p) => (p.tipo === 'bloco' ? blocos[p.i].bloco : '_')).join(',');
+  pedacos.map((p) => (p.tipo === 'bloco' ? blocos[p.i].bloco : `_${Math.round(p.altura)}`)).join(',');
 
 /** O que a legenda da página recebe do assistente ao vivo (Fase C3). */
 export interface AssistenteNaLegenda {
   marcas: ReadonlyMap<string, MarcaNaLinha[]>;
   correcoes: ReadonlyMap<string, CorrecaoDaFala>;
   aoTocarMarca?: (fala: SpeechSegment, marca: MarcaNaLinha, lang: string) => void;
+  /**
+   * A fala com o "Como respondo?" aberto na página: o bloco dela fica montado, e o foco tem para onde voltar
+   * quando a folha fecha (`ComoRespondoNaPagina`).
+   */
+  falaFixa?: string | null;
 }
 
 /**
@@ -354,11 +365,14 @@ export interface AssistenteNaLegenda {
  * (`lib/captura/janelaDasFalas`); os outros viram um vão com a altura medida (ou estimada) deles. Com 600 falas
  * a árvore de acessibilidade da página caiu de ~40 s para ~0,5 s (CPU 4×, `scripts/perf/telas/legenda-longa.mjs`).
  * O que a janela preserva e o que ela troca:
- *  - acompanhar ao vivo e parar quando a pessoa rola para cima: como antes; a rolagem nossa a caminho do fim
- *    (que fica mais longe quando a primeira medida corrige a estimativa) não conta como a pessoa saindo dele;
- *  - a rolagem não pula quando um bloco acima é medido: o navegador ancora (`overflow-anchor`); no Safari, sem
- *    âncora, a lista corrige ela mesma (`ajusteDaRolagem`);
- *  - o bloco da fala com foco, da escolhida (o painel aberto) e da que está tocando nunca sai: o foco não cai no
+ *  - acompanhar ao vivo e parar quando a pessoa rola para cima. Subir e se afastar do fim, mesmo dentro da folga
+ *    de 80 px, já é sair dele; com o dedo na lista, a fala nova não puxa nada. A rolagem LONGA nossa até o fim (o
+ *    vão de cima que cresceu com a primeira medida, "Ir para a fala atual") não conta como a pessoa saindo dele;
+ *  - a rolagem não pula quando um bloco acima é medido ou um vão acima é reestimado (A−/A+, outra largura): o
+ *    navegador ancora (`overflow-anchor`); no Safari, sem âncora, a lista corrige ela mesma (`ajusteDaRolagem` na
+ *    medida, `ancoraDaLeitura` a cada desenho);
+ *  - o bloco da fala com foco, da escolhida (o painel aberto), da que está tocando e da do "Como respondo?"
+ *    (`falaFixa`) nunca sai: o foco não cai no
  *    vazio e o Esc do painel tem para onde devolvê-lo;
  *  - a região `aria-live` é a mesma; o bloco que VOLTA para a janela entra com `aria-live="off"` (não são falas
  *    novas) e sem refazer a entrada animada. Uma tradução que chegar tarde numa fala desse bloco também não é
@@ -439,33 +453,48 @@ export default function HistoricoDoPrototipo({
   const medidas = useRef(new Map<number, MedidaDoBloco>());
   const vista = useRef<Vista>({ rolagem: 0, visivel: 0, largura: 0, margem: 0, espaco: ESPACO_ENTRE_FALAS });
   const [, redesenhar] = useReducer((x: number) => x + 1, 0);
-  /* A última fala que recebeu foco: o bloco dela fica, para o foco não cair no vazio nem ter para onde voltar. */
+  /* A fala com foco DENTRO da lista: o bloco dela fica, para o foco não cair no vazio. Sai quando o foco sai. */
   const focada = useRef<string | null>(null);
-  /* As falas cujo bloco já saiu da janela: quando ele volta, elas não refazem a entrada animada. */
-  const semEntrada = useRef(new Set<string>());
   /* Os blocos que já ficaram fora da janela: quando voltam, entram calados (`aria-live="off"`) — não são falas
-     novas, e a região viva só anuncia as novas. */
+     novas, e a região viva só anuncia as novas — e as falas deles não refazem a entrada animada. Um por bloco que
+     ainda existe: o conjunto não cresce além da lista. */
   const calados = useRef(new Set<number>());
   const montados = useRef(new Set<number>());
   const indiceDoBloco = (id: string | null | undefined) => {
     const b = id ? blocoDaFala.current.get(id) : undefined;
     return b === undefined ? -1 : blocos.findIndex((g) => g.bloco === b);
   };
-  const fixosDaJanela = [indiceDoBloco(escolhida), indiceDoBloco(tocando), indiceDoBloco(focada.current)];
-  const pedacos = montarJanela(blocos, medidas.current, vista.current, noFim.current, fixosDaJanela);
+  const fixosDaJanela = [
+    indiceDoBloco(escolhida),
+    indiceDoBloco(tocando),
+    indiceDoBloco(focada.current),
+    indiceDoBloco(assistente?.falaFixa),
+  ];
+  const { pedacos, alturas } = montarJanela(blocos, medidas.current, vista.current, noFim.current, fixosDaJanela);
   montados.current = new Set();
+  const indicesMontados: number[] = [];
   for (const p of pedacos) {
     if (p.tipo === 'bloco') {
       montados.current.add(blocos[p.i].bloco);
+      indicesMontados.push(p.i);
       continue;
     }
-    for (let i = p.de; i <= p.ate; i++) {
-      calados.current.add(blocos[i].bloco);
-      for (const f of blocos[i].falas) semEntrada.current.add(f.id);
-    }
+    for (let i = p.de; i <= p.ate; i++) calados.current.add(blocos[i].bloco);
   }
-  const janela = useRef({ blocos, fixos: fixosDaJanela, chave: '' });
-  janela.current = { blocos, fixos: fixosDaJanela, chave: chaveDaJanela(pedacos, blocos) };
+  if (calados.current.size > blocos.length) {
+    const existem = new Set(blocos.map((g) => g.bloco));
+    for (const b of calados.current) if (!existem.has(b)) calados.current.delete(b);
+  }
+  const topos = toposDosBlocos(alturas, vista.current.espaco);
+  const janela = useRef({ blocos, fixos: fixosDaJanela, chave: '', topos, alturas, indicesMontados });
+  janela.current = {
+    blocos,
+    fixos: fixosDaJanela,
+    chave: chaveDaJanela(pedacos, blocos),
+    topos,
+    alturas,
+    indicesMontados,
+  };
   const tocar = useRef(aoTocar);
   tocar.current = aoTocar;
   const ouvir = useRef(aoOuvir);
@@ -488,7 +517,40 @@ export default function HistoricoDoPrototipo({
       if (f) tocarMarca.current?.(f, m, f.lang ?? padrao.current);
     },
     seguir: () => {
-      if (noFim.current) fixos.irAoFim();
+      /* Com o dedo na lista, nada a puxa: a pessoa está rolando, e a decisão é dela. */
+      if (noFim.current && !fixos.dedo && lista.current) irAoFim(lista.current);
+    },
+    /** Um dedo está na lista (do toque ao fim dele). */
+    dedo: false,
+    /** A última rolagem vista e a distância ao fim nela: subir e se afastar é a pessoa saindo do fim. */
+    ultimaRolagem: 0,
+    ultimaDistancia: 0,
+    /**
+     * A âncora da leitura sem `overflow-anchor` (`ancoraDaLeitura`): o bloco e onde a janela o pôs. Se um desenho
+     * o põe em outro lugar (um vão acima reestimado), a rolagem anda a diferença.
+     */
+    ancora: null as { bloco: number; topo: number } | null,
+    marcarAncora: () => {
+      const j = janela.current;
+      const v = vista.current;
+      const i = ancoraDaLeitura(j.indicesMontados, j.topos, j.alturas, Math.max(0, v.rolagem - v.margem));
+      fixos.ancora = i < 0 ? null : { bloco: j.blocos[i].bloco, topo: j.topos[i] };
+    },
+    /** Depois de cada desenho: a âncora saiu do lugar? A rolagem vai junto (só sem a âncora do navegador). */
+    segurarAncora: () => {
+      const l = lista.current;
+      const a = fixos.ancora;
+      if (l && a && !noFim.current && !ancoraNativa()) {
+        const j = janela.current;
+        const i = j.blocos.findIndex((g) => g.bloco === a.bloco);
+        const d = i < 0 ? 0 : j.topos[i] - a.topo;
+        if (Math.abs(d) >= 0.5) {
+          l.scrollTop += d;
+          vista.current.rolagem = l.scrollTop;
+          fixos.ultimaRolagem = l.scrollTop;
+        }
+      }
+      fixos.marcarAncora();
     },
     /**
      * A ROLAGEM NOSSA A CAMINHO DO FIM. Enquanto ela anda (a rolagem suave leva alguns quadros), a lista ainda não
@@ -498,7 +560,8 @@ export default function HistoricoDoPrototipo({
      */
     indoAoFim: false,
     prazoDaIda: 0,
-    irAoFim: () => {
+    /** A rolagem longa até o fim (o vão de cima cresceu, ou "Ir para a fala atual"): marcada como nossa. */
+    irAoFimLonge: () => {
       if (!lista.current) return;
       fixos.indoAoFim = true;
       fixos.prazoDaIda = performance.now() + 1500;
@@ -510,7 +573,7 @@ export default function HistoricoDoPrototipo({
     /** A janela de agora monta outros blocos que a do último desenho? Então desenha de novo. */
     conferir: () => {
       const j = janela.current;
-      const p = montarJanela(j.blocos, medidas.current, vista.current, noFim.current, j.fixos);
+      const { pedacos: p } = montarJanela(j.blocos, medidas.current, vista.current, noFim.current, j.fixos);
       if (chaveDaJanela(p, j.blocos) !== j.chave) redesenhar();
     },
     /** O tamanho da lista (área visível, largura, margem e espaço da coluna). */
@@ -565,12 +628,27 @@ export default function HistoricoDoPrototipo({
         if (antes && l && !noFim.current && !ancoraNativa()) {
           const topoDoBloco = alvo.getBoundingClientRect().top - l.getBoundingClientRect().top + l.scrollTop;
           const ajuste = ajusteDaRolagem(topoDoBloco, antes.altura, altura, l.scrollTop);
-          if (ajuste) l.scrollTop += ajuste;
+          if (ajuste) {
+            l.scrollTop += ajuste;
+            fixos.ultimaRolagem = l.scrollTop;
+          }
+          /* A âncora depois deste bloco já andou na tela: o próximo desenho não a anda de novo. */
+          const j = janela.current;
+          const a = fixos.ancora;
+          const ia = a ? j.blocos.findIndex((g) => g.bloco === a.bloco) : -1;
+          if (a && ia > j.blocos.findIndex((g) => g.bloco === b)) a.topo += altura - antes.altura;
         }
       }
       if (!mudou) return;
       fixos.conferir();
       fixos.seguir();
+    },
+    aoTocarNaLista: () => {
+      fixos.dedo = true;
+      fixos.soltar();
+    },
+    aoSoltarDaLista: () => {
+      fixos.dedo = false;
     },
     quadro: 0,
     /** A rolagem confere a janela uma vez por quadro, não a cada evento. */
@@ -604,7 +682,7 @@ export default function HistoricoDoPrototipo({
 
   const irParaOFim = () => {
     if (!lista.current) return;
-    fixos.irAoFim();
+    fixos.irAoFimLonge();
     noFim.current = true;
     setLongeDoFim(false);
     fixos.conferir();
@@ -614,8 +692,18 @@ export default function HistoricoDoPrototipo({
     if (!el) return;
     vista.current.rolagem = el.scrollTop;
     fixos.agendar();
-    const chegou = el.scrollHeight - el.scrollTop - el.clientHeight <= FOLGA_DO_FIM;
-    if (chegou || performance.now() > fixos.prazoDaIda) fixos.soltar();
+    fixos.marcarAncora();
+    const distancia = el.scrollHeight - el.scrollTop - el.clientHeight;
+    /* A rolagem nossa só DESCE até o fim. Subir e ficar mais longe dele é a pessoa (dedo, inércia, roda, barra,
+       teclado), mesmo dentro da folga: ela sai do fim no primeiro movimento. Subir sem se afastar não é ela: é a
+       lista que encolheu embaixo (a linha de escuta que sai) ou a âncora do navegador. */
+    const subiu = el.scrollTop < fixos.ultimaRolagem - 1 && distancia > fixos.ultimaDistancia + 1;
+    const desceu = el.scrollTop > fixos.ultimaRolagem + 1;
+    fixos.ultimaRolagem = el.scrollTop;
+    fixos.ultimaDistancia = distancia;
+    /* Na folga, volta a acompanhar quem DESCE até ela (ou encosta no fim); quem saiu subindo e parou ali, não. */
+    const chegou = !subiu && (distancia <= 1 || (distancia <= FOLGA_DO_FIM && (noFim.current || desceu)));
+    if (chegou || subiu || performance.now() > fixos.prazoDaIda) fixos.soltar();
     /* A caminho do fim pela rolagem nossa: ainda acompanhando. */
     if (fixos.indoAoFim) return;
     noFim.current = chegou;
@@ -627,11 +715,20 @@ export default function HistoricoDoPrototipo({
     const id = (e.target as Element).closest?.('[data-fala]')?.getAttribute('data-fala') ?? null;
     if (id && id !== focada.current) focada.current = id;
   };
+  /* O foco saiu da lista (para o painel, para a faixa): a fala deixa de segurar o bloco. A escolhida e a do
+     "Como respondo?" seguram por conta própria, e o foco volta para elas. */
+  const aoDesfocar = (e: React.FocusEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) focada.current = null;
+  };
   useLayoutEffect(() => fixos.seguir(), [comTexto.length, transcrevendo, escala, fixos]);
   /* Os vãos mudaram de altura (a estimativa melhorou com a primeira medida): o fim se afastou, e quem
      acompanha vai até o fim novo. */
   const alturaDosVaos = pedacos.map((p) => (p.tipo === 'vao' ? Math.round(p.altura) : '')).join(',');
-  useLayoutEffect(() => fixos.seguir(), [alturaDosVaos, fixos]);
+  useLayoutEffect(() => {
+    if (noFim.current && !fixos.dedo) fixos.irAoFimLonge();
+  }, [alturaDosVaos, fixos]);
+  /* Sem `overflow-anchor` (Safari): o desenho que mexeu nos vãos acima não pode mexer no que a pessoa lê. */
+  useLayoutEffect(() => fixos.segurarAncora());
   useEffect(() => {
     if (!noFim.current) setLongeDoFim(true);
   }, [comTexto.length]);
@@ -643,8 +740,12 @@ export default function HistoricoDoPrototipo({
         ref={lista}
         onScroll={aoRolar}
         onFocus={aoFocar}
+        onBlur={aoDesfocar}
         onWheel={fixos.soltar}
-        onTouchStart={fixos.soltar}
+        onTouchStart={fixos.aoTocarNaLista}
+        onTouchMove={fixos.soltar}
+        onTouchEnd={fixos.aoSoltarDaLista}
+        onTouchCancel={fixos.aoSoltarDaLista}
         onKeyDown={fixos.soltar}
         onPointerDown={(e) => e.target === e.currentTarget && fixos.soltar()}
         aria-live="polite"
@@ -686,7 +787,7 @@ export default function HistoricoDoPrototipo({
                     langDaTraducao={idiomaDaTraducao?.(lang)}
                     atual={fala === atual}
                     escolhida={fala.id === escolhida}
-                    nova={!deAntes.has(fala.id) && !semEntrada.current.has(fala.id)}
+                    nova={!deAntes.has(fala.id) && !calados.current.has(grupo.bloco)}
                     tocando={tocando === fala.id}
                     aoTocar={fixos.tocar}
                     aoOuvir={aoOuvir ? fixos.ouvir : undefined}

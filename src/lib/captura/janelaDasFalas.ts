@@ -132,3 +132,29 @@ export function janelaDasFalas(v: VistaDaLista): PedacoDaJanela[] {
 export function ajusteDaRolagem(topoDoBloco: number, alturaAntes: number, alturaDepois: number, topo: number): number {
   return topoDoBloco + alturaAntes <= topo ? alturaDepois - alturaAntes : 0;
 }
+
+/** Onde cada bloco começa, medido do topo do primeiro (px), com os espaços entre eles. */
+export function toposDosBlocos(alturas: readonly number[], espaco: number): number[] {
+  const topos: number[] = [];
+  let y = 0;
+  for (const h of alturas) {
+    topos.push(y);
+    y += h + espaco;
+  }
+  return topos;
+}
+
+/**
+ * A ÂNCORA da leitura, nos navegadores sem `overflow-anchor`: o primeiro bloco montado que ainda aparece na área
+ * visível (o fim dele passa de `topo`). Entre um desenho e o seguinte, o quanto o começo dele andou (um vão acima
+ * reestimado, outro tamanho de letra, outra largura) é o quanto a rolagem anda junto. `-1`: nenhum.
+ */
+export function ancoraDaLeitura(
+  montados: readonly number[],
+  topos: readonly number[],
+  alturas: readonly number[],
+  topo: number,
+): number {
+  for (const i of montados) if (topos[i] + alturas[i] > topo) return i;
+  return -1;
+}

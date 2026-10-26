@@ -60,6 +60,29 @@ beforeAll(() => {
     for (const v of this.querySelectorAll<HTMLElement>('.q-vao-das-falas')) h += parseFloat(v.style.height) + 10
     return h + this.querySelectorAll('.q-linha-da-fala').length * 94
   })
+  /* A rolagem da lista, presa entre 0 e o fim, e o `scrollTo` (o jsdom não rola). */
+  const rolagens = new WeakMap<Element, number>()
+  const limitar = (el: HTMLElement, y: number) => Math.max(0, Math.min(y, el.scrollHeight - el.clientHeight))
+  descritores.push(['scrollTop', Object.getOwnPropertyDescriptor(Element.prototype, 'scrollTop')])
+  Object.defineProperty(HTMLElement.prototype, 'scrollTop', {
+    configurable: true,
+    get(this: HTMLElement) {
+      return rolagens.get(this) ?? 0
+    },
+    set(this: HTMLElement, y: number) {
+      const antes = rolagens.get(this) ?? 0
+      rolagens.set(this, ehLista(this) ? limitar(this, y) : y)
+      /* Como o navegador: a rolagem que mudou avisa a lista. */
+      if (ehLista(this) && rolagens.get(this) !== antes) this.dispatchEvent(new Event('scroll'))
+    },
+  })
+  descritores.push(['scrollTo', Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollTo')])
+  Object.defineProperty(HTMLElement.prototype, 'scrollTo', {
+    configurable: true,
+    value(this: HTMLElement, o: ScrollToOptions) {
+      this.scrollTop = o.top ?? 0
+    },
+  })
 })
 afterAll(() => {
   for (const [nome, d] of descritores)
@@ -169,14 +192,19 @@ describe('a janela da legenda longa', () => {
   it('a rolagem nossa a caminho do fim não conta como a pessoa saindo dele; a roda do mouse conta', async () => {
     const { container } = render(historico(falas(600)))
     const lista = container.querySelector('.q-historico') as HTMLElement
-    // no meio da rolagem suave até o fim (o fim ainda longe): continua acompanhando
+    await rolarPara(container, 0)
+    expect(container.querySelector('.q-ir-para-o-fim')).toBeTruthy()
+    // "Ir para a fala atual": a rolagem suave sai do topo e leva alguns quadros (aqui ela não anda sozinha)
+    Object.defineProperty(lista, 'scrollTo', { configurable: true, value: () => undefined })
+    fireEvent.click(container.querySelector('.q-ir-para-o-fim') as HTMLElement)
+    // no meio do caminho, o fim ainda longe: continua acompanhando, e a janela já é a do fim
     await act(async () => {
       lista.scrollTop = 1000
-      fireEvent.scroll(lista)
       await quadro()
     })
     expect(container.querySelector('.q-ir-para-o-fim')).toBeNull()
     expect(ids(container)).not.toContain('f0')
+    expect(ids(container).at(-1)).toBe('f599')
     // a pessoa rola: para de acompanhar
     await act(async () => {
       fireEvent.wheel(lista, { deltaY: -300 })
@@ -184,5 +212,127 @@ describe('a janela da legenda longa', () => {
       await quadro()
     })
     expect(container.querySelector('.q-ir-para-o-fim')).toBeTruthy()
+  })
+
+  it('o dedo que sobe 30 px para de acompanhar: a fala nova não puxa, nem durante o arrasto nem depois', async () => {
+    const lista0 = falas(600)
+    const { container, rerender } = render(historico(lista0))
+    const lista = container.querySelector('.q-historico') as HTMLElement
+    const rolar = async (y: number) =>
+      act(async () => {
+        lista.scrollTop = y
+        fireEvent.scroll(lista)
+        await quadro()
+      })
+    // acompanhando: no fim; a fala nova puxa a lista até o fim novo
+    await rolar(lista.scrollTop)
+    const fim = lista.scrollTop
+    expect(fim).toBe(lista.scrollHeight - 600)
+    let n = 600
+    const maisUma = () => act(() => rerender(historico(falas(++n))))
+    maisUma()
+    expect(lista.scrollTop).toBe(lista.scrollHeight - 600)
+    const fimAgora = lista.scrollTop
+
+    // o dedo encosta e sobe 30 px (dentro da folga de 80): já não é o fim
+    fireEvent.touchStart(lista)
+    await rolar(fimAgora - 30)
+    expect(container.querySelector('.q-ir-para-o-fim')).toBeTruthy()
+    maisUma()
+    expect(lista.scrollTop).toBe(fimAgora - 30)
+
+    // o arrasto continua até 2.000 px acima: a fala nova não mexe na lista
+    fireEvent.touchMove(lista)
+    await rolar(fimAgora - 2000)
+    maisUma()
+    expect(lista.scrollTop).toBe(fimAgora - 2000)
+    expect(container.querySelector('.q-ir-para-o-fim')).toBeTruthy()
+
+    // o dedo sai (a inércia acabou): continua parado onde a pessoa deixou
+    fireEvent.touchEnd(lista)
+    maisUma()
+    expect(lista.scrollTop).toBe(fimAgora - 2000)
+  })
+
+  it('a lista que encolhe embaixo (sobe sem se afastar do fim) continua acompanhando', async () => {
+    const { container } = render(historico(falas(600)))
+    const lista = container.querySelector('.q-historico') as HTMLElement
+    await act(async () => {
+      fireEvent.scroll(lista)
+      await quadro()
+    })
+    // o fim chegou 50 px mais perto (a linha de escuta saiu): a rolagem cai junto, e a distância ao fim não muda
+    await act(async () => {
+      lista.scrollTop = lista.scrollTop - 50
+      Object.defineProperty(lista, 'scrollHeight', { configurable: true, value: lista.scrollHeight - 50 })
+      fireEvent.scroll(lista)
+      await quadro()
+    })
+    expect(container.querySelector('.q-ir-para-o-fim')).toBeNull()
+  })
+
+  describe('sem `overflow-anchor` (Safari)', () => {
+    const supports = globalThis.CSS?.supports
+    beforeAll(() => {
+      globalThis.CSS ??= {} as typeof CSS
+      ;(globalThis.CSS as { supports: unknown }).supports = (p: string) => p !== 'overflow-anchor'
+    })
+    afterAll(() => {
+      ;(globalThis.CSS as { supports: unknown }).supports = supports
+    })
+
+    it('o vão acima que cresce (uma fala entrou num bloco de cima) leva a rolagem junto', async () => {
+      const lista0 = falas(600)
+      const { container, rerender } = render(historico(lista0))
+      const lista = container.querySelector('.q-historico') as HTMLElement
+      // a pessoa lê o meio da sessão (o bloco 15 começa em 15 × (20 × 94) = 28.200)
+      await rolarPara(container, 28_200)
+      expect(ids(container)).toContain('f300')
+      const antes = lista.scrollTop
+      const topoDaF300 = () => {
+        let y = 0
+        for (const el of lista.children) {
+          if (el.querySelector('[data-fala="f300"]')) break
+          y +=
+            (el.classList.contains('q-vao-das-falas')
+              ? parseFloat((el as HTMLElement).style.height)
+              : el.querySelectorAll('.q-linha-da-fala').length * 94 - 10) + 10
+        }
+        return y
+      }
+      const leituraAntes = topoDaF300() - antes
+      // uma fala chega fora de ordem no bloco 1 (entre f25 e f26): o vão de cima cresce uma fala (84 + 10)
+      const comNova = [...lista0.slice(0, 26), { ...fala(9999), id: 'tarde' }, ...lista0.slice(26)]
+      act(() => rerender(historico(comNova)))
+      expect(lista.scrollTop).toBe(antes + 94)
+      // o que a pessoa lê ficou no mesmo lugar da tela
+      expect(topoDaF300() - lista.scrollTop).toBe(leituraAntes)
+    })
+  })
+
+  it('o bloco da fala do "Como respondo?" fica montado; o foco que sai da lista solta o bloco dele', async () => {
+    const lista0 = falas(600)
+    const props = { falas: lista0, escala: 1, idiomaPadrao: 'en', aoTocar }
+    const marcas = new Map()
+    const { container, rerender } = render(
+      <HistoricoDoPrototipo {...props} assistente={{ marcas, correcoes: new Map(), falaFixa: 'f7' }} />,
+    )
+    expect(ids(container)).toContain('f7')
+    rerender(<HistoricoDoPrototipo {...props} assistente={{ marcas, correcoes: new Map(), falaFixa: null }} />)
+    expect(ids(container)).not.toContain('f7')
+
+    // o foco numa fala antiga segura o bloco; quando o foco sai da lista, o bloco pode sair
+    await rolarPara(container, 0)
+    const botao = container.querySelector('[data-fala="f5"] .q-fala') as HTMLElement
+    act(() => botao.focus())
+    fireEvent.click(container.querySelector('.q-ir-para-o-fim') as HTMLElement)
+    await act(quadro)
+    expect(ids(container)).toContain('f5')
+    const fora = document.createElement('button')
+    document.body.appendChild(fora)
+    act(() => fora.focus())
+    rerender(<HistoricoDoPrototipo {...props} assistente={{ marcas, correcoes: new Map(), falaFixa: null }} />)
+    expect(ids(container)).not.toContain('f5')
+    fora.remove()
   })
 })

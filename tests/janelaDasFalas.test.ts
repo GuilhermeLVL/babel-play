@@ -10,10 +10,12 @@ import {
   alturaDoBloco,
   alturaMediaDaFala,
   alturaTotal,
+  ancoraDaLeitura,
   BLOCOS_SEM_JANELA,
   blocosNaJanela,
   janelaDasFalas,
   type PedacoDaJanela,
+  toposDosBlocos,
 } from '../src/lib/captura/janelaDasFalas'
 
 const ESPACO = 10
@@ -137,5 +139,28 @@ describe('ajusteDaRolagem (navegador sem `overflow-anchor`)', () => {
   it('o bloco à vista ou abaixo dela não mexe na rolagem', () => {
     expect(ajusteDaRolagem(4500, 1000, 1200, 5000)).toBe(0)
     expect(ajusteDaRolagem(6000, 1000, 1200, 5000)).toBe(0)
+  })
+})
+
+describe('toposDosBlocos e ancoraDaLeitura (a âncora sem `overflow-anchor`)', () => {
+  it('cada bloco começa depois dos de cima e dos espaços', () => {
+    expect(toposDosBlocos([100, 200, 50], ESPACO)).toEqual([0, 110, 320])
+    expect(toposDosBlocos([], ESPACO)).toEqual([])
+  })
+
+  it('a âncora é o primeiro bloco montado que ainda aparece; o que já passou inteiro não conta', () => {
+    const alturas = [1000, 1000, 1000, 1000]
+    const topos = toposDosBlocos(alturas, ESPACO)
+    expect(ancoraDaLeitura([1, 2, 3], topos, alturas, 1500)).toBe(1)
+    expect(ancoraDaLeitura([1, 2, 3], topos, alturas, 2010)).toBe(2)
+    expect(ancoraDaLeitura([0, 3], topos, alturas, 2500)).toBe(3)
+    expect(ancoraDaLeitura([0], topos, alturas, 2500)).toBe(-1)
+  })
+
+  it('o vão acima reestimado anda a âncora: a diferença é o quanto a rolagem anda', () => {
+    const antes = toposDosBlocos([1000, 1000, 1000], ESPACO)
+    const depois = toposDosBlocos([1300, 1000, 1000], ESPACO)
+    const i = ancoraDaLeitura([2], antes, [1000, 1000, 1000], 2100)
+    expect(depois[i] - antes[i]).toBe(300)
   })
 })

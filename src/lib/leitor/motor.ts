@@ -13,10 +13,11 @@ import type { CorDeAnotacao, TipoDeAnotacao } from '../../core/leitura/anotacao'
 import { CORES_DOS_TEMAS, cssDoLivro, type PerfilDeLeitura } from '../../core/leitura/perfilDeLeitura';
 import type { ItemDoSumario, LivroDoFoliate, Localizacao, View } from './foliate/view.js';
 import { facesDaFonte } from './fontes';
-import { limparHtml } from './limparHtml';
+import { limparCss, limparHtml } from './limparHtml';
 import {
   ehTipoDeMarcacao,
   linkExternoSeguro,
+  normalizarTipo,
   pareceMarcacao,
   tipoDaMarcacao,
   tipoPermitido,
@@ -148,6 +149,11 @@ export class MotorDoLeitor {
       const d = (e as CustomEvent<{ data: unknown; type: string }>).detail;
       const tipo = d.type;
       d.data = Promise.resolve(d.data).then(async (x) => {
+        /* PRIVACIDADE: a folha de estilo do livro não puxa nada de fora (fonte, imagem, `@import`). */
+        if (normalizarTipo(tipo) === 'text/css') {
+          const css = typeof x === 'string' ? x : x instanceof Blob ? await x.text() : null;
+          return css == null ? x : limparCss(css);
+        }
         if (typeof x === 'string') {
           const inicio = x.slice(0, 512);
           return ehTipoDeMarcacao(tipo) || pareceMarcacao(inicio) ? limparHtml(x, tipoDaMarcacao(inicio, tipo)) : x;

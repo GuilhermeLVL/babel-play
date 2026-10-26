@@ -16,6 +16,11 @@ Origem, commit e lista de arquivos: `ORIGEM.txt`. Toda mudança está marcada co
    (X)HTML, SVG, CSS, imagem, fonte e áudio (XML genérico, XSLT, JS e o resto ficam fora); o evento `data`
    limpa toda marcação, inclusive `Blob` que fareja como HTML/SVG, com `../limparHtml.ts` (tira script,
    `on*`, `javascript:`, `iframe`/`object`/`embed`/`form` e a instrução `xml-stylesheet`).
+3a. **Privacidade (fora do vendor, `../limparHtml.ts`):** nada do livro sai para outro host. Depois do foliate-js
+   todo recurso interno é `blob:`; o que sobra com esquema (`https:`, `//`…) é removido de `src`, `srcset`,
+   `poster`, `href` de `<link>`/`<image>`, `data`, `background` e `ping`; no CSS (folha do manifesto, `<style>`
+   e `style=`), `url()` remoto vira `url("")` e `@import` remoto sai. O `<a href>` de navegação fica (o motor
+   só abre http(s) com noopener). O e2e com `remoto.epub` confere que nenhum pedido sai da página.
 4. **CSP:** não é a barreira do conteúdo do livro. O `script-src` do app tem `blob:` porque o runtime do ONNX
    com várias threads faz `import()` do módulo Emscripten a partir de um `blob:` na thread principal
    (`server/http/csp.ts`); por isso as barreiras 1 a 3 não dependem dela.

@@ -64,3 +64,40 @@ test.describe('Leitor — segurança do conteúdo do livro', () => {
     expect(popups).toEqual([])
   })
 })
+
+test.describe('Leitor — privacidade do conteúdo do livro', () => {
+  /* `remoto.epub`: imagem, srcset, poster, vídeo, áudio, SVG <image>, <link>, @import, @font-face e background
+     apontando para `rastreio.example`. Nenhum pedido pode sair da página para outro host. */
+  test('nenhum recurso remoto do EPUB é pedido; o interno (capa.png) carrega', async ({ page, baseURL }) => {
+    test.slow()
+    const app = new URL(baseURL ?? 'http://localhost:3100').host
+    const deFora: string[] = []
+    page.context().on('request', (r) => {
+      const u = new URL(r.url())
+      if (/^https?:$/.test(u.protocol) && u.host !== app) deFora.push(r.url())
+    })
+    await page.goto('/leitor')
+    await expect(page.getByTestId('estante')).toBeVisible({ timeout: 30_000 })
+    /* Só conta o que vem DEPOIS de abrir o livro: o app em si pode buscar modelos e glosas. */
+    deFora.length = 0
+    await page.getByTestId('abrir-arquivo').setInputFiles(path.resolve('tests', 'fixtures', 'livros', 'remoto.epub'))
+    await expect(page.locator('[data-testid=leitor][data-estado=pronto]')).toBeVisible({ timeout: 30_000 })
+    await fecharSobreposicoes(page)
+    let capitulo = page.frames().find((f) => f.url().startsWith('blob:'))
+    await expect(async () => {
+      capitulo = page.frames().find((f) => f.url().startsWith('blob:'))
+      await expect(capitulo!.getByText('must not call anyone outside')).toBeVisible({ timeout: 1000 })
+    }).toPass({ timeout: 15_000 })
+    // O recurso do próprio livro carrega (a limpeza não quebrou o que é interno).
+    await expect
+      .poll(() =>
+        capitulo!.evaluate(
+          () => (document.querySelector('img[alt=capa]') as HTMLImageElement | null)?.naturalWidth ?? 0,
+        ),
+      )
+      .toBe(1)
+    await page.waitForTimeout(1500)
+    expect(deFora.filter((u) => u.includes('rastreio.example'))).toEqual([])
+    expect(deFora).toEqual([])
+  })
+})

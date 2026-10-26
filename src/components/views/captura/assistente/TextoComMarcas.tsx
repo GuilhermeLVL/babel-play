@@ -2,6 +2,7 @@ import { type KeyboardEvent, memo, useMemo } from 'react';
 
 import type { MarcaNaLinha } from '../../../../core/assistente/telaDoAssistente';
 import { palavrasDoPedaco } from '../../../../lib/captura/trechosTocaveis';
+import type { Etiquetador } from '../../../../lib/etiquetas/indiceDeEtiquetas';
 import { rotuloDoNivel, rotuloDoTipo } from './copyDoAssistente';
 
 /** Um pedaço do texto com a posição dele na linha (para casar com as marcas, que vêm em posições). */
@@ -68,6 +69,9 @@ export const tituloDaMarca = (m: MarcaNaLinha) => (m.sentido ? `${m.texto}: ${m.
  * `interativa`: a primeira parte de cada marca vira um botão (ROVING: só a primeira marca da linha entra no Tab, ← →
  * andam entre elas, Enter abre). Sem ela (a linha da captura já é um botão, e botão dentro de botão não vale), o toque
  * é lido por quem envolve: `marcaDoAlvo(evento.target)`.
+ *
+ * `etiquetador`: as ETIQUETAS DE PALAVRAS (salva, aprendendo, nova para você) entram do mesmo jeito, como atributo
+ * (`data-etiqueta`) no pedaço-palavra — o corte é o mesmo, nenhum nó novo.
  */
 export const TextoComMarcas = memo(function TextoComMarcas({
   texto,
@@ -75,12 +79,14 @@ export const TextoComMarcas = memo(function TextoComMarcas({
   marcas,
   interativa = false,
   aoAbrir,
+  etiquetador,
 }: {
   texto: string;
   lang: string | undefined;
   marcas?: ReadonlyArray<MarcaNaLinha>;
   interativa?: boolean;
   aoAbrir?: (m: MarcaNaLinha) => void;
+  etiquetador?: Etiquetador | null;
 }) {
   const pedacos = useMemo(() => pedacosComPosicao(texto, lang), [texto, lang]);
   const lista = marcas ?? [];
@@ -105,7 +111,13 @@ export const TextoComMarcas = memo(function TextoComMarcas({
     <>
       {pedacos.map((p, i) => {
         const k = lista.length ? marcaDoPedaco(p, lista) : -1;
-        if (k < 0) return <span key={i}>{p.texto}</span>;
+        const etiqueta = etiquetador?.etiqueta(p.texto, lang);
+        if (k < 0)
+          return (
+            <span key={i} data-etiqueta={etiqueta}>
+              {p.texto}
+            </span>
+          );
         const m = lista[k];
         const comeco = !vistas.has(k);
         vistas.add(k);
@@ -117,6 +129,7 @@ export const TextoComMarcas = memo(function TextoComMarcas({
             key={i}
             className="asst-marca"
             data-marca={m.tipo}
+            data-etiqueta={etiqueta}
             data-marca-i={k}
             data-marca-foco={foco ? '' : undefined}
             title={tituloDaMarca(m)}

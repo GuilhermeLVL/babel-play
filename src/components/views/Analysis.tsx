@@ -5,6 +5,7 @@ import type { AppMetrics, UtteranceRow } from '../../data/api';
 import { fetchDeck, fetchSessionTranscript, fetchSettings } from '../../data/api';
 import { applyOutputDevice } from '../../lib/audioDevices';
 import { MIN_FALAS_DO_RESUMO } from '../../lib/estudo/constantes';
+import { useEtiquetador } from '../../lib/etiquetas/indiceDeEtiquetas';
 import { useLangConfig } from '../../lib/langConfig';
 import { baseLang } from '../../lib/languages';
 import { lazyComRecarga } from '../../lib/lazyComRecarga';
@@ -243,6 +244,11 @@ export default function Analysis({
   /* As palavras que a pessoa já conhece no idioma estudado: na folha da frase, as outras saem marcadas
      como novas (`telas.js:211`). */
   const conhecidas = usePalavrasConhecidas(langConfig.studying, true);
+  /* AS ETIQUETAS DE PALAVRAS na transcrição e na folha da frase (as mesmas da legenda da captura). */
+  const etiquetador = useEtiquetador({
+    langDaPessoa: langConfig.mine,
+    idiomas: [sessionLangs?.src || langConfig.studying],
+  });
 
   // FRASES CANÔNICAS (`Sentence[]`) — fonte única, normalizada em `lib/sentences.ts`. É o que
   // viaja para o Study/exercícios. Sem transcrição real → lista vazia (nada é fabricado).
@@ -847,6 +853,8 @@ export default function Analysis({
           aoAbrirPalavra={abrirPalavra}
           escolhida={falaNaFolha?.id ?? null}
           ajustes={ajustesDeExibicao}
+          etiquetador={etiquetador}
+          idiomaDasFalas={sentences[0]?.lang || sessionLangs?.src || undefined}
         />
       )}
 
@@ -914,6 +922,7 @@ export default function Analysis({
               : undefined
           }
           guardada={palavraNoCaderno}
+          etiquetador={etiquetador}
           aoTocarPalavra={(palavra) =>
             falaNaFolha && setPalavraNaFolha({ palavra, frase: falaNaFolha.texto, lang: falaNaFolha.lang })
           }

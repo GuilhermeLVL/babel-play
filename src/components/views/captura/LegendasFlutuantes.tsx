@@ -1,6 +1,7 @@
 import '../../../styles/legendas.css';
 import '../../../styles/legendasFlutuantes.css';
 import '../../../styles/assistenteAoVivo.css';
+import '../../../styles/etiquetas.css';
 
 import { ArrowDown, AudioLines, Info, MessageCircleReply, MousePointerClick, X } from 'lucide-react';
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -14,6 +15,7 @@ import {
   type Tamanho,
   tamanhoDaLetra,
 } from '../../../core/legendas/janelaFlutuante';
+import { etiquetasNoLayout } from '../../../core/vocabulario/etiquetas';
 import { fetchSettings, patchUiSettings } from '../../../data/api';
 import { dispensarAvisoDoIdioma, useAvisoDoIdiomaDispensado } from '../../../lib/assistente/avisoDoIdioma';
 import {
@@ -30,6 +32,7 @@ import {
   lerEstiloDeLegenda,
   resolverEstiloDeLegenda,
 } from '../../../lib/estilosDeLegenda';
+import type { Etiquetador } from '../../../lib/etiquetas/indiceDeEtiquetas';
 import { t, tp } from '../../../lib/i18n';
 import { toast } from '../../Toast';
 import {
@@ -158,6 +161,7 @@ export default function LegendasFlutuantes({
   abaInicial,
   assistente,
   aoMudarPausa,
+  etiquetador,
 }: {
   /** As últimas falas da captura, em ordem. A janela decide quais e quando aparecem. */
   falas: LegendaAoVivo[];
@@ -186,6 +190,8 @@ export default function LegendasFlutuantes({
   assistente?: AssistenteDaJanela;
   /** A janela parou (pausada, escondida, recolhida): quem gasta chamadas automáticas espera. */
   aoMudarPausa?: (parada: boolean) => void;
+  /** As ETIQUETAS DE PALAVRAS da captura (`lib/etiquetas`): `null`/ausente = desligadas. */
+  etiquetador?: Etiquetador | null;
 }) {
   const [ap, setAp] = useState<Aparencia>(lerAparencia);
   /* O formato SUGERIDO vale só nesta abertura: não sobrescreve o modo guardado. Quando a pessoa
@@ -313,6 +319,8 @@ export default function LegendasFlutuantes({
   const doAssistente = assistenteNoLayout(layout);
   const podeResponder = !!assistente?.recursos.comoRespondo && doAssistente.comoRespondo && !recolhido;
   const modoDoLayout = MODO_DO_LAYOUT[layout];
+  /* A Faixa (jogo) fica com as tintas e perde o ponto "nova para você". */
+  const etiquetasDaJanela = etiquetasNoLayout(layout).nova ? etiquetador : etiquetador?.semNova();
   const quantasAVista = falasAVista(layout, tamanho, ap.visiveis);
   /* Fora da PiP a letra é a do protótipo (`--leg-tam`); dentro, acompanha a largura da janela. */
   const letraPx = tamanho ? tamanhoDaLetra(layout, tamanho.largura, ap.tam / 100) : null;
@@ -606,6 +614,7 @@ export default function LegendasFlutuantes({
           marcasSutis={doAssistente.marcasSutis}
           aoTocarMarca={assistente ? tocarMarca : undefined}
           correcao={doAssistente.correcao ? assistente?.correcoes.get(id) : undefined}
+          etiquetador={etiquetasDaJanela}
         />
       );
     })

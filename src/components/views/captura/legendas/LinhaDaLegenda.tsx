@@ -1,10 +1,13 @@
 import { BookmarkPlus, Copy, Languages, Snail, Sparkles, Volume2 } from 'lucide-react';
-import { Fragment, memo, type MouseEvent, type ReactNode } from 'react';
+import { Fragment, memo, type MouseEvent, type ReactNode, useMemo } from 'react';
 
 import type { MarcaNaLinha } from '../../../../core/assistente/telaDoAssistente';
+import { resumoDasEtiquetas } from '../../../../core/vocabulario/etiquetas';
 import type { CorrecaoDaFala } from '../../../../data/apiDoAssistente';
 import { palavrasDoPedaco } from '../../../../lib/captura/trechosTocaveis';
 import { pedacosDaLegenda } from '../../../../lib/estilosDeLegenda';
+import type { Etiquetador } from '../../../../lib/etiquetas/indiceDeEtiquetas';
+import { descricaoDaLinha } from '../../../../lib/etiquetas/rotulos';
 import { t } from '../../../../lib/i18n';
 import { direcaoDoTexto } from '../../../../lib/languages';
 import { rotuloDoNivel, rotuloDoTipo } from '../assistente/copyDoAssistente';
@@ -45,12 +48,15 @@ function Palavras({
   aprendidas,
   marcas,
   aoTocarMarca,
+  etiquetador,
 }: {
   texto: string;
   lang: string;
   aprendidas?: ReadonlySet<string>;
   marcas?: ReadonlyArray<MarcaNaLinha>;
   aoTocarMarca?: (m: MarcaNaLinha) => void;
+  /** As ETIQUETAS DE PALAVRAS: só atributo (`data-etiqueta`) no `span[data-palavra]`. */
+  etiquetador?: Etiquetador | null;
 }) {
   const marcadas = new Set(
     pedacosDaLegenda(texto, aprendidas)
@@ -62,7 +68,12 @@ function Palavras({
     const palavra = limparPalavra(p);
     if (!palavra) return p;
     return (
-      <span key={i} data-palavra={palavra} data-aprendida={aprendida ? '' : undefined}>
+      <span
+        key={i}
+        data-palavra={palavra}
+        data-aprendida={aprendida ? '' : undefined}
+        data-etiqueta={etiquetador?.etiqueta(palavra, lang)}
+      >
         {p}
       </span>
     );
@@ -163,6 +174,7 @@ function LinhaDaLegenda({
   marcasSutis = false,
   aoTocarMarca,
   correcao,
+  etiquetador,
 }: {
   fala: LegendaAoVivo;
   modo: Modo;
@@ -186,6 +198,8 @@ function LinhaDaLegenda({
   aoTocarMarca?: (marca: MarcaNaLinha, fala: LegendaAoVivo) => void;
   /** A correção gentil da própria fala (opt-in). Só aparece quando há o que melhorar. */
   correcao?: CorrecaoDaFala;
+  /** As ETIQUETAS DE PALAVRAS (na Faixa, já sem o ponto "nova para você"). */
+  etiquetador?: Etiquetador | null;
 }) {
   const tocar = (e: MouseEvent<HTMLElement>) => {
     const alvo = (e.target as HTMLElement).closest<HTMLElement>('[data-palavra]');
@@ -202,12 +216,23 @@ function LinhaDaLegenda({
         }
       : undefined;
   const classeDoLado = modo === 'conversa' ? (fala.lado === 'eles' ? 'eles' : 'eles b') : '';
+  /* O resumo das etiquetas da fala, como DESCRIÇÃO (atributo): a região viva da janela não o anuncia. */
+  const descricao = useMemo(() => {
+    if (!etiquetador) return undefined;
+    const lang = fala.lang ?? '';
+    const palavras = fala.original
+      .split(/\s+/)
+      .flatMap((p) => palavrasDoPedaco(p, lang))
+      .map(limparPalavra);
+    return descricaoDaLinha(resumoDasEtiquetas(palavras.map((p) => [p, etiquetador.etiqueta(p, lang)] as const)));
+  }, [etiquetador, fala.original, fala.lang]);
 
   return (
     <div
       data-fala={fala.id}
       className={`leg-fala ${classeDoLado} ${emFoco ? 'atual' : 'anterior'}${marcasSutis ? ' marcas-sutis' : ''}`}
       aria-current={emFoco ? 'true' : undefined}
+      aria-description={descricao}
       onClick={tocarNaFala}
     >
       {modo === 'conversa' && <span className="leg-quem">{fala.quem}</span>}
@@ -226,6 +251,7 @@ function LinhaDaLegenda({
             aprendidas={aprendidas}
             marcas={marcas}
             aoTocarMarca={aoTocarMarca ? (m) => aoTocarMarca(m, fala) : undefined}
+            etiquetador={etiquetador}
           />
         </span>
       )}

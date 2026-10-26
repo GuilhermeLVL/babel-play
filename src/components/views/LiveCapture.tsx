@@ -32,6 +32,7 @@ import { configDoReguladorPara } from '../../core/harness/reguladorDeDesempenho'
 import type { MotivoDaOfertaDeAlivio, SinaisDoAparelhoParaAlivio } from '../../core/nuvemDeAlivio';
 import type { DecisaoDeRota } from '../../core/rota/politicaDeRota';
 import { estadoDoTeto } from '../../core/tetoAnonimo';
+import { chaveDaPalavra as chaveDoNucleo } from '../../core/texto/palavra';
 import { FLAG_VOZ_NATURAL } from '../../core/vozNatural';
 import { deleteSession, fetchSessionTranscript, fetchSettings, patchUiSettings } from '../../data/api';
 import { buildGateway } from '../../gateway';
@@ -157,6 +158,12 @@ import { useSondaGuardada } from '../../lib/dispositivo/useSondaGuardada';
 import { edicaoEstatica } from '../../lib/edicaoEstatica';
 import { getEntitlements } from '../../lib/entitlements';
 import { consentiuNuvemNaFala, EVENTO_DO_PROCESSAMENTO } from '../../lib/escolhaDoProcessamento';
+import {
+  estaNoCaderno,
+  marcarSalva,
+  useEtiquetador,
+  useSnapshotDasEtiquetas,
+} from '../../lib/etiquetas/indiceDeEtiquetas';
 import { marcarOcupacaoDaCaptura } from '../../lib/filaDeRecompensas';
 import { flagLigada } from '../../lib/flagsCache';
 import { t } from '../../lib/i18n';
@@ -2093,6 +2100,16 @@ export default function LiveCapture({
   const [addedWords, setAddedWords] = useState<string[]>([]);
   /* As palavras do caderno que já saíram de "nova" no FSRS: o estilo de legenda as destaca. */
   const aprendidas = usePalavrasAprendidas();
+  /* AS ETIQUETAS DE PALAVRAS (`lib/etiquetas`): o caderno (salva, aprendendo) e o ponto "nova para você". As linhas
+     estão no idioma do conteúdo (no microfone, no seu: lá nada é "novo"). A palavra fichada agora já pinta. */
+  const etiquetador = useEtiquetador({
+    langDaPessoa: sourceLang,
+    idiomas: [captureScenario === 'mic' ? sourceLang : targetLang],
+  });
+  const caderno = useSnapshotDasEtiquetas();
+  useEffect(() => {
+    for (const w of addedWords) marcarSalva(w);
+  }, [addedWords]);
 
   /* O VOCABULÁRIO DA CAPTURA (examinar, fichar no deck, mandar praticar) mora em
      `lib/captura/palavraDaFala.ts`. Fábrica por render, como as closures que substituiu. */
@@ -3070,6 +3087,8 @@ export default function LiveCapture({
     langQueAprende: targetLang,
     semente: geracaoDasFalas,
     praticando,
+    /* O mesmo idioma padrão da legenda da página: a fala sem `lang` ganha as marcas de nível do idioma certo. */
+    idiomaPadrao: captureScenario === 'mic' ? sourceLang : targetLang,
   });
   const doAssistente = assistente.pagina;
   /* A prática na tela: só com a flag do assistente (sem ela, nada dele aparece) e com um idioma a praticar. No Grátis e no
@@ -3139,6 +3158,7 @@ export default function LiveCapture({
       superficie: superficieCompartilhada(),
     }),
     aprendidas,
+    etiquetador,
     aoRevelarTraducao: revelarNaConversa,
     aoConsultarPalavra: consultarNaLegenda,
     aoOuvir: ouvirNaLegenda,
@@ -3295,9 +3315,13 @@ export default function LiveCapture({
     }
     sentir('aba');
   };
+  /* "Guardada" = está no caderno, em QUALQUER estado (a nova também), ou acabou de ser fichada. A chave é a do núcleo. */
   const palavraGuardada = (palavra: string) => {
-    const p = palavra.toLocaleLowerCase();
-    return aprendidas.has(p) || addedWords.some((w) => w.toLocaleLowerCase() === p);
+    const k = chaveDoNucleo(palavra);
+    return (
+      estaNoCaderno(caderno, palavra, palavraTocada?.lang ?? falaTocada?.lang) ||
+      addedWords.some((w) => chaveDoNucleo(w) === k)
+    );
   };
   const parPorExtenso = `${parResumido.auto ? t('Detectar') : langLabel(parResumido.de)} → ${langLabel(parResumido.para)}`;
   /* O SELO DA FALA: o previsto da política até a primeira fala; depois, o motor que atendeu a última
@@ -3416,6 +3440,7 @@ export default function LiveCapture({
             aoTocar={tocarFala}
             escolhida={falaTocada?.id ?? null}
             assistente={legendaDoAssistente}
+            etiquetador={etiquetador}
             aoOuvir={(fala, lang) =>
               temAudioDaFala(fala.id) ? tocarAudioDaFala(fala.id) : ouvirNaLegenda(fala.originalText, lang, false)
             }
@@ -3436,6 +3461,8 @@ export default function LiveCapture({
           semPratica={noQuest || interpreteAberto}
           ehNova={falaTocada ? ehNovaNoCelular(falaTocada.lang) : undefined}
           guardada={palavraGuardada}
+          etiquetador={etiquetador}
+          novaAba={isRecording || flutuante.aberta}
           aoPraticar={praticarNoCelular}
           aoTocarPalavra={(palavra) => {
             if (!falaTocada) return;

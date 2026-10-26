@@ -1,5 +1,5 @@
 import { BookmarkPlus, Volume2, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 
 import { t } from '../../../../lib/i18n';
 
@@ -15,6 +15,9 @@ export interface PalavraTocada {
    */
   realce?: { tipo: 'expressao' | 'termo' | 'nivel'; sentido?: string; rotulo: string };
 }
+
+/* O histórico da palavra (onde apareceu, jogos, nota) só baixa quando um cartão abre. */
+const HistoricoDaPalavra = lazy(() => import('../../../vocab/HistoricoDaPalavra'));
 
 /** Sem resposta nisto (MT fora, rede lenta), o cartão diz "sem tradução" em vez de esperar para sempre. */
 const PACIENCIA_MS = 8000;
@@ -139,6 +142,10 @@ export default function CartaoDaPalavra({
           {status}
         </p>
       )}
+      {/* Na janela flutuante a captura está rodando: o link da sessão abre em nova aba. */}
+      <Suspense fallback={null}>
+        <HistoricoDaPalavra palavra={alvo.palavra} lang={alvo.lang} novaAba />
+      </Suspense>
     </div>
   );
 }

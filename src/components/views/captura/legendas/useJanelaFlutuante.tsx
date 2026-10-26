@@ -6,6 +6,7 @@ import {
   formatoSugerido,
   tamanhoParaAbrir,
 } from '../../../../core/legendas/janelaFlutuante';
+import type { Etiquetador } from '../../../../lib/etiquetas/indiceDeEtiquetas';
 import { t } from '../../../../lib/i18n';
 import {
   abrirJanelaDocumento,
@@ -61,6 +62,8 @@ interface Opcoes {
   /** Lido na hora de abrir: é dele que sai o formato sugerido. */
   contexto: () => ContextoDaCaptura;
   aprendidas?: ReadonlySet<string>;
+  /** As ETIQUETAS DE PALAVRAS (as mesmas da legenda da página). */
+  etiquetador?: Etiquetador | null;
   aoRevelarTraducao?: (id: string) => void;
   aoConsultarPalavra?: (palavra: string, frase: string, lang?: string) => Promise<{ traducao: string }>;
   aoOuvir?: (texto: string, lang: string | undefined, lenta: boolean) => void;
@@ -321,6 +324,7 @@ export function useJanelaFlutuante(o: Opcoes) {
             aoTrocarFormato={trocarFormato}
             falas={o.falas}
             aprendidas={o.aprendidas}
+            etiquetador={o.etiquetador}
             aoRevelarTraducao={o.aoRevelarTraducao}
             aoConsultarPalavra={o.aoConsultarPalavra}
             aoOuvir={o.aoOuvir}

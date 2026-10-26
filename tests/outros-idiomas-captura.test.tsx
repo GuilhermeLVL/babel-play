@@ -20,6 +20,7 @@ import FolhasDoPrototipo from '../src/components/views/captura/celular/FolhasDoP
 import LegendaFlutuanteDoPrototipo from '../src/components/views/captura/legendas/LegendaFlutuanteDoPrototipo'
 import LinhaDaLegenda, { type LegendaAoVivo } from '../src/components/views/captura/legendas/LinhaDaLegenda'
 import HistoricoDoPrototipo from '../src/components/views/captura/quest/HistoricoDoPrototipo'
+import { chaveDaPalavra } from '../src/core/texto/palavra'
 import type { SpeechSegment } from '../src/lib/captura/tiposDaFala'
 import { palavrasDoPedaco } from '../src/lib/captura/trechosTocaveis'
 import { prepararDialogoNoJsdom } from './_dialogoNoJsdom'
@@ -156,9 +157,12 @@ describe('LinhaDaLegenda: as palavras tocáveis da janelinha', () => {
     return { aoTocarPalavra, original }
   }
 
-  /** A marcação de antes desta mudança: um `span[data-palavra]` por pedaço entre espaços. */
+  /**
+   * A marcação de antes desta mudança: um `span[data-palavra]` por pedaço entre espaços. A chave da aprendida é a do
+   * núcleo desde as etiquetas de palavras (sem acento, sem hífen): a mesma que `palavrasAprendidas` grava no conjunto.
+   */
   function deAntes(texto: string, aprendidas: ReadonlySet<string> = new Set()) {
-    const chave = (p: string) => p.replace(/[,.:;?!¿¡"“”'’()[\]]/g, '').toLowerCase()
+    const chave = chaveDaPalavra
     return texto
       .split(/(\s+)/)
       .map((p) => ({ p, palavra: p.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '') }))
@@ -174,8 +178,8 @@ describe('LinhaDaLegenda: as palavras tocáveis da janelinha', () => {
     }))
 
   it.each([
-    ['inglês', INGLES, 'en-US', new Set(['well-known', 'today'])],
-    ['português', PORTUGUES, 'pt-BR', new Set(['guarda-chuva', 'olá'])],
+    ['inglês', INGLES, 'en-US', new Set(['well-known', 'today'].map(chaveDaPalavra))],
+    ['português', PORTUGUES, 'pt-BR', new Set(['guarda-chuva', 'olá'].map(chaveDaPalavra))],
     ['inglês sem palavra aprendida', INGLES, 'en', undefined],
     ['sem idioma declarado', INGLES, undefined, undefined],
   ])('%s: os mesmos pedaços, a mesma pontuação colada e a mesma marcação de aprendida', (_n, texto, lang, apr) => {

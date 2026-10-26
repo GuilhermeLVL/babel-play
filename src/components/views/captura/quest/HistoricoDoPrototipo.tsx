@@ -1,7 +1,10 @@
+import '../../../../styles/etiquetas.css';
+
 import { ArrowDown, Ellipsis, Square, Volume2 } from 'lucide-react';
-import { memo, useEffect, useLayoutEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
+import { memo, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 
 import type { MarcaNaLinha } from '../../../../core/assistente/telaDoAssistente';
+import { type Etiqueta, resumoDasEtiquetas } from '../../../../core/vocabulario/etiquetas';
 import type { CorrecaoDaFala } from '../../../../data/apiDoAssistente';
 import { aoMudarAudioDasFalas, falaTocando } from '../../../../lib/captura/audioDasFalas';
 import { agruparEmBlocos, blocosDasFalas } from '../../../../lib/captura/blocosDasFalas';
@@ -17,6 +20,8 @@ import {
 import type { SpeechSegment } from '../../../../lib/captura/tiposDaFala';
 import { traducaoNaLegenda } from '../../../../lib/captura/traducaoDaFala';
 import { palavrasDoPedaco } from '../../../../lib/captura/trechosTocaveis';
+import type { Etiquetador } from '../../../../lib/etiquetas/indiceDeEtiquetas';
+import { descricaoDaLinha } from '../../../../lib/etiquetas/rotulos';
 import { t } from '../../../../lib/i18n';
 import { direcaoDoTexto } from '../../../../lib/languages';
 import {
@@ -59,12 +64,15 @@ function Palavra({
   anima,
   marca,
   indice,
+  etiqueta,
 }: {
   texto: string;
   anima: boolean;
   /** A marca do assistente que cai nesta palavra (Fase C3): só atributos, a palavra é a mesma. */
   marca?: MarcaNaLinha;
   indice?: number;
+  /** A etiqueta da palavra (salva, aprendendo, nova para você): também só atributo. */
+  etiqueta?: Etiqueta;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
@@ -77,6 +85,7 @@ function Palavra({
       className={marca ? 'asst-marca' : undefined}
       data-marca={marca?.tipo}
       data-marca-i={marca ? indice : undefined}
+      data-etiqueta={etiqueta}
       title={marca ? tituloDaMarca(marca) : undefined}
     >
       {texto}
@@ -129,6 +138,7 @@ const Linha = memo(function Linha({
   marcas,
   correcao,
   aoTocarMarca,
+  etiquetador,
 }: {
   id: string;
   hora: string;
@@ -160,6 +170,8 @@ const Linha = memo(function Linha({
   correcao?: CorrecaoDaFala;
   /** Tocou numa palavra marcada: abre o cartão da palavra com o sentido. */
   aoTocarMarca?: (id: string, marca: MarcaNaLinha) => void;
+  /** As ETIQUETAS DE PALAVRAS (a mesma identidade enquanto o caderno e os ajustes não mudam: o `memo` segura). */
+  etiquetador?: Etiquetador | null;
 }) {
   const linha = useRef<HTMLDivElement>(null);
   const alvo = useRef<HTMLSpanElement>(null);
@@ -182,6 +194,18 @@ const Linha = memo(function Linha({
       return partes.map((p, i) => (i === partes.length - 1 ? `${p} ` : p));
     });
   const indicesDasMarcas = marcasDasPalavras(original, palavras, marcas);
+  /* A etiqueta de cada palavra e o resumo da linha (a `aria-description` do botão: atributo, a região viva não o lê). */
+  const etiquetas = useMemo(
+    () => (etiquetador ? palavras.map((p) => etiquetador.etiqueta(p, lang)) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `palavras` sai de `original` e `lang`
+    [original, lang, etiquetador],
+  );
+  const descricao = useMemo(
+    () =>
+      etiquetas ? descricaoDaLinha(resumoDasEtiquetas(palavras.map((p, i) => [p, etiquetas[i]] as const))) : undefined,
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `palavras` sai de `original` e `lang`
+    [etiquetas],
+  );
   /* A fala abriu e nada chegou ainda: a linha de escuta. */
   const ouvindo = !mostrada && !traducao && palavras.length === 0;
   const aindaOuvindo = useRef(ouvindo);
@@ -244,6 +268,7 @@ const Linha = memo(function Linha({
         className="q-fala"
         aria-disabled={ouvindo || undefined}
         aria-current={escolhida ? 'true' : undefined}
+        aria-description={descricao}
         data-frase-escolhida={escolhida ? '' : undefined}
         onClick={(e) => {
           if (ouvindo) return;
@@ -257,7 +282,11 @@ const Linha = memo(function Linha({
         </span>
         {mostrada && original && (
           <span className="q-o" lang={lang} dir={direcaoDoTexto(lang)} ref={pequena}>
-            {comMarcas ? <TextoComMarcas texto={original} lang={lang} marcas={marcas} /> : original}
+            {comMarcas || etiquetador ? (
+              <TextoComMarcas texto={original} lang={lang} marcas={marcas} etiquetador={etiquetador} />
+            ) : (
+              original
+            )}
           </span>
         )}
         {mostrada ? (
@@ -280,7 +309,16 @@ const Linha = memo(function Linha({
           <span className="q-t" lang={lang} dir={direcaoDoTexto(lang)} ref={alvo}>
             {palavras.map((p, i) => {
               const k = indicesDasMarcas?.[i] ?? -1;
-              return <Palavra key={i} texto={p} anima={nova} marca={k >= 0 ? marcas?.[k] : undefined} indice={k} />;
+              return (
+                <Palavra
+                  key={i}
+                  texto={p}
+                  anima={nova}
+                  marca={k >= 0 ? marcas?.[k] : undefined}
+                  indice={k}
+                  etiqueta={etiquetas?.[i]}
+                />
+              );
             })}
           </span>
         )}
@@ -392,6 +430,7 @@ export default function HistoricoDoPrototipo({
   aoPararAudio,
   escolhida,
   assistente,
+  etiquetador,
 }: {
   falas: readonly SpeechSegment[];
   /** Multiplicador do tamanho do texto (0,75 a 2), escolhido na faixa. */
@@ -412,6 +451,8 @@ export default function HistoricoDoPrototipo({
    * `title` e no cartão da palavra), a correção da própria fala. A instância é a mesma da janela flutuante.
    */
   assistente?: AssistenteNaLegenda;
+  /** As ETIQUETAS DE PALAVRAS (`lib/etiquetas`): `null`/ausente = desligadas. */
+  etiquetador?: Etiquetador | null;
 }) {
   /* "…" é só o marcador de tradução a caminho: sozinho, não é texto para mostrar (e enquanto a do
      final não chega, fica a parcial que a linha já tinha: `traducaoNaLegenda`). */
@@ -805,6 +846,7 @@ export default function HistoricoDoPrototipo({
                     marcas={assistente?.marcas.get(fala.id)}
                     correcao={assistente?.correcoes.get(fala.id)}
                     aoTocarMarca={assistente?.aoTocarMarca ? fixos.tocarMarca : undefined}
+                    etiquetador={etiquetador}
                   />
                 );
               })}

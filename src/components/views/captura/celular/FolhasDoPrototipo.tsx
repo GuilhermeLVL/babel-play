@@ -1,6 +1,7 @@
 /* A folha traz o próprio CSS: ela abre também na Sessão, sem passar por Capturar. */
 import '../../../../styles/capturaNoCelular.css';
 import '../../../../styles/polimentoCaptura.css';
+import '../../../../styles/etiquetas.css';
 
 import {
   ArrowLeft,
@@ -20,6 +21,8 @@ import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 're
 import type { MarcaNaLinha } from '../../../../core/assistente/telaDoAssistente';
 import type { CorrecaoDaFala } from '../../../../data/apiDoAssistente';
 import { type DictionaryResult, lookup } from '../../../../lib/dictionary';
+import type { Etiquetador } from '../../../../lib/etiquetas/indiceDeEtiquetas';
+import { rotuloDaEtiqueta } from '../../../../lib/etiquetas/rotulos';
 import { t } from '../../../../lib/i18n';
 import { direcaoDoTexto } from '../../../../lib/languages';
 import { comNomeDoPlano, planoDeEntradaAgora } from '../../../../lib/planoDeEntrada';
@@ -35,6 +38,7 @@ import PainelDaFrase, { useModoDoPainel } from './PainelDaFrase';
 
 const SombraDaFala = lazy(() => import('../../analise/SombraDaFala'));
 const NuanceDaFrase = lazy(() => import('../nuance/NuanceDaFrase'));
+const HistoricoDaPalavra = lazy(() => import('../../../vocab/HistoricoDaPalavra'));
 
 /** Sem resposta nisto (MT fora, rede lenta), a folha diz "sem tradução" em vez de esperar para sempre. */
 const PACIENCIA_MS = 8000;
@@ -59,6 +63,7 @@ function CorpoDaFrase({
   aoPraticar,
   nuance,
   assistente,
+  etiquetador,
 }: {
   fala: FalaTocada;
   aoOuvir: (texto: string, lang: string, lenta: boolean) => void;
@@ -73,6 +78,8 @@ function CorpoDaFrase({
   aoPraticar?: () => void;
   nuance?: NuanceNaFolhaDaFrase;
   assistente?: AssistenteNaFolha;
+  /** As ETIQUETAS DE PALAVRAS nos botões de palavra (`data-etiqueta` e a `aria-description`). */
+  etiquetador?: Etiquetador | null;
 }) {
   const [praticando, setPraticando] = useState(false);
   const palavras = palavrasDaFrase(fala.texto, fala.lang);
@@ -253,6 +260,7 @@ function CorpoDaFrase({
           <div className="folha-palavras" dir={direcaoDoTexto(fala.lang)}>
             {palavras.map((p) => {
               const ja = !!guardada?.(p);
+              const etiqueta = etiquetador?.etiqueta(p, fala.lang);
               return (
                 <button
                   key={p}
@@ -261,6 +269,8 @@ function CorpoDaFrase({
                   dir={direcaoDoTexto(fala.lang)}
                   data-nova={!ja && ehNova?.(p) ? '' : undefined}
                   data-aprendida={ja ? '' : undefined}
+                  data-etiqueta={etiqueta}
+                  aria-description={etiqueta && etiqueta !== 'dominada' ? rotuloDaEtiqueta(etiqueta) : undefined}
                   onClick={() => aoTocarPalavra(p)}
                 >
                   {p}
@@ -293,6 +303,7 @@ function CorpoDaPalavra({
   aoVoltar,
   aoPraticar,
   semPratica = false,
+  novaAba = false,
 }: {
   palavra: string;
   frase: string;
@@ -305,6 +316,8 @@ function CorpoDaPalavra({
   aoVoltar?: () => void;
   aoPraticar?: () => void;
   semPratica?: boolean;
+  /** Os links do histórico abrem em nova aba (a captura não pode sair da tela). */
+  novaAba?: boolean;
 }) {
   const [glosa, setGlosa] = useState<string | null>(null);
   const [verbete, setVerbete] = useState<DictionaryResult | null>(null);
@@ -436,6 +449,9 @@ function CorpoDaPalavra({
           <SombraDaFala texto={palavra} idioma={lang} aoOuvirOriginal={() => aoOuvir(palavra, lang, false)} />
         </Suspense>
       )}
+      <Suspense fallback={null}>
+        <HistoricoDaPalavra palavra={palavra} lang={lang} novaAba={novaAba} />
+      </Suspense>
     </>
   );
 }
@@ -493,6 +509,8 @@ export default function FolhasDoPrototipo({
   nuance,
   modal = false,
   assistente,
+  etiquetador,
+  novaAba = false,
 }: {
   /** A fala tocada; ausente quando a palavra não veio de uma frase. */
   fala: FalaTocada | null;
@@ -515,6 +533,10 @@ export default function FolhasDoPrototipo({
   modal?: boolean;
   /** O assistente ao vivo na folha da frase: os destaques, a correção e o "Como respondo?" (Fase C3). */
   assistente?: AssistenteNaFolha;
+  /** As ETIQUETAS DE PALAVRAS nas palavras da frase. */
+  etiquetador?: Etiquetador | null;
+  /** O histórico da palavra abre a sessão em nova aba (na captura). */
+  novaAba?: boolean;
 }) {
   const dialogo = useRef<HTMLDialogElement>(null);
   const doPainel = useRef<HTMLElement>(null);
@@ -552,6 +574,7 @@ export default function FolhasDoPrototipo({
       aoVoltar={aoVoltar}
       aoPraticar={aoPraticar}
       semPratica={semPratica}
+      novaAba={novaAba}
     />
   ) : (
     fala && (
@@ -568,6 +591,7 @@ export default function FolhasDoPrototipo({
         aoPraticar={aoPraticar}
         nuance={nuance}
         assistente={assistente}
+        etiquetador={etiquetador}
       />
     )
   );

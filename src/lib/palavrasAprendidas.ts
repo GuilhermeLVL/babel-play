@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 
+import { chaveDaPalavra } from '../core/texto/palavra';
 import { fetchDeck } from '../data/api';
 import type { VocabCard } from '../types';
-import { chaveDaPalavra } from './estilosDeLegenda';
 import { estadoDoCartao } from './pelesDeCartao';
 
 /**

@@ -1,0 +1,168 @@
+/*
+ * AS ETIQUETAS DE PALAVRAS (`core/vocabulario/etiquetas`, `lib/etiquetas/`) — a legenda da captura, a janela
+ * flutuante, a sessão da Biblioteca e a folha da frase.
+ *
+ * Só ATRIBUTO (`data-etiqueta`): a palavra é o mesmo nó de antes, nada novo para a região `aria-live` anunciar.
+ *   - `salva` e `aprendendo`: um tom de fundo, dois tons distintos (o do acento e o "raro"), raio pequeno, quebrando
+ *     junto com a palavra (`box-decoration-break`). O texto continua na cor dele: o tom é claro o bastante para o
+ *     contraste ficar AA nos dois temas (medido em `scripts/etiquetas/contraste.mjs`);
+ *   - `dominada`: nada (a palavra que a pessoa já sabe não pede atenção);
+ *   - `nova-para-voce`: um PONTO no alto da palavra (forma, não só cor), fora do fluxo: chegar não empurra o texto.
+ * O fio pontilhado das marcas do assistente (`text-decoration`) convive com o fundo.
+ */
+:root {
+  --etq-salva: color-mix(in srgb, var(--accent, #f04e23) 17%, transparent);
+  --etq-aprendendo: color-mix(in srgb, var(--rare, #5b5ea6) 19%, transparent);
+  --etq-ponto: var(--accent, #f04e23);
+}
+.dark {
+  --etq-salva: color-mix(in srgb, var(--accent, #ff6b3d) 26%, transparent);
+  --etq-aprendendo: color-mix(in srgb, var(--rare, #9195e6) 28%, transparent);
+  --etq-ponto: var(--accent, #ff6b3d);
+}
+/* A janela flutuante tem o fundo dela (escuro, preto ou claro), que não segue o tema do app. */
+.leg-flut[data-fundo] {
+  --etq-salva: rgba(255, 140, 90, 0.28);
+  --etq-aprendendo: rgba(150, 155, 240, 0.3);
+  --etq-ponto: #ff8c5a;
+}
+.leg-flut[data-fundo='claro'] {
+  --etq-salva: rgba(240, 78, 35, 0.16);
+  --etq-aprendendo: rgba(91, 94, 166, 0.18);
+  --etq-ponto: #c63c14;
+}
+
+[data-etiqueta='salva'],
+[data-etiqueta='aprendendo'] {
+  border-radius: 0.22em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  /* Um respiro de cada lado sem mexer no espaçamento da frase (a sombra não ocupa lugar). */
+  box-shadow: 0 0 0 0.08em var(--etq-fundo);
+  background: var(--etq-fundo);
+}
+[data-etiqueta='salva'] {
+  --etq-fundo: var(--etq-salva);
+}
+[data-etiqueta='aprendendo'] {
+  --etq-fundo: var(--etq-aprendendo);
+}
+[data-etiqueta='nova-para-voce'] {
+  position: relative;
+}
+[data-etiqueta='nova-para-voce']::after {
+  content: '';
+  position: absolute;
+  top: 0.02em;
+  inset-inline-end: -0.28em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--etq-ponto);
+  pointer-events: none;
+}
+/* Alto contraste do sistema: o fundo some, então a palavra guardada ganha um contorno e o ponto vira a cor do texto. */
+@media (forced-colors: active) {
+  [data-etiqueta='salva'],
+  [data-etiqueta='aprendendo'] {
+    outline: 1px solid CanvasText;
+  }
+  [data-etiqueta='aprendendo'] {
+    outline-style: dashed;
+  }
+  [data-etiqueta='nova-para-voce']::after {
+    background: CanvasText;
+  }
+}
+
+/* ── os filtros de "Palavras desta sessão" ── */
+.etq-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 0 10px;
+}
+.etq-filtros .q-aba[aria-pressed='true'] {
+  font-weight: 700;
+}
+.q-linha [data-etiqueta] {
+  padding-inline: 0.15em;
+}
+
+/* ── o histórico da palavra (o cartão da palavra) ── */
+.hist-palavra {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.hist-palavra h4 {
+  margin: 0 0 4px;
+  font: 600 11px var(--font-mono, monospace);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.leg-flut .hist-palavra h4 {
+  color: inherit;
+  opacity: 0.8;
+}
+.hist-palavra p {
+  margin: 0;
+}
+.hist-estado {
+  font-weight: 600;
+}
+.hist-onde {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hist-onde a {
+  color: inherit;
+  font-weight: 600;
+}
+.hist-onde small {
+  display: block;
+  opacity: 0.85;
+}
+.hist-onde q {
+  display: block;
+  font-style: italic;
+}
+.hist-jogos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hist-nota textarea {
+  width: 100%;
+  min-height: 64px;
+  box-sizing: border-box;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle, rgba(127, 127, 127, 0.4));
+  background: var(--surface, transparent);
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+}
+.leg-flut .hist-nota textarea {
+  background: rgba(127, 127, 127, 0.12);
+}
+.hist-nota-acoes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+}
+.hist-nota-acoes small {
+  opacity: 0.85;
+}

@@ -154,7 +154,11 @@ export function contarPalavras(s: string, lang?: string): number {
 export interface FalaDoAssistente {
   id: string;
   original: string;
-  lado: 'eles' | 'voce';
+  /**
+   * De quem é a fala. `incerto`: não dá para saber (o "assistir" só com o microfone, que ouve a TV e a pessoa juntas) —
+   * ela é tratada como a de outra pessoa e NUNCA vai à correção (a fala de terceiros não sai como "minha fala").
+   */
+  lado: 'eles' | 'voce' | 'incerto';
   lang?: string;
   parcial?: boolean;
 }
@@ -178,8 +182,8 @@ export const temChamada = (p: PlanoDeChamadas) => p.expressoes || p.termos.lengt
 /**
  * O que uma linha FINAL merece. Nada para parcial, linha vazia ou linha no idioma da própria pessoa (a ajuda é sobre o
  * idioma que ela aprende). A linha ganha expressões (≥ 4 palavras) e termos (só com sigla candidata local). A fala da
- * PRÓPRIA pessoa (microfone, `voce`) com a correção ligada (opt-in) ganha SÓ a correção. Sem ela, a linha do microfone
- * é tratada como qualquer outra: no "assistir" só com o microfone, quem fala ali é a TV, não a pessoa.
+ * PRÓPRIA pessoa (`voce`) com a correção ligada (opt-in) ganha SÓ a correção. Sem ela, a linha é tratada como qualquer
+ * outra. A fala de lado `incerto` (o "assistir" só com o microfone, onde quem fala é a TV) nunca ganha correção.
  */
 export function planejarChamadas(f: FalaDoAssistente, r: RecursosDoAssistente, langDaPessoa: string): PlanoDeChamadas {
   const texto = f.original.trim();

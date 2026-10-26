@@ -32,7 +32,13 @@ import {
   MOTOR_MUDO,
   vozDoQuestFala,
 } from '../../../../lib/voz/vozDoQuest';
-import ConversaDoPrototipo, { type FraseDaMetade, type MetadeDaConversa } from './ConversaDoPrototipo';
+import { ComoRespondoNaPagina } from '../assistente/AssistenteNaPagina';
+import type { AssistenteDaJanela } from '../assistente/useAssistenteAoVivo';
+import ConversaDoPrototipo, {
+  type AssistenteNaConversa,
+  type FraseDaMetade,
+  type MetadeDaConversa,
+} from './ConversaDoPrototipo';
 import { guardarModo, type ModoDaConversa, modoGuardado } from './modoDaConversa';
 
 /** A fala, no que a tela precisa. */
@@ -106,6 +112,8 @@ export default function ModoInterprete({
   aoEscolherIdiomas,
   aoConhecerOPremium,
   comVirtual = false,
+  assistente,
+  aoOuvirSugestao,
 }: {
   idiomas: IdiomasDoInterprete;
   falas: ReadonlyArray<FalaDoInterprete>;
@@ -139,6 +147,13 @@ export default function ModoInterprete({
   aoConhecerOPremium?: (() => void) | undefined;
   /** A conversa virtual existe neste aparelho; "Virtual" abre a folha dela. */
   comVirtual?: boolean;
+  /**
+   * O ASSISTENTE AO VIVO (Fase C3), a vista da página da instância da captura: marcas no que a outra pessoa diz,
+   * "Como respondo?" junto da última fala dela (e Alt+R) e a correção da própria fala (opt-in). Ausente = nada dele.
+   */
+  assistente?: AssistenteDaJanela;
+  /** "Ouvir" uma sugestão do "Como respondo?". */
+  aoOuvirSugestao?: (texto: string, lang: string | undefined, lenta: boolean) => void;
 }) {
   const idiomasRef = useRef(idiomas);
   idiomasRef.current = idiomas;
@@ -461,12 +476,12 @@ export default function ModoInterprete({
         const item = d.historico.itens[i];
         if (item.traduzindo) continue;
         frase = item.propria
-          ? { tipo: 'fala', texto: item.original, lang: d.direcao.fala, aoVivo: false }
+          ? { tipo: 'fala', texto: item.original, lang: d.direcao.fala, aoVivo: false, id: item.id }
           : {
               tipo: 'traducao',
               id: item.id,
               traducao: item.traducao.trim() ? item.traducao : item.original,
-              original: item.traducao.trim() ? item.original : '',
+              original: item.traducao.trim() ? item.original.trim() : '',
               lang: d.direcao.fala,
               langDoOriginal: direcaoDoOutro.fala,
             };
@@ -496,6 +511,38 @@ export default function ModoInterprete({
     };
   };
   const avisoDoCadeado = cadeado && automatico === 'premium';
+
+  /* O ASSISTENTE: "Como respondo?" responde à ÚLTIMA fala da outra pessoa (a metade e a lista mostram o botão nela). */
+  let responderA: string | undefined;
+  for (let i = tudo.itens.length - 1; i >= 0 && !responderA; i--)
+    if (donoDe(tudo.itens[i].lado) === 'outro') responderA = tudo.itens[i].id;
+  const pedirResposta = assistente?.recursos.comoRespondo ? assistente.pedirComoRespondo : undefined;
+  const naConversa: AssistenteNaConversa | undefined = assistente
+    ? {
+        marcas: assistente.marcas,
+        correcoes: assistente.correcoes,
+        ...(pedirResposta && responderA ? { responderA, aoComoRespondo: pedirResposta } : {}),
+        comAtalho: layout === 'computador',
+      }
+    : undefined;
+  /* Alt+R (Option+R no Mac), em todo aparelho com teclado: "Como respondo?" para a última fala da outra pessoa. */
+  const responderRef = useRef<(() => void) | null>(null);
+  responderRef.current = pedirResposta && responderA ? () => pedirResposta(responderA) : null;
+  useEffect(() => {
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
+      if (!e.altKey || e.ctrlKey || e.metaKey || e.repeat || e.code !== 'KeyR' || !responderRef.current) return;
+      /* Digitando (Option+R escreve "®" no Mac) ou com um diálogo por cima, o teclado é deles. */
+      const alvo = e.target as HTMLElement | null;
+      if (alvo?.closest?.('input,select,textarea,[contenteditable="true"]')) return;
+      if (document.querySelector('dialog[open]')) return;
+      e.preventDefault();
+      responderRef.current();
+    };
+    window.addEventListener('keydown', aoTeclar);
+    return () => window.removeEventListener('keydown', aoTeclar);
+  }, []);
+
   return (
     <ConversaDoPrototipo
       cima={metadeNova('outro')}
@@ -537,8 +584,9 @@ export default function ModoInterprete({
         bolhas: tudo.itens.map((item) => ({
           id: item.id,
           dono: donoDe(item.lado),
-          fala: item.original,
+          fala: item.original.trim(),
           traducao: item.traduzindo ? '…' : item.traducao,
+          lang: item.idioma || direcaoDoLado(item.lado, idiomasDaTela, atual.trocados).fala || undefined,
         })),
         aoAlternar: alternarTela,
         aoExportar: () => {
@@ -600,6 +648,9 @@ export default function ModoInterprete({
       emDialogo
       comTrilho
       fase={atual.fase}
-    />
+      assistente={naConversa}
+    >
+      {assistente && <ComoRespondoNaPagina assistente={assistente} aoOuvir={aoOuvirSugestao} />}
+    </ConversaDoPrototipo>
   );
 }

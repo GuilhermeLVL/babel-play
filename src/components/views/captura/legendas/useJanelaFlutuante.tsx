@@ -19,13 +19,21 @@ import { criarLegendaEmVideo, type LegendaEmVideo as Controlador } from '../../.
 import DocumentPiP from '../../../DocumentPiP';
 import { toast } from '../../../Toast';
 import AbaDoAssistente from '../assistente/AbaDoAssistente';
-import { useAssistenteAoVivo } from '../assistente/useAssistenteAoVivo';
+import type { AssistenteAoVivo } from '../assistente/useAssistenteAoVivo';
 import LegendasFlutuantes, { type AbaDaJanela } from '../LegendasFlutuantes';
 import LegendaEmVideo from './LegendaEmVideo';
 import LegendaFlutuanteDoPrototipo from './LegendaFlutuanteDoPrototipo';
 import type { LegendaAoVivo } from './LinhaDaLegenda';
 
 const SEM_PAUSA: { pausado: boolean; pelaJanela: boolean } = { pausado: false, pelaJanela: false };
+
+/** O que a instância do assistente precisa saber da janela: se está aberta, pausada e se é só leitura (PiP de vídeo). */
+export interface VistaDaJanela {
+  aberta: boolean;
+  pausado: boolean;
+  soLeitura: boolean;
+}
+export const JANELA_FECHADA: VistaDaJanela = Object.freeze({ aberta: false, pausado: false, soLeitura: false });
 
 /** Depois de redimensionar, espera a pessoa soltar a borda antes de guardar o tamanho. */
 const GUARDAR_TAMANHO_MS = 500;
@@ -58,8 +66,13 @@ interface Opcoes {
   aoOuvir?: (texto: string, lang: string | undefined, lenta: boolean) => void;
   aoSalvarPalavra?: (item: { palavra: string; frase?: string; lang?: string; traducao?: string }) => Promise<string>;
   idiomaDaTraducao?: (lang: string | undefined) => string | undefined;
-  /** O idioma da pessoa: o assistente ao vivo explica e traduz nele (e não ajuda nas falas nele). */
-  langDaPessoa?: string;
+  /**
+   * O ASSISTENTE AO VIVO (Fase C3): a instância é da CAPTURA (`LiveCapture`), dividida com a página — uma chamada por
+   * linha, um glossário. A janela só desenha a vista dela (`assistente.janela`). Ausente = sem assistente.
+   */
+  assistente?: AssistenteAoVivo;
+  /** A janela abriu, fechou, pausou: a instância do assistente acompanha (ela decide quando chamar). */
+  aoMudarVistaDoAssistente?: (vista: VistaDaJanela) => void;
 }
 
 /**
@@ -250,19 +263,25 @@ export function useJanelaFlutuante(o: Opcoes) {
     };
   }, [janela]);
 
-  /* ── O ASSISTENTE AO VIVO (Fase C2): na Document PiP inteiro; no PiP de vídeo, só a glosa desenhada. ── */
+  /* ── O ASSISTENTE AO VIVO (Fase C2/C3): na Document PiP inteiro; no PiP de vídeo, só a glosa desenhada. A instância
+     é da captura: aqui só se conta a ela como a janela está, e se desenha a vista da janela. ── */
   const [pausaDaJanela, setPausaDaJanela] = useState(false);
-  const assistente = useAssistenteAoVivo({
-    aberta: o.ativo && ((ativo === 'documento' && !!janela) || ativo === 'video'),
-    pausado: ativo === 'video' ? pausaDoVideo.pausado : pausaDaJanela,
-    falas: o.falas,
-    langDaPessoa: o.langDaPessoa || 'pt',
-    soLeitura: caminho === 'video',
-  });
-  const { janela: doAssistente, recursos: recursosDoAssistente, glossario, paradoPorCota } = assistente;
+  const vistaAberta = o.ativo && ((ativo === 'documento' && !!janela) || ativo === 'video');
+  const vistaPausada = ativo === 'video' ? pausaDoVideo.pausado : pausaDaJanela;
+  const soLeitura = caminho === 'video';
+  const aoMudarVista = useRef(o.aoMudarVistaDoAssistente);
+  aoMudarVista.current = o.aoMudarVistaDoAssistente;
+  useEffect(() => {
+    aoMudarVista.current?.({ aberta: vistaAberta, pausado: vistaPausada, soLeitura });
+  }, [vistaAberta, vistaPausada, soLeitura]);
+  const assistente = o.assistente;
+  const doAssistente = assistente?.janela;
+  const recursosDoAssistente = assistente?.recursos;
+  const glossario = assistente?.glossario;
+  const paradoPorCota = assistente?.paradoPorCota ?? null;
   const abasDoAssistente: AbaDaJanela[] | undefined = useMemo(
     () =>
-      recursosDoAssistente.algum
+      doAssistente && recursosDoAssistente?.algum && glossario
         ? [
             {
               id: 'assistente',
@@ -307,7 +326,7 @@ export function useJanelaFlutuante(o: Opcoes) {
             aoSalvarPalavra={o.aoSalvarPalavra}
             aoFechar={fechar}
             abasExtras={abasDoAssistente}
-            abaInicial={assistente.ajustes.abrirNaAba ? 'assistente' : undefined}
+            abaInicial={assistente?.ajustes.abrirNaAba ? 'assistente' : undefined}
             assistente={doAssistente}
             aoMudarPausa={setPausaDaJanela}
           />
@@ -321,7 +340,7 @@ export function useJanelaFlutuante(o: Opcoes) {
           formato={formato}
           pausado={pausaDoVideo.pausado}
           seloDePausa={pausaDoVideo.pausado && !pausaDoVideo.pelaJanela}
-          glosas={assistente.glosasDoVideo}
+          glosas={assistente?.glosasDoVideo}
         />
       )}
       {/* O último recurso: a janelinha do protótipo, que se arrasta e se joga dentro da página. */}

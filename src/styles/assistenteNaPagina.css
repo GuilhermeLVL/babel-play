@@ -1,0 +1,282 @@
+/*
+ * O ASSISTENTE AO VIVO NAS TELAS DA PÁGINA (Fase C3) — a legenda da captura e o Intérprete
+ * (`components/views/captura/assistente/AssistenteNaPagina.tsx`, `TextoComMarcas.tsx`).
+ *
+ * As mesmas regras da janela flutuante (`assistenteAoVivo.css`): SILENCIOSO, só um sublinhado pontilhado (sem fundo, sem
+ * piscar, sem animação), com o sentido no `title` e no cartão. Expressão e termo têm cor de fio própria (contraste ≥ 3:1
+ * com o fundo, nos dois temas); a palavra acima do nível usa a cor do texto, mais apagada. Os tokens do app (`--ink`,
+ * `--surface`…) fazem o tema escuro sozinhos; o Intérprete é um cartão escuro nos dois temas e tem os tons claros.
+ */
+:root {
+  --asst-expressao: #b4400f;
+  --asst-termo: #1f5f99;
+  --asst-nivel: color-mix(in srgb, var(--ink, #1d1915) 62%, transparent);
+}
+.dark {
+  --asst-expressao: #ffb597;
+  --asst-termo: #8fd0ff;
+  --asst-nivel: color-mix(in srgb, var(--ink, #f4efe8) 70%, transparent);
+}
+/* O Intérprete segue o tema (claro ou escuro, conforme o tema do app): as cores saem dos tokens dele. */
+.int {
+  --asst-expressao: color-mix(in srgb, var(--accent) 82%, var(--int-tinta));
+  --asst-termo: color-mix(in srgb, #2f7fd0 75%, var(--int-tinta));
+  --asst-nivel: color-mix(in srgb, var(--int-tinta) 60%, transparent);
+}
+
+.asst-marca {
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-thickness: max(2px, 0.09em);
+  text-underline-offset: 0.2em;
+  text-decoration-skip-ink: none;
+  text-decoration-color: var(--asst-nivel);
+}
+.asst-marca[data-marca='expressao'] {
+  text-decoration-color: var(--asst-expressao);
+}
+.asst-marca[data-marca='termo'] {
+  text-decoration-color: var(--asst-termo);
+}
+.asst-marca[data-marca-foco] {
+  cursor: help;
+  border-radius: 3px;
+}
+.asst-marca[data-marca-foco]:hover {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+.asst-marca[data-marca-foco]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* A correção gentil da própria fala: uma linha pequena embaixo dela, sem vermelho e sem "erro". */
+.asst-correcao {
+  display: block;
+  margin-top: 4px;
+  font: 500 13px / 1.4 var(--font-body, inherit);
+  color: var(--ink-muted);
+  text-align: start;
+}
+.asst-correcao svg {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.12em;
+  color: var(--asst-expressao);
+}
+.asst-correcao > span[lang] {
+  color: var(--ink);
+  font-weight: 700;
+}
+.int .asst-correcao {
+  color: var(--int-mut);
+}
+.int .asst-correcao > span[lang] {
+  color: var(--int-tinta);
+}
+
+/* A FOLHA DO "COMO RESPONDO?" NA PÁGINA: a mesma folha da janela (`.leg-folha`), com as cores do app. No computador,
+   no canto de baixo; no celular, de lado a lado, acima da barra de baixo. */
+.asst-pagina {
+  --leg-superficie: var(--surface);
+  --leg-ui: var(--ink);
+  --leg-ui-fraca: var(--ink-muted);
+  --leg-ui-suave: color-mix(in srgb, var(--ink) 8%, transparent);
+  --leg-borda: var(--border-subtle);
+  --leg-bolha: var(--canvas);
+  --leg-trad: var(--accent-ink, var(--ink));
+  --leg-foco: var(--accent);
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: var(--z-sheet, 50);
+  width: min(440px, calc(100vw - 32px));
+}
+.asst-pagina .leg-folha {
+  position: static;
+  max-height: min(72vh, 560px);
+  padding: 14px 16px 16px;
+  border-radius: 18px;
+  box-shadow: 0 18px 44px color-mix(in srgb, #000 28%, transparent);
+  font-size: 15px;
+}
+.asst-pagina .leg-folha-sub,
+.asst-pagina .leg-folha-nota,
+.asst-pagina .leg-folha-status {
+  font-size: 13px;
+}
+.asst-pagina .leg-sugestao-trad {
+  font-size: 13.5px;
+}
+/* Os botões da folha seguem o alvo dos diálogos do desenho novo (56 px, `quest.css`): nada a encolher aqui. */
+.asst-pagina .leg-folha button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+/* No Intérprete a folha mora dentro da conversa (o cartão escuro), com as cores dele. */
+.int .asst-pagina {
+  --leg-superficie: var(--int-escuro-2);
+  --leg-ui: var(--int-tinta);
+  --leg-ui-fraca: var(--int-mut);
+  --leg-ui-suave: color-mix(in srgb, var(--int-tinta) 10%, transparent);
+  --leg-borda: var(--int-linha);
+  --leg-bolha: color-mix(in srgb, var(--int-tinta) 7%, var(--int-escuro-2));
+  --leg-trad: var(--int-acento);
+  position: absolute;
+  z-index: 6;
+}
+@media (max-width: 720px) {
+  .asst-pagina {
+    left: 12px;
+    right: 12px;
+    bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+    width: auto;
+  }
+  .int .asst-pagina {
+    bottom: 12px;
+  }
+}
+
+/* "COMO RESPONDO?" NO INTÉRPRETE: um botão em pílula junto da última fala da outra pessoa — na metade da pessoa (embaixo
+   da tradução) e na lista (embaixo da bolha). Alvo de 44 px. */
+.int-assistente {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.int-assistente:empty {
+  display: none;
+}
+.int .asst-responder {
+  min-height: 44px;
+  padding: 0 16px;
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--int-linha));
+  color: var(--int-tinta);
+  font-size: 14px;
+}
+.int .asst-responder:hover {
+  background: color-mix(in srgb, var(--accent) 18%, var(--int-escuro-2));
+}
+.int .asst-responder svg {
+  width: 17px;
+  height: 17px;
+  color: var(--int-acento);
+}
+/* NO CELULAR a metade é baixa: o botão no fluxo apertava a tradução (que perdia linhas). Ele sobe para a linha do
+   idioma, à direita, onde há espaço livre. */
+.int:not([data-layout='computador']) .int-metade {
+  position: relative;
+}
+.int:not([data-layout='computador']) .int-assistente:has(> .asst-responder) {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+.int:not([data-layout='computador']) .int-metade .asst-responder {
+  min-height: 40px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+/* Na tela bem estreita, só o ícone (o nome segue no `aria-label` e no `title`): o rótulo encostava no idioma. */
+@media (max-width: 400px) {
+  .int:not([data-layout='computador']) .int-metade .asst-responder {
+    width: 44px;
+    min-height: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  .int:not([data-layout='computador']) .int-metade .asst-responder > span {
+    display: none;
+  }
+}
+.int-bolhas > .asst-responder {
+  align-self: flex-start;
+  margin: -2px 0 6px;
+}
+
+/* O CARTÃO DE UMA MARCA no Intérprete: pequeno, embaixo, por cima da conversa. */
+.asst-cartao {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  z-index: 6;
+  transform: translateX(-50%);
+  width: min(380px, calc(100% - 32px));
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--int-linha);
+  background: var(--int-escuro-2);
+  color: var(--int-tinta);
+  box-shadow: 0 16px 36px color-mix(in srgb, #000 40%, transparent);
+}
+.asst-cartao-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.asst-cartao-topo b {
+  font: 800 20px / 1.2 var(--font-display, inherit);
+  overflow-wrap: anywhere;
+}
+.asst-cartao-topo button {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+}
+.asst-cartao-topo button:hover {
+  background: color-mix(in srgb, var(--int-tinta) 10%, transparent);
+}
+.asst-cartao-topo button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.asst-cartao-tipo {
+  margin: 0;
+  font: 700 11px var(--font-mono, monospace);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--int-mut);
+}
+.asst-cartao-tipo[data-marca='expressao'] {
+  color: var(--asst-expressao);
+}
+.asst-cartao-tipo[data-marca='termo'] {
+  color: var(--asst-termo);
+}
+.asst-cartao-sentido {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+/* NA FOLHA DA FRASE e no cartão da palavra da captura: o tipo do destaque e os destaques da frase. */
+.folha-realce {
+  margin-top: 4px;
+  font: 700 11px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.folha-realce[data-marca='expressao'] {
+  color: var(--asst-expressao);
+}
+.folha-realce[data-marca='termo'] {
+  color: var(--asst-termo);
+}
+.folha-destaques button.asst-marca {
+  text-underline-offset: 0.28em;
+}
+.folha-correcao {
+  margin-top: 2px;
+  font-size: 14px;
+}

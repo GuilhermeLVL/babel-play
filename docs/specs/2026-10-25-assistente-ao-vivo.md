@@ -145,6 +145,35 @@ cache, `restanteHoje` é o último valor conhecido na aba, ou fica de fora — n
   protegido recebe os mesmos recursos, sem contexto no "Como respondo?" e sem nenhuma oferta.
 - Testes: `tests/assistente-tela.test.ts`, `tests/assistente-janela.test.tsx`, `tests/e2e/assistente-ao-vivo.e2e.ts`.
 
+### As telas da página (Fase C3)
+
+- **Uma instância só**: `LiveCapture` chama `useAssistenteAoVivo` uma vez e a divide em duas vistas — `janela` (a
+  legenda flutuante; `useJanelaFlutuante` só conta como a janela está, `aoMudarVistaDoAssistente`) e `pagina` (a legenda
+  da captura e o Intérprete). Uma chamada por linha, um cache de marcas, um glossário. A página à vista (aba visível,
+  `usePaginaVisivel`) basta para as automáticas saírem; com o PiP de vídeo (só leitura), a página ainda tem o "Como
+  respondo?" e a correção. Cada vista desenha só a folha do "Como respondo?" pedida nela (`onde`).
+- **As falas** (`src/lib/assistente/falasDoAssistente.ts`): as últimas 60 da sessão. Na captura, o computador é "eles"
+  e o microfone é "você"; no Intérprete, a METADE da pessoa (`meu`, ou `outro` com os lados trocados) é "você" — a
+  correção (opt-in) só cai nela. A fala sem idioma leva o do lado. SÓ COM O MICROFONE fora do Intérprete (o celular, o
+  "Usar o microfone" do Safari e do Firefox) o microfone ouve a TV: o lado é `incerto` e a fala NUNCA vai à correção.
+  No Intérprete, a fala do microfone que chega SEM metade (o automático só decide o lado depois de medir o idioma) é
+  `incerto` e fica PENDENTE (como uma parcial): nem marcada nem oferecida, até a metade chegar. Só o lado certo é
+  guardado (a metade, ou o som do computador); o incerto nunca congela. Regra contra o envio duplo: cada id é oferecido
+  no máximo uma vez na vida da instância, com o lado que tinha naquela hora.
+- **Quando a página conta** (`paginaMostraOAssistente`): a aba à vista E a legenda da captura (gravando ou com falas, fora
+  do foco cheio) ou a conversa do Intérprete; a conversa virtual e a tela pronta, não. As falas que já existem quando a
+  captura monta, ou que chegam de uma vez na sessão retomada (`semente`), contam como vistas: nenhuma vai à nuvem.
+- **Marcas silenciosas na página** (`TextoComMarcas`): o texto nasce em pedaços estáveis e a marca é só atributo — nada
+  novo para as regiões `aria-live` da legenda e da metade do Intérprete anunciarem. Na captura a linha já é um botão: a
+  marca não é focável; tocar nela abre o cartão da palavra com o tipo e o sentido, e a folha da frase lista os
+  destaques (o teclado chega por ela). No Intérprete (bolhas e o original na metade), roving com ← →, Enter abre o
+  cartão.
+- **"Como respondo?"**: na captura, uma ação da folha da frase (falas de "eles", ou todas só com o microfone); no
+  Intérprete, um botão junto da última fala da outra pessoa (na metade da pessoa e embaixo da bolha), mais Alt+R. A
+  folha é a mesma da janela (`FolhaComoRespondo`), numa camada da página; o foco volta para quem a abriu.
+- **Correção**: "Mais natural: …" embaixo da própria fala, com `aria-live="off"`.
+- Testes: `tests/assistente-paginas.test.tsx`, `tests/modoInterprete.test.tsx` (Fase C3), `tests/e2e/assistente-nas-telas.e2e.ts`.
+
 ### Cota e custo
 
 - **Teto do dia**: 200 chamadas por dia local nos pagos, somando os quatro recursos; contador próprio.

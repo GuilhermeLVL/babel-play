@@ -59,11 +59,18 @@ export type EstadoDoComoRespondo =
   | ({ estado: 'ok'; sugestoes: SugestaoDeResposta[] } & AlvoDaResposta)
   | ({ estado: 'erro'; motivo: FalhaDoAssistente } & AlvoDaResposta);
 
+/**
+ * ONDE a folha do "Como respondo?" abre (Fase C3): na janela flutuante ou na página (captura, Intérprete). A instância
+ * é UMA para as duas; cada lugar só desenha a folha que foi pedida nele. Ausente = a janela (o contrato da C2).
+ */
+export type OndeDoAssistente = 'janela' | 'pagina';
+
 /** A fala a que se responde. */
 interface AlvoDaResposta {
   falaId: string;
   frase: string;
   lang?: string;
+  onde?: OndeDoAssistente;
 }
 
 export interface ItemDoGlossario {
@@ -77,7 +84,10 @@ export interface ItemDoGlossario {
   lang?: string;
 }
 
-/** O que a janela (Document PiP) recebe do assistente: tudo pronto para pintar, nenhuma regra. */
+/**
+ * O que uma VISTA do assistente recebe — a janela (Document PiP) ou a página (captura, Intérprete): tudo pronto para
+ * pintar, nenhuma regra. As duas vêm da MESMA instância (as marcas, o cache e o glossário são um só).
+ */
 export interface AssistenteDaJanela {
   recursos: RecursosDoAssistente;
   protegido: boolean;
@@ -138,6 +148,18 @@ export function useAssistenteAoVivo(o: {
   langDaPessoa: string;
   /** A janela é SÓ LEITURA (PiP de vídeo): nada que precise de toque — sem "Como respondo?" e sem correção. */
   soLeitura?: boolean;
+  /**
+   * A PÁGINA (Fase C3): a captura ou o Intérprete à vista (a aba visível). Ela também mostra as marcas e tem o "Como
+   * respondo?" e a correção; com ela à vista, as chamadas automáticas saem mesmo com a janela fechada — UMA por linha,
+   * não importa quantas vistas a mostrem. Ausente = só a janela (o contrato da C2).
+   */
+  pagina?: { aberta: boolean };
+  /**
+   * Muda quando a tela TROCA as falas de uma vez (a sessão retomada): as que chegaram junto contam como vistas e
+   * nenhuma vai à nuvem. Só as que chegarem depois são oferecidas. Com ela definida, as falas que já existem quando a
+   * instância nasce também contam como vistas (a captura); sem ela, a linha à vista na montagem é oferecida (a C2).
+   */
+  semente?: number;
 }) {
   const ajustes = useAjustesDoAssistente();
   const flagLigada = useFlag(FLAG_ASSISTENTE_AO_VIVO);
@@ -150,15 +172,27 @@ export function useAssistenteAoVivo(o: {
   const protegido = perfilProtegido();
   const soLeitura = !!o.soLeitura;
   const plano = usePlanoAtual();
-  const recursos = useMemo(() => {
-    const r = recursosDoAssistente(ajustes, {
-      flagLigada,
-      assistenteDiaDoPlano: assistenteDiaDoPlano(plano),
-      recusadoNaSessao: recusado,
-      consentiuNuvem: consentiu,
-    });
-    return soLeitura ? { ...r, comoRespondo: false, correcao: false } : r;
-  }, [ajustes, flagLigada, plano, recusado, consentiu, soLeitura]);
+  /* Os recursos da PÁGINA (completos) e os da JANELA (sem toque no PiP de vídeo). */
+  const recursosDaPagina = useMemo(
+    () =>
+      recursosDoAssistente(ajustes, {
+        flagLigada,
+        assistenteDiaDoPlano: assistenteDiaDoPlano(plano),
+        recusadoNaSessao: recusado,
+        consentiuNuvem: consentiu,
+      }),
+    [ajustes, flagLigada, plano, recusado, consentiu],
+  );
+  const recursos = useMemo(
+    () => (soLeitura ? { ...recursosDaPagina, comoRespondo: false, correcao: false } : recursosDaPagina),
+    [recursosDaPagina, soLeitura],
+  );
+  const paginaAberta = !!o.pagina?.aberta;
+  /** Alguma vista mostra o assistente agora (a janela ou a página). */
+  const algumaAberta = o.aberta || paginaAberta;
+  /* O que a AGENDA planeja: com a página à vista, os recursos completos (a correção também); só com o PiP de vídeo,
+     os dele. */
+  const recursosDaAgenda = paginaAberta ? recursosDaPagina : recursos;
 
   const [glosas, setGlosas] = useState<Record<string, Glosas>>({});
   const [correcoes, setCorrecoes] = useState<ReadonlyMap<string, CorrecaoDaFala>>(new Map());
@@ -184,8 +218,8 @@ export function useAssistenteAoVivo(o: {
   }, [idiomas, recursos.niveis]);
 
   /* ── A AGENDA: uma chamada por linha final, com espera, nunca pausada ──────────────────────────── */
-  const estado = useRef({ recursos, langDaPessoa: o.langDaPessoa });
-  estado.current = { recursos, langDaPessoa: o.langDaPessoa };
+  const estado = useRef({ recursos: recursosDaAgenda, langDaPessoa: o.langDaPessoa });
+  estado.current = { recursos: recursosDaAgenda, langDaPessoa: o.langDaPessoa };
   const vivo = useRef(true);
   useEffect(() => {
     vivo.current = true;
@@ -241,8 +275,11 @@ export function useAssistenteAoVivo(o: {
     return () => a.destruir();
   }, [executar]);
 
-  const automatico = (recursos.expressoes || recursos.termos || recursos.correcao) && !paradoPorCota;
-  const parado = !o.aberta || o.pausado || !automatico || recuando;
+  const automatico =
+    (recursosDaAgenda.expressoes || recursosDaAgenda.termos || recursosDaAgenda.correcao) && !paradoPorCota;
+  /* Uma vista ATIVA basta: a janela aberta e não pausada, ou a página à vista. */
+  const ativa = (o.aberta && !o.pausado) || paginaAberta;
+  const parado = !ativa || !automatico || recuando;
   useEffect(() => agenda?.pausar(parado), [agenda, parado]);
 
   /* A linha final mais nova ainda não pedida vai para a agenda (a anterior, atropelada, sai da fila). */
@@ -252,13 +289,35 @@ export function useAssistenteAoVivo(o: {
     return undefined;
   }, [o.falas]);
   /* Cada linha é oferecida UMA vez, quando chega: ligar um recurso (ou o consentimento) depois não manda à nuvem a
-     linha velha que estava à vista quando ele estava desligado. */
-  const oferecida = useRef<string | null>(null);
+     linha velha que estava à vista quando ele estava desligado.
+     As linhas que JÁ ESTAVAM ali quando a instância nasceu, ou quando a tela trocou as falas de uma vez (`semente`: a
+     sessão retomada), contam como vistas: nenhuma linha velha vai à nuvem.
+     A REGRA CONTRA O ENVIO DUPLO: um id é oferecido no máximo UMA vez na vida da instância (o conjunto guarda todos),
+     com o lado que tinha naquela hora. A fala que muda de lado depois (ou volta a ser a última porque outra sumiu) não
+     é pedida de novo. A fala do Intérprete sem metade nem chega aqui: espera pendente (`falasDoAssistente`). */
+  const finaisDe = (falas: ReadonlyArray<FalaDoAssistente>) =>
+    falas.filter((f) => !f.parcial && f.original.trim()).map((f) => f.id);
+  const oferecidas = useRef<Set<string>>(new Set(o.semente !== undefined ? finaisDe(o.falas) : []));
+  const falasAgora = useRef(o.falas);
+  falasAgora.current = o.falas;
+  const sementeVista = useRef(o.semente);
   useEffect(() => {
-    if (!agenda || !ultimaFinal || oferecida.current === ultimaFinal.id) return;
-    oferecida.current = ultimaFinal.id;
-    if (automatico && temChamada(planejarChamadas(ultimaFinal, recursos, o.langDaPessoa))) agenda.oferecer(ultimaFinal);
-  }, [ultimaFinal, agenda, automatico, recursos, o.langDaPessoa]);
+    if (sementeVista.current === o.semente) return;
+    sementeVista.current = o.semente;
+    for (const id of finaisDe(falasAgora.current)) oferecidas.current.add(id);
+  }, [o.semente]);
+  useEffect(() => {
+    if (!agenda || !ultimaFinal || oferecidas.current.has(ultimaFinal.id)) return;
+    const vistas = oferecidas.current;
+    vistas.add(ultimaFinal.id);
+    /* O conjunto não cresce sem fim: passou do teto, fica só com as falas que ainda estão na tela. */
+    if (vistas.size > 400) {
+      const vivas = new Set(falasAgora.current.map((f) => f.id));
+      for (const id of [...vistas]) if (!vivas.has(id)) vistas.delete(id);
+    }
+    if (automatico && temChamada(planejarChamadas(ultimaFinal, recursosDaAgenda, o.langDaPessoa)))
+      agenda.oferecer(ultimaFinal);
+  }, [ultimaFinal, agenda, automatico, recursosDaAgenda, o.langDaPessoa]);
 
   /* ── AS MARCAS de cada linha (nível local + glosas da nuvem) ───────────────────────────────── */
   /* O CACHE das marcas por linha: a mesma linha com o mesmo texto, nível, glosas e recursos devolve O MESMO array —
@@ -266,8 +325,8 @@ export function useAssistenteAoVivo(o: {
   const cacheDeMarcas = useRef(new Map<string, { chave: string; glosa: Glosas | undefined; lista: MarcaNaLinha[] }>());
   const marcas = useMemo(() => {
     const m = new Map<string, MarcaNaLinha[]>();
-    /* Janela fechada: nada a pintar, e nenhum trabalho a cada fala (a captura segue sem a janela). */
-    if (!o.aberta) return m;
+    /* Nenhuma vista aberta: nada a pintar, e nenhum trabalho a cada fala (a captura segue sem a janela). */
+    if (!algumaAberta) return m;
     const cache = cacheDeMarcas.current;
     const vivas = new Set<string>();
     for (const f of o.falas) {
@@ -303,7 +362,7 @@ export function useAssistenteAoVivo(o: {
     /* As falas que saíram da janela da captura saem do cache. */
     for (const id of [...cache.keys()]) if (!vivas.has(id)) cache.delete(id);
     return m;
-  }, [o.aberta, o.falas, glosas, recursos, ajustes.nivel, o.langDaPessoa, versaoDosNiveis]);
+  }, [algumaAberta, o.falas, glosas, recursos, ajustes.nivel, o.langDaPessoa, versaoDosNiveis]);
 
   /* ── O GLOSSÁRIO da sessão (a aba): os destaques mais novos primeiro, sem repetir ───────────── */
   const historico = useRef(new Map<string, ItemDoGlossario>());
@@ -383,7 +442,7 @@ export function useAssistenteAoVivo(o: {
   }, []);
 
   const pedirComoRespondo = useCallback(
-    (falaId?: string) => {
+    (falaId?: string, onde: OndeDoAssistente = 'janela') => {
       const falas = falasRef.current.filter((f) => !f.parcial && f.original.trim());
       /* A fala pedida; sem ela, a última de quem está do outro lado (a quem se responde); sem ela, a última. */
       const alvo =
@@ -393,7 +452,7 @@ export function useAssistenteAoVivo(o: {
       if (!alvo) return;
       const i = falas.indexOf(alvo);
       const contexto = falas.slice(Math.max(0, i - 2), i).map((f) => f.original);
-      const resposta = { falaId: alvo.id, frase: alvo.original, lang: alvo.lang };
+      const resposta = { falaId: alvo.id, frase: alvo.original, lang: alvo.lang, onde };
       if (!consentiu) {
         setComoRespondo({ estado: 'consentimento', ...resposta });
         contextoPendente.current = contexto;
@@ -408,7 +467,7 @@ export function useAssistenteAoVivo(o: {
     const c = comoRespondo;
     if (c.estado !== 'consentimento') return;
     if (await autorizar())
-      void pedirAgora({ falaId: c.falaId, frase: c.frase, lang: c.lang }, contextoPendente.current);
+      void pedirAgora({ falaId: c.falaId, frase: c.frase, lang: c.lang, onde: c.onde }, contextoPendente.current);
   }, [comoRespondo, autorizar, pedirAgora]);
 
   const fecharComoRespondo = useCallback(() => {
@@ -416,31 +475,77 @@ export function useAssistenteAoVivo(o: {
     setComoRespondo({ estado: 'fechado' });
   }, []);
 
-  /* A janela fechou: a folha fecha junto (e a resposta atrasada é descartada). */
+  /* A janela fechou: a folha DELA fecha junto (e a resposta atrasada é descartada). A da página fica. */
+  const ondeDaFolha = comoRespondo.estado === 'fechado' ? null : (comoRespondo.onde ?? 'janela');
   useEffect(() => {
-    if (!o.aberta) fecharComoRespondo();
-  }, [o.aberta, fecharComoRespondo]);
+    if (!o.aberta && ondeDaFolha === 'janela') fecharComoRespondo();
+  }, [o.aberta, ondeDaFolha, fecharComoRespondo]);
 
+  /* Cada vista vê só a folha pedida nela (a mesma instância, um pedido por vez). */
+  const folhaDe = useCallback(
+    (onde: OndeDoAssistente): EstadoDoComoRespondo => (ondeDaFolha === onde ? comoRespondo : FECHADO),
+    [ondeDaFolha, comoRespondo],
+  );
+  const autorizarDaFolha = useCallback(() => void autorizarEPedir(), [autorizarEPedir]);
+  const comoRespondoDaJanela = folhaDe('janela');
   const janela: AssistenteDaJanela = useMemo(
     () => ({
       recursos,
       protegido,
       marcas,
       correcoes,
-      comoRespondo,
+      comoRespondo: comoRespondoDaJanela,
+      pedirComoRespondo: (falaId?: string) => pedirComoRespondo(falaId, 'janela'),
+      fecharComoRespondo,
+      autorizarEPedir: autorizarDaFolha,
+    }),
+    [
+      recursos,
+      protegido,
+      marcas,
+      correcoes,
+      comoRespondoDaJanela,
       pedirComoRespondo,
       fecharComoRespondo,
-      autorizarEPedir: () => void autorizarEPedir(),
+      autorizarDaFolha,
+    ],
+  );
+  const comoRespondoDaPagina = folhaDe('pagina');
+  const pagina: AssistenteDaJanela = useMemo(
+    () => ({
+      recursos: recursosDaPagina,
+      protegido,
+      marcas,
+      correcoes,
+      comoRespondo: comoRespondoDaPagina,
+      pedirComoRespondo: (falaId?: string) => pedirComoRespondo(falaId, 'pagina'),
+      fecharComoRespondo,
+      autorizarEPedir: autorizarDaFolha,
     }),
-    [recursos, protegido, marcas, correcoes, comoRespondo, pedirComoRespondo, fecharComoRespondo, autorizarEPedir],
+    [
+      recursosDaPagina,
+      protegido,
+      marcas,
+      correcoes,
+      comoRespondoDaPagina,
+      pedirComoRespondo,
+      fecharComoRespondo,
+      autorizarDaFolha,
+    ],
   );
 
   return {
     recursos,
     ajustes,
     janela,
+    pagina,
     glossario,
     glosasDoVideo,
     paradoPorCota,
   };
 }
+
+const FECHADO: EstadoDoComoRespondo = Object.freeze({ estado: 'fechado' }) as EstadoDoComoRespondo;
+
+/** A instância do assistente ao vivo: UMA por captura, dividida entre a janela flutuante e a página (Fase C3). */
+export type AssistenteAoVivo = ReturnType<typeof useAssistenteAoVivo>;

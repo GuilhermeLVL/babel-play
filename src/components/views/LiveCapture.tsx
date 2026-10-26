@@ -201,7 +201,15 @@ import ChatTranscript from '../ChatTranscript';
 
 /** O benchmark do aparelho agendado pela última saída da captura (cancelado por uma captura nova). */
 let benchmarkPendente: AbortController | null = null;
+import type { FalaDoAssistente, MarcaNaLinha } from '../../core/assistente/telaDoAssistente';
+import { usePaginaVisivel } from '../../hooks/usePaginaVisivel';
+import {
+  contextoDasFalas,
+  falasDoAssistente as falasParaOAssistente,
+  paginaMostraOAssistente,
+} from '../../lib/assistente/falasDoAssistente';
 import { estabilizarFalas } from '../../lib/legendas/estabilizarFalas';
+import { aoMudarEstadoDaTela, estadoDaTela } from '../../lib/polimento/interprete';
 import GuidePanel from '../GuidePanel';
 // Bandeira SVG do idioma (nunca emoji: o Windows renderiza 🇧🇷 como "BR") + o rótulo curto.
 import { LangFlag } from '../LangFlag';
@@ -210,12 +218,16 @@ import { toast } from '../Toast';
 import { Dialogo, fecharDialogoDe } from '../ui';
 import AjudaDoMicrofone from './captura/AjudaDoMicrofone';
 import AjustesDoAssistente from './captura/assistente/AjustesDoAssistente';
+import { ComoRespondoNaPagina } from './captura/assistente/AssistenteNaPagina';
+import { rotuloDaMarca } from './captura/assistente/TextoComMarcas';
+import { useAssistenteAoVivo } from './captura/assistente/useAssistenteAoVivo';
 import AvisoDoTradutorLocal from './captura/AvisoDoTradutorLocal';
 import AvisoDoUsoDoDia from './captura/AvisoDoUsoDoDia';
 import CapturaNaoSalva from './captura/CapturaNaoSalva';
 import CapturaDoPrototipo from './captura/celular/CapturaDoPrototipo';
 import type { FalaTocada, NuanceNaFolhaDaFrase } from './captura/celular/FolhaDaFrase';
 import FolhaDeOpcoes from './captura/celular/FolhaDeOpcoes';
+import type { RealceDaPalavra } from './captura/celular/FolhasDoPrototipo';
 import FolhasDoPrototipo from './captura/celular/FolhasDoPrototipo';
 // Subcomponentes locais da captura (um arquivo por componente, em `views/captura/`).
 import EncerrarSessao from './captura/EncerrarSessao';
@@ -223,7 +235,7 @@ import { AjudaNoPainel } from './captura/enxuta/pecas';
 import EscolhaDoMicrofone from './captura/EscolhaDoMicrofone';
 import GuiaDoAudioDaTela from './captura/GuiaDoAudioDaTela';
 import IdiomasDaSessao, { type Lado } from './captura/IdiomasDaSessao';
-import { useJanelaFlutuante } from './captura/legendas/useJanelaFlutuante';
+import { JANELA_FECHADA, useJanelaFlutuante, type VistaDaJanela } from './captura/legendas/useJanelaFlutuante';
 import type { LegendaAoVivo } from './captura/LegendasFlutuantes';
 import ModeloNoDispositivo, { type ModeloDaCaptura } from './captura/ModeloNoDispositivo';
 import ModoDesempenho from './captura/ModoDesempenho';
@@ -614,7 +626,8 @@ export default function LiveCapture({
     const novas = ultimas.map((s) => ({
       id: s.id,
       quem: nomeDe(s.speakerId),
-      original: s.originalText,
+      // Sem os espaços das pontas: as marcas do assistente vêm em posições desse mesmo texto (`falasDoAssistente`).
+      original: s.originalText.trim(),
       // O "…" é o marcador de tradução a caminho: na legenda, some até a tradução chegar.
       traducao: s.translatedText === '…' ? '' : s.translatedText,
       lado: s.source === 'system' ? ('eles' as const) : ('voce' as const),
@@ -668,6 +681,8 @@ export default function LiveCapture({
     frase: string;
     lang: string;
     daFrase: FalaTocada | null;
+    /** Veio de um destaque do assistente ao vivo: o cartão traz o tipo e o sentido. */
+    realce?: RealceDaPalavra;
   } | null>(null);
   const [opcoesAbertas, setOpcoesAbertas] = useState(false);
   const [trocandoModo, setTrocandoModo] = useState(false);
@@ -1857,6 +1872,9 @@ export default function LiveCapture({
     cenarioDaSessao: () => (sessaoDoInterpreteRef.current ? 'interprete' : undefined),
   });
 
+  /* As falas da tela foram TROCADAS de uma vez (a sessão retomada): o assistente ao vivo as recebe como já vistas, e
+     nenhuma linha velha vai à nuvem. */
+  const [geracaoDasFalas, setGeracaoDasFalas] = useState(0);
   // --- RETOMAR SESSÃO: reidrata o transcript REAL do backend (não usa mock) ---
   useEffect(() => {
     setResumeId(resumingRecordingId ?? null);
@@ -1882,6 +1900,7 @@ export default function LiveCapture({
           lang: u.sourceLang ?? undefined,
         }));
         setSpeechSegments(segs);
+        setGeracaoDasFalas((g) => g + 1);
         // Semeia o relógio a partir da duração salva; o START continua a linha do tempo.
         const durMs = session.durationMs ?? 0;
         setTimer(Math.round(durMs / 1000));
@@ -2977,6 +2996,90 @@ export default function LiveCapture({
     const { mine, studying } = langConfigRef.current;
     return baseLang(lang) === baseLang(mine) ? studying : mine;
   };
+  /* O ASSISTENTE AO VIVO (Fases C2 e C3): UMA instância para a captura inteira — a legenda da página, o Intérprete e
+     a janela flutuante desenham a mesma. Uma chamada por linha, não importa quantas vistas a mostrem; um glossário.
+     As falas dele: as últimas da sessão (mais que as 24 da janela, para a legenda da página que se relê), com o lado
+     de quem falou — no Intérprete, a metade que é da pessoa (os lados trocados contam) é "você". */
+  const trocadosNoInterprete = useSyncExternalStore(
+    aoMudarEstadoDaTela,
+    () => estadoDaTela().trocados,
+    () => false,
+  );
+  const falasDoAssistenteAntes = useRef(new Map<string, FalaDoAssistente>());
+  /* O lado de cada fala QUANDO ELA CHEGOU (trocar os lados depois não reescreve o passado). */
+  const ladosDasFalas = useRef(new Map<string, FalaDoAssistente['lado']>());
+  /* Só com o microfone, fora do Intérprete, ele ouve a TV: a fala é incerta (nunca vai à correção). No Intérprete, a
+     fala do microfone sem metade espera a metade. */
+  const { soMicrofone, noInterprete } = contextoDasFalas(captureScenario, interpreteAberto);
+  const falasDoAssistente: FalaDoAssistente[] = useMemo(
+    () =>
+      estabilizarFalas(
+        falasDoAssistenteAntes.current,
+        falasParaOAssistente(speechSegments, {
+          trocados: trocadosNoInterprete,
+          idiomaDaPessoa: sourceLang,
+          idiomaDoOutro: outroDoInterprete,
+          soMicrofone,
+          noInterprete,
+          ladosVistos: ladosDasFalas.current,
+        }),
+      ),
+    [speechSegments, trocadosNoInterprete, sourceLang, outroDoInterprete, soMicrofone, noInterprete],
+  );
+  const [vistaDaJanela, setVistaDaJanela] = useState<VistaDaJanela>(JANELA_FECHADA);
+  const paginaVisivel = usePaginaVisivel();
+  const assistente = useAssistenteAoVivo({
+    aberta: vistaDaJanela.aberta,
+    pausado: vistaDaJanela.pausado,
+    soLeitura: vistaDaJanela.soLeitura,
+    pagina: {
+      aberta: paginaMostraOAssistente({
+        visivel: paginaVisivel,
+        entrada,
+        interpreteAberto,
+        virtualAberta,
+        focoCheio: isFocusMode,
+        comLegenda: isRecording || speechSegments.length > 0,
+      }),
+    },
+    falas: falasDoAssistente,
+    langDaPessoa: sourceLang || 'pt',
+    semente: geracaoDasFalas,
+  });
+  const doAssistente = assistente.pagina;
+  /** "Como respondo?" cabe nesta fala: não é da própria pessoa (é de "eles", ou de lado incerto: a TV no microfone). */
+  const podeResponderA = (id: string) => {
+    if (!doAssistente.recursos.comoRespondo) return false;
+    const f = falasDoAssistente.find((x) => x.id === id);
+    return !!f && !f.parcial && f.lado !== 'voce';
+  };
+  const realceDe = (m: MarcaNaLinha): RealceDaPalavra => ({
+    tipo: m.tipo,
+    rotulo: rotuloDaMarca(m),
+    sentido: m.sentido,
+  });
+  /* Tocou numa palavra marcada na legenda da página: o cartão da palavra abre direto, com o destaque (e "Voltar à
+     frase" leva à folha da frase). */
+  const tocarMarcaDaLegenda = useFuncaoEstavel((fala: SpeechSegment, m: MarcaNaLinha, lang: string) => {
+    tocarFala(fala, lang);
+    setPalavraTocada({
+      palavra: m.texto,
+      frase: fala.originalText,
+      lang,
+      daFrase: {
+        id: fala.id,
+        texto: fala.originalText,
+        traducao: fala.translatedText,
+        lang,
+        langDaTraducao: toBcp47(destinoDaFala(lang)) || destinoDaFala(lang),
+      },
+      realce: realceDe(m),
+    });
+  });
+  const legendaDoAssistente = useMemo(
+    () => ({ marcas: doAssistente.marcas, correcoes: doAssistente.correcoes, aoTocarMarca: tocarMarcaDaLegenda }),
+    [doAssistente.marcas, doAssistente.correcoes, tocarMarcaDaLegenda],
+  );
   /* A LEGENDA FLUTUANTE (PiP inteligente): um botão, Alt+L, e a melhor janela deste navegador. */
   const flutuante = useJanelaFlutuante({
     ativo: !noQuest,
@@ -2994,7 +3097,8 @@ export default function LiveCapture({
     aoOuvir: ouvirNaLegenda,
     aoSalvarPalavra: salvarNaLegenda,
     idiomaDaTraducao: (lang) => (lang ? toBcp47(destinoDaFala(lang)) || destinoDaFala(lang) : undefined),
-    langDaPessoa: sourceLang,
+    assistente,
+    aoMudarVistaDoAssistente: setVistaDaJanela,
   });
   /* "Abrir ao começar a legendar" (Ajustes da captura). A janela por cima de tudo só abre com um gesto
      ainda valendo (o navegador exige): sem ele (o seletor da tela demorou), o aviso traz o botão. O
@@ -3264,6 +3368,7 @@ export default function LiveCapture({
             idiomaDaTraducao={(lang) => toBcp47(destinoDaFala(lang)) || destinoDaFala(lang)}
             aoTocar={tocarFala}
             escolhida={falaTocada?.id ?? null}
+            assistente={legendaDoAssistente}
             aoOuvir={(fala, lang) =>
               temAudioDaFala(fala.id) ? tocarAudioDaFala(fala.id) : ouvirNaLegenda(fala.originalText, lang, false)
             }
@@ -3285,9 +3390,42 @@ export default function LiveCapture({
           ehNova={falaTocada ? ehNovaNoCelular(falaTocada.lang) : undefined}
           guardada={palavraGuardada}
           aoPraticar={praticarNoCelular}
-          aoTocarPalavra={(palavra) =>
-            falaTocada &&
-            setPalavraTocada({ palavra, frase: falaTocada.texto, lang: falaTocada.lang, daFrase: falaTocada })
+          aoTocarPalavra={(palavra) => {
+            if (!falaTocada) return;
+            /* A palavra marcada pelo assistente leva o destaque ao cartão (o tipo e, na expressão, o sentido). */
+            const marca = doAssistente.marcas
+              .get(falaTocada.id)
+              ?.find((m) => m.texto.toLocaleLowerCase() === palavra.toLocaleLowerCase());
+            setPalavraTocada({
+              palavra,
+              frase: falaTocada.texto,
+              lang: falaTocada.lang,
+              daFrase: falaTocada,
+              realce: marca ? realceDe(marca) : undefined,
+            });
+          }}
+          assistente={
+            falaTocada
+              ? {
+                  destaques: doAssistente.marcas.get(falaTocada.id),
+                  correcao: doAssistente.correcoes.get(falaTocada.id),
+                  aoTocarDestaque: (m) =>
+                    setPalavraTocada({
+                      palavra: m.texto,
+                      frase: falaTocada.texto,
+                      lang: falaTocada.lang,
+                      daFrase: falaTocada,
+                      realce: realceDe(m),
+                    }),
+                  aoComoRespondo: podeResponderA(falaTocada.id)
+                    ? () => {
+                        const id = falaTocada.id;
+                        fecharFolhasDoCelular();
+                        doAssistente.pedirComoRespondo(id);
+                      }
+                    : undefined,
+                }
+              : undefined
           }
           aoVoltar={palavraTocada?.daFrase ? () => setPalavraTocada(null) : undefined}
           aoConsultar={consultarNaLegenda}
@@ -4227,6 +4365,8 @@ export default function LiveCapture({
             aoEscolherIdiomas={() => setIdiomasAbertos(true)}
             aoConhecerOPremium={conhecerOPremium}
             comVirtual={chaveLigada('virtual') && systemEnabled && !capturaEnxuta}
+            assistente={doAssistente}
+            aoOuvirSugestao={ouvirNaLegenda}
           />
         </Suspense>
       )}
@@ -4325,6 +4465,10 @@ export default function LiveCapture({
           aoDescartar={descartarCaptura}
         />
       )}
+
+      {/* "COMO RESPONDO?" NA PÁGINA (Fase C3): a folha pedida na legenda da captura. No Intérprete, ele a desenha dentro
+          da própria conversa. */}
+      {!interpreteAberto && <ComoRespondoNaPagina assistente={doAssistente} aoOuvir={ouvirNaLegenda} />}
 
       {/* LEGENDAS FLUTUANTES (C6), alimentadas pelas falas REAIS: Document PiP no Chrome/Edge, PiP de
           vídeo no Safari, o painel dentro da página no resto (`useJanelaFlutuante`). */}

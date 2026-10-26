@@ -355,3 +355,92 @@ describe('ModoInterprete: medidor da conversa', () => {
     expect(lerUltimoDoInterprete()).toBeNull()
   })
 })
+
+describe('ModoInterprete: o assistente ao vivo (Fase C3)', () => {
+  const doOutro: FalaDoInterprete = {
+    id: 'o1',
+    originalText: 'How was your weekend?',
+    translatedText: 'Como foi o seu fim de semana?',
+    isPartial: false,
+    lado: 'outro',
+    lang: 'en',
+  }
+  const minha: FalaDoInterprete = {
+    id: 'm1',
+    originalText: 'Foi ótimo',
+    translatedText: 'It was great',
+    isPartial: false,
+    lado: 'meu',
+    lang: 'pt',
+  }
+  const assistente = (extra: Record<string, unknown> = {}) => ({
+    recursos: {
+      nuvem: true,
+      niveis: true,
+      expressoes: true,
+      termos: true,
+      comoRespondo: true,
+      correcao: false,
+      algum: true,
+    },
+    protegido: false,
+    marcas: new Map(),
+    correcoes: new Map(),
+    comoRespondo: { estado: 'fechado' as const },
+    pedirComoRespondo: vi.fn(),
+    fecharComoRespondo: vi.fn(),
+    autorizarEPedir: vi.fn(),
+    ...extra,
+  })
+
+  it('"Como respondo?" na metade da pessoa, junto da última fala da outra; Alt+R pede para ela', () => {
+    const a = assistente()
+    montar({ falas: [minha, doOutro], extra: { assistente: a } })
+    const botao = screen.getByTestId('interprete-meu').querySelector('.asst-responder') as HTMLElement
+    expect(botao.textContent).toContain('Como respondo?')
+    fireEvent.click(botao)
+    expect(a.pedirComoRespondo).toHaveBeenLastCalledWith('o1')
+    fireEvent.keyDown(window, { key: '®', code: 'KeyR', altKey: true })
+    expect(a.pedirComoRespondo).toHaveBeenCalledTimes(2)
+    expect(a.pedirComoRespondo).toHaveBeenLastCalledWith('o1')
+  })
+
+  it('Alt+R digitando num campo, ou já tratado por outro, não pede nada', () => {
+    const a = assistente()
+    montar({ falas: [doOutro], extra: { assistente: a } })
+    const campo = document.createElement('input')
+    document.body.appendChild(campo)
+    fireEvent.keyDown(campo, { key: '®', code: 'KeyR', altKey: true })
+    expect(a.pedirComoRespondo).not.toHaveBeenCalled()
+    const tratado = new KeyboardEvent('keydown', { key: '®', code: 'KeyR', altKey: true, cancelable: true })
+    tratado.preventDefault()
+    window.dispatchEvent(tratado)
+    expect(a.pedirComoRespondo).not.toHaveBeenCalled()
+    campo.remove()
+  })
+
+  it('sem o recurso (flag desligada, Grátis): nem o botão nem o Alt+R', () => {
+    const a = assistente({ recursos: { ...assistente().recursos, nuvem: false, comoRespondo: false } })
+    montar({ falas: [doOutro], extra: { assistente: a } })
+    expect(screen.queryByRole('button', { name: /Como respondo\?/ })).toBeNull()
+    fireEvent.keyDown(window, { key: '®', code: 'KeyR', altKey: true })
+    expect(a.pedirComoRespondo).not.toHaveBeenCalled()
+  })
+
+  it('a folha das sugestões pedida na página abre dentro da conversa', () => {
+    const a = assistente({
+      comoRespondo: {
+        estado: 'ok',
+        falaId: 'o1',
+        frase: doOutro.originalText,
+        lang: 'en',
+        onde: 'pagina',
+        sugestoes: [{ texto: 'It was great!', traducao: 'Foi ótimo!', tom: 'informal' }],
+      },
+    })
+    montar({ falas: [doOutro], extra: { assistente: a } })
+    const folha = screen.getByRole('dialog', { name: 'Como respondo?' })
+    expect(screen.getByTestId('modo-interprete').contains(folha)).toBe(true)
+    expect(folha.textContent).toContain('Foi ótimo!')
+  })
+})

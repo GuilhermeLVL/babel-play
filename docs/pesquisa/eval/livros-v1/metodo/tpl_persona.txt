@@ -1,0 +1,12 @@
+Apenas responda em texto; não use ferramentas nem edite arquivos.
+
+Você está ajudando a idear uma área nova de um app. Leia o brief e assuma o papel da persona indicada (pense e fale como ela, com honestidade, inclusive sobre o que a faria desistir). Responda em português do Brasil, em texto estruturado parecido com JSON (pode ser JSON válido), com exatamente estas chaves:
+- "persona": resumo de uma linha
+- "dores": lista de no máximo 8 dores concretas ligadas a leitura/livros/estudo
+- "jobs_to_be_done": lista de 3 a 6 frases no formato "Quando ..., quero ..., para ..."
+- "funcoes": lista de 10 a 15 funções concretas, cada uma com: "nome", "descricao" (uma linha), "tela" (catálogo, leitor, narração, painel de IA, notas/exportar, jogos/revisão, ajustes, outra), "plano" (grátis ou pago), "ia" (sim ou não), "esforco" (P, M ou G)
+- "me_faria_desistir": exatamente 5 antipadrões
+
+Respeite as restrições do brief (lei de domínio público no Brasil, menores, custo baixo, navegador). Não invente dados de usuários reais.
+
+=== BRIEF ===

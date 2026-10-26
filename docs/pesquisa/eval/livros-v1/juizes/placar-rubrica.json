@@ -1,0 +1,637 @@
+{
+  "ranking": [
+    {
+      "id": "ACE01",
+      "nome": "Kit tipográfico de acessibilidade",
+      "a": 6,
+      "b": 6,
+      "c": 6,
+      "media": 6.0,
+      "pago": 0
+    },
+    {
+      "id": "ACE04",
+      "nome": "Perfil de leitura salvo",
+      "a": 6,
+      "b": 6,
+      "c": 6,
+      "media": 6.0,
+      "pago": 0
+    },
+    {
+      "id": "ACE06",
+      "nome": "Jogos sem pressão",
+      "a": 6,
+      "b": 6,
+      "c": 6,
+      "media": 6.0,
+      "pago": 0
+    },
+    {
+      "id": "ACE07",
+      "nome": "Teclado, leitor de tela e alvos grandes",
+      "a": 6,
+      "b": 6,
+      "c": 6,
+      "media": 6.0,
+      "pago": 0
+    },
+    {
+      "id": "IA01",
+      "nome": "Explicar esta frase/trecho",
+      "a": 6,
+      "b": 6,
+      "c": 6,
+      "media": 6.0,
+      "pago": 3
+    },
+    {
+      "id": "IA04",
+      "nome": "Resumo do capítulo com citações",
+      "a": 6,
+      "b": 6,
+      "c": 6,
+      "media": 6.0,
+      "pago": 3
+    },
+    {
+      "id": "IA10",
+      "nome": "Custo antes de gerar",
+      "a": 6,
+      "b": 6,
+      "c": 6,
+      "media": 6.0,
+      "pago": 0
+    },
+    {
+      "id": "INT01",
+      "nome": "Palavras do livro viram cartões",
+      "a": 6,
+      "b": 6,
+      "c": 6,
+      "media": 6.0,
+      "pago": 0
+    },
+    {
+      "id": "LEI01",
+      "nome": "Leitor profissional (foliate-js)",
+      "a": 6,
+      "b": 6,
+      "c": 6,
+      "media": 6.0,
+      "pago": 0
+    },
+    {
+      "id": "LEI02",
+      "nome": "Continuar de onde parei",
+      "a": 6,
+      "b": 6,
+      "c": 6,
+      "media": 6.0,
+      "pago": 0
+    },
+    {
+      "id": "LEI08",
+      "nome": "Toque na palavra: sentido e cartão",
+      "a": 6,
+      "b": 6,
+      "c": 6,
+      "media": 6.0,
+      "pago": 0
+    },
+    {
+      "id": "NAR01",
+      "nome": "Narração por frase com destaque",
+      "a": 6,
+      "b": 6,
+      "c": 6,
+      "media": 6.0,
+      "pago": 0
+    },
+    {
+      "id": "NAR03",
+      "nome": "Ouvir e ler sem perder o lugar",
+      "a": 6,
+      "b": 6,
+      "c": 6,
+      "media": 6.0,
+      "pago": 0
+    },
+    {
+      "id": "ACE02",
+      "nome": "Temas de contraste suave",
+      "a": 5,
+      "b": 6,
+      "c": 6,
+      "media": 5.67,
+      "pago": 0
+    },
+    {
+      "id": "CAT10",
+      "nome": "Trazer o seu (EPUB, PDF, link)",
+      "a": 6,
+      "b": 6,
+      "c": 5,
+      "media": 5.67,
+      "pago": 0
+    },
+    {
+      "id": "IA02",
+      "nome": "Simplificar para o meu nível",
+      "a": 5,
+      "b": 6,
+      "c": 6,
+      "media": 5.67,
+      "pago": 3
+    },
+    {
+      "id": "IA08",
+      "nome": "Quiz de compreensão do capítulo",
+      "a": 6,
+      "b": 5,
+      "c": 6,
+      "media": 5.67,
+      "pago": 3
+    },
+    {
+      "id": "IA11",
+      "nome": "Respostas da IA curtas e ouvíveis",
+      "a": 5,
+      "b": 6,
+      "c": 6,
+      "media": 5.67,
+      "pago": 0
+    },
+    {
+      "id": "INT02",
+      "nome": "Jogo de 1 minuto no fim do capítulo",
+      "a": 5,
+      "b": 6,
+      "c": 6,
+      "media": 5.67,
+      "pago": 0
+    },
+    {
+      "id": "LEI05",
+      "nome": "PDF com texto selecionável (PDF.js)",
+      "a": 6,
+      "b": 6,
+      "c": 5,
+      "media": 5.67,
+      "pago": 0
+    },
+    {
+      "id": "NOT01",
+      "nome": "Grifos por cor com nota",
+      "a": 6,
+      "b": 5,
+      "c": 6,
+      "media": 5.67,
+      "pago": 0
+    },
+    {
+      "id": "CAT11",
+      "nome": "Biblioteca pessoal e fila de leitura",
+      "a": 5,
+      "b": 6,
+      "c": 5,
+      "media": 5.33,
+      "pago": 0
+    },
+    {
+      "id": "INT03",
+      "nome": "Fonte Livro nos jogos e na revisão",
+      "a": 6,
+      "b": 4,
+      "c": 6,
+      "media": 5.33,
+      "pago": 0
+    },
+    {
+      "id": "LEI03",
+      "nome": "Sumário e busca no livro",
+      "a": 5,
+      "b": 6,
+      "c": 5,
+      "media": 5.33,
+      "pago": 0
+    },
+    {
+      "id": "LEI06",
+      "nome": "Ler sem internet",
+      "a": 5,
+      "b": 5,
+      "c": 6,
+      "media": 5.33,
+      "pago": 0
+    },
+    {
+      "id": "CAT01",
+      "nome": "Vitrine por categorias",
+      "a": 5,
+      "b": 5,
+      "c": 5,
+      "media": 5.0,
+      "pago": 0
+    },
+    {
+      "id": "CAT03",
+      "nome": "Vitrine segura por idade",
+      "a": 5,
+      "b": 5,
+      "c": 5,
+      "media": 5.0,
+      "pago": 0
+    },
+    {
+      "id": "CAT04",
+      "nome": "Para o seu nível / Comece por aqui",
+      "a": 5,
+      "b": 5,
+      "c": 5,
+      "media": 5.0,
+      "pago": 1
+    },
+    {
+      "id": "CAT08",
+      "nome": "Busca e filtros do catálogo",
+      "a": 5,
+      "b": 5,
+      "c": 5,
+      "media": 5.0,
+      "pago": 0
+    },
+    {
+      "id": "IA09",
+      "nome": "Cartões sugeridos pela IA",
+      "a": 6,
+      "b": 6,
+      "c": 3,
+      "media": 5.0,
+      "pago": 2
+    },
+    {
+      "id": "NAR04",
+      "nome": "Voz natural da nuvem",
+      "a": 5,
+      "b": 5,
+      "c": 5,
+      "media": 5.0,
+      "pago": 3
+    },
+    {
+      "id": "NOT03",
+      "nome": "Exportar Markdown/JSON",
+      "a": 5,
+      "b": 5,
+      "c": 5,
+      "media": 5.0,
+      "pago": 0
+    },
+    {
+      "id": "ACE03",
+      "nome": "Régua de leitura",
+      "a": 4,
+      "b": 6,
+      "c": 4,
+      "media": 4.67,
+      "pago": 0
+    },
+    {
+      "id": "CAT09",
+      "nome": "Por que este livro não está?",
+      "a": 4,
+      "b": 5,
+      "c": 5,
+      "media": 4.67,
+      "pago": 0
+    },
+    {
+      "id": "EST01",
+      "nome": "Pontos ENEM do capítulo",
+      "a": 4,
+      "b": 4,
+      "c": 6,
+      "media": 4.67,
+      "pago": 3
+    },
+    {
+      "id": "IA06",
+      "nome": "Quem é quem (sem spoiler)",
+      "a": 4,
+      "b": 5,
+      "c": 5,
+      "media": 4.67,
+      "pago": 1
+    },
+    {
+      "id": "LEI04",
+      "nome": "Sincronizar posição e grifos entre aparelhos",
+      "a": 4,
+      "b": 5,
+      "c": 5,
+      "media": 4.67,
+      "pago": 3
+    },
+    {
+      "id": "LEI10",
+      "nome": "Meta diária discreta",
+      "a": 5,
+      "b": 5,
+      "c": 4,
+      "media": 4.67,
+      "pago": 0
+    },
+    {
+      "id": "NOT06",
+      "nome": "Backup sem conta e aviso de onde está",
+      "a": 5,
+      "b": 4,
+      "c": 5,
+      "media": 4.67,
+      "pago": 0
+    },
+    {
+      "id": "CAT06",
+      "nome": "Prateleira ENEM/vestibular",
+      "a": 4,
+      "b": 5,
+      "c": 4,
+      "media": 4.33,
+      "pago": 0
+    },
+    {
+      "id": "CAT07",
+      "nome": "Ranking de populares",
+      "a": 4,
+      "b": 4,
+      "c": 5,
+      "media": 4.33,
+      "pago": 0
+    },
+    {
+      "id": "NOT04",
+      "nome": "Exportar para o Anki",
+      "a": 5,
+      "b": 4,
+      "c": 4,
+      "media": 4.33,
+      "pago": 0
+    },
+    {
+      "id": "CAT02",
+      "nome": "Selo de domínio público e fonte",
+      "a": 4,
+      "b": 4,
+      "c": 4,
+      "media": 4.0,
+      "pago": 0
+    },
+    {
+      "id": "CAT05",
+      "nome": "Você já conhece X% das palavras",
+      "a": 5,
+      "b": 5,
+      "c": 2,
+      "media": 4.0,
+      "pago": 2
+    },
+    {
+      "id": "EST03",
+      "nome": "Modelo genérico de conteúdo de estudo",
+      "a": 4,
+      "b": 4,
+      "c": 4,
+      "media": 4.0,
+      "pago": 0
+    },
+    {
+      "id": "IA03",
+      "nome": "Explicar com analogia",
+      "a": 4,
+      "b": 4,
+      "c": 4,
+      "media": 4.0,
+      "pago": 0
+    },
+    {
+      "id": "INT04",
+      "nome": "Etiquetas e histórico da palavra no leitor",
+      "a": 5,
+      "b": 5,
+      "c": 2,
+      "media": 4.0,
+      "pago": 2
+    },
+    {
+      "id": "INT05",
+      "nome": "Exercícios do capítulo sem IA",
+      "a": 4,
+      "b": 5,
+      "c": 3,
+      "media": 4.0,
+      "pago": 0
+    },
+    {
+      "id": "LEI09",
+      "nome": "Glossário de palavras de época",
+      "a": 5,
+      "b": 5,
+      "c": 2,
+      "media": 4.0,
+      "pago": 1
+    },
+    {
+      "id": "NAR02",
+      "nome": "Narração bilíngue e leitura inteligente",
+      "a": 5,
+      "b": 4,
+      "c": 3,
+      "media": 4.0,
+      "pago": 0
+    },
+    {
+      "id": "NOT05",
+      "nome": "Caderno do livro em PDF",
+      "a": 4,
+      "b": 4,
+      "c": 4,
+      "media": 4.0,
+      "pago": 0
+    },
+    {
+      "id": "NAR06",
+      "nome": "Gravação LibriVox junto do texto",
+      "a": 4,
+      "b": 5,
+      "c": 2,
+      "media": 3.67,
+      "pago": 0
+    },
+    {
+      "id": "ACE05",
+      "nome": "Palavra em sílabas com áudio",
+      "a": 3,
+      "b": 4,
+      "c": 3,
+      "media": 3.33,
+      "pago": 0
+    },
+    {
+      "id": "CAT12",
+      "nome": "Vale a pena ler? (prévia)",
+      "a": 3,
+      "b": 3,
+      "c": 4,
+      "media": 3.33,
+      "pago": 0
+    },
+    {
+      "id": "LEI07",
+      "nome": "Bilíngue lado a lado",
+      "a": 4,
+      "b": 5,
+      "c": 1,
+      "media": 3.33,
+      "pago": 2
+    },
+    {
+      "id": "NOT07",
+      "nome": "Baixar o texto do livro PD (EPUB/TXT)",
+      "a": 3,
+      "b": 3,
+      "c": 4,
+      "media": 3.33,
+      "pago": 0
+    },
+    {
+      "id": "IA05",
+      "nome": "Pergunte ao livro com citação",
+      "a": 3,
+      "b": 4,
+      "c": 2,
+      "media": 3.0,
+      "pago": 2
+    },
+    {
+      "id": "IA07",
+      "nome": "Destaques do importante",
+      "a": 2,
+      "b": 4,
+      "c": 3,
+      "media": 3.0,
+      "pago": 0
+    },
+    {
+      "id": "NOT02",
+      "nome": "Nota de áudio no trecho",
+      "a": 3,
+      "b": 3,
+      "c": 3,
+      "media": 3.0,
+      "pago": 0
+    },
+    {
+      "id": "EST02",
+      "nome": "Ponte literatura-história",
+      "a": 2,
+      "b": 2,
+      "c": 4,
+      "media": 2.67,
+      "pago": 0
+    },
+    {
+      "id": "NAR07",
+      "nome": "Pronúncia de nomes e pausas",
+      "a": 2,
+      "b": 3,
+      "c": 3,
+      "media": 2.67,
+      "pago": 0
+    },
+    {
+      "id": "NAR05",
+      "nome": "Exportar audiolivro (MP3 por capítulo em ZIP)",
+      "a": 1,
+      "b": 2,
+      "c": 0,
+      "media": 1.0,
+      "pago": 2
+    }
+  ],
+  "concordancia": {
+    "valor": {
+      "unanimidade": 0.69,
+      "kappa": 0.53,
+      "pares": {
+        "ab": 0.84,
+        "ac": 0.77,
+        "bc": 0.77
+      }
+    },
+    "frequencia": {
+      "unanimidade": 0.82,
+      "kappa": 0.76,
+      "pares": {
+        "ab": 0.9,
+        "ac": 0.89,
+        "bc": 0.85
+      }
+    },
+    "viavel": {
+      "unanimidade": 0.82,
+      "kappa": 0.43,
+      "pares": {
+        "ab": 0.89,
+        "ac": 0.87,
+        "bc": 0.89
+      }
+    },
+    "custo_baixo": {
+      "unanimidade": 0.95,
+      "kappa": 0.75,
+      "pares": {
+        "ab": 0.98,
+        "ac": 0.95,
+        "bc": 0.97
+      }
+    },
+    "risco_baixo": {
+      "unanimidade": 0.9,
+      "kappa": 0.63,
+      "pares": {
+        "ab": 0.98,
+        "ac": 0.9,
+        "bc": 0.92
+      }
+    },
+    "simples": {
+      "unanimidade": 0.77,
+      "kappa": 0.31,
+      "pares": {
+        "ab": 0.89,
+        "ac": 0.85,
+        "bc": 0.81
+      }
+    },
+    "diferencial_pago": {
+      "unanimidade": 0.85,
+      "kappa": 0.69,
+      "pares": {
+        "ab": 0.95,
+        "ac": 0.89,
+        "bc": 0.87
+      }
+    }
+  },
+  "spearman_totais": {
+    "ab": 0.76,
+    "ac": 0.7,
+    "bc": 0.61
+  },
+  "faltando": {
+    "a": [],
+    "b": [],
+    "c": []
+  }
+}

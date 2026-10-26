@@ -1,0 +1,626 @@
+{
+  "versao": "livros-v1",
+  "total": 62,
+  "funcoes": [
+    {
+      "id": "CAT01",
+      "grupo": "catalogo",
+      "nome": "Vitrine por categorias",
+      "descricao": "Categorias clássicos, aventura/entretenimento, contos, didáticos/não-ficção e leituras simples, com capa, autor e tempo de leitura.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p1", "p2", "p3", "p4", "p5", "p6"]
+    },
+    {
+      "id": "CAT02",
+      "grupo": "catalogo",
+      "nome": "Selo de domínio público e fonte",
+      "descricao": "Em cada livro: edição, fonte, ano de morte do autor e do tradutor; só entra o que passa no filtro legal do Brasil.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p3", "p4", "p5"]
+    },
+    {
+      "id": "CAT03",
+      "grupo": "catalogo",
+      "nome": "Vitrine segura por idade",
+      "descricao": "Classificação etária manual; conta de menor só vê o adequado, adulto vê tudo, sem pedir dado extra.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p1", "p3", "p5"]
+    },
+    {
+      "id": "CAT04",
+      "grupo": "catalogo",
+      "nome": "Para o seu nível / Comece por aqui",
+      "descricao": "Nível estimado do livro (listas CEFR + legibilidade) e seleção curta e fácil para iniciantes.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p1", "p6"]
+    },
+    {
+      "id": "CAT05",
+      "grupo": "catalogo",
+      "nome": "Você já conhece X% das palavras",
+      "descricao": "Cruza o vocabulário do livro com o deck da pessoa, no aparelho, e mostra a cobertura antes de abrir.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p1"]
+    },
+    {
+      "id": "CAT06",
+      "grupo": "catalogo",
+      "nome": "Prateleira ENEM/vestibular",
+      "descricao": "Obras cobradas em domínio público, por movimento literário e frequência na prova.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p3", "p1"]
+    },
+    {
+      "id": "CAT07",
+      "grupo": "catalogo",
+      "nome": "Ranking de populares",
+      "descricao": "Ordenação por popularidade (downloads da fonte e leituras no Frasy, agregadas) dentro de cada categoria e idioma.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "P",
+      "origem": ["dono"]
+    },
+    {
+      "id": "CAT08",
+      "grupo": "catalogo",
+      "nome": "Busca e filtros do catálogo",
+      "descricao": "Busca por título/autor e filtros por idioma, nível, categoria e tamanho.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p4", "p2"]
+    },
+    {
+      "id": "CAT09",
+      "grupo": "catalogo",
+      "nome": "Por que este livro não está?",
+      "descricao": "Busca por autor protegido explica o motivo legal e oferece importar o próprio arquivo.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "P",
+      "origem": ["p3"]
+    },
+    {
+      "id": "CAT10",
+      "grupo": "catalogo",
+      "nome": "Trazer o seu (EPUB, PDF, link)",
+      "descricao": "Abre EPUB/PDF/artigo processado no navegador, no mesmo leitor, sem enviar o arquivo ao servidor.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p1", "p2", "p3", "p4", "p5", "p6"]
+    },
+    {
+      "id": "CAT11",
+      "grupo": "catalogo",
+      "nome": "Biblioteca pessoal e fila de leitura",
+      "descricao": "Meus livros e artigos com status (lendo, lido), etiquetas/pastas e tempo estimado.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p2", "p5"]
+    },
+    {
+      "id": "CAT12",
+      "grupo": "catalogo",
+      "nome": "Vale a pena ler? (prévia)",
+      "descricao": "Antes de abrir: tema, tese, tempo e dificuldade para o meu nível, gerado por IA com cache.",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "P",
+      "origem": ["p2"]
+    },
+    {
+      "id": "LEI01",
+      "grupo": "leitor",
+      "nome": "Leitor profissional (foliate-js)",
+      "descricao": "Paginação ou rolagem, tipografia, margens, temas claro/escuro/sépia, atalhos de teclado.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "G",
+      "origem": ["p1", "p2", "p3", "p4", "p5", "p6"]
+    },
+    {
+      "id": "LEI02",
+      "grupo": "leitor",
+      "nome": "Continuar de onde parei",
+      "descricao": "Abre na posição exata (CFI), com progresso e tempo restante do capítulo.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "P",
+      "origem": ["p1", "p2", "p3", "p4", "p5", "p6"]
+    },
+    {
+      "id": "LEI03",
+      "grupo": "leitor",
+      "nome": "Sumário e busca no livro",
+      "descricao": "Lista de capítulos e busca de palavra/frase dentro da obra.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p4", "p5"]
+    },
+    {
+      "id": "LEI04",
+      "grupo": "leitor",
+      "nome": "Sincronizar posição e grifos entre aparelhos",
+      "descricao": "Posição, grifos e notas na conta, iguais no celular e no notebook.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "G",
+      "origem": ["p1", "p2", "p3", "p4", "p5", "p6"]
+    },
+    {
+      "id": "LEI05",
+      "grupo": "leitor",
+      "nome": "PDF com texto selecionável (PDF.js)",
+      "descricao": "PDF com busca e seleção; aviso honesto quando for escaneado ou de duas colunas.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p5", "p2"]
+    },
+    {
+      "id": "LEI06",
+      "grupo": "leitor",
+      "nome": "Ler sem internet",
+      "descricao": "Guarda o livro no aparelho (com teto de espaço) e funciona offline; economia de dados.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p2", "p3", "p1"]
+    },
+    {
+      "id": "LEI07",
+      "grupo": "leitor",
+      "nome": "Bilíngue lado a lado",
+      "descricao": "Original e tradução em colunas ou intercalados por frase.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p6", "p4"]
+    },
+    {
+      "id": "LEI08",
+      "grupo": "leitor",
+      "nome": "Toque na palavra: sentido e cartão",
+      "descricao": "Tradução/definição no contexto da frase e botão de salvar no deck com a frase.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p1", "p2", "p3", "p4", "p5", "p6"]
+    },
+    {
+      "id": "LEI09",
+      "grupo": "leitor",
+      "nome": "Glossário de palavras de época",
+      "descricao": "Sentido de palavras antigas (português do séc. XIX, inglês/espanhol arcaico) ao tocar.",
+      "plano": "gratis",
+      "ia": "sim",
+      "esforco": "M",
+      "origem": ["p1", "p3", "p4"]
+    },
+    {
+      "id": "LEI10",
+      "grupo": "leitor",
+      "nome": "Meta diária discreta",
+      "descricao": "Meta opcional de minutos/páginas, sem bronca nem notificação insistente.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "P",
+      "origem": ["p1", "p3"]
+    },
+    {
+      "id": "NAR01",
+      "grupo": "narracao_audiolivro",
+      "nome": "Narração por frase com destaque",
+      "descricao": "Voz do aparelho, escolha de voz e velocidade, frase destacada em sincronia (palavra quando a voz permitir).",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p1", "p2", "p3", "p4", "p5", "p6"]
+    },
+    {
+      "id": "NAR02",
+      "grupo": "narracao_audiolivro",
+      "nome": "Narração bilíngue e leitura inteligente",
+      "descricao": "Lê o original e a tradução, ou traduz só as frases acima do meu nível.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p1", "p2", "p6", "p4"]
+    },
+    {
+      "id": "NAR03",
+      "grupo": "narracao_audiolivro",
+      "nome": "Ouvir e ler sem perder o lugar",
+      "descricao": "Alterna entre ouvir e ler retomando da mesma frase.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "P",
+      "origem": ["p2", "p4"]
+    },
+    {
+      "id": "NAR04",
+      "grupo": "narracao_audiolivro",
+      "nome": "Voz natural da nuvem",
+      "descricao": "Voz mais humana, com cota por caracteres e aviso claro do que resta.",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M",
+      "origem": ["p2", "p4", "p5", "p6"]
+    },
+    {
+      "id": "NAR05",
+      "grupo": "narracao_audiolivro",
+      "nome": "Exportar audiolivro (MP3 por capítulo em ZIP)",
+      "descricao": "Gera os capítulos narrados e baixa um ZIP para ouvir offline.",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "G",
+      "origem": ["p2", "p3", "p4", "p5"]
+    },
+    {
+      "id": "NAR06",
+      "grupo": "narracao_audiolivro",
+      "nome": "Gravação LibriVox junto do texto",
+      "descricao": "Quando houver gravação humana em domínio público, toca o capítulo ao lado do texto.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "G",
+      "origem": ["p1", "p3", "p4", "p6"]
+    },
+    {
+      "id": "NAR07",
+      "grupo": "narracao_audiolivro",
+      "nome": "Pronúncia de nomes e pausas",
+      "descricao": "Dicionário de pronúncia por livro para nomes próprios e pausas na pontuação.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p4"]
+    },
+    {
+      "id": "IA01",
+      "grupo": "ia",
+      "nome": "Explicar esta frase/trecho",
+      "descricao": "Sentido, gramática, tom (formal, irônico, técnico) e contexto de época, em linguagem simples.",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M",
+      "origem": ["p1", "p2", "p3", "p4", "p5", "p6"]
+    },
+    {
+      "id": "IA02",
+      "grupo": "ia",
+      "nome": "Simplificar para o meu nível",
+      "descricao": "Reescreve o trecho/capítulo no nível escolhido, ao lado do original, com cache por capítulo.",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M",
+      "origem": ["p1", "p3", "p5", "p6"]
+    },
+    {
+      "id": "IA03",
+      "grupo": "ia",
+      "nome": "Explicar com analogia",
+      "descricao": "Analogia do dia a dia (ou cultura pop para jovens) para trecho ou conceito difícil.",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "P",
+      "origem": ["p5", "p6", "p1"]
+    },
+    {
+      "id": "IA04",
+      "grupo": "ia",
+      "nome": "Resumo do capítulo com citações",
+      "descricao": "Pontos-chave do capítulo, cada um ligado ao trecho de origem; cache compartilhado nos livros PD.",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M",
+      "origem": ["p1", "p2", "p3", "p4", "p5", "p6"]
+    },
+    {
+      "id": "IA05",
+      "grupo": "ia",
+      "nome": "Pergunte ao livro com citação",
+      "descricao": "Pergunta sobre a obra; busca lexical acha trechos e a resposta cita o parágrafo clicável.",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "G",
+      "origem": ["p1", "p2", "p3", "p5"]
+    },
+    {
+      "id": "IA06",
+      "grupo": "ia",
+      "nome": "Quem é quem (sem spoiler)",
+      "descricao": "Personagens e termos até o ponto lido.",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M",
+      "origem": ["p4", "p3"]
+    },
+    {
+      "id": "IA07",
+      "grupo": "ia",
+      "nome": "Destaques do importante",
+      "descricao": "Marca no texto ideias centrais, ironias e figuras de linguagem do capítulo.",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M",
+      "origem": ["dono", "p3"]
+    },
+    {
+      "id": "IA08",
+      "grupo": "ia",
+      "nome": "Quiz de compreensão do capítulo",
+      "descricao": "Perguntas curtas sobre o capítulo lido, geradas uma vez e guardadas em cache.",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M",
+      "origem": ["plano"]
+    },
+    {
+      "id": "IA09",
+      "grupo": "ia",
+      "nome": "Cartões sugeridos pela IA",
+      "descricao": "Propõe cartões (pergunta/resposta, lacuna) do capítulo ou dos grifos para aprovar.",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M",
+      "origem": ["p2", "p5", "p3"]
+    },
+    {
+      "id": "IA10",
+      "grupo": "ia",
+      "nome": "Custo antes de gerar",
+      "descricao": "Mostra quanto da cota uma ação (resumo, MP3) vai usar antes de confirmar.",
+      "plano": "pago",
+      "ia": "nao",
+      "esforco": "P",
+      "origem": ["p2", "p5"]
+    },
+    {
+      "id": "IA11",
+      "grupo": "ia",
+      "nome": "Respostas da IA curtas e ouvíveis",
+      "descricao": "Explicações em tópicos curtos, fonte do leitor e botão de ouvir.",
+      "plano": "pago",
+      "ia": "nao",
+      "esforco": "P",
+      "origem": ["p6"]
+    },
+    {
+      "id": "NOT01",
+      "grupo": "notas_exportar",
+      "nome": "Grifos por cor com nota",
+      "descricao": "Grifo em cores por tipo e nota escrita, no modelo W3C (CFI + trecho citado).",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p1", "p2", "p3", "p4", "p5", "p6"]
+    },
+    {
+      "id": "NOT02",
+      "grupo": "notas_exportar",
+      "nome": "Nota de áudio no trecho",
+      "descricao": "Gravar uma nota falada presa ao grifo, sem digitar.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p6", "p4", "p2", "p3"]
+    },
+    {
+      "id": "NOT03",
+      "grupo": "notas_exportar",
+      "nome": "Exportar Markdown/JSON",
+      "descricao": "Grifos e notas por capítulo em Markdown (Notion/Obsidian) e JSON W3C.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "P",
+      "origem": ["p2", "p5"]
+    },
+    {
+      "id": "NOT04",
+      "grupo": "notas_exportar",
+      "nome": "Exportar para o Anki",
+      "descricao": "CSV/.apkg com o trecho, a tradução e a frase de contexto.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p5", "p2", "p3"]
+    },
+    {
+      "id": "NOT05",
+      "grupo": "notas_exportar",
+      "nome": "Caderno do livro em PDF",
+      "descricao": "Documento bonito com grifos e notas, pronto para imprimir.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p4", "p3"]
+    },
+    {
+      "id": "NOT06",
+      "grupo": "notas_exportar",
+      "nome": "Backup sem conta e aviso de onde está",
+      "descricao": "Arquivo de backup de posição e notas, e aviso claro se está só neste aparelho.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "P",
+      "origem": ["p1", "p4", "p5"]
+    },
+    {
+      "id": "NOT07",
+      "grupo": "notas_exportar",
+      "nome": "Baixar o texto do livro PD (EPUB/TXT)",
+      "descricao": "Exportar a obra de domínio público limpa, com crédito da fonte.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "P",
+      "origem": ["plano"]
+    },
+    {
+      "id": "INT01",
+      "grupo": "integracao_jogos",
+      "nome": "Palavras do livro viram cartões",
+      "descricao": "Palavra salva entra no deck FSRS com a frase e a origem (livro, capítulo).",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "P",
+      "origem": ["p1", "p2", "p3", "p5", "p6"]
+    },
+    {
+      "id": "INT02",
+      "grupo": "integracao_jogos",
+      "nome": "Jogo de 1 minuto no fim do capítulo",
+      "descricao": "Partida rápida com as palavras tocadas/grifadas naquele capítulo, opcional.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p1", "p3", "p5"]
+    },
+    {
+      "id": "INT03",
+      "grupo": "integracao_jogos",
+      "nome": "Fonte Livro nos jogos e na revisão",
+      "descricao": "Escolher um livro como fonte dos jogos e da revisão existentes.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "P",
+      "origem": ["plano", "p2"]
+    },
+    {
+      "id": "INT04",
+      "grupo": "integracao_jogos",
+      "nome": "Etiquetas e histórico da palavra no leitor",
+      "descricao": "Mostra no leitor se a palavra é nova, aprendendo ou conhecida, e onde apareceu.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["plano"]
+    },
+    {
+      "id": "INT05",
+      "grupo": "integracao_jogos",
+      "nome": "Exercícios do capítulo sem IA",
+      "descricao": "Lacunas e ordenação de frases feitas com frases reais do capítulo.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["plano", "p3"]
+    },
+    {
+      "id": "ACE01",
+      "grupo": "acessibilidade",
+      "nome": "Kit tipográfico de acessibilidade",
+      "descricao": "Fonte para dislexia/Atkinson, tamanho, espaçamento de letra/palavra/linha, largura, sem justificar.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "P",
+      "origem": ["p6", "p4"]
+    },
+    {
+      "id": "ACE02",
+      "grupo": "acessibilidade",
+      "nome": "Temas de contraste suave",
+      "descricao": "Creme, cinza escuro, alto contraste suave, sem branco/preto puros.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "P",
+      "origem": ["p6", "p4"]
+    },
+    {
+      "id": "ACE03",
+      "grupo": "acessibilidade",
+      "nome": "Régua de leitura",
+      "descricao": "Destaca a linha/parágrafo atual e escurece o resto.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "P",
+      "origem": ["p6"]
+    },
+    {
+      "id": "ACE04",
+      "grupo": "acessibilidade",
+      "nome": "Perfil de leitura salvo",
+      "descricao": "Preferências aplicadas a todo livro e documento, sem reconfigurar.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "P",
+      "origem": ["p6", "p4"]
+    },
+    {
+      "id": "ACE05",
+      "grupo": "acessibilidade",
+      "nome": "Palavra em sílabas com áudio",
+      "descricao": "Ao tocar: separação silábica e pronúncia.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p6"]
+    },
+    {
+      "id": "ACE06",
+      "grupo": "acessibilidade",
+      "nome": "Jogos sem pressão",
+      "descricao": "Sem cronômetro, múltipla escolha ou voz, tolerância a erro de ortografia.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p6"]
+    },
+    {
+      "id": "ACE07",
+      "grupo": "acessibilidade",
+      "nome": "Teclado, leitor de tela e alvos grandes",
+      "descricao": "Foco visível, rótulos em texto, atalhos, alvos de toque grandes.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["p6", "p4"]
+    },
+    {
+      "id": "EST01",
+      "grupo": "terreno_estudo",
+      "nome": "Pontos ENEM do capítulo",
+      "descricao": "Movimento literário, tema, personagens e contexto que a prova cobra.",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M",
+      "origem": ["p3"]
+    },
+    {
+      "id": "EST02",
+      "grupo": "terreno_estudo",
+      "nome": "Ponte literatura-história",
+      "descricao": "Liga o capítulo aos fatos da História do Brasil da época (próxima fase).",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M",
+      "origem": ["p3"]
+    },
+    {
+      "id": "EST03",
+      "grupo": "terreno_estudo",
+      "nome": "Modelo genérico de conteúdo de estudo",
+      "descricao": "Livro → capítulos → trechos → itens, reaproveitável para História/ENEM.",
+      "plano": "gratis",
+      "ia": "nao",
+      "esforco": "M",
+      "origem": ["plano"]
+    }
+  ]
+}

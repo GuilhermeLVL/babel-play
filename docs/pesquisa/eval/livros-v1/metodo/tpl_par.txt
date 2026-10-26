@@ -1,0 +1,17 @@
+Apenas responda em texto; não use ferramentas nem edite arquivos.
+
+PAPEL: {PERFIL}
+
+Abaixo estão o brief do produto e as 12 funções finalistas de Livros & Leitura. Compare os PARES listados. Em cada par, decida qual das duas funções deve ser feita PRIMEIRO no MVP, pesando: valor real para as personas, frequência de uso, viabilidade no navegador agora, custo por uso, risco para menores/legal e simplicidade. Escreva PRIMEIRO um raciocínio curto (1 frase) e SÓ DEPOIS o vencedor, como a letra da posição: "A" (a primeira do par) ou "B" (a segunda). Empate não é permitido.
+
+Formato de saída OBRIGATÓRIO: só um array JSON válido, sem texto antes ou depois, sem cerca de código, um objeto por par, na mesma ordem:
+{"par":1,"raciocinio":"...","vencedor":"A"}
+
+=== BRIEF ===
+{BRIEF}
+
+=== FINALISTAS ===
+{FINALISTAS}
+
+=== PARES ===
+{PARES}

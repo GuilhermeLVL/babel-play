@@ -1,0 +1,156 @@
+```json
+{
+  "persona": "Estudante de 15 anos de escola pública, nível A2 em inglês, Android médio + notebook da família, curte séries, games e mangá, tem pouca paciência e usa só o plano Grátis.",
+
+  "dores": [
+    "Livros 'de verdade' em inglês são difíceis demais: abro, travo em 3 palavras por linha e largo em dois minutos.",
+    "Os livros que a escola manda ler são chatos e antigos, e eu não vejo como isso me ajuda a falar inglês.",
+    "Traduzir palavra por palavra no Google Tradutor quebra o ritmo e eu esqueço a palavra no dia seguinte.",
+    "Meu celular é médio e tem pouco espaço: apps pesados, PDFs enormes e downloads grandes não rodam bem ou eu não consigo instalar.",
+    "Não tenho dinheiro nem cartão; tudo que é bom parece ser pago ou ter anúncio chato.",
+    "Não sei qual livro é do meu nível; escolho um, é difícil demais, e eu me sinto burro.",
+    "Quero ler o que eu gosto (mangá, games, histórias de série), mas o que acho de graça legal são só clássicos de 100 anos atrás.",
+    "Cadastro longo, pedir e-mail e dados me irrita; e meus pais não gostam de eu dar dados em app."
+  ],
+
+  "jobs_to_be_done": [
+    "Quando eu abro o app com 10 minutos livres no ônibus, quero cair numa leitura curta do meu nível que continua de onde parei, para sentir que avancei sem esforço.",
+    "Quando eu travo numa palavra no meio da história, quero tocar nela e ver o significado simples na hora, para não perder a vontade de continuar lendo.",
+    "Quando eu acho uma palavra legal num texto, quero mandar ela para meus cartões com um toque, para lembrar dela depois sem ter que copiar nada.",
+    "Quando eu não consigo entender um trecho, quero ouvir ele lido em voz alta com a tradução ao lado, para pegar o som e o sentido juntos.",
+    "Quando eu termino um capítulo, quero jogar um joguinho rápido com as palavras que vi, para fixar de um jeito que não pareça lição de casa.",
+    "Quando a escola pede um texto ou um livro, quero abrir ele no app (link ou arquivo), para estudar o que eu preciso com as mesmas ferramentas."
+  ],
+
+  "funcoes": [
+    {
+      "nome": "Vitrine 'Leituras simples' por nível",
+      "descricao": "Lista de livros e contos curtos em domínio público filtrados por A1/A2/B1, com tempo estimado de leitura.",
+      "tela": "catálogo",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Classificação etária e vitrine segura",
+      "descricao": "Livros com classificação manual; conta de menor só vê o que é adequado, sem pedir dados.",
+      "tela": "catálogo",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Tocar na palavra para ver significado",
+      "descricao": "Um toque numa palavra mostra tradução e definição curta, com botão 'guardar no cartão'.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Continuar de onde parei",
+      "descricao": "Abre direto na última posição (CFI) com barra de progresso e meta de minutos do dia.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Leitor leve com temas e fonte grande",
+      "descricao": "Modo escuro, tamanho de fonte, espaçamento e fonte para dislexia, funcionando bem em celular médio.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Trazer meu texto (EPUB, PDF, link)",
+      "descricao": "Importa arquivo ou página no navegador, sem enviar nada para conta ou servidor quando possível.",
+      "tela": "outra",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "G"
+    },
+    {
+      "nome": "Narração bilíngue por frase",
+      "descricao": "Voz do aparelho lê a frase em inglês e, se eu quiser, a tradução em seguida, com velocidade ajustável.",
+      "tela": "narração",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Ouvir enquanto leio (LibriVox)",
+      "descricao": "Quando existe audiolivro em domínio público, toca junto com o texto para eu acompanhar.",
+      "tela": "narração",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "G"
+    },
+    {
+      "nome": "Grifar e anotar sem login",
+      "descricao": "Marca trechos com cores e nota curta, guardados no aparelho; aviso claro de que não sincroniza.",
+      "tela": "notas/exportar",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Exportar grifos e palavras",
+      "descricao": "Baixa meus grifos e palavras como arquivo (texto/Anki), para eu não perder se trocar de celular.",
+      "tela": "notas/exportar",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Jogo rápido com as palavras do capítulo",
+      "descricao": "Ao fechar o capítulo, 1 minuto de jogo (associar, completar lacuna) com as palavras que toquei.",
+      "tela": "jogos/revisão",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Resumo simples do capítulo",
+      "descricao": "Resumo em inglês fácil do nível A2 antes ou depois de ler, em cache compartilhado por capítulo.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Explicar esta frase",
+      "descricao": "Seleciono uma frase difícil e a IA explica a gramática e o sentido em português simples.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Versão simplificada do trecho",
+      "descricao": "Reescreve o parágrafo em nível mais fácil, com opção de voltar ao original lado a lado.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Pergunte ao livro",
+      "descricao": "Pergunta sobre o capítulo e recebe resposta curta citando o trecho do livro, com busca lexical.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "G"
+    }
+  ],
+
+  "me_faria_desistir": [
+    "Pedir cadastro, e-mail, idade ou dados pessoais antes de eu conseguir abrir a primeira página.",
+    "Só ter clássicos antigos e pesados, sem nada curto, fácil ou parecido com o que eu curto, e sem me dizer o que é do meu nível.",
+    "Travar, demorar a carregar ou gastar a memória e a bateria do meu celular (EPUB/PDF grandes, download obrigatório).",
+    "Barrar com paywall as coisas básicas (tocar na palavra, ouvir, guardar no cartão) ou me encher de pop-up de 'assine o Plus'.",
+    "Transformar a leitura em tarefa: quiz obrigatório, metas que dão bronca ou muito texto de instrução antes de eu ler."
+  ]
+}
+```

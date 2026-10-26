@@ -1,0 +1,156 @@
+```json
+{
+  "persona": "Profissional de 34 anos, B2 em inglês, que lê relatórios, artigos e livros técnicos em inglês no notebook e no ônibus, com pouco tempo, e paga por qualquer coisa que economize tempo sem exigir esforço extra.",
+
+  "dores": [
+    "Artigos e relatórios longos em inglês: gasto 2-3x mais tempo do que em português e não sei se vale a pena ler até o fim antes de começar.",
+    "Termos técnicos e jargão que o B2 não cobre: paro, abro o dicionário, perco o fio, e na semana seguinte esqueço a palavra de novo.",
+    "Material chega em formatos diferentes (PDF de relatório, link de artigo, EPUB de livro técnico) e cada um abre num app diferente, sem progresso unificado.",
+    "No ônibus a leitura é fragmentada: sessões de 8-15 minutos, conexão instável, e perco o ponto onde parei entre o celular e o notebook.",
+    "Grifos e anotações ficam presos num lugar só; quando preciso citar ou rever algo para uma reunião, não acho nem consigo exportar.",
+    "Tradutor automático da página inteira me tira do inglês: entendo, mas não aprendo, e o texto técnico sai com tradução ruim.",
+    "Ferramentas de IA que resumem são genéricas e erram sem citar o trecho; não confio em usar resumo sem conferir a fonte.",
+    "Apps de idiomas me dão conteúdo infantil ou artificial, nada a ver com o que leio de verdade no trabalho."
+  ],
+
+  "jobs_to_be_done": [
+    "Quando recebo um artigo ou relatório longo em inglês e tenho poucos minutos, quero um resumo por seção com os pontos principais, para decidir o que ler com atenção e o que só passar o olho.",
+    "Quando travo num termo técnico durante a leitura, quero tocar na palavra e ver significado no contexto e tradução, para continuar lendo sem perder o fio e sem abrir outra aba.",
+    "Quando termino uma sessão de leitura no ônibus, quero que as palavras que busquei virem cartões automaticamente, para revisar depois sem montar deck na mão.",
+    "Quando preciso ler com as mãos ocupadas ou cansado, quero ouvir o capítulo ou artigo com voz boa e retomar de onde parei na leitura, para aproveitar o tempo de deslocamento.",
+    "Quando vou usar algo que li numa reunião ou relatório, quero exportar meus grifos e notas com o trecho citado, para reaproveitar sem reler tudo.",
+    "Quando tenho um livro técnico em EPUB ou PDF, quero importar e ler com progresso salvo, para ter tudo num lugar só."
+  ],
+
+  "funcoes": [
+    {
+      "nome": "Importar link, PDF, DOCX ou EPUB",
+      "descricao": "Colar um link ou arrastar arquivo e abrir direto no leitor, processado no navegador quando possível.",
+      "tela": "catálogo",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Leitor com paginação, temas e progresso",
+      "descricao": "Tipografia ajustável, modo escuro, sumário, busca no texto e % lido por livro ou artigo.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "G"
+    },
+    {
+      "nome": "Toque na palavra: significado no contexto",
+      "descricao": "Toque ou clique numa palavra e veja tradução e definição curta para aquela frase, com botão de salvar cartão.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Explicar frase com IA",
+      "descricao": "Seleciona uma frase difícil e recebe explicação simples da estrutura e do sentido, em português ou inglês mais fácil.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Resumo por capítulo/seção com citações",
+      "descricao": "Resumo em tópicos de cada seção, com link para o trecho original de onde cada ponto saiu.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Vale a pena ler? (prévia em 30 segundos)",
+      "descricao": "Antes de abrir, mostra tema, tese, tempo estimado de leitura e nível de dificuldade do texto para o seu B2.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "P"
+    },
+    {
+      "nome": "Glossário do texto virando cartões",
+      "descricao": "Extrai os termos técnicos mais importantes do documento e oferece criar cartões FSRS em um toque.",
+      "tela": "jogos/revisão",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Palavras buscadas viram cartões automáticos",
+      "descricao": "Toda palavra salva na leitura entra no deck com a frase de origem, sem etapa manual.",
+      "tela": "jogos/revisão",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Pergunte ao texto",
+      "descricao": "Pergunta em linguagem natural sobre o documento aberto; resposta com busca lexical e trecho citado.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "G"
+    },
+    {
+      "nome": "Narração com voz do aparelho e retomada",
+      "descricao": "Ouvir o texto com escolha de voz e velocidade, destacando a frase atual e salvando a posição.",
+      "tela": "narração",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Voz natural e MP3 por capítulo",
+      "descricao": "Narração de qualidade na nuvem (com cota) e exportação de capítulos em ZIP para ouvir offline no ônibus.",
+      "tela": "narração",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "G"
+    },
+    {
+      "nome": "Grifos com cor e sincronização",
+      "descricao": "Grifar trechos, adicionar nota e ter tudo sincronizado entre notebook e celular (opt-in, respeitando LGPD).",
+      "tela": "leitor",
+      "plano": "pago",
+      "ia": "não",
+      "esforco": "G"
+    },
+    {
+      "nome": "Exportar grifos e notas",
+      "descricao": "Baixar em Markdown, CSV ou formato para Anki/Notion, com trecho citado e localização.",
+      "tela": "notas/exportar",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Modo ônibus: leitura offline e sessão curta",
+      "descricao": "Salva o texto no aparelho para ler sem rede e sugere um trecho que cabe em 10 minutos, com revisão rápida dos cartões no fim.",
+      "tela": "outra",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Resumo do dia / fila de leitura",
+      "descricao": "Lista dos itens importados com tempo estimado e progresso, para escolher o que ler no tempo livre.",
+      "tela": "catálogo",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    }
+  ],
+
+  "me_faria_desistir": [
+    "Cota de IA que acaba no meio da semana sem aviso claro, ou cobrança que não deixa óbvio o que está incluso: pago para poupar tempo, não para fazer conta.",
+    "Resumo ou resposta da IA sem citar o trecho original: se eu não consigo conferir em 5 segundos, não uso no trabalho e cancelo.",
+    "Importar um PDF de relatório e o texto sair quebrado, fora de ordem ou sem tabelas legíveis, ou o EPUB não abrir de primeira.",
+    "Perder grifos, posição de leitura ou palavras salvas (notas só no navegador que somem ao limpar dados, ou sem sincronizar entre notebook e celular).",
+    "Catálogo e vitrine cheios de clássicos de domínio público e conteúdo de entretenimento quando o que eu leio é técnico; sentir que o app é para estudante, não para meu uso real, e que leitura virou desculpa para jogos e gamificação que atrapalham."
+  ]
+}
+```

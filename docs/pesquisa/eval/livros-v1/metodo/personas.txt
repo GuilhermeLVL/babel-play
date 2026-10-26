@@ -1,0 +1,6 @@
+p1|Estudante de inglês de 15 anos, escola pública, celular Android médio e notebook da família, gosta de séries, games e mangá, pouca paciência, não paga (usa o Grátis), nível A2.
+p2|Adulto de 34 anos que lê no trabalho (relatórios, artigos e livros técnicos em inglês), pouco tempo, lê no notebook e no ônibus, nível B2, paga se poupar tempo.
+p3|Vestibulando de 17 anos estudando para o ENEM: precisa ler os clássicos da literatura brasileira cobrados, estudar inglês/espanhol para a prova e, no futuro, História do Brasil; orçamento apertado.
+p4|Leitor de 58 anos de clássicos em português (Machado, Alencar, Eça), quer reler com conforto, ouvir narrados e anotar; pouco familiarizado com tecnologia; também quer ler clássicos em espanhol.
+p5|Universitária de 23 anos que estuda com o próprio PDF/artigo (papers em inglês, apostilas): quer grifar, resumir, tirar dúvidas e exportar notas para o Anki/Notion; usa notebook.
+p6|Pessoa de 29 anos com dislexia e baixa visão leve: precisa de fonte ajustável, espaçamento, contraste, leitura em voz alta com destaque sincronizado e textos simplificados; aprende espanhol.

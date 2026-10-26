@@ -1,0 +1,127 @@
+```json
+{
+  "persona": "Tenho 23 anos, sou universitária, vivo grudada no notebook lendo papers em inglês, capítulos em EPUB e apostilas em PDF, e preciso transformar essa pilha de leitura acadêmica em resumos claros, fichamentos no Notion e cartões no Anki sem perder horas copiando e colando.",
+  "dores": [
+    "Ler papers densos em inglês acadêmico me trava quando encontro jargões ou períodos gigantescos que o tradutor literal deixa sem sentido.",
+    "Quando abro um PDF ou texto longo no navegador hoje, vira uma tripa sem paginação nem sumário decente, e eu perco totalmente onde parei.",
+    "Fazer grifos e anotações que ficam presos só no navegador local me dá pavor de limpar o cache e perder o fichamento inteiro da semana de provas.",
+    "Criar flashcards no Anki manualmente a partir do que grifei no artigo consome metade do tempo que eu deveria estar usando para revisar.",
+    "Quero perguntar algo específico sobre a metodologia de um artigo e ter a garantia de que a resposta veio de um trecho real do texto, sem alucinação.",
+    "Tenho preguiça de ler capítulos teóricos enormes sexta à noite e queria ouvir como podcast no ônibus, mas a voz robótica padrão do navegador dá sono.",
+    "Quando preciso consultar um clássico de domínio público para a faculdade, só acho PDF escaneado torto ou traduções duvidosas na internet.",
+    "Alternar entre leitor de PDF, dicionário, chat de IA, Notion e Anki em cinco abas diferentes destrói meu foco e a memória RAM do notebook."
+  ],
+  "jobs_to_be_done": [
+    "Quando importo um paper em PDF ou livro em EPUB no navegador, quero ler com paginação fluida, sumário clicável e atalhos de teclado no notebook, para manter o foco sem sentir falta de um programa instalado.",
+    "Quando esbarro em um parágrafo difícil em inglês técnico, quero pedir uma simplificação ou analogia e salvar os termos novos direto no meu baralho FSRS, para destravar a leitura na hora e fixar o vocabulário depois.",
+    "Quando termino de grifar e anotar um capítulo ou artigo, quero exportar todos os destaques com a citação exata e minhas notas em Markdown ou CSV, para jogar direto no Notion ou no Anki em segundos.",
+    "Quando preciso revisar um texto longo sem saber onde está um conceito, quero fazer uma pergunta e receber a resposta com o link direto para o parágrafo citado, para conferir a fonte sem reler tudo.",
+    "Quando estou cansada de olhar para a tela do notebook, quero gerar e baixar o áudio do capítulo com uma voz natural ou bilíngue, para continuar absorvendo a matéria enquanto caminho ou pego transporte."
+  ],
+  "funcoes": [
+    {
+      "nome": "Importação local de EPUB, PDF e link de artigo",
+      "descricao": "Arrastar meus próprios arquivos EPUB/PDF (via foliate-js e PDF.js) ou colar link de artigo web para abrir direto no leitor com sumário e progresso salvos.",
+      "tela": "catálogo",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Leitor paginado com temas, tipografia e busca lexical",
+      "descricao": "Visualização em páginas ou rolagem contínua com ajuste de fonte, modo escuro, busca rápida por palavra exata no documento e marcação de posição por CFI.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Grifo multicolorido com nota escrita e nota de voz",
+      "descricao": "Selecionar qualquer trecho (padrão W3C Web Annotation com CFI) para grifar por cor, digitar meu comentário ou gravar um áudio curto explicando com minhas palavras.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Exportador de fichamento para Notion (Markdown) e Anki (.apkg/CSV)",
+      "descricao": "Baixar todos os grifos, trechos citados e notas do livro/artigo formatados em Markdown limpo para colar no Notion ou em pacote pronto para o Anki.",
+      "tela": "notas/exportar",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Criar cartão FSRS em um clique a partir do grifo",
+      "descricao": "Transformar uma palavra ou frase selecionada no PDF/EPUB em cartão de repetição espaçada com a frase original de contexto já preenchida.",
+      "tela": "leitor",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Explicador e simplificador de trecho com analogias",
+      "descricao": "Selecionar um parágrafo denso do paper e pedir para a IA traduzir o sentido real, simplificar para inglês mais acessível ou criar uma analogia prática.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "P"
+    },
+    {
+      "nome": "Resumo de capítulo que vira baralho de revisão",
+      "descricao": "Gerar os pontos-chave do capítulo (usando cache compartilhado nos livros públicos ou minha cota nos PDFs próprios) e converter os conceitos em cartões FSRS.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Pergunte ao texto com busca lexical e citação clicável",
+      "descricao": "Fazer uma pergunta sobre o livro ou artigo onde o sistema localiza os trechos por busca lexical, responde com IA e mostra a citação exata que leva à página ao clicar.",
+      "tela": "painel de IA",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Narração bilíngue e inteligente no navegador",
+      "descricao": "Ouvir o texto acompanhando o destaque da frase na tela, alternando entre idioma original e tradução com a voz gratuita do aparelho ou voz natural da nuvem.",
+      "tela": "narração",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    },
+    {
+      "nome": "Gerador de audiolivro por capítulo (ZIP de MP3)",
+      "descricao": "Converter capítulos selecionados usando a voz natural da nuvem (descontando da cota) e baixar um arquivo ZIP com os MP3 organizados para ouvir offline.",
+      "tela": "narração",
+      "plano": "pago",
+      "ia": "sim",
+      "esforco": "M"
+    },
+    {
+      "nome": "Catálogo de clássicos verificados (Lei 9.610 / 1955)",
+      "descricao": "Biblioteca integrada com obras do Standard Ebooks, Wikisource e acervo curado do Gutenberg (autores e tradutores falecidos até 1955), filtrada por nível e tema.",
+      "tela": "catálogo",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "M"
+    },
+    {
+      "nome": "Quiz e jogos de vocabulário do capítulo lido",
+      "descricao": "Gerar partida rápida de associação de palavras e lacunas usando exatamente os termos que grifei ou salvei durante a leitura daquele capítulo.",
+      "tela": "jogos/revisão",
+      "plano": "grátis",
+      "ia": "não",
+      "esforco": "P"
+    }
+  ],
+  "me_faria_desistir": [
+    "Prender minhas anotações, grifos ou cartões no plano pago ou dificultar a exportação para Markdown/Anki para tentar me forçar a assinar.",
+    "Um leitor de PDF/EPUB pesado que engasga no navegador do notebook, perde a formatação de duas colunas de artigos científicos ou some com a posição de leitura quando recarrego a aba.",
+    "A IA responder minhas dúvidas sobre o artigo inventando dados que não estão no texto, sem mostrar o trecho original citado para eu checar.",
+    "Gastar minha cota do plano pago no escuro — tipo clicar para resumir um PDF grande ou gerar MP3 e descobrir só depois que torrei toda a minha franquia do mês.",
+    "Poluir minha tela de estudo com interface infantilizada, excesso de pop-ups de gamificação no meio do texto ou bloquear livros clássicos adultos porque o filtro de menores não sabe diferenciar minha conta de 23 anos."
+  ]
+}
+```

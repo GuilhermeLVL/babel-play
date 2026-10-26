@@ -36,8 +36,26 @@ export interface AnotacaoLocal extends AnotacaoDeLeitura {
   pendente: 0 | 1;
 }
 
+/**
+ * COMO O LIVRO VAI PARA O DISCO: os bytes (`ArrayBuffer`) e o tipo, e não o `Blob`. O WebKit (Safari) recusa
+ * `Blob` no IndexedDB em vários cenários ("Error preparing Blob/File data to be stored in object store") —
+ * e o dono lê no Safari. A estante devolve sempre um `Blob` para quem lê.
+ */
+type LivroNoDisco = Omit<LivroGuardado, 'arquivo'> & { bytes: ArrayBuffer; tipo: string };
+
+const paraODisco = async ({ arquivo, ...resto }: LivroGuardado): Promise<LivroNoDisco> => ({
+  ...resto,
+  bytes: await arquivo.arrayBuffer(),
+  tipo: arquivo.type,
+});
+const doDisco = (l: LivroNoDisco | undefined): LivroGuardado | undefined => {
+  if (!l) return undefined;
+  const { bytes, tipo, ...resto } = l;
+  return { ...resto, arquivo: new Blob([bytes], tipo ? { type: tipo } : undefined) };
+};
+
 interface EsquemaDaEstante extends DBSchema {
-  livros: { key: string; value: LivroGuardado; indexes: { abertoEm: number } };
+  livros: { key: string; value: LivroNoDisco; indexes: { abertoEm: number } };
   anotacoes: { key: string; value: AnotacaoLocal; indexes: { livroId: string; pendente: number } };
   estado: { key: string; value: { chave: string; valor: number } };
 }
@@ -67,10 +85,11 @@ export async function esquecerConexaoDaEstante(): Promise<void> {
 
 export const estante = {
   async guardarLivro(l: LivroGuardado): Promise<void> {
-    await (await abrir()).put('livros', l);
+    const registro = await paraODisco(l);
+    await (await abrir()).put('livros', registro);
   },
   async livro(livroId: string): Promise<LivroGuardado | undefined> {
-    return (await abrir()).get('livros', livroId);
+    return doDisco(await (await abrir()).get('livros', livroId));
   },
   async marcarAberto(livroId: string, agora = Date.now()): Promise<void> {
     const db = await abrir();
@@ -79,7 +98,7 @@ export const estante = {
   },
   /** Os livros do aparelho, do aberto por último ao mais antigo. */
   async livros(): Promise<LivroGuardado[]> {
-    return (await (await abrir()).getAllFromIndex('livros', 'abertoEm')).reverse();
+    return (await (await abrir()).getAllFromIndex('livros', 'abertoEm')).reverse().map((l) => doDisco(l)!);
   },
   async apagarLivro(livroId: string): Promise<void> {
     await (await abrir()).delete('livros', livroId);

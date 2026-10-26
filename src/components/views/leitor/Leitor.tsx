@@ -87,6 +87,7 @@ function Estante() {
     try {
       await abrirLivroNoLeitor(arquivo);
     } catch (e) {
+      console.error('leitor: não abriu o arquivo', e);
       toast.error(e instanceof ErroAoAbrirLivro ? t(MENSAGEM_DO_ERRO[e.code]) : t('Não deu para abrir o arquivo.'));
     } finally {
       setAbrindo(false);

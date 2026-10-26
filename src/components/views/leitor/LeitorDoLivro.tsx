@@ -31,7 +31,14 @@ import { useLangConfig } from '../../../lib/langConfig';
 import { baseLang, toBcp47 } from '../../../lib/languages';
 import type { Localizacao } from '../../../lib/leitor/foliate/view.js';
 import { type InfoDoLivro, MotorDoLeitor } from '../../../lib/leitor/motor';
-import { citacaoDoRange, fraseDoRange, palavraNoPonto, selecaoDoDocumento } from '../../../lib/leitor/selecao';
+import {
+  citacaoDoRange,
+  fraseDoRange,
+  ouvintesDoDocumentoFuncionam,
+  palavraNoPonto,
+  selecaoDoDocumento,
+  vigiarSelecao,
+} from '../../../lib/leitor/selecao';
 import { lerAnotacoes } from '../../../lib/leitura/anotacaoDaFrase';
 import { anotacoesDoLivro, type EstadoDaSincronizacao } from '../../../lib/livros/anotacoesDoLivro';
 import type { LivroGuardado } from '../../../lib/livros/armazem';
@@ -329,6 +336,37 @@ export default function LeitorDoLivro({
 
   /* ── o documento de cada seção: teclado, seleção e toque na palavra ── */
   function ligarDocumento(doc: Document, indice: number) {
+    /* WEBKIT (Safari): o iframe sem `allow-scripts` não entrega eventos nem ao app (bug 218086). A seleção e o
+       toque são lidos de fora, pela seleção do documento (`vigiarSelecao`). */
+    if (!ouvintesDoDocumentoFuncionam(doc)) {
+      vigiarSelecao(
+        doc,
+        {
+          aoSelecionar: (r) => {
+            const motor = motorRef.current;
+            if (!motor) return;
+            setPalavra(null);
+            setSelecao({
+              trecho: {
+                texto: r.toString().trim(),
+                frase: fraseDoRange(r, idiomaRef.current),
+                idioma: idiomaRef.current,
+              },
+              cfi: motor.cfiDe(indice, r),
+              citacao: citacaoDoRange(r),
+              capitulo: capituloRef.current,
+            });
+          },
+          aoTocar: (r) => {
+            const palavra = r.toString();
+            if (!/\p{L}/u.test(palavra) || palavra.length < 2) return;
+            void abrirPalavra(palavra, r, indice);
+          },
+        },
+        () => !!document.activeElement && !!hospedeiro.current?.contains(document.activeElement),
+      );
+      return;
+    }
     doc.addEventListener('keydown', aoTeclar);
     const conferirSelecao = () =>
       window.setTimeout(() => {
@@ -417,6 +455,8 @@ export default function LeitorDoLivro({
     extra: { cor?: CorDeAnotacao; nota?: string; palavra?: string },
     alvo: Selecao | PalavraAberta,
   ) => {
+    /* A seleção sai JÁ (e não depois de gravar): a pessoa pode estar selecionando o próximo trecho. */
+    motorRef.current?.desmarcar();
     const a = novaAnotacao({
       id: novoId(),
       livroId,
@@ -429,7 +469,6 @@ export default function LeitorDoLivro({
     });
     await repo.gravar(a);
     await recarregarAnotacoes();
-    motorRef.current?.desmarcar();
     setAnuncio(tipo === 'nota' ? t('Nota salva.') : tipo === 'palavra' ? t('Palavra salva.') : t('Trecho grifado.'));
     void sincronizar();
   };

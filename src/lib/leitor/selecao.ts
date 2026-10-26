@@ -128,3 +128,74 @@ export function selecaoDoDocumento(doc: Document): Range | null {
   const r = sel.getRangeAt(0);
   return r.toString().trim().length >= 2 ? r : null;
 }
+
+/**
+ * O WEBKIT NÃO ENTREGA EVENTOS de um iframe com `sandbox` sem `allow-scripts` (bug 218086) — nem aos
+ * ouvintes que o PRÓPRIO app registrou no documento do capítulo. E o livro não pode ganhar `allow-scripts`
+ * (`foliate/PATCHES.md`). Esta sonda descobre se os ouvintes funcionam (um evento sintético de ida e volta).
+ */
+export function ouvintesDoDocumentoFuncionam(doc: Document): boolean {
+  let chegou = false;
+  const ouvir = () => {
+    chegou = true;
+  };
+  try {
+    doc.addEventListener('frasy-sonda', ouvir);
+    doc.dispatchEvent(new Event('frasy-sonda'));
+  } catch {
+    return false;
+  } finally {
+    doc.removeEventListener('frasy-sonda', ouvir);
+  }
+  return chegou;
+}
+
+/**
+ * SEM OUVINTES (WebKit): a seleção do documento é lida de fora, a cada `intervalo`. O toque numa palavra vira
+ * um CARET (seleção recolhida no ponto tocado — o WebKit o põe mesmo em texto não editável) e o arrastar vira
+ * uma seleção com texto. O DOM do capítulo continua acessível ao app; só os eventos não chegam. Devolve a
+ * função que para a vigia (que também para sozinha quando o documento sai de cena).
+ */
+export function vigiarSelecao(
+  doc: Document,
+  aoMudar: { aoSelecionar: (r: Range) => void; aoTocar: (r: Range) => void },
+  /* O caret só é TOQUE se o foco estiver no livro (a pessoa tocou nele): o WebKit também põe caret ao rolar ou
+     ao restaurar a página, e isso não pode abrir a folha da palavra. */
+  focoNoLivro: () => boolean = () => true,
+  intervalo = 180,
+): () => void {
+  let assinatura = '';
+  const id = window.setInterval(() => {
+    const janela = doc.defaultView;
+    if (!janela) {
+      window.clearInterval(id);
+      return;
+    }
+    const sel = janela.getSelection();
+    if (!sel || sel.rangeCount === 0) {
+      assinatura = '';
+      return;
+    }
+    const r = sel.getRangeAt(0);
+    const agora = `${sel.isCollapsed}|${r.startOffset}|${r.endOffset}|${r.toString().length}|${(r.startContainer.textContent ?? '').slice(0, 40)}`;
+    if (agora === assinatura) return;
+    assinatura = agora;
+    if (!sel.isCollapsed) {
+      if (r.toString().trim().length >= 2) aoMudar.aoSelecionar(r);
+      return;
+    }
+    const no = r.startContainer;
+    if (no.nodeType !== Node.TEXT_NODE || !focoNoLivro()) return;
+    const texto = no.textContent ?? '';
+    const p = palavraEm(texto, r.startOffset) ?? (r.startOffset > 0 ? palavraEm(texto, r.startOffset - 1) : null);
+    if (!p) return;
+    const palavra = doc.createRange();
+    palavra.setStart(no, p.inicio);
+    palavra.setEnd(no, p.fim);
+    /* O caret tratado sai: tocar de novo no mesmo lugar é um toque novo. */
+    sel.removeAllRanges();
+    assinatura = '';
+    aoMudar.aoTocar(palavra);
+  }, intervalo);
+  return () => window.clearInterval(id);
+}

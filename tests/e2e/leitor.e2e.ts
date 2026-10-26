@@ -79,7 +79,13 @@ const posicaoGuardada = (page: Page, livroId: string) =>
 test.describe('Leitor', () => {
   test('abre o EPUB, pagina, muda tema e fonte, toca na palavra, grifa e anota, volta ao mesmo CFI e exporta', async ({
     page,
+    browserName,
   }) => {
+    /* O axe é o mesmo em qualquer motor e roda no Chromium; no WebKit a injeção do script esbarra na CSP de
+       relatório do servidor de desenvolvimento, e a varredura não diria nada a mais. */
+    const semViolacoes = async () => {
+      if (browserName !== 'webkit') expect(await violacoesGraves(page, ['[data-testid=leitor]'])).toEqual([])
+    }
     test.slow()
     await apagarAnotacoesDoServidor(page)
     await page.goto('/leitor')
@@ -96,7 +102,7 @@ test.describe('Leitor', () => {
     await fecharSobreposicoes(page)
 
     // ── acessibilidade (ACE07): nada sério nem crítico no axe, no leitor e com os painéis abertos ──
-    expect(await violacoesGraves(page, ['[data-testid=leitor]'])).toEqual([])
+    await semViolacoes()
 
     // ── paginar (teclado e botão) ──
     const progresso = page.getByTestId('leitor-progresso')
@@ -127,7 +133,7 @@ test.describe('Leitor', () => {
     await expect
       .poll(() => fox.evaluate(() => getComputedStyle(document.documentElement).backgroundColor))
       .toBe('rgb(28, 28, 30)')
-    expect(await violacoesGraves(page, ['[data-testid=leitor]'])).toEqual([])
+    await semViolacoes()
     const perfil = await page.evaluate(() => JSON.parse(localStorage.getItem('leitor:perfil') ?? '{}'))
     expect(perfil).toMatchObject({ tema: 'escuro', fonte: 'atkinson' })
     await page.getByRole('button', { name: 'Fechar o painel' }).click()
@@ -171,7 +177,7 @@ test.describe('Leitor', () => {
     await page.getByRole('button', { name: /Anotações/ }).click()
     const painel = page.getByTestId('painel-anotacoes')
     await expect(painel.getByText('nose in the air', { exact: false })).toBeVisible()
-    expect(await violacoesGraves(page, ['[data-testid=leitor]'])).toEqual([])
+    await semViolacoes()
     await expect(painel.getByText('desdenhar do que não se alcança', { exact: false })).toBeVisible()
 
     // ── exportar Markdown ──

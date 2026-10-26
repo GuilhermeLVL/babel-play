@@ -1,0 +1,64 @@
+{
+  "geradoEm": "2026-10-26T16:33:02.727Z",
+  "modelo": "google/gemma-4-26b-a4b-it",
+  "excluido": "makora",
+  "rotas": {
+    "depois": {
+      "data_collection": "deny",
+      "zdr": true,
+      "ignore": ["google-ai-studio", "google-vertex", "makora"]
+    }
+  },
+  "porFuncao": {
+    "comoRespondo": {
+      "depois": {
+        "n": 100,
+        "validos": 99,
+        "erros": 0,
+        "p50": 1.8407947080000013,
+        "p90": 2.3289122909999995,
+        "p95": 2.527566791999998,
+        "max": 13.034757666999997,
+        "primeiraSugestao": {
+          "p50": 0.9228675000000003,
+          "p90": 1.3292035419999992,
+          "p95": 1.667768541999998,
+          "max": 11.531559458
+        },
+        "segundaSugestao": {
+          "p50": 1.3537601250000006,
+          "p90": 1.8355834579999992,
+          "p95": 1.9659675419999998,
+          "max": 12.231792916999998
+        },
+        "ttft": {
+          "p50": 0.40396070899999903,
+          "p90": 0.7911387079999995,
+          "p95": 0.9102588750000001,
+          "max": 10.744438875
+        },
+        "semPrimeira": 1,
+        "usdPorMil": 0.06742859999999999,
+        "provedores": {
+          "DeepInfra": 99,
+          "NextBit": 1
+        }
+      }
+    },
+    "legenda": {
+      "depois": {
+        "n": 0,
+        "validos": 0,
+        "erros": 0,
+        "p50": null,
+        "p90": null,
+        "p95": null,
+        "max": null,
+        "usdPorMil": null,
+        "provedores": {}
+      }
+    }
+  },
+  "gastoUsd": 0.00674286,
+  "parada": null
+}

@@ -212,8 +212,9 @@ const esperar = (ms) => new Promise((r) => setTimeout(r, ms))
  * UMA chamada com streaming: reserva o pior caso no livro-caixa ANTES, mede TTFT (primeiro pedaço de conteúdo) e
  * total, acerta pelo `usage.cost` (sem ele, cobra o reservado). 429/5xx: até 2 novas tentativas, cada uma com a sua
  * reserva (4xx/5xx não são cobrados: a reserva é cancelada). `TetoDeGasto` do livro sobe sem chamar.
+ * `aoConteudo(texto, ms, tentativa)`: opcional, o texto acumulado a cada pedaço (ms desde o início da tentativa).
  */
-export async function chamar({ corpo, preco, livro, rotulo, chave, timeoutMs = 60_000, tentativas = 4 }) {
+export async function chamar({ corpo, preco, livro, rotulo, chave, timeoutMs = 60_000, tentativas = 4, aoConteudo }) {
   let ultimo = null
   for (let t = 0; t < tentativas; t++) {
     const reserva = livro.reservar(rotulo, piorCasoUsd(corpo, preco))
@@ -258,6 +259,8 @@ export async function chamar({ corpo, preco, livro, rotulo, chave, timeoutMs = 6
           const antes = estado.texto.length
           lerEventoSse(linha, estado)
           if (ttftMs === null && estado.texto.length > antes) ttftMs = performance.now() - t0
+          /* Quem mede mais que o TTFT (o tempo até a primeira sugestão do "Como respondo?") lê o texto que cresce. */
+          if (aoConteudo && estado.texto.length > antes) aoConteudo(estado.texto, performance.now() - t0, t)
         }
       }
       if (buffer) lerEventoSse(buffer, estado)

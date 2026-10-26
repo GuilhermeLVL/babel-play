@@ -102,8 +102,42 @@ envelope `{ error, code }`.
 | 501                                               | nenhuma perna ZDR configurada                             | `indisponivel`              |
 | 502 `resposta_invalida` / `provedor_indisponivel` | modelo fora do formato / provedor fora do ar              | `indisponivel`              |
 
+#### "Como respondo?" em fluxo (26/10/2026)
+
+Com `Accept: application/x-ndjson`, `/api/ai/assistente/como-respondo` responde em NDJSON (um evento JSON por linha), e
+cada sugestão sai assim que o objeto dela fecha no texto do modelo:
+
+| Evento                                                | Quando                                                                |
+| ----------------------------------------------------- | --------------------------------------------------------------------- |
+| `{"tipo":"sugestao","sugestao":{texto,traducao,tom}}` | uma por sugestão, na ordem, já lida e limpa                           |
+| `{"tipo":"fim","sugestoes":[…],"restanteHoje":n}`     | a lista final (a de sempre, lida do texto inteiro por `lerSugestoes`) |
+| `{"tipo":"erro","code":"…","error":"…"}`              | o fluxo falhou DEPOIS da primeira sugestão                            |
+
+- **O primeiro byte é a primeira sugestão.** O status 200, o `Content-Type`, o `Cache-Control: no-transform` (o
+  `compression` do Node seguraria os pedaços) e o `x-ia-modelo` saem com ela. Toda recusa ANTES dela (flag, plano, cota,
+  provedor fora, resposta inválida) é a resposta HTTP de sempre, com o status e o envelope.
+- **Cascata só antes do primeiro byte**: a perna que cai sem ter entregado uma sugestão cede à reserva (os relógios de
+  sempre: 5 s até a primeira sugestão na primeira perna, 6 s nas reservas); depois, não há reserva, a leitura vai até o
+  prazo total (10 s) e a falha é o evento `erro` (`provedor_indisponivel`; o fim fora do formato é `resposta_invalida`).
+- **Leitura**: `src/lib/estudo/sugestoesEmFluxo.ts` varre o JSON que cresce e passa cada item pelo mesmo leitor
+  (`lerItemDaSugestao`: chaves exatas, tom do enum, sem os delimitadores do prompt, sem repetir, até 3). O que sai é
+  sempre um prefixo do que `lerSugestoes` lê do texto final; o `fim` só vem se o todo passar (2 ou 3, sem chave a mais).
+- **Volta ao caminho de sempre**: o provedor que recusa o esquema ou o `stream` (o 404 "No endpoints found" ou um 400
+  que os cita) tem a MESMA perna repetida inteira pelo `chamarChat` (com a segunda tentativa sem esquema), e a resposta
+  que chega sem `text/event-stream` é lida como JSON; nos dois casos o fluxo sai de uma vez.
+- **Cota idêntica**: o uso do dia e as reservas de tokens são acertados no fim pelo uso real (o `usage` do último
+  pedaço; `usage: {include: true}` no OpenRouter, `stream_options.include_usage` nos outros). Caiu (ou a pessoa
+  cancelou) depois da primeira sugestão: o que foi gerado conta (o uso do provedor, ou ~4 caracteres por token quando
+  ele não chegou) e o uso do dia também. Nada gerado: tudo volta. O estorno roda no `finally` do handler, que no Worker
+  já segura a requisição (`capturarAssincrono` → `emSegundoPlano`).
+- **Cancelar**: em fluxo, o handler passa o `sinalDoCliente` ao núcleo; a conexão fechada aborta o `fetch` ao provedor.
+- **Menor**: igual (a instrução de segurança no system, o contexto descartado). As outras três rotas ignoram o `Accept`.
+- Sem o `Accept`, o contrato antigo, sem mudança nenhuma (o JSON inteiro; o provedor chamado com `stream: false`).
+
 Clientes (`src/data/apiDoAssistente.ts`): `destacarExpressoes`, `explicarTermos`, `comoRespondo`, `corrigirMinhaFala`
-(nenhum lança; `{ ok: true, valor } | { ok: false, motivo, status }`), `esquecerCacheDoAssistente`. Numa resposta do
+(nenhum lança; `{ ok: true, valor } | { ok: false, motivo, status }`), `esquecerCacheDoAssistente`. O `comoRespondo`
+aceita `{ aoSugerir, sinal }`: com `aoSugerir`, pede NDJSON e chama `aoSugerir(lista)` a cada sugestão; o resultado é o
+mesmo (a lista do `fim`). Um servidor que responde o JSON inteiro também serve. Numa resposta do
 cache, `restanteHoje` é o último valor conhecido na aba, ou fica de fora — nunca `null`. Local:
 `palavrasAcimaDoNivel(linha, lang, nivelDaPessoa)` e `candidatosATermo(linha)`.
 
@@ -139,7 +173,10 @@ cache, `restanteHoje` é o último valor conhecido na aba, ou fica de fora — n
   correção, sem abas. **PiP de vídeo**: uma linha curta de glosa
   (expressão, senão termo) embaixo da legenda nos formatos Legenda e Conversa; na faixa, nada.
 - **"Como respondo?"**: botão no canto (com os controles) e Alt+R, em legenda/conversa/estudo; folha com 2–3 sugestões,
-  tradução, tom, Copiar e Ouvir; "Pensando em respostas…" e, depois de 2,5 s, "Está demorando…" com Cancelar.
+  tradução, tom, Copiar e Ouvir; "Pensando em respostas…" e, depois de 2,5 s, "Está demorando…" com Cancelar. Em
+  fluxo (26/10/2026): a primeira sugestão já troca a espera pela lista (`ok` com `parcial: true`, o lugar das que faltam
+  em pontinhos `aria-hidden`, `aria-busy` na lista) e as outras completam; os avisos de espera só valem antes da
+  primeira. Fechar a folha (ou Cancelar) aborta o pedido. Um `erro` depois da primeira troca a lista pela falha.
 - **Escondido** com a flag desligada, no Grátis ou depois de um `sem_plano`/`fora`/`sem_conta` do servidor (o plano é
   acompanhado pelo evento dos entitlements); o recurso 2 segue. O perfil
   protegido recebe os mesmos recursos, sem contexto no "Como respondo?" e sem nenhuma oferta.
@@ -222,18 +259,18 @@ menos. Detalhes e números: `docs/auditoria/eval-assistente-v1.md`.
    desligada não conta no balde.
 10. Recurso 2: só palavras estritamente acima do nível, com a posição exata; não marca sigla, nome próprio no meio da
     frase, palavra fora da lista (salvo opção) nem idioma sem espaço. _(teste: `tests/assistente-local.test.ts`)_
-11. Qualidade e latência medidas com o harness, gasto ≤ US$ 1,00 no livro-caixa; "Como respondo?" com alvo de p95 ≤ 3 s (medido: 5,7 s com a Makora; 3,8 s sem ela — ainda 0,8 s acima do alvo, ver o relatório).
+11. Qualidade e latência medidas com o harness, gasto ≤ US$ 1,00 no livro-caixa; "Como respondo?" com alvo de p95 ≤ 3 s (medido: 5,7 s com a Makora; 3,8 s sem ela). **Em fluxo (26/10/2026), o que a pessoa espera é a primeira sugestão: p95 de 1,7 s direto ao OpenRouter (n = 100) e 2,8 s pelo servidor local (n = 19); o total ficou em 2,5 s e 3,3 s** (ver o relatório). _(testes: `tests/integration/assistente-fluxo.test.ts`, `tests/sugestoesEmFluxo.test.ts`)_
 12. `npm run ia:custo`: margem do anual ≥ 0 nos planos v4. _(teste: `tests/assistente-custo.test.ts`)_
 
 ## Riscos e mitigação
 
-| Risco                                                         | Mitigação                                                                                                                                       |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| O assistente come a `tokensMes` e falta legenda no fim do mês | Resolvido pela subcota `assistenteTokensMes` (25%): o assistente para antes, e a legenda fica com pelo menos 75% da cota.                       |
-| Destaque errado ou inventado                                  | O leitor descarta trecho/termo que não está na frase; a bancada mediu 80–88% de aprovação nas glosas.                                           |
-| "Como respondo?" lido como cola                               | Copy de ajuda de idioma, sob demanda, sem promessa de ocultação; o prompt proíbe mentir e dados pessoais.                                       |
-| Latência acima de 3 s no "Como respondo?"                     | Sem a Makora (aplicado), p95 de 3,8 s (p50 2,6 s, p90 3,4 s), ainda acima do alvo: a tela mostra a espera e permite cancelar; medir no staging. |
-| Provedor do OpenRouter que ignora o esquema                   | `require_parameters` + leitor defensivo; a bancada viu um endpoint (SiliconFlow) devolver JSON sem uma chave — vira 502, sem ajuda inventada.   |
+| Risco                                                         | Mitigação                                                                                                                                                                                                                                            |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| O assistente come a `tokensMes` e falta legenda no fim do mês | Resolvido pela subcota `assistenteTokensMes` (25%): o assistente para antes, e a legenda fica com pelo menos 75% da cota.                                                                                                                            |
+| Destaque errado ou inventado                                  | O leitor descarta trecho/termo que não está na frase; a bancada mediu 80–88% de aprovação nas glosas.                                                                                                                                                |
+| "Como respondo?" lido como cola                               | Copy de ajuda de idioma, sob demanda, sem promessa de ocultação; o prompt proíbe mentir e dados pessoais.                                                                                                                                            |
+| Latência acima de 3 s no "Como respondo?"                     | Sem a Makora e EM FLUXO (aplicados): a primeira sugestão sai com p95 de 1,7 s (direto) / 2,8 s (servidor local); a cauda de um endpoint lento (10–13 s, 1–2 em 100) segue — a tela mostra a espera e permite cancelar; medir no staging e no Worker. |
+| Provedor do OpenRouter que ignora o esquema                   | `require_parameters` + leitor defensivo; a bancada viu um endpoint (SiliconFlow) devolver JSON sem uma chave — vira 502, sem ajuda inventada.                                                                                                        |
 
 ## Perguntas ao dono
 

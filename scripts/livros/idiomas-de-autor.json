@@ -1,0 +1,4 @@
+{
+  "nota": "Idiomas em que o autor escrevia, decididos À MÃO quando a Wikidata não decide (pessoa não achada pelo nome e pelos anos, ou sem idioma de escrita). Nome na ordem direta, como sai no catálogo → códigos de duas letras. Serve para a regra da tradução (core/livros/filtroLegal.ts, ehTraducao): livro em idioma que o autor não escrevia é tradução, e tradução sem tradutor identificado não entra. Começa vazia: na dúvida, o livro fica de fora.",
+  "autores": {}
+}

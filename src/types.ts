@@ -178,6 +178,8 @@ export type ViewType =
   | 'study'
   | 'play'
   | 'library'
+  /** Livros (`/livros`): o catálogo de domínio público, o detalhe e a leitura de cada livro. */
+  | 'livros'
   | 'analysis'
   | 'settings'
   | 'reading'

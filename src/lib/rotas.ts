@@ -28,6 +28,8 @@ export type ViewDeRota =
   | 'interprete'
   | 'play'
   | 'library'
+  /** O catálogo de livros (`/livros`), o detalhe (`/livros/<id>`) e a leitura (`/livros/<id>/ler`). */
+  | 'livros'
   | 'analysis'
   | 'cartoes'
   | 'settings'
@@ -80,6 +82,10 @@ export interface EstadoDeRota {
   cartoesAba?: AbaDeCartoes;
   /** Só para `cartoes`: a rodada de revisão está aberta (`/cartoes/estudar`). */
   estudando?: boolean;
+  /** Só para `livros`: o livro aberto (o detalhe), do catálogo ou trazido pela pessoa. */
+  livroId?: string;
+  /** Só para `livros` com `livroId`: a leitura dele (`/livros/<id>/ler`), não o detalhe. */
+  lendo?: boolean;
 }
 
 /**
@@ -115,6 +121,10 @@ const ehAbaDeCartoes = (s: string | undefined): s is AbaDeCartoes =>
   !!s && (ABAS_DE_CARTOES as readonly string[]).includes(s);
 /** O segmento da rodada de revisão dentro de Cartões. */
 const SEGMENTO_DE_ESTUDO = 'estudar';
+/** O segmento da leitura de um livro (`/livros/<id>/ler`). */
+const SEGMENTO_DE_LEITURA = 'ler';
+/** Um id de livro: minúsculas, dígitos e hífens (os do catálogo e os `meu-…` dos trazidos). */
+const ehIdDeLivro = (s: string) => /^[a-z0-9][a-z0-9-]{0,119}$/.test(s);
 
 export const SUBTELAS_DE_PLANOS = ['assinar', 'assinado', 'cancelar', 'assinatura'] as const;
 export type SubTelaDePlanos = (typeof SUBTELAS_DE_PLANOS)[number];
@@ -128,6 +138,7 @@ const SEGMENTO: Record<Exclude<ViewDeRota, 'analysis'>, string> = {
   interprete: 'interprete',
   play: 'jogar',
   library: 'biblioteca',
+  livros: 'livros',
   cartoes: 'cartoes',
   settings: 'ajustes',
   profile: 'perfil',
@@ -289,6 +300,9 @@ export function estadoParaUrl(e: EstadoDeRota): string {
     return `/${SEGMENTO.settings}/${SEGMENTO_DA_ABA_DOS_AJUSTES[e.ajustesAba]}`;
   }
   if (e.view === 'play' && e.jogarQuery) return `/jogar?${e.jogarQuery}`;
+  if (e.view === 'livros' && e.livroId && ehIdDeLivro(e.livroId)) {
+    return `/${SEGMENTO.livros}/${e.livroId}${e.lendo ? `/${SEGMENTO_DE_LEITURA}` : ''}`;
+  }
   if (e.view === 'planos' && ehSubTelaDePlanos(e.planosTela)) return `/${SEGMENTO.planos}/${e.planosTela}`;
   const seg = SEGMENTO[e.view];
   return seg ? `/${seg}` : '/';
@@ -347,6 +361,14 @@ export function urlParaEstado(caminho: string): EstadoDeRota {
       ABA_DA_LOJA_DE_SEGMENTO[partes[1]] ?? normalizarAbaDaLojaV2(partes[1]) ?? normalizarAbaDaLoja(partes[1]);
     // Sub-aba desconhecida degrada para a tela, nunca para o Hub: o usuário pediu Personalizar.
     return aba ? { view: 'loja', lojaTab: aba } : { view: 'loja' };
+  }
+
+  if (partes[0] === SEGMENTO.livros && partes[1]) {
+    /* Id que não tem a forma de um id de livro degrada para o catálogo, nunca para o 404. */
+    if (!ehIdDeLivro(partes[1])) return { view: 'livros' };
+    return partes[2] === SEGMENTO_DE_LEITURA
+      ? { view: 'livros', livroId: partes[1], lendo: true }
+      : { view: 'livros', livroId: partes[1] };
   }
 
   if (partes[0] === SEGMENTO.settings && partes[1]) {

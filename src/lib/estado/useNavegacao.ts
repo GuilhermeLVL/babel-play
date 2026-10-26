@@ -59,7 +59,15 @@ export interface EstadoDaNavegacao {
   setAjustesAba: Dispatch<SetStateAction<AbaDosAjustes | null>>;
   /** A rodada de revisão aberta dentro de Cartões (`/cartoes/estudar`), ou `null`. */
   estudo: EstudoAberto | null;
+  /** O livro aberto na tela Livros (`/livros/<id>`, `/livros/<id>/ler`), ou `null` (o catálogo). */
+  livroAberto: LivroAberto | null;
   navigateTo: (view: string, data?: any) => void;
+}
+
+/** O livro aberto na tela Livros: o detalhe, ou a leitura dele. */
+export interface LivroAberto {
+  id: string;
+  lendo: boolean;
 }
 
 /** O que a rodada de revisão recebeu de quem a abriu. */
@@ -121,6 +129,8 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
   /* AJUSTES: a aba pedida por um atalho (o sino, "Ver todos os modelos"), pela URL ou pela própria
      pessoa. É o que `/ajustes/<aba>` espelha. */
   const [ajustesAba, setAjustesAba] = useState<AbaDosAjustes | null>(null);
+  /* LIVROS: o detalhe ou a leitura de um livro (`/livros/<id>[/ler]`). Sem ele, o catálogo. */
+  const [livroAberto, setLivroAberto] = useState<LivroAberto | null>(null);
 
   const navigateTo = (view: string, data?: any) => {
     // Sem conta: a porta de entrada é um destino ("Entrar" no menu), e o que exige conta abre o
@@ -178,6 +188,11 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
       setActiveView(view as ViewType);
       // v3: Personalizar aceita a aba de destino ("progressao" do fim de rodada, "loja" do cadeado).
       if (view === 'loja') setLojaAba(typeof data?.aba === 'string' ? data.aba : null);
+      if (view === 'livros') {
+        setLivroAberto(
+          typeof data?.livro === 'string' && data.livro ? { id: data.livro, lendo: data?.lendo === true } : null,
+        );
+      }
       // Planos tem sub-telas (checkout, confirmação, cancelamento) que não são views: o menu
       // leva à tela principal, e o "voltar" do navegador à sub-tela que estava na URL.
       if (view === 'planos') irParaSubTelaDePlanos(data?.planosTela ?? null);
@@ -218,6 +233,8 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
       subTab: e.subTab,
       aba: e.view === 'cartoes' ? e.cartoesAba : e.view === 'settings' ? e.ajustesAba : e.lojaTab,
       planosTela: e.planosTela,
+      livro: e.livroId,
+      lendo: e.lendo,
     });
 
   /* ═══════════════════════════════════════════════════════════════════════
@@ -294,8 +311,20 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
       ajustesAba: activeView === 'settings' ? (ajustesAba ?? undefined) : undefined,
       cartoesAba: activeView === 'cartoes' && !estudo ? cartoesAba : undefined,
       estudando: activeView === 'cartoes' && !!estudo,
+      livroId: activeView === 'livros' ? livroAberto?.id : undefined,
+      lendo: activeView === 'livros' ? livroAberto?.lendo : undefined,
     });
-  }, [activeView, selectedRecordingId, recordings, analysisSubTab, lojaAba, ajustesAba, cartoesAba, estudo]);
+  }, [
+    activeView,
+    selectedRecordingId,
+    recordings,
+    analysisSubTab,
+    lojaAba,
+    ajustesAba,
+    cartoesAba,
+    estudo,
+    livroAberto,
+  ]);
 
   /* 3) BOTÃO VOLTAR. Sem isto, "voltar" saía do app — era o beco relatado na auditoria.
         Passa pelo `navGuard`: uma captura em andamento ainda pode pedir confirmação. */
@@ -329,6 +358,7 @@ export function useNavegacao(deps: DependenciasDaNavegacao): EstadoDaNavegacao {
     ajustesAba,
     setAjustesAba,
     estudo,
+    livroAberto,
     navigateTo,
   };
 }

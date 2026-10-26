@@ -944,6 +944,13 @@ export const VARIAVEIS: readonly VariavelDeclarada[] = [
       'base de onde o navegador baixa os modelos do Bergamot (tradução pt→en no aparelho, A9b). Ausente: os modelos saem do PRÓPRIO domínio (o build os baixa com sha256 conferido). Com ela, a CSP libera a origem em `connect-src`',
   },
   {
+    nome: 'VITE_LIVROS_URL',
+    exigencia: 'opcional',
+    criticidade: 'degrada-capacidade',
+    paraQue:
+      'base pública do bucket R2 com a cópia curada dos livros do Gutenberg (`livros/pg-<id>.epub`, publicada por `scripts/livros/curar-gutenberg.mjs`). Ausente: os livros do Gutenberg aparecem no catálogo e a leitura diz que a cópia ainda não foi publicada; Standard Ebooks e Wikisource abrem direto da fonte. Com ela, a CSP libera a origem em `connect-src`',
+  },
+  {
     nome: 'VITE_ORT_WASM_URL',
     exigencia: 'opcional',
     criticidade: 'degrada-capacidade',

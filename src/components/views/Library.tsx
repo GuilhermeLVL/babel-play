@@ -437,6 +437,7 @@ export default function Library({ onChangeView, recordings, onRecordingsChange, 
           }}
           aoCapturar={() => onChangeView('capture')}
           aoImportar={() => abrirImportacao()}
+          aoLivros={() => onChangeView('livros')}
           conteudo={{
             ficha: (
               <SeletorDeConteudo

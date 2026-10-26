@@ -1,0 +1,166 @@
+{
+  "nota": "Classificação etária REVISADA POR PESSOA (spec de Livros & Leitura, Design §2). Livro fora desta lista sai com classificacao null ('a revisar') e não aparece para menor de idade. Valores: livre, 12, 14, 16, 18. Como revisar: docs/livros-catalogo.md. Os itens com \"revisor\": \"proposta-claude\" são uma PROPOSTA conservadora (26/10/2026) que ainda precisa da revisão do dono.",
+  "revisados": [
+    {
+      "id": "se-lewis-carroll-alices-adventures-in-wonderland-john-tenniel",
+      "classificacao": "livre",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "clássico infantil"
+    },
+    {
+      "id": "se-l-frank-baum-the-wonderful-wizard-of-oz",
+      "classificacao": "livre",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "clássico infantil"
+    },
+    {
+      "id": "pg-16",
+      "classificacao": "livre",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "Peter Pan: clássico infantil"
+    },
+    {
+      "id": "se-l-m-montgomery-anne-of-green-gables",
+      "classificacao": "livre",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "clássico infantojuvenil"
+    },
+    {
+      "id": "se-charles-dickens-a-christmas-carol",
+      "classificacao": "livre",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "conto de Natal"
+    },
+    {
+      "id": "pg-46",
+      "classificacao": "livre",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "A Christmas Carol (outra edição)"
+    },
+    {
+      "id": "pg-55206",
+      "classificacao": "livre",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "fábulas de Samaniego"
+    },
+    {
+      "id": "pg-19898",
+      "classificacao": "livre",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "La Edad de Oro: revista infantil de José Martí"
+    },
+    {
+      "id": "pg-36558",
+      "classificacao": "livre",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "Ratón Pérez: conto infantil"
+    },
+    {
+      "id": "pg-73486",
+      "classificacao": "livre",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "Corazón (De Amicis): livro escolar infantojuvenil"
+    },
+    {
+      "id": "se-robert-louis-stevenson-treasure-island",
+      "classificacao": "12",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "aventura com piratas e violência leve"
+    },
+    {
+      "id": "pg-45438",
+      "classificacao": "12",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "La isla del tesoro"
+    },
+    {
+      "id": "pg-2591",
+      "classificacao": "12",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "contos de Grimm: violência de conto de fadas"
+    },
+    {
+      "id": "se-louisa-may-alcott-little-women",
+      "classificacao": "12",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "clássico juvenil"
+    },
+    {
+      "id": "se-e-nesbit-beautiful-stories-from-shakespeare",
+      "classificacao": "12",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "Shakespeare recontado para jovens"
+    },
+    {
+      "id": "se-arthur-conan-doyle-the-adventures-of-sherlock-holmes",
+      "classificacao": "12",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "contos policiais"
+    },
+    {
+      "id": "se-arthur-conan-doyle-the-hound-of-the-baskervilles",
+      "classificacao": "12",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "romance policial"
+    },
+    {
+      "id": "se-jane-austen-pride-and-prejudice",
+      "classificacao": "12",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "romance de costumes"
+    },
+    {
+      "id": "pg-22015",
+      "classificacao": "12",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "As Minas de Salomão: aventura"
+    },
+    {
+      "id": "ws-pt-a-moreninha-1860",
+      "classificacao": "12",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "romance romântico, leitura escolar"
+    },
+    {
+      "id": "ws-pt-iracema",
+      "classificacao": "12",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "leitura escolar"
+    },
+    {
+      "id": "ws-pt-o-guarani",
+      "classificacao": "12",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "leitura escolar; violência de aventura"
+    },
+    {
+      "id": "ws-pt-auto-da-barca-do-inferno",
+      "classificacao": "12",
+      "revisor": "proposta-claude",
+      "data": "2026-10-26",
+      "nota": "teatro de Gil Vicente, leitura escolar"
+    }
+  ]
+}

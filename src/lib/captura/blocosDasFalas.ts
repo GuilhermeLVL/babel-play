@@ -14,6 +14,9 @@
  * lista passa a ter um filho a cada 20 falas. O mesmo trace, com blocos: 707 ms de estilo e 93 de layout
  * sobre 180 falas; 859 e 106 sobre 400 (com 1 fala na tela: 691 e 104).
  *
+ * DEPOIS (26/10/2026): o bloco longe da tela sai do DOM (`janelaDasFalas`), e o `content-visibility` saiu. O
+ * bloco continua sendo a peça: é ele que a janela monta, desmonta e mede.
+ *
  * A FALA NÃO MUDA DE BLOCO. Mudar de bloco é mudar de pai no DOM, e o React desmontaria a linha (a
  * entrada animada rodaria de novo no meio da leitura). Por isso a conta parte do que já estava
  * decidido (`anterior`) e só responde por quem chegou:

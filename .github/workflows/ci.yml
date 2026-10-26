@@ -395,6 +395,7 @@ jobs:
         tests/integration/lotes-em-uma-instrucao.test.ts
         tests/integration/medicao-de-transacao-pg.test.ts
         tests/integration/migracoes-sem-prazo.test.ts
+        tests/integration/palavras-vistas.test.ts
         tests/integration/pool-lock-timeout-pg.test.ts
         tests/integration/prazos-do-papel.test.ts
         tests/integration/r2-teto-armazenamento.test.ts

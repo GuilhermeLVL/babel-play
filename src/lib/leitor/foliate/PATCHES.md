@@ -16,7 +16,16 @@ Origem, commit e lista de arquivos: `ORIGEM.txt`. Toda mudança está marcada co
    (X)HTML, SVG, CSS, imagem, fonte e áudio (XML genérico, XSLT, JS e o resto ficam fora); o evento `data`
    limpa toda marcação, inclusive `Blob` que fareja como HTML/SVG, com `../limparHtml.ts` (tira script,
    `on*`, `javascript:`, `iframe`/`object`/`embed`/`form` e a instrução `xml-stylesheet`).
-3a. **Privacidade (fora do vendor, `../limparHtml.ts`):** nada do livro sai para outro host. Depois do foliate-js
+0. **CSP do capítulo (a barreira principal, revisão de 26/10/2026):** `../limparHtml.ts` põe
+   `<meta http-equiv="Content-Security-Policy">` (`CSP_DO_CAPITULO`: só `blob:`/`data:`, nenhum script) como
+   primeiro filho do `<head>` de todo capítulo e tira toda `<meta http-equiv>` do livro. O (X)HTML sai como
+   **HTML** (`text/html`): no XHTML o Chromium e o WebKit ignoram a CSP em `<meta>`. As fontes do perfil entram
+   como `blob:` (`../fontes.ts`). Controle medido: com a limpeza desligada, a CSP sozinha deixa 0 pedidos
+   chegarem à rede no Chromium e no WebKit; sem as duas, chegam 66–69 (`burlas.epub`).
+3a. **Privacidade (fora do vendor, `../limparHtml.ts`, defesa em profundidade):** a URL é normalizada como o
+   navegador faz (controles, `\\t\\n\\r`, `\` → `/`) e decidida por `new URL`; elementos e atributos por nome LOCAL
+   (com qualquer prefixo); SMIL (`set`, `animate…`) sai; o CSS é lido decodificado e a declaração que puxa algo
+   de fora sai inteira. Nada do livro sai para outro host. Depois do foliate-js
    todo recurso interno é `blob:`; o que sobra com esquema (`https:`, `//`…) é removido de `src`, `srcset`,
    `poster`, `href` de `<link>`/`<image>`, `data`, `background` e `ping`; no CSS (folha do manifesto, `<style>`
    e `style=`), `url()` remoto vira `url("")` e `@import` remoto sai. O `<a href>` de navegação fica (o motor

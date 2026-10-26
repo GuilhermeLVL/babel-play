@@ -23,31 +23,51 @@ const LATIN =
 const LATIN_EXT =
   'U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF';
 
-const abs = (u: string) => new URL(u, globalThis.location?.href ?? 'http://localhost/').href;
-const face = (familia: string, url: string, peso: string, estilo: string, faixa: string) =>
-  `@font-face{font-family:'${familia}';font-style:${estilo};font-display:swap;font-weight:${peso};src:url(${abs(url)}) format('woff2');unicode-range:${faixa};}`;
+/**
+ * A FONTE VAI COMO `blob:`. O capítulo tem CSP própria (`CSP_DO_CAPITULO`: `font-src blob: data:`), e nem o
+ * próprio site entra nela: o arquivo do app é baixado uma vez (mesma origem) e vira `blob:`, cacheado aqui.
+ */
+const blobs = new Map<string, Promise<string>>();
+const emBlob = (url: string): Promise<string> => {
+  let p = blobs.get(url);
+  if (!p) {
+    p = fetch(url)
+      .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))))
+      .then((b) => URL.createObjectURL(new Blob([b], { type: 'font/woff2' })));
+    p.catch(() => blobs.delete(url));
+    blobs.set(url, p);
+  }
+  return p;
+};
+const face = async (familia: string, url: string, peso: string, estilo: string, faixa: string) => {
+  const src = await emBlob(url).catch(() => null);
+  return src
+    ? `@font-face{font-family:'${familia}';font-style:${estilo};font-display:swap;font-weight:${peso};src:url(${src}) format('woff2');unicode-range:${faixa};}`
+    : '';
+};
+const juntar = async (faces: Promise<string>[]) => (await Promise.all(faces)).filter(Boolean).join('\n');
 
 /** O bloco de `@font-face` da fonte escolhida (vazio para "original": vale a fonte do livro). */
-export function facesDaFonte(fonte: FonteDeLeitura): string {
+export function facesDaFonte(fonte: FonteDeLeitura): Promise<string> {
   switch (fonte) {
     case 'serifa':
-      return [
+      return juntar([
         face('Merriweather Variable', merriExt, '300 900', 'normal', LATIN_EXT),
         face('Merriweather Variable', merriLatin, '300 900', 'normal', LATIN),
-      ].join('\n');
+      ]);
     case 'sem-serifa':
-      return [
+      return juntar([
         face('Inter Variable', interExt, '100 900', 'normal', LATIN_EXT),
         face('Inter Variable', interLatin, '100 900', 'normal', LATIN),
-      ].join('\n');
+      ]);
     case 'atkinson':
-      return [
+      return juntar([
         face('Atkinson Hyperlegible', atkinsonExt400, '400', 'normal', LATIN_EXT),
         face('Atkinson Hyperlegible', atkinson400, '400', 'normal', LATIN),
         face('Atkinson Hyperlegible', atkinson400i, '400', 'italic', LATIN),
         face('Atkinson Hyperlegible', atkinson700, '700', 'normal', LATIN),
-      ].join('\n');
+      ]);
     default:
-      return '';
+      return Promise.resolve('');
   }
 }

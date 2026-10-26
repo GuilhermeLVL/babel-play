@@ -27,7 +27,7 @@ describe('limparHtml (nenhum script do livro roda)', () => {
   it('HTML que não é XHTML válido também sai limpo', () => {
     const limpo = limparHtml('<p>ok<script>alert(1)</script><svg onload="x()"></svg>', 'text/html')
     expect(limpo).toContain('ok')
-    expect(limpo).not.toMatch(/script|onload/i)
+    expect(limpo).not.toMatch(/<script|onload/i)
   })
 })
 

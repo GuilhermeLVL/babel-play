@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { ehRemoto, limparCss, limparHtml } from '../src/lib/leitor/limparHtml'
+import { CSP_DO_CAPITULO, ehRemoto, limparCss, limparHtml } from '../src/lib/leitor/limparHtml'
 import { linkExternoSeguro, pareceMarcacao, tipoDaMarcacao, tipoPermitido } from '../src/lib/leitor/politicaDeRecursos'
 
 describe('política de recursos do livro (negação por padrão)', () => {
@@ -83,7 +83,7 @@ describe('privacidade: o livro só carrega o que é dele', () => {
       expect(ehRemoto(u as string), String(u)).toBe(false)
   })
 
-  it('CSS: url() remoto vira url(""), @import remoto sai; o do livro fica', () => {
+  it('CSS: a declaração que puxa algo de fora sai INTEIRA (falha fechada); o @import remoto sai; o do livro fica', () => {
     const css = `@import url("https://fonts.x.test/css?f=1");
 @import 'http://x.test/b.css';
 @import url(blob:http://localhost/ok);
@@ -93,7 +93,8 @@ p { background-image: url(data:image/png;base64,AA) }`
     const limpo = limparCss(css)
     expect(limpo).not.toMatch(/x\.test/)
     expect(limpo).toContain('url(blob:http://localhost/ok)')
-    expect(limpo).toContain('url(blob:http://localhost/f)')
+    // A declaração que mistura remoto e interno sai inteira: falhar fechado vale mais que salvar a metade.
+    expect(limpo).not.toContain('url(blob:http://localhost/f)')
     expect(limpo).toContain('url(data:image/png;base64,AA)')
   })
 
@@ -114,5 +115,69 @@ p { background-image: url(data:image/png;base64,AA) }`
     expect(limpo).toContain('src="blob:http://localhost/capa"')
     expect(limpo).toContain('href="https://standardebooks.org"')
     expect(limpo).toContain('texto')
+  })
+})
+
+describe('os seis desvios da revisão (o filtro falha fechado)', () => {
+  it('esquema com controle, tab, quebra e barra invertida é remoto; o que não se entende também', () => {
+    for (const u of [
+      'ht\ttps://x.test/a',
+      '\nhttps://x.test',
+      '\u0001https://x.test',
+      '\\\\x.test\\a.png',
+      'https:\\\\x.test',
+      'ja\tvascript:x',
+      'http://[::1',
+    ])
+      expect(ehRemoto(u), JSON.stringify(u)).toBe(true)
+    expect(ehRemoto('  blob:http://localhost/a  ')).toBe(false)
+  })
+
+  it('CSS com escape: url(), @import, esquema e image-set escondidos saem; o escape de content fica', () => {
+    const css = [
+      'p { background: u\\72l(https://x.test/a.png) }',
+      '@im\\70ort "https://x.test/b.css";',
+      'p { background: url("ht\\74ps://x.test/c.png") }',
+      'p { background: url(\\68ttps://x.test/d.png) }',
+      'p { background-image: image-set("https://x.test/e.png" 1x) }',
+      'p { background-image: -webkit-image-set(url(https://x.test/f.png) 1x) }',
+      'q::before { content: "\\201C" }',
+    ].join('\n')
+    const limpo = limparCss(css)
+    expect(limpo).not.toMatch(/x\.test/)
+    expect(limpo).toContain('content: "\\201C"')
+  })
+
+  it('namespace: svg:style com prefixo e href com prefixo qualquer são limpos; SMIL sai', () => {
+    const x = `<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xl="http://www.w3.org/1999/xlink"><head></head><body>
+      <svg:svg><svg:style>rect { fill: url(https://x.test/s.png) }</svg:style><svg:image xl:href="https://x.test/p.png"/></svg:svg>
+      <svg xmlns="http://www.w3.org/2000/svg"><image href="data:,"><set attributeName="href" to="https://x.test/set.png"/><animate attributeName="href" values="https://x.test/an.png"/></image></svg>
+      <p>ok</p></body></html>`
+    const limpo = limparHtml(x, 'application/xhtml+xml')
+    expect(limpo).not.toMatch(/x\.test/)
+    expect(limpo).not.toMatch(/<(svg:)?(set|animate)\b/i)
+    expect(limpo).toContain('ok')
+  })
+
+  it('a CSP do capítulo é o PRIMEIRO filho do <head>; a CSP e o refresh do livro saem; o (X)HTML sai como HTML', () => {
+    const x = `<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml"><head>
+      <meta http-equiv="Content-Security-Policy" content="default-src *"/><meta http-equiv="refresh" content="0;url=https://x.test"/>
+      <title>t</title></head><body><a id="ancora"/><p>ok</p></body></html>`
+    const limpo = limparHtml(x, 'application/xhtml+xml')
+    expect(limpo.startsWith('<!DOCTYPE html>')).toBe(true)
+    const d = new DOMParser().parseFromString(limpo, 'text/html')
+    const primeiro = d.head.firstElementChild!
+    expect(primeiro.getAttribute('http-equiv')).toBe('Content-Security-Policy')
+    expect(primeiro.getAttribute('content')).toBe(CSP_DO_CAPITULO)
+    expect(d.querySelectorAll('meta[http-equiv]')).toHaveLength(1)
+    // `<a id="x"/>` do XHTML não engole o parágrafo no HTML.
+    expect(d.querySelector('a#ancora')?.textContent).toBe('')
+    expect(d.querySelector('p')?.textContent).toBe('ok')
+  })
+
+  it('a CSP é a da decisão: só blob:/data:, nenhum script', () => {
+    expect(CSP_DO_CAPITULO).toBe(
+      "default-src 'none'; img-src blob: data:; style-src blob: 'unsafe-inline'; font-src blob: data:; media-src blob: data:; script-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'",
+    )
   })
 })

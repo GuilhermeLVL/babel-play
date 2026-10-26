@@ -8,6 +8,7 @@
  * mudar — e a citação reancora quando mudar (`src/core/leitura/reancorar.ts`).
  */
 import type { ItemDoSumario, LivroDoFoliate } from './foliate/view.js';
+import { CSP_DO_CAPITULO } from './limparHtml';
 
 export interface CapituloDeTexto {
   titulo: string;
@@ -28,8 +29,9 @@ const escapar = (s: string) =>
 export function xhtmlDoCapitulo(c: CapituloDeTexto, idioma = ''): string {
   const lang = escapar(idioma);
   return (
-    `<?xml version="1.0" encoding="utf-8"?>\n<!DOCTYPE html>\n` +
-    `<html xmlns="http://www.w3.org/1999/xhtml" lang="${lang}" xml:lang="${lang}"><head><meta charset="utf-8"/>` +
+    `<!DOCTYPE html>\n` +
+    `<html xmlns="http://www.w3.org/1999/xhtml" lang="${lang}" xml:lang="${lang}"><head>` +
+    `<meta http-equiv="Content-Security-Policy" content="${CSP_DO_CAPITULO}"/><meta charset="utf-8"/>` +
     `<title>${escapar(c.titulo)}</title></head><body><section>` +
     (c.titulo ? `<h2>${escapar(c.titulo)}</h2>` : '') +
     c.paragrafos.map((p) => `<p>${escapar(p)}</p>`).join('') +
@@ -64,7 +66,7 @@ export function livroDeTexto(e: EntradaDoLivroDeTexto): LivroDoFoliate {
     load: () => {
       let url = urls.get(i);
       if (!url) {
-        url = URL.createObjectURL(new Blob([xhtml[i]], { type: 'application/xhtml+xml' }));
+        url = URL.createObjectURL(new Blob([xhtml[i]], { type: 'text/html' }));
         urls.set(i, url);
       }
       return url;
@@ -74,7 +76,7 @@ export function livroDeTexto(e: EntradaDoLivroDeTexto): LivroDoFoliate {
       if (url) URL.revokeObjectURL(url);
       urls.delete(i);
     },
-    createDocument: () => new DOMParser().parseFromString(xhtml[i], 'application/xhtml+xml'),
+    createDocument: () => new DOMParser().parseFromString(xhtml[i], 'text/html'),
   }));
   const toc: ItemDoSumario[] = e.capitulos
     .map((c, i) => ({ label: c.titulo, href: `cap-${i}` }))

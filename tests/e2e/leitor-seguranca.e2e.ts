@@ -76,6 +76,13 @@ test.describe('Leitor — privacidade do conteúdo do livro', () => {
       const u = new URL(r.url())
       if (/^https?:$/.test(u.protocol) && u.host !== app) deFora.push(r.url())
     })
+    /* Os hosts do livro são INTERCEPTADOS: o que passa da CSP e chega à rede é contado aqui (o `request`
+       acima conta até a tentativa que a CSP barra). Os dois têm de ficar vazios. */
+    const chegaram: string[] = []
+    await page.context().route(/rastreio\.example|burla\.example/, (rota) => {
+      chegaram.push(rota.request().url())
+      return rota.fulfill({ status: 204, body: '' })
+    })
     await page.goto('/leitor')
     await expect(page.getByTestId('estante')).toBeVisible({ timeout: 30_000 })
     /* Só conta o que vem DEPOIS de abrir o livro: o app em si pode buscar modelos e glosas. */
@@ -98,6 +105,59 @@ test.describe('Leitor — privacidade do conteúdo do livro', () => {
       .toBe(1)
     await page.waitForTimeout(1500)
     expect(deFora.filter((u) => u.includes('rastreio.example'))).toEqual([])
+    expect(chegaram).toEqual([])
+    expect(deFora).toEqual([])
+  })
+})
+
+test.describe('Leitor — os desvios do filtro de recursos remotos', () => {
+  /* `burlas.epub`: url() e @import com escape, esquema com tab e quebra, barra invertida, `svg:style` com
+     prefixo, `xl:href` com prefixo qualquer, SMIL <set>/<animate> trocando href e image-set(). A CSP de cada
+     capítulo (`CSP_DO_CAPITULO`) barra no NAVEGADOR o que a limpeza deixasse passar. */
+  test('nenhum desvio consegue um pedido para fora; o capítulo traz a CSP como primeiro filho do <head>', async ({
+    page,
+    baseURL,
+  }) => {
+    test.slow()
+    const app = new URL(baseURL ?? 'http://localhost:3100').host
+    const deFora: string[] = []
+    page.context().on('request', (r) => {
+      const u = new URL(r.url())
+      if (/^https?:$/.test(u.protocol) && u.host !== app) deFora.push(r.url())
+    })
+    /* Os hosts do livro são INTERCEPTADOS: o que passa da CSP e chega à rede é contado aqui (o `request`
+       acima conta até a tentativa que a CSP barra). Os dois têm de ficar vazios. */
+    const chegaram: string[] = []
+    await page.context().route(/rastreio\.example|burla\.example/, (rota) => {
+      chegaram.push(rota.request().url())
+      return rota.fulfill({ status: 204, body: '' })
+    })
+    await page.goto('/leitor')
+    await expect(page.getByTestId('estante')).toBeVisible({ timeout: 30_000 })
+    deFora.length = 0
+    await page.getByTestId('abrir-arquivo').setInputFiles(path.resolve('tests', 'fixtures', 'livros', 'burlas.epub'))
+    await expect(page.locator('[data-testid=leitor][data-estado=pronto]')).toBeVisible({ timeout: 30_000 })
+    await fecharSobreposicoes(page)
+    let capitulo = page.frames().find((f) => f.url().startsWith('blob:'))
+    await expect(async () => {
+      capitulo = page.frames().find((f) => f.url().startsWith('blob:'))
+      await expect(capitulo!.getByText('Nothing here may reach the network.')).toBeVisible({ timeout: 1000 })
+    }).toPass({ timeout: 15_000 })
+    /* O que vale é o FONTE do capítulo (o paginador põe o estilo dele no <head> depois, por cima): lido pelo
+       app, porque a CSP do capítulo não deixa o próprio capítulo buscar nada. */
+    const fonte = await page.evaluate((u) => fetch(u).then((r) => r.text()), capitulo!.url())
+    const primeiro = await page.evaluate((x) => {
+      const d = new DOMParser().parseFromString(x, 'application/xhtml+xml')
+      const m = d.getElementsByTagName('head')[0]?.firstElementChild
+      return [m?.localName, m?.getAttribute('http-equiv'), m?.getAttribute('content')]
+    }, fonte)
+    expect(fonte).not.toContain('burla.example')
+    expect(primeiro[0]).toBe('meta')
+    expect(primeiro[1]).toBe('Content-Security-Policy')
+    expect(primeiro[2]).toContain("default-src 'none'")
+    // O SMIL teria 1 s para trocar o href: espera passar.
+    await page.waitForTimeout(2000)
+    expect(chegaram).toEqual([])
     expect(deFora).toEqual([])
   })
 })

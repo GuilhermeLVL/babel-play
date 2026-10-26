@@ -237,7 +237,7 @@ export default function LeitorDoLivro({
         motorRef.current = motor;
         setInfo(info);
         setIdioma(baseLang(fonte.idioma || info.idioma || ''));
-        motor.aplicarPerfil(perfil);
+        await motor.aplicarPerfil(perfil);
         await motor.comecar(posicoes.ler(livroId));
         /* As fontes do perfil chegam DEPOIS do texto (o capítulo é um documento à parte): o livro só aparece
            com elas, senão o paginador repagina na frente da pessoa (e o Lighthouse mede o salto). Teto de 1,5 s. */
@@ -284,7 +284,7 @@ export default function LeitorDoLivro({
   }, [livroId]);
 
   useEffect(() => {
-    if (estado === 'pronto') motorRef.current?.aplicarPerfil(perfil);
+    if (estado === 'pronto') void motorRef.current?.aplicarPerfil(perfil);
   }, [perfil, estado]);
 
   useEffect(() => {

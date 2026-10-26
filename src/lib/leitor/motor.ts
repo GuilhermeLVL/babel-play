@@ -13,7 +13,7 @@ import type { CorDeAnotacao, TipoDeAnotacao } from '../../core/leitura/anotacao'
 import { CORES_DOS_TEMAS, cssDoLivro, type PerfilDeLeitura } from '../../core/leitura/perfilDeLeitura';
 import type { ItemDoSumario, LivroDoFoliate, Localizacao, View } from './foliate/view.js';
 import { facesDaFonte } from './fontes';
-import { limparCss, limparHtml } from './limparHtml';
+import { limparCss, limparHtml, tipoDoCapituloLimpo } from './limparHtml';
 import {
   ehTipoDeMarcacao,
   linkExternoSeguro,
@@ -146,8 +146,10 @@ export class MotorDoLeitor {
     });
     /* O CONTEÚDO: a marcação (string ou Blob, declarada ou farejada) passa pelo `limparHtml`. */
     alvo.addEventListener('data', (e) => {
-      const d = (e as CustomEvent<{ data: unknown; type: string }>).detail;
-      const tipo = d.type;
+      const d = (e as CustomEvent<{ data: unknown; type: unknown }>).detail;
+      const tipo = String(d.type ?? '');
+      /* (X)HTML vira `text/html`: é o parser de HTML que lê a CSP do `<meta>` (ver `limparHtml`). */
+      if (/x?html/i.test(tipo)) d.type = tipoDoCapituloLimpo(tipo);
       d.data = Promise.resolve(d.data).then(async (x) => {
         /* PRIVACIDADE: a folha de estilo do livro não puxa nada de fora (fonte, imagem, `@import`). */
         if (normalizarTipo(tipo) === 'text/css') {
@@ -156,7 +158,8 @@ export class MotorDoLeitor {
         }
         if (typeof x === 'string') {
           const inicio = x.slice(0, 512);
-          return ehTipoDeMarcacao(tipo) || pareceMarcacao(inicio) ? limparHtml(x, tipoDaMarcacao(inicio, tipo)) : x;
+          if (!ehTipoDeMarcacao(tipo) && !pareceMarcacao(inicio)) return x;
+          return limparHtml(x, tipoDaMarcacao(inicio, tipo));
         }
         if (x instanceof Blob) {
           const inicio = await x.slice(0, 512).text();
@@ -176,12 +179,16 @@ export class MotorDoLeitor {
     else await this.view.init({ showTextStart: true });
   }
 
-  aplicarPerfil(perfil: PerfilDeLeitura) {
+  private geracaoDoPerfil = 0;
+  async aplicarPerfil(perfil: PerfilDeLeitura): Promise<void> {
     /* O mesmo perfil de novo não reaplica: cada `setStyles` repagina o capítulo (e o texto salta na tela). */
     if (this.perfil && JSON.stringify(this.perfil) === JSON.stringify(perfil)) return;
     this.perfil = perfil;
     const r = this.view.renderer;
-    r.setStyles?.(cssDoLivro(perfil, facesDaFonte(perfil.fonte)));
+    const minha = ++this.geracaoDoPerfil;
+    const faces = await facesDaFonte(perfil.fonte);
+    if (minha !== this.geracaoDoPerfil) return; // outro perfil chegou no meio
+    r.setStyles?.(cssDoLivro(perfil, faces));
     const escuro = CORES_DOS_TEMAS[perfil.tema].esquema === 'dark';
     this.view.style.setProperty('--overlayer-highlight-opacity', escuro ? '0.42' : '0.45');
     this.view.style.setProperty('--overlayer-highlight-blend-mode', escuro ? 'normal' : 'multiply');

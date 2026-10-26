@@ -3,6 +3,9 @@
 // Diferenças do original (ver ORIGEM.txt): sem a camada de anotações do PDF (links internos/formulários) e com
 // o CSS da camada de texto embutido (o original buscava os `.css` do vendor por fetch). A amostra para o aviso de
 // PDF escaneado ou de duas colunas sai daqui (`book.amostraDeTexto`), e a regra é de `src/core/leitura/diagnosticoDoPdf.ts`.
+// FRASY: a mesma CSP dos capítulos (`../limparHtml.ts`): a página do PDF só vê `blob:`/`data:`.
+const CSP_DA_PAGINA = "default-src 'none'; img-src blob: data:; style-src blob: 'unsafe-inline'; font-src blob: data:; media-src blob: data:; script-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+
 let pdfjsLib = null
 const carregarPdfjs = async () => {
     if (pdfjsLib) return pdfjsLib
@@ -219,6 +222,7 @@ const renderPage = async (page, getImageBlob) => {
     const src = URL.createObjectURL(new Blob([`
         <!DOCTYPE html>
         <html lang="">
+        <meta http-equiv="Content-Security-Policy" content="${CSP_DA_PAGINA}">
         <meta charset="utf-8">
         <meta name="viewport" content="width=${viewport.width}, height=${viewport.height}">
         <style>

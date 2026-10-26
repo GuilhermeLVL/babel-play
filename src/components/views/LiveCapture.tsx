@@ -3116,9 +3116,16 @@ export default function LiveCapture({
       realce: realceDe(m),
     });
   });
+  /* A fala do "Como respondo?" aberto na página: a legenda longa segura o bloco dela (o foco volta para ela). */
+  const falaDoComoRespondo = doAssistente.comoRespondo.estado !== 'fechado' ? doAssistente.comoRespondo.falaId : null;
   const legendaDoAssistente = useMemo(
-    () => ({ marcas: doAssistente.marcas, correcoes: doAssistente.correcoes, aoTocarMarca: tocarMarcaDaLegenda }),
-    [doAssistente.marcas, doAssistente.correcoes, tocarMarcaDaLegenda],
+    () => ({
+      marcas: doAssistente.marcas,
+      correcoes: doAssistente.correcoes,
+      aoTocarMarca: tocarMarcaDaLegenda,
+      falaFixa: falaDoComoRespondo,
+    }),
+    [doAssistente.marcas, doAssistente.correcoes, tocarMarcaDaLegenda, falaDoComoRespondo],
   );
   /* A LEGENDA FLUTUANTE (PiP inteligente): um botão, Alt+L, e a melhor janela deste navegador. */
   const flutuante = useJanelaFlutuante({

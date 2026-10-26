@@ -404,23 +404,25 @@ body:has(.cel) .fab {
   margin-top: auto;
 }
 /* AS FALAS EM BLOCOS DE 20 (`lib/captura/blocosDasFalas`). O bloco repete a coluna da lista (mesmo
-   espaço entre as linhas), então a tela é a mesma de quando cada fala era filha direta da lista. O bloco
-   que já passou sai do cálculo inteiro quando está fora da tela: sem isso cada fala nova custava mais
-   que a anterior (45 ms na primeira, 81 ms na ducentésima, CPU 4×). A altura reservada é a de 20 linhas
-   de 84 px com os 19 espaços; `auto` troca pela altura real depois de o bloco ser desenhado uma vez. */
+   espaço entre as linhas), então a tela é a mesma de quando cada fala era filha direta da lista.
+   SEM `content-visibility` (26/10/2026): o bloco longe da tela agora sai do DOM (`janelaDasFalas`), e o
+   que fica montado é a área visível com uma folga. A altura reservada do `content-visibility` (84 px por
+   linha, 1.870 por bloco) era o que o ResizeObserver media no bloco ainda não desenhado: o fim da lista
+   fugia enquanto as linhas assentavam, e quem acompanhava ao vivo parava antes dele. */
 .q-bloco-de-falas {
   flex: none;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-.q-bloco-de-falas.antigo {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 1870px;
-}
 /* O bloco aberto que ficou sem fala não ocupa lugar (nem o espaço entre os blocos). */
 .q-bloco-de-falas:empty {
   display: none;
+}
+/* A LEGENDA LONGA (`lib/captura/janelaDasFalas`): os blocos longe da área visível saem do DOM, e um vão com a
+   altura deles fica no lugar. Ele é um filho da coluna como os blocos (o mesmo `gap` antes e depois). */
+.q-vao-das-falas {
+  flex: none;
 }
 .q-espera {
   font: 600 20px/1.4 var(--font-body, inherit);
@@ -432,15 +434,11 @@ body:has(.cel) .fab {
   gap: 12px;
   padding: 6px 8px 6px 14px;
   border-radius: 18px;
-  /* A lista longa não custa pintura: o que está fora da tela não é desenhado. */
-  content-visibility: auto;
-  contain-intrinsic-size: auto 84px;
 }
 .q-linha-da-fala.atual {
   background: var(--surface);
   border: 1.5px solid var(--border-subtle);
   padding-block: 12px;
-  content-visibility: visible;
   animation: q-entrar 500ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .q-fala {

@@ -154,7 +154,12 @@ cache, `restanteHoje` é o último valor conhecido na aba, ou fica de fora — n
   respondo?" e a correção. Cada vista desenha só a folha do "Como respondo?" pedida nela (`onde`).
 - **As falas** (`src/lib/assistente/falasDoAssistente.ts`): as últimas 60 da sessão. Na captura, o computador é "eles"
   e o microfone é "você"; no Intérprete, a METADE da pessoa (`meu`, ou `outro` com os lados trocados) é "você" — a
-  correção (opt-in) só cai nela. A fala sem idioma leva o do lado.
+  correção (opt-in) só cai nela. A fala sem idioma leva o do lado. SÓ COM O MICROFONE fora do Intérprete (o celular, o
+  "Usar o microfone" do Safari e do Firefox) o microfone ouve a TV: o lado é `incerto` e a fala NUNCA vai à correção.
+  O lado é guardado quando a fala chega (trocar os lados não reescreve o passado).
+- **Quando a página conta** (`paginaMostraOAssistente`): a aba à vista E a legenda da captura (gravando ou com falas, fora
+  do foco cheio) ou a conversa do Intérprete; a conversa virtual e a tela pronta, não. As falas que já existem quando a
+  captura monta, ou que chegam de uma vez na sessão retomada (`semente`), contam como vistas: nenhuma vai à nuvem.
 - **Marcas silenciosas na página** (`TextoComMarcas`): o texto nasce em pedaços estáveis e a marca é só atributo — nada
   novo para as regiões `aria-live` da legenda e da metade do Intérprete anunciarem. Na captura a linha já é um botão: a
   marca não é focável; tocar nela abre o cartão da palavra com o tipo e o sentido, e a folha da frase lista os

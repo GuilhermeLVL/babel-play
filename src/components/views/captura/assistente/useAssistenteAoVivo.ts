@@ -154,6 +154,12 @@ export function useAssistenteAoVivo(o: {
    * não importa quantas vistas a mostrem. Ausente = só a janela (o contrato da C2).
    */
   pagina?: { aberta: boolean };
+  /**
+   * Muda quando a tela TROCA as falas de uma vez (a sessão retomada): as que chegaram junto contam como vistas e
+   * nenhuma vai à nuvem. Só as que chegarem depois são oferecidas. Com ela definida, as falas que já existem quando a
+   * instância nasce também contam como vistas (a captura); sem ela, a linha à vista na montagem é oferecida (a C2).
+   */
+  semente?: number;
 }) {
   const ajustes = useAjustesDoAssistente();
   const flagLigada = useFlag(FLAG_ASSISTENTE_AO_VIVO);
@@ -283,8 +289,18 @@ export function useAssistenteAoVivo(o: {
     return undefined;
   }, [o.falas]);
   /* Cada linha é oferecida UMA vez, quando chega: ligar um recurso (ou o consentimento) depois não manda à nuvem a
-     linha velha que estava à vista quando ele estava desligado. */
-  const oferecida = useRef<string | null>(null);
+     linha velha que estava à vista quando ele estava desligado.
+     As linhas que JÁ ESTAVAM ali quando a instância nasceu, ou quando a tela trocou as falas de uma vez (`semente`: a
+     sessão retomada), contam como vistas: nenhuma linha velha vai à nuvem. */
+  const oferecida = useRef<string | null>(o.semente !== undefined ? (ultimaFinal?.id ?? null) : null);
+  const ultimaFinalRef = useRef(ultimaFinal);
+  ultimaFinalRef.current = ultimaFinal;
+  const sementeVista = useRef(o.semente);
+  useEffect(() => {
+    if (sementeVista.current === o.semente) return;
+    sementeVista.current = o.semente;
+    oferecida.current = ultimaFinalRef.current?.id ?? null;
+  }, [o.semente]);
   useEffect(() => {
     if (!agenda || !ultimaFinal || oferecida.current === ultimaFinal.id) return;
     oferecida.current = ultimaFinal.id;

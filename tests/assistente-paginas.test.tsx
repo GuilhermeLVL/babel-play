@@ -56,9 +56,11 @@ import HistoricoDoPrototipo, {
   type AssistenteNaLegenda,
 } from '../src/components/views/captura/quest/HistoricoDoPrototipo'
 import type { FalaDoAssistente, MarcaNaLinha } from '../src/core/assistente/telaDoAssistente'
+import { AJUSTES_PADRAO, planejarChamadas, recursosDoAssistente } from '../src/core/assistente/telaDoAssistente'
+import { usePaginaVisivel } from '../src/hooks/usePaginaVisivel'
 import { ESPERA_DO_ASSISTENTE_MS } from '../src/lib/assistente/agendaDoAssistente'
 import { esquecerAjustesDoAssistente, mudarAjustesDoAssistente } from '../src/lib/assistente/ajustesDoAssistente'
-import { falasDoAssistente } from '../src/lib/assistente/falasDoAssistente'
+import { falasDoAssistente, paginaMostraOAssistente } from '../src/lib/assistente/falasDoAssistente'
 import type { SpeechSegment } from '../src/lib/captura/tiposDaFala'
 import { estabilizarFalas } from '../src/lib/legendas/estabilizarFalas'
 
@@ -574,5 +576,142 @@ describe('os pedaços estáveis', () => {
       ['review', 8, 14],
       ['.', 14, 15],
     ])
+  })
+})
+
+/* ───────────────────── a revisão da C3: a fiação de verdade ───────────────────── */
+
+const ESTA_PAGINA = { trocados: false, idiomaDaPessoa: 'pt-BR', idiomaDoOutro: 'en' }
+type Seg = Parameters<typeof falasDoAssistente>[0]
+const velha = (id: string) => ({
+  id,
+  original: `Break a leg on the old line number ${id}`,
+  lado: 'eles' as const,
+  lang: 'en',
+})
+
+describe('só com o microfone (fora do Intérprete), a fala de terceiros nunca vai à correção', () => {
+  it('a fala do microfone tem lado incerto, e o plano não tem correção mesmo com o opt-in', () => {
+    const [f] = falasDoAssistente([segmento('tv', 'I goed to the store yesterday', { source: 'mic' })], {
+      ...ESTA_PAGINA,
+      soMicrofone: true,
+    })
+    expect(f.lado).toBe('incerto')
+    const r = recursosDoAssistente(
+      { ...AJUSTES_PADRAO, correcao: true },
+      { flagLigada: true, assistenteDiaDoPlano: 200, recusadoNaSessao: false, consentiuNuvem: true },
+    )
+    expect(planejarChamadas(f, r, 'pt-BR').correcao).toBe(false)
+  })
+
+  it('com a correção ligada, a fala do microfone (a TV) não sai como "minha fala" — nem no perfil protegido', async () => {
+    mudarAjustesDoAssistente({ correcao: true })
+    for (const protegido of [false, true]) {
+      estado.protegido = protegido
+      api.corrigirMinhaFala.mockClear()
+      api.destacarExpressoes.mockClear()
+      const h = renderHook<ReturnType<typeof useAssistenteAoVivo>, Opcoes>((p) => useAssistenteAoVivo(p), {
+        initialProps: { aberta: false, pausado: false, falas: [], langDaPessoa: 'pt-BR', pagina: { aberta: true } },
+      })
+      const falas = falasDoAssistente(
+        [segmento(`tv${protegido}`, 'I goed to the store yesterday and break a leg', { source: 'mic' })],
+        { ...ESTA_PAGINA, soMicrofone: true },
+      )
+      h.rerender({ aberta: false, pausado: false, falas, langDaPessoa: 'pt-BR', pagina: { aberta: true } })
+      await passar()
+      expect(api.corrigirMinhaFala).not.toHaveBeenCalled()
+      /* Ela ainda é ajudada como a fala de qualquer outra pessoa. */
+      expect(api.destacarExpressoes).toHaveBeenCalledTimes(1)
+      h.unmount()
+    }
+  })
+
+  it('trocar os lados depois não reescreve o passado (o lado é guardado quando a fala chega)', () => {
+    const vistos = new Map<string, FalaDoAssistente['lado']>()
+    const antes: Seg = [segmento('a', 'bom dia', { lado: 'meu', source: 'mic' })]
+    expect(falasDoAssistente(antes, { ...ESTA_PAGINA, ladosVistos: vistos })[0].lado).toBe('voce')
+    const depois: Seg = [...antes, segmento('b', 'oi de novo', { lado: 'meu', source: 'mic' })]
+    const r = falasDoAssistente(depois, { ...ESTA_PAGINA, trocados: true, ladosVistos: vistos })
+    expect(r.map((f) => f.lado)).toEqual(['voce', 'eles'])
+  })
+
+  it('o texto vem sem os espaços das pontas (as marcas casam com o que a legenda desenha)', () => {
+    expect(falasDoAssistente([segmento('a', '  Break a leg  ')], ESTA_PAGINA)[0].original).toBe('Break a leg')
+  })
+})
+
+describe('a sessão retomada não manda as linhas velhas à nuvem', () => {
+  it('as falas que já existem ao montar e as que chegam de uma vez na retomada contam como vistas', async () => {
+    const pagina = { aberta: true }
+    const h = renderHook<ReturnType<typeof useAssistenteAoVivo>, Opcoes>((p) => useAssistenteAoVivo(p), {
+      initialProps: { aberta: false, pausado: false, falas: [velha('1')], langDaPessoa: 'pt-BR', pagina, semente: 0 },
+    })
+    await passar(ESPERA_DO_ASSISTENTE_MS * 3)
+    expect(api.destacarExpressoes).not.toHaveBeenCalled()
+
+    /* A retomada troca as falas e muda a semente no mesmo desenho. */
+    const retomadas = [velha('r1'), velha('r2'), velha('r3')]
+    h.rerender({ aberta: false, pausado: false, falas: retomadas, langDaPessoa: 'pt-BR', pagina, semente: 1 })
+    await passar(ESPERA_DO_ASSISTENTE_MS * 3)
+    expect(api.destacarExpressoes).not.toHaveBeenCalled()
+
+    /* A fala nova, ao vivo, é pedida. */
+    const comNova = [...retomadas, velha('nova')]
+    h.rerender({ aberta: false, pausado: false, falas: comNova, langDaPessoa: 'pt-BR', pagina, semente: 1 })
+    await passar()
+    expect(api.destacarExpressoes).toHaveBeenCalledTimes(1)
+    expect(api.destacarExpressoes.mock.calls[0][0].frase).toContain('number nova')
+  })
+})
+
+describe('a página só conta quando mostra o assistente', () => {
+  const base = {
+    visivel: true,
+    entrada: 'captura' as const,
+    interpreteAberto: false,
+    virtualAberta: false,
+    focoCheio: false,
+    comLegenda: true,
+  }
+
+  it('aba escondida, conversa virtual, foco cheio, captura sem legenda e a tela pronta do Intérprete: não', () => {
+    expect(paginaMostraOAssistente(base)).toBe(true)
+    expect(paginaMostraOAssistente({ ...base, visivel: false })).toBe(false)
+    expect(paginaMostraOAssistente({ ...base, comLegenda: false })).toBe(false)
+    expect(paginaMostraOAssistente({ ...base, focoCheio: true })).toBe(false)
+    expect(paginaMostraOAssistente({ ...base, interpreteAberto: true, virtualAberta: true })).toBe(false)
+    expect(paginaMostraOAssistente({ ...base, entrada: 'interprete' })).toBe(false)
+    expect(paginaMostraOAssistente({ ...base, entrada: 'interprete', interpreteAberto: true })).toBe(true)
+  })
+
+  it('com a conversa virtual aberta (e a janela fechada), nenhuma chamada automática sai', async () => {
+    const pagina = { aberta: paginaMostraOAssistente({ ...base, interpreteAberto: true, virtualAberta: true }) }
+    const h = renderHook<ReturnType<typeof useAssistenteAoVivo>, Opcoes>((p) => useAssistenteAoVivo(p), {
+      initialProps: { aberta: false, pausado: false, falas: [], langDaPessoa: 'pt-BR', pagina, semente: 0 },
+    })
+    h.rerender({ aberta: false, pausado: false, falas: [velha('v')], langDaPessoa: 'pt-BR', pagina, semente: 0 })
+    await passar(ESPERA_DO_ASSISTENTE_MS * 3)
+    expect(api.destacarExpressoes).not.toHaveBeenCalled()
+  })
+
+  it('usePaginaVisivel acompanha o document.hidden', () => {
+    const vis = { estado: 'visible' as DocumentVisibilityState }
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => vis.estado })
+    try {
+      const h = renderHook(() => usePaginaVisivel())
+      expect(h.result.current).toBe(true)
+      act(() => {
+        vis.estado = 'hidden'
+        document.dispatchEvent(new Event('visibilitychange'))
+      })
+      expect(h.result.current).toBe(false)
+      act(() => {
+        vis.estado = 'visible'
+        document.dispatchEvent(new Event('visibilitychange'))
+      })
+      expect(h.result.current).toBe(true)
+    } finally {
+      delete (document as unknown as { visibilityState?: unknown }).visibilityState
+    }
   })
 })

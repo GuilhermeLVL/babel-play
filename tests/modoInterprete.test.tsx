@@ -405,6 +405,20 @@ describe('ModoInterprete: o assistente ao vivo (Fase C3)', () => {
     expect(a.pedirComoRespondo).toHaveBeenLastCalledWith('o1')
   })
 
+  it('Alt+R digitando num campo, ou já tratado por outro, não pede nada', () => {
+    const a = assistente()
+    montar({ falas: [doOutro], extra: { assistente: a } })
+    const campo = document.createElement('input')
+    document.body.appendChild(campo)
+    fireEvent.keyDown(campo, { key: '®', code: 'KeyR', altKey: true })
+    expect(a.pedirComoRespondo).not.toHaveBeenCalled()
+    const tratado = new KeyboardEvent('keydown', { key: '®', code: 'KeyR', altKey: true, cancelable: true })
+    tratado.preventDefault()
+    window.dispatchEvent(tratado)
+    expect(a.pedirComoRespondo).not.toHaveBeenCalled()
+    campo.remove()
+  })
+
   it('sem o recurso (flag desligada, Grátis): nem o botão nem o Alt+R', () => {
     const a = assistente({ recursos: { ...assistente().recursos, nuvem: false, comoRespondo: false } })
     montar({ falas: [doOutro], extra: { assistente: a } })

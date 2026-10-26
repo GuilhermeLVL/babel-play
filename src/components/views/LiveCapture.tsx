@@ -203,7 +203,10 @@ import ChatTranscript from '../ChatTranscript';
 let benchmarkPendente: AbortController | null = null;
 import type { FalaDoAssistente, MarcaNaLinha } from '../../core/assistente/telaDoAssistente';
 import { usePaginaVisivel } from '../../hooks/usePaginaVisivel';
-import { falasDoAssistente as falasParaOAssistente } from '../../lib/assistente/falasDoAssistente';
+import {
+  falasDoAssistente as falasParaOAssistente,
+  paginaMostraOAssistente,
+} from '../../lib/assistente/falasDoAssistente';
 import { estabilizarFalas } from '../../lib/legendas/estabilizarFalas';
 import { aoMudarEstadoDaTela, estadoDaTela } from '../../lib/polimento/interprete';
 import GuidePanel from '../GuidePanel';
@@ -622,7 +625,8 @@ export default function LiveCapture({
     const novas = ultimas.map((s) => ({
       id: s.id,
       quem: nomeDe(s.speakerId),
-      original: s.originalText,
+      // Sem os espaços das pontas: as marcas do assistente vêm em posições desse mesmo texto (`falasDoAssistente`).
+      original: s.originalText.trim(),
       // O "…" é o marcador de tradução a caminho: na legenda, some até a tradução chegar.
       traducao: s.translatedText === '…' ? '' : s.translatedText,
       lado: s.source === 'system' ? ('eles' as const) : ('voce' as const),
@@ -1867,6 +1871,9 @@ export default function LiveCapture({
     cenarioDaSessao: () => (sessaoDoInterpreteRef.current ? 'interprete' : undefined),
   });
 
+  /* As falas da tela foram TROCADAS de uma vez (a sessão retomada): o assistente ao vivo as recebe como já vistas, e
+     nenhuma linha velha vai à nuvem. */
+  const [geracaoDasFalas, setGeracaoDasFalas] = useState(0);
   // --- RETOMAR SESSÃO: reidrata o transcript REAL do backend (não usa mock) ---
   useEffect(() => {
     setResumeId(resumingRecordingId ?? null);
@@ -1892,6 +1899,7 @@ export default function LiveCapture({
           lang: u.sourceLang ?? undefined,
         }));
         setSpeechSegments(segs);
+        setGeracaoDasFalas((g) => g + 1);
         // Semeia o relógio a partir da duração salva; o START continua a linha do tempo.
         const durMs = session.durationMs ?? 0;
         setTimer(Math.round(durMs / 1000));
@@ -2997,6 +3005,10 @@ export default function LiveCapture({
     () => false,
   );
   const falasDoAssistenteAntes = useRef(new Map<string, FalaDoAssistente>());
+  /* O lado de cada fala QUANDO ELA CHEGOU (trocar os lados depois não reescreve o passado). */
+  const ladosDasFalas = useRef(new Map<string, FalaDoAssistente['lado']>());
+  /* Só com o microfone, fora do Intérprete, ele ouve a TV: de quem é a fala é incerto (nunca vai à correção). */
+  const soMicrofone = captureScenario === 'mic' && !interpreteAberto;
   const falasDoAssistente: FalaDoAssistente[] = useMemo(
     () =>
       estabilizarFalas(
@@ -3005,9 +3017,11 @@ export default function LiveCapture({
           trocados: trocadosNoInterprete,
           idiomaDaPessoa: sourceLang,
           idiomaDoOutro: outroDoInterprete,
+          soMicrofone,
+          ladosVistos: ladosDasFalas.current,
         }),
       ),
-    [speechSegments, trocadosNoInterprete, sourceLang, outroDoInterprete],
+    [speechSegments, trocadosNoInterprete, sourceLang, outroDoInterprete, soMicrofone],
   );
   const [vistaDaJanela, setVistaDaJanela] = useState<VistaDaJanela>(JANELA_FECHADA);
   const paginaVisivel = usePaginaVisivel();
@@ -3015,16 +3029,26 @@ export default function LiveCapture({
     aberta: vistaDaJanela.aberta,
     pausado: vistaDaJanela.pausado,
     soLeitura: vistaDaJanela.soLeitura,
-    pagina: { aberta: paginaVisivel },
+    pagina: {
+      aberta: paginaMostraOAssistente({
+        visivel: paginaVisivel,
+        entrada,
+        interpreteAberto,
+        virtualAberta,
+        focoCheio: isFocusMode,
+        comLegenda: isRecording || speechSegments.length > 0,
+      }),
+    },
     falas: falasDoAssistente,
     langDaPessoa: sourceLang || 'pt',
+    semente: geracaoDasFalas,
   });
   const doAssistente = assistente.pagina;
-  /** "Como respondo?" cabe nesta fala: é de quem está do outro lado (ou, só com o microfone, da TV). */
+  /** "Como respondo?" cabe nesta fala: não é da própria pessoa (é de "eles", ou de lado incerto: a TV no microfone). */
   const podeResponderA = (id: string) => {
     if (!doAssistente.recursos.comoRespondo) return false;
     const f = falasDoAssistente.find((x) => x.id === id);
-    return !!f && !f.parcial && (f.lado === 'eles' || (captureScenario === 'mic' && !interpreteAberto));
+    return !!f && !f.parcial && f.lado !== 'voce';
   };
   const realceDe = (m: MarcaNaLinha): RealceDaPalavra => ({
     tipo: m.tipo,

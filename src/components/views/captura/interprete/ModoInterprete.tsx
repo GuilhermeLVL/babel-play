@@ -481,7 +481,7 @@ export default function ModoInterprete({
               tipo: 'traducao',
               id: item.id,
               traducao: item.traducao.trim() ? item.traducao : item.original,
-              original: item.traducao.trim() ? item.original : '',
+              original: item.traducao.trim() ? item.original.trim() : '',
               lang: d.direcao.fala,
               langDoOriginal: direcaoDoOutro.fala,
             };
@@ -530,7 +530,11 @@ export default function ModoInterprete({
   responderRef.current = pedirResposta && responderA ? () => pedirResposta(responderA) : null;
   useEffect(() => {
     const aoTeclar = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
       if (!e.altKey || e.ctrlKey || e.metaKey || e.repeat || e.code !== 'KeyR' || !responderRef.current) return;
+      /* Digitando (Option+R escreve "®" no Mac) ou com um diálogo por cima, o teclado é deles. */
+      const alvo = e.target as HTMLElement | null;
+      if (alvo?.closest?.('input,select,textarea,[contenteditable="true"]')) return;
       if (document.querySelector('dialog[open]')) return;
       e.preventDefault();
       responderRef.current();
@@ -580,7 +584,7 @@ export default function ModoInterprete({
         bolhas: tudo.itens.map((item) => ({
           id: item.id,
           dono: donoDe(item.lado),
-          fala: item.original,
+          fala: item.original.trim(),
           traducao: item.traduzindo ? '…' : item.traducao,
           lang: item.idioma || direcaoDoLado(item.lado, idiomasDaTela, atual.trocados).fala || undefined,
         })),

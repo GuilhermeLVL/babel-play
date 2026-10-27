@@ -635,3 +635,57 @@
     scroll-behavior: auto;
   }
 }
+
+/* ── A mesma obra em outros idiomas ─────────────────────────────────────────────────────────────── */
+.lv-tambem {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+.lv-selo.idioma {
+  background: transparent;
+  border: 1.5px solid var(--border-subtle);
+  font-size: 12px;
+  text-transform: uppercase;
+  padding: 3px 7px;
+}
+.lv-outros-idiomas {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1.5px solid var(--border-subtle);
+  background: var(--surface);
+}
+.lv-outros-idiomas h2 {
+  margin: 0;
+  font: 800 17px/1.3 var(--font-body, inherit);
+}
+.lv-outros-idiomas ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.lv-outros-idiomas li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.lv-outro-texto {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+.lv-outro-texto small {
+  flex-basis: 100%;
+  color: var(--ink-muted);
+  font: 600 13px/1.3 var(--font-body, inherit);
+}

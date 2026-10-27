@@ -5331,5 +5331,9 @@
   "Faltam cerca de {tempo}": "About {tempo} left",
   "Progresso de {titulo}": "Progress of {titulo}",
   "Capítulo atual: {capitulo}": "Current chapter: {capitulo}",
-  "Marcar como {status}": "Mark as {status}"
+  "Marcar como {status}": "Mark as {status}",
+  "Ler esta obra em outros idiomas": "Read this work in other languages",
+  "Ler em {idioma}": "Read in {idioma}",
+  "Também em {idiomas}": "Also in {idiomas}",
+  "Abrir em {idioma}": "Open in {idioma}"
 }

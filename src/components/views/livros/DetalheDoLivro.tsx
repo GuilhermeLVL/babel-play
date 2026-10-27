@@ -7,6 +7,7 @@ import { t } from '../../../lib/i18n';
 import { direcaoDoTexto } from '../../../lib/languages';
 import { guardarMeuLivro, removerMeuLivro, useMeusLivros } from '../../../lib/livros/meusLivros';
 import { autoresDe, CapaDoLivro, rotuloDoTempo } from './CartaoDoLivro';
+import OutrosIdiomasDaObra from './OutrosIdiomasDaObra';
 import { rotuloDaCategoria, rotuloDaClassificacao, rotuloDaFonte, rotuloDoIdioma, rotuloDoTamanho } from './rotulos';
 
 const comAno = (p: Pessoa) => (p.anoMorte != null ? `${p.nome} (†${p.anoMorte})` : p.nome);
@@ -21,10 +22,17 @@ export default function DetalheDoLivro({
   livro,
   aoVoltar,
   aoLer,
+  outrasEdicoes = [],
+  aoAbrirEdicao = () => {},
+  aoLerEdicao = () => {},
 }: {
   livro: LivroDoCatalogo;
   aoVoltar: () => void;
   aoLer: () => void;
+  /** As edições da mesma obra em OUTROS idiomas que este leitor pode ver (filtro legal e etário já aplicados). */
+  outrasEdicoes?: readonly LivroDoCatalogo[];
+  aoAbrirEdicao?: (l: LivroDoCatalogo) => void;
+  aoLerEdicao?: (l: LivroDoCatalogo) => void;
 }) {
   const meus = useMeusLivros();
   const guardado = meus.some((m) => m.id === livro.id);
@@ -98,6 +106,8 @@ export default function DetalheDoLivro({
               </a>
             )}
           </div>
+
+          <OutrosIdiomasDaObra edicoes={outrasEdicoes} aoAbrir={aoAbrirEdicao} aoLer={aoLerEdicao} />
 
           <dl className="lv-ficha">
             <div>

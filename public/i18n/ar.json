@@ -1973,5 +1973,9 @@
     "few": "{n} ملاحظات",
     "many": "{n} ملاحظة",
     "other": "{n} ملاحظة"
-  }
+  },
+  "Ler esta obra em outros idiomas": "اقرأ هذا العمل بلغات أخرى",
+  "Ler em {idioma}": "اقرأ بـ{idioma}",
+  "Também em {idiomas}": "متوفر أيضًا بـ{idiomas}",
+  "Abrir em {idioma}": "افتح بـ{idioma}"
 }

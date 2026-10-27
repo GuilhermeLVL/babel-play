@@ -1848,5 +1848,9 @@
   "{n} anotações": {
     "one": "{n} anotación",
     "other": "{n} anotaciones"
-  }
+  },
+  "Ler esta obra em outros idiomas": "Leer esta obra en otros idiomas",
+  "Ler em {idioma}": "Leer en {idioma}",
+  "Também em {idiomas}": "También en {idiomas}",
+  "Abrir em {idioma}": "Abrir en {idioma}"
 }

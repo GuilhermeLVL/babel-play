@@ -86,6 +86,67 @@ const CATALOGO = {
       classificacao: null,
       nivel: 'B1',
     }),
+    /* A MESMA OBRA (Q35160) em três idiomas: en e pt revisadas, es ainda "a revisar" (menor não vê), e uma
+       edição de 1990 que o filtro legal nunca mostra, para ninguém. */
+    livro({
+      id: 'pg-1727',
+      titulo: 'The Odyssey',
+      autores: [{ nome: 'Homer', anoMorte: -700, idiomas: ['grc'] }],
+      tradutores: [{ nome: 'Samuel Butler', anoMorte: 1902, idiomas: ['en'] }],
+      idioma: 'en',
+      fonte: 'gutenberg-curado',
+      fonteId: '1727',
+      formatos: { r2: 'livros/pg-1727.epub' },
+      categorias: ['aventura'],
+      classificacao: 'livre',
+      nivel: 'C1',
+      popularidade: 0.4,
+      obra: 'Q35160',
+      titulosAlternativos: ['Odisseia', 'La Odisea'],
+    }),
+    livro({
+      id: 'ws-pt-odisseia',
+      titulo: 'Odisseia',
+      autores: [{ nome: 'Homero', anoMorte: -700, idiomas: ['grc'] }],
+      tradutores: [{ nome: 'Tradutor Antigo', anoMorte: 1900, idiomas: ['pt'] }],
+      idioma: 'pt',
+      fonte: 'wikisource',
+      fonteId: 'Odisseia',
+      formatos: { wikisource: { api: 'https://pt.wikisource.org/w/api.php', pagina: 'Odisseia' } },
+      categorias: ['aventura'],
+      classificacao: 'livre',
+      nivel: 'C1',
+      obra: 'Q35160',
+      titulosAlternativos: ['The Odyssey', 'La Odisea'],
+    }),
+    livro({
+      id: 'pg-58221',
+      titulo: 'La Odisea',
+      autores: [{ nome: 'Homero', anoMorte: -700, idiomas: ['grc'] }],
+      tradutores: [{ nome: 'Traductor Antiguo', anoMorte: 1910, idiomas: ['es'] }],
+      idioma: 'es',
+      fonte: 'gutenberg-curado',
+      fonteId: '58221',
+      formatos: { r2: 'livros/pg-58221.epub' },
+      classificacao: null,
+      nivel: 'C1',
+      obra: 'Q35160',
+      titulosAlternativos: ['The Odyssey', 'Odisseia'],
+    }),
+    livro({
+      id: 'pg-58222',
+      titulo: 'Die Odyssee',
+      autores: [{ nome: 'Homer', anoMorte: -700, idiomas: ['grc'] }],
+      tradutores: [{ nome: 'Übersetzer Neu', anoMorte: 1990, idiomas: ['de'] }],
+      idioma: 'de',
+      fonte: 'gutenberg-curado',
+      fonteId: '58222',
+      formatos: { r2: 'livros/pg-58222.epub' },
+      classificacao: 'livre',
+      nivel: 'C1',
+      obra: 'Q35160',
+      titulosAlternativos: ['The Odyssey'],
+    }),
     /* Um JSON adulterado: autor morto em 1990. A defesa dupla do cliente nunca o mostra, para ninguém. */
     livro({
       id: 'pg-9997',
@@ -394,5 +455,77 @@ test.describe('Livros', () => {
     await abrirTela(page, '/biblioteca')
     await clicarRobusto(page, page.getByTestId('livros-na-biblioteca'))
     await expect(page).toHaveURL(/\/livros$/)
+  })
+
+  test('a mesma obra em outros idiomas: buscar pelo título traduzido, ver os idiomas e trocar de edição', async ({
+    page,
+  }) => {
+    await prepararFontes(page)
+    await abrirTela(page, '/livros')
+
+    /* "Odisseia" é o título em português: a edição em inglês é achada pelo título alternativo da obra. */
+    await page.getByTestId('busca-de-livros').fill('odisseia')
+    const resultados = page.getByTestId('resultados-de-livros')
+    await expect(resultados.getByRole('heading', { name: '1 livro encontrado' })).toBeVisible()
+    await expect(cartao(page, 'pg-1727')).toBeVisible()
+    /* O cartão diz em que outros idiomas a obra existe (o adulto vê as três edições visíveis; a de 1990 nunca). */
+    await expect(cartao(page, 'pg-1727').getByTestId('tambem-em')).toContainText('Também em português, espanhol')
+    await expect(page.getByText('Die Odyssee')).toHaveCount(0)
+
+    /* Um erro de digitação de uma letra também acha. */
+    await page.getByTestId('busca-de-livros').fill('odyssy')
+    await expect(cartao(page, 'pg-1727')).toBeVisible()
+    await page.getByTestId('busca-de-livros').fill('odisseia')
+
+    await cartao(page, 'pg-1727').click()
+    await expect(page).toHaveURL(/\/livros\/pg-1727$/)
+    const outros = page.getByTestId('outros-idiomas')
+    await expect(outros.getByRole('heading', { name: 'Ler esta obra em outros idiomas' })).toBeVisible()
+    await expect(outros.locator('[data-edicao]')).toHaveCount(2)
+    await expect(outros.locator('[data-edicao="ws-pt-odisseia"]')).toContainText('Tradutor Antigo (†1900)')
+    await expect(outros.locator('[data-edicao="pg-58222"]')).toHaveCount(0)
+
+    /* Trocar de edição: o título leva ao detalhe da irmã, que lista as outras (inclusive a inglesa). */
+    await outros.locator('[data-edicao="ws-pt-odisseia"]').getByRole('button', { name: 'Odisseia' }).click()
+    await expect(page).toHaveURL(/\/livros\/ws-pt-odisseia$/)
+    const detalhe = page.getByTestId('livro-detalhe')
+    await expect(detalhe.getByRole('heading', { level: 1, name: 'Odisseia' })).toBeVisible()
+    await expect(page.getByTestId('outros-idiomas').locator('[data-edicao="pg-1727"]')).toBeVisible()
+
+    /* "Ler" na irmã abre a leitura daquela edição. */
+    await page.getByTestId('outros-idiomas').locator('[data-edicao="pg-1727"]').getByTestId('ler-outra-edicao').click()
+    await expect(page).toHaveURL(/\/livros\/pg-1727\/ler$/)
+  })
+
+  test('busca fora do idioma da vitrine: conta obras e abre a edição certa', async ({ page }) => {
+    await prepararFontes(page)
+    await abrirTela(page, '/livros')
+    await page.getByTestId('idioma-dos-livros').selectOption('pt')
+    /* O conto só existe em português: na vitrine em inglês a busca não acha, mas diz onde está. */
+    await page.getByTestId('busca-de-livros').fill('contos da serra')
+    await expect(cartao(page, 'ws-pt-contos-da-serra')).toBeVisible()
+    await page.getByTestId('idioma-dos-livros').selectOption('en')
+    await page.getByTestId('busca-de-livros').fill('contos da serra')
+    await expect(page.getByRole('heading', { name: 'Nenhum livro encontrado' })).toBeVisible()
+    await expect(page.getByText('Há 1 resultado em português.')).toBeVisible()
+    await page.getByTestId('abrir-em-outro-idioma').click()
+    await expect(page).toHaveURL(/\/livros\/ws-pt-contos-da-serra$/)
+  })
+
+  test('perfil de menor: só vê as irmãs com faixa etária aprovada', async ({ page }) => {
+    await prepararFontes(page)
+    await comoCrianca(page)
+    await abrirTela(page, '/livros')
+    await page.getByTestId('busca-de-livros').fill('odisseia')
+    await expect(cartao(page, 'pg-1727')).toBeVisible()
+    /* A edição em espanhol está "a revisar": nem como idioma do cartão, nem no bloco do detalhe. */
+    await expect(cartao(page, 'pg-1727').getByTestId('tambem-em')).toContainText('Também em português')
+    await expect(cartao(page, 'pg-1727').getByTestId('tambem-em')).not.toContainText('espanhol')
+    await cartao(page, 'pg-1727').click()
+    const outros = page.getByTestId('outros-idiomas')
+    await expect(outros.locator('[data-edicao]')).toHaveCount(1)
+    await expect(outros.locator('[data-edicao="ws-pt-odisseia"]')).toBeVisible()
+    await abrirTela(page, '/livros/pg-58221')
+    await expect(page.getByTestId('livro-nao-encontrado')).toBeVisible()
   })
 })

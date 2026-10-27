@@ -126,6 +126,19 @@ test.beforeEach(async ({ page }, info) => {
   test.skip(info.project.name === 'tablet-768', 'computador e celular bastam: o tablet é o layout do computador')
   await page.route(/huggingface\.co|hf\.co|cdn-lfs/, (r) => r.abort())
   await page.route(/\/modelos\/bergamot\/|bergamot-translator-worker/, (r) => r.abort())
+  /* HERMÉTICO: sem os motores locais (abortados acima) nem `/api/ai/mt` (501), a tradução cai no MyMemory
+     público. Simulado aqui para o teste não depender de rede externa (cota/429). A regex é ANCORADA no
+     host: uma solta (`/mymemory/`) casaria o módulo local `mymemory.ts` do Vite e quebraria o app. */
+  await page.route(/^https:\/\/api\.mymemory\.translated\.net\//, (r) =>
+    r.fulfill({
+      headers: { 'access-control-allow-origin': '*' },
+      json: {
+        responseStatus: 200,
+        responseData: { translatedText: 'Bom dia, pessoal, boa sorte na apresentação de hoje', match: 1 },
+        matches: [],
+      },
+    }),
+  )
   await page.addInitScript(() => {
     if (sessionStorage.getItem('assist-limpo')) return
     sessionStorage.setItem('assist-limpo', '1')
@@ -255,9 +268,15 @@ async function falsos(page: Page) {
     }
     w.SpeechRecognition = Falso
     w.webkitSpeechRecognition = Falso
+    /* Tradução em português de verdade, não `[trad] …`: o gateway confere o idioma da saída
+       (`validaTraducao`) e rejeitava o texto marcado (a heurística lê "cs"), derrubando o tradutor
+       simulado da cascata — o que deixava a tela em "Traduzindo…" quando o resto da cascata falhava. */
+    const TRADUCOES: Record<string, string> = {
+      'good morning everyone, break a leg today': 'Bom dia, pessoal, boa sorte na apresentação de hoje',
+    }
     w.Translator = {
       availability: async () => 'available',
-      create: async () => ({ translate: async (t: string) => `[trad] ${t}` }),
+      create: async () => ({ translate: async (t: string) => TRADUCOES[t] ?? `[trad] ${t}` }),
     }
     let falando = false
     const synth = {
@@ -319,7 +338,15 @@ test('Intérprete: "Como respondo?" junto da última fala da outra pessoa, com a
   const conversa = page.getByTestId('modo-interprete')
   await expect(conversa).toBeVisible({ timeout: 10_000 })
   const minha = conversa.getByTestId('interprete-meu')
-  /* A tradução é a do motor de verdade (local); o original dela fica embaixo, na metade da pessoa. */
+  /* A tradução vem do Translator simulado (ou, se a cascata o recusar, do MyMemory simulado: "≈ " na
+     frente); o original dela fica embaixo, na metade da pessoa. Sem a tradução chegar, a tela fica em
+     "(original)" ou "…" e este passo falha. */
+  await expect(minha.locator('.int-traducao')).toHaveText(
+    /^(≈ )?Bom dia, pessoal, boa sorte na apresentação de hoje$/,
+    {
+      timeout: 15_000,
+    },
+  )
   await expect(minha.locator('.int-original')).toHaveText('good morning everyone, break a leg today', {
     timeout: 15_000,
   })

@@ -18,7 +18,9 @@ import {
   edicoesDaObra,
   edicoesEmOutrosIdiomas,
   ehObraDaWikidata,
+  montarTitulosAlternativos,
   obraLocal,
+  tituloEquivale,
 } from '../src/core/livros/obras'
 import type { Classificacao, LivroDoCatalogo } from '../src/core/livros/tipos'
 import { validarCatalogo } from '../src/lib/livros/catalogo'
@@ -283,5 +285,27 @@ describe('validarCatalogo e os campos novos', () => {
     expect(c.livros[1]).not.toHaveProperty('obra')
     expect(c.livros[1]).not.toHaveProperty('titulosAlternativos')
     expect(c.livros[2].titulosAlternativos).toEqual(['ok'])
+  })
+})
+
+describe('montagem: títulos alternativos e equivalência de título', () => {
+  it('tira o título da edição, repetidos (sem acento nem caixa) e vazios', () => {
+    expect(montarTitulosAlternativos(['The Odyssey', 'Odisseia', 'odisseía', ' ', 'La Odisea'], 'The Odyssey')).toEqual(
+      ['Odisseia', 'La Odisea'],
+    )
+  })
+
+  it('tem teto', () => {
+    const muitos = Array.from({ length: 80 }, (_, i) => `Título ${i}`)
+    expect(montarTitulosAlternativos(muitos, 'x')).toHaveLength(24)
+  })
+
+  it('tituloEquivale: subtítulo, parênteses, acento e complemento de mais de uma palavra', () => {
+    expect(tituloEquivale('Noli me tangere', 'Noli Me Tángere')).toBe(true)
+    expect(tituloEquivale('El Filibusterismo (Continuación del Noli me tángere)', 'El filibusterismo')).toBe(true)
+    expect(tituloEquivale('Divina Commedia di Dante', 'Divina Commedia')).toBe(true)
+    expect(tituloEquivale('Short Fiction', 'Fiction')).toBe(false)
+    expect(tituloEquivale('Faust', 'Faust, Part One')).toBe(false)
+    expect(tituloEquivale('Hamlet', 'Macbeth')).toBe(false)
   })
 })

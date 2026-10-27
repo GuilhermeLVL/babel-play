@@ -4,6 +4,7 @@ import { BookMarked, BookOpen, Upload } from 'lucide-react';
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 
 import { livrosVisiveis } from '../../core/livros/catalogo';
+import { edicoesDaObra } from '../../core/livros/obras';
 import { type Catalogo, NIVEIS_DO_LIVRO, type NivelDoLivro } from '../../core/livros/tipos';
 import { lerAjustesDoAssistente } from '../../lib/assistente/ajustesDoAssistente';
 import { t } from '../../lib/i18n';
@@ -182,7 +183,17 @@ export default function Livros({
         </Suspense>
       );
     }
-    return <DetalheDoLivro livro={livro} aoVoltar={voltarAoCatalogo} aoLer={() => abrirLivroNoLeitor(livro)} />;
+    return (
+      <DetalheDoLivro
+        livro={livro}
+        aoVoltar={voltarAoCatalogo}
+        aoLer={() => abrirLivroNoLeitor(livro)}
+        /* `visiveis` já passou pelo filtro legal e pela faixa etária, edição por edição. */
+        outrasEdicoes={edicoesDaObra(livro, visiveis).filter((e) => e.idioma !== livro.idioma)}
+        aoAbrirEdicao={abrirDetalheDoLivro}
+        aoLerEdicao={(e) => void abrirLivroNoLeitor(e)}
+      />
+    );
   }
 
   /* ── O catálogo ───────────────────────────────────────────────────────────────────────────── */

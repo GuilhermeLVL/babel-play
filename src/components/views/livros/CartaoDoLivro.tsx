@@ -2,6 +2,7 @@ import React from 'react';
 
 import type { LivroDoCatalogo } from '../../../core/livros/tipos';
 import { t } from '../../../lib/i18n';
+import { rotuloDoIdioma } from './rotulos';
 
 /** Um tom estável por livro (o mesmo livro tem sempre a mesma lombada), só para distinguir as capas. */
 function tomDe(id: string): number {
@@ -54,7 +55,17 @@ export function rotuloDoTempo(minutos: number): string {
 }
 
 /** O livro numa prateleira ou na lista de resultados: um alvo só, que abre o detalhe. */
-export default function CartaoDoLivro({ livro, aoAbrir }: { livro: LivroDoCatalogo; aoAbrir: () => void }) {
+export default function CartaoDoLivro({
+  livro,
+  aoAbrir,
+  tambemEm = [],
+}: {
+  livro: LivroDoCatalogo;
+  aoAbrir: () => void;
+  /** Os idiomas das OUTRAS edições visíveis desta obra (códigos); o próprio idioma do livro não entra. */
+  tambemEm?: readonly string[];
+}) {
+  const nomes = tambemEm.map((i) => rotuloDoIdioma(i).toLowerCase());
   return (
     <li className="lv-item">
       <button type="button" className="lv-cartao" onClick={aoAbrir} data-livro={livro.id}>
@@ -70,6 +81,20 @@ export default function CartaoDoLivro({ livro, aoAbrir }: { livro: LivroDoCatalo
             )}
             <span className="lv-selo fraco">{rotuloDoTempo(livro.minutosEstimados)}</span>
           </span>
+          {tambemEm.length > 0 && (
+            <span
+              className="lv-tambem"
+              data-testid="tambem-em"
+              title={t('Também em {idiomas}', { idiomas: nomes.join(', ') })}
+            >
+              <span className="sr-only">{t('Também em {idiomas}', { idiomas: nomes.join(', ') })}</span>
+              {tambemEm.map((i) => (
+                <span key={i} className="lv-selo idioma" aria-hidden>
+                  {i}
+                </span>
+              ))}
+            </span>
+          )}
         </span>
       </button>
     </li>

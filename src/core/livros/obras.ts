@@ -89,3 +89,48 @@ export function idiomasDasEdicoes(edicoes: readonly LivroDoCatalogo[], primeiro?
   const todos = [...new Set(edicoes.map((l) => l.idioma))];
   return primeiro && todos.includes(primeiro) ? [primeiro, ...todos.filter((i) => i !== primeiro)] : todos;
 }
+
+const chaveDoTitulo = (s: string) =>
+  s
+    .replace(/\(.*?\)/g, ' ')
+    .split(/\s[:;—–-]\s|[:;]\s/)[0]
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+
+/**
+ * O título da edição é o rótulo da obra? Igual depois de tirar acento, caixa, pontuação, parênteses e subtítulo
+ * ("El Filibusterismo (Continuación…)" = "El Filibusterismo"), ou o título é o rótulo mais um complemento de
+ * mais de uma palavra ("Divina Commedia di Dante" = "Divina Commedia"). A montagem só usa isto DEPOIS de
+ * confirmar o autor pela Wikidata: o título sozinho nunca liga duas edições.
+ */
+export function tituloEquivale(titulo: string, rotulo: string): boolean {
+  const a = chaveDoTitulo(titulo);
+  const b = chaveDoTitulo(rotulo);
+  if (!a || !b) return false;
+  return a === b || (b.includes(' ') && a.startsWith(`${b} `));
+}
+
+/** Quantos títulos alternativos uma edição leva no JSON (rótulos nos idiomas da trilha e alguns apelidos). */
+export const MAX_TITULOS_ALTERNATIVOS = 24;
+
+/**
+ * Os rótulos da obra viram `titulosAlternativos`: sem o título da própria edição, sem repetir (dobrados: caixa
+ * e acento não distinguem), sem vazio, no máximo `MAX_TITULOS_ALTERNATIVOS`, na ordem em que vieram.
+ */
+export function montarTitulosAlternativos(rotulos: readonly string[], tituloDaEdicao: string): string[] {
+  const dobrar = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  const vistos = new Set([dobrar(tituloDaEdicao)]);
+  const saida: string[] = [];
+  for (const r of rotulos) {
+    const limpo = r.replace(/\s+/g, ' ').trim();
+    const k = dobrar(limpo);
+    if (!k || vistos.has(k)) continue;
+    vistos.add(k);
+    saida.push(limpo);
+    if (saida.length >= MAX_TITULOS_ALTERNATIVOS) break;
+  }
+  return saida;
+}

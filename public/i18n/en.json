@@ -5324,5 +5324,9 @@
   "Narração tocando.": "Narration playing.",
   "Narração pausada.": "Narration paused.",
   "Narração parada.": "Narration stopped.",
-  "Ver a palavra": "See the word"
+  "Ver a palavra": "See the word",
+  "Ler esta obra em outros idiomas": "Read this work in other languages",
+  "Ler em {idioma}": "Read in {idioma}",
+  "Também em {idiomas}": "Also in {idiomas}",
+  "Abrir em {idioma}": "Open in {idioma}"
 }

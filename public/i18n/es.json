@@ -1834,5 +1834,9 @@
   "Você usou a IA de nuvem deste mês; ela volta no dia {data}. O que já foi polido continua guardado.": "Usaste la IA en la nube de este mes; vuelve el {data}. Lo que ya se pulió sigue guardado.",
   "Você chegou ao limite de hoje. Amanhã o polimento continua de onde parou.": "Llegaste al límite de hoy. Mañana el pulido sigue donde se quedó.",
   "Não ajudou": "No ayudó",
-  "Obrigado pelo aviso. Ele ajuda a melhorar as respostas.": "Gracias por avisar. Ayuda a mejorar las respuestas."
+  "Obrigado pelo aviso. Ele ajuda a melhorar as respostas.": "Gracias por avisar. Ayuda a mejorar las respuestas.",
+  "Ler esta obra em outros idiomas": "Leer esta obra en otros idiomas",
+  "Ler em {idioma}": "Leer en {idioma}",
+  "Também em {idiomas}": "También en {idiomas}",
+  "Abrir em {idioma}": "Abrir en {idioma}"
 }

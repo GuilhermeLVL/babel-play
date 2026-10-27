@@ -520,6 +520,11 @@ const DIACRITIC_HINTS: Array<{ lang: string; re: RegExp; weight: number }> = [
   { lang: 'gl', re: /[áéíóúñx]/i, weight: 0.5 },
 ];
 
+/** Pontos (acertos de palavra-função e diacríticos) que o 1º lugar precisa ter para a confiança valer. */
+const EVIDENCIA_MINIMA = 2;
+/** Teto da confiança quando o 1º lugar tem só um acerto: abaixo dos limiares de decisão (0,5 e 0,7). */
+const CONFIANCA_COM_UM_SO_SINAL = 0.45;
+
 /** Abaixo disto, as letras de outra escrita são um nome ou uma citação, e não o idioma da frase. */
 const PARTE_MINIMA_DA_ESCRITA = 0.4;
 
@@ -569,5 +574,15 @@ export function detectarIdiomaPorTexto(text: string): DeteccaoDeTexto | null {
   const margin = top / (top + second || 1);
   const sample = Math.min(1, words.length / 8);
   const confidence = Math.max(0.2, Math.min(0.9, margin * sample));
-  return { lang, confidence, method: 'heuristic' as const };
+  /* UM SÓ ACERTO NÃO É EVIDÊNCIA. Com um único acerto de palavra curta ("a", "e", "y"), nenhum outro idioma
+     pontuava e a margem ia a 100%: "bom dia a todos, boa sorte hoje" saía como tcheco (0,88) e "buenos dias a
+     todos y buena suerte hoy", em espanhol, como tcheco (0,90) — e a conferência da tradução
+     (`validaTraducao.ts`, mínimo 0,7) rejeitava boas traduções como `idioma-errado`. Sem segundo sinal, a
+     resposta continua saindo (não chutamos para `null`), mas abaixo de qualquer limiar de decisão. */
+  const semSegundoSinal = top < EVIDENCIA_MINIMA;
+  return {
+    lang,
+    confidence: semSegundoSinal ? Math.min(confidence, CONFIANCA_COM_UM_SO_SINAL) : confidence,
+    method: 'heuristic' as const,
+  };
 }

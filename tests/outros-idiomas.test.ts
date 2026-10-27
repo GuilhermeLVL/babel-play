@@ -283,6 +283,29 @@ describe('detecção de idioma pelo texto', () => {
     },
   )
 
+  /* UM SÓ ACERTO NÃO É EVIDÊNCIA: o "a"/"e"/"y" (único acerto, na lista do tcheco ou do galego) deixava a margem em
+     100% e a frase saía como tcheco/galego com 0,75–0,90 — acima do 0,7 com que a conferência da tradução
+     (`validaTraducao.ts`) rejeitava a tradução boa como `idioma-errado`. O rótulo pode sair, mas sem confiança de
+     decisão (os consumidores pedem 0,6 ou 0,7). */
+  it.each([
+    'bom dia a todos, boa sorte hoje',
+    'good morning everyone, break a leg today',
+    'bom dia e boa sorte hoje',
+    'buenos dias a todos y buena suerte hoy',
+  ])('um único acerto de palavra curta não decide o idioma: "%s"', (frase) => {
+    const d = detectarIdiomaPorTexto(frase)
+    expect(d?.confidence ?? 0).toBeLessThan(0.5)
+  })
+
+  it('com evidência de verdade a confiança continua alta: tcheco com várias palavras tchecas, português com acento', () => {
+    const cs = detectarIdiomaPorTexto('ahoj, jak se máš a co děláš dnes')
+    expect(cs?.lang).toBe('cs')
+    expect(cs?.confidence).toBeGreaterThanOrEqual(0.7)
+    const pt = detectarIdiomaPorTexto('Bom dia, pessoal, boa sorte na apresentação de hoje')
+    expect(pt?.lang).toBe('pt')
+    expect(pt?.confidence).toBeGreaterThanOrEqual(0.5)
+  })
+
   /* UM NOME PRÓPRIO NÃO MUDA O IDIOMA DA FRASE: a tradução para o português que cita um nome chinês
      era lida como chinês (0,95) e rejeitada como "não traduziu" (`validaTraducao.ts`). */
   it.each([

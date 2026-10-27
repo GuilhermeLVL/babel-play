@@ -44,9 +44,11 @@ import { type InfoDoLivro, MotorDoLeitor } from '../../../lib/leitor/motor';
 import { linkExternoSeguro } from '../../../lib/leitor/politicaDeRecursos';
 import {
   citacaoDoRange,
+  ehUmaPalavra,
   fraseDoRange,
   ouvintesDoDocumentoFuncionam,
-  palavraNoPonto,
+  ouvirGestos,
+  palavraNoCursor,
   selecaoDoDocumento,
   vigiarSelecao,
 } from '../../../lib/leitor/selecao';
@@ -73,6 +75,8 @@ type Painel = 'sumario' | 'tipografia' | 'anotacoes';
 
 interface Selecao {
   trecho: TrechoSelecionado;
+  /** O trecho é uma palavra só: a barra oferece "Ver a palavra". */
+  palavra?: { range: Range; indice: number };
   cfi: string;
   citacao: AnotacaoDeLeitura['alvo']['citacao'];
   capitulo: string;
@@ -95,6 +99,10 @@ const novoId = () =>
     /[^A-Za-z0-9_-]/g,
     '',
   );
+
+/** O evento nasceu dentro do texto do livro (o documento de um capítulo, não a barra do app)? */
+const dentroDoLivro = (alvo: EventTarget | null) =>
+  !!alvo && (alvo as Node).ownerDocument != null && (alvo as Node).ownerDocument !== document;
 
 const ehCampo = (alvo: EventTarget | null) =>
   alvo instanceof Element && !!alvo.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]');
@@ -335,69 +343,65 @@ export default function LeitorDoLivro({
 
   /* ── o documento de cada seção: teclado, seleção e toque na palavra ── */
   function ligarDocumento(doc: Document, indice: number) {
-    /* WEBKIT (Safari): o iframe sem `allow-scripts` não entrega eventos nem ao app (bug 218086). A seleção e o
-       toque são lidos de fora, pela seleção do documento (`vigiarSelecao`). */
+    const motor = () => motorRef.current;
+    const gestos = {
+      aoSelecionar: (r: Range) => {
+        const m = motor();
+        if (!m) return;
+        setPalavra(null);
+        const texto = r.toString().trim();
+        setSelecao({
+          trecho: { texto, frase: fraseDoRange(r, idiomaRef.current), idioma: idiomaRef.current },
+          ...(ehUmaPalavra(texto, idiomaRef.current) ? { palavra: { range: r.cloneRange(), indice } } : {}),
+          cfi: m.cfiDe(indice, r),
+          citacao: citacaoDoRange(r),
+          capitulo: capituloRef.current,
+        });
+      },
+      /* SÓ O TOQUE LIMPO chega aqui (`core/leitura/gestoDoLeitor.ts`): arrastar, segurar e o toque duplo são
+         seleção e nunca abrem a folha da palavra. */
+      aoTocar: (r: Range, alvo: Node) => {
+        if (Date.now() - toqueEmAnotacao.current < 700) return;
+        if (seguirLinkInterno(alvo)) return;
+        const texto = r.toString();
+        if (!/\p{L}/u.test(texto) || texto.length < 2) return;
+        void abrirPalavra(texto, r, indice, linkExternoDe(alvo));
+      },
+      aoLimpar: () => setSelecao(null),
+    };
+    /* WEBKIT (Safari): o iframe sem `allow-scripts` não entrega eventos nem ao app (bug 218086). O gesto é
+       amostrado de fora, pelo `:active` e pela seleção do documento (`vigiarSelecao`). */
     if (!ouvintesDoDocumentoFuncionam(doc)) {
       vigiarSelecao(
         doc,
-        {
-          aoSelecionar: (r) => {
-            const motor = motorRef.current;
-            if (!motor) return;
-            setPalavra(null);
-            setSelecao({
-              trecho: {
-                texto: r.toString().trim(),
-                frase: fraseDoRange(r, idiomaRef.current),
-                idioma: idiomaRef.current,
-              },
-              cfi: motor.cfiDe(indice, r),
-              citacao: citacaoDoRange(r),
-              capitulo: capituloRef.current,
-            });
-          },
-          aoTocar: (r) => {
-            if (seguirLinkInterno(r.startContainer)) return;
-            const palavra = r.toString();
-            if (!/\p{L}/u.test(palavra) || palavra.length < 2) return;
-            void abrirPalavra(palavra, r, indice, linkExternoDe(r.startContainer));
-          },
-        },
+        gestos,
         () => !!document.activeElement && !!hospedeiro.current?.contains(document.activeElement),
+        undefined,
+        undefined,
+        () => idiomaRef.current,
       );
       return;
     }
     doc.addEventListener('keydown', aoTeclar);
-    const conferirSelecao = () =>
-      window.setTimeout(() => {
-        const r = selecaoDoDocumento(doc);
-        const motor = motorRef.current;
-        if (!r || !motor) return;
-        setPalavra(null);
-        setSelecao({
-          trecho: { texto: r.toString().trim(), frase: fraseDoRange(r, idiomaRef.current), idioma: idiomaRef.current },
-          cfi: motor.cfiDe(indice, r),
-          citacao: citacaoDoRange(r),
-          capitulo: capituloRef.current,
-        });
-      }, 0);
-    doc.addEventListener('pointerup', conferirSelecao);
+    ouvirGestos(doc, gestos, () => idiomaRef.current);
     doc.addEventListener('keyup', (e) => {
-      if (e.shiftKey) conferirSelecao();
+      if (!e.shiftKey) return;
+      const r = selecaoDoDocumento(doc);
+      if (r) gestos.aoSelecionar(r);
     });
-    doc.addEventListener('click', (e) => {
-      if (selecaoDoDocumento(doc)) return;
-      const alvo = e.target as Node | null;
-      if (seguirLinkInterno(alvo)) return;
-      const { clientX, clientY } = e;
-      window.setTimeout(() => {
-        if (Date.now() - toqueEmAnotacao.current < 300) return;
-        const p = palavraNoPonto(doc, clientX, clientY, idiomaRef.current);
-        const motor = motorRef.current;
-        if (!p || !motor || !/\p{L}/u.test(p.palavra) || p.palavra.length < 2) return;
-        void abrirPalavra(p.palavra, p.range, indice, linkExternoDe(alvo));
-      }, 0);
-    });
+  }
+
+  /** O TECLADO abre a folha da palavra no cursor (Enter): o caret numa palavra, ou uma palavra selecionada. */
+  function abrirPalavraNoCursor(): boolean {
+    for (const { doc, index } of motorRef.current?.documentos() ?? []) {
+      const r = palavraNoCursor(doc, idiomaRef.current);
+      if (!r) continue;
+      const texto = r.toString().trim();
+      if (!/\p{L}/u.test(texto) || texto.length < 2) continue;
+      void abrirPalavra(texto, r, index, linkExternoDe(r.startContainer));
+      return true;
+    }
+    return false;
   }
 
   /* ── links do livro: o capítulo NUNCA navega (`limparHtml.ts` tira o `href`); o app segue ── */
@@ -449,7 +453,9 @@ export default function LeitorDoLivro({
     else if (e.key === 'PageDown') void m.proxima();
     else if (e.key === 'PageUp') void m.anterior();
     else if (e.key === '/') setPainel('sumario');
-    else if (e.key === 'Escape') {
+    else if (e.key === 'Enter' && dentroDoLivro(e.target) && abrirPalavraNoCursor()) {
+      /* a folha da palavra abriu */
+    } else if (e.key === 'Escape') {
       setPainel(null);
       setSelecao(null);
       return;
@@ -776,6 +782,14 @@ export default function LeitorDoLivro({
             motorRef.current?.desmarcar();
           }}
           aoConhecerPlanos={aoConhecerPlanos}
+          aoVerPalavra={
+            selecao.palavra
+              ? () => {
+                  const p = selecao.palavra!;
+                  void abrirPalavra(selecao.trecho.texto, p.range, p.indice, linkExternoDe(p.range.startContainer));
+                }
+              : undefined
+          }
         />
       )}
 

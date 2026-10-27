@@ -1,7 +1,7 @@
-import { Highlighter, Languages, Lightbulb, StickyNote, X } from 'lucide-react';
+import { BookA, Highlighter, Languages, Lightbulb, StickyNote, X } from 'lucide-react';
 import { useState } from 'react';
 
-import { type CorDeAnotacao,CORES_DE_ANOTACAO } from '../../../core/leitura/anotacao';
+import { type CorDeAnotacao, CORES_DE_ANOTACAO } from '../../../core/leitura/anotacao';
 import { FLAG_IA_DE_ESTUDO } from '../../../core/planos';
 import { useFlag } from '../../../lib/flags';
 import { t } from '../../../lib/i18n';
@@ -35,6 +35,7 @@ export default function BarraDaSelecao({
   aoAnotar,
   aoFechar,
   aoConhecerPlanos,
+  aoVerPalavra,
 }: {
   trecho: TrechoSelecionado;
   /** O idioma da tradução (o da pessoa). */
@@ -44,6 +45,8 @@ export default function BarraDaSelecao({
   aoAnotar: (nota: string) => void;
   aoFechar: () => void;
   aoConhecerPlanos?: () => void;
+  /** O trecho é UMA palavra (o toque duplo, a seleção pelo teclado): abre a folha da palavra. */
+  aoVerPalavra?: () => void;
 }) {
   const [modo, setModo] = useState<'acoes' | 'nota' | 'traducao' | 'explicar'>('acoes');
   /* "Explicar" só aparece com a IA de estudo ligada; quem pode explicar (plano ou amostra) é o servidor. */
@@ -77,6 +80,11 @@ export default function BarraDaSelecao({
               />
             ))}
           </div>
+          {aoVerPalavra && (
+            <button type="button" className="btn btn-outline leitor-alvo" onClick={aoVerPalavra}>
+              <BookA aria-hidden /> {t('Ver a palavra')}
+            </button>
+          )}
           <button type="button" className="btn btn-outline leitor-alvo" onClick={() => setModo('nota')}>
             <StickyNote aria-hidden /> {t('Nota')}
           </button>

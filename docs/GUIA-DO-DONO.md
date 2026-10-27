@@ -31,7 +31,9 @@ banco `up`; `www` redireciona para o domínio sem `www`). Feito hoje, sem precis
 - **A9** Os 6 secrets entraram no Worker `frasy`: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SECRET_KEY` (nova, só da
   produção), `ASAAS_WEBHOOK_TOKEN`, `SIGNUP_ENABLED=0` e `CHECKOUT_ENABLED=0`.
 - **A10 (parte)** Os dois runs do deploy passaram (o 2º com fumaça, promoção a 100% e fumaça final) e `frasy.com.br` e
-  `www.frasy.com.br` estão ligados ao Worker. **Falta** da A10: cabeçalho de origem, WAF, rate limit, cache e flags (passos 6 a 11).
+  `www.frasy.com.br` estão ligados ao Worker, e o _Browser Cache TTL_ já está em "respeitar cabeçalhos" (passo 9).
+  **Falta** da A10: WAF gratuito e rate limit (passos 7 e 8; os tokens que tenho não têm permissão de editar WAF, então
+  são do painel), cabeçalho de origem (passo 6, endurecimento opcional) e flags (passo 11).
 - **A15** Worker antigo `babel-play` apagado.
 
 > ⚠️ **Guarde agora o `.secrets.production.json`** (está só no seu computador, na pasta do worktree, ignorado pelo git;

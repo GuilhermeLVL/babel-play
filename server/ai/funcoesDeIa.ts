@@ -48,6 +48,11 @@
  *               cada recurso manda o seu (`PARAMETROS_DO_ASSISTENTE`, `src/lib/estudo/promptDoAssistente.ts`): 400 nas
  *               glosas e na correção, 600 no "Como respondo?". Pior caso: ~800 de entrada + 600 de saída ≈ US$ 0,0002
  *               no Gemma 4 26B, ≈ US$ 0,0005 no gpt-oss-120b.
+ *   leitura     12.000 caracteres: o PARCEIRO DE LEITURA (L4 de Livros & Leitura, `server/ai/nucleo/parceiroDeLeitura.ts`)
+ *               — até 8.000 do capítulo em volta (livro PD; 1.500 no livro trazido), a seleção (até 1.000), a pergunta
+ *               (até 300), até 2.000 da ficha do livro e os títulos. 900 de saída no teto; cada modo manda o seu
+ *               (`PARAMETROS_DO_PARCEIRO`, `src/lib/estudo/promptDoParceiro.ts`). Pior caso: ~3.500 de entrada + 900 de
+ *               saída ≈ US$ 0,0011 no DeepSeek V4.1 Flash, ≈ US$ 0,0004 no Gemma 4 26B.
  *
  * O teto ABSOLUTO continua em `llmClient.ts` (`MAX_PROMPT_CHARS`): é a rede de segurança para
  * qualquer caminho que um dia chame o provedor sem passar por aqui.
@@ -64,6 +69,7 @@ export type FuncaoDeIa =
   | 'explicacao'
   | 'resumo'
   | 'assistente'
+  | 'leitura'
 
 interface DefinicaoDeFuncao {
   /** Caracteres de conteúdo do cliente aceitos (o `system` é nosso e não conta). */
@@ -83,6 +89,8 @@ export const FUNCOES_DE_IA: Readonly<Record<FuncaoDeIa, DefinicaoDeFuncao>> = {
   resumo: { tetoEntrada: 12_000, maxTokens: 1_500, temperatura: 0.2 },
   /* O teto da FUNÇÃO; cada recurso do assistente manda o seu (`PARAMETROS_DO_ASSISTENTE`), sempre ≤ este. */
   assistente: { tetoEntrada: 1_500, maxTokens: 600, temperatura: 0.3 },
+  /* O teto da FUNÇÃO; cada modo do parceiro manda o seu (`PARAMETROS_DO_PARCEIRO`), sempre ≤ este. */
+  leitura: { tetoEntrada: 12_000, maxTokens: 900, temperatura: 0.3 },
 }
 
 /**

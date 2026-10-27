@@ -741,6 +741,39 @@ describe('POST /api/ai/assistente/* — assistente ao vivo (flag assistente_ao_v
   })
 })
 
+describe('POST /api/ai/leitura/parceiro — parceiro de leitura (flag parceiro_de_leitura)', () => {
+  async function flag(habilitada: boolean) {
+    const flags = await s.load<any>('../../server/lib/flags')
+    await flags.definirFlag('parceiro_de_leitura', { habilitada }, 'caracterizacao')
+  }
+  afterAll(() => flag(false))
+
+  it('flag desligada → 404 recurso_indisponivel, mesmo com corpo vazio, sem chamar provedor', async () => {
+    await flag(false)
+    const r = await s.post('/api/ai/leitura/parceiro', {})
+    expect(r.status).toBe(404)
+    expect((await r.json()).code).toBe('recurso_indisponivel')
+    expect(chamadas).toHaveLength(0)
+  })
+
+  it('flag ligada e corpo com o livro inteiro (campo a mais) → 400 invalido, sem chamar provedor', async () => {
+    await flag(true)
+    const r = await s.post('/api/ai/leitura/parceiro', {
+      modo: 'explicar',
+      livro: { origem: 'proprio' },
+      selecao: 'oi',
+      trechos: [],
+      nivel: 'B1',
+      idiomaDoLivro: 'en',
+      idiomaDaPessoa: 'pt-BR',
+      livroInteiro: '...',
+    })
+    expect(r.status).toBe(400)
+    expect((await r.json()).code).toBe('invalido')
+    expect(chamadas).toHaveLength(0)
+  })
+})
+
 describe('POST /api/ai/feedback — 👍/👎 de lista fechada (Fase B da IA paga)', () => {
   it('avaliação válida → 202, sem chamar provedor', async () => {
     const r = await s.post('/api/ai/feedback', {

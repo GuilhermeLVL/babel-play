@@ -82,6 +82,17 @@ export const JOBS: Job[] = [
     },
   },
   {
+    /* Cache compartilhado do parceiro de leitura (livros PD): vencidas (90 dias) e excedentes. Mesmo horário do cache
+       de tradução (o Worker roda os dois no mesmo Cron Trigger). Ver `server/ai/leitura/cacheDoParceiro.ts`. */
+    nome: 'podaDoCacheDoParceiro',
+    cron: '11 3 * * *',
+    node: { atrasoInicialMs: 12 * MIN, intervaloMs: DIA },
+    async rodar({ agora }) {
+      const { podarCacheDoParceiro } = await import('../ai/leitura/cacheDoParceiro')
+      return { ...(await podarCacheDoParceiro({ agora })) }
+    },
+  },
+  {
     /* Marca do teste do Premium (C6): 730 dias, uma instrução. Só no modo público. Ver
        `server/lib/testePremium.ts`. */
     nome: 'podaDasMarcasDeTeste',

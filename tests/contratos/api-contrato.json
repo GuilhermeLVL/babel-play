@@ -82,6 +82,7 @@
     "POST /api/ai/explicar",
     "POST /api/ai/feedback",
     "POST /api/ai/glossario",
+    "POST /api/ai/leitura/parceiro",
     "POST /api/ai/llm/chat/completions",
     "POST /api/ai/mt",
     "POST /api/ai/mt/alternativas",

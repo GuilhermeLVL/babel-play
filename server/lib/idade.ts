@@ -168,6 +168,15 @@ export async function ehMenor(userId: UserId): Promise<boolean> {
   return faixaEtaria(await idadesRepo.nascimento(userId)) !== 'adulto'
 }
 
+/**
+ * A FAIXA ETÁRIA de quem pede (`null` = não declarou), para quem precisa de mais que o sim/não de `ehMenor` — o parceiro
+ * de leitura usa a faixa para o teto de classificação do catálogo (`tetoPelaFaixa`). Self-host: `adulto`.
+ */
+export async function faixaDoUsuario(userId: UserId): Promise<FaixaEtaria | null> {
+  if (!authRequired()) return 'adulto'
+  return faixaEtaria(await idadesRepo.nascimento(userId))
+}
+
 /** É adulto DECLARADO? (quem paga, quem aceita ser responsável, quem entra no ranking). */
 export async function ehAdultoDeclarado(userId: UserId): Promise<{ adulto: boolean; informado: boolean }> {
   if (!authRequired()) return { adulto: true, informado: true }

@@ -103,3 +103,14 @@ export const SAIDA_DA_CORRECAO: FormatoDeSaida = {
   nome: 'assistente_correcao',
   esquema: objeto({ ok: { type: 'boolean' }, corrigida: texto, dica: texto }),
 };
+
+/** `{"texto", "pontos": [..], "citacoes": [{"trechoId", "exato"}], "naoEstaNoTrecho"}` — `lerRespostaDoParceiro`. */
+export const SAIDA_DO_PARCEIRO: FormatoDeSaida = {
+  nome: 'parceiro_de_leitura',
+  esquema: objeto({
+    texto,
+    pontos: { type: 'array', items: texto },
+    citacoes: { type: 'array', items: objeto({ trechoId: texto, exato: texto }) },
+    naoEstaNoTrecho: { type: 'boolean' },
+  }),
+};

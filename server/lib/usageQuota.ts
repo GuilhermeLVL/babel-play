@@ -109,6 +109,12 @@ export const CHAVE_DO_POOL_DA_AMOSTRA = 'pool-amostra-estudo'
 export const METRIC_ASSISTENTE_DIA = 'assistente_dia'
 /** A subcota de tokens do assistente ao vivo por mês (janela `AAAA-MM`), contra `assistenteTokensMes` do plano. */
 export const METRIC_ASSISTENTE_TOKENS_MES = 'assistente_tokens_mes'
+/**
+ * O PARCEIRO DE LEITURA (`server/lib/parceiroDeLeitura.ts`): pedidos por dia LOCAL contra `parceiroDia`, e a subcota de
+ * tokens do mês contra `parceiroTokensMes`.
+ */
+export const METRIC_PARCEIRO_DIA = 'parceiro_dia'
+export const METRIC_PARCEIRO_TOKENS_MES = 'parceiro_tokens_mes'
 
 /* ─────────────────────── a poda das janelas diárias (C9, item 9.3) ─────────────────────── */
 
@@ -123,6 +129,7 @@ export const METRICAS_DO_DIA = [
   METRIC_AMOSTRA_EXPLICACOES_DIA,
   METRIC_AMOSTRA_POOL_DIA,
   METRIC_ASSISTENTE_DIA,
+  METRIC_PARCEIRO_DIA,
 ] as const
 
 /** As métricas com janela de SEMANA (a segunda-feira, `AAAA-MM-DD`): a amostra de resumos do Grátis. */

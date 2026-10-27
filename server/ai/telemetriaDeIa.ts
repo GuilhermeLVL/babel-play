@@ -21,6 +21,7 @@
 import type { Request } from 'express'
 
 import type { NivelDaTraducao } from '../../src/core/nivelDeTraducao'
+import type { ModoDoParceiro } from '../../src/lib/estudo/promptDoParceiro'
 import { contarLimiteDoProvedor } from '../http/metricas'
 import type { UserId } from '../lib/authContext'
 import { getPlanForUser } from '../lib/entitlements'
@@ -57,6 +58,8 @@ export type FuncaoTelemetrada =
   | 'assistente-termos'
   | 'assistente-como-respondo'
   | 'assistente-correcao'
+  /* O parceiro de leitura (L4 de Livros & Leitura): um rótulo só; o modo vai em `modoDoParceiro`. */
+  | 'parceiro-de-leitura'
 
 /** Os metadados de RASTRO que as rotas podem anotar. Lista fechada: nada de texto livre. */
 export interface AnotacoesDoRastro {
@@ -81,6 +84,10 @@ export interface AnotacoesDoRastro {
    * do formato), `cancelado` (quem pediu fechou a conexão).
    */
   desfechoDoFluxo?: 'completo' | 'interrompido' | 'invalido' | 'cancelado'
+  /** O modo do parceiro de leitura (lista fechada) — nunca o trecho, a pergunta nem o livro trazido. */
+  modoDoParceiro?: ModoDoParceiro
+  /** Livro do catálogo ou trazido pela pessoa (o id do livro não vai ao rastro). */
+  origemDoLivro?: 'catalogo' | 'proprio'
 }
 
 /** O id da sessão de captura que o cliente PODE mandar. Formato fechado; fora dele, ignorado. */
@@ -268,6 +275,8 @@ export function abrirRastro(req: Request, funcao: FuncaoTelemetrada): RastroDeIa
             glossario: anotacoes.glossario,
             primeiraSugestaoMs: anotacoes.primeiraSugestaoMs,
             desfechoDoFluxo: anotacoes.desfechoDoFluxo,
+            modoDoParceiro: anotacoes.modoDoParceiro,
+            origemDoLivro: anotacoes.origemDoLivro,
             custoUsd: somaDeCusto(geracoes),
           }
           cliente.enviar({

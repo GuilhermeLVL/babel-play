@@ -10,6 +10,7 @@ import { exigirFlagDoAssistente, rotaDoAssistente, tetoDoAssistente } from '../a
 import { explicarProxy } from '../ai/explicar'
 import { registrarFeedback, tetoDoFeedback } from '../ai/feedback'
 import { mtTranslateProxy } from '../ai/mtProxy'
+import { parceiroProxy } from '../ai/parceiro'
 import { polirProxy } from '../ai/polimento'
 import { llmChatProxy, providerTest } from '../ai/proxy'
 // F14-02: a leitura de env sai do handler. B1 (Fase B): a pergunta é do registro de provedores, a
@@ -64,6 +65,11 @@ aiRouter.post('/assistente/expressoes', exigirFlagDoAssistente, tetoDoAssistente
 aiRouter.post('/assistente/termos', exigirFlagDoAssistente, tetoDoAssistente, rotaDoAssistente('termos'))
 aiRouter.post('/assistente/como-respondo', exigirFlagDoAssistente, tetoDoAssistente, rotaDoAssistente('comoRespondo'))
 aiRouter.post('/assistente/correcao', exigirFlagDoAssistente, tetoDoAssistente, rotaDoAssistente('correcao'))
+/* O PARCEIRO DE LEITURA (L4 de Livros & Leitura): explicar o trecho, analogia, pergunta com citação do capítulo,
+   curiosidade da ficha, ideia para discutir e o que observar. Atrás da flag `parceiro_de_leitura` (404
+   `recurso_indisponivel`), só nos pagos e no teste (`parceiroDia`; Grátis 402 `sem_plano`, teto do dia 429
+   `teto_do_parceiro`), com cache compartilhado nos livros PD, o menor, a retenção zero, a admissão e o orçamento. */
+aiRouter.post('/leitura/parceiro', parceiroProxy)
 /* O FEEDBACK DE IA (Fase B da IA paga): 👍/👎 com função, modelo, nível e motivo de LISTA FECHADA — nada de texto
    livre nem conteúdo da frase. Vira métrica e nota no Langfuse; nenhuma tabela. Adulto, menor e convidado. */
 aiRouter.post('/feedback', tetoDoFeedback, registrarFeedback)

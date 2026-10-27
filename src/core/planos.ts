@@ -196,6 +196,19 @@ export interface QuotasDoPlano {
    * próprio (`server/lib/assistenteAoVivo.ts`). `0` = o plano não tem; `null` = sem teto.
    */
   assistenteTokensMes: number | null;
+  /**
+   * O PARCEIRO DE LEITURA (L4 de Livros & Leitura, `POST /api/ai/leitura/parceiro`): explicar o trecho, analogia,
+   * pergunta sobre o capítulo, curiosidade, ideia para discutir e "o que observar". Chamadas de nuvem POR DIA LOCAL
+   * (contador próprio, `server/lib/parceiroDeLeitura.ts`); a resposta que sai do CACHE compartilhado (livro PD) não
+   * conta. `0` = o plano não tem (Grátis e convidado); `null` = sem teto.
+   */
+  parceiroDia: number | null;
+  /**
+   * A SUBCOTA DE TOKENS DO PARCEIRO por mês: 20% da `tokensMes` (`FRACAO_DA_COTA_DO_PARCEIRO`), no molde da do
+   * assistente. Os tokens contam AQUI e TAMBÉM na `tokensMes`; o parceiro para nos 20% e a legenda fica com o resto.
+   * `0` = o plano não tem; `null` = sem teto.
+   */
+  parceiroTokensMes: number | null;
 }
 
 /**
@@ -273,6 +286,25 @@ export const ASSISTENTE_DIA_DOS_PAGOS = 200;
 /** A fração da `tokensMes` que o assistente ao vivo pode usar no mês (`assistenteTokensMes` = 25% em todo plano). */
 export const FRACAO_DA_COTA_DO_ASSISTENTE = 0.25;
 
+/**
+ * O PARCEIRO DE LEITURA (L4 de Livros & Leitura; `server/ai/nucleo/parceiroDeLeitura.ts`). Nasce DESLIGADO (migração
+ * PG 0014): desligado, a rota responde 404 `recurso_indisponivel`. Não é permissão nem cota: quem pode é o plano
+ * (`parceiroDia`), e o teste de 14 dias, que tem o plano dele.
+ */
+export const FLAG_PARCEIRO_DE_LEITURA = 'parceiro_de_leitura';
+
+/**
+ * O TETO DO DIA do parceiro nos planos pagos: 40 pedidos por dia local. A conta: um pedido leva até ~8 mil caracteres
+ * do capítulo (~2,3 mil tokens), ~600 tokens da ficha e o system, e até 900 de saída — ~4 mil tokens, ≈ US$ 0,0011 no
+ * DeepSeek V4.1 Flash (US$ 0,15/0,65 por 1M) e menos no Gemma 4. 40 por dia cobrem uma tarde inteira de leitura com
+ * perguntas; quem vai além é uso automático. O mês é segurado pela subcota (`parceiroTokensMes`, 20% da `tokensMes`:
+ * no Plus, 400 mil tokens ≈ 100 pedidos sem cache ≈ US$ 0,11), e a resposta em cache (livro PD) não conta em nada.
+ */
+export const PARCEIRO_DIA_DOS_PAGOS = 40;
+
+/** A fração da `tokensMes` que o parceiro de leitura pode usar no mês (`parceiroTokensMes` = 20% em todo plano). */
+export const FRACAO_DA_COTA_DO_PARCEIRO = 0.2;
+
 export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
   free: {
     rotulo: 'Grátis',
@@ -306,6 +338,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       resumosMes: 0,
       assistenteDia: 0,
       assistenteTokensMes: 0,
+      parceiroDia: 0,
+      parceiroTokensMes: 0,
     },
   },
   essencial: {
@@ -344,6 +378,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       resumosMes: 60,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
       assistenteTokensMes: 187_500,
+      parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
+      parceiroTokensMes: 150_000,
     },
   },
   premium: {
@@ -393,6 +429,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       resumosMes: 60,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
       assistenteTokensMes: 750_000,
+      parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
+      parceiroTokensMes: 600_000,
     },
   },
   aovivo: {
@@ -435,6 +473,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       resumosMes: 60,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
       assistenteTokensMes: 1_125_000,
+      parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
+      parceiroTokensMes: 900_000,
     },
   },
   /* PLUS (planos v4): o plano de entrada pago. Tudo do Premium, menos o intérprete automático (que é do Pro).
@@ -471,6 +511,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       resumosMes: 60,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
       assistenteTokensMes: 500_000,
+      parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
+      parceiroTokensMes: 400_000,
     },
   },
   /* FAMÍLIA (planos v4, "em breve"): as capacidades do Plus com 12 h compartilhadas. Só existe como produto
@@ -506,6 +548,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       resumosMes: 60,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
       assistenteTokensMes: 750_000,
+      parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
+      parceiroTokensMes: 600_000,
     },
   },
   /* PRO (planos v4, "em breve"; id \`pro4\`, NUNCA \`pro\`, que é o apelido antigo do Premium): 20 h e o intérprete
@@ -541,6 +585,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       resumosMes: 60,
       assistenteDia: ASSISTENTE_DIA_DOS_PAGOS,
       assistenteTokensMes: 750_000,
+      parceiroDia: PARCEIRO_DIA_DOS_PAGOS,
+      parceiroTokensMes: 600_000,
     },
   },
   selfhost: {
@@ -574,6 +620,8 @@ export const PLAN_MATRIX: Record<PlanoDeAssinatura, DefinicaoDePlano> = {
       resumosMes: null,
       assistenteDia: null,
       assistenteTokensMes: null,
+      parceiroDia: null,
+      parceiroTokensMes: null,
     },
   },
 };
@@ -632,6 +680,8 @@ export const PLANO_CONVIDADO: DefinicaoDePlano = {
     resumosMes: 0,
     assistenteDia: 0,
     assistenteTokensMes: 0,
+    parceiroDia: 0,
+    parceiroTokensMes: 0,
   },
 };
 

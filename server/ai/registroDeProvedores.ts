@@ -692,14 +692,23 @@ function candidatasDaFuncao(f: FuncaoDoRegistro, modelosGrandes: boolean, env: N
  * antes. O STT não tem nível: vale a ordem do registro (a cascata do STT reordena pelo custo, B6).
  */
 export function pernasDaFuncao(
-  funcao: FuncaoDoRegistro | 'corretor' | 'alternativas' | 'polimento' | 'explicacao' | 'resumo' | 'assistente',
+  funcao:
+    | FuncaoDoRegistro
+    | 'corretor'
+    | 'alternativas'
+    | 'polimento'
+    | 'explicacao'
+    | 'resumo'
+    | 'assistente'
+    | 'leitura',
   opcoes: { modelosGrandes?: boolean; nivel?: NivelDaTraducao } = {},
   env: NodeJS.ProcessEnv = process.env,
 ): Provedor[] {
   /* O corretor, a IA de estudo (explicação e resumo, planos v4) e o assistente ao vivo usam os modelos do tutor; as
      "Outras formas" (D4) e o "polir a sessão" (D5), os da tradução — é tradução. O assistente segue a regra da IA de
-     estudo: SÓ retenção zero declarada (ele manda a frase que a pessoa vê ou falou, às vezes de um menor). */
-  const deEstudo = funcao === 'explicacao' || funcao === 'resumo' || funcao === 'assistente'
+     estudo: SÓ retenção zero declarada (ele manda a frase que a pessoa vê ou falou, às vezes de um menor). O parceiro de
+     leitura (`leitura`, L4 de Livros & Leitura) também: manda o trecho que a pessoa lê e a pergunta dela. */
+  const deEstudo = funcao === 'explicacao' || funcao === 'resumo' || funcao === 'assistente' || funcao === 'leitura'
   const f: FuncaoDoRegistro =
     funcao === 'corretor' || deEstudo
       ? 'tutor'

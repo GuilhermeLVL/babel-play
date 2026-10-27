@@ -1454,3 +1454,32 @@ export const anotacoesDeLeitura = pgTable(
     index('idx_anotacoes_de_leitura_livro').on(t.userId, t.livroId, t.sincronizadoEm, t.id),
   ],
 )
+
+/**
+ * O CACHE DO PARCEIRO DE LEITURA (L4 de Livros & Leitura, migração 0014) — `server/ai/leitura/cacheDoParceiro.ts`.
+ *
+ * Só livro DO CATÁLOGO (domínio público): a resposta do parceiro a um trecho é a mesma para todo mundo que manda o
+ * mesmo capítulo, o mesmo trecho, o mesmo modo e o mesmo nível — a primeira pessoa paga a chamada e as outras leem
+ * daqui. A CHAVE é o SHA-256 de tudo que vai ao prompt (versão do prompt, livro, hash do texto do capítulo, modo, hash
+ * do trecho, nível, idiomas, público adulto/menor e a ficha), então uma linha nunca serve a outro pedido e não dá para
+ * "envenenar" o cache: quem manda texto diferente cai noutra chave. A pergunta livre NUNCA entra aqui (é texto da
+ * pessoa), nem o livro trazido por ela. Sem `user_id`: a linha não é de ninguém (fora de `TABELAS_DO_TITULAR`).
+ */
+export const cacheDoParceiro = pgTable(
+  'cache_do_parceiro',
+  {
+    chave: text('chave').primaryKey(),
+    /** O id do catálogo (PD) — para auditar e podar por livro; nunca texto da pessoa. */
+    livroId: text('livro_id').notNull(),
+    modo: text('modo').notNull(),
+    /** O modelo que REALMENTE respondeu (procedência). */
+    modelo: text('modelo').notNull(),
+    versaoPrompt: text('versao_prompt').notNull(),
+    /** A resposta já LIDA e validada (JSON), a mesma que a pessoa recebeu. */
+    resposta: text('resposta').notNull(),
+    criadoEm: bigint('criado_em', { mode: 'number' }).notNull(),
+    usadoEm: bigint('usado_em', { mode: 'number' }).notNull(),
+    acertos: bigint('acertos', { mode: 'number' }).notNull().default(0),
+  },
+  (t) => [index('idx_cache_do_parceiro_criado').on(t.criadoEm), index('idx_cache_do_parceiro_usado').on(t.usadoEm)],
+)

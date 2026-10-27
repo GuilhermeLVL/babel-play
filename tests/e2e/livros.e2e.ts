@@ -1,7 +1,7 @@
 import { expect, type Page, test } from '@playwright/test'
 import { strToU8, zipSync } from 'fflate'
 
-import { abrirTela, clicarRobusto, fecharSobreposicoes } from './_helpers'
+import { abrirTela, clicarRobusto, fecharSobreposicoes, trilho } from './_helpers'
 
 /**
  * LIVROS (L1 de `docs/specs/2026-10-26-livros-e-leitura.md`): navegar, filtrar, abrir o detalhe, começar a
@@ -325,6 +325,68 @@ test.describe('Livros', () => {
     await prepararFontes(page)
     await abrirTela(page, '/livros/pg-9999')
     await expect(page.getByTestId('livro-detalhe').getByRole('heading', { name: 'Noite Proibida' })).toBeVisible()
+  })
+
+  test('Livros tem item no menu e "Meus livros" mostra capa, progresso, capítulo e tempo que falta', async ({
+    page,
+  }) => {
+    await prepararFontes(page)
+    /* A posição que o leitor grava (`leitor:posicao:<id da estante>`, `cat:<id>` no catálogo) e o livro guardado. */
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        'frasy.livros.meus.v1',
+        JSON.stringify([
+          {
+            id: 'se-teste-pequena-viagem',
+            titulo: 'A Pequena Viagem',
+            autor: 'Autora Antiga',
+            origem: 'catalogo',
+            idioma: 'en',
+            adicionadoEm: 1_000,
+            status: 'quero-ler',
+            etiquetas: [],
+            progresso: null,
+          },
+        ]),
+      )
+      localStorage.setItem(
+        'leitor:posicao:cat:se-teste-pequena-viagem',
+        JSON.stringify({
+          livroId: 'cat:se-teste-pequena-viagem',
+          cfi: 'epubcfi(/6/4!/4/2)',
+          secao: 2,
+          fracao: 0.5,
+          capitulo: 'Capítulo 2',
+          atualizadaEm: Date.now(),
+        }),
+      )
+    })
+    await abrirTela(page, '/')
+    await fecharSobreposicoes(page)
+    /* Acima de 720 px Livros é um item do trilho; no celular mora no "Mais" (a barra de cinco não muda). */
+    const noTrilho = trilho(page).locator('.q-item[data-px-rota="livros"]')
+    if (await noTrilho.count()) {
+      await clicarRobusto(page, noTrilho)
+      await expect(page).toHaveURL(/\/livros$/)
+      await expect(noTrilho).toHaveAttribute('aria-current', 'page')
+    } else {
+      await abrirTela(page, '/livros')
+    }
+
+    await page.getByRole('tab', { name: /Meus livros/ }).click()
+    const item = page.getByTestId('meus-livros').locator('[data-livro="se-teste-pequena-viagem"]')
+    await expect(item).toBeVisible()
+    await expect(item.locator('.lv-capa')).toBeVisible()
+    await expect(item.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50')
+    await expect(item).toContainText('50% lido')
+    await expect(item).toContainText('Capítulo atual: Capítulo 2')
+    await expect(item).toContainText('Faltam cerca de 42 min')
+    /* Começou e ainda estava em "Quero ler": sugere "Lendo", e um clique marca. */
+    await item.getByRole('button', { name: 'Marcar como lendo' }).click()
+    await expect(item.getByLabel(/Status de/)).toHaveValue('lendo')
+
+    await page.getByTestId('busca-meus-livros').fill('zzz')
+    await expect(page.getByTestId('meus-livros-sem-resultado')).toBeVisible()
   })
 
   test('a Biblioteca tem a porta de Livros', async ({ page }) => {

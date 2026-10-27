@@ -50,6 +50,9 @@ describe('gerarHeaders', () => {
     expect(dir('connect-src')).toContain('https://abcd.supabase.co')
     expect(dir('connect-src')).toContain('https://o1.ingest.sentry.io')
     expect(dir('connect-src')).toContain('https://modelos.exemplo.dev')
+    /* "Trazer o seu" por link: só o raw do GitHub, nunca o curinga. */
+    expect(dir('connect-src')).toContain('https://raw.githubusercontent.com')
+    expect(dir('connect-src').split(/\s+/)).not.toContain('https:')
   })
 
   it('VITE_ORT_WASM_URL abre a origem do runtime do ONNX em connect-src, script-src e worker-src', () => {

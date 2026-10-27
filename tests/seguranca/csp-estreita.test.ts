@@ -87,6 +87,19 @@ describe('diretivasDeCsp', () => {
       expect((lista as string[]).some((x) => /fonts.(googleapis|gstatic).com/.test(x))).toBe(false)
   })
 
+  it('"Trazer o seu" por link: só raw.githubusercontent.com (CORS *), sem release do GitHub nem https: solto', () => {
+    const c = diretivasDeCsp(env({})).connectSrc
+    expect(c).toContain('https://raw.githubusercontent.com')
+    for (const fora of [
+      'https:',
+      'https://github.com',
+      'https://*.githubusercontent.com',
+      'https://objects.githubusercontent.com',
+    ])
+      expect(c).not.toContain(fora)
+    expect(c.filter((x) => x.includes('github'))).toEqual(['https://raw.githubusercontent.com'])
+  })
+
   it('o leitor (L2): Standard Ebooks e Wikisource em connect-src, o bucket dos livros só com VITE_LIVROS_URL', () => {
     const c = diretivasDeCsp(env({})).connectSrc
     for (const o of ['https://standardebooks.org', 'https://*.wikisource.org', 'https://ws-export.wmcloud.org'])

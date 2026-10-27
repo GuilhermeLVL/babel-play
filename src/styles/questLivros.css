@@ -451,6 +451,46 @@
 .lv-status {
   flex: 0 0 170px;
 }
+.lv-meu-capa {
+  flex: 0 0 72px;
+  align-self: flex-start;
+}
+.lv-meu-capa .lv-capa {
+  aspect-ratio: 2 / 3;
+  padding: 10px 8px 8px 16px;
+}
+.lv-meu-capa .lv-capa-inicial {
+  font-size: 34px;
+}
+.lv-meu-lado {
+  flex: 0 0 170px;
+  display: grid;
+  gap: 8px;
+}
+.lv-meus-ferramentas {
+  display: grid;
+  gap: 12px;
+}
+.lv-meus-filtro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.lv-meus-filtro .q-ctl[aria-pressed='true'] {
+  background: var(--q-acento, var(--accent));
+  color: var(--q-sobre-acento, #fff);
+}
+.lv-meus-filtro .n {
+  margin-left: 6px;
+  font: 800 13px/1 var(--font-mono, monospace);
+}
+.lv-barra {
+  height: 10px;
+  margin-top: 4px;
+}
+.lv-sugestao {
+  font-size: 14px;
+}
 .lv-erro {
   margin: 0;
   padding: 12px 16px;
@@ -578,6 +618,9 @@
     font-size: 18px;
   }
   .lv-status {
+    flex: 1 1 160px;
+  }
+  .lv-meu-lado {
     flex: 1 1 160px;
   }
 }

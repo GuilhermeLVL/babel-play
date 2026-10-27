@@ -5116,8 +5116,6 @@
   "Ver o catálogo": "See the catalog",
   "Trazer o seu": "Bring your own",
   "Meus livros": "My books",
-  "Guardados neste aparelho. A posição de leitura e os grifos vão sincronizar quando o leitor completo chegar.": "Saved on this device. Your reading position and highlights will sync once the full reader arrives.",
-  "aberto em {data}": "opened on {data}",
   "Ainda sem progresso salvo": "No saved progress yet",
   "Status de {titulo}": "Status of {titulo}",
   "Tirar {titulo} de Meus livros": "Remove {titulo} from My books",
@@ -5324,5 +5322,14 @@
   "Narração tocando.": "Narration playing.",
   "Narração pausada.": "Narration paused.",
   "Narração parada.": "Narration stopped.",
-  "Ver a palavra": "See the word"
+  "Ver a palavra": "See the word",
+  "Guardados neste aparelho, com a sua posição de leitura e os seus grifos.": "Saved on this device, with your reading position and your highlights.",
+  "Buscar em Meus livros": "Search My books",
+  "Filtrar por status": "Filter by status",
+  "Tente outro termo ou limpe os filtros.": "Try another term or clear the filters.",
+  "Última leitura em {data}": "Last read on {data}",
+  "Faltam cerca de {tempo}": "About {tempo} left",
+  "Progresso de {titulo}": "Progress of {titulo}",
+  "Capítulo atual: {capitulo}": "Current chapter: {capitulo}",
+  "Marcar como {status}": "Mark as {status}"
 }

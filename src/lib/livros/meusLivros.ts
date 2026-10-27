@@ -16,11 +16,13 @@ import { type DBSchema, type IDBPDatabase, openDB } from 'idb';
 import { useSyncExternalStore } from 'react';
 
 import type { CapituloDeTexto } from '../../core/livros/epub';
+import type { StatusDeLeitura } from '../../core/livros/meusLivros';
+import { idDoCatalogo } from './abrir';
 import { estante } from './armazem';
 import { posicoes } from './posicoesDoAparelho';
 
 export type OrigemDoMeuLivro = 'catalogo' | 'arquivo' | 'link';
-export type StatusDeLeitura = 'quero-ler' | 'lendo' | 'lido';
+export type { StatusDeLeitura };
 
 export interface MeuLivro {
   /** Do catálogo: o id dele. Trazido: `meu-<aleatório>`. */
@@ -37,8 +39,8 @@ export interface MeuLivro {
   status: StatusDeLeitura;
   etiquetas: string[];
   /**
-   * O progresso de leitura (0..1). Fica `null` na L1: quem mede é o leitor da L2 (posição por CFI). O campo
-   * já existe para a lista não mudar de forma quando ele chegar.
+   * OBSOLETO, nunca é escrito: o progresso real mora na posição de leitura do aparelho (`posicoes.ler`), e a
+   * tela o DERIVA de lá (ver `idNaEstante`). O campo fica só para os registros antigos continuarem válidos.
    */
   progresso: number | null;
 }
@@ -99,6 +101,13 @@ export function guardarMeuLivro(
   return novo;
 }
 
+/**
+ * O id deste livro NA ESTANTE do leitor (a chave da posição, das anotações e do arquivo). O do catálogo vira
+ * `cat:<id>` (`idDoCatalogo`); o trazido (`meu-…`) usa o mesmo id nos dois lados.
+ */
+export const idNaEstante = (l: Pick<MeuLivro, 'id' | 'origem'>): string =>
+  l.origem === 'catalogo' ? idDoCatalogo(l.id) : l.id;
+
 export function marcarAberto(id: string): void {
   const lista = lerMeusLivros();
   if (!lista.some((l) => l.id === id)) return;
@@ -118,10 +127,12 @@ export function mudarStatus(id: string, status: StatusDeLeitura): void {
  * posição de leitura deste aparelho. As anotações ficam (são da pessoa e sincronizam).
  */
 export async function removerMeuLivro(id: string): Promise<void> {
+  const alvo = lerMeusLivros().find((l) => l.id === id);
+  const idDaEstante = alvo ? idNaEstante(alvo) : id;
   gravar(lerMeusLivros().filter((l) => l.id !== id));
   await apagarConteudo(id).catch(() => undefined);
-  await estante.apagarLivro(id).catch(() => undefined);
-  posicoes.esquecer(id);
+  await estante.apagarLivro(idDaEstante).catch(() => undefined);
+  posicoes.esquecer(idDaEstante);
 }
 
 function assinar(f: () => void) {

@@ -277,6 +277,7 @@ export default function Livros({
           ))}
         {aba === 'meus' && (
           <MeusLivros
+            catalogo={visiveis}
             visivel={visivel}
             aoAbrir={(l) => abrirLivroNoLeitor(l)}
             aoTrazer={() => setAba('trazer')}

@@ -1834,5 +1834,19 @@
   "Você usou a IA de nuvem deste mês; ela volta no dia {data}. O que já foi polido continua guardado.": "Usaste la IA en la nube de este mes; vuelve el {data}. Lo que ya se pulió sigue guardado.",
   "Você chegou ao limite de hoje. Amanhã o polimento continua de onde parou.": "Llegaste al límite de hoy. Mañana el pulido sigue donde se quedó.",
   "Não ajudou": "No ayudó",
-  "Obrigado pelo aviso. Ele ajuda a melhorar as respostas.": "Gracias por avisar. Ayuda a mejorar las respuestas."
+  "Obrigado pelo aviso. Ele ajuda a melhorar as respostas.": "Gracias por avisar. Ayuda a mejorar las respuestas.",
+  "Guardados neste aparelho, com a sua posição de leitura e os seus grifos.": "Guardados en este dispositivo, con tu posición de lectura y tus subrayados.",
+  "Buscar em Meus livros": "Buscar en Mis libros",
+  "Filtrar por status": "Filtrar por estado",
+  "Nenhum livro encontrado": "No se encontró ningún libro",
+  "Tente outro termo ou limpe os filtros.": "Prueba con otro término o borra los filtros.",
+  "Última leitura em {data}": "Última lectura el {data}",
+  "Faltam cerca de {tempo}": "Faltan unos {tempo}",
+  "Progresso de {titulo}": "Progreso de {titulo}",
+  "Capítulo atual: {capitulo}": "Capítulo actual: {capitulo}",
+  "Marcar como {status}": "Marcar como {status}",
+  "{n} anotações": {
+    "one": "{n} anotación",
+    "other": "{n} anotaciones"
+  }
 }

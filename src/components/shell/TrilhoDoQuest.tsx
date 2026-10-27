@@ -82,11 +82,12 @@ import { type AgeProfileType, ITEM_ADMIN, ITEM_AO_VIVO, NAV_ITEMS, navLabel } fr
 import { MarcaBabel } from './ShellBits';
 
 /**
- * OS DESTINOS DO TRILHO NO COMPUTADOR (R40, 22/10/2026): oito, por prioridade de uso. O que se faz com o
- * app (Início, Ao vivo, Cartões, Jogar), o que a pessoa guarda (Biblioteca) e o que mostra o
- * quanto ela evoluiu e o que ela paga (Progresso, Planos). Personalizar, Ajustes e o resto ficam no "Mais".
+ * OS DESTINOS DO TRILHO NO COMPUTADOR (R40, 22/10/2026): por prioridade de uso. O que se faz com o
+ * app (Início, Ao vivo, Cartões, Jogar), o que a pessoa guarda e lê (Biblioteca e Livros, que o dono quis
+ * como destino principal em 27/10/2026) e o que mostra o quanto ela evoluiu e o que ela paga (Progresso,
+ * Planos). Personalizar, Ajustes e o resto ficam no "Mais".
  */
-const NO_TRILHO: ViewType[] = ['hub', 'capture', 'cartoes', 'play', 'library', 'estatisticas', 'planos'];
+const NO_TRILHO: ViewType[] = ['hub', 'capture', 'cartoes', 'play', 'library', 'livros', 'estatisticas', 'planos'];
 
 /**
  * "AO VIVO": o botão de `capture` no trilho abre a escolha entre Legendar (`capture`) e Intérprete

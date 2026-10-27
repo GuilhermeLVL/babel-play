@@ -57,7 +57,7 @@ export function useBarraDeCinco(): boolean {
  * "Mais" (`maisCel`, `cartoes3.js:14-15`; R40, 22/10/2026). O trilho do computador tem oito destinos; a
  * barra é Início, Cartões, Ao vivo (Capturar e Intérprete numa escolha só), Jogar e Mais. Progresso, Personalizar e Ajustes já moram no "Mais".
  */
-export const NO_MAIS_NO_CELULAR = ['library'] as const;
+export const NO_MAIS_NO_CELULAR = ['library', 'livros'] as const;
 
 const ROLAGEM = '.q-palco, .rolagem';
 

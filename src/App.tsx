@@ -376,8 +376,9 @@ export default function App() {
         : activeView;
 
   // Item aceso no menu (protótipo): a sessão vive na Biblioteca; a revisão, em Cartões.
-  /* Livros mora na Biblioteca (a porta é de lá e do Início): o trilho não ganhou item (simplificado em 22/10). */
-  const viewDoMenu: ViewType = activeView === 'analysis' || activeView === 'livros' || activeView === 'leitor' ? 'library' : activeView;
+  /* Livros tem item próprio no menu (27/10/2026): o catálogo, o detalhe e o leitor acendem "Livros"; só a
+     aula (analysis) vive na Biblioteca. */
+  const viewDoMenu: ViewType = activeView === 'analysis' ? 'library' : activeView === 'leitor' ? 'livros' : activeView;
 
   // Marco 1: OAuth/recuperação voltando em /auth/callback — aguarda o supabase-js processar a URL.
   if (authRequired && processingCallback) {

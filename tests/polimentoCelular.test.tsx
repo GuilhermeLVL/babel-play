@@ -146,8 +146,8 @@ describe('a barra de cinco destinos', () => {
     expect(aoBuscar).toHaveBeenCalledTimes(1)
   })
 
-  it('na Biblioteca, no Progresso, em Planos e em Personalizar (fora da barra) o destaque é do "Mais"', async () => {
-    for (const tela of ['library', 'estatisticas', 'planos', 'loja']) {
+  it('na Biblioteca, em Livros, no Progresso, em Planos e em Personalizar (fora da barra) o destaque é do "Mais"', async () => {
+    for (const tela of ['library', 'livros', 'estatisticas', 'planos', 'loja']) {
       const { container, unmount } = montar(tela)
       /* A marca da camada (`data-px`) chega com o trilho montado: a barra de cinco acompanha. */
       await act(vez)
@@ -178,21 +178,25 @@ describe('a barra de cinco destinos', () => {
     expect(botoes(container).map((b) => b.dataset.pxRota ?? null)).toEqual(['hub', 'capture', 'cartoes', 'play', null])
   })
 
-  it('o "Mais" começa com a Biblioteca, depois Progresso e Personalizar, sem Intérprete nem Planos; o toque leva à tela', () => {
+  it('o "Mais" começa com a Biblioteca e Livros, depois Progresso e Personalizar, sem Intérprete nem Planos; o toque leva à tela', () => {
     const { ir } = montar()
     fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
     const ladrilhos = [...screen.getByRole('dialog').querySelectorAll('.q-grade .q-tile b')].map((b) => b.textContent)
-    expect(ladrilhos.slice(0, 3)).toEqual(['Biblioteca', 'Progresso', 'Personalizar'])
+    expect(ladrilhos.slice(0, 4)).toEqual(['Biblioteca', 'Livros', 'Progresso', 'Personalizar'])
     expect(ladrilhos).not.toContain('Intérprete')
     expect(ladrilhos.filter((r) => r === 'Biblioteca')).toHaveLength(1)
+    expect(ladrilhos.filter((r) => r === 'Livros')).toHaveLength(1)
     expect(ladrilhos).not.toContain('Jogar')
     expect(ladrilhos).not.toContain('Planos')
     expect(screen.getByTestId('planos-no-mais')).toBeTruthy()
     fireEvent.click(screen.getByRole('dialog').querySelector('.q-grade .q-tile')!)
     expect(ir).toHaveBeenLastCalledWith('library')
+    fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
+    fireEvent.click(screen.getByRole('dialog').querySelectorAll('.q-grade .q-tile')[1])
+    expect(ir).toHaveBeenLastCalledWith('livros')
   })
 
-  it('acima de 720 px (o tablet) vale o trilho de sete: Biblioteca, Progresso e Planos no trilho e fora do "Mais"', () => {
+  it('acima de 720 px (o tablet) vale o trilho de oito: Biblioteca, Livros, Progresso e Planos no trilho e fora do "Mais"', () => {
     estreita = false
     const { container } = montar('library')
     expect(barraDeCinco()).toBe(false)
@@ -200,11 +204,11 @@ describe('a barra de cinco destinos', () => {
     expect(
       botoes(container)
         .map((b) => b.dataset.pxRota ?? null)
-        .slice(0, 7),
-    ).toEqual(['hub', 'capture', 'cartoes', 'play', 'library', 'estatisticas', 'planos'])
+        .slice(0, 8),
+    ).toEqual(['hub', 'capture', 'cartoes', 'play', 'library', 'livros', 'estatisticas', 'planos'])
     fireEvent.click(screen.getByRole('button', { name: 'Mais' }))
     const ladrilhos = [...screen.getByRole('dialog').querySelectorAll('.q-grade .q-tile b')].map((b) => b.textContent)
-    for (const repetido of ['Biblioteca', 'Intérprete', 'Progresso', 'Planos'])
+    for (const repetido of ['Biblioteca', 'Livros', 'Intérprete', 'Progresso', 'Planos'])
       expect(ladrilhos).not.toContain(repetido)
     expect(ladrilhos.slice(0, 2)).toEqual(['Personalizar', 'Ajustes'])
   })

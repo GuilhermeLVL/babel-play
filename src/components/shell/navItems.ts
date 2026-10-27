@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   ChartColumn,
   CreditCard,
   Gamepad2,
@@ -80,6 +81,15 @@ const TODOS_OS_ITENS: NavItemDef[] = [
     icon: Library,
     short: 'Biblioteca',
     labels: { kids: 'Biblioteca', pro: 'Biblioteca', senior: 'Minhas Mídias' },
+  },
+  {
+    /* LIVROS NO MENU (pedido do dono, 27/10/2026): "a categoria Livros deve ficar no menu lateral, não sendo
+       algo secundário". Era só uma porta dentro da Biblioteca e do Início. Fica logo depois da Biblioteca:
+       as duas são o que a pessoa guarda e lê. */
+    id: 'livros',
+    icon: BookOpen,
+    short: 'Livros',
+    labels: { kids: 'Livros', pro: 'Livros', senior: 'Livros para ler' },
   },
   /* 'analysis' SAIU do menu de topo (decisão do dono, 31/08): uma aula/sessão sempre vive
      DENTRO de uma mídia capturada — o caminho é Biblioteca → mídia → aula. A rota continua

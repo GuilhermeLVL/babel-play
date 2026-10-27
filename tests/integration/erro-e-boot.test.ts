@@ -27,6 +27,9 @@ afterAll(async () => {
   await h.cleanup()
 })
 afterEach(async () => {
+  /* `registrarFalhaDeBoot` grava sem esperar (`void db…`). No Postgres de verdade a inserção ainda em voo chegava
+     DEPOIS do `DELETE` do reset e a linha vazava para o teste seguinte: deixa as inserções pousarem antes. */
+  await new Promise((r) => setTimeout(r, 50))
   await boot.resetBootStatus()
   vi.restoreAllMocks()
 })
@@ -139,19 +142,31 @@ describe('bootStatus + /api/health — P2-5', () => {
   it('configuração crítica ausente e depois corrigida: health volta a ok', async () => {
     const { conferirConfiguracao, verificarConfiguracaoNoBoot } = await h.load<any>('../../server/lib/config')
     const antes = { ...process.env }
+    const esperarNoBanco = async (presente: boolean) => {
+      for (let i = 0; i < 100; i++) {
+        boot.esquecerEmMemoria() // só o banco vale: o espelho local escondia a corrida
+        const passos = (await boot.bootStatus()).erros.map((e: any) => e.passo)
+        if (passos.includes('configuracao') === presente) return
+        await new Promise((r) => setTimeout(r, 20))
+      }
+      throw new Error(`o banco não refletiu a falha de configuração (esperado presente=${presente}) em 2 s`)
+    }
     try {
       process.env.AUTH_REQUIRED = '1'
       const criticas: string[] = conferirConfiguracao().faltandoCriticas
       expect(criticas.length).toBeGreaterThan(0)
       verificarConfiguracaoNoBoot()
       expect((await boot.bootStatus()).erros.map((e: any) => e.passo)).toContain('configuracao')
+      /* A gravação e a remoção em `boot_falhas` são disparadas sem espera (`void db…`): no Postgres de verdade a
+         remoção podia chegar ANTES da inserção e a linha ficava. Espera o banco refletir cada passo. */
+      await esperarNoBanco(true)
 
       for (const n of criticas) process.env[n] = 'x'
       expect(verificarConfiguracaoNoBoot().ok).toBe(true)
-      await new Promise((r) => setTimeout(r, 20))
-      boot.esquecerEmMemoria()
+      await esperarNoBanco(false)
       const res = fakeRes()
       await health({} as any, res)
+      expect(res.body.bootErros ?? []).toEqual([])
       expect(res.body.boot).toBe('ok')
     } finally {
       for (const k of Object.keys(process.env)) if (!(k in antes)) delete process.env[k]

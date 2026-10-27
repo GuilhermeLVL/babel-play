@@ -8,12 +8,59 @@ import {
   ErroDoLivro,
   formatoPeloConteudo,
   type FormatoTrazido,
+  HOSTS_DE_LIVRO_POR_LINK,
   type MotivoDoErro,
   TETO_DO_LINK_EM_BYTES,
-  validarLinkDeLivro,
 } from '../../core/livros/trazer';
 import { extrairEpub } from '../import/epub';
 import { extrairDocumento } from '../import/extrairDocumento';
+
+const EXTENSAO_DE_LIVRO = /\.(epub|pdf|txt)$/i;
+
+export type MotivoDoLink = 'invalido' | 'pagina' | 'release' | 'host';
+
+/** Forma plana (sem união): `motivo` nulo = o link vale e `url` e `formato` estão preenchidos. */
+export interface LinkDeLivro {
+  ok: boolean;
+  url: string;
+  formato: FormatoTrazido | null;
+  motivo: MotivoDoLink | null;
+}
+
+const recusa = (motivo: MotivoDoLink): LinkDeLivro => ({ ok: false, url: '', formato: null, motivo });
+
+/** Valida o que a pessoa colou. Nunca devolve uma URL fora de `HOSTS_DE_LIVRO_POR_LINK`. */
+export function validarLinkDeLivro(bruto: string): LinkDeLivro {
+  let u: URL;
+  let caminho: string;
+  try {
+    u = new URL(bruto.trim());
+    caminho = decodeURIComponent(u.pathname);
+  } catch {
+    return recusa('invalido');
+  }
+  if (u.protocol !== 'https:' || u.username || u.password) return recusa('invalido');
+  const host = u.hostname.toLowerCase();
+
+  if (host === 'github.com' || host === 'www.github.com') {
+    if (/^\/[^/]+\/[^/]+\/releases\//.test(caminho)) return recusa('release');
+    /* github.com/<u>/<r>/blob|raw/<ref>/<arquivo> é o mesmo arquivo do raw: reescreve para o host liberado. */
+    const m = /^\/([^/]+)\/([^/]+)\/(?:blob|raw)\/(.+)$/.exec(caminho);
+    if (m && EXTENSAO_DE_LIVRO.test(caminho)) {
+      return validarLinkDeLivro(
+        `https://raw.githubusercontent.com/${m[1]}/${m[2]}/${m[3].split('/').map(encodeURIComponent).join('/')}`,
+      );
+    }
+    return recusa('pagina');
+  }
+  if (!(HOSTS_DE_LIVRO_POR_LINK as readonly string[]).includes(host)) {
+    /* Um endereço de arquivo de outro host: não dá para baixar aqui; o caminho é baixar e soltar. */
+    return recusa(EXTENSAO_DE_LIVRO.test(caminho) ? 'host' : 'pagina');
+  }
+  const ext = EXTENSAO_DE_LIVRO.exec(caminho);
+  if (!ext) return recusa('pagina');
+  return { ok: true, url: u.toString(), formato: ext[1].toLowerCase() as FormatoTrazido, motivo: null };
+}
 
 export interface LivroLido {
   formato: FormatoTrazido;

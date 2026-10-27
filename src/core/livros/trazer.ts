@@ -44,7 +44,10 @@ export function formatoPeloConteudo(cabeca: Uint8Array): FormatoTrazido | null {
   if (cabeca[0] === 0x50 && cabeca[1] === 0x4b && cabeca[2] === 0x03 && cabeca[3] === 0x04) return 'epub';
   if (cabeca[0] === 0x25 && cabeca[1] === 0x50 && cabeca[2] === 0x44 && cabeca[3] === 0x46) return 'pdf';
   /* HTML solto (a página de uma loja salva como arquivo) não é livro de texto. */
-  const inicio = new TextDecoder('utf-8').decode(cabeca.slice(0, 64)).trimStart().toLowerCase();
+  const inicio = Array.from(cabeca.slice(0, 64), (b) => (b < 128 ? String.fromCharCode(b) : '?'))
+    .join('')
+    .trimStart()
+    .toLowerCase();
   if (inicio.startsWith('<!doctype') || inicio.startsWith('<html')) return null;
   for (const b of cabeca.slice(0, 4096)) {
     /* Tab, LF, CR e ESC-livre: qualquer outro controle (NUL inclusive) é binário. */
@@ -77,50 +80,3 @@ export function epubTemDrm(nomes: readonly string[], encryptionXml: string | nul
  * Release do GitHub NÃO entra: `github.com/.../releases/download` responde 302 sem CORS.
  */
 export const HOSTS_DE_LIVRO_POR_LINK = ['raw.githubusercontent.com'] as const;
-
-const EXTENSAO_DE_LIVRO = /\.(epub|pdf|txt)$/i;
-
-export type MotivoDoLink = 'invalido' | 'pagina' | 'release' | 'host';
-
-/** Forma plana (sem união): `motivo` nulo = o link vale e `url` e `formato` estão preenchidos. */
-export interface LinkDeLivro {
-  ok: boolean;
-  url: string;
-  formato: FormatoTrazido | null;
-  motivo: MotivoDoLink | null;
-}
-
-const recusa = (motivo: MotivoDoLink): LinkDeLivro => ({ ok: false, url: '', formato: null, motivo });
-
-/** Valida o que a pessoa colou. Nunca devolve uma URL fora de `HOSTS_DE_LIVRO_POR_LINK`. */
-export function validarLinkDeLivro(bruto: string): LinkDeLivro {
-  let u: URL;
-  let caminho: string;
-  try {
-    u = new URL(bruto.trim());
-    caminho = decodeURIComponent(u.pathname);
-  } catch {
-    return recusa('invalido');
-  }
-  if (u.protocol !== 'https:' || u.username || u.password) return recusa('invalido');
-  const host = u.hostname.toLowerCase();
-
-  if (host === 'github.com' || host === 'www.github.com') {
-    if (/^\/[^/]+\/[^/]+\/releases\//.test(caminho)) return recusa('release');
-    /* github.com/<u>/<r>/blob|raw/<ref>/<arquivo> é o mesmo arquivo do raw: reescreve para o host liberado. */
-    const m = /^\/([^/]+)\/([^/]+)\/(?:blob|raw)\/(.+)$/.exec(caminho);
-    if (m && EXTENSAO_DE_LIVRO.test(caminho)) {
-      return validarLinkDeLivro(
-        `https://raw.githubusercontent.com/${m[1]}/${m[2]}/${m[3].split('/').map(encodeURIComponent).join('/')}`,
-      );
-    }
-    return recusa('pagina');
-  }
-  if (!(HOSTS_DE_LIVRO_POR_LINK as readonly string[]).includes(host)) {
-    /* Um endereço de arquivo de outro host: não dá para baixar aqui; o caminho é baixar e soltar. */
-    return recusa(EXTENSAO_DE_LIVRO.test(caminho) ? 'host' : 'pagina');
-  }
-  const ext = EXTENSAO_DE_LIVRO.exec(caminho);
-  if (!ext) return recusa('pagina');
-  return { ok: true, url: u.toString(), formato: ext[1].toLowerCase() as FormatoTrazido, motivo: null };
-}

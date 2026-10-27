@@ -4,7 +4,7 @@ import { FileUp, Link2, ShieldCheck } from 'lucide-react';
 import React, { useEffect, useId, useRef, useState } from 'react';
 
 import type { CapituloDeTexto } from '../../../core/livros/epub';
-import { ErroDoLivro, type MotivoDoErro, validarLinkDeLivro } from '../../../core/livros/trazer';
+import { ErroDoLivro, type MotivoDoErro } from '../../../core/livros/trazer';
 import { importWeb } from '../../../data/rotas/importacao';
 import { edicaoEstatica } from '../../../lib/edicaoEstatica';
 import { t } from '../../../lib/i18n';
@@ -23,6 +23,7 @@ import {
   emCapitulos,
   lerArquivoTrazido,
   type LivroLido,
+  validarLinkDeLivro,
 } from '../../../lib/livros/trazer';
 import AjudaDoKindle from './AjudaDoKindle';
 import OndeAcharLivros from './OndeAcharLivros';

@@ -12,10 +12,9 @@ import {
   formatoPeloConteudo,
   HOSTS_DE_LIVRO_POR_LINK,
   TETO_DO_LINK_EM_BYTES,
-  validarLinkDeLivro,
 } from '../src/core/livros/trazer'
 import { extrairEpub } from '../src/lib/import/epub'
-import { baixarLivroDoLink, comoErroDoLivro, lerArquivoTrazido } from '../src/lib/livros/trazer'
+import { baixarLivroDoLink, comoErroDoLivro, lerArquivoTrazido, validarLinkDeLivro } from '../src/lib/livros/trazer'
 
 const bytes = (s: string) => new TextEncoder().encode(s)
 

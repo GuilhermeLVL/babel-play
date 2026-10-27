@@ -5,7 +5,7 @@
  * resolver o plano (fail-closed: erro ao ler é 502), dar ao núcleo as flags DESTE request e responder.
  *
  * O CORPO DE SUCESSO: `{ resposta: { texto, pontos, citacoes: [{ trechoId, exato }], naoEstaNoTrecho }, origem:
- * 'cache' | 'modelo', restanteHoje: number | null, aviso }` e o modelo no cabeçalho `x-ia-modelo`. As recusas vêm no
+ * 'cache' | 'modelo', restanteHoje?: number | null, textoConferido: boolean, aviso }` e o modelo no cabeçalho `x-ia-modelo`. As recusas vêm no
  * envelope `{ error, code }` (contrato completo em `src/data/rotas/parceiroDeLeitura.ts`).
  */
 import type { Request, Response } from 'express'
@@ -28,7 +28,13 @@ function responder(res: Response, r: ResultadoDoParceiro): void {
     return
   }
   res.setHeader('x-ia-modelo', r.modelo)
-  res.json({ resposta: r.resposta, origem: r.origem, restanteHoje: r.restanteHoje, aviso: AVISO_DO_PARCEIRO })
+  res.json({
+    resposta: r.resposta,
+    origem: r.origem,
+    ...(r.restanteHoje !== undefined ? { restanteHoje: r.restanteHoje } : {}),
+    textoConferido: r.textoConferido,
+    aviso: AVISO_DO_PARCEIRO,
+  })
 }
 
 async function atender(req: Request, res: Response, rastro: RastroDeIa): Promise<void> {

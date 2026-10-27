@@ -18,6 +18,7 @@
  * texto entre aspas longo que não está no que foi enviado (citação inventada) derruba o ponto — ou a resposta, se
  * estiver no texto principal. Módulo puro: o servidor e a bancada (`scripts/eval-ia/parceiro.mjs`) o leem igual.
  */
+import { normalizarParaManifesto } from '../../core/livros/manifesto';
 import { FALA_CLOSE, FALA_OPEN, nomeDoIdioma } from '../traducao/promptComunicativo';
 import { objetoDaResposta } from '../traducao/promptDasAlternativas';
 
@@ -31,7 +32,7 @@ export const MODOS_COM_SELECAO: readonly ModoDoParceiro[] = ['explicar', 'analog
  * A versão do prompt: entra na chave do cache compartilhado. Mudou o texto de um prompt ou do leitor, sobe aqui — a
  * resposta antiga não serve ao prompt novo.
  */
-export const VERSAO_DO_PROMPT_DO_PARCEIRO = 'parceiro-v2';
+export const VERSAO_DO_PROMPT_DO_PARCEIRO = 'parceiro-v3';
 
 /** O id que a SELEÇÃO tem para a citação (os trechos do capítulo têm os ids que o cliente mandou). */
 export const ID_DA_SELECAO = 'selecao';
@@ -187,22 +188,41 @@ export function userDoParceiro(e: EntradaDoParceiro): string {
 
 /* ── A leitura da resposta ── */
 
-/** Normalização para conferir citação: espaços colapsados e aspas/apóstrofos tipográficos iguais aos retos. */
-export function normalizarParaCitacao(s: string): string {
-  return s
-    .normalize('NFC')
-    .replace(/[‘’‛′]/g, "'")
-    .replace(/[“”„‟″]/g, '"')
-    .replace(/[–—]/g, '-')
-    .replace(/\s+/g, ' ')
-    .trim();
+/**
+ * Normalização para conferir citação: a MESMA do manifesto (NFC, espaços colapsados, aspas e travessões tipográficos
+ * como os retos), para a citação e o hash do parágrafo concordarem.
+ */
+export const normalizarParaCitacao = normalizarParaManifesto;
+
+/**
+ * A ÂNCORA MÍNIMA de uma citação: 3 palavras inteiras OU 15 caracteres, e casada em FRONTEIRA DE PALAVRA. Antes bastavam
+ * 3 letras — "air" (de "fair Verona") ancorava qualquer resposta.
+ */
+export const MIN_PALAVRAS_DA_CITACAO = 3;
+export const MIN_CARACTERES_DA_CITACAO = 15;
+
+const LETRA = /[\p{L}\p{N}]/u;
+
+/** `exato` (já normalizado) está em `trecho` (já normalizado) com fronteira de palavra nas duas pontas? */
+export function citacaoAncorada(exato: string, trecho: string): boolean {
+  if (exato.split(' ').filter(Boolean).length < MIN_PALAVRAS_DA_CITACAO && exato.length < MIN_CARACTERES_DA_CITACAO)
+    return false;
+  const abreComLetra = LETRA.test(exato[0] ?? '');
+  const fechaComLetra = LETRA.test(exato.at(-1) ?? '');
+  for (let i = trecho.indexOf(exato); i >= 0; i = trecho.indexOf(exato, i + 1)) {
+    const antes = trecho[i - 1];
+    const depois = trecho[i + exato.length];
+    if ((!abreComLetra || !antes || !LETRA.test(antes)) && (!fechaComLetra || !depois || !LETRA.test(depois)))
+      return true;
+  }
+  return false;
 }
 
-const ASPAS = /["“”«»„]([^"“”«»„]{1,400})["“”«»„]/g;
+const ASPAS = /["“”«»„‹›「」]([^"“”«»„‹›「」]{1,400})["“”«»„‹›「」]/g;
 
 /* Aspas simples também (a bancada achou uma citação adulterada entre aspas simples), mas só as que abrem depois de
    espaço ou parêntese e fecham antes de pontuação: o apóstrofo de "d'aqui" ou "o'er" não abre citação. */
-const ASPAS_SIMPLES = /(?:^|[\s(])['‘]([^'‘’\n]{1,400})['’](?=[\s.,;:!?)]|$)/g;
+const ASPAS_SIMPLES = /(?:^|[\s(])['‘‚`]([^'‘’‚`\n]{1,400})['’‘`](?=[\s.,;:!?)]|$)/g;
 
 /** Algum trecho entre aspas (mais de `MAX_PALAVRAS_ENTRE_ASPAS` palavras) que NÃO está na fonte? */
 export function temCitacaoInventada(texto: string, fonte: string): boolean {
@@ -212,6 +232,50 @@ export function temCitacaoInventada(texto: string, fonte: string): boolean {
     if (!fonte.includes(normalizarParaCitacao(dentro))) return true;
   }
   return false;
+}
+
+/**
+ * OS TRECHOS EM VOLTA de um parágrafo (o selecionado), alternando depois/antes até o teto de trechos e de caracteres
+ * (contando a seleção). Parágrafo longo é cortado no teto de um trecho. O cliente monta assim (`montarTrechos`), e o
+ * servidor recorta assim o texto não conferido para o teto do livro trazido.
+ */
+export function trechosEmVolta(
+  paragrafos: readonly TrechoDoCapitulo[],
+  indice: number,
+  teto: { trechos: number; caracteres: number },
+  caracteresDaSelecao = 0,
+): TrechoDoCapitulo[] {
+  let restante = teto.caracteres - caracteresDaSelecao;
+  const escolhidos = new Map<number, TrechoDoCapitulo>();
+  const centro = Math.min(Math.max(0, indice), Math.max(0, paragrafos.length - 1));
+  for (let d = 0; escolhidos.size < teto.trechos && d < paragrafos.length * 2 + 1; d++) {
+    const i = d % 2 === 0 ? centro + d / 2 : centro - (d + 1) / 2;
+    const p = paragrafos[i];
+    if (!p || escolhidos.has(i)) continue;
+    const t = p.texto.slice(0, TETOS_DO_PARCEIRO.textoDoTrecho);
+    if (t.length > restante) {
+      if (escolhidos.size === 0 && restante > 0) escolhidos.set(i, { id: p.id, texto: t.slice(0, restante) });
+      break;
+    }
+    escolhidos.set(i, { id: p.id, texto: t });
+    restante -= t.length;
+  }
+  return [...escolhidos.entries()].sort((a, b) => a[0] - b[0]).map(([, x]) => x);
+}
+
+/**
+ * O TEXTO NÃO CONFERIDO (livro do catálogo cujo trecho não casou com o manifesto) recebe o teto do livro trazido: a
+ * seleção (cortada no teto) e até 2 trechos em volta do que a contém.
+ */
+export function recortarParaOTrazido(
+  trechos: readonly TrechoDoCapitulo[],
+  selecao: string,
+): { trechos: TrechoDoCapitulo[]; selecao: string } {
+  const teto = TETOS_DO_PARCEIRO.proprio;
+  const s = selecao.slice(0, teto.caracteres);
+  const alvo = normalizarParaCitacao(s);
+  const i = alvo ? trechos.findIndex((t) => normalizarParaCitacao(t.texto).includes(alvo)) : -1;
+  return { trechos: trechosEmVolta(trechos, i >= 0 ? i : 0, teto, s.length), selecao: s };
 }
 
 const texto = (v: unknown, max: number): string =>
@@ -239,7 +303,7 @@ export function lerRespostaDoParceiro(
     const trechoId = texto((c as Record<string, unknown>).trechoId, TETOS_DO_PARCEIRO.idDoTrecho);
     const exato = texto((c as Record<string, unknown>).exato, MAX_CARACTERES_DA_CITACAO);
     const doTrecho = porId.get(trechoId);
-    if (!doTrecho || exato.length < 3 || !doTrecho.includes(normalizarParaCitacao(exato))) continue;
+    if (!doTrecho || !citacaoAncorada(normalizarParaCitacao(exato), doTrecho)) continue;
     if (citacoes.some((x) => x.trechoId === trechoId && x.exato === exato)) continue;
     citacoes.push({ trechoId, exato });
   }

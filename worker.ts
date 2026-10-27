@@ -60,6 +60,7 @@ import {
 } from './server/http/siteNoWorker'
 import { executarJobsDoCron } from './server/jobs/executar'
 import { ligarAnalyticsEngine, type BindingDeMetricas } from './server/http/metricasDoAnalyticsEngine'
+import { ligarAssetsDoParceiro } from './server/ai/leitura/manifestos'
 import { type BucketR2, ligarBucketDoR2 } from './server/lib/armazenamentoR2'
 import { erroGlobal } from './server/lib/erroGlobal'
 import { rodarNoEscopoDaRequisicao } from './server/lib/escopoDaRequisicao'
@@ -258,6 +259,7 @@ export default {
     if (!pathname.startsWith('/api/')) return servirSite(request, url, env, ctx)
     ligarAnalyticsEngine(env.METRICAS)
     ligarBucketDoR2(env.MIDIA) // antes do portão: o armazenamento de mídia é uma das travas
+    ligarAssetsDoParceiro(env.ASSETS) // os manifestos dos livros PD (parceiro de leitura) são estáticos
     if (conferirBootDoWorker()) {
       return json(503, { error: 'servidor mal configurado (ver o log: boot_falhou)', code: 'boot_falhou' })
     }

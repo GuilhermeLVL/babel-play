@@ -54,7 +54,7 @@ const CLASSIFICACAO = join(AQUI, 'classificacao.json')
 const SUGESTOES = join(RAIZ, 'docs/livros-classificacao-sugestoes.md')
 
 const GERADOR = 'claude-opus (claude -p)'
-const REVISOR = 'gemini-4-argon-medium (agy -p)'
+const REVISOR = 'revisão automática (outra família de modelo)'
 const MAX_CONCORRENCIA = 3
 const ALARME_GERACAO_MS = 360_000
 const ALARME_REVISAO_MS = 300_000

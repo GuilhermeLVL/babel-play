@@ -1,7 +1,7 @@
 /**
  * O CACHE COMPARTILHADO DO PARCEIRO DE LEITURA (L4 de Livros & Leitura; tabela `cache_do_parceiro`, migração 0014).
  *
- * SÓ LIVRO DO CATÁLOGO (domínio público) e NUNCA a pergunta livre: o que entra aqui é a resposta sobre um texto que é de
+ * SÓ LIVRO DO CATÁLOGO (domínio público) COM O TEXTO CONFERIDO no manifesto (`manifestos.ts`) e NUNCA a pergunta livre: o que entra aqui é a resposta sobre um texto que é de
  * todos, e a primeira pessoa paga a chamada para as outras. Livro trazido pela pessoa e pergunta digitada por ela não
  * são guardados (retenção zero: é texto dela).
  *
@@ -23,6 +23,10 @@ import { log } from '../../lib/logger'
 const DIA_MS = 86_400_000
 export const TTL_DO_CACHE_DO_PARCEIRO_MS = 90 * DIA_MS
 export const MAX_LINHAS_DO_CACHE_DO_PARCEIRO = 50_000
+/** O acerto marca `usado_em` no máximo uma vez por hora por linha (a poda só precisa da ordem aproximada). */
+export const INTERVALO_DO_ACERTO_MS = 3_600_000
+/** A citação guardada é cortada aqui: o bastante para a tela achar o trecho, sem copiar mais do texto que o preciso. */
+export const MAX_CARACTERES_DA_CITACAO_GUARDADA = 160
 
 const sha = (s: string) => createHash('sha256').update(s).digest('hex')
 
@@ -33,6 +37,8 @@ export interface PartesDaChave {
   trechos: readonly TrechoDoCapitulo[]
   selecao: string
   nivel: string
+  /** O degrau do modelo (`rapida`, `nuance`): quem paga outro degrau recebe a resposta DELE, não a do mais barato. */
+  nivelDoModelo: string
   idiomaDoLivro: string
   idiomaDaPessoa: string
   menor: boolean
@@ -51,6 +57,7 @@ export function chaveDoParceiro(p: PartesDaChave): string {
       p.modo,
       sha(p.selecao),
       p.nivel,
+      p.nivelDoModelo,
       p.idiomaDoLivro.toLowerCase(),
       p.idiomaDaPessoa.toLowerCase(),
       p.menor ? 'menor' : 'adulto',
@@ -74,7 +81,7 @@ export async function lerDoCache(
     const linha = await (await r).ler(chave, agora - TTL_DO_CACHE_DO_PARCEIRO_MS)
     if (!linha) return null
     const resposta = JSON.parse(linha.resposta) as RespostaDoParceiro
-    await (await r).marcarAcerto(chave, agora)
+    if (agora - linha.usadoEm >= INTERVALO_DO_ACERTO_MS) await (await r).marcarAcerto(chave, agora)
     return { resposta, modelo: linha.modelo }
   } catch (err) {
     log('warn', { event: 'parceiro_cache_leitura_falhou', error: mensagem(err) })
@@ -90,7 +97,19 @@ export async function gravarNoCache(
   try {
     await (
       await repositorio()
-    ).gravar({ chave, ...l, resposta: JSON.stringify(l.resposta), criadoEm: agora, usadoEm: agora })
+    ).gravar({
+      chave,
+      ...l,
+      resposta: JSON.stringify({
+        ...l.resposta,
+        citacoes: l.resposta.citacoes.map((c) => ({
+          ...c,
+          exato: c.exato.slice(0, MAX_CARACTERES_DA_CITACAO_GUARDADA),
+        })),
+      }),
+      criadoEm: agora,
+      usadoEm: agora,
+    })
   } catch (err) {
     log('warn', { event: 'parceiro_cache_gravacao_falhou', error: mensagem(err) })
   }

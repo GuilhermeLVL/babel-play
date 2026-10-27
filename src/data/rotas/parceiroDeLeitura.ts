@@ -12,7 +12,7 @@
  *            - livro do CATÁLOGO: até 40 trechos e 8.000 caracteres somados (com a seleção). Livro TRAZIDO pela
  *              pessoa: só a seleção e até 2 trechos vizinhos, 1.500 somados — `montarTrechos` corta antes de enviar.
  *   sucesso  { resposta: { texto, pontos[], citacoes: [{trechoId, exato}], naoEstaNoTrecho }, origem: 'cache'|'modelo',
- *              restanteHoje: number|null, aviso } — `exato` está, letra por letra, no trecho `trechoId` (o servidor
+ *              restanteHoje?: number|null, textoConferido: boolean, aviso } — `exato` está, letra por letra, no trecho `trechoId` (o servidor
  *              conferiu); na pergunta que o texto não responde, `naoEstaNoTrecho: true` e o texto fixo.
  *   recusas  404 `recurso_indisponivel` (flag) · 402 `sem_plano` · 403 `livro_fora_da_faixa` (menor) · 404
  *            `livro_inexistente` · 429 `teto_do_parceiro` (dia) · 402 `cota_do_parceiro` (mês) · 413
@@ -27,6 +27,7 @@ import {
   type RespostaDoParceiro,
   TETOS_DO_PARCEIRO,
   type TrechoDoCapitulo,
+  trechosEmVolta,
 } from '../../lib/estudo/promptDoParceiro';
 import { apiFetch, lerErro } from '../funil';
 import { motivoDeCota } from '../motivoDeCota';
@@ -66,7 +67,10 @@ export type ResultadoDoParceiro =
       ok: true;
       resposta: RespostaDoParceiro;
       origem: 'cache' | 'modelo';
-      restanteHoje: number | null;
+      /** `undefined` = o servidor não soube dizer agora (resposta do cache com o contador fora do ar). */
+      restanteHoje?: number | null;
+      /** O texto casou com o manifesto do livro PD (teto do catálogo e cache); `false` = tratado como livro trazido. */
+      textoConferido: boolean;
       aviso: string;
       modelo?: string;
     }
@@ -91,6 +95,11 @@ function motivoDaFalha(status: number, code: string | undefined, detalhes?: Reco
  * OS TRECHOS QUE CABEM, em volta da seleção: o capítulo inteiro em parágrafos (`paragrafos`, na ordem) e o índice do
  * parágrafo selecionado; sai alternando antes/depois até o teto da origem do livro. No livro TRAZIDO, no máximo 2
  * vizinhos — o texto dela não vai ao servidor além disso. Parágrafo longo é cortado no teto de um trecho.
+ *
+ * PARA O LIVRO DO CATÁLOGO SER RECONHECIDO (teto do catálogo e cache compartilhado), cada trecho tem de ser um
+ * parágrafo INTEIRO de `paragrafosDoCapitulo(texto do capítulo)` (`src/core/livros/manifesto.ts`), com o texto que
+ * `lerEpubComoTexto` dá. O servidor confere no manifesto; trecho que não casa (ou cortado) vale como livro trazido, e a
+ * resposta vem com `textoConferido: false`.
  */
 export function montarTrechos(
   paragrafos: readonly TrechoDoCapitulo[],
@@ -98,23 +107,12 @@ export function montarTrechos(
   origem: LivroDoPedido['origem'],
   selecao = '',
 ): TrechoDoCapitulo[] {
-  const teto = origem === 'catalogo' ? TETOS_DO_PARCEIRO.catalogo : TETOS_DO_PARCEIRO.proprio;
-  let restante = teto.caracteres - selecao.length;
-  const escolhidos = new Map<number, TrechoDoCapitulo>();
-  const centro = Math.min(Math.max(0, indiceDaSelecao), Math.max(0, paragrafos.length - 1));
-  for (let d = 0; escolhidos.size < teto.trechos && d < paragrafos.length * 2 + 1; d++) {
-    const i = d % 2 === 0 ? centro + d / 2 : centro - (d + 1) / 2;
-    const p = paragrafos[i];
-    if (!p || escolhidos.has(i)) continue;
-    const texto = p.texto.slice(0, TETOS_DO_PARCEIRO.textoDoTrecho);
-    if (texto.length > restante) {
-      if (escolhidos.size === 0 && restante > 0) escolhidos.set(i, { id: p.id, texto: texto.slice(0, restante) });
-      break;
-    }
-    escolhidos.set(i, { id: p.id, texto });
-    restante -= texto.length;
-  }
-  return [...escolhidos.entries()].sort((a, b) => a[0] - b[0]).map(([, t]) => t);
+  return trechosEmVolta(
+    paragrafos,
+    indiceDaSelecao,
+    origem === 'catalogo' ? TETOS_DO_PARCEIRO.catalogo : TETOS_DO_PARCEIRO.proprio,
+    selecao.length,
+  );
 }
 
 const ehTexto = (v: unknown): v is string => typeof v === 'string';
@@ -132,7 +130,8 @@ function lerCorpo(c: Record<string, unknown>): Omit<Extract<ResultadoDoParceiro,
     ok: true,
     resposta: { texto: r.texto, pontos: r.pontos.filter(ehTexto), citacoes, naoEstaNoTrecho: r.naoEstaNoTrecho },
     origem: c.origem === 'cache' ? 'cache' : 'modelo',
-    restanteHoje: typeof c.restanteHoje === 'number' ? c.restanteHoje : null,
+    ...(c.restanteHoje === undefined ? {} : { restanteHoje: typeof c.restanteHoje === 'number' ? c.restanteHoje : null }),
+    textoConferido: c.textoConferido === true,
     aviso: ehTexto(c.aviso) ? c.aviso : '',
   };
 }

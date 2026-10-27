@@ -9,135 +9,135 @@
       "trechos": [
         {
           "id": "p1",
-          "texto": "THE PROLOGUE"
+          "texto": "CHORUS. Two households, both alike in dignity, In fair Verona, where we lay our scene, From ancient grudge break to new mutiny, Where civil blood makes civil hands unclean. From forth the fatal loins of these two foes A pair of star-cross'd lovers take their life; Whose misadventur'd piteous overthrows Doth with their death bury their parents' strife. The fearful passage of their death-mark'd love, And the continuance of their parents' rage, Which, but their children's end, nought could remove, Is now the two hours' traffic of our stage; The which, if you with patient ears attend, What here shall miss, our toil shall strive to mend."
         },
         {
           "id": "p2",
-          "texto": "Enter Chorus."
+          "texto": "[_Exit._]"
         },
         {
           "id": "p3",
-          "texto": "CHORUS. Two households, both alike in dignity, In fair Verona, where we lay our scene, From ancient grudge break to new mutiny, Where civil blood makes civil hands unclean. From forth the fatal loins of these two foes A pair of star-cross’d lovers take their life; Whose misadventur’d piteous overthrows Doth with their death bury their parents’ strife. The fearful passage of their death-mark’d love, And the continuance of their parents’ rage, Which, but their children’s end, nought could remove, Is now the two hours’ traffic of our stage; The which, if you with patient ears attend, What here shall miss, our toil shall strive to mend."
-        },
-        {
-          "id": "p4",
-          "texto": "[Exit.]"
-        },
-        {
-          "id": "p5",
           "texto": "ACT I"
         },
         {
-          "id": "p6",
+          "id": "p4",
           "texto": "SCENE I. A public place."
         },
         {
-          "id": "p7",
+          "id": "p5",
           "texto": "Enter Sampson and Gregory armed with swords and bucklers."
         },
         {
-          "id": "p8",
-          "texto": "SAMPSON. Gregory, on my word, we’ll not carry coals."
+          "id": "p6",
+          "texto": "SAMPSON. Gregory, on my word, we'll not carry coals."
         },
         {
-          "id": "p9",
+          "id": "p7",
           "texto": "GREGORY. No, for then we should be colliers."
         },
         {
+          "id": "p8",
+          "texto": "SAMPSON. I mean, if we be in choler, we'll draw."
+        },
+        {
+          "id": "p9",
+          "texto": "GREGORY. Ay, while you live, draw your neck out o' the collar."
+        },
+        {
           "id": "p10",
-          "texto": "SAMPSON. I mean, if we be in choler, we’ll draw."
-        },
-        {
-          "id": "p11",
-          "texto": "GREGORY. Ay, while you live, draw your neck out o’ the collar."
-        },
-        {
-          "id": "p12",
           "texto": "SAMPSON. I strike quickly, being moved."
         },
         {
-          "id": "p13",
+          "id": "p11",
           "texto": "GREGORY. But thou art not quickly moved to strike."
         },
         {
-          "id": "p14",
+          "id": "p12",
           "texto": "SAMPSON. A dog of the house of Montague moves me."
         },
         {
+          "id": "p13",
+          "texto": "GREGORY. To move is to stir; and to be valiant is to stand: therefore, if thou art moved, thou runn'st away."
+        },
+        {
+          "id": "p14",
+          "texto": "SAMPSON. A dog of that house shall move me to stand. I will take the wall of any man or maid of Montague's."
+        },
+        {
           "id": "p15",
-          "texto": "GREGORY. To move is to stir; and to be valiant is to stand: therefore, if thou art moved, thou runn’st away."
-        },
-        {
-          "id": "p16",
-          "texto": "SAMPSON. A dog of that house shall move me to stand. I will take the wall of any man or maid of Montague’s."
-        },
-        {
-          "id": "p17",
           "texto": "GREGORY. That shows thee a weak slave, for the weakest goes to the wall."
         },
         {
-          "id": "p18",
-          "texto": "SAMPSON. True, and therefore women, being the weaker vessels, are ever thrust to the wall: therefore I will push Montague’s men from the wall, and thrust his maids to the wall."
+          "id": "p16",
+          "texto": "SAMPSON. True, and therefore women, being the weaker vessels, are ever thrust to the wall: therefore I will push Montague's men from the wall, and thrust his maids to the wall."
         },
         {
-          "id": "p19",
+          "id": "p17",
           "texto": "GREGORY. The quarrel is between our masters and us their men."
         },
         {
-          "id": "p20",
-          "texto": "SAMPSON. ’Tis all one, I will show myself a tyrant: when I have fought with the men I will be civil with the maids, I will cut off their heads."
+          "id": "p18",
+          "texto": "SAMPSON. 'Tis all one, I will show myself a tyrant: when I have fought with the men I will be civil with the maids, I will cut off their heads."
         },
         {
-          "id": "p21",
+          "id": "p19",
           "texto": "GREGORY. The heads of the maids?"
         },
         {
-          "id": "p22",
+          "id": "p20",
           "texto": "SAMPSON. Ay, the heads of the maids, or their maidenheads; take it in what sense thou wilt."
         },
         {
-          "id": "p23",
+          "id": "p21",
           "texto": "GREGORY. They must take it in sense that feel it."
         },
         {
+          "id": "p22",
+          "texto": "SAMPSON. Me they shall feel while I am able to stand: and 'tis known I am a pretty piece of flesh."
+        },
+        {
+          "id": "p23",
+          "texto": "GREGORY. 'Tis well thou art not fish; if thou hadst, thou hadst been poor John. Draw thy tool; here comes of the house of Montagues."
+        },
+        {
           "id": "p24",
-          "texto": "SAMPSON. Me they shall feel while I am able to stand: and ’tis known I am a pretty piece of flesh."
-        },
-        {
-          "id": "p25",
-          "texto": "GREGORY. ’Tis well thou art not fish; if thou hadst, thou hadst been poor John. Draw thy tool; here comes of the house of Montagues."
-        },
-        {
-          "id": "p26",
           "texto": "Enter Abram and Balthasar."
         },
         {
-          "id": "p27",
+          "id": "p25",
           "texto": "SAMPSON. My naked weapon is out: quarrel, I will back thee."
         },
         {
-          "id": "p28",
+          "id": "p26",
           "texto": "GREGORY. How? Turn thy back and run?"
         },
         {
-          "id": "p29",
+          "id": "p27",
           "texto": "SAMPSON. Fear me not."
         },
         {
-          "id": "p30",
+          "id": "p28",
           "texto": "GREGORY. No, marry; I fear thee!"
         },
         {
-          "id": "p31",
+          "id": "p29",
           "texto": "SAMPSON. Let us take the law of our sides; let them begin."
         },
         {
-          "id": "p32",
+          "id": "p30",
           "texto": "GREGORY. I will frown as I pass by, and let them take it as they list."
         },
         {
-          "id": "p33",
+          "id": "p31",
           "texto": "SAMPSON. Nay, as they dare. I will bite my thumb at them, which is disgrace to them if they bear it."
+        },
+        {
+          "id": "p32",
+          "texto": "ABRAM. Do you bite your thumb at us, sir?"
+        },
+        {
+          "id": "p33",
+          "texto": "SAMPSON. I do bite my thumb, sir."
         },
         {
           "id": "p34",
@@ -145,19 +145,19 @@
         },
         {
           "id": "p35",
-          "texto": "SAMPSON. I do bite my thumb, sir."
-        },
-        {
-          "id": "p36",
-          "texto": "ABRAM. Do you bite your thumb at us, sir?"
-        },
-        {
-          "id": "p37",
           "texto": "SAMPSON. Is the law of our side if I say ay?"
         },
         {
-          "id": "p38",
+          "id": "p36",
           "texto": "GREGORY. No."
+        },
+        {
+          "id": "p37",
+          "texto": "SAMPSON. No sir, I do not bite my thumb at you, sir; but I bite my thumb, sir."
+        },
+        {
+          "id": "p38",
+          "texto": "GREGORY. Do you quarrel, sir?"
         }
       ]
     },
@@ -231,7 +231,7 @@
       "trechos": [
         {
           "id": "p1",
-          "texto": "Imposible me ha sido rehusarme á las repetidas instancias que el Caballero Trelawney, el Doctor Livesey y otros muchos señores me han hecho para que escribiese la historia circunstanciada y completa de la Isla del Tesoro. Voy, pues, á poner manos á la obra contándolo todo, desde el alfa hasta el omega, sin dejarme cosa alguna en el tintero, exceptuando la determinación geográfica de la isla, y esto tan solamente porque tengo por seguro que en ella existe todavía un tesoro no descubierto. Tomo la pluma en el año de gracia de 17--y retrocedo hasta la época en que mi padre tenía aún la posada del \"Almirante Benbow,\" y hasta el día en que por primera vez llegó á alojarse en ella aquel viejo marino de tez bronceada y curtida por los elementos, con su grande y visible cicatriz."
+          "texto": "Imposible me ha sido rehusarme á las repetidas instancias que el Caballero Trelawney, el Doctor Livesey y otros muchos señores me han hecho para que escribiese la historia circunstanciada y completa de la Isla del Tesoro. Voy, pues, á poner manos á la obra contándolo todo, desde el _alfa_ hasta el _omega_, sin dejarme cosa alguna en el tintero, exceptuando la determinación geográfica de la isla, y esto tan solamente porque tengo por seguro que en ella existe todavía un tesoro no descubierto. Tomo la pluma en el año de gracia de 17--y retrocedo hasta la época en que mi padre tenía aún la posada del \"_Almirante Benbow_,\" y hasta el día en que por primera vez llegó á alojarse en ella aquel viejo marino de tez bronceada y curtida por los elementos, con su grande y visible cicatriz."
         },
         {
           "id": "p2",
@@ -239,7 +239,7 @@
         },
         {
           "id": "p3",
-          "texto": "\"Son quince los que quieren el cofre de aquel muerto Son quince ¡yo--ho--hó! son quince ¡viva el rom!\""
+          "texto": "\"_Son quince los que quieren el cofre de aquel muerto Son quince ¡yo--ho--hó! son quince ¡viva el rom!_\""
         },
         {
           "id": "p4",
@@ -259,7 +259,7 @@
         },
         {
           "id": "p8",
-          "texto": "Y la verdad es que, aunque su pobre traje no predisponía en su favor, ni menos aún su lenguaje tosco, no tenía absolutamente el aspecto de un tramposo, sino que parecía más bien un marino, un maestro de embarcación acostumbrado á que se le obedezca como á Capitán. El muchacho que traía la carretilla nos refirió que la posta ó coche del correo lo había dejado la víspera por la mañana en la posada del \"Royal George,\" que allí se informó qué albergues había á lo largo de la costa, y que habiendo oído buenos informes probablemente acerca del nuestro, y habiéndosele descrito como muy poco concurrido, lo había elegido de preferencia á todos los demás para su residencia. Eso fué todo lo que pudimos averiguar acerca de nuestro huésped."
+          "texto": "Y la verdad es que, aunque su pobre traje no predisponía en su favor, ni menos aún su lenguaje tosco, no tenía absolutamente el aspecto de un tramposo, sino que parecía más bien un marino, un maestro de embarcación acostumbrado á que se le obedezca como á Capitán. El muchacho que traía la carretilla nos refirió que la posta ó coche del correo lo había dejado la víspera por la mañana en la posada del \"_Royal George_,\" que allí se informó qué albergues había á lo largo de la costa, y que habiendo oído buenos informes probablemente acerca del nuestro, y habiéndosele descrito como muy poco concurrido, lo había elegido de preferencia á todos los demás para su residencia. Eso fué todo lo que pudimos averiguar acerca de nuestro huésped."
         },
         {
           "id": "p9",

@@ -16,6 +16,7 @@
  *   - o livro TRAZIDO: só a seleção e até 2 trechos (1.500 caracteres), senão 413; sem título no prompt;
  *   - o corpo é estrito; retenção zero; e o log não leva o texto da pessoa.
  */
+import { sql } from 'drizzle-orm'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { esquecerAdmissao } from '../../server/ai/admissao'
@@ -23,6 +24,7 @@ import { esquecerDisjuntores } from '../../server/ai/disjuntor'
 import { esquecerRegistro } from '../../server/ai/registroDeProvedores'
 import { asUserId } from '../../server/lib/authContext'
 import { AVISO_DA_FICHA, type FichaDoLivro } from '../../src/core/livros/ficha'
+import { hashDoTrecho } from '../../src/core/livros/manifesto'
 import {
   FRACAO_DA_COTA_DO_PARCEIRO,
   PARCEIRO_DIA_DOS_PAGOS,
@@ -137,6 +139,10 @@ let usageQuota: any
 let idades: any
 let subscriptions: any
 let fichas: any
+let manifestos: any
+let banco: any
+let cacheRepo: any
+let hashesDosTrechos: string[] = []
 let flagDaMigracao: { habilitada: boolean; atualizadoPor: string | null } | undefined
 
 interface Chamada {
@@ -213,6 +219,10 @@ beforeAll(async () => {
   flags = await h.load<any>('../../server/lib/flags')
   usageQuota = await h.load<any>('../../server/lib/usageQuota')
   fichas = await h.load<any>('../../server/ai/leitura/fichas')
+  manifestos = await h.load<any>('../../server/ai/leitura/manifestos')
+  banco = await h.load<any>('../../server/db/db')
+  ;({ cacheDoParceiroRepo: cacheRepo } = await h.load<any>('../../server/db/repositories/cacheDoParceiro'))
+  hashesDosTrechos = await Promise.all(TRECHOS.map((t) => hashDoTrecho(t.texto)))
   flagDaMigracao = (await flags.listarFlagsCruas()).find((f: { chave: string }) => f.chave === 'parceiro_de_leitura')
   await subscriptions.upsert(PAGANTE, { plan: 'plus', status: 'active' })
   await idades.declarar(PAGANTE, '1990-01-01')
@@ -221,6 +231,7 @@ afterAll(async () => {
   delete process.env.AUTH_REQUIRED
   for (const e of ENVS) process.env[e] = ''
   fichas.trocarCatalogoParaTeste(null, null)
+  manifestos.trocarManifestosParaTeste(null)
   await h.cleanup()
 })
 beforeEach(async () => {
@@ -228,6 +239,8 @@ beforeEach(async () => {
   process.env.IA_PROVEDORES = JSON.stringify({ provedores: [OPENROUTER] })
   process.env.OPENROUTER_API_KEY = 'chave-openrouter-falsa'
   fichas.trocarCatalogoParaTeste([LIVRE, A_REVISAR], { [LIVRE.id]: FICHA })
+  /* O manifesto dos dois livros de teste: os parágrafos de TRECHOS são "do livro". */
+  manifestos.trocarManifestosParaTeste({ [LIVRE.id]: hashesDosTrechos, [A_REVISAR.id]: hashesDosTrechos })
   await flags.definirFlag('parceiro_de_leitura', { habilitada: true }, 'teste')
 })
 afterEach(async () => {
@@ -330,6 +343,7 @@ describe('Plus: a saída estruturada', () => {
     const res = await pedir(quem, corpoBase({ selecao: 'where we lay our scene' }))
     expect(res.statusCode).toBe(200)
     expect(res.body.origem).toBe('modelo')
+    expect(res.body.textoConferido).toBe(true)
     expect(res.body.restanteHoje).toBe(PARCEIRO_DIA_DOS_PAGOS - 1)
     expect(res.body.aviso).toMatch(/Gerado por IA/)
     /* A citação de `p1` que não está no trecho SAIU; a da seleção também (o texto citado não está na seleção nova). */
@@ -560,6 +574,154 @@ describe('o livro trazido pela pessoa', () => {
     expect(chamadas).toHaveLength(2)
     expect(chamadas[0].user).toContain('trazido por quem lê')
     expect(chamadas[0].user).not.toContain('FICHA DO LIVRO')
+  })
+})
+
+const linhasDoCache = async (): Promise<number> =>
+  banco.linhas(await banco.db.execute(sql`select count(*)::int as n from cache_do_parceiro`))[0].n
+
+describe('o texto conferido no manifesto', () => {
+  const corpoComCitacao = () =>
+    JSON.stringify({
+      texto: 'Uma explicação do trecho.',
+      pontos: [],
+      citacoes: [{ trechoId: 'p2', exato: 'From ancient grudge break' }],
+      naoEstaNoTrecho: false,
+    })
+
+  it('trecho FALSO com o id do catálogo: teto do livro trazido (2 trechos, 1.500 caracteres) e NENHUMA linha no cache', async () => {
+    const quem = await assinante('parceiro-falso')
+    const chamadas = provedor(() => ({ texto: corpoComCitacao() }))
+    const falsos = Array.from({ length: 6 }, (_, i) => ({
+      id: `f${i}`,
+      texto: `Texto de outro livro, protegido. ${'x'.repeat(600)} ${i}`,
+    }))
+    const antes = await linhasDoCache()
+    const corpo = corpoBase({ modo: 'observar', selecao: undefined, trechos: falsos })
+    const res = await pedir(quem, corpo)
+    expect(res.statusCode).toBe(200)
+    expect(res.body.textoConferido).toBe(false)
+    const enviados = [...chamadas[0].user.matchAll(/\[(f\d)\]/g)].map((m) => m[1])
+    expect(enviados.length).toBeLessThanOrEqual(2)
+    expect(chamadas[0].user.length).toBeLessThan(1_500 + 2_500) // o texto do livro cabe nos 1.500; o resto é o molde
+    expect(await linhasDoCache()).toBe(antes)
+    /* O mesmo pedido de novo: sem cache, outra chamada. */
+    await pedir(quem, corpo)
+    expect(chamadas).toHaveLength(2)
+  })
+
+  it('UM trecho falso no meio dos verdadeiros já tira o texto do conferido', async () => {
+    const quem = await assinante('parceiro-misturado')
+    provedor(() => ({ texto: corpoComCitacao() }))
+    const antes = await linhasDoCache()
+    const res = await pedir(
+      quem,
+      corpoBase({ modo: 'observar', selecao: undefined, trechos: [...TRECHOS, { id: 'p9', texto: 'inventado aqui' }] }),
+    )
+    expect(res.body.textoConferido).toBe(false)
+    expect(await linhasDoCache()).toBe(antes)
+  })
+
+  it('trecho CONFERIDO: o teto do catálogo e uma linha no cache, com a citação cortada', async () => {
+    const quem = await assinante('parceiro-conferido')
+    provedor(() => ({ texto: corpoComCitacao() }))
+    const antes = await linhasDoCache()
+    const res = await pedir(quem, corpoBase({ modo: 'observar', selecao: undefined }))
+    expect(res.body.textoConferido).toBe(true)
+    expect(await linhasDoCache()).toBe(antes + 1)
+  })
+
+  it('adulto e menor com o MESMO pedido não dividem a linha do cache', async () => {
+    const adulto = await assinante('parceiro-cache-adulto')
+    const menor = await assinante('parceiro-cache-menor', false)
+    const chamadas = provedor(() => ({ texto: corpoComCitacao() }))
+    const corpo = corpoBase({ modo: 'ideia', selecao: 'in fair Verona, where we lay our scene' })
+    const antes = await linhasDoCache()
+    expect((await pedir(adulto, corpo)).body.origem).toBe('modelo')
+    expect((await pedir(menor, corpo)).body.origem).toBe('modelo')
+    expect(chamadas).toHaveLength(2)
+    expect(chamadas[1].system).toContain('PÚBLICO MENOR')
+    expect(await linhasDoCache()).toBe(antes + 2)
+    /* Cada um acha a SUA linha depois. */
+    expect((await pedir(menor, corpo)).body.origem).toBe('cache')
+    expect(chamadas).toHaveLength(2)
+  })
+
+  it('acerto do cache com o contador fora do ar: a resposta sai sem o restanteHoje (nunca 503)', async () => {
+    const a = await assinante('parceiro-contador-a')
+    const b = await assinante('parceiro-contador-b')
+    provedor(() => ({ texto: corpoComCitacao() }))
+    const corpo = corpoBase({ modo: 'analogia', selecao: 'both alike in dignity' })
+    await pedir(a, corpo)
+    const espia = vi.spyOn(counters, 'get').mockRejectedValue(new Error('banco fora'))
+    try {
+      const res = await pedir(b, corpo)
+      expect(res.statusCode).toBe(200)
+      expect(res.body.origem).toBe('cache')
+      expect('restanteHoje' in res.body).toBe(false)
+    } finally {
+      espia.mockRestore()
+    }
+  })
+
+  it('o acerto marca usado_em no máximo uma vez por hora por linha', async () => {
+    const a = await assinante('parceiro-acerto-a')
+    provedor(() => ({ texto: corpoComCitacao() }))
+    const corpo = corpoBase({ modo: 'explicar', selecao: 'where civil blood makes civil hands unclean' })
+    await pedir(a, corpo)
+    const espia = vi.spyOn(cacheRepo, 'marcarAcerto')
+    try {
+      await pedir(a, corpo)
+      await pedir(a, corpo)
+      expect(espia).not.toHaveBeenCalled()
+      await banco.db.execute(sql`update cache_do_parceiro set usado_em = usado_em - 3600001`)
+      await pedir(a, corpo)
+      expect(espia).toHaveBeenCalledTimes(1)
+    } finally {
+      espia.mockRestore()
+    }
+  })
+})
+
+describe('concorrência nas cotas (PGlite; Postgres real com BANCO_DE_TESTE=postgres e TESTE_POSTGRES_URL)', () => {
+  const pergunta = corpoBase({ modo: 'pergunta', selecao: undefined, pergunta: 'Onde a peça se passa?' })
+  const certa = () =>
+    JSON.stringify({
+      texto: 'Em Verona.',
+      pontos: [],
+      citacoes: [{ trechoId: 'p1', exato: 'In fair Verona' }],
+      naoEstaNoTrecho: false,
+    })
+
+  it('no último pedido do dia, 5 ao mesmo tempo: exatamente 1 passa e o contador não passa do teto', async () => {
+    const quem = await assinante('parceiro-corrida-dia')
+    const janela = await usageQuota.janelaDoDia(quem)
+    await counters.increment(quem, usageQuota.METRIC_PARCEIRO_DIA, janela, PARCEIRO_DIA_DOS_PAGOS - 1)
+    const chamadas = provedor(() => ({ texto: certa() }))
+    const rs = await Promise.all(Array.from({ length: 5 }, () => pedir(quem, pergunta)))
+    expect(rs.filter((r) => r.statusCode === 200)).toHaveLength(1)
+    expect(rs.filter((r) => r.body?.code === 'teto_do_parceiro')).toHaveLength(4)
+    expect(chamadas).toHaveLength(1)
+    expect(await doDia(quem)).toBe(PARCEIRO_DIA_DOS_PAGOS)
+  })
+
+  it('com a subcota para UM pedido, 5 ao mesmo tempo: exatamente 1 passa e os outros são 402 cota_do_parceiro', async () => {
+    const quem = await assinante('parceiro-corrida-subcota')
+    /* A estimativa de UM pedido: a reserva que a subcota recebe (o provedor cai, e tudo é estornado). */
+    const espia = vi.spyOn(counters, 'reserve')
+    provedor(() => ({ status: 500 }))
+    await pedir(quem, pergunta)
+    const estimativa = espia.mock.calls.find((c) => c[1] === usageQuota.METRIC_PARCEIRO_TOKENS_MES)?.[4] as number
+    espia.mockRestore()
+    expect(estimativa).toBeGreaterThan(0)
+    const teto = PLAN_MATRIX.plus.quotas.parceiroTokensMes as number
+    await counters.increment(quem, usageQuota.METRIC_PARCEIRO_TOKENS_MES, mes(), teto - (estimativa + 10))
+    const chamadas = provedor(() => ({ texto: certa() }))
+    const rs = await Promise.all(Array.from({ length: 5 }, () => pedir(quem, pergunta)))
+    expect(rs.filter((r) => r.statusCode === 200)).toHaveLength(1)
+    expect(rs.filter((r) => r.body?.code === 'cota_do_parceiro')).toHaveLength(4)
+    expect(chamadas).toHaveLength(1)
+    expect(await contador(quem, usageQuota.METRIC_PARCEIRO_TOKENS_MES, mes())).toBeLessThanOrEqual(teto)
   })
 })
 

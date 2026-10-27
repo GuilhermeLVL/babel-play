@@ -26,7 +26,8 @@
  *
  * O CORPO É ESTRITO (`z.strictObject`): chave desconhecida é 400. NUNCA O LIVRO INTEIRO: no livro do catálogo, a
  * seleção e até 40 trechos do capítulo (8.000 caracteres); no livro TRAZIDO pela pessoa, só a seleção e até 2 trechos
- * vizinhos (1.500) — passou disso, 413 `contexto_grande_demais`. A TELEMETRIA não leva texto: o modo, a origem do
+ * vizinhos (1.500) — passou disso, 413 `contexto_grande_demais`. O teto do catálogo só vale com o texto CONFERIDO no
+ * manifesto do livro (`server/ai/leitura/manifestos.ts`); o que não casa é recortado para o teto do livro trazido. A TELEMETRIA não leva texto: o modo, a origem do
  * livro, o nível, o par de idiomas e o acerto do cache.
  */
 import { z } from 'zod'
@@ -43,6 +44,7 @@ import {
   MODOS_COM_SELECAO,
   MODOS_DO_PARCEIRO,
   PARAMETROS_DO_PARCEIRO,
+  recortarParaOTrazido,
   type RespostaDoParceiro,
   systemDoParceiro,
   TETOS_DO_PARCEIRO,
@@ -70,6 +72,7 @@ import { planoDeAdmissao } from '../admissao'
 import { type AdmissaoDaCascata, admitirCascata, encerrarAdmissao, percorrerCascata } from '../cascata'
 import { chaveDoParceiro, gravarNoCache, lerDoCache } from '../leitura/cacheDoParceiro'
 import { fichaDoServidor, livroDoCatalogo } from '../leitura/fichas'
+import { textoConferido } from '../leitura/manifestos'
 import { type MensagemDeChat, tamanhoDoPrompt } from '../llmClient'
 import { comInstrucaoDeMenor } from '../llmRequest'
 import { nivelDaFuncao } from '../niveis'
@@ -174,7 +177,10 @@ export interface RespostaEntregue {
   resposta: RespostaDoParceiro
   /** `cache` = saiu do cache compartilhado (nada foi gasto); `modelo` = chamada nova. */
   origem: 'cache' | 'modelo'
-  restanteHoje: number | null
+  /** Ausente = o contador não respondeu (só na resposta do cache). */
+  restanteHoje?: number | null
+  /** O texto do pedido casou com o manifesto do livro PD (teto do catálogo e cache). */
+  textoConferido: boolean
   modelo: string
 }
 
@@ -237,8 +243,15 @@ async function atender(
     const ficha = doCatalogo ? fichaDoServidor(doCatalogo.id) : null
     const textoDaFicha = ficha ? fichaParaOPrompt(ficha, teto, TETOS_DO_PARCEIRO.ficha) : ''
 
-    const trechos: TrechoDoCapitulo[] = [...pedido.trechos]
-    const selecao = pedido.selecao ?? ''
+    /* O TEXTO CONFERIDO: só o livro do catálogo cujo trecho (todos) casa com o manifesto tem o teto do catálogo e o
+       cache. Senão — trecho de outro livro com o id do catálogo, ou de uma edição sem manifesto — vale o teto do livro
+       trazido (recortado aqui, sem erro) e nada vai ao cache. */
+    const conferido = doCatalogo ? await textoConferido(doCatalogo.id, pedido.trechos, pedido.selecao ?? '') : false
+    const recorte = conferido
+      ? { trechos: [...pedido.trechos], selecao: pedido.selecao ?? '' }
+      : recortarParaOTrazido(pedido.trechos, pedido.selecao ?? '')
+    const trechos: TrechoDoCapitulo[] = recorte.trechos
+    const selecao = recorte.selecao
     const paraCitar: TrechoDoCapitulo[] = selecao ? [...trechos, { id: ID_DA_SELECAO, texto: selecao }] : trechos
     const nivel = nivelDaFuncao('leitura', plano)
     rastro.anotar({ nivel })
@@ -266,9 +279,9 @@ async function atender(
       },
     ]
 
-    /* 4) O CACHE COMPARTILHADO: só livro do catálogo, nunca a pergunta livre (é texto da pessoa). */
+    /* 4) O CACHE COMPARTILHADO: só livro do catálogo COM O TEXTO CONFERIDO, nunca a pergunta livre (é texto da pessoa). */
     const chave =
-      doCatalogo && modo !== 'pergunta'
+      doCatalogo && conferido && modo !== 'pergunta'
         ? chaveDoParceiro({
             versaoDoPrompt: VERSAO_DO_PROMPT_DO_PARCEIRO,
             livroId: doCatalogo.id,
@@ -276,6 +289,7 @@ async function atender(
             trechos,
             selecao,
             nivel: pedido.nivel,
+            nivelDoModelo: nivel,
             idiomaDoLivro: pedido.idiomaDoLivro,
             idiomaDaPessoa: pedido.idiomaDaPessoa,
             menor,
@@ -286,14 +300,18 @@ async function atender(
     if (chave) {
       const guardada = await lerDoCache(chave)
       rastro.anotar({ cacheHit: !!guardada })
-      if (guardada)
+      if (guardada) {
+        /* O contador fora do ar não derruba a resposta que já existe: ela sai sem o `restanteHoje`. */
+        const restanteHoje = await restanteDoParceiroHoje(ctx.userId, plano.plan).catch(() => undefined)
         return decidir({
           ok: true,
           resposta: guardada.resposta,
           origem: 'cache',
-          restanteHoje: await restanteDoParceiroHoje(ctx.userId, plano.plan),
+          ...(restanteHoje !== undefined ? { restanteHoje } : {}),
+          textoConferido: true,
           modelo: guardada.modelo,
         })
+      }
     }
 
     /* 5) Pernas do tutor, só com retenção zero. */
@@ -414,7 +432,14 @@ async function atender(
       latencyMs: Date.now() - t0,
       requestId: ctx.requestId,
     })
-    return decidir({ ok: true, resposta, origem: 'modelo', restanteHoje: doDia.restanteHoje, modelo: entregue.model })
+    return decidir({
+      ok: true,
+      resposta,
+      origem: 'modelo',
+      restanteHoje: doDia.restanteHoje,
+      textoConferido: conferido,
+      modelo: entregue.model,
+    })
   } catch (err) {
     if (err instanceof ContadorIndisponivel) return decidir(recusaContadorIndisponivel())
     return decidir(

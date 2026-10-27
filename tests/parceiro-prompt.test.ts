@@ -28,7 +28,7 @@ describe('lerRespostaDoParceiro', () => {
           { trechoId: 'p1', exato: 'truth universally acknowledged' },
           { trechoId: 'p1', exato: 'a truth that nobody said' },
           { trechoId: 'p9', exato: 'single man' },
-          { trechoId: ID_DA_SELECAO, exato: 'single man' },
+          { trechoId: ID_DA_SELECAO, exato: 'single man in possession' },
         ],
       }),
       'explicar',
@@ -36,12 +36,54 @@ describe('lerRespostaDoParceiro', () => {
     )
     expect(r?.citacoes).toEqual([
       { trechoId: 'p1', exato: 'truth universally acknowledged' },
-      { trechoId: ID_DA_SELECAO, exato: 'single man' },
+      { trechoId: ID_DA_SELECAO, exato: 'single man in possession' },
     ])
   })
 
+  it('âncora fraca não vale: "air" dentro de "fair", 2 palavras curtas, ou pedaço de palavra', () => {
+    const verona = [
+      { id: 'p1', texto: 'Two households, both alike in dignity, In fair Verona, where we lay our scene.' },
+    ]
+    const cita = (exato: string) =>
+      lerRespostaDoParceiro(resposta({ citacoes: [{ trechoId: 'p1', exato }] }), 'explicar', verona)?.citacoes ?? []
+    expect(cita('air')).toEqual([]) // o achado da revisão: 3 letras ancoravam qualquer resposta
+    expect(cita('fair Verona')).toEqual([]) // 2 palavras e 11 caracteres
+    expect(cita('ouseholds, both alike')).toEqual([]) // começa no meio de "households"
+    expect(cita('In fair Verona')).toEqual([{ trechoId: 'p1', exato: 'In fair Verona' }]) // 3 palavras inteiras
+    expect(cita('households, both')).toEqual([{ trechoId: 'p1', exato: 'households, both' }]) // 16 caracteres
+  })
+
+  it('pergunta com spoiler sustentado por âncora fraca é "não está neste trecho"', () => {
+    const verona = [
+      { id: 'p1', texto: 'Two households, both alike in dignity, In fair Verona, where we lay our scene.' },
+    ]
+    const spoiler = resposta({
+      texto: 'Os dois morrem no fim da peça.',
+      citacoes: [{ trechoId: 'p1', exato: 'air' }],
+    })
+    expect(lerRespostaDoParceiro(spoiler, 'pergunta', verona)).toEqual({
+      texto: NAO_ESTA_NO_TRECHO,
+      pontos: [],
+      citacoes: [],
+      naoEstaNoTrecho: true,
+    })
+  })
+
+  it('as outras aspas também são citação: ‹›, 「」, ‚‘ e a crase', () => {
+    for (const t of [
+      'Diz ‹the man was very rich and wanted a wife›.',
+      'Diz 「the man was very rich and wanted a wife」.',
+      'Diz ‚the man was very rich and wanted a wife‘.',
+      'Diz `the man was very rich and wanted a wife`.',
+    ])
+      expect(lerRespostaDoParceiro(resposta({ texto: t }), 'explicar', TRECHOS), t).toBeNull()
+  })
+
   it('pergunta: sem citação válida, ou dizendo que não está, é o texto fixo', () => {
-    for (const o of [{ citacoes: [] }, { naoEstaNoTrecho: true, citacoes: [{ trechoId: 'p1', exato: 'truth' }] }])
+    for (const o of [
+      { citacoes: [] },
+      { naoEstaNoTrecho: true, citacoes: [{ trechoId: 'p1', exato: 'truth universally acknowledged' }] },
+    ])
       expect(lerRespostaDoParceiro(resposta(o), 'pergunta', TRECHOS)).toEqual({
         texto: NAO_ESTA_NO_TRECHO,
         pontos: [],

@@ -33,12 +33,14 @@ import path from 'node:path'
 import { comInstrucaoDeMenor } from '../../server/ai/llmRequest.ts'
 import { INSTRUCAO_DE_SEGURANCA_PARA_MENORES } from '../../server/lib/idade.ts'
 import { fichaParaOPrompt } from '../../src/core/livros/ficha.ts'
+import { hashDoTrecho, lerManifesto, normalizarParaManifesto } from '../../src/core/livros/manifesto.ts'
 import { SAIDA_DO_PARCEIRO } from '../../src/lib/esquemasDeSaida.ts'
 import {
   COMPLEMENTO_PARA_MENOR,
   ID_DA_SELECAO,
   lerRespostaDoParceiro,
   PARAMETROS_DO_PARCEIRO,
+  recortarParaOTrazido,
   systemDoParceiro,
   TETOS_DO_PARCEIRO,
   userDoParceiro,
@@ -77,8 +79,27 @@ function fichaDoLivro(id) {
   return existsSync(arq) ? JSON.parse(readFileSync(arq, 'utf8')) : null
 }
 
-export function pedidoDoCaso(c) {
-  const livro = gold.livros[c.livro]
+/** O texto conferido no manifesto, como o servidor faz (`server/ai/leitura/manifestos.ts`). */
+async function conferir(livroId, trechos, selecao) {
+  const arq = path.join(RAIZ, 'public/catalogo/manifestos', `${livroId}.json`)
+  if (!existsSync(arq)) return false
+  const m = lerManifesto(JSON.parse(readFileSync(arq, 'utf8')), livroId)
+  if (!m) return false
+  for (const t of trechos) if (!m.has(await hashDoTrecho(t.texto))) return false
+  if (!selecao) return trechos.length > 0
+  const s = normalizarParaManifesto(selecao)
+  return trechos.some((t) => normalizarParaManifesto(t.texto).includes(s))
+}
+
+export async function pedidoDoCaso(c) {
+  const bruto = gold.livros[c.livro]
+  const conferido = await conferir(bruto.livroId, bruto.trechos, c.selecao ?? '')
+  /* Sem conferir, o servidor recorta para o teto do livro trazido: a bancada também. */
+  const recorte = conferido
+    ? { trechos: bruto.trechos, selecao: c.selecao ?? '' }
+    : recortarParaOTrazido(bruto.trechos, c.selecao ?? '')
+  const livro = { ...bruto, trechos: recorte.trechos }
+  c = { ...c, ...(recorte.selecao ? { selecao: recorte.selecao } : {}) }
   const l = doCatalogo.get(livro.livroId)
   if (!l) throw new Error(`${c.id}: ${livro.livroId} fora do catálogo`)
   const teto = c.menor ? '12' : '18'
@@ -100,7 +121,7 @@ export function pedidoDoCaso(c) {
     ...o,
   })
   const paraCitar = c.selecao ? [...livro.trechos, { id: ID_DA_SELECAO, texto: c.selecao }] : livro.trechos
-  return { system, user, paraCitar, textoDaFicha, temFicha: !!textoDaFicha }
+  return { system, user, paraCitar, textoDaFicha, temFicha: !!textoDaFicha, conferido }
 }
 
 /* ── as CLIs (no máximo 3 ao mesmo tempo, com alarme) ── */
@@ -212,7 +233,7 @@ if (ehOpenRouter) {
       formato: SAIDA_DO_PARCEIRO,
     })
     const r = await chamar({ corpo, preco: sis.preco, livro: livroCaixa, rotulo: sis.id, chave })
-    return r.texto
+    return { texto: r.texto, totalMs: r.totalMs, usd: r.usd, provedor: r.provedor }
   }
 } else {
   const modelo = CANDIDATO.replace(/^cli:/, '')
@@ -284,8 +305,10 @@ if (LIMITE > 0) casos = casos.slice(0, LIMITE)
 
 if (SIMULAR) {
   for (const c of casos) {
-    const p = pedidoDoCaso(c)
-    console.log(`${c.id} ${c.modo} ficha=${p.temFicha} system=${p.system.length} user=${p.user.length}`)
+    const p = await pedidoDoCaso(c)
+    console.log(
+      `${c.id} ${c.modo} conferido=${p.conferido} ficha=${p.temFicha} system=${p.system.length} user=${p.user.length}`,
+    )
   }
   process.exit(0)
 }
@@ -294,11 +317,21 @@ const resultados = []
 try {
   await Promise.all(
     casos.map(async (c) => {
-      const p = pedidoDoCaso(c)
+      const p = await pedidoDoCaso(c)
       const kSaida = `saida:${CANDIDATO}:${hash([p.system, p.user])}`
       cache[kSaida] ??= await produzir(c, p)
       gravarCache()
-      const bruto = cache[kSaida]
+      const saida = cache[kSaida]
+      const bruto = typeof saida === 'string' ? saida : saida.texto
+      const medida = typeof saida === 'string' ? null : saida
+      const citacoesBrutas = (() => {
+        try {
+          const o = JSON.parse(bruto.slice(bruto.indexOf('{'), bruto.lastIndexOf('}') + 1))
+          return Array.isArray(o.citacoes) ? o.citacoes.length : 0
+        } catch {
+          return 0
+        }
+      })()
       const lida = lerRespostaDoParceiro(bruto, c.modo, p.paraCitar, p.textoDaFicha)
       const naoEstaOk = c.modo !== 'pergunta' || (lida && lida.naoEstaNoTrecho === c.naoEsta)
       const vista = lida ? JSON.stringify(lida, null, 1) : '(resposta inválida: a tela mostraria erro)'
@@ -318,7 +351,11 @@ try {
         modo: c.modo,
         menor: !!c.menor,
         temFicha: p.temFicha,
+        conferido: p.conferido,
         valida: !!lida,
+        citacoesBrutas,
+        ms: medida?.totalMs ?? null,
+        usd: medida?.usd ?? null,
         citacoes: lida?.citacoes.length ?? 0,
         naoEstaOk: !!naoEstaOk,
         juizClaude: aprovou(juizes.claude),
@@ -363,6 +400,21 @@ const resumo = {
   juizClaude: taxa((r) => r.juizClaude),
   juizGemini: taxa((r) => r.juizGemini),
   comCitacao: taxa((r) => r.citacoes > 0),
+  /* Das citações que o modelo deu, quantas o leitor aceitou (âncora de 3 palavras/15 caracteres no trecho). */
+  citacoesValidas: (() => {
+    const brutas = resultados.reduce((n, r) => n + r.citacoesBrutas, 0)
+    return brutas ? resultados.reduce((n, r) => n + r.citacoes, 0) / brutas : null
+  })(),
+  textoConferido: taxa((r) => r.conferido),
+  latenciaMs: (() => {
+    const v = resultados
+      .map((r) => r.ms)
+      .filter((x) => Number.isFinite(x))
+      .sort((a, b) => a - b)
+    const pct = (q) => (v.length ? v[Math.min(v.length - 1, Math.ceil(q * v.length) - 1)] : null)
+    return { p50: pct(0.5), p95: pct(0.95) }
+  })(),
+  gastoUsd: resultados.reduce((n, r) => n + (r.usd ?? 0), 0),
   porModo,
 }
 mkdirSync(SAIDA, { recursive: true })

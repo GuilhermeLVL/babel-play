@@ -22,9 +22,12 @@ export interface LinhaDoCacheDoParceiro {
 
 export const cacheDoParceiroRepo = {
   /** A resposta guardada, se criada DEPOIS de `criadaDepoisDe` (o TTL conta da criação). */
-  async ler(chave: string, criadaDepoisDe: number): Promise<{ resposta: string; modelo: string } | null> {
+  async ler(
+    chave: string,
+    criadaDepoisDe: number,
+  ): Promise<{ resposta: string; modelo: string; usadoEm: number } | null> {
     const rows = await db
-      .select({ resposta: tabela.resposta, modelo: tabela.modelo })
+      .select({ resposta: tabela.resposta, modelo: tabela.modelo, usadoEm: tabela.usadoEm })
       .from(tabela)
       .where(and(eq(tabela.chave, chave), gt(tabela.criadoEm, criadaDepoisDe)))
       .limit(1)

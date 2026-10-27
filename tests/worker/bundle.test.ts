@@ -30,6 +30,8 @@ interface Metafile {
 /** Os módulos do APP que importam `node:fs`: todos se guardam com `temDisco()`/`ehWorker()` ou só servem ao Node. */
 const NODE_FS_PERMITIDO = new Set([
   'server/crypto.ts',
+  // Os manifestos do parceiro de leitura: no Worker saem do `ASSETS`; o disco só no Node (`ehWorker()`).
+  'server/ai/leitura/manifestos.ts',
   'server/ai/registroDeProvedores.ts',
   'server/db/db.ts',
   'server/db/manutencao.ts',

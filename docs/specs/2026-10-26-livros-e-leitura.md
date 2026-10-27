@@ -380,13 +380,26 @@ Sem tela nesta entrega (a do leitor muda noutra frente). Duas peças:
   aponta passa a ser marcado. O Gemini só vota — nenhum texto dele entra (decisão: Gemini fora do produto). Feitas
   59 dos 60 mais populares de en/es/pt; 1 recusada pelo próprio gerador por não conhecer a obra (_Aves Migradoras_);
   a revisão tirou 66 de ~3.860 itens. Toda ficha leva "Gerado por IA, revisado automaticamente."
+  **O que isso NÃO garante:** o JSON estático é público (qualquer um baixa pela URL, como o próprio catálogo); o filtro
+  do spoiler, do sensível e da idade é feito NA TELA (`fichaParaLeitor`) e, para o parceiro, no servidor
+  (`fichaParaOPrompt`). Por isso o conteúdo da ficha é descritivo e sóbrio mesmo nos itens marcados como sensíveis —
+  nada ali é gráfico —, e a marcação serve para não estragar a leitura e dosar o tema, não para esconder segredo.
 - **Parceiro** (pago e teste, flag `parceiro_de_leitura` desligada, PG 0014): `POST /api/ai/leitura/parceiro`
   (`server/ai/nucleo/parceiroDeLeitura.ts`), seis modos — explicar, analogia, pergunta, curiosidade, ideia, observar.
   Contrato completo em `src/data/rotas/parceiroDeLeitura.ts`. Cotas em `planos.ts`: `parceiroDia` (40) e
   `parceiroTokensMes` (20% da `tokensMes`). Cache compartilhado (`cache_do_parceiro`, 90 dias) só em livro PD e nunca
   na pergunta livre; a chave é o hash de tudo que vai ao prompt (não dá para envenenar). Livro trazido: só a seleção
   e até 2 trechos (1.500 caracteres), sem cache. A pergunta só é respondida com citação que casa com o trecho
-  enviado; sem ela, "não está neste trecho". Sem busca na web (não há provedor de busca com retenção zero).
+  enviado; sem ela, "não está neste trecho". A citação precisa de 3 palavras inteiras ou 15 caracteres, casada em
+  fronteira de palavra (antes, "air" de "fair Verona" ancorava qualquer coisa).
+- **Texto conferido** (revisão de 27/10): o teto do catálogo e o cache só valem quando TODO trecho é um parágrafo do
+  livro, conferido no manifesto (`public/catalogo/manifestos/<id>.json`: SHA-256 de 40 bits por parágrafo, gerado por
+  `scripts/livros/gerar-manifestos.mjs`; 233 livros, ~4,5 MB, estático, lido do disco ou do `ASSETS` do Worker). O
+  parágrafo é o de `paragrafosDoCapitulo` sobre o texto de `lerEpubComoTexto` — a tela do leitor tem de montar os
+  trechos assim. O que não casa (outro livro com o id do catálogo, a Wikisource, que ainda não tem manifesto, ou os 45
+  EPUBs do Standard Ebooks que não estavam no cache local na geração) é recortado para o teto do livro trazido, sem
+  cache, com `textoConferido: false` na resposta. A chave do cache leva também o degrau do modelo; o acerto marca
+  `usado_em` no máximo uma vez por hora; a citação guardada é cortada em 160 caracteres. Sem busca na web (não há provedor de busca com retenção zero).
 - **Qualidade** (`scripts/eval-ia/parceiro.mjs`, gold `tests/eval/fixtures/gold-parceiro-v1.json`: 20 casos, 6 modos,
   _Romeo and Juliet_, _Dom Casmurro_ e _La isla del tesoro_, um caso de menor). Candidato SUBSTITUTO `cli:haiku` (o
   prompt e o leitor de produção, mas não a cascata), juízes `claude -p` Opus e `agy` Gemini: 18/20 na 1ª rodada — um

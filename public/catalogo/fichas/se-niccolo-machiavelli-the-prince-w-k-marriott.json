@@ -6,7 +6,7 @@
   "geradaEm": "2026-10-26",
   "procedencia": {
     "geradoPor": "claude-opus (claude -p)",
-    "revisadoPor": "gemini-4-argon-medium (agy -p)",
+    "revisadoPor": "revisão automática (outra família de modelo)",
     "aviso": "Gerado por IA, revisado automaticamente.",
     "removidosNaRevisao": 0
   },

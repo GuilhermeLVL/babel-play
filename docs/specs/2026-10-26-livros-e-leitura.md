@@ -366,3 +366,32 @@ Cada fase vai num worktree próprio, com revisão `revisor-critico`, merge na ma
 - Gesto no texto (pedido do dono, junto da L3): só o toque limpo abre a folha da palavra
   (`src/core/leitura/gestoDoLeitor.ts`); arrastar, segurar e o toque duplo são seleção. No WebKit o gesto é
   amostrado pelo `:active` do capítulo e pela seleção.
+
+## Notas da implementação do parceiro de leitura (L4, motor e conteúdo, 27/10/2026)
+
+Sem tela nesta entrega (a do leitor muda noutra frente). Duas peças:
+
+- **Ficha do livro** (grátis, estática): `public/catalogo/fichas/<id>.json` + `indice.json`, carregada sob demanda
+  (`src/lib/livros/fichas.ts`). Esquema, validador e quem vê o quê em `src/core/livros/ficha.ts`: menor não vê a ficha
+  do livro que a vitrine esconde dele; spoiler só a pedido; o sensível e o aviso de conteúdo só a partir do teto 16
+  (abaixo, uma linha neutra); o aviso também conta o desfecho, então sem spoiler vira uma linha genérica. Gerada uma
+  vez por `scripts/livros/gerar-fichas.mjs` (retomável, no máximo 3 CLIs, alarme por chamada) com as assinaturas:
+  `claude -p` (Opus) ESCREVE e `agy` (Gemini) REVISA item por item; o duvidoso sai, e o spoiler/sensível que ele
+  aponta passa a ser marcado. O Gemini só vota — nenhum texto dele entra (decisão: Gemini fora do produto). Feitas
+  59 dos 60 mais populares de en/es/pt; 1 recusada pelo próprio gerador por não conhecer a obra (_Aves Migradoras_);
+  a revisão tirou 66 de ~3.860 itens. Toda ficha leva "Gerado por IA, revisado automaticamente."
+- **Parceiro** (pago e teste, flag `parceiro_de_leitura` desligada, PG 0014): `POST /api/ai/leitura/parceiro`
+  (`server/ai/nucleo/parceiroDeLeitura.ts`), seis modos — explicar, analogia, pergunta, curiosidade, ideia, observar.
+  Contrato completo em `src/data/rotas/parceiroDeLeitura.ts`. Cotas em `planos.ts`: `parceiroDia` (40) e
+  `parceiroTokensMes` (20% da `tokensMes`). Cache compartilhado (`cache_do_parceiro`, 90 dias) só em livro PD e nunca
+  na pergunta livre; a chave é o hash de tudo que vai ao prompt (não dá para envenenar). Livro trazido: só a seleção
+  e até 2 trechos (1.500 caracteres), sem cache. A pergunta só é respondida com citação que casa com o trecho
+  enviado; sem ela, "não está neste trecho". Sem busca na web (não há provedor de busca com retenção zero).
+- **Qualidade** (`scripts/eval-ia/parceiro.mjs`, gold `tests/eval/fixtures/gold-parceiro-v1.json`: 20 casos, 6 modos,
+  _Romeo and Juliet_, _Dom Casmurro_ e _La isla del tesoro_, um caso de menor). Candidato SUBSTITUTO `cli:haiku` (o
+  prompt e o leitor de produção, mas não a cascata), juízes `claude -p` Opus e `agy` Gemini: 18/20 na 1ª rodada — um
+  ponto com citação adulterada entre aspas simples (o leitor passou a conferir aspas simples e a usar a ficha como
+  fonte; `parceiro-v2`) e um veredito ilegível do juiz; 20/20 depois. Resultado em
+  `docs/auditoria/eval/parceiro-v1/`. **Pendente do dono:** a rodada com o modelo de produção
+  (`--candidato openrouter:<modelo> --confirmo-gasto --teto 0.2`, estimativa < US$ 0,05 para os 20 casos) antes de
+  ligar a flag.

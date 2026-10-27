@@ -31,7 +31,7 @@ export const MODOS_COM_SELECAO: readonly ModoDoParceiro[] = ['explicar', 'analog
  * A versão do prompt: entra na chave do cache compartilhado. Mudou o texto de um prompt ou do leitor, sobe aqui — a
  * resposta antiga não serve ao prompt novo.
  */
-export const VERSAO_DO_PROMPT_DO_PARCEIRO = 'parceiro-v1';
+export const VERSAO_DO_PROMPT_DO_PARCEIRO = 'parceiro-v2';
 
 /** O id que a SELEÇÃO tem para a citação (os trechos do capítulo têm os ids que o cliente mandou). */
 export const ID_DA_SELECAO = 'selecao';
@@ -72,8 +72,11 @@ export const MAX_PONTOS = 5;
 export const MAX_CARACTERES_DO_PONTO = 300;
 export const MAX_CITACOES = 4;
 export const MAX_CARACTERES_DA_CITACAO = 300;
-/** Aspas com mais palavras que isto são citação, e citação tem de estar no texto enviado. */
-export const MAX_PALAVRAS_ENTRE_ASPAS = 6;
+/**
+ * Aspas com mais palavras que isto são citação, e citação tem de estar no texto enviado ou na ficha (um título curto,
+ * "Romeo and Juliet", passa; a frase do livro adulterada, não).
+ */
+export const MAX_PALAVRAS_ENTRE_ASPAS = 3;
 
 /** A resposta fixa quando a pergunta não se responde com o texto enviado. */
 export const NAO_ESTA_NO_TRECHO = 'Não está neste trecho. Tente selecionar outra parte do capítulo ou reformular.';
@@ -197,9 +200,13 @@ export function normalizarParaCitacao(s: string): string {
 
 const ASPAS = /["“”«»„]([^"“”«»„]{1,400})["“”«»„]/g;
 
-/** Algum trecho entre aspas longo (citação) que NÃO está no texto enviado? */
+/* Aspas simples também (a bancada achou uma citação adulterada entre aspas simples), mas só as que abrem depois de
+   espaço ou parêntese e fecham antes de pontuação: o apóstrofo de "d'aqui" ou "o'er" não abre citação. */
+const ASPAS_SIMPLES = /(?:^|[\s(])['‘]([^'‘’\n]{1,400})['’](?=[\s.,;:!?)]|$)/g;
+
+/** Algum trecho entre aspas (mais de `MAX_PALAVRAS_ENTRE_ASPAS` palavras) que NÃO está na fonte? */
 export function temCitacaoInventada(texto: string, fonte: string): boolean {
-  for (const m of texto.matchAll(ASPAS)) {
+  for (const m of [...texto.matchAll(ASPAS), ...texto.matchAll(ASPAS_SIMPLES)]) {
     const dentro = m[1].trim();
     if (dentro.split(/\s+/).filter(Boolean).length <= MAX_PALAVRAS_ENTRE_ASPAS) continue;
     if (!fonte.includes(normalizarParaCitacao(dentro))) return true;
@@ -218,11 +225,13 @@ export function lerRespostaDoParceiro(
   bruto: string,
   modo: ModoDoParceiro,
   trechos: readonly TrechoDoCapitulo[],
+  ficha = '',
 ): RespostaDoParceiro | null {
   const o = objetoDaResposta(bruto);
   if (!o || typeof o.texto !== 'string' || !Array.isArray(o.pontos) || !Array.isArray(o.citacoes)) return null;
   const porId = new Map(trechos.map((t) => [t.id, normalizarParaCitacao(t.texto)]));
-  const fonte = [...porId.values()].join('\n');
+  /* A fonte das aspas: o texto enviado e a ficha (o título de uma fonte, uma obra citada na curiosidade). */
+  const fonte = [...porId.values(), normalizarParaCitacao(ficha)].join('\n');
 
   const citacoes: CitacaoDoParceiro[] = [];
   for (const c of o.citacoes) {

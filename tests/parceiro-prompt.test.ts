@@ -65,6 +65,35 @@ describe('lerRespostaDoParceiro', () => {
     ).not.toBeNull()
   })
 
+  it('aspas simples também (o achado da bancada), sem confundir apóstrofo; a ficha conta como fonte', () => {
+    const adulterada = "No texto, ele diz 'a single man of good fortune and wit'."
+    expect(lerRespostaDoParceiro(resposta({ texto: adulterada }), 'explicar', TRECHOS)).toBeNull()
+    expect(
+      lerRespostaDoParceiro(
+        resposta({ texto: "Ele cita 'a single man in possession' do trecho." }),
+        'explicar',
+        TRECHOS,
+      ),
+    ).not.toBeNull()
+    expect(
+      lerRespostaDoParceiro(
+        resposta({ texto: "O'er the hills, d'aqui até lá, isso não é citação." }),
+        'explicar',
+        TRECHOS,
+      ),
+    ).not.toBeNull()
+    const titulo = 'A fonte foi o poema "The Tragicall Historye of Romeus and Juliet".'
+    expect(lerRespostaDoParceiro(resposta({ texto: titulo }), 'curiosidade', TRECHOS)).toBeNull()
+    expect(
+      lerRespostaDoParceiro(
+        resposta({ texto: titulo }),
+        'curiosidade',
+        TRECHOS,
+        'contexto: A fonte foi The Tragicall Historye of Romeus and Juliet, de Brooke.',
+      ),
+    ).not.toBeNull()
+  })
+
   it('fora do formato é null', () => {
     expect(lerRespostaDoParceiro('desculpe', 'explicar', TRECHOS)).toBeNull()
     expect(lerRespostaDoParceiro(JSON.stringify({ texto: 1 }), 'explicar', TRECHOS)).toBeNull()

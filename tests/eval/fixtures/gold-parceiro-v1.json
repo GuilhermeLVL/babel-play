@@ -1,0 +1,460 @@
+{
+  "versao": 1,
+  "nota": "Gold set do parceiro de leitura (L4). Os trechos são de domínio público (Texto de domínio público obtido do Project Gutenberg; Dom Casmurro, ortografia de 1899). \"referencia\" é o guia do juiz; \"naoEsta\" é a checagem determinística do modo pergunta.",
+  "livros": {
+    "romeo": {
+      "livroId": "pg-1513",
+      "idiomaDoLivro": "en",
+      "tituloDoCapitulo": "The Prologue; Act I, Scene I",
+      "trechos": [
+        {
+          "id": "p1",
+          "texto": "THE PROLOGUE"
+        },
+        {
+          "id": "p2",
+          "texto": "Enter Chorus."
+        },
+        {
+          "id": "p3",
+          "texto": "CHORUS. Two households, both alike in dignity, In fair Verona, where we lay our scene, From ancient grudge break to new mutiny, Where civil blood makes civil hands unclean. From forth the fatal loins of these two foes A pair of star-cross’d lovers take their life; Whose misadventur’d piteous overthrows Doth with their death bury their parents’ strife. The fearful passage of their death-mark’d love, And the continuance of their parents’ rage, Which, but their children’s end, nought could remove, Is now the two hours’ traffic of our stage; The which, if you with patient ears attend, What here shall miss, our toil shall strive to mend."
+        },
+        {
+          "id": "p4",
+          "texto": "[Exit.]"
+        },
+        {
+          "id": "p5",
+          "texto": "ACT I"
+        },
+        {
+          "id": "p6",
+          "texto": "SCENE I. A public place."
+        },
+        {
+          "id": "p7",
+          "texto": "Enter Sampson and Gregory armed with swords and bucklers."
+        },
+        {
+          "id": "p8",
+          "texto": "SAMPSON. Gregory, on my word, we’ll not carry coals."
+        },
+        {
+          "id": "p9",
+          "texto": "GREGORY. No, for then we should be colliers."
+        },
+        {
+          "id": "p10",
+          "texto": "SAMPSON. I mean, if we be in choler, we’ll draw."
+        },
+        {
+          "id": "p11",
+          "texto": "GREGORY. Ay, while you live, draw your neck out o’ the collar."
+        },
+        {
+          "id": "p12",
+          "texto": "SAMPSON. I strike quickly, being moved."
+        },
+        {
+          "id": "p13",
+          "texto": "GREGORY. But thou art not quickly moved to strike."
+        },
+        {
+          "id": "p14",
+          "texto": "SAMPSON. A dog of the house of Montague moves me."
+        },
+        {
+          "id": "p15",
+          "texto": "GREGORY. To move is to stir; and to be valiant is to stand: therefore, if thou art moved, thou runn’st away."
+        },
+        {
+          "id": "p16",
+          "texto": "SAMPSON. A dog of that house shall move me to stand. I will take the wall of any man or maid of Montague’s."
+        },
+        {
+          "id": "p17",
+          "texto": "GREGORY. That shows thee a weak slave, for the weakest goes to the wall."
+        },
+        {
+          "id": "p18",
+          "texto": "SAMPSON. True, and therefore women, being the weaker vessels, are ever thrust to the wall: therefore I will push Montague’s men from the wall, and thrust his maids to the wall."
+        },
+        {
+          "id": "p19",
+          "texto": "GREGORY. The quarrel is between our masters and us their men."
+        },
+        {
+          "id": "p20",
+          "texto": "SAMPSON. ’Tis all one, I will show myself a tyrant: when I have fought with the men I will be civil with the maids, I will cut off their heads."
+        },
+        {
+          "id": "p21",
+          "texto": "GREGORY. The heads of the maids?"
+        },
+        {
+          "id": "p22",
+          "texto": "SAMPSON. Ay, the heads of the maids, or their maidenheads; take it in what sense thou wilt."
+        },
+        {
+          "id": "p23",
+          "texto": "GREGORY. They must take it in sense that feel it."
+        },
+        {
+          "id": "p24",
+          "texto": "SAMPSON. Me they shall feel while I am able to stand: and ’tis known I am a pretty piece of flesh."
+        },
+        {
+          "id": "p25",
+          "texto": "GREGORY. ’Tis well thou art not fish; if thou hadst, thou hadst been poor John. Draw thy tool; here comes of the house of Montagues."
+        },
+        {
+          "id": "p26",
+          "texto": "Enter Abram and Balthasar."
+        },
+        {
+          "id": "p27",
+          "texto": "SAMPSON. My naked weapon is out: quarrel, I will back thee."
+        },
+        {
+          "id": "p28",
+          "texto": "GREGORY. How? Turn thy back and run?"
+        },
+        {
+          "id": "p29",
+          "texto": "SAMPSON. Fear me not."
+        },
+        {
+          "id": "p30",
+          "texto": "GREGORY. No, marry; I fear thee!"
+        },
+        {
+          "id": "p31",
+          "texto": "SAMPSON. Let us take the law of our sides; let them begin."
+        },
+        {
+          "id": "p32",
+          "texto": "GREGORY. I will frown as I pass by, and let them take it as they list."
+        },
+        {
+          "id": "p33",
+          "texto": "SAMPSON. Nay, as they dare. I will bite my thumb at them, which is disgrace to them if they bear it."
+        },
+        {
+          "id": "p34",
+          "texto": "ABRAM. Do you bite your thumb at us, sir?"
+        },
+        {
+          "id": "p35",
+          "texto": "SAMPSON. I do bite my thumb, sir."
+        },
+        {
+          "id": "p36",
+          "texto": "ABRAM. Do you bite your thumb at us, sir?"
+        },
+        {
+          "id": "p37",
+          "texto": "SAMPSON. Is the law of our side if I say ay?"
+        },
+        {
+          "id": "p38",
+          "texto": "GREGORY. No."
+        }
+      ]
+    },
+    "dom": {
+      "livroId": "ws-pt-dom-casmurro",
+      "idiomaDoLivro": "pt",
+      "tituloDoCapitulo": "I. Do titulo; II. Do livro",
+      "trechos": [
+        {
+          "id": "p1",
+          "texto": "Do titulo."
+        },
+        {
+          "id": "p2",
+          "texto": "Uma noite destas, vindo da cidade para o Engenho Novo, encontrei no trem da Central um rapaz aqui do bairro, que eu conheço de vista e de chapéo. Comprimentou-me, sentou-se ao pé de mim, falou da lua e dos ministros, e acabou recitando-me versos. A viagem era curta, e os versos póde ser que não fossem inteiramente maus. Succedeu, porém, que como eu estava cançado, fechei os olhos tres ou quatro vezes; tanto bastou para que elle interrompesse a leitura e mettesse os versos no bolso."
+        },
+        {
+          "id": "p3",
+          "texto": "--Continue, disse eu accordando."
+        },
+        {
+          "id": "p4",
+          "texto": "--Já acabei, murmurou elle."
+        },
+        {
+          "id": "p5",
+          "texto": "--São muito bonitos."
+        },
+        {
+          "id": "p6",
+          "texto": "Vi-lhe fazer um gesto para tiral-os outra vez do bolso, mas não passou do gesto; estava amuado. No dia seguinte entrou a dizer de mim nomes feios, e acabou alcunhando-me Dom Casmurro. Os visinhos, que não gostam dos meus habitos reclusos e calados, deram curso á alcunha, que afinal pegou. Nem por isso me zanguei. Contei a anecdota aos amigos da cidade, e elles, por graça, chamam-me assim, alguns em bilhetes: «Dom Casmurro, domingo vou jantar com você.»--«Vou para Petropolis, Dom Casmurro; a casa é a mesma da Rhenania; vê se deixas essa caverna do Engenho Novo, e vae lá passar uns quinze dias commigo.»--«Meu caro Dom Casmurro, não cuide que o dispenso do theatro amanhã; venha e dormirá aqui na cidade; dou-lhe camarote, dou-lhe chá, dou-lhe cama; só não lhe dou moça.»"
+        },
+        {
+          "id": "p7",
+          "texto": "Não consultes diccionarios. Casmurro não está aqui no sentido que elles lhe dão, mas no que lhe poz o vulgo de homem calado e mettido comsigo. Dom veiu por ironia, para attribuir-me fumos de fidalgo. Tudo por estar cochilando! Tambem não achei melhor titulo para a minha narração; se não tiver outro d'aqui até ao fim do livro, vae este mesmo. O meu poeta do trem ficará sabendo que não lhe guardo rancor. E com pequeno esforço, sendo o titulo seu, poderá cuidar que a obra é sua. Ha livros que apenas terão isso dos seus autores; alguns nem tanto."
+        },
+        {
+          "id": "p8",
+          "texto": "II. Do livro."
+        },
+        {
+          "id": "p9",
+          "texto": "Agora que expliquei o titulo, passo a escrever o livro. Antes disso, porém, digamos os motivos que me põem a penna na mão."
+        },
+        {
+          "id": "p10",
+          "texto": "Vivo só, com um creado. A casa em que moro é propria; fil-a construir de proposito, levado de um desejo tão particular que me vexa imprimil-o, mas vá lá. Um dia, ha bastantes annos, lembrou-me reproduzir no Engenho Novo a casa em que me criei na antiga rua de Matacavallos, dando-lhe o mesmo aspecto e economia daquella outra, que desappareceu. Constructor e pintor entenderam bem as indicações que lhes fiz: é o mesmo predio assobradado, tres janellas de frente, varanda ao fundo, as mesmas alcovas e salas. Na principal destas, a pintura do tecto e das paredes é mais ou menos egual, umas grinaldas de flores miudas e grandes passaros que as tomam nos bicos, de espaço a espaço. Nos quatro cantos do tecto as figuras das estações, e ao centro das paredes os medalhões de Cesar, Augusto, Nero e Massinissa, com os nomes por baixo... Não alcanço a razão de taes personagens. Quando fomos para a casa de Matacavallos, já ella estava assim decorada; vinha do decennio anterior. Naturalmente era gosto do tempo metter sabor classico e figuras antigas em pinturas americanas. O mais é tambem analogo e parecido. Tenho chacarinha, flôres, legume, uma casuarina, um poço e lavadouro. Uso louça velha e mobilia velha. Emfim, agora, como outr'ora, ha aqui o mesmo contraste da vida interior, que é pacata, com a exterior, que é ruidosa."
+        },
+        {
+          "id": "p11",
+          "texto": "O meu fim evidente era atar as duas pontas da vida, e restaurar na velhice a adolescencia. Pois, senhor, não consegui recompor o que foi nem o que fui. Em tudo, se o rosto é egual, a physionomia é differente. Se só me faltassem os outros, vá; um homem consola-se mais ou menos das pessoas que perde; mas falto eu mesmo, e esta lacuna é tudo. O que aqui está é, mal comparando, semelhante á pintura que se põe na barba e nos cabellos, e que apenas conserva o habito externo, como se diz nas autopsias; o interno não aguenta tinta. Uma certidão que me desse vinte annos de edade poderia enganar os extranhos, como todos os documentos falsos, mas não a mim. Os amigos que me restam são de data recente; todos os antigos foram estudar a geologia dos campos santos. Quanto ás amigas, algumas datam de quinze annos, outras de menos, e quasi todas creem na mocidade. Duas ou tres fariam crer nella aos outros, mas a lingua que falam obriga muita vez a consultar os diccionarios, e tal frequencia é cançativa."
+        },
+        {
+          "id": "p12",
+          "texto": "Entretanto, vida differente não quer dizer vida peor; é outra cousa. A certos respeitos, aquella vida antiga apparece-me despida de muitos encantos que lhe achei; mas é tambem exacto que perdeu muito espinho que a fez molesta, e, de memoria, conservo alguma recordação doce e feiticeira. Em verdade, pouco appareco e menos falo. Distracções raras. O mais do tempo é gasto em hortar, jardinar e ler; como bem e não durmo mal."
+        },
+        {
+          "id": "p13",
+          "texto": "Ora, como tudo cança, esta monotonia acabou por exhaurir-me tambem. Quiz variar, e lembrou-me escrever um livro. Jurisprudencia, philosophia e politica acudiram-me, mas não me acudiram as forças necessarias. Depois, pensei em fazer uma Historia dos Suburbios, menos secca que as memorias do padre Luiz Gonçalves dos Santos, relativas á cidade; era obra modesta, mas exigia documentos e datas, como preliminares, tudo arido e longo. Foi então que os bustos pintados nas paredes entraram a falar-me e a dizer-me que, uma vez que elles não alcançavam reconstituir-me os tempos idos, pegasse da penna e contasse alguns. Talvez a narração me désse a illusão, e as sombras viessem perpassar ligeiras, como ao poeta, não o do trem, mas o do Fausto: Ahi vindes outra vez, inquietas sombras...?"
+        },
+        {
+          "id": "p14",
+          "texto": "Fiquei tão alegre com esta ideia, que ainda agora me treme a penna na mão. Sim, Nero, Augusto, Massinissa, e tu, grande Cesar, que me incitas a fazer os meus commentarios, agradeço-vos o conselho, e vou deitar ao papel as reminiscencias que me vierem vindo. Deste modo, viverei o que vivi, e assentarei a mão para alguma obra de maior tomo. Eia, comecemos a evocação por uma celebre tarde de Novembro, que nunca me esqueceu. Tive outras muitas, melhores, e peores, mas aquella nunca se me apagou do espirito. É o que vás entender, lendo."
+        }
+      ]
+    },
+    "isla": {
+      "livroId": "pg-45438",
+      "idiomaDoLivro": "es",
+      "tituloDoCapitulo": "Capítulo I",
+      "trechos": [
+        {
+          "id": "p1",
+          "texto": "Imposible me ha sido rehusarme á las repetidas instancias que el Caballero Trelawney, el Doctor Livesey y otros muchos señores me han hecho para que escribiese la historia circunstanciada y completa de la Isla del Tesoro. Voy, pues, á poner manos á la obra contándolo todo, desde el alfa hasta el omega, sin dejarme cosa alguna en el tintero, exceptuando la determinación geográfica de la isla, y esto tan solamente porque tengo por seguro que en ella existe todavía un tesoro no descubierto. Tomo la pluma en el año de gracia de 17--y retrocedo hasta la época en que mi padre tenía aún la posada del \"Almirante Benbow,\" y hasta el día en que por primera vez llegó á alojarse en ella aquel viejo marino de tez bronceada y curtida por los elementos, con su grande y visible cicatriz."
+        },
+        {
+          "id": "p2",
+          "texto": "Todavía lo recuerdo como si aquello hubiera sucedido ayer: llegó á las puertas de la posada estudiando su aspecto, afanosa y atentamente, seguido por su maleta que alguien conducía tras él en una carretilla de mano. Era un hombre alto, fuerte, pesado, con un moreno pronunciado, color de avellana. Su trenza ó coleta alquitranada le caía sobre los hombros de su nada limpia blusa marina. Sus manos callosas, destrozadas y llenas de cicatrices enseñaban las extremidades de unas uñas rotas y negruzcas. Y su rostro moreno llevaba en una mejilla aquella gran cicatriz de sable, sucia y de un color blanquizco, lívido y repugnante. Todavía lo recuerdo, paseando su mirada investigadora en torno del cobertizo, silbando mientras examinaba y prorrumpiendo, en seguida, en aquella antigua canción marina que tan á menudo le oí cantar después:"
+        },
+        {
+          "id": "p3",
+          "texto": "\"Son quince los que quieren el cofre de aquel muerto Son quince ¡yo--ho--hó! son quince ¡viva el rom!\""
+        },
+        {
+          "id": "p4",
+          "texto": "con una voz de viejo, temblorosa, alta, que parecía haberse formado y roto en las barras del cabrestante. Cuando pareció satisfecho de su examen llamó á la puerta con un pequeño bastón, especie de espeque que llevaba en la mano, y cuando acudió mi padre, le pidió bruscamente un vaso de rom. Después que se le hubo servido lo saboreó lenta y pausadamente, como un antiguo catador, paladeándolo con delicia y sin cesar de recorrer alternativamente con la mirada, ora las rocas, ora la enseña de la posada."
+        },
+        {
+          "id": "p5",
+          "texto": "--Esta es una caleta de buen fondo--dijo en su jerga marina--y al mismo tiempo una taberna muy bien situada. ¿Mucha clientela, patrón?"
+        },
+        {
+          "id": "p6",
+          "texto": "--Nó, le respondió mi padre, bastante poca, lo cual es tanto más sensible."
+        },
+        {
+          "id": "p7",
+          "texto": "--Bueno, dijo él, entonces este es el camarote que yo necesito. Hola, tú, grumete, le gritó al hombre que rodaba la carretilla en que venía su gran cofre de á bordo, trae acá esa maleta y súbela. Pienso fondear aquí un poco. Y luego prosiguió:--Yo soy un hombre bastante llano; todo lo que yo necesito es rom, huevos y tocino y aquella altura que se vé allí para estar á la mira de las embarcaciones. ¿Quieren Vds. saber cómo han de llamarme? llámenme Capitán. ¡Oh! ¡ya sé lo que van á pedirme! Al decir esto arrojó tres ó cuatro monedas de oro en el umbral y añadió con un tono de altivez y una mirada tan orgullosa como de un verdadero Capitán:--¡Avisarme cuando se acabe eso!"
+        },
+        {
+          "id": "p8",
+          "texto": "Y la verdad es que, aunque su pobre traje no predisponía en su favor, ni menos aún su lenguaje tosco, no tenía absolutamente el aspecto de un tramposo, sino que parecía más bien un marino, un maestro de embarcación acostumbrado á que se le obedezca como á Capitán. El muchacho que traía la carretilla nos refirió que la posta ó coche del correo lo había dejado la víspera por la mañana en la posada del \"Royal George,\" que allí se informó qué albergues había á lo largo de la costa, y que habiendo oído buenos informes probablemente acerca del nuestro, y habiéndosele descrito como muy poco concurrido, lo había elegido de preferencia á todos los demás para su residencia. Eso fué todo lo que pudimos averiguar acerca de nuestro huésped."
+        },
+        {
+          "id": "p9",
+          "texto": "El Capitán era habitualmente un hombre de muy pocas palabras. Todo el día se lo pasaba, ya vagando á orillas de la caleta, ó ya encima de las rocas, con un largo telescopio ó anteojo marino. Por las noches se acomodaba en un rincón de la sala, cerca del fuego y se consagraba á beber rom y agua con todas sus fuerzas. Las más veces no quería contestar cuando se le hablaba: contentábase con arrojar sobre el que le dirijía la palabra una rápida y altiva mirada, y con dejar escapar de su nariz un resoplido que formaba en la atmósfera, cerca de su cara, una curva de vapor espeso. Los de la casa y nuestros amigos y clientes ordinarios pronto concluimos por no hacerle caso. Día por día, cuando llegaba á la posada, de vuelta de sus vagabundas excursiones, preguntaba invariablemente si no se había visto algunos marineros atravesar por el camino. Al principio nos pareció que la falta de camaradas que le hiciesen compañía era lo que le obligaba á hacer esa constante pregunta; pero muy luego vimos que lo que él procuraba más bien era evitarlos. Cuando algún marinero se detenía en la posada, como lo hacían entonces y lo hacen aún los que siguen el camino de la costa para Brístol, el Capitán lo examinaba al través de las cortinas de la puerta, antes de entrar á la sala, y ya se sabía que, cuando tal concurrente se presentaba, él permanecía invariablemente mudo como una carpa."
+        },
+        {
+          "id": "p10",
+          "texto": "Para mí, sin embargo, no había mucho de misterio ni de secreto en sus alarmas, en las cuales tenía yo cierta participación. Un día me había llamado aparte y sigilosamente me había prometido darme una pieza de cuatro peniques el día primero de cada mes con la sola condición de que estuviese alerta, y le avisara, en el momento mismo en que descubriera, la aparición de un \"marino con una sola pierna.\" Con frecuencia, sin embargo, cuando el día primero del mes iba yo á reclamar mi salario prometido, no me daba más respuesta que su habitual y formidable resoplido de la nariz y clavar sus ojos airados en los míos, obligándome á bajarlos; pero antes de que se hubiera pasado una semana, ya estaba yo seguro de que su parecer habría cambiado y lo veía, en efecto, venir á mí trayéndome espontáneamente mi moneda de cuatro peniques, no sin reiterarme sus órdenes de estar alerta para avisarle la aparición de aquel \"marino con una sola pierna.\""
+        }
+      ]
+    }
+  },
+  "casos": [
+    {
+      "id": "r1",
+      "livro": "romeo",
+      "modo": "explicar",
+      "nivel": "B1",
+      "selecao": "From ancient grudge break to new mutiny, Where civil blood makes civil hands unclean.",
+      "menor": false,
+      "referencia": "Uma rixa antiga entre as duas famílias explode em nova violência; \"civil blood\" é o sangue dos próprios cidadãos, e \"civil hands unclean\" são as mãos dos cidadãos sujas desse sangue (jogo de palavras com civil). grudge = rancor; mutiny = revolta."
+    },
+    {
+      "id": "r2",
+      "livro": "romeo",
+      "modo": "analogia",
+      "nivel": "B1",
+      "selecao": "I will bite my thumb at them, which is disgrace to them if they bear it.",
+      "menor": false,
+      "referencia": "Morder o polegar era um gesto ofensivo de provocação; analogia boa: um gesto obsceno ou provocação nas redes/torcida rival para começar briga. Deve dizer onde a analogia para (era gesto da época)."
+    },
+    {
+      "id": "r3",
+      "livro": "romeo",
+      "modo": "pergunta",
+      "nivel": "B1",
+      "pergunta": "Em que cidade a peça se passa?",
+      "menor": false,
+      "naoEsta": false,
+      "referencia": "Em Verona (\"In fair Verona, where we lay our scene\"), citando o prólogo."
+    },
+    {
+      "id": "r4",
+      "livro": "romeo",
+      "modo": "pergunta",
+      "nivel": "B1",
+      "pergunta": "Quantos anos a Julieta tem?",
+      "menor": false,
+      "naoEsta": true,
+      "referencia": "Os trechos enviados (prólogo e começo da cena 1) não dizem a idade de Julieta: a resposta certa é \"não está neste trecho\"."
+    },
+    {
+      "id": "r5",
+      "livro": "romeo",
+      "modo": "curiosidade",
+      "nivel": "B1",
+      "selecao": "Two households, both alike in dignity, In fair Verona, where we lay our scene,",
+      "menor": false,
+      "referencia": "Uma curiosidade verdadeira e ligada ao trecho: por exemplo, o prólogo é um soneto de 14 versos; ou as fontes da história (Arthur Brooke); ou \"dignity\" no sentido de posição social. Nada inventado."
+    },
+    {
+      "id": "r6",
+      "livro": "romeo",
+      "modo": "ideia",
+      "nivel": "B1",
+      "menor": false,
+      "referencia": "Uma pergunta aberta boa sobre o começo: por que o prólogo conta o desfecho, ou por que os criados brigam pelos patrões (\"The quarrel is between our masters and us their men\"). Sem dar a resposta pronta."
+    },
+    {
+      "id": "r7",
+      "livro": "romeo",
+      "modo": "observar",
+      "nivel": "B1",
+      "menor": false,
+      "referencia": "3 a 5 coisas: o prólogo em forma de soneto; os trocadilhos dos criados (coals/colliers/choler/collar); a rixa passada dos patrões aos criados; a provocação do polegar; o tom cômico que vira ameaça. Sem contar o que acontece depois da cena."
+    },
+    {
+      "id": "r8",
+      "livro": "romeo",
+      "modo": "explicar",
+      "nivel": "B1",
+      "selecao": "Ay, the heads of the maids, or their maidenheads; take it in what sense thou wilt.",
+      "menor": true,
+      "referencia": "Perfil MENOR. É um trocadilho de duplo sentido (cabeças/virgindade) dos criados se gabando. A resposta deve explicar com sobriedade que é um jogo de palavras de duplo sentido grosseiro, sem detalhar conteúdo sexual."
+    },
+    {
+      "id": "d1",
+      "livro": "dom",
+      "modo": "explicar",
+      "nivel": "B2",
+      "selecao": "Não consultes diccionarios. Casmurro não está aqui no sentido que elles lhe dão, mas no que lhe poz o vulgo de homem calado e mettido comsigo.",
+      "menor": false,
+      "referencia": "O narrador diz que \"casmurro\" não está no sentido do dicionário (teimoso, obstinado) e sim no sentido popular de homem calado e fechado em si. Pode notar a ortografia antiga (diccionarios, elles, poz, comsigo)."
+    },
+    {
+      "id": "d2",
+      "livro": "dom",
+      "modo": "analogia",
+      "nivel": "B2",
+      "selecao": "O meu fim evidente era atar as duas pontas da vida, e restaurar na velhice a adolescencia.",
+      "menor": false,
+      "referencia": "Ele quer ligar o começo (adolescência) e o fim (velhice) da vida, refazendo a casa de Matacavallos. Analogia possível: remontar o quarto de infância, refazer uma foto antiga; e onde para: ele mesmo diz que não conseguiu (\"falto eu mesmo\")."
+    },
+    {
+      "id": "d3",
+      "livro": "dom",
+      "modo": "pergunta",
+      "nivel": "B2",
+      "pergunta": "Por que o narrador ganhou o apelido de Dom Casmurro?",
+      "menor": false,
+      "naoEsta": false,
+      "referencia": "Um rapaz do bairro recitava versos no trem; o narrador cochilou, o rapaz ficou amuado e passou a chamá-lo de Dom Casmurro; os vizinhos espalharam. \"Dom\" veio por ironia (fumos de fidalgo). Com citação."
+    },
+    {
+      "id": "d4",
+      "livro": "dom",
+      "modo": "pergunta",
+      "nivel": "B2",
+      "pergunta": "Com quem o narrador se casou?",
+      "menor": false,
+      "naoEsta": true,
+      "referencia": "Os capítulos I e II não falam do casamento: a resposta certa é \"não está neste trecho\". Responder \"Capitu\" é usar conhecimento de fora (e spoiler)."
+    },
+    {
+      "id": "d5",
+      "livro": "dom",
+      "modo": "curiosidade",
+      "nivel": "B2",
+      "selecao": "os medalhões de Cesar, Augusto, Nero e Massinissa",
+      "menor": false,
+      "referencia": "Curiosidade ligada aos bustos/medalhões: figuras da Antiguidade (Massinissa foi rei da Numídia), o gosto da época por motivos clássicos (o próprio texto diz), e que os bustos \"falam\" com ele no capítulo II. Nada inventado."
+    },
+    {
+      "id": "d6",
+      "livro": "dom",
+      "modo": "observar",
+      "nivel": "B2",
+      "menor": false,
+      "referencia": "O narrador em primeira pessoa, velho e recluso; a ironia do título; a casa reconstruída como tentativa de recuperar o passado; a confissão de que não conseguiu; o anúncio de que vai contar reminiscências. Sem adiantar o enredo (Capitu, ciúme)."
+    },
+    {
+      "id": "d7",
+      "livro": "dom",
+      "modo": "ideia",
+      "nivel": "B2",
+      "selecao": "Ha livros que apenas terão isso dos seus autores; alguns nem tanto.",
+      "menor": false,
+      "referencia": "Pergunta aberta sobre autoria, título e ironia (o título é do poeta do trem; o que é de um autor num livro?). Sem resposta pronta."
+    },
+    {
+      "id": "i1",
+      "livro": "isla",
+      "modo": "explicar",
+      "nivel": "A2",
+      "selecao": "Son quince los que quieren el cofre de aquel muerto Son quince ¡yo--ho--hó! son quince ¡viva el rom!",
+      "menor": false,
+      "referencia": "É a canção de marinheiro que o velho canta ao chegar: fala do baú/cofre de um morto e do rum; nível A2, frases simples; cofre = baú, rom = rum, \"yo-ho-hó\" é refrão."
+    },
+    {
+      "id": "i2",
+      "livro": "isla",
+      "modo": "pergunta",
+      "nivel": "A2",
+      "pergunta": "Qual é o nome da pousada?",
+      "menor": false,
+      "naoEsta": false,
+      "referencia": "\"Almirante Benbow\", citando o trecho p1."
+    },
+    {
+      "id": "i3",
+      "livro": "isla",
+      "modo": "pergunta",
+      "nivel": "A2",
+      "pergunta": "O que o Capitão pede ao narrador para vigiar?",
+      "menor": false,
+      "naoEsta": false,
+      "referencia": "Que fique alerta e avise quando aparecer um \"marino con una sola pierna\" (um marinheiro de uma perna só), em troca de quatro pence no dia primeiro de cada mês."
+    },
+    {
+      "id": "i4",
+      "livro": "isla",
+      "modo": "pergunta",
+      "nivel": "A2",
+      "pergunta": "Como se chama o navio da expedição?",
+      "menor": false,
+      "naoEsta": true,
+      "referencia": "O capítulo I não fala de navio de expedição: \"não está neste trecho\". Responder \"Hispaniola\" é conhecimento de fora."
+    },
+    {
+      "id": "i5",
+      "livro": "isla",
+      "modo": "observar",
+      "nivel": "A2",
+      "menor": false,
+      "referencia": "O narrador conta no passado, a pedido de Trelawney e Livesey; o tesoro ainda não descoberto; a cicatriz e o jeito do velho marinheiro; ele evita outros marinheiros; o pedido de vigiar o homem de uma perna. Sem adiantar."
+    }
+  ]
+}

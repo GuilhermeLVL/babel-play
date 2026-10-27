@@ -385,7 +385,7 @@ async function atender(
     await registrarGastoDeIa(entregue.custoUsd, { userId: ctx.userId, plano: plano.plan })
     await ctx.registrarCusto?.(entregue.custoUsd)
 
-    const resposta = lerRespostaDoParceiro(entregue.texto, modo, paraCitar)
+    const resposta = lerRespostaDoParceiro(entregue.texto, modo, paraCitar, textoDaFicha)
     if (!resposta) {
       contarRespostaInvalida('leitura', entregue.model)
       log('warn', {

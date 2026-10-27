@@ -2,6 +2,8 @@
  * OBRAS E EDIÇÕES: o mesmo livro em vários idiomas, e a busca por título traduzido. A visibilidade vale
  * EDIÇÃO POR EDIÇÃO: um irmão de outro idioma só aparece se ele próprio passa no filtro legal e na classificação.
  */
+import { readFileSync } from 'node:fs'
+
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -307,5 +309,38 @@ describe('montagem: títulos alternativos e equivalência de título', () => {
     expect(tituloEquivale('Short Fiction', 'Fiction')).toBe(false)
     expect(tituloEquivale('Faust', 'Faust, Part One')).toBe(false)
     expect(tituloEquivale('Hamlet', 'Macbeth')).toBe(false)
+  })
+})
+
+describe('o catálogo publicado e as obras', () => {
+  const publicado = JSON.parse(readFileSync('public/catalogo/livros.json', 'utf8')) as { livros: LivroDoCatalogo[] }
+
+  it('todo livro tem uma obra válida, e obra local nunca atravessa idiomas', () => {
+    for (const l of publicado.livros) {
+      expect(l.obra, l.id).toMatch(/^(Q\d+|local:[a-z]{2}:[a-z0-9-]+)$/)
+      if (l.obra!.startsWith('local:')) expect(l.obra!.startsWith(`local:${l.idioma}:`), l.id).toBe(true)
+      for (const a of l.titulosAlternativos ?? []) expect(a.trim(), l.id).not.toBe('')
+    }
+  })
+
+  it('liga em mais de um idioma os exemplos conhecidos (e só por QID)', () => {
+    const grupos = agruparPorObra(publicado.livros)
+    const idiomasDe = (id: string) => {
+      const l = publicado.livros.find((x) => x.id === id)!
+      return new Set(grupos.get(chaveDaObra(l))!.map((x) => x.idioma))
+    }
+    expect([...idiomasDe('se-william-shakespeare-hamlet')].sort()).toEqual(['en', 'es'])
+    expect([...idiomasDe('pg-57303')].sort()).toEqual(['en', 'es', 'it'])
+    expect([...idiomasDe('pg-2229')].sort()).toEqual(['de', 'es'])
+    expect([...idiomasDe('pg-21848')].sort()).toEqual(['es', 'nl'])
+    for (const [chave, edicoes] of grupos)
+      if (new Set(edicoes.map((e) => e.idioma)).size > 1) expect(ehObraDaWikidata(chave), chave).toBe(true)
+  })
+
+  it('"odisseia" e "don quijote" acham a obra pelo título de outro idioma', () => {
+    const acha = (texto: string) => filtrarLivros(publicado.livros, { texto }).map((l) => l.id)
+    expect(acha('odisseia')).toEqual(expect.arrayContaining(['pg-58221', 'se-homer-the-odyssey-william-cullen-bryant']))
+    expect(acha('dom quixote')).toContain('se-miguel-de-cervantes-saavedra-don-quixote-john-ormsby')
+    expect(acha('la isla del tesoro')).toContain('se-robert-louis-stevenson-treasure-island')
   })
 })

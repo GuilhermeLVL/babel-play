@@ -10,7 +10,7 @@
  *   · nunca `gutenberg.org`: metadado vem do Gutendex, texto vem do espelho (`gutenberg.pglaf.org`).
  */
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { TextDecoder } from 'node:util'
 
@@ -64,6 +64,23 @@ async function naVez(host, f) {
     ultimoPedido.set(host, Date.now())
     soltar()
   }
+}
+
+/** O que já está no cache em disco, sem nunca ir à rede: `null` quando falta (ou quando a fonte não tinha). */
+export function lerDoCache(url, tipo = 'binario') {
+  if (!dirDoCache) return null
+  const arq = caminhoNoCache(url, tipo === 'json' ? 'json' : tipo === 'binario' ? 'bin' : 'txt')
+  if (!existsSync(arq)) return null
+  const b = readFileSync(arq)
+  if (b.length === 0) return null
+  return tipo === 'json' ? JSON.parse(b.toString('utf8')) : new Uint8Array(b)
+}
+
+/** Apaga a entrada do cache (resposta cortada ou corrompida) para a próxima chamada baixar de novo. */
+export function esquecerDoCache(url, tipo = 'json') {
+  if (!dirDoCache) return
+  const arq = caminhoNoCache(url, tipo === 'json' ? 'json' : tipo === 'binario' ? 'bin' : 'txt')
+  if (existsSync(arq)) unlinkSync(arq)
 }
 
 export let pedidosFeitos = 0

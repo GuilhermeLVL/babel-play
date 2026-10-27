@@ -64,26 +64,6 @@ export function edicoesEmOutrosIdiomas(
   );
 }
 
-/** Uma obra na vitrine: a edição que a representa (a do idioma preferido) e todas as edições da obra. */
-export interface ObraDaVitrine {
-  obra: string;
-  principal: LivroDoCatalogo;
-  edicoes: LivroDoCatalogo[];
-}
-
-/**
- * Agrupa por obra, sem repetir a obra. A edição principal é a do `idiomaPreferido`; sem ela, a mais popular.
- * A ordem das obras segue a do primeiro livro de cada grupo (a lista já vem ordenada por quem chama).
- */
-export function obrasDaVitrine(livros: readonly LivroDoCatalogo[], idiomaPreferido: string): ObraDaVitrine[] {
-  return [...agruparPorObra(livros)].map(([obra, edicoes]) => {
-    const principal =
-      edicoes.find((l) => l.idioma === idiomaPreferido) ??
-      [...edicoes].sort((a, b) => b.popularidade - a.popularidade)[0];
-    return { obra, principal, edicoes };
-  });
-}
-
 /** Os idiomas das edições, sem repetir, com `primeiro` na frente quando está entre eles. */
 export function idiomasDasEdicoes(edicoes: readonly LivroDoCatalogo[], primeiro?: string): string[] {
   const todos = [...new Set(edicoes.map((l) => l.idioma))];

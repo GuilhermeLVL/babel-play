@@ -48,6 +48,7 @@ import {
 import { textoDizQueETraducao } from '../../src/core/livros/traducao.ts'
 import { contarPalavras, estimarNivel, montarIndiceCefr } from '../../src/core/livros/nivelEstimado.ts'
 import { textoDoEspelho } from './_espelho.mjs'
+import { resolverObras } from './_obras.mjs'
 import { baixar, pedidosFeitos, usarCache } from './_rede.mjs'
 
 const RAIZ = fileURLToPath(new URL('../..', import.meta.url))
@@ -65,6 +66,8 @@ const ANO = Number(arg('ano') ?? anoEmSaoPaulo(new Date()))
 const SAIDA = join(RAIZ, arg('saida') ?? 'public/catalogo/livros.json')
 const SO_VERIFICAR = args.includes('--verificar')
 const RAPIDO = args.includes('--rapido')
+/* Só acrescenta `obra`/`titulosAlternativos` ao JSON publicado (Wikidata, com cache); não muda a lista de livros. */
+const SO_OBRAS = args.includes('--obras')
 if (!Number.isInteger(ANO) || ANO < 2000 || ANO > 2200) throw new Error(`--ano inválido: ${arg('ano')}`)
 const LIMITE = anoLimite(ANO)
 
@@ -785,8 +788,35 @@ function conferir(catalogo, agora = new Date()) {
       problemas.push(`${l.id}: classificação de PROPOSTA publicada sem revisão do dono`)
     if (l.fonte === 'gutenberg-curado' && (l.formatos.epub || !l.formatos.r2))
       problemas.push(`${l.id}: Gutenberg só pela cópia curada no R2`)
+    if (l.obra !== undefined && !/^(Q\d+|local:[a-z]{2}:[a-z0-9-]+)$/.test(l.obra))
+      problemas.push(`${l.id}: obra inválida "${l.obra}"`)
+    if (l.obra?.startsWith('local:') && !l.obra.startsWith(`local:${l.idioma}:`))
+      problemas.push(`${l.id}: obra local de outro idioma (${l.obra})`)
+    if (
+      l.titulosAlternativos !== undefined &&
+      !(Array.isArray(l.titulosAlternativos) && l.titulosAlternativos.every((x) => typeof x === 'string' && x.trim()))
+    )
+      problemas.push(`${l.id}: titulosAlternativos malformado`)
   }
   return problemas
+}
+
+/** Acrescenta `obra` e `titulosAlternativos` (Wikidata) a cada livro; devolve quantos ficaram ligados por QID. */
+async function anexarObras(lista) {
+  const campos = await resolverObras(lista, (m) => console.warn(`[obras] ${m}`))
+  for (const l of lista) {
+    delete l.obra
+    delete l.titulosAlternativos
+    Object.assign(l, campos.get(l.id))
+  }
+  const grupos = new Map()
+  for (const l of lista) if (/^Q\d+$/.test(l.obra)) grupos.set(l.obra, [...(grupos.get(l.obra) ?? []), l])
+  const entreIdiomas = [...grupos.entries()].filter(([, g]) => new Set(g.map((x) => x.idioma)).size > 1)
+  console.log(
+    `[obras] ${grupos.size} obras com QID (${lista.filter((l) => /^Q\d+$/.test(l.obra)).length} de ${lista.length} livros); ${entreIdiomas.length} em 2+ idiomas`,
+  )
+  for (const [qid, g] of entreIdiomas)
+    console.log(`[obras]   ${qid}: ${g.map((x) => `${x.idioma}:${x.id}`).join(', ')} (${g[0].titulo})`)
 }
 
 /* ── Principal ───────────────────────────────────────────────────────────────────────────────── */
@@ -805,6 +835,23 @@ async function principal() {
     return
   }
   usarCache(join(RAIZ, 'data', 'livros-cache'))
+  if (SO_OBRAS) {
+    const catalogo = JSON.parse(readFileSync(SAIDA, 'utf8'))
+    const antes = catalogo.livros.map((l) => l.id).join('|')
+    await anexarObras(catalogo.livros)
+    if (catalogo.livros.map((l) => l.id).join('|') !== antes)
+      throw new Error('--obras não pode mudar a lista de livros')
+    const problemas = conferir(catalogo)
+    if (problemas.length) {
+      console.error(`[catalogo] NÃO GRAVADO: ${problemas.length} problema(s):\n  ${problemas.join('\n  ')}`)
+      process.exit(1)
+    }
+    writeFileSync(SAIDA, JSON.stringify(catalogo) + '\n')
+    console.log(
+      `[catalogo] ${catalogo.livros.length} livros com obra gravados em ${SAIDA} (pedidos de rede: ${pedidosFeitos})`,
+    )
+    return
+  }
   console.log(`[catalogo] ano ${ANO}: entra quem morreu até ${LIMITE}`)
   const doSe = await standardEbooks()
   const porIdioma = {}
@@ -832,6 +879,7 @@ async function principal() {
     livros,
     exclusoes: exclusoesUnicas,
   }
+  await anexarObras(livros)
   const problemas = conferir(catalogo)
   if (problemas.length) {
     console.error(`[catalogo] NÃO GRAVADO: ${problemas.length} problema(s):\n  ${problemas.join('\n  ')}`)

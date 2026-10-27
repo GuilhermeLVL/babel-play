@@ -4,7 +4,7 @@ import { BookMarked, BookOpen, Upload } from 'lucide-react';
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 
 import { livrosVisiveis } from '../../core/livros/catalogo';
-import { edicoesDaObra } from '../../core/livros/obras';
+import { edicoesEmOutrosIdiomas } from '../../core/livros/obras';
 import { type Catalogo, NIVEIS_DO_LIVRO, type NivelDoLivro } from '../../core/livros/tipos';
 import { lerAjustesDoAssistente } from '../../lib/assistente/ajustesDoAssistente';
 import { t } from '../../lib/i18n';
@@ -188,8 +188,8 @@ export default function Livros({
         livro={livro}
         aoVoltar={voltarAoCatalogo}
         aoLer={() => abrirLivroNoLeitor(livro)}
-        /* `visiveis` já passou pelo filtro legal e pela faixa etária, edição por edição. */
-        outrasEdicoes={edicoesDaObra(livro, visiveis).filter((e) => e.idioma !== livro.idioma)}
+        /* Filtro legal e faixa etária valem edição por edição: irmã que este leitor não pode ver não entra. */
+        outrasEdicoes={edicoesEmOutrosIdiomas(livro, catalogo.livros, teto, catalogo.anoLimite)}
         aoAbrirEdicao={abrirDetalheDoLivro}
         aoLerEdicao={(e) => void abrirLivroNoLeitor(e)}
       />

@@ -78,21 +78,33 @@ async function mouse(page: Page, browserName: string) {
   }
 }
 
-/** O ponto (na página) do começo da palavra `orchard`. */
-async function pontoDaPalavra(f: Frame, palavra = 'orchard') {
-  const caixa = await f.evaluate((p) => {
-    const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
-    for (let n = w.nextNode(); n; n = w.nextNode()) {
-      const i = n.textContent!.indexOf(p)
-      if (i < 0) continue
-      const r = document.createRange()
-      r.setStart(n, i + 1)
-      r.setEnd(n, i + 2)
-      const b = r.getBoundingClientRect()
-      return { x: b.left + b.width / 2, y: b.top + b.height / 2 }
-    }
-    return null
-  }, palavra)
+/**
+ * O ponto (na página) da 2ª letra de `palavra`, a `fracao` da largura dela (0,5 = o centro).
+ *
+ * O CENTRO EXATO DE UMA LETRA É UM EMPATE para o Chromium no Linux: apertar o botão ali e arrastar deixa a
+ * seleção em caret que acompanha o ponteiro (nunca vira trecho), embora cada ponto 0,5 px ao lado funcione
+ * (varredura de 366 a 400 px a cada 0,5 px, no 768: só o 380,0 falhava). Não há chamada à API de seleção,
+ * script nem ouvinte do app no caminho (falha igual com `ouvirGestos` desligado): é o motor. Quem arrasta
+ * de verdade nunca cai no empate; o teste, que calcula o centro, cai. Por isso o ARRASTO sai de 25 % da
+ * letra; o toque (que não depende disso) segue no centro.
+ */
+async function pontoDaPalavra(f: Frame, palavra = 'orchard', fracao = 0.5) {
+  const caixa = await f.evaluate(
+    ([p, fr]) => {
+      const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+      for (let n = w.nextNode(); n; n = w.nextNode()) {
+        const i = n.textContent!.indexOf(p as string)
+        if (i < 0) continue
+        const r = document.createRange()
+        r.setStart(n, i + 1)
+        r.setEnd(n, i + 2)
+        const b = r.getBoundingClientRect()
+        return { x: b.left + b.width * (fr as number), y: b.top + b.height / 2 }
+      }
+      return null
+    },
+    [palavra, fracao] as const,
+  )
   const quadro = await (await f.frameElement()).boundingBox()
   if (!caixa || !quadro) throw new Error(`sem a palavra ${palavra}`)
   return { x: quadro.x + caixa.x, y: quadro.y + caixa.y }
@@ -111,7 +123,7 @@ test.describe('Leitor — o gesto no texto', () => {
     const p = await pontoDaPalavra(f)
 
     // ── arrastar: desce numa palavra ("hungry"), segura um instante e arrasta até outra ("orchard") — é seleção ──
-    const de = await pontoDaPalavra(f, 'hungry')
+    const de = await pontoDaPalavra(f, 'hungry', 0.25)
     await m.descer(de.x, de.y)
     await page.waitForTimeout(150)
     for (let i = 1; i <= 8; i++) await m.mover(de.x + ((p.x - de.x) * i) / 8, de.y + ((p.y - de.y) * i) / 8)
